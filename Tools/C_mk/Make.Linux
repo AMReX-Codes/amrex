@@ -2,8 +2,6 @@
 
 ifeq ($(COMP),KCC)
   CXX      = KCC
-  # CXXOPTF += -O3 +K3
-  # CXXOPTF += -O2 +K2
   CXXOPTF += -O1 +K1
   CXXDEBF += +K0
   FULLWARN := --strict_warnings
@@ -16,13 +14,13 @@ ifeq ($(COMP),Intel)
 endif
 endif
 
-FORT_CPP    := gcc -E -traditional
-FC  := g77 -fno-second-underscore
-fC  := $(FC)
+FORT_CPP := gcc -E -traditional
+FC       := g77 -fno-second-underscore
+fC       := $(FC)
 
 ifeq ($(FCOMP),Fujitsu)
-  FC  := frt
-  fC  := $(FC)
+  FC    := frt
+  fC    := $(FC)
   FDEBF += -H aesu
   FOPTF += -K fast
   fDEBF += -H aesu
@@ -31,7 +29,6 @@ ifeq ($(FCOMP),Fujitsu)
   override XTRALIBS += -lfj9f6 -lfj9i6 -lfj9e6
 else
 ifeq ($(FCOMP),Absoft)
-  #FC  := f77 -f -B108
   FC  := f90 -B108 -YEXT_NAMES=LCS
   fC  := $(FC)
   LIBRARY_LOCATIONS += /usr/absoft/lib
@@ -39,12 +36,12 @@ ifeq ($(FCOMP),Absoft)
   #override FORTLINK := LOWERCASE
 else
 ifeq ($(FCOMP),PGI)
-  FC := pgf77
+  FC := pgf90
   fC := $(FC)
-  FOPTF += -fast -tp athlon -Mcache_align -Mvect=prefetch
-  fOPTF += -fast -tp athlon -Mcache_align -Mvect=prefetch
-  LIBRARY_LOCATIONS += /usr/local/pgi/linux86/lib
-  override XTRALIBS += -lpgftnrtl -lpgc
+  FOPTF += -fast
+  fOPTF += -fast
+  LIBRARY_LOCATIONS += /usr/pgi/linux86/lib
+  override XTRALIBS += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpgc
 else
 ifeq ($(FCOMP),Intel)
   FC   := ifc
