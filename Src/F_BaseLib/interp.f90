@@ -145,7 +145,7 @@ contains
     cmin = crse(0:nxc(1)-1,0:nxc(2)-1,:)
 
     do n = 1, size(fine,3)
-       !      Initialize alpha = 1 and define cmax and cmin as neighborhood max/mins.
+       ! Initialize alpha = 1 and define cmax and cmin as neighborhood max/mins.
        do j = 0, nxc(2)-1
           do i = 0, nxc(1)-1
              do joff = -1, 1
@@ -159,7 +159,7 @@ contains
 
     end do
     !
-    !   Compute unlimited and limited slopes
+    ! Compute unlimited and limited slopes
     !
     do n = 1, size(fine,3)
        do j = 0, nxc(2)-1
@@ -264,11 +264,11 @@ contains
 
        if ( lin_limit ) then
 
-          !       compute linear limited slopes
+          ! compute linear limited slopes
           ! Note that the limited and the unlimited slopes
           ! have the same sign, and it is assumed that they do.
-          !
-          !  --> compute slope factors
+
+          ! compute slope factors
 
           xslope_factor = ONE
           yslope_factor = ONE
@@ -282,7 +282,7 @@ contains
              end where
           end do
 
-          !  -->  compute linear limited slopes
+          ! compute linear limited slopes
 
           do n = 1, size(fine,3)
              lc_xslope(:,:,n) = xslope_factor*uc_xslope(:,:,n)
@@ -320,7 +320,7 @@ contains
 
        end if
 
-       !     Do the interpolation with limited slopes.
+       ! Do the interpolation with limited slopes.
 
        do n = 1, size(fine,3)
           do j = 0, size(fine,2)-1
@@ -365,7 +365,7 @@ contains
 
   end subroutine lin_cc_interp_2d
 
-  !!  pcinterp:  cell centered piecewise constant interpolation
+  !! pcinterp:  cell centered piecewise constant interpolation
 
   subroutine pc_cc_interp_2d (crse, fine, lratio)
     integer, intent(in) :: lratio(2)
@@ -390,8 +390,8 @@ contains
 
   end subroutine pc_cc_interp_2d
 
-  !  protect_interp:   redo interpolation if the result of linccinterp
-  !  generates under- or overshoots.
+  !! protect_interp:   redo interpolation if the result of linccinterp
+  !! generates under- or overshoots.
 
   subroutine pr_cc_interp_2d (fine, crse, lratio, fine_state, &
        fvcx, fvcy, cvcx, cvcy)
@@ -422,7 +422,7 @@ contains
        do ic = 0, size(crse,1)-1
 
           ilo = lratio(1)*ic
-          ihi = ihi + lratio(1) - 1
+          ihi = ilo + lratio(1) - 1
           jlo = lratio(2)*jc
           jhi = jlo + lratio(2) - 1
 
@@ -434,45 +434,45 @@ contains
                    if ((fine_state(i,j,n)+fine(i,j,n))  <  ZERO) redo_me = .true.
                 end do
              end do
-             !
-             ! ****************************************************************************************
-             !
-             ! If all the fine values are non-negative after the original interpolated 
-             ! correction, then we do nothing here.
-             !
-             ! If any of the fine values are negative after the original interpolated
-             ! correction, then we do our best.
-             !
-             ! Special cases:
-             !
-             ! 1) Coarse correction > 0, and fine_state has some cells with 
-             ! negative values which will be filled before adding to the other cells.
-             ! Use the correction to bring negative cells to ZERO, then
-             ! distribute the remaining positive proportionally.
-             !
-             ! 2) Coarse correction > 0, and correction can not make them all
-             ! positive.  Add correction only to the negative cells, in proportion
-             ! to their magnitude.
-             !
-             ! 3) Coarse correction < 0, and fine_state DOES NOT have enough
-             ! have enough positive state to absorb it.  Here we bring
-             ! all the positive fine cells to ZERO then distribute the remaining
-             ! negative amount in such a way as to make them all as close to the
-             ! same negative value as possible.
-             !
-             ! 4) Coarse correction < 0, fine_state has enough
-             ! positive state to absorb it without making any fine 
-             ! cells negative, BUT fine_state+fine is currently negative
-             ! in at least ONE fine cell.  Here just take a constant percentage
-             ! away from each positive and don't touch the negatives.
-             !
-             ! crseTot = volume-weighted sum of all interpolated values of the correction,
-             ! which is equivalent to the total volume-weighted coarse correction
-             ! SumN = volume-weighted sum of all negative values of fine_state
-             ! SumP = volume-weighted sum of all positive values of fine_state
-             !
-             ! ****************************************************************************************
-             !
+
+!!! ****************************************************************************************
+!!!
+!!! If all the fine values are non-negative after the original interpolated 
+!!! correction, then we do nothing here.
+!!!
+!!! If any of the fine values are negative after the original interpolated
+!!! correction, then we do our best.
+!!!
+!!! Special cases:
+!!!
+!!! 1) Coarse correction > 0, and fine_state has some cells with 
+!!! negative values which will be filled before adding to the other cells.
+!!! Use the correction to bring negative cells to ZERO, then
+!!! distribute the remaining positive proportionally.
+!!!
+!!! 2) Coarse correction > 0, and correction can not make them all
+!!! positive.  Add correction only to the negative cells, in proportion
+!!! to their magnitude.
+!!!
+!!! 3) Coarse correction < 0, and fine_state DOES NOT have enough
+!!! have enough positive state to absorb it.  Here we bring
+!!! all the positive fine cells to ZERO then distribute the remaining
+!!! negative amount in such a way as to make them all as close to the
+!!! same negative value as possible.
+!!!
+!!! 4) Coarse correction < 0, fine_state has enough
+!!! positive state to absorb it without making any fine 
+!!! cells negative, BUT fine_state+fine is currently negative
+!!! in at least ONE fine cell.  Here just take a constant percentage
+!!! away from each positive and don't touch the negatives.
+!!!
+!!! crseTot = volume-weighted sum of all interpolated values of the correction,
+!!! which is equivalent to the total volume-weighted coarse correction
+!!! SumN = volume-weighted sum of all negative values of fine_state
+!!! SumP = volume-weighted sum of all positive values of fine_state
+!!!
+!!! ****************************************************************************************
+
 
              if ( redo_me ) then
 
@@ -504,6 +504,7 @@ contains
                 end do
 
                 if (crseTot  >  ZERO .and. crseTot  >=  abs(sumN)) then
+
                    ! Here we want to fill in the negative values first, then add
                    ! the remaining positive proportionally.
 
