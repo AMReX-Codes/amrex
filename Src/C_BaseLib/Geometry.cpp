@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.48 1999-05-10 18:54:09 car Exp $
+// $Id: Geometry.cpp,v 1.49 1999-06-18 16:01:57 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -21,9 +21,7 @@ ostream&
 operator<< (ostream&        os,
             const Geometry& g)
 {
-    os << (CoordSys&) g;
-    os << g.prob_domain;
-    os << g.domain;
+    os << (CoordSys&) g << g.prob_domain << g.domain;
     return os;
 }
 
@@ -31,9 +29,7 @@ istream&
 operator>> (istream&  is,
             Geometry& g)
 {
-    is >> (CoordSys&) g;
-    is >> g.prob_domain;
-    is >> g.domain;
+    is >> (CoordSys&) g >> g.prob_domain >> g.domain;
     return is;
 }
 
@@ -58,9 +54,7 @@ operator<< (ostream&                 os,
 	    const Geometry::PIRMMap& pirm)
 {
     for (int i = 0; i < pirm.size(); i++)
-    {
         os << pirm[i] << '\n';
-    }
     return os;
 }
 
@@ -84,16 +78,9 @@ Geometry::buildFPB (MultiFab&  mf,
 
     m_FPBCache.push_front(fpb);
 
-    //cout << "*** FPB Cache Size = " << m_FPBCache.size() << endl;
-
-    const int                  MyProc = ParallelDescriptor::MyProc();
-    const DistributionMapping& DMap   = mf.DistributionMap();
-    Array<int>&                cache  = m_FPBCache.front().m_cache;
-    PIRMMap&                   pirm   = m_FPBCache.front().m_pirm;
+    PIRMMap& pirm = m_FPBCache.front().m_pirm;
 
     Array<IntVect> pshifts(27);
-
-    cache.resize(ParallelDescriptor::NProcs(),0);
 
     for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
     {
@@ -108,7 +95,6 @@ Geometry::buildFPB (MultiFab&  mf,
             {
                 if (mfi.validbox().smallEnd(idir) != Domain().smallEnd(idir))
                     dest.growLo(idir,-mf.nGrow());
-
                 if (mfi.validbox().bigEnd(idir) != Domain().bigEnd(idir))
                     dest.growHi(idir,-mf.nGrow());
             }
@@ -140,13 +126,13 @@ Geometry::buildFPB (MultiFab&  mf,
                 {
                     for (int i = 0; i < BL_SPACEDIM; i++)
                     {
-                        if (!isPeriodic(i) &&
-                            src.smallEnd(i) == Domain().smallEnd(i))
-                            src.growLo(i,mf.nGrow());
-
-                        if (!isPeriodic(i) &&
-                            src.bigEnd(i) == Domain().bigEnd(i))
-                            src.growHi(i,mf.nGrow());
+                        if (!isPeriodic(i))
+                        {
+                            if (src.smallEnd(i) == Domain().smallEnd(i))
+                                src.growLo(i,mf.nGrow());
+                            if (src.bigEnd(i) == Domain().bigEnd(i))
+                                src.growHi(i,mf.nGrow());
+                        }
                     }
                 }
 
@@ -159,17 +145,9 @@ Geometry::buildFPB (MultiFab&  mf,
                     Box dst_box = src_box - pshifts[i];
 
                     pirm.push_back(PIRec(mfi.index(),j,dst_box,src_box));
-
-                    if (DMap[j] != MyProc)
-                        //
-                        // DMap[j] will want something from us.
-                        //
-                        cache[DMap[j]] += 1;
                 }
             }
         }
-
-        BL_ASSERT(cache[DMap[mfi.index()]] == 0);
     }
 
     return m_FPBCache.front();
@@ -276,20 +254,14 @@ Geometry::Setup ()
     //
     D_EXPR(is_periodic[0]=0, is_periodic[1]=0, is_periodic[2]=0);
     if (pp.contains("period_0"))
-    {
         is_periodic[0] = 1;
-    }
 #if BL_SPACEDIM>1
     if (pp.contains("period_1"))
-    {
         is_periodic[1] = 1;
-    }
 #endif
 #if BL_SPACEDIM>2
     if (pp.contains("period_2"))
-    {
         is_periodic[2] = 1;
-    }
 #endif
 }
 
