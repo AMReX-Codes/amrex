@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.21 1998-04-07 15:53:03 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.22 1998-04-07 23:10:18 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -371,6 +371,9 @@ knapsack (const vector<long>& pts,
     // Sort balls by size largest first.
     //
     vector< list<int> > result(nprocs, list<int>() );	// FIXME: MSVC BUG
+
+#if defined(BL_USE_BSP) || defined(BL_USE_MPI)
+
     vector<WeightedBox> lb;
     lb.reserve(pts.size());
     for (int i = 0; i < pts.size(); ++i)
@@ -502,5 +505,11 @@ top:
         }
         ++cit;
     }
+#else
+
+    BoxLib::Error("how did this happen?");
+
+#endif /*defined(BL_USE_BSP) || defined(BL_USE_MPI)*/
+
     return result;
 }
