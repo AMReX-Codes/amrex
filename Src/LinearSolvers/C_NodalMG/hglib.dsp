@@ -184,6 +184,8 @@ SOURCE=.\hg_multi3d.F
 SOURCE=.\hg_multi3d_terrain.F
 # End Source File
 # Begin Source File
+
+SOURCE=.\hg_proj3d.F
 # End Source File
 # End Group
 # End Target
