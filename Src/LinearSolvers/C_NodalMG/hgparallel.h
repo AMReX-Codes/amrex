@@ -146,7 +146,7 @@ public:
     sequence_number get_sequence_number () const { return m_sno; }
 
 protected:
-
+    friend class task_proxy;
     void _do_depend ();
     void _hint () const;
     //
