@@ -225,7 +225,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 	int igrid = lev_interface[mglev].fgrid(iface, 0);
 	if (igrid < 0)
 	    igrid = lev_interface[mglev].fgrid(iface, 1);
-	const unsigned geo = lev_interface[mglev].fgeo(iface);
+	const unsigned int geo = lev_interface[mglev].fgeo(iface);
 	// reject fine-fine interfaces and those without an interior fine grid
 	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].fflag(iface) ) 
 	{
@@ -289,7 +289,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 	    if (igrid >= 0)
 		break;
 	}
-	unsigned geo = lev_interface[mglev].geo(1, iedge);
+	const unsigned int geo = lev_interface[mglev].geo(1, iedge);
 	// reject fine-fine interfaces and those without an interior fine grid
 	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(1, iedge) ) 
 	{
@@ -350,7 +350,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 	    if (igrid >= 0)
 		break;
 	}
-	unsigned geo = lev_interface[mglev].geo(0, icor);
+	const unsigned int geo = lev_interface[mglev].geo(0, icor);
 	// reject fine-fine interfaces and those without an interior fine grid
 	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(0, icor) ) 
 	{
@@ -418,7 +418,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	int igrid = lev_interface[mglev].fgrid(iface, 0);
 	if (igrid < 0)
 	    igrid = lev_interface[mglev].fgrid(iface, 1);
-	unsigned geo = lev_interface[mglev].fgeo(iface);
+	const unsigned int geo = lev_interface[mglev].fgeo(iface);
 	// reject fine-fine interfaces and those without an interior fine grid
 	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].fflag(iface) )
 	    continue;
@@ -431,7 +431,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	const Box& sigmafbox = fres_sfbox[lev][iface];
 	const Box& sigmacbox = fres_scbox[lev][iface];
 	FArrayBox& sigmac = fres_sc[lev][iface];
-	Real *const sigmafptr = sigma[mglev][igrid].dataPtr();
+	Real* sigmafptr = sigma[mglev][igrid].dataPtr();
 	const Box& creg = fres_creg[lev][iface];
 	FArrayBox& cdst = fres_dc[lev][iface];
 	if (fres_flag[lev][iface] == 0) 
@@ -502,7 +502,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		if (igrid >= 0)
 		    break;
 	    }
-	    unsigned geo = lev_interface[mglev].geo(1, iedge);
+	    const unsigned int geo = lev_interface[mglev].geo(1, iedge);
 	    // reject fine-fine interfaces and those without an interior fine grid
 	    if (geo != level_interface::ALL && igrid >= 0 && !lev_interface[mglev].flag(1, iedge) ) 
 	    {
@@ -522,8 +522,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		{
 		    fill_patch(cdst, cdst.box(), dest[lev-1], lev_interface[mglevc], boundary.pressure(), 0);
 		}
-		Real *const rptr = resid[mglev][igrid].dataPtr();
-		Real *const sptr = source[lev][igrid].dataPtr();
+		Real* rptr = resid[mglev][igrid].dataPtr();
+		Real* sptr = source[lev][igrid].dataPtr();
 		lev_interface[mglev].geo_array(ga, 1, iedge);
 		if (m_hg_terrain)
 		{
@@ -573,7 +573,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		if (igrid >= 0)
 		    break;
 	    }
-	    unsigned geo = lev_interface[mglev].geo(0, icor);
+	    const unsigned int geo = lev_interface[mglev].geo(0, icor);
 	    // reject fine-fine interfaces and those without an interior fine grid
 	    if (geo != level_interface::ALL && igrid >= 0 && !lev_interface[mglev].flag(0, icor) ) 
 	    {
@@ -644,7 +644,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		if (igrid >= 0)
 		    break;
 	    }
-	    unsigned geo = lev_interface[mglev].geo(0, icor);
+	    const unsigned int geo = lev_interface[mglev].geo(0, icor);
 	    // reject fine-fine interfaces and those without an interior fine grid
 	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(0, icor) )
 		continue;
@@ -741,8 +741,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		{
 		    fill_patch(cdst, cdst.box(), dest[lev-1], lev_interface[mglevc], boundary.pressure(), 0, 0, -1);
 		}
-		Real *const rptr = resid[mglev][igrid].dataPtr();
-		Real *const sptr = source[lev][igrid].dataPtr();
+		Real* rptr = resid[mglev][igrid].dataPtr();
+		Real* sptr = source[lev][igrid].dataPtr();
 		FORT_HGDRES(rptr, DIMLIST(sbox),
 		    sptr, DIMLIST(sbox),
 		    fdst.dataPtr(), DIMLIST(fbox),
@@ -782,8 +782,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		{
 		    fill_patch(cdst, cdst.box(), dest[lev-1], lev_interface[mglevc], boundary.pressure(), 0, 0, -1);
 		}
-		Real *const rptr = resid[mglev][igrid].dataPtr();
-		Real *const sptr = source[lev][igrid].dataPtr();
+		Real* rptr = resid[mglev][igrid].dataPtr();
+		Real* sptr = source[lev][igrid].dataPtr();
 		FORT_HGIRES(rptr, DIMLIST(sbox),
 		    sptr, DIMLIST(sbox),
 		    fdst.dataPtr(), DIMLIST(fbox),

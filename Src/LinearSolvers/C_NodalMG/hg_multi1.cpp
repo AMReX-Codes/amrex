@@ -618,7 +618,7 @@ void holy_grail_amr_multigrid::sync_interfaces()
 	    int igrid = lev_interface[mglev].fgrid(iface, 0);
 	    if (igrid < 0)
 		igrid = lev_interface[mglev].fgrid(iface, 1);
-	    unsigned geo = lev_interface[mglev].fgeo(iface);
+	    const unsigned int geo = lev_interface[mglev].fgeo(iface);
 	    // reject fine-fine interfaces and those without an interior fine grid
 	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].fflag(iface) )
 		continue;
@@ -645,7 +645,7 @@ void holy_grail_amr_multigrid::sync_periodic_interfaces()
 	    int igrid = lev_interface[mglev].fgrid(iface, 0);
 	    if (igrid < 0)
 		igrid = lev_interface[mglev].fgrid(iface, 1);
-	    unsigned geo = lev_interface[mglev].fgeo(iface);
+	    const unsigned int geo = lev_interface[mglev].fgeo(iface);
 	    // use only exterior coarse-fine faces with an interior fine grid
 	    const Box& nbox = lev_interface[mglev].node_face(iface);
 	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].fflag(iface) || idomain.intersects(nbox))

@@ -18,14 +18,14 @@ public:
     virtual ~amr_restrictor_class() { }
     virtual Box box(const Box&, const IntVect&) const = 0;
     virtual void fill(FArrayBox&, const Box&, const FArrayBox&, const IntVect&) const = 0;
-    virtual void lev_interface(FArrayBox&, const Box&, MultiFab&,
+    virtual void lev_interface(FArrayBox&, const Box&, MultiFab&, 
 	const level_interface&, const amr_boundary_class*, const IntVect&) const { }
 };
 
 class cell_average_restrictor_class : public amr_restrictor_class 
 {
 public:
-    explicit cell_average_restrictor_class(int i) { integrate = i; }
+    explicit cell_average_restrictor_class(int i) : integrate(i) { }
     virtual Box box(const Box& fb, const IntVect& rat) const;
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
 protected:
