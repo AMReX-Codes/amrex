@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.1 1997-09-15 19:40:05 lijewski Exp $
+# $Id: GNUmakefile,v 1.2 1997-09-15 20:45:43 lijewski Exp $
 #
 
 #
@@ -23,11 +23,6 @@ DEBUG = TRUE
 DIM = 2
 
 #
-# TODO - remove this.
-#
-MAKEARCHFILE = ../IAMRAll/Make.OSF1
-
-#
 # Your choice of C++ compiler: g++-2.5.8, OCC, CC, KCC, CFRONT
 #
 COMP = KCC
@@ -37,7 +32,7 @@ COMP = KCC
 #
 LBASE = box
 
-include $(GUTHAMR_HOME)/Make.defs Make.package
+include ../mk/Make.defs Make.package
 
 all: $(optionsLib)
 
@@ -48,7 +43,7 @@ all: $(optionsLib)
 #
 install: all
 
-include $(GUTHAMR_HOME)/Make.rules
+include ../mk/Make.rules
 
 #
 # Temp stuff for doing html docs.
