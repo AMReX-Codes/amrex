@@ -997,13 +997,14 @@ contains
     end subroutine write_a_legacy_intvect
   end subroutine box_print
 
-  subroutine box_read(bx, unit, stat)
+  subroutine box_read(bx, unit, stat, nodal)
     use bl_IO_module
     use bl_stream_module
     type(box), intent(out) :: bx
     type(bl_stream) :: strm
     integer, intent(in), optional :: unit
     logical, intent(out), optional :: stat
+    logical, intent(out), optional :: nodal(:)
     character :: c
     if ( present(stat) ) stat = .true.
     call build(strm, unit_stdin(unit))
@@ -1025,7 +1026,7 @@ contains
     subroutine read_a_legacy_box
       character(len=1) :: c
       integer :: i
-      integer :: dim
+      integer :: dm
       integer :: it(MAX_SPACEDIM)
 
       call bl_stream_expect(strm, '(')
@@ -1035,7 +1036,7 @@ contains
          c = bl_stream_scan_chr(strm)
          if ( c == ')') then
             call bl_stream_putback_chr(strm, c)
-            dim = i-1
+            dm = i-1
             exit
          else if ( c /= ',' ) then
             call bl_error("READ_BOX: expected ',' or ')' got: ", '"'//c//'"')
@@ -1046,7 +1047,7 @@ contains
 
       call bl_stream_expect(strm, '(')
       bx%hi(1) = bl_stream_scan_int(strm)
-      do i = 2, dim
+      do i = 2, dm
          call bl_stream_expect(strm, ',')
          bx%hi(i) = bl_stream_scan_int(strm)
       end do
@@ -1055,22 +1056,29 @@ contains
       it = 0
       call bl_stream_expect(strm, '(')
       it(1) = bl_stream_scan_int(strm)
-      do i = 2, dim
+      do i = 2, dm
          call bl_stream_expect(strm, ',')
          it(i) = bl_stream_scan_int(strm)
       end do
       call bl_stream_expect(strm, ')')
       call bl_stream_expect(strm, ')')
       if ( any(it /= 0) ) then
-         if ( present(stat) ) then
-            call bl_warn("READ_BOX: throws away information: a nodal box")
-            stat = .false.
-            return
+         if ( present(nodal) ) then
+            nodal = .false.
+            do i = 1, dm
+               if ( it(i) /= 0 ) nodal(i) = .true.
+            end do
          else
-            call bl_error("READ_BOX: throws away information: a nodal box")
+            if ( present(stat) ) then
+               call bl_warn("READ_BOX: throws away information: a nodal box")
+               stat = .false.
+               return
+            else
+               call bl_error("READ_BOX: throws away information: a nodal box")
+            end if
          end if
       end if
-      bx%dim = dim
+      bx%dim = dm
 
     end subroutine read_a_legacy_box
 

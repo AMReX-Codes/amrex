@@ -454,13 +454,15 @@ contains
       integer :: nvars, dm, flevel
       integer, allocatable :: refrat(:,:), nboxes(:)
       real(kind=dp_t), allocatable :: dxlev(:,:)
-      type(box), allocatable :: pdbx(:), bxs(:)
+      type(box), allocatable :: bxs(:)
+      type(box) :: bx_dummy
       type(box) :: bx
       type(boxarray) :: ba
       type(layout) :: la
       character(len=256), allocatable :: fileprefix(:)
       character(len=256), allocatable :: header(:)
       real(kind=dp_t), pointer :: pp(:,:,:,:)
+      logical :: nodal(MAX_SPACEDIM)
 
       read(unit=lun,fmt=*) nvars
       do i = 1, nvars
@@ -473,7 +475,6 @@ contains
 
       allocate(mmf(flevel))
 
-      allocate(pdbx(flevel))
       allocate(nboxes(flevel))
       allocate(fileprefix(flevel))
       allocate(header(flevel))
@@ -486,7 +487,7 @@ contains
       refrat(:,2:dm) = spread(refrat(:,1), dim=2, ncopies=dm-1)
 
       do i = 1, flevel
-         call box_read(pdbx(i), unit = lun)
+         call box_read(bx_dummy, unit = lun, nodal = nodal(1:dm))
       end do
       read(unit=lun, fmt=*) (idummy, i=1, flevel)
       allocate(dxlev(flevel,1:dm))
@@ -523,12 +524,12 @@ contains
               call bl_error("BUILD_PLOTFILE: unexpected n", n)
          idummy = bl_stream_scan_int(strm)
          do j = 1, nboxes(i)
-            call box_read(bxs(j), unit = lun)
+            call box_read(bxs(j), unit = lun, nodal = nodal(1:dm))
          end do
          call bl_stream_expect(strm, ')')
          call build(ba, bxs)
          call build(la, ba)
-         call multifab_build(mmf(i),la,nc = nvars, ng = ng)
+         call multifab_build(mmf(i),la,nc = nvars, ng = ng, nodal = nodal(1:dm))
          read(unit=lun, fmt=*) idummy
          do j = 1, nboxes(i)
             read(unit=lun, fmt=*) cdummy, &
