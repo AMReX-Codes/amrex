@@ -257,7 +257,7 @@ void holy_grail_amr_projector::sparse_node_source_adjustment(PArray<MultiFab>& s
     {
 	adjust /= mg_domain[ml_index[lev_min]].numPts();
 	
-	if (pcode >= 2)
+	if (pcode >= 2  && ParallelDescriptor::IOProcessor())
 	    cout << "Sparse-source solvability adjustment: " << adjust << endl;
 	
 	for (int lev = lev_min; lev <= lev_max; lev++) 
@@ -335,7 +335,7 @@ void holy_grail_amr_projector::grid_average(PArray<MultiFab>& S)
 	ParallelDescriptor::ReduceRealSum(adjust);
 	adjust /= mg_domain[ml_index[lev_min]].numPts();
 	
-	if (pcode >= 2)
+	if (pcode >= 2  && ParallelDescriptor::IOProcessor())
 	    cout << "Cell-source solvability adjustment: " << adjust << endl;
 	
 	for (int lev = lev_min; lev <= lev_max; lev++) 
@@ -441,7 +441,7 @@ void holy_grail_amr_projector::sync_right_hand_side(PArray<MultiFab>* u)
 	work[mglev0].setVal(1.0);
 	Real adjustment = inner_product(source[lev_min], work[mglev0]) /
 	    mg_domain[ml_index[lev_min]].volume();
-	if (pcode >= 2)
+	if (pcode >= 2  && ParallelDescriptor::IOProcessor())
 	    cout << "Solvability adjustment is " << adjustment << endl;
 	for (int lev = lev_min; lev <= lev_max; lev++) 
 	{

@@ -540,7 +540,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
     while (tol > 0.0) 
     {
 	i++;
-	if (i > 250 && pcode >= 2)
+	if (i > 250 && pcode >= 2  && ParallelDescriptor::IOProcessor())
 	    cout << "Conjugate-gradient iteration failed to converge" << endl;
 	Real rho_old = rho;
 	// safe to set the clear flag to 0 here---bogus values make it
@@ -571,7 +571,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 		w_dmfi->dataPtr(), c_dmfi->dataPtr(), i_dmfi->dataPtr(), DIMLIST(reg), alpha, rho);
 	}
 	ParallelDescriptor::ReduceRealSum(rho);
-	if (pcode >= 3)
+	if (pcode >= 3  && ParallelDescriptor::IOProcessor())
 	    cout << i << " " << rho << endl;
 	if (rho <= tol || i > 250)
 	    break;
@@ -584,6 +584,6 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 	}
     }
     
-    if (pcode >= 2)
+    if (pcode >= 2  && ParallelDescriptor::IOProcessor())
 	cout << i << " iterations required for conjugate-gradient" << endl;
 }
