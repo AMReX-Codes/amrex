@@ -56,38 +56,37 @@ extern "C"
 class task_interpolate_patch : public task
 {
 public:
-    task_interpolate_patch (task_list&                    tl_,
-                            MultiFab&                     dmf_,
-                            int                           dgrid_,
-                            const Box&                    dbx_,
-                            const MultiFab&               smf_,
-                            const IntVect&                rat_,
+    task_interpolate_patch (task_list&              tl_,
+                            MultiFab&               dmf_,
+                            int                     dgrid_,
+                            const Box&              dbx_,
+                            const MultiFab&         smf_,
+                            const IntVect&          rat_,
                             const amr_interpolator* interp_,
-                            const level_interface&        lev_interface_);
+                            const level_interface&  lev_interface_);
     virtual bool ready ();
     virtual ~task_interpolate_patch ();
-    virtual bool work_to_do () const;
 
 private:
 
-    task::task_proxy              tf;
-    MultiFab&                     dmf;
-    const int                     dgrid;
-    const Box                     dbx;
-    const MultiFab&               smf;
-    const IntVect                 rat;
+    task::task_proxy        tf;
+    MultiFab&               dmf;
+    const int               dgrid;
+    const Box               dbx;
+    const MultiFab&         smf;
+    const IntVect           rat;
     const amr_interpolator* interp;
-    const level_interface&        lev_interface;
+    const level_interface&  lev_interface;
 };
 
-task_interpolate_patch::task_interpolate_patch (task_list&      tl_,
-                                                MultiFab&       dmf_,
-                                                int             dgrid_,
-                                                const Box&      dbx_,
-                                                const MultiFab& smf_,
-                                                const IntVect&  rat_,
+task_interpolate_patch::task_interpolate_patch (task_list&              tl_,
+                                                MultiFab&               dmf_,
+                                                int                     dgrid_,
+                                                const Box&              dbx_,
+                                                const MultiFab&         smf_,
+                                                const IntVect&          rat_,
                                                 const amr_interpolator* interp_,
-                                                const level_interface& lev_interface_)
+                                                const level_interface&  lev_interface_)
     :
     task(tl_),
     dmf(dmf_),
@@ -100,14 +99,16 @@ task_interpolate_patch::task_interpolate_patch (task_list&      tl_,
     tf(0)
 {
     BL_ASSERT(dbx.sameType(dmf.box(dgrid)));
-    tf = m_task_list.add_task(
-	new task_fill_patch(m_task_list,
-			    dmf,
-			    dgrid,
-			    interp->box(dbx, rat),
-			    smf,
-			    lev_interface, 0, -1, -1)
-	);
+
+    tf = m_task_list.add_task(new task_fill_patch(m_task_list,
+                                                  dmf,
+                                                  dgrid,
+                                                  interp->box(dbx, rat),
+                                                  smf,
+                                                  lev_interface,
+                                                  0,
+                                                  -1,
+                                                  -1));
     depend_on(tf);
 }
 
@@ -118,20 +119,11 @@ task_interpolate_patch::ready ()
     {
         BL_ASSERT(is_started());
         BL_ASSERT(!tf.null());
-        BL_ASSERT(tf->ready());
 	task_fab* tff = dynamic_cast<task_fab*>(tf.get());
         BL_ASSERT(tff != 0);
-	interp->fill(dmf[dgrid], dbx,
-		     tff->fab(), tff->fab().box(),
-		     rat);
+	interp->fill(dmf[dgrid], dbx, tff->fab(), tff->fab().box(), rat);
     }
     return true;
-}
-
-bool
-task_interpolate_patch::work_to_do () const
-{
-    return is_local(dmf, dgrid) || !tf.null();
 }
 
 task_interpolate_patch::~task_interpolate_patch ()
@@ -140,122 +132,127 @@ task_interpolate_patch::~task_interpolate_patch ()
 }
 
 class holy_grail_interpolator_dense
-    : public bilinear_interpolator
+    :
+    public bilinear_interpolator
 {
 public:
+
     holy_grail_interpolator_dense(Real* Sigptr[BL_SPACEDIM],
 				  const Box& Sigbox)
 	: sigbox(Sigbox)
     {
-	for( int i = 0; i < BL_SPACEDIM; ++i )
-	{
-	    sigptr[i] = Sigptr[i];
-	}
+        D_TERM(sigptr[0] = Sigptr[0];,
+               sigptr[1] = Sigptr[1];,
+               sigptr[2] = Sigptr[2];);
     }
-    virtual void fill(FArrayBox& patch,
-		      const Box& region,
-		      const FArrayBox& cgr,
-		      const Box& cb,
-		      const IntVect& rat) const;
+    virtual void fill (FArrayBox& patch,
+                       const Box& region,
+                       const FArrayBox& cgr,
+                       const Box& cb,
+                       const IntVect& rat) const;
 protected:
-    Real* sigptr[BL_SPACEDIM];
+
+    Real*     sigptr[BL_SPACEDIM];
     const Box sigbox;
 };
 
 class holy_grail_interpolator
-    : public bilinear_interpolator
+    :
+    public bilinear_interpolator
 {
 public:
     holy_grail_interpolator(Real *Sigptr,
 			    const Box& Sigbox)
 	: sigptr(Sigptr),
 	  sigbox(Sigbox)
-    {
-    }
-    virtual void fill(FArrayBox& patch,
-		      const Box& region,
-		      const FArrayBox& cgr,
-		      const Box& cb,
-		      const IntVect&) const;
+    {}
+    virtual void fill (FArrayBox&       patch,
+                       const Box&       region,
+                       const FArrayBox& cgr,
+                       const Box&       cb,
+                       const IntVect&   rat) const;
 protected:
-    Real* sigptr;
+
+    Real*     sigptr;
     const Box sigbox;
 };
 
 class holy_grail_sigma_restrictor
-    : public cell_average_restrictor
+    :
+    public cell_average_restrictor
 {
 public:
     explicit holy_grail_sigma_restrictor(holy_grail_amr_multigrid::stencil m_hg_stencil_)
-	: cell_average_restrictor(0),
-	  m_hg_stencil(m_hg_stencil_)
-    {
-    }
-    virtual void fill(FArrayBox& patch,
-		      const Box& region,
-		      const FArrayBox& fgr,
-		      const IntVect& rat) const;
+	:
+        cell_average_restrictor(0),
+        m_hg_stencil(m_hg_stencil_)
+    {}
+    virtual void fill (FArrayBox&       patch,
+                       const Box&       region,
+                       const FArrayBox& fgr,
+                       const IntVect&   rat) const;
 private:
+
     holy_grail_amr_multigrid::stencil m_hg_stencil;
 };
 
 void
-holy_grail_amr_multigrid::set_line_solve_dimension(int dim)
+holy_grail_amr_multigrid::set_line_solve_dimension (int dim)
 {
   if (dim != -1)
-    {
+  {
       BoxLib::Abort(
-		    "holy_grail_amr_multigrid::holy_grail_amr_multigrid():"
-		    "LineSolves not supported in parallel" );
-    }
+          "holy_grail_amr_multigrid::holy_grail_amr_multigrid():"
+          "LineSolves not supported in parallel" );
+  }
   line_solve_dim = dim;
 }
 
 void
-holy_grail_amr_multigrid::set_smoother_mode(int mode)
+holy_grail_amr_multigrid::set_smoother_mode (int mode)
 {
-  smoother_mode = mode;
+    smoother_mode = mode;
 }
 
 bool
-holy_grail_amr_multigrid::is_dense(stencil sval)
+holy_grail_amr_multigrid::is_dense (stencil sval)
 {
-  return sval == terrain || sval == full;
+    return sval == terrain || sval == full;
 }
 
 holy_grail_amr_multigrid::holy_grail_amr_multigrid(const Array<BoxArray>& Mesh,
-						   const Array<IntVect>& Gen_ratio,
-						   const Box& fdomain,
-						   int Lev_min_min,
-						   int Lev_min_max,
-						   int Lev_max_max,
+						   const Array<IntVect>&  Gen_ratio,
+						   const Box&             fdomain,
+						   int                    Lev_min_min,
+						   int                    Lev_min_max,
+						   int                    Lev_max_max,
 						   const amr_fluid_boundary& Boundary,
-						   stencil stencil_,
-						   int Pcode)
-  : amr_multigrid(Mesh,
-		  Gen_ratio,
-		  Lev_min_min,
-		  Lev_min_max,
-		  Lev_max_max,
-		  Boundary.pressure(),
-		  Pcode),
-						     boundary(Boundary),
-						     smoother_mode(2),
-						     line_solve_dim(-1),
-						     m_stencil(stencil_)
+						   stencil                stencil_,
+						   int                    Pcode)
+    : amr_multigrid(Mesh,
+                    Gen_ratio,
+                    Lev_min_min,
+                    Lev_min_max,
+                    Lev_max_max,
+                    Boundary.pressure(),
+                    Pcode),
+      boundary(Boundary),
+      smoother_mode(2),
+      line_solve_dim(-1),
+      m_stencil(stencil_)
 {
-  build_mesh(fdomain);
+    build_mesh(fdomain);
 }
 
 void
 holy_grail_amr_multigrid::alloc_hg_multi (PArray<MultiFab>& Dest,
-                                 PArray<MultiFab>& Source,
-                                 PArray<MultiFab>& Coarse_source,
-                                 PArray<MultiFab>& Sigma,
-                                 Real              H[],
-                                 int               Lev_min,
-                                 int               Lev_max,
-                                 int               for_fill_sync_reg)
+                                          PArray<MultiFab>& Source,
+                                          PArray<MultiFab>& Coarse_source,
+                                          PArray<MultiFab>& Sigma,
+                                          Real              H[],
+                                          int               Lev_min,
+                                          int               Lev_max,
+                                          int               for_fill_sync_reg)
 {
     BL_ASSERT(Dest.length() > Lev_max);
     BL_ASSERT(Dest[Lev_min].nGrow() == 1);

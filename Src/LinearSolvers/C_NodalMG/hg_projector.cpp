@@ -249,7 +249,7 @@ task_fecavg::task_fecavg (FECAVG         f_,
 bool
 task_fecavg::ready ()
 {
-    BL_ASSERT(!done);
+    BL_ASSERT(!m_finished);
 
     if (is_local_target()) doit();
 
@@ -259,11 +259,11 @@ task_fecavg::ready ()
 void
 task_fecavg::doit ()
 {
-    BL_ASSERT(!done);
+    BL_ASSERT(!m_finished);
     BL_ASSERT(is_local_target());
     BL_ASSERT(dependencies.empty());
 
-    done = true;
+    m_finished = true;
 
     const int        igrid    = grid_number();
     FArrayBox&       sfab     = target_fab();
@@ -283,7 +283,9 @@ task_fecavg::doit ()
         );
 }
 
-class task_fecavg_2 : public task_fec_base
+class task_fecavg_2
+    :
+    public task_fec_base
 {
 public:
 
@@ -308,16 +310,16 @@ private:
 
     void doit ();
 
-    FECAVG          f;
+    FECAVG           f;
     const Box        creg;
     const IntVect    rat;
     const IntVect    t;
     const Array<int> ga;
 #if BL_SPACEDIM == 2
-    const Real             hx;
-    const int              isRZ;
-    const int              imax;
-    const int idense;
+    const Real       hx;
+    const int        isRZ;
+    const int        imax;
+    const int        idense;
 #endif
 };
 
@@ -355,7 +357,7 @@ task_fecavg_2::task_fecavg_2 (FECAVG           f_,
 bool
 task_fecavg_2::ready ()
 {
-    BL_ASSERT(!done);
+    BL_ASSERT(!m_finished);
 
     if (is_local_target()) doit();
 
@@ -365,11 +367,11 @@ task_fecavg_2::ready ()
 void
 task_fecavg_2::doit ()
 {
-    BL_ASSERT(!done);
+    BL_ASSERT(!m_finished);
     BL_ASSERT(is_local_target());
     BL_ASSERT(dependencies.empty());
 
-    done = true;
+    m_finished = true;
 
     const int        igrid      = grid_number();
     FArrayBox&       sfab       = target_fab();
@@ -396,12 +398,12 @@ extern "C"
     typedef void (*F_FDIV)(Real*,  intS, CRealPS, intS,
 			 CRealPS, intS, intS,
 			 CRealPS, intRS, const int*, const int*,
-			 const int*, const int *
-			 );
+			 const int*, const int *);
 }
 
 class task_fdiv
-    : public task_fec_base
+    :
+    public task_fec_base
 {
 public:
     task_fdiv (F_FDIV         f_,
@@ -474,7 +476,7 @@ task_fdiv::task_fdiv (F_FDIV         f_,
 bool
 task_fdiv::ready ()
 {
-    BL_ASSERT(!done);
+    BL_ASSERT(!m_finished);
 
     if (is_local_target()) doit();
 
@@ -484,11 +486,11 @@ task_fdiv::ready ()
 void
 task_fdiv::doit ()
 {
-    BL_ASSERT(!done);
+    BL_ASSERT(!m_finished);
     BL_ASSERT(is_local_target());
     BL_ASSERT(dependencies.empty());
 
-    done = true;
+    m_finished = true;
 
     const int   igrid           = grid_number();
     FArrayBox&  s               = target_fab();
@@ -510,14 +512,10 @@ task_fdiv::doit ()
 	 DIMLIST(creg),
 	 D_DECL(&h[0], &h[1], &h[2]),
 	 D_DECL(rat[0], rat[1], rat[2]), &idim, &idir,
-         &isRZ, &imax
-        );
+         &isRZ, &imax);
 }
 
-task_fdiv::~task_fdiv ()
-{
-    // HG_DEBUG_OUT("destroying a task_fdiv " << this << endl);
-}
+task_fdiv::~task_fdiv () {}
 
 extern "C"
 {
@@ -547,7 +545,7 @@ private:
 
     void doit ();
 
-    EDIV         f;
+    EDIV             f;
     const Box        creg;
     Real             h[BL_SPACEDIM];
     const IntVect    rat;
@@ -590,7 +588,7 @@ task_ediv::task_ediv (EDIV            f_,
 bool
 task_ediv::ready ()
 {
-    BL_ASSERT(!done);
+    BL_ASSERT(!m_finished);
 
     if (is_local_target()) doit();
 
@@ -600,11 +598,11 @@ task_ediv::ready ()
 void
 task_ediv::doit ()
 {
-    BL_ASSERT(!done);
+    BL_ASSERT(!m_finished);
     BL_ASSERT(is_local_target());
     BL_ASSERT(dependencies.empty());
 
-    done = true;
+    m_finished = true;
 
     const int   igrid           = grid_number();
     FArrayBox&  s               = target_fab();
@@ -638,24 +636,24 @@ extern "C"
 class task_cdiv : public task_fec_base
 {
 public:
-    task_cdiv (CDIV           f_,
-                   task_list&        tl_,
-                   MultiFab&         s_,
-                   int               igrid_,
-                   task_fab*         ufp_[],
-                   task_fab*         ucp_[],
-                   const Box&        creg_,
-                   const Real*       h_,
-                   const IntVect&    rat_,
-                   const Array<int>& ga_,
-                   int               isrz_);
+    task_cdiv (CDIV              f_,
+               task_list&        tl_,
+               MultiFab&         s_,
+               int               igrid_,
+               task_fab*         ufp_[],
+               task_fab*         ucp_[],
+               const Box&        creg_,
+               const Real*       h_,
+               const IntVect&    rat_,
+               const Array<int>& ga_,
+               int               isrz_);
 
     virtual bool ready ();
 private:
 
     void doit ();
 
-    CDIV         f;
+    CDIV             f;
     const Box        creg;
     Real             h[BL_SPACEDIM];
     const IntVect    rat;
@@ -663,17 +661,17 @@ private:
     int              isrz;
 };
 
-task_cdiv::task_cdiv (CDIV            f_,
-                              task_list&        tl_,
-                              MultiFab&         s_,
-                              int               igrid_,
-                              task_fab*         ufp_[],
-                              task_fab*         ucp_[],
-                              const Box&        creg_,
-                              const Real*       h_,
-                              const IntVect&    rat_,
-                              const Array<int>& ga_,
-                              int               isrz_)
+task_cdiv::task_cdiv (CDIV              f_,
+                      task_list&        tl_,
+                      MultiFab&         s_,
+                      int               igrid_,
+                      task_fab*         ufp_[],
+                      task_fab*         ucp_[],
+                      const Box&        creg_,
+                      const Real*       h_,
+                      const IntVect&    rat_,
+                      const Array<int>& ga_,
+                      int               isrz_)
     :
     task_fec_base(tl_, s_, igrid_),
     f(f_),
@@ -698,7 +696,7 @@ task_cdiv::task_cdiv (CDIV            f_,
 bool
 task_cdiv::ready ()
 {
-    BL_ASSERT(!done);
+    BL_ASSERT(!m_finished);
 
     if (is_local_target()) doit();
 
@@ -708,11 +706,11 @@ task_cdiv::ready ()
 void
 task_cdiv::doit ()
 {
-    BL_ASSERT(!done);
+    BL_ASSERT(!m_finished);
     BL_ASSERT(is_local_target());
     BL_ASSERT(dependencies.empty());
 
-    done = true;
+    m_finished = true;
 
     const int   igrid           = grid_number();
     FArrayBox&  s               = target_fab();
@@ -728,27 +726,12 @@ task_cdiv::doit ()
 		task_fab_result(2).dataPtr() ) };
     const Box&  uc_box          = task_fab_result(0).box();
 
-    HG_DEBUG_OUT( "CDIV >>>\n");
-    HG_DEBUG_OUT( "s " << s.norm() << "\n" );
-    HG_DEBUG_OUT( "CDIV <<<\n");
     (*f)(s.dataPtr(), DIMLIST(s_box),
 	 D_DECL(uc[0], uc[1], uc[2]), DIMLIST(uc_box),
 	 D_DECL(uf[0], uf[1], uf[2]), DIMLIST(uf_box),
 	 DIMLIST(creg),
 	 D_DECL(&h[0], &h[1], &h[2]),
 	 D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), &isrz);
-    HG_DEBUG_OUT( "CDIV[1] >>>\n");
-    HG_DEBUG_OUT( "s " << s.norm() << "\n" );
-    HG_DEBUG_OUT( "uc[0] " << task_fab_result(0).norm() << "\n" );
-    HG_DEBUG_OUT( "uc[1] " << task_fab_result(1).norm() << "\n" );
-    HG_DEBUG_OUT( "uc[2] " << task_fab_result(2).norm() << "\n" );
-    HG_DEBUG_OUT( "uf[0] " << task_fab_result(3+0).norm() << "\n" );
-    HG_DEBUG_OUT( "uf[1] " << task_fab_result(3+1).norm() << "\n" );
-    HG_DEBUG_OUT( "uf[2] " << task_fab_result(3+2).norm() << "\n" );
-    HG_DEBUG_OUT( "s_box " << s_box << "\n");
-    HG_DEBUG_OUT( "uf_box " << uf_box << "\n");
-    HG_DEBUG_OUT( "uc_box " << uc_box << "\n");
-    HG_DEBUG_OUT( "CDIV[1] <<<\n");
 }
 
 PArray<MultiFab> null_amr_real;
@@ -773,13 +756,13 @@ holy_grail_amr_projector::holy_grail_amr_projector (const Array<BoxArray>&      
 const Array<BoxArray>&
 holy_grail_amr_projector::mesh () const
 {
-  return ml_mesh;
+    return ml_mesh;
 }
 
 void
 holy_grail_amr_projector::make_it_so ()
 {
-  make_sparse_node_source_solvable = true;
+    make_sparse_node_source_solvable = true;
 }
 
 void
@@ -795,9 +778,9 @@ holy_grail_amr_projector::project (PArray<MultiFab>* u,
 				   int               Lev_max,
 				   Real              scale)
 {
-  project(u, p, Coarse_source, null_amr_real,
-	  Sync_resid_crse, Sync_resid_fine, crse_geom,
-	  H, tol, Lev_min, Lev_max, scale);
+    project(u, p, Coarse_source, null_amr_real,
+            Sync_resid_crse, Sync_resid_fine, crse_geom,
+            H, tol, Lev_min, Lev_max, scale);
 }
 
 void
@@ -1167,9 +1150,9 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
 					  int               Lev_max,
 					  Real              scale)
 {
-  manual_project(u, p, rhs, Coarse_source, null_amr_real,
-		 Sync_resid_crse, Sync_resid_fine, crse_geom,
-		 use_u, H, tol, Lev_min, Lev_max, scale);
+    manual_project(u, p, rhs, Coarse_source, null_amr_real,
+                   Sync_resid_crse, Sync_resid_fine, crse_geom,
+                   use_u, H, tol, Lev_min, Lev_max, scale);
 }
 
 void

@@ -91,12 +91,6 @@ task_fill_patch::task_fill_patch (task_list&                tl_,
 task_fill_patch::~task_fill_patch () {}
 
 bool
-task_fill_patch::work_to_do () const
-{
-    return task_fab::work_to_do() || !dependencies.empty();
-}
-
-bool
 task_fill_patch::fill_patch_blindly ()
 {
     const BoxArray& r_ba = r.boxArray();
@@ -153,29 +147,27 @@ task_fill_patch::fill_exterior_patch_blindly ()
 	    tb.convert(type(r));
 	    if (tb.contains(region))
 	    {
-		depend_on(m_task_list.add_task(
-		    new task_bdy_fill(m_task_list,
-				      bdy,
-				      target,
-				      target_proc_id(),
-				      region,
-				      r,
-				      jgrid,
-				      lev_interface.domain())));
+		depend_on(m_task_list.add_task(new task_bdy_fill(m_task_list,
+                                                                 bdy,
+                                                                 target,
+                                                                 target_proc_id(),
+                                                                 region,
+                                                                 r,
+                                                                 jgrid,
+                                                                 lev_interface.domain())));
 		return true;
 	    }
 	    if (tb.intersects(region))
 	    {
 		tb &= region;
-		depend_on(m_task_list.add_task(
-		    new task_bdy_fill(m_task_list,
-				      bdy,
-				      target,
-				      target_proc_id(),
-				      tb,
-				      r,
-				      jgrid,
-				      lev_interface.domain())));
+		depend_on(m_task_list.add_task(new task_bdy_fill(m_task_list,
+                                                                 bdy,
+                                                                 target,
+                                                                 target_proc_id(),
+                                                                 tb,
+                                                                 r,
+                                                                 jgrid,
+                                                                 lev_interface.domain())));
 	    }
 	}
     }
@@ -294,14 +286,12 @@ sync_internal_borders (MultiFab&              r,
 	    || jgrid < 0
 	    || lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL)
 	    break;
-	tl.add_task(
-	    new task_copy(
-		tl,
-		r,
-		jgrid,
-		r,
-		igrid,
-		lev_interface.node_box(level_interface::FACEDIM, iface)));
+	tl.add_task(new task_copy(tl,
+                                  r,
+                                  jgrid,
+                                  r,
+                                  igrid,
+                                  lev_interface.node_box(level_interface::FACEDIM, iface)));
     }
 #if (BL_SPACEDIM == 2)
     for (int icor = 0; icor < lev_interface.nboxes(0); icor++)
@@ -614,12 +604,10 @@ fill_internal_borders (MultiFab&              r,
 	    tl.add_task(new task_copy(tl, r, jgrid, r, igrid, bj));
 	    tl.add_task(new task_copy(tl, r, igrid, r, jgrid, bi));
 #else
-	    tl.add_task(
-		new task_copy(tl, r, jgrid, r, igrid,
-			      w_shift(b, r_ba[jgrid], r.nGrow(), -w)));
-	    tl.add_task(
-		new task_copy(tl, r, igrid, r, jgrid,
-			      w_shift(b, r_ba[igrid], r.nGrow(),  w)));
+	    tl.add_task(new task_copy(tl, r, jgrid, r, igrid,
+                                      w_shift(b, r_ba[jgrid], r.nGrow(), -w)));
+	    tl.add_task(new task_copy(tl, r, igrid, r, jgrid,
+                                      w_shift(b, r_ba[igrid], r.nGrow(),  w)));
 #endif
 	}
     }
@@ -706,24 +694,25 @@ clear_part_interface (MultiFab&              r,
     HG_TEST_NORM( r, "clear_part_interface");
 }
 
-class task_restric_fill : public task
+class task_restric_fill
+    :
+    public task
 {
 public:
 
-    task_restric_fill (task_list&                  tl_,
+    task_restric_fill (task_list&            tl_,
                        const amr_restrictor& restric,
-                       MultiFab&                   dest,
-                       int                         dgrid,
-                       const MultiFab&             r,
-                       int                         rgrid,
-                       const Box&                  box,
-                       const IntVect&              rat);
+                       MultiFab&             dest,
+                       int                   dgrid,
+                       const MultiFab&       r,
+                       int                   rgrid,
+                       const Box&            box,
+                       const IntVect&        rat);
 
     virtual ~task_restric_fill ();
     virtual bool ready ();
     virtual void hint () const;
     virtual bool startup (long& sndcnt, long& rcvcnt);
-    virtual bool work_to_do () const;
     virtual bool need_to_communicate (int& with) const;
 
 private:
@@ -731,17 +720,17 @@ private:
     // The data.
     //
 #ifdef BL_USE_MPI
-    MPI_Request                 m_request;
+    MPI_Request           m_request;
 #endif
     const amr_restrictor& m_restric;
-    FArrayBox*                  m_tmp;
-    MultiFab&                   m_d;
-    const MultiFab&             m_r;
-    const int                   m_dgrid;
-    const int                   m_rgrid;
-    const Box                   m_box;
-    const IntVect               m_rat;
-    bool                        m_local;
+    FArrayBox*            m_tmp;
+    MultiFab&             m_d;
+    const MultiFab&       m_r;
+    const int             m_dgrid;
+    const int             m_rgrid;
+    const Box             m_box;
+    const IntVect         m_rat;
+    bool                  m_local;
 };
 
 task_restric_fill::task_restric_fill (task_list&                  tl_,
@@ -769,18 +758,18 @@ task_restric_fill::task_restric_fill (task_list&                  tl_,
 	m_local = true;
 
 	m_restric.fill(m_d[m_dgrid], m_box, m_r[m_rgrid], m_rat);
+
+        m_finished = true;
+    }
+    else if (!is_local(m_d, m_dgrid) && !is_local(m_r, m_rgrid))
+    {
+        m_finished = true;
     }
 }
 
 task_restric_fill::~task_restric_fill ()
 {
     delete m_tmp;
-}
-
-bool
-task_restric_fill::work_to_do () const
-{
-    return !m_local && (is_local(m_d, m_dgrid) || is_local(m_r, m_rgrid));
 }
 
 bool
@@ -942,7 +931,6 @@ restrict_level (MultiFab&                   dest,
     const BoxArray& r_ba    = r.boxArray();
     const BoxArray& dest_ba = dest.boxArray();
 
-    // HG_DEBUG_OUT( "typeid(restric) = " << typeid(restric).name() << endl );
     task_list tl;
     for (int jgrid = 0; jgrid < dest.length(); jgrid++)
     {

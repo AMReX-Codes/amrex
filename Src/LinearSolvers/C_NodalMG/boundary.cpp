@@ -627,10 +627,15 @@ private:
   const int nstart;
 };
 
-task_fill_bord::task_fill_bord (F_B f_, task_list& tl_,
-                                MultiFab& mf_, int dgrid_,
-                                const Box& b_, const Box& bb_,
-                                int idim_, int jjj_, int nstart_)
+task_fill_bord::task_fill_bord (F_B        f_,
+                                task_list& tl_,
+                                MultiFab&  mf_,
+                                int        dgrid_,
+                                const Box& b_,
+                                const Box& bb_,
+                                int        idim_,
+                                int        jjj_,
+                                int        nstart_)
   :
     task_copy_base(tl_, mf_, dgrid_, b_, mf_, dgrid_, bb_),
     f(f_),
@@ -638,58 +643,60 @@ task_fill_bord::task_fill_bord (F_B f_, task_list& tl_,
     jjj(jjj_),
     nstart(nstart_)
 {
-    BL_ASSERT( m_tmp == 0 );
-    BL_ASSERT( &m_dmf == &m_smf );
-    BL_ASSERT( m_dgrid == m_sgrid );
+    BL_ASSERT(m_tmp == 0);
+    BL_ASSERT(&m_dmf == &m_smf);
+    BL_ASSERT(m_dgrid == m_sgrid);
   
-    if ( work_to_do() )
+    if (is_local(m_dmf, m_dgrid) || is_local(m_smf, m_sgrid))
     {
         _do_depend();
 
-        if ( is_local(m_dmf, m_dgrid) && is_local(m_smf, m_sgrid) )
+        if (is_local(m_dmf, m_dgrid) && is_local(m_smf, m_sgrid))
         {
             m_local = true;
 
-            if ( dependencies.empty() )
+            if (dependencies.empty())
             {
                 doit();
-                //
-                // Flip the work_to_do() bit.
-                //
-                m_done = true;
+
+                m_finished = true;
             }
         }
+    }
+    else
+    {
+        m_finished = true;
     }
 }
 
 bool
 task_fill_bord::ready ()
 {
-  BL_ASSERT(m_tmp == 0);
-  BL_ASSERT(is_started());
-  BL_ASSERT(m_local);
-  BL_ASSERT(!m_done);
-  doit();
-  return true;
+    BL_ASSERT(m_tmp == 0);
+    BL_ASSERT(is_started());
+    BL_ASSERT(m_local);
+    BL_ASSERT(!m_finished);
+    doit();
+    return true;
 }
 
 void
 task_fill_bord::doit ()
 {
-  BL_ASSERT( m_tmp == 0 );
-  BL_ASSERT( m_dgrid == m_sgrid );
-  BL_ASSERT( &m_smf  == &m_dmf );
-  BL_ASSERT( m_local );
-  BL_ASSERT( !m_done );
-  BL_ASSERT( is_local(m_dmf, m_dgrid) );
+    BL_ASSERT(m_tmp == 0);
+    BL_ASSERT(m_dgrid == m_sgrid);
+    BL_ASSERT(&m_smf  == &m_dmf);
+    BL_ASSERT(m_local);
+    BL_ASSERT(!m_finished);
+    BL_ASSERT(is_local(m_dmf, m_dgrid));
   
-  FArrayBox& fab     = m_dmf[m_dgrid];
-  const Box& fab_box = fab.box();
-  (*f)(fab.dataPtr(nstart), DIMLIST(fab_box),
-       DIMLIST(m_dbx),
-       fab.dataPtr(nstart), DIMLIST(fab_box),
-       DIMLIST(m_sbx),
-       &idim, jjj);
+    FArrayBox& fab     = m_dmf[m_dgrid];
+    const Box& fab_box = fab.box();
+    (*f)(fab.dataPtr(nstart), DIMLIST(fab_box),
+         DIMLIST(m_dbx),
+         fab.dataPtr(nstart), DIMLIST(fab_box),
+         DIMLIST(m_sbx),
+         &idim, jjj);
 }
 
 void
