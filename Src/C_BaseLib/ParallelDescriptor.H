@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.6 1997-11-13 01:05:12 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.7 1997-11-13 16:38:54 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -76,8 +76,7 @@ public:
 
     static void Abort (const char* str)
     {
-	cerr << "Abort:  " << str << endl;
-	abort();
+	BoxLib::Abort(str);
     }
     static int MyProc () { return 0; }
     static int NProcs () { return 1; }
