@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.55 2001-07-26 20:50:06 car Exp $
+// $Id: Utility.cpp,v 1.56 2001-11-12 23:28:03 car Exp $
 //
 
 #include <cstdlib>
@@ -120,6 +120,9 @@ BoxLib::wsecond (double* t)
 
 #elif defined(WIN32)
 
+// minimum requirement of WindowsNT
+#define _WIN32_WINNT 0x0400
+#define WINVER       0x0400
 #include <windows.h>
 
 namespace

@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.24 2001-11-09 14:33:10 car Exp $
+// $Id: BLThread.cpp,v 1.25 2001-11-12 23:28:03 car Exp $
 //
 
 #include <winstd.H>
@@ -8,6 +8,9 @@
 #include <Thread.H>
 
 #ifdef WIN32
+// minimum requirement of WindowsNT
+#define _WIN32_WINNT 0x0400
+#define WINVER       0x0400
 #include <windows.h>
 #else
 #include <unistd.h>
@@ -95,19 +98,25 @@ public:
     void lock();
     void unlock();
     bool trylock();
-private:
+protected:
     HANDLE m_mutex;
 };
 
 class ConditionVariable::Implementation
-: public Mutex::Implementation
+    : public Mutex::Implementation
 {
 public:
+    Implementation();
+    ~Implementation();
     void signal();
     void broadcast();
     void wait();
 private:
-    HANDLE m_cv;
+    int m_wc;
+    CRITICAL_SECTION m_wcl;
+    HANDLE m_sema;
+    HANDLE m_wd;
+    bool m_wbc;
 };
 
 #else
@@ -623,6 +632,75 @@ Mutex::unlock()
 // ConditionVariable
 //
 #ifdef WIN32
+ConditionVariable::Implementation::Implementation()
+{
+    m_wc = 0;
+    m_wbc = false;
+    m_sema = CreateSemaphore(NULL, 0, 0x7FFFFFFF, NULL);
+    InitializeCriticalSection(&m_wcl);
+    m_wd = CreateEvent(NULL, FALSE, FALSE, NULL);
+}
+
+ConditionVariable::Implementation::~Implementation()
+{
+}
+
+void
+ConditionVariable::Implementation::signal()
+{
+    EnterCriticalSection(&m_wcl);
+    bool hw = m_wc > 0;
+    LeaveCriticalSection(&m_wcl);
+    if ( hw )
+    {
+	ReleaseSemaphore(m_sema, 1, 0);
+    }
+}
+
+void
+ConditionVariable::Implementation::wait()
+{
+    EnterCriticalSection(&m_wcl);
+    m_wc++;
+    LeaveCriticalSection(&m_wcl);
+    SignalObjectAndWait(m_mutex, m_sema, INFINITE, FALSE);
+    EnterCriticalSection(&m_wcl);
+    m_wc--;
+    bool lw = m_wbc && m_wc == 0;
+    LeaveCriticalSection(&m_wcl);
+    if ( lw )
+    {
+	SignalObjectAndWait(m_wd, m_mutex, INFINITE, FALSE);
+    }
+    else
+    {
+	WaitForSingleObject(m_mutex, INFINITE);
+    }
+}
+
+void
+ConditionVariable::Implementation::broadcast()
+{
+    EnterCriticalSection(&m_wcl);
+    bool hw = 0;
+    if ( m_wc > 0 )
+    {
+	m_wbc = true;
+	hw = true;
+    }
+    if ( hw )
+    {
+	ReleaseSemaphore(m_sema, m_wc, 0);
+	LeaveCriticalSection(&m_wcl);
+	WaitForSingleObject(m_wd, INFINITE);
+	m_wbc = false;
+    }
+    else
+    {
+	LeaveCriticalSection(&m_wcl);
+    }
+}
+
 #else
 ConditionVariable::Implementation::Implementation()
 {
