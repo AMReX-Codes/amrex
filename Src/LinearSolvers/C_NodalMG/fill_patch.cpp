@@ -126,7 +126,7 @@ private:
 };
 
 task_bdy_fill::task_bdy_fill(const amr_boundary_class* bdy_, FArrayBox& fab_, const Box& region_, const MultiFab& src_, int grid_, const Box& domain_)
-: bdy(bdy_), fab(fab_), region(region_), src(src_), grid(grid_), domain(domain_)
+    : bdy(bdy_), fab(fab_), region(region_), src(src_), grid(grid_), domain(domain_)
 {
 }
 
@@ -239,13 +239,8 @@ void task_fill_patch::fill_patch()
     }
 }
 
-task_fill_patch::task_fill_patch(const Box& region_,
-				 const MultiFab& r_,
-				 const level_interface& lev_interface_,
-				 const amr_boundary_class* bdy_,
-				 int idim_, int index_)
-				 : region(region_), target(0),
-				 r(r_), lev_interface(lev_interface_), bdy(bdy_), idim(idim_), index(index_)
+task_fill_patch::task_fill_patch(const Box& region_, const MultiFab& r_, const level_interface& lev_interface_, const amr_boundary_class* bdy_, int idim_, int index_)
+    : region(region_), target(0), r(r_), lev_interface(lev_interface_), bdy(bdy_), idim(idim_), index(index_)
 {
 }
 

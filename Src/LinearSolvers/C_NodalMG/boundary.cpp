@@ -29,10 +29,7 @@ extern "C"
 
 typedef void (PPF)(Real*, intS, intS, const Real*, intS, intS, const int*, const int&);
 
-void amr_boundary_class::boundary_mesh(BoxArray& exterior_mesh,
-				       int*& grid_ref,
-				       const BoxArray& interior_mesh,
-				       const Box& domain) const
+void amr_boundary_class::boundary_mesh(BoxArray& exterior_mesh, int*& grid_ref, const BoxArray& interior_mesh, const Box& domain) const
 {
     BoxList bl;
     List<int> il;
@@ -139,10 +136,7 @@ Box mixed_boundary_class::box(const Box& region, const Box& domain, int idir) co
 // On velocity inflow, uses box function which extends interior
 // box just past edge of domain.
 
-void mixed_boundary_class::fill(FArrayBox& patch,
-				const Box& region,
-				const FArrayBox& src,
-				const Box& domain) const
+void mixed_boundary_class::fill(FArrayBox& patch, const Box& region, const FArrayBox& src, const Box& domain) const
 {
     Box tdomain = domain;
     tdomain.convert(type(src));
@@ -290,12 +284,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
     }
 }
 
-void mixed_boundary_class::fill(FArrayBox& patch,
-				const Box& region,
-				const FArrayBox& bgr,
-				const Box& bb,
-				const Box& domain,
-				int idir) const
+void mixed_boundary_class::fill(FArrayBox& patch, const Box& region, const FArrayBox& bgr, const Box& bb, const Box& domain, int idir) const
 {
     const int idim = abs(idir) - 1;
     const RegType t = ptr->bc[idim][idir > 0];
@@ -616,9 +605,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 }
 
 
-void mixed_boundary_class::check_against_boundary(BoxList& bl, List<int>& il,
-						  const Box& b, int ib,
-						  const Box& d, int dim1) const
+void mixed_boundary_class::check_against_boundary(BoxList& bl, List<int>& il, const Box& b, int ib, const Box& d, int dim1) const
 {
     for (int i = dim1; i < BL_SPACEDIM; i++) 
     {

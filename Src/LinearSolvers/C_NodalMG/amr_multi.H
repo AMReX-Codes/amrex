@@ -7,13 +7,8 @@ class amr_multigrid
 {
 public:
     
-    amr_multigrid(const Array<BoxArray>& Mesh, const Array<IntVect>& Gen_ratio,
-	int Lev_min_min, int Lev_min_max, int Lev_max_max,
-	const amr_boundary_class* Boundary, int Pcode) 
-	: ml_mesh(Mesh), gen_ratio(Gen_ratio),
-	lev_min_min(Lev_min_min), lev_min_max(Lev_min_max),
-	lev_max_max(Lev_max_max), mg_boundary(Boundary), pcode(Pcode),
-	integrate(0)
+    amr_multigrid(const Array<BoxArray>& Mesh, const Array<IntVect>& Gen_ratio, int Lev_min_min, int Lev_min_max, int Lev_max_max, const amr_boundary_class* Boundary, int Pcode) 
+	: ml_mesh(Mesh), gen_ratio(Gen_ratio), lev_min_min(Lev_min_min), lev_min_max(Lev_min_max), lev_max_max(Lev_max_max), mg_boundary(Boundary), pcode(Pcode), integrate(0)
     {
     }
     

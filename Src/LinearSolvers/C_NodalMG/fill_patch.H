@@ -25,15 +25,8 @@ void fill_borders(MultiFab& r, const level_interface& lev_interface, const amr_b
 
 void clear_part_interface(MultiFab& r, const level_interface& lev_interface);
 
-void interpolate_patch(MultiFab& dmf, int dgrid, const Box& region,
-		       const MultiFab& r, const IntVect& rat,
-		       const amr_interpolator_class& interp,
-		       const level_interface& lev_interface);
+void interpolate_patch(MultiFab& dmf, int dgrid, const Box& region, const MultiFab& r, const IntVect& rat, const amr_interpolator_class& interp, const level_interface& lev_interface);
 
-void restrict_level(MultiFab& dest, 
-		    MultiFab& r, const IntVect& rat,
-		    const amr_restrictor_class& restric,
-		    const level_interface& lev_interface,
-		    const amr_boundary_class* bdy);
+void restrict_level(MultiFab& dest, MultiFab& r, const IntVect& rat, const amr_restrictor_class& restric, const level_interface& lev_interface, const amr_boundary_class* bdy);
 
 #endif

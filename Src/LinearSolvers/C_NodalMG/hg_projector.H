@@ -15,16 +15,10 @@ public:
     // and Lev_max.  Lev_min can be anything from Lev_min_min to Lev_min_max;
     // Lev_max can then be anything from Lev_min to Lev_max_max.
     
-    holy_grail_amr_projector(const Array<BoxArray>& Mesh, const Array<IntVect>& Gen_ratio,
-	const Box& fdomain,
-	int Lev_min_min, int Lev_min_max, int Lev_max_max,
-	const amr_fluid_boundary_class& Boundary, 
-	bool hg_terrain, bool hg_cross_stencil, bool hg_full_stencil,
-	int Pcode = 2)
-	: holy_grail_amr_multigrid(Mesh, Gen_ratio, fdomain, Lev_min_min, Lev_min_max, Lev_max_max, Boundary, 
-	  hg_terrain, hg_cross_stencil, hg_full_stencil, Pcode),
-	  make_sparse_node_source_solvable(false) { }
-    
+    holy_grail_amr_projector(const Array<BoxArray>& Mesh, const Array<IntVect>& Gen_ratio, const Box& fdomain, int Lev_min_min, int Lev_min_max, int Lev_max_max, const amr_fluid_boundary_class& Boundary, bool hg_terrain, bool hg_cross_stencil, bool hg_full_stencil, int Pcode = 2)
+	: holy_grail_amr_multigrid(Mesh, Gen_ratio, fdomain, Lev_min_min, Lev_min_max, Lev_max_max, Boundary,  hg_terrain, hg_cross_stencil, hg_full_stencil, Pcode), make_sparse_node_source_solvable(false)
+    { 
+    }     
     const Array<BoxArray>& mesh() const
     {
 	return ml_mesh;
@@ -65,29 +59,17 @@ public:
     // cases the projection will fill in ghost cells according to its
     // own requirements.
     
-    void project(PArray<MultiFab>* u, PArray<MultiFab>& p,
-	       PArray<MultiFab>& Coarse_source,
-	       Real H[], Real tol,
-	       int Lev_min = -1, int Lev_max = -1, Real scale = 0.0) 
+    void project(PArray<MultiFab>* u, PArray<MultiFab>& p, PArray<MultiFab>& Coarse_source, Real H[], Real tol, int Lev_min = -1, int Lev_max = -1, Real scale = 0.0) 
     {
 	project(u, p, Coarse_source, null_amr_real, H, tol, Lev_min, Lev_max, scale);
     }
-    void project(PArray<MultiFab>* u, PArray<MultiFab>& p,
-	       PArray<MultiFab>& Coarse_source,
-	       PArray<MultiFab>& Sigma, Real H[], Real tol,
-	       int Lev_min = -1, int Lev_max = -1, Real scale = 0.0);
+    void project(PArray<MultiFab>* u, PArray<MultiFab>& p, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma, Real H[], Real tol, int Lev_min = -1, int Lev_max = -1, Real scale = 0.0);
 
-    void sync_project(PArray<MultiFab>* u, PArray<MultiFab>& p,
-	PArray<MultiFab>& Coarse_source,
-	Real H[], Real tol,
-	int Lev_min = -1, int Lev_max = -1, Real scale = 0.0) 
+    void sync_project(PArray<MultiFab>* u, PArray<MultiFab>& p, PArray<MultiFab>& Coarse_source, Real H[], Real tol, int Lev_min = -1, int Lev_max = -1, Real scale = 0.0) 
     {
 	sync_project(u, p, Coarse_source, null_amr_real, H, tol, Lev_min, Lev_max, scale);
     }
-    void sync_project(PArray<MultiFab>* u, PArray<MultiFab>& p,
-	PArray<MultiFab>& Coarse_source,
-	PArray<MultiFab>& Sigma, Real H[], Real tol,
-	int Lev_min = -1, int Lev_max = -1, Real scale = 0.0);
+    void sync_project(PArray<MultiFab>* u, PArray<MultiFab>& p, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma, Real H[], Real tol, int Lev_min = -1, int Lev_max = -1, Real scale = 0.0);
 
     // This is the do-it-yourself version:  The right hand side for the
     // elliptic solve is specified in rhs.  The resulting potential will
@@ -107,20 +89,11 @@ public:
     // if the problem being solved is singular, rhs will be adjusted so
     // that it integrates to 0 to maximum precision.
     
-    void manual_project(PArray<MultiFab>* u, PArray<MultiFab>& p,
-			PArray<MultiFab>& rhs,
-			PArray<MultiFab>& Coarse_source,
-			bool use_u, Real H[], Real tol,
-			int Lev_min = -1, int Lev_max = -1, Real scale = 0.0) 
+    void manual_project(PArray<MultiFab>* u, PArray<MultiFab>& p, PArray<MultiFab>& rhs, PArray<MultiFab>& Coarse_source, bool use_u, Real H[], Real tol, int Lev_min = -1, int Lev_max = -1, Real scale = 0.0) 
     {
 	manual_project(u, p, rhs, Coarse_source, null_amr_real, use_u, H, tol, Lev_min, Lev_max, scale);
     }
-    void manual_project(PArray<MultiFab>* u, PArray<MultiFab>& p,
-		      PArray<MultiFab>& rhs,
-		      PArray<MultiFab>& Coarse_source,
-		      PArray<MultiFab>& Sigma,
-		      bool use_u, Real H[], Real tol,
-		      int Lev_min = -1, int Lev_max = -1, Real scale = 0.0);
+    void manual_project(PArray<MultiFab>* u, PArray<MultiFab>& p, PArray<MultiFab>& rhs, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma, bool use_u, Real H[], Real tol, int Lev_min = -1, int Lev_max = -1, Real scale = 0.0);
     
     void make_it_so() 
     {
