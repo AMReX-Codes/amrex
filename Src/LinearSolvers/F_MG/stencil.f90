@@ -800,7 +800,7 @@ contains
        ! PERIODIC FACES are Interior
        if ( bc_face(i,1) == BC_PER ) then
           if ( bc_face(i,1) /= bc_face(i,2) ) then
-             call bl_error("STENCIL_SET_BC: confustion in bc_face")
+             call bl_error("STENCIL_SET_BC: confusion in bc_face")
           end if
           cycle
        end if
