@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.28 1998-09-30 17:05:55 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.29 1998-10-15 21:52:40 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -694,17 +694,20 @@ MultiFab::FillBoundary (int src_comp,
                                       boxArray(),
                                       *this);
     //
-    // Add boxes we need to collect.
+    // Add boxes we need to collect, if we haven't already done so.
     //
-    for (int i = 0; i < sirec.size(); i++)
+    if (mfcd.nFabComTags() == 0)
     {
-        sirec[i].m_fbid = m_FB_mfcd->AddBox(TheFBMultiFabId,
-                                            sirec[i].m_bx,
-                                            0,
-                                            sirec[i].m_j,
-                                            src_comp,
-                                            src_comp,
-                                            num_comp);
+        for (int i = 0; i < sirec.size(); i++)
+        {
+            sirec[i].m_fbid = m_FB_mfcd->AddBox(TheFBMultiFabId,
+                                                sirec[i].m_bx,
+                                                0,
+                                                sirec[i].m_j,
+                                                src_comp,
+                                                src_comp,
+                                                num_comp);
+        }
     }
 
     mfcd.CollectData();
