@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.23 2002-11-14 23:04:56 lijewski Exp $
+c $Id: INTERP_3D.F,v 1.24 2002-12-07 05:57:09 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -2261,7 +2261,7 @@ c                the remaining positive proportionally.
                       i = lratiox*ic + ioff
                       j = lratioy*jc + joff
                       k = lratioz*kc + koff
-                      if (fine_state(i,j,k,n) .lt. 0.d0) then
+                      if (fine_state(i,j,k,n) .le. 0.d0) then
                         fine(i,j,k,n) = -fine_state(i,j,k,n)
                       endif
                    enddo
@@ -2301,8 +2301,8 @@ c                the remaining positive proportionally.
                     enddo
 
                   endif
-            
-                 endif
+
+               endif
 
                if (crseTot .gt. 0.d0. and. crseTot .lt. abs(sumN)) then
 c              Here we don't have enough positive correction to fill all the
@@ -2419,7 +2419,19 @@ c                remaining positiveness from the states to help the negative sta
                   print *,' '
                   print *,'PROTECT_INTERP: BLEW CONSERVATION with ICASE = ',icase
                   print *,'AT COARSE CELL ',ic,jc,kc,' AND COMPONENT ',n
-                  print *,'OLD SUM / NEW SUM ',sum_fine_new, sum_fine_old
+                  print *,'NEW SUM / OLD SUM ',sum_fine_new, sum_fine_old
+                  print *,'CRSETOT ',crseTot
+                  print *,'SUMP SUMN ',sumP,sumN
+                  do koff = 0, lratioz-1
+                  do joff = 0, lratioy-1
+                  do ioff = 0, lratiox-1
+                     i = lratiox*ic + ioff
+                     j = lratioy*jc + joff
+                     k = lratioz*kc + koff
+                     print *,'FINE OLD NEW ',ioff,joff,koff,orig_fine(ioff,joff,koff),     $                                          fine(i,j,k,n), fine_state(i,j,k,n)
+                  enddo
+                  enddo
+                  enddo
                endif
 
 c              do koff = 0, lratioz-1
