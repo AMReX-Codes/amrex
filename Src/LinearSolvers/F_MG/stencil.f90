@@ -767,7 +767,7 @@ contains
     if ( bc_dirichlet(mm( 1), 1, -1) ) &
          ph(0   ) = sum(ph(0:norder(1)         )*cc(0:norder(1),1))
     if ( bc_dirichlet(mm(nn(1)), 1, +1) ) &
-         ph(nn(1)+1) = sum(ph(nn(1)+1:nn(1)-(norder(1)-1):-1)*cc(1:norder(1),2))
+         ph(nn(1)+1) = sum(ph(nn(1)+1:nn(1)-(norder(1)-1):-1)*cc(0:norder(1),2))
 
   end subroutine extrap_1d
 
@@ -780,7 +780,7 @@ contains
     integer i, j, nn(2)
     integer :: norder(2)
     real(dp_t) :: xx(0:max_order, 2)
-    real(dp_t) :: cc(0:max_order, 3)
+    real(dp_t) :: cc(0:max_order, 2)
     real(dp_t) :: xc(1:max_order+1)
 
     nn = ubound(mm)
@@ -790,25 +790,18 @@ contains
 
     xx(:,1) = (/ Huge(xx), (i+HALF, i=0, max_order-1) /)
     xx(:,2) = (/ Huge(xx), (i+HALF, i=0, max_order-1) /)
-    xc(:)   = (/           (i+HALF, i=0, max_order  ) /)
 
-!print *, 'max_order = ', max_order
     norder = min(nn, max_order)
 
-!print *, 'norder = ', norder
     xx(0,1) = -xa(1)/dh(1)
     xx(0,2) = -xb(1)/dh(1)
-!print *, 'xx1 = ', xx(:,1)
-!print *, 'xx2 = ', xx(:,2)
     call poly_interp_coeff(cc(0:norder(1),1), -HALF, xx(0:norder(1),1))
     call poly_interp_coeff(cc(0:norder(1),2), -HALF, xx(0:norder(1),2))
-!print *, 'cc1 = ', cc(:,1)
-!print *, 'cc2 = ', cc(:,2)
     do j = 1, nn(2)
        if ( bc_dirichlet(mm( 1,j), 1, -1) ) &
             ph(0   ,j) = sum(ph(0:norder(1)         ,j)*cc(0:norder(1),1))
        if ( bc_dirichlet(mm(nn(1),j), 1, +1) ) &
-            ph(nn(1)+1,j) = sum(ph(nn(1)+1:nn(1)-(norder(1)-1):-1,j)*cc(0:norder(1)-1,2))
+            ph(nn(1)+1,j) = sum(ph(nn(1)+1:nn(1)-(norder(1)-1):-1,j)*cc(0:norder(1),2))
     end do
 
     xx(0,1) = -xa(2)/dh(2)
@@ -822,13 +815,19 @@ contains
             ph(i,nn(2)+1) = sum(ph(i,nn(2)+1:nn(2)-(norder(2)-1):-1)*cc(0:norder(2),2))
     end do
 
-    norder = min(nn, max_order+1)
-
     if ( .not. cross ) then
+       norder = min(nn, max_order+1)
+       xc(:)   = (/           (i+HALF, i=0, max_order ) /)
+!print *, 'nn = ', nn
+!print *, 'norder = ', norder
+!print *, 'xc = ', xc
        !! Corners
        do i = 1, 2
           call poly_interp_coeff(cc(0:norder(i)-1,i), -HALF, xc(1:norder(i)))
        end do
+
+!print *, 'cc_1 = ', cc(0:norder(1)-1,1)
+!print *, 'cc_2 = ', cc(0:norder(2)-1,2)
 
        if ( bc_dirichlet(mm(1,1),1,-1) .and. bc_dirichlet(mm(1,1),2,-1) ) then
           ph(0,0) = ( &
@@ -878,7 +877,6 @@ contains
 
     xx(:,1) = (/ Huge(xx), (i+HALF, i=0, max_order-1) /)
     xx(:,2) = (/ Huge(xx), (i+HALF, i=0, max_order-1) /)
-    xc(:)   = (/           (i+HALF, i=0, max_order  ) /)
 
     norder = min(nn, max_order)
 
@@ -921,9 +919,10 @@ contains
        end do
     end do
 
-    norder = min(nn, max_order+1)
-
     if ( .not. cross ) then
+       norder = min(nn, max_order+1)
+       xc(:)   = (/           (i+HALF, i=0, max_order  ) /)
+call bl_error("EXTRAP_3D: NOT READY YET")
        !! Corners
        do i = 1, 3
           call poly_interp_coeff(cc(0:norder(i)-1,1), -HALF, xc(1:norder(i)))
