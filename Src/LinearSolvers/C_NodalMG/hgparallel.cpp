@@ -188,9 +188,6 @@ void task_list::execute()
 #ifdef BL_USE_MPI
     if ( HG_is_debugging ) MPI_Barrier(HG::mpi_comm);
 #endif
-#ifdef HG_DEBUG
-    int l_progress = tasks.size() * 30;
-#endif
     if ( verbose )
     {
 #ifdef HG_DEBUG
@@ -205,39 +202,24 @@ void task_list::execute()
     int live_tasks = 0;
     while ( !tasks.empty() )
     {
-	task::task_proxy t = tasks.front();
-	tasks.pop_front();
-	if ( verbose ) 
+	task::task_proxy t = tasks.front(); tasks.pop_front();
+	if ( verbose ) t->hint();
+	if ( ! t->depend_ready() ) goto restart;
+	if ( ! t->is_started() )
 	{
-	    t->hint();
+	    if ( live_tasks > HG::max_live_tasks) goto restart;
+	    if ( ! t->startup() )
+	    {
+		t.set_finished(); continue;
+	    }
+	    live_tasks++;
 	}
-	if ( t->depend_ready() )
+	else if ( t->ready() )
 	{
-	    if ( ! t->is_started() )
-	    {
-		if ( live_tasks > HG::max_live_tasks)
-		    continue;
-		if ( ! t->startup() )
-		{
-		    t.set_finished();
-		    continue;
-		}
-		live_tasks++;
-	    }
-	    assert(t->is_started());
-	    if ( t->ready() )
-	    {
-		t.set_finished(); live_tasks--;
-		continue;
-	    }
+	    t.set_finished(); live_tasks--; continue;
 	}
+    restart:
         tasks.push_back(t);
-#ifdef HG_DEBUG
-	if ( l_progress-- < 0 )
-	{
-	    // BoxLib::Error("task_list::execute(): No Progress");
-	}
-#endif
     }
     assert(live_tasks == 0);
     seq_no = 1;
