@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.40 1998-02-05 23:01:37 vince Exp $
+// $Id: VisMF.cpp,v 1.41 1998-02-12 22:16:24 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -611,6 +611,9 @@ VisMF::VisMF (const aString& mf_name)
     m_pa.resize(m_hdr.m_ncomp);
     for(int nComp = 0; nComp < m_pa.length(); ++nComp) {
       m_pa[nComp].resize(m_hdr.m_ba.length());
+      for(int ii = 0; ii < m_pa[nComp].length(); ++ii) {
+	m_pa[nComp][ii] = 0;
+      }
     }
 }
 
