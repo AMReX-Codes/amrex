@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.70 2003-12-10 18:09:43 car Exp $
+# Make.defs $Id: Make.defs,v 1.71 2004-02-05 23:23:51 car Exp $
 #
 
 #
@@ -43,6 +43,10 @@ endif
 endif
 
 UNAMES := $(shell uname -s)
+ifeq ($(findstring SUPER-UX, $(UNAMES)), SUPER-UX)
+    # We use this name so we can define a CPP macro, BL_SUPERUX
+    MACHINE := SUPERUX
+endif
 ifeq ($(findstring CYGWIN_NT, $(UNAMES)), CYGWIN_NT)
     MACHINE := CYGWIN_NT
 endif
@@ -248,7 +252,7 @@ ifeq ($(COMP),Intel)
 endif
 ifeq ($(FCOMP),Intel)
    FC := ifc -cm
-   fC := $(FC) -cm
+   fC := ifc -cm
    FDEBF += -g
    fDEBF += -g
    FOPTF += -g
@@ -259,10 +263,6 @@ ifeq ($(FCOMP),Intel)
    # fOPTF += -axK
    fDEBF += -w
    fOPTF += -w
-   ifneq ($(DIM),3)
-     FDEBF += -CB -CU -CA
-     fDEBF += -CB -CU -CA
-   endif
    __ifc_version := $(shell $(FC) -V 2>&1 | grep Version)
    ifeq ($(findstring Version 5.0.1, $(__ifc_version)), Version 5.0.1)
        IFC_VERSION := 5.0.1
@@ -299,10 +299,20 @@ ifeq ($(FCOMP),Intel)
    endif
    endif
    endif
+   ifneq ($(DIM),3)
+     FDEBF += -CB -CU
+     fDEBF += -CB -CU
+   endif
    ifeq ($(IFC_MAJOR_VERSION),8)
+     FC := ifort
+     fC := ifort
      override XTRALIBS += -lifcore -limf -lcprts -lcxa -lirc
    else
      override XTRALIBS += -lintrins -lIEPCF90 -lF90 -limf -lcprts -lcxa -lirc
+     ifneq ($(DIM),3)
+       FDEBF += -CA
+       fDEBF += -CA
+     endif
    endif
    ifeq ($(USE_THREADS),TRUE)
      override XTRALIBS += -lpthread

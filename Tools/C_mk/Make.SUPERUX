@@ -1,0 +1,20 @@
+# Make for SX-6 (SUPERUX := SUPER-UX)
+
+FORT_CPP := c++ -E
+CXX      := c++ -K rtti
+FC       := f90
+fC       := $(FC)
+
+# default g77 version
+FOPTF += -O
+fOPTF += -O
+#FDEBF += -Cdebug -Mnoflunf
+FDEBF += -gv
+#fDEBF += -Cdebug -Mnoflunf
+fDEBF += -gv
+#CXXDEBF += -Cdebug
+#CDEBF   += -Cdebug
+CXXDEBF += -gv
+CDEBF   += -gv
+
+LDFLAGS += -f90lib
