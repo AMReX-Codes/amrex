@@ -1,6 +1,6 @@
 
 //
-// $Id: Amr.cpp,v 1.118 2001-04-19 22:24:19 lijewski Exp $
+// $Id: Amr.cpp,v 1.119 2001-05-09 22:30:59 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -631,11 +631,6 @@ Amr::writePlotFile (const aString& root,
 
     if (ParallelDescriptor::IOProcessor())
     {
-        //
-        // Accumulate # of bytes written to header file.
-        //
-        RunStats::addBytes(VisMF::FileOffset(HeaderFile));
-
         HeaderFile.precision(old_prec);
 
         if (!HeaderFile.good())
@@ -1116,11 +1111,6 @@ Amr::checkPoint ()
 
     if (ParallelDescriptor::IOProcessor())
     {
-        //
-        // Accumulate # of bytes written to header file.
-        //
-        RunStats::addBytes(VisMF::FileOffset(HeaderFile));
-
         HeaderFile.precision(old_prec);
 
         if (!HeaderFile.good())
@@ -1247,8 +1237,6 @@ Amr::timeStep (int  level,
 
     level_steps[level]++;
     level_count[level]++;
-
-    RunStats::addCells(level,amr_level[level].countCells());
 
     station.report(time+dt_level[level],level,amr_level[level]);
 

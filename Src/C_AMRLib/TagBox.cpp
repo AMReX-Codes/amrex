@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.56 2000-10-02 20:48:44 lijewski Exp $
+// $Id: TagBox.cpp,v 1.57 2001-05-09 22:30:59 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -551,6 +551,7 @@ TagBoxArray::collate (long& numtags) const
 #ifdef BL3_PROFILING
   BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::collate()");
 #endif
+
     numtags = numTags();
 
     if (TagBoxArray::m_CollateCount < numtags)
