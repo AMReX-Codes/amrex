@@ -34,7 +34,7 @@ return 1.0 + y*y*(1-y)*(1-y);
 */
 #endif
 
-void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain);
+void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain);
 
 void driver(const char* filename);
 
@@ -264,7 +264,7 @@ void rz_adj(PArray<MultiFab> u[], PArray<MultiFab>& rhs,
 }
 #endif
 
-void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
+void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 {
     // Note:  For terrain problems, h is ignored.
     
@@ -297,16 +297,18 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     
     PArray<MultiFab> u[BL_SPACEDIM];
     PArray<MultiFab> p, rhoinv, rhs;
+    Array< Array<int> > pd;
     
     for (int i = 0; i < BL_SPACEDIM; i++)
 	u[i].resize(m.length());
     p.resize(m.length());
     rhoinv.resize(m.length());
     rhs.resize(m.length());
+    pd.resize(m.length());
     
     for (int ilev = 0; ilev < m.length(); ilev++) 
     {
-	BoxArray& cmesh = m[ilev];
+	const BoxArray& cmesh = m[ilev];
 	BoxArray nmesh = cmesh;
 	nmesh.convert(IndexType(IntVect::TheNodeVector()));
 	for (int i = 0; i < BL_SPACEDIM; i++)
@@ -333,6 +335,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 	rhs.set(ilev, new MultiFab(nmesh, 1, 1));
 	//rhs.set(ilev, new MultiFab(cmesh, 1, 1));
 	rhs[ilev].setVal(0.0);
+	pd[ilev] = rhs[ilev].DistributionMap().ProcessorMap();
     }
     
     if (hg_terrain)
@@ -476,7 +479,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 #endif
     t0 = Utility::second();
     inviscid_fluid_boundary_class afb(bc);
-    holy_grail_amr_projector proj(m, ratio, domain[m.length() - 1], 0, m.length() - 1, m.length() - 1, afb, false, true, false, pcode);
+    holy_grail_amr_projector proj(m, ratio, pd, domain[m.length() - 1], 0, m.length() - 1, m.length() - 1, afb, false, true, false, pcode);
 #if (BL_SPACEDIM == 2)
     if (!hg_terrain)
     {

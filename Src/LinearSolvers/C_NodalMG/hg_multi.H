@@ -41,21 +41,21 @@ class holy_grail_amr_multigrid : public amr_multigrid
 {
 public:
     
-    holy_grail_amr_multigrid(const Array<BoxArray>& Mesh, const Array<IntVect>& Gen_ratio,
+    holy_grail_amr_multigrid(
+	const Array<BoxArray>& Mesh, const Array<IntVect>& Gen_ratio, const Array< Array<int> >& Pd,
 	const Box& fdomain,
 	int Lev_min_min, int Lev_min_max, int Lev_max_max,
 	const amr_fluid_boundary_class& Boundary, 
 	bool hg_terrain, bool hg_cross_stencil, bool hg_full_stencil,
 	int Pcode = 2)
-	: amr_multigrid(Mesh, Gen_ratio, Lev_min_min, Lev_min_max, Lev_max_max,
-	Boundary.pressure(), Pcode),
+	: amr_multigrid(Mesh, Gen_ratio, Lev_min_min, Lev_min_max, Lev_max_max, Boundary.pressure(), Pcode),
 	boundary(Boundary), smoother_mode(2), line_solve_dim(-1), 
 	m_hg_terrain(hg_terrain),
 	m_hg_cross_stencil(hg_cross_stencil),
 	m_hg_full_stencil(hg_full_stencil)
     {
 	assert( !(BL_SPACEDIM==3 && m_hg_full_stencil) );
-	build_mesh(fdomain);
+	build_mesh(fdomain, Pd);
     }
     void set_line_solve_dimension(int dim)
     {
