@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.33 1998-08-08 17:26:02 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.34 1998-09-11 20:04:17 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -17,6 +17,7 @@
 #include <vector>
 #include <queue>
 #include <algorithm>
+#include <numeric>
 using namespace std;
 #else
 #include <iostream.h>
@@ -29,6 +30,7 @@ using namespace std;
 #else
 #include <queue.h>
 #include <algorithm.h>
+#include <numeric.h>
 #endif
 #endif /*BL_USE_NEW_HFILES*/
 
@@ -413,6 +415,50 @@ top:
         }
         ++cit;
     }
+
+#if 0
+    //
+    // Output some statistics ...
+    //
+    if (ParallelDescriptor::IOProcessor())
+    {
+        long totalwork = accumulate(pts.begin(),pts.end(),0L);
+
+        vector<long> work(nprocs);
+
+        fill(work.begin(),work.end(),0L);
+
+        for (int i = 0; i < nprocs; i++)
+        {
+            list<int>::const_iterator it = result[i].begin();
+            for ( ; it != result[i].end(); ++it)
+                work[i] += pts[*it];
+        }
+
+        sort(work.begin(),work.end());
+
+        long median = work[nprocs/2];
+
+        if (nprocs%2 == 0)
+            median = (median + work[nprocs/2-1])/2;
+
+        double sd = 0;
+        for (int i = 0; i < nprocs; i++)
+            sd += (work[i]-median) * (work[i]-median);
+        sd = sqrt(sd/(nprocs-1));
+
+        cout << "Knapsack Statistics:\n"
+             << "\ttotal work: "   << totalwork                      << '\n'
+             << "\tminimum work: " << work[0]                        << '\n'
+             << "\tmaximum work: " << work[nprocs-1]                 << '\n'
+             << "\taverage work: " << totalwork/nprocs               << '\n'
+             << "\tmedian work: "  << median                         << '\n'
+             << "\tstd. dev.: "    << sd                             << '\n'
+             << "\tmin/max: "      << double(work[0])/work[nprocs-1] << '\n'
+             << "\tmin/median: "   << double(work[0])/median         << '\n'
+             << "\tmax/median: "   << double(work[nprocs-1])/median  << '\n';
+    }
+#endif
 
     return result;
 }
