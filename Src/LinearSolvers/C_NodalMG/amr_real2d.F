@@ -115,8 +115,8 @@ c Works for CELL- or NODE-based data.
 c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
       subroutine fassnu(v, x,
-     @ regl0, regh0, regl1, regh1,
-     @ ncomp)
+     & regl0, regh0, regl1, regh1,
+     & ncomp)
       integer regl0, regh0, regl1, regh1
       double precision v(*)
       double precision x
@@ -129,7 +129,7 @@ c Works for CELL- or NODE-based data.
 
 c Works for CELL- or NODE-based data.
       subroutine fplusu(v0, v1,
-     @ regl0, regh0, regl1, regh1)
+     & regl0, regh0, regl1, regh1)
       integer regl0, regh0, regl1, regh1
       double precision v0(*)
       double precision v1(*)
@@ -140,8 +140,8 @@ c Works for CELL- or NODE-based data.
 c-----------------------------------------------------------------------
 c Works for CELL-based data.
       subroutine iprodc(v0, v0l0, v0h0, v0l1, v0h1,
-     @ v1, v1l0, v1h0, v1l1, v1h1,
-     @ regl0, regh0, regl1, regh1, sum)
+     & v1, v1l0, v1h0, v1l1, v1h1,
+     & regl0, regh0, regl1, regh1, sum)
       integer v0l0, v0h0, v0l1, v0h1
       integer v1l0, v1h0, v1l1, v1h1
       integer regl0, regh0, regl1, regh1
@@ -162,8 +162,8 @@ c Works for CELL-based data.
 c-----------------------------------------------------------------------
 c Works for NODE-based data.
       subroutine iprodn(v0, v0l0, v0h0, v0l1, v0h1,
-     @ v1, v1l0, v1h0, v1l1, v1h1,
-     @ regl0, regh0, regl1, regh1, sum)
+     & v1, v1l0, v1h0, v1l1, v1h1,
+     & regl0, regh0, regl1, regh1, sum)
       integer v0l0, v0h0, v0l1, v0h1
       integer v1l0, v1h0, v1l1, v1h1
       integer regl0, regh0, regl1, regh1
@@ -172,15 +172,15 @@ c Works for NODE-based data.
       double precision sum, sum0
       integer i, j
       sum0 = 0.5d0 * (v0(regl0,regl1) * v1(regl0,regl1) +
-     @                v0(regl0,regh1) * v1(regl0,regh1) +
-     @                v0(regh0,regl1) * v1(regh0,regl1) +
-     @                v0(regh0,regh1) * v1(regh0,regh1))
+     &                v0(regl0,regh1) * v1(regl0,regh1) +
+     &                v0(regh0,regl1) * v1(regh0,regl1) +
+     &                v0(regh0,regh1) * v1(regh0,regh1))
       do 10 i = regl0 + 1, regh0 - 1
  10      sum0 = sum0 + (v0(i,regl1) * v1(i,regl1) +
-     @                  v0(i,regh1) * v1(i,regh1))
+     &                  v0(i,regh1) * v1(i,regh1))
       do 20 j = regl1 + 1, regh1 - 1
  20      sum0 = sum0 + (v0(regl0,j) * v1(regl0,j) +
-     @                  v0(regh0,j) * v1(regh0,j))
+     &                  v0(regh0,j) * v1(regh0,j))
       sum = sum + 0.5d0 * sum0
       if (regh1 - regl1 .gt. regh0 - regl0) then
          do 30 i = regl0 + 1, regh0 - 1
@@ -195,9 +195,9 @@ c Works for NODE-based data.
 c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
       subroutine bref(dest, destl0, desth0, destl1, desth1,
-     @ regl0, regh0, regl1, regh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ bbl0, bbh0, bbl1, bbh1, idir)
+     & regl0, regh0, regl1, regh1,
+     & src,  srcl0, srch0, srcl1, srch1,
+     & bbl0, bbh0, bbl1, bbh1, idir)
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
@@ -219,9 +219,9 @@ c Works for CELL- or NODE-based data.
 c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
       subroutine brefm(dest, destl0, desth0, destl1, desth1,
-     @ regl0, regh0, regl1, regh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ bbl0, bbh0, bbl1, bbh1, ra)
+     & regl0, regh0, regl1, regh1,
+     & src,  srcl0, srch0, srcl1, srch1,
+     & bbl0, bbh0, bbl1, bbh1, ra)
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
@@ -257,9 +257,9 @@ c Works for CELL- or NODE-based data.
 c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
       subroutine bneg(dest, destl0, desth0, destl1, desth1,
-     @ regl0, regh0, regl1, regh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ bbl0, bbh0, bbl1, bbh1, idir)
+     & regl0, regh0, regl1, regh1,
+     & src,  srcl0, srch0, srcl1, srch1,
+     & bbl0, bbh0, bbl1, bbh1, idir)
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
@@ -281,9 +281,9 @@ c Works for CELL- or NODE-based data.
 c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
       subroutine bnegm(dest, destl0, desth0, destl1, desth1,
-     @ regl0, regh0, regl1, regh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ bbl0, bbh0, bbl1, bbh1, ra)
+     & regl0, regh0, regl1, regh1,
+     & src,  srcl0, srch0, srcl1, srch1,
+     & bbl0, bbh0, bbl1, bbh1, ra)
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
@@ -322,10 +322,10 @@ c This routine assumes that the inflow face velocity data has not yet
 c been altered.  Running fill_borders should call this routine on every
 c inflow face, so that binfil can be run for subsequent fills
       subroutine binflo(dest, destl0, desth0, destl1, desth1,
-     @ regl0, regh0, regl1, regh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ bbl0, bbh0, bbl1, bbh1,
-     @ idir)
+     & regl0, regh0, regl1, regh1,
+     & src,  srcl0, srch0, srcl1, srch1,
+     & bbl0, bbh0, bbl1, bbh1,
+     & idir)
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
@@ -367,10 +367,10 @@ c been altered by a call to fill_borders.  The box bb must have been
 c extended to one cell past the boundary by the boundary::box routine.
 
       subroutine binfil(dest, destl0, desth0, destl1, desth1,
-     @ regl0, regh0, regl1, regh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ bbl0, bbh0, bbl1, bbh1,
-     @ idir)
+     & regl0, regh0, regl1, regh1,
+     & src,  srcl0, srch0, srcl1, srch1,
+     & bbl0, bbh0, bbl1, bbh1,
+     & idir)
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
@@ -384,33 +384,33 @@ c extended to one cell past the boundary by the boundary::box routine.
             do 10 i = regl0, regh0
                do 10 j = regl1, regh1
  10               dest(i,j) = src(bbl0,j) + src(bbl0+1,j) -
-     @                        src(bbh0-(i-regl0),j)
+     &                        src(bbh0-(i-regl0),j)
          else
             do 20 i = regh0, regl0, -1
                do 20 j = regl1, regh1
  20               dest(i,j) = src(bbh0-1,j) + src(bbh0,j) -
-     @                        src(bbl0+(regh0-i),j)
+     &                        src(bbl0+(regh0-i),j)
          end if
       else
          if (regl1 .lt. bbh1) then
             do 30 j = regl1, regh1
                do 30 i = regl0, regh0
  30               dest(i,j) = src(i,bbl1) + src(i,bbl1+1) -
-     @                        src(i,bbh1-(j-regl1))
+     &                        src(i,bbh1-(j-regl1))
          else
             do 40 j = regh1, regl1, -1
                do 40 i = regl0, regh0
  40               dest(i,j) = src(i,bbh1-1) + src(i,bbh1) -
-     @                        src(i,bbl1+(regh1-j))
+     &                        src(i,bbl1+(regh1-j))
          end if
       end if
       end
 c-----------------------------------------------------------------------
 c CELL-based data only.
       subroutine acint2(dest, destl0, desth0, destl1, desth1,
-     @ regl0, regh0, regl1, regh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ bbl0, bbh0, bbl1, bbh1, ir, jr)
+     & regl0, regh0, regl1, regh1,
+     & src,  srcl0, srch0, srcl1, srch1,
+     & bbl0, bbh0, bbl1, bbh1, ir, jr)
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
@@ -433,9 +433,9 @@ c CELL-based data only.
 c-----------------------------------------------------------------------
 c NODE-based data only.
       subroutine anint2(dest, destl0, desth0, destl1, desth1,
-     @ regl0, regh0, regl1, regh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ bbl0, bbh0, bbl1, bbh1, ir, jr)
+     & regl0, regh0, regl1, regh1,
+     & src,  srcl0, srch0, srcl1, srch1,
+     & bbl0, bbh0, bbl1, bbh1, ir, jr)
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
@@ -452,17 +452,17 @@ c NODE-based data only.
          do 20 jc = bbl1, bbh1-1
             do 20 ic = bbl0, bbh0
  20            dest(ir*ic,2*jc+1) = 0.5d0 * (src(ic,jc) +
-     @                                       src(ic,jc+1))
+     &                                       src(ic,jc+1))
       else if (jr .eq. 4) then
          do 120 jc = bbl1, bbh1-1
 cdir$ ivdep
             do 120 ic = bbl0, bbh0
                dest(ir*ic,4*jc+2) = 0.5d0 *
-     @            (src(ic,jc) + src(ic,jc+1))
+     &            (src(ic,jc) + src(ic,jc+1))
                dest(ir*ic,4*jc+1) = 0.5d0 *
-     @            (dest(ir*ic,4*jc)   + dest(ir*ic,4*jc+2))
+     &            (dest(ir*ic,4*jc)   + dest(ir*ic,4*jc+2))
  120           dest(ir*ic,4*jc+3) = 0.5d0 *
-     @            (dest(ir*ic,4*jc+2) + dest(ir*ic,4*jc+4))
+     &            (dest(ir*ic,4*jc+2) + dest(ir*ic,4*jc+4))
       else if (jr .ne. 1) then
          do 220 m = 1, jr-1
             q = dble(m)/jr
@@ -470,24 +470,24 @@ cdir$ ivdep
             do 220 jc = bbl1, bbh1-1
                do 220 ic = bbl0, bbh0
  220              dest(ir*ic,jr*jc+m) = p * src(ic,jc) +
-     @                                  q * src(ic,jc+1)
+     &                                  q * src(ic,jc+1)
       end if
       if (ir .eq. 2) then
          do 30 ic = bbl0, bbh0-1
 cdir$ ivdep
             do 30 j = regl1, regh1
  30            dest(2*ic+1,j) = 0.5d0 * (dest(2*ic,j) +
-     @                                   dest(2*ic+2,j))
+     &                                   dest(2*ic+2,j))
       else if (ir .eq. 4) then
          do 130 ic = bbl0, bbh0-1
 cdir$ ivdep
             do 130 j = regl1, regh1
                dest(4*ic+2,j) = 0.5d0 *
-     @            (dest(4*ic,j)   + dest(4*ic+4,j))
+     &            (dest(4*ic,j)   + dest(4*ic+4,j))
                dest(4*ic+1,j) = 0.5d0 *
-     @            (dest(4*ic,j)   + dest(4*ic+2,j))
+     &            (dest(4*ic,j)   + dest(4*ic+2,j))
  130           dest(4*ic+3,j) = 0.5d0 *
-     @            (dest(4*ic+2,j) + dest(4*ic+4,j))
+     &            (dest(4*ic+2,j) + dest(4*ic+4,j))
       else if (ir .ne. 1) then
          do 230 m = 1, ir-1
             q = dble(m)/ir
@@ -496,15 +496,15 @@ cdir$ ivdep
 cdir$ ivdep
                do 230 j = regl1, regh1
  230              dest(ir*ic+m,j) = p * dest(ir*ic,j) +
-     @                              q * dest(ir*(ic+1),j)
+     &                              q * dest(ir*(ic+1),j)
       end if
       end
 c-----------------------------------------------------------------------
 c CELL-based data only.
       subroutine acrst1(dest, destl0, desth0, destl1, desth1,
-     @ regl0, regh0, regl1, regh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ ir, jr, integ)
+     & regl0, regh0, regl1, regh1,
+     & src,  srcl0, srch0, srcl1, srch1,
+     & ir, jr, integ)
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
@@ -531,9 +531,9 @@ c CELL-based data only.
 c-----------------------------------------------------------------------
 c NODE-based data only.
       subroutine anrst1(dest, destl0, desth0, destl1, desth1,
-     @ regl0, regh0, regl1, regh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ ir, jr)
+     & regl0, regh0, regl1, regh1,
+     & src,  srcl0, srch0, srcl1, srch1,
+     & ir, jr)
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
@@ -550,9 +550,9 @@ c NODE-based data only.
 c Fills coarse region defined by reg, which must be smaller than
 c fine region by at least one coarse cell on all sides.
       subroutine anrst2(dest, destl0, desth0, destl1, desth1,
-     @ regl0, regh0, regl1, regh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ ir, jr, integ)
+     & regl0, regh0, regl1, regh1,
+     & src,  srcl0, srch0, srcl1, srch1,
+     & ir, jr, integ)
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
@@ -590,26 +590,26 @@ c fine region by at least one coarse cell on all sides.
             do 10 i = regl0, regh0
                do 10 j = regl1, regh1
  10               dest(i,j) = 0.25d0   *  src(i*ir,j*jr) +
-     @                        0.125d0  * (src(i*ir,j*jr-1) +
-     @                                    src(i*ir,j*jr+1) +
-     @                                    src(i*ir-1,j*jr) +
-     @                                    src(i*ir+1,j*jr)) +
-     @                        0.0625d0 * (src(i*ir-1,j*jr-1) +
-     @                                    src(i*ir-1,j*jr+1) +
-     @                                    src(i*ir+1,j*jr-1) +
-     @                                    src(i*ir+1,j*jr+1))
+     &                        0.125d0  * (src(i*ir,j*jr-1) +
+     &                                    src(i*ir,j*jr+1) +
+     &                                    src(i*ir-1,j*jr) +
+     &                                    src(i*ir+1,j*jr)) +
+     &                        0.0625d0 * (src(i*ir-1,j*jr-1) +
+     &                                    src(i*ir-1,j*jr+1) +
+     &                                    src(i*ir+1,j*jr-1) +
+     &                                    src(i*ir+1,j*jr+1))
          else
             do 20 j = regl1, regh1
                do 20 i = regl0, regh0
  20               dest(i,j) = 0.25d0   *  src(i*ir,j*jr) +
-     @                        0.125d0  * (src(i*ir,j*jr-1) +
-     @                                    src(i*ir,j*jr+1) +
-     @                                    src(i*ir-1,j*jr) +
-     @                                    src(i*ir+1,j*jr)) +
-     @                        0.0625d0 * (src(i*ir-1,j*jr-1) +
-     @                                    src(i*ir-1,j*jr+1) +
-     @                                    src(i*ir+1,j*jr-1) +
-     @                                    src(i*ir+1,j*jr+1))
+     &                        0.125d0  * (src(i*ir,j*jr-1) +
+     &                                    src(i*ir,j*jr+1) +
+     &                                    src(i*ir-1,j*jr) +
+     &                                    src(i*ir+1,j*jr)) +
+     &                        0.0625d0 * (src(i*ir-1,j*jr-1) +
+     &                                    src(i*ir-1,j*jr+1) +
+     &                                    src(i*ir+1,j*jr-1) +
+     &                                    src(i*ir+1,j*jr+1))
          end if
       else if (ir .eq. 4 .and. jr .eq. 4) then
          if (regh1 - regl1 .gt. regh0 - regl0) then
@@ -636,10 +636,10 @@ c fine region by at least one coarse cell on all sides.
                   do 220 i = regl0, regh0
                      do 220 j = regl1, regh1
  220                    dest(i,j) = dest(i,j) +
-     @                              fac * (src(i*ir-m,j*jr-n)+
-     @                                     src(i*ir-m,j*jr+n)+
-     @                                     src(i*ir+m,j*jr-n)+
-     @                                     src(i*ir+m,j*jr+n))
+     &                              fac * (src(i*ir-m,j*jr-n)+
+     &                                     src(i*ir-m,j*jr+n)+
+     &                                     src(i*ir+m,j*jr-n)+
+     &                                     src(i*ir+m,j*jr+n))
          else
             do 230 j = regl1, regh1
                do 230 i = regl0, regh0
@@ -654,10 +654,10 @@ c fine region by at least one coarse cell on all sides.
                   do 240 j = regl1, regh1
                      do 240 i = regl0, regh0
  240                    dest(i,j) = dest(i,j) +
-     @                              fac * (src(i*ir-m,j*jr-n)+
-     @                                     src(i*ir-m,j*jr+n)+
-     @                                     src(i*ir+m,j*jr-n)+
-     @                                     src(i*ir+m,j*jr+n))
+     &                              fac * (src(i*ir-m,j*jr-n)+
+     &                                     src(i*ir-m,j*jr+n)+
+     &                                     src(i*ir+m,j*jr-n)+
+     &                                     src(i*ir+m,j*jr+n))
          end if
       end if
       if (integ .eq. 1) then
@@ -677,9 +677,9 @@ c-----------------------------------------------------------------------
 c NODE-based data only.
 c Fills coarse region defined by reg.
       subroutine anfr2(dest, destl0, desth0, destl1, desth1,
-     @ regl0, regh0, regl1, regh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ ir, jr, idim, idir, integ)
+     & regl0, regh0, regl1, regh1,
+     & src,  srcl0, srch0, srcl1, srch1,
+     & ir, jr, idim, idir, integ)
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
@@ -706,7 +706,7 @@ c Fills coarse region defined by reg.
                fac = (ir-abs(m)) * fac1
                do 20 j = regl1, regh1
  20               dest(i,j) = dest(i,j) + fac * (src(i*ir+m,j*jr-n)+
-     @                                           src(i*ir+m,j*jr+n))
+     &                                           src(i*ir+m,j*jr+n))
       else
          if (integ .eq. 0) then
             fac = (0.5d0 + 0.5d0 / jr)
@@ -725,16 +725,16 @@ c Fills coarse region defined by reg.
                if (m .eq. 0) fac = 0.5d0 * fac
                do 40 i = regl0, regh0
  40               dest(i,j) = dest(i,j) + fac * (src(i*ir-m,j*jr+n)+
-     @                                           src(i*ir+m,j*jr+n))
+     &                                           src(i*ir+m,j*jr+n))
       end if
       end
 c-----------------------------------------------------------------------
 c NODE-based data only.
 c Fills coarse point defined by reg.
       subroutine anor2(dest, destl0, desth0, destl1, desth1,
-     @ regl0, regh0, regl1, regh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ ir, jr, idir0, idir1, integ)
+     & regl0, regh0, regl1, regh1,
+     & src,  srcl0, srch0, srcl1, srch1,
+     & ir, jr, idir0, idir1, integ)
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
@@ -763,9 +763,9 @@ c-----------------------------------------------------------------------
 c NODE-based data only.
 c Fills coarse point defined by reg.
       subroutine anir2(dest, destl0, desth0, destl1, desth1,
-     @ regl0, regh0, regl1, regh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ ir, jr, idir0, idir1, integ)
+     & regl0, regh0, regl1, regh1,
+     & src,  srcl0, srch0, srcl1, srch1,
+     & ir, jr, idir0, idir1, integ)
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
@@ -795,16 +795,16 @@ c Fills coarse point defined by reg.
          do 20 m = idir0, idir0*(ir-1), idir0
             fac = (ir-abs(m)) * fac1
  20         dest(i,j) = dest(i,j) + fac * (src(i*ir+m,j*jr+n) +
-     @                                     src(i*ir-m,j*jr+n) +
-     @                                     src(i*ir+m,j*jr-n))
+     &                                     src(i*ir-m,j*jr+n) +
+     &                                     src(i*ir+m,j*jr-n))
       end
 c-----------------------------------------------------------------------
 c NODE-based data only.
 c Fills coarse point defined by reg.
       subroutine andr2(dest, destl0, desth0, destl1, desth1,
-     @ regl0, regh0, regl1, regh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ ir, jr, idir1, integ)
+     & regl0, regh0, regl1, regh1,
+     & src,  srcl0, srch0, srcl1, srch1,
+     & ir, jr, idir1, integ)
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
@@ -828,5 +828,5 @@ c Fills coarse point defined by reg.
          do 20 m = 1, ir-1
             fac = (ir-m) * fac1
  20         dest(i,j) = dest(i,j) + fac * (src(i*ir+m,j*jr+n) +
-     @                                     src(i*ir-m,j*jr-n))
+     &                                     src(i*ir-m,j*jr-n))
       end
