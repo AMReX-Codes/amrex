@@ -1,8 +1,10 @@
 #ifndef BL_ARENA_H
 #define BL_ARENA_H
 //
-// $Id: Arena.H,v 1.15 2004-01-07 21:18:19 car Exp $
+// $Id: Arena.H,v 1.16 2004-01-07 21:44:20 car Exp $
 //
+#include <winstd.H>
+
 #include <cstddef>
 
 class Arena;

@@ -53,6 +53,8 @@ using ::abort;
 
 using ::strerror;
 using ::sprintf;
+
+using ::size_t;
 }
 #endif
 
