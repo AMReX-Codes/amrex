@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.69 1999-01-12 17:56:46 lijewski Exp $
+// $Id: Amr.cpp,v 1.70 1999-02-03 19:29:26 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -849,6 +849,9 @@ Amr::restart (const aString& filename)
 void
 Amr::checkPoint ()
 {
+    static RunStats stats("write_chkfile");
+
+    stats.start();
     //
     // In checkpoint files always write out FABs in NATIVE format.
     //
@@ -922,17 +925,8 @@ Amr::checkPoint ()
         HeaderFile << '\n';
     }
 
-    static const aString RunstatString("write_chkfile");
-
     for (i = 0; i <= finest_level; i++)
-    {
-        RunStats write_chkfile_stats(RunstatString, i);
-        write_chkfile_stats.start();
         amr_level[i].checkPoint(ckfile, HeaderFile);
-        write_chkfile_stats.end();
-    }
-
-    RunStats::dumpStats(HeaderFile);
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -946,24 +940,24 @@ Amr::checkPoint ()
         if (!HeaderFile.good())
             BoxLib::Error("Amr::checkpoint() failed");
     }
+    //
+    // Don't forget to reset FAB format.
+    //
+    FArrayBox::setFormat(thePrevFormat);
 
-    const int IOProc = ParallelDescriptor::IOProcessorNumber();
+    stats.end();
 
-    Real dCheckPointTime1 = ParallelDescriptor::second();
-    Real dCheckPointTime  = dCheckPointTime1 - dCheckPointTime0;
+    RunStats::dumpStats(HeaderFile);
+
+    const int IOProc     = ParallelDescriptor::IOProcessorNumber();
+    Real dCheckPointTime = ParallelDescriptor::second() - dCheckPointTime0;
 
     ParallelDescriptor::ReduceRealMax(dCheckPointTime,IOProc);
 
     if (ParallelDescriptor::IOProcessor())
     {
-        cout << "Write checkpoint time = "
-             << dCheckPointTime
-             << "  seconds." << endl;
+        cout << "checkPoint() time = " << dCheckPointTime << " secs." << endl;
     }
-    //
-    // Don't forget to reset FAB format.
-    //
-    FArrayBox::setFormat(thePrevFormat);
 }
 
 void
