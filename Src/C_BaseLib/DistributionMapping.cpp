@@ -1,99 +1,100 @@
 //BL_COPYRIGHT_NOTICE
-// -----------------------------------------------------------------------------
-// DistributionMapping.C
-// -----------------------------------------------------------------------------
+
+//
+// $Id: DistributionMapping.cpp,v 1.2 1997-09-15 19:40:05 lijewski Exp $
+//
+
 #include <DistributionMapping.H>
 #include <ParallelDescriptor.H>
 
-// -----------------------------------------------------------------------------
-DistributionMapping::DistributionMapping()
-		 : nProcessors(0),
-		   boxarray(),
-		   distributionStrategy(ROUNDROBIN),
-                   processorMap(),
-                   objectsPerProcessor(),
-                   nPtsPerProcessor()
+DistributionMapping::DistributionMapping ()
+    :
+    nProcessors(0),
+    boxarray(),
+    distributionStrategy(ROUNDROBIN),
+    processorMap(),
+    objectsPerProcessor(),
+    nPtsPerProcessor()
 {
-  CreateProcessorMap();
+    CreateProcessorMap();
 }
 
-// -----------------------------------------------------------------------------
-DistributionMapping::DistributionMapping(int nprocessors, const BoxArray &boxes,
-				   DistributionStrategy distributionstrategy)
-		 : nProcessors(nprocessors),
-		   boxarray(boxes),
-		   distributionStrategy(distributionstrategy),
-                   processorMap(boxes.length()),
-                   objectsPerProcessor(nprocessors),
-                   nPtsPerProcessor(nprocessors)
+DistributionMapping::DistributionMapping (int                  nprocessors,
+                                          const BoxArray&      boxes,
+                                          DistributionStrategy strategy)
+    :
+    nProcessors(nprocessors),
+    boxarray(boxes),
+    distributionStrategy(strategy),
+    processorMap(boxes.length()),
+    objectsPerProcessor(nprocessors),
+    nPtsPerProcessor(nprocessors)
 {
-  CreateProcessorMap();
+    CreateProcessorMap();
 }
 
-// -----------------------------------------------------------------------------
-DistributionMapping::~DistributionMapping() {
-}
+DistributionMapping::~DistributionMapping () {}
 
-
-// -----------------------------------------------------------------------------
-void DistributionMapping::define(int nprocessors, const BoxArray &boxes,
-			         DistributionStrategy distributionstrategy)
+void
+DistributionMapping::define (int                  nprocessors,
+                             const BoxArray&      boxes,
+                             DistributionStrategy strategy)
 {
-  nProcessors = nprocessors;
-  boxarray = boxes;
-  distributionStrategy = distributionstrategy;
-  processorMap.resize(boxes.length());
-  objectsPerProcessor.resize(nprocessors, 0);  // init to zero
-  nPtsPerProcessor.resize(nprocessors);
-  CreateProcessorMap();
+    nProcessors = nprocessors;
+    boxarray = boxes;
+    distributionStrategy = strategy;
+    processorMap.resize(boxes.length());
+    objectsPerProcessor.resize(nprocessors, 0);
+    nPtsPerProcessor.resize(nprocessors);
+    CreateProcessorMap();
 }
 
-
-// -----------------------------------------------------------------------------
-void DistributionMapping::CreateProcessorMap() {
-  int i;
-  switch(distributionStrategy) {
-    case ROUNDROBIN:
-      for(i = 0; i < processorMap.length(); i++) {
-	processorMap[i] = i % nProcessors;
-        ++objectsPerProcessor[processorMap[i]];
-      }
-    break;
-    case RANDOM:
-      cerr << "Error in DistributionMapping:  RANDOM not implemented." << endl;
-      ParallelDescriptor::Abort("Exiting.");
-    break;
-    case SIZEBALANCED:
-      cerr << "Error in DistributionMapping:  SIZEBALANCED not implemented."
-	   << endl;
-      ParallelDescriptor::Abort("Exiting.");
-    break;
-    default:
-      cerr << "Error in DistributionMapping:  bad distributionStrategy" << endl;
-      ParallelDescriptor::Abort("Exiting.");
-  }
-}
-
-
-// -----------------------------------------------------------------------------
-int DistributionMapping::operator()(int level, const Box &box) const {
-  return -1;
-}
-
-
-// -----------------------------------------------------------------------------
-ostream &operator<<(ostream &os, const DistributionMapping &pmap) {
+void
+DistributionMapping::CreateProcessorMap ()
+{
     int i;
-    os << "(DistributionMapping" << endl;
-    for(i = 0; i < pmap.processorMap.length(); i++) {
-      os << "processorMap[" << i << "] = " << pmap.processorMap[i] << endl;
+    switch (distributionStrategy)
+    {
+    case ROUNDROBIN:
+        for (i = 0; i < processorMap.length(); i++)
+        {
+            processorMap[i] = i % nProcessors;
+            ++objectsPerProcessor[processorMap[i]];
+        }
+        break;
+    case RANDOM:
+        ParallelDescriptor::Abort("RANDOM not implemented");
+        break;
+    case SIZEBALANCED:
+        ParallelDescriptor::Abort("SIZEBALANCED not implemented");
+        break;
+    default:
+        ParallelDescriptor::Abort("Bad DistributionStrategy");
     }
-    os << ")" << endl;
+}
 
-    if(os.fail()) {
-        BoxLib::Error("operator<<(ostream &, DistributionMapping &) failed");
+int
+DistributionMapping::operator () (int        level,
+                                  const Box& box) const
+{
+    return -1;
+}
+
+ostream&
+operator<< (ostream&                   os,
+            const DistributionMapping& pmap)
+{
+    int i;
+
+    os << "(DistributionMapping" << '\n';
+    for (i = 0; i < pmap.processorMap.length(); i++)
+    {
+        os << "processorMap[" << i << "] = " << pmap.processorMap[i] << '\n';
     }
+    os << ')' << '\n';
+
+    if (os.fail())
+        ParallelDescriptor::Abort("operator<<(ostream &, DistributionMapping &) failed");
+
     return os;
 }
-// -----------------------------------------------------------------------------
-// -----------------------------------------------------------------------------

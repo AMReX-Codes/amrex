@@ -1,14 +1,15 @@
 //BL_COPYRIGHT_NOTICE
-// -----------------------------------------------------------------
-// ParallelDescriptor.C
-// -----------------------------------------------------------------
+
+//
+// $Id: ParallelDescriptor.cpp,v 1.2 1997-09-15 19:40:06 lijewski Exp $
+//
+
 #ifdef BL_USE_BSP
+
 #include <ParallelDescriptor.H>
 #include <Utility.H>
 
-
 /*
-// -----------------------------------------------------------------
 template<class T> static void ParallelDescriptor::ReduceMin(T &rvar) {
     ParallelDescriptor::ShareVar(&rvar, sizeof(T));
     ParallelDescriptor::Synchronize();
@@ -19,9 +20,9 @@ template<class T> static void ParallelDescriptor::ReduceMin(T &rvar) {
 }
 */
 
-
-// -----------------------------------------------------------------
-void ParallelDescriptor::ReduceBoolAnd(bool &rvar) {
+void
+ParallelDescriptor::ReduceBoolAnd (bool &rvar)
+{
     ParallelDescriptor::ShareVar(&rvar, sizeof(bool));
     ParallelDescriptor::Synchronize();
     bsp_fold((void (*)(void *, void *, void *, int *)) Utility::OpBoolAnd,
@@ -29,8 +30,9 @@ void ParallelDescriptor::ReduceBoolAnd(bool &rvar) {
     ParallelDescriptor::UnshareVar(&rvar);
 }
 
-// -----------------------------------------------------------------
-void ParallelDescriptor::ReduceRealSum(Real &rvar) {
+void
+ParallelDescriptor::ReduceRealSum (Real &rvar)
+{
     ParallelDescriptor::ShareVar(&rvar, sizeof(Real));
     ParallelDescriptor::Synchronize();
     bsp_fold((void (*)(void *, void *, void *, int *)) Utility::OpRealSum,
@@ -38,8 +40,9 @@ void ParallelDescriptor::ReduceRealSum(Real &rvar) {
     ParallelDescriptor::UnshareVar(&rvar);
 }
 
-// -----------------------------------------------------------------
-void ParallelDescriptor::ReduceRealMax(Real &rvar) {
+void
+ParallelDescriptor::ReduceRealMax (Real &rvar)
+{
     ParallelDescriptor::ShareVar(&rvar, sizeof(Real));
     ParallelDescriptor::Synchronize();
     bsp_fold((void (*)(void *, void *, void *, int *)) Utility::OpRealMax,
@@ -47,8 +50,9 @@ void ParallelDescriptor::ReduceRealMax(Real &rvar) {
     ParallelDescriptor::UnshareVar(&rvar);
 }
 
-// -----------------------------------------------------------------
-void ParallelDescriptor::ReduceRealMin(Real &rvar) {
+void
+ParallelDescriptor::ReduceRealMin (Real &rvar)
+{
     ParallelDescriptor::ShareVar(&rvar, sizeof(Real));
     ParallelDescriptor::Synchronize();
     bsp_fold((void (*)(void *, void *, void *, int *)) Utility::OpRealMin,
@@ -56,8 +60,9 @@ void ParallelDescriptor::ReduceRealMin(Real &rvar) {
     ParallelDescriptor::UnshareVar(&rvar);
 }
 
-// -----------------------------------------------------------------
-void ParallelDescriptor::ReduceIntSum(int &rvar) {
+void
+ParallelDescriptor::ReduceIntSum (int &rvar)
+{
     ParallelDescriptor::ShareVar(&rvar, sizeof(int));
     ParallelDescriptor::Synchronize();
     bsp_fold((void (*)(void *, void *, void *, int *)) Utility::OpIntSum,
@@ -65,8 +70,9 @@ void ParallelDescriptor::ReduceIntSum(int &rvar) {
     ParallelDescriptor::UnshareVar(&rvar);
 }
 
-// -----------------------------------------------------------------
-void ParallelDescriptor::ReduceIntMax(int &rvar) {
+void
+ParallelDescriptor::ReduceIntMax (int &rvar)
+{
     ParallelDescriptor::ShareVar(&rvar, sizeof(int));
     ParallelDescriptor::Synchronize();
     bsp_fold((void (*)(void *, void *, void *, int *)) Utility::OpIntMax,
@@ -74,8 +80,9 @@ void ParallelDescriptor::ReduceIntMax(int &rvar) {
     ParallelDescriptor::UnshareVar(&rvar);
 }
 
-// -----------------------------------------------------------------
-void ParallelDescriptor::ReduceIntMin(int &rvar) {
+void
+ParallelDescriptor::ReduceIntMin (int &rvar)
+{
     ParallelDescriptor::ShareVar(&rvar, sizeof(int));
     ParallelDescriptor::Synchronize();
     bsp_fold((void (*)(void *, void *, void *, int *)) Utility::OpIntMin,
@@ -83,8 +90,9 @@ void ParallelDescriptor::ReduceIntMin(int &rvar) {
     ParallelDescriptor::UnshareVar(&rvar);
 }
 
-// -----------------------------------------------------------------
-void ParallelDescriptor::ReduceLongSum(long &rvar) {
+void
+ParallelDescriptor::ReduceLongSum (long &rvar)
+{
     ParallelDescriptor::ShareVar(&rvar, sizeof(long));
     ParallelDescriptor::Synchronize();
     bsp_fold((void (*)(void *, void *, void *, int *)) Utility::OpLongSum,
@@ -92,8 +100,9 @@ void ParallelDescriptor::ReduceLongSum(long &rvar) {
     ParallelDescriptor::UnshareVar(&rvar);
 }
 
-// -----------------------------------------------------------------
-void ParallelDescriptor::ReduceLongMax(long &rvar) {
+void
+ParallelDescriptor::ReduceLongMax (long &rvar)
+{
     ParallelDescriptor::ShareVar(&rvar, sizeof(long));
     ParallelDescriptor::Synchronize();
     bsp_fold((void (*)(void *, void *, void *, int *)) Utility::OpLongMax,
@@ -101,8 +110,9 @@ void ParallelDescriptor::ReduceLongMax(long &rvar) {
     ParallelDescriptor::UnshareVar(&rvar);
 }
 
-// -----------------------------------------------------------------
-void ParallelDescriptor::ReduceLongMin(long &rvar) {
+void
+ParallelDescriptor::ReduceLongMin (long &rvar)
+{
     ParallelDescriptor::ShareVar(&rvar, sizeof(long));
     ParallelDescriptor::Synchronize();
     bsp_fold((void (*)(void *, void *, void *, int *)) Utility::OpLongMin,
@@ -110,6 +120,4 @@ void ParallelDescriptor::ReduceLongMin(long &rvar) {
     ParallelDescriptor::UnshareVar(&rvar);
 }
 
-// -----------------------------------------------------------------
-// -----------------------------------------------------------------
 #endif
