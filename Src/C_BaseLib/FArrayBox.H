@@ -4,7 +4,7 @@
 #define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.4 1997-09-18 20:12:46 lijewski Exp $
+// $Id: FArrayBox.H,v 1.5 1997-11-18 00:04:50 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -230,8 +230,8 @@ public:
                not inititialized. ncomp is the number of components
                (variables) at each data point in the Box.
     */
-    FArrayBox (const Box& b,
-               int        ncomp=1);
+    explicit FArrayBox (const Box& b,
+                        int        ncomp=1);
 
 #ifdef BL_USE_POINTLIB
 #ifndef BL_CRAY_BUG_DEFARG
@@ -249,7 +249,7 @@ public:
     //
     //@ManDoc: Constructs FAB by reading it from istream.
     //
-    FArrayBox (istream& is);
+    explicit FArrayBox (istream& is);
     //
     //@ManDoc:  The (virtual) destructor.
     //

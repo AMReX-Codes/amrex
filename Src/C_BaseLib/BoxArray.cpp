@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxArray.cpp,v 1.3 1997-11-10 17:54:40 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.4 1997-11-18 00:04:47 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -426,13 +426,13 @@ BoxArray
 complementIn (const Box&      b,
               const BoxArray& ba)
 {
-    return complementIn(b, ba.boxList());
+    return BoxArray(complementIn(b, ba.boxList()));
 }
 
 BoxArray
 intersect (const BoxArray& ba,
            const Box&      b)
 {
-    return intersect(ba.boxList(), b);
+    return BoxArray(intersect(ba.boxList(), b));
 }
 

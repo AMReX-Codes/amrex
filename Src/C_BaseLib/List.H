@@ -4,7 +4,7 @@
 #define BL_LIST_H
 
 //
-// $Id: List.H,v 1.3 1997-09-17 22:51:17 lijewski Exp $
+// $Id: List.H,v 1.4 1997-11-18 00:04:51 lijewski Exp $
 //
 
 #include <Boolean.H>
@@ -53,7 +53,7 @@ public:
     //
     //@ManDoc: Construct a ListIterator<T> to first element of aList.
     //
-    ListIterator (const List<T>& aList);
+    explicit ListIterator (const List<T>& aList);
     //
     //@ManDoc: The copy constructor.
     //

@@ -4,7 +4,7 @@
 #define BL_PARRAY_H
 
 //
-// $Id: PArray.H,v 1.5 1997-09-18 21:22:19 lijewski Exp $
+// $Id: PArray.H,v 1.6 1997-11-18 00:04:53 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -71,14 +71,14 @@ public:
                management policy is not to delete the underlying objects
                upon destruction.
     */
-    PArray (PArrayPolicy _managed = PArrayNoManage);
+    explicit PArray (PArrayPolicy _managed = PArrayNoManage);
 
     /*@ManDoc: Constructs a PArray<T> of length len of null pointers.  
                The default memory management policy is not to delete the
                underlying objects upon destruction.
     */
-    PArray (int    len,
-            PArrayPolicy _managed = PArrayNoManage);
+    explicit PArray (int    len,
+                     PArrayPolicy _managed = PArrayNoManage);
 
     /*@ManDoc: The destructor.  If the memory management policy was
                set to Manage upon construction, this destructor will

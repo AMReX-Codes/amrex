@@ -4,7 +4,7 @@
 #define BL_INDEXTYPE_H
 
 //
-// $Id: IndexType.H,v 1.3 1997-09-18 20:12:48 lijewski Exp $
+// $Id: IndexType.H,v 1.4 1997-11-18 00:04:50 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -48,7 +48,7 @@ public:
     //
     //@ManDoc: Construct an IndexType identical to an IntVect.
     //
-    IndexType (const IntVect& iv);
+    explicit IndexType (const IntVect& iv);
     //
     //@ManDoc: The assignment operator.
     //

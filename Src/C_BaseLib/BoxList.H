@@ -4,7 +4,7 @@
 #define BL_BOXLIST_H
 
 //
-// $Id: BoxList.H,v 1.4 1997-09-24 04:24:50 lijewski Exp $
+// $Id: BoxList.H,v 1.5 1997-11-18 00:04:49 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -51,11 +51,11 @@ public:
     //
     //@ManDoc: Construct an empty BoxList with IndexType btyp
     //
-    BoxList (IndexType btyp);
+    explicit BoxList (IndexType btyp);
     //
     //@ManDoc:  Construct a BoxList from a BoxArray.
     //
-    BoxList (const BoxArray& ba);
+    explicit BoxList (const BoxArray& ba);
     //
     //@ManDoc: The copy constructor.
     //
@@ -150,6 +150,10 @@ public:
     //@ManDoc: True if all Boxes in bl are contained in this BoxList.
     //
     bool contains (const BoxList& bl) const;
+    //
+    //@ManDoc: True if all Boxes in ba are contained in this BoxList.
+    //
+    bool contains (const BoxArray& ba) const;
 
     /*@ManDoc: Modify this BoxList to contain only its intersection with
                Box b.

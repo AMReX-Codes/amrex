@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Box.cpp,v 1.3 1997-09-24 22:06:41 lijewski Exp $
+// $Id: Box.cpp,v 1.4 1997-11-18 00:04:46 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -665,7 +665,7 @@ operator>> (istream& is,
         is >> b.bigend ;
         IntVect v;
         is >> v;
-        b.btype = v;
+        b.btype = IndexType(v);
         assert(b.btype.ok());
         is.ignore(BL_IGNORE_MAX,')');
         b.computeBoxLen();
@@ -676,7 +676,7 @@ operator>> (istream& is,
         is >> b.bigend;
         IntVect v;
         is >> v;
-        b.btype = v;
+        b.btype = IndexType(v);
         assert(b.btype.ok());
         b.computeBoxLen();
     }

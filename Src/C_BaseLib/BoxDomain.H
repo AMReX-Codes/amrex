@@ -4,7 +4,7 @@
 #define BL_BOXDOMAIN_H
 
 //
-// $Id: BoxDomain.H,v 1.3 1997-09-18 20:12:45 lijewski Exp $
+// $Id: BoxDomain.H,v 1.4 1997-11-18 00:04:48 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -65,7 +65,7 @@ public:
     //
     //@ManDoc: Construct an empty BoxDomain of IndexType itype.
     //
-    BoxDomain (IndexType itype);
+    explicit BoxDomain (IndexType itype);
     //
     //@ManDoc: The copy constructor.
     //

@@ -4,7 +4,7 @@
 #define BL_BOX_H
 
 //
-// $Id: Box.H,v 1.6 1997-11-11 21:04:52 vince Exp $
+// $Id: Box.H,v 1.7 1997-11-18 00:04:46 lijewski Exp $
 //
 
 #ifdef NODEV
@@ -938,7 +938,7 @@ Box::convert (const IntVect& typ)
     assert(typ >= IntVect::TheZeroVector() && typ <= IntVect::TheUnitVector());
     IntVect shft(typ - btype.ixType());
     bigend += shft;
-    btype = typ;
+    btype = IndexType(typ);
     computeBoxLen();
     return *this;
 }

@@ -4,7 +4,7 @@
 #define BL_ARRAY_H
 
 //
-// $Id: Array.H,v 1.5 1997-09-18 20:12:43 lijewski Exp $
+// $Id: Array.H,v 1.6 1997-11-18 00:04:45 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -74,7 +74,7 @@ public:
     /*@ManDoc: Constructs an `Array<T>' of length len with the value of each
       element defined by the default constructor for `T'.
     */
-    Array (long len)
+    explicit Array (long len)
     {
         //
         // This is inlined here as OCC won't have it any other way :-(

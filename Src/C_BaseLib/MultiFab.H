@@ -4,7 +4,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.5 1997-09-18 22:09:25 lijewski Exp $
+// $Id: MultiFab.H,v 1.6 1997-11-18 00:04:52 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -64,7 +64,7 @@ public:
                This is useful when restarting a calculation from a checkpoint
                file.  See the `writeOn' and `readFrom' member functions below.
     */
-    MultiFab (istream& strm);
+    explicit MultiFab (istream& strm);
     //
     //@ManDoc: The (virtual) destructor.
     //

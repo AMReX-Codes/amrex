@@ -4,7 +4,7 @@
 #define BL_BOXARRAY_H
 
 //
-// $Id: BoxArray.H,v 1.3 1997-09-18 20:12:45 lijewski Exp $
+// $Id: BoxArray.H,v 1.4 1997-11-18 00:04:47 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -45,7 +45,7 @@ public:
     //
     //@ManDoc: Construct a BoxArray of the specified size.
     //
-    BoxArray (size_t size);
+    explicit BoxArray (size_t size);
     //
     //@ManDoc: Construct a BoxArray from an array of Boxes of size nbox.
     //
@@ -54,7 +54,7 @@ public:
     //
     //@ManDoc: Construct a BoxArray from a BoxList.
     //
-    BoxArray (const BoxList& bl);
+    explicit BoxArray (const BoxList& bl);
     //
     //@ManDoc: The copy constructor.
     //
@@ -66,7 +66,7 @@ public:
     //
     //@ManDoc: Construct a BoxArray from a checkpoint file.
     //
-    BoxArray (istream& is);
+    explicit BoxArray (istream& is);
     //
     //@ManDoc: The destructor.
     //

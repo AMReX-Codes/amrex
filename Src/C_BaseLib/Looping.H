@@ -4,7 +4,7 @@
 #define BL_LOOPING_H
 
 //
-// $Id: Looping.H,v 1.3 1997-09-17 22:51:18 lijewski Exp $
+// $Id: Looping.H,v 1.4 1997-11-18 00:04:51 lijewski Exp $
 //
 
 #if (BL_SPACEDIM == 1)
@@ -158,10 +158,10 @@
 {                                                                       \
     assert(x.contains(b));                                              \
     assert((ns) >= 0 && (ns) + (nc) <= (x).nComp());                    \
-    const int *_x_plo = (x).loVect();                                  \
-    const int *_x_plen = (x).length();                                 \
+    const int *_x_plo = (x).loVect();                                   \
+    const int *_x_plen = (x).length();                                  \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length();                                   \
+    const int *_b_len = (b).length().getVect();                         \
     const T* _x_p = (x).dataPtr();                                      \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         const int nR = _n;                                              \
@@ -209,10 +209,10 @@
 {                                                                       \
     assert(contains(b));                                                \
     assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    const int *_th_plo = loVect();                                     \
-    const int *_th_plen = length();                                    \
+    const int *_th_plo = loVect();                                      \
+    const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length();                                   \
+    const int *_b_len = (b).length().getVect();                         \
     T* _th_p = dptr;                                                    \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         int nR = _n; nR += 0;                                           \
@@ -244,10 +244,10 @@
 {                                                                       \
     assert(contains(b));                                                \
     assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    const int *_th_plo = loVect();                                     \
-    const int *_th_plen = length();                                    \
+    const int *_th_plo = loVect();                                      \
+    const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length();                                   \
+    const int *_b_len = (b).length().getVect();                         \
     const T* _th_p = dptr;                                              \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         const int nR = _n;                                              \
@@ -287,12 +287,12 @@
     _subbox_ &= box();                                                  \
     _subbox_ &= b;                                                      \
     if(_subbox_.ok()) {                                                 \
-        const int *_th_plo = loVect();                                 \
-        const int *_th_plen = length();                                \
-        const int *_x_plo = (x).loVect();                              \
-        const int *_x_plen = (x).length();                             \
+        const int *_th_plo = loVect();                                  \
+        const int *_th_plen = length();                                 \
+        const int *_x_plo = (x).loVect();                               \
+        const int *_x_plen = (x).length();                              \
         const int *_subbox_lo = _subbox_.loVect();                      \
-        const int *_subbox_len = _subbox_.length();                     \
+        const int *_subbox_len = _subbox_.length().getVect();           \
         T* _th_p = dataPtr(ns);                                         \
         const T* _x_p  = (x).dataPtr(nss);                              \
         for(int _n = 0; _n < (nc); ++_n) {                              \
@@ -336,14 +336,14 @@
     _subbox_ &= b;                                                      \
     assert(bx.sameSize(_subbox_));                                      \
     if(_subbox_.ok()) {                                                 \
-        const int *_th_plo = loVect();                                 \
-        const int *_th_plen = length();                                \
-        const int *_x_plo = (x).loVect();                              \
-        const int *_x_plen = (x).length();                             \
+        const int *_th_plo = loVect();                                  \
+        const int *_th_plen = length();                                 \
+        const int *_x_plo = (x).loVect();                               \
+        const int *_x_plen = (x).length();                              \
         const int *_subbox_lo = _subbox_.loVect();                      \
-        const int *_subbox_len = _subbox_.length();                     \
+        const int *_subbox_len = _subbox_.length().getVect();           \
         const int *_bx_lo = (bx).loVect();                              \
-        const int *_bx_len = (bx).length();                             \
+        const int *_bx_len = (bx).length().getVect();                   \
         T* _th_p = dataPtr(ns);                                         \
         const T* _x_p  = (x).dataPtr(nss);                              \
         for(int _n = 0; _n < (nc); ++_n) {                              \
@@ -395,18 +395,18 @@
     assert((bx).sameSize(_subbox_));                                    \
     assert((by).sameSize(_subbox_));                                    \
     if(_subbox_.ok()) {                                                 \
-        const int *_th_plo = loVect();                                 \
-        const int *_th_plen = length();                                \
-        const int *_x_plo = (x).loVect();                              \
-        const int *_x_plen = (x).length();                             \
-        const int *_y_plo = (y).loVect();                              \
-        const int *_y_plen = (y).length();                             \
+        const int *_th_plo = loVect();                                  \
+        const int *_th_plen = length();                                 \
+        const int *_x_plo = (x).loVect();                               \
+        const int *_x_plen = (x).length();                              \
+        const int *_y_plo = (y).loVect();                               \
+        const int *_y_plen = (y).length();                              \
         const int *_subbox_lo = _subbox_.loVect();                      \
-        const int *_subbox_len = _subbox_.length();                     \
+        const int *_subbox_len = _subbox_.length().getVect();           \
         const int *_bx_lo = (bx).loVect();                              \
-        const int *_bx_len = (bx).length();                             \
+        const int *_bx_len = (bx).length().getVect();                   \
         const int *_by_lo = (by).loVect();                              \
-        const int *_by_len = (by).length();                             \
+        const int *_by_len = (by).length().getVect();                   \
         T* _th_p = dataPtr(ns);                                         \
         const T* _x_p  = (x).dataPtr(nsx);                              \
         const T* _y_p  = (y).dataPtr(nsy);                              \
@@ -438,11 +438,11 @@
     assert((x).contains(bx));                                           \
     assert((y).contains(by));                                           \
     assert((bx).sameSize(by));                                          \
-    const int *_x_plo = (x).loVect();                                  \
-    const int *_x_plen = (x).length();                                 \
-    const int *_y_plo = (y).loVect();                                  \
-    const int *_y_plen = (y).length();                                 \
-    const int *_len = (bx).length();                                    \
+    const int *_x_plo = (x).loVect();                                   \
+    const int *_x_plen = (x).length();                                  \
+    const int *_y_plo = (y).loVect();                                   \
+    const int *_y_plen = (y).length();                                  \
+    const int *_len = (bx).length().getVect();                          \
     const int *_bx_lo = (bx).loVect();                                  \
     const int *_by_lo = (by).loVect();                                  \
     T* _x_p  = (x).dataPtr(nsx);                                        \
@@ -484,10 +484,10 @@
 {                                                                       \
     assert(contains(b));                                                \
     assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    const int *_th_plo = loVect();                                     \
-    const int *_th_plen = length();                                    \
+    const int *_th_plo = loVect();                                      \
+    const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length();                                   \
+    const int *_b_len = (b).length().getVect();                         \
     const T* _th_p = dptr;                                              \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         int nR = _n; nR += 0;                                           \
@@ -505,10 +505,10 @@
 {                                                                       \
     assert(contains(b));                                                \
     assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    const int *_th_plo = loVect();                                     \
-    const int *_th_plen = length();                                    \
+    const int *_th_plo = loVect();                                      \
+    const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length();                                   \
+    const int *_b_len = (b).length().getVect();                         \
     T* _th_p = dptr;                                                    \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         const int nR = _n;                                              \
@@ -527,10 +527,10 @@
 {                                                                       \
     assert(x.contains(b));                                              \
     assert((ns) >= 0 && (ns) + (nc) <= (x).nComp());                    \
-    const int *_x_plo = (x).loVect();                                  \
-    const int *_x_plen = (x).length();                                 \
+    const int *_x_plo = (x).loVect();                                   \
+    const int *_x_plen = (x).length();                                  \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length();                                   \
+    const int *_b_len = (b).length().getVect();                         \
     T* _x_p = (x) .dataPtr();                                           \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         const int nR = _n;                                              \
@@ -549,10 +549,10 @@
 {                                                                       \
     assert(x.contains(b));                                              \
     assert((ns) >= 0 && (ns) + (nc) <= (x).nComp());                    \
-    const int *_x_plo = (x).loVect();                                  \
-    const int *_x_plen = (x).length();                                 \
+    const int *_x_plo = (x).loVect();                                   \
+    const int *_x_plen = (x).length();                                  \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length();                                   \
+    const int *_b_len = (b).length().getVect();                         \
     const T* _x_p = (x).dataPtr();                                      \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         const int nR = _n;                                              \
@@ -572,10 +572,10 @@
 {                                                                       \
     assert(contains(b));                                                \
     assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    const int *_th_plo = loVect();                                     \
-    const int *_th_plen = length();                                    \
+    const int *_th_plo = loVect();                                      \
+    const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length();                                   \
+    const int *_b_len = (b).length().getVect();                         \
     T* _th_p = dptr;                                                    \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         int nR = _n; nR += 0;                                           \
@@ -594,10 +594,10 @@
 {                                                                       \
     assert(contains(b));                                                \
     assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    const int *_th_plo = loVect();                                     \
-    const int *_th_plen = length();                                    \
+    const int *_th_plo = loVect();                                      \
+    const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length();                                   \
+    const int *_b_len = (b).length().getVect();                         \
     const T* _th_p = dptr;                                              \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         const int nR = _n;                                              \
@@ -620,12 +620,12 @@
     _subbox_ &= box();                                                  \
     _subbox_ &= b;                                                      \
     if(_subbox_.ok()) {                                                 \
-        const int *_th_plo = loVect();                                 \
-        const int *_th_plen = length();                                \
-        const int *_x_plo = (x).loVect();                              \
-        const int *_x_plen = (x).length();                             \
+        const int *_th_plo = loVect();                                  \
+        const int *_th_plen = length();                                 \
+        const int *_x_plo = (x).loVect();                               \
+        const int *_x_plen = (x).length();                              \
         const int *_subbox_lo = _subbox_.loVect();                      \
-        const int *_subbox_len = _subbox_.length();                     \
+        const int *_subbox_len = _subbox_.length().getVect();           \
         T* _th_p = dataPtr(ns);                                         \
         const T* _x_p  = (x).dataPtr(nss);                              \
         for(int _n = 0; _n < (nc); ++_n) {                              \
@@ -654,14 +654,14 @@
     _subbox_ &= b;                                                      \
     assert(bx.sameSize(_subbox_));                                      \
     if(_subbox_.ok()) {                                                 \
-        const int *_th_plo = loVect();                                 \
-        const int *_th_plen = length();                                \
-        const int *_x_plo = (x).loVect();                              \
-        const int *_x_plen = (x).length();                             \
+        const int *_th_plo = loVect();                                  \
+        const int *_th_plen = length();                                 \
+        const int *_x_plo = (x).loVect();                               \
+        const int *_x_plen = (x).length();                              \
         const int *_subbox_lo = _subbox_.loVect();                      \
-        const int *_subbox_len = _subbox_.length();                     \
+        const int *_subbox_len = _subbox_.length().getVect();           \
         const int *_bx_lo = (bx).loVect();                              \
-        const int *_bx_len = (bx).length();                             \
+        const int *_bx_len = (bx).length().getVect();                   \
         T* _th_p = dataPtr(ns);                                         \
         const T* _x_p  = (x).dataPtr(nss);                              \
         for(int _n = 0; _n < (nc); ++_n) {                              \
@@ -695,18 +695,18 @@
     assert((bx).sameSize(_subbox_));                                    \
     assert((by).sameSize(_subbox_));                                    \
     if(_subbox_.ok()) {                                                 \
-        const int *_th_plo = loVect();                                 \
-        const int *_th_plen = length();                                \
-        const int *_x_plo = (x).loVect();                              \
-        const int *_x_plen = (x).length();                             \
-        const int *_y_plo = (y).loVect();                              \
-        const int *_y_plen = (y).length();                             \
+        const int *_th_plo = loVect();                                  \
+        const int *_th_plen = length();                                 \
+        const int *_x_plo = (x).loVect();                               \
+        const int *_x_plen = (x).length();                              \
+        const int *_y_plo = (y).loVect();                               \
+        const int *_y_plen = (y).length();                              \
         const int *_subbox_lo = _subbox_.loVect();                      \
-        const int *_subbox_len = _subbox_.length();                     \
+        const int *_subbox_len = _subbox_.length().getVect();           \
         const int *_bx_lo = (bx).loVect();                              \
-        const int *_bx_len = (bx).length();                             \
+        const int *_bx_len = (bx).length().getVect();                   \
         const int *_by_lo = (by).loVect();                              \
-        const int *_by_len = (by).length();                             \
+        const int *_by_len = (by).length().getVect();                   \
         T* _th_p = dataPtr(ns);                                         \
         const T* _x_p  = (x).dataPtr(nsx);                              \
         const T* _y_p  = (y).dataPtr(nsy);                              \
@@ -749,13 +749,13 @@
     assert((x).contains(bx));                                           \
     assert((y).contains(by));                                           \
     assert((bx).sameSize(by));                                          \
-    const int *_x_plo = (x).loVect();                                  \
-    const int *_x_plen = (x).length();                                 \
-    const int *_y_plo = (y).loVect();                                  \
-    const int *_y_plen = (y).length();                                 \
+    const int *_x_plo = (x).loVect();                                   \
+    const int *_x_plen = (x).length();                                  \
+    const int *_y_plo = (y).loVect();                                   \
+    const int *_y_plen = (y).length();                                  \
     const int *_bx_lo = (bx).loVect();                                  \
     const int *_by_lo = (by).loVect();                                  \
-    const int *_len = (bx).length();                                    \
+    const int *_len = (bx).length().getVect();                          \
     T* _x_p  = (x).dataPtr(nsx);                                        \
     const T* _y_p  = (y).dataPtr(nsy);                                  \
     for(int _n = 0; _n < (nc); ++_n) {                                  \
@@ -804,10 +804,10 @@
 {                                                                       \
     assert(contains(b));                                                \
     assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    const int *_th_plo = loVect();                                     \
-    const int *_th_plen = length();                                    \
+    const int *_th_plo = loVect();                                      \
+    const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length();                                   \
+    const int *_b_len = (b).length().getVect();                         \
     const T* _th_p = dptr;                                              \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         int nR = _n; nR += 0;                                           \
@@ -829,10 +829,10 @@
 {                                                                       \
     assert(contains(b));                                                \
     assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    const int *_th_plo = loVect();                                     \
-    const int *_th_plen = length();                                    \
+    const int *_th_plo = loVect();                                      \
+    const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length();                                   \
+    const int *_b_len = (b).length().getVect();                         \
     T* _th_p = dptr;                                                    \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         const int nR = _n;                                              \
@@ -855,10 +855,10 @@
 {                                                                       \
     assert(x.contains(b));                                              \
     assert((ns) >= 0 && (ns) + (nc) <= (x).nComp());                    \
-    const int *_x_plo = (x).loVect();                                  \
-    const int *_x_plen = (x).length();                                 \
+    const int *_x_plo = (x).loVect();                                   \
+    const int *_x_plen = (x).length();                                  \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length();                                   \
+    const int *_b_len = (b).length().getVect();                         \
     T* _x_p = (x) .dataPtr();                                           \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         const int nR = _n;                                              \
@@ -881,10 +881,10 @@
 {                                                                       \
     assert(x.contains(b));                                              \
     assert((ns) >= 0 && (ns) + (nc) <= (x).nComp());                    \
-    const int *_x_plo = (x).loVect();                                  \
-    const int *_x_plen = (x).length();                                 \
+    const int *_x_plo = (x).loVect();                                   \
+    const int *_x_plen = (x).length();                                  \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length();                                   \
+    const int *_b_len = (b).length().getVect();                         \
     const T* _x_p = (x).dataPtr();                                      \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         const int nR = _n;                                              \
@@ -908,10 +908,10 @@
 {                                                                       \
     assert(contains(b));                                                \
     assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    const int *_th_plo = loVect();                                     \
-    const int *_th_plen = length();                                    \
+    const int *_th_plo = loVect();                                      \
+    const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length();                                   \
+    const int *_b_len = (b).length().getVect();                         \
     T* _th_p = dptr;                                                    \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         int nR = _n; nR += 0;                                           \
@@ -934,10 +934,10 @@
 {                                                                       \
     assert(contains(b));                                                \
     assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    const int *_th_plo = loVect();                                     \
-    const int *_th_plen = length();                                    \
+    const int *_th_plo = loVect();                                      \
+    const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length();                                   \
+    const int *_b_len = (b).length().getVect();                         \
     const T* _th_p = dptr;                                              \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         const int nR = _n;                                              \
@@ -964,12 +964,12 @@
     _subbox_ &= box();                                                  \
     _subbox_ &= b;                                                      \
     if(_subbox_.ok()) {                                                 \
-        const int *_th_plo = loVect();                                 \
-        const int *_th_plen = length();                                \
-        const int *_x_plo = (x).loVect();                              \
-        const int *_x_plen = (x).length();                             \
+        const int *_th_plo = loVect();                                  \
+        const int *_th_plen = length();                                 \
+        const int *_x_plo = (x).loVect();                               \
+        const int *_x_plen = (x).length();                              \
         const int *_subbox_lo = _subbox_.loVect();                      \
-        const int *_subbox_len = _subbox_.length();                     \
+        const int *_subbox_len = _subbox_.length().getVect();           \
         T* _th_p = dataPtr(ns);                                         \
         const T* _x_p  = (x).dataPtr(nss);                              \
         for(int _n = 0; _n < (nc); ++_n) {                              \
@@ -1004,14 +1004,14 @@
     _subbox_ &= b;                                                      \
     assert((bx).sameSize(_subbox_));                                    \
     if(_subbox_.ok()) {                                                 \
-        const int *_th_plo = loVect();                                 \
-        const int *_th_plen = length();                                \
-        const int *_x_plo = (x).loVect();                              \
-        const int *_x_plen = (x).length();                             \
+        const int *_th_plo = loVect();                                  \
+        const int *_th_plen = length();                                 \
+        const int *_x_plo = (x).loVect();                               \
+        const int *_x_plen = (x).length();                              \
         const int *_subbox_lo = _subbox_.loVect();                      \
-        const int *_subbox_len = _subbox_.length();                     \
+        const int *_subbox_len = _subbox_.length().getVect();           \
         const int *_bx_lo = (bx).loVect();                              \
-        const int *_bx_len = (bx).length();                             \
+        const int *_bx_len = (bx).length().getVect();                   \
         T* _th_p = dataPtr(ns);                                         \
         const T* _x_p  = (x).dataPtr(nss);                              \
         for(int _n = 0; _n < (nc); ++_n) {                              \
@@ -1052,18 +1052,18 @@
     assert((bx).sameSize(_subbox_));                                    \
     assert((by).sameSize(_subbox_));                                    \
     if(_subbox_.ok()) {                                                 \
-        const int *_th_plo = loVect();                                 \
-        const int *_th_plen = length();                                \
-        const int *_x_plo = (x).loVect();                              \
-        const int *_x_plen = (x).length();                             \
-        const int *_y_plo = (y).loVect();                              \
-        const int *_y_plen = (y).length();                             \
+        const int *_th_plo = loVect();                                  \
+        const int *_th_plen = length();                                 \
+        const int *_x_plo = (x).loVect();                               \
+        const int *_x_plen = (x).length();                              \
+        const int *_y_plo = (y).loVect();                               \
+        const int *_y_plen = (y).length();                              \
         const int *_subbox_lo = _subbox_.loVect();                      \
-        const int *_subbox_len = _subbox_.length();                     \
+        const int *_subbox_len = _subbox_.length().getVect();           \
         const int *_bx_lo = (bx).loVect();                              \
-        const int *_bx_len = (bx).length();                             \
+        const int *_bx_len = (bx).length().getVect();                   \
         const int *_by_lo = (by).loVect();                              \
-        const int *_by_len = (by).length();                             \
+        const int *_by_len = (by).length().getVect();                   \
         T* _th_p = dataPtr(ns);                                         \
         const T* _x_p  = (x).dataPtr(nsx);                              \
         const T* _y_p  = (y).dataPtr(nsy);                              \
@@ -1116,22 +1116,22 @@
     assert((x).contains(bx));                                           \
     assert((y).contains(by));                                           \
     assert((bx).sameSize(by));                                          \
-    const int *_x_plo = (x).loVect();                                  \
-    const int *_x_plen = (x).length();                                 \
-    const int *_y_plo = (y).loVect();                                  \
-    const int *_y_plen = (y).length();                                 \
+    const int *_x_plo = (x).loVect();                                   \
+    const int *_x_plen = (x).length();                                  \
+    const int *_y_plo = (y).loVect();                                   \
+    const int *_y_plen = (y).length();                                  \
     const int *_bx_lo = (bx).loVect();                                  \
     const int *_by_lo = (by).loVect();                                  \
-    const int *_len = (bx).length();                                    \
+    const int *_len = (bx).length().getVect();                          \
     T* _x_p  = (x).dataPtr(nsx);                                        \
     const T* _y_p  = (y).dataPtr(nsy);                                  \
     for(int _n = 0; _n < (nc); ++_n) {                                  \
         int n##x##R = _n + nsx; n##x##R += 0;                           \
         int n##y##R = _n + nsy; n##y##R += 0;                           \
         for(int _k = 0; _k < _len[2]; ++_k) {                           \
-            const int k##x##R = _k + _bx_lo[2];                 \
+            const int k##x##R = _k + _bx_lo[2];                         \
             const int krev##x##R = _len[2]-1-_k + _bx_lo[2];            \
-            const int k##y##R = _k + _by_lo[2];                 \
+            const int k##y##R = _k + _by_lo[2];                         \
             for(int _j = 0; _j < _len[1]; ++_j) {                       \
                 const int j##x##R = _j + _bx_lo[1];                     \
                 const int jrev##x##R = _len[1]-1-_j + _bx_lo[1];        \

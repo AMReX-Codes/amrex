@@ -4,7 +4,7 @@
 #define BL_POINTERS_H
 
 //
-// $Id: Pointers.H,v 1.3 1997-09-17 22:51:20 lijewski Exp $
+// $Id: Pointers.H,v 1.4 1997-11-18 00:04:54 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -40,7 +40,7 @@ public:
     //
     //@ManDoc: Construct a CpPtr<T> setting the wrapped pointer to rhs.
     //
-    CpPtr (T* rhs);
+    explicit CpPtr (T* rhs);
     //
     //@ManDoc: The destructor.  Deletes the wrapped pointer.
     //
@@ -122,7 +122,7 @@ public:
     //
     //@ManDoc: Construct a CpPtr<T> setting the wrapped pointer to rhs.
     //
-    CpClassPtr (T* rhs);
+    explicit CpClassPtr (T* rhs);
 
     /*@ManDoc: The copy constructor.  If the pointer wrapped by rhs is null,
                the wrapped pointer is null here as well.  Otherwise,
@@ -178,7 +178,7 @@ public:
     //
     //@ManDoc: Construct a LnPtr<T> setting the wrapped pointer to rhs.
     //
-    LnPtr (T* rhs);
+    explicit LnPtr (T* rhs);
 
     /*@ManDoc: The copy assignment operator.  The contained pointer is set
                to the one wrapped by rhs.  The reference count is decremented
@@ -265,7 +265,7 @@ public:
     //
     //@ManDoc: Construct a LnPtr<T> setting the wrapped pointer to rhs.
     //
-    LnClassPtr (T* rhs);
+    explicit LnClassPtr (T* rhs);
 
     /*@ManDoc: The copy assignment operator.  The contained pointer is set
                to the one wrapped by rhs.  The reference count is decremented
@@ -302,7 +302,7 @@ class VcClassPtr
 public:
     VcClassPtr()
         : ptr(0) {}
-    VcClassPtr(T* rhs)
+    explicit VcClassPtr(T* rhs)
         : ptr(rhs) {}
     ~VcClassPtr()
     {

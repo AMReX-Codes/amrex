@@ -4,7 +4,7 @@
 #define BL_BOXASSOC_H
 
 //
-// $Id: BoxAssoc.H,v 1.2 1997-09-17 22:51:13 lijewski Exp $
+// $Id: BoxAssoc.H,v 1.3 1997-11-18 00:04:48 lijewski Exp $
 //
 
 #include <Boolean.H>
@@ -177,8 +177,8 @@ public:
     //
     //@ManDoc: Construct a BoxAssoc from a BoxArray for given cachewidth.
     //
-    BoxAssoc (const BoxArray& bxs,
-              int             cachewidth = 0);
+    explicit BoxAssoc (const BoxArray& bxs,
+                       int             cachewidth = 0);
     //
     //@ManDoc: Construct a BoxAssoc from two BoxArrays for given cacehwidth.
     //

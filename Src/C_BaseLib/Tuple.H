@@ -4,7 +4,7 @@
 #define BL_TUPLE_H
 
 //
-// $Id: Tuple.H,v 1.4 1997-09-18 20:13:00 lijewski Exp $
+// $Id: Tuple.H,v 1.5 1997-11-18 00:04:54 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -44,7 +44,7 @@ public:
                that is NOT checked.  For user-defined types, T must have a
                well-defined and accessible copy constructor.
     */
-    Tuple (const T* v);
+    explicit Tuple (const T* v);
     //
     // The copy constructor.
     //

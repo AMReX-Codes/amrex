@@ -4,7 +4,7 @@
 #define BL_ASTRING_H
 
 //
-// $Id: aString.H,v 1.3 1997-09-18 20:13:01 lijewski Exp $
+// $Id: aString.H,v 1.4 1997-11-18 00:04:55 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -35,7 +35,7 @@ class StringRep
     char* s;
     int   bufferlength;
 public:
-    StringRep (int _len = 0);
+    explicit StringRep (int _len = 0);
     ~StringRep ();
     //
     // Resized the buffer and copies the contents of old buffer to new one.
@@ -96,7 +96,7 @@ public:
     /*@ManDoc: Constructs an aString containing the single character c.
                If c is the null character then this will be the empty string.
     */
-    aString (char c);
+    explicit aString (char c);
 
     /*@ManDoc: Constructs an empty aString but allocates enough space to hold
                a character string of length len.  This may be useful when
@@ -106,7 +106,7 @@ public:
                on an empty string.  In general though, you won't notice any
                difference and you really shouldn't use this constructor.
     */
-    aString (int len);
+    explicit aString (int len);
 
     /*@ManDoc: Constructs an aString initialized to the character string s.
                It is an error is `s' is the null string.

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Tracer.H,v 1.2 1997-09-17 22:51:21 lijewski Exp $
+// $Id: Tracer.H,v 1.3 1997-11-18 00:04:54 lijewski Exp $
 //
 
 #ifndef BL_TRACER_H
@@ -30,7 +30,7 @@ class Tracer
       is taken to be a string, with only function names containing
       that substring (ala strstr()) being traced.
     */
-    Tracer (const char* function);
+    explicit Tracer (const char* function);
     //
     //@ManDoc: Destructor.
     //

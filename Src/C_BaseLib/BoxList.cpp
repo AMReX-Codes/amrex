@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxList.cpp,v 1.3 1997-09-24 22:06:43 lijewski Exp $
+// $Id: BoxList.cpp,v 1.4 1997-11-18 00:04:49 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -82,11 +82,19 @@ BoxList::contains (const IntVect& v) const
 bool
 BoxList::contains (const BoxList&  bl) const
 {
-    bool contained = true;
-    for (BoxListIterator bli(bl); bli && contained; ++bli)
+    for (BoxListIterator bli(bl); bli; ++bli)
        if (!contains(bli()))
-           contained = false;
-    return contained;
+           return false;
+    return true;
+}
+
+bool
+BoxList::contains (const BoxArray&  ba) const
+{
+    for (int i = 0; i < ba.length(); i++)
+        if (!contains(ba[i]))
+            return false;
+    return true;
 }
 
 BoxList&

@@ -4,7 +4,7 @@
 #define BL_PARMPARSE_H
 
 //
-// $Id: ParmParse.H,v 1.3 1997-09-18 20:12:57 lijewski Exp $
+// $Id: ParmParse.H,v 1.4 1997-11-18 00:04:53 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -287,7 +287,7 @@ public:
                prefix is specified, load this string as the code prefix
                for this particular ParmParse object.
     */
-    ParmParse (const char* prefix = 0);
+    explicit ParmParse (const char* prefix = 0);
 
     /*@ManDoc: The destructor.  The internal static table will only be deleted
                if there are no other ParmParse objects in existence.

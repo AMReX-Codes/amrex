@@ -4,7 +4,7 @@
 #define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.8 1997-09-18 20:12:43 lijewski Exp $
+// $Id: BaseFab.H,v 1.9 1997-11-18 00:04:45 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -92,8 +92,8 @@ public:
     //
     //@ManDoc: Make BaseFab with desired domain and number of components.
     //
-    BaseFab (const Box& bx,
-             int        n = 1);
+    explicit BaseFab (const Box& bx,
+                      int        n = 1);
 
 #ifdef BL_USE_POINTLIB
 #ifndef BL_CRAY_BUG_DEFARG
@@ -418,7 +418,7 @@ inline
 const int*
 BaseFab<T>::length () const
 {
-    return domain.length();
+    return domain.length().getVect();
 }
 
 template <class T>
@@ -845,9 +845,9 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
         const int *_x_plo = (src).loVect(); 
         const int *_x_plen = (src).length(); 
         const int *_subbox_lo = _subbox_.loVect(); 
-        const int *_subbox_len = _subbox_.length(); 
+        const int *_subbox_len = _subbox_.length().getVect(); 
         const int *_bx_lo = (srcbox).loVect(); 
-        const int *_bx_len = (srcbox).length(); 
+        const int *_bx_len = (srcbox).length().getVect(); 
         T* _th_p = dataPtr(destcomp); 
         const T* _x_p  = (src).dataPtr(srccomp); 
         for (int _n = 0; _n < (numcomp); ++_n)
@@ -876,9 +876,9 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
         const int *_x_plo = (src).loVect(); 
         const int *_x_plen = (src).length(); 
         const int *_subbox_lo = _subbox_.loVect(); 
-        const int *_subbox_len = _subbox_.length(); 
+        const int *_subbox_len = _subbox_.length().getVect(); 
         const int *_bx_lo = (srcbox).loVect(); 
-        const int *_bx_len = (srcbox).length(); 
+        const int *_bx_len = (srcbox).length().getVect(); 
         T* _th_p = dataPtr(destcomp); 
         const T* _x_p  = (src).dataPtr(srccomp); 
         for (int _n = 0; _n < (numcomp); ++_n)
@@ -915,9 +915,9 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
         const int *_x_plo = (src).loVect(); 
         const int *_x_plen = (src).length(); 
         const int *_subbox_lo = _subbox_.loVect(); 
-        const int *_subbox_len = _subbox_.length(); 
+        const int *_subbox_len = _subbox_.length().getVect(); 
         const int *_bx_lo = (srcbox).loVect(); 
-        const int *_bx_len = (srcbox).length(); 
+        const int *_bx_len = (srcbox).length().getVect(); 
         T* _th_p = dataPtr(destcomp); 
         const T* _x_p  = (src).dataPtr(srccomp); 
         for (int _n = 0; _n < (numcomp); ++_n)

@@ -4,7 +4,7 @@
 #define BL_INTVECT_H
 
 //
-// $Id: IntVect.H,v 1.4 1997-11-10 21:36:18 car Exp $
+// $Id: IntVect.H,v 1.5 1997-11-18 00:04:50 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -58,13 +58,13 @@ public:
     /*@ManDoc: Construct an IntVect setting the coordinates to the
                corresponding values in the integer array a.
     */
-    IntVect (const int* a);
+    explicit IntVect (const int* a);
 
     /*@ManDoc: Construct an IntVect from an Array<int>.  It is an error if
                the Array<int> doesn' t have the same dimension as this
                IntVect.
     */
-    IntVect (const Array<int>& a);
+    explicit IntVect (const Array<int>& a);
     //
     //@ManDoc: The copy constructor.
     //
@@ -91,11 +91,6 @@ public:
                IntVect.  Useful for arguments to FORTRAN calls.
     */
     const int* getVect () const;
-
-    /*@ManDoc: Returns a const pointer to an array of coordinates of the
-               IntVect.  Useful for arguments to FORTRAN calls.
-    */
-    operator const int* () const;
 
     /*@ManDoc: Returns true of IntVect is equivalent to argument IntVect.
                All comparisons between analogous components must be satisfied.
@@ -450,12 +445,6 @@ IntVect::setVal (int i,
 inline
 const int*
 IntVect::getVect () const
-{
-    return vect;
-}
-
-inline
-IntVect::operator const int* () const
 {
     return vect;
 }
