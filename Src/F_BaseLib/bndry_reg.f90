@@ -138,7 +138,7 @@ contains
     type(multifab), intent(in) :: mf
     type(bndry_reg), intent(inout) :: br
     logical, intent(in), optional :: all
-    integer i, f
+    integer :: i, f
     do i = 1, br%dim
        do f = 0, 1
           call copy(br%bmf(i,f), mf, all=all)
@@ -151,7 +151,7 @@ contains
     integer, intent(in) :: cb, cm
     integer, intent(in), optional :: nc
     logical, intent(in), optional :: all
-    integer i, f, lnc
+    integer :: i, f, lnc
     lnc = 1; if ( present(nc) ) lnc = nc
     do i = 1, br%dim
        do f = 0, 1

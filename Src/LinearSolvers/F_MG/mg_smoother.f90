@@ -339,8 +339,8 @@ contains
     real (kind = dp_t), intent(in)    :: ss(:,0:)
     integer            ,intent(in)    :: mm(:)
     logical, intent(in), optional :: skwd
-    real (kind = dp_t) dd
-    integer i
+    real (kind = dp_t) :: dd
+    integer :: i
     logical :: lskwd
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
@@ -359,8 +359,8 @@ contains
     real (kind = dp_t), intent(in) :: ss(:, :, 0:)
     integer            ,intent(in) :: mm(:,:)
     logical, intent(in), optional :: skwd
-    integer j, i
-    real (kind = dp_t) dd
+    integer :: j, i
+    real (kind = dp_t) :: dd
     logical :: lskwd
 
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
@@ -388,8 +388,8 @@ contains
     real (kind = dp_t), intent(in) :: ss(:,:,:,0:)
     integer            ,intent(in) :: mm(:,:,:)
     logical, intent(in), optional :: skwd
-    integer i, j, k
-    real (kind = dp_t) dd
+    integer :: i, j, k
+    real (kind = dp_t) :: dd
     logical :: lskwd
 
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
@@ -422,8 +422,8 @@ subroutine gs_lex_dense_smoother_1d(omega, ss, uu, ff, mm, ng, skwd)
     real (kind = dp_t), intent(in)    :: ss(:,0:)
     integer            ,intent(in)    :: mm(:)
     logical, intent(in), optional :: skwd
-    real (kind = dp_t) dd
-    integer i
+    real (kind = dp_t) :: dd
+    integer :: i
     logical :: lskwd
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
@@ -443,8 +443,8 @@ subroutine gs_lex_dense_smoother_1d(omega, ss, uu, ff, mm, ng, skwd)
     real (kind = dp_t), intent(in) :: ss(:, :, 0:)
     integer            ,intent(in) :: mm(:,:)
     logical, intent(in), optional :: skwd
-    integer j, i
-    real (kind = dp_t) dd
+    integer :: j, i
+    real (kind = dp_t) :: dd
     logical :: lskwd
 
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
@@ -478,8 +478,8 @@ subroutine gs_lex_dense_smoother_1d(omega, ss, uu, ff, mm, ng, skwd)
     real (kind = dp_t), intent(in) :: ss(:,:,:,0:)
     integer            ,intent(in) :: mm(:,:,:)
     logical, intent(in), optional :: skwd
-    integer i, j, k
-    real (kind = dp_t) dd
+    integer :: i, j, k
+    real (kind = dp_t) :: dd
     logical :: lskwd
 
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
@@ -536,8 +536,8 @@ subroutine gs_lex_dense_smoother_1d(omega, ss, uu, ff, mm, ng, skwd)
     integer           , intent(in) ::  mm(:)
     real (kind = dp_t), intent(inout) ::  uu(1-ng:)
     real (kind = dp_t):: wrk(size(ff,1))
-    integer nx
-    integer i
+    integer :: nx
+    integer :: i
     real (kind = dp_t) :: dd
     integer, parameter ::  XBC = 3
 
@@ -566,7 +566,7 @@ subroutine gs_lex_dense_smoother_1d(omega, ss, uu, ff, mm, ng, skwd)
     real (kind = dp_t), intent(in) ::  ff(:)
     real (kind = dp_t), intent(inout) ::  uu(1-ng:)
     real (kind = dp_t):: wrk(size(ff,1))
-    integer nx, i
+    integer :: nx, i
 
     nx = size(ff,dim=1)
     do i = 1, nx
@@ -588,8 +588,8 @@ subroutine gs_lex_dense_smoother_1d(omega, ss, uu, ff, mm, ng, skwd)
     integer           , intent(in) ::  mm(:,:)
     real (kind = dp_t), intent(inout) ::  uu(1-ng:,1-ng:)
     real (kind = dp_t) :: wrk(size(ff,1),size(ff,2))
-    integer nx, ny
-    integer i, j
+    integer :: nx, ny
+    integer :: i, j
     real (kind = dp_t) :: dd
     integer, parameter ::  XBC = 5, YBC = 6
 
@@ -631,14 +631,14 @@ subroutine gs_lex_dense_smoother_1d(omega, ss, uu, ff, mm, ng, skwd)
   end subroutine jac_smoother_2d
 
   subroutine jac_dense_smoother_2d(omega, ss, uu, ff, ng)
-    integer nx, ny
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ss(:,:,0:)
     real (kind = dp_t), intent(in) :: ff(:,:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:)
     real (kind = dp_t) :: wrk(size(ff,1),size(ff,2))
-    integer i, j
+    integer :: i, j
+    integer :: nx, ny
 
     nx=size(ss,dim=1)
     ny=size(ss,dim=2)
@@ -680,8 +680,8 @@ subroutine gs_lex_dense_smoother_1d(omega, ss, uu, ff, mm, ng, skwd)
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:,1-ng:)
     real (kind = dp_t), allocatable :: wrk(:,:,:)
     real (kind = dp_t) :: dd
-    integer nx, ny, nz
-    integer i, j, k
+    integer :: nx, ny, nz
+    integer :: i, j, k
     integer, parameter ::  XBC = 7, YBC = 8, ZBC = 9
 
     nx = size(ff,dim=1)
@@ -738,14 +738,14 @@ subroutine gs_lex_dense_smoother_1d(omega, ss, uu, ff, mm, ng, skwd)
   end subroutine jac_smoother_3d
 
   subroutine jac_dense_smoother_3d(omega, ss, uu, ff, ng)
-    integer nx, ny, nz
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in) :: omega
     real (kind = dp_t), intent(in) :: ss(:,:,:,0:)
     real (kind = dp_t), intent(in) :: ff(:,:,:)
     real (kind = dp_t), intent(inout) :: uu(1-ng:,1-ng:,1-ng:)
     real (kind = dp_t), allocatable :: wrk(:,:,:)
-    integer i, j, k
+    integer :: nx, ny, nz
+    integer :: i, j, k
 
     nx = size(ff,dim=1)
     ny = size(ff,dim=2)
@@ -811,7 +811,7 @@ subroutine gs_lex_dense_smoother_1d(omega, ss, uu, ff, mm, ng, skwd)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:)
 
     real (kind = dp_t) :: wrk(size(ff,dim=1),4)
-    integer i, j, hi(size(lo))
+    integer :: i, j, hi(size(lo))
 
     hi = ubound(uu)-ng
 
@@ -834,7 +834,7 @@ subroutine gs_lex_dense_smoother_1d(omega, ss, uu, ff, mm, ng, skwd)
     real (kind = dp_t), intent(in) :: ff(lo(1):,lo(2):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:)
     real (kind = dp_t) :: wrk(size(ff,dim=2),4)
-    integer i, j, hi(size(lo))
+    integer :: i, j, hi(size(lo))
     hi = ubound(uu)-ng
     do i = lo(1), hi(1)
        do j = lo(2), hi(2)
@@ -855,7 +855,7 @@ subroutine gs_lex_dense_smoother_1d(omega, ss, uu, ff, mm, ng, skwd)
     real (kind = dp_t), intent(in) :: ff(lo(1):,lo(2):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:)
     real (kind = dp_t) :: wrk(size(ff,dim=1),4)
-    integer i, j, hi(size(lo))
+    integer :: i, j, hi(size(lo))
 
     hi = ubound(uu)-ng
 
@@ -891,7 +891,7 @@ subroutine gs_lex_dense_smoother_1d(omega, ss, uu, ff, mm, ng, skwd)
     real (kind = dp_t), intent(in) :: ff(lo(1):,lo(2):)
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:)
     real (kind = dp_t) :: wrk(size(ff,dim=2),4)
-    integer i, j, hi(size(lo))
+    integer :: i, j, hi(size(lo))
 
     hi = ubound(uu)-ng
     do i = lo(1), hi(1), 2
@@ -960,8 +960,8 @@ subroutine gs_lex_dense_smoother_1d(omega, ss, uu, ff, mm, ng, skwd)
 
     !     internal variables
 
-    integer k, n
-    real (kind = dp_t) t
+    integer :: k, n
+    real (kind = dp_t) :: t
     real (kind = dp_t), parameter :: ZERO = 0.0_dp_t
     logical :: lpv
 

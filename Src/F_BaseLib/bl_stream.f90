@@ -154,7 +154,7 @@ contains
   subroutine bl_stream_expect_chr_v(strm, chars)
     type(bl_stream), intent(inout) :: strm
     character, intent(in) :: chars(:)
-    integer i
+    integer :: i
     do i = 1, len(chars)
        call bl_stream_expect_str(strm, chars(i))
     end do

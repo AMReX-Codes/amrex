@@ -1372,7 +1372,7 @@ contains
       real(kind=dp_t), dimension(:,:,:,:), pointer :: p1, p2
       type(box), dimension(MAX_SPACEDIM,2) :: bndry
       type(box) :: bx, abx
-      integer i, j, ii, fc, proc
+      integer :: i, j, ii, fc, proc
       integer, parameter :: tag = 1101
       src: do i = 1, mf%nboxes
          bndry = box_boundary_n(get_ibox(mf, i), mf%ng)
@@ -1526,7 +1526,7 @@ contains
       integer, dimension(:,:,:,:), pointer :: p1, p2
       type(box), dimension(MAX_SPACEDIM,2) :: bndry
       type(box) :: bx, abx
-      integer i, j, ii, fc, proc
+      integer :: i, j, ii, fc, proc
       integer, parameter :: tag = 1101
       src: do i = 1, mf%nboxes
          bndry = box_boundary_n(get_ibox(mf, i), mf%ng)
@@ -1675,7 +1675,7 @@ contains
       logical, dimension(:,:,:,:), pointer :: p1, p2
       type(box), dimension(MAX_SPACEDIM,2) :: bndry
       type(box) :: bx, abx
-      integer i, j, ii, fc, proc
+      integer :: i, j, ii, fc, proc
       integer, parameter :: tag = 1101
       src: do i = 1, mf%nboxes
          bndry = box_boundary_n(get_ibox(mf, i), mf%ng)
@@ -1810,8 +1810,8 @@ contains
     logical, intent(in), optional :: all
     type(box) :: ibx, jbx, abx
     real(kind=dp_t), dimension(:,:,:,:), pointer :: p1, p2
-    integer i, j
-    integer proc
+    integer :: i, j
+    integer :: proc
     integer, parameter :: tag = 1104
     logical :: lall
     real(dp_t), dimension(:,:,:,:), allocatable :: pt
@@ -1878,8 +1878,8 @@ contains
     type(box) :: ibx, jbx, abx
     logical, dimension(:,:,:,:), pointer :: p1, p2
     logical, dimension(:,:,:,:), allocatable :: pt
-    integer i, j
-    integer proc
+    integer :: i, j
+    integer :: proc
     logical :: lall
     integer, parameter :: tag = 1104
     interface
@@ -1943,7 +1943,7 @@ contains
     integer, intent(in), optional :: skip
     integer :: i, ii
     integer :: un
-    character(len=5) fn
+    character(len=5) :: fn
     un = unit_stdout(unit)
     call unit_skip(un, skip)
     write(unit=un, fmt='("MULTIFAB")', advance = 'no')
@@ -1982,7 +1982,7 @@ contains
     integer, intent(in), optional :: skip
     integer :: i, ii
     integer :: un
-    character(len=5) fn
+    character(len=5) :: fn
     un = unit_stdout(unit)
     call unit_skip(un, skip)
     write(unit=un, fmt='("IMULTIFAB")', advance = 'no')
@@ -2021,7 +2021,7 @@ contains
     integer, intent(in), optional :: skip
     integer :: i, ii
     integer :: un
-    character(len=5) fn
+    character(len=5) :: fn
     un = unit_stdout(unit)
     call unit_skip(un, skip)
     write(unit=un, fmt='("LMULTIFAB")', advance = 'no')
@@ -2092,7 +2092,7 @@ contains
       real(dp_t), pointer :: p1(:,:,:,:)
       real(dp_t), pointer :: p2(:,:,:,:)
       integer, parameter :: tag = 1102
-      integer i, j, proc
+      integer :: i, j, proc
       do n = 0, lnc - 1
          do i = 1, mf1%nboxes
             if ( lall ) then
@@ -2165,7 +2165,7 @@ contains
       integer, pointer :: p1(:,:,:,:)
       integer, pointer :: p2(:,:,:,:)
       integer, parameter :: tag = 1102
-      integer i, j, proc
+      integer :: i, j, proc
       do n = 0, lnc-1
          do i = 1, mf1%nboxes
             if ( lall ) then
@@ -2296,7 +2296,7 @@ contains
       integer, pointer :: p1(:,:,:,:)
       integer, pointer :: p2(:,:,:,:)
       integer, parameter :: tag = 1102
-      integer i, j, proc
+      integer :: i, j, proc
       do i = 1, mf1%nboxes
          if ( lall ) then
             bx = get_pbox(mf1, i)

@@ -391,7 +391,7 @@ contains
   subroutine boxarray_grow_v(ba, rv)
     type(boxarray), intent(inout) :: ba
     integer, intent(in) :: rv(:)
-    integer i
+    integer :: i
     do i = 1, ba%nboxes
        ba%bxs(i) = grow(ba%bxs(i), rv)
     end do
@@ -399,7 +399,7 @@ contains
   subroutine boxarray_grow_v_f(ba, rv, face)
     type(boxarray), intent(inout) :: ba
     integer, intent(in) :: rv(:), face
-    integer i
+    integer :: i
     do i = 1, ba%nboxes
        ba%bxs(i) = grow(ba%bxs(i), rv, face)
     end do
@@ -737,7 +737,7 @@ contains
     integer :: i,k
     type(list_box_node), pointer :: li
     integer :: len(bxa%dim)
-    integer nl, bs, rt, nblk, sz, ex, ks, ps
+    integer :: nl, bs, rt, nblk, sz, ex, ks, ps
     type(box) :: bxr, bxl
 
     do i = 1, bxa%nboxes
@@ -783,7 +783,7 @@ contains
     type(list_box) :: r
     type(box) :: b1, bn
     integer, dimension(bx1%dim) :: b2lo, b2hi, b1lo, b1hi
-    integer i, dm
+    integer :: i, dm
 
     dm = bx1%dim
     b1 = bx1

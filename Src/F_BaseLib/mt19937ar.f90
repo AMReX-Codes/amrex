@@ -507,7 +507,7 @@ contains
   subroutine mt_random_number_l_1(mt, harvest)
     type(mt19937), intent(inout) :: mt
     logical, intent(out) :: harvest(:)
-    integer i
+    integer :: i
     do i = 1, size(harvest)
        harvest(i) = mt_genrand_bit(mt)
     end do
@@ -520,7 +520,7 @@ contains
   subroutine mt_random_number_l_2(mt, harvest)
     type(mt19937), intent(inout) :: mt
     logical, intent(out) :: harvest(:,:)
-    integer i,j
+    integer :: i,j
     do j = 1, size(harvest,dim=2)
        do i = 1, size(harvest, dim=1)
           harvest(i,j) = mt_genrand_bit(mt)
@@ -535,7 +535,7 @@ contains
   subroutine mt_random_number_l_3(mt, harvest)
     type(mt19937), intent(inout) :: mt
     logical, intent(out) :: harvest(:,:,:)
-    integer i,j,k
+    integer :: i,j,k
     do k = 1, size(harvest,dim=3)
        do j = 1, size(harvest,dim=2)
           do i = 1, size(harvest, dim=1)
@@ -552,7 +552,7 @@ contains
   subroutine mt_random_number_l_4(mt, harvest)
     type(mt19937), intent(inout) :: mt
     logical, intent(out) :: harvest(:,:,:,:)
-    integer i,j,k,l
+    integer :: i,j,k,l
     do l = 1, size(harvest,dim=4)
        do k = 1, size(harvest,dim=3)
           do j = 1, size(harvest,dim=2)
@@ -571,7 +571,7 @@ contains
   subroutine mt_random_number_l_5(mt, harvest)
     type(mt19937), intent(inout) :: mt
     logical, intent(out) :: harvest(:,:,:,:,:)
-    integer i,j,k,l,m
+    integer :: i,j,k,l,m
     do m = 1, size(harvest,dim=5)
        do l = 1, size(harvest,dim=4)
           do k = 1, size(harvest,dim=3)
@@ -592,7 +592,7 @@ contains
   subroutine mt_random_number_l_6(mt, harvest)
     type(mt19937), intent(inout) :: mt
     logical, intent(out) :: harvest(:,:,:,:,:,:)
-    integer i,j,k,l,m,n
+    integer :: i,j,k,l,m,n
     do n = 1, size(harvest,dim=6)
        do m = 1, size(harvest,dim=5)
           do l = 1, size(harvest,dim=4)
@@ -615,7 +615,7 @@ contains
   subroutine mt_random_number_l_7(mt, harvest)
     type(mt19937), intent(inout) :: mt
     logical, intent(out) :: harvest(:,:,:,:,:,:,:)
-    integer i,j,k,l,m,n,o
+    integer :: i,j,k,l,m,n,o
     do o = 1, size(harvest,dim=7)
        do n = 1, size(harvest,dim=6)
           do m = 1, size(harvest,dim=5)
@@ -654,7 +654,7 @@ contains
     type(mt19937), intent(inout) :: mt
     logical, intent(in), optional :: natural
     integer, intent(out) :: harvest(:)
-    integer i
+    integer :: i
     do i = 1, size(harvest)
        harvest(i) = mt_genrand_int(mt, natural)
     end do
@@ -669,7 +669,7 @@ contains
     type(mt19937), intent(inout) :: mt
     logical, intent(in), optional :: natural
     integer, intent(out) :: harvest(:,:)
-    integer i,j
+    integer :: i,j
     do j = 1, size(harvest,dim=2)
        do i = 1, size(harvest, dim=1)
           harvest(i,j) = mt_genrand_int(mt, natural)
@@ -686,7 +686,7 @@ contains
     type(mt19937), intent(inout) :: mt
     logical, intent(in), optional :: natural
     integer, intent(out) :: harvest(:,:,:)
-    integer i,j,k
+    integer :: i,j,k
     do k = 1, size(harvest,dim=3)
        do j = 1, size(harvest,dim=2)
           do i = 1, size(harvest, dim=1)
@@ -705,7 +705,7 @@ contains
     type(mt19937), intent(inout) :: mt
     logical, intent(in), optional :: natural
     integer, intent(out) :: harvest(:,:,:,:)
-    integer i,j,k,l
+    integer :: i,j,k,l
     do l = 1, size(harvest,dim=4)
        do k = 1, size(harvest,dim=3)
           do j = 1, size(harvest,dim=2)
@@ -726,7 +726,7 @@ contains
     type(mt19937), intent(inout) :: mt
     logical, intent(in), optional :: natural
     integer, intent(out) :: harvest(:,:,:,:,:)
-    integer i,j,k,l,m
+    integer :: i,j,k,l,m
     do m = 1, size(harvest,dim=5)
        do l = 1, size(harvest,dim=4)
           do k = 1, size(harvest,dim=3)
@@ -749,7 +749,7 @@ contains
     type(mt19937), intent(inout) :: mt
     logical, intent(in), optional :: natural
     integer, intent(out) :: harvest(:,:,:,:,:,:)
-    integer i,j,k,l,m,n
+    integer :: i,j,k,l,m,n
     do n = 1, size(harvest,dim=6)
        do m = 1, size(harvest,dim=5)
           do l = 1, size(harvest,dim=4)
@@ -774,7 +774,7 @@ contains
     type(mt19937), intent(inout) :: mt
     logical, intent(in), optional :: natural
     integer, intent(out) :: harvest(:,:,:,:,:,:,:)
-    integer i,j,k,l,m,n,o
+    integer :: i,j,k,l,m,n,o
     do o = 1, size(harvest,dim=7)
        do n = 1, size(harvest,dim=6)
           do m = 1, size(harvest,dim=5)
@@ -809,7 +809,7 @@ contains
   subroutine mt_random_number_d_1(mt, harvest)
     type(mt19937), intent(inout) :: mt
     real(kind = wr), intent(out) :: harvest(:)
-    integer i
+    integer :: i
     do i = 1, size(harvest)
        harvest(i) = mt_genrand_real2(mt)
     end do
@@ -823,7 +823,7 @@ contains
   subroutine mt_random_number_d_2(mt, harvest)
     type(mt19937), intent(inout) :: mt
     real(kind = wr), intent(out) :: harvest(:,:)
-    integer i,j
+    integer :: i,j
     do j = 1, size(harvest,dim=2)
        do i = 1, size(harvest, dim=1)
           harvest(i,j) = mt_genrand_real2(mt)
@@ -839,7 +839,7 @@ contains
   subroutine mt_random_number_d_3(mt, harvest)
     type(mt19937), intent(inout) :: mt
     real(kind = wr), intent(out) :: harvest(:,:,:)
-    integer i,j,k
+    integer :: i,j,k
     do k = 1, size(harvest,dim=3)
        do j = 1, size(harvest,dim=2)
           do i = 1, size(harvest, dim=1)
@@ -857,7 +857,7 @@ contains
   subroutine mt_random_number_d_4(mt, harvest)
     type(mt19937), intent(inout) :: mt
     real(kind = wr), intent(out) :: harvest(:,:,:,:)
-    integer i,j,k,l
+    integer :: i,j,k,l
     do l = 1, size(harvest,dim=4)
        do k = 1, size(harvest,dim=3)
           do j = 1, size(harvest,dim=2)
@@ -877,7 +877,7 @@ contains
   subroutine mt_random_number_d_5(mt, harvest)
     type(mt19937), intent(inout) :: mt
     real(kind = wr), intent(out) :: harvest(:,:,:,:,:)
-    integer i,j,k,l,m
+    integer :: i,j,k,l,m
     do m = 1, size(harvest,dim=5)
        do l = 1, size(harvest,dim=4)
           do k = 1, size(harvest,dim=3)
@@ -899,7 +899,7 @@ contains
   subroutine mt_random_number_d_6(mt, harvest)
     type(mt19937), intent(inout) :: mt
     real(kind = wr), intent(out) :: harvest(:,:,:,:,:,:)
-    integer i,j,k,l,m,n
+    integer :: i,j,k,l,m,n
     do n = 1, size(harvest,dim=6)
        do m = 1, size(harvest,dim=5)
           do l = 1, size(harvest,dim=4)
@@ -923,7 +923,7 @@ contains
   subroutine mt_random_number_d_7(mt, harvest)
     type(mt19937), intent(inout) :: mt
     real(kind = wr), intent(out) :: harvest(:,:,:,:,:,:,:)
-    integer i,j,k,l,m,n,o
+    integer :: i,j,k,l,m,n,o
     do o = 1, size(harvest,dim=7)
        do n = 1, size(harvest,dim=6)
           do m = 1, size(harvest,dim=5)
@@ -960,7 +960,7 @@ contains
   subroutine mt_random_number_r_1(mt, harvest)
     type(mt19937), intent(inout) :: mt
     real(kind = wf), intent(out) :: harvest(:)
-    integer i
+    integer :: i
     do i = 1, size(harvest)
        harvest(i) = mt_genrand_real2(mt)
     end do
@@ -974,7 +974,7 @@ contains
   subroutine mt_random_number_r_2(mt, harvest)
     type(mt19937), intent(inout) :: mt
     real(kind = wf), intent(out) :: harvest(:,:)
-    integer i,j
+    integer :: i,j
     do j = 1, size(harvest,dim=2)
        do i = 1, size(harvest, dim=1)
           harvest(i,j) = mt_genrand_real2(mt)
@@ -990,7 +990,7 @@ contains
   subroutine mt_random_number_r_3(mt, harvest)
     type(mt19937), intent(inout) :: mt
     real(kind = wf), intent(out) :: harvest(:,:,:)
-    integer i,j,k
+    integer :: i,j,k
     do k = 1, size(harvest,dim=3)
        do j = 1, size(harvest,dim=2)
           do i = 1, size(harvest, dim=1)
@@ -1008,7 +1008,7 @@ contains
   subroutine mt_random_number_r_4(mt, harvest)
     type(mt19937), intent(inout) :: mt
     real(kind = wf), intent(out) :: harvest(:,:,:,:)
-    integer i,j,k,l
+    integer :: i,j,k,l
     do l = 1, size(harvest,dim=4)
        do k = 1, size(harvest,dim=3)
           do j = 1, size(harvest,dim=2)
@@ -1028,7 +1028,7 @@ contains
   subroutine mt_random_number_r_5(mt, harvest)
     type(mt19937), intent(inout) :: mt
     real(kind = wf), intent(out) :: harvest(:,:,:,:,:)
-    integer i,j,k,l,m
+    integer :: i,j,k,l,m
     do m = 1, size(harvest,dim=5)
        do l = 1, size(harvest,dim=4)
           do k = 1, size(harvest,dim=3)
@@ -1050,7 +1050,7 @@ contains
   subroutine mt_random_number_r_6(mt, harvest)
     type(mt19937), intent(inout) :: mt
     real(kind = wf), intent(out) :: harvest(:,:,:,:,:,:)
-    integer i,j,k,l,m,n
+    integer :: i,j,k,l,m,n
     do n = 1, size(harvest,dim=6)
        do m = 1, size(harvest,dim=5)
           do l = 1, size(harvest,dim=4)
@@ -1074,7 +1074,7 @@ contains
   subroutine mt_random_number_r_7(mt, harvest)
     type(mt19937), intent(inout) :: mt
     real(kind = wf), intent(out) :: harvest(:,:,:,:,:,:,:)
-    integer i,j,k,l,m,n,o
+    integer :: i,j,k,l,m,n,o
     do o = 1, size(harvest,dim=7)
        do n = 1, size(harvest,dim=6)
           do m = 1, size(harvest,dim=5)
@@ -1120,7 +1120,7 @@ contains
   !! Returns whether mt rn returns same number as original source.
   function mt_validate()
     logical :: mt_validate
-    integer i
+    integer :: i
     integer(kind=wi) :: init(4), ia
     data init /Z'123', Z'234', Z'345', Z'456'/
     type(mt19937) :: mt

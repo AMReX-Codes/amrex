@@ -1,7 +1,7 @@
 subroutine orig_pingpong(sync)
   use mpi
   implicit none
-  logical sync
+  logical :: sync
   integer, parameter :: Ntimes=3, Npower=15, Nbase=1024
   integer, parameter :: dp_t = kind(1.0d0)
   integer :: istatus(MPI_STATUS_SIZE)
@@ -128,7 +128,7 @@ end subroutine orig_pingpong
 subroutine my_pingpong(sync)
   use parallel
   implicit none
-  logical sync
+  logical :: sync
   integer, parameter :: Ntimes=3, Npower=15, Nbase=1024
   integer :: istatus(MPI_STATUS_SIZE)
   integer :: ierr, npes, ipe

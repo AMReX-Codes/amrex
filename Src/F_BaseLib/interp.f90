@@ -27,15 +27,15 @@ contains
     real(kind=dp_t), intent(out) ::  fine(0:,0:,:)
     real(kind=dp_t), intent(in ) ::  crse(0:,0:,:)
     integer, parameter ::  NUM_SLP = 3
-    real(kind=dp_t)  sl(0:size(crse,1)-1, NUM_SLP)
+    real(kind=dp_t)  :: sl(0:size(crse,1)-1, NUM_SLP)
 
-    integer lx, ly
-    integer i, j, ifn, jfn, n
-    integer ilo, ihi, jlo, jhi
+    integer :: lx, ly
+    integer :: i, j, ifn, jfn, n
+    integer :: ilo, ihi, jlo, jhi
 
-    real(kind=dp_t) fx, fy
-    real(kind=dp_t) RX, RY, RXY
-    real(kind=dp_t) dx0, d0x, dx1
+    real(kind=dp_t) :: fx, fy
+    real(kind=dp_t) :: RX, RY, RXY
+    real(kind=dp_t) :: dx0, d0x, dx1
 
     RX = ONE/real(lratio(1),kind=dp_t)
     RY = ONE/real(lratio(2),kind=dp_t)
@@ -100,26 +100,26 @@ contains
     real(kind=dp_t), intent(in) :: cvcy(0:)
 
 
-    real(kind=dp_t)     uc_xslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1,size(fine,3))
-    real(kind=dp_t)     lc_xslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1,size(fine,3))
-    real(kind=dp_t) xslope_factor(0:ubound(crse,1)-1, 0:ubound(crse,2)-1)
-    real(kind=dp_t)     uc_yslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1,size(fine,3))
-    real(kind=dp_t)     lc_yslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1,size(fine,3))
-    real(kind=dp_t) yslope_factor(0:ubound(crse,1)-1, 0:ubound(crse,2)-1)
-    real(kind=dp_t)         alpha(0:ubound(crse,1)-1, 0:ubound(crse,2)-1,size(fine,3))
-    real(kind=dp_t)          cmax(0:ubound(crse,1)-1, 0:ubound(crse,2)-1,size(fine,3))
-    real(kind=dp_t)          cmin(0:ubound(crse,1)-1, 0:ubound(crse,2)-1,size(fine,3))
-    real(kind=dp_t)         voffx(0:size(fine,1)-1)
-    real(kind=dp_t)         voffy(0:size(fine,2)-1)
+    real(kind=dp_t) ::     uc_xslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1,size(fine,3))
+    real(kind=dp_t) ::     lc_xslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1,size(fine,3))
+    real(kind=dp_t) :: xslope_factor(0:ubound(crse,1)-1, 0:ubound(crse,2)-1)
+    real(kind=dp_t) ::     uc_yslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1,size(fine,3))
+    real(kind=dp_t) ::     lc_yslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1,size(fine,3))
+    real(kind=dp_t) :: yslope_factor(0:ubound(crse,1)-1, 0:ubound(crse,2)-1)
+    real(kind=dp_t) ::         alpha(0:ubound(crse,1)-1, 0:ubound(crse,2)-1,size(fine,3))
+    real(kind=dp_t) ::          cmax(0:ubound(crse,1)-1, 0:ubound(crse,2)-1,size(fine,3))
+    real(kind=dp_t) ::          cmin(0:ubound(crse,1)-1, 0:ubound(crse,2)-1,size(fine,3))
+    real(kind=dp_t) ::         voffx(0:size(fine,1)-1)
+    real(kind=dp_t) ::         voffy(0:size(fine,2)-1)
 
-    integer n
-    integer i, ic
-    integer j, jc
-    real(kind=dp_t) fxcen, cxcen, fycen, cycen
-    real(kind=dp_t) orig_corr_fact,corr_fact
-    logical xok(2)
-    integer nxc(2)
-    integer ioff,joff
+    integer :: n
+    integer :: i, ic
+    integer :: j, jc
+    real(kind=dp_t) :: fxcen, cxcen, fycen, cycen
+    real(kind=dp_t) :: orig_corr_fact, corr_fact
+    logical :: xok(2)
+    integer :: nxc(2)
+    integer :: ioff, joff
 
     forall (i =1:2) nxc(i) = size(crse,i)-2
 
@@ -372,7 +372,7 @@ contains
     real(kind=dp_t), intent(in) :: crse(0:,0:,:)
     real(kind=dp_t), intent(out) :: fine(0:,0:,:)
 
-    integer i, j, ic, jc, ioff, joff, n
+    integer :: i, j, ic, jc, ioff, joff, n
 
     do n = 1, size(crse,3)
        do jc = 0, ubound(crse,2)
@@ -406,14 +406,14 @@ contains
     real(kind=dp_t), intent(in) :: cvcx(0:)
     real(kind=dp_t), intent(in) :: cvcy(0:)
 
-    real(kind=dp_t) alpha, sumN, sumP, negVal, posVal
-    real(kind=dp_t) crseTot, crseTotnew
-    real(kind=dp_t) orig_fine(0:lratio(1)-1,0:lratio(2)-1)
-    real(kind=dp_t) fvol,cvol
-    logical redo_me
-    integer ilo,ihi,jlo,jhi
-    integer i,j,ic,jc,n
-    integer icase, nxc(2)
+    real(kind=dp_t) :: alpha, sumN, sumP, negVal, posVal
+    real(kind=dp_t) :: crseTot, crseTotnew
+    real(kind=dp_t) :: orig_fine(0:lratio(1)-1,0:lratio(2)-1)
+    real(kind=dp_t) :: fvol,cvol
+    logical :: redo_me
+    integer :: ilo, ihi, jlo, jhi
+    integer :: i, j, ic, jc, n
+    integer :: icase, nxc(2)
 
     nxc(1) = size(crse,1)-2
     nxc(2) = size(crse,2)-2
@@ -635,19 +635,19 @@ contains
 
   subroutine bl_nd_interp_3d (crse, fine, lratio)
 
-    integer lratio(:)
+    integer, intent(in) :: lratio(:)
     integer, parameter :: NUM_SLP = 7
-    REAL(kind=dp_t) fine(0:,0:,0:,:)
-    REAL(kind=dp_t) crse(0:,0:,0:,:)
-    REAL(kind=dp_t)  sl(0:ubound(crse,1), NUM_SLP)
+    REAL(kind=dp_t) :: fine(0:,0:,0:,:)
+    REAL(kind=dp_t) :: crse(0:,0:,0:,:)
+    REAL(kind=dp_t) :: sl(0:ubound(crse,1), NUM_SLP)
 
-    integer lx, ly, lz
-    integer i, j, k, ifn, jfn, kfn, n
-    integer ilo, ihi, jlo, jhi, klo, khi
+    integer :: lx, ly, lz
+    integer :: i, j, k, ifn, jfn, kfn, n
+    integer :: ilo, ihi, jlo, jhi, klo, khi
 
-    REAL(kind=dp_t) fx, fy,fz
-    REAL(kind=dp_t) RX, RY, RZ, RXY, RXZ, RYZ, RXYZ
-    REAL(kind=dp_t) dx00, d0x0, d00x, dx10, dx01, d0x1, dx11
+    REAL(kind=dp_t) :: fx, fy,fz
+    REAL(kind=dp_t) :: RX, RY, RZ, RXY, RXZ, RYZ, RXYZ
+    REAL(kind=dp_t) :: dx00, d0x0, d00x, dx10, dx01, d0x1, dx11
 
     RX = ONE/real(lratio(1),kind=dp_t)
     RY = ONE/real(lratio(2),kind=dp_t)
@@ -772,31 +772,31 @@ contains
     REAL(kind=dp_t), intent(in) :: cvcy(0:)
     REAL(kind=dp_t), intent(in) :: cvcz(0:)
 
-    REAL(kind=dp_t)     uc_xslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1,size(crse,4))
-    REAL(kind=dp_t)     lc_xslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1,size(crse,4))
-    REAL(kind=dp_t) xslope_factor(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1)
-    REAL(kind=dp_t)     uc_yslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1,size(crse,4))
-    REAL(kind=dp_t)     lc_yslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1,size(crse,4))
-    REAL(kind=dp_t) yslope_factor(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1)
-    REAL(kind=dp_t)     uc_zslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1,size(crse,4))
-    REAL(kind=dp_t)     lc_zslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1,size(crse,4))
-    REAL(kind=dp_t) zslope_factor(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1)
-    REAL(kind=dp_t)         alpha(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1,size(crse,4))
-    REAL(kind=dp_t)          cmax(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1,size(crse,4))
-    REAL(kind=dp_t)          cmin(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1,size(crse,4))
-    REAL(kind=dp_t) voffx(0:size(fine,1)-1)
-    REAL(kind=dp_t) voffy(0:size(fine,2)-1)
-    REAL(kind=dp_t) voffz(0:size(fine,3)-1)
+    REAL(kind=dp_t) ::     uc_xslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1,size(crse,4))
+    REAL(kind=dp_t) ::     lc_xslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1,size(crse,4))
+    REAL(kind=dp_t) :: xslope_factor(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1)
+    REAL(kind=dp_t) ::     uc_yslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1,size(crse,4))
+    REAL(kind=dp_t) ::     lc_yslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1,size(crse,4))
+    REAL(kind=dp_t) :: yslope_factor(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1)
+    REAL(kind=dp_t) ::     uc_zslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1,size(crse,4))
+    REAL(kind=dp_t) ::     lc_zslope(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1,size(crse,4))
+    REAL(kind=dp_t) :: zslope_factor(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1)
+    REAL(kind=dp_t) ::         alpha(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1,size(crse,4))
+    REAL(kind=dp_t) ::          cmax(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1,size(crse,4))
+    REAL(kind=dp_t) ::          cmin(0:ubound(crse,1)-1, 0:ubound(crse,2)-1, 0:ubound(crse,3)-1,size(crse,4))
+    REAL(kind=dp_t) :: voffx(0:size(fine,1)-1)
+    REAL(kind=dp_t) :: voffy(0:size(fine,2)-1)
+    REAL(kind=dp_t) :: voffz(0:size(fine,3)-1)
 
-    integer n 
-    integer i, ic
-    integer j, jc
-    integer k, kc
-    REAL(kind=dp_t) fxcen, cxcen, fycen, cycen, fzcen, czcen
-    REAL(kind=dp_t) corr_fact,orig_corr_fact
-    logical xok(3)
-    integer nxc(3)
-    integer ioff,joff,koff
+    integer :: n 
+    integer :: i, ic
+    integer :: j, jc
+    integer :: k, kc
+    REAL(kind=dp_t) :: fxcen, cxcen, fycen, cycen, fzcen, czcen
+    REAL(kind=dp_t) :: corr_fact,orig_corr_fact
+    logical :: xok(3)
+    integer :: nxc(3)
+    integer :: ioff, joff, koff
 
     forall(i = 1:3) nxc(i) = size(crse,dim=i) - 2
     xok = (nxc >=  2)
@@ -1197,18 +1197,18 @@ contains
   subroutine pr_cc_interp_3d (fine, crse, lratio, fine_state)
 
     integer, intent(in) :: lratio(:)
-    REAL(kind=dp_t) fine(0:,0:,0:,0:)
-    REAL(kind=dp_t) crse(-1:,-1:,-1:,0:)
-    REAL(kind=dp_t) fine_state(0:,0:,0:,0:)
+    REAL(kind=dp_t) :: fine(0:,0:,0:,0:)
+    REAL(kind=dp_t) :: crse(-1:,-1:,-1:,0:)
+    REAL(kind=dp_t) :: fine_state(0:,0:,0:,0:)
 
-    REAL(kind=dp_t) alpha, sumN, sumP, crseTot, negVal, posVal
-    REAL(kind=dp_t) sum_fine_new,sum_fine_old
-    REAL(kind=dp_t) orig_fine(0:lratio(1)-1,0:lratio(2)-1,0:lratio(3)-1)
-    logical redo_me
-    integer ilo,ihi,jlo,jhi,klo,khi
-    integer i,j,k,ic,jc,kc,n
-    integer numFineCells
-    integer icase, nxc(3)
+    REAL(kind=dp_t) :: alpha, sumN, sumP, crseTot, negVal, posVal
+    REAL(kind=dp_t) :: sum_fine_new, sum_fine_old
+    REAL(kind=dp_t) :: orig_fine(0:lratio(1)-1,0:lratio(2)-1,0:lratio(3)-1)
+    logical :: redo_me
+    integer :: ilo, ihi, jlo, jhi, klo, khi
+    integer :: i, j, k, ic, jc, kc, n
+    integer :: numFineCells
+    integer :: icase, nxc(3)
 
     forall(i=1:3) nxc(i) = size(crse,dim=i)-2
 

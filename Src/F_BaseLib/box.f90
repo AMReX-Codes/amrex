@@ -483,7 +483,7 @@ contains
   function box_less(bx1, bx2) result(r)
     logical :: r
     type(box), intent(in) :: bx1, bx2
-    integer i
+    integer :: i
     do i = 1, bx1%dim
        if ( bx1%lo(i) == bx2%lo(i) ) cycle
        if ( bx1%lo(i) < bx2%lo(i) ) r = .TRUE.
@@ -917,8 +917,8 @@ contains
     logical, intent(in), optional :: legacy
     integer, intent(in), optional :: unit
     logical, intent(in), optional :: nodal(:)
-    integer un
-    character(len=3) adv
+    integer :: un
+    character(len=3) :: adv
     integer :: i
     logical :: llegacy
 !   logical :: lfixw
@@ -957,7 +957,7 @@ contains
     end subroutine write_a_box
     subroutine write_a_legacy_box(nodal)
       logical, intent(in), optional :: nodal(:)
-      integer tp(bx%dim), thi(bx%dim)
+      integer :: tp(bx%dim), thi(bx%dim)
       tp = 0
       if ( present(nodal) ) then
          do i = 1, bx%dim
@@ -1016,8 +1016,8 @@ contains
        call bl_stream_expect(strm, (/"}", "]"/))
     end subroutine read_box
     subroutine read_a_legacy_box
-      character(len=1) c
-      integer i
+      character(len=1) :: c
+      integer :: i
       integer :: dim
       integer :: it(MAX_SPACEDIM)
 

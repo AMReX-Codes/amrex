@@ -94,7 +94,7 @@ contains
     real(kind=dp_t) :: r
     type(timer), intent(in) :: tm
     logical, intent(in), optional :: total
-    logical ltotal
+    logical :: ltotal
     real(kind=dp_t) :: r1
     ltotal = .FALSE.; if ( present(total) ) ltotal = total
     if ( tm%running ) &
@@ -116,8 +116,8 @@ contains
     character(len=*), intent(in), optional :: advance
     integer, intent(in), optional :: unit
     logical, intent(in), optional :: total
-    integer un
-    character(len=3) adv
+    integer :: un
+    character(len=3) :: adv
     logical :: ltotal
     real :: r
 

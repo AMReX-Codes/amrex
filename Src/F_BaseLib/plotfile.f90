@@ -161,7 +161,7 @@ contains
     integer, intent(in) :: n
     integer, intent(in) :: i
     real(kind=dp_t) :: r
-    integer j
+    integer :: j
     r = -huge(r)
     do j = 1, pf%grids(i)%nboxes
        r = max(r, pf%grids(i)%fabs(j)%mx(n))
@@ -172,7 +172,7 @@ contains
     type(plotfile), intent(in) :: pf
     integer, intent(in) :: i, n
     real(kind=dp_t) :: r
-    integer j
+    integer :: j
     r = huge(r)
     do j = 1, pf%grids(i)%nboxes
        r = min(r, pf%grids(i)%fabs(j)%mn(n))
@@ -284,7 +284,7 @@ contains
     subroutine build_ns_plotfile()
       integer :: i, n
       integer :: j, nc
-      integer n1
+      integer :: n1
       character(len=MAX_PATH_NAME) :: str, str1, cdummy
       integer :: idummy
       real(kind=dp_t) :: rdummy
@@ -437,7 +437,7 @@ contains
   subroutine fab_bind(pf, i, j)
     type(plotfile), intent(inout) :: pf
     integer, intent(in) :: i, j
-    integer fd
+    integer :: fd
     integer :: lo(MAX_SPACEDIM), hi(MAX_SPACEDIM), nc
 
     if ( i < 0 .or. i > pf%flevel ) &
