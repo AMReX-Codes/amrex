@@ -123,14 +123,14 @@ task_bdy_fill::task_bdy_fill (task_list&                tl_,
 {
     BL_ASSERT(m_bdy != 0);
 
-    m_bx = m_bdy->image(m_region,m_smf.boxArray()[m_sgrid],m_domain);
-
     if (m_fab != 0 && is_local(m_smf,m_sgrid))
     {
 	m_local = true;
 
 	m_bdy->fill(*m_fab, m_region, m_smf[m_sgrid], m_domain);
     }
+
+    m_bx = m_bdy->image(m_region,m_smf.boxArray()[m_sgrid],m_domain);
 
     if (!m_smf.fabbox(m_sgrid).contains(m_bx))
         //
