@@ -506,12 +506,11 @@ void clear_part_interface(MultiFab& r, const level_interface& lev_interface)
     assert(type(r) == IntVect::TheNodeVector());
     for (int i = 0; i < BL_SPACEDIM; i++) 
     {
-	// PARALLEL
 	for (int ibox = 0; ibox < lev_interface.nboxes(i); ibox++) 
 	{
 	    // coarse-fine face contained in part_fine grid, or orphan edge/corner
 	    int igrid = lev_interface.aux(i, ibox);
-	    if ( igrid < 0 ) continue;
+	    if ( igrid < 0  || !lev_interface.ownsGrid(igrid) ) continue;
 	    r[igrid].setVal(0.0, lev_interface.node_box(i, ibox), 0);
 	}
     }
