@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.48 1998-04-21 23:09:42 lijewski Exp $
+// $Id: VisMF.cpp,v 1.49 1998-04-23 16:38:00 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -366,15 +366,15 @@ VisMF::Header::Header (const MultiFab& mf,
                 min_n_max[m_ncomp+i] = m_max[idx][i];
             }
 #ifdef BL_USE_MPI
-            int rc = MPI_Send(min_n_max.dataPtr(),
-                              2 * m_ncomp,
-                              mpi_data_type(min_n_max.dataPtr()),
-                              IoProc,
-                              //
-                              // We use the index as the tag for uniqueness.
-                              //
-                              idx,
-                              MPI_COMM_WORLD);
+            int rc = MPI_Ssend(min_n_max.dataPtr(),
+                               2 * m_ncomp,
+                               mpi_data_type(min_n_max.dataPtr()),
+                               IoProc,
+                               //
+                               // We use the index as the tag for uniqueness.
+                               //
+                               idx,
+                               MPI_COMM_WORLD);
             if (!(rc == MPI_SUCCESS))
                 ParallelDescriptor::Abort(rc);
 #else
@@ -580,15 +580,15 @@ VisMF::Write (const MultiFab& mf,
                                    MPI_COMM_WORLD)) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
 
-                if ((rc = MPI_Send(pbuf,
-                                   pos,
-                                   MPI_PACKED,
-                                   IoProc,
-                                   //
-                                   // We use index as the tag for uniqueness.
-                                   //
-                                   mfi.index(),
-                                   MPI_COMM_WORLD)) != MPI_SUCCESS)
+                if ((rc = MPI_Ssend(pbuf,
+                                    pos,
+                                    MPI_PACKED,
+                                    IoProc,
+                                    //
+                                    // We use index as the tag for uniqueness.
+                                    //
+                                    mfi.index(),
+                                    MPI_COMM_WORLD)) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
 #else
                 ParallelDescriptor::SendData(IoProc,
@@ -670,15 +670,15 @@ VisMF::Write (const MultiFab& mf,
                                    MPI_COMM_WORLD)) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
 
-                if ((rc = MPI_Send(pbuf,
-                                   pos,
-                                   MPI_PACKED,
-                                   IoProc,
-                                   //
-                                   // We use index as the tag for uniqueness.
-                                   //
-                                   mfi.index(),
-                                   MPI_COMM_WORLD)) != MPI_SUCCESS)
+                if ((rc = MPI_Ssend(pbuf,
+                                    pos,
+                                    MPI_PACKED,
+                                    IoProc,
+                                    //
+                                    // We use index as the tag for uniqueness.
+                                    //
+                                    mfi.index(),
+                                    MPI_COMM_WORLD)) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
 #else
                 ParallelDescriptor::SendData(IoProc,

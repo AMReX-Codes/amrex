@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.22 1998-04-20 22:43:03 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.23 1998-04-23 16:37:32 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -888,15 +888,13 @@ FluxRegister::CrseInit (const FArrayBox& flux,
                           0, // Not Used.
                           0, // Not Used.
                           sTags[i].box);
-        //
-        // Use MPI_Send() as we don't care whether or not this is buffered.
-        //
-        if ((rc = MPI_Send(senddata.dataPtr(),
-                           senddata.length(),
-                           MPI_INT,
-                           sTags[i].toProc,
-                           711,
-                           MPI_COMM_WORLD)) != MPI_SUCCESS)
+
+        if ((rc = MPI_Ssend(senddata.dataPtr(),
+                            senddata.length(),
+                            MPI_INT,
+                            sTags[i].toProc,
+                            711,
+                            MPI_COMM_WORLD)) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
 

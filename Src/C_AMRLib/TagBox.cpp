@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.30 1998-04-22 22:40:37 lijewski Exp $
+// $Id: TagBox.cpp,v 1.31 1998-04-23 16:37:32 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -574,12 +574,12 @@ TagBoxArray::mergeUnique ()
                           0, // Not Used.
                           clearList[i].ovlpBox);
 
-        if ((rc = MPI_Send(senddata.dataPtr(),
-                           senddata.length(),
-                           MPI_INT,
-                           distributionMap[clearList[i].fabIndex],
-                           531,
-                           MPI_COMM_WORLD)) != MPI_SUCCESS)
+        if ((rc = MPI_Ssend(senddata.dataPtr(),
+                            senddata.length(),
+                            MPI_INT,
+                            distributionMap[clearList[i].fabIndex],
+                            531,
+                            MPI_COMM_WORLD)) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
 
