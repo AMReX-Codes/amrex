@@ -1,5 +1,5 @@
 //
-// $Id: BndryRegister.cpp,v 1.16 2005-01-05 22:19:46 lijewski Exp $
+// $Id: BndryRegister.cpp,v 1.17 2005-01-07 17:38:55 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -77,7 +77,7 @@ BndryRegister::operator[] (const Orientation& _face)
 BndryRegister&
 BndryRegister::operator= (const BndryRegister& src)
 {
-    if (this !== &src)
+    if (this != &src)
     {
         if (grids.size() > 0)
         {
