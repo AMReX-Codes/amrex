@@ -4,12 +4,21 @@
 #define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.10 1997-12-03 03:26:57 lijewski Exp $
+// $Id: BaseFab.H,v 1.11 1997-12-09 23:29:59 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
+#include <iostream>
+#include <iomanip>
+#include <cmath>
 #include <cstdlib>
+using std::cin;
+using std::cout;
+using std::cerr;
+using std::endl;
 #else
+#include <iostream.h>
+#include <math.h>
 #include <stdlib.h>
 #endif
 
@@ -18,7 +27,9 @@
 #include <Box.H>
 #include <BoxList.H>
 #include <Looping.H>
+#include <Misc.H>
 #include <PArray.H>
+#include <REAL.H>
 
 #ifdef BL_USE_POINTLIB
 #ifndef BL_CRAY_BUG_DEFARG
@@ -340,6 +351,410 @@ public:
     */
     BaseFab<T>& shiftHalf (const IntVect& num_halfs);
 
+    /*@ManDoc: Compute the Lp-norm of this FAB using components
+               (comp : comp+numcomp-1).
+               p < 0  -> ERROR
+               p = 0  -> infinity norm (max norm)
+               p = 1  -> sum of ABS(FAB)
+    */
+    virtual Real norm (int p,
+                       int comp=0,
+                       int numcomp=1) const;
+    //
+    //@ManDoc: Same as above except only on given subbox.
+    //
+    virtual Real norm (const Box& subbox,
+                       int        p,
+                       int        comp=0,
+                       int        numcomp=1) const;
+    //
+    //@ManDoc:  Compute absolute value for all components of this FAB.
+    //
+    void abs ();
+    //
+    //@ManDoc: Same as above except only for components (comp: comp+numcomp-1)
+    //
+    void abs (int comp,
+              int numcomp=1);
+    //
+    //@ManDoc: Calculate abs() on subbox for given component range.
+    //
+    void abs (const Box& subbox,
+              int        comp = 0,
+              int        numcomp=1);
+    //
+    //@ManDoc: Minimum value of given component.
+    //
+    T min (int comp = 0) const;
+    //
+    //@ManDoc: Minimum value of given component in given subbox.
+    //
+    T min (const Box& subbox,
+           int        comp = 0) const;
+    //
+    //@ManDoc: Maximum value of given component.
+    //
+    T max (int comp = 0) const;
+    //
+    //@ManDoc: Maximum value of given component in given subbox.
+    //
+    T max (const Box& subbox,
+           int        comp = 0) const;
+    //
+    //@ManDoc: Find location of minimum value in given component.
+    //
+    IntVect minIndex (int comp = 0) const;
+
+    /*@ManDoc: Find location of minimum value in given component in
+               given subbox.
+    */
+    IntVect minIndex (const Box& subbox,
+                      int        comp = 0) const;
+    //
+    //@ManDoc: Find location of maximum value in given component.
+    //
+    IntVect maxIndex (int comp = 0) const;
+ 
+    /*@ManDoc: Find location of maximum value in given component in given
+               subbox.
+    */
+    IntVect maxIndex (const Box& subbox,
+                      int        comp = 0) const;
+    //
+    //@ManDoc: Fill with a pattern of numbers.
+    //
+    void patternFill (int mark = 0);
+
+    /*@ManDoc: Copies with index reversal from srcbox region of src
+               into destbox region of this FAB.  All components are
+               copied and multiplied by corresponding multiplier.
+    */
+    void copyRev (const Box&        destbox,
+                  const BaseFab<T>& src,
+                  const Box&         srcbox,
+                  int                reversal_index,
+                  T*                 multiplier);
+
+#if !defined(BL_CRAY_BUG_DEFARG)
+
+    /*@ManDoc: Copies with a reversal.  The index that is
+               reversed is reversal\_index.  Comp is the component copied.
+               This is not defined if the macro BL\_CRAY\_BUG\_DEFARG is
+               defined.
+    */
+    friend void copyFABRev (const BaseFab<T>& src,
+                            const Box&        srcbox,
+                            BaseFab<T>&       dest,
+                            const Box&        destbox,
+                            int               reversal_index,
+                            int               comp,
+                            T                 multiplier);
+#endif /*!defined(BL_CRAY_BUG_DEFARG)*/
+    //
+    //@ManDoc: Compute sum of given component of FAB state vector.
+    //
+    T sum (int comp,
+           int numcomp = 1) const;
+
+    /*@ManDoc: Compute sum of given component of FAB state vector in
+               given subbox.
+    */
+    T sum (const Box& subbox,
+           int        comp,
+           int        numcomp = 1) const;
+    //
+    //@ManDoc: Most general version, specify subbox and which components.
+    //
+    BaseFab<T>& invert (T          v,
+                        const Box& subbox,
+                        int        comp=0,
+                        int        numcomp=1);
+    //
+    //@ManDoc: As above except on entire domain.
+    //
+    BaseFab<T>& invert (T   v,
+                        int comp,
+                        int numcomp=1);
+    //
+    //@ManDoc: As above except on entire domain, all components.
+    //
+    BaseFab<T>& invert (T v);
+    //
+    //@ManDoc: Negate BaseFab, most general.
+    //
+    BaseFab<T>& negate (const Box& subbox,
+                        int        comp=0,
+                        int        numcomp=1);
+    //
+    //@ManDoc: As above, except on entire domain.
+    //
+    BaseFab<T>& negate (int comp,
+                        int numcomp=1);
+    //
+    //@ManDoc: As above, except on entire domain and all components.
+    //
+    BaseFab<T>& negate ();
+    //
+    //@ManDoc: Scalar addition (a[i] <- a[i] + r), most general.
+    //
+    BaseFab<T>& plus (T          r,
+                      const Box& b,
+                      int        comp=0,
+                      int        numcomp=1);
+    //
+    //@ManDoc: As above, except on entire domain.
+    //
+    BaseFab<T>& plus (T   r,
+                      int comp,
+                      int numcomp=1);
+    //
+    //@ManDoc: As above, except on entire domain and all components.
+    //
+    BaseFab<T>& plus (T r);
+
+    /*@ManDoc: Addition in place.  This will often be more efficient than
+               making new BaseFab for result.
+    */
+    BaseFab<T>& operator+= (T r);
+    //
+    //@ManDoc: FAB addition (a[i] <- a[i] + b[i]) in place.
+    //
+    BaseFab<T>& operator+= (const BaseFab<T>& f);
+    //
+    //@ManDoc: FAB addition (a[i] <- a[i] + b[i]). The same as += operator.
+    //
+    BaseFab<T>& plus (const BaseFab<T>& src);
+
+    /*@ManDoc: Add src components (srccomp:srccomp+numcomp-1) to
+               this FAB's components (destcomp:destcomp+numcomp-1)
+               where the two FABs intersect.
+    */
+    BaseFab<T>& plus (const BaseFab<T>& src,
+                      int                srccomp,
+                      int                destcomp,
+                      int                numcomp=1);
+
+    /*@ManDoc: Same as above except addition is restricted to intersection
+               of subbox and src FAB. NOTE: subbox must be contained in this
+               FAB.
+    */
+    BaseFab<T>& plus (const BaseFab<T>& src,
+                      const Box&         subbox,
+                      int                srccomp,
+                      int                destcomp,
+                      int                numcomp=1);
+
+    /*@ManDoc: Add srcbox region of src FAB to destbox region of this FAB.
+               The srcbox and destbox must be same size.
+    */
+    BaseFab<T>& plus (const BaseFab<T>& src,
+                      const Box&         srcbox,
+                      const Box&         destbox,
+                      int                srccomp,
+                      int                destcomp,
+                      int                numcomp=1);
+
+    /*@ManDoc: Scalar subtraction (a[i] <- a[i] - r).
+               Note: use plus(-r) for more general operations.
+    */
+    BaseFab<T>& operator-= (T r);
+    //
+    //@ManDoc: FAB subtraction (a[i] <- a[i] - b[i]), in place.
+    //
+    BaseFab<T>& operator-= (const BaseFab<T>& f);
+    //
+    //@ManDoc: FAB subtraction (a[i] <- a[i] - b[i]). The same as -= operator.
+    //
+    BaseFab<T>& minus (const BaseFab<T>& src);
+
+    /*@ManDoc: Subtract src components (srccomp:srccomp+numcomp-1) to
+               this FAB's components (destcomp:destcomp+numcomp-1) where
+               the two FABs intersect.
+    */
+    BaseFab<T>& minus (const BaseFab<T>& src,
+                       int                srccomp,
+                       int                destcomp,
+                       int                numcomp=1);
+
+    /*@ManDoc: Same as above except subtraction is restricted to intersection
+               of subbox and src FAB.  NOTE: subbox must be contained in
+               this FAB.
+    */
+    BaseFab<T>& minus (const BaseFab<T>& src,
+                       const Box&         subbox,
+                       int                srccomp,
+                       int                destcomp,
+                       int                numcomp=1);
+
+    /*@ManDoc: Subtract srcbox region of src FAB from destbox region
+               of this FAB. srcbox and destbox must be same size.
+    */
+    BaseFab<T>& minus (const BaseFab<T>& src,
+                       const Box&         srcbox,
+                       const Box&         destbox,
+                       int                srccomp,
+                       int                destcomp,
+                       int                numcomp=1);
+    //
+    //@ManDoc: Scalar multiplication (a[i] <- a[i] * r), in place.
+    //
+    BaseFab<T>& operator*= (T r);
+    //
+    //@ManDoc: Scalar multiplication (a[i] <- a[i] * r).  The same as *=.
+    //
+    BaseFab<T>& mult (T r);
+
+    /*@ManDoc: Scalar multiplication, except control which components
+               are multiplied.
+    */
+    BaseFab<T>& mult (T   r,
+                      int comp,
+                      int numcomp=1);
+    //
+    //@ManDoc: As above, except specify sub-box.
+    //
+    BaseFab<T>& mult (T          r,
+                      const Box& b,
+                      int        comp=0,
+                      int        numcomp=1);
+    //
+    //@ManDoc: FAB multiplication (a[i] <- a[i] * b[i]), in place.
+    //
+    BaseFab<T>& operator*= (const BaseFab<T>& f);
+    //
+    //@ManDoc: As above.
+    //
+    BaseFab<T>& mult (const BaseFab<T>& src);
+
+    /*@ManDoc: Multiply src components (srccomp:srccomp+numcomp-1) with
+               this FAB's components (destcomp:destcomp+numcomp-1) where
+               the two FABs intersect.
+    */
+    BaseFab<T>& mult (const BaseFab<T>& src,
+                      int                srccomp,
+                      int                destcomp,
+                      int                numcomp=1);
+
+    /*@ManDoc: Same as above except multiplication is restricted to
+               intersection of subbox and src FAB.  NOTE: subbox must be
+               contained in this FAB.
+    */
+    BaseFab<T>& mult (const BaseFab<T>& src,
+                      const Box&         subbox,
+                      int                srccomp,
+                      int                destcomp,
+                      int                numcomp=1);
+
+    /*@ManDoc: Multiply srcbox region of src FAB with destbox region
+               of this FAB. The srcbox and destbox must be same size.
+    */
+    BaseFab<T>& mult (const BaseFab<T>& src,
+                      const Box&         srcbox,
+                      const Box&         destbox,
+                      int                srccomp,
+                      int                destcomp,
+                      int                numcomp=1);
+    //
+    //@ManDoc: Scalar division (a[i] <- a[i] / r), in place.
+    //
+    BaseFab<T>& operator/= (T r);
+    //
+    //@ManDoc: Scalar division (a[i] <- a[i] / r), in place.
+    //
+    BaseFab<T>& divide (T r);
+    //
+    //@ManDoc: As above except specify which components.
+    //
+    BaseFab<T>& divide (T   r,
+                        int comp,
+                        int numcomp=1);
+    //
+    //@ManDoc: As above except specify sub-box.
+    //
+    BaseFab<T>& divide (T          r,
+                        const Box& b,
+                        int        comp=0,
+                        int        numcomp=1);
+    //
+    //@ManDoc: FAB division, in place.
+    //
+    BaseFab<T>& operator/= (const BaseFab<T>& src);
+    //
+    //@ManDoc: Same as above.
+    //
+    BaseFab<T>& divide (const BaseFab<T>& src);
+
+    /*@ManDoc: This FAB is numerator, src FAB is denominator
+               divide src components (srccomp:srccomp+numcomp-1) into
+               this FAB's components (destcomp:destcomp+numcomp-1)
+               where the two FABs intersect.
+    */
+    BaseFab<T>& divide (const BaseFab<T>& src,
+                        int                srccomp,
+                        int                destcomp,
+                        int                numcomp=1);
+
+    /*@ManDoc: Same as above except division is restricted to
+               intersection of subbox and src FAB.  NOTE: subbox must be
+               contained in this FAB.
+    */
+    BaseFab<T>& divide (const BaseFab<T>& src,
+                        const Box&         subbox,
+                        int                srccomp,
+                        int                destcomp,
+                        int                numcomp=1);
+ 
+    /*@ManDoc: destbox region of this FAB is numerator. srcbox regions of
+               src FAB is denominator. srcbox and destbox must be same size.
+    */
+    BaseFab<T>& divide (const BaseFab<T>& src,
+                        const Box&         srcbox,
+                        const Box&         destbox,
+                        int                srccomp,
+                        int                destcomp,
+                        int                numcomp=1);
+
+    /*@ManDoc: Linear interpolation / extrapolation.
+               Result is (t2-t)/(t2-t1)*f1 + (t-t1)/(t2-t1)*f2
+               Data is taken from b1 region of f1, b2 region of f2
+               and stored in b region of this FAB.
+               Boxes b, b1 and b2 must be the same size.
+               Data is taken from component comp1 of f1, comp2 of f2,
+               and stored in component comp of this FAB.
+               This FAB is returned as a reference for chaining.
+    */
+    BaseFab<T>& linInterp (const BaseFab<T>& f1,
+                           const Box&        b1,
+                           int               comp1,
+                           const BaseFab<T>& f2,
+                           const Box&        b2,
+                           int               comp2,
+                           Real              t1,
+                           Real              t2,
+                           Real              t,
+                           const Box&        b,
+                           int               comp,
+                           int               numcomp = 1);
+
+    /*@ManDoc: Linear combination.  Result is alpha*f1 + beta*f2.
+               Data is taken from b1 region of f1, b2 region of f2
+               and stored in b region of this FAB.
+               Boxes b, b1 and b2 must be the same size.
+               Data is taken from component comp1 of f1, comp2 of f2,
+               and stored in component comp of this FAB.
+               This FAB is returned as a reference for chaining.
+    */
+    BaseFab<T>& linComb (const BaseFab<T>& f1,
+                         const Box&        b1,
+                         int               comp1,
+                         const BaseFab<T>& f2,
+                         const Box&        b2,
+                         int               comp2,
+                         Real              alpha,
+                         Real              beta,
+                         const Box&        b,
+                         int               comp,
+                         int               numcomp = 1);
 protected:
     //
     // Allocates memory for the `BaseFab<T>'.
@@ -354,6 +769,7 @@ protected:
                       const Box&        destbox,
                       int               destcomp,
                       int               numcomp);
+
 #ifdef BL_USE_POINTLIB
 #ifndef BL_CRAY_BUG_DEFARG
     //
@@ -368,8 +784,8 @@ protected:
                       const Box&                         destbox,
                       int                                destcomp,
                       int                                numcomp);
-#endif
-#endif
+#endif /*BL_CRAY_BUG_DEFARG*/
+#endif /*BL_USE_POINTLIB*/
     //
     // This function is called by the `BaseFab' setVal operations.
     //
@@ -377,13 +793,14 @@ protected:
                         const Box& bx,
                         int        nstart,
                         int        numcomp);
+
 private:
     //
     // These functions are made private to prevent use of the default 
     // functions provided by the C++ compiler.
     //
-    BaseFab<T>& operator= (const BaseFab<T>&);
-    BaseFab (const BaseFab<T>&);
+    BaseFab (const BaseFab<T>& rhs);
+    BaseFab<T>& operator= (const BaseFab<T>& rhs);
 
 protected:
 
@@ -1027,6 +1444,1091 @@ BaseFab<T>::setComplement (T          x,
     BoxList b_lst = boxDiff(domain,b);
     for (BoxListIterator bli(b_lst); bli; ++bli)
         performSetVal(x,bli(),ns,num);
+}
+
+template <class T>
+void
+BaseFab<T>::abs ()
+{
+    ForAllThis(Real)
+    {
+        thisR = Abs(thisR);
+    } EndFor
+}
+
+template <class T>
+void
+BaseFab<T>::abs (int comp,
+                 int numcomp)
+{
+    ForAllThisNN(Real,comp,numcomp)
+    {
+        thisR = Abs(thisR);
+    } EndFor
+}
+
+template <class T>
+void
+BaseFab<T>::abs (const Box& subbox,
+                 int        comp,
+                 int        numcomp)
+{
+    ForAllThisBNN(Real,subbox,comp,numcomp)
+    {
+        thisR = Abs(thisR);
+    } EndFor
+}
+
+//
+// This isn't inlined as it's virtual.
+//
+
+template <class T>
+Real
+BaseFab<T>::norm (int p,
+                  int comp,
+                  int numcomp) const
+{
+    return norm(domain,p,comp,numcomp);
+}
+
+template <class T>
+Real
+BaseFab<T>::norm (const Box& subbox,
+                  int        p,
+                  int        comp,
+                  int        numcomp) const
+{
+    assert(comp >= 0 && comp+numcomp <= nComp());
+    assert(p >= 0);
+
+    Real* tmp  = 0;
+    int tmplen = 0;
+    Real nrm   = 0;
+    if (p == 0)
+    {
+        ForAllThisCPencil(T,subbox,comp,numcomp)
+        {
+            const T* row = &thisR;
+            if (tmp == 0)
+            {
+                tmp = new Real[thisLen];
+                if (tmp == 0)
+                    BoxLib::OutOfMemory(__FILE__, __LINE__);
+                tmplen = thisLen;
+                for (int i = 0; i < thisLen; i++)
+                {
+                    tmp[i] = Abs(Real(row[i]));
+		}
+            }
+            else
+            {
+                for (int i = 0; i < thisLen; i++)
+                    tmp[i] = Max(tmp[i],Real(Abs(row[i])));
+            }
+        } EndForPencil
+        nrm = tmp[0];
+        for (int i = 1; i < tmplen; i++)
+            nrm = Max(nrm, tmp[i]);
+    }
+    else if (p == 1)
+    {
+        ForAllThisCPencil(T,subbox,comp,numcomp)
+        {
+            const T* row = &thisR;
+            if (tmp == 0)
+            {
+                tmp = new Real[thisLen];
+                if (tmp == 0)
+                    BoxLib::OutOfMemory(__FILE__, __LINE__);
+                tmplen = thisLen;
+                for (int i = 0; i < thisLen; i++)
+                    tmp[i] = Abs(Real(row[i]));
+            }
+            else
+            {
+                for (int i = 0; i < thisLen; i++)
+                    tmp[i] += Abs(Real(row[i]));
+            }
+        } EndForPencil
+        nrm = tmp[0];
+        for (int i = 1; i < tmplen; i++)
+            nrm += tmp[i];
+    }
+    else
+      BoxLib::Error("BaseFab::norm(): only p == 0 or p == 1 are supported");
+
+    delete [] tmp;
+
+    return nrm;
+}
+
+#ifdef BL_ARCH_CRAY
+#define RESTRICT restrict
+//
+// Template specialization for Real.
+//
+Real
+BaseFab<Real>::norm (const Box& subbox,
+                     int        p,
+                     int        comp,
+                     int        numcomp) const
+{
+    assert(comp >= 0 && comp+numcomp <= nComp());
+    assert(p >= 0);
+
+    Real* RESTRICT tmp  = 0;
+    int tmplen = 0;
+    Real nrm   = 0;
+    if (p == 0)
+    {
+        ForAllThisCPencil(Real,subbox,comp,numcomp)
+        {
+            const Real* RESTRICT row = &thisR;
+            if (tmp == 0)
+            {
+                tmp = new Real[thisLen];
+                if (tmp == 0)
+                    BoxLib::OutOfMemory(__FILE__, __LINE__);
+                tmplen = thisLen;
+#pragma _CRI ivdep
+                for (int i = 0; i < thisLen; i++)
+                {
+                    tmp[i] = fabs(row[i]);
+		}
+            }
+            else
+            {
+#pragma _CRI ivdep
+	      for (int i = 0; i < thisLen; i++)
+              {
+		Real a = fabs(row[i]);
+		tmp[i] = tmp[i] > a ? tmp[i] : a ;
+	      }
+            }
+        } EndForPencil
+        nrm = tmp[0];
+        for (int i = 1; i < tmplen; i++)
+        {
+	    Real a = tmp[i];
+	    nrm = nrm > a ? nrm : a ;
+	}
+    }
+    else if (p == 1)
+    {
+        ForAllThisCPencil(Real,subbox,comp,numcomp)
+        {
+            const Real* row = &thisR;
+            if (tmp == 0)
+            {
+                tmp = new Real[thisLen];
+                if (tmp == 0)
+                    BoxLib::OutOfMemory(__FILE__, __LINE__);
+                tmplen = thisLen;
+#pragma _CRI ivdep
+                for (int i = 0; i < thisLen; i++)
+                {
+		    tmp[i] = fabs(row[i]);
+		}
+            }
+            else
+            {
+#pragma _CRI ivdep
+	      for (int i = 0; i < thisLen; i++)
+              {
+		    tmp[i] += fabs( row[i] );
+	      }
+            }
+        } EndForPencil
+        nrm = tmp[0];
+#pragma _CRI ivdep
+        for (int i = 1; i < tmplen; i++)
+            nrm += tmp[i];
+    }
+    else
+      BoxLib::Error("BaseFab<Real>::norm(): only p == 0 or p == 1 are supported");
+
+    delete [] tmp;
+
+    return nrm;
+}
+#endif /*BL_ARCH_CRAY*/
+
+template <class T>
+T
+BaseFab<T>::min (int comp) const
+{
+    T *_min_row = 0;
+    int _X_len = 0;
+    ForAllThisCPencil(T,domain,comp,1)
+    {
+        const T* _row = &thisR;
+        if (_min_row == 0)
+        {
+            _min_row = new T[thisLen];
+            if (_min_row == 0)
+                BoxLib::OutOfMemory(__FILE__, __LINE__);
+            _X_len = thisLen;
+            for (int i = 0; i < thisLen; i++)
+                _min_row[i] = _row[i];
+        }
+        else
+        {
+            for (int i = 0; i < thisLen; i++)
+                _min_row[i] = Min(_row[i],_min_row[i]);
+        }
+    } EndForPencil;
+
+    T _min = _min_row[0];
+    for (int i = 1; i < _X_len; i++)
+        _min = Min(_min,_min_row[i]);
+
+    delete [] _min_row;
+
+    return _min;
+}
+
+template <class T>
+T
+BaseFab<T>::min (const Box& subbox,
+                 int        comp) const
+{
+    T *_min_row = 0;
+    int _X_len = 0;
+    ForAllThisCPencil(T,subbox,comp,1)
+    {
+        const T* _row = &thisR;
+        if (_min_row == 0)
+        {
+            _min_row = new T[thisLen];
+            if (_min_row == 0)
+                BoxLib::OutOfMemory(__FILE__, __LINE__);
+            _X_len = thisLen;
+            for (int i = 0; i < thisLen; i++)
+                _min_row[i] = _row[i];
+        }
+        else
+        {
+            for (int i = 0; i < thisLen; i++)
+                _min_row[i] = Min(_row[i],_min_row[i]);
+        }
+    } EndForPencil;
+
+    T _min = _min_row[0];
+    for (int i = 1; i < _X_len; i++)
+        _min = Min(_min,_min_row[i]);
+
+    delete [] _min_row;
+
+    return _min;
+}
+
+template <class T>
+T
+BaseFab<T>::max (int comp) const
+{
+    T *_max_row = 0;
+    int _X_len = 0;
+    ForAllThisCPencil(T,domain,comp,1)
+    {
+        const T* _row = &thisR;
+        if (_max_row== 0)
+        {
+            _max_row = new T[thisLen];
+            if (_max_row == 0)
+                BoxLib::OutOfMemory(__FILE__, __LINE__);
+            _X_len = thisLen;
+            for (int i = 0; i < thisLen; i++)
+                _max_row[i] = _row[i];
+        }
+        else
+        {
+            for (int i = 0; i < thisLen; i++)
+                _max_row[i] = Max(_row[i],_max_row[i]);
+        }
+    } EndForPencil;
+
+    T _max = _max_row[0];
+    for (int i = 1; i < _X_len; i++)
+        _max = Max(_max,_max_row[i]);
+
+    delete [] _max_row;
+
+    return _max;
+}
+
+template <class T>
+T
+BaseFab<T>::max (const Box& subbox,
+                 int        comp) const
+{
+    T *_max_row = 0;
+    int _X_len = 0;
+    ForAllThisCPencil(T,subbox,comp,1)
+    {
+        const T* _row = &thisR;
+        if (_max_row == 0)
+        {
+            _max_row = new T[thisLen];
+            if (_max_row == 0)
+                BoxLib::OutOfMemory(__FILE__, __LINE__);
+            _X_len = thisLen;
+            for (int i = 0; i < thisLen; i++)
+                _max_row[i] = _row[i];
+        }
+        else
+        {
+            for (int i = 0; i < thisLen; i++)
+                _max_row[i] = Max(_row[i],_max_row[i]);
+        }
+    } EndForPencil;
+
+    T _max = _max_row[0];
+    for (int i = 1; i < _X_len; i++)
+        _max = Max(_max,_max_row[i]);
+
+    delete [] _max_row;
+
+    return _max;
+}
+
+template <class T>
+IntVect
+BaseFab<T>::minIndex (int comp) const
+{
+    IntVect _min_loc(domain.smallEnd());
+    T _min_val = (*this).operator()(_min_loc,comp);
+    ForAllThisCBNN(T,domain,comp,1)
+    {
+        if (thisR < _min_val)
+        {
+            _min_val = thisR;
+            D_EXPR(_min_loc[0] = iR,
+                   _min_loc[1] = jR,
+                   _min_loc[2] = kR);
+        }
+    } EndFor;
+
+    return _min_loc;
+}
+
+template <class T>
+IntVect
+BaseFab<T>::minIndex (const Box& subbox,
+                      int        comp) const
+{
+    IntVect _min_loc(subbox.smallEnd());
+    T _min_val = (*this).operator()(_min_loc,comp);
+    ForAllThisCBNN(T,subbox,comp,1)
+    {
+        if (thisR < _min_val)
+        {
+            _min_val = thisR;
+            D_EXPR(_min_loc[0] = iR,
+                   _min_loc[1] = jR,
+                   _min_loc[2] = kR);
+        }
+    } EndFor;
+
+    return _min_loc;
+}
+
+template <class T>
+IntVect
+BaseFab<T>::maxIndex (int comp) const
+{
+    IntVect _max_loc(domain.smallEnd());
+    T _max_val = (*this).operator()(_max_loc,comp);
+    ForAllThisCBNN(T,domain,comp,1)
+    {
+        if (thisR > _max_val)
+        {
+            _max_val = thisR;
+            D_EXPR(_max_loc[0] = iR,
+                   _max_loc[1] = jR,
+                   _max_loc[2] = kR);
+        }
+    } EndFor;
+
+    return _max_loc;
+}
+
+template <class T>
+IntVect
+BaseFab<T>::maxIndex (const Box& subbox,
+                      int        comp) const
+{
+    IntVect _max_loc(subbox.smallEnd());
+    T _max_val = (*this).operator()(_max_loc,comp);
+    ForAllThisCBNN(T,subbox,comp,1)
+    {
+        if (thisR > _max_val)
+        {
+            _max_val = thisR;
+            D_EXPR(_max_loc[0] = iR,
+                   _max_loc[1] = jR,
+                   _max_loc[2] = kR);
+        }
+    } EndFor;
+
+    return _max_loc;
+}
+
+template <class T>
+inline
+BaseFab<T>&
+BaseFab<T>::plus (T r)
+{
+    return operator+=(r);
+}
+
+template <class T>
+inline
+BaseFab<T>&
+BaseFab<T>::plus (const BaseFab<T>& x)
+{
+    return operator+=(x);
+}
+
+template <class T>
+inline
+BaseFab<T>&
+BaseFab<T>::operator-= (T r)
+{
+    return operator+=(-r);
+}
+
+template <class T>
+inline
+BaseFab<T>&
+BaseFab<T>::minus (const BaseFab<T>& x)
+{
+    return operator-=(x);
+}
+
+template <class T>
+inline
+BaseFab<T>&
+BaseFab<T>::mult (T r)
+{
+    return operator*=(r);
+}
+
+template <class T>
+inline
+BaseFab<T>&
+BaseFab<T>::mult (const BaseFab<T>& x)
+{
+    return operator*=(x);
+}
+
+template <class T>
+inline
+BaseFab<T>&
+BaseFab<T>::divide (T r)
+{
+    return operator/=(r);
+}
+
+template <class T>
+inline
+BaseFab<T>&
+BaseFab<T>::divide (const BaseFab<T>& x)
+{
+    return operator/=(x);
+}
+
+template <class T>
+void
+BaseFab<T>::patternFill (int mark)
+{
+    ForAllThis(T)
+    {
+        thisR = D_TERM(iR*100, +jR*10, + kR) + 1000*nR + 10000*mark;
+    } EndFor
+}
+
+template <class T>
+void
+BaseFab<T>::copyRev (const Box&        destbox,
+                     const BaseFab<T>& src,
+                     const Box&        srcbox,
+                     int               reversal_index,
+                     T*                multiplier)
+{
+    BaseFab<T>& dest = *this;
+
+    ForAllRevXBNYCBNNN(T,dest,destbox,0,src,srcbox,0,nComp(),reversal_index)
+    {
+        destR = multiplier[_n]*srcR;
+    } EndFor
+}
+
+template <class T>
+void
+copyFABRev (const BaseFab<T>& src,
+            const Box&        srcbox,
+            BaseFab<T>&       dest,
+            const Box&        destbox,
+            int               reversal_index,
+            int               comp,
+            T                 multiplier)
+{
+    ForAllRevXBNYCBNNN(T,dest,destbox,comp,src,srcbox,comp,1,reversal_index)
+    {
+        destR = multiplier * srcR;
+    } EndFor
+}
+
+template <class T>
+T
+BaseFab<T>::sum (int comp,
+                 int numcomp) const
+{
+    T *_sum_row = 0;
+    int _sum_len = 0;
+    ForAllThisCPencil(T,domain,comp,numcomp)
+    {
+        const T* _row = &thisR;
+        if (_sum_row == 0)
+        {
+            _sum_row = new T[thisLen];
+            if (_sum_row == 0)
+                BoxLib::OutOfMemory(__FILE__, __LINE__);
+            _sum_len = thisLen;
+            for (int i = 0; i < thisLen; i++)
+                _sum_row[i] = _row[i];
+        }
+        else
+        {
+            for (int i = 0; i < thisLen; i++)
+                _sum_row[i] += _row[i];
+        }
+    } EndForPencil;
+
+    T _sum = _sum_row[0];
+    for (int i = 1; i < _sum_len; i++)
+        _sum += _sum_row[i];
+    delete [] _sum_row;
+
+    return _sum;
+}
+
+template <class T>
+T
+BaseFab<T>::sum (const Box& subbox,
+                 int        comp,
+                 int        numcomp) const
+{
+    T *_sum_row = 0;
+    int _sum_len = 0;
+    ForAllThisCPencil(T,subbox,comp,numcomp)
+    {
+        const T* _row = &thisR;
+        if (_sum_row == 0)
+        {
+            _sum_row = new T[thisLen];
+            if (_sum_row == 0)
+                BoxLib::OutOfMemory(__FILE__, __LINE__);
+            _sum_len = thisLen;
+            for (int i = 0; i < thisLen; i++)
+                _sum_row[i] = _row[i];
+        }
+        else
+        {
+            for (int i = 0; i < thisLen; i++)
+            {
+                _sum_row[i] += _row[i];
+            }
+        }
+    } EndForPencil;
+
+    T _sum = _sum_row[0];
+    for (int i = 1; i < _sum_len; i++)
+        _sum += _sum_row[i];
+    delete [] _sum_row;
+
+    return _sum;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::negate ()
+{
+    ForAllThis(T)
+    {
+        thisR = - thisR;
+    } EndFor
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::negate (int comp,
+                    int numcomp)
+{
+    ForAllThisNN(T,comp,numcomp)
+    {
+        thisR = - thisR;
+    } EndFor
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::negate (const Box& b,
+                    int        comp,
+                    int        numcomp)
+{
+    ForAllThisBNN(T,b,comp,numcomp)
+    {
+        thisR = - thisR;
+    } EndFor
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::invert (T r)
+{
+    ForAllThis(T)
+    {
+        thisR = r/thisR;
+    } EndFor
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::invert (T   r,
+                    int comp,
+                    int numcomp)
+{
+    ForAllThisNN(T,comp,numcomp)
+    {
+        thisR = r/thisR;
+    } EndFor
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::invert (T          r,
+                    const Box& b,
+                    int        comp,
+                    int        numcomp)
+{
+    ForAllThisBNN(T,b,comp,numcomp)
+    {
+        thisR = r/thisR;
+    } EndFor
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::operator += (T r)
+{
+    ForAllThis(T)
+    {
+        thisR += r;
+    } EndFor
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::plus (T   r,
+                  int comp,
+                  int numcomp)
+{
+    ForAllThisNN(T,comp,numcomp)
+    {
+        thisR += r;
+    } EndFor
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::plus (T          r,
+                  const Box& b,
+                  int        comp,
+                  int        numcomp)
+{
+    ForAllThisBNN(T,b,comp,numcomp)
+    {
+        thisR += r;
+    } EndFor
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::operator += (const BaseFab<T>& x)
+{
+    ForAllThisXC(T,x)
+    {
+        thisR += xR;
+    } EndForTX
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::plus (const BaseFab<T>& src,
+                  int                srccomp,
+                  int                destcomp,
+                  int                numcomp)
+{
+    ForAllThisBNNXC(T,domain,destcomp,numcomp,src,srccomp)
+    {
+        thisR += srcR;
+    } EndForTX
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::plus (const BaseFab<T>& src,
+                  const Box&         subbox,
+                  int                srccomp,
+                  int                destcomp,
+                  int                numcomp)
+{
+    ForAllThisBNNXC(T,subbox,destcomp,numcomp,src,srccomp)
+    {
+        thisR += srcR;
+    } EndForTX
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::plus (const BaseFab<T>& src,
+                  const Box&         srcbox,
+                  const Box&         destbox,
+                  int                srccomp,
+                  int                destcomp,
+                  int                numcomp)
+{
+    ForAllThisBNNXCBN(T,destbox,destcomp,numcomp,src,srcbox,srccomp)
+    {
+        thisR += srcR;
+    } EndForTX
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::operator -= (const BaseFab<T>& x)
+{
+    ForAllThisXC(T,x)
+    {
+        thisR -= xR;
+    } EndForTX
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::minus (const BaseFab<T>& src,
+                   int                srccomp,
+                   int                destcomp,
+                   int                numcomp)
+{
+    ForAllThisBNNXC(T,domain,destcomp,numcomp,src,srccomp)
+    {
+        thisR -= srcR;
+    } EndForTX
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::minus (const BaseFab<T>& src,
+                   const Box&         subbox,
+                   int                srccomp,
+                   int                destcomp,
+                   int                numcomp)
+{
+    ForAllThisBNNXC(T,subbox,destcomp,numcomp,src,srccomp)
+    {
+        thisR -= srcR;
+    } EndForTX
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::minus (const BaseFab<T>& src,
+                   const Box&         srcbox,
+                   const Box&         destbox,
+                   int                srccomp,
+                   int                destcomp,
+                   int                numcomp)
+{
+    ForAllThisBNNXCBN(T,destbox,destcomp,numcomp,src,srcbox,srccomp)
+    {
+        thisR -= srcR;
+    } EndForTX
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::operator *= (T r)
+{
+    ForAllThis(T)
+    {
+        thisR *= r;
+    } EndFor
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::mult (T   r,
+                  int comp,
+                  int numcomp)
+{
+    ForAllThisNN(T,comp,numcomp)
+    {
+        thisR *= r;
+    } EndFor
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::mult (T          r,
+                  const Box& b,
+                  int        comp,
+                  int        numcomp)
+{
+    ForAllThisBNN(T,b,comp,numcomp)
+    {
+        thisR *= r;
+    } EndFor
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::operator *= (const BaseFab<T> &x)
+{
+    ForAllThisXC(T,x)
+    {
+        thisR *= xR;
+    } EndForTX
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::mult (const BaseFab<T>& src,
+                  int                srccomp,
+                  int                destcomp,
+                  int                numcomp)
+{
+    ForAllThisBNNXC(T,domain,destcomp,numcomp,src,srccomp)
+    {
+        thisR *= srcR;
+    } EndForTX
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::mult (const BaseFab<T>& src,
+                  const Box&         subbox,
+                  int                srccomp,
+                  int                destcomp,
+                  int                numcomp)
+{
+    ForAllThisBNNXC(T,subbox,destcomp,numcomp,src,srccomp)
+    {
+        thisR *= srcR;
+    } EndForTX
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::mult (const BaseFab<T>& src,
+                  const Box&         srcbox,
+                  const Box&         destbox,
+                  int                srccomp,
+                  int                destcomp,
+                  int                numcomp)
+{
+    ForAllThisBNNXCBN(T,destbox,destcomp,numcomp,src,srcbox,srccomp)
+    {
+        thisR *= srcR;
+    } EndForTX
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::operator /= (T r)
+{
+    ForAllThis(T)
+    {
+        thisR /= r;
+    } EndFor
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::divide (T   r,
+                    int comp,
+                    int numcomp)
+{
+    ForAllThisNN(T,comp,numcomp)
+    {
+        thisR /= r;
+    } EndFor
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::divide (T          r,
+                    const Box& b,
+                    int        comp,
+                    int        numcomp)
+{
+    ForAllThisBNN(T,b,comp,numcomp)
+    {
+        thisR /= r;
+    } EndFor
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::operator /= (const BaseFab<T> &x)
+{
+    ForAllThisXC(T,x)
+    {
+        thisR /= xR;
+    } EndForTX
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::divide (const BaseFab<T>& src,
+                    int                srccomp,
+                    int                destcomp,
+                    int                numcomp)
+{
+    ForAllThisBNNXC(T,domain,destcomp,numcomp,src,srccomp)
+    {
+        thisR /= srcR;
+    } EndForTX
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::divide (const BaseFab<T>& src,
+                    const Box&         subbox,
+                    int                srccomp,
+                    int                destcomp,
+                    int                numcomp)
+{
+    ForAllThisBNNXC(T,subbox,destcomp,numcomp,src,srccomp)
+    {
+        thisR /= srcR;
+    } EndForTX
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::divide (const BaseFab<T>& src,
+                    const Box&         srcbox,
+                    const Box&         destbox,
+                    int                srccomp,
+                    int                destcomp,
+                    int                numcomp)
+{
+    ForAllThisBNNXCBN(T,destbox,destcomp,numcomp,src,srcbox,srccomp)
+    {
+        thisR /= srcR;
+    } EndForTX
+    return *this;
+}
+
+//
+// Linear Interpolation / Extrapolation
+// Result is (t2-t)/(t2-t1)*f1 + (t-t1)/(t2-t1)*f2
+// Data is taken from b1 region of f1, b2 region of f2
+// and stored in b region of this FAB.
+// Boxes b, b1 and b2 must be the same size.
+// Data is taken from component comp1 of f1, comp2 of f2,
+// and stored in component comp of this FAB.
+// This fab is returned as a reference for chaining.
+//
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::linInterp (const BaseFab<T>& f1,
+                       const Box&        b1,
+                       int               comp1,
+                       const BaseFab<T>& f2,
+                       const Box&        b2,
+                       int               comp2,
+                       Real              t1,
+                       Real              t2,
+                       Real              t,
+                       const Box&        b,
+                       int               comp,
+                       int               numcomp)
+
+{
+    Real alpha = (t2-t)/(t2-t1);
+    Real beta = (t-t1)/(t2-t1);
+    ForAllThisBNNXCBNYCBN(T,b,comp,numcomp,f1,b1,comp1,f2,b2,comp2)
+    {
+        thisR = (T) (alpha*Real(f1R) + beta*Real(f2R));
+    } EndForTX
+    return *this;
+}
+
+//
+// Linear combination, Result is alpha*f1 + beta*f2
+// Data is taken from b1 region of f1, b2 region of f2
+// and stored in b region of this FAB.
+// Boxes b, b1 and b2 must be the same size.
+// Data is taken from component comp1 of f1, comp2 of f2,
+// and stored in component comp of this FAB.
+// This fab is returned as a reference for chaining.
+//
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::linComb (const BaseFab<T>& f1,
+                     const Box&        b1,
+                     int               comp1,
+                     const BaseFab<T>& f2,
+                     const Box&        b2,
+                     int               comp2,
+                     Real              alpha,
+                     Real              beta,
+                     const Box&        b,
+                     int               comp,
+                     int               numcomp)
+
+{
+    ForAllThisBNNXCBNYCBN(T,b,comp,numcomp,f1,b1,comp1,f2,b2,comp2)
+    {
+        thisR = (T) (alpha*Real(f1R) + beta*Real(f2R));
+    } EndForTX
+    return *this;
 }
 
 #endif /*BL_BASEFAB_H*/

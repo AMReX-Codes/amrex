@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.6 1997-11-26 05:07:26 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.7 1997-12-09 23:29:59 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -24,16 +24,11 @@ using std::ios;
 #include <string.h>
 #endif
 
-#include <Misc.H>
 #include <FArrayBox.H>
 #include <FabConv.H>
 #include <ParmParse.H>
 #include <FabConv.H>
 #include <FPC.H>
-
-#include <Assert.H>
-#include <BoxLib.H>
-#include <Looping.H>
 #include <Utility.H>
 
 #if defined(BL_ARCH_CRAY)
@@ -326,7 +321,7 @@ FArrayBox::norm (const Box& subbox,
     int tmplen = 0;
     Real nrm = 0;
     if (p == 0 || p == 1)
-        nrm = NormedFab<Real>::norm(subbox, p, comp, numcomp);
+        nrm = BaseFab<Real>::norm(subbox, p, comp, numcomp);
     else if (p == 2)
     {
         ForAllThisCPencil(Real,subbox,comp,numcomp)
