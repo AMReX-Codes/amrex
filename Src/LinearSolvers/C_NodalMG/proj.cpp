@@ -4,6 +4,7 @@
 
 #include <Utility.H>
 #include <ParmParse.H>
+#include <RunStats.H>
 
 #ifdef BL_USE_NEW_HFILES
 #include <iostream>

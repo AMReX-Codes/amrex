@@ -2,6 +2,8 @@
 
 #include "hg_projector.H"
 
+#include <RunStats.H>
+
 #if defined( BL_FORT_USE_UNDERSCORE )
 #define   FORT_HGDIV		hgdiv_
 #define   FORT_HGDIV_TERRAIN    hgdiv_terrain_
