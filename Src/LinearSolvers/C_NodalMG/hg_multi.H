@@ -21,8 +21,7 @@ protected:
 public:
     holy_grail_interpolator_class(Real **Sigptr, const Box& Sigbox)
 	: sigptr(Sigptr), sigbox(Sigbox) { }
-    void fill(FArrayBox& patch, const Box& region,
-	const FArrayBox& cgr, const Box& cb, const IntVect& rat) const;
+    virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& cgr, const Box& cb, const IntVect& rat) const;
 };
 
 #  else
@@ -35,19 +34,16 @@ protected:
 public:
     holy_grail_interpolator_class(Real *Sigptr, const Box& Sigbox)
 	: sigptr(Sigptr), sigbox(Sigbox) { }
-    void fill(FArrayBox& patch, const Box& region,
-	const FArrayBox& cgr, const Box& cb, const IntVect&) const;
+    virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& cgr, const Box& cb, const IntVect&) const;
 };
 
 #  endif
 
-class holy_grail_sigma_restrictor_class:
-public cell_average_restrictor_class 
+class holy_grail_sigma_restrictor_class : public cell_average_restrictor_class 
 {
 public:
     holy_grail_sigma_restrictor_class() : cell_average_restrictor_class(0) { }
-    void fill(FArrayBox& patch, const Box& region,
-	const FArrayBox& fgr, const IntVect& rat) const;
+    virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
 };
 
 //const holy_grail_sigma_restrictor_class holy_grail_sigma_restrictor_class;

@@ -46,13 +46,13 @@ Real inner_product(const MultiFab& r, const MultiFab& s);
 
 int find_patch(const Box& region, const MultiFab& r, int flags = 0);
 
-int fill_patch(FArrayBox& patch, const Box& region,
+bool fill_patch(FArrayBox& patch, const Box& region,
 	       const MultiFab& r,
 	       const level_interface& lev_interface,
 	       const amr_boundary_class& bdy = error_boundary,
 	       int flags = 0, int idim = -1, int index = -1);
 
-inline int 
+inline bool 
 fill_patch(FArrayBox& patch,
 	   const MultiFab& r,
 	   const level_interface& lev_interface,

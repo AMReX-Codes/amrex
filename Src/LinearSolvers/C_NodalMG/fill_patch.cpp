@@ -92,7 +92,7 @@ int find_patch(const Box& region, const MultiFab& r, int flags)
     return -1;
 }
 
-static int fill_patch_blindly(FArrayBox& patch,
+static bool fill_patch_blindly(FArrayBox& patch,
 		       const Box& region,
 		       const MultiFab& r,
 		       int flags)
@@ -105,7 +105,7 @@ static int fill_patch_blindly(FArrayBox& patch,
 	    if (r[igrid].box().contains(region)) 
 	    {
 		patch.copy(r[igrid], region, 0, region, 0, patch.nComp());
-		return 1;
+		return true;
 	    }
 	}
 	for (int igrid = 0; igrid < r.length(); igrid++) 
@@ -125,7 +125,7 @@ static int fill_patch_blindly(FArrayBox& patch,
 	    if (tb.contains(region)) 
 	    {
 		patch.copy(r[igrid], region, 0, region, 0, patch.nComp());
-		return 1;
+		return true;
 	    }
 	}
 	for (int igrid = 0; igrid < r.length(); igrid++) 
@@ -138,10 +138,10 @@ static int fill_patch_blindly(FArrayBox& patch,
 	    }
 	}
     }
-    return 0;
+    return false;
 }
 
-static int fill_exterior_patch_blindly(FArrayBox& patch,
+static bool fill_exterior_patch_blindly(FArrayBox& patch,
 				const Box& region,
 				const MultiFab& r,
 				const level_interface& lev_interface,
@@ -162,7 +162,7 @@ static int fill_exterior_patch_blindly(FArrayBox& patch,
 	    if (tb.contains(region)) 
 	    {
 		bdy.fill(patch, region, r, jgrid, lev_interface.domain());
-		return 1;
+		return true;
 	    }
 	    if (tb.intersects(region)) 
 	    {
@@ -171,10 +171,10 @@ static int fill_exterior_patch_blindly(FArrayBox& patch,
 	    }
 	}
     }
-    return 0;
+    return false;
 }
 
-int fill_patch(FArrayBox& patch, const Box& region,
+bool fill_patch(FArrayBox& patch, const Box& region,
 	       const MultiFab& r,
 	       const level_interface& lev_interface,
 	       const amr_boundary_class& bdy, int flags,
@@ -185,7 +185,7 @@ int fill_patch(FArrayBox& patch, const Box& region,
     // assert(index == -1);
     // assert(bdy.defined() == 0);
     if (!region.ok())
-	return 1;
+	return true;
     
     if (flags & 4)
 	patch.setVal(0.0, region, 0, patch.nComp());
@@ -208,22 +208,19 @@ int fill_patch(FArrayBox& patch, const Box& region,
 	    }
 	    else if (!tdomain.intersects(region)) 
 	    {
-		return fill_exterior_patch_blindly(patch, region, r,
-		    lev_interface, bdy, flags);
+		return fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy, flags);
 	    }
 	    else if (idomain.intersects(region)) 
 	    {
 		if (fill_patch_blindly(patch, region, r, flags) == 1)
-		    return 1;
+		    return true;
 		else
-		    return fill_exterior_patch_blindly(patch, region, r,
-		    lev_interface, bdy, flags);
+		    return fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy, flags);
 	    }
 	    else 
 	    {
-		if (fill_exterior_patch_blindly(patch, region, r,
-		    lev_interface, bdy, flags) == 1)
-		    return 1;
+		if (fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy, flags) == 1)
+		    return true;
 		else
 		    return fill_patch_blindly(patch, region, r, flags);
 	    }
@@ -355,7 +352,7 @@ int fill_patch(FArrayBox& patch, const Box& region,
   {
       BoxLib::Error("fill_patch---lev_interface version only defined for blind mode");
   }
-  return 1;
+  return true;
 }
 
 static void sync_internal_borders(MultiFab& r, const level_interface& lev_interface)
