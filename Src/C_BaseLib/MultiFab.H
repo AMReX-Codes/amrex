@@ -4,7 +4,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.22 1998-09-30 17:05:55 lijewski Exp $
+// $Id: MultiFab.H,v 1.23 1998-09-30 19:28:56 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -329,8 +329,7 @@ class MultiFab
     //
     MultiFabCopyDescriptor& theFPBmfcd (int   src_comp,
                                         int   num_comp,
-                                        bool  no_ovlp,
-                                        bool& buildit);
+                                        bool  no_ovlp);
     //
     //@ManDoc: Flush the cache of self-intersection info used by FillBoundary.
     //
@@ -564,13 +563,10 @@ inline
 MultiFabCopyDescriptor&
 MultiFab::theFPBmfcd (int   src_comp,
                       int   num_comp,
-                      bool  no_ovlp,
-                      bool& buildit)
+                      bool  no_ovlp)
 {
     assert(src_comp >= 0);
     assert(num_comp > 0);
-
-    buildit = false;
 
     if (!(m_FPB_scomp == src_comp &&
           m_FPB_ncomp == num_comp &&
@@ -588,10 +584,10 @@ MultiFab::theFPBmfcd (int   src_comp,
         {
             m_FPB_mfcd->clear();
         }
-        //
-        // Tell FillPeriodicBoundary to build it.
-        //
-        buildit = true;
+
+        MultiFabId mfid = m_FPB_mfcd->RegisterMultiFab(this);
+
+        assert(mfid == MultiFabId(0));
     }
 
     return *m_FPB_mfcd;
