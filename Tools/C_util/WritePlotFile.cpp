@@ -3,6 +3,7 @@
 // level 1 data. All this could be cleaner, but this is throw-away code
 // anyway, so why bother?
 
+#include <winstd.H>
 #include <iostream>
 #include <fstream>
 #include <cstdio>
