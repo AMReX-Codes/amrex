@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.10 1997-12-04 22:57:08 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.11 1997-12-05 17:59:25 lijewski Exp $
 //
 
 #ifdef	_MSC_VER
@@ -563,6 +563,7 @@ FillPatchIterator::isValid (bool bDoSync)
     destBox.grow(growSize);
 
     currentFillPatchedFab.resize(destBox, nComp);
+    currentFillPatchedFab.setVal(1.e30);
 
     int currentLevel;
     for (currentLevel = 0; currentLevel <= amrLevel.level; ++currentLevel)
@@ -582,7 +583,7 @@ FillPatchIterator::isValid (bool bDoSync)
                                           stateDataMFId[currentLevel],
                                           fillBoxId[currentIndex][currentLevel][currentBox],
                                           tempCoarseDestFab, interpTime,
-                                          srcComp, destComp, nComp);
+                                          0, destComp, nComp);
 
             Box intersectDestBox(savedFineBox[currentIndex][currentLevel][currentBox]);
             if (!is_periodic)
@@ -611,8 +612,10 @@ FillPatchIterator::isValid (bool bDoSync)
                     // Interpolate up to fine patch.
                     //
                     tempCurrentFillPatchedFab.resize(intersectDestBox, nComp);
-                    map[currentLevel]->interp(tempCoarseDestFab, 0, tempCurrentFillPatchedFab,
-                                              destComp, nComp, intersectDestBox,
+                    map[currentLevel]->interp(tempCoarseDestFab, 0,
+                                              tempCurrentFillPatchedFab,
+                                              destComp, nComp,
+                                              intersectDestBox,
                                               cumulativeRefRatios[currentLevel],
                                               amrLevels[currentLevel].geom,
                                               amrLevels[amrLevel.level].geom,
@@ -633,8 +636,9 @@ FillPatchIterator::isValid (bool bDoSync)
                     srcdestBox &= intersectDestBox;
                     if (srcdestBox.ok())
                     {
-                        currentFillPatchedFab.copy(*copyFromThisFab, srcdestBox, 0,
-                                                   srcdestBox, destComp, nComp);
+                        currentFillPatchedFab.copy(*copyFromThisFab,
+                                                   srcdestBox, 0, srcdestBox,
+                                                   destComp, nComp);
                     }
                 }
 
@@ -642,9 +646,8 @@ FillPatchIterator::isValid (bool bDoSync)
                 {
                     StateData& fineState   = amrLevels[amrLevel.level].state[stateIndex];
                     const Box& finePDomain = fineState.getDomain();
-                    bool inside = finePDomain.contains(currentFillPatchedFab.box());
 
-                    if (!inside)
+                    if (!finePDomain.contains(currentFillPatchedFab.box()))
                     {
                         Array<IntVect> pshifts(27);
                         const Box& dbox = currentFillPatchedFab.box();
@@ -653,16 +656,18 @@ FillPatchIterator::isValid (bool bDoSync)
                         {
                             IntVect iv = pshifts[iiv];
                             currentFillPatchedFab.shift(iv);
-                            int iFillBox = 0;
-                            for ( ; iFillBox < copyFromTheseBoxes->length();
+                            for (int iFillBox = 0;
+                                 iFillBox < copyFromTheseBoxes->length();
                                 ++iFillBox)
                             {
                                 Box srcdestBox((*copyFromTheseBoxes)[iFillBox]);
                                 srcdestBox &= currentFillPatchedFab.box();
                                 srcdestBox &= copyFromThisFab->box();
                                 if (srcdestBox.ok())
-                                    currentFillPatchedFab.copy(*copyFromThisFab, srcdestBox, 0,
-                                                               srcdestBox, destComp, nComp);
+                                    currentFillPatchedFab.copy(*copyFromThisFab,
+                                                               srcdestBox, 0,
+                                                               srcdestBox,
+                                                               destComp, nComp);
                             }
                             currentFillPatchedFab.shift(-iv);
                         }
