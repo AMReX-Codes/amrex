@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.91 2002-03-14 00:27:03 vince Exp $
+// $Id: VisMF.cpp,v 1.92 2002-04-17 22:22:19 vince Exp $
 //
 
 #include <winstd.H>
@@ -292,7 +292,7 @@ VisMF::FileOffset (std::ostream& os)
 {
     return
 #if defined(__KCC) 
-#if ((BL_KCC_MAJOR_VERSION >= 4) || (BL_KCC_MAJOR_VERSION == 3 && BL_KCC_MINOR_VERSION > 3))
+#if ((BL_KCC_MAJOR_VERSION >= 4) || (BL_KCC_MAJOR_VERSION == 3 && BL_KCC_MINOR_VERSION > 3) || (BL_KCC_MAJOR_VERSION == 0))
       os.tellp();
 #else
     os.tellp().offset();

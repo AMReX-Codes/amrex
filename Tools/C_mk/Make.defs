@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.49 2002-04-12 17:09:17 car Exp $
+# Make.defs $Id: Make.defs,v 1.50 2002-04-17 22:22:37 vince Exp $
 #
 
 #
@@ -234,6 +234,12 @@ ifeq ($(findstring KCC, $(COMP)),KCC)
 		KCC -c -v _X.cpp 2>&1 1>/dev/null | fgrep 'KAI C' | head -1; \
 		/bin/rm -f _X.cpp _X.o)
 DEFINES += -D__kcc_version='$(__kcc_version)'
+#
+# init null values (for brainerd)
+#
+    KCC_VERSION:=0.0
+    KCC_MAJOR_VERSION:=0
+    KCC_MINOR_VERSION:=0
 ifeq ($(findstring KAI C++ 3.1, $(__kcc_version)), KAI C++ 3.1)
     KCC_VERSION:=3.1
     KCC_MAJOR_VERSION:=3
