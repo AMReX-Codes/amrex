@@ -2259,6 +2259,98 @@ cdir$ ivdep
       endif
       end
 
+#define RHSL (res(i,j,k) - (signd(i-1,j,k,1) * cor(i-1,j,k) + \
+                            signd(i,j,k,1)   * cor(i+1,j,k) + \
+                            signd(i,j-1,k,2) * cor(i,j-1,k) + \
+                            signd(i,j,k,2)   * cor(i,j+1,k)))
+
+      subroutine hgrlxl(cor,
+     @ dims(cor),
+     @ res,
+     @ dims(res),
+     @ signd,
+     @ dims(sn),
+     @ cen,
+     @ dims(cen),
+     @ dims(reg),
+     @ dims(dom),
+     @ lsd)
+      implicit real*8(a-h,o-z), integer(i-n)
+      integer dims(cor)
+      integer dims(res)
+      integer dims(sn)
+      integer dims(cen)
+      integer dims(reg)
+      integer dims(dom)
+      real*8 cor(dimdec(cor))
+      real*8 res(dimdec(res))
+      real*8 signd(dimdec(sn), 3)
+      real*8 cen(dimdec(cen))
+      real*8 wrk(256)
+      integer lsd
+      if (lsd .eq. 2) then
+         do 20 ipass = 1, 0, -1
+         ipar = ipass
+         do 20 i = regl0, regh0
+         ipar = 1 - ipar
+         do 20 j = regl1 + ipar, regh1, 2
+            k = regl2
+            betm = -cen(i,j,k)
+            if (betm .eq. 0.d0) then
+c dirichlet bdy:
+               cor(i,j,k) = 0.d0
+               wrk(1) = 0.d0
+            else if (regl2 .eq. doml2) then
+c neumann bdy:
+               cor(i,j,k) = RHSL * betm
+               aj = signd(i,j,k,3)
+               wrk(1) = 2.d0 * aj * betm
+            else
+c interface to grid at same level:
+               aj = signd(i,j,k-1,3)
+               cor(i,j,k) = (RHSL - aj * cor(i,j,k-1)) * betm
+               aj = signd(i,j,k,3)
+               wrk(1) = aj * betm
+            endif
+c forward solve loop:
+            do 10 k = regl2 + 1, regh2 - 1
+               kw = k - regl2
+               if (cen(i,j,k) .eq. 0.d0) then
+                  betm = 0.d0
+               else
+                  betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(kw))
+               endif
+               cor(i,j,k) = (RHSL - aj * cor(i,j,k-1)) * betm
+               aj = signd(i,j,k,3)
+               wrk(kw + 1) = aj * betm
+ 10            continue
+            k = regh2
+            kw = k - regl2
+            if (cen(i,j,k) .eq. 0.d0) then
+c dirichlet bdy:
+               cor(i,j,k) = 0.d0
+            else if (regh2 .eq. domh2) then
+c neumann bdy:
+               aj = 2.d0 * aj
+               betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(kw))
+               cor(i,j,k) = (RHSL - aj * cor(i,j,k-1)) * betm
+            else
+c interface to grid at same level:
+               betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(kw))
+               cor(i,j,k) = RHSL - aj * cor(i,j,k-1)
+               aj = signd(i,j,k,3)
+               cor(i,j,k) = (cor(i,j,k) - aj * cor(i,j,k+1)) * betm
+            endif
+c back substitution loop:
+            do 20 k = regh2 - 1, regl2, -1
+               kw = k - regl2
+               cor(i,j,k) = cor(i,j,k) - wrk(kw + 1) * cor(i,j,k+1)
+ 20            continue
+      else
+         print *, "Line solve not implemented in dimension", lsd
+      endif
+      end
+
       subroutine hgres(res,
      @ dims(res),
      @ src,
