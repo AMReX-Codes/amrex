@@ -4,7 +4,7 @@
 #define _Cluster_H_ 
 
 //
-// $Id: Cluster.H,v 1.6 1998-01-26 22:00:00 lijewski Exp $
+// $Id: Cluster.H,v 1.7 1998-01-26 23:16:20 lijewski Exp $
 //
 
 #include <IntVect.H>
@@ -47,7 +47,8 @@ public:
     // Construct new cluster by removing all points from c
     // that lie in box b.  Cluster c is modified and may become invalid.
     //
-    Cluster (Cluster &c,const Box& b);
+    Cluster (Cluster&   c,
+             const Box& b);
     //
     // The destructor.
     //
@@ -57,17 +58,9 @@ public:
     //
     const Box& box () const { return m_bx; }
     //
-    // Return ith tagged point in cluster.
-    //
-    IntVect operator[] (int i)
-    {
-        assert(m_ar != 0);
-        return (*m_ar)[i];
-    }
-    //
     // Does cluster contain any points?
     //
-    bool ok() const { return (m_ar!=0 && m_ar->length() > 0); }
+    bool ok () const { return m_ar!=0 && m_ar->length() > 0; }
     //
     //  Returns number of tagged points in cluster.
     //
@@ -85,7 +78,7 @@ public:
     //
     Cluster* chop ();
     //
-    // constructs a list of cluster objects obtained by intersecting
+    // Constructs a list of cluster objects obtained by intersecting
     // this cluster with each box in bl.  The list is retruned in the
     // argument clst.  For each intersection that includes tagged points,
     // construct a new cluster by removing those points from this
