@@ -1,3 +1,7 @@
+/* 
+   $Id: ppm_util_c.c,v 1.3 2005-03-12 19:43:51 car Exp $ 
+   Contains architecture specific PPM writing routines used by ppm_util.f90
+*/
 #include <stdlib.h>
 #include <stdio.h>
 
