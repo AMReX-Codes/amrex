@@ -212,7 +212,7 @@ void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source,
   for (i = lev_min; i <= lev_max; i++) {
     dest.set(i, &Dest[i]);
     source.set(i, &Source[i]);
-    if (Coarse_source.ready() && Coarse_source.defined(i))
+    if (i < Coarse_source.length() && Coarse_source.defined(i))
       coarse_source.set(i, &Coarse_source[i]);
   }
 
