@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: SlabStat.cpp,v 1.7 2000-04-22 00:16:26 sstanley Exp $
+// $Id: SlabStat.cpp,v 1.8 2000-04-22 00:34:14 sstanley Exp $
 //
 
 #include <AmrLevel.H>
@@ -194,13 +194,19 @@ SlabStatList::update (AmrLevel& amrlevel,
 }
 
 void
-SlabStatList::checkPoint (const aString& ckdir)
+SlabStatList::checkPoint (const int level0_step)
 {
     if (m_list.isEmpty()) return;
     //
-    // We put SlabStats in subdirectory of `ckdir'.
+    // We put SlabStats in a subdirectory of the directory, 'slabstats'.
     //
-    const aString statdir = ckdir + "/stats";
+    aString statdir = "slabstats";
+    if (ParallelDescriptor::IOProcessor())
+        if (!Utility::UtilCreateDirectory(statdir, 0755))
+            Utility::CreateDirectoryFailed(statdir);
+
+    statdir = statdir + "/stats";
+    statdir = Utility::Concatenate(statdir, level0_step);
     //
     // Only the I/O processor makes the directory if it doesn't already exist.
     //

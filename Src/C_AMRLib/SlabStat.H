@@ -4,7 +4,7 @@
 #define _SlabStat_H_
 
 //
-// $Id: SlabStat.H,v 1.5 2000-04-22 00:16:26 sstanley Exp $
+// $Id: SlabStat.H,v 1.6 2000-04-22 00:34:14 sstanley Exp $
 //
 
 #include <ArrayLim.H>
@@ -221,7 +221,7 @@ public:
     //
     //@ManDoc: Write out any SlabStats in the list.
     //
-    void checkPoint (const aString& ckfile);
+    void checkPoint (const int level0_step);
 
     List<SlabStatRec*>& list () { return m_list; }
 
