@@ -379,6 +379,7 @@ public:
                      FArrayBox*      fab_,
                      int             target_proc_id,
                      const Box&      bx,
+                     const Box&      region,
                      const MultiFab& mf_,
                      int             grid_);
 
@@ -398,6 +399,7 @@ protected:
     FArrayBox*      m_fab;
     const MultiFab& m_smf;
     Box             m_bx;
+    Box             m_region;
     const int       m_sgrid;
     const int       m_target_proc_id;
     bool            m_local;
@@ -442,11 +444,9 @@ public:
                    const Box&                domain_);
 
     virtual bool ready ();
-    virtual bool depends_on_q (const task* t) const;
 
 protected:
 
-    const Box           m_region;
     const Box&          m_domain;
     const amr_boundary* m_bdy;
 };
