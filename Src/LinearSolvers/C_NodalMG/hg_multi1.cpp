@@ -1145,13 +1145,11 @@ holy_grail_amr_multigrid::mg_interpolate_level (int lto,
 			sigptr[i] = sigma[ltmp][igrid].dataPtr(i);
 		    }
 		}
-		//const Box& sigbox = sigma[ltmp][igrid].box();
-		//const Box& sigbox = sigma[ltmp].box(igrid);
 		const Box sigbox =
 		    grow(sigma[ltmp].box(igrid),
 			 sigma[ltmp].nGrow());
 		BL_ASSERT( is_remote(sigma[ltmp], igrid)
-			|| sigbox == sigma[ltmp][igrid].box()); // FIXME: WHAT IS THIS SUPPOSED TO MEAN?
+			|| sigbox == sigma[ltmp][igrid].box());
 		hgi = new holy_grail_interpolator_dense(sigptr, sigbox);
 	    }
 	    else

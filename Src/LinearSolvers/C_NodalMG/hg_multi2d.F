@@ -452,7 +452,7 @@ c five-point variable stencils
             cen(i,j) = 2.d0 / (hxm2 * (sigx(i-1,j-1) + sigx(i-1,j) +
      &                                 sigx(i,j-1) + sigx(i,j)) +
      &                         hym2 * (sigy(i-1,j-1) + sigy(i-1,j) +
-     &                                 sigy(i,j-1) + sigy(i,j)) * 0.5d0 )
+     &                                 sigy(i,j-1) + sigy(i,j)) * 0.5d0)
          endif
       end do
       end
