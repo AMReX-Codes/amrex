@@ -208,27 +208,28 @@ restart:
         {
             task::task_proxy t = *tli;
             if ( verbose ) t->hint();
-            if ( ! t->depend_ready() ) continue;
-            if ( ! t->is_started() )
+            if ( t->depend_ready() )
             {
-                if ( live_tasks > HG::max_live_tasks) goto restart;
-                if ( ! t->startup() )
+                if ( ! t->is_started() )
+                {
+                    if ( live_tasks > HG::max_live_tasks) goto restart;
+                    if ( ! t->startup() )
+                    {
+                        t.set_finished();
+                        tasks.erase(tli++);
+                        continue;
+                    }
+                    live_tasks++;
+                }
+                else if ( t->ready() )
                 {
                     t.set_finished();
-                    list<task::task_proxy>::iterator tmp = tli++;
-                    tasks.erase(tmp);
+                    live_tasks--;
+                    tasks.erase(tli++);
                     continue;
                 }
-                live_tasks++;
             }
-            else if ( t->ready() )
-            {
-                t.set_finished();
-                live_tasks--;
-                list<task::task_proxy>::iterator tmp = tli++;
-                tasks.erase(tmp);
-                continue;
-            }
+
             ++tli;
         }
     }
