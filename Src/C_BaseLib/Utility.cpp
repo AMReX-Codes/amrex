@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.22 1998-05-07 22:26:10 lijewski Exp $
+// $Id: Utility.cpp,v 1.23 1998-07-29 00:06:04 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -25,6 +25,10 @@
 
 #ifdef WIN32
 #include <direct.h>
+#define mkdir(a,b) _mkdir((a))
+const char* path_sep_str = "\\";
+#else
+const char* path_sep_str = "/";
 #endif
 
 #if !defined(BL_ARCH_CRAY) && !defined(WIN32)
@@ -245,19 +249,15 @@ Utility::CreateDirectory (const aString& path,
                           mode_t         mode)
 #endif
 {
-    if (path.length() == 0 || path == "/")
+    if (path.length() == 0 || path == path_sep_str)
         return true;
 
-    if (strchr(path.c_str(), '/') == 0)
+    if (strchr(path.c_str(), *path_sep_str) == 0)
     {
         //
         // No slashes in the path.
         //
-#ifdef WIN32
-        return _mkdir(path.c_str()) < 0 && errno != EEXIST ? false : true;
-#else
         return mkdir(path.c_str(),mode) < 0 && errno != EEXIST ? false : true;
-#endif
     }
     else
     {
@@ -267,9 +267,9 @@ Utility::CreateDirectory (const aString& path,
         char* dir = new char[path.length() + 1];
         (void) strcpy(dir, path.c_str());
 
-        char* slash = strchr(dir, '/');
+        char* slash = strchr(dir, *path_sep_str);
 
-        if (dir[0] == '/')
+        if (dir[0] == *path_sep_str)
         {
             //
             // Got a full pathname.
@@ -278,16 +278,12 @@ Utility::CreateDirectory (const aString& path,
             {
                 if (*(slash+1) == 0)
                     break;
-                if ((slash = strchr(slash+1, '/')) != 0)
+                if ((slash = strchr(slash+1, *path_sep_str)) != 0)
                     *slash = 0;
-#ifdef WIN32
-                if (_mkdir(dir) < 0 && errno != EEXIST )
-#else
                 if (mkdir(dir, mode) < 0 && errno != EEXIST)
-#endif
                     return false;
                 if (slash)
-                    *slash = '/';
+                    *slash = *path_sep_str;
             } while (slash);
         }
         else
@@ -298,20 +294,12 @@ Utility::CreateDirectory (const aString& path,
             do
             {
                 *slash = 0;
-#ifdef WIN32
-                if (_mkdir(dir) < 0 && errno != EEXIST )
-#else
                 if (mkdir(dir, mode) < 0 && errno != EEXIST)
-#endif
                     return false;
-                *slash = '/';
-            } while ((slash = strchr(slash+1, '/')) != 0);
+                *slash = *path_sep_str;
+            } while ((slash = strchr(slash+1, *path_sep_str)) != 0);
 
-#ifdef WIN32
-            if (_mkdir(dir) < 0 && errno != EEXIST)
-#else
             if (mkdir(dir, mode) < 0 && errno != EEXIST)
-#endif
                 return false;
         }
 
