@@ -20,44 +20,6 @@ c Works for NODE-based data.
       end do
       end
 c-----------------------------------------------------------------------
-c Works for CELL- or NODE-based data.
-      subroutine mxnorm(src, srcl0, srch0, srcl1, srch1,
-     & regl0, regh0, regl1, regh1,
-     & retval)
-      integer srcl0, srch0, srcl1, srch1
-      integer regl0, regh0, regl1, regh1
-      double precision src(srcl0:srch0,srcl1:srch1)
-      double precision retval
-      integer bufsiz
-      parameter(bufsiz = 128)
-      double precision buf(0:bufsiz-1)
-      integer i, j, k, ii, jj, idif, jdif
-      idif = regh0 - regl0
-      jdif = regh1 - regl1
-      if (jdif .gt. idif) then
-         k = jdif - mod(jdif, bufsiz)
-         do j = 0, min(bufsiz - 1, jdif)
-            buf(j) = 0.d0
-         end do
-         do 20 i = regl0, regh0
-            do 20 jj = 0, k, bufsiz
-               do 20 j = 0, min(bufsiz - 1, jdif - jj)
- 20               buf(j) = max(buf(j), abs(src(i, regl1 + jj + j)))
-         do 30 j = 0, min(bufsiz - 1, jdif)
- 30         retval = max(retval, buf(j))
-      else
-         k = idif - mod(idif, bufsiz)
-         do 40 i = 0, min(bufsiz - 1, idif)
- 40         buf(i) = 0.d0
-         do 50 j = regl1, regh1
-            do 50 ii = 0, k, bufsiz
-               do 50 i = 0, min(bufsiz - 1, idif - ii)
- 50               buf(i) = max(buf(i), abs(src(regl0 + ii + i, j)))
-         do 60 i = 0, min(bufsiz - 1, idif)
- 60         retval = max(retval, buf(i))
-      end if
-      end
-c-----------------------------------------------------------------------
 c Works for CELL-based data.
       subroutine iprodc(v0, v0l0, v0h0, v0l1, v0h1,
      & v1, v1l0, v1h0, v1l1, v1h1,
@@ -340,6 +302,8 @@ c extended to one cell past the boundary by the boundary::box routine.
       end do
       end
 c-----------------------------------------------------------------------
+c     Interpolation...
+c-----------------------------------------------------------------------
 c CELL-based data only.
       subroutine acint2(dest, destl0, desth0, destl1, desth1,
      & regl0, regh0, regl1, regh1,
@@ -410,6 +374,8 @@ cdir$ ivdep
       end do
       end
 c-----------------------------------------------------------------------
+c     Restrictions....
+c-----------------------------------------------------------------------
 c CELL-based data only.
       subroutine acrst1(dest, destl0, desth0, destl1, desth1,
      & regl0, regh0, regl1, regh1,
@@ -464,7 +430,8 @@ c fine region by at least one coarse cell on all sides.
       subroutine anrst2(dest, destl0, desth0, destl1, desth1,
      & regl0, regh0, regl1, regh1,
      & src,  srcl0, srch0, srcl1, srch1,
-     & ir, jr, integ)
+     & ir, jr, ncomp, integ)
+      integer ncomp
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
@@ -472,51 +439,11 @@ c fine region by at least one coarse cell on all sides.
       double precision dest(destl0:desth0,destl1:desth1)
       double precision src(srcl0:srch0,srcl1:srch1)
       double precision fac0, fac1, fac, restr4
-      integer i, j, m, n
-      RESTR4() = 0.0625d0 * src(4*i,4*j) +
-     & 0.046875d0  * (src(4*i,4*j-1) + src(4*i,4*j+1) +
-     &                src(4*i-1,4*j) + src(4*i+1,4*j)) +
-     & 0.03125d0   * (src(4*i,4*j-2) + src(4*i,4*j+2) + 
-     &                src(4*i-2,4*j) + src(4*i+2,4*j)) + 
-     & 0.015625d0  * (src(4*i,4*j-3) + src(4*i,4*j+3) + src(4*i-3,4*j) +
-     &            src(4*i+3,4*j) + src(4*i-2,4*j-2) + src(4*i-2,4*j+2) +
-     &                src(4*i+2,4*j-2) + src(4*i+2,4*j+2)) +
-     & 0.03515625d0* (src(4*i-1,4*j-1) + src(4*i-1,4*j+1) + 
-     &                src(4*i+1,4*j-1) + src(4*i+1,4*j+1)) +
-     & 0.0234375d0 * (
-     &          src(4*i-2,4*j-1) + src(4*i-2,4*j+1) + src(4*i-1,4*j-2) +
-     &          src(4*i-1,4*j+2) + src(4*i+1,4*j-2) + src(4*i+1,4*j+2) +
-     &                src(4*i+2,4*j-1) + src(4*i+2,4*j+1)) +
-     & 0.01171875d0* (
-     &          src(4*i-3,4*j-1) + src(4*i-3,4*j+1) + src(4*i-1,4*j-3) +
-     &          src(4*i-1,4*j+3) + src(4*i+1,4*j-3) + src(4*i+1,4*j+3) +
-     &                src(4*i+3,4*j-1) + src(4*i+3,4*j+1)) +
-     & 0.0078125d0 * (
-     &          src(4*i-3,4*j-2) + src(4*i-3,4*j+2) + src(4*i-2,4*j-3) +
-     &          src(4*i-2,4*j+3) + src(4*i+2,4*j-3) + src(4*i+2,4*j+3) +
-     &                src(4*i+3,4*j-2) + src(4*i+3,4*j+2)) +
-     & 0.00390625d0* (src(4*i-3,4*j-3) + src(4*i-3,4*j+3) +
-     &               src(4*i+3,4*j-3) + src(4*i+3,4*j+3))
-      if (ir .eq. 2 .and. jr .eq. 2) then
-         do 20 j = regl1, regh1
-            do 20 i = regl0, regh0
- 20            dest(i,j) = 0.25d0   *  src(i*ir,j*jr) +
-     &                     0.125d0  * (src(i*ir,j*jr-1) +
-     &                                 src(i*ir,j*jr+1) +
-     &                                 src(i*ir-1,j*jr) +
-     &                                 src(i*ir+1,j*jr)) +
-     &                     0.0625d0 * (src(i*ir-1,j*jr-1) +
-     &                                 src(i*ir-1,j*jr+1) +
-     &                                 src(i*ir+1,j*jr-1) +
-     &                                 src(i*ir+1,j*jr+1))
-      else if (ir .eq. 4 .and. jr .eq. 4) then
-         do 120 j = regl1, regh1
-            do 120 i = regl0, regh0
- 120           dest(i,j) = RESTR4()
-      else
+      integer i, j, m, n, nc
+      do nc = 1, ncomp
          do 230 j = regl1, regh1
             do 230 i = regl0, regh0
- 230           dest(i,j) = 0.d0
+ 230           dest(i,j,nc) = 0.d0
          fac0 = 1.d0 / (ir*ir * jr*jr)
          do 240 n = 0, jr-1
             fac1 = (jr-n) * fac0
@@ -526,17 +453,17 @@ c fine region by at least one coarse cell on all sides.
                if (m .eq. 0) fac = 0.5d0 * fac
                do 240 j = regl1, regh1
                   do 240 i = regl0, regh0
- 240                 dest(i,j) = dest(i,j) +
-     &                           fac * (src(i*ir-m,j*jr-n)+
-     &                                  src(i*ir-m,j*jr+n)+
-     &                                  src(i*ir+m,j*jr-n)+
-     &                                  src(i*ir+m,j*jr+n))
-      end if
+ 240                 dest(i,j,nc) = dest(i,j,nc) +
+     &                           fac * (src(i*ir-m,j*jr-n,nc)+
+     &                                  src(i*ir-m,j*jr+n,nc)+
+     &                                  src(i*ir+m,j*jr-n,nc)+
+     &                                  src(i*ir+m,j*jr+n,nc))
       if (integ .eq. 1) then
          fac = ir * jr
             do 320 j = regl1, regh1
                do 320 i = regl0, regh0
- 320              dest(i,j) = fac * dest(i,j)
+ 320              dest(i,j,nc) = fac * dest(i,j,nc)
+      end do
       end if
       end
 c-----------------------------------------------------------------------
