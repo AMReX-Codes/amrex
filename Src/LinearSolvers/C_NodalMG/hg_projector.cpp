@@ -159,13 +159,13 @@ public:
     }
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	bool result = false;
+	bool result = is_local(s, igrid);
 	for(int i = 0; i < BL_SPACEDIM; ++i)
 	{
 	    bool tresult = ucp[i]->init(sno, comm);
+	    result = tresult ||  result;
 	}
-	throw( "task_fecdiv::init(): FIXME" ); /*NOTREACHED*/
-	return false;
+	return result;
     }
 private:
     FECDIV f;
@@ -196,12 +196,20 @@ public:
     }
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	throw( "task_fecdiv_2::init(): FIXME" ); /*NOTREACHED*/
+	task::init(sno, comm);
+	bool result = is_local(s, igrid);
 	for(int i = 0; i < BL_SPACEDIM; ++i)
 	{
-	    ufp[i]->init(sno, comm);
+	    bool tresult = ufp[i]->init(sno, comm);
+	    result = result || tresult;
 	}
-        return false;
+	list<int>::const_iterator tli = tll.begin();
+	while ( tli != tll.end() )
+	{
+	    bool tresult = is_local(s, *tli++);
+	    result = result || tresult;
+	}
+        return result;
     }
     virtual bool ready()
     {

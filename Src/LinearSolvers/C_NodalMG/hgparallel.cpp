@@ -6,11 +6,18 @@ bool task::depend_ready()
     list< task** >::iterator lit = dependencies.begin();
     while ( lit != dependencies.end() )
     {
-	if ( **lit )
-	    return false;
-	++lit;
+	task** t = *lit;
+	if ( *t == 0 )
+	{
+	    list< task** >::iterator tmp = lit++;
+	    dependencies.erase(tmp);
+	}
+	else
+	{
+	    lit++;
+	}
     }
-    return true;
+    return dependencies.empty();
 }
 
 // TASK_LIST
@@ -36,6 +43,8 @@ task_list::~task_list()
 void task_list::execute()
 {
     list< task** > dead_tasks;
+    // The dead_task list is used, because the tasks being processed also appear
+    // in tasks dependecy lists.
     while ( !tasks.empty() )
     {
 	task** t = tasks.front();
@@ -62,17 +71,23 @@ void task_list::execute()
 
 bool task_list::execute_no_block()
 {
-    list< task** > dead_tasks;
-    list< task** > live_tasks;
     list< task** >::iterator tli = tasks.begin();
     while ( tli != tasks.end() )
     {
-	task** t = tli();
-
-    }
-    while ( !dead_tasks.empty() )
-    {
-	dead_tasks.pop_front();
+	task** t = *tli;
+	if ( verbose )
+	    (*t)->hint();
+	if ( (*t)->ready() )
+	{
+	    delete *t;
+	    *t = 0;
+	    list< task** >::iterator tmp = tli++;
+	    tasks.erase(tmp);
+	}
+	else
+	{
+	    tli++;
+	}
     }
     return tasks.empty();
 }

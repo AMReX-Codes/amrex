@@ -220,8 +220,7 @@ task_fill_patch::~task_fill_patch()
 
 bool task_fill_patch::ready()
 {
-    tl.execute();
-    return true;
+    return tl.execute_no_block();
 }
 
 bool task_fill_patch::fill_patch_blindly()
