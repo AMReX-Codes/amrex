@@ -1,6 +1,8 @@
 //
-// $Id: CoordSys.cpp,v 1.17 2004-02-19 17:52:40 car Exp $
+// $Id: CoordSys.cpp,v 1.18 2004-07-22 17:33:12 car Exp $
 //
+#include <winstd.H>
+
 #include <cmath>
 #include <iostream>
 
@@ -9,10 +11,7 @@
 #include <FArrayBox.H>
 
 #if (BL_SPACEDIM==2)
-#if defined(BL_AIX) || defined(WIN32)
-#define M_PI        3.14159265358979323846264338327950288
-#endif
-const double RZFACTOR = 2*M_PI;
+const double RZFACTOR = 2*3.14159265358979323846264338327950288;
 #endif
 
 //
