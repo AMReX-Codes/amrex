@@ -9,6 +9,36 @@
 //int amr_multigrid::c_sys = 0; // default is Cartesian, 1 is RZ
 //#endif
 
+#if defined( BL_FORT_USE_UNDERSCORE )
+#define FORT_FILL_INIT    hgfinit_
+#elif defined( BL_FORT_USE_UPPERCASE )
+#define FORT_FILL_INIT    HGFINIT
+#elif defined( BL_FORT_USE_LOWERCASE )
+#define FORT_FILL_INIT    hgfinit
+#else
+#error "none of BL_FORT_USE_{UNDERSCORE,UPPERCASE,LOWERCASE} defined"
+#endif
+
+extern "C"
+{
+  void FORT_FILL_INIT(Real*, const int*, const int*, const int*, const int*, const int*);
+}
+
+void
+MF_FILL_INIT (MultiFab& mf)
+{
+  for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    {
+      Box bx = mfi.validbox();
+      int nc = mf.nComp();
+      FArrayBox& f = mf[mfi];
+      FORT_FILL_INIT(
+		     f.dataPtr(), f.loVect(), f.hiVect(), &nc,
+		     bx.loVect(), bx.hiVect());
+    }
+}
+
+
 
 #ifdef HG_DEBUG
 static
