@@ -1,6 +1,6 @@
 
 //
-// $Id: tCArena.cpp,v 1.6 2000-10-02 20:52:40 lijewski Exp $
+// $Id: tCArena.cpp,v 1.7 2001-01-24 22:50:47 lijewski Exp $
 //
 
 #ifndef WIN32
@@ -14,7 +14,7 @@
 #ifdef BL_USE_NEW_HFILES
 #include <list>
 #include <new>
-using std::setprecision;
+using std::list;
 #ifndef WIN32
 using std::set_new_handler;
 #endif
