@@ -1,5 +1,5 @@
 /* 
-   $Id: fabio_c.c,v 1.4 2004-05-29 16:05:34 car Exp $ 
+   $Id: fabio_c.c,v 1.5 2004-10-05 01:41:46 car Exp $ 
    Contains the IO routines for fabio module
 */
 #include <stdlib.h>
@@ -138,8 +138,9 @@ static const char* str_norder_f = "4 3 2 1";
 
 enum
   {
+    FABIO_ERR    = 0,
     /* cf. fabio.f90 */
-    FABIO_SINGLE  = 2, 
+    FABIO_SINGLE = 2, 
     FABIO_DOUBLE = 1
   };
 
@@ -193,6 +194,7 @@ scan_buffer(const char* buffer, int border[])
   fprintf(stderr, "FABIO: scan_buffer failed to parse FAB header\n"
 	  "Architecture difference for floating point format\n");
   exit(1);
+  return FABIO_ERR;
 }
 
 void
@@ -206,8 +208,7 @@ FABIO_READ_SKIP_D(const int* fdp, const int* offsetp, const int* skipp,
   off_t skip = *skipp;
   int i,j;
   char buffer[1024];
-  int bcount, border[8];
-  char bstr[1024];
+  int border[8];
   int swap_bytes = 0;
   
   if ( lseek(fd, offset, SEEK_SET) < 0 )
@@ -341,8 +342,7 @@ FABIO_READ_SKIP_S(const int* fdp, const int* offsetp, const int* skipp,
   off_t skip = *skipp;
   int i,j;
   char buffer[1024];
-  int bcount, border[8];
-  char bstr[1024];
+  int border[8];
   int swap_bytes = 0;
   
   if ( lseek(fd, offset, SEEK_SET) < 0 )
@@ -603,9 +603,9 @@ FABIO_CLOSE(const int* fdp)
 #if defined(WIN32)
 #include <direct.h>
 #define mkdir(a,b) _mkdir((a))
-static const char* path_sep_str = "\\";
+/* static const char* path_sep_str = "\\"; */
 #else
-static const char* path_sep_str = "/";
+/* static const char* path_sep_str = "/"; */
 #endif
 
 void
