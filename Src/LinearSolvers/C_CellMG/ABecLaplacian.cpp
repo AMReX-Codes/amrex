@@ -1,6 +1,6 @@
 
 //
-// $Id: ABecLaplacian.cpp,v 1.19 2002-11-06 20:51:41 lijewski Exp $
+// $Id: ABecLaplacian.cpp,v 1.20 2002-11-20 16:52:07 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -202,10 +202,18 @@ void
 ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 			 MultiFab& in, const BC_Mode& bc_mode)
 {
+    compFlux(D_DECL(xflux, yflux, zflux), in, bc_mode, true);
+}
+
+void
+ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
+                         MultiFab& in, const BC_Mode& bc_mode, bool do_ApplyBC)
+{
     int level = 0;
     int src_comp = 0;
     int num_comp = 1;
-    applyBC(in,src_comp,num_comp,level,bc_mode);
+    if (do_ApplyBC)
+        applyBC(in,src_comp,num_comp,level,bc_mode);
     const BoxArray& bxa = gbox[level];
     const MultiFab& a   = aCoefficients(level);
 
