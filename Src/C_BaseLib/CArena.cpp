@@ -1,5 +1,5 @@
 //
-// $Id: CArena.cpp,v 1.30 2001-10-18 17:55:31 lijewski Exp $
+// $Id: CArena.cpp,v 1.31 2001-12-13 23:46:08 car Exp $
 //
 #include <winstd.H>
 
@@ -14,6 +14,7 @@ CArena::CArena (size_t hunk_size)
     // Force alignment of hunksize.
     //
     m_hunk = Arena::align(hunk_size == 0 ? DefaultHunkSize : hunk_size);
+    m_used = 0;
 
     BL_ASSERT(m_hunk >= hunk_size);
     BL_ASSERT(m_hunk%sizeof(Arena::Word) == 0);
