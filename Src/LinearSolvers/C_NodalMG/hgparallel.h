@@ -52,7 +52,7 @@ public:
     virtual ~task_copy();
     virtual bool ready();
     virtual bool init(sequence_number sno, MPI_Comm comm);
-private:
+protected:
 #ifdef BL_USE_MPI
     MPI_Request m_request;
     FArrayBox* tmp;
