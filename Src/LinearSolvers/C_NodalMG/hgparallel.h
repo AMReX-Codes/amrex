@@ -35,70 +35,6 @@ using namespace std;
 #include <list.h>
 #endif
 
-template <class X> class counted_ptr
-{
-public:
-    explicit counted_ptr(X* p = 0) : ptr(p), cnt(0)
-    {
-	if (p) cnt = new unsigned int(1);
-    }
-    counted_ptr(const counted_ptr& r) 
-    {
-	acquire(r);
-    }
-    ~counted_ptr()
-    {
-	release();
-    }
-    counted_ptr& operator=(const counted_ptr& r)
-    {
-	if (this != &r)
-	{
-	    release();
-	    acquire(r);
-	}
-	return *this;
-    }
-    X& operator*() const
-    {
-	return *ptr;
-    }
-    X* operator->() const
-    {
-	return ptr;
-    }
-    X* get() const
-    {
-	return ptr;
-    }
-    bool unique() const
-    {
-	return (cnt ? *cnt == 1 : true);
-    }
-private:
-    X* ptr;
-    unsigned int* cnt;
-    void acquire(const counted_ptr& r)
-    {
-	ptr = r.ptr;
-	cnt = r.cnt;
-	if (cnt) ++*cnt;
-    }
-    void release()
-    {
-	if (cnt)
-	{
-	    if (--*cnt == 0)
-	    {
-		delete cnt;
-		delete ptr;
-	    }
-	    cnt = 0;
-	    ptr = 0;
-	}
-    }
-};
-
 class task
 {
 public:
@@ -120,14 +56,14 @@ public:
     {
 	return false;
     }
-    void depend_on(task* t1)
+    void depend_on(task*& t1)
     {
-	dependencies.push_back( counted_ptr<task>(t1) );
+	dependencies.push_back( &t1 );
     }
     bool depend_ready();
 protected:
     sequence_number m_sno;
-    list< counted_ptr<task> > dependencies;
+    list< task** > dependencies;
 };
 
 class task_copy : public task
@@ -207,7 +143,7 @@ public:
     void add_task(task* t);
     void execute();
 private:
-    list< counted_ptr<task> > tasks;
+    list< task* > tasks;
     MPI_Comm comm;
     task::sequence_number seq_no;
     bool verbose;
