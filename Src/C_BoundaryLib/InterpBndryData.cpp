@@ -1,10 +1,8 @@
 
 //
-// $Id: InterpBndryData.cpp,v 1.18 2005-01-26 22:52:54 lijewski Exp $
+// $Id: InterpBndryData.cpp,v 1.19 2005-01-26 23:20:30 lijewski Exp $
 //
 #include <winstd.H>
-
-#include <cmath>
 
 #include <LO_BCTYPES.H>
 #include <InterpBndryData.H>
@@ -155,13 +153,10 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
         const int* cbhi    = crse_bx.hiVect();
         int mxlen          = crse_bx.longside() + 2;
 
-        if (std::pow(double(mxlen), double(BL_SPACEDIM-1)) > tmplen)
+        if (D_TERM(1,*mxlen,*mxlen) > tmplen)
         {
             delete [] derives;
-            tmplen = mxlen;
-#if (BL_SPACEDIM > 2)
-            tmplen *= mxlen;
-#endif            
+            tmplen  = D_TERM(1,*mxlen,*mxlen);
             derives = new Real[tmplen*NUMDERIV];
         }
         const int* lo             = fine_bx.loVect();
