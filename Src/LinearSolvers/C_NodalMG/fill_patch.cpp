@@ -121,9 +121,9 @@ task_bdy_fill::task_bdy_fill (task_list&                tl_,
     m_target_proc_id(target_proc_id),
     m_local(false)
 {
-    m_bx = m_bdy->image(m_region,m_smf.boxArray()[m_sgrid],m_domain);
-
     BL_ASSERT(m_bdy != 0);
+
+    m_bx = m_bdy->image(m_region,m_smf.boxArray()[m_sgrid],m_domain);
 
     if (m_fab != 0 && is_local(m_smf,m_sgrid))
     {
@@ -131,6 +131,12 @@ task_bdy_fill::task_bdy_fill (task_list&                tl_,
 
 	m_bdy->fill(*m_fab, m_region, m_smf[m_sgrid], m_domain);
     }
+
+    if (!m_smf.fabbox(m_sgrid).contains(m_bx))
+        //
+        // No work to do -- skip bad code in mixed_boundary_class::fill().
+        //
+        m_local = true;
 }
 
 task_bdy_fill::~task_bdy_fill ()
