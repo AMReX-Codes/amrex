@@ -32,12 +32,12 @@
                r1m = 1.d0 / r1
             else
                r1m = -r0m
-            endif
+            end if
             do 20 j = fregl1, fregh1
  20            src(i,j) = src(i,j) + fac *
      @            (r0m * (rf(i-1,j) + rf(i-1,j-1)) -
      @             r1m * (rf(i,j-1) + rf(i,j)))
-      endif
+      end if
       end
 
 c Note---only generates values at coarse points along edge of fine grid
@@ -69,7 +69,7 @@ c Note---only generates values at coarse points along edge of fine grid
          else
             irc = i
             irf = i * ir - 1
-         endif
+         end if
          fac0 = 0.5d0 * ir / (ir+1)
          do 10 j = cregl1, cregh1
  10         src(i*ir,j*jr) = src(i*ir,j*jr) + fac0 *
@@ -82,7 +82,7 @@ c Note---only generates values at coarse points along edge of fine grid
      @           (rfac * idir * (rc(irc,j) + rc(irc,j-1)))
             r = (irf + 0.5d0) * hx
             rfac = hx / (6.d0 * r)
-         endif
+         end if
          fac0 = fac0 / (ir * jr * jr)
          i = i * ir
          do 50 n = 0, jr-1
@@ -97,7 +97,7 @@ c Note---only generates values at coarse points along edge of fine grid
  40               src(i,j) = src(i,j) - fac *
      @              (rfac * idir * (rf(irf,j-n) + rf(irf,j-n-1) +
      @                              rf(irf,j+n) + rf(irf,j+n-1)))
-            endif
+            end if
  50         continue
       else if (idim .eq. 1) then
          j = cregl1
@@ -107,7 +107,7 @@ c Note---only generates values at coarse points along edge of fine grid
          else
             jrc = j
             jrf = j * jr - 1
-         endif
+         end if
          fac0 = 0.5d0 * jr / (jr+1)
          do 60 i = cregl0, cregh0
  60         src(i*ir,j*jr) = src(i*ir,j*jr) + fac0 *
@@ -128,7 +128,7 @@ c should be handled by the cavg routine instead:
             rfac1 = -rfac0
             src(i*ir,j*jr) = src(i*ir,j*jr) + fac0 *
      @           (rfac0 * rc(i-1,jrc) - rfac1 * rc(i,jrc))
-         endif
+         end if
          fac0 = fac0 / (ir * ir * jr)
          j = j * jr
          do 100 m = 0, ir-1
@@ -158,15 +158,15 @@ c should be handled by the cavg routine instead:
                   rfac1m = -rfac0m
                else
                   rfac1m = hx / (6.d0 * (r - m * hx))
-               endif
+               end if
                rfac0p = -rfac1m
                rfac1p = -rfac0m
                src(i,j) = src(i,j) + fac *
      @              (rfac0m * rf(i-m-1,jrf) - rfac1m * rf(i-m,jrf) +
      @               rfac0p * rf(i+m-1,jrf) - rfac1p * rf(i+m,jrf))
-            endif
+            end if
  100        continue
-      endif
+      end if
       end
 
 c Note---only generates values at coarse points along edge of fine grid
@@ -217,9 +217,9 @@ c quadrants
                      rfac =  hx / (6.d0 * r)
                   else
                      rfac = -hx / (6.d0 * (r - hx))
-                  endif
+                  end if
                   sum = sum - fac * rfac * idir * rf(irf,jrf)
-               endif
+               end if
             else
                irc = ic + ii - 1
                center = center + cfac
@@ -231,10 +231,10 @@ c quadrants
                      rfac =  (hx * ir) / (6.d0 * r)
                   else
                      rfac = -(hx * ir) / (6.d0 * (r - (hx * ir)))
-                  endif
+                  end if
                   sum = sum - rfac * idir * rc(irc,jrc)
-               endif
-            endif
+               end if
+            end if
  10         continue
 c edges
       do 40 ji = 0, 1
@@ -258,12 +258,12 @@ c edges
                      else
                         rfac0 = -hx / (6.d0 * (r - m * hx))
                         rfac1 = -hx / (6.d0 * (r - (m + 1) * hx))
-                     endif
+                     end if
                      sum = sum + fac *
      @                 (rfac0 * rf(if+m-1,jrf) - rfac1 * rf(if+m,jrf))
-                  endif
+                  end if
  20               continue
-            endif
+            end if
             if (ga(ii,ji) - ga(1-ii,ji) .eq. 1) then
                fac1 = rm2 / jr
                ffac = (jr-1) * rm2
@@ -276,9 +276,9 @@ c edges
                      rfac = hx / (6.d0 * r)
                      sum = sum - fac *
      @                 (rfac * idir * (rf(irf,jf+n) + rf(irf,jf+n-1)))
-                  endif
+                  end if
  30               continue
-            endif
+            end if
  40         continue
 c weighting
       src(if,jf) = src(if,jf) + sum / center

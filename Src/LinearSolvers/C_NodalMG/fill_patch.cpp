@@ -443,7 +443,6 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 	    jgrid = lev_interface.fgrid(iface, 1);
 	    if (igrid < 0 || jgrid < 0 || lev_interface.fgeo(iface) != level_interface::ALL)
 		break;
-#if 1
 	    const Box& b = lev_interface.node_face(iface);
 	    Real *const ptra = r[igrid].dataPtr();
 	    Real *const ptrb = r[jgrid].dataPtr();
@@ -455,26 +454,6 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 	    const int ibord = r.nGrow();
 	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(b), w, ibord, r.nComp());
 #  endif
-#else
-	    const int idim = lev_interface.fdim(iface);
-	    Box bj = lev_interface.node_face(iface);
-	    Box bi = lev_interface.node_face(iface);
-	    for (int i = 0; i < idim; i++) 
-	    {
-		if (r.box(jgrid).smallEnd(i) == bj.smallEnd(i))
-		    bj.growLo(i, w);
-		if (r.box(jgrid).bigEnd(i) == bj.bigEnd(i))
-		    bj.growHi(i, w);
-		if (r.box(igrid).smallEnd(i) == bi.smallEnd(i))
-		    bi.growLo(i, w);
-		if (r.box(igrid).bigEnd(i) == bi.bigEnd(i))
-		    bi.growHi(i, w);
-	    }
-	    bj.shift(idim, -1).growLo(idim, w-1);
-	    bi.shift(idim,  1).growHi(idim, w-1);
-	    internal_copy(r, jgrid, igrid, bj);
-	    internal_copy(r, igrid, jgrid, bi);
-#endif
 	}
     }
     else if (type(r) == IntVect::TheCellVector()) 
@@ -534,21 +513,7 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 #else
 	    Box bj = lev_interface.face(iface);
 	    Box bi = lev_interface.face(iface);
-#if 0
-	    for (int i = 0; i < idim; i++) 
-	    {
-		if (mesh().box(jgrid).smallEnd(i) == bj.smallEnd(i))
-		    bj.growLo(i, w);
-		if (mesh().box(jgrid).bigEnd(i) == bj.bigEnd(i))
-		    bj.growHi(i, w);
-		if (mesh().box(igrid).smallEnd(i) == bi.smallEnd(i))
-		    bi.growLo(i, w);
-		if (mesh().box(igrid).bigEnd(i) == bi.bigEnd(i))
-		    bi.growHi(i, w);
-	    }
-#else
 	    BoxLib::Error("fill_internal_borders---check index arithmetic for mixed types in 3D");
-#endif
 	    bj.shift(idim, -a).growLo(idim, w-a).convert(type(r));
 	    bi.shift(idim,  a).growHi(idim, w-a).convert(type(r));
 	    internal_copy(r, jgrid, igrid, bj);

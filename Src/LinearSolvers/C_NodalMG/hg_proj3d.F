@@ -1,54 +1,51 @@
-
-#define dims(a) a##l0,a##h0,a##l1,a##h1,a##l2,a##h2
-#define dimdec(a) a##l0:a##h0,a##l1:a##h1,a##l2:a##h2
-
-#ifdef HG_TERRAIN
-
-      subroutine hggrad(gpx, gpy, gpz,
-     @ dims(gp),
+	subroutine hggrad_terrain(gpx, gpy, gpz,
+     @ gpl0,gph0,gpl1,gph1,gpl2,gph2,
      @ dest,
-     @ dims(dest),
-     @ dims(freg))
-      integer dims(gp)
-      integer dims(dest)
-      integer dims(freg)
-      real*8 gpx(dimdec(gp))
-      real*8 gpy(dimdec(gp))
-      real*8 gpz(dimdec(gp))
-      real*8 dest(dimdec(dest))
+     @ destl0,desth0,destl1,desth1,destl2,desth2,
+     @ fregl0,fregh0,fregl1,fregh1,fregl2,fregh2)
+      integer gpl0,gph0,gpl1,gph1,gpl2,gph2
+      integer destl0,desth0,destl1,desth1,destl2,desth2
+      integer fregl0,fregh0,fregl1,fregh1,fregl2,fregh2
+      real*8 gpx(gpl0:gph0,gpl1:gph1,gpl2:gph2)
+      real*8 gpy(gpl0:gph0,gpl1:gph1,gpl2:gph2)
+      real*8 gpz(gpl0:gph0,gpl1:gph1,gpl2:gph2)
+      real*8 dest(destl0:desth0,destl1:desth1,destl2:desth2)
       integer i, j, k
       do k = fregl2, fregh2
 	    do j = fregl1, fregh1
 		do i = fregl0, fregh0
-               gpx(i,j,k) = 0.25d0 * (dest(i+1,j,k  ) + dest(i+1,j+1,k  ) +
-     @                                dest(i+1,j,k+1) + dest(i+1,j+1,k+1) -
-     @                                dest(i  ,j,k  ) - dest(i  ,j+1,k  ) -
-     @                                dest(i  ,j,k+1) - dest(i  ,j+1,k+1))
-               gpy(i,j,k) = 0.25d0 * (dest(i,j+1,k  ) + dest(i+1,j+1,k  ) +
-     @                                dest(i,j+1,k+1) + dest(i+1,j+1,k+1) -
-     @                                dest(i,j  ,k  ) - dest(i+1,j  ,k  ) -
-     @                                dest(i,j  ,k+1) - dest(i+1,j  ,k+1))
-		 gpz(i,j,k) = 0.25d0 * (dest(i,j  ,k+1) + dest(i+1,j  ,k+1) +
-     @                                dest(i,j+1,k+1) + dest(i+1,j+1,k+1) -
-     @                                dest(i,j  ,k  ) - dest(i+1,j  ,k  ) -
-     @                                dest(i,j+1,k  ) - dest(i+1,j+1,k  ))
-		enddo
-	    enddo
-	enddo
+               gpx(i,j,k) = 0.25d0 * 
+     &	    (dest(i+1,j,k  ) + dest(i+1,j+1,k  ) +
+     @	     dest(i+1,j,k+1) + dest(i+1,j+1,k+1) -
+     @             dest(i  ,j,k  ) - dest(i  ,j+1,k  ) -
+     @             dest(i  ,j,k+1) - dest(i  ,j+1,k+1))
+               gpy(i,j,k) = 0.25d0 * 
+     &	    (dest(i,j+1,k  ) + dest(i+1,j+1,k  ) +
+     @             dest(i,j+1,k+1) + dest(i+1,j+1,k+1) -
+     @             dest(i,j  ,k  ) - dest(i+1,j  ,k  ) -
+     @             dest(i,j  ,k+1) - dest(i+1,j  ,k+1))
+		 gpz(i,j,k) = 0.25d0 * 
+     &	    (dest(i,j  ,k+1) + dest(i+1,j  ,k+1) +
+     @             dest(i,j+1,k+1) + dest(i+1,j+1,k+1) -
+     @             dest(i,j  ,k  ) - dest(i+1,j  ,k  ) -
+     @             dest(i,j+1,k  ) - dest(i+1,j+1,k  ))
+		end do
+	    end do
+	end do
       end
 
-      subroutine hgdiv(src,
-     @ dims(src),
+      subroutine hgdiv_terrain(src,
+     @ srcl0,srch0,srcl1,srch1,srcl2,srch2,
      @ uf, vf, wf,
-     @ dims(f),
-     @ dims(freg))
-      integer dims(src)
-      integer dims(f)
-      integer dims(freg)
-      real*8 src(dimdec(src))
-      real*8 uf(dimdec(f))
-      real*8 vf(dimdec(f))
-      real*8 wf(dimdec(f))
+     @ fl0,fh0,fl1,fh1,fl2,fh2,
+     @ fregl0,fregh0,fregl1,fregh1,fregl2,fregh2)
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer fl0,fh0,fl1,fh1,fl2,fh2
+      integer fregl0,fregh0,fregl1,fregh1,fregl2,fregh2
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 uf(fl0:fh0,fl1:fh1,fl2:fh2)
+      real*8 vf(fl0:fh0,fl1:fh1,fl2:fh2)
+      real*8 wf(fl0:fh0,fl1:fh1,fl2:fh2)
       real*8 fac
       integer i, j, k
       fac = 0.25d0
@@ -68,31 +65,31 @@
      @               wf(i-1,j  ,k  ) - wf(i-1,j  ,k-1) +
      @               wf(i  ,j-1,k  ) - wf(i  ,j-1,k-1) +
      @               wf(i  ,j  ,k  ) - wf(i  ,j  ,k-1))
-		enddo
-	    enddo
-	enddo
+		end do
+	    end do
+	end do
       end
 
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgfdiv(src,
-     @ dims(src),
+      subroutine hgfdiv_terrain(src,
+     @ srcl0,srch0,srcl1,srch1,srcl2,srch2,
      @ uc, vc, wc,
-     @ dims(c),
+     @ cl0,ch0,cl1,ch1,cl2,ch2,
      @ uf, vf, wf,
-     @ dims(f),
-     @ dims(creg),
+     @ fl0,fh0,fl1,fh1,fl2,fh2,
+     @ cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
      @ ir, jr, kr, idim, idir)
-      integer dims(src)
-      integer dims(c)
-      integer dims(f)
-      integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 uc(dimdec(c))
-      real*8 vc(dimdec(c))
-      real*8 wc(dimdec(c))
-      real*8 uf(dimdec(f))
-      real*8 vf(dimdec(f))
-      real*8 wf(dimdec(f))
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer cl0,ch0,cl1,ch1,cl2,ch2
+      integer fl0,fh0,fl1,fh1,fl2,fh2
+      integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 uc(cl0:ch0,cl1:ch1,cl2:ch2)
+      real*8 vc(cl0:ch0,cl1:ch1,cl2:ch2)
+      real*8 wc(cl0:ch0,cl1:ch1,cl2:ch2)
+      real*8 uf(fl0:fh0,fl1:fh1,fl2:fh2)
+      real*8 vf(fl0:fh0,fl1:fh1,fl2:fh2)
+      real*8 wf(fl0:fh0,fl1:fh1,fl2:fh2)
       integer ir, jr, kr, idim, idir
       real*8 fac0, fac1, fac, tmp
       integer i, j, k, iuc, iuf, juc, juf, kuc, kuf, l, m, n
@@ -104,7 +101,7 @@ c Note---only generates values at coarse points along edge of fine grid
          else
             iuc = i
             iuf = i * ir - 1
-         endif
+         end if
          fac0 = 0.25d0
          do  k = cregl2, cregh2
             do  j = cregl1, cregh1
@@ -115,8 +112,8 @@ c Note---only generates values at coarse points along edge of fine grid
      @             wc(iuc,j-1,k) - wc(iuc,j-1,k-1)) -
      @     idir * (uc(iuc,j,k) + uc(iuc,j,k-1) +
      @             uc(iuc,j-1,k) + uc(iuc,j-1,k-1)))
-		enddo
-	    enddo
+		end do
+	    end do
          fac0 = fac0 / (jr * kr)
          i = i * ir
          do 20 l = 0, kr-1
@@ -162,7 +159,7 @@ c Note---only generates values at coarse points along edge of fine grid
          else
             juc = j
             juf = j * jr - 1
-         endif
+         end if
          fac0 = 0.25d0
          do 30 k = cregl2, cregh2
             do 30 i = cregl0, cregh0
@@ -218,7 +215,7 @@ c Note---only generates values at coarse points along edge of fine grid
          else
             kuc = k
             kuf = k * kr - 1
-         endif
+         end if
          fac0 = 0.25d0
          do 50 j = cregl1, cregh1
             do 50 i = cregl0, cregh0
@@ -266,29 +263,29 @@ c Note---only generates values at coarse points along edge of fine grid
      @                  wf(i+m-1,j-n,kuf) + wf(i+m-1,j-n-1,kuf) +
      @                  wf(i+m  ,j+n,kuf) + wf(i+m  ,j+n-1,kuf) +
      @                  wf(i+m-1,j+n,kuf) + wf(i+m-1,j+n-1,kuf)))
-      endif
+      end if
       end
 
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgediv(src,
-     @ dims(src),
+      subroutine hgediv_terrain(src,
+     @ srcl0,srch0,srcl1,srch1,srcl2,srch2,
      @ uc, vc, wc,
-     @ dims(c),
+     @ cl0,ch0,cl1,ch1,cl2,ch2,
      @ uf, vf, wf,
-     @ dims(f),
-     @ dims(creg),
+     @ fl0,fh0,fl1,fh1,fl2,fh2,
+     @ cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
      @ ir, jr, kr, ivect, ga)
-      integer dims(src)
-      integer dims(c)
-      integer dims(f)
-      integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 uc(dimdec(c))
-      real*8 vc(dimdec(c))
-      real*8 wc(dimdec(c))
-      real*8 uf(dimdec(f))
-      real*8 vf(dimdec(f))
-      real*8 wf(dimdec(f))
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer cl0,ch0,cl1,ch1,cl2,ch2
+      integer fl0,fh0,fl1,fh1,fl2,fh2
+      integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 uc(cl0:ch0,cl1:ch1,cl2:ch2)
+      real*8 vc(cl0:ch0,cl1:ch1,cl2:ch2)
+      real*8 wc(cl0:ch0,cl1:ch1,cl2:ch2)
+      real*8 uf(fl0:fh0,fl1:fh1,fl2:fh2)
+      real*8 vf(fl0:fh0,fl1:fh1,fl2:fh2)
+      real*8 wf(fl0:fh0,fl1:fh1,fl2:fh2)
       integer ir, jr, kr, ivect(0:2), ga(0:1,0:1,0:1)
       real*8 fac0, fac1, fac
       integer ic, jc, kc, if, jf, kf, iuc, iuf, juc, juf, kuc, kuf
@@ -335,7 +332,7 @@ c each quadrant is two octants and their share of the two central edges
      @                 (       (uc(ic,juc,kuc) - uc(ic-1,juc,kuc)) +
      @                  jdir * (vc(ic,juc,kuc) + vc(ic-1,juc,kuc)) +
      @                  kdir * (wc(ic,juc,kuc) + wc(ic-1,juc,kuc)))
-               endif
+               end if
  40            continue
 c faces
 c each face is two faces and two sides of an edge
@@ -368,7 +365,7 @@ c
      @                        wf(if-m-1,jf+n,kuf) + wf(if-m-1,jf+n-1,kuf) +
      @                        wf(if+m  ,jf+n,kuf) + wf(if+m  ,jf+n-1,kuf) +
      @                        wf(if+m-1,jf+n,kuf) + wf(if+m-1,jf+n-1,kuf)))
-               endif
+               end if
                if (ga(0,ji,ki) - ga(0,1-ji,ki) .eq. 1) then
                   juf = jf + ji - 1
                   fac0 = 1.d0 / (ir * kr)
@@ -394,7 +391,7 @@ c
      @                        wf(if-m-1,juf,kf+l) - wf(if-m-1,juf,kf+l-1) +
      @                        wf(if+m  ,juf,kf+l) - wf(if+m  ,juf,kf+l-1) +
      @                        wf(if+m-1,juf,kf+l) - wf(if+m-1,juf,kf+l-1)))
-               endif
+               end if
  70            continue
 c weighting
          do 80 if = ir*cregl0, ir*cregh0, ir
@@ -436,7 +433,7 @@ c
      @                 (idir * (uc(iuc,jc,kuc) + uc(iuc,jc-1,kuc)) +
      @                         (vc(iuc,jc,kuc) - vc(iuc,jc-1,kuc)) +
      @                  kdir * (wc(iuc,jc,kuc) + wc(iuc,jc-1,kuc)))
-               endif
+               end if
  140           continue
 c faces
 c each face is two faces and two sides of an edge
@@ -468,7 +465,7 @@ c each face is two faces and two sides of an edge
      @                        wf(if+m-1,jf-n,kuf) + wf(if+m-1,jf-n-1,kuf) +
      @                        wf(if+m  ,jf+n,kuf) + wf(if+m  ,jf+n-1,kuf) +
      @                        wf(if+m-1,jf+n,kuf) + wf(if+m-1,jf+n-1,kuf)))
-               endif
+               end if
                if (ga(ii,0,ki) - ga(1-ii,0,ki) .eq. 1) then
                   iuf = if + ii - 1
                   fac0 = 1.d0 / (jr * kr)
@@ -492,7 +489,7 @@ c each face is two faces and two sides of an edge
      @                        wf(iuf,jf-n-1,kf+l  ) - wf(iuf,jf-n-1,kf+l-1) +
      @                        wf(iuf,jf+n  ,kf+l  ) - wf(iuf,jf+n  ,kf+l-1) +
      @                        wf(iuf,jf+n-1,kf+l  ) - wf(iuf,jf+n-1,kf+l-1)))
-               endif
+               end if
  170           continue
 c weighting
          do 180 jf = jr*cregl1, jr*cregh1, jr
@@ -534,7 +531,7 @@ c
      @                 (idir * (uc(iuc,juc,kc) + uc(iuc,juc,kc-1)) +
      @                  jdir * (vc(iuc,juc,kc) + vc(iuc,juc,kc-1)) +
      @                         (wc(iuc,juc,kc) - wc(iuc,juc,kc-1)))
-               endif
+               end if
  240           continue
 c faces
 c each face is two faces and two sides of an edge
@@ -567,7 +564,7 @@ c
      @                        wf(if+m-1,juf,kf-l) - wf(if+m-1,juf,kf-l-1) +
      @                        wf(if+m  ,juf,kf+l) - wf(if+m  ,juf,kf+l-1) +
      @                        wf(if+m-1,juf,kf+l) - wf(if+m-1,juf,kf+l-1)))
-               endif
+               end if
                if (ga(ii,ji,0) - ga(1-ii,ji,0) .eq. 1) then
                   iuf = if + ii - 1
                   fac0 = 1.d0 / (jr * kr)
@@ -593,34 +590,34 @@ c
      @                        wf(iuf,jf+n-1,kf-l) - wf(iuf,jf+n-1,kf-l-1) +
      @                        wf(iuf,jf+n,kf+l  ) - wf(iuf,jf+n  ,kf+l-1) +
      @                        wf(iuf,jf+n-1,kf+l) - wf(iuf,jf+n-1,kf+l-1)))
-               endif
+               end if
  270           continue
 c weighting
          do 280 kf = kr*cregl2, kr*cregh2, kr
  280        src(if,jf,kf) = .25d0 * src(if,jf,kf)
-      endif
+      end if
       end
 
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgcdiv(src,
-     @ dims(src),
+      subroutine hgcdiv_terrain(src,
+     @ srcl0,srch0,srcl1,srch1,srcl2,srch2,
      @ uc, vc, wc,
-     @ dims(c),
+     @ cl0,ch0,cl1,ch1,cl2,ch2,
      @ uf, vf, wf,
-     @ dims(f),
-     @ dims(creg),
+     @ fl0,fh0,fl1,fh1,fl2,fh2,
+     @ cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
      @ ir, jr, kr, ga)
-      integer dims(src)
-      integer dims(c)
-      integer dims(f)
-      integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 uc(dimdec(c))
-      real*8 vc(dimdec(c))
-      real*8 wc(dimdec(c))
-      real*8 uf(dimdec(f))
-      real*8 vf(dimdec(f))
-      real*8 wf(dimdec(f))
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer cl0,ch0,cl1,ch1,cl2,ch2
+      integer fl0,fh0,fl1,fh1,fl2,fh2
+      integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 uc(cl0:ch0,cl1:ch1,cl2:ch2)
+      real*8 vc(cl0:ch0,cl1:ch1,cl2:ch2)
+      real*8 wc(cl0:ch0,cl1:ch1,cl2:ch2)
+      real*8 uf(fl0:fh0,fl1:fh1,fl2:fh2)
+      real*8 vf(fl0:fh0,fl1:fh1,fl2:fh2)
+      real*8 wf(fl0:fh0,fl1:fh1,fl2:fh2)
       integer ir, jr, kr, ga(0:1,0:1,0:1)
       real*8 sum, fac0, fac1, fac
       integer ic, jc, kc, if, jf, kf, iuc, iuf, juc, juf, kuc, kuf
@@ -655,7 +652,7 @@ c octants
      @              (idir * uc(iuc,juc,kuc) +
      @               jdir * vc(iuc,juc,kuc) +
      @               kdir * wc(iuc,juc,kuc))
-               endif
+               end if
  10            continue
 c faces
       do 50 ki = 0, 1
@@ -682,7 +679,7 @@ c
      @                                     kdir *
      @                    (wf(if+m  ,jf+n,kuf) + wf(if+m  ,jf+n-1,kuf) +
      @                     wf(if+m-1,jf+n,kuf) + wf(if+m-1,jf+n-1,kuf)))
-               endif
+               end if
                if (ga(ii,ji,ki) - ga(ii,1-ji,ki) .eq. 1) then
                   fac0 = 1.d0 / (ir * kr)
                   do 30 l = kdir, kdir*(kr-1), kdir
@@ -698,7 +695,7 @@ c
 c
      @                    (wf(if+m  ,juf,kf+l  ) - wf(if+m  ,juf,kf+l-1) +
      @                     wf(if+m-1,juf,kf+l  ) - wf(if+m-1,juf,kf+l-1)))
-               endif
+               end if
                if (ga(ii,ji,ki) - ga(1-ii,ji,ki) .eq. 1) then
                   fac0 = 1.d0 / (jr * kr)
                   do 40 l = kdir, kdir*(kr-1), kdir
@@ -714,7 +711,7 @@ c
 c
      @                    (wf(iuf,jf+n  ,kf+l  ) - wf(iuf,jf+n  ,kf+l-1) +
      @                     wf(iuf,jf+n-1,kf+l  ) - wf(iuf,jf+n-1,kf+l-1)))
-               endif
+               end if
  50            continue
 c edges
       do 90 ki = 0, 1
@@ -738,7 +735,7 @@ c edges
      @                 (vf(if+m,juf,kuf) + vf(if+m-1,juf,kuf)) +
      @                                  kdir *
      @                 (wf(if+m,juf,kuf) + wf(if+m-1,juf,kuf)))
-               endif
+               end if
                if (ga(ii,ji,ki) -
      @             min(ga(ii,ji,1-ki), ga(1-ii,ji,ki), ga(1-ii,ji,1-ki))
      @             .eq. 1) then
@@ -751,7 +748,7 @@ c
      @                 (vf(iuf,jf+n,kuf) - vf(iuf,jf+n-1,kuf)) +
      @                                  kdir *
      @                 (wf(iuf,jf+n,kuf) + wf(iuf,jf+n-1,kuf)))
-               endif
+               end if
                if (ga(ii,ji,ki) -
      @             min(ga(ii,1-ji,ki), ga(1-ii,ji,ki), ga(1-ii,1-ji,ki))
      @             .eq. 1) then
@@ -764,27 +761,25 @@ c
      @                 (vf(iuf,juf,kf+l) + vf(iuf,juf,kf+l-1)) +
 c
      @                 (wf(iuf,juf,kf+l) - wf(iuf,juf,kf+l-1)))
-               endif
+               end if
  90            continue
 c weighting
       src(if,jf,kf) = .25d0 * sum 
       end
 
-#else
-
       subroutine hggrad(gpx, gpy, gpz,
-     @ dims(gp),
+     @ gpl0,gph0,gpl1,gph1,gpl2,gph2,
      @ dest,
-     @ dims(dest),
-     @ dims(freg),
+     @ destl0,desth0,destl1,desth1,destl2,desth2,
+     @ fregl0,fregh0,fregl1,fregh1,fregl2,fregh2,
      @ hx, hy, hz)
-      integer dims(gp)
-      integer dims(dest)
-      integer dims(freg)
-      real*8 gpx(dimdec(gp))
-      real*8 gpy(dimdec(gp))
-      real*8 gpz(dimdec(gp))
-      real*8 dest(dimdec(dest))
+      integer gpl0,gph0,gpl1,gph1,gpl2,gph2
+      integer destl0,desth0,destl1,desth1,destl2,desth2
+      integer fregl0,fregh0,fregl1,fregh1,fregl2,fregh2
+      real*8 gpx(gpl0:gph0,gpl1:gph1,gpl2:gph2)
+      real*8 gpy(gpl0:gph0,gpl1:gph1,gpl2:gph2)
+      real*8 gpz(gpl0:gph0,gpl1:gph1,gpl2:gph2)
+      real*8 dest(destl0:desth0,destl1:desth1,destl2:desth2)
       real*8 hx, hy, hz
       real*8 hxm1h, hym1h, hzm1h
       integer i, j, k
@@ -809,18 +804,18 @@ c weighting
       end
 
       subroutine hgdiv(src,
-     @ dims(src),
+     @ srcl0,srch0,srcl1,srch1,srcl2,srch2,
      @ uf, vf, wf,
-     @ dims(f),
-     @ dims(freg),
+     @ fl0,fh0,fl1,fh1,fl2,fh2,
+     @ fregl0,fregh0,fregl1,fregh1,fregl2,fregh2,
      @ hx, hy, hz)
-      integer dims(src)
-      integer dims(f)
-      integer dims(freg)
-      real*8 src(dimdec(src))
-      real*8 uf(dimdec(f))
-      real*8 vf(dimdec(f))
-      real*8 wf(dimdec(f))
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer fl0,fh0,fl1,fh1,fl2,fh2
+      integer fregl0,fregh0,fregl1,fregh1,fregl2,fregh2
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 uf(fl0:fh0,fl1:fh1,fl2:fh2)
+      real*8 vf(fl0:fh0,fl1:fh1,fl2:fh2)
+      real*8 wf(fl0:fh0,fl1:fh1,fl2:fh2)
       real*8 hx, hy, hz
       real*8 hxm1, hym1, hzm1, fac
       integer i, j, k
@@ -848,24 +843,24 @@ c weighting
 
 c Note---only generates values at coarse points along edge of fine grid
       subroutine hgfdiv(src,
-     @ dims(src),
+     @ srcl0,srch0,srcl1,srch1,srcl2,srch2,
      @ uc, vc, wc,
-     @ dims(c),
+     @ cl0,ch0,cl1,ch1,cl2,ch2,
      @ uf, vf, wf,
-     @ dims(f),
-     @ dims(creg),
+     @ fl0,fh0,fl1,fh1,fl2,fh2,
+     @ cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
      @ hx, hy, hz, ir, jr, kr, idim, idir)
-      integer dims(src)
-      integer dims(c)
-      integer dims(f)
-      integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 uc(dimdec(c))
-      real*8 vc(dimdec(c))
-      real*8 wc(dimdec(c))
-      real*8 uf(dimdec(f))
-      real*8 vf(dimdec(f))
-      real*8 wf(dimdec(f))
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer cl0,ch0,cl1,ch1,cl2,ch2
+      integer fl0,fh0,fl1,fh1,fl2,fh2
+      integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 uc(cl0:ch0,cl1:ch1,cl2:ch2)
+      real*8 vc(cl0:ch0,cl1:ch1,cl2:ch2)
+      real*8 wc(cl0:ch0,cl1:ch1,cl2:ch2)
+      real*8 uf(fl0:fh0,fl1:fh1,fl2:fh2)
+      real*8 vf(fl0:fh0,fl1:fh1,fl2:fh2)
+      real*8 wf(fl0:fh0,fl1:fh1,fl2:fh2)
       real*8 hx, hy, hz
       integer ir, jr, kr, idim, idir
       real*8 hxm1, hym1, hzm1, fac0, fac1, fac, tmp
@@ -878,7 +873,7 @@ c Note---only generates values at coarse points along edge of fine grid
          else
             iuc = i
             iuf = i * ir - 1
-         endif
+         end if
          fac0 = 0.5d0 * ir / (ir + 1.d0)
          hxm1 = 1.d0 / (ir * hx)
          hym1 = 1.d0 / (jr * hy)
@@ -940,7 +935,7 @@ c Note---only generates values at coarse points along edge of fine grid
          else
             juc = j
             juf = j * jr - 1
-         endif
+         end if
          fac0 = 0.5d0 * jr / (jr + 1.d0)
          hxm1 = 1.d0 / (ir * hx)
          hym1 = 1.d0 / (jr * hy)
@@ -1002,7 +997,7 @@ c Note---only generates values at coarse points along edge of fine grid
          else
             kuc = k
             kuf = k * kr - 1
-         endif
+         end if
          fac0 = 0.5d0 * kr / (kr + 1.d0)
          hxm1 = 1.d0 / (ir * hx)
          hym1 = 1.d0 / (jr * hy)
@@ -1056,29 +1051,29 @@ c Note---only generates values at coarse points along edge of fine grid
      @                  wf(i+m-1,j-n,kuf) + wf(i+m-1,j-n-1,kuf) +
      @                  wf(i+m  ,j+n,kuf) + wf(i+m  ,j+n-1,kuf) +
      @                  wf(i+m-1,j+n,kuf) + wf(i+m-1,j+n-1,kuf)))
-      endif
+      end if
       end
 
 c Note---only generates values at coarse points along edge of fine grid
       subroutine hgediv(src,
-     @ dims(src),
+     @ srcl0,srch0,srcl1,srch1,srcl2,srch2,
      @ uc, vc, wc,
-     @ dims(c),
+     @ cl0,ch0,cl1,ch1,cl2,ch2,
      @ uf, vf, wf,
-     @ dims(f),
-     @ dims(creg),
+     @ fl0,fh0,fl1,fh1,fl2,fh2,
+     @ cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
      @ hx, hy, hz, ir, jr, kr, ivect, ga)
-      integer dims(src)
-      integer dims(c)
-      integer dims(f)
-      integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 uc(dimdec(c))
-      real*8 vc(dimdec(c))
-      real*8 wc(dimdec(c))
-      real*8 uf(dimdec(f))
-      real*8 vf(dimdec(f))
-      real*8 wf(dimdec(f))
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer cl0,ch0,cl1,ch1,cl2,ch2
+      integer fl0,fh0,fl1,fh1,fl2,fh2
+      integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 uc(cl0:ch0,cl1:ch1,cl2:ch2)
+      real*8 vc(cl0:ch0,cl1:ch1,cl2:ch2)
+      real*8 wc(cl0:ch0,cl1:ch1,cl2:ch2)
+      real*8 uf(fl0:fh0,fl1:fh1,fl2:fh2)
+      real*8 vf(fl0:fh0,fl1:fh1,fl2:fh2)
+      real*8 wf(fl0:fh0,fl1:fh1,fl2:fh2)
       real*8 hx, hy, hz
       integer ir, jr, kr, ivect(0:2), ga(0:1,0:1,0:1)
       real*8 r3, hxm1, hym1, hzm1, hxm1c, hym1c, hzm1c
@@ -1139,7 +1134,7 @@ c each quadrant is two octants and their share of the two central edges
      @                 (hxm1c *        (uc(ic,juc,kuc) - uc(ic-1,juc,kuc)) +
      @                  hym1c * jdir * (vc(ic,juc,kuc) + vc(ic-1,juc,kuc)) +
      @                  hzm1c * kdir * (wc(ic,juc,kuc) + wc(ic-1,juc,kuc)))
-               endif
+               end if
  40            continue
 c faces
 c each face is two faces and two sides of an edge
@@ -1174,7 +1169,7 @@ c each face is two faces and two sides of an edge
      @                        wf(if-m-1,jf+n,kuf) + wf(if-m-1,jf+n-1,kuf) +
      @                        wf(if+m,jf+n,kuf) + wf(if+m,jf+n-1,kuf) +
      @                        wf(if+m-1,jf+n,kuf) + wf(if+m-1,jf+n-1,kuf)))
-               endif
+               end if
                if (ga(0,ji,ki) - ga(0,1-ji,ki) .eq. 1) then
                   juf = jf + ji - 1
                   fac0 = 1.d0 / (ir * kr)
@@ -1202,7 +1197,7 @@ c each face is two faces and two sides of an edge
      @                        wf(if-m-1,juf,kf+l) - wf(if-m-1,juf,kf+l-1) +
      @                        wf(if+m,juf,kf+l) - wf(if+m,juf,kf+l-1) +
      @                        wf(if+m-1,juf,kf+l) - wf(if+m-1,juf,kf+l-1)))
-               endif
+               end if
  70            continue
 c weighting
          do 80 if = ir*cregl0, ir*cregh0, ir
@@ -1247,7 +1242,7 @@ c each quadrant is two octants and their share of the two central edges
      @                 (hxm1c * idir * (uc(iuc,jc,kuc) + uc(iuc,jc-1,kuc)) +
      @                  hym1c *        (vc(iuc,jc,kuc) - vc(iuc,jc-1,kuc)) +
      @                  hzm1c * kdir * (wc(iuc,jc,kuc) + wc(iuc,jc-1,kuc)))
-               endif
+               end if
  140           continue
 c faces
 c each face is two faces and two sides of an edge
@@ -1282,7 +1277,7 @@ c each face is two faces and two sides of an edge
      @                        wf(if+m-1,jf-n,kuf) + wf(if+m-1,jf-n-1,kuf) +
      @                        wf(if+m,jf+n,kuf) + wf(if+m,jf+n-1,kuf) +
      @                        wf(if+m-1,jf+n,kuf) + wf(if+m-1,jf+n-1,kuf)))
-               endif
+               end if
                if (ga(ii,0,ki) - ga(1-ii,0,ki) .eq. 1) then
                   iuf = if + ii - 1
                   fac0 = 1.d0 / (jr * kr)
@@ -1310,7 +1305,7 @@ c each face is two faces and two sides of an edge
      @                        wf(iuf,jf-n-1,kf+l) - wf(iuf,jf-n-1,kf+l-1) +
      @                        wf(iuf,jf+n,kf+l) - wf(iuf,jf+n,kf+l-1) +
      @                        wf(iuf,jf+n-1,kf+l) - wf(iuf,jf+n-1,kf+l-1)))
-               endif
+               end if
  170           continue
 c weighting
          do 180 jf = jr*cregl1, jr*cregh1, jr
@@ -1355,7 +1350,7 @@ c each quadrant is two octants and their share of the two central edges
      @                 (hxm1c * idir * (uc(iuc,juc,kc) + uc(iuc,juc,kc-1)) +
      @                  hym1c * jdir * (vc(iuc,juc,kc) + vc(iuc,juc,kc-1)) +
      @                  hzm1c *        (wc(iuc,juc,kc) - wc(iuc,juc,kc-1)))
-               endif
+               end if
  240           continue
 c faces
 c each face is two faces and two sides of an edge
@@ -1390,7 +1385,7 @@ c each face is two faces and two sides of an edge
      @                        wf(if+m-1,juf,kf-l) - wf(if+m-1,juf,kf-l-1) +
      @                        wf(if+m,juf,kf+l) - wf(if+m,juf,kf+l-1) +
      @                        wf(if+m-1,juf,kf+l) - wf(if+m-1,juf,kf+l-1)))
-               endif
+               end if
                if (ga(ii,ji,0) - ga(1-ii,ji,0) .eq. 1) then
                   iuf = if + ii - 1
                   fac0 = 1.d0 / (jr * kr)
@@ -1418,34 +1413,34 @@ c each face is two faces and two sides of an edge
      @                        wf(iuf,jf+n-1,kf-l) - wf(iuf,jf+n-1,kf-l-1) +
      @                        wf(iuf,jf+n,kf+l) - wf(iuf,jf+n,kf+l-1) +
      @                        wf(iuf,jf+n-1,kf+l) - wf(iuf,jf+n-1,kf+l-1)))
-               endif
+               end if
  270           continue
 c weighting
          do 280 kf = kr*cregl2, kr*cregh2, kr
  280        src(if,jf,kf) = src(if,jf,kf) / center
-      endif
+      end if
       end
 
 c Note---only generates values at coarse points along edge of fine grid
       subroutine hgcdiv(src,
-     @ dims(src),
+     @ srcl0,srch0,srcl1,srch1,srcl2,srch2,
      @ uc, vc, wc,
-     @ dims(c),
+     @ cl0,ch0,cl1,ch1,cl2,ch2,
      @ uf, vf, wf,
-     @ dims(f),
-     @ dims(creg),
+     @ fl0,fh0,fl1,fh1,fl2,fh2,
+     @ cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
      @ hx, hy, hz, ir, jr, kr, ga)
-      integer dims(src)
-      integer dims(c)
-      integer dims(f)
-      integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 uc(dimdec(c))
-      real*8 vc(dimdec(c))
-      real*8 wc(dimdec(c))
-      real*8 uf(dimdec(f))
-      real*8 vf(dimdec(f))
-      real*8 wf(dimdec(f))
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer cl0,ch0,cl1,ch1,cl2,ch2
+      integer fl0,fh0,fl1,fh1,fl2,fh2
+      integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 uc(cl0:ch0,cl1:ch1,cl2:ch2)
+      real*8 vc(cl0:ch0,cl1:ch1,cl2:ch2)
+      real*8 wc(cl0:ch0,cl1:ch1,cl2:ch2)
+      real*8 uf(fl0:fh0,fl1:fh1,fl2:fh2)
+      real*8 vf(fl0:fh0,fl1:fh1,fl2:fh2)
+      real*8 wf(fl0:fh0,fl1:fh1,fl2:fh2)
       real*8 hx, hy, hz
       integer ir, jr, kr, ga(0:1,0:1,0:1)
       real*8 r3, hxm1, hym1, hzm1, hxm1c, hym1c, hzm1c
@@ -1495,7 +1490,7 @@ c octants
      @              (hxm1c * idir * uc(iuc,juc,kuc) +
      @               hym1c * jdir * vc(iuc,juc,kuc) +
      @               hzm1c * kdir * wc(iuc,juc,kuc))
-               endif
+               end if
  10            continue
 c faces
       do 50 ki = 0, 1
@@ -1524,7 +1519,7 @@ c faces
      @                                     hzm1 * kdir *
      @                    (wf(if+m,jf+n,kuf) + wf(if+m,jf+n-1,kuf) +
      @                     wf(if+m-1,jf+n,kuf) + wf(if+m-1,jf+n-1,kuf)))
-               endif
+               end if
                if (ga(ii,ji,ki) - ga(ii,1-ji,ki) .eq. 1) then
                   fac0 = 1.d0 / (ir * kr)
                   ffac = 0.5d0 * (ir-1) * (kr-1)
@@ -1542,7 +1537,7 @@ c faces
      @                                     hzm1 *
      @                    (wf(if+m,juf,kf+l) - wf(if+m,juf,kf+l-1) +
      @                     wf(if+m-1,juf,kf+l) - wf(if+m-1,juf,kf+l-1)))
-               endif
+               end if
                if (ga(ii,ji,ki) - ga(1-ii,ji,ki) .eq. 1) then
                   fac0 = 1.d0 / (jr * kr)
                   ffac = 0.5d0 * (jr-1) * (kr-1)
@@ -1560,7 +1555,7 @@ c faces
      @                                     hzm1 *
      @                    (wf(iuf,jf+n,kf+l) - wf(iuf,jf+n,kf+l-1) +
      @                     wf(iuf,jf+n-1,kf+l) - wf(iuf,jf+n-1,kf+l-1)))
-               endif
+               end if
  50            continue
 c edges
       do 90 ki = 0, 1
@@ -1586,7 +1581,7 @@ c edges
      @                 (vf(if+m,juf,kuf) + vf(if+m-1,juf,kuf)) +
      @                                  hzm1 * kdir *
      @                 (wf(if+m,juf,kuf) + wf(if+m-1,juf,kuf)))
-               endif
+               end if
                if (ga(ii,ji,ki) -
      @             min(ga(ii,ji,1-ki), ga(1-ii,ji,ki), ga(1-ii,ji,1-ki))
      @             .eq. 1) then
@@ -1601,7 +1596,7 @@ c edges
      @                 (vf(iuf,jf+n,kuf) - vf(iuf,jf+n-1,kuf)) +
      @                                  hzm1 * kdir *
      @                 (wf(iuf,jf+n,kuf) + wf(iuf,jf+n-1,kuf)))
-               endif
+               end if
                if (ga(ii,ji,ki) -
      @             min(ga(ii,1-ji,ki), ga(1-ii,ji,ki), ga(1-ii,1-ji,ki))
      @             .eq. 1) then
@@ -1616,9 +1611,8 @@ c edges
      @                 (vf(iuf,juf,kf+l) + vf(iuf,juf,kf+l-1)) +
      @                                  hzm1 *
      @                 (wf(iuf,juf,kf+l) - wf(iuf,juf,kf+l-1)))
-               endif
+               end if
  90            continue
 c weighting
       src(if,jf,kf) = sum / center
       end
-#endif

@@ -1,15 +1,10 @@
-
-
-#define dims(a) a##l0,a##h0,a##l1,a##h1,a##l2,a##h2
-#define dimdec(a) a##l0:a##h0,a##l1:a##h1,a##l2:a##h2
-
 #ifndef HG_CONSTANT
 
-#  ifndef HG_TERRAIN
+#ifndef HG_TERRAIN
 #    define HG_SIGMA_NODE
-#  endif
+#endif
 
-#ifdef HG_TERRAIN 
+
 
 c twenty-seven point terrain version:
 
@@ -57,27 +52,27 @@ c twenty-seven point terrain version:
 
 
 c Note---assumes fdst linearly interpolated from cdst along face
-      subroutine hgfres(res, dims(res),
-     @ src,  dims(src),
-     @ fdst, dims(fdst),
-     @ cdst, dims(cdst),
-     @ sigmaf, dims(sf),
-     @ sigmac, dims(sc),
-     @ dims(reg),
+      subroutine hgfres_terrain(res, resl0,resh0,resl1,resh1,resl2,resh2,
+     @ src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     @ fdst, fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
+     @ cdst, cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
+     @ sigmaf, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
+     @ sigmac, scl0,sch0,scl1,sch1,scl2,sch2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ ir, jr, kr, idim, idir)
-      integer dims(res)
-      integer dims(src)
-      integer dims(fdst)
-      integer dims(cdst)
-      integer dims(sf)
-      integer dims(sc)
-      integer dims(reg)
-      real*8 res(dimdec(res))
-      real*8 src(dimdec(src))
-      real*8 fdst(dimdec(fdst))
-      real*8 cdst(dimdec(cdst))
-      real*8 sigmaf(dimdec(sf), 5)
-      real*8 sigmac(dimdec(sc), 5)
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2
+      integer cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2
+      integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
+      integer scl0,sch0,scl1,sch1,scl2,sch2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
+      real*8 cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
+      real*8 sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2, 5)
+      real*8 sigmac(scl0:sch0,scl1:sch1,scl2:sch2, 5)
       integer ir, jr, kr, idim, idir
       real*8 fac00, fac0, fac1, fac2, tmp, cen
       integer i, j, k, is, js, ks, l, m, n
@@ -90,7 +85,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
             is = i - 1
          else
             is = i
-         endif
+         end if
          do 10 k = regl2, regh2
             do 10 j = regl1, regh1
 
@@ -141,7 +136,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
             is = i
          else
             is = i - 1
-         endif
+         end if
          do 20 l = -(kr-1), kr-1
             fac2 = (kr-abs(l)) * fac0
             do 20 n = -(jr-1), jr-1
@@ -196,7 +191,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
             js = j - 1
          else
             js = j
-         endif
+         end if
          do 30 k = regl2, regh2
             do 30 i = regl0, regh0
 
@@ -247,7 +242,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
             js = j
          else
             js = j - 1
-         endif
+         end if
          do 40 l = -(kr-1), kr-1
             fac2 = (kr-abs(l)) * fac0
             do 40 m = -(ir-1), ir-1
@@ -303,7 +298,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
             ks = k - 1
          else
             ks = k
-         endif
+         end if
          do 50 j = regl1, regh1
             do 50 i = regl0, regh0
 
@@ -364,7 +359,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
             ks = k
          else
             ks = k - 1
-         endif
+         end if
          do 60 n = -(jr-1), jr-1
             fac2 = (jr-abs(n)) * fac0
             do 60 m = -(ir-1), ir-1
@@ -425,7 +420,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
 
  60      continue
 
-      endif
+      end if
       end
 
 #undef MXXC
@@ -456,27 +451,27 @@ c Note---assumes fdst linearly interpolated from cdst along face
                         3.d0 * (cdst(ii,jj,kk) - cdst(ii,jc,kc)))
 
 c Note---assumes fdst linearly interpolated from cdst along face
-      subroutine hgeres(res, dims(res),
-     @ src,  dims(src),
-     @ fdst, dims(fdst),
-     @ cdst, dims(cdst),
-     @ sigmaf, dims(sf),
-     @ sigmac, dims(sc),
-     @ dims(reg),
+      subroutine hgeres_terrain(res, resl0,resh0,resl1,resh1,resl2,resh2,
+     @ src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     @ fdst, fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
+     @ cdst, cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
+     @ sigmaf, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
+     @ sigmac, scl0,sch0,scl1,sch1,scl2,sch2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ ir, jr, kr, ivect, ga)
-      integer dims(res)
-      integer dims(src)
-      integer dims(fdst)
-      integer dims(cdst)
-      integer dims(sf)
-      integer dims(sc)
-      integer dims(reg)
-      real*8 res(dimdec(res))
-      real*8 src(dimdec(src))
-      real*8 fdst(dimdec(fdst))
-      real*8 cdst(dimdec(cdst))
-      real*8 sigmaf(dimdec(sf),5)
-      real*8 sigmac(dimdec(sc),5)
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2
+      integer cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2
+      integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
+      integer scl0,sch0,scl1,sch1,scl2,sch2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
+      real*8 cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
+      real*8 sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2,5)
+      real*8 sigmac(scl0:sch0,scl1:sch1,scl2:sch2,5)
       integer ir, jr, kr, ivect(0:2), ga(0:1,0:1,0:1)
       real*8 fac00, fac0, fac1, fac, tmp, cen
       integer ic, jc, kc, if, jf, kf, ii, ji, ki, idir, jdir, kdir
@@ -591,7 +586,7 @@ c each quadrant is two octants and their share of the two central edges
                      tmp = tmp - cen * cdst(ic,jc,kc)
                      res(if,jf,kf) = res(if,jf,kf) + tmp
  30                  continue
-               endif
+               end if
  40            continue
 c faces
 c each face is two faces and two sides of an edge
@@ -679,7 +674,7 @@ c each face is two faces and two sides of an edge
                   res(if,jf,kf) = res(if,jf,kf) + fac * tmp
 
  50            continue
-               endif
+               end if
 
                if (ga(0,ji,ki) - ga(0,1-ji,ki) .eq. 1) then
                   fac0 = 1.d0 / (ir * kr)
@@ -761,7 +756,7 @@ c each face is two faces and two sides of an edge
 
  60            continue
 
-               endif
+               end if
  70            continue
 c weighting
          do 80 if = ir*regl0, ir*regh0, ir
@@ -869,7 +864,7 @@ c each quadrant is two octants and their share of the two central edges
                      res(if,jf,kf) = res(if,jf,kf) + tmp
  130                 continue
 
-               endif
+               end if
  140           continue
 c faces
 c each face is two faces and two sides of an edge
@@ -957,7 +952,7 @@ c each face is two faces and two sides of an edge
 
  150           continue
 
-               endif
+               end if
                if (ga(ii,0,ki) - ga(1-ii,0,ki) .eq. 1) then
                   fac0 = 1.d0 / (jr * kr)
                   do 160 l = kdir, kdir*(kr-1), kdir
@@ -1037,7 +1032,7 @@ c each face is two faces and two sides of an edge
                   res(if,jf,kf) = res(if,jf,kf) + fac * tmp
 
  160           continue
-               endif
+               end if
  170           continue
 c weighting
          do 180 jf = jr*regl1, jr*regh1, jr
@@ -1143,7 +1138,7 @@ c each quadrant is two octants and their share of the two central edges
                      tmp = tmp - cen * cdst(ic,jc,kc)
                      res(if,jf,kf) = res(if,jf,kf) + tmp
  230                 continue
-               endif
+               end if
  240           continue
 c faces
 c each face is two faces and two sides of an edge
@@ -1228,7 +1223,7 @@ c each face is two faces and two sides of an edge
                   res(if,jf,kf) = res(if,jf,kf) + fac * tmp
 
  250           continue
-               endif
+               end if
                if (ga(ii,ji,0) - ga(1-ii,ji,0) .eq. 1) then
                   fac0 = 1.d0 / (jr * kr)
                   do 260 l = -(kr-1), kr-1
@@ -1306,37 +1301,37 @@ c each face is two faces and two sides of an edge
                   res(if,jf,kf) = res(if,jf,kf) + fac * tmp
 
  260           continue
-               endif
+               end if
 
  270           continue
 c weighting
          do 280 kf = kr*regl2, kr*regh2, kr
  280        res(if,jf,kf) = src(if,jf,kf) - res(if,jf,kf) * fac00
-      endif
+      end if
       end
 
 c Note---assumes fdst linearly interpolated from cdst along face
-      subroutine hgcres(res, dims(res),
-     @ src,  dims(src),
-     @ fdst, dims(fdst),
-     @ cdst, dims(cdst),
-     @ sigmaf, dims(sf),
-     @ sigmac, dims(sc),
-     @ dims(reg),
+      subroutine hgcres_terrain(res, resl0,resh0,resl1,resh1,resl2,resh2,
+     @ src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     @ fdst, fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
+     @ cdst, cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
+     @ sigmaf, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
+     @ sigmac, scl0,sch0,scl1,sch1,scl2,sch2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ ir, jr, kr, ga)
-      integer dims(res)
-      integer dims(src)
-      integer dims(fdst)
-      integer dims(cdst)
-      integer dims(sf)
-      integer dims(sc)
-      integer dims(reg)
-      real*8 res(dimdec(res))
-      real*8 src(dimdec(src))
-      real*8 fdst(dimdec(fdst))
-      real*8 cdst(dimdec(cdst))
-      real*8 sigmaf(dimdec(sf),5)
-      real*8 sigmac(dimdec(sc),5)
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2
+      integer cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2
+      integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
+      integer scl0,sch0,scl1,sch1,scl2,sch2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
+      real*8 cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
+      real*8 sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2,5)
+      real*8 sigmac(scl0:sch0,scl1:sch1,scl2:sch2,5)
       integer ir, jr, kr, ga(0:1,0:1,0:1)
       real*8 cen, sum, fac00, fac0, fac1, fac2, fac
       integer ic, jc, kc, if, jf, kf, ii, ji, ki, idir, jdir, kdir
@@ -1404,7 +1399,7 @@ c octants
 
                    sum = sum - cen * cdst(ic,jc,kc)
 
-               endif
+               end if
  10            continue
 c faces
       do 50 ki = 0, 1
@@ -1491,7 +1486,7 @@ c faces
           sum = sum - fac * cen * fdst(if+m,jf+n,kf)
 
  20               continue
-               endif
+               end if
 
                if (ga(ii,ji,ki) - ga(ii,1-ji,ki) .eq. 1) then
                   fac2 = 1.d0 / (ir * kr)
@@ -1564,7 +1559,7 @@ c faces
           sum = sum - fac * cen * fdst(if+m,jf,kf+l)
 
  30               continue
-               endif
+               end if
                if (ga(ii,ji,ki) - ga(1-ii,ji,ki) .eq. 1) then
                   fac2 = 1.d0 / (jr * kr)
                   do 40 l = kdir, kdir*(kr-1), kdir
@@ -1637,7 +1632,7 @@ c faces
 
  40               continue
 
-            endif
+            end if
  50         continue
 c edges
       do 90 ki = 0, 1
@@ -1694,7 +1689,7 @@ c edges
 
                   sum = sum - fac * cen * fdst(if+m,jf,kf)
  60               continue
-               endif
+               end if
 
                if (ga(ii,ji,ki) -
      @             min(ga(ii,ji,1-ki), ga(1-ii,ji,ki), ga(1-ii,ji,1-ki))
@@ -1743,7 +1738,7 @@ c edges
 
  70               continue
 
-               endif
+               end if
 
                if (ga(ii,ji,ki) -
      @             min(ga(ii,1-ji,ki), ga(1-ii,ji,ki), ga(1-ii,1-ji,ki))
@@ -1793,7 +1788,7 @@ c edges
 
  80               continue
 
-               endif
+               end if
  90            continue
 
 c weighting
@@ -1801,32 +1796,32 @@ c weighting
       end
 
 c end of terrain stencils
-#else 
+
 
 c variable density versions:
 
 c Note---assumes fdst linearly interpolated from cdst along face
-      subroutine hgfres(res, dims(res),
-     @ src,  dims(src),
-     @ fdst, dims(fdst),
-     @ cdst, dims(cdst),
-     @ sigmaf, dims(sf),
-     @ sigmac, dims(sc),
-     @ dims(reg),
+      subroutine hgfres(res, resl0,resh0,resl1,resh1,resl2,resh2,
+     @ src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     @ fdst, fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
+     @ cdst, cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
+     @ sigmaf, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
+     @ sigmac, scl0,sch0,scl1,sch1,scl2,sch2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ hx, hy, hz, ir, jr, kr, idim, idir)
-      integer dims(res)
-      integer dims(src)
-      integer dims(fdst)
-      integer dims(cdst)
-      integer dims(sf)
-      integer dims(sc)
-      integer dims(reg)
-      real*8 res(dimdec(res))
-      real*8 src(dimdec(src))
-      real*8 fdst(dimdec(fdst))
-      real*8 cdst(dimdec(cdst))
-      real*8 sigmaf(dimdec(sf))
-      real*8 sigmac(dimdec(sc))
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2
+      integer cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2
+      integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
+      integer scl0,sch0,scl1,sch1,scl2,sch2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
+      real*8 cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
+      real*8 sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
+      real*8 sigmac(scl0:sch0,scl1:sch1,scl2:sch2)
       real*8 hx, hy, hz
       integer ir, jr, kr, idim, idir
       real*8 hxm2, hym2, hzm2, fac0, fac1, fac2, tmp
@@ -1837,7 +1832,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
             is = i - 1
          else
             is = i
-         endif
+         end if
          fac0 = 0.5d0 * ir / (ir + 1.d0)
          hxm2 = 1.d0 / (ir * ir * hx * hx)
          hym2 = 1.d0 / (jr * jr * hy * hy)
@@ -1869,7 +1864,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
             is = i
          else
             is = i - 1
-         endif
+         end if
          do 20 l = 0, kr-1
             fac2 = (kr-l) * fac0
             if (l .eq. 0) fac2 = 0.5d0 * fac2
@@ -1931,7 +1926,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
             js = j - 1
          else
             js = j
-         endif
+         end if
          fac0 = 0.5d0 * jr / (jr + 1.d0)
          hxm2 = 1.d0 / (ir * ir * hx * hx)
          hym2 = 1.d0 / (jr * jr * hy * hy)
@@ -1963,7 +1958,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
             js = j
          else
             js = j - 1
-         endif
+         end if
          do 40 l = 0, kr-1
             fac2 = (kr-l) * fac0
             if (l .eq. 0) fac2 = 0.5d0 * fac2
@@ -2025,7 +2020,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
             ks = k - 1
          else
             ks = k
-         endif
+         end if
          fac0 = 0.5d0 * kr / (kr + 1.d0)
          hxm2 = 1.d0 / (ir * ir * hx * hx)
          hym2 = 1.d0 / (jr * jr * hy * hy)
@@ -2057,7 +2052,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
             ks = k
          else
             ks = k - 1
-         endif
+         end if
          do 60 n = 0, jr-1
             fac2 = (jr-n) * fac0
             if (n .eq. 0) fac2 = 0.5d0 * fac2
@@ -2113,33 +2108,33 @@ c Note---assumes fdst linearly interpolated from cdst along face
      @                  (sigmaf(i+m-1,j+n-1,ks) + sigmaf(i+m-1,j+n,ks) +
      @                   sigmaf(i+m,j+n-1,ks) + sigmaf(i+m,j+n,ks)) *
      @                   (fdst(i+m,j+n,k+idir) - fdst(i+m,j+n,k))))
-      endif
+      end if
       end
 
 c end of variable density stencils
 
 c Note---assumes fdst linearly interpolated from cdst along face
-      subroutine hgeres(res, dims(res),
-     @ src,  dims(src),
-     @ fdst, dims(fdst),
-     @ cdst, dims(cdst),
-     @ sigmaf, dims(sf),
-     @ sigmac, dims(sc),
-     @ dims(reg),
+      subroutine hgeres(res, resl0,resh0,resl1,resh1,resl2,resh2,
+     @ src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     @ fdst, fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
+     @ cdst, cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
+     @ sigmaf, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
+     @ sigmac, scl0,sch0,scl1,sch1,scl2,sch2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ hx, hy, hz, ir, jr, kr, ivect, ga)
-      integer dims(res)
-      integer dims(src)
-      integer dims(fdst)
-      integer dims(cdst)
-      integer dims(sf)
-      integer dims(sc)
-      integer dims(reg)
-      real*8 res(dimdec(res))
-      real*8 src(dimdec(src))
-      real*8 fdst(dimdec(fdst))
-      real*8 cdst(dimdec(cdst))
-      real*8 sigmaf(dimdec(sf))
-      real*8 sigmac(dimdec(sc))
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2
+      integer cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2
+      integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
+      integer scl0,sch0,scl1,sch1,scl2,sch2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
+      real*8 cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
+      real*8 sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
+      real*8 sigmac(scl0:sch0,scl1:sch1,scl2:sch2)
       real*8 hx, hy, hz
       integer ir, jr, kr, ivect(0:2), ga(0:1,0:1,0:1)
       real*8 r3, hxm2, hym2, hzm2, hxm2c, hym2c, hzm2c
@@ -2214,7 +2209,7 @@ c each quadrant is two octants and their share of the two central edges
      @                   (hxm2c * (cdst(ic+1,jc,kc) - cdst(ic,jc,kc)) +
      @                    hym2c * (cdst(ic,jc+jdir,kc) - cdst(ic,jc,kc)) +
      @                    hzm2c * (cdst(ic,jc,kc+kdir) - cdst(ic,jc,kc))))
-               endif
+               end if
  40            continue
 c faces
 c each face is two faces and two sides of an edge
@@ -2257,7 +2252,7 @@ c each face is two faces and two sides of an edge
      @        (sigmaf(if+m-1,jf+n-1,kf+ki-1) + sigmaf(if+m-1,jf+n,kf+ki-1) +
      @         sigmaf(if+m,jf+n-1,kf+ki-1) + sigmaf(if+m,jf+n,kf+ki-1)) *
      @         (fdst(if+m,jf+n,kf+kdir) - fdst(if+m,jf+n,kf))))
-               endif
+               end if
                if (ga(0,ji,ki) - ga(0,1-ji,ki) .eq. 1) then
                   fac0 = 1.d0 / (ir * kr)
                   ffac = ir * (kr - 1)
@@ -2293,7 +2288,7 @@ c each face is two faces and two sides of an edge
      @         (fdst(if+m,jf,kf+l-1) - fdst(if+m,jf,kf+l)) +
      @        (sigmaf(if+m-1,jf+ji-1,kf+l) + sigmaf(if+m,jf+ji-1,kf+l)) *
      @         (fdst(if+m,jf,kf+l+1) - fdst(if+m,jf,kf+l))))
-               endif
+               end if
  70            continue
 c weighting
          do 80 if = ir*regl0, ir*regh0, ir
@@ -2352,7 +2347,7 @@ c each quadrant is two octants and their share of the two central edges
      @                   (hxm2c * (cdst(ic+idir,jc,kc) - cdst(ic,jc,kc)) +
      @                    hym2c * (cdst(ic,jc+1,kc) - cdst(ic,jc,kc)) +
      @                    hzm2c * (cdst(ic,jc,kc+kdir) - cdst(ic,jc,kc))))
-               endif
+               end if
  140           continue
 c faces
 c each face is two faces and two sides of an edge
@@ -2395,7 +2390,7 @@ c each face is two faces and two sides of an edge
      @        (sigmaf(if+m-1,jf+n-1,kf+ki-1) + sigmaf(if+m-1,jf+n,kf+ki-1) +
      @         sigmaf(if+m,jf+n-1,kf+ki-1) + sigmaf(if+m,jf+n,kf+ki-1)) *
      @         (fdst(if+m,jf+n,kf+kdir) - fdst(if+m,jf+n,kf))))
-               endif
+               end if
                if (ga(ii,0,ki) - ga(1-ii,0,ki) .eq. 1) then
                   fac0 = 1.d0 / (jr * kr)
                   ffac = jr * (kr - 1)
@@ -2431,7 +2426,7 @@ c each face is two faces and two sides of an edge
      @         (fdst(if,jf+n,kf+l-1) - fdst(if,jf+n,kf+l)) +
      @        (sigmaf(if+ii-1,jf+n-1,kf+l) + sigmaf(if+ii-1,jf+n,kf+l)) *
      @         (fdst(if,jf+n,kf+l+1) - fdst(if,jf+n,kf+l))))
-               endif
+               end if
  170           continue
 c weighting
          do 180 jf = jr*regl1, jr*regh1, jr
@@ -2490,7 +2485,7 @@ c each quadrant is two octants and their share of the two central edges
      @                   (hxm2c * (cdst(ic+idir,jc,kc) - cdst(ic,jc,kc)) +
      @                    hym2c * (cdst(ic,jc+jdir,kc) - cdst(ic,jc,kc)) +
      @                    hzm2c * (cdst(ic,jc,kc+1) - cdst(ic,jc,kc))))
-               endif
+               end if
  240           continue
 c faces
 c each face is two faces and two sides of an edge
@@ -2533,7 +2528,7 @@ c each face is two faces and two sides of an edge
      @         (fdst(if+m,jf,kf+l-1) - fdst(if+m,jf,kf+l)) +
      @        (sigmaf(if+m-1,jf+ji-1,kf+l) + sigmaf(if+m,jf+ji-1,kf+l)) *
      @         (fdst(if+m,jf,kf+l+1) - fdst(if+m,jf,kf+l))))
-               endif
+               end if
                if (ga(ii,ji,0) - ga(1-ii,ji,0) .eq. 1) then
                   fac0 = 1.d0 / (jr * kr)
                   ffac = kr * (jr - 1)
@@ -2569,36 +2564,36 @@ c each face is two faces and two sides of an edge
      @         (fdst(if,jf+n,kf+l-1) - fdst(if,jf+n,kf+l)) +
      @        (sigmaf(if+ii-1,jf+n-1,kf+l) + sigmaf(if+ii-1,jf+n,kf+l)) *
      @         (fdst(if,jf+n,kf+l+1) - fdst(if,jf+n,kf+l))))
-               endif
+               end if
  270           continue
 c weighting
          do 280 kf = kr*regl2, kr*regh2, kr
  280        res(if,jf,kf) = src(if,jf,kf) - res(if,jf,kf) / center
-      endif
+      end if
       end
 
 c Note---assumes fdst linearly interpolated from cdst along face
-      subroutine hgcres(res, dims(res),
-     @ src,  dims(src),
-     @ fdst, dims(fdst),
-     @ cdst, dims(cdst),
-     @ sigmaf, dims(sf),
-     @ sigmac, dims(sc),
-     @ dims(reg),
+      subroutine hgcres(res, resl0,resh0,resl1,resh1,resl2,resh2,
+     @ src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     @ fdst, fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
+     @ cdst, cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
+     @ sigmaf, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
+     @ sigmac, scl0,sch0,scl1,sch1,scl2,sch2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ hx, hy, hz, ir, jr, kr, ga)
-      integer dims(res)
-      integer dims(src)
-      integer dims(fdst)
-      integer dims(cdst)
-      integer dims(sf)
-      integer dims(sc)
-      integer dims(reg)
-      real*8 res(dimdec(res))
-      real*8 src(dimdec(src))
-      real*8 fdst(dimdec(fdst))
-      real*8 cdst(dimdec(cdst))
-      real*8 sigmaf(dimdec(sf))
-      real*8 sigmac(dimdec(sc))
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2
+      integer cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2
+      integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
+      integer scl0,sch0,scl1,sch1,scl2,sch2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
+      real*8 cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
+      real*8 sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
+      real*8 sigmac(scl0:sch0,scl1:sch1,scl2:sch2)
       real*8 hx, hy, hz
       integer ir, jr, kr, ga(0:1,0:1,0:1)
       real*8 r3, hxm2, hym2, hzm2, hxm2c, hym2c, hzm2c
@@ -2642,7 +2637,7 @@ c octants
      @              (hxm2c * (cdst(ic+idir,jc,kc) - cdst(ic,jc,kc)) +
      @               hym2c * (cdst(ic,jc+jdir,kc) - cdst(ic,jc,kc)) +
      @               hzm2c * (cdst(ic,jc,kc+kdir) - cdst(ic,jc,kc)))
-               endif
+               end if
  10            continue
 c faces
       do 50 ki = 0, 1
@@ -2674,7 +2669,7 @@ c faces
      @       ((sigmaf(if+m-1,jf+n-1,kf+ki-1) + sigmaf(if+m-1,jf+n,kf+ki-1) +
      @         sigmaf(if+m,jf+n-1,kf+ki-1) + sigmaf(if+m,jf+n,kf+ki-1)) *
      @         (fdst(if+m,jf+n,kf+kdir) - fdst(if+m,jf+n,kf))))
-               endif
+               end if
                if (ga(ii,ji,ki) - ga(ii,1-ji,ki) .eq. 1) then
                   fac2 = 1.d0 / (ir * kr)
                   ffac = 0.5d0 * (ir-1) * (kr-1)
@@ -2698,7 +2693,7 @@ c faces
      @         (fdst(if+m,jf,kf+l-1) - fdst(if+m,jf,kf+l)) +
      @        (sigmaf(if+m-1,jf+ji-1,kf+l) + sigmaf(if+m,jf+ji-1,kf+l)) *
      @         (fdst(if+m,jf,kf+l+1) - fdst(if+m,jf,kf+l))))
-               endif
+               end if
                if (ga(ii,ji,ki) - ga(1-ii,ji,ki) .eq. 1) then
                   fac2 = 1.d0 / (jr * kr)
                   ffac = 0.5d0 * (jr-1) * (kr-1)
@@ -2722,7 +2717,7 @@ c faces
      @         (fdst(if,jf+n,kf+l-1) - fdst(if,jf+n,kf+l)) +
      @        (sigmaf(if+ii-1,jf+n-1,kf+l) + sigmaf(if+ii-1,jf+n,kf+l)) *
      @         (fdst(if,jf+n,kf+l+1) - fdst(if,jf+n,kf+l))))
-            endif
+            end if
  50         continue
 c edges
       do 90 ki = 0, 1
@@ -2751,7 +2746,7 @@ c edges
      @                     hzm2 *
      @       (sigmaf(if+m-1,jf+ji-1,kf+ki-1) + sigmaf(if+m,jf+ji-1,kf+ki-1)) *
      @         (fdst(if+m,jf,kf+kdir) - fdst(if+m,jf,kf)))
-               endif
+               end if
                if (ga(ii,ji,ki) -
      @             min(ga(ii,ji,1-ki), ga(1-ii,ji,ki), ga(1-ii,ji,1-ki))
      @             .eq. 1) then
@@ -2772,7 +2767,7 @@ c edges
      @                     hzm2 *
      @       (sigmaf(if+ii-1,jf+n-1,kf+ki-1) + sigmaf(if+ii-1,jf+n,kf+ki-1)) *
      @         (fdst(if,jf+n,kf+kdir) - fdst(if,jf+n,kf)))
-               endif
+               end if
                if (ga(ii,ji,ki) -
      @             min(ga(ii,1-ji,ki), ga(1-ii,ji,ki), ga(1-ii,1-ji,ki))
      @             .eq. 1) then
@@ -2793,35 +2788,35 @@ c edges
      @         (fdst(if,jf,kf+l-1) - fdst(if,jf,kf+l)) +
      @        sigmaf(if+ii-1,jf+ji-1,kf+l) *
      @         (fdst(if,jf,kf+l+1) - fdst(if,jf,kf+l))))
-               endif
+               end if
  90            continue
 c weighting
       res(if,jf,kf) = src(if,jf,kf) - sum / center
       end
 
 c end of variable density non-terrain version
-#endif
+
 
 c constant density versions:
 #else
 
 c Note---assumes fdst linearly interpolated from cdst along face
-      subroutine hgfres(res, dims(res),
-     @ src,  dims(src),
-     @ fdst, dims(fdst),
-     @ cdst, dims(cdst),
-     @ dims(reg),
+      subroutine hgfres(res, resl0,resh0,resl1,resh1,resl2,resh2,
+     @ src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     @ fdst, fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
+     @ cdst, cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ hx, irat, idim, idir)
       implicit real*8(a-h,o-z), integer(i-n)
-      integer dims(res)
-      integer dims(src)
-      integer dims(fdst)
-      integer dims(cdst)
-      integer dims(reg)
-      real*8 res(dimdec(res))
-      real*8 src(dimdec(src))
-      real*8 fdst(dimdec(fdst))
-      real*8 cdst(dimdec(cdst))
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2
+      integer cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
+      real*8 cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
       real*8 hx
       integer irat, idim, idir
       hm2 = 1.d0 / (hx*hx)
@@ -2931,26 +2926,26 @@ c Note---assumes fdst linearly interpolated from cdst along face
      @                 6.d0 *
      @                 (fdst(i-m,j-n,k) + fdst(i-m,j+n,k) +
      @                  fdst(i+m,j-n,k) + fdst(i+m,j+n,k)))
-      endif
+      end if
       end
 
 c Note---assumes fdst linearly interpolated from cdst along face
-      subroutine hgeres(res, dims(res),
-     @ src,  dims(src),
-     @ fdst, dims(fdst),
-     @ cdst, dims(cdst),
-     @ dims(reg),
+      subroutine hgeres(res, resl0,resh0,resl1,resh1,resl2,resh2,
+     @ src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     @ fdst, fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
+     @ cdst, cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ hx, irat, ivect, ga)
       implicit real*8(a-h,o-z), integer(i-n)
-      integer dims(res)
-      integer dims(src)
-      integer dims(fdst)
-      integer dims(cdst)
-      integer dims(reg)
-      real*8 res(dimdec(res))
-      real*8 src(dimdec(src))
-      real*8 fdst(dimdec(fdst))
-      real*8 cdst(dimdec(cdst))
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2
+      integer cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
+      real*8 cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
       real*8 hx
       integer irat, ivect(0:2), ga(0:1,0:1,0:1)
       r2 = irat * irat
@@ -2999,7 +2994,7 @@ c each quadrant is two octants and their share of the two central edges
      @                    cdst(ic,jc,kc+kdir) + cdst(ic+1,jc,kc) +
      @                    cdst(ic,jc+jdir,kc) + cdst(ic,jc,kc+kdir) -
      @                    6.d0 * cdst(ic,jc,kc))
-               endif
+               end if
  40            continue
 c faces
 c each face is two faces and two sides of an edge
@@ -3026,7 +3021,7 @@ c each face is two faces and two sides of an edge
      @        (fdst(if-m,jf+n,kf+kdir) + fdst(if+m,jf+n,kf+kdir)) -
      @        6.d0 *
      @        (fdst(if-m,jf+n,kf) + fdst(if+m,jf+n,kf)))
-               endif
+               end if
                if (ga(0,ji,ki) - ga(0,1-ji,ki) .eq. 1) then
                   center = center + ffac
                   do 60 l = kdir, kdir*(irat-1), kdir
@@ -3044,7 +3039,7 @@ c each face is two faces and two sides of an edge
      @        (fdst(if-m,jf+jdir,kf+l) + fdst(if+m,jf+jdir,kf+l)) -
      @        6.d0 *
      @        (fdst(if-m,jf,kf+l) + fdst(if+m,jf,kf+l)))
-               endif
+               end if
  70            continue
 c weighting
          do 80 if = irat*regl0, irat*regh0, irat
@@ -3084,7 +3079,7 @@ c each quadrant is two octants and their share of the two central edges
      @                    cdst(ic,jc,kc+kdir) + cdst(ic+idir,jc,kc) +
      @                    cdst(ic,jc+1,kc) + cdst(ic,jc,kc+kdir) -
      @                    6.d0 * cdst(ic,jc,kc))
-               endif
+               end if
  140           continue
 c faces
 c each face is two faces and two sides of an edge
@@ -3111,7 +3106,7 @@ c each face is two faces and two sides of an edge
      @        (fdst(if+m,jf-n,kf+kdir) + fdst(if+m,jf+n,kf+kdir)) -
      @        6.d0 *
      @        (fdst(if+m,jf-n,kf) + fdst(if+m,jf+n,kf)))
-               endif
+               end if
                if (ga(ii,0,ki) - ga(1-ii,0,ki) .eq. 1) then
                   center = center + ffac
                   do 160 l = kdir, kdir*(irat-1), kdir
@@ -3129,7 +3124,7 @@ c each face is two faces and two sides of an edge
      @         fdst(if,jf+n,kf+l-1) + fdst(if,jf+n,kf+l+1)) -
      @        6.d0 *
      @        (fdst(if,jf-n,kf+l) + fdst(if,jf+n,kf+l)))
-               endif
+               end if
  170           continue
 c weighting
          do 180 jf = irat*regl1, irat*regh1, irat
@@ -3169,7 +3164,7 @@ c each quadrant is two octants and their share of the two central edges
      @                    cdst(ic,jc,kc-1) + cdst(ic+idir,jc,kc) +
      @                    cdst(ic,jc+jdir,kc) + cdst(ic,jc,kc+1) -
      @                    6.d0 * cdst(ic,jc,kc))
-               endif
+               end if
  240           continue
 c faces
 c each face is two faces and two sides of an edge
@@ -3196,7 +3191,7 @@ c each face is two faces and two sides of an edge
      @        (fdst(if+m,jf+jdir,kf-l) + fdst(if+m,jf+jdir,kf+l)) -
      @        6.d0 *
      @        (fdst(if+m,jf,kf-l) + fdst(if+m,jf,kf+l)))
-               endif
+               end if
                if (ga(ii,ji,0) - ga(1-ii,ji,0) .eq. 1) then
                   center = center + ffac
                   do 260 l = 0, irat-1
@@ -3214,31 +3209,31 @@ c each face is two faces and two sides of an edge
      @         fdst(if,jf+n,kf+l-1) + fdst(if,jf+n,kf+l+1)) -
      @        6.d0 *
      @        (fdst(if,jf+n,kf-l) + fdst(if,jf+n,kf+l)))
-               endif
+               end if
  270           continue
 c weighting
          do 280 kf = irat*regl2, irat*regh2, irat
  280        res(if,jf,kf) = src(if,jf,kf) - res(if,jf,kf) / center
-      endif
+      end if
       end
 
 c Note---assumes fdst linearly interpolated from cdst along face
-      subroutine hgcres(res, dims(res),
-     @ src,  dims(src),
-     @ fdst, dims(fdst),
-     @ cdst, dims(cdst),
-     @ dims(reg),
+      subroutine hgcres(res, resl0,resh0,resl1,resh1,resl2,resh2,
+     @ src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     @ fdst, fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
+     @ cdst, cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ hx, irat, ga)
       implicit real*8(a-h,o-z), integer(i-n)
-      integer dims(res)
-      integer dims(src)
-      integer dims(fdst)
-      integer dims(cdst)
-      integer dims(reg)
-      real*8 res(dimdec(res))
-      real*8 src(dimdec(src))
-      real*8 fdst(dimdec(fdst))
-      real*8 cdst(dimdec(cdst))
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2
+      integer cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
+      real*8 cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
       real*8 hx
       integer irat, ga(0:1,0:1,0:1)
       r2 = irat * irat
@@ -3273,7 +3268,7 @@ c octants
                   sum = sum + hm2 *
      @              (cdst(ic+idir,jc,kc) + cdst(ic,jc+jdir,kc) +
      @               cdst(ic,jc,kc+kdir) - 3.d0 * cdst(ic,jc,kc))
-               endif
+               end if
  10            continue
 c faces
       fac2 = rm1 * rm2
@@ -3295,7 +3290,7 @@ c faces
      @        fdst(if+m,jf+n-1,kf) + fdst(if+m,jf+n+1,kf) +
      @        2.d0 * fdst(if+m,jf+n,kf+kdir) -
      @        6.d0 * fdst(if+m,jf+n,kf))
-               endif
+               end if
                if (ga(ii,ji,ki) - ga(ii,1-ji,ki) .eq. 1) then
                   center = center + ffac
                   do 30 l = kdir, kdir*(irat-1), kdir
@@ -3307,7 +3302,7 @@ c faces
      @        fdst(if+m,jf,kf+l-1) + fdst(if+m,jf,kf+l+1) +
      @        2.d0 * fdst(if+m,jf+jdir,kf+l) -
      @        6.d0 * fdst(if+m,jf,kf+l))
-               endif
+               end if
                if (ga(ii,ji,ki) - ga(1-ii,ji,ki) .eq. 1) then
                   center = center + ffac
                   do 40 l = kdir, kdir*(irat-1), kdir
@@ -3319,7 +3314,7 @@ c faces
      @        fdst(if,jf+n,kf+l-1) + fdst(if,jf+n,kf+l+1) +
      @        2.d0 * fdst(if+idir,jf+n,kf+l) -
      @        6.d0 * fdst(if,jf+n,kf+l))
-            endif
+            end if
  50         continue
 c edges
       fac1 = rm2
@@ -3341,7 +3336,7 @@ c edges
      @        2.d0 * (fdst(if+m,jf+jdir,kf) +
      @                fdst(if+m,jf,kf+kdir)) -
      @        6.d0 * fdst(if+m,jf,kf))
-               endif
+               end if
                if (ga(ii,ji,ki) -
      @             min(ga(ii,ji,1-ki), ga(1-ii,ji,ki), ga(1-ii,ji,1-ki))
      @             .eq. 1) then
@@ -3353,7 +3348,7 @@ c edges
      @                fdst(if,jf+n,kf+kdir)) +
      @        fdst(if,jf+n-1,kf) + fdst(if,jf+n+1,kf) -
      @        6.d0 * fdst(if,jf+n,kf))
-               endif
+               end if
                if (ga(ii,ji,ki) -
      @             min(ga(ii,1-ji,ki), ga(1-ii,ji,ki), ga(1-ii,1-ji,ki))
      @             .eq. 1) then
@@ -3365,7 +3360,7 @@ c edges
      @                fdst(if,jf+jdir,kf+l)) +
      @        fdst(if,jf,kf+l-1) + fdst(if,jf,kf+l+1) -
      @        6.d0 * fdst(if,jf,kf+l))
-               endif
+               end if
  90            continue
 c weighting
       res(if,jf,kf) = src(if,jf,kf) - sum / center
@@ -3379,24 +3374,24 @@ c weighting
 
 c NODE-based data, factor of 2 only.
       subroutine hgints(dest,
-     @ dims(dest),
-     @ dims(reg),
+     @ destl0,desth0,destl1,desth1,destl2,desth2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ sigx, sigy, sigz,
-     @ dims(sb),
+     @ sbl0,sbh0,sbl1,sbh1,sbl2,sbh2,
      @ src,
-     @ dims(src),
-     @ dims(bb), ir, jr, kr)
-      integer dims(dest)
-      integer dims(reg)
-      integer dims(sb)
-      integer dims(src)
-      integer dims(bb)
+     @ srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     @ bbl0,bbh0,bbl1,bbh1,bbl2,bbh2, ir, jr, kr)
+      integer destl0,desth0,destl1,desth1,destl2,desth2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      integer sbl0,sbh0,sbl1,sbh1,sbl2,sbh2
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer bbl0,bbh0,bbl1,bbh1,bbl2,bbh2
       integer ir, jr, kr
-      real*8 dest(dimdec(dest))
-      real*8 sigx(dimdec(sb))
-      real*8 sigy(dimdec(sb))
-      real*8 sigz(dimdec(sb))
-      real*8 src(dimdec(src))
+      real*8 dest(destl0:desth0,destl1:desth1,destl2:desth2)
+      real*8 sigx(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
+      real*8 sigy(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
+      real*8 sigz(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       integer i, j, k, ic, jc, kc
       do 10 kc = bbl2, bbh2
          do 10 jc = bbl1, bbh1
@@ -3419,7 +3414,7 @@ c NODE-based data, factor of 2 only.
      @                              sigx(i,j,k-1) + sigx(i,j,k) +
      @                              sigx(i+1,j-1,k-1) + sigx(i+1,j-1,k) +
      @                              sigx(i+1,j,k-1) + sigx(i+1,j,k))
-      endif
+      end if
       if (jr .eq. 2) then
          do 30 kc = bbl2, bbh2
             do 30 jc = bbl1, bbh1-1
@@ -3437,7 +3432,7 @@ c NODE-based data, factor of 2 only.
      @                              sigy(i,j,k-1) + sigy(i,j,k) +
      @                              sigy(i-1,j+1,k-1) + sigy(i-1,j+1,k) +
      @                              sigy(i,j+1,k-1) + sigy(i,j+1,k))
-      endif
+      end if
       if (kr .eq. 2) then
          do 40 kc = bbl2, bbh2-1
             do 40 jc = bbl1, bbh1
@@ -3455,7 +3450,7 @@ c NODE-based data, factor of 2 only.
      @                              sigz(i,j-1,k) + sigz(i,j,k) +
      @                              sigz(i-1,j-1,k+1) + sigz(i-1,j,k+1) +
      @                              sigz(i,j-1,k+1) + sigz(i,j,k+1))
-      endif
+      end if
       if (ir .eq. 2 .and. jr .eq. 2) then
          do 50 kc = bbl2, bbh2
             do 50 jc = bbl1, bbh1-1
@@ -3484,7 +3479,7 @@ cdir$ ivdep
      @                            sigy(i+1,j,k-1) + sigy(i+1,j,k) +
      @                            sigy(i,j+1,k-1) + sigy(i,j+1,k) +
      @                            sigy(i+1,j+1,k-1) + sigy(i+1,j+1,k))
-      endif
+      end if
       if (ir .eq. 2 .and. kr .eq. 2) then
          do 60 kc = bbl2, bbh2-1
             do 60 jc = bbl1, bbh1
@@ -3513,7 +3508,7 @@ cdir$ ivdep
      @                            sigz(i+1,j-1,k) + sigz(i+1,j,k) +
      @                            sigz(i,j-1,k+1) + sigz(i,j,k+1) +
      @                            sigz(i+1,j-1,k+1) + sigz(i+1,j,k+1))
-      endif
+      end if
       if (jr .eq. 2 .and. kr .eq. 2) then
          do 70 kc = bbl2, bbh2-1
             do 70 jc = bbl1, bbh1-1
@@ -3542,7 +3537,7 @@ cdir$ ivdep
      @                            sigz(i,j,k) + sigz(i,j+1,k) +
      @                            sigz(i-1,j,k+1) + sigz(i-1,j+1,k+1) +
      @                            sigz(i,j,k+1) + sigz(i,j+1,k+1))
-      endif
+      end if
       if (ir .eq. 2 .and. jr .eq. 2 .and. kr .eq. 2) then
          do 80 kc = bbl2, bbh2-1
             do 80 jc = bbl1, bbh1-1
@@ -3582,29 +3577,29 @@ cdir$ ivdep
      @                              sigz(i+1,j,k) + sigz(i+1,j+1,k) +
      @                              sigz(i,j,k+1) + sigz(i,j+1,k+1) +
      @                              sigz(i+1,j,k+1) + sigz(i+1,j+1,k+1))
-      endif
+      end if
       end
 
 #  else
 
 c NODE-based data, factor of 2 only.
       subroutine hgints(dest,
-     @ dims(dest),
-     @ dims(reg),
+     @ destl0,desth0,destl1,desth1,destl2,desth2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ signd,
-     @ dims(sn),
+     @ snl0,snh0,snl1,snh1,snl2,snh2,
      @ src,
-     @ dims(src),
-     @ dims(bb), ir, jr, kr)
-      integer dims(dest)
-      integer dims(reg)
-      integer dims(sn)
-      integer dims(src)
-      integer dims(bb)
+     @ srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     @ bbl0,bbh0,bbl1,bbh1,bbl2,bbh2, ir, jr, kr)
+      integer destl0,desth0,destl1,desth1,destl2,desth2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      integer snl0,snh0,snl1,snh1,snl2,snh2
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer bbl0,bbh0,bbl1,bbh1,bbl2,bbh2
       integer ir, jr, kr
-      real*8 dest(dimdec(dest))
-      real*8 signd(dimdec(sn), 3)
-      real*8 src(dimdec(src))
+      real*8 dest(destl0:desth0,destl1:desth1,destl2:desth2)
+      real*8 signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       integer i, j, k, ic, jc, kc
       do 10 kc = bbl2, bbh2
          do 10 jc = bbl1, bbh1
@@ -3620,7 +3615,7 @@ c NODE-based data, factor of 2 only.
  20            dest(i+1,j,k) = (signd(i,j,k,1)   * src(ic,jc,kc) +
      @                          signd(i+1,j,k,1) * src(ic+1,jc,kc)) /
      @                         (signd(i,j,k,1) + signd(i+1,j,k,1))
-      endif
+      end if
       if (jr .eq. 2) then
          do 30 kc = bbl2, bbh2
             do 30 jc = bbl1, bbh1-1
@@ -3631,7 +3626,7 @@ c NODE-based data, factor of 2 only.
  30            dest(i,j+1,k) = (signd(i,j,k,2)   * src(ic,jc,kc) +
      @                          signd(i,j+1,k,2) * src(ic,jc+1,kc)) /
      @                         (signd(i,j,k,2) + signd(i,j+1,k,2))
-      endif
+      end if
       if (kr .eq. 2) then
          do 40 kc = bbl2, bbh2-1
             do 40 jc = bbl1, bbh1
@@ -3642,7 +3637,7 @@ c NODE-based data, factor of 2 only.
  40            dest(i,j,k+1) = (signd(i,j,k,3)   * src(ic,jc,kc) +
      @                          signd(i,j,k+1,3) * src(ic,jc,kc+1)) /
      @                         (signd(i,j,k,3) + signd(i,j,k+1,3))
-      endif
+      end if
       if (ir .eq. 2 .and. jr .eq. 2) then
          do 50 kc = bbl2, bbh2
             do 50 jc = bbl1, bbh1-1
@@ -3657,7 +3652,7 @@ cdir$ ivdep
      @                            signd(i+1,j+1,k,2) * dest(i+1,j+2,k)) /
      @                           (signd(i,j+1,k,1) + signd(i+1,j+1,k,1) +
      @                            signd(i+1,j,k,2) + signd(i+1,j+1,k,2))
-      endif
+      end if
       if (ir .eq. 2 .and. kr .eq. 2) then
          do 60 kc = bbl2, bbh2-1
             do 60 jc = bbl1, bbh1
@@ -3672,7 +3667,7 @@ cdir$ ivdep
      @                            signd(i+1,j,k+1,3) * dest(i+1,j,k+2)) /
      @                           (signd(i,j,k+1,1) + signd(i+1,j,k+1,1) +
      @                            signd(i+1,j,k,3) + signd(i+1,j,k+1,3))
-      endif
+      end if
       if (jr .eq. 2 .and. kr .eq. 2) then
          do 70 kc = bbl2, bbh2-1
             do 70 jc = bbl1, bbh1-1
@@ -3687,7 +3682,7 @@ cdir$ ivdep
      @                            signd(i,j+1,k+1,3) * dest(i,j+1,k+2)) /
      @                           (signd(i,j,k+1,2) + signd(i,j+1,k+1,2) +
      @                            signd(i,j+1,k,3) + signd(i,j+1,k+1,3))
-      endif
+      end if
       if (ir .eq. 2 .and. jr .eq. 2 .and. kr .eq. 2) then
          do 80 kc = bbl2, bbh2-1
             do 80 jc = bbl1, bbh1-1
@@ -3705,29 +3700,29 @@ cdir$ ivdep
      @                             (signd(i,j+1,k+1,1) + signd(i+1,j+1,k+1,1) +
      @                              signd(i+1,j,k+1,2) + signd(i+1,j+1,k+1,2) +
      @                              signd(i+1,j+1,k,3) + signd(i+1,j+1,k+1,3))
-      endif
+      end if
       end
 
-#  endif
+#endif
 
 #  ifndef HG_SIGMA_NODE_ALL
 
 c CELL-based data only.
       subroutine hgsrst(destx, desty, destz,
-     @ dims(dest),
-     @ dims(reg),
+     @ destl0,desth0,destl1,desth1,destl2,desth2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ srcx, srcy, srcz,
-     @ dims(src), ir, jr, kr)
-      integer dims(dest)
-      integer dims(reg)
-      integer dims(src)
+     @ srcl0,srch0,srcl1,srch1,srcl2,srch2, ir, jr, kr)
+      integer destl0,desth0,destl1,desth1,destl2,desth2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer ir, jr, kr
-      real*8 destx(dimdec(dest))
-      real*8 desty(dimdec(dest))
-      real*8 destz(dimdec(dest))
-      real*8 srcx(dimdec(src))
-      real*8 srcy(dimdec(src))
-      real*8 srcz(dimdec(src))
+      real*8 destx(destl0:desth0,destl1:desth1,destl2:desth2)
+      real*8 desty(destl0:desth0,destl1:desth1,destl2:desth2)
+      real*8 destz(destl0:desth0,destl1:desth1,destl2:desth2)
+      real*8 srcx(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 srcy(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 srcz(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       integer i, j, k, i2, j2, k2
       if (ir .eq. 2 .and. jr .eq. 2 .and. kr .eq. 2) then
          do 10 k = regl2, regh2
@@ -3854,27 +3849,27 @@ c CELL-based data only.
                   destz(i,j,k) = 2.d0 / (1.d0 / srcz(i,j,k2) +
      @                                   1.d0 / srcz(i,j,k2+1))
  70               continue
-      endif
+      end if
       end
 
 #  else
 
 c NODE(EDGE)-based data only.
       subroutine hgsrst(destx, desty, destz,
-     @ dims(dest),
-     @ dims(reg),
+     @ destl0,desth0,destl1,desth1,destl2,desth2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ srcx, srcy, srcz,
-     @ dims(src))
+     @ srcl0,srch0,srcl1,srch1,srcl2,srch2)
       implicit real*8(a-h,o-z), integer(i-n)
-      integer dims(dest)
-      integer dims(reg)
-      integer dims(src)
-      real*8 destx(dimdec(dest))
-      real*8 desty(dimdec(dest))
-      real*8 destz(dimdec(dest))
-      real*8 srcx(dimdec(src))
-      real*8 srcy(dimdec(src))
-      real*8 srcz(dimdec(src))
+      integer destl0,desth0,destl1,desth1,destl2,desth2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      real*8 destx(destl0:desth0,destl1:desth1,destl2:desth2)
+      real*8 desty(destl0:desth0,destl1:desth1,destl2:desth2)
+      real*8 destz(destl0:desth0,destl1:desth1,destl2:desth2)
+      real*8 srcx(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 srcy(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 srcz(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       print *, "Warning:  Don't use this routine.  Not modified for "
       print *, "          IntVect refinement ratios"
       do 10 k = regl2, regh2
@@ -3934,7 +3929,7 @@ c     @                                 1.d0 / srcz(i2+1,j2+1,k2+1))
  10         continue
       end
 
-#  endif
+#endif
 
 #endif
 
@@ -3948,13 +3943,13 @@ c     @                                 1.d0 / srcz(i2+1,j2+1,k2+1))
 
       subroutine hgrlxu(cor,
      @ res,
-     @ dims(res),
+     @ resl0,resh0,resl1,resh1,resl2,resh2,
      @ mask,
-     @ dims(reg),
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ hx)
       implicit real*8(a-h,o-z), integer(i-n)
-      integer dims(res)
-      integer dims(reg)
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
       real*8 cor(*)
       real*8 res(*)
       real*8 mask(*)
@@ -3984,16 +3979,16 @@ cdir$ ivdep
       end
 
       subroutine hgres(res,
-     @ dims(res),
+     @ resl0,resh0,resl1,resh1,resl2,resh2,
      @ src, dest,
-     @ dims(reg),
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ hx)
       implicit real*8(a-h,o-z), integer(i-n)
-      integer dims(res)
-      integer dims(reg)
-      real*8 res(dimdec(res))
-      real*8 src(dimdec(res))
-      real*8 dest(dimdec(res))
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
+      real*8 src(resl0:resh0,resl1:resh1,resl2:resh2)
+      real*8 dest(resl0:resh0,resl1:resh1,resl2:resh2)
       real*8 hx
       hxm2 = 1.d0 / (hx*hx)
       fac = hxm2
@@ -4025,17 +4020,17 @@ cdir$ ivdep
      @            dest(i,j-1,k) + dest(i,j+1,k) +
      @            dest(i,j,k-1) + dest(i,j,k+1) -
      @            6.d0 * dest(i,j,k))
-      endif
+      end if
       end
 
       subroutine hgresu(res,
-     @ dims(res),
+     @ resl0,resh0,resl1,resh1,resl2,resh2,
      @ src, dest,
-     @ dims(reg),
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ hx)
       implicit real*8(a-h,o-z), integer(i-n)
-      integer dims(res)
-      integer dims(reg)
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
       real*8 res(*)
       real*8 src(*)
       real*8 dest(*)
@@ -4062,15 +4057,15 @@ c seven-point variable stencils
 #ifdef HG_SIGMA_NODE
 
       subroutine hgcen(cen,
-     @ dims(cen),
+     @ cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
      @ signd,
-     @ dims(sn),
-     @ dims(reg))
-      integer dims(cen)
-      integer dims(sn)
-      integer dims(reg)
-      real*8 cen(dimdec(cen))
-      real*8 signd(dimdec(sn), 3)
+     @ snl0,snh0,snl1,snh1,snl2,snh2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2)
+      integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
+      integer snl0,snh0,snl1,snh1,snl2,snh2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      real*8 cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
+      real*8 signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
       integer i, j, k
       do 10 k = regl2, regh2
          do 10 j = regl1, regh1
@@ -4089,11 +4084,11 @@ c seven-point variable stencils
 
 c sig here contains three different directions all stored on "nodes"
       subroutine hgrlxu(cor, res, sig, cen,
-     @ dims(res),
+     @ resl0,resh0,resl1,resh1,resl2,resh2,
      @ mask,
-     @ dims(reg))
-      integer dims(res)
-      integer dims(reg)
+     @ regl0,regh0,regl1,regh1,regl2,regh2)
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
       real*8 cor(*)
       real*8 res(*)
       real*8 sig(*)
@@ -4134,23 +4129,23 @@ cdir$ ivdep
              signd(i,j,k,3)   * cor(i,j,k+1))
 
       subroutine hgrlx(cor,
-     @ dims(cor),
+     @ corl0,corh0,corl1,corh1,corl2,corh2,
      @ res,
-     @ dims(res),
+     @ resl0,resh0,resl1,resh1,resl2,resh2,
      @ signd,
-     @ dims(sn),
+     @ snl0,snh0,snl1,snh1,snl2,snh2,
      @ cen,
-     @ dims(cen),
-     @ dims(reg))
-      integer dims(cor)
-      integer dims(res)
-      integer dims(sn)
-      integer dims(cen)
-      integer dims(reg)
-      real*8 cor(dimdec(cor))
-      real*8 res(dimdec(res))
-      real*8 signd(dimdec(sn), 3)
-      real*8 cen(dimdec(cen))
+     @ cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2)
+      integer corl0,corh0,corl1,corh1,corl2,corh2
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer snl0,snh0,snl1,snh1,snl2,snh2
+      integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      real*8 cor(corl0:corh0,corl1:corh1,corl2:corh2)
+      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
+      real*8 signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
+      real*8 cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       integer i, j, k, ipar0, ipar, ipass
 #if 0
       avg() = (signd(i-1,j,k,1) * cor(i-1,j,k) +
@@ -4197,7 +4192,7 @@ cdir$ ivdep
                   do 30 i = regl0 + ipar, regh0, 2
                      cor(i,j,k) = (AVG - res(i,j,k)) * cen(i,j,k)
  30                  continue
-      endif
+      end if
       end
 
 #define RHSL0 (res(i,j,k) - (signd(i,j-1,k,2) * cor(i,j-1,k) + \
@@ -4216,26 +4211,26 @@ cdir$ ivdep
                              signd(i,j,k,2)   * cor(i,j+1,k)))
 
       subroutine hgrlxl(cor,
-     @ dims(cor),
+     @ corl0,corh0,corl1,corh1,corl2,corh2,
      @ res,
-     @ dims(res),
+     @ resl0,resh0,resl1,resh1,resl2,resh2,
      @ signd,
-     @ dims(sn),
+     @ snl0,snh0,snl1,snh1,snl2,snh2,
      @ cen,
-     @ dims(cen),
-     @ dims(reg),
-     @ dims(dom),
+     @ cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
+     @ doml0,domh0,doml1,domh1,doml2,domh2,
      @ lsd)
-      integer dims(cor)
-      integer dims(res)
-      integer dims(sn)
-      integer dims(cen)
-      integer dims(reg)
-      integer dims(dom)
-      real*8 cor(dimdec(cor))
-      real*8 res(dimdec(res))
-      real*8 signd(dimdec(sn), 3)
-      real*8 cen(dimdec(cen))
+      integer corl0,corh0,corl1,corh1,corl2,corh2
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer snl0,snh0,snl1,snh1,snl2,snh2
+      integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      integer doml0,domh0,doml1,domh1,doml2,domh2
+      real*8 cor(corl0:corh0,corl1:corh1,corl2:corh2)
+      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
+      real*8 signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
+      real*8 cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       real*8 wrk(256)
       integer lsd
       real*8 betm, aj
@@ -4263,7 +4258,7 @@ c interface to grid at same level:
                cor(i,j,k) = (RHSL2 - aj * cor(i,j,k-1)) * betm
                aj = signd(i,j,k,3)
                wrk(1) = aj * betm
-            endif
+            end if
 c forward solve loop:
             do 10 k = regl2 + 1, regh2 - 1
                kw = k - regl2
@@ -4271,7 +4266,7 @@ c forward solve loop:
                   betm = 0.d0
                else
                   betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(kw))
-               endif
+               end if
                cor(i,j,k) = (RHSL2 - aj * cor(i,j,k-1)) * betm
                aj = signd(i,j,k,3)
                wrk(kw + 1) = aj * betm
@@ -4292,7 +4287,7 @@ c interface to grid at same level:
                cor(i,j,k) = RHSL2 - aj * cor(i,j,k-1)
                aj = signd(i,j,k,3)
                cor(i,j,k) = (cor(i,j,k) - aj * cor(i,j,k+1)) * betm
-            endif
+            end if
 c back substitution loop:
             do 20 k = regh2 - 1, regl2, -1
                kw = k - regl2
@@ -4300,30 +4295,30 @@ c back substitution loop:
  20            continue
       else
          print *, "Line solve not implemented in dimension", lsd
-      endif
+      end if
       end
 
       subroutine hgrlnf(cor,
-     @ dims(cor),
-     @ res, dims(res),
-     @ wrk, dims(wrk),
-     @ signd, dims(sn),
-     @ cen, dims(cen),
-     @ dims(reg),
-     @ dims(dom),
+     @ corl0,corh0,corl1,corh1,corl2,corh2,
+     @ res, resl0,resh0,resl1,resh1,resl2,resh2,
+     @ wrk, wrkl0,wrkh0,wrkl1,wrkh1,wrkl2,wrkh2,
+     @ signd, snl0,snh0,snl1,snh1,snl2,snh2,
+     @ cen, cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
+     @ doml0,domh0,doml1,domh1,doml2,domh2,
      @ lsd, ipass)
-      integer dims(cor)
-      integer dims(res)
-      integer dims(wrk)
-      integer dims(sn)
-      integer dims(cen)
-      integer dims(reg)
-      integer dims(dom)
-      real*8 cor(dimdec(cor))
-      real*8 res(dimdec(res))
-      real*8 wrk(dimdec(wrk))
-      real*8 signd(dimdec(sn), 3)
-      real*8 cen(dimdec(cen))
+      integer corl0,corh0,corl1,corh1,corl2,corh2
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer wrkl0,wrkh0,wrkl1,wrkh1,wrkl2,wrkh2
+      integer snl0,snh0,snl1,snh1,snl2,snh2
+      integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      integer doml0,domh0,doml1,domh1,doml2,domh2
+      real*8 cor(corl0:corh0,corl1:corh1,corl2:corh2)
+      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
+      real*8 wrk(wrkl0:wrkh0,wrkl1:wrkh1,wrkl2:wrkh2)
+      real*8 signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
+      real*8 cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       integer lsd, ipass
       real*8 betm, aj
       integer i, j, k, ioff, ipar
@@ -4332,7 +4327,7 @@ c back substitution loop:
             ioff = 1 - ipass
          else
             ioff = ipass
-         endif
+         end if
          i = regl0
          ipar = ioff
          do 10 k = regl2, regh2
@@ -4347,7 +4342,7 @@ c neumann bdy:
                   cor(i,j,k) = RHSL0 * betm
                   aj = signd(i,j,k,1)
                   wrk(i,j,k) = 2.d0 * aj * betm
-               endif
+               end if
  10            continue
 c forward solve loop:
          do 20 i = regl0 + 1, regh0 - 1
@@ -4360,7 +4355,7 @@ c forward solve loop:
                      betm = 0.d0
                   else
                      betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(i-1,j,k))
-                  endif
+                  end if
                   cor(i,j,k) = (RHSL0 - aj * cor(i-1,j,k)) * betm
                   aj = signd(i,j,k,1)
  20               wrk(i,j,k) = aj * betm
@@ -4383,14 +4378,14 @@ c interface to grid at same level:
                   cor(i,j,k) = (RHSL0 - aj * cor(i-1,j,k)) * betm
                   aj = signd(i,j,k,1)
                   wrk(i,j,k) = aj * betm
-               endif
+               end if
  30            continue
       else if (lsd .eq. 1) then
          if (mod(regl0 + regl2, 2) .eq. 0) then
             ioff = 1 - ipass
          else
             ioff = ipass
-         endif
+         end if
          j = regl1
          ipar = ioff
          do 110 k = regl2, regh2
@@ -4405,7 +4400,7 @@ c neumann bdy:
                   cor(i,j,k) = RHSL1 * betm
                   aj = signd(i,j,k,2)
                   wrk(i,j,k) = 2.d0 * aj * betm
-               endif
+               end if
  110           continue
 c forward solve loop:
          do 120 j = regl1 + 1, regh1 - 1
@@ -4418,7 +4413,7 @@ c forward solve loop:
                      betm = 0.d0
                   else
                      betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(i,j-1,k))
-                  endif
+                  end if
                   cor(i,j,k) = (RHSL1 - aj * cor(i,j-1,k)) * betm
                   aj = signd(i,j,k,2)
  120              wrk(i,j,k) = aj * betm
@@ -4441,14 +4436,14 @@ c interface to grid at same level:
                   cor(i,j,k) = (RHSL1 - aj * cor(i,j-1,k)) * betm
                   aj = signd(i,j,k,2)
                   wrk(i,j,k) = aj * betm
-               endif
+               end if
  130           continue
       else
          if (mod(regl0 + regl1, 2) .eq. 0) then
             ioff = 1 - ipass
          else
             ioff = ipass
-         endif
+         end if
          k = regl2
          ipar = ioff
          do 210 j = regl1, regh1
@@ -4463,7 +4458,7 @@ c neumann bdy:
                   cor(i,j,k) = RHSL2 * betm
                   aj = signd(i,j,k,3)
                   wrk(i,j,k) = 2.d0 * aj * betm
-               endif
+               end if
  210           continue
 c forward solve loop:
          do 220 k = regl2 + 1, regh2 - 1
@@ -4476,7 +4471,7 @@ c forward solve loop:
                      betm = 0.d0
                   else
                      betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(i,j,k-1))
-                  endif
+                  end if
                   cor(i,j,k) = (RHSL2 - aj * cor(i,j,k-1)) * betm
                   aj = signd(i,j,k,3)
  220              wrk(i,j,k) = aj * betm
@@ -4499,29 +4494,29 @@ c interface to grid at same level:
                   cor(i,j,k) = (RHSL2 - aj * cor(i,j,k-1)) * betm
                   aj = signd(i,j,k,3)
                   wrk(i,j,k) = aj * betm
-               endif
+               end if
  230           continue
-      endif
+      end if
       end
 
       subroutine hgres(res,
-     @ dims(res),
+     @ resl0,resh0,resl1,resh1,resl2,resh2,
      @ src,
-     @ dims(src),
+     @ srcl0,srch0,srcl1,srch1,srcl2,srch2,
      @ dest,
-     @ dims(dest),
+     @ destl0,desth0,destl1,desth1,destl2,desth2,
      @ signd,
-     @ dims(sn),
-     @ dims(reg))
-      integer dims(res)
-      integer dims(src)
-      integer dims(dest)
-      integer dims(sn)
-      integer dims(reg)
-      real*8 res(dimdec(res))
-      real*8 src(dimdec(src))
-      real*8 dest(dimdec(dest))
-      real*8 signd(dimdec(sn), 3)
+     @ snl0,snh0,snl1,snh1,snl2,snh2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2)
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer destl0,desth0,destl1,desth1,destl2,desth2
+      integer snl0,snh0,snl1,snh1,snl2,snh2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 dest(destl0:desth0,destl1:desth1,destl2:desth2)
+      real*8 signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
       integer i, j, k
       if (regh2 - regl2 .gt. regh1 - regl1 .and.
      @    regh2 - regl2 .gt. regh0 - regl0) then
@@ -4557,15 +4552,15 @@ c interface to grid at same level:
      @               signd(i,j,k,2)   * (dest(i,j+1,k) - dest(i,j,k)) +
      @               signd(i,j,k-1,3) * (dest(i,j,k-1) - dest(i,j,k)) +
      @               signd(i,j,k,3)   * (dest(i,j,k+1) - dest(i,j,k)))
-      endif
+      end if
       end
 
       subroutine hgresu(res,
-     @ dims(res),
+     @ resl0,resh0,resl1,resh1,resl2,resh2,
      @ src, dest, signd, mask,
-     @ dims(reg))
-      integer dims(res)
-      integer dims(reg)
+     @ regl0,regh0,regl1,regh1,regl2,regh2)
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
       real*8 res(*)
       real*8 src(*)
       real*8 dest(*)
@@ -4590,18 +4585,18 @@ c interface to grid at same level:
       end
 
       subroutine hgscon(signd,
-     @ dims(sn),
+     @ snl0,snh0,snl1,snh1,snl2,snh2,
      @ sigx, sigy, sigz,
-     @ dims(sc),
-     @ dims(reg),
+     @ scl0,sch0,scl1,sch1,scl2,sch2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ hx, hy, hz)
-      integer dims(sn)
-      integer dims(sc)
-      integer dims(reg)
-      real*8 signd(dimdec(sn), 3)
-      real*8 sigx(dimdec(sc))
-      real*8 sigy(dimdec(sc))
-      real*8 sigz(dimdec(sc))
+      integer snl0,snh0,snl1,snh1,snl2,snh2
+      integer scl0,sch0,scl1,sch1,scl2,sch2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      real*8 signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
+      real*8 sigx(scl0:sch0,scl1:sch1,scl2:sch2)
+      real*8 sigy(scl0:sch0,scl1:sch1,scl2:sch2)
+      real*8 sigz(scl0:sch0,scl1:sch1,scl2:sch2)
       real*8 hx, hy, hz
       real*8 facx, facy, facz
       integer i, j, k
@@ -4628,19 +4623,19 @@ c interface to grid at same level:
 #else
 
       subroutine hgcen(cen,
-     @ dims(cen),
+     @ cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
      @ sigx, sigy, sigz,
-     @ dims(sb),
-     @ dims(reg),
+     @ sbl0,sbh0,sbl1,sbh1,sbl2,sbh2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ hx, hy, hz)
       implicit real*8(a-h,o-z), integer(i-n)
-      integer dims(cen)
-      integer dims(sb)
-      integer dims(reg)
-      real*8 cen(dimdec(cen))
-      real*8 sigx(dimdec(sb))
-      real*8 sigy(dimdec(sb))
-      real*8 sigz(dimdec(sb))
+      integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
+      integer sbl0,sbh0,sbl1,sbh1,sbl2,sbh2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      real*8 cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
+      real*8 sigx(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
+      real*8 sigy(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
+      real*8 sigz(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
       real*8 hx, hy, hz
       hxm2 = 1.d0 / (hx*hx)
       hym2 = 1.d0 / (hy*hy)
@@ -4680,27 +4675,27 @@ c interface to grid at same level:
                  sigz(i,j-1,k)     + sigz(i,j,k)) * cor(i,j,k+1)))
 
       subroutine hgrlx(cor,
-     @ dims(cor),
+     @ corl0,corh0,corl1,corh1,corl2,corh2,
      @ res,
-     @ dims(res),
+     @ resl0,resh0,resl1,resh1,resl2,resh2,
      @ sigx, sigy, sigz,
-     @ dims(sf),
+     @ sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
      @ cen,
-     @ dims(cen),
-     @ dims(reg),
+     @ cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ hx, hy, hz)
       implicit real*8(a-h,o-z), integer(i-n)
-      integer dims(cor)
-      integer dims(res)
-      integer dims(sf)
-      integer dims(cen)
-      integer dims(reg)
-      real*8 cor(dimdec(cor))
-      real*8 res(dimdec(res))
-      real*8 sigx(dimdec(sf))
-      real*8 sigy(dimdec(sf))
-      real*8 sigz(dimdec(sf))
-      real*8 cen(dimdec(cen))
+      integer corl0,corh0,corl1,corh1,corl2,corh2
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
+      integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      real*8 cor(corl0:corh0,corl1:corh1,corl2:corh2)
+      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
+      real*8 sigx(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
+      real*8 sigy(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
+      real*8 sigz(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
+      real*8 cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       real*8 hx, hy, hz
 #if 0
       avg() = 0.25d0 * (hxm2 *
@@ -4759,31 +4754,31 @@ cdir$ ivdep
                   do 30 i = regl0 + ipar, regh0, 2
                      cor(i,j,k) = (AVG - res(i,j,k)) * cen(i,j,k)
  30                  continue
-      endif
+      end if
       end
 
       subroutine hgres(res,
-     @ dims(res),
+     @ resl0,resh0,resl1,resh1,resl2,resh2,
      @ src,
-     @ dims(src),
+     @ srcl0,srch0,srcl1,srch1,srcl2,srch2,
      @ dest,
-     @ dims(dest),
+     @ destl0,desth0,destl1,desth1,destl2,desth2,
      @ sigx, sigy, sigz,
-     @ dims(sf),
-     @ dims(reg),
+     @ sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ hx, hy, hz)
       implicit real*8(a-h,o-z), integer(i-n)
-      integer dims(res)
-      integer dims(src)
-      integer dims(dest)
-      integer dims(sf)
-      integer dims(reg)
-      real*8 res(dimdec(res))
-      real*8 src(dimdec(src))
-      real*8 dest(dimdec(dest))
-      real*8 sigx(dimdec(sf))
-      real*8 sigy(dimdec(sf))
-      real*8 sigz(dimdec(sf))
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer destl0,desth0,destl1,desth1,destl2,desth2
+      integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 dest(destl0:desth0,destl1:desth1,destl2:desth2)
+      real*8 sigx(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
+      real*8 sigy(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
+      real*8 sigz(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
       real*8 hx, hy, hz
       hxm2 = 1.d0 / (hx*hx)
       hym2 = 1.d0 / (hy*hy)
@@ -4858,7 +4853,7 @@ cdir$ ivdep
      @               (sigz(i-1,j-1,k)   + sigz(i-1,j,k) +
      @                sigz(i,j-1,k)     + sigz(i,j,k)) *
      @                (dest(i,j,k+1) - dest(i,j,k)))             )
-      endif
+      end if
       end
 
 #endif
@@ -4869,14 +4864,14 @@ cdir$ ivdep
 
 c twenty-seven-point terrain stencils
 
-      subroutine hgcen(cen, dims(cen),
-     @ sig, dims(sb),
-     @ dims(reg))
-      integer dims(cen)
-      integer dims(sb)
-      integer dims(reg)
-      real*8 cen(dimdec(cen))
-      real*8 sig(dimdec(sb), 5)
+      subroutine hgcen(cen, cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
+     @ sig, sbl0,sbh0,sbl1,sbh1,sbl2,sbh2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2)
+      integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
+      integer sbl0,sbh0,sbl1,sbh1,sbl2,sbh2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      real*8 cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
+      real*8 sig(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2, 5)
       integer i, j, k
       do 10 k = regl2, regh2
          do 10 j = regl1, regh1
@@ -4925,20 +4920,20 @@ c twenty-seven-point terrain stencils
 #define MYZ(ii,jj,kk) (6.d0 *  cor(i,jj,kk)  + \
                        3.d0 * (cor(ii,jj,kk) - cor(ii,j,k)))
 
-      subroutine hgrlx(cor, dims(cor),
-     @ res, dims(res),
-     @ sig, dims(sf),
-     @ cen, dims(cen),
-     @ dims(reg))
-      integer dims(cor)
-      integer dims(res)
-      integer dims(sf)
-      integer dims(cen)
-      integer dims(reg)
-      real*8 cor(dimdec(cor))
-      real*8 res(dimdec(res))
-      real*8 sig(dimdec(sf), 5)
-      real*8 cen(dimdec(cen))
+      subroutine hgrlx(cor, corl0,corh0,corl1,corh1,corl2,corh2,
+     @ res, resl0,resh0,resl1,resh1,resl2,resh2,
+     @ sig, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
+     @ cen, cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2)
+      integer corl0,corh0,corl1,corh1,corl2,corh2
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
+      integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      real*8 cor(corl0:corh0,corl1:corh1,corl2:corh2)
+      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
+      real*8 sig(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2, 5)
+      real*8 cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       real*8 fac, tmp
       integer i, j, k
       fac = 1.d0 / 36.d0
@@ -5105,28 +5100,28 @@ cdir$ ivdep
      @                  sig(i  ,j  ,k  ,5) * MYZ(i+1,j+1,k+1)
                   cor(i,j,k) = (fac * tmp - res(i,j,k)) * cen(i,j,k)
  30               continue
-      endif
+      end if
       end
 
 c cor substituted for dest to use same macro:
 
-      subroutine hgres(res, dims(res),
-     @ src,  dims(src),
-     @ cor, dims(dest),
-     @ sig, dims(sf),
-     @ cen, dims(cen),
-     @ dims(reg))
-      integer dims(res)
-      integer dims(src)
-      integer dims(dest)
-      integer dims(sf)
-      integer dims(cen)
-      integer dims(reg)
-      real*8 res(dimdec(res))
-      real*8 src(dimdec(src))
-      real*8 cor(dimdec(dest))
-      real*8 sig(dimdec(sf), 5)
-      real*8 cen(dimdec(cen))
+      subroutine hgres(res, resl0,resh0,resl1,resh1,resl2,resh2,
+     @ src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     @ cor, destl0,desth0,destl1,desth1,destl2,desth2,
+     @ sig, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
+     @ cen, cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2)
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer destl0,desth0,destl1,desth1,destl2,desth2
+      integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
+      integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 cor(destl0:desth0,destl1:desth1,destl2:desth2)
+      real*8 sig(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2, 5)
+      real*8 cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       real*8 fac, tmp
       integer i, j, k
       fac = 1.d0 / 36.d0
@@ -5187,7 +5182,7 @@ c cor substituted for dest to use same macro:
      @                  - fac * tmp + cor(i,j,k) / cen(i,j,k)
                   else
                      res(i,j,k) = 0.d0
-                  endif
+                  end if
  10               continue
       else if (regh1 - regl1 .gt. regh0 - regl0) then
          do 20 k = regl2, regh2
@@ -5245,7 +5240,7 @@ c cor substituted for dest to use same macro:
      @                  - fac * tmp + cor(i,j,k) / cen(i,j,k)
                   else
                      res(i,j,k) = 0.d0
-                  endif
+                  end if
  20               continue
       else
          do 30 k = regl2, regh2
@@ -5303,32 +5298,32 @@ c cor substituted for dest to use same macro:
      @                  - fac * tmp + cor(i,j,k) / cen(i,j,k)
                   else
                      res(i,j,k) = 0.d0
-                  endif
+                  end if
  30               continue
-      endif
+      end if
       end
 
       subroutine hgrlnf(cor,
-     @ dims(cor),
-     @ res, dims(res),
-     @ wrk, dims(wrk),
-     @ signd, dims(sn),
-     @ cen, dims(cen),
-     @ dims(reg),
-     @ dims(dom),
+     @ corl0,corh0,corl1,corh1,corl2,corh2,
+     @ res, resl0,resh0,resl1,resh1,resl2,resh2,
+     @ wrk, wrkl0,wrkh0,wrkl1,wrkh1,wrkl2,wrkh2,
+     @ signd, snl0,snh0,snl1,snh1,snl2,snh2,
+     @ cen, cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
+     @ doml0,domh0,doml1,domh1,doml2,domh2,
      @ lsd, ipass)
-      integer dims(cor)
-      integer dims(res)
-      integer dims(wrk)
-      integer dims(sn)
-      integer dims(cen)
-      integer dims(reg)
-      integer dims(dom)
-      real*8 cor(dimdec(cor))
-      real*8 res(dimdec(res))
-      real*8 wrk(dimdec(wrk))
-      real*8 signd(dimdec(sn), 3)
-      real*8 cen(dimdec(cen))
+      integer corl0,corh0,corl1,corh1,corl2,corh2
+      integer resl0,resh0,resl1,resh1,resl2,resh2
+      integer wrkl0,wrkh0,wrkl1,wrkh1,wrkl2,wrkh2
+      integer snl0,snh0,snl1,snh1,snl2,snh2
+      integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      integer doml0,domh0,doml1,domh1,doml2,domh2
+      real*8 cor(corl0:corh0,corl1:corh1,corl2:corh2)
+      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
+      real*8 wrk(wrkl0:wrkh0,wrkl1:wrkh1,wrkl2:wrkh2)
+      real*8 signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
+      real*8 cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       integer lsd, ipass
       real*8 betm, aj
       integer i, j, k, ioff, ipar
@@ -5336,15 +5331,15 @@ c cor substituted for dest to use same macro:
 
 #endif
 
-      subroutine hgrlnb(cor, dims(cor),
-     @ wrk, dims(wrk),
-     @ dims(reg),
+      subroutine hgrlnb(cor, corl0,corh0,corl1,corh1,corl2,corh2,
+     @ wrk, wrkl0,wrkh0,wrkl1,wrkh1,wrkl2,wrkh2,
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ lsd, ipass)
-      integer dims(cor)
-      integer dims(wrk)
-      integer dims(reg)
-      real*8 cor(dimdec(cor))
-      real*8 wrk(dimdec(wrk))
+      integer corl0,corh0,corl1,corh1,corl2,corh2
+      integer wrkl0,wrkh0,wrkl1,wrkh1,wrkl2,wrkh2
+      integer regl0,regh0,regl1,regh1,regl2,regh2
+      real*8 cor(corl0:corh0,corl1:corh1,corl2:corh2)
+      real*8 wrk(wrkl0:wrkh0,wrkl1:wrkh1,wrkl2:wrkh2)
       integer lsd, ipass
       integer ioff, ipar, i, j, k
       if (lsd .eq. 0) then
@@ -5352,7 +5347,7 @@ c cor substituted for dest to use same macro:
             ioff = 1 - ipass
          else
             ioff = ipass
-         endif
+         end if
 c back substitution loop:
          do 10 i = regh0 - 1, regl0, -1
             ipar = ioff
@@ -5366,7 +5361,7 @@ c back substitution loop:
             ioff = 1 - ipass
          else
             ioff = ipass
-         endif
+         end if
 c back substitution loop:
          do 20 j = regh1 - 1, regl1, -1
             ipar = ioff
@@ -5380,7 +5375,7 @@ c back substitution loop:
             ioff = 1 - ipass
          else
             ioff = ipass
-         endif
+         end if
 c back substitution loop:
          do 30 k = regh2 - 1, regl2, -1
             ipar = ioff
@@ -5389,7 +5384,7 @@ c back substitution loop:
                do 30 i = regl0 + ipar, regh0, 2
                   cor(i,j,k) = cor(i,j,k) - wrk(i,j,k) * cor(i,j,k+1)
  30               continue
-      endif
+      end if
       end
 
 #ifdef HG_CONSTANT
@@ -5405,9 +5400,9 @@ c has a border of width 1
 
 c Works for NODE-based data.
       subroutine hgip(v0, v1, mask,
-     @ dims(reg),
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ sum)
-      integer dims(reg)
+      integer regl0,regh0,regl1,regh1,regl2,regh2
       real*8 v0(*)
       real*8 v1(*)
       real*8 mask(*)
@@ -5420,9 +5415,9 @@ c Works for NODE-based data.
       end
 
       subroutine hgcg1(r, p, z, x, w, c, mask,
-     @ dims(reg),
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ alpha, rho)
-      integer dims(reg)
+      integer regl0,regh0,regl1,regh1,regl2,regh2
       real*8 r(*)
       real*8 p(*)
       real*8 z(*)
@@ -5442,9 +5437,9 @@ c Works for NODE-based data.
       end
 
       subroutine hgcg2(p, z,
-     @ dims(reg),
+     @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ alpha)
-      integer dims(reg)
+      integer regl0,regh0,regl1,regh1,regl2,regh2
       real*8 p(*)
       real*8 z(*)
       real*8 alpha
@@ -5495,12 +5490,12 @@ c must do this loop over entire array to initialize borders of p
       tol = 1.d-3 * rho
       if (tol .le. 0.d0) then
          return
-      endif
+      end if
  100  continue
       it = it + 1
       if (it .gt. 250) then
          print *, "FORTRAN hgcg---conjugate-gradient iteration failed"
-      endif
+      end if
       rhoold = rho
       alpha = 0.d0
       do 110 k = 1, nsets
@@ -5532,10 +5527,10 @@ c must do this loop over entire array to initialize borders of p
  130        rho = rho + mask(ms(k)+i) * z(zs(k)+i) * r(rs(k)+i)
       if (pcode .ge. 3) then
          print *, it, rho
-      endif
+      end if
       if (rho .le. tol .or. it .gt. 250) then
          return
-      endif
+      end if
       alpha = rho / rhoold
       do 140 k = 1, ngrids
          do 140 i = strid1(k) + strid2(k) + 1,

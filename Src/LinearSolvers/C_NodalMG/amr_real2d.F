@@ -23,7 +23,7 @@ c Works for CELL- or NODE-based data.
             do 20 j = regl1, regh1
                do 20 i = regl0, regh0
  20               dest(i,j,k) = src(i,j,k)
-      endif
+      end if
       end
 
 c Unrolled copy---works for CELL- or NODE-based data.
@@ -63,7 +63,7 @@ c Works for NODE-based data.
                do 20 i = regl0 - w, regh0 + w
                   da(i,regl1+j,k) = db(i,regl1+j,k)
  20               db(i,regl1-j,k) = da(i,regl1-j,k)
-      endif
+      end if
       end
 
       subroutine fccpy1(dest, src, nsets, dstart, sstart,
@@ -113,7 +113,7 @@ c Works for CELL- or NODE-based data.
  50               buf(i) = max(buf(i), abs(src(regl0 + ii + i, j)))
          do 60 i = 0, min(bufsiz - 1, idif)
  60         retval = max(retval, buf(i))
-      endif
+      end if
       end
 
 c Works for CELL- or NODE-based data.
@@ -160,7 +160,7 @@ c Works for CELL-based data.
          do 20 j = regl1, regh1
             do 20 i = regl0, regh0
  20            sum = sum + v0(i,j) * v1(i,j)
-      endif
+      end if
       end
 
 c Works for NODE-based data.
@@ -193,7 +193,7 @@ c Works for NODE-based data.
          do 40 j = regl1 + 1, regh1 - 1
             do 40 i = regl0 + 1, regh0 - 1
  40            sum = sum + v0(i,j) * v1(i,j)
-      endif
+      end if
       end
 
 c Works for CELL- or NODE-based data.
@@ -217,7 +217,7 @@ c Works for CELL- or NODE-based data.
          do 20 j = regl1, regh1
             do 20 i = regl0, regh0
  20            dest(i,j) = src(i,bbh1-(j-regl1))
-      endif
+      end if
       end
 
 c Works for CELL- or NODE-based data.
@@ -242,7 +242,7 @@ c Works for CELL- or NODE-based data.
             do 12 j = regl1, regh1
                do 12 i = regl0, regh0
  12               dest(i,j) = src(bbl0+(i-regl0),bbl1+(j-regl1))
-         endif
+         end if
       else if (ra(0) .eq. 0 .and. ra(1) .eq. 1) then
          do 20 j = regl1, regh1
             do 20 i = regl0, regh0
@@ -255,7 +255,7 @@ c Works for CELL- or NODE-based data.
          do 40 j = regl1, regh1
             do 40 i = regl0, regh0
  40            dest(i,j) = src(bbh0-(i-regl0),bbh1-(j-regl1))
-      endif
+      end if
       end
 
 c Works for CELL- or NODE-based data.
@@ -279,7 +279,7 @@ c Works for CELL- or NODE-based data.
          do 20 j = regl1, regh1
             do 20 i = regl0, regh0
  20            dest(i,j) = -src(i,bbh1-(j-regl1))
-      endif
+      end if
       end
 
 c Works for CELL- or NODE-based data.
@@ -304,7 +304,7 @@ c Works for CELL- or NODE-based data.
             do 12 j = regl1, regh1
                do 12 i = regl0, regh0
  12               dest(i,j) = -src(bbl0+(i-regl0),bbl1+(j-regl1))
-         endif
+         end if
       else if (ra(0) .eq. 0 .and. ra(1) .eq. 1) then
          do 20 j = regl1, regh1
             do 20 i = regl0, regh0
@@ -317,7 +317,7 @@ c Works for CELL- or NODE-based data.
          do 40 i = regl0, regh0
             do 40 j = regl1, regh1
  40            dest(i,j) = -src(bbh0-(i-regl0),bbh1-(j-regl1))
-      endif
+      end if
       end
 
 c Works for CELL-based velocity data.
@@ -346,7 +346,7 @@ c inflow face, so that binfil can be run for subsequent fills
             do 20 i = regh0, regl0, -1
                do 20 j = regl1, regh1
  20               dest(i,j) = 2.d0 * dest(regl0,j) - src(bbh0-(i-regl0),j)
-         endif
+         end if
       else
          if (regl1 .lt. bbh1) then
             do 30 j = regl1, regh1
@@ -356,8 +356,8 @@ c inflow face, so that binfil can be run for subsequent fills
             do 40 j = regh1, regl1, -1
                do 40 i = regl0, regh0
  40               dest(i,j) = 2.d0 * dest(i,regl1) - src(i,bbh1-(j-regl1))
-         endif
-      endif
+         end if
+      end if
       end
 
 c Works for CELL-based velocity data.
@@ -389,7 +389,7 @@ c extended to one cell past the boundary by the boundary::box routine.
                do 20 j = regl1, regh1
  20               dest(i,j) = src(bbh0-1,j) + src(bbh0,j) -
      @                        src(bbl0+(regh0-i),j)
-         endif
+         end if
       else
          if (regl1 .lt. bbh1) then
             do 30 j = regl1, regh1
@@ -401,8 +401,8 @@ c extended to one cell past the boundary by the boundary::box routine.
                do 40 i = regl0, regh0
  40               dest(i,j) = src(i,bbh1-1) + src(i,bbh1) -
      @                        src(i,bbl1+(regh1-j))
-         endif
-      endif
+         end if
+      end if
       end
 
 c CELL-based data only.
@@ -470,7 +470,7 @@ cdir$ ivdep
                do 220 ic = bbl0, bbh0
  220              dest(ir*ic,jr*jc+m) = p * src(ic,jc) +
      @                                  q * src(ic,jc+1)
-      endif
+      end if
       if (ir .eq. 2) then
          do 30 ic = bbl0, bbh0-1
 cdir$ ivdep
@@ -496,7 +496,7 @@ cdir$ ivdep
                do 230 j = regl1, regh1
  230              dest(ir*ic+m,j) = p * dest(ir*ic,j) +
      @                              q * dest(ir*(ic+1),j)
-      endif
+      end if
       end
 
 c CELL-based data only.
@@ -525,7 +525,7 @@ c CELL-based data only.
          do 30 j = regl1, regh1
             do 30 i = regl0, regh0
  30            dest(i,j) = dest(i,j) * fac
-      endif
+      end if
       end
 
 c NODE-based data only.
@@ -607,7 +607,7 @@ c fine region by at least one coarse cell on all sides.
      @                                    src(i*ir-1,j*jr+1) +
      @                                    src(i*ir+1,j*jr-1) +
      @                                    src(i*ir+1,j*jr+1))
-         endif
+         end if
       else if (ir .eq. 4 .and. jr .eq. 4) then
          if (regh1 - regl1 .gt. regh0 - regl0) then
             do 110 i = regl0, regh0
@@ -617,7 +617,7 @@ c fine region by at least one coarse cell on all sides.
             do 120 j = regl1, regh1
                do 120 i = regl0, regh0
  120              dest(i,j) = RESTR4
-         endif
+         end if
       else
          if (regh1 - regl1 .gt. regh0 - regl0) then
             do 210 i = regl0, regh0
@@ -655,8 +655,8 @@ c fine region by at least one coarse cell on all sides.
      @                                     src(i*ir-m,j*jr+n)+
      @                                     src(i*ir+m,j*jr-n)+
      @                                     src(i*ir+m,j*jr+n))
-         endif
-      endif
+         end if
+      end if
       if (integ .eq. 1) then
          fac = ir * jr
          if (regh1 - regl1 .gt. regh0 - regl0) then
@@ -667,8 +667,8 @@ c fine region by at least one coarse cell on all sides.
             do 320 j = regl1, regh1
                do 320 i = regl0, regh0
  320              dest(i,j) = fac * dest(i,j)
-         endif
-      endif
+         end if
+      end if
       end
 
 c NODE-based data only.
@@ -692,7 +692,7 @@ c Fills coarse region defined by reg.
          else
             fac = 1.d0
             fac0 = 1.d0 / (ir * jr)
-         endif
+         end if
          i = regl0
          do 10 j = regl1, regh1
  10         dest(i,j) = fac * src(i*ir,j*jr)
@@ -711,7 +711,7 @@ c Fills coarse region defined by reg.
          else
             fac = 1.d0
             fac0 = 1.d0 / (ir * jr)
-         endif
+         end if
          j = regl1
          do 30 i = regl0, regh0
  30         dest(i,j) = fac * src(i*ir,j*jr)
@@ -723,7 +723,7 @@ c Fills coarse region defined by reg.
                do 40 i = regl0, regh0
  40               dest(i,j) = dest(i,j) + fac * (src(i*ir-m,j*jr+n)+
      @                                           src(i*ir+m,j*jr+n))
-      endif
+      end if
       end
 
 c NODE-based data only.
@@ -746,7 +746,7 @@ c Fills coarse point defined by reg.
       else
          fac = 1.d0
          fac0 = 1.d0 / (ir * jr)
-      endif
+      end if
       i = regl0
       j = regl1
       dest(i,j) = fac * src(i*ir,j*jr)
@@ -777,7 +777,7 @@ c Fills coarse point defined by reg.
       else
          fac = 1.d0
          fac0 = 1.d0 / (ir * jr)
-      endif
+      end if
       i = regl0
       j = regl1
       dest(i,j) = fac * src(i*ir,j*jr)
@@ -816,7 +816,7 @@ c Fills coarse point defined by reg.
       else
          fac = 1.d0
          fac0 = 1.d0 / (ir * jr)
-      endif
+      end if
       i = regl0
       j = regl1
       dest(i,j) = fac * src(i*ir,j*jr)

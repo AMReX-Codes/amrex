@@ -1,17 +1,13 @@
-
-#define dims(a) a##l0,a##h0,a##l1,a##h1,a##l2,a##h2
-#define dimdec(a) a##l0:a##h0,a##l1:a##h1,a##l2:a##h2
-
       subroutine hgavg(src,
-     @ dims(src),
+     @ srcl0,srch0,srcl1,srch1,srcl2,srch2,
      @ rf,
-     @ dims(f),
-     @ dims(freg))
-      integer dims(src)
-      integer dims(f)
-      integer dims(freg)
-      real*8 src(dimdec(src))
-      real*8 rf(dimdec(f))
+     @ fl0,fh0,fl1,fh1,fl2,fh2,
+     @ fregl0,fregh0,fregl1,fregh1,fregl2,fregh2)
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer fl0,fh0,fl1,fh1,fl2,fh2
+      integer fregl0,fregh0,fregl1,fregh1,fregl2,fregh2
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 rf(fl0:fh0,fl1:fh1,fl2:fh2)
       real*8 fac
       integer i, j, k
       fac = 0.125d0
@@ -27,20 +23,20 @@
 
 c Note---only generates values at coarse points along edge of fine grid
       subroutine hgfavg(src,
-     @ dims(src),
+     @ srcl0,srch0,srcl1,srch1,srcl2,srch2,
      @ rc,
-     @ dims(c),
+     @ cl0,ch0,cl1,ch1,cl2,ch2,
      @ rf,
-     @ dims(f),
-     @ dims(creg),
+     @ fl0,fh0,fl1,fh1,fl2,fh2,
+     @ cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
      @ ir, jr, kr, idim, idir)
-      integer dims(src)
-      integer dims(c)
-      integer dims(f)
-      integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 rc(dimdec(c))
-      real*8 rf(dimdec(f))
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer cl0,ch0,cl1,ch1,cl2,ch2
+      integer fl0,fh0,fl1,fh1,fl2,fh2
+      integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 rc(cl0:ch0,cl1:ch1,cl2:ch2)
+      real*8 rf(fl0:fh0,fl1:fh1,fl2:fh2)
       integer ir, jr, kr, idim, idir
       real*8 fac0, fac1, fac
       integer i, j, k, irc, irf, jrc, jrf, krc, krf, l, m, n
@@ -52,7 +48,7 @@ c Note---only generates values at coarse points along edge of fine grid
          else
             irc = i
             irf = i * ir - 1
-         endif
+         end if
          fac0 = 0.25d0 * ir / (ir+1)
          do 10 k = cregl2, cregh2
             do 10 j = cregl1, cregh1
@@ -87,7 +83,7 @@ c Note---only generates values at coarse points along edge of fine grid
          else
             jrc = j
             jrf = j * jr - 1
-         endif
+         end if
          fac0 = 0.25d0 * jr / (jr+1)
          do 30 k = cregl2, cregh2
             do 30 i = cregl0, cregh0
@@ -122,7 +118,7 @@ c Note---only generates values at coarse points along edge of fine grid
          else
             krc = k
             krf = k * kr - 1
-         endif
+         end if
          fac0 = 0.25d0 * kr / (kr+1)
          do 50 j = cregl1, cregh1
             do 50 i = cregl0, cregh0
@@ -149,25 +145,25 @@ c Note---only generates values at coarse points along edge of fine grid
      @                  rf(i+m,j-n-1,krf) + rf(i+m-1,j-n-1,krf) +
      @                  rf(i+m,j+n,krf) + rf(i+m-1,j+n,krf) +
      @                  rf(i+m,j+n-1,krf) + rf(i+m-1,j+n-1,krf))
-      endif
+      end if
       end
 
 c Note---only generates values at coarse points along edge of fine grid
       subroutine hgeavg(src,
-     @ dims(src),
+     @ srcl0,srch0,srcl1,srch1,srcl2,srch2,
      @ rc,
-     @ dims(c),
+     @ cl0,ch0,cl1,ch1,cl2,ch2,
      @ rf,
-     @ dims(f),
-     @ dims(creg),
+     @ fl0,fh0,fl1,fh1,fl2,fh2,
+     @ cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
      @ ir, jr, kr, ivect, ga)
-      integer dims(src)
-      integer dims(c)
-      integer dims(f)
-      integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 rc(dimdec(c))
-      real*8 rf(dimdec(f))
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer cl0,ch0,cl1,ch1,cl2,ch2
+      integer fl0,fh0,fl1,fh1,fl2,fh2
+      integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 rc(cl0:ch0,cl1:ch1,cl2:ch2)
+      real*8 rf(fl0:fh0,fl1:fh1,fl2:fh2)
       integer ir, jr, kr, ivect(0:2), ga(0:1,0:1,0:1)
       real*8 rm3, center, cfac, ffac, fac0, fac1, fac
       integer ic, jc, kc, if, jf, kf, ii, ji, ki
@@ -191,18 +187,18 @@ c each quadrant is two octants and their share of the two central edges
                   center = center + ffac
                else
                   center = center + cfac
-               endif
+               end if
  10            continue
          do 20 ki = 0, 1
             do 20 ji = 0, 1
                if (ga(0,ji,ki) - ga(0,ji,1-ki) .eq. 1) then
                   ffac = 2.d0 * ir * (jr - 1) * rm3
                   center = center + ffac
-               endif
+               end if
                if (ga(0,ji,ki) - ga(0,1-ji,ki) .eq. 1) then
                   ffac = 2.d0 * ir * (kr - 1) * rm3
                   center = center + ffac
-               endif
+               end if
  20            continue
          center = 1.d0 / center
          fac1 = center * rm3 / ir
@@ -225,7 +221,7 @@ c each quadrant is two octants and their share of the two central edges
                      if = ic * ir
  40                  src(if,jf,kf) = src(if,jf,kf) + center *
      @                 (rc(ic,jrc,krc) + rc(ic-1,jrc,krc))
-               endif
+               end if
  50            continue
 c faces
 c each face is two faces and two sides of an edge
@@ -247,7 +243,7 @@ c each face is two faces and two sides of an edge
      @                        rf(if-m,jf+n-1,krf) + rf(if-m-1,jf+n-1,krf) +
      @                        rf(if+m,jf+n,krf) + rf(if+m-1,jf+n,krf) +
      @                        rf(if+m,jf+n-1,krf) + rf(if+m-1,jf+n-1,krf))
-               endif
+               end if
                if (ga(0,ji,ki) - ga(0,1-ji,ki) .eq. 1) then
                   jrf = jf + ji - 1
                   fac0 = center * rm3 / (ir * kr)
@@ -262,7 +258,7 @@ c each face is two faces and two sides of an edge
      @                        rf(if-m,jrf,kf+l-1) + rf(if-m-1,jrf,kf+l-1) +
      @                        rf(if+m,jrf,kf+l) + rf(if+m-1,jrf,kf+l) +
      @                        rf(if+m,jrf,kf+l-1) + rf(if+m-1,jrf,kf+l-1))
-               endif
+               end if
  80            continue
       else if (ivect(1) .eq. 0) then
 c quadrants
@@ -275,18 +271,18 @@ c each quadrant is two octants and their share of the two central edges
                   center = center + ffac
                else
                   center = center + cfac
-               endif
+               end if
  110           continue
          do 120 ki = 0, 1
             do 120 ii = 0, 1
                if (ga(ii,0,ki) - ga(ii,0,1-ki) .eq. 1) then
                   ffac = 2.d0 * jr * (ir - 1) * rm3
                   center = center + ffac
-               endif
+               end if
                if (ga(ii,0,ki) - ga(1-ii,0,ki) .eq. 1) then
                   ffac = 2.d0 * jr * (kr - 1) * rm3
                   center = center + ffac
-               endif
+               end if
  120           continue
          center = 1.d0 / center
          fac1 = center * rm3 / jr
@@ -309,7 +305,7 @@ c each quadrant is two octants and their share of the two central edges
                      jf = jc * jr
  140                 src(if,jf,kf) = src(if,jf,kf) + center *
      @                 (rc(irc,jc,krc) + rc(irc,jc-1,krc))
-               endif
+               end if
  150           continue
 c faces
 c each face is two faces and two sides of an edge
@@ -331,7 +327,7 @@ c each face is two faces and two sides of an edge
      @                        rf(if+m,jf-n-1,krf) + rf(if+m-1,jf-n-1,krf) +
      @                        rf(if+m,jf+n,krf) + rf(if+m-1,jf+n,krf) +
      @                        rf(if+m,jf+n-1,krf) + rf(if+m-1,jf+n-1,krf))
-               endif
+               end if
                if (ga(ii,0,ki) - ga(1-ii,0,ki) .eq. 1) then
                   irf = if + ii - 1
                   fac0 = center * rm3 / (jr * kr)
@@ -346,7 +342,7 @@ c each face is two faces and two sides of an edge
      @                        rf(irf,jf-n,kf+l-1) + rf(irf,jf-n-1,kf+l-1) +
      @                        rf(irf,jf+n,kf+l) + rf(irf,jf+n-1,kf+l) +
      @                        rf(irf,jf+n,kf+l-1) + rf(irf,jf+n-1,kf+l-1))
-               endif
+               end if
  180           continue
       else
 c quadrants
@@ -359,18 +355,18 @@ c each quadrant is two octants and their share of the two central edges
                   center = center + ffac
                else
                   center = center + cfac
-               endif
+               end if
  210           continue
          do 220 ji = 0, 1
             do 220 ii = 0, 1
                if (ga(ii,ji,0) - ga(ii,1-ji,0) .eq. 1) then
                   ffac = 2.d0 * kr * (ir - 1) * rm3
                   center = center + ffac
-               endif
+               end if
                if (ga(ii,ji,0) - ga(1-ii,ji,0) .eq. 1) then
                   ffac = 2.d0 * kr * (jr - 1) * rm3
                   center = center + ffac
-               endif
+               end if
  220           continue
          center = 1.d0 / center
          fac1 = center * rm3 / kr
@@ -393,7 +389,7 @@ c each quadrant is two octants and their share of the two central edges
                      kf = kc * kr
  240                 src(if,jf,kf) = src(if,jf,kf) + center *
      @                 (rc(irc,jrc,kc) + rc(irc,jrc,kc-1))
-               endif
+               end if
  250           continue
 c faces
 c each face is two faces and two sides of an edge
@@ -415,7 +411,7 @@ c each face is two faces and two sides of an edge
      @                        rf(if+m,jrf,kf-l-1) + rf(if+m-1,jrf,kf-l-1) +
      @                        rf(if+m,jrf,kf+l) + rf(if+m-1,jrf,kf+l) +
      @                        rf(if+m,jrf,kf+l-1) + rf(if+m-1,jrf,kf+l-1))
-               endif
+               end if
                if (ga(ii,ji,0) - ga(1-ii,ji,0) .eq. 1) then
                   irf = if + ii - 1
                   fac0 = center * rm3 / (jr * kr)
@@ -430,27 +426,27 @@ c each face is two faces and two sides of an edge
      @                        rf(irf,jf+n,kf-l-1) + rf(irf,jf+n-1,kf-l-1) +
      @                        rf(irf,jf+n,kf+l) + rf(irf,jf+n-1,kf+l) +
      @                        rf(irf,jf+n,kf+l-1) + rf(irf,jf+n-1,kf+l-1))
-               endif
+               end if
  280           continue
-      endif
+      end if
       end
 
 c Note---only generates values at coarse points along edge of fine grid
       subroutine hgcavg(src,
-     @ dims(src),
+     @ srcl0,srch0,srcl1,srch1,srcl2,srch2,
      @ rc,
-     @ dims(c),
+     @ cl0,ch0,cl1,ch1,cl2,ch2,
      @ rf,
-     @ dims(f),
-     @ dims(creg),
+     @ fl0,fh0,fl1,fh1,fl2,fh2,
+     @ cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
      @ ir, jr, kr, ga)
-      integer dims(src)
-      integer dims(c)
-      integer dims(f)
-      integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 rc(dimdec(c))
-      real*8 rf(dimdec(f))
+      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
+      integer cl0,ch0,cl1,ch1,cl2,ch2
+      integer fl0,fh0,fl1,fh1,fl2,fh2
+      integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
+      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      real*8 rc(cl0:ch0,cl1:ch1,cl2:ch2)
+      real*8 rf(fl0:fh0,fl1:fh1,fl2:fh2)
       integer ir, jr, kr, ga(0:1,0:1,0:1)
       real*8 rm3, sum, center, cfac, ffac, fac0, fac1, fac
       integer ic, jc, kc, if, jf, kf, ii, ji, ki
@@ -483,7 +479,7 @@ c octants
                   irc = ic + ii - 1
                   center = center + cfac
                   sum = sum + rc(irc,jrc,krc)
-               endif
+               end if
  10            continue
 c faces
       do 50 ki = 0, 1
@@ -506,7 +502,7 @@ c faces
  20                     sum = sum + fac *
      @                    (rf(if+m,jf+n,krf) + rf(if+m-1,jf+n,krf) +
      @                     rf(if+m,jf+n-1,krf) + rf(if+m-1,jf+n-1,krf))
-               endif
+               end if
                if (ga(ii,ji,ki) - ga(ii,1-ji,ki) .eq. 1) then
                   fac0 = rm3 / (ir * kr)
                   ffac = (ir-1) * (kr-1) * rm3
@@ -518,7 +514,7 @@ c faces
  30                     sum = sum + fac *
      @                    (rf(if+m,jrf,kf+l) + rf(if+m-1,jrf,kf+l) +
      @                     rf(if+m,jrf,kf+l-1) + rf(if+m-1,jrf,kf+l-1))
-               endif
+               end if
                if (ga(ii,ji,ki) - ga(1-ii,ji,ki) .eq. 1) then
                   fac0 = rm3 / (jr * kr)
                   ffac = (jr-1) * (kr-1) * rm3
@@ -530,7 +526,7 @@ c faces
  40                     sum = sum + fac *
      @                    (rf(irf,jf+n,kf+l) + rf(irf,jf+n,kf+l-1) +
      @                     rf(irf,jf+n-1,kf+l) + rf(irf,jf+n-1,kf+l-1))
-               endif
+               end if
  50            continue
 c edges
       do 90 ki = 0, 1
@@ -552,7 +548,7 @@ c edges
                      fac = (ir-abs(m)) * fac1
  60                  sum = sum + fac *
      @                 (rf(if+m,jrf,krf) + rf(if+m-1,jrf,krf))
-               endif
+               end if
                if (ga(ii,ji,ki) -
      @             min(ga(ii,ji,1-ki), ga(1-ii,ji,ki), ga(1-ii,ji,1-ki))
      @             .eq. 1) then
@@ -563,7 +559,7 @@ c edges
                      fac = (jr-abs(n)) * fac1
  70                  sum = sum + fac *
      @                 (rf(irf,jf+n,krf) + rf(irf,jf+n-1,krf))
-               endif
+               end if
                if (ga(ii,ji,ki) -
      @             min(ga(ii,1-ji,ki), ga(1-ii,ji,ki), ga(1-ii,1-ji,ki))
      @             .eq. 1) then
@@ -574,7 +570,7 @@ c edges
                      fac = (kr-abs(l)) * fac1
  80                  sum = sum + fac *
      @                 (rf(irf,jrf,kf+l) + rf(irf,jrf,kf+l-1))
-               endif
+               end if
  90            continue
 c weighting
       src(if,jf,kf) = src(if,jf,kf) + sum / center
