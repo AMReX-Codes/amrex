@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.78 2001-08-09 22:41:59 marc Exp $
+// $Id: AmrLevel.cpp,v 1.79 2001-08-22 21:35:25 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1099,8 +1099,6 @@ FillPatchIteratorHelper::isValid ()
     //
     for (int i = 0; i < FinestCrseFabs.size(); i++)
     {
-        BL_ASSERT(FineState.getDomain().contains(FinestCrseFabs[i].box()));
-
         m_fab.copy(FinestCrseFabs[i]);
     }
 
