@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Derive.cpp,v 1.5 1998-01-06 23:43:57 lijewski Exp $
+// $Id: Derive.cpp,v 1.6 1998-01-22 16:39:53 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -52,7 +52,7 @@ DeriveRec::DeriveRec(const aString &name, IndexType result_type,
 // ------------------------------------------------------------------
 DeriveRec::~DeriveRec() 
 {
-   delete bcr;
+   delete [] bcr;
    func = 0;
    func_scr = 0;
    mapper = 0;
@@ -108,7 +108,7 @@ void
 DeriveRec::buildBC(const DescriptorList& d_list)
 {
     assert(nsr > 0);
-    delete bcr;
+    delete [] bcr;
     bcr = new int[2*BL_SPACEDIM*n_state];
     int *bci = bcr;
     DeriveRec::StateRange *r;

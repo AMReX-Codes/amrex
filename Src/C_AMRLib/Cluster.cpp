@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Cluster.cpp,v 1.6 1997-12-11 23:27:49 lijewski Exp $
+// $Id: Cluster.cpp,v 1.7 1998-01-22 16:39:53 lijewski Exp $
 //
 
 #include <Cluster.H>
@@ -77,7 +77,7 @@ Cluster::Cluster(Cluster &c,const Box& b)
         c.minBox();
         minBox();
     }
-    delete owns;
+    delete [] owns;
 }
 
 // ------------------------------------------------------------
@@ -199,7 +199,7 @@ Cluster::chop()
     assert( nlo > 0 && nlo < npts );
     int nhi = npts - nlo;
 
-    for (i = 0; i < BL_SPACEDIM; i++) delete hist[i];
+    for (i = 0; i < BL_SPACEDIM; i++) delete [] hist[i];
 
       // split intvect list
     Array<IntVect> *alo = new Array<IntVect>(nlo);
@@ -277,7 +277,7 @@ findCut(const int *hist, int lo, int hi, CutStatus &status)
             };
         };
     };
-    delete dhist;
+    delete [] dhist;
 
     if (locmax <= CUT_THRESH) {
           // just recommend a bisect cut
