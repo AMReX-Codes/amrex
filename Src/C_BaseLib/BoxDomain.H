@@ -2,7 +2,7 @@
 #define BL_BOXDOMAIN_H
 
 //
-// $Id: BoxDomain.H,v 1.20 2001-07-24 05:12:47 car Exp $
+// $Id: BoxDomain.H,v 1.21 2001-07-24 18:16:52 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -12,9 +12,8 @@
 #include <Box.H>
 #include <IntVect.H>
 #include <BoxList.H>
-
 //
-// Forward declaration of our BoxDomain iterator class.
+// Forward declaration.
 //
 class BoxDomain;
 
@@ -24,28 +23,32 @@ namespace BoxLib
     //@ManDoc: Returns the complement of BoxDomain bl in Box b.
     //
     BoxDomain complementIn (const Box& b, const BoxDomain& bl);
+
     /*@ManDoc: Coarsen all Boxes in the domain by the refinement ratio.
                The result is placed into a new BoxDomain.
     */
     void coarsen (BoxDomain& dest, const BoxDomain& fin, int ratio);
+
     /*@ManDoc: Refine all Boxes in the domain by the refinement ratio
                and return the result in dest.
     */
     void refine (BoxDomain&       dest,
-                        const BoxDomain& fin,
-                        int              ratio);
+                 const BoxDomain& fin,
+                 int              ratio);
+
     /*@ManDoc: Compute the intersection of BoxDomain fin with Box b
                and place the result into BoxDomain dest. 
     */
     void intersect (BoxDomain&       dest,
-                           const BoxDomain& fin,
-                           const Box&       b);
+                    const BoxDomain& fin,
+                    const Box&       b);
+
     /*@ManDoc: Grow each Box in BoxDomain fin by size sz and place
                the result into BoxDomain dest.
     */
     void accrete (BoxDomain&       dest,
-                         const BoxDomain& fin,
-                         int              sz = 1);
+                  const BoxDomain& fin,
+                  int              sz = 1);
 }
 
 //
@@ -105,7 +108,7 @@ public:
     //
     //@ManDoc: Promoted from BoxList.
     //
-    using BoxList::length;
+    using BoxList::size;
     //
     //@ManDoc: Promoted from BoxList.
     //
@@ -166,22 +169,18 @@ public:
     //@ManDoc: Refine all Boxes in the domain by the refinement ratio.
     //
     BoxDomain& refine (int ratio);
-
     //
     //@ManDoc: Coarsen all Boxes in the domain by the refinement ratio.
     //
     BoxDomain& coarsen (int ratio);
-
     //
     //@ManDoc: Intersect this BoxDomain with Box b.
     //
     BoxDomain& intersect (const Box& b);
-
     //
     //@ManDoc: Grow each Box by size sz.
     //
     BoxDomain& accrete (int sz);
-
     //
     //@ManDoc: Creates the complement of BoxDomain bl in Box b.
     //

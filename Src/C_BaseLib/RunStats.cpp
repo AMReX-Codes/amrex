@@ -1,5 +1,5 @@
 //
-// $Id: RunStats.cpp,v 1.33 2001-07-23 21:32:38 car Exp $
+// $Id: RunStats.cpp,v 1.34 2001-07-24 18:16:54 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -116,7 +116,7 @@ void
 RunStats::addCells (int  lev,
                     long count)
 {
-    if (lev >= RunStats::TheCells.length())
+    if (lev >= RunStats::TheCells.size())
         RunStats::TheCells.resize(lev+1, 0);
     RunStats::TheCells[lev] += count;
 }
@@ -463,7 +463,7 @@ RunStats::report_values (const Array<std::string>& stat_names,
                          Real&                 tot_run_wtime,
                          long&                 tot_cells)
 {
-    const int NStats = stat_names.length();
+    const int NStats = stat_names.size();
 
     stat_time.resize(NStats);
     stat_wtime.resize(NStats);
@@ -484,7 +484,7 @@ RunStats::report_values (const Array<std::string>& stat_names,
     ReduceIt(TheTotals);
 
     tot_cells = 0;
-    for (int i = 0; i < RunStats::TheCells.length(); i++)
+    for (int i = 0; i < RunStats::TheCells.size(); i++)
         tot_cells += RunStats::TheCells[i];
 
     for (int i = 0; i < NStats ; i++)
@@ -531,7 +531,7 @@ RunStats::dumpStats (std::ofstream& os)
         for (std::list<RunStatsData>::iterator it = TheTotals.begin(); it != TheTotals.end(); ++it)
             os << *it;
 
-        long nlev = RunStats::TheNumPts.length();
+        long nlev = RunStats::TheNumPts.size();
 
         os << nlev;
 
@@ -540,7 +540,7 @@ RunStats::dumpStats (std::ofstream& os)
 
         os << '\n';
 
-        nlev = RunStats::TheCells.length();
+        nlev = RunStats::TheCells.size();
 
         os << nlev;
 
@@ -614,13 +614,13 @@ RunStats::CollectNumPts ()
 
     if (ParallelDescriptor::IOProcessor())
     {
-        if (ParallelDescriptor::NProcs() > RunStats::TheNumPts.length())
+        if (ParallelDescriptor::NProcs() > RunStats::TheNumPts.size())
             //
             // Never decrease the size of RunStats::TheNumPts.
             //
             RunStats::TheNumPts.resize(ParallelDescriptor::NProcs(), 0);
 
-        for (int i = 0; i < numpts.length(); i++)
+        for (int i = 0; i < numpts.size(); i++)
             RunStats::TheNumPts[i] += numpts[i];
     }
 

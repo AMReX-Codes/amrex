@@ -2,7 +2,7 @@
 #define BL_BOXARRAY_H
 
 //
-// $Id: BoxArray.H,v 1.23 2001-07-20 23:06:17 lijewski Exp $
+// $Id: BoxArray.H,v 1.24 2001-07-24 18:16:52 lijewski Exp $
 //
 
 #include <cstddef>
@@ -118,7 +118,7 @@ public:
     //
     //@ManDoc: Returns the number of elements in the BoxArray.
     //
-    int length () const;
+    size_t size () const;
 
     long numPts() const;
     //

@@ -2,7 +2,7 @@
 #define BL_PARRAY_H
 
 //
-// $Id: PArray.H,v 1.19 2001-07-20 23:06:18 lijewski Exp $
+// $Id: PArray.H,v 1.20 2001-07-24 18:16:54 lijewski Exp $
 //
 
 #include <iostream>
@@ -106,9 +106,9 @@ public:
     void set (int i,
               T*  elem);
     //
-    //@ManDoc: Returns the length of the PArray<T>.
+    //@ManDoc: Returns the number of elements.
     //
-    int length () const;
+    size_t size () const;
 
     /*@ManDoc: This function sets each pointer in this PArray<T> to null.
                If the memory management policy was set to Manage
@@ -172,7 +172,7 @@ public:
 template <class T>
 PArray<T>::PArray (const PArray<T>& c)
 {
-    BL_ASSERT(c.length()==0);
+    BL_ASSERT(c.size()==0);
 }
 
 template <class T>
@@ -230,10 +230,10 @@ PArray<T>::set (int i,
 }
 
 template <class T>
-int
-PArray<T>::length () const
+size_t
+PArray<T>::size () const
 {
-    return vp.length();
+    return vp.size();
 }
 
 template <class T>
@@ -262,7 +262,7 @@ PArray<T>::PArray (int          len,
     vp(len),
     managed(_managed)
 {
-    for (int i = 0; i < length(); i++)
+    for (int i = 0; i < size(); i++)
         vp[i] = 0;
 }
 
@@ -272,12 +272,12 @@ PArray<T>::clear ()
 {
     if (managed)
     {
-        for (int i = 0; i < length(); ++i)
+        for (int i = 0; i < size(); ++i)
         {
             delete ((T*)(vp[i]));
         }
     }
-    for (int i = 0; i < length(); ++i)
+    for (int i = 0; i < size(); ++i)
         vp[i] = 0;
 }
 
@@ -293,7 +293,7 @@ PArray<T>::resize (int newlen)
 {
     void** ovp = vp.size() ? &vp[0] : 0;
 
-    int oldlen = vp.length();
+    int oldlen = vp.size();
 
     vp.resize(newlen);
 

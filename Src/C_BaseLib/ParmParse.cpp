@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.27 2001-07-24 18:12:36 car Exp $
+// $Id: ParmParse.cpp,v 1.28 2001-07-24 18:16:54 lijewski Exp $
 //
 
 #include <iostream>
@@ -443,7 +443,7 @@ addDefn (std::string&         def,
     //
     // Check that defn exists.
     //
-    if ( def.length() == 0 )
+    if ( def.size() == 0 )
     {
         val.clear();
         return;
@@ -500,7 +500,7 @@ bldTable (const char*           str,
 	    addDefn(cur_name,cur_list,tab);
 	    return;
 	case pEQ_sign:
-	    if ( cur_name.length() == 0 )
+	    if ( cur_name.size() == 0 )
 	    {
 		BoxLib::Abort("ParmParse::bldTable() EQ with no current defn");
 	    }
@@ -520,7 +520,7 @@ bldTable (const char*           str,
 	    cur_name = tmp_str;
 	    break;
 	case pDefn:
-	    if ( cur_name.length() == 0 )
+	    if ( cur_name.size() == 0 )
 	    {
 		cur_name = tokname;
 		break;
@@ -529,7 +529,7 @@ bldTable (const char*           str,
 	    // Otherwise, fall through, this may be a string.
 	    //
 	case pValue:
-	    if ( cur_name.length() == 0 )
+	    if ( cur_name.size() == 0 )
 	    {
 		tokname[SCRATCH_STR_LEN-1] = 0;
 		std::string msg("ParmParse::bldTable(): value with no defn: ");
@@ -772,7 +772,7 @@ ppinit (int argc, char** argv, const char* parfile)
             argstr += SPACE;
         }
         std::list<PP_entry*> arg_table;
-        bldTable(argstr.c_str(), argstr.length()+1, arg_table);
+        bldTable(argstr.c_str(), argstr.size()+1, arg_table);
         //
         // Append arg_table to end of existing table.
         //
@@ -948,7 +948,7 @@ ParmParse::getktharr (const char* name,
                       int         start_ix,
                       int         num_val) const
 {
-    if ( ptr.length() < num_val )
+    if ( ptr.size() < num_val )
     {
         ptr.resize(num_val);
     }
@@ -961,7 +961,7 @@ ParmParse::getarr (const char* name,
                    int         start_ix,
                    int         num_val) const
 {
-    if ( ptr.length() < num_val )
+    if ( ptr.size() < num_val )
     {
         ptr.resize(num_val);
     }
@@ -975,7 +975,7 @@ ParmParse::queryktharr (const char* name,
                         int         start_ix,
                         int         num_val) const
 {
-    if ( ptr.length() < num_val )
+    if ( ptr.size() < num_val )
     {
         ptr.resize(num_val);
     }
@@ -988,7 +988,7 @@ ParmParse::queryarr (const char* name,
                      int         start_ix,
                      int         num_val) const
 {
-    if ( ptr.length() < num_val )
+    if ( ptr.size() < num_val )
     {
         ptr.resize(num_val);
     }
@@ -1037,7 +1037,7 @@ ParmParse::getktharr (const char*   name,
                       int           start_ix,
                       int           num_val) const
 {
-    if ( ptr.length() < num_val )
+    if ( ptr.size() < num_val )
     {
         ptr.resize(num_val);
     }
@@ -1050,7 +1050,7 @@ ParmParse::getarr (const char*   name,
                    int           start_ix,
                    int           num_val) const
 {
-    if ( ptr.length() < num_val )
+    if ( ptr.size() < num_val )
     {
         ptr.resize(num_val);
     }
@@ -1064,7 +1064,7 @@ ParmParse::queryktharr (const char*   name,
                         int           start_ix,
                         int           num_val) const
 {
-    if ( ptr.length() < num_val )
+    if ( ptr.size() < num_val )
     {
         ptr.resize(num_val);
     }
@@ -1077,7 +1077,7 @@ ParmParse::queryarr (const char*   name,
                      int           start_ix,
                      int           num_val) const
 {
-    if ( ptr.length() < num_val )
+    if ( ptr.size() < num_val )
     {
         ptr.resize(num_val);
     }
@@ -1126,7 +1126,7 @@ ParmParse::getktharr (const char*    name,
                       int            start_ix,
                       int            num_val) const
 {
-    if ( ptr.length() < num_val )
+    if ( ptr.size() < num_val )
     {
         ptr.resize(num_val);
     }
@@ -1139,7 +1139,7 @@ ParmParse::getarr (const char*    name,
                    int            start_ix,
                    int            num_val) const
 {
-    if ( ptr.length() < num_val )
+    if ( ptr.size() < num_val )
     {
         ptr.resize(num_val);
     }
@@ -1153,7 +1153,7 @@ ParmParse::queryktharr (const char*    name,
                         int            start_ix,
                         int            num_val) const
 {
-    if ( ptr.length() < num_val )
+    if ( ptr.size() < num_val )
     {
         ptr.resize(num_val);
     }
@@ -1166,7 +1166,7 @@ ParmParse::queryarr (const char*    name,
                      int            start_ix,
                      int            num_val) const
 {
-    if ( ptr.length() < num_val )
+    if ( ptr.size() < num_val )
     {
         ptr.resize(num_val);
     }
@@ -1215,7 +1215,7 @@ ParmParse::getktharr (const char*     name,
                       int             start_ix,
                       int             num_val) const
 {
-    if ( ptr.length() < num_val )
+    if ( ptr.size() < num_val )
     {
         ptr.resize(num_val);
     }
@@ -1228,7 +1228,7 @@ ParmParse::getarr (const char*     name,
                    int             start_ix,
                    int             num_val) const
 {
-    if ( ptr.length() < num_val )
+    if ( ptr.size() < num_val )
     {
         ptr.resize(num_val);
     }
@@ -1242,7 +1242,7 @@ ParmParse::queryktharr (const char*     name,
                         int             start_ix,
                         int             num_val) const
 {
-    if ( ptr.length() < num_val )
+    if ( ptr.size() < num_val )
     {
         ptr.resize(num_val);
     }
@@ -1255,7 +1255,7 @@ ParmParse::queryarr (const char*     name,
                      int             start_ix,
                      int             num_val) const
 {
-    if ( ptr.length() < num_val )
+    if ( ptr.size() < num_val )
     {
         ptr.resize(num_val);
     }
@@ -1304,7 +1304,7 @@ ParmParse::getktharr (const char*     name,
                       int             start_ix,
                       int             num_val) const
 {
-    if ( ptr.length() < num_val )
+    if ( ptr.size() < num_val )
     {
         ptr.resize(num_val);
     }
@@ -1317,7 +1317,7 @@ ParmParse::getarr (const char*     name,
                    int             start_ix,
                    int             num_val) const
 {
-    if ( ptr.length() < num_val )
+    if ( ptr.size() < num_val )
     {
         ptr.resize(num_val);
     }
@@ -1331,7 +1331,7 @@ ParmParse::queryktharr (const char*     name,
                         int             start_ix,
                         int             num_val) const
 {
-    if ( ptr.length() < num_val )
+    if ( ptr.size() < num_val )
     {
         ptr.resize(num_val);
     }
@@ -1344,7 +1344,7 @@ ParmParse::queryarr (const char*     name,
                      int             start_ix,
                      int             num_val) const
 {
-    if ( ptr.length() < num_val )
+    if ( ptr.size() < num_val )
     {
         ptr.resize(num_val);
     }
@@ -1393,7 +1393,7 @@ ParmParse::getktharr (const char*     name,
                       int             start_ix,
                       int             num_val) const
 {
-    if ( ptr.length() < num_val )
+    if ( ptr.size() < num_val )
     {
         ptr.resize(num_val);
     }
@@ -1406,7 +1406,7 @@ ParmParse::getarr (const char*     name,
                    int             start_ix,
                    int             num_val) const
 {
-    if ( ptr.length() < num_val )
+    if ( ptr.size() < num_val )
     {
         ptr.resize(num_val);
     }
@@ -1420,7 +1420,7 @@ ParmParse::queryktharr (const char*     name,
                         int             start_ix,
                         int             num_val) const
 {
-    if ( ptr.length() < num_val )
+    if ( ptr.size() < num_val )
     {
         ptr.resize(num_val);
     }
@@ -1433,7 +1433,7 @@ ParmParse::queryarr (const char*     name,
                      int             start_ix,
                      int             num_val) const
 {
-    if ( ptr.length() < num_val )
+    if ( ptr.size() < num_val )
     {
         ptr.resize(num_val);
     }

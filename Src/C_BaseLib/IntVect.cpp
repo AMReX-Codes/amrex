@@ -1,5 +1,5 @@
 //
-// $Id: IntVect.cpp,v 1.15 2001-07-21 17:37:10 car Exp $
+// $Id: IntVect.cpp,v 1.16 2001-07-24 18:16:53 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -53,7 +53,7 @@ IntVect::IntVect (const int *a)
 
 IntVect::IntVect (const Array<int> &a)
 {
-    BL_ASSERT(a.length() == BL_SPACEDIM);
+    BL_ASSERT(a.size() == BL_SPACEDIM);
     D_EXPR(vect[0] = a[0], vect[1] = a[1], vect[2] = a[2]);
 }
 

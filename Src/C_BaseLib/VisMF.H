@@ -2,7 +2,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.47 2001-07-23 17:55:34 lijewski Exp $
+// $Id: VisMF.H,v 1.48 2001-07-24 18:16:54 lijewski Exp $
 //
 
 #include <MultiFab.H>
@@ -93,7 +93,7 @@ public:
     //
     //@ManDoc: # of FABs in the VisMF. Equal to # of Boxes in the BoxArray.
     //
-    int length () const;
+    size_t size () const;
     //
     //@ManDoc: The BoxArray of the on-disk MultiFab.
     //

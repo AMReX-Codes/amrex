@@ -1,5 +1,5 @@
 //
-// $Id: BoxList.cpp,v 1.18 2001-07-23 22:30:24 car Exp $
+// $Id: BoxList.cpp,v 1.19 2001-07-24 18:16:52 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -80,8 +80,8 @@ BoxList::clear ()
     lbox.clear();
 }
 
-int
-BoxList::length () const
+size_t
+BoxList::size () const
 {
     return lbox.size();
 }
@@ -186,9 +186,9 @@ BoxList::BoxList (const BoxArray &ba)
     : lbox(),
       btype()
 {
-    if (ba.length() > 0)
+    if (ba.size() > 0)
         btype = ba[0].ixType();
-    for (int i = 0; i < ba.length(); ++i)
+    for (int i = 0; i < ba.size(); ++i)
         append(ba[i]);
 }
 
@@ -259,7 +259,7 @@ BoxList::contains (const BoxList&  bl) const
 bool
 BoxList::contains (const BoxArray&  ba) const
 {
-    for (int i = 0; i < ba.length(); i++)
+    for (int i = 0; i < ba.size(); i++)
         if (!contains(ba[i]))
             return false;
     return true;
@@ -710,7 +710,7 @@ operator<< (std::ostream&  os,
             const BoxList& blist)
 {
     BoxList::ConstIterator bli = blist.begin();
-    os << "(BoxList " << blist.length() << ' ' << blist.ixType() << '\n';
+    os << "(BoxList " << blist.size() << ' ' << blist.ixType() << '\n';
     for (int count = 1; bli != blist.end(); ++bli, ++count)
     {
         os << count << " : " << *bli << '\n';
@@ -727,7 +727,7 @@ bool
 BoxList::operator== (const BoxList& rhs) const
 {
     bool rc = true;
-    if (length() != rhs.length())
+    if (size() != rhs.size())
     {
         rc = false;
     }

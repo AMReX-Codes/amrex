@@ -1,5 +1,5 @@
 //
-// $Id: FabConv.cpp,v 1.15 2001-07-22 19:38:17 car Exp $
+// $Id: FabConv.cpp,v 1.16 2001-07-24 18:16:53 lijewski Exp $
 //
 
 #include <iostream>
@@ -91,35 +91,35 @@ RealDescriptor::operator= (const RealDescriptor& rhs)
 const long*
 RealDescriptor::format () const
 {
-    BL_ASSERT(fr.length() != 0);
+    BL_ASSERT(fr.size() != 0);
     return fr.dataPtr();
 }
 
 const Array<long>&
 RealDescriptor::formatarray () const
 {
-    BL_ASSERT(fr.length() != 0);
+    BL_ASSERT(fr.size() != 0);
     return fr;
 }
 
 const int*
 RealDescriptor::order () const
 {
-    BL_ASSERT(ord.length() != 0);
+    BL_ASSERT(ord.size() != 0);
     return ord.dataPtr();
 }
 
 const Array<int>&
 RealDescriptor::orderarray () const
 {
-    BL_ASSERT(ord.length() != 0);
+    BL_ASSERT(ord.size() != 0);
     return ord;
 }
 
 int
 RealDescriptor::numBytes () const
 {
-    BL_ASSERT(fr.length() != 0);
+    BL_ASSERT(fr.size() != 0);
     return (fr[0] + 7 ) >> 3;
 }
 
@@ -969,11 +969,11 @@ putarray (std::ostream&        os,     \
 {                                      \
     int i;                             \
     os << '(';                         \
-    os << ar.length() << ", (";        \
-    for (i = 0; i < ar.length(); ++i)  \
+    os << ar.size() << ", (";          \
+    for (i = 0; i < ar.size(); ++i)    \
     {                                  \
         os << ar[i];                   \
-        if (i != ar.length() - 1)      \
+        if (i != ar.size() - 1)        \
             os << ' ';                 \
     }                                  \
     os << "))";                        \
@@ -1014,7 +1014,7 @@ operator>> (std::istream&   is,
     is >> c;
     if (c != ')')
         BoxLib::Error("operator>>(istream&,RealDescriptor&): expected a \')\'");
-    rd = RealDescriptor(fmt.dataPtr(),ord.dataPtr(),ord.length());
+    rd = RealDescriptor(fmt.dataPtr(),ord.dataPtr(),ord.size());
     return is;
 }
 
