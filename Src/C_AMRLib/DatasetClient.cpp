@@ -1,6 +1,8 @@
 // -------------------------------------------------------------------
 //  DatasetClient.C
 // -------------------------------------------------------------------
+#define _OSF_SOURCE
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/errno.h>
 #include <netinet/in.h>
