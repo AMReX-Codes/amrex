@@ -40,12 +40,10 @@ module bl_IO_module
 contains
 
   !! Returns a unit number of a unit that exists and is not connected
-  function unit_new ()  result (r)
-
+  function unit_new() result (r)
     integer :: r
     logical :: exists, opened
     integer :: ios
-
     do r = 1, IO_MAX_UNIT
        if (r == IO_STDIN .or. r == IO_STDOUT ) cycle
        if (any (r == IO_PRECON_UNITS )) cycle
@@ -53,19 +51,17 @@ contains
             exist = exists,  &
             opened = opened,  &
             iostat = ios)
-       if (exists .and. .not. opened .and. ios == 0) return
+       if ( exists .and. .not. opened .and. ios == 0 ) return
     end do
-
     r = -1
-
   end function unit_new
 
   !! Returns the stdin unit number if no argument is passed, or else
   !! unit if it is passed.
-  function unit_stdin (unit)  result (r)
+  function unit_stdin(unit)  result (r)
     integer :: r
     integer, intent(in), optional :: unit
-    if (present(unit)) then
+    if ( present(unit) ) then
        r = unit
     else
        r = IO_STDIN
@@ -74,7 +70,7 @@ contains
 
   !! Returns the stdout unit number if no argument is passed, or else
   !! unit if it is passed.
-  function unit_stdout (unit) result(r)
+  function unit_stdout(unit) result(r)
     integer :: r
     integer, intent(in), optional :: unit
     if ( present(unit) ) then
@@ -86,7 +82,7 @@ contains
 
   !! Returns the string 'YES' if no argument is passed other wise
   !! returns the argument advance
-  function unit_advance (advance) result(r)
+  function unit_advance(advance) result(r)
     character(len=3) :: r
     character(len=*), intent(in), optional :: advance
     if ( present(advance) ) then
