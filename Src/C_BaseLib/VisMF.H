@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.27 1997-11-23 18:19:59 lijewski Exp $
+// $Id: VisMF.H,v 1.28 1997-12-04 20:11:01 lijewski Exp $
 //
 
 #include <MultiFab.H>
@@ -165,7 +165,11 @@ private:
     static long WriteHeader (const aString& mf_name,
                              VisMF::Header& hdr);
 
-    static FArrayBox* readFAB (int i, const Header& hdr);
+    static FArrayBox* readFAB (int i,const aString& mf_name,const Header& hdr);
+
+    static aString DirName (const aString& filename);
+
+    static aString BaseName (const aString& filename);
     //
     // The suffix appended to files containing FAB data.
     //
@@ -174,6 +178,10 @@ private:
     // The suffix appended to files containing MultiFabs.
     //
     static const aString MultiFabHdrFileSuffix;
+    //
+    // Name of the MultiFab.
+    //
+    aString m_mfname;
     //
     // The VisMF header as read from disk.
     //
@@ -270,7 +278,7 @@ VisMF::operator[] (int i) const
 {
     if (!m_pa.defined(i))
     {
-        m_pa.set(i, VisMF::readFAB(i, m_hdr));
+        m_pa.set(i, VisMF::readFAB(i, m_mfname, m_hdr));
     }
     return m_pa[i];
 }

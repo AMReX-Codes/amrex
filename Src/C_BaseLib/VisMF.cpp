@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.35 1997-11-23 18:19:59 lijewski Exp $
+// $Id: VisMF.cpp,v 1.36 1997-12-04 20:11:02 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -222,6 +222,66 @@ operator>> (istream&       is,
     return is;
 }
 
+aString
+VisMF::BaseName (const aString& filename)
+{
+    assert(filename[filename.length() - 1] != '/');
+
+    if (char* slash = strrchr(filename.c_str(), '/'))
+    {
+        //
+        // Got at least one slash -- give'm the following tail.
+        //
+        return aString(slash + 1);
+    }
+    else
+    {
+        //
+        // No leading directory portion to name.
+        //
+        return filename;
+    }
+}
+
+aString
+VisMF::DirName (const aString& filename)
+{
+    assert(filename[filename.length() - 1] != '/');
+
+    static const aString TheNullString("");
+
+    const char* str = filename.c_str();    
+
+    if (char* slash = strrchr(str, '/'))
+    {
+        //
+        // Got at least one slash -- give'm the dirname including last slash.
+        //
+        int len = (slash - str) + 1;
+
+        char* buf = new char[len+1];
+        if (buf == 0)
+            BoxLib::OutOfMemory(__FILE__, __LINE__);
+
+        strncpy(buf, str, len);
+
+        buf[len] = 0; // Stringify
+
+        aString dirname = buf;
+
+        delete [] buf;
+
+        return dirname;
+    }
+    else
+    {
+        //
+        // No directory name here.
+        //
+        return TheNullString;
+    }
+}
+
 VisMF::FabOnDisk
 VisMF::Write (const FArrayBox& fab,
               const aString&   filename,
@@ -389,6 +449,8 @@ VisMF::Write (const MultiFab& mf,
               const aString&  mf_name,
               VisMF::How      how)
 {
+    assert(mf_name[mf_name.length() - 1] != '/');
+
     long bytes = 0;
     //
     // Structure we use to pass FabOnDisk data to the IOProcessor.
@@ -415,27 +477,29 @@ VisMF::Write (const MultiFab& mf,
     {
     case OneFilePerCPU:
     {
-        aString FabFileName = mf_name;
+        aString FullFileName = mf_name;
 
-        FabFileName += VisMF::FabFileSuffix;
+        FullFileName += VisMF::FabFileSuffix;
         sprintf(buf, "%04ld", ParallelDescriptor::MyProc());
-        FabFileName += buf;
+        FullFileName += buf;
 
         ofstream FabFile;
 
 #ifdef BL_USE_SETBUF
         FabFile.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
-        FabFile.open(FabFileName.c_str(), ios::out|ios::trunc);
+        FabFile.open(FullFileName.c_str(), ios::out|ios::trunc);
 
         if (!FabFile.good())
-            Utility::FileOpenFailed(FabFileName);
+            Utility::FileOpenFailed(FullFileName);
+
+        aString TheBaseName = VisMF::BaseName(FullFileName);
 
         for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
         {
             int idx = mfi.index();
 
-            hdr.m_fod[idx] = VisMF::Write(mfi(), FabFileName, FabFile, bytes);
+            hdr.m_fod[idx] = VisMF::Write(mfi(), TheBaseName, FabFile, bytes);
 
             if (!ParallelDescriptor::IOProcessor())
             {
@@ -444,40 +508,42 @@ VisMF::Write (const MultiFab& mf,
 
                 ParallelDescriptor::SendData(ParallelDescriptor::IOProcessor(),
                                              &msg_hdr,
-                                             FabFileName.c_str(),
+                                             TheBaseName.c_str(),
                                              //
                                              // Include NULL in MSG.
                                              //
-                                             FabFileName.length()+1);
+                                             TheBaseName.length()+1);
             }
         }
         if (VisMF::FileOffset(FabFile) <= 0)
-            Utility::UnlinkFile(FabFileName);
+            Utility::UnlinkFile(FullFileName);
     }
     break;
     case OneFilePerFab:
     {
         for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
         {
-            aString FabFileName = mf_name;
+            aString FullFileName = mf_name;
 
-            FabFileName += VisMF::FabFileSuffix;
+            FullFileName += VisMF::FabFileSuffix;
             sprintf(buf, "%04ld", mfi.index());
-            FabFileName += buf;
+            FullFileName += buf;
 
             ofstream FabFile;
 
 #ifdef BL_USE_SETBUF
             FabFile.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
-            FabFile.open(FabFileName.c_str(), ios::out|ios::trunc);
+            FabFile.open(FullFileName.c_str(), ios::out|ios::trunc);
 
             if (!FabFile.good())
-                Utility::FileOpenFailed(FabFileName);
+                Utility::FileOpenFailed(FullFileName);
+
+            aString TheBaseName = VisMF::BaseName(FullFileName);
 
             int idx = mfi.index();
 
-            hdr.m_fod[idx] = VisMF::Write(mfi(), FabFileName, FabFile, bytes);
+            hdr.m_fod[idx] = VisMF::Write(mfi(), TheBaseName, FabFile, bytes);
 
             assert(hdr.m_fod[idx].m_head == 0);
 
@@ -488,11 +554,11 @@ VisMF::Write (const MultiFab& mf,
 
                 ParallelDescriptor::SendData(ParallelDescriptor::IOProcessor(),
                                              &msg_hdr,
-                                             FabFileName.c_str(),
+                                             TheBaseName.c_str(),
                                              //
                                              // Include NULL in MSG.
                                              //
-                                             FabFileName.length()+1);
+                                             TheBaseName.length()+1);
             }
         }
     }
@@ -524,11 +590,12 @@ VisMF::Write (const MultiFab& mf,
 
 VisMF::VisMF (const aString& mf_name)
     :
+    m_mfname(mf_name),
     m_pa(PArrayManage)
 {
-    aString file = mf_name;
+    aString FullHdrFileName = m_mfname;
 
-    file += VisMF::MultiFabHdrFileSuffix;
+    FullHdrFileName += VisMF::MultiFabHdrFileSuffix;
 
 #ifdef BL_USE_SETBUF
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
@@ -538,10 +605,10 @@ VisMF::VisMF (const aString& mf_name)
 #ifdef BL_USE_SETBUF
     ifs.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
-    ifs.open(file.c_str(), ios::in);
+    ifs.open(FullHdrFileName.c_str(), ios::in);
 
     if (!ifs.good())
-        Utility::FileOpenFailed(file);
+        Utility::FileOpenFailed(FullHdrFileName);
 
     ifs >> m_hdr;
 
@@ -549,22 +616,23 @@ VisMF::VisMF (const aString& mf_name)
 }
 
 FArrayBox*
-VisMF::readFAB (int                  i,
+VisMF::readFAB (int                  idx,
+                const aString&       mf_name,
                 const VisMF::Header& hdr)
 {
-    Box fab_box = hdr.m_ba[i];
+    Box fab_box = hdr.m_ba[idx];
 
     if (hdr.m_ngrow)
-    {
         fab_box.grow(hdr.m_ngrow);
-    }
 
     FArrayBox* fab = new FArrayBox(fab_box, hdr.m_ncomp);
     if (fab == 0)
         BoxLib::OutOfMemory(__FILE__, __LINE__);
 
-    const aString& file = hdr.m_fod[i].m_name;
+    aString FullFileName = VisMF::DirName(mf_name);
 
+    FullFileName += hdr.m_fod[idx].m_name;
+    
 #ifdef BL_USE_SETBUF
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 #endif
@@ -573,15 +641,13 @@ VisMF::readFAB (int                  i,
 #ifdef BL_USE_SETBUF
     ifs.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
-    ifs.open(file.c_str(), ios::in);
+    ifs.open(FullFileName.c_str(), ios::in);
 
     if (!ifs.good())
-        Utility::FileOpenFailed(file);
+        Utility::FileOpenFailed(FullFileName);
 
-    if (hdr.m_fod[i].m_head)
-    {
-        ifs.seekg(hdr.m_fod[i].m_head, ios::beg);
-    }
+    if (hdr.m_fod[idx].m_head)
+        ifs.seekg(hdr.m_fod[idx].m_head, ios::beg);
 
     fab->readFrom(ifs);
 
@@ -594,10 +660,9 @@ VisMF::Read (MultiFab&      mf,
 {
     VisMF::Header hdr;
 
-    aString file = mf_name;
+    aString FullHdrFileName = mf_name;
 
-    file += VisMF::MultiFabHdrFileSuffix;
-
+    FullHdrFileName += VisMF::MultiFabHdrFileSuffix;
     {
 #ifdef BL_USE_SETBUF
         VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
@@ -607,19 +672,18 @@ VisMF::Read (MultiFab&      mf,
 #ifdef BL_USE_SETBUF
         ifs.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
-        ifs.open(file.c_str(), ios::in);
+        ifs.open(FullHdrFileName.c_str(), ios::in);
 
         if (!ifs.good())
-            Utility::FileOpenFailed(file);
+            Utility::FileOpenFailed(FullHdrFileName);
 
         ifs >> hdr;
     }
-
     mf.define(hdr.m_ba, hdr.m_ncomp, hdr.m_ngrow, Fab_noallocate);
 
     for (MultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
     {
-        mf.setFab(mfi.index(), VisMF::readFAB(mfi.index(), hdr));
+        mf.setFab(mfi.index(), VisMF::readFAB(mfi.index(), mf_name, hdr));
     }
 
     assert(mf.ok());
