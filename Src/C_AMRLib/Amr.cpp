@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.51 1998-08-04 16:41:55 lijewski Exp $
+// $Id: Amr.cpp,v 1.52 1998-09-14 21:49:56 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -761,6 +761,13 @@ Amr::restart (const aString& filename)
 void
 Amr::checkPoint ()
 {
+    //
+    // In checkpoint files always write out FABs in NATIVE format.
+    //
+    FABio::Format thePrevFormat = FArrayBox::getFormat();
+
+    FArrayBox::setFormat(FABio::FAB_NATIVE);
+
     Real dCheckPointTime0 = ParallelDescriptor::second();
 
     aString ckfile = Concatenate(check_file_root, level_steps[0]);
@@ -863,6 +870,10 @@ Amr::checkPoint ()
              << dCheckPointTime
              << "  seconds." << endl;
     }
+    //
+    // Don't forget to reset FAB format.
+    //
+    FArrayBox::setFormat(thePrevFormat);
 }
 
 void
