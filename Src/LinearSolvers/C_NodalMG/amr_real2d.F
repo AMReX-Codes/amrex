@@ -151,7 +151,7 @@ c Works for CELL- or NODE-based data.
       integer ra(0:1)
       double precision dest(destl0:desth0,destl1:desth1,ncomp)
       double precision src(srcl0:srch0,srcl1:srch1,ncomp)
-      integer i, j
+      integer i, j, nc
       do nc = 1, ncomp
       if (ra(0) .eq. 0 .and. ra(1) .eq. 0) then
          do j = regl1, regh1
@@ -226,21 +226,21 @@ c Works for CELL- or NODE-based data.
       if (ra(0) .eq. 0 .and. ra(1) .eq. 0) then
          do j = regl1, regh1
             do i = regl0, regh0
-               dest(i,j,nc) = -src(bbl0+(i-regl0),bbl1+(j-regl1))
+               dest(i,j,nc) = -src(bbl0+(i-regl0),bbl1+(j-regl1),nc)
             end do
          end do
       else if (ra(0) .eq. 0 .and. ra(1) .eq. 1) then
          do 20 j = regl1, regh1
             do 20 i = regl0, regh0
- 20            dest(i,j,nc) = -src(bbl0+(i-regl0),bbh1-(j-regl1))
+ 20            dest(i,j,nc) = -src(bbl0+(i-regl0),bbh1-(j-regl1),nc)
       else if (ra(0) .eq. 1 .and. ra(1) .eq. 0) then
          do 30 i = regl0, regh0
             do 30 j = regl1, regh1
- 30            dest(i,j,nc) = -src(bbh0-(i-regl0),bbl1+(j-regl1))
+ 30            dest(i,j,nc) = -src(bbh0-(i-regl0),bbl1+(j-regl1),nc)
       else
          do 40 i = regl0, regh0
             do 40 j = regl1, regh1
- 40            dest(i,j,nc) = -src(bbh0-(i-regl0),bbh1-(j-regl1))
+ 40            dest(i,j,nc) = -src(bbh0-(i-regl0),bbh1-(j-regl1),nc)
       end if
       end do
       end
@@ -268,25 +268,25 @@ c inflow face, so that binfil can be run for subsequent fills
          if (regl0 .lt. bbh0) then
             do 10 i = regl0, regh0
                do 10 j = regl1, regh1
- 10               dest(i,j,nc) = 2.d0 * dest(regh0,j) 
-     &			- src(bbh0-(i-regl0),j)
+ 10               dest(i,j,nc) = 2.d0 * dest(regh0,j,nc) 
+     &			- src(bbh0-(i-regl0),j,nc)
          else
             do 20 i = regh0, regl0, -1
                do 20 j = regl1, regh1
- 20               dest(i,j,nc) = 2.d0 * dest(regl0,j) 
-     &			- src(bbh0-(i-regl0),j)
+ 20               dest(i,j,nc) = 2.d0 * dest(regl0,j,nc) 
+     &			- src(bbh0-(i-regl0),j,nc)
          end if
       else
          if (regl1 .lt. bbh1) then
             do 30 j = regl1, regh1
                do 30 i = regl0, regh0
- 30               dest(i,j,nc) = 2.d0 * dest(i,regh1) 
-     &			- src(i,bbh1-(j-regl1))
+ 30               dest(i,j,nc) = 2.d0 * dest(i,regh1,nc) 
+     &			- src(i,bbh1-(j-regl1),nc)
          else
             do 40 j = regh1, regl1, -1
                do 40 i = regl0, regh0
- 40               dest(i,j,nc) = 2.d0 * dest(i,regl1) 
-     &			- src(i,bbh1-(j-regl1))
+ 40               dest(i,j,nc) = 2.d0 * dest(i,regl1,nc) 
+     &			- src(i,bbh1-(j-regl1),nc)
          end if
       end if
       end do
@@ -308,33 +308,33 @@ c extended to one cell past the boundary by the boundary::box routine.
       integer srcl0, srch0, srcl1, srch1
       integer bbl0, bbh0, bbl1, bbh1
       integer idir
-      double precision dest(destl0:desth0,destl1:desth1)
-      double precision src(srcl0:srch0,srcl1:srch1)
+      double precision dest(destl0:desth0,destl1:desth1,ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,ncomp)
       integer i, j, nc
       do nc = 1, ncomp
       if (idir .eq. 0) then
          if (regl0 .lt. bbh0) then
             do 10 i = regl0, regh0
                do 10 j = regl1, regh1
- 10               dest(i,j,nc) = src(bbl0,j) + src(bbl0+1,j) -
-     &                        src(bbh0-(i-regl0),j)
+ 10               dest(i,j,nc) = src(bbl0,j,nc) + src(bbl0+1,j,nc) -
+     &                        src(bbh0-(i-regl0),j,nc)
          else
             do 20 i = regh0, regl0, -1
                do 20 j = regl1, regh1
- 20               dest(i,j,nc) = src(bbh0-1,j) + src(bbh0,j) -
-     &                        src(bbl0+(regh0-i),j)
+ 20               dest(i,j,nc) = src(bbh0-1,j,nc) + src(bbh0,j,nc) -
+     &                        src(bbl0+(regh0-i),j,nc)
          end if
       else
          if (regl1 .lt. bbh1) then
             do 30 j = regl1, regh1
                do 30 i = regl0, regh0
- 30               dest(i,j,nc) = src(i,bbl1) + src(i,bbl1+1) -
-     &                        src(i,bbh1-(j-regl1))
+ 30               dest(i,j,nc) = src(i,bbl1,nc) + src(i,bbl1+1,nc) -
+     &                        src(i,bbh1-(j-regl1),nc)
          else
             do 40 j = regh1, regl1, -1
                do 40 i = regl0, regh0
- 40               dest(i,j,nc) = src(i,bbh1-1) + src(i,bbh1) -
-     &                        src(i,bbl1+(regh1-j))
+ 40               dest(i,j,nc) = src(i,bbh1-1,nc) + src(i,bbh1,nc) -
+     &                        src(i,bbl1+(regh1-j),nc)
          end if
       end if
       end do
@@ -362,9 +362,9 @@ c CELL-based data only.
          do 10 i = regl0, regh0
             ic = i/ir
             xoff = (mod(i,ir) + 0.5) / ir - 0.5
-            sy = 0.5 * (src(ic,jc+1) - src(ic,jc-1))
-            sx = 0.5 * (src(ic+1,jc) - src(ic-1,jc))
- 10         dest(i,j) = src(ic,jc) + xoff * sx + yoff * sy
+            sy = 0.5 * (src(ic,jc+1,nc) - src(ic,jc-1,nc))
+            sx = 0.5 * (src(ic+1,jc,nc) - src(ic-1,jc,nc))
+ 10         dest(i,j,nc) = src(ic,jc,nc) + xoff * sx + yoff * sy
       end do
       end
 c-----------------------------------------------------------------------
@@ -386,28 +386,27 @@ c NODE-based data only.
       do nc = 1, ncomp
       do 10 jc = bbl1, bbh1
          do 10 ic = bbl0, bbh0
- 10         dest(ir*ic,jr*jc) = src(ic,jc)
+ 10         dest(ir*ic,jr*jc,nc) = src(ic,jc,nc)
          do 220 m = 1, jr-1
             q = dble(m)/jr
             p = 1.0d0 - q
             do 220 jc = bbl1, bbh1-1
                do 220 ic = bbl0, bbh0
- 220              dest(ir*ic,jr*jc+m) = p * src(ic,jc) +
-     &                                  q * src(ic,jc+1)
-      if (ir .eq. 2) then
+ 220              dest(ir*ic,jr*jc+m,nc) = p * src(ic,jc,nc) +
+     &                                  q * src(ic,jc+1,nc)
          do 30 ic = bbl0, bbh0-1
 cdir$ ivdep
             do 30 j = regl1, regh1
- 30            dest(2*ic+1,j) = 0.5d0 * (dest(2*ic,j) +
-     &                                   dest(2*ic+2,j))
+ 30            dest(2*ic+1,j,nc) = 0.5d0 * (dest(2*ic,j,nc) +
+     &                                   dest(2*ic+2,j,nc))
          do 230 m = 1, ir-1
             q = dble(m)/ir
             p = 1.0d0 - q
             do 230 ic = bbl0, bbh0-1
 cdir$ ivdep
                do 230 j = regl1, regh1
- 230              dest(ir*ic+m,j) = p * dest(ir*ic,j) +
-     &                              q * dest(ir*(ic+1),j)
+ 230              dest(ir*ic+m,j,nc) = p * dest(ir*ic,j,nc) +
+     &                              q * dest(ir*(ic+1),j,nc)
       end do
       end
 c-----------------------------------------------------------------------
@@ -567,15 +566,16 @@ c Fills coarse region defined by reg.
          end if
          i = regl0
          do 10 j = regl1, regh1
- 10         dest(i,j) = fac * src(i*ir,j*jr)
+ 10         dest(i,j,nc) = fac * src(i*ir,j*jr,nc)
          do 20 n = 0, jr-1
             fac1 = (jr-n) * fac0
             if (n .eq. 0) fac1 = 0.5d0 * fac1
             do 20 m = idir, idir*(ir-1), idir
                fac = (ir-abs(m)) * fac1
                do 20 j = regl1, regh1
- 20               dest(i,j) = dest(i,j) + fac * (src(i*ir+m,j*jr-n)+
-     &                                           src(i*ir+m,j*jr+n))
+ 20               dest(i,j,nc) = dest(i,j,nc) +
+     &			 fac * (src(i*ir+m,j*jr-n,nc)+
+     &                              src(i*ir+m,j*jr+n,nc))
       else
          if (integ .eq. 0) then
             fac = (0.5d0 + 0.5d0 / jr)
@@ -586,15 +586,15 @@ c Fills coarse region defined by reg.
          end if
          j = regl1
          do 30 i = regl0, regh0
- 30         dest(i,j) = fac * src(i*ir,j*jr)
+ 30         dest(i,j,nc) = fac * src(i*ir,j*jr,nc)
          do 40 n = idir, idir*(jr-1), idir
             fac1 = (jr-abs(n)) * fac0
             do 40 m = 0, ir-1
                fac = (ir-m) * fac1
                if (m .eq. 0) fac = 0.5d0 * fac
                do 40 i = regl0, regh0
- 40               dest(i,j) = dest(i,j) + fac * (src(i*ir-m,j*jr+n)+
-     &                                           src(i*ir+m,j*jr+n))
+ 40               dest(i,j,nc) = dest(i,j,nc)
+     &		+ fac * (src(i*ir-m,j*jr+n,nc)+src(i*ir+m,j*jr+n,nc))
       end if
       end do
       end
@@ -624,12 +624,12 @@ c Fills coarse point defined by reg.
       end if
       i = regl0
       j = regl1
-      dest(i,j) = fac * src(i*ir,j*jr)
+      dest(i,j,nc) = fac * src(i*ir,j*jr,nc)
       do 20 n = idir1, idir1*(jr-1), idir1
          fac1 = (jr-abs(n)) * fac0
          do 20 m = idir0, idir0*(ir-1), idir0
             fac = (ir-abs(m)) * fac1
- 20         dest(i,j) = dest(i,j) + fac * src(i*ir+m,j*jr+n)
+ 20         dest(i,j,nc) = dest(i,j,nc) + fac * src(i*ir+m,j*jr+n,nc)
       end do
       end
 c-----------------------------------------------------------------------
@@ -658,20 +658,20 @@ c Fills coarse point defined by reg.
       end if
       i = regl0
       j = regl1
-      dest(i,j) = fac * src(i*ir,j*jr)
+      dest(i,j,nc) = fac * src(i*ir,j*jr,nc)
       do 10 m = idir0, idir0*(ir-1), idir0
          fac1 = (ir-abs(m)) * fac0
          fac = jr * fac1
- 10      dest(i,j) = dest(i,j) + fac * src(i*ir+m,j*jr)
+ 10      dest(i,j,nc) = dest(i,j,nc) + fac * src(i*ir+m,j*jr,nc)
       do 20 n = idir1, idir1*(jr-1), idir1
          fac1 = (jr-abs(n)) * fac0
          fac = ir * fac1
-         dest(i,j) = dest(i,j) + fac * src(i*ir,j*jr+n)
+         dest(i,j,nc) = dest(i,j,nc) + fac * src(i*ir,j*jr+n,nc)
          do 20 m = idir0, idir0*(ir-1), idir0
             fac = (ir-abs(m)) * fac1
- 20         dest(i,j) = dest(i,j) + fac * (src(i*ir+m,j*jr+n) +
-     &                                     src(i*ir-m,j*jr+n) +
-     &                                     src(i*ir+m,j*jr-n))
+ 20         dest(i,j,nc) = dest(i,j,nc) + fac * (src(i*ir+m,j*jr+n,nc) +
+     &                                     src(i*ir-m,j*jr+n,nc) +
+     &                                     src(i*ir+m,j*jr-n,nc))
       end do
       end
 c-----------------------------------------------------------------------
@@ -700,12 +700,12 @@ c Fills coarse point defined by reg.
       end if
       i = regl0
       j = regl1
-      dest(i,j) = fac * src(i*ir,j*jr)
+      dest(i,j,nc) = fac * src(i*ir,j*jr,nc)
       do 20 n = idir1, idir1*(jr-1), idir1
          fac1 = (jr-abs(n)) * fac0
          do 20 m = 1, ir-1
             fac = (ir-m) * fac1
- 20         dest(i,j) = dest(i,j) + fac * (src(i*ir+m,j*jr+n) +
-     &                                     src(i*ir-m,j*jr-n))
+ 20         dest(i,j,nc) = dest(i,j,nc) + fac * (src(i*ir+m,j*jr+n,nc) +
+     &                                     src(i*ir-m,j*jr-n,nc))
       end do
       end

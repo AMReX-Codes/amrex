@@ -433,7 +433,7 @@ void bilinear_restrictor_coarse_class::fill_interface(MultiFab& dest,
 		    FArrayBox fgr(fbox, dest[jgrid].nComp());
 		    fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
 		    FORT_FANFR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
-			D_DECL(rat[0], rat[1], rat[2]), idim, idir, dest.nComp(), integrate);
+			D_DECL(rat[0], rat[1], rat[2]), idim, idir, dest.nComp(), &integrate);
 		}
 		else if (geo == level_interface::LL || geo == level_interface::HL || geo == level_interface::LH || geo == level_interface::HH) 
 		{

@@ -586,7 +586,7 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 		b.grow(0, w);
 	    b.growLo(idim, w).convert(IntVect::TheCellVector());
 	    tl.add_task(new task_copy(&r, jgrid, r, igrid, b));
-	    tl.add_task(new task_copy(&r, igrid, r, jgrid, b.shift(idim, w));
+	    tl.add_task(new task_copy(&r, igrid, r, jgrid, b.shift(idim, w)));
 #else
 	    Box bj = lev_interface.box(level_interface::FACEDIM, iface);
 	    Box bi = lev_interface.box(level_interface::FACEDIM, iface);
