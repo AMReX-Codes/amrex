@@ -259,8 +259,8 @@ contains
     maxprc = -Huge(maxprc)
     minprc =  Huge(minprc)
     do i = 0, np-1
-       maxprc = max(maxprc, sum(weights, prc==i))
-       minprc = min(minprc, sum(weights, prc==i))
+       maxprc = max(maxprc, sum(weights, mask = prc==i))
+       minprc = min(minprc, sum(weights, mask = prc==i))
     end do
     print *, 'np               = ', np
     print *, 'n                = ', size(iweights)
@@ -272,9 +272,9 @@ contains
     print *, 'stdd bx weight   = ', stddev
     print *, 'max prc weight   = ', maxprc
     print *, 'min prc weight   = ', minprc
-    print *, 'weight prc(0)    = ', sum(weights,prc==0)
+    print *, 'weight prc(0)    = ', sum(weights, mask = prc==0)
     print *, 'total weight     = ', sum(weights)
-    print *, 'efficiency       = ', sum(weights)/np/sum(weights,prc==0)
+    print *, 'efficiency       = ', sum(weights)/np/sum(weights,mask = prc==0)
     print *, 'knapsack time    = ', t2-t1
 
     un = unit_new()

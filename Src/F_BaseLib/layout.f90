@@ -580,7 +580,7 @@ contains
     weights = box_dvolume(la%lap%bxa%bxs)
     p_max_weight = -Huge(p_max_weight)
     do i = 0, lnp-1
-       p_max_weight = max(p_max_weight, sum(weights, la%lap%prc==i))
+       p_max_weight = max(p_max_weight, sum(weights, mask = la%lap%prc==i))
     end do
     r = sum(weights)/lnp/p_max_weight
   end function layout_efficiency

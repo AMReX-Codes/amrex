@@ -25,6 +25,7 @@ module stencil_module
      type(multifab)  :: ss
      type(imultifab) :: mm
      logical, pointer :: skewed(:) => Null()
+     logical, pointer :: diag_0(:) => NUll()
      logical :: extrap_bc = .false.
      real(kind=dp_t), pointer :: xa(:) => Null()
      real(kind=dp_t), pointer :: xb(:) => Null()
@@ -125,6 +126,13 @@ contains
     end do
   end function skewed_q
 
+  function diag_0_q(ss) result(r)
+    logical :: r
+    real(kind=dp_t), intent(in) :: ss(:,:,:,0:)
+    integer :: i, j
+    r = any(ss(:,:,:,0) == ZERO)
+  end function diag_0_q
+
   elemental function bc_skewed(m, dim, face) result(r)
     logical :: r
     integer, intent(in) :: m, dim, face
@@ -168,7 +176,7 @@ contains
     type(stencil), intent(inout) :: st
     call destroy(st%ss)
     call destroy(st%mm)
-    deallocate(st%skewed, st%xa, st%xb, st%dh)
+    deallocate(st%skewed, st%xa, st%xb, st%dh, st%diag_0)
     st%dim = 0
     st%ns = -1
   end subroutine stencil_destroy
@@ -197,6 +205,7 @@ contains
     call multifab_build(st%ss, la, st%ns, 0, nodal = nodal)
     call imultifab_build(st%mm, la,     1, 0, nodal = nodal)
     allocate(st%skewed(nboxes(la)))
+    allocate(st%diag_0(nboxes(la)))
     allocate(st%xa(st%dim), st%xb(st%dim), st%dh(st%dim))
     st%xa = ZERO
     st%xb = ZERO
@@ -458,6 +467,7 @@ contains
           mp => dataptr(st%mm, i)
           call fill_fcn(st%dim, sp, cp, st%dh, mp, st%xa, st%xb, iparm, rparm)
        end select
+       st%diag_0(i) = diag_0_q(sp)
     end do
     if ( fill /= ST_FILL_USER_DEFINED .and. present(coeffs) ) then
        call plus_plus(st%ss, 1, coeffs, 1)
