@@ -4,7 +4,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.11 1998-04-01 00:27:32 marc Exp $
+// $Id: MultiFab.H,v 1.12 1998-04-02 00:14:07 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -413,9 +413,9 @@ class MultiFabCopyDescriptor
 {
   public:
 
-    MultiFabCopyDescriptor (bool cacheremotedata)
+    MultiFabCopyDescriptor ()
         :
-        FabArrayCopyDescriptor<Real, FArrayBox>(cacheremotedata) {}
+        FabArrayCopyDescriptor<Real, FArrayBox>() {}
 
     MultiFabId RegisterMultiFab (MultiFab* mf)
     {
@@ -426,7 +426,6 @@ class MultiFabCopyDescriptor
     //
     // These are disallowed.
     //
-    MultiFabCopyDescriptor ();
     MultiFabCopyDescriptor (const MultiFabCopyDescriptor&);
     MultiFabCopyDescriptor& operator= (const MultiFabCopyDescriptor&);
 };
