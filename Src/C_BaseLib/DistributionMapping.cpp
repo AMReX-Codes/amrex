@@ -320,8 +320,25 @@ DistributionMapping::MetisProcessorMap (const BoxArray& boxes, int nprocs)
     {
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
+        double total = 0;
+        std::vector<double> wgts(nprocs,0);
+        for (int i = 0; i < nboxes; i++)
+        {
+            total += vwgt[i];
+            wgts[m_procmap[i]] += vwgt[i];
+        }
+        double mx = wgts[0];
+        for (int i = 1; i < nprocs; i++)
+            if (wgts[i] > mx) mx = wgts[i];
+
+        double efficiency = total/(nprocs*mx);
+
         if (ParallelDescriptor::IOProcessor())
+        {
+            std::cout << "knapsack: efficiency = " << efficiency << std::endl;
             std::cout << "METIS_PartGraphKway time: " << stoptime << std::endl;
+            std::cout << "METIS_PartGraphKway edgecut: " << edgecut << std::endl;
+        }
     }
 
     m_procmap[nboxes] = ParallelDescriptor::MyProc();
@@ -730,15 +747,8 @@ MinimizeCommCosts (std::vector<int>&        procmap,
 
         for (int j = 0; j < grown.size(); j++)
         {
-            if (i != j)
-            {
-                const Box isect = grown[i] & grown[j];
-
-                if (isect.ok())
-                {
-                    li.push_back(j);
-                }
-            }
+            if (i != j && grown[i].intersects(ba[j]))
+                li.push_back(j);
         }
 
         nbrs[i].resize(li.size());
@@ -815,28 +825,32 @@ MinimizeCommCosts (std::vector<int>&        procmap,
         }
     }
 
-    if (verbose > 1 && ParallelDescriptor::IOProcessor())
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
         long cnt = 0;
 
         for (int i = 0; i < percpu.size(); i++) cnt += percpu[i];
 
         std::cout << "Initial off-CPU connection count: " << cnt << std::endl;
-        std::cout << "Initial per-CPU latency distribution:\n";
 
-        long mn = cnt, mx = 0;
-
-        for (int i = 0; i < percpu.size(); i++)
+        if (verbose > 1 && ParallelDescriptor::IOProcessor())
         {
-            mn = std::min(mn,percpu[i]);
-            mx = std::max(mx,percpu[i]);
+            std::cout << "Initial per-CPU latency distribution:\n";
 
-            std::cout << "CPU: " << i << '\t' << percpu[i] << '\n';
+            long mn = cnt, mx = 0;
+
+            for (int i = 0; i < percpu.size(); i++)
+            {
+                mn = std::min(mn,percpu[i]);
+                mx = std::max(mx,percpu[i]);
+
+                std::cout << "CPU: " << i << '\t' << percpu[i] << '\n';
+            }
+
+            std::cout << "Knapsack: initial communication efficiency: "
+                      << double(mn)/double(mx)
+                      << '\n';
         }
-
-        std::cout << "Knapsack: initial communication efficiency: "
-                  << double(mn)/double(mx)
-                  << '\n';
     }
     //
     // Now need to swap boxes of equal size & see if global minimum decreases.
@@ -853,28 +867,32 @@ MinimizeCommCosts (std::vector<int>&        procmap,
     }
     while (swapped);
 
-    if (verbose > 1 && ParallelDescriptor::IOProcessor())
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
         long cnt = 0;
 
         for (int i = 0; i < percpu.size(); i++) cnt += percpu[i];
 
         std::cout << "Final off-CPU connection count: " << cnt << std::endl;
-        std::cout << "Final per-CPU latency distribution:\n";
 
-        long mn = cnt, mx = 0;
-
-        for (int i = 0; i < percpu.size(); i++)
+        if (verbose > 1 && ParallelDescriptor::IOProcessor())
         {
-            mn = std::min(mn,percpu[i]);
-            mx = std::max(mx,percpu[i]);
+            std::cout << "Final per-CPU latency distribution:\n";
 
-            std::cout << "CPU " << i << ":\t" << percpu[i] << '\n';
+            long mn = cnt, mx = 0;
+
+            for (int i = 0; i < percpu.size(); i++)
+            {
+                mn = std::min(mn,percpu[i]);
+                mx = std::max(mx,percpu[i]);
+
+                std::cout << "CPU " << i << ":\t" << percpu[i] << '\n';
+            }
+
+            std::cout << "Knapsack: final communication efficiency: "
+                      << double(mn)/double(mx)
+                      << '\n';
         }
-
-        std::cout << "Knapsack: final communication efficiency: "
-                  << double(mn)/double(mx)
-                  << '\n';
     }
 
     const int IOProc   = ParallelDescriptor::IOProcessorNumber();
