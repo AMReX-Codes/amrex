@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.65 2001-07-25 04:45:56 car Exp $
+// $Id: MultiFab.cpp,v 1.66 2001-07-25 05:22:56 car Exp $
 //
 #include <winstd.H>
 
@@ -124,7 +124,7 @@ MultiFab::probe (std::ostream& os,
     {
         if (mfi.validbox().contains(pt))
         {
-            at(mfi).getVal(dat,pt);
+            get(mfi).getVal(dat,pt);
 
             os << "point "
                << pt
@@ -152,7 +152,7 @@ MultiFab::min (int comp,
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        mn = std::min(mn,at(mfi).min(BoxLib::grow(mfi.validbox(),nghost),comp));
+        mn = std::min(mn,get(mfi).min(BoxLib::grow(mfi.validbox(),nghost),comp));
     }
 
     ParallelDescriptor::ReduceRealMin(mn);
@@ -174,7 +174,7 @@ MultiFab::min (const Box& region,
         Box b = BoxLib::grow(mfi.validbox(),nghost) & region;
 
         if (b.ok())
-            mn = std::min(mn,at(mfi).min(b,comp));
+            mn = std::min(mn, get(mfi).min(b,comp));
     }
 
     ParallelDescriptor::ReduceRealMin(mn);
@@ -192,7 +192,7 @@ MultiFab::max (int comp,
 
     for ( MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        mn = std::max(mn,at(mfi).max(BoxLib::grow(mfi.validbox(),nghost),comp));
+        mn = std::max(mn, get(mfi).max(BoxLib::grow(mfi.validbox(),nghost),comp));
     }
 
     ParallelDescriptor::ReduceRealMax(mn);
@@ -214,7 +214,7 @@ MultiFab::max (const Box& region,
         Box b = BoxLib::grow(mfi.validbox(),nghost) & region;
 
         if (b.ok())
-            mn = std::max(mn,at(mfi).max(b,comp));
+            mn = std::max(mn, get(mfi).max(b,comp));
     }
 
     ParallelDescriptor::ReduceRealMax(mn);
@@ -240,7 +240,7 @@ MultiFab::minus (const MultiFab& mf,
     {
         Box bx = BoxLib::grow(mfi.validbox(),nghost);
 
-        at(mfi).minus(mf[mfi], bx, strt_comp, strt_comp, num_comp);
+        get(mfi).minus(mf[mfi], bx, strt_comp, strt_comp, num_comp);
     }
 }
 
@@ -255,7 +255,7 @@ MultiFab::plus (Real val,
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        at(mfi).plus(val,BoxLib::grow(mfi.validbox(),nghost),comp,num_comp);
+        get(mfi).plus(val,BoxLib::grow(mfi.validbox(),nghost),comp,num_comp);
     }
 }
 
@@ -274,7 +274,7 @@ MultiFab::plus (Real       val,
         Box b = BoxLib::grow(mfi.validbox(),nghost) & region;
 
         if (b.ok())
-            at(mfi).plus(val,b,comp,num_comp);
+            get(mfi).plus(val,b,comp,num_comp);
     }
 }
 
@@ -296,7 +296,7 @@ MultiFab::plus (const MultiFab& mf,
     {
         Box bx = BoxLib::grow(mfi.validbox(),nghost);
 
-        at(mfi).plus(mf[mfi], bx, strt_comp, strt_comp, num_comp);
+        get(mfi).plus(mf[mfi], bx, strt_comp, strt_comp, num_comp);
     }
 }
 
@@ -311,7 +311,7 @@ MultiFab::mult (Real val,
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        at(mfi).mult(val, BoxLib::grow(mfi.validbox(),nghost),comp,num_comp);
+        get(mfi).mult(val, BoxLib::grow(mfi.validbox(),nghost),comp,num_comp);
     }
 }
 
@@ -330,7 +330,7 @@ MultiFab::mult (Real       val,
         Box b = BoxLib::grow(mfi.validbox(),nghost) & region;
 
         if (b.ok())
-            at(mfi).mult(val, b, comp, num_comp);
+            get(mfi).mult(val, b, comp, num_comp);
     }
 }
 
@@ -345,7 +345,7 @@ MultiFab::invert (Real numerator,
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        at(mfi).invert(numerator, BoxLib::grow(mfi.validbox(),nghost),comp,num_comp);
+        get(mfi).invert(numerator, BoxLib::grow(mfi.validbox(),nghost),comp,num_comp);
     }
 }
 
@@ -364,7 +364,7 @@ MultiFab::invert (Real       numerator,
         Box b = BoxLib::grow(mfi.validbox(),nghost) & region;
 
         if (b.ok())
-            at(mfi).invert(numerator,b,comp,num_comp);
+            get(mfi).invert(numerator,b,comp,num_comp);
     }
 }
 
@@ -378,7 +378,7 @@ MultiFab::negate (int comp,
 
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        at(mfi).negate(BoxLib::grow(mfi.validbox(),nghost),comp,num_comp);
+        get(mfi).negate(BoxLib::grow(mfi.validbox(),nghost),comp,num_comp);
     }
 }
 
@@ -396,7 +396,7 @@ MultiFab::negate (const Box& region,
         Box b = BoxLib::grow(mfi.validbox(),nghost) & region;
 
         if (b.ok())
-            at(mfi).negate(b,comp,num_comp);
+            get(mfi).negate(b,comp,num_comp);
     }
 }
 

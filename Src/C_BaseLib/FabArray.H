@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.141 2001-07-25 04:45:55 car Exp $
+// $Id: FabArray.H,v 1.142 2001-07-25 05:22:56 car Exp $
 //
 
 #include <cstring>
@@ -267,12 +267,12 @@ public:
                Kth element.
     */
     const FAB& operator[] (const MFIter& mfi) const;
-    const FAB& at(const MFIter& mfi) const;
+    const FAB& get (const MFIter& mfi) const;
     //
     //@ManDoc: Returns a reference to the FAB associated with the Kth element.
     //
     FAB& operator[] (const MFIter& mfi);
-    FAB& at(const MFIter& mfi);
+    FAB& get (const MFIter& mfi);
     /*@ManDoc: Returns a constant reference to the FAB associated with the
                Kth element.
     */
@@ -422,44 +422,13 @@ class FillBoxId
 {
   public:
 
-    FillBoxId ()
-        :
-        m_fillBoxId(-1),
-        m_fabIndex(-1)
-    {}
+    FillBoxId ();
+    FillBoxId (int newid, const Box& fillbox);
 
-    FillBoxId (int        newid,
-               const Box& fillbox)
-        :
-        m_fillBox(fillbox),
-        m_fillBoxId(newid),
-        m_fabIndex(-1)
-    {}
-
-    FillBoxId (const FillBoxId& rhs)
-        :
-        m_fillBox(rhs.m_fillBox),
-        m_fillBoxId(rhs.m_fillBoxId),
-        m_fabIndex(rhs.m_fabIndex)
-    {}
-
-    FillBoxId& operator= (const FillBoxId& rhs)
-    {
-        if (!(this == &rhs))
-        {
-            m_fillBox   = rhs.m_fillBox;
-            m_fillBoxId = rhs.m_fillBoxId;
-            m_fabIndex  = rhs.m_fabIndex;
-        }
-        return *this;
-    }
-
-    ~FillBoxId() {}
-
-    int        Id () const             { return m_fillBoxId;    }
-    int        FabIndex () const       { return m_fabIndex;     }
-    void       FabIndex (int fabindex) { m_fabIndex = fabindex; }
-    const Box& box () const            { return m_fillBox;      }
+    int Id () const;
+    int FabIndex () const;
+    void FabIndex (int fabindex);
+    const Box& box () const;
 
 private:
 
@@ -476,35 +445,13 @@ class CommDataCache
 {
 public:
 
-    CommDataCache ()
-        :
-        m_valid(false)
-    {}
+    CommDataCache ();
 
-    CommDataCache (const CommDataCache& rhs)
-        :
-        m_commdata(rhs.m_commdata),
-        m_valid(rhs.m_valid)
-    {}
+    void operator= (const Array<CommData>& rhs);
 
-    void operator= (const CommDataCache& rhs)
-    {
-        if (this != &rhs)
-        {
-            m_commdata = rhs.m_commdata;
-            m_valid    = rhs.m_valid;
-        }
-    }
+    bool isValid () const;
 
-    void operator= (const Array<CommData>& rhs)
-    {
-        m_commdata = rhs;
-        m_valid    = true;
-    }
-
-    bool isValid () const { return m_valid; }
-
-    const Array<CommData>& theCommData () const { return m_commdata; }
+    const Array<CommData>& theCommData () const;
 
 private:
 
@@ -512,6 +459,7 @@ private:
     bool            m_valid;
 };
 
+#ifndef BL_NO_LEGACY_ITERATORS
 //
 //@Man:
 //@Memo: An iterator over the FABs in a FabArray.
@@ -799,23 +747,19 @@ class ConstDependentFabArrayIterator
     ConstDependentFabArrayIterator (const ConstDependentFabArrayIterator<FAB> &);
     ConstDependentFabArrayIterator<FAB>& operator= (const ConstDependentFabArrayIterator<FAB> &);
 };
+#endif
 
 class FabArrayId
 {
-  public:
+public:
 
-    FabArrayId (int newid = -1) : fabArrayId(newid) {}
+    explicit FabArrayId (int newid = -1);
 
-    FabArrayId (const FabArrayId& rhs) : fabArrayId(rhs.fabArrayId) {}
+    int Id () const;
 
-    int Id () const { return fabArrayId; }
+    bool operator== (const FabArrayId& rhs) const;
 
-    bool operator== (const FabArrayId& rhs) const
-    {
-        return fabArrayId == rhs.fabArrayId;
-    }
-
-  private:
+private:
 
     int fabArrayId;
 };
@@ -983,7 +927,7 @@ FabArray<FAB>::operator[] (const MFIter& mfi) const
 
 template <class FAB>
 const FAB&
-FabArray<FAB>::at (const MFIter& mfi) const
+FabArray<FAB>::get (const MFIter& mfi) const
 {
     return fabparray[mfi.index()];
 }
@@ -997,7 +941,7 @@ FabArray<FAB>::operator[] (const MFIter& mfi)
 
 template <class FAB>
 FAB&
-FabArray<FAB>::at (const MFIter& mfi)
+FabArray<FAB>::get (const MFIter& mfi)
 {
     return fabparray[mfi.index()];
 }
@@ -1077,13 +1021,12 @@ FabArray<FAB>::ok () const
 {
     long isok = 1;
 
-    ConstFabArrayIterator<FAB> fai(*this);
 
-    for ( ; fai.isValid() && isok; ++fai)
+    for ( MFIter fai(*this); fai.isValid() && isok; ++fai)
     {
         if (fabparray.defined(fai.index()))
         {
-            if (fai().box() != BoxLib::grow(box(fai.index()),n_grow))
+            if (get(fai).box() != BoxLib::grow(box(fai.index()),n_grow))
                 isok = 0;
         }
         else
@@ -1204,7 +1147,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         for (MFIter fai(*this); fai.isValid(); ++fai)
         {
             const Box& bx = fai.validbox();
-            at(fai).copy(src[fai],bx,scomp,bx,dcomp,ncomp);
+            get(fai).copy(src[fai],bx,scomp,bx,dcomp,ncomp);
         }
 
         return;
@@ -1380,7 +1323,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         for (MFIter fai(*this); fai.isValid(); ++fai)
         {
             const Box& bx = fai.validbox();
-            at(fai).copy(src[fai],bx,scomp,bx,dcomp,ncomp);
+            get(fai).copy(src[fai],bx,scomp,bx,dcomp,ncomp);
         }
     }
     else
@@ -1496,7 +1439,7 @@ FabArray<FAB>::setVal (value_type val)
 {
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
-        at(fai).setVal(val);
+        get(fai).setVal(val);
     }
 }
 
@@ -1512,7 +1455,7 @@ FabArray<FAB>::setVal (value_type   val,
 
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
-        at(fai).setVal(val,BoxLib::grow(fai.validbox(),nghost), comp, ncomp);
+        get(fai).setVal(val,BoxLib::grow(fai.validbox(),nghost), comp, ncomp);
     }
 }
 
@@ -1536,6 +1479,7 @@ FabArray<FAB>::setVal (value_type          val,
     }
 }
 
+#ifndef BL_NO_LEGACY_ITERATORS
 template <class FAB>
 FabArrayIterator<FAB>::FabArrayIterator (FabArray<FAB>& fabarray)
     :
@@ -1903,6 +1847,7 @@ ConstDependentFabArrayIterator<FAB>::operator-> () const
 {
     return &ConstDependentFabArrayIterator<FAB>::operator() ();
 }
+#endif
 
 template <class FAB>
 FabArrayCopyDescriptor<FAB>::FabArrayCopyDescriptor ()

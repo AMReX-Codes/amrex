@@ -124,6 +124,11 @@ MFIter::index () const
     return currentIndex;
 }
 
+MFIter::operator int () const
+{
+    return currentIndex;
+}
+
 const Box&
 MFIter::validbox () const
 {
@@ -151,4 +156,95 @@ MFIter::isValid ()
     }
 #endif
     return currentIndex < fabArray.size();
+}
+
+//
+// FillBoxID Helper class
+//
+
+FillBoxId::FillBoxId ()
+    :
+    m_fillBoxId(-1),
+    m_fabIndex(-1)
+{
+}
+
+FillBoxId::FillBoxId (int        newid,
+		      const Box& fillbox)
+    :
+    m_fillBox(fillbox),
+    m_fillBoxId(newid),
+    m_fabIndex(-1)
+{
+}
+
+int
+FillBoxId::Id () const
+{
+    return m_fillBoxId;
+}
+
+int
+FillBoxId::FabIndex () const
+{
+    return m_fabIndex;
+}
+
+void
+FillBoxId::FabIndex (int fabindex)
+{
+    m_fabIndex = fabindex;
+}
+
+const Box&
+FillBoxId::box () const
+{
+    return m_fillBox;
+}
+
+//
+// Used to cache some CommData stuff in CollectData().
+//
+
+CommDataCache::CommDataCache ()
+    :
+    m_valid(false)
+{
+}
+
+void
+CommDataCache::operator= (const Array<CommData>& rhs)
+{
+    m_commdata = rhs;
+    m_valid    = true;
+}
+
+bool
+CommDataCache::isValid () const
+{
+    return m_valid;
+}
+
+const Array<CommData>&
+CommDataCache::theCommData () const
+{
+    return m_commdata;
+}
+
+FabArrayId::FabArrayId  (int newid)
+    :
+    fabArrayId(newid)
+{
+}
+
+int
+FabArrayId::Id () const
+{
+    return fabArrayId;
+}
+
+bool
+FabArrayId::operator== (const FabArrayId& rhs) const
+{
+    return fabArrayId == rhs.fabArrayId;
 }

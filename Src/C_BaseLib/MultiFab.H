@@ -2,7 +2,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.38 2001-07-24 22:42:13 car Exp $
+// $Id: MultiFab.H,v 1.39 2001-07-25 05:22:56 car Exp $
 //
 #include <winstd.H>
 
@@ -351,6 +351,7 @@ private:
     MultiFab& operator= (const MultiFab& rhs);
 };
 
+#ifndef BL_NO_LEGACY_ITERATORS
 class ConstMultiFabIterator;
 
 //
@@ -490,6 +491,7 @@ class ConstDependentMultiFabIterator
     ConstDependentMultiFabIterator (const ConstDependentMultiFabIterator &);
     ConstDependentMultiFabIterator& operator= (const ConstDependentMultiFabIterator &);
 };
+#endif
 
 class MultiFabCopyDescriptor
     :
