@@ -1,0 +1,85 @@
+#
+# $Id: Make.package,v 1.1 1997-09-12 18:00:10 lijewski Exp $
+#
+
+BOXLIB_BASE=EXE
+ifeq ($(LBASE),box)
+    BOXLIB_BASE=LIB
+endif
+
+#
+# Utility classes.
+#
+C$(BOXLIB_BASE)_headers += BoxLib.H BLVERSION.H
+C$(BOXLIB_BASE)_sources += BoxLib.C
+
+C$(BOXLIB_BASE)_sources += ParmParse.C Utility.C aString.C BArena.C
+C$(BOXLIB_BASE)_headers += ParmParse.H Utility.H Assert.H aString.H
+
+C$(BOXLIB_BASE)_headers += ArrayLim.H REAL.H Boolean.H
+C$(BOXLIB_BASE)_headers += CONSTANTS.H SPACE.H SPACE_F.H
+C$(BOXLIB_BASE)_headers += BArena.H Arena.H UseCount.H
+
+C$(BOXLIB_BASE)_sources += DistributionMapping.C ParallelDescriptor.C
+C$(BOXLIB_BASE)_headers += DistributionMapping.H ParallelDescriptor.H
+
+#
+# Allocation classes.
+#
+T_sources += SimpleDPtr.C AliasedDPtr.C DPtr.C
+T_headers += SimpleDPtr.H AliasedDPtr.H DPtr.H
+
+#
+# Container classes.
+#
+T_sources += Array.C PArray.C List.C Pointers.C
+T_headers += Array.H PArray.H List.H Pointers.H
+
+T_sources += Tuple.C
+T_headers += Tuple.H
+
+#
+# max, min, etc.
+#
+T_headers += Misc.H
+
+C${BOXLIB_BASE}_headers += FabConv.H FPC.H
+C${BOXLIB_BASE}_sources += FabConv.C FPC.C
+
+#
+# Index space.
+#
+C$(BOXLIB_BASE)_sources += Box.C IntVect.C IndexType.C Orientation.C
+C$(BOXLIB_BASE)_headers += Box.H IntVect.H IndexType.H Orientation.H
+
+#
+# Unions of rectangles.
+#
+C$(BOXLIB_BASE)_sources += BoxList.C BoxArray.C BoxDomain.C
+C$(BOXLIB_BASE)_headers += BoxList.H BoxArray.H BoxDomain.H
+
+#
+# boxarray relationships.
+#
+C$(BOXLIB_BASE)_sources += BoxAssoc.C
+C$(BOXLIB_BASE)_headers += BoxAssoc.H
+
+#
+# FORTRAN array data.
+#
+C$(BOXLIB_BASE)_sources += FArrayBox.C
+C$(BOXLIB_BASE)_headers += FArrayBox.H
+
+C$(BOXLIB_BASE)_headers += Looping.H
+
+T_sources += BaseFab.C ArithFab.C OrderedFab.C NormedFab.C
+T_headers += BaseFab.H ArithFab.H OrderedFab.H NormedFab.H
+
+#
+# FORTRAN data defined on unions of rectangles.
+#
+C$(BOXLIB_BASE)_sources += MultiFab.C
+C$(BOXLIB_BASE)_headers += MultiFab.H
+
+T_sources += FabArray.C
+T_headers += FabArray.H
