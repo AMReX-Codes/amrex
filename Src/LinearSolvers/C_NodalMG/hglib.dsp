@@ -188,8 +188,8 @@ InputName=amr_real3d
 
 "$(InputName).For" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /Sinclude\3d.v7 /S..\pBoxLib_2 /DBL_LANG_FORT\
-                /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-                ..\scripts\strip72 -c > $(InputName).for
+                 /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+                 ..\scripts\strip72 -c > $(InputName).for
 
 # End Custom Build
 
@@ -211,8 +211,8 @@ InputName=hg_avg3d
 
 "$(InputName).For" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /Sinclude\3d.v7 /S..\pBoxLib_2 /DBL_LANG_FORT\
-                /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-                ..\scripts\strip72 -c > $(InputName).for
+                 /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+                 ..\scripts\strip72 -c > $(InputName).for
 
 # End Custom Build
 
@@ -234,8 +234,8 @@ InputName=hg_multi3d
 
 "$(InputName).For" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /Sinclude\3d.v7 /S..\pBoxLib_2 /DBL_LANG_FORT\
-                /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-                ..\scripts\strip72 -c > $(InputName).for
+                 /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+                 ..\scripts\strip72 -c > $(InputName).for
 
 # End Custom Build
 
@@ -243,6 +243,10 @@ InputName=hg_multi3d
 
 !ENDIF 
 
+# End Source File
+# Begin Source File
+
+SOURCE=.\hg_multi3d_terrain.F
 # End Source File
 # Begin Source File
 
@@ -257,8 +261,8 @@ InputName=hg_proj3d
 
 "$(InputName).For" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /Sinclude\3d.v7 /S..\pBoxLib_2 /DBL_LANG_FORT\
-                /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-                ..\scripts\strip72 -c > $(InputName).for
+                 /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+                 ..\scripts\strip72 -c > $(InputName).for
 
 # End Custom Build
 

@@ -306,7 +306,6 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface, const 
 
 // local function used by the copy_cache border constructor
 // (identical to one used in fill_patch.C)
-#ifdef HG_TERRAIN
 static inline void node_dirs(int dir[2], const IntVect& typ)
 {
     if (typ[0] == IndexType::NODE) 
@@ -323,9 +322,8 @@ static inline void node_dirs(int dir[2], const IntVect& typ)
 	dir[1] = 2;
     }
 }
-#endif
 
-copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface, const amr_boundary_class* bdy, int w)
+copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface, const amr_boundary_class* bdy, int w, bool hg_terrain)
 {
     assert(r.length() > 0);
     assert(r.nComp() == 1);
@@ -336,32 +334,35 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface, const 
     assert(w == 1);
     
     nsets = 0;
-#if ((BL_SPACEDIM == 3) && (defined HG_TERRAIN))
-    // attempt to deal with corner-coupling problem with 27-point stencils
-    int iedge, kgrid;
-    for (iedge = 0; iedge < lev_interface.nedges(); iedge++) 
+#if (BL_SPACEDIM == 3)
+    if ( hg_terrain )
     {
-	if (lev_interface.geo(1, iedge) == level_interface::ALL)
-	    continue;
-	int igrid = lev_interface.egrid(iedge, 0);
-	int jgrid = lev_interface.egrid(iedge, 3);
-	if (igrid >= 0 && jgrid >= 0) 
+	// attempt to deal with corner-coupling problem with 27-point stencils
+	int iedge, kgrid;
+	for (iedge = 0; iedge < lev_interface.nedges(); iedge++) 
 	{
-	    kgrid = lev_interface.egrid(iedge, 1);
-	    if (kgrid == -1)
-		kgrid = lev_interface.egrid(iedge, 2);
-	    if (kgrid != -1 && kgrid != igrid && kgrid != jgrid)
-		nsets += 2;
-	}
-	igrid = lev_interface.egrid(iedge, 1);
-	jgrid = lev_interface.egrid(iedge, 2);
-	if (igrid >= 0 && jgrid >= 0) \
-	{
-	    kgrid = lev_interface.egrid(iedge, 0);
-	    if (kgrid == -1)
-		kgrid = lev_interface.egrid(iedge, 3);
-	    if (kgrid != -1 && kgrid != igrid && kgrid != jgrid)
-		nsets += 2;
+	    if (lev_interface.geo(1, iedge) == level_interface::ALL)
+		continue;
+	    int igrid = lev_interface.egrid(iedge, 0);
+	    int jgrid = lev_interface.egrid(iedge, 3);
+	    if (igrid >= 0 && jgrid >= 0) 
+	    {
+		kgrid = lev_interface.egrid(iedge, 1);
+		if (kgrid == -1)
+		    kgrid = lev_interface.egrid(iedge, 2);
+		if (kgrid != -1 && kgrid != igrid && kgrid != jgrid)
+		    nsets += 2;
+	    }
+	    igrid = lev_interface.egrid(iedge, 1);
+	    jgrid = lev_interface.egrid(iedge, 2);
+	    if (igrid >= 0 && jgrid >= 0) \
+	    {
+		kgrid = lev_interface.egrid(iedge, 0);
+		if (kgrid == -1)
+		    kgrid = lev_interface.egrid(iedge, 3);
+		if (kgrid != -1 && kgrid != igrid && kgrid != jgrid)
+		    nsets += 2;
+	    }
 	}
     }
 #endif
@@ -403,7 +404,9 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface, const 
 #endif
     
     int iset = 0;
-#if ((BL_SPACEDIM == 3) && (defined HG_TERRAIN))
+#if (BL_SPACEDIM == 3) 
+    if (hg_terrain)
+    {
     // attempt to deal with corner-coupling problem with 27-point stencils
     int dir[2];
     Box b;
@@ -569,6 +572,7 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface, const 
 		set(iset++, dstarti, sstartj, stridi1, 0, stridj1, 0, nvals1, 1);
 	    }
 	}
+    }
     }
 #endif
 

@@ -236,7 +236,6 @@ SOURCE=.\hg_multi3d_terrain.F
 
 !ELSEIF  "$(CFG)" == "hgproj - Win32 Debug"
 
-# PROP Exclude_From_Build 1
 # ADD F90 /stand:f90
 
 !ENDIF 
