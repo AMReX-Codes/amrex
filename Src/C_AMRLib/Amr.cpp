@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.91 1999-07-27 17:35:51 marc Exp $
+// $Id: Amr.cpp,v 1.92 1999-08-13 16:28:57 propp Exp $
 //
 
 #include <TagBox.H>
@@ -42,9 +42,9 @@ using std::ios;
 //
 // Static objects.
 //
-Array<aString> Amr::plot_vars;
-Array<aString> Amr::derive_plot_vars;
-
+List<aString> Amr::state_plot_vars;
+List<aString> Amr::derive_plot_vars;
+bool          Amr::first_plotfile = true;
 
 //
 // I now want to add a version string to the checkpoint file.
@@ -253,40 +253,6 @@ Amr::Amr ()
         BoxLib::Warning("Specifying amr.plot_per will change the time step");
     }
 
-    if (pp.contains("plot_vars"))
-    {
-        aString nm;
-
-        int nPltVars = pp.countval("plot_vars");
-
-        for (i = 0; i < nPltVars; i++)
-        {
-            pp.get("plot_vars", nm, i);
-            addPlotVar(nm);
-        }
-    }
-    else if (plot_vars.length() == 0)
-    {
-        addPlotVar("ALL");
-    }
-
-    if (pp.contains("derive_plot_vars"))
-    {
-        aString nm;
-
-        int nDrvPltVars = pp.countval("derive_plot_vars");
-
-        for (i = 0; i < nDrvPltVars; i++)
-        {
-            pp.get("derive_plot_vars", nm, i);
-            addDerivePlotVar(nm);
-        }
-    }
-    else if (derive_plot_vars.length() == 0)
-    {
-        addDerivePlotVar("NONE");
-    }
-
     pp.query("max_grid_size",max_grid_size);
     pp.query("n_proper",n_proper);
     pp.query("blocking_factor",blocking_factor);
@@ -369,64 +335,99 @@ Amr::Amr ()
 }
 
 bool
-Amr::isPlotVar (const aString& name)
+Amr::isStatePlotVar (const aString& name)
 {
-    bool retval = false;
-    for (int i = 0; i < plot_vars.length() && !retval; i++)
-        if (plot_vars[i] == name || plot_vars[i] == "ALL")
-            retval = true;
-
-    return retval;
+  for (ListIterator<aString> li(state_plot_vars); li; ++li)
+    if (li() == name)
+      return true;
+  
+  return false;
 }
 
 void
-Amr::addPlotVar (const aString& name)
+Amr::fillStatePlotVarList()
 {
-    if (name=="ALL")
-        for (int i = 0; i < plot_vars.length(); i++)
-            if (plot_vars[i] == "NONE")
-                plot_vars[i] = name;
+  state_plot_vars.clear();
+  const DescriptorList& desc_lst = AmrLevel::get_desc_lst();
+  for (int typ = 0; typ < desc_lst.length(); typ++)
+    for (int comp = 0; comp < desc_lst[typ].nComp();comp++)
+      if (desc_lst[typ].getType() == IndexType::TheCellType())
+	state_plot_vars.append(desc_lst[typ].name(comp));
+}
 
-    if (!isPlotVar(name))
+void
+Amr::clearStatePlotVarList()
+{
+  state_plot_vars.clear();
+}
+
+void
+Amr::addStatePlotVar (const aString& name)
+{
+  if (state_plot_vars.isEmpty())
     {
-        plot_vars.resize(plot_vars.length() + 1);
-        plot_vars[plot_vars.length() - 1] = name;
+      state_plot_vars.append(name);
     }
+  else 
+    {
+      if (isDerivePlotVar(name) == false)
+	state_plot_vars.append(name);
+    }
+}
+
+void
+Amr::deleteStatePlotVar (const aString& name)
+{
+  if (state_plot_vars.isNotEmpty())
+    state_plot_vars.remove(name);
 }
 
 bool
 Amr::isDerivePlotVar (const aString& name)
 {
-    for (int i = 0; i < derive_plot_vars.length(); i++)
-        if (derive_plot_vars[i] == "NONE")
-            return false;
+  for (ListIterator<aString> li(derive_plot_vars); li; ++li)
+    if (li() == name)
+      return true;
+  
+  return false;
+}
 
-    bool retval = false;
-    for (int i = 0; i < derive_plot_vars.length() && !retval; i++)
-        if (derive_plot_vars[i] == name || derive_plot_vars[i] == "ALL")
-            retval = true;
+void 
+Amr::fillDerivePlotVarList()
+{
+  derive_plot_vars.clear();
+  DeriveList& derive_lst = AmrLevel::get_derive_lst();
+  List<DeriveRec>& dlist = derive_lst.dlist();
+  for (ListIterator<DeriveRec> it(dlist); it; ++it)
+    if (it().deriveType() == IndexType::TheCellType())
+      derive_plot_vars.append(it().name());
+}
 
-    return retval;
+void
+Amr::clearDerivePlotVarList()
+{
+  derive_plot_vars.clear();
 }
 
 void
 Amr::addDerivePlotVar (const aString& name)
 {
-    if (name=="ALL")
-        for (int i = 0; i < derive_plot_vars.length(); i++)
-            if (derive_plot_vars[i] == "NONE")
-                derive_plot_vars[i] = name;
-
-    if (name=="NONE")
-        for (int i = 0; i < derive_plot_vars.length(); i++)
-            if (derive_plot_vars[i] == "ALL")
-                derive_plot_vars[i] = name;
-
-    if (!isDerivePlotVar(name))
+  if (derive_plot_vars.isEmpty())
     {
-        derive_plot_vars.resize(derive_plot_vars.length() + 1);
-        derive_plot_vars[derive_plot_vars.length() - 1] = name;
+      derive_plot_vars.append(name);
     }
+  else 
+    {
+      if (isDerivePlotVar(name) == false)
+	derive_plot_vars.append(name);
+    }
+}
+
+void
+Amr::deleteDerivePlotVar (const aString& name)
+{
+  if (derive_plot_vars.isNotEmpty())
+    derive_plot_vars.remove(name);
 }
 
 Amr::~Amr ()
@@ -511,6 +512,12 @@ void
 Amr::writePlotFile (const aString& root,
                     int            num)
 {
+  if (first_plotfile) 
+    {
+      first_plotfile = false;
+      amr_level[0].setPlotVariables();
+    }
+
     static RunStats stats("write_pltfile");
 
     stats.start();

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.58 1999-07-12 16:42:11 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.59 1999-08-13 16:28:57 propp Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -20,6 +20,7 @@
 #include <ParallelDescriptor.H>
 #include <RunStats.H>
 #include <Utility.H>
+#include <ParmParse.H>
 
 DescriptorList AmrLevel::desc_lst;
 DeriveList     AmrLevel::derive_lst;
@@ -1178,3 +1179,64 @@ AmrLevel::okToRegrid ()
     return true;
 }
 
+void
+AmrLevel::setPlotVariables()
+{
+  ParmParse pp("amr");
+
+  if (pp.contains("plot_vars"))
+    {
+      aString nm;
+      
+      int nPltVars = pp.countval("plot_vars");
+      
+      for (int i = 0; i < nPltVars; i++)
+        {
+	  pp.get("plot_vars", nm, i);
+	  if (nm == "ALL") 
+	    {
+	      parent->fillStatePlotVarList();
+	    } 
+	  else if (nm == "NONE")
+	    {
+	      parent->clearStatePlotVarList();
+	    }
+	  else
+	    {
+	      parent->addStatePlotVar(nm);
+	    }
+        }
+    }
+  else 
+    {
+      parent->fillStatePlotVarList();
+    }
+  
+  if (pp.contains("derive_plot_vars"))
+    {
+      aString nm;
+      
+      int nDrvPltVars = pp.countval("derive_plot_vars");
+      
+      for (int i = 0; i < nDrvPltVars; i++)
+        {
+	  pp.get("derive_plot_vars", nm, i);
+	  if (nm == "ALL") 
+	    {
+	      parent->fillDerivePlotVarList();
+	    } 
+	  else if (nm == "NONE")
+	    {
+	      parent->clearDerivePlotVarList();
+	    }
+	  else
+	    {
+	      parent->addDerivePlotVar(nm);
+	    }
+        }
+    }
+  else 
+    {
+      parent->clearDerivePlotVarList();
+    }
+}
