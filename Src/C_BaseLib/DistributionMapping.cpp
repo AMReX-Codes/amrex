@@ -24,6 +24,7 @@ void METIS_PartGraphKway(int *, int *, int *, int *, int *, int *, int *, int *,
 }
 #endif
 
+static int metis_opt    = 0;
 static int verbose = 0;
 static double max_efficiency = .95;
 //
@@ -103,6 +104,8 @@ DistributionMapping::Initialize ()
     pp.query("efficiency", max_efficiency);
 
     std::string theStrategy;
+
+    pp.query("metis_opt", metis_opt);
 
     if (pp.query("strategy", theStrategy))
     {
@@ -279,7 +282,7 @@ DistributionMapping::MetisProcessorMap (const BoxArray& boxes, int nprocs)
     std::vector<int> xadj(nboxes+1);
     std::vector<int> adjncy;
     std::vector<int> vwgt(nboxes);
-    int* adjwgt = 0;
+    std::vector<int> adjwgt;
     int wgtflag = 2;
     int numflag = 0;
     int nparts  = nprocs;
@@ -299,7 +302,9 @@ DistributionMapping::MetisProcessorMap (const BoxArray& boxes, int nprocs)
 	    if ( j == i ) continue;
 	    if ( bx.intersects(boxes[j]) )
 	    {
+		Box b = bx & boxes[j];
 		adjncy.push_back(j);
+		adjwgt.push_back(b.volume());
 		cnt++;
 	    }
 	}
@@ -307,6 +312,8 @@ DistributionMapping::MetisProcessorMap (const BoxArray& boxes, int nprocs)
     xadj[nboxes] = cnt;
 
     const Real strttime = ParallelDescriptor::second();
+
+    if ( metis_opt != 0 ) wgtflag = 3;
 
     METIS_PartGraphKway(
 	    &nboxes, &xadj[0], &adjncy[0], &vwgt[0], &adjwgt[0],
