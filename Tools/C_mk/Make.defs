@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.30 2000-03-16 23:15:07 car Exp $
+# Make.defs $Id: Make.defs,v 1.31 2000-03-27 20:23:19 marc Exp $
 #
 
 #
@@ -71,10 +71,12 @@ endif
 # Set special flag for escher.nersc.gov
 #
 ifeq ($(MACHINE), IRIX64)
+  WHICHIRIX64 := GENERICSGI
   ifeq ($(findstring escher, $(UNAMEN)), escher)
     WHICHIRIX64 := ESCHER
-  else
-    WHICHIRIX64 := GENERICSGI
+  endif
+  ifeq ($(findstring mahler, $(UNAMEN)), mahler)
+    WHICHIRIX64 := MAHLER
   endif
 endif
 
@@ -307,7 +309,7 @@ CPPFLAGS	+= $(DEFINES) $(includes)
 
 libraries	= $(LIBRARIES) $(BL_MPI_LIBS) $(XTRALIBS)
 
-LDFLAGS		= $(addprefix -L, $(LIBRARY_LOCATIONS))
+LDFLAGS		+= $(addprefix -L, $(LIBRARY_LOCATIONS))
 
 machineSuffix	= $(MACHINE).$(COMP)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MPISuffix)
 optionsSuffix	= $(DIM)d.$(machineSuffix)

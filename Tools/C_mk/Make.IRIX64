@@ -3,9 +3,12 @@ CPP = /usr/lib/acpp
 ifeq ($(WHICHIRIX64), ESCHER)
   XTRALIBS +=  /usr/lib64/libfortran.so
 endif
+ifeq ($(WHICHIRIX64), MAHLER)
+  XTRALIBS +=  /usr/lib32/libfortran.so
+endif
 
 ifeq ($(COMP),CC)
-CXX     := CC -ptused -LANG:ansi-for-init-scope=ON -64
+CXX     := CC -ptused -LANG:ansi-for-init-scope=ON
 CXXOPTF += -O2 -OPT:Olimit=4800
 CXXDEBF += -g 
 #
@@ -37,8 +40,13 @@ ifeq ($(WHICHIRIX64), ESCHER)
   FC     = f90 -64
   FOPTF += -O2 -OPT:Olimit=4800
 else
-  FC     = f77 -64
-  FOPTF += -g3  -Ofast=ip27
+  ifeq ($(WHICHIRIX64), MAHLER)
+    FC     = f90 -r8 -IPA
+    FOPTF += -Ofast=ip30 -OPT:Olimit=4800
+  else
+    FC     = f77 -64
+    FOPTF += -g3  -Ofast=ip27
+  endif
 endif
 
 FDEBF += -g
@@ -51,3 +59,7 @@ OUTPUT_OPTION	= ; mv $*.o $(objTempDir)/$*.o
 
 FORTPREP	= perl $(PBOXLIB_HOME)/scripts/strip72 -c
 FORT_OUTPUT_OPTION	= ; mv $*.o $(objTempDir)/$*.o
+
+ifeq ($(WHICHIRIX64), MAHLER)
+  LDFLAGS += -IPA
+endif
