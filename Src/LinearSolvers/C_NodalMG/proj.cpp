@@ -58,8 +58,13 @@ int main(int argc, char **argv)
 #endif
     HG::MPI_init();
 #ifndef WIN32
-    cout << "going to sleep for 1 seconds, debug pid = " << ::getpid() << endl;
-    ::sleep(1);
+    int slp = 0;
+    pp.query("sleep", slp);
+    if ( slp > 0 )
+    {
+	cout << "going to sleep for " << slp << " seconds, debug pid = " << ::getpid() << endl;
+	::sleep(slp);
+    }
 #endif
     cout << setprecision(15);
 
