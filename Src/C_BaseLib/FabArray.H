@@ -3,7 +3,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.115 2001-03-23 21:10:21 lijewski Exp $
+// $Id: FabArray.H,v 1.116 2001-03-30 23:25:31 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1260,9 +1260,11 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
 
     static Array<int>         Snds(NProcs);
     static Array<int>         Rcvs(NProcs);
+    static Array<int>         indx(NProcs);
     static Array<T*>          fab_data(NProcs);
     static Array<MPI_Request> req_cd(NProcs);
     static Array<MPI_Request> req_data(NProcs);
+    static Array<MPI_Status>  status(NProcs);
     static Array<CommData>    rcv_cd;
     static Array<CommData>    senddata;
 
@@ -1270,9 +1272,6 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
 
     for (int i = 0; i < NProcs; i++)
         Snds[i] = Rcvs[i] = 0;
-
-    for (int i = 0; i < NProcs; i++)
-        req_cd[i] = req_data[i] = MPI_REQUEST_NULL;
 
     for (int i = 0; i < length(); ++i)
     {
@@ -1335,9 +1334,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
     const int seqno_1 = ParallelDescriptor::SeqNum();
     const int seqno_2 = ParallelDescriptor::SeqNum();
 
-    MPI_Status status;
-
-    int rc, flag, idx = 0, NumRcvs = 0, NWaits;
+    int rc, idx = 0, NumRcvs = 0, NWaits;
 
     for (int i = 0; i < NProcs; i++)
         NumRcvs += Rcvs[i];
@@ -1353,6 +1350,8 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
     //
     for (int i = 0; i < NProcs; i++)
     {
+        req_cd[i] = MPI_REQUEST_NULL;
+
         if (Rcvs[i] > 0)
         {
             if ((rc = MPI_Irecv(&rcv_cd[idx],
@@ -1374,6 +1373,8 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
     //
     for (int i = 0; i < NProcs; i++)
     {
+        req_data[i] = MPI_REQUEST_NULL;
+
         if (Snds[i] > 0)
         {
             senddata.resize(Snds[i]);
@@ -1416,45 +1417,40 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
         if (req_cd[i] != MPI_REQUEST_NULL)
             NWaits++;
 
-    while (NWaits > 0)
+    for (int completed; NWaits > 0; NWaits -= completed)
     {
-        for (int i = 0; i < NProcs; i++)
+        if ((rc = MPI_Waitsome(NProcs,
+                               req_cd.dataPtr(),
+                               &completed,
+                               indx.dataPtr(),
+                               status.dataPtr())) != MPI_SUCCESS)
+            ParallelDescriptor::Abort(rc);
+
+        for (int k = 0; k < completed; k++)
         {
-            if (req_cd[i] != MPI_REQUEST_NULL)
-            {
-                if ((rc = MPI_Test(&req_cd[i], &flag, &status)) != MPI_SUCCESS)
-                    ParallelDescriptor::Abort(rc);
+            //
+            // Got to figure out # of Ts to expect from this CPU.
+            //
+            idx = 0;
+            for (int j = 0; j < indx[k]; j++)
+                idx += Rcvs[j];
 
-                if (flag)
-                {
-                    BL_ASSERT(req_cd[i] == MPI_REQUEST_NULL);
+            size_t N = 0;
+            for (int j = 0; j < Rcvs[indx[k]]; j++)
+                N += rcv_cd[idx+j].box().numPts() * ncomp;
 
-                    NWaits--;
-                    //
-                    // Got to figure out # of Ts to expect from this CPU.
-                    //
-                    idx = 0;
-                    for (int j = 0; j < i; j++)
-                        idx += Rcvs[j];
+            BL_ASSERT(N < INT_MAX);
 
-                    size_t N = 0;
-                    for (int j = 0; j < Rcvs[i]; j++)
-                        N += rcv_cd[idx+j].box().numPts() * ncomp;
+            fab_data[indx[k]] = static_cast<T*>(The_FAB_Arena->alloc(N*sizeof(T)));
 
-                    BL_ASSERT(N < INT_MAX);
-
-                    fab_data[i] = static_cast<T*>(The_FAB_Arena->alloc(N*sizeof(T)));
-
-                    if ((rc = MPI_Irecv(fab_data[i],
-                                        int(N),
-                                        mpi_data_type(fab_data[i]),
-                                        i,
-                                        seqno_2,
-                                        ParallelDescriptor::Communicator(),
-                                        &req_data[i])) != MPI_SUCCESS)
-                        ParallelDescriptor::Abort(rc);
-                }
-            }
+            if ((rc = MPI_Irecv(fab_data[indx[k]],
+                                int(N),
+                                mpi_data_type(fab_data[indx[k]]),
+                                indx[k],
+                                seqno_2,
+                                ParallelDescriptor::Communicator(),
+                                &req_data[indx[k]])) != MPI_SUCCESS)
+                ParallelDescriptor::Abort(rc);
         }
     }
 
@@ -1511,47 +1507,43 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
         if (req_data[i] != MPI_REQUEST_NULL)
             NWaits++;
 
-    while (NWaits > 0)
+    for (int completed; NWaits > 0; NWaits -= completed)
     {
-        for (int i = 0; i < NProcs; i++)
+        if ((rc = MPI_Waitsome(NProcs,
+                               req_data.dataPtr(),
+                               &completed,
+                               indx.dataPtr(),
+                               status.dataPtr())) != MPI_SUCCESS)
+            ParallelDescriptor::Abort(rc);
+
+        for (int k = 0; k < completed; k++)
         {
-            if (req_data[i] != MPI_REQUEST_NULL)
+            int Processed = 0;
+
+            T* dptr = fab_data[indx[k]];
+
+            BL_ASSERT(!(dptr == 0));
+
+            idx = 0;
+            for (int j = 0; j < indx[k]; j++)
+                idx += Rcvs[j];
+
+            for (int j = 0; j < Rcvs[indx[k]]; j++)
             {
-                if ((rc = MPI_Test(&req_data[i],&flag,&status)) != MPI_SUCCESS)
-                    ParallelDescriptor::Abort(rc);
-
-                if (flag)
-                {
-                    BL_ASSERT(req_data[i] == MPI_REQUEST_NULL);
-
-                    NWaits--;
-
-                    int Processed = 0;
-                    T* dptr = fab_data[i];
-                    BL_ASSERT(!(dptr == 0));
-
-                    idx = 0;
-                    for (int j = 0; j < i; j++)
-                        idx += Rcvs[j];
-
-                    for (int j = 0; j < Rcvs[i]; j++)
-                    {
-                        const CommData& cd = rcv_cd[idx+j];
-                        fab.resize(cd.box(), ncomp);
-                        int N = fab.box().numPts() * fab.nComp();
-                        memcpy(fab.dataPtr(), dptr, N*sizeof(T));
-                        BL_ASSERT(distributionMap[cd.fabindex()] == MyProc);
-                        fabparray[cd.fabindex()].copy(fab,fab.box(),0,fab.box(),dcomp,ncomp);
-                        dptr += N;
-                        Processed++;
-                    }
-
-                    BL_ASSERT(Processed == Rcvs[i]);
-
-                    The_FAB_Arena->free(fab_data[i]);
-                    fab_data[i] = 0;
-                }
+                const CommData& cd = rcv_cd[idx+j];
+                fab.resize(cd.box(), ncomp);
+                int N = fab.box().numPts() * fab.nComp();
+                memcpy(fab.dataPtr(), dptr, N*sizeof(T));
+                BL_ASSERT(distributionMap[cd.fabindex()] == MyProc);
+                fabparray[cd.fabindex()].copy(fab,fab.box(),0,fab.box(),dcomp,ncomp);
+                dptr += N;
+                Processed++;
             }
+
+            BL_ASSERT(Processed == Rcvs[indx[k]]);
+
+            The_FAB_Arena->free(fab_data[indx[k]]);
+            fab_data[indx[k]] = 0;
         }
     }
 
@@ -2404,9 +2396,11 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
 
     static Array<int>         Snds(NProcs);
     static Array<int>         Rcvs(NProcs);
+    static Array<int>         indx(NProcs);
     static Array<T*>          fab_data(NProcs);
     static Array<MPI_Request> req_data(NProcs);
     static Array<MPI_Request> req_cd(NProcs);
+    static Array<MPI_Status>  status(NProcs);
     static Array<CommData>    senddata;
     static Array<CommData>    recv_cd;
 
@@ -2421,9 +2415,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
     const int seqno_1 = ParallelDescriptor::SeqNum();
     const int seqno_2 = ParallelDescriptor::SeqNum();
 
-    int rc, flag, idx = 0, NumReqs = 0, NWaits;
-
-    MPI_Status status;
+    int rc, idx = 0, NumReqs = 0, NWaits;
     //
     // Set Rcvs[i] to # of blocks needed from CPU i
     //
@@ -2552,23 +2544,14 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
             if (req_cd[i] != MPI_REQUEST_NULL)
                 NWaits++;
 
-        while (NWaits > 0)
+        for (int completed; NWaits > 0; NWaits -= completed)
         {
-            for (int i = 0; i < NProcs; i++)
-            {
-                if (req_cd[i] != MPI_REQUEST_NULL)
-                {
-                    if ((rc = MPI_Test(&req_cd[i],&flag,&status)) != MPI_SUCCESS)
-                        ParallelDescriptor::Abort(rc);
-
-                    if (flag)
-                    {
-                        BL_ASSERT(req_cd[i] == MPI_REQUEST_NULL);
-
-                        NWaits--;
-                    }
-                }
-            }
+            if ((rc = MPI_Waitsome(NProcs,
+                                   req_cd.dataPtr(),
+                                   &completed,
+                                   indx.dataPtr(),
+                                   status.dataPtr())) != MPI_SUCCESS)
+                ParallelDescriptor::Abort(rc);
         }
     }
 
@@ -2690,65 +2673,60 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
         if (req_data[i] != MPI_REQUEST_NULL)
             NWaits++;
 
-    while (NWaits > 0)
+    for (int completed; NWaits > 0; NWaits -= completed)
     {
-        for (int i = 0; i < NProcs; i++)
+        if ((rc = MPI_Waitsome(NProcs,
+                               req_data.dataPtr(),
+                               &completed,
+                               indx.dataPtr(),
+                               status.dataPtr())) != MPI_SUCCESS)
+            ParallelDescriptor::Abort(rc);
+
+        for (int k = 0; k < completed; k++)
         {
-            if (req_data[i] != MPI_REQUEST_NULL)
+            int Processed = 0;
+            T*  dptr      = fab_data[indx[k]];
+
+            BL_ASSERT(!(dptr == 0));
+
+            for (int j = 0; j < fabComTagList.size(); j++)
             {
-                if ((rc = MPI_Test(&req_data[i],&flag,&status)) != MPI_SUCCESS)
-                    ParallelDescriptor::Abort(rc);
-
-                if (flag)
+                if (fabComTagList[j].procThatHasData == indx[k])
                 {
-                    BL_ASSERT(req_data[i] == MPI_REQUEST_NULL);
+                    const FabComTag& tag = fabComTagList[j];
 
-                    NWaits--;
-                    int Processed = 0;
-                    T* dptr = fab_data[i];
+                    match = fabCopyDescList[tag.fabArrayId].equal_range(tag.fillBoxId);
 
-                    BL_ASSERT(!(dptr == 0));
+                    FCDMapIter fmi = match.first;
 
-                    for (int j = 0; j < fabComTagList.size(); j++)
+                    for ( ; fmi != match.second; ++fmi)
                     {
-                        if (fabComTagList[j].procThatHasData == i)
+                        FabCopyDescriptor<FAB>* fcdp = (*fmi).second;
+
+                        BL_ASSERT(fcdp->fillBoxId == tag.fillBoxId);
+
+                        if (fcdp->subBox == tag.box)
                         {
-                            const FabComTag& tag = fabComTagList[j];
-
-                            match = fabCopyDescList[tag.fabArrayId].equal_range(tag.fillBoxId);
-
-                            FCDMapIter fmi = match.first;
-
-                            for ( ; fmi != match.second; ++fmi)
-                            {
-                                FabCopyDescriptor<FAB>* fcdp = (*fmi).second;
-
-                                BL_ASSERT(fcdp->fillBoxId == tag.fillBoxId);
-
-                                if (fcdp->subBox == tag.box)
-                                {
-                                    T* dataPtr = fcdp->localFabSource->dataPtr();
-                                    BL_ASSERT(!(dataPtr == 0));
-                                    BL_ASSERT(fcdp->localFabSource->box() == tag.box);
-                                    int N = tag.box.numPts()*tag.nComp;
-                                    memcpy(dataPtr, dptr, N*sizeof(T));
-                                    dptr += N;
-                                    Processed++;
-                                    break;
-                                }
-                            }
-
-                            BL_ASSERT(!(fmi == match.second));
+                            T* dataPtr = fcdp->localFabSource->dataPtr();
+                            BL_ASSERT(!(dataPtr == 0));
+                            BL_ASSERT(fcdp->localFabSource->box() == tag.box);
+                            int N = tag.box.numPts()*tag.nComp;
+                            memcpy(dataPtr, dptr, N*sizeof(T));
+                            dptr += N;
+                            Processed++;
+                            break;
                         }
                     }
 
-                    BL_ASSERT(Processed == Rcvs[i]);
-
-                    The_FAB_Arena->free(fab_data[i]);
-
-                    fab_data[i] = 0;
+                    BL_ASSERT(!(fmi == match.second));
                 }
             }
+
+            BL_ASSERT(Processed == Rcvs[indx[k]]);
+
+            The_FAB_Arena->free(fab_data[indx[k]]);
+
+            fab_data[indx[k]] = 0;
         }
     }
 
