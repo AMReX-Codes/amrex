@@ -1,5 +1,5 @@
 //
-// $Id: BLWorkQueue.cpp,v 1.7 2001-09-18 20:40:27 lijewski Exp $
+// $Id: BLWorkQueue.cpp,v 1.8 2001-09-19 02:36:47 car Exp $
 //
 
 #include <winstd.H>
@@ -8,6 +8,7 @@
 #include <memory>
 #include <queue>
 
+#include <ParallelDescriptor.H>
 #include <ParmParse.H>
 #include <Thread.H>
 #include <Profiler.H>
