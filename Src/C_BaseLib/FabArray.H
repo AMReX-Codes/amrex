@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.87 1998-12-11 02:46:18 lijewski Exp $
+// $Id: FabArray.H,v 1.88 1999-01-22 21:05:07 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1530,7 +1530,6 @@ inline
 void
 FabArray<T,FAB>::copy (const FabArray<T,FAB>& src)
 {
-    assert(nComp() == src.nComp());
     copy(src,0,0,nComp());
 }
 
