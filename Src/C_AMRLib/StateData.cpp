@@ -1,6 +1,6 @@
 
 //
-// $Id: StateData.cpp,v 1.33 2001-08-09 22:42:00 marc Exp $
+// $Id: StateData.cpp,v 1.34 2002-08-21 20:12:40 car Exp $
 //
 #include <winstd.H>
 
@@ -11,7 +11,7 @@
 #include <StateDescriptor.H>
 #include <ParallelDescriptor.H>
 
-const Real INVALID_TIME = -1.0e30;
+const Real INVALID_TIME = -1.0e200;
 
 const int MFNEWDATA = 0;
 const int MFOLDDATA = 1;
