@@ -1,11 +1,16 @@
+c
+c $Id: COORDSYS_3D.F,v 1.3 1997-12-12 22:42:42 lijewski Exp $
+c
+
 #undef  BL_LANG_CC
-c#define BL_LANG_FORT
+#ifndef BL_LANG_FORT
+#define BL_LANG_FORT
+#endif
 
 #include "REAL.H"
 #include "CONSTANTS.H"
 #include "COORDSYS_F.H"
-#define BL_USE_ARLIM
-#include "DIMS.H"
+#include "ArrayLim.H"
 
 #define SDIM 3
 

@@ -1,8 +1,17 @@
+c
+c $Id: INTERP_2D.F,v 1.3 1997-12-12 22:43:15 lijewski Exp $
+c
+
+#undef  BL_LANG_CC
+#ifndef BL_LANG_FORT
+#define BL_LANG_FORT
+#endif
+
 #include "REAL.H"
 #include "CONSTANTS.H"
 #include "BC_TYPES.H"
 #include "INTERP_F.H"
-#include <DIMS.H>
+#include <ArrayLim.H>
 
 #define IX_PROJ(A,B) (A+B*iabs(A))/B-iabs(A)
 #define SDIM 2
