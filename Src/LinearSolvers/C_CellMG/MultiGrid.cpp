@@ -1,6 +1,6 @@
 
 //
-// $Id: MultiGrid.cpp,v 1.25 2001-02-01 23:17:57 lijewski Exp $
+// $Id: MultiGrid.cpp,v 1.26 2001-03-20 19:41:42 car Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -79,6 +79,7 @@ MultiGrid::initialize ()
     pp.query("nu_2", def_nu_2);
     pp.query("nu_f", def_nu_f);
     pp.query("v", def_verbose);
+    pp.query("verbose", def_verbose);
     pp.query("usecg", def_usecg);
     pp.query("rtol_b", def_rtol_b);
     pp.query("bot_atol", def_atol_b);
