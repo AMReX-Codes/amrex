@@ -1,0 +1,125 @@
+module ml_restriction_module
+
+  use bl_types
+  use multifab_module
+  use mg_restriction_module
+
+  implicit none
+
+  real(dp_t), private, parameter :: ZERO = 0.0_dp_t
+  real(dp_t), private, parameter :: ONE  = 1.0_dp_t
+
+contains
+
+ subroutine ml_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject)
+  type(multifab), intent(inout) :: fine
+  type(multifab), intent(inout) :: crse
+  type(imultifab), intent(in   ) :: mm_fine
+  type(imultifab), intent(in   ) :: mm_crse
+  integer, intent(in) :: ir(:)
+  logical, intent(in), optional :: inject
+  integer, intent(in)          :: face_type(:,:,:)
+
+! Local variables
+  integer :: dm
+  integer :: lo (fine%dim), hi (fine%dim)
+  integer :: loc(fine%dim)
+  integer :: lof(fine%dim)
+  integer :: lom_fine(fine%dim)
+  integer :: lom_crse(fine%dim)
+  integer :: i, j, n, id
+  logical :: local_inject
+  logical :: nodal_flag
+  type(box) :: fbox, cbox
+  real(kind=dp_t), pointer :: fp(:,:,:,:)
+  real(kind=dp_t), pointer :: cp(:,:,:,:)
+  integer        , pointer :: mp_fine(:,:,:,:)
+  integer        , pointer :: mp_crse(:,:,:,:)
+
+  integer :: mg_restriction_mode
+
+  nodal_flag = nodal_q(fine)
+  dm = crse%dim
+  local_inject = .false. ; if (present(inject)) local_inject = inject
+
+  if ( nodal_flag ) call multifab_fill_boundary(fine)
+
+  mg_restriction_mode = 0
+  
+  do j = 1, crse%nboxes
+
+    cbox = get_ibox(crse,j)
+    loc = lwb(cbox) - crse%ng
+    lom_crse = lwb(get_box(mm_crse,j)) - mm_crse%ng
+
+!   Set to zero here on the interior of each fine grid so don't have to 
+!      within nodal_restriction
+    if ( nodal_flag ) then
+       do i = 1, fine%nboxes
+          fbox = get_ibox(fine,i)
+          fbox = box_coarsen_v(fbox,ir)
+          do id = 1,fbox%dim
+             if (face_type(i,id,1) .ne. BC_NEU) fbox = grow(fbox,-1,id,-1)
+             if (face_type(i,id,2) .ne. BC_NEU) fbox = grow(fbox,-1,id,+1)
+          end do
+          if (box_intersects(fbox,cbox)) then
+             call setval(crse%fbs(j), ZERO, box_intersection(fbox,cbox))
+          end if
+       end do
+    end if
+
+    do i = 1, fine%nboxes
+
+      fbox = get_ibox(fine,i)
+      lof(:) = lwb(fbox) - fine%ng 
+      fbox = box_coarsen_v(fbox,ir)
+
+      if (box_intersects(fbox,cbox)) then
+        lo(:) = lwb(box_intersection(cbox,fbox))
+        hi(:) = upb(box_intersection(cbox,fbox))
+
+        fp      => dataptr(fine   ,i)
+        mp_fine => dataptr(mm_fine,i)
+        lom_fine(:) = lwb(get_box(mm_fine,i)) - mm_fine%ng
+
+        cp      => dataptr(crse   ,j)
+        mp_crse => dataptr(mm_crse,j)
+
+        do n = 1, 1
+          select case (dm)
+          case (1)
+             if ( .not.nodal_flag ) then
+               call cc_restriction(cp(:,1,1,n), loc, fp(:,1,1,n), lof, lo, hi, ir)
+             else
+               call nodal_restriction(cp(:,1,1,n), loc, fp(:,1,1,n), lof, &
+                    mp_fine(:,1,1,1), lom_fine, &
+                    mp_crse(:,1,1,1), lom_crse, lo, hi, ir, local_inject, &
+                    mg_restriction_mode)
+             end if
+          case (2)
+             if ( .not.nodal_flag ) then
+               call cc_restriction(cp(:,:,1,n), loc, fp(:,:,1,n), lof, lo, hi, ir)
+             else
+               call nodal_restriction(cp(:,:,1,n), loc, fp(:,:,1,n), lof, &
+                    mp_fine(:,:,1,1), lom_fine, &
+                    mp_crse(:,:,1,1), lom_crse, lo, hi, ir, local_inject, &
+                    mg_restriction_mode)
+             end if
+          case (3)
+             if ( .not.nodal_flag ) then
+               call cc_restriction(cp(:,:,:,n), loc, fp(:,:,:,n), lof, lo, hi, ir)
+             else
+               call nodal_restriction(cp(:,:,:,n), loc, fp(:,:,:,n), lof, &
+                    mp_fine(:,:,:,1), lom_fine, &
+                    mp_crse(:,:,:,1), lom_crse, lo, hi, ir, local_inject, &
+                    mg_restriction_mode)
+             end if
+          end select
+        end do
+      end if
+    end do
+  end do
+
+ end subroutine ml_restriction
+
+end module ml_restriction_module
