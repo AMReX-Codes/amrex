@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.21 1998-04-14 20:24:03 lijewski Exp $
+// $Id: TagBox.cpp,v 1.22 1998-04-14 23:57:43 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -582,7 +582,7 @@ TagBoxArray::mergeUnique ()
     // First got to figure out # of messages each processor should receive.
     //
     Array<int> msgs(ParallelDescriptor::NProcs(), 0);
-    Array<int> rdct(ParallelDescriptor::NProcs(), 0);
+    Array<int> nrcv(ParallelDescriptor::NProcs(), 0);
 
     for (ListIterator<FabComTag> it(tbmdClearList); it; ++it)
     {
@@ -594,7 +594,7 @@ TagBoxArray::mergeUnique ()
     for (int i = 0; i < msgs.length(); i++)
     {
         if ((rc = MPI_Reduce(&msgs[i],
-                             &rdct[i],
+                             &nrcv[i],
                              1,
                              MPI_INT,
                              MPI_SUM,
@@ -603,14 +603,14 @@ TagBoxArray::mergeUnique ()
             ParallelDescriptor::Abort(rc);
     }
 
-    const int MyProc = ParallelDescriptor::MyProc();
-    const int nRecv  = rdct[MyProc];
+    const int MyProc  = ParallelDescriptor::MyProc();
+    const int NumRecv = nrcv[MyProc];
 
-    Array<MPI_Request> reqs(nRecv);
-    Array<MPI_Status>  stat(nRecv);
-    Array<MUData>      recv(nRecv);
+    Array<MPI_Request> reqs(NumRecv);
+    Array<MPI_Status>  stat(NumRecv);
+    Array<MUData>      recv(NumRecv);
 
-    for (int i = 0; i < nRecv; i++)
+    for (int i = 0; i < NumRecv; i++)
     {
         if ((rc = MPI_Irecv(recv[i].dataPtr(),
                             recv[i].length(),
@@ -635,14 +635,14 @@ TagBoxArray::mergeUnique ()
             ParallelDescriptor::Abort(rc);
     }
 
-    if ((rc = MPI_Waitall(nRecv,
+    if ((rc = MPI_Waitall(NumRecv,
                           reqs.dataPtr(),
                           stat.dataPtr())) != MPI_SUCCESS)
         ParallelDescriptor::Abort(rc);
     //
     // Now clear the overlaps in the TagBoxArray.
     //
-    for (int i = 0; i < nRecv; i++)
+    for (int i = 0; i < NumRecv; i++)
     {
         assert(distributionMap[recv[i].idx()] == MyProc);
 
