@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.89 1999-07-20 20:42:13 almgren Exp $
+// $Id: Amr.cpp,v 1.90 1999-07-21 21:09:20 sstanley Exp $
 //
 
 #include <TagBox.H>
@@ -1696,6 +1696,13 @@ Amr::grid_places (int              lbase,
             bl_max = Max(bl_max,bf_lev[levc][n]);
         if (bl_max > 1) 
             tags.coarsen(bf_lev[levc]);
+
+        //
+        // Remove or add tagged points which violate/satisfy additional 
+        //   user-specified criteria
+        //
+        amr_level[levc].manual_tags_placement(tags, bf_lev[levc]);
+
         //
         // Map tagged points through periodic boundaries, if any.
         //
@@ -1705,12 +1712,6 @@ Amr::grid_places (int              lbase,
         // Remove cells outside proper nesting domain for this level.
         //
         tags.setVal(p_n_comp[levc],TagBox::CLEAR);
-
-        //
-        // Remove or add tagged points which violate/satisfy additional 
-        //   user-specified criteria
-        //
-        amr_level[levc].manual_tags_placement(tags, bf_lev[levc]);
 
         //
         // Create initial cluster containing all tagged points.
