@@ -1,5 +1,5 @@
 /*
-** $Id: SPECIALIZE_F.H,v 1.2 1998-10-07 21:18:28 vince Exp $
+** $Id: SPECIALIZE_F.H,v 1.3 1999-08-25 18:05:27 propp Exp $
 */
 
 #ifndef SPECIALIZE_H
@@ -18,17 +18,15 @@
 
 #ifdef BL_LANG_CC
 
-#ifdef BL_FORT_USE_UPPERCASE
+#if  defined(BL_FORT_USE_UPPERCASE)
 #define FORT_FASTCOPY       FASTCOPY
 #define FORT_FASTSETVAL     FASTSETVAL
-#else
-#  ifdef BL_AIX
+#elif defined(BL_FORT_USE_LOWERCASE)
 #define FORT_FASTCOPY       fastcopy
 #define FORT_FASTSETVAL     fastsetval
-#else
+#elif defined(BL_FORT_USE_UNDERSCORE)
 #define FORT_FASTCOPY       fastcopy_
 #define FORT_FASTSETVAL     fastsetval_
-#endif
 #endif
 
 extern "C"

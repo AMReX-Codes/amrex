@@ -2,7 +2,7 @@
 #define _AABBEC_F_H_
 
 /*
-** $Id: ABec_F.H,v 1.2 1999-01-04 18:09:01 marc Exp $
+** $Id: ABec_F.H,v 1.3 1999-08-25 18:04:09 propp Exp $
 */
 
 #include <REAL.H>
@@ -30,14 +30,17 @@
 
 #if (BL_SPACEDIM == 2)
 
-#ifdef BL_FORT_USE_UPPERCASE
+#if  defined(BL_FORT_USE_UPPERCASE)
 #define FORT_GSRB     GSRB2DAABBEC
 #define FORT_CGPRECND CGPRECND2DAABBEC
 #define FORT_ADOTX    ADOTX2DAABBEC
 #define FORT_FLUX     FLUX2DAABBEC
-#endif
-
-#ifdef BL_FORT_USE_UNDERSCORE
+#elif defined(BL_FORT_USE_LOWERCASE)
+#define FORT_GSRB     gsrb2daabbec
+#define FORT_CGPRECND cgprecnd2daabbec
+#define FORT_ADOTX    adotx2daabbec
+#define FORT_FLUX     flux2daabbec
+#elif defined(BL_FORT_USE_UNDERSCORE)
 #define FORT_GSRB     gsrb2daabbec_
 #define FORT_CGPRECND cgprecnd2daabbec_
 #define FORT_ADOTX    adotx2daabbec_
@@ -49,14 +52,17 @@
 
 #if (BL_SPACEDIM == 3)
 
-#ifdef BL_FORT_USE_UPPERCASE
+#if   defined(BL_FORT_USE_UPPERCASE)
 #define FORT_GSRB     GSRB3DAABBEC
 #define FORT_CGPRECND CGPRECND3DAABBEC
 #define FORT_ADOTX    ADOTX3DAABBEC
 #define FORT_FLUX     FLUX3DAABBEC
-#endif
-
-#ifdef BL_FORT_USE_UNDERSCORE
+#elif defined(BL_FORT_USE_LOWERCASE)
+#define FORT_GSRB     gsrb3daabbec
+#define FORT_CGPRECND cgprecnd3daabbec
+#define FORT_ADOTX    adotx3daabbec
+#define FORT_FLUX     flux3daabbec
+#elif defined(BL_FORT_USE_UNDERSCORE)
 #define FORT_GSRB     gsrb3daabbec_
 #define FORT_CGPRECND cgprecnd3daabbec_
 #define FORT_ADOTX    adotx3daabbec_

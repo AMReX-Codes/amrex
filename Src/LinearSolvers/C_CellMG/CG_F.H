@@ -2,7 +2,7 @@
 #define _CG_F_H_
 
 /*
-** $Id: CG_F.H,v 1.1 1998-03-24 07:06:03 almgren Exp $
+** $Id: CG_F.H,v 1.2 1999-08-25 18:04:09 propp Exp $
 */
 
 #include <REAL.H>
@@ -25,35 +25,39 @@
 
 #if        defined(BL_LANG_CC)
 
-#ifdef BL_FORT_USE_UPPERCASE
-
-#if (BL_SPACEDIM == 2)
-#define FORT_CGUPDATE  CGUPDATE2DGEN
-#define FORT_CGADVCP   CGADVCP2DGEN
-#define FORT_CGXDOTY   CGXDOTY2DGEN
-#endif
-
-#if (BL_SPACEDIM == 3)
-#define FORT_CGUPDATE  CGUPDATE3DGEN
-#define FORT_CGADVCP   CGADVCP3DGEN
-#define FORT_CGXDOTY   CGXDOTY3DGEN
-#endif
-
-#endif
-#ifdef BL_FORT_USE_UNDERSCORE
-
-#if (BL_SPACEDIM == 2)
-#define FORT_CGUPDATE  cgupdate2dgen_
-#define FORT_CGADVCP   cgadvcp2dgen_
-#define FORT_CGXDOTY   cgxdoty2dgen_
-#endif
-
-#if (BL_SPACEDIM == 3)
-#define FORT_CGUPDATE  cgupdate3dgen_
-#define FORT_CGADVCP   cgadvcp3dgen_
-#define FORT_CGXDOTY   cgxdoty3dgen_
-#endif
-
+#if defined(BL_FORT_USE_UPPERCASE)
+#  if (BL_SPACEDIM == 2)
+#    define FORT_CGUPDATE  CGUPDATE2DGEN
+#    define FORT_CGADVCP   CGADVCP2DGEN
+#    define FORT_CGXDOTY   CGXDOTY2DGEN
+#  endif
+#  if (BL_SPACEDIM == 3)
+#    define FORT_CGUPDATE  CGUPDATE3DGEN
+#    define FORT_CGADVCP   CGADVCP3DGEN
+#    define FORT_CGXDOTY   CGXDOTY3DGEN
+#  endif
+#elif defined(BL_FORT_USE_LOWERCASE)
+#  if (BL_SPACEDIM == 2)
+#    define FORT_CGUPDATE  cgupdate2dgen
+#    define FORT_CGADVCP   cgadvcp2dgen
+#    define FORT_CGXDOTY   cgxdoty2dgen
+#  endif
+#  if (BL_SPACEDIM == 3)
+#    define FORT_CGUPDATE  cgupdate3dgen
+#    define FORT_CGADVCP   cgadvcp3dgen
+#    define FORT_CGXDOTY   cgxdoty3dgen
+#  endif
+#elif defined(BL_FORT_USE_UNDERSCORE)
+#  if (BL_SPACEDIM == 2)
+#    define FORT_CGUPDATE  cgupdate2dgen_
+#    define FORT_CGADVCP   cgadvcp2dgen_
+#    define FORT_CGXDOTY   cgxdoty2dgen_
+#  endif
+#  if (BL_SPACEDIM == 3)
+#    define FORT_CGUPDATE  cgupdate3dgen_
+#    define FORT_CGADVCP   cgadvcp3dgen_
+#    define FORT_CGXDOTY   cgxdoty3dgen_
+#  endif
 #endif
 
 #include <ArrayLim.H>

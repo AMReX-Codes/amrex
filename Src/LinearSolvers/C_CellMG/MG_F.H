@@ -2,7 +2,7 @@
 #define _MG_F_H_
 
 /*
-** $Id: MG_F.H,v 1.1 1998-03-24 07:06:31 almgren Exp $
+** $Id: MG_F.H,v 1.2 1999-08-25 18:04:10 propp Exp $
 */
 
 #include <REAL.H>
@@ -27,12 +27,13 @@
 
 #if (BL_SPACEDIM == 2)
 
-#ifdef BL_FORT_USE_UPPERCASE
+#if    defined(BL_FORT_USE_UPPERCASE)
 #define FORT_AVERAGE   AVERAGE2DGEN
 #define FORT_INTERP    INTERP2DGEN
-#endif
-
-#ifdef BL_FORT_USE_UNDERSCORE
+#elif  defined(BL_FORT_USE_LOWERCASE)
+#define FORT_AVERAGE   average2dgen
+#define FORT_INTERP    interp2dgen
+#elif  defined(BL_FORT_USE_UNDERSCORE)
 #define FORT_AVERAGE   average2dgen_
 #define FORT_INTERP    interp2dgen_
 #endif
@@ -41,12 +42,13 @@
 
 #if (BL_SPACEDIM == 3)
 
-#ifdef BL_FORT_USE_UPPERCASE
+#if    defined(BL_FORT_USE_UPPERCASE)
 #define FORT_AVERAGE   AVERAGE3DGEN
 #define FORT_INTERP    INTERP3DGEN
-#endif
-
-#ifdef BL_FORT_USE_UNDERSCORE
+#elif  defined(BL_FORT_USE_LOWERCASE)
+#define FORT_AVERAGE   average3dgen
+#define FORT_INTERP    interp3dgen
+#elif  defined(BL_FORT_USE_UNDERSCORE)
 #define FORT_AVERAGE   average3dgen_
 #define FORT_INTERP    interp3dgen_
 #endif
