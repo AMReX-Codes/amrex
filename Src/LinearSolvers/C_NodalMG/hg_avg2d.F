@@ -20,6 +20,7 @@ c-----------------------------------------------------------------------
      &                                   rf(i,j-1)   + rf(i,j))
          end do
       end do
+#if 0
       if (irz .eq. 1) then
          fac = hx / 24.d0
          r1  = (fregl0 - 0.5d0) * hx
@@ -39,6 +40,7 @@ c-----------------------------------------------------------------------
             end do
          end do
       end if
+#endif
       end
 c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
