@@ -368,7 +368,7 @@ contains
     r%hi(1:r%dim) = (bx%hi(1:bx%dim)+1)*ri-1
   end function box_refine_i
 
-  !! Box_nodalize, perhaps inaptly named, grows a box in the
+  !! Box_nodalize, perhaps inaptly named, grows a box
   !! on the hiside by one if the correspending directions of
   !! nodal are true, or else not at all if nodal is not present.
   !! this last because by default fabs, multifabs, and etc, are cell-
@@ -384,6 +384,23 @@ contains
        if ( nodal(i) ) r = grow(r, 1, i, +1)
     end do
   end function box_nodalize
+
+  !! Box_denodalize, perhaps inaptly named, shrinks a box
+  !! on the hiside by one if the correspending directions of
+  !! nodal are true, or else not at all if nodal is not present.
+  !! this last because by default fabs, multifabs, and etc, are cell-
+  !! centered.
+  function box_denodalize(bx, nodal) result(r)
+    type(box) :: r
+    type(box), intent(in) :: bx
+    logical, intent(in), optional :: nodal(:)
+    integer :: i
+    r = bx
+    if ( .not. present(nodal) ) return
+    do i = 1, bx%dim
+       if ( nodal(i) ) r%hi(i) = r%hi(i) - 1
+    end do
+  end function box_denodalize
 
 !   function box_grow_m(bx, mat) result(r)
 !     type(box), intent(in) :: bx
@@ -1007,6 +1024,7 @@ contains
     logical, intent(out), optional :: nodal(:)
     character :: c
     if ( present(stat) ) stat = .true.
+    if ( present(nodal) ) nodal = .false.
     call build(strm, unit_stdin(unit))
     c = bl_stream_peek_chr(strm)
     if ( c == 'b' ) then
@@ -1064,7 +1082,6 @@ contains
       call bl_stream_expect(strm, ')')
       if ( any(it /= 0) ) then
          if ( present(nodal) ) then
-            nodal = .false.
             do i = 1, dm
                if ( it(i) /= 0 ) nodal(i) = .true.
             end do
