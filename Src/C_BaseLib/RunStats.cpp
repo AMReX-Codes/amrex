@@ -1,5 +1,5 @@
 //
-// $Id: RunStats.cpp,v 1.29 2001-07-19 21:11:50 lijewski Exp $
+// $Id: RunStats.cpp,v 1.30 2001-07-20 23:06:18 lijewski Exp $
 //
 
 #include <algorithm>
@@ -175,7 +175,7 @@ RunStats::ReduceIt (List<RunStatsData>& stats)
     //
     // Get an upper bound on size of buffer needed.
     //
-    int N = 0;
+    int N = 64;
 
     for (ListIterator<RunStatsData> it(stats); it; ++it)
         N += stats[it].name.length() + 64;

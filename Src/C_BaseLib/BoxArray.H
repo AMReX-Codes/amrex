@@ -2,7 +2,7 @@
 #define BL_BOXARRAY_H
 
 //
-// $Id: BoxArray.H,v 1.22 2001-07-19 19:02:42 lijewski Exp $
+// $Id: BoxArray.H,v 1.23 2001-07-20 23:06:17 lijewski Exp $
 //
 
 #include <cstddef>
@@ -119,14 +119,8 @@ public:
     //@ManDoc: Returns the number of elements in the BoxArray.
     //
     int length () const;
-  //
-  //
-  //
-  long numPts() const;
-    //
-    //@ManDoc: Returns true if the BoxArray is not empty.
-    //
-    bool ready () const;
+
+    long numPts() const;
     //
     //@ManDoc: Output this BoxArray to a checkpoint file.
     //

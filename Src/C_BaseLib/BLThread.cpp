@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.4 2001-07-20 19:45:43 car Exp $
+// $Id: BLThread.cpp,v 1.5 2001-07-20 23:06:17 lijewski Exp $
 //
 
 #include <BoxLib.H>
@@ -18,6 +18,10 @@
 #include <ctime>
 #include <cerrno>
 #include <cstdlib>
+
+#if defined(BL_OSF1)
+extern "C" int usleep (useconds_t);
+#endif
 
 namespace
 {
@@ -133,8 +137,8 @@ Thread::sleep(const BoxLib::Time& spec_)
 	::usleep(tosleep*1000000);
     }
 #else
-    Time spec = spec_;
-    Time rem;
+    BoxLib::Time spec = spec_;
+    BoxLib::Time rem;
     while ( int status = ::nanosleep(&spec, &rem) )
     {
 	if ( errno != EINVAL )

@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.132 2001-07-20 19:31:06 car Exp $
+// $Id: FabArray.H,v 1.133 2001-07-20 23:06:18 lijewski Exp $
 //
 
 #include <climits>
@@ -265,7 +265,6 @@ public:
                with the definition of the FabArray.
     */
     bool ok () const;
-
     //
     //@ManDoc: Returns the grow factor that defines the region of definition.
     //
@@ -1031,8 +1030,6 @@ template <class FAB>
 bool
 FabArray<FAB>::ok () const
 {
-    BL_ASSERT(boxarray.ready());
-
     long isok = 1;
 
     ConstFabArrayIterator<FAB> fai(*this);
@@ -1061,7 +1058,7 @@ FabArray<FAB>::define (const BoxArray& bxs,
                          int             ngrow,
                          FabAlloc        alloc)
 {
-    BL_ASSERT(!boxarray.ready());
+    BL_ASSERT(boxarray.length() == 0);
     n_grow = ngrow;
     n_comp = 0;
     boxarray.define(bxs);
@@ -1081,7 +1078,7 @@ FabArray<FAB>::define (const BoxArray& bxs,
                          int             ngrow,
                          FabAlloc        alloc)
 {
-    BL_ASSERT(!boxarray.ready());
+    BL_ASSERT(boxarray.length() == 0);
     n_grow = ngrow;
     n_comp = nvar;
     boxarray.define(bxs);
@@ -1094,12 +1091,12 @@ FabArray<FAB>::define (const BoxArray& bxs,
 template <class FAB>
 void
 FabArray<FAB>::define (const BoxArray&            bxs,
-                         int                        nvar,
-                         int                        ngrow,
-			 const DistributionMapping& dm,
-                         FabAlloc                   alloc)
+                       int                        nvar,
+                       int                        ngrow,
+                       const DistributionMapping& dm,
+                       FabAlloc                   alloc)
 {
-    BL_ASSERT(!boxarray.ready());
+    BL_ASSERT(boxarray.length() == 0);
     n_grow = ngrow;
     n_comp = nvar;
     boxarray.define(bxs);
@@ -1133,7 +1130,7 @@ FabArray<FAB>::setFab (int  boxno,
         n_comp = elem->nComp();
 
     BL_ASSERT(n_comp == elem->nComp());
-    BL_ASSERT(boxarray.ready());
+    BL_ASSERT(boxarray.length() > 0);
     BL_ASSERT(elem->box() == BoxLib::grow(boxarray[boxno],n_grow));
     BL_ASSERT(!fabparray.defined(boxno));
     BL_ASSERT(distributionMap[boxno] == ParallelDescriptor::MyProc());
