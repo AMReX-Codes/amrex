@@ -83,7 +83,7 @@ MCInterpBndryData::setBndryValues(const MultiFab&     mf,
     const Real* h = geom.CellSize();
 
     // HACK: cast away const to satisfy incomplete BoxLib interface
-    for(MultiFabIterator mfi((MultiFab&)mf); mfi.isValid(false); ++mfi)
+    for(MultiFabIterator mfi((MultiFab&)mf); mfi.isValid(); ++mfi)
     {
 	assert(grids[mfi.index()] == mfi.validbox());
         const Box& bx = mfi.validbox();
@@ -158,7 +158,7 @@ MCInterpBndryData::setBndryValues (const BndryRegister& crse,
       // mask turned off if covered by fine grid
     Real *derives = 0;
     int  tmplen = 0;
-    for(ConstMultiFabIterator finemfi(fine); finemfi.isValid(false); ++finemfi)
+    for(ConstMultiFabIterator finemfi(fine); finemfi.isValid(); ++finemfi)
     {
         assert(grids[finemfi.index()] == finemfi.validbox());
         const Box &fine_bx = finemfi.validbox();

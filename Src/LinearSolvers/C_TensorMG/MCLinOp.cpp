@@ -1,4 +1,4 @@
-// $Id: MCLinOp.cpp,v 1.3 1998-04-15 21:48:13 marc Exp $
+// $Id: MCLinOp.cpp,v 1.4 1998-07-29 20:25:58 lijewski Exp $
 
 // differences from LinOp: den has nc components, bct has nc components
 
@@ -191,7 +191,7 @@ MCLinOp::applyBC (MultiFab& inout,
 	int cdr(oitr());
 	const FabSet& fs = bgb.bndryValues(oitr());
 	int cdir = oitr().coordDir();
-        for(MultiFabIterator inoutmfi(inout); inoutmfi.isValid(false); ++inoutmfi) {
+        for(MultiFabIterator inoutmfi(inout); inoutmfi.isValid(); ++inoutmfi) {
           DependentFabSetIterator ffsi(inoutmfi, f);
           DependentFabSetIterator tdfsi(inoutmfi, td);
           DependentFabSetIterator fsfsi(inoutmfi, fs);
@@ -275,7 +275,7 @@ MCLinOp::residual (MultiFab&       residL,
 		   MCBC_Mode       bc_mode)
 {
     apply(residL, solnL, level, bc_mode);
-    for(MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(false); ++solnLmfi) {
+    for(MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi) {
       DependentMultiFabIterator residLmfi(solnLmfi, residL);
       DependentMultiFabIterator rhsLmfi(solnLmfi, rhsL);
 	int nc = residL.nComp();
@@ -309,7 +309,7 @@ MCLinOp::norm (const MultiFab& in,
 	       int             level) const
 {
     Real norm = 0.0;
-    for(ConstMultiFabIterator inmfi(in); inmfi.isValid(false); ++inmfi) {
+    for(ConstMultiFabIterator inmfi(in); inmfi.isValid(); ++inmfi) {
         int gn = inmfi.index();
         Real tnorm = inmfi().norm(gbox[level][gn]);
 	norm += tnorm*tnorm;
@@ -406,7 +406,7 @@ MCLinOp::prepareForLevel (int level)
         Orientation face = oitr();
 
         // Use bgb's distribution map for masks
-        for (ConstFabSetIterator bndryfsi(bgb[face]); bndryfsi.isValid(false); ++bndryfsi)
+        for (ConstFabSetIterator bndryfsi(bgb[face]); bndryfsi.isValid(); ++bndryfsi)
 	{
 	    int gn = bndryfsi.index();
 	    Box bx_k = adjCell(gbox[level][gn], face, 1);
@@ -497,7 +497,7 @@ MCLinOp::makeCoefficients(MultiFab& cs, const MultiFab &fn, int level)
 
       // some abbreviations...
     const BoxArray& grids = gbox[level];
-    for(MultiFabIterator csmfi(cs); csmfi.isValid(false); ++csmfi)
+    for(MultiFabIterator csmfi(cs); csmfi.isValid(); ++csmfi)
     {
 	DependentMultiFabIterator fnmfi(csmfi, fn);
 	switch(cdir) {
@@ -576,7 +576,7 @@ operator << (std::ostream&   os,
 	{
 	    if (ParallelDescriptor::IOProcessor())
 		os << "level = " << level << endl;
-	    ParallelDescriptor::Synchronize();
+
 	    for (int nproc = 0; nproc < ParallelDescriptor::NProcs(); ++nproc)
 	    {
 		if (nproc == ParallelDescriptor::MyProc())
@@ -584,7 +584,6 @@ operator << (std::ostream&   os,
 		    os << "Processor " << nproc << endl;
 		    os << lp.pirmmapArray[level] << endl;
 		}
-		ParallelDescriptor::Synchronize();
 	    }
 	}
     }
@@ -597,7 +596,7 @@ operator << (std::ostream&   os,
     {
 	if (ParallelDescriptor::IOProcessor())
 	    os << "level = " << level << endl;
-	ParallelDescriptor::Synchronize();
+
 	for (int nproc = 0; nproc < ParallelDescriptor::NProcs(); ++nproc)
 	{
 	    if (nproc == ParallelDescriptor::MyProc())
@@ -615,7 +614,6 @@ operator << (std::ostream&   os,
 		    }
 		}
 	    }
-	    ParallelDescriptor::Synchronize();
 	}
     }    
     
