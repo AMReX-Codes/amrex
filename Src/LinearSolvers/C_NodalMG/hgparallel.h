@@ -54,7 +54,7 @@ struct HG
     static double cgsolve_tolfact;
     static int    pverbose;
 private:
-    static bool initialized;
+    static bool   initialized;
 };
 
 #ifdef BL_USE_NEW_HFILES
@@ -75,94 +75,60 @@ public:
     public:
         explicit task_proxy (task* t_ = 0)
         {
-            if (t_)
-            {
-                m_t        = new task*(t_);
-                m_cnt      = new unsigned int(1);
-                m_finished = new bool(false);
-            }
-            else
-            {
-                m_t        = 0;
-                m_cnt      = 0;
-                m_finished = 0;
-            }
+            m_t = t_;
         }
         task_proxy (const task_proxy& r)
         {
-            link(r);
+            if ((m_t = r.m_t)) m_t->m_cnt++;
         }
         ~task_proxy ()
         {
-            unlink();
+            if (m_t && --m_t->m_cnt == 0) delete m_t;
         }
         task_proxy& operator= (const task_proxy& r)
         {
             if (this != &r)
             {
-                unlink();
-                link(r);
+                if (m_t && --m_t->m_cnt == 0) delete m_t;
+
+                if ((m_t = r.m_t)) m_t->m_cnt++;
             }
             return *this;
         }
         task* operator-> () const
         {
             assert(!null());
-            return *m_t;
+            return m_t;
         }
         task* operator* () const
         {
             assert(!null());
-            return *m_t;
+            return m_t;
         }
         task* get () const
         {
             assert(!null());
-            return *m_t;
+            return m_t;
         }
         void set_finished ()
         {
-            *m_finished = true;
+            assert(!null());
+            m_t->m_finished = true;
         }
         bool is_finished () const
         {
-            return *m_finished;
+            assert(!null());
+            return m_t->m_finished;
         }
         bool null () const
         {
             return m_t == 0;
         }
     private:
-        void unlink ()
-        {
-            if (m_cnt)
-            {
-                if (--*m_cnt == 0)
-                {
-                    delete *m_t;
-                    delete m_t;
-                    delete m_cnt;
-                    delete m_finished;
-                }
-                m_t        = 0;
-                m_cnt      = 0;
-                m_finished = 0;
-            }
-        }
-        void link (const task_proxy& r)
-        {
-            m_t        = r.m_t;
-            m_cnt      = r.m_cnt;
-            m_finished = r.m_finished;
-            if (m_cnt)
-                ++*m_cnt;
-        }
         //
         // The data.
         //
-        task**        m_t;
-        bool*         m_finished;
-        unsigned int* m_cnt;
+        task* m_t;
     };
 
     typedef unsigned int sequence_number;
@@ -186,10 +152,12 @@ protected:
     //
     // The data.
     //
-    const sequence_number m_sno;
-    list<task_proxy>      dependencies;
-    bool                  m_started;
     task_list&            m_task_list;
+    list<task_proxy>      dependencies;
+    const sequence_number m_sno;
+    unsigned int          m_cnt;
+    bool                  m_finished;
+    bool                  m_started;
 
 private:
     //
@@ -235,7 +203,10 @@ private:
     task::sequence_number  seq_no;
     int                    seq_delta;
     bool                   verbose;
-    static bool            def_verbose;
+    //
+    // Some class-wide static data.
+    //
+    static bool def_verbose;
 };
 
 class task_copy : public task
@@ -280,6 +251,9 @@ protected:
     //
     // The data.
     //
+#ifdef BL_USE_MPI
+    MPI_Request     m_request;
+#endif
     FArrayBox*      tmp;
     MultiFab&       m_mf;
     const MultiFab& m_smf;
@@ -287,9 +261,6 @@ protected:
     const int       m_sgrid;
     const Box       m_bx;
     const Box       m_sbx;
-#ifdef BL_USE_MPI
-    MPI_Request     m_request;
-#endif
     bool            m_local;
     bool            m_done;
 };
@@ -348,9 +319,9 @@ protected:
     //
     // The data.
     //
+    FArrayBox* target;
     const Box  region;
     const int  ncomp;
-    FArrayBox* target;
     int        m_target_proc_id;
 };
 
@@ -424,9 +395,9 @@ protected:
     //
     // The data.
     //
+    vector<task::task_proxy> tfvect;
     MultiFab&                s;
     const int                igrid;
-    vector<task::task_proxy> tfvect;
     bool                     done;
 };
 
