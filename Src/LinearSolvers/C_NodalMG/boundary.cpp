@@ -228,10 +228,10 @@ mixed_boundary::anImage (const Box& region,
 	{
 	    const RegType t = ptr->bc[idim][1];
 
-	    if ( t == refWall && idim == flowdim )
+	    if ( t == inflow && idim == flowdim )
 	    {
 	    }
-	    if (t == refWall || t == inflow || t == outflow)
+	    else if (t == refWall || t == inflow || t == outflow)
 	    {
 		image.shift(
 		    idim,
