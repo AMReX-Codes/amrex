@@ -10,7 +10,7 @@ ifeq ($(COMP),KCC)
   override XTRADEFS += -DBL_USE_NEW_HFILES
 endif
 
-CPP    := gcc -E -x c++
+FORT_CPP    := gcc -E -x c++
 FC  := g77 -fno-second-underscore
 fC  := $(FC)
 

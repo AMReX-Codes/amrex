@@ -1,5 +1,5 @@
 
-CPP = /usr/ccs/lib/cpp
+FORT_CPP = /usr/ccs/lib/cpp
 
 LDFLAGS += -bmaxdata:0x40000000
 
