@@ -1,5 +1,5 @@
 #!/usr/local/gnu/bin/perl
-# "$Id: strip72,v 1.7 2001-05-18 16:49:24 car Exp $"
+# "$Id: strip72,v 1.8 2005-03-03 02:25:05 car Exp $"
 # -------------------------------------------------------------------------
 # This PERL script will act as a filter for FORTRAN code.
 # It will:
@@ -19,6 +19,7 @@
 #             integer a(a_lo(1):a_hi(1),a_lo(2):a_hi(2),nvar)
 #
 # Usage:   strip72 [-c] [-s SDIM] <file_list>
+#             -C  => convert cvmgt to MERGE
 #             -c  => convert cvmgX to if-then-else statments
 #                    Without -c it will leave cvmgX in code
 #             -s  => use next argument as SPACEDIM, default = 2
@@ -33,14 +34,17 @@
 
 # check command line for -c flag
 $do_cvmgX = 0;
+$do_cvmgt = 0;
 $debug = 0;
 $SDIM = 2;
 
 # read command line options
 while ($ARGV[0] =~ /^-/) {
     $_ = shift;
-    if (/^-c/i) {
+    if (/^-c/) {
 	$do_cvmgX = 1;
+    } elsif (/^-C/) {
+        $do_cvmgt = 1;
     } elsif (/^-d/i) {
         $debug = 1;
     } elsif (/^-s/i) {
@@ -61,6 +65,9 @@ while ($_) {
    # gather all comments in @comment
    # replace multiple blank lines with single blank line
    $line = $_;
+   if ($do_cvmgt && $line =~ /.*=\scvmgt\s*\(/o) {
+     $line =~ s/cvmgt/MERGE/i;
+   }
    @comments = ();
    $nskip = 0;
    while (<>) {
