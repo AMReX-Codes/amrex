@@ -122,9 +122,7 @@ void driver(const char *filename)
     projtest(m, ratio, domain);
 }
 
-bool hg_terrain = false;
-bool hg_cross_stencil = true;
-bool hg_full_stencil = false;
+holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::cross;
 
 void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m, const Array<IntVect>& ratio)
 {
@@ -154,7 +152,7 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m, c
 	//u[0][1][0](IntVect(20,90)) = 1.0;
 	//u[0][1][0](IntVect(50,50)) = 1.0;
 	//u[0][1][0](IntVect(22,12)) = 1.0;
-	if (!hg_terrain)
+	if (hg_stencil != holy_grail_amr_multigrid::terrain)
 	{
 	    if ( is_local(u[0][0], 0) ) u[0][0][0](IntVect(12,12)) = 3.0;
 	}
@@ -372,7 +370,7 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
 	for (int i = 0; i < BL_SPACEDIM; i++)
 	    u[i].set(ilev, new MultiFab(cmesh, 1, 1));
 	p.set(ilev, new MultiFab(nmesh, 1, 1));
-	if (hg_terrain)
+	if (hg_stencil == holy_grail_amr_multigrid::terrain)
 	{
 #if (BL_SPACEDIM == 2)
 	    rhoinv.set(ilev, new MultiFab(cmesh, 3, 0));
@@ -395,7 +393,7 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
 	rhs[ilev].setVal(0.0);
     }
     
-    if (hg_terrain)
+    if (hg_stencil == holy_grail_amr_multigrid::terrain)
     {
 	// Adjust sigmas using refinement ratio information.
 	// Assume spacing on level 0 already incorporated into values assigned above.
@@ -536,9 +534,9 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
 #endif
     t0 = Utility::second();
     inviscid_fluid_boundary_class afb(bc);
-    holy_grail_amr_projector proj(m, ratio, domain[m.length() - 1], 0, m.length() - 1, m.length() - 1, afb, false, true, false, pcode);
+    holy_grail_amr_projector proj(m, ratio, domain[m.length() - 1], 0, m.length() - 1, m.length() - 1, afb, holy_grail_amr_multigrid::cross, pcode);
 #if (BL_SPACEDIM == 2)
-    if (false && !hg_terrain)
+    if (false && hg_stencil != holy_grail_amr_multigrid::terrain)
     {
 	rz_adj(u, rhs, rhoinv, m, domain);
 	proj.SetRZ();

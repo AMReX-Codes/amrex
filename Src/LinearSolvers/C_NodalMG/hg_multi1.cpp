@@ -241,7 +241,7 @@ holy_grail_amr_multigrid::alloc (PArray<MultiFab>& Dest,
 	singular = (sng == mg_domain[0].numPts());
     }
     
-    if (m_hg_terrain)
+    if (m_stencil == terrain)
 	integrate = 1;
 }
 
@@ -318,7 +318,7 @@ holy_grail_sigma_restrictor_class::fill (FArrayBox&       patch,
 void
 holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma)
 {
-    if (m_hg_terrain)
+    if (m_stencil == terrain)
     {
 	//
 	// For terrain stencils we have as many sigma arrays passed as
@@ -354,7 +354,7 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma)
 	}
 	for (int mglev = 0; mglev <= mglev_max; mglev++) 
 	{
-	    fill_borders(sigma[mglev], lev_interface[mglev], boundary.terrain_sigma(), -1, m_hg_terrain);
+	    fill_borders(sigma[mglev], lev_interface[mglev], boundary.terrain_sigma(), -1, m_stencil == terrain);
 	}
     }
     else
@@ -425,7 +425,7 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma)
 	    IntVect rat = mg_domain[mglev_max].length() / mg_domain[mglev_max-1].length();
 	    restrict_level(sigma_split[mglev_max-1], sigma[mglev_max], rat, holy_grail_sigma_restrictor_class(), level_interface(), 0);
 	}
-	fill_borders(sigma[mglev_max], lev_interface[mglev_max], boundary.scalar(), -1, m_hg_terrain);
+	fill_borders(sigma[mglev_max], lev_interface[mglev_max], boundary.scalar(), -1, m_stencil == terrain);
 	for (int mglev = mglev_max - 1; mglev > 0; mglev--) 
 	{
 	    IntVect rat = mg_domain[mglev].length() / mg_domain[mglev-1].length();
@@ -434,7 +434,7 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma)
 	for (int mglev = 0; mglev < mglev_max; mglev++) 
 	{
 	    HG_TEST_NORM(sigma_split[mglev], "build_sigma 0");
-	    fill_borders(sigma_split[mglev], lev_interface[mglev], boundary.scalar(), -1, m_hg_terrain);
+	    fill_borders(sigma_split[mglev], lev_interface[mglev], boundary.scalar(), -1, m_stencil == terrain);
 	    HG_TEST_NORM(sigma_split[mglev], "build_sigma");
 	}
 	
@@ -465,7 +465,7 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma)
 	    sigma_nd[i].set(mglev_max, &sigma[mglev_max]);
 	}
 	
-	if (m_hg_cross_stencil)
+	if (m_stencil == cross)
 	{
 //#if	BL_SPACEDIM==3
 	    sigma_node.resize(mglev_max + 1);
@@ -525,7 +525,7 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma)
 	MultiFab& ctmp = cen[mglev];
 	ctmp.setVal(0.0);
 	
-	if (m_hg_terrain)
+	if (m_stencil == terrain)
 	{
 	    for (MultiFabIterator c_mfi(ctmp); c_mfi.isValid(); ++c_mfi)
 	    {
@@ -536,7 +536,7 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma)
 		FORT_HGCEN_TERRAIN(c_mfi->dataPtr(), DIMLIST(cenbox), s_dmfi->dataPtr(), DIMLIST(sigbox), DIMLIST(reg));
 	    }
 	}
-	else if (m_hg_full_stencil)
+	else if (m_stencil == full)
 	{
 #if defined(HG_FULL_STENCIL)
 #if BL_SPACEDIM != 3
@@ -591,7 +591,7 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma)
 	clear_part_interface(ctmp, lev_interface[mglev]);
     }
     
-    if (m_hg_cross_stencil)
+    if (m_stencil == cross)
     {
 // #if BL_SPACEDIM==3
 	mask.resize(mglev_max + 1);
@@ -628,14 +628,14 @@ holy_grail_amr_multigrid::clear ()
     delete cgwork.remove(6);
     delete cgwork.remove(7);
     
-    if (m_hg_terrain)
+    if (m_stencil == terrain)
     {
 	for (int mglev = 0; mglev <= mglev_max; mglev++) 
 	{
 	    delete sigma.remove(mglev);
 	}
     }
-    else if (m_hg_full_stencil)
+    else if (m_stencil == full)
     {
 #if defined(HG_FULL_STENCIL)
 
@@ -794,7 +794,7 @@ holy_grail_amr_multigrid::mg_restrict_level (int lto,
     IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
     if (get_amr_level(lto) >= 0) 
     {
-	restrict_level(resid[lto], work[lfrom], rat, bilinear_restrictor_class( (integrate==0)?0:1, m_hg_terrain), lev_interface[lfrom], mg_boundary);
+	restrict_level(resid[lto], work[lfrom], rat, bilinear_restrictor_class( (integrate==0)?0:1, m_stencil == terrain), lev_interface[lfrom], mg_boundary);
     }
     else 
     {
@@ -808,7 +808,7 @@ holy_grail_amr_multigrid::mg_restrict (int lto,
 {
     HG_TEST_NORM( work[lfrom], "mg_restrict 1");
     HG_TEST_NORM( resid[lto], "mg_restrict 11");
-    fill_borders(work[lfrom], lev_interface[lfrom], mg_boundary, -1, m_hg_terrain);
+    fill_borders(work[lfrom], lev_interface[lfrom], mg_boundary, -1, m_stencil == terrain);
     const IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
     for (MultiFabIterator w_mfi(work[lfrom]); w_mfi.isValid(); ++w_mfi)
     {
@@ -869,7 +869,7 @@ holy_grail_amr_multigrid::mg_interpolate_level (int lto,
 	for (int igrid = 0; igrid < target.length(); igrid++) 
 	{
 	    amr_interpolator_class* hgi;
-	    if (m_hg_terrain)
+	    if (m_stencil == terrain)
 	    {
 		Real* sigptr[BL_SPACEDIM] = { D_DECL(0,0,0) };
 		if ( is_local(sigma[ltmp], igrid) )
@@ -884,7 +884,7 @@ holy_grail_amr_multigrid::mg_interpolate_level (int lto,
 		assert( is_remote(sigma[ltmp], igrid) || sigbox == sigma[ltmp][igrid].box());
 		hgi = new holy_grail_interpolator_class_not_cross(sigptr, sigbox);
 	    }
-	    else if (m_hg_full_stencil)
+	    else if (m_stencil == full)
 	    {
 #if defined(HG_FULL_STENCIL)
 		Real* sigptr[BL_SPACEDIM] = { D_DECL(0,0,0) };
@@ -951,7 +951,7 @@ holy_grail_amr_multigrid::mg_interpolate_level (int lto,
 	    const Box& freg = w_mfi.validbox();
 	    const Box& cbox = c_dmfi->box();
 	    const Box& creg = c_dmfi.validbox();
-	    if (m_hg_terrain)
+	    if (m_stencil == terrain)
 	    {
 		DependentMultiFabIterator sn_dmfi(w_mfi, sigma[lto]);
 		const Box& sigbox = sn_dmfi->box();
@@ -961,7 +961,7 @@ holy_grail_amr_multigrid::mg_interpolate_level (int lto,
                                      c_dmfi->dataPtr(), DIMLIST(cbox), DIMLIST(creg),
                                      D_DECL(rat[0], rat[1], rat[2]));
 	    }
-	    else if (m_hg_full_stencil)
+	    else if (m_stencil == full)
 	    {
 #if defined(HG_FULL_STENCIL)
 #if (BL_SPACEDIM == 2)

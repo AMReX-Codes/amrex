@@ -88,10 +88,10 @@ holy_grail_amr_multigrid::level_residual (MultiFab& r,
     assert(r.boxArray() == d.boxArray());
 
     HG_TEST_NORM(d, "level_residual a");
-    fill_borders(d, lev_interface[mglev], mg_boundary, -1, m_hg_terrain);
+    fill_borders(d, lev_interface[mglev], mg_boundary, -1, m_stencil == terrain);
     HG_TEST_NORM(d, "level_residual a1");
     
-    if (m_hg_terrain)
+    if (m_stencil == terrain)
     {	
 	for (MultiFabIterator r_mfi(r); r_mfi.isValid(); ++r_mfi)
 	{
@@ -116,7 +116,7 @@ holy_grail_amr_multigrid::level_residual (MultiFab& r,
 	if (iclear) 
 	    clear_part_interface(r, lev_interface[mglev]);
     }
-    else if (m_hg_cross_stencil)
+    else if (m_stencil == cross)
     {
 	HG_TEST_NORM(sigma_node[mglev], "level_residual");
 	HG_TEST_NORM(mask[mglev], "level_residual");
@@ -215,7 +215,7 @@ holy_grail_amr_multigrid::relax (int  mglev,
 	if (smoother_mode == 0 || smoother_mode == 1 || line_solve_dim == -1) 
 	{
 	    if (is_zero == false)
-		fill_borders(corr[mglev], lev_interface[mglev], mg_boundary, -1, m_hg_terrain);
+		fill_borders(corr[mglev], lev_interface[mglev], mg_boundary, -1, m_stencil == terrain);
 	    else
 		is_zero = false;
 	    for (MultiFabIterator r_mfi(resid[mglev]); r_mfi.isValid(); ++r_mfi)
@@ -229,7 +229,7 @@ holy_grail_amr_multigrid::relax (int  mglev,
                     //
 		    // Gauss-Seidel section:
                     //
-		    if (m_hg_terrain)
+		    if (m_stencil == terrain)
 		    {
 			DependentMultiFabIterator sg_dmfi(r_mfi, sigma[mglev]);
 			const Box& fbox = c_dmfi->box();
@@ -241,7 +241,7 @@ holy_grail_amr_multigrid::relax (int  mglev,
                                            cn_dmfi->dataPtr(), DIMLIST(cenbox),
                                            DIMLIST(freg));
 		    } 
-		    else if (m_hg_cross_stencil)
+		    else if (m_stencil == cross)
 		    {
 #if BL_SPACEDIM==3 || 1
 			DependentMultiFabIterator sn_dmfi(r_mfi, sigma_node[mglev]);
@@ -308,13 +308,13 @@ holy_grail_amr_multigrid::relax (int  mglev,
                     //
 		    // Grid-by-grid line solve section:
                     //
-		    if(m_hg_terrain) 
+		    if(m_stencil == terrain) 
 		    {
 			BoxLib::Abort( "holy_grail_amr_multigrid::relax(): Terrain line solves not implemented" );
 		    }
 		    const Box& fbox = c_dmfi->box();
 		    const Box& cenbox = cn_dmfi->box();
-		    if (m_hg_cross_stencil)
+		    if (m_stencil == cross)
 		    {
 #if BL_SPACEDIM==2
 			const Real hxyz[BL_SPACEDIM] = { D_DECL(h[mglev][0], h[mglev][1], h[mglev][2]) };
@@ -397,7 +397,7 @@ holy_grail_amr_multigrid::relax (int  mglev,
 	for (int ipass = 0; ipass <= 1; ipass++) 
 	{
 	    if (is_zero == false)
-		fill_borders(corr[mglev], lev_interface[mglev], mg_boundary, -1, m_hg_terrain);
+		fill_borders(corr[mglev], lev_interface[mglev], mg_boundary, -1, m_stencil == terrain);
 	    else
 		is_zero = false;
 	    //
@@ -415,7 +415,7 @@ holy_grail_amr_multigrid::relax (int  mglev,
 		const Box& wbox = work[mglev][igrid].box();
 		const Box& cenbox = cen[mglev][igrid].box();
 		const Box& freg = corr[mglev].box(igrid);
-		if (m_hg_terrain)
+		if (m_stencil == terrain)
 		{
 		    const Box& sigbox = sigma[mglev][igrid].box();
 		    FORT_HGRLNF_TERRAIN(corr[mglev][igrid].dataPtr(), DIMLIST(fbox),
@@ -425,7 +425,7 @@ holy_grail_amr_multigrid::relax (int  mglev,
                                         cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
                                         DIMLIST(freg), DIMLIST(tdom), &line_solve_dim, &ipass);
 		}
-		else if (m_hg_cross_stencil)
+		else if (m_stencil == cross)
 		{
 #if BL_SPACEDIM == 2
 		    const Real hxyz[BL_SPACEDIM] = { D_DECL(h[mglev][0], h[mglev][1], h[mglev][2]) };
