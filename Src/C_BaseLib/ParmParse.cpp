@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.46 2002-06-19 22:21:38 car Exp $
+// $Id: ParmParse.cpp,v 1.47 2003-01-03 19:25:11 car Exp $
 //
 #include <winstd.H>
 
@@ -1633,8 +1633,8 @@ namespace
 void
 Fstring_2_int (int istr[], int nlen, const std::string& str)
 {
-    int i = 0;
-    for ( int i = 0; i < nlen-1 && i < str.size(); ++i )
+    int i;
+    for ( i = 0; i < nlen-1 && i < str.size(); ++i )
     {
 	istr[i] = str[i];
     }

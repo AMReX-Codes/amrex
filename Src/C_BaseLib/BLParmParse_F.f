@@ -1,5 +1,5 @@
 c
-c $Id: BLParmParse_F.f,v 1.6 2002-06-19 22:21:38 car Exp $
+c $Id: BLParmParse_F.f,v 1.7 2003-01-03 19:25:11 car Exp $
 c
 c-----------------------------------------------------------------------
       SUBROUTINE bl_pp_new(ipp, str)
@@ -124,7 +124,7 @@ c-----------------------------------------------------------------------
       INTEGER iostr(NSTR)
 C
       CALL blstr2int(istr, NSTR, str)
-      CALL bl_pp_get_string_cpp(ierr, ipp, istr, NSTR, ostr, NSTR)
+      CALL bl_pp_get_string_cpp(ierr, ipp, istr, NSTR, iostr, NSTR)
       IF ( ierr .ne. 0 ) THEN
           CALL blint2str(ostr, iostr, NSTR)
       END IF
