@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.18 1998-11-21 00:24:14 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.19 1998-11-21 00:27:43 lijewski Exp $
 #
 
 #
@@ -135,9 +135,9 @@ endif
 
 RANLIB = true
 
-EXE_OUTPUT_OPTION      = -o $(objEXETempDir)/$@
+EXE_OUTPUT_OPTION      = -o $(objEXETempDir)/$*.o
 LIB_OUTPUT_OPTION      = -o $(objTempDir)/$*.o
-FORT_EXE_OUTPUT_OPTION = -o $(objEXETempDir)/$@
+FORT_EXE_OUTPUT_OPTION = -o $(objEXETempDir)/$*.o
 FORT_LIB_OUTPUT_OPTION = -o $(objTempDir)/$*.o
 
 #
