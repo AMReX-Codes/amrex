@@ -141,7 +141,9 @@ holy_grail_amr_multigrid::level_residual (MultiFab& r,
     }
     else if (m_stencil == cross)
     {
+#if (BL_SPACEDIM == 2)
         const int isRZ = IsRZ();
+#endif
 	HG_TEST_NORM(sigma_node[mglev], "level_residual");
 	HG_TEST_NORM(mask[mglev], "level_residual");
 	HG_TEST_NORM(s, "level_residual");
@@ -257,7 +259,9 @@ holy_grail_amr_multigrid::relax (int  mglev,
 		    else if (m_stencil == cross)
 		    {
 #if BL_SPACEDIM==3 || 1
+#if (BL_SPACEDIM == 2)
                         const int isRZ = IsRZ();
+#endif
 			DependentMultiFabIterator sn_dmfi(r_mfi, sigma_node[mglev]);
 			DependentMultiFabIterator m_dmfi(r_mfi, mask[mglev]);
 			FORT_HGRLXU(c_dmfi->dataPtr(),

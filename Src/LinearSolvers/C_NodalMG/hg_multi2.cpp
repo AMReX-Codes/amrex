@@ -46,7 +46,11 @@ extern "C"
 #error not relevant
 #endif
     void FORT_HGFRES_TERRAIN(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
+#if (BL_SPACEDIM == 2)
     void FORT_HGFRES        (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*, const int*);
+#elif (BL_SPACEDIM == 3)
+    void FORT_HGFRES        (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
+#endif
     void FORT_HGCRES_TERRAIN(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
     void FORT_HGCRES        (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
     void FORT_HGERES_TERRAIN(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
@@ -662,8 +666,12 @@ holy_grail_amr_multigrid::interface_residual (int mglev,
 	}
 	else
 	{
+#if BL_SPACEDIM == 2
 	    const int isRZ = IsRZ();
 	    tl.add_task(new task_fceres_3(&FORT_HGFRES,tl,resid[mglev],source[lev],dest[lev],sigma[mglev],igrid,cdst,sigmac,creg,h[mglev],rat,idim,idir,isRZ));
+#elif BL_SPACEDIM == 3
+	    tl.add_task(new task_fceres_2(&FORT_HGFRES,tl,resid[mglev],source[lev],dest[lev],sigma[mglev],igrid,cdst,sigmac,creg,h[mglev],rat,idim,idir));
+#endif
 	}
     }
     tl.execute();
