@@ -4,13 +4,12 @@ DEBUG     = TRUE
 PROFILE   = FALSE
 DIM       = 2
 DIM       = 3
+COMP	  = g++
 COMP      = cxx
 COMP      = KCC
 
-
-USE_MPI=TRUE
 USE_MPI=FALSE
-
+USE_MPI=TRUE
 
 EBASE=proj
 LBASE=
@@ -23,7 +22,7 @@ INCLUDE_LOCATIONS += ../pBoxLib_2
 
 include $(TOP)/mk/Make.defs
 
-CPPFLAGS += -DBL_USE_NEW_HFILES -UBL_USE_SETBUF
+CPPFLAGS += -DBL_USE_NEW_HFILES
 
 include ./Make.package
 include ../pBoxLib_2/Make.package
@@ -55,7 +54,6 @@ INCLUDE_LOCATIONS += $(MPI_HOME)/include
 LIBRARY_LOCATIONS += $(MPI_HOME)/lib/alpha/ch_p4
 LIBRARIES += -lmpi
 endif
-
 
 #3RD = 1
 ifdef 3RD

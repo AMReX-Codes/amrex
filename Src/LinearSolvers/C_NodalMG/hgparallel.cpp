@@ -47,8 +47,9 @@ bool task_copy::ready()
     MPI_Status status;
     MPI_Test(&m_request, &flag, &status);
     return flag == 1;
-#endif
+#else
     return m_ready;
+#endif
 }
 
 task_copy_local::task_copy_local(FArrayBox& fab_, const MultiFab& smf_, int grid, const Box& bx)
