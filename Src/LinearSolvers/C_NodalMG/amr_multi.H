@@ -62,7 +62,7 @@ protected:
     }
     
     // All of these have built-in defaults except can_coarsen()
-    void build_mesh(const Box& fdomain, const Array< Array<int> >& Pd);
+    void build_mesh(const Box& fdomain);
     int build_down(const BoxArray& l_mesh, const Box& l_domain, int flev, IntVect rat, int nlev);
     void make_coarser_level(BoxArray& mesh, Box& domain, int& flev, IntVect& rat);
 

@@ -50,7 +50,7 @@ inline int amr_boundary_class::dir(const Box& region, const Box& domain) const
 	if ( region.smallEnd(i) == domain.bigEnd(i) )
 	    return +(i+1);
     }
-    BoxLib::Error("amr_boundary_class::dir---boundary box not outside domain.");
+    assert("amr_boundary_class::dir---boundary box not outside domain." == 0);
     return 0;
 }
 

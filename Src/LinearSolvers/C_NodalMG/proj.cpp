@@ -479,7 +479,7 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
 #endif
     t0 = Utility::second();
     inviscid_fluid_boundary_class afb(bc);
-    holy_grail_amr_projector proj(m, ratio, pd, domain[m.length() - 1], 0, m.length() - 1, m.length() - 1, afb, false, true, false, pcode);
+    holy_grail_amr_projector proj(m, ratio, domain[m.length() - 1], 0, m.length() - 1, m.length() - 1, afb, false, true, false, pcode);
 #if (BL_SPACEDIM == 2)
     if (!hg_terrain)
     {

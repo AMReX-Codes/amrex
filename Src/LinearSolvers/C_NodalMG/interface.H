@@ -30,7 +30,7 @@ public:
     level_interface() : status(-1) { }
     ~level_interface();
     // a pseudo constructor.
-    void alloc(const BoxArray& Im, const Box& Domain, const amr_boundary_class* Bdy, const Array<int>& Pd);
+    void alloc(const BoxArray& Im, const Box& Domain, const amr_boundary_class* Bdy);
     // two pseudo copy operators/constructors.
     void copy(const level_interface& src);
     void alloc_coarsened(const BoxArray& Im, const amr_boundary_class* Bdy, const level_interface& src, const IntVect& rat);
@@ -58,18 +58,6 @@ public:
     bool flag(int idim, int i)        const { return flg[idim][i]; }
     static int ngrids(int idim);
 
-    const int* ProcessorMap() const  
-    { 
-	return processorMap; 
-    }
-    bool ownsGrid(int igrid) const 
-    {
-	return (processorMap[igrid] == ParallelDescriptor::MyProc())?true:false; 
-    }
-    int Owner(int igrid) const 
-    {
-	return processorMap[igrid]; 
-    }
 private:
 #if (BL_SPACEDIM == 2)
     enum
@@ -89,7 +77,6 @@ private:
     Box dom;				// BoxArray doesn't know domain
     BoxArray im;			// interior BoxArray
     BoxArray em;			// exterior BoxArray
-    int* processorMap;
     int* grid_ref;                      // one for each exterior box
     Box* pf;                            // expanded NODE boxes for interior grids
     int nbx[BL_SPACEDIM];               // numbers of interface boxes

@@ -83,18 +83,15 @@ void injection_restrictor_class::fill(FArrayBox& patch,
 				      const FArrayBox& fgr,
 				      const IntVect& rat) const
 {
-    if (patch.box().type() == IntVect::TheNodeVector()) 
+    assert(patch.box().type() == IntVect::TheNodeVector());
+    for (int i = 0; i < patch.nComp(); i++) 
     {
-	for (int i = 0; i < patch.nComp(); i++) 
-	{
-	    FORT_FANRST1(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
-		fgr.dataPtr(i), DIMLIST(fgr.box()),
-		D_DECL(rat[0], rat[1], rat[2]));
-	}
+	FORT_FANRST1(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
+	    fgr.dataPtr(i), DIMLIST(fgr.box()),
+	    D_DECL(rat[0], rat[1], rat[2]));
     }
-    else
-	BoxLib::Error("injection_restrictor_class::fill---Injection only defined for NODE-based data");
 }
+
 
 Box default_restrictor::box(const Box& fb, const IntVect& rat) const
 {
@@ -131,25 +128,22 @@ void bilinear_restrictor_class::fill(FArrayBox& patch,
 				     const FArrayBox& fgr,
 				     const IntVect& rat) const
 {
-    if (patch.box().type() == IntVect::TheNodeVector()) 
+    assert(patch.box().type() == IntVect::TheNodeVector());
+    for (int i = 0; i < patch.nComp(); i++) 
     {
-	for (int i = 0; i < patch.nComp(); i++) 
-	{
-	    FORT_FANRST2(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
-		fgr.dataPtr(i), DIMLIST(fgr.box()),
-		D_DECL(rat[0], rat[1], rat[2]), integrate);
-	}
+	FORT_FANRST2(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
+	    fgr.dataPtr(i), DIMLIST(fgr.box()),
+	    D_DECL(rat[0], rat[1], rat[2]), integrate);
     }
-    else
-	BoxLib::Error("bilinear_restrictor_coarse_class::fill---Bilinear restriction only defined for NODE-based data");
 }
 
 void bilinear_restrictor_class::fill_interface(MultiFab& dest,
-						       MultiFab& fine,
-						       const level_interface& lev_interface,
-						       const amr_boundary_class* bdy,
-						       const IntVect& rat) const
+					       MultiFab& fine,
+					       const level_interface& lev_interface,
+					       const amr_boundary_class* bdy,
+					       const IntVect& rat) const
 {
+    assert(type(dest) == IntVect::TheNodeVector());
     for (int jgrid = 0; jgrid < dest.length(); jgrid++)
     {
 	const Box& region = dest.box(jgrid);
@@ -159,8 +153,6 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 	// This assertion difficult in BoxLib since r.mesh() is not cc:
 	//assert(r.mesh() == lev_interface.interior_mesh());
 	FArrayBox& patch = dest[jgrid];
-    if (patch.box().type() != IntVect::TheNodeVector())
-	BoxLib::Error("bilinear_restrictor_coarse_class::lev_interface---bilinear restriction only defined for NODE-based data");
     
     Box regplus = grow(region,1);
     const Box& pb = patch.box();
@@ -342,11 +334,12 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 }
 
 void bilinear_restrictor_coarse_class::fill_interface(MultiFab& dest,
-						       MultiFab& fine,
-						       const level_interface& lev_interface,
-						       const amr_boundary_class* bdy,
-						       const IntVect& rat) const
+						      MultiFab& fine,
+						      const level_interface& lev_interface,
+						      const amr_boundary_class* bdy,
+						      const IntVect& rat) const
 {
+    assert(type(dest) == IntVect::TheNodeVector());
     for (int jgrid = 0; jgrid < dest.length(); jgrid++)
     {
 	const Box& region = dest.box(jgrid);
@@ -356,215 +349,213 @@ void bilinear_restrictor_coarse_class::fill_interface(MultiFab& dest,
 	// This assertion difficult in BoxLib since r.mesh() is not cc:
 	//assert(r.mesh() == lev_interface.interior_mesh());
 	FArrayBox& patch = dest[jgrid];
-    if (patch.box().type() != IntVect::TheNodeVector())
-	BoxLib::Error("bilinear_restrictor_coarse_class::lev_interface---bilinear restriction only defined for NODE-based data");
-    
-    const Box regplus = grow(region,1);
-    const Box& pb = patch.box();
-    
-    int ratmax = rat[0];
-    for (int i = 1; i < BL_SPACEDIM; ++i)
-	ratmax = (rat[i] > ratmax) ? rat[i] : ratmax;
-    
-    if (fine.nGrow() >= ratmax - 1)
-	fill_borders(fine, lev_interface, bdy, ratmax - 1, m_hg_terrain);
-
-    // PARALLEL
-    for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
-    {
-	if ( lev_interface.flag(level_interface::FACEDIM, iface) )
-	    continue;
-	Box cbox = lev_interface.node_box(level_interface::FACEDIM, iface);
-	IntVect t = lev_interface.box(level_interface::FACEDIM, iface).type();
-	const unsigned int geo = lev_interface.geo(level_interface::FACEDIM, iface);
-	cbox.coarsen(rat);
-	if (region.intersects(cbox)) 
+	
+	const Box regplus = grow(region,1);
+	const Box& pb = patch.box();
+	
+	int ratmax = rat[0];
+	for (int i = 1; i < BL_SPACEDIM; ++i)
+	    ratmax = (rat[i] > ratmax) ? rat[i] : ratmax;
+	
+	if (fine.nGrow() >= ratmax - 1)
+	    fill_borders(fine, lev_interface, bdy, ratmax - 1, m_hg_terrain);
+	
+	// PARALLEL
+	for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
 	{
-	    // This extends fine face by one coarse cell past coarse face:
-	    cbox &= regplus;
-	    int idim = lev_interface.fdim(iface);
-	    cbox.grow(t - IntVect::TheUnitVector());
-	    if (geo == level_interface::ALL) 
-	    { 
-		// fine grid on both sides
-		if (fine.nGrow() >= ratmax - 1) 
-		{
-		    int igrid = lev_interface.grid(level_interface::FACEDIM, iface, 0);
-		    if (igrid < 0)
-			igrid = lev_interface.grid(level_interface::FACEDIM, iface, 1);
-		    const Box& fb = fine[igrid].box();
-		    for (int i = 0; i < patch.nComp(); i++) 
+	    if ( lev_interface.flag(level_interface::FACEDIM, iface) )
+		continue;
+	    Box cbox = lev_interface.node_box(level_interface::FACEDIM, iface);
+	    IntVect t = lev_interface.box(level_interface::FACEDIM, iface).type();
+	    const unsigned int geo = lev_interface.geo(level_interface::FACEDIM, iface);
+	    cbox.coarsen(rat);
+	    if (region.intersects(cbox)) 
+	    {
+		// This extends fine face by one coarse cell past coarse face:
+		cbox &= regplus;
+		int idim = lev_interface.fdim(iface);
+		cbox.grow(t - IntVect::TheUnitVector());
+		if (geo == level_interface::ALL) 
+		{ 
+		    // fine grid on both sides
+		    if (fine.nGrow() >= ratmax - 1) 
 		    {
-			Real* fptr = fine[igrid].dataPtr(i);
-			FORT_FANRST2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox), fptr, DIMLIST(fb), 
-			    D_DECL(rat[0], rat[1], rat[2]), integrate);
+			int igrid = lev_interface.grid(level_interface::FACEDIM, iface, 0);
+			if (igrid < 0)
+			    igrid = lev_interface.grid(level_interface::FACEDIM, iface, 1);
+			const Box& fb = fine[igrid].box();
+			for (int i = 0; i < patch.nComp(); i++) 
+			{
+			    Real* fptr = fine[igrid].dataPtr(i);
+			    FORT_FANRST2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox), fptr, DIMLIST(fb), 
+				D_DECL(rat[0], rat[1], rat[2]), integrate);
+			}
+		    }
+		    else 
+		    {
+			Box fbox = grow(refine(cbox, rat), rat - IntVect::TheUnitVector());
+			FArrayBox fgr(fbox, patch.nComp());
+			fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, level_interface::FACEDIM, iface);
+			for (int i = 0; i < patch.nComp(); i++) 
+			{
+			    FORT_FANRST2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(i), DIMLIST(fbox), 
+				D_DECL(rat[0], rat[1], rat[2]), integrate);
+			}
 		    }
 		}
 		else 
-		{
-		    Box fbox = grow(refine(cbox, rat), rat - IntVect::TheUnitVector());
-		    FArrayBox fgr(fbox, patch.nComp());
-		    fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, level_interface::FACEDIM, iface);
-		    for (int i = 0; i < patch.nComp(); i++) 
+		{ // fine grid on just one side
+		    int idir = (geo & level_interface::LOW) ? -1 : 1;
+		    int igrid = (idir < 0) ? lev_interface.grid(level_interface::FACEDIM, iface, 0) :
+		    lev_interface.grid(level_interface::FACEDIM, iface, 1) ;
+		    if (igrid >= 0) 
 		    {
-			FORT_FANRST2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(i), DIMLIST(fbox), 
-			    D_DECL(rat[0], rat[1], rat[2]), integrate);
+			// Usual case, a fine grid extends all along the face.
+			const Box& fb = fine[igrid].box();
+			for (int i = 0; i < patch.nComp(); i++) 
+			{
+			    FORT_FANFR2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox), fine[igrid].dataPtr(i), DIMLIST(fb), 
+				D_DECL(rat[0], rat[1], rat[2]), idim, idir, integrate);
+			}
+		    }
+		    else 
+		    {
+			// A virtual fine grid is on the other side of the boundary.
+			Box fbox = refine(cbox, rat).grow(rat - IntVect::TheUnitVector());
+			if (geo & level_interface::LOW)
+			    fbox.growHi(idim, 1 - rat[idim]);
+			else
+			    fbox.growLo(idim, 1 - rat[idim]);
+			FArrayBox fgr(fbox, patch.nComp());
+			fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, level_interface::FACEDIM, iface);
+			for (int i = 0; i < patch.nComp(); i++) 
+			{
+			    FORT_FANFR2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(i), DIMLIST(fbox),
+				D_DECL(rat[0], rat[1], rat[2]), idim, idir, integrate);
+			}
 		    }
 		}
 	    }
-	    else 
-	    { // fine grid on just one side
-		int idir = (geo & level_interface::LOW) ? -1 : 1;
-		int igrid = (idir < 0) ? lev_interface.grid(level_interface::FACEDIM, iface, 0) :
-		lev_interface.grid(level_interface::FACEDIM, iface, 1) ;
-		if (igrid >= 0) 
-		{
-		    // Usual case, a fine grid extends all along the face.
+	}
+	
+#if (BL_SPACEDIM == 2)
+	
+	// PARALLEL
+	for (int icor = 0; icor < lev_interface.nboxes(0); icor++) 
+	{
+	    if ( lev_interface.flag(0, icor) )
+		continue;
+	    Box cbox = lev_interface.box(0, icor);
+	    cbox.coarsen(rat);
+	    if (region.intersects(cbox)) 
+	    {
+		const unsigned int geo = lev_interface.geo(0, icor);
+		if (geo == level_interface::ALL && fine.nGrow() >= ratmax - 1) 
+		{ 
+		    // fine grid on all sides
+		    int igrid = lev_interface.grid(0, icor, 0);
+		    for (int itmp = 1; igrid < 0; itmp++)
+			igrid = lev_interface.grid(0, icor, itmp);
 		    const Box& fb = fine[igrid].box();
 		    for (int i = 0; i < patch.nComp(); i++) 
 		    {
-			FORT_FANFR2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox), fine[igrid].dataPtr(i), DIMLIST(fb), 
-			    D_DECL(rat[0], rat[1], rat[2]), idim, idir, integrate);
+			const Real* fptr = fine[igrid].dataPtr(i);
+			FORT_FANRST2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox),
+			    fptr, DIMLIST(fb),
+			    D_DECL(rat[0], rat[1], rat[2]), integrate);
 		    }
 		}
-		else 
+		else if (geo == level_interface::ALL) 
 		{
-		    // A virtual fine grid is on the other side of the boundary.
-		    Box fbox = refine(cbox, rat).grow(rat - IntVect::TheUnitVector());
-		    if (geo & level_interface::LOW)
-			fbox.growHi(idim, 1 - rat[idim]);
+		    // fine grid on all sides
+		    FArrayBox fgr(refine(grow(cbox, 1), rat), patch.nComp());
+		    fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
+		    const Box& fb = fgr.box();
+		    for (int i = 0; i < patch.nComp(); i++) 
+		    {
+			FORT_FANRST2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(i), DIMLIST(fb),
+			    D_DECL(rat[0], rat[1], rat[2]), integrate);
+		    }
+		}
+		else if (geo == level_interface::XL || geo == level_interface::XH || geo == level_interface::YL || geo == level_interface::YH) 
+		{
+		    // fine grid on two adjacent sides
+		    int idim = (geo == level_interface::XL || geo == level_interface::XH) ? 0 : 1;
+		    int idir = (geo & level_interface::LL) ? -1 : 1;
+		    Box fbox = refine(cbox, rat).grow(1 - idim, rat[1-idim]);
+		    if (geo & level_interface::LL)
+			fbox.growLo(idim, rat[idim]);
 		    else
-			fbox.growLo(idim, 1 - rat[idim]);
+			fbox.growHi(idim, rat[idim]);
 		    FArrayBox fgr(fbox, patch.nComp());
-		    fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, level_interface::FACEDIM, iface);
+		    fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
 		    for (int i = 0; i < patch.nComp(); i++) 
 		    {
 			FORT_FANFR2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(i), DIMLIST(fbox),
 			    D_DECL(rat[0], rat[1], rat[2]), idim, idir, integrate);
 		    }
 		}
-	    }
-	}
-    }
-    
-#if (BL_SPACEDIM == 2)
-
-    // PARALLEL
-    for (int icor = 0; icor < lev_interface.nboxes(0); icor++) 
-    {
-	if ( lev_interface.flag(0, icor) )
-	    continue;
-	Box cbox = lev_interface.box(0, icor);
-	cbox.coarsen(rat);
-	if (region.intersects(cbox)) 
-	{
-	    const unsigned int geo = lev_interface.geo(0, icor);
-	    if (geo == level_interface::ALL && fine.nGrow() >= ratmax - 1) 
-	    { 
-		// fine grid on all sides
-		int igrid = lev_interface.grid(0, icor, 0);
-		for (int itmp = 1; igrid < 0; itmp++)
-		    igrid = lev_interface.grid(0, icor, itmp);
-		const Box& fb = fine[igrid].box();
-		for (int i = 0; i < patch.nComp(); i++) 
+		else if (geo == level_interface::LL || geo == level_interface::HL || geo == level_interface::LH || geo == level_interface::HH) 
 		{
-		    const Real* fptr = fine[igrid].dataPtr(i);
-		    FORT_FANRST2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox),
-			fptr, DIMLIST(fb),
-			D_DECL(rat[0], rat[1], rat[2]), integrate);
+		    // outside corner
+		    Box fbox = refine(cbox, rat);
+		    int idir0, idir1;
+		    if (geo & level_interface::XL) 
+		    {
+			fbox.growLo(0, rat[0]);
+			idir0 = -1;
+		    }
+		    else 
+		    {
+			fbox.growHi(0, rat[0]);
+			idir0 = 1;
+		    }
+		    if (geo & level_interface::YL) 
+		    {
+			fbox.growLo(1, rat[1]);
+			idir1 = -1;
+		    }
+		    else 
+		    {
+			fbox.growHi(1, rat[1]);
+			idir1 = 1;
+		    }
+		    FArrayBox fgr(fbox, patch.nComp());
+		    fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
+		    for (int i = 0; i < patch.nComp(); i++) 
+		    {
+			FORT_FANOR2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox),
+			    fgr.dataPtr(i), DIMLIST(fbox),
+			    D_DECL(rat[0], rat[1], rat[2]), idir0, idir1, integrate);
+		    }
 		}
-	    }
-	    else if (geo == level_interface::ALL) 
-	    {
-		// fine grid on all sides
-		FArrayBox fgr(refine(grow(cbox, 1), rat), patch.nComp());
-		fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
-		const Box& fb = fgr.box();
-		for (int i = 0; i < patch.nComp(); i++) 
+		else if (geo == (level_interface::LL | level_interface::HH) || geo == (level_interface::LH | level_interface::HL)) 
 		{
-		    FORT_FANRST2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(i), DIMLIST(fb),
-			D_DECL(rat[0], rat[1], rat[2]), integrate);
-		}
-	    }
-	    else if (geo == level_interface::XL || geo == level_interface::XH || geo == level_interface::YL || geo == level_interface::YH) 
-	    {
-		// fine grid on two adjacent sides
-		int idim = (geo == level_interface::XL || geo == level_interface::XH) ? 0 : 1;
-		int idir = (geo & level_interface::LL) ? -1 : 1;
-		Box fbox = refine(cbox, rat).grow(1 - idim, rat[1-idim]);
-		if (geo & level_interface::LL)
-		    fbox.growLo(idim, rat[idim]);
-		else
-		    fbox.growHi(idim, rat[idim]);
-		FArrayBox fgr(fbox, patch.nComp());
-		fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
-		for (int i = 0; i < patch.nComp(); i++) 
-		{
-		    FORT_FANFR2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(i), DIMLIST(fbox),
-			D_DECL(rat[0], rat[1], rat[2]), idim, idir, integrate);
-		}
-	    }
-	    else if (geo == level_interface::LL || geo == level_interface::HL || geo == level_interface::LH || geo == level_interface::HH) 
-	    {
-		// outside corner
-		Box fbox = refine(cbox, rat);
-		int idir0, idir1;
-		if (geo & level_interface::XL) 
-		{
-		    fbox.growLo(0, rat[0]);
-		    idir0 = -1;
+		    // diagonal corner
+		    Box fbox = refine(cbox, rat).grow(rat);
+		    FArrayBox fgr(fbox, patch.nComp());
+		    int idir1 = (geo == (level_interface::LL | level_interface::HH)) ? 1 : -1;
+		    fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
+		    for (int i = 0; i < patch.nComp(); i++) 
+		    {
+			FORT_FANDR2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(i), DIMLIST(fbox),
+			    D_DECL(rat[0], rat[1], rat[2]), idir1, integrate);
+		    }
 		}
 		else 
 		{
-		    fbox.growHi(0, rat[0]);
-		    idir0 = 1;
+		    // inside corner
+		    Box fbox = refine(cbox, rat).grow(rat);
+		    FArrayBox fgr(fbox, patch.nComp());
+		    int idir0 = ((geo & level_interface::XL) == level_interface::XL) ? -1 : 1;
+		    int idir1 = ((geo & level_interface::YL) == level_interface::YL) ? -1 : 1;
+		    fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
+		    for (int i = 0; i < patch.nComp(); i++) 
+		    {
+			FORT_FANIR2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(i), DIMLIST(fbox),
+			    D_DECL(rat[0], rat[1], rat[2]), idir0, idir1, integrate);
+		    }
 		}
-		if (geo & level_interface::YL) 
-		{
-		    fbox.growLo(1, rat[1]);
-		    idir1 = -1;
-		}
-		else 
-		{
-		    fbox.growHi(1, rat[1]);
-		    idir1 = 1;
-		}
-		FArrayBox fgr(fbox, patch.nComp());
-		fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
-		for (int i = 0; i < patch.nComp(); i++) 
-		{
-		    FORT_FANOR2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox),
-			fgr.dataPtr(i), DIMLIST(fbox),
-			D_DECL(rat[0], rat[1], rat[2]), idir0, idir1, integrate);
-		}
-	    }
-	    else if (geo == (level_interface::LL | level_interface::HH) || geo == (level_interface::LH | level_interface::HL)) 
-	    {
-		// diagonal corner
-		Box fbox = refine(cbox, rat).grow(rat);
-		FArrayBox fgr(fbox, patch.nComp());
-		int idir1 = (geo == (level_interface::LL | level_interface::HH)) ? 1 : -1;
-		fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
-		for (int i = 0; i < patch.nComp(); i++) 
-		{
-		    FORT_FANDR2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(i), DIMLIST(fbox),
-			D_DECL(rat[0], rat[1], rat[2]), idir1, integrate);
-		}
-	    }
-	    else 
-	    {
-		// inside corner
-		Box fbox = refine(cbox, rat).grow(rat);
-		FArrayBox fgr(fbox, patch.nComp());
-		int idir0 = ((geo & level_interface::XL) == level_interface::XL) ? -1 : 1;
-		int idir1 = ((geo & level_interface::YL) == level_interface::YL) ? -1 : 1;
-		fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
-		for (int i = 0; i < patch.nComp(); i++) 
-		{
-		    FORT_FANIR2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(i), DIMLIST(fbox),
-			D_DECL(rat[0], rat[1], rat[2]), idir0, idir1, integrate);
-		}
-	    }
     }
   }
   
@@ -623,7 +614,7 @@ void bilinear_restrictor_coarse_class::fill_interface(MultiFab& dest,
 	  }
       }
   }
-    // PARALLEL  
+  // PARALLEL  
   for (int icor = 0; icor < lev_interface.nboxes(0); icor++) 
   {
       if ( lev_interface.flag(0, icor) )
@@ -667,11 +658,11 @@ void bilinear_restrictor_coarse_class::fill_interface(MultiFab& dest,
 		  {
 		      FORT_FANCR2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(i), DIMLIST(fbox),
 			  D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), integrate);
-		  }
-	      }
-	  }
-      }
-  }
+			}
+		    }
+		}
+	    }
+	}
 #endif
-}
+    }
 }
