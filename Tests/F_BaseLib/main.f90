@@ -11,11 +11,12 @@ program main
 ! call t_mf_fabio
 ! call t_mf
 ! call t_fabio
-call t_domain
+! call t_domain
 ! call t_box_chop
 ! call t_box_mod
 ! call t_boxassoc
 ! call t_mt_random_numbers
+! call t_ieee
 
   call boxlib_finalize()
 

@@ -6,6 +6,9 @@ F90FLAGS :=
 FFLAGS   :=
 CFLAGS   :=
 
+VPATH_LOCATIONS :=
+INCLUDE_LOCATIONS :=
+
 ifdef MPI
   mpi_suffix 	:= .mpi
 endif
@@ -365,13 +368,18 @@ ifeq ($(ARCH),OSF1)
   endif
 endif
 
+c_includes = $(addprefix -I, $(INCLUDE_LOCATIONS))
+
 TCSORT  :=  $(FPARALLEL)/scripts/tcsort.pl
 MODDEP  :=  $(FPARALLEL)/scripts/moddep.pl
+MKDEP   :=  $(FPARALLEL)/scripts/mkdep.pl
 F90DOC  :=  $(FPARALLEL)/scripts/f90doc/f90doc
 
 FPPFLAGS += $(fpp_flags)
 LDFLAGS  += $(fld_flags)
 libraries += $(mpi_libraries)
+
+CPPFLAGS += $(c_includes)
 
 objects = $(addprefix $(odir)/, $(sort $(f90sources:.f90=.o)) $(sort $(fsources:.f=.o)) $(sort $(csources:.c=.o)))
 sources =                       $(sort $(f90sources)        ) $(sort $(fsources)      ) $(sort $(csources)       )

@@ -1,5 +1,6 @@
 vpath %.f   . $(VPATH_LOCATIONS)
 vpath %.c   . $(VPATH_LOCATIONS)
+vpath %.h   . $(VPATH_LOCATIONS)
 vpath %.f90 . $(VPATH_LOCATIONS)
 
 doc:	$(html_sources)
@@ -7,7 +8,7 @@ doc:	$(html_sources)
 clean:
 	$(RM) ./*.o ./*.mod $(mdir)/*.mod $(odir)/*.o *.exe *~
 	$(RM) $(odir)/*.il
-	$(RM) $(tdir)/f90.depends
+	$(RM) $(tdir)/f90.depends $(tdir)/c.depends
 	$(RM) *.html
 	$(RM) TAGS
 
@@ -65,9 +66,26 @@ ${hdir}/%.html: %.f
 	@if [ ! -d $(hdir) ]; then mkdir -p $(hdir); fi
 	$(F90DOC) $(OUTPUT_OPTION) $<
 
-$(tdir)/f90.depends: $(sources) 
+$(tdir)/f90.depends: $(fsources) $(f90sources)
 	@if [ ! -d $(tdir) ]; then mkdir -p $(tdir); fi
-	@echo "Building dependency File ..."
+ifdef MKVERBOSE
+	perl $(MODDEP) --odir $(odir) $^ > $(tdir)/f90.depends 
+else
+	@echo "Building f90/f dependency File ..."
 	@perl $(MODDEP) --odir $(odir) $^ > $(tdir)/f90.depends 
+endif
+
+$(tdir)/c.depends:  $(csources)
+	@if [ ! -d $(tdir) ]; then mkdir -p $(tdir); fi
+ifdef MKVERBOSE
+	perl $(MKDEP) $(c_includes) --odir$(odir) $^ > $(tdir)/c.depends 
+else
+	@echo "Building c dependency File ..."
+	@perl $(MKDEP) $(c_includes) --odir$(odir) $^ > $(tdir)/c.depends 
+endif
 
 -include $(tdir)/f90.depends
+
+ifdef csources
+-include $(tdir)/c.depends
+endif
