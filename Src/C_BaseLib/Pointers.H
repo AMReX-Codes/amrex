@@ -1,14 +1,11 @@
 #ifndef BL_POINTERS_H
 #define BL_POINTERS_H
-
 //
-// $Id: Pointers.H,v 1.14 2001-07-19 20:02:47 lijewski Exp $
+// $Id: Pointers.H,v 1.15 2001-07-26 20:08:46 lijewski Exp $
 //
-
 #include <BLassert.H>
 #include <BoxLib.H>
 #include <UseCount.H>
-
 //
 //@Man:
 //@Memo: A Smart Pointer for Intrinsic or User-Defined Types

@@ -1,7 +1,8 @@
 //
-// $Id: DistributionMapping.cpp,v 1.52 2001-07-24 18:16:53 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.53 2001-07-26 20:08:44 lijewski Exp $
 //
 
+#include <BoxArray.H>
 #include <DistributionMapping.H>
 #include <ParallelDescriptor.H>
 #include <ParmParse.H>

@@ -1,21 +1,18 @@
 #ifndef BL_BOX_H
 #define BL_BOX_H
-
 //
-// $Id: Box.H,v 1.21 2001-07-19 17:51:48 lijewski Exp $
+// $Id: Box.H,v 1.22 2001-07-26 20:08:43 lijewski Exp $
 //
-
 #ifdef NODEV
 #undef NODEV
 #endif
 
-#include <iostream>
+#include <iosfwd>
 
 #include <IntVect.H>
 #include <IndexType.H>
 #include <Orientation.H>
 #include <SPACE.H>
-
 //
 // Forward declaration.
 //

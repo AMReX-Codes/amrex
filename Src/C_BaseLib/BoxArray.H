@@ -2,7 +2,7 @@
 #define BL_BOXARRAY_H
 
 //
-// $Id: BoxArray.H,v 1.25 2001-07-25 23:36:15 lijewski Exp $
+// $Id: BoxArray.H,v 1.26 2001-07-26 20:08:43 lijewski Exp $
 //
 
 #include <cstddef>
@@ -11,11 +11,6 @@
 #include <BoxList.H>
 #include <Array.H>
 #include <Pointers.H>
-
-//
-// Forward declaration.
-//
-class BoxList;
 
 class BoxArray;
 

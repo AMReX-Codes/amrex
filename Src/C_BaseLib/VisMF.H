@@ -1,10 +1,8 @@
 #ifndef BL_VISMF_H
 #define BL_VISMF_H
-
 //
-// $Id: VisMF.H,v 1.49 2001-07-25 23:36:17 lijewski Exp $
+// $Id: VisMF.H,v 1.50 2001-07-26 20:08:47 lijewski Exp $
 //
-
 #include <MultiFab.H>
 
 //

@@ -1,27 +1,32 @@
 //
-// $Id: Orientation.cpp,v 1.7 2001-07-19 20:02:47 lijewski Exp $
+// $Id: Orientation.cpp,v 1.8 2001-07-26 20:08:45 lijewski Exp $
 //
+#include <iostream>
 
 #include <BoxLib.H>
 #include <Orientation.H>
 
 Orientation::Orientation (int _val)
-    : val(_val)
+    :
+    val(_val)
 {}
 
 Orientation::Orientation ()
-    : val(-1)
+    :
+    val(-1)
 {}
 
 Orientation::Orientation (int  _dir,
                           Side _side)
-    : val(BL_SPACEDIM*_side + _dir)
+    :
+    val(BL_SPACEDIM*_side + _dir)
 {
     BL_ASSERT(0 <= _dir && _dir < BL_SPACEDIM);
 }
 
 Orientation::Orientation (const Orientation& o)
-    : val(o.val)
+    :
+    val(o.val)
 {}
 
 Orientation&
@@ -103,15 +108,18 @@ Orientation::isHigh () const
 }
 
 OrientationIter::OrientationIter (int _face)
-    : face(_face)
+    :
+    face(_face)
 {}
 
 OrientationIter::OrientationIter ()
-    : face(0)
+    :
+    face(0)
 {}
 
 OrientationIter::OrientationIter (const Orientation& _face)
-    : face(_face)
+    :
+    face(_face)
 {}
 
 bool

@@ -1,13 +1,9 @@
 #ifndef BL_INTVECT_H
 #define BL_INTVECT_H
-
 //
-// $Id: IntVect.H,v 1.18 2001-07-19 20:02:45 lijewski Exp $
+// $Id: IntVect.H,v 1.19 2001-07-26 20:08:45 lijewski Exp $
 //
-
-#include <algorithm>
-#include <iostream>
-#include <cstdlib>
+#include <iosfwd>
 
 #include <SPACE.H>
 #include <Array.H>
@@ -26,6 +22,7 @@
 */
 
 class IntVect;
+
 namespace BoxLib
 {
     /*@ManDoc: Returns a basis vector in the given coordinate direction;
@@ -296,10 +293,6 @@ public:
     //@ManDoc: Modify IntVect by component-wise integer projection.
     //
     IntVect& coarsen (int p);
-    //
-    //@ManDoc: Print an IntVect to the ostream.
-    //
-    void printOn (std::ostream& os = std::cout) const;
 
     /*@ManDoc:
       This static member function returns a reference to a constant IntVect

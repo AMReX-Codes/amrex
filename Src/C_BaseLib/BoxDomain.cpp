@@ -1,6 +1,7 @@
 //
-// $Id: BoxDomain.cpp,v 1.16 2001-07-24 22:04:48 lijewski Exp $
+// $Id: BoxDomain.cpp,v 1.17 2001-07-26 20:08:44 lijewski Exp $
 //
+#include <iostream>
 
 #include <BoxDomain.H>
 

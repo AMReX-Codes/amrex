@@ -1,10 +1,8 @@
 #ifndef BL_ARRAY_H
 #define BL_ARRAY_H
-
 //
-// $Id: Array.H,v 1.26 2001-07-25 23:36:15 lijewski Exp $
+// $Id: Array.H,v 1.27 2001-07-26 20:08:43 lijewski Exp $
 //
-
 #include <cstddef>
 #include <iostream>
 #include <vector>

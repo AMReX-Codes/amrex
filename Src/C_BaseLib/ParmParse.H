@@ -1,17 +1,12 @@
 #ifndef BL_PARMPARSE_H
 #define BL_PARMPARSE_H
-
 //
-// $Id: ParmParse.H,v 1.21 2001-07-24 19:47:17 car Exp $
+// $Id: ParmParse.H,v 1.22 2001-07-26 20:08:45 lijewski Exp $
 //
-
 #include <string>
-#include <iostream>
-#include <iomanip>
-#include <cstdlib>
+#include <iosfwd>
 
 #include <Array.H>
-
 //
 // ParmParse class implements a simple database for the storage and
 // retrieval of command-line and input-file arguments.  The entries are

@@ -1,11 +1,13 @@
 //
-// $Id: Utility.cpp,v 1.53 2001-07-25 23:36:17 lijewski Exp $
+// $Id: Utility.cpp,v 1.54 2001-07-26 20:08:46 lijewski Exp $
 //
 
 #include <cstdlib>
 #include <cstring>
 #include <cctype>
 #include <cstdio>
+#include <ctime>
+#include <iostream>
 
 #include <sys/stat.h>
 #include <sys/types.h>

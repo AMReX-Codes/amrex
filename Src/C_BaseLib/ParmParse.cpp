@@ -1,9 +1,7 @@
 //
-// $Id: ParmParse.cpp,v 1.31 2001-07-25 01:15:13 car Exp $
+// $Id: ParmParse.cpp,v 1.32 2001-07-26 20:08:46 lijewski Exp $
 //
-
-#include <winstd.H>
-
+#include <cstdlib>
 #include <iostream>
 #include <sstream>
 #include <cstddef>
@@ -19,6 +17,7 @@
 #include <ParallelDescriptor.H>
 #include <Box.H>
 #include <IntVect.H>
+#include <winstd.H>
 
 namespace
 {
@@ -41,7 +40,7 @@ struct PP_entry
 };
 
 std::ostream&
-operator<<(std::ostream& os, const PP_entry& pp)
+operator<< (std::ostream& os, const PP_entry& pp)
 {
     os << pp.defname << "(nvals = " << pp.val.size() << ") " << " :: [";
     int n = pp.val.size();
@@ -763,7 +762,6 @@ PP_entry::PP_entry (const std::string&		  name,
 // Initialize ParmParse.
 //
 
-
 bool initialized = false;
 
 void
@@ -793,7 +791,7 @@ ppinit (int argc, char** argv, const char* parfile)
     initialized = true;
 }
 
-}
+}  // End of unnamed namespace.
 
 void
 ParmParse::Initialize (int         argc,
@@ -1410,4 +1408,3 @@ ParmParse::contains (const char* name) const
     }
     return false;
 }
-

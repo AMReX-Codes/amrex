@@ -1,10 +1,8 @@
 #ifndef _RUNSTATS_H_
 #define _RUNSTATS_H_ 
-
 //
-// $Id: RunStats.H,v 1.15 2001-07-23 21:32:38 car Exp $
+// $Id: RunStats.H,v 1.16 2001-07-26 20:08:46 lijewski Exp $
 //
-
 #include <cstdlib>
 #include <fstream>
 #include <cstring>

@@ -1,15 +1,15 @@
 #ifndef BL_DISTRIBUTIONMAPPING_H
 #define BL_DISTRIBUTIONMAPPING_H
-
 //
-// $Id: DistributionMapping.H,v 1.20 2001-07-24 18:12:35 car Exp $
+// $Id: DistributionMapping.H,v 1.21 2001-07-26 20:08:44 lijewski Exp $
 //
 #include <vector>
 
 #include <BoxLib.H>
 #include <Array.H>
 #include <Box.H>
-#include <BoxArray.H>
+
+class BoxArray;
 
 //
 //@Man:
@@ -161,8 +161,6 @@ private:
 //
 // Our output operator.
 //
-std::ostream&
-operator<< (std::ostream&              os,
-            const DistributionMapping& pmap);
+std::ostream& operator<< (std::ostream& os, const DistributionMapping& pmap);
 
 #endif /*BL_DISTRIBUTIONMAPPING_H*/

@@ -1,12 +1,8 @@
 #ifndef BL_PARRAY_H
 #define BL_PARRAY_H
-
 //
-// $Id: PArray.H,v 1.21 2001-07-25 23:36:17 lijewski Exp $
+// $Id: PArray.H,v 1.22 2001-07-26 20:08:45 lijewski Exp $
 //
-
-#include <iostream>
-
 #include <Array.H>
 
 //

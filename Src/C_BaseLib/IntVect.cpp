@@ -1,8 +1,11 @@
 //
-// $Id: IntVect.cpp,v 1.16 2001-07-24 18:16:53 lijewski Exp $
+// $Id: IntVect.cpp,v 1.17 2001-07-26 20:08:45 lijewski Exp $
 //
-#include <winstd.H>
+#include <algorithm>
+#include <cstdlib>
+#include <iostream>
 
+#include <winstd.H>
 #include <BLassert.H>
 #include <BoxLib.H>
 #include <IntVect.H>
@@ -504,10 +507,3 @@ operator>> (std::istream& is,
 
     return is;
 }
-
-void
-IntVect::printOn (std::ostream& os) const
-{
-    os << "IntVect: " << *this << '\n';
-}
-
