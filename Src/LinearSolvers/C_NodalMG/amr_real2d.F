@@ -1,39 +1,4 @@
 c-----------------------------------------------------------------------
-c Works for CELL- or NODE-based data.
-      subroutine fcpy(dest, destl0, desth0, destl1, desth1,
-     & regl0, regh0, regl1, regh1,
-     & src,  srcl0, srch0, srcl1, srch1, ncomp)
-      integer destl0, desth0, destl1, desth1
-      integer regl0, regh0, regl1, regh1
-      integer srcl0, srch0, srcl1, srch1
-      integer ncomp
-      double precision dest(destl0:desth0,destl1:desth1, ncomp)
-      double precision src(srcl0:srch0,srcl1:srch1, ncomp)
-      integer i, j, k
-      do k = 1, ncomp
-         do j = regl1, regh1
-            do i = regl0, regh0
-               dest(i,j,k) = src(i,j,k)
-            end do
-         end do
-      end do
-      end
-c-----------------------------------------------------------------------
-c Unrolled copy---works for CELL- or NODE-based data.
-      subroutine fcpyu(dest, src,
-     & regl0, regh0, regl1, regh1,
-     & ncomp)
-      integer regl0, regh0, regl1, regh1
-      double precision dest(*)
-      double precision src(*)
-      integer ncomp
-      integer nvals, i
-      nvals = (regh0-regl0+1) * (regh1-regl1+1) * ncomp
-      do i = 1, nvals
-         dest(i) = src(i)
-      end do
-      end
-c-----------------------------------------------------------------------
 c Works for NODE-based data.
       subroutine fcpy2(da, dal0, dah0, dal1, dah1,
      & db,  dbl0, dbh0, dbl1, dbh1,
@@ -51,21 +16,6 @@ c Works for NODE-based data.
                da(i,regl1+j,k) = db(i,regl1+j,k)
                db(i,regl1-j,k) = da(i,regl1-j,k)
             end do
-         end do
-      end do
-      end
-c-----------------------------------------------------------------------
-      subroutine fccpy1(dest, src, nsets, dstart, sstart,
-     &                  dstrid, sstrid, nvals)
-      double precision dest(0:*), src(0:*)
-      integer nsets
-      integer dstart(nsets), sstart(nsets)
-      integer dstrid(nsets), sstrid(nsets), nvals(nsets)
-      integer i, k
-      do k = 1, nsets
-         do i = 0, nvals(k) - 1
-            dest(dstart(k) + i * dstrid(k)) =
-     &       src(sstart(k) + i * sstrid(k))
          end do
       end do
       end
@@ -161,126 +111,138 @@ c Works for CELL- or NODE-based data.
       subroutine bref(dest, destl0, desth0, destl1, desth1,
      & regl0, regh0, regl1, regh1,
      & src,  srcl0, srch0, srcl1, srch1,
-     & bbl0, bbh0, bbl1, bbh1, idir)
+     & bbl0, bbh0, bbl1, bbh1, idir, ncomp)
+      integer ncomp
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
       integer bbl0, bbh0, bbl1, bbh1
       integer idir
-      double precision dest(destl0:desth0,destl1:desth1)
-      double precision src(srcl0:srch0,srcl1:srch1)
-      integer i, j
+      double precision dest(destl0:desth0,destl1:desth1,ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,ncomp)
+      integer i, j, nc
+      do nc = 1, ncomp
       if (idir .eq. 0) then
          do i = regl0, regh0
             do j = regl1, regh1
-               dest(i,j) = src(bbh0-(i-regl0),j)
+               dest(i,j,nc) = src(bbh0-(i-regl0),j,nc)
             end do
          end do
       else
          do j = regl1, regh1
             do i = regl0, regh0
-               dest(i,j) = src(i,bbh1-(j-regl1))
+               dest(i,j,nc) = src(i,bbh1-(j-regl1),nc)
             end do
          end do
       end if
+      end do
       end
 c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
       subroutine brefm(dest, destl0, desth0, destl1, desth1,
      & regl0, regh0, regl1, regh1,
      & src,  srcl0, srch0, srcl1, srch1,
-     & bbl0, bbh0, bbl1, bbh1, ra)
+     & bbl0, bbh0, bbl1, bbh1, ra, ncomp)
+      integer ncomp
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
       integer bbl0, bbh0, bbl1, bbh1
       integer ra(0:1)
-      double precision dest(destl0:desth0,destl1:desth1)
-      double precision src(srcl0:srch0,srcl1:srch1)
+      double precision dest(destl0:desth0,destl1:desth1,ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,ncomp)
       integer i, j
+      do nc = 1, ncomp
       if (ra(0) .eq. 0 .and. ra(1) .eq. 0) then
          do j = regl1, regh1
             do i = regl0, regh0
-                  dest(i,j) = src(bbl0+(i-regl0),bbl1+(j-regl1))
+                  dest(i,j,nc) = src(bbl0+(i-regl0),bbl1+(j-regl1),nc)
             end do
          end do
       else if (ra(0) .eq. 0 .and. ra(1) .eq. 1) then
          do j = regl1, regh1
             do i = regl0, regh0
-               dest(i,j) = src(bbl0+(i-regl0),bbh1-(j-regl1))
+               dest(i,j,nc) = src(bbl0+(i-regl0),bbh1-(j-regl1),nc)
             end do
          end do
       else if (ra(0) .eq. 1 .and. ra(1) .eq. 0) then
          do 30 i = regl0, regh0
             do 30 j = regl1, regh1
- 30            dest(i,j) = src(bbh0-(i-regl0),bbl1+(j-regl1))
+ 30            dest(i,j,nc) = src(bbh0-(i-regl0),bbl1+(j-regl1),nc)
       else
          do 40 j = regl1, regh1
             do 40 i = regl0, regh0
- 40            dest(i,j) = src(bbh0-(i-regl0),bbh1-(j-regl1))
+ 40            dest(i,j,nc) = src(bbh0-(i-regl0),bbh1-(j-regl1),nc)
       end if
+      end do
       end
 c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
       subroutine bneg(dest, destl0, desth0, destl1, desth1,
      & regl0, regh0, regl1, regh1,
      & src,  srcl0, srch0, srcl1, srch1,
-     & bbl0, bbh0, bbl1, bbh1, idir)
+     & bbl0, bbh0, bbl1, bbh1, idir, ncomp)
+      integer ncomp
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
       integer bbl0, bbh0, bbl1, bbh1
       integer idir
-      double precision dest(destl0:desth0,destl1:desth1)
-      double precision src(srcl0:srch0,srcl1:srch1)
-      integer i, j
+      double precision dest(destl0:desth0,destl1:desth1,ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,ncomp)
+      integer i, j, nc
+      do nc = 1, ncomp
       if (idir .eq. 0) then
          do i = regl0, regh0
             do j = regl1, regh1
-               dest(i,j) = -src(bbh0-(i-regl0),j)
+               dest(i,j,nc) = -src(bbh0-(i-regl0),j,nc)
             end do
          end do
       else
          do j = regl1, regh1
             do i = regl0, regh0
-               dest(i,j) = -src(i,bbh1-(j-regl1))
+               dest(i,j,nc) = -src(i,bbh1-(j-regl1),nc)
             end do
          end do
       end if
+      end do
       end
 c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
       subroutine bnegm(dest, destl0, desth0, destl1, desth1,
      & regl0, regh0, regl1, regh1,
      & src,  srcl0, srch0, srcl1, srch1,
-     & bbl0, bbh0, bbl1, bbh1, ra)
+     & bbl0, bbh0, bbl1, bbh1, ra, ncomp)
+      integer ncomp
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
       integer bbl0, bbh0, bbl1, bbh1
       integer ra(0:1)
-      double precision dest(destl0:desth0,destl1:desth1)
-      double precision src(srcl0:srch0,srcl1:srch1)
-      integer i, j
+      double precision dest(destl0:desth0,destl1:desth1, ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1, ncomp)
+      integer i, j, nc
+      do nc = 1, ncomp
       if (ra(0) .eq. 0 .and. ra(1) .eq. 0) then
          do j = regl1, regh1
             do i = regl0, regh0
-               dest(i,j) = -src(bbl0+(i-regl0),bbl1+(j-regl1))
+               dest(i,j,nc) = -src(bbl0+(i-regl0),bbl1+(j-regl1))
             end do
          end do
       else if (ra(0) .eq. 0 .and. ra(1) .eq. 1) then
          do 20 j = regl1, regh1
             do 20 i = regl0, regh0
- 20            dest(i,j) = -src(bbl0+(i-regl0),bbh1-(j-regl1))
+ 20            dest(i,j,nc) = -src(bbl0+(i-regl0),bbh1-(j-regl1))
       else if (ra(0) .eq. 1 .and. ra(1) .eq. 0) then
          do 30 i = regl0, regh0
             do 30 j = regl1, regh1
- 30            dest(i,j) = -src(bbh0-(i-regl0),bbl1+(j-regl1))
+ 30            dest(i,j,nc) = -src(bbh0-(i-regl0),bbl1+(j-regl1))
       else
          do 40 i = regl0, regh0
             do 40 j = regl1, regh1
- 40            dest(i,j) = -src(bbh0-(i-regl0),bbh1-(j-regl1))
+ 40            dest(i,j,nc) = -src(bbh0-(i-regl0),bbh1-(j-regl1))
       end if
+      end do
       end
 c-----------------------------------------------------------------------
 c Works for CELL-based velocity data.
@@ -291,40 +253,43 @@ c inflow face, so that binfil can be run for subsequent fills
      & regl0, regh0, regl1, regh1,
      & src,  srcl0, srch0, srcl1, srch1,
      & bbl0, bbh0, bbl1, bbh1,
-     & idir)
+     & idir, ncomp)
+      integer ncomp
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
       integer bbl0, bbh0, bbl1, bbh1
       integer idir
-      double precision dest(destl0:desth0,destl1:desth1)
-      double precision src(srcl0:srch0,srcl1:srch1)
-      integer i, j
+      double precision dest(destl0:desth0,destl1:desth1,ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,ncomp)
+      integer i, j,nc
+      do nc = 1, ncomp
       if (idir .eq. 0) then
          if (regl0 .lt. bbh0) then
             do 10 i = regl0, regh0
                do 10 j = regl1, regh1
- 10               dest(i,j) = 2.d0 * dest(regh0,j) 
+ 10               dest(i,j,nc) = 2.d0 * dest(regh0,j) 
      &			- src(bbh0-(i-regl0),j)
          else
             do 20 i = regh0, regl0, -1
                do 20 j = regl1, regh1
- 20               dest(i,j) = 2.d0 * dest(regl0,j) 
+ 20               dest(i,j,nc) = 2.d0 * dest(regl0,j) 
      &			- src(bbh0-(i-regl0),j)
          end if
       else
          if (regl1 .lt. bbh1) then
             do 30 j = regl1, regh1
                do 30 i = regl0, regh0
- 30               dest(i,j) = 2.d0 * dest(i,regh1) 
+ 30               dest(i,j,nc) = 2.d0 * dest(i,regh1) 
      &			- src(i,bbh1-(j-regl1))
          else
             do 40 j = regh1, regl1, -1
                do 40 i = regl0, regh0
- 40               dest(i,j) = 2.d0 * dest(i,regl1) 
+ 40               dest(i,j,nc) = 2.d0 * dest(i,regl1) 
      &			- src(i,bbh1-(j-regl1))
          end if
       end if
+      end do
       end
 c-----------------------------------------------------------------------
 c Works for CELL-based velocity data.
@@ -336,7 +301,8 @@ c extended to one cell past the boundary by the boundary::box routine.
      & regl0, regh0, regl1, regh1,
      & src,  srcl0, srch0, srcl1, srch1,
      & bbl0, bbh0, bbl1, bbh1,
-     & idir)
+     & idir, ncomp)
+      integer ncomp
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
@@ -344,32 +310,34 @@ c extended to one cell past the boundary by the boundary::box routine.
       integer idir
       double precision dest(destl0:desth0,destl1:desth1)
       double precision src(srcl0:srch0,srcl1:srch1)
-      integer i, j
+      integer i, j, nc
+      do nc = 1, ncomp
       if (idir .eq. 0) then
          if (regl0 .lt. bbh0) then
             do 10 i = regl0, regh0
                do 10 j = regl1, regh1
- 10               dest(i,j) = src(bbl0,j) + src(bbl0+1,j) -
+ 10               dest(i,j,nc) = src(bbl0,j) + src(bbl0+1,j) -
      &                        src(bbh0-(i-regl0),j)
          else
             do 20 i = regh0, regl0, -1
                do 20 j = regl1, regh1
- 20               dest(i,j) = src(bbh0-1,j) + src(bbh0,j) -
+ 20               dest(i,j,nc) = src(bbh0-1,j) + src(bbh0,j) -
      &                        src(bbl0+(regh0-i),j)
          end if
       else
          if (regl1 .lt. bbh1) then
             do 30 j = regl1, regh1
                do 30 i = regl0, regh0
- 30               dest(i,j) = src(i,bbl1) + src(i,bbl1+1) -
+ 30               dest(i,j,nc) = src(i,bbl1) + src(i,bbl1+1) -
      &                        src(i,bbh1-(j-regl1))
          else
             do 40 j = regh1, regl1, -1
                do 40 i = regl0, regh0
- 40               dest(i,j) = src(i,bbh1-1) + src(i,bbh1) -
+ 40               dest(i,j,nc) = src(i,bbh1-1) + src(i,bbh1) -
      &                        src(i,bbl1+(regh1-j))
          end if
       end if
+      end do
       end
 c-----------------------------------------------------------------------
 c CELL-based data only.
