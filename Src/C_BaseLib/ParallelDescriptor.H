@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.42 1999-03-26 19:19:34 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.43 1999-03-27 01:00:23 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -133,6 +133,11 @@ struct CommData
                    IntVect(&m_data[7+2*BL_SPACEDIM]));
     }
 };
+
+//
+// Yes you can output CommData.
+//
+ostream& operator<< (ostream& os, const CommData& cd);
 
 //
 //@Man:
