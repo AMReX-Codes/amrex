@@ -43,11 +43,11 @@ int main(int argc, char **argv)
 #ifndef WIN32
     set_new_handler(Utility::OutOfMemory);
 #endif
-    StartParallel(1);
+    ParallelDescriptor::StartParallel(1);
     
     for(int i = 1; i < argc; ++i)
 	driver(argv[i]);
-    EndParallel();
+    ParallelDescriptor::EndParallel();
     return 0;
 }
 

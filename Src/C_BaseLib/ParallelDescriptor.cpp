@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.17 1998-03-25 20:59:54 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.18 1998-04-01 00:29:49 car Exp $
 //
 #include <Utility.H>
 #include <ParallelDescriptor.H>
@@ -23,17 +23,12 @@ extern "C"
 #include "bsp_level1.h"
 
 
-void StartParallel(int nprocs)
+void ParallelDescriptor::StartParallel(int nprocs, int* argc, char*** argv)
 {
     bsp_begin(nprocs);
 }
 
-void StartParallelAllProcs() 
-{
-    bsp_begin(bsp_nprocs());
-}
-
-void EndParallel()            
+void ParallelDescriptor::EndParallel()            
 {
     bsp_end();
 }
@@ -256,13 +251,13 @@ void ParallelDescriptor::Broadcast (int fromproc, void*  src, void*  dest, int n
 static int numprocs = -1;
 static int myid = -1;
 
-void StartParallel(int)
+void ParallelDescriptor::StartParallel(int, int* argc, char*** argv)
 {
-    MPI_Init(0, 0);
+    MPI_Init(argc, argv);
     MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
     MPI_Comm_rank(MPI_COMM_WORLD, &myid);
 }
-void EndParallel()
+void ParallelDescriptor::EndParallel()
 {
     MPI_Finalize();
 }
@@ -343,9 +338,8 @@ void ParallelDescriptor::Abort(const char*)
 #else
 
 
-void StartParallel(int ) {}
-void StartParallelAllProcs()  {}
-void EndParallel() {}
+void ParallelDescriptor::StartParallel(int, int*, char***) {}
+void ParallelDescriptor::EndParallel() {}
 
 void ParallelDescriptor::Abort (const char* str)
 {

@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.20 1998-03-25 20:54:31 car Exp $
+// $Id: ParallelDescriptor.H,v 1.21 1998-04-01 00:29:46 car Exp $
 //
 
 #include <Assert.H>
@@ -13,9 +13,6 @@
 #include <Box.H>
 
 
-void StartParallel(int nprocs);
-void StartParallelAllProcs();
-void EndParallel();
 
 //
 // Some of these can be collapsed.
@@ -64,6 +61,8 @@ struct FabComTag
 class ParallelDescriptor
 {
   public:
+    static void StartParallel(int nprocs, int* argc = 0, char*** argv = 0);
+    static void EndParallel();
 
     static int MyProc ();
     static int NProcs ();

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tVisMF.cpp,v 1.14 1998-02-05 23:01:38 vince Exp $
+// $Id: tVisMF.cpp,v 1.15 1998-04-01 00:29:49 car Exp $
 //
 
 #include <stdlib.h>
@@ -15,7 +15,7 @@
 
 #ifdef BL_USE_BSP
 //
-// $Id: tVisMF.cpp,v 1.14 1998-02-05 23:01:38 vince Exp $
+// $Id: tVisMF.cpp,v 1.15 1998-04-01 00:29:49 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -362,7 +362,7 @@ main (int, char** argv)
 
     parse_args(argv);
 
-    StartParallel(nProcs);
+    ParallelDescriptor::StartParallel(nProcs);
 
     BoxArray ba(nBoxs);
 
@@ -390,5 +390,5 @@ main (int, char** argv)
                   mf_name,
                   (How==PerCPU) ? VisMF::OneFilePerCPU : VisMF::OneFilePerFab);
 
-    EndParallel();
+    ParallelDescriptor::EndParallel();
 }
