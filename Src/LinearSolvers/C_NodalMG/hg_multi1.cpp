@@ -462,8 +462,8 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
     }
     else if (m_hg_full_stencil)
     {
-#if BL_SPACEDIM != 3
 	const Real hxyz[BL_SPACEDIM] = { D_DECL( h[mglev][0], h[mglev][1], h[mglev][2] ) };
+#if BL_SPACEDIM != 3
 	for (MultiFabIterator c_mfi(cen[mglev]); c_mfi.isValid(); ++c_mfi)
 	{
 	    const Box& cenbox = c_mfi->box();
