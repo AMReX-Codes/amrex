@@ -2,7 +2,7 @@
 #define _LO_F_H_
 
 /*
-** $Id: LO_F.H,v 1.2 1999-08-25 18:04:10 propp Exp $
+** $Id: LO_F.H,v 1.3 2002-04-26 22:10:02 lijewski Exp $
 */
 
 #include <REAL.H>
@@ -25,10 +25,7 @@
 #define FORT_RESIDL             resid3dgen
 #endif
 
-#endif
-
-
-#if        defined(BL_LANG_CC)
+#else
 
 #if (BL_SPACEDIM == 2)
 #if    defined(BL_FORT_USE_UPPERCASE)

@@ -25,9 +25,7 @@
 #     define FORT_AVERAGEEC        mcaverageec3dgen
 #     define FORT_HARMONIC_AVERAGEEC mcharaverageec3dgen
 #   endif
-#endif
-
-#if   defined(BL_LANG_CC)
+#else
 
 #if (BL_SPACEDIM == 2)
 

@@ -19,10 +19,7 @@
 #define FORT_FILLRHS    fillrhs3d
 #endif
 
-#endif
-
-
-#if	defined(BL_LANG_CC)
+#else
 
 #if (BL_SPACEDIM == 2)
 #ifdef BL_FORT_USE_UPPERCASE

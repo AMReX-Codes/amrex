@@ -2,7 +2,7 @@
 #define _CG_F_H_
 
 /*
-** $Id: CG_F.H,v 1.3 2000-08-24 16:02:46 car Exp $
+** $Id: CG_F.H,v 1.4 2002-04-26 22:10:02 lijewski Exp $
 */
 
 #include <REAL.H>
@@ -23,9 +23,7 @@
 #define FORT_CGSXAY   cgsxay3dgen
 #endif
 
-#endif
-
-#if        defined(BL_LANG_CC)
+#else
 
 #if defined(BL_FORT_USE_UPPERCASE)
 #  if (BL_SPACEDIM == 2)

@@ -9,9 +9,7 @@
 #    define FORT_FRREFLUX    frreflux
 #    define FORT_FRCVREFLUX  frcvreflux
 #    define FORT_SCALADDTO   scaladdto
-#endif
-
-#ifdef BL_LANG_CC
+#else
 #  ifdef BL_FORT_USE_UPPERCASE
 #    define FORT_FRCRSEINIT  FRCRSEINIT
 #    define FORT_FRFINEADD   FRFINEADD

@@ -2,7 +2,7 @@
 #define _MAKESLICE_F_H_
 
 /*
-** $Id: MAKESLICE_F.H,v 1.6 1999-04-05 17:39:21 car Exp $
+** $Id: MAKESLICE_F.H,v 1.7 2002-04-26 22:10:02 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -11,9 +11,7 @@
 #    define FORT_MAKESLICE      makeslice
 #    define FORT_MAKEMASKSLICE  makemaskslice
 #endif
-#endif
-
-#ifdef BL_LANG_CC
+#else
 
 #  ifdef BL_FORT_USE_UPPERCASE
 #if (BL_SPACEDIM==3)

@@ -2,15 +2,13 @@
 #define _SLABSTAT_F_H_
 
 /*
-** $Id: SLABSTAT_F.H,v 1.2 2000-05-22 19:54:01 sstanley Exp $
+** $Id: SLABSTAT_F.H,v 1.3 2002-04-26 22:10:02 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
 #    define FORT_REYNAVG_FIRST4MOMS    reynavg_first4moms
 #    define FORT_FAVREAVG_FIRST4MOMS   favreavg_first4moms
-#endif
-
-#ifdef BL_LANG_CC
+#else
 #  ifdef BL_FORT_USE_UPPERCASE
 #    define FORT_REYNAVG_FIRST4MOMS    REYNAVG_FIRST4MOMS
 #    define FORT_FAVREAVG_FIRST4MOMS   FAVREAVG_FIRST4MOMS

@@ -2,7 +2,7 @@
 #define _AABBEC_F_H_
 
 /*
-** $Id: ABec_F.H,v 1.4 2000-08-24 20:28:28 car Exp $
+** $Id: ABec_F.H,v 1.5 2002-04-26 22:10:02 lijewski Exp $
 */
 
 #include <REAL.H>
@@ -25,10 +25,7 @@
 #define FORT_FLUX          flux3daabbec
 #endif
 
-#endif
-
-
-#if        defined(BL_LANG_CC)
+#else
 
 #if (BL_SPACEDIM == 2)
 
