@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.41 1998-07-09 18:27:34 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.42 1998-07-24 01:24:52 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -378,6 +378,11 @@ Coarsen (vector<Box>&   boxes,
     }
 }
 
+//
+// Used in a couple RunStat calls in FillPatchIterator.
+//
+static const aString RunstatString("fill_patch");
+
 void
 FillPatchIterator::Initialize (int           boxGrow,
                                Real          time,
@@ -386,7 +391,7 @@ FillPatchIterator::Initialize (int           boxGrow,
                                int           ncomp,
                                Interpolater* mapper)
 {
-    RunStats stats("fill_patch", m_amrlevel.Level());
+    RunStats stats(RunstatString, m_amrlevel.Level());
 
     stats.start();
     //
@@ -591,7 +596,7 @@ FillPatchIterator::isValid (bool bDoSync)
     if (!MultiFabIterator::isValid(bDoSync))
         return false;
 
-    RunStats stats("fill_patch", m_amrlevel.Level());
+    RunStats stats(RunstatString, m_amrlevel.Level());
 
     stats.start();
 

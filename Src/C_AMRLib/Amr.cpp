@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.49 1998-07-15 22:42:09 lijewski Exp $
+// $Id: Amr.cpp,v 1.50 1998-07-24 01:24:51 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -447,9 +447,11 @@ Amr::writePlotFile (const aString& root,
         old_prec = HeaderFile.precision(15);
     }
 
+    static const aString RunstatString("write_pltfile");
+
     for (int k = 0; k <= finest_level; k++)
     {
-        RunStats write_pltfile_stats("write_pltfile", k);
+        RunStats write_pltfile_stats(RunstatString, k);
         write_pltfile_stats.start();
         amr_level[k].writePlotFile(pltfile, HeaderFile);
         write_pltfile_stats.end();
@@ -825,9 +827,11 @@ Amr::checkPoint ()
         HeaderFile << '\n';
     }
 
+    static const aString RunstatString("write_chkfile");
+
     for (i = 0; i <= finest_level; i++)
     {
-        RunStats write_chkfile_stats("write_chkfile", i);
+        RunStats write_chkfile_stats(RunstatString, i);
         write_chkfile_stats.start();
         amr_level[i].checkPoint(ckfile, HeaderFile);
         write_chkfile_stats.end();

@@ -4,7 +4,7 @@
 #define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.14 1998-02-09 20:46:53 lijewski Exp $
+// $Id: BaseFab.H,v 1.15 1998-07-24 01:25:53 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -20,7 +20,6 @@
 #include <CArena.H>
 #include <Looping.H>
 #include <PArray.H>
-#include <RunStats.H>
 
 #ifdef BL_USE_POINTLIB
 #ifndef BL_CRAY_BUG_DEFARG
@@ -748,10 +747,7 @@ BaseFab<T>::~BaseFab ()
 {
     assert(!(The_FAB_Arena == 0));
 
-    RunStats stats("fab_arena");
-    stats.start();
     The_FAB_Arena->free(dptr);
-    stats.end();
 }
 
 template <class T>
@@ -764,10 +760,7 @@ BaseFab<T>::define ()
     if (dptr == 0)
     {
         assert(!(The_FAB_Arena == 0));
-        RunStats stats("fab_arena");
-        stats.start();
-        dptr = (T*) The_FAB_Arena->alloc(nvar*numpts*sizeof(T));
-        stats.end();
+        dptr = static_cast<T*>(The_FAB_Arena->alloc(nvar*numpts*sizeof(T)));
     }
 }
 
@@ -777,10 +770,7 @@ BaseFab<T>::clear ()
 {
     assert(!(The_FAB_Arena == 0));
 
-    RunStats stats("fab_arena");
-    stats.start();
     The_FAB_Arena->free(dptr);
-    stats.end();
 
     dptr   = 0;
     domain = Box();
@@ -811,11 +801,8 @@ BaseFab<T>::resize (const Box& b,
         {
             assert(!(The_FAB_Arena == 0));
             T* odptr = dptr;
-            RunStats stats("fab_arena");
-            stats.start();
-            dptr = (T*) The_FAB_Arena->alloc(new_size*sizeof(T));
+            dptr = static_cast<T*>(The_FAB_Arena->alloc(new_size*sizeof(T)));
             The_FAB_Arena->free(odptr);
-            stats.end();
         }
     }
 }

@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.66 1998-07-08 16:36:12 lijewski Exp $
+// $Id: FabArray.H,v 1.67 1998-07-24 01:25:55 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1109,7 +1109,7 @@ FabArray<T,FAB>::AllocFabs (int nvar)
 {
     for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
     {
-        Box tmp(::grow(fai.validbox(), n_grow));
+        Box tmp = ::grow(fai.validbox(), n_grow);
         fabparray.set(fai.index(), new FAB(tmp, nvar));
         RunStats::addNumPts(tmp.numPts());
     }
@@ -1166,10 +1166,12 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                        int                    dest_comp,
                        int                    num_comp)
 {
+    static const aString RunstatString("fabarray_copy");
+
+    RunStats stats(RunstatString);
+
     if (src.boxarray == boxarray)
     {
-        RunStats stats("fabarray_copy");
-
         stats.start();
 
         for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
@@ -1193,8 +1195,6 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
 
         return;
     }
-
-    RunStats stats("fabarray_copy");
 
     stats.start();
 
