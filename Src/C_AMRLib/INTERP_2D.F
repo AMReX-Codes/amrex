@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.24 2003-09-15 21:17:03 lijewski Exp $
+c $Id: INTERP_2D.F,v 1.25 2003-09-16 18:39:45 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -250,11 +250,6 @@ c :::
 c ::: If lin_limit = 0, the interpolation scheme is identical to
 c ::: the used in ccinterp for limslope=1; the results should
 c ::: be exactly the same -- difference = hard 0.
-c :::
-c ::: Unlike FORT_CCINTERP, this routine does not do any clever unrolling
-c ::: and it does not use any 1-d strip--all calculations are done
-c ::: on full 2-d arrays.  The onlu concession to vectorization
-c ::: is that the innermost loops are longest.
 c ::: 
 c ::: Inputs/Outputs
 c ::: fine        <=>  (modify) fine grid array
@@ -350,10 +345,11 @@ c :::
           cxcen = half*(cvcx(ic)+cvcx(ic+1))
           voffx(i) = (fxcen-cxcen)/(cvcx(ic+1)-cvcx(ic))
        end do
-c
-c ...  Prevent underflow for small crse values.
-c
+
        do n = 1, nvar
+c
+c ...     Prevent underflow for small crse values.
+c
           do j = cslopelo(2)-1,cslopehi(2)+1
              do i = cslopelo(1)-1, cslopehi(1)+1
                 crse(i,j,n) = cvmgt(crse(i,j,n),zero,abs(crse(i,j,n)).gt.1.0e-20)
@@ -378,7 +374,7 @@ c
 
        end do
 c
-c ... computed unlimited and limited slopes
+c ...  Compute unlimited and limited slopes
 c
        do n = 1, nvar
 
@@ -394,35 +390,52 @@ c
              end do
           end do
 
-          if (xok) then
-             if (bclo(1,n) .eq. EXT_DIR .or. bclo(1,n).eq.HOEXTRAP) then
-                i = cslopelo(1)
+          if (bclo(1,n) .eq. EXT_DIR .or. bclo(1,n).eq.HOEXTRAP) then
+            i = cslopelo(1)
+            if (xok) then
                 do j=cslopelo(2), cslopehi(2)
                    uc_xslope(i,j,n)  = -sixteen/fifteen*crse(i-1,j,n)
      &                 + half*crse(i,j,n)
      &                  + two3rd*crse(i+1,j,n) - tenth*crse(i+2,j,n)
-                   cen  = uc_xslope(i,j,n)
-                   forw = two*(crse(i+1,j,n)-crse(i,j,n))
-                   back = two*(crse(i,j,n)-crse(i-1,j,n))
-                   slp  = min(abs(forw),abs(back))
-                   slp  = cvmgp(slp,zero,forw*back)
-                   lc_xslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
                 end do
-             end if
-             if (bchi(1,n) .eq. EXT_DIR .or. bchi(1,n).eq.HOEXTRAP) then
-                i = cslopehi(1)
+            else
+                do j=cslopelo(2), cslopehi(2)
+                   uc_xslope(i,j,n)  = fourth * (
+     &               crse(i+1,j,n) + five*crse(i,j,n) - six*crse(i-1,j,n) )
+                end do
+            endif
+            do j=cslopelo(2), cslopehi(2)
+               cen  = uc_xslope(i,j,n)
+               forw = two*(crse(i+1,j,n)-crse(i,j,n))
+               back = two*(crse(i,j,n)-crse(i-1,j,n))
+               slp  = min(abs(forw),abs(back))
+               slp  = cvmgp(slp,zero,forw*back)
+               lc_xslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
+            end do
+          end if
+
+          if (bchi(1,n) .eq. EXT_DIR .or. bchi(1,n).eq.HOEXTRAP) then
+            i = cslopehi(1)
+            if (xok) then
                 do j=cslopelo(2), cslopehi(2)
                    uc_xslope(i,j,n) = sixteen/fifteen*crse(i+1,j,n)
      &                  - half*crse(i,j,n)
      &                  - two3rd*crse(i-1,j,n) + tenth*crse(i-2,j,n)
-                   cen  = uc_xslope(i,j,n)
-                   forw = two*(crse(i+1,j,n)-crse(i,j,n))
-                   back = two*(crse(i,j,n)-crse(i-1,j,n))
-                   slp  = min(abs(forw),abs(back))
-                   slp  = cvmgp(slp,zero,forw*back)
-                   lc_xslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
                 end do
-             end if
+            else
+                do j=cslopelo(2), cslopehi(2)
+                   uc_xslope(i,j,n) = -fourth * (
+     &               crse(i-1,j,n) + five*crse(i,j,n) - six*crse(i+1,j,n) )
+                end do
+            endif
+            do j=cslopelo(2), cslopehi(2)
+               cen  = uc_xslope(i,j,n)
+               forw = two*(crse(i+1,j,n)-crse(i,j,n))
+               back = two*(crse(i,j,n)-crse(i-1,j,n))
+               slp  = min(abs(forw),abs(back))
+               slp  = cvmgp(slp,zero,forw*back)
+               lc_xslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
+            end do
           end if
 
           do j=cslopelo(2), cslopehi(2)
@@ -437,35 +450,52 @@ c
              end do
           end do
 
-          if (yok) then
-             if (bclo(2,n) .eq. EXT_DIR .or. bclo(2,n).eq.HOEXTRAP) then
-                j = cslopelo(2)
+          if (bclo(2,n) .eq. EXT_DIR .or. bclo(2,n).eq.HOEXTRAP) then
+             j = cslopelo(2)
+             if (yok) then
                 do i=cslopelo(1), cslopehi(1)
                    uc_yslope(i,j,n)  = -sixteen/fifteen*crse(i,j-1,n)
      &                  + half*crse(i,j,n)
      &                  + two3rd*crse(i,j+1,n) - tenth*crse(i,j+2,n)
-                   cen  = uc_yslope(i,j,n)
-                   forw = two*(crse(i,j+1,n)-crse(i,j,n))
-                   back = two*(crse(i,j,n)-crse(i,j-1,n))
-                   slp  = min(abs(forw),abs(back))
-                   slp  = cvmgp(slp,zero,forw*back)
-                   lc_yslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
                 end do
-             end if
-             if (bchi(2,n) .eq. EXT_DIR .or. bchi(2,n).eq.HOEXTRAP) then
-                j = cslopehi(2)
+             else
+                do i=cslopelo(1), cslopehi(1)
+                   uc_yslope(i,j,n)  = fourth * (
+     &               crse(i,j+1,n) + five*crse(i,j,n) - six*crse(i,j-1,n) )
+                end do
+             endif
+             do i=cslopelo(1), cslopehi(1)
+                cen  = uc_yslope(i,j,n)
+                forw = two*(crse(i,j+1,n)-crse(i,j,n))
+                back = two*(crse(i,j,n)-crse(i,j-1,n))
+                slp  = min(abs(forw),abs(back))
+                slp  = cvmgp(slp,zero,forw*back)
+                lc_yslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
+             end do
+          end if
+
+          if (bchi(2,n) .eq. EXT_DIR .or. bchi(2,n).eq.HOEXTRAP) then
+             j = cslopehi(2)
+             if (yok) then
                 do i=cslopelo(1), cslopehi(1)
                    uc_yslope(i,j,n) = sixteen/fifteen*crse(i,j+1,n)
      &                  - half*crse(i,j,n)
      &                  - two3rd*crse(i,j-1,n) + tenth*crse(i,j-2,n)
-                   cen  = uc_yslope(i,j,n)
-                   forw = two*(crse(i,j+1,n)-crse(i,j,n))
-                   back = two*(crse(i,j,n)-crse(i,j-1,n))
-                   slp  = min(abs(forw),abs(back))
-                   slp  = cvmgp(slp,zero,forw*back)
-                   lc_yslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
                 end do
-             end if
+             else
+                do i=cslopelo(1), cslopehi(1)
+                   uc_yslope(i,j,n) = -fourth * (
+     &               crse(i,j-1,n) + five*crse(i,j,n) - six*crse(i,j+1,n) )
+                end do
+             endif
+             do i=cslopelo(1), cslopehi(1)
+                cen  = uc_yslope(i,j,n)
+                forw = two*(crse(i,j+1,n)-crse(i,j,n))
+                back = two*(crse(i,j,n)-crse(i,j-1,n))
+                slp  = min(abs(forw),abs(back))
+                slp  = cvmgp(slp,zero,forw*back)
+                lc_yslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
+             end do
           end if
 
        end do

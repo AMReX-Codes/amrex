@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.27 2003-09-15 21:17:03 lijewski Exp $
+c $Id: INTERP_3D.F,v 1.28 2003-09-16 18:39:45 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -253,14 +253,9 @@ c ::: sum_ivar a(ic,jc,ivar)*fab(if,jf,ivar) = 0 is satisfied
 c ::: in all fine cells if,jf covering coarse cell ic,jc.
 c ::: 
 c ::: If lin_limit = 0, the interpolation scheme is identical to
-c ::: the used in ccinterp for limslope=1; the results should
+c ::: that used in ccinterp for limslope=1; the results should
 c ::: be exactly the same -- difference = hard 0.
 c :::
-c ::: Unlike FORT_CCINTERP, this routine does not do any clever unrolling
-c ::: and it does not use any 1-d strip--all calculations are done
-c ::: on full 2-d arrays.  The onlu concession to vectorization
-c ::: is that the innermost loops are longest.
-c ::: 
 c ::: Inputs/Outputs
 c ::: fine        <=>  (modify) fine grid array
 c ::: flo,fhi      =>  (const)  index limits of fine grid
@@ -423,39 +418,64 @@ c
             end do
           end do
 
-          if (xok) then
-            if (bclo(1,n) .eq. EXT_DIR .or. bclo(1,n).eq.HOEXTRAP) then
-              i = cslopelo(1)
+          if (bclo(1,n) .eq. EXT_DIR .or. bclo(1,n).eq.HOEXTRAP) then
+            i = cslopelo(1)
+            if (xok) then
               do k=cslopelo(3), cslopehi(3)
                 do j=cslopelo(2), cslopehi(2)
                   uc_xslope(i,j,k,n)  = -sixteen/fifteen*crse(i-1,j,k,n) 
      &                        + half*crse(i,j,k,n)
-     $                        + two3rd*crse(i+1,j,k,n) - tenth*crse(i+2,j,k,n)
-                  cen  = uc_xslope(i,j,k,n)
-                  forw = two*(crse(i+1,j,k,n)-crse(i,j,k,n))
-                  back = two*(crse(i,j,k,n)-crse(i-1,j,k,n))
-                  slp  = min(abs(forw),abs(back))
-                  slp  = cvmgp(slp,zero,forw*back)
-                  lc_xslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
+     &                        + two3rd*crse(i+1,j,k,n) - tenth*crse(i+2,j,k,n)
                 end do
               end do
-            end if
-            if (bchi(1,n) .eq. EXT_DIR .or. bchi(1,n).eq.HOEXTRAP) then
-              i = cslopehi(1)
+            else
+              do k=cslopelo(3), cslopehi(3)
+                do j=cslopelo(2), cslopehi(2)
+                  uc_xslope(i,j,k,n)  = fourth * (
+     &               crse(i+1,j,k,n) + five*crse(i,j,k,n) - six*crse(i-1,j,k,n) )
+                end do
+              end do
+            endif
+            do k=cslopelo(3), cslopehi(3)
+              do j=cslopelo(2), cslopehi(2)
+                cen  = uc_xslope(i,j,k,n)
+                forw = two*(crse(i+1,j,k,n)-crse(i,j,k,n))
+                back = two*(crse(i,j,k,n)-crse(i-1,j,k,n))
+                slp  = min(abs(forw),abs(back))
+                slp  = cvmgp(slp,zero,forw*back)
+                lc_xslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
+              end do
+            end do
+          end if
+
+          if (bchi(1,n) .eq. EXT_DIR .or. bchi(1,n).eq.HOEXTRAP) then
+            i = cslopehi(1)
+            if (xok) then
               do k=cslopelo(3), cslopehi(3)
                 do j=cslopelo(2), cslopehi(2)
                   uc_xslope(i,j,k,n) = sixteen/fifteen*crse(i+1,j,k,n) 
      &                      - half*crse(i,j,k,n)
-     $                      - two3rd*crse(i-1,j,k,n) + tenth*crse(i-2,j,k,n)
-                  cen  = uc_xslope(i,j,k,n)
-                  forw = two*(crse(i+1,j,k,n)-crse(i,j,k,n))
-                  back = two*(crse(i,j,k,n)-crse(i-1,j,k,n))
-                  slp  = min(abs(forw),abs(back))
-                  slp  = cvmgp(slp,zero,forw*back)
-                  lc_xslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
+     &                      - two3rd*crse(i-1,j,k,n) + tenth*crse(i-2,j,k,n)
                 end do
               end do
-            end if
+            else 
+              do k=cslopelo(3), cslopehi(3)
+                do j=cslopelo(2), cslopehi(2)
+                  uc_xslope(i,j,k,n)  = -fourth * (
+     &               crse(i-1,j,k,n) + five*crse(i,j,k,n) - six*crse(i+1,j,k,n) )
+                end do
+              end do
+            endif
+            do k=cslopelo(3), cslopehi(3)
+              do j=cslopelo(2), cslopehi(2)
+                cen  = uc_xslope(i,j,k,n)
+                forw = two*(crse(i+1,j,k,n)-crse(i,j,k,n))
+                back = two*(crse(i,j,k,n)-crse(i-1,j,k,n))
+                slp  = min(abs(forw),abs(back))
+                slp  = cvmgp(slp,zero,forw*back)
+                lc_xslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
+              end do
+            end do
           end if
 
           do k=cslopelo(3), cslopehi(3)
@@ -471,30 +491,57 @@ c
                end do
             end do
           end do
-          if (yok) then
-            if (bclo(2,n) .eq. EXT_DIR .or. bclo(2,n).eq.HOEXTRAP) then
-              j = cslopelo(2)
+
+          if (bclo(2,n) .eq. EXT_DIR .or. bclo(2,n).eq.HOEXTRAP) then
+            j = cslopelo(2)
+            if (yok) then
               do k=cslopelo(3), cslopehi(3)
                 do i=cslopelo(1), cslopehi(1)
                   uc_yslope(i,j,k,n)  = -sixteen/fifteen*crse(i,j-1,k,n) 
      &                        + half*crse(i,j,k,n)
      $                        + two3rd*crse(i,j+1,k,n) - tenth*crse(i,j+2,k,n)
-                  cen  = uc_yslope(i,j,k,n)
-                  forw = two*(crse(i,j+1,k,n)-crse(i,j,k,n))
-                  back = two*(crse(i,j,k,n)-crse(i,j-1,k,n))
-                  slp  = min(abs(forw),abs(back))
-                  slp  = cvmgp(slp,zero,forw*back)
-                  lc_yslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
                 end do
               end do
-            end if
-            if (bchi(2,n) .eq. EXT_DIR .or. bchi(2,n).eq.HOEXTRAP) then
-              j = cslopehi(2)
+            else
+              do k=cslopelo(3), cslopehi(3)
+                do i=cslopelo(1), cslopehi(1)
+                  uc_yslope(i,j,k,n)  = fourth * (
+     &               crse(i,j+1,k,n) + five*crse(i,j,k,n) - six*crse(i,j-1,k,n) )
+                end do
+              end do
+            endif
+            do k=cslopelo(3), cslopehi(3)
+              do i=cslopelo(1), cslopehi(1)
+                cen  = uc_yslope(i,j,k,n)
+                forw = two*(crse(i,j+1,k,n)-crse(i,j,k,n))
+                back = two*(crse(i,j,k,n)-crse(i,j-1,k,n))
+                slp  = min(abs(forw),abs(back))
+                slp  = cvmgp(slp,zero,forw*back)
+                lc_yslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
+              end do
+            end do
+          end if
+
+          if (bchi(2,n) .eq. EXT_DIR .or. bchi(2,n).eq.HOEXTRAP) then
+            j = cslopehi(2)
+            if (yok) then
               do k=cslopelo(3), cslopehi(3)
                 do i=cslopelo(1), cslopehi(1)
                   uc_yslope(i,j,k,n) = sixteen/fifteen*crse(i,j+1,k,n) 
      &                      - half*crse(i,j,k,n)
      $                      - two3rd*crse(i,j-1,k,n) + tenth*crse(i,j-2,k,n)
+                end do
+              end do
+            else
+              do k=cslopelo(3), cslopehi(3)
+                do i=cslopelo(1), cslopehi(1)
+                  uc_yslope(i,j,k,n)  = -fourth * (
+     &               crse(i,j-1,k,n) + five*crse(i,j,k,n) - six*crse(i,j+1,k,n) )
+                end do
+              end do
+            endif
+              do k=cslopelo(3), cslopehi(3)
+                do i=cslopelo(1), cslopehi(1)
                   cen  = uc_yslope(i,j,k,n)
                   forw = two*(crse(i,j+1,k,n)-crse(i,j,k,n))
                   back = two*(crse(i,j,k,n)-crse(i,j-1,k,n))
@@ -503,7 +550,6 @@ c
                   lc_yslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
                 end do
               end do
-            end if
           end if
 
           do k=cslopelo(3), cslopehi(3)
@@ -519,39 +565,65 @@ c
               end do
             end do
           end do
-          if (zok) then
-            if (bclo(3,n) .eq. EXT_DIR .or. bclo(3,n).eq.HOEXTRAP) then
-              k = cslopelo(3)
+
+          if (bclo(3,n) .eq. EXT_DIR .or. bclo(3,n).eq.HOEXTRAP) then
+            k = cslopelo(3)
+            if (zok) then
               do j=cslopelo(2), cslopehi(2)
                 do i=cslopelo(1), cslopehi(1)
                   uc_zslope(i,j,k,n)  = -sixteen/fifteen*crse(i,j,k-1,n) 
      &                        + half*crse(i,j,k,n)
      $                        + two3rd*crse(i,j,k+1,n) - tenth*crse(i,j,k+2,n)
-                  cen  = uc_zslope(i,j,k,n)
-                  forw = two*(crse(i,j,k+1,n)-crse(i,j,k,n))
-                  back = two*(crse(i,j,k,n)-crse(i,j,k-1,n))
-                  slp  = min(abs(forw),abs(back))
-                  slp  = cvmgp(slp,zero,forw*back)
-                  lc_zslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
                 end do
               end do
-            end if
-            if (bchi(3,n) .eq. EXT_DIR .or. bchi(3,n).eq.HOEXTRAP) then
-              k = cslopehi(3)
+            else
+              do j=cslopelo(2), cslopehi(2)
+                do i=cslopelo(1), cslopehi(1)
+                  uc_zslope(i,j,k,n)  = fourth * (
+     &               crse(i,j,k+1,n) + five*crse(i,j,k,n) - six*crse(i,j,k-1,n) )
+                end do
+              end do
+            endif
+            do j=cslopelo(2), cslopehi(2)
+              do i=cslopelo(1), cslopehi(1)
+                cen  = uc_zslope(i,j,k,n)
+                forw = two*(crse(i,j,k+1,n)-crse(i,j,k,n))
+                back = two*(crse(i,j,k,n)-crse(i,j,k-1,n))
+                slp  = min(abs(forw),abs(back))
+                slp  = cvmgp(slp,zero,forw*back)
+                lc_zslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
+              end do
+            end do
+          end if
+
+          if (bchi(3,n) .eq. EXT_DIR .or. bchi(3,n).eq.HOEXTRAP) then
+            k = cslopehi(3)
+            if (zok) then
               do j=cslopelo(2), cslopehi(2)
                 do i=cslopelo(1), cslopehi(1)
                   uc_zslope(i,j,k,n) = sixteen/fifteen*crse(i,j,k+1,n) 
      &                      - half*crse(i,j,k,n)
      $                      - two3rd*crse(i,j,k-1,n) + tenth*crse(i,j,k-2,n)
-                  cen  = uc_zslope(i,j,k,n)
-                  forw = two*(crse(i,j,k+1,n)-crse(i,j,k,n))
-                  back = two*(crse(i,j,k,n)-crse(i,j,k-1,n))
-                  slp  = min(abs(forw),abs(back))
-                  slp  = cvmgp(slp,zero,forw*back)
-                  lc_zslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
                end do
               end do
-            end if
+            else
+              do j=cslopelo(2), cslopehi(2)
+                do i=cslopelo(1), cslopehi(1)
+                  uc_zslope(i,j,k,n)  = -fourth * (
+     &               crse(i,j,k-1,n) + five*crse(i,j,k,n) - six*crse(i,j,k+1,n) )
+               end do
+              end do
+            endif
+            do j=cslopelo(2), cslopehi(2)
+              do i=cslopelo(1), cslopehi(1)
+                cen  = uc_zslope(i,j,k,n)
+                forw = two*(crse(i,j,k+1,n)-crse(i,j,k,n))
+                back = two*(crse(i,j,k,n)-crse(i,j,k-1,n))
+                slp  = min(abs(forw),abs(back))
+                slp  = cvmgp(slp,zero,forw*back)
+                lc_zslope(i,j,k,n)=sign(one,cen)*min(slp,abs(cen))
+             end do
+            end do
           end if
 
        end do
