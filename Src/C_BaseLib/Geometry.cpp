@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.8 1998-05-06 22:36:18 lijewski Exp $
+// $Id: Geometry.cpp,v 1.9 1998-05-17 00:57:24 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -81,50 +81,49 @@ Geometry:: computePIRMMapForMultiFab(const BoxArray& grids,
     // mapping valid data to grow regions over periodic boundaries.
     //
     PIRMMap pirmmap;
-    if(!isAnyPeriodic())
+
+    if (!isAnyPeriodic())
         return pirmmap;
 
-    const Box& domain = Domain();
     int len = grids.length();
     //
     // Make a junk multifab to access its iterator.
     // Don't allocate any mem for it.
     //
-    int nComp = 1;
-    MultiFab mf(grids, nComp, nGrow, Fab_noallocate);
+    MultiFab mf(grids, 1, nGrow, Fab_noallocate);
     //
     // Do only those I own.
     //
     for (ConstMultiFabIterator mfmfi(mf); mfmfi.isValid(); ++mfmfi)
     {
-	Box dest = Box(mfmfi.validbox()).grow(nGrow);
-	if( ! domain.contains(dest) )
+	Box dest = ::grow(mfmfi.validbox(), nGrow);
+
+	if (!Domain().contains(dest))
 	{
-	    for( int j=0; j<len; j++ )
+	    for (int j = 0; j < len; j++)
 	    {
-		Box src = grids[j];
-		Array<IntVect> pshifts;
-		periodicShift( dest, src, pshifts );
-		for( int iiv=0; iiv<pshifts.length(); iiv++ )
+		Array<IntVect> pshifts(27);
+		periodicShift(dest, grids[j], pshifts);
+		for (int iiv = 0; iiv < pshifts.length(); iiv++)
 		{
-		    IntVect iv = pshifts[iiv];
-		    Box shbox( src );
+		    IntVect& iv = pshifts[iiv];
+		    Box shbox(grids[j]);
 		    D_TERM( shbox.shift(0,iv[0]);,
 			    shbox.shift(1,iv[1]);,
 			    shbox.shift(2,iv[2]); );
 		    
-		    Box intbox = dest & shbox;
-		    assert(intbox.ok());
+		    Box srcBox = dest & shbox;
+		    assert(srcBox.ok());
                     //
-		    // ok, we got an intersection
+		    // OK, we got an intersection.
                     //
-		    Box srcBox = intbox;
-		    D_TERM( intbox.shift(0,-iv[0]);,
-			    intbox.shift(1,-iv[1]);,
-			    intbox.shift(2,-iv[2]); );
-		    Box dstBox = intbox;
-		    pirmmap.insert(PIRMMap::value_type(mfmfi.index(),
-						       PIRec(j,dstBox,srcBox)));
+		    Box dstBox = srcBox;
+		    D_TERM( dstBox.shift(0,-iv[0]);,
+			    dstBox.shift(1,-iv[1]);,
+			    dstBox.shift(2,-iv[2]); );
+
+                    pirmmap.insert(PIRMMap::value_type(mfmfi.index(),
+                                                       PIRec(j,dstBox,srcBox)));
 		}
 	    }
 	}
@@ -149,10 +148,11 @@ Geometry::FillPeriodicFabArray (FabArray<Real,FArrayBox>& fa,
     FabArrayId faid = facd.RegisterFabArray(&fa);
     
     typedef PIRMMap::iterator PIRMMapIt;
+
     BoxList unfilledBoxes((*pirm.begin()).second.srcBox.ixType());
     //
-    // Register boxes in copy decriptor (should be no unfilled boxes
-    // when finished)
+    // Register boxes in copy decriptor.
+    // Should be no unfilled boxes when finished.
     //
     for (PIRMMapIt p_it = pirm.begin(); p_it != pirm.end(); ++p_it)
     {
@@ -161,7 +161,7 @@ Geometry::FillPeriodicFabArray (FabArray<Real,FArrayBox>& fa,
                                           &unfilledBoxes,
                                           (*p_it).second.srcId,
                                           sComp,
-                                          sComp,
+                                          0,
                                           nComp);
     }
     assert(unfilledBoxes.length() == 0);
@@ -181,20 +181,28 @@ Geometry::FillPeriodicFabArray (FabArray<Real,FArrayBox>& fa,
 	for (PIRMMapIt p_it = range.first; p_it != range.second; ++p_it)
 	{
 	    const FillBoxId& fbid = (*p_it).second.fbid;
+
 	    assert(fbid.box() == (*p_it).second.srcBox);
+
 	    FArrayBox overlapFab(fbid.box(), nComp);
             //
 	    // Fill fab with buffered data, copy into destination.
             //
 	    facd.FillFab(faid, fbid, overlapFab);
-	    fai().copy(overlapFab, overlapFab.box(), sComp,
-		       (*p_it).second.dstBox, sComp, nComp);
+	    fai().copy(overlapFab,
+                       overlapFab.box(),
+                       0,
+		       (*p_it).second.dstBox,
+                       sComp,
+                       nComp);
         }
     }
 }
 
 void
-Geometry::FillPeriodicBoundary (MultiFab& mf) const
+Geometry::FillPeriodicBoundary (MultiFab& mf,
+                                int       src_comp,
+                                int       num_comp) const
 {
     //
     // Get list of intersection boxes.
@@ -203,7 +211,7 @@ Geometry::FillPeriodicBoundary (MultiFab& mf) const
     //
     // Fill intersection list.
     //
-    FillPeriodicFabArray(mf, pirm, 0, mf.nComp());
+    FillPeriodicFabArray(mf, pirm, src_comp, num_comp);
 }
 
 Geometry::Geometry () {}

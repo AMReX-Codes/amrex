@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.8 1998-05-07 18:28:59 car Exp $
+// $Id: Geometry.H,v 1.9 1998-05-17 00:57:23 lijewski Exp $
 //
 
 #include <CoordSys.H>
@@ -165,6 +165,10 @@ public:
     //
     void FillPeriodicBoundary (MultiFab& mf) const;
     //
+    //@ManDoc: Fill ghost cells with periodic data.
+    //
+    void FillPeriodicBoundary (MultiFab& mf, int src_comp, int num_comp) const;
+    //
     // Src/dest box pairs to copy for periodic (PIR=periodic intersection record)
     //
     class PIRec
@@ -311,6 +315,13 @@ Real
 Geometry::ProbLength (int dir)
 {
     return prob_domain.length(dir);
+}
+
+inline
+void
+Geometry::FillPeriodicBoundary (MultiFab& mf) const
+{
+    FillPeriodicBoundary(mf, 0, mf.nComp());
 }
 
 #endif /*_GEOMETRY_H_*/
