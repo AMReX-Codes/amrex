@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: aString.cpp,v 1.6 1999-05-10 18:54:23 car Exp $
+// $Id: aString.cpp,v 1.7 1999-08-23 21:19:58 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -227,4 +227,42 @@ aString::getline (istream& is)
         BoxLib::Abort("aString::getline(istream&) failed");
 
     return is;
+}
+
+vector<aString>
+aString::tokenize (const aString& separators) const
+{
+    vector<char*> ptr;
+    //
+    // Make copy of line that we can modify.
+    //
+    char* line = new char[length()+1];
+
+    (void) strcpy(line, c_str());
+
+    char* token = 0;
+
+    if (!((token = strtok(line, separators.c_str())) == 0))
+    {
+        ptr.push_back(token);
+        while (!((token = strtok(0, separators.c_str())) == 0))
+            ptr.push_back(token);
+    }
+
+    vector<aString> tokens(ptr.size());
+
+    for (int i = 1; i < ptr.size(); i++)
+    {
+        char* p = ptr[i];
+
+        while (strchr(separators.c_str(), *(p-1)) != 0)
+            *--p = 0;
+    }
+
+    for (int i = 0; i < ptr.size(); i++)
+        tokens[i] = ptr[i];
+
+    delete line;
+
+    return tokens;
 }

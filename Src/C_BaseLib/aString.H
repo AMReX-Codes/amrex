@@ -4,23 +4,26 @@
 #define BL_ASTRING_H
 
 //
-// $Id: aString.H,v 1.8 1999-05-10 18:54:23 car Exp $
+// $Id: aString.H,v 1.9 1999-08-23 21:19:58 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
 #include <iostream>
 #include <cstring>
 #include <cstdlib>
+#include <vector>
 using std::cin;
 using std::cout;
 using std::cerr;
 using std::endl;
 using std::ostream;
 using std::istream;
+using std::vector;
 #else
 #include <iostream.h>
 #include <string.h>
 #include <stdlib.h>
+#include <vector.h>
 #endif
 
 #include <BLassert.H>
@@ -155,6 +158,10 @@ public:
                limit to the length of string that can be extracted.
     */
     istream& getline (istream& strm);
+    //
+    //@ManDoc: Returns the tokens in the aString.
+    //
+    vector<aString> tokenize (const aString& separators) const;
 
     /*@ManDoc: Returns the number of characters stored in this aString.
                This does not include the terminating null character.
