@@ -7,7 +7,7 @@ plt_prefix=plt
 #
 # Number of seconds to sleep before checking again.
 #
-N=300
+N=60
 #
 # Tar up and then remove plt and chk directories.
 #
