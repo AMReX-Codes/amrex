@@ -2,7 +2,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.55 2001-07-19 16:57:34 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.56 2001-07-19 21:11:50 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -137,6 +137,8 @@ struct CommData
 // Yes you can output CommData.
 //
 std::ostream& operator<< (std::ostream& os, const CommData& cd);
+
+std::ostream& operator<< (std::ostream& os, const Array<CommData>& cd);
 
 //
 //@Man:

@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.127 2001-07-19 20:02:44 lijewski Exp $
+// $Id: FabArray.H,v 1.128 2001-07-19 21:11:50 lijewski Exp $
 //
 
 #include <climits>
@@ -120,15 +120,6 @@ private:
     Array<CommData> m_commdata;
     bool            m_valid;
 };
-
-std::ostream&
-operator<< (std::ostream&          os,
-            const Array<CommData>& cd)
-{
-    for (int i = 0; i < cd.length(); i++)
-        os << cd[i] << '\n';
-    return os;
-}
 
 //
 // A forward declaration.
