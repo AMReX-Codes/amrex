@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StationData.H,v 1.2 1998-11-25 23:58:22 lijewski Exp $
+// $Id: StationData.H,v 1.3 1998-11-28 21:58:43 lijewski Exp $
 //
 
 #ifndef _StationData_H_
@@ -23,18 +23,19 @@ else
 
 struct StationRec
 {
-    StationRec ()
+    StationRec()
     {
-        id    = -1;
-        grd   = 0;
-        level = -1;
+        D_TERM(pos[0],=pos[1],=pos[2]) = -1;
+        id = level = grd = -1;
+        own = false;
     }
 
     Real    pos[BL_SPACEDIM]; // Physical coordinates
+    IntVect ix;               // Index position
     int     id;               // Identifier
     int     level;            // Finest level containing station
-    IntVect ix;               // Index position
-    Grid*   grd;              // Pointer to grid containing point
+    int     grd;              // Index of BoxArray containing FAB
+    bool    own;              // Does this CPU own the data at grd?
 };
 
 class StationData
@@ -55,7 +56,7 @@ public:
     //
     // ParmParse variables:
     //
-    //   StationData.vars     -- Array of name of StateData components
+    //   StationData.vars     -- Array of names of StateData components
     //   StationData.coord    -- BL_SPACEDIM array of Reals
     //   StationData.coord    -- the next one
     //   StationData.coord    -- ditto ...
@@ -63,17 +64,16 @@ public:
     //
     void init ();
     //
-    // Collect data for all station points located
-    // at the given level and write to station file.
+    // Collect data for all station points at level and write to station file.
     //
-    void report (Real time) const;
+    void report (Real time,
+                 int  level) const;
     //
     // Locate finest level grid for each station point.
     //
-    void findGrid (const GridList* gl,
-                   int             finest_level,
-                   Real            dx_lev[MAX_LEV][BL_SPACEDIM],
-                   Real            prob_lo[BL_SPACEDIM]);
+    void findGrid (const PArray<AmrLevel>& levels,
+                   const Array<Geometry>&  geoms);
+
 private:
     //
     // Writes out map of StationIDs to Real coordinates to "Station.List".
@@ -82,6 +82,8 @@ private:
 
     Array<StationRec> m_stn;   // Array of stations.
     Array<aString>    m_vars;  // Names of StateData components to output.
+    Array<int>        m_typ;   // The state_index corresponding to m_vars.
+    Array<int>        m_ncomp; // The component of the state_index for m_typ.
     ofstream          m_ofile; // Output stream.
     aString           m_name;  // Root name of station file.
 };
