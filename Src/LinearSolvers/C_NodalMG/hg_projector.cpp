@@ -183,6 +183,7 @@ public:
 		const Box& up_box = upt[0]->operator[](igrid).box();
 		const Real* uc[BL_SPACEDIM] = { D_DECL( task_fab_result(0).dataPtr(), task_fab_result(1).dataPtr(), task_fab_result(2).dataPtr() ) };
 		const Box& uc_box = task_fab_result(0).box();
+#if 0
 		HG_DEBUG_OUT( "<< task_fecdiv s "  << m_sno << " " << s.norm(s_box, 2) << endl );
 		for(int i = 0; i < BL_SPACEDIM; ++i)
 		{
@@ -192,6 +193,7 @@ public:
 		{
 		    HG_DEBUG_OUT( "<< task_fecdiv uc[" << i << "] " << m_sno << " " << task_fab_result(i).norm(uc_box, 2) << endl ); printRange(debug_out, task_fab_result(i), uc_box, 0, 1);
 		}
+#endif
 		(*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(up[0], up[1], up[2]), DIMLIST(up_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir);
 	    }
 	    return true;
@@ -218,6 +220,9 @@ public:
 	for(int i = 0; i  < BL_SPACEDIM; ++i)
 	{
 	    push_back(ucp_[i]);
+	}
+	for(int i = 0; i < BL_SPACEDIM; ++i)
+	{
 	    push_back(ufp_[i]);
 	    h[i]   = h_[i];
 	}
@@ -231,14 +236,22 @@ public:
 		const int igrid = grid_number();
 		FArrayBox& s = target_fab();
 		const Box& s_box = target_fab().box();
-		const Real* up[BL_SPACEDIM] = { D_DECL( task_fab_result(1).dataPtr(), task_fab_result(3).dataPtr(), task_fab_result(5).dataPtr() ) };
-		const Box& up_box = task_fab_result(1).box();
-		const Real* uc[BL_SPACEDIM] = { D_DECL( task_fab_result(0).dataPtr(), task_fab_result(2).dataPtr(), task_fab_result(4).dataPtr() ) };
+		const Real* uf[BL_SPACEDIM] = { D_DECL( task_fab_result(3).dataPtr(), task_fab_result(4).dataPtr(), task_fab_result(5).dataPtr() ) };
+		const Box& uf_box = task_fab_result(3).box();
+		const Real* uc[BL_SPACEDIM] = { D_DECL( task_fab_result(0).dataPtr(), task_fab_result(1).dataPtr(), task_fab_result(2).dataPtr() ) };
 		const Box& uc_box = task_fab_result(0).box();
+#if 0
 		HG_DEBUG_OUT( "<< task_fecdiv_2 s "  << m_sno << " " << s.norm(s_box, 2) << endl );
-		HG_DEBUG_OUT( "<< task_fecdiv_2 up[0] " << m_sno << " " << task_fab_result(1).norm(up_box, 2) << endl );
-		HG_DEBUG_OUT( "<< task_fecdiv_2 uc[0] " << m_sno << " " << task_fab_result(0).norm(uc_box, 2) << endl );
-		(*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(up[0], up[1], up[2]), DIMLIST(up_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), t.getVect());
+		for(int i = 0; i < BL_SPACEDIM; ++i)
+		{
+		    HG_DEBUG_OUT( "<< task_fecdiv_2 uc[" << i << "] " << m_sno << " " << task_fab_result(i  ).norm(uc_box, 2) << endl );
+		}
+		for(int i = 0; i < BL_SPACEDIM; ++i)
+		{
+		    HG_DEBUG_OUT( "<< task_fecdiv_2 up[" << i << "] " << m_sno << " " << "task_fab_result(i+3).norm(uf_box, 2)" << endl ); printRange(debug_out, task_fab_result(i+3), uf_box, 0, 1);
+		}
+		(*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(uf[0], uf[1], uf[2]), DIMLIST(uf_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), t.getVect(), ga.dataPtr());
+#endif
 	    }
 	    return true;
 	}
@@ -789,7 +802,6 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
     }
     tl.execute();
     HG_TEST_NORM(source[lev], "interface_divergence,a");
-    exit(0);
 #if (BL_SPACEDIM == 3) || (defined HG_TERRAIN)
     
 #if (BL_SPACEDIM == 3)
