@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DiffUniform.cpp,v 1.5 1999-10-20 20:08:35 sstanley Exp $
+// $Id: DiffUniform.cpp,v 1.6 1999-10-29 17:31:48 sstanley Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -168,7 +168,8 @@ main (int   argc,
 
 	for (int iComp=0; iComp<nComp; ++iComp)
 	{
-            MultiFab& exact = amrDataF.GetGrids(finestLevel,iComp);
+//          MultiFab& exact = amrDataF.GetGrids(finestLevel,iComp);
+            MultiFab& exact = amrDataF.GetGrids(exact_level,iComp);
             const BoxArray& exactBA = exact.boxArray();
             const BoxArray crseBA = ::BoxArray(exactBA).coarsen(refine_ratio);
             MultiFab aveExact(crseBA,1,0,Fab_allocate);
