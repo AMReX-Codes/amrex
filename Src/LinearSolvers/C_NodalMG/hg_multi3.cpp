@@ -59,7 +59,7 @@ extern "C"
     void FORT_HGRES(Real*, intS, const Real*, intS, const Real*, intS, CRealPS, intS, intS, CRealPS, const int&, const int&);
     void FORT_HGRES_FULL_STENCIL(Real*, intS, const Real*, intS, const Real*, intS, CRealPS, intS, intS, CRealPS, const int&, const int&);
     void FORT_HGRLX             (Real*, intS, const Real*, intS, CRealPS, intS, const Real*, intS, intS, CRealPS, const int&, const int&);
-    void FORT_HGRLX_FULL_STENCIL(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, const int&, const int&);
+    void FORT_HGRLX_FULL_STENCIL(Real*, intS, const Real*, intS, CRealPS, intS, const Real*, intS, intS, CRealPS, const int&, const int&);
     void FORT_HGRLXL(Real*, intS, Real*, intS, RealPS, intS, Real*, intS, intS, intS, RealRS, const int&, const int&, const int&);
     void FORT_HGRLXL_FULL_STENCIL(Real*, intS, Real*, intS, RealPS, intS, Real*, intS, intS, intS, RealRS, const int&, const int&, const int&);
     void FORT_HGRLNF(Real*, intS, Real*, intS, Real*, intS, RealPS, intS, Real*, intS, intS, intS, RealRS, const int&, const int&, const int&, const int&);
@@ -152,7 +152,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
 		d_dmfi->dataPtr(), DIMLIST(dbox),
 		s0_dmfi->dataPtr(),
 		s1_dmfi->dataPtr(), DIMLIST(sigbox),
-		DIMLIST(freg), hx, hy,
+		DIMLIST(freg), &hx, &hy,
 		IsRZ(), mg_domain[mglev].bigEnd(0) + 1
 		);
 #else
@@ -247,7 +247,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 			    s0_dmfi->dataPtr(),
 			    s1_dmfi->dataPtr(), DIMLIST(sigbox),
 			    cn_dmfi->dataPtr(), DIMLIST(cenbox),
-			    DIMLIST(freg), hx, hy,
+			    DIMLIST(freg), &hx, &hy,
 			    IsRZ(), mg_domain[mglev].bigEnd(0) + 1
 			    );
 #else
@@ -272,12 +272,19 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		    const Box& cenbox = cn_dmfi->box();
 		    if(m_hg_cross_stencil)
 		    {
-			const Box& sigbox = sn_dmfi->box();
+			DependentMultiFabIterator sg_dmfi(r_mfi, sigma[mglev]);
+			DependentMultiFabIterator s0_dmfi(r_mfi, sigma_nd[0][mglev]);
+			DependentMultiFabIterator s1_dmfi(r_mfi, sigma_nd[1][mglev]);
+			const Box& sigbox = sg_dmfi->box();
 			FORT_HGRLXL(c_dmfi->dataPtr(), DIMLIST(fbox),
 			    r_mfi->dataPtr(), DIMLIST(sbox),
-			    sn_dmfi->dataPtr(), DIMLIST(sigbox),
+			    s0_dmfi->dataPtr(),
+			    s1_dmfi->dataPtr(),
+			    DIMLIST(sigbox),
 			    cn_dmfi->dataPtr(), DIMLIST(cenbox),
-			    DIMLIST(freg), DIMLIST(tdom), line_solve_dim);
+			    DIMLIST(freg), DIMLIST(tdom),
+			    hx, hy,
+			    IsRZ(), mg_domain[mglev].bigEnd(0), line_solve_dim);
 		    }
 		    else
 		    {
