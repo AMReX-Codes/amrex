@@ -2,7 +2,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.45 2001-07-23 17:55:33 lijewski Exp $
+// $Id: Utility.H,v 1.46 2001-07-25 23:36:17 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -227,7 +227,7 @@ namespace BoxLib
     private:
 	std::string istr;
     };
-};
+}
 
 //
 // I'm going to document right here all the BL macros that aren't documented

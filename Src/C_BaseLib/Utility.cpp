@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.52 2001-07-23 17:55:33 lijewski Exp $
+// $Id: Utility.cpp,v 1.53 2001-07-25 23:36:17 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -715,7 +715,7 @@ BoxLib::Random ()
 #define FORT_BLUTILRAND BLUTILRAND
 #elif defined(BL_FORT_USE_LOWERCASE)
 #define FORT_BLUTILRAND blutilrand
-#else defined(BL_FORT_USE_UNDERSCORE)
+#elif defined(BL_FORT_USE_UNDERSCORE)
 #define FORT_BLUTILRAND blutilrand_
 #endif
 

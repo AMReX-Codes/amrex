@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.66 2001-07-25 05:22:56 car Exp $
+// $Id: MultiFab.cpp,v 1.67 2001-07-25 23:36:17 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -13,7 +13,6 @@
 #include <BLassert.H>
 #include <MultiFab.H>
 #include <ParallelDescriptor.H>
-
 #include <Profiler.H>
 
 void
@@ -30,8 +29,6 @@ MultiFab::Copy (MultiFab&       dst,
 
     for (MFIter mfi(dst); mfi.isValid(); ++mfi)
     {
-        BL_ASSERT(src[mfi].box() == dst[mfi].box());
-
         Box bx = BoxLib::grow(mfi.validbox(),nghost);
 
         if (bx.ok())
@@ -112,35 +109,6 @@ MultiFab::MultiFab (const BoxArray& bxs,
     :
     FabArray<FArrayBox>(bxs,ncomp,ngrow,alloc)
 {}
-
-void
-MultiFab::probe (std::ostream& os,
-                 IntVect&      pt)
-{
-    Real  dat[20];
-    int prec = os.precision(14);
-
-    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-    {
-        if (mfi.validbox().contains(pt))
-        {
-            get(mfi).getVal(dat,pt);
-
-            os << "point "
-               << pt
-               << " in box "
-               << mfi.validbox()
-               << " data = ";
-            for (int i = 0, N = nComp(); i < N; i++)
-                os << ' ' << std::setw(20) << dat[i];
-            os << '\n';
-        }
-    }
-    os.precision(prec);
-
-    if (os.fail())
-        BoxLib::Error("MultiFab::probe(ostream&,IntVect&) failed");
-}
 
 Real
 MultiFab::min (int comp,

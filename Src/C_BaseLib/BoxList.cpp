@@ -1,5 +1,5 @@
 //
-// $Id: BoxList.cpp,v 1.20 2001-07-24 22:04:48 lijewski Exp $
+// $Id: BoxList.cpp,v 1.21 2001-07-25 23:36:16 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -80,7 +80,7 @@ BoxList::clear ()
     lbox.clear();
 }
 
-size_t
+int
 BoxList::size () const
 {
     return lbox.size();

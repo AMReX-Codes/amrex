@@ -2,7 +2,7 @@
 #define BL_BOXLIST_H
 
 //
-// $Id: BoxList.H,v 1.25 2001-07-24 22:04:48 lijewski Exp $
+// $Id: BoxList.H,v 1.26 2001-07-25 23:36:16 lijewski Exp $
 //
 
 #include <iostream>
@@ -112,7 +112,7 @@ public:
     //
     //@ManDoc: The number of Boxes in this BoxList.
     //
-    size_t size () const;
+    int size () const;
 
     iterator begin ();
     const_iterator begin () const;

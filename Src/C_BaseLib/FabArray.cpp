@@ -53,7 +53,7 @@ FabArrayBase::fabbox (int K) const
     return BoxLib::grow(boxarray[K], n_grow);
 }
 
-size_t
+int
 FabArrayBase::size () const
 {
     return boxarray.size();

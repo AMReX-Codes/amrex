@@ -2,7 +2,7 @@
 #define BL_ARRAY_H
 
 //
-// $Id: Array.H,v 1.25 2001-07-24 18:16:51 lijewski Exp $
+// $Id: Array.H,v 1.26 2001-07-25 23:36:15 lijewski Exp $
 //
 
 #include <cstddef>
@@ -79,6 +79,8 @@ public:
     */
     Array (const T* vec,
            size_t   len);
+
+    int size () const;
   
     /*@ManDoc: Returns a reference to the K'th element in this `Array<T>'.
                The element can be modified through this reference.  The
@@ -124,6 +126,13 @@ private:
     //
     Array<T>& operator= (int);
 };
+
+template <class T>
+int
+Array<T>::size () const
+{
+    return std::vector<T>::size();
+}
 
 template <class T>
 T&

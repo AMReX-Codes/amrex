@@ -2,7 +2,7 @@
 #define BL_PARRAY_H
 
 //
-// $Id: PArray.H,v 1.20 2001-07-24 18:16:54 lijewski Exp $
+// $Id: PArray.H,v 1.21 2001-07-25 23:36:17 lijewski Exp $
 //
 
 #include <iostream>
@@ -108,7 +108,7 @@ public:
     //
     //@ManDoc: Returns the number of elements.
     //
-    size_t size () const;
+    int size () const;
 
     /*@ManDoc: This function sets each pointer in this PArray<T> to null.
                If the memory management policy was set to Manage
@@ -230,7 +230,7 @@ PArray<T>::set (int i,
 }
 
 template <class T>
-size_t
+int
 PArray<T>::size () const
 {
     return vp.size();

@@ -1,11 +1,11 @@
 //
-// $Id: BoxArray.cpp,v 1.25 2001-07-24 22:04:47 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.26 2001-07-25 23:36:16 lijewski Exp $
 //
 
 #include <BLassert.H>
 #include <BoxArray.H>
 
-size_t
+int
 BoxArray::size () const
 {
     return m_ref->m_abox.size();

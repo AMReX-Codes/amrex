@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.81 2001-07-25 05:22:56 car Exp $
+// $Id: VisMF.cpp,v 1.82 2001-07-25 23:36:17 lijewski Exp $
 //
 
 #include <cstdio>
@@ -230,7 +230,7 @@ VisMF::nGrow () const
     return m_hdr.m_ngrow;
 }
 
-size_t
+int
 VisMF::size () const
 {
     return m_hdr.m_ba.size();

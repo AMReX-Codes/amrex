@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.142 2001-07-25 05:22:56 car Exp $
+// $Id: FabArray.H,v 1.143 2001-07-25 23:36:16 lijewski Exp $
 //
 
 #include <cstring>
@@ -29,9 +29,11 @@
 class FabArrayBase
 {
 public:
-    FabArrayBase();
-    FabArrayBase(const BoxArray& bx, int nvar, int ngrow);
-    FabArrayBase(const BoxArray& bx, int nvar, int ngrow, const DistributionMapping& map);
+
+    FabArrayBase ();
+    FabArrayBase (const BoxArray& bx, int nvar, int ngrow);
+    FabArrayBase (const BoxArray& bx, int nvar, int ngrow, const DistributionMapping& map);
+
     virtual ~FabArrayBase();
     //
     //@ManDoc: Returns the grow factor that defines the region of definition.
@@ -58,11 +60,12 @@ public:
     //
     //@ManDoc: Returns the number of FABs in the FabArray..
     //
-    size_t size () const;
+    int size () const;
     //
     //@ManDoc: Returns constant reference to associated DistributionMapping.
     //
     const DistributionMapping& DistributionMap () const;
+
 protected:
     //
     // The data ...
@@ -79,7 +82,7 @@ public:
     //
     //@ManDoc: Construct a FabArrayIterator.
     //
-    explicit MFIter(const FabArrayBase& fabarray);
+    explicit MFIter (const FabArrayBase& fabarray);
     //
     //@ManDoc: Returns the Box at the current index in the underlying BoxArray.
     //
@@ -112,6 +115,7 @@ public:
     const FabArrayBase& theFabArrayBase () const { return fabArray; }
 
 protected:
+
     const FabArrayBase& fabArray;
     int              currentIndex;
 };
@@ -183,28 +187,24 @@ template <class FAB> class ConstFabArrayIterator;
            Possible values are: Fab\_noallocate and Fab\_allocate.
 */
 
-enum FabAlloc
-{
-    Fab_noallocate = 0,
-    Fab_allocate
-};
-
+enum FabAlloc { Fab_noallocate = 0, Fab_allocate };
 
 template <class FAB>
 class FabArray
-    : public FabArrayBase
+    :
+    public FabArrayBase
 {
 public:
 
     typedef typename FAB::value_type value_type;
-
     //
     //@ManDoc: Constructs an empty FabArray<FAB>.
     //
     FabArray ();
 
     /*@ManDoc: Construct a FabArray<FAB> with a valid region defined by bxs
-               and a region of definition defined by the grow factor ngrow.
+               and a region of definition defined by the grow factor ngrow
+               and the number of components nvar.
                If mem\_mode is defined to be Fab\_allocate then FABs are
                allocated for each Box in the BoxArray.  The size of the Kth
                FAB is given by bxs[K] grown by ngrow.  If mem\_mode is defined
@@ -215,15 +215,6 @@ public:
                take only a Box argument.  Call this constructor number two.
     */
     FabArray (const BoxArray& bxs,
-              int             ngrow,
-              FabAlloc        mem_mode = Fab_allocate);
-
-    /*@ManDoc: This constructor is similar to constructor number two except
-               that it also specifies the number of components for each FAB.
-               The FAB constructor used here will take both a Box and nvar
-               (the number of components) as arguments.
-    */
-    FabArray (const BoxArray& bxs,
               int             nvar,
               int             ngrow,
               FabAlloc        mem_mode = Fab_allocate);
@@ -231,15 +222,6 @@ public:
     //@ManDoc: The (virtual) destructor -- deletes all FABs in the array.
     //
     virtual ~FabArray ();
-
-    /*@ManDoc: Define this FabArray identically to that performed by
-               the constructor having an analogous function signature.
-               This is only valid if this FabArray was defined using
-               the default constructor.
-    */
-    void define (const BoxArray& bxs,
-                 int             ngrow,
-                 FabAlloc        mem_mode);
 
     /*@ManDoc: Define this FabArray identically to that performed by
                the constructor having an analogous function signature.
@@ -263,16 +245,20 @@ public:
                with the definition of the FabArray.
     */
     bool ok () const;
+
     /*@ManDoc: Returns a constant reference to the FAB associated with the
                Kth element.
     */
     const FAB& operator[] (const MFIter& mfi) const;
+
     const FAB& get (const MFIter& mfi) const;
     //
     //@ManDoc: Returns a reference to the FAB associated with the Kth element.
     //
     FAB& operator[] (const MFIter& mfi);
+
     FAB& get (const MFIter& mfi);
+
     /*@ManDoc: Returns a constant reference to the FAB associated with the
                Kth element.
     */
@@ -284,8 +270,7 @@ public:
     //
     //@ManDoc: Explicitly set the Kth FAB in the FabArray to point to elem.
     //
-    void setFab (int  K,
-                 FAB* elem);
+    void setFab (int K, FAB* elem);
     //
     //@ManDoc: Releases FAB memory in the FabArray.
     //
@@ -299,17 +284,17 @@ public:
                each FAB in the FabArray, starting at component comp to val.
                Also set the value of nghost boundary cells.
     */
-    void setVal (value_type   val,
-                 int comp,
-                 int num_comp,
-                 int nghost = 0);
+    void setVal (value_type val,
+                 int        comp,
+                 int        num_comp,
+                 int        nghost = 0);
 
     /*@ManDoc: Set the value of num\_comp components in the valid region of
                each FAB in the FabArray, starting at component comp, as well
                as nghost boundary cells, to val, provided they also intersect
                with the Box region.
     */
-    void setVal (value_type          val,
+    void setVal (value_type val,
                  const Box& region,
                  int        comp,
                  int        num_comp,
@@ -318,14 +303,14 @@ public:
     /*@ManDoc: Set all components in the valid region of each FAB in the
                FabArray to val, including nghost boundary cells.
     */
-    void setVal (value_type   val,
-                 int nghost);
+    void setVal (value_type val,
+                 int        nghost);
 
     /*@ManDoc: Set all components in the valid region of each FAB in the
                FabArray to val, including nghost boundary cells, that also
                intersect the Box region.
     */
-    void setVal (value_type          val,
+    void setVal (value_type val,
                  const Box& region,
                  int        nghost);
     //
@@ -336,9 +321,9 @@ public:
     /*@ManDoc: Set ncomp values in the boundary region, starting at
                start\_comp to val.
     */
-    void setBndry (value_type   val,
-                   int strt_comp,
-                   int ncomp);
+    void setBndry (value_type val,
+                   int        strt_comp,
+                   int        ncomp);
 
     /*@ManDoc: This function copies data from fa to this FabArray.  Each FAB
                in fa is intersected with all FABs in this FabArray and a copy
@@ -357,9 +342,9 @@ public:
                regions.
     */
     void copy (const FabArray<FAB>& src,
-               int                    src_comp,
-               int                    dest_comp,
-               int                    num_comp);
+               int                  src_comp,
+               int                  dest_comp,
+               int                  num_comp);
 
     /*@ManDoc: Copies the values contained in the intersection of the
                valid region of this FabArray with the FAB dest into dest.
@@ -396,12 +381,12 @@ public:
     //
     //@ManDoc: Returns constant reference to associated DistributionMapping.
     //
-    const DistributionMapping& DistributionMap () const
-    {
-        return distributionMap;
-    }
+    const DistributionMapping& DistributionMap () const;
+
 protected:
-    PArray<FAB>         fabparray;
+
+    PArray<FAB> fabparray;
+
 private:
     //
     // These are disallowed.
@@ -969,19 +954,26 @@ FabArray<FAB>::clear ()
 
 template <class FAB>
 void
-FabArray<FAB>::setVal (value_type   val,
-                         int nghost)
+FabArray<FAB>::setVal (value_type val,
+                       int        nghost)
 {
     setVal(val,0,n_comp,nghost);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::setVal (value_type          val,
+FabArray<FAB>::setVal (value_type   val,
                          const Box& region,
                          int        nghost)
 {
     setVal(val,region,0,n_comp,nghost);
+}
+
+template <class FAB>
+const DistributionMapping&
+FabArray<FAB>::DistributionMap () const
+{
+    return distributionMap;
 }
 
 template <class FAB>
@@ -992,19 +984,9 @@ FabArray<FAB>::FabArray ()
 
 template <class FAB>
 FabArray<FAB>::FabArray (const BoxArray& bxs,
-                           int             ngrow,
-                           FabAlloc        alloc)
-    :
-    fabparray(0,PArrayManage)
-{
-    define(bxs,1,ngrow,alloc);
-}
-
-template <class FAB>
-FabArray<FAB>::FabArray (const BoxArray& bxs,
-                           int             nvar,
-                           int             ngrow,
-                           FabAlloc        alloc)
+                         int             nvar,
+                         int             ngrow,
+                         FabAlloc        alloc)
     :
     fabparray(0, PArrayManage)
 {
@@ -1019,15 +1001,16 @@ template <class FAB>
 bool
 FabArray<FAB>::ok () const
 {
-    long isok = 1;
+    bool isok = true;
 
-
-    for ( MFIter fai(*this); fai.isValid() && isok; ++fai)
+    for (MFIter fai(*this); fai.isValid() && isok; ++fai)
     {
         if (fabparray.defined(fai.index()))
         {
             if (get(fai).box() != BoxLib::grow(box(fai.index()),n_grow))
+            {
                 isok = 0;
+            }
         }
         else
         {
@@ -1037,7 +1020,7 @@ FabArray<FAB>::ok () const
 
     ParallelDescriptor::ReduceLongAnd(isok);
 
-    return isok != 0;
+    return isok;
 }
 
 template <class FAB>
@@ -1090,7 +1073,7 @@ FabArray<FAB>::AllocFabs ()
 template <class FAB>
 void
 FabArray<FAB>::setFab (int  boxno,
-                         FAB* elem)
+                       FAB* elem)
 {
     //
     // Must check it is of the proper size.
@@ -1116,15 +1099,15 @@ FabArray<FAB>::setBndry (value_type val)
 
 template <class FAB>
 void
-FabArray<FAB>::setBndry (value_type   val,
-                           int strt_comp,
-                           int ncomp)
+FabArray<FAB>::setBndry (value_type val,
+                         int        strt_comp,
+                         int        ncomp)
 {
     if (n_grow > 0)
     {
         for (MFIter fai(*this); fai.isValid(); ++fai)
         {
-            at(fai).setComplement(val, fai.validbox(), strt_comp, ncomp);
+            get(fai).setComplement(val, fai.validbox(), strt_comp, ncomp);
         }
     }
 }
@@ -1132,9 +1115,9 @@ FabArray<FAB>::setBndry (value_type   val,
 template <class FAB>
 void
 FabArray<FAB>::copy (const FabArray<FAB>& src,
-                       int                    scomp,
-                       int                    dcomp,
-                       int                    ncomp)
+                     int                  scomp,
+                     int                  dcomp,
+                     int                  ncomp)
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::copy()");
 
@@ -1365,7 +1348,7 @@ FabArray<FAB>::copy (FAB& dest) const
 template <class FAB>
 void
 FabArray<FAB>::copy (FAB&       dest,
-                       const Box& subbox) const
+                     const Box& subbox) const
 {
     copy(dest, subbox, 0, 0, dest.nComp());
 }
@@ -1373,9 +1356,9 @@ FabArray<FAB>::copy (FAB&       dest,
 template <class FAB>
 void
 FabArray<FAB>::copy (FAB& dest,
-                       int  scomp,
-                       int  dcomp,
-                       int  ncomp) const
+                     int  scomp,
+                     int  dcomp,
+                     int  ncomp) const
 {
     copy(dest, dest.box(), scomp, dcomp, ncomp);
 }
@@ -1383,10 +1366,10 @@ FabArray<FAB>::copy (FAB& dest,
 template <class FAB>
 void
 FabArray<FAB>::copy (FAB&       dest,
-                       const Box& subbox,
-                       int        scomp,
-                       int        dcomp,
-                       int        ncomp) const
+                     const Box& subbox,
+                     int        scomp,
+                     int        dcomp,
+                     int        ncomp) const
 {
     BL_ASSERT(dcomp + ncomp <= dest.nComp());
 
@@ -1445,10 +1428,10 @@ FabArray<FAB>::setVal (value_type val)
 
 template <class FAB>
 void
-FabArray<FAB>::setVal (value_type   val,
-                         int comp,
-                         int ncomp,
-                         int nghost)
+FabArray<FAB>::setVal (value_type val,
+                       int        comp,
+                       int        ncomp,
+                       int        nghost)
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
     BL_ASSERT(comp+ncomp <= n_comp);
@@ -1461,11 +1444,11 @@ FabArray<FAB>::setVal (value_type   val,
 
 template <class FAB>
 void
-FabArray<FAB>::setVal (value_type          val,
-                         const Box& region,
-                         int        comp,
-                         int        ncomp,
-                         int        nghost)
+FabArray<FAB>::setVal (value_type val,
+                       const Box& region,
+                       int        comp,
+                       int        ncomp,
+                       int        nghost)
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
     BL_ASSERT(comp+ncomp <= n_comp);
@@ -1475,7 +1458,7 @@ FabArray<FAB>::setVal (value_type          val,
         Box b = BoxLib::grow(fai.validbox(),nghost) & region;
 
         if (b.ok())
-            at(fai).setVal(val, b, comp, ncomp);
+            get(fai).setVal(val, b, comp, ncomp);
     }
 }
 
@@ -1872,15 +1855,15 @@ FabArrayCopyDescriptor<FAB>::RegisterFabArray(FabArray<FAB>* fabarray)
 template <class FAB>
 void
 FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
-                                           const Box& destFabBox,
-                                           BoxList*   returnedUnfilledBoxes,
-                                           int        faindex,
-                                           int        srccomp,
-                                           int        destcomp,
-                                           int        numcomp,
-                                           bool       bUseValidBox,
-                                           BoxDomain& unfilledBoxDomain,
-                                           BoxList&   filledBoxes)
+                                         const Box& destFabBox,
+                                         BoxList*   returnedUnfilledBoxes,
+                                         int        faindex,
+                                         int        srccomp,
+                                         int        destcomp,
+                                         int        numcomp,
+                                         bool       bUseValidBox,
+                                         BoxDomain& unfilledBoxDomain,
+                                         BoxList&   filledBoxes)
 {
     const int MyProc = ParallelDescriptor::MyProc();
 
