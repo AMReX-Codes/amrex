@@ -43,7 +43,7 @@ extern "C"
     void FORT_HGRLX_TERRAIN(Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS);
     void FORT_HGRLNF_TERRAIN(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intS, const int&, const int&);
     void FORT_HGRESU(Real*, intS, const Real*, const Real*, const Real*, Real*, intS);
-#if (defined (HG_CROSS_STENCIL) && BL_SPACEDIM==3)
+#if (BL_SPACEDIM==3)
     void FORT_HGRES(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS);
     void FORT_HGRLX(Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS);
     void FORT_HGRLXU(Real*, Real*, Real*, Real*, intS, Real*, intS);
