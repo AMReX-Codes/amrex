@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.72 2000-07-21 20:45:21 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.73 2000-07-25 19:10:38 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1433,23 +1433,25 @@ AmrLevel::setPlotVariables()
 }
 
 AmrLevel::TimeLevel
-AmrLevel::which_time (int  state_indx,
+AmrLevel::which_time (int  indx,
                       Real time) const
 {
-    const Real old_time = state[state_indx].prevTime();
-    const Real new_time = state[state_indx].curTime();
-    const Real haf_time = .5 * (old_time + new_time);
-    const Real EPS      = 0.001 * (new_time - old_time);
+    const Real oldtime = state[indx].prevTime();
+    const Real newtime = state[indx].curTime();
+    const Real haftime = .5 * (oldtime + newtime);
+    const Real epsilon = 0.001 * (newtime - oldtime);
+
+    BL_ASSERT(time >= oldtime-epsilon && time <= newtime+epsilon);
     
-    if (time >= old_time-EPS && time <= old_time+EPS)
+    if (time >= oldtime-epsilon && time <= oldtime+epsilon)
     {
         return AmrOldTime;
     }
-    else if (time >= new_time-EPS && time <= new_time+EPS)
+    else if (time >= newtime-epsilon && time <= newtime+epsilon)
     {
         return AmrNewTime;
     }
-    else if (time >= haf_time-EPS && time <= haf_time+EPS)
+    else if (time >= haftime-epsilon && time <= haftime+epsilon)
     {
         return AmrHalfTime;
     }
