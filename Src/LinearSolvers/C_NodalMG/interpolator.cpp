@@ -15,8 +15,7 @@ extern "C"
     void FORT_FANINT2(Real*, intS, intS, const Real*, intS, intS, intRS, const int&);
 }
 
-Box 
-bilinear_interpolator_class::box(const Box& region, const IntVect& rat) const
+Box bilinear_interpolator_class::box(const Box& region, const IntVect& rat) const
 {
     if (region.cellCentered()) 
     {

@@ -80,8 +80,7 @@ private:
     Array<int> arg2;
 };
 
-bool
-task_restriction_fill::ready()
+bool task_restriction_fill::ready()
 {
     abort();
     tf->ready();
