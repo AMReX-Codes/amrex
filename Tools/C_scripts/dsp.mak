@@ -155,9 +155,9 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE F90 /compile_only /include:"Release/" /nologo /warn:nofileopt
-# ADD F90 /assume:noaccuracy_sensitive /compile_only /iface:cref /include:"Release/" /debug:none /math_library:fast /nologo /optimize:4 /tune:k7 /warn:nofileopt /unroll:4
+# ADD F90 /assume:noaccuracy_sensitive /compile_only /debug:none /iface:cref /include:"Release/" /math_library:fast /nologo /threads /tune:k7 /warn:nofileopt /unroll:4
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /W3 /GR /GX /O2 $cdirlist /I "C:\WMPI\include" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "WIN32" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_USE_NEW_HFILES" /D "BL_SPACEDIM=${DIM}" ${CPROJDEF} ${CPROJVERS} /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D for="if(0);else for" /YX /FD /c
+# ADD CPP /nologo /MT /W3 /GR /GX /O2 $cdirlist /I "C:\WMPI\include" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "WIN32" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_USE_NEW_HFILES" /D "BL_SPACEDIM=${DIM}" ${CPROJDEF} ${CPROJVERS} /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D for="if(0);else for" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
