@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiGrid.cpp,v 1.12 1999-08-06 21:48:47 propp Exp $
+// $Id: MultiGrid.cpp,v 1.13 2000-06-07 00:33:23 sstanley Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -383,9 +383,24 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
     prepareForLevel(level);
     if (usecg == 0)
     {
+        Real error0 = errorEstimate(level, bc_mode);
+        if (ParallelDescriptor::IOProcessor() && verbose)
+            cout << "   Bottom Smoother: Initial error (error0) = " 
+                 << error0 << '\n';
+
         for (int i = finalSmooth(); i > 0; i--)
         {
             Lp.smooth(solL, rhsL, level, bc_mode);
+
+            if (verbose > 1 || (i == 1 && verbose))
+            {
+                Real error = errorEstimate(level, bc_mode);
+                if (ParallelDescriptor::IOProcessor())
+                    cout << "   Bottom Smoother: Iteration "
+                         << i
+                         << " error/error0 "
+                         << error/error0 << '\n';
+            }
         }
     }
     else
