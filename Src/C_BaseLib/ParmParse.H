@@ -4,7 +4,7 @@
 #define BL_PARMPARSE_H
 
 //
-// $Id: ParmParse.H,v 1.4 1997-11-18 00:04:53 lijewski Exp $
+// $Id: ParmParse.H,v 1.5 1999-02-10 21:09:57 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -21,7 +21,6 @@ using std::endl;
 #include <stdlib.h>
 #endif
 
-#include <Boolean.H>
 #include <aString.H>
 #include <List.H>
 #include <Array.H>

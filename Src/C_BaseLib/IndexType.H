@@ -4,7 +4,7 @@
 #define BL_INDEXTYPE_H
 
 //
-// $Id: IndexType.H,v 1.4 1997-11-18 00:04:50 lijewski Exp $
+// $Id: IndexType.H,v 1.5 1999-02-10 21:09:56 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -14,7 +14,6 @@ using std::flush;
 #include <iostream.h>
 #endif
 
-#include <Boolean.H>
 #include <Misc.H>
 #include <IntVect.H>
 #include <SPACE.H>

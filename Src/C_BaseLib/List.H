@@ -4,10 +4,9 @@
 #define BL_LIST_H
 
 //
-// $Id: List.H,v 1.6 1997-12-19 21:54:45 lijewski Exp $
+// $Id: List.H,v 1.7 1999-02-10 21:09:57 lijewski Exp $
 //
 
-#include <Boolean.H>
 #include <Assert.H>
 #include <BoxLib.H>
 

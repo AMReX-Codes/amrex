@@ -4,11 +4,10 @@
 #define BL_POINTERS_H
 
 //
-// $Id: Pointers.H,v 1.6 1998-05-04 21:25:00 lijewski Exp $
+// $Id: Pointers.H,v 1.7 1999-02-10 21:09:57 lijewski Exp $
 //
 
 #include <Assert.H>
-#include <Boolean.H>
 #include <BoxLib.H>
 #include <UseCount.H>
 

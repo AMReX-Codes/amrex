@@ -4,7 +4,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.23 1998-10-07 21:18:28 vince Exp $
+// $Id: Utility.H,v 1.24 1999-02-10 21:09:58 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -22,7 +22,6 @@ using std::endl;
 #endif
 
 #include <aString.H>
-#include <Boolean.H>
 #include <REAL.H>
 
 //

@@ -4,7 +4,7 @@
 #define BL_BOXARRAY_H
 
 //
-// $Id: BoxArray.H,v 1.10 1999-01-13 04:14:19 lijewski Exp $
+// $Id: BoxArray.H,v 1.11 1999-02-10 21:09:55 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -13,7 +13,6 @@
 #include <stddef.h>
 #endif
 
-#include <Boolean.H>
 #include <IndexType.H>
 #include <BoxList.H>
 #include <Array.H>

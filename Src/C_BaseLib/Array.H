@@ -4,7 +4,7 @@
 #define BL_ARRAY_H
 
 //
-// $Id: Array.H,v 1.9 1998-06-15 23:52:57 lijewski Exp $
+// $Id: Array.H,v 1.10 1999-02-10 21:09:54 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -17,7 +17,6 @@ using std::endl;
 #include <iostream.h>
 #endif
 
-#include <Boolean.H>
 #include <Assert.H>
 #include <BoxLib.H>
 #include <Misc.H>

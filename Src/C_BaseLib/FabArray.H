@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.89 1999-02-05 18:56:06 lijewski Exp $
+// $Id: FabArray.H,v 1.90 1999-02-10 21:09:56 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -34,7 +34,6 @@ using std::vector;
 #include <PArray.H>
 #include <Array.H>
 
-#include <Boolean.H>
 #include <Box.H>
 #include <BoxLib.H>
 #include <BoxArray.H>

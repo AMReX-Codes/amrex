@@ -4,7 +4,7 @@
 #define BL_BOXDOMAIN_H
 
 //
-// $Id: BoxDomain.H,v 1.5 1998-05-04 21:24:55 lijewski Exp $
+// $Id: BoxDomain.H,v 1.6 1999-02-10 21:09:55 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -19,7 +19,6 @@ using std::endl;
 #include <iostream.h>
 #endif
 
-#include <Boolean.H>
 #include <IndexType.H>
 #include <Box.H>
 #include <IntVect.H>

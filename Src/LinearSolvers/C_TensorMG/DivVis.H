@@ -4,11 +4,10 @@
 #define _DivVis_H_
 
 //
-// $Id: DivVis.H,v 1.3 1999-01-04 21:31:48 lijewski Exp $
+// $Id: DivVis.H,v 1.4 1999-02-10 21:10:00 lijewski Exp $
 //
 
 #include <Tuple.H>
-#include <Boolean.H>
 #include <MCLinOp.H>
 
 //@Man:

@@ -4,7 +4,7 @@
 #define BL_PARRAY_H
 
 //
-// $Id: PArray.H,v 1.9 1998-05-04 21:24:59 lijewski Exp $
+// $Id: PArray.H,v 1.10 1999-02-10 21:09:57 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -18,7 +18,6 @@ using std::endl;
 #endif
 
 #include <Array.H>
-#include <Boolean.H>
 
 //
 //@Man:

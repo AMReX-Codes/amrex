@@ -4,11 +4,10 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.40 1998-11-24 01:00:54 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.41 1999-02-10 21:09:57 lijewski Exp $
 //
 
 #include <Assert.H>
-#include <Boolean.H>
 #include <REAL.H>
 #include <Box.H>
 

@@ -4,11 +4,10 @@
 #define _ABecLAPLACIAN_H_
 
 //
-// $Id: ABecLaplacian.H,v 1.4 1999-01-04 18:09:00 marc Exp $
+// $Id: ABecLaplacian.H,v 1.5 1999-02-10 21:09:44 lijewski Exp $
 //
 
 #include <Tuple.H>
-#include <Boolean.H>
 #include <LinOp.H>
 
 //@Man:

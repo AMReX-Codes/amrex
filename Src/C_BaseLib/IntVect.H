@@ -4,7 +4,7 @@
 #define BL_INTVECT_H
 
 //
-// $Id: IntVect.H,v 1.6 1998-06-12 16:37:57 lijewski Exp $
+// $Id: IntVect.H,v 1.7 1999-02-10 21:09:56 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -23,7 +23,6 @@ using std::ws;
 #endif
 
 #include <SPACE.H>
-#include <Boolean.H>
 #include <Misc.H>
 #include <Array.H>
 #include <Assert.H>
