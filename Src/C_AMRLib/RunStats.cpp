@@ -1,6 +1,6 @@
 
 //
-// $Id: RunStats.cpp,v 1.1 1997-11-18 19:30:28 lijewski Exp $
+// $Id: RunStats.cpp,v 1.2 1997-11-19 00:01:26 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -72,12 +72,10 @@ RunStats::turnOn (const char* s,
 }
 
 void
-RunStats::turnOff(const char *s, int _level)
+RunStats::turnOff (const char* s,
+                   int         _level)
 {
-    if(_level == -1)
-    {
-    }
-    else
+    if (!(_level == -1))
     {
 	RunStatsData *e = find(s, _level);
 	e->is_on = false;
@@ -85,7 +83,7 @@ RunStats::turnOff(const char *s, int _level)
 }
 
 void
-RunStats::init()
+RunStats::init ()
 {
     ParmParse pp("RunStats");
 
@@ -118,7 +116,8 @@ operator<< (ostream&            os,
 }
 
 istream &
-operator>> (istream &is, RunStatsData &rd)
+operator>> (istream&      is,
+            RunStatsData& rd)
 {
 	is.ignore(BL_IGNORE_MAX, '(');
 	aString s;
@@ -140,7 +139,8 @@ operator>> (istream &is, RunStatsData &rd)
 }
 
 ostream&
-operator<< (ostream &os, const RunStats &r)
+operator<< (ostream&        os,
+            const RunStats& r)
 {
 	os << "(RunStats "
            << r.name
@@ -152,18 +152,20 @@ operator<< (ostream &os, const RunStats &r)
     return os;
 }
 
-#define mpCPUSeconds() Utility::second()
-#define mpWallClockSeconds() ParallelDescriptor::second()
-
 void
 RunStats::report (ostream& os)
 {
-    double rtime = mpCPUSeconds();
-    double wtime = mpWallClockSeconds();
+    double rtime  = Utility::second();
+    double rwtime = ParallelDescriptor::second();
+
     ParallelDescriptor::ReduceRealSum(rtime);
-    ParallelDescriptor::ReduceRealMax(wtime);
-    double tot_run_time = total_run_time + rtime;
-    double tot_run_wtime = total_run_wtime + wtime;
+    ParallelDescriptor::ReduceRealMax(rwtime);
+
+    double tot_run_time  = total_run_time + rtime;
+    double tot_run_wtime = total_run_wtime + rwtime;
+
+    double inv_t_r_time  = tot_run_time == 0.0  ? 0.0 : 1.0/tot_run_time;
+    double inv_t_r_wtime = tot_run_wtime == 0.0 ? 0.0 : 1.0/tot_run_wtime;
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -207,9 +209,9 @@ RunStats::report (ostream& os)
 			os << "State " << ldi().name;
 			os << " time  = "
 			   << setw(6) << ldi().run_time << ' '
-			   << setw(6) << 100.0*(ldi().run_time/tot_run_time) << "% "
+			   << setw(6) << 100.0*(ldi().run_time*inv_t_r_time) << "% "
 			   << setw(6) << ldi().run_wtime << ' '
-			   << setw(6) << 100.0*(ldi().run_wtime/tot_run_wtime) << "% "
+			   << setw(6) << 100.0*(ldi().run_wtime*inv_t_r_wtime) << "% "
 			   << setw(6) << ldi().max_time << ' '
 			   << setw(6) << ldi().max_wtime;
 			os << '\n';
@@ -224,24 +226,20 @@ RunStats::report (ostream& os)
 	ldi.rewind();
 
 	os << '\n';
-	while (ldi)
+	for ( ; ldi; ++ldi)
         {
-	    if (ldi().level == -1)
+	    if (ldi().level == -1 && ldi().is_on == true)
             {
-		if (ldi().is_on == true)
-                {
-		    os << "total " << ldi().name << " time";
-		    os << "  = "
-		       << setw(6) << ldi().run_time << "  "
-		       << setw(6) << 100.0*(ldi().run_time/tot_run_time) << "% "
-		       << setw(6) << ldi().run_wtime << "  "
-		       << setw(6) << 100.0*(ldi().run_wtime/tot_run_wtime) << "% ";
-		    os << '\n';
-		}
+                os << "total " << ldi().name << " time";
+                os << "  = "
+                   << setw(6) << ldi().run_time << "  "
+                   << setw(6) << 100.0*(ldi().run_time*inv_t_r_time) << "% "
+                   << setw(6) << ldi().run_wtime << "  "
+                   << setw(6) << 100.0*(ldi().run_wtime*inv_t_r_wtime) << "% ";
+                os << '\n';
 	    }
-	    ++ldi;
 	}
-	os << "total CPU time          = " << tot_run_time << '\n';
+	os << "total CPU time          = " << tot_run_time  << '\n';
 	os << "total Wall Clock time   = " << tot_run_wtime << '\n';
     }
 }
@@ -249,15 +247,17 @@ RunStats::report (ostream& os)
 void
 RunStats::dumpStats (ofstream& os)
 {
-    double rtime = mpCPUSeconds();
-    double wtime = mpWallClockSeconds();
+    double rtime  = Utility::second();
+    double rwtime = ParallelDescriptor::second();
+
     ParallelDescriptor::ReduceRealSum(rtime);
-    ParallelDescriptor::ReduceRealMax(wtime);
+    ParallelDescriptor::ReduceRealMax(rwtime);
+
     if (ParallelDescriptor::IOProcessor())
     {
 	os << "(ListRunStats " << ld.length() << '\n'
-           << rtime + total_run_time          << '\n'
-           << wtime + total_run_wtime         << '\n';
+           << rtime  + total_run_time         << '\n'
+           << rwtime + total_run_wtime        << '\n';
 
 	for (ListIterator<RunStatsData> ldi(ld); ldi; ++ldi)
 	    os << ldi();
@@ -309,8 +309,8 @@ RunStats::start()
     if (gentry->is_on && entry->is_on)
     {
         ParallelDescriptor::Synchronize();
-	time = -mpCPUSeconds();
-	wtime= -mpWallClockSeconds();
+	time  = -Utility::second();
+	wtime = -ParallelDescriptor::second();
     }
 }
 
@@ -319,8 +319,8 @@ RunStats::pause()
 {
     if (gentry->is_on && entry->is_on)
     {
-	time += mpCPUSeconds();
-	wtime += mpWallClockSeconds();
+	time  += Utility::second();
+	wtime += ParallelDescriptor::second();
         ParallelDescriptor::Synchronize();
     }
 }
@@ -331,8 +331,8 @@ RunStats::resume()
     if (gentry->is_on && entry->is_on)
     {
         ParallelDescriptor::Synchronize();
-	time += mpCPUSeconds();
-	wtime += mpWallClockSeconds();
+	time  += Utility::second();
+	wtime += ParallelDescriptor::second();
     }
 }
 
@@ -341,17 +341,17 @@ RunStats::end ()
 {
     if (gentry->is_on && entry->is_on)
     {
-	time += mpCPUSeconds();
-	wtime += mpWallClockSeconds();
+	time  += Utility::second();
+	wtime += ParallelDescriptor::second();
 	if (ParallelDescriptor::NProcs() == 1)
         {
-	    entry->run_time += time;
-	    entry->run_wtime += wtime;
-	    entry->max_time += time;
-	    entry->max_wtime += wtime;
-	    gentry->run_time += time;
+	    entry->run_time   += time;
+	    entry->run_wtime  += wtime;
+	    entry->max_time   += time;
+	    entry->max_wtime  += wtime;
+	    gentry->run_time  += time;
 	    gentry->run_wtime += wtime;
-	    gentry->max_time += time;
+	    gentry->max_time  += time;
 	    gentry->max_wtime += wtime;
 	}
         else
@@ -361,17 +361,17 @@ RunStats::end ()
 	    tmp[1] = wtime;
 	    ParallelDescriptor::ReduceRealSum(tmp[0]);
 	    ParallelDescriptor::ReduceRealSum(tmp[1]);
-	    entry->run_time += tmp[0];
-	    entry->run_wtime += tmp[1];
-	    gentry->run_time += tmp[0];
+	    entry->run_time   += tmp[0];
+	    entry->run_wtime  += tmp[1];
+	    gentry->run_time  += tmp[0];
 	    gentry->run_wtime += tmp[1];
 	    tmp[0] = time;
 	    tmp[1] = wtime;
 	    ParallelDescriptor::ReduceRealMax(tmp[0]);
 	    ParallelDescriptor::ReduceRealMax(tmp[1]);
-	    entry->max_time += tmp[0];
-	    entry->max_wtime += tmp[1];
-	    gentry->max_time += tmp[0];
+	    entry->max_time   += tmp[0];
+	    entry->max_wtime  += tmp[1];
+	    gentry->max_time  += tmp[0];
 	    gentry->max_wtime += tmp[1];
 	}
     }
