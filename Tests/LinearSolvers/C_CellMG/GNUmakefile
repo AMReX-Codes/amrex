@@ -1,20 +1,23 @@
 PRECISION = DOUBLE
 PROFILE = FALSE
+PROFILE = TRUE
 DEBUG	= FALSE
 DEBUG	= TRUE
-DIM	= 2
 DIM	= 3
+DIM	= 2
 COMP = g++
 COMP = KCC
 USE_MPI=FALSE
 USE_MPI=TRUE
+USE_THREADS=FALSE
+USE_THREADS=TRUE
 NAMESPACE=FALSE
 
 USE_ARRAYVIEW = TRUE
 USE_ARRAYVIEW = FALSE
 
-USE_HYPRE=FALSE
 USE_HYPRE=TRUE
+USE_HYPRE=FALSE
 
 PBOXLIB_HOME := ../..
 
@@ -31,6 +34,7 @@ ifeq ($(USE_HYPRE),TRUE)
   LIBRARY_LOCATIONS += $(HYPRE_DIR)/lib
   INCLUDE_LOCATIONS += $(HYPRE_DIR)/include
   INCLUDE_LOCATIONS += $(HYPRE_DIR)/HypreABec
+  vpathdir += $(HYPRE_DIR)/HypreABec
   LIBRARIES +=  -lHYPRE_ls			\
 	 -lHYPRE_mv				\
 	 -lHYPRE_parcsr_ls			\
@@ -46,26 +50,42 @@ ifeq ($(USE_HYPRE),TRUE)
   include $(HYPRE_DIR)/HypreABec/Make.package
 endif
 
+ifeq ($(USE_THREADS),TRUE)
+  DEFINES += -DBL3_PTHREADS
+endif
+
 include $(PBOXLIB_HOME)/bndrylib/Make.package
 include $(PBOXLIB_HOME)/mglib/Make.package
 include $(PBOXLIB_HOME)/pBoxLib_2/Make.package
 include $(PBOXLIB_HOME)/util/Make.package
 
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/bndrylib
+vpathdir += $(PBOXLIB_HOME)/bndrylib
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/pBoxLib_2
+vpathdir += $(PBOXLIB_HOME)/pBoxLib_2
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/mglib
+vpathdir += $(PBOXLIB_HOME)/mglib
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/util
+vpathdir += $(PBOXLIB_HOME)/util
 
 # We need these from amrlib 
 
 CEXE_sources += BCRec.cpp 
 CEXE_headers += BCRec.H BC_Types.H
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/amrlib
+vpathdir += $(PBOXLIB_HOME)/amrlib
 
 # Needed from AmrVis
 CEXE_headers += AmrData.H
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/pAmrvis
+vpathdir += $(PBOXLIB_HOME)/pAmrvis
 
+ifeq ($(USE_THREADS),TRUE)
+  CEXE_headers += WorkQueue.H Threads.H
+  CEXE_sources += BL3WorkQueue.cpp BL3Thread.cpp BL3Utility.cpp BL3Error.cpp
+  INCLUDE_LOCATIONS += $(PBOXLIB_HOME)
+  vpathdir += $(PBOXLIB_HOME)/BoxLib3
+endif
 
 ifeq ($(DEBUG),TRUE)
   ifeq ($(USE_ARRAYVIEW),TRUE)
@@ -78,7 +98,6 @@ ifeq ($(DEBUG),TRUE)
   endif
   CEXE_headers += TV_TempWrite.H
 endif
-
 
 ifeq ($(MACHINE),OSF1)
   3RD=1
@@ -115,13 +134,8 @@ CFLAGS +=
 COPTF +=
 CDEBF +=
 
-ifeq ($(USE_HYPRE), TRUE)
-  vpath %.cpp : . $(HYPRE_DIR)/HypreABec $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/amrlib $(PBOXLIB_HOME)/bndrylib $(PBOXLIB_HOME)/mglib $(PBOXLIB_HOME)/util
-  vpath %.F   : . $(HYPRE_DIR)/HypreABec $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/amrlib $(PBOXLIB_HOME)/bndrylib $(PBOXLIB_HOME)/mglib
-else
-  vpath %.cpp : . $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/amrlib $(PBOXLIB_HOME)/bndrylib $(PBOXLIB_HOME)/mglib $(PBOXLIB_HOME)/util
-  vpath %.F   : . $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/amrlib $(PBOXLIB_HOME)/bndrylib $(PBOXLIB_HOME)/mglib
-endif
+vpath %.cpp : . $(vpathdir)
+vpath %.F   : . $(vpathdir)
 
 all: $(executable)
 
