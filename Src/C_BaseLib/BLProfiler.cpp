@@ -1,5 +1,5 @@
 //
-// $Id: BLProfiler.cpp,v 1.24 2002-03-26 20:04:06 lijewski Exp $
+// $Id: BLProfiler.cpp,v 1.25 2002-05-29 22:37:47 car Exp $
 //
 #include <winstd.H>
 
@@ -12,6 +12,7 @@
 #include <iomanip>
 #include <map>
 #include <algorithm>
+#include <iterator>
 #include <vector>
 #include <stack>
 #include <limits>
