@@ -2,36 +2,37 @@
 CPP = /usr/ccs/lib/cpp
 
 ifeq ($(COMP),CC)
-CXX     := CC -h instantiate=local
-CXXOPTF += -O2 -h new_for_init
-CXXDEBF += -g -h new_for_init
-override XTRADEFS += -DBL_USE_SETBUF -DBL_SETBUF_SIGNED_CHAR
-override XTRADEFS += -DBL_COALESCE_FABS
+  CXX     := CC -h instantiate=local
+  CXXOPTF += -O2 -h new_for_init
+  CXXDEBF += -g -h new_for_init
+  override XTRADEFS += -DBL_USE_SETBUF -DBL_SETBUF_SIGNED_CHAR
+  override XTRADEFS += -DBL_COALESCE_FABS
 endif
 
 ifeq ($(COMP),KCC)
-CXX     := KCC
-CXXOPTF += +K2
-CXXDEBF += +K0
+  CXX     := KCC
+  CXXOPTF += +K2
+  CXXDEBF += +K0
+  override XTRADEFS += -DBL_USE_NEW_HFILES
 endif
 
 ifeq ($(COMP),newKCC)
-CXX     := newKCC
-CXXOPTF += +K2
-CXXDEBF += +K0
+  CXX     := newKCC
+  CXXOPTF += +K2
+  CXXDEBF += +K0
 endif
 
 ifeq ($(COMP),mpKCC)
-#CXX     := mpKCC
-CXX     := newmpKCC
-CXXOPTF += +K2
-CXXDEBF += +K0
+  CXX     := mpKCC
+  CXXOPTF += +K2
+  CXXDEBF += +K0
+  override XTRADEFS += -DBL_USE_NEW_HFILES
 endif
 
 ifeq ($(PROFILE), TRUE)
-#CXXPRFF  +=
-#XTRALIBS +=
-#FPRFF    +=
+  #CXXPRFF  +=
+  #XTRALIBS +=
+  #FPRFF    +=
 endif
 
 #FC     = xlf -N 80 -e I
