@@ -494,11 +494,13 @@ void amr_multigrid::mg_cycle(int mglev, int i1, int i2)
 	if (pcode >= 4 )
 	{
 	    wtmp.setVal(0.0);
+	    HG_TEST_NORM(wtmp);
 	    level_residual(wtmp, resid[mglev], ctmp, mglev, true);
+	    HG_TEST_NORM(wtmp);
 	    double nm = mfnorm(wtmp);
 	    if ( ParallelDescriptor::IOProcessor() )
 	    {
-		cout << "  Residual at multigrid level " << mglev << " is " << mfnorm(wtmp) << endl;
+		cout << "  Residual at multigrid level " << mglev << " is " << nm << endl;
 	    }
 	}
 	else 

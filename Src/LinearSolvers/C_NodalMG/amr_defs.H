@@ -2,7 +2,7 @@
 #define _AMR_DEFS_H_
 
 //
-// $Id: amr_defs.H,v 1.13 1998-05-15 00:31:48 car Exp $
+// $Id: amr_defs.H,v 1.14 1998-08-05 20:57:59 car Exp $
 //
 
 #include <MultiFab.H>
@@ -28,6 +28,13 @@
 #endif
 
 #include "hgparallel.h"
+
+#define HG_TEST_NORM(d) \
+    if ( true ) { \
+	double dz = mfnorm(d); \
+	if ( ParallelDescriptor::IOProcessor() ) \
+	    cout << "Norm of " #d " = " << dz << endl; \
+    } else
 
 // index type helper functions:
 
