@@ -1158,10 +1158,6 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
                    use_u, H, tol, Lev_min, Lev_max, scale);
 }
 
-#ifndef NDEBUG
-extern "C" bool writeMF (const MultiFab* mf, const char*     file);
-#endif
-
 void
 holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
                                           PArray<MultiFab>& p,
@@ -1180,32 +1176,6 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::manual_project()");
 
-#ifndef NDEBUG
-    if (false) 
-    {
-	std::cout << "Lev_min = " << Lev_min << std::endl;
-	std::cout << "Lev_max = " << Lev_max << std::endl;
-	for ( int i = Lev_min; i <= Lev_max; ++i )
-	{
-	    if ( u->defined(i) ) 
-	    {
-		writeMF(&(*u)[0], "u_0");
-	    }
-	    writeMF(&rhs[0], "rhs_0");
-	    writeMF(&Sigma[0], "Sigma_0");
-	}
-    }
-    if ( false )
-    {
-	static int cnt = 0;
-	static std::ofstream ofs("pud");
-	ofs << "cnt = " << cnt << std::endl;
-	ofs << "rhs = " << rhs[0][0] << std::endl;
-	ofs << "p   = " << p[0][0] << std::endl;
-	cnt++;
-	if ( cnt == 5 ) std::exit(0);
-    }
-#endif
     Box crse_domain(crse_geom.Domain());
 
     if (Lev_min < 0)
