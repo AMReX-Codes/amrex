@@ -423,7 +423,7 @@ void mixed_boundary_class::sync_borders(MultiFab& r, const level_interface& lev_
     // PARALLEL
     for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
     {
-	if (lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL)
+	if (lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL) // FIXME????
 	    break;
 	int igrid = lev_interface.grid(level_interface::FACEDIM, iface, 0);
 	if (igrid < 0) 
@@ -450,7 +450,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
     // PARALLEL
     for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
     {
-	if (lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL)
+	if (lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL) // FIXME????
 	    break;
 	const int igrid = lev_interface.grid(level_interface::FACEDIM, iface, 0);
 	const int jgrid = lev_interface.grid(level_interface::FACEDIM, iface, 1);

@@ -111,7 +111,6 @@ void holy_grail_amr_projector::project(PArray<MultiFab>* u,
     clear();
 }
 
-#if 0
 void holy_grail_amr_projector::sync_project(PArray<MultiFab>* u,
 					    PArray<MultiFab>& p,
 					    PArray<MultiFab>& Coarse_source,
@@ -142,7 +141,6 @@ void holy_grail_amr_projector::sync_project(PArray<MultiFab>* u,
     form_solution_vector(u, Sigma);
     clear();
 }
-#endif
 
 void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u,
 					      PArray<MultiFab>& p,
@@ -425,7 +423,6 @@ void holy_grail_amr_projector::grid_divergence(PArray<MultiFab>* u)
     }
 }
 
-#if 0
 // Obsolete:
 void holy_grail_amr_projector::sync_right_hand_side(PArray<MultiFab>* u)
 { 
@@ -453,7 +450,6 @@ void holy_grail_amr_projector::sync_right_hand_side(PArray<MultiFab>* u)
 	}
     }
 }
-#endif
 
 void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 { 

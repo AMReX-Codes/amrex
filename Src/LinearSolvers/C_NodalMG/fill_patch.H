@@ -38,7 +38,8 @@ void interpolate_patch(FArrayBox& patch, const Box& region,
 		       const amr_interpolator_class& interp,
 		       const level_interface& lev_interface);
 
-void restrict_level(MultiFab& dest, MultiFab& r, const IntVect& rat,
+void restrict_level(MultiFab& dest, 
+		    MultiFab& r, const IntVect& rat,
 		    const amr_restrictor_class& restric,
 		    const level_interface& lev_interface,
 		    const amr_boundary_class* bdy);
