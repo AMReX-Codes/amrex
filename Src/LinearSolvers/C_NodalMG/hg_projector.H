@@ -76,18 +76,28 @@ public:
     void project (PArray<MultiFab>* u,
                   PArray<MultiFab>& p,
                   PArray<MultiFab>& Coarse_source,
+                  MultiFab*         Sync_resid_crse,
+                  MultiFab*         Sync_resid_fine,
+                  const Box&        crse_domain,
+                  bool              is_sync,
                   Real              H[],
                   Real              tol,
                   int               Lev_min = -1,
                   int               Lev_max = -1,
                   Real              scale = 0.0) 
     {
-	project(u, p, Coarse_source, null_amr_real, H, tol, Lev_min, Lev_max, scale);
+	project(u, p, Coarse_source, null_amr_real, 
+                Sync_resid_crse, Sync_resid_fine, crse_domain, is_sync,
+                H, tol, Lev_min, Lev_max, scale);
     }
     void project (PArray<MultiFab>* u,
                   PArray<MultiFab>& p,
                   PArray<MultiFab>& Coarse_source,
                   PArray<MultiFab>& Sigma,
+                  MultiFab*         Sync_resid_crse,
+                  MultiFab*         Sync_resid_fine,
+                  const Box&        crse_domain,
+                  bool              is_sync,
                   Real              H[],
                   Real              tol,
                   int               Lev_min = -1,
@@ -138,6 +148,10 @@ public:
                          PArray<MultiFab>& p,
                          PArray<MultiFab>& rhs,
                          PArray<MultiFab>& Coarse_source,
+                         MultiFab*         Sync_resid_crse,
+                         MultiFab*         Sync_resid_fine,
+                         const Box&        crse_domain,
+                         bool              is_sync,
                          bool              use_u,
                          Real              H[],
                          Real              tol,
@@ -145,7 +159,9 @@ public:
                          int               Lev_max = -1,
                          Real              scale = 0.0) 
     {
-	manual_project(u, p, rhs, Coarse_source, null_amr_real, use_u, H, tol, Lev_min, Lev_max, scale);
+	manual_project(u, p, rhs, Coarse_source, null_amr_real, 
+                       Sync_resid_crse, Sync_resid_fine, crse_domain, is_sync, 
+                       use_u, H, tol, Lev_min, Lev_max, scale);
     }
 
     void manual_project (PArray<MultiFab>* u,
@@ -153,12 +169,26 @@ public:
                          PArray<MultiFab>& rhs,
                          PArray<MultiFab>& Coarse_source,
                          PArray<MultiFab>& Sigma,
+                         MultiFab*         Sync_resid_crse,
+                         MultiFab*         Sync_resid_fine,
+                         const Box&        crse_domain,
+                         bool              is_sync,
                          bool              use_u,
                          Real              H[],
                          Real              tol,
                          int               Lev_min = -1,
                          int               Lev_max = -1,
                          Real              scale = 0.0);
+
+    void fill_sync_reg (PArray<MultiFab>* u_local,
+                        PArray<MultiFab>& p,
+                        PArray<MultiFab>& rhs_local,
+                        PArray<MultiFab>& Sigma_local,
+                        MultiFab*         Sync_resid,
+                        bool              is_sync,
+                        Real              H[],
+                        int               Lev_min,
+                        int               is_fine);
     
     void make_it_so ()
     {
@@ -167,14 +197,17 @@ public:
 
 protected:
 
-    void right_hand_side (PArray<MultiFab>* u, PArray<MultiFab>& S);
-    void grid_average (PArray<MultiFab>& S);
-    void grid_divergence (PArray<MultiFab>* u);
+    void right_hand_side (PArray<MultiFab>* u, PArray<MultiFab>& S,
+                          int for_sync_reg);
     void sync_right_hand_side (PArray<MultiFab>* u);
     void interface_average (PArray<MultiFab>& S, int lev);
     void interface_divergence (PArray<MultiFab>* u, int lev);
     void form_solution_vector (PArray<MultiFab>* u, const PArray<MultiFab>& sigma_in);
     void sparse_node_source_adjustment (PArray<MultiFab>& sparse_source);
+    void grid_divergence (PArray<MultiFab>* u, PArray<MultiFab>& s,
+                          int for_sync_reg);
+    void grid_average (PArray<MultiFab>& S, PArray<MultiFab>& src,        
+                       int for_sync_reg);
     //
     // The data.
     //

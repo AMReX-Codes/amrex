@@ -960,3 +960,14 @@ inviscid_fluid_boundary_class::~inviscid_fluid_boundary_class ()
     delete p;
     delete ts;
 }
+RegType
+inviscid_fluid_boundary_class::getLoBC(int idim) const
+{
+  return bc[idim][0];
+}
+
+RegType
+inviscid_fluid_boundary_class::getHiBC(int idim) const
+{
+  return bc[idim][1];
+}

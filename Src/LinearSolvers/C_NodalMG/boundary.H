@@ -191,6 +191,8 @@ class inviscid_fluid_boundary_class : public amr_fluid_boundary_class
 public:
     inviscid_fluid_boundary_class(RegType Bc[BL_SPACEDIM][2]);
     virtual ~inviscid_fluid_boundary_class();
+    RegType getLoBC(int idim) const;
+    RegType getHiBC(int idim) const;
 protected:
     RegType bc[BL_SPACEDIM][2];
 };
