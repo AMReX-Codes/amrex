@@ -1,12 +1,24 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Laplacian.cpp,v 1.8 2000-08-02 21:03:50 almgren Exp $
+// $Id: Laplacian.cpp,v 1.9 2000-08-24 20:28:29 car Exp $
 //
 
 #include <Laplacian.H>
 
 #include <LP_F.H>
+
+Real
+Laplacian::norm (int nm, int level)
+{
+  switch ( nm )
+    {
+    case 0:
+      return 8.0/(h[level][0]*h[level][0]);
+    }
+  BoxLib::Error("Bad Laplacian::norm");
+  return -1.0;
+}
 
 void
 Laplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),

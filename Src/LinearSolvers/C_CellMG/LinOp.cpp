@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: LinOp.cpp,v 1.19 2000-08-24 16:02:46 car Exp $
+// $Id: LinOp.cpp,v 1.20 2000-08-24 20:28:29 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -481,21 +481,13 @@ LinOp::smooth (MultiFab&       solnL,
     }
 }
 
-#if 0
 Real
-LinOp::norm (const MultiFab& in,
-             int             level) const
+LinOp::norm (int nm, int level)
 {
-    Real norm = 0.0;
-    for (ConstMultiFabIterator inmfi(in); inmfi.isValid(); ++inmfi)
-    {
-        Real tnorm = inmfi().norm(gbox[level][inmfi.index()]);
-        norm      += tnorm*tnorm;
-    }
-    ParallelDescriptor::ReduceRealSum(norm);
-    return norm;
+  BoxLib::Error("Placeholder for pure virtual function");
+  return 0.0;
 }
-#endif
+
 
 void
 LinOp::prepareForLevel (int level)

@@ -1,5 +1,5 @@
 c
-c $Id: LP_2D.F,v 1.2 1999-01-04 18:11:45 marc Exp $
+c $Id: LP_2D.F,v 1.3 2000-08-24 20:28:29 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -177,7 +177,19 @@ c
       end do
 c
       end
-
+c-----------------------------------------------------------------------
+      subroutine FORT_ESTANORM(
+     &     lo, hi, nc,
+     &     h
+     &     )
+      integer nc
+      integer lo(BL_SPACEDIM)
+      integer hi(BL_SPACEDIM)
+      integer i, j, n
+      REAL_T h
+c
+      res = 8.0/h**2
+      end
 c-----------------------------------------------------------------------
 c
 c     Fill in fluxes

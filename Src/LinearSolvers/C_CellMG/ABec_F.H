@@ -2,7 +2,7 @@
 #define _AABBEC_F_H_
 
 /*
-** $Id: ABec_F.H,v 1.3 1999-08-25 18:04:09 propp Exp $
+** $Id: ABec_F.H,v 1.4 2000-08-24 20:28:28 car Exp $
 */
 
 #include <REAL.H>
@@ -13,6 +13,7 @@
 #define FORT_GSRB          gsrb2daabbec
 #define FORT_CGPRECND      cgprecnd2daabbec
 #define FORT_ADOTX         adotx2daabbec
+#define FORT_NORMA         norma2daabbec
 #define FORT_FLUX          flux2daabbec
 #endif
 
@@ -20,6 +21,7 @@
 #define FORT_GSRB          gsrb3daabbec
 #define FORT_CGPRECND      cgprecnd3daabbec
 #define FORT_ADOTX         adotx3daabbec
+#define FORT_NORMA         norma3daabbec
 #define FORT_FLUX          flux3daabbec
 #endif
 
@@ -34,16 +36,19 @@
 #define FORT_GSRB     GSRB2DAABBEC
 #define FORT_CGPRECND CGPRECND2DAABBEC
 #define FORT_ADOTX    ADOTX2DAABBEC
+#define FORT_NORMA    NORMA2DAABBEC
 #define FORT_FLUX     FLUX2DAABBEC
 #elif defined(BL_FORT_USE_LOWERCASE)
 #define FORT_GSRB     gsrb2daabbec
 #define FORT_CGPRECND cgprecnd2daabbec
 #define FORT_ADOTX    adotx2daabbec
+#define FORT_NORMA    norma2daabbec
 #define FORT_FLUX     flux2daabbec
 #elif defined(BL_FORT_USE_UNDERSCORE)
 #define FORT_GSRB     gsrb2daabbec_
 #define FORT_CGPRECND cgprecnd2daabbec_
 #define FORT_ADOTX    adotx2daabbec_
+#define FORT_NORMA    norma2daabbec_
 #define FORT_FLUX     flux2daabbec_
 #endif
 
@@ -56,16 +61,19 @@
 #define FORT_GSRB     GSRB3DAABBEC
 #define FORT_CGPRECND CGPRECND3DAABBEC
 #define FORT_ADOTX    ADOTX3DAABBEC
+#define FORT_NORMA    NORMA3DAABBEC
 #define FORT_FLUX     FLUX3DAABBEC
 #elif defined(BL_FORT_USE_LOWERCASE)
 #define FORT_GSRB     gsrb3daabbec
 #define FORT_CGPRECND cgprecnd3daabbec
 #define FORT_ADOTX    adotx3daabbec
+#define FORT_NORMA    norma3daabbec
 #define FORT_FLUX     flux3daabbec
 #elif defined(BL_FORT_USE_UNDERSCORE)
 #define FORT_GSRB     gsrb3daabbec_
 #define FORT_CGPRECND cgprecnd3daabbec_
 #define FORT_ADOTX    adotx3daabbec_
+#define FORT_NORMA    norma3daabbec_
 #define FORT_FLUX     flux3daabbec_
 #endif
 
@@ -110,6 +118,16 @@ extern "C"
     void FORT_ADOTX(
         Real *y      , ARLIM_P(y_lo), ARLIM_P(y_hi),
         const Real *x, ARLIM_P(x_lo), ARLIM_P(x_hi),
+        const Real* alpha, const Real* beta,
+        const Real* a , ARLIM_P(a_lo),  ARLIM_P(a_hi),
+        const Real* bX, ARLIM_P(bX_lo), ARLIM_P(bX_hi),
+        const Real* bY, ARLIM_P(bY_lo), ARLIM_P(bY_hi),
+        const int *lo, const int *hi, const int *nc,
+        const Real *h
+        );
+    
+    void FORT_NORMA(
+        Real* res      ,
         const Real* alpha, const Real* beta,
         const Real* a , ARLIM_P(a_lo),  ARLIM_P(a_hi),
         const Real* bX, ARLIM_P(bX_lo), ARLIM_P(bX_hi),
@@ -172,6 +190,17 @@ extern "C"
     void FORT_ADOTX(
         Real *y      , ARLIM_P(y_lo), ARLIM_P(y_hi),
         const Real *x, ARLIM_P(x_lo), ARLIM_P(x_hi),
+        const Real* alpha, const Real* beta,
+        const Real* a , ARLIM_P(a_lo),  ARLIM_P(a_hi),
+        const Real* bX, ARLIM_P(bX_lo), ARLIM_P(bX_hi),
+        const Real* bY, ARLIM_P(bY_lo), ARLIM_P(bY_hi),
+        const Real* bZ, ARLIM_P(bZ_lo), ARLIM_P(bZ_hi),
+        const int *lo, const int *hi, const int *nc,
+        const Real *h
+        );
+    
+    void FORT_NORMA(
+        Real* res      ,
         const Real* alpha, const Real* beta,
         const Real* a , ARLIM_P(a_lo),  ARLIM_P(a_hi),
         const Real* bX, ARLIM_P(bX_lo), ARLIM_P(bX_hi),
