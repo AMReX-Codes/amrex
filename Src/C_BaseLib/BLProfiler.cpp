@@ -1,5 +1,5 @@
 //
-// $Id: BLProfiler.cpp,v 1.27 2002-11-11 17:49:53 lijewski Exp $
+// $Id: BLProfiler.cpp,v 1.28 2004-11-05 19:11:16 car Exp $
 //
 #include <winstd.H>
 
@@ -762,6 +762,9 @@ Profiler::glean()
 	    }
 	    ParallelDescriptor::Send(tps, 0, 103);
 	}
+	// MLW: barrier prevents MPI buffer overrun from unexpected packets
+	// on io processor.
+	ParallelDescriptor::Barrier();
     }
 
     if ( ParallelDescriptor::IOProcessor() )
