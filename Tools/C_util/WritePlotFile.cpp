@@ -309,3 +309,135 @@ writePlotFile (const char*     name,
     
 }
 
+void WritePlotFile(const Array<MultiFab*> mfa,
+		   AmrData&               amrdToMimic,
+		   const aString&         oFile,
+		   bool                   verbose)
+{
+    const Array<aString>& derives = amrdToMimic.PlotVarNames();
+    int ntype = amrdToMimic.NComp();
+    int finestLevel = amrdToMimic.FinestLevel();    
+    
+    if (ParallelDescriptor::IOProcessor())
+        if (!Utility::UtilCreateDirectory(oFile,0755))
+            Utility::CreateDirectoryFailed(oFile);
+    //
+    // Force other processors to wait till directory is built.
+    //
+    ParallelDescriptor::Barrier();
+
+    aString oFileHeader(oFile);
+    oFileHeader += "/Header";
+  
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+    ofstream os;
+  
+    os.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
+  
+    if (verbose && ParallelDescriptor::IOProcessor())
+        cout << "Opening file = " << oFileHeader << '\n';
+
+#ifdef BL_USE_NEW_HFILES
+    os.open(oFileHeader.c_str(), ios::out|ios::binary);
+#else
+    os.open(oFileHeader.c_str(), ios::out);
+#endif
+
+    if (os.fail())
+        Utility::FileOpenFailed(oFileHeader);
+    //
+    // Start writing plotfile.
+    //
+    os << amrdToMimic.PlotFileVersion() << '\n';
+    int n_var = ntype;
+    os << n_var << '\n';
+    for (int n = 0; n < ntype; n++) os << derives[n] << '\n';
+    os << BL_SPACEDIM << '\n';
+    os << amrdToMimic.Time() << '\n';
+    os << finestLevel << '\n';
+    int i;
+    for (i = 0; i < BL_SPACEDIM; i++) os << amrdToMimic.ProbLo()[i] << ' ';
+    os << '\n';
+    for (i = 0; i < BL_SPACEDIM; i++) os << amrdToMimic.ProbHi()[i] << ' ';
+    os << '\n';
+    for (i = 0; i < finestLevel; i++) os << amrdToMimic.RefRatio()[i] << ' ';
+    os << '\n';
+    for (i = 0; i <= finestLevel; i++) os << amrdToMimic.ProbDomain()[i] << ' ';
+    os << '\n';
+    for (i = 0; i <= finestLevel; i++) os << 0 << ' ';
+    os << '\n';
+    for (i = 0; i <= finestLevel; i++)
+    {
+        for (int k = 0; k < BL_SPACEDIM; k++)
+            os << amrdToMimic.DxLevel()[i][k] << ' ';
+        os << '\n';
+    }
+    os << amrdToMimic.CoordSys() << '\n';
+    os << "0\n"; // The bndry data width.
+    //
+    // Write out level by level.
+    //
+    for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
+    {
+        //
+        // Write state data.
+        //
+        int nGrids = amrdToMimic.boxArray(iLevel).length();
+        char buf[64];
+        sprintf(buf, "Level_%d", iLevel);
+    
+        if (ParallelDescriptor::IOProcessor())
+        {
+            os << iLevel << ' ' << nGrids << ' ' << amrdToMimic.Time() << '\n';
+            os << 0 << '\n';
+    
+            for (i = 0; i < nGrids; ++i)
+            {
+                for (int n = 0; n < BL_SPACEDIM; n++)
+                {
+                    os << amrdToMimic.GridLocLo()[iLevel][i][n]
+                       << ' '
+                       << amrdToMimic.GridLocHi()[iLevel][i][n]
+                       << '\n';
+                }
+            }
+            //
+            // Build the directory to hold the MultiFabs at this level.
+            //
+            aString Level(oFile);
+            Level += '/';
+            Level += buf;
+    
+            if (!Utility::UtilCreateDirectory(Level, 0755))
+                Utility::CreateDirectoryFailed(Level);
+        }
+        //
+        // Force other processors to wait till directory is built.
+        //
+        ParallelDescriptor::Barrier();
+        //
+        // Now build the full relative pathname of the MultiFab.
+        //
+        static const aString MultiFabBaseName("/MultiFab");
+    
+        aString PathName(oFile);
+        PathName += '/';
+        PathName += buf;
+        PathName += MultiFabBaseName;
+    
+        if (ParallelDescriptor::IOProcessor())
+        {
+            //
+            // The full name relative to the Header file.
+            //
+            aString RelativePathName(buf);
+            RelativePathName += '/';
+            RelativePathName += MultiFabBaseName;
+            os << RelativePathName << '\n';
+        }
+        VisMF::Write(*mfa[iLevel], PathName, VisMF::OneFilePerCPU);
+    }
+
+    os.close();
+}
