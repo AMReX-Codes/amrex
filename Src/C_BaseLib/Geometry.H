@@ -1,7 +1,7 @@
 #ifndef _GEOMETRY_H_
 #define _GEOMETRY_H_
 //
-// $Id: Geometry.H,v 1.40 2002-04-27 07:07:41 marc Exp $
+// $Id: Geometry.H,v 1.41 2002-12-03 18:35:38 lijewski Exp $
 //
 #include <iosfwd>
 #include <list>
@@ -168,7 +168,9 @@ protected:
     // Helper functions for FillPeriodicBoundary(). 
     //
     FPB& getFPB (MultiFab&  mf,
-                 const FPB& fpb) const;
+                 const FPB& fpb,
+                 int        scomp,
+                 int        ncomp) const;
 
     FPB& buildFPB (MultiFab&  mf,
                    const FPB& fpb) const;

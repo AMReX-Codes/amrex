@@ -1,5 +1,5 @@
 //
-// $Id: Geometry.cpp,v 1.61 2002-04-27 07:07:41 marc Exp $
+// $Id: Geometry.cpp,v 1.62 2002-12-03 18:35:38 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -56,8 +56,6 @@ struct FPB
 
     FPB (const BoxArray& ba,
          const Box&      domain,
-         int             scomp,
-         int             ncomp,
          int             ngrow,
          bool            do_corners);
 
@@ -73,8 +71,6 @@ struct FPB
     PIRMMap       m_pirm;
     BoxArray      m_ba;
     Box           m_domain;
-    int           m_scomp;
-    int           m_ncomp;
     int           m_ngrow;
     bool          m_do_corners;
 };
@@ -137,28 +133,20 @@ operator<< (std::ostream&  os,
 
 FPB::FPB ()
     :
-    m_scomp(-1),
-    m_ncomp(-1),
     m_ngrow(-1),
     m_do_corners(false)
 {}
 
 FPB::FPB (const BoxArray& ba,
           const Box&      domain,
-          int             scomp,
-          int             ncomp,
           int             ngrow,
           bool            do_corners)
     :
     m_ba(ba),
     m_domain(domain),
-    m_scomp(scomp),
-    m_ncomp(ncomp),
     m_ngrow(ngrow),
     m_do_corners(do_corners)
 {
-    BL_ASSERT(scomp >= 0);
-    BL_ASSERT(ncomp >  0);
     BL_ASSERT(ngrow >= 0);
     BL_ASSERT(domain.ok());
 }
@@ -170,8 +158,6 @@ FPB::FPB (const FPB& rhs)
     m_pirm(rhs.m_pirm),
     m_ba(rhs.m_ba),
     m_domain(rhs.m_domain),
-    m_scomp(rhs.m_scomp),
-    m_ncomp(rhs.m_ncomp),
     m_ngrow(rhs.m_ngrow),
     m_do_corners(rhs.m_do_corners)
 {}
@@ -182,8 +168,6 @@ bool
 FPB::operator== (const FPB& rhs) const
 {
     return
-        m_scomp      == rhs.m_scomp      &&
-        m_ncomp      == rhs.m_ncomp      &&
         m_ngrow      == rhs.m_ngrow      &&
         m_do_corners == rhs.m_do_corners &&
         m_domain     == rhs.m_domain     &&
@@ -291,7 +275,9 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
 FPB&
 Geometry::getFPB (MultiFab&  mf,
-                  const FPB& fpb) const
+                  const FPB& fpb,
+                  int        scomp,
+                  int        ncomp) const
 {
     BL_ASSERT(isAnyPeriodic());
     //
@@ -299,11 +285,29 @@ Geometry::getFPB (MultiFab&  mf,
     //
     // Search from the front to the back ...
     //
-    FPBList::iterator it = m_FPBCache.begin();
-
-    for ( ; it != m_FPBCache.end(); ++it)
+    for (FPBList::iterator it = m_FPBCache.begin();
+         it != m_FPBCache.end();
+         ++it)
+    {
         if (*it == fpb)
+        {
+            //
+            // Adjust the ncomp & scomp in CommData.
+            //
+            BL_ASSERT((*it).m_commdata.isValid());
+
+            Array<CommData>& cd = (*it).m_commdata.theCommData();
+
+
+            for (int i = 0; i < cd.size(); i++)
+            {
+                cd[i].nComp(ncomp);
+                cd[i].srcComp(scomp);
+            }
+
             return *it;
+        }
+    }
 
     return buildFPB(mf,fpb);
 }
@@ -409,10 +413,10 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
     MultiFabCopyDescriptor mfcd;
 
-    FPB TheFPB(mf.boxArray(),Domain(),scomp,ncomp,mf.nGrow(),corners);
+    FPB TheFPB(mf.boxArray(),Domain(),mf.nGrow(),corners);
 
     const MultiFabId mfid = mfcd.RegisterMultiFab(&mf);
-    FPB&             fpb  = getFPB(mf,TheFPB);
+    FPB&             fpb  = getFPB(mf,TheFPB,scomp,ncomp);
     PIRMMap&         pirm = fpb.m_pirm;
     //
     // Add boxes we need to collect.
