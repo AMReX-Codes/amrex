@@ -169,7 +169,7 @@ void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u,
     alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max);
     divergence_source(u);
     if (rhs.length() > 0) {
-      if (type(rhs) == nodevect) {
+      if (type(rhs[Lev_min]) == nodevect) {
 	for (int lev = Lev_min; lev <= Lev_max; lev++)
 	  source[lev].plus(rhs[lev], 0, 1, 0);
 	if (singular && make_sparse_node_source_solvable) {
@@ -186,7 +186,7 @@ void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u,
     assert(rhs.length() > 0);
     assert(rhs[Lev_min].nGrow() == 1);
 
-    if (type(rhs) == nodevect) {
+    if (type(rhs[Lev_min]) == nodevect) {
       alloc(p, rhs, Coarse_source, Sigma, H, Lev_min, Lev_max);
       if (singular && make_sparse_node_source_solvable) {
 	sparse_node_source_adjustment(rhs);
