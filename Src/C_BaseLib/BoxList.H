@@ -2,7 +2,7 @@
 #define BL_BOXLIST_H
 
 //
-// $Id: BoxList.H,v 1.22 2001-07-23 21:15:16 car Exp $
+// $Id: BoxList.H,v 1.23 2001-07-23 22:30:24 car Exp $
 //
 
 #include <iostream>
@@ -87,25 +87,9 @@ public:
     //
     explicit BoxList (const BoxArray& ba);
     //
-    //@ManDoc: The copy constructor.
-    //
-    BoxList (const BoxList& _blst);
-    //
-    //@ManDoc: The assignment operator.
-    //
-    BoxList& operator= (const BoxList& rhs);
-    //
-    //@ManDoc: The destructor.
-    //
-    ~BoxList ();
-    //
     //@ManDoc: Append a Box to this BoxList.
     //
     void append (const Box& bn);
-    //
-    //@ManDoc: Add a Box to this BoxList.
-    //
-    void add (const Box& bn);
     //
     //@ManDoc:  Prepend a Box to this BoxList.
     //

@@ -1,5 +1,5 @@
 //
-// $Id: BoxList.cpp,v 1.17 2001-07-23 21:15:16 car Exp $
+// $Id: BoxList.cpp,v 1.18 2001-07-23 22:30:24 car Exp $
 //
 #include <winstd.H>
 
@@ -32,9 +32,6 @@ BoxList::end() const
     return lbox.end();
 }
 
-BoxList::~BoxList()
-{}
-
 IndexType
 BoxList::ixType () const
 {
@@ -46,12 +43,6 @@ BoxList::append (const Box& bn)
 {
     BL_ASSERT(ixType() == bn.ixType());
     lbox.push_back(bn);
-}
-
-void
-BoxList::add (const Box& bn)
-{
-    append(bn);
 }
 
 void
@@ -191,19 +182,6 @@ BoxList::BoxList (IndexType _btype)
     : lbox(), btype(_btype)
 {}
 
-BoxList::BoxList (const BoxList &_blst)
-    : lbox(_blst.lbox),
-      btype(_blst.btype)
-{}
-
-BoxList&
-BoxList::operator= (const BoxList& rhs)
-{
-    lbox  = rhs.lbox;
-    btype = rhs.btype;
-    return *this;
-}
-
 BoxList::BoxList (const BoxArray &ba)
     : lbox(),
       btype()
@@ -316,7 +294,7 @@ BoxList::intersect (const BoxList& b)
         {
             if ( lhs->intersects(*rhs) )
             {
-                bl.add(*lhs & *rhs);
+                bl.append(*lhs & *rhs);
             }
         }
     }
