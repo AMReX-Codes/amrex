@@ -4,7 +4,7 @@
 #define _StateData_H_ 
 
 //
-// $Id: StateData.H,v 1.16 2000-02-28 23:26:37 lijewski Exp $
+// $Id: StateData.H,v 1.17 2000-05-30 21:10:47 almgren Exp $
 //
 
 #include <Box.H>
@@ -91,6 +91,15 @@ public:
     void setTimeLevel (Real t_new,
                        Real dt_old,
                        Real dt_new);
+
+    //
+    //@ManDoc: Sets time of old data.
+    //
+    void setOldTimeLevel (Real t_old);
+    //
+    //@ManDoc: Sets time of new data.
+    //
+    void setNewTimeLevel (Real t_new);
 
     void RegisterData (MultiFabCopyDescriptor& multiFabCopyDesc,
                        Array<MultiFabId>&      mfid);
