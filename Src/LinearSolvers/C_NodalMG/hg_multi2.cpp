@@ -120,8 +120,8 @@ void holy_grail_amr_multigrid::alloc_sync_caches()
 #  ifndef CONSTANT
     eres_sfbox = new Box*[lev_max+1];
     eres_scbox = new Box*[lev_max+1];
-    eres_sf = new Fab*[lev_max+1];
-    eres_sc = new Fab*[lev_max+1];
+    eres_sf = new PArray<Fab>[lev_max+1];
+    eres_sc = new PArray<Fab>[lev_max+1];
 #  endif
     eres_df = new PArray<Fab>[lev_max+1];
     eres_dc = new PArray<Fab>[lev_max+1];
@@ -133,8 +133,8 @@ void holy_grail_amr_multigrid::alloc_sync_caches()
 #ifndef CONSTANT
     cres_sfbox = new Box*[lev_max+1];
     cres_scbox = new Box*[lev_max+1];
-    cres_sf = new Fab*[lev_max+1];
-    cres_sc = new Fab*[lev_max+1];
+    cres_sf = new PArray<Fab>[lev_max+1];
+    cres_sc = new PArray<Fab>[lev_max+1];
 #endif
     cres_df = new PArray<Fab>[lev_max+1];
     cres_dc = new PArray<Fab>[lev_max+1];
@@ -160,8 +160,8 @@ void holy_grail_amr_multigrid::alloc_sync_caches()
 #  ifndef CONSTANT
     eres_sfbox[lev] = new Box[interface[mglev].nedges()];
     eres_scbox[lev] = new Box[interface[mglev].nedges()];
-    eres_sf[lev] = new Fab[interface[mglev].nedges()];
-    eres_sc[lev] = new Fab[interface[mglev].nedges()];
+    eres_sf[lev].resize(interface[mglev].nedges());
+    eres_sc[lev].resize(interface[mglev].nedges());
 #  endif
     eres_df[lev].resize(interface[mglev].nedges());
     eres_dc[lev].resize(interface[mglev].nedges());
@@ -173,8 +173,8 @@ void holy_grail_amr_multigrid::alloc_sync_caches()
 #ifndef CONSTANT
     cres_sfbox[lev] = new Box[interface[mglev].ncorners()];
     cres_scbox[lev] = new Box[interface[mglev].ncorners()];
-    cres_sf[lev] = new Fab[interface[mglev].ncorners()];
-    cres_sc[lev] = new Fab[interface[mglev].ncorners()];
+    cres_sf[lev].resize(interface[mglev].ncorners());
+    cres_sc[lev].resize(interface[mglev].ncorners());
 #endif
     cres_df[lev].resize(interface[mglev].ncorners());
     cres_dc[lev].resize(interface[mglev].ncorners());
@@ -195,7 +195,7 @@ void holy_grail_amr_multigrid::delete_sync_caches()
     delete [] fres_sfbox[lev];
     delete [] fres_scbox[lev];
     for (i = 0; i < interface[mglev].nfaces(); i++) {
-      if (fres_flag[lev] == 0) delete fres_sc[lev].remove(i);
+      if (fres_flag[lev][i] == 0) delete fres_sc[lev].remove(i);
     }
 #endif
     for (i = 0; i < interface[mglev].nfaces(); i++) {
@@ -209,8 +209,10 @@ void holy_grail_amr_multigrid::delete_sync_caches()
 #  ifndef CONSTANT
     delete [] eres_sfbox[lev];
     delete [] eres_scbox[lev];
-    delete [] eres_sf[lev];
-    delete [] eres_sc[lev];
+    for (i = 0; i < interface[mglev].nedges(); i++) {
+      if (eres_sf[lev].defined(i)) delete eres_sf[lev].remove(i);
+      if (eres_flag[lev][i] == 0)  delete eres_sc[lev].remove(i);
+    }
 #  endif
     for (i = 0; i < interface[mglev].nedges(); i++) {
       if (eres_df[lev].defined(i)) delete eres_df[lev].remove(i);
@@ -224,8 +226,10 @@ void holy_grail_amr_multigrid::delete_sync_caches()
 #ifndef CONSTANT
     delete [] cres_sfbox[lev];
     delete [] cres_scbox[lev];
-    delete [] cres_sf[lev];
-    delete [] cres_sc[lev];
+    for (i = 0; i < interface[mglev].ncorners(); i++) {
+      if (cres_sf[lev].defined(i)) delete cres_sf[lev].remove(i);
+      if (cres_flag[lev][i] == 0)  delete cres_sc[lev].remove(i);
+    }
 #endif
     for (i = 0; i < interface[mglev].ncorners(); i++) {
       if (cres_df[lev].defined(i)) delete cres_df[lev].remove(i);
@@ -306,18 +310,23 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
       cbox.growLo(idim, 1);
     else
       cbox.growHi(idim, 1);
+    int cgrid = find_patch(cbox, dest[lev-1]);
 #ifndef CONSTANT
     Box& sigmafbox = fres_sfbox[lev][iface];
     Box& sigmacbox = fres_scbox[lev][iface];
-    sigmafbox = sigma.box(mglev, igrid);
+    sigmafbox = sigma[mglev][igrid].box();
     sigmacbox = cbox;
     sigmacbox.convert(cellvect);
-    Fab &sigmac = fres_sc[lev][iface];
-    sigmac.alias(sigma[mglevc].get_patch(sigmacbox, interface[mglevc],
-					 boundary.scalar()));
-    sigmacbox = sigmac.box();
+    if (cgrid >= 0) {
+      fres_sc[lev].set(iface, &sigma[mglevc][cgrid]);
+      sigmacbox = fres_sc[lev][iface].box();
+    }
+    else {
+      fres_sc[lev].set(iface, new Fab(sigmacbox));
+      fill_patch(fres_sc[lev][iface], sigma[mglevc],
+		 interface[mglevc], boundary.scalar());
+    }
 #endif
-    int cgrid = find_patch(cbox, dest[lev-1]);
     if (cgrid >= 0) {
       fres_dc[lev].set(iface, &dest[lev-1][cgrid]);
       cbox = fres_dc[lev][iface].box();
@@ -354,24 +363,28 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     cbox = interface[mglev].node_edge(iedge);
     cbox.coarsen(rat).grow(t);
     fbox = refine(cbox, rat);
-#ifndef CONSTANT
+    eres_df[lev].set(iedge, new Fab(fbox));
+    int cgrid = find_patch(cbox, dest[lev-1]);
+#  ifndef CONSTANT
     Box& sigmafbox = eres_sfbox[lev][iedge];
     Box& sigmacbox = eres_scbox[lev][iedge];
     sigmafbox = fbox;
     sigmafbox.convert(cellvect);
-    Fab &sigmaf = eres_sf[lev][iedge];
-    sigmaf.alloc(sigmafbox);
-    sigma[mglev].fill_patch(sigmaf, interface[mglev], boundary.scalar(),
-			    0, 1, iedge);
+    eres_sf[lev].set(iedge, new Fab(sigmafbox));
+    fill_patch(eres_sf[lev][iedge], sigma[mglev], interface[mglev],
+	       boundary.scalar(), 0, 1, iedge);
     sigmacbox = cbox;
     sigmacbox.convert(cellvect);
-    Fab &sigmac = eres_sc[lev][iedge];
-    sigmac.alias(sigma[mglevc].get_patch(sigmacbox, interface[mglevc],
-					 boundary.scalar()));
-    sigmacbox = sigmac.box();
-#endif
-    eres_df[lev].set(iedge, new Fab(fbox));
-    int cgrid = find_patch(cbox, dest[lev-1]);
+    if (cgrid >= 0) {
+      eres_sc[lev].set(iedge, &sigma[mglevc][cgrid]);
+      sigmacbox = eres_sc[lev][iedge].box();
+    }
+    else {
+      eres_sc[lev].set(iedge, new Fab(sigmacbox));
+      fill_patch(eres_sc[lev][iedge], sigma[mglevc],
+		 interface[mglevc], boundary.scalar());
+    }
+#  endif
     if (cgrid >= 0) {
       eres_dc[lev].set(iedge, &dest[lev-1][cgrid]);
       cbox = eres_dc[lev][iedge].box();
@@ -407,24 +420,28 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     fbox = interface[mglev].corner(icor);
     cbox.coarsen(rat).grow(1);
     fbox.grow(rat);
+    cres_df[lev].set(icor, new Fab(fbox));
+    int cgrid = find_patch(cbox, dest[lev-1]);
 #ifndef CONSTANT
     Box& sigmafbox = cres_sfbox[lev][icor];
     Box& sigmacbox = cres_scbox[lev][icor];
     sigmafbox = fbox;
     sigmafbox.convert(cellvect);
-    Fab &sigmaf = cres_sf[lev][icor];
-    sigmaf.alloc(sigmafbox);
-    sigma[mglev].fill_patch(sigmaf, interface[mglev], boundary.scalar(),
-			    0, 0, icor);
+    cres_sf[lev].set(icor, new Fab(sigmafbox));
+    fill_patch(cres_sf[lev][icor], sigma[mglev], interface[mglev],
+	       boundary.scalar(), 0, 0, icor);
     sigmacbox = cbox;
     sigmacbox.convert(cellvect);
-    Fab &sigmac = cres_sc[lev][icor];
-    sigmac.alias(sigma[mglevc].get_patch(sigmacbox, interface[mglevc],
-					 boundary.scalar()));
-    sigmacbox = sigmac.box();
+    if (cgrid >= 0) {
+      cres_sc[lev].set(icor, &sigma[mglevc][cgrid]);
+      sigmacbox = cres_sc[lev][icor].box();
+    }
+    else {
+      cres_sc[lev].set(icor, new Fab(sigmacbox));
+      fill_patch(cres_sc[lev][icor], sigma[mglevc],
+		 interface[mglevc], boundary.scalar());
+    }
 #endif
-    cres_df[lev].set(icor, new Fab(fbox));
-    int cgrid = find_patch(cbox, dest[lev-1]);
     if (cgrid >= 0) {
       cres_dc[lev].set(icor, &dest[lev-1][cgrid]);
       cbox = cres_dc[lev][icor].box();
@@ -471,11 +488,11 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 #ifndef CONSTANT
     const Box& sigmafbox = fres_sfbox[lev][iface];
     const Box& sigmacbox = fres_scbox[lev][iface];
-    const Fab &sigmac = fres_sc[lev][iface];
+    Fab& sigmac = fres_sc[lev][iface];
     Real *const sigmafptr = sigma[mglev][igrid].dataPtr();
 #endif
     const Box& creg = fres_creg[lev][iface];
-    Fab &cdst = fres_dc[lev][iface];
+    Fab& cdst = fres_dc[lev][iface];
     if (fres_flag[lev][iface] == 0) {
       fill_patch(cdst, dest[lev-1], interface[mglevc], boundary.pressure());
     }
@@ -500,7 +517,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		rat, idim, idir
 #  else
 		rat, idim, idir,
-		IsRZ(), mg_mesh[mglevc].domain().bigEnd(0) + 1
+		IsRZ(), mg_domain[mglevc].bigEnd(0) + 1
 #  endif
 #else
 		hx, hy, hz,
@@ -531,15 +548,15 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 #ifndef CONSTANT
       const Box& sigmafbox = eres_sfbox[lev][iedge];
       const Box& sigmacbox = eres_scbox[lev][iedge];
-      const Fab &sigmaf = eres_sf[lev][iedge];
-      const Fab &sigmac = eres_sc[lev][iedge];
+      Fab& sigmaf = eres_sf[lev][iedge];
+      Fab& sigmac = eres_sc[lev][iedge];
 #endif
       const Box& creg = eres_creg[lev][iedge];
       IntVect t = interface[mglev].edge(iedge).type();
-      Fab &fdst = eres_df[lev][iedge];
+      Fab& fdst = eres_df[lev][iedge];
       fill_patch(fdst, dest[lev], interface[mglev], boundary.pressure(),
                  0, 1, iedge);
-      Fab &cdst = eres_dc[lev][iedge];
+      Fab& cdst = eres_dc[lev][iedge];
       if (eres_flag[lev][iedge] == 0) {
 	fill_patch(cdst, dest[lev-1], interface[mglevc], boundary.pressure());
       }
@@ -589,14 +606,14 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 #ifndef CONSTANT
       const Box& sigmafbox = cres_sfbox[lev][icor];
       const Box& sigmacbox = cres_scbox[lev][icor];
-      const Fab &sigmaf = cres_sf[lev][icor];
-      const Fab &sigmac = cres_sc[lev][icor];
+      Fab& sigmaf = cres_sf[lev][icor];
+      Fab& sigmac = cres_sc[lev][icor];
 #endif
       const Box& creg = cres_creg[lev][icor];
-      Fab &fdst = cres_df[lev][icor];
+      Fab& fdst = cres_df[lev][icor];
       fill_patch(fdst, dest[lev], interface[mglev], boundary.pressure(),
 		 0, 0, icor);
-      Fab &cdst = cres_dc[lev][icor];
+      Fab& cdst = cres_dc[lev][icor];
       if (cres_flag[lev][icor] == 0) {
 	fill_patch(cdst, dest[lev-1], interface[mglevc],
 		   boundary.pressure());
@@ -654,14 +671,14 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 #ifndef CONSTANT
       const Box& sigmafbox = cres_sfbox[lev][icor];
       const Box& sigmacbox = cres_scbox[lev][icor];
-      const Fab &sigmaf = cres_sf[lev][icor];
-      const Fab &sigmac = cres_sc[lev][icor];
+      Fab& sigmaf = cres_sf[lev][icor];
+      Fab& sigmac = cres_sc[lev][icor];
 #endif
       const Box& creg = cres_creg[lev][icor];
-      Fab &fdst = cres_df[lev][icor];
+      Fab& fdst = cres_df[lev][icor];
       fill_patch(fdst, dest[lev], interface[mglev], boundary.pressure(),
 		 0, 0, icor);
-      Fab &cdst = cres_dc[lev][icor];
+      Fab& cdst = cres_dc[lev][icor];
       if (cres_flag[lev][icor] == 0) {
 	fill_patch(cdst, dest[lev-1], interface[mglevc],
 		   boundary.pressure());
@@ -683,7 +700,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 #else
                   hx, hy,
                   rat, idim, idir,
-		  IsRZ(), mg_mesh[mglevc].domain().bigEnd(0) + 1);
+		  IsRZ(), mg_domain[mglevc].bigEnd(0) + 1);
 #endif
       // fill in the grids on the other sides, if any
       const Box& freg = interface[mglev].corner(icor);
@@ -702,11 +719,11 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 #ifndef CONSTANT
       const Box& sigmafbox = cres_sfbox[lev][icor];
       const Box& sigmacbox = cres_scbox[lev][icor];
-      const Fab &sigmaf = cres_sf[lev][icor];
-      const Fab &sigmac = cres_sc[lev][icor];
+      Fab& sigmaf = cres_sf[lev][icor];
+      Fab& sigmac = cres_sc[lev][icor];
 #endif
       const Box& creg = cres_creg[lev][icor];
-      Fab &cdst = cres_dc[lev][icor];
+      Fab& cdst = cres_dc[lev][icor];
       if (cres_flag[lev][icor] == 0) {
 	fill_patch(cdst, dest[lev-1], interface[mglevc], boundary.pressure());
       }
@@ -741,14 +758,14 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 #ifndef CONSTANT
       const Box& sigmafbox = cres_sfbox[lev][icor];
       const Box& sigmacbox = cres_scbox[lev][icor];
-      const Fab &sigmaf = cres_sf[lev][icor];
-      const Fab &sigmac = cres_sc[lev][icor];
+      Fab& sigmaf = cres_sf[lev][icor];
+      Fab& sigmac = cres_sc[lev][icor];
 #endif
       const Box& creg = cres_creg[lev][icor];
-      Fab &fdst = cres_df[lev][icor];
+      Fab& fdst = cres_df[lev][icor];
       fill_patch(fdst, dest[lev], interface[mglev], boundary.pressure(),
 		 0, 0, icor);
-      Fab &cdst = cres_dc[lev][icor];
+      Fab& cdst = cres_dc[lev][icor];
       if (cres_flag[lev][icor] == 0) {
 	fill_patch(cdst, dest[lev-1], interface[mglevc],
 		   boundary.pressure());
@@ -790,14 +807,14 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 #ifndef CONSTANT
       const Box& sigmafbox = cres_sfbox[lev][icor];
       const Box& sigmacbox = cres_scbox[lev][icor];
-      const Fab &sigmaf = cres_sf[lev][icor];
-      const Fab &sigmac = cres_sc[lev][icor];
+      Fab& sigmaf = cres_sf[lev][icor];
+      Fab& sigmac = cres_sc[lev][icor];
 #endif
       const Box& creg = cres_creg[lev][icor];
-      Fab &fdst = cres_df[lev][icor];
+      Fab& fdst = cres_df[lev][icor];
       fill_patch(fdst, dest[lev], interface[mglev], boundary.pressure(),
 		 0, 0, icor);
-      Fab &cdst = cres_dc[lev][icor];
+      Fab& cdst = cres_dc[lev][icor];
       if (cres_flag[lev][icor] == 0) {
 	fill_patch(cdst, dest[lev-1], interface[mglevc], boundary.pressure());
       }
@@ -814,11 +831,12 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		  dimlist(creg),
 #ifdef CONSTANT
                   hx,
-                  rat, idir0, idir1);
+                  rat, idir0, idir1
 #else
                   hx, hy,
-                  rat, idir0, idir1, IsRZ());
+                  rat, idir0, idir1, IsRZ()
 #endif
+		  );
       // fill in the grids on the other sides, if any
       const Box& freg = interface[mglev].corner(icor);
       int kgrid = -1;

@@ -4,7 +4,7 @@ DEBUG     = FALSE
 DEBUG     = TRUE
 PROFILE   = FALSE
 DIM       = 2
-PRVERSION = c9
+PRVERSION = v9
 COMP      = cxx
 COMP      = KCC
 #COMP      = g++
@@ -15,8 +15,8 @@ COMP      = KCC
 #GUTHAMR_HOME = /tmp/work/lijewski/tmp/guthamr
 
 #GUTHAMR_HOME = /usr/local/ccse/guthamr-developers/guthamr
-GUTHAMR_HOME = /usr/local/ccse/guthamr
-#GUTHAMR_HOME = /usr/local/ccse/guthamr-2.0-KCC3.1a
+#GUTHAMR_HOME = /usr/local/ccse/guthamr
+GUTHAMR_HOME = /usr/local/ccse/guthamr-2.0-KCC3.1a
 #GUTHAMR_HOME = /home/jbb/guthamr
 TOP = $(GUTHAMR_HOME)
 
@@ -75,7 +75,6 @@ ifeq ($(LBASE),proj)
   optionsSuffix      = $(DIM)d.$(PRVERSION).$(machineSuffix)
   instLib            = $(instLibDir)/lib$(LBASE)$(DIM)d.$(PRVERSION).a
   ifeq ($(COMP),KCC)
-    LibsToCloseAgainst := $(instLibDir)/libalias$(DIM)d.a
     LibsToCloseAgainst += $(GUTHAMR_HOME)/lib/$(machineSuffix)/libbox$(DIM)d.a
   endif
   all: $(instLib)
@@ -120,7 +119,7 @@ endif
 #3RD = 1
 ifdef 3RD
 # FOR RUNNING 3RD ONLY
-#CXXFLAGS += --link_command_prefix 3rd
+CXXFLAGS += --link_command_prefix 3rd
 CXXDEBF = +K0 --link_command_prefix 3rd
 LIBRARIES += -ldnet_stub
 FDEBF += -automatic

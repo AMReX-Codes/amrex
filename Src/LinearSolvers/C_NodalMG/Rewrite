@@ -80,5 +80,5 @@ calls to BoxLib::Error().
 8. The macros BL_SPACEDIM and BL_FORT_USE_UNDERSCORE are now used in
 the standard way.
 
-9. The two libraries are combined into one.  The few files left that
-went into libalias are now installed into libproj.
+9. The two library archives are combined into one.  The few files left
+that went into libalias are now installed into libproj.

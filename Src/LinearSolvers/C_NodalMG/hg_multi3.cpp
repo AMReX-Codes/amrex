@@ -153,7 +153,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
 #      if (BL_SPACEDIM == 2)
 	       sigma_nd[1][mglev][igrid].dataPtr(), dimlist(sigbox),
 	       dimlist(freg), hx, hy,
-	       IsRZ(), mg_mesh[mglev].domain().bigEnd(0) + 1
+	       IsRZ(), mg_domain[mglev].bigEnd(0) + 1
 #      else
 	       sigma_nd[1][mglev][igrid].dataPtr(),
 	       sigma_nd[2][mglev][igrid].dataPtr(), dimlist(sigbox),
@@ -239,7 +239,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 		 sigma_nd[1][mglev][igrid].dataPtr(), dimlist(sigbox),
 		 cen[mglev][igrid].dataPtr(), dimlist(cenbox),
 		 dimlist(freg), hx, hy,
-		 IsRZ(), mg_mesh[mglev].domain().bigEnd(0) + 1
+		 IsRZ(), mg_domain[mglev].bigEnd(0) + 1
 #  else
 		 sigma_nd[1][mglev][igrid].dataPtr(),
 		 sigma_nd[2][mglev][igrid].dataPtr(), dimlist(sigbox),

@@ -57,7 +57,6 @@ void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
   else {
     source_owned = 1;
     PArray<MultiFab> Src;
-    //(ml_mesh, Dest.type(), Dest.border(), 1, Lev_min, Lev_max);
     Src.resize(Lev_max + 1);
     for (lev = Lev_min; lev <= Lev_max; lev++) {
       const BoxArray& mesh = Dest[lev].boxArray();
@@ -232,40 +231,20 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
   // sigma_split replaced by sigma_nd in more recent version, used
   // only as a local variable here
 
-//#ifdef CONSTANT
-
-  //sigma.alloc(mg_mesh, cellvect, 1);
-  //sigma.assign(1.0);
-
-//#endif
-
 #ifndef CONSTANT
 
   int lev, i;
   PArray<MultiFab> sigma_split;
   sigma_split.resize(mglev_max);
   for (mglev = 0; mglev < mglev_max; mglev++) {
-    
+    sigma_split.set(mglev, new MultiFab(mg_mesh[mglev], BL_SPACEDIM, 1));
   }
-
-  sigma_split.alloc(mg_mesh, cellvect, 1, BL_SPACEDIM, 0, mglev_max - 1);
-  sigma.alloc(mg_mesh, cellvect, 1, 1, mglev_max);
-  for (mglev = 0; mglev < mglev_max; mglev++) {
-    sigma.set_level(mglev, sigma_split[mglev](0));
-  }
-  sigma.check();
-
-  for (i = 0; i < BL_SPACEDIM; i++) {
-    sigma_nd[i].alloc(mg_mesh, cellvect, 1, 0);
-    for (mglev = 0; mglev < mglev_max; mglev++) {
-      sigma_nd[i].set_level(mglev, sigma_split[mglev](i));
-    }
-    mglev = mglev_max;
-    sigma_nd[i].set_level(mglev, sigma[mglev]);
-  }
+  sigma.resize(mglev_max + 1);
+  mglev = mglev_max;
+  sigma.set(mglev, new MultiFab(mg_mesh[mglev], 1, 1));
 
   // Level project:
-  // assign(0.0) used to set values in the border cells that fill_borders
+  // Any value can fill values in the border cells that fill_borders
   // will not touch---those touching coarser grids.  The values in these
   // cells will only be seen by the interpolation, and the quantity
   // being interpolated will always be zero at these edges, but we
@@ -292,30 +271,57 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
   }
 
   mglev = mglev_max;
-  //sigma[mglev].setVal(0.0).copy(Sigma[lev_max]);
   sigma[mglev].setVal(1.e20);
   for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
-    sigma[mglev][igrid].copy(Sigma[lev_max][igrid], mg_mesh[mglev][igrid]);
+    sigma[mglev][igrid].copy(Sigma[lev_max][igrid], mg_mesh[mglev][igrid], 0,
+			     mg_mesh[mglev][igrid], 0, 1);
   }
 
   mglev = mglev_max;
   if (mglev_max > 0) {
-    sigma[mglev].restrict_level(sigma_split[mglev-1], 0,
-				holy_grail_sigma_restrictor);
+    restrict_level(sigma_split[mglev-1], sigma[mglev], 2, 0,
+		   holy_grail_sigma_restrictor);
   }
-  sigma[mglev].fill_borders(interface[mglev], boundary.scalar());
+  fill_borders(sigma[mglev], 0, interface[mglev], boundary.scalar());
   for (mglev = mglev_max - 1; mglev > 0; mglev--) {
-    sigma_split[mglev].restrict_level(sigma_split[mglev-1], 0,
-				      holy_grail_sigma_restrictor);
+    restrict_level(sigma_split[mglev-1], sigma_split[mglev], 2, 0,
+		   holy_grail_sigma_restrictor);
   }
   for (mglev = 0; mglev < mglev_max; mglev++) {
-    sigma_split[mglev].fill_borders(interface[mglev], boundary.scalar());
+    fill_borders(sigma_split[mglev], 0, interface[mglev], boundary.scalar());
+  }
+
+  for (i = 0; i < BL_SPACEDIM; i++) {
+    sigma_nd[i].resize(mglev_max + 1);
+  }
+
+  for (mglev = 0; mglev < mglev_max; mglev++) {
+    MultiFab& s = sigma_split[mglev];
+    for (i = 0; i < BL_SPACEDIM; i++) {
+      sigma_nd[i].set(mglev, new MultiFab(mg_mesh[mglev], 1, 1));
+      MultiFab& d = sigma_nd[i][mglev];
+      for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
+	d[igrid].copy(s[igrid], i, 0);
+      }
+    }
+    delete sigma_split.remove(mglev);
+    sigma.set(mglev, &sigma_nd[0][mglev]);
+  }
+
+  mglev = mglev_max;
+  for (i = 0; i < BL_SPACEDIM; i++) {
+    sigma_nd[i].set(mglev, &sigma[mglev]);
   }
 
 #  ifdef SIGMA_NODE
 
-  sigma_node.alloc(mg_mesh, nodevect, 1, BL_SPACEDIM);
-  sigma_node.assign(1.e20);
+  sigma_node.resize(mglev_max + 1);
+  for (mglev = 0; mglev <= mglev_max; mglev++) {
+    BoxArray mesh = mg_mesh[mglev];
+    mesh.convert(nodevect);
+    sigma_node.set(mglev, new MultiFab(mesh, BL_SPACEDIM, 1));
+    sigma_node[mglev].setVal(1.e20);
+  }
 
   for (mglev = 0; mglev <= mglev_max; mglev++) {
     const Real hx = h[mglev][0];
@@ -324,15 +330,15 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
     const Real hz = h[mglev][2];
 #    endif
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
-      const Box& scbox = sigma.box(mglev, igrid);
-      const Box& snbox = sigma_node.box(mglev, igrid);
+      const Box& scbox = sigma[mglev][igrid].box();
+      const Box& snbox = sigma_node[mglev][igrid].box();
       const Box& reg = interface[mglev].part_fine(igrid);
-      FORT_HGSCON(sigma_node.dataPtr(mglev, igrid),
+      FORT_HGSCON(sigma_node[mglev][igrid].dataPtr(),
                   dimlist(snbox),
-                  sigma_nd[0].dataPtr(mglev, igrid),
-                  sigma_nd[1].dataPtr(mglev, igrid),
+                  sigma_nd[0][mglev][igrid].dataPtr(),
+                  sigma_nd[1][mglev][igrid].dataPtr(),
 #    if (BL_SPACEDIM == 3)
-                  sigma_nd[2].dataPtr(mglev, igrid),
+                  sigma_nd[2][mglev][igrid].dataPtr(),
 #    endif
                   dimlist(scbox),
                   dimlist(reg),
@@ -343,11 +349,18 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 #    endif
 		  );
     }
-  }
 
-  sigma_split.detach();
-  for (i = 0; i < BL_SPACEDIM; i++) {
-    sigma_nd[i].detach();
+    if (mglev < mglev_max) {
+      sigma_nd[0].remove(mglev);
+      for (i = 1; i < BL_SPACEDIM; i++) {
+	delete sigma_nd[i].remove(mglev);
+      }
+    }
+    else {
+      for (i = 0; i < BL_SPACEDIM; i++) {
+	sigma_nd[i].remove(mglev);
+      }
+    }
   }
 #  endif
 
@@ -456,14 +469,24 @@ void holy_grail_amr_multigrid::clear()
   delete cgwork.remove(7);
 
 #ifndef CONSTANT
-  sigma.detach();
-#ifndef SIGMA_NODE
+#  ifndef SIGMA_NODE
+  mglev = mglev_max;
+  delete sigma.remove(mglev);
   for (i = 0; i < BL_SPACEDIM; i++) {
-    sigma_nd[i].detach();
+    sigma_nd[i].remove(mglev);
   }
-#else
-  sigma_node.detach();
-#endif
+  for (mglev = 0; mglev < mglev_max; mglev++) {
+    sigma.remove(mglev);
+    for (i = 0; i < BL_SPACEDIM; i++) {
+      delete sigma_nd[i].remove(mglev);
+    }
+  }
+#  else
+  for (mglev = 0; mglev <= mglev_max; mglev++) {
+    delete sigma.remove(mglev);
+    delete sigma_node.remove(mglev);
+  }
+#  endif
 #endif
 
   for (mglev = 0; mglev <= mglev_max; mglev++) {

@@ -200,7 +200,7 @@ void rz_adj(PArray<MultiFab> u[], PArray<MultiFab>& rhs,
           u[1][ilev][igrid](Iv(i,j)) *= x;
           //u[1][ilev][igrid](Iv(i,j)) = x;
 	  if (j >= m[ilev][igrid].smallEnd(1))
-	    rhoinv[ilev][igrid](Iv(i,j)) = x;
+	    rhoinv[ilev][igrid](Iv(i,j)) *= x;
         }
       }
     }
@@ -271,7 +271,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
       u[i].set(ilev, new MultiFab(cmesh, 1, 1));
     rhoinv.set(ilev, new MultiFab(cmesh, 1, 0));
     p.set(ilev, new MultiFab(nmesh, 1, 1));
-    rhoinv[ilev].setVal(0.0);
+    rhoinv[ilev].setVal(1.0);
     //rhs.set(ilev, new MultiFab(nmesh, 1, 1));
     rhs.set(ilev, new MultiFab(cmesh, 1, 1));
     rhs[ilev].setVal(0.0);
@@ -281,7 +281,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 
 #if (BL_SPACEDIM == 2)
   //hb93_test1(u, m);
-  rz_adj(u, rhs, rhoinv, m, domain);
+  //rz_adj(u, rhs, rhoinv, m, domain);
   //rhs[1][0](Iv(16,51)) = 100.0;
   //rhs[1][0](Iv(16,50)) = 100.0;
   //rhs[1][0](Iv(47,20)) = 100.0;
