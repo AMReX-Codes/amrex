@@ -426,6 +426,110 @@ contains
     call multifab_fill_boundary(fine)
 
   end subroutine ml_interp_bcs
+  subroutine ml_interp_bcs_c(fine, cf, crse, cc, fine_domain, ir, side, nc)
+    type(multifab), intent(inout) :: fine
+    type(multifab), intent(in   ) :: crse
+    type(box), intent(in) :: fine_domain
+    integer, intent(in) :: ir(:)
+    integer, intent(in) :: cf, cc
+    integer, intent(in), optional :: nc
+    type(box) :: fbox, cbox, fbox_grown, cbox_refined
+    integer :: lo (fine%dim), hi (fine%dim)
+    integer :: loc(fine%dim), hic(fine%dim)
+    integer :: lof(fine%dim)
+    integer :: dm, side
+    integer :: i, n, lnc
+    integer :: dir,face
+
+    real(kind=dp_t), pointer :: fp(:,:,:,:)
+    real(kind=dp_t), pointer :: cp(:,:,:,:)
+
+    lnc = 1; if ( present(nc) ) lnc = nc
+
+    dm = fine%dim
+
+    if (side == 1) then
+       dir = 1
+       face = 1
+    else if (side == -1) then
+       dir = 1
+       face = -1
+    else if (side == 2) then
+       dir = 2
+       face = 1
+    else if (side == -2) then
+       dir = 2
+       face = -1
+    else if (side == 3) then
+       dir = 3
+       face = 1
+    else if (side == -3) then
+       dir = 3
+       face = -1
+    end if
+
+    do i = 1, fine%nboxes
+
+       cbox = get_ibox(crse,i)
+       loc = lwb(cbox) - crse%ng
+       hic = upb(cbox) + crse%ng
+
+       cbox_refined = box_refine_v(cbox,ir)
+
+       fbox   = get_ibox(fine,i)
+       lof = lwb(fbox) - fine%ng 
+
+       if ( .not. nodal_q(crse) ) then
+          fbox_grown = box_grow_n_d_f(fbox,1,dir,face)
+          fbox_grown = box_intersection(fbox_grown,fine_domain)
+       else
+          fbox_grown = fbox
+       end if
+
+       if (box_intersects(fbox_grown,cbox_refined)) then
+          lo = lwb(box_intersection(cbox_refined,fbox_grown))
+          hi = upb(box_intersection(cbox_refined,fbox_grown))
+          fp => dataptr(fine, i)
+          cp => dataptr(crse, i)
+          do n = 0, nc - 1
+             select case (dm)
+             case (1)
+                if ( cell_centered_q(crse) ) then
+                   call ml_interp_bcs_1d(&
+                        fp(:,1,1,cf+n), lof, &
+                        cp(:,1,1,cc+n), loc, hic, &
+                        lo, hi, ir, side)
+                else if ( nodal_q(crse) ) then
+                   call bl_error("ML_INTERP_BCS: nodal 1d not provided")
+                end if
+             case (2)
+                if ( cell_centered_q(crse) ) then
+                   call ml_interp_bcs_2d(&
+                        fp(:,:,1,cf+n), lof, cp(:,:,1,cc+n), loc, hic, &
+                        lo, hi, ir, side)
+                else if ( nodal_q(crse) ) then
+                   call ml_interp_bcs_2d_nodal(&
+                        fp(:,:,1,cf+n), lof, cp(:,:,1,cc+n), loc, hic, &
+                        lo, hi, ir, side)
+                end if
+             case (3)
+                if ( cell_centered_q(crse) ) then
+                   call ml_interp_bcs_3d(&
+                        fp(:,:,:,cf+n), lof, cp(:,:,:,cc+n), loc, hic, &
+                        lo, hi, ir, side)
+                else if ( nodal_q(crse) )  then
+                   call ml_interp_bcs_3d_nodal( &
+                        fp(:,:,:,cf+n), lof, cp(:,:,:,cc+n), loc, hic, &
+                        lo, hi, ir, side)
+                end if
+             end select
+          end do
+       end if
+    end do
+
+    call multifab_fill_boundary(fine)
+
+  end subroutine ml_interp_bcs_c
 
   subroutine ml_interp_bcs_1d(ff, lof, cc, loc, hic, lo, hi, ir, side)
     integer, intent(in) :: loc(:), hic(:)

@@ -23,6 +23,9 @@ deppairs: $(f90sources) $(fsources)
 TAGS:	$(sources)
 	etags $^
 
+tags:	$(sources)
+	ctags --verbose=yes $^
+
 # should prevent deletion of .o files
 .SECONDARY: $(objects)
 

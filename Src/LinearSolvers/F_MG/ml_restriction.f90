@@ -54,6 +54,53 @@ contains
     end do
 
   end subroutine ml_cc_restriction
+  subroutine ml_cc_restriction_c(crse, cc, fine, cf, ir, nc)
+    type(multifab), intent(inout) :: fine
+    type(multifab), intent(inout) :: crse
+    integer, intent(in) :: cc, cf
+    integer, intent(in), optional :: nc
+    integer, intent(in) :: ir(:)
+
+    ! Local variables
+    integer :: dm
+    integer :: lo (fine%dim), hi (fine%dim)
+    integer :: loc(fine%dim)
+    integer :: lof(fine%dim)
+    integer :: i, j, n, lnc
+    type(box) :: fbox, cbox
+    real(kind=dp_t), pointer :: fp(:,:,:,:)
+    real(kind=dp_t), pointer :: cp(:,:,:,:)
+
+    lnc = 1; if ( present(nc) ) lnc = nc
+
+    dm = crse%dim
+    do j = 1, crse%nboxes
+       cbox = get_ibox(crse,j)
+       loc = lwb(cbox) - crse%ng
+       do i = 1, fine%nboxes
+          fbox = get_ibox(fine,i)
+          lof(:) = lwb(fbox) - fine%ng 
+          fbox = box_coarsen_v(fbox,ir)
+          if (box_intersects(fbox,cbox)) then
+             lo(:) = lwb(box_intersection(cbox,fbox))
+             hi(:) = upb(box_intersection(cbox,fbox))
+             do n = 0, lnc - 1
+                fp      => dataptr(fine   ,i, cf + n, 1)
+                cp      => dataptr(crse   ,j, cc + n, 1)
+                select case (dm)
+                case (1)
+                   call cc_restriction_1d(cp(:,1,1,1), loc, fp(:,1,1,1), lof, lo, hi, ir)
+                case (2)
+                   call cc_restriction_2d(cp(:,:,1,1), loc, fp(:,:,1,1), lof, lo, hi, ir)
+                case (3)
+                   call cc_restriction_3d(cp(:,:,:,1), loc, fp(:,:,:,1), lof, lo, hi, ir)
+                end select
+             end do
+          end if
+       end do
+    end do
+
+  end subroutine ml_cc_restriction_c
 
  subroutine ml_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject)
   type(multifab), intent(inout) :: fine
