@@ -3,7 +3,7 @@
 #define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.25 2000-10-02 20:52:32 lijewski Exp $
+// $Id: BaseFab.H,v 1.26 2000-11-08 21:48:21 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -197,6 +197,10 @@ public:
     //@ManDoc: Same as above except works on const FAB's.
     //
     const T* dataPtr (int N = 0) const;
+    //
+    //@ManDoc: Returns true if the data for the FAB has been allocated.
+    //
+    bool isAllocated () const;
 
     /*@ManDoc: Returns a reference to the Nth component value
                defined at position p in the domain.  This operator may be
@@ -497,6 +501,14 @@ BaseFab<T>::dataPtr (int n) const
 {
     BL_ASSERT(!(dptr == 0));
     return &dptr[n*numpts];
+}
+
+template <class T>
+inline
+book
+BaseFab<T>::isAllocated () const
+{
+    return dptr != 0;
 }
 
 template <class T>
