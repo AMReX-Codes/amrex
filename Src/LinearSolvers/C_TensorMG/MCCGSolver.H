@@ -3,7 +3,7 @@
 #define _MCCGSOLVER_H_
 
 //
-// $Id: MCCGSolver.H,v 1.7 2001-08-01 21:51:07 lijewski Exp $
+// $Id: MCCGSolver.H,v 1.8 2001-10-05 07:19:55 marc Exp $
 //
 
 #include <cmath>
@@ -106,6 +106,14 @@ public:
     //
     int getMaxIter () const;
     //
+    //@ManDoc: set expert mode
+    //
+    void setExpert( bool flag ) { isExpert = flag; }
+    //
+    //@ManDoc: get expert flag
+    //
+    bool getExpert() { return isExpert; }
+    //
     //@ManDoc: set flag determining whether MG preconditioning is used
     //
     void setUseMGPrecond (bool _use_mg_precond);
@@ -171,6 +179,15 @@ protected:
     //@ManDoc: flag: use multigrid as a preconditioner
     //
     bool use_mg_precond;
+    //
+    //@ManDoc: default unstable_criterion used to test for loss of accuracy in
+    //
+    static double def_unstable_criterion;
+    //
+    //@ManDoc: flag determining action when error conditions are hit
+    //
+    static int def_isExpert;
+    bool isExpert;
     //
     //@ManDoc: current maximum number of allowed iterations, verbosity
     //

@@ -1,6 +1,6 @@
 
 //
-// $Id: MCCGSolver.cpp,v 1.12 2001-08-09 22:42:01 marc Exp $
+// $Id: MCCGSolver.cpp,v 1.13 2001-10-05 07:19:55 marc Exp $
 //
 #include <winstd.H>
 
@@ -15,6 +15,8 @@
 int MCCGSolver::initialized = 0;
 int MCCGSolver::def_maxiter = 40;
 int MCCGSolver::def_verbose = 0;
+int MCCGSolver::def_isExpert = 0;
+double MCCGSolver::def_unstable_criterion = 10.;
 
 void
 MCCGSolver::initialize ()
@@ -22,8 +24,13 @@ MCCGSolver::initialize ()
     ParmParse pp("cg");
     pp.query("maxiter", def_maxiter);
     pp.query("v", def_verbose);
+    pp.query("isExpert", def_isExpert);
     if (ParallelDescriptor::IOProcessor() && def_verbose)
+    {
 	std::cout << "def_maxiter=" << def_maxiter << '\n';
+	std::cout << "def_unstable_criterion=" << def_unstable_criterion << '\n';
+        std::cout << "def_isExpert=" << def_isExpert << '\n';
+    }
     initialized = 1;
 }
 
@@ -31,6 +38,7 @@ MCCGSolver::MCCGSolver (MCLinOp& _Lp,
 			bool     _use_mg_precond,
 			int      _lev)
     :
+    isExpert((int)def_isExpert),
     Lp(_Lp),
     lev(_lev),
     use_mg_precond(_use_mg_precond),
@@ -167,6 +175,9 @@ MCCGSolver::solve (MultiFab&       sol,
     MCBC_Mode temp_bc_mode=MCHomogeneous_BC;
     Real rnorm  = norm(*r);
     Real rnorm0 = rnorm;
+    Real minrnorm = rnorm;
+    int ret = 0; // will return this value if all goes well
+
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
         for (int k = 0; k < lev; k++)
@@ -270,6 +281,15 @@ MCCGSolver::solve (MultiFab&       sol,
 	rhoold = rho;
 	update( sol, alpha, (*r), (*p), (*w) );
 	rnorm = norm(*r);
+        if (rnorm > def_unstable_criterion*minrnorm)
+        {
+            ret = 2;
+            break;
+        }
+        else if (rnorm < minrnorm)
+        {
+            minrnorm = rnorm;
+        }
 
 	if (verbose > 1 ||
             (((eps_rel > 0. && rnorm < eps_rel*rnorm0) ||
@@ -287,19 +307,26 @@ MCCGSolver::solve (MultiFab&       sol,
 	}
     }
 
-    if (rnorm > eps_rel*rnorm0 && rnorm > eps_abs)
-	BoxLib::Error("MCCGSolver:: failed to converge!");
+    if (ret != 0 && isExpert == false)
+    {
+        BoxLib::Error("MCCGSolver:: apparent accuracy problem; try expert setting or change unstable_criterion");
+    }
+    if (ret==0 && rnorm > eps_rel*rnorm0 && rnorm > eps_abs)
+    {
+        BoxLib::Error("MCCGSolver:: failed to converge!");
+    }
     //
     // Omit ghost update since maybe not initialized in calling routine.
     // BoxLib_1.99 has no MultiFab::plus(MultiFab&) member, which would
     // operate only in valid regions; do explicitly.  Add to boundary
     // values stored in initialsolution.
     //
-    srccomp=0; nghost=0;
-    sol.plus((*s),srccomp,ncomp,nghost);
-    //
-    // Clean up temporary memory.
-    //
+    if (ret == 0)
+    {
+        srccomp=0; nghost=0;
+        sol.plus((*s),srccomp,ncomp,nghost);
+    }
+
     delete s;
     delete r;
     delete w;
