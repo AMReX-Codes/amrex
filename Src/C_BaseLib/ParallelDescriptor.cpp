@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.86 2001-09-04 16:59:41 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.87 2001-09-19 17:03:58 car Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -941,7 +941,7 @@ void ParallelDescriptor::Broadcast (int,void*,void*,int) {}
 double
 ParallelDescriptor::second ()
 {
-    return BoxLib::second();
+    return BoxLib::wsecond();
 }
 
 #endif
