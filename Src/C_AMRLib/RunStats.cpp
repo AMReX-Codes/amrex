@@ -1,6 +1,6 @@
 
 //
-// $Id: RunStats.cpp,v 1.4 1997-11-19 16:25:55 lijewski Exp $
+// $Id: RunStats.cpp,v 1.5 1997-11-20 00:19:30 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -148,18 +148,18 @@ RunStats::report (ostream& os)
 
     if (ParallelDescriptor::IOProcessor())
     {
-        //
-        // Output number of cells advanced on each level.
-        //
 	long tot_cells = 0;
         int i; 
 	for (i = 0; i < cells.length(); i++)
         {
-	    os << "Number of cells advanced at level " << i << " = "
-	       << cells[i] << '\n';
+	    os << "Number of cells advanced at level "
+               << i
+               << " = "
+	       << cells[i]
+               << '\n';
 	    tot_cells += cells[i];
 	}
-	os << "Total cells advanced = " << tot_cells << "\n\n";
+	os << "Total cells advanced = " << tot_cells << '\n';
 
 	int maxlev = 0;
         ListIterator<RunStatsData> ldi(ld);
@@ -172,17 +172,15 @@ RunStats::report (ostream& os)
 	os << setprecision(4);
 	for (lev = 0; lev <= maxlev; ++lev)
         {
-	    os << "timings for level " << lev << '\n';
+	    os << "\ntimings for level " << lev << ":\n\n";
 	    ldi.rewind();
-	    while (ldi)
+	    for ( ; ldi; ++ldi)
             {
 		if (ldi().level == lev)
                 {
 		    for (ListIterator<RunStatsData> ldii(ld); ldii; ++ldii)
-                    {
 			if (ldii().name == ldi().name && ldii().level == -1)
 			    break;
-		    }
 		    if (ldi().is_on)
                     {
 			os << "State " << ldi().name;
@@ -196,15 +194,12 @@ RunStats::report (ostream& os)
 			os << '\n';
 		    }
 		}
-		++ldi;
 	    }
 	}
-        //
-        // Report totals.
-        //
+        os << '\n';
+
 	ldi.rewind();
 
-	os << '\n';
 	for ( ; ldi; ++ldi)
         {
 	    if (ldi().level == -1 && ldi().is_on == true)
