@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.28 2002-07-24 21:18:16 car Exp $
+// $Id: CGSolver.cpp,v 1.29 2002-07-24 23:42:57 car Exp $
 //
 #include <winstd.H>
 
@@ -565,7 +565,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
     int ret = 0;			// will return this value if all goes well
     Real rho_1 = 0, alpha = 0, omega = 0;
     int nit = 1;
-    if ( rnorm < eps_rel*(Lp_norm*norm_inf(sol)+ rh_norm ) || rnorm < eps_abs )
+    if ( rnorm < eps_rel*(Lp_norm*sol_norm + rh_norm ) || rnorm < eps_abs )
     {
         return 0;
     }
