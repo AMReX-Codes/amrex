@@ -1132,7 +1132,7 @@ amr_fluid_boundary::terrain_sigma () const
     return ts;
 }
 
-inviscid_fluid_boundary::inviscid_fluid_boundary (RegType Bc[BL_SPACEDIM][2])
+inviscid_fluid_boundary::inviscid_fluid_boundary (const RegType Bc[BL_SPACEDIM][2])
 {
     for (int i = 0; i < BL_SPACEDIM; i++) 
     {

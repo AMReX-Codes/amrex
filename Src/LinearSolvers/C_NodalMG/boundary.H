@@ -185,7 +185,7 @@ class inviscid_fluid_boundary
 {
     friend class mixed_boundary;
 public:
-    explicit inviscid_fluid_boundary(RegType Bc[BL_SPACEDIM][2]);
+    explicit inviscid_fluid_boundary(const RegType Bc[BL_SPACEDIM][2]);
     virtual ~inviscid_fluid_boundary();
     RegType getLoBC(int idim) const;
     RegType getHiBC(int idim) const;
