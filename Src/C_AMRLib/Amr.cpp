@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.130 2002-03-15 20:20:32 marc Exp $
+// $Id: Amr.cpp,v 1.131 2002-04-16 18:06:28 vince Exp $
 //
 #include <winstd.H>
 
@@ -866,6 +866,19 @@ Amr::initialInit (Real strt_time,
                   &probin_file_length,
                   Geometry::ProbLo(),
                   Geometry::ProbHi());
+
+#ifdef BL_SYNC_RANTABLES
+    int iGet(0), iSet(1);
+    const int iTableSize(64);
+    Real *RanAmpl = new Real[iTableSize];
+    Real *RanPhase = new Real[iTableSize];
+    FORT_SYNC_RANTABLES(RanPhase, RanAmpl, &iGet);
+    ParallelDescriptor::Bcast(RanPhase, iTableSize);
+    ParallelDescriptor::Bcast(RanAmpl, iTableSize);
+    FORT_SYNC_RANTABLES(RanPhase, RanAmpl, &iSet);
+    delete [] RanAmpl;
+    delete [] RanPhase;
+#endif
 
     cumtime = strt_time;
     //
