@@ -31,11 +31,11 @@ extern "C"
     void FORT_HGSRST(RealPS, intS, intS, CRealPS, intS, intRS);
     void FORT_HGINTS(Real*, intS, intS, Real*, intS, const Real*, intS, intS, intRS);
     void FORT_HGCEN_TERRAIN(Real*, intS, Real*, intS, intS);
-    void FORT_HGCEN_NO_SIGMA_NODE(Real*, intS, RealPS, intS, intS, RealRS, const int&, const int&);
+    void FORT_HGCEN_NO_SIGMA_NODE(Real*, intS, RealPS, intS, intS, CRealPS, const int&, const int&);
     void FORT_HGINTS_NO_SIGMA_NODE(Real*, intS, intS, CRealPS, intS, const Real*, intS, intS, intRS);
     void FORT_FANRST2(Real*, intS, intS, const Real*, intS, intRS, const int&);
     void FORT_FANINT2(Real*, intS, intS, const Real*, intS, intS, intRS);
-    void FORT_HGSCON(Real*, intS, RealPS, intS, intS, RealRS);
+    void FORT_HGSCON(Real*, intS, RealPS, intS, intS, CRealPS);
     void FORT_HGCEN(Real*, intS, Real*, intS, intS);
 }
 
@@ -411,7 +411,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 			D_DECL(sn0->dataPtr(), sn1->dataPtr(), sn2->dataPtr()),
 			DIMLIST(scbox),
 			DIMLIST(reg),
-			D_DECL(hxyz[0], hxyz[1], hxyz[2])
+			D_DECL(&hxyz[0], &hxyz[1], &hxyz[2])
 			);
 		}
 		

@@ -54,9 +54,9 @@ extern "C"
     void FORT_HGCDIV_TERRAIN(Real*, intS, RealPS, intS, RealPS, intS, intS, intRS, const int*);
     
 #if (BL_SPACEDIM == 2)
-    void FORT_HGGRAD(RealPS, intS, Real*, intS, intS, RealRS, const int&);
-    void FORT_HGDIV(Real*, intS, RealPS, intS, intS, RealRS, const int&, const int&);
-    void FORT_HGFDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, RealRS, intRS, int&, int&, const int&, const int&);
+    void FORT_HGGRAD(RealPS, intS, Real*, intS, intS, CRealPS, const int&);
+    void FORT_HGDIV(Real*, intS, RealPS, intS, intS, CRealPS, const int&, const int&);
+    void FORT_HGFDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, CRealPS, intRS, int&, int&, const int&, const int&);
     void FORT_HGODIV(Real*, intS, Real*, Real*, intS, Real*, Real*, intS, intS, Real&, Real&, intRS, int&, int&, const int&);
     void FORT_HGIDIV(Real*, intS, Real*, Real*, intS, Real*, Real*, intS, intS, Real&, Real&, intRS, int&, int&, const int&);
     void FORT_HGDDIV(Real*, intS, Real*, Real*, intS, Real*, Real*, intS, intS, Real&, Real&, intRS, int&, const int&);
@@ -65,11 +65,11 @@ extern "C"
 	const Real&, const int&, const int&);
     void FORT_HGCAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const Real&, const int&, const int&);
 #  elif (BL_SPACEDIM == 3)
-    void FORT_HGGRAD(RealPS, intS, Real*, intS, intS, RealRS);
-    void FORT_HGDIV(Real*, intS, RealPS, intS, intS, RealRS);
-    void FORT_HGFDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, RealRS, intRS, int&, int&);
-    void FORT_HGEDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, RealRS, intRS, const int*, const int*);
-    void FORT_HGCDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, RealRS, intRS, const int*);
+    void FORT_HGGRAD(RealPS, intS, Real*, intS, intS, CRealPS);
+    void FORT_HGDIV(Real*, intS, RealPS, intS, intS, CRealPS);
+    void FORT_HGFDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, CRealPS, intRS, int&, int&);
+    void FORT_HGEDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, CRealPS, intRS, const int*, const int*);
+    void FORT_HGCDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, CRealPS, intRS, const int*);
     void FORT_HGAVG(Real*, intS, const Real*, intS, intS);
     void FORT_HGFAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, int&, int&);
     void FORT_HGEAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*);
@@ -414,7 +414,7 @@ void holy_grail_amr_projector::grid_divergence(PArray<MultiFab>* u)
 #else
 		FORT_HGDIV(sptr, DIMLIST(sbox),
 		    u0ptr, u1ptr, u2ptr, DIMLIST(fbox), DIMLIST(freg),
-		    hx, hy, hz);
+		    &hx, &hy, &hz);
 #endif
 	    }
 	}
@@ -734,7 +734,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    FORT_HGFDIV(sptr, DIMLIST(sbox),
 		uc.dataPtr(), vc.dataPtr(), wc.dataPtr(), DIMLIST(cbox),
 		u0ptr, u1ptr, u2ptr, DIMLIST(fbox), DIMLIST(creg),
-		hx, hy, hz, rat[0], rat[1], rat[2], idim, idir);
+		&hx, &hy, &hz, rat[0], rat[1], rat[2], idim, idir);
 #endif
 	}
 	if (jgrid < 0) 
@@ -819,7 +819,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 		uc.dataPtr(), vc.dataPtr(), wc.dataPtr(), DIMLIST(cbox),
 		uf.dataPtr(), vf.dataPtr(), wf.dataPtr(), DIMLIST(fbox),
 		DIMLIST(creg),
-		hx, hy, hz,
+		&hx, &hy, &hz,
 		rat[0], rat[1], rat[2],
 		t.getVect(), ga);
 	}
@@ -918,7 +918,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 		D_DECL(uf.dataPtr(), vf.dataPtr(), wf.dataPtr()),
 		DIMLIST(fbox),
 		DIMLIST(creg),
-		hx, hy, hz,
+		&hx, &hy, &hz,
 		D_DECL(rat[0], rat[1], rat[2]), ga);
 	}
 	if (jgrid < 0) 
@@ -1221,12 +1221,12 @@ void holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u, const P
 #if (BL_SPACEDIM == 2)
 		    FORT_HGGRAD(gp[0].dataPtr(), gp[1].dataPtr(), DIMLIST(gbox),
 			d_mfi->dataPtr(), DIMLIST(dbox),
-			DIMLIST(gbox), hxyz[0], hxyz[1], IsRZ());
+			DIMLIST(gbox), &hxyz[0], &hxyz[1], IsRZ());
 #else
 		    FORT_HGGRAD(gp[0].dataPtr(), gp[1].dataPtr(), gp[2].dataPtr(),
 			DIMLIST(gbox),
 			d_mfi->dataPtr(), DIMLIST(dbox),
-			DIMLIST(gbox), hxyz[0], hxyz[1], hxyz[2]);
+			DIMLIST(gbox), &hxyz[0], &hxyz[1], &hxyz[2]);
 #endif
 		}		
 		if (!m_hg_terrain)

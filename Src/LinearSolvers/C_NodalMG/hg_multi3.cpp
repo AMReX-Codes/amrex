@@ -60,9 +60,9 @@ extern "C"
     void FORT_HGRES_FULL_STENCIL(Real*, intS, const Real*, intS, const Real*, intS, CRealPS, intS, intS, CRealPS, const int&, const int&);
     void FORT_HGRLX             (Real*, intS, const Real*, intS, CRealPS, intS, const Real*, intS, intS, CRealPS, const int&, const int&);
     void FORT_HGRLX_FULL_STENCIL(Real*, intS, const Real*, intS, CRealPS, intS, const Real*, intS, intS, CRealPS, const int&, const int&);
-    void FORT_HGRLXL(Real*, intS, Real*, intS, RealPS, intS, Real*, intS, intS, intS, RealRS, const int&, const int&, const int&);
-    void FORT_HGRLXL_FULL_STENCIL(Real*, intS, Real*, intS, RealPS, intS, Real*, intS, intS, intS, RealRS, const int&, const int&, const int&);
-    void FORT_HGRLNF(Real*, intS, Real*, intS, Real*, intS, RealPS, intS, Real*, intS, intS, intS, RealRS, const int&, const int&, const int&, const int&);
+    void FORT_HGRLXL(Real*, intS, Real*, intS, RealPS, intS, Real*, intS, intS, intS, CRealPS, const int&, const int&, const int&);
+    void FORT_HGRLXL_FULL_STENCIL(Real*, intS, Real*, intS, RealPS, intS, Real*, intS, intS, intS, CRealPS, const int&, const int&, const int&);
+    void FORT_HGRLNF(Real*, intS, Real*, intS, Real*, intS, RealPS, intS, Real*, intS, intS, intS, CRealPS, const int&, const int&, const int&, const int&);
 #    endif
     void FORT_HGRLNB(Real*, intS, Real*, intS, intS, const int&, const int&);
     
@@ -188,10 +188,8 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
     
     for (int icount = 0; icount < i1; icount++) 
     {
-	
 	if (smoother_mode == 0 || smoother_mode == 1 || line_solve_dim == -1) 
 	{
-	    
 	    if ( is_zero == false )
 		fill_borders(corr[mglev], lev_interface[mglev], mg_boundary, -1, m_hg_terrain);
 	    else
@@ -504,8 +502,6 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 	r_mfi->copy(r_dmfi());
 	r_mfi->negate();
     }
-    //r.copy(resid[mglev]);
-    //r.negate();
     
     if (singular) 
     {
