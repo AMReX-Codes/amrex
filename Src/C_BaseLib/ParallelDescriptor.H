@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.24 1998-04-13 19:44:04 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.25 1998-04-16 22:36:16 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -53,6 +53,51 @@ struct FabComTag
         fillBoxId         = 0;
         procThatNeedsData = 0;
         procThatHasData   = 0;
+    }
+};
+
+//
+// Data structure used by a few routines when MPI is enabled.
+//
+// Used to communicate two integers and a box.
+//
+// We'll store all the info in a single array of integers.
+//
+struct CommData
+{
+    //
+    // We encapsulate two `int's and a `Box' as an `int[3*BL_SPACEDIM+2]'.
+    //
+    enum { DIM = 3*BL_SPACEDIM+2 };
+
+    int m_data[DIM];
+
+    CommData ();
+    CommData (int face, int fabindex, const Box& box);
+    //
+    // The number of integers.
+    //
+    int length () const { return DIM; }
+    //
+    // Pointer to the data.
+    //
+    int* dataPtr() { return &m_data[0]; }
+    //
+    // The face.
+    //
+    int face () const { return m_data[0]; }
+    //
+    // The fabindex.
+    //
+    int fabindex () const { return m_data[1]; }
+    //
+    // The contained box.
+    //
+    Box box () const
+    {
+        return Box(IntVect(&m_data[2]),
+                   IntVect(&m_data[2+BL_SPACEDIM]),
+                   IntVect(&m_data[2+2*BL_SPACEDIM]));
     }
 };
 

@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.35 1998-04-16 20:27:03 lijewski Exp $
+// $Id: FabArray.H,v 1.36 1998-04-16 22:36:15 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -41,6 +41,10 @@ using std::vector;
 #include <DistributionMapping.H>
 #include <ParallelDescriptor.H>
 #include <RunStats.H>
+
+#ifdef BL_USE_MPI
+#include <mpi.h>
+#endif
 
 /*@ManDoc: An enumumeration that controls whether or not the memory for a FAB
            will actually be allocated on construction of a FabArray.
@@ -1029,6 +1033,12 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
     FabComTag tag;
     ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
 
+#ifdef BL_USE_MPI
+    vector<FabComTag> sTags;
+    Array<int>        msgs(ParallelDescriptor::NProcs(), 0);
+    Array<int>        nrcv(ParallelDescriptor::NProcs(), 0);
+#endif
+
     for (int i = 0; i < length(); ++i)
     {
         int iblocal = 0;
@@ -1064,33 +1074,36 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
                     {
                         boxISectionsRemote[i].resize(iblocal + 1);
                         boxISectionsRemote[i].set(iblocal, intersectBox);
-                        //
-                        // Send the data.
-                        // Send the intersection of
-                        // farray[ii] to fab[i]s processor.
-                        //
-                        FAB tFAB(boxISectionsRemote[i][iblocal],farray.nComp());
-
-                        Box destBox(boxISectionsRemote[i][iblocal]);
-
-                        tFAB.copy(farray[ii],
-                                  boxISectionsRemote[i][iblocal],  
-                                  0,
-                                  boxISectionsRemote[i][iblocal],
-                                  0,
-                                  farray.nComp());
 
                         tag.fromProc = MyProc;
                         tag.toProc   = distributionMap[i];
                         tag.fabIndex = i;
-                        tag.destComp = 0;
-                        tag.nComp    = farray.nComp();
                         tag.box      = boxISectionsRemote[i][iblocal];
+#ifdef BL_USE_MPI
+                        //
+                        // Use tag.fineIndex to store index into `farray'.
+                        //
+                        tag.fineIndex = ii;
+                        sTags.push_back(tag);
+                        msgs[distributionMap[i]]++;
+#else
+                        //
+                        // Send intersection of farray[ii] to fab[i]s proc.
+                        //
+                        FAB fab(boxISectionsRemote[i][iblocal],farray.nComp());
+
+                        fab.copy(farray[ii],
+                                 boxISectionsRemote[i][iblocal],  
+                                 0,
+                                 boxISectionsRemote[i][iblocal],
+                                 0,
+                                 farray.nComp());
 
                         ParallelDescriptor::SendData(tag.toProc,
                                                      &tag,
-                                                     tFAB.dataPtr(),
-                                                     tag.box.numPts()*tag.nComp*sizeof(T));
+                                                     fab.dataPtr(),
+                                                     tag.box.numPts()*farray.nComp()*sizeof(T));
+#endif /*BL_USE_MPI*/
                         ++iblocal;
                     }
                 }
@@ -1098,6 +1111,127 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
         }
     }
 
+#ifdef BL_USE_MPI
+    //
+    // Pass each processor # of IRecv()s it'll need to post.
+    //
+    int rc;
+
+    for (int i = 0; i < msgs.length(); i++)
+    {
+        if ((rc = MPI_Reduce(&msgs[i],
+                             &nrcv[i],
+                             1,
+                             MPI_INT,
+                             MPI_SUM,
+                             i,
+                             MPI_COMM_WORLD)) != MPI_SUCCESS)
+            ParallelDescriptor::Abort(rc);
+    }
+    const int NumRecv = nrcv[ParallelDescriptor::MyProc()];
+
+    Array<MPI_Request> reqs(NumRecv);
+    Array<MPI_Status>  stat(NumRecv);
+    Array<CommData>    recv(NumRecv);
+    PArray<FAB>        fabs(NumRecv,PArrayManage);
+    //
+    // First send/receive the box information.
+    //
+    for (int i = 0; i < NumRecv; i++)
+    {
+        if ((rc = MPI_Irecv(recv[i].dataPtr(),
+                            recv[i].length(),
+                            MPI_INT,
+                            MPI_ANY_SOURCE,
+                            139,
+                            MPI_COMM_WORLD,
+                            &reqs[i])) != MPI_SUCCESS)
+            ParallelDescriptor::Abort(rc);
+    }
+
+    for (int i = 0; i < sTags.size(); i++)
+    {
+        CommData senddata(0, sTags[i].fabIndex, sTags[i].box);
+
+        if ((rc = MPI_Send(senddata.dataPtr(),
+                           senddata.length(),
+                           MPI_INT,
+                           sTags[i].toProc,
+                           139,
+                           MPI_COMM_WORLD)) != MPI_SUCCESS)
+            ParallelDescriptor::Abort(rc);
+    }
+
+    if ((rc = MPI_Waitall(NumRecv,
+                          reqs.dataPtr(),
+                          stat.dataPtr())) != MPI_SUCCESS)
+        ParallelDescriptor::Abort(rc);
+    //
+    // Now the FAB data itself.
+    //
+    for (int i = 0; i < NumRecv; i++)
+    {
+        fabs.set(i, new FAB(recv[i].box(), farray.nComp()));
+    }
+
+    for (int i = 0; i < NumRecv; i++)
+    {
+        //
+        // TODO -- this only works if T is of type Real.
+        //
+        if ((rc = MPI_Irecv(fabs[i].dataPtr(),
+                            fabs[i].box().numPts() * farray.nComp(),
+                            sizeof(Real) == sizeof(float) ? MPI_FLOAT : MPI_DOUBLE,
+                            MPI_ANY_SOURCE,
+                            666,
+                            MPI_COMM_WORLD,
+                            &reqs[i])) != MPI_SUCCESS)
+            ParallelDescriptor::Abort(rc);
+    }
+
+    for (int i = 0; i < sTags.size(); i++)
+    {
+        FAB fab(sTags[i].box, farray.nComp());
+
+        fab.copy(farray[sTags[i].fineIndex],
+                 sTags[i].box,
+                 0,
+                 sTags[i].box,
+                 0,
+                 farray.nComp());
+
+        long count = sTags[i].box.numPts() * farray.nComp();
+
+        assert(count < INT_MAX);
+        //
+        // TODO -- this only works if T is of type Real.
+        //
+        if ((rc = MPI_Send(fab.dataPtr(),
+                           int(count),
+                           sizeof(Real) == sizeof(float) ? MPI_FLOAT : MPI_DOUBLE,
+                           sTags[i].toProc,
+                           666,
+                           MPI_COMM_WORLD)) != MPI_SUCCESS)
+            ParallelDescriptor::Abort(rc);
+    }
+
+    if ((rc = MPI_Waitall(NumRecv,
+                          reqs.dataPtr(),
+                          stat.dataPtr())) != MPI_SUCCESS)
+        ParallelDescriptor::Abort(rc);
+
+    for (int i = 0; i < NumRecv; i++)
+    {
+        assert(distributionMap[recv[i].fabindex()] == MyProc);
+
+        fabparray[recv[i].fabindex()].copy(fabs[i],
+                                           fabs[i].box(),
+                                           0,
+                                           fabs[i].box(),
+                                           0,
+                                           farray.nComp());
+    }
+#else
     ParallelDescriptor::Synchronize();
     //
     // Now receive data if any was sent.
@@ -1108,19 +1242,20 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
     {
         assert(tag.box.ok());
         assert(MyProc == tag.toProc);
-        assert(dataWaitingSize == tag.box.numPts()*tag.nComp*sizeof(T));
+        assert(dataWaitingSize == tag.box.numPts()*farray.nComp()*sizeof(T));
 
-        FAB tFAB(tag.box, tag.nComp);
+        FAB fab(tag.box, farray.nComp());
 
-        ParallelDescriptor::ReceiveData(tFAB.dataPtr(), dataWaitingSize);
+        ParallelDescriptor::ReceiveData(fab.dataPtr(), dataWaitingSize);
 
-        fabparray[tag.fabIndex].copy(tFAB,
+        fabparray[tag.fabIndex].copy(fab,
                                      tag.box,
                                      0,
                                      tag.box,
-                                     tag.destComp,
-                                     tag.nComp);
+                                     0,
+                                     farray.nComp());
     }
+#endif /*BL_USE_MPI*/
 }
 
 template <class T, class FAB>
