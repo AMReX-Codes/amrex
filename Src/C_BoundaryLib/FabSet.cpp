@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.16 1998-05-28 18:18:56 lijewski Exp $
+// $Id: FabSet.cpp,v 1.17 1998-05-28 21:33:45 lijewski Exp $
 //
 
 #include <FabSet.H>
@@ -66,10 +66,10 @@ FabSet::copyFrom (const FArrayBox& src,
 
     for (FabSetIterator fsi(*this); fsi.isValid(false); ++fsi)
     {
-        Box dbox = fsi().box() & subbox;
-
-        if (dbox.ok())
+        if (subbox.intersects(fsi().box()))
         {
+            Box dbox = fsi().box() & subbox;
+
             fsi().copy(src,dbox,src_comp,dbox,dest_comp,num_comp);
         }
     }
@@ -105,62 +105,11 @@ FabSet::copyFrom (const MultiFab& src,
                   int             dest_comp,
                   int             num_comp)
 {
-#if 0
     assert(nghost <= src.nGrow());
     BoxArray tmp = boxarray;
     boxarray = fabboxarray;
     this->copy(src,src_comp,dest_comp,num_comp,nghost);
     boxarray = tmp;
-#endif
-
-    FabSetCopyDescriptor fscd;
-
-    MultiFabId srcmfid = fscd.RegisterFabArray(const_cast<MultiFab*>(&src));
-
-    vector<FillBoxId> fillBoxIdList;
-
-    for (FabSetIterator fsi(*this); fsi.isValid(false); ++fsi)
-    {
-       for (int s = 0; s < src.length(); ++s)
-       {
-           Box ovlp = fsi().box() & ::grow(src.boxArray()[s],nghost);
-
-            if (ovlp.ok())
-            {
-                fillBoxIdList.push_back(fscd.AddBox(srcmfid,
-                                                    ovlp,
-                                                    0,
-                                                    s,
-                                                    src_comp,
-                                                    dest_comp,
-                                                    num_comp,
-                                                    false));
-            }
-        }
-    }
-
-    fscd.CollectData();
-
-    vector<FillBoxId>::const_iterator fbidli = fillBoxIdList.begin();
-
-    for (FabSetIterator fsi(*this); fsi.isValid(false); ++fsi)
-    {
-        for (int s = 0; s < src.length(); ++s)
-        {
-            Box ovlp = fsi().box() & ::grow(src.boxArray()[s],nghost);
-
-            if (ovlp.ok())
-            {
-                assert(!(fbidli == fillBoxIdList.end()));
-                const FillBoxId& fbid = *fbidli++;
-                assert(fbid.box() == ovlp);
-                //
-                // Directly fill the FAB.
-                //
-                fscd.FillFab(srcmfid, fbid, fsi());
-            }
-        }
-    }
 
     return *this;
 }
