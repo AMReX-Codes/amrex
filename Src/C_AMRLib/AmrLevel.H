@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.27 1999-01-21 20:27:05 lijewski Exp $
+// $Id: AmrLevel.H,v 1.28 1999-03-05 23:18:37 almgren Exp $
 //
 
 #include <REAL.H>
@@ -143,6 +143,12 @@ public:
                implemented by derived classes.
     */
     virtual  int okToContinue () = 0;
+
+    /*@ManDoc: Should I regrid with this level as base level?
+               This test is only evaluated when level_count >= regrid_int
+               as well. Defaults to true.
+    */
+    virtual  int okToRegrid ();
 
     /*@ManDoc: Init grid data at problem start-up.
                This is a pure virtual function and hence MUST be

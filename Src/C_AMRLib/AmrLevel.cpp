@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.53 1999-02-03 21:55:32 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.54 1999-03-05 23:18:38 almgren Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1035,3 +1035,10 @@ AmrLevel::getBCArray (int State_Type,
 
     return bc;
 }
+
+int
+AmrLevel::okToRegrid ()
+{
+    return true;
+}
+
