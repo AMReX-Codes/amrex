@@ -4,7 +4,7 @@
 #define _TagBox_H_
 
 //
-// $Id: TagBox.H,v 1.8 1998-01-28 18:35:07 lijewski Exp $
+// $Id: TagBox.H,v 1.9 1998-01-29 18:59:36 lijewski Exp $
 //
 
 #include <IntVect.H>
@@ -144,7 +144,7 @@ private:
     // The initial size of `TagBoxArray::m_CollateCount' and the
     // amount we bump it each time it is not large enough.
     //
-    enum { ChunkSize = 1048576 };
+    enum { ChunkSize = 50000 };
     //
     // Helper functions.
     //
