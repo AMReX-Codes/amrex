@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.11 1999-02-03 21:56:58 lijewski Exp $
+// $Id: RunStats.cpp,v 1.12 1999-03-17 21:49:13 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -15,19 +15,13 @@ using std::ios;
 using std::setprecision;
 #endif
 
-Real RunStats::TotalCPU;
-
-Real RunStats::TotalWCT;
-
-Real RunStats::DiskBytes;
-
-Array<long> RunStats::TheCells;
-
-Array<Real> RunStats::TheNumPts;
-
+Real               RunStats::TotalCPU;
+Real               RunStats::TotalWCT;
+Real               RunStats::DiskBytes;
+Array<long>        RunStats::TheCells;
+Array<Real>        RunStats::TheNumPts;
 List<RunStatsData> RunStats::TheStats;
-
-bool RunStats::Initialized = false;
+bool               RunStats::Initialized = false;
 
 void
 RunStats::init ()
@@ -182,7 +176,7 @@ RunStats::report (ostream& os)
 
     for (ListIterator<RunStatsData> it(TheTotals); it; ++it)
     {
-        ParallelDescriptor::ReduceRealSum(TheTotals[it].run_time,IOProc);
+        ParallelDescriptor::ReduceRealSum(TheTotals[it].run_time, IOProc);
         ParallelDescriptor::ReduceRealMax(TheTotals[it].run_wtime,IOProc);
     }
 
@@ -190,8 +184,8 @@ RunStats::report (ostream& os)
 
     if (ParallelDescriptor::IOProcessor())
     {
-        Real tot_run_time  = RunStats::TotalCPU + rtime;
-        Real tot_run_wtime = RunStats::TotalWCT + rwtime;
+        const Real tot_run_time  = RunStats::TotalCPU + rtime;
+        const Real tot_run_wtime = RunStats::TotalWCT + rwtime;
 
         os.setf(ios::showpoint);
 
@@ -249,7 +243,7 @@ RunStats::report (ostream& os)
                         if (iti().name == it().name && iti().level == -1)
                             break;
                     if (it().is_on)
-                        Print(os, it(), tot_run_time, tot_run_wtime);
+                        Print(os,it(),tot_run_time,tot_run_wtime);
                 }
             }
         }
@@ -259,7 +253,7 @@ RunStats::report (ostream& os)
 
         for ( ; it; ++it)
             if (it().level == -1 && it().is_on )
-                Print(os, it(), tot_run_time, tot_run_wtime);
+                Print(os,it(),tot_run_time,tot_run_wtime);
 
         os << '\n'
            << "Total CPU time        : " << tot_run_time  << '\n'
@@ -341,7 +335,9 @@ RunStats::report_values (const Array<aString>& stat_names,
 
     tot_cells = 0;
     for (int i = 0; i < RunStats::TheCells.length(); i++)
+    {
         tot_cells += RunStats::TheCells[i];
+    }
 
     for (int i = 0; i < NStats ; i++)
     {
@@ -374,8 +370,8 @@ RunStats::dumpStats (ofstream& os)
 
     for (ListIterator<RunStatsData> it(TheTotals); it; ++it)
     {
-        ParallelDescriptor::ReduceRealSum(TheTotals[it].run_time,IOProc);
-        ParallelDescriptor::ReduceRealSum(TheTotals[it].run_wtime,IOProc);
+        ParallelDescriptor::ReduceRealSum(TheTotals[it].run_time, IOProc);
+        ParallelDescriptor::ReduceRealMax(TheTotals[it].run_wtime,IOProc);
     }
 
     RunStats::CollectNumPts();
@@ -389,18 +385,24 @@ RunStats::dumpStats (ofstream& os)
            << RunStats::DiskBytes           << '\n';
 
         for (ListIterator<RunStatsData> it(TheTotals); it; ++it)
-        {
             os << it();
-        }
+
         long nlev = RunStats::TheNumPts.length();
+
         os << nlev;
+
         for (int i = 0; i < nlev; i++)
             os << ' ' << RunStats::TheNumPts[i];
+
         os << '\n';
+
         nlev = RunStats::TheCells.length();
+
         os << nlev;
+
         for (int i = 0; i < nlev; i++)
             os << ' ' << RunStats::TheCells[i];
+
         os << ")\n";
     }
 }
