@@ -1,5 +1,5 @@
 //
-// $Id: BLWorkQueue.cpp,v 1.11 2001-10-22 21:12:45 lijewski Exp $
+// $Id: BLWorkQueue.cpp,v 1.12 2001-11-16 18:05:16 car Exp $
 //
 
 #include <winstd.H>
@@ -92,6 +92,7 @@ WorkQueue::max_threads() const
 int
 WorkQueue::num_threads() const
 {
+    Lock<ConditionVariable> lock(cv);
     return numthreads;
 }
 
