@@ -217,81 +217,7 @@ bool fill_patch(FArrayBox& patch, const Box& region,
 		return fill_patch_blindly(patch, region, r);
 	}
     }
-    else if (idim == 0) 
-    {
-	Array<int> gridnum(lev_interface.ngrids(idim)+1);
-	gridnum[0] = -1;
-	for (int i = 0; i < lev_interface.ngrids(idim); i++) 
-	{
-	    int igrid = lev_interface.grid(idim, index,i);
-	    if (igrid != -1) 
-	    {
-		for (int j = 0; gridnum[j] != igrid; j++) 
-		{
-		    if (gridnum[j] == -1) 
-		    {
-			gridnum[j] = igrid;
-			gridnum[j+1] = -1;
-			if (igrid >= 0) 
-			{
-			    Box tb = r.box(igrid);
-			    tb &= region;
-			    const Box& rbox = r[igrid].box();
-			    FORT_FFCPY(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(tb), r[igrid].dataPtr(), DIMLIST(rbox), patch.nComp());
-			}
-			else 
-			{
-			    igrid = -2 - igrid;
-			    Box tb = lev_interface.exterior_mesh()[igrid];
-			    tb.convert(type(r));
-			    tb &= region;
-			    bdy->fill(patch, tb, r[lev_interface.direct_exterior_ref(igrid)], lev_interface.direct_exterior_ref(igrid), lev_interface.domain());
-			}
-			break;
-		    }
-		}
-	    }
-	}
-    }
-#if (BL_SPACEDIM == 3)
-    else if (idim == 1) 
-    {
-	Array<int> gridnum(lev_interface.ngrids(idim)+1);
-	gridnum[0] = -1;
-	for (int i = 0; i < lev_interface.ngrids(idim); i++) 
-	{
-	    int igrid = lev_interface.grid(idim, index,i);
-	    if (igrid != -1) 
-	    {
-		for (int j = 0; gridnum[j] != igrid; j++) 
-		{
-		    if (gridnum[j] == -1) 
-		    {
-			gridnum[j] = igrid;
-			gridnum[j+1] = -1;
-			if (igrid >= 0) 
-			{
-			    Box tb = r.box(igrid);
-			    tb &= region;
-			    const Box& rbox = r[igrid].box();
-			    FORT_FFCPY(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(tb), r[igrid].dataPtr(), DIMLIST(rbox), patch.nComp());
-			}
-			else 
-			{
-			    igrid = -2 - igrid;
-			    Box tb = lev_interface.exterior_mesh()[igrid];
-			    tb.convert(type(r));
-			    tb &= region;
-			    bdy->fill(patch, tb, r[lev_interface.direct_exterior_ref(igrid)], lev_interface.direct_exterior_ref(igrid), lev_interface.domain());
-			}
-			break;
-		    }
-		}
-	    }
-	}
-    }
-#endif
-    else if (idim == level_interface::FACEDIM) 
+    else
     {
 	Array<int> gridnum(lev_interface.ngrids(idim)+1);
 	gridnum[0] = -1;
@@ -440,6 +366,7 @@ static inline void node_dirs(int dir[2], const IntVect& typ)
 
 static void fill_internal_borders(MultiFab& r, const level_interface& lev_interface, int w, bool hg_terrain)
 {
+    assert(type(r) == IntVect::TheCellVector() || type(r) == IntVect::TheNodeVector() );
     w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
     if ( type(r) == IntVect::TheNodeVector() ) 
     {
@@ -564,36 +491,6 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 	    }
 	    bj.growLo(idim, w).convert(IntVect::TheCellVector());
 	    bi.growHi(idim, w).convert(IntVect::TheCellVector());
-	    internal_copy(r, jgrid, igrid, bj);
-	    internal_copy(r, igrid, jgrid, bi);
-#endif
-	}
-    }
-    else 
-    {
-	assert("fill_internal_borders: This is never called" == 0);
-	// PARALLEL
-	for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
-	{
-	    const int igrid = lev_interface.grid(level_interface::FACEDIM, iface, 0);
-	    const int jgrid = lev_interface.grid(level_interface::FACEDIM, iface, 1);
-	    if (igrid < 0 || jgrid < 0 || lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL)
-		break;
-	    const int idim = lev_interface.fdim(iface);
-	    const int a = (type(r, idim) == IndexType::NODE);
-#if (BL_SPACEDIM == 2)
-	    Box b = lev_interface.box(level_interface::FACEDIM, iface);
-	    if (idim == 1)
-		b.grow(0, w);
-	    b.shift(idim, -a).growLo(idim, w-a).convert(type(r));
-	    internal_copy(r, jgrid, igrid, b);
-	    internal_copy(r, igrid, jgrid, b.shift(idim, w+a));
-#else
-	    Box bj = lev_interface.box(level_interface::FACEDIM, iface);
-	    Box bi = lev_interface.box(level_interface::FACEDIM, iface);
-	    BoxLib::Error("fill_internal_borders---check index arithmetic for mixed types in 3D");
-	    bj.shift(idim, -a).growLo(idim, w-a).convert(type(r));
-	    bi.shift(idim,  a).growHi(idim, w-a).convert(type(r));
 	    internal_copy(r, jgrid, igrid, bj);
 	    internal_copy(r, igrid, jgrid, bi);
 #endif
