@@ -3,7 +3,6 @@
 #ifndef _AMR_DEFS_H_
 #define _AMR_DEFS_H_
 
-#include <RunStats.H>
 #include <MultiFab.H>
 
 #if (BL_SPACEDIM == 1)

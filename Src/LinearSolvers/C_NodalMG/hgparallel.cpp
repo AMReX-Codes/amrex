@@ -24,12 +24,6 @@ int HG::pverbose           = 0;
 bool HG::initialized       = false;
 double HG::cgsolve_tolfact = 1.0e-3;
 
-#ifdef BL_USE_MPI
-RunStats* irecv_stats;
-RunStats* isend_stats;
-RunStats* test_stats;
-#endif
-
 void
 HG::MPI_init ()
 {
@@ -55,14 +49,6 @@ HG::MPI_init ()
         initialized = true;
 
 #ifdef BL_USE_MPI
-        static RunStats the_irecv_stats("hg_irecv");
-        static RunStats the_isend_stats("hg_isend");
-        static RunStats the_test_stats("hg_test");
-
-        irecv_stats = &the_irecv_stats;
-        isend_stats = &the_isend_stats;
-        test_stats  = &the_test_stats;
-
         int res = MPI_Comm_dup(MPI_COMM_WORLD, &mpi_comm);
         if (res != 0)
             ParallelDescriptor::Abort(res);
@@ -483,21 +469,23 @@ task_copy::startup ()
     {
         if (is_local(m_mf,m_dgrid))
         {
+            static RunStats irecv_stats("hg_irecv");
             tmp = new FArrayBox(m_sbx, m_smf.nComp());
-            irecv_stats->start();
+            irecv_stats.start();
             int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, HG::mpi_comm, &m_request);
-            irecv_stats->end();
+            irecv_stats.end();
             if (res != 0)
                 ParallelDescriptor::Abort(res);
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
         else if (is_local(m_smf,m_sgrid)) 
         {
+            static RunStats isend_stats("hg_isend");
             tmp = new FArrayBox(m_sbx,m_smf.nComp());
             tmp->copy(m_smf[m_sgrid],m_sbx);
-            isend_stats->start();
+            isend_stats.start();
             int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_mf,  m_dgrid), m_sno, HG::mpi_comm, &m_request);
-            isend_stats->end();
+            isend_stats.end();
             if (res != 0)
                 ParallelDescriptor::Abort(res);
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
@@ -528,10 +516,11 @@ task_copy::ready ()
     int flag, res;
     MPI_Status status;
     BL_ASSERT(m_request != MPI_REQUEST_NULL);
-    test_stats->start();
+    static RunStats test_stats("hg_test");
+    test_stats.start();
     if ((res = MPI_Test(&m_request, &flag, &status)) != 0)
         ParallelDescriptor::Abort(res);
-    test_stats->end();
+    test_stats.end();
     if (flag)
     {
         BL_ASSERT(m_request == MPI_REQUEST_NULL);
@@ -666,21 +655,23 @@ task_copy_local::startup ()
     {
         if (m_fab != 0)
         {
+            static RunStats irecv_stats("hg_irecv");
             tmp = new FArrayBox(m_bx, m_smf.nComp());
-            irecv_stats->start();
+            irecv_stats.start();
             int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, HG::mpi_comm, &m_request);
-            irecv_stats->end();
+            irecv_stats.end();
             if (res != 0)
                 ParallelDescriptor::Abort(res);
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
         else if (is_local(m_smf, m_sgrid)) 
         {
+            static RunStats isend_stats("hg_isend");
             tmp = new FArrayBox(m_bx, m_smf.nComp());
             tmp->copy(m_smf[m_sgrid], m_bx);
-            isend_stats->start();
+            isend_stats.start();
             int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, m_target_proc_id, m_sno, HG::mpi_comm, &m_request);
-            isend_stats->end();
+            isend_stats.end();
             if (res != 0)
                 ParallelDescriptor::Abort(res);
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
@@ -711,10 +702,11 @@ task_copy_local::ready ()
     int flag, res;
     MPI_Status status;
     BL_ASSERT(m_request != MPI_REQUEST_NULL);
-    test_stats->start();
+    static RunStats test_stats("hg_test");
+    test_stats.start();
     if ((res = MPI_Test(&m_request, &flag, &status)) != 0)
         ParallelDescriptor::Abort(res);
-    test_stats->end();
+    test_stats.end();
     if (flag)
     {
         BL_ASSERT(m_request == MPI_REQUEST_NULL);
