@@ -1,5 +1,5 @@
 c
-c $Id: MAKESLICE_3D.F,v 1.3 1997-12-12 22:43:16 lijewski Exp $
+c $Id: MAKESLICE_3D.F,v 1.4 1997-12-16 00:41:28 lijewski Exp $
 c
 
 #undef  BL_LANG_CC         
@@ -11,7 +11,7 @@ c
 #include "CONSTANTS.H"
 #include "MAKESLICE_F.H"
 
-#define DIMV(lo,hi) lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)
+#define DIMENSION(lo,hi) lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)
 #define SDIM 3         
 #define npart 20
 
@@ -21,8 +21,8 @@ c
      &  slice,dx)
       integer dlo1(SDIM),dhi1(SDIM)
       integer dlo2(SDIM),dhi2(SDIM)
-      integer data1(DIMV(dlo1,dhi1))
-      integer data2(DIMV(dlo2,dhi2))
+      integer data1(DIMENSION(dlo1,dhi1))
+      integer data2(DIMENSION(dlo2,dhi2))
       REAL_T dx(SDIM)
       REAL_T data_min,data_max,slice_val
       integer slice
@@ -113,8 +113,8 @@ c     write (6,*) "dx: ",dx(1),dx(2),dx(3)
      &  slice,dx)
       integer dlo1(SDIM),dhi1(SDIM)
       integer dlo2(SDIM),dhi2(SDIM)
-      REAL_T data1(DIMV(dlo1,dhi1))
-      REAL_T data2(DIMV(dlo2,dhi2))
+      REAL_T data1(DIMENSION(dlo1,dhi1))
+      REAL_T data2(DIMENSION(dlo2,dhi2))
       REAL_T dx(SDIM)
       REAL_T data_min,data_max,slice_val
       integer slice
