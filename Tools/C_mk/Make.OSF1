@@ -1,5 +1,5 @@
 #
-# $Id: Make.OSF1,v 1.26 2002-03-28 21:00:12 lijewski Exp $
+# $Id: Make.OSF1,v 1.27 2002-05-23 18:21:10 vince Exp $
 #
 
 #
@@ -102,6 +102,9 @@ ifeq ($(USE_THREADS),TRUE)
   fOPTF += -automatic -reentrancy threaded
   fDEBF += -automatic -reentrancy threaded
 endif
+
+FFLAGS += -fpe3
+fFLAGS += -fpe3
 
 FPRFF +=
 
