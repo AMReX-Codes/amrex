@@ -116,7 +116,7 @@ main(int   argc,
       exit(-1);
   }
 #endif
-  StartParallel(nprocs);
+  ParallelDescriptor::StartParallel(nprocs);
   
   int n;
 

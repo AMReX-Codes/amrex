@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.1 1998-03-26 18:58:18 marc Exp $
+// $Id: main.cpp,v 1.2 1998-04-01 00:32:27 car Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -70,7 +70,7 @@ main (int   argc,
       exit(-1);
     }
 #endif
-    StartParallel(nprocs);
+    ParallelDescriptor::StartParallel(nprocs);
 
     int i, n;
     
