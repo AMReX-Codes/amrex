@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.85 2001-07-31 22:43:19 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.86 2001-09-04 16:59:41 car Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -883,8 +883,22 @@ void ParallelDescriptor::util::SetNProcsCFD () {}
 
 void ParallelDescriptor::EndParallel () {}
 
-void ParallelDescriptor::Abort () { ::abort(); }
-void ParallelDescriptor::Abort (int) { ::abort(); }
+void ParallelDescriptor::Abort ()
+{ 
+#ifdef WIN32
+    throw;
+#else
+    std::abort(); 
+#endif
+}
+void ParallelDescriptor::Abort (int)
+{ 
+#ifdef WIN32
+    throw;
+#else
+    std::abort(); 
+#endif
+}
 const char* ParallelDescriptor::ErrorString (int) { return ""; }
 void ParallelDescriptor::Barrier () {}
 
