@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.53 1998-05-26 22:57:43 lijewski Exp $
+// $Id: FabArray.H,v 1.54 1998-05-28 18:19:29 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -370,7 +370,7 @@ public:
 
 protected:
 
-    BoxArray            boxarray;
+    mutable BoxArray    boxarray;  /* So FabSets can modify'm :-( */
     PArray<FAB>         fabparray;
     DistributionMapping distributionMap;
     int                 n_grow;
