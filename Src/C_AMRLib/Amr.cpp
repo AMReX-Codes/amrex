@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.134 2003-02-28 22:42:15 lijewski Exp $
+// $Id: Amr.cpp,v 1.135 2003-04-03 18:44:31 car Exp $
 //
 #include <winstd.H>
 
@@ -1656,7 +1656,7 @@ Amr::printGridInfo (std::ostream& os,
             os << '\n';
         }
     }
-    os << '\n';
+    os << std::endl;		// Make sure we flush!
 }
 
 void
