@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.75 2004-07-29 20:32:23 car Exp $
+# Make.defs $Id: Make.defs,v 1.76 2004-08-24 22:33:16 car Exp $
 #
 
 #
@@ -216,6 +216,25 @@ ifeq ($(FCOMP),g77)
     FDEBF += -g
     fDEBF += -g
 endif
+ifeq ($(FCOMP),gfortran)
+    FC := gfortran -fno-second-underscore
+    fC := gfortran -fno-second-underscore
+#   override XTRALIBS += /tmp/g95/lib/gcc-lib/i686-pc-linux-gnu/3.5-tree-ssa/libf95.a
+    FOPTF +=
+    fOPTF +=
+    FDEBF += -g
+    fDEBF += -g
+endif
+ifeq ($(FCOMP),g95)
+    FC := g95 -fno-second-underscore
+    fC := g95 -fno-second-underscore
+    override XTRALIBS += /tmp/g95/lib/gcc-lib/i686-pc-linux-gnu/3.5-tree-ssa/libf95.a
+    FOPTF +=
+    fOPTF +=
+    FDEBF += -g
+    fDEBF += -g
+endif
+
 ifeq ($(COMP),Intel)
    ifeq ($(UNAMEM),ia64)
      CXX := ecc
@@ -223,7 +242,8 @@ ifeq ($(COMP),Intel)
      CXX := icc
    endif
    CXXOPTF += -g
-   CXXOPTF += -O2
+#  CXXOPTF += -O2
+   CXXOPTF += -O3
    # CXXOPTF += -axK
    CXXDEBF += -g
    __icc_version := $(shell $(CXX) -V 2>&1 1>/dev/null | grep Version)
@@ -261,6 +281,7 @@ ifeq ($(COMP),Intel)
    DEFINES += -DBL_ICC_MAJOR_VERSION=$(ICC_MAJOR_VERSION)
    DEFINES += -DBL_ICC_MINOR_VERSION=$(ICC_MINOR_VERSION)
 endif
+
 ifeq ($(FCOMP),Intel)
    ifeq ($(UNAMEM),ia64)
      FC := efc -mp
@@ -273,9 +294,11 @@ ifeq ($(FCOMP),Intel)
    fDEBF += -g
    FOPTF += -g
    fOPTF += -g
-   FOPTF += -O2
+#  FOPTF += -O2
+   FOPTF += -O3
    # FOPTF += -axK
-   fOPTF += -O2
+#  fOPTF += -O2
+   fOPTF += -O3
    # fOPTF += -axK
    fDEBF += -w
    fOPTF += -w
@@ -322,7 +345,7 @@ ifeq ($(FCOMP),Intel)
    ifeq ($(IFC_MAJOR_VERSION),8)
      FC := ifort
      fC := ifort
-     override XTRALIBS += -lifcore -limf -lcprts -lcxa -lirc
+     override XTRALIBS += -lifcore -limf -lcprts -lcxa -lirc -lunwind
    else
      override XTRALIBS += -lintrins -lIEPCF90 -lF90 -limf -lcprts -lcxa -lirc
      ifneq ($(DIM),3)

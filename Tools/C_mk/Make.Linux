@@ -39,8 +39,10 @@ ifeq ($(FCOMP),Lahey)
   FC    := lf95 --ml cdecl
   fC    := $(FC)
   # FDEBF += -H aesu
+  FDEBF += --chk u
   # FOPTF += -K fast
   # fDEBF += -H aesu
+  fDEBF += --chk u
   # fOPTF += -K fast
   LIBRARY_LOCATIONS += /usr/local/lf9561/lib
   override XTRALIBS += -lfj9f6 -lfj9i6 -lfj9e6
