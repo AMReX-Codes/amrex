@@ -41,7 +41,9 @@ ifeq ($(MACHINE),IRIX)
 endif
 
 ifeq ($(COMP),KCC)
+    CXX := $(CXX) --abstract_pointer
     CXX := $(CXX) --display_error_number --diag_suppress 177
+    CXXOPTF := -O3 +K2 -g3 -Olimit 2000
 endif
 
 ifeq ($(MACHINE),OSF1)
