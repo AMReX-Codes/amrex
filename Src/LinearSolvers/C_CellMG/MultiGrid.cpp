@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiGrid.cpp,v 1.7 1999-01-22 21:24:41 marc Exp $
+// $Id: MultiGrid.cpp,v 1.8 1999-01-22 21:34:16 marc Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -56,15 +56,15 @@ MultiGrid::initialize ()
     if (ParallelDescriptor::IOProcessor() && def_verbose)
     {
         cout << "MultiGrid settings...\n";
-        cout << "   def_nu_0 = " << def_nu_0 << '\n';
-        cout << "   def_nu_1 = " << def_nu_1 << '\n';
-        cout << "   def_nu_2 = " << def_nu_2 << '\n';
-        cout << "   def_nu_f = " << def_nu_f << '\n';
-        cout << "   def_maxiter = " << def_maxiter << '\n';
-        cout << "   def_usecg = "  << def_usecg << '\n';
-        cout << "   def_rtol_b = " << def_rtol_b << '\n';
-        cout << "   def_atol_b = " << def_atol_b << '\n';
-        cout << "   def_nu_b = "   << def_nu_b << '\n';
+        cout << "   def_nu_0 =         " << def_nu_0 << '\n';
+        cout << "   def_nu_1 =         " << def_nu_1 << '\n';
+        cout << "   def_nu_2 =         " << def_nu_2 << '\n';
+        cout << "   def_nu_f =         " << def_nu_f << '\n';
+        cout << "   def_maxiter =      " << def_maxiter << '\n';
+        cout << "   def_usecg =        "  << def_usecg << '\n';
+        cout << "   def_rtol_b =       " << def_rtol_b << '\n';
+        cout << "   def_atol_b =       " << def_atol_b << '\n';
+        cout << "   def_nu_b =         "   << def_nu_b << '\n';
         cout << "   def_numLevelsMAX = "   << def_numLevelsMAX << '\n';
     }
 }
