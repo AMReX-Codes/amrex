@@ -4,7 +4,7 @@
 #define _RealBox_H_ 
 
 //
-// $Id: RealBox.H,v 1.3 1997-12-11 05:01:10 lijewski Exp $
+// $Id: RealBox.H,v 1.4 1997-12-11 23:27:00 lijewski Exp $
 //
 
 #include <Array.H>
@@ -46,7 +46,7 @@ public:
     // Explicit dimension specific constructors.
     //
     RealBox (D_DECL(Real x0, Real y0, Real z0),
-	     D_DECL(Real x1, Real y1, Real z1));
+             D_DECL(Real x1, Real y1, Real z1));
 
     static void setEpsilon (Real epsilon);
     static Real epsilon ();
@@ -248,10 +248,10 @@ RealBox::ok () const
 {
     return (len[0] > eps)
 #if (BL_SPACEDIM > 1)
-	&& (len[1] > eps)
+        && (len[1] > eps)
 #endif   
 #if (BL_SPACEDIM > 2)
-	&& (len[2] > eps)
+        && (len[2] > eps)
 #endif
    ;
 }

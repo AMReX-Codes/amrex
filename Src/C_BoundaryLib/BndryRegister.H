@@ -4,7 +4,7 @@
 #define _BNDRYREGISTER_H_
 
 //
-// $Id: BndryRegister.H,v 1.3 1997-12-11 05:01:08 lijewski Exp $
+// $Id: BndryRegister.H,v 1.4 1997-12-11 23:26:58 lijewski Exp $
 //
 
 #include <BoxArray.H>
@@ -15,26 +15,26 @@
 //@Man:
 /*@Memo:
         A BndryRegister organizes FabSets bounding each grid in a BoxArray.
-	A FabSet is maintained for each boundary orientation, as well as
-	the BoxArray domain of definition.
-*/	
+        A FabSet is maintained for each boundary orientation, as well as
+        the BoxArray domain of definition.
+*/        
 /*@Doc:
         A BndryRegister object contains a list of FabSets bounding the grids
-	in a BoxArray.  The FabSet FABs are at the same refinement level
-	as the grids they bound, and are accessed and modified via a variety
-	of member functions.
+        in a BoxArray.  The FabSet FABs are at the same refinement level
+        as the grids they bound, and are accessed and modified via a variety
+        of member functions.
 
-	Non-default instantiation allocates a set of FABs, grown into and
-	out of the bounding surfaces of each box in the BoxArray.  The width of
-	the layer (in/out), as well as the "extent" of a bounding FABs (the
-	number of nodes beyond the box boundaries, parallel to the grid
-	surface) are determined by constructor argument.  All boxes and
-	FABs in this context are assumed to be cell-centered.
+        Non-default instantiation allocates a set of FABs, grown into and
+        out of the bounding surfaces of each box in the BoxArray.  The width of
+        the layer (in/out), as well as the "extent" of a bounding FABs (the
+        number of nodes beyond the box boundaries, parallel to the grid
+        surface) are determined by constructor argument.  All boxes and
+        FABs in this context are assumed to be cell-centered.
 
-	A small number of linear mathematical operations are provided for
-	BndryRegisters, as well as overloaded [] operators for access based
-	on grid boundary orientation.  The BoxArray domain of definition is
-	accessible, but not resettable,
+        A small number of linear mathematical operations are provided for
+        BndryRegisters, as well as overloaded [] operators for access based
+        on grid boundary orientation.  The BoxArray domain of definition is
+        accessible, but not resettable,
 */
 
 class BndryRegister

@@ -27,9 +27,9 @@
 
 #if (BL_SPACEDIM == 2)
      void FORT_SETDLOGA (Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
-			 const Real* offset,
-			 const Real* dx, const int* dir,
-			 const int* coord);
+                         const Real* offset,
+                         const Real* dx, const int* dir,
+                         const int* coord);
 #endif
 
      void FORT_SETAREA (Real* area,  ARLIM_P(alo), ARLIM_P(ahi),

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RealBox.cpp,v 1.2 1997-12-11 05:01:10 lijewski Exp $
+// $Id: RealBox.cpp,v 1.3 1997-12-11 23:27:01 lijewski Exp $
 //
 
 #include <aString.H>
@@ -19,9 +19,9 @@ RealBox::RealBox (const Box&  bx,
     const int* hi = bx.hiVect();
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
-	xlo[i] = base[i] + dx[i]*lo[i];
-	int shft = (bx.type(i) == IndexType::CELL ? 1 : 0);
-	xhi[i] = base[i] + dx[i]*(hi[i]+ shft);
+        xlo[i] = base[i] + dx[i]*lo[i];
+        int shft = (bx.type(i) == IndexType::CELL ? 1 : 0);
+        xhi[i] = base[i] + dx[i]*(hi[i]+ shft);
     }   
     computeBoxLen();
 }

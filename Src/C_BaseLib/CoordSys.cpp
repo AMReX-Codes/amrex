@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CoordSys.cpp,v 1.3 1997-12-11 05:01:09 lijewski Exp $
+// $Id: CoordSys.cpp,v 1.4 1997-12-11 23:26:59 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -37,7 +37,7 @@ CoordSys::CellIndex (const Real* point) const
     IntVect ix;
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
-	ix[k] = (int) ((point[k]-offset[k])/dx[k]);
+        ix[k] = (int) ((point[k]-offset[k])/dx[k]);
     }
     return ix;
 }
@@ -50,7 +50,7 @@ CoordSys::LowerIndex (const Real* point) const
     IntVect ix;
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
-	ix[k] = (int) ((point[k]-offset[k])/dx[k]);
+        ix[k] = (int) ((point[k]-offset[k])/dx[k]);
     }
     return ix;
 }
@@ -63,7 +63,7 @@ CoordSys::UpperIndex(const Real* point) const
     IntVect ix;
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
-	ix[k] = (int) ((point[k]-offset[k])/dx[k]);
+        ix[k] = (int) ((point[k]-offset[k])/dx[k]);
     }
     return ix;
 }
@@ -72,8 +72,6 @@ FArrayBox*
 CoordSys::GetVolume (const Box& region) const 
 {
     FArrayBox* vol = new FArrayBox();
-    if (vol == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     GetVolume(*vol,region);
     return vol;
 }
@@ -96,8 +94,6 @@ CoordSys::GetDLogA (const Box& region,
                     int        dir) const
 {
     FArrayBox* dloga = new FArrayBox();
-    if (dloga == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     GetDLogA(*dloga,region,dir);
     return dloga;
 }
@@ -121,15 +117,13 @@ CoordSys::GetFaceArea (const Box& region,
                        int        dir) const 
 {
     FArrayBox* area = new FArrayBox();
-    if (area == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     GetFaceArea(*area,region,dir);
     return area;
 }
 
 void
 CoordSys::GetFaceArea (FArrayBox& area, 
-		       const Box& region,
+                       const Box& region,
                        int        dir) const
 {
     assert(ok);
@@ -144,7 +138,7 @@ CoordSys::GetFaceArea (FArrayBox& area,
 
 void
 CoordSys::GetEdgeLoc (Array<Real>& loc, 
-		      const Box&   region,
+                      const Box&   region,
                       int          dir) const 
 {
     assert(ok);
@@ -156,13 +150,13 @@ CoordSys::GetEdgeLoc (Array<Real>& loc,
     Real off = offset[dir] + dx[dir]*lo[dir];
     for (int i = 0; i < len; i++)
     {
-	loc[i] = off + dx[dir]*i;
+        loc[i] = off + dx[dir]*i;
     }
 }
 
 void
 CoordSys::GetCellLoc (Array<Real>& loc, 
-		      const Box&   region,
+                      const Box&   region,
                       int          dir) const
 {
     assert(ok);
@@ -174,13 +168,13 @@ CoordSys::GetCellLoc (Array<Real>& loc,
     Real off = offset[dir] + dx[dir]*(0.5 + (Real)lo[dir]);
     for (int i = 0; i < len; i++)
     {
-	loc[i] = off + dx[dir]*i;
+        loc[i] = off + dx[dir]*i;
     }
 }
 
 void
 CoordSys::GetEdgeVolCoord (Array<Real>& vc,
-			   const Box&   region,
+                           const Box&   region,
                            int          dir) const
 {
     //
@@ -194,19 +188,19 @@ CoordSys::GetEdgeVolCoord (Array<Real>& vc,
 #if (BL_SPACEDIM == 2)
     if (dir == 0 && c_sys == RZ)
     {
-	int len = vc.length();
-	for (int i = 0; i < len; i++)
+        int len = vc.length();
+        for (int i = 0; i < len; i++)
         {
-	    Real r = vc[i];
-	    vc[i] = 0.5*r*r;
-	}
+            Real r = vc[i];
+            vc[i] = 0.5*r*r;
+        }
     }
 #endif    
 }
 
 void
 CoordSys::GetCellVolCoord (Array<Real>& vc,
-			   const Box&   region,
+                           const Box&   region,
                            int          dir) const
 {
     //
@@ -220,12 +214,12 @@ CoordSys::GetCellVolCoord (Array<Real>& vc,
 #if (BL_SPACEDIM == 2)
     if (dir == 0 && c_sys == RZ)
     {
-	int len = vc.length();
-	for (int i = 0; i < len; i++)
+        int len = vc.length();
+        for (int i = 0; i < len; i++)
         {
-	    Real r = vc[i];
-	    vc[i] = 0.5*r*r;
-	}
+            Real r = vc[i];
+            vc[i] = 0.5*r*r;
+        }
     }
 #endif    
 }
@@ -253,12 +247,12 @@ operator>> (istream&  is,
     is.ignore(BL_IGNORE_MAX, '(') >> coord;
     c.c_sys = (CoordSys::CoordType) coord;
     D_EXPR(is.ignore(BL_IGNORE_MAX, '(') >> c.offset[0],
-	   is.ignore(BL_IGNORE_MAX, ',') >> c.offset[1],
-	   is.ignore(BL_IGNORE_MAX, ',') >> c.offset[2]);
+           is.ignore(BL_IGNORE_MAX, ',') >> c.offset[1],
+           is.ignore(BL_IGNORE_MAX, ',') >> c.offset[2]);
     is.ignore(BL_IGNORE_MAX, ')');
     D_EXPR(is.ignore(BL_IGNORE_MAX, '(') >> c.dx[0],
-	   is.ignore(BL_IGNORE_MAX, ',') >> c.dx[1],
-	   is.ignore(BL_IGNORE_MAX, ',') >> c.dx[2]);
+           is.ignore(BL_IGNORE_MAX, ',') >> c.dx[1],
+           is.ignore(BL_IGNORE_MAX, ',') >> c.dx[2]);
     is.ignore(BL_IGNORE_MAX, ')');
     int tmp;
     is >> tmp;
@@ -279,7 +273,7 @@ CoordSys::Volume (const IntVect& point) const
 
 Real 
 CoordSys::Volume (const Real xlo[BL_SPACEDIM], 
-		  const Real xhi[BL_SPACEDIM]) const
+                  const Real xhi[BL_SPACEDIM]) const
 {
     switch (c_sys)
     {

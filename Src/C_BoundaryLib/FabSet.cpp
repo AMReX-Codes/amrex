@@ -1,23 +1,23 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.2 1997-12-10 21:56:02 lijewski Exp $
+// $Id: FabSet.cpp,v 1.3 1997-12-11 23:27:00 lijewski Exp $
 //
 
 #include <FabSet.H>
 #include <Looping.H>
 
-FabSet::FabSet() : MultiFab() {
+FabSet::FabSet () {}
+
+FabSet::~FabSet () {}
+
+FabSet::FabSet (int _len)
+{
+    fabparray.resize(_len);
 }
 
-FabSet::~FabSet() {
-}
-
-FabSet::FabSet(int _len) : MultiFab() {
-  fabparray.resize(_len);
-}
-
-FabSet::FabSet(istream &is) : MultiFab() {
+FabSet::FabSet (istream& is)
+{
     readFrom(is);
 }
 
@@ -44,105 +44,68 @@ FabSet::setFab (int        boxno,
     fabboxarray.set(boxno, fab->box());
 }
 
-const FabSet &FabSet::copyTo(FArrayBox &dest) const {
-    this->copy(dest);
-    return *this;
-}
-
-const FabSet &FabSet::copyTo(FArrayBox& dest, int src_comp,
-			     int dest_comp, int num_comp) const
+FabSet&
+FabSet::copyFrom (const FArrayBox& src)
 {
-    this->copy(dest, src_comp, dest_comp, num_comp);
-    return *this;
-}
-
-const FabSet &FabSet::copyTo(FArrayBox &dest, const Box &subbox,
-			     int src_comp, int dest_comp,
-			     int num_comp) const
-{
-    this->copy(dest, subbox, src_comp, dest_comp, num_comp);
-    return *this;
-}
-
-FabSet &FabSet::copyFrom(const FArrayBox &src) {
-    for(FabSetIterator fsi(*this); fsi.isValid(); ++fsi) {
-	fsi().copy(src);
+    for (FabSetIterator fsi(*this); fsi.isValid(); ++fsi)
+    {
+        fsi().copy(src);
     }
     return *this;
 }
 
-FabSet &FabSet::copyFrom(const FArrayBox& src, int src_comp,
-			 int dest_comp, int num_comp)
+FabSet&
+FabSet::copyFrom (const FArrayBox& src,
+                  int              src_comp,
+                  int              dest_comp,
+                  int              num_comp)
 {
-    for(FabSetIterator fsi(*this); fsi.isValid(); ++fsi) {
-	fsi().copy(src,src_comp,dest_comp,num_comp);
+    for (FabSetIterator fsi(*this); fsi.isValid(); ++fsi)
+    {
+        fsi().copy(src,src_comp,dest_comp,num_comp);
     }
     return *this;
 }
 
-FabSet &FabSet::copyFrom(const FArrayBox &src, const Box &subbox,
-		         int src_comp, int dest_comp, int num_comp)
+FabSet&
+FabSet::copyFrom (const FArrayBox& src,
+                  const Box&       subbox,
+                  int              src_comp,
+                  int              dest_comp,
+                  int              num_comp)
 {
-    const Box &sbox = src.box();
-    assert( sbox.contains(subbox) );
-    for(FabSetIterator fsi(*this); fsi.isValid(); ++fsi) {
-	FArrayBox &fab = fsi();
-	Box dbox = fab.box();
-	dbox &= subbox;
-	if(dbox.ok()) {
-	    fsi().copy(src,dbox,src_comp,dbox,dest_comp,num_comp);
-	}
+    const Box& sbox = src.box();
+    assert(sbox.contains(subbox));
+    for (FabSetIterator fsi(*this); fsi.isValid(); ++fsi)
+    {
+        FArrayBox& fab = fsi();
+        Box dbox = fab.box();
+        dbox &= subbox;
+        if (dbox.ok())
+        {
+            fsi().copy(src,dbox,src_comp,dbox,dest_comp,num_comp);
+        }
     }
     return *this;
 }
 
-//
-// The following are different from MultiFab only in the return value
-//
-
-FabSet &FabSet::plus(Real v, int comp, int num_comp) {
-    this->plus(v, comp, num_comp);
-    return *this;
-}
-
-FabSet &FabSet::plus(Real v, const Box &subreg, int comp, int num_comp)
-{
-    this->plus(v, subreg, comp, num_comp);
-    return *this;
-}
-
-FabSet &FabSet::mult(Real v, int comp, int num_comp) {
-    this->mult(v, comp, num_comp);
-    return *this;
-}
-
-FabSet &FabSet::mult(Real v, const Box &subreg, int comp, int num_comp)
-{
-    this->mult(v, subreg, comp, num_comp);
-    return *this;
-}
-
-FabSet &FabSet::copyFrom(const FabSet &src) {
-    this->copy(src);
-    return *this;
-}
-
-FabSet &FabSet::copyFrom(const FabSet &src, int src_comp, int dest_comp,
-		         int num_comp)
-{
-    this->copy(src, src_comp, dest_comp, num_comp);
-    return *this;
-}
-
-FabSet &FabSet::copyFrom(const FabSet &src, const Box &subreg,
-		         int src_comp, int dest_comp, int num_comp)
+FabSet&
+FabSet::copyFrom (const FabSet& src,
+                  const Box&    subreg,
+                  int           src_comp,
+                  int           dest_comp,
+                  int           num_comp)
 {
     BoxLib::Error("FabSet::copyFrom(FabSet, Box, ...) not implemented");
     return *this;
 }
 
-FabSet &FabSet::copyFrom(const MultiFab &src, int nghost, int src_comp,
-		         int dest_comp, int num_comp)
+FabSet&
+FabSet::copyFrom (const MultiFab& src,
+                  int             nghost,
+                  int             src_comp,
+                  int             dest_comp,
+                  int             num_comp)
 {
 /*  original code vvvvvvvvvvvvvvvvvvvvvvvvvv
     assert (nghost <= src.nGrow());
@@ -160,31 +123,30 @@ FabSet &FabSet::copyFrom(const MultiFab &src, int nghost, int src_comp,
         }
     }
 */
-
-
     assert (nghost <= src.nGrow());
 
     FabSetCopyDescriptor fscd(true);
     MultiFabId srcmfid = fscd.RegisterFabArray((MultiFab *) &src);  // cast away
-						 // const, this must be fixed
+                                                 // const, this must be fixed
     List<FillBoxId> fillBoxIdList;
 
     const BoxArray& sba = src.boxArray();
-    for(FabSetIterator fsi(*this); fsi.isValid(); ++fsi) {
+    for (FabSetIterator fsi(*this); fsi.isValid(); ++fsi)
+    {
        FArrayBox &dfab = fsi();
-       for(int s = 0; s < src.length(); ++s) {
-        Box sbox = grow(sba[s],nghost);
+       for (int s = 0; s < src.length(); ++s)
+       {
+           Box sbox = grow(sba[s],nghost);
             Box ovlp = dfab.box();
             ovlp &= sbox;
-            if(ovlp.ok()) {
-              //dfab.copy(sfab,ovlp,src_comp,ovlp,dest_comp,num_comp);
-	      IndexType boxType(ovlp.ixType());
-	      BoxList unfilledBoxes(boxType);  // unused here
-	      //FillBoxId fbid = fscd.AddBox(srcmfid, ovlp, unfilledBoxes,
-	      FillBoxId fbid = fscd.AddBox(srcmfid, src.fabbox(s), unfilledBoxes,
-				           //src_comp, dest_comp, num_comp);
-				           src_comp, dest_comp, num_comp, false);
-	      fillBoxIdList.append(fbid);
+            if (ovlp.ok())
+            {
+              IndexType boxType(ovlp.ixType());
+              BoxList unfilledBoxes(boxType);  // Unused here.
+              FillBoxId fbid = fscd.AddBox(srcmfid, src.fabbox(s),
+                                           unfilledBoxes, src_comp, dest_comp,
+                                           num_comp, false);
+              fillBoxIdList.append(fbid);
             }
         }
     }
@@ -193,20 +155,22 @@ FabSet &FabSet::copyFrom(const MultiFab &src, int nghost, int src_comp,
 
     ListIterator<FillBoxId> fbidli(fillBoxIdList);
 
-    for(FabSetIterator fsi(*this); fsi.isValid(); ++fsi) {
+    for (FabSetIterator fsi(*this); fsi.isValid(); ++fsi)
+    {
        FArrayBox &dfab = fsi();
-       for(int s = 0; s < src.length(); ++s) {
-        Box sbox = grow(sba[s],nghost);
+       for (int s = 0; s < src.length(); ++s)
+       {
+           Box sbox = grow(sba[s],nghost);
             Box ovlp = dfab.box();
             ovlp &= sbox;
-            if(ovlp.ok()) {
-	      assert(fbidli);
-	      FillBoxId fbid = fbidli();
-	      ++fbidli;
-
-	      FArrayBox sfabTemp(fbid.box(), num_comp);
-	      fscd.FillFab(srcmfid, fbid, sfabTemp);
-	      int srcCompTemp = 0;  // copy from temp src = 0
+            if (ovlp.ok())
+            {
+              assert(fbidli);
+              FillBoxId fbid = fbidli();
+              ++fbidli;
+              FArrayBox sfabTemp(fbid.box(), num_comp);
+              fscd.FillFab(srcmfid, fbid, sfabTemp);
+              int srcCompTemp = 0;  // Copy from temp src = 0
               dfab.copy(sfabTemp, ovlp, srcCompTemp, ovlp, dest_comp, num_comp);
             }
         }
@@ -215,8 +179,12 @@ FabSet &FabSet::copyFrom(const MultiFab &src, int nghost, int src_comp,
     return *this;
 }
 
-const FabSet &FabSet::copyTo(MultiFab &dest, int nghost, int src_comp,
-	                     int dest_comp, int num_comp) const
+const FabSet&
+FabSet::copyTo (MultiFab& dest,
+                int       nghost,
+                int       src_comp,
+                int       dest_comp,
+                int       num_comp) const
 {
 if(ParallelDescriptor::NProcs() > 1) {
   cerr << "FabSet::copyTo(MultiFab, nghost, ...) not implemented in parallel." << endl;
@@ -237,7 +205,8 @@ if(ParallelDescriptor::NProcs() > 1) {
             const Box& sbox = sfab.box();
             Box ovlp = dbox;
             ovlp &= sbox;
-            if (ovlp.ok()) {
+            if (ovlp.ok())
+            {
                 dfab.copy(sfab,ovlp,src_comp,ovlp,dest_comp,num_comp);
             }
         }
@@ -246,8 +215,12 @@ if(ParallelDescriptor::NProcs() > 1) {
     return *this;
 }
 
-FabSet &FabSet::plusFrom(const MultiFab &src, int nghost, int src_comp,
-		         int dest_comp, int num_comp)
+FabSet&
+FabSet::plusFrom (const MultiFab& src,
+                  int             nghost,
+                  int             src_comp,
+                  int             dest_comp,
+                  int             num_comp)
 {
     //
     // This can be optimized by only communicating the components used in
@@ -310,27 +283,43 @@ FabSet &FabSet::plusFrom(const MultiFab &src, int nghost, int src_comp,
 // Linear combination this := a*this + b*src
 // Note: corresponding fabsets must be commensurate.
 //
-FabSet &FabSet::linComb(Real a, Real b, const FabSet &src, int src_comp,
-		        int dest_comp, int num_comp)
+FabSet&
+FabSet::linComb (Real          a,
+                 Real          b,
+                 const FabSet& src,
+                 int           src_comp,
+                 int           dest_comp,
+                 int           num_comp)
 {
     assert(length() == src.length());
-    for(FabSetIterator fsi(*this); fsi.isValid(); ++fsi) {
-      DependentFabSetIterator dfsi(fsi, src);
-	FArrayBox &dfab = fsi();
-	const FArrayBox &sfab = dfsi();
-	const Box &dbox = dfab.box();
-	const Box &sbox = sfab.box();
-	assert( dbox == sbox );
-	  // WARNING: same fab used as src and dest here
-	dfab.linComb(dfab,dbox,dest_comp,sfab,sbox,src_comp,
-		     a,b,dbox,dest_comp,num_comp);
+
+    for (FabSetIterator fsi(*this); fsi.isValid(); ++fsi)
+    {
+        DependentFabSetIterator dfsi(fsi, src);
+        FArrayBox &dfab = fsi();
+        const FArrayBox& sfab = dfsi();
+        const Box& dbox = dfab.box();
+        const Box& sbox = sfab.box();
+        assert(dbox == sbox);
+        //
+        // WARNING: same fab used as src and dest here.
+        //
+        dfab.linComb(dfab,dbox,dest_comp,sfab,sbox,src_comp,
+                     a,b,dbox,dest_comp,num_comp);
     }
     return *this;
 }
 
-FabSet &FabSet::linComb(Real a, const MultiFab &mfa, int a_comp,
-		        Real b, const MultiFab &mfb, int b_comp,
-		        int dest_comp, int num_comp, int n_ghost)
+FabSet&
+FabSet::linComb (Real            a,
+                 const MultiFab& mfa,
+                 int             a_comp,
+                 Real            b,
+                 const MultiFab& mfb,
+                 int             b_comp,
+                 int             dest_comp,
+                 int             num_comp,
+                 int             n_ghost)
 {
     const BoxArray& bxa = mfa.boxArray();
     const BoxArray& bxb = mfb.boxArray();
@@ -405,7 +394,8 @@ FabSet &FabSet::linComb(Real a, const MultiFab &mfa, int a_comp,
 }
 
 ostream &
-operator << (ostream &os, const FabSet &mf)
+operator<< (ostream&      os,
+            const FabSet& mf)
 {
     BoxLib::Error("FabSet::operator<<() not yet implemented");
 /*
@@ -413,7 +403,7 @@ operator << (ostream &os, const FabSet &mf)
     os << "(FabSet "
        << nfab << '\n';
     for (int i = 0; i < nfab; i++) {
-	os << mf[i] << '\n';
+        os << mf[i] << '\n';
     }
     os << ')';
 */
@@ -421,7 +411,7 @@ operator << (ostream &os, const FabSet &mf)
 }
 
 ostream &
-FabSet::writeOn(ostream &os) const
+FabSet::writeOn (ostream& os) const
 {
     BoxLib::Error("FabSet::writeOn() not yet implemented");
 /*
@@ -429,30 +419,28 @@ FabSet::writeOn(ostream &os) const
     int nfab = length();
     os << nfab << '\n';
     for (int i = 0; i < nfab; i++) {
-	get(i).writeOn(os);
+        get(i).writeOn(os);
     }
 */
     return os;
 }
 
-istream &
-FabSet::readFrom(istream &is)
+istream&
+FabSet::readFrom (istream& is)
 {
     BoxLib::Error("FabSet::readFrom() not yet implemented");
 /*
     if (ready()) {
-	clear();
+        clear();
     }
     int ngrd;
     is >> ngrd;
     while (is.get() != '\n');
     resize(ngrd);
     for (int i = 0; i < ngrd; i++) {
-	FArrayBox* tmp = new FArrayBox;
-    if (tmp == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
-	tmp->readFrom(is);
-	set(i,tmp);
+        FArrayBox* tmp = new FArrayBox;
+        tmp->readFrom(is);
+        set(i,tmp);
     }
 */
     return is;

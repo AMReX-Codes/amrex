@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.2 1997-12-11 05:01:09 lijewski Exp $
+// $Id: Geometry.cpp,v 1.3 1997-12-11 23:27:00 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -25,7 +25,7 @@ Geometry::define (const Box& dom)
     ok = true;
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
-	dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
+        dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
     }
 }
 
@@ -96,8 +96,8 @@ Geometry::GetVolume (MultiFab&       vol,
     vol.define(grds,1,ngrow,Fab_noallocate);
     for (MultiFabIterator mfi(vol); mfi.isValid(); ++mfi)
     {
-	Box gbx(grow(grds[mfi.index()],ngrow));
-	vol.setFab(mfi.index(),CoordSys::GetVolume(gbx));
+        Box gbx(grow(grds[mfi.index()],ngrow));
+        vol.setFab(mfi.index(),CoordSys::GetVolume(gbx));
     }
 }
 
@@ -111,8 +111,8 @@ Geometry::GetDLogA (MultiFab&       dloga,
     dloga.define(grds,1,ngrow,Fab_noallocate);
     for (MultiFabIterator mfi(dloga); mfi.isValid(); ++mfi)
     {
-	Box gbx(grow(grds[mfi.index()],ngrow));
-	dloga.setFab(mfi.index(),CoordSys::GetDLogA(gbx,dir));
+        Box gbx(grow(grds[mfi.index()],ngrow));
+        dloga.setFab(mfi.index(),CoordSys::GetDLogA(gbx,dir));
     }
 }
 #endif
@@ -128,15 +128,15 @@ Geometry::GetFaceArea (MultiFab&       area,
     area.define(edge_boxes,1,ngrow,Fab_noallocate);
     for (MultiFabIterator mfi(area); mfi.isValid(); ++mfi)
     {
-	Box gbx(grow(grds[mfi.index()],ngrow));
-	area.setFab(mfi.index(),CoordSys::GetFaceArea(gbx,dir));
+        Box gbx(grow(grds[mfi.index()],ngrow));
+        area.setFab(mfi.index(),CoordSys::GetFaceArea(gbx,dir));
     }
 }
 
 void
 Geometry::periodicShift (const Box&      target,
                          const Box&      src, 
-			 Array<IntVect>& out) const
+                         Array<IntVect>& out) const
 {
     Box locsrc(src);
     out.resize(0);

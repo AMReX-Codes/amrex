@@ -4,7 +4,7 @@
 #define _COORDSYS_H_ 
 
 //
-// $Id: CoordSys.H,v 1.2 1997-12-11 05:01:09 lijewski Exp $
+// $Id: CoordSys.H,v 1.3 1997-12-11 23:26:59 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -228,7 +228,7 @@ CoordSys::SetOffset (const Real* x_lo)
 {
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
-	offset[k] = x_lo[k];
+        offset[k] = x_lo[k];
     }
 }
 
@@ -267,7 +267,7 @@ CoordSys::define (const Real* cell_dx)
     ok = true;
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
-	dx[k] = cell_dx[k];
+        dx[k] = cell_dx[k];
     }
 }
 
@@ -286,7 +286,7 @@ CoordSys::CellCenter (const IntVect& point,
     assert(loc != 0);
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
-	loc[k] = offset[k] + dx[k]*(0.5+ (Real)point[k]);
+        loc[k] = offset[k] + dx[k]*(0.5+ (Real)point[k]);
     }
 }
 
@@ -355,8 +355,8 @@ CoordSys::LoFace (const IntVect& point,
     assert(loc != 0);
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
-	Real off = (k == dir) ? 0.0 : 0.5;
-	loc[k] = offset[k] + dx[k]*(off + (Real)point[k]);
+        Real off = (k == dir) ? 0.0 : 0.5;
+        loc[k] = offset[k] + dx[k]*(off + (Real)point[k]);
     }
 }
 
@@ -380,8 +380,8 @@ CoordSys::HiFace (const IntVect& point,
     assert(loc != 0);
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
-	Real off = (k == dir) ? 1.0 : 0.5;
-	loc[k] = offset[k] + dx[k]*(off + (Real)point[k]);
+        Real off = (k == dir) ? 1.0 : 0.5;
+        loc[k] = offset[k] + dx[k]*(off + (Real)point[k]);
     }
 }
 
@@ -404,7 +404,7 @@ CoordSys::LoNode (const IntVect& point,
     assert(loc != 0);
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
-	loc[k] = offset[k] + dx[k]*point[k];
+        loc[k] = offset[k] + dx[k]*point[k];
     }
 }
 
@@ -426,7 +426,7 @@ CoordSys::HiNode (const IntVect& point,
     assert(loc != 0);
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
-	loc[k] = offset[k] + dx[k]*(point[k] + 1);
+        loc[k] = offset[k] + dx[k]*(point[k] + 1);
     }
 }
 
