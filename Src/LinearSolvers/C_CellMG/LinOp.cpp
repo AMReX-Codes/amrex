@@ -1,5 +1,5 @@
 //
-// $Id: LinOp.cpp,v 1.3 1998-06-10 22:19:50 lijewski Exp $
+// $Id: LinOp.cpp,v 1.4 1998-06-11 00:06:16 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -358,7 +358,7 @@ LinOp::prepareForLevel (int level)
     // Initial masks for coarse levels, ignore outside_domain possibility since
     // we always solve homogeneous equation on coarse levels.
     //
-    assert(maskvals.size() == level);
+    assert(maskvals.length() == level);
     maskvals.resize(level+1);
     maskvals[level].resize(gbox[level].length());
 
