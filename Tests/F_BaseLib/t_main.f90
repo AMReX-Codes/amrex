@@ -150,7 +150,7 @@ subroutine t_box_conn
   integer :: ml
   real(kind=dp_t) :: d
 
-  call mboxarray_read_boxes(mba, "grids/3D_4_level_96x96x96")
+  call mboxarray_read_boxes(mba, "../../data/grids/3D_4_level_96x96x96")
 
   call box_conn(mba%bas(4))
 
@@ -778,3 +778,8 @@ subroutine t_box_chop
   call print(bxr)
   
 end subroutine t_box_chop
+
+subroutine t_knap
+  use knapsack_module
+  call t_knapsack
+end subroutine t_knap

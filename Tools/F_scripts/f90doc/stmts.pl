@@ -386,7 +386,7 @@ sub read_stmt {
             if exists $stmts::nesting_by{'subroutine'};
          $n += scalar @{$stmts::nesting_by{'function'}}
             if exists $stmts::nesting_by{'function'};
-         die "Routine nested in routine nested in routine" if $n > 1;
+#FIXME  #die "Routine nested in routine nested in routine" if $n > 1;
       }
 
       $parmstr = "()" unless defined $parmstr;

@@ -383,10 +383,20 @@ libraries += $(mpi_libraries)
 
 CPPFLAGS += $(addprefix -I, $(INCLUDE_LOCATIONS))
 
-objects = $(addprefix $(odir)/, $(sort $(f90sources:.f90=.o)) $(sort $(fsources:.f=.o)) $(sort $(csources:.c=.o)))
-sources =                       $(sort $(f90sources)        ) $(sort $(fsources)      ) $(sort $(csources)       )
+objects = $(addprefix $(odir)/,       \
+	$(sort $(f90sources:.f90=.o)) \
+	$(sort $(fsources:.f=.o))     \
+	$(sort $(csources:.c=.o))     \
+	)
+sources =                     \
+	$(sort $(f90sources)) \
+	$(sort $(fsources)  ) \
+	$(sort $(csources)  )
 
-html_sources = $(addprefix $(hdir)/, $(sort $(f90sources:.f90=.html)) $(sort $(fsources:.f=.html)))
+html_sources = $(addprefix $(hdir)/,     \
+	$(sort $(f90sources:.f90=.html)) \
+	$(sort $(fsources:.f=.html))     \
+	)
 
 pnames = $(addsuffix .$(suf).exe, $(basename $(programs)))
 

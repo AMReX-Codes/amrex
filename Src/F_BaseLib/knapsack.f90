@@ -231,6 +231,7 @@ contains
 
   subroutine t_knapsack
     use bl_IO_module
+    use f2kcli
     integer :: un, np, n, idm
     real(kind=dp_t) :: t1, t2
     real(kind=dp_t) :: thresh
@@ -239,10 +240,17 @@ contains
     real(kind=dp_t) :: maxprc, minprc, xmean, stddev
     real(kind=dp_t), allocatable :: weights(:)
     integer :: i
+    character(len=128) fname
+
+    if ( command_argument_count() < 1 ) then
+       np = 128
+    else
+       call get_command_argument(1, value = fname)
+       read(fname,*) np
+    end if
 
     un = unit_new()
     open(un, file="conn_defs", status = 'old', action = 'read')
-    read(un,fmt=*) np
     read(un,fmt=*) n
     allocate(iweights(n))
     do i = 1, n
