@@ -45,22 +45,22 @@ typedef void (*RESTFUN)(Real*, intS, intS, const Real*, intS, intRS, const int&,
 
 struct task_restriction_fill : public task
 {
-    task_restriction_fill(const RESTFUN ref_, MultiFab& m_, int ind_, const Box& pb_, const Box& cbox_, task_fab* tf_, const IntVect& rat_,
+    task_restriction_fill(const RESTFUN ref_, MultiFab& m_, int ind_, const Box& cbox_, task_fab* tf_, const IntVect& rat_,
 	int integrate_, int i1_ = 0, int i2_ = 0) 
-	: ref(ref_), m(m_), ind(ind_), pb(pb_), cbox(cbox_), tf(tf_), rat(rat_), integrate(integrate_), arg1(1), arg2(1) 
+	: ref(ref_), m(m_), ind(ind_), cbox(cbox_), tf(tf_), rat(rat_), integrate(integrate_), arg1(1), arg2(1) 
     {
 	arg1[0] = i1_;
 	arg2[0] = i2_;
     }
-    task_restriction_fill(const RESTFUN ref_, MultiFab& m_, int ind_, const Box& pb_, const Box& cbox_, task_fab* tf_, const IntVect& rat_,
+    task_restriction_fill(const RESTFUN ref_, MultiFab& m_, int ind_, const Box& cbox_, task_fab* tf_, const IntVect& rat_,
 	int integrate_, const Array<int>& i1_) 
-	: ref(ref_), m(m_), ind(ind_), pb(pb_), cbox(cbox_), tf(tf_), rat(rat_), integrate(integrate_), arg1(i1_), arg2(1) 
+	: ref(ref_), m(m_), ind(ind_), cbox(cbox_), tf(tf_), rat(rat_), integrate(integrate_), arg1(i1_), arg2(1) 
     {
 	arg2[0] = 0;
     }
-    task_restriction_fill(const RESTFUN ref_, MultiFab& m_, int ind_, const Box& pb_, const Box& cbox_, task_fab* tf_, const IntVect& rat_,
+    task_restriction_fill(const RESTFUN ref_, MultiFab& m_, int ind_, const Box& cbox_, task_fab* tf_, const IntVect& rat_,
 	int integrate_, const IntVect& i1_, const Array<int>& i2_) 
-	: ref(ref_), m(m_), ind(ind_), pb(pb_), cbox(cbox_), tf(tf_), rat(rat_), integrate(integrate_), arg1(i1_.getVect(), BL_SPACEDIM), arg2(i2_) 
+	: ref(ref_), m(m_), ind(ind_), cbox(cbox_), tf(tf_), rat(rat_), integrate(integrate_), arg1(i1_.getVect(), BL_SPACEDIM), arg2(i2_) 
     {
     }
     virtual bool ready();
@@ -68,7 +68,6 @@ private:
     task_fab* tf;
     MultiFab& m;
     int ind;
-    const Box pb;
     const Box cbox;
     const IntVect rat;
     const RESTFUN ref;
@@ -82,6 +81,7 @@ task_restriction_fill::ready()
 {
     tf->ready();
     const Box fb = tf->fab().box();
+    const Box pb = m[ind].box();
     (*ref)(m[ind].dataPtr(), DIMLIST(pb), DIMLIST(cbox), tf->fab().dataPtr(), DIMLIST(fb),
 	D_DECL(rat[0], rat[1], rat[2]), m.nComp(), &integrate, arg1.dataPtr(), arg2.dataPtr());
     return true;
@@ -215,7 +215,6 @@ void bilinear_restrictor_class::fill_interface(
 	//assert(r.mesh() == lev_interface.interior_mesh());
 	
 	const Box regplus = grow(region,1);
-	const Box& pb = dest[jgrid].box();
 	
 	for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
 	{
@@ -243,22 +242,16 @@ void bilinear_restrictor_class::fill_interface(
 			const Box& fb = fine[igrid].box();
 			task_fab* tfab = new task_fab_get(fine, igrid, fb);
 			tl.add_task(
-			    new task_restriction_fill(&FORT_FANRST2, dest, jgrid, pb, cbox, tfab, rat, integrate)
+			    new task_restriction_fill(&FORT_FANRST2, dest, jgrid, cbox, tfab, rat, integrate)
 			    );
-			//FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fine[igrid].dataPtr(), DIMLIST(fb), 
-			//    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
 		    }
 		    else 
 		    {
 			Box fbox = grow(refine(cbox, rat), rat - 1);
-			// FArrayBox fgr(fbox, dest[jgrid].nComp());
-			// fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, level_interface::FACEDIM, iface);
 			task_fab* tfab = new task_fill_patch(fbox, fine, lev_interface, bdy, level_interface::FACEDIM, iface);
 			tl.add_task(
-			    new task_restriction_fill(&FORT_FANRST2, dest, jgrid, pb, cbox, tfab, rat, integrate)
+			    new task_restriction_fill(&FORT_FANRST2, dest, jgrid, cbox, tfab, rat, integrate)
 			    );
-			//FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox), 
-			//    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
 		    }
 		}
 		else 
@@ -272,10 +265,8 @@ void bilinear_restrictor_class::fill_interface(
 			const Box& fb = fine[igrid].box();
 			task_fab* tfab = new task_fab_get(fine, igrid, fb);
 			tl.add_task(
-			    new task_restriction_fill(&FORT_FANFR2, dest, jgrid, pb, cbox, tfab, rat, integrate, idim, idir)
+			    new task_restriction_fill(&FORT_FANFR2, dest, jgrid, cbox, tfab, rat, integrate, idim, idir)
 			    );
-			//FORT_FANFR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fine[igrid].dataPtr(), DIMLIST(fb), 
-			//    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, &idim, &idir);
 		    }
 		    else 
 		    {
@@ -285,14 +276,10 @@ void bilinear_restrictor_class::fill_interface(
 			    fbox.growHi(idim, 1 - rat[idim]);
 			else
 			    fbox.growLo(idim, 1 - rat[idim]);
-			// FArrayBox fgr(fbox, dest[jgrid].nComp());
-			// fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, level_interface::FACEDIM, iface);
 			task_fab* tfab = new task_fill_patch(fbox, fine, lev_interface, bdy, level_interface::FACEDIM, iface);
 			tl.add_task(
-			    new task_restriction_fill(&FORT_FANFR2, dest, jgrid, pb, cbox, tfab, rat, integrate, idim, idir)
+			    new task_restriction_fill(&FORT_FANFR2, dest, jgrid, cbox, tfab, rat, integrate, idim, idir)
 			    );
-			// FORT_FANFR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
-			//    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, &idim, &idir);
 		    }
 		}
 	    }
@@ -317,23 +304,17 @@ void bilinear_restrictor_class::fill_interface(
 		    const Box& fb = fine[igrid].box();
 		    task_fab* tfab = new task_fab_get(fine, igrid, fb);
 		    tl.add_task(
-			new task_restriction_fill(&FORT_FANRST2, dest, jgrid, pb, cbox, tfab, rat, integrate)
+			new task_restriction_fill(&FORT_FANRST2, dest, jgrid, cbox, tfab, rat, integrate)
 			);
-		    // FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fine[igrid].dataPtr(), DIMLIST(fb),
-		    //	D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
 		}
 		else if (geo == level_interface::ALL) 
 		{
 		    // fine grid on all sides
 		    const Box fb = refine(grow(cbox, 1), rat);
-		    // FArrayBox fgr(refine(grow(cbox, 1), rat), dest[jgrid].nComp());
-		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
 		    task_fab* tfab = new task_fill_patch(fb, fine, lev_interface, bdy, 0, icor);
 		    tl.add_task(
-			new task_restriction_fill(&FORT_FANRST2, dest, jgrid, pb, cbox, tfab, rat, integrate)
+			new task_restriction_fill(&FORT_FANRST2, dest, jgrid, cbox, tfab, rat, integrate)
 			);
-		    // FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fb),
-		    //	D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
 		}
 		else if (geo == level_interface::XL || geo == level_interface::XH || geo == level_interface::YL || geo == level_interface::YH) 
 		{
@@ -345,14 +326,10 @@ void bilinear_restrictor_class::fill_interface(
 			fbox.growLo(idim, rat[idim]);
 		    else
 			fbox.growHi(idim, rat[idim]);
-		    // FArrayBox fgr(fbox, dest[jgrid].nComp());
-		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
 		    task_fab* tfab = new task_fill_patch(fbox, fine, lev_interface, bdy, 0, icor);
 		    tl.add_task(
-			new task_restriction_fill(&FORT_FANFR2, dest, jgrid, pb, cbox, tfab, rat, integrate, idim, idir)
+			new task_restriction_fill(&FORT_FANFR2, dest, jgrid, cbox, tfab, rat, integrate, idim, idir)
 			);
-		    // FORT_FANFR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
-		    // 	D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, &idim, &idir);
 		}
 		else if (geo == level_interface::LL || geo == level_interface::HL || geo == level_interface::LH || geo == level_interface::HH) 
 		{
@@ -381,42 +358,31 @@ void bilinear_restrictor_class::fill_interface(
 			idir1 = 1;
 		    }
 		    // FArrayBox fgr(fbox, dest[jgrid].nComp());
-		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
 		    task_fab* tfab = new task_fill_patch(fbox, fine, lev_interface, bdy, 0, icor);
 		    tl.add_task(
-			new task_restriction_fill(&FORT_FANOR2, dest, jgrid, pb, cbox, tfab, rat, integrate, idir0, idir1)
+			new task_restriction_fill(&FORT_FANOR2, dest, jgrid, cbox, tfab, rat, integrate, idir0, idir1)
 			);
-		    //FORT_FANOR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
-		    //   D_DECL(rat[0], rat[1], rat[2]),dest.nComp(), &integrate, &idir0, &idir1);
 		}
 		else if (geo == (level_interface::LL | level_interface::HH) || geo == (level_interface::LH | level_interface::HL)) 
 		{
 		    // diagonal corner
 		    Box fbox = refine(cbox, rat).grow(rat);
-		    // FArrayBox fgr(fbox, dest[jgrid].nComp());
 		    const int idir1 = (geo == (level_interface::LL | level_interface::HH)) ? 1 : -1;
-		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
 		    task_fab* tfab = new task_fill_patch(fbox, fine, lev_interface, bdy, 0, icor);
 		    tl.add_task(
-			new task_restriction_fill(&FORT_FANDR2, dest, jgrid, pb, cbox, tfab, rat, integrate, idir1)
+			new task_restriction_fill(&FORT_FANDR2, dest, jgrid, cbox, tfab, rat, integrate, idir1)
 			);
-		    //FORT_FANDR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
-		    //   D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, &idir1, 0);
 		}
 		else 
 		{
 		    // inside corner
 		    Box fbox = refine(cbox, rat).grow(rat);
-		    // FArrayBox fgr(fbox, dest[jgrid].nComp());
 		    const int idir0 = ((geo & level_interface::XL) == level_interface::XL) ? -1 : 1;
 		    const int idir1 = ((geo & level_interface::YL) == level_interface::YL) ? -1 : 1;
-		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
 		    task_fab* tfab = new task_fill_patch(fbox, fine, lev_interface, bdy, 0, icor);
 		    tl.add_task(
-			new task_restriction_fill(&FORT_FANIR2, dest, jgrid, pb, cbox, tfab, rat, integrate, idir0, idir1)
+			new task_restriction_fill(&FORT_FANIR2, dest, jgrid, cbox, tfab, rat, integrate, idir0, idir1)
 			);
-		    // FORT_FANIR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
-		    //	D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, &idir0, &idir1);
 		}
 	    }
 	}
@@ -444,34 +410,26 @@ void bilinear_restrictor_class::fill_interface(
 		    const Box& fb = fine[igrid].box();
 		    task_fab* tfab = new task_fab_get(fine, igrid, fb);
 		    tl.add_task(
-			new task_restriction_fill(&FORT_FANRST2, dest, jgrid, pb, cbox, tfab, rat, integrate)
+			new task_restriction_fill(&FORT_FANRST2, dest, jgrid, cbox, tfab, rat, integrate)
 			);
-		    //FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fine[igrid].dataPtr(), DIMLIST(fb),
-		    //   D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
 		}
 		else 
 		{
 		    Box fbox = grow(refine(cbox, rat), rat - 1);
-		    // FArrayBox fgr(fbox, dest[jgrid].nComp());
-		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 1, iedge);
 		    task_fab* tfab = new task_fill_patch(fbox, fine, lev_interface, bdy, 1, iedge);
 		    if (geo == level_interface::ALL) 
 		    { 
 			// fine grid on all sides
 			tl.add_task(
-			    new task_restriction_fill(&FORT_FANRST2, dest, jgrid, pb, cbox, tfab, rat, integrate)
+			    new task_restriction_fill(&FORT_FANRST2, dest, jgrid, cbox, tfab, rat, integrate)
 			    );
-			// FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
-			//    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
 		    }
 		    else 
 		    {
 			Array<int> ga = lev_interface.geo_array(1, iedge);
 			tl.add_task(
-			    new task_restriction_fill(&FORT_FANER2, dest, jgrid, pb, cbox, tfab, rat, integrate, t, ga)
+			    new task_restriction_fill(&FORT_FANER2, dest, jgrid, cbox, tfab, rat, integrate, t, ga)
 			    );
-			// FORT_FANER2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
-			//    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, t.getVect(), ga.dataPtr());
 		    }
 		}
 	    }
@@ -493,34 +451,26 @@ void bilinear_restrictor_class::fill_interface(
 		    const Box& fb = fine[igrid].box();
 		    task_fab* tfab = new task_fab_get(fine, igrid, fb);
 		    tl.add_task(
-			new task_restriction_fill(&FORT_FANRST2, dest, jgrid, pb, cbox, tfab, rat, integrate)
+			new task_restriction_fill(&FORT_FANRST2, dest, jgrid, cbox, tfab, rat, integrate)
 			);
-		    //FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fine[igrid].dataPtr(), DIMLIST(fb),
-		    // D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
 		}
 		else 
 		{
 		    Box fbox = grow(refine(cbox, rat), rat - 1);
-		    // FArrayBox fgr(fbox, dest[jgrid].nComp());
-		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
 		    task_fab* tfab = new task_fill_patch(fbox, fine, lev_interface, bdy, 0, icor);
 		    if (geo == level_interface::ALL) 
 		    { 
 			// fine grid on all sides
 			tl.add_task(
-			    new task_restriction_fill(&FORT_FANRST2, dest, jgrid, pb, cbox, tfab, rat, integrate)
+			    new task_restriction_fill(&FORT_FANRST2, dest, jgrid, cbox, tfab, rat, integrate)
 			    );
-			//FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
-			//    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
 		    }
 		    else 
 		    {
 			Array<int> ga = lev_interface.geo_array(0, icor);
 			tl.add_task(
-			    new task_restriction_fill(&FORT_FANCR2, dest, jgrid, pb, cbox, tfab, rat, integrate, ga)
+			    new task_restriction_fill(&FORT_FANCR2, dest, jgrid, cbox, tfab, rat, integrate, ga)
 			    );
-			// FORT_FANCR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
-			//    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, ga.dataPtr(), 0);
 		    }
 		}
 	    }

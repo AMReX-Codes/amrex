@@ -379,6 +379,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 	    
 	    // Forward solve:
 	    // PARALLEL
+	    task_list tl;
 	    for (int i = 0; i < mg_mesh[mglev].length(); i++) 
 	    {
 		
@@ -460,11 +461,11 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		for (ListIterator<int> j(line_after[lev][igrid]); j; j++) 
 		{
 		    const Box b = (freg & corr[mglev].box(j()));
-		    internal_copy(corr[mglev], j(), igrid, b);
-		    internal_copy(work[mglev], j(), igrid, b);
+		    tl.add_task(new task_copy_link(corr[mglev], j(), igrid, b, 0));
+		    tl.add_task(new task_copy_link(work[mglev], j(), igrid, b, 0));
 		}
 	    }
-	    
+	    tl.execute();
 	    // Back substitution:
 	    // PARALLEL
 	    for (int i = mg_mesh[mglev].length() - 1; i >= 0; i--) 
@@ -478,7 +479,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		for (ListIterator<int> j(line_after[lev][igrid]); j; j++) 
 		{
 		    const Box b = (freg & corr[mglev].box(j()));
-		    internal_copy(corr[mglev], igrid, j(), b);
+		    tl.add_task(new task_copy_link(corr[mglev], igrid, j(), b, 0));
 		}
 		
 		const Box& fbox = corr[mglev][igrid].box();
@@ -487,6 +488,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		    work[mglev][igrid].dataPtr(), DIMLIST(wbox),
 		    DIMLIST(freg), &line_solve_dim, &ipass);
 	    }
+	    tl.execute();
 	}
     }
   }

@@ -6,7 +6,7 @@
 #include "interpolator.H"
 #include "restrictor.H"
 
-void internal_copy(MultiFab& r, int destgrid, int srcgrid, const Box& b);
+//void internal_copy(MultiFab& r, int destgrid, int srcgrid, const Box& b);
 
 Real inner_product(const MultiFab& r, const MultiFab& s);
 

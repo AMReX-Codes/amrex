@@ -22,11 +22,12 @@ extern "C"
 #endif
 }
 
+/*
 void internal_copy(MultiFab& r, int destgrid, int srcgrid, const Box& b) 
 {
     r[destgrid].copy(r[srcgrid], b);
 }
-
+*/
 
 Real inner_product(const MultiFab& r, const MultiFab& s)
 {

@@ -636,7 +636,7 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	{
 	    const int jgrid = lev_interface[mglev].grid(1, iedge, i);
 	    if (jgrid >= 0 && jgrid != igrid)
-		internal_copy(source[lev], jgrid, igrid, freg);
+		tl.add_task(new task_copy_link(source[lev], jgrid, igrid, freg, 0));
 	}
     }
     tl.execute();
@@ -680,7 +680,7 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	{
 	    const int jgrid = lev_interface[mglev].grid(0, icor, i);
 	    if (jgrid >= 0 && jgrid != igrid)
-		internal_copy(source[lev], jgrid, igrid, freg);
+		tl.add_task(new task_copy_link(source[lev], jgrid, igrid, freg, 0));
 	}
     }
     tl.execute();
@@ -789,7 +789,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	{
 	    const int jgrid = lev_interface[mglev].grid(1, iedge, i);
 	    if (jgrid >= 0 && jgrid != igrid)
-		internal_copy(source[lev], jgrid, igrid, freg);
+		tl.add_task(new task_copy_link(source[lev], jgrid, igrid, freg, 0));
 	}
     }
     
@@ -838,7 +838,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	{
 	    const int jgrid = lev_interface[mglev].grid(0, icor, i);
 	    if (jgrid >= 0 && jgrid != igrid)
-		internal_copy(source[lev], jgrid, igrid, freg);
+		tl.add_task(new task_copy_link(source[lev], jgrid, igrid, freg, 0));
 	}
     }
     tl.execute();
@@ -897,7 +897,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    {
 		const int jgrid = lev_interface[mglev].grid(0, icor, i);
 		if (jgrid >= 0 && jgrid != igrid)
-		    internal_copy(source[lev], jgrid, igrid, freg);
+		    tl.add_task(new task_copy_link(source[lev], jgrid, igrid, freg, 0));
 	    }
 	}
 	else if (geo == level_interface::LL || geo == level_interface::HL || geo == level_interface::LH || geo == level_interface::HH) 
@@ -945,7 +945,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    {
 		const int jgrid = lev_interface[mglev].grid(0, icor, i);
 		if (jgrid >= 0 && jgrid != igrid)
-		    internal_copy(source[lev], jgrid, igrid, freg);
+		    tl.add_task(new task_copy_link(source[lev], jgrid, igrid, freg, 0));
 	    }
 	}
 	else 
@@ -1005,7 +1005,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    {
 		const int jgrid = lev_interface[mglev].grid(0, icor, i);
 		if (jgrid >= 0 && jgrid != igrid)
-		    internal_copy(source[lev], jgrid, igrid, freg);
+		    tl.add_task(new copy_task_link(source[lev], jgrid, igrid, freg, 0));
 	    }
 	}
     }
