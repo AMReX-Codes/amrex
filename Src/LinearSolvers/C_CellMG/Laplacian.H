@@ -1,8 +1,10 @@
+//BL_COPYRIGHT_NOTICE
+
 #ifndef _LAPLACIAN_H_
 #define _LAPLACIAN_H_
 
 //
-// $Id: Laplacian.H,v 1.2 1998-04-15 21:25:58 marc Exp $
+// $Id: Laplacian.H,v 1.3 1998-07-07 17:25:14 lijewski Exp $
 //
 
 #include <LinOp.H>
@@ -35,42 +37,39 @@
   functions prior to call.
         
   This class does NOT provide a copy constructor or assignment operator.
-        
   */
 
 class Laplacian
-    : public LinOp
+    :
+    public LinOp
 {
 public:
-    
-    //@ManMemo: administrative functions
-
     //
     //@ManDoc: constructor (merely falls through to LinOp constructor)
     //
-    Laplacian(const BndryData& bd, Real _h)
-        : LinOp(bd,_h) {}
+    Laplacian (const BndryData& bd,
+               Real             _h)
+        :
+        LinOp(bd,_h) {}
     //
     //@ManDoc: destructor
     //
     ~Laplacian() {}
     
 protected:
-    
-    //@ManMemoDoc: apply the operator
-
     //
     //@ManDoc: compute out=L(in) at level=level
     //
-    virtual void Fapply(MultiFab &out, const MultiFab &in, int level);
-    
-    //@ManMemoDoc: smooth the residual
-
+    virtual void Fapply (MultiFab&       out,
+                         const MultiFab& in,
+                         int             level);
     //
     //@ManDoc: apply smoother to improve residual to L(solnL)=rhsL
     //
-    virtual void Fsmooth(MultiFab &solnL, const MultiFab &rhsL, int level,
-                         int rgbflag);
+    virtual void Fsmooth (MultiFab&       solnL,
+                          const MultiFab& rhsL,
+                          int             level,
+                          int             rgbflag);
 };
 
-#endif
+#endif /*_LAPLACIAN_H_*/

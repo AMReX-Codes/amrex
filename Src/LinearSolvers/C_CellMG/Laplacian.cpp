@@ -1,6 +1,7 @@
+//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Laplacian.cpp,v 1.2 1998-04-15 21:25:58 marc Exp $
+// $Id: Laplacian.cpp,v 1.3 1998-07-07 17:25:14 lijewski Exp $
 //
 
 #include <Laplacian.H>
@@ -8,42 +9,44 @@
 #include <LP_F.H>
 
 void
-Laplacian::Fsmooth(MultiFab &solnL, const MultiFab &rhsL,
-                         int level, int redBlackFlag)
+Laplacian::Fsmooth (MultiFab&       solnL,
+                    const MultiFab& rhsL,
+                    int             level,
+                    int             redBlackFlag)
 {
-    const BoxArray &bxa = gbox[level];
+    const BoxArray& bxa = gbox[level];
     OrientationIter oitr;
-    const FabSet &f0 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet &f1 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet &f2 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet &f3 = (*undrrelxr[level])[oitr()]; oitr++;
+    const FabSet& f0 = (*undrrelxr[level])[oitr()]; oitr++;
+    const FabSet& f1 = (*undrrelxr[level])[oitr()]; oitr++;
+    const FabSet& f2 = (*undrrelxr[level])[oitr()]; oitr++;
+    const FabSet& f3 = (*undrrelxr[level])[oitr()]; oitr++;
 #if (BL_SPACEDIM > 2)
-    const FabSet &f4 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet &f5 = (*undrrelxr[level])[oitr()]; oitr++;
+    const FabSet& f4 = (*undrrelxr[level])[oitr()]; oitr++;
+    const FabSet& f5 = (*undrrelxr[level])[oitr()]; oitr++;
 #endif
     int nc = rhsL.nComp();
-    //for(int gn = 0; gn < solnL.length(); ++gn) {
-    for(MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(false); ++solnLmfi) {
-      DependentMultiFabIterator rhsLmfi(solnLmfi, rhsL);
-      DependentFabSetIterator f0fsi(solnLmfi, f0);
-      DependentFabSetIterator f1fsi(solnLmfi, f1);
-      DependentFabSetIterator f2fsi(solnLmfi, f2);
-      DependentFabSetIterator f3fsi(solnLmfi, f3);
+
+    for (MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(false); ++solnLmfi)
+    {
+        DependentMultiFabIterator rhsLmfi(solnLmfi, rhsL);
+        DependentFabSetIterator f0fsi(solnLmfi, f0);
+        DependentFabSetIterator f1fsi(solnLmfi, f1);
+        DependentFabSetIterator f2fsi(solnLmfi, f2);
+        DependentFabSetIterator f3fsi(solnLmfi, f3);
 #if (BL_SPACEDIM > 2)
-      DependentFabSetIterator f4fsi(solnLmfi, f4);
-      DependentFabSetIterator f5fsi(solnLmfi, f5);
+        DependentFabSetIterator f4fsi(solnLmfi, f4);
+        DependentFabSetIterator f5fsi(solnLmfi, f5);
 #endif
         oitr.rewind();
         int gn = solnLmfi.index();
-        const Mask &m0 = *maskvals[level][gn][oitr()]; oitr++;
-        const Mask &m1 = *maskvals[level][gn][oitr()]; oitr++;
-        const Mask &m2 = *maskvals[level][gn][oitr()]; oitr++;
-        const Mask &m3 = *maskvals[level][gn][oitr()]; oitr++;
+        const Mask& m0 = *maskvals[level][gn][oitr()]; oitr++;
+        const Mask& m1 = *maskvals[level][gn][oitr()]; oitr++;
+        const Mask& m2 = *maskvals[level][gn][oitr()]; oitr++;
+        const Mask& m3 = *maskvals[level][gn][oitr()]; oitr++;
 #if (BL_SPACEDIM > 2 )
-        const Mask &m4 = *maskvals[level][gn][oitr()]; oitr++;
-        const Mask &m5 = *maskvals[level][gn][oitr()]; oitr++;
+        const Mask& m4 = *maskvals[level][gn][oitr()]; oitr++;
+        const Mask& m5 = *maskvals[level][gn][oitr()]; oitr++;
 #endif
-
         assert(bxa[solnLmfi.index()] == solnLmfi.validbox());
 
 #if (BL_SPACEDIM == 2)
@@ -109,20 +112,22 @@ Laplacian::Fsmooth(MultiFab &solnL, const MultiFab &rhsL,
 }
 
 void
-Laplacian::Fapply(MultiFab& y, const MultiFab &x, int level)
+Laplacian::Fapply (MultiFab&       y,
+                   const MultiFab& x,
+                   int             level)
 {
     int nc = y.nComp();
-    //for(int gn = 0; gn < y.length(); ++gn) {
-    for(MultiFabIterator ymfi(y); ymfi.isValid(false); ++ymfi) {
-	DependentMultiFabIterator xmfi(ymfi,  x);
-        FORT_ADOTX(
-            ymfi().dataPtr(), 
-            ARLIM(ymfi().loVect()), ARLIM(ymfi().hiVect()),
-            xmfi().dataPtr(), 
-            ARLIM(xmfi().loVect()), ARLIM(xmfi().hiVect()),
-            ymfi.validbox().loVect(), ymfi.validbox().hiVect(), &nc,
-            h[level]
-            );
+
+    for (MultiFabIterator ymfi(y); ymfi.isValid(false); ++ymfi)
+    {
+        DependentMultiFabIterator xmfi(ymfi,  x);
+
+        FORT_ADOTX(ymfi().dataPtr(), 
+                   ARLIM(ymfi().loVect()), ARLIM(ymfi().hiVect()),
+                   xmfi().dataPtr(), 
+                   ARLIM(xmfi().loVect()), ARLIM(xmfi().hiVect()),
+                   ymfi.validbox().loVect(), ymfi.validbox().hiVect(), &nc,
+                   h[level]);
     }
 }
 
