@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Interpolater.cpp,v 1.12 1998-06-30 04:08:16 lijewski Exp $
+// $Id: Interpolater.cpp,v 1.13 1998-07-16 18:19:18 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -46,24 +46,53 @@ Box
 NodeBilinear::CoarseBox (const Box& fine,
                          int        ratio)
 {
-    return ::coarsen(fine,ratio);
+    Box b = ::coarsen(fine,ratio);
+
+    for (int i = 0; i < BL_SPACEDIM; i++)
+    {
+        if (b.length(i) < 2)
+        {
+            //
+            // Don't want degenerate boxes.
+            //
+            b.growHi(i,1);
+        }
+    }
+
+    return b;
 }
 
 Box
 NodeBilinear::CoarseBox (const Box&     fine,
                          const IntVect& ratio)
 {
-    return ::coarsen(fine,ratio);
+    Box b = ::coarsen(fine,ratio);
+
+    for (int i = 0; i < BL_SPACEDIM; i++)
+    {
+        if (b.length(i) < 2)
+        {
+            //
+            // Don't want degenerate boxes.
+            //
+            b.growHi(i,1);
+        }
+    }
+
+    return b;
 }
 
 void
-NodeBilinear::interp (const FArrayBox& crse, int crse_comp,
-                      FArrayBox& fine, int fine_comp,
-                      int ncomp,
-                      const Box& fine_region, const IntVect & ratio,
+NodeBilinear::interp (const FArrayBox& crse,
+                      int              crse_comp,
+                      FArrayBox&       fine,
+                      int              fine_comp,
+                      int              ncomp,
+                      const Box&       fine_region,
+                      const IntVect&   ratio,
                       const Geometry& /* crse_geom */,
                       const Geometry& /* fine_geom */,
-                      Array<BCRec>& /*bcr*/)
+                      Array<BCRec>&   /*bcr*/)
 {
     //
     // Set up to call FORTRAN.
