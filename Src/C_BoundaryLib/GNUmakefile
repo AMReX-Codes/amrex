@@ -1,52 +1,48 @@
 #
-# $Id: GNUmakefile,v 1.2 1998-10-28 17:49:32 lijewski Exp $
+# $Id: GNUmakefile,v 1.3 1998-10-29 16:54:57 lijewski Exp $
 #
-
 PBOXLIB_HOME = ..
+
+TOP = $(PBOXLIB_HOME)
 
 PRECISION = DOUBLE
 DEBUG = TRUE
 DIM = 3
 COMP = KCC
 USE_MPI = TRUE
-
 #
 # The base name of the library we're building.
 #
 LBASE = bndry
-
 #
 # Where libraries and include files will be installed.
 #
-INSTALL_ROOT = $(PBOXLIB_HOME)
+INSTALL_ROOT = $(TOP)
 
-include ../mk/Make.defs Make.package
+include $(TOP)/mk/Make.defs ./Make.package
 
-INCLUDE_LOCATIONS += ../include
+INCLUDE_LOCATIONS += $(TOP)/include
 
 ifeq ($(USE_MPI), TRUE)
 DEFINES += -DBL_USE_MPI
 LIBRARIES += -lmpi
 ifeq ($(MACHINE), OSF1)
-MPI_HOME = /usr/local/mpi
-INCLUDE_LOCATIONS += $(MPI_HOME)/include
-LIBRARY_LOCATIONS += $(MPI_HOME)/lib/alpha/ch_p4
+INCLUDE_LOCATIONS += /usr/local/mpi/include
+LIBRARY_LOCATIONS += /usr/local/mpi/lib/alpha/ch_p4
 endif
 endif
 
 ifeq ($(KCC_VERSION),3.3)
 CXXFLAGS += --one_instantiation_per_object
 endif
-
 #
 # Libraries to close against.
 #
 ifeq ($(COMP), KCC)
-LibsToCloseAgainst := ../lib/$(machineSuffix)/libbox$(DIM)d.a
+LibsToCloseAgainst := $(TOP)/lib/$(machineSuffix)/libbox$(DIM)d.a
 endif
 
 all: $(optionsLib)
-
 #
 # `install' does NOT try to build and install the HTML stuff.
 # doc++ isn't widely distributed enough to assume that.
@@ -54,15 +50,13 @@ all: $(optionsLib)
 #
 install: all
 
-include ../mk/Make.rules
-
+include $(TOP)/mk/Make.rules
 #
 # Temp stuff for doing html docs.
 #
 _docHeaders := $(sort $(wildcard *.H))
 
 _htmlDir := html
-
 #
 # This will make the HTML files in the directory html provided
 # any of the relevant .H files have changed more recently than the
