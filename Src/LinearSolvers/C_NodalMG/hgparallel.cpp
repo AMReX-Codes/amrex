@@ -14,10 +14,7 @@ bool task::depend_ready()
 
 // TASK_COPY
 task_copy::task_copy(MultiFab& mf, int dgrid, const MultiFab& smf, int sgrid, const Box& bx)
-: m_mf(mf), m_dgrid(dgrid), m_smf(smf), m_sgrid(sgrid), m_bx(bx), m_sbx(bx), m_local(false)
-#ifdef BL_USE_MPI
-, tmp(0), m_request(MPI_REQUEST_NULL)
-#endif
+: m_mf(mf), m_dgrid(dgrid), m_smf(smf), m_sgrid(sgrid), m_bx(bx), m_sbx(bx), m_local(false), tmp(0), m_request(MPI_REQUEST_NULL)
 {
 }
 
@@ -35,20 +32,15 @@ bool task_copy::depends_on_q(const task* t1) const
 }
 
 task_copy::task_copy(MultiFab& mf, int dgrid, const Box& db, const MultiFab& smf, int sgrid, const Box& sb)
-: m_mf(mf), m_bx(db), m_dgrid(dgrid), m_smf(smf), m_sbx(sb), m_sgrid(sgrid), m_local(false)
-#ifdef BL_USE_MPI
-, tmp(0), m_request(MPI_REQUEST_NULL)
-#endif
+: m_mf(mf), m_bx(db), m_dgrid(dgrid), m_smf(smf), m_sbx(sb), m_sgrid(sgrid), m_local(false), tmp(0), m_request(MPI_REQUEST_NULL)
 {
 }
 			// r[jgrid].copy(r[igrid], bb, 0, b, 0, r.nComp());
 
 task_copy::~task_copy()
 {
-#ifdef BL_USE_MPI
     delete tmp;
     assert( m_request == MPI_REQUEST_NULL);
-#endif
 }
 
 #if 0
@@ -66,44 +58,46 @@ bool task_copy::init(sequence_number sno, MPI_Comm comm)
     }
 }
 
+void task_copy::startup()
+{
+    if ( is_local(m_mf, m_dgrid) && is_local(m_smf, m_sgrid) )
+    {
+	m_local = true;
+    }
+    else if ( is_local(m_mf, m_dgrid) )
+    {
+	tmp = new FArrayBox(m_sbx, m_smf.nComp());
+	int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, m_comm, &m_request);
+	if ( res != 0 )
+	    ParallelDescriptor::Abort(res);
+	assert( m_request != MPI_REQUEST_NULL );
+    }
+    else if ( is_local(m_smf, m_sgrid) ) 
+    {
+	tmp = new FArrayBox(m_sbx, m_smf.nComp());
+	// before I can post the receive, I have to ensure that there are no dependent zones in the
+	// grid
+	tmp->copy(m_smf[m_sgrid], m_sbx);
+	HG_DEBUG_OUT( "<< Norm(S) of tmp " << m_sno << " " << tmp->norm(m_sbx, 2) << endl );
+	HG_DEBUG_OUT( "<<<Box(S) of tmp "   << m_sno << " " << tmp->box() << endl );
+	// printRange(debug_out, *tmp, m_sbx, 0, tmp->nComp());
+	int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_mf,  m_dgrid), m_sno, m_comm, &m_request);
+	if ( res != 0 )
+	    ParallelDescriptor::Abort(res);
+	assert( m_request != MPI_REQUEST_NULL );
+    }
+    else
+    {
+	BoxLib::Error("task_copy::ready: Can't be here");
+	// neither fab lives on local processor
+    }
+    m_started = true;
+}
+
 bool task_copy::ready()
 {
     if ( ! depend_ready() ) return false;
-    if ( ! m_started )
-    {
-	if ( is_local(m_mf, m_dgrid) && is_local(m_smf, m_sgrid) )
-	{
-	    m_local = true;
-	}
-	else if ( is_local(m_mf, m_dgrid) )
-	{
-	    tmp = new FArrayBox(m_sbx, m_smf.nComp());
-	    int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, m_comm, &m_request);
-	    if ( res != 0 )
-		ParallelDescriptor::Abort(res);
-	    assert( m_request != MPI_REQUEST_NULL );
-	}
-	else if ( is_local(m_smf, m_sgrid) ) 
-	{
-	    tmp = new FArrayBox(m_sbx, m_smf.nComp());
-	    // before I can post the receive, I have to ensure that there are no dependent zones in the
-	    // grid
-	    tmp->copy(m_smf[m_sgrid], m_sbx);
-	    HG_DEBUG_OUT( "<< Norm(S) of tmp " << m_sno << " " << tmp->norm(m_sbx, 2) << endl );
-	    HG_DEBUG_OUT( "<<<Box(S) of tmp "   << m_sno << " " << tmp->box() << endl );
-	    // printRange(debug_out, *tmp, m_sbx, 0, tmp->nComp());
-	    int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_mf,  m_dgrid), m_sno, m_comm, &m_request);
-	    if ( res != 0 )
-		ParallelDescriptor::Abort(res);
-	    assert( m_request != MPI_REQUEST_NULL );
-	}
-	else
-	{
-	    BoxLib::Error("task_copy::ready: Can't be here");
-	    // neither fab lives on local processor
-	}
-	m_started = true;
-    }
+    if ( ! m_started ) startup();
     if ( m_local )
     {
 	HG_DEBUG_OUT( "Norm(L) " << m_sno << " " << m_smf[m_sgrid].norm(m_sbx, 2) << endl );
@@ -146,7 +140,6 @@ bool task_copy::init(sequence_number sno, MPI_Comm comm)
     m_sno = sno;
     assert( m_sbx.numPts() == m_bx.numPts() );
     // debug_out << "task_copy::init " << m_mf.nComp() << ' ' << m_smf.nComp() << endl;
-#ifdef BL_USE_MPI
     if ( is_local(m_mf, m_dgrid) && is_local(m_smf, m_sgrid) )
     {
 	m_local = true;
@@ -178,9 +171,6 @@ bool task_copy::init(sequence_number sno, MPI_Comm comm)
 	// neither fab lives on local processor
 	return false;
     }
-#else
-    m_local = true;
-#endif
     return true;
 }
 
@@ -194,7 +184,6 @@ bool task_copy::ready()
 	m_mf[m_dgrid].copy(m_smf[m_sgrid], m_sbx, 0, m_bx, 0, m_mf.nComp());
 	return true;
     }
-#ifdef BL_USE_MPI
     int flag;
     MPI_Status status;
     assert( m_request != MPI_REQUEST_NULL );
@@ -221,7 +210,6 @@ bool task_copy::ready()
 	return true;
     }
     return false;
-#endif
 }
 
 #endif
