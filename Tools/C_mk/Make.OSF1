@@ -1,5 +1,5 @@
 #
-# $Id: Make.OSF1,v 1.14 1999-05-24 17:51:57 car Exp $
+# $Id: Make.OSF1,v 1.15 1999-09-10 20:53:01 lijewski Exp $
 #
 
 #
@@ -51,11 +51,12 @@ FC = f90
 
 ifeq ($(PRECISION),FLOAT)
   FOPTF += -fast -O -tune host
+  FDEBF += -g -C -u
 else
-  FOPTF += -fast -O -tune host
+  FOPTF += -fast -O -tune host -fpconstant
+  FDEBF += -g -C -u -fpconstant
 endif
 
-FDEBF += -g -C -u
 FPRFF +=
 
 CPP    = /usr/bin/cpp
