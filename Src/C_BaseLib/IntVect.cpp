@@ -1,5 +1,5 @@
 //
-// $Id: IntVect.cpp,v 1.17 2001-07-26 20:08:45 lijewski Exp $
+// $Id: IntVect.cpp,v 1.18 2001-07-31 22:43:18 lijewski Exp $
 //
 #include <algorithm>
 #include <cstdlib>
@@ -39,16 +39,6 @@ IntVect::TheCellVector ()
     return Cell;
 }
 
-IntVect::IntVect ()
-{
-    D_EXPR(vect[0] = 0, vect[1] = 0, vect[2] = 0);
-}
-
-IntVect::IntVect (D_DECL(int i, int j, int k))
-{
-    D_EXPR(vect[0] = i, vect[1] = j, vect[2] = k);
-}
-
 IntVect::IntVect (const int *a)
 {
     D_EXPR(vect[0] = a[0], vect[1] = a[1], vect[2] = a[2]);
@@ -58,83 +48,6 @@ IntVect::IntVect (const Array<int> &a)
 {
     BL_ASSERT(a.size() == BL_SPACEDIM);
     D_EXPR(vect[0] = a[0], vect[1] = a[1], vect[2] = a[2]);
-}
-
-IntVect::IntVect (const IntVect &iv)
-{
-    D_EXPR(vect[0]=iv.vect[0], vect[1]=iv.vect[1], vect[2]=iv.vect[2]);
-}
-
-IntVect&
-IntVect::operator= (const IntVect &iv)
-{
-    D_EXPR(vect[0]=iv.vect[0], vect[1]=iv.vect[1], vect[2]=iv.vect[2]);
-    return *this;
-}
-
-int&
-IntVect::operator[] (int i)
-{
-    BL_ASSERT(i>=0 && i < BL_SPACEDIM);
-    return vect[i];
-}
-
-int
-IntVect::operator[] (int i) const
-{
-    BL_ASSERT(i>=0 && i < BL_SPACEDIM);
-    return vect[i];
-}
-
-IntVect&
-IntVect::setVal (int i,
-                 int val)
-{
-    BL_ASSERT(i >=0 && i < BL_SPACEDIM);
-    vect[i] = val;
-    return *this;
-}
-
-const int*
-IntVect::getVect () const
-{
-    return vect;
-}
-
-bool
-IntVect::operator== (const IntVect& p) const
-{
-    return D_TERM(vect[0] == p[0], && vect[1] == p[1], && vect[2] == p[2]);
-}
-
-bool
-IntVect::operator!= (const IntVect& p) const
-{
-    return D_TERM(vect[0] != p[0], || vect[1] != p[1], || vect[2] != p[2]);
-}
-
-bool
-IntVect::operator< (const IntVect& p) const
-{
-    return D_TERM(vect[0] < p[0], && vect[1] < p[1], && vect[2] < p[2]);
-}
-
-bool
-IntVect::operator<= (const IntVect& p) const
-{
-    return D_TERM(vect[0] <= p[0], && vect[1] <= p[1], && vect[2] <= p[2]);
-}
-
-bool
-IntVect::operator> (const IntVect& p) const
-{
-    return D_TERM(vect[0] > p[0], && vect[1] > p[1], && vect[2] > p[2]);
-}
-
-bool
-IntVect::operator>= (const IntVect& p) const
-{
-    return D_TERM(vect[0] >= p[0], && vect[1] >= p[1], && vect[2] >= p[2]);
 }
 
 bool
@@ -171,122 +84,6 @@ IntVect::lexGT (const IntVect& s) const
 #undef LGT0
 #undef LGT1
 #undef LGT2
-}
-
-IntVect
-IntVect::operator+ () const
-{
-    return *this;
-}
-
-IntVect
-IntVect::operator- () const
-{
-    return IntVect(D_DECL(-vect[0], -vect[1], -vect[2] ));
-}
-
-IntVect&
-IntVect::operator+= (int s)
-{
-    D_EXPR(vect[0] += s, vect[1] += s, vect[2] += s);
-    return *this;
-}
-
-IntVect&
-IntVect::operator+= (const IntVect& p)
-{
-    D_EXPR(vect[0] += p[0], vect[1] += p[1], vect[2] += p[2]);
-    return *this;
-}
-
-IntVect&
-IntVect::operator*= (int s)
-{
-    D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s);
-    return *this;
-}
-
-IntVect&
-IntVect::operator*= (const IntVect &p)
-{
-    D_EXPR(vect[0] *= p[0], vect[1] *= p[1], vect[2] *= p[2]);
-    return *this;
-}
-
-IntVect&
-IntVect::operator/= (int s)
-{
-    D_EXPR(vect[0] /= s, vect[1] /= s, vect[2] /= s);
-    return *this;
-}
-
-IntVect&
-IntVect::operator/= (const IntVect& p)
-{
-    D_EXPR(vect[0] /= p[0], vect[1] /= p[1], vect[2] /= p[2]);
-    return *this;
-}
-
-IntVect&
-IntVect::operator-= (int s)
-{
-    D_EXPR(vect[0] -= s, vect[1] -= s, vect[2] -= s);
-    return *this;
-}
-
-IntVect&
-IntVect::operator-= (const IntVect& p)
-{
-    D_EXPR(vect[0] -= p[0], vect[1] -= p[1], vect[2] -= p[2]);
-    return *this;
-}
-
-IntVect
-IntVect::operator+ (const IntVect& p) const
-{
-    return IntVect(D_DECL(vect[0] + p[0], vect[1] + p[1], vect[2] + p[2]));
-}
-
-IntVect
-IntVect::operator+ (int s) const
-{
-    return IntVect(D_DECL(vect[0] + s, vect[1] + s, vect[2] + s));
-}
-
-IntVect
-IntVect::operator- (const IntVect& p) const
-{
-    return IntVect(D_DECL(vect[0] - p[0], vect[1] - p[1], vect[2] - p[2]));
-}
-
-IntVect
-IntVect::operator- (int s) const
-{
-    return IntVect(D_DECL(vect[0] - s, vect[1] - s, vect[2] - s));
-}
-
-IntVect
-IntVect::operator* (const IntVect& p) const
-{
-    return IntVect(D_DECL(vect[0] * p[0], vect[1] * p[1], vect[2] * p[2]));
-}
-
-IntVect
-IntVect::operator* (int s) const
-{
-    return IntVect(D_DECL(vect[0] * s, vect[1] * s, vect[2] * s));
-}
-
-IntVect
-IntVect::operator/ (const IntVect& p) const
-{
-    return IntVect(D_DECL(vect[0] / p[0], vect[1] / p[1], vect[2] / p[2]));
-}
-
-IntVect
-IntVect::operator/ (int s) const
-{
-    return IntVect(D_DECL(vect[0] / s, vect[1] / s, vect[2] / s));
 }
 
 IntVect&

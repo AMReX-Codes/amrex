@@ -1,5 +1,5 @@
 //
-// $Id: UseCount.cpp,v 1.1 2001-07-19 20:02:47 lijewski Exp $
+// $Id: UseCount.cpp,v 1.2 2001-07-31 22:43:19 lijewski Exp $
 //
 
 #include <UseCount.H>
@@ -14,12 +14,6 @@ UseCount::UseCount (const UseCount& rhs)
     cnt(rhs.cnt)
 {
     ++*cnt;
-}
-
-bool
-UseCount::unique () const
-{
-    return *cnt == 1;
 }
 
 void
@@ -48,10 +42,4 @@ UseCount::operator= (const UseCount& rhs)
 UseCount::~UseCount ()
 {
     decrement();
-}
-
-int
-UseCount::linkCount () const
-{
-    return *cnt;
 }

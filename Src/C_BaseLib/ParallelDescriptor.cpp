@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.84 2001-07-31 17:56:27 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.85 2001-07-31 22:43:19 lijewski Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -21,7 +21,6 @@ FabComTag::FabComTag ()
     procThatNeedsData = 0;
     procThatHasData   = 0;
 }
-
 //
 // Definition of non-inline members of CommData.
 //

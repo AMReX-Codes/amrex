@@ -1,7 +1,7 @@
 #ifndef BL_ARRAY_H
 #define BL_ARRAY_H
 //
-// $Id: Array.H,v 1.28 2001-07-31 17:56:24 lijewski Exp $
+// $Id: Array.H,v 1.29 2001-07-31 22:43:16 lijewski Exp $
 //
 #include <cstddef>
 #include <vector>
@@ -125,6 +125,7 @@ private:
 };
 
 template <class T>
+inline
 int
 Array<T>::size () const
 {
@@ -132,6 +133,7 @@ Array<T>::size () const
 }
 
 template <class T>
+inline
 T&
 Array<T>::operator[] (size_t i)
 {
@@ -141,6 +143,7 @@ Array<T>::operator[] (size_t i)
 }
 
 template <class T>
+inline
 const T&
 Array<T>::operator[] (size_t i) const
 {
@@ -150,6 +153,7 @@ Array<T>::operator[] (size_t i) const
 }
 
 template <class T>
+inline
 T&
 Array<T>::get (size_t i)
 {
@@ -158,6 +162,7 @@ Array<T>::get (size_t i)
 }
 
 template <class T>
+inline
 const T&
 Array<T>::get (size_t i) const
 {
@@ -166,6 +171,7 @@ Array<T>::get (size_t i) const
 }
 
 template <class T>
+inline
 void
 Array<T>::set (size_t     i,
                const T& elem)
@@ -174,6 +180,7 @@ Array<T>::set (size_t     i,
 }
 
 template <class T>
+inline
 T*
 Array<T>::dataPtr ()
 {
@@ -181,6 +188,7 @@ Array<T>::dataPtr ()
 }
 
 template <class T>
+inline
 const T*
 Array<T>::dataPtr () const
 {

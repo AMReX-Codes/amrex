@@ -1,28 +1,10 @@
 //
-// $Id: BoxArray.cpp,v 1.27 2001-07-31 17:56:25 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.28 2001-07-31 22:43:17 lijewski Exp $
 //
 #include <iostream>
 
 #include <BLassert.H>
 #include <BoxArray.H>
-
-int
-BoxArray::size () const
-{
-    return m_ref->m_abox.size();
-}
-
-const Box&
-BoxArray::operator[] (int index) const
-{
-    return m_ref->m_abox.get(index);
-}
-
-const Box&
-BoxArray::get (int index) const
-{
-    return m_ref->m_abox.get(index);
-}
 
 void
 BoxArray::reserve (long _truesize)

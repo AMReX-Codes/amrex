@@ -1,7 +1,7 @@
 #ifndef BL_USECOUNT_H
 #define BL_USECOUNT_H
 //
-// $Id: UseCount.H,v 1.12 2001-07-26 20:08:46 lijewski Exp $
+// $Id: UseCount.H,v 1.13 2001-07-31 22:43:19 lijewski Exp $
 //
 #include <BLassert.H>
 #include <BoxLib.H>
@@ -55,5 +55,19 @@ private:
     //
     void decrement ();
 };
+
+inline
+bool
+UseCount::unique () const
+{
+    return *cnt == 1;
+}
+
+inline
+int
+UseCount::linkCount () const
+{
+    return *cnt;
+}
 
 #endif /*BL_USECOUNT_H*/

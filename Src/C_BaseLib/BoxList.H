@@ -1,7 +1,7 @@
 #ifndef BL_BOXLIST_H
 #define BL_BOXLIST_H
 //
-// $Id: BoxList.H,v 1.27 2001-07-26 20:08:44 lijewski Exp $
+// $Id: BoxList.H,v 1.28 2001-07-31 22:43:17 lijewski Exp $
 //
 #include <iosfwd>
 #include <list>
@@ -288,5 +288,98 @@ private:
     //
     IndexType btype;
 };
+
+inline
+BoxList::iterator
+BoxList::begin()
+{
+    return lbox.begin();
+}
+
+inline
+BoxList::const_iterator
+BoxList::begin() const
+{
+    return lbox.begin();
+}
+
+inline
+BoxList::iterator
+BoxList::end()
+{
+    return lbox.end();
+}
+
+inline
+BoxList::const_iterator
+BoxList::end() const
+{
+    return lbox.end();
+}
+
+inline
+IndexType
+BoxList::ixType () const
+{
+    return btype;
+}
+
+inline
+void
+BoxList::append (const Box& bn)
+{
+    BL_ASSERT(ixType() == bn.ixType());
+    lbox.push_back(bn);
+}
+
+inline
+void
+BoxList::prepend (const Box& bn)
+{
+    BL_ASSERT(ixType() == bn.ixType());
+    lbox.push_front(bn);
+}
+
+inline
+bool
+BoxList::isEmpty () const
+{
+    return lbox.empty();
+}
+
+inline
+int
+BoxList::size () const
+{
+    return lbox.size();
+}
+
+inline
+bool
+BoxList::isNotEmpty () const
+{
+    return !lbox.empty();
+}
+
+inline
+std::list<Box>&
+BoxList::listBox()
+{
+    return lbox;
+}
+
+inline
+const std::list<Box>&
+BoxList::listBox() const
+{
+    return lbox;
+}
+
+inline
+void
+BoxList::clear ()
+{
+    lbox.clear();
+}
 
 #endif /*BL_BOXLIST_H*/

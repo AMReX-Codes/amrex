@@ -1,7 +1,7 @@
 #ifndef BL_BOX_H
 #define BL_BOX_H
 //
-// $Id: Box.H,v 1.22 2001-07-26 20:08:43 lijewski Exp $
+// $Id: Box.H,v 1.23 2001-07-31 22:43:17 lijewski Exp $
 //
 #ifdef NODEV
 #undef NODEV
@@ -583,5 +583,176 @@ protected:
     mutable IntVect len;
     IndexType       btype;
 };
+
+inline
+const IntVect&
+Box::smallEnd () const
+{
+    return smallend;
+}
+
+inline
+int
+Box::smallEnd (int dir) const
+{
+    return smallend[dir];
+}
+
+inline
+const IntVect&
+Box::bigEnd () const
+{
+    return bigend;
+}
+
+inline
+int
+Box::bigEnd (int dir) const
+{
+    return bigend[dir];
+}
+
+inline
+IndexType
+Box::ixType () const
+{
+    return btype;
+}
+
+inline
+IntVect
+Box::type () const
+{
+    return btype.ixType();
+}
+
+inline
+IndexType::CellIndex
+Box::type (int dir) const
+{
+    return btype.ixType(dir);
+}
+
+inline
+int
+Box::length (int dir) const
+{
+    return bigend[dir] - smallend[dir] + 1;
+}
+
+inline
+const int*
+Box::loVect () const
+{
+    return smallend.getVect();
+}
+
+inline
+const int*
+Box::hiVect () const
+{
+    return bigend.getVect();
+}
+
+inline
+const int*
+Box::getVect () const
+{
+    return smallend.getVect();
+}
+
+inline
+int
+Box::operator[] (const Orientation& face) const
+{
+    const int dir = face.coordDir();
+    return face.isLow() ? smallend[dir] : bigend[dir];
+}
+
+inline
+bool
+Box::numPtsOK () const
+{
+    long ignore;
+    return numPtsOK(ignore);
+}
+
+inline
+bool
+Box::isEmpty () const
+{
+    return numPts() == 0;
+}
+
+inline
+bool
+Box::sameType (const Box &b) const
+{
+    return btype == b.btype;
+}
+
+inline
+bool
+Box::contains (const IntVect& p) const
+{
+    return p >= smallend && p <= bigend;
+}
+
+inline
+bool
+Box::contains (const Box& b) const
+{
+    BL_ASSERT(sameType(b));
+    return b.smallend >= smallend && b.bigend <= bigend;
+}
+
+inline
+bool
+Box::sameSize (const Box& b) const
+{
+    BL_ASSERT(sameType(b));
+    return D_TERM(length(0) == b.length(0),
+                  && length(1)==b.length(1),
+                  && length(2)==b.length(2));
+}
+
+inline
+bool
+Box::operator== (const Box& b) const
+{
+    return smallend == b.smallend && bigend == b.bigend && b.btype == btype;
+}
+
+inline
+bool
+Box::operator!= (const Box& b) const
+{
+    return !operator==(b);
+}
+
+inline
+bool
+Box::cellCentered () const
+{
+    return !btype.any();
+}
+
+inline
+bool
+Box::ok () const
+{
+    return (bigend >= smallend) && btype.ok();
+}
+
+inline
+const IntVect&
+Box::length () const
+{
+    D_EXPR(len[0] = bigend[0]-smallend[0] + 1,
+           len[1] = bigend[1]-smallend[1] + 1,
+           len[2] = bigend[2]-smallend[2] + 1);
+
+    return len;
+}
 
 #endif /*BL_BOX_H*/

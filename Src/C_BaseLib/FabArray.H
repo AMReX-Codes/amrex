@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.148 2001-07-31 17:56:26 lijewski Exp $
+// $Id: FabArray.H,v 1.149 2001-07-31 22:43:18 lijewski Exp $
 //
 #include <cstring>
 #include <limits>
@@ -601,7 +601,156 @@ class FabArrayCopyDescriptor
     FabArrayCopyDescriptor<FAB>& operator= (const FabArrayCopyDescriptor<FAB> &);
 };
 
+inline
+int
+FabArrayBase::nGrow () const
+{
+    return n_grow;
+}
+
+inline
+const BoxArray&
+FabArrayBase::boxArray () const
+{
+    return boxarray;
+}
+
+inline
+const Box&
+FabArrayBase::box (int K) const
+{
+    return boxarray[K];
+}
+
+inline
+int
+FabArrayBase::size () const
+{
+    return boxarray.size();
+}
+
+inline
+int
+FabArrayBase::nComp () const
+{
+    return n_comp;
+}
+
+inline
+const DistributionMapping&
+FabArrayBase::DistributionMap () const
+{
+    return distributionMap;
+}
+
+inline
+MFIter::MFIter (const FabArrayBase& fabarray)
+    :
+    fabArray(fabarray),
+    currentIndex(0)
+{
+#ifdef BL_USE_MPI
+    //
+    // Increment the currentIndex to start at the first valid index
+    // for this ParallelDescriptor::MyProc.
+    //
+    const int MyProc = ParallelDescriptor::MyProc();
+
+    while (fabArray.DistributionMap()[currentIndex] != MyProc)
+    {
+        ++currentIndex;
+    }
+#endif
+}
+
+inline
+void
+MFIter::operator++ ()
+{
+#ifdef BL_USE_MPI
+    const int MyProc = ParallelDescriptor::MyProc();
+    //
+    // Go to the next index on this processor.
+    //
+    do
+    {
+        ++currentIndex;
+    }
+    while (fabArray.DistributionMap()[currentIndex] != MyProc);
+#else
+    ++currentIndex;
+#endif
+}
+
+inline
+bool
+MFIter::isValid ()
+{
+    BL_ASSERT(currentIndex >= 0);
+
+#if defined(BL_USE_MPI) && defined(HG_DEBUG)
+    extern bool HG_is_debugging;
+    if (HG_is_debugging)
+    {
+	if (currentIndex < fabArray.size()) return true;
+	BL_MPI_REQUIRE( MPI_Barrier(ParallelDescriptor::Communicator()) );
+	return false;
+    }
+#endif
+    return currentIndex < fabArray.size();
+}
+
+inline
+const FabArrayBase&
+MFIter::theFabArrayBase () const
+{
+    return fabArray;
+}
+
+inline
+int
+MFIter::index () const
+{
+    return currentIndex;
+}
+
+inline
+int
+FillBoxId::Id () const
+{
+    return m_fillBoxId;
+}
+
+inline
+int
+FillBoxId::FabIndex () const
+{
+    return m_fabIndex;
+}
+
+inline
+void
+FillBoxId::FabIndex (int fabindex)
+{
+    m_fabIndex = fabindex;
+}
+
+inline
+const Box&
+FillBoxId::box () const
+{
+    return m_fillBox;
+}
+
+inline
+int
+FabArrayId::Id () const
+{
+    return fabArrayId;
+}
+
 template <class FAB>
+inline
 const FAB&
 FabArray<FAB>::operator[] (const MFIter& mfi) const
 {
@@ -609,6 +758,7 @@ FabArray<FAB>::operator[] (const MFIter& mfi) const
 }
 
 template <class FAB>
+inline
 const FAB&
 FabArray<FAB>::get (const MFIter& mfi) const
 {
@@ -616,6 +766,7 @@ FabArray<FAB>::get (const MFIter& mfi) const
 }
 
 template <class FAB>
+inline
 FAB&
 FabArray<FAB>::operator[] (const MFIter& mfi)
 {
@@ -623,6 +774,7 @@ FabArray<FAB>::operator[] (const MFIter& mfi)
 }
 
 template <class FAB>
+inline
 FAB&
 FabArray<FAB>::get (const MFIter& mfi)
 {
@@ -630,6 +782,7 @@ FabArray<FAB>::get (const MFIter& mfi)
 }
 
 template <class FAB>
+inline
 const FAB&
 FabArray<FAB>::operator[] (int K) const
 {
@@ -637,6 +790,7 @@ FabArray<FAB>::operator[] (int K) const
 }
 
 template <class FAB>
+inline
 FAB&
 FabArray<FAB>::operator[] (int K)
 {
