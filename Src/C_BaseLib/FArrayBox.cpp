@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.20 1998-10-26 23:58:50 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.21 1998-10-28 18:43:04 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -192,7 +192,7 @@ FArrayBox::FArrayBox (const Box& b,
 #else
     setVal(FLT_QNAN);
 #endif
-#elif defined(BL_USE_NEW_HFILES) && !defined(__GNUC)
+#elif defined(BL_USE_NEW_HFILES) && !defined(__GNUC__)
     if ( std::numeric_limits<Real>::has_quiet_NaN )
 	setVal( std::numeric_limits<Real>::quiet_NaN() );
 #endif /*!defined(NDEBUG) && defined(BL_OSF1)*/
@@ -209,7 +209,7 @@ FArrayBox::resize (const Box& b,
 #else
     setVal(FLT_QNAN);
 #endif
-#elif defined(BL_USE_NEW_HFILES) && !defined(__GNUC)
+#elif defined(BL_USE_NEW_HFILES) && !defined(__GNUC__)
     if ( std::numeric_limits<Real>::has_quiet_NaN )
 	setVal( std::numeric_limits<Real>::quiet_NaN() );
 #endif /*!defined(NDEBUG) && defined(BL_OSF1)*/
