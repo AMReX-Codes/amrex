@@ -2,17 +2,12 @@
 #define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.22 2001-07-19 20:02:44 lijewski Exp $
+// $Id: FArrayBox.H,v 1.23 2001-07-20 16:54:08 lijewski Exp $
 //
-
-#include <iostream>
 
 #include <Pointers.H>
 #include <Box.H>
 #include <BaseFab.H>
-#include <ArithFab.H>
-#include <NormedFab.H>
-#include <OrderedFab.H>
 #include <REAL.H>
 #include <SPACE.H>
 
@@ -172,8 +167,7 @@ public:
   upon FAB's in C++, and they provide a convenient interface to
   `FORTRAN' when it is necessary to retreat into that language.
 
-  FArrayBox is derived from ArithFab<Real>, NormedFab<Real> and
-  OrderedFab<Real> and inherits many member functions from them.
+  FArrayBox is derived from BaseFab<Real>.
   FArrayBox adds additional useful capabilities which make sense
   for Real types, such as I/O and L**p norms.
 
@@ -208,9 +202,7 @@ public:
 
 class FArrayBox
     :
-    public ArithFab<Real>, 
-    public OrderedFab<Real>,
-    public NormedFab<Real>
+    public BaseFab<Real>
 {
     //
     // FABio is a friend of ours.
@@ -258,91 +250,6 @@ public:
                int        p     = 2,
                int        scomp = 0,
                int        ncomp = 1) const;
-#if 0
-    //
-    //@ManDoc: Print subrange of FAB in formatted form to output stream.
-    //
-    friend void printRange (std::ostream&    os,
-                            const FArrayBox& fab,
-                            const Box&       bx,
-                            int              scomp,
-                            int              ncomp = 1);
-#if   BL_SPACEDIM==1
-
-    /*@ManDoc: Print subrange defined by (ilo:ihi)
-               using components (scomp : scomp+ncomp-1).
-    */
-    friend void printRange (ostream&          os,
-                            const FArrayBox&  bx,
-                            int               ilo,
-                            int               ihi,
-                            int               scomp,
-                            int               ncomp = 1);
-
-    /*@ManDoc: Same as above but print to standard output.
-               This is useful for debugging.
-    */
-    friend void printRange (const FArrayBox&  fab,
-                            int               ilo,
-                            int               ihi,
-                            int               comp,
-                            int               ncomp = 1);
-#elif BL_SPACEDIM==2
-
-    /*@ManDoc: Print subrange defined by (ilo:ihi) X (jlo:jhi)
-               using components (scomp : scomp+ncomp-1).
-    */
-
-    friend void printRange (const FArrayBox&  fab,
-                            int               ilo,
-                            int               ihi,
-                            int               jlo,
-                            int               jhi,
-                            int               scomp,
-                            int               ncomp = 1);
- 
-    /*@ManDoc: Same as above but print to standard output.
-               This is useful for debugging.
-    */
-    friend void printRange (std::ostream&     os,
-                            const FArrayBox&  fab,
-                            int               ilo,
-                            int               ihi,
-                            int               jlo,
-                            int               jhi,
-                            int               scomp,
-                            int               ncomp = 1);
-#elif BL_SPACEDIM==3
-
-    /*@ManDoc: Print subrange defined by (ilo:ihi) X (jlo:jhi) X (klo:khi)
-               using components (scomp : scomp+ncomp-1).
-    */
-    friend void printRange (std::ostream&     os,
-                            const FArrayBox&  fab,
-                            int               ilo,
-                            int               ihi,
-                            int               jlo,
-                            int               jhi,
-                            int               klo,
-                            int               khi,
-                            int               scomp,
-                            int               ncomp = 1);
- 
-    /*@ManDoc: Same as above but print to standard output.
-               This is useful for debugging.
-    */
-    friend void printRange (const FArrayBox&,
-                            int               ilo,
-                            int               ihi,
-                            int               jlo,
-                            int               jhi,
-                            int               klo,
-                            int               khi,
-                            int               scomp,
-                            int               ncomp = 1);
-#endif /*printRange()*/
-
-#endif
     //
     //@ManDoc: Write FABs in ASCII form.
     //

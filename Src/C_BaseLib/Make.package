@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.23 2001-07-20 04:46:21 car Exp $
+# $Id: Make.package,v 1.24 2001-07-20 16:54:08 lijewski Exp $
 #
 
 BOXLIB_BASE=EXE
@@ -27,14 +27,14 @@ C$(BOXLIB_BASE)_headers += DistributionMapping.H ParallelDescriptor.H
 C$(BOXLIB_BASE)_sources += VisMF.cpp RunStats.cpp Arena.cpp BArena.cpp CArena.cpp
 C$(BOXLIB_BASE)_headers += VisMF.H RunStats.H Arena.H BArena.H CArena.H
 
-C$(BOXLIB_BASE)_sources += BLProfiler.cpp
-C$(BOXLIB_BASE)_headers += Profiler.H
+#C$(BOXLIB_BASE)_sources += BLProfiler.cpp
+#C$(BOXLIB_BASE)_headers += Profiler.H
 
-C$(BOXLIB_BASE)_sources += BLThread.cpp
-C$(BOXLIB_BASE)_headers += Thread.H
+#C$(BOXLIB_BASE)_sources += BLThread.cpp
+#C$(BOXLIB_BASE)_headers += Thread.H
 
-C$(BOXLIB_BASE)_sources += BLTimer.cpp
-C$(BOXLIB_BASE)_headers += Timer.H
+#C$(BOXLIB_BASE)_sources += BLTimer.cpp
+#C$(BOXLIB_BASE)_headers += Timer.H
 
 
 #
@@ -68,7 +68,7 @@ C$(BOXLIB_BASE)_headers += FArrayBox.H
 
 C$(BOXLIB_BASE)_headers += Looping.H
 
-T_headers += BaseFab.H ArithFab.H NormedFab.H OrderedFab.H
+T_headers += BaseFab.H
 
 #
 # FORTRAN data defined on unions of rectangles.
