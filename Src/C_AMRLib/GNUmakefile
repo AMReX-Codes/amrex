@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.9 1999-03-31 22:52:27 car Exp $
+# $Id: GNUmakefile,v 1.10 1999-05-24 18:11:44 car Exp $
 #
 PBOXLIB_HOME = ..
 TOP          = $(PBOXLIB_HOME)
@@ -39,15 +39,6 @@ endif
 include ./Make.package
 
 INCLUDE_LOCATIONS += $(TOP)/include
-
-ifeq ($(USE_MPI),TRUE)
-ifeq ($(MACHINE),OSF1)
-INCLUDE_LOCATIONS += /usr/local/mpi/include
-endif
-ifeq ($(MACHINE),AIX)
-INCLUDE_LOCATIONS += /usr/lpp/ppe.poe/include
-endif
-endif
 
 ifeq ($(KCC_VERSION),3.3)
 CXXFLAGS += --one_instantiation_per_object

@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.1 1999-02-24 23:31:21 sstanley Exp $
+# $Id: GNUmakefile,v 1.2 1999-05-24 18:11:46 car Exp $
 #
 PBOXLIB_HOME = ../../
 
@@ -60,18 +60,6 @@ INCLUDE_LOCATIONS += $(TOP)/hgproj-serial/include/$(DIM)d.$(PRVERSION)
 INCLUDE_LOCATIONS += $(TOP)/include
 LIBRARY_LOCATIONS += $(TOP)/hgproj-serial/lib/$(machineSuffix) $(TOP)/lib/$(machineSuffix)
 LIBRARIES         += -liamr$(DIM)d -lmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lproj$(DIM)d.$(PRVERSION) -lbox$(DIM)d
-endif
-
-ifeq ($(USE_MPI),TRUE)
-LIBRARIES += -lmpi
-ifeq ($(MACHINE),OSF1)
-INCLUDE_LOCATIONS += /usr/local/mpi/include
-LIBRARY_LOCATIONS += /usr/local/mpi/lib/alpha/ch_p4
-endif
-ifeq ($(MACHINE),AIX)
-INCLUDE_LOCATIONS += /usr/lpp/ppe.poe/include
-LIBRARY_LOCATIONS += /usr/lpp/ppe.poe/lib
-endif
 endif
 
 ifeq ($(USE_ARRAYVIEW),TRUE)

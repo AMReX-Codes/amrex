@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.23 1999-05-24 17:51:57 car Exp $
+# Make.defs $Id: Make.defs,v 1.24 1999-05-24 18:11:45 car Exp $
 #
 
 #
@@ -206,6 +206,7 @@ endif
 ifeq ($(USE_MPI),TRUE)
     MPISuffix	:= .MPI
     CPPFLAGS	+= -DBL_USE_MPI
+    include $(PBOXLIB_HOME)/mk/Make.mpi
 else
     MPISuffix	:=
 endif

@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.16 1999-03-31 22:52:28 car Exp $
+# $Id: GNUmakefile,v 1.17 1999-05-24 18:11:45 car Exp $
 #
 
 PBOXLIB_HOME = ..
@@ -21,15 +21,6 @@ LBASE = box
 INSTALL_ROOT = $(PBOXLIB_HOME)
 
 include $(TOP)/mk/Make.defs ./Make.package
-
-ifeq ($(USE_MPI),TRUE)
-ifeq ($(MACHINE),OSF1)
-INCLUDE_LOCATIONS += /usr/local/mpi/include
-endif
-ifeq ($(MACHINE),AIX)
-INCLUDE_LOCATIONS += /usr/lpp/ppe.poe/include
-endif
-endif
 
 ifeq ($(KCC_VERSION),3.3)
 CXXFLAGS += --one_instantiation_per_object
