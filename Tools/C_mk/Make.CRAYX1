@@ -3,11 +3,15 @@ FORT_CPP = cpp
 ifeq ($(COMP),CC)
   CXX     := CC
   CXX += -h conform
-  CXXOPTF += -O
+#Note: default optimization is -O2.  
+#Note: list=m gens loopmark listings
+  CXXOPTF += -h list=m
   CXXDEBF += -g
 endif
 
 FC     = ftn
+# Note: rm option generates loopmark listing
+FOPTF += -rm
 FDEBF += -g
 fDEBF += -g
 
