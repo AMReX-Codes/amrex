@@ -4,7 +4,7 @@
 #define _FABSET_H_
 
 //
-// $Id: FabSet.H,v 1.9 1998-05-22 21:52:49 lijewski Exp $
+// $Id: FabSet.H,v 1.10 1998-05-28 00:11:22 lijewski Exp $
 //
 
 #include <FArrayBox.H>
@@ -450,8 +450,6 @@ inline
 void
 FabSet::copyTo (MultiFab& dest) const
 {
-    assert(dest.nComp() == nComp());
-    assert(dest.nGrow() == nGrow());
     dest.copy(*this, 0, 0, nComp(), nGrow());
 }
 
