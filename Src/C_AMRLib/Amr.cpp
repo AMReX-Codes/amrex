@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.57 1998-10-07 21:18:18 vince Exp $
+// $Id: Amr.cpp,v 1.58 1998-10-27 19:22:09 almgren Exp $
 //
 
 #include <TagBox.H>
@@ -647,11 +647,19 @@ Amr::initialInit (Real strt_time, Real stop_time)
     Real dt0 = dt_level[0];
     dt_min[0] = dt_level[0];
     n_cycle[0] = 1;
-    for (int lev = 1; lev <= max_level; lev++) {
+    if (sub_cycle) {
+      for (int lev = 1; lev <= max_level; lev++) {
         dt0 /= Real (ref_ratio[lev-1][0]);
         dt_level[lev] = dt0;
         dt_min[lev] = dt_level[lev];
         n_cycle[lev] = ref_ratio[lev-1][0];
+      }
+    } else {
+      for (int lev = 1; lev <= max_level; lev++) {
+        dt_level[lev] = dt0;
+        dt_min[lev] = dt_level[lev];
+        n_cycle[lev] = 1;
+      }
     }
     // ----- end multifluid
 
