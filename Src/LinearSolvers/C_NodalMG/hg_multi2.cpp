@@ -255,7 +255,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 	// fill_patch(fres_sc[lev][iface], fres_sc[lev][iface].box(), sigma[mglevc], lev_interface[mglevc], bndry);
 	const IntVect t = lev_interface[mglev].box(level_interface::FACEDIM, iface).type();
 	creg = lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
-	creg.coarsen(rat).grow(t - IntVect::TheUnitVector());
+	creg.coarsen(rat).grow(t - 1);
     }
     
 #if (BL_SPACEDIM == 3)
@@ -295,7 +295,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 	// eres_sc[lev].set(iedge, new FArrayBox(sigmacbox, ncomp));
 	// fill_patch(eres_sc[lev][iedge], eres_sc[lev][iedge].box(), sigma[mglevc], lev_interface[mglevc], bndry);
 	creg = lev_interface[mglev].node_box(1, iedge);
-	creg.coarsen(rat).grow(t - IntVect::TheUnitVector());
+	creg.coarsen(rat).grow(t - 1);
     }
     
 #endif

@@ -56,7 +56,7 @@ public:
 	const int jgrid = find_patch(cb, smf);
 	if (jgrid == -1) 
 	{
-	    tf = new task_fill_patch( cb, dmf.nComp(), smf, lev_interface, 0, -1, -1);
+	    tf = new task_fill_patch( cb, smf, lev_interface, 0, -1, -1);
 	}
 	else 
 	{
@@ -843,7 +843,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 		hgi = new holy_grail_interpolator_class(sigptr, sigbox);
 #endif
 	    }
-	    // BUG
+	    // BUG --  must keep a clone of the interpolator
 	    tl.add_task(
 		new task_interpolate_patch(target ,igrid, target.box(igrid), corr[lfrom], rat, *hgi, lev_interface[lfrom])
 		);

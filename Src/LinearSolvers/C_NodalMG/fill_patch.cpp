@@ -231,26 +231,15 @@ void task_fill_patch::fill_patch()
     }
 }
 
-task_fill_patch::task_fill_patch(const Box& region_, int ncomp_,
-				 const MultiFab& r_,
-				 const level_interface& lev_interface_,
-				 const amr_boundary_class* bdy_,
-				 int idim_, int index_)
-				 : target(0), region(region_),
-				 r(r_), lev_interface(lev_interface_), bdy(bdy_), idim(idim_), index(index_), newed(true)
-{
-    target = new FArrayBox(region, ncomp_);
-}
-
 task_fill_patch::task_fill_patch(const Box& region_,
 				 const MultiFab& r_,
 				 const level_interface& lev_interface_,
 				 const amr_boundary_class* bdy_,
 				 int idim_, int index_)
 				 : region(region_),
-				 r(r_), lev_interface(lev_interface_), bdy(bdy_), idim(idim_), index(index_), newed(false)
+				 r(r_), lev_interface(lev_interface_), bdy(bdy_), idim(idim_), index(index_)
 {
-    target = new FArrayBox(region);
+    target = new FArrayBox(region, r.nComp());
     newed = true;
 }
 
