@@ -4,7 +4,7 @@
 #define _StateData_H_ 
 
 //
-// $Id: StateData.H,v 1.7 1998-03-27 23:53:21 lijewski Exp $
+// $Id: StateData.H,v 1.8 1998-03-30 20:04:18 lijewski Exp $
 //
 
 #include <Box.H>
@@ -90,11 +90,6 @@ public:
 
     void RegisterData(MultiFabCopyDescriptor& multiFabCopyDesc,
                       Array<MultiFabId>&      mfid);
-
-//  interpolation routine
-    void linInterp(FArrayBox& dest, const Box& subbox, Real time,
-                   int src_comp, int dest_comp, int num_comp,
-                   bool extrap = false);
 
     void linInterpAddBox(MultiFabCopyDescriptor &multiFabCopyDesc,
                    Array<MultiFabId> &mfid,

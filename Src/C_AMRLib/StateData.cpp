@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateData.cpp,v 1.13 1998-03-27 23:53:22 lijewski Exp $
+// $Id: StateData.cpp,v 1.14 1998-03-30 20:04:18 lijewski Exp $
 //
 
 #include <RunStats.H>
@@ -320,51 +320,6 @@ StateData::FillBoundary (FArrayBox&     dest,
 }
 
 void
-StateData::linInterp (FArrayBox& dest,
-                      const Box& subbox,
-                      Real       time,
-                      int        src_comp,
-                      int        dest_comp,
-                      int        num_comp,
-                      bool       extrap)
-{
-    Real teps = (new_time.start - old_time.start)/1000.0;
-    if (desc->timeType() == StateDescriptor::Point)
-    {
-        if (old_data == 0)
-        {
-            teps = new_time.start/10000.0;
-            Real dt = time - new_time.start;
-            if (dt < 0.0) dt = -dt;
-            if (extrap || dt < teps);
-            new_data->copy(dest,subbox,src_comp,dest_comp,num_comp);
-            return;
-        }
-                       
-      ::linInterp(dest,subbox,*old_data,*new_data,
-                  old_time.start,new_time.start,time,
-                  src_comp,dest_comp,num_comp,
-                  extrap);
-   }
-    else
-    {
-      if (time > new_time.start-teps && time < new_time.stop+teps)
-      {
-         new_data->copy(dest,subbox,src_comp,dest_comp,num_comp);
-      }
-      else if (old_data != 0 && time > old_time.start-teps &&
-               time < old_time.stop+teps)
-      {
-         old_data->copy(dest,subbox,src_comp,dest_comp,num_comp);
-      }
-      else
-      {
-         BoxLib::Error("StateData::linInterp(): cannot interp");
-      }
-   }
-}
-
-void
 StateData::RegisterData (MultiFabCopyDescriptor& multiFabCopyDesc,
                          Array<MultiFabId>&      mfid)
 {
@@ -436,8 +391,6 @@ StateData::linInterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
          BoxLib::Error("StateData::linInterp(): cannot interp");
       }
    }
-   //cout << "_in StateData::linInterpAddBox:  CopyDescriptor stats:" << endl;
-   //multiFabCopyDesc.PrintStats();
 }
 
 void
