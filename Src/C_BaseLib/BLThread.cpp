@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.26 2001-11-13 00:08:29 car Exp $
+// $Id: BLThread.cpp,v 1.27 2001-11-19 19:10:49 car Exp $
 //
 
 #include <winstd.H>
@@ -112,11 +112,10 @@ public:
     void broadcast();
     void wait();
 private:
+    enum { SIGNAL=0, BROADCAST=1, MAX_EVENTS=2};
     int m_wc;
     CRITICAL_SECTION m_wcl;
-    HANDLE m_sema;
-    HANDLE m_wd;
-    bool m_wbc;
+    HANDLE m_events[MAX_EVENTS];
 };
 
 #else
@@ -492,7 +491,7 @@ Thread::setCancelState(CancelState cs)
 int
 Thread::max_threads()
 {
-    return 2;			// FIXME
+    return 16;			// FIXME
 }
 #else
 
@@ -565,6 +564,18 @@ Mutex::Implementation::unlock ()
     ReleaseMutex(m_mutex);
 }
 
+bool
+Mutex::Implementation::trylock ()
+{
+    DWORD result = WaitForSingleObject(m_mutex, 0);
+    switch ( result )
+    {
+    case WAIT_TIMEOUT: return false;
+    case WAIT_ABANDONED: return false;
+    }
+    return true;
+}
+
 #else
 Mutex::Implementation::Implementation()
 {
@@ -635,14 +646,32 @@ Mutex::unlock()
 ConditionVariable::Implementation::Implementation()
 {
     m_wc = 0;
-    m_wbc = false;
-    m_sema = CreateSemaphore(NULL, 0, 0x7FFFFFFF, NULL);
-    InitializeCriticalSection(&m_wcl);
-    m_wd = CreateEvent(NULL, FALSE, FALSE, NULL);
+    m_events[SIGNAL] = CreateEvent(NULL, FALSE, FALSE, NULL);
+    m_events[BROADCAST] = CreateEvent(NULL, TRUE, FALSE, NULL);
 }
 
 ConditionVariable::Implementation::~Implementation()
 {
+}
+
+void
+ConditionVariable::Implementation::wait()
+{
+    EnterCriticalSection(&m_wcl);
+    m_wc++;
+    LeaveCriticalSection(&m_wcl);
+
+    unlock();
+    int result = WaitForMultipleObjects(2, m_events, FALSE, INFINITE);
+    EnterCriticalSection(&m_wcl);
+    m_wc--;
+    bool lw = result == WAIT_OBJECT_0 + BROADCAST && m_wc == 0;
+    LeaveCriticalSection(&m_wcl);
+    if ( lw )
+    {
+	ResetEvent(m_events[BROADCAST]);
+    }
+    lock();
 }
 
 void
@@ -653,28 +682,7 @@ ConditionVariable::Implementation::signal()
     LeaveCriticalSection(&m_wcl);
     if ( hw )
     {
-	ReleaseSemaphore(m_sema, 1, 0);
-    }
-}
-
-void
-ConditionVariable::Implementation::wait()
-{
-    EnterCriticalSection(&m_wcl);
-    m_wc++;
-    LeaveCriticalSection(&m_wcl);
-    SignalObjectAndWait(m_mutex, m_sema, INFINITE, FALSE);
-    EnterCriticalSection(&m_wcl);
-    m_wc--;
-    bool lw = m_wbc && m_wc == 0;
-    LeaveCriticalSection(&m_wcl);
-    if ( lw )
-    {
-	SignalObjectAndWait(m_wd, m_mutex, INFINITE, FALSE);
-    }
-    else
-    {
-	WaitForSingleObject(m_mutex, INFINITE);
+	SetEvent(m_events[SIGNAL]);
     }
 }
 
@@ -682,22 +690,11 @@ void
 ConditionVariable::Implementation::broadcast()
 {
     EnterCriticalSection(&m_wcl);
-    bool hw = 0;
-    if ( m_wc > 0 )
-    {
-	m_wbc = true;
-	hw = true;
-    }
+    bool hw = m_wc>0;
+    LeaveCriticalSection(&m_wcl);
     if ( hw )
     {
-	ReleaseSemaphore(m_sema, m_wc, 0);
-	LeaveCriticalSection(&m_wcl);
-	WaitForSingleObject(m_wd, INFINITE);
-	m_wbc = false;
-    }
-    else
-    {
-	LeaveCriticalSection(&m_wcl);
+	SetEvent(m_events[BROADCAST]);
     }
 }
 
