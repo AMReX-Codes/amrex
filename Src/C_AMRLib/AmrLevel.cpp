@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.36 1998-06-30 23:43:45 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.37 1998-07-01 19:20:39 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -325,7 +325,6 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
     m_init(false)
 {}
 
-#ifndef BL_NEWFPMINBOX
 FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
                                       MultiFab&     leveldata,
                                       int           boxGrow,
@@ -355,259 +354,6 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
 {
     Initialize(boxGrow,dest_comp,time,state_index,src_comp,ncomp,mapper);
 }
-
-#ifndef NDEBUG
-void
-AmrLevel::SerialFillPatch (FArrayBox &dest,
-                           int dest_comp,
-                           Real time,
-                           int state_indx,
-                           int src_comp,
-                           int ncomp,
-                           Interpolater *mapper)
-{
-    assert(ParallelDescriptor::NProcs() == 1);
-
-    dest.setVal(1.e30);
-    Box dbox(dest.box());
-    Box truncdbox(dbox);
-
-    int nv = dest.nComp();
-    int ndesc = desc_lst.length();
-
-    assert( (0<=state_indx) && (state_indx<ndesc) );
-    const StateDescriptor &desc = desc_lst[state_indx];
-
-    assert( dbox.ixType() == desc.getType() );
-    assert( desc.inRange(src_comp, ncomp) );
-    assert( ncomp <= (nv-dest_comp) );
-
-    const RealBox& prob_domain = geom.ProbDomain();
-    int is_periodic = geom.isAnyPeriodic();
-
-    const Box& p_domain = state[state_indx].getDomain();
-
-      // does grid intersect domain exterior?
-    int inside = p_domain.contains(dbox);
-
-      // Intersect with problem domain at this level
-    if( ! inside ) truncdbox &= p_domain;
-
-      // create a FIDIL domain to keep track of what can be filled
-      // at this level
-    // step 1: make BoxDomain of everything needing filling
-    Box unfilled_region;
-    BoxDomain fd(dbox.ixType());
-    fd.add(truncdbox);
-    if( (!inside) && is_periodic ){
-      Array<IntVect> pshifts(27);
-      geom.periodicShift( p_domain, dbox, pshifts );
-      for( int iiv=0; iiv<pshifts.length(); iiv++ ){
-	IntVect iv = pshifts[iiv];
-	Box shbox(dbox);
-	D_TERM( shbox.shift(0,iv[0]);,
-		shbox.shift(1,iv[1]);,
-		shbox.shift(2,iv[2]); )
-	shbox &= p_domain;
-	if( shbox.ok() ){
-	  fd.add(shbox);
-	}
-      }
-    }
-    // making an enclosing box can speed up with fast check, avoid rmBox
-    // where not required
-    Box enclosing_box = fd.minimalBox();
-    // step 2: take away stuff that can be gotten from this level of refinement
-    const BoxArray &grds = state[state_indx].boxArray();
-    int i;
-    for (i = 0; i < grds.length(); i++) {
-	const Box& gbox = grds[i];
-	if (enclosing_box.intersects(gbox)) fd.rmBox(gbox);
-    }
-    // step 3: take minimal box containing what's left
-    // THIS NEEDS IMPROVEMENT -> MAY BE INEFFICIENT
-    unfilled_region = fd.minimalBox();
-    fd.clear();
-
-    FArrayBox crse;
-    if (unfilled_region.ok()) {
-      AmrLevel &crse_lev = parent->getLevel(level-1);
-      const Geometry& crse_geom = crse_lev.geom;
-      // must fill on this region on crse level and interpolate
-      assert( level != 0 );
-      
-      Interpolater *default_map = mapper;
-      if (default_map == 0) default_map = desc.interp();
-      
-      // intersect unfilled_region with the domain, this is necessary
-      // because the unfilled_region may contain stuff carried by periodic 
-      // BC to be outside the domain of dest
-      Box int_region = unfilled_region & dbox;
-
-      Interpolater **maps;
-      int nmaps, *map_start_comp, *map_ncomp, *max_start_comp, 
-          *min_end_comp, use_default_map;
-      if( int_region.ok() ||  ((!inside) && is_periodic ) )
-        desc.setUpMaps(use_default_map,default_map,src_comp,ncomp,maps,
-                       nmaps,map_start_comp,map_ncomp,max_start_comp,min_end_comp);
-      if( int_region.ok() ) {
-        if(use_default_map) {
-          Interpolater* map = default_map;
-	  // coarsen unfilled region and widen if necessary
-	  Box crse_reg(map->CoarseBox(int_region,crse_ratio));
-	
-	  // alloc patch for crse level
-	  crse.resize(crse_reg,ncomp);
-	
-	  // fill patch at lower level
-	  crse_lev.SerialFillPatch(crse,0,time,state_indx,src_comp,
-                                   ncomp,mapper);
-	
-	  // get bndry conditions for this patch
-	  Array<BCRec> bc_crse(ncomp);
-	  setBC(int_region,p_domain,src_comp,0,ncomp,
-	      desc.getBCs(),bc_crse);
-	
-	  // interpolate up to fine patch
-	  map->interp(crse,0,dest,dest_comp,ncomp,int_region,
-		    crse_ratio,crse_geom,geom,bc_crse);
-        } else {
-          for (int imap = 0; imap<nmaps; imap++) {
-            Interpolater *map = maps[imap];
-            int map_first_comp = map_start_comp[imap];
-            int map_num_comp = map_ncomp[imap];
-            int dest_comp_offset = map_first_comp-src_comp;
-
-            assert(map_first_comp>=max_start_comp[imap] &&
-                 map_first_comp+map_num_comp-1 <= min_end_comp[imap]);
-            int ok = map_first_comp == max_start_comp[imap] &&
-               map_first_comp+map_num_comp-1 == min_end_comp[imap];
-
-            int interp_first_comp = Min(map_first_comp,max_start_comp[imap]);
-            int interp_last_comp  = Max(map_first_comp+map_num_comp-1,min_end_comp[imap]);
-            int interp_ncomp      = interp_last_comp-interp_first_comp+1;
-
- 	    // coarsen unfilled region and widen if necessary
-	    Box crse_reg(map->CoarseBox(int_region,crse_ratio));
-	
-	    // alloc patch for crse level
-	    crse.resize(crse_reg,interp_ncomp);
-	
-	    // fill patch at lower level
-	    crse_lev.SerialFillPatch(crse,0,time,state_indx,interp_first_comp,
-                            interp_ncomp,mapper);
-	
-	    // get bndry conditions for this patch
-	    Array<BCRec> bc_crse(interp_ncomp);
-	    setBC(int_region,p_domain,interp_first_comp,0,interp_ncomp,
-	        desc.getBCs(),bc_crse);
-	
-	    // interpolate up to fine patch
-            if (ok) {
-	      map->interp(crse,0,dest,dest_comp+dest_comp_offset,map_num_comp,
-                        int_region,crse_ratio,crse_geom,geom,bc_crse);
-            } else {
-              FArrayBox interp_dest(dest.box(),interp_ncomp);
-	      map->interp(crse,0,interp_dest,0,interp_ncomp,
-                        int_region,crse_ratio,crse_geom,geom,bc_crse);
-              int interp_dest_srccomp = map_first_comp-interp_first_comp;
-              dest.copy(interp_dest,interp_dest_srccomp,dest_comp+
-                     dest_comp_offset,map_num_comp);
-            }
-          }
-        } 
-      }
-      // if periodic, copy into periodic translates of dest
-      if( (!inside) && is_periodic ){
-	Array<IntVect> pshifts(27);
-	geom.periodicShift( p_domain, dest.box(), pshifts);
-	for( int iiv=0; iiv<pshifts.length(); iiv++ ){
-	  IntVect iv = pshifts[iiv];
-	  dest.shift(iv);
-	  int_region = unfilled_region & dest.box();
-	  if( int_region.ok() ){
-            if (use_default_map) {
-              Interpolater *map = default_map;
-	      Box crse_reg(map->CoarseBox(int_region,crse_ratio));
-	      crse.resize(crse_reg,ncomp);
-	      crse_lev.SerialFillPatch(crse,0,time,state_indx,src_comp,
-			      ncomp,mapper);
-	      Array<BCRec> bc_crse(ncomp);
-	      setBC(int_region,p_domain,src_comp,0,ncomp,
-		  desc.getBCs(),bc_crse);
-
-	      map->interp(crse,0,dest,dest_comp,ncomp,int_region,
-			crse_ratio,crse_geom,geom,bc_crse);
-            } else {
-              for (int imap = 0; imap<nmaps; imap++) {
-                Interpolater *map = maps[imap];
-                int map_first_comp = map_start_comp[imap];
-                int map_num_comp = map_ncomp[imap];
-                int dest_comp_offset = map_first_comp-src_comp;
-
-                assert(map_first_comp>=max_start_comp[imap] &&
-                     map_first_comp+map_num_comp-1 <= min_end_comp[imap]);
-                int ok = map_first_comp == max_start_comp[imap] &&
-                   map_first_comp+map_num_comp-1 == min_end_comp[imap];
-
-                int interp_first_comp = Min(map_first_comp,max_start_comp[imap]);
-                int interp_last_comp  = Max(map_first_comp+map_num_comp-1,min_end_comp[imap]);
-                int interp_ncomp      = interp_last_comp-interp_first_comp+1;
-
-	        Box crse_reg(map->CoarseBox(int_region,crse_ratio));
-	        crse.resize(crse_reg,interp_ncomp);
-	        crse_lev.SerialFillPatch(crse,0,time,state_indx,
-                                         interp_first_comp,interp_ncomp,mapper);
-	        Array<BCRec> bc_crse(interp_ncomp);
-	        setBC(int_region,p_domain,interp_first_comp,0,interp_ncomp,
-		      desc.getBCs(),bc_crse);
-                if (ok) {
-	          map->interp(crse,0,dest,dest_comp+dest_comp_offset,
-                            map_num_comp,int_region,
-			    crse_ratio,crse_geom,geom,bc_crse);
-                } else {
-                  FArrayBox interp_dest(dest.box(),interp_ncomp);
-	          map->interp(crse,0,interp_dest,0,interp_ncomp,
-                            int_region,crse_ratio,crse_geom,geom,bc_crse);
-                  int interp_dest_srccomp = map_first_comp-interp_first_comp;
-                  dest.copy(interp_dest,interp_dest_srccomp,dest_comp+
-                          dest_comp_offset,map_num_comp);
-                }
-              }
-            }
-	  }
-	  dest.shift(-iv);
-	}
-      }
-      desc.cleanUpMaps(maps,map_start_comp,map_ncomp,
-                       max_start_comp,min_end_comp);
-    }
-
-    // copy from data on this level
-    state[state_indx].linInterp(dest,dest.box(),time,src_comp,dest_comp,ncomp);
-    // if periodic, copy into periodic translates of dest
-    if( (!inside) && is_periodic ){
-      Array<IntVect> pshifts(27);
-      geom.periodicShift( p_domain, dest.box(), pshifts);
-      for( int iiv=0; iiv<pshifts.length(); iiv++){
-	IntVect iv=pshifts[iiv];
-	dest.shift(iv);
-	if( dest.box().intersects(p_domain) ){
-	  state[state_indx].linInterp(dest,dest.box(),time,
-				      src_comp,dest_comp,ncomp);
-	}
-	dest.shift(-iv);
-      }
-    }
-
-    // do non-periodic BC's on this level
-    if (!inside) {
-	const Real* dx = geom.CellSize();
-	state[state_indx].FillBoundary(dest,time,dx,prob_domain,
-                                       dest_comp,src_comp,ncomp);
-    }
-}
-#endif /*NDEBUG*/
 
 static
 void
@@ -1013,330 +759,11 @@ FillPatchIterator::isValid (bool bDoSync)
                             m_scomp,
                             m_ncomp);
     }
-#ifndef NDEBUG
-    if (ParallelDescriptor::NProcs() == 1)
-    {
-        //
-        // Now for some testing ...
-        // 
-        tempCoarseDestFab.resize(m_fab.box(), m_fab.nComp());
 
-        m_amrlevel.SerialFillPatch(tempCoarseDestFab,
-                                   m_dcomp,
-                                   m_time,
-                                   m_stateindex,
-                                   m_scomp,
-                                   m_ncomp,
-                                   m_map[0]);
-
-        tempCoarseDestFab -= m_fab;
-
-        Real n0 = tempCoarseDestFab.norm(0,0,m_ncomp);
-        Real n1 = tempCoarseDestFab.norm(1,0,m_ncomp);
-        Real n2 = tempCoarseDestFab.norm(2,0,m_ncomp);
-
-        const Real EPS = .000001;
-
-        if (n0 > EPS || n1 > EPS || n2 > EPS)
-        {
-            cout << "*****Norm(0): " << n0
-                 << ", Norm(1): "    << n1
-                 << ", Norm(2): "    << n2 << endl;
-        }
-    }
-#endif
     stats.end();
 
     return true;
 }
-
-#else /*BL_NEWFPMINBox*/
-
-FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
-                                      MultiFab&     leveldata,
-                                      int           boxGrow,
-                                      int           dest_comp,
-                                      Real          time,
-                                      int           state_index,
-                                      int           src_comp,
-                                      int           ncomp,
-                                      Interpolater* mapper)
-    :
-    MultiFabIterator(leveldata),
-    m_amrlevel(amrlevel),
-    m_leveldata(leveldata),
-    m_mfid(m_amrlevel.level+1),
-    m_map(m_amrlevel.level+1),
-    m_finebox(m_leveldata.boxArray().length()),
-    m_fbid(m_leveldata.boxArray().length()),
-    m_ba(m_leveldata.boxArray().length()),
-    m_time(time),
-    m_growsize(boxGrow),
-    m_stateindex(state_index),
-    m_scomp(src_comp),
-    m_dcomp(dest_comp),
-    m_ncomp(ncomp)
-{
-    //
-    // This function sets up and performs the communication pattern for
-    // filling fabs of size m_leveldata[i].box().grow(boxGrow) from amrlevel's
-    // state data, possibly interpolating between the new and old data
-    // the fill is done from this level and, if necessary, coarser levels.
-    //
-    const int MyProc = ParallelDescriptor::MyProc();
-
-    int level;
-    PArray<AmrLevel>& amrLevels = m_amrlevel.parent->getAmrLevels();
-    m_map.resize(m_amrlevel.level + 1);
-    m_mfid.resize(m_amrlevel.level + 1);
-    for (level = 0; level <= m_amrlevel.level; ++level)
-    {
-        StateData& currentState     = amrLevels[level].state[m_stateindex];
-        const StateDescriptor& desc = amrLevels[level].desc_lst[m_stateindex];
-        currentState.RegisterData(m_mfcd, m_mfid[level]);
-        m_map[level] = mapper;
-        if (m_map[level] == 0)
-            m_map[level] = desc.interp();
-    }
-
-    for (int i = 0; i < m_ba.length(); ++i)
-    {
-        if (m_leveldata.ProcessorMap()[i] == MyProc)
-        {
-            //
-            // Local.
-            //
-            m_ba.set(i, m_leveldata.boxArray()[i]);
-            m_fbid[i].resize(m_amrlevel.level + 1);
-            m_finebox[i].resize(m_amrlevel.level + 1);
-        }
-    }
-    m_ba.grow(m_growsize);  // These are the ones we want to fillpatch.
-
-    Box unfilledBoxOnThisLevel;
-    BoxList unfillableThisLevel;
-    //
-    // Do this for all local (grown) fab boxes.
-    //
-    for (int ibox = 0; ibox < m_ba.length(); ++ibox)
-    {
-        if (m_leveldata.ProcessorMap()[ibox] != MyProc)
-            //
-            // Not local.
-            //
-            continue;
-
-        unfilledBoxOnThisLevel = m_ba[ibox] &
-            amrLevels[m_amrlevel.level].state[m_stateindex].getDomain();
-        assert(unfilledBoxOnThisLevel.ok());
-        bool needsFilling = true;
-
-        for (level = m_amrlevel.level; level >= 0 && needsFilling; --level)
-        {
-            int refRatio = amrLevels[m_amrlevel.level].crse_ratio;
-            //
-            // Huh ???
-            //
-            refRatio = 2;
-            StateData& currentState   = amrLevels[level].state[m_stateindex];
-            const Box& pDomain = currentState.getDomain();
-            unfillableThisLevel.clear();
-
-            m_fbid[ibox][level].resize(1);
-            m_finebox[ibox][level].resize(1);
-
-            int iBLI = 0;
-            m_finebox[ibox][level][iBLI] = unfilledBoxOnThisLevel;
-
-            Box tempCoarseBox;
-            if (level == m_amrlevel.level)
-            {
-                tempCoarseBox = unfilledBoxOnThisLevel;
-            }
-            else
-            {
-                tempCoarseBox = m_map[level]->CoarseBox(unfilledBoxOnThisLevel,
-                                                        refRatio);
-            }
-
-            currentState.linInterpAddBox(m_mfcd,
-                                         m_mfid[level],
-                                         &unfillableThisLevel,
-                                         m_fbid[ibox][level][iBLI],
-                                         tempCoarseBox,
-                                         m_time, m_scomp, m_dcomp, m_ncomp);
-
-            unfillableThisLevel.intersect(pDomain);
-            unfilledBoxOnThisLevel  = unfillableThisLevel.minimalBox();
-            unfilledBoxOnThisLevel &= pDomain;
-
-            if (unfilledBoxOnThisLevel.ok())
-            {
-                //
-                // TODO ???
-                //
-            }
-            else
-            {
-                needsFilling = false;
-            }
-        }
-    }
-
-  m_mfcd.CollectData();
-}
-
-bool
-FillPatchIterator::isValid (bool bDoSync)
-{
-    assert(m_init);
-    //
-    // if the currentIndex is valid,
-    // this function will fill the m_fab from state
-    // so it is ready to be used if requested by operator()
-    // the fill is done from this level and, if necessary, coarser levels
-    // with values from the FillPatchIterator constructor.
-    //
-    if (!MultiFabIterator::isValid(bDoSync))
-        //
-        // This does a sync if not valid.
-        //
-        return false; // (if bDoSync == true)
-
-    const int MyProc = ParallelDescriptor::MyProc();
-
-    PArray<AmrLevel>& amrLevels = m_amrlevel.parent->getAmrLevels();
-
-    Box destBox(box());
-    destBox.grow(m_growsize);
-
-    m_fab.resize(destBox, m_ncomp);
-    m_fab.setVal(1.e30);
-
-    FArrayBox tempCoarseDestFab, tempFineDestFab;
-
-    FArrayBox* coarseDestFabPtr = 0, *fineDestFabPtr = 0;
-
-    int level;
-    int coarsestFillLevel = m_amrlevel.level;
-    for (level = 0; level < m_amrlevel.level; ++level)
-    {
-        if (m_fbid[currentIndex][level].length() > 0)
-        {
-            coarsestFillLevel = level;
-            break;
-        }
-    }
-    assert(coarsestFillLevel >= 0 && coarsestFillLevel <= m_amrlevel.level);
-
-    for (level = coarsestFillLevel; level < m_amrlevel.level;
-        ++level)
-    {
-        if (m_fbid[currentIndex][level].length() == 0)
-            continue;
-
-        assert(m_fbid[currentIndex][level].length() == 1);
-
-        const int ivRefRatio = 2;
-        const int currentBox = 0;
-        StateData &currentState = amrLevels[level].state[m_stateindex];
-        Box tempCoarseBox(m_fbid[currentIndex][level][currentBox][0].box());
-
-        if (level == coarsestFillLevel)
-        {
-            assert(tempCoarseBox.ok());
-            tempCoarseDestFab.resize(tempCoarseBox, m_ncomp);
-            tempCoarseDestFab.setVal(1.e30);
-            coarseDestFabPtr = &tempCoarseDestFab;
-        }
-        else
-        {
-            assert(fineDestFabPtr != 0);
-            coarseDestFabPtr = fineDestFabPtr;
-        }
-        assert(coarseDestFabPtr != 0);
-
-        currentState.linInterpFillFab(m_mfcd,
-                                      m_mfid[level],
-                                      m_fbid[currentIndex][level][currentBox],
-                                      *coarseDestFabPtr,
-                                      m_time, m_scomp, m_dcomp, m_ncomp);
-
-        const Real* dx                = amrLevels[level].geom.CellSize();
-        const RealBox& realProbDomain = amrLevels[level].geom.ProbDomain();
-
-        currentState.FillBoundary(*coarseDestFabPtr, m_time, dx,
-                                  realProbDomain, m_dcomp, m_scomp, m_ncomp);
-
-        const Box& pDomain = currentState.getDomain();
-        Box iSectDest          = m_finebox[currentIndex][level][currentBox];
-
-        assert(iSectDest.ok());
-
-        Array<BCRec> bcr(m_ncomp);
-        const StateDescriptor& desc = amrLevels[level].desc_lst[m_stateindex];
-        setBC(iSectDest,pDomain,m_scomp,0,m_ncomp,desc.getBCs(),bcr);
-        //
-        // Interpolate up to fine patch.
-        //
-        const BoxArray& filledBoxes = m_fbid[currentIndex][level][currentBox][0].FilledBoxes();
-        BoxArray fboxes(filledBoxes);
-        fboxes.refine(ivRefRatio);
-        assert(fboxes.length() == 1);
-        int iFillBox = 0;
-        Box srcdestBox(fboxes[iFillBox]);
-        srcdestBox &= m_fab.box();
-        srcdestBox &= iSectDest;
-        if ((level + 1) == m_amrlevel.level)
-        {
-            fineDestFabPtr = &m_fab;
-        }
-        else
-        {
-            tempFineDestFab.resize(m_fbid[currentIndex][level+1][currentBox][0
-                ].box(), m_ncomp);
-            fineDestFabPtr = &tempFineDestFab;
-        }
-
-        m_map[level]->interp(*coarseDestFabPtr,
-                             0,
-                             *fineDestFabPtr,
-                             m_dcomp,
-                             m_ncomp,
-                             iSectDest,
-                             ivRefRatio,
-                             amrLevels[level].geom,
-                             amrLevels[level + 1].geom,
-                             bcr);
-    }
-
-    level = m_amrlevel.level;
-    int currentBox = 0;
-    StateData &currentState = m_amrlevel.state[m_stateindex];
-    currentState.linInterpFillFab(m_mfcd,
-                                  m_mfid[level],
-                                  m_fbid[currentIndex][level][currentBox],
-                                  m_fab,
-                                  m_time, m_scomp, m_dcomp, m_ncomp);
-    //
-    // Do non-periodic BCs on the finest level.
-    //
-    const Box& p_domain = m_amrlevel.state[m_stateindex].getDomain();
-
-    if (!p_domain.contains(destBox))
-    {
-        currentState.FillBoundary(m_fab,
-                                  m_time,
-                                  m_amrlevel.geom.CellSize(),
-                                  m_amrlevel.geom.ProbDomain(),
-                                  m_dcomp,
-                                  m_scomp,
-                                  m_ncomp);
-    }
-
-    return true;
-}
-#endif /*!BL_NEWFPMINBox*/
 
 FillPatchIterator::~FillPatchIterator () {}
 
@@ -1357,31 +784,29 @@ AmrLevel::FillCoarsePatch (MultiFab&     mfdest,
     assert((0 <= state_indx) && (state_indx < desc_lst.length()));
 
     const StateDescriptor& desc = desc_lst[state_indx];
-    assert(desc.inRange(src_comp, ncomp));
-    Interpolater* map = mapper;
-    if (map == 0)
-        map = desc.interp();
+    Interpolater* map           = (mapper == 0) ? desc.interp() : mapper;
+    const RealBox& prob_domain  = geom.ProbDomain();
+    const Box& p_domain         = state[state_indx].getDomain();
+    AmrLevel& crse_lev          = parent->getLevel(level-1);
 
-    const RealBox& prob_domain = geom.ProbDomain();
-    const Box& p_domain        = state[state_indx].getDomain();
-    AmrLevel& crse_lev         = parent->getLevel(level-1);
+    assert(desc.inRange(src_comp, ncomp));
     //
     // Build a properly coarsened boxarray.
     //
-    BoxArray mfdestBoxArray(mfdest.boxArray());
-    BoxArray crse_regBoxArray(mfdestBoxArray.length());
+    BoxArray crse_regBoxArray(mfdest.boxArray().length());
 
-    for (int ibox = 0; ibox < mfdestBoxArray.length(); ++ibox)
+    for (int ibox = 0; ibox < crse_regBoxArray.length(); ++ibox)
     {
-        Box dbox(mfdest.fabbox(ibox));
+        Box dbox = mfdest.fabbox(ibox) & p_domain;
+
         assert(dbox.ixType() == desc.getType());
-        dbox &= p_domain;
         //
         // Coarsen unfilled region and widen by interpolater stencil width.
         //
-        Box crse_reg(map->CoarseBox(dbox,crse_ratio));
-        crse_regBoxArray.set(ibox, crse_reg);
+        crse_regBoxArray.set(ibox,map->CoarseBox(dbox,crse_ratio));
     }
+
+    Array<BCRec> bcr(ncomp);
 
     const int boxGrow = 0;
     MultiFab mf_crse_reg(crse_regBoxArray, ncomp, boxGrow, Fab_noallocate);
@@ -1392,29 +817,25 @@ AmrLevel::FillCoarsePatch (MultiFab&     mfdest,
     for ( ; fpi.isValid(); ++fpi)
     {
         DependentMultiFabIterator mfdest_mfi(fpi, mfdest);
+
         assert(mfdest_mfi.fabbox() == mfdest_mfi().box());
 
         Box dbox = mfdest_mfi().box() & p_domain;
-
-        FArrayBox& crse = fpi();
-        FArrayBox& dest = mfdest_mfi();
         //
         // Get bndry conditions for this patch.
         //
-        Array<BCRec> bc_crse(ncomp);
-        setBC(dbox,p_domain,src_comp,0,ncomp,desc.getBCs(),bc_crse);
+        setBC(dbox,p_domain,src_comp,0,ncomp,desc.getBCs(),bcr);
         //
         // Interpolate up to fine patch.
         //
-        const Geometry& crse_geom = crse_lev.geom;
-        map->interp(crse,0,dest,dest_comp,ncomp,dbox,
-                    crse_ratio,crse_geom,geom,bc_crse);
+        map->interp(fpi(),0,mfdest_mfi(),dest_comp,ncomp,dbox,
+                    crse_ratio,crse_lev.geom,geom,bcr);
 
         if (!p_domain.contains(dbox)) 
         {
-            const Real *dx = geom.CellSize();
-            state[state_indx].FillBoundary(dest,time,dx,prob_domain,
-                                           dest_comp,src_comp,ncomp);
+            state[state_indx].FillBoundary(mfdest_mfi(),time,geom.CellSize(),
+                                           prob_domain,dest_comp,src_comp,
+                                           ncomp);
         }
     }
 }

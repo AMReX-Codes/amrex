@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.18 1998-06-30 04:33:56 lijewski Exp $
+// $Id: AmrLevel.H,v 1.19 1998-07-01 19:20:39 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -304,16 +304,6 @@ protected:
               const Geometry& level_geom,
               const BoxArray& bl,
               Real            time);
-
-#ifndef NDEBUG
-    void SerialFillPatch (FArrayBox&    dest,
-                          int           dest_comp,
-                          Real          time,
-                          int           state_indx,
-                          int           src_comp,
-                          int           ncomp,
-                          Interpolater* mapper = 0);
-#endif
     //
     // Common code used by all constructors.
     //
