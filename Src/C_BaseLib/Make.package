@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.31 2001-10-18 17:55:31 lijewski Exp $
+# $Id: Make.package,v 1.32 2001-10-31 22:42:01 lijewski Exp $
 #
 
 BOXLIB_BASE=EXE
@@ -35,6 +35,10 @@ C$(BOXLIB_BASE)_headers += Thread.H
 
 C$(BOXLIB_BASE)_sources += BLWorkQueue.cpp
 C$(BOXLIB_BASE)_headers += WorkQueue.H
+
+ifeq ($(USE_MPI),TRUE)
+C$(BOXLIB_BASE)_sources += BLMpi.cpp
+endif
 
 #
 # Container classes.
