@@ -1,0 +1,11 @@
+*.for
+Debug
+Debug3D
+Release
+Release3D
+*.ncb *.opt *.plg
+grdlog
+chk[0-9][0-9][0-9][0-9]
+plt[0-9][0-9][0-9][0-9]
+*.pixie *.Addrs
+*.ii
