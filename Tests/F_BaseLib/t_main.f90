@@ -391,8 +391,43 @@ subroutine t_mf_fabio
   call destroy(ba)
 
 end subroutine t_mf_fabio
-
 subroutine t_nodal_mf_fabio
+  use multifab_module
+  use bl_IO_module
+  use fabio_module
+  implicit none
+  type (box) :: bx
+  type (box), dimension(4) :: bxs
+  type (boxarray):: ba
+  type (layout) :: la
+  type (multifab) :: mf
+  type (multifab) :: mfc
+  integer :: i, j, n, nx, ny, dm
+  logical, allocatable :: nodal(:)
+  real(kind=dp_t), pointer :: fp(:,:,:,:)
+
+  dm = 2
+  allocate(nodal(dm)); nodal = .true.
+  bx = refine(unit_box(dim=dm),16)
+  bxs(1) = bx
+  bxs(2) = shift(bx,16,dim=1)
+  bxs(3) = shift(bx,16,dim=2)
+  bxs(4) = shift(bx,16)
+  call build(ba, bxs)
+  call boxarray_print(ba, "BOXARRAY")
+  call build(la, ba)
+  call destroy(ba)
+  call multifab_build(mf, la, nc = 1, ng=1, nodal = nodal)
+  call setval(mf, 1.0_dp_t, ALL=.True.)
+  call fabio_multifab_write_d(mf, "tdir", "nd_flan", all = .true.)
+  call fabio_multifab_read_d(mfc, "tdir", "nd_flan")
+  ba = get_boxarray(mfc)
+  call boxarray_print(ba, "BA2")
+  call destroy(mf)
+  call destroy(la)
+end subroutine t_nodal_mf_fabio
+
+subroutine t_nodal_mf_fabio_1
   use multifab_module
   use bl_IO_module
   use fabio_module
@@ -449,7 +484,7 @@ subroutine t_nodal_mf_fabio
   call destroy(mf)
   call destroy(mfc)
   call destroy(la)
-end subroutine t_nodal_mf_fabio
+end subroutine t_nodal_mf_fabio_1
 
 subroutine t_ba
   use boxarray_module

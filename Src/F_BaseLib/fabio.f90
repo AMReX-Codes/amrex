@@ -140,7 +140,11 @@ contains
        call bl_error("FABIO_WRITE: prec is wrong ", lprec)
     end if
     lall = .false.; if ( present(all) ) lall = all
-    bx = get_ibox(fb)
+    if ( lall ) then
+       bx = get_pbox(fb)
+    else
+       bx = get_ibox(fb)
+    end if
     count = volume(bx)
     fbp => dataptr(fb, bx)
     nc = ncomp(fb)
@@ -153,14 +157,15 @@ contains
     call fabio_write_raw_d(fd, offset, fbp, count, fb%dim, lo, hi, nd, nc, lprec)
   end subroutine fabio_fab_write_d
 
-  subroutine fabio_multifab_write_d(mf, dirname, header, prec)
+  subroutine fabio_multifab_write_d(mf, dirname, header, all, prec)
     use bl_IO_module
     type(multifab), intent(in) :: mf
     character(len=*), intent(in) :: dirname, header
+    logical, intent(in), optional :: all
     integer, intent(in), optional :: prec
     character(len=128) :: fname
     integer :: un
-    integer :: nc, nb, i, fd, j
+    integer :: nc, nb, i, fd, j, ng
     integer, allocatable :: offset(:), loffset(:)
     type(box) :: bx
     real(kind=dp_t), allocatable :: mx(:,:), mn(:,:)
@@ -169,6 +174,12 @@ contains
 
     nc = multifab_ncomp(mf)
     nb = nboxes(mf)
+    ng = 0
+    if ( present(all) ) then
+       if ( all ) then
+          ng = mf%ng
+       end if
+    end if
     allocate(offset(nb),loffset(nb))
     allocate(mnl(nc), mxl(nc))
     if ( parallel_IOProcessor() ) then
@@ -179,8 +190,8 @@ contains
             file = trim(dirname) // "/" // trim(header) // "_H", &
             form = "formatted", access = "sequential", &
             status = "replace", action = "write")
-       write(unit=un, fmt='(i0/i0/i0/i0)') 1, 0, nc, 0
-       write(unit=un, fmt='("(",i0," 0")')    nb
+       write(unit=un, fmt='(i0/i0/i0/i0)') 1, 0, nc, ng
+       write(unit=un, fmt='("(",i0," 0")') nb
        do i = 1, nb
           bx = get_box(mf, i)
           call box_print(bx, unit = un, legacy = .True., nodal = mf%nodal)
@@ -193,7 +204,7 @@ contains
     write(unit=fname, fmt='(a,"_D_",i5.5)') trim(header), parallel_myproc()
     call fabio_open(fd, trim(dirname) // "/" // trim(fname), FABIO_WRONLY)
     do i = 1, nb; if ( remote(mf, i) ) cycle
-       call fabio_write(fd, offset(i), mf%fbs(i), nodal = mf%nodal, prec = prec)
+       call fabio_write(fd, offset(i), mf%fbs(i), nodal = mf%nodal, all = all, prec = prec)
     end do
     call fabio_close(fd)
     call parallel_reduce(loffset, offset, MPI_MAX, parallel_IOProcessorNode())
@@ -201,8 +212,8 @@ contains
     do i = 1, nb
        if ( local(mf, i) ) then
           do j = 1, nc
-             mnl(j) = min_val(mf%fbs(i),j)
-             mxl(j) = max_val(mf%fbs(i),j)
+             mnl(j) = min_val(mf%fbs(i),j,all)
+             mxl(j) = max_val(mf%fbs(i),j,all)
           end do
        end if
        if ( parallel_IOProcessor() ) then
@@ -247,6 +258,107 @@ contains
        close(unit=un)
     end if
   end subroutine fabio_multifab_write_d
+
+  subroutine fabio_multifab_read_d(mf, dirname, header)
+    use bl_stream_module
+    use bl_IO_module
+    type(multifab), intent(out) :: mf
+    character(len=*), intent(in) :: dirname, header
+    integer :: lun
+    type(bl_stream) :: strm
+    character(len=256) :: str
+
+    call build(strm)
+    lun = bl_stream_the_unit(strm)
+
+    open(unit=lun, &
+         file = trim(dirname) // "/" // trim(header) // "_H" , &
+         status = 'old', action = 'read')
+    read(unit=lun,fmt='(a)') str
+    if ( str == '&MULTIFAB' ) then
+       call bl_error("PLOTFILE_BUILD: not implemented")
+    else
+       !! if it is not a namelist, we assume it is a VISMF_MULTIFAB
+       call build_vismf_multifab
+    end if
+    call destroy(strm)
+
+  contains
+
+    !       Open Header of sub-directory
+    !       : iiii: dummy, dummy, ncomponents, ng
+    !       : i ; '(', nboxes dummy
+    !       For each box, j
+    !       [
+    !         : b : bx[j]
+    !       ]
+    !       :  : ')'
+    !       For each box, j
+    !       [
+    !         : ci : 'FabOnDisk: ' Filename[j], Offset[j]
+    !       ]
+    !       : i : nboxes, ncomponents
+    !       For each box, j
+    !       [
+    !         : r : min[j]
+    !       ]
+    !       : i : nboxes, ncomponents
+    !       For each box, j
+    !       [
+    !         : r : man[j]
+    !       ]
+
+    subroutine build_vismf_multifab()
+      integer :: k
+      integer :: j, nc
+      character(len=FABIO_MAX_PATH_NAME) :: str, str1, cdummy, filename
+      integer :: offset
+      integer :: idummy, sz, fd
+      integer :: dm
+      type(box), allocatable :: bxs(:)
+      type(box) :: bx
+      type(boxarray) :: ba
+      type(layout) :: la
+      integer :: nboxes, ng, itype
+      real(kind=dp_t), pointer :: pp(:,:,:,:)
+      logical :: nodal(MAX_SPACEDIM)
+
+      rewind(lun)
+      read(unit=lun, fmt=*) idummy, itype, nc, ng
+      if ( itype /= 0 ) then
+         call bl_error("BUILD_VISMF_MULTIFAB: can't read this kind of file", itype)
+      end if
+      call bl_stream_expect(strm, '(')
+      nboxes = bl_stream_scan_int(strm)
+      allocate(bxs(nboxes))
+      idummy = bl_stream_scan_int(strm)
+      do j = 1, nboxes
+         call box_read(bx, unit = lun, nodal = nodal)
+         bxs(j) = box_denodalize(bx, nodal = nodal)
+      end do
+      call bl_stream_expect(strm, ')')
+      call build(ba, bxs)
+      call build(la, ba)
+      dm = ba%dim
+      call multifab_build(mf, la, nc = nc, ng = ng, nodal = nodal(1:dm))
+      read(unit=lun, fmt=*) idummy
+      do j = 1, nboxes
+         read(unit=lun, fmt=*) cdummy, &
+              filename, offset
+         call fabio_open(fd,                         &
+              trim(dirname) // "/" // &
+              trim(filename))
+         bx = get_pbox(mf, j)
+         pp => dataptr(mf, j, bx)
+         sz = volume(bxs(j))
+         call fabio_read_d(fd, offset, pp(:,:,:,:), sz*nc)
+         call fabio_close(fd)
+      end do
+      deallocate(bxs)
+      call destroy(ba)
+      close(unit=lun)
+    end subroutine build_vismf_multifab
+  end subroutine fabio_multifab_read_d
 
   subroutine fabio_ml_multifab_write_d(mfs, rrs, dirname, names, bounding_box, time, dx)
     use bl_IO_module
@@ -373,6 +485,9 @@ contains
     integer :: lun
     type(bl_stream) :: strm
     character(len=256) :: str
+    integer :: lng
+
+    lng = 0; if ( present(ng) ) lng = ng
 
     call build(strm, unit)
     lun = bl_stream_the_unit(strm)
@@ -449,7 +564,7 @@ contains
       integer :: j, nc
       character(len=FABIO_MAX_PATH_NAME) :: str, str1, cdummy, filename
       integer :: offset
-      integer :: idummy, sz, fd
+      integer :: idummy, sz, fd, llng
       real(kind=dp_t) :: rdummy, tm
       integer :: nvars, dm, flevel
       integer, allocatable :: refrat(:,:), nboxes(:)
@@ -514,7 +629,10 @@ contains
               status = 'old', file = trim(trim(root) // "/" //  &
               trim(fileprefix(i)) // "/" // &
               trim(header(i))) )
-         read(unit=lun, fmt=*) idummy, idummy, nc, idummy
+         read(unit=lun, fmt=*) idummy, idummy, nc, llng
+         if ( llng > lng ) then
+            call bl_error("BUILD_PLOTFILE: confused lng", lng)
+         end if
          allocate(bxs(nboxes(i)))
          if ( nc /= nvars ) &
               call bl_error("BUILD_PLOTFILE: unexpected nc", nc)
@@ -524,12 +642,13 @@ contains
               call bl_error("BUILD_PLOTFILE: unexpected n", n)
          idummy = bl_stream_scan_int(strm)
          do j = 1, nboxes(i)
-            call box_read(bxs(j), unit = lun, nodal = nodal(1:dm))
+            call box_read(bx, unit = lun, nodal = nodal(1:dm))
+            bxs(j) = box_denodalize(bx, nodal = nodal(1:dm))
          end do
          call bl_stream_expect(strm, ')')
          call build(ba, bxs)
          call build(la, ba)
-         call multifab_build(mmf(i),la,nc = nvars, ng = ng, nodal = nodal(1:dm))
+         call multifab_build(mmf(i), la, nc = nvars, ng = ng, nodal = nodal(1:dm))
          read(unit=lun, fmt=*) idummy
          do j = 1, nboxes(i)
             read(unit=lun, fmt=*) cdummy, &
@@ -538,7 +657,7 @@ contains
                trim(root) // "/" //                &
                trim(fileprefix(i)) // "/" // &
                trim(filename))
-            bx = get_box(mmf(i), j)
+            bx = grow(get_ibox(mmf(i), j), lng)
             pp => dataptr(mmf(i), j, bx)
             sz = volume(bxs(j))
             call fabio_read_d(fd, offset, pp(:,:,:,:), sz*nvars)

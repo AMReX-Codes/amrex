@@ -3,8 +3,8 @@ MPI    :=
 OMP    :=
 
 COMP := Lahey
-COMP := Intel
 COMP := g95
+COMP := Intel
 
 FPARALLEL := ../..
 
