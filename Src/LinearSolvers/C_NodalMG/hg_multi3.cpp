@@ -638,7 +638,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 	}
 	if (rho <= tol)
 	    break;
-	if  ( i > 25 ) // FIXME
+	if  ( i > 50 ) // FIXME
 	    BoxLib::Error( "hgamg::cgsolve iteration count exceeded" );
 	alpha = rho / rho_old;
 	for (MultiFabIterator p_mfi(p); p_mfi.isValid(); ++p_mfi)

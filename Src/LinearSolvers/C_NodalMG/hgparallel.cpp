@@ -1,7 +1,9 @@
 #include "amr_defs.H"
 #include "hgparallel.h"
 
-#include <typeinfo>
+#ifdef HG_DEBUG
+#  include <typeinfo>
+#endif
 
 bool HG_is_debugging = false;
 
