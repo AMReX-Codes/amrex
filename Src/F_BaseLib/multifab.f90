@@ -281,9 +281,9 @@ module multifab_module
   logical, private :: i_fb_fancy = .true.
   logical, private :: l_fb_fancy = .true.
 
-  logical, private :: d_fb_async = .false.
-  logical, private :: i_fb_async = .false.
-  logical, private :: l_fb_async = .false.
+  logical, private :: d_fb_async = .false. ! Do both recv's and send's asynchronously?
+  logical, private :: i_fb_async = .false. ! Do both recv's and send's asynchronously?
+  logical, private :: l_fb_async = .false. ! Do both recv's and send's asynchronously?
 
 contains
 
@@ -1357,26 +1357,25 @@ contains
               reshape(p, nc*bxasc%r_con%snd(i)%s1)
       end do
       allocate(rst(bxasc%r_con%nrp), sst(bxasc%r_con%nsp))
+      !
+      ! Always do recv's asynchronously.
+      !
+      do i = 1, bxasc%r_con%nrp
+         rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv:), &
+              nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+      end do
       if ( d_fb_async ) then
-         do i = 1, bxasc%r_con%nrp
-            rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv:), &
-                 nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-         end do
          do i = 1, bxasc%r_con%nsp
             sst(i) = parallel_isend_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv:), &
                  nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
          end do
-         call parallel_wait(rst)
       else
          do i = 1, bxasc%r_con%nsp
             call parallel_send_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv), &
                  nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
          end do
-         do i = 1, bxasc%r_con%nrp
-            call parallel_recv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv), &
-                 nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-         end do
       end if
+      call parallel_wait(rst)
       do i = 1, bxasc%r_con%nrcv
          sh = bxasc%r_con%rcv(i)%sh
          sh(4) = nc
@@ -1512,26 +1511,25 @@ contains
               reshape(p, nc*bxasc%r_con%snd(i)%s1)
       end do
       allocate(rst(bxasc%r_con%nrp), sst(bxasc%r_con%nsp))
+      !
+      ! Always do recv's asynchronously.
+      !
+      do i = 1, bxasc%r_con%nrp
+         rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv:), &
+              nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+      end do
       if ( d_fb_async ) then
-         do i = 1, bxasc%r_con%nrp
-            rst(i) = parallel_irecv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv:), &
-                 nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-         end do
          do i = 1, bxasc%r_con%nsp
             sst(i) = parallel_isend_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv:), &
                  nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
          end do
-         call parallel_wait(rst)
       else
          do i = 1, bxasc%r_con%nsp
             call parallel_send_dv(g_snd_d(1+nc*bxasc%r_con%str(i)%pv), &
                  nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
          end do
-         do i = 1, bxasc%r_con%nrp
-            call parallel_recv_dv(g_rcv_d(1+nc*bxasc%r_con%rtr(i)%pv), &
-                 nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-         end do
       end if
+      call parallel_wait(rst)
       do i = 1, bxasc%r_con%nrcv
          sh = bxasc%r_con%rcv(i)%sh
          sh(4) = nc
@@ -1541,7 +1539,6 @@ contains
               sh)
       end do
       if ( d_fb_async) call parallel_wait(sst)
-
     end subroutine fancy
   end subroutine multifab_fill_boundary_c
 
@@ -1662,26 +1659,25 @@ contains
               reshape(p, nc*bxasc%r_con%snd(i)%s1)
       end do
       allocate(rst(bxasc%r_con%nrp), sst(bxasc%r_con%nsp))
+      !
+      ! Always do recv's asynchronously.
+      !
+      do i = 1, bxasc%r_con%nrp
+         rst(i) = parallel_irecv_iv(g_rcv_i(1+nc*bxasc%r_con%rtr(i)%pv:), &
+              nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+      end do
       if ( i_fb_async ) then
-         do i = 1, bxasc%r_con%nrp
-            rst(i) = parallel_irecv_iv(g_rcv_i(1+nc*bxasc%r_con%rtr(i)%pv:), &
-                 nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-         end do
          do i = 1, bxasc%r_con%nsp
             sst(i) = parallel_isend_iv(g_snd_i(1+nc*bxasc%r_con%str(i)%pv:), &
                  nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
          end do
-         call parallel_wait(rst)
       else
          do i = 1, bxasc%r_con%nsp
             call parallel_send_iv(g_snd_i(1+nc*bxasc%r_con%str(i)%pv:), &
                  nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
          end do
-         do i = 1, bxasc%r_con%nrp
-            call parallel_recv_iv(g_rcv_i(1+nc*bxasc%r_con%rtr(i)%pv:), &
-                 nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-         end do
       end if
+      call parallel_wait(rst)
       do i = 1, bxasc%r_con%nrcv
          sh = bxasc%r_con%rcv(i)%sh
          sh(4) = nc
@@ -1811,26 +1807,25 @@ contains
               reshape(p, nc*bxasc%r_con%snd(i)%s1)
       end do
       allocate(rst(bxasc%r_con%nrp), sst(bxasc%r_con%nsp))
+      !
+      ! Always do recv's asynchronously.
+      !
+      do i = 1, bxasc%r_con%nrp
+         rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*bxasc%r_con%rtr(i)%pv:), &
+              nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
+      end do
       if ( l_fb_async ) then
-         do i = 1, bxasc%r_con%nrp
-            rst(i) = parallel_irecv_lv(g_rcv_l(1+nc*bxasc%r_con%rtr(i)%pv:), &
-                 nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-         end do
          do i = 1, bxasc%r_con%nsp
             sst(i) = parallel_isend_lv(g_snd_l(1+nc*bxasc%r_con%str(i)%pv:), &
                  nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
          end do
-         call parallel_wait(rst)
       else
          do i = 1, bxasc%r_con%nsp
             call parallel_send_lv(g_snd_l(1+nc*bxasc%r_con%str(i)%pv:), &
                  nc*bxasc%r_con%str(i)%sz, bxasc%r_con%str(i)%pr, tag)
          end do
-         do i = 1, bxasc%r_con%nrp
-            call parallel_recv_lv(g_rcv_l(1+nc*bxasc%r_con%rtr(i)%pv:), &
-                 nc*bxasc%r_con%rtr(i)%sz, bxasc%r_con%rtr(i)%pr, tag)
-         end do
       end if
+      call parallel_wait(rst)
       do i = 1, bxasc%r_con%nrcv
          sh = bxasc%r_con%rcv(i)%sh
          sh(4) = nc
@@ -1840,7 +1835,6 @@ contains
               sh)
       end do
       if ( l_fb_async) call parallel_wait(sst)
-
     end subroutine fancy
 
   end subroutine lmultifab_fill_boundary
