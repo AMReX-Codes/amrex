@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.6 1997-12-02 23:05:28 lijewski Exp $
+// $Id: TagBox.cpp,v 1.7 1997-12-09 17:46:20 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -759,22 +759,15 @@ TagBoxArray::numTags () const
 Array<IntVect>* 
 TagBoxArray::colate () const
 {
-    int myproc = ParallelDescriptor::MyProc();
-    int nGrids = fabparray.length();
-    int *startOffset = new int[nGrids];  // Start locations per grid.
-    int *sharedNTags = new int[nGrids];  // Shared numTags  per grid.
-    if (startOffset == 0 || sharedNTags == 0)
+    const int myproc = ParallelDescriptor::MyProc();
+    const int nGrids = fabparray.length();
+    int* sharedNTags = new int[nGrids]; // Shared numTags  per grid.
+    if (sharedNTags == 0)
         BoxLib::OutOfMemory(__FILE__, __LINE__);
     for (int isn = 0; isn < nGrids; ++isn)
     {
         sharedNTags[isn] = -1;  // A bad value.
     }
-
-    int len = numTags();
-    Array<IntVect> *ar = new Array<IntVect>(len);
-    if (ar == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
-
     for (ConstFabArrayIterator<int, TagBox> fai(*this); fai.isValid(); ++fai)
     {
         sharedNTags[fai.index()] = fai().numTags();
@@ -782,27 +775,30 @@ TagBoxArray::colate () const
     //
     // Communicate number of local tags for each grid.
     //
-    int iProc, iPnt;
-    int nProcs = ParallelDescriptor::NProcs();
+    const int nProcs = ParallelDescriptor::NProcs();
     ParallelDescriptor::ShareVar(sharedNTags, nGrids * sizeof(int));
     ParallelDescriptor::Synchronize();  // for ShareVar
     for (int iGrid = 0; iGrid < nGrids; ++iGrid)
     {
         if (sharedNTags[iGrid] != -1)
         {
-            for (iProc = 0; iProc < nProcs; ++iProc)
+            for (int iProc = 0; iProc < nProcs; ++iProc)
             {
                 if (iProc != myproc)
-                {
-                    ParallelDescriptor::WriteData(iProc, &(sharedNTags[iGrid]),
+                    ParallelDescriptor::WriteData(iProc,
+                                                  &sharedNTags[iGrid],
                                                   sharedNTags,
-                                                  iGrid * sizeof(int), sizeof(int));
-                }
+                                                  iGrid * sizeof(int),
+                                                  sizeof(int));
             }
         }
     }
     ParallelDescriptor::Synchronize();  // Need this sync after the put.
     ParallelDescriptor::UnshareVar(sharedNTags);
+
+    int* startOffset = new int[nGrids]; // Start locations per grid.
+    if (startOffset == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
     startOffset[0] = 0;
     for (int iGrid = 1; iGrid < nGrids; ++iGrid)
     {
@@ -811,69 +807,74 @@ TagBoxArray::colate () const
     //
     // Communicate all local points so all procs have the same global set.
     //
-
-    //
     // Need a 1d array for contiguous parallel copies.
     //
-    int *tmpPts = new int[len * BL_SPACEDIM];
+    const int len = numTags();
+    int* tmpPts = new int[len * BL_SPACEDIM];
     if (tmpPts == 0)
         BoxLib::OutOfMemory(__FILE__, __LINE__);
-    size_t ivSize = BL_SPACEDIM * sizeof(int);
+    const size_t ivSize = BL_SPACEDIM * sizeof(int);
     //
     // Copy the local IntVects into the shared array.
     //
+    Array<IntVect>* ar = new Array<IntVect>(len);
+    if (ar == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
+
     int *ivDest, *ivDestBase;
     const int *ivSrc;
 
-   for (ConstFabArrayIterator<int, TagBox> fai(*this); fai.isValid(); ++fai)
-   {
-      int start = fai().colate(*ar, startOffset[fai.index()]);
-      ivDestBase = tmpPts + (startOffset[fai.index()] * BL_SPACEDIM);
-      for (iPnt = 0; iPnt < sharedNTags[fai.index()]; ++iPnt)
-      {
-        ivDest = ivDestBase + (iPnt * BL_SPACEDIM);
-        ivSrc  = ((*ar)[startOffset[fai.index()] + iPnt]).getVect();
-        memcpy(ivDest, ivSrc, ivSize);
-      }
-   }
-   //
-   // Now copy the the local IntVects to all other processors.
-   //
-   ParallelDescriptor::ShareVar(tmpPts, len * ivSize);
-   ParallelDescriptor::Synchronize();  // for ShareVar
+    for (ConstFabArrayIterator<int, TagBox> fai(*this); fai.isValid(); ++fai)
+    {
+        int start = fai().colate(*ar, startOffset[fai.index()]);
+        ivDestBase = tmpPts + (startOffset[fai.index()] * BL_SPACEDIM);
+        for (int iPnt = 0; iPnt < sharedNTags[fai.index()]; ++iPnt)
+        {
+            ivDest = ivDestBase + (iPnt * BL_SPACEDIM);
+            ivSrc  = ((*ar)[startOffset[fai.index()] + iPnt]).getVect();
+            memcpy(ivDest, ivSrc, ivSize);
+        }
+    }
+    //
+    // Now copy the the local IntVects to all other processors.
+    //
+    ParallelDescriptor::ShareVar(tmpPts, len * ivSize);
+    ParallelDescriptor::Synchronize();  // for ShareVar
 
-   for (ConstFabArrayIterator<int, TagBox> fai(*this); fai.isValid(); ++fai)
-   {
-       ivDestBase = tmpPts + (startOffset[fai.index()] * BL_SPACEDIM);
-       for (iProc = 0; iProc < nProcs; ++iProc)
-       {
-           if (iProc != myproc)
-           {
-               if (sharedNTags[fai.index()] != 0)
-               {
-                   ParallelDescriptor::WriteData(iProc, ivDestBase, tmpPts,
-                                                 startOffset[fai.index()] * ivSize,   // offset
-                                                 sharedNTags[fai.index()] * ivSize);  // nbytes
-               }
-           }
-       }
-   }
-   ParallelDescriptor::Synchronize();  // need this sync after the put
-   ParallelDescriptor::UnshareVar(tmpPts);
+    for (ConstFabArrayIterator<int, TagBox> fai(*this); fai.isValid(); ++fai)
+    {
+        ivDestBase = tmpPts + (startOffset[fai.index()] * BL_SPACEDIM);
+        for (int iProc = 0; iProc < nProcs; ++iProc)
+        {
+            if (iProc != myproc)
+            {
+                if (sharedNTags[fai.index()] != 0)
+                {
+                    ParallelDescriptor::WriteData(iProc,
+                                                  ivDestBase,
+                                                  tmpPts,
+                                                  startOffset[fai.index()]*ivSize,   // offset
+                                                  sharedNTags[fai.index()]*ivSize);  // nbytes
+                }
+            }
+        }
+    }
+    ParallelDescriptor::Synchronize();  // need this sync after the put
+    ParallelDescriptor::UnshareVar(tmpPts);
 
-   for (iPnt = 0; iPnt < len; ++iPnt)
-   {
-       for (int iiv = 0; iiv < BL_SPACEDIM; ++iiv)
-       {
-           ((*ar)[iPnt])[iiv] = tmpPts[(iPnt * BL_SPACEDIM) + iiv];
-       }
-   }
+    for (int iPnt = 0; iPnt < len; ++iPnt)
+    {
+        for (int iiv = 0; iiv < BL_SPACEDIM; ++iiv)
+        {
+            ((*ar)[iPnt])[iiv] = tmpPts[(iPnt * BL_SPACEDIM) + iiv];
+        }
+    }
 
-   delete [] startOffset;
-   delete [] sharedNTags;
-   delete [] tmpPts;
+    delete [] startOffset;
+    delete [] sharedNTags;
+    delete [] tmpPts;
 
-   return ar;
+    return ar;
 }
 
 void
