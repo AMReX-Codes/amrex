@@ -97,7 +97,7 @@ amr_boundary::boundary_mesh (BoxArray&       exterior_mesh,
 
 //
 mixed_boundary::mixed_boundary (inviscid_fluid_boundary* Ptr,
-			       int                      idim)  
+				int                      idim)  
     :
     ptr(Ptr),
     flowdim(idim) 
@@ -105,13 +105,17 @@ mixed_boundary::mixed_boundary (inviscid_fluid_boundary* Ptr,
 }
     
 Box
-mixed_boundary::box_ (const Box& region,
-		     const Box& domain,
-		     int        idir) const
+mixed_boundary::box_ (const Box& image,
+		      const Box& domain,
+		      int        idir) const
 {
+    HG_DEBUG_OUT("BOX_:"
+		 << "image(" << image << ") "
+		 << "domain(" << domain << ") "
+		 << "idir(" << idir << ") ");
     const int idim = abs(idir) - 1;
     const RegType t = ptr->bc[idim][idir > 0];
-    Box retbox(region);
+    Box retbox(image);
     
     BL_ASSERT(idir != 0);
     if (t == refWall || t == outflow || t == inflow)
@@ -121,40 +125,44 @@ mixed_boundary::box_ (const Box& region,
         //
 	if (idir < 0) 
 	{
-	    if (region.type(idim) == IndexType::CELL)
+	    if (image.type(idim) == IndexType::CELL)
 	    {
 		retbox.shift(
 		    idim,
 		    (2 * domain.smallEnd(idim) - 1
-		     - region.bigEnd(idim) - region.smallEnd(idim)));
+		     - image.bigEnd(idim) - image.smallEnd(idim)));
+		if ( t == inflow && idim == flowdim )
+		{
+		    retbox.setSmall(idim, domain.smallEnd(idim) - 1);
+		}
 	    }
 	    else
 	    {
 		retbox.shift(
 		    idim,
 		    (2 * domain.smallEnd(idim)
-		     - region.bigEnd(idim) - region.smallEnd(idim)));
-	    }
-	    if ( t == inflow && idim == flowdim )
-	    {
-		retbox.setSmall(idim, domain.smallEnd(idim) - 1);
+		     - image.bigEnd(idim) - image.smallEnd(idim)));
+		if ( t == inflow && idim == flowdim )
+		{
+		    retbox.setSmall(idim, domain.smallEnd(idim));
+		}
 	    }
 	}
 	else if (idir > 0) 
 	{
-	    if (region.type(idim) == IndexType::CELL)
+	    if (image.type(idim) == IndexType::CELL)
 	    {
 		retbox.shift(
 		    idim,
 		    (2 * domain.bigEnd(idim) + 1
-		     - region.bigEnd(idim) - region.smallEnd(idim)));
+		     - image.bigEnd(idim) - image.smallEnd(idim)));
 	    }
 	    else
 	    {
 		retbox.shift(
 		    idim,
 		    (2 * domain.bigEnd(idim) + 2
-		     - region.bigEnd(idim) - region.smallEnd(idim)));
+		     - image.bigEnd(idim) - image.smallEnd(idim)));
 	    }
 	    if ( t == inflow && idim == flowdim )
 	    {
@@ -177,14 +185,20 @@ mixed_boundary::box_ (const Box& region,
     {
 	BoxLib::Error( "mixed_boundary::box---boundary type not supported");
     }
+    HG_DEBUG_OUT("==>retbox(" << retbox << ")"
+		 << endl);
     return retbox;
 }
 
 Box
 mixed_boundary::anImage (const Box& region,
-		       const Box& srcbox,
-		       const Box& domain) const
+			 const Box& srcbox,
+			 const Box& domain) const
 {
+    HG_DEBUG_OUT("anImage:"
+		 << "region(" << region << ") "
+		 << "srcbox(" << srcbox << ") "
+		 << "domain(" << domain << ") ");
     Box tdomain = domain;
     tdomain.convert(srcbox.type());
     Box idomain = ::grow(tdomain,IntVect::TheZeroVector()-srcbox.type());
@@ -196,7 +210,10 @@ mixed_boundary::anImage (const Box& region,
 	{
 	    const RegType t = ptr->bc[idim][0];
 
-	    if (t == refWall || t == inflow || t == outflow) 
+	    if ( t == inflow  && idim == flowdim )
+	    {
+	    }
+	    else if (t == refWall || t == inflow || t == outflow) 
 	    {
 		image.shift(
 		    idim,
@@ -212,6 +229,9 @@ mixed_boundary::anImage (const Box& region,
 	{
 	    const RegType t = ptr->bc[idim][1];
 
+	    if ( t == refWall && idim == flowdim )
+	    {
+	    }
 	    if (t == refWall || t == inflow || t == outflow) 
 	    {
 		image.shift(
@@ -228,6 +248,8 @@ mixed_boundary::anImage (const Box& region,
 
     BL_ASSERT(image.type() == srcbox.type());
 
+    HG_DEBUG_OUT("==>image(" << image << ")"
+		 << endl);
     return image;
 }
 
@@ -243,6 +265,13 @@ mixed_boundary::fill (FArrayBox&       patch,
 		      const FArrayBox& src,
 		      const Box&       domain) const
 {
+    // BL_ASSERT(domain.type() == IntVect::TheZeroVector());
+    HG_DEBUG_OUT("FILL: "
+		 << "patch.box(" << patch.box() << ") "
+		 << "region(" << region << ") "
+		 << "src.box(" << src.box() << ") "
+		 << "domain(" << domain << ") "
+		 <<  endl);
     Box tdomain = domain;
     tdomain.convert(type(src));
     Box idomain = ::grow(tdomain, IntVect::TheZeroVector()-type(src));
@@ -267,7 +296,7 @@ mixed_boundary::fill (FArrayBox&       patch,
 	    {
 		idir = -1 - idim;
 	    }
-	    if (t == refWall || t == inflow || t == outflow) 
+	    else if (t == refWall || t == inflow || t == outflow) 
 	    {
 		refarray[idim] = 1;
 
@@ -329,7 +358,7 @@ mixed_boundary::fill (FArrayBox&       patch,
 		 << " flowdim = " << flowdim
 		 << " reg = " << region
 		 << " img = " << img
-		 << " src = " << src.box()
+		 << " src.box = " << src.box()
 		 << endl );
 
     if (idir != 0) 
@@ -429,11 +458,11 @@ mixed_boundary::fill (FArrayBox&       patch,
 
 void
 mixed_boundary::fill_ (FArrayBox&       patch,
-		      const Box&       region,
-		      const FArrayBox& bgr,
-		      const Box&       bb,
-		      const Box&       domain,
-		      int              idir) const
+		       const Box&       region,
+		       const FArrayBox& bgr,
+		       const Box&       bb,
+		       const Box&       domain,
+		       int              idir) const
 {
     const int idim = abs(idir) - 1;
     const RegType t = ptr->bc[idim][idir > 0];
@@ -499,7 +528,12 @@ mixed_boundary::fill_ (FArrayBox&       patch,
 	    // For this to work, fill_borders must already have been called
 	    // to initialize values in the first ghost cell outside the domain.
             //
-	    HG_DEBUG_OUT("fill: region" << region << "bgr" << bgr.box() << "bb" << bb << endl);
+	    HG_DEBUG_OUT("fill:"
+			 << "patch.box(" << patch.box() << ") "
+			 << "region(" << region << ") "
+			 << "bgr.box(" << bgr.box() << ") "
+			 << "bb(" << bb << ") "
+			 << endl);
 	    FORT_FBINFIL(patch.dataPtr(), DIMLIST(patch.box()),
 			 DIMLIST(region),
 			 bgr.dataPtr(), DIMLIST(bgr.box()),
@@ -630,8 +664,7 @@ mixed_boundary::fill_borders (MultiFab&              r,
                     //
 		    // Terrain sigma
                     //
-		    if (is_remote(r, jgrid))
-                        continue;
+		    if (is_remote(r, jgrid)) continue;
 		    bb.shift(
 			idim,
 			2 * domain.smallEnd(idim) - 1 + a
