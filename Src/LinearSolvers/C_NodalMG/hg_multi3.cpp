@@ -63,9 +63,9 @@
 #error "none of BL_FORT_USE_{UNDERSCORE,UPPERCASE,LOWERCASE} defined"
 #endif
 
-extern "C" 
+extern "C"
 {
-    
+
 #if (BL_SPACEDIM == 1)
 #error not relevant
 #endif
@@ -139,7 +139,7 @@ extern "C"
 #endif
     void FORT_HGRLNB        (Real*, intS, Real*, intS, intS,
 			     const int*, const int*);
-    
+
     void FORT_HGCG1         (Real*, const Real*, Real*, Real*,
 			     const Real*, const Real*,
 			     const Real*, intS, const Real&, Real&);
@@ -155,7 +155,7 @@ holy_grail_amr_multigrid::level_residual (MultiFab& r,
                                           MultiFab& d,
                                           int       mglev,
                                           bool      iclear,
-                                          int       for_sync_reg)
+                                          int       for_fill_sync_reg)
 {
     BL_ASSERT(mglev >= 0);
     BL_ASSERT(r.boxArray() == s.boxArray());
@@ -167,9 +167,9 @@ holy_grail_amr_multigrid::level_residual (MultiFab& r,
     HG_TEST_NORM(d, "level_residual a1");
     HG_TEST_NORM(s, "level_residual");
     HG_TEST_NORM(r, "level_residual");
-    
+
     if ( m_stencil == terrain || m_stencil == full )
-    {	
+    {
 	HG_TEST_NORM(sigma[mglev], "level_residual");
 	for (MultiFabIterator r_mfi(r); r_mfi.isValid(); ++r_mfi)
 	{
@@ -182,7 +182,7 @@ holy_grail_amr_multigrid::level_residual (MultiFab& r,
 	    const Box& dbox = d_dmfi->box();
 	    const Box& cenbox = c_dmfi->box();
 	    const Box& sigbox = sg_dmfi->box();
-            Box freg = (for_sync_reg > 0) ? 
+            Box freg = (for_fill_sync_reg > 0) ?
 		surroundingNodes(mg_mesh[mglev][r_mfi.index()]) :
 		Box(lev_interface[mglev].part_fine(r_mfi.index()));
 	    if ( m_stencil == terrain )
@@ -219,14 +219,14 @@ holy_grail_amr_multigrid::level_residual (MultiFab& r,
 	    DependentMultiFabIterator s_dmfi(r_mfi, s);
 	    DependentMultiFabIterator d_dmfi(r_mfi, d);
 	    const Box& rbox = r_mfi->box();
-            Box freg = (for_sync_reg > 0) ? 
+            Box freg = (for_fill_sync_reg > 0) ?
 		surroundingNodes(mg_mesh[mglev][r_mfi.index()]) :
 		Box(lev_interface[mglev].part_fine(r_mfi.index()));
 
 	    DependentMultiFabIterator m_dmfi(r_mfi, mask[mglev]);
 	    DependentMultiFabIterator sn_dmfi(r_mfi, sigma_node[mglev]);
 	    FORT_HGRESU(r_mfi->dataPtr(), DIMLIST(rbox),
-			s_dmfi->dataPtr(), d_dmfi->dataPtr(), 
+			s_dmfi->dataPtr(), d_dmfi->dataPtr(),
                         sn_dmfi->dataPtr(), m_dmfi->dataPtr(), DIMLIST(freg),
                         &isRZ);
 	}
@@ -247,10 +247,10 @@ holy_grail_amr_multigrid::relax (int  mglev,
     HG_TEST_NORM(cen[mglev],  "relax cen  a");
     HG_TEST_NORM(sigma[mglev],  "relax sigma  a");
     HG_DEBUG_OUT( "relax: i1 = " << i1 << "is_zero = " << is_zero << endl );
-    for (int icount = 0; icount < i1; icount++) 
+    for (int icount = 0; icount < i1; icount++)
     {
 	HG_DEBUG_OUT( "icount = " << icount << endl );
-	if (smoother_mode == 0 || smoother_mode == 1 || line_solve_dim == -1) 
+	if (smoother_mode == 0 || smoother_mode == 1 || line_solve_dim == -1)
 	{
 	    if (is_zero == false)
 		fill_borders(corr[mglev], lev_interface[mglev],
@@ -266,7 +266,7 @@ holy_grail_amr_multigrid::relax (int  mglev,
 		const Box& sbox = r_mfi->box();
 		const Box& freg =
 		    lev_interface[mglev].part_fine(r_mfi.index());
-		if (line_solve_dim == -1) 
+		if (line_solve_dim == -1)
 		{
                     //
 		    // Gauss-Seidel section:
@@ -295,7 +295,7 @@ holy_grail_amr_multigrid::relax (int  mglev,
 				cn_dmfi->dataPtr(), DIMLIST(cenbox),
 				DIMLIST(freg));
 			}
-		    } 
+		    }
 		    else if (m_stencil == cross)
 		    {
 			const int isRZ = getCoordSys();
@@ -312,7 +312,7 @@ holy_grail_amr_multigrid::relax (int  mglev,
 				    &isRZ);
 		    }
 		}
-		else 
+		else
 		{
 		    BoxLib::Abort( "holy_grail_amr_multigrid::relax():"
 				   "line solves not implemented" );
@@ -406,7 +406,7 @@ holy_grail_amr_multigrid::relax (int  mglev,
       sync_borders(corr[mglev], lev_interface[mglev], mg_boundary);
       HG_TEST_NORM(corr[mglev], "relax corr b2");
     }
-    else 
+    else
     {
 	BoxLib::Abort( "holy_grail_amr_multigrid::relax():"
 		       "Line Solves aren't parallelized" );
@@ -414,7 +414,7 @@ holy_grail_amr_multigrid::relax (int  mglev,
         //
 	// Full-level line solve section:
         //
-	if (line_order.length() == 0) 
+	if (line_order.length() == 0)
 	{
 	    build_line_order(line_solve_dim);
 	}
@@ -423,8 +423,8 @@ holy_grail_amr_multigrid::relax (int  mglev,
 	{
 	    lev++;
 	}
-	
-	for (int ipass = 0; ipass <= 1; ipass++) 
+
+	for (int ipass = 0; ipass <= 1; ipass++)
 	{
 	    if (is_zero == false)
 		fill_borders(corr[mglev], lev_interface[mglev],
@@ -435,7 +435,7 @@ holy_grail_amr_multigrid::relax (int  mglev,
 	    // Forward solve:
             //
 	    task_list tl;
-	    for (int i = 0; i < mg_mesh[mglev].length(); i++) 
+	    for (int i = 0; i < mg_mesh[mglev].length(); i++)
 	    {
 		//
 		// Do grids in order along line_solve_dim:
@@ -507,7 +507,7 @@ holy_grail_amr_multigrid::relax (int  mglev,
                 //
 		// Copy work arrays to following grids:
                 //
-		for (ListIterator<int> j(line_after[lev][igrid]); j; j++) 
+		for (ListIterator<int> j(line_after[lev][igrid]); j; j++)
 		{
 		    const int jgrid = j();
 		    const Box b = (freg & corr[mglev].box(jgrid));
@@ -521,7 +521,7 @@ holy_grail_amr_multigrid::relax (int  mglev,
             //
 	    // Back substitution:
             //
-	    for (int i = mg_mesh[mglev].length() - 1; i >= 0; i--) 
+	    for (int i = mg_mesh[mglev].length() - 1; i >= 0; i--)
 	    {
 		//
 		// Do grids in reverse order along line_solve_dim:
@@ -531,14 +531,14 @@ holy_grail_amr_multigrid::relax (int  mglev,
 		//
 		// Copy solution array from following grids:
                 //
-		for (ListIterator<int> j(line_after[lev][igrid]); j; j++) 
+		for (ListIterator<int> j(line_after[lev][igrid]); j; j++)
 		{
 		    const int jgrid = j();
 		    const Box b = (freg & corr[mglev].box(jgrid));
 		    tl.add_task(
 			new task_copy_link(corr[mglev], igrid, jgrid, b, 0));
 		}
-		
+
 		const Box& fbox = corr[mglev][igrid].box();
 		const Box& wbox = work[mglev][igrid].box();
 		FORT_HGRLNB(
@@ -559,38 +559,38 @@ holy_grail_amr_multigrid::build_line_order (int lsd)
 {
     line_order.resize(lev_max + 1);
     line_after.resize(lev_max + 1);
-    
-    for (int lev = lev_min; lev <= lev_max; lev++) 
+
+    for (int lev = lev_min; lev <= lev_max; lev++)
     {
 	int mglev = ml_index[lev], ngrids = mg_mesh[mglev].length();
-	
+
 	line_order[lev].resize(ngrids);
 	line_after[lev].resize(ngrids);
-	
-	for (int igrid = 0; igrid < ngrids; igrid++) 
+
+	for (int igrid = 0; igrid < ngrids; igrid++)
 	{
 	    line_order[lev].set(igrid, igrid);
 	    //
 	    // bubble sort, replace with something faster if necessary:
             //
-	    for (int i = igrid; i > 0; i--) 
+	    for (int i = igrid; i > 0; i--)
 	    {
 		if (ml_mesh[lev][line_order[lev][i]].smallEnd(lsd)
-		    < ml_mesh[lev][line_order[lev][i-1]].smallEnd(lsd)) 
+		    < ml_mesh[lev][line_order[lev][i-1]].smallEnd(lsd))
 		{
 		    int tmp              = line_order[lev][i-1];
 		    line_order[lev][i-1] = line_order[lev][i];
 		    line_order[lev][i]   = tmp;
 		}
-		else 
+		else
 		{
 		    break;
 		}
 	    }
-	    
-	    for (int i = 0; i < ngrids; i++) 
+
+	    for (int i = 0; i < ngrids; i++)
 	    {
-		if (bdryLo(ml_mesh[lev][i], lsd).intersects(bdryHi(ml_mesh[lev][igrid], lsd))) 
+		if (bdryLo(ml_mesh[lev][i], lsd).intersects(bdryHi(ml_mesh[lev][igrid], lsd)))
 		{
 		    line_after[lev][igrid].append(i);
 		}
@@ -603,7 +603,7 @@ void
 holy_grail_amr_multigrid::cgsolve (int mglev)
 {
     BL_ASSERT(mglev == 0);
-    
+
     MultiFab& r = cgwork[0];
     MultiFab& p = cgwork[1];
     MultiFab& z = cgwork[2];
@@ -621,8 +621,8 @@ holy_grail_amr_multigrid::cgsolve (int mglev)
 	r_mfi->copy(r_dmfi());
 	r_mfi->negate();
     }
-    
-    if (singular) 
+
+    if (singular)
     {
         //
 	// Singular systems are very sensitive to solvability
@@ -631,7 +631,7 @@ holy_grail_amr_multigrid::cgsolve (int mglev)
 	Real aa = inner_product(r, w) / mg_domain[mglev].volume();
 	r.plus(-aa, 0);
     }
-    
+
     Real rho = 0.0;
     for (MultiFabIterator r_mfi(r); r_mfi.isValid(); ++r_mfi)
     {
@@ -653,9 +653,9 @@ holy_grail_amr_multigrid::cgsolve (int mglev)
     }
 
     const Real tol = HG::cgsolve_tolfact * rho;
-    
+
     int i = 0;
-    while (tol > 0.0) 
+    while (tol > 0.0)
     {
 	if ( ++i > HG::cgsolve_maxiter && ParallelDescriptor::IOProcessor() )
 	{
@@ -667,7 +667,7 @@ holy_grail_amr_multigrid::cgsolve (int mglev)
 	// safe to set the clear flag to 0 here---bogus values make it
 	// into r but are cleared from z by the mask in c
         //
-	level_residual(w, zero_array, p, 0, false);
+	level_residual(w, zero_array, p, 0, false, 0);
 	Real alpha = 0.0;
 	for (MultiFabIterator p_mfi(p); p_mfi.isValid(); ++p_mfi)
 	{
@@ -710,7 +710,7 @@ holy_grail_amr_multigrid::cgsolve (int mglev)
 		       DIMLIST(reg), alpha);
 	}
     }
-    
+
     if (pcode >= 2  && ParallelDescriptor::IOProcessor())
     {
 	cout << "HG: "

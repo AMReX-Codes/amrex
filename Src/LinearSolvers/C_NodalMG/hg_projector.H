@@ -8,7 +8,8 @@
 
 extern PArray<MultiFab> null_amr_real;
 
-class holy_grail_amr_projector : public holy_grail_amr_multigrid 
+class holy_grail_amr_projector
+    : public holy_grail_amr_multigrid
 {
 public:
     //
@@ -25,19 +26,9 @@ public:
                               int                             Lev_min_max,
                               int                             Lev_max_max,
                               const amr_fluid_boundary& Boundary,
-                              stencil                         stencil_ = cross,
-                              int                             Pcode = 2)
-	:
-        holy_grail_amr_multigrid(Mesh,Gen_ratio,fdomain,Lev_min_min,
-                                 Lev_min_max,Lev_max_max,Boundary,
-                                 stencil_,
-                                 Pcode),
-        make_sparse_node_source_solvable(false)
-    {}     
-    const Array<BoxArray>& mesh () const
-    {
-	return ml_mesh;
-    }
+                              stencil                         stencil_,
+                              int                             Pcode);
+    const Array<BoxArray>& mesh () const;
     //
     // All of the following projection calls take a vector field u and
     // a scalar field p.  On return p will contain the computed potential
@@ -53,18 +44,18 @@ public:
     // and u can be passed in 0(NULL) if you don't care about the update.
     // If use_u is false (0), the right hand side will be used without
     // modification.  If it is true (1), Du will be added to the rhs provided.
-    
+
     // Let start_norm = max[norm(div u), norm(first residual)].
     // Project will attempt to reduce the Holy Grail residual to
     // less than max[tol * start_norm, scale].  At least one multilevel
     // cycle will be executed down to lev_min.  The last cycle will omit
     // any actions on or below lev_min.
-    
+
     // H is an array of SPACEDIM Reals containing the fine mesh spacing
     // in each dimension.  "fine" means lev_max.  If a positive value is
     // not supplied for lev_min, lev_min_max will be used.  If
     // a positive value is not supplied for lev_max, lev_min will be used.
-    
+
     // Ghost cells:  All version require exactly 1 row of ghost cells on p.
     // project and sync_project, which compute a divergence, require
     // exactly 1 row of ghost cells on u (manual_project does not have
@@ -84,12 +75,7 @@ public:
                   Real              tol,
                   int               Lev_min = -1,
                   int               Lev_max = -1,
-                  Real              scale = 0.0) 
-    {
-	project(u, p, Coarse_source, null_amr_real, 
-                Sync_resid_crse, Sync_resid_fine, crse_geom, 
-                H, tol, Lev_min, Lev_max, scale);
-    }
+                  Real              scale = 0.0) ;
     void project (PArray<MultiFab>* u,
                   PArray<MultiFab>& p,
                   PArray<MultiFab>& Coarse_source,
@@ -111,12 +97,7 @@ public:
                        Real              tol,
                        int               Lev_min = -1,
                        int               Lev_max = -1,
-                       Real              scale = 0.0) 
-    {
-	sync_project(u, p, Coarse_source, null_amr_real, H, tol,
-		     Lev_min, Lev_max, scale);
-    }
-
+                       Real              scale = 0.0) ;
     void sync_project (PArray<MultiFab>* u,
                        PArray<MultiFab>& p,
                        PArray<MultiFab>& Coarse_source,
@@ -158,13 +139,7 @@ public:
                          Real              tol,
                          int               Lev_min = -1,
                          int               Lev_max = -1,
-                         Real              scale = 0.0) 
-    {
-	manual_project(u, p, rhs, Coarse_source, null_amr_real, 
-                       Sync_resid_crse, Sync_resid_fine, crse_geom, 
-                       use_u, H, tol, Lev_min, Lev_max, scale);
-    }
-
+                         Real              scale = 0.0) ;
     void manual_project (PArray<MultiFab>* u,
                          PArray<MultiFab>& p,
                          PArray<MultiFab>& rhs,
@@ -180,10 +155,7 @@ public:
                          int               Lev_max = -1,
                          Real              scale = 0.0);
 
-    void make_it_so ()
-    {
-	make_sparse_node_source_solvable = true;
-    }
+    void make_it_so ();
 
 protected:
 
@@ -196,9 +168,9 @@ protected:
                         Real              H[],
                         int               Lev_min,
                         bool              is_coarse);
-    
+
     void right_hand_side (PArray<MultiFab>* u, PArray<MultiFab>& S,
-                          int for_sync_reg);
+                          int for_fill_sync_reg);
 #ifdef HG_USE_SYNC_PROJECT
     void sync_right_hand_side (PArray<MultiFab>* u);
 #endif
@@ -209,14 +181,15 @@ protected:
     void sparse_node_source_adjustment (PArray<MultiFab>& sparse_source);
     void grid_divergence (PArray<MultiFab>* u,
 			  PArray<MultiFab>& s,
-                          int for_sync_reg);
+                          int for_fill_sync_reg);
     void grid_average (PArray<MultiFab>& S,
-		       PArray<MultiFab>& src,        
+		       PArray<MultiFab>& src,
                        int for_sync_reg);
+private:
     //
     // The data.
     //
-    bool make_sparse_node_source_solvable;    
+    bool make_sparse_node_source_solvable;
 };
 
 #endif /*_HG_PROJECTOR_H_*/

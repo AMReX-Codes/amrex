@@ -3,7 +3,7 @@ c Works for CELL-based data.
       subroutine iprodc(
      & v0, v0l0,v0h0,v0l1,v0h1,v0l2,v0h2,
      & v1, v1l0,v1h0,v1l1,v1h1,v1l2,v1h2,
-     &     regl0,regh0,regl1,regh1,regl2,regh2, 
+     &     regl0,regh0,regl1,regh1,regl2,regh2,
      & sum)
       integer v0l0,v0h0,v0l1,v0h1,v0l2,v0h2
       integer v1l0,v1h0,v1l1,v1h1,v1l2,v1h2
@@ -25,7 +25,7 @@ c Works for CELL- or NODE-based data.
       subroutine iprodn(
      & v0, v0l0,v0h0,v0l1,v0h1,v0l2,v0h2,
      & v1, v1l0,v1h0,v1l1,v1h1,v1l2,v1h2,
-     &     regl0,regh0,regl1,regh1,regl2,regh2, 
+     &     regl0,regh0,regl1,regh1,regl2,regh2,
      & sum)
       integer v0l0,v0h0,v0l1,v0h1,v0l2,v0h2
       integer v1l0,v1h0,v1l1,v1h1,v1l2,v1h2
@@ -101,7 +101,7 @@ c Works for CELL- or NODE-based data.
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     &       bbl0,bbh0,bbl1,bbh1,bbl2,bbh2, 
+     &       bbl0,bbh0,bbl1,bbh1,bbl2,bbh2,
      & idir, ncomp)
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
@@ -146,7 +146,7 @@ c Works for CELL- or NODE-based data.
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     &       bbl0,bbh0,bbl1,bbh1,bbl2,bbh2, 
+     &       bbl0,bbh0,bbl1,bbh1,bbl2,bbh2,
      & ra, ncomp)
       integer ncomp
       integer destl0,desth0,destl1,desth1,destl2,desth2
@@ -240,7 +240,7 @@ c Works for CELL- or NODE-based data.
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     &       bbl0,bbh0,bbl1,bbh1,bbl2,bbh2, 
+     &       bbl0,bbh0,bbl1,bbh1,bbl2,bbh2,
      & idir, ncomp)
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
@@ -285,7 +285,7 @@ c Works for CELL- or NODE-based data.
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     &       bbl0,bbh0,bbl1,bbh1,bbl2,bbh2, 
+     &       bbl0,bbh0,bbl1,bbh1,bbl2,bbh2,
      & ra, ncomp)
       integer ncomp
       integer destl0,desth0,destl1,desth1,destl2,desth2
@@ -293,7 +293,7 @@ c Works for CELL- or NODE-based data.
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer bbl0,bbh0,bbl1,bbh1,bbl2,bbh2
       integer ra(0:2)
-      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2, 
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
      &   ncomp)
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       integer i, j, k, nc
@@ -496,7 +496,7 @@ c    &     bbl0,bbl1,bbl2,bbh0, bbh1,bbh2,ncomp)
             do  i = regl0, regh0
                do k = regl2, regh2
                   do j = regl1, regh1
-                     dest(i,j,k,nc) = src(bbl0,j,k,nc) 
+                     dest(i,j,k,nc) = src(bbl0,j,k,nc)
      &                           + src(bbl0+1,j,k,nc) -
      &                             src(bbh0-(i-regl0),j,k,nc)
                   end do
@@ -506,7 +506,7 @@ c    &     bbl0,bbl1,bbl2,bbh0, bbh1,bbh2,ncomp)
             do i = regh0, regl0, -1
                do k = regl2, regh2
                   do j = regl1, regh1
-                     dest(i,j,k,nc) = src(bbh0-1,j,k,nc) 
+                     dest(i,j,k,nc) = src(bbh0-1,j,k,nc)
      &                + src(bbh0,j,k,nc) -
      &                             src(bbl0+(regh0-i),j,k,nc)
                   end do
@@ -540,7 +540,7 @@ c    &     bbl0,bbl1,bbl2,bbh0, bbh1,bbh2,ncomp)
             do k = regl2, regh2
                do j = regl1, regh1
                   do i = regl0, regh0
-                     dest(i,j,k,nc) = src(i,j,bbl2,nc) 
+                     dest(i,j,k,nc) = src(i,j,bbl2,nc)
      &                     + src(i,j,bbl2+1,nc) -
      &                             src(i,j,bbh2-(k-regl2),nc)
                   end do
@@ -571,7 +571,7 @@ c CELL-based data only.
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     &       bbl0,bbh0,bbl1,bbh1,bbl2,bbh2, 
+     &       bbl0,bbh0,bbl1,bbh1,bbl2,bbh2,
      & ir, jr, kr, ncomp)
       integer ncomp
       integer destl0,desth0,destl1,desth1,destl2,desth2
@@ -597,7 +597,7 @@ c CELL-based data only.
                sz = 0.5 * (src(ic,jc,kc+1,nc) - src(ic,jc,kc-1,nc))
                sy = 0.5 * (src(ic,jc+1,kc,nc) - src(ic,jc-1,kc,nc))
                sx = 0.5 * (src(ic+1,jc,kc,nc) - src(ic-1,jc,kc,nc))
-               dest(i,j,k,nc) = src(ic,jc,kc,nc) 
+               dest(i,j,k,nc) = src(ic,jc,kc,nc)
      &          + xoff*sx + yoff*sy + zoff*sz
             end do
          end do
@@ -610,7 +610,7 @@ c NODE-based data only.
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     &       bbl0,bbh0,bbl1,bbh1,bbl2,bbh2, 
+     &       bbl0,bbh0,bbl1,bbh1,bbl2,bbh2,
      & ir, jr, kr, ncomp)
       integer ncomp
       integer destl0,desth0,destl1,desth1,destl2,desth2

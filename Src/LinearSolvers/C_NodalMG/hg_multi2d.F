@@ -110,7 +110,7 @@ c        This correction is *only* for the cross stencil
          if (irz .eq. 1 .and. regl0 .le. 0 .and. regh0 .ge. 0) then
             i = 0
             res(i*ir,j*jr) = res(i*ir,j*jr) + fac0 *
-     &         hym2 * 0.5d0 * 
+     &         hym2 * 0.5d0 *
      &          ((sigmac(i-1,js) + sigmac(i,js)) *
      &            (cdst(i,j-idir) - cdst(i,j)))
          endif
@@ -147,7 +147,7 @@ c        This correction is *only* for the cross stencil
             if (irz .eq. 1 .and. m .eq. 0 .and.
      &          regl0 .le. 0 .and. regh0 .ge. 0) then
                i = 0
-               res(i,j) = res(i,j) + fac1 * hym2 * 0.5d0 * 
+               res(i,j) = res(i,j) + fac1 * hym2 * 0.5d0 *
      &           ((sigmaf(i-m-1,js) + sigmaf(i-m,js)) *
      &             (fdst(i-m,j+idir) - fdst(i-m,j)) +
      &              (sigmaf(i+m-1,js) + sigmaf(i+m,js)) *
@@ -182,7 +182,7 @@ c Note---assumes fdst linearly interpolated from cdst along edges
       double precision sigmac(scl0:sch0,scl1:sch1)
       double precision hx, hy
       integer ir, jr, ga(0:1,0:1), irz
-      double precision hxm2, hym2, hxm2c, hym2c, sum, center, 
+      double precision hxm2, hym2, hxm2c, hym2c, sum, center,
      &   ffac, cfac, fac, fac1
       integer ic, jc, if, jf, ii, ji, idir, jdir, m, n
       hxm2c = 1.d0 / (ir * ir * hx * hx)
@@ -295,7 +295,7 @@ c-----------------------------------------------------------------------
       subroutine hgrlx(
      & cor,   corl0, corh0, corl1, corh1,
      & res,   resl0, resh0, resl1, resh1,
-     & sigx, sigy, 
+     & sigx, sigy,
      &     sfl0, sfh0, sfl1, sfh1,
      & cen,   cenl0, cenh0, cenl1, cenh1,
      &        regl0, regh0, regl1, regh1,
@@ -333,12 +333,12 @@ cdir$ ivdep
                   cor(i,j) = (AVG() - res(i,j)) * cen(i,j)
                   if (irz .eq. 1 .and. i .eq. 0) then
                     cor(i,j) = (
-     $                        0.5d0 * hxm2 * 
-     $                 ((sigx(i-1,j-1) + sigx(i-1,j)) * cor(i-1,j) + 
-     $                  (sigx(i  ,j-1) + sigx(i  ,j)) * cor(i+1,j)) + 
-     $                       0.25d0 * hym2 * 
-     $                 ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) + 
-     $                  (sigy(i-1,j  ) + sigy(i,j  )) * cor(i,j+1)) 
+     $                        0.5d0 * hxm2 *
+     $                 ((sigx(i-1,j-1) + sigx(i-1,j)) * cor(i-1,j) +
+     $                  (sigx(i  ,j-1) + sigx(i  ,j)) * cor(i+1,j)) +
+     $                       0.25d0 * hym2 *
+     $                 ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) +
+     $                  (sigy(i-1,j  ) + sigy(i,j  )) * cor(i,j+1))
      $                    - res(i,j)) * cen(i,j)
                   endif
                end do
@@ -354,12 +354,12 @@ cdir$ ivdep
                   cor(i,j) = (AVG() - res(i,j)) * cen(i,j)
                   if (irz .eq. 1 .and. i .eq. 0) then
                     cor(i,j) = (
-     $                        0.5d0 * hxm2 * 
-     $                 ((sigx(i-1,j-1) + sigx(i-1,j)) * cor(i-1,j) + 
-     $                  (sigx(i,j-1) + sigx(i,j)) * cor(i+1,j)) + 
-     $                       0.25d0 * hym2 * 
-     $                 ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) + 
-     $                  (sigy(i-1,j  ) + sigy(i,j  )) * cor(i,j+1)) 
+     $                        0.5d0 * hxm2 *
+     $                 ((sigx(i-1,j-1) + sigx(i-1,j)) * cor(i-1,j) +
+     $                  (sigx(i,j-1) + sigx(i,j)) * cor(i+1,j)) +
+     $                       0.25d0 * hym2 *
+     $                 ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) +
+     $                  (sigy(i-1,j  ) + sigy(i,j  )) * cor(i,j+1))
      $                    - res(i,j)) * cen(i,j)
                   endif
                end do
@@ -411,7 +411,7 @@ c-----------------------------------------------------------------------
       if (irz .eq. 1 .and. regl0 .le. 0 .and. regh0 .ge. 0) then
          i = 0
          do j = regl1, regh1
-            res(i,j) = res(i,j) + .25d0 * hym2 * 
+            res(i,j) = res(i,j) + .25d0 * hym2 *
      &        ((sigy(i-1,j-1) + sigy(i,j-1)) *
      &          (dest(i,j-1) - dest(i,j)) +
      &         (sigy(i-1,j) + sigy(i,j)) *
@@ -483,12 +483,12 @@ c-----------------------------------------------------------------------
       double precision RHSL0
       double precision RHSL1
       integer i, j, jw, ipass
-c      RHSL0()=(res(i,j) - 0.5d0 * hym2 * 
-c     &          ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) + 
+c      RHSL0()=(res(i,j) - 0.5d0 * hym2 *
+c     &          ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) +
 c     &           (sigy(i-1,j) + sigy(i,j)) * cor(i,j+1)))
 
-      RHSL1()=(res(i,j) - 0.5d0 * hxm2 * 
-     &          ((sigx(i-1,j-1) + sigx(i-1,j)) * cor(i-1,j) + 
+      RHSL1()=(res(i,j) - 0.5d0 * hxm2 *
+     &          ((sigx(i-1,j-1) + sigx(i-1,j)) * cor(i-1,j) +
      &           (sigx(i,j-1) + sigx(i,j)) * cor(i+1,j)))
 
       hxm2 = 1.d0 / (hx*hx)
@@ -588,12 +588,12 @@ c-----------------------------------------------------------------------
       double precision hxm2, hym2, betm, aj
       double precision RHSL0, RHSL1
       integer i, j, ioff
-      RHSL0()=(res(i,j) - 0.5d0 * hym2 * 
-     &          ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) + 
+      RHSL0()=(res(i,j) - 0.5d0 * hym2 *
+     &          ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) +
      &           (sigy(i-1,j) + sigy(i,j)) * cor(i,j+1)))
 
-      RHSL1()=(res(i,j) - 0.5d0 * hxm2 * 
-     &          ((sigx(i-1,j-1) + sigx(i-1,j)) * cor(i-1,j) + 
+      RHSL1()=(res(i,j) - 0.5d0 * hxm2 *
+     &          ((sigx(i-1,j-1) + sigx(i-1,j)) * cor(i-1,j) +
      &           (sigx(i,j-1) + sigx(i,j)) * cor(i+1,j)))
       hxm2 = 1.d0 / (hx*hx)
       hym2 = 1.d0 / (hy*hy)
@@ -877,16 +877,16 @@ c     &            sigx(i-1,j) *
 c     &             (cor(i-1,j+1) - cor(i,j+1)) +
 c     &            sigx(i,j-1) *
 c     &             (cor(i+1,j-1) - cor(i,j-1)) +
-c     &            sigx(i,j) * 
-c     &             (cor(i+1,j+1) - cor(i,j+1))) + 
-c     &                            hym2 * 
-c     &           (sigy(i-1,j-1) * 
-c     &             (cor(i-1,j-1) + 2.d0 * cor(i,j-1)) + 
-c     &            sigy(i-1,j) * 
-c     &             (cor(i-1,j+1) + 2.d0 * cor(i,j+1)) + 
-c     &            sigy(i,j-1) * 
-c     &             (cor(i+1,j-1) + 2.d0 * cor(i,j-1)) + 
-c     &            sigy(i,j) * 
+c     &            sigx(i,j) *
+c     &             (cor(i+1,j+1) - cor(i,j+1))) +
+c     &                            hym2 *
+c     &           (sigy(i-1,j-1) *
+c     &             (cor(i-1,j-1) + 2.d0 * cor(i,j-1)) +
+c     &            sigy(i-1,j) *
+c     &             (cor(i-1,j+1) + 2.d0 * cor(i,j+1)) +
+c     &            sigy(i,j-1) *
+c     &             (cor(i+1,j-1) + 2.d0 * cor(i,j-1)) +
+c     &            sigy(i,j) *
 c     &             (cor(i+1,j+1) + 2.d0 * cor(i,j+1)))))
       RHSL1() = (res(i,j) - fac * (hxm2 *
      &          (sigx(i-1,j-1) *
@@ -897,14 +897,14 @@ c     &             (cor(i+1,j+1) + 2.d0 * cor(i,j+1)))))
      &             (cor(i+1,j-1) + 2.d0 * cor(i+1,j)) +
      &            sigx(i,j) *
      &             (cor(i+1,j+1) + 2.d0 * cor(i+1,j))) +
-     &                            hym2 * 
-     &           (sigy(i-1,j-1) * 
-     &             (cor(i-1,j-1) - cor(i-1,j)) + 
-     &            sigy(i-1,j) * 
-     &             (cor(i-1,j+1) - cor(i-1,j)) + 
-     &            sigy(i,j-1) * 
-     &             (cor(i+1,j-1) - cor(i+1,j)) + 
-     &            sigy(i,j) * 
+     &                            hym2 *
+     &           (sigy(i-1,j-1) *
+     &             (cor(i-1,j-1) - cor(i-1,j)) +
+     &            sigy(i-1,j) *
+     &             (cor(i-1,j+1) - cor(i-1,j)) +
+     &            sigy(i,j-1) *
+     &             (cor(i+1,j-1) - cor(i+1,j)) +
+     &            sigy(i,j) *
      &             (cor(i+1,j+1) - cor(i+1,j)))))
 
 c      RHSRZL0() = (RHSL0() - facrz *
@@ -1016,7 +1016,7 @@ c update neumann bdys:
             stop
          end if
       else
-         STOP "Line solve not implemented for rz: Using Gauss-Seidel 
+         STOP "Line solve not implemented for rz: Using Gauss-Seidel
      &  instead."
          facrz = hx * hym2 / 12.d0
          if (regh1 - regl1 .gt. regh0 - regl0) then
@@ -1083,16 +1083,16 @@ c      double precision AVGRZ
      &             (cor(i-1,j+1) - cor(i,j+1)) +
      &            sigx(i,j-1) *
      &             (cor(i+1,j-1) - cor(i,j-1)) +
-     &            sigx(i,j) * 
-     &             (cor(i+1,j+1) - cor(i,j+1))) + 
-     &                            hym2 * 
-     &           (sigy(i-1,j-1) * 
-     &             (cor(i-1,j-1) + 2.d0 * cor(i,j-1)) + 
-     &            sigy(i-1,j) * 
-     &             (cor(i-1,j+1) + 2.d0 * cor(i,j+1)) + 
-     &            sigy(i,j-1) * 
-     &             (cor(i+1,j-1) + 2.d0 * cor(i,j-1)) + 
-     &            sigy(i,j) * 
+     &            sigx(i,j) *
+     &             (cor(i+1,j+1) - cor(i,j+1))) +
+     &                            hym2 *
+     &           (sigy(i-1,j-1) *
+     &             (cor(i-1,j-1) + 2.d0 * cor(i,j-1)) +
+     &            sigy(i-1,j) *
+     &             (cor(i-1,j+1) + 2.d0 * cor(i,j+1)) +
+     &            sigy(i,j-1) *
+     &             (cor(i+1,j-1) + 2.d0 * cor(i,j-1)) +
+     &            sigy(i,j) *
      &             (cor(i+1,j+1) + 2.d0 * cor(i,j+1)))))
       RHSL1() = (res(i,j) - fac * (hxm2 *
      &          (sigx(i-1,j-1) *
@@ -1103,14 +1103,14 @@ c      double precision AVGRZ
      &             (cor(i+1,j-1) + 2.d0 * cor(i+1,j)) +
      &            sigx(i,j) *
      &             (cor(i+1,j+1) + 2.d0 * cor(i+1,j))) +
-     &                            hym2 * 
-     &           (sigy(i-1,j-1) * 
-     &             (cor(i-1,j-1) - cor(i-1,j)) + 
-     &            sigy(i-1,j) * 
-     &             (cor(i-1,j+1) - cor(i-1,j)) + 
-     &            sigy(i,j-1) * 
-     &             (cor(i+1,j-1) - cor(i+1,j)) + 
-     &            sigy(i,j) * 
+     &                            hym2 *
+     &           (sigy(i-1,j-1) *
+     &             (cor(i-1,j-1) - cor(i-1,j)) +
+     &            sigy(i-1,j) *
+     &             (cor(i-1,j+1) - cor(i-1,j)) +
+     &            sigy(i,j-1) *
+     &             (cor(i+1,j-1) - cor(i+1,j)) +
+     &            sigy(i,j) *
      &             (cor(i+1,j+1) - cor(i+1,j)))))
 
       RHSRZL0() = (RHSL0() - facrz *
@@ -1531,7 +1531,7 @@ c-----------------------------------------------------------------------
 c Works for NODE-based data.
       subroutine hgip(
      & v0, v1, mask,
-     &     regl0, regh0, regl1, regh1, 
+     &     regl0, regh0, regl1, regh1,
      & sum)
       integer regl0, regh0, regl1, regh1
       double precision v0(*)
@@ -1648,13 +1648,13 @@ c-----------------------------------------------------------------------
       facy = 0.5D0 / (hy*hy)
          do j = regl1, regh1
             do i = regl0-1, regh0
-               signd(i,j,1) = facx * 
+               signd(i,j,1) = facx *
      &               (sigx(i,j) + sigx(i,j-1))
             end do
          end do
          do j = regl1-1, regh1
             do i = regl0, regh0
-               signd(i,j,2) = facy * 
+               signd(i,j,2) = facy *
      &               (sigy(i-1,j) + sigy(i,j))
             end do
          end do
@@ -1693,34 +1693,34 @@ c sig here contains three different directions all stored on "nodes"
 cdir$ ivdep
       if (irz .eq. 0 .or. regl0 .gt. 0) then
         do i = istart + 1, iend + 1, 2
-           cor(i) = cor(i) 
+           cor(i) = cor(i)
      &        + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
         end do
 cdir$ ivdep
         do i = istart + 2, i end + 1, 2
-           cor(i) = cor(i) 
+           cor(i) = cor(i)
      &        + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
         end do
 
-      else 
+      else
 
 c     Now irz = 1 and regl0 = 0, so we are touching the r=0 edge
         do i = istart + 1, iend + 1, 2
            if (mod(i-istart-1,jdiff) .eq. 0) then
-             cor(i) = cor(i) 
+             cor(i) = cor(i)
      &          + mask(i) * ((AVGREDGE() - res(i)) * cen(i) - cor(i))
            else
-             cor(i) = cor(i) 
+             cor(i) = cor(i)
      &          + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
            endif
         end do
 cdir$ ivdep
         do i = istart + 2, iend + 1, 2
            if (mod(i-istart-1,jdiff) .eq. 0) then
-             cor(i) = cor(i) 
+             cor(i) = cor(i)
      &          + mask(i) * ((AVGREDGE() - res(i)) * cen(i) - cor(i))
            else
-             cor(i) = cor(i) 
+             cor(i) = cor(i)
      &          + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
            endif
         end do
@@ -2108,7 +2108,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      &        2.d0 * (fdst(i+idir,j+n) - fdst(i,j+n))))
          res(i,j) = res(i,j) - fac1 * (tmp + hym2 *
      &     (sigmaf(is,j+n-1) *
-     &       (fdst(i+idir,j+n-1) - fdst(i+idir,j+n) + 
+     &       (fdst(i+idir,j+n-1) - fdst(i+idir,j+n) +
      &        2.d0 * (fdst(i,j+n-1) - fdst(i,j+n))) +
      &          sigmaf(is,j+n) *
      &       (fdst(i+idir,j+n+1) - fdst(i+idir,j+n) +
@@ -2259,7 +2259,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      &        2.d0 * (fdst(i+idir,j-n) - fdst(i,j-n))))
          res(i,j) = res(i,j) - fac1 * (tmp + hym2 *
      &     (sigmaf(is,j-n-1) *
-     &       (fdst(i+idir,j-n-1) - fdst(i+idir,j-n) + 
+     &       (fdst(i+idir,j-n-1) - fdst(i+idir,j-n) +
      &        2.d0 * (fdst(i,j-n-1) - fdst(i,j-n))) +
      &          sigmaf(is,j-n) *
      &       (fdst(i+idir,j-n+1) - fdst(i+idir,j-n) +
@@ -2401,7 +2401,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
             rfac0p = hx * hym2 / (2.d0 * (r - hx))
             rfac1p = hx * hym2 / (2.d0 * r)
             res(i,j) = res(i,j) - fac1 *
-     &       ((rfac0m * sigmaf(i-m-1,js-jdir) 
+     &       ((rfac0m * sigmaf(i-m-1,js-jdir)
      &                  - rfac1m * sigmaf(i-m,js-jdir)) *
      &         (fdst(i-m,j-jdir) - fdst(i-m,j)) +
      &        (rfac0p * sigmaf(i+m-1,js) - rfac1p * sigmaf(i+m,js)) *
@@ -2444,7 +2444,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
             res(i,j) = res(i,j) - fac1 *
      &       (rfac0 * (sigmaf(i-1,j-n-1) *
      &                     (fdst(i,j-n-1) - fdst(i,j-n)) +
-     &                 sigmaf(i-1,j-n)   * 
+     &                 sigmaf(i-1,j-n)   *
      &                        (fdst(i,j-n+1) - fdst(i,j-n))) -
      &        rfac1 * (sigmaf(i,j+n-1) * (fdst(i,j+n-1) - fdst(i,j+n)) +
      &                 sigmaf(i,j+n)   * (fdst(i,j+n+1) - fdst(i,j+n))))
@@ -2607,14 +2607,14 @@ c NODE-based data, factor of 2 only.
       double precision src(srcl0:srch0,srcl1:srch1)
       stop 'no code for hgints (sigma node) in 2D'
       end
-      
+
 c-----------------------------------------------------------------------
 c CELL-based data only.
       subroutine hgsrst(
      & destx, desty,
      &     destl0, desth0, destl1, desth1,
      &     regl0, regh0, regl1, regh1,
-     & srcx, srcy, 
+     & srcx, srcy,
      &     srcl0, srch0, srcl1, srch1,
      & ir, jr)
       integer destl0, desth0, destl1, desth1

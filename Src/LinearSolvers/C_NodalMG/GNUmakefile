@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.44 2000-04-17 17:58:37 car Exp $
+# $Id: GNUmakefile,v 1.45 2000-04-21 14:22:24 car Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -13,8 +13,8 @@ PROFILE   = FALSE
 DIM       = 3
 DIM       = 2
 COMP      = cxx
-COMP	  = g++
 COMP      = KCC
+COMP	  = g++
 USE_MPI   = FALSE
 USE_MPI   = TRUE
 NAMESPACE = TRUE
@@ -23,11 +23,11 @@ NAMESPACE = FALSE
 #
 # To build the executable: EBASE=proj LBASE=
 #
-EBASE = 
+EBASE =
 EBASE = proj
 
 ifneq ($(EBASE),proj)
-  override EBASE = 
+  override EBASE =
   override LBASE = proj
 endif
 #
@@ -57,7 +57,7 @@ ifeq ($(EBASE),proj)
   include $(TOP)/pBoxLib_2/Make.package
 
   INCLUDE_LOCATIONS += $(TOP)/bndrylib
-  INCLUDE_LOCATIONS += $(TOP)/pBoxLib_2 
+  INCLUDE_LOCATIONS += $(TOP)/pBoxLib_2
 
   ifeq ($(DEBUG),TRUE)
 #    CPPFLAGS += -DHG_DEBUG
@@ -77,7 +77,7 @@ ifeq ($(EBASE),proj)
   endif
 
   LIBRARIES         +=
-  LIBRARY_LOCATIONS += 
+  LIBRARY_LOCATIONS +=
   CEXE_sources      += proj.cpp
 
   vpath %.cpp	. $(TOP)/pBoxLib_2 $(TOP)/bndrylib
@@ -129,5 +129,6 @@ libs:
 clean::
 	$(RM) gu*_*
 	$(RM) fgu*_*
+	$(RM) core
 
 include $(TOP)/mk/Make.rules

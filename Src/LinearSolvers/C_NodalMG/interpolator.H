@@ -14,20 +14,19 @@
 // get the coarse data is your problem.
 //
 
-class amr_interpolator 
+class amr_interpolator
 {
 public:
-    amr_interpolator () {}
-    virtual ~amr_interpolator ();
+    virtual ~amr_interpolator () = 0;
     virtual Box box (const Box&, const IntVect&) const = 0;
     virtual void fill (FArrayBox&, const Box&,
 		       const FArrayBox&, const Box&, const IntVect&) const = 0;
 };
 
-class bilinear_interpolator : public amr_interpolator 
+class bilinear_interpolator
+    : public amr_interpolator
 {
 public:
-    bilinear_interpolator () {}
     virtual Box box (const Box&, const IntVect&) const;
     virtual void fill (FArrayBox&, const Box&,
 		       const FArrayBox&, const Box&, const IntVect&) const;

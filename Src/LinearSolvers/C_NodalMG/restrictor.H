@@ -15,11 +15,10 @@
 // at the edges of grids.
 //
 
-class amr_restrictor 
+class amr_restrictor
 {
 public:
-    amr_restrictor () {}
-    virtual ~amr_restrictor ();
+    virtual ~amr_restrictor () = 0;
     virtual Box box (const Box&,
 		     const IntVect&) const;
     virtual Box rebox (const Box&,
@@ -34,44 +33,52 @@ public:
 				 const IntVect&) const;
 };
 
-class cell_average_restrictor : public amr_restrictor 
+class cell_average_restrictor
+    : public amr_restrictor
 {
 public:
-    explicit cell_average_restrictor (int i) 
-	:
-        integrate(i) 
-    {}
+    explicit cell_average_restrictor (int i) ;
     virtual void fill (FArrayBox& patch, const Box& region,
 		       const FArrayBox& fgr, const IntVect& rat) const;
 protected:
     int integrate;
 };
 
-class terrain_velocity_restrictor : public cell_average_restrictor 
+inline
+cell_average_restrictor::cell_average_restrictor (int i)
+    :
+    integrate(i)
+{
+}
+
+class terrain_velocity_restrictor
+    : public cell_average_restrictor
 {
 public:
-    explicit terrain_velocity_restrictor (int i) 
-	:
-        cell_average_restrictor(i) 
-    {
-	BL_ASSERT(i >= 0 && i < BL_SPACEDIM);
-    }
+    explicit terrain_velocity_restrictor (int i) ;
     virtual void fill (FArrayBox& patch, const Box& region,
 		       const FArrayBox& fgr, const IntVect& rat) const;
 };
 
-class injection_restrictor : public amr_restrictor 
+inline
+terrain_velocity_restrictor::terrain_velocity_restrictor (int i)
+    : cell_average_restrictor(i)
+{
+    BL_ASSERT(i >= 0 && i < BL_SPACEDIM);
+}
+
+class injection_restrictor
+    : public amr_restrictor
 {
 public:
-    injection_restrictor() {}
     virtual void fill (FArrayBox& patch, const Box& region,
 		       const FArrayBox& fgr, const IntVect& rat) const;
 };
 
-class default_restrictor : public amr_restrictor 
+class default_restrictor
+    : public amr_restrictor
 {
 public:
-    default_restrictor () {}
     virtual void fill (FArrayBox& patch, const Box& region,
 		       const FArrayBox& fgr, const IntVect& rat) const;
 };
@@ -82,12 +89,12 @@ public:
 // Does nothing at coarse-fine interfaces.
 //
 
-class bilinear_restrictor :
-    public amr_restrictor 
+class bilinear_restrictor
+    : public amr_restrictor
 {
 public:
     bilinear_restrictor (int i,
-			       bool hg_terrain);
+			 bool hg_terrain);
     virtual Box box (const Box& fb,
 		     const IntVect& rat) const;
     virtual Box rebox (const Box& cb,

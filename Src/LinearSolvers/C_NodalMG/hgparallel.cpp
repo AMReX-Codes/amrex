@@ -60,7 +60,7 @@ HG::MPI_init ()
 
 void HG::MPI_finish () {}
 
-task::task (task_list& tl_) 
+task::task (task_list& tl_)
     :
     m_task_list(tl_),
     m_sno(1),
@@ -71,13 +71,13 @@ task::task (task_list& tl_)
     BL_ASSERT(m_sno > 0);
 }
 
-task::~task () 
+task::~task ()
 {
     BL_ASSERT(m_sno > 0);
 }
 
 bool
-task::startup (long&,long&)
+task::startup (long&, long&)
 {
     return m_started = true;
 }
@@ -169,13 +169,16 @@ task::ready ()
 
 task_list::task_list ()
     :
-    seq_no(ParallelDescriptor::NProcs(),1),
+    seq_no(ParallelDescriptor::NProcs(), 1),
     verbose(HG::pverbose)
 {}
 
-task_list::~task_list () {}
+task_list::~task_list ()
+{
+}
 
-task::task_proxy task_list::add_task (task* t)
+task::task_proxy
+task_list::add_task (task* t)
 {
     BL_ASSERT(t != 0);
 
@@ -262,7 +265,7 @@ restart:
 
                     long sndcnt = 0, rcvcnt = 0;
 
-                    if (!t->startup(sndcnt,rcvcnt))
+                    if (!t->startup(sndcnt, rcvcnt))
                     {
                         t.set_finished();
                         tasks.erase(tli++);
@@ -271,7 +274,7 @@ restart:
 
                     total_sndcnt += sndcnt;
                     total_rcvcnt += rcvcnt;
-                    maxpacketsize = Max(maxpacketsize,Max(sndcnt,rcvcnt));
+                    maxpacketsize = Max(maxpacketsize, Max(sndcnt, rcvcnt));
                     live_tasks++;
                 }
                 if (t->ready())
@@ -316,13 +319,13 @@ task_copy::init ()
     {
         _do_depend();
 
-        if (is_local(m_mf,m_dgrid) && is_local(m_smf,m_sgrid))
+        if (is_local(m_mf, m_dgrid) && is_local(m_smf, m_sgrid))
         {
             m_local = true;
 
             if (dependencies.empty())
             {
-                m_mf[m_dgrid].copy(m_smf[m_sgrid],m_sbx,0,m_bx,0,m_mf.nComp());
+                m_mf[m_dgrid].copy(m_smf[m_sgrid], m_sbx, 0, m_bx, 0, m_mf.nComp());
                 //
                 // Flip the work_to_do() bit.
                 //
@@ -420,7 +423,7 @@ task_copy::depends_on_q (const task* t1) const
 {
     if (!work_to_do()) return false;
 
-    if (!mfeq(m_mf,m_smf)) return false;
+    if (!mfeq(m_mf, m_smf)) return false;
 
     if (const task_copy* t1tc = dynamic_cast<const task_copy*>(t1))
     {
@@ -451,7 +454,7 @@ task::_do_depend ()
             dependencies.push_back(*cit);
     }
 }
-  
+
 task_copy::~task_copy ()
 {
     delete tmp;
@@ -463,7 +466,7 @@ task_copy::~task_copy ()
 bool
 task_copy::work_to_do () const
 {
-    return (is_local(m_mf,m_dgrid) || is_local(m_smf,m_sgrid)) && !m_done;
+    return (is_local(m_mf, m_dgrid) || is_local(m_smf, m_sgrid)) && !m_done;
 }
 
 bool
@@ -474,14 +477,14 @@ task_copy::need_to_communicate (int& with) const
 #ifdef BL_USE_MPI
     if (!m_local)
     {
-        if (is_local(m_mf,m_dgrid))
+        if (is_local(m_mf, m_dgrid))
         {
-            with   = processor_number(m_smf,m_sgrid);
+            with   = processor_number(m_smf, m_sgrid);
             result = true;
         }
-        else if (is_local(m_smf,m_sgrid)) 
+        else if (is_local(m_smf, m_sgrid))
         {
-            with   = processor_number(m_mf,m_dgrid);
+            with   = processor_number(m_mf, m_dgrid);
             result = true;
         }
     }
@@ -500,7 +503,7 @@ task_copy::startup (long& sndcnt, long& rcvcnt)
 #ifdef BL_USE_MPI
     if (!m_local)
     {
-        if (is_local(m_mf,m_dgrid))
+        if (is_local(m_mf, m_dgrid))
         {
             static RunStats irecv_stats("hg_irecv");
             tmp = new FArrayBox(m_sbx, m_smf.nComp());
@@ -520,17 +523,17 @@ task_copy::startup (long& sndcnt, long& rcvcnt)
                 ParallelDescriptor::Abort(res);
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
-        else if (is_local(m_smf,m_sgrid)) 
+        else if (is_local(m_smf, m_sgrid))
         {
             static RunStats isend_stats("hg_isend");
-            tmp = new FArrayBox(m_sbx,m_smf.nComp());
-            tmp->copy(m_smf[m_sgrid],m_sbx);
+            tmp = new FArrayBox(m_sbx, m_smf.nComp());
+            tmp->copy(m_smf[m_sgrid], m_sbx);
             isend_stats.start();
             sndcnt = tmp->box().numPts()*tmp->nComp();
             int res = MPI_Isend(tmp->dataPtr(),
                                 sndcnt,
                                 MPI_DOUBLE,
-                                processor_number(m_mf,m_dgrid),
+                                processor_number(m_mf, m_dgrid),
                                 m_sno,
                                 HG::mpi_comm,
                                 &m_request);
@@ -558,7 +561,7 @@ task_copy::ready ()
     if (m_local)
     {
         BL_ASSERT(!m_done);
-        m_mf[m_dgrid].copy(m_smf[m_sgrid],m_sbx,0,m_bx,0,m_mf.nComp());
+        m_mf[m_dgrid].copy(m_smf[m_sgrid], m_sbx, 0, m_bx, 0, m_mf.nComp());
         return true;
     }
 
@@ -648,7 +651,7 @@ task_copy_local::task_copy_local (task_list&      tl_,
 
             if (dependencies.empty())
             {
-                m_fab->copy(m_smf[m_sgrid],m_bx);
+                m_fab->copy(m_smf[m_sgrid], m_bx);
                 //
                 // Flip the work_to_do() bit.
                 //
@@ -667,7 +670,7 @@ task_copy_local::~task_copy_local ()
 bool
 task_copy_local::work_to_do () const
 {
-    return (m_fab != 0 || is_local(m_smf,m_sgrid)) && !m_done;
+    return (m_fab != 0 || is_local(m_smf, m_sgrid)) && !m_done;
 }
 
 bool
@@ -680,10 +683,10 @@ task_copy_local::need_to_communicate (int& with) const
     {
         if (m_fab != 0)
         {
-            with   = processor_number(m_smf,m_sgrid);
+            with   = processor_number(m_smf, m_sgrid);
             result = true;
         }
-        else if (is_local(m_smf, m_sgrid)) 
+        else if (is_local(m_smf,  m_sgrid))
         {
             with   = m_target_proc_id;
             result = true;
@@ -713,7 +716,7 @@ task_copy_local::startup (long& sndcnt, long& rcvcnt)
             int res = MPI_Irecv(tmp->dataPtr(),
                                 rcvcnt,
                                 MPI_DOUBLE,
-                                processor_number(m_smf,m_sgrid),
+                                processor_number(m_smf, m_sgrid),
                                 m_sno,
                                 HG::mpi_comm,
                                 &m_request);
@@ -723,7 +726,7 @@ task_copy_local::startup (long& sndcnt, long& rcvcnt)
                 ParallelDescriptor::Abort(res);
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
-        else if (is_local(m_smf, m_sgrid)) 
+        else if (is_local(m_smf, m_sgrid))
         {
             static RunStats isend_stats("hg_isend");
             tmp = new FArrayBox(m_bx, m_smf.nComp());
@@ -764,7 +767,7 @@ task_copy_local::ready ()
         m_fab->copy(m_smf[m_sgrid], m_bx);
         return true;
     }
-        
+
 #ifdef BL_USE_MPI
     int flag, res;
     MPI_Status status;
@@ -836,7 +839,7 @@ task_fab::task_fab (task_list&      tl_,
     target(0),
     region(region_),
     ncomp(ncomp_),
-    m_target_proc_id(processor_number(t_,tt_))
+    m_target_proc_id(processor_number(t_, tt_))
 {
     BL_ASSERT(m_sno > 0);
     if (is_local(t_, tt_))
