@@ -1,5 +1,5 @@
 //
-// $Id: BLProfiler.cpp,v 1.26 2002-10-11 18:20:44 car Exp $
+// $Id: BLProfiler.cpp,v 1.27 2002-11-11 17:49:53 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -334,6 +334,7 @@ public:
     {
 	return current;
     }
+    int size () const { return ttd_stack.size(); }
     void print(std::ostream& os) const;
     void mma_print(std::ostream& os) const;
 private:
@@ -552,12 +553,12 @@ Profiler::Initialize()
     pp.query("mma", mma);
     pp.query("profiling", profiling);
     pp.query("verbose", verbose);
-    if ( verbose )
+    if ( verbose && ParallelDescriptor::IOProcessor() )
     {
-	std::cout << "profiler.filename" << filename << std::endl;
-	std::cout << "profiler.mma" << mma << std::endl;
-	std::cout << "profiler.profiling" << profiling << std::endl;
-	std::cout << "profiler.verbose" << verbose << std::endl;
+        std::cout << "profiler.filename" << filename << std::endl;
+        std::cout << "profiler.mma" << mma << std::endl;
+        std::cout << "profiler.profiling" << profiling << std::endl;
+        std::cout << "profiler.verbose" << verbose << std::endl;
     }
 }
 
@@ -629,6 +630,16 @@ Profiler::start()
 {
     BL_ASSERT( !started );
     if ( profiling ) tt_data[*tt_i.get()]->push(tag.name())->start();
+
+    if ( verbose && ParallelDescriptor::IOProcessor() )
+    {
+        std::cout << ">> ";
+
+        spacer(std::cout,2*tt_data[*tt_i.get()]->size(),' ');
+
+        std::cout << tag.name() << '\n';
+    }
+
     started = true;
 }
 
@@ -636,7 +647,17 @@ void
 Profiler::stop()
 {
     BL_ASSERT( started );
+
+    if ( verbose && ParallelDescriptor::IOProcessor() )
+    {
+        std::cout << "<< ";
+
+        spacer(std::cout,2*tt_data[*tt_i.get()]->size(),' ');
+
+        std::cout << tag.name() << '\n';
+    }
     if ( profiling ) tt_data[*tt_i.get()]->pop()->stop();
+
     started = false;
 }
 
