@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.28 1999-05-25 22:02:20 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.29 1999-05-26 19:33:33 marc Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -370,7 +370,7 @@ FArrayBox::init ()
     pp.query("initval", initval);
     int do_ini;
     pp.query("do_initval", do_ini);
-    do_initval = bool(do_ini);
+    do_initval = do_ini ? true : false;
 }
 
 Real
