@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.105 2000-03-01 15:43:34 lijewski Exp $
+// $Id: Amr.cpp,v 1.106 2000-04-03 23:13:03 marc Exp $
 //
 
 #include <TagBox.H>
@@ -67,8 +67,10 @@ static int tar_and_rm_files = 0;
 //
 // The pid's of the last `tar_and_rm_files' commands for chk and plt files.
 //
+#ifndef WIN32
 static pid_t pid_chk = -1;
 static pid_t pid_plt = -1;
+#endif
 
 void
 Amr::setDtMin (const Array<REAL>& dt_min_in)
@@ -464,6 +466,7 @@ Amr::~Amr ()
 
     levelbld->variableCleanUp();
 
+#ifndef WIN32
     if (ParallelDescriptor::IOProcessor() && tar_and_rm_files)
     {
         //
@@ -474,6 +477,7 @@ Amr::~Amr ()
         if (pid_chk != -1) waitpid(pid_chk, &status, 0);
         if (pid_plt != -1) waitpid(pid_plt, &status, 0);
     }
+#endif
 }
 
 void
@@ -629,6 +633,7 @@ Amr::writePlotFile (const aString& root,
     {
         cout << "Write plotfile time = " << dPlotFileTime << "  seconds." << endl;
 
+#ifndef WIN32
         if (tar_and_rm_files)
         {
             int status;
@@ -646,6 +651,7 @@ Amr::writePlotFile (const aString& root,
 
             pid_plt = Utility::Execute(cmd.c_str());
         }
+#endif
     }
 }
 
@@ -1104,6 +1110,7 @@ Amr::checkPoint ()
     {
         cout << "checkPoint() time = " << dCheckPointTime << " secs." << endl;
 
+#ifndef WIN32
         if (tar_and_rm_files)
         {
             int status;
@@ -1129,6 +1136,7 @@ Amr::checkPoint ()
 
             the_previous_ckfile = ckfile;
         }
+#endif
     }
 }
 
