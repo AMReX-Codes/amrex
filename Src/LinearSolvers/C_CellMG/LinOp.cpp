@@ -1,6 +1,6 @@
 
 //
-// $Id: LinOp.cpp,v 1.24 2001-02-01 23:39:35 lijewski Exp $
+// $Id: LinOp.cpp,v 1.25 2001-03-20 19:42:02 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -45,9 +45,13 @@ LinOp::initialize ()
 
     pp.query("harmavg", def_harmavg);
     pp.query("v", def_verbose);
+    pp.query("maxorder", def_maxorder);
 
     if (ParallelDescriptor::IOProcessor() && def_verbose)
+      {
         cout << "def_harmavg = " << def_harmavg << '\n';
+        cout << "def_maxorder = " << def_maxorder << '\n';
+      }
 
     initialized = true;
 }
