@@ -1,6 +1,6 @@
 
 //
-// $Id: tCArena.cpp,v 1.9 2001-10-17 17:53:33 lijewski Exp $
+// $Id: tCArena.cpp,v 1.10 2004-03-05 17:49:38 car Exp $
 //
 
 #ifndef WIN32
@@ -14,9 +14,6 @@
 #include <list>
 #include <new>
 using std::list;
-#ifndef WIN32
-using std::set_new_handler;
-#endif
 
 //
 // A simple class emulating how we use FABs.
@@ -74,13 +71,11 @@ FB::ok () const
 int
 main ()
 {
-    set_new_handler(BoxLib::OutOfMemory);
-
     list<FB*> fbl;
 
     for (int j = 0; j < 10; j++)
     {
-        cout << "Loop == " << j << endl;
+	std::cout << "Loop == " << j << std::endl;
 
         for (int i = 0; i < 1000; i++)
         {

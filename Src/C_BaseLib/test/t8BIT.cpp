@@ -1,9 +1,11 @@
 
 //
-// $Id: t8BIT.cpp,v 1.2 2000-10-02 20:52:40 lijewski Exp $
+// $Id: t8BIT.cpp,v 1.3 2004-03-05 17:49:38 car Exp $
 //
 // A simple program to read in a MultiFab and write out in 8BIT format.
 //
+
+#include <string>
 
 #include <VisMF.H>
 
@@ -16,9 +18,9 @@ main (int argc, char** argv)
 
     for (int i = 0; i < argc; i++)
     {
-        cout << "Transforming " << argv[i] << " ... " << flush;
+	std::cout << "Transforming " << argv[i] << " ... " << std::flush;
 
-        aString name = argv[i];
+	std::string name = argv[i];
 
         MultiFab mf;
 
@@ -26,6 +28,6 @@ main (int argc, char** argv)
 
         VisMF::Write(mf, name, VisMF::OneFilePerCPU, true);
 
-        cout << "done" << endl;
+	std::cout << "done" << std::endl;
     }
 }

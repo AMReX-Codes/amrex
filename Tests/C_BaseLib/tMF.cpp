@@ -1,8 +1,8 @@
 
 //
-// $Id: tMF.cpp,v 1.1 2004-03-04 18:09:01 car Exp $
+// $Id: tMF.cpp,v 1.2 2004-03-05 17:49:38 car Exp $
 //
-// A test program for FillBoundary().
+// A test program for MultiFab.
 //
 
 #include <winstd.H>
@@ -10,17 +10,9 @@
 #include <Utility.H>
 #include <MultiFab.H>
 
-#include <new>
-#ifndef WIN32
-using std::set_new_handler;
-#endif
-
 int
 main (int argc, char** argv)
 {
-#ifndef WIN32
-    set_new_handler(BoxLib::OutOfMemory);
-#endif
     BoxLib::Initialize(argc, argv);
 
     Box bx1(IntVect::TheZeroVector(),IntVect::TheUnitVector());
