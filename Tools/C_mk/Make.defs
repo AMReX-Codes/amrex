@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.39 2001-09-17 22:03:03 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.40 2001-09-27 16:11:49 car Exp $
 #
 
 #
@@ -260,6 +260,7 @@ ifeq ($(findstring C++ 4.0, $(__kcc_version)), C++ 4.0)
     CLOSELIB:=TRUE
     CXXLIBFLAGS = --one_per
 endif
+    DEFINES += -DBL_KCC_VERSION=$(KCC_VERSION)
     DEFINES += -DBL_KCC_MAJOR_VERSION=$(KCC_MAJOR_VERSION)
     DEFINES += -DBL_KCC_MINOR_VERSION=$(KCC_MINOR_VERSION)
 endif
