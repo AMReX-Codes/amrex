@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.33 1998-04-27 19:42:56 lijewski Exp $
+// $Id: TagBox.cpp,v 1.34 1998-05-15 18:13:12 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -656,15 +656,6 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
                         if (intbox.ok())
                         {
-                            if (i == j)
-                            {
-                                //
-                                // Is same tagbox, must be careful.
-                                //
-                                D_TERM(intbox.shift(0,-iv[0]);,
-                                       intbox.shift(1,-iv[1]);,
-                                       intbox.shift(2,-iv[2]);)
-                            }
                             fillBoxId.push_back(facd.AddBox(faid,
                                                             intbox,
                                                             0,
@@ -715,28 +706,8 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
                             FillBoxId fillboxid = fillBoxId[iFillBox++];
                             TagBox src(fillboxid.box(), n_comp);
                             facd.FillFab(faid, fillboxid, src);
-
-                            if (i != j)
-                            {
-                                src.shift(iv);
-                                fabparray[j].merge(src);
-                                src.shift(-iv);
-                            }
-                            else
-                            {
-                                //
-                                // Is same tagbox, must be careful.
-                                //
-                                tagtmp.resize(intbox);
-                                Box shintbox(intbox);
-                                IntVect tmpiv(-iv);
-                                D_TERM(shintbox.shift(0,tmpiv[0]);,
-                                       shintbox.shift(1,tmpiv[1]);,
-                                       shintbox.shift(2,tmpiv[2]);)
-                                assert(shintbox == fillboxid.box());
-                                tagtmp.copy(src,shintbox,0,intbox,0,1);
-                                fabparray[j].merge(tagtmp);
-                            }
+                            src.shift(iv);
+                            fabparray[j].merge(src);
                         }
                     }
                 }
@@ -940,7 +911,7 @@ TagBoxArray::setVal (BoxArray&      ba,
     } 
 }
 
-void 
+void
 TagBoxArray::coarsen (const IntVect & ratio)
 {
     for (FabArrayIterator<TagType,TagBox> fai(*this); fai.isValid(); ++fai)
@@ -949,7 +920,8 @@ TagBoxArray::coarsen (const IntVect & ratio)
         TagBox* tcrse = tfine->coarsen(ratio);
         fabparray.set(fai.index(),tcrse);
         delete tfine;
-    } 
+    }
+    boxarray.coarsen(ratio);
     m_border = 0;
     n_grow   = 0;
 }
