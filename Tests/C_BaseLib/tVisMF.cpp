@@ -1,17 +1,22 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tVisMF.cpp,v 1.13 1997-11-18 18:51:53 lijewski Exp $
+// $Id: tVisMF.cpp,v 1.14 1998-02-05 23:01:38 vince Exp $
 //
 
 #include <stdlib.h>
 
 #include <VisMF.H>
+#include <Utility.H>
 
 //
-// This is IAMRAll/preload.cpp -- too bad this couldn't be in a library.
+// This is HCAll/preload.cpp -- too bad this couldn't be in a library.
 //
+
 #ifdef BL_USE_BSP
+//
+// $Id: tVisMF.cpp,v 1.14 1998-02-05 23:01:38 vince Exp $
+//
 
 #ifdef BL_USE_NEW_HFILES
 #include <cstring>
@@ -19,57 +24,61 @@
 #include <string.h>
 #endif
 
-extern int BSP_DO_STAT;
-extern int BSP_DO_CGPROF;
-extern int BSP_DO_PROF;
-extern int BSP_NBUFFERS;
-extern int BSP_BUFFER_SIZE;
-extern int BSP_SLOTSIZE_USECS;
-extern int BSP_BUFFER_STALLS;
-extern int BSP_THROTTLE_PROCS;
-extern int BSP_COMM_FIFO_SIZE;
-extern int BSP_OPT_CONTENTION_LEVEL;
-extern int BSP_OPT_FCOMBINE_PUTS;
-extern int BSP_OPT_FCOMBINE_PUTS_MAX;
-extern int BSP_OPT_FCOMBINE_PUTS_MIN;
-extern int BSP_OPT_BSMP_BUFFER_SIZE;
-extern char *BSP_COMPILE_FLAGS;
-extern char *BSP_ARCH;
-extern char *BSP_INCLUDE_DIR;
-extern int BSP_CHECK_SYNCS;
-extern char *BSP_EXEC_FILE;
-extern char BSP_LIBRARY_TYPE;
-extern int  BSP_OPT_FLIBRARY_LEVEL;
+#include "ParallelDescriptor.H"
+
+extern int _bsp_do_stat;
+extern int _bsp_do_cgprof;
+extern int _bsp_do_prof;
+extern int _bsp_nbuffers;
+extern int _bsp_buffer_size;
+extern int _bsp_slotsize_usecs;
+extern int _bsp_buffer_stalls;
+extern int _bsp_throttle_procs;
+extern int _bsp_comm_fifo_size;
+extern int _bsp_opt_contention_level;
+extern int _bsp_opt_fcombine_puts;
+extern int _bsp_opt_fcombine_puts_max;
+extern int _bsp_opt_fcombine_puts_min;
+extern int _bsp_opt_bsmp_buffer_size;
+extern char *_bsp_compile_flags;
+extern char *_bsp_arch;
+extern char *_bsp_device;
+extern char *_bsp_include_dir;
+extern int _bsp_check_syncs;
+extern char *_bsp_exec_file;
+extern char _bsp_library_type;
+extern int  _bsp_opt_flibrary_level;
+
 
 extern "C" void _bsp_preload_init ();
 
 //
-// Set BSP_INCLUDE_DIR from the environment else take precompiled default.
+// Set _bsp_include_dir from the environment else take precompiled default.
 //
 
 static
 void
 get_bsp_include_dir ()
 {
-    const char* dir = getenv("BSP_INCLUDE_DIR");
+    const char* dir = getenv("_bsp_include_dir");
 
     if (dir == 0 || *dir == 0)
     {
-        if (BSP_INCLUDE_DIR == 0)
-            bsp_abort("BSP_INCLUDE_DIR must be set");
+        if (_bsp_include_dir == 0)
+            bsp_abort("_bsp_include_dir must be set");
     }
     else
     {
-        if (!(BSP_INCLUDE_DIR == 0))
-            free(BSP_INCLUDE_DIR);
+        if (!(_bsp_include_dir == 0))
+            free(_bsp_include_dir);
 
-        if ((BSP_INCLUDE_DIR = (char*) malloc(strlen(dir) + 1)) == 0)
+        if ((_bsp_include_dir = (char*) malloc(strlen(dir) + 1)) == 0)
             bsp_abort("malloc() failed");
 
-        strcpy(BSP_INCLUDE_DIR, dir);
+        strcpy(_bsp_include_dir, dir);
     }
 
-    printf("Using BSP_INCLUDE_DIR=%s\n", BSP_INCLUDE_DIR);
+    printf("Using _bsp_include_dir=%s\n", _bsp_include_dir);
 
     fflush(stdout);
 }
@@ -79,40 +88,50 @@ get_bsp_include_dir ()
 // BSP expects to be able to call this function on startup.
 //
 
+#ifdef BL_T3E
+
 void
-_bsp_preload_init ()
+_bsp_preload_init()
 {
-    BSP_DO_CGPROF             = 0;
-    BSP_DO_PROF               = 0;
-    BSP_DO_STAT               = 0;
-    BSP_NBUFFERS              = 2;
-    BSP_BUFFER_SIZE           = 10240;
-    BSP_SLOTSIZE_USECS        = 0;
-    BSP_THROTTLE_PROCS        = 0;
-    BSP_COMM_FIFO_SIZE        = 100;
-    BSP_BUFFER_STALLS         = 2;
-    BSP_OPT_CONTENTION_LEVEL  = 1;
-    BSP_OPT_FCOMBINE_PUTS     = 20480;
-    BSP_OPT_FCOMBINE_PUTS_MAX = 102400;
-    BSP_OPT_FCOMBINE_PUTS_MIN = 5120;
-    BSP_OPT_BSMP_BUFFER_SIZE  = -1;
-    BSP_CHECK_SYNCS           = 1;
-    BSP_LIBRARY_TYPE          = 'O';
-    BSP_OPT_FLIBRARY_LEVEL    = 2;
- 
-    BSP_COMPILE_FLAGS  = (char*) malloc(1+strlen(" -O3 -flibrary-level 2 -fcombine-puts-buffer 20480,102400,5120 -fcontention-resolve 1"));
-    BSP_ARCH=(char*) malloc(1+strlen("OSF1"));
-    BSP_INCLUDE_DIR=(char*) malloc(1+strlen("/usr/people/vince/Parallel/BSP/BSP1.1.2/include/"));
-    BSP_EXEC_FILE= (char*)malloc(1+strlen("hedgehog"));
+   _bsp_do_cgprof        = 0;
+   _bsp_do_prof          = 0;
+   _bsp_do_stat          = 0;
+   _bsp_nbuffers         = 1;
+   _bsp_buffer_size      = 1048576;
+   _bsp_slotsize_usecs   = 0;
+   _bsp_throttle_procs   = 0;
+   _bsp_comm_fifo_size   = 100;
+   _bsp_buffer_stalls    = 2;
+   _bsp_opt_contention_level = 1;
+   _bsp_opt_fcombine_puts= 0;
+   _bsp_opt_fcombine_puts_max=10485760;
+   _bsp_opt_fcombine_puts_min=10240;
+   _bsp_opt_bsmp_buffer_size =-1;
+   _bsp_check_syncs  =0;
+   _bsp_library_type ='O';
+   _bsp_opt_flibrary_level=2;
 
-    if (BSP_COMPILE_FLAGS==NULL || BSP_ARCH==NULL || 
-        BSP_INCLUDE_DIR==NULL   || BSP_EXEC_FILE==NULL)
-        bsp_abort("{bsp_start}: unable to malloc for compile flags");
+   _bsp_compile_flags  = (char*) malloc(1+strlen(" -O3 -flibrary-level 2 -fcontention-resolve 1"));
+   _bsp_arch=(char*) malloc(1+strlen("CRAYT3E"));
+   _bsp_device=(char*) malloc(1+strlen("DRMA_SHMEM"));
+#ifdef BL_T3E_NERSC
+   _bsp_include_dir=(char*) malloc(1+strlen("/u1/vince/BSP/include/"));
+   _bsp_include_dir  =strcpy(_bsp_include_dir,"/u1/vince/BSP/include/");
+#endif
+#ifdef BL_T3E_NAVO
+   _bsp_include_dir=(char*) malloc(1+strlen("/home/Cvince/BSP/include/"));
+   _bsp_include_dir  =strcpy(_bsp_include_dir,"/home/Cvince/BSP/include/");
+#endif
+   _bsp_exec_file= (char*)malloc(1+strlen("main"));
+   if (_bsp_compile_flags==NULL || _bsp_arch==NULL ||
+       _bsp_include_dir==NULL || _bsp_exec_file==NULL)
+     bsp_abort("{bsp_begin}: unable to malloc for compile flags");
 
-    BSP_COMPILE_FLAGS=strcpy(BSP_COMPILE_FLAGS, " -O3 -flibrary-level 2 -fcombine-puts-buffer 20480,102400,5120 -fcontention-resolve 1");
-    BSP_ARCH         =strcpy(BSP_ARCH,"OSF1");
-    BSP_INCLUDE_DIR  =strcpy(BSP_INCLUDE_DIR,"/usr/people/vince/Parallel/BSP/BSP1.1.2/include/");
-    BSP_EXEC_FILE    =strcpy(BSP_EXEC_FILE,"hedgehog");
+   _bsp_compile_flags=strcpy(_bsp_compile_flags, " -O3 -flibrary-level 2 -fcontention-resolve 1");
+   _bsp_arch         =strcpy(_bsp_arch,"CRAYT3E");
+   _bsp_device       =strcpy(_bsp_device,"DRMA_SHMEM");
+   _bsp_exec_file    =strcpy(_bsp_exec_file,"main");
+
     //
     // This call is not part of the original BSP code.
     // This allows us to override where BSP_INCLUDE_DIR is found.
@@ -120,7 +139,56 @@ _bsp_preload_init ()
     get_bsp_include_dir();
 }
 
+#else   /* not BL_T3E */
+
+void
+_bsp_preload_init()
+{
+   _bsp_do_cgprof        = 0;
+   _bsp_do_prof          = 0;
+   _bsp_do_stat          = 0;
+   _bsp_nbuffers         = 2;
+   _bsp_buffer_size      = 10240;
+   _bsp_slotsize_usecs   = 0;
+   _bsp_throttle_procs   = 0;
+   _bsp_comm_fifo_size   = 100;
+   _bsp_buffer_stalls    = 2;
+   _bsp_opt_contention_level = 1;
+   _bsp_opt_fcombine_puts= 20480;
+   _bsp_opt_fcombine_puts_max=102400;
+   _bsp_opt_fcombine_puts_min=5120;
+   _bsp_opt_bsmp_buffer_size =-1;
+   _bsp_check_syncs  =1;
+   _bsp_library_type ='O';
+   _bsp_opt_flibrary_level=2;
+
+   _bsp_compile_flags  = (char*) malloc(1+strlen(" -O3 -flibrary-level 2 -fcombine-puts-buffer 20480,102400,5120 -fcontention-resolve 1"));
+   _bsp_arch=(char*) malloc(1+strlen("OSF1"));
+   _bsp_device=(char*) malloc(1+strlen("SHMEM_SYSV"));
+   _bsp_include_dir=(char*) malloc(1+strlen("/usr/people/vince/Parallel/BSP/BSP/include/"));
+   _bsp_exec_file= (char*)malloc(1+strlen("hedgehog"));
+   if (_bsp_compile_flags==NULL || _bsp_arch==NULL ||
+       _bsp_include_dir==NULL || _bsp_exec_file==NULL)
+     bsp_abort("{bsp_begin}: unable to malloc for compile flags");
+
+   _bsp_compile_flags=strcpy(_bsp_compile_flags, " -O3 -flibrary-level 2 -fcombine-puts-buffer 20480,102400,5120 -fcontention-resolve 1");
+   _bsp_arch         =strcpy(_bsp_arch,"OSF1");
+   _bsp_device       =strcpy(_bsp_device,"SHMEM_SYSV");
+   _bsp_include_dir  =strcpy(_bsp_include_dir,"/usr/people/vince/Parallel/BSP/BSP/include/");
+   _bsp_exec_file    =strcpy(_bsp_exec_file,"hedgehog");
+
+    //
+    // This call is not part of the original BSP code.
+    // This allows us to override where _bsp_include_dir is found.
+    //
+    get_bsp_include_dir();
+}
+
+#endif
+
 #endif /*BL_USE_BSP*/
+
+
 
 static int nProcs = 1;
 
@@ -265,7 +333,8 @@ Write_N_Read (const MultiFab& mf,
 
     for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
     {
-        const FArrayBox& fab = vmf[mfi.index()];
+        //const FArrayBox& fab = vmf[mfi.index()];
+        const FArrayBox& fab = vmf.GetFab(mfi.index(), 0);
 
         std::cout << "\tCPU #"
                   << ParallelDescriptor::MyProc()

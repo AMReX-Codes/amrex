@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.29 1997-12-05 16:18:22 lijewski Exp $
+// $Id: VisMF.H,v 1.30 1998-02-05 23:01:37 vince Exp $
 //
 
 #include <MultiFab.H>
@@ -103,21 +103,26 @@ public:
     //
     // The min of the FAB (in valid region) at specified index and component.
     //
-    Real min (int i, int nComp) const;
+    Real min (int fabIndex, int nComp) const;
     //
     // The max of the FAB (in valid region) at specified index and component.
     //
-    Real max (int i, int nComp) const;
+    Real max (int fabIndex, int nComp) const;
     //
-    // The FAB at the specified index.
+    // The FAB at the specified index and component.
     //
     // Reads it from disk if necessary.
+    // This reads only the specified component.
     //
-    const FArrayBox& operator[] (int i) const;
+    const FArrayBox& GetFab (int fabIndex, int compIndex) const;
     //
-    // Delete's the FAB at the specified index.
+    // Delete's the FAB at the specified index and component.
     //
-    void clear (int i);
+    void clear (int fabIndex, int compIndex);
+    //
+    // Delete's the FAB at the specified index (all components).
+    //
+    void clear (int fabIndex);
     //
     // Delete's all the FABs.
     //
@@ -156,6 +161,12 @@ public:
     //
     static long FileOffset (ostream& os);
 
+    // Read the entire fab (all components).
+    FArrayBox *readFAB (int fabIndex, const aString &mfName);
+
+    // Read the specified fab component.
+    FArrayBox *readFAB (int fabIndex, int compIndex);
+
 private:
     //
     // These are disallowed.
@@ -173,7 +184,12 @@ private:
     static long WriteHeader (const aString& mf_name,
                              VisMF::Header& hdr);
 
-    static FArrayBox* readFAB (int, const aString&, const Header&);
+    // Read the entire fab (all components).
+    static FArrayBox* readFAB (int fabIndex, const aString&, const Header&);
+
+    // Read the specified fab component.
+    static FArrayBox* readFAB (int fabIndex, const aString&, const Header&,
+			       int compIndex);
 
     static aString DirName (const aString& filename);
 
@@ -197,7 +213,7 @@ private:
     //
     // We manage the FABs individually.
     //
-    mutable PArray<FArrayBox> m_pa;
+    mutable Array<Array<FArrayBox *> > m_pa;
 };
 
 //
@@ -264,45 +280,59 @@ VisMF::boxArray () const
 
 inline
 Real
-VisMF::min (int i, int nComp) const
+VisMF::min (int fabIndex, int nComp) const
 {
-    assert(0 <= i && i < m_hdr.m_ba.length());
+    assert(0 <= fabIndex && fabIndex < m_hdr.m_ba.length());
     assert(0 <= nComp && nComp < m_hdr.m_ncomp);
-    return m_hdr.m_min[i][nComp];
+    return m_hdr.m_min[fabIndex][nComp];
 }
 
 inline
 Real
-VisMF::max (int i, int nComp) const
+VisMF::max (int fabIndex, int nComp) const
 {
-    assert(0 <= i && i < m_hdr.m_ba.length());
+    assert(0 <= fabIndex && fabIndex < m_hdr.m_ba.length());
     assert(0 <= nComp && nComp < m_hdr.m_ncomp);
-    return m_hdr.m_max[i][nComp];
+    return m_hdr.m_max[fabIndex][nComp];
 }
 
 inline
 const FArrayBox&
-VisMF::operator[] (int i) const
+VisMF::GetFab (int fabIndex, int compIndex) const
 {
-    if (!m_pa.defined(i))
+    if ( m_pa[compIndex][fabIndex] == 0)
     {
-        m_pa.set(i, VisMF::readFAB(i, m_mfname, m_hdr));
+        m_pa[compIndex][fabIndex] =
+		 VisMF::readFAB(fabIndex, m_mfname, m_hdr, compIndex);
     }
-    return m_pa[i];
+    return *m_pa[compIndex][fabIndex];
 }
 
 inline
 void
-VisMF::clear (int i)
+VisMF::clear (int fabIndex, int compIndex)
 {
-    m_pa.clear(i);
+    delete m_pa[compIndex][fabIndex];
+}
+
+inline
+void
+VisMF::clear (int fabIndex)
+{
+  for(int compIndex = 0; compIndex < m_pa.length(); ++compIndex) {
+    clear(compIndex, fabIndex);
+  }
 }
 
 inline
 void
 VisMF::clear ()
 {
-    m_pa.clear();
+  for(int compIndex = 0; compIndex < m_pa.length(); ++compIndex) {
+    for(int fabIndex = 0; fabIndex < m_pa[compIndex].length(); ++fabIndex) {
+      clear(compIndex, fabIndex);
+    }
+  }
 }
 
 inline

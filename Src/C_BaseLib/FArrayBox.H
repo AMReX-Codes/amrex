@@ -4,7 +4,7 @@
 #define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.8 1997-12-14 01:05:52 lijewski Exp $
+// $Id: FArrayBox.H,v 1.9 1998-02-05 23:01:34 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -146,6 +146,9 @@ public:
     //
     virtual void skip (istream&   is,
                        FArrayBox& f) const = 0;
+    virtual void skip (istream&   is,
+                       FArrayBox& f,
+		       int nCompToSkip) const = 0;
     //
     // Write out a header describing FArrayBox f that contains
     // nvar components.  It must be the case that nvar <= f.nComp().
@@ -166,6 +169,14 @@ public:
     //
     static FABio* read_header (istream&   is,
                                FArrayBox& f);
+
+    // Same as above except create a single component fab with
+    // data from the compIndex component of the istream fab.
+    // Return the number of available components in the istream fab.
+    static FABio* read_header (istream&   is,
+                               FArrayBox& f,
+			       int compIndex,
+			       int &nCompAvailable);
 };
 
 //@Man:
@@ -384,6 +395,13 @@ public:
     //@ManDoc: Read FAB from istream.  Format is as it was written out.
     //
     void readFrom (istream& is);
+    //
+    /*@ManDoc: Read FAB from istream.  Format is as it was written out.
+	       This creates a single component FAB with data from
+	       compIndex of the FAB from the istream.
+    */
+    //
+    void readFrom (istream& is, int compIndex);
 
     /*@ManDoc: Skip over the next FAB from the input stream.
                Return the Box defining the domain of the FAB and the

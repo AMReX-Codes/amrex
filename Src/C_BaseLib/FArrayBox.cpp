@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.10 1997-12-17 23:05:18 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.11 1998-02-05 23:01:35 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -68,6 +68,9 @@ public:
                         int              num_comp) const;
     virtual void skip (istream&   is,
                        FArrayBox& f) const;
+    virtual void skip (istream&   is,
+                       FArrayBox& f,
+		       int nCompToSkip) const;
 protected:
     virtual void write_header (ostream&         os,
                                const FArrayBox& f,
@@ -90,6 +93,9 @@ public:
                         int              num_comp) const;
     virtual void skip (istream&   is,
                        FArrayBox& f) const;
+    virtual void skip (istream&   is,
+                       FArrayBox& f,
+		       int nCompToSkip) const;
 protected:
     virtual void write_header (ostream&         os,
                                const FArrayBox& f,
@@ -114,6 +120,9 @@ public:
                         int              num_comp) const;
     virtual void skip (istream&   is,
                        FArrayBox& f) const;
+    virtual void skip (istream&   is,
+                       FArrayBox& f,
+		       int nCompToSkip) const;
 
 protected:
     virtual void write_header (ostream&         os,
@@ -455,6 +464,89 @@ FABio::read_header (istream&   is,
     return fio;
 }
 
+
+FABio*
+FABio::read_header (istream&   is,
+                    FArrayBox& f,
+		    int compIndex,
+		    int &nCompAvailable)
+{
+    int nvar;
+    Box bx;
+    FABio* fio = 0;
+    RealDescriptor* rd = 0;
+    char c;
+
+    is >> c;
+    if (c != 'F') BoxLib::Error("FABio::read_header(): expected \'F\'");
+    is >> c;
+    if (c != 'A') BoxLib::Error("FABio::read_header(): expected \'A\'");
+    is >> c;
+    if (c != 'B') BoxLib::Error("FABio::read_header(): expected \'B\'");
+
+    is >> c;
+    if (c == ':')
+    {
+        //
+        // The "old" FAB format.
+        //
+        int typ_in, wrd_in;
+        is >> typ_in;
+        is >> wrd_in;
+
+        char machine[128];
+        is >> machine;
+        is >> bx;
+        is >> nvar;
+	nCompAvailable = nvar;
+	nvar = 1;    // make a single component fab
+        //
+        // Set the FArrayBox to the appropriate size.
+        //
+        f.resize(bx,nvar);
+        is.ignore(BL_IGNORE_MAX, '\n');
+        switch (typ_in)
+        {
+        case FABio::FAB_ASCII: fio = new FABio_ascii; break;
+        case FABio::FAB_8BIT:  fio = new FABio_8bit;  break;
+        case FABio::FAB_NATIVE:
+        case FABio::FAB_IEEE:
+            rd = RealDescriptor::newRealDescriptor(typ_in,
+                                                   wrd_in,
+                                                   machine,
+                                                   FArrayBox::ordering);
+            fio = new FABio_binary(rd);
+            break;
+        default:
+            BoxLib::Error("FABio::read_header(): Unrecognized FABio header");
+        }
+    }
+    else
+    {
+        //
+        // The "new" FAB format.
+        //
+        is.putback(c);
+        rd = new RealDescriptor;
+        is >> *rd;
+        is >> bx;
+        is >> nvar;
+	nCompAvailable = nvar;
+	nvar = 1;    // make a single component fab
+        //
+        // Set the FArrayBox to the appropriate size.
+        //
+        f.resize(bx,nvar);
+        is.ignore(BL_IGNORE_MAX, '\n');
+        fio = new FABio_binary(rd);
+    }
+
+    if (is.fail())
+        BoxLib::Error("FABio::read_header() failed");
+
+    return fio;
+}
+
 FArrayBox::FArrayBox (istream& ifile)
 {
     if (!FArrayBox::Initialized)
@@ -478,6 +570,22 @@ FArrayBox::readFrom (istream& is)
 {
     FABio* fabrd = FABio::read_header(is, *this);
     fabrd->read(is, *this);
+    delete fabrd;
+}
+
+
+void
+FArrayBox::readFrom (istream& is, int compIndex)
+{
+    int nCompAvailable;
+    FABio* fabrd = FABio::read_header(is, *this, compIndex, nCompAvailable);
+    assert(compIndex >= 0 && compIndex < nCompAvailable);
+
+    fabrd->skip(is, *this, compIndex);  // skip data up to the component we want
+    fabrd->read(is, *this);
+    int remainingComponents = nCompAvailable - compIndex - 1;
+    fabrd->skip(is, *this, remainingComponents);  // skip to the end
+
     delete fabrd;
 }
 
@@ -550,6 +658,14 @@ FABio_ascii::skip (istream&   is,
                    FArrayBox& f) const
 {
     FABio_ascii::read(is, f);
+}
+
+void
+FABio_ascii::skip (istream&   is,
+                   FArrayBox& f,
+		   int nCompToSkip) const
+{
+    BoxLib::Error("FABio_ascii::skip(..., int nCompToSkip) not implemented");
 }
 
 void
@@ -654,6 +770,27 @@ FABio_8bit::skip (istream&   is,
 }
 
 void
+FABio_8bit::skip (istream&   is,
+                  FArrayBox& f,
+		  int nCompToSkip) const
+{
+    const Box& bx = f.box();
+    long siz      = bx.numPts();
+    Real mn, mx;
+    for (int nbytes, k = 0; k < nCompToSkip; k++)
+    {
+        is >> mn >> mx >> nbytes;
+        assert(nbytes == siz);
+        while (is.get() != '\n')
+            ;
+        is.seekg(siz, ios::cur);
+    }
+
+    if (is.fail())
+        BoxLib::Error("FABio_8bit::skip() failed");
+}
+
+void
 FABio_8bit::write_header (ostream&         os,
                           const FArrayBox& f,
                           int              nvar) const
@@ -715,6 +852,19 @@ FABio_binary::skip (istream&   is,
     is.seekg(siz*rd->numBytes(), ios::cur);
     if (is.fail())
         BoxLib::Error("FABio_binary::skip() failed");
+}
+
+void
+FABio_binary::skip (istream&   is,
+                    FArrayBox& f,
+		    int nCompToSkip) const
+{
+    const Box& bx = f.box();
+    long base_siz = bx.numPts();
+    long siz      = base_siz * nCompToSkip;
+    is.seekg(siz*rd->numBytes(), ios::cur);
+    if (is.fail())
+        BoxLib::Error("FABio_binary::skip(..., int nCompToSkip) failed");
 }
 
 void

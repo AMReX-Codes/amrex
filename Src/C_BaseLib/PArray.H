@@ -4,7 +4,7 @@
 #define BL_PARRAY_H
 
 //
-// $Id: PArray.H,v 1.7 1997-12-11 23:25:45 lijewski Exp $
+// $Id: PArray.H,v 1.8 1998-02-05 23:01:35 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -150,6 +150,15 @@ public:
                was set to Manage, any cropped pointers are deleted.
     */
     void resize (int newsize);
+
+    /*@ManDoc: This function does a resize and changes the PArrayPolicy.
+	       (Especially for arrays of PArray where the user wants
+	       the default policy to be managed--the default constructor
+	       makes the default unmanaged).
+	       Note:  if the new managed policy is different from the old
+		      one, none of the elements of the original are retained.
+    */
+    void resize (int newsize, PArrayPolicy newmanagedpolicy);
 
     /*@ManDoc: Removes the i'th element from the PArray and returns the
                pointer to the calling function.  Nulls out the pointer
@@ -326,6 +335,20 @@ PArray<T>::resize (int newlen)
           }
         }
     }
+}
+
+
+template <class T>
+void
+PArray<T>::resize (int newlen, PArrayPolicy newmanagedpolicy)
+{
+  if(newmanagedpolicy == managed) {
+    resize(newlen);
+  } else {
+    clear();
+    resize(newlen);
+    managed = newmanagedpolicy;
+  }
 }
 
 template <class T>

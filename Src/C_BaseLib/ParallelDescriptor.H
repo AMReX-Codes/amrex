@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.12 1998-01-23 22:48:38 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.13 1998-02-05 23:01:36 vince Exp $
 //
 
 #include <Assert.H>
@@ -147,6 +147,10 @@ public:
     template<class T> static void Broadcast (int fromproc,
                                              T*  src,
                                              T*  dest) {}
+
+    template<class T> static void Broadcast (int fromproc,
+                                             T*  src,
+                                             T*  dest, int nbytes) {}
 };
 
 #else
@@ -255,7 +259,15 @@ class ParallelDescriptor
                                              T*  src,
                                              T*  dest)
     {
-        bsp_bcast(fromproc, (void*) src, (void*) dest, sizeof(T));
+        bsp_bcast(fromproc, (void *) src, (void *) dest, sizeof(T));
+    }
+
+    template<class T> static void Broadcast (int fromproc,
+                                             T*  src,
+                                             T*  dest,
+					     int nbytes)
+    {
+        bsp_bcast(fromproc, (void *) src, (void *) dest, nbytes);
     }
 
   private:

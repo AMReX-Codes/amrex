@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.39 1997-12-17 23:05:21 lijewski Exp $
+// $Id: VisMF.cpp,v 1.40 1998-02-05 23:01:37 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -587,8 +587,7 @@ VisMF::Write (const MultiFab& mf,
 
 VisMF::VisMF (const aString& mf_name)
     :
-    m_mfname(mf_name),
-    m_pa(PArrayManage)
+    m_mfname(mf_name)
 {
     aString FullHdrFileName = m_mfname;
 
@@ -609,8 +608,90 @@ VisMF::VisMF (const aString& mf_name)
 
     ifs >> m_hdr;
 
-    m_pa.resize(m_hdr.m_ba.length());
+    m_pa.resize(m_hdr.m_ncomp);
+    for(int nComp = 0; nComp < m_pa.length(); ++nComp) {
+      m_pa[nComp].resize(m_hdr.m_ba.length());
+    }
 }
+
+
+FArrayBox*
+VisMF::readFAB (int                  idx,
+                const aString&       mf_name)
+{
+    Box fab_box = m_hdr.m_ba[idx];
+
+    if (m_hdr.m_ngrow)
+        fab_box.grow(m_hdr.m_ngrow);
+
+    FArrayBox* fab = new FArrayBox(fab_box, m_hdr.m_ncomp);
+
+    aString FullFileName = VisMF::DirName(mf_name);
+
+    FullFileName += m_hdr.m_fod[idx].m_name;
+    
+#ifdef BL_USE_SETBUF
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+#endif
+    ifstream ifs;
+
+#ifdef BL_USE_SETBUF
+    ifs.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
+#endif
+    ifs.open(FullFileName.c_str(), ios::in);
+
+    if (!ifs.good())
+        Utility::FileOpenFailed(FullFileName);
+
+    if (m_hdr.m_fod[idx].m_head)
+        ifs.seekg(m_hdr.m_fod[idx].m_head, ios::beg);
+
+    fab->readFrom(ifs);
+
+    ifs.close();
+
+    return fab;
+}
+
+
+FArrayBox*
+VisMF::readFAB (int                  idx,
+		int compIndex)
+{
+    Box fab_box = m_hdr.m_ba[idx];
+    if(m_hdr.m_ngrow) {
+      fab_box.grow(m_hdr.m_ngrow);
+    }
+    FArrayBox* fab = new FArrayBox(fab_box, 1);  // single component fab
+
+    aString FullFileName = VisMF::DirName(m_mfname);
+    FullFileName += m_hdr.m_fod[idx].m_name;
+    
+#ifdef BL_USE_SETBUF
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+#endif
+    ifstream ifs;
+
+#ifdef BL_USE_SETBUF
+    ifs.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
+#endif
+    ifs.open(FullFileName.c_str(), ios::in);
+
+    if( ! ifs.good()) {
+      Utility::FileOpenFailed(FullFileName);
+    }
+    if(m_hdr.m_fod[idx].m_head) {
+      ifs.seekg(m_hdr.m_fod[idx].m_head, ios::beg);
+    }
+
+    fab->readFrom(ifs, compIndex);
+
+    ifs.close();
+
+    return fab;
+}
+
+
 
 FArrayBox*
 VisMF::readFAB (int                  idx,
@@ -645,6 +726,49 @@ VisMF::readFAB (int                  idx,
         ifs.seekg(hdr.m_fod[idx].m_head, ios::beg);
 
     fab->readFrom(ifs);
+
+    ifs.close();
+
+    return fab;
+}
+
+
+FArrayBox*
+VisMF::readFAB (int                  idx,
+                const aString&       mf_name,
+                const VisMF::Header& hdr,
+		int compIndex)
+{
+    Box fab_box = hdr.m_ba[idx];
+
+    if (hdr.m_ngrow)
+        fab_box.grow(hdr.m_ngrow);
+
+    FArrayBox* fab = new FArrayBox(fab_box, 1);  // single component fab
+
+    aString FullFileName = VisMF::DirName(mf_name);
+
+    FullFileName += hdr.m_fod[idx].m_name;
+    
+#ifdef BL_USE_SETBUF
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+#endif
+    ifstream ifs;
+
+#ifdef BL_USE_SETBUF
+    ifs.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
+#endif
+    ifs.open(FullFileName.c_str(), ios::in);
+
+    if (!ifs.good())
+        Utility::FileOpenFailed(FullFileName);
+
+    if (hdr.m_fod[idx].m_head)
+        ifs.seekg(hdr.m_fod[idx].m_head, ios::beg);
+
+    fab->readFrom(ifs, compIndex);
+
+    ifs.close();
 
     return fab;
 }
