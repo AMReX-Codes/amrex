@@ -4,7 +4,7 @@
 #define _Derive_H_
 
 //
-// $Id: Derive.H,v 1.11 1998-05-06 17:50:46 lijewski Exp $
+// $Id: Derive.H,v 1.12 1998-05-11 17:06:24 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -17,7 +17,7 @@
 extern "C"
 {
 //
-//@ManDoc: Type of extern "C" function called by DeriveRec to compute derived quantity.
+// Type of extern "C" function called by DeriveRec to compute derived quantity.
 //
 typedef void (*DeriveFunc)(REAL* data, ARLIM_P(dlo), ARLIM_P(dhi),
                            const int* nvar, const REAL* compdat,

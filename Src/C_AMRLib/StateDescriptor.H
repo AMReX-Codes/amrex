@@ -4,7 +4,7 @@
 #define _StateDescriptor_H_ 
 
 //
-// $Id: StateDescriptor.H,v 1.9 1998-05-06 17:50:51 lijewski Exp $
+// $Id: StateDescriptor.H,v 1.10 1998-05-11 17:06:24 lijewski Exp $
 //
 
 #include <Array.H>
@@ -20,7 +20,7 @@ class Interpolater;
 extern "C"
 {
 //
-//@ManDoc: Type of extern "C" function called by BCRec for user-supplied boundary data.
+// Type of extern "C" function called by BCRec for user-supplied boundary data.
 //
 typedef void (*BndryFunc)(Real* data, ARLIM_P(lo), ARLIM_P(hi),
                           const int* dom_lo, const int* dom_hi,
