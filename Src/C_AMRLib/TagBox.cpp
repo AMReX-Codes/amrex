@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.24 1998-04-15 23:31:28 lijewski Exp $
+// $Id: TagBox.cpp,v 1.25 1998-04-16 22:05:14 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -21,74 +21,8 @@ extern void inspectTAG (const TagBox& tb, int n);
 extern void inspectFAB (FArrayBox& unfab, int n);
 
 #ifdef BL_USE_MPI
-
 #include <mpi.h>
-//
-// Data structure used by mergeUnique() to communicate a `int' and a `Box'.
-//
-struct MUData
-{
-    //
-    // We encapsulate a `int' and a `Box' as an `int[3*BL_SPACEDIM+1]'.
-    //
-    int m_data[3*BL_SPACEDIM+1];
-
-    MUData ();
-    MUData (int idx, const Box& box);
-    //
-    // The number of integers.
-    //
-    int length () const { return 3*BL_SPACEDIM+1; }
-    //
-    // Pointer to the data.
-    //
-    int* dataPtr() { return &m_data[0]; }
-    //
-    // Pointer to the data.
-    //
-    const int* dataPtr() const { return &m_data[0]; }
-    //
-    // The contained index.
-    //
-    int idx () const { return m_data[0]; }
-    //
-    // The contained box.
-    //
-    Box box () const
-    {
-        return Box(IntVect(&m_data[1]),
-                   IntVect(&m_data[1+BL_SPACEDIM]),
-                   IntVect(&m_data[1+2*BL_SPACEDIM]));
-    }
-};
-
-MUData::MUData ()
-{
-    for (int i = 0; i < length(); i++)
-        m_data[i] = 0;
-}
-
-MUData::MUData (int        idx,
-                const Box& box)
-{
-    m_data[0] = idx;
-
-    const IntVect& sm = box.smallEnd();
-
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        m_data[1+i] = sm[i];
-
-    const IntVect& bg = box.bigEnd();
-
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        m_data[1+BL_SPACEDIM+i] = bg[i];
-
-    IntVect typ = box.type();
-
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        m_data[1+2*BL_SPACEDIM+i] = typ[i];
-}
-#endif /*BL_USE_MPI*/
+#endif
 
 //
 // Number of IntVects that can fit into m_CollateSpace
@@ -610,7 +544,7 @@ TagBoxArray::mergeUnique ()
 
     Array<MPI_Request> reqs(NumRecv);
     Array<MPI_Status>  stat(NumRecv);
-    Array<MUData>      recv(NumRecv);
+    Array<CommData>    recv(NumRecv);
 
     for (int i = 0; i < NumRecv; i++)
     {
@@ -626,7 +560,7 @@ TagBoxArray::mergeUnique ()
 
     for (int i = 0; i < clearList.size(); i++)
     {
-        MUData senddata(clearList[i].fabIndex, clearList[i].ovlpBox);
+        CommData senddata(0, clearList[i].fabIndex, clearList[i].ovlpBox);
 
         if ((rc = MPI_Send(senddata.dataPtr(),
                            senddata.length(),
@@ -646,9 +580,9 @@ TagBoxArray::mergeUnique ()
     //
     for (int i = 0; i < NumRecv; i++)
     {
-        assert(distributionMap[recv[i].idx()] == MyProc);
+        assert(distributionMap[recv[i].fabindex()] == MyProc);
 
-        fabparray[recv[i].idx()].setVal(TagBox::CLEAR, recv[i].box(), 0);
+        fabparray[recv[i].fabindex()].setVal(TagBox::CLEAR, recv[i].box(), 0);
     }
 #else
     ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
@@ -656,9 +590,7 @@ TagBoxArray::mergeUnique ()
     for (int i = 0; i < clearList.size(); i++)
     {
         ParallelDescriptor::SendData(distributionMap[clearList[i].fabIndex],
-                                     &clearList[i],
-                                     0,
-                                     0);
+                                     &clearList[i], 0, 0);
     }
     ParallelDescriptor::Synchronize();  // To guarantee messages are sent.
     //
