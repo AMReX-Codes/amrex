@@ -2,7 +2,7 @@
 #define _RUNSTATS_H_ 
 
 //
-// $Id: RunStats.H,v 1.11 2001-07-17 23:02:27 lijewski Exp $
+// $Id: RunStats.H,v 1.12 2001-07-17 23:14:13 car Exp $
 //
 
 #include <cstdlib>
@@ -169,24 +169,6 @@ private:
     static List<RunStatsData> TheStats;    // List of RunStatsData.
     static bool               Initialized; // init()'s been called?
 };
-
-//
-// Inlines
-//
-
-inline
-int
-RunStats::isOn () const
-{
-    return gentry->is_on && entry->is_on;
-}
-
-inline
-long
-RunStats::getCells (int lev)
-{
-    return TheCells[lev];
-}
 
 #ifdef BL_NAMESPACE
 }

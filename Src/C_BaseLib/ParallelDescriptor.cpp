@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.70 2001-07-17 23:02:26 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.71 2001-07-17 23:14:13 car Exp $
 //
 
 #include <Utility.H>
@@ -14,6 +14,51 @@
 namespace BL_NAMESPACE
 {
 #endif
+
+int
+ParallelDescriptor::MyProc ()
+{
+    BL_ASSERT(m_MyId != -1);
+    return m_MyId;
+}
+
+int
+ParallelDescriptor::NProcs ()
+{
+    BL_ASSERT(m_nProcs != -1);
+    return m_nProcs;
+}
+
+int
+ParallelDescriptor::NProcsCFD ()
+{
+    if (m_nProcsCFD == -1)
+        SetNProcsCFD();
+
+    BL_ASSERT(m_nProcsCFD != -1);
+
+    return m_nProcsCFD;
+}
+
+bool
+ParallelDescriptor::IOProcessor ()
+{
+    BL_ASSERT(m_MyId != -1);
+    return m_MyId == ioProcessor;
+}
+
+int
+ParallelDescriptor::IOProcessorNumber ()
+{
+    return ioProcessor;
+}
+
+inline
+MPI_Comm
+ParallelDescriptor::Communicator ()
+{
+    return m_comm;
+}
 
 CommData::CommData ()
 {

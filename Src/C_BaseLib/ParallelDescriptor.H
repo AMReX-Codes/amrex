@@ -2,7 +2,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.53 2001-07-17 23:02:26 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.54 2001-07-17 23:14:13 car Exp $
 //
 
 #include <BLassert.H>
@@ -357,60 +357,6 @@ class ParallelDescriptor
 
     enum { ioProcessor = 0 };
 };
-
-//
-// Inlines.
-//
-
-inline
-int
-ParallelDescriptor::MyProc ()
-{
-    BL_ASSERT(m_MyId != -1);
-    return m_MyId;
-}
-
-inline
-int
-ParallelDescriptor::NProcs ()
-{
-    BL_ASSERT(m_nProcs != -1);
-    return m_nProcs;
-}
-
-inline
-int
-ParallelDescriptor::NProcsCFD ()
-{
-    if (m_nProcsCFD == -1)
-        SetNProcsCFD();
-
-    BL_ASSERT(m_nProcsCFD != -1);
-
-    return m_nProcsCFD;
-}
-
-inline
-bool
-ParallelDescriptor::IOProcessor ()
-{
-    BL_ASSERT(m_MyId != -1);
-    return m_MyId == ioProcessor;
-}
-
-inline
-int
-ParallelDescriptor::IOProcessorNumber ()
-{
-    return ioProcessor;
-}
-
-inline
-MPI_Comm
-ParallelDescriptor::Communicator ()
-{
-    return m_comm;
-}
 
 #ifdef BL_NAMESPACE
 }
