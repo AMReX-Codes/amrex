@@ -19,7 +19,10 @@ char **wrapperFiles;
 fn_def *fn_list;
 int n_fn, nwrapperFiles;
 {
-  int fn_num, argNum, fileNum, i;
+#if DEBUG
+    int i, argNum;
+#endif
+  int fn_num, fileNum;
   wrapperinfo winfo;
 
   ListCreate( winfo.wrapperDefs, wrapperdef, 10 );
@@ -94,7 +97,10 @@ fileinfo *finfo;
 rpcinfo *rinfo;
 wrapperinfo *winfo;
 {
-  int escBodyLen, i, startingLine;
+#if DEBUG
+    int i;
+#endif
+  int escBodyLen, startingLine;
   char **escBodyList, *escBody, *preceding;
 
 #if DEBUG
@@ -341,7 +347,9 @@ char *str, ***list;
 int *len;
 {
   char *ptr, *copy;
+#if DEBUG>1  
   int i;
+#endif
   xpandList strList;
 
     /* create list of strings */
@@ -509,7 +517,10 @@ rpcinfo *rinfo;
 char *body, **bodyList, *escBody;
 int  bodyLen, startLine;
 {
-  int i, fn_num;
+#if DEBUG>1
+  int i;
+#endif
+  int  fn_num;
   replacement rpc;
   fileinfo my_finfo;
 
@@ -591,14 +602,12 @@ wrapperinfo *winfo;
 char *body, **argv;
 int argc, startLine, allFn;
 {
-  int i, fn_num, lineNo, escLen, escStartLine;
-  char *bodyCopy, *escBody, **escList, *preceding;
+  int i, fn_num, escLen, escStartLine;
+  char *escBody, **escList, *preceding;
   wrapperdef newWrapper;
   xpandList vars, varStr;
   fileinfo my_finfo;
 
-  lineNo = startLine;
-  bodyCopy = body;
   ListCreate( vars, variable, 5 );
   ListCreate( varStr, char, 100 );
 
@@ -2989,12 +2998,11 @@ char ***varNames;
 {
   rpcinfo rinfo;
   replacement rpc;
-  int i, nvars, wrapperNum, nwpr;
+  int i, nvars, wrapperNum;
   char *argNum;
   wrapperdef *wpr;
 
   wpr = ListHeadPtr( winfo->wrapperDefs, wrapperdef ); 
-  nwpr = ListSize( winfo->wrapperDefs, wrapperdef ); 
 
     /* set up replacement information (rpc list, function list) */
   ListCreate( rinfo.rpc, replacement, 10 );
