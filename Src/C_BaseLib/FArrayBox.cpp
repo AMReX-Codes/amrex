@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.22 1998-10-29 16:33:39 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.23 1998-11-13 00:16:14 marc Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -981,7 +981,7 @@ printRange (ostream&         os,
 {
     printRange(os,
                fab,
-               Box(IntVect(ilo), IntVect hi(ihi), IntVect(fab.box().type())),
+               Box(IntVect(ilo), IntVect(ihi), IntVect(fab.box().type())),
                comp,
                numcomp);
 }
