@@ -4,7 +4,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.20 1998-06-16 18:01:13 lijewski Exp $
+// $Id: MultiFab.H,v 1.21 1998-07-08 19:17:51 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -331,6 +331,15 @@ class MultiFab
                                         int   num_comp,
                                         bool  no_ovlp,
                                         bool& buildit);
+    //
+    //@ManDoc: Flush the cache of self-intersection info used by FillBoundary.
+    //
+    static void FlushSICache ();
+    //
+    //@ManDoc: The size of the cache of self-intersection info.
+    //
+    static int SICacheSize ();
+
 private:
     //
     // These are disabled.
@@ -349,7 +358,6 @@ private:
     // Some additional cached data.
     //
     MultiFabCopyDescriptor* m_FB_mfcd;    /* Hack for FillBoundary */
-    vector<FillBoxId>*      m_FB_fbid;    /* Hack for FillBoundary */
     int                     m_FB_scomp;   /* Hack for FillBoundary */
     int                     m_FB_ncomp;   /* Hack for FillBoundary */
     MultiFabCopyDescriptor* m_FPB_mfcd;   /* Hack for FillPeriodicBoundary */
