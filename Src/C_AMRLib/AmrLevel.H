@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.4 1997-11-26 19:18:46 lijewski Exp $
+// $Id: AmrLevel.H,v 1.5 1997-12-02 00:08:55 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -101,6 +101,13 @@ public:
                           istream& is);
 
 #ifdef BL_PARALLEL_IO
+    //
+    // A string written as the first item in writePlotFile() at level zero.
+    // This MUST be defined by each derived class.
+    // It is so we can distinguish between different types of plot files.
+    //
+    virtual aString thePlotFileType () const = 0;
+
 //  write plot file stuff to specified directory
     virtual void writePlotFile (const aString& dir,
                                 ostream&       os,
@@ -136,7 +143,7 @@ public:
     virtual  void post_timestep() = 0;
 
 //  contains operations to be done only after a full coarse timestep 
-    virtual void postCoarseTimeStep(Real time) {};
+    virtual void postCoarseTimeStep(Real time) {}
 
 //  operations to be done after restart -- must be defined in derived class
     virtual  void post_restart() = 0;

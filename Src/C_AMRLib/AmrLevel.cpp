@@ -1,10 +1,8 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.6 1997-11-26 20:41:41 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.7 1997-12-02 00:08:55 lijewski Exp $
 //
-
-// #define ADVANCE_DEBUG 1
 
 #ifdef	_MSC_VER
 #include <strstrea.h>
@@ -1681,7 +1679,6 @@ AmrLevel::getBCArray(int State_Type, int gridno, int strt_comp, int num_comp)
     return bc;
 }
 
-#include <stdio.h>
 void
 AmrLevel::probe(ostream &os, IntVect iv, int rad, Real time,
 		int state_indx, int src_comp, int num_comp)
