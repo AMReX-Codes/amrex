@@ -816,7 +816,8 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	creg.coarsen(rat).grow(t - 1);
 	if (m_hg_terrain)
 	{
-	    tl.add_task(new task_fecdiv(&FORT_HGFDIV_TERRAIN, tl, source[lev], upt, igrid, ucp, creg, h[mglev], rat, idim, idir));
+	    BoxLib::Error("Not Ready");
+	    // tl.add_task(new task_fecdiv(&FORT_HGFDIV_TERRAIN, tl, source[lev], upt, igrid, ucp, creg, h[mglev], rat, idim, idir));
 	}
 	else
 	{

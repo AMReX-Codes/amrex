@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.27 1998-12-10 22:54:32 car Exp $
+# $Id: GNUmakefile,v 1.28 1999-01-29 00:20:27 car Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -9,8 +9,8 @@ PRECISION = DOUBLE
 DEBUG     = FALSE
 DEBUG     = TRUE
 PROFILE   = FALSE
-DIM       = 2
 DIM       = 3
+DIM       = 2
 COMP	  = g++
 COMP      = cxx
 COMP      = KCC
@@ -89,6 +89,7 @@ ifdef 3RD
   LIBRARIES += -ldnet_stub
   FDEBF += -automatic
 endif
+FDEBF += -u
 
  
 # Lower optimization level for this big file
