@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.19 1998-09-14 21:50:34 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.20 1998-10-26 23:58:50 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -9,7 +9,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cfloat>
-#ifndef __GNUC
+#ifndef __GNUC__
 #include <limits>
 #endif
 #include <cmath>
