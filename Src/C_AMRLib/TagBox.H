@@ -4,7 +4,7 @@
 #define _TagBox_H_
 
 //
-// $Id: TagBox.H,v 1.14 1998-10-30 19:02:44 lijewski Exp $
+// $Id: TagBox.H,v 1.15 1999-07-27 17:34:59 marc Exp $
 //
 
 #include <IntVect.H>
@@ -159,11 +159,11 @@ public:
     //
     //@ManDoc: Set values in `bd' to `val'.
     //
-    void setVal (BoxDomain& bd, TagBox::TagVal val);
+    void setVal (const BoxDomain& bd, TagBox::TagVal val);
     //
     //@ManDoc: Set values in `ba' to `val'. 
     //
-    void setVal (BoxArray& ba, TagBox::TagVal val);
+    void setVal (const BoxArray& ba, TagBox::TagVal val);
     //
     //@ManDoc: Calls coarsen() on all contained TagBoxes.
     //

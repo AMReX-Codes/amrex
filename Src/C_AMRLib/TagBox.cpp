@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.52 1999-05-10 18:54:09 car Exp $
+// $Id: TagBox.cpp,v 1.53 1999-07-27 17:34:59 marc Exp $
 //
 
 #include <TagBox.H>
@@ -629,8 +629,8 @@ TagBoxArray::collate (long& numtags) const
 }
 
 void
-TagBoxArray::setVal (BoxDomain&     bd,
-                     TagBox::TagVal val)
+TagBoxArray::setVal (const BoxDomain& bd,
+                     TagBox::TagVal   val)
 {
     for (FabArrayIterator<TagType,TagBox> fai(*this); fai.isValid(); ++fai)
     {
@@ -645,8 +645,8 @@ TagBoxArray::setVal (BoxDomain&     bd,
 }
 
 void
-TagBoxArray::setVal (BoxArray&      ba,
-                     TagBox::TagVal val)
+TagBoxArray::setVal (const BoxArray& ba,
+                     TagBox::TagVal  val)
 {
     for (FabArrayIterator<TagType,TagBox> fai(*this); fai.isValid(); ++fai)
     {
