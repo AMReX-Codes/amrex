@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.29 2001-07-24 19:47:17 car Exp $
+// $Id: ParmParse.cpp,v 1.30 2001-07-24 20:15:38 lijewski Exp $
 //
 
 #include <iostream>
@@ -662,6 +662,9 @@ squeryarr (const char*  name,
     {
 	num_val = def->val.size();
     }
+
+    if ( num_val == 0 ) return true;
+
     int stop_ix = start_ix + num_val - 1;
     if ( ptr.size() < stop_ix )
     {
