@@ -134,13 +134,13 @@ protected:
     // These are made non-virtual so that a derived class can define a more
     // complicated lev_interface.
     //
-    void alloc (PArray<MultiFab>& Dest,
+    void alloc_amr_multi (PArray<MultiFab>& Dest,
                 PArray<MultiFab>& Source,
                 PArray<MultiFab>& Coarse_source,
                 int               Lev_min,
                 int               Lev_max);
 
-    void clear ();
+    void clear_amr_multi ();
     
     virtual void sync_interfaces () = 0;
 

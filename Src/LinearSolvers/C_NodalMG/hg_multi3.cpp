@@ -399,7 +399,7 @@ holy_grail_amr_multigrid::relax (int  mglev,
 #endif
 #endif
 		    }
-#endif
+#endif /* HG_CAN_DO_LINE_SOLVES */
 		}
       }
       HG_TEST_NORM(corr[mglev], "relax corr b1");
@@ -548,7 +548,7 @@ holy_grail_amr_multigrid::relax (int  mglev,
 	    }
 	    tl.execute("holy_grail_amr_multigrid::relax(2)");
 	}
-#endif
+#endif /* HG_CAN_DO_LINE_SOLVES */
    }
   }
     HG_TEST_NORM(corr[mglev], "relax a1");

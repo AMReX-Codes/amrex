@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.43 2000-03-23 21:39:06 lijewski Exp $
+# $Id: GNUmakefile,v 1.44 2000-04-17 17:58:37 car Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -8,12 +8,13 @@ TOP = $(PBOXLIB_HOME)
 PRECISION = DOUBLE
 DEBUG     = FALSE
 DEBUG     = TRUE
+PROFILE   = TRUE
 PROFILE   = FALSE
-DIM       = 2
 DIM       = 3
+DIM       = 2
 COMP      = cxx
-COMP      = KCC
 COMP	  = g++
+COMP      = KCC
 USE_MPI   = FALSE
 USE_MPI   = TRUE
 NAMESPACE = TRUE
@@ -86,6 +87,7 @@ ifeq ($(EBASE),proj)
 endif
 
 #LDFLAGS += -v
+#CXXFLAGS += -pg -g
 
 #
 # For 3rd ...
