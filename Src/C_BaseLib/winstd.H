@@ -62,7 +62,7 @@ namespace std
 template <class T> inline T abs(const T& r) { return (r<0)?-r:r; }
 }
 #endif
-#if defined( BL_Linux ) && defined(BL_ICC_VERSION)
+#if defined( BL_Linux ) && (BL_ICC_MAJOR_VERSION == 5)
 namespace std
 {
 template <class T> inline T abs(const T& r) { return (r<0)?-r:r; }
