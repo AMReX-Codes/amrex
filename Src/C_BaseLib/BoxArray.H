@@ -1,7 +1,7 @@
 #ifndef BL_BOXARRAY_H
 #define BL_BOXARRAY_H
 //
-// $Id: BoxArray.H,v 1.31 2001-08-21 19:01:51 lijewski Exp $
+// $Id: BoxArray.H,v 1.32 2003-06-24 17:18:21 lijewski Exp $
 //
 #include <cstddef>
 
@@ -107,6 +107,12 @@ public:
     int size () const;
 
     long numPts() const;
+
+
+    /*@ManDoc: Returns the number of points contained in the BoxArray.
+               This is inteded for use only in diagnostic messages.
+     */
+    double d_numPts () const;
 
     /*@ManDoc: Initialize the BoxArray from the supplied istream.
                It is an error if the BoxArray has already been initialized.

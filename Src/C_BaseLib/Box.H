@@ -1,7 +1,7 @@
 #ifndef BL_BOX_H
 #define BL_BOX_H
 //
-// $Id: Box.H,v 1.25 2001-10-10 20:12:44 car Exp $
+// $Id: Box.H,v 1.26 2003-06-24 17:18:21 lijewski Exp $
 //
 #ifdef NODEV
 #undef NODEV
@@ -297,6 +297,11 @@ public:
                abort()s if the number cannot be represented in a long.
      */
     long numPts () const;
+
+    /*@ManDoc: Returns the number of points contained in the Box.
+               This is inteded for use only in diagnostic messages.
+     */
+    double d_numPts () const;
     //
     //@ManDoc: Is the number calculated by volume() representable in a long?
     //
