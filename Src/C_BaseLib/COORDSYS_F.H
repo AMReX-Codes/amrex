@@ -2,7 +2,7 @@
 #define _COORDSYS_F_H_
 
 /*
-** $Id: COORDSYS_F.H,v 1.5 1998-10-07 21:18:23 vince Exp $
+** $Id: COORDSYS_F.H,v 1.6 1999-04-05 17:39:21 car Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -19,7 +19,7 @@
 #    define FORT_SETAREA     SETAREA
 #    define FORT_SETDLOGA    SETDLOGA
 #  else
-#  ifdef BL_AIX
+#  ifdef BL_FORT_USE_LOWERCASE
 #    define FORT_SETVOL      setvol
 #    define FORT_SETVOLPT      setvolpt
 #    define FORT_SETAREA     setarea

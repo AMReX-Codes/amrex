@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.34 1999-04-01 16:57:48 car Exp $
+# $Id: GNUmakefile,v 1.35 1999-04-05 17:39:21 car Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -63,6 +63,7 @@ ifeq ($(EBASE),proj)
   INCLUDE_LOCATIONS += $(TOP)/pBoxLib_2 
   vpath %.cpp	. $(TOP)/pBoxLib_2
   vpath %.H     . $(TOP)/pBoxLib_2
+  vpath %.h     . $(TOP)/pBoxLib_2
   vpath %.F	. 
   all: $(executable)
 endif
