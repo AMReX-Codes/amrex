@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.22 2001-08-21 22:15:37 car Exp $
+// $Id: main.cpp,v 1.23 2003-07-30 15:07:34 car Exp $
 //
 
 #include <fstream>
@@ -89,8 +89,9 @@ main (int   argc, char* argv[])
       //ivmid = rhsmfi().smallEnd();
       rhs[rhsmfi].operator()(ivmid,0) = 1;
       ivmid += IntVect::TheUnitVector();
-      rhs[rhsmfi].operator()(ivmid,0) = -1;
+      // rhs[rhsmfi].operator()(ivmid,0) = -1;
       // rhsmfi->setVal(1.0);
+      // std::cout << rhs[rhsmfi] << std::endl;
     }
 
   // Initialize boundary data, set boundary condition flags and locations:
@@ -128,6 +129,7 @@ main (int   argc, char* argv[])
   bool dump_Mf=false        ; pp.query("dump_Mf", dump_Mf);
   bool dump_VisMF=false     ; pp.query("dump_VisMF", dump_VisMF);
   bool dump_ascii=false     ; pp.query("dump_ascii", dump_ascii);
+  bool dump_rhs_ascii=false     ; pp.query("dump_rhs_ascii", dump_rhs_ascii);
   int res;
   if ( !ABec )
     {
@@ -386,6 +388,14 @@ main (int   argc, char* argv[])
       for ( MFIter mfi(soln); mfi.isValid(); ++mfi )
 	{
 	  std::cout << soln[mfi] << std::endl;
+	}
+    }
+
+  if ( dump_rhs_ascii )
+    {
+      for ( MFIter mfi(soln); mfi.isValid(); ++mfi )
+	{
+	  std::cout << rhs[mfi] << std::endl;
 	}
     }
 

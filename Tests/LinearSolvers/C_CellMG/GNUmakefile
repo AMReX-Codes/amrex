@@ -1,16 +1,16 @@
 PRECISION = DOUBLE
-PROFILE = FALSE
 PROFILE = TRUE
-DEBUG	= FALSE
+PROFILE = FALSE
 DEBUG	= TRUE
+DEBUG	= FALSE
 DIM	= 3
 DIM	= 2
 COMP = KCC
 COMP = g++
 USE_MPI=TRUE
 USE_MPI=FALSE
-USE_THREADS=FALSE
 USE_THREADS=TRUE
+USE_THREADS=FALSE
 STRICTLY=TRUE
 
 USE_ARRAYVIEW = TRUE
@@ -95,6 +95,7 @@ CDEBF +=
 
 vpath %.cpp : . $(vpathdir)
 vpath %.F   : . $(vpathdir)
+vpath %.f   : . $(vpathdir)
 
 all: $(executable)
 
