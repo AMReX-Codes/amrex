@@ -1,18 +1,39 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.8 1998-01-08 23:06:04 vince Exp $
+// $Id: ParallelDescriptor.cpp,v 1.9 1998-02-17 22:42:05 lijewski Exp $
 //
-
-#ifdef BL_USE_BSP
 
 #include <Utility.H>
 #include <ParallelDescriptor.H>
+
+#ifdef BL_USE_BSP
+
+#include <RunStats.H>
 
 //
 // Type of function pointer required by bsp_fold().
 //
 typedef void (*VFVVVI)(void*,void*,void*,int*);
+
+void
+ParallelDescriptor::Synchronize ()
+{
+    RunStats stats("parallel_sync");
+    stats.start();
+    bsp_sync();
+    stats.end();
+}
+
+void
+ParallelDescriptor::Synchronize (const char* msg)
+{
+    cout << "----- " << bsp_pid() << " :  about to sync:  " << msg << endl;
+    RunStats stats("parallel_sync");
+    stats.start();
+    bsp_sync();
+    stats.end();
+}
 
 void
 ParallelDescriptor::ReduceBoolAnd (bool &rvar)
@@ -129,6 +150,18 @@ ParallelDescriptor::MessageQueueEmpty ()
   FabComTag fabComTag;
   ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
   return ParallelDescriptor::GetMessageHeader(dataWaitingSize,&fabComTag);
+}
+
+#else
+
+//
+// Here so we don't need to include <Utility.H> in <ParallelDescriptor.H>.
+//
+
+double
+ParallelDescriptor::second ()
+{
+    return Utility::second();
 }
 
 #endif /*BL_USE_BSP*/

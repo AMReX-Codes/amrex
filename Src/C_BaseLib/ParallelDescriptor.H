@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.14 1998-02-09 20:46:54 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.15 1998-02-17 22:42:04 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -32,8 +32,6 @@ extern "C"
 #define EndParallel()            bsp_end()
 
 #else
-
-#include <Utility.H>
 
 #define StartParallel(nprocs)
 #define StartParallelAllProcs() 
@@ -85,7 +83,7 @@ public:
     }
     static bool IOProcessor () { return true; }
     static int  IOProcessorNumber () { return 0; }
-    static double second ()  { return Utility::second(); }
+    static double second ();
 
     // reduction operations
     template<class T> static void ReduceMin (T &rvar) {}
@@ -157,19 +155,14 @@ class ParallelDescriptor
 {
   public:
 
-    static int MyProc () { return bsp_pid();    }
-    static int NProcs () { return bsp_nprocs(); }
-    static void Synchronize () { bsp_sync(); }
-    static void Synchronize (const char *msg)
-    {
-          cout << "----- " << bsp_pid() << " :  about to sync:  " << msg
-               << endl;
-          bsp_sync();
-    }
-    static bool IOProcessor () { return (bsp_pid() == ioProcessor); }
-    static int  IOProcessorNumber () { return (ioProcessor); }
-    static void Abort (const char* msg)  { bsp_abort((char*)msg); }
-    static double second ()  { return bsp_time(); }
+    static int MyProc ()                 { return bsp_pid();                }
+    static int NProcs ()                 { return bsp_nprocs();             }
+    static void Synchronize ();
+    static void Synchronize (const char* msg);
+    static bool IOProcessor ()           { return bsp_pid() == ioProcessor; }
+    static int  IOProcessorNumber ()     { return ioProcessor;              }
+    static void Abort (const char* msg)  { bsp_abort((char*)msg);           }
+    static double second ()              { return bsp_time();               }
     //
     // Reduction operations.
     //
