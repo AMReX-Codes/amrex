@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.11 2000-06-05 18:39:31 car Exp $
+// $Id: main.cpp,v 1.12 2000-06-22 18:33:46 car Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -23,6 +23,12 @@
 #include <ABecLaplacian.H>
 #include <ParallelDescriptor.H>
 #include <VisMF.H>
+
+#ifdef BL3_PTHREADS
+#include <BoxLib3/WorkQueue.H>
+BoxLib3::WorkQueue wrkq;
+#endif
+
 
 #ifdef BL_USE_NEW_HFILES
 #include <new>
@@ -100,6 +106,10 @@ main (int   argc, char* argv[])
 #ifndef WIN32
   int sleeptime = 0; pp.query("sleep", sleeptime);
   sleep(sleeptime);
+#endif
+#ifdef BL3_PTHREADS
+  int maxthreads = 1; pp.query("maxthreads", maxthreads);
+  wrkq.maxThreads(maxthreads);
 #endif
     
   TRACER("mg");
@@ -326,25 +336,20 @@ main (int   argc, char* argv[])
 	cout << "solution norm = " << d1 << "/" << d2 << endl;
       }
   }
-  if ( dump_Mf )
+  if ( dump_Mf || dump_VisMF )
     {
       MultiFab temp(bs, 2, Nghost, Fab_allocate);
       temp.setVal(0.0);
       temp.copy(soln, 0, 0, 1);
       temp.copy(rhs,  0, 1, 1);
-      const IntVect refRatio(D_DECL(2,2,2));
-      const Real bgVal = temp.min(0);
-      writePlotFile("soln", temp, geom, refRatio, bgVal);
-    }
-  if ( dump_VisMF )
-    {
-      MultiFab temp(bs, 2, Nghost, Fab_allocate);
-      temp.setVal(0.0);
-      temp.copy(soln, 0, 0, 1);
-      temp.copy(rhs,  0, 1, 1);
-      const IntVect refRatio(D_DECL(2,2,2));
-      const Real bgVal = temp.min(0);
-      VisMF::Write(temp, "soln_vismf", VisMF::OneFilePerCPU);
+      if ( dump_Mf )
+	{
+	  writePlotFile("soln", temp, geom, IntVect(D_DECL(2,2,2)), temp.min(0));
+	}
+      if ( dump_VisMF )
+	{
+	  VisMF::Write(temp, "soln_vismf", VisMF::OneFilePerCPU);
+	}
     }
   
   if ( dump_ascii )
@@ -354,6 +359,7 @@ main (int   argc, char* argv[])
 	  cout << *mfi << endl;
 	} // -->> over boxes in domain
     }
+
   ParallelDescriptor::EndParallel();
     
 } // -->> main fnc

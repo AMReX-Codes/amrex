@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: LinOp.cpp,v 1.14 2000-06-05 22:38:36 lijewski Exp $
+// $Id: LinOp.cpp,v 1.15 2000-06-22 18:34:27 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -16,6 +16,11 @@
 #include <LO_BCTYPES.H>
 #include <LO_F.H>
 #include <LinOp.H>
+
+#ifdef BL3_PTHREADS
+#include <BoxLib3/WorkQueue.H>
+extern BoxLib3::WorkQueue wrkq;
+#endif
 
 bool LinOp::initialized = false;
 int LinOp::def_harmavg  = 0;
@@ -164,6 +169,142 @@ LinOp::apply (MultiFab&      out,
     Fapply(out,in,level);
 }
 
+#ifdef BL3_PTHREADS
+class task_applybc_orientation
+  : public BoxLib3::WorkQueue::task
+{
+public:
+  task_applybc_orientation(const OrientationIter& oitr_,
+			   int level_,
+			   int flagden_, int flagbc_, int maxorder_,
+			   MultiFab& inout_,
+			   int cdr_,
+			   const Array< Array<BoundCond> >&  b_, const Array<Real>& r_,
+			   const FabSet& fs_,
+			   const Array< Array< Array< Mask*> > >& maskvals_,
+			   FabSet& f_,
+			   int nc_,
+			   const REAL* h_);
+  virtual void run();
+private:
+  const OrientationIter oitr;
+  const int level;
+  const int flagden;
+  const int flagbc;
+  const int maxorder;
+  MultiFab& inout;
+  const int cdr;
+  const Array< Array<BoundCond> >& b;
+  const Array< Real>& r;
+  const FabSet& fs;
+  const Array< Array< Array< Mask*> > >& maskvals;
+  FabSet& f;
+  int nc;
+  const Real* h;
+};
+
+task_applybc_orientation::task_applybc_orientation(const OrientationIter& oitr_, int level_,
+						   int flagden_, int flagbc_, int maxorder_,
+						   MultiFab& inout_,
+						   int cdr_,
+						   const Array< Array<BoundCond> >& b_, const Array<Real>& r_,
+						   const FabSet& fs_,
+						   const Array< Array< Array< Mask*> > >& maskvals_,
+						   FabSet& f_,
+						   int nc_,
+						   const REAL* h_)
+  : oitr(oitr_), level(level_), flagden(flagden_), flagbc(flagbc_), maxorder(maxorder_),
+    inout(inout_), cdr(cdr_), b(b_), r(r_), fs(fs_), maskvals(maskvals_), f(f_), nc(nc_), h(h_)
+{}
+
+void
+task_applybc_orientation::run()
+{
+  const int comp = 0;
+  for (MultiFabIterator inoutmfi(inout); inoutmfi.isValid(); ++inoutmfi)
+    {
+      DependentFabSetIterator ffsi(inoutmfi, f);
+      DependentFabSetIterator fsfsi(inoutmfi, fs);
+
+      const int gn = inoutmfi.index();
+
+      const Mask& m = *maskvals[level][gn][oitr()];
+      Real bcl      = r[gn];
+      int bct       = b[gn][comp];
+
+      FORT_APPLYBC(&flagden, &flagbc, &maxorder,
+		   inoutmfi().dataPtr(), 
+		   ARLIM(inoutmfi().loVect()), ARLIM(inoutmfi().hiVect()),
+		   &cdr, &bct, &bcl,
+		   fsfsi().dataPtr(), 
+		   ARLIM(fsfsi().loVect()), ARLIM(fsfsi().hiVect()),
+		   m.dataPtr(),
+		   ARLIM(m.loVect()), ARLIM(m.hiVect()),
+		   ffsi().dataPtr(),
+		   ARLIM(ffsi().loVect()), ARLIM(ffsi().hiVect()),
+		   inoutmfi.validbox().loVect(),
+		   inoutmfi.validbox().hiVect(), &nc, h);
+    }
+}
+
+class task_applybc
+  : public BoxLib3::WorkQueue::task
+{
+public:
+  task_applybc(int flagden_, int flagbc_, int maxorder_,
+	       FArrayBox& inout_,
+	       int cdr_, int bct_, Real bcl_,
+	       const FArrayBox& fs_,
+	       const Mask& m_,
+	       FArrayBox& f_,
+	       const Box& vbox_,
+	       int nc_,
+	       const REAL* h_);
+  virtual void run();
+private:  
+  const int flagden;
+  const int flagbc;
+  const int maxorder;
+  FArrayBox& inout;
+  const int cdr;
+  const int bcl;
+  Real bct;
+  const FArrayBox& fs;
+  const Mask& m;
+  FArrayBox& f;
+  const Box vbox;
+  int nc;
+  const Real* h;
+};
+
+task_applybc::task_applybc(int flagden_, int flagbc_, int maxorder_,
+			   FArrayBox& inout_,
+			   int cdr_, int bcl_, Real bct_,
+			   const FArrayBox& fs_,
+			   const Mask& m_,
+			   FArrayBox& f_,
+			   const Box& vbox_,
+			   int nc_,
+			   const REAL* h_)
+  : flagden(flagden_), flagbc(flagbc_), maxorder(maxorder_),
+    inout(inout_), cdr(cdr_), bcl(bcl_), bct(bct_), fs(fs_), m(m_), f(f_), vbox(vbox_), nc(nc_), h(h_)
+{}
+
+void
+task_applybc::run()
+{
+  FORT_APPLYBC(&flagden, &flagbc, &maxorder,
+	       inout.dataPtr(), ARLIM(inout.loVect()), ARLIM(inout.hiVect()),
+	       &cdr, &bcl, &bct,
+	       fs.dataPtr(), ARLIM(fs.loVect()), ARLIM(fs.hiVect()),
+	       m.dataPtr(), ARLIM(m.loVect()), ARLIM(m.hiVect()),
+	       f.dataPtr(), ARLIM(f.loVect()), ARLIM(f.hiVect()),
+	       vbox.loVect(), vbox.hiVect(),
+	       &nc, h);
+  
+}
+#endif
+
 void
 LinOp::applyBC (MultiFab&      inout,
                 int            level,
@@ -211,10 +352,41 @@ LinOp::applyBC (MultiFab&      inout,
         FabSet& f                          = (*undrrelxr[level])[oitr()];
         int cdr                            = oitr();
         const FabSet& fs                   = bgb.bndryValues(oitr());
-        const int comp                     = 0;
 
-        for (MultiFabIterator inoutmfi(inout); inoutmfi.isValid();
-             ++inoutmfi)
+#ifdef BL3_PTHREADS
+#if 1
+	wrkq.add(new task_applybc_orientation(oitr, level,
+					      flagden, flagbc, maxorder,
+					      inout,
+					      cdr, b, r,
+					      fs,
+					      maskvals,
+					      f,
+					      nc, h[level]));
+#else
+        for (MultiFabIterator inoutmfi(inout); inoutmfi.isValid(); ++inoutmfi)
+        {
+            const int gn = inoutmfi.index();
+
+            BL_ASSERT(gbox[level][inoutmfi.index()] == inoutmfi.validbox());
+
+            const Mask& m = *maskvals[level][gn][oitr()];
+            Real bcl      = r[gn];
+            int bct       = b[gn][comp];
+
+	    wrkq.add(new task_applybc(flagden, flagbc, maxorder,
+				      inout[gn],
+				      cdr, bct, bcl,
+				      fs[gn],
+				      m,
+				      f[gn],
+				      inoutmfi.validbox(),
+				      nc, h[level]));
+        }
+#endif
+#else
+        const int comp                     = 0;
+        for (MultiFabIterator inoutmfi(inout); inoutmfi.isValid(); ++inoutmfi)
         {
             DependentFabSetIterator ffsi(inoutmfi, f);
             DependentFabSetIterator fsfsi(inoutmfi, fs);
@@ -240,9 +412,11 @@ LinOp::applyBC (MultiFab&      inout,
                          inoutmfi.validbox().loVect(),
                          inoutmfi.validbox().hiVect(), &nc, h[level]);
         }
+#endif
     }
+    wrkq.wait();
 }
-    
+
 void
 LinOp::residual (MultiFab&       residL,
                  const MultiFab& rhsL,
