@@ -380,7 +380,6 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
   //Real tol = 2.e-10;
 #else
   int pcode = 2, nrep = 1;
-  pcode = 4;
   Real tol = 1.e-12;
   //int pcode = 1, nrep = 3;
   //Real tol = 1.e-6;
@@ -471,4 +470,11 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     cout << "Total time was  " << t2 - t0 << endl;
   }
 */
+  for (ilev = 0; ilev < m.length(); ilev++) {
+    for (i = 0; i < BL_SPACEDIM; i++)
+      delete u[i].remove(ilev);
+    delete rhoinv.remove(ilev);
+    delete p.remove(ilev);
+    delete rhs.remove(ilev);
+  }
 }

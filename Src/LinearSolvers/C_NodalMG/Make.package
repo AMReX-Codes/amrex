@@ -1,8 +1,8 @@
 
 ifeq ($(LBASE),proj)
 
-CLIB_sources += cache.C interface.C boundary.C interpolator.C restrictor.C \
-       		fill_patch.C amr_graph.C amr_multi.C \
+CLIB_sources += mall_info.C cache.C interface.C boundary.C interpolator.C \
+       		restrictor.C fill_patch.C amr_graph.C amr_multi.C \
 		hg_multi1.C hg_multi2.C hg_multi3.C \
 		hg_projector.C
 CLIB_headers += cache.H interface.H boundary.H interpolator.H restrictor.H \
