@@ -1,5 +1,5 @@
 //
-// $Id: Interpolater.cpp,v 1.23 2001-10-30 20:26:29 lijewski Exp $
+// $Id: Interpolater.cpp,v 1.24 2002-09-27 19:20:00 almgren Exp $
 //
 #include <winstd.H>
 
@@ -19,14 +19,15 @@
 //
 // CONSTRUCT A GLOBAL OBJECT OF EACH VERSION.
 //
-NodeBilinear           node_bilinear_interp;
-CellBilinear           cell_bilinear_interp;
-CellConservative       cell_cons_interp;
-CellQuadratic          quadratic_interp;
-CellConservative       unlimited_cc_interp(0);
-PCInterp               pc_interp;
-CellConservativeLinear lincc_interp;
-CellConservativeLinear nonlincc_interp(0);
+NodeBilinear              node_bilinear_interp;
+CellBilinear              cell_bilinear_interp;
+CellConservative          cell_cons_interp;
+CellQuadratic             quadratic_interp;
+CellConservative          unlimited_cc_interp(0);
+PCInterp                  pc_interp;
+CellConservativeLinear    lincc_interp;
+CellConservativeLinear    nonlincc_interp(0);
+CellConservativeProtected protected_interp;
 
 Interpolater::~Interpolater () {}
 
@@ -283,7 +284,7 @@ CellConservative::interp (const FArrayBox& crse,
     Real* foff   = fstrip + f_len;
     Real* fslope = foff + f_len;
     //
-    // Get coarse in fine edge centered volume coordinates.
+    // Get coarse and fine edge-centered volume coordinates.
     //
     Array<Real> fvc[BL_SPACEDIM];
     Array<Real> cvc[BL_SPACEDIM];
@@ -377,7 +378,7 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     Box cslope_bx(crse_bx);
     cslope_bx.grow(-1);
     //
-    // Get coarse in fine edge centered volume coordinates.
+    // Get coarse and fine edge-centered volume coordinates.
     //
     Array<Real> fvc[BL_SPACEDIM];
     Array<Real> cvc[BL_SPACEDIM];
@@ -547,7 +548,7 @@ CellQuadratic::interp (const FArrayBox& crse,
     Real* foff   = fstrip + f_len;
     Real* fslope = foff + f_len;
     //
-    // Get coarse in fine edge centered volume coordinates.
+    // Get coarse and fine edge-centered volume coordinates.
     //
     Array<Real> fvc[BL_SPACEDIM];
     Array<Real> cvc[BL_SPACEDIM];
@@ -654,4 +655,238 @@ PCInterp::interp (const FArrayBox& crse,
                    fdat,ARLIM(flo),ARLIM(fhi),fblo,fbhi,
                    &long_dir,D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
                    &ncomp,strip.dataPtr(),&strip_lo,&strip_hi);
+}
+
+CellConservativeProtected::CellConservativeProtected () {}
+
+CellConservativeProtected::~CellConservativeProtected () {}
+
+Box
+CellConservativeProtected::CoarseBox (const Box&     fine,
+                                      const IntVect& ratio)
+{
+    Box crse = BoxLib::coarsen(fine,ratio);
+    crse.grow(1);
+    return crse;
+}
+
+Box
+CellConservativeProtected::CoarseBox (const Box& fine,
+                                      int        ratio)
+{
+    Box crse(BoxLib::coarsen(fine,ratio));
+    crse.grow(1);
+    return crse;
+}
+
+void
+CellConservativeProtected::interp (const FArrayBox& crse,
+                                   int              crse_comp,
+                                   FArrayBox&       fine,
+                                   int              fine_comp,
+                                   int              ncomp,
+                                   const Box&       fine_region,
+                                   const IntVect&   ratio,
+                                   const Geometry&  crse_geom,
+                                   const Geometry&  fine_geom,
+                                   Array<BCRec>& bcr)
+{
+    BL_ASSERT(bcr.size() >= ncomp);
+    BL_ASSERT(fine_geom.Domain().contains(fine_region));
+    //
+    // Make box which is intersection of fine_region and domain of fine.
+    //
+    Box target_fine_region = fine_region & fine.box();
+    //
+    // crse_bx is coarsening of target_fine_region, grown by 1.
+    //
+    Box crse_bx = CoarseBox(target_fine_region,ratio);
+    //
+    // Slopes are needed only on coarsening of target_fine_region.
+    //
+    Box cslope_bx(crse_bx);
+    cslope_bx.grow(-1);
+    //
+    // Get coarse and fine edge-centered volume coordinates.
+    //
+    Array<Real> fvc[BL_SPACEDIM];
+    Array<Real> cvc[BL_SPACEDIM];
+    int dir;
+    for (dir = 0; dir < BL_SPACEDIM; dir++)
+    {
+        fine_geom.GetEdgeVolCoord(fvc[dir],target_fine_region,dir);
+        crse_geom.GetEdgeVolCoord(cvc[dir],crse_bx,dir);
+    }
+    //
+    // alloc tmp space for slope calc.
+    //
+    // In ucc_slopes and lcc_slopes , there is a slight abuse of 
+    // the number of compenents argument
+    // --> there is a slope for each component in each coordinate 
+    //     direction
+    //
+    FArrayBox ucc_slopes(cslope_bx,ncomp*BL_SPACEDIM);
+    FArrayBox lcc_slopes(cslope_bx,ncomp*BL_SPACEDIM);
+    FArrayBox slope_factors(cslope_bx,BL_SPACEDIM);
+
+    Real* fdat       = fine.dataPtr(fine_comp);
+    const Real* cdat = crse.dataPtr(crse_comp);
+    Real* ucc_xsldat = ucc_slopes.dataPtr(0);
+    Real* lcc_xsldat = lcc_slopes.dataPtr(0);
+    Real* xslfac_dat = slope_factors.dataPtr(0);
+    Real* ucc_ysldat = ucc_slopes.dataPtr(ncomp);
+    Real* lcc_ysldat = lcc_slopes.dataPtr(ncomp);
+    Real* yslfac_dat = slope_factors.dataPtr(1);
+#if (BL_SPACEDIM==3)
+    Real* ucc_zsldat = ucc_slopes.dataPtr(2*ncomp);
+    Real* lcc_zsldat = lcc_slopes.dataPtr(2*ncomp);
+    Real* zslfac_dat = slope_factors.dataPtr(2);
+#endif
+    
+    const int* flo    = fine.loVect();
+    const int* fhi    = fine.hiVect();
+    const int* clo    = crse.loVect();
+    const int* chi    = crse.hiVect();
+    const int* fblo   = target_fine_region.loVect();
+    const int* fbhi   = target_fine_region.hiVect();
+    const int* csbhi  = cslope_bx.hiVect();
+    const int* csblo  = cslope_bx.loVect();
+    int lin_limit     = 1;
+    const int* cvcblo = crse_bx.loVect();
+    const int* fvcblo = target_fine_region.loVect();
+
+    int cvcbhi[BL_SPACEDIM];
+    int fvcbhi[BL_SPACEDIM];
+
+    for (dir=0; dir<BL_SPACEDIM; dir++)
+    {
+        cvcbhi[dir] = cvcblo[dir] + cvc[dir].size() - 1;
+        fvcbhi[dir] = fvcblo[dir] + fvc[dir].size() - 1;
+    }
+
+    D_TERM(Real* voffx = new Real[fvc[0].size()];,
+           Real* voffy = new Real[fvc[1].size()];,
+           Real* voffz = new Real[fvc[2].size()];);
+
+    Array<int> bc     = GetBCArray(bcr);
+    const int* ratioV = ratio.getVect();
+
+#if (BL_SPACEDIM > 1)
+
+    FORT_LINCCINTERP (fdat,ARLIM(flo),ARLIM(fhi),
+                      fblo, fbhi,
+                      ARLIM(fvcblo), ARLIM(fvcbhi),
+                      cdat,ARLIM(clo),ARLIM(chi),
+                      ARLIM(cvcblo), ARLIM(cvcbhi),
+                      ucc_xsldat, lcc_xsldat, xslfac_dat,
+                      ucc_ysldat, lcc_ysldat, yslfac_dat,
+#if (BL_SPACEDIM==3)
+                      ucc_zsldat, lcc_zsldat, zslfac_dat,
+#endif
+                      ARLIM(csblo), ARLIM(csbhi),
+                      csblo, csbhi,
+                      &ncomp,D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
+                      bc.dataPtr(), &lin_limit,
+                      D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
+                      D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()),
+                      D_DECL(voffx,voffy,voffz));
+
+    D_TERM(delete [] voffx;, delete [] voffy;, delete [] voffz;);
+
+#endif /*(BL_SPACEDIM > 1)*/
+}
+
+void
+CellConservativeProtected::protect (const FArrayBox& crse,
+                                    int              crse_comp,
+                                    FArrayBox&       fine,
+                                    int              fine_comp,
+                                    FArrayBox&       fine_state,
+                                    int              state_comp,
+                                    int              ncomp,
+                                    const Box&       fine_region,
+                                    const IntVect&   ratio,
+                                    const Geometry&  crse_geom,
+                                    const Geometry&  fine_geom,
+                                    Array<BCRec>& bcr)
+{
+    BL_ASSERT(bcr.size() >= ncomp);
+    BL_ASSERT(fine_geom.Domain().contains(fine_region));
+
+    //
+    // Make box which is intersection of fine_region and domain of fine.
+    //
+    Box target_fine_region = fine_region & fine.box();
+
+    //
+    // crse_bx is coarsening of target_fine_region, grown by 1.
+    //
+    Box crse_bx = CoarseBox(target_fine_region,ratio);
+
+    //
+    // cs_bx is coarsening of target_fine_region.
+    //
+    Box cs_bx(crse_bx);
+    cs_bx.grow(-1);
+
+    //
+    // Get coarse and fine edge-centered volume coordinates.
+    //
+    int dir;
+    Array<Real> fvc[BL_SPACEDIM];
+    Array<Real> cvc[BL_SPACEDIM];
+    for (dir = 0; dir < BL_SPACEDIM; dir++)
+    {
+        fine_geom.GetEdgeVolCoord(fvc[dir],target_fine_region,dir);
+        crse_geom.GetEdgeVolCoord(cvc[dir],crse_bx,dir);
+    }
+
+    const int* cvcblo = crse_bx.loVect();
+    const int* fvcblo = target_fine_region.loVect();
+
+    int cvcbhi[BL_SPACEDIM];
+    int fvcbhi[BL_SPACEDIM];
+
+    for (dir=0; dir<BL_SPACEDIM; dir++)
+    {
+        cvcbhi[dir] = cvcblo[dir] + cvc[dir].size() - 1;
+        fvcbhi[dir] = fvcblo[dir] + fvc[dir].size() - 1;
+    }
+
+    Real* fdat       = fine.dataPtr(fine_comp);
+    Real* state_dat  = fine_state.dataPtr(state_comp);
+    const Real* cdat = crse.dataPtr(crse_comp);
+    
+    const int* flo    = fine.loVect();
+    const int* fhi    = fine.hiVect();
+    const int* slo    = fine_state.loVect();
+    const int* shi    = fine_state.hiVect();
+    const int* clo    = crse.loVect();
+    const int* chi    = crse.hiVect();
+    const int* fblo   = target_fine_region.loVect();
+    const int* fbhi   = target_fine_region.hiVect();
+    const int* csbhi  = cs_bx.hiVect();
+    const int* csblo  = cs_bx.loVect();
+
+    Array<int> bc     = GetBCArray(bcr);
+    const int* ratioV = ratio.getVect();
+
+#if (BL_SPACEDIM > 1)
+
+    FORT_PROTECT_INTERP (fdat,ARLIM(flo),ARLIM(fhi),
+                         fblo, fbhi,
+                         cdat,ARLIM(clo),ARLIM(chi),
+                         csblo, csbhi,
+#if (BL_SPACEDIM == 2)
+                         fvc[0].dataPtr(),fvc[1].dataPtr(),
+                         ARLIM(fvcblo), ARLIM(fvcbhi),
+                         cvc[0].dataPtr(),cvc[1].dataPtr(),
+                         ARLIM(cvcblo), ARLIM(cvcbhi),
+#endif
+                         state_dat, ARLIM(slo), ARLIM(shi),
+                         &ncomp,D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
+                         bc.dataPtr());
+
+#endif /*(BL_SPACEDIM > 1)*/
+ 
 }
