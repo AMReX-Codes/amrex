@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.106 2000-08-02 16:00:53 car Exp $
+// $Id: FabArray.H,v 1.107 2000-08-04 18:00:58 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1214,6 +1214,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
 #ifdef BL3_PROFILING
   BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::copy()");
 #endif
+
     if (boxarray == src.boxarray)
     {
         BL_ASSERT(distributionMap == src.distributionMap);
@@ -1247,22 +1248,23 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
         {
             for (int ii = 0; ii < src.boxarray.length(); ++ii)
             {
-                if (src.distributionMap[ii] == MyProc)
+                if (src.boxarray[ii].intersects(boxarray[i]))
                 {
-                    //
-                    // Both fabs are local
-                    //
-                    if (src.boxarray[ii].intersects(boxarray[i]))
+                    if (src.distributionMap[ii] == MyProc)
                     {
-                        Box intersect = src.boxarray[ii] & boxarray[i];
+                        //
+                        // Both fabs are local.
+                        //
+                        Box bx = src.boxarray[ii] & boxarray[i];
 
-                        fabparray[i].copy(src[ii],
-                                          intersect,
-                                          scomp,
-                                          intersect,
-                                          dcomp,
-                                          ncomp);
+                        fabparray[i].copy(src[ii],bx,scomp,bx,dcomp,ncomp);
                     }
+#ifdef BL_USE_MPI
+                    else
+                    {
+                        Rcvs[src.distributionMap[ii]]++;
+                    }
+#endif
                 }
             }
         }
@@ -1295,37 +1297,18 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
 #ifdef BL_USE_MPI
     if (ParallelDescriptor::NProcs() == 1) return;
 
+    BL_ASSERT(Rcvs[MyProc] == 0);
     BL_ASSERT(Snds[MyProc] == 0);
-
-    int rc;
 
     static RunStats stats("fabarray_copy");
     static RunStats mpi_recv("mpi_recv");
     static RunStats mpi_send("mpi_send");
     static RunStats mpi_wait("mpi_wait");
-    static RunStats mpi_gath("mpi_gather");
     static RunStats mpi_redu("mpi_reduce");
 
     stats.start();
-    //
-    // Set Rcvs[i] to # of blocks we expect to get from CPU i ...
-    //
-    mpi_gath.start();
-    for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
-        if ((rc = MPI_Gather(&Snds[i],
-                             1,
-                             MPI_INT,
-                             Rcvs.dataPtr(),
-                             1,
-                             MPI_INT,
-                             i,
-                             ParallelDescriptor::Communicator())) != MPI_SUCCESS)
-            ParallelDescriptor::Abort(rc);
-    mpi_gath.end();
 
-    BL_ASSERT(Rcvs[MyProc] == 0);
-
-    int NumRcvs = 0;
+    int rc, idx = 0, NumRcvs = 0;
 
     for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
         NumRcvs += Rcvs[i];
@@ -1340,8 +1323,6 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
     // Post one receive for each chunk being sent by other CPUs.
     // This is the CommData describing the FAB data that will be sent.
     //
-    int idx = 0;
-
     mpi_recv.start();
     for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
     {
