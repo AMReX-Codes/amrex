@@ -1,5 +1,5 @@
 /* 
-   $Id: fabio_c.c,v 1.3 2004-05-27 22:32:25 car Exp $ 
+   $Id: fabio_c.c,v 1.4 2004-05-29 16:05:34 car Exp $ 
    Contains the IO routines for fabio module
 */
 #include <stdlib.h>
@@ -179,8 +179,7 @@ scan_buffer(const char* buffer, int border[])
   if ( i == 2 )
     {
       i = sscanf(bstr, "%d %d %d %d",
-		 border + 0, border + 1, border + 2, border + 3,
-		 border + 4, border + 5, border + 6, border + 7
+		 border + 0, border + 1, border + 2, border + 3
 		 );
       if ( i != 4)
 	{

@@ -1,12 +1,12 @@
 &PROBIN
  test_set = "gr.2_little"
-!test_set = "../Parallel/mglib/Test/grids/gr.2_3x2"
-!test_set = "../Parallel/mglib/Test/grids/gr.2_19boxes"
+!test_set = "../../data/mglib_grids/gr.2_3x2"
+!test_set = "../../data/mglib_grids/gr.2_19boxes"
 !test_set = "gr.2_big"
 !test_set = "2D_ann"
-!test_set = "grids/3D_4_level_32x128"
-test_set = "grids/3D_4_level_96x96x96"
-!test_set = "grids/2D_1_level_512x256"
+!test_set = "../../data/grids/3D_4_level_32x128"
+test_set = "../../data/grids/3D_4_level_96x96x96"
+!test_set = "../../data/grids/2D_1_level_512x256"
 
 !test_set_mglib = T
 
