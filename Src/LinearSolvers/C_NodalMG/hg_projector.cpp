@@ -348,7 +348,7 @@ void holy_grail_amr_projector::grid_average(PArray<MultiFab>& S)
 	int mglev = ml_index[lev];
 	Real hx = h[mglev][0];
 	
-	fill_borders(S[lev], 0, lev_interface[mglev], boundary.scalar(), -1);
+	fill_borders(S[lev], 0, lev_interface[mglev], boundary.scalar(), -1, m_hg_terrain);
 	
 	//for (int igrid = 0; igrid < ml_mesh[lev].length(); igrid++) 
 	for (MultiFabIterator s_mfi(source[lev]); s_mfi.isValid(); ++s_mfi)
@@ -385,7 +385,7 @@ void holy_grail_amr_projector::grid_divergence(PArray<MultiFab>* u)
 	
 	for (int i = 0; i < BL_SPACEDIM; i++) 
 	{
-	    fill_borders(u[i][lev], 0, lev_interface[mglev], boundary.velocity(i), -1);
+	    fill_borders(u[i][lev], 0, lev_interface[mglev], boundary.velocity(i), -1, m_hg_terrain);
 	}
 	
 	//for (int igrid = 0; igrid < ml_mesh[lev].length(); igrid++) 
@@ -438,7 +438,7 @@ void holy_grail_amr_projector::sync_right_hand_side(PArray<MultiFab>* u)
     {
 	int mglev1 = ml_index[lev_min+1];
 	restrict_level(source[lev_min], source[lev_min+1], gen_ratio[lev_min],
-	    0, bilinear_restrictor_coarse_class(0), lev_interface[mglev1], mg_boundary);
+	    0, bilinear_restrictor_coarse_class(0, m_hg_terrain), lev_interface[mglev1], mg_boundary);
 	work[mglev0].setVal(1.0);
 	Real adjustment = inner_product(source[lev_min], work[mglev0]) /
 	    mg_domain[ml_index[lev_min]].volume();

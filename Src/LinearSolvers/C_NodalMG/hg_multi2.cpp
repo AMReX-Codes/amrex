@@ -482,6 +482,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	}
 	else
 	{
+#if	(BL_SPACEDIM==2)
 	FORT_HGFRES(rptr, DIMLIST(sbox),
 	    sptr, DIMLIST(sbox),
 	    dptr, DIMLIST(fbox),
@@ -489,7 +490,6 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    sigmafptr, DIMLIST(sigmafbox),
 	    sigmac.dataPtr(), DIMLIST(sigmacbox),
 	    DIMLIST(creg),
-#if (BL_SPACEDIM == 2)
 	    hx, hy,
 #  ifdef HG_CROSS_STENCIL
 	    rat[0], rat[1], idim, idir
@@ -497,11 +497,19 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    rat[0], rat[1], idim, idir,
 	    IsRZ(), mg_domain[mglevc].bigEnd(0) + 1
 #  endif
+	    );
 #else
+	FORT_HGFRES(rptr, DIMLIST(sbox),
+	    sptr, DIMLIST(sbox),
+	    dptr, DIMLIST(fbox),
+	    cdst.dataPtr(), DIMLIST(cbox),
+	    sigmafptr, DIMLIST(sigmafbox),
+	    sigmac.dataPtr(), DIMLIST(sigmacbox),
+	    DIMLIST(creg),
 	    hx, hy, hz,
 	    rat[0], rat[1], rat[2], idim, idir
-#endif
 	    );
+#endif
 	}
     }
     

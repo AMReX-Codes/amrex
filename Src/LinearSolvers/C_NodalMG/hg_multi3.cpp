@@ -69,7 +69,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
     assert(r.boxArray() == s.boxArray());
     assert(r.boxArray() == d.boxArray());
     assert(mglev >= 0);
-    fill_borders(d, dbc, lev_interface[mglev], mg_boundary, -1);
+    fill_borders(d, dbc, lev_interface[mglev], mg_boundary, -1, m_hg_terrain);
     
     if(m_hg_terrain)
     {
@@ -183,7 +183,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 	{
 	    
 	    if ( is_zero == false )
-		fill_borders(corr[mglev], corr_bcache[mglev], lev_interface[mglev], mg_boundary, -1);
+		fill_borders(corr[mglev], corr_bcache[mglev], lev_interface[mglev], mg_boundary, -1, m_hg_terrain);
 	    else
 		is_zero = false;
 	    // for (int igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
@@ -301,7 +301,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 	for (int ipass = 0; ipass <= 1; ipass++) 
 	{
 	    if (is_zero == false)
-		fill_borders(corr[mglev], corr_bcache[mglev], lev_interface[mglev], mg_boundary, -1);
+		fill_borders(corr[mglev], corr_bcache[mglev], lev_interface[mglev], mg_boundary, -1, m_hg_terrain);
 	    else
 		is_zero = false;
 	    

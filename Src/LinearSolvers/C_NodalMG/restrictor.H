@@ -26,7 +26,7 @@ public:
 class cell_average_restrictor_class : public amr_restrictor_class 
 {
 public:
-    cell_average_restrictor_class(int i) { integrate = i; }
+    explicit cell_average_restrictor_class(int i) { integrate = i; }
     virtual Box box(const Box& fb, const IntVect& rat) const;
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
 protected:
@@ -36,7 +36,7 @@ protected:
 class terrain_velocity_restrictor_class : public cell_average_restrictor_class 
 {
 public:
-    terrain_velocity_restrictor_class(int i) : cell_average_restrictor_class(i) { }
+    explicit terrain_velocity_restrictor_class(int i) : cell_average_restrictor_class(i) { }
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
 };
 
@@ -62,7 +62,7 @@ public:
 class bilinear_restrictor_class : public amr_restrictor_class 
 {
 public:
-    bilinear_restrictor_class(int i) { integrate = i; }
+    explicit bilinear_restrictor_class(int i, bool hg_terrain) : integrate(i), m_hg_terrain(hg_terrain) { }
     virtual Box box(const Box& fb, const IntVect& rat) const;
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
     virtual void lev_interface(FArrayBox& patch, const Box& region, MultiFab& fine, 
@@ -70,6 +70,7 @@ public:
 	const level_interface& lev_interface, const amr_boundary_class* bdy, const IntVect& rat) const;
 protected:
     int integrate;
+    bool m_hg_terrain;
 };
 
 // Restricts all interfaces, uses data at coarse points
@@ -77,7 +78,7 @@ protected:
 class bilinear_restrictor_coarse_class : public bilinear_restrictor_class 
 {
 public:
-    bilinear_restrictor_coarse_class(int i) : bilinear_restrictor_class(i) { }
+    explicit bilinear_restrictor_coarse_class(int i, bool hg_terrain) : bilinear_restrictor_class(i, hg_terrain) { }
     virtual void lev_interface(FArrayBox& patch, const Box& region, MultiFab& fine, 
 	const copy_cache*,
 	const level_interface& lev_interface, const amr_boundary_class* bdy, const IntVect& rat) const;

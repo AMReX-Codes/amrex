@@ -30,7 +30,7 @@ public:
     copy_cache(MultiFab& r, const level_interface& lev_interface, const amr_boundary_class* bdy);
     
     // border cache (only w == 1 case currently supported)
-    copy_cache(MultiFab& r, const level_interface& lev_interface, const amr_boundary_class* bdy, int w, bool hg_terrain = false);
+    copy_cache(MultiFab& r, const level_interface& lev_interface, const amr_boundary_class* bdy, int w, bool hg_terrain);
     
     ~copy_cache(); 
 #if (BL_SPACEDIM == 2)
