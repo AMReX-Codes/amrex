@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.36 2001-08-11 20:50:14 car Exp $
+// $Id: ParmParse.cpp,v 1.37 2001-08-11 21:14:20 car Exp $
 //
 #include <winstd.H>
 
@@ -20,6 +20,21 @@
 #include <Box.H>
 #include <IntVect.H>
 
+struct ParmParse::PP_entry
+{
+    PP_entry (const std::string&            name,
+              const std::list<std::string>& vals);
+    PP_entry (const std::string& name,
+	      const Table& table);
+    PP_entry (const PP_entry& pe);
+    PP_entry& operator= (const PP_entry& pe);
+    ~PP_entry ();
+    std::string        m_name;
+    std::vector<std::string> m_vals;
+    Table*                   m_table;
+    mutable bool             m_queried;
+};
+
 //
 // Used by constructor to build table.
 //
@@ -27,8 +42,8 @@ ParmParse::PP_entry::PP_entry (const std::string&		  name,
                     const std::list<std::string>& vals)
     :
     m_name(name),
-    m_queried(false),
-    m_recordQ(false)
+    m_table(0),
+    m_queried(false)
 {
     for ( std::list<std::string>::const_iterator li = vals.begin(); li != vals.end(); ++li )
     {
@@ -40,10 +55,41 @@ ParmParse::PP_entry::PP_entry (const std::string&		  name,
                     const std::list<PP_entry>&   table)
     :
     m_name(name),
-    m_table(table),
-    m_queried(false),
-    m_recordQ(true)
+    m_table(new Table(table)),
+    m_queried(false)
 {
+}
+
+ParmParse::PP_entry::PP_entry (const PP_entry& pe)
+    : m_name(pe.m_name),
+      m_vals(pe.m_vals),
+      m_table(0),
+      m_queried(pe.m_queried)
+{
+    if ( pe.m_table )
+    {
+	m_table = new Table(*pe.m_table);
+    }
+}
+
+ParmParse::PP_entry::~PP_entry ()
+{
+    delete m_table;
+}
+    
+ParmParse::PP_entry&
+ParmParse::PP_entry::operator= (const PP_entry& pe)
+{
+    if ( &pe == this ) return *this;
+    m_name = pe.m_name;
+    m_vals = pe.m_vals;
+    m_table = 0;
+    m_queried = pe.m_queried;
+    if ( pe.m_table )
+    {
+	m_table = new Table(*pe.m_table);
+    }
+    return *this;
 }
 
 std::ostream&
@@ -338,7 +384,7 @@ ppfound (const std::string& keyword,
 	 const ParmParse::PP_entry& pe,
 	 bool recordQ)
 {
-    return recordQ == pe.m_recordQ && keyword == pe.m_name;
+    return (recordQ == (pe.m_table!=0)) && (keyword == pe.m_name);
 }
 
 //
@@ -939,7 +985,7 @@ finalize_table (const ParmParse::Table& table)
 {
     for ( const_list_iterator li = table.begin(); li != table.end(); ++li )
     {
-	if ( li->m_recordQ )
+	if ( li->m_table )
 	{
 	    if ( !li->m_queried )
 	    {
@@ -947,7 +993,7 @@ finalize_table (const ParmParse::Table& table)
 	    }
 	    else
 	    {
-		finalize_table(li->m_table);
+		finalize_table(*li->m_table);
 	    }
 	}
 	else if ( !li->m_queried )
@@ -1536,7 +1582,7 @@ ParmParse::getRecord (const std::string& name, int n) const
 	std::cerr << "ParmParse::getRecord: record " << name << " not found" << std::endl;
 	BoxLib::Abort();
     }
-    return Record(ParmParse(pe->m_table));
+    return Record(ParmParse(*pe->m_table));
 }
 
 
