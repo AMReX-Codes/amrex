@@ -92,8 +92,12 @@ else
 	@perl $(MKDEP) $(c_includes) --odir $(odir) $^ > $(tdir)/c.depends 
 endif
 
+ifneq ($(MAKECMDGOALS),realclean)
+ifneq ($(MAKECMDGOALS),clean)
 -include $(tdir)/f90.depends
 
 ifdef csources
 -include $(tdir)/c.depends
+endif
+endif
 endif

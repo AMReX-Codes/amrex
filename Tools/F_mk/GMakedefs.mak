@@ -37,9 +37,6 @@ csources    =
 CPPFLAGS += -DBL_$(ARCH)
 
 F_C_LINK := UNDERSCORE
-ifeq ($(COMP),g95)
-  F_C_LINK := DBL_UNDERSCORE
-endif
 
 odir=.
 mdir=.
@@ -49,6 +46,37 @@ tdir = t/$(suf)
 odir = $(tdir)/o
 mdir = $(tdir)/m
 hdir = t/html
+
+# ALL G95's are the same
+ifeq ($(COMP),g95)
+  F_C_LINK := DBL_UNDERSCORE
+  FC := g95
+  F90 := g95
+  CC := gcc
+  F90FLAGS += -std=f95
+  FFLAGS   += -std=f95
+  F90FLAGS += -fmod=$(mdir) -I $(mdir)
+  FFLAGS   += -fmod=$(mdir) -I $(mdir)
+  F90FLAGS += -Wall -Wno=112 -Wno=113
+  FFLAGS += -Wall -Wno=112 -Wno=113
+  ifdef NDEBUG
+    F90FLAGS += -O
+    FFLAGS += -O
+    CFLAGS += -O
+  else
+    F90FLAGS += -g
+    F90FLAGS += -fbounds-check
+    FFLAGS += -g
+    FFLAGS += -fbounds-check
+    CFLAGS += -g
+  endif
+  ifdef mpi_include
+    fpp_flags += -I $(mpi_include)
+  endif
+  ifdef mpi_lib
+    fld_flags += -L $(mpi_lib)
+  endif
+endif
 
 ifeq ($(ARCH),Darwin)
   ifeq ($(COMP),IBM)
@@ -60,65 +88,9 @@ ifeq ($(ARCH),Darwin)
     F90FLAGS += -qmoddir=$(mdir)
     F90FLAGS += -I$(mdir)
   endif
-  ifeq ($(COMP),g95)
-    FC := g95
-    F90 := g95
-    CC := gcc
-    F90FLAGS += -std=f95
-    FFLAGS   += -std=f95
-    F90FLAGS += -fmod=$(mdir) -I $(mdir)
-    FFLAGS   += -fmod=$(mdir) -I $(mdir)
-    ifdef NDEBUG
-      F90FLAGS += -O
-      FFLAGS += -O
-      CFLAGS += -O
-    else
-      F90FLAGS += -g
-      F90FLAGS += -Wall
-      F90FLAGS += -fbounds-check
-      FFLAGS += -g
-      FFLAGS += -Wall
-      FFLAGS += -fbounds-check
-      CFLAGS += -g
-    endif
-    ifdef mpi_include
-      fpp_flags += -I $(mpi_include)
-    endif
-    ifdef mpi_lib
-      fld_flags += -L $(mpi_lib)
-    endif
-  endif
 endif
 
 ifeq ($(ARCH),FreeBSD)
-  ifeq ($(COMP),g95)
-    FC := g95
-    F90 := g95
-    CC := gcc
-    F90FLAGS += -std=f95
-    FFLAGS   += -std=f95
-    F90FLAGS += -fmod=$(mdir) -I $(mdir)
-    FFLAGS   += -fmod=$(mdir) -I $(mdir)
-    ifdef NDEBUG
-      F90FLAGS += -O
-      FFLAGS += -O
-      CFLAGS += -O
-    else
-      F90FLAGS += -g
-      F90FLAGS += -Wall
-      F90FLAGS += -fbounds-check
-      FFLAGS += -g
-      FFLAGS += -Wall
-      FFLAGS += -fbounds-check
-      CFLAGS += -g
-    endif
-    ifdef mpi_include
-      fpp_flags += -I $(mpi_include)
-    endif
-    ifdef mpi_lib
-      fld_flags += -L $(mpi_lib)
-    endif
-  endif
 endif
 
 ifeq ($(ARCH),Linux)
@@ -147,34 +119,6 @@ ifeq ($(ARCH),Linux)
       FFLAGS += -g 
       FFLAGS += -fbounds-check
       CFLAGS += -g
-    endif
-  endif
-  ifeq ($(COMP),g95)
-    FC := g95
-    F90 := g95
-    CC := gcc
-    F90FLAGS += -std=f95
-    FFLAGS   += -std=f95
-    F90FLAGS += -fmod=$(mdir) -I $(mdir)
-    FFLAGS   += -fmod=$(mdir) -I $(mdir)
-    ifdef NDEBUG
-      F90FLAGS += -O
-      FFLAGS += -O
-      CFLAGS += -O
-    else
-      F90FLAGS += -g
-      F90FLAGS += -Wall
-      F90FLAGS += -fbounds-check
-      FFLAGS += -g
-      FFLAGS += -Wall
-      FFLAGS += -fbounds-check
-      CFLAGS += -g
-    endif
-    ifdef mpi_include
-      fpp_flags += -I $(mpi_include)
-    endif
-    ifdef mpi_lib
-      fld_flags += -L $(mpi_lib)
     endif
   endif
   ifeq ($(COMP),PathScale)
