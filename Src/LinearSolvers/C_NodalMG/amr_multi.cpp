@@ -491,7 +491,7 @@ void amr_multigrid::mg_cycle(int mglev, int i1, int i2)
 	
 	relax(mglev, i1, true);
 	
-	HG_TEST_NORM(wtmp);
+	HG_TEST_NORM(wtmp, "mg_cycle");
 	if (pcode >= 4 )
 	{
 	    wtmp.setVal(0.0);
@@ -506,7 +506,7 @@ void amr_multigrid::mg_cycle(int mglev, int i1, int i2)
 	{
 	    level_residual(wtmp, resid[mglev], ctmp, mglev, false);
 	}
-	HG_TEST_NORM(wtmp);
+	HG_TEST_NORM(wtmp, "mg_cycle");
 	
 	mg_restrict_level(mglev-1, mglev);
 	corr[mglev-1].setVal(0.0);

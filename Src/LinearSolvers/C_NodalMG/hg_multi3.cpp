@@ -81,9 +81,9 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
     assert(r.boxArray() == d.boxArray());
     assert(mglev >= 0);
 
-    HG_TEST_NORM(d);
+    HG_TEST_NORM(d, "level_residual");
     fill_borders(d, lev_interface[mglev], mg_boundary, -1, m_hg_terrain);
-    HG_TEST_NORM(d);
+    HG_TEST_NORM(d, "level_residual");
     
     if (m_hg_terrain)
     {	
@@ -193,7 +193,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
 	}
 #endif
     }
-    HG_TEST_NORM(r);
+    HG_TEST_NORM(r, "level_residual");
 }
 
 void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
@@ -583,7 +583,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
     ParallelDescriptor::ReduceRealSum(rho);
     if ( pcode >= 3 && ParallelDescriptor::IOProcessor() )
     {
-	cout << " CGSolve RHO = " << rho << endl;
+	cout << " cgsolve rho = " << rho << endl;
     }
 
     const Real tol = 1.e-3 * rho;
@@ -591,7 +591,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
     int i = 0;
     while (tol > 0.0) 
     {
-	if (++i > 250 && ParallelDescriptor::IOProcessor())
+	if ( ++i > 250 && ParallelDescriptor::IOProcessor() )
 	{
 	    BoxLib::Error("Conjugate-gradient iteration failed to converge");
 	}
@@ -606,7 +606,6 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 	    DependentMultiFabIterator i_dmfi(p_mfi, ipmask);
 	    const Box& reg = p_mfi->box();
 	    FORT_HGIP(p_mfi->dataPtr(), w_dmfi->dataPtr(), i_dmfi->dataPtr(), DIMLIST(reg), alpha);
-	    
 	}
 	ParallelDescriptor::ReduceRealSum(alpha);
 	alpha = rho / alpha;
