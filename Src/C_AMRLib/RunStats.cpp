@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.12 1997-11-24 21:04:37 lijewski Exp $
+// $Id: RunStats.cpp,v 1.13 1997-11-25 19:23:31 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -135,6 +135,8 @@ RunStats::Print (ostream&            os,
                  double              tot_run_time,
                  double              tot_run_wtime)
 {
+    int old_prec = os.precision(4);
+
     os << "State " << data.name << " time:  " << data.run_time << "  (";
 
     if (tot_run_time)
@@ -158,6 +160,8 @@ RunStats::Print (ostream&            os,
     }
 
     os << ")%\n";
+
+    os.precision(old_prec);
 }
 
 void
@@ -190,6 +194,10 @@ RunStats::report (ostream& os)
 
     if (ParallelDescriptor::IOProcessor())
     {
+	os.setf(ios::showpoint);
+
+        int old_prec = os.precision(15);
+
 	long tot_cells = 0;
 	for (int i = 0; i < RunStats::TheCells.length(); i++)
         {
@@ -231,9 +239,6 @@ RunStats::report (ostream& os)
 	    maxlev = Max(maxlev, it().level);
         }
 
-	os.setf(ios::showpoint);
-        os << setprecision(4);
-
 	for (int lev = 0; lev <= maxlev; ++lev)
         {
 	    os << "\nTimings for level " << lev << " ...\n\n";
@@ -264,7 +269,7 @@ RunStats::report (ostream& os)
                 Print(os, it(), tot_run_time, tot_run_wtime);
 	    }
 	}
-        os << setprecision(8);
+
         os << '\n'
            << "Total CPU time        : " << tot_run_time  << '\n'
            << "Total Wall Clock time : " << tot_run_wtime << '\n';
@@ -275,6 +280,8 @@ RunStats::report (ostream& os)
                << tot_run_time/tot_run_wtime
                << '\n';
         }
+
+        os.precision(old_prec);
     }
 }
 
