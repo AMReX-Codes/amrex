@@ -1,0 +1,813 @@
+
+#include "hg_version.H"
+
+#define dims(a) a l0,a h0,a l1,a h1,a l2,a h2
+#define dimdec(a) a l0:a h0,a l1:a h1,a l2:a h2
+c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)*(a h2-a l2+1)
+#define dimdecu(a) *
+
+      subroutine hggrad(gpx, gpy, gpz,
+     @ dims(gp),
+     @ dest,
+     @ dims(dest),
+     @ dims(freg),
+     @ hx, hy, hz)
+      implicit real*8(a-h,o-z), integer(i-n)
+      integer dims(gp)
+      integer dims(dest)
+      integer dims(freg)
+      real*8 gpx(dimdec(gp))
+      real*8 gpy(dimdec(gp))
+      real*8 gpz(dimdec(gp))
+      real*8 dest(dimdec(dest))
+      real*8 hx, hy, hz
+      hxm1h = 0.25d0 / hx
+      hym1h = 0.25d0 / hy
+      hzm1h = 0.25d0 / hz
+      do 10 k = fregl2, fregh2
+         do 10 j = fregl1, fregh1
+            do 10 i = fregl0, fregh0
+               gpx(i,j,k) = hxm1h * (dest(i+1,j,k) + dest(i+1,j+1,k) +
+     @                           dest(i+1,j,k+1) + dest(i+1,j+1,k+1) -
+     @                           dest(i,j,k) - dest(i,j+1,k) -
+     @                           dest(i,j,k+1) - dest(i,j+1,k+1))
+               gpy(i,j,k) = hym1h * (dest(i,j+1,k) + dest(i+1,j+1,k) +
+     @                           dest(i,j+1,k+1) + dest(i+1,j+1,k+1) -
+     @                           dest(i,j,k) - dest(i+1,j,k) -
+     @                           dest(i,j,k+1) - dest(i+1,j,k+1))
+ 10            gpz(i,j,k) = hzm1h * (dest(i,j,k+1) + dest(i+1,j,k+1) +
+     @                           dest(i,j+1,k+1) + dest(i+1,j+1,k+1) -
+     @                           dest(i,j,k) - dest(i+1,j,k) -
+     @                           dest(i,j+1,k) - dest(i+1,j+1,k))
+      end
+
+      subroutine hgdiv(src,
+     @ dims(src),
+     @ uf, vf, wf,
+     @ dims(f),
+     @ dims(freg),
+     @ hx, hy, hz)
+      implicit real*8(a-h,o-z), integer(i-n)
+      integer dims(src)
+      integer dims(f)
+      integer dims(freg)
+      real*8 src(dimdec(src))
+      real*8 uf(dimdec(f))
+      real*8 vf(dimdec(f))
+      real*8 wf(dimdec(f))
+      real*8 hx, hy, hz
+      hxm1 = 1.d0 / hx
+      hym1 = 1.d0 / hy
+      hzm1 = 1.d0 / hz
+      fac = 0.25d0
+      do 10 k = fregl2, fregh2
+         do 10 j = fregl1, fregh1
+            do 10 i = fregl0, fregh0
+ 10            src(i,j,k) = fac *
+     @              (hxm1 * (uf(i,j-1,k-1) - uf(i-1,j-1,k-1) +
+     @                       uf(i,j-1,k)   - uf(i-1,j-1,k) +
+     @                       uf(i,j,k-1)   - uf(i-1,j,k-1) +
+     @                       uf(i,j,k)     - uf(i-1,j,k)) +
+     @               hym1 * (vf(i-1,j,k-1) - vf(i-1,j-1,k-1) +
+     @                       vf(i-1,j,k)   - vf(i-1,j-1,k) +
+     @                       vf(i,j,k-1)   - vf(i,j-1,k-1) +
+     @                       vf(i,j,k)     - vf(i,j-1,k)) +
+     @               hzm1 * (wf(i-1,j-1,k) - wf(i-1,j-1,k-1) +
+     @                       wf(i-1,j,k)   - wf(i-1,j,k-1) +
+     @                       wf(i,j-1,k)   - wf(i,j-1,k-1) +
+     @                       wf(i,j,k)     - wf(i,j,k-1)))
+      end
+
+c Note---only generates values at coarse points along edge of fine grid
+      subroutine hgfdiv(src,
+     @ dims(src),
+     @ uc, vc, wc,
+     @ dims(c),
+     @ uf, vf, wf,
+     @ dims(f),
+     @ dims(creg),
+     @ hx, hy, hz, irat, idim, idir)
+      implicit real*8(a-h,o-z), integer(i-n)
+      integer dims(src)
+      integer dims(c)
+      integer dims(f)
+      integer dims(creg)
+      real*8 src(dimdec(src))
+      real*8 uc(dimdec(c))
+      real*8 vc(dimdec(c))
+      real*8 wc(dimdec(c))
+      real*8 uf(dimdec(f))
+      real*8 vf(dimdec(f))
+      real*8 wf(dimdec(f))
+      real*8 hx, hy, hz
+      integer irat, idim, idir
+      hxm1 = 1.d0 / hx
+      hym1 = 1.d0 / hy
+      hzm1 = 1.d0 / hz
+      fac0 = 0.5d0 / (irat+1)
+      if (idim .eq. 0) then
+         i = cregl0
+         if (idir .eq. 1) then
+            iuc = i - 1
+            iuf = i * irat
+         else
+            iuc = i
+            iuf = i * irat - 1
+         endif
+         do 10 k = cregl2, cregh2
+            do 10 j = cregl1, cregh1
+ 10            src(i*irat,j*irat,k*irat) = fac0 *
+     @           (hym1 * (vc(iuc,j,k) - vc(iuc,j-1,k) +
+     @                    vc(iuc,j,k-1) - vc(iuc,j-1,k-1)) +
+     @            hzm1 * (wc(iuc,j,k) - wc(iuc,j,k-1) +
+     @                    wc(iuc,j-1,k) - wc(iuc,j-1,k-1)) -
+     @            hxm1 * idir * (uc(iuc,j,k) + uc(iuc,j,k-1) +
+     @                           uc(iuc,j-1,k) + uc(iuc,j-1,k-1)))
+         fac0 = fac0 / (irat**4)
+         i = i * irat
+         do 20 l = 0, irat-1
+            fac1 = (irat-l) * fac0
+            if (l .eq. 0) fac1 = 0.5d0 * fac1
+            do 20 n = 0, irat-1
+               fac = (irat-n) * fac1
+               if (n .eq. 0) fac = 0.5d0 * fac
+               do 20 k = irat*cregl2, irat*cregh2, irat
+                  do 20 j = irat*cregl1, irat*cregh1, irat
+                     tmp = hxm1 * idir *
+     @                 (uf(iuf,j-n,k-l) + uf(iuf,j-n,k-l-1) +
+     @                  uf(iuf,j-n-1,k-l) + uf(iuf,j-n-1,k-l-1) +
+     @                  uf(iuf,j-n,k+l) + uf(iuf,j-n,k+l-1) +
+     @                  uf(iuf,j-n-1,k+l) + uf(iuf,j-n-1,k+l-1) +
+     @                  uf(iuf,j+n,k-l) + uf(iuf,j+n,k-l-1) +
+     @                  uf(iuf,j+n-1,k-l) + uf(iuf,j+n-1,k-l-1) +
+     @                  uf(iuf,j+n,k+l) + uf(iuf,j+n,k+l-1) +
+     @                  uf(iuf,j+n-1,k+l) + uf(iuf,j+n-1,k+l-1))
+                     tmp = tmp + hym1 *
+     @                 (vf(iuf,j-n,k-l) - vf(iuf,j-n-1,k-l) +
+     @                  vf(iuf,j-n,k-l-1) - vf(iuf,j-n-1,k-l-1) +
+     @                  vf(iuf,j-n,k+l) - vf(iuf,j-n-1,k+l) +
+     @                  vf(iuf,j-n,k+l-1) - vf(iuf,j-n-1,k+l-1) +
+     @                  vf(iuf,j+n,k-l) - vf(iuf,j+n-1,k-l) +
+     @                  vf(iuf,j+n,k-l-1) - vf(iuf,j+n-1,k-l-1) +
+     @                  vf(iuf,j+n,k+l) - vf(iuf,j+n-1,k+l) +
+     @                  vf(iuf,j+n,k+l-1) - vf(iuf,j+n-1,k+l-1))
+ 20                  src(i,j,k) = src(i,j,k) + fac * (tmp + hzm1 *
+     @                 (wf(iuf,j-n,k-l) - wf(iuf,j-n,k-l-1) +
+     @                  wf(iuf,j-n-1,k-l) - wf(iuf,j-n-1,k-l-1) +
+     @                  wf(iuf,j-n,k+l) - wf(iuf,j-n,k+l-1) +
+     @                  wf(iuf,j-n-1,k+l) - wf(iuf,j-n-1,k+l-1) +
+     @                  wf(iuf,j+n,k-l) - wf(iuf,j+n,k-l-1) +
+     @                  wf(iuf,j+n-1,k-l) - wf(iuf,j+n-1,k-l-1) +
+     @                  wf(iuf,j+n,k+l) - wf(iuf,j+n,k+l-1) +
+     @                  wf(iuf,j+n-1,k+l) - wf(iuf,j+n-1,k+l-1)))
+      else if (idim .eq. 1) then
+         j = cregl1
+         if (idir .eq. 1) then
+            juc = j - 1
+            juf = j * irat
+         else
+            juc = j
+            juf = j * irat - 1
+         endif
+         do 30 k = cregl2, cregh2
+            do 30 i = cregl0, cregh0
+ 30            src(i*irat,j*irat,k*irat) = fac0 *
+     @           (hxm1 * (uc(i,juc,k) - uc(i-1,juc,k) +
+     @                    uc(i,juc,k-1) - uc(i-1,juc,k-1)) -
+     @            hym1 * idir * (vc(i,juc,k) + vc(i,juc,k-1) +
+     @                           vc(i-1,juc,k) + vc(i-1,juc,k-1)) +
+     @            hzm1 * (wc(i,juc,k) - wc(i,juc,k-1) +
+     @                    wc(i-1,juc,k) - wc(i-1,juc,k-1)))
+         fac0 = fac0 / (irat**4)
+         j = j * irat
+         do 40 l = 0, irat-1
+            fac1 = (irat-l) * fac0
+            if (l .eq. 0) fac1 = 0.5d0 * fac1
+            do 40 m = 0, irat-1
+               fac = (irat-m) * fac1
+               if (m .eq. 0) fac = 0.5d0 * fac
+               do 40 k = irat*cregl2, irat*cregh2, irat
+                  do 40 i = irat*cregl0, irat*cregh0, irat
+                     tmp = hxm1 *
+     @                 (uf(i-m,juf,k-l) - uf(i-m-1,juf,k-l) +
+     @                  uf(i-m,juf,k-l-1) - uf(i-m-1,juf,k-l-1) +
+     @                  uf(i-m,juf,k+l) - uf(i-m-1,juf,k+l) +
+     @                  uf(i-m,juf,k+l-1) - uf(i-m-1,juf,k+l-1) +
+     @                  uf(i+m,juf,k-l) - uf(i+m-1,juf,k-l) +
+     @                  uf(i+m,juf,k-l-1) - uf(i+m-1,juf,k-l-1) +
+     @                  uf(i+m,juf,k+l) - uf(i+m-1,juf,k+l) +
+     @                  uf(i+m,juf,k+l-1) - uf(i+m-1,juf,k+l-1))
+                     tmp = tmp + hym1 * idir *
+     @                 (vf(i-m,juf,k-l) + vf(i-m,juf,k-l-1) +
+     @                  vf(i-m-1,juf,k-l) + vf(i-m-1,juf,k-l-1) +
+     @                  vf(i-m,juf,k+l) + vf(i-m,juf,k+l-1) +
+     @                  vf(i-m-1,juf,k+l) + vf(i-m-1,juf,k+l-1) +
+     @                  vf(i+m,juf,k-l) + vf(i+m,juf,k-l-1) +
+     @                  vf(i+m-1,juf,k-l) + vf(i+m-1,juf,k-l-1) +
+     @                  vf(i+m,juf,k+l) + vf(i+m,juf,k+l-1) +
+     @                  vf(i+m-1,juf,k+l) + vf(i+m-1,juf,k+l-1))
+ 40                  src(i,j,k) = src(i,j,k) + fac * (tmp + hzm1 *
+     @                 (wf(i-m,juf,k-l) - wf(i-m,juf,k-l-1) +
+     @                  wf(i-m-1,juf,k-l) - wf(i-m-1,juf,k-l-1) +
+     @                  wf(i-m,juf,k+l) - wf(i-m,juf,k+l-1) +
+     @                  wf(i-m-1,juf,k+l) - wf(i-m-1,juf,k+l-1) +
+     @                  wf(i+m,juf,k-l) - wf(i+m,juf,k-l-1) +
+     @                  wf(i+m-1,juf,k-l) - wf(i+m-1,juf,k-l-1) +
+     @                  wf(i+m,juf,k+l) - wf(i+m,juf,k+l-1) +
+     @                  wf(i+m-1,juf,k+l) - wf(i+m-1,juf,k+l-1)))
+      else
+         k = cregl2
+         if (idir .eq. 1) then
+            kuc = k - 1
+            kuf = k * irat
+         else
+            kuc = k
+            kuf = k * irat - 1
+         endif
+         do 50 j = cregl1, cregh1
+            do 50 i = cregl0, cregh0
+ 50            src(i*irat,j*irat,k*irat) = fac0 *
+     @           (hxm1 * (uc(i,j,kuc) - uc(i-1,j,kuc) +
+     @                    uc(i,j-1,kuc) - uc(i-1,j-1,kuc)) +
+     @            hym1 * (vc(i,j,kuc) - vc(i,j-1,kuc) +
+     @                    vc(i-1,j,kuc) - vc(i-1,j-1,kuc)) -
+     @            hzm1 * idir * (wc(i,j,kuc) + wc(i,j-1,kuc) +
+     @                           wc(i-1,j,kuc) + wc(i-1,j-1,kuc)))
+         fac0 = fac0 / (irat**4)
+         k = k * irat
+         do 60 n = 0, irat-1
+            fac1 = (irat-n) * fac0
+            if (n .eq. 0) fac1 = 0.5d0 * fac1
+            do 60 m = 0, irat-1
+               fac = (irat-m) * fac1
+               if (m .eq. 0) fac = 0.5d0 * fac
+               do 60 j = irat*cregl1, irat*cregh1, irat
+                  do 60 i = irat*cregl0, irat*cregh0, irat
+                     tmp = hxm1 *
+     @                 (uf(i-m,j-n,kuf) - uf(i-m-1,j-n,kuf) +
+     @                  uf(i-m,j-n-1,kuf) - uf(i-m-1,j-n-1,kuf) +
+     @                  uf(i-m,j+n,kuf) - uf(i-m-1,j+n,kuf) +
+     @                  uf(i-m,j+n-1,kuf) - uf(i-m-1,j+n-1,kuf) +
+     @                  uf(i+m,j-n,kuf) - uf(i+m-1,j-n,kuf) +
+     @                  uf(i+m,j-n-1,kuf) - uf(i+m-1,j-n-1,kuf) +
+     @                  uf(i+m,j+n,kuf) - uf(i+m-1,j+n,kuf) +
+     @                  uf(i+m,j+n-1,kuf) - uf(i+m-1,j+n-1,kuf))
+                     tmp = tmp + hym1 *
+     @                 (vf(i-m,j-n,kuf) - vf(i-m,j-n-1,kuf) +
+     @                  vf(i-m-1,j-n,kuf) - vf(i-m-1,j-n-1,kuf) +
+     @                  vf(i-m,j+n,kuf) - vf(i-m,j+n-1,kuf) +
+     @                  vf(i-m-1,j+n,kuf) - vf(i-m-1,j+n-1,kuf) +
+     @                  vf(i+m,j-n,kuf) - vf(i+m,j-n-1,kuf) +
+     @                  vf(i+m-1,j-n,kuf) - vf(i+m-1,j-n-1,kuf) +
+     @                  vf(i+m,j+n,kuf) - vf(i+m,j+n-1,kuf) +
+     @                  vf(i+m-1,j+n,kuf) - vf(i+m-1,j+n-1,kuf))
+ 60                  src(i,j,k) = src(i,j,k) + fac * (tmp + hzm1 * idir *
+     @                 (wf(i-m,j-n,kuf) + wf(i-m,j-n-1,kuf) +
+     @                  wf(i-m-1,j-n,kuf) + wf(i-m-1,j-n-1,kuf) +
+     @                  wf(i-m,j+n,kuf) + wf(i-m,j+n-1,kuf) +
+     @                  wf(i-m-1,j+n,kuf) + wf(i-m-1,j+n-1,kuf) +
+     @                  wf(i+m,j-n,kuf) + wf(i+m,j-n-1,kuf) +
+     @                  wf(i+m-1,j-n,kuf) + wf(i+m-1,j-n-1,kuf) +
+     @                  wf(i+m,j+n,kuf) + wf(i+m,j+n-1,kuf) +
+     @                  wf(i+m-1,j+n,kuf) + wf(i+m-1,j+n-1,kuf)))
+      endif
+      end
+
+c Note---only generates values at coarse points along edge of fine grid
+      subroutine hgediv(src,
+     @ dims(src),
+     @ uc, vc, wc,
+     @ dims(c),
+     @ uf, vf, wf,
+     @ dims(f),
+     @ dims(creg),
+     @ hx, hy, hz, irat, ivect, ga)
+      implicit real*8(a-h,o-z), integer(i-n)
+      integer dims(src)
+      integer dims(c)
+      integer dims(f)
+      integer dims(creg)
+      real*8 src(dimdec(src))
+      real*8 uc(dimdec(c))
+      real*8 vc(dimdec(c))
+      real*8 wc(dimdec(c))
+      real*8 uf(dimdec(f))
+      real*8 vf(dimdec(f))
+      real*8 wf(dimdec(f))
+      real*8 hx, hy, hz
+      integer irat, ivect(0:2), ga(0:1,0:1,0:1)
+      rm1 = 1.d0 / irat
+      rm2 = rm1 * rm1
+      hxm1 = 1.d0 / hx
+      hym1 = 1.d0 / hy
+      hzm1 = 1.d0 / hz
+      ic = cregl0
+      jc = cregl1
+      kc = cregl2
+      if = ic * irat
+      jf = jc * irat
+      kf = kc * irat
+      center = 0.d0
+      if (ivect(0) .eq. 0) then
+         do 10 if = irat*cregl0, irat*cregh0, irat
+ 10         src(if,jf,kf) = 0.d0
+c quadrants
+c each quadrant is two octants and their share of the two central edges
+         fac1 = rm1 * rm2
+         ffac = rm1
+         cfac = irat
+         do 40 ki = 0, 1
+            kdir = 2 * ki - 1
+            do 40 ji = 0, 1
+               jdir = 2 * ji - 1
+               if (ga(0,ji,ki) .eq. 1) then
+                  kuf = kf + ki - 1
+                  juf = jf + ji - 1
+                  center = center + ffac
+                  do 20 m = 0, irat-1
+                     fac = (irat-m) * fac1
+                     if (m .eq. 0) fac = 0.5d0 * fac
+                     do 20 if = irat*cregl0, irat*cregh0, irat
+ 20                     src(if,jf,kf) = src(if,jf,kf) + fac *
+     @                                 (hxm1 *
+     @                    (uf(if-m,juf,kuf) - uf(if-m-1,juf,kuf) +
+     @                     uf(if+m,juf,kuf) - uf(if+m-1,juf,kuf)) +
+     @                                  hym1 * jdir *
+     @                    (vf(if-m,juf,kuf) + vf(if-m-1,juf,kuf) +
+     @                     vf(if+m,juf,kuf) + vf(if+m-1,juf,kuf)) +
+     @                                  hzm1 * kdir *
+     @                    (wf(if-m,juf,kuf) + wf(if-m-1,juf,kuf) +
+     @                     wf(if+m,juf,kuf) + wf(if+m-1,juf,kuf)))
+               else
+                  kuc = kc + ki - 1
+                  juc = jc + ji - 1
+                  center = center + cfac
+                  do 30 ic = cregl0, cregh0
+                     if = ic * irat
+ 30                  src(if,jf,kf) = src(if,jf,kf) +
+     @                 (hxm1 *        (uc(ic,juc,kuc) - uc(ic-1,juc,kuc)) +
+     @                  hym1 * jdir * (vc(ic,juc,kuc) + vc(ic-1,juc,kuc)) +
+     @                  hzm1 * kdir * (wc(ic,juc,kuc) + wc(ic-1,juc,kuc)))
+               endif
+ 40            continue
+c faces
+c each face is two faces and two sides of an edge
+         fac0 = rm2 * rm2
+         ffac = (irat - 1) * rm1
+         do 70 ki = 0, 1
+            kdir = 2 * ki - 1
+            do 70 ji = 0, 1
+               jdir = 2 * ji - 1
+               if (ga(0,ji,ki) - ga(0,ji,1-ki) .eq. 1) then
+                  kuf = kf + ki - 1
+                  center = center + ffac
+                  do 50 n = jdir, jdir*(irat-1), jdir
+                     fac1 = (irat-abs(n)) * fac0
+                     do 50 m = 0, irat-1
+                        fac = (irat-m) * fac1
+                        if (m .eq. 0) fac = 0.5d0 * fac
+                        do 50 if = irat*cregl0, irat*cregh0, irat
+ 50                        src(if,jf,kf) = src(if,jf,kf) + fac *
+     @                                       (hxm1 *
+     @                       (uf(if-m,jf+n,kuf) - uf(if-m-1,jf+n,kuf) +
+     @                        uf(if-m,jf+n-1,kuf) - uf(if-m-1,jf+n-1,kuf) +
+     @                        uf(if+m,jf+n,kuf) - uf(if+m-1,jf+n,kuf) +
+     @                        uf(if+m,jf+n-1,kuf) - uf(if+m-1,jf+n-1,kuf)) +
+     @                                        hym1 *
+     @                       (vf(if-m,jf+n,kuf) - vf(if-m,jf+n-1,kuf) +
+     @                        vf(if-m-1,jf+n,kuf) - vf(if-m-1,jf+n-1,kuf) +
+     @                        vf(if+m,jf+n,kuf) - vf(if+m,jf+n-1,kuf) +
+     @                        vf(if+m-1,jf+n,kuf) - vf(if+m-1,jf+n-1,kuf)) +
+     @                                        hzm1 * kdir *
+     @                       (wf(if-m,jf+n,kuf) + wf(if-m,jf+n-1,kuf) +
+     @                        wf(if-m-1,jf+n,kuf) + wf(if-m-1,jf+n-1,kuf) +
+     @                        wf(if+m,jf+n,kuf) + wf(if+m,jf+n-1,kuf) +
+     @                        wf(if+m-1,jf+n,kuf) + wf(if+m-1,jf+n-1,kuf)))
+               endif
+               if (ga(0,ji,ki) - ga(0,1-ji,ki) .eq. 1) then
+                  juf = jf + ji - 1
+                  center = center + ffac
+                  do 60 l = kdir, kdir*(irat-1), kdir
+                     fac1 = (irat-abs(l)) * fac0
+                     do 60 m = 0, irat-1
+                        fac = (irat-m) * fac1
+                        if (m .eq. 0) fac = 0.5d0 * fac
+                        do 60 if = irat*cregl0, irat*cregh0, irat
+ 60                        src(if,jf,kf) = src(if,jf,kf) + fac *
+     @                                       (hxm1 *
+     @                       (uf(if-m,juf,kf+l) - uf(if-m-1,juf,kf+l) +
+     @                        uf(if-m,juf,kf+l-1) - uf(if-m-1,juf,kf+l-1) +
+     @                        uf(if+m,juf,kf+l) - uf(if+m-1,juf,kf+l) +
+     @                        uf(if+m,juf,kf+l-1) - uf(if+m-1,juf,kf+l-1)) +
+     @                                        hym1 * jdir *
+     @                       (vf(if-m,juf,kf+l) + vf(if-m,juf,kf+l-1) +
+     @                        vf(if-m-1,juf,kf+l) + vf(if-m-1,juf,kf+l-1) +
+     @                        vf(if+m,juf,kf+l) + vf(if+m,juf,kf+l-1) +
+     @                        vf(if+m-1,juf,kf+l) + vf(if+m-1,juf,kf+l-1)) +
+     @                                        hzm1 *
+     @                       (wf(if-m,juf,kf+l) - wf(if-m,juf,kf+l-1) +
+     @                        wf(if-m-1,juf,kf+l) - wf(if-m-1,juf,kf+l-1) +
+     @                        wf(if+m,juf,kf+l) - wf(if+m,juf,kf+l-1) +
+     @                        wf(if+m-1,juf,kf+l) - wf(if+m-1,juf,kf+l-1)))
+               endif
+ 70            continue
+c weighting
+         do 80 if = irat*cregl0, irat*cregh0, irat
+ 80         src(if,jf,kf) = src(if,jf,kf) / center
+      else if (ivect(1) .eq. 0) then
+         do 110 jf = irat*cregl1, irat*cregh1, irat
+ 110        src(if,jf,kf) = 0.d0
+c quadrants
+c each quadrant is two octants and their share of the two central edges
+         fac1 = rm1 * rm2
+         ffac = rm1
+         cfac = irat
+         do 140 ki = 0, 1
+            kdir = 2 * ki - 1
+            do 140 ii = 0, 1
+               idir = 2 * ii - 1
+               if (ga(ii,0,ki) .eq. 1) then
+                  kuf = kf + ki - 1
+                  iuf = if + ii - 1
+                  center = center + ffac
+                  do 120 n = 0, irat-1
+                     fac = (irat-n) * fac1
+                     if (n .eq. 0) fac = 0.5d0 * fac
+                     do 120 jf = irat*cregl1, irat*cregh1, irat
+ 120                    src(if,jf,kf) = src(if,jf,kf) + fac *
+     @                                 (hxm1 * idir *
+     @                    (uf(iuf,jf-n,kuf) + uf(iuf,jf-n-1,kuf) +
+     @                     uf(iuf,jf+n,kuf) + uf(iuf,jf+n-1,kuf)) +
+     @                                  hym1 *
+     @                    (vf(iuf,jf-n,kuf) - vf(iuf,jf-n-1,kuf) +
+     @                     vf(iuf,jf+n,kuf) - vf(iuf,jf+n-1,kuf)) +
+     @                                  hzm1 * kdir *
+     @                    (wf(iuf,jf-n,kuf) + wf(iuf,jf-n-1,kuf) +
+     @                     wf(iuf,jf+n,kuf) + wf(iuf,jf+n-1,kuf)))
+               else
+                  kuc = kc + ki - 1
+                  iuc = ic + ii - 1
+                  center = center + cfac
+                  do 130 jc = cregl1, cregh1
+                     jf = jc * irat
+ 130                 src(if,jf,kf) = src(if,jf,kf) +
+     @                 (hxm1 * idir * (uc(iuc,jc,kuc) + uc(iuc,jc-1,kuc)) +
+     @                  hym1 *        (vc(iuc,jc,kuc) - vc(iuc,jc-1,kuc)) +
+     @                  hzm1 * kdir * (wc(iuc,jc,kuc) + wc(iuc,jc-1,kuc)))
+               endif
+ 140           continue
+c faces
+c each face is two faces and two sides of an edge
+         fac0 = rm2 * rm2
+         ffac = (irat - 1) * rm1
+         do 170 ki = 0, 1
+            kdir = 2 * ki - 1
+            do 170 ii = 0, 1
+               idir = 2 * ii - 1
+               if (ga(ii,0,ki) - ga(ii,0,1-ki) .eq. 1) then
+                  kuf = kf + ki - 1
+                  center = center + ffac
+                  do 150 n = 0, irat-1
+                     fac1 = (irat-n) * fac0
+                     if (n .eq. 0) fac1 = 0.5d0 * fac1
+                     do 150 m = idir, idir*(irat-1), idir
+                        fac = (irat-abs(m)) * fac1
+                        do 150 jf = irat*cregl1, irat*cregh1, irat
+ 150                       src(if,jf,kf) = src(if,jf,kf) + fac *
+     @                                       (hxm1 *
+     @                       (uf(if+m,jf-n,kuf) - uf(if+m-1,jf-n,kuf) +
+     @                        uf(if+m,jf-n-1,kuf) - uf(if+m-1,jf-n-1,kuf) +
+     @                        uf(if+m,jf+n,kuf) - uf(if+m-1,jf+n,kuf) +
+     @                        uf(if+m,jf+n-1,kuf) - uf(if+m-1,jf+n-1,kuf)) +
+     @                                        hym1 *
+     @                       (vf(if+m,jf-n,kuf) - vf(if+m,jf-n-1,kuf) +
+     @                        vf(if+m-1,jf-n,kuf) - vf(if+m-1,jf-n-1,kuf) +
+     @                        vf(if+m,jf+n,kuf) - vf(if+m,jf+n-1,kuf) +
+     @                        vf(if+m-1,jf+n,kuf) - vf(if+m-1,jf+n-1,kuf)) +
+     @                                        hzm1 * kdir *
+     @                       (wf(if+m,jf-n,kuf) + wf(if+m,jf-n-1,kuf) +
+     @                        wf(if+m-1,jf-n,kuf) + wf(if+m-1,jf-n-1,kuf) +
+     @                        wf(if+m,jf+n,kuf) + wf(if+m,jf+n-1,kuf) +
+     @                        wf(if+m-1,jf+n,kuf) + wf(if+m-1,jf+n-1,kuf)))
+               endif
+               if (ga(ii,0,ki) - ga(1-ii,0,ki) .eq. 1) then
+                  iuf = if + ii - 1
+                  center = center + ffac
+                  do 160 l = kdir, kdir*(irat-1), kdir
+                     fac1 = (irat-abs(l)) * fac0
+                     do 160 n = 0, irat-1
+                        fac = (irat-n) * fac1
+                        if (n .eq. 0) fac = 0.5d0 * fac
+                        do 160 jf = irat*cregl1, irat*cregh1, irat
+ 160                       src(if,jf,kf) = src(if,jf,kf) + fac *
+     @                                       (hxm1 * idir *
+     @                       (uf(iuf,jf-n,kf+l) + uf(iuf,jf-n-1,kf+l) +
+     @                        uf(iuf,jf-n,kf+l-1) + uf(iuf,jf-n-1,kf+l-1) +
+     @                        uf(iuf,jf+n,kf+l) + uf(iuf,jf+n-1,kf+l) +
+     @                        uf(iuf,jf+n,kf+l-1) + uf(iuf,jf+n-1,kf+l-1)) +
+     @                                        hym1 *
+     @                       (vf(iuf,jf-n,kf+l) - vf(iuf,jf-n-1,kf+l) +
+     @                        vf(iuf,jf-n,kf+l-1) - vf(iuf,jf-n-1,kf+l-1) +
+     @                        vf(iuf,jf+n,kf+l) - vf(iuf,jf+n-1,kf+l) +
+     @                        vf(iuf,jf+n,kf+l-1) - vf(iuf,jf+n-1,kf+l-1)) +
+     @                                        hzm1 *
+     @                       (wf(iuf,jf-n,kf+l) - wf(iuf,jf-n,kf+l-1) +
+     @                        wf(iuf,jf-n-1,kf+l) - wf(iuf,jf-n-1,kf+l-1) +
+     @                        wf(iuf,jf+n,kf+l) - wf(iuf,jf+n,kf+l-1) +
+     @                        wf(iuf,jf+n-1,kf+l) - wf(iuf,jf+n-1,kf+l-1)))
+               endif
+ 170           continue
+c weighting
+         do 180 jf = irat*cregl1, irat*cregh1, irat
+ 180        src(if,jf,kf) = src(if,jf,kf) / center
+      else
+         do 210 kf = irat*cregl2, irat*cregh2, irat
+ 210        src(if,jf,kf) = 0.d0
+c quadrants
+c each quadrant is two octants and their share of the two central edges
+         fac1 = rm1 * rm2
+         ffac = rm1
+         cfac = irat
+         do 240 ji = 0, 1
+            jdir = 2 * ji - 1
+            do 240 ii = 0, 1
+               idir = 2 * ii - 1
+               if (ga(ii,ji,0) .eq. 1) then
+                  juf = jf + ji - 1
+                  iuf = if + ii - 1
+                  center = center + ffac
+                  do 220 l = 0, irat-1
+                     fac = (irat-l) * fac1
+                     if (l .eq. 0) fac = 0.5d0 * fac
+                     do 220 kf = irat*cregl2, irat*cregh2, irat
+ 220                    src(if,jf,kf) = src(if,jf,kf) + fac *
+     @                                 (hxm1 * idir *
+     @                    (uf(iuf,juf,kf-l) + uf(iuf,juf,kf-l-1) +
+     @                     uf(iuf,juf,kf+l) + uf(iuf,juf,kf+l-1)) +
+     @                                  hym1 * jdir *
+     @                    (vf(iuf,juf,kf-l) + vf(iuf,juf,kf-l-1) +
+     @                     vf(iuf,juf,kf+l) + vf(iuf,juf,kf+l-1)) +
+     @                                  hzm1 *
+     @                    (wf(iuf,juf,kf-l) - wf(iuf,juf,kf-l-1) +
+     @                     wf(iuf,juf,kf+l) - wf(iuf,juf,kf+l-1)))
+               else
+                  juc = jc + ji - 1
+                  iuc = ic + ii - 1
+                  center = center + cfac
+                  do 230 kc = cregl2, cregh2
+                     kf = kc * irat
+ 230                 src(if,jf,kf) = src(if,jf,kf) +
+     @                 (hxm1 * idir * (uc(iuc,juc,kc) + uc(iuc,juc,kc-1)) +
+     @                  hym1 * jdir * (vc(iuc,juc,kc) + vc(iuc,juc,kc-1)) +
+     @                  hzm1 *        (wc(iuc,juc,kc) - wc(iuc,juc,kc-1)))
+               endif
+ 240           continue
+c faces
+c each face is two faces and two sides of an edge
+         fac0 = rm2 * rm2
+         ffac = (irat - 1) * rm1
+         do 270 ji = 0, 1
+            jdir = 2 * ji - 1
+            do 270 ii = 0, 1
+               idir = 2 * ii - 1
+               if (ga(ii,ji,0) - ga(ii,1-ji,0) .eq. 1) then
+                  juf = jf + ji - 1
+                  center = center + ffac
+                  do 250 l = 0, irat-1
+                     fac1 = (irat-l) * fac0
+                     if (l .eq. 0) fac1 = 0.5d0 * fac1
+                     do 250 m = idir, idir*(irat-1), idir
+                        fac = (irat-abs(m)) * fac1
+                        do 250 kf = irat*cregl2, irat*cregh2, irat
+ 250                       src(if,jf,kf) = src(if,jf,kf) + fac *
+     @                                       (hxm1 *
+     @                       (uf(if+m,juf,kf-l) - uf(if+m-1,juf,kf-l) +
+     @                        uf(if+m,juf,kf-l-1) - uf(if+m-1,juf,kf-l-1) +
+     @                        uf(if+m,juf,kf+l) - uf(if+m-1,juf,kf+l) +
+     @                        uf(if+m,juf,kf+l-1) - uf(if+m-1,juf,kf+l-1)) +
+     @                                        hym1 * jdir *
+     @                       (vf(if+m,juf,kf-l) + vf(if+m,juf,kf-l-1) +
+     @                        vf(if+m-1,juf,kf-l) + vf(if+m-1,juf,kf-l-1) +
+     @                        vf(if+m,juf,kf+l) + vf(if+m,juf,kf+l-1) +
+     @                        vf(if+m-1,juf,kf+l) + vf(if+m-1,juf,kf+l-1)) +
+     @                                        hzm1 *
+     @                       (wf(if+m,juf,kf-l) - wf(if+m,juf,kf-l-1) +
+     @                        wf(if+m-1,juf,kf-l) - wf(if+m-1,juf,kf-l-1) +
+     @                        wf(if+m,juf,kf+l) - wf(if+m,juf,kf+l-1) +
+     @                        wf(if+m-1,juf,kf+l) - wf(if+m-1,juf,kf+l-1)))
+               endif
+               if (ga(ii,ji,0) - ga(1-ii,ji,0) .eq. 1) then
+                  iuf = if + ii - 1
+                  center = center + ffac
+                  do 260 l = 0, irat-1
+                     fac1 = (irat-l) * fac0
+                     if (l .eq. 0) fac1 = 0.5d0 * fac1
+                     do 260 n = jdir, jdir*(irat-1), jdir
+                        fac = (irat-abs(n)) * fac1
+                        do 260 kf = irat*cregl2, irat*cregh2, irat
+ 260                       src(if,jf,kf) = src(if,jf,kf) + fac *
+     @                                       (hxm1 * idir *
+     @                       (uf(iuf,jf+n,kf-l) + uf(iuf,jf+n-1,kf-l) +
+     @                        uf(iuf,jf+n,kf-l-1) + uf(iuf,jf+n-1,kf-l-1) +
+     @                        uf(iuf,jf+n,kf+l) + uf(iuf,jf+n-1,kf+l) +
+     @                        uf(iuf,jf+n,kf+l-1) + uf(iuf,jf+n-1,kf+l-1)) +
+     @                                        hym1 *
+     @                       (vf(iuf,jf+n,kf-l) - vf(iuf,jf+n-1,kf-l) +
+     @                        vf(iuf,jf+n,kf-l-1) - vf(iuf,jf+n-1,kf-l-1) +
+     @                        vf(iuf,jf+n,kf+l) - vf(iuf,jf+n-1,kf+l) +
+     @                        vf(iuf,jf+n,kf+l-1) - vf(iuf,jf+n-1,kf+l-1)) +
+     @                                        hzm1 *
+     @                       (wf(iuf,jf+n,kf-l) - wf(iuf,jf+n,kf-l-1) +
+     @                        wf(iuf,jf+n-1,kf-l) - wf(iuf,jf+n-1,kf-l-1) +
+     @                        wf(iuf,jf+n,kf+l) - wf(iuf,jf+n,kf+l-1) +
+     @                        wf(iuf,jf+n-1,kf+l) - wf(iuf,jf+n-1,kf+l-1)))
+               endif
+ 270           continue
+c weighting
+         do 280 kf = irat*cregl2, irat*cregh2, irat
+ 280        src(if,jf,kf) = src(if,jf,kf) / center
+      endif
+      end
+
+c Note---only generates values at coarse points along edge of fine grid
+      subroutine hgcdiv(src,
+     @ dims(src),
+     @ uc, vc, wc,
+     @ dims(c),
+     @ uf, vf, wf,
+     @ dims(f),
+     @ dims(creg),
+     @ hx, hy, hz, irat, ga)
+      implicit real*8(a-h,o-z), integer(i-n)
+      integer dims(src)
+      integer dims(c)
+      integer dims(f)
+      integer dims(creg)
+      real*8 src(dimdec(src))
+      real*8 uc(dimdec(c))
+      real*8 vc(dimdec(c))
+      real*8 wc(dimdec(c))
+      real*8 uf(dimdec(f))
+      real*8 vf(dimdec(f))
+      real*8 wf(dimdec(f))
+      real*8 hx, hy, hz
+      integer irat, ga(0:1,0:1,0:1)
+      rm1 = 1.d0 / irat
+      rm2 = rm1 * rm1
+      hxm1 = 1.d0 / hx
+      hym1 = 1.d0 / hy
+      hzm1 = 1.d0 / hz
+      ic = cregl0
+      jc = cregl1
+      kc = cregl2
+      if = ic * irat
+      jf = jc * irat
+      kf = kc * irat
+      sum = 0.d0
+      center = 0.d0
+c octants
+      fac = rm2
+      ffac = 0.5d0 * rm2
+      cfac = 0.5d0 * irat
+      do 10 ki = 0, 1
+         kdir = 2 * ki - 1
+         kuf = kf + ki - 1
+         kuc = kc + ki - 1
+         do 10 ji = 0, 1
+            jdir = 2 * ji - 1
+            juf = jf + ji - 1
+            juc = jc + ji - 1
+            do 10 ii = 0, 1
+               idir = 2 * ii - 1
+               if (ga(ii,ji,ki) .eq. 1) then
+                  iuf = if + ii - 1
+                  center = center + ffac
+                  sum = sum + fac *
+     @              (hxm1 * idir * uf(iuf,juf,kuf) +
+     @               hym1 * jdir * vf(iuf,juf,kuf) +
+     @               hzm1 * kdir * wf(iuf,juf,kuf))
+               else
+                  iuc = ic + ii - 1
+                  center = center + cfac
+                  sum = sum +
+     @              (hxm1 * idir * uc(iuc,juc,kuc) +
+     @               hym1 * jdir * vc(iuc,juc,kuc) +
+     @               hzm1 * kdir * wc(iuc,juc,kuc))
+               endif
+ 10            continue
+c faces
+      fac0 = rm2 * rm2
+      ffac = 0.5d0 * (irat-1) * (irat-1) * rm2
+      do 50 ki = 0, 1
+         kdir = 2 * ki - 1
+         kuf = kf + ki - 1
+         do 50 ji = 0, 1
+            jdir = 2 * ji - 1
+            juf = jf + ji - 1
+            do 50 ii = 0, 1
+               idir = 2 * ii - 1
+               iuf = if + ii - 1
+               if (ga(ii,ji,ki) - ga(ii,ji,1-ki) .eq. 1) then
+                  center = center + ffac
+                  do 20 n = jdir, jdir*(irat-1), jdir
+                     fac1 = (irat-abs(n)) * fac0
+                     do 20 m = idir, idir*(irat-1), idir
+                        fac = (irat-abs(m)) * fac1
+ 20                     sum = sum + fac * (hxm1 *
+     @                    (uf(if+m,jf+n,kuf) - uf(if+m-1,jf+n,kuf) +
+     @                     uf(if+m,jf+n-1,kuf) - uf(if+m-1,jf+n-1,kuf)) +
+     @                                     hym1 *
+     @                    (vf(if+m,jf+n,kuf) - vf(if+m,jf+n-1,kuf) +
+     @                     vf(if+m-1,jf+n,kuf) - vf(if+m-1,jf+n-1,kuf)) +
+     @                                     hzm1 * kdir *
+     @                    (wf(if+m,jf+n,kuf) + wf(if+m,jf+n-1,kuf) +
+     @                     wf(if+m-1,jf+n,kuf) + wf(if+m-1,jf+n-1,kuf)))
+               endif
+               if (ga(ii,ji,ki) - ga(ii,1-ji,ki) .eq. 1) then
+                  center = center + ffac
+                  do 30 l = kdir, kdir*(irat-1), kdir
+                     fac1 = (irat-abs(l)) * fac0
+                     do 30 m = idir, idir*(irat-1), idir
+                        fac = (irat-abs(m)) * fac1
+ 30                     sum = sum + fac * (hxm1 *
+     @                    (uf(if+m,juf,kf+l) - uf(if+m-1,juf,kf+l) +
+     @                     uf(if+m,juf,kf+l-1) - uf(if+m-1,juf,kf+l-1)) +
+     @                                     hym1 * jdir *
+     @                    (vf(if+m,juf,kf+l) + vf(if+m,juf,kf+l-1) +
+     @                     vf(if+m-1,juf,kf+l) + vf(if+m-1,juf,kf+l-1)) +
+     @                                     hzm1 *
+     @                    (wf(if+m,juf,kf+l) - wf(if+m,juf,kf+l-1) +
+     @                     wf(if+m-1,juf,kf+l) - wf(if+m-1,juf,kf+l-1)))
+               endif
+               if (ga(ii,ji,ki) - ga(1-ii,ji,ki) .eq. 1) then
+                  center = center + ffac
+                  do 40 l = kdir, kdir*(irat-1), kdir
+                     fac1 = (irat-abs(l)) * fac0
+                     do 40 n = jdir, jdir*(irat-1), jdir
+                        fac = (irat-abs(n)) * fac1
+ 40                     sum = sum + fac * (hxm1 * idir *
+     @                    (uf(iuf,jf+n,kf+l) + uf(iuf,jf+n,kf+l-1) +
+     @                     uf(iuf,jf+n-1,kf+l) + uf(iuf,jf+n-1,kf+l-1)) +
+     @                                     hym1 *
+     @                    (vf(iuf,jf+n,kf+l) - vf(iuf,jf+n-1,kf+l) +
+     @                     vf(iuf,jf+n,kf+l-1) - vf(iuf,jf+n-1,kf+l-1)) +
+     @                                     hzm1 *
+     @                    (wf(iuf,jf+n,kf+l) - wf(iuf,jf+n,kf+l-1) +
+     @                     wf(iuf,jf+n-1,kf+l) - wf(iuf,jf+n-1,kf+l-1)))
+               endif
+ 50            continue
+c edges
+      fac1 = rm1 * rm2
+      ffac = 0.5d0 * (irat-1) * rm2
+      do 90 ki = 0, 1
+         kdir = 2 * ki - 1
+         kuf = kf + ki - 1
+         do 90 ji = 0, 1
+            jdir = 2 * ji - 1
+            juf = jf + ji - 1
+            do 90 ii = 0, 1
+               idir = 2 * ii - 1
+               iuf = if + ii - 1
+               if (ga(ii,ji,ki) -
+     @             min(ga(ii,ji,1-ki), ga(ii,1-ji,ki), ga(ii,1-ji,1-ki))
+     @             .eq. 1) then
+                  center = center + ffac
+                  do 60 m = idir, idir*(irat-1), idir
+                     fac = (irat-abs(m)) * fac1
+ 60                  sum = sum + fac * (hxm1 *
+     @                 (uf(if+m,juf,kuf) - uf(if+m-1,juf,kuf)) +
+     @                                  hym1 * jdir *
+     @                 (vf(if+m,juf,kuf) + vf(if+m-1,juf,kuf)) +
+     @                                  hzm1 * kdir *
+     @                 (wf(if+m,juf,kuf) + wf(if+m-1,juf,kuf)))
+               endif
+               if (ga(ii,ji,ki) -
+     @             min(ga(ii,ji,1-ki), ga(1-ii,ji,ki), ga(1-ii,ji,1-ki))
+     @             .eq. 1) then
+                  center = center + ffac
+                  do 70 n = jdir, jdir*(irat-1), jdir
+                     fac = (irat-abs(n)) * fac1
+ 70                  sum = sum + fac * (hxm1 * idir *
+     @                 (uf(iuf,jf+n,kuf) + uf(iuf,jf+n-1,kuf)) +
+     @                                  hym1 *
+     @                 (vf(iuf,jf+n,kuf) - vf(iuf,jf+n-1,kuf)) +
+     @                                  hzm1 * kdir *
+     @                 (wf(iuf,jf+n,kuf) + wf(iuf,jf+n-1,kuf)))
+               endif
+               if (ga(ii,ji,ki) -
+     @             min(ga(ii,1-ji,ki), ga(1-ii,ji,ki), ga(1-ii,1-ji,ki))
+     @             .eq. 1) then
+                  center = center + ffac
+                  do 80 l = kdir, kdir*(irat-1), kdir
+                     fac = (irat-abs(l)) * fac1
+ 80                  sum = sum + fac * (hxm1 * idir *
+     @                 (uf(iuf,juf,kf+l) + uf(iuf,juf,kf+l-1)) +
+     @                                  hym1 * jdir *
+     @                 (vf(iuf,juf,kf+l) + vf(iuf,juf,kf+l-1)) +
+     @                                  hzm1 *
+     @                 (wf(iuf,juf,kf+l) - wf(iuf,juf,kf+l-1)))
+               endif
+ 90            continue
+c weighting
+      src(if,jf,kf) = sum / center
+      end
