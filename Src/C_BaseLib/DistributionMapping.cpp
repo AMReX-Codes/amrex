@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.8 1997-11-25 18:47:05 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.9 1997-11-25 19:00:36 car Exp $
 //
 
 #include <DistributionMapping.H>
@@ -215,22 +215,23 @@ operator< (const WeightedBox& lhs,
 class WeightedBoxList
 {
     list<WeightedBox> m_lb;
+    long m_weight;
 public:
+    WeightedBoxList() : m_weight(0) {}
     long weight () const
     {
-	long wgt = 0;
-        list<WeightedBox>::const_iterator it = m_lb.begin();
-	for( ; it != m_lb.end(); ++it)
-	{
-	    wgt += (*it).weight();
-	}
-	return wgt;
+	return m_weight;
     }
     void erase (list<WeightedBox>::iterator& it)
     {
+	m_weight -= (*it).weight();
 	m_lb.erase(it);
     }
-    void push_back (const WeightedBox& bx)           { m_lb.push_back(bx);  }
+    void push_back (const WeightedBox& bx)
+    {
+	m_weight += bx.weight();
+	m_lb.push_back(bx);
+    }
     list<WeightedBox>::const_iterator begin () const { return m_lb.begin(); }
     list<WeightedBox>::iterator begin ()             { return m_lb.begin(); }
     list<WeightedBox>::const_iterator end () const   { return m_lb.end();   }
