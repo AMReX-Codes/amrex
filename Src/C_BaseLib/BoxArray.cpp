@@ -576,6 +576,17 @@ BoxArray::numPts () const
     return result;
 }
 
+long long
+BoxArray::ll_numPts () const
+{
+    long long result = 0;
+    for (BoxArray::const_iterator it = begin(), End = end(); it != End; ++it)
+    {
+        result += it->numPts();
+    }
+    return result;
+}
+
 double
 BoxArray::d_numPts () const
 {
