@@ -1,9 +1,9 @@
 #ifndef BL_CONSTANTS_H
 #define BL_CONSTANTS_H
 
-//
-// $Id: CONSTANTS.H,v 1.9 2001-07-17 23:02:20 lijewski Exp $
-//
+/*
+ * $Id: CONSTANTS.H,v 1.10 2001-07-17 23:40:08 car Exp $
+ */
 
 #include <REAL.H>
 
