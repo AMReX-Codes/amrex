@@ -111,6 +111,7 @@ public:
     virtual bool depends_on_q(const task* t) const;
 private:
     void startup();
+    MPI_Request m_request;
     FArrayBox& m_fab;
     const MultiFab& m_smf;
     const int m_sgrid;
