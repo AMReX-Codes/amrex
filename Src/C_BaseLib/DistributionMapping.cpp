@@ -1,8 +1,9 @@
 //
-// $Id: DistributionMapping.cpp,v 1.58 2002-09-13 19:19:41 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.59 2002-10-06 18:02:43 car Exp $
 //
 #include <winstd.H>
 
+#include <Profiler.H>
 #include <BoxArray.H>
 #include <DistributionMapping.H>
 #include <ParallelDescriptor.H>
@@ -322,6 +323,7 @@ static
 std::vector< std::list<int> >
 knapsack (const std::vector<long>& pts, int nprocs)
 {
+    BL_PROFILE("knapsack()");
     //
     // Sort balls by size largest first.
     //
@@ -593,6 +595,7 @@ MinimizeCommCosts (std::vector<int>&        procmap,
                    const std::vector<long>& pts,
                    int                      nprocs)
 {
+    BL_PROFILE("MinimizeCommCosts()");
     BL_ASSERT(ba.size() == pts.size());
     BL_ASSERT(procmap.size() >= ba.size());
 
@@ -764,6 +767,7 @@ void
 DistributionMapping::KnapSackProcessorMap (const std::vector<long>& pts,
                                            int                      nprocs)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::KnapSackProcessorMap(vector,");
     BL_ASSERT(pts.size() > 0);
     m_procmap.resize(pts.size()+1);
 
@@ -797,6 +801,7 @@ void
 DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
 					   int             nprocs)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::KnapSackProcessorMap");
     BL_ASSERT(boxes.size() > 0);
     BL_ASSERT(m_procmap.size() == boxes.size()+1);
 
