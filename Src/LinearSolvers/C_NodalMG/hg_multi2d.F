@@ -1655,20 +1655,6 @@ c-----------------------------------------------------------------------
       integer i, j
       hxm2 = 1.d0 / (hx*hx)
       hym2 = 1.d0 / (hy*hy)
-      if (regh1 - regl1 .gt. regh0 - regl0) then
-         do 10 i = regl0, regh0
-            do 10 j = regl1, regh1
- 10            res(i,j) = src(i,j) - 0.5d0 * (hxm2 *
-     &           ((sigx(i-1,j-1) + sigx(i-1,j)) *
-     &             (dest(i-1,j) - dest(i,j)) +
-     &            (sigx(i,j-1) + sigx(i,j)) *
-     &             (dest(i+1,j) - dest(i,j))) +
-     &                                        hym2 *
-     &           ((sigy(i-1,j-1) + sigy(i,j-1)) *
-     &             (dest(i,j-1) - dest(i,j)) +
-     &            (sigy(i-1,j) + sigy(i,j)) *
-     &             (dest(i,j+1) - dest(i,j))))
-      else
          do 20 j = regl1, regh1
             do 20 i = regl0, regh0
  20            res(i,j) = src(i,j) - 0.5d0 * (hxm2 *
@@ -1681,7 +1667,6 @@ c-----------------------------------------------------------------------
      &             (dest(i,j-1) - dest(i,j)) +
      &            (sigy(i-1,j) + sigy(i,j)) *
      &             (dest(i,j+1) - dest(i,j))))
-      end if
       end
       
 c five-point variable stencils
@@ -1788,19 +1773,11 @@ c-----------------------------------------------------------------------
      &                   sig(i,j,3)     * cor(i+1,j+1)))
 
       fac = 1.d0 / 6.d0
-      if (regh1 - regl1 .gt. regh0 - regl0) then
-         do 10 i = regl0, regh0
-cdir$ ivdep
-            do 10 j = regl1, regh1
-               cor(i,j) = (AVG() - res(i,j)) * cen(i,j)
- 10            continue
-      else
          do 20 j = regl1, regh1
 cdir$ ivdep
             do 20 i = regl0, regh0
                cor(i,j) = (AVG() - res(i,j)) * cen(i,j)
  20            continue
-      end if
       end
 c-----------------------------------------------------------------------
 
@@ -2009,45 +1986,6 @@ c-----------------------------------------------------------------------
       double precision fac, tmp
       integer i, j
       fac = 1.d0 / 6.d0
-      if (regh1 - regl1 .gt. regh0 - regl0) then
-         do 10 i = regl0, regh0
-            do 10 j = regl1, regh1
-               tmp =
-     &           (sig(i-1,j-1,1) *
-     &             (dest(i-1,j-1) - dest(i,j-1) +
-     &              2.d0 * (dest(i-1,j) - dest(i,j))) +
-     &            sig(i-1,j,1) *
-     &             (dest(i-1,j+1) - dest(i,j+1) +
-     &              2.d0 * (dest(i-1,j) - dest(i,j))) +
-     &            sig(i,j-1,1) *
-     &             (dest(i+1,j-1) - dest(i,j-1) +
-     &              2.d0 * (dest(i+1,j) - dest(i,j))) +
-     &            sig(i,j,1) *
-     &             (dest(i+1,j+1) - dest(i,j+1) +
-     &              2.d0 * (dest(i+1,j) - dest(i,j))))
-               tmp = src(i,j) - fac * (tmp +
-     &           (sig(i-1,j-1,2) *
-     &             (dest(i-1,j-1) - dest(i-1,j) +
-     &              2.d0 * (dest(i,j-1) - dest(i,j))) +
-     &            sig(i-1,j,2) *
-     &             (dest(i-1,j+1) - dest(i-1,j) +
-     &              2.d0 * (dest(i,j+1) - dest(i,j))) +
-     &            sig(i,j-1,2) *
-     &             (dest(i+1,j-1) - dest(i+1,j) +
-     &              2.d0 * (dest(i,j-1) - dest(i,j))) +
-     &            sig(i,j,2) *
-     &             (dest(i+1,j+1) - dest(i+1,j) +
-     &              2.d0 * (dest(i,j+1) - dest(i,j)))))
- 10            res(i,j) = tmp + 0.5d0 *
-     &           (sig(i-1,j-1,3) *
-     &             (dest(i-1,j-1) - dest(i,j)) -
-     &            sig(i-1,j,3) *
-     &             (dest(i-1,j+1) - dest(i,j)) -
-     &            sig(i,j-1,3) *
-     &             (dest(i+1,j-1) - dest(i,j)) +
-     &            sig(i,j,3) *
-     &             (dest(i+1,j+1) - dest(i,j)))
-      else
          do 20 j = regl1, regh1
             do 20 i = regl0, regh0
                tmp =
@@ -2085,7 +2023,6 @@ c-----------------------------------------------------------------------
      &             (dest(i+1,j-1) - dest(i,j)) +
      &            sig(i,j,3) *
      &             (dest(i+1,j+1) - dest(i,j)))
-      end if
       end
 c-----------------------------------------------------------------------
 c nine-point variable stencils
@@ -2176,33 +2113,13 @@ c-----------------------------------------------------------------------
       hym2 = 1.d0 / (hy*hy)
       fac = 1.d0 / 6.d0
       if (irz .eq. 0) then
-         if (regh1 - regl1 .gt. regh0 - regl0) then
-            do 10 i = regl0, regh0
-cdir$ ivdep
-               do 10 j = regl1, regh1
-                  cor(i,j) = (AVG() - res(i,j)) * cen(i,j)
- 10               continue
-         else
             do 20 j = regl1, regh1
 cdir$ ivdep
                do 20 i = regl0, regh0
                   cor(i,j) = (AVG() - res(i,j)) * cen(i,j)
  20               continue
-         end if
       else
          facrz = hx * hym2 / 12.d0
-         if (regh1 - regl1 .gt. regh0 - regl0) then
-            do 30 i = regl0, regh0
-               r1 = (i + 0.5d0) * hx
-               r0 = r1 - hx
-               if (i .eq. imax) then
-                  r1 = -r0
-               end if
-cdir$ ivdep
-               do 30 j = regl1, regh1
-                  cor(i,j) = (AVGRZ() - res(i,j)) * cen(i,j)
- 30               continue
-         else
             do 40 j = regl1, regh1
 cdir$ ivdep
                do 40 i = regl0, regh0
@@ -2213,7 +2130,6 @@ cdir$ ivdep
                   end if
                   cor(i,j) = (AVGRZ() - res(i,j)) * cen(i,j)
  40               continue
-         end if
       end if
       end
 c-----------------------------------------------------------------------
@@ -2796,36 +2712,6 @@ c-----------------------------------------------------------------------
       hxm2 = 1.d0 / (hx*hx)
       hym2 = 1.d0 / (hy*hy)
       fac = 1.d0 / 6.d0
-      if (regh1 - regl1 .gt. regh0 - regl0) then
-         do 10 i = regl0, regh0
-            do 10 j = regl1, regh1
-               tmp = hxm2 *
-     &           (sigx(i-1,j-1) *
-     &             (dest(i-1,j-1) - dest(i,j-1) +
-     &              2.d0 * (dest(i-1,j) - dest(i,j))) +
-     &            sigx(i-1,j) *
-     &             (dest(i-1,j+1) - dest(i,j+1) +
-     &              2.d0 * (dest(i-1,j) - dest(i,j))) +
-     &            sigx(i,j-1) *
-     &             (dest(i+1,j-1) - dest(i,j-1) +
-     &              2.d0 * (dest(i+1,j) - dest(i,j))) +
-     &            sigx(i,j) *
-     &             (dest(i+1,j+1) - dest(i,j+1) +
-     &              2.d0 * (dest(i+1,j) - dest(i,j))))
- 10            res(i,j) = src(i,j) - fac * (tmp + hym2 *
-     &           (sigy(i-1,j-1) *
-     &             (dest(i-1,j-1) - dest(i-1,j) +
-     &              2.d0 * (dest(i,j-1) - dest(i,j))) +
-     &            sigy(i-1,j) *
-     &             (dest(i-1,j+1) - dest(i-1,j) +
-     &              2.d0 * (dest(i,j+1) - dest(i,j))) +
-     &            sigy(i,j-1) *
-     &             (dest(i+1,j-1) - dest(i+1,j) +
-     &              2.d0 * (dest(i,j-1) - dest(i,j))) +
-     &            sigy(i,j) *
-     &             (dest(i+1,j+1) - dest(i+1,j) +
-     &              2.d0 * (dest(i,j+1) - dest(i,j)))))
-      else
          do 20 j = regl1, regh1
             do 20 i = regl0, regh0
                tmp = hxm2 *
@@ -2854,7 +2740,6 @@ c-----------------------------------------------------------------------
      &            sigy(i,j) *
      &             (dest(i+1,j+1) - dest(i+1,j) +
      &              2.d0 * (dest(i,j+1) - dest(i,j)))))
-      end if
       if (irz .eq. 1) then
          fac = hx * hym2 / 12.d0
          do 30 i = regl0, regh0

@@ -639,7 +639,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	{
 	    // find a fine grid touching this corner
 	    int igrid;
-	    for (int i = 0; i < lev_interface.ngrids(0); i++) 
+	    for (int i = 0; i < lev_interface[mglev].ngrids(0); i++) 
 	    {
 		igrid = lev_interface[mglev].grid(0, icor, i);
 		if (igrid >= 0)
@@ -686,7 +686,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		    );
 		// fill in the grids on the other sides, if any
 		const Box& freg = lev_interface[mglev].box(0, icor);
-		for (int i = 1; i < lev_interface.ngrids(0); i++) 
+		for (int i = 1; i < lev_interface[mglev].ngrids(0); i++) 
 		{
 		    const int jgrid = lev_interface[mglev].grid(0, icor, i);
 		    if (jgrid >= 0 && jgrid != igrid)
@@ -760,7 +760,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		    );
 		// fill in the grids on the other sides, if any
 		const Box& freg = lev_interface[mglev].box(0, icor);
-		for (int i = 1; i < lev_interface.ngrids(0); i++) 
+		for (int i = 1; i < lev_interface[mglev].ngrids(0); i++) 
 		{
 		    int jgrid = lev_interface[mglev].grid(0, icor, i);
 		    if (jgrid >= 0 && jgrid != igrid)
@@ -803,7 +803,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		// fill in the grids on the other sides, if any
 		const Box& freg = lev_interface[mglev].box(0, icor);
 		int kgrid = -1;
-		for (int i = 1; i < lev_interface.ngrids(0); i++) 
+		for (int i = 1; i < lev_interface[mglev].ngrids(0); i++) 
 		{
 		    int jgrid = lev_interface[mglev].grid(0, icor, i);
 		    if (jgrid >= 0 && jgrid != igrid && jgrid != kgrid) 
