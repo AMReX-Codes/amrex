@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BndryData.cpp,v 1.8 1999-03-17 21:58:46 lijewski Exp $
+// $Id: BndryData.cpp,v 1.9 1999-04-13 00:09:11 marc Exp $
 //
 
 #include <BndryData.H>
@@ -9,9 +9,9 @@
 #include <LO_BCTYPES.H>
 #include <ParallelDescriptor.H>
 
-BndryData::BndryData (const BoxArray&      _grids,
-                      int                  _ncomp, 
-                      const ProxyGeometry& _geom)
+BndryData::BndryData (const BoxArray& _grids,
+                      int             _ncomp, 
+                      const Geometry& _geom)
     :
     geom(_geom)
 {
@@ -104,9 +104,9 @@ BndryData::clear_masks ()
 }
 
 void
-BndryData::define (const BoxArray&      _grids,
-                   int                  _ncomp,
-                   const ProxyGeometry& _geom)
+BndryData::define (const BoxArray& _grids,
+                   int             _ncomp,
+                   const Geometry& _geom)
 {
     geom = _geom;
 
