@@ -4,7 +4,7 @@
 #define BL_INTVECT_H
 
 //
-// $Id: IntVect.H,v 1.5 1997-11-18 00:04:50 lijewski Exp $
+// $Id: IntVect.H,v 1.6 1998-06-12 16:37:57 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -42,7 +42,6 @@ using std::ws;
 
 class IntVect
 {
-
 public:
     //
     //@ManDoc: Construct an IntVect whose components are all zero.
@@ -136,11 +135,11 @@ public:
     //
     //@ManDoc: Unary plus -- for completeness.
     //
-    IntVect operator+ ();
+    IntVect operator+ () const;
     //
     //@ManDoc: Unary Minus -- negates all components.
     //
-    IntVect operator- ();
+    IntVect operator- () const;
     //
     //@ManDoc: Modifies IntVect by addition of a scaler to each component.
     //
@@ -298,6 +297,7 @@ public:
       It is provided as a convenience to our users when defining Boxes.
       */
     static const IntVect& TheCellVector ();
+
     /*@ManDoc: Returns a basis vector in the given coordinate direction;
                eg.  IntVect3d BASISV(1) == (0,1,0).  Note that the coordinate
                directions are zero based.
@@ -531,14 +531,14 @@ IntVect::lexGT (const IntVect& s) const
 
 inline
 IntVect
-IntVect::operator+ ()
+IntVect::operator+ () const
 {
     return IntVect(*this);
 }
 
 inline
 IntVect
-IntVect::operator- ()
+IntVect::operator- () const
 {
     return IntVect(D_DECL(-vect[0], -vect[1], -vect[2] ));
 }
