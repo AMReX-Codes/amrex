@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.61 1999-08-20 21:54:22 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.62 1999-08-24 16:28:30 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -24,6 +24,9 @@
 
 DescriptorList AmrLevel::desc_lst;
 DeriveList     AmrLevel::derive_lst;
+
+void
+AmrLevel::manual_tags_placement (TagBoxArray& tags, IntVect& bf) {}
 
 AmrLevel::AmrLevel ()
 {
