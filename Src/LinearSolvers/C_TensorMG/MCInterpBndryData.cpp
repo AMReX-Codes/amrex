@@ -55,19 +55,22 @@ const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
 const Real* fabdat = (fab).dataPtr();
 
-MCInterpBndryData::MCInterpBndryData(const BoxArray& _grids, int _ncomp,
-                                 const Geometry& geom)
-    : MCBndryData(_grids,_ncomp,geom)
-{
-}
+MCInterpBndryData::MCInterpBndryData (const BoxArray& _grids,
+				      int             _ncomp,
+				      const Geometry& geom)
+    : BndryData(_grids,_ncomp,geom)
+{}
 
 // At the coarsest level the bndry values are taken from adjacent grids.
 void
-MCInterpBndryData::setBndryValues(const MultiFab& mf, int mf_start,
-				int bnd_start, int num_comp,
-				const Array<BCRec>& bc )
+MCInterpBndryData::setBndryValues(const MultiFab&     mf,
+				  int                 mf_start,
+				  int                 bnd_start,
+				  int                 num_comp,
+				  const Array<BCRec>& bc )
 {
     if (! bdfunc_set) bdfunc_init();
+    
       // check that boxarrays are identical
     assert( grids.ready() );
     assert( grids == mf.boxArray() );
@@ -77,47 +80,39 @@ MCInterpBndryData::setBndryValues(const MultiFab& mf, int mf_start,
     setBndryConds(bc, geom, ref_ratio);
 
     // find the dx's
-    Real h[BL_SPACEDIM];
-    for( int dir=0; dir<BL_SPACEDIM; dir++){
-      h[dir] = geom.ProbLength(dir)/geom.Domain().length(dir);
-    }
+    const Real* h = geom.CellSize();
 
-    int ngrd = grids.length();
-    for (int grd = 0; grd < ngrd; grd++) {
-	const BOX& bx = grids[grd];
-	const int* lo = bx.loVect();
-	const int* hi = bx.hiVect();
-
-	const FARRAYBOX& fine_grd = mf[grd];
-	const int* finelo = fine_grd.loVect();
-	const int* finehi = fine_grd.hiVect();
-	const Real* finedat = fine_grd.dataPtr(mf_start);
-
-	for (OrientationIter fi; fi; ++fi) {
-	    Orientation face(fi());
+    // HACK: cast away const to satisfy incomplete BoxLib interface
+    for(MultiFabIterator mfi((MultiFab&)mf); mfi.isValid(false); ++mfi)
+    {
+	assert(grids[mfi.index()] == mfi.validbox());
+        const Box& bx = mfi.validbox();
+        for(OrientationIter fi; fi; ++fi) {
+            Orientation face(fi());
 	    int dir = face.coordDir();
-	    if (bx[face] == geom.Domain()[face]) {
-		  // physical bndry, copy from grid
-                FARRAYBOX& bnd_fab = bndry[face][grd];
-		Real* bdat = bnd_fab.dataPtr(bnd_start);
-		const int* blo = bnd_fab.loVect();
-		const int* bhi = bnd_fab.hiVect();
 
+	    // physical bndry, copy from grid
+            if(bx[face] == geom.Domain()[face])
+	    {
 		// load up hfine with perpindicular h's
 		Real hfine[BL_SPACEDIM];
 		int kdir = 0;
 		for(int idir=0; idir<BL_SPACEDIM; ++idir){
-		  if( idir == dir ) continue;
-		  hfine[kdir++] = h[idir];
+		    if( idir == dir ) continue;
+		    hfine[kdir++] = h[idir];
 		}
+
+		DependentFabSetIterator bfsi(mfi,bndry[face]);
+		
 		// copy and compute deriv
-		bdider[face](bdat,ARLIM(blo),ARLIM(bhi),
-			     lo,hi,
-			     finedat,ARLIM(finelo),ARLIM(finehi),
+		bdider[face](bfsi().dataPtr(bnd_start),
+			     ARLIM(bfsi().loVect()),ARLIM(bfsi().hiVect()),
+			     bx.loVect(),bx.hiVect(),
+			     mfi().dataPtr(mf_start),
+			     ARLIM(mfi().loVect()),ARLIM(mfi().hiVect()),
 			     &num_comp,hfine);
-		//bnd_fab.copy(mf[grd],mf_start,bnd_start,num_comp);
-	    }
-	}
+            }
+        }
     }
 
     // now copy boundary values stored in ghost cells of fine
@@ -136,10 +131,14 @@ MCInterpBndryData::setBndryValues(const MultiFab& mf, int mf_start,
 //     (B) Copy from ghost region of MultiFab at physical bndry
 //     (C) Copy from valid region of MultiFab at fine/fine interface
 void
-MCInterpBndryData::setBndryValues(const BndryRegister& crse, int c_start,
-				const MultiFab& fine, int f_start,
-				int bnd_start, int num_comp, int ratio,
-				const Array<BCRec>& bc)
+MCInterpBndryData::setBndryValues (const BndryRegister& crse,
+				   int                  c_start,
+				   const MultiFab&      fine,
+				   int                  f_start,
+				   int                  bnd_start,
+				   int                  num_comp,
+				   int                  ratio,
+				   const Array<BCRec>&  bc)
 {
     if (! bdfunc_set) bdfunc_init();
 
@@ -151,18 +150,18 @@ MCInterpBndryData::setBndryValues(const BndryRegister& crse, int c_start,
     setBndryConds(bc, geom, ratio);
 
     // find the dx's
-    Real h[BL_SPACEDIM];
-    for( int dir=0; dir<BL_SPACEDIM; dir++){
-      h[dir] = geom.ProbLength(dir)/geom.Domain().length(dir);
-    }
+    const Real* h = geom.CellSize();
+
       // first interpolate from coarse to fine on bndry
     const BOX& fine_domain = geom.Domain();
-    int ngrd = grids.length();
+
       // mask turned off if covered by fine grid
     Real *derives = 0;
     int  tmplen = 0;
-    for (int grd = 0; grd < ngrd; grd++) {
-	const BOX& fine_bx = grids[grd];
+    for(ConstMultiFabIterator finemfi(fine); finemfi.isValid(false); ++finemfi)
+    {
+        assert(grids[finemfi.index()] == finemfi.validbox());
+        const Box &fine_bx = finemfi.validbox();
         BOX crse_bx = coarsen(fine_bx,ratio);
         const int* cblo = crse_bx.loVect();
         const int* cbhi = crse_bx.hiVect();
@@ -177,7 +176,7 @@ MCInterpBndryData::setBndryValues(const BndryRegister& crse, int c_start,
         }
 	const int* lo = fine_bx.loVect();
 	const int* hi = fine_bx.hiVect();
-	const FARRAYBOX& fine_grd = fine[grd];
+	const FARRAYBOX& fine_grd = finemfi();
         const int* finelo = fine_grd.loVect();
         const int* finehi = fine_grd.hiVect();
         const Real* finedat = fine_grd.dataPtr(f_start);
@@ -192,7 +191,7 @@ MCInterpBndryData::setBndryValues(const BndryRegister& crse, int c_start,
 	      if( idir == dir ) continue;
 	      hfine[kdir++] = h[idir];
 	    }
-	    FARRAYBOX& bnd_fab = bndry[face][grd];
+	    FARRAYBOX& bnd_fab = bndry[face][finemfi.index()];
 	    const int* blo = bnd_fab.loVect();
 	    const int* bhi = bnd_fab.hiVect();
 	    Real* bdat = bnd_fab.dataPtr(bnd_start);
@@ -201,17 +200,17 @@ MCInterpBndryData::setBndryValues(const BndryRegister& crse, int c_start,
 		geom.isPeriodic(dir)) {
 		
 		  // internal or periodic edge, interpolate from crse data
-                const Mask& mask = masks[face][grd];
+                const Mask& mask = masks[face][finemfi.index()];
                 const int* mlo = mask.loVect();
                 const int* mhi = mask.hiVect();
                 const int* mdat = mask.dataPtr();
 
-                const FARRAYBOX& crse_fab = crse[face][grd];
+                const FARRAYBOX& crse_fab = crse[face][finemfi.index()];
                 const int* clo = crse_fab.loVect();
                 const int* chi = crse_fab.hiVect();
                 const Real* cdat = crse_fab.dataPtr(c_start);
 
-		int is_not_covered = MCBndryData::not_covered;
+		int is_not_covered = BndryData::not_covered;
                 bdfunc[face](bdat,ARLIM(blo),ARLIM(bhi),
 			     lo,hi,ARLIM(cblo),ARLIM(cbhi),
                              &num_comp,&ratio,&is_not_covered,

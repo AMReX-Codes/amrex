@@ -9,7 +9,7 @@
 #include <BCRec.H>
 #include <Geometry.H>
 #include <BoundCond.H>
-#include <MCBndryData.H>
+#include <BndryData.H>
 
 
 //@Man:
@@ -37,26 +37,46 @@
 	bounds the cells that do not meet the above two criteria
 	\end{enumerate}
 */
-class MCInterpBndryData : public MCBndryData
+class MCInterpBndryData : public BndryData
 {
 public:
-//@ManMemo: Constructor
-//@ManDoc: default constructor
-    MCInterpBndryData() : MCBndryData() {};
-//@ManDoc: constructor for given BoxArray, etc
-    MCInterpBndryData(const BoxArray& _grids, int _ncomp, const Geometry& geom);
-//@ManDoc: interpret user BCs to those expected by LinOp
-    virtual void setBndryConds(const Array<BCRec>& phys_bc,
-			       const Geometry& geom, int ratio) = 0;
-//@ManDoc: set bndry values at coarse level (non interpolation performed)
-    void setBndryValues(const MultiFab& mf, int mf_start,
-			int bnd_start, int num_comp,
-			const Array<BCRec>& phys_bc);
-//@ManDoc: set bndry values at fine level, performing necessary interpolations
-    void setBndryValues(const BndryRegister& crse, int c_start,
-			const MultiFab& fine, int f_start,
-			int bnd_start, int num_comp, int ratio,
-			const Array<BCRec>& phys_bc);
+    //@ManMemo: Constructor
+
+    //
+    //@ManDoc: default constructor
+    //
+    MCInterpBndryData () : BndryData() {};
+    //
+    //@ManDoc: constructor for given BoxArray, etc
+    //
+    MCInterpBndryData (const BoxArray& _grids,
+		       int             _ncomp,
+		       const Geometry& geom);
+    //
+    //@ManDoc: interpret user BCs to those expected by LinOp
+    //
+    virtual void setBndryConds (const Array<BCRec>& phys_bc,
+				const Geometry&     geom,
+				int                 ratio) = 0;
+    //
+    //@ManDoc: set bndry values at coarse level (non interpolation performed)
+    //
+    void setBndryValues (const MultiFab&     mf,
+			 int                 mf_start,
+			 int                 bnd_start,
+			 int                 num_comp,
+			 const Array<BCRec>& phys_bc);
+    //
+    //@ManDoc: set bndry values at fine level, performing necessary interpolations
+    //
+    void setBndryValues (const BndryRegister& crse,
+			 int                  c_start,
+			 const MultiFab&      fine,
+			 int                  f_start,
+			 int                  bnd_start,
+			 int                  num_comp,
+			 int                  ratio,
+			 const Array<BCRec>&  phys_bc);
 };
 
 
