@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.12 1998-05-22 23:31:31 lijewski Exp $
+// $Id: FabSet.cpp,v 1.13 1998-05-25 05:00:19 lijewski Exp $
 //
 
 #include <FabSet.H>
@@ -94,21 +94,20 @@ FabSet::copyFrom (const MultiFab& src,
 
     vector<FillBoxId> fillBoxIdList;
 
-    const BoxArray& sba = src.boxArray();
-
     for (FabSetIterator fsi(*this); fsi.isValid(false); ++fsi)
     {
        for (int s = 0; s < src.length(); ++s)
        {
-           Box ovlp = fsi().box() & ::grow(sba[s],nghost);
+           Box ovlp = fsi().box() & ::grow(src.boxArray()[s],nghost);
 
             if (ovlp.ok())
             {
                 fillBoxIdList.push_back(fscd.AddBox(srcmfid,
                                                     ovlp,
                                                     0,
+                                                    s,
                                                     src_comp,
-                                                    dest_comp,
+                                                    0,
                                                     num_comp,
                                                     false));
             }
@@ -127,7 +126,7 @@ FabSet::copyFrom (const MultiFab& src,
 
         for (int s = 0; s < src.length(); ++s)
         {
-            Box ovlp = dfab.box() & ::grow(sba[s],nghost);
+            Box ovlp = dfab.box() & ::grow(src.boxArray()[s],nghost);
 
             if (ovlp.ok())
             {
@@ -151,27 +150,28 @@ FabSet::plusFrom (const MultiFab& src,
                   int             dest_comp,
                   int             num_comp)
 {
-    //
-    // This can be optimized by only communicating the components used in
-    // the linComp.  This implementation communicates all the components.
-    //
     assert(nghost <= src.nGrow());
 
-    const BoxArray& sba = src.boxArray();
-
     MultiFabCopyDescriptor mfcd;
-    MultiFabId             mfidsrc = mfcd.RegisterFabArray((MultiFab *) &src);
+    MultiFabId             mfidsrc = mfcd.RegisterFabArray((MultiFab*) &src);
     vector<FillBoxId>      fillBoxIdList;
 
     for (FabSetIterator thismfi(*this); thismfi.isValid(false); ++thismfi)
     {
         for (int isrc = 0; isrc < src.length(); ++isrc)
         {
-            Box ovlp = thismfi().box() & ::grow(sba[isrc], nghost);
+            Box ovlp = thismfi().box() & ::grow(src.boxArray()[isrc], nghost);
 
             if (ovlp.ok())
             {
-                fillBoxIdList.push_back(mfcd.AddBox(mfidsrc,ovlp,0,0,0,num_comp));
+                fillBoxIdList.push_back(mfcd.AddBox(mfidsrc,
+                                                    ovlp,
+                                                    0,
+                                                    isrc,
+                                                    src_comp,
+                                                    0,
+                                                    num_comp,
+                                                    false));
             }
         }
     }
@@ -188,7 +188,7 @@ FabSet::plusFrom (const MultiFab& src,
 
         for (int isrc = 0; isrc < src.length(); ++isrc)
         {
-            Box ovlp = dfab.box() & ::grow(sba[isrc], nghost);
+            Box ovlp = dfab.box() & ::grow(src.boxArray()[isrc], nghost);
 
             if (ovlp.ok())
             {
@@ -264,10 +264,7 @@ FabSet::linComb (Real            a,
     assert(bxa == bxb);
     assert(n_ghost <= mfa.nGrow());
     assert(n_ghost <= mfb.nGrow());
-    //
-    // This can be optimized by only communicating the components used in
-    // the linComp.  This implementation communicates all the components.
-    //
+
     MultiFabCopyDescriptor mfcd;
 
     MultiFabId mfid_mfa = mfcd.RegisterFabArray((MultiFab *) &mfa);
@@ -289,14 +286,16 @@ FabSet::linComb (Real            a,
                 fillBoxIdList_mfa.push_back(mfcd.AddBox(mfid_mfa,
                                                         ovlp,
                                                         0,
-                                                        0,
+                                                        grd,
+                                                        a_comp,
                                                         0,
                                                         num_comp,
                                                         false));
                 fillBoxIdList_mfb.push_back(mfcd.AddBox(mfid_mfb,
                                                         ovlp,
                                                         0,
-                                                        0,
+                                                        grd,
+                                                        b_comp,
                                                         0,
                                                         num_comp,
                                                         false));
@@ -336,10 +335,10 @@ FabSet::linComb (Real            a,
 
                 reg_fab.linComb(a_fab,
                                 ovlp,
-                                a_comp,
+                                0,
                                 b_fab,
                                 ovlp,
-                                b_comp,
+                                0,
                                 a,
                                 b,
                                 ovlp,
