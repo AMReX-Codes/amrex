@@ -1896,14 +1896,10 @@ cdir$ ivdep
       end if
       end
 c-----------------------------------------------------------------------
-      subroutine hgrlxl(cor,
-     & corl0,corh0,corl1,corh1,corl2,corh2,
-     & res,
-     & resl0,resh0,resl1,resh1,resl2,resh2,
-     & signd,
-     & snl0,snh0,snl1,snh1,snl2,snh2,
-     & cen,
-     & cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
+      subroutine hgrlxl(cor, corl0,corh0,corl1,corh1,corl2,corh2,
+     & res, resl0,resh0,resl1,resh1,resl2,resh2,
+     & signd, snl0,snh0,snl1,snh1,snl2,snh2,
+     & cen, cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
      & regl0,regh0,regl1,regh1,regl2,regh2,
      & doml0,domh0,doml1,domh1,doml2,domh2,
      & lsd)
@@ -1920,7 +1916,7 @@ c-----------------------------------------------------------------------
       double precision wrk(256)
       integer lsd
       double precision betm, aj
-      double precision rhsl0, rhsl1, rhsl2
+      double precision RHSL0, RHSL1, RHSL2
       integer i, j, k, kw, ipass, ipar
       RHSL0() = (res(i,j,k) - (signd(i,j-1,k,2) * cor(i,j-1,k) + 
      &                        signd(i,j,k,2)   * cor(i,j+1,k) + 
