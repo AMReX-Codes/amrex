@@ -16,9 +16,9 @@ stencil=cross
 # bcall sets them all the the specified type.
 #
 #bcall=refWall
-bc00=periodic
-bc01=periodic
-#bc10=periodic
-#bc11=periodic
-bc20=periodic
-bc21=periodic
+bc00=inflow
+bc01=outflow
+bc10=periodic
+bc11=periodic
+#bc20=periodic
+#bc21=periodic

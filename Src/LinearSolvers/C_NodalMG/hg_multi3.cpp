@@ -90,6 +90,8 @@ extern "C"
 			     const Real*, intS, intS);
     void FORT_HGRESU        (Real*, intS, const Real*, const Real*,
 			     const Real*, const Real*, intS, const int*);
+    void FORT_HGRESUR       (Real*, intS, const Real*, const Real*,
+			     const Real*, intS, const int*);
     void FORT_HGRLX         (Real*, intS, const Real*, intS,
 			     const Real*, intS, const Real*, intS, intS);
     void FORT_HGRLX_FULL    (Real*, intS, const Real*, intS,
@@ -97,7 +99,7 @@ extern "C"
     void FORT_HGRLXU        (Real*, const Real*, const Real*,
 			     const Real*, intS, const Real*, intS, const int*);
     void FORT_HGRLXUR        (Real*, const Real*, const Real*,
-			     intS, const Real*, intS, const int*);
+			     const Real*, intS, intS, const int*);
     void FORT_HGRLXL        (Real*, intS, const Real*, intS,
 			     const Real*, intS, const Real*, intS, intS,
 			     intS, const int*);

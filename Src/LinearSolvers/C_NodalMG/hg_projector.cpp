@@ -1197,6 +1197,7 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
 	ofs << "rhs = " << rhs[0][0] << std::endl;
 	ofs << "p   = " << p[0][0] << std::endl;
 	cnt++;
+	if ( cnt == 5 ) std::exit(0);
     }
 #endif
     Box crse_domain(crse_geom.Domain());
