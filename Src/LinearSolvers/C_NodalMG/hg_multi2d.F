@@ -938,7 +938,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
          end if
  20      continue
       end
-c-----------------------------------------------------------------------      
+c-----------------------------------------------------------------------
       subroutine hgfres_terrain(
      & res,   resl0, resh0, resl1, resh1,
      @ src,   srcl0, srch0, srcl1, srch1,
@@ -1111,7 +1111,7 @@ c-----------------------------------------------------------------------
  100     continue
       end if
       end
-c-----------------------------------------------------------------------      
+c-----------------------------------------------------------------------
       subroutine hgcres_terrain(
      & res,   resl0, resh0, resl1, resh1,
      @ src,   srcl0, srch0, srcl1, srch1,
@@ -2735,8 +2735,8 @@ c-----------------------------------------------------------------------
       hxm2 = 1.d0 / (hx*hx)
       hym2 = 1.d0 / (hy*hy)
       fac = 1.d0 / 6.d0
-         do 20 j = regl1, regh1
-            do 20 i = regl0, regh0
+         do j = regl1, regh1
+            do i = regl0, regh0
                tmp = hxm2 *
      &           (sigx(i-1,j-1) *
      &             (dest(i-1,j-1) - dest(i,j-1) +
@@ -2750,7 +2750,7 @@ c-----------------------------------------------------------------------
      &            sigx(i,j) *
      &             (dest(i+1,j+1) - dest(i,j+1) +
      &              2.d0 * (dest(i+1,j) - dest(i,j))))
- 20            res(i,j) = src(i,j) - fac * (tmp + hym2 *
+               res(i,j) = src(i,j) - fac * (tmp + hym2 *
      &           (sigy(i-1,j-1) *
      &             (dest(i-1,j-1) - dest(i-1,j) +
      &              2.d0 * (dest(i,j-1) - dest(i,j))) +
@@ -2763,20 +2763,24 @@ c-----------------------------------------------------------------------
      &            sigy(i,j) *
      &             (dest(i+1,j+1) - dest(i+1,j) +
      &              2.d0 * (dest(i,j+1) - dest(i,j)))))
+            end do
+         end do
       if (irz .eq. 1) then
          fac = hx * hym2 / 12.d0
-         do 30 i = regl0, regh0
+         do i = regl0, regh0
             r1 = (i + 0.5d0) * hx
             r0 = r1 - hx
             if (i .eq. imax) then
                r1 = -r0
             end if
-            do 30 j = regl1, regh1
- 30            res(i,j) = res(i,j) - fac *
+            do j = regl1, regh1
+               res(i,j) = res(i,j) - fac *
      &          ((sigy(i-1,j-1) * (dest(i,j-1) - dest(i,j)) +
      &            sigy(i-1,j)   * (dest(i,j+1) - dest(i,j))) / r0 -
      &           (sigy(i,j-1)   * (dest(i,j-1) - dest(i,j)) +
      &            sigy(i,j)     * (dest(i,j+1) - dest(i,j))) / r1)
+            end do
+         end do
       end if
       end
 c-----------------------------------------------------------------------
@@ -2799,10 +2803,11 @@ c-----------------------------------------------------------------------
             ioff = 1 - ipass
          end if
 c back substitution loop:
-         do 10 i = regh0 - 1, regl0, -1
-            do 10 j = regl1 + ioff, regh1, 2
+         do i = regh0 - 1, regl0, -1
+            do j = regl1 + ioff, regh1, 2
                cor(i,j) = cor(i,j) - wrk(i,j) * cor(i+1,j)
- 10            continue
+            end do
+         end do
       else
          if (mod(regl0,2) .eq. 0) then
             ioff = ipass
@@ -2810,10 +2815,11 @@ c back substitution loop:
             ioff = 1 - ipass
          end if
 c back substitution loop:
-         do 20 j = regh1 - 1, regl1, -1
-            do 20 i = regl0 + ioff, regh0, 2
+         do j = regh1 - 1, regl1, -1
+            do i = regl0 + ioff, regh0, 2
                cor(i,j) = cor(i,j) - wrk(i,j) * cor(i,j+1)
- 20            continue
+            end do
+         end do
       end if
       end
 
@@ -2832,8 +2838,9 @@ c Works for NODE-based data.
       integer i, idiff
 c      do 10 i = 1, (regh0 - regl0 + 1) * (regh1 - regl1 + 1)
       idiff = regh0 - regl0 + 1
-      do 10 i = idiff + 2, idiff * (regh1 - regl1) - 1
- 10      sum = sum + mask(i) * v0(i) * v1(i)
+      do i = idiff + 2, idiff * (regh1 - regl1) - 1
+         sum = sum + mask(i) * v0(i) * v1(i)
+      end do
       end
 c-----------------------------------------------------------------------
       subroutine hgcg1(
@@ -2852,11 +2859,12 @@ c-----------------------------------------------------------------------
       integer i, idiff
 c      do 10 i = 1, (regh0 - regl0 + 1) * (regh1 - regl1 + 1)
       idiff = regh0 - regl0 + 1
-      do 10 i = idiff + 2, idiff * (regh1 - regl1) - 1
+      do i = idiff + 2, idiff * (regh1 - regl1) - 1
          r(i) = r(i) - alpha * w(i)
          x(i) = x(i) + alpha * p(i)
          z(i) = r(i) * c(i)
- 10      rho = rho + mask(i) * z(i) * r(i)
+         rho = rho + mask(i) * z(i) * r(i)
+      end do
       end
 c-----------------------------------------------------------------------
       subroutine hgcg2(p, z,
@@ -2869,6 +2877,7 @@ c-----------------------------------------------------------------------
       integer i, idiff
 c      do 10 i = 1, (regh0 - regl0 + 1) * (regh1 - regl1 + 1)
       idiff = regh0 - regl0 + 1
-      do 10 i = idiff + 2, idiff * (regh1 - regl1) - 1
- 10      p(i) = alpha * p(i) + z(i)
+      do i = idiff + 2, idiff * (regh1 - regl1) - 1
+         p(i) = alpha * p(i) + z(i)
+      end do
       end
