@@ -1,6 +1,6 @@
 
 //
-// $Id: MultiGrid.cpp,v 1.23 2000-10-02 20:51:17 lijewski Exp $
+// $Id: MultiGrid.cpp,v 1.24 2000-12-01 23:35:19 marc Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -291,16 +291,13 @@ MultiGrid::solve_ (MultiFab&      _sol,
   const Real new_error_0 = norm_rhs;
   Real norm_cor = 0.0;
   int nit = 1;
-  for (;nit <= maxiter; ++nit)
+  for (;error>eps_abs && error > eps_rel*(norm_Lp*norm_cor + norm_rhs ) &&
+           nit <= maxiter; ++nit)
     {
       relax(*cor[level], *rhs[level], level, eps_rel, eps_abs, bc_mode);
       norm_cor = norm_inf(*cor[level]);
       error = errorEstimate(level, bc_mode);
 	
-      if ( error < eps_rel*(norm_Lp*norm_cor + norm_rhs ) ) break;
-      //if ( error < eps_rel*error0 ) break;
-      if ( error < eps_abs ) break;
-      if ( nit == numiter ) break;
       if (ParallelDescriptor::IOProcessor())
         {
 	  if (verbose > 1 )
