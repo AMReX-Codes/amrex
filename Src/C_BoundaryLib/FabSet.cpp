@@ -1,5 +1,5 @@
 //
-// $Id: FabSet.cpp,v 1.41 2002-11-26 22:39:28 lijewski Exp $
+// $Id: FabSet.cpp,v 1.42 2002-12-07 16:09:16 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -190,17 +190,13 @@ FabSet::copyFrom (const FArrayBox& src,
 //
 // Used in caching CollectData() stuff for copyFrom() and plusFrom().
 //
-
 struct FSRec
 {
     FSRec ();
 
     FSRec (const BoxArray& src,
            const BoxArray& dst,
-           int             ngrow,
-           int             scomp,
-           int             dcomp,
-           int             ncomp);
+           int             ngrow);
 
     FSRec (const FSRec& rhs);
 
@@ -217,42 +213,24 @@ struct FSRec
     BoxArray         m_src;
     BoxArray         m_dst;
     int              m_ngrow;
-    int              m_scomp;
-    int              m_dcomp;
-    int              m_ncomp;
 };
 
-inline
 FSRec::FSRec ()
     :
-    m_ngrow(-1),
-    m_scomp(-1),
-    m_dcomp(-1),
-    m_ncomp(-1)
+    m_ngrow(-1)
 {}
 
-inline
 FSRec::FSRec (const BoxArray& src,
               const BoxArray& dst,
-              int             ngrow,
-              int             scomp,
-              int             dcomp,
-              int             ncomp)
+              int             ngrow)
     :
     m_src(src),
     m_dst(dst),
-    m_ngrow(ngrow),
-    m_scomp(scomp),
-    m_dcomp(dcomp),
-    m_ncomp(ncomp)
+    m_ngrow(ngrow)
 {
     BL_ASSERT(ngrow >= 0);
-    BL_ASSERT(scomp >= 0);
-    BL_ASSERT(dcomp >= 0);
-    BL_ASSERT(ncomp >  0);
 }
 
-inline
 FSRec::FSRec (const FSRec& rhs)
     :
     m_box(rhs.m_box),
@@ -262,29 +240,20 @@ FSRec::FSRec (const FSRec& rhs)
     m_commdata(rhs.m_commdata),
     m_src(rhs.m_src),
     m_dst(rhs.m_dst),
-    m_ngrow(rhs.m_ngrow),
-    m_scomp(rhs.m_scomp),
-    m_dcomp(rhs.m_dcomp),
-    m_ncomp(rhs.m_ncomp)
+    m_ngrow(rhs.m_ngrow)
 {}
 
-inline
 FSRec::~FSRec () {}
 
-inline
 bool
 FSRec::operator== (const FSRec& rhs) const
 {
     return
         m_ngrow == rhs.m_ngrow &&
-        m_scomp == rhs.m_scomp &&
-        m_dcomp == rhs.m_dcomp &&
-        m_ncomp == rhs.m_ncomp &&
         m_src   == rhs.m_src   &&
         m_dst   == rhs.m_dst;
 }
 
-inline
 bool
 FSRec::operator!= (const FSRec& rhs) const
 {
@@ -313,19 +282,34 @@ TheFSRec (const MultiFab& src,
           const FabSet&   dst,
           int             ngrow,
           int             scomp,
-          int             dcomp,
           int             ncomp)
 {
     BL_ASSERT(ngrow >= 0);
     BL_ASSERT(scomp >= 0);
-    BL_ASSERT(dcomp >= 0);
     BL_ASSERT(ncomp >  0);
 
-    FSRec rec(src.boxArray(),dst.boxArray(),ngrow,scomp,dcomp,ncomp);
+    const FSRec rec(src.boxArray(),dst.boxArray(),ngrow);
 
     for (FSRecList::iterator it = TheCache.begin(); it != TheCache.end(); ++it)
+    {
         if (*it == rec)
+        {
+            //
+            // Adjust the ncomp & scomp in CommData.
+            //
+            BL_ASSERT((*it).m_commdata.isValid());
+
+            Array<CommData>& cd = (*it).m_commdata.theCommData();
+
+            for (int i = 0; i < cd.size(); i++)
+            {
+                cd[i].nComp(ncomp);
+                cd[i].srcComp(scomp);
+            }
+
             return *it;
+        }
+    }
 
     TheCache.push_front(rec);
     //
@@ -365,15 +349,16 @@ FabSet::DoIt (const MultiFab& src,
 {
     BL_ASSERT((dcomp+ncomp) <= nComp());
     BL_ASSERT((scomp+ncomp) <= src.nComp());
+
     BL_ASSERT(how == FabSet::COPYFROM || how == FabSet::PLUSFROM);
 
     FArrayBox              tmp;
     FabSetCopyDescriptor   fscd;
     std::vector<FillBoxId> fbids;
 
-    const int            MyProc = ParallelDescriptor::MyProc();
-    FSRec&               fsrec  = TheFSRec(src,*this,ngrow,scomp,dcomp,ncomp);
-    MultiFabId           mfid   = fscd.RegisterFabArray(const_cast<MultiFab*>(&src));
+    const int  MyProc = ParallelDescriptor::MyProc();
+    FSRec&     fsrec  = TheFSRec(src,*this,ngrow,scomp,ncomp);
+    MultiFabId mfid   = fscd.RegisterFabArray(const_cast<MultiFab*>(&src));
 
     BL_ASSERT(fsrec.m_box.size() == fsrec.m_mfidx.size());
     BL_ASSERT(fsrec.m_box.size() == fsrec.m_fsidx.size());
@@ -404,7 +389,7 @@ FabSet::DoIt (const MultiFab& src,
 
         if (how == COPYFROM)
         {
-            fscd.FillFab(mfid, fbids[i], (*this)[fbids[i].FabIndex()]);
+            fscd.FillFab(mfid,fbids[i],(*this)[fbids[i].FabIndex()]);
         }
         else
         {
