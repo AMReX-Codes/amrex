@@ -1,5 +1,5 @@
 c
-c $Id: FILCC_2D.F,v 1.6 2002-05-28 23:21:12 marc Exp $
+c $Id: FILCC_2D.F,v 1.7 2002-07-18 21:28:15 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -301,10 +301,6 @@ c     ::::: first fill sides
       return
       end
 
-
-
-
-
       subroutine hoextraptocc(q,DIMS(q),domlo,domhi,dx,xlo)
 
       integer    DIMDEC(q)
@@ -417,9 +413,8 @@ c     ::::: first fill sides
          q(ilo-1,jlo-1) =  q(ilo-1,jlo-1) + half * half * 
      $        (three*q(ilo,jlo-1) - q(ilo+1,jlo-1))
       end if
+
       
-
-
       if (jhi-2 .ge. js) then 
          q(ilo-1,jhi+1) = half * eighth * 
      $        (fifteen*q(ilo-1,jhi) - ten*q(ilo-1,jhi-1) + three*q(ilo-1,jhi-2))
@@ -437,7 +432,6 @@ c     ::::: first fill sides
       end if
 
 
-      
       if (jlo+2 .le. je) then 
          q(ihi+1,jlo-1) = half * eighth * 
      $        (fifteen*q(ihi+1,jlo) - ten*q(ihi+1,jlo+1) + three*q(ihi+1,jlo+2))
@@ -453,7 +447,6 @@ c     ::::: first fill sides
          q(ihi+1,jlo-1) = q(ihi+1,jlo-1) + half * half * 
      $        (three*q(ihi,jlo-1) - q(ihi-1,jlo-1))
       end if
-
 
 
       if (jhi-2 .ge. js) then 
