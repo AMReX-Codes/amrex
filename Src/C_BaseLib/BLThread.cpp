@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.34 2002-04-08 20:46:46 car Exp $
+// $Id: BLThread.cpp,v 1.35 2002-04-15 20:12:26 car Exp $
 //
 
 #include <winstd.H>
@@ -487,8 +487,8 @@ Thread::max_threads()
 unsigned long
 Thread::max_threads()
 {
-    BL_ASSERT( PTHREAD_THREADS_MAX >= 0 );
 #ifdef PTHREAD_THREADS_MAX
+    BL_ASSERT( PTHREAD_THREADS_MAX >= 0 );
     return PTHREAD_THREADS_MAX;
 #else
     return 64;
