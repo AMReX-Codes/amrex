@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.44 1998-04-13 21:50:13 lijewski Exp $
+// $Id: VisMF.cpp,v 1.45 1998-04-14 16:50:53 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -21,6 +21,10 @@ using std::ofstream;
 
 #include <Utility.H>
 #include <VisMF.H>
+
+#ifdef BL_USE_MPI
+#include <mpi.h>
+#endif
 
 const aString VisMF::FabFileSuffix("_D_");
 
@@ -358,7 +362,7 @@ VisMF::Header::Header (const MultiFab& mf,
             }
 #ifdef BL_USE_MPI
             int rc = MPI_Send(min_n_max.dataPtr(),
-                              2 * m_ncomp
+                              2 * m_ncomp,
                               sizeof(Real) == sizeof(float) ? MPI_FLOAT : MPI_DOUBLE,
                               ParallelDescriptor::IOProcessor(),
                               117,
@@ -556,7 +560,7 @@ VisMF::Write (const MultiFab& mf,
                                    MPI_COMM_WORLD)) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
 
-                if ((rc = MPI_Pack(TheBaseName.c_str(),
+                if ((rc = MPI_Pack((void*)TheBaseName.c_str(),
                                    len,
                                    MPI_CHAR,
                                    pbuf,
@@ -643,7 +647,7 @@ VisMF::Write (const MultiFab& mf,
                                    MPI_COMM_WORLD)) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
 
-                if ((rc = MPI_Pack(TheBaseName.c_str(),
+                if ((rc = MPI_Pack((void*)TheBaseName.c_str(),
                                    len,
                                    MPI_CHAR,
                                    pbuf,
