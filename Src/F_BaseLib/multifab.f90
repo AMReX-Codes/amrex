@@ -243,15 +243,32 @@ module multifab_module
 
   interface div_div
      module procedure multifab_div_div
+     module procedure multifab_div_div_s
+     module procedure multifab_div_div_c
+     module procedure multifab_div_div_s_c
+  end interface
+
+  interface mult_mult
+     module procedure multifab_mult_mult
+     module procedure multifab_mult_mult_s
+     module procedure multifab_mult_mult_c
+     module procedure multifab_mult_mult_s_c
+  end interface
+
+  interface sub_sub
+     module procedure multifab_sub_sub
+     module procedure multifab_sub_sub_s
+     module procedure multifab_sub_sub_c
+     module procedure multifab_sub_sub_s_c
   end interface
 
   type(mem_stats), private, save ::  multifab_ms
   type(mem_stats), private, save :: imultifab_ms
   type(mem_stats), private, save :: lmultifab_ms
 
-  interface assignment(=)
-     module procedure multifab_die_die
-  end interface
+! interface assignment(=)
+!    module procedure multifab_die_die
+! end interface
 
   private :: build_nodal_dot_mask
 
@@ -308,11 +325,11 @@ contains
     if ( present(fb_fancy) ) l_fb_fancy = fb_fancy
   end subroutine lmultifab_set_behavior
 
-  subroutine multifab_die_die(mf,mf1)
-    type(multifab), intent(in) :: mf1
-    type(multifab), intent(inout) :: mf
-    call bl_error("DIE")
-  end subroutine multifab_die_die
+! subroutine multifab_die_die(mf,mf1)
+!   type(multifab), intent(in) :: mf1
+!   type(multifab), intent(inout) :: mf
+!   call bl_error("DIE")
+! end subroutine multifab_die_die
 
   function multifab_ncomp(mf) result(r)
     integer :: r
@@ -3148,6 +3165,264 @@ contains
     end do
     !$OMP END PARALLEL DO
   end subroutine multifab_div_div
+  subroutine multifab_div_div_s(a, b, all)
+    type(multifab), intent(inout) :: a
+    real(dp_t), intent(in)  :: b
+    logical, intent(in), optional :: all
+    real(dp_t), pointer :: ap(:,:,:,:)
+    integer :: i
+    logical :: lall
+    lall = .false.; if ( present(all) ) lall = all
+    if ( b == 0.0_dp_t ) then
+       call bl_error("MULTIFAB_DIV_DIV: divide by zero")
+    end if
+    !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+    do i = 1, a%nboxes
+       if ( multifab_remote(a,i) ) cycle
+       if ( lall ) then
+          ap => dataptr(a, i)
+       else
+          ap => dataptr(a, i, get_ibox(a, i))
+       end if
+       ap = ap/b
+    end do
+    !$OMP END PARALLEL DO
+  end subroutine multifab_div_div_s
+  subroutine multifab_div_div_c(a, targ, b, src, nc, all)
+    integer, intent(in) :: targ, src
+    integer, intent(in), optional :: nc
+    logical, intent(in), optional :: all
+    type(multifab), intent(inout) :: a
+    type(multifab), intent(in)  :: b
+    real(dp_t), pointer :: ap(:,:,:,:)
+    real(dp_t), pointer :: bp(:,:,:,:)
+    integer :: i
+    logical :: lall
+    lall = .false.; if ( present(all) ) lall = all
+    !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+    do i = 1, a%nboxes
+       if ( multifab_remote(a,i) ) cycle
+       if ( lall ) then
+          ap => dataptr(a, i, targ, nc)
+          bp => dataptr(b, i, src, nc)
+       else
+          ap => dataptr(a, i, get_ibox(a, i), targ, nc)
+          bp => dataptr(b, i, get_ibox(b, i), src, nc)
+       end if
+       if ( any(bp == 0.0_dp_t) ) then
+          call bl_error("MULTIFAB_DIV_DIV: divide by zero")
+       end if
+       ap = ap/bp
+    end do
+    !$OMP END PARALLEL DO
+  end subroutine multifab_div_div_c
+  subroutine multifab_div_div_s_c(a, targ, b, nc, all)
+    integer, intent(in) :: targ
+    integer, intent(in), optional :: nc
+    logical, intent(in), optional :: all
+    type(multifab), intent(inout) :: a
+    real(kind=dp_t), intent(in)  :: b
+    real(dp_t), pointer :: ap(:,:,:,:)
+    integer :: i
+    logical :: lall
+    lall = .false.; if ( present(all) ) lall = all
+    if ( b == 0.0_dp_t ) then
+       call bl_error("MULTIFAB_DIV_DIV: divide by zero")
+    end if
+    !$OMP PARALLEL DO PRIVATE(i,ap)
+    do i = 1, a%nboxes
+       if ( multifab_remote(a,i) ) cycle
+       if ( lall ) then
+          ap => dataptr(a, i, targ, nc)
+       else
+          ap => dataptr(a, i, get_ibox(a, i), targ, nc)
+       end if
+       ap = ap/b
+    end do
+    !$OMP END PARALLEL DO
+  end subroutine multifab_div_div_s_c
+
+  subroutine multifab_mult_mult(a, b, all)
+    type(multifab), intent(inout) :: a
+    type(multifab), intent(in)  :: b
+    logical, intent(in), optional :: all
+    real(dp_t), pointer :: ap(:,:,:,:)
+    real(dp_t), pointer :: bp(:,:,:,:)
+    integer :: i
+    logical :: lall
+    lall = .false.; if ( present(all) ) lall = all
+    !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+    do i = 1, a%nboxes
+       if ( multifab_remote(a,i) ) cycle
+       if ( lall ) then
+          ap => dataptr(a, i)
+          bp => dataptr(b, i)
+       else
+          ap => dataptr(a, i, get_ibox(a, i))
+          bp => dataptr(b, i, get_ibox(b, i))
+       end if
+       ap = ap*bp
+    end do
+    !$OMP END PARALLEL DO
+  end subroutine multifab_mult_mult
+  subroutine multifab_mult_mult_s(a, b, all)
+    type(multifab), intent(inout) :: a
+    real(dp_t), intent(in)  :: b
+    logical, intent(in), optional :: all
+    real(dp_t), pointer :: ap(:,:,:,:)
+    integer :: i
+    logical :: lall
+    lall = .false.; if ( present(all) ) lall = all
+    !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+    do i = 1, a%nboxes
+       if ( multifab_remote(a,i) ) cycle
+       if ( lall ) then
+          ap => dataptr(a, i)
+       else
+          ap => dataptr(a, i, get_ibox(a, i))
+       end if
+       ap = ap*b
+    end do
+    !$OMP END PARALLEL DO
+  end subroutine multifab_mult_mult_s
+  subroutine multifab_mult_mult_c(a, targ, b, src, nc, all)
+    integer, intent(in) :: targ, src
+    integer, intent(in), optional :: nc
+    logical, intent(in), optional :: all
+    type(multifab), intent(inout) :: a
+    type(multifab), intent(in)  :: b
+    real(dp_t), pointer :: ap(:,:,:,:)
+    real(dp_t), pointer :: bp(:,:,:,:)
+    integer :: i
+    logical :: lall
+    lall = .false.; if ( present(all) ) lall = all
+    !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+    do i = 1, a%nboxes
+       if ( multifab_remote(a,i) ) cycle
+       if ( lall ) then
+          ap => dataptr(a, i, targ, nc)
+          bp => dataptr(b, i, src, nc)
+       else
+          ap => dataptr(a, i, get_ibox(a, i), targ, nc)
+          bp => dataptr(b, i, get_ibox(b, i), src, nc)
+       end if
+       ap = ap*bp
+    end do
+    !$OMP END PARALLEL DO
+  end subroutine multifab_mult_mult_c
+  subroutine multifab_mult_mult_s_c(a, targ, b, nc, all)
+    integer, intent(in) :: targ
+    integer, intent(in), optional :: nc
+    logical, intent(in), optional :: all
+    type(multifab), intent(inout) :: a
+    real(kind=dp_t), intent(in)  :: b
+    real(dp_t), pointer :: ap(:,:,:,:)
+    integer :: i
+    logical :: lall
+    lall = .false.; if ( present(all) ) lall = all
+    !$OMP PARALLEL DO PRIVATE(i,ap)
+    do i = 1, a%nboxes
+       if ( multifab_remote(a,i) ) cycle
+       if ( lall ) then
+          ap => dataptr(a, i, targ, nc)
+       else
+          ap => dataptr(a, i, get_ibox(a, i), targ, nc)
+       end if
+       ap = ap*b
+    end do
+    !$OMP END PARALLEL DO
+  end subroutine multifab_mult_mult_s_c
+
+  subroutine multifab_sub_sub(a, b, all)
+    type(multifab), intent(inout) :: a
+    type(multifab), intent(in)  :: b
+    logical, intent(in), optional :: all
+    real(dp_t), pointer :: ap(:,:,:,:)
+    real(dp_t), pointer :: bp(:,:,:,:)
+    integer :: i
+    logical :: lall
+    lall = .false.; if ( present(all) ) lall = all
+    !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+    do i = 1, a%nboxes
+       if ( multifab_remote(a,i) ) cycle
+       if ( lall ) then
+          ap => dataptr(a, i)
+          bp => dataptr(b, i)
+       else
+          ap => dataptr(a, i, get_ibox(a, i))
+          bp => dataptr(b, i, get_ibox(b, i))
+       end if
+       ap = ap - bp
+    end do
+    !$OMP END PARALLEL DO
+  end subroutine multifab_sub_sub
+  subroutine multifab_sub_sub_s(a, b, all)
+    type(multifab), intent(inout) :: a
+    real(dp_t), intent(in)  :: b
+    logical, intent(in), optional :: all
+    real(dp_t), pointer :: ap(:,:,:,:)
+    integer :: i
+    logical :: lall
+    lall = .false.; if ( present(all) ) lall = all
+    !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+    do i = 1, a%nboxes
+       if ( multifab_remote(a,i) ) cycle
+       if ( lall ) then
+          ap => dataptr(a, i)
+       else
+          ap => dataptr(a, i, get_ibox(a, i))
+       end if
+       ap = ap - b
+    end do
+    !$OMP END PARALLEL DO
+  end subroutine multifab_sub_sub_s
+  subroutine multifab_sub_sub_c(a, targ, b, src, nc, all)
+    integer, intent(in) :: targ, src
+    integer, intent(in), optional :: nc
+    logical, intent(in), optional :: all
+    type(multifab), intent(inout) :: a
+    type(multifab), intent(in)  :: b
+    real(dp_t), pointer :: ap(:,:,:,:)
+    real(dp_t), pointer :: bp(:,:,:,:)
+    integer :: i
+    logical :: lall
+    lall = .false.; if ( present(all) ) lall = all
+    !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+    do i = 1, a%nboxes
+       if ( multifab_remote(a,i) ) cycle
+       if ( lall ) then
+          ap => dataptr(a, i, targ, nc)
+          bp => dataptr(b, i, src, nc)
+       else
+          ap => dataptr(a, i, get_ibox(a, i), targ, nc)
+          bp => dataptr(b, i, get_ibox(b, i), src, nc)
+       end if
+       ap = ap - bp
+    end do
+    !$OMP END PARALLEL DO
+  end subroutine multifab_sub_sub_c
+  subroutine multifab_sub_sub_s_c(a, targ, b, nc, all)
+    integer, intent(in) :: targ
+    integer, intent(in), optional :: nc
+    logical, intent(in), optional :: all
+    type(multifab), intent(inout) :: a
+    real(kind=dp_t), intent(in)  :: b
+    real(dp_t), pointer :: ap(:,:,:,:)
+    integer :: i
+    logical :: lall
+    lall = .false.; if ( present(all) ) lall = all
+    !$OMP PARALLEL DO PRIVATE(i,ap)
+    do i = 1, a%nboxes
+       if ( multifab_remote(a,i) ) cycle
+       if ( lall ) then
+          ap => dataptr(a, i, targ, nc)
+       else
+          ap => dataptr(a, i, get_ibox(a, i), targ, nc)
+       end if
+       ap = ap - b
+    end do
+    !$OMP END PARALLEL DO
+  end subroutine multifab_sub_sub_s_c
 
   subroutine multifab_plus_plus(a, b, all)
     type(multifab), intent(inout) :: a
