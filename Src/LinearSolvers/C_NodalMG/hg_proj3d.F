@@ -351,20 +351,20 @@ c each face is two faces and two sides of an edge
                         do 50 if = ir*cregl0, ir*cregh0, ir
  50                        src(if,jf,kf) = src(if,jf,kf) + fac *
      @                                       (
-     @                       (uf(if-m  ,jf+n  ,kuf) - uf(if-m-1,jf+n  ,kuf) +
-     @                        uf(if-m  ,jf+n-1,kuf) - uf(if-m-1,jf+n-1,kuf) +
-     @                        uf(if+m  ,jf+n  ,kuf) - uf(if+m-1,jf+n  ,kuf) +
-     @                        uf(if+m  ,jf+n-1,kuf) - uf(if+m-1,jf+n-1,kuf)) +
+     @	    (uf(if-m  ,jf+n  ,kuf) - uf(if-m-1,jf+n  ,kuf) +
+     @             uf(if-m  ,jf+n-1,kuf) - uf(if-m-1,jf+n-1,kuf) +
+     @             uf(if+m  ,jf+n  ,kuf) - uf(if+m-1,jf+n  ,kuf) +
+     @             uf(if+m  ,jf+n-1,kuf) - uf(if+m-1,jf+n-1,kuf)) +
 c
-     @                       (vf(if-m  ,jf+n  ,kuf) - vf(if-m  ,jf+n-1,kuf) +
-     @                        vf(if-m-1,jf+n  ,kuf) - vf(if-m-1,jf+n-1,kuf) +
-     @                        vf(if+m  ,jf+n  ,kuf) - vf(if+m  ,jf+n-1,kuf) +
-     @                        vf(if+m-1,jf+n  ,kuf) - vf(if+m-1,jf+n-1,kuf)) +
+     @            (vf(if-m  ,jf+n  ,kuf) - vf(if-m  ,jf+n-1,kuf) +
+     @             vf(if-m-1,jf+n  ,kuf) - vf(if-m-1,jf+n-1,kuf) +
+     @             vf(if+m  ,jf+n  ,kuf) - vf(if+m  ,jf+n-1,kuf) +
+     @             vf(if+m-1,jf+n  ,kuf) - vf(if+m-1,jf+n-1,kuf)) +
      @                                         kdir *
-     @                       (wf(if-m  ,jf+n,kuf) + wf(if-m  ,jf+n-1,kuf) +
-     @                        wf(if-m-1,jf+n,kuf) + wf(if-m-1,jf+n-1,kuf) +
-     @                        wf(if+m  ,jf+n,kuf) + wf(if+m  ,jf+n-1,kuf) +
-     @                        wf(if+m-1,jf+n,kuf) + wf(if+m-1,jf+n-1,kuf)))
+     @            (wf(if-m  ,jf+n,kuf) + wf(if-m  ,jf+n-1,kuf) +
+     @             wf(if-m-1,jf+n,kuf) + wf(if-m-1,jf+n-1,kuf) +
+     @             wf(if+m  ,jf+n,kuf) + wf(if+m  ,jf+n-1,kuf) +
+     @             wf(if+m-1,jf+n,kuf) + wf(if+m-1,jf+n-1,kuf)))
                end if
                if (ga(0,ji,ki) - ga(0,1-ji,ki) .eq. 1) then
                   juf = jf + ji - 1
@@ -377,20 +377,20 @@ c
                         do 60 if = ir*cregl0, ir*cregh0, ir
  60                        src(if,jf,kf) = src(if,jf,kf) + fac *
      @                                       (
-     @                       (uf(if-m,juf,kf+l  ) - uf(if-m-1,juf,kf+l  ) +
-     @                        uf(if-m,juf,kf+l-1) - uf(if-m-1,juf,kf+l-1) +
-     @                        uf(if+m,juf,kf+l  ) - uf(if+m-1,juf,kf+l  ) +
-     @                        uf(if+m,juf,kf+l-1) - uf(if+m-1,juf,kf+l-1)) +
+     @            (uf(if-m,juf,kf+l  ) - uf(if-m-1,juf,kf+l  ) +
+     @             uf(if-m,juf,kf+l-1) - uf(if-m-1,juf,kf+l-1) +
+     @             uf(if+m,juf,kf+l  ) - uf(if+m-1,juf,kf+l  ) +
+     @             uf(if+m,juf,kf+l-1) - uf(if+m-1,juf,kf+l-1)) +
      @                                        jdir *
-     @                       (vf(if-m  ,juf,kf+l) + vf(if-m  ,juf,kf+l-1) +
-     @                        vf(if-m-1,juf,kf+l) + vf(if-m-1,juf,kf+l-1) +
-     @                        vf(if+m  ,juf,kf+l) + vf(if+m  ,juf,kf+l-1) +
-     @                        vf(if+m-1,juf,kf+l) + vf(if+m-1,juf,kf+l-1)) +
+     @            (vf(if-m  ,juf,kf+l) + vf(if-m  ,juf,kf+l-1) +
+     @             vf(if-m-1,juf,kf+l) + vf(if-m-1,juf,kf+l-1) +
+     @             vf(if+m  ,juf,kf+l) + vf(if+m  ,juf,kf+l-1) +
+     @             vf(if+m-1,juf,kf+l) + vf(if+m-1,juf,kf+l-1)) +
 c
-     @                       (wf(if-m  ,juf,kf+l) - wf(if-m  ,juf,kf+l-1) +
-     @                        wf(if-m-1,juf,kf+l) - wf(if-m-1,juf,kf+l-1) +
-     @                        wf(if+m  ,juf,kf+l) - wf(if+m  ,juf,kf+l-1) +
-     @                        wf(if+m-1,juf,kf+l) - wf(if+m-1,juf,kf+l-1)))
+     @            (wf(if-m  ,juf,kf+l) - wf(if-m  ,juf,kf+l-1) +
+     @             wf(if-m-1,juf,kf+l) - wf(if-m-1,juf,kf+l-1) +
+     @             wf(if+m  ,juf,kf+l) - wf(if+m  ,juf,kf+l-1) +
+     @             wf(if+m-1,juf,kf+l) - wf(if+m-1,juf,kf+l-1)))
                end if
  70            continue
 c weighting
@@ -452,19 +452,19 @@ c each face is two faces and two sides of an edge
                         do 150 jf = jr*cregl1, jr*cregh1, jr
  150                       src(if,jf,kf) = src(if,jf,kf) + fac *
      @                                       (
-     @                       (uf(if+m  ,jf-n  ,kuf) - uf(if+m-1,jf-n  ,kuf) +
-     @                        uf(if+m  ,jf-n-1,kuf) - uf(if+m-1,jf-n-1,kuf) +
-     @                        uf(if+m  ,jf+n  ,kuf) - uf(if+m-1,jf+n  ,kuf) +
-     @                        uf(if+m  ,jf+n-1,kuf) - uf(if+m-1,jf+n-1,kuf)) +
-     @                       (vf(if+m  ,jf-n  ,kuf) - vf(if+m  ,jf-n-1,kuf) +
-     @                        vf(if+m-1,jf-n  ,kuf) - vf(if+m-1,jf-n-1,kuf) +
-     @                        vf(if+m  ,jf+n  ,kuf) - vf(if+m  ,jf+n-1,kuf) +
-     @                        vf(if+m-1,jf+n  ,kuf) - vf(if+m-1,jf+n-1,kuf)) +
+     @            (uf(if+m  ,jf-n  ,kuf) - uf(if+m-1,jf-n  ,kuf) +
+     @             uf(if+m  ,jf-n-1,kuf) - uf(if+m-1,jf-n-1,kuf) +
+     @             uf(if+m  ,jf+n  ,kuf) - uf(if+m-1,jf+n  ,kuf) +
+     @             uf(if+m  ,jf+n-1,kuf) - uf(if+m-1,jf+n-1,kuf)) +
+     @            (vf(if+m  ,jf-n  ,kuf) - vf(if+m  ,jf-n-1,kuf) +
+     @             vf(if+m-1,jf-n  ,kuf) - vf(if+m-1,jf-n-1,kuf) +
+     @             vf(if+m  ,jf+n  ,kuf) - vf(if+m  ,jf+n-1,kuf) +
+     @             vf(if+m-1,jf+n  ,kuf) - vf(if+m-1,jf+n-1,kuf)) +
      @                                        kdir *
-     @                       (wf(if+m  ,jf-n,kuf) + wf(if+m  ,jf-n-1,kuf) +
-     @                        wf(if+m-1,jf-n,kuf) + wf(if+m-1,jf-n-1,kuf) +
-     @                        wf(if+m  ,jf+n,kuf) + wf(if+m  ,jf+n-1,kuf) +
-     @                        wf(if+m-1,jf+n,kuf) + wf(if+m-1,jf+n-1,kuf)))
+     @            (wf(if+m  ,jf-n,kuf) + wf(if+m  ,jf-n-1,kuf) +
+     @             wf(if+m-1,jf-n,kuf) + wf(if+m-1,jf-n-1,kuf) +
+     @             wf(if+m  ,jf+n,kuf) + wf(if+m  ,jf+n-1,kuf) +
+     @             wf(if+m-1,jf+n,kuf) + wf(if+m-1,jf+n-1,kuf)))
                end if
                if (ga(ii,0,ki) - ga(1-ii,0,ki) .eq. 1) then
                   iuf = if + ii - 1
@@ -477,18 +477,18 @@ c each face is two faces and two sides of an edge
                         do 160 jf = jr*cregl1, jr*cregh1, jr
  160                       src(if,jf,kf) = src(if,jf,kf) + fac *
      @                                       (idir *
-     @                       (uf(iuf,jf-n  ,kf+l  ) + uf(iuf,jf-n-1,kf+l  ) +
-     @                        uf(iuf,jf-n  ,kf+l-1) + uf(iuf,jf-n-1,kf+l-1) +
-     @                        uf(iuf,jf+n  ,kf+l  ) + uf(iuf,jf+n-1,kf+l  ) +
-     @                        uf(iuf,jf+n  ,kf+l-1) + uf(iuf,jf+n-1,kf+l-1)) +
-     @                       (vf(iuf,jf-n  ,kf+l  ) - vf(iuf,jf-n-1,kf+l  ) +
-     @                        vf(iuf,jf-n  ,kf+l-1) - vf(iuf,jf-n-1,kf+l-1) +
-     @                        vf(iuf,jf+n  ,kf+l  ) - vf(iuf,jf+n-1,kf+l  ) +
-     @                        vf(iuf,jf+n  ,kf+l-1) - vf(iuf,jf+n-1,kf+l-1)) +
-     @                       (wf(iuf,jf-n  ,kf+l  ) - wf(iuf,jf-n  ,kf+l-1) +
-     @                        wf(iuf,jf-n-1,kf+l  ) - wf(iuf,jf-n-1,kf+l-1) +
-     @                        wf(iuf,jf+n  ,kf+l  ) - wf(iuf,jf+n  ,kf+l-1) +
-     @                        wf(iuf,jf+n-1,kf+l  ) - wf(iuf,jf+n-1,kf+l-1)))
+     @            (uf(iuf,jf-n  ,kf+l  ) + uf(iuf,jf-n-1,kf+l  ) +
+     @             uf(iuf,jf-n  ,kf+l-1) + uf(iuf,jf-n-1,kf+l-1) +
+     @             uf(iuf,jf+n  ,kf+l  ) + uf(iuf,jf+n-1,kf+l  ) +
+     @             uf(iuf,jf+n  ,kf+l-1) + uf(iuf,jf+n-1,kf+l-1)) +
+     @            (vf(iuf,jf-n  ,kf+l  ) - vf(iuf,jf-n-1,kf+l  ) +
+     @             vf(iuf,jf-n  ,kf+l-1) - vf(iuf,jf-n-1,kf+l-1) +
+     @             vf(iuf,jf+n  ,kf+l  ) - vf(iuf,jf+n-1,kf+l  ) +
+     @             vf(iuf,jf+n  ,kf+l-1) - vf(iuf,jf+n-1,kf+l-1)) +
+     @            (wf(iuf,jf-n  ,kf+l  ) - wf(iuf,jf-n  ,kf+l-1) +
+     @             wf(iuf,jf-n-1,kf+l  ) - wf(iuf,jf-n-1,kf+l-1) +
+     @             wf(iuf,jf+n  ,kf+l  ) - wf(iuf,jf+n  ,kf+l-1) +
+     @             wf(iuf,jf+n-1,kf+l  ) - wf(iuf,jf+n-1,kf+l-1)))
                end if
  170           continue
 c weighting
@@ -550,20 +550,20 @@ c each face is two faces and two sides of an edge
                         do 250 kf = kr*cregl2, kr*cregh2, kr
  250                       src(if,jf,kf) = src(if,jf,kf) + fac *
      @                                       (
-     @                       (uf(if+m,juf,kf-l  ) - uf(if+m-1,juf,kf-l) +
-     @                        uf(if+m,juf,kf-l-1) - uf(if+m-1,juf,kf-l-1) +
-     @                        uf(if+m,juf,kf+l  ) - uf(if+m-1,juf,kf+l) +
-     @                        uf(if+m,juf,kf+l-1) - uf(if+m-1,juf,kf+l-1)) +
+     @            (uf(if+m,juf,kf-l  ) - uf(if+m-1,juf,kf-l) +
+     @             uf(if+m,juf,kf-l-1) - uf(if+m-1,juf,kf-l-1) +
+     @             uf(if+m,juf,kf+l  ) - uf(if+m-1,juf,kf+l) +
+     @             uf(if+m,juf,kf+l-1) - uf(if+m-1,juf,kf+l-1)) +
      @                                        jdir *
-     @                       (vf(if+m  ,juf,kf-l) + vf(if+m  ,juf,kf-l-1) +
-     @                        vf(if+m-1,juf,kf-l) + vf(if+m-1,juf,kf-l-1) +
-     @                        vf(if+m  ,juf,kf+l) + vf(if+m  ,juf,kf+l-1) +
-     @                        vf(if+m-1,juf,kf+l) + vf(if+m-1,juf,kf+l-1)) +
+     @            (vf(if+m  ,juf,kf-l) + vf(if+m  ,juf,kf-l-1) +
+     @             vf(if+m-1,juf,kf-l) + vf(if+m-1,juf,kf-l-1) +
+     @             vf(if+m  ,juf,kf+l) + vf(if+m  ,juf,kf+l-1) +
+     @             vf(if+m-1,juf,kf+l) + vf(if+m-1,juf,kf+l-1)) +
 c                                             
-     @                       (wf(if+m  ,juf,kf-l) - wf(if+m  ,juf,kf-l-1) +
-     @                        wf(if+m-1,juf,kf-l) - wf(if+m-1,juf,kf-l-1) +
-     @                        wf(if+m  ,juf,kf+l) - wf(if+m  ,juf,kf+l-1) +
-     @                        wf(if+m-1,juf,kf+l) - wf(if+m-1,juf,kf+l-1)))
+     @            (wf(if+m  ,juf,kf-l) - wf(if+m  ,juf,kf-l-1) +
+     @             wf(if+m-1,juf,kf-l) - wf(if+m-1,juf,kf-l-1) +
+     @             wf(if+m  ,juf,kf+l) - wf(if+m  ,juf,kf+l-1) +
+     @             wf(if+m-1,juf,kf+l) - wf(if+m-1,juf,kf+l-1)))
                end if
                if (ga(ii,ji,0) - ga(1-ii,ji,0) .eq. 1) then
                   iuf = if + ii - 1
@@ -576,20 +576,20 @@ c
                         do 260 kf = kr*cregl2, kr*cregh2, kr
  260                       src(if,jf,kf) = src(if,jf,kf) + fac *
      @                                       (idir *
-     @                       (uf(iuf,jf+n,kf-l  ) + uf(iuf,jf+n-1,kf-l  ) +
-     @                        uf(iuf,jf+n,kf-l-1) + uf(iuf,jf+n-1,kf-l-1) +
-     @                        uf(iuf,jf+n,kf+l  ) + uf(iuf,jf+n-1,kf+l  ) +
-     @                        uf(iuf,jf+n,kf+l-1) + uf(iuf,jf+n-1,kf+l-1)) +
+     @            (uf(iuf,jf+n,kf-l  ) + uf(iuf,jf+n-1,kf-l  ) +
+     @             uf(iuf,jf+n,kf-l-1) + uf(iuf,jf+n-1,kf-l-1) +
+     @             uf(iuf,jf+n,kf+l  ) + uf(iuf,jf+n-1,kf+l  ) +
+     @             uf(iuf,jf+n,kf+l-1) + uf(iuf,jf+n-1,kf+l-1)) +
 c
-     @                       (vf(iuf,jf+n,kf-l  ) - vf(iuf,jf+n-1,kf-l  ) +
-     @                        vf(iuf,jf+n,kf-l-1) - vf(iuf,jf+n-1,kf-l-1) +
-     @                        vf(iuf,jf+n,kf+l  ) - vf(iuf,jf+n-1,kf+l  ) +
-     @                        vf(iuf,jf+n,kf+l-1) - vf(iuf,jf+n-1,kf+l-1)) +
+     @            (vf(iuf,jf+n,kf-l  ) - vf(iuf,jf+n-1,kf-l  ) +
+     @             vf(iuf,jf+n,kf-l-1) - vf(iuf,jf+n-1,kf-l-1) +
+     @             vf(iuf,jf+n,kf+l  ) - vf(iuf,jf+n-1,kf+l  ) +
+     @             vf(iuf,jf+n,kf+l-1) - vf(iuf,jf+n-1,kf+l-1)) +
 c                                             
-     @                       (wf(iuf,jf+n,kf-l  ) - wf(iuf,jf+n  ,kf-l-1) +
-     @                        wf(iuf,jf+n-1,kf-l) - wf(iuf,jf+n-1,kf-l-1) +
-     @                        wf(iuf,jf+n,kf+l  ) - wf(iuf,jf+n  ,kf+l-1) +
-     @                        wf(iuf,jf+n-1,kf+l) - wf(iuf,jf+n-1,kf+l-1)))
+     @            (wf(iuf,jf+n,kf-l  ) - wf(iuf,jf+n  ,kf-l-1) +
+     @             wf(iuf,jf+n-1,kf-l) - wf(iuf,jf+n-1,kf-l-1) +
+     @             wf(iuf,jf+n,kf+l  ) - wf(iuf,jf+n  ,kf+l-1) +
+     @             wf(iuf,jf+n-1,kf+l) - wf(iuf,jf+n-1,kf+l-1)))
                end if
  270           continue
 c weighting
@@ -671,14 +671,14 @@ c faces
                      do 20 m = idir, idir*(ir-1), idir
                         fac = (ir-abs(m)) * fac1
  20                     sum = sum + fac * (
-     @                    (uf(if+m,jf+n  ,kuf) - uf(if+m-1,jf+n  ,kuf) +
-     @                     uf(if+m,jf+n-1,kuf) - uf(if+m-1,jf+n-1,kuf)) +
+     @               (uf(if+m,jf+n  ,kuf) - uf(if+m-1,jf+n  ,kuf) +
+     @                uf(if+m,jf+n-1,kuf) - uf(if+m-1,jf+n-1,kuf)) +
 c
-     @                    (vf(if+m  ,jf+n,kuf) - vf(if+m  ,jf+n-1,kuf) +
-     @                     vf(if+m-1,jf+n,kuf) - vf(if+m-1,jf+n-1,kuf)) +
+     @               (vf(if+m  ,jf+n,kuf) - vf(if+m  ,jf+n-1,kuf) +
+     @                vf(if+m-1,jf+n,kuf) - vf(if+m-1,jf+n-1,kuf)) +
      @                                     kdir *
-     @                    (wf(if+m  ,jf+n,kuf) + wf(if+m  ,jf+n-1,kuf) +
-     @                     wf(if+m-1,jf+n,kuf) + wf(if+m-1,jf+n-1,kuf)))
+     @               (wf(if+m  ,jf+n,kuf) + wf(if+m  ,jf+n-1,kuf) +
+     @                wf(if+m-1,jf+n,kuf) + wf(if+m-1,jf+n-1,kuf)))
                end if
                if (ga(ii,ji,ki) - ga(ii,1-ji,ki) .eq. 1) then
                   fac0 = 1.d0 / (ir * kr)
@@ -687,14 +687,14 @@ c
                      do 30 m = idir, idir*(ir-1), idir
                         fac = (ir-abs(m)) * fac1
  30                     sum = sum + fac * (
-     @                    (uf(if+m  ,juf,kf+l  ) - uf(if+m-1,juf,kf+l  ) +
-     @                     uf(if+m  ,juf,kf+l-1) - uf(if+m-1,juf,kf+l-1)) +
+     @		(uf(if+m  ,juf,kf+l  ) - uf(if+m-1,juf,kf+l  ) +
+     @                 uf(if+m  ,juf,kf+l-1) - uf(if+m-1,juf,kf+l-1)) +
      @                                     jdir *
-     @                    (vf(if+m  ,juf,kf+l  ) + vf(if+m  ,juf,kf+l-1) +
-     @                     vf(if+m-1,juf,kf+l  ) + vf(if+m-1,juf,kf+l-1)) +
+     @                (vf(if+m  ,juf,kf+l  ) + vf(if+m  ,juf,kf+l-1) +
+     @                 vf(if+m-1,juf,kf+l  ) + vf(if+m-1,juf,kf+l-1)) +
 c
-     @                    (wf(if+m  ,juf,kf+l  ) - wf(if+m  ,juf,kf+l-1) +
-     @                     wf(if+m-1,juf,kf+l  ) - wf(if+m-1,juf,kf+l-1)))
+     @                (wf(if+m  ,juf,kf+l  ) - wf(if+m  ,juf,kf+l-1) +
+     @                 wf(if+m-1,juf,kf+l  ) - wf(if+m-1,juf,kf+l-1)))
                end if
                if (ga(ii,ji,ki) - ga(1-ii,ji,ki) .eq. 1) then
                   fac0 = 1.d0 / (jr * kr)
@@ -703,14 +703,14 @@ c
                      do 40 n = jdir, jdir*(jr-1), jdir
                         fac = (jr-abs(n)) * fac1
  40                     sum = sum + fac * (idir *
-     @                    (uf(iuf,jf+n  ,kf+l  ) + uf(iuf,jf+n  ,kf+l-1) +
-     @                     uf(iuf,jf+n-1,kf+l  ) + uf(iuf,jf+n-1,kf+l-1)) +
+     @                (uf(iuf,jf+n  ,kf+l  ) + uf(iuf,jf+n  ,kf+l-1) +
+     @                 uf(iuf,jf+n-1,kf+l  ) + uf(iuf,jf+n-1,kf+l-1)) +
 c
-     @                    (vf(iuf,jf+n  ,kf+l  ) - vf(iuf,jf+n-1,kf+l  ) +
-     @                     vf(iuf,jf+n  ,kf+l-1) - vf(iuf,jf+n-1,kf+l-1)) +
+     @                (vf(iuf,jf+n  ,kf+l  ) - vf(iuf,jf+n-1,kf+l  ) +
+     @                 vf(iuf,jf+n  ,kf+l-1) - vf(iuf,jf+n-1,kf+l-1)) +
 c
-     @                    (wf(iuf,jf+n  ,kf+l  ) - wf(iuf,jf+n  ,kf+l-1) +
-     @                     wf(iuf,jf+n-1,kf+l  ) - wf(iuf,jf+n-1,kf+l-1)))
+     @                (wf(iuf,jf+n  ,kf+l  ) - wf(iuf,jf+n  ,kf+l-1) +
+     @                 wf(iuf,jf+n-1,kf+l  ) - wf(iuf,jf+n-1,kf+l-1)))
                end if
  50            continue
 c edges
