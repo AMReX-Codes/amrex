@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.35 2002-06-17 19:34:49 car Exp $
+# $Id: Make.package,v 1.36 2002-11-07 19:04:01 lijewski Exp $
 #
 
 BOXLIB_BASE=EXE
@@ -93,3 +93,6 @@ T_headers += ccse-mpi.H
 
 f$(BOXLIB_BASE)_sources += BLutil_F.f
 f$(BOXLIB_BASE)_sources += BLParmParse_F.f
+
+F$(BOXLIB_BASE)_sources += SPECIALIZE_$(DIM)D.F
+F$(BOXLIB_BASE)_headers += SPECIALIZE_F.H
