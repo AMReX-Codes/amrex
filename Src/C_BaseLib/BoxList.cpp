@@ -1,5 +1,5 @@
 //
-// $Id: BoxList.cpp,v 1.22 2001-07-26 20:08:44 lijewski Exp $
+// $Id: BoxList.cpp,v 1.23 2001-07-31 22:43:18 lijewski Exp $
 //
 #include <algorithm>
 #include <iostream>
@@ -7,50 +7,6 @@
 #include <BoxArray.H>
 #include <BoxList.H>
 #include <winstd.H>
-
-BoxList::iterator
-BoxList::begin()
-{
-    return lbox.begin();
-}
-
-BoxList::const_iterator
-BoxList::begin() const
-{
-    return lbox.begin();
-}
-
-BoxList::iterator
-BoxList::end()
-{
-    return lbox.end();
-}
-
-BoxList::const_iterator
-BoxList::end() const
-{
-    return lbox.end();
-}
-
-IndexType
-BoxList::ixType () const
-{
-    return btype;
-}
-
-void
-BoxList::append (const Box& bn)
-{
-    BL_ASSERT(ixType() == bn.ixType());
-    lbox.push_back(bn);
-}
-
-void
-BoxList::prepend (const Box& bn)
-{
-    BL_ASSERT(ixType() == bn.ixType());
-    lbox.push_front(bn);
-}
 
 void
 BoxList::join (const BoxList& blist)
@@ -60,36 +16,12 @@ BoxList::join (const BoxList& blist)
     lbox.splice(lbox.end(), lb);
 }
 
-bool
-BoxList::isEmpty () const
-{
-    return lbox.empty();
-}
-
 void
 BoxList::catenate (BoxList& blist)
 {
     BL_ASSERT(ixType() == blist.ixType());
     lbox.splice(lbox.end(), blist.lbox);
     BL_ASSERT(blist.isEmpty());
-}
-
-void
-BoxList::clear ()
-{
-    lbox.clear();
-}
-
-int
-BoxList::size () const
-{
-    return lbox.size();
-}
-
-bool
-BoxList::isNotEmpty () const
-{
-    return !lbox.empty();
 }
 
 bool
@@ -126,7 +58,7 @@ BoxLib::intersect (const BoxList& bl,
 
 BoxList
 BoxLib::intersect (const BoxList& bl,
-           const BoxList& br)
+                   const BoxList& br)
 {
     BoxList newbl(bl);
     return newbl.intersect(br);
@@ -142,30 +74,18 @@ BoxLib::refine (const BoxList& bl,
 
 BoxList
 BoxLib::coarsen (const BoxList& bl,
-         int            ratio)
+                 int            ratio)
 {
     BoxList nbl(bl);
     return nbl.coarsen(ratio);
 }
 
 BoxList
-accrete (const BoxList& bl,
-         int            sz)
+BoxLib::accrete (const BoxList& bl,
+                 int            sz)
 {
     BoxList nbl(bl);
     return nbl.accrete(sz);
-}
-
-std::list<Box>&
-BoxList::listBox()
-{
-    return lbox;
-}
-
-const std::list<Box>&
-BoxList::listBox() const
-{
-    return lbox;
 }
 
 bool
@@ -175,16 +95,21 @@ BoxList::operator!= (const BoxList& rhs) const
 }
 
 BoxList::BoxList ()
-    : lbox(), btype(IndexType::TheCellType())
+    :
+    lbox(),
+    btype(IndexType::TheCellType())
 {}
 
 BoxList::BoxList (IndexType _btype)
-    : lbox(), btype(_btype)
+    :
+    lbox(),
+    btype(_btype)
 {}
 
 BoxList::BoxList (const BoxArray &ba)
-    : lbox(),
-      btype()
+    :
+    lbox(),
+    btype()
 {
     if (ba.size() > 0)
         btype = ba[0].ixType();

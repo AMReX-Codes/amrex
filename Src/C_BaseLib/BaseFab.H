@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.40 2001-07-31 17:56:25 lijewski Exp $
+// $Id: BaseFab.H,v 1.41 2001-07-31 22:43:17 lijewski Exp $
 //
 #include <cstdlib>
 
@@ -779,11 +779,8 @@ protected:
     T*   dptr;     // The data pointer.
 };
 
-//
-// Implementation.
-//
-
 template <class T>
+inline
 int
 BaseFab<T>::nComp () const
 {
@@ -791,6 +788,7 @@ BaseFab<T>::nComp () const
 }
 
 template <class T>
+inline
 const Box&
 BaseFab<T>::box () const
 {
@@ -798,6 +796,7 @@ BaseFab<T>::box () const
 }
 
 template <class T>
+inline
 const int*
 BaseFab<T>::length () const
 {
@@ -805,6 +804,7 @@ BaseFab<T>::length () const
 }
 
 template <class T>
+inline
 const IntVect&
 BaseFab<T>::smallEnd () const
 {
@@ -812,6 +812,7 @@ BaseFab<T>::smallEnd () const
 }
 
 template <class T>
+inline
 const IntVect&
 BaseFab<T>::bigEnd () const
 {
@@ -819,6 +820,7 @@ BaseFab<T>::bigEnd () const
 }
 
 template <class T>
+inline
 const int*
 BaseFab<T>::loVect () const
 {
@@ -826,6 +828,7 @@ BaseFab<T>::loVect () const
 }
 
 template <class T>
+inline
 const int*
 BaseFab<T>::hiVect () const
 {
@@ -847,6 +850,7 @@ BaseFab<T>::contains (const Box& bx) const
 }
 
 template <class T>
+inline
 T*
 BaseFab<T>::dataPtr (int n)
 {
@@ -855,6 +859,7 @@ BaseFab<T>::dataPtr (int n)
 }
 
 template <class T>
+inline
 const T*
 BaseFab<T>::dataPtr (int n) const
 {
@@ -863,6 +868,7 @@ BaseFab<T>::dataPtr (int n) const
 }
 
 template <class T>
+inline
 bool
 BaseFab<T>::isAllocated () const
 {
@@ -870,6 +876,7 @@ BaseFab<T>::isAllocated () const
 }
 
 template <class T>
+inline
 T&
 BaseFab<T>::operator() (const IntVect& p,
                         int            n)
@@ -883,6 +890,7 @@ BaseFab<T>::operator() (const IntVect& p,
 }
 
 template <class T>
+inline
 T&
 BaseFab<T>::operator() (const IntVect& p)
 {
@@ -893,6 +901,7 @@ BaseFab<T>::operator() (const IntVect& p)
 }
 
 template <class T>
+inline
 const T&
 BaseFab<T>::operator() (const IntVect& p,
                         int            n) const
@@ -906,6 +915,7 @@ BaseFab<T>::operator() (const IntVect& p,
 }
 
 template <class T>
+inline
 const T&
 BaseFab<T>::operator() (const IntVect& p) const
 {

@@ -1,7 +1,7 @@
 #ifndef BL_INDEXTYPE_H
 #define BL_INDEXTYPE_H
 //
-// $Id: IndexType.H,v 1.12 2001-07-26 20:08:45 lijewski Exp $
+// $Id: IndexType.H,v 1.13 2001-07-31 22:43:18 lijewski Exp $
 //
 #include <iosfwd>
 
@@ -147,5 +147,123 @@ std::ostream& operator<< (std::ostream& os, const IndexType& itype);
 //@ManDoc: Read an IndexType from an istream.
 //
 std::istream& operator>> (std::istream& is, IndexType& itype);
+
+inline
+int
+IndexType::mask (int k)
+{
+    return 1<<k;
+}
+
+inline
+IndexType::IndexType ()
+    :
+    itype(0)
+{}
+
+inline
+IndexType::IndexType (const IndexType& bt)
+    :
+    itype(bt.itype)
+{}
+
+inline
+IndexType&
+IndexType::operator= (const IndexType& bt)
+{
+    itype = bt.itype;
+    return *this;
+}
+
+inline
+void
+IndexType::set (int dir)
+{
+    itype |= mask(dir);
+}
+
+inline
+void
+IndexType::unset (int dir)
+{
+    itype &= ~mask(dir);
+}
+
+inline
+bool
+IndexType::test (int dir) const
+{
+    return (itype & mask(dir)) != 0;
+}
+
+inline
+void
+IndexType::setall ()
+{
+    itype = (1 << BL_SPACEDIM) - 1;
+}
+
+inline
+void
+IndexType::clear ()
+{
+    itype = 0;
+}
+
+inline
+bool
+IndexType::any () const
+{
+    return itype != 0;
+}
+
+inline
+bool
+IndexType::ok () const
+{
+    return itype < (1 << BL_SPACEDIM);
+}
+
+inline
+void
+IndexType::flip (int i)
+{
+    itype ^= mask(i);
+}
+
+inline
+bool
+IndexType::operator== (const IndexType& t) const
+{
+    return t.itype == itype;
+}
+
+inline
+bool
+IndexType::operator!= (const IndexType& t) const
+{
+    return t.itype != itype;
+}
+
+inline
+bool
+IndexType::cellCentered () const
+{
+    return itype == 0;
+}
+
+inline
+bool
+IndexType::nodeCentered () const
+{
+    return itype == (1<<BL_SPACEDIM)-1;
+}
+
+inline
+int
+IndexType::operator[] (int dir) const
+{
+    return test(dir);
+}
 
 #endif /*BL_INDEXTYPE_H*/

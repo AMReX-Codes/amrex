@@ -1,7 +1,7 @@
 #ifndef BL_PARRAY_H
 #define BL_PARRAY_H
 //
-// $Id: PArray.H,v 1.22 2001-07-26 20:08:45 lijewski Exp $
+// $Id: PArray.H,v 1.23 2001-07-31 22:43:19 lijewski Exp $
 //
 #include <Array.H>
 
@@ -178,6 +178,7 @@ PArray<T>::PArray (PArrayPolicy _managed)
 {}
 
 template <class T>
+inline
 bool
 PArray<T>::defined (int i) const
 {
@@ -185,6 +186,7 @@ PArray<T>::defined (int i) const
 }
 
 template <class T>
+inline
 const T&
 PArray<T>::operator[] (int i) const
 {
@@ -193,6 +195,7 @@ PArray<T>::operator[] (int i) const
 }
 
 template <class T>
+inline
 T&
 PArray<T>::operator[] (int i)
 {
@@ -201,6 +204,7 @@ PArray<T>::operator[] (int i)
 }
 
 template <class T>
+inline
 const T&
 PArray<T>::get (int i) const
 {
@@ -209,6 +213,7 @@ PArray<T>::get (int i) const
 }
 
 template <class T>
+inline
 T&
 PArray<T>::get (int i)
 {
@@ -217,6 +222,7 @@ PArray<T>::get (int i)
 }
 
 template <class T>
+inline
 void
 PArray<T>::set (int i,
                 T*  elem)
@@ -226,6 +232,7 @@ PArray<T>::set (int i,
 }
 
 template <class T>
+inline
 int
 PArray<T>::size () const
 {
@@ -305,7 +312,6 @@ PArray<T>::resize (int newlen)
         }
     }
 }
-
 
 template <class T>
 void

@@ -1,5 +1,5 @@
 //
-// $Id: Box.cpp,v 1.20 2001-07-31 17:56:25 lijewski Exp $
+// $Id: Box.cpp,v 1.21 2001-07-31 22:43:17 lijewski Exp $
 //
 #include <iostream>
 #include <limits>
@@ -75,144 +75,6 @@ Box::operator= (const Box& b)
 }
 
 bool
-Box::ok () const
-{
-    return (bigend >= smallend) && btype.ok();
-}
-
-const IntVect&
-Box::smallEnd () const
-{
-    return smallend;
-}
-
-int
-Box::smallEnd (int dir) const
-{
-    return smallend[dir];
-}
-
-const IntVect&
-Box::bigEnd () const
-{
-    return bigend;
-}
-
-int
-Box::bigEnd (int dir) const
-{
-    return bigend[dir];
-}
-
-IndexType
-Box::ixType () const
-{
-    return btype;
-}
-
-IntVect
-Box::type () const
-{
-    return btype.ixType();
-}
-
-IndexType::CellIndex
-Box::type (int dir) const
-{
-    return btype.ixType(dir);
-}
-
-int
-Box::length (int dir) const
-{
-    return bigend[dir] - smallend[dir] + 1;
-}
-
-const int*
-Box::loVect () const
-{
-    return smallend.getVect();
-}
-
-const int*
-Box::hiVect () const
-{
-    return bigend.getVect();
-}
-
-const int*
-Box::getVect () const
-{
-    return smallend.getVect();
-}
-
-int
-Box::operator[] (const Orientation& face) const
-{
-    const int dir = face.coordDir();
-    return face.isLow() ? smallend[dir] : bigend[dir];
-}
-
-bool
-Box::numPtsOK () const
-{
-    long ignore;
-    return numPtsOK(ignore);
-}
-
-bool
-Box::isEmpty () const
-{
-    return numPts() == 0;
-}
-
-bool
-Box::contains (const IntVect& p) const
-{
-    return p >= smallend && p <= bigend;
-}
-
-bool
-Box::sameType (const Box &b) const
-{
-    return btype == b.btype;
-}
-
-bool
-Box::contains (const Box& b) const
-{
-    BL_ASSERT(sameType(b));
-    return b.smallend >= smallend && b.bigend <= bigend;
-}
-
-bool
-Box::sameSize (const Box& b) const
-{
-    BL_ASSERT(sameType(b));
-    return D_TERM(length(0) == b.length(0),
-                  && length(1)==b.length(1),
-                  && length(2)==b.length(2));
-}
-
-bool
-Box::operator== (const Box& b) const
-{
-    return smallend == b.smallend && bigend == b.bigend && b.btype == btype;
-}
-
-bool
-Box::operator!= (const Box& b) const
-{
-    return !operator==(b);
-}
-
-bool
-Box::cellCentered () const
-{
-    return !btype.any();
-}
-
-bool
 Box::volumeOK () const
 {
     long ignore;
@@ -230,16 +92,6 @@ Box::index (const IntVect& v) const
                       +(v[2]-smallend[2])*length(1));
 #endif
     return result;
-}
-
-const IntVect&
-Box::length () const
-{
-    D_EXPR(len[0] = bigend[0]-smallend[0] + 1,
-           len[1] = bigend[1]-smallend[1] + 1,
-           len[2] = bigend[2]-smallend[2] + 1);
-
-    return len;
 }
 
 Box&
@@ -478,7 +330,8 @@ Box
 Box::operator& (const Box& rhs) const
 {
     Box lhs(*this);
-    return lhs &= rhs;
+    lhs &= rhs;
+    return lhs;
 }
 
 bool

@@ -1,7 +1,7 @@
 #ifndef BL_ORIENTATION_H
 #define BL_ORIENTATION_H
 //
-// $Id: Orientation.H,v 1.14 2001-07-26 20:08:45 lijewski Exp $
+// $Id: Orientation.H,v 1.15 2001-07-31 22:43:19 lijewski Exp $
 //
 #include <iosfwd>
 
@@ -111,6 +111,7 @@ protected:
     Orientation (int val);
 
 private:
+
     int val;
 };
 
@@ -193,5 +194,235 @@ protected:
     //
     bool ok () const;
 };
+
+inline
+Orientation::Orientation (int _val)
+    :
+    val(_val)
+{}
+
+inline
+Orientation::Orientation ()
+    :
+    val(-1)
+{}
+
+inline
+Orientation::Orientation (int  _dir,
+                          Side _side)
+    :
+    val(BL_SPACEDIM*_side + _dir)
+{
+    BL_ASSERT(0 <= _dir && _dir < BL_SPACEDIM);
+}
+
+inline
+Orientation::Orientation (const Orientation& o)
+    :
+    val(o.val)
+{}
+
+inline
+Orientation&
+Orientation::operator= (const Orientation& o)
+{
+    val = o.val;
+    return *this;
+}
+
+inline
+bool
+Orientation::operator== (const Orientation& o) const
+{
+    return val == o.val;
+}
+
+inline
+bool
+Orientation::operator!= (const Orientation& o) const
+{
+    return val != o.val;
+}
+
+inline
+bool
+Orientation::operator<  (const Orientation& o) const
+{
+    return val < o.val;
+}
+
+inline
+bool
+Orientation::operator<= (const Orientation& o) const
+{
+    return val <= o.val;
+}
+
+inline
+bool
+Orientation::operator>  (const Orientation& o) const
+{
+    return val > o.val;
+}
+
+inline
+bool
+Orientation::operator>= (const Orientation& o) const
+{
+    return val >= o.val;
+}
+
+inline
+Orientation::operator int () const
+{
+    return val;
+}
+
+inline
+int
+Orientation::coordDir () const
+{
+    return val%BL_SPACEDIM;
+}
+
+inline
+Orientation::Side
+Orientation::faceDir () const
+{
+    return Side(val/BL_SPACEDIM);
+}
+
+inline
+bool
+Orientation::isLow () const
+{
+    return val < BL_SPACEDIM;
+}
+
+inline
+bool
+Orientation::isHigh () const
+{
+    return val >= BL_SPACEDIM;
+}
+
+inline
+Orientation
+Orientation::flip () const
+{
+    return Orientation(val < BL_SPACEDIM ? val+BL_SPACEDIM : val-BL_SPACEDIM);
+}
+
+inline
+OrientationIter::OrientationIter (int _face)
+    :
+    face(_face)
+{}
+
+inline
+OrientationIter::OrientationIter ()
+    :
+    face(0)
+{}
+
+inline
+OrientationIter::OrientationIter (const Orientation& _face)
+    :
+    face(_face)
+{}
+
+inline
+bool
+OrientationIter::ok () const
+{
+    return 0 <= face && face < 2*BL_SPACEDIM;
+}
+
+inline
+OrientationIter::OrientationIter (const OrientationIter& it)
+{
+    BL_ASSERT(it.ok());
+    face = it.face;
+}
+
+inline
+OrientationIter&
+OrientationIter::operator= (const OrientationIter& it)
+{
+    BL_ASSERT(it.ok());
+    face = it.face;
+    return *this;
+}
+
+inline
+void
+OrientationIter::rewind ()
+{
+    face = 0;
+}
+
+inline
+Orientation
+OrientationIter::operator() () const
+{
+    BL_ASSERT(ok());
+    return Orientation(face);
+}
+
+inline
+OrientationIter::operator void* ()
+{
+    return 0 <= face && face < 2*BL_SPACEDIM ? this : 0;
+}
+
+inline
+OrientationIter&
+OrientationIter::operator-- ()
+{
+    BL_ASSERT(ok());
+    --face;
+    return *this;
+}
+
+inline
+OrientationIter&
+OrientationIter::operator++ ()
+{
+    BL_ASSERT(ok());
+    ++face;
+    return *this;
+}
+
+inline
+OrientationIter
+OrientationIter::operator-- (int)
+{
+    BL_ASSERT(ok());
+    return OrientationIter(face--);
+}
+
+inline
+OrientationIter
+OrientationIter::operator++ (int)
+{
+    BL_ASSERT(ok());
+    return OrientationIter(face++);
+}
+
+inline
+bool
+OrientationIter::operator== (const OrientationIter& oi) const
+{
+    BL_ASSERT(ok() && oi.ok());
+    return face == oi.face;
+}
+
+inline
+bool
+OrientationIter::operator!= (const OrientationIter& oi) const
+{
+    BL_ASSERT(ok() && oi.ok());
+    return face != oi.face;
+}
 
 #endif /*BL_ORIENTATION_H*/

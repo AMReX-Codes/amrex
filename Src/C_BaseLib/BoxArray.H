@@ -1,7 +1,7 @@
 #ifndef BL_BOXARRAY_H
 #define BL_BOXARRAY_H
 //
-// $Id: BoxArray.H,v 1.27 2001-07-31 17:56:25 lijewski Exp $
+// $Id: BoxArray.H,v 1.28 2001-07-31 22:43:17 lijewski Exp $
 //
 #include <cstddef>
 
@@ -287,5 +287,26 @@ protected:
     //
     LnClassPtr<Ref> m_ref;
 };
+
+inline
+int
+BoxArray::size () const
+{
+    return m_ref->m_abox.size();
+}
+
+inline
+const Box&
+BoxArray::operator[] (int index) const
+{
+    return m_ref->m_abox.get(index);
+}
+
+inline
+const Box&
+BoxArray::get (int index) const
+{
+    return m_ref->m_abox.get(index);
+}
 
 #endif /*BL_BOXARRAY_H*/

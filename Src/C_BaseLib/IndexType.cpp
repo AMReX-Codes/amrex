@@ -1,32 +1,10 @@
 //
-// $Id: IndexType.cpp,v 1.11 2001-07-31 17:56:27 lijewski Exp $
+// $Id: IndexType.cpp,v 1.12 2001-07-31 22:43:18 lijewski Exp $
 //
 #include <iostream>
 #include <iomanip>
 
 #include <IndexType.H>
-
-int
-IndexType::mask (int k)
-{
-    return 1<<k;
-}
-
-IndexType::IndexType ()
-    :
-    itype(0)
-{}
-
-IndexType::IndexType (const IndexType& bt)
-    :
-    itype(bt.itype)
-{}
-
-IndexType& IndexType::operator= (const IndexType& bt)
-{
-    itype = bt.itype;
-    return *this;
-}
 
 IndexType::IndexType (const IntVect& iv)
 {
@@ -36,78 +14,6 @@ IndexType::IndexType (const IntVect& iv)
 IndexType::IndexType (D_DECL(CellIndex i, CellIndex j, CellIndex k))
 {
     itype = D_TERM(i, | (j<<1), | (k<<2));
-}
-
-void
-IndexType::set (int dir)
-{
-    itype |= mask(dir);
-}
-
-void
-IndexType::unset (int dir)
-{
-    itype &= ~mask(dir);
-}
-
-bool
-IndexType::test (int dir) const
-{
-    return (itype & mask(dir)) != 0;
-}
-
-void
-IndexType::setall ()
-{
-    itype = (1 << BL_SPACEDIM) - 1;
-}
-
-void
-IndexType::clear ()
-{
-    itype = 0;
-}
-
-bool
-IndexType::any () const
-{
-    return itype != 0;
-}
-
-bool
-IndexType::ok () const
-{
-    return itype < (1 << BL_SPACEDIM);
-}
-
-void
-IndexType::flip (int i)
-{
-    itype ^= mask(i);
-}
-
-bool
-IndexType::operator== (const IndexType& t) const
-{
-    return t.itype == itype;
-}
-
-bool
-IndexType::operator!= (const IndexType& t) const
-{
-    return t.itype != itype;
-}
-
-bool
-IndexType::cellCentered () const
-{
-    return itype == 0;
-}
-
-bool
-IndexType::nodeCentered () const
-{
-    return itype == (1<<BL_SPACEDIM)-1;
 }
 
 void
@@ -121,12 +27,6 @@ IndexType::CellIndex
 IndexType::ixType (int dir) const
 {
     return (CellIndex) ((itype & (1<<dir)) >> dir);
-}
-
-int
-IndexType::operator[] (int dir) const
-{
-    return test(dir);
 }
 
 IntVect
