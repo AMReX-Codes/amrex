@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.121 2001-08-01 21:50:44 lijewski Exp $
+// $Id: Amr.cpp,v 1.122 2001-08-02 16:04:11 car Exp $
 //
 
 #include <algorithm>
@@ -1642,7 +1642,7 @@ Amr::ProjPeriodic (BoxDomain&      bd,
     //
     BoxList blout;  
     for (BoxDomain::const_iterator bdi = bd.begin(); bdi != bd.end(); ++bdi)
-        blout.append(*bdi);
+        blout.push_back(*bdi);
     //
     // blorig will be the original bd intersected with domain.
     //
@@ -1754,7 +1754,7 @@ Amr::grid_places (int              lbase,
                         std::cout << "Grid " << bx << " too large" << '\n';
                         BoxLib::Error();
                     }
-                    bl.append(bx);
+                    bl.push_back(bx);
                 }
             }
             if (lev > lbase)
@@ -1808,7 +1808,7 @@ Amr::grid_places (int              lbase,
              bdi != p_n_comp[i-1].end();
              ++bdi)
         {
-            bl.append(BoxLib::refine(*bdi,rr_lev[i-1]));
+            bl.push_back(BoxLib::refine(*bdi,rr_lev[i-1]));
         }
         p_n_comp[i].clear();
         p_n_comp[i].add(bl);
@@ -1870,7 +1870,7 @@ Amr::grid_places (int              lbase,
 
             BoxList bl_tagged;
             for (int i = 0; i < new_grids[levf+1].size(); i++)
-                bl_tagged.append(BoxLib::coarsen(new_grids[levf+1][i],ref_ratio[levf]));
+                bl_tagged.push_back(BoxLib::coarsen(new_grids[levf+1][i],ref_ratio[levf]));
             //
             // This grows the boxes by nerr if they touch the edge of the
             // domain in preparation for them being shrunk by nerr later.

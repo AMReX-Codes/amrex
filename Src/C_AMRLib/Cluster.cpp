@@ -1,5 +1,5 @@
 //
-// $Id: Cluster.cpp,v 1.16 2001-08-01 21:50:45 lijewski Exp $
+// $Id: Cluster.cpp,v 1.17 2001-08-02 16:04:11 car Exp $
 //
 
 #include <algorithm>
@@ -436,7 +436,7 @@ ClusterList::boxList() const
          cli != lst.end();
          ++cli)
     {
-        blst.append((*cli)->box());
+        blst.push_back((*cli)->box());
     }
     return blst;   
 }
@@ -449,7 +449,7 @@ ClusterList::boxList (BoxList& blst) const
          cli != lst.end();
          ++cli)
     {
-        blst.append((*cli)->box());
+        blst.push_back((*cli)->box());
     }
 }
 

@@ -1,7 +1,8 @@
 //
-// $Id: RealBox.cpp,v 1.9 2001-08-01 21:50:50 lijewski Exp $
+// $Id: RealBox.cpp,v 1.10 2001-08-02 16:04:11 car Exp $
 //
 #include <iostream>
+#include <string>
 
 #include <RealBox.H>
 //
