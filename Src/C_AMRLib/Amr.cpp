@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.34 1998-04-20 22:43:03 lijewski Exp $
+// $Id: Amr.cpp,v 1.35 1998-04-22 23:56:20 almgren Exp $
 //
 
 #include <TagBox.H>
@@ -125,10 +125,7 @@ Amr::Amr ()
     //
     // Check for command line flags.
     //
-    trace = pp.contains("trace");
-    debug = pp.contains("debug");
-    silent = pp.contains("silent");
-    verbose = pp.contains("verbose");
+    verbose = pp.contains("v")
     sub_cycle = true;
     if (pp.contains("nosub")) sub_cycle = false;
 
@@ -399,7 +396,7 @@ Amr::writePlotFile (const aString& root,
 
     aString pltfile = Concatenate(root, num);
 
-    if (trace && ParallelDescriptor::IOProcessor())
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
         cout << "PLOTFILE: file = " << pltfile << endl;
     }
@@ -611,7 +608,7 @@ Amr::restart (const aString& filename)
 
     int i;
 
-    if (trace && ParallelDescriptor::IOProcessor())
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
         cout << "restarting calculation from file: " << filename << endl;
     }
@@ -746,7 +743,7 @@ Amr::checkPoint ()
 
     aString ckfile = Concatenate(check_file_root, level_steps[0]);
 
-    if (trace && ParallelDescriptor::IOProcessor())
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
         cout << "CHECKPOINT: file = " << ckfile << endl;
     }
@@ -891,7 +888,7 @@ Amr::timeStep (int  level,
     //
     // Advance grids at this level.
     //
-    if (trace && ParallelDescriptor::IOProcessor())
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
         cout << "ADVANCE grids at level "
              << level
@@ -953,7 +950,7 @@ Amr::coarseTimeStep (Real stop_time)
 
     amr_level[0].postCoarseTimeStep(cumtime);
 
-    if (!silent && ParallelDescriptor::IOProcessor())
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
         cout << "\nSTEP = "
              << level_steps[0]
@@ -1056,7 +1053,7 @@ Amr::regrid (int  lbase,
 
     int new_finest;
 
-    if (!silent && ParallelDescriptor::IOProcessor())
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
         cout << "REGRID: at level lbase = " << lbase << endl;
     }
@@ -1132,7 +1129,7 @@ Amr::regrid (int  lbase,
     //
     // Report creation of new grids.
     //
-    if (!silent || record_run_info)
+    if (verbose || record_run_info)
     {
         int lev;
         for (lev = lbase+1; lev <= finest_level; lev++)
@@ -1141,7 +1138,7 @@ Amr::regrid (int  lbase,
             long ncells = amr_level[lev].countCells();
             long ntot = geom[lev].Domain().numPts();
             Real frac = 100.0*(Real(ncells) / Real(ntot));
-            if (!silent)
+            if (verbose)
             {
                 if (ParallelDescriptor::IOProcessor())
                 {

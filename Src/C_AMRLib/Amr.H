@@ -4,7 +4,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.10 1998-03-25 21:32:18 lijewski Exp $
+// $Id: Amr.H,v 1.11 1998-04-22 23:56:20 almgren Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -271,10 +271,7 @@ protected:
     int              plot_int;        // How often plotfile (# of time steps)
     Real             plot_per;        // How often plotfile (in units of time)
     aString          plot_file_root;  // Root name of plotfile.
-    int              trace;
-    int              debug;
     int              verbose;
-    int              silent;
     int              record_grid_info;
     int              record_run_info;
     ofstream         gridlog;
