@@ -62,7 +62,7 @@ public:
     const Box& box (int idim, int i) const;
     const Box& node_box (int idim, int i) const;
     unsigned int geo (int idim, int i) const;
-    unsigned int aux (int idim, int i) const;
+    int aux (int idim, int i) const;
     bool flag (int idim, int i) const;
     static int ngrids (int idim);
 
@@ -252,7 +252,7 @@ level_interface::geo (int idim, int i) const
 }
 
 inline
-unsigned int
+int
 level_interface::aux (int idim, int i) const
 {
     return ax[idim][i];
