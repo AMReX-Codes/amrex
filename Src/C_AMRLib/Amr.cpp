@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.61 1998-11-04 20:30:22 almgren Exp $
+// $Id: Amr.cpp,v 1.62 1998-11-05 06:42:59 almgren Exp $
 //
 
 #include <TagBox.H>
@@ -1618,14 +1618,30 @@ Amr::grid_places (int              lbase,
         //   level levc, which will then also be buffered.  This can
         //   create grids which are larger than necessary.
 
+        int nerr = n_error_buf[levf];
         if (levf < new_finest) {
             BoxList bl_tagged;
             for (int i=0; i< new_grids[levf+1].length(); i++)
               bl_tagged.add(coarsen(new_grids[levf+1][i],ref_ratio[levf]));
+
+            // This grows the boxes by nerr if they touch the edge of the domain
+            // in preparation for them being shrunk by nerr later - we want the
+            // net effect to be that grids are NOT shrunk away from the edges of the 
+            // domain
+            for (BoxListIterator blt(bl_tagged); blt; ++blt) {
+              for (int idir = 0; idir < BL_SPACEDIM; idir++) {
+                if (blt().smallEnd(idir) == pc_domain[levf].smallEnd(idir))
+                   bl_tagged[blt].growLo(idir,nerr);
+                if (blt().bigEnd(idir) == pc_domain[levf].bigEnd(idir))
+                   bl_tagged[blt].growHi(idir,nerr);
+              }
+            }
+
             Box mboxF = Box(bl_tagged.minimalBox()).grow(1);
             BoxList blFcomp = complementIn(mboxF,bl_tagged);
-            blFcomp.accrete(n_error_buf[levf]);
+            blFcomp.accrete(nerr);
             BoxList blF = complementIn(mboxF,blFcomp);
+
             BoxArray baF(blF);
             baF.coarsen(ref_ratio[levc]);
             tags.setVal(baF,TagBox::SET);
