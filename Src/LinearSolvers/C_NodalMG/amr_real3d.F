@@ -745,12 +745,12 @@ c CELL-based data only.
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & ir, jr, kr, ncomp, integ)
+     & ir, jr, kr, ncomp, integ, i1, i2)
       integer ncomp
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
-      integer ir, jr, kr, integ
+      integer ir, jr, kr, integ, i1, i2
       double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
      &   ncomp)
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
@@ -796,8 +796,8 @@ c NODE-based data only.
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & ir, jr, kr, ncomp)
-      integer ncomp
+     & ir, jr, kr, ncomp, integ, i1, i2)
+      integer ncomp, integ
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
@@ -806,7 +806,7 @@ c NODE-based data only.
       double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
      &   ncomp)
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
-      integer i, j, k
+      integer i, j, k, i1, i2
       do nc = 1, ncomp
       do k = regl2, regh2
          do j = regl1, regh1
@@ -823,12 +823,12 @@ c NODE-based data only.
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & ir, jr, kr, ncomp, integ)
+     & ir, jr, kr, ncomp, integ, i1, i2)
       integer ncomp
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
-      integer ir, jr, kr, integ
+      integer ir, jr, kr, integ, i1, i2
       double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
      &   ncomp)
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
@@ -1329,7 +1329,7 @@ c Handles any corner geometry except all-coarse.
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & ir, jr, kr, ncomp, integ, ga)
+     & ir, jr, kr, ncomp, integ, ga, i2)
       integer ncomp
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
@@ -1339,7 +1339,7 @@ c Handles any corner geometry except all-coarse.
      &   ncomp)
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       double precision cube, center, cfac, fac0, fac1, fac2, fac
-      integer i, j, k, ii, ji, ki, idir, jdir, kdir, l, m, n,nc
+      integer i, j, k, ii, ji, ki, idir, jdir, kdir, l, m, n,nc, i2
       i = regl0
       j = regl1
       k = regl2

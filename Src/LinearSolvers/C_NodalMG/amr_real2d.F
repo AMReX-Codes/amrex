@@ -340,13 +340,14 @@ c CELL-based data only.
      &        regl0, regh0, regl1, regh1,
      & src,   srcl0, srch0, srcl1, srch1,
      &        bbl0, bbh0, bbl1, bbh1, 
-     & ir, jr, ncomp)
+     & ir, jr, ncomp, integ, i1, i2)
       integer ncomp
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
       integer bbl0, bbh0, bbl1, bbh1
       integer ir, jr
+	integer i1, i2, integ
       double precision dest(destl0:desth0,destl1:desth1,ncomp)
       double precision src(srcl0:srch0,srcl1:srch1,ncomp)
       double precision xoff, yoff, sx, sy
@@ -370,13 +371,14 @@ c NODE-based data only.
      &        regl0, regh0, regl1, regh1,
      & src,   srcl0, srch0, srcl1, srch1,
      &        bbl0, bbh0, bbl1, bbh1, 
-     & ir, jr, ncomp)
+     & ir, jr, ncomp, i1, i2, integ)
       integer ncomp
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
       integer bbl0, bbh0, bbl1, bbh1
       integer ir, jr,nc
+	integer i1, i2, integ
       double precision dest(destl0:desth0,destl1:desth1, ncomp)
       double precision src(srcl0:srch0,srcl1:srch1, ncomp)
       double precision p, q
@@ -415,11 +417,12 @@ c CELL-based data only.
      & dest,  destl0, desth0, destl1, desth1,
      &        regl0, regh0, regl1, regh1,
      & src,   srcl0, srch0, srcl1, srch1,
-     & ir, jr, ncomp, integ)
+     & ir, jr, ncomp, integ, i1, i2)
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
       integer ir, jr, ncomp, integ
+	integer i1, i2
       double precision dest(destl0:desth0,destl1:desth1, ncomp)
       double precision src(srcl0:srch0,srcl1:srch1, ncomp)
       double precision fac
@@ -447,11 +450,12 @@ c NODE-based data only.
      & dest,  destl0, desth0, destl1, desth1,
      &        regl0, regh0, regl1, regh1,
      & src,   srcl0, srch0, srcl1, srch1,
-     & ir, jr, ncomp)
+     & ir, jr, ncomp, integ, i1, i2)
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
       integer ir, jr, ncomp
+	integer i1, i2, integ
       double precision dest(destl0:desth0,destl1:desth1, ncomp)
       double precision src(srcl0:srch0,srcl1:srch1, ncomp)
       integer i, j,nc
@@ -471,12 +475,12 @@ c fine region by at least one coarse cell on all sides.
      & dest,  destl0, desth0, destl1, desth1,
      &        regl0, regh0, regl1, regh1,
      & src,   srcl0, srch0, srcl1, srch1,
-     & ir, jr, ncomp, integ)
+     & ir, jr, ncomp, integ, i1, i2)
       integer ncomp
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
-      integer ir, jr, integ
+      integer ir, jr, integ, i1, i2
       double precision dest(destl0:desth0,destl1:desth1,ncomp)
       double precision src(srcl0:srch0,srcl1:srch1,ncomp)
       double precision fac0, fac1, fac
@@ -652,7 +656,7 @@ c Fills coarse point defined by reg.
      & dest,  destl0, desth0, destl1, desth1,
      &        regl0, regh0, regl1, regh1,
      & src,   srcl0, srch0, srcl1, srch1,
-     & ir, jr, ncomp, integ, idir1)
+     & ir, jr, ncomp, integ, idir1, i2)
       integer ncomp
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
@@ -661,7 +665,7 @@ c Fills coarse point defined by reg.
       double precision dest(destl0:desth0,destl1:desth1,ncomp)
       double precision src(srcl0:srch0,srcl1:srch1,ncomp)
       double precision fac0, fac1, fac
-      integer i, j, m, n, nc
+      integer i, j, m, n, nc, i2
       do nc = 1, ncomp
       if (integ .eq. 0) then
          fac = (0.5d0 + 0.5d0 / ir + 0.5d0 / jr - 0.5d0 / (ir*jr))
