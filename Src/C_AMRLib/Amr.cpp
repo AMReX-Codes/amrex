@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.128 2001-09-24 20:31:35 lijewski Exp $
+// $Id: Amr.cpp,v 1.129 2001-10-17 16:43:40 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -716,9 +716,7 @@ Amr::writePlotFile (const std::string& root,
 
     std::ofstream HeaderFile;
 
-#ifdef BL_USE_SETBUF
     HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-#endif
 
     int old_prec;
 
@@ -991,9 +989,7 @@ Amr::restart (const std::string& filename)
 
     std::ifstream is;
 
-#ifdef BL_USE_SETBUF
     is.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-#endif
 
     is.open(File.c_str(), std::ios::in);
 
@@ -1146,9 +1142,7 @@ Amr::checkPoint ()
 
     std::ofstream HeaderFile;
 
-#ifdef BL_USE_SETBUF
     HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-#endif
 
     int old_prec, i;
 
