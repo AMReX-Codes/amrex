@@ -2,7 +2,7 @@
 #define _BL_WORKQUEUE_H_
 
 //
-// $Id: WorkQueue.H,v 1.3 2001-07-23 19:34:23 lijewski Exp $
+// $Id: WorkQueue.H,v 1.4 2001-08-21 22:16:26 car Exp $
 //
 
 #include <Thread.H>
@@ -10,54 +10,47 @@
 
 extern "C" void* WorkQueue_server(void*);
 class WorkQueue;
-class TimedWorkQueue;
 
 class WorkQueue
 {
 public:
-    friend void* WorkQueue_server(void*);
+    friend void* WorkQueue_server (void*);
     class task;
-    explicit WorkQueue(int maxthreads_ = 1 );
-    virtual ~WorkQueue();
-    int max_threads(int maxthreads_);
-    int max_threads() const;
-    int num_threads() const;
-    void add(task* data);
-    void drain();
-    void wait();
-    virtual void* server();
+    explicit WorkQueue (int maxthreads_);
+    virtual ~WorkQueue ();
+    int max_threads () const;
+    int num_threads () const;
+    void add (task* data);
+    void drain ();
+    void wait ();
+    virtual void* server ();
+    static void Initialize ();
+    static void Finalize ();
 protected:
     ConditionVariable cv;
     Gate gate;
     std::queue<task*> wrkq;
     bool quit;
     bool eof;
-    int maxthreads;
+    const int maxthreads;
     int numthreads;
     int idlethreads;
     int tasks;
-    void* operator new(size_t size);
-    WorkQueue(const WorkQueue&);
-    WorkQueue& operator=(const WorkQueue&);
-};
-
-class TimedWorkQueue
-    : public WorkQueue
-{
-public:
-    explicit TimedWorkQueue(int threads = 1, double timeout_ = -1.0 );
-    double timeOut(double timeout);
-    double timeOut() const;
-private:
-    double timeout;
-    virtual void* server();
+    WorkQueue (const WorkQueue&);
+    WorkQueue& operator= (const WorkQueue&);
 };
 
 class WorkQueue::task
 {
 public:
-    virtual void run() = 0;
-    virtual ~task();
+    virtual void run () = 0;
+    virtual ~task ();
 };
+
+namespace BoxLib
+{
+WorkQueue& theWorkQueue ();
+}
+
 
 #endif /*_BL_WORKQUEUE_H_*/

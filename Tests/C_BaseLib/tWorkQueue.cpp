@@ -2,6 +2,10 @@
 #include <list>
 #include <cstdio>
 
+#ifndef WIN32
+#include <unistd.h>
+#endif
+
 #include <WorkQueue.H>
 
 namespace

@@ -1,6 +1,6 @@
 
 //
-// $Id: InterpBndryData.cpp,v 1.14 2001-08-09 22:42:00 marc Exp $
+// $Id: InterpBndryData.cpp,v 1.15 2001-08-21 22:15:41 car Exp $
 //
 #include <winstd.H>
 
@@ -167,9 +167,6 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
         const int* lo             = fine_bx.loVect();
         const int* hi             = fine_bx.hiVect();
         const FArrayBox &fine_grd = fine[fine_mfi];
-        const int *finelo         = fine_grd.loVect();
-        const int *finehi         = fine_grd.hiVect();
-        const Real *finedat       = fine_grd.dataPtr(f_start);
 
         for (OrientationIter fi; fi; ++fi)
         {

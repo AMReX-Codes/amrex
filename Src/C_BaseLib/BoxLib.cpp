@@ -1,5 +1,5 @@
 //
-// $Id: BoxLib.cpp,v 1.28 2001-08-21 17:10:31 car Exp $
+// $Id: BoxLib.cpp,v 1.29 2001-08-21 22:16:26 car Exp $
 //
 #include <winstd.H>
 
@@ -18,6 +18,7 @@
 #include <ParmParse.H>
 #include <Profiler.H>
 #include <Utility.H>
+#include <WorkQueue.H>
 
 #define bl_str(s)  # s
 #define bl_xstr(s) bl_str(s)
@@ -180,7 +181,8 @@ BoxLib::Initialize (int& argc, char**& argv)
         }
     }
 
-    Profiler::Initialize(argc, argv);
+    Profiler::Initialize();
+    WorkQueue::Initialize();
     //
     // Initialize random seed after we're running in parallel.
     //
@@ -200,6 +202,7 @@ BoxLib::Finalize ()
     delete bl_prf;
     DistributionMapping::Finalize();
     FArrayBox::Finalize();
+    WorkQueue::Finalize();
     Profiler::Finalize();
     ParmParse::Finalize();
     ParallelDescriptor::EndParallel();

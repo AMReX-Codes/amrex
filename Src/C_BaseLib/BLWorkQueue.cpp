@@ -1,41 +1,92 @@
 //
-// $Id: BLWorkQueue.cpp,v 1.3 2001-07-26 20:27:27 car Exp $
+// $Id: BLWorkQueue.cpp,v 1.4 2001-08-21 22:16:26 car Exp $
 //
 
-#include <Thread.H>
-
+#include <winstd.H>
 #include <cstdlib>
 #include <cstdio>
 #include <memory>
 #include <queue>
 
+#include <ParmParse.H>
+#include <Thread.H>
+#include <Profiler.H>
 #include <WorkQueue.H>
 
 namespace
 {
 Mutex print_mutex;
+WorkQueue* bl_wrkq = 0;
+int verbose = 0;
 }
 
-//#define BL_WORKQUEUE_TRACE
-#ifdef BL_WORKQUEUE_TRACE
+namespace BoxLib
+{
+
+WorkQueue&
+theWorkQueue()
+{
+    return *bl_wrkq;
+}
+}
+
+void
+WorkQueue::Initialize ()
+{
+    ParmParse pp("workqueue");
+    int maxthreads = 0; pp.query("maxthreads", maxthreads);
+    int verbose = false; pp.query("verbose", verbose);
+    if ( verbose )
+    {
+	std::cout << "workqueue.maxthreads = " << maxthreads << std::endl;
+	std::cout << "workqueue.verbose = " << verbose << std::endl;
+    }
+    bl_wrkq = new WorkQueue(maxthreads);
+}
+
+void
+WorkQueue::Finalize ()
+{
+    delete bl_wrkq;
+}
+
+#ifdef BL_THREADS
 #define DPRINTF(arg)							\
 do									\
 {									\
-    Lock<Mutex> lock(print_mutex);					\
-    std::cout << "tid(" << (long)(pthread_self()) << "): "		\
-	      << arg << std::endl;					\
+    if ( verbose > 2 )							\
+    {									\
+	Lock<Mutex> lock(print_mutex);					\
+	std::cout << "tid(" << (long)(pthread_self()) << "): "		\
+		  << arg << std::endl;					\
+    }									\
 }									\
 while (false)
 #else
-#define DPRINTF(arg)
+#define DPRINTF(arg)							\
+do									\
+{									\
+    if ( verbose > 2 )							\
+    {									\
+	Lock<Mutex> lock(print_mutex);					\
+	std::cout << "tid(" << 0 << "): "				\
+		  << arg << std::endl;					\
+    }									\
+}									\
+while (false)
 #endif
 
-int
-WorkQueue::max_threads(int maxthreads_)
+WorkQueue::WorkQueue(int maxthreads_)
+    : quit(false), eof(false), maxthreads(maxthreads_), numthreads(0), idlethreads(0), tasks(0)
 {
-    int ot = maxthreads;
-    maxthreads = maxthreads_;
-    return ot;
+    if ( maxthreads_ >= Thread::max_threads() )
+    {
+	BoxLib::Error("maxthreads_ in workqueue exceeds system limit");
+    }
+    if ( maxthreads_ < 0 )
+    {
+	BoxLib::Error("maxthreads_ must be >= 0");
+    }
 }
 
 int
@@ -58,6 +109,7 @@ extern "C"
 void*
 WorkQueue_server(void* arg)
 {
+    BL_PROFILE("WorkQueue_server()");
     WorkQueue* wq = static_cast<WorkQueue*>(arg);
     return wq->server();
 }
@@ -120,11 +172,6 @@ WorkQueue::server()
     return 0;
 }
 
-WorkQueue::WorkQueue(int maxthreads_)
-    : quit(false), eof(false), maxthreads(maxthreads_), numthreads(0), idlethreads(0), tasks(0)
-{
-}
-
 void
 WorkQueue::drain()
 {
@@ -155,6 +202,7 @@ WorkQueue::add(task* item)
     Lock<ConditionVariable> lock(cv);
     if ( maxthreads == 0 )
     {
+	DPRINTF("maxthreads ==0 task");
 	if ( item )
 	{
 	    item->run();
@@ -188,93 +236,3 @@ WorkQueue::wait()
     DPRINTF("wait: finished...");
 }
 
-TimedWorkQueue::TimedWorkQueue(int maxthreads_, double timeout_)
-    : WorkQueue(maxthreads_), timeout(timeout_)
-{
-}
-
-double
-TimedWorkQueue::timeOut(double timeout_)
-{
-    double ot = timeout;
-    timeout = timeout_;
-    return ot;
-}
-
-double
-TimedWorkQueue::timeOut() const
-{
-    return timeout;
-}
-
-void*
-TimedWorkQueue::server()
-{
-    DPRINTF("A worker is starting");
-    Lock<ConditionVariable> lock(cv);
-    DPRINTF("Worker locked 0");
-    for (;;)
-    {
-	if ( tasks == 0 && eof )
-	{
-	    gate.open(); gate.release();
-	    eof = false;
-	}
-	DPRINTF("Worker waiting for work");
-	bool timedout = false;
-	BoxLib::Time t = BoxLib::Time::get_time();
-	t += timeout;
-	while ( wrkq.empty() && !quit && !eof )
-	{
-	    idlethreads++;
-	    bool status = cv.timedwait(t);
-	    idlethreads--;
-	    if ( status )
-	    {
-		DPRINTF("Worker wait timed out");
-		timedout = true;
-		break;
-	    }
-	}
-	DPRINTF("Work queue: wrkq.empty()(" << wrkq.empty() << "), "
-		<< "quit(" << quit << "), "
-		<< "eof(" << eof << ")");
-	if ( !wrkq.empty() )
-	{
-	    std::auto_ptr<task> we(wrkq.front());
-	    wrkq.pop();
-	    if ( we.get() )
-	    {
-		eof = false;
-		DPRINTF("Worker calling engine");
-		cv.unlock();
-		we->run();
-		cv.lock();
-		DPRINTF("Worker returning engine");
-	    }
-	    else
-	    {
-		DPRINTF("EOF reached");
-		eof = true;
-	    }
-	    tasks--;
-        }
-	if ( wrkq.empty() && quit )
-	{
-	    DPRINTF("Worker shutting down");
-	    if ( --numthreads == 0 )
-	    {
-		cv.broadcast();	// FIXME same predicate!
-	    }
-	    break;
-        }
-	if ( wrkq.empty() && timedout )
-	{
-	    DPRINTF("engine terminating due to timeout.");
-	    numthreads--;
-	    break;
-        }
-    }
-    DPRINTF("Worker exiting");
-    return 0;
-}

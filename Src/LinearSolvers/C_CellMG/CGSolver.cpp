@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.25 2001-08-09 22:42:00 marc Exp $
+// $Id: CGSolver.cpp,v 1.26 2001-08-21 22:15:41 car Exp $
 //
 #include <winstd.H>
 
@@ -67,11 +67,11 @@ CGSolver::CGSolver (LinOp& _Lp,
             bool   _use_mg_precond,
             int    _lev)
     :
+    isExpert(false),
     Lp(_Lp),
     mg_precond(0),
     lev(_lev),
-    use_mg_precond(_use_mg_precond),
-    isExpert(false)
+    use_mg_precond(_use_mg_precond)
 {
     if (!initialized)
         initialize();

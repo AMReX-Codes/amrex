@@ -1,7 +1,7 @@
 #ifndef _BL_PROFILER_H_
 #define _BL_PROFILER_H_
 //
-// $Id: Profiler.H,v 1.7 2001-07-26 20:08:46 lijewski Exp $
+// $Id: Profiler.H,v 1.8 2001-08-21 22:16:26 car Exp $
 //
 #include <iostream>
 #include <string>
@@ -19,7 +19,7 @@ public:
     static void off();
     static bool is_profiling();
     static std::string clean_name(const std::string& str);
-    static void Initialize(int& argc, char**& argv);
+    static void Initialize();
     static void Finalize();
 private:
     static void glean();

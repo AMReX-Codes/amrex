@@ -1,5 +1,5 @@
 //
-// $Id: macprojTest.cpp,v 1.1 2000-07-15 00:12:23 sstanley Exp $
+// $Id: macprojTest.cpp,v 1.2 2001-08-21 22:15:37 car Exp $
 //
 // In order to use this utility to mimic a mac projection solve from the
 // full AMR code, the lines of code below need to be added to the top
@@ -25,18 +25,7 @@
 //
 //
 
-#ifdef BL_ARCH_CRAY
-#ifdef BL_USE_DOUBLE
-#error "DOUBLE PRECISION NOT ALLOWED ON CRAY"
-#endif
-#endif
-
-#ifndef        WIN32
-#include <unistd.h>
-#endif
-
 #include <Utility.H>
-#include <Tracer.H>
 #include <ParmParse.H>
 #include <LO_BCTYPES.H>
 #include <MacBndry.H>
@@ -47,22 +36,7 @@
 #include <ParallelDescriptor.H>
 #include <VisMF.H>
 #include <TV_TempWrite.H>
-
-#ifdef BL3_PTHREADS
-#include <BoxLib3/WorkQueue.H>
-BoxLib3::WorkQueue wrkq;
-#endif
-
-
-#ifdef BL_USE_NEW_HFILES
-#include <new>
-using std::setprecision;
-#ifndef WIN32
-using std::set_new_handler;
-#endif
-#else
-#include <new.h>
-#endif
+#include <WorkQueue.H>
 
 #include <WritePlotFile.H>
 
@@ -118,39 +92,11 @@ void mac_driver (const MacBndry& mac_bndry,
 int
 main (int   argc, char* argv[])
 {
-    //
-    // Make sure to catch new failures.
-    //
-#ifndef WIN32
-    set_new_handler(Utility::OutOfMemory);
-#endif
-
-    ParallelDescriptor::StartParallel(&argc, &argv);
-
-    if ( argc < 2 )
-    {
-        cerr << "usage:  " << argv[0] << " inputsfile [options]" << '\n';
-        exit(-1);
-    }
-
-    ParmParse pp(argc-2,argv+2,NULL,argv[1]); 
-
-    //
-    // Initialize random seed after we're running in parallel.
-    //
-    Utility::InitRandom(ParallelDescriptor::MyProc() + 1);
+    BoxLib::Initialize(argc, argv);
 
     //
     // Instantiate after we're running in Parallel.
     //
-#ifndef WIN32
-    int sleeptime = 0; pp.query("sleep", sleeptime);
-    sleep(sleeptime);
-#endif
-#ifdef BL3_PTHREADS
-    int maxthreads = 1; pp.query("maxthreads", maxthreads);
-    wrkq.maxThreads(maxthreads);
-#endif
     
     //
     // Obtain prob domain and box-list, set dx
@@ -161,6 +107,7 @@ main (int   argc, char* argv[])
 #elif (BL_SPACEDIM == 3)
     aString boxfile("grids/gr.3_mac_tst");
 #endif
+    ParmParse pp;
     pp.query("boxes", boxfile);
 
     BoxArray bs(readBoxList(boxfile, container));
@@ -247,7 +194,7 @@ main (int   argc, char* argv[])
         }
     }
   
-    ParallelDescriptor::EndParallel();
+    BoxLib::Finalize();
 }
 
 BoxList
