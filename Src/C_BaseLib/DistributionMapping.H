@@ -3,7 +3,7 @@
 #define BL_DISTRIBUTIONMAPPING_H
 
 //
-// $Id: DistributionMapping.H,v 1.15 2000-10-02 20:52:34 lijewski Exp $
+// $Id: DistributionMapping.H,v 1.16 2000-10-19 18:04:17 lijewski Exp $
 //
 #ifdef BL_USE_NEW_HFILES
 #include <vector>
@@ -50,21 +50,25 @@ class DistributionMapping
     //
     DistributionMapping ();
     //
-    //@ManDoc: Build mapping on nprocs out of BoxArray.
+    //@ManDoc: Build mapping out of BoxArray.
     //
-    DistributionMapping (int             nprocs,
-                         const BoxArray& boxes);
+    DistributionMapping (const BoxArray& boxes);
+    //
+    // This is a very specialized distribution map.
+    // Do NOT use it unless you really understand what it does.
+    //
+    DistributionMapping (const DistributionMapping& d1,
+                         const DistributionMapping& d2);
     //
     //@ManDoc: The destructor.
     //
     ~DistributionMapping ();
 
-    /*@ManDoc: Build mapping on nprocs out of BoxArray.  You need to
+    /*@ManDoc: Build mapping out of BoxArray.  You need to
                call this if you built your DistributionMapping with
                the default constructor.
     */
-    void define (int             nprocs,
-                 const BoxArray& boxes);
+    void define (const BoxArray& boxes);
 
     /*@ManDoc: Returns a constant reference to the mapping of boxes in the
                underlying BoxArray to the CPU that holds the FAB on that Box.
@@ -111,14 +115,15 @@ class DistributionMapping
     //
     bool operator!= (const DistributionMapping& rhs) const;
 
-    void RoundRobinProcessorMap   (int nprocs, int nboxes);
-    void KnapSackProcessorMap     (int nprocs, const vector<long>& boxes);
+    void RoundRobinProcessorMap   (int nboxes);
+    void KnapSackProcessorMap     (const vector<long>& boxes);
+
   private:
     //
     // Two ways to create the processor map.
     //
-    void RoundRobinProcessorMap   (int nprocs, const BoxArray& boxes);
-    void KnapSackProcessorMap     (int nprocs, const BoxArray& boxes);
+    void RoundRobinProcessorMap   (const BoxArray& boxes);
+    void KnapSackProcessorMap     (const BoxArray& boxes);
     //
     // Initializes distribution strategy from ParmParse.
     //
@@ -135,14 +140,13 @@ class DistributionMapping
     //
     // Look for a cached processor map.
     //
-    bool GetMap (int             nprocs,
-                 const BoxArray& boxes);
+    bool GetMap (const BoxArray& boxes);
     //
     // A useful typedef.
     //
-    typedef void (DistributionMapping::*PVMF)(int,const BoxArray&);
+    typedef void (DistributionMapping::*PVMF)(const BoxArray&);
     //
-    // Everyone uses the same Strategy -- defaults to ROUNDROBIN.
+    // Everyone uses the same Strategy -- defaults to KNAPSACK.
     //
     static Strategy m_Strategy;
     //
