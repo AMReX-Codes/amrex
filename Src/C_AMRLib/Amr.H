@@ -4,7 +4,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.18 1998-10-07 21:18:18 vince Exp $
+// $Id: Amr.H,v 1.19 1998-10-30 19:02:44 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -138,16 +138,16 @@ public:
     Real plotPer () const;
 
     /*@ManDoc: The names of state or derived variables to output in the
-               plotfile.  They can be set using the amr.plot_vars variable
+               plotfile.  They can be set using the amr.plot\_vars variable
                in a ParmParse inputs file.  If no variables are specified
                in the inputs file this defaults to a single-element array
                containing the string "ALL".
     */
     const Array<aString>& plotVars () const;
 
-    /*@ManDoc: Is the string the name of a variable in plot_vars?
-               Also returns true if plot_vars.length() == 1 &&
-               plot_vars[0] == "ALL".
+    /*@ManDoc: Is the string the name of a variable in plot\_vars?
+               Also returns true if plot\_vars.length() == 1 and
+               plot\_vars[0] == "ALL".
     */
     bool isPlotVar (const aString& name) const;
     //
