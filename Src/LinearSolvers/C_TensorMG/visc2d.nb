@@ -1,0 +1,1813 @@
+(***********************************************************************
+
+                    Mathematica-Compatible Notebook
+
+This notebook can be used on any computer system with Mathematica 3.0,
+MathReader 3.0, or any compatible application. The data for the notebook 
+starts with the line of stars above.
+
+To get the notebook into a Mathematica-compatible application, do one of 
+the following:
+
+* Save the data starting with the line of stars above into a file
+  with a name ending in .nb, then open the file inside the application;
+
+* Copy the data starting with the line of stars above to the
+  clipboard, then use the Paste menu command inside the application.
+
+Data for notebooks contains only printable 7-bit ASCII and can be
+sent directly in email or through ftp in text mode.  Newlines can be
+CR, LF or CRLF (Unix, Macintosh or MS-DOS style).
+
+NOTE: If you modify the data for this notebook not in a Mathematica-
+compatible application, you must delete the line below containing the 
+word CacheID, otherwise Mathematica-compatible applications may try to 
+use invalid cache data.
+
+For more information on notebooks and Mathematica-compatible 
+applications, contact Wolfram Research:
+  web: http://www.wolfram.com
+  email: info@wolfram.com
+  phone: +1-217-398-0700 (U.S.)
+
+Notebook reader applications are available free of charge from 
+Wolfram Research.
+***********************************************************************)
+
+(*CacheID: 232*)
+
+
+(*NotebookFileLineBreakTest
+NotebookFileLineBreakTest*)
+(*NotebookOptionsPosition[     40789,       1347]*)
+(*NotebookOutlinePosition[     41639,       1377]*)
+(*  CellTagsIndexPosition[     41595,       1373]*)
+(*WindowFrame->Normal*)
+
+
+
+Notebook[{
+
+Cell[CellGroupData[{
+Cell[TextData["definition of tau"], "Section",
+  Evaluatable->False,
+  AspectRatioFixed->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(tauxxdef = 
+      tauxx[i_ + half, j_] \[Rule] 2\ mu[i + half, j]\ dudx[i + half, j]\)], 
+  "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(tauxx[half + i_, j_] \[Rule] 2\ dudx[half + i, j]\ mu[half + i, j]\)], 
+  "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(tauyydef = 
+      tauyy[i_, j_ + half] \[Rule] 2\ mu[i, j + half]\ dvdy[i, j + half]\)], 
+  "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(tauyy[i_, half + j_] \[Rule] 2\ dvdy[i, half + j]\ mu[i, half + j]\)], 
+  "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(tauxydef = 
+      tauxy[i_, j_] \[Rule] mu[i, j]\ \((dudy[i, j] + dvdx[i, j])\)\)], 
+  "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(General::"spell" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(tauxydef\)\" is similar \
+to existing symbols \!\({tauxxdef, tauyydef}\)."\)], "Message"],
+
+Cell[BoxData[
+    \(General::"spell" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(tauxy\)\" is similar to \
+existing symbols \!\({tauxx, tauyy}\)."\)], "Message"],
+
+Cell[BoxData[
+    \(General::"spell" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(dudy\)\" is similar to \
+existing symbols \!\({dudx, dvdy}\)."\)], "Message"],
+
+Cell[BoxData[
+    \(General::"stop" \( : \ \) 
+      "Further output of \!\(General :: \"spell\"\) will be suppressed during \
+this calculation."\)], "Message"],
+
+Cell[BoxData[
+    \(tauxy[i_, j_] \[Rule] \((dudy[i, j] + dvdx[i, j])\)\ mu[i, j]\)], 
+  "Output"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[TextData["definitions of derivatives"], "Section",
+  Evaluatable->False,
+  AspectRatioFixed->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(dudydef1 = 
+      dudy[i_, j_ + half] \[Rule] \(u[i, j + 1] - u[i, j]\)\/hy\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(dudy[i_, half + j_] \[Rule] \(\(-u[i, j]\) + u[i, 1 + j]\)\/hy\)], 
+  "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(dvdxdef1 = 
+      dvdx[i_ + half, j_] \[Rule] \(v[i + 1, j] - v[i, j]\)\/hx\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(dvdx[half + i_, j_] \[Rule] \(\(-v[i, j]\) + v[1 + i, j]\)\/hx\)], 
+  "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(dudydef2 = 
+      dudy[i_ + half, j_] \[Rule] 
+        \(u[i, j + 1] - u[i, j - 1] + u[i + 1, j + 1] - u[i + 1, j - 1]\)\/\(4
+            \ hy\)\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(dudy[half + i_, j_] \[Rule] 
+      \(\(-u[i, \(-1\) + j]\) + u[i, 1 + j] - u[1 + i, \(-1\) + j] + 
+          u[1 + i, 1 + j]\)\/\(4\ hy\)\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(dvdxdef2 = 
+      dvdx[i_, j_ + half] \[Rule] 
+        \(v[i + 1, j + 1] - v[i - 1, j + 1] + v[i + 1, j] - v[i - 1, j]\)\/\(4
+            \ hx\)\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(dvdx[i_, half + j_] \[Rule] 
+      \(\(-v[\(-1\) + i, j]\) - v[\(-1\) + i, 1 + j] + v[1 + i, j] + 
+          v[1 + i, 1 + j]\)\/\(4\ hx\)\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(dudxdef = dudx[i_ + half, j_] \[Rule] \(u[i + 1, j] - u[i, j]\)\/hx\)], 
+  "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(dudx[half + i_, j_] \[Rule] \(\(-u[i, j]\) + u[1 + i, j]\)\/hx\)], 
+  "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(dvdydef = dvdy[i_, j_ + half] \[Rule] \(v[i, j + 1] - v[i, j]\)\/hy\)], 
+  "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(dvdy[i_, half + j_] \[Rule] \(\(-v[i, j]\) + v[i, 1 + j]\)\/hy\)], 
+  "Output"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[TextData["definitions used to test taylor expansions"], "Section",
+  Evaluatable->False,
+  AspectRatioFixed->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(taylorudef = 
+      u[i_, j_] \[Rule] 
+        U[x0, y0] + DuDx[x0, y0]\ \((\((i + 1\/2)\)\ hx - x0)\) + 
+          DuDy[x0, y0]\ \((\((j + 1\/2)\)\ hy - y0)\) + 
+          1\/2\ D2uDy2[x0, y0]\ \((\((i + 1\/2)\)\ hx - x0)\)\^2 + 
+          1\/2\ D2uDx2[x0, y0]\ \((\((j + 1\/2)\)\ hy - y0)\)\^2 + 
+          D2uDxDy[x0, y0]\ \((\((i + 1\/2)\)\ hx - x0)\)\ 
+            \((\((j + 1\/2)\)\ hy - y0)\)\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(General::"spell1" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(DuDy\)\" is similar to \
+existing symbol \"\!\(DuDx\)\"."\)], "Message"],
+
+Cell[BoxData[
+    \(General::"spell1" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(D2uDx2\)\" is similar \
+to existing symbol \"\!\(D2uDy2\)\"."\)], "Message"],
+
+Cell[BoxData[
+    \(u[i_, j_] \[Rule] 
+      1\/2\ \((hy\ \((1\/2 + j)\) - y0)\)\^2\ D2uDx2[x0, y0] + 
+        \((hx\ \((1\/2 + i)\) - x0)\)\ \((hy\ \((1\/2 + j)\) - y0)\)\ 
+          D2uDxDy[x0, y0] + 
+        1\/2\ \((hx\ \((1\/2 + i)\) - x0)\)\^2\ D2uDy2[x0, y0] + 
+        \((hx\ \((1\/2 + i)\) - x0)\)\ DuDx[x0, y0] + 
+        \((hy\ \((1\/2 + j)\) - y0)\)\ DuDy[x0, y0] + U[x0, y0]\)], "Output"]
+}, Open  ]],
+
+Cell[BoxData[
+    \(\(dog = dudy[i + half, j] //. {dudydef1, dudydef2, taylorudef}; \)\)], 
+  "Input",
+  AspectRatioFixed->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(dog /. {i \[Rule] 0, j \[Rule] 0, x0 \[Rule] hx, y0 \[Rule] hy\/2}\)], 
+  "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(DuDy[hx, hy\/2]\)], "Output"]
+}, Open  ]],
+
+Cell[BoxData[
+    \(\(dog = dudy[i, j + half] //. {dudydef1, dudydef2, taylorudef}; \)\)], 
+  "Input",
+  AspectRatioFixed->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(dog /. {i \[Rule] 0, j \[Rule] 0, x0 \[Rule] hx\/2, y0 \[Rule] hy}\)], 
+  "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(DuDy[hx\/2, hy]\)], "Output"]
+}, Open  ]],
+
+Cell[BoxData[
+    \(\(dog = dudx[i + half, j] //. {dudxdef, taylorudef}; \)\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(dog /. {i \[Rule] 0, j \[Rule] 0, x0 \[Rule] hx, y0 \[Rule] hy\/2}\)], 
+  "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(DuDx[hx, hy\/2]\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(taylorvdef = 
+      v[i_, j_] \[Rule] 
+        V[x0, y0] + DvDx[x0, y0]\ \((\((i + 1\/2)\)\ hx - x0)\) + 
+          DvDy[x0, y0]\ \((\((j + 1\/2)\)\ hy - y0)\) + 
+          1\/2\ D2vDy2[x0, y0]\ \((\((i + 1\/2)\)\ hx - x0)\)\^2 + 
+          1\/2\ D2vDx2[x0, y0]\ \((\((j + 1\/2)\)\ hy - y0)\)\^2 + 
+          D2vDxDy[x0, y0]\ \((\((i + 1\/2)\)\ hx - x0)\)\ 
+            \((\((j + 1\/2)\)\ hy - y0)\)\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(General::"spell1" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(taylorvdef\)\" is \
+similar to existing symbol \"\!\(taylorudef\)\"."\)], "Message"],
+
+Cell[BoxData[
+    \(General::"spell1" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(DvDx\)\" is similar to \
+existing symbol \"\!\(DuDx\)\"."\)], "Message"],
+
+Cell[BoxData[
+    \(General::"spell" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(DvDy\)\" is similar to \
+existing symbols \!\({DuDy, DvDx}\)."\)], "Message"],
+
+Cell[BoxData[
+    \(General::"spell1" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(D2vDy2\)\" is similar \
+to existing symbol \"\!\(D2uDy2\)\"."\)], "Message"],
+
+Cell[BoxData[
+    \(General::"stop" \( : \ \) 
+      "Further output of \!\(General :: \"spell1\"\) will be suppressed \
+during this calculation."\)], "Message"],
+
+Cell[BoxData[
+    \(General::"spell" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(D2vDx2\)\" is similar \
+to existing symbols \!\({D2uDx2, D2vDy2}\)."\)], "Message"],
+
+Cell[BoxData[
+    \(v[i_, j_] \[Rule] 
+      1\/2\ \((hy\ \((1\/2 + j)\) - y0)\)\^2\ D2vDx2[x0, y0] + 
+        \((hx\ \((1\/2 + i)\) - x0)\)\ \((hy\ \((1\/2 + j)\) - y0)\)\ 
+          D2vDxDy[x0, y0] + 
+        1\/2\ \((hx\ \((1\/2 + i)\) - x0)\)\^2\ D2vDy2[x0, y0] + 
+        \((hx\ \((1\/2 + i)\) - x0)\)\ DvDx[x0, y0] + 
+        \((hy\ \((1\/2 + j)\) - y0)\)\ DvDy[x0, y0] + V[x0, y0]\)], "Output"]
+}, Open  ]],
+
+Cell[BoxData[
+    \(\(dog = dvdy[i, j + half] //. {dvdydef, taylorvdef}; \)\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(dog /. {i \[Rule] 0, j \[Rule] 0, x0 \[Rule] hx\/2, y0 \[Rule] hy}\)], 
+  "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(DvDy[hx\/2, hy]\)], "Output"]
+}, Open  ]],
+
+Cell[BoxData[
+    \(\(dog = dvdx[i, j + half] //. {dvdxdef1, dvdxdef2, taylorvdef}; \)\)], 
+  "Input",
+  AspectRatioFixed->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(dog /. {i \[Rule] 0, j \[Rule] 0, x0 \[Rule] hx\/2, y0 \[Rule] hy}\)], 
+  "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(DvDx[hx\/2, hy]\)], "Output"]
+}, Open  ]],
+
+Cell[BoxData[
+    \(\(dog = dvdx[i + half, j] //. {dvdxdef1, dvdxdef2, taylorvdef}; \)\)], 
+  "Input",
+  AspectRatioFixed->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(dog /. {i \[Rule] 0, j \[Rule] 0, x0 \[Rule] hx, y0 \[Rule] hy\/2}\)], 
+  "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(DvDx[hx, hy\/2]\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(taylormudef = 
+      mu[i_, j_] \[Rule] 
+        MU[x0, y0] + DmuDx[x0, y0]\ \((\((i + 1\/2)\)\ hx - x0)\) + 
+          DmuDy[x0, y0]\ \((\((j + 1\/2)\)\ hy - y0)\)\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(General::"spell1" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(taylormudef\)\" is \
+similar to existing symbol \"\!\(taylorudef\)\"."\)], "Message"],
+
+Cell[BoxData[
+    \(General::"spell1" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(DmuDx\)\" is similar to \
+existing symbol \"\!\(DuDx\)\"."\)], "Message"],
+
+Cell[BoxData[
+    \(General::"spell" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(DmuDy\)\" is similar to \
+existing symbols \!\({DmuDx, DuDy}\)."\)], "Message"],
+
+Cell[BoxData[
+    \(mu[i_, j_] \[Rule] 
+      \((hx\ \((1\/2 + i)\) - x0)\)\ DmuDx[x0, y0] + 
+        \((hy\ \((1\/2 + j)\) - y0)\)\ DmuDy[x0, y0] + MU[x0, y0]\)], "Output"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[TextData["tests"], "Section",
+  Evaluatable->False,
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(\(dog = 
+      tauxx[i + half, j] //. {tauxxdef, dudxdef, taylormudef, taylorudef}; 
+    \)\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(dog //. {half \[Rule] 1\/2, i \[Rule] 0, j \[Rule] 0, x0 \[Rule] hx, 
+        y0 \[Rule] hy\/2}\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(2\ DuDx[hx, hy\/2]\ MU[hx, hy\/2]\)], "Output"]
+}, Open  ]],
+
+Cell[BoxData[
+    \(\(dog = 
+      tauyy[i, j + half] //. {tauyydef, dvdydef, taylormudef, taylorvdef}; 
+    \)\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(dog //. {half \[Rule] 1\/2, i \[Rule] 0, j \[Rule] 0, x0 \[Rule] hx\/2, 
+        y0 \[Rule] hy}\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(2\ DvDy[hx\/2, hy]\ MU[hx\/2, hy]\)], "Output"]
+}, Open  ]],
+
+Cell[BoxData[
+    \(\(dog = 
+      tauxy[i, j + half] //. {tauxydef, dudydef1, dudydef2, dvdxdef1, 
+          dvdxdef2, taylormudef, taylorudef, taylorvdef}; \)\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(dog //. {half \[Rule] 1\/2, i \[Rule] 0, j \[Rule] 0, x0 \[Rule] hx\/2, 
+        y0 \[Rule] hy}\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(\((DuDy[hx\/2, hy] + DvDx[hx\/2, hy])\)\ MU[hx\/2, hy]\)], "Output"]
+}, Open  ]],
+
+Cell[BoxData[
+    \(\(dog = 
+      tauxy[i + half, j] //. {tauxydef, dudydef1, dudydef2, dvdxdef1, 
+          dvdxdef2, taylormudef, taylorudef, taylorvdef}; \)\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(dog //. {half \[Rule] 1\/2, i \[Rule] 0, j \[Rule] 0, x0 \[Rule] hx, 
+        y0 \[Rule] hy\/2}\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(\((DuDy[hx, hy\/2] + DvDx[hx, hy\/2])\)\ MU[hx, hy\/2]\)], "Output"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[TextData["definitions used for fortran output"], "Section",
+  Evaluatable->False,
+  AspectRatioFixed->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(murepl1 = mu[i_, j_ + half] \[Rule] muY[i, j + 1]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(mu[i_, half + j_] \[Rule] muY[i, 1 + j]\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(murepl2 = mu[i_ + half, j_] \[Rule] muX[i + 1, j]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(mu[half + i_, j_] \[Rule] muX[1 + i, j]\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(urepl = u[i_, j_] \[Rule] U[i, j, 1]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(u[i_, j_] \[Rule] U[i, j, 1]\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(vrepl = v[i_, j_] \[Rule] U[i, j, 2]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(General::"spell1" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(vrepl\)\" is similar to \
+existing symbol \"\!\(urepl\)\"."\)], "Message"],
+
+Cell[BoxData[
+    \(v[i_, j_] \[Rule] U[i, j, 2]\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(tauxy[i, j + half] //. {tauxydef, dudydef1, dudydef2, dvdxdef1, 
+        dvdxdef2, murepl1, murepl2, urepl, vrepl}\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(muY[i, 1 + j]\ 
+      \((\(\(-U[i, j, 1]\) + U[i, 1 + j, 1]\)\/hy + 
+          \(1\/\(4\ hx\)\((
+            \(-U[\(-1\) + i, j, 2]\) - U[\(-1\) + i, 1 + j, 2] + 
+              U[1 + i, j, 2] + U[1 + i, 1 + j, 2])\)\))\)\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(tauxy[i, j + half] - tauxy[i, j - 1 + half] + tauxx[i + half, j] - 
+        tauxx[i - 1 + half, j] //. {tauxxdef, tauxydef, dudydef1, dudydef2, 
+        dvdxdef1, dvdxdef2, dudxdef, dvdydef, murepl1, murepl2, urepl, vrepl}
+        \)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(\(-\(\(2\ muX[i, j]\ \((\(-U[\(-1\) + i, j, 1]\) + U[i, j, 1])\)\)\/hx
+            \)\) + \(2\ muX[1 + i, j]\ 
+          \((\(-U[i, j, 1]\) + U[1 + i, j, 1])\)\)\/hx - 
+      muY[i, j]\ 
+        \((\(\(-U[i, \(-1\) + j, 1]\) + U[i, j, 1]\)\/hy + 
+            \(1\/\(4\ hx\)\((
+              \(-U[\(-1\) + i, \(-1\) + j, 2]\) - U[\(-1\) + i, j, 2] + 
+                U[1 + i, \(-1\) + j, 2] + U[1 + i, j, 2])\)\))\) + 
+      muY[i, 1 + j]\ 
+        \((\(\(-U[i, j, 1]\) + U[i, 1 + j, 1]\)\/hy + 
+            \(1\/\(4\ hx\)\((
+              \(-U[\(-1\) + i, j, 2]\) - U[\(-1\) + i, 1 + j, 2] + 
+                U[1 + i, j, 2] + U[1 + i, 1 + j, 2])\)\))\)\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[TextData["Extract stencil information from operator"], "Subsection",
+  Evaluatable->False,
+  AspectRatioFixed->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(dog = 
+      alpha\ a[i, j]\ U[i, j, 1] - 
+          \(1\/vol\) 
+            \((beta\ \((
+                  hy\ \((tauxx[i + half, j] - tauxx[i - 1 + half, j])\) + 
+                    hx\ \((tauxy[i, j + half] - tauxy[i, j - 1 + half])\))\))
+              \) //. {tauxxdef, tauxydef, dudydef1, dudydef2, dvdxdef1, 
+          dvdxdef2, dudxdef, dvdydef, murepl1, murepl2, urepl, vrepl, 
+          vol \[Rule] hx\ hy}\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(General::"spell1" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(beta\)\" is similar to \
+existing symbol \"\!\(Beta\)\"."\)], "Message"],
+
+Cell[BoxData[
+    \(alpha\ a[i, j]\ U[i, j, 1] - 
+      \(1\/\(hx\ hy\)\((
+        beta\ \((
+            hy\ \((\(-\(\(2\ muX[i, j]\ 
+                            \((\(-U[\(-1\) + i, j, 1]\) + U[i, j, 1])\)\)\/hx
+                          \)\) + 
+                    \(2\ muX[1 + i, j]\ 
+                        \((\(-U[i, j, 1]\) + U[1 + i, j, 1])\)\)\/hx)\) + 
+              hx\ \((\(-muY[i, j]\)\ 
+                      \((\(\(-U[i, \(-1\) + j, 1]\) + U[i, j, 1]\)\/hy + 
+                          \(1\/\(4\ hx\)\((
+                            \(-U[\(-1\) + i, \(-1\) + j, 2]\) - 
+                              U[\(-1\) + i, j, 2] + U[1 + i, \(-1\) + j, 2] + 
+                              U[1 + i, j, 2])\)\))\) + 
+                    muY[i, 1 + j]\ 
+                      \((\(\(-U[i, j, 1]\) + U[i, 1 + j, 1]\)\/hy + 
+                          \(1\/\(4\ hx\)\((
+                            \(-U[\(-1\) + i, j, 2]\) - 
+                              U[\(-1\) + i, 1 + j, 2] + U[1 + i, j, 2] + 
+                              U[1 + i, 1 + j, 2])\)\))\))\))\))\)\)\)], 
+  "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(Coefficient[Expand[dog], U[i, j, 1]]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(alpha\ a[i, j] + \(2\ beta\ muX[i, j]\)\/hx\^2 + 
+      \(2\ beta\ muX[1 + i, j]\)\/hx\^2 + \(beta\ muY[i, j]\)\/hy\^2 + 
+      \(beta\ muY[i, 1 + j]\)\/hy\^2\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(Coefficient[Expand[dog], U[i + 1, j, 1]]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(\(-\(\(2\ beta\ muX[1 + i, j]\)\/hx\^2\)\)\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(Coefficient[Expand[dog], U[i - 1, j, 1]]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(\(-\(\(2\ beta\ muX[i, j]\)\/hx\^2\)\)\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(Coefficient[Expand[dog], U[i, j + 1, 1]]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(\(-\(\(beta\ muY[i, 1 + j]\)\/hy\^2\)\)\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(Coefficient[Expand[dog], U[i, j - 1, 1]]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(\(-\(\(beta\ muY[i, j]\)\/hy\^2\)\)\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(dog = 
+      alpha\ a[i, j]\ U[i, j, 2] - 
+          \(1\/vol\) 
+            \((beta\ \((
+                  hy\ \((tauxy[i + half, j] - tauxy[i - 1 + half, j])\) + 
+                    hx\ \((tauyy[i, j + half] - tauyy[i, j - 1 + half])\))\))
+              \) //. {tauyydef, tauxydef, dudydef1, dudydef2, dvdxdef1, 
+          dvdxdef2, dudxdef, dvdydef, murepl1, murepl2, urepl, vrepl, 
+          vol \[Rule] hx\ hy}\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(alpha\ a[i, j]\ U[i, j, 2] - 
+      \(1\/\(hx\ hy\)\((
+        beta\ \((
+            hx\ \((\(-\(\(2\ muY[i, j]\ 
+                            \((\(-U[i, \(-1\) + j, 2]\) + U[i, j, 2])\)\)\/hy
+                          \)\) + 
+                    \(2\ muY[i, 1 + j]\ 
+                        \((\(-U[i, j, 2]\) + U[i, 1 + j, 2])\)\)\/hy)\) + 
+              hy\ \((\(-muX[i, j]\)\ 
+                      \((\(\(-U[\(-1\) + i, j, 2]\) + U[i, j, 2]\)\/hx + 
+                          \(1\/\(4\ hy\)\((
+                            \(-U[\(-1\) + i, \(-1\) + j, 1]\) + 
+                              U[\(-1\) + i, 1 + j, 1] - U[i, \(-1\) + j, 1] + 
+                              U[i, 1 + j, 1])\)\))\) + 
+                    muX[1 + i, j]\ 
+                      \((\(\(-U[i, j, 2]\) + U[1 + i, j, 2]\)\/hx + 
+                          \(1\/\(4\ hy\)\((
+                            \(-U[i, \(-1\) + j, 1]\) + U[i, 1 + j, 1] - 
+                              U[1 + i, \(-1\) + j, 1] + U[1 + i, 1 + j, 1])
+                            \)\))\))\))\))\)\)\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(Coefficient[Expand[dog], U[i, j, 2]]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(alpha\ a[i, j] + \(beta\ muX[i, j]\)\/hx\^2 + 
+      \(beta\ muX[1 + i, j]\)\/hx\^2 + \(2\ beta\ muY[i, j]\)\/hy\^2 + 
+      \(2\ beta\ muY[i, 1 + j]\)\/hy\^2\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(Coefficient[Expand[dog], U[i + 1, j, 2]]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(\(-\(\(beta\ muX[1 + i, j]\)\/hx\^2\)\)\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(Coefficient[Expand[dog], U[i - 1, j, 2]]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(\(-\(\(beta\ muX[i, j]\)\/hx\^2\)\)\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(Coefficient[Expand[dog], U[i, j + 1, 2]]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(\(-\(\(2\ beta\ muY[i, 1 + j]\)\/hy\^2\)\)\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(Coefficient[Expand[dog], U[i, j - 1, 2]]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(\(-\(\(2\ beta\ muY[i, j]\)\/hy\^2\)\)\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[TextData[
+"dependentCellsNotCovered is a function which returns a logical expression \
+suitable for\ninclusion in fortran.  Give an expression, exp, we wish to \
+determine which mesh locations are accessed by the expression.  However, we \
+do not wish to examine\nall possible locations, only those outside the grid \
+patch region.  So we provide\na second argument, which is a boolean function \
+taking two arguments.  The combination will give logical expressions testing \
+the mask for cells utilized by the\nexpression and for which the boolean \
+function, logfunc[il,jl], evaluates as true. The\nthird argument is the name \
+of the mask array"], "Subsubsection",
+  Evaluatable->False,
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(Clear[dependentCellsNotCovered]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(dependentCellsNotCovered[exp_, logfunc_, maskfun_] := 
+      Module[{cond, lexp}, cond = False; lexp = exp; 
+        For[il = \(-2\), il \[LessEqual] \(+2\), \(il++\), 
+          For[jl = \(-2\), jl \[LessEqual] \(+2\), \(jl++\), 
+            For[kl = 1, kl \[LessEqual] 2, \(kl++\), 
+              If[logfunc[il, jl] && 
+                  Coefficient[Expand[exp], U[i + il, j + jl, kl]] =!= 0, 
+                cond = cond || maskfun[i + il, j + jl] > 0]]]]; cond]\)], 
+  "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(General::"spell1" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(exp\)\" is similar to \
+existing symbol \"\!\(Exp\)\"."\)], "Message"],
+
+Cell[BoxData[
+    \(General::"spell1" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(lexp\)\" is similar to \
+existing symbol \"\!\(exp\)\"."\)], "Message"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[TextData[
+"dependentCellsCovered is more or less the converse of \
+dependentCellsNotCovered.\ndependentCellsCovered will return true if all the \
+cells in the expression (properly\nrestricted by the mask function) ARE \
+covered.  dependentCellsNotCovered returned\ntrue if one or more of the cells \
+were not covered."], "Subsubsection",
+  Evaluatable->False,
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(Clear[dependentCellsCovered]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(dependentCellsCovered[exp_, logfunc_, maskfun_] := 
+      Module[{cond, lexp}, cond = True; lexp = exp; 
+        For[il = \(-2\), il \[LessEqual] \(+2\), \(il++\), 
+          For[jl = \(-2\), jl \[LessEqual] \(+2\), \(jl++\), 
+            For[kl = 1, kl \[LessEqual] 2, \(kl++\), 
+              If[logfunc[il, jl] && 
+                  Coefficient[Expand[exp], U[i + il, j + jl, kl]] =!= 0, 
+                cond = cond && maskfun[i + il, j + jl] == 0]]]]; cond]\)], 
+  "Input",
+  AspectRatioFixed->True]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[TextData[
+"this is an alternate definition which treats cells with mask .eq. 1 as \
+untrusted,\nrather than mask .gt. 0"], "Subsubsection",
+  Evaluatable->False,
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(dependentCellsNotCoveredalt[exp_, logfunc_, maskfun_] := 
+      Module[{cond, lexp}, cond = False; lexp = exp; 
+        For[il = \(-2\), il \[LessEqual] \(+2\), \(il++\), 
+          For[jl = \(-2\), jl \[LessEqual] \(+2\), \(jl++\), 
+            For[kl = 1, kl \[LessEqual] 2, \(kl++\), 
+              If[logfunc[il, jl] && 
+                  Coefficient[Expand[exp], U[i + il, j + jl, kl]] =!= 0, 
+                cond = cond || maskfun[i + il, j + jl] == 1]]]]; cond]\)], 
+  "Input",
+  AspectRatioFixed->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(dependentCellsNotCovered[
+      abba\ U[i + 1, j - 1, 1] + U[i - 1, j - 1, 2], #2 < 0&, masks]\)], 
+  "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(masks[\(-1\) + i, \(-1\) + j] > 0 || masks[1 + i, \(-1\) + j] > 0\)], 
+  "Output"]
+}, Open  ]],
+
+Cell[BoxData[
+    \(f[x_] := 
+      \(f1\ \((x - x2)\)\ \((x - x3)\)\)\/\(\((x1 - x2)\)\ \((x1 - x3)\)\) + 
+        \(f2\ \((x - x1)\)\ \((x - x3)\)\)\/\(\((x2 - x1)\)\ 
+            \((x2 - x3)\)\) + 
+        \(f3\ \((x - x1)\)\ \((x - x2)\)\)\/\(\((x3 - x1)\)\ 
+            \((x3 - x2)\)\)\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(dog = 
+      Simplify[\[PartialD]\_x f[x] /. {x1 \[Rule] 0, x2 \[Rule] \(-h\), 
+            x3 \[Rule] \(-2\)\ h, x \[Rule] 0}]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(\(3\ f1 - 4\ f2 + f3\)\/\(2\ h\)\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(dog /. {f1 \[Rule] 0, f2 \[Rule] h\^2, f3 \[Rule] 4\ h\^2}\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(0\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(dog /. {f1 \[Rule] 0, f2 \[Rule] h\^3, f3 \[Rule] 8\ h\^3}\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(2\ h\^2\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(dog = 
+      Simplify[\[PartialD]\_\(x, x\)f[x] /. {x1 \[Rule] 0, x2 \[Rule] \(-h\), 
+            x3 \[Rule] \(-2\)\ h, x \[Rule] 0}]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(\(f1 - 2\ f2 + f3\)\/h\^2\)], "Output"]
+}, Open  ]]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[TextData[
+"definitions for Do One-sided Derivative in X direction.  if sign is \
+positive, \nit means extend the stencil in the positivie x direction.  if \
+negative, extend\nin other direction"], "Subsection",
+  Evaluatable->False,
+  AspectRatioFixed->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(DOneX[u_, i_, j_, sign_]\  := \ 
+      \((\(-u[i + 2, j]\) + 4*u[i + 1, j] - 3*u[i, j])\)/\((2*hx)\)\  /; \ 
+        sign == 1\)], "Input"],
+
+Cell[BoxData[
+    \(General::"spell1" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(sign\)\" is similar to \
+existing symbol \"\!\(Sign\)\"."\)], "Message"]
+}, Open  ]],
+
+Cell[BoxData[
+    \(DOneX[u_, i_, j_, sign_]\  := \ 
+      \((u[i - 2, j] - 4*u[i - 1, j] + 3*u[i, j])\)/\((2*hx)\)\  /; \ 
+        sign == \(-1\)\)], "Input"],
+
+Cell[BoxData[
+    \(DOneX[u_, i_, j_, k_, sign_]\  := \ 
+      \((\(-u[i + 2, j, k]\) + 4*u[i + 1, j, k] - 3*u[i, j, k])\)/
+          \((2*hx)\)\  /; \ sign == 1\)], "Input"],
+
+Cell[BoxData[
+    \(DOneX[u_, i_, j_, k_, sign_]\  := \ 
+      \((u[i - 2, j, k] - 4*u[i - 1, j, k] + 3*u[i, j, k])\)/\((2*hx)\)\  /; 
+        \ sign == \(-1\)\)], "Input"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(Simplify[
+      DOneX[u, 0, 0, \(-1\)] //. {taylorudef, x0 \[Rule] hx\/2, 
+          y0 \[Rule] hy\/2}]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(DuDx[hx\/2, hy\/2]\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(Simplify[
+      DOneX[u, 0, 0, \(+1\)] //. {taylorudef, x0 \[Rule] hx\/2, 
+          y0 \[Rule] hy\/2}]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(DuDx[hx\/2, hy\/2]\)], "Output"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[TextData[
+"definitions for Do One-sided Derivative in Y direction.  if sign is \
+positive, \nit means extend the stencil in the positivie y direction.  if \
+negative, extend\nin other direction"], "Subsection",
+  Evaluatable->False,
+  AspectRatioFixed->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(DOneY[u_, i_, j_, sign_]\  := \ 
+      \((\(-u[i, j + 2]\) + 4*u[i, j + 1] - 3*u[i, j])\)/\((2*hy)\)\  /; \ 
+        sign == 1\)], "Input"],
+
+Cell[BoxData[
+    \(General::"spell1" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(DOneY\)\" is similar to \
+existing symbol \"\!\(DOneX\)\"."\)], "Message"]
+}, Open  ]],
+
+Cell[BoxData[
+    \(DOneY[u_, i_, j_, sign_]\  := \ 
+      \((u[i, j - 2] - 4*u[i, j - 1] + 3*u[i, j])\)/\((2*hy)\)\  /; \ 
+        sign == \(-1\)\)], "Input"],
+
+Cell[BoxData[
+    \(DOneY[u_, i_, j_, k_, sign_]\  := \ 
+      \((\(-u[i, j + 2, k]\) + 4*u[i, j + 1, k] - 3*u[i, j, k])\)/
+          \((2*hy)\)\  /; \ sign == 1\)], "Input"],
+
+Cell[BoxData[
+    \(DOneY[u_, i_, j_, k_, sign_]\  := \ 
+      \((u[i, j - 2, k] - 4*u[i, j - 1, k] + 3*u[i, j, k])\)/\((2*hy)\)\  /; 
+        \ sign == \(-1\)\)], "Input"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(Simplify[
+      DOneY[u, 0, 0, \(-1\)] //. {taylorudef, x0 \[Rule] hx\/2, 
+          y0 \[Rule] hy\/2}]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(DuDy[hx\/2, hy\/2]\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(Simplify[
+      DOneY[u, 0, 0, \(+1\)] //. {taylorudef, x0 \[Rule] hx\/2, 
+          y0 \[Rule] hy\/2}]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(DuDy[hx\/2, hy\/2]\)], "Output"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[TextData["definitions for two sided deriv in x direction."], "Subsection",
+  Evaluatable->False,
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(DTwoX[u_, i_, j_] := \(u[i + 1, j] - u[i - 1, j]\)\/\(2\ hx\)\)], 
+  "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(DTwoX[u_, i_, j_, k_] := 
+      \(u[i + 1, j, k] - u[i - 1, j, k]\)\/\(2\ hx\)\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(Simplify[
+      DTwoX[u, 0, 0] //. {taylorudef, x0 \[Rule] hx\/2, y0 \[Rule] hy\/2}]
+      \)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(DuDx[hx\/2, hy\/2]\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(DTwoY[u_, i_, j_] := \(u[i, j + 1] - u[i, j - 1]\)\/\(2\ hy\)\)], 
+  "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(General::"spell1" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(DTwoY\)\" is similar to \
+existing symbol \"\!\(DTwoX\)\"."\)], "Message"]
+}, Open  ]],
+
+Cell[BoxData[
+    \(DTwoY[u_, i_, j_, k_] := 
+      \(u[i, j + 1, k] - u[i, j - 1, k]\)\/\(2\ hy\)\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+    \(Simplify[
+      DTwoY[u, 0, 0] //. {taylorudef, x0 \[Rule] hx\/2, y0 \[Rule] hy\/2}]
+      \)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(DuDy[hx\/2, hy\/2]\)], "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+    \(\(DeleteFile["\<dog.mf\>"]; \)\), 
+    \(\(CopyFile["\<DV_2D.mF\>", "\<dog.mf\>"]; \)\), 
+    \(\(Splice["\<dog.mf\>"]; \)\), 
+    \(\(DeleteFile["\<DV_2D.F\>"]; \)\), 
+    \(\(CopyFile["\<dog.f\>", "\<DV_2D.F\>"]; \)\), 
+    \(<< "\<!touch DV_2D.F\>"\)}], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(General::"spell1" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(dudxe\)\" is similar to \
+existing symbol \"\!\(dudx\)\"."\)], "Message"],
+
+Cell[BoxData[
+    \(General::"spell" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(dudxw\)\" is similar to \
+existing symbols \!\({dudx, dudxe}\)."\)], "Message"],
+
+Cell[BoxData[
+    \(General::"spell1" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(dvdyn\)\" is similar to \
+existing symbol \"\!\(dvdy\)\"."\)], "Message"],
+
+Cell[BoxData[
+    \(General::"spell" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(dvdys\)\" is similar to \
+existing symbols \!\({dvdy, dvdyn}\)."\)], "Message"],
+
+Cell[BoxData[
+    \(General::"spell" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(dudyn\)\" is similar to \
+existing symbols \!\({dudy, dvdyn}\)."\)], "Message"],
+
+Cell[BoxData[
+    \(General::"stop" \( : \ \) 
+      "Further output of \!\(General :: \"spell\"\) will be suppressed during \
+this calculation."\)], "Message"],
+
+Cell[BoxData[
+    \(General::"spell1" \( : \ \) 
+      "Possible spelling error: new symbol name \"\!\(maskn\)\" is similar to \
+existing symbol \"\!\(masks\)\"."\)], "Message"],
+
+Cell[BoxData[
+    \(General::"stop" \( : \ \) 
+      "Further output of \!\(General :: \"spell1\"\) will be suppressed \
+during this calculation."\)], "Message"],
+
+Cell[BoxData[
+    \(DeleteFile::"nffil" \( : \ \) 
+      "File not found during \!\(DeleteFile[\"DV_2D.F\"]\)."\)], "Message"]
+}, Open  ]]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[TextData["Start figuring out how to write stencil"], "Section",
+  Evaluatable->False,
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(out1 = 
+      alpha\ a[i, j]\ U[i, j, 1] - 
+          \(1\/vol\((
+            beta\ \((
+                hy\ \((tauxx[i + half, j] - tauxx[i - 1 + half, j])\) + 
+                  hx\ \((tauxy[i, j + half] - tauxy[i, j - 1 + half])\))\))
+            \)\) //. {tauxxdef, tauxydef, dudydef1, dudydef2, dvdxdef1, 
+          dvdxdef2, dudxdef, dvdydef, murepl1, murepl2, urepl, vrepl, 
+          vol \[Rule] hx\ hy}\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(Coefficient[Expand[out1], U[i, j, 1]]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[CellGroupData[{
+
+Cell[TextData["setup to use the Format.m package "], "Subsection",
+  Evaluatable->False,
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(\(Off[General::"\<spell\>", General::"\<spell1\>"]; \)\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(\(SetOptions[$Output, PageWidth \[Rule] 73]; \)\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(<< "\</usr/people/wyc/_math/MathSource/Format/Format.m\>"\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(stencilDef[exp_, kin_] := 
+      Block[{iind, il, jl, kl, list1, list2, indices, tmp, indtrn}, 
+        indices = {{0, 0, KO}, {\(-1\), 0, KW}, {0, \(-1\), KS}, {\(-1\), 
+              \(-1\), KSW}, {\(-1\), \(+1\), KNW}}; list1 = {}; list2 = {}; 
+        For[iind = 1, iind \[LessEqual] 5, \(iind++\), 
+          il = indices\[LeftDoubleBracket]iind, 1\[RightDoubleBracket]; 
+          jl = indices\[LeftDoubleBracket]iind, 2\[RightDoubleBracket]; 
+          indtrn = indices\[LeftDoubleBracket]iind, 3\[RightDoubleBracket]; 
+          For[kl = 1, kl \[LessEqual] 2, \(kl++\), 
+            tmp = Coefficient[Expand[exp], U[i + il, j + jl, kl]]; 
+            If[tmp =!= 0, list1 = Append[list1, coef[i, j, indtrn, kin, kl]]; 
+              list2 = Append[list2, 
+                  \(+Coefficient[Expand[exp], U[i + il, j, kl]]\)]]]]; 
+        FortranAssign[Evaluate[list1], list2, 
+          AssignToArray \[Rule] {muY, muX, a, coef, polycoef}]]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(stencilInc[exp_, kin_] := 
+      Block[{iind, il, jl, kl, list1, list2, indices, tmp, indtrn}, 
+        indices = {{0, 0, KO}, {\(-1\), 0, KW}, {0, \(-1\), KS}, {\(-1\), 
+              \(-1\), KSW}, {\(-1\), \(+1\), KNW}}; list1 = {}; list2 = {}; 
+        For[iind = 1, iind \[LessEqual] 5, \(iind++\), 
+          il = indices\[LeftDoubleBracket]iind, 1\[RightDoubleBracket]; 
+          jl = indices\[LeftDoubleBracket]iind, 2\[RightDoubleBracket]; 
+          indtrn = indices\[LeftDoubleBracket]iind, 3\[RightDoubleBracket]; 
+          For[kl = 1, kl \[LessEqual] 2, \(kl++\), 
+            tmp = Coefficient[Expand[exp], U[i + il, j + jl, kl]]; 
+            If[tmp =!= 0, list1 = Append[list1, coef[i, j, indtrn, kin, kl]]; 
+              list2 = Append[list2, 
+                  coef[i, j, indtrn, kin, kl] + 
+                    Coefficient[Expand[exp], U[i + il, j, kl]]]]]]; 
+        FortranAssign[Evaluate[list1], list2, 
+          AssignToArray \[Rule] {muY, muX, a, coef, polycoef}]]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(stencilDec[exp_, kin_] := 
+      Block[{iind, il, jl, kl, list1, list2, indices, tmp, indtrn}, 
+        indices = {{0, 0, KO}, {\(-1\), 0, KW}, {0, \(-1\), KS}, {\(-1\), 
+              \(-1\), KSW}, {\(-1\), \(+1\), KNW}}; list1 = {}; list2 = {}; 
+        For[iind = 1, iind \[LessEqual] 5, \(iind++\), 
+          il = indices\[LeftDoubleBracket]iind, 1\[RightDoubleBracket]; 
+          jl = indices\[LeftDoubleBracket]iind, 2\[RightDoubleBracket]; 
+          indtrn = indices\[LeftDoubleBracket]iind, 3\[RightDoubleBracket]; 
+          For[kl = 1, kl \[LessEqual] 2, \(kl++\), 
+            tmp = Coefficient[Expand[exp], U[i + il, j + jl, kl]]; 
+            If[tmp =!= 0, 
+              list1 = Append[list1, coef[i, jl, indtrn, kin, kl]]; 
+              list2 = Append[list2, 
+                  coef[i, j, indtrn, kin, kl] - 
+                    Coefficient[Expand[exp], U[i + il, j, kl]]]]]]; 
+        FortranAssign[Evaluate[list1], list2, 
+          AssignToArray \[Rule] {muY, muX, a, coef, polycoef}]]\)], "Input",
+  AspectRatioFixed->True]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[TextData[
+"This is slight variation on dependentCellsNotCovered.  Uses Format.m"], 
+  "Subsection",
+  Evaluatable->False,
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(Clear[depCellNotCovered]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(dependentCellIsCovered[exp_, logfunc_, maskfun_] := 
+      Module[{cond, lexp}, cond = False; lexp = exp; 
+        For[il = \(-2\), il \[LessEqual] \(+2\), \(il++\), 
+          For[jl = \(-2\), jl \[LessEqual] \(+2\), \(jl++\), 
+            For[kl = 1, kl \[LessEqual] 2, \(kl++\), 
+              If[logfunc[il, jl] && 
+                  Coefficient[Expand[exp], U[i + il, j + jl, kl]] =!= 0, 
+                cond = cond || maskfun[i + il, j + jl] > 0]]]]; 
+        FortranAssign[cond, AssignToArray \[Rule] {maskray}]]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(Clear[stencoef]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(stencilDef[out1, 1]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(dog1 = 
+      InputForm[
+        Expand[vol\ 
+              \((alpha\ a[i, j]\ U[i, j, 1] - 
+                  \(1\/vol\((
+                    beta\ \((
+                        hy\ \((tauxx[i + half, j] - tauxx[i - 1 + half, j])
+                              \) + hx\ 
+                            \((tauxy[i, j + half] - tauxy[i, j - 1 + half])\))
+                        \))\)\))\) //. {tauxxdef, tauxydef, murepl1, murepl2, 
+              urepl, vrepl, vol \[Rule] hx\ hy}]]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(Splice["\<dog.mf\>", FormatType \[Rule] OutputForm]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(Splice["\<ratdog.mf\>", FormatType \[Rule] OutputForm]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(exntop + exnbot\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(dependentCellIsCovered[exntop + exnbot, indexcond, maskray]\)], "Input",\
+
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(Expand[exntop]\)], "Input",
+  AspectRatioFixed->True],
+
+Cell[BoxData[
+    \(outdog = 
+      2\ beta\ hy\ dudx[\(-1\) + half + i, j] //. {dudxdef, 
+          u[i - 1, j] \[Rule] u[i, j]}\)], "Input",
+  AspectRatioFixed->True]
+}, Open  ]]
+}, Open  ]]
+},
+FrontEndVersion->"X 3.0",
+ScreenRectangle->{{0, 1280}, {0, 1024}},
+WindowToolbars->{},
+CellGrouping->Manual,
+WindowSize->{535, 959},
+WindowMargins->{{Automatic, 359}, {Automatic, 22}},
+PrivateNotebookOptions->{"ColorPalette"->{RGBColor, -1}},
+ShowCellLabel->True,
+ShowCellTags->False,
+RenderingOptions->{"ObjectDithering"->True,
+"RasterDithering"->False}
+]
+
+
+(***********************************************************************
+Cached data follows.  If you edit this Notebook file directly, not using
+Mathematica, you must remove the line containing CacheID at the top of 
+the file.  The cache data will then be recreated when you save this file 
+from within Mathematica.
+***********************************************************************)
+
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+
+(*NotebookFileOutline
+Notebook[{
+
+Cell[CellGroupData[{
+Cell[1731, 51, 94, 2, 47, "Section",
+  Evaluatable->False],
+
+Cell[CellGroupData[{
+Cell[1850, 57, 146, 4, 27, "Input"],
+Cell[1999, 63, 103, 2, 27, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[2139, 70, 146, 4, 27, "Input"],
+Cell[2288, 76, 103, 2, 27, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[2428, 83, 141, 4, 27, "Input"],
+Cell[2572, 89, 191, 3, 55, "Message"],
+Cell[2766, 94, 182, 3, 39, "Message"],
+Cell[2951, 99, 179, 3, 39, "Message"],
+Cell[3133, 104, 160, 3, 39, "Message"],
+Cell[3296, 109, 98, 2, 27, "Output"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[3443, 117, 103, 2, 47, "Section",
+  Evaluatable->False],
+
+Cell[CellGroupData[{
+Cell[3571, 123, 134, 3, 50, "Input"],
+Cell[3708, 128, 99, 2, 50, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[3844, 135, 134, 3, 47, "Input"],
+Cell[3981, 140, 99, 2, 47, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[4117, 147, 203, 5, 69, "Input"],
+Cell[4323, 154, 171, 3, 69, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[4531, 162, 203, 5, 65, "Input"],
+Cell[4737, 169, 171, 3, 65, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[4945, 177, 129, 3, 47, "Input"],
+Cell[5077, 182, 99, 2, 47, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[5213, 189, 129, 3, 50, "Input"],
+Cell[5345, 194, 99, 2, 50, "Output"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[5493, 202, 119, 2, 47, "Section",
+  Evaluatable->False],
+
+Cell[CellGroupData[{
+Cell[5637, 208, 458, 9, 190, "Input"],
+Cell[6098, 219, 175, 3, 39, "Message"],
+Cell[6276, 224, 179, 3, 39, "Message"],
+Cell[6458, 229, 401, 7, 193, "Output"]
+}, Open  ]],
+Cell[6874, 239, 128, 3, 27, "Input"],
+
+Cell[CellGroupData[{
+Cell[7027, 246, 128, 3, 47, "Input"],
+Cell[7158, 251, 49, 1, 47, "Output"]
+}, Open  ]],
+Cell[7222, 255, 128, 3, 27, "Input"],
+
+Cell[CellGroupData[{
+Cell[7375, 262, 128, 3, 47, "Input"],
+Cell[7506, 267, 49, 1, 47, "Output"]
+}, Open  ]],
+Cell[7570, 271, 114, 2, 27, "Input"],
+
+Cell[CellGroupData[{
+Cell[7709, 277, 128, 3, 47, "Input"],
+Cell[7840, 282, 49, 1, 47, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[7926, 288, 458, 9, 190, "Input"],
+Cell[8387, 299, 187, 3, 39, "Message"],
+Cell[8577, 304, 175, 3, 39, "Message"],
+Cell[8755, 309, 179, 3, 39, "Message"],
+Cell[8937, 314, 179, 3, 39, "Message"],
+Cell[9119, 319, 161, 3, 39, "Message"],
+Cell[9283, 324, 185, 3, 39, "Message"],
+Cell[9471, 329, 401, 7, 193, "Output"]
+}, Open  ]],
+Cell[9887, 339, 114, 2, 27, "Input"],
+
+Cell[CellGroupData[{
+Cell[10026, 345, 128, 3, 47, "Input"],
+Cell[10157, 350, 49, 1, 47, "Output"]
+}, Open  ]],
+Cell[10221, 354, 128, 3, 27, "Input"],
+
+Cell[CellGroupData[{
+Cell[10374, 361, 128, 3, 47, "Input"],
+Cell[10505, 366, 49, 1, 47, "Output"]
+}, Open  ]],
+Cell[10569, 370, 128, 3, 27, "Input"],
+
+Cell[CellGroupData[{
+Cell[10722, 377, 128, 3, 47, "Input"],
+Cell[10853, 382, 49, 1, 47, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[10939, 388, 223, 5, 65, "Input"],
+Cell[11165, 395, 188, 3, 39, "Message"],
+Cell[11356, 400, 176, 3, 39, "Message"],
+Cell[11535, 405, 181, 3, 39, "Message"],
+Cell[11719, 410, 173, 3, 88, "Output"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[11941, 419, 82, 2, 47, "Section",
+  Evaluatable->False],
+Cell[12026, 423, 150, 4, 43, "Input"],
+
+Cell[CellGroupData[{
+Cell[12201, 431, 154, 3, 47, "Input"],
+Cell[12358, 436, 67, 1, 47, "Output"]
+}, Open  ]],
+Cell[12440, 440, 150, 4, 43, "Input"],
+
+Cell[CellGroupData[{
+Cell[12615, 448, 154, 3, 47, "Input"],
+Cell[12772, 453, 67, 1, 47, "Output"]
+}, Open  ]],
+Cell[12854, 457, 199, 4, 43, "Input"],
+
+Cell[CellGroupData[{
+Cell[13078, 465, 154, 3, 47, "Input"],
+Cell[13235, 470, 88, 1, 47, "Output"]
+}, Open  ]],
+Cell[13338, 474, 199, 4, 43, "Input"],
+
+Cell[CellGroupData[{
+Cell[13562, 482, 154, 3, 47, "Input"],
+Cell[13719, 487, 88, 1, 47, "Output"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[13856, 494, 112, 2, 47, "Section",
+  Evaluatable->False],
+
+Cell[CellGroupData[{
+Cell[13993, 500, 108, 2, 27, "Input"],
+Cell[14104, 504, 73, 1, 27, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[14214, 510, 108, 2, 27, "Input"],
+Cell[14325, 514, 73, 1, 27, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[14435, 520, 95, 2, 27, "Input"],
+Cell[14533, 524, 62, 1, 27, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[14632, 530, 95, 2, 27, "Input"],
+Cell[14730, 534, 177, 3, 39, "Message"],
+Cell[14910, 539, 62, 1, 27, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[15009, 545, 173, 3, 43, "Input"],
+Cell[15185, 550, 254, 5, 95, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[15476, 560, 290, 5, 75, "Input"],
+Cell[15769, 567, 686, 13, 266, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[16492, 585, 121, 2, 45, "Subsection",
+  Evaluatable->False],
+
+Cell[CellGroupData[{
+Cell[16638, 591, 475, 10, 115, "Input"],
+Cell[17116, 603, 175, 3, 39, "Message"],
+Cell[17294, 608, 1081, 21, 397, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[18412, 634, 95, 2, 27, "Input"],
+Cell[18510, 638, 192, 3, 91, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[18739, 646, 99, 2, 27, "Input"],
+Cell[18841, 650, 76, 1, 47, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[18954, 656, 99, 2, 27, "Input"],
+Cell[19056, 660, 72, 1, 47, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[19165, 666, 99, 2, 27, "Input"],
+Cell[19267, 670, 73, 1, 50, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[19377, 676, 99, 2, 27, "Input"],
+Cell[19479, 680, 69, 1, 50, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[19585, 686, 475, 10, 115, "Input"],
+Cell[20063, 698, 1076, 20, 382, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[21176, 723, 95, 2, 27, "Input"],
+Cell[21274, 727, 192, 3, 91, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[21503, 735, 99, 2, 27, "Input"],
+Cell[21605, 739, 73, 1, 47, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[21715, 745, 99, 2, 27, "Input"],
+Cell[21817, 749, 69, 1, 47, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[21923, 755, 99, 2, 27, "Input"],
+Cell[22025, 759, 76, 1, 50, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[22138, 765, 99, 2, 27, "Input"],
+Cell[22240, 769, 72, 1, 50, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[22349, 775, 720, 11, 154, "Subsubsection",
+  Evaluatable->False],
+Cell[23072, 788, 90, 2, 27, "Input"],
+
+Cell[CellGroupData[{
+Cell[23187, 794, 527, 10, 123, "Input"],
+Cell[23717, 806, 173, 3, 39, "Message"],
+Cell[23893, 811, 174, 3, 39, "Message"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[24116, 820, 390, 7, 90, "Subsubsection",
+  Evaluatable->False],
+Cell[24509, 829, 87, 2, 27, "Input"],
+Cell[24599, 833, 524, 10, 123, "Input"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[25160, 848, 192, 4, 58, "Subsubsection",
+  Evaluatable->False],
+Cell[25355, 854, 531, 10, 123, "Input"],
+
+Cell[CellGroupData[{
+Cell[25911, 868, 156, 4, 43, "Input"],
+Cell[26070, 874, 102, 2, 27, "Output"]
+}, Open  ]],
+Cell[26187, 879, 329, 7, 68, "Input"],
+
+Cell[CellGroupData[{
+Cell[26541, 890, 186, 4, 27, "Input"],
+Cell[26730, 896, 66, 1, 47, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[26833, 902, 117, 2, 34, "Input"],
+Cell[26953, 906, 35, 1, 27, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[27025, 912, 117, 2, 34, "Input"],
+Cell[27145, 916, 41, 1, 32, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[27223, 922, 192, 4, 28, "Input"],
+Cell[27418, 928, 59, 1, 47, "Output"]
+}, Open  ]]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[27538, 936, 263, 5, 79, "Subsection",
+  Evaluatable->False],
+
+Cell[CellGroupData[{
+Cell[27826, 945, 159, 3, 43, "Input"],
+Cell[27988, 950, 175, 3, 39, "Message"]
+}, Open  ]],
+Cell[28178, 956, 159, 3, 43, "Input"],
+Cell[28340, 961, 174, 3, 59, "Input"],
+Cell[28517, 966, 172, 3, 59, "Input"],
+
+Cell[CellGroupData[{
+Cell[28714, 973, 162, 4, 47, "Input"],
+Cell[28879, 979, 52, 1, 47, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[28968, 985, 162, 4, 47, "Input"],
+Cell[29133, 991, 52, 1, 47, "Output"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[29234, 998, 263, 5, 79, "Subsection",
+  Evaluatable->False],
+
+Cell[CellGroupData[{
+Cell[29522, 1007, 159, 3, 43, "Input"],
+Cell[29684, 1012, 177, 3, 39, "Message"]
+}, Open  ]],
+Cell[29876, 1018, 159, 3, 43, "Input"],
+Cell[30038, 1023, 174, 3, 59, "Input"],
+Cell[30215, 1028, 172, 3, 59, "Input"],
+
+Cell[CellGroupData[{
+Cell[30412, 1035, 162, 4, 47, "Input"],
+Cell[30577, 1041, 52, 1, 47, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[30666, 1047, 162, 4, 47, "Input"],
+Cell[30831, 1053, 52, 1, 47, "Output"]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[30932, 1060, 127, 2, 45, "Subsection",
+  Evaluatable->False],
+Cell[31062, 1064, 123, 3, 47, "Input"],
+Cell[31188, 1069, 137, 3, 47, "Input"],
+
+Cell[CellGroupData[{
+Cell[31350, 1076, 150, 4, 47, "Input"],
+Cell[31503, 1082, 52, 1, 47, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[31592, 1088, 123, 3, 50, "Input"],
+Cell[31718, 1093, 177, 3, 39, "Message"]
+}, Open  ]],
+Cell[31910, 1099, 137, 3, 50, "Input"],
+
+Cell[CellGroupData[{
+Cell[32072, 1106, 150, 4, 47, "Input"],
+Cell[32225, 1112, 52, 1, 47, "Output"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[32314, 1118, 312, 7, 107, "Input"],
+Cell[32629, 1127, 176, 3, 39, "Message"],
+Cell[32808, 1132, 181, 3, 39, "Message"],
+Cell[32992, 1137, 176, 3, 39, "Message"],
+Cell[33171, 1142, 181, 3, 39, "Message"],
+Cell[33355, 1147, 181, 3, 39, "Message"],
+Cell[33539, 1152, 160, 3, 39, "Message"],
+Cell[33702, 1157, 177, 3, 39, "Message"],
+Cell[33882, 1162, 161, 3, 39, "Message"],
+Cell[34046, 1167, 126, 2, 23, "Message"]
+}, Open  ]]
+}, Open  ]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[34233, 1176, 116, 2, 47, "Section",
+  Evaluatable->False],
+Cell[34352, 1180, 469, 10, 115, "Input"],
+Cell[34824, 1192, 96, 2, 27, "Input"],
+
+Cell[CellGroupData[{
+Cell[34945, 1198, 114, 2, 45, "Subsection",
+  Evaluatable->False],
+Cell[35062, 1202, 113, 2, 27, "Input"],
+Cell[35178, 1206, 106, 2, 27, "Input"],
+Cell[35287, 1210, 116, 2, 27, "Input"],
+Cell[35406, 1214, 1004, 16, 203, "Input"],
+Cell[36413, 1232, 1050, 17, 203, "Input"],
+Cell[37466, 1251, 1066, 18, 203, "Input"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+Cell[38569, 1274, 152, 4, 45, "Subsection",
+  Evaluatable->False],
+Cell[38724, 1280, 83, 2, 27, "Input"],
+Cell[38810, 1284, 579, 10, 123, "Input"],
+Cell[39392, 1296, 74, 2, 27, "Input"],
+Cell[39469, 1300, 78, 2, 27, "Input"],
+Cell[39550, 1304, 535, 12, 155, "Input"],
+Cell[40088, 1318, 110, 2, 27, "Input"],
+Cell[40201, 1322, 113, 2, 27, "Input"],
+Cell[40317, 1326, 74, 2, 27, "Input"],
+Cell[40394, 1330, 120, 3, 27, "Input"],
+Cell[40517, 1335, 73, 2, 27, "Input"],
+Cell[40593, 1339, 168, 4, 43, "Input"]
+}, Open  ]]
+}, Open  ]]
+}
+]
+*)
+
+
+
+
+(***********************************************************************
+End of Mathematica Notebook file.
+***********************************************************************)
+

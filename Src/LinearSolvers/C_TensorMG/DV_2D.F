@@ -128,16 +128,25 @@ c     :::  get expressions for appropriate derivatives
 
             dudyn = (-U(i,j,1) + U(i,1 + j,1))/hy
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
-            dudye = (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + U(1 + i,1 + j,1))/(4*hy)
-            dudyw = (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + U(i,1 + j,1))/(4*hy)
+            dudye =         (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + 
+     -    U(1 + i,1 + j,1))/(4.*hy)
+            dudyw =         (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + 
+     -    U(i,1 + j,1))/(4.*hy)
 
-            dvdxn = (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + U(1 + i,1 + j,2))/(4*hx)
-            dvdxs = (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + U(1 + i,j,2))/(4*hx)
+            dvdxn =         (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + 
+     -    U(1 + i,1 + j,2))/(4.*hx)
+            dvdxs =         (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + 
+     -    U(1 + i,j,2))/(4.*hx)
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            out(i,j,1) = -(beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
-            out(i,j,2) = -(beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + (dudye + dvdxe)*muX(1 + i,j)) + hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,2)*u(i,j,2)
+            out(i,j,1) =         -((beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + 
+     -         hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j))
+     -         ))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
+            out(i,j,2) =         -((beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + 
+     -            (dudye + dvdxe)*muX(1 + i,j)) + 
+     -         hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j))))/(hx*hy)) + 
+     -  alpha*a(i,j,2)*u(i,j,2)
          enddo
       enddo
 
@@ -156,24 +165,36 @@ c     :::  get expressions for appropriate derivatives
 
             dudyn = (-U(i,j,1) + U(i,1 + j,1))/hy
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
-            if( (maskn(i,1 + j).gt.0).or.(maskn(1 + i,1 + j).gt.0) ) then
-               dudye = ((U(i,-2 + j,1) - 4*U(i,-1 + j,1) + 3*U(i,j,1))/(2*hy) + (U(1 + i,-2 + j,1) - 4*U(1 + i,-1 + j,1) + 3*U(1 + i,j,1))/(2*hy))/2
+            if( maskn(i,1 + j).gt.0.or.maskn(1 + i,1 + j).gt.0 ) then
+               dudye =         ((U(i,-2 + j,1) - 4*U(i,-1 + j,1) + 3*U(i,j,1))/(2.*hy) + 
+     -    (U(1 + i,-2 + j,1) - 4*U(1 + i,-1 + j,1) + 3*U(1 + i,j,1))/(2.*hy))/
+     -  2.
             else
-               dudye = (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + U(1 + i,1 + j,1))/(4*hy)
+               dudye =         (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + 
+     -    U(1 + i,1 + j,1))/(4.*hy)
             endif
-            if( (maskn(-1 + i,1 + j).gt.0).or.(maskn(i,1 + j).gt.0) ) then
-               dudyw = ((U(-1 + i,-2 + j,1) - 4*U(-1 + i,-1 + j,1) + 3*U(-1 + i,j,1))/(2*hy) + (U(i,-2 + j,1) - 4*U(i,-1 + j,1) + 3*U(i,j,1))/(2*hy))/2
+            if( maskn(-1 + i,1 + j).gt.0.or.maskn(i,1 + j).gt.0 ) then
+               dudyw =         ((U(-1 + i,-2 + j,1) - 4*U(-1 + i,-1 + j,1) + 3*U(-1 + i,j,1))/
+     -     (2.*hy) + (U(i,-2 + j,1) - 4*U(i,-1 + j,1) + 3*U(i,j,1))/(2.*hy))/
+     -  2.
             else
-               dudyw = (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + U(i,1 + j,1))/(4*hy)
+               dudyw =         (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + 
+     -    U(i,1 + j,1))/(4.*hy)
             endif
 
             dvdxn = trandern(i,j+1,2)
-            dvdxs = (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + U(1 + i,j,2))/(4*hx)
+            dvdxs =         (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + 
+     -    U(1 + i,j,2))/(4.*hx)
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            out(i,j,1) = -(beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
-            out(i,j,2) = -(beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + (dudye + dvdxe)*muX(1 + i,j)) + hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,2)*u(i,j,2)
+            out(i,j,1) =         -((beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + 
+     -         hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j))
+     -         ))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
+            out(i,j,2) =         -((beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + 
+     -            (dudye + dvdxe)*muX(1 + i,j)) + 
+     -         hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j))))/(hx*hy)) + 
+     -  alpha*a(i,j,2)*u(i,j,2)
          enddo
 
 c ::: case 2b south side
@@ -190,24 +211,35 @@ c     :::  get expressions for appropriate derivatives
 
             dudyn = (-U(i,j,1) + U(i,1 + j,1))/hy
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
-            if( (masks(i,-1 + j).gt.0).or.(masks(1 + i,-1 + j).gt.0) ) then
-               dudye = ((-3*U(i,j,1) + 4*U(i,1 + j,1) - U(i,2 + j,1))/(2*hy) + (-3*U(1 + i,j,1) + 4*U(1 + i,1 + j,1) - U(1 + i,2 + j,1))/(2*hy))/2
+            if( masks(i,-1 + j).gt.0.or.masks(1 + i,-1 + j).gt.0 ) then
+               dudye =         ((-3*U(i,j,1) + 4*U(i,1 + j,1) - U(i,2 + j,1))/(2.*hy) + 
+     -    (-3*U(1 + i,j,1) + 4*U(1 + i,1 + j,1) - U(1 + i,2 + j,1))/(2.*hy))/
+     -  2.
             else
-               dudye = (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + U(1 + i,1 + j,1))/(4*hy)
+               dudye =         (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + 
+     -    U(1 + i,1 + j,1))/(4.*hy)
             endif
-            if( (masks(-1 + i,-1 + j).gt.0).or.(masks(i,-1 + j).gt.0) ) then
-               dudyw = ((-3*U(-1 + i,j,1) + 4*U(-1 + i,1 + j,1) - U(-1 + i,2 + j,1))/(2*hy) + (-3*U(i,j,1) + 4*U(i,1 + j,1) - U(i,2 + j,1))/(2*hy))/2
+            if( masks(-1 + i,-1 + j).gt.0.or.masks(i,-1 + j).gt.0 ) then
+               dudyw =         ((-3*U(-1 + i,j,1) + 4*U(-1 + i,1 + j,1) - U(-1 + i,2 + j,1))/
+     -     (2.*hy) + (-3*U(i,j,1) + 4*U(i,1 + j,1) - U(i,2 + j,1))/(2.*hy))/2.
             else
-               dudyw = (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + U(i,1 + j,1))/(4*hy)
+               dudyw =         (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + 
+     -    U(i,1 + j,1))/(4.*hy)
             endif
 
-            dvdxn = (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + U(1 + i,1 + j,2))/(4*hx)
+            dvdxn =         (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + 
+     -    U(1 + i,1 + j,2))/(4.*hx)
             dvdxs = tranders(i,j-1,2)
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            out(i,j,1) = -(beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
-            out(i,j,2) = -(beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + (dudye + dvdxe)*muX(1 + i,j)) + hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,2)*u(i,j,2)
+            out(i,j,1) =         -((beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + 
+     -         hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j))
+     -         ))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
+            out(i,j,2) =         -((beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + 
+     -            (dudye + dvdxe)*muX(1 + i,j)) + 
+     -         hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j))))/(hx*hy)) + 
+     -  alpha*a(i,j,2)*u(i,j,2)
          enddo
 
 
@@ -225,24 +257,35 @@ c     :::  get expressions for appropriate derivatives
 
             dudyn = (-U(i,j,1) + U(i,1 + j,1))/hy
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
-            dudye = (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + U(1 + i,1 + j,1))/(4*hy)
+            dudye =         (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + 
+     -    U(1 + i,1 + j,1))/(4.*hy)
             dudyw = tranderw(i-1,j,1)
 
-            if( (maskw(-1 + i,j).gt.0).or.(maskw(-1 + i,1 + j).gt.0) ) then
-               dvdxn = ((-3*U(i,j,2) + 4*U(1 + i,j,2) - U(2 + i,j,2))/(2*hx) + (-3*U(i,1 + j,2) + 4*U(1 + i,1 + j,2) - U(2 + i,1 + j,2))/(2*hx))/2
+            if( maskw(-1 + i,j).gt.0.or.maskw(-1 + i,1 + j).gt.0 ) then
+               dvdxn =         ((-3*U(i,j,2) + 4*U(1 + i,j,2) - U(2 + i,j,2))/(2.*hx) + 
+     -    (-3*U(i,1 + j,2) + 4*U(1 + i,1 + j,2) - U(2 + i,1 + j,2))/(2.*hx))/
+     -  2.
             else
-               dvdxn = (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + U(1 + i,1 + j,2))/(4*hx)
+               dvdxn =         (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + 
+     -    U(1 + i,1 + j,2))/(4.*hx)
             endif
-            if( (maskw(-1 + i,-1 + j).gt.0).or.(maskw(-1 + i,j).gt.0) ) then
-               dvdxs = ((-3*U(i,-1 + j,2) + 4*U(1 + i,-1 + j,2) - U(2 + i,-1 + j,2))/(2*hx) + (-3*U(i,j,2) + 4*U(1 + i,j,2) - U(2 + i,j,2))/(2*hx))/2
+            if( maskw(-1 + i,-1 + j).gt.0.or.maskw(-1 + i,j).gt.0 ) then
+               dvdxs =         ((-3*U(i,-1 + j,2) + 4*U(1 + i,-1 + j,2) - U(2 + i,-1 + j,2))/
+     -     (2.*hx) + (-3*U(i,j,2) + 4*U(1 + i,j,2) - U(2 + i,j,2))/(2.*hx))/2.
             else
-               dvdxs = (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + U(1 + i,j,2))/(4*hx)
+               dvdxs =         (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + 
+     -    U(1 + i,j,2))/(4.*hx)
             endif
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            out(i,j,1) = -(beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
-            out(i,j,2) = -(beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + (dudye + dvdxe)*muX(1 + i,j)) + hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,2)*u(i,j,2)
+            out(i,j,1) =         -((beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + 
+     -         hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j))
+     -         ))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
+            out(i,j,2) =         -((beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + 
+     -            (dudye + dvdxe)*muX(1 + i,j)) + 
+     -         hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j))))/(hx*hy)) + 
+     -  alpha*a(i,j,2)*u(i,j,2)
       enddo
 
 c ::: case 2d: east side story
@@ -260,23 +303,35 @@ c     :::  get expressions for appropriate derivatives
             dudyn = (-U(i,j,1) + U(i,1 + j,1))/hy
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
             dudye = trandere(i+1,j,1)
-            dudyw = (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + U(i,1 + j,1))/(4*hy)
+            dudyw =         (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + 
+     -    U(i,1 + j,1))/(4.*hy)
 
-            if( (maske(1 + i,j).gt.0).or.(maske(1 + i,1 + j).gt.0) ) then
-               dvdxn = ((U(-2 + i,j,2) - 4*U(-1 + i,j,2) + 3*U(i,j,2))/(2*hx) + (U(-2 + i,1 + j,2) - 4*U(-1 + i,1 + j,2) + 3*U(i,1 + j,2))/(2*hx))/2
+            if( maske(1 + i,j).gt.0.or.maske(1 + i,1 + j).gt.0 ) then
+               dvdxn =         ((U(-2 + i,j,2) - 4*U(-1 + i,j,2) + 3*U(i,j,2))/(2.*hx) + 
+     -    (U(-2 + i,1 + j,2) - 4*U(-1 + i,1 + j,2) + 3*U(i,1 + j,2))/(2.*hx))/
+     -  2.
             else
-               dvdxn = (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + U(1 + i,1 + j,2))/(4*hx)
+               dvdxn =         (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + 
+     -    U(1 + i,1 + j,2))/(4.*hx)
             endif
-            if( (maske(1 + i,-1 + j).gt.0).or.(maske(1 + i,j).gt.0) ) then
-               dvdxs = ((U(-2 + i,-1 + j,2) - 4*U(-1 + i,-1 + j,2) + 3*U(i,-1 + j,2))/(2*hx) + (U(-2 + i,j,2) - 4*U(-1 + i,j,2) + 3*U(i,j,2))/(2*hx))/2
+            if( maske(1 + i,-1 + j).gt.0.or.maske(1 + i,j).gt.0 ) then
+               dvdxs =         ((U(-2 + i,-1 + j,2) - 4*U(-1 + i,-1 + j,2) + 3*U(i,-1 + j,2))/
+     -     (2.*hx) + (U(-2 + i,j,2) - 4*U(-1 + i,j,2) + 3*U(i,j,2))/(2.*hx))/
+     -  2.
             else
-               dvdxs = (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + U(1 + i,j,2))/(4*hx)
+               dvdxs =         (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + 
+     -    U(1 + i,j,2))/(4.*hx)
             endif
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            out(i,j,1) = -(beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
-            out(i,j,2) = -(beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + (dudye + dvdxe)*muX(1 + i,j)) + hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,2)*u(i,j,2)
+            out(i,j,1) =         -((beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + 
+     -         hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j))
+     -         ))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
+            out(i,j,2) =         -((beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + 
+     -            (dudye + dvdxe)*muX(1 + i,j)) + 
+     -         hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j))))/(hx*hy)) + 
+     -  alpha*a(i,j,2)*u(i,j,2)
          enddo
 
 c ::: case 3a: north-east corner
@@ -294,23 +349,34 @@ c     :::  get expressions for appropriate derivatives
             dudyn = (-U(i,j,1) + U(i,1 + j,1))/hy
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
             dudye = trandere(i+1,j,1)
-            if( (maskn(-1 + i,1 + j).gt.0).or.(maskn(i,1 + j).gt.0) ) then
-               dudyw = ((U(-1 + i,-2 + j,1) - 4*U(-1 + i,-1 + j,1) + 3*U(-1 + i,j,1))/(2*hy) + (U(i,-2 + j,1) - 4*U(i,-1 + j,1) + 3*U(i,j,1))/(2*hy))/2
+            if( maskn(-1 + i,1 + j).gt.0.or.maskn(i,1 + j).gt.0 ) then
+               dudyw =         ((U(-1 + i,-2 + j,1) - 4*U(-1 + i,-1 + j,1) + 3*U(-1 + i,j,1))/
+     -     (2.*hy) + (U(i,-2 + j,1) - 4*U(i,-1 + j,1) + 3*U(i,j,1))/(2.*hy))/
+     -  2.
             else
-               dudyw = (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + U(i,1 + j,1))/(4*hy)
+               dudyw =         (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + 
+     -    U(i,1 + j,1))/(4.*hy)
             endif
 
             dvdxn = trandern(i,j+1,2)
-            if( (maske(1 + i,-1 + j).gt.0).or.(maske(1 + i,j).gt.0) ) then
-               dvdxs = ((U(-2 + i,-1 + j,2) - 4*U(-1 + i,-1 + j,2) + 3*U(i,-1 + j,2))/(2*hx) + (U(-2 + i,j,2) - 4*U(-1 + i,j,2) + 3*U(i,j,2))/(2*hx))/2
+            if( maske(1 + i,-1 + j).gt.0.or.maske(1 + i,j).gt.0 ) then
+               dvdxs =         ((U(-2 + i,-1 + j,2) - 4*U(-1 + i,-1 + j,2) + 3*U(i,-1 + j,2))/
+     -     (2.*hx) + (U(-2 + i,j,2) - 4*U(-1 + i,j,2) + 3*U(i,j,2))/(2.*hx))/
+     -  2.
             else
-               dvdxs = (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + U(1 + i,j,2))/(4*hx)
+               dvdxs =         (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + 
+     -    U(1 + i,j,2))/(4.*hx)
             endif
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            out(i,j,1) = -(beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
-            out(i,j,2) = -(beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + (dudye + dvdxe)*muX(1 + i,j)) + hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,2)*u(i,j,2)
+            out(i,j,1) =         -((beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + 
+     -         hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j))
+     -         ))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
+            out(i,j,2) =         -((beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + 
+     -            (dudye + dvdxe)*muX(1 + i,j)) + 
+     -         hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j))))/(hx*hy)) + 
+     -  alpha*a(i,j,2)*u(i,j,2)
 
 c ::: case 3b: south-east corner, plus i, minus j, plus i, plus j
 c ::: Null
@@ -326,23 +392,33 @@ c     :::  get expressions for appropriate derivatives
             dudyn = (-U(i,j,1) + U(i,1 + j,1))/hy
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
             dudye = trandere(i+1,j,1)
-            if( (masks(-1 + i,-1 + j).gt.0).or.(masks(i,-1 + j).gt.0) ) then 
-               dudyw = ((-3*U(-1 + i,j,1) + 4*U(-1 + i,1 + j,1) - U(-1 + i,2 + j,1))/(2*hy) + (-3*U(i,j,1) + 4*U(i,1 + j,1) - U(i,2 + j,1))/(2*hy))/2
+            if( masks(-1 + i,-1 + j).gt.0.or.masks(i,-1 + j).gt.0 ) then 
+               dudyw =         ((-3*U(-1 + i,j,1) + 4*U(-1 + i,1 + j,1) - U(-1 + i,2 + j,1))/
+     -     (2.*hy) + (-3*U(i,j,1) + 4*U(i,1 + j,1) - U(i,2 + j,1))/(2.*hy))/2.
             else
-               dudyw = (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + U(i,1 + j,1))/(4*hy)
+               dudyw =         (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + 
+     -    U(i,1 + j,1))/(4.*hy)
             endif
 
-            if( (maske(1 + i,j).gt.0).or.(maske(1 + i,1 + j).gt.0) ) then
-               dvdxn = ((U(-2 + i,j,2) - 4*U(-1 + i,j,2) + 3*U(i,j,2))/(2*hx) + (U(-2 + i,1 + j,2) - 4*U(-1 + i,1 + j,2) + 3*U(i,1 + j,2))/(2*hx))/2 
+            if( maske(1 + i,j).gt.0.or.maske(1 + i,1 + j).gt.0 ) then
+               dvdxn =         ((U(-2 + i,j,2) - 4*U(-1 + i,j,2) + 3*U(i,j,2))/(2.*hx) + 
+     -    (U(-2 + i,1 + j,2) - 4*U(-1 + i,1 + j,2) + 3*U(i,1 + j,2))/(2.*hx))/
+     -  2. 
             else
-               dvdxn = (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + U(1 + i,1 + j,2))/(4*hx)
+               dvdxn =         (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + 
+     -    U(1 + i,1 + j,2))/(4.*hx)
             endif
             dvdxs = tranders(i,j-1,2)
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            out(i,j,1) = -(beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
-            out(i,j,2) = -(beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + (dudye + dvdxe)*muX(1 + i,j)) + hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,2)*u(i,j,2)
+            out(i,j,1) =         -((beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + 
+     -         hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j))
+     -         ))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
+            out(i,j,2) =         -((beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + 
+     -            (dudye + dvdxe)*muX(1 + i,j)) + 
+     -         hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j))))/(hx*hy)) + 
+     -  alpha*a(i,j,2)*u(i,j,2)
 
 c ::: case 3c: south-west corner, minus i, minus j
 c ::: Null
@@ -357,24 +433,35 @@ c     :::  get expressions for appropriate derivatives
 
             dudyn = (-U(i,j,1) + U(i,1 + j,1))/hy
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
-            if( (masks(i,-1 + j).gt.0).or.(masks(1 + i,-1 + j).gt.0) ) then
-               dudye = ((-3*U(i,j,1) + 4*U(i,1 + j,1) - U(i,2 + j,1))/(2*hy) + (-3*U(1 + i,j,1) + 4*U(1 + i,1 + j,1) - U(1 + i,2 + j,1))/(2*hy))/2
+            if( masks(i,-1 + j).gt.0.or.masks(1 + i,-1 + j).gt.0 ) then
+               dudye =         ((-3*U(i,j,1) + 4*U(i,1 + j,1) - U(i,2 + j,1))/(2.*hy) + 
+     -    (-3*U(1 + i,j,1) + 4*U(1 + i,1 + j,1) - U(1 + i,2 + j,1))/(2.*hy))/
+     -  2.
             else
-               dudye = (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + U(1 + i,1 + j,1))/(4*hy)
+               dudye =         (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + 
+     -    U(1 + i,1 + j,1))/(4.*hy)
             endif
             dudyw = tranderw(i-1,j,1)
 
-            if( (maskw(-1 + i,j).gt.0).or.(maskw(-1 + i,1 + j).gt.0) ) then
-               dvdxn = ((-3*U(i,j,2) + 4*U(1 + i,j,2) - U(2 + i,j,2))/(2*hx) + (-3*U(i,1 + j,2) + 4*U(1 + i,1 + j,2) - U(2 + i,1 + j,2))/(2*hx))/2
+            if( maskw(-1 + i,j).gt.0.or.maskw(-1 + i,1 + j).gt.0 ) then
+               dvdxn =         ((-3*U(i,j,2) + 4*U(1 + i,j,2) - U(2 + i,j,2))/(2.*hx) + 
+     -    (-3*U(i,1 + j,2) + 4*U(1 + i,1 + j,2) - U(2 + i,1 + j,2))/(2.*hx))/
+     -  2.
             else
-               dvdxn = (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + U(1 + i,1 + j,2))/(4*hx)
+               dvdxn =         (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + 
+     -    U(1 + i,1 + j,2))/(4.*hx)
             endif
             dvdxs = tranders(i,j-1,2)
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            out(i,j,1) = -(beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
-            out(i,j,2) = -(beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + (dudye + dvdxe)*muX(1 + i,j)) + hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,2)*u(i,j,2)
+            out(i,j,1) =         -((beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + 
+     -         hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j))
+     -         ))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
+            out(i,j,2) =         -((beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + 
+     -            (dudye + dvdxe)*muX(1 + i,j)) + 
+     -         hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j))))/(hx*hy)) + 
+     -  alpha*a(i,j,2)*u(i,j,2)
 
 c ::: case 3d: north-west corner, minus i, plus j
 c ::: Null
@@ -389,24 +476,34 @@ c     :::  get expressions for appropriate derivatives
 
             dudyn = (-U(i,j,1) + U(i,1 + j,1))/hy
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
-            if( (maskn(i,1 + j).gt.0).or.(maskn(1 + i,1 + j).gt.0) ) then
-               dudye = ((U(i,-2 + j,1) - 4*U(i,-1 + j,1) + 3*U(i,j,1))/(2*hy) + (U(1 + i,-2 + j,1) - 4*U(1 + i,-1 + j,1) + 3*U(1 + i,j,1))/(2*hy))/2
+            if( maskn(i,1 + j).gt.0.or.maskn(1 + i,1 + j).gt.0 ) then
+               dudye =         ((U(i,-2 + j,1) - 4*U(i,-1 + j,1) + 3*U(i,j,1))/(2.*hy) + 
+     -    (U(1 + i,-2 + j,1) - 4*U(1 + i,-1 + j,1) + 3*U(1 + i,j,1))/(2.*hy))/
+     -  2.
             else
-               dudye = (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + U(1 + i,1 + j,1))/(4*hy)
+               dudye =         (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + 
+     -    U(1 + i,1 + j,1))/(4.*hy)
             endif
             dudyw = tranderw(i-1,j,1)
 
             dvdxn = trandern(i,j+1,2)
-            if( (maskw(-1 + i,-1 + j).gt.0).or.(maskw(-1 + i,j).gt.0) ) then
-               dvdxs = ((-3*U(i,-1 + j,2) + 4*U(1 + i,-1 + j,2) - U(2 + i,-1 + j,2))/(2*hx) + (-3*U(i,j,2) + 4*U(1 + i,j,2) - U(2 + i,j,2))/(2*hx))/2
+            if( maskw(-1 + i,-1 + j).gt.0.or.maskw(-1 + i,j).gt.0 ) then
+               dvdxs =         ((-3*U(i,-1 + j,2) + 4*U(1 + i,-1 + j,2) - U(2 + i,-1 + j,2))/
+     -     (2.*hx) + (-3*U(i,j,2) + 4*U(1 + i,j,2) - U(2 + i,j,2))/(2.*hx))/2.
             else
-               dvdxs = (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + U(1 + i,j,2))/(4*hx)
+               dvdxs =         (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + 
+     -    U(1 + i,j,2))/(4.*hx)
             endif
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            out(i,j,1) = -(beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
-            out(i,j,2) = -(beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + (dudye + dvdxe)*muX(1 + i,j)) + hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,2)*u(i,j,2)
+            out(i,j,1) =         -((beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + 
+     -         hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j))
+     -         ))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
+            out(i,j,2) =         -((beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + 
+     -            (dudye + dvdxe)*muX(1 + i,j)) + 
+     -         hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j))))/(hx*hy)) + 
+     -  alpha*a(i,j,2)*u(i,j,2)
 
 
 
@@ -510,15 +607,17 @@ c     :::  get expressions for appropriate derivatives
             dvdys = (-U(i,-1 + j,2) + U(i,j,2))/hy
 
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
-            dudyw = (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + U(i,1 + j,1))/(4*hy)
+            dudyw =         (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + 
+     -    U(i,1 + j,1))/(4.*hy)
 
-            dvdxs = (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + U(1 + i,j,2))/(4*hx)
+            dvdxs =         (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + 
+     -    U(1 + i,j,2))/(4.*hx)
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            xflux(i,j,1) = 2*dudxw*muX(i,j)
-            xflux(i,j,2) = (dudyw + dvdxw)*muX(i,j)
-            yflux(i,j,1) = (dudys + dvdxs)*muY(i,j)
-            yflux(i,j,2) = 2*dvdys*muY(i,j)
+            xflux(i,j,1) = -(2*dudxw*muX(i,j))
+            xflux(i,j,2) = -((dudyw + dvdxw)*muX(i,j))
+            yflux(i,j,1) = -((dudys + dvdxs)*muY(i,j))
+            yflux(i,j,2) = -(2*dvdys*muY(i,j))
          enddo
       enddo
 
@@ -534,19 +633,22 @@ c     :::  get expressions for appropriate derivatives
             dvdyn = (-U(i,j,2) + U(i,1 + j,2))/hy
 
             dudyn = (-U(i,j,1) + U(i,1 + j,1))/hy
-            if( (maskn(-1 + i,1 + j).gt.0).or.(maskn(i,1 + j).gt.0) ) then
-               dudyw = ((U(-1 + i,-2 + j,1) - 4*U(-1 + i,-1 + j,1) + 3*U(-1 + i,j,1))/(2*hy) + (U(i,-2 + j,1) - 4*U(i,-1 + j,1) + 3*U(i,j,1))/(2*hy))/2
+            if( maskn(-1 + i,1 + j).gt.0.or.maskn(i,1 + j).gt.0 ) then
+               dudyw =         ((U(-1 + i,-2 + j,1) - 4*U(-1 + i,-1 + j,1) + 3*U(-1 + i,j,1))/
+     -     (2.*hy) + (U(i,-2 + j,1) - 4*U(i,-1 + j,1) + 3*U(i,j,1))/(2.*hy))/
+     -  2.
             else
-               dudyw = (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + U(i,1 + j,1))/(4*hy)
+               dudyw =         (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + 
+     -    U(i,1 + j,1))/(4.*hy)
             endif
 
             dvdxn = trandern(i,j+1,2)
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            xflux(i,j,1) = 2*dudxw*muX(i,j)
-            xflux(i,j,2) = (dudyw + dvdxw)*muX(i,j)
-            yflux(i,j+1,1) = (dudyn + dvdxn)*muY(i,1 + j)
-            yflux(i,j+1,2) = 2*dvdyn*muY(i,1 + j)
+            xflux(i,j,1) = -(2*dudxw*muX(i,j))
+            xflux(i,j,2) = -((dudyw + dvdxw)*muX(i,j))
+            yflux(i,j+1,1) = -((dudyn + dvdxn)*muY(i,1 + j))
+            yflux(i,j+1,2) = -(2*dvdyn*muY(i,1 + j))
          enddo
 
 c ::: case 2b south side
@@ -560,19 +662,21 @@ c     :::  get expressions for appropriate derivatives
             dvdys = (-U(i,-1 + j,2) + U(i,j,2))/hy
 
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
-            if( (masks(-1 + i,-1 + j).gt.0).or.(masks(i,-1 + j).gt.0) ) then
-               dudyw = ((-3*U(-1 + i,j,1) + 4*U(-1 + i,1 + j,1) - U(-1 + i,2 + j,1))/(2*hy) + (-3*U(i,j,1) + 4*U(i,1 + j,1) - U(i,2 + j,1))/(2*hy))/2
+            if( masks(-1 + i,-1 + j).gt.0.or.masks(i,-1 + j).gt.0 ) then
+               dudyw =         ((-3*U(-1 + i,j,1) + 4*U(-1 + i,1 + j,1) - U(-1 + i,2 + j,1))/
+     -     (2.*hy) + (-3*U(i,j,1) + 4*U(i,1 + j,1) - U(i,2 + j,1))/(2.*hy))/2.
             else
-               dudyw = (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + U(i,1 + j,1))/(4*hy)
+               dudyw =         (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + 
+     -    U(i,1 + j,1))/(4.*hy)
             endif
 
             dvdxs = tranders(i,j-1,2)
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            xflux(i,j,1) = 2*dudxw*muX(i,j)
-            xflux(i,j,2) = (dudyw + dvdxw)*muX(i,j)
-            yflux(i,j,1) = (dudys + dvdxs)*muY(i,j)
-            yflux(i,j,2) = 2*dvdys*muY(i,j)
+            xflux(i,j,1) = -(2*dudxw*muX(i,j))
+            xflux(i,j,2) = -((dudyw + dvdxw)*muX(i,j))
+            yflux(i,j,1) = -((dudys + dvdxs)*muY(i,j))
+            yflux(i,j,2) = -(2*dvdys*muY(i,j))
          enddo
 
 
@@ -589,17 +693,19 @@ c     :::  get expressions for appropriate derivatives
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
             dudyw = tranderw(i-1,j,1)
 
-            if( (maskw(-1 + i,-1 + j).gt.0).or.(maskw(-1 + i,j).gt.0) ) then
-               dvdxs = ((-3*U(i,-1 + j,2) + 4*U(1 + i,-1 + j,2) - U(2 + i,-1 + j,2))/(2*hx) + (-3*U(i,j,2) + 4*U(1 + i,j,2) - U(2 + i,j,2))/(2*hx))/2
+            if( maskw(-1 + i,-1 + j).gt.0.or.maskw(-1 + i,j).gt.0 ) then
+               dvdxs =         ((-3*U(i,-1 + j,2) + 4*U(1 + i,-1 + j,2) - U(2 + i,-1 + j,2))/
+     -     (2.*hx) + (-3*U(i,j,2) + 4*U(1 + i,j,2) - U(2 + i,j,2))/(2.*hx))/2.
             else
-               dvdxs = (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + U(1 + i,j,2))/(4*hx)
+               dvdxs =         (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + 
+     -    U(1 + i,j,2))/(4.*hx)
             endif
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            xflux(i,j,1) = 2*dudxw*muX(i,j)
-            xflux(i,j,2) = (dudyw + dvdxw)*muX(i,j)
-            yflux(i,j,1) = (dudys + dvdxs)*muY(i,j)
-            yflux(i,j,2) = 2*dvdys*muY(i,j)
+            xflux(i,j,1) = -(2*dudxw*muX(i,j))
+            xflux(i,j,2) = -((dudyw + dvdxw)*muX(i,j))
+            yflux(i,j,1) = -((dudys + dvdxs)*muY(i,j))
+            yflux(i,j,2) = -(2*dvdys*muY(i,j))
       enddo
 
 c ::: case 2d: east side story
@@ -615,17 +721,20 @@ c     :::  get expressions for appropriate derivatives
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
             dudye = trandere(i+1,j,1)
 
-            if( (maske(1 + i,-1 + j).gt.0).or.(maske(1 + i,j).gt.0) ) then
-               dvdxs = ((U(-2 + i,-1 + j,2) - 4*U(-1 + i,-1 + j,2) + 3*U(i,-1 + j,2))/(2*hx) + (U(-2 + i,j,2) - 4*U(-1 + i,j,2) + 3*U(i,j,2))/(2*hx))/2
+            if( maske(1 + i,-1 + j).gt.0.or.maske(1 + i,j).gt.0 ) then
+               dvdxs =         ((U(-2 + i,-1 + j,2) - 4*U(-1 + i,-1 + j,2) + 3*U(i,-1 + j,2))/
+     -     (2.*hx) + (U(-2 + i,j,2) - 4*U(-1 + i,j,2) + 3*U(i,j,2))/(2.*hx))/
+     -  2.
             else
-               dvdxs = (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + U(1 + i,j,2))/(4*hx)
+               dvdxs =         (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + 
+     -    U(1 + i,j,2))/(4.*hx)
             endif
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
 c     :::  evaluate expression
-            xflux(i+1,j,1) = 2*dudxe*muX(1 + i,j)
-            xflux(i+1,j,2) = (dudye + dvdxe)*muX(1 + i,j)
-            yflux(i,j,1) = (dudys + dvdxs)*muY(i,j)
-            yflux(i,j,2) = 2*dvdys*muY(i,j)
+            xflux(i+1,j,1) = -(2*dudxe*muX(1 + i,j))
+            xflux(i+1,j,2) = -((dudye + dvdxe)*muX(1 + i,j))
+            yflux(i,j,1) = -((dudys + dvdxs)*muY(i,j))
+            yflux(i,j,2) = -(2*dvdys*muY(i,j))
          enddo
 
 c ::: case 3a: north-east corner
@@ -643,29 +752,35 @@ c     :::  get expressions for appropriate derivatives
             dudyn = (-U(i,j,1) + U(i,1 + j,1))/hy
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
             dudye = trandere(i+1,j,1)
-            if( (maskn(-1 + i,1 + j).gt.0).or.(maskn(i,1 + j).gt.0) ) then
-               dudyw = ((U(-1 + i,-2 + j,1) - 4*U(-1 + i,-1 + j,1) + 3*U(-1 + i,j,1))/(2*hy) + (U(i,-2 + j,1) - 4*U(i,-1 + j,1) + 3*U(i,j,1))/(2*hy))/2
+            if( maskn(-1 + i,1 + j).gt.0.or.maskn(i,1 + j).gt.0 ) then
+               dudyw =         ((U(-1 + i,-2 + j,1) - 4*U(-1 + i,-1 + j,1) + 3*U(-1 + i,j,1))/
+     -     (2.*hy) + (U(i,-2 + j,1) - 4*U(i,-1 + j,1) + 3*U(i,j,1))/(2.*hy))/
+     -  2.
             else
-               dudyw = (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + U(i,1 + j,1))/(4*hy)
+               dudyw =         (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + 
+     -    U(i,1 + j,1))/(4.*hy)
             endif
 
             dvdxn = trandern(i,j+1,2)
-            if( (maske(1 + i,-1 + j).gt.0).or.(maske(1 + i,j).gt.0) ) then
-               dvdxs = ((U(-2 + i,-1 + j,2) - 4*U(-1 + i,-1 + j,2) + 3*U(i,-1 + j,2))/(2*hx) + (U(-2 + i,j,2) - 4*U(-1 + i,j,2) + 3*U(i,j,2))/(2*hx))/2
+            if( maske(1 + i,-1 + j).gt.0.or.maske(1 + i,j).gt.0 ) then
+               dvdxs =         ((U(-2 + i,-1 + j,2) - 4*U(-1 + i,-1 + j,2) + 3*U(i,-1 + j,2))/
+     -     (2.*hx) + (U(-2 + i,j,2) - 4*U(-1 + i,j,2) + 3*U(i,j,2))/(2.*hx))/
+     -  2.
             else
-               dvdxs = (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + U(1 + i,j,2))/(4*hx)
+               dvdxs =         (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + 
+     -    U(1 + i,j,2))/(4.*hx)
             endif
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            xflux(i,j,1) = 2*dudxw*muX(i,j)
-            xflux(i,j,2) = (dudyw + dvdxw)*muX(i,j)
-            xflux(i+1,j,1) = 2*dudxe*muX(1 + i,j)
-            xflux(i+1,j,2) = (dudye + dvdxe)*muX(1 + i,j)
-            yflux(i,j,1) = (dudys + dvdxs)*muY(i,j)
-            yflux(i,j,2) = 2*dvdys*muY(i,j)
-            yflux(i,j+1,1) = (dudyn + dvdxn)*muY(i,1 + j)
-            yflux(i,j+1,2) = 2*dvdyn*muY(i,1 + j)
+            xflux(i,j,1) = -(2*dudxw*muX(i,j))
+            xflux(i,j,2) = -((dudyw + dvdxw)*muX(i,j))
+            xflux(i+1,j,1) = -(2*dudxe*muX(1 + i,j))
+            xflux(i+1,j,2) = -((dudye + dvdxe)*muX(1 + i,j))
+            yflux(i,j,1) = -((dudys + dvdxs)*muY(i,j))
+            yflux(i,j,2) = -(2*dvdys*muY(i,j))
+            yflux(i,j+1,1) = -((dudyn + dvdxn)*muY(i,1 + j))
+            yflux(i,j+1,2) = -(2*dvdyn*muY(i,1 + j))
 
 c ::: case 3b: south-east corner, plus i, minus j, plus i, plus j
 c ::: Null
@@ -681,29 +796,34 @@ c     :::  get expressions for appropriate derivatives
             dudyn = (-U(i,j,1) + U(i,1 + j,1))/hy
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
             dudye = trandere(i+1,j,1)
-            if( (masks(-1 + i,-1 + j).gt.0).or.(masks(i,-1 + j).gt.0) ) then 
-               dudyw = ((-3*U(-1 + i,j,1) + 4*U(-1 + i,1 + j,1) - U(-1 + i,2 + j,1))/(2*hy) + (-3*U(i,j,1) + 4*U(i,1 + j,1) - U(i,2 + j,1))/(2*hy))/2
+            if( masks(-1 + i,-1 + j).gt.0.or.masks(i,-1 + j).gt.0 ) then 
+               dudyw =         ((-3*U(-1 + i,j,1) + 4*U(-1 + i,1 + j,1) - U(-1 + i,2 + j,1))/
+     -     (2.*hy) + (-3*U(i,j,1) + 4*U(i,1 + j,1) - U(i,2 + j,1))/(2.*hy))/2.
             else
-               dudyw = (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + U(i,1 + j,1))/(4*hy)
+               dudyw =         (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + 
+     -    U(i,1 + j,1))/(4.*hy)
             endif
 
-            if( (maske(1 + i,j).gt.0).or.(maske(1 + i,1 + j).gt.0) ) then
-               dvdxn = ((U(-2 + i,j,2) - 4*U(-1 + i,j,2) + 3*U(i,j,2))/(2*hx) + (U(-2 + i,1 + j,2) - 4*U(-1 + i,1 + j,2) + 3*U(i,1 + j,2))/(2*hx))/2 
+            if( maske(1 + i,j).gt.0.or.maske(1 + i,1 + j).gt.0 ) then
+               dvdxn =         ((U(-2 + i,j,2) - 4*U(-1 + i,j,2) + 3*U(i,j,2))/(2.*hx) + 
+     -    (U(-2 + i,1 + j,2) - 4*U(-1 + i,1 + j,2) + 3*U(i,1 + j,2))/(2.*hx))/
+     -  2. 
             else
-               dvdxn = (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + U(1 + i,1 + j,2))/(4*hx)
+               dvdxn =         (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + 
+     -    U(1 + i,1 + j,2))/(4.*hx)
             endif
             dvdxs = tranders(i,j-1,2)
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            xflux(i,j,1) = 2*dudxw*muX(i,j)
-            xflux(i,j,2) = (dudyw + dvdxw)*muX(i,j)
-            xflux(i+1,j,1) = 2*dudxe*muX(1 + i,j)
-            xflux(i+1,j,2) = (dudye + dvdxe)*muX(1 + i,j)
-            yflux(i,j,1) = (dudys + dvdxs)*muY(i,j)
-            yflux(i,j,2) = 2*dvdys*muY(i,j)
-            yflux(i,j+1,1) = (dudyn + dvdxn)*muY(i,1 + j)
-            yflux(i,j+1,2) = 2*dvdyn*muY(i,1 + j)
+            xflux(i,j,1) = -(2*dudxw*muX(i,j))
+            xflux(i,j,2) = -((dudyw + dvdxw)*muX(i,j))
+            xflux(i+1,j,1) = -(2*dudxe*muX(1 + i,j))
+            xflux(i+1,j,2) = -((dudye + dvdxe)*muX(1 + i,j))
+            yflux(i,j,1) = -((dudys + dvdxs)*muY(i,j))
+            yflux(i,j,2) = -(2*dvdys*muY(i,j))
+            yflux(i,j+1,1) = -((dudyn + dvdxn)*muY(i,1 + j))
+            yflux(i,j+1,2) = -(2*dvdyn*muY(i,1 + j))
 
 c ::: case 3c: south-west corner, minus i, minus j
 c ::: Null
@@ -718,30 +838,36 @@ c     :::  get expressions for appropriate derivatives
 
             dudyn = (-U(i,j,1) + U(i,1 + j,1))/hy
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
-            if( (masks(i,-1 + j).gt.0).or.(masks(1 + i,-1 + j).gt.0) ) then
-               dudye = ((-3*U(i,j,1) + 4*U(i,1 + j,1) - U(i,2 + j,1))/(2*hy) + (-3*U(1 + i,j,1) + 4*U(1 + i,1 + j,1) - U(1 + i,2 + j,1))/(2*hy))/2
+            if( masks(i,-1 + j).gt.0.or.masks(1 + i,-1 + j).gt.0 ) then
+               dudye =         ((-3*U(i,j,1) + 4*U(i,1 + j,1) - U(i,2 + j,1))/(2.*hy) + 
+     -    (-3*U(1 + i,j,1) + 4*U(1 + i,1 + j,1) - U(1 + i,2 + j,1))/(2.*hy))/
+     -  2.
             else
-               dudye = (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + U(1 + i,1 + j,1))/(4*hy)
+               dudye =         (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + 
+     -    U(1 + i,1 + j,1))/(4.*hy)
             endif
             dudyw = tranderw(i-1,j,1)
 
-            if( (maskw(-1 + i,j).gt.0).or.(maskw(-1 + i,1 + j).gt.0) ) then
-               dvdxn = ((-3*U(i,j,2) + 4*U(1 + i,j,2) - U(2 + i,j,2))/(2*hx) + (-3*U(i,1 + j,2) + 4*U(1 + i,1 + j,2) - U(2 + i,1 + j,2))/(2*hx))/2
+            if( maskw(-1 + i,j).gt.0.or.maskw(-1 + i,1 + j).gt.0 ) then
+               dvdxn =         ((-3*U(i,j,2) + 4*U(1 + i,j,2) - U(2 + i,j,2))/(2.*hx) + 
+     -    (-3*U(i,1 + j,2) + 4*U(1 + i,1 + j,2) - U(2 + i,1 + j,2))/(2.*hx))/
+     -  2.
             else
-               dvdxn = (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + U(1 + i,1 + j,2))/(4*hx)
+               dvdxn =         (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + 
+     -    U(1 + i,1 + j,2))/(4.*hx)
             endif
             dvdxs = tranders(i,j-1,2)
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            xflux(i,j,1) = 2*dudxw*muX(i,j)
-            xflux(i,j,2) = (dudyw + dvdxw)*muX(i,j)
-            xflux(i+1,j,1) = 2*dudxe*muX(1 + i,j)
-            xflux(i+1,j,2) = (dudye + dvdxe)*muX(1 + i,j)
-            yflux(i,j,1) = (dudys + dvdxs)*muY(i,j)
-            yflux(i,j,2) = 2*dvdys*muY(i,j)
-            yflux(i,j+1,1) = (dudyn + dvdxn)*muY(i,1 + j)
-            yflux(i,j+1,2) = 2*dvdyn*muY(i,1 + j)
+            xflux(i,j,1) = -(2*dudxw*muX(i,j))
+            xflux(i,j,2) = -((dudyw + dvdxw)*muX(i,j))
+            xflux(i+1,j,1) = -(2*dudxe*muX(1 + i,j))
+            xflux(i+1,j,2) = -((dudye + dvdxe)*muX(1 + i,j))
+            yflux(i,j,1) = -((dudys + dvdxs)*muY(i,j))
+            yflux(i,j,2) = -(2*dvdys*muY(i,j))
+            yflux(i,j+1,1) = -((dudyn + dvdxn)*muY(i,1 + j))
+            yflux(i,j+1,2) = -(2*dvdyn*muY(i,1 + j))
 
 c ::: case 3d: north-west corner, minus i, plus j
 c ::: Null
@@ -756,30 +882,35 @@ c     :::  get expressions for appropriate derivatives
 
             dudyn = (-U(i,j,1) + U(i,1 + j,1))/hy
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
-            if( (maskn(i,1 + j).gt.0).or.(maskn(1 + i,1 + j).gt.0) ) then
-               dudye = ((U(i,-2 + j,1) - 4*U(i,-1 + j,1) + 3*U(i,j,1))/(2*hy) + (U(1 + i,-2 + j,1) - 4*U(1 + i,-1 + j,1) + 3*U(1 + i,j,1))/(2*hy))/2
+            if( maskn(i,1 + j).gt.0.or.maskn(1 + i,1 + j).gt.0 ) then
+               dudye =         ((U(i,-2 + j,1) - 4*U(i,-1 + j,1) + 3*U(i,j,1))/(2.*hy) + 
+     -    (U(1 + i,-2 + j,1) - 4*U(1 + i,-1 + j,1) + 3*U(1 + i,j,1))/(2.*hy))/
+     -  2.
             else
-               dudye = (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + U(1 + i,1 + j,1))/(4*hy)
+               dudye =         (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + 
+     -    U(1 + i,1 + j,1))/(4.*hy)
             endif
             dudyw = tranderw(i-1,j,1)
 
             dvdxn = trandern(i,j+1,2)
-            if( (maskw(-1 + i,-1 + j).gt.0).or.(maskw(-1 + i,j).gt.0) ) then
-               dvdxs = ((-3*U(i,-1 + j,2) + 4*U(1 + i,-1 + j,2) - U(2 + i,-1 + j,2))/(2*hx) + (-3*U(i,j,2) + 4*U(1 + i,j,2) - U(2 + i,j,2))/(2*hx))/2
+            if( maskw(-1 + i,-1 + j).gt.0.or.maskw(-1 + i,j).gt.0 ) then
+               dvdxs =         ((-3*U(i,-1 + j,2) + 4*U(1 + i,-1 + j,2) - U(2 + i,-1 + j,2))/
+     -     (2.*hx) + (-3*U(i,j,2) + 4*U(1 + i,j,2) - U(2 + i,j,2))/(2.*hx))/2.
             else
-               dvdxs = (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + U(1 + i,j,2))/(4*hx)
+               dvdxs =         (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + 
+     -    U(1 + i,j,2))/(4.*hx)
             endif
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  evaluate expression
-            xflux(i,j,1) = 2*dudxw*muX(i,j)
-            xflux(i,j,2) = (dudyw + dvdxw)*muX(i,j)
-            xflux(i+1,j,1) = 2*dudxe*muX(1 + i,j)
-            xflux(i+1,j,2) = (dudye + dvdxe)*muX(1 + i,j)
-            yflux(i,j,1) = (dudys + dvdxs)*muY(i,j)
-            yflux(i,j,2) = 2*dvdys*muY(i,j)
-            yflux(i,j+1,1) = (dudyn + dvdxn)*muY(i,1 + j)
-            yflux(i,j+1,2) = 2*dvdyn*muY(i,1 + j)
+            xflux(i,j,1) = -(2*dudxw*muX(i,j))
+            xflux(i,j,2) = -((dudyw + dvdxw)*muX(i,j))
+            xflux(i+1,j,1) = -(2*dudxe*muX(1 + i,j))
+            xflux(i+1,j,2) = -((dudye + dvdxe)*muX(1 + i,j))
+            yflux(i,j,1) = -((dudys + dvdxs)*muY(i,j))
+            yflux(i,j,2) = -(2*dvdys*muY(i,j))
+            yflux(i,j+1,1) = -((dudyn + dvdxn)*muY(i,1 + j))
+            yflux(i,j+1,2) = -(2*dvdyn*muY(i,1 + j))
 
 
 
@@ -903,6 +1034,10 @@ c
       REAL_T coef(-1:maxmaxorder-2)
       REAL_T xInt
 c
+      logical False, True
+      parameter( False=.false.)
+      parameter( True=.true. )
+c
       is_dirichlet(i) = ( i .eq. LO_DIRICHLET   )
       is_neumann(i)   = ( i .eq. LO_NEUMANN )
       hx = h(1)
@@ -942,24 +1077,24 @@ c     :::::: Null
 c     :::::: interior part of left side
                i = lo(1)
                do j=lo(2)+1,hi(2)-1
-                  innder = (-U(i,-1 + j,n) + U(i,1 + j,n))/(2*hy)
+                  innder = (-U(i,-1 + j,n) + U(i,1 + j,n))/(2.*hy)
                   tander(i-1,j,n) = innder
                enddo
 c     :::::: now end points
 c     :::::: lower leftside
                j = lo(2)
                if( maskm(i,-1 + j).gt.0 ) then
-                    innder = (-3*U(i,j,n) + 4*U(i,1 + j,n) - U(i,2 + j,n))/(2*hy)
+                    innder = (-3*U(i,j,n) + 4*U(i,1 + j,n) - U(i,2 + j,n))/(2.*hy)
                else
-                   innder = (-U(i,-1 + j,n) + U(i,1 + j,n))/(2*hy)
+                   innder = (-U(i,-1 + j,n) + U(i,1 + j,n))/(2.*hy)
                endif
                tander(i-1,j,n) = innder
 c     :::::: upper left side
                 j = hi(2)
                 if( maskp(i,1 + j).gt.0 ) then
-                   innder = (U(i,-2 + j,n) - 4*U(i,-1 + j,n) + 3*U(i,j,n))/(2*hy)
+                   innder = (U(i,-2 + j,n) - 4*U(i,-1 + j,n) + 3*U(i,j,n))/(2.*hy)
                 else
-                   innder = (-U(i,-1 + j,n) + U(i,1 + j,n))/(2*hy)
+                   innder = (-U(i,-1 + j,n) + U(i,1 + j,n))/(2.*hy)
                 endif
                 tander(i-1,j,n) = innder
             else if (is_dirichlet(bct(n))) then
@@ -1005,15 +1140,15 @@ c     :::::: interior part of left side
                edgloc = 0.
                i = lo(1)
                do j=lo(2)+1,hi(2)-1
-                  if( (mask(-1 + i,-1 + j).eq.0).and.(mask(-1 + i,1 + j).eq.0) ) then
+                  if( mask(-1 + i,-1 + j).eq.0.and.mask(-1 + i,1 + j).eq.0 ) then
                      outloc = -0.5
-                     outder = (-U(-1 + i,-1 + j,n) + U(-1 + i,1 + j,n))/(2*hy)
-                  elseif( (mask(-1 + i,j).eq.0).and.(mask(-1 + i,1 + j).eq.0).and.(mask(-1 + i,2 + j).eq.0) ) then
+                     outder = (-U(-1 + i,-1 + j,n) + U(-1 + i,1 + j,n))/(2.*hy)
+                  elseif( mask(-1 + i,j).eq.0.and.mask(-1 + i,1 + j).eq.0.and.mask(-1 + i,2 + j).eq.0 ) then
                      outloc = -0.5
-                     outder = (-3*U(-1 + i,j,n) + 4*U(-1 + i,1 + j,n) - U(-1 + i,2 + j,n))/(2*hy)
-                  elseif( (mask(-1 + i,-2 + j).eq.0).and.(mask(-1 + i,-1 + j).eq.0).and.(mask(-1 + i,j).eq.0) ) then
+                     outder = (-3*U(-1 + i,j,n) + 4*U(-1 + i,1 + j,n) - U(-1 + i,2 + j,n))/(2.*hy)
+                  elseif( mask(-1 + i,-2 + j).eq.0.and.mask(-1 + i,-1 + j).eq.0.and.mask(-1 + i,j).eq.0 ) then
                      outloc = -0.5
-                     outder = (U(-1 + i,-2 + j,n) - 4*U(-1 + i,-1 + j,n) + 3*U(-1 + i,j,n))/(2*hy)
+                     outder = (U(-1 + i,-2 + j,n) - 4*U(-1 + i,-1 + j,n) + 3*U(-1 + i,j,n))/(2.*hy)
                   else
                      outloc = x(-1)
                      if( flagbc .eq. 1) then
@@ -1023,7 +1158,7 @@ c     :::::: interior part of left side
                      endif
                   endif
                   innloc = 0.5
-                  innder = (-U(i,-1 + j,n) + U(i,1 + j,n))/(2*hy)
+                  innder = (-U(i,-1 + j,n) + U(i,1 + j,n))/(2.*hy)
             
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   tander(i-1,j,n) = lambda*innder+(1-lambda)*outder
@@ -1031,12 +1166,12 @@ c     :::::: interior part of left side
 c     :::::: now end points
 c     :::::: lower leftside
                j = lo(2)
-               if( (mask(-1 + i,-1 + j).eq.0).and.(mask(-1 + i,1 + j).eq.0) ) then
+               if( mask(-1 + i,-1 + j).eq.0.and.mask(-1 + i,1 + j).eq.0 ) then
                    outloc = -0.5
-                   outder = (-U(-1 + i,-1 + j,n) + U(-1 + i,1 + j,n))/(2*hy)
-               elseif( (mask(-1 + i,j).eq.0).and.(mask(-1 + i,1 + j).eq.0).and.(mask(-1 + i,2 + j).eq.0) ) then
+                   outder = (-U(-1 + i,-1 + j,n) + U(-1 + i,1 + j,n))/(2.*hy)
+               elseif( mask(-1 + i,j).eq.0.and.mask(-1 + i,1 + j).eq.0.and.mask(-1 + i,2 + j).eq.0 ) then
                    outloc = -0.5
-                   outder = (-3*U(-1 + i,j,n) + 4*U(-1 + i,1 + j,n) - U(-1 + i,2 + j,n))/(2*hy)
+                   outder = (-3*U(-1 + i,j,n) + 4*U(-1 + i,1 + j,n) - U(-1 + i,2 + j,n))/(2.*hy)
                else
                    outloc = x(-1)
                    if( flagbc .eq. 1) then
@@ -1046,21 +1181,21 @@ c     :::::: lower leftside
                    endif
                endif
                if( maskm(i,-1 + j).gt.0 ) then
-                    innder = (-3*U(i,j,n) + 4*U(i,1 + j,n) - U(i,2 + j,n))/(2*hy)
+                    innder = (-3*U(i,j,n) + 4*U(i,1 + j,n) - U(i,2 + j,n))/(2.*hy)
                else
-                   innder = (-U(i,-1 + j,n) + U(i,1 + j,n))/(2*hy)
+                   innder = (-U(i,-1 + j,n) + U(i,1 + j,n))/(2.*hy)
                endif
                innloc = 0.5
                lambda = (edgloc-outloc)/(innloc-outloc)
                tander(i-1,j,n) = lambda*innder+(1-lambda)*outder
 c     :::::: upper left side
                 j = hi(2)
-                if( (mask(-1 + i,-1 + j).eq.0).and.(mask(-1 + i,1 + j).eq.0) ) then
+                if( mask(-1 + i,-1 + j).eq.0.and.mask(-1 + i,1 + j).eq.0 ) then
                    outloc = -0.5
-                   outder = (-U(-1 + i,-1 + j,n) + U(-1 + i,1 + j,n))/(2*hy)
-                elseif( (mask(-1 + i,-2 + j).eq.0).and.(mask(-1 + i,-1 + j).eq.0).and.(mask(-1 + i,j).eq.0) ) then
+                   outder = (-U(-1 + i,-1 + j,n) + U(-1 + i,1 + j,n))/(2.*hy)
+                elseif( mask(-1 + i,-2 + j).eq.0.and.mask(-1 + i,-1 + j).eq.0.and.mask(-1 + i,j).eq.0 ) then
                    outloc = -0.5
-                   outder = (U(-1 + i,-2 + j,n) - 4*U(-1 + i,-1 + j,n) + 3*U(-1 + i,j,n))/(2*hy)
+                   outder = (U(-1 + i,-2 + j,n) - 4*U(-1 + i,-1 + j,n) + 3*U(-1 + i,j,n))/(2.*hy)
                 else
                    outloc = x(-1)
                    if( flagbc .eq. 1) then
@@ -1070,9 +1205,9 @@ c     :::::: upper left side
                    endif
                 endif
                 if( maskp(i,1 + j).gt.0 ) then
-                   innder = (U(i,-2 + j,n) - 4*U(i,-1 + j,n) + 3*U(i,j,n))/(2*hy)
+                   innder = (U(i,-2 + j,n) - 4*U(i,-1 + j,n) + 3*U(i,j,n))/(2.*hy)
                 else
-                   innder = (-U(i,-1 + j,n) + U(i,1 + j,n))/(2*hy)
+                   innder = (-U(i,-1 + j,n) + U(i,1 + j,n))/(2.*hy)
                 endif
                 innloc = 0.5
                 lambda = (edgloc-outloc)/(innloc-outloc)
@@ -1122,24 +1257,24 @@ c     :::::: Null
 c     :::::: interior part of right side
                i = hi(1)
                do j=lo(2)+1,hi(2)-1
-                  innder = (-U(i,-1 + j,n) + U(i,1 + j,n))/(2*hy)
+                  innder = (-U(i,-1 + j,n) + U(i,1 + j,n))/(2.*hy)
                   tander(i+1,j,n) = innder
                enddo
 c :::::: now end points
 c :::::: lower right side
                j = lo(2)
                if( maskm(i,-1 + j).gt.0 ) then
-                  innder = (-3*U(i,j,n) + 4*U(i,1 + j,n) - U(i,2 + j,n))/(2*hy)
+                  innder = (-3*U(i,j,n) + 4*U(i,1 + j,n) - U(i,2 + j,n))/(2.*hy)
                else
-                  innder = (-U(i,-1 + j,n) + U(i,1 + j,n))/(2*hy)
+                  innder = (-U(i,-1 + j,n) + U(i,1 + j,n))/(2.*hy)
                endif
                tander(i+1,j,n) = innder
 c     :::::: upper right side
                j = hi(2)
                if( maskp(i,1 + j).gt.0 ) then
-                  innder = (U(i,-2 + j,n) - 4*U(i,-1 + j,n) + 3*U(i,j,n))/(2*hy)
+                  innder = (U(i,-2 + j,n) - 4*U(i,-1 + j,n) + 3*U(i,j,n))/(2.*hy)
                else
-                  innder = (-U(i,-1 + j,n) + U(i,1 + j,n))/(2*hy)
+                  innder = (-U(i,-1 + j,n) + U(i,1 + j,n))/(2.*hy)
                endif
                tander(i+1,j,n) = innder
             else if (is_dirichlet(bct(n))) then
@@ -1185,15 +1320,15 @@ c     :::::: interior part of right side
                edgloc = 0.
                i = hi(1)
                do j=lo(2)+1,hi(2)-1
-                  if( (mask(1 + i,-1 + j).eq.0).and.(mask(1 + i,1 + j).eq.0) ) then
+                  if( mask(1 + i,-1 + j).eq.0.and.mask(1 + i,1 + j).eq.0 ) then
                      outloc = -0.5
-                     outder = (-U(1 + i,-1 + j,n) + U(1 + i,1 + j,n))/(2*hy)
-                  elseif( (mask(1 + i,j).eq.0).and.(mask(1 + i,1 + j).eq.0).and.(mask(1 + i,2 + j).eq.0) ) then
+                     outder = (-U(1 + i,-1 + j,n) + U(1 + i,1 + j,n))/(2.*hy)
+                  elseif( mask(1 + i,j).eq.0.and.mask(1 + i,1 + j).eq.0.and.mask(1 + i,2 + j).eq.0 ) then
                      outloc = -0.5
-                     outder = (-3*U(1 + i,j,n) + 4*U(1 + i,1 + j,n) - U(1 + i,2 + j,n))/(2*hy)
-                  elseif( (mask(1 + i,-2 + j).eq.0).and.(mask(1 + i,-1 + j).eq.0).and.(mask(1 + i,j).eq.0) ) then
+                     outder = (-3*U(1 + i,j,n) + 4*U(1 + i,1 + j,n) - U(1 + i,2 + j,n))/(2.*hy)
+                  elseif( mask(1 + i,-2 + j).eq.0.and.mask(1 + i,-1 + j).eq.0.and.mask(1 + i,j).eq.0 ) then
                      outloc = -0.5
-                     outder = (U(1 + i,-2 + j,n) - 4*U(1 + i,-1 + j,n) + 3*U(1 + i,j,n))/(2*hy)
+                     outder = (U(1 + i,-2 + j,n) - 4*U(1 + i,-1 + j,n) + 3*U(1 + i,j,n))/(2.*hy)
                   else
                      outloc = x(-1)
                      if( flagbc .eq. 1) then
@@ -1203,7 +1338,7 @@ c     :::::: interior part of right side
                      endif
                   endif
                   innloc = 0.5
-                  innder = (-U(i,-1 + j,n) + U(i,1 + j,n))/(2*hy)
+                  innder = (-U(i,-1 + j,n) + U(i,1 + j,n))/(2.*hy)
 
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   tander(i+1,j,n) = lambda*innder+(1-lambda)*outder
@@ -1211,12 +1346,12 @@ c     :::::: interior part of right side
 c :::::: now end points
 c :::::: lower right side
                j = lo(2)
-               if( (mask(1 + i,-1 + j).eq.0).and.(mask(1 + i,1 + j).eq.0) ) then
+               if( mask(1 + i,-1 + j).eq.0.and.mask(1 + i,1 + j).eq.0 ) then
                   outloc = -0.5
-                  outder = (-U(1 + i,-1 + j,n) + U(1 + i,1 + j,n))/(2*hy)
-               elseif( (mask(1 + i,j).eq.0).and.(mask(1 + i,1 + j).eq.0).and.(mask(1 + i,2 + j).eq.0) ) then
+                  outder = (-U(1 + i,-1 + j,n) + U(1 + i,1 + j,n))/(2.*hy)
+               elseif( mask(1 + i,j).eq.0.and.mask(1 + i,1 + j).eq.0.and.mask(1 + i,2 + j).eq.0 ) then
                   outloc = -0.5
-                  outder = (-3*U(1 + i,j,n) + 4*U(1 + i,1 + j,n) - U(1 + i,2 + j,n))/(2*hy)
+                  outder = (-3*U(1 + i,j,n) + 4*U(1 + i,1 + j,n) - U(1 + i,2 + j,n))/(2.*hy)
                else
                   outloc = x(-1)
                   if( flagbc .eq. 1) then
@@ -1226,21 +1361,21 @@ c :::::: lower right side
                   endif
                endif
                if( maskm(i,-1 + j).gt.0 ) then
-                  innder = (-3*U(i,j,n) + 4*U(i,1 + j,n) - U(i,2 + j,n))/(2*hy)
+                  innder = (-3*U(i,j,n) + 4*U(i,1 + j,n) - U(i,2 + j,n))/(2.*hy)
                else
-                  innder = (-U(i,-1 + j,n) + U(i,1 + j,n))/(2*hy)
+                  innder = (-U(i,-1 + j,n) + U(i,1 + j,n))/(2.*hy)
                endif
                innloc = 0.5
                lambda = (edgloc-outloc)/(innloc-outloc)
                tander(i+1,j,n) = lambda*innder+(1-lambda)*outder
 c     :::::: upper right side
                j = hi(2)
-               if( (mask(1 + i,-1 + j).eq.0).and.(mask(1 + i,1 + j).eq.0) ) then
+               if( mask(1 + i,-1 + j).eq.0.and.mask(1 + i,1 + j).eq.0 ) then
                   outloc = -0.5
-                  outder = (-U(1 + i,-1 + j,n) + U(1 + i,1 + j,n))/(2*hy)
-               elseif( (mask(1 + i,-2 + j).eq.0).and.(mask(1 + i,-1 + j).eq.0).and.(mask(1 + i,j).eq.0) ) then
+                  outder = (-U(1 + i,-1 + j,n) + U(1 + i,1 + j,n))/(2.*hy)
+               elseif( mask(1 + i,-2 + j).eq.0.and.mask(1 + i,-1 + j).eq.0.and.mask(1 + i,j).eq.0 ) then
                   outloc = -0.5
-                  outder = (U(1 + i,-2 + j,n) - 4*U(1 + i,-1 + j,n) + 3*U(1 + i,j,n))/(2*hy)
+                  outder = (U(1 + i,-2 + j,n) - 4*U(1 + i,-1 + j,n) + 3*U(1 + i,j,n))/(2.*hy)
                else
                   outloc = x(-1)
                   if( flagbc .eq. 1) then
@@ -1250,9 +1385,9 @@ c     :::::: upper right side
                   endif
                endif
                if( maskp(i,1 + j).gt.0 ) then
-                  innder = (U(i,-2 + j,n) - 4*U(i,-1 + j,n) + 3*U(i,j,n))/(2*hy)
+                  innder = (U(i,-2 + j,n) - 4*U(i,-1 + j,n) + 3*U(i,j,n))/(2.*hy)
                else
-                  innder = (-U(i,-1 + j,n) + U(i,1 + j,n))/(2*hy)
+                  innder = (-U(i,-1 + j,n) + U(i,1 + j,n))/(2.*hy)
                endif
                innloc = 0.5
                lambda = (edgloc-outloc)/(innloc-outloc)
@@ -1302,24 +1437,24 @@ c     :::::: now do the tangential derivative part
 c     :::::: interior part of bottom side
                j = lo(2)
                do i=lo(1)+1,hi(1)-1
-                  innder = (-U(-1 + i,j,n) + U(1 + i,j,n))/(2*hx)
+                  innder = (-U(-1 + i,j,n) + U(1 + i,j,n))/(2.*hx)
                   tander(i,j-1,n) = innder
                enddo
 c :::::: now end points
 c :::::: left bottom side
                i = lo(1)
                if( maskm(-1 + i,j).gt.0 ) then
-                  innder = (-3*U(i,j,n) + 4*U(1 + i,j,n) - U(2 + i,j,n))/(2*hx)
+                  innder = (-3*U(i,j,n) + 4*U(1 + i,j,n) - U(2 + i,j,n))/(2.*hx)
                else
-                  innder = (-U(-1 + i,j,n) + U(1 + i,j,n))/(2*hx)
+                  innder = (-U(-1 + i,j,n) + U(1 + i,j,n))/(2.*hx)
                endif
                tander(i,j-1,n) = innder
 c :::::: right bottom side
                i = hi(1)
                if( maskp(1 + i,j).gt.0 ) then
-                  innder = (U(-2 + i,j,n) - 4*U(-1 + i,j,n) + 3*U(i,j,n))/(2*hx)
+                  innder = (U(-2 + i,j,n) - 4*U(-1 + i,j,n) + 3*U(i,j,n))/(2.*hx)
                else
-                  innder = (-U(-1 + i,j,n) + U(1 + i,j,n))/(2*hx)
+                  innder = (-U(-1 + i,j,n) + U(1 + i,j,n))/(2.*hx)
                endif
                tander(i,j-1,n) = innder
             else if (is_dirichlet(bct(n))) then
@@ -1364,15 +1499,15 @@ c     :::::: interior part of bottom side
                edgloc = 0.
                j = lo(2)
                do i=lo(1)+1,hi(1)-1
-                  if(  (mask(-1 + i,-1 + j).eq.0).and.(mask(1 + i,-1 + j).eq.0) ) then
+                  if(  mask(-1 + i,-1 + j).eq.0.and.mask(1 + i,-1 + j).eq.0 ) then
                      outloc = -0.5
-                     outder = (-U(-1 + i,-1 + j,n) + U(1 + i,-1 + j,n))/(2*hx)
-                  else if(  (mask(i,-1 + j).eq.0).and.(mask(1 + i,-1 + j).eq.0).and.(mask(2 + i,-1 + j).eq.0) ) then
+                     outder = (-U(-1 + i,-1 + j,n) + U(1 + i,-1 + j,n))/(2.*hx)
+                  else if(  mask(i,-1 + j).eq.0.and.mask(1 + i,-1 + j).eq.0.and.mask(2 + i,-1 + j).eq.0 ) then
                      outloc = -0.5
-                     outder = (-3*U(i,-1 + j,n) + 4*U(1 + i,-1 + j,n) - U(2 + i,-1 + j,n))/(2*hx)
-                  else if(  (mask(-2 + i,-1 + j).eq.0).and.(mask(-1 + i,-1 + j).eq.0).and.(mask(i,-1 + j).eq.0) ) then
+                     outder = (-3*U(i,-1 + j,n) + 4*U(1 + i,-1 + j,n) - U(2 + i,-1 + j,n))/(2.*hx)
+                  else if(  mask(-2 + i,-1 + j).eq.0.and.mask(-1 + i,-1 + j).eq.0.and.mask(i,-1 + j).eq.0 ) then
                      outloc = -0.5
-                     outder = (U(-2 + i,-1 + j,n) - 4*U(-1 + i,-1 + j,n) + 3*U(i,-1 + j,n))/(2*hx)
+                     outder = (U(-2 + i,-1 + j,n) - 4*U(-1 + i,-1 + j,n) + 3*U(i,-1 + j,n))/(2.*hx)
                   else
                      outloc = x(-1)
                      if( flagbc .eq. 1) then
@@ -1382,7 +1517,7 @@ c     :::::: interior part of bottom side
                      endif
                   endif
                   innloc = 0.5
-                  innder = (-U(-1 + i,j,n) + U(1 + i,j,n))/(2*hx)
+                  innder = (-U(-1 + i,j,n) + U(1 + i,j,n))/(2.*hx)
 
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   tander(i,j-1,n) = lambda*innder+(1-lambda)*outder
@@ -1390,12 +1525,12 @@ c     :::::: interior part of bottom side
 c :::::: now end points
 c :::::: left bottom side
                i = lo(1)
-               if(  (mask(-1 + i,-1 + j).eq.0).and.(mask(1 + i,-1 + j).eq.0) ) then
+               if(  mask(-1 + i,-1 + j).eq.0.and.mask(1 + i,-1 + j).eq.0 ) then
                   outloc = -0.5
-                  outder = (-U(-1 + i,-1 + j,n) + U(1 + i,-1 + j,n))/(2*hx)
-               else if( (mask(i,-1 + j).eq.0).and.(mask(1 + i,-1 + j).eq.0).and.(mask(2 + i,-1 + j).eq.0) ) then
+                  outder = (-U(-1 + i,-1 + j,n) + U(1 + i,-1 + j,n))/(2.*hx)
+               else if( mask(i,-1 + j).eq.0.and.mask(1 + i,-1 + j).eq.0.and.mask(2 + i,-1 + j).eq.0 ) then
                      outloc = -0.5
-                     outder = (-3*U(i,-1 + j,n) + 4*U(1 + i,-1 + j,n) - U(2 + i,-1 + j,n))/(2*hx)
+                     outder = (-3*U(i,-1 + j,n) + 4*U(1 + i,-1 + j,n) - U(2 + i,-1 + j,n))/(2.*hx)
                else
                   outloc = x(-1)
                   if( flagbc .eq. 1) then
@@ -1405,21 +1540,21 @@ c :::::: left bottom side
                   endif
                endif
                if( maskm(-1 + i,j).gt.0 ) then
-                  innder = (-3*U(i,j,n) + 4*U(1 + i,j,n) - U(2 + i,j,n))/(2*hx)
+                  innder = (-3*U(i,j,n) + 4*U(1 + i,j,n) - U(2 + i,j,n))/(2.*hx)
                else
-                  innder = (-U(-1 + i,j,n) + U(1 + i,j,n))/(2*hx)
+                  innder = (-U(-1 + i,j,n) + U(1 + i,j,n))/(2.*hx)
                endif
                innloc = 0.5
                lambda = (edgloc-outloc)/(innloc-outloc)
                tander(i,j-1,n) = lambda*innder+(1-lambda)*outder
 c :::::: right bottom side
                i = hi(1)
-               if( (mask(-1 + i,-1 + j).eq.0).and.(mask(1 + i,-1 + j).eq.0) ) then
+               if( mask(-1 + i,-1 + j).eq.0.and.mask(1 + i,-1 + j).eq.0 ) then
                   outloc = -0.5
-                  outder = (-U(-1 + i,-1 + j,n) + U(1 + i,-1 + j,n))/(2*hx)
-               else if( (mask(-2 + i,-1 + j).eq.0).and.(mask(-1 + i,-1 + j).eq.0).and.(mask(i,-1 + j).eq.0) ) then
+                  outder = (-U(-1 + i,-1 + j,n) + U(1 + i,-1 + j,n))/(2.*hx)
+               else if( mask(-2 + i,-1 + j).eq.0.and.mask(-1 + i,-1 + j).eq.0.and.mask(i,-1 + j).eq.0 ) then
                      outloc = -0.5
-                     outder = (U(-2 + i,-1 + j,n) - 4*U(-1 + i,-1 + j,n) + 3*U(i,-1 + j,n))/(2*hx)
+                     outder = (U(-2 + i,-1 + j,n) - 4*U(-1 + i,-1 + j,n) + 3*U(i,-1 + j,n))/(2.*hx)
                else
                   outloc = x(-1)
                   if( flagbc .eq. 1) then
@@ -1429,9 +1564,9 @@ c :::::: right bottom side
                   endif
                endif
                if( maskp(1 + i,j).gt.0 ) then
-                  innder = (U(-2 + i,j,n) - 4*U(-1 + i,j,n) + 3*U(i,j,n))/(2*hx)
+                  innder = (U(-2 + i,j,n) - 4*U(-1 + i,j,n) + 3*U(i,j,n))/(2.*hx)
                else
-                  innder = (-U(-1 + i,j,n) + U(1 + i,j,n))/(2*hx)
+                  innder = (-U(-1 + i,j,n) + U(1 + i,j,n))/(2.*hx)
                endif
                innloc = 0.5
                lambda = (edgloc-outloc)/(innloc-outloc)
@@ -1480,24 +1615,24 @@ c     :::::: now do the tangential derivative part
 c     :::::: interior part of top side
                j = hi(2)
                do i=lo(1)+1,hi(1)-1
-                  innder = (-U(-1 + i,j,n) + U(1 + i,j,n))/(2*hx)
+                  innder = (-U(-1 + i,j,n) + U(1 + i,j,n))/(2.*hx)
                   tander(i,j+1,n) = innder
                enddo
 c     :::::: now end points
 c     :::::: left top side
                i = lo(1)
                if( maskm(-1 + i,j).gt.0 ) then
-                  innder = (-3*U(i,j,n) + 4*U(1 + i,j,n) - U(2 + i,j,n))/(2*hx)
+                  innder = (-3*U(i,j,n) + 4*U(1 + i,j,n) - U(2 + i,j,n))/(2.*hx)
                else
-                  innder = (-U(-1 + i,j,n) + U(1 + i,j,n))/(2*hx)
+                  innder = (-U(-1 + i,j,n) + U(1 + i,j,n))/(2.*hx)
                endif
                tander(i,j+1,n) = innder
 c     :::::: right top side
                i = hi(1)
                if( maskp(1 + i,j).gt.0 ) then
-                  innder = (U(-2 + i,j,n) - 4*U(-1 + i,j,n) + 3*U(i,j,n))/(2*hx)
+                  innder = (U(-2 + i,j,n) - 4*U(-1 + i,j,n) + 3*U(i,j,n))/(2.*hx)
                else
-                  innder = (-U(-1 + i,j,n) + U(1 + i,j,n))/(2*hx)
+                  innder = (-U(-1 + i,j,n) + U(1 + i,j,n))/(2.*hx)
                endif
                tander(i,j+1,n) = innder
             else if (is_dirichlet(bct(n))) then
@@ -1543,15 +1678,15 @@ c     :::::: interior part of top side
                edgloc = 0.
                j = hi(2)
                do i=lo(1)+1,hi(1)-1
-                  if(  (mask(-1 + i,1 + j).eq.0).and.(mask(1 + i,1 + j).eq.0) ) then
+                  if(  mask(-1 + i,1 + j).eq.0.and.mask(1 + i,1 + j).eq.0 ) then
                      outloc = -0.5
-                     outder = (-U(-1 + i,1 + j,n) + U(1 + i,1 + j,n))/(2*hx)
-                  else if(  (mask(i,1 + j).eq.0).and.(mask(1 + i,1 + j).eq.0).and.(mask(2 + i,1 + j).eq.0) ) then
+                     outder = (-U(-1 + i,1 + j,n) + U(1 + i,1 + j,n))/(2.*hx)
+                  else if(  mask(i,1 + j).eq.0.and.mask(1 + i,1 + j).eq.0.and.mask(2 + i,1 + j).eq.0 ) then
                      outloc = -0.5
-                     outder = (-3*U(i,1 + j,n) + 4*U(1 + i,1 + j,n) - U(2 + i,1 + j,n))/(2*hx)
-                  else if( (mask(-2 + i,1 + j).eq.0).and.(mask(-1 + i,1 + j).eq.0).and.(mask(i,1 + j).eq.0) ) then
+                     outder = (-3*U(i,1 + j,n) + 4*U(1 + i,1 + j,n) - U(2 + i,1 + j,n))/(2.*hx)
+                  else if( mask(-2 + i,1 + j).eq.0.and.mask(-1 + i,1 + j).eq.0.and.mask(i,1 + j).eq.0 ) then
                      outloc = -0.5
-                     outder = (U(-2 + i,1 + j,n) - 4*U(-1 + i,1 + j,n) + 3*U(i,1 + j,n))/(2*hx)
+                     outder = (U(-2 + i,1 + j,n) - 4*U(-1 + i,1 + j,n) + 3*U(i,1 + j,n))/(2.*hx)
                   else
                      outloc = x(-1)
                      if( flagbc .eq. 1) then
@@ -1561,7 +1696,7 @@ c     :::::: interior part of top side
                      endif
                   endif
                   innloc = 0.5
-                  innder = (-U(-1 + i,j,n) + U(1 + i,j,n))/(2*hx)
+                  innder = (-U(-1 + i,j,n) + U(1 + i,j,n))/(2.*hx)
                   
                   lambda = (edgloc-outloc)/(innloc-outloc)
                   tander(i,j+1,n) = lambda*innder+(1-lambda)*outder
@@ -1569,12 +1704,12 @@ c     :::::: interior part of top side
 c     :::::: now end points
 c     :::::: left top side
                i = lo(1)
-               if( (mask(-1 + i,1 + j).eq.0).and.(mask(1 + i,1 + j).eq.0) ) then
+               if( mask(-1 + i,1 + j).eq.0.and.mask(1 + i,1 + j).eq.0 ) then
                   outloc = -0.5
-                  outder = (-U(-1 + i,1 + j,n) + U(1 + i,1 + j,n))/(2*hx)
-               else if( (mask(i,1 + j).eq.0).and.(mask(1 + i,1 + j).eq.0).and.(mask(2 + i,1 + j).eq.0) ) then
+                  outder = (-U(-1 + i,1 + j,n) + U(1 + i,1 + j,n))/(2.*hx)
+               else if( mask(i,1 + j).eq.0.and.mask(1 + i,1 + j).eq.0.and.mask(2 + i,1 + j).eq.0 ) then
                      outloc = -0.5
-                     outder = (-3*U(i,1 + j,n) + 4*U(1 + i,1 + j,n) - U(2 + i,1 + j,n))/(2*hx)
+                     outder = (-3*U(i,1 + j,n) + 4*U(1 + i,1 + j,n) - U(2 + i,1 + j,n))/(2.*hx)
                else
                   outloc = x(-1)
                   if( flagbc .eq. 1) then
@@ -1584,21 +1719,21 @@ c     :::::: left top side
                   endif
                endif
                if( maskm(-1 + i,j).gt.0 ) then
-                  innder = (-3*U(i,j,n) + 4*U(1 + i,j,n) - U(2 + i,j,n))/(2*hx)
+                  innder = (-3*U(i,j,n) + 4*U(1 + i,j,n) - U(2 + i,j,n))/(2.*hx)
                else
-                  innder = (-U(-1 + i,j,n) + U(1 + i,j,n))/(2*hx)
+                  innder = (-U(-1 + i,j,n) + U(1 + i,j,n))/(2.*hx)
                endif
                innloc = 0.5
                lambda = (edgloc-outloc)/(innloc-outloc)
                tander(i,j+1,n) = lambda*innder+(1-lambda)*outder
 c     :::::: right top side
                i = hi(1)
-               if( (mask(-1 + i,1 + j).eq.0).and.(mask(1 + i,1 + j).eq.0) ) then
+               if( mask(-1 + i,1 + j).eq.0.and.mask(1 + i,1 + j).eq.0 ) then
                   outloc = -0.5
-                  outder = (-U(-1 + i,1 + j,n) + U(1 + i,1 + j,n))/(2*hx)
-               else if(  (mask(-2 + i,1 + j).eq.0).and.(mask(-1 + i,1 + j).eq.0).and.(mask(i,1 + j).eq.0) ) then
+                  outder = (-U(-1 + i,1 + j,n) + U(1 + i,1 + j,n))/(2.*hx)
+               else if(  mask(-2 + i,1 + j).eq.0.and.mask(-1 + i,1 + j).eq.0.and.mask(i,1 + j).eq.0 ) then
                      outloc = -0.5
-                     outder = (U(-2 + i,1 + j,n) - 4*U(-1 + i,1 + j,n) + 3*U(i,1 + j,n))/(2*hx)
+                     outder = (U(-2 + i,1 + j,n) - 4*U(-1 + i,1 + j,n) + 3*U(i,1 + j,n))/(2.*hx)
                else
                   outloc = x(-1)
                   if( flagbc .eq. 1) then
@@ -1608,9 +1743,9 @@ c     :::::: right top side
                   endif
                endif
                if( maskp(1 + i,j).gt.0 ) then
-                  innder = (U(-2 + i,j,n) - 4*U(-1 + i,j,n) + 3*U(i,j,n))/(2*hx)
+                  innder = (U(-2 + i,j,n) - 4*U(-1 + i,j,n) + 3*U(i,j,n))/(2.*hx)
                else
-                  innder = (-U(-1 + i,j,n) + U(1 + i,j,n))/(2*hx)
+                  innder = (-U(-1 + i,j,n) + U(1 + i,j,n))/(2.*hx)
                endif
                innloc = 0.5
                lambda = (edgloc-outloc)/(innloc-outloc)
@@ -1770,11 +1905,15 @@ c     :::  get expressions for appropriate derivatives
 
             dudyn = (-U(i,j,1) + U(i,1 + j,1))/hy
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
-            dudye = (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + U(1 + i,1 + j,1))/(4*hy)
-            dudyw = (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + U(i,1 + j,1))/(4*hy)
+            dudye =         (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + 
+     -    U(1 + i,1 + j,1))/(4.*hy)
+            dudyw =         (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + 
+     -    U(i,1 + j,1))/(4.*hy)
 
-            dvdxn = (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + U(1 + i,1 + j,2))/(4*hx)
-            dvdxs = (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + U(1 + i,j,2))/(4*hx)
+            dvdxn =         (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + 
+     -    U(1 + i,1 + j,2))/(4.*hx)
+            dvdxs =         (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + 
+     -    U(1 + i,j,2))/(4.*hx)
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  get diagonal element
@@ -1785,8 +1924,13 @@ c     :::  get diagonal element
      $             beta*(muX(i,j)+muX(i+1,j))/(hx**2)+
      $           2*beta*(muY(i,j)+muY(i,j+1))/(hy**2)
 c     :::  evaluate operator
-            operu = -(beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
-            operv = -(beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + (dudye + dvdxe)*muX(1 + i,j)) + hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,2)*u(i,j,2)
+            operu =         -((beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + 
+     -         hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j))
+     -         ))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
+            operv =         -((beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + 
+     -            (dudye + dvdxe)*muX(1 + i,j)) + 
+     -         hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j))))/(hx*hy)) + 
+     -  alpha*a(i,j,2)*u(i,j,2)
 c     :::  do relaxation
             u(i,j,1) = (rhs(i,j,1)-operu)/diagu + u(i,j,1)
             u(i,j,2) = (rhs(i,j,2)-operv)/diagv + u(i,j,2)
@@ -1808,19 +1952,26 @@ c     :::  get expressions for appropriate derivatives
 
             dudyn = (-U(i,j,1) + U(i,1 + j,1))/hy
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
-            if( (maskn(i,1 + j).gt.0).or.(maskn(1 + i,1 + j).gt.0) ) then
-               dudye = ((U(i,-2 + j,1) - 4*U(i,-1 + j,1) + 3*U(i,j,1))/(2*hy) + (U(1 + i,-2 + j,1) - 4*U(1 + i,-1 + j,1) + 3*U(1 + i,j,1))/(2*hy))/2
+            if( maskn(i,1 + j).gt.0.or.maskn(1 + i,1 + j).gt.0 ) then
+               dudye =         ((U(i,-2 + j,1) - 4*U(i,-1 + j,1) + 3*U(i,j,1))/(2.*hy) + 
+     -    (U(1 + i,-2 + j,1) - 4*U(1 + i,-1 + j,1) + 3*U(1 + i,j,1))/(2.*hy))/
+     -  2.
             else
-               dudye = (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + U(1 + i,1 + j,1))/(4*hy)
+               dudye =         (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + 
+     -    U(1 + i,1 + j,1))/(4.*hy)
             endif
-            if( (maskn(-1 + i,1 + j).gt.0).or.(maskn(i,1 + j).gt.0) ) then
-               dudyw = ((U(-1 + i,-2 + j,1) - 4*U(-1 + i,-1 + j,1) + 3*U(-1 + i,j,1))/(2*hy) + (U(i,-2 + j,1) - 4*U(i,-1 + j,1) + 3*U(i,j,1))/(2*hy))/2
+            if( maskn(-1 + i,1 + j).gt.0.or.maskn(i,1 + j).gt.0 ) then
+               dudyw =         ((U(-1 + i,-2 + j,1) - 4*U(-1 + i,-1 + j,1) + 3*U(-1 + i,j,1))/
+     -     (2.*hy) + (U(i,-2 + j,1) - 4*U(i,-1 + j,1) + 3*U(i,j,1))/(2.*hy))/
+     -  2.
             else
-               dudyw = (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + U(i,1 + j,1))/(4*hy)
+               dudyw =         (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + 
+     -    U(i,1 + j,1))/(4.*hy)
             endif
 
             dvdxn = trandern(i,j+1,2)
-            dvdxs = (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + U(1 + i,j,2))/(4*hx)
+            dvdxs =         (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + 
+     -    U(1 + i,j,2))/(4.*hx)
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
 c     :::  get diagonal element
@@ -1835,8 +1986,13 @@ c     :::  get diagonal element
 	       diagv = diagv - fn(i,j,2)*2*beta*muY(i,j+1)/hy**2
 	    endif
 c     :::  evaluate operator
-            operu = -(beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
-            operv = -(beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + (dudye + dvdxe)*muX(1 + i,j)) + hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,2)*u(i,j,2)
+            operu =         -((beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + 
+     -         hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j))
+     -         ))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
+            operv =         -((beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + 
+     -            (dudye + dvdxe)*muX(1 + i,j)) + 
+     -         hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j))))/(hx*hy)) + 
+     -  alpha*a(i,j,2)*u(i,j,2)
 c     :::  do relaxation
             u(i,j,1) = (rhs(i,j,1)-operu)/diagu + u(i,j,1)
             u(i,j,2) = (rhs(i,j,2)-operv)/diagv + u(i,j,2)
@@ -1861,18 +2017,24 @@ c     :::  get expressions for appropriate derivatives
 
             dudyn = (-U(i,j,1) + U(i,1 + j,1))/hy
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
-            if( (masks(i,-1 + j).gt.0).or.(masks(1 + i,-1 + j).gt.0) ) then
-               dudye = ((-3*U(i,j,1) + 4*U(i,1 + j,1) - U(i,2 + j,1))/(2*hy) + (-3*U(1 + i,j,1) + 4*U(1 + i,1 + j,1) - U(1 + i,2 + j,1))/(2*hy))/2
+            if( masks(i,-1 + j).gt.0.or.masks(1 + i,-1 + j).gt.0 ) then
+               dudye =         ((-3*U(i,j,1) + 4*U(i,1 + j,1) - U(i,2 + j,1))/(2.*hy) + 
+     -    (-3*U(1 + i,j,1) + 4*U(1 + i,1 + j,1) - U(1 + i,2 + j,1))/(2.*hy))/
+     -  2.
             else
-               dudye = (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + U(1 + i,1 + j,1))/(4*hy)
+               dudye =         (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + 
+     -    U(1 + i,1 + j,1))/(4.*hy)
             endif
-            if( (masks(-1 + i,-1 + j).gt.0).or.(masks(i,-1 + j).gt.0) ) then
-               dudyw = ((-3*U(-1 + i,j,1) + 4*U(-1 + i,1 + j,1) - U(-1 + i,2 + j,1))/(2*hy) + (-3*U(i,j,1) + 4*U(i,1 + j,1) - U(i,2 + j,1))/(2*hy))/2
+            if( masks(-1 + i,-1 + j).gt.0.or.masks(i,-1 + j).gt.0 ) then
+               dudyw =         ((-3*U(-1 + i,j,1) + 4*U(-1 + i,1 + j,1) - U(-1 + i,2 + j,1))/
+     -     (2.*hy) + (-3*U(i,j,1) + 4*U(i,1 + j,1) - U(i,2 + j,1))/(2.*hy))/2.
             else
-               dudyw = (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + U(i,1 + j,1))/(4*hy)
+               dudyw =         (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + 
+     -    U(i,1 + j,1))/(4.*hy)
             endif
 
-            dvdxn = (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + U(1 + i,1 + j,2))/(4*hx)
+            dvdxn =         (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + 
+     -    U(1 + i,1 + j,2))/(4.*hx)
             dvdxs = tranders(i,j-1,2)
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
@@ -1888,8 +2050,13 @@ c     :::  get diagonal element
 	       diagv = diagv - fs(i,j,2)*2*beta*muY(i,j)/hy**2
 	    endif
 c     :::  evaluate operator
-            operu = -(beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
-            operv = -(beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + (dudye + dvdxe)*muX(1 + i,j)) + hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,2)*u(i,j,2)
+            operu =         -((beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + 
+     -         hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j))
+     -         ))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
+            operv =         -((beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + 
+     -            (dudye + dvdxe)*muX(1 + i,j)) + 
+     -         hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j))))/(hx*hy)) + 
+     -  alpha*a(i,j,2)*u(i,j,2)
 c     :::  do relaxation
             u(i,j,1) = (rhs(i,j,1)-operu)/diagu + u(i,j,1)
             u(i,j,2) = (rhs(i,j,2)-operv)/diagv + u(i,j,2)
@@ -1912,18 +2079,24 @@ c     :::  get expressions for appropriate derivatives
             
             dudyn = (-U(i,j,1) + U(i,1 + j,1))/hy
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
-            dudye = (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + U(1 + i,1 + j,1))/(4*hy)
+            dudye =         (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + 
+     -    U(1 + i,1 + j,1))/(4.*hy)
             dudyw = tranderw(i-1,j,1)
             
-            if( (maskw(-1 + i,j).gt.0).or.(maskw(-1 + i,1 + j).gt.0) ) then
-               dvdxn = ((-3*U(i,j,2) + 4*U(1 + i,j,2) - U(2 + i,j,2))/(2*hx) + (-3*U(i,1 + j,2) + 4*U(1 + i,1 + j,2) - U(2 + i,1 + j,2))/(2*hx))/2
+            if( maskw(-1 + i,j).gt.0.or.maskw(-1 + i,1 + j).gt.0 ) then
+               dvdxn =         ((-3*U(i,j,2) + 4*U(1 + i,j,2) - U(2 + i,j,2))/(2.*hx) + 
+     -    (-3*U(i,1 + j,2) + 4*U(1 + i,1 + j,2) - U(2 + i,1 + j,2))/(2.*hx))/
+     -  2.
             else
-               dvdxn = (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + U(1 + i,1 + j,2))/(4*hx)
+               dvdxn =         (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + 
+     -    U(1 + i,1 + j,2))/(4.*hx)
             endif
-            if( (maskw(-1 + i,-1 + j).gt.0).or.(maskw(-1 + i,j).gt.0) ) then
-               dvdxs = ((-3*U(i,-1 + j,2) + 4*U(1 + i,-1 + j,2) - U(2 + i,-1 + j,2))/(2*hx) + (-3*U(i,j,2) + 4*U(1 + i,j,2) - U(2 + i,j,2))/(2*hx))/2
+            if( maskw(-1 + i,-1 + j).gt.0.or.maskw(-1 + i,j).gt.0 ) then
+               dvdxs =         ((-3*U(i,-1 + j,2) + 4*U(1 + i,-1 + j,2) - U(2 + i,-1 + j,2))/
+     -     (2.*hx) + (-3*U(i,j,2) + 4*U(1 + i,j,2) - U(2 + i,j,2))/(2.*hx))/2.
             else
-               dvdxs = (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + U(1 + i,j,2))/(4*hx)
+               dvdxs =         (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + 
+     -    U(1 + i,j,2))/(4.*hx)
             endif
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
@@ -1939,8 +2112,13 @@ c     :::  get diagonal element
 	       diagv = diagv - fw(i,j,2)*  beta*muX(i,j)/hy**2
 	    endif
 c     :::  evaluate operator
-            operu = -(beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
-            operv = -(beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + (dudye + dvdxe)*muX(1 + i,j)) + hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,2)*u(i,j,2)
+            operu =         -((beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + 
+     -         hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j))
+     -         ))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
+            operv =         -((beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + 
+     -            (dudye + dvdxe)*muX(1 + i,j)) + 
+     -         hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j))))/(hx*hy)) + 
+     -  alpha*a(i,j,2)*u(i,j,2)
 c     :::  do relaxation
             u(i,j,1) = (rhs(i,j,1)-operu)/diagu + u(i,j,1)
             u(i,j,2) = (rhs(i,j,2)-operv)/diagv + u(i,j,2)
@@ -1964,17 +2142,24 @@ c     :::  get expressions for appropriate derivatives
             dudyn = (-U(i,j,1) + U(i,1 + j,1))/hy
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
             dudye = trandere(i+1,j,1)
-            dudyw = (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + U(i,1 + j,1))/(4*hy)
+            dudyw =         (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + 
+     -    U(i,1 + j,1))/(4.*hy)
 
-            if( (maske(1 + i,j).gt.0).or.(maske(1 + i,1 + j).gt.0) ) then
-               dvdxn = ((U(-2 + i,j,2) - 4*U(-1 + i,j,2) + 3*U(i,j,2))/(2*hx) + (U(-2 + i,1 + j,2) - 4*U(-1 + i,1 + j,2) + 3*U(i,1 + j,2))/(2*hx))/2
+            if( maske(1 + i,j).gt.0.or.maske(1 + i,1 + j).gt.0 ) then
+               dvdxn =         ((U(-2 + i,j,2) - 4*U(-1 + i,j,2) + 3*U(i,j,2))/(2.*hx) + 
+     -    (U(-2 + i,1 + j,2) - 4*U(-1 + i,1 + j,2) + 3*U(i,1 + j,2))/(2.*hx))/
+     -  2.
             else
-               dvdxn = (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + U(1 + i,1 + j,2))/(4*hx)
+               dvdxn =         (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + 
+     -    U(1 + i,1 + j,2))/(4.*hx)
             endif
-            if( (maske(1 + i,-1 + j).gt.0).or.(maske(1 + i,j).gt.0) ) then
-               dvdxs = ((U(-2 + i,-1 + j,2) - 4*U(-1 + i,-1 + j,2) + 3*U(i,-1 + j,2))/(2*hx) + (U(-2 + i,j,2) - 4*U(-1 + i,j,2) + 3*U(i,j,2))/(2*hx))/2
+            if( maske(1 + i,-1 + j).gt.0.or.maske(1 + i,j).gt.0 ) then
+               dvdxs =         ((U(-2 + i,-1 + j,2) - 4*U(-1 + i,-1 + j,2) + 3*U(i,-1 + j,2))/
+     -     (2.*hx) + (U(-2 + i,j,2) - 4*U(-1 + i,j,2) + 3*U(i,j,2))/(2.*hx))/
+     -  2.
             else
-               dvdxs = (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + U(1 + i,j,2))/(4*hx)
+               dvdxs =         (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + 
+     -    U(1 + i,j,2))/(4.*hx)
             endif
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
@@ -1990,8 +2175,13 @@ c     :::  get diagonal element
 	       diagv = diagv - fe(i,j,2)*  beta*muX(i+1,j)/hy**2
 	    endif
 c     :::  evaluate operator
-            operu = -(beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
-            operv = -(beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + (dudye + dvdxe)*muX(1 + i,j)) + hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,2)*u(i,j,2)
+            operu =         -((beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + 
+     -         hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j))
+     -         ))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
+            operv =         -((beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + 
+     -            (dudye + dvdxe)*muX(1 + i,j)) + 
+     -         hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j))))/(hx*hy)) + 
+     -  alpha*a(i,j,2)*u(i,j,2)
 c     :::  do relaxation
             u(i,j,1) = (rhs(i,j,1)-operu)/diagu + u(i,j,1)
             u(i,j,2) = (rhs(i,j,2)-operv)/diagv + u(i,j,2)
@@ -2014,17 +2204,23 @@ c     :::  get expressions for appropriate derivatives
             dudyn = (-U(i,j,1) + U(i,1 + j,1))/hy
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
             dudye = trandere(i+1,j,1)
-            if( (maskn(-1 + i,1 + j).gt.0).or.(maskn(i,1 + j).gt.0) ) then
-               dudyw = ((U(-1 + i,-2 + j,1) - 4*U(-1 + i,-1 + j,1) + 3*U(-1 + i,j,1))/(2*hy) + (U(i,-2 + j,1) - 4*U(i,-1 + j,1) + 3*U(i,j,1))/(2*hy))/2
+            if( maskn(-1 + i,1 + j).gt.0.or.maskn(i,1 + j).gt.0 ) then
+               dudyw =         ((U(-1 + i,-2 + j,1) - 4*U(-1 + i,-1 + j,1) + 3*U(-1 + i,j,1))/
+     -     (2.*hy) + (U(i,-2 + j,1) - 4*U(i,-1 + j,1) + 3*U(i,j,1))/(2.*hy))/
+     -  2.
             else
-               dudyw = (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + U(i,1 + j,1))/(4*hy)
+               dudyw =         (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + 
+     -    U(i,1 + j,1))/(4.*hy)
             endif
 
             dvdxn = trandern(i,j+1,2)
-            if( (maske(1 + i,-1 + j).gt.0).or.(maske(1 + i,j).gt.0) ) then
-               dvdxs = ((U(-2 + i,-1 + j,2) - 4*U(-1 + i,-1 + j,2) + 3*U(i,-1 + j,2))/(2*hx) + (U(-2 + i,j,2) - 4*U(-1 + i,j,2) + 3*U(i,j,2))/(2*hx))/2
+            if( maske(1 + i,-1 + j).gt.0.or.maske(1 + i,j).gt.0 ) then
+               dvdxs =         ((U(-2 + i,-1 + j,2) - 4*U(-1 + i,-1 + j,2) + 3*U(i,-1 + j,2))/
+     -     (2.*hx) + (U(-2 + i,j,2) - 4*U(-1 + i,j,2) + 3*U(i,j,2))/(2.*hx))/
+     -  2.
             else
-               dvdxs = (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + U(1 + i,j,2))/(4*hx)
+               dvdxs =         (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + 
+     -    U(1 + i,j,2))/(4.*hx)
             endif
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
@@ -2044,8 +2240,13 @@ c     :::  get diagonal element
 	       diagv = diagv - fn(i,j,2)*2*beta*muY(i,j+1)/hy**2
 	    endif
 c     :::  evaluate operator
-            operu = -(beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
-            operv = -(beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + (dudye + dvdxe)*muX(1 + i,j)) + hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,2)*u(i,j,2)
+            operu =         -((beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + 
+     -         hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j))
+     -         ))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
+            operv =         -((beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + 
+     -            (dudye + dvdxe)*muX(1 + i,j)) + 
+     -         hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j))))/(hx*hy)) + 
+     -  alpha*a(i,j,2)*u(i,j,2)
 c     :::  do relaxation
             u(i,j,1) = (rhs(i,j,1)-operu)/diagu + u(i,j,1)
             u(i,j,2) = (rhs(i,j,2)-operv)/diagv + u(i,j,2)
@@ -2068,16 +2269,21 @@ c     :::  get expressions for appropriate derivatives
             dudyn = (-U(i,j,1) + U(i,1 + j,1))/hy
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
             dudye = trandere(i+1,j,1)
-            if( (masks(-1 + i,-1 + j).gt.0).or.(masks(i,-1 + j).gt.0) ) then 
-               dudyw = ((-3*U(-1 + i,j,1) + 4*U(-1 + i,1 + j,1) - U(-1 + i,2 + j,1))/(2*hy) + (-3*U(i,j,1) + 4*U(i,1 + j,1) - U(i,2 + j,1))/(2*hy))/2
+            if( masks(-1 + i,-1 + j).gt.0.or.masks(i,-1 + j).gt.0 ) then 
+               dudyw =         ((-3*U(-1 + i,j,1) + 4*U(-1 + i,1 + j,1) - U(-1 + i,2 + j,1))/
+     -     (2.*hy) + (-3*U(i,j,1) + 4*U(i,1 + j,1) - U(i,2 + j,1))/(2.*hy))/2.
             else
-               dudyw = (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + U(i,1 + j,1))/(4*hy)
+               dudyw =         (-U(-1 + i,-1 + j,1) + U(-1 + i,1 + j,1) - U(i,-1 + j,1) + 
+     -    U(i,1 + j,1))/(4.*hy)
             endif
 
-            if( (maske(1 + i,j).gt.0).or.(maske(1 + i,1 + j).gt.0) ) then
-               dvdxn = ((U(-2 + i,j,2) - 4*U(-1 + i,j,2) + 3*U(i,j,2))/(2*hx) + (U(-2 + i,1 + j,2) - 4*U(-1 + i,1 + j,2) + 3*U(i,1 + j,2))/(2*hx))/2 
+            if( maske(1 + i,j).gt.0.or.maske(1 + i,1 + j).gt.0 ) then
+               dvdxn =         ((U(-2 + i,j,2) - 4*U(-1 + i,j,2) + 3*U(i,j,2))/(2.*hx) + 
+     -    (U(-2 + i,1 + j,2) - 4*U(-1 + i,1 + j,2) + 3*U(i,1 + j,2))/(2.*hx))/
+     -  2. 
             else
-               dvdxn = (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + U(1 + i,1 + j,2))/(4*hx)
+               dvdxn =         (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + 
+     -    U(1 + i,1 + j,2))/(4.*hx)
             endif
             dvdxs = tranders(i,j-1,2)
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
@@ -2098,8 +2304,13 @@ c     :::  get diagonal element
 	       diagv = diagv - fs(i,j,2)*2*beta*muY(i,j)/hy**2
 	    endif
 c     :::  evaluate operator
-            operu = -(beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
-            operv = -(beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + (dudye + dvdxe)*muX(1 + i,j)) + hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,2)*u(i,j,2)
+            operu =         -((beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + 
+     -         hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j))
+     -         ))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
+            operv =         -((beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + 
+     -            (dudye + dvdxe)*muX(1 + i,j)) + 
+     -         hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j))))/(hx*hy)) + 
+     -  alpha*a(i,j,2)*u(i,j,2)
 c     :::  do relaxation
             u(i,j,1) = (rhs(i,j,1)-operu)/diagu + u(i,j,1)
             u(i,j,2) = (rhs(i,j,2)-operv)/diagv + u(i,j,2)
@@ -2120,17 +2331,23 @@ c     :::  get expressions for appropriate derivatives
 
             dudyn = (-U(i,j,1) + U(i,1 + j,1))/hy
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
-            if( (masks(i,-1 + j).gt.0).or.(masks(1 + i,-1 + j).gt.0) ) then
-               dudye = ((-3*U(i,j,1) + 4*U(i,1 + j,1) - U(i,2 + j,1))/(2*hy) + (-3*U(1 + i,j,1) + 4*U(1 + i,1 + j,1) - U(1 + i,2 + j,1))/(2*hy))/2
+            if( masks(i,-1 + j).gt.0.or.masks(1 + i,-1 + j).gt.0 ) then
+               dudye =         ((-3*U(i,j,1) + 4*U(i,1 + j,1) - U(i,2 + j,1))/(2.*hy) + 
+     -    (-3*U(1 + i,j,1) + 4*U(1 + i,1 + j,1) - U(1 + i,2 + j,1))/(2.*hy))/
+     -  2.
             else
-               dudye = (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + U(1 + i,1 + j,1))/(4*hy)
+               dudye =         (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + 
+     -    U(1 + i,1 + j,1))/(4.*hy)
             endif
             dudyw = tranderw(i-1,j,1)
 
-            if( (maskw(-1 + i,j).gt.0).or.(maskw(-1 + i,1 + j).gt.0) ) then
-               dvdxn = ((-3*U(i,j,2) + 4*U(1 + i,j,2) - U(2 + i,j,2))/(2*hx) + (-3*U(i,1 + j,2) + 4*U(1 + i,1 + j,2) - U(2 + i,1 + j,2))/(2*hx))/2
+            if( maskw(-1 + i,j).gt.0.or.maskw(-1 + i,1 + j).gt.0 ) then
+               dvdxn =         ((-3*U(i,j,2) + 4*U(1 + i,j,2) - U(2 + i,j,2))/(2.*hx) + 
+     -    (-3*U(i,1 + j,2) + 4*U(1 + i,1 + j,2) - U(2 + i,1 + j,2))/(2.*hx))/
+     -  2.
             else
-               dvdxn = (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + U(1 + i,1 + j,2))/(4*hx)
+               dvdxn =         (-U(-1 + i,j,2) - U(-1 + i,1 + j,2) + U(1 + i,j,2) + 
+     -    U(1 + i,1 + j,2))/(4.*hx)
             endif
             dvdxs = tranders(i,j-1,2)
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
@@ -2151,8 +2368,13 @@ c     :::  get diagonal element
 	       diagv = diagv - fs(i,j,2)*2*beta*muY(i,j)/hy**2
 	    endif
 c     :::  evaluate operator
-            operu = -(beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
-            operv = -(beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + (dudye + dvdxe)*muX(1 + i,j)) + hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,2)*u(i,j,2)
+            operu =         -((beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + 
+     -         hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j))
+     -         ))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
+            operv =         -((beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + 
+     -            (dudye + dvdxe)*muX(1 + i,j)) + 
+     -         hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j))))/(hx*hy)) + 
+     -  alpha*a(i,j,2)*u(i,j,2)
 c     :::  do relaxation
             u(i,j,1) = (rhs(i,j,1)-operu)/diagu + u(i,j,1)
             u(i,j,2) = (rhs(i,j,2)-operv)/diagv + u(i,j,2)
@@ -2174,18 +2396,23 @@ c     :::  get expressions for appropriate derivatives
 
             dudyn = (-U(i,j,1) + U(i,1 + j,1))/hy
             dudys = (-U(i,-1 + j,1) + U(i,j,1))/hy
-            if( (maskn(i,1 + j).gt.0).or.(maskn(1 + i,1 + j).gt.0) ) then
-               dudye = ((U(i,-2 + j,1) - 4*U(i,-1 + j,1) + 3*U(i,j,1))/(2*hy) + (U(1 + i,-2 + j,1) - 4*U(1 + i,-1 + j,1) + 3*U(1 + i,j,1))/(2*hy))/2
+            if( maskn(i,1 + j).gt.0.or.maskn(1 + i,1 + j).gt.0 ) then
+               dudye =         ((U(i,-2 + j,1) - 4*U(i,-1 + j,1) + 3*U(i,j,1))/(2.*hy) + 
+     -    (U(1 + i,-2 + j,1) - 4*U(1 + i,-1 + j,1) + 3*U(1 + i,j,1))/(2.*hy))/
+     -  2.
             else
-               dudye = (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + U(1 + i,1 + j,1))/(4*hy)
+               dudye =         (-U(i,-1 + j,1) + U(i,1 + j,1) - U(1 + i,-1 + j,1) + 
+     -    U(1 + i,1 + j,1))/(4.*hy)
             endif
             dudyw = tranderw(i-1,j,1)
 
             dvdxn = trandern(i,j+1,2)
-            if( (maskw(-1 + i,-1 + j).gt.0).or.(maskw(-1 + i,j).gt.0) ) then
-               dvdxs = ((-3*U(i,-1 + j,2) + 4*U(1 + i,-1 + j,2) - U(2 + i,-1 + j,2))/(2*hx) + (-3*U(i,j,2) + 4*U(1 + i,j,2) - U(2 + i,j,2))/(2*hx))/2
+            if( maskw(-1 + i,-1 + j).gt.0.or.maskw(-1 + i,j).gt.0 ) then
+               dvdxs =         ((-3*U(i,-1 + j,2) + 4*U(1 + i,-1 + j,2) - U(2 + i,-1 + j,2))/
+     -     (2.*hx) + (-3*U(i,j,2) + 4*U(1 + i,j,2) - U(2 + i,j,2))/(2.*hx))/2.
             else
-               dvdxs = (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + U(1 + i,j,2))/(4*hx)
+               dvdxs =         (-U(-1 + i,-1 + j,2) - U(-1 + i,j,2) + U(1 + i,-1 + j,2) + 
+     -    U(1 + i,j,2))/(4.*hx)
             endif
             dvdxe = (-U(i,j,2) + U(1 + i,j,2))/hx
             dvdxw = (-U(-1 + i,j,2) + U(i,j,2))/hx
@@ -2205,8 +2432,13 @@ c     :::  get diagonal element
 	       diagv = diagv - fn(i,j,2)*2*beta*muY(i,j+1)/hy**2
 	    endif
 c     :::  evaluate operator
-            operu = -(beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
-            operv = -(beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + (dudye + dvdxe)*muX(1 + i,j)) + hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j)))/(hx*hy)) + alpha*a(i,j,2)*u(i,j,2)
+            operu =         -((beta*(hy*(-2*dudxw*muX(i,j) + 2*dudxe*muX(1 + i,j)) + 
+     -         hx*(-((dudys + dvdxs)*muY(i,j)) + (dudyn + dvdxn)*muY(i,1 + j))
+     -         ))/(hx*hy)) + alpha*a(i,j,1)*u(i,j,1)
+            operv =         -((beta*(hy*(-((dudyw + dvdxw)*muX(i,j)) + 
+     -            (dudye + dvdxe)*muX(1 + i,j)) + 
+     -         hx*(-2*dvdys*muY(i,j) + 2*dvdyn*muY(i,1 + j))))/(hx*hy)) + 
+     -  alpha*a(i,j,2)*u(i,j,2)
 c     :::  do relaxation
             u(i,j,1) = (rhs(i,j,1)-operu)/diagu + u(i,j,1)
             u(i,j,2) = (rhs(i,j,2)-operv)/diagv + u(i,j,2)

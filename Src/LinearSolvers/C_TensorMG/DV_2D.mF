@@ -647,10 +647,10 @@ c     :::  get expressions for appropriate derivatives
             dvdxs = <* dvdx[i,j-1+half] //.  allDerivAllUV *>
             dvdxw = <* dvdx[i-1+half,j] //.  allDerivAllUV *>
 c     :::  evaluate expression
-            xflux(i,j,1) = <* tauxx[i-1+half,j] //. standardrepl *>
-            xflux(i,j,2) = <* tauxy[i-1+half,j] //. standardrepl *>
-            yflux(i,j,1) = <* tauxy[i,j-1+half] //. standardrepl *>
-            yflux(i,j,2) = <* tauyy[i,j-1+half] //. standardrepl *>
+            xflux(i,j,1) = -(<* tauxx[i-1+half,j] //. standardrepl *>)
+            xflux(i,j,2) = -(<* tauxy[i-1+half,j] //. standardrepl *>)
+            yflux(i,j,1) = -(<* tauxy[i,j-1+half] //. standardrepl *>)
+            yflux(i,j,2) = -(<* tauyy[i,j-1+half] //. standardrepl *>)
          enddo
       enddo
 
@@ -679,10 +679,10 @@ c     :::  get expressions for appropriate derivatives
             dvdxn = trandern(i,j+1,2)
             dvdxw = <* dvdx[i-1+half,j] //.  allDerivAllUV *>
 c     :::  evaluate expression
-            xflux(i,j,1) = <* tauxx[i-1+half,j] //. standardrepl *>
-            xflux(i,j,2) = <* tauxy[i-1+half,j] //. standardrepl *>
-            yflux(i,j+1,1) = <* tauxy[i,j+half] //. standardrepl *>
-            yflux(i,j+1,2) = <* tauyy[i,j+half] //. standardrepl *>
+            xflux(i,j,1) = -(<* tauxx[i-1+half,j] //. standardrepl *>)
+            xflux(i,j,2) = -(<* tauxy[i-1+half,j] //. standardrepl *>)
+            yflux(i,j+1,1) = -(<* tauxy[i,j+half] //. standardrepl *>)
+            yflux(i,j+1,2) = -(<* tauyy[i,j+half] //. standardrepl *>)
          enddo
 
 c ::: case 2b south side
@@ -709,10 +709,10 @@ c     :::  get expressions for appropriate derivatives
             dvdxs = tranders(i,j-1,2)
             dvdxw = <* dvdx[i-1+half,j] //.  allDerivAllUV *>
 c     :::  evaluate expression
-            xflux(i,j,1) = <* tauxx[i-1+half,j] //. standardrepl *>
-            xflux(i,j,2) = <* tauxy[i-1+half,j] //. standardrepl *>
-            yflux(i,j,1) = <* tauxy[i,j-1+half] //. standardrepl *>
-            yflux(i,j,2) = <* tauyy[i,j-1+half] //. standardrepl *>
+            xflux(i,j,1) = -(<* tauxx[i-1+half,j] //. standardrepl *>)
+            xflux(i,j,2) = -(<* tauxy[i-1+half,j] //. standardrepl *>)
+            yflux(i,j,1) = -(<* tauxy[i,j-1+half] //. standardrepl *>)
+            yflux(i,j,2) = -(<* tauyy[i,j-1+half] //. standardrepl *>)
          enddo
 
 
@@ -740,10 +740,10 @@ c     :::  get expressions for appropriate derivatives
             endif
             dvdxw = <* dvdx[i-1+half,j] //.  allDerivAllUV *>
 c     :::  evaluate expression
-            xflux(i,j,1) = <* tauxx[i-1+half,j] //. standardrepl *>
-            xflux(i,j,2) = <* tauxy[i-1+half,j] //. standardrepl *>
-            yflux(i,j,1) = <* tauxy[i,j-1+half] //. standardrepl *>
-            yflux(i,j,2) = <* tauyy[i,j-1+half] //. standardrepl *>
+            xflux(i,j,1) = -(<* tauxx[i-1+half,j] //. standardrepl *>)
+            xflux(i,j,2) = -(<* tauxy[i-1+half,j] //. standardrepl *>)
+            yflux(i,j,1) = -(<* tauxy[i,j-1+half] //. standardrepl *>)
+            yflux(i,j,2) = -(<* tauyy[i,j-1+half] //. standardrepl *>)
       enddo
 
 c ::: case 2d: east side story
@@ -770,10 +770,10 @@ c     :::  get expressions for appropriate derivatives
             endif
             dvdxe = <* dvdx[i+half,j] //.  allDerivAllUV *>
 c     :::  evaluate expression
-            xflux(i+1,j,1) = <* tauxx[i+half,j] //. standardrepl *>
-            xflux(i+1,j,2) = <* tauxy[i+half,j] //. standardrepl *>
-            yflux(i,j,1) = <* tauxy[i,j-1+half] //. standardrepl *>
-            yflux(i,j,2) = <* tauyy[i,j-1+half] //. standardrepl *>
+            xflux(i+1,j,1) = -(<* tauxx[i+half,j] //. standardrepl *>)
+            xflux(i+1,j,2) = -(<* tauxy[i+half,j] //. standardrepl *>)
+            yflux(i,j,1) = -(<* tauxy[i,j-1+half] //. standardrepl *>)
+            yflux(i,j,2) = -(<* tauyy[i,j-1+half] //. standardrepl *>)
          enddo
 
 c ::: case 3a: north-east corner
@@ -814,14 +814,14 @@ c     :::  get expressions for appropriate derivatives
             dvdxe = <* dvdx[i+half,j] //.  allDerivAllUV *>
             dvdxw = <* dvdx[i-1+half,j] //.  allDerivAllUV *>
 c     :::  evaluate expression
-            xflux(i,j,1) = <* tauxx[i-1+half,j] //. standardrepl *>
-            xflux(i,j,2) = <* tauxy[i-1+half,j] //. standardrepl *>
-            xflux(i+1,j,1) = <* tauxx[i+half,j] //. standardrepl *>
-            xflux(i+1,j,2) = <* tauxy[i+half,j] //. standardrepl *>
-            yflux(i,j,1) = <* tauxy[i,j-1+half] //. standardrepl *>
-            yflux(i,j,2) = <* tauyy[i,j-1+half] //. standardrepl *>
-            yflux(i,j+1,1) = <* tauxy[i,j+half] //. standardrepl *>
-            yflux(i,j+1,2) = <* tauyy[i,j+half] //. standardrepl *>
+            xflux(i,j,1) = -(<* tauxx[i-1+half,j] //. standardrepl *>)
+            xflux(i,j,2) = -(<* tauxy[i-1+half,j] //. standardrepl *>)
+            xflux(i+1,j,1) = -(<* tauxx[i+half,j] //. standardrepl *>)
+            xflux(i+1,j,2) = -(<* tauxy[i+half,j] //. standardrepl *>)
+            yflux(i,j,1) = -(<* tauxy[i,j-1+half] //. standardrepl *>)
+            yflux(i,j,2) = -(<* tauyy[i,j-1+half] //. standardrepl *>)
+            yflux(i,j+1,1) = -(<* tauxy[i,j+half] //. standardrepl *>)
+            yflux(i,j+1,2) = -(<* tauyy[i,j+half] //. standardrepl *>)
 
 c ::: case 3b: south-east corner, plus i, minus j, plus i, plus j
 c ::: <* indexcond = Function[ {i,j}, (i>0)||(j<0) ] ; *>
@@ -860,14 +860,14 @@ c     :::  get expressions for appropriate derivatives
             dvdxe = <* dvdx[i+half,j] //.  allDerivAllUV *>
             dvdxw = <* dvdx[i-1+half,j] //.  allDerivAllUV *>
 c     :::  evaluate expression
-            xflux(i,j,1) = <* tauxx[i-1+half,j] //. standardrepl *>
-            xflux(i,j,2) = <* tauxy[i-1+half,j] //. standardrepl *>
-            xflux(i+1,j,1) = <* tauxx[i+half,j] //. standardrepl *>
-            xflux(i+1,j,2) = <* tauxy[i+half,j] //. standardrepl *>
-            yflux(i,j,1) = <* tauxy[i,j-1+half] //. standardrepl *>
-            yflux(i,j,2) = <* tauyy[i,j-1+half] //. standardrepl *>
-            yflux(i,j+1,1) = <* tauxy[i,j+half] //. standardrepl *>
-            yflux(i,j+1,2) = <* tauyy[i,j+half] //. standardrepl *>
+            xflux(i,j,1) = -(<* tauxx[i-1+half,j] //. standardrepl *>)
+            xflux(i,j,2) = -(<* tauxy[i-1+half,j] //. standardrepl *>)
+            xflux(i+1,j,1) = -(<* tauxx[i+half,j] //. standardrepl *>)
+            xflux(i+1,j,2) = -(<* tauxy[i+half,j] //. standardrepl *>)
+            yflux(i,j,1) = -(<* tauxy[i,j-1+half] //. standardrepl *>)
+            yflux(i,j,2) = -(<* tauyy[i,j-1+half] //. standardrepl *>)
+            yflux(i,j+1,1) = -(<* tauxy[i,j+half] //. standardrepl *>)
+            yflux(i,j+1,2) = -(<* tauyy[i,j+half] //. standardrepl *>)
 
 c ::: case 3c: south-west corner, minus i, minus j
 c ::: <* indexcond = Function[ {i,j}, (i<0)||(j<0) ] ; *>
@@ -905,14 +905,14 @@ c     :::  get expressions for appropriate derivatives
             dvdxe = <* dvdx[i+half,j] //.  allDerivAllUV *>
             dvdxw = <* dvdx[i-1+half,j] //.  allDerivAllUV *>
 c     :::  evaluate expression
-            xflux(i,j,1) = <* tauxx[i-1+half,j] //. standardrepl *>
-            xflux(i,j,2) = <* tauxy[i-1+half,j] //. standardrepl *>
-            xflux(i+1,j,1) = <* tauxx[i+half,j] //. standardrepl *>
-            xflux(i+1,j,2) = <* tauxy[i+half,j] //. standardrepl *>
-            yflux(i,j,1) = <* tauxy[i,j-1+half] //. standardrepl *>
-            yflux(i,j,2) = <* tauyy[i,j-1+half] //. standardrepl *>
-            yflux(i,j+1,1) = <* tauxy[i,j+half] //. standardrepl *>
-            yflux(i,j+1,2) = <* tauyy[i,j+half] //. standardrepl *>
+            xflux(i,j,1) = -(<* tauxx[i-1+half,j] //. standardrepl *>)
+            xflux(i,j,2) = -(<* tauxy[i-1+half,j] //. standardrepl *>)
+            xflux(i+1,j,1) = -(<* tauxx[i+half,j] //. standardrepl *>)
+            xflux(i+1,j,2) = -(<* tauxy[i+half,j] //. standardrepl *>)
+            yflux(i,j,1) = -(<* tauxy[i,j-1+half] //. standardrepl *>)
+            yflux(i,j,2) = -(<* tauyy[i,j-1+half] //. standardrepl *>)
+            yflux(i,j+1,1) = -(<* tauxy[i,j+half] //. standardrepl *>)
+            yflux(i,j+1,2) = -(<* tauyy[i,j+half] //. standardrepl *>)
 
 c ::: case 3d: north-west corner, minus i, plus j
 c ::: <* indexcond = Function[ {i,j}, (i<0)||(j>0) ] ; *>
@@ -951,14 +951,14 @@ c     :::  get expressions for appropriate derivatives
             dvdxe = <* dvdx[i+half,j] //.  allDerivAllUV *>
             dvdxw = <* dvdx[i-1+half,j] //.  allDerivAllUV *>
 c     :::  evaluate expression
-            xflux(i,j,1) = <* tauxx[i-1+half,j] //. standardrepl *>
-            xflux(i,j,2) = <* tauxy[i-1+half,j] //. standardrepl *>
-            xflux(i+1,j,1) = <* tauxx[i+half,j] //. standardrepl *>
-            xflux(i+1,j,2) = <* tauxy[i+half,j] //. standardrepl *>
-            yflux(i,j,1) = <* tauxy[i,j-1+half] //. standardrepl *>
-            yflux(i,j,2) = <* tauyy[i,j-1+half] //. standardrepl *>
-            yflux(i,j+1,1) = <* tauxy[i,j+half] //. standardrepl *>
-            yflux(i,j+1,2) = <* tauyy[i,j+half] //. standardrepl *>
+            xflux(i,j,1) = -(<* tauxx[i-1+half,j] //. standardrepl *>)
+            xflux(i,j,2) = -(<* tauxy[i-1+half,j] //. standardrepl *>)
+            xflux(i+1,j,1) = -(<* tauxx[i+half,j] //. standardrepl *>)
+            xflux(i+1,j,2) = -(<* tauxy[i+half,j] //. standardrepl *>)
+            yflux(i,j,1) = -(<* tauxy[i,j-1+half] //. standardrepl *>)
+            yflux(i,j,2) = -(<* tauyy[i,j-1+half] //. standardrepl *>)
+            yflux(i,j+1,1) = -(<* tauxy[i,j+half] //. standardrepl *>)
+            yflux(i,j+1,2) = -(<* tauyy[i,j+half] //. standardrepl *>)
 
 
 
@@ -1081,6 +1081,10 @@ c
       REAL_T x(-1:maxmaxorder-2)
       REAL_T coef(-1:maxmaxorder-2)
       REAL_T xInt
+c
+      logical False, True
+      parameter( False=.false.)
+      parameter( True=.true. )
 c
       is_dirichlet(i) = ( i .eq. LO_DIRICHLET   )
       is_neumann(i)   = ( i .eq. LO_NEUMANN )
