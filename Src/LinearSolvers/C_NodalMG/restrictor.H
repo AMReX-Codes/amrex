@@ -65,8 +65,6 @@ public:
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
     virtual void fill_interface(MultiFab&, MultiFab&, const level_interface&, const amr_boundary_class*, const IntVect&) const;
 protected:
-    virtual void fill_lev_interface(FArrayBox& patch, const Box& region, MultiFab& fine, 
-	const level_interface& lev_interface, const amr_boundary_class* bdy, const IntVect& rat) const;
     int integrate;
     bool m_hg_terrain;
 };
@@ -78,9 +76,6 @@ class bilinear_restrictor_coarse_class : public bilinear_restrictor_class
 public:
     bilinear_restrictor_coarse_class(int i, bool hg_terrain) : bilinear_restrictor_class(i, hg_terrain) { }
     virtual void fill_interface(MultiFab&, MultiFab&, const level_interface&, const amr_boundary_class*, const IntVect&) const;
-protected:
-    virtual void fill_lev_interface(FArrayBox& patch, const Box& region, MultiFab& fine, 
-	const level_interface& lev_interface, const amr_boundary_class* bdy, const IntVect& rat) const;
 };
 
 #endif

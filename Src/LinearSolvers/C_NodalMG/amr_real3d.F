@@ -13,45 +13,23 @@ c Works for CELL- or NODE-based data.
      &                  ncomp)
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       integer i, j, k, ic
-      if (regh2 - regl2 .gt. regh1 - regl1 .and.
-     &    regh2 - regl2 .gt. regh0 - regl0) then
-         do ic = 1, ncomp
-            do j = regl1, regh1
-               do i = regl0, regh0
-                  do k = regl2, regh2
-                     dest(i,j,k,ic) = src(i,j,k,ic)
-                  end do
+      do  ic = 1, ncomp
+         do  k = regl2, regh2
+            do  j = regl1, regh1
+               do  i = regl0, regh0
+                  dest(i,j,k,ic) = src(i,j,k,ic)
                end do
             end do
          end do
-      else if (regh1 - regl1 .gt. regh0 - regl0) then
-         do ic = 1, ncomp
-            do k = regl2, regh2
-               do i = regl0, regh0
-                  do j = regl1, regh1
-                     dest(i,j,k,ic) = src(i,j,k,ic)
-                  end do
-               end do
-            end do
-         end do
-      else
-         do  ic = 1, ncomp
-            do  k = regl2, regh2
-               do  j = regl1, regh1
-                  do  i = regl0, regh0
-                     dest(i,j,k,ic) = src(i,j,k,ic)
-                  end do
-               end do
-            end do
-         end do
-      end if
+      end do
       end
 c-----------------------------------------------------------------------
 c Works for NODE-based data.
       subroutine fcpy2(
      & da,  dal0,dah0,dal1,dah1,dal2,dah2,
      & db,  dbl0,dbh0,dbl1,dbh1,dbl2,dbh2,
-     & regl0,regh0,regl1,regh1,regl2,regh2, w, b, ncomp)
+     &      regl0,regh0,regl1,regh1,regl2,regh2, 
+     & w, b, ncomp)
       integer dal0,dah0,dal1,dah1,dal2,dah2
       integer dbl0,dbh0,dbl1,dbh1,dbl2,dbh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
@@ -138,32 +116,13 @@ c Works for CELL-based data.
       double precision v1(v1l0:v1h0,v1l1:v1h1,v1l2:v1h2)
       double precision sum
       integer i, j, k
-      if (regh2 - regl2 .gt. regh1 - regl1 .and.
-     &    regh2 - regl2 .gt. regh0 - regl0) then
+      do k = regl2, regh2
          do j = regl1, regh1
             do i = regl0, regh0
-               do k = regl2, regh2
-                  sum = sum + v0(i,j,k) * v1(i,j,k)
-               end do
+               sum = sum + v0(i,j,k) * v1(i,j,k)
             end do
          end do
-      else if (regh1 - regl1 .gt. regh0 - regl0) then
-         do k = regl2, regh2
-            do i = regl0, regh0
-               do j = regl1, regh1
-                  sum = sum + v0(i,j,k) * v1(i,j,k)
-               end do
-            end do
-         end do
-      else
-         do k = regl2, regh2
-            do j = regl1, regh1
-               do i = regl0, regh0
-                  sum = sum + v0(i,j,k) * v1(i,j,k)
-               end do
-            end do
-         end do
-      end if
+      end do
       end
 c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
@@ -230,32 +189,13 @@ c Works for CELL- or NODE-based data.
      &                   v0(regh0,j,k) * v1(regh0,j,k))
          end do
       end do
-      if (regh2 - regl2 .gt. regh1 - regl1 .and.
-     &    regh2 - regl2 .gt. regh0 - regl0) then
+      do  k = regl2 + 1, regh2 - 1
          do  j = regl1 + 1, regh1 - 1
             do  i = regl0 + 1, regh0 - 1
-               do  k = regl2 + 1, regh2 - 1
-                  sum = sum + v0(i,j,k) * v1(i,j,k)
-               end do
+               sum = sum + v0(i,j,k) * v1(i,j,k)
             end do
          end do
-      else if (regh1 - regl1 .gt. regh0 - regl0) then
-         do  k = regl2 + 1, regh2 - 1
-            do  i = regl0 + 1, regh0 - 1
-               do j = regl1 + 1, regh1 - 1
-                  sum = sum + v0(i,j,k) * v1(i,j,k)
-               end do
-            end do
-         end do
-      else
-         do  k = regl2 + 1, regh2 - 1
-            do  j = regl1 + 1, regh1 - 1
-               do  i = regl0 + 1, regh0 - 1
-                  sum = sum + v0(i,j,k) * v1(i,j,k)
-               end do
-            end do
-         end do
-      end if
+      end do
       end
 c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
@@ -316,25 +256,6 @@ c Works for CELL- or NODE-based data.
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       integer i, j, k
       if (ra(0) .eq. 0 .and. ra(1) .eq. 0 .and. ra(2) .eq. 0) then
-         if (regh2 - regl2 .gt. max(regh0 - regl0, regh1 - regl1)) then
-            do j = regl1, regh1
-               do i = regl0, regh0
-                  do k = regl2, regh2
-                     dest(i,j,k) = src(bbl0+(i-regl0),
-     &                                 bbl1+(j-regl1), bbl2+(k-regl2))
-                  end do
-               end do
-            end do
-         else if (regh1 - regl1 .gt. regh0 - regl0) then
-            do k = regl2, regh2
-               do i = regl0, regh0
-                  do j = regl1, regh1
-                     dest(i,j,k) = src(bbl0+(i-regl0),
-     &                                 bbl1+(j-regl1), bbl2+(k-regl2))
-                  end do
-               end do
-            end do
-         else
             do k = regl2, regh2
                do j = regl1, regh1
                   do i = regl0, regh0
@@ -343,7 +264,6 @@ c Works for CELL- or NODE-based data.
                   end do
                end do
             end do
-         end if
       else if (ra(0) .eq. 0 .and. ra(1) .eq. 0 .and. ra(2) .eq. 1) then
          do k = regl2, regh2
             do j = regl1, regh1
@@ -468,34 +388,14 @@ c Works for CELL- or NODE-based data.
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       integer i, j, k
       if (ra(0) .eq. 0 .and. ra(1) .eq. 0 .and. ra(2) .eq. 0) then
-         if (regh2 - regl2 .gt. max(regh0 - regl0, regh1 - regl1)) then
+         do k = regl2, regh2
             do j = regl1, regh1
                do i = regl0, regh0
-                  do k = regl2, regh2
-                     dest(i,j,k) = -src(bbl0+(i-regl0),
-     &                                  bbl1+(j-regl1), bbl2+(k-regl2))
-                  end do
+                  dest(i,j,k) = -src(bbl0+(i-regl0),
+     &                            bbl1+(j-regl1), bbl2+(k-regl2))
                end do
             end do
-         else if (regh1 - regl1 .gt. regh0 - regl0) then
-            do k = regl2, regh2
-               do i = regl0, regh0
-                  do j = regl1, regh1
-                     dest(i,j,k) = -src(bbl0+(i-regl0),
-     &                                  bbl1+(j-regl1), bbl2+(k-regl2))
-                  end do
-               end do
-            end do
-         else
-            do k = regl2, regh2
-               do j = regl1, regh1
-                  do i = regl0, regh0
-                     dest(i,j,k) = -src(bbl0+(i-regl0),
-     &                                  bbl1+(j-regl1), bbl2+(k-regl2))
-                  end do
-               end do
-            end do
-         end if
+         end do
       else if (ra(0) .eq. 0 .and. ra(1) .eq. 0 .and. ra(2) .eq. 1) then
          do k = regl2, regh2
             do j = regl1, regh1
@@ -1074,125 +974,14 @@ c NODE-based data only.
       REST4D() = 0.005859375d0 * (RS0(1,2) + RS0(2,1))
       REST4E() = 0.0029296875d0 * (RS0(1,3) + RS0(3,1))
       if (ir .eq. 2 .and. jr .eq. 2 .and. kr .eq. 2) then
-         if (regh2 - regl2 .gt. regh1 - regl1 .and.
-     &       regh2 - regl2 .gt. regh0 - regl0) then
-            do j = regl1, regh1
-               do i = regl0, regh0
-                  do k = regl2, regh2
-                     dest(i,j,k) = RESTR2()
-                  end do
-               end do
-            end do
-         else if (regh1 - regl1 .gt. regh0 - regl0) then
-            do k = regl2, regh2
-               do i = regl0, regh0
-                  do j = regl1, regh1
-                     dest(i,j,k) = RESTR2()
-                  end do
-               end do
-            end do
-         else
-            do k = regl2, regh2
+           do k = regl2, regh2
                do j = regl1, regh1
                   do i = regl0, regh0
                      dest(i,j,k) = RESTR2()
                   end do
                end do
             end do
-         end if
       else if (ir .eq. 4 .and. jr .eq. 4 .and. kr .eq. 4) then
-         if (regh2 - regl2 .gt. regh1 - regl1 .and.
-     &       regh2 - regl2 .gt. regh0 - regl0) then
-            do j = regl1, regh1
-               do i = regl0, regh0
-                  do k = regl2, regh2
-                     dest(i,j,k) = REST4A()
-                  end do
-                  do k = regl2, regh2
-                     dest(i,j,k) = dest(i,j,k) + REST4B()
-                  end do
-                  do k = regl2, regh2
-                     dest(i,j,k) = dest(i,j,k) + REST4C()
-                  end do
-                  do k = regl2, regh2
-                     dest(i,j,k) = dest(i,j,k) + REST4D()
-                  end do
-                  do k = regl2, regh2
-                     dest(i,j,k) = dest(i,j,k) + REST4E()
-                  end do
-               end do
-            end do
-            fac0 = 1.d0 / (ir*ir * jr*jr * kr*kr)
-            do l = 1, 3
-               fac2 = (4-l) * fac0
-               do n = 1, 3
-                  fac1 = (4-n) * fac2
-                  do m = 1, 3 
-                     fac = (4-m) * fac1
-                     do j = regl1, regh1
-                        do i = regl0, regh0
-                           do k = regl2, regh2
-                              dest(i,j,k) = dest(i,j,k) +
-     &                  fac * (src(4*i-m,4*j-n,4*k-l)+
-     &                         src(4*i-m,4*j-n,4*k+l)+
-     &                         src(4*i-m,4*j+n,4*k-l)+
-     &                         src(4*i-m,4*j+n,4*k+l)+
-     &                         src(4*i+m,4*j-n,4*k-l)+
-     &                         src(4*i+m,4*j-n,4*k+l)+
-     &                         src(4*i+m,4*j+n,4*k-l)+
-     &                         src(4*i+m,4*j+n,4*k+l))
-                           end do
-                        end do
-                     end do
-                  end do
-               end do
-            end do
-         else if (regh1 - regl1 .gt. regh0 - regl0) then
-            do k = regl2, regh2
-               do i = regl0, regh0
-                  do j = regl1, regh1
-                     dest(i,j,k) = REST4A()
-                  end do
-                  do j = regl1, regh1
-                     dest(i,j,k) = dest(i,j,k) + REST4B()
-                  end do
-                  do j = regl1, regh1
-                     dest(i,j,k) = dest(i,j,k) + REST4C()
-                  end do
-                  do j = regl1, regh1
-                     dest(i,j,k) = dest(i,j,k) + REST4D()
-                  end do
-                  do j = regl1, regh1
-                     dest(i,j,k) = dest(i,j,k) + REST4E()
-                  end do
-               end do
-            end do
-            fac0 = 1.d0 / (ir*ir * jr*jr * kr*kr)
-            do l = 1, 3
-               fac2 = (4-l) * fac0
-               do n = 1, 3
-                  fac1 = (4-n) * fac2
-                  do m = 1, 3
-                     fac = (4-m) * fac1
-                     do k = regl2, regh2
-                        do i = regl0, regh0
-                           do j = regl1, regh1
-                              dest(i,j,k) = dest(i,j,k) +
-     &                  fac * (src(4*i-m,4*j-n,4*k-l)+
-     &                         src(4*i-m,4*j-n,4*k+l)+
-     &                         src(4*i-m,4*j+n,4*k-l)+
-     &                         src(4*i-m,4*j+n,4*k+l)+
-     &                         src(4*i+m,4*j-n,4*k-l)+
-     &                         src(4*i+m,4*j-n,4*k+l)+
-     &                         src(4*i+m,4*j+n,4*k-l)+
-     &                         src(4*i+m,4*j+n,4*k+l))
-                           end do
-                        end do
-                     end do
-                  end do
-               end do
-            end do
-         else
             do k = regl2, regh2
                do j = regl1, regh1
                   do i = regl0, regh0
@@ -1237,82 +1026,7 @@ c NODE-based data only.
                   end do
                end do
             end do
-         end if
       else
-         if (regh2 - regl2 .gt. regh1 - regl1 .and.
-     &       regh2 - regl2 .gt. regh0 - regl0) then
-            do j = regl1, regh1
-               do i = regl0, regh0
-                  do k = regl2, regh2
-                     dest(i,j,k) = 0.d0
-                  end do
-               end do
-            end do
-            fac0 = 1.d0 / (ir*ir * jr*jr * kr*kr)
-            do  l = 0, kr-1
-               fac2 = (kr-l) * fac0
-               if (l .eq. 0) fac2 = 0.5d0 * fac2
-               do n = 0, jr-1
-                  fac1 = (jr-n) * fac2
-                  if (n .eq. 0) fac1 = 0.5d0 * fac1
-                  do m = 0, ir-1
-                     fac = (ir-m) * fac1
-                     if (m .eq. 0) fac = 0.5d0 * fac
-                     do j = regl1, regh1
-                        do i = regl0, regh0
-                           do k = regl2, regh2
-                              dest(i,j,k) = dest(i,j,k) +
-     &                  fac * (src(i*ir-m,j*jr-n,k*kr-l)+
-     &                         src(i*ir-m,j*jr-n,k*kr+l)+
-     &                         src(i*ir-m,j*jr+n,k*kr-l)+
-     &                         src(i*ir-m,j*jr+n,k*kr+l)+
-     &                         src(i*ir+m,j*jr-n,k*kr-l)+
-     &                         src(i*ir+m,j*jr-n,k*kr+l)+
-     &                         src(i*ir+m,j*jr+n,k*kr-l)+
-     &                         src(i*ir+m,j*jr+n,k*kr+l))
-                           end do
-                        end do
-                     end do
-                  end do
-               end do
-            end do
-         else if (regh1 - regl1 .gt. regh0 - regl0) then
-            do k = regl2, regh2
-               do i = regl0, regh0
-                  do j = regl1, regh1
-                     dest(i,j,k) = 0.d0
-                  end do
-               end do
-            end do
-            fac0 = 1.d0 / (ir*ir * jr*jr * kr*kr)
-            do  l = 0, kr-1
-               fac2 = (kr-l) * fac0
-               if (l .eq. 0) fac2 = 0.5d0 * fac2
-               do n = 0, jr-1
-                  fac1 = (jr-n) * fac2
-                  if (n .eq. 0) fac1 = 0.5d0 * fac1
-                  do m = 0, ir-1
-                     fac = (ir-m) * fac1
-                     if (m .eq. 0) fac = 0.5d0 * fac
-                     do k = regl2, regh2
-                        do i = regl0, regh0
-                           do j = regl1, regh1
-                              dest(i,j,k) = dest(i,j,k) +
-     &                  fac * (src(i*ir-m,j*jr-n,k*kr-l)+
-     &                         src(i*ir-m,j*jr-n,k*kr+l)+
-     &                         src(i*ir-m,j*jr+n,k*kr-l)+
-     &                         src(i*ir-m,j*jr+n,k*kr+l)+
-     &                         src(i*ir+m,j*jr-n,k*kr-l)+
-     &                         src(i*ir+m,j*jr-n,k*kr+l)+
-     &                         src(i*ir+m,j*jr+n,k*kr-l)+
-     &                         src(i*ir+m,j*jr+n,k*kr+l))
-                           end do
-                        end do
-                     end do
-                  end do
-               end do
-            end do
-         else
             do k = regl2, regh2
                do j = regl1, regh1
                   do i = regl0, regh0
@@ -1348,28 +1062,9 @@ c NODE-based data only.
                   end do
                end do
             end do
-         end if
       end if
       if (integ .eq. 1) then
          fac = ir * jr * kr
-         if (regh2 - regl2 .gt. regh1 - regl1 .and.
-     &       regh2 - regl2 .gt. regh0 - regl0) then
-            do  j = regl1, regh1
-               do i = regl0, regh0
-                  do k = regl2, regh2
-                     dest(i,j,k) = fac * dest(i,j,k)
-                  end do
-               end do
-            end do
-         else if (regh1 - regl1 .gt. regh0 - regl0) then
-            do  k = regl2, regh2
-               do i = regl0, regh0
-                  do j = regl1, regh1
-                     dest(i,j,k) = fac * dest(i,j,k)
-                  end do
-               end do
-            end do
-         else
             do k = regl2, regh2
                do j = regl1, regh1
                   do i = regl0, regh0
@@ -1378,7 +1073,6 @@ c NODE-based data only.
                end do
             end do
          end if
-      end if
       end
 c-----------------------------------------------------------------------
 c NODE-based data only.

@@ -657,7 +657,7 @@ void holy_grail_amr_multigrid::sync_interfaces()
 	    const Box& nbox = lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
 	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(level_interface::FACEDIM, iface) )
 		continue;
-	    interpolate_patch(target[igrid], nbox, dest[lev-1], rat, bilinear_interpolator_class(), lev_interface[mgc], 0);
+	    interpolate_patch(target[igrid], nbox, dest[lev-1], rat, bilinear_interpolator_class(), lev_interface[mgc]);
 	}
     }
 }
@@ -684,7 +684,7 @@ void holy_grail_amr_multigrid::sync_periodic_interfaces()
 	    const Box& nbox = lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
 	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(level_interface::FACEDIM, iface) || idomain.intersects(nbox))
 		continue;
-	    interpolate_patch(target[igrid], nbox, dest[lev-1], rat, bilinear_interpolator_class(), lev_interface[mgc], 0);
+	    interpolate_patch(target[igrid], nbox, dest[lev-1], rat, bilinear_interpolator_class(), lev_interface[mgc]);
 	}
     }
 }
@@ -694,14 +694,7 @@ void holy_grail_amr_multigrid::mg_restrict_level(int lto, int lfrom)
     IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
     if (get_amr_level(lto) >= 0) 
     {
-	if (integrate == 0) 
-	{
-	    restrict_level(resid[lto], work[lfrom], rat, bilinear_restrictor_coarse_class(0, m_hg_terrain), lev_interface[lfrom], mg_boundary);
-	}
-	else 
-	{
-	    restrict_level(resid[lto], work[lfrom], rat, bilinear_restrictor_coarse_class(1, m_hg_terrain), lev_interface[lfrom], mg_boundary);
-	}
+	restrict_level(resid[lto], work[lfrom], rat, bilinear_restrictor_coarse_class( (integrate==0)?0:1, m_hg_terrain), lev_interface[lfrom], mg_boundary);
     }
     else 
     {
@@ -802,7 +795,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 		hgi = new holy_grail_interpolator_class(sigptr, sigbox);
 #endif
 	    }
-	    interpolate_patch(target[igrid], target.box(igrid), corr[lfrom], rat, *hgi, lev_interface[lfrom], 0);
+	    interpolate_patch(target[igrid], target.box(igrid), corr[lfrom], rat, *hgi, lev_interface[lfrom]);
 	    delete hgi;
 	}
 	if (lto > ltmp) 

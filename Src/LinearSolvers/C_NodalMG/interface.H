@@ -16,25 +16,16 @@ public:
 	XL = 0x5, XH = 0xA, YL = 0x3, YH = 0xC,
 	ALL = 0xF, LOW = 0x1 
     };
-    enum
-    { 
-	N_FACE_GRIDS = 2,
-	N_CORNER_GRIDS = 4,
-	FACEDIM  = 1
-    };
-#elif (BL_SPACEDIM == 3)
+#else
     enum 
     {
 	ALL = 0xFF, LOW = 0x01 
     };
-    enum 
-    { 
-	N_FACE_GRIDS = 2,
-	N_EDGE_GRIDS = 4,
-	N_CORNER_GRIDS = 8,
-	FACEDIM = 2
-    };
 #endif
+    enum 
+    {
+	FACEDIM = BL_SPACEDIM-1
+    };
     
     level_interface() : status(-1) { }
     ~level_interface();
@@ -59,7 +50,7 @@ public:
     int direct_exterior_ref(int igrid)const { return grid_ref[igrid]; }
     const Box& part_fine(int i)       const { return pf[i]; }
     
-    void geo_array(int idim, int ga[], int i) const;
+    Array<int> geo_array(int idim, int i) const;
 
     int grid(int idim, int i, int j)   const;
 
@@ -71,8 +62,23 @@ public:
     unsigned int geo(int idim, int i) const { return ge[idim][i]; }
     unsigned int aux(int idim, int i) const { return ax[idim][i]; }
     bool flag(int idim, int i)        const { return flg[idim][i]; }
+    static int ngrids(int idim);
 
 private:
+#if (BL_SPACEDIM == 2)
+    enum
+    { 
+	N_FACE_GRIDS = 2,
+	N_CORNER_GRIDS = 4,
+    };
+#elif (BL_SPACEDIM == 3)
+    enum 
+    { 
+	N_FACE_GRIDS = 2,
+	N_EDGE_GRIDS = 4,
+	N_CORNER_GRIDS = 8,
+    };
+#endif
     int status;				// tells if some arrays are shared
     Box dom;				// BoxArray doesn't know domain
     BoxArray im;			// interior BoxArray
@@ -104,6 +110,7 @@ private:
 
 inline int level_interface::grid(int idim, int i, int j)   const 
 { 
+    assert(idim >= 0 && idim <= FACEDIM);
     int ret;
     switch(idim) 
     {
@@ -116,4 +123,18 @@ inline int level_interface::grid(int idim, int i, int j)   const
     return ret;
 }
 
+inline int level_interface::ngrids(int idim)
+{
+    assert(idim >= 0 && idim <= FACEDIM);
+    int ret;
+    switch(idim)
+    {
+    case FACEDIM: ret = N_FACE_GRIDS; break;
+#if BL_SPACEDIM == 3
+    case 1:       ret = N_EDGE_GRIDS; break;
+#endif
+    case 0:       ret = N_CORNER_GRIDS; break;
+    }
+    return ret;
+}
 #endif

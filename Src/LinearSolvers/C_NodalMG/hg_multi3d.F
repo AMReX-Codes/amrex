@@ -1851,53 +1851,20 @@ c-----------------------------------------------------------------------
      &         signd(i,j,k,2)   * cor(i,j+1,k) +
      &         signd(i,j,k-1,3) * cor(i,j,k-1) +
      &         signd(i,j,k,3)   * cor(i,j,k+1))
-      if (regh2 - regl2 .gt. regh1 - regl1 .and.
-     &    regh2 - regl2 .gt. regh0 - regl0) then
-         do ipass = 0, 1
-            ipar0 = ipass
+      do ipass = 0, 1
+         ipar0 = ipass
+         do k = regl2, regh2
+            ipar0 = 1 - ipar0
+            ipar = ipar0
             do j = regl1, regh1
-               ipar0 = 1 - ipar0
-               ipar = ipar0
-               do i = regl0, regh0
-                  ipar = 1 - ipar
+               ipar = 1 - ipar
 cdir$ ivdep
-                  do k = regl2 + ipar, regh2, 2
-                     cor(i,j,k) = (avg() - res(i,j,k)) * cen(i,j,k)
-                  end do
+               do i = regl0 + ipar, regh0, 2
+                  cor(i,j,k) = (avg() - res(i,j,k)) * cen(i,j,k)
                end do
             end do
          end do
-      else if (regh1 - regl1 .gt. regh0 - regl0) then
-         do ipass = 0, 1
-            ipar0 = ipass
-            do k = regl2, regh2
-               ipar0 = 1 - ipar0
-               ipar = ipar0
-               do i = regl0, regh0
-                  ipar = 1 - ipar
-cdir$ ivdep
-                  do j = regl1 + ipar, regh1, 2
-                     cor(i,j,k) = (avg() - res(i,j,k)) * cen(i,j,k)
-                  end do
-               end do
-            end do
-         end do
-      else
-         do ipass = 0, 1
-            ipar0 = ipass
-            do k = regl2, regh2
-               ipar0 = 1 - ipar0
-               ipar = ipar0
-               do j = regl1, regh1
-                  ipar = 1 - ipar
-cdir$ ivdep
-                  do i = regl0 + ipar, regh0, 2
-                     cor(i,j,k) = (avg() - res(i,j,k)) * cen(i,j,k)
-                  end do
-               end do
-            end do
-         end do
-      end if
+      end do
       end
 c-----------------------------------------------------------------------
       subroutine hgrlxl(
@@ -2256,50 +2223,19 @@ c-----------------------------------------------------------------------
       double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
       double precision signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
       integer i, j, k
-      if (regh2 - regl2 .gt. regh1 - regl1 .and.
-     &    regh2 - regl2 .gt. regh0 - regl0) then
+      do k = regl2, regh2
          do j = regl1, regh1
             do i = regl0, regh0
-               do k = regl2, regh2
-                  res(i,j,k) = src(i,j,k) -
-     &              (signd(i-1,j,k,1) * (dest(i-1,j,k) - dest(i,j,k)) +
-     &               signd(i,j,k,1)   * (dest(i+1,j,k) - dest(i,j,k)) +
-     &               signd(i,j-1,k,2) * (dest(i,j-1,k) - dest(i,j,k)) +
-     &               signd(i,j,k,2)   * (dest(i,j+1,k) - dest(i,j,k)) +
-     &               signd(i,j,k-1,3) * (dest(i,j,k-1) - dest(i,j,k)) +
-     &               signd(i,j,k,3)   * (dest(i,j,k+1) - dest(i,j,k)))
-               end do
+               res(i,j,k) = src(i,j,k) -
+     &        (signd(i-1,j,k,1) * (dest(i-1,j,k) - dest(i,j,k)) +
+     &         signd(i,j,k,1)   * (dest(i+1,j,k) - dest(i,j,k)) +
+     &         signd(i,j-1,k,2) * (dest(i,j-1,k) - dest(i,j,k)) +
+     &         signd(i,j,k,2)   * (dest(i,j+1,k) - dest(i,j,k)) +
+     &         signd(i,j,k-1,3) * (dest(i,j,k-1) - dest(i,j,k)) +
+     &         signd(i,j,k,3)   * (dest(i,j,k+1) - dest(i,j,k)))
             end do
          end do
-      else if (regh1 - regl1 .gt. regh0 - regl0) then
-         do k = regl2, regh2
-            do i = regl0, regh0
-               do j = regl1, regh1
-                  res(i,j,k) = src(i,j,k) -
-     &              (signd(i-1,j,k,1) * (dest(i-1,j,k) - dest(i,j,k)) +
-     &               signd(i,j,k,1)   * (dest(i+1,j,k) - dest(i,j,k)) +
-     &               signd(i,j-1,k,2) * (dest(i,j-1,k) - dest(i,j,k)) +
-     &               signd(i,j,k,2)   * (dest(i,j+1,k) - dest(i,j,k)) +
-     &               signd(i,j,k-1,3) * (dest(i,j,k-1) - dest(i,j,k)) +
-     &               signd(i,j,k,3)   * (dest(i,j,k+1) - dest(i,j,k)))
-               end do
-            end do
-         end do
-      else
-         do k = regl2, regh2
-            do j = regl1, regh1
-               do i = regl0, regh0
-                  res(i,j,k) = src(i,j,k) -
-     &              (signd(i-1,j,k,1) * (dest(i-1,j,k) - dest(i,j,k)) +
-     &               signd(i,j,k,1)   * (dest(i+1,j,k) - dest(i,j,k)) +
-     &               signd(i,j-1,k,2) * (dest(i,j-1,k) - dest(i,j,k)) +
-     &               signd(i,j,k,2)   * (dest(i,j+1,k) - dest(i,j,k)) +
-     &               signd(i,j,k-1,3) * (dest(i,j,k-1) - dest(i,j,k)) +
-     &               signd(i,j,k,3)   * (dest(i,j,k+1) - dest(i,j,k)))
-               end do
-            end do
-         end do
-      end if
+      end do
       end
 c-----------------------------------------------------------------------
       subroutine hgresu(
@@ -2460,53 +2396,20 @@ c-----------------------------------------------------------------------
       hxm2 = 1.d0 / (hx*hx)
       hym2 = 1.d0 / (hy*hy)
       hzm2 = 1.d0 / (hz*hz)
-      if (regh2 - regl2 .gt. regh1 - regl1 .and.
-     &    regh2 - regl2 .gt. regh0 - regl0) then
-         do ipass = 0, 1
-            ipar0 = ipass
+      do ipass = 0, 1
+         ipar0 = ipass
+         do k = regl2, regh2
+            ipar0 = 1 - ipar0
+            ipar = ipar0
             do j = regl1, regh1
-               ipar0 = 1 - ipar0
-               ipar = ipar0
-               do i = regl0, regh0
-                  ipar = 1 - ipar
+               ipar = 1 - ipar
 cdir$ ivdep
-                  do k = regl2 + ipar, regh2, 2
-                     cor(i,j,k) = (AVG() - res(i,j,k)) * cen(i,j,k)
-                  end do
+               do i = regl0 + ipar, regh0, 2
+                  cor(i,j,k) = (AVG() - res(i,j,k)) * cen(i,j,k)
                end do
             end do
          end do
-      else if (regh1 - regl1 .gt. regh0 - regl0) then
-         do ipass = 0, 1
-            ipar0 = ipass
-            do k = regl2, regh2
-               ipar0 = 1 - ipar0
-               ipar = ipar0
-               do i = regl0, regh0
-                  ipar = 1 - ipar
-cdir$ ivdep
-                  do j = regl1 + ipar, regh1, 2
-                     cor(i,j,k) = (AVG() - res(i,j,k)) * cen(i,j,k)
-                  end do
-               end do
-            end do
-         end do
-      else
-         do ipass = 0, 1
-            ipar0 = ipass
-            do k = regl2, regh2
-               ipar0 = 1 - ipar0
-               ipar = ipar0
-               do j = regl1, regh1
-                  ipar = 1 - ipar
-cdir$ ivdep
-                  do i = regl0 + ipar, regh0, 2
-                     cor(i,j,k) = (AVG() - res(i,j,k)) * cen(i,j,k)
-                  end do
-               end do
-            end do
-         end do
-      end if
+      end do
       end
 c-----------------------------------------------------------------------
       subroutine hgres_no_sigma_node(
@@ -2533,60 +2436,6 @@ c-----------------------------------------------------------------------
       hxm2 = 1.d0 / (hx*hx)
       hym2 = 1.d0 / (hy*hy)
       hzm2 = 1.d0 / (hz*hz)
-      if (regh2 - regl2 .gt. regh1 - regl1 .and.
-     &    regh2 - regl2 .gt. regh0 - regl0) then
-         do j = regl1, regh1
-            do i = regl0, regh0
-               do k = regl2, regh2
-                  res(i,j,k) = src(i,j,k) - 0.25d0 *        (hxm2 *
-     &              ((sigx(i-1,j-1,k-1) + sigx(i-1,j-1,k) +
-     &                sigx(i-1,j,k-1)   + sigx(i-1,j,k)) *
-     &                (dest(i-1,j,k) - dest(i,j,k)) +
-     &               (sigx(i,j-1,k-1)   + sigx(i,j-1,k) +
-     &                sigx(i,j,k-1)     + sigx(i,j,k)) *
-     &                (dest(i+1,j,k) - dest(i,j,k))) +       hym2 *
-     &              ((sigy(i-1,j-1,k-1) + sigy(i-1,j-1,k) +
-     &                sigy(i,j-1,k-1)   + sigy(i,j-1,k)) *
-     &                (dest(i,j-1,k) - dest(i,j,k)) +
-     &               (sigy(i-1,j,k-1)   + sigy(i-1,j,k) +
-     &                sigy(i,j,k-1)     + sigy(i,j,k)) *
-     &                (dest(i,j+1,k) - dest(i,j,k))) +       hzm2 *
-     &              ((sigz(i-1,j-1,k-1) + sigz(i-1,j,k-1) +
-     &                sigz(i,j-1,k-1)   + sigz(i,j,k-1)) *
-     &                (dest(i,j,k-1) - dest(i,j,k)) +
-     &               (sigz(i-1,j-1,k)   + sigz(i-1,j,k) +
-     &                sigz(i,j-1,k)     + sigz(i,j,k)) *
-     &                (dest(i,j,k+1) - dest(i,j,k)))             )
-               end do
-            end do
-         end do
-      else if (regh1 - regl1 .gt. regh0 - regl0) then
-         do k = regl2, regh2
-            do i = regl0, regh0
-               do j = regl1, regh1
-                  res(i,j,k) = src(i,j,k) - 0.25d0 *        (hxm2 *
-     &              ((sigx(i-1,j-1,k-1) + sigx(i-1,j-1,k) +
-     &                sigx(i-1,j,k-1)   + sigx(i-1,j,k)) *
-     &                (dest(i-1,j,k) - dest(i,j,k)) +
-     &               (sigx(i,j-1,k-1)   + sigx(i,j-1,k) +
-     &                sigx(i,j,k-1)     + sigx(i,j,k)) *
-     &                (dest(i+1,j,k) - dest(i,j,k))) +       hym2 *
-     &              ((sigy(i-1,j-1,k-1) + sigy(i-1,j-1,k) +
-     &                sigy(i,j-1,k-1)   + sigy(i,j-1,k)) *
-     &                (dest(i,j-1,k) - dest(i,j,k)) +
-     &               (sigy(i-1,j,k-1)   + sigy(i-1,j,k) +
-     &                sigy(i,j,k-1)     + sigy(i,j,k)) *
-     &                (dest(i,j+1,k) - dest(i,j,k))) +       hzm2 *
-     &              ((sigz(i-1,j-1,k-1) + sigz(i-1,j,k-1) +
-     &                sigz(i,j-1,k-1)   + sigz(i,j,k-1)) *
-     &                (dest(i,j,k-1) - dest(i,j,k)) +
-     &               (sigz(i-1,j-1,k)   + sigz(i-1,j,k) +
-     &                sigz(i,j-1,k)     + sigz(i,j,k)) *
-     &                (dest(i,j,k+1) - dest(i,j,k)))             )
-               end do
-            end do
-         end do
-      else
          do k = regl2, regh2
             do j = regl1, regh1
                do i = regl0, regh0
@@ -2612,7 +2461,6 @@ c-----------------------------------------------------------------------
                end do
             end do
          end do
-      end if
       end
 c-----------------------------------------------------------------------
       subroutine hgrlnb(
