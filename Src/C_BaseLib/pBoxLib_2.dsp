@@ -42,7 +42,7 @@ F90=df.exe
 # ADD BASE F90 /include:"Release/" /compile_only /nologo /warn:nofileopt
 # ADD F90 /include:"Release/" /compile_only /nologo /stand:f90 /iface:cref /threads /warn:nofileopt
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GR /GX /O2 /I "." /I "..\pBoxLib_2" /D "_WINDOWS" /D "NDEBUG" /D "WIN32" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_USE_NEW_HFILES" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D for="if(0);else for" /D "BL_USE_MPI" /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GR /GX /O2 /I "." /I "..\pBoxLib_2" /D "_WINDOWS" /D "NDEBUG" /D "WIN32" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_USE_NEW_HFILES" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D for="if(0);else for" /FR /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -65,7 +65,7 @@ LIB32=link.exe -lib
 # ADD BASE F90 /include:"Debug/" /compile_only /nologo /debug:full /optimize:0 /warn:nofileopt
 # ADD F90 /browser /include:"Debug/" /compile_only /nologo /warn:declarations /libs:dll /debug:full /optimize:0 /check:bounds /warn:argument_checking /fpe:0 /stand:f90 /iface:cref /threads /dbglibs /warn:nofileopt
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MDd /W3 /Gm /GR /GX /Zi /Od /I "." /I "..\pBoxLib_2" /D "_WINDOWS" /D "_DEBUG" /D "HG_DEBUG" /D "WIN32" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_USE_NEW_HFILES" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D for="if(0);else for" /D "BL_USE_MPI" /FR /YX /FD /c
+# ADD CPP /nologo /MDd /W3 /Gm /GR /GX /Zi /Od /I "." /I "..\pBoxLib_2" /D "_WINDOWS" /D "_DEBUG" /D "HG_DEBUG" /D "WIN32" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_USE_NEW_HFILES" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D for="if(0);else for" /FR /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -85,49 +85,41 @@ LIB32=link.exe -lib
 # Begin Source File
 
 SOURCE=.\aString.cpp
-# ADD CPP /I "..\pBoxLib_2"
 # SUBTRACT CPP /I "."
 # End Source File
 # Begin Source File
 
 SOURCE=.\BArena.cpp
-# ADD CPP /I "..\pBoxLib_2"
 # SUBTRACT CPP /I "."
 # End Source File
 # Begin Source File
 
 SOURCE=.\Box.cpp
-# ADD CPP /I "..\pBoxLib_2"
 # SUBTRACT CPP /I "."
 # End Source File
 # Begin Source File
 
 SOURCE=.\BoxArray.cpp
-# ADD CPP /I "..\pBoxLib_2"
 # SUBTRACT CPP /I "."
 # End Source File
 # Begin Source File
 
 SOURCE=.\BoxAssoc.cpp
-# ADD CPP /I "..\pBoxLib_2"
 # SUBTRACT CPP /I "."
 # End Source File
 # Begin Source File
 
 SOURCE=.\BoxDomain.cpp
-# ADD CPP /I "..\pBoxLib_2"
 # SUBTRACT CPP /I "."
 # End Source File
 # Begin Source File
 
 SOURCE=.\BoxLib.cpp
-# ADD CPP /I "..\pBoxLib_2"
 # SUBTRACT CPP /I "."
 # End Source File
 # Begin Source File
 
 SOURCE=.\BoxList.cpp
-# ADD CPP /I "..\pBoxLib_2"
 # SUBTRACT CPP /I "."
 # End Source File
 # Begin Source File
@@ -137,67 +129,56 @@ SOURCE=.\CArena.cpp
 # Begin Source File
 
 SOURCE=.\DistributionMapping.cpp
-# ADD CPP /I "..\pBoxLib_2"
 # SUBTRACT CPP /I "."
 # End Source File
 # Begin Source File
 
 SOURCE=.\FabConv.cpp
-# ADD CPP /I "..\pBoxLib_2"
 # SUBTRACT CPP /I "."
 # End Source File
 # Begin Source File
 
 SOURCE=.\FArrayBox.cpp
-# ADD CPP /I "..\pBoxLib_2"
 # SUBTRACT CPP /I "."
 # End Source File
 # Begin Source File
 
 SOURCE=.\FPC.cpp
-# ADD CPP /I "..\pBoxLib_2"
 # SUBTRACT CPP /I "."
 # End Source File
 # Begin Source File
 
 SOURCE=.\IndexType.cpp
-# ADD CPP /I "..\pBoxLib_2"
 # SUBTRACT CPP /I "."
 # End Source File
 # Begin Source File
 
 SOURCE=.\IntVect.cpp
-# ADD CPP /I "..\pBoxLib_2"
 # SUBTRACT CPP /I "."
 # End Source File
 # Begin Source File
 
 SOURCE=.\MultiFab.cpp
-# ADD CPP /I "..\pBoxLib_2"
 # SUBTRACT CPP /I "."
 # End Source File
 # Begin Source File
 
 SOURCE=.\Orientation.cpp
-# ADD CPP /I "..\pBoxLib_2"
 # SUBTRACT CPP /I "."
 # End Source File
 # Begin Source File
 
 SOURCE=.\ParallelDescriptor.cpp
-# ADD CPP /I "..\pBoxLib_2"
 # SUBTRACT CPP /I "."
 # End Source File
 # Begin Source File
 
 SOURCE=.\ParmParse.cpp
-# ADD CPP /I "..\pBoxLib_2"
 # SUBTRACT CPP /I "."
 # End Source File
 # Begin Source File
 
 SOURCE=.\RunStats.cpp
-# ADD CPP /I "..\pBoxLib_2"
 # SUBTRACT CPP /I "."
 # End Source File
 # Begin Source File
@@ -208,7 +189,6 @@ SOURCE=.\tDir.cpp
 # Begin Source File
 
 SOURCE=.\Tracer.cpp
-# ADD CPP /I "..\pBoxLib_2"
 # SUBTRACT CPP /I "."
 # End Source File
 # Begin Source File
@@ -219,13 +199,11 @@ SOURCE=.\tVisMF.cpp
 # Begin Source File
 
 SOURCE=.\Utility.cpp
-# ADD CPP /I "..\pBoxLib_2"
 # SUBTRACT CPP /I "."
 # End Source File
 # Begin Source File
 
 SOURCE=.\VisMF.cpp
-# ADD CPP /I "..\pBoxLib_2"
 # SUBTRACT CPP /I "."
 # End Source File
 # End Group

@@ -767,7 +767,7 @@ c octants
                   center = center + cfac
                end if
             end do
-	 end do
+          end do
 c faces
       fac1 = jr * fac0
       cfac = 0.50D0 * cube * fac0 * (ir-1)

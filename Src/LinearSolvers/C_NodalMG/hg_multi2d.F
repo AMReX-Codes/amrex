@@ -1324,6 +1324,69 @@ cdir$ ivdep
 c-----------------------------------------------------------------------
 c NODE-based data, factor of 2 only.
       subroutine hgints(
+     & dest,  destl0,desth0,destl1,desth1,
+     &        regl0,regh0,regl1,regh1,
+     & signd, snl0,snh0,snl1,snh1,
+     & src,   srcl0,srch0,srcl1,srch1,
+     &        bbl0,bbh0,bbl1,bbh1,
+     & ir, jr)
+      integer destl0,desth0,destl1,desth1
+      integer regl0,regh0,regl1,regh1
+      integer snl0,snh0,snl1,snh1
+      integer srcl0,srch0,srcl1,srch1
+      integer bbl0,bbh0,bbl1,bbh1
+      integer ir, jr
+      double precision dest(destl0:desth0,destl1:desth1)
+      double precision signd(snl0:snh0,snl1:snh1, 2)
+      double precision src(srcl0:srch0,srcl1:srch1)
+      integer i, j, ic, jc
+         do jc = bbl1, bbh1
+            do ic = bbl0, bbh0
+               dest(ir*ic,jr*jc) = src(ic,jc)
+            end do
+         end do
+      if (ir .eq. 2) then
+            do jc = bbl1, bbh1
+               do ic = bbl0, bbh0-1
+                  i = ir * ic
+                  j = jr * jc
+                  dest(i+1,j) = (signd(i,j,1)  * src(ic,jc) +
+     &                          signd(i+1,j,1) * src(ic+1,jc)) /
+     &                         (signd(i,j,1) + signd(i+1,j,1))
+               end do
+            end do
+      end if
+      if (jr .eq. 2) then
+            do jc = bbl1, bbh1-1
+               do ic = bbl0, bbh0
+                  i = ir * ic
+                  j = jr * jc
+                  dest(i,j+1) = (signd(i,j,2)  * src(ic,jc) +
+     &                          signd(i,j+1,2) * src(ic,jc+1)) /
+     &                         (signd(i,j,2) + signd(i,j+1,2))
+               end do
+            end do
+      end if
+      if (ir .eq. 2 .and. jr .eq. 2) then
+	    do jc = bbl1, bbh1-1
+do jc = bbl1, bbh1-1
+cdir$ ivdep
+               do ic = bbl0, bbh0-1
+                  i = ir * ic
+                  j = jr * jc
+                 dest(i+1,j+1) = (signd(i,j+1,1)   * dest(i,j+1) +
+     &                            signd(i+1,j+1,1) * dest(i+2,j+1) +
+     &                            signd(i+1,j,2)   * dest(i+1,j) +
+     &                           signd(i+1,j+1,2) * dest(i+1,j+2)) /
+     &                          (signd(i,j+1,1) + signd(i+1,j+1,1) +
+     &                            signd(i+1,j,2) + signd(i+1,j+1,2))
+               end do
+            end do
+      end if
+      end
+c-----------------------------------------------------------------------
+c NODE-based data, factor of 2 only.
+      subroutine hgints_old(
      & dest, destl0, desth0, destl1, desth1,
      &       regl0, regh0, regl1, regh1,
      & signd, sbl0, sbh0, sbl1, sbh1,
@@ -1759,6 +1822,24 @@ c five-point variable stencils
       end
 c-----------------------------------------------------------------------
       subroutine hgcen(
+     & cen,   cenl0,cenh0,cenl1,cenh1,
+     & signd, snl0,snh0,snl1,snh1,
+     &        regl0,regh0,regl1,regh1)
+      integer cenl0,cenh0,cenl1,cenh1
+      integer snl0,snh0,snl1,snh1
+      integer regl0,regh0,regl1,regh1
+      double precision cen(cenl0:cenh0,cenl1:cenh1)
+      double precision signd(snl0:snh0,snl1:snh1, 2)
+      integer i, j, k
+         do j = regl1, regh1
+            do i = regl0, regh0
+               cen(i,j) = 1.0D0 / (signd(i-1,j,1) + signd(i,j,1) +
+     &                              signd(i,j-1,2) + signd(i,j,2))
+            end do
+         end do
+      end
+c-----------------------------------------------------------------------
+      subroutine hgcen_old(
      & cen, cenl0,cenh0,cenl1,cenh1,
      & signd,
      &       sbl0,sbh0,sbl1,sbh1,
@@ -2954,5 +3035,95 @@ c      do 10 i = 1, (regh0 - regl0 + 1) * (regh1 - regl1 + 1)
       idiff = regh0 - regl0 + 1
       do i = idiff + 2, idiff * (regh1 - regl1) - 1
          p(i) = alpha * p(i) + z(i)
+      end do
+      end
+c-----------------------------------------------------------------------
+      subroutine hgscon(
+     & signd, snl0,snh0,snl1,snh1,
+     & sigx, sigy,
+     &        scl0,sch0,scl1,sch1,
+     &        regl0,regh0,regl1,regh1,
+     & hx, hy)
+      integer snl0,snh0,snl1,snh1
+      integer scl0,sch0,scl1,sch1
+      integer regl0,regh0,regl1,regh1
+      double precision signd(snl0:snh0,snl1:snh1, 2)
+      double precision sigx(scl0:sch0,scl1:sch1)
+      double precision sigy(scl0:sch0,scl1:sch1)
+      double precision hx, hy
+      double precision facx, facy
+      integer i, j
+      facx = 0.5D0 / (hx*hx)
+      facy = 0.5D0 / (hy*hy)
+         do j = regl1, regh1
+            do i = regl0-1, regh0
+               signd(i,j,1) = facx * 
+     &               (sigx(i,j) + sigx(i,j-1))
+            end do
+         end do
+         do j = regl1-1, regh1
+            do i = regl0, regh0
+               signd(i,j,2) = facy * 
+     &               (sigy(i-1,j) + sigy(i,j))
+            end do
+         end do
+      end
+c-----------------------------------------------------------------------
+      subroutine hgresu(
+     & res, resl0,resh0,resl1,resh1,
+     & src, dest, signd, mask,
+     &      regl0,regh0,regl1,regh1)
+      integer resl0,resh0,resl1,resh1
+      integer regl0,regh0,regl1,regh1
+      double precision res(*)
+      double precision src(*)
+      double precision dest(*)
+      double precision signd(*)
+      double precision mask(*)
+      integer i, jdiff, ly
+      jdiff = resh0 - resl0 + 1
+      ly = (resh1 - resl1 + 1) * jdiff
+      do i = (regl1 - resl1) * jdiff + (regl0 - resl0) + 1,
+     &          (regh1 - resl1) * jdiff + (regh0 - resl0) + 1
+         res(i) = mask(i) * (src(i) -
+     &     (signd(i-1)        * (dest(i-1) - dest(i)) +
+     &      signd(i)          * (dest(i+1) - dest(i)) +
+     &      signd(i+ly-jdiff) * (dest(i-jdiff) - dest(i)) +
+     &      signd(i+ly)       * (dest(i+jdiff) - dest(i))))
+      end do
+      end
+c-----------------------------------------------------------------------
+c sig here contains three different directions all stored on "nodes"
+      subroutine hgrlxu(
+     & cor, res, sig, cen,
+     &     resl0,resh0,resl1,resh1,
+     & mask,
+     &     regl0,regh0,regl1,regh1)
+      integer resl0,resh0,resl1,resh1
+      integer regl0,regh0,regl1,regh1
+      double precision cor(*)
+      double precision res(*)
+      double precision sig(*)
+      double precision cen(*)
+      double precision mask(*)
+      double precision AVG
+      integer i, jdiff, ly
+      AVG() = (sig(i-1)        * cor(i-1) +
+     &         sig(i)          * cor(i+1) +
+     &         sig(i+ly-jdiff) * cor(i-jdiff) +
+     &         sig(i+ly)       * cor(i+jdiff))
+      jdiff =  resh0 - resl0 + 1
+      ly    = (resh1 - resl1 + 1) * jdiff
+cdir$ ivdep
+      do i = (regl1 - resl1) * jdiff + (regl0 - resl0) + 1,
+     &          (regh1 - resl1) * jdiff + (regh0 - resl0) + 1, 2
+         cor(i) = cor(i) 
+     &      + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
+      end do
+cdir$ ivdep
+      do i = (regl1 - resl1) * jdiff + (regl0 - resl0) + 2,
+     &          (regh1 - resl1) * jdiff + (regh0 - resl0) + 1, 2
+         cor(i) = cor(i) 
+     &      + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
       end do
       end
