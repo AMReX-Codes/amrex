@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.67 1998-07-24 01:25:55 lijewski Exp $
+// $Id: FabArray.H,v 1.68 1998-07-27 21:14:16 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1166,28 +1166,21 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                        int                    dest_comp,
                        int                    num_comp)
 {
-    static const aString RunstatString("fabarray_copy");
+    static RunStats stats("fabarray_copy");
 
-    RunStats stats(RunstatString);
+    stats.start();
 
     if (src.boxarray == boxarray)
     {
-        stats.start();
-
         for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
         {
             DependentFabArrayIterator<T,FAB> dfai(fai, src);
 
-            Box intersect = fai.validbox() & dfai.validbox();
-
-            if (intersect.ok())
+            if (fai.validbox().intersects(dfai.validbox()))
             {
-                fai().copy(dfai(),
-                           intersect,
-                           src_comp,
-                           intersect,
-                           dest_comp,
-                           num_comp);
+                Box isect = fai.validbox() & dfai.validbox();
+
+                fai().copy(dfai(),isect,src_comp,isect,dest_comp,num_comp);
             }
         }
 
@@ -1195,8 +1188,6 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
 
         return;
     }
-
-    stats.start();
 
     const int MyProc = ParallelDescriptor::MyProc();
 
@@ -1764,7 +1755,7 @@ FabArrayIterator<T,FAB>::isValid (bool bDoSync)
 
     bool valid = currentIndex < fabArray.length();
 
-#ifdef USE_BSP
+#ifdef BL_USE_BSP
     if (!valid && bDoSync)
     {
         ParallelDescriptor::Synchronize();
@@ -1965,7 +1956,7 @@ ConstFabArrayIterator<T,FAB>::isValid (bool bDoSync) const
 
     bool valid = currentIndex < fabArray.length();
 
-#ifdef USE_BSP
+#ifdef BL_USE_BSP
     if (!valid && bDoSync)
     {
         ParallelDescriptor::Synchronize();
