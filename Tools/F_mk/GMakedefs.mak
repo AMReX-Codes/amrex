@@ -70,9 +70,11 @@ ifeq ($(ARCH),Linux)
       FFLAGS += -O
       CFLAGS += -O
     else
-      F90FLAGS += -g -Wsurprising -fbounds-check
+      F90FLAGS += -g 
+#     F90FLAGS += -Wsurprising 
       F90FLAGS += -fbounds-check
-      FFLAGS += -g -Wsurprising -fbounds-check
+      FFLAGS += -g 
+#     FFLAGS += -Wsurprising 
       FFLAGS += -fbounds-check
       CFLAGS += -g
     endif

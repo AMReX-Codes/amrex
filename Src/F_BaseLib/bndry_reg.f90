@@ -5,7 +5,7 @@ module bndry_reg_module
 
   implicit none
 
-  type bndry_reg
+  type, public :: bndry_reg
      integer :: dim = 0
      type(multifab), pointer :: bmf(:,:) => Null()
      type(layout) :: la
