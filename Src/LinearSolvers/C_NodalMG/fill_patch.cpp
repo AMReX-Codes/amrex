@@ -78,64 +78,6 @@ int find_patch(const Box& region, const MultiFab& r)
     return -1;
 }
 
-
-class task_fab : public task
-{
-public:
-    virtual const FArrayBox& fab() const = 0;
-};
-
-class task_fab_get : public task_fab
-{
-public:
-    task_fab_get(const MultiFab& r_, int grid_);
-    virtual ~task_fab_get();
-    virtual const FArrayBox& fab() const;
-    virtual bool ready();
-private:
-    const MultiFab& r;
-    const int grid;
-};
-
-task_fab_get::task_fab_get(const MultiFab& r_, int grid_) : r(r_), grid(grid_) {}
-const FArrayBox& task_fab_get::fab() const
-{
-    return r[grid];
-}
-task_fab_get::~task_fab_get()
-{
-}
-
-bool task_fab_get::ready()
-{
-    return true;
-}
-
-class task_fill_patch : public task_fab
-{
-public:
-    task_fill_patch(FArrayBox& fab_, const Box& region_,
-	const MultiFab& r_, const level_interface& lev_interface_, const amr_boundary_class* bdy_, int idim_, int index_);
-    task_fill_patch(const Box& region_, int ncomp_, 
-	const MultiFab& r_, const level_interface& lev_interface_, const amr_boundary_class* bdy_, int idim_, int index_);
-    virtual ~task_fill_patch();
-    virtual const FArrayBox& fab() const;
-    virtual bool ready();
-private:
-    bool fill_patch_blindly();
-    bool fill_exterior_patch_blindly();
-    void fill_patch();
-    bool newed;
-    FArrayBox* target;
-    const Box region;
-    const MultiFab& r;
-    const level_interface& lev_interface;
-    const amr_boundary_class* bdy;
-    const int idim;
-    const int index;
-    task_list tl;
-};
-
 bool
 task_fill_patch::fill_patch_blindly()
 {
@@ -300,15 +242,16 @@ task_fill_patch::task_fill_patch(const Box& region_, int ncomp_,
     target = new FArrayBox(region, ncomp_);
 }
 
-task_fill_patch::task_fill_patch(FArrayBox& fab_, const Box& region_,
+task_fill_patch::task_fill_patch(const Box& region_,
 				 const MultiFab& r_,
 				 const level_interface& lev_interface_,
 				 const amr_boundary_class* bdy_,
 				 int idim_, int index_)
-				 : target(0), region(region_),
+				 : region(region_),
 				 r(r_), lev_interface(lev_interface_), bdy(bdy_), idim(idim_), index(index_), newed(false)
 {
-    target = &fab_;
+    target = new FArrayBox(region);
+    newed = true;
 }
 
 
@@ -335,8 +278,9 @@ void fill_patch(FArrayBox& patch, const Box& region,
 	       const amr_boundary_class* bdy,
 	       int idim, int index)
 {
-    task_fill_patch* t = new task_fill_patch(patch, region, r, lev_interface, bdy, idim, index);
+    task_fill_patch* t = new task_fill_patch(region, r, lev_interface, bdy, idim, index);
     t->ready();
+    patch.copy(t->fab(), region);
     delete t;
     return;
 }

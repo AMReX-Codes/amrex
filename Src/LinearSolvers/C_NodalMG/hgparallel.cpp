@@ -52,3 +52,21 @@ void task_list::add_task(task* t)
 {
     tasks.push_back(t);
 }
+
+task_fab_get::task_fab_get(const MultiFab& r_, int grid_) 
+: r(r_), grid(grid_), bx(r_.box(grid_)) {}
+
+const FArrayBox& task_fab_get::fab() const
+{
+    return r[grid];
+}
+
+task_fab_get::~task_fab_get()
+{
+}
+
+bool task_fab_get::ready()
+{
+    return true;
+}
+
