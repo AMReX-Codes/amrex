@@ -605,6 +605,7 @@ void restrict_level(MultiFab& dest,
 		    const amr_boundary_class* bdy)
 {
     assert(type(dest) == type(r));
+    HG_TEST_NORM( dest, "restrict_level a");
     task_list tl;
     for (int jgrid = 0; jgrid < dest.length(); jgrid++) 
     {
@@ -622,6 +623,7 @@ void restrict_level(MultiFab& dest,
 	}
     }
     tl.execute();
+    HG_TEST_NORM( dest, "restrict_level b");
     if ( lev_interface.ok() )
     {
 	restric.fill_interface( dest, r, lev_interface, bdy, rat);
