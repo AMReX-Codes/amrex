@@ -79,6 +79,10 @@ module mg_module
 
   real(kind=dp_t), parameter, private :: zero = 0.0_dp_t
 
+  interface destroy
+     module procedure mg_tower_destroy
+  end interface
+
 contains
 
   subroutine mg_tower_build(mgt, la, pd, domain_bc, &
