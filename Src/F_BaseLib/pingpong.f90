@@ -65,9 +65,9 @@ subroutine orig_pingpong(sync)
         case (0)
            if ( ipe == 0 ) then
               call MPI_send(a,Nw,MPI_DOUBLE_PRECISION,1,1,ICOMM,ierr)
-              call MPI_recv(b,Nw,MPI_DOUBLE_PRECISION,1,0,ICOMM,ierr)
+              call MPI_recv(b,Nw,MPI_DOUBLE_PRECISION,1,0,ICOMM,istatus,ierr)
            else
-              call MPI_recv(b,Nw,MPI_DOUBLE_PRECISION,0,1,ICOMM,ierr)
+              call MPI_recv(b,Nw,MPI_DOUBLE_PRECISION,0,1,ICOMM,istatus,ierr)
               call MPI_send(a,Nw,MPI_DOUBLE_PRECISION,0,0,ICOMM,ierr)
            end if
         case (1)
@@ -92,10 +92,10 @@ subroutine orig_pingpong(sync)
         case (3)
            if ( ipe .eq. 0 ) then
               call MPI_isend(a,Nw,MPI_DOUBLE_PRECISION,1,1,ICOMM,s1,ierr)
-              call MPI_recv(b,Nw,MPI_DOUBLE_PRECISION,1,0,ICOMM,ierr)
+              call MPI_recv(b,Nw,MPI_DOUBLE_PRECISION,1,0,ICOMM,istatus,ierr)
            else
               call MPI_isend(a,Nw,MPI_DOUBLE_PRECISION,0,0,ICOMM,s1,ierr)
-              call MPI_recv(b,Nw,MPI_DOUBLE_PRECISION,0,1,ICOMM,ierr)
+              call MPI_recv(b,Nw,MPI_DOUBLE_PRECISION,0,1,ICOMM,istatus,ierr)
            end if
            call MPI_Wait(s1,istatus,ierr)
         case default
