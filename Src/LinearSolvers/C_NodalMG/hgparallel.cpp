@@ -204,15 +204,18 @@ restart:
     while ( !tasks.empty() )
     {
         list<task::task_proxy>::iterator tli = tasks.begin();
-        while (tli != tasks.end())
+
+        while ( tli != tasks.end() )
         {
             task::task_proxy t = *tli;
-            if ( verbose ) t->hint();
+            if ( verbose )
+                t->hint();
             if ( t->depend_ready() )
             {
                 if ( ! t->is_started() )
                 {
-                    if ( live_tasks > HG::max_live_tasks) goto restart;
+                    if ( live_tasks > HG::max_live_tasks)
+                        goto restart;
                     if ( ! t->startup() )
                     {
                         t.set_finished();
@@ -221,7 +224,7 @@ restart:
                     }
                     live_tasks++;
                 }
-                else if ( t->ready() )
+                if ( t->ready() )
                 {
                     t.set_finished();
                     live_tasks--;
