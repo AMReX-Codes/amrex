@@ -1,0 +1,54 @@
+?? include 'coco.inc'
+
+module cube_root
+
+  use standard_types
+
+  implicit none
+
+  private
+
+  public cbrt
+
+  interface cbrt
+?? if( single_k )then
+     module procedure single_cbrt
+?? endif
+?? if( double_k )then
+     module procedure double_cbrt
+?? endif
+?? if( quad_k )then
+     module procedure quad_cbrt
+?? endif
+  end interface
+
+contains
+
+?? if( single_k )then
+  elemental real( kind= single_k) function single_cbrt( x)
+    real( kind= single_k), intent( in) :: x
+
+    single_cbrt = sign( exp( log( abs( x)) / 3.0_single_k), x)
+
+  end function single_cbrt
+?? endif
+
+?? if( double_k )then
+  elemental real( kind= double_k) function double_cbrt( x)
+    real( kind= double_k), intent( in) :: x
+
+    double_cbrt = sign( exp( log( abs( x)) / 3.0_double_k), x)
+
+  end function double_cbrt
+?? endif
+
+?? if( quad_k )then
+  elemental real( kind= quad_k) function quad_cbrt( x)
+    real( kind= quad_k), intent( in) :: x
+
+    quad_cbrt = sign( exp( log( abs( x)) / 3.0_quad_k), x)
+
+  end function quad_cbrt
+?? endif
+
+end module cube_root
