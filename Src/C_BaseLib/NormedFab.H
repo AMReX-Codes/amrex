@@ -2,9 +2,10 @@
 #define BL_NORMEDFAB_H
 
 //
-// $Id: NormedFab.H,v 1.9 2001-07-17 23:02:25 lijewski Exp $
+// $Id: NormedFab.H,v 1.10 2001-07-18 20:40:29 car Exp $
 //
 
+#include <algorithm>
 #include <iostream>
 #include <cmath>
 
@@ -113,7 +114,7 @@ NormedFab<T>::abs ()
 {
     ForAllThis(Real)
     {
-        thisR = Abs(thisR);
+        thisR = std::abs(thisR);
     } EndFor
 }
 
@@ -124,7 +125,7 @@ NormedFab<T>::abs (int comp,
 {
     ForAllThisNN(Real,comp,numcomp)
     {
-        thisR = Abs(thisR);
+        thisR = std::abs(thisR);
     } EndFor
 }
 
@@ -136,7 +137,7 @@ NormedFab<T>::abs (const Box& subbox,
 {
     ForAllThisBNN(Real,subbox,comp,numcomp)
     {
-        thisR = Abs(thisR);
+        thisR = std::abs(thisR);
     } EndFor
 }
 
