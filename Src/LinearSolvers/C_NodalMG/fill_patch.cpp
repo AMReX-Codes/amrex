@@ -376,64 +376,7 @@ static inline void node_dirs(int dir[2], const IntVect& typ)
 }
 #endif
 
-#if 0
-class task_copy_2 : public task
-{
-public:
-    task_copy_2(MultiFab& r1, int i1, MultiFab& r2, int i2, const Box& bx, int w)
-	: m_r1(r1), m_i1(i1), m_r2(r2), m_i2(i2), m_bx(bx), m_w(w), m_mgrow(r1.nGrow())
-    {
-    }
-    virtual bool ready()
-    {
-	if ( m_local )
-	{
-	    doit(m_r1[m_i1], m_r2[m_i2]);
-	    return true;
-	}
-#ifdef BL_USE_MPI
-	int flag;
-	MPI_Status status;
-    	MPI_Test(&m_request, &flag, &status);
-	if ( flag )
-	{
-	    if ( is_local(m_r1, m_i1) )
-		doit(*tmp1, *tmp2);
-	    return true;
-	}
-	return false;
-#endif
-	return true;
-    }
-private:
-    void doit (FArrayBox& m_mf, FArrayBox& m_sf)
-    {
-	    Real* ptra = m_mf.dataPtr();
-	    Real* ptrb = m_sf.dataPtr();
-	    const Box& boxa = m_mf.box();
-	    const Box& boxb = m_sf.box();
-#if (BL_SPACEDIM == 2)
-	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(m_bx), &m_w, m_mf.nComp());
-#else
-	    const int ibord = m_mgrow;
-	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(m_bx), &m_w, &ibord, m_mf.nComp());
-#endif
-    }
-    MultiFab& m_r1;
-    const int m_i1;
-    MultiFab& m_r2;
-    const int m_i2;
-    const Box m_bx;
-    FArrayBox* tmp1;
-    FArrayBox* tmp2;
-    bool m_local;
-    const int m_w;
-    MPI_Request m_request;
-    const int m_mgrow;
-};
-#endif
-
-Box w_shift(const Box& bx, const Box& bo, int b, int w)
+inline Box w_shift(const Box& bx, const Box& bo, int b, int w)
 {
     Box res = bx;
     assert( w == 1 || w == -1 );
