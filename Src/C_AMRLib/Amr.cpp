@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.21 1997-12-11 06:07:47 lijewski Exp $
+// $Id: Amr.cpp,v 1.22 1997-12-11 06:14:02 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -994,10 +994,11 @@ Amr::coarseTimeStep (Real stop_time)
 	cout << "\nSTEP = "
              << level_steps[0]
              << " TIME = "
-	     << cumtime
+             << cumtime
              << " DT = "
              << dt_level[0]
-             << "\n\n";
+             << '\n'
+             << endl;
     }
     if (record_run_info && ParallelDescriptor::IOProcessor())
     {
@@ -1091,7 +1092,7 @@ Amr::regrid (int  lbase,
 
     if (!silent && ParallelDescriptor::IOProcessor())
     {
-	cout << "REGRID: at level lbase = " << lbase << '\n';
+	cout << "REGRID: at level lbase = " << lbase << endl;
     }
     if (record_run_info && ParallelDescriptor::IOProcessor())
     {
@@ -1166,7 +1167,7 @@ Amr::regrid (int  lbase,
     if (!silent || record_run_info)
     {
         int lev;
-	for (lev = lbase+1; lev <= finest_level; lev++)
+        for (lev = lbase+1; lev <= finest_level; lev++)
         {
 	    int numgrids= amr_level[lev].numGrids();
 	    long ncells = amr_level[lev].countCells();
@@ -1185,7 +1186,7 @@ Amr::regrid (int  lbase,
                          << " cells  = "
                          << frac
                          << " % of domain"
-                         << '\n';
+                         << endl;
                 }
 	    }
 	    if (record_run_info)
