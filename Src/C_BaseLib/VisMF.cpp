@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.65 2000-04-24 17:52:38 car Exp $
+// $Id: VisMF.cpp,v 1.66 2000-05-25 15:40:03 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -341,7 +341,9 @@ VisMF::Header::Header (const MultiFab& mf,
     //
     Array<Real> min_n_max(2 * m_ncomp);
 
+#ifdef BL_USE_MPI
     const int IoProc = ParallelDescriptor::IOProcessorNumber();
+#endif
 
     for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
     {
@@ -461,7 +463,9 @@ VisMF::Write (const MultiFab& mf,
 {
     BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
 
+#ifdef BL_USE_MPI
     const int IoProc = ParallelDescriptor::IOProcessorNumber();
+#endif
 
     long bytes  = 0;
 
