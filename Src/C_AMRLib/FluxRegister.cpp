@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.43 1998-07-24 22:40:46 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.44 1998-07-27 21:33:36 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -18,9 +18,7 @@ using std::vector;
 #include <vector.h>
 #endif
 
-#ifdef BL_USE_MPI
-#include <mpi.h>
-#endif
+#include <ccse-mpi.H>
 
 //
 // Used in a couple RunStats calls in reflux.
