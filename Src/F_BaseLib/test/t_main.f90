@@ -376,16 +376,17 @@ subroutine t_mf_fabio
   call boxassoc_print(bxasc, "BOXASSOC")
   call multifab_build(mf, la, nc = 1, ng=1)
   call setval(mf, -1.0_dp_t, ALL=.True.)
-  do n = 1, mf%nboxes; if ( remote(mf, n) ) cycle
-     fp => dataptr(mf, n, get_ibox(mf, n))
-     nx = size(fp,1)
-     ny = size(fp,2)
-     do j = 1, ny
-        do i = 1, nx
-           fp(i,j,1,1) = (i-1) + 10*(j-1)
-        end do
-     end do
-  end do
+  call multifab_debug_fill(mf, loc = .True.)
+!   do n = 1, mf%nboxes; if ( remote(mf, n) ) cycle
+!      fp => dataptr(mf, n, get_ibox(mf, n))
+!      nx = size(fp,1)
+!      ny = size(fp,2)
+!      do j = 1, ny
+!         do i = 1, nx
+!            fp(i,j,1,1) = (i-1) + 10*(j-1)
+!         end do
+!      end do
+!   end do
   call print(mf, "before")
   call fabio_multifab_write_d(mf, "tdir", "flan")
   call fabio_ml_multifab_write_d((/mf/), rrs(1:0), "tdir1")
