@@ -4,11 +4,14 @@
 #ifdef BL_FORT_USE_UNDERSCORE
 #  define   FORT_HGRES      hgres_
 #  define   FORT_HGRES_TERRAIN      hgres_terrain_
+#  define   FORT_HGRES_FULL_STENCIL      hgres_full_stencil_
 #  define   FORT_HGRESU     hgresu_
 #  define   FORT_HGRLX      hgrlx_
 #  define   FORT_HGRLX_TERRAIN      hgrlx_terrain_
+#  define   FORT_HGRLX_FULL_STENCIL      hgrlx_full_stencil_
 #  define   FORT_HGRLXU     hgrlxu_
 #  define   FORT_HGRLXL     hgrlxl_
+#  define   FORT_HGRLXL_FULL_STENCIL     hgrlxl_full_stencil_
 #  define   FORT_HGRLNF     hgrlnf_
 #  define   FORT_HGRLNF_TERRAIN     hgrlnf_terrain
 #  define   FORT_HGRLNB     hgrlnb_
@@ -19,11 +22,14 @@
 #else
 #  define   FORT_HGRES      HGRES
 #  define   FORT_HGRES_TERRAIN      HGRES_TERRAIN
+#  define   FORT_HGRES_FULL_STENCIL      HGRES_FULL_STENCIL
 #  define   FORT_HGRESU     HGRESU
 #  define   FORT_HGRLX      HGRLX
 #  define   FORT_HGRLX_TERRAIN      HGRLX_TERRAIN
+#  define   FORT_HGRLX_FULL_STENCIL      HGRLX_FULL_STENCIL
 #  define   FORT_HGRLXU     HGRLXU
 #  define   FORT_HGRLXL     HGRLXL
+#  define   FORT_HGRLXL_FULL_STENCIL     HGRLXL_FULL_STENCIL
 #  define   FORT_HGRLNF     HGRLNF
 #  define   FORT_HGRLNF_TERRAIN     HGRLNF_TERRAIN
 #  define   FORT_HGRLNB     HGRLNB
@@ -51,8 +57,11 @@ extern "C"
     void FORT_HGRLNF(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intS, const int&, const int&);
 #    else
     void FORT_HGRES(Real*, intS, const Real*, intS, const Real*, intS, CRealPS, intS, intS, CRealPS, const int&, const int&);
+    void FORT_HGRES_FULL_STENCIL(Real*, intS, const Real*, intS, const Real*, intS, CRealPS, intS, intS, CRealPS, const int&, const int&);
     void FORT_HGRLX(Real*, intS, const Real*, intS, CRealPS, intS, const Real*, intS, intS, CRealPS, const int&, const int&);
+    void FORT_HGRLX_FULL_STENCIL(Real*, intS, const Real*, intS, CRealPS, intS, const Real*, intS, intS, CRealPS, const int&, const int&);
     void FORT_HGRLXL(Real*, intS, Real*, intS, RealPS, intS, Real*, intS, intS, intS, RealRS, const int&, const int&, const int&);
+    void FORT_HGRLXL_FULL_STENCIL(Real*, intS, Real*, intS, RealPS, intS, Real*, intS, intS, intS, RealRS, const int&, const int&, const int&);
     void FORT_HGRLNF(Real*, intS, Real*, intS, Real*, intS, RealPS, intS, Real*, intS, intS, intS, RealRS, const int&, const int&, const int&, const int&);
 #    endif
     void FORT_HGRLNB(Real*, intS, Real*, intS, intS, const int&, const int&);
@@ -138,7 +147,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
 	    // this branch is the only one that can be reached here
 	    const Box& sigbox = sg_dmfi->box();
 #if	(BL_SPACEDIM==2)
-	    FORT_HGRES(r_mfi->dataPtr(), DIMLIST(rbox),
+	    FORT_HGRES_FULL_STENCIL(r_mfi->dataPtr(), DIMLIST(rbox),
 		s_dmfi->dataPtr(), DIMLIST(sbox),
 		d_dmfi->dataPtr(), DIMLIST(dbox),
 		s0_dmfi->dataPtr(),
@@ -147,7 +156,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
 		IsRZ(), mg_domain[mglev].bigEnd(0) + 1
 		);
 #else
-	    FORT_HGRES(r_mfi->dataPtr(), DIMLIST(rbox),
+	    FORT_HGRES_FULL_STENCIL(r_mfi->dataPtr(), DIMLIST(rbox),
 		s_dmfi->dataPtr(), DIMLIST(sbox),
 		d_dmfi->dataPtr(), DIMLIST(dbox),
 		s0_dmfi->dataPtr(),
@@ -204,7 +213,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 			const Box& fbox = c_dmfi->box();
 			const Box& cenbox = cn_dmfi->box();
 			const Box& sigbox = sg_dmfi->box();
-			FORT_HGRLX(c_dmfi->dataPtr(), DIMLIST(fbox),
+			FORT_HGRLX_TERRAIN(c_dmfi->dataPtr(), DIMLIST(fbox),
 			    r_mfi->dataPtr(), DIMLIST(sbox),
 			    sg_dmfi->dataPtr(), DIMLIST(sigbox),
 			    cn_dmfi->dataPtr(), DIMLIST(cenbox),
@@ -212,12 +221,16 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		    } 
 		    else if (m_hg_cross_stencil)
 		    {
+#if BL_SPACEDIM==3
 			FORT_HGRLXU(c_dmfi->dataPtr(),
 			    r_mfi->dataPtr(),
 			    sn_dmfi->dataPtr(),
 			    cn_dmfi->dataPtr(), DIMLIST(sbox),
 			    m_dmfi->dataPtr(),
 			    DIMLIST(freg));
+#else
+			BoxLib::Error("HGRLXU not in 2D");
+#endif
 		    }
 		    else
 		    {
@@ -229,7 +242,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 			const Box& cenbox = cn_dmfi->box();
 			const Box& sigbox = sg_dmfi->box();
 #if (BL_SPACEDIM==2)
-			FORT_HGRLX(cn_dmfi->dataPtr(), DIMLIST(fbox),
+			FORT_HGRLX_FULL_STENCIL(cn_dmfi->dataPtr(), DIMLIST(fbox),
 			    r_mfi->dataPtr(), DIMLIST(sbox),
 			    s0_dmfi->dataPtr(),
 			    s1_dmfi->dataPtr(), DIMLIST(sigbox),
@@ -270,9 +283,11 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		    {
 #if BL_SPACEDIM!=3
 			DependentMultiFabIterator sg_dmfi(r_mfi, sigma[mglev]);
+			DependentMultiFabIterator s0_dmfi(r_mfi, sigma_nd[0][mglev]);
+			DependentMultiFabIterator s1_dmfi(r_mfi, sigma_nd[1][mglev]);
 			const Box& sigbox = sg_dmfi->box();
 #if (BL_SPACEDIM==2)
-			FORT_HGRLXL(c_dmfi->dataPtr(), DIMLIST(fbox),
+			FORT_HGRLXL_FULL_STENCIL(c_dmfi->dataPtr(), DIMLIST(fbox),
 			    r_mfi->dataPtr(), DIMLIST(sbox),
 			    s0_dmfi->dataPtr(),
 			    s1_dmfi->dataPtr(), DIMLIST(sigbox),
@@ -329,7 +344,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		if(m_hg_terrain)
 		{
 		    const Box& sigbox = sigma[mglev][igrid].box();
-		    FORT_HGRLNF(corr[mglev][igrid].dataPtr(), DIMLIST(fbox),
+		    FORT_HGRLNF_TERRAIN(corr[mglev][igrid].dataPtr(), DIMLIST(fbox),
 			resid[mglev][igrid].dataPtr(), DIMLIST(sbox),
 			work[mglev][igrid].dataPtr(), DIMLIST(wbox),
 			sigma[mglev][igrid].dataPtr(), DIMLIST(sigbox),
@@ -339,7 +354,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		else if (m_hg_cross_stencil)
 		{
 		    const Box& sigbox = sigma_node[mglev][igrid].box();
-		    FORT_HGRLNF(corr[mglev][igrid].dataPtr(), DIMLIST(fbox),
+		    FORT_HGRLNF_TERRAIN(corr[mglev][igrid].dataPtr(), DIMLIST(fbox),
 			resid[mglev][igrid].dataPtr(), DIMLIST(sbox),
 			work[mglev][igrid].dataPtr(), DIMLIST(wbox),
 			sigma_node[mglev][igrid].dataPtr(), DIMLIST(sigbox),
