@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.68 2003-08-06 21:04:01 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.69 2003-08-19 15:19:42 car Exp $
 #
 
 #
@@ -144,6 +144,8 @@ ARCH		= IEEE
 FORTLINK  	= UNDERSCORE
 
 FORTPREP  	= perl $(PBOXLIB_HOME)/scripts/strip72 -c
+# a placeholder in case we have to write something later
+F90PREP  	= cat
 MKDEP		= perl $(PBOXLIB_HOME)/scripts/mkdep
 INSTALL		= sh   $(PBOXLIB_HOME)/scripts/install-sh -c
 #
