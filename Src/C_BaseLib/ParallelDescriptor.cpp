@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.32 1998-04-21 05:20:27 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.33 1998-04-24 17:52:19 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -51,10 +51,15 @@ CommData::CommData (int        face,
         m_data[7+2*BL_SPACEDIM+i] = typ[i];
 }
 
+//
+// Definitions of static data members.
+//
+int ParallelDescriptor::m_nProcs = -1;
+int ParallelDescriptor::m_MyId   = -1;
+
 #if defined(BL_USE_BSP)
 
 #include "bsp.h"
-
 //
 // Type of function pointer required by bsp_fold().
 //
@@ -70,53 +75,39 @@ extern "C"
 
 #include "bsp_level1.h"
 
-
 void
-ParallelDescriptor::StartParallel (int nprocs, int*, char***)
+ParallelDescriptor::StartParallel (int nprocs,
+                                   int*,
+                                   char***)
 {
+    assert(m_MyId == -1);
+    assert(m_nProcs == -1);
+
     bsp_begin(nprocs);
+
+    m_MyId   = bsp_pid();
+    m_nProcs = bsp_nprocs();
 }
 
 void
 ParallelDescriptor::EndParallel ()
 {
+    assert(m_MyId != -1);
+    assert(m_nProcs != -1);
+
     bsp_end();
-}
-
-int
-ParallelDescriptor::MyProc ()
-{ 
-    return bsp_pid();                
-}
-
-int
-ParallelDescriptor::NProcs ()
-{ 
-    return bsp_nprocs();             
-}
-
-bool
-ParallelDescriptor::IOProcessor ()
-{ 
-    return bsp_pid() == ioProcessor; 
-}
-
-int
-ParallelDescriptor::IOProcessorNumber ()
-{ 
-    return ioProcessor;              
 }
 
 void
 ParallelDescriptor::Abort (const char* msg)  
 { 
-    bsp_abort((char*)msg);           
+    bsp_abort((char*)msg); 
 }
 
 double
 ParallelDescriptor::second ()              
 { 
-    return bsp_time();               
+    return bsp_time(); 
 }
 
 void
@@ -365,9 +356,6 @@ ParallelDescriptor::Gather (Real* sendbuf,
 
 #include "mpi.h"
 
-static int nProcs = -1;
-static int MyId   = -1;
-
 void
 ParallelDescriptor::Abort (const char* msg)
 {
@@ -397,15 +385,18 @@ ParallelDescriptor::StartParallel (int,
                                    int*    argc,
                                    char*** argv)
 {
+    assert(m_MyId == -1);
+    assert(m_nProcs == -1);
+
     int rc;
 
     if ((rc = MPI_Init(argc, argv)) != MPI_SUCCESS)
         ParallelDescriptor::Abort(rc);
 
-    if ((rc = MPI_Comm_size(MPI_COMM_WORLD, &nProcs)) != MPI_SUCCESS)
+    if ((rc = MPI_Comm_size(MPI_COMM_WORLD, &m_nProcs)) != MPI_SUCCESS)
         ParallelDescriptor::Abort(rc);
 
-    if ((rc = MPI_Comm_rank(MPI_COMM_WORLD, &MyId)) != MPI_SUCCESS)
+    if ((rc = MPI_Comm_rank(MPI_COMM_WORLD, &m_MyId)) != MPI_SUCCESS)
         ParallelDescriptor::Abort(rc);
 }
 
@@ -414,37 +405,13 @@ ParallelDescriptor::EndParallel ()
 {
     TRACER("ParallelDescriptor::EndParallel()");
 
+    assert(m_MyId != -1);
+    assert(m_nProcs != -1);
+
     int rc = MPI_Finalize();
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
-}
-
-int
-ParallelDescriptor::MyProc ()
-{
-    assert(MyId != -1);
-    return MyId;
-}
-
-int
-ParallelDescriptor::NProcs ()
-{
-    assert(nProcs != -1);
-    return nProcs;
-}
-
-bool
-ParallelDescriptor::IOProcessor ()
-{
-    assert(MyId != -1);
-    return MyId == ioProcessor;
-}
-
-int
-ParallelDescriptor::IOProcessorNumber ()
-{
-    return ioProcessor;
 }
 
 double
@@ -622,16 +589,16 @@ ParallelDescriptor::Gather (Real* sendbuf,
         recvbuf[i] = sendbuf[i];
 }
 
-void ParallelDescriptor::StartParallel(int, int*, char***) {}
+void ParallelDescriptor::StartParallel(int, int*, char***)
+{
+    m_MyId   = 0;
+    m_nProcs = 1;
+}
 void ParallelDescriptor::EndParallel() {}
 
 void ParallelDescriptor::Abort (const char* str) { BoxLib::Abort(str); }
-int ParallelDescriptor::MyProc () { return 0; }
-int ParallelDescriptor::NProcs () { return 1; }
 void ParallelDescriptor::Barrier () {}
 void ParallelDescriptor::Synchronize () {}
-bool ParallelDescriptor::IOProcessor () { return true; }
-int  ParallelDescriptor::IOProcessorNumber () { return 0; }
 
 void ParallelDescriptor::ReduceBoolAnd (bool& rvar) {}
 void ParallelDescriptor::ReduceBoolOr  (bool& rvar) {}
@@ -648,7 +615,6 @@ void ParallelDescriptor::ReduceLongSum (long& rvar) {}
 void ParallelDescriptor::ReduceLongMax (long& rvar) {}
 void ParallelDescriptor::ReduceLongMin (long& rvar) {}
 void ParallelDescriptor::ReduceLongAnd (long& rvar) {}
-
 
 void ParallelDescriptor::ShareVar (const void* var, int bytes) {}
 void ParallelDescriptor::UnshareVar (const void* var) {}
@@ -687,11 +653,9 @@ void ParallelDescriptor::Broadcast (int    fromproc,
                                     void*  src,
                                     void*  dest,
                                     int    nbytes) {}
-
 //
 // Here so we don't need to include <Utility.H> in <ParallelDescriptor.H>.
 //
-
 double
 ParallelDescriptor::second ()
 {
