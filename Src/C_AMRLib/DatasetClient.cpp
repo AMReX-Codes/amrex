@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 // -------------------------------------------------------------------
-// $Id: DatasetClient.cpp,v 1.12 1998-09-29 20:08:27 lijewski Exp $
+// $Id: DatasetClient.cpp,v 1.13 1999-01-06 00:15:06 lijewski Exp $
 // -------------------------------------------------------------------
 //
 
@@ -27,7 +27,6 @@
 #include <strstream.h>
 #include <unistd.h>
 
-#include "DatasetClient.H"
 #include "Box.H"
 #include "FArrayBox.H"
 #include "MultiFab.H"
@@ -35,6 +34,7 @@
 #include "TagBox.H"
 #endif
 
+#include "DatasetClient.H"
 
 const int MAXBUFSIZE  = 1024;
 const int PORTOFFSET  = 5000;
