@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.46 2002-03-14 23:56:07 car Exp $
+# Make.defs $Id: Make.defs,v 1.47 2002-03-26 21:50:49 lijewski Exp $
 #
 
 #
@@ -215,9 +215,9 @@ endif
 # We can do library closure with KCC 3.x.
 #
 ifeq ($(findstring KCC, $(COMP)),KCC)
-    __kcc_version := $(shell					\
-		echo 'int i;' > _X.cpp;				\
-		KCC -c -v _X.cpp 2>&1 1>/dev/null  | fgrep 'KAI C';	\
+    __kcc_version := $(shell					   \
+		echo 'int i;' > _X.cpp;				   \
+		KCC -c -v _X.cpp 2>&1 1>/dev/null | fgrep 'KAI C' | head -1; \
 		/bin/rm -f _X.cpp _X.o)
 DEFINES += -D__kcc_version='$(__kcc_version)'
 ifeq ($(findstring KAI C++ 3.1, $(__kcc_version)), KAI C++ 3.1)
@@ -266,12 +266,6 @@ ifeq ($(findstring C++ 4.0, $(__kcc_version)), C++ 4.0)
     CLOSELIB:=TRUE
     CXXLIBFLAGS = --one_per
 endif
-
-    KCC_VERSION:=3.9
-    KCC_MINOR_VERSION:=9
-    KCC_MAJOR_VERSION:=3
-    CLOSELIB:=TRUE
-    CXXLIBFLAGS = --one_per
 
     DEFINES += -DBL_KCC_VERSION=$(KCC_VERSION)
     DEFINES += -DBL_KCC_MAJOR_VERSION=$(KCC_MAJOR_VERSION)
