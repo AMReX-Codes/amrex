@@ -1,6 +1,6 @@
 
 //
-// $Id: VisMF.cpp,v 1.71 2001-04-06 20:04:52 car Exp $
+// $Id: VisMF.cpp,v 1.72 2001-04-19 22:25:27 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -22,7 +22,6 @@ using std::ofstream;
 #endif
 
 #include <ccse-mpi.H>
-#include <RunStats.H>
 #include <Utility.H>
 #include <VisMF.H>
 #include <Tracer.H>

@@ -1,13 +1,12 @@
 
 //
-// $Id: FluxRegister.cpp,v 1.60 2001-04-02 17:58:59 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.61 2001-04-19 22:24:19 lijewski Exp $
 //
 
 #include <FluxRegister.H>
 #include <Geometry.H>
 #include <FLUXREG_F.H>
 #include <ParallelDescriptor.H>
-#include <RunStats.H>
 
 #ifdef BL_USE_NEW_HFILES
 #include <vector>
@@ -184,9 +183,6 @@ FluxRegister::Reflux (MultiFab&       S,
 #ifdef BL3_PROFILING
   BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::Reflux(MultiFab&,...)");
 #endif
-    static RunStats stats("reflux");
-
-    stats.start();
 
     FabSetCopyDescriptor fscd;
 
@@ -380,8 +376,6 @@ FluxRegister::Reflux (MultiFab&       S,
             cheatvol->shift(-rf.m_iv);
         }
     }
-
-    stats.end();
 }
 
 void
@@ -395,9 +389,6 @@ FluxRegister::Reflux (MultiFab&       S,
 #ifdef BL3_PROFILING
   BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::Reflux(MultiFab&, Real,...)");
 #endif
-    static RunStats stats("reflux");
-
-    stats.start();
 
     const Real* dx = geom.CellSize();
 
@@ -549,8 +540,6 @@ FluxRegister::Reflux (MultiFab&       S,
             fab_S.shift(-rf.m_iv);
         }
     }
-
-    stats.end();
 }
 
 void
@@ -801,9 +790,6 @@ FluxRegister::CrseInitFinish ()
     if (ParallelDescriptor::NProcs() == 1) return;
 
 #ifdef BL_USE_MPI
-    static RunStats stats("crse_init_finish");
-
-    stats.start();
 
     const int seqno_1 = ParallelDescriptor::SeqNum();
     const int seqno_2 = ParallelDescriptor::SeqNum();
@@ -1068,8 +1054,6 @@ FluxRegister::CrseInitFinish ()
     // Zero out CIMsgs.
     //
     for (int i = 0; i < NProcs; i++) CIMsgs[i] = 0;
-
-    stats.end();
 #endif
 }
 

@@ -1,6 +1,6 @@
 
 //
-// $Id: Amr.cpp,v 1.117 2000-10-27 00:51:30 vince Exp $
+// $Id: Amr.cpp,v 1.118 2001-04-19 22:24:19 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -1398,9 +1398,6 @@ Amr::regrid (int  lbase,
 #ifdef BL3_PROFILING
   BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::regrid()");
 #endif
-    static RunStats stats("regrid");
-
-    stats.start();
 
     if (verbose && ParallelDescriptor::IOProcessor())
         cout << "REGRID: at level lbase = " << lbase << endl;
@@ -1567,8 +1564,6 @@ Amr::regrid (int  lbase,
 
         printGridInfo(cout,start,finest_level);
     }
-
-    stats.end();
 }
 
 void
