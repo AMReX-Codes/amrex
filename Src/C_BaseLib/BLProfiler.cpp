@@ -1,5 +1,6 @@
 #include <winstd.H>
-#include <BoxLib/Thread.H>
+#include <Thread.H>
+#include <ParallelDescriptor.H>
 
 #ifdef __GNUC__
 #include <cstdio>
@@ -160,8 +161,6 @@ template <> MPI_Datatype mpi_data_type(timer_packet*)
     return mine;
 }
 #endif
-namespace BoxLib
-{
 namespace
 {
 std::map<std::string, int> tagr;
@@ -313,7 +312,6 @@ ThreadTimerNode::find(const std::string& str)
 class ThreadTimerTree
 {
 public:
-    class bad_ttnode {};
     ThreadTimerTree()
     {
 	current = new ThreadTimerNode;
@@ -323,16 +321,16 @@ public:
 	ThreadTimerNode* deeper = current->find(str);
 	ttd_stack.push(current);
 	current = deeper;
-	Assert<bad_ttnode>(current);
+	BL_ASSERT(current);
 	return current;
     }
     ThreadTimerNode* pop()
     {
 	ThreadTimerNode* t = current;
-	Assert<bad_ttnode>(ttd_stack.size() > 0);
+	BL_ASSERT(ttd_stack.size() > 0);
 	current = ttd_stack.top();
 	ttd_stack.pop();
-	Assert<bad_ttnode>(t);
+	BL_ASSERT(t);
 	return t;
     }
     ThreadTimerNode* head() const
@@ -506,12 +504,11 @@ grovel(const ThreadTimerNode* nodes, const std::string& str, timer_packet& t)
 ThreadSpecificData<int> tt_i;
 Mutex tt_mutex;
 std::vector<ThreadTimerTree*> tt_data;
-}
 
-bool BoxLib::Profiler::profiling = true;
-int BoxLib::Profiler::Tag::next_itag = 0;
+bool Profiler::profiling = true;
+int Profiler::Tag::next_itag = 0;
 
-BoxLib::Profiler::Tag::Tag(const std::string& tag_)
+Profiler::Tag::Tag(const std::string& tag_)
     : tag(tag_)
 {
     if ( is_profiling() )
@@ -519,7 +516,7 @@ BoxLib::Profiler::Tag::Tag(const std::string& tag_)
 	Lock<Mutex> lock(profiling_mutex);
 	if ( tagr.find(tag) != tagr.end() )
 	{
-	    throw Error("name already registred: " + tag);
+	    BoxLib::Error("name already registred: ");
 	}
 	itag = next_itag++;
 	tagr[tag] = itag;
@@ -529,12 +526,12 @@ BoxLib::Profiler::Tag::Tag(const std::string& tag_)
 
 
 const std::string&
-BoxLib::Profiler::Tag::name() const
+Profiler::Tag::name() const
 {
     return tag;
 }
 
-bool BoxLib::Profiler::initialized = false;
+bool Profiler::initialized = false;
 
 namespace
 {
@@ -542,7 +539,7 @@ std::string filename("bl3_prof");
 }
 
 void
-BoxLib::Profiler::Initialize(int& argc, char**& argv)
+Profiler::Initialize(int& argc, char**& argv)
 {
     if ( initialized )
     {
@@ -554,18 +551,18 @@ BoxLib::Profiler::Initialize(int& argc, char**& argv)
 std::ostream&
 operator<<(std::ostream& os, const timer_packet& tp)
 {
-    BoxLib::show_count(os, tp.count); os << ' ';
-    BoxLib::show_time(os, tp.time); os << ' ';
-    BoxLib::show_time(os, tp.self); os << ' ';
-    BoxLib::show_time(os, tp.max_time); os << ' ';
-    BoxLib::show_time(os, tp.min_time); os << ' ';
-    BoxLib::show_time(os, tp.avg_time); os << ' ';
-    BoxLib::show_name_field(os, 0, tp.name);
+    show_count(os, tp.count); os << ' ';
+    show_time(os, tp.time); os << ' ';
+    show_time(os, tp.self); os << ' ';
+    show_time(os, tp.max_time); os << ' ';
+    show_time(os, tp.min_time); os << ' ';
+    show_time(os, tp.avg_time); os << ' ';
+    show_name_field(os, 0, tp.name);
     return os;
 }
 
 std::string
-BoxLib::Profiler::clean_name(const std::string& str)
+Profiler::clean_name(const std::string& str)
 {
 #ifdef __GNUC__
     std::string result;
@@ -588,19 +585,19 @@ BoxLib::Profiler::clean_name(const std::string& str)
 }
 
 void
-BoxLib::Profiler::Finalize()
+Profiler::Finalize()
 {
     // Try to measure overhead:
     for ( int i = 0; i < 100; ++i )
     {
-	BL_PROFILE("BoxLib::Profiler::Finalize():load");
+	BL_PROFILE("Profiler::Finalize():load");
     }
     if ( profiling ) off();
 
     glean();
 }
 
-BoxLib::Profiler::Profiler(const Tag& tag_, bool hold)
+Profiler::Profiler(const Tag& tag_, bool hold)
     : tag(tag_), started(false)
 {
     int* a = tt_i.get();
@@ -617,13 +614,13 @@ BoxLib::Profiler::Profiler(const Tag& tag_, bool hold)
     }
 }
 
-BoxLib::Profiler::~Profiler()
+Profiler::~Profiler()
 {
     if ( started ) stop();
 }
 
 void
-BoxLib::Profiler::start()
+Profiler::start()
 {
     assert( !started );
     if ( profiling ) tt_data[*tt_i.get()]->push(tag.name())->start();
@@ -631,7 +628,7 @@ BoxLib::Profiler::start()
 }
 
 void
-BoxLib::Profiler::stop()
+Profiler::stop()
 {
     assert( started );
     if ( profiling ) tt_data[*tt_i.get()]->pop()->stop();
@@ -639,7 +636,7 @@ BoxLib::Profiler::stop()
 }
 
 void
-BoxLib::Profiler::glean()
+Profiler::glean()
 {
     // for all threads on this processor build a cumulative timer structure using grovel.
     std::vector<timer_packet> tps;
@@ -655,54 +652,54 @@ BoxLib::Profiler::glean()
     }
 
     std::vector< std::vector< timer_packet> > t_packets;
-    if ( Parallel::TheComm()->IsRoot() )
+    if ( ParallelDescriptor::IOProcessor() )
     {
-	t_packets.resize(Parallel::TheComm()->NumProcs());
+	t_packets.resize(ParallelDescriptor::NProcs());
 	t_packets[0] = tps;
     }
 
-    std::vector<size_t> ntags = Parallel::TheComm()->Gather(tagr.size());
-    for ( int i = 1; i < Parallel::TheComm()->NumProcs(); ++i )
+    std::vector<size_t> ntags = ParallelDescriptor::Gather(tagr.size());
+    for ( int i = 1; i < ParallelDescriptor::NProcs(); ++i )
     {
-	if ( Parallel::TheComm()->IsRoot() )
+	if ( ParallelDescriptor::IOProcessor() )
 	{
 	    std::vector<size_t> lngths(ntags[i]);
-	    Parallel::TheComm()->Recv(lngths, i, 101);
+	    ParallelDescriptor::Recv(lngths, i, 101);
 	    std::vector< std::string > strngs;
 	    for ( unsigned int j = 0; j < lngths.size(); ++j )
 	    {
 		std::vector<char> a(lngths[j]);
-		Parallel::TheComm()->Recv(a, i, 102);
+		ParallelDescriptor::Recv(a, i, 102);
 		strngs.push_back(std::string(a.begin(), a.end()));
 	    }
 	    t_packets[i].resize(ntags[i]);
-	    Parallel::TheComm()->Recv(t_packets[i], i, 103);
+	    ParallelDescriptor::Recv(t_packets[i], i, 103);
 	    for ( unsigned int j = 0; j < ntags[i]; ++j )
 	    {
 		t_packets[i][j].name = strngs[j];
 	    }
 	}
-	else if ( Parallel::TheComm()->MyId() == i )
+	else if ( ParallelDescriptor::MyProc() == i )
 	{
 	    std::vector<size_t> lngths;
 	    for ( std::vector<timer_packet>::const_iterator it = tps.begin(); it != tps.end(); ++it )
 	    {
 		lngths.push_back(it->name.size());
 	    }
-	    Parallel::TheComm()->Send(lngths, 0, 101);
+	    ParallelDescriptor::Send(lngths, 0, 101);
 	    for ( std::vector<timer_packet >::const_iterator it = tps.begin(); it != tps.end(); ++it )
 	    {
 		const char* name = it->name.c_str();
-		Parallel::TheComm()->Send(name, it->name.size(), 0, 102);
+		ParallelDescriptor::Send(name, it->name.size(), 0, 102);
 	    }
-	    Parallel::TheComm()->Send(tps, 0, 103);
+	    ParallelDescriptor::Send(tps, 0, 103);
 	}
     }
 
-    if ( Parallel::TheComm()->IsRoot() )
+    if ( ParallelDescriptor::IOProcessor() )
     {
 	std::vector< timer_packet > tp_total;
-	for ( int i = 0; i < Parallel::TheComm()->NumProcs(); ++i )
+	for ( int i = 0; i < ParallelDescriptor::NProcs(); ++i )
 	{
 	    std::copy(t_packets[i].begin(), t_packets[i].end(), std::back_inserter(tp_total));
 	}
@@ -728,14 +725,14 @@ BoxLib::Profiler::glean()
 	if ( !os )
 	{
 	    std::cerr << "filename = " << filename << std::endl;
-	    throw Error("failed to open prof file");
+	    BoxLib::Error("failed to open prof file");
 	}
 
 	os << "------------------------------------------------------------------------\n\n";
 	os << "Profiling report\n\n";
 	os << "------------------------------------------------------------------------\n\n";
 	os << "Timer resolution is "; show_time(os, WallTimer::tick(), 1000000); os << " (us)\n";
-	os << "Number of Processors: " << Parallel::TheComm()->NumProcs() << std::endl;
+	os << "Number of Processors: " << ParallelDescriptor::NProcs() << std::endl;
 
 	spacer(os,  2, '\n');
 	spacer(os, 72, '-'); os << '\n';
@@ -751,7 +748,7 @@ BoxLib::Profiler::glean()
 	os << "Per-Processor Report" << '\n';
 	spacer(os, 20, '-'); os << '\n';
 	os << "Number of processes Reporting " << t_packets.size() << std::endl;
-	for ( int i = 0; i < Parallel::TheComm()->NumProcs(); ++i )
+	for ( int i = 0; i < ParallelDescriptor::NProcs(); ++i )
 	{
 	    std::vector< timer_packet > tps( t_packets[i] );
 	    std::sort(tps.begin(), tps.end());
@@ -767,9 +764,9 @@ BoxLib::Profiler::glean()
 	spacer(os, 72, '-'); os << '\n';
     }
 
-    for ( int i = 0; i < Parallel::TheComm()->NumProcs(); ++i )
+    for ( int i = 0; i < ParallelDescriptor::NProcs(); ++i )
     {
-	if ( i == Parallel::TheComm()->MyId() )
+	if ( i == ParallelDescriptor::MyProc() )
 	{
 	    std::ofstream os(filename.c_str(), std::ios::app);
 	    os << "\nProcessor Number " << std::setw(4) << i << std::endl;
@@ -816,18 +813,18 @@ BoxLib::Profiler::glean()
 	    }
 	    os << std::endl;
 	}
-	Parallel::TheComm()->Barrier();
+	ParallelDescriptor::Barrier();
     }
     // MMA dump
     std::string mma_fname = filename + ".m";
-    if ( Parallel::TheComm()->IsRoot() )
+    if ( ParallelDescriptor::IOProcessor() )
     {
 	std::ofstream os(mma_fname.c_str());
 	os << "{";
     }
-    for ( int i = 0; i < Parallel::TheComm()->NumProcs(); ++i )
+    for ( int i = 0; i < ParallelDescriptor::NProcs(); ++i )
     {
-	if ( i == Parallel::TheComm()->MyId() )
+	if ( i == ParallelDescriptor::MyProc() )
 	{
 	    std::ofstream os(mma_fname.c_str(), std::ios::app);
 	    std::ios::fmtflags oldFlags = os.flags();
@@ -842,11 +839,11 @@ BoxLib::Profiler::glean()
 	    os.precision(oprec);
 	    os.flags(oldFlags);
 	    os << "}\n";
-	    if ( i != Parallel::TheComm()->NumProcs()-1 ) os << ", ";
+	    if ( i != ParallelDescriptor::NProcs()-1 ) os << ", ";
 	}
-	Parallel::TheComm()->Barrier();
+	ParallelDescriptor::Barrier();
     }
-    if ( Parallel::TheComm()->IsRoot() )
+    if ( ParallelDescriptor::IOProcessor() )
     {
 	std::ofstream os(mma_fname.c_str(), std::ios::app);
 	os << "}";
@@ -854,29 +851,27 @@ BoxLib::Profiler::glean()
 }
 
 bool
-BoxLib::Profiler::is_profiling()
+Profiler::is_profiling()
 {
     Lock<Mutex> lock(profiling_mutex);
     return profiling;
 }
 
 void
-BoxLib::Profiler::on()
+Profiler::on()
 {
     Lock<Mutex> lock(profiling_mutex);
     profiling = true;
 }
 
 void
-BoxLib::Profiler::off()
+Profiler::off()
 {
     Lock<Mutex> lock(profiling_mutex);
     profiling = false;
 }
 
 
-namespace BoxLib
-{
 namespace
 {
 
@@ -983,5 +978,4 @@ aggregate_field_title(std::ostream& os)
     spacer(os, name_field_width + count_field_width + 5*(time_field_width+1), '-'); os << '\n';
 }
 
-}
 }

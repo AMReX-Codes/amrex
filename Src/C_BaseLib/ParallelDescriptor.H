@@ -2,7 +2,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.56 2001-07-19 21:11:50 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.57 2001-07-20 04:46:21 car Exp $
 //
 
 #include <BLassert.H>
@@ -321,7 +321,16 @@ class ParallelDescriptor
     //
     static int SeqNum ();
 
-  private:
+    template <class T> static void Send(const T* buf, size_t n, int dst_pid, int tag);
+    template <class T> static void Send(const std::vector<T>& buf, int dst_pid, int tag);
+
+    template <class T> static void Recv(T*, size_t n, int pid, int tag);
+    template <class T> static void Recv(std::vector<T>& t, int pid, int tag);
+
+    template <class T, class T1> static void Gather(T*, size_t n, const T1*, size_t n1, int root = 0);
+    template <class T> static std::vector<T> Gather(const T&, int root = 0);
+
+private:
     //
     // Reduce helper functons.
     //
@@ -354,5 +363,102 @@ class ParallelDescriptor
 
     enum { ioProcessor = 0 };
 };
+
+#define MPI_REQUIRE(x)							\
+do									\
+{									\
+  if ( int status = (x) )						\
+    {									\
+      BoxLib3::Error(#x); \
+    }									\
+}									\
+while ( false )
+
+#if BL_USE_MPI
+template <class T>
+void
+ParallelDescriptor::Send(const T* buf, size_t n, int dst_pid, int tag)
+{
+    MPI_REQUIRE( MPI_Send(const_cast<T*>(buf), n, mpi_data_type(buf), dst_pid, tag, m_comm) );
+}
+
+template <class T>
+ParallelDescriptor::Send(const std::vector<T>& buf, int dst_pid, int tag)
+{
+    MPI_REQUIRE( MPI_Send(const_cast<T*>(&buf[0]), buf.size(), mpi_data_type(buf), dst_pid, tag, m_comm) );
+}
+template <class T>
+void
+ParallelDescriptor::Recv(T* buf, size_t n, int src_pid, int tag)
+{
+    MPI_Status stat;
+    MPI_REQUIRE( MPI_Recv(buf, n, Mpi_typemap<T>::type(), src_pid, tag, m_comm, &stat) );
+    return Message(stat, Mpi_typemap<T>::type());
+}
+
+template <class T>
+void
+ParallelDescriptor::Recv(std::vector<T>& buf, int src_pid, int tag)
+{
+    MPI_Status stat;
+    MPI_REQUIRE( MPI_Recv(&buf[0], buf.size(), Mpi_typemap<T>::type(), src_pid, tag, m_comm, &stat) );
+    return Message(stat, Mpi_typemap<T>::type());
+}
+
+template <class T, class T1>
+void
+Comm::Gather(T* t, size_t n, const T1* t1, size_t n1, int root)
+{
+    MPI_REQUIRE( MPI_Gather(t1, n1, Mpi_typemap<T1>::type(),
+			    t, n, Mpi_typemap<T>::type(),
+			    root, m_comm) );
+}
+
+template <class T>
+std::vector<T>
+Comm::Gather(const T& t, int root)
+{
+    std::vector<T> resl;
+    if ( root == MyId() ) resl.resize(NumProcs());
+    MPI_REQUIRE( MPI_Gather(const_cast<T*>(&t), 1, Mpi_typemap<T>::type(),
+			    &resl[0], 1, Mpi_typemap<T>::type(),
+			    root, m_comm) );
+    return resl;
+}
+
+#else
+template <class T>
+void
+ParallelDescriptor::Send(const T* buf, size_t n, int dst_pid, int tag)
+{
+}
+
+template <class T>
+void
+ParallelDescriptor::Send(const std::vector<T>& buf, int dst_pid, int tag)
+{
+}
+template <class T>
+void
+ParallelDescriptor::Recv(T* buf, size_t n, int src_pid, int tag)
+{
+}
+
+template <class T>
+void
+ParallelDescriptor::Recv(std::vector<T>& buf, int src_pid, int tag)
+{
+}
+
+template <class T>
+std::vector<T>
+ParallelDescriptor::Gather(const T& t, int root)
+{
+    std::vector<T> resl(1);
+    resl[0] = t;
+    return resl;
+}
+
+#endif
 
 #endif /*BL_PARALLELDESCRIPTOR_H*/
