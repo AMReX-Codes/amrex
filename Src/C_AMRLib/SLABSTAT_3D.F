@@ -37,8 +37,8 @@ c ::: dt             => Time step
 c ::: delta          => Grid spacing
 c ::: -----------------------------------------------------------
 c
-      subroutine FORT_REYNAVG_FIRST4MOMS(runStats, DIMS(runStats), nStats,
-     $                                   state, DIMS(state), nStateComp,
+      subroutine FORT_REYNAVG_FIRST4MOMS(state, DIMS(state), nStateComp,
+     $                                   runStats, DIMS(runStats), nStats,
      $                                   dt, delta)
 
       implicit none
@@ -152,8 +152,8 @@ c ::: dt             => Time step
 c ::: delta          => Grid spacing
 c ::: -----------------------------------------------------------
 c
-      subroutine FORT_FAVREAVG_FIRST4MOMS(runStats, DIMS(runStats), nStats,
-     $                                    state, DIMS(state), nStateComp,
+      subroutine FORT_FAVREAVG_FIRST4MOMS(state, DIMS(state), nStateComp,
+     $                                    runStats, DIMS(runStats), nStats,
      $                                    dt, delta)
 
       implicit none
