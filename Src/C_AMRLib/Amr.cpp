@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.19 1997-12-06 01:04:47 lijewski Exp $
+// $Id: Amr.cpp,v 1.20 1997-12-08 23:13:00 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -63,7 +63,7 @@ Amr::boxArray (int lev) const
     return amr_level[lev].boxArray();
 }
 
-PArray<FArrayBox>*
+MultiFab*
 Amr::derive (const aString& name,
              Real           time,
              int            lev)

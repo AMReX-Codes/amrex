@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.11 1997-12-05 17:59:25 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.12 1997-12-08 23:13:01 lijewski Exp $
 //
 
 #ifdef	_MSC_VER
@@ -1464,10 +1464,17 @@ AmrLevel::FillCoarsePatch (MultiFab&     mfdest,
     }
 }
 
-PArray<FArrayBox>*
+MultiFab*
 AmrLevel::derive (const aString& name,
                   Real           time)
 {
+    BoxLib::Error("AmrLevel::derive(MultiFab*) not implemented");
+    //
+    // TODO -- implement this!!!
+    //
+    // The below code returns PArray<FArrayBox*> which isn't OK for parallel.
+    //
+#if 0
     int state_indx, src_comp;
 
     if (isStateVariable(name,state_indx,src_comp))
@@ -1571,9 +1578,10 @@ AmrLevel::derive (const aString& name,
     //
     // If we got here, cannot derive given name.
     //
-    aString msg("AmrLevel::derive (PArray): unknown variable: ");
+    aString msg("AmrLevel::derive(MultiFab*): unknown variable: ");
     msg += name;
     BoxLib::Error(msg.c_str());
+#endif
     //
     // Just to keep the compiler happy
     //
@@ -1585,6 +1593,11 @@ AmrLevel::derive (const Box&     b,
                   const aString& name,
                   Real           time)
 {
+    BoxLib::Warning("AmrLevel::derive(FAB*) not implemented in parallel");
+
+    if (ParallelDescriptor::NProcs() > 1)
+        BoxLib::Error();
+
     int state_indx, src_comp;
     //
     // Is it a state variable?
@@ -1610,7 +1623,7 @@ AmrLevel::derive (const Box&     b,
     //
     // If we got here, cannot derive given name.
     //
-    aString msg("AmrLevel::derive (Fab): unknown variable: ");
+    aString msg("AmrLevel::derive(FAB): unknown variable: ");
     msg += name;
     BoxLib::Error(msg.c_str());
     //

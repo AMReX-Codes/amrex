@@ -4,7 +4,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.7 1997-12-04 20:58:48 lijewski Exp $
+// $Id: Amr.H,v 1.8 1997-12-08 23:12:59 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -169,12 +169,15 @@ public:
     //
     // Retrieve derived data.
     //
-    PArray<FArrayBox>* derive (const aString& name,
-                               Real           time,
-                               int            lev);
+    // The user is responsible for deleting this pointer when done with it.
     //
-    // Alternate form.  Note: the user is responsible for
-    // deleting this pointer when done with it.
+    MultiFab* derive (const aString& name,
+                      Real           time,
+                      int            lev);
+    //
+    // Retrieve derived data.
+    //
+    // The user is responsible for deleting this pointer when done with it.
     //
     FArrayBox* derive (const Box&     b,
                        const aString& name,

@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.7 1997-12-04 20:58:49 lijewski Exp $
+// $Id: AmrLevel.H,v 1.8 1997-12-08 23:13:01 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -246,17 +246,19 @@ public:
                                 Real time);
     //
     // Returns a pointer to a fab containing the derived data.
-    // Note: if you use this, you are responsible for proper memory management.
+    //
+    // The user is responsible for deleting this pointer when done with it.
     //
     FArrayBox* derive (const Box&     bx,
                        const aString& name,
                        Real           time);
     //
     // Returns a PArray to fabs containing the derived data.  
-    // Note: if you use this, you are responsible for proper memory management.
     //
-    PArray<FArrayBox>* derive (const aString& name,
-                               Real           time);
+    // The user is responsible for deleting this pointer when done with it.
+    //
+    MultiFab* derive (const aString& name,
+                      Real           time);
     //
     // State data object.
     //
