@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.14 1998-04-27 19:43:48 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.15 1998-05-28 21:34:01 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -96,9 +96,9 @@ MultiFab::min (const Box& region,
 
     for (ConstMultiFabIterator mfi(*this); mfi.isValid(false); ++mfi)
     {
-        Box b(grow(mfi.validbox(), nghost));
-        b &= region;
-        if(b.ok())
+        Box b = ::grow(mfi.validbox(),nghost) & region;
+
+        if (b.ok())
         {
             mn = Min(mn, mfi().min(b, comp));
         }
@@ -140,14 +140,14 @@ MultiFab::max (const Box& region,
     int first = true;
     for (ConstMultiFabIterator mfi(*this); mfi.isValid(false); ++mfi)
     {
-        Box b(grow(mfi.validbox(), nghost));
-        b &= region;
+        Box b = ::grow(mfi.validbox(),nghost) & region;
+
         if (b.ok())
         {
             Real mg = mfi().max(b,comp);
-            if(first)
+            if (first)
             {
-                mn = mg;
+                mn    = mg;
                 first = false;
             }
             mn = Max(mn,mg);
@@ -210,8 +210,8 @@ MultiFab::plus (Real       val,
 
     for (MultiFabIterator mfi(*this); mfi.isValid(false); ++mfi)
     {
-        Box b(grow(mfi.validbox(), nghost));
-        b &= region;
+        Box b = ::grow(mfi.validbox(),nghost) & region;
+
         if (b.ok())
         {
             mfi().plus(val, b, comp, num_comp);
@@ -270,9 +270,9 @@ MultiFab::mult (Real       val,
 
     for (MultiFabIterator mfi(*this); mfi.isValid(false); ++mfi)
     {
-        Box b(grow(mfi.validbox(), nghost));
-        b &= region;
-        if(b.ok())
+        Box b = ::grow(mfi.validbox(),nghost) & region;
+
+        if (b.ok())
         {
             mfi().mult(val, b, comp, num_comp);
         }
@@ -307,9 +307,9 @@ MultiFab::invert (Real       numerator,
 
     for (MultiFabIterator mfi(*this); mfi.isValid(false); ++mfi)
     {
-        Box b(grow(mfi.validbox(), nghost));
-        b &= region;
-        if(b.ok())
+        Box b = ::grow(mfi.validbox(),nghost) & region;
+
+        if (b.ok())
         {
             mfi().invert(numerator, b, comp, num_comp);
         }
@@ -342,8 +342,8 @@ MultiFab::negate (const Box& region,
 
     for (MultiFabIterator mfi(*this); mfi.isValid(false); ++mfi)
     {
-        Box b(grow(mfi.validbox(), nghost));
-        b &= region;
+        Box b = ::grow(mfi.validbox(),nghost) & region;
+
         if (b.ok())
         {
             mfi().negate(b, comp, num_comp);
