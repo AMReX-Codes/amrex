@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.23 1998-04-23 16:37:32 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.24 1998-04-24 00:11:38 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -735,8 +735,14 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 }
 
 //
-// Helper function for CrseInit().
+// Helper function and data for CrseInit()/CrseInitFinish().
 //
+
+#ifdef BL_USE_MPI
+static Array<int>         CIMsgs;
+static vector<FabComTag>  CITags;
+static vector<FArrayBox*> CIFabs;
+#endif
 
 static
 void
@@ -748,16 +754,11 @@ DoIt (Orientation        face,
       int                srccomp,
       int                destcomp,
       int                numcomp,
-      Real               mult,
-      vector<FabComTag>& sTags,
-      Array<int>&        msgs)
+      Real               mult)
 {
-    FabComTag tag;
+    const DistributionMapping& dMap = bndry[face].DistributionMap();
 
-    const int                  MyProc = ParallelDescriptor::MyProc();
-    const DistributionMapping& dMap   = bndry[face].DistributionMap();
-
-    if (MyProc == dMap[k])
+    if (ParallelDescriptor::MyProc() == dMap[k])
     {
         //
         // Local data.
@@ -767,15 +768,27 @@ DoIt (Orientation        face,
     }
     else
     {
+        FabComTag tag;
+
         tag.toProc   = dMap[k];
         tag.fabIndex = k;
         tag.box      = bx;
         tag.face     = face;
         tag.destComp = destcomp;
         tag.nComp    = numcomp;
+
 #ifdef BL_USE_MPI
-        sTags.push_back(tag);
-        msgs[dMap[k]]++;
+        assert(CIMsgs.length() == ParallelDescriptor::NProcs());
+
+        FArrayBox* fabCom = new FArrayBox(bx, numcomp);
+
+        fabCom->copy(flux, bx, srccomp, bx, 0, numcomp);
+        fabCom->mult(mult, bx, 0, numcomp);
+
+        CITags.push_back(tag);
+        CIFabs.push_back(fabCom);
+
+        CIMsgs[dMap[k]]++;
 #else
         FArrayBox fabCom(bx, numcomp);
 
@@ -784,7 +797,7 @@ DoIt (Orientation        face,
 
         ParallelDescriptor::SendData(dMap[k],
                                      &tag,
-                                     fabCom.dataPtr(),
+                                     fabCom->dataPtr(),
                                      bx.numPts() * numcomp * sizeof(Real));
 #endif /*BL_USE_MPI*/
     }
@@ -805,10 +818,12 @@ FluxRegister::CrseInit (const FArrayBox& flux,
     assert(srccomp  >= 0 && srccomp+numcomp  <= flux.nComp());
     assert(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
-    vector<FabComTag> sTags;
-
-    Array<int> msgs(ParallelDescriptor::NProcs(), 0);
-    Array<int> nrcv(ParallelDescriptor::NProcs(), 0);
+#ifdef BL_USE_MPI
+    if (CIMsgs.length() == 0)
+    {
+        CIMsgs.resize(ParallelDescriptor::NProcs(), 0);
+    }
+#endif
 
     for (int k = 0; k < grids.length(); k++)
     {
@@ -818,7 +833,7 @@ FluxRegister::CrseInit (const FArrayBox& flux,
 
         if (lobox.ok())
         {
-            DoIt(lo,k,bndry,lobox,flux,srccomp,destcomp,numcomp,mult,sTags,msgs);
+            DoIt(lo,k,bndry,lobox,flux,srccomp,destcomp,numcomp,mult);
         }
         Orientation hi(dir,Orientation::high);
 
@@ -826,18 +841,35 @@ FluxRegister::CrseInit (const FArrayBox& flux,
 
         if (hibox.ok())
         {
-            DoIt(hi,k,bndry,hibox,flux,srccomp,destcomp,numcomp,mult,sTags,msgs);
+            DoIt(hi,k,bndry,hibox,flux,srccomp,destcomp,numcomp,mult);
         }
     }
+}
+
+void
+FluxRegister::CrseInitFinish ()
+{
 #ifdef BL_USE_MPI
     //
     // Pass each processor # of IRecv()s it'll need to post.
     //
+    const int NProcs = ParallelDescriptor::NProcs();
+    const int MyProc = ParallelDescriptor::MyProc();
+
+    assert(CITags.size() == CIFabs.size());
+
+    if (CIMsgs.length() == 0)
+    {
+        CIMsgs.resize(NProcs, 0);
+    }
+
     int rc;
 
-    for (int i = 0; i < msgs.length(); i++)
+    Array<int> nrcv(NProcs, 0);
+
+    for (int i = 0; i < NProcs; i++)
     {
-        if ((rc = MPI_Reduce(&msgs[i],
+        if ((rc = MPI_Reduce(&CIMsgs[i],
                              &nrcv[i],
                              1,
                              MPI_INT,
@@ -846,8 +878,8 @@ FluxRegister::CrseInit (const FArrayBox& flux,
                              MPI_COMM_WORLD)) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
-    const int MyProc  = ParallelDescriptor::MyProc();
-    const int NumRecv = nrcv[ParallelDescriptor::MyProc()];
+
+    const int NumRecv = nrcv[MyProc];
 
     Array<MPI_Request> reqs(NumRecv);
     Array<MPI_Status>  stat(NumRecv);
@@ -869,13 +901,13 @@ FluxRegister::CrseInit (const FArrayBox& flux,
             ParallelDescriptor::Abort(rc);
     }
 
-    for (int i = 0; i < sTags.size(); i++)
+    for (int i = 0; i < CITags.size(); i++)
     {
-        CommData senddata(sTags[i].face,
-                          sTags[i].fabIndex,
+        CommData senddata(CITags[i].face,
+                          CITags[i].fabIndex,
                           MyProc,
                           //
-                          // We use the index into loop over sTags as the ID.
+                          // We use the index into loop over CITags as the ID.
                           // The combination of the loop index and the
                           // processor from which the message was sent forms
                           // a unique identifier.  We'll later use the
@@ -884,15 +916,15 @@ FluxRegister::CrseInit (const FArrayBox& flux,
                           // those box()s to be sent next.
                           //
                           i,
-                          0, // Not Used.
-                          0, // Not Used.
-                          0, // Not Used.
-                          sTags[i].box);
+                          CITags[i].nComp,
+                          CITags[i].destComp, // Store as srcComp() component.
+                          0,                // Not Used.
+                          CITags[i].box);
 
         if ((rc = MPI_Ssend(senddata.dataPtr(),
                             senddata.length(),
                             MPI_INT,
-                            sTags[i].toProc,
+                            CITags[i].toProc,
                             711,
                             MPI_COMM_WORLD)) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
@@ -907,10 +939,10 @@ FluxRegister::CrseInit (const FArrayBox& flux,
     //
     for (int i = 0; i < NumRecv; i++)
     {
-        fabs.set(i, new FArrayBox(recv[i].box(), numcomp));
+        fabs.set(i, new FArrayBox(recv[i].box(), recv[i].nComp()));
 
         if ((rc = MPI_Irecv(fabs[i].dataPtr(),
-                            fabs[i].box().numPts() * numcomp,
+                            fabs[i].box().numPts() * recv[i].nComp(),
                             mpi_data_type(fabs[i].dataPtr()),
                             recv[i].fromproc(),
                             recv[i].id(),
@@ -919,25 +951,22 @@ FluxRegister::CrseInit (const FArrayBox& flux,
             ParallelDescriptor::Abort(rc);
     }
 
-    for (int i = 0; i < sTags.size(); i++)
+    for (int i = 0; i < CITags.size(); i++)
     {
-        FArrayBox fab(sTags[i].box, numcomp);
-
-        fab.copy(flux, sTags[i].box, srccomp, sTags[i].box, 0, numcomp);
-        fab.mult(mult, sTags[i].box, 0, numcomp);
-
-        long count = sTags[i].box.numPts() * numcomp;
+        long count = CITags[i].box.numPts() * CITags[i].nComp;
 
         assert(count < INT_MAX);
+        assert(CITags[i].box == CIFabs[i]->box());
+        assert(CITags[i].nComp == CIFabs[i]->nComp());
         //
         // Use MPI_Ssend() to try and force the system not to buffer.
         //
-        if ((rc = MPI_Ssend(fab.dataPtr(),
+        if ((rc = MPI_Ssend(CIFabs[i]->dataPtr(),
                             int(count),
-                            mpi_data_type(fab.dataPtr()),
-                            sTags[i].toProc,
+                            mpi_data_type(CIFabs[i]->dataPtr()),
+                            CITags[i].toProc,
                             //
-                            // We use the index into loop over sTags as the ID.
+                            // We use the index into loop over CITags as ID.
                             // The combination of the loop index and the
                             // processor from which the message was sent forms
                             // a unique identifier.
@@ -962,19 +991,29 @@ FluxRegister::CrseInit (const FArrayBox& flux,
                                                        fabs[i].box(),
                                                        0,
                                                        fabs[i].box(),
-                                                       destcomp,
-                                                       numcomp);
+                                                       recv[i].srcComp(),
+                                                       recv[i].nComp());
     }
-#endif /*BL_USE_MPI*/
-}
-
-//
-// TODO -- remove this if/when BSP goes away.
-//
-void
-FluxRegister::CrseInitFinish ()
-{
-#ifndef BL_USE_MPI
+    //
+    // Delete buffered FABs.
+    //
+    for (int i = 0; i < CIFabs.size(); i++)
+    {
+        delete CIFabs[i];
+    }
+    //
+    // Null out vectors.
+    //
+    CIFabs.erase(CIFabs.begin(), CIFabs.end());
+    CITags.erase(CITags.begin(), CITags.end());
+    //
+    // Zero out CIMsgs.  It's size will not need to change.
+    //
+    for (int i = 0; i < NProcs; i++)
+    {
+        CIMsgs[i] = 0;
+    }
+#else
     FabComTag tag;
 
     ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
@@ -999,7 +1038,7 @@ FluxRegister::CrseInitFinish ()
                                            tag.destComp,
                                            tag.nComp);
     }
-#endif /*!BL_USE_MPI*/
+#endif /*BL_USE_MPI*/
 }
 
 void
