@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.74 2002-12-02 20:45:01 jbb Exp $
+// $Id: FluxRegister.cpp,v 1.75 2002-12-04 23:06:53 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -705,7 +705,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
         }
         else
         {
-            fab.plus(tmp_fab,0,destcomp,numcomp);
+            fab.plus(tmp_fab,fbid_mflx.box(),0,destcomp,numcomp);
         }
     }
 }
