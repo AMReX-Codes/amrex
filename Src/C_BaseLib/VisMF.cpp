@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.46 1998-04-16 23:07:11 lijewski Exp $
+// $Id: VisMF.cpp,v 1.47 1998-04-20 04:18:14 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -338,6 +338,8 @@ VisMF::Header::Header (const MultiFab& mf,
     //
     Array<Real> min_n_max(2 * m_ncomp);
 
+    const int IoProc = ParallelDescriptor::IOProcessorNumber();
+
     for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
     {
         int idx = mfi.index();
@@ -364,14 +366,16 @@ VisMF::Header::Header (const MultiFab& mf,
             int rc = MPI_Send(min_n_max.dataPtr(),
                               2 * m_ncomp,
                               mpi_data_type(min_n_max.dataPtr()),
-                              ParallelDescriptor::IOProcessor(),
-                              117,
+                              IoProc,
+                              //
+                              // We use the index as the tag for uniqueness.
+                              //
+                              idx,
                               MPI_COMM_WORLD);
-
             if (!(rc == MPI_SUCCESS))
                 ParallelDescriptor::Abort(rc);
 #else
-            ParallelDescriptor::SendData(ParallelDescriptor::IOProcessor(),
+            ParallelDescriptor::SendData(IoProc,
                                          &idx,
                                          min_n_max.dataPtr(),
                                          2 * sizeof(Real) * m_ncomp);
@@ -382,32 +386,32 @@ VisMF::Header::Header (const MultiFab& mf,
     if (ParallelDescriptor::IOProcessor())
     {
         MPI_Status        status;
-        const int         IoProc  = ParallelDescriptor::IOProcessorNumber();
         const Array<int>& procmap = mf.DistributionMap().ProcessorMap();
 
         for (int idx = 0, N = procmap.length(), rc = 0; idx < N; idx++)
         {
             if (!(procmap[idx] == IoProc))
             {
-                m_min[idx].resize(m_ncomp);
-                m_max[idx].resize(m_ncomp);
-
                 if ((rc = MPI_Recv(min_n_max.dataPtr(),
                                    2 * m_ncomp,
                                    mpi_data_type(min_n_max.dataPtr()),
-                                   MPI_ANY_SOURCE,
-                                   117,
+                                   //
+                                   // We recieve one message for each
+                                   // index that IoProc doesn't own.
+                                   //
+                                   procmap[idx],
+                                   idx,
                                    MPI_COMM_WORLD,
                                    &status)) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
 
-                assert(status.MPI_SOURCE > 0);
-                assert(status.MPI_SOURCE < ParallelDescriptor::NProcs());
+                m_min[idx].resize(m_ncomp);
+                m_max[idx].resize(m_ncomp);
 
                 for (int i = 0; i < m_ncomp; i++)
                 {
-                    m_min[status.MPI_SOURCE][i] = min_n_max[i];
-                    m_max[status.MPI_SOURCE][i] = min_n_max[m_ncomp+i];
+                    m_min[idx][i] = min_n_max[i];
+                    m_max[idx][i] = min_n_max[m_ncomp+i];
                 }
             }
         }
@@ -473,6 +477,8 @@ VisMF::Write (const MultiFab& mf,
               VisMF::How      how)
 {
     assert(mf_name[mf_name.length() - 1] != '/');
+
+    const int IoProc = ParallelDescriptor::IOProcessorNumber();
 
     long bytes = 0;
     //
@@ -572,12 +578,15 @@ VisMF::Write (const MultiFab& mf,
                 if ((rc = MPI_Send(pbuf,
                                    pos,
                                    MPI_PACKED,
-                                   ParallelDescriptor::IOProcessor(),
-                                   231,
+                                   IoProc,
+                                   //
+                                   // We use index as the tag for uniqueness.
+                                   //
+                                   mfi.index(),
                                    MPI_COMM_WORLD)) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
 #else
-                ParallelDescriptor::SendData(ParallelDescriptor::IOProcessor(),
+                ParallelDescriptor::SendData(IoProc,
                                              &msg_hdr,
                                              TheBaseName.c_str(),
                                              //
@@ -659,12 +668,15 @@ VisMF::Write (const MultiFab& mf,
                 if ((rc = MPI_Send(pbuf,
                                    pos,
                                    MPI_PACKED,
-                                   ParallelDescriptor::IOProcessor(),
-                                   231,
+                                   IoProc,
+                                   //
+                                   // We use index as the tag for uniqueness.
+                                   //
+                                   mfi.index(),
                                    MPI_COMM_WORLD)) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
 #else
-                ParallelDescriptor::SendData(ParallelDescriptor::IOProcessor(),
+                ParallelDescriptor::SendData(IoProc,
                                              &msg_hdr,
                                              TheBaseName.c_str(),
                                              //
@@ -683,7 +695,6 @@ VisMF::Write (const MultiFab& mf,
     if (ParallelDescriptor::IOProcessor())
     {
         MPI_Status        status;
-        const int         IoProc  = ParallelDescriptor::IOProcessorNumber();
         const Array<int>& procmap = mf.DistributionMap().ProcessorMap();
 
         for (int idx = 0, N = procmap.length(); idx < N; idx++)
@@ -695,14 +706,15 @@ VisMF::Write (const MultiFab& mf,
                 if ((rc = MPI_Recv(pbuf,
                                    NPBUF,
                                    MPI_PACKED,
-                                   MPI_ANY_SOURCE,
-                                   231,
+                                   //
+                                   // We recieve one message for each
+                                   // index that IoProc doesn't own.
+                                   //
+                                   procmap[idx],
+                                   idx,
                                    MPI_COMM_WORLD,
                                    &status)) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
-
-                assert(status.MPI_SOURCE > 0);
-                assert(status.MPI_SOURCE < ParallelDescriptor::NProcs());
                 //
                 // Unpack FAB offset, length of name, and name.
                 //
@@ -735,8 +747,8 @@ VisMF::Write (const MultiFab& mf,
                                      MPI_COMM_WORLD)) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
                 
-                hdr.m_fod[status.MPI_SOURCE].m_head = msg_hdr.m_head;
-                hdr.m_fod[status.MPI_SOURCE].m_name = fab_name;
+                hdr.m_fod[idx].m_head = msg_hdr.m_head;
+                hdr.m_fod[idx].m_name = fab_name;
 
                 delete [] fab_name;
             }
