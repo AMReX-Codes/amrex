@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.134 2001-07-22 19:38:16 car Exp $
+// $Id: FabArray.H,v 1.135 2001-07-22 20:47:46 car Exp $
 //
 
 #include <cstring>
@@ -1262,7 +1262,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             for (unsigned int j = 0; j < RcvTags[i].size(); j++)
                 N += RcvTags[i][j].box.numPts() * ncomp;
 
-            BL_ASSERT(N < std::numeric_limits<int>::max());
+            BL_ASSERT(N < std::numeric_limits<size_t>::max());
 
             fab_data[i] = static_cast<value_type*>(The_FAB_Arena->alloc(N*sizeof(value_type)));
 
@@ -1289,7 +1289,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             for (unsigned int j = 0; j < SndTags[i].size(); j++)
                     N += SndTags[i][j].box.numPts() * ncomp;
 
-            BL_ASSERT(N < std::numeric_limits<int>::max());
+            BL_ASSERT(N < std::numeric_limits<size_t>::max());
 
             value_type* data = static_cast<value_type*>(The_FAB_Arena->alloc(N*sizeof(value_type)));
             value_type* dptr = data;
@@ -2315,7 +2315,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
                 if (fabComTagList[j].procThatHasData == i)
                     N += fabComTagList[j].box.numPts()*fabComTagList[j].nComp;
 
-            BL_ASSERT(N < std::numeric_limits<int>::max());
+            BL_ASSERT(N < std::numeric_limits<size_t>::max());
 
             fab_data[i] = static_cast<value_type*>(The_FAB_Arena->alloc(N*sizeof(value_type)));
 
@@ -2350,7 +2350,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
             for (int j = 0; j < Snds[i]; j++)
                 N += recv_cd[strt+j].box().numPts() * recv_cd[strt+j].nComp();
 
-            BL_ASSERT(N < std::numeric_limits<int>::max());
+            BL_ASSERT(N < std::numeric_limits<size_t>::max());
 
             value_type* data = static_cast<value_type*>(The_FAB_Arena->alloc(N*sizeof(value_type)));
             value_type* dptr = data;
