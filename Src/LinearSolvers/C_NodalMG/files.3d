@@ -1,67 +1,96 @@
+USING INPUTS FILE:
+
+pcode=2
+nrep=1
+tol=2.0e-10
+geometry.coord_sys=0
+geometry.prob_lo=0 0 0
+geometry.prob_hi=1 1 1
+#
+# Can be cross, terrain or full.
+#
+stencil=cross
+#
+# Boundary conditions
+#
+bc00=periodic
+bc01=periodic
+#bc10=periodic
+#bc11=periodic
+#bc20=periodic
+#bc21=periodic
 
 ALL OF THESE WORK WITH THE CODE AS OF 3/12/02:
 
-gt0
-gt010
-gt012
-gt016
-gt05
-gt1
-gt2
-gt2t1
-gt2t2
-gt2t3
-gt2t4
-gt3
-gt.32
-gt3ann
-gt3ann2
-gt4
-gt4s2
-gt4s2.4.4
-gt4s2a
-gt4s4
-gt4s4.2.4
-gt4s4.4.2
-gt5
-gt5s2
-gt5s4
-gt6
-gt6s
-gt6s2
-gt6s4
-gt7a
-gt7aa
-gt8
-gt8a
-gt8b
-gt8c
-gt8ms2
-gtbig
-gtbig2
-gtgrav2
-gtgrav4
-gtjbb
-gtjbb2
-gtpfail
-gt.jbb.1
-gt.sas
-gt.scott.1
-gt.sstanley_2.32
-gt.sstanley_2.64
-gtclearsmall
+gt0                OK for 0
+gt010              OK for 0
+gt012              OK for 0
+gt016              OK for 0
+gt05               OK for 0
+gt1                OK for 0
+gt3                OK for 0
+gt.32              OK for 0
+gt4                OK for 0
+gt5                OK for 0
+gt6                OK for 0
+gt.bill1           OK for 0
 
-THESE FAIL TO CONVERGE:
+gt2                OK for 1 and OK for 0-1
+gt2t1              OK for 1 and OK for 0-1
+gt2t4              OK for 1 and OK for 0-1
+gt3ann             OK for 1 and OK for 0-1
+gt4s2              OK for 1 and OK for 0-1
+gt4s2.4.4          OK for 1 and OK for 0-1
+gt4s2a             OK for 1 and OK for 0-1
+gt4s4              OK for 1 and OK for 0-1
+gt4s4.2.4          OK for 1 and OK for 0-1
+gt4s4.4.2          OK for 1 and OK for 0-1
+gt5s2              OK for 1 and OK for 0-1
+gt5s4              OK for 1 and OK for 0-1
+gt6s               OK for 1 and OK for 0-1
+gt6s2              OK for 1 and OK for 0-1
+gt6s4              OK for 1 and OK for 0-1
+gt7a               OK for 1 and OK for 0-1
+gt7aa              OK for 1 and OK for 0-1
+gt8                OK for 1 and OK for 0-1
+gt8a               OK for 1 and OK for 0-1
+gt8b               OK for 1 and OK for 0-1
+gt8c               OK for 1 and OK for 0-1
+gt8ms2             OK for 1 and OK for 0-1
+gtbig2             OK for 1 and OK for 0-1
+gtgrav2            OK for 1 and OK for 0-1
+gtgrav4            OK for 1 and OK for 0-1
+gtjbb              OK for 1 and OK for 0-1
+gtpfail            OK for 1 and OK for 0-1
+gt.jbb.1           OK for 1 and OK for 0-1
+gt.sas             OK for 1 and OK for 0-1
+gt.scott.1         OK for 1 and OK for 0-1
+gt.sstanley_2.32   OK for 1 and OK for 0-1
+gt.sstanley_2.64   OK for 1 and OK for 0-1
+gt.sstanley_3      OK for 1 and OK for 0-1
 
-gt12   FAILS
-gt12.2 FAILS
-gt12.3 FAILS
-gtbig3 FAILS
+gtclearsmall       OK for 2, OK for 1-2, OK for 0-1-2
+gtrick             OK for 2, OK for 1-2, OK for 0-1-2
 
-THESE ARE UNTESTED:  
+gt12               OK for 1 and 0-1 *** GRIDS NOT VALID FOR PERIODIC IN EITHER X OR Y ***
+                                    *** WORKS FOR REFWALL *** 
 
-gtbig4
-gtbig5
-gt.bill1
-gtrick
-gt.sstanley_3
+gt12.2             OK for 1 and 0-1 *** GRIDS NOT VALID FOR PERIODIC IN X ***
+                                    *** WORKS FOR REFWALL OR PERIODIC IN Y *** 
+
+gt12.3             OK for 1 and 0-1 *** GRIDS NOT VALID FOR PERIODIC IN EITHER X OR Y ***
+                                    *** WORKS FOR REFWALL *** 
+gtbig              OK for 2,1-2,0-1-2 *** GRIDS NOT VALID FOR PERIODIC IN EITHER X OR Y ***
+                                      *** WORKS FOR REFWALL *** 
+gtbig3             OK for 2,1-2,0-1-2 *** GRIDS NOT VALID FOR PERIODIC IN EITHER X OR Y ***
+                                      *** WORKS FOR REFWALL *** 
+gtbig4             OK for 2,1-2,0-1-2 *** GRIDS NOT VALID FOR PERIODIC IN EITHER X OR Y ***
+                                      *** WORKS FOR REFWALL *** 
+gtbig5             OK for 2,1-2,0-1-2 *** GRIDS NOT VALID FOR PERIODIC IN EITHER X OR Y ***
+                                      *** WORKS FOR REFWALL *** 
+
+gt3ann2            OK for 2 and 1-2 and 0-1-2 *** GRIDS NOT VALID FOR PERIODIC IN X ***
+                                              *** WORKS FOR REFWALL OR PERIODIC IN Y *** 
+
+gtjbb2             OK for 2 and 1-2 and 0-1-2  *** GRIDS NOT VALID FOR PERIODIC IN X ***
+                                              *** WORKS FOR REFWALL OR PERIODIC IN Y *** 
