@@ -1681,6 +1681,48 @@ cdir$ ivdep
         end do
       endif
       end
+c-----------------------------------------------------------------------
+c sig here contains three different directions all stored on "nodes"
+      subroutine hgrlxur(
+     & cor, res, sig, cen,
+     &     resl0,resh0,resl1,resh1,
+     &     regl0,regh0,regl1,regh1,irz)
+      integer resl0,resh0,resl1,resh1
+      integer regl0,regh0,regl1,regh1
+      double precision cor(resl0:resh0,resl1:resh1)
+      double precision res(resl0:resh0,resl1:resh1)
+      double precision sig(resl0:resh0,resl1:resh1,2)
+      double precision cen(resl0:resh0,resl1:resh1)
+      double precision AVG
+      double precision AVGREDGE
+      integer irz
+      integer istart, iend
+      integer i, j, jdiff, ly, ipar
+      AVG() = (sig(i-1,j,1)        * cor(i-1,j) +
+     &         sig(i,j,1)          * cor(i+1,j) +
+     &         sig(i,j-1,2)        * cor(i,j-1) +
+     &         sig(i,j,2)          * cor(i,j+1))
+      jdiff =  resh0 - resl0 + 1
+      ly    = (resh1 - resl1 + 1) * jdiff
+      istart = (regl1 - resl1) * jdiff + (regl0 - resl0)
+      iend   = (regh1 - resl1) * jdiff + (regh0 - resl0)
+cdir$ ivdep
+      ipar = 1
+      do j = regl1, regh1
+	  ipar = 1 - ipar
+	  do i = regl0 + ipar, regh0, 2
+	    cor(i,j) = (AVG()-res(i,j))*cen(i,j)
+	end do
+	end do
+	ipar = 0
+      do j = regl1, regh1
+	  ipar = 1 - ipar
+	  do i = regl0+ipar, regh0, 2
+	    cor(i,j) = (AVG()-res(i,j))*cen(i,j)
+	end do
+	end do
+
+      end
 
 c 9-point stencil versions:
 

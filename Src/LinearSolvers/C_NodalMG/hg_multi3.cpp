@@ -11,6 +11,7 @@
 #define   FORT_HGRLX_TERRAIN	hgrlx_terrain_
 #define   FORT_HGRLX_FULL	hgrlx_full_
 #define   FORT_HGRLXU		hgrlxu_
+#define   FORT_HGRLXUR		hgrlxur_
 #define   FORT_HGRLXL		hgrlxl_
 #define   FORT_HGRLXL_FULL	hgrlxl_full_
 #define   FORT_HGRLNF		hgrlnf_
@@ -31,6 +32,7 @@
 #define   FORT_HGRLX_TERRAIN    HGRLX_TERRAIN
 #define   FORT_HGRLX_FULL	HGRLX_FULL
 #define   FORT_HGRLXU		HGRLXU
+#define   FORT_HGRLXUR		HGRLXUR
 #define   FORT_HGRLXL		HGRLXL
 #define   FORT_HGRLXL_FULL	HGRLXL_FULL
 #define   FORT_HGRLNF		HGRLNF
@@ -51,6 +53,7 @@
 #define   FORT_HGRLX_TERRAIN    hgrlx_terrain
 #define   FORT_HGRLX_FULL	hgrlx_full
 #define   FORT_HGRLXU		hgrlxu
+#define   FORT_HGRLXUR		hgrlxur
 #define   FORT_HGRLXL		hgrlxl
 #define   FORT_HGRLXL_FULL	hgrlxl_full
 #define   FORT_HGRLNF		hgrlnf
@@ -92,7 +95,9 @@ extern "C"
     void FORT_HGRLX_FULL    (Real*, intS, const Real*, intS,
 			     const Real*, intS, const Real*, intS, intS);
     void FORT_HGRLXU        (Real*, const Real*, const Real*,
-			     const Real*, intS, Real*, intS, const int*);
+			     const Real*, intS, const Real*, intS, const int*);
+    void FORT_HGRLXUR        (Real*, const Real*, const Real*,
+			     intS, const Real*, intS, const int*);
     void FORT_HGRLXL        (Real*, intS, const Real*, intS,
 			     const Real*, intS, const Real*, intS, intS,
 			     intS, const int*);
@@ -123,7 +128,9 @@ extern "C"
 			     const Real*, intS,
 			     const Real*, intS, intS);
     void FORT_HGRLXU        (Real*, const Real*, const Real*,
-			     const Real*, intS, Real*, intS, const int*);
+			     const Real*, intS, const Real*, intS, const int*);
+    void FORT_HGRLXUR        (Real*, const Real*, const Real*,
+			     const Real*, intS, intS, const int*);
     void FORT_HGRLXL        (Real*, intS, const Real*, intS,
 			     CRealPS, intS, Real*, intS, intS, intS,
 			     CRealPS, const int*, const int*, const int*);
@@ -221,7 +228,7 @@ holy_grail_amr_multigrid::level_residual (MultiFab& r,
 		BoxLib::surroundingNodes(mg_mesh[mglev][r_mfi.index()]) :
 		Box(lev_interface[mglev].part_fine(r_mfi.index()));
 
-#if 0
+#if 1
 	    FORT_HGRESU(r[r_mfi].dataPtr(), DIMLIST(rbox),
 			s[r_mfi].dataPtr(), d[r_mfi].dataPtr(),
                         sigma_node[mglev][r_mfi].dataPtr(), mask[mglev][r_mfi].dataPtr(), DIMLIST(freg),
@@ -297,6 +304,7 @@ holy_grail_amr_multigrid::relax (int  mglev,
 		    else if (m_stencil == cross)
 		    {
 			const int isRZ = getCoordSys();
+#if 1
 			FORT_HGRLXU(corr[mglev][r_mfi].dataPtr(),
                                     resid[mglev][r_mfi].dataPtr(),
                                     sigma_node[mglev][r_mfi].dataPtr(),
@@ -304,6 +312,14 @@ holy_grail_amr_multigrid::relax (int  mglev,
                                     mask[mglev][r_mfi].dataPtr(),
                                     DIMLIST(freg),
 				    &isRZ);
+#else
+			FORT_HGRLXUR(corr[mglev][r_mfi].dataPtr(),
+                                    resid[mglev][r_mfi].dataPtr(),
+                                    sigma_node[mglev][r_mfi].dataPtr(),
+                                    cen[mglev][r_mfi].dataPtr(), DIMLIST(sbox),
+                                    DIMLIST(freg),
+				    &isRZ);
+#endif
 		    }
 		}
 		else

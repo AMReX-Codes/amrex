@@ -1151,7 +1151,9 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
                    use_u, H, tol, Lev_min, Lev_max, scale);
 }
 
-//extern "C"    bool writeMF (const MultiFab* mf, const char*     file);
+#ifndef NDEBUG
+extern "C" bool writeMF (const MultiFab* mf, const char*     file);
+#endif
 
 void
 holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
@@ -1169,7 +1171,7 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
                                           int               Lev_max,
                                           Real              scale)
 {
-#if 0
+#ifndef NDEBUG
     if (false) 
     {
 	std::cout << "Lev_min = " << Lev_min << std::endl;
@@ -1178,10 +1180,10 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
 	{
 	    if ( u->defined(i) ) 
 	    {
-		writeMF(&(*u)[0], "u[0]");
+		writeMF(&(*u)[0], "u_0");
 	    }
-	    writeMF(&rhs[0], "rhs[0]");
-	    writeMF(&Sigma[0], "Sigma[0]");
+	    writeMF(&rhs[0], "rhs_0");
+	    writeMF(&Sigma[0], "Sigma_0");
 	}
     }
 #endif
