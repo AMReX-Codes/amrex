@@ -380,12 +380,12 @@ contains
     end do
 
     if ( verbose .and. parallel_IOProcessor() ) then
-       print *, 'sigx', sigx
-       print *, 'sigy', sigy
-       print *, 'sigz', sigz
-       print *, 'lplx', lplx
-       print *, 'lply', lply
-       print *, 'lplz', lplz
+       print '(a,1x,20(i3,1x))', 'sigx', sigx
+       print '(a,1x,20(i3,1x))', 'sigy', sigy
+       print '(a,1x,20(i3,1x))', 'sigz', sigz
+       print '(a,1x,20(i3,1x))', 'lplx', lplx
+       print '(a,1x,20(i3,1x))', 'lply', lply
+       print '(a,1x,20(i3,1x))', 'lplz', lplz
     end if
 
   end subroutine sigma_laplace_mf
@@ -468,12 +468,12 @@ contains
     end if
 
     if ( verbose  .and. parallel_IOProcessor() ) then
-       print *, 'sigx', sigx
-       print *, 'sigy', sigy
-       print *, 'sigz', sigz
-       print *, 'lplx', lplx
-       print *, 'lply', lply
-       print *, 'lplz', lplz
+       print '(a,1x,20(i3,1x))', 'sigx', sigx
+       print '(a,1x,20(i3,1x))', 'sigy', sigy
+       print '(a,1x,20(i3,1x))', 'sigz', sigz
+       print '(a,1x,20(i3,1x))', 'lplx', lplx
+       print '(a,1x,20(i3,1x))', 'lply', lply
+       print '(a,1x,20(i3,1x))', 'lplz', lplz
     end if
   contains
     elemental function absdiff(L1, L2) result(i)
@@ -517,6 +517,29 @@ contains
   end function box_eff
 
   function find_split(boxes, bn, minwidth, sigx, sigy, sigz, lplx, lply, lplz ) result(r)
+    logical :: r, rr
+    type(list_box), intent(inout) ::  boxes
+    type(list_box_node), pointer :: bn
+    integer, intent(in) :: minwidth
+    integer, intent(in) :: sigx(0:), sigy(0:), sigz(0:)
+    integer, intent(in) :: lplx(0:), lply(0:), lplz(0:)
+
+
+    rr = find_holes(boxes, bn, minwidth, sigx, sigy, sigz)
+    if ( verbose  .and. parallel_IOProcessor() ) then
+       print *, 'FIND_SPLIT(1) r = ', rr
+    end if
+    if ( .not. rr ) then
+       rr = find_inflx(boxes, bn, minwidth, lplx, lply, lplz)
+    end if
+    if ( verbose  .and. parallel_IOProcessor() ) then
+       print *, 'FIND_SPLIT(2) r = ', rr
+    end if
+    r = rr
+
+  end function find_split
+
+  function find_split0(boxes, bn, minwidth, sigx, sigy, sigz, lplx, lply, lplz ) result(r)
     logical :: r
     type(list_box), intent(inout) ::  boxes
     type(list_box_node), pointer :: bn
@@ -526,11 +549,17 @@ contains
 
 
     r = find_holes(boxes, bn, minwidth, sigx, sigy, sigz)
+    if ( verbose  .and. parallel_IOProcessor() ) then
+       print *, 'FIND_SPLIT(1) r = ', r
+    end if
     if ( .not. r ) then
        r = find_inflx(boxes, bn, minwidth, lplx, lply, lplz)
     end if
+    if ( verbose  .and. parallel_IOProcessor() ) then
+       print *, 'FIND_SPLIT(2) r = ', r
+    end if
 
-  end function find_split
+  end function find_split0
 
   function find_holes(boxes, bn, minwidth, sigx, sigy, sigz) result(r)
     logical :: r
@@ -540,6 +569,10 @@ contains
     integer, intent(in) :: sigx(0:), sigy(0:), sigz(0:)
 
     integer lx, hx, ly, hy, lz, hz
+
+    if ( verbose  .and. parallel_IOProcessor() ) then
+       call print(value(bn), 'find_holes')
+    end if
 
     r  = .false.
 
@@ -558,6 +591,10 @@ contains
        r = .true.
     else if( holes(sigz, lz, hz, 3) ) then
        r = .true.
+    end if
+
+    if ( verbose  .and. parallel_IOProcessor() ) then
+       print *, 'FIND_HOLES => ', r
     end if
 
   contains
@@ -637,10 +674,13 @@ contains
     call inflection(lplz, lz, hz, hiz, ipz)
 
     if ( verbose  .and. parallel_IOProcessor() ) then
-       call print(value(bn), 'find_inflx')
-       print *, lplx, 'l', lx, 'h', hx, 'hiv', hix, 'inf', ipx
-       print *, lply, 'l', ly, 'h', hy, 'hiv', hiy, 'inf', ipy
-       print *, lplz, 'l', lz, 'h', hz, 'hiv', hiz, 'inf', ipz
+       call print(value(bn), 'FIND_INFLX')
+       print '(a,1x,20(i3,1x))', 'lplx', lplx
+       print *, '      l', lx, 'h', hx, 'hiv', hix, 'inf', ipx
+       print '(a,1x,20(i3,1x))', 'lply', lply
+       print *, '      l', ly, 'h', hy, 'hiv', hiy, 'inf', ipy
+       print '(a,1x,20(i3,1x))', 'lplz', lplz
+       print *, '      l', lz, 'h', hz, 'hiv', hiz, 'inf', ipz
     end if
 
 
@@ -672,6 +712,10 @@ contains
        end if
        call boxStack(boxes, bn, b1, b2)
        r = .true.
+    end if
+
+    if ( verbose  .and. parallel_IOProcessor() ) then
+       print *, 'FIND_INFLX => ', r
     end if
 
   contains

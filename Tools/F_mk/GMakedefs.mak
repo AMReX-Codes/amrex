@@ -97,111 +97,114 @@ ifeq ($(ARCH),Linux)
     LDFLAGS += -static
     CPPFLAGS += -DBL_HAS_SECOND
   endif
-  ifeq ($(COMP),Intel8)
-    FC = ifort
-    F90 = ifort
-    CC = icc
-    FFLAGS =
-    F90FLAGS =
-    ifndef NDEBUG
-                                # Someday, can eliminate these	
-      F90FLAGS += -g -check all -check nopointer -check noshape
-      FFLAGS   += -g -check all -check nopointer -check noshape
-      CFLAGS   += -g
-    else
-      F90FLAGS += -O3
-      FFLAGS += -O3
-      CFLAGS += -O3
-#     F90FLAGS += -fast
-#     FFLAGS += -fast
-#     CFLAGS += -fast
-    endif
-    ifdef OMP
-      F90FLAGS += -openmp
-      FFLAGS   += -openmp
-    endif
-  endif
   ifeq ($(COMP),Intel)
-#   ifdef MPI
-#     F90=mpif90
-#     FC= mpif77 -cm -w90
-#   else
-      F90 = ifc
-      FC  = ifc
-#     FC  = ifc -cm -w90
-#   endif
+    _ifc_version := $(shell ifc -V 2>&1 | grep 'Version')
+    _icc_version := $(shell icc -V 2>&1 | grep 'Version')
+    ifeq ($(findstring Version 8, $(_ifc_version)), Version 8)
+      F90 := ifort
+      FC  := ifort
+      _comp := Intel8
+    else
+    ifeq ($(findstring Version 7.1, $(_ifc_version)), Version 7.1)
+	$(error "VERSION 7.1 of IFC Will Not Work")
+    else
+    ifeq ($(findstring Version 7.0, $(_ifc_version)), Version 7.0)
+      F90 := ifc
+      FC  := ifc
+      _comp := Intel7
+    endif
+    endif
+    endif
     CC  = icc
     FFLAGS   =
     F90FLAGS =
-#   FFLAGS += -auto
-#   F90FLAGS += -auto
+    CFLAGS   =
+    FFLAGS   += -module $(mdir)
     F90FLAGS += -module $(mdir)
+    FFLAGS   += -I $(mdir)
     F90FLAGS += -I $(mdir)
-    ifdef NDEBUG
-      ifdef OMP
-        CFLAGS += -O0
-        FFLAGS += -O0
-        F90FLAGS += -O0
-	F90FLAGS += -parallel -par_report3 -openmp_report2
-      else
-        CFLAGS += -O3
-#       FFLAGS += -g
-        FFLAGS += -O3
-#       F90FLAGS += -g
-        F90FLAGS += -O3
-        ifndef PROF
-#         CFLAGS += -ip
-          CFLAGS += -ipo
-#         FFLAGS += -ip
-          FFLAGS += -ipo
-#	  F90FLAGS += -ip
-          F90FLAGS += -ipo
-        endif
-      endif
-    else
-#     F90FLAGS += -CU -CV -CS -CA -CB
-      ifdef MPI
-        FFLAGS   +=
-        F90FLAGS +=
-	CFLAGS   += 
-      else
-        CFLAGS += -g
-        FFLAGS += -g
-        F90FLAGS += -g
-        ifdef OMP
-          FFLAGS   +=     -CV -CS -CA -CB
-          F90FLAGS +=     -CV -CS     -CB
-        else
-          FFLAGS   += -CB -CU
-#         FFLAGS   +=         -CV -CS -CA
-#         FFLAGS   +=                 -CA
-          F90FLAGS += -CB -CU -CV -CS
-#         F90FLAGS +=                 -CA
-        endif
-      endif
-    endif
-
-    ifdef PROF
-      F90FLAGS += -pg
-    endif
-
     ifdef OMP
       FFLAGS   += -openmp -fpp2
       F90FLAGS += -openmp -fpp2
     else
-      FFLAGS   += -openmp_stubs
-      F90FLAGS += -openmp_stubs
+      FFLAGS   += -openmp_stubs -fpp2
+      F90FLAGS += -openmp_stubs -fpp2
     endif
-    ifdef mpi_include
-      fpp_flags += -I $(mpi_include)
+    ifeq ($(_comp),Intel8)
+      ifndef NDEBUG
+                                # Someday, can eliminate these	
+        F90FLAGS += -g -check all -check noshape -check nopointer
+        FFLAGS   += -g -check all -check noshape -check nopointer
+        CFLAGS   += -g
+      else
+#       F90FLAGS += -O3
+#       FFLAGS += -O3
+#       CFLAGS += -O3
+       F90FLAGS += -fast
+       FFLAGS += -fast
+       CFLAGS += -fast
+      endif
     endif
-    ifdef mpi_lib
-      fld_flags += -L $(mpi_lib)
+    ifeq ($(COMP),Intel7)
+      ifdef NDEBUG
+        ifdef OMP
+          CFLAGS += -O0
+          FFLAGS += -O0
+          F90FLAGS += -O0
+	  F90FLAGS += -parallel -par_report3 -openmp_report2
+        else
+          CFLAGS += -O3
+#         FFLAGS += -g
+          FFLAGS += -O3
+#         F90FLAGS += -g
+          F90FLAGS += -O3
+          ifndef PROF
+#           CFLAGS += -ip
+            CFLAGS += -ipo
+#           FFLAGS += -ip
+            FFLAGS += -ipo
+#	    F90FLAGS += -ip
+            F90FLAGS += -ipo
+          endif
+        endif
+      else
+#       F90FLAGS += -CU -CV -CS -CA -CB
+        ifdef MPI
+          FFLAGS   +=
+          F90FLAGS +=
+          CFLAGS   += 
+        else
+          CFLAGS += -g
+          FFLAGS += -g
+          F90FLAGS += -g
+          ifdef OMP
+            FFLAGS   +=     -CV -CS -CA -CB
+            F90FLAGS +=     -CV -CS     -CB
+          else
+            FFLAGS   += -CB -CU
+#           FFLAGS   +=         -CV -CS -CA
+#           FFLAGS   +=                 -CA
+            F90FLAGS += -CB -CU -CV -CS
+#           F90FLAGS +=                 -CA
+          endif
+        endif
+      endif
+
+      ifdef PROF
+        F90FLAGS += -pg
+      endif
+
+      ifdef mpi_include
+        fpp_flags += -I $(mpi_include)
+      endif
+      ifdef mpi_lib
+        fld_flags += -L $(mpi_lib)
+      endif
+      ifdef MPI
+        mpi_libraries += -lPEPCF90
+      endif
+      fld_flags  += -Vaxlib
     endif
-    ifdef MPI
-      mpi_libraries += -lPEPCF90
-    endif
-    fld_flags  += -Vaxlib
   endif
   ifeq ($(COMP),NAG)
     FC  = nf95
