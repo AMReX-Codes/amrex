@@ -1,3 +1,4 @@
+//BL_COPYRIGHT_NOTICE
 
 #include "hg_projector.H"
 
@@ -86,39 +87,26 @@ typedef void (*FECFUNC)(Real*, intS, const Real*, intS, const Real*, intS, intS,
 class task_fecavg : public task_fec_base
 {
 public:
-    task_fecavg(FECFUNC f_, task_list& tl_, MultiFab& s_, const MultiFab& S_, int igrid_, task_fab* tf_, const Box& creg_, const IntVect& rat_, int idim_, int idir_
+
+    task_fecavg (FECFUNC         f_,
+                 task_list&      tl_,
+                 MultiFab&       s_,
+                 const MultiFab& S_,
+                 int             igrid_,
+                 task_fab*       tf_,
+                 const Box&      creg_,
+                 const IntVect&  rat_,
+                 int             idim_,
+                 int             idir_
 #if BL_SPACEDIM == 2
-	, Real hx_, int isRZ_, int imax_
+                 , Real hx_, int isRZ_, int imax_
 #endif
-	)
-	:
-        task_fec_base(tl_, s_, igrid_), f(f_), S(S_), creg(creg_), rat(rat_), idim(idim_), idir(idir_)
-#if BL_SPACEDIM == 2
-	, hx(hx_), isRZ(isRZ_), imax(imax_)
-#endif
-    {
-        push_back(tf_);
-    }
-    virtual bool ready ()
-    {
-	if (is_local_target())
-	{
-	    const int        igrid    = grid_number();
-	    FArrayBox&       sfab     = target_fab();
-	    const Box&       sfab_box = sfab.box();
-	    const FArrayBox& cfab     = task_fab_result(0);
-	    const Box&       cfab_box = cfab.box();
-	    const FArrayBox& Sfab     = S[igrid];
-	    const Box&       Sfab_box = Sfab.box();
-	    (*f)(sfab.dataPtr(), DIMLIST(sfab_box), cfab.dataPtr(), DIMLIST(cfab_box), Sfab.dataPtr(), DIMLIST(Sfab_box), DIMLIST(creg), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir
-#if BL_SPACEDIM == 2
-	    , &hx, &isRZ, &imax
-#endif
-	    );
-	}
-	return true;
-    }
+	);
+
+    virtual bool ready ();
+
 private:
+
     FECFUNC         f;
     const MultiFab& S;
     const Box       creg;
@@ -126,49 +114,84 @@ private:
     const int       idim;
     const int       idir;
 #if BL_SPACEDIM == 2
-    Real hx;
-    int isRZ;
-    int imax;
+    Real            hx;
+    int             isRZ;
+    int             imax;
 #endif
 };
 
+task_fecavg::task_fecavg (FECFUNC         f_,
+                          task_list&      tl_,
+                          MultiFab&       s_,
+                          const MultiFab& S_,
+                          int             igrid_,
+                          task_fab*       tf_,
+                          const Box&      creg_,
+                          const IntVect&  rat_,
+                          int             idim_,
+                          int             idir_
+#if BL_SPACEDIM == 2
+                          , Real hx_, int isRZ_, int imax_
+#endif
+    )
+    :
+    task_fec_base(tl_,s_,igrid_),
+    f(f_),
+    S(S_),
+    creg(creg_),
+    rat(rat_),
+    idim(idim_),
+    idir(idir_)
+#if BL_SPACEDIM == 2
+    , hx(hx_), isRZ(isRZ_), imax(imax_)
+#endif
+{
+    push_back(tf_);
+}
+
+bool
+task_fecavg::ready ()
+{
+    if (is_local_target())
+    {
+        const int        igrid    = grid_number();
+        FArrayBox&       sfab     = target_fab();
+        const Box&       sfab_box = sfab.box();
+        const FArrayBox& cfab     = task_fab_result(0);
+        const Box&       cfab_box = cfab.box();
+        const FArrayBox& Sfab     = S[igrid];
+        const Box&       Sfab_box = Sfab.box();
+
+        (*f)(sfab.dataPtr(), DIMLIST(sfab_box), cfab.dataPtr(), DIMLIST(cfab_box), Sfab.dataPtr(), DIMLIST(Sfab_box), DIMLIST(creg), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir
+#if BL_SPACEDIM == 2
+             , &hx, &isRZ, &imax
+#endif
+	    );
+    }
+    return true;
+}
 
 class task_fecavg_2 : public task_fec_base
 {
 public:
-    task_fecavg_2(FECFUNC f_, task_list& tl_, MultiFab& s_, int igrid_, task_fab* Sfp_, task_fab* Scp_, const Box& creg_, const IntVect& rat_, const Array<int>& ga_, const IntVect& t_
+
+    task_fecavg_2 (FECFUNC           f_,
+                   task_list&        tl_,
+                   MultiFab&         s_,
+                   int               igrid_,
+                   task_fab*         Sfp_,
+                   task_fab*         Scp_,
+                   const Box&        creg_,
+                   const IntVect&    rat_,
+                   const Array<int>& ga_,
+                   const IntVect&    t_
 #if BL_SPACEDIM==2
-	, Real hx_, int isRZ_, int imax_
+                   , Real hx_, int isRZ_, int imax_
 #endif
-    )
-	:
-        task_fec_base(tl_, s_, igrid_), f(f_), creg(creg_), rat(rat_), t(t_), ga(ga_) 
-#if BL_SPACEDIM == 2
-	, hx(hx_), isRZ(isRZ_), imax(imax_)	
-#endif
-    {
-        push_back(Sfp_);
-        push_back(Scp_);
-    }
-    virtual bool ready ()
-    {
-	if (is_local_target())
-	{
-	    const int        igrid      = grid_number();
-	    FArrayBox&       sfab       = target_fab();
-	    const Box&       sfab_box   = sfab.box();
-	    const FArrayBox& Sf_fab     = task_fab_result(0);
-	    const Box&       Sf_fab_box =  Sf_fab.box();
-	    const FArrayBox& Sc_fab     = task_fab_result(1);
-	    const Box&       Sc_fab_box = Sc_fab.box();
-	    (*f)(sfab.dataPtr(), DIMLIST(sfab_box), Sf_fab.dataPtr(), DIMLIST(Sf_fab_box), Sc_fab.dataPtr(), DIMLIST(Sc_fab_box), DIMLIST(creg), D_DECL( rat[0], rat[1], rat[2]), t.getVect(), ga.dataPtr()
-#if BL_SPACEDIM == 2
-		, &hx, &isRZ, &imax
-#endif
-	    );
-	}
-	return true;
-    }
+    );
+
+    virtual bool ready ();
+
 private:
     FECFUNC          f;
     const Box        creg;
@@ -176,11 +199,62 @@ private:
     const IntVect    t;
     const Array<int> ga;
 #if BL_SPACEDIM == 2
-    Real hx;
-    int isRZ;
-    int imax;
+    Real             hx;
+    int              isRZ;
+    int              imax;
 #endif
 };
+
+task_fecavg_2::task_fecavg_2 (FECFUNC           f_,
+                              task_list&        tl_,
+                              MultiFab&         s_,
+                              int               igrid_,
+                              task_fab*         Sfp_,
+                              task_fab*         Scp_,
+                              const Box&        creg_,
+                              const IntVect&    rat_,
+                              const Array<int>& ga_,
+                              const IntVect&    t_
+#if BL_SPACEDIM==2
+                              , Real hx_, int isRZ_, int imax_
+#endif
+    )
+    :
+    task_fec_base(tl_,s_,igrid_),
+    f(f_),
+    creg(creg_),
+    rat(rat_),
+    t(t_),
+    ga(ga_) 
+#if BL_SPACEDIM == 2
+    , hx(hx_), isRZ(isRZ_), imax(imax_)	
+#endif
+{
+    push_back(Sfp_);
+    push_back(Scp_);
+}
+
+bool
+task_fecavg_2::ready ()
+{
+    if (is_local_target())
+    {
+        const int        igrid      = grid_number();
+        FArrayBox&       sfab       = target_fab();
+        const Box&       sfab_box   = sfab.box();
+        const FArrayBox& Sf_fab     = task_fab_result(0);
+        const Box&       Sf_fab_box =  Sf_fab.box();
+        const FArrayBox& Sc_fab     = task_fab_result(1);
+        const Box&       Sc_fab_box = Sc_fab.box();
+
+        (*f)(sfab.dataPtr(), DIMLIST(sfab_box), Sf_fab.dataPtr(), DIMLIST(Sf_fab_box), Sc_fab.dataPtr(), DIMLIST(Sc_fab_box), DIMLIST(creg), D_DECL( rat[0], rat[1], rat[2]), t.getVect(), ga.dataPtr()
+#if BL_SPACEDIM == 2
+             , &hx, &isRZ, &imax
+#endif
+	    );
+    }
+    return true;
+}
 
 class task_fecdiv : public task_fec_base
 {
@@ -190,48 +264,29 @@ class task_fecdiv : public task_fec_base
 #endif 
     );
 public:
-    task_fecdiv(FECDIV f_, task_list& tl_, MultiFab& s_, MultiFab* upt_[], int igrid_, task_fab* ucp_[], const Box& creg_, const Real* h_, const IntVect& rat_, int idim_, int idir_
+
+    task_fecdiv (FECDIV         f_,
+                 task_list&     tl_,
+                 MultiFab&      s_,
+                 MultiFab*      upt_[],
+                 int            igrid_,
+                 task_fab*      ucp_[],
+                 const Box&     creg_,
+                 const Real*    h_,
+                 const IntVect& rat_,
+                 int            idim_,
+                 int            idir_
 #if BL_SPACEDIM == 2
-	,int isRZ_, int imax_
+                 ,int isRZ_, int imax_
 #endif
-	)
-	:
-        task_fec_base(tl_, s_, igrid_), f(f_), creg(creg_), rat(rat_), idim(idim_), idir(idir_)
-#if BL_SPACEDIM == 2
-	, isRZ(isRZ_), imax(imax_)
-#endif
-    {
-        for (int i = 0; i  < BL_SPACEDIM; ++i)
-        {
-            upt[i] = upt_[i];
-            push_back(ucp_[i]);
-            h[i] = h_[i];
-        }
-    }
-    virtual bool ready ()
-    {
-	if (is_local_target())
-	{
-	    const int   igrid           = grid_number();
-	    FArrayBox&  s               = target_fab();
-	    const Box&  s_box           = target_fab().box();
-	    const Real* up[BL_SPACEDIM] = { D_DECL( upt[0]->operator[](igrid).dataPtr(), upt[1]->operator[](igrid).dataPtr(), upt[2]->operator[](igrid).dataPtr() ) };
-	    const Box&  up_box          = upt[0]->operator[](igrid).box();
-	    const Real* uc[BL_SPACEDIM] = { D_DECL( task_fab_result(0).dataPtr(), task_fab_result(1).dataPtr(), task_fab_result(2).dataPtr() ) };
-	    const Box&  uc_box          = task_fab_result(0).box();
-	    (*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(up[0], up[1], up[2]), DIMLIST(up_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir
-#if BL_SPACEDIM == 2
-		, &isRZ, &imax
-#endif
-		);
-	}
-	return true;
-    }
-    virtual ~task_fecdiv()
-    {
-	HG_DEBUG_OUT("destroying a task_fecdiv " << this << endl);
-    }
+	);
+
+    virtual bool ready ();
+
+    virtual ~task_fecdiv ();
+
 private:
+
     FECDIV        f;
     MultiFab*     upt[BL_SPACEDIM];
     const Box     creg;
@@ -240,45 +295,93 @@ private:
     const int     idim;
     const int     idir;
 #if BL_SPACEDIM  == 2
-    const int isRZ;
-    const int imax;
+    const int     isRZ;
+    const int     imax;
 #endif
 };
+
+task_fecdiv::task_fecdiv (FECDIV         f_,
+                          task_list&     tl_,
+                          MultiFab&      s_,
+                          MultiFab*      upt_[],
+                          int            igrid_,
+                          task_fab*      ucp_[],
+                          const Box&     creg_,
+                          const Real*    h_,
+                          const IntVect& rat_,
+                          int            idim_,
+                          int            idir_
+#if BL_SPACEDIM == 2
+                          ,int isRZ_, int imax_
+#endif
+    )
+    :
+    task_fec_base(tl_,s_,igrid_),
+    f(f_),
+    creg(creg_),
+    rat(rat_),
+    idim(idim_),
+    idir(idir_)
+#if BL_SPACEDIM == 2
+    , isRZ(isRZ_), imax(imax_)
+#endif
+{
+    for (int i = 0; i  < BL_SPACEDIM; ++i)
+    {
+        upt[i] = upt_[i];
+        push_back(ucp_[i]);
+        h[i] = h_[i];
+    }
+}
+
+bool
+task_fecdiv::ready ()
+{
+    if (is_local_target())
+    {
+        const int   igrid           = grid_number();
+        FArrayBox&  s               = target_fab();
+        const Box&  s_box           = target_fab().box();
+        const Real* up[BL_SPACEDIM] = { D_DECL( upt[0]->operator[](igrid).dataPtr(), upt[1]->operator[](igrid).dataPtr(), upt[2]->operator[](igrid).dataPtr() ) };
+        const Box&  up_box          = upt[0]->operator[](igrid).box();
+        const Real* uc[BL_SPACEDIM] = { D_DECL( task_fab_result(0).dataPtr(), task_fab_result(1).dataPtr(), task_fab_result(2).dataPtr() ) };
+        const Box&  uc_box          = task_fab_result(0).box();
+
+        (*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(up[0], up[1], up[2]), DIMLIST(up_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir
+#if BL_SPACEDIM == 2
+             , &isRZ, &imax
+#endif
+            );
+    }
+    return true;
+}
+
+task_fecdiv::~task_fecdiv ()
+{
+    HG_DEBUG_OUT("destroying a task_fecdiv " << this << endl);
+}
 
 class task_fecdiv_2 : public task_fec_base
 {
     typedef void (*FECDIV)(Real*,  intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
 public:
-    task_fecdiv_2(FECDIV f_, task_list& tl_, MultiFab& s_, int igrid_, task_fab* ufp_[], task_fab* ucp_[], const Box& creg_, const Real* h_, const IntVect& rat_, const Array<int>& ga_, const IntVect& t_ = IntVect())
-	:
-        task_fec_base(tl_, s_, igrid_), f(f_), creg(creg_), rat(rat_), ga(ga_), t(t_)
-    {
-        for (int i = 0; i  < BL_SPACEDIM; ++i)
-        {
-            push_back(ucp_[i]);
-        }
-        for (int i = 0; i < BL_SPACEDIM; ++i)
-        {
-            push_back(ufp_[i]);
-            h[i]   = h_[i];
-        }
-    }
-    virtual bool ready ()
-    {
-	if (is_local_target())
-	{
-	    const int   igrid           = grid_number();
-	    FArrayBox&  s               = target_fab();
-	    const Box&  s_box           = target_fab().box();
-	    const Real* uf[BL_SPACEDIM] = { D_DECL( task_fab_result(3).dataPtr(), task_fab_result(4).dataPtr(), task_fab_result(5).dataPtr() ) };
-	    const Box&  uf_box          = task_fab_result(3).box();
-	    const Real* uc[BL_SPACEDIM] = { D_DECL( task_fab_result(0).dataPtr(), task_fab_result(1).dataPtr(), task_fab_result(2).dataPtr() ) };
-	    const Box&  uc_box          = task_fab_result(0).box();
-	    (*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(uf[0], uf[1], uf[2]), DIMLIST(uf_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), t.getVect());
-	}
-	return true;
-    }
+
+    task_fecdiv_2 (FECDIV            f_,
+                   task_list&        tl_,
+                   MultiFab&         s_,
+                   int               igrid_,
+                   task_fab*         ufp_[],
+                   task_fab*         ucp_[],
+                   const Box&        creg_,
+                   const Real*       h_,
+                   const IntVect&    rat_,
+                   const Array<int>& ga_,
+                   const IntVect&    t_ = IntVect());
+
+    virtual bool ready ();
+
 private:
+
     FECDIV           f;
     const Box        creg;
     Real             h[BL_SPACEDIM];
@@ -287,11 +390,69 @@ private:
     const IntVect    t;
 };
 
+task_fecdiv_2::task_fecdiv_2 (FECDIV            f_,
+                              task_list&        tl_,
+                              MultiFab&         s_,
+                              int               igrid_,
+                              task_fab*         ufp_[],
+                              task_fab*         ucp_[],
+                              const Box&        creg_,
+                              const Real*       h_,
+                              const IntVect&    rat_,
+                              const Array<int>& ga_,
+                              const IntVect&    t_)
+    :
+    task_fec_base(tl_,s_,igrid_),
+    f(f_),
+    creg(creg_),
+    rat(rat_),
+    ga(ga_),
+    t(t_)
+{
+    for (int i = 0; i  < BL_SPACEDIM; ++i)
+    {
+        push_back(ucp_[i]);
+    }
+    for (int i = 0; i < BL_SPACEDIM; ++i)
+    {
+        push_back(ufp_[i]);
+        h[i]   = h_[i];
+    }
+}
+
+bool
+task_fecdiv_2::ready ()
+{
+    if (is_local_target())
+    {
+        const int   igrid           = grid_number();
+        FArrayBox&  s               = target_fab();
+        const Box&  s_box           = target_fab().box();
+        const Real* uf[BL_SPACEDIM] = { D_DECL( task_fab_result(3).dataPtr(), task_fab_result(4).dataPtr(), task_fab_result(5).dataPtr() ) };
+        const Box&  uf_box          = task_fab_result(3).box();
+        const Real* uc[BL_SPACEDIM] = { D_DECL( task_fab_result(0).dataPtr(), task_fab_result(1).dataPtr(), task_fab_result(2).dataPtr() ) };
+        const Box&  uc_box          = task_fab_result(0).box();
+
+        (*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(uf[0], uf[1], uf[2]), DIMLIST(uf_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), t.getVect());
+    }
+    return true;
+}
+
 PArray<MultiFab> null_amr_real;
 
-void holy_grail_amr_projector::project(PArray<MultiFab>* u, PArray<MultiFab>& p, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma, Real H[], Real tol, int Lev_min, int Lev_max, Real scale)
+void
+holy_grail_amr_projector::project (PArray<MultiFab>* u,
+                                   PArray<MultiFab>& p,
+                                   PArray<MultiFab>& Coarse_source,
+                                   PArray<MultiFab>& Sigma,
+                                   Real              H[],
+                                   Real              tol,
+                                   int               Lev_min,
+                                   int               Lev_max,
+                                   Real              scale)
 {
     static RunStats hg_proj("hg_project");
+
     hg_proj.start();
     if (Lev_min < 0)
 	Lev_min = lev_min_max;
@@ -317,7 +478,16 @@ void holy_grail_amr_projector::project(PArray<MultiFab>* u, PArray<MultiFab>& p,
     hg_proj.end();
 }
 
-void holy_grail_amr_projector::sync_project(PArray<MultiFab>* u, PArray<MultiFab>& p, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma, Real H[], Real tol, int Lev_min, int Lev_max, Real scale)
+void
+holy_grail_amr_projector::sync_project (PArray<MultiFab>* u,
+                                        PArray<MultiFab>& p,
+                                        PArray<MultiFab>& Coarse_source,
+                                        PArray<MultiFab>& Sigma,
+                                        Real              H[],
+                                        Real              tol,
+                                        int               Lev_min,
+                                        int               Lev_max,
+                                        Real              scale)
 {
     if (Lev_min < 0)
 	Lev_min = lev_min_max;
@@ -342,9 +512,21 @@ void holy_grail_amr_projector::sync_project(PArray<MultiFab>* u, PArray<MultiFab
     clear();
 }
 
-void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u, PArray<MultiFab>& p, PArray<MultiFab>& rhs, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma, bool use_u, Real H[], Real tol, int Lev_min, int Lev_max, Real scale)
+void
+holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
+                                          PArray<MultiFab>& p,
+                                          PArray<MultiFab>& rhs,
+                                          PArray<MultiFab>& Coarse_source,
+                                          PArray<MultiFab>& Sigma,
+                                          bool              use_u,
+                                          Real              H[],
+                                          Real              tol,
+                                          int               Lev_min,
+                                          int               Lev_max,
+                                          Real              scale)
 {
     static RunStats hg_man_proj("hg_manual_project");
+
     hg_man_proj.start();
     if (Lev_min < 0)
 	Lev_min = lev_min_max;
@@ -369,7 +551,9 @@ void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u, PArray<MultiF
 		    source[lev].plus(rhs[lev], 0, 1, 0);
 		if (singular && make_sparse_node_source_solvable) 
 		{
+                    //
 		    // Note:  You don't want to do this if rhs is not sparse!
+                    //
 		    sparse_node_source_adjustment(rhs);
 		}
 	    }
@@ -394,14 +578,18 @@ void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u, PArray<MultiF
 	    alloc(p, rhs, Coarse_source, Sigma, H, Lev_min, Lev_max);
 	    if (singular && make_sparse_node_source_solvable) 
 	    {
+                //
 		// Note:  You don't want to do this if rhs is not sparse!
+                //
 		sparse_node_source_adjustment(rhs);
 	    }
 	}
 	else 
 	{
 	    alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max);
-	    // source is set to 0 at this point
+            //
+	    // Source is set to 0 at this point.
+            //
 	    right_hand_side(0, rhs);
 	}
     }
@@ -416,18 +604,20 @@ void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u, PArray<MultiF
     hg_man_proj.end();
 }
 
-void holy_grail_amr_projector::sparse_node_source_adjustment(PArray<MultiFab>& sparse_source)
+void
+holy_grail_amr_projector::sparse_node_source_adjustment (PArray<MultiFab>& sparse_source)
 {
+    //
     // This routine takes advantage of the sparse structure of
     // the sync source to avoid costly restriction operations.  It
     // is necessary to use the inner_product routine, which weights
     // boundary nodes, since the coarse-fine lev_interface can touch
     // the boundary.  Otherwise a call to sum would suffice.
-    
+    //
     // Note that the correction is applied to source, not to
     // sparse_source, since the sparse structure of the latter
     // may need to be preserved.
-    
+    //
     assert(singular);
     assert(make_sparse_node_source_solvable);
     
@@ -464,12 +654,16 @@ void holy_grail_amr_projector::sparse_node_source_adjustment(PArray<MultiFab>& s
     }
 }
 
+//
 // This is a combination routine which combines sources from a divergence
 // and from a cell-based right hand side S in the proper sequence.  The
 // key feature is that both "grid" routines must be called before starting
 // the lev_interface calculation, since they trash some lev_interface points.
+//
 
-void holy_grail_amr_projector::right_hand_side(PArray<MultiFab>* u, PArray<MultiFab>& S)
+void
+holy_grail_amr_projector::right_hand_side (PArray<MultiFab>* u,
+                                           PArray<MultiFab>& S)
 {
     if (u) 
     {
@@ -500,20 +694,23 @@ void holy_grail_amr_projector::right_hand_side(PArray<MultiFab>* u, PArray<Multi
     }
 }
 
+//
 // Averages cell-based S onto node-based source conservatively
 // across the composite mesh.  S must be passed in with a one
 // cell wide border.  At inflow boundaries border values should
 // be set to correct inflow condition.  Other border values passed
 // in may be meaningless, but should not be NaNs.
-
+//
 // This routine will modify the borders of S.  Also, if the problem
 // being solved is singular, S will be adjusted so that it integrates
 // to 0 to maximum precision.  (It is assumed that any additional
 // contribution to the right hand side will also integrate to 0.)
-
+//
 // This is an incomplete routine---interface_average must also be called.
+//
 
-void holy_grail_amr_projector::grid_average(PArray<MultiFab>& S)
+void
+holy_grail_amr_projector::grid_average (PArray<MultiFab>& S)
 {
     assert(S[lev_min].nGrow() == 1);
     
@@ -568,9 +765,12 @@ void holy_grail_amr_projector::grid_average(PArray<MultiFab>& S)
     }
 }
 
+//
 // This is an incomplete routine---interface_divergence must also be called.
+//
 
-void holy_grail_amr_projector::grid_divergence(PArray<MultiFab>* u)
+void
+holy_grail_amr_projector::grid_divergence (PArray<MultiFab>* u)
 { 
     for (int lev = lev_min; lev <= lev_max; lev++) 
     {
@@ -617,8 +817,12 @@ void holy_grail_amr_projector::grid_divergence(PArray<MultiFab>* u)
     }
 }
 
+//
 // Obsolete:
-void holy_grail_amr_projector::sync_right_hand_side(PArray<MultiFab>* u)
+//
+
+void
+holy_grail_amr_projector::sync_right_hand_side (PArray<MultiFab>* u)
 { 
     for (int lev = lev_min; lev <= lev_max; lev++) 
     {
@@ -647,7 +851,8 @@ void holy_grail_amr_projector::sync_right_hand_side(PArray<MultiFab>* u)
     }
 }
 
-void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
+void
+holy_grail_amr_projector::interface_average (PArray<MultiFab>& S, int lev)
 { 
     const int mglev = ml_index[lev];
     const int mgc = ml_index[lev-1];
@@ -656,15 +861,21 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
     task_list tl;
     for (int iface = 0; iface < lev_interface[mglev].nboxes(level_interface::FACEDIM); iface++) 
     {
-	// find a fine grid touching this face
+        //
+	// Find a fine grid touching this face.
+        //
 	int igrid = lev_interface[mglev].grid(level_interface::FACEDIM, iface, 0);
 	if (igrid < 0)
 	    igrid = lev_interface[mglev].grid(level_interface::FACEDIM, iface, 1);
 	const unsigned int geo = lev_interface[mglev].geo(level_interface::FACEDIM, iface);
-	// reject fine-fine interfaces and those without an interior fine grid
+        //
+	// Reject fine-fine interfaces and those without an interior fine grid
+        //
 	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(level_interface::FACEDIM, iface) )
 	    continue;
-	// fine grid on just one side
+        //
+	// Fine grid on just one side.
+        //
 	const int idim = lev_interface[mglev].fdim(iface);
 	const int idir = (geo & level_interface::LOW) ? -1 : 1;
 	Box cbox = lev_interface[mglev].box(level_interface::FACEDIM, iface);
@@ -690,7 +901,9 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 #if (BL_SPACEDIM == 3)
     for (int iedge = 0; iedge < lev_interface[mglev].nboxes(1); iedge++) 
     {
-	// find a fine grid touching this edge
+        //
+	// Find a fine grid touching this edge.
+        //
 	int igrid;
 	for (int i = 0; i < lev_interface[mglev].ngrids(1); i++) 
 	{
@@ -699,10 +912,14 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 		break;
 	}
 	const unsigned int geo = lev_interface[mglev].geo(1, iedge);
-	// reject fine-fine interfaces and those without an interior fine grid
+        //
+	// Reject fine-fine interfaces and those without an interior fine grid
+        //
 	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(1, iedge) )
 	    continue;
-	// fine grid on just one side
+        //
+	// Fine grid on just one side.
+        //
 	Box cbox = lev_interface[mglev].box(1, iedge);
 	const IntVect t = cbox.type();
 	cbox.coarsen(rat).grow(t).convert(IntVect::TheCellVector());
@@ -731,7 +948,9 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 #endif
     for (int icor = 0; icor < lev_interface[mglev].nboxes(0); icor++) 
     {
-	// find a fine grid touching this corner
+        //
+	// Find a fine grid touching this corner.
+        //
 	int igrid;
 	for (int i = 0; i < lev_interface[mglev].ngrids(0); i++) 
 	{
@@ -740,10 +959,14 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 		break;
 	}
 	const unsigned int geo = lev_interface[mglev].geo(0, icor);
-	// reject fine-fine interfaces and those without an interior fine grid
+        //
+	// Reject fine-fine interfaces and those without an interior fine grid
+        //
 	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(0, icor) )
 	    continue;
-	// fine grid on just one side
+        //
+	// Fine grid on just one side.
+        //
 	Box cbox = lev_interface[mglev].box(0, icor);
 	cbox.coarsen(rat).grow(1).convert(IntVect::TheCellVector());
 	Box fbox = cbox;
@@ -777,8 +1000,10 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
     tl.execute();
 }
 
-void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev)
-{ 
+void
+holy_grail_amr_projector::interface_divergence (PArray<MultiFab>* u,
+                                                int               lev)
+{
     const int mglev = ml_index[lev];
     const int mgc = ml_index[lev-1];
     
@@ -787,15 +1012,21 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
     HG_TEST_NORM(source[lev], "interface_divergence,b");
     for (int iface = 0; iface < lev_interface[mglev].nboxes(level_interface::FACEDIM); iface++) 
     {
-	// find a fine grid touching this face
+        //
+	// Find a fine grid touching this face.
+        //
 	int igrid = lev_interface[mglev].grid(level_interface::FACEDIM, iface, 0);
 	if (igrid < 0)
 	    igrid = lev_interface[mglev].grid(level_interface::FACEDIM, iface, 1);
 	const unsigned int geo = lev_interface[mglev].geo(level_interface::FACEDIM, iface);
-	// reject fine-fine interfaces and those without an interior fine grid
+        //
+	// Reject fine-fine interfaces and those without an interior fine grid
+        //
 	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(level_interface::FACEDIM, iface) )
 	    continue;
-	// fine grid on just one side
+        //
+	// Fine grid on just one side.
+        //
 	const int idim = lev_interface[mglev].fdim(iface);
 	const int idir = (geo & level_interface::LOW) ? -1 : 1;
 	Box cbox = lev_interface[mglev].box(level_interface::FACEDIM, iface);
@@ -838,7 +1069,9 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
     
     for (int iedge = 0; iedge < lev_interface[mglev].nboxes(1); iedge++) 
     {
-	// find a fine grid touching this edge
+        //
+	// Find a fine grid touching this edge.
+        //
 	int igrid;
 	for (int i = 0; i < lev_interface[mglev].ngrids(1); i++) 
 	{
@@ -847,10 +1080,14 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 		break;
 	}
 	const unsigned int geo = lev_interface[mglev].geo(1, iedge);
-	// reject fine-fine interfaces and those without an interior fine grid
+        //
+	// Reject fine-fine interfaces and those without an interior fine grid
+        //
 	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(1, iedge) )
 	    continue;
-	// fine grid on just one side
+        //
+	// Fine grid on just one side.
+        //
 	Box cbox = lev_interface[mglev].box(1, iedge);
 	const IntVect t = cbox.type();
 	cbox.coarsen(rat).grow(t).convert(IntVect::TheCellVector());
@@ -893,7 +1130,9 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 #endif
     for (int icor = 0; icor < lev_interface[mglev].nboxes(0); icor++) 
     {
-	// find a fine grid touching this corner
+        //
+	// Find a fine grid touching this corner.
+        //
 	int igrid;
 	for (int i = 0; i < lev_interface[mglev].ngrids(0); i++) 
 	{
@@ -902,10 +1141,14 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 		break;
 	}
 	const unsigned int geo = lev_interface[mglev].geo(0, icor);
-	// reject fine-fine interfaces and those without an interior fine grid
+        //
+	// Reject fine-fine interfaces and those without an interior fine grid
+        //
 	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(0, icor) )
 	    continue;
-	// fine grid on just one side
+        //
+	// Fine grid on just one side.
+        //
 	Box cbox = lev_interface[mglev].box(0, icor);
 	cbox.coarsen(rat).grow(1).convert(IntVect::TheCellVector());
 	Box fbox = cbox;
@@ -946,20 +1189,23 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
     HG_TEST_NORM(source[lev], "interface_divergence,a2");
 }
 
-void holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u, const PArray<MultiFab>& sigma_in)
+void
+holy_grail_amr_projector::form_solution_vector (PArray<MultiFab>*       u,
+                                                const PArray<MultiFab>& sigma_in)
 {
     assert(u != 0);
-    if (u) 
+
+    if (u)
     {
 	for (int lev = lev_min; lev <= lev_max; lev++) 
 	{
 	    int mglev = ml_index[lev];
 	    Real hxyz[BL_SPACEDIM] = { D_DECL( h[mglev][0], h[mglev][1], h[mglev][2] ) };
+            FArrayBox gp[BL_SPACEDIM];
 	    for (MultiFabIterator d_mfi(dest[lev]); d_mfi.isValid(); ++d_mfi)
 	    {
 		const Box& gbox = ml_mesh[lev][d_mfi.index()];
 		const Box& dbox = d_mfi->box();
-		FArrayBox gp[BL_SPACEDIM];
 		for (int i = 0; i < BL_SPACEDIM; i++) 
 		{
 		    gp[i].resize(gbox);

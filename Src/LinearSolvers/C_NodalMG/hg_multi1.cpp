@@ -1,3 +1,4 @@
+//BL_COPYRIGHT_NOTICE
 
 #include "hg_multi.H"
 
@@ -45,11 +46,20 @@ extern "C"
 class task_interpolate_patch : public task
 {
 public:
-    task_interpolate_patch (task_list& tl_, MultiFab& dmf_, int dgrid_, const Box& dbx_, const MultiFab& smf_, const IntVect& rat_, const amr_interpolator_class* interp_, const level_interface& lev_interface_);
+    task_interpolate_patch (task_list&                    tl_,
+                            MultiFab&                     dmf_,
+                            int                           dgrid_,
+                            const Box&                    dbx_,
+                            const MultiFab&               smf_,
+                            const IntVect&                rat_,
+                            const amr_interpolator_class* interp_,
+                            const level_interface&        lev_interface_);
     virtual bool ready ();
     virtual ~task_interpolate_patch ();
     virtual bool work_to_do () const;
+
 private:
+
     task::task_proxy              tf;
     MultiFab&                     dmf;
     const int                     dgrid;
@@ -60,16 +70,32 @@ private:
     const level_interface&        lev_interface;
 };
 
-task_interpolate_patch::task_interpolate_patch (task_list& tl_, MultiFab& dmf_, int dgrid_, const Box& dbx_, const MultiFab& smf_, const IntVect& rat_, const amr_interpolator_class* interp_, const level_interface& lev_interface_)
+task_interpolate_patch::task_interpolate_patch (task_list&      tl_,
+                                                MultiFab&       dmf_,
+                                                int             dgrid_,
+                                                const Box&      dbx_,
+                                                const MultiFab& smf_,
+                                                const IntVect&  rat_,
+                                                const amr_interpolator_class* interp_,
+                                                const level_interface& lev_interface_)
     :
-    task(tl_), dmf(dmf_), dgrid(dgrid_), dbx(dbx_), smf(smf_), rat(rat_), interp(interp_), lev_interface(lev_interface_), tf(0)
+    task(tl_),
+    dmf(dmf_),
+    dgrid(dgrid_),
+    dbx(dbx_),
+    smf(smf_),
+    rat(rat_),
+    interp(interp_),
+    lev_interface(lev_interface_),
+    tf(0)
 {
     assert(dbx.sameType(dmf.box(dgrid)));
     tf = m_task_list.add_task(new task_fill_patch(m_task_list,dmf,dgrid,interp->box(dbx,rat),smf,lev_interface,0,-1,-1));
     depend_on(tf);
 }
 
-bool task_interpolate_patch::ready ()
+bool
+task_interpolate_patch::ready ()
 {
     if (is_local(dmf,dgrid))
     {
@@ -83,7 +109,8 @@ bool task_interpolate_patch::ready ()
     return true;
 }
 
-bool task_interpolate_patch::work_to_do () const
+bool
+task_interpolate_patch::work_to_do () const
 {
     return is_local(dmf,dgrid) || !tf.null();
 }
@@ -93,7 +120,14 @@ task_interpolate_patch::~task_interpolate_patch ()
     delete interp;
 }
 
-void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma, Real H[], int Lev_min, int Lev_max)
+void
+holy_grail_amr_multigrid::alloc (PArray<MultiFab>& Dest,
+                                 PArray<MultiFab>& Source,
+                                 PArray<MultiFab>& Coarse_source,
+                                 PArray<MultiFab>& Sigma,
+                                 Real              H[],
+                                 int               Lev_min,
+                                 int               Lev_max)
 {
     assert(Dest.length() > Lev_max);
     assert(Dest[Lev_min].nGrow() == 1);
@@ -127,7 +161,6 @@ void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& S
 	    h[mglev][i] = rat * h[mglev+1][i];
 	}
     }
-    
     
     build_sigma(Sigma);
     
@@ -213,7 +246,11 @@ void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& S
 }
 
 
-void holy_grail_sigma_restrictor_class::fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const
+void
+holy_grail_sigma_restrictor_class::fill (FArrayBox&       patch,
+                                         const Box&       region,
+                                         const FArrayBox& fgr,
+                                         const IntVect&   rat) const
 {
     assert(patch.box().cellCentered());
     assert(rat[0] == 2 && rat[1] == 2 ||
@@ -223,18 +260,18 @@ void holy_grail_sigma_restrictor_class::fill(FArrayBox& patch, const Box& region
     if (m_hg_terrain)
     {
 	FORT_HGSRST(D_DECL(patch.dataPtr(0), patch.dataPtr(1), patch.dataPtr(2)),
-	    DIMLIST(patch.box()),
-	    DIMLIST(region),
-	    D_DECL( fgr.dataPtr(0), fgr.dataPtr(1), fgr.dataPtr(2)),
-	    DIMLIST(fgr.box()),
-	    D_DECL(rat[0], rat[1], rat[2]));
+                    DIMLIST(patch.box()),
+                    DIMLIST(region),
+                    D_DECL( fgr.dataPtr(0), fgr.dataPtr(1), fgr.dataPtr(2)),
+                    DIMLIST(fgr.box()),
+                    D_DECL(rat[0], rat[1], rat[2]));
 	const int integ = 0;
 	FORT_FACRST1(patch.dataPtr(BL_SPACEDIM),
-	    DIMLIST(patch.box()),
-	    DIMLIST(region),
-	    fgr.dataPtr(BL_SPACEDIM),
-	    DIMLIST(fgr.box()),
-	    D_DECL(rat[0], rat[1], rat[2]), 1, &integ, 0, 0);
+                     DIMLIST(patch.box()),
+                     DIMLIST(region),
+                     fgr.dataPtr(BL_SPACEDIM),
+                     DIMLIST(fgr.box()),
+                     D_DECL(rat[0], rat[1], rat[2]), 1, &integ, 0, 0);
 	
 #if (BL_SPACEDIM == 2)
 	patch.mult((Real) rat[1] / rat[0], region, 0, 1);
@@ -242,11 +279,11 @@ void holy_grail_sigma_restrictor_class::fill(FArrayBox& patch, const Box& region
 	// component 2 remains unchanged
 #else
 	FORT_FACRST1(patch.dataPtr(BL_SPACEDIM+1),
-	    DIMLIST(patch.box()),
-	    DIMLIST(region),
-	    fgr.dataPtr(BL_SPACEDIM+1),
-	    DIMLIST(fgr.box()),
-	    D_DECL(rat[0], rat[1], rat[2]), 1, &integ, 0, 0);
+                     DIMLIST(patch.box()),
+                     DIMLIST(region),
+                     fgr.dataPtr(BL_SPACEDIM+1),
+                     DIMLIST(fgr.box()),
+                     D_DECL(rat[0], rat[1], rat[2]), 1, &integ, 0, 0);
 	patch.mult((Real) rat[1] * rat[2] / rat[0], region, 0, 1);
 	patch.mult((Real) rat[0] * rat[2] / rat[1], region, 1, 1);
 	patch.mult((Real) rat[0] * rat[1] / rat[2], region, 2, 1);
@@ -257,40 +294,38 @@ void holy_grail_sigma_restrictor_class::fill(FArrayBox& patch, const Box& region
     }
     else
     {
-	
 	if (fgr.nComp() == 1) 
 	{
 	    FORT_HGSRST(D_DECL(patch.dataPtr(0), patch.dataPtr(1), patch.dataPtr(2)),
-		DIMLIST(patch.box()),
-		DIMLIST(region),
-		D_DECL(fgr.dataPtr(), fgr.dataPtr(), fgr.dataPtr()),
-		DIMLIST(fgr.box()),
-		D_DECL(rat[0], rat[1], rat[2]));
+                        DIMLIST(patch.box()),
+                        DIMLIST(region),
+                        D_DECL(fgr.dataPtr(), fgr.dataPtr(), fgr.dataPtr()),
+                        DIMLIST(fgr.box()),
+                        D_DECL(rat[0], rat[1], rat[2]));
 	}
 	else 
 	{
 	    FORT_HGSRST(D_DECL(patch.dataPtr(0), patch.dataPtr(1), patch.dataPtr(2)),
-		DIMLIST(patch.box()),
-		DIMLIST(region),
-		D_DECL(fgr.dataPtr(0), fgr.dataPtr(1), fgr.dataPtr(2)),
-		DIMLIST(fgr.box()),
-		D_DECL(rat[0], rat[1], rat[2]));
+                        DIMLIST(patch.box()),
+                        DIMLIST(region),
+                        D_DECL(fgr.dataPtr(0), fgr.dataPtr(1), fgr.dataPtr(2)),
+                        DIMLIST(fgr.box()),
+                        D_DECL(rat[0], rat[1], rat[2]));
 	}
-	
     }
 }
 
-void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
+void
+holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma)
 {
-    
     if (m_hg_terrain)
     {
-	
+	//
 	// For terrain stencils we have as many sigma arrays passed as
 	// arguments and used at the lev_interface as we build for internal
 	// multigrid purposes.  This simplifies handling as we do not
 	// need to maintain separate arrays for different purposes.
-	
+	//
 	const int ncomp = 2 * BL_SPACEDIM - 1;
 	
 	sigma.resize(mglev_max+1);
@@ -321,21 +356,20 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 	{
 	    fill_borders(sigma[mglev], lev_interface[mglev], boundary.terrain_sigma(), -1, m_hg_terrain);
 	}
-	
     }
     else
     {
-	
+	//
 	// Intended functionality:  sigma_split exists only at coarser levels,
 	// since only after coarsening is sigma different in different directions.
 	// sigma exists at all levels, and is intended for use on fine grids
 	// and at lev_interface points, where all components are the same.  To
 	// save storage it is aliased to the first component of sigma_split
 	// on all but the finest level.
-	
+	//
 	// sigma_split replaced by sigma_nd in more recent version, used
 	// only as a local variable here
-	
+	//
 	PArray<MultiFab> sigma_split;
 	sigma_split.resize(mglev_max);
 	for (int mglev = 0; mglev < mglev_max; mglev++) 
@@ -344,7 +378,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 	}
 	sigma.resize(mglev_max + 1);
 	sigma.set(mglev_max, new MultiFab(mg_mesh[mglev_max], 1, 1));
-	
+	//
 	// Level project:
 	// Any value can fill values in the border cells that fill_borders
 	// will not touch---those touching coarser grids.  The values in these
@@ -352,12 +386,12 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 	// being interpolated will always be zero at these edges, but we
 	// should insure that no NaN's or other garbage is there that could
 	// cause a floating point fault.
-	
+	//
 	// Sync project:
 	// Ghost values will be seen by multilevel interpolation, so put
 	// a huge value in ghost cells so that coarse-fine lev_interface
 	// interpolation will linear, as finite element derivation requires.
-	
+	//
 	for (int mglev = 0; mglev < mglev_max; mglev++) 
 	{
 	    MultiFab& target = sigma_split[mglev];
@@ -456,12 +490,11 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 		    const Box& snbox = sn_dmfi->box();
 		    const Box& reg = lev_interface[mglev].part_fine(s_mfi.index());
 		    FORT_HGSCON(sn_dmfi->dataPtr(),
-			DIMLIST(snbox),
-			D_DECL(sn0->dataPtr(), sn1->dataPtr(), sn2->dataPtr()),
-			DIMLIST(scbox),
-			DIMLIST(reg),
-			D_DECL(&hxyz[0], &hxyz[1], &hxyz[2])
-			);
+                                DIMLIST(snbox),
+                                D_DECL(sn0->dataPtr(), sn1->dataPtr(), sn2->dataPtr()),
+                                DIMLIST(scbox),
+                                DIMLIST(reg),
+                                D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]));
 		}
 		
 		if (mglev < mglev_max) 
@@ -494,7 +527,6 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 	
 	if (m_hg_terrain)
 	{
-	    
 	    for (MultiFabIterator c_mfi(ctmp); c_mfi.isValid(); ++c_mfi)
 	    {
 		DependentMultiFabIterator s_dmfi(c_mfi, sigma[mglev]);
@@ -521,14 +553,14 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 		const int imax = mg_domain[mglev].bigEnd(0) + 1;
 		const int isRZ = IsRZ();
 		FORT_HGCEN_FULL(c_mfi->dataPtr(), DIMLIST(cenbox),
-		    D_DECL(sn0->dataPtr(), sn1->dataPtr(), sn2->dataPtr()), DIMLIST(sigbox),
-		    DIMLIST(reg),
-		    D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]), &isRZ, &imax);
+                                D_DECL(sn0->dataPtr(), sn1->dataPtr(), sn2->dataPtr()), DIMLIST(sigbox),
+                                DIMLIST(reg),
+                                D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]), &isRZ, &imax);
 #else
 		FORT_HGCEN_NO_SIGMA(c_mfi->dataPtr(), DIMLIST(cenbox),
-		    D_DECL(sn0->dataPtr(), sn1->dataPtr(), sn2->dataPtr()),DIMLIST(sigbox),
-		    DIMLIST(reg),
-		    D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]));
+                                    D_DECL(sn0->dataPtr(), sn1->dataPtr(), sn2->dataPtr()),DIMLIST(sigbox),
+                                    DIMLIST(reg),
+                                    D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]));
 #endif
 	    }
 #endif
@@ -579,7 +611,8 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
     }
 }
 
-void holy_grail_amr_multigrid::clear()
+void
+holy_grail_amr_multigrid::clear ()
 {
     line_order.clear();
     line_after.clear();
@@ -605,7 +638,7 @@ void holy_grail_amr_multigrid::clear()
     else if (m_hg_full_stencil)
     {
 #if defined(HG_FULL_STENCIL)
-	
+
 	delete sigma.remove(mglev_max);
 	for (int i = 0; i < BL_SPACEDIM; i++) 
 	{
@@ -647,7 +680,6 @@ void holy_grail_amr_multigrid::clear()
 #endif	
 	}
     }
-//#endif
     
     for (int mglev = 0; mglev <= mglev_max; mglev++) 
     {
@@ -668,7 +700,9 @@ void holy_grail_amr_multigrid::clear()
     amr_multigrid::clear();
 }
 
-bool holy_grail_amr_multigrid::can_coarsen(const BoxArray& mesh, const Box& domain) const
+bool
+holy_grail_amr_multigrid::can_coarsen (const BoxArray& mesh,
+                                       const Box&      domain) const
 {
     int retval = 1;
     for (int i = 0; i < BL_SPACEDIM; i++) 
@@ -688,7 +722,7 @@ bool holy_grail_amr_multigrid::can_coarsen(const BoxArray& mesh, const Box& doma
     return retval != 0;
 }
 
-void holy_grail_amr_multigrid::sync_interfaces()
+void holy_grail_amr_multigrid::sync_interfaces ()
 {
     for (int lev = lev_min+1; lev <= lev_max; lev++) 
     {
@@ -699,24 +733,27 @@ void holy_grail_amr_multigrid::sync_interfaces()
 	task_list tl;
 	for (int iface = 0; iface < lev_interface[mglev].nboxes(level_interface::FACEDIM); iface++) 
 	{
-	    // find a fine grid touching this face
+            //
+	    // Find a fine grid touching this face.
+            //
 	    int igrid = lev_interface[mglev].grid(level_interface::FACEDIM, iface, 0);
 	    if (igrid < 0)
 		igrid = lev_interface[mglev].grid(level_interface::FACEDIM, iface, 1);
 	    const unsigned int geo = lev_interface[mglev].geo(level_interface::FACEDIM, iface);
-	    // reject fine-fine interfaces and those without an interior fine grid
+            //
+	    // Reject fine-fine interfaces and those without an interior fine grid
+            //
 	    const Box& nbox = lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
 	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(level_interface::FACEDIM, iface) )
 		continue;
-	    tl.add_task(
-		new task_interpolate_patch(tl, target, igrid, nbox, dest[lev-1], rat, new bilinear_interpolator_class(), lev_interface[mgc])
-		);
+	    tl.add_task(new task_interpolate_patch(tl,target,igrid,nbox,dest[lev-1],rat,new bilinear_interpolator_class(),lev_interface[mgc]));
 	}
 	tl.execute();
     }
 }
 
-void holy_grail_amr_multigrid::sync_periodic_interfaces()
+void
+holy_grail_amr_multigrid::sync_periodic_interfaces ()
 {
     for (int lev = lev_min+1; lev <= lev_max; lev++) 
     {
@@ -729,25 +766,30 @@ void holy_grail_amr_multigrid::sync_periodic_interfaces()
 	task_list tl;
 	for (int iface = 0; iface < lev_interface[mglev].nboxes(level_interface::FACEDIM); iface++) 
 	{
-	    // find a fine grid touching this face
+            //
+	    // Find a fine grid touching this face.
+            //
 	    int igrid = lev_interface[mglev].grid(level_interface::FACEDIM, iface, 0);
 	    if (igrid < 0)
 		igrid = lev_interface[mglev].grid(level_interface::FACEDIM, iface, 1);
 	    const unsigned int geo = lev_interface[mglev].geo(level_interface::FACEDIM, iface);
-	    // use only exterior coarse-fine faces with an interior fine grid
+            //
+	    // Use only exterior coarse-fine faces with an interior fine grid.
+            //
 	    const Box& nbox = lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
 	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(level_interface::FACEDIM, iface) )
 		continue;
-	    if ( idomain.intersects(nbox) ) continue;
-	    tl.add_task(
-		new task_interpolate_patch(tl, target, igrid, nbox, dest[lev-1], rat, new bilinear_interpolator_class(), lev_interface[mgc])
-	    );
+	    if (idomain.intersects(nbox))
+                continue;
+	    tl.add_task(new task_interpolate_patch(tl,target,igrid,nbox,dest[lev-1],rat,new bilinear_interpolator_class(),lev_interface[mgc]));
 	}
 	tl.execute();
     }
 }
 
-void holy_grail_amr_multigrid::mg_restrict_level(int lto, int lfrom)
+void
+holy_grail_amr_multigrid::mg_restrict_level (int lto,
+                                             int lfrom)
 {
     IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
     if (get_amr_level(lto) >= 0) 
@@ -760,7 +802,9 @@ void holy_grail_amr_multigrid::mg_restrict_level(int lto, int lfrom)
     }
 }
 
-void holy_grail_amr_multigrid::mg_restrict(int lto, int lfrom)
+void
+holy_grail_amr_multigrid::mg_restrict (int lto,
+                                       int lfrom)
 {
     HG_TEST_NORM( work[lfrom], "mg_restrict 1");
     HG_TEST_NORM( resid[lto], "mg_restrict 11");
@@ -773,41 +817,51 @@ void holy_grail_amr_multigrid::mg_restrict(int lto, int lfrom)
 	const Box& cbox = r_dmfi->box();
 	const Box& creg = lev_interface[lto].part_fine(w_mfi.index());
 	FORT_FANRST2(r_dmfi->dataPtr(), DIMLIST(cbox), DIMLIST(creg),
-	    w_mfi->dataPtr(), DIMLIST(fbox),
-	    D_DECL(rat[0], rat[1], rat[2]), 1, &integrate, 0, 0);
+                     w_mfi->dataPtr(), DIMLIST(fbox),
+                     D_DECL(rat[0], rat[1], rat[2]), 1, &integrate, 0, 0);
     }
     clear_part_interface(resid[lto], lev_interface[lto]);
     HG_TEST_NORM( resid[lto], "mg_restrict 21");
 }
 
-void holy_grail_interpolator_class_not_cross::fill(FArrayBox& patch, const Box& region, const FArrayBox& cgr, const Box& cb, const IntVect& rat) const
+void
+holy_grail_interpolator_class_not_cross::fill (FArrayBox&       patch,
+                                               const Box&       region,
+                                               const FArrayBox& cgr,
+                                               const Box&       cb,
+                                               const IntVect&   rat) const
 {
     FORT_HGINTS_NO_SIGMA(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region),
-	D_DECL(sigptr[0], sigptr[1], sigptr[2]),
-	DIMLIST(sigbox),
-	cgr.dataPtr(), DIMLIST(cgr.box()), DIMLIST(cb),
-	D_DECL(rat[0], rat[1], rat[2]));
+                         D_DECL(sigptr[0], sigptr[1], sigptr[2]),
+                         DIMLIST(sigbox),
+                         cgr.dataPtr(), DIMLIST(cgr.box()), DIMLIST(cb),
+                         D_DECL(rat[0], rat[1], rat[2]));
     
 }
 
-void holy_grail_interpolator_class::fill(FArrayBox& patch,
-					 const Box& region,
-					 const FArrayBox& cgr,
-					 const Box& cb,
-					 const IntVect& rat) const
+void
+holy_grail_interpolator_class::fill (FArrayBox&       patch,
+                                     const Box&       region,
+                                     const FArrayBox& cgr,
+                                     const Box&       cb,
+                                     const IntVect&   rat) const
 {
     FORT_HGINTS(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region),
-	sigptr, DIMLIST(sigbox),
-	cgr.dataPtr(), DIMLIST(cgr.box()), DIMLIST(cb),
-	D_DECL(rat[0], rat[1], rat[2]));
+                sigptr, DIMLIST(sigbox),
+                cgr.dataPtr(), DIMLIST(cgr.box()), DIMLIST(cb),
+                D_DECL(rat[0], rat[1], rat[2]));
     
 }
 
-void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
+void
+holy_grail_amr_multigrid::mg_interpolate_level (int lto,
+                                                int lfrom)
 {
     if (get_amr_level(lfrom) >= 0) 
     {
-	// general version---attempt to use special stencils for multilevel
+        //
+	// general version---attempt to use special stencils for multilevel.
+        //
 	const int ltmp = lfrom + 1;
 	MultiFab& target = work[ltmp];
 	const IntVect rat = mg_domain[ltmp].length() / mg_domain[lfrom].length();
@@ -874,9 +928,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 		hgi = new holy_grail_interpolator_class(sigptr, sigbox);
 #endif
 	    }
-	    tl.add_task(
-		new task_interpolate_patch(tl, target, igrid, target.box(igrid), corr[lfrom], rat, hgi, lev_interface[lfrom])
-		);
+	    tl.add_task(new task_interpolate_patch(tl,target,igrid,target.box(igrid),corr[lfrom],rat,hgi,lev_interface[lfrom]));
 	}
 	tl.execute();
 	if (lto > ltmp) 
@@ -887,8 +939,10 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
     }
     else 
     {
-	// multigrid interpolation, grids known to match up
-	// special stencil needed for multigrid convergence
+        //
+	// Multigrid interpolation, grids known to match up
+	// special stencil needed for multigrid convergence.
+        //
 	const IntVect rat = mg_domain[lto].length() / mg_domain[lfrom].length();
 	for (MultiFabIterator w_mfi(work[lto]); w_mfi.isValid(); ++w_mfi)
 	{
@@ -902,10 +956,10 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 		DependentMultiFabIterator sn_dmfi(w_mfi, sigma[lto]);
 		const Box& sigbox = sn_dmfi->box();
 		FORT_HGINTS_NO_SIGMA(w_mfi->dataPtr(), DIMLIST(fbox), DIMLIST(freg),
-		    D_DECL(sn_dmfi->dataPtr(0), sn_dmfi->dataPtr(1), sn_dmfi->dataPtr(2)), 
-		    DIMLIST(sigbox),
-		    c_dmfi->dataPtr(), DIMLIST(cbox), DIMLIST(creg),
-		    D_DECL(rat[0], rat[1], rat[2]));
+                                     D_DECL(sn_dmfi->dataPtr(0), sn_dmfi->dataPtr(1), sn_dmfi->dataPtr(2)), 
+                                     DIMLIST(sigbox),
+                                     c_dmfi->dataPtr(), DIMLIST(cbox), DIMLIST(creg),
+                                     D_DECL(rat[0], rat[1], rat[2]));
 	    }
 	    else if (m_hg_full_stencil)
 	    {
@@ -916,10 +970,10 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 						 s2_dmfi(w_mfi, sigma_nd[2][lto]));
 		const Box& sigbox = s0_dmfi->box();
 		FORT_HGINTS_NO_SIGMA(w_mfi->dataPtr(), DIMLIST(fbox), DIMLIST(freg),
-		    D_DECL(s0_dmfi->dataPtr(), s1_dmfi->dataPtr(), s2_dmfi->dataPtr()),
-		    DIMLIST(sigbox),
-		    c_dmfi->dataPtr(), DIMLIST(cbox), DIMLIST(creg),
-		    D_DECL(rat[0], rat[1], rat[2]));
+                                     D_DECL(s0_dmfi->dataPtr(), s1_dmfi->dataPtr(), s2_dmfi->dataPtr()),
+                                     DIMLIST(sigbox),
+                                     c_dmfi->dataPtr(), DIMLIST(cbox), DIMLIST(creg),
+                                     D_DECL(rat[0], rat[1], rat[2]));
 #endif
 #endif
 	    }
@@ -931,19 +985,19 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 						 s2_dmfi(w_mfi, sigma_nd[2][lto]));
 		const Box& sigbox = s0_dmfi->box();
 		FORT_HGINTS_NO_SIGMA(w_mfi->dataPtr(), DIMLIST(fbox), DIMLIST(freg),
-					  D_DECL(s0_dmfi->dataPtr(),
-						 s1_dmfi->dataPtr(),
-						 s2_dmfi->dataPtr()), DIMLIST(sigbox),
-					  c_dmfi->dataPtr(), DIMLIST(cbox), DIMLIST(creg),
-					  D_DECL(rat[0], rat[1], rat[2]));
+                                     D_DECL(s0_dmfi->dataPtr(),
+                                            s1_dmfi->dataPtr(),
+                                            s2_dmfi->dataPtr()), DIMLIST(sigbox),
+                                     c_dmfi->dataPtr(), DIMLIST(cbox), DIMLIST(creg),
+                                     D_DECL(rat[0], rat[1], rat[2]));
 #else
 		DependentMultiFabIterator sn_dmfi(w_mfi, sigma_node[lto]);
 		const Box& sigbox = sn_dmfi->box();
 		FORT_HGINTS(w_mfi->dataPtr(), DIMLIST(fbox), DIMLIST(freg),
-		    sn_dmfi->dataPtr(),
-		    DIMLIST(sigbox),
-		    c_dmfi->dataPtr(), DIMLIST(cbox), DIMLIST(creg),
-		    D_DECL(rat[0], rat[1], rat[2]));
+                            sn_dmfi->dataPtr(),
+                            DIMLIST(sigbox),
+                            c_dmfi->dataPtr(), DIMLIST(cbox), DIMLIST(creg),
+                            D_DECL(rat[0], rat[1], rat[2]));
 #endif
 	    }
 	}

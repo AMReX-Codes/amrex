@@ -1,3 +1,5 @@
+//BL_COPYRIGHT_NOTICE
+
 #ifndef _AMR_DEFS_H_
 #define _AMR_DEFS_H_
 
@@ -28,36 +30,40 @@
 
 extern bool HG_is_debugging;
 
-// index type helper functions:
+//
+// Index type helper functions:
+//
 
-inline IntVect type(const FArrayBox& f) 
+inline IntVect type (const FArrayBox& f) 
 {
     return f.box().type();
 }
 
-inline IndexType::CellIndex type(const FArrayBox& f, int idir) 
+inline IndexType::CellIndex type (const FArrayBox& f, int idir) 
 {
     return f.box().type(idir);
 }
 
-inline IntVect type(const FabArray<Real,FArrayBox>& r) 
+inline IntVect type (const FabArray<Real,FArrayBox>& r) 
 {
     assert(r.length() > 0 && r.boxArray().ok());
     return r.box(0).type();
 }
 
-inline IndexType::CellIndex type(const FabArray<Real,FArrayBox>& r, int idir) 
+inline IndexType::CellIndex type (const FabArray<Real,FArrayBox>& r, int idir) 
 {
     assert(r.length() > 0 && r.boxArray().ok());
     return r.box(0).type(idir);
 }
 
-// norm helper functions:
+//
+// Norm helper functions:
+//
 
-inline Real mfnorm_0(const MultiFab& mf) 
+inline Real mfnorm_0 (const MultiFab& mf) 
 {
     Real r = 0;
-    for ( ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi ) 
+    for (ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi) 
     {
 	Real s = cmfi->norm(cmfi->box(), 0, 0, cmfi->nComp());
 	r = (r > s) ? r : s;
@@ -66,10 +72,10 @@ inline Real mfnorm_0(const MultiFab& mf)
     return r;
 }
 
-inline Real mfnorm_2(const MultiFab& mf) 
+inline Real mfnorm_2 (const MultiFab& mf) 
 {
     Real r = 0;
-    for ( ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi ) 
+    for (ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi) 
     {
 	Real s = cmfi->norm(cmfi->box(), 2, 0, cmfi->nComp());
 	r += s*s;
@@ -78,11 +84,11 @@ inline Real mfnorm_2(const MultiFab& mf)
     return ::sqrt(r);
 }
 
-inline Real mfnorm(const MultiFab& mf) 
+inline Real mfnorm (const MultiFab& mf) 
 {
     Real r = 0;
     assert(mf.nComp() == 1);
-    for ( ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi ) 
+    for (ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi) 
     {
 	Real s = cmfi->norm(0);
 	r = (r > s) ? r : s;
@@ -91,7 +97,7 @@ inline Real mfnorm(const MultiFab& mf)
     return r;
 }
 
-void hg_debug_norm_2(const MultiFab& d, const char* str1, const char* str2);
+void hg_debug_norm_2 (const MultiFab& d, const char* str1, const char* str2);
 
 #ifdef HG_DEBUG
 #include <fstream>
@@ -104,4 +110,4 @@ extern std::ofstream debug_out;
 #define HG_TEST_NORM(d, s)
 #endif
 
-#endif
+#endif /*_AMR_DEFS_H_*/

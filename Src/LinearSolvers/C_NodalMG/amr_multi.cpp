@@ -1,3 +1,4 @@
+//BL_COPYRIGHT_NOTICE
 
 #include "amr_multi.H"
 
@@ -7,29 +8,40 @@ int amr_multigrid::c_sys = 0; // default is Cartesian, 1 is RZ
 
 
 #ifdef HG_DEBUG
-inline static const char* mf_centeredness(const MultiFab& m)
+inline
+const char*
+mf_centeredness (const MultiFab& m)
 {
-    if ( type(m) == IntVect::TheCellVector() ) return "C";
-    if ( type(m) == IntVect::TheNodeVector() ) return "N";
+    if (type(m) == IntVect::TheCellVector()) return "C";
+    if (type(m) == IntVect::TheNodeVector()) return "N";
     return "?";
 }
 
-void hg_debug_norm_2(const MultiFab& d, const char* str1, const char* str2)
+void
+hg_debug_norm_2 (const MultiFab& d,
+                 const char*     str1,
+                 const char*     str2)
 {
     double dz[2] = { mfnorm_2(d), mfnorm_0(d)};
     debug_out << str1;
-    if ( ParallelDescriptor::IOProcessor() )
+    if (ParallelDescriptor::IOProcessor())
+    {
 	debug_out << " : Norm[" << d.length() << ","
 	<< mf_centeredness(d) << ","
 	<< d.nComp() << ","
 	<< d.nGrow() << "]( " << str2 << " ) = ("
 	<< dz[0] << ", " << dz[1] << " )";
+    }
     debug_out << std::endl;
     
 }
 #endif
 
-void amr_multigrid::mesh_read(Array<BoxArray>& m, Array<IntVect>& r, Array<Box>& d, istream& is)
+void
+amr_multigrid::mesh_read (Array<BoxArray>& m,
+                          Array<IntVect>&  r,
+                          Array<Box>&      d,
+                          istream&         is)
 {
     int ilev;
     is >> ilev;
@@ -41,9 +53,9 @@ void amr_multigrid::mesh_read(Array<BoxArray>& m, Array<IntVect>& r, Array<Box>&
 	Box b;
 	int igrid;
 	is >> b >> igrid;
-	if ( is.fail() ) 
+	if (is.fail()) 
 	{
-	    BoxLib::Abort( "amr_multigrid::mesh_read(): failed to read box" );
+	    BoxLib::Abort("amr_multigrid::mesh_read(): failed to read box");
 	}
 	d.set(ilev, b);
 	if (ilev > 0) 
@@ -54,16 +66,19 @@ void amr_multigrid::mesh_read(Array<BoxArray>& m, Array<IntVect>& r, Array<Box>&
 	for (int igrid = 0; igrid < m[ilev].length(); igrid++) 
 	{
 	    is >> b;
-	    if ( is.fail() )
+	    if (is.fail())
 	    {
-		BoxLib::Abort( "amr_multigrid::mesh_read(): failed to read box" );
+                BoxLib::Abort("amr_multigrid::mesh_read(): failed to read box");
 	    }
 	    m[ilev].set(igrid, b);
 	}
     }
 }
 
-void amr_multigrid::mesh_write(const Array<BoxArray>& m, const Array<Box>& d, ostream& os)
+void
+amr_multigrid::mesh_write (const Array<BoxArray>& m,
+                           const Array<Box>&      d,
+                           ostream&               os)
 {
     os << m.length() << endl;
     for (int ilev = 0; ilev < m.length(); ilev++) 
@@ -76,7 +91,11 @@ void amr_multigrid::mesh_write(const Array<BoxArray>& m, const Array<Box>& d, os
     }
 }
 
-void amr_multigrid::mesh_write(const Array<BoxArray>& m, const Array<IntVect>& r, Box fd, ostream& os)
+void
+amr_multigrid::mesh_write (const Array<BoxArray>& m,
+                           const Array<IntVect>&  r,
+                           Box                    fd,
+                           ostream&               os)
 {
     for (int ilev = m.length() - 2; ilev >= 0; ilev--) 
     {
@@ -97,9 +116,11 @@ void amr_multigrid::mesh_write(const Array<BoxArray>& m, const Array<IntVect>& r
     }
 }
 
-amr_multigrid::~amr_multigrid()
+amr_multigrid::~amr_multigrid ()
 {
-    // note: lev_min is a class member
+    //
+    // Note: lev_min is a class member.
+    //
     for (lev_min = lev_min_min; lev_min <= lev_min_max; lev_min++) 
     {
 	delete [] interface_array[lev_min - lev_min_min];
@@ -107,7 +128,8 @@ amr_multigrid::~amr_multigrid()
     delete [] interface_array;
 }
 
-void amr_multigrid::build_mesh(const Box& fdomain)
+void
+amr_multigrid::build_mesh (const Box& fdomain)
 {
     mg_domain_array.resize(lev_min_max + 1);
     mg_mesh_array.resize(lev_min_max + 1);
@@ -121,7 +143,9 @@ void amr_multigrid::build_mesh(const Box& fdomain)
     lev_max = lev_max_max;
     for (lev_min = lev_min_min; lev_min <= lev_min_max; lev_min++) 
     {
+        //
 	// first, build mg_mesh
+        //
 	int nlev = build_down(ml_mesh[lev_max], fdomain, lev_max, IntVect::TheUnitVector(), 0);
 #ifndef NDEBUG
 	for (int i = 0; i < mg_mesh.length(); i++)
@@ -129,22 +153,20 @@ void amr_multigrid::build_mesh(const Box& fdomain)
 #endif
 	
 	if (pcode >= 2 && ParallelDescriptor::IOProcessor()) 
-	{
 	    mesh_write(mg_mesh, mg_domain, cout);
-	}
 	
 	mg_domain_array.set(lev_min, mg_domain);
 	mg_mesh_array.set(lev_min, mg_mesh);
-	
-	// initialize lev_interface
-	
-	int mglev_common = mg_mesh.length();
-	int ldiff;
+	//
+	// Initialize lev_interface.
+	//
+	int ldiff, mglev_common = mg_mesh.length();
 	if (lev_min > lev_min_min) 
 	{
 	    ldiff = mg_mesh_array[lev_min - 1].length() - mg_mesh.length();
-	    
+	    //
 	    // ml_index here is still the index for the previous mg_mesh:
+            //
 	    mglev_common = ml_index[lev_min] - ldiff;
 	    /*
 	    Before IntVect refinement ratios we used
@@ -156,7 +178,7 @@ void amr_multigrid::build_mesh(const Box& fdomain)
 	    */
 	    mglev_common = (mglev_common > 0) ? mglev_common : 0;
 	}
-	
+	//
 	// ml_index now becomes the index for the current mg_mesh,
 	// will be used below and on the next loop:
 	build_index();
@@ -188,7 +210,8 @@ void amr_multigrid::build_mesh(const Box& fdomain)
     }
 }
 
-void amr_multigrid::build_index()
+void
+amr_multigrid::build_index ()
 {
     ml_index.resize(lev_max + 1);
     for (int i = 0, lev = lev_min; lev <= lev_max; i++) 
@@ -201,7 +224,12 @@ void amr_multigrid::build_index()
     }
 }
 
-int amr_multigrid::build_down(const BoxArray& l_mesh, const Box& l_domain, int flev, IntVect rat, int nlev)
+int
+amr_multigrid::build_down (const BoxArray& l_mesh,
+                           const Box&      l_domain,
+                           int             flev,
+                           IntVect         rat,
+                           int             nlev)
 {
     if (l_mesh.length() == 0) 
     {
@@ -223,7 +251,11 @@ int amr_multigrid::build_down(const BoxArray& l_mesh, const Box& l_domain, int f
     return nlev;
 }
 
-void amr_multigrid::make_coarser_level(BoxArray& mesh, Box& domain, int& flev, IntVect& rat)
+void
+amr_multigrid::make_coarser_level (BoxArray& mesh,
+                                   Box&      domain,
+                                   int&      flev,
+                                   IntVect&  rat)
 {
     if (flev > lev_min) 
     {
@@ -256,7 +288,12 @@ void amr_multigrid::make_coarser_level(BoxArray& mesh, Box& domain, int& flev, I
     }
 }
 
-void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArray<MultiFab>& Coarse_source, int Lev_min, int Lev_max)
+void
+amr_multigrid::alloc (PArray<MultiFab>& Dest,
+                      PArray<MultiFab>& Source,
+                      PArray<MultiFab>& Coarse_source,
+                      int               Lev_min,
+                      int               Lev_max)
 {
     lev_min = Lev_min;
     lev_max = Lev_max;
@@ -269,12 +306,12 @@ void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArr
     for (int i = lev_min; i <= lev_max; i++)
 	assert(Source[i].boxArray() == Dest[i].boxArray());
 #endif
-    
+    //
     // old version checked that these matched ml_mesh, but that's
     // harder to do with pure BoxLib.
     //if (source.mesh() != ml_mesh || dest.mesh() != ml_mesh)
     //  error("alloc---meshes no match");
-    
+    //
     dest.resize(lev_max + 1);
     source.resize(lev_max + 1);
     coarse_source.resize(lev_max + 1);
@@ -312,20 +349,21 @@ void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArr
 	    work.set(i, new MultiFab(mesh, 1, 1));
 	
 	resid[i].setVal(0.0);
+        //
 	// to clear border cells, which will be assigned into corr:
+        //
 	if (work[i].nGrow() > 0)
 	    work[i].setVal(0.0);
-	
     }
     
     for (int i = lev_min + 1; i <= lev_max - 1; i++) 
     {
 	save.set(i, new MultiFab(dest[i].boxArray(), 1, 0));
     }
-    
 }
 
-void amr_multigrid::clear()
+void
+amr_multigrid::clear ()
 {
     for (int i = 0; i <= mglev_max; i++) 
     {
@@ -343,7 +381,11 @@ void amr_multigrid::clear()
     mg_mesh.clear();
 }
 
-void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2)
+void
+amr_multigrid::solve (Real reltol,
+                      Real abstol,
+                      int  i1,
+                      int  i2)
 {
     if (lev_max > lev_min)
 	sync_interfaces();
@@ -361,7 +403,7 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2)
 	{
 	    if (coarse_source.defined(lev)) 
 	    {
-		Real crse_lev_norm = mfnorm(coarse_source[lev]);
+		const Real crse_lev_norm = mfnorm(coarse_source[lev]);
 		norm = (crse_lev_norm > norm) ? crse_lev_norm : norm;
 	    }
 	}
@@ -398,7 +440,7 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2)
     {
 	cout << "HG: " << it << " cycles required" << endl;
     }
-    
+    //
     //This final restriction not needed unless you want coarse and fine
     //potentials to match up for use by the calling program.  Coarse
     //and fine values of dest already match at interfaces, and coarse
@@ -410,14 +452,20 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2)
     //}
 }
 
-Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2, Real tol, Real res_norm_fine)
+Real
+amr_multigrid::ml_cycle (int  lev,
+                         int  mglev,
+                         int  i1,
+                         int  i2,
+                         Real tol,
+                         Real res_norm_fine)
 {
     MultiFab& dtmp = dest[lev];
     MultiFab& ctmp = corr[mglev];
-    
+    //
     // If level lev+1 exists, resid should be up to date there.
-    
-    // includes restriction from next finer level
+    // Includes restriction from next finer level.
+    //
     Real res_norm = ml_residual(mglev, lev);
     
     if (pcode >= 2  && ParallelDescriptor::IOProcessor())
@@ -426,8 +474,9 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2, Real tol, Real 
     }
     
     res_norm = (res_norm_fine > res_norm) ? res_norm_fine : res_norm;
-    
+    //
     // resid now correct on this level---relax.
+    //
     ctmp.setVal(0.0); // ctmp.setBndry(0.0); // is necessary?
     if (lev > lev_min || res_norm > tol) 
     {
@@ -453,11 +502,13 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2, Real tol, Real 
 	interface_residual(mglev, lev);
 	const int mgc = ml_index[lev-1];
 	res_norm = ml_cycle(lev-1, mgc, i1, i2, tol, res_norm);
+        //
 	// This assignment is only done to clear the borders of work,
 	// so that garbage will not make it into corr and dest.  In
 	// some experiments this garbage grew exponentially, creating
 	// an overflow danger even though the legitimate parts of the
 	// calculation were not affected:
+        //
 	wtmp.setVal(0.0); // wtmp.setBndry(0.0); // Is necessary?
 	mg_interpolate_level(mglev, mgc);
 	ctmp.copy(wtmp);
@@ -484,21 +535,27 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2, Real tol, Real 
     return res_norm;
 }
 
-Real amr_multigrid::ml_residual(int mglev, int lev)
+Real
+amr_multigrid::ml_residual (int mglev,
+                            int lev)
 {
     HG_TEST_NORM( resid[mglev], "ml_residual 1");
     if (lev > lev_min) 
     {
+        //
 	// This call is necessary to clear garbage values on outside edges that
 	// will not be touched by level_residual, even with the clear flag set.
 	// The restriction routine is responsible for only passing correct
 	// values down from the fine level.  Garbage values in dead cells are
 	// a problem because the norm routine sees them.
+        //
 	resid[mglev].setVal(0.0);
     }
+    //
     // Clear flag set here because we want to compute a norm, and to
     // kill a feedback loop by which garbage in the border of dest
     // could grow exponentially.
+    //
     level_residual(resid[mglev], source[lev], dest[lev], mglev, true);
     if (lev < lev_max) 
     {
@@ -514,7 +571,10 @@ Real amr_multigrid::ml_residual(int mglev, int lev)
     return mfnorm(resid[mglev]);
 }
 
-void amr_multigrid::mg_cycle(int mglev, int i1, int i2)
+void
+amr_multigrid::mg_cycle (int mglev,
+                              int i1,
+                              int i2)
 {
     if (mglev == 0)
     {
@@ -549,10 +609,12 @@ void amr_multigrid::mg_cycle(int mglev, int i1, int i2)
 	mg_cycle(mglev-1, i1, i2);
 	//wtmp.assign(0.0);
 	mg_interpolate_level(mglev, mglev-1);
+        //
 	// Pitfall?  If corr and work both have borders, crud there will
 	// now be put into corr.  This does not appear to be a problem,
 	// but if it is it can be avoided by clearing work before
 	// interpolating.
+        //
 	ctmp.plus(wtmp, 0, 1, 0);
     }
     relax(mglev, i2, false);

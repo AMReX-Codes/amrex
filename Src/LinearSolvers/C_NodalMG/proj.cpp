@@ -1,3 +1,5 @@
+//BL_COPYRIGHT_NOTICE
+
 #include "hg_projector.H"
 
 #include <Utility.H>

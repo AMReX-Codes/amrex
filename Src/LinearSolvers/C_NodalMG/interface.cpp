@@ -1,7 +1,11 @@
+//BL_COPYRIGHT_NOTICE
+
 #include "interface.H"
 #include "boundary.H"
 
-static inline void ins(List<Box>& bl, const Box& b) 
+inline
+void
+ins (List<Box>& bl, const Box& b) 
 {
     if (!bl.includes(b))
 	bl.append(b);
@@ -14,18 +18,23 @@ level_interface::~level_interface()
     
     if (status & 1) 
     {
-	// owns boxes
+        //
+	// Owns boxes.
+        //
 	delete [] pf;
 	for (int i = 0; i < BL_SPACEDIM; i++) 
 	{
 	    delete [] bx[i];
-	    if (i > 0) delete [] nodebx[i];
+	    if (i > 0)
+                delete [] nodebx[i];
 	}
     }
     
     if (status & 2) 
     {
-	// owns flag arrays
+        //
+	// Owns flag arrays.
+        //
 	delete [] grid_ref;
 	delete [] fdm;
 	for (int i = 0; i < BL_SPACEDIM; i++) 
@@ -42,9 +51,10 @@ level_interface::~level_interface()
     }
 }
 
-void level_interface::copy(const level_interface& src)
+void
+level_interface::copy (const level_interface& src)
 {
-    if ( ok() )
+    if (ok())
 	BoxLib::Error( "level_interface::copy---this object already allocated" ); 
     
     status = 0;
@@ -75,7 +85,11 @@ void level_interface::copy(const level_interface& src)
     }
 }
 
-void level_interface::alloc_coarsened(const BoxArray& Im, const amr_boundary_class* /*bdy*/, const level_interface& src, const IntVect& rat)
+void
+level_interface::alloc_coarsened (const BoxArray&           Im,
+                                  const amr_boundary_class* /*bdy*/,
+                                  const level_interface&    src,
+                                  const IntVect&            rat)
 {
     if (ok())
 	BoxLib::Error( "level_interface::alloc_coarsened---this object already allocated" );
@@ -147,7 +161,10 @@ void level_interface::alloc_coarsened(const BoxArray& Im, const amr_boundary_cla
     }
 }
 
-void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_boundary_class* bdy)
+void
+level_interface::alloc (const BoxArray&           Im,
+                        const Box&                Domain,
+                        const amr_boundary_class* bdy)
 {
     if (ok())
 	BoxLib::Error( "level_interface::alloc---this object already allocated" );
@@ -158,10 +175,9 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     im  = Im;
     assert( bdy != 0 );
     bdy->boundary_mesh(em, grid_ref, im, dom);
-
-    
+    //
     // Add edges in 2D or faces in 3D:
-
+    //
     List<Box> bl;
     for (int igrid = 0; igrid < im.length(); igrid++) 
     {
@@ -179,9 +195,9 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     bl.clear();
     
 #if (BL_SPACEDIM == 3)
-    
+    //
     // Add edges in 3D:
-    
+    //
     for (int iface = 0; iface < nbx[2]; iface++) 
     {
 	for (int i = 0; i < BL_SPACEDIM; i++) 
@@ -200,9 +216,9 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     xfer(bl, 1);
     bl.clear();
 #endif
-    
+    //
     // Add corners:
-    
+    //
     for (int iedge = 0; iedge < nbx[1]; iedge++) 
     {
 	const IntVect t = bx[1][iedge].type();
@@ -218,8 +234,9 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     bdy->duplicate(bl, dom);
     xfer(bl, 0);
     bl.clear();
-    
-    // initialize face direction array
+    //
+    // Initialize face direction array.
+    //
     fdm = new int[nbx[FACEDIM]];
     for (int iface = 0; iface < nbx[FACEDIM]; iface++) 
     {
@@ -229,15 +246,18 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
 	{
 	    if (t[i] == IndexType::NODE)
 	    {
-		// one and only one face will be designated as a the direction
+                //
+		// One and only one face will be designated as a the direction.
+                //
 		assert(fdm[iface] == -1);
 		fdm[iface] = i;
 	    }
 	}
 	assert(fdm[iface] >= 0 && fdm[iface] < BL_SPACEDIM);
     }
-    
-    // initialize face grid array
+    //
+    // Initialize face grid array.
+    //
     int idim = FACEDIM;
     fgr = new int[nbx[idim]][N_FACE_GRIDS];
     for (int iface = 0; iface < nbx[idim]; iface++) 
@@ -285,7 +305,9 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
 #if (BL_SPACEDIM == 2)
     // egr = fgr;
 #else
-    // initialize edge grid array
+    //
+    // Initialize edge grid array.
+    //
     idim = 1;
     egr = new int[nbx[idim]][N_EDGE_GRIDS];
     for (int iedge = 0; iedge < nbx[idim]; iedge++) 
@@ -344,8 +366,9 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
 	}
     }
 #endif
-    
-    // initialize corner grid array
+    //
+    // Initialize corner grid array.
+    //
     idim = 0;
     cgr = new int[nbx[idim]][N_CORNER_GRIDS];
     for (int icor = 0; icor < nbx[idim]; icor++) 
@@ -527,7 +550,10 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     }
 }
 
-void level_interface::add(List<Box>& bl, Box b, int startgrid)
+void
+level_interface::add (List<Box>& bl,
+                      Box        b,
+                      int        startgrid)
 {
     const IntVect t = b.type();
     for (int igrid = startgrid; igrid < im.length() + em.length(); igrid++) 
@@ -560,13 +586,15 @@ void level_interface::add(List<Box>& bl, Box b, int startgrid)
 		    }
 		}
 	    }
-	    BoxLib::Abort( "level_interface::add(): Can't happen." );
+	    BoxLib::Abort("level_interface::add(): Can't happen.");
 	}
     }
     ins(bl, b);
 }
 
-void level_interface::xfer(const List<Box>& bl, int idim)
+void
+level_interface::xfer (const List<Box>& bl,
+                       int              idim)
 {
     nbx[idim] = bl.length();
     bx[idim]  = new Box[nbx[idim]];
@@ -574,7 +602,7 @@ void level_interface::xfer(const List<Box>& bl, int idim)
     flg[idim] = new bool[nbx[idim]];
     
     ListIterator<Box> bn(bl);
-    for ( int i = 0; bn; bn++, i++) 
+    for (int i = 0; bn; bn++, i++) 
     {
 	bx[idim][i] = bn();
 	const Box btmp = grow(bn(), bn().type()).convert(IntVect::TheCellVector());
@@ -645,8 +673,9 @@ void level_interface::xfer(const List<Box>& bl, int idim)
 #endif
 	}
     }
-    
-    // Sort fine-fine boxes to beginning of list
+    //
+    // Sort fine-fine boxes to beginning of list.
+    //
     int j = nbx[idim];
     for (int i = 0; i < j; i++) 
     {
@@ -674,8 +703,9 @@ void level_interface::xfer(const List<Box>& bl, int idim)
     while (++j < nbx[idim] && ge[idim][j] == ALL)
 	/* nothing*/;
     int nff = j;
-    
-    // Sort interior fine-fine boxes to beginning of list
+    //
+    // Sort interior fine-fine boxes to beginning of list.
+    //
     if (idim == 0) 
     {
 	for (int i = 0; i < j; i++) 
@@ -730,8 +760,9 @@ void level_interface::xfer(const List<Box>& bl, int idim)
 		break;
 	}
 	int nin = j;
-	
-	// Sort interior faces according to orientation, x first
+	//
+	// Sort interior faces according to orientation, x first.
+        //
 	for (int i = 0; i < j; i++) 
 	{
 	    if (bx[idim][i].type(0) == IndexType::CELL) 
@@ -770,8 +801,9 @@ void level_interface::xfer(const List<Box>& bl, int idim)
 	    }
 	}
 #endif
-	
-	// Sort exterior faces according to orientation, x first
+	//
+	// Sort exterior faces according to orientation, x first.
+        //
 	j = nff;
 	for (int i = nin; i < j; i++) 
 	{
@@ -814,7 +846,9 @@ void level_interface::xfer(const List<Box>& bl, int idim)
     }
 }
 
-Array<int> level_interface::geo_array(int idim, int i) const
+Array<int>
+level_interface::geo_array (int idim,
+                            int i) const
 {
     Array<int> ga(N_CORNER_GRIDS);
     unsigned int gtmp = geo(idim, i);

@@ -1,3 +1,4 @@
+//BL_COPYRIGHT_NOTICE
 
 #include "fill_patch.H"
 
@@ -15,8 +16,9 @@ extern "C"
     void FORT_FIPRODN(const Real*, intS, const Real*, intS, intS, Real*);
 }
 
-Real inner_product (const MultiFab& r,
-                    const MultiFab& s)
+Real
+inner_product (const MultiFab& r,
+               const MultiFab& s)
 {
     assert(r.ok() && s.ok());
     assert(r.nComp() == 1);
@@ -127,12 +129,14 @@ task_bdy_fill::~task_bdy_fill ()
     delete tmp;
 }
 
-bool task_bdy_fill::work_to_do () const
+bool
+task_bdy_fill::work_to_do () const
 {
     return !m_local && (m_fab != 0 || (m_fab == 0 && is_local(m_smf,m_sgrid)));
 }
 
-bool task_bdy_fill::startup ()
+bool
+task_bdy_fill::startup ()
 {
     m_started = true;
 
@@ -168,7 +172,8 @@ bool task_bdy_fill::startup ()
     return result;
 }
 
-bool task_bdy_fill::ready ()
+bool
+task_bdy_fill::ready ()
 {
     assert(is_started());
 
@@ -223,7 +228,8 @@ task_fill_patch::task_fill_patch (task_list&                tl_,
 
 task_fill_patch::~task_fill_patch () {}
 
-bool task_fill_patch::work_to_do () const
+bool
+task_fill_patch::work_to_do () const
 {
     //
     // TODO -- refine this if at all possible.
@@ -231,7 +237,8 @@ bool task_fill_patch::work_to_do () const
     return true;
 }
 
-bool task_fill_patch::fill_patch_blindly ()
+bool
+task_fill_patch::fill_patch_blindly ()
 {
     for (int igrid = 0; igrid < r.length(); igrid++) 
     {
@@ -264,7 +271,8 @@ bool task_fill_patch::fill_patch_blindly ()
     return false;
 }
 
-bool task_fill_patch::fill_exterior_patch_blindly ()
+bool
+task_fill_patch::fill_exterior_patch_blindly ()
 {
     const BoxArray& em = lev_interface.exterior_mesh();
 
@@ -293,7 +301,8 @@ bool task_fill_patch::fill_exterior_patch_blindly ()
     return false;
 }
 
-void task_fill_patch::fill_patch ()
+void
+task_fill_patch::fill_patch ()
 {
     if (!region.ok()) return;
 
@@ -374,8 +383,9 @@ void task_fill_patch::fill_patch ()
     }
 }
 
-static void sync_internal_borders (MultiFab&              r,
-                                   const level_interface& lev_interface)
+static
+void sync_internal_borders (MultiFab&              r,
+                            const level_interface& lev_interface)
 {
     assert(type(r) == IntVect::TheNodeVector());
 
@@ -459,9 +469,10 @@ static void sync_internal_borders (MultiFab&              r,
     tl.execute();
 }
 
-void sync_borders (MultiFab&                 r,
-                   const level_interface&    lev_interface,
-                   const amr_boundary_class* bdy)
+void
+sync_borders (MultiFab&                 r,
+              const level_interface&    lev_interface,
+              const amr_boundary_class* bdy)
 {
     sync_internal_borders(r, lev_interface);
     assert(bdy != 0);
@@ -472,8 +483,10 @@ void sync_borders (MultiFab&                 r,
 //
 // Local function used only by fill_internal_borders:
 //
-inline void node_dirs (int            dir[2],
-                       const IntVect& typ)
+inline
+void
+node_dirs (int            dir[2],
+           const IntVect& typ)
 {
     if (typ[0] == IndexType::NODE) 
     {
@@ -492,10 +505,12 @@ inline void node_dirs (int            dir[2],
 #endif
 
 #if 0
-inline Box w_shift (const Box& bx,
-                    const Box& bo,
-                    int        b,
-                    int        w)
+inline
+Box
+w_shift (const Box& bx,
+         const Box& bo,
+         int        b,
+         int        w)
 {
     Box res = bx;
     assert(w == 1 || w == -1);
@@ -531,10 +546,12 @@ inline Box w_shift (const Box& bx,
 // overwriting good values with bad ones.
 //
 
-static void fill_internal_borders (MultiFab&              r,
-                                   const level_interface& lev_interface,
-                                   int                    w,
-                                   bool                   hg_terrain)
+static
+void
+fill_internal_borders (MultiFab&              r,
+                       const level_interface& lev_interface,
+                       int                    w,
+                       bool                   hg_terrain)
 {
     assert(type(r) == IntVect::TheCellVector() || type(r) == IntVect::TheNodeVector() );
 
@@ -677,11 +694,12 @@ static void fill_internal_borders (MultiFab&              r,
     tl.execute();
 }
 
-void fill_borders (MultiFab&                 r,
-                   const level_interface&    lev_interface,
-                   const amr_boundary_class* bdy,
-                   int                       w,
-                   bool                      hg_terrain)
+void
+fill_borders (MultiFab&                 r,
+              const level_interface&    lev_interface,
+              const amr_boundary_class* bdy,
+              int                       w,
+              bool                      hg_terrain)
 {
     HG_TEST_NORM(r, "fill_borders 0");
     fill_internal_borders(r, lev_interface, w, hg_terrain);
@@ -691,8 +709,9 @@ void fill_borders (MultiFab&                 r,
     HG_TEST_NORM(r, "fill_borders 2");
 }
 
-void clear_part_interface (MultiFab&              r,
-                           const level_interface& lev_interface)
+void
+clear_part_interface (MultiFab&              r,
+                      const level_interface& lev_interface)
 {
     assert(r.nComp() == 1);
     assert(type(r) == IntVect::TheNodeVector());
@@ -704,7 +723,7 @@ void clear_part_interface (MultiFab&              r,
             //
 	    // coarse-fine face contained in part_fine grid, or orphan edge/corner
             //
-	    int igrid = lev_interface.aux(i, ibox);
+	    const int igrid = lev_interface.aux(i, ibox);
 	    if (igrid < 0  || is_remote(r, igrid))
                 continue;
 	    assert(is_local(r, igrid));
@@ -781,12 +800,14 @@ task_restric_fill::~task_restric_fill ()
     delete m_tmp;
 }
 
-bool task_restric_fill::work_to_do () const
+bool
+task_restric_fill::work_to_do () const
 {
     return !m_local && (is_local(m_d,m_dgrid) || is_local(m_r,m_rgrid));
 }
 
-bool task_restric_fill::startup ()
+bool
+task_restric_fill::startup ()
 {
     m_started = true;
 
@@ -824,7 +845,8 @@ bool task_restric_fill::startup ()
     return result;
 }
 
-bool task_restric_fill::ready ()
+bool
+task_restric_fill::ready ()
 {
     assert(is_started());
 
@@ -849,7 +871,8 @@ bool task_restric_fill::ready ()
     return false;
 }
 
-void task_restric_fill::hint () const
+void
+task_restric_fill::hint () const
 {
     task::_hint();
     if (is_local(m_r, m_rgrid) && is_local(m_d, m_dgrid))
@@ -872,12 +895,13 @@ void task_restric_fill::hint () const
     HG_DEBUG_OUT( ")" << endl );
 }
 
-void restrict_level (MultiFab&                   dest,
-                     MultiFab&                   r,
-                     const IntVect&              rat,
-                     const amr_restrictor_class& restric,
-                     const level_interface&      lev_interface,
-                     const amr_boundary_class*   bdy)
+void
+restrict_level (MultiFab&                   dest,
+                MultiFab&                   r,
+                const IntVect&              rat,
+                const amr_restrictor_class& restric,
+                const level_interface&      lev_interface,
+                const amr_boundary_class*   bdy)
 {
     assert(type(dest) == type(r));
 

@@ -1,3 +1,4 @@
+//BL_COPYRIGHT_NOTICE
 
 #include "boundary.H"
 
@@ -29,7 +30,35 @@ extern "C"
 
 typedef void (PPF)(Real*, intS, intS, const Real*, intS, intS, const int*, const int&);
 
-void amr_boundary_class::boundary_mesh(BoxArray& exterior_mesh, int*& grid_ref, const BoxArray& interior_mesh, const Box& domain) const
+amr_boundary_class::~amr_boundary_class () {}
+
+int
+amr_boundary_class::dir (const Box& region,
+                         const Box& domain) const
+{
+    for (int i = 0; i < BL_SPACEDIM; ++i)
+    {
+	if (region.bigEnd(i) < domain.smallEnd(i))
+	    return -(i+1);
+	if (region.smallEnd(i) > domain.bigEnd(i))
+	    return +(i+1);
+    }
+    for (int i = 0; i < BL_SPACEDIM; ++i)
+    {
+	if (region.bigEnd(i) == domain.smallEnd(i))
+	    return -(i+1);
+	if (region.smallEnd(i) == domain.bigEnd(i))
+	    return +(i+1);
+    }
+    assert("amr_boundary_class::dir---boundary box not outside domain." == 0);
+    return 0;
+}
+
+void
+amr_boundary_class::boundary_mesh (BoxArray&       exterior_mesh,
+                                   int*&           grid_ref,
+                                   const BoxArray& interior_mesh,
+                                   const Box&      domain) const
 {
     BoxList bl;
     List<int> il;
@@ -52,7 +81,10 @@ void amr_boundary_class::boundary_mesh(BoxArray& exterior_mesh, int*& grid_ref, 
     il.clear();
 }
 
-Box mixed_boundary_class::box(const Box& region, const Box& domain, int idir) const
+Box
+mixed_boundary_class::box (const Box& region,
+                           const Box& domain,
+                           int        idir) const
 {
     const int idim = abs(idir) - 1;
     const RegType t = ptr->bc[idim][idir > 0];
@@ -60,7 +92,9 @@ Box mixed_boundary_class::box(const Box& region, const Box& domain, int idir) co
     
     if (t == refWall || t == outflow || (t == inflow && idim != flowdim)) 
     {
-	// all these cases use a reflected box
+        //
+	// All these cases use a reflected box.
+        //
 	assert(idir != 0);
 	if (idir < 0) 
 	{
@@ -79,12 +113,14 @@ Box mixed_boundary_class::box(const Box& region, const Box& domain, int idir) co
     }
     else if (t == inflow) 
     {
+        //
 	// This case needs the boundary node or the first cell outside
 	// the domain to extrapolate.
 	// For cell-based, the fill_patch call must set the use-ghost-cell
 	// option (flags & 2) or an infinite recursion will result.
 	// It's a kludge, hopefully temporary, so fill_patch does not
 	// test to see if this is the case.
+        //
 	if (idir < 0) 
 	{
 	    if (region.type(idim) == IndexType::CELL) 
@@ -132,11 +168,17 @@ Box mixed_boundary_class::box(const Box& region, const Box& domain, int idir) co
     return retbox;
 }
 
+//
 // Reflects on all outflow cases (which aren't called anyway).
 // On velocity inflow, uses box function which extends interior
 // box just past edge of domain.
+//
 
-void mixed_boundary_class::fill(FArrayBox& patch, const Box& region, const FArrayBox& src, const Box& domain) const
+void
+mixed_boundary_class::fill (FArrayBox&       patch,
+                            const Box&       region,
+                            const FArrayBox& src,
+                            const Box&       domain) const
 {
     Box tdomain = domain;
     tdomain.convert(type(src));
@@ -229,16 +271,22 @@ void mixed_boundary_class::fill(FArrayBox& patch, const Box& region, const FArra
     
     if (idir != 0) 
     {
-	// normal-component inflow section, assume patch.nComp() == 1
+        //
+	// Normal-component inflow section, assume patch.nComp() == 1
+        //
 	Box bb = box(image, domain, idir);
 	if (image == region) 
 	{
-	    // only bdy involved, can fill directly from interior
+            //
+	    // Only bdy involved, can fill directly from interior
+            //
 	    fill(patch, region, src, bb, domain, idir);
 	}
 	else 
 	{
-	    // multiple bdys, fill intermediate patch
+            //
+	    // Multiple bdys, fill intermediate patch.
+            //
 	    FArrayBox gb(image);
 	    fill(gb, image, src, bb, domain, idir);
 	    if (negflag == 1) 
@@ -272,7 +320,9 @@ void mixed_boundary_class::fill(FArrayBox& patch, const Box& region, const FArra
     }
     else 
     {
-	// all cases other than normal-component inflow
+        //
+	// All cases other than normal-component inflow.
+        //
 	if (negflag == 1) 
 	{
 	    FORT_FBREFM(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), src.dataPtr(), DIMLIST(src.box()), DIMLIST(image), refarray, patch.nComp());
@@ -284,14 +334,22 @@ void mixed_boundary_class::fill(FArrayBox& patch, const Box& region, const FArra
     }
 }
 
-void mixed_boundary_class::fill(FArrayBox& patch, const Box& region, const FArrayBox& bgr, const Box& bb, const Box& domain, int idir) const
+void
+mixed_boundary_class::fill (FArrayBox&       patch,
+                            const Box&       region,
+                            const FArrayBox& bgr,
+                            const Box&       bb,
+                            const Box&       domain,
+                            int              idir) const
 {
     const int idim = abs(idir) - 1;
     const RegType t = ptr->bc[idim][idir > 0];
     
     if (flowdim == -4 && (t == refWall || t == inflow)) 
     {
-	// terrain sigma
+        //
+	// Terrain sigma.
+        //
 	BoxLib::Abort( "mixed_boundary_class::fill(): terrain undefined" );
     }
     else if (t == refWall) 
@@ -317,8 +375,10 @@ void mixed_boundary_class::fill(FArrayBox& patch, const Box& region, const FArra
 	}
 	else if (flowdim == -1) 
 	{
+            //
 	    //BoxLib::Error("mixed_boundary_class::Don't know how to do inflow density");
 	    // Inflow density---just reflect interior for now
+            //
 	    FORT_FBREF(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), bgr.dataPtr(), DIMLIST(bgr.box()), DIMLIST(bb), &idim, patch.nComp());
 	}
 	else if (flowdim == -3) 
@@ -327,21 +387,27 @@ void mixed_boundary_class::fill(FArrayBox& patch, const Box& region, const FArra
 	}
 	else if (idim == flowdim) 
 	{
+            //
 	    // For this to work, fill_borders must already have been called
 	    // to initialize values in the first ghost cell outside the domain.
+            //
 	    FORT_FBINFIL(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), bgr.dataPtr(), DIMLIST(bgr.box()), DIMLIST(bb), &idim, 1);
 	}
 	else if (flowdim >= 0) 
 	{
+            //
 	    // transverse velocity components
-	    //patch.assign(0.0, region);
+	    // patch.assign(0.0, region);
 	    // we now believe this looks like a refWall to transverse components
+            //
 	    FORT_FBREF(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), bgr.dataPtr(), DIMLIST(bgr.box()), DIMLIST(bb), &idim, patch.nComp());
 	}
     }
     else if (t == outflow) 
     {
-	// Do nothing if NODE-based, reflect if CELL-based 
+        //
+	// Do nothing if NODE-based, reflect if CELL-based.
+        //
 	if (type(patch,idim) == IndexType::CELL) 
 	{
 	    FORT_FBREF(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), bgr.dataPtr(), DIMLIST(bgr.box()), DIMLIST(bb), &idim, patch.nComp());
@@ -353,7 +419,9 @@ void mixed_boundary_class::fill(FArrayBox& patch, const Box& region, const FArra
     }
 }
 
-void mixed_boundary_class::sync_borders(MultiFab& r, const level_interface& lev_interface) const
+void
+mixed_boundary_class::sync_borders (MultiFab&              r,
+                                    const level_interface& lev_interface) const
 {
     assert(type(r) == IntVect::TheNodeVector());
     
@@ -362,7 +430,7 @@ void mixed_boundary_class::sync_borders(MultiFab& r, const level_interface& lev_
     {
 	if (lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL) // FIXME????
 	    break;
-	int igrid = lev_interface.grid(level_interface::FACEDIM, iface, 0);
+        int igrid = lev_interface.grid(level_interface::FACEDIM,iface,0);
 	if (igrid < 0) 
 	{
 	    const int idim = lev_interface.fdim(iface);
@@ -380,10 +448,15 @@ void mixed_boundary_class::sync_borders(MultiFab& r, const level_interface& lev_
     tl.execute();
 }
 
-void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_interface, int w) const
+void
+mixed_boundary_class::fill_borders (MultiFab&              r,
+                                    const level_interface& lev_interface,
+                                    int                    w) const
 {
     w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
-    assert( w == 1 || w == 0 );
+
+    assert(w == 1 || w == 0);
+
     const Box& domain = lev_interface.domain();
 
     task_list tl;
@@ -398,8 +471,10 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 	    Box b = lev_interface.box(level_interface::FACEDIM, iface);
 	    const int idim = lev_interface.fdim(iface);
 	    const int a = (type(r,idim) == IndexType::NODE);
-	    // need to do on x borders too in case y border is an interior face
-	    if ( igrid < 0 ) 
+            //
+	    // Need to do on x borders too in case y border is an interior face
+            //
+	    if (igrid < 0) 
 	    {
 		for (int i = 0; i < BL_SPACEDIM; i++) 
 		{
@@ -416,8 +491,11 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		Box bb = b;
 		if (flowdim == -4 && (t == refWall || t == inflow)) 
 		{
-		    // terrain sigma
-		    if ( is_remote(r, jgrid) ) continue;
+                    //
+		    // Terrain sigma
+                    //
+		    if (is_remote(r, jgrid))
+                        continue;
 		    bb.shift(idim, 2 * domain.smallEnd(idim) - 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
 		    const Box& rbox = r[jgrid].box();
 		    for (int i = 0; i < r.nComp(); i++) 
@@ -465,8 +543,10 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		    }
 		    else if (flowdim == -1) 
 		    {
+                        //
 			//BoxLib::Error("mixed_boundary_class::Don't know how to do inflow density");
 			// Inflow density---just reflect interior for now
+                        //
 			FORT_FBREF(r[jgrid].dataPtr(), DIMLIST(rbox), DIMLIST(b), r[jgrid].dataPtr(), DIMLIST(rbox), DIMLIST(bb), &idim, r.nComp());
 		    }
 		    else if (flowdim == -3) 
@@ -475,22 +555,29 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		    }
 		    else if (idim == flowdim) 
 		    {
+                        //
 			// For this to work, fill_borders must be called exactly
 			// once for each level of this variable.
+                        //
 			FORT_FBINFLO(r[jgrid].dataPtr(), DIMLIST(rbox), DIMLIST(b),  r[jgrid].dataPtr(), DIMLIST(rbox), DIMLIST(bb), &idim, 1);
 		    }
 		    else if (flowdim >= 0) 
 		    {
+                        //
 			// transverse velocity components
 			//r[jgrid].assign(0.0, b);
 			// we now believe this looks like a refWall to transverse comps
+                        //
 			FORT_FBREF(r[jgrid].dataPtr(), DIMLIST(rbox), DIMLIST(b), r[jgrid].dataPtr(), DIMLIST(rbox), DIMLIST(bb), &idim, 1);
 		    }
 		}
 		else if (t == outflow) 
 		{
-		    // Do nothing if NODE-based, reflect if CELL-based 
-		    if ( is_remote(r, jgrid) ) continue;
+                    //
+		    // Do nothing if NODE-based, reflect if CELL-based.
+                    //
+		    if (is_remote(r, jgrid))
+                        continue;
 		    if (type(r,idim) == IndexType::CELL) 
 		    {
 			bb.shift(idim, 2 * domain.smallEnd(idim) - 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
@@ -516,8 +603,11 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		Box bb = b;
 		if (flowdim == -4 && (t == refWall || t == inflow)) 
 		{
-		    if ( is_remote(r, igrid) ) continue;
-		    // terrain sigma
+		    if (is_remote(r, igrid))
+                        continue;
+                    //
+		    // Terrain sigma
+                    //
 		    bb.shift(idim, 2 * domain.bigEnd(idim) + 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
 		    const Box& rbox = r[igrid].box();
 		    for (int i = 0; i < r.nComp(); i++) 
@@ -535,7 +625,8 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		}
 		else if (t == refWall) 
 		{
-		    if ( is_remote(r, igrid) ) continue;
+		    if (is_remote(r, igrid))
+                        continue;
 		    bb.shift(idim, 2 * domain.bigEnd(idim) + 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
 		    const Box& rbox = r[igrid].box();
 		    if (idim == flowdim || flowdim == -3) 
@@ -556,7 +647,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		}
 		else if (t == inflow) 
 		{
-		    if ( is_remote(r, igrid) ) continue;
+		    if (is_remote(r, igrid)) continue;
 		    bb.shift(idim, 2 * domain.bigEnd(idim) + 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
 		    const Box& rbox = r[igrid].box();
 		    if (flowdim == -2) 
@@ -565,8 +656,10 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		    }
 		    else if (flowdim == -1) 
 		    {
+                        //
 			//BoxLib::Error("mixed_boundary_class::Don't know how to do inflow density");
 			// Inflow density---just reflect interior for now
+                        //
 			FORT_FBREF(r[igrid].dataPtr(), DIMLIST(rbox), DIMLIST(b), r[igrid].dataPtr(), DIMLIST(rbox), DIMLIST(bb), &idim, r.nComp());
 		    }
 		    else if (flowdim == -3) 
@@ -575,22 +668,29 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		    }
 		    else if (idim == flowdim) 
 		    {
+                        //
 			// For this to work, fill_borders must be called exactly
 			// once for each level of this variable.
+                        //
 			FORT_FBINFLO(r[igrid].dataPtr(), DIMLIST(rbox), DIMLIST(b),  r[igrid].dataPtr(), DIMLIST(rbox), DIMLIST(bb), &idim, 1);
 		    }
 		    else if (flowdim >= 0) 
 		    {
+                        //
 			// transverse velocity components
 			//r[igrid].assign(0.0, rbox);
 			// we now believe this looks like a refWall to transverse comps
+                        //
 			FORT_FBREF(r[igrid].dataPtr(), DIMLIST(rbox), DIMLIST(b), r[igrid].dataPtr(), DIMLIST(rbox), DIMLIST(bb), &idim, 1);
 		    }
 		}
 		else if (t == outflow) 
 		{
-		    if ( is_remote(r, igrid) ) continue;
-		    // Do nothing if NODE-based, reflect if CELL-based 
+		    if (is_remote(r, igrid))
+                        continue;
+                    //
+		    // Do nothing if NODE-based, reflect if CELL-based.
+                    //
 		    if (type(r,idim) == IndexType::CELL) 
 		    {
 			bb.shift(idim, 2 * domain.bigEnd(idim) + 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
@@ -605,7 +705,13 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 }
 
 
-void mixed_boundary_class::check_against_boundary(BoxList& bl, List<int>& il, const Box& b, int ib, const Box& d, int dim1) const
+void
+mixed_boundary_class::check_against_boundary (BoxList&   bl,
+                                              List<int>& il,
+                                              const Box& b,
+                                              int        ib,
+                                              const Box& d,
+                                              int        dim1) const
 {
     for (int i = dim1; i < BL_SPACEDIM; i++) 
     {
@@ -674,7 +780,9 @@ void mixed_boundary_class::check_against_boundary(BoxList& bl, List<int>& il, co
     }
 }
 
-void mixed_boundary_class::duplicate(List<Box>& bl, const Box& domain) const
+void
+mixed_boundary_class::duplicate (List<Box>& bl,
+                                 const Box& domain) const
 {
     for (int i = 0; i < BL_SPACEDIM; i++) 
     {
@@ -704,30 +812,57 @@ void mixed_boundary_class::duplicate(List<Box>& bl, const Box& domain) const
     }
 }
 
-bool mixed_boundary_class::singular() const
+bool
+mixed_boundary_class::singular () const
 {
     assert(flowdim == -2); // pressure boundary only
-    bool retval = true;
+
     for (int idim = 0; idim < BL_SPACEDIM; idim++) 
     {
 	if (ptr->bc[idim][0] == outflow || ptr->bc[idim][1] == outflow)
-	    retval = false;
+            return false;
     }
-    return retval;
+
+    return true;
 }
 
-amr_fluid_boundary_class::amr_fluid_boundary_class()
+amr_fluid_boundary_class::amr_fluid_boundary_class ()
 {
     for (int i = 0; i < BL_SPACEDIM; i++) 
-    {
 	v[i] = 0;
-    }
-    s = 0;
-    p = 0;
+
+    s  = 0;
+    p  = 0;
     ts = 0;
 }
 
-inviscid_fluid_boundary_class::inviscid_fluid_boundary_class(RegType Bc[BL_SPACEDIM][2])
+amr_fluid_boundary_class::~amr_fluid_boundary_class () {}
+
+const amr_boundary_class*
+amr_fluid_boundary_class::velocity (int i) const 
+{
+    return v[i];
+}
+
+const amr_boundary_class*
+amr_fluid_boundary_class::scalar () const 
+{
+    return s;
+}
+
+const amr_boundary_class*
+amr_fluid_boundary_class::pressure () const 
+{
+    return p;
+}
+
+const amr_boundary_class*
+amr_fluid_boundary_class::terrain_sigma () const 
+{
+    return ts;
+}
+
+inviscid_fluid_boundary_class::inviscid_fluid_boundary_class (RegType Bc[BL_SPACEDIM][2])
 {
     for (int i = 0; i < BL_SPACEDIM; i++) 
     {
@@ -739,12 +874,12 @@ inviscid_fluid_boundary_class::inviscid_fluid_boundary_class(RegType Bc[BL_SPACE
 	}
 	v[i] = new mixed_boundary_class(this, i);
     }
-    s = new mixed_boundary_class(this, -1);
-    p = new mixed_boundary_class(this, -2);
+    s  = new mixed_boundary_class(this, -1);
+    p  = new mixed_boundary_class(this, -2);
     ts = new mixed_boundary_class(this, -4);
 }
 
-inviscid_fluid_boundary_class::~inviscid_fluid_boundary_class()
+inviscid_fluid_boundary_class::~inviscid_fluid_boundary_class ()
 {
     for (int i = 0; i < BL_SPACEDIM; i++) 
     {
