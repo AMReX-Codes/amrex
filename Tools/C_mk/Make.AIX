@@ -1,12 +1,6 @@
 
 CPP = /usr/ccs/lib/cpp
 
-ifeq ($(COMP),CFRONT)
-CXX	          := OCC
-override XTRADEFS += -DBL_BUG_DEFARG -DBL_USE_SETBUF 
-override XTRADEFS += -DBL_SETBUF_SIGNED_CHAR -DBL_COALESCE_FABS
-endif
-
 ifeq ($(COMP),CC)
 CXX     := CC -h instantiate=local
 CXXOPTF += -O2 -h new_for_init
@@ -19,16 +13,12 @@ ifeq ($(COMP),KCC)
 CXX     := KCC
 CXXOPTF += +K2
 CXXDEBF += +K0
-#override XTRADEFS += -DBL_USE_SETBUF -DBL_SETBUF_SIGNED_CHAR
-override XTRADEFS += -DBL_COALESCE_FABS
 endif
 
 ifeq ($(COMP),newKCC)
 CXX     := newKCC
 CXXOPTF += +K2
 CXXDEBF += +K0
-#override XTRADEFS += -DBL_USE_SETBUF -DBL_SETBUF_SIGNED_CHAR
-override XTRADEFS += -DBL_COALESCE_FABS
 endif
 
 ifeq ($(COMP),mpKCC)
@@ -36,8 +26,6 @@ ifeq ($(COMP),mpKCC)
 CXX     := newmpKCC
 CXXOPTF += +K2
 CXXDEBF += +K0
-#override XTRADEFS += -DBL_USE_SETBUF -DBL_SETBUF_SIGNED_CHAR
-override XTRADEFS += -DBL_COALESCE_FABS
 endif
 
 ifeq ($(PROFILE), TRUE)
@@ -49,7 +37,7 @@ endif
 #FC     = xlf -N 80 -e I
 FC     = xlf
 #FOPTF += -O4 -qmaxmem=30000 -qhot -qtune=auto
-FOPTF += -O4 -qhot -qtune=auto
+FOPTF += -O3 -qarch=auto -qtune=auto
 FDEBF += -g
 
 COPTF += -O2
