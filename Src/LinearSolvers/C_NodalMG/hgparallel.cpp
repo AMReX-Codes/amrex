@@ -241,6 +241,28 @@ restart:
 
             // r[jgrid].copy(r[igrid], bb, 0, b, 0, r.nComp());
 
+void task_copy::init ()
+{
+    if (work_to_do())
+    {
+        _do_depend();
+
+        if (is_local(m_mf,m_dgrid) && is_local(m_smf,m_sgrid))
+        {
+            m_local = true;
+
+            if (dependencies.empty())
+            {
+                m_mf[m_dgrid].copy(m_smf[m_sgrid],m_sbx,0,m_bx,0,m_mf.nComp());
+                //
+                // Flip the work_to_do() bit.
+                //
+                m_done = true;
+            }
+        }
+    }
+}
+
 task_copy::task_copy (task_list&      tl_,
                       MultiFab&       mf,
                       int             dgrid,
@@ -259,9 +281,10 @@ task_copy::task_copy (task_list&      tl_,
 #ifdef BL_USE_MPI
     m_request(MPI_REQUEST_NULL),
 #endif
-    m_local(false)
+    m_local(false),
+    m_done(false)
 {
-    if (work_to_do()) _do_depend();
+    init();
 }
 
 task_copy::task_copy (task_list&      tl_,
@@ -283,9 +306,37 @@ task_copy::task_copy (task_list&      tl_,
 #ifdef BL_USE_MPI
     m_request(MPI_REQUEST_NULL),
 #endif
-    m_local(false)
+    m_local(false),
+    m_done(false)
 {
-    if (work_to_do()) _do_depend();
+    init();
+}
+
+task_copy::task_copy (task_list&        tl_,
+                      MultiFab&         mf,
+                      int               dgrid,
+                      const MultiFab&   smf,
+                      int               sgrid,
+                      const Box&        bx,
+                      const task_proxy& tp)
+    :
+    task(tl_),
+    tmp(0),
+    m_mf(mf),
+    m_smf(smf),
+    m_dgrid(dgrid),
+    m_sgrid(sgrid),
+    m_bx(bx),
+    m_sbx(bx),
+#ifdef BL_USE_MPI
+    m_request(MPI_REQUEST_NULL),
+#endif
+    m_local(false),
+    m_done(false)
+{
+    depend_on(tp);
+
+    init();
 }
 
 inline bool mfeq (const MultiFab& a, const MultiFab& b)
@@ -322,7 +373,8 @@ void task::_do_depend ()
     {
         assert(!(*cit).null());
 
-        if (depends_on_q(**cit)) depend_on(*cit);
+        if (depends_on_q(**cit))
+            dependencies.push_back(*cit);
     }
 }
   
@@ -336,7 +388,7 @@ task_copy::~task_copy ()
 
 bool task_copy::work_to_do () const
 {
-    return is_local(m_mf,m_dgrid) || is_local(m_smf,m_sgrid);
+    return (is_local(m_mf,m_dgrid) || is_local(m_smf,m_sgrid)) && !m_done;
 }
 
 bool task_copy::startup ()
@@ -345,31 +397,30 @@ bool task_copy::startup ()
 
     bool result = true;
 
-    if (is_local(m_mf,m_dgrid) && is_local(m_smf,m_sgrid))
-    {
-        m_local = true;
-    }
 #ifdef BL_USE_MPI
-    else if (is_local(m_mf,m_dgrid))
+    if (!m_local)
     {
-        tmp = new FArrayBox(m_sbx, m_smf.nComp());
-        int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, HG::mpi_comm, &m_request);
-        if (res != 0)
-            ParallelDescriptor::Abort(res);
-        assert(m_request != MPI_REQUEST_NULL);
-    }
-    else if (is_local(m_smf,m_sgrid)) 
-    {
-        tmp = new FArrayBox(m_sbx,m_smf.nComp());
-        tmp->copy(m_smf[m_sgrid],m_sbx);
-        int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_mf,  m_dgrid), m_sno, HG::mpi_comm, &m_request);
-        if (res != 0)
-            ParallelDescriptor::Abort(res);
-        assert(m_request != MPI_REQUEST_NULL);
-    }
-    else
-    {
-        result = false;
+        if (is_local(m_mf,m_dgrid))
+        {
+            tmp = new FArrayBox(m_sbx, m_smf.nComp());
+            int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, HG::mpi_comm, &m_request);
+            if (res != 0)
+                ParallelDescriptor::Abort(res);
+            assert(m_request != MPI_REQUEST_NULL);
+        }
+        else if (is_local(m_smf,m_sgrid)) 
+        {
+            tmp = new FArrayBox(m_sbx,m_smf.nComp());
+            tmp->copy(m_smf[m_sgrid],m_sbx);
+            int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_mf,  m_dgrid), m_sno, HG::mpi_comm, &m_request);
+            if (res != 0)
+                ParallelDescriptor::Abort(res);
+            assert(m_request != MPI_REQUEST_NULL);
+        }
+        else
+        {
+            result = false;
+        }
     }
 #endif
 
@@ -382,7 +433,8 @@ bool task_copy::ready ()
 
     if (m_local)
     {
-        m_mf[m_dgrid].copy(m_smf[m_sgrid], m_sbx, 0, m_bx, 0, m_mf.nComp());
+        if (!m_done)
+            m_mf[m_dgrid].copy(m_smf[m_sgrid],m_sbx,0,m_bx,0,m_mf.nComp());
         return true;
     }
 
@@ -654,6 +706,6 @@ void task_fec_base::push_back (task_fab* tf)
     if (!tp.null())
     {
         tfvect.push_back(tp);
-        depend_on(tp);
+        dependencies.push_back(tp);
     }
 }
