@@ -2,19 +2,19 @@
 #include "boundary.H"
 
 #ifdef BL_FORT_USE_UNDERSCORE
-#  define FORT_FBREF    bref_
-#  define FORT_FBREFM   brefm_
-#  define FORT_FBNEG    bneg_
-#  define FORT_FBNEGM   bnegm_
-#  define FORT_FBINFLO  binflo_
-#  define FORT_FBINFIL  binfil_
+#define FORT_FBREF    bref_
+#define FORT_FBREFM   brefm_
+#define FORT_FBNEG    bneg_
+#define FORT_FBNEGM   bnegm_
+#define FORT_FBINFLO  binflo_
+#define FORT_FBINFIL  binfil_
 #else
-#  define FORT_FBREF    BREF
-#  define FORT_FBREFM   BREFM
-#  define FORT_FBNEG    BNEG
-#  define FORT_FBNEGM   BNEGM
-#  define FORT_FBINFLO  BINFLO
-#  define FORT_FBINFIL  BINFIL
+#define FORT_FBREF    BREF
+#define FORT_FBREFM   BREFM
+#define FORT_FBNEG    BNEG
+#define FORT_FBNEGM   BNEGM
+#define FORT_FBINFLO  BINFLO
+#define FORT_FBINFIL  BINFIL
 #endif
 
 extern "C" 

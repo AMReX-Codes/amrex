@@ -309,16 +309,16 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
 	p.set(ilev, new MultiFab(nmesh, 1, 1));
 	if (hg_terrain)
 	{
-#  if (BL_SPACEDIM == 2)
+#if (BL_SPACEDIM == 2)
 	    rhoinv.set(ilev, new MultiFab(cmesh, 3, 0));
 	    rhoinv[ilev].setVal(1.0);
 	    rhoinv[ilev].setVal(0.2, 2, 1);
-#  else
+#else
 	    rhoinv.set(ilev, new MultiFab(cmesh, 5, 0));
 	    rhoinv[ilev].setVal(1.0);
 	    rhoinv[ilev].setVal(0.2, 3, 1);
 	    rhoinv[ilev].setVal(0.5, 4, 1);
-#  endif
+#endif
 	}
 	else
 	{
@@ -339,17 +339,17 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
 	for (int ilev = 1; ilev < m.length(); ilev++) 
 	{
 	    rat *= ratio[ilev-1];
-#  if (BL_SPACEDIM == 2)
+#if (BL_SPACEDIM == 2)
 	    rhoinv[ilev].mult((Real) rat[0] / rat[1], 0, 1);
 	    rhoinv[ilev].mult((Real) rat[1] / rat[0], 1, 1);
 	    // component 2 remains unchanged
-#  else
+#else
 	    rhoinv[ilev].mult((Real) rat[0] / (rat[1] * rat[2]), 0, 1);
 	    rhoinv[ilev].mult((Real) rat[1] / (rat[0] * rat[2]), 1, 1);
 	    rhoinv[ilev].mult((Real) rat[2] / (rat[0] * rat[1]), 2, 1);
 	    rhoinv[ilev].mult(1.0 / rat[1]                     , 3, 1);
 	    rhoinv[ilev].mult(1.0 / rat[0]                     , 4, 1);
-#  endif
+#endif
 	}
     }
     

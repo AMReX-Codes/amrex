@@ -2,15 +2,15 @@
 #include "fill_patch.H"
 
 #ifdef BL_FORT_USE_UNDERSCORE
-#  define FORT_FIPRODC   iprodc_
-#  define FORT_FIPRODN   iprodn_
-#  define FORT_FFCPY2    fcpy2_
-#  define FORT_FFCPY     fcpy_
+#define FORT_FIPRODC   iprodc_
+#define FORT_FIPRODN   iprodn_
+#define FORT_FFCPY2    fcpy2_
+#define FORT_FFCPY     fcpy_
 #else
-#  define FORT_FIPRODC   IPRODC
-#  define FORT_FIPRODN   IPRODN
-#  define FORT_FFCPY2    FCPY2
-#  define FORT_FFCPY     FCPY
+#define FORT_FIPRODC   IPRODC
+#define FORT_FIPRODN   IPRODN
+#define FORT_FFCPY2    FCPY2
+#define FORT_FFCPY     FCPY
 #endif
 
 extern "C"
@@ -451,12 +451,12 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 	    const Real* ptrb = r[jgrid].dataPtr();
 	    const Box& boxa = r[igrid].box();
 	    const Box& boxb = r[jgrid].box();
-#  if (BL_SPACEDIM == 2)
+#if (BL_SPACEDIM == 2)
 	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(b), &w, r.nComp());
-#  else
+#else
 	    const int ibord = r.nGrow();
 	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(b), &w, &ibord, r.nComp());
-#  endif
+#endif
 	}
     }
     else if (type(r) == IntVect::TheCellVector()) 
@@ -584,10 +584,10 @@ public:
 private:
     const amr_restrictor_class& m_restric;
     MultiFab& m_targ;
-    int m_jgrid;
+    const int m_jgrid;
     const Box m_cbox;
     const MultiFab& m_src;
-    int m_igrid;
+    const int m_igrid;
     const IntVect m_rat;
 };
 

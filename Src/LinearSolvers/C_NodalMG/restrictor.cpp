@@ -3,25 +3,25 @@
 #include "fill_patch.H"
 
 #ifdef BL_FORT_USE_UNDERSCORE
-#  define FORT_FACRST1  acrst1_
-#  define FORT_FANRST1  anrst1_
-#  define FORT_FANRST2  anrst2_
-#  define FORT_FANFR2   anfr2_
-#  define FORT_FANER2   aner2_
-#  define FORT_FANCR2   ancr2_
-#  define FORT_FANOR2   anor2_
-#  define FORT_FANIR2   anir2_
-#  define FORT_FANDR2   andr2_
+#define FORT_FACRST1  acrst1_
+#define FORT_FANRST1  anrst1_
+#define FORT_FANRST2  anrst2_
+#define FORT_FANFR2   anfr2_
+#define FORT_FANER2   aner2_
+#define FORT_FANCR2   ancr2_
+#define FORT_FANOR2   anor2_
+#define FORT_FANIR2   anir2_
+#define FORT_FANDR2   andr2_
 #else
-#  define FORT_FACRST1  ACRST1
-#  define FORT_FANRST1  ANRST1
-#  define FORT_FANRST2  ANRST2
-#  define FORT_FANFR2   ANFR2
-#  define FORT_FANER2   ANER2
-#  define FORT_FANCR2   ANCR2
-#  define FORT_FANOR2   ANOR2
-#  define FORT_FANIR2   ANIR2
-#  define FORT_FANDR2   ANDR2
+#define FORT_FACRST1  ACRST1
+#define FORT_FANRST1  ANRST1
+#define FORT_FANRST2  ANRST2
+#define FORT_FANFR2   ANFR2
+#define FORT_FANER2   ANER2
+#define FORT_FANCR2   ANCR2
+#define FORT_FANOR2   ANOR2
+#define FORT_FANIR2   ANIR2
+#define FORT_FANDR2   ANDR2
 #endif
 
 extern "C" 
