@@ -1202,7 +1202,7 @@ contains
       bxasc = layout_boxassoc(mf%la, lng, mf%nodal)
 !call boxassoc_print(bxasc, unit = 1)
 
-      !$OMP PARALLEL DO PRIVATE(i,ii,jj,bx,p1,p2)
+      !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2)
       do i = 1, bxasc%l_con%ncpy
          ii = bxasc%l_con%cpy(i)%nd
          jj = bxasc%l_con%cpy(i)%ns
@@ -2676,7 +2676,7 @@ contains
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
-    !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(MAX:r1)
+    !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
     do i = 1, mf%nboxes
        if ( imultifab_remote(mf,i) ) cycle
        if ( lall ) then
@@ -2770,7 +2770,7 @@ contains
     integer :: i
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,ap,bp,cp)
+    !$OMP PARALLEL DO PRIVATE(i,ap,bp)
     do i = 1, a%nboxes
        if ( multifab_remote(a,i) ) cycle
        if ( lall ) then
@@ -2792,7 +2792,7 @@ contains
     integer :: i
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,ap,bp,cp)
+    !$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
        if ( multifab_remote(a,i) ) cycle
        if ( lall ) then
@@ -2815,7 +2815,7 @@ contains
     integer :: i
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,ap,bp,cp)
+    !$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
        if ( multifab_remote(a,i) ) cycle
        if ( lall ) then
@@ -2839,7 +2839,7 @@ contains
     integer :: i
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,ap,bp,cp)
+    !$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
        if ( multifab_remote(a,i) ) cycle
        if ( lall ) then
