@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.13 1998-03-27 23:53:20 lijewski Exp $
+// $Id: AmrLevel.H,v 1.14 1998-03-30 17:28:57 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -189,26 +189,8 @@ public:
                            int          tagval,
                            Real         time) = 0;
     //
-    // General fill function.
-    //
-    void FillPatch (FArrayBox&   dest,
-                    int          dest_comp,
-                    Real         time,
-                    int          state_indx,
-                    int          src_comp,
-                    int          ncomp,
-                   Interpolater* mapper = 0);
-    //
     // Interpolate up from coarse level.
     //
-    void FillCoarsePatch (FArrayBox&    dest,
-                          int           dest_comp,
-                          Real          time,
-                          int           state_indx,
-                          int           src_comp,
-                          int           ncomp,
-                          Interpolater* mapper = 0);
-
     void FillCoarsePatch (MultiFab&     dest,
                           int           dest_comp,
                           Real          time,
@@ -290,16 +272,6 @@ protected:
     // Common code used by all constructors.
     //
     void finishConstructor();    
-    //
-    // Pointwise state data.
-    //
-    void probe (ostream&       os,
-                const IntVect& iv,
-                int            radius,
-                Real           time,
-                int            state_indx,
-                int            src_comp,
-                int            num_comp);
     //
     // The Data.
     //
