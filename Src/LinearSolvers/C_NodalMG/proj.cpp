@@ -247,7 +247,9 @@ init(PArray<MultiFab> u[], PArray<MultiFab>& p,
 	    }
 	}
 	if ( is_local(u[0][2], 0) )
-	    u[0][2][0](m[2][0].smallEnd() + IntVect(10,10)) = 3.0;
+	{
+	    u[0][2][0](m[2][0].smallEnd() + IntVect(2,2)) = 3.0;
+	}
 	// for gr2ann
 	//u[0][2][0](IntVect(20,20)) = 1.0;
 	//u[0][2][0](IntVect(20,20)) = 0.0;
@@ -257,7 +259,9 @@ init(PArray<MultiFab> u[], PArray<MultiFab>& p,
     //u[1][1][0](IntVect(31,30)) = 1.0;
     //u[1][1][0](IntVect(30,31)) = -1.0;
     for (int ilev = 0; ilev < p.length(); ilev++)
+    {
 	p[ilev].setVal(0.0);
+    }
 #else
     for (int ilev = 0; ilev < m.length(); ilev++) 
     {
@@ -421,6 +425,8 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     // bc[1][1] = refWall;
     // bc[1][0] = inflow;
     // bc[1][1] = outflow;
+    bc[0][0] = inflow;
+    bc[1][1] = outflow;
         
     PArray<MultiFab> u[BL_SPACEDIM];
     PArray<MultiFab> p, rhoinv, rhs;
