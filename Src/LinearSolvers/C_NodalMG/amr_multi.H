@@ -33,9 +33,6 @@ public:
     static void mesh_write(const Array<BoxArray>& m, const Array<IntVect>& r, Box fd, ostream& os);
     
     void solve(Real reltol, Real abstol, int i1, int i2);
-    Real ml_cycle(int lev, int mglev, int i1, int i2, Real tol, Real res_norm_fine = 0.0);
-    void mg_cycle(int mglev, int i1, int i2, bool is_zero);
-    Real ml_residual(int mglev, int lev);
 
     virtual void mg_interpolate_level(int lto, int lfrom) = 0;
     virtual void mg_restrict_level(int lto, int lfrom) = 0;
@@ -44,6 +41,10 @@ public:
     virtual void relax(int mglev, int i1, bool is_zero) = 0;
     virtual void cgsolve(int mglev) = 0;
 protected:
+    Real ml_cycle(int lev, int mglev, int i1, int i2, Real tol, Real res_norm_fine);
+    void mg_cycle(int mglev, int i1, int i2, bool is_zero);
+    Real ml_residual(int mglev, int lev);
+
     void build_index();
     
     int get_amr_level(int mglev) const 

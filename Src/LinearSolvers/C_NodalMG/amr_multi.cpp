@@ -339,7 +339,7 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2)
     if (pcode >= 1 && ParallelDescriptor::IOProcessor())
 	cout << "Source norm is " << norm << endl;
     
-    Real err = ml_cycle(lev_max, mglev_max, i1, i2, abstol);
+    Real err = ml_cycle(lev_max, mglev_max, i1, i2, abstol, 0.0);
     
     norm = (err > norm) ? err : norm;
     Real tol = reltol * norm;
@@ -348,7 +348,7 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2)
     int it = 0;
     while (err > tol) 
     {
-	err = ml_cycle(lev_max, mglev_max, i1, i2, tol);
+	err = ml_cycle(lev_max, mglev_max, i1, i2, tol, 0.0);
 	if (++it > 100)
 	    BoxLib::Error("amr_multigrid::solve---multigrid iteration failed");
     }
