@@ -1,24 +1,20 @@
 #include "hgparallel.h"
+#ifdef BL_USE_MPI
+#include <mpi.h>
+#endif
 
-task_copy::task_copy(MultiFab* mf, int dgrid, const MultiFab& smf, int sgrid, const Box& bx)
+task_copy::task_copy(MultiFab& mf, int dgrid, const MultiFab& smf, int sgrid, const Box& bx)
 : m_mf(mf), m_dgrid(dgrid), m_smf(smf), m_sgrid(sgrid), m_bx(bx)
 {
     m_ready = true;
-    m_mf->operator[](m_dgrid).copy(m_smf[m_sgrid], m_bx);
+    m_mf[m_dgrid].copy(m_smf[m_sgrid], m_bx);
 }
 
-task_copy::task_copy(FArrayBox* fab_, const MultiFab& smf_, int grid, const Box& bx)
-: m_mf(0), m_fab(fab_), m_smf(smf_), m_sgrid(grid), m_bx(bx)
-{
-    m_ready = true;
-    m_fab->copy(m_smf[m_sgrid]);
-}
-
-task_copy::task_copy(MultiFab* mf, int dgrid, const Box& db, const MultiFab& smf, int sgrid, const Box& sb)
+task_copy::task_copy(MultiFab& mf, int dgrid, const Box& db, const MultiFab& smf, int sgrid, const Box& sb)
 : m_mf(mf), m_bx(db), m_dgrid(dgrid), m_smf(smf), s_bx(sb), m_sgrid(sgrid)
 {
     m_ready = true;
-    m_mf->operator[](m_dgrid).copy(m_smf[m_sgrid], s_bx, 0, m_bx, 0, mf->nComp());
+    m_mf[m_dgrid].copy(m_smf[m_sgrid], s_bx, 0, m_bx, 0, mf.nComp());
 }
 			// r[jgrid].copy(r[igrid], bb, 0, b, 0, r.nComp());
 
@@ -27,6 +23,22 @@ task_copy::~task_copy()
 }
 
 bool task_copy::ready()
+{
+    return m_ready;
+}
+
+task_copy_local::task_copy_local(FArrayBox& fab_, const MultiFab& smf_, int grid, const Box& bx)
+: m_fab(fab_), m_smf(smf_), m_sgrid(grid), m_bx(bx)
+{
+    m_ready = true;
+    m_fab.copy(m_smf[m_sgrid]);
+}
+
+task_copy_local::~task_copy_local()
+{
+}
+
+bool task_copy_local::ready()
 {
     return m_ready;
 }

@@ -376,15 +376,15 @@ void mixed_boundary_class::sync_borders(MultiFab& r, const level_interface& lev_
 	int igrid = lev_interface.grid(level_interface::FACEDIM, iface, 0);
 	if (igrid < 0) 
 	{
-	    int idim = lev_interface.fdim(iface);
+	    const int idim = lev_interface.fdim(iface);
 	    if (ptr->bc[idim][0] == periodic) 
 	    {
-		int jgrid = lev_interface.grid(level_interface::FACEDIM, iface, 1);
+		const int jgrid = lev_interface.grid(level_interface::FACEDIM, iface, 1);
 		igrid = lev_interface.exterior_ref(igrid);
 		const Box& b = lev_interface.node_box(level_interface::FACEDIM, iface);
 		Box bb = b;
 		bb.shift(idim, lev_interface.domain().length(idim));
-		tl.add_task(new task_copy(&r, jgrid, b, r, igrid, bb));
+		tl.add_task(new task_copy(r, jgrid, b, r, igrid, bb));
 	    }
 	}
     }
@@ -461,7 +461,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		    int isrc = lev_interface.exterior_ref(igrid);
 		    bb.shift(idim, domain.length(idim));
 		    //r[jgrid].copy(r[isrc], bb, 0, b, 0, r.nComp());
-		    tl.add_task(new task_copy(&r, jgrid, b, r, isrc, bb));
+		    tl.add_task(new task_copy(r, jgrid, b, r, isrc, bb));
 		}
 		else if (t == inflow) 
 		{
@@ -557,7 +557,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		    int isrc = lev_interface.exterior_ref(jgrid);
 		    bb.shift(idim, -domain.length(idim));
 		    //r[igrid].copy(r[isrc], bb, 0, b, 0, r.nComp());
-		    tl.add_task(new task_copy(&r, igrid, b, r, isrc, bb));
+		    tl.add_task(new task_copy(r, igrid, b, r, isrc, bb));
 		}
 		else if (t == inflow) 
 		{

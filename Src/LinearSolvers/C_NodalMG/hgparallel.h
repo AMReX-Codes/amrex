@@ -31,16 +31,29 @@ public:
 class task_copy : public task
 {
 public:
-    task_copy(FArrayBox* fab_, const MultiFab& mf_, int grid_, const Box& bx);
-    task_copy(MultiFab* mf, int dgrid, const MultiFab& smf_, int sgrid, const Box& bx);
-    task_copy(MultiFab* mf, int dgrid, const Box& db, const MultiFab& smf, int sgrid, const Box& sb);
+    task_copy(MultiFab& mf, int dgrid,                const MultiFab& smf, int sgrid, const Box& bx);
+    task_copy(MultiFab& mf, int dgrid, const Box& db, const MultiFab& smf, int sgrid, const Box& sb);
     virtual ~task_copy();
     virtual bool ready();
 private:
-    FArrayBox* m_fab;
-    MultiFab* m_mf;
+    MultiFab& m_mf;
     const MultiFab& m_smf;
     int m_dgrid;
+    const int m_sgrid;
+    const Box m_bx;
+    const Box s_bx;
+    bool m_ready;
+};
+
+class task_copy_local : public task
+{
+public:
+    task_copy_local(FArrayBox& fab_, const MultiFab& mf_, int grid_, const Box& bx);
+    virtual ~task_copy_local();
+    virtual bool ready();
+private:
+    FArrayBox& m_fab;
+    const MultiFab& m_smf;
     const int m_sgrid;
     const Box m_bx;
     const Box s_bx;
