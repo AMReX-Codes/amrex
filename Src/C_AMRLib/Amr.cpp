@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.30 1998-02-18 21:35:32 vince Exp $
+// $Id: Amr.cpp,v 1.31 1998-03-25 21:32:18 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -66,18 +66,10 @@ Amr::boxArray (int lev) const
 MultiFab*
 Amr::derive (const aString& name,
              Real           time,
-             int            lev)
+             int            lev,
+             int            ngrow)
 {
-    return amr_level[lev].derive(name,time);
-}
-
-FArrayBox*
-Amr::derive (const Box&     b,
-             const aString& name,
-             Real           time,
-             int            lev)
-{
-    return amr_level[lev].derive(b,name,time);
+    return amr_level[lev].derive(name,time,ngrow);
 }
 
 int

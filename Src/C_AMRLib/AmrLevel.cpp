@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.21 1998-03-24 19:08:41 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.22 1998-03-25 21:32:19 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1443,287 +1443,96 @@ AmrLevel::FillCoarsePatch (MultiFab&     mfdest,
 
 MultiFab*
 AmrLevel::derive (const aString& name,
-                  Real           time)
+                  Real           time,
+                  int            ngrow)
 {
-    BoxLib::Error("AmrLevel::derive(MultiFab*) not implemented");
-#if 0
-    //
-    // The below code returns PArray<FArrayBox*> which isn't OK for parallel.
-    //
-    int state_indx, src_comp;
+    assert(ngrow >= 0);
 
-    if (isStateVariable(name,state_indx,src_comp))
+    MultiFab* mf = 0;
+
+    int state_indx, src_comp, num_comp;
+
+    if (isStateVariable(name, state_indx, src_comp))
     {
-        const StateDescriptor& desc = desc_lst[state_indx];
-        int nc                      = desc.nComp();
-        const BoxArray& grds        = state[state_indx].boxArray();
-        PArray<FArrayBox>* df = new PArray<FArrayBox>(grids.length(),PArrayManage);
-        for (int i = 0; i < grds.length(); i++)
+        mf = new MultiFab(state[state_indx].boxArray(), 1, ngrow);
+
+        FillPatchIterator fpi(*this, get_new_data(state_indx), ngrow,
+                              0, time, state_indx, src_comp, 1);
+
+        for ( ; fpi.isValid(); ++fpi)
         {
-            FArrayBox* dest = new FArrayBox(grds[i],1);
-            state[state_indx].linInterp(*dest,grds[i],time,src_comp,0,1);
-            df->set(i,dest);
+            assert((*mf)[fpi.index()].box() == fpi().box());
+
+            (*mf)[fpi.index()].copy(fpi());
         }
-        return df;
     }
-    //
-    // Can quantity be derived?
-    //
-    const DeriveRec* d;
-    if (d = derive_lst.get(name))
+    else if (const DeriveRec* rec = derive_lst.get(name))
     {
-        PArray<FArrayBox>* df = new PArray<FArrayBox>(grids.length(),PArrayManage);
+        rec->getRange(0, state_indx, src_comp, num_comp);
 
-        const Real* dx = geom.CellSize();
-        int state_indx, src_comp, num_comp;
-        d->getRange(0,state_indx,src_comp,num_comp);
-        const BoxArray& grds = state[state_indx].boxArray();
-        int n_state = d->numState();
-        int n_der   = d->numDerive();
-        int nsr     = d->numRange();
-        IndexType der_typ = d->deriveType();
-        //
-        // Can do special fill?
-        //
-        for (int i = 0; i < grds.length(); i++)
+        BoxArray srcBA(state[state_indx].boxArray());
+        BoxArray dstBA(state[state_indx].boxArray());
+
+        dstBA.convert(rec->deriveType());
+
+        for (int i = 0; i < srcBA.length(); i++)
         {
-            //
-            // Build destination FAB and install.
-            //
-            Box dbox(grids[i]);
-            dbox.convert(der_typ);
-            FArrayBox* dest = new FArrayBox(dbox,n_der);
-            df->set(i,dest);
-            //
-            // Build src fab and fill with component state data.
-            //
-            Box sbox(d->boxMap()(dbox));
-            FArrayBox src(sbox,n_state);
-            for (int k = 0, dc = 0; k < nsr; k++)
+            srcBA.set(i, rec->boxMap()(srcBA[i]));
+        }
+
+        MultiFab srcMF(srcBA, rec->numState(), ngrow);
+
+        for (int k = 0, dc = 0; k < rec->numRange(); k++, dc += num_comp)
+        {
+            rec->getRange(k, state_indx, src_comp, num_comp);
+
+            FillPatchIterator fpi(*this, srcMF, ngrow, 0, time, state_indx,
+                                  src_comp, num_comp, rec->interp());
+
+            for ( ; fpi.isValid(); ++fpi)
             {
-                d->getRange(k,state_indx,src_comp,num_comp); 
-                const StateDescriptor &desc = desc_lst[state_indx];
-                if (grds[i].contains(sbox))
-                {
-                    //
-                    // Can do copy.
-                    //
-                    state[state_indx].linInterp(src,sbox,time,
-                                                src_comp,dc,num_comp);
-                }
-                else
-                {
-                    //
-                    // Must filpatch.
-                    //
-                    FillPatch(src,dc,time,state_indx,src_comp,num_comp);
-                }
-                dc += num_comp;
+                DependentMultiFabIterator dmfi(fpi, srcMF);
+                dmfi().copy(fpi(), 0, dc, num_comp);
             }
-            //
-            // Call deriving function.
-            //
-            Real *ddat        = dest->dataPtr();
-            const int* dlo    = dest->loVect();
-            const int* dhi    = dest->hiVect();
-            Real *cdat        = src.dataPtr();
-            const int* clo    = src.loVect();
-            const int* chi    = src.hiVect();
+        }
+
+        mf = new MultiFab(dstBA, rec->numDerive(), ngrow);
+
+        for (MultiFabIterator mfi(srcMF); mfi.isValid(); ++mfi)
+        {
+            int grid_no       = mfi.index();
+            Real* ddat        = (*mf)[grid_no].dataPtr();
+            const int* dlo    = (*mf)[grid_no].loVect();
+            const int* dhi    = (*mf)[grid_no].hiVect();
+            int n_der         = rec->numDerive();
+            Real* cdat        = mfi().dataPtr();
+            const int* clo    = mfi().loVect();
+            const int* chi    = mfi().hiVect();
+            int n_state       = rec->numState();
             const int* dom_lo = state[state_indx].getDomain().loVect();
             const int* dom_hi = state[state_indx].getDomain().hiVect();
-            const int* bcr    = d->getBC();
-            const Real* xlo   = grid_loc[i].lo();
-            d->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
-                         cdat,ARLIM(clo),ARLIM(chi),&n_state,
-                         dlo,dhi,dom_lo,dom_hi,dx,xlo,&time,bcr,
-                         &level,&i);
-        }
-        return df;
-    }
-    //
-    // If we got here, cannot derive given name.
-    //
-    aString msg("AmrLevel::derive(MultiFab*): unknown variable: ");
-    msg += name;
-    BoxLib::Error(msg.c_str());
-#endif
-    return 0; // Just to keep the compiler happy
-}
+            const Real* dx    = geom.CellSize();
+            const int* bcr    = rec->getBC();
+            const Real* xlo   = grid_loc[grid_no].lo();
+            Real dt           = parent->dtLevel(level);
 
-FArrayBox*
-AmrLevel::derive (const Box&     b,
-                  const aString& name,
-                  Real           time)
-{
-    if (ParallelDescriptor::NProcs() > 1)
-        BoxLib::Error("AmrLevel::derive(FAB*) not implemented in parallel");
-
-    int state_indx, src_comp;
-    //
-    // Is it a state variable?
-    //
-    if (isStateVariable(name,state_indx,src_comp))
-    {
-        FArrayBox *dest = new FArrayBox(b,1);
-        FillPatch(*dest,0,time,state_indx,src_comp,1);
-        return dest;
-    }
-
-    const DeriveRec* d;
-    if (d = derive_lst.get(name))
-    {
-        FArrayBox *dest = new FArrayBox(b,d->numDerive());
-        FillDerive(*dest,b,name,time);
-        return dest;
-    }
-    //
-    // If we got here, cannot derive given name.
-    //
-    aString msg("AmrLevel::derive(FAB): unknown variable: ");
-    msg += name;
-    BoxLib::Error(msg.c_str());
-
-    return 0; // Just to keep the compiler happy.
-}
-
-void
-AmrLevel::FillDerive (FArrayBox&     dest,
-                      const Box&     subbox,
-                      const aString& name,
-                      Real           time)
-{
-    if (ParallelDescriptor::NProcs() > 1)
-        BoxLib::Error("AmrLevel::FillDerive(): no implemented in parallel");
-
-    const DeriveRec* d = derive_lst.get(name);
-    assert (d != 0);
-    //
-    // Get domain and BoxArray.
-    //
-    IndexType der_typ = d->deriveType();
-    int n_der = d->numDerive();
-    int cell_centered = der_typ.cellCentered();
-
-    Box dom(geom.Domain());
-    if (!cell_centered)
-        dom.convert(der_typ);
-    //
-    // Only fill portion on interior of domain.
-    //
-    Box dbox(subbox);
-    dbox &= dom;
-    //
-    // create a FIDIL domain to keep track of what can be filled at this level.
-    //
-    Box unfilled_region;
-    BoxDomain fd(dbox.ixType());
-    fd.add(dbox);
-    int i;
-    for (i = 0; i < grids.length(); i++)
-    {
-        Box gbox(grids[i]);
-        if (!cell_centered)
-            gbox.convert(der_typ);
-        if (dbox.intersects(gbox))
-            fd.rmBox(gbox);
-    }
-    unfilled_region = fd.minimalBox();
-    fd.clear();
-
-    if (unfilled_region.ok())
-    {
-        //
-        // Must fill on this region on crse level and interpolate.
-        //
-        if (level == 0)
-            BoxLib::Error("FillPatch: unfilled region at level 0");
-        //
-        // Coarsen unfilled region and widen if necessary.
-        //
-        Interpolater *mapper = d->interp();
-        Box crse_reg(mapper->CoarseBox(unfilled_region,crse_ratio));
-        //
-        // Alloc patch for crse level.
-        //
-        FArrayBox crse(crse_reg,n_der);
-        //
-        // Fill patch at lower level.
-        //
-        AmrLevel &crse_lev = parent->getLevel(level-1);
-        crse_lev.FillDerive(crse,crse_reg,name,time);
-        //
-        // Get bndry conditions for this patch.
-        //
-        Array<BCRec> bc_crse;
-        //
-        // Interpolate up to fine patch.
-        //
-        const Geometry& crse_geom = crse_lev.geom;
-        mapper->interp(crse,0,dest,0,n_der,unfilled_region,
-                       crse_ratio,crse_geom,geom,bc_crse);
-    }
-    //
-    // Walk through grids, deriving on intersect.
-    //
-    int n_state = d->numState();
-    int nsr = d->numRange();
-    const Real* dx = geom.CellSize();
-    Real dt = parent->dtLevel(level);
-    for (i = 0; i < grids.length(); i++)
-    {
-        Box g(grids[i]);
-        if (!cell_centered)
-            g.convert(der_typ);
-        g &= dbox;
-        if (g.ok())
-        {
-            Box sbox(d->boxMap()(g));
-            FArrayBox src(sbox,n_state);
-            int dc = 0;
-            int state_indx, sc, nc;
-            int k;
-            for (k = 0; k < nsr; k++)
-            {
-                d->getRange(k,state_indx,sc,nc);
-                const Box& sg = state[state_indx].boxArray()[i];
-                if (sg.contains(sbox))
-                {
-                    //
-                    // Can do copy.
-                    //
-                    state[state_indx].linInterp(src,sbox,time,sc,dc,nc);
-                }
-                else
-                {
-                    //
-                    // Must filpatch.
-                    //
-                    FillPatch(src,dc,time,state_indx,sc,nc);
-                }
-                dc += nc;
-            }
-            //
-            // Now derive.
-            //
-            Real *ddat = dest.dataPtr();
-            const int* dlo = dest.loVect();
-            const int* dhi = dest.hiVect();
-            const int* lo = g.loVect();
-            const int* hi = g.hiVect();
-            Real *cdat = src.dataPtr();
-            const int* clo = src.loVect();
-            const int* chi = src.hiVect();
-            const int* dom_lo = dom.loVect();
-            const int* dom_hi = dom.hiVect();
-            const int* bcr = d->getBC();
-            Real xlo[BL_SPACEDIM];
-            geom.LoNode(dest.smallEnd(),xlo);
-            d->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
-                         cdat,ARLIM(clo),ARLIM(chi),&n_state,
-                         lo,hi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
-                         &level,&i);
+            rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
+                           cdat,ARLIM(clo),ARLIM(chi),&n_state,
+                           dlo,dhi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
+                           &level,&grid_no);
         }
     }
+    else
+    {
+        //
+        // If we got here, cannot derive given name.
+        //
+        aString msg("AmrLevel::derive(MultiFab*): unknown variable: ");
+        msg += name;
+        BoxLib::Error(msg.c_str());
+    }
+
+    return mf;
 }
 
 Array<int>

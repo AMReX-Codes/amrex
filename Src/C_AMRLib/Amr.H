@@ -4,7 +4,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.9 1998-01-06 23:43:56 lijewski Exp $
+// $Id: Amr.H,v 1.10 1998-03-25 21:32:18 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -173,16 +173,8 @@ public:
     //
     MultiFab* derive (const aString& name,
                       Real           time,
-                      int            lev);
-    //
-    // Retrieve derived data.
-    //
-    // The user is responsible for deleting this pointer when done with it.
-    //
-    FArrayBox* derive (const Box&     b,
-                       const aString& name,
-                       Real           time,
-                       int            lev);
+                      int            lev,
+                      int            ngrow);
 
     void writePlotFile ();
     //

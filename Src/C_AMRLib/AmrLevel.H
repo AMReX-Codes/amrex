@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.11 1998-02-26 22:07:57 lijewski Exp $
+// $Id: AmrLevel.H,v 1.12 1998-03-25 21:32:18 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -245,20 +245,15 @@ public:
                                 int  ncomp,
                                 Real time);
     //
-    // Returns a pointer to a fab containing the derived data.
+    // Returns a MultiFab containing the derived data for this level.
     //
     // The user is responsible for deleting this pointer when done with it.
     //
-    FArrayBox* derive (const Box&     bx,
-                       const aString& name,
-                       Real           time);
-    //
-    // Returns a PArray to fabs containing the derived data.  
-    //
-    // The user is responsible for deleting this pointer when done with it.
+    // If ngrow>0 the MultiFab is built on the appropriately grown BoxArray.
     //
     MultiFab* derive (const aString& name,
-                      Real           time);
+                      Real           time,
+                      int            ngrow);
     //
     // State data object.
     //
@@ -303,13 +298,6 @@ protected:
               const Geometry& level_geom,
               const BoxArray& bl,
               Real            time);
-    //
-    // FillPatch for derived quantities.
-    //
-    void FillDerive (FArrayBox&     dest,
-                     const Box&     subbox,
-                     const aString& name,
-                     Real           time);
     //
     // Common code used by all constructors.
     //
