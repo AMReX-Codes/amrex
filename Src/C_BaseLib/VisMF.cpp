@@ -1,25 +1,25 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.3 1997-11-09 19:45:29 lijewski Exp $
+// $Id: VisMF.cpp,v 1.4 1997-11-09 20:11:26 lijewski Exp $
 //
 
 #include <VisMF.H>
 
 const aString VisMF::FabFileSuffix("_data_");
+
 const aString VisMF::MultiFabHdrFileSuffix("_hdr_");
-const aString VisMF::FabOnDisk::IOPrefix("FabOnDisk:");
+
+const aString VisMF::FabOnDisk::Prefix("FOD:");
 
 ostream&
 operator<< (ostream&                os,
-            const VisMF::FabOnDisk& fad)
+            const VisMF::FabOnDisk& fod)
 {
-    const char SPC = ' ';
-
-    os << VisMF::FabOnDisk::IOPrefix << SPC
-       << fad.m_name                 << SPC
-       << fad.m_head                 << SPC
-       << fad.m_data;
+    os << VisMF::FabOnDisk::Prefix << ' '
+       << fod.m_name               << ' '
+       << fod.m_head               << ' '
+       << fod.m_data;
 
     if (!os.good())
         BoxLib::Error("Write of VisMF::FabOnDisk failed");
@@ -69,7 +69,7 @@ VisMF::Header::writeOn (ostream& os) const
     os << int(m_how) << '\n';
     os << m_ncomp    << '\n';
     os << m_ba       << '\n';
-    os << m_fad      << '\n';
+    os << m_fod      << '\n';
     os << m_min      << '\n';
     os << m_max      << '\n';
 
@@ -82,13 +82,13 @@ VisMF::Write (const FArrayBox& fab,
               const aString&   filename,
               ostream&         os)
 {
-    VisMF::FabOnDisk fad(filename);
+    VisMF::FabOnDisk fod(filename);
 
     //
     // TODO -- set the other two fields.
     //
 
-    return fad;
+    return fod;
 }
 
 VisMF::Header::Header (const MultiFab& mf,
@@ -98,7 +98,7 @@ VisMF::Header::Header (const MultiFab& mf,
     m_how(how),
     m_ncomp(mf.nComp()),
     m_ba(mf.boxArray()),
-    m_fad(m_ba.length()),
+    m_fod(m_ba.length()),
     m_min(m_ba.length()),
     m_max(m_ba.length())
 {
@@ -106,10 +106,7 @@ VisMF::Header::Header (const MultiFab& mf,
     {
         m_min[i].resize(m_ncomp);
         m_max[i].resize(m_ncomp);
-    }
 
-    for (int i = 0, N = m_min.length(); i < N; i++)
-    {
         const Box& subbox = m_ba[i];
 
         const FArrayBox& fab = mf[i];
@@ -153,7 +150,7 @@ VisMF::WriteOneFilePerCPU (const MultiFab& mf,
 
         for (int i = 0, N = mf.length(); i < N; i++)
         {
-            hdr.m_fad[i] = VisMF::Write(mf[i], fab_file_name, fab_file);
+            hdr.m_fod[i] = VisMF::Write(mf[i], fab_file_name, fab_file);
         }
     }
     //
