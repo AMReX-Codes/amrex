@@ -2,7 +2,7 @@
 #define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.24 2001-07-23 17:39:00 lijewski Exp $
+// $Id: FArrayBox.H,v 1.25 2001-07-23 19:33:36 car Exp $
 //
 
 #include <Pointers.H>
@@ -359,7 +359,8 @@ public:
     //
     // Initialize from ParmParse with "fab" prefix.
     //
-    static void init ();
+    static void Initialize ();
+    static void Finalize();
 
 protected:
     //

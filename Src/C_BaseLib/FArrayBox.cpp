@@ -1,5 +1,5 @@
 //
-// $Id: FArrayBox.cpp,v 1.39 2001-07-23 17:55:32 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.40 2001-07-23 19:33:36 car Exp $
 //
 
 #include <cstdlib>
@@ -320,7 +320,7 @@ FArrayBox::get_initval ()
 }
 
 void
-FArrayBox::init ()
+FArrayBox::Initialize ()
 {
     ParmParse pp("fab");
 
@@ -396,6 +396,12 @@ FArrayBox::init ()
     pp.query("do_initval", do_ini);
     do_initval = do_ini ? true : false;
 }
+
+void
+FArrayBox::Finalize ()
+{
+}
+
 
 Real
 FArrayBox::norm (const Box& subbox,

@@ -1,5 +1,5 @@
 //
-// $Id: BoxLib.cpp,v 1.22 2001-07-23 17:39:00 lijewski Exp $
+// $Id: BoxLib.cpp,v 1.23 2001-07-23 19:33:36 car Exp $
 //
 
 #include <cstdio>
@@ -186,7 +186,7 @@ BoxLib::Initialize(int& argc, char**& argv)
         PrintUsage(argc, argv);
     }
 
-    ParmParse pp(argc-2,argv+2,NULL,argv[1]); 
+    ParmParse::Initialize(argc-2,argv+2,argv[1]); 
 
     Profiler::Initialize(argc, argv);
     //
@@ -194,7 +194,7 @@ BoxLib::Initialize(int& argc, char**& argv)
     //
     BoxLib::InitRandom(ParallelDescriptor::MyProc() + 1);
 
-    FArrayBox::init();
+    FArrayBox::Initialize();
 
     std::cout << std::setprecision(10);
 }
@@ -203,6 +203,8 @@ void
 BoxLib::Finalize()
 {
     bl_prf->stop();
+    FArrayBox::Finalize();
     Profiler::Finalize();
+    ParmParse::Finalize();
     ParallelDescriptor::EndParallel();
 }
