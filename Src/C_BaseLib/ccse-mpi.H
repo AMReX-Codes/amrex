@@ -2,7 +2,7 @@
 #define BL_CCSE_MPP
 
 //
-// $Id: ccse-mpi.H,v 1.7 2001-07-17 23:02:30 lijewski Exp $
+// $Id: ccse-mpi.H,v 1.8 2001-07-19 16:57:38 lijewski Exp $
 //
 
 //
@@ -19,10 +19,6 @@
 #undef max
 #endif
 
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 //
 // Template function to return MPI_Datatype depending on argument type.
 //
@@ -42,25 +38,9 @@ template<> inline MPI_Datatype mpi_data_type(unsigned char*)  { return MPI_UNSIG
 template<> inline MPI_Datatype mpi_data_type(unsigned short*) { return MPI_UNSIGNED_SHORT;  }
 template<> inline MPI_Datatype mpi_data_type(unsigned int*)   { return MPI_UNSIGNED;    }
 template<> inline MPI_Datatype mpi_data_type(unsigned long*)  { return MPI_UNSIGNED_LONG;   }
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 #else
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 typedef int MPI_Op;
 typedef int MPI_Comm;
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 #endif /*BL_USE_MPI*/
 
 #endif /*BL_CCSE_MPP*/

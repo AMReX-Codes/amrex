@@ -2,7 +2,7 @@
 #define BL_DISTRIBUTIONMAPPING_H
 
 //
-// $Id: DistributionMapping.H,v 1.18 2001-07-17 23:02:20 lijewski Exp $
+// $Id: DistributionMapping.H,v 1.19 2001-07-19 16:57:31 lijewski Exp $
 //
 #include <vector>
 
@@ -10,11 +10,6 @@
 #include <Array.H>
 #include <Box.H>
 #include <BoxArray.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 //
 //@Man:
@@ -169,12 +164,5 @@ class DistributionMapping
 std::ostream&
 operator<< (std::ostream&              os,
             const DistributionMapping& pmap);
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*BL_DISTRIBUTIONMAPPING_H*/

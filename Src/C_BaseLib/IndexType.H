@@ -2,18 +2,13 @@
 #define BL_INDEXTYPE_H
 
 //
-// $Id: IndexType.H,v 1.9 2001-07-17 23:02:22 lijewski Exp $
+// $Id: IndexType.H,v 1.10 2001-07-19 16:57:33 lijewski Exp $
 //
 
 #include <iostream>
 
 #include <IntVect.H>
 #include <SPACE.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 //
 //@Man:
@@ -154,12 +149,5 @@ private:
     //
     unsigned int itype;
 };
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*BL_INDEXTYPE_H*/

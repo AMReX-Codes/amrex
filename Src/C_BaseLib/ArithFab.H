@@ -2,7 +2,7 @@
 #define BL_ARITHFAB_H
 
 //
-// $Id: ArithFab.H,v 1.6 2001-07-17 23:02:17 lijewski Exp $
+// $Id: ArithFab.H,v 1.7 2001-07-19 16:57:30 lijewski Exp $
 //
 
 #include <iostream>
@@ -11,11 +11,6 @@
 #include <BaseFab.H>
 #include <REAL.H>
 #include <Looping.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 //
 //@Man:
@@ -1073,13 +1068,6 @@ ArithFab<T>::linComb (const ArithFab<T>& f1,
     } EndForTX
     return *this;
 }
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*BL_ARITHFAB_H*/
 

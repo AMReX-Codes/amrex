@@ -2,17 +2,12 @@
 #define BL_POINTERS_H
 
 //
-// $Id: Pointers.H,v 1.12 2001-07-17 23:02:26 lijewski Exp $
+// $Id: Pointers.H,v 1.13 2001-07-19 16:57:36 lijewski Exp $
 //
 
 #include <BLassert.H>
 #include <BoxLib.H>
 #include <UseCount.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 //
 //@Man:
@@ -546,12 +541,5 @@ LnClassPtr<T>::operator->() const
 {
     return ptr;
 }
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*BL_POINTERS_H*/

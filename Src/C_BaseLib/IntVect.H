@@ -2,7 +2,7 @@
 #define BL_INTVECT_H
 
 //
-// $Id: IntVect.H,v 1.15 2001-07-19 16:51:22 car Exp $
+// $Id: IntVect.H,v 1.16 2001-07-19 16:57:33 lijewski Exp $
 //
 
 #include <algorithm>
@@ -353,6 +353,4 @@ protected:
     int vect[BL_SPACEDIM];
 };
 
-
 #endif /*BL_INTVECT_H*/
-

@@ -2,15 +2,10 @@
 #define BL_ARENA_H
 
 //
-// $Id: Arena.H,v 1.10 2001-07-19 15:26:47 lijewski Exp $
+// $Id: Arena.H,v 1.11 2001-07-19 16:57:30 lijewski Exp $
 //
 
 #include <cstddef>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 //
 //@Man:
@@ -26,6 +21,7 @@ class Arena
 {
 public:
     virtual ~Arena ();
+
     /*@ManDoc: Allocate a dynamic memory arena of size sz.
                A pointer to this memory should be returned.
     */
@@ -55,13 +51,5 @@ protected:
         void (*f) ();
     };
 };
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
-
 
 #endif /*BL_ARENA_H*/

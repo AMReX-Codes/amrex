@@ -2,18 +2,12 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.33 2001-07-17 23:02:25 lijewski Exp $
+// $Id: MultiFab.H,v 1.34 2001-07-19 16:57:33 lijewski Exp $
 //
 
 #include <BLassert.H>
 #include <FArrayBox.H>
 #include <FabArray.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
-
 //
 // Forward declaration.
 //
@@ -546,12 +540,5 @@ class MultiFabCopyDescriptor
     MultiFabCopyDescriptor (const MultiFabCopyDescriptor&);
     MultiFabCopyDescriptor& operator= (const MultiFabCopyDescriptor&);
 };
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*BL_MULTIFAB_H*/

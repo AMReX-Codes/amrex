@@ -2,7 +2,7 @@
 #define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.20 2001-07-18 17:31:06 lijewski Exp $
+// $Id: FArrayBox.H,v 1.21 2001-07-19 16:57:32 lijewski Exp $
 //
 
 #include <iostream>
@@ -16,10 +16,6 @@
 #include <REAL.H>
 #include <SPACE.H>
 
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 class FArrayBox;
 
 //
@@ -482,12 +478,5 @@ private:
     FArrayBox (const FArrayBox&);
     FArrayBox& operator= (const FArrayBox&);
 };
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*BL_FARRAYBOX_H*/

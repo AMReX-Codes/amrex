@@ -1,14 +1,9 @@
 //
-// $Id: BArena.cpp,v 1.8 2001-07-17 23:02:18 lijewski Exp $
+// $Id: BArena.cpp,v 1.9 2001-07-19 16:57:30 lijewski Exp $
 //
 
 #include <BArena.H>
 #include <BoxLib.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 void*
 BArena::alloc (size_t _sz)
@@ -21,8 +16,3 @@ BArena::free (void* pt)
 {
     ::operator delete(pt);
 }
-
-#ifdef BL_NAMESPACE
-}
-#endif
-

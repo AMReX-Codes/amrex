@@ -1,14 +1,9 @@
 //
-// $Id: BoxArray.cpp,v 1.18 2001-07-17 23:02:19 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.19 2001-07-19 16:57:31 lijewski Exp $
 //
 
 #include <BLassert.H>
 #include <BoxArray.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 int
 BoxArray::length () const
@@ -326,11 +321,8 @@ BoxArray::contains (const IntVect& v) const
 bool
 BoxArray::contains (const Box& b) const
 {
-#ifndef BL_NAMESPACE
     BoxArray bnew = ::complementIn(b, *this);
-#else
-    BoxArray bnew = BL_NAMESPACE::complementIn(b, *this);
-#endif
+
     return bnew.length() == 0;
 }
 
@@ -536,48 +528,26 @@ BoxArray
 boxComplement (const Box& b1in,
                const Box& b2)
 {
-#ifndef BL_NAMESPACE
     return BoxArray(::boxDiff(b1in, b2));
-#else
-    return BoxArray(BL_NAMESPACE::boxDiff(b1in, b2));
-#endif
 }
 
 BoxArray
 complementIn (const Box&      b,
               const BoxArray& ba)
 {
-#ifndef BL_NAMESPACE
     return BoxArray(::complementIn(b, ba.boxList()));
-#else
-    return BoxArray(BL_NAMESPACE::complementIn(b, ba.boxList()));
-#endif
 }
 
 BoxArray
 intersect (const BoxArray& ba,
            const Box&      b)
 {
-#ifndef BL_NAMESPACE
     return BoxArray(::intersect(ba.boxList(), b));
-#else
-    return BoxArray(BL_NAMESPACE::intersect(ba.boxList(), b));
-#endif
 }
 
 BoxArray
 intersect (const BoxArray& lhs,
            const BoxArray& rhs)
 {
-#ifndef BL_NAMESPACE
     return BoxArray(::intersect(lhs.boxList(), rhs.boxList()));
-#else
-    return BoxArray(BL_NAMESPACE::intersect(lhs.boxList(), rhs.boxList()));
-#endif
 }
-
-
-#ifdef BL_NAMESPACE
-}
-#endif
-

@@ -2,7 +2,7 @@
 #define BL_BOXLIST_H
 
 //
-// $Id: BoxList.H,v 1.18 2001-07-17 23:02:19 lijewski Exp $
+// $Id: BoxList.H,v 1.19 2001-07-19 16:57:31 lijewski Exp $
 //
 
 #include <iostream>
@@ -12,11 +12,6 @@
 #include <Box.H>
 #include <BoxArray.H>
 #include <List.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 //
 // Forward declaration.
 //
@@ -358,12 +353,5 @@ public:
         :
         ListIterator<Box>(bl.lbox) {}
 };
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*BL_BOXLIST_H*/

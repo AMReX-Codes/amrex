@@ -2,7 +2,7 @@
 #define BL_BOXARRAY_H
 
 //
-// $Id: BoxArray.H,v 1.19 2001-07-17 23:02:19 lijewski Exp $
+// $Id: BoxArray.H,v 1.20 2001-07-19 16:57:30 lijewski Exp $
 //
 
 #include <cstddef>
@@ -11,11 +11,6 @@
 #include <BoxList.H>
 #include <Array.H>
 #include <Pointers.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 //
 // Forward declaration.
@@ -313,12 +308,5 @@ protected:
     //
     LnClassPtr<Ref> m_ref;
 };
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*BL_BOXARRAY_H*/

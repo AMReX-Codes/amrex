@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.55 2001-07-18 23:07:07 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.56 2001-07-19 16:57:33 lijewski Exp $
 //
 
 #include <algorithm>
@@ -13,11 +13,6 @@
 #include <ParallelDescriptor.H>
 
 #include <Profiler.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 void
 MultiFab::Copy (MultiFab&       dst,
@@ -37,11 +32,7 @@ MultiFab::Copy (MultiFab&       dst,
 
         BL_ASSERT(mfi.validbox() == dmfi.validbox());
 
-#ifndef BL_NAMESPACE
         Box bx = ::grow(mfi.validbox(),nghost);
-#else
-        Box bx = BL_NAMESPACE::grow(mfi.validbox(),nghost);
-#endif
 
         if (bx.ok())
             mfi().copy(dmfi(), bx, srccomp, bx, dstcomp, numcomp);
@@ -170,11 +161,7 @@ MultiFab::min (int comp,
 
     for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
-#ifndef BL_NAMESPACE
         mn = std::min(mn,mfi().min(::grow(mfi.validbox(),nghost),comp));
-#else
-        mn = std::min(mn,mfi().min(BL_NAMESPACE::grow(mfi.validbox(),nghost),comp));
-#endif
     }
 
     ParallelDescriptor::ReduceRealMin(mn);
@@ -197,11 +184,7 @@ MultiFab::min (const Box& region,
 
     for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
-#ifndef BL_NAMESPACE
         Box b = ::grow(mfi.validbox(),nghost) & region;
-#else
-        Box b = BL_NAMESPACE::grow(mfi.validbox(),nghost) & region;
-#endif
 
         if (b.ok())
             mn = std::min(mn,mfi().min(b,comp));
@@ -226,11 +209,7 @@ MultiFab::max (int comp,
 
     for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
-#ifndef BL_NAMESPACE
         mn = std::max(mn,mfi().max(::grow(mfi.validbox(),nghost),comp));
-#else
-        mn = std::max(mn,mfi().max(BL_NAMESPACE::grow(mfi.validbox(),nghost),comp));
-#endif
     }
 
     ParallelDescriptor::ReduceRealMax(mn);
@@ -253,11 +232,7 @@ MultiFab::max (const Box& region,
 
     for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
-#ifndef BL_NAMESPACE
         Box b = ::grow(mfi.validbox(),nghost) & region;
-#else
-        Box b = BL_NAMESPACE::grow(mfi.validbox(),nghost) & region;
-#endif
 
         if (b.ok())
             mn = std::max(mn,mfi().max(b,comp));
@@ -286,11 +261,7 @@ MultiFab::minus (const MultiFab& mf,
     {
         DependentMultiFabIterator dmfi(mfi, mf);
 
-#ifndef BL_NAMESPACE
         Box bx = ::grow(mfi.validbox(),nghost);
-#else
-        Box bx = BL_NAMESPACE::grow(mfi.validbox(),nghost);
-#endif
 
         mfi().minus(dmfi(), bx, strt_comp, strt_comp, num_comp);
     }
@@ -307,11 +278,7 @@ MultiFab::plus (Real val,
 
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
-#ifndef BL_NAMESPACE
         mfi().plus(val,::grow(mfi.validbox(),nghost),comp,num_comp);
-#else
-        mfi().plus(val,BL_NAMESPACE::grow(mfi.validbox(),nghost),comp,num_comp);
-#endif
     }
 }
 
@@ -327,11 +294,7 @@ MultiFab::plus (Real       val,
 
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
-#ifndef BL_NAMESPACE
         Box b = ::grow(mfi.validbox(),nghost) & region;
-#else
-        Box b = BL_NAMESPACE::grow(mfi.validbox(),nghost) & region;
-#endif
 
         if (b.ok())
             mfi().plus(val,b,comp,num_comp);
@@ -356,11 +319,7 @@ MultiFab::plus (const MultiFab& mf,
     {
         DependentMultiFabIterator dmfi(mfi, mf);
 
-#ifndef BL_NAMESPACE
         Box bx = ::grow(mfi.validbox(),nghost);
-#else
-        Box bx = BL_NAMESPACE::grow(mfi.validbox(),nghost);
-#endif
 
         mfi().plus(dmfi(), bx, strt_comp, strt_comp, num_comp);
     }
@@ -377,11 +336,7 @@ MultiFab::mult (Real val,
 
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
-#ifndef BL_NAMESPACE
         mfi().mult(val, ::grow(mfi.validbox(),nghost),comp,num_comp);
-#else
-        mfi().mult(val,BL_NAMESPACE::grow(mfi.validbox(),nghost),comp,num_comp);
-#endif
     }
 }
 
@@ -397,11 +352,7 @@ MultiFab::mult (Real       val,
 
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
-#ifndef BL_NAMESPACE
         Box b = ::grow(mfi.validbox(),nghost) & region;
-#else
-        Box b = BL_NAMESPACE::grow(mfi.validbox(),nghost) & region;
-#endif
 
         if (b.ok())
             mfi().mult(val, b, comp, num_comp);
@@ -419,11 +370,7 @@ MultiFab::invert (Real numerator,
 
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
-#ifndef BL_NAMESPACE
         mfi().invert(numerator, ::grow(mfi.validbox(),nghost),comp,num_comp);
-#else
-        mfi().invert(numerator,BL_NAMESPACE::grow(mfi.validbox(),nghost),comp,num_comp);
-#endif
     }
 }
 
@@ -439,11 +386,7 @@ MultiFab::invert (Real       numerator,
 
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
-#ifndef BL_NAMESPACE
         Box b = ::grow(mfi.validbox(),nghost) & region;
-#else
-        Box b = BL_NAMESPACE::grow(mfi.validbox(),nghost) & region;
-#endif
 
         if (b.ok())
             mfi().invert(numerator,b,comp,num_comp);
@@ -460,11 +403,7 @@ MultiFab::negate (int comp,
 
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
-#ifndef BL_NAMESPACE
         mfi().negate(::grow(mfi.validbox(),nghost),comp,num_comp);
-#else
-        mfi().negate(BL_NAMESPACE::grow(mfi.validbox(),nghost),comp,num_comp);
-#endif
     }
 }
 
@@ -479,11 +418,7 @@ MultiFab::negate (const Box& region,
 
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
-#ifndef BL_NAMESPACE
         Box b = ::grow(mfi.validbox(),nghost) & region;
-#else
-        Box b = BL_NAMESPACE::grow(mfi.validbox(),nghost) & region;
-#endif
 
         if (b.ok())
             mfi().negate(b,comp,num_comp);
@@ -857,7 +792,3 @@ MultiFab::FillBoundary (int scomp,
         mfcd.FillFab(mfid,si.m_sirec[i].m_fbid,(*this)[si.m_sirec[i].m_i]);
     }
 }
-
-#ifdef BL_NAMESPACE
-}
-#endif

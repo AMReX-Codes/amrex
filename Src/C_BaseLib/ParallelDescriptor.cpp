@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.73 2001-07-18 23:07:07 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.74 2001-07-19 16:57:34 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -9,11 +9,6 @@
 //
 // Definition of non-inline members of CommData.
 //
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 int
 ParallelDescriptor::MyProc ()
@@ -141,18 +136,10 @@ operator<< (std::ostream&   os,
     return os;
 }
 
-#ifdef BL_NAMESPACE
-}
-#endif
-
 #ifdef BL_USE_MPI
 
 #include <ccse-mpi.H>
 
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 static const aString REDUCE("mpi_reduce");
 
 int ParallelDescriptor::m_nProcs    = -1;
@@ -591,16 +578,7 @@ ParallelDescriptor::Gather (Real* sendbuf,
         ParallelDescriptor::Abort(rc);
 }
 
-#ifdef BL_NAMESPACE
-}
-#endif
-
 #else
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 int ParallelDescriptor::m_nProcs    = 1;
 int ParallelDescriptor::m_nProcsCFD = 1;
@@ -674,16 +652,6 @@ ParallelDescriptor::second ()
     return Utility::second();
 }
 
-
-#ifdef BL_NAMESPACE
-}
-#endif
-
-#endif
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
 #endif
 //
 // This function is the same whether or not we're using MPI.
@@ -702,10 +670,6 @@ ParallelDescriptor::SeqNum ()
 
     return result;
 }
-
-#ifdef BL_NAMESPACE
-}
-#endif
 
 #if  defined(BL_FORT_USE_UPPERCASE)
 #define FORT_BL_PD_BARRIER 	BL_PD_BARRIER
@@ -730,60 +694,46 @@ ParallelDescriptor::SeqNum ()
 #define FORT_BL_PD_ABORT  	bl_pd_abort_
 #endif
 
-#ifdef BL_NAMESPACE
-#define __BLNS__ BL_NAMESPACE
-#else
-#define __BLNS__
-#endif
 extern  "C"
 void
-FORT_BL_PD_BARRIER()
+FORT_BL_PD_BARRIER ()
 {
-  __BLNS__::ParallelDescriptor::Barrier();
+    ParallelDescriptor::Barrier();
 }
 
 extern  "C"
 void
-FORT_BL_PD_COMMUNICATOR(void* vcomm)
+FORT_BL_PD_COMMUNICATOR (void* vcomm)
 {
-#ifdef BL_USE_MPI
-  __BLNS__::MPI_Comm* comm = reinterpret_cast<MPI_Comm*>(vcomm);
-#else
-#ifdef BL_NAMESPACE
-  __BLNS__::MPI_Comm* comm = reinterpret_cast<__BLNS__::MPI_Comm*>(vcomm);
-#else
-  __BLNS__::MPI_Comm* comm = reinterpret_cast<MPI_Comm*>(vcomm);
-#endif
-#endif
-  *comm = __BLNS__::ParallelDescriptor::Communicator();
+    MPI_Comm* comm = reinterpret_cast<MPI_Comm*>(vcomm);
+
+    *comm = ParallelDescriptor::Communicator();
 }
 
 extern  "C"
 void
-FORT_BL_PD_MYPROC(int* myproc)
+FORT_BL_PD_MYPROC (int* myproc)
 {
-  *myproc = __BLNS__::ParallelDescriptor::MyProc();
+    *myproc = ParallelDescriptor::MyProc();
 }
 
 extern  "C"
 void
-FORT_BL_PD_NPROCS(int* nprocs)
+FORT_BL_PD_NPROCS (int* nprocs)
 {
-  *nprocs = __BLNS__::ParallelDescriptor::NProcs();
+    *nprocs = ParallelDescriptor::NProcs();
 }
 
 extern  "C"
 void
-FORT_BL_PD_IOPROC(int* ioproc)
+FORT_BL_PD_IOPROC (int* ioproc)
 {
-  *ioproc = __BLNS__::ParallelDescriptor::IOProcessorNumber();
+    *ioproc = ParallelDescriptor::IOProcessorNumber();
 }
 
 extern  "C"
 void
-FORT_BL_PD_ABORT()
+FORT_BL_PD_ABORT ()
 {
-  __BLNS__::ParallelDescriptor::Abort();
+    ParallelDescriptor::Abort();
 }
-
-#undef __BLNS__

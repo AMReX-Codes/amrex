@@ -1,5 +1,5 @@
 //
-// $Id: DistributionMapping.cpp,v 1.48 2001-07-17 23:02:20 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.49 2001-07-19 16:57:32 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -14,12 +14,6 @@
 #include <queue>
 #include <algorithm>
 #include <numeric>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
-
 //
 // Everyone uses the same Strategy -- defaults to KNAPSACK.
 //
@@ -586,8 +580,3 @@ operator<< (std::ostream&              os,
 
     return os;
 }
-
-#ifdef BL_NAMESPACE
-}
-#endif
-

@@ -2,18 +2,13 @@
 #define BL_ARRAY_H
 
 //
-// $Id: Array.H,v 1.17 2001-07-17 23:02:17 lijewski Exp $
+// $Id: Array.H,v 1.18 2001-07-19 16:57:30 lijewski Exp $
 //
 
 #include <iostream>
 
 #include <BLassert.H>
 #include <BoxLib.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 template <class T> class Array;
 
@@ -504,12 +499,5 @@ Array<T>::operator== (const Array<T>& rhs) const
 
     return true;
 }
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*BL_ARRAY_H*/

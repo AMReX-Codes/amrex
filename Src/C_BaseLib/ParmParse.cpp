@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.15 2001-07-17 23:02:26 lijewski Exp $
+// $Id: ParmParse.cpp,v 1.16 2001-07-19 16:57:34 lijewski Exp $
 //
 
 #include <iostream>
@@ -12,11 +12,6 @@
 #include <BoxLib.H>
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 int             ParmParse::xargc   = 0;
 int             ParmParse::num_obj = 0;
@@ -1332,7 +1327,3 @@ ParmParse::isBoolean (const aString& str,
     }
     return false;
 }
-
-#ifdef BL_NAMESPACE
-}
-#endif

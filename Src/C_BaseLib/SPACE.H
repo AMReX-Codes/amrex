@@ -2,7 +2,7 @@
 #define BL_SPACE_H
 
 /*
-** $Id: SPACE.H,v 1.7 2001-07-17 23:02:27 lijewski Exp $
+** $Id: SPACE.H,v 1.8 2001-07-19 16:57:37 lijewski Exp $
 */
 
 #if defined(BL_SPACEDIM) && !defined(SPACEDIM)
@@ -42,17 +42,8 @@
   instead of the BL\_SPACEDIM macro, if possible, as constants are
   visible to debuggers while macros are not.
 */
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
+
    const int SpaceDim = BL_SPACEDIM;
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 #endif
 
 #if BL_SPACEDIM==1

@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.74 2001-07-17 23:02:29 lijewski Exp $
+// $Id: VisMF.cpp,v 1.75 2001-07-19 16:57:37 lijewski Exp $
 //
 
 #include <cstdio>
@@ -15,11 +15,6 @@
 #include <ccse-mpi.H>
 #include <Utility.H>
 #include <VisMF.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 const aString VisMF::FabFileSuffix("_D_");
 const aString VisMF::MultiFabHdrFileSuffix("_H");
@@ -909,8 +904,4 @@ VisMF::clear ()
         }
     }
 }
-
-#ifdef BL_NAMESPACE
-}
-#endif
 

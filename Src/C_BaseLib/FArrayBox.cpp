@@ -1,5 +1,5 @@
 //
-// $Id: FArrayBox.cpp,v 1.33 2001-07-17 23:02:21 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.34 2001-07-19 16:57:32 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -23,11 +23,6 @@
 #include <BLassert.H>
 #include <BoxLib.H>
 #include <Looping.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 #if defined(BL_ARCH_CRAY)
    static const char sys_name[] = "CRAY";
@@ -1152,8 +1147,4 @@ operator>> (std::istream& is,
     delete fabrd;
     return is;
 }
-
-#ifdef BL_NAMESPACE
-}
-#endif
 

@@ -1,5 +1,5 @@
 //
-// $Id: RunStats.cpp,v 1.27 2001-07-18 17:33:04 car Exp $
+// $Id: RunStats.cpp,v 1.28 2001-07-19 16:57:37 lijewski Exp $
 //
 
 #include <algorithm>
@@ -10,11 +10,6 @@
 
 #ifdef BL_USE_MPI
 #include <ccse-mpi.H>
-#endif
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
 #endif
 
 Real               RunStats::TotalCPU;
@@ -670,7 +665,3 @@ operator<< (std::ostream&   os,
        << '\n';
     return os;
 }
-
-#ifdef BL_NAMESPACE
-}
-#endif
