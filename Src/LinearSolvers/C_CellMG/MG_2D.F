@@ -1,5 +1,5 @@
 c
-c $Id: MG_2D.F,v 1.2 1999-02-03 00:16:54 lijewski Exp $
+c $Id: MG_2D.F,v 1.3 1999-02-03 00:39:25 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -7,6 +7,7 @@ c
 #endif
 
 #include <REAL.H>
+#include <CONSTANTS.H>
 #include "MG_F.H"
 #include "ArrayLim.H"
 
