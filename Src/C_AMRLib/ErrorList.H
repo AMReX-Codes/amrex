@@ -4,7 +4,7 @@
 #define _ErrorList_H_
 
 //
-// $Id: ErrorList.H,v 1.7 1998-05-06 17:50:47 lijewski Exp $
+// $Id: ErrorList.H,v 1.8 1998-05-11 17:06:24 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -15,7 +15,7 @@
 extern "C"
 {
 //
-//@ManDoc: Type of extern "C" function called by ErrorRec to do tagging of cells for refinement.
+// Type of extern "C" function called by ErrorRec to do tagging of cells for refinement.
 //
 typedef void (*ErrorFunc)(int* tag, ARLIM_P(tlo), ARLIM_P(thi),
                           const int* tagval, const int* clearval,
