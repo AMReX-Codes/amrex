@@ -56,10 +56,31 @@ hdir = t/html
 
 ifeq ($(ARCH),Linux)
   ifdef MPI
-    mpi_home = /usr/local/mpi
+    ifndef MPICHHOME
+      $(error "MPI needed but MPIHOME not defined")
+    endif
+    mpi_home = $(MPICHHOME)
     mpi_include = $(mpi_home)/include
     mpi_lib = $(mpi_home)/lib
-    mpi_libraries = -lmpich
+    mpi_libraries = -lmpich -lfmpich
+  endif
+  ifeq ($(COMP),gfortran)
+    FC := gfortran
+    F90 := gfortran
+    CC := gcc
+    F90FLAGS += -J$(mdir) -I $(mdir)
+    FFLAGS   += -J$(mdir) -I $(mdir)
+    ifdef NDEBUG
+      F90FLAGS += -O
+      FFLAGS += -O
+      CFLAGS += -O
+    else
+      F90FLAGS += -g 
+      F90FLAGS += -fbounds-check
+      FFLAGS += -g 
+      FFLAGS += -fbounds-check
+      CFLAGS += -g
+    endif
   endif
   ifeq ($(COMP),g95)
     FC := g95
@@ -75,12 +96,18 @@ ifeq ($(ARCH),Linux)
       CFLAGS += -O
     else
       F90FLAGS += -g 
-#     F90FLAGS += -Wsurprising 
+      F90FLAGS += -Wall
       F90FLAGS += -fbounds-check
       FFLAGS += -g 
-#     FFLAGS += -Wsurprising 
+      FFLAGS += -Wall
       FFLAGS += -fbounds-check
       CFLAGS += -g
+    endif
+    ifdef mpi_include
+      fpp_flags += -I $(mpi_include)
+    endif
+    ifdef mpi_lib
+      fld_flags += -L $(mpi_lib)
     endif
   endif
   ifeq ($(COMP),PathScale)
@@ -197,16 +224,16 @@ ifeq ($(ARCH),Linux)
         F90FLAGS += -pg
       endif
 
-      ifdef mpi_include
-        fpp_flags += -I $(mpi_include)
-      endif
-      ifdef mpi_lib
-        fld_flags += -L $(mpi_lib)
-      endif
       ifdef MPI
         mpi_libraries += -lPEPCF90
       endif
       fld_flags  += -Vaxlib
+    endif
+    ifdef mpi_include
+      fpp_flags += -I $(mpi_include)
+    endif
+    ifdef mpi_lib
+      fld_flags += -L $(mpi_lib)
     endif
   endif
   ifeq ($(COMP),NAG)
@@ -421,8 +448,8 @@ html_sources = $(addprefix $(hdir)/,     \
 
 pnames = $(addsuffix .$(suf).exe, $(basename $(programs)))
 
-COMPILE.f   = $(FC)  $(FFLAGS)$(FPPFLAGS) $(TARGET_ARCH) -c
+COMPILE.f   = $(FC)  $(FFLAGS) $(FPPFLAGS) $(TARGET_ARCH) -c
 COMPILE.f90 = $(F90) $(F90FLAGS) $(FPPFLAGS) $(TARGET_ARCH) -c
 
-LINK.f      = $(FC)  $(FFLAGS)$(FPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)
+LINK.f      = $(FC)  $(FFLAGS) $(FPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)
 LINK.f90    = $(F90) $(F90FLAGS) $(FPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)
