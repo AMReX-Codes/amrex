@@ -1,5 +1,5 @@
 c
-c $Id: FLUXREG_3D.F,v 1.4 1997-12-13 19:48:03 lijewski Exp $
+c $Id: FLUXREG_3D.F,v 1.5 1998-02-22 19:06:58 car Exp $
 c
 
 #undef  BL_LANG_CC
@@ -53,10 +53,10 @@ c ::: -----------------------------------------------------------
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
             reg(i,j,k,n) =  mult*flx(i,j,k,n)
-         enddo
-      enddo
-      enddo
-      enddo
+         end do
+      end do
+      end do
+      end do
 
       return
       end
@@ -95,10 +95,10 @@ c ::: -----------------------------------------------------------
       do j = lo(2), hi(2)
          do i = lo(1), hi(1)
             reg(i,j,k,n) = mult*area(i,j,k)*flx(i,j,k,n)
-         enddo
-      enddo
-      enddo
-      enddo
+         end do
+      end do
+      end do
+      end do
 
       return
       end
@@ -143,11 +143,11 @@ c        ::::: flux normal to X direction
          if (ARG_L1(reg) .ne. ARG_H1(reg)) then
             write(6,*) "FORT_FRFINEADD: bad register direction"
             stop
-         endif
+         end if
          if (i .lt. ARG_L1(flx) .or. i .gt. ARG_H1(flx)) then
             write(6,*) "FORT_FRFINEADD: index outside flux range"
             stop
-         endif
+         end if
          do n = 1, numcomp
          do koff = 0, ratioz-1
          do kc = ARG_L3(reg), ARG_H3(reg)
@@ -156,11 +156,11 @@ c        ::::: flux normal to X direction
             do jc = ARG_L2(reg), ARG_H2(reg)
                j = ratioy*jc + joff
                reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + mult*flx(i,j,k,n)
-            enddo
-            enddo
-         enddo
-         enddo
-         enddo
+            end do
+            end do
+         end do
+         end do
+         end do
       else if (dir .eq. 1) then
 c        ::::: flux normal to Y direction
          jc = ARG_L2(reg)
@@ -168,11 +168,11 @@ c        ::::: flux normal to Y direction
          if (ARG_L2(reg) .ne. ARG_H2(reg)) then
             write(6,*) "FORT_FRFINEADD: bad register direction"
             stop
-         endif
+         end if
          if (j .lt. ARG_L2(flx) .or. j .gt. ARG_H2(flx)) then
             write(6,*) "FORT_FRFINEADD: index outside flux range"
             stop
-         endif
+         end if
          do n = 1, numcomp
          do koff = 0, ratioz-1
          do kc = ARG_L3(reg), ARG_H3(reg)
@@ -181,11 +181,11 @@ c        ::::: flux normal to Y direction
             do ic = ARG_L1(reg), ARG_H1(reg)
                i = ratiox*ic + ioff
                reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + mult*flx(i,j,k,n)
-            enddo
-            enddo
-         enddo
-         enddo
-         enddo
+            end do
+            end do
+         end do
+         end do
+         end do
       else
 c        ::::: flux normal to Z direction
          kc = ARG_L3(reg)
@@ -193,11 +193,11 @@ c        ::::: flux normal to Z direction
          if (ARG_L3(reg) .ne. ARG_H3(reg)) then
             write(6,*) "FORT_FRFINEADD: bad register direction"
             stop
-         endif
+         end if
          if (k .lt. ARG_L3(flx) .or. k .gt. ARG_H3(flx)) then
             write(6,*) "FORT_FRFINEADD: index outside flux range"
             stop
-         endif
+         end if
          do n = 1, numcomp
          do joff = 0, ratioy-1
          do jc = ARG_L2(reg), ARG_H2(reg)
@@ -206,12 +206,12 @@ c        ::::: flux normal to Z direction
             do ic = ARG_L1(reg), ARG_H1(reg)
                i = ratiox*ic + ioff
                reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + mult*flx(i,j,k,n)
-            enddo
-            enddo
-         enddo
-         enddo
-         enddo
-      endif
+            end do
+            end do
+         end do
+         end do
+         end do
+      end if
       
       return
       end
@@ -261,11 +261,11 @@ c        ::::: flux normal to X direction
          if (ARG_L1(reg) .ne. ARG_H1(reg)) then
             write(6,*) "FORT_FRFAADD: bad register direction"
             stop
-         endif
+         end if
          if (i .lt. ARG_L1(flx) .or. i .gt. ARG_H1(flx)) then
             write(6,*) "FORT_FRFAADD: index outside flux range"
             stop
-         endif
+         end if
          do n = 1, numcomp
          do koff = 0, ratioz-1
          do kc = ARG_L3(reg), ARG_H3(reg)
@@ -275,11 +275,11 @@ c        ::::: flux normal to X direction
                j = ratioy*jc + joff
                reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + 
      &                           mult*area(i,j,k)*flx(i,j,k,n)
-            enddo
-            enddo
-         enddo
-         enddo
-         enddo
+            end do
+            end do
+         end do
+         end do
+         end do
       else if (dir .eq. 1) then
 c        ::::: flux normal to Y direction
          jc = ARG_L2(reg)
@@ -287,11 +287,11 @@ c        ::::: flux normal to Y direction
          if (ARG_L2(reg) .ne. ARG_H2(reg)) then
             write(6,*) "FORT_FRFAADD: bad register direction"
             stop
-         endif
+         end if
          if (j .lt. ARG_L2(flx) .or. j .gt. ARG_H2(flx)) then
             write(6,*) "FORT_FRFAADD: index outside flux range"
             stop
-         endif
+         end if
          do n = 1, numcomp
          do koff = 0, ratioz-1
          do kc = ARG_L3(reg), ARG_H3(reg)
@@ -301,11 +301,11 @@ c        ::::: flux normal to Y direction
                i = ratiox*ic + ioff
                reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + 
      &                           mult*area(i,j,k)*flx(i,j,k,n)
-            enddo
-            enddo
-         enddo
-         enddo
-         enddo
+            end do
+            end do
+         end do
+         end do
+         end do
       else
 c        ::::: flux normal to Z direction
          kc = ARG_L3(reg)
@@ -313,11 +313,11 @@ c        ::::: flux normal to Z direction
          if (ARG_L3(reg) .ne. ARG_H3(reg)) then
             write(6,*) "FORT_FRFAADD: bad register direction"
             stop
-         endif
+         end if
          if (k .lt. ARG_L3(flx) .or. k .gt. ARG_H3(flx)) then
             write(6,*) "FORT_FRFAADD: index outside flux range"
             stop
-         endif
+         end if
          do n = 1, numcomp
          do joff = 0, ratioy-1
          do jc = ARG_L2(reg), ARG_H2(reg)
@@ -327,12 +327,12 @@ c        ::::: flux normal to Z direction
                i = ratiox*ic + ioff
                reg(ic,jc,kc,n) = reg(ic,jc,kc,n) + 
      &                           mult*area(i,j,k)*flx(i,j,k,n)
-            enddo
-            enddo
-         enddo
-         enddo
-         enddo
-      endif
+            end do
+            end do
+         end do
+         end do
+         end do
+      end if
       
       return
       end
@@ -379,31 +379,31 @@ c ::
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
                   s(i,j,k,n) = s(i,j,k,n) + mult*reg(i,j,k,n)/vol(i,j,k)
-               enddo
-            enddo
-            enddo
-         enddo
+               end do
+            end do
+            end do
+         end do
       else if (leny .eq. maxlen) then
          do n = 1, numcomp
             do i = lo(1), hi(1)
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)
                   s(i,j,k,n) = s(i,j,k,n) + mult*reg(i,j,k,n)/vol(i,j,k)
-               enddo
-            enddo
-            enddo
-         enddo
+               end do
+            end do
+            end do
+         end do
       else
          do n = 1, numcomp
             do i = lo(1), hi(1)
             do j = lo(2), hi(2)
                do k = lo(3), hi(3)
                   s(i,j,k,n) = s(i,j,k,n) + mult*reg(i,j,k,n)/vol(i,j,k)
-               enddo
-            enddo
-            enddo
-         enddo
-      endif
+               end do
+            end do
+            end do
+         end do
+      end if
       
       return
       end
@@ -449,31 +449,31 @@ c ::
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
                   s(i,j,k,n) = s(i,j,k,n) + mult*reg(i,j,k,n)/vol
-               enddo
-            enddo
-            enddo
-         enddo
+               end do
+            end do
+            end do
+         end do
       else if (leny .eq. maxlen) then
          do n = 1, numcomp
             do i = lo(1), hi(1)
             do k = lo(3), hi(3)
                do j = lo(2), hi(2)
                   s(i,j,k,n) = s(i,j,k,n) + mult*reg(i,j,k,n)/vol
-               enddo
-            enddo
-            enddo
-         enddo
+               end do
+            end do
+            end do
+         end do
       else
          do n = 1, numcomp
             do i = lo(1), hi(1)
             do j = lo(2), hi(2)
                do k = lo(3), hi(3)
                   s(i,j,k,n) = s(i,j,k,n) + mult*reg(i,j,k,n)/vol
-               enddo
-            enddo
-            enddo
-         enddo
-      endif
+               end do
+            end do
+            end do
+         end do
+      end if
       
       return
       end
@@ -510,23 +510,23 @@ c ::: -----------------------------------------------------------
         do k = lo(3), hi(3)
         do j = lo(2), hi(2)
           flx(lo(1),j,k,n) = flx(lo(1),j,k,n)
-        enddo
-        enddo
-        enddo
+        end do
+        end do
+        end do
         istart = lo(1)+1
       else
         istart = lo(1)
-      endif
+      end if
 
       do n = 1, numcomp
        do k = lo(3), hi(3)
        do j = lo(2), hi(2)
         do i = istart, hi(1)
           flx(i,j,k,n) = flx(i,j,k,n) + mult*reg(i,j,k,numcomp)/area(i,j,k)
-        enddo
-       enddo
-       enddo
-      enddo
+        end do
+       end do
+       end do
+      end do
 
       return
       end

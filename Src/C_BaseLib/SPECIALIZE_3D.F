@@ -1,5 +1,5 @@
 c
-c $Id: SPECIALIZE_3D.F,v 1.1 1997-12-18 18:44:38 lijewski Exp $
+c $Id: SPECIALIZE_3D.F,v 1.2 1998-02-22 19:07:01 car Exp $
 c
 
 #ifdef BL_USE_SPECIALIZE
@@ -64,31 +64,31 @@ c
                do j = jmin,jmax
                   do i = imin,imax
                      dest(i,j,k,l) = src(i-ioff,j-joff,k-koff,l)
-                  enddo
-               enddo
-            enddo
-         enddo
+                  end do
+               end do
+            end do
+         end do
       else if (ny .ge. nx .and. ny .ge. nz) then
          do l = 1, ncomp
             do k = kmin,kmax
                do i = imin,imax
                   do j = jmin,jmax
                      dest(i,j,k,l) = src(i-ioff,j-joff,k-koff,l)
-                  enddo
-               enddo
-            enddo
-         enddo
+                  end do
+               end do
+            end do
+         end do
       else 
          do l = 1, ncomp
             do j = jmin,jmax
                do i = imin,imax
                   do k = kmin,kmax
                      dest(i,j,k,l) = src(i-ioff,j-joff,k-koff,l)
-                  enddo
-               enddo
-            enddo
-         enddo
-      endif
+                  end do
+               end do
+            end do
+         end do
+      end if
 
       end
 
@@ -123,31 +123,31 @@ c
                do j = lo(2),hi(2)
                   do i = lo(1),hi(1)
                      dest(i,j,k,l) = val
-                  enddo
-               enddo
-            enddo
-         enddo
+                  end do
+               end do
+            end do
+         end do
       else if (ny .ge. nx .and. ny .ge. nz) then
          do l = 1, ncomp
             do k = lo(3),hi(3)
                do i = lo(1),hi(1)
                   do j = lo(2),hi(2)
                      dest(i,j,k,l) = val
-                  enddo
-               enddo
-            enddo
-         enddo
+                  end do
+               end do
+            end do
+         end do
       else
          do l = 1, ncomp
             do j = lo(2),hi(2)
                do i = lo(1),hi(1)
                   do k = lo(3),hi(3)
                      dest(i,j,k,l) = val
-                  enddo
-               enddo
-            enddo
-         enddo
-      endif
+                  end do
+               end do
+            end do
+         end do
+      end if
 
       end
 

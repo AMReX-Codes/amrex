@@ -1,5 +1,5 @@
 c
-c $Id: SPECIALIZE_2D.F,v 1.1 1997-12-18 18:44:38 lijewski Exp $
+c $Id: SPECIALIZE_2D.F,v 1.2 1998-02-22 19:07:01 car Exp $
 c
 
 #ifdef BL_USE_SPECIALIZE
@@ -58,18 +58,18 @@ c
             do j = jmin,jmax
                do i = imin,imax
                   dest(i,j,k) = src(i-ioff,j-joff,k)
-               enddo
-            enddo
-         enddo
+               end do
+            end do
+         end do
       else
          do k = 1, ncomp
             do i = imin,imax
                do j = jmin,jmax
                   dest(i,j,k) = src(i-ioff,j-joff,k)
-               enddo
-            enddo
-         enddo
-      endif
+               end do
+            end do
+         end do
+      end if
 
       end
 c
@@ -103,18 +103,18 @@ c
             do j = jmin,jmax
                do i = imin,imax
                   dest(i,j,k) = val
-               enddo
-            enddo
-         enddo
+               end do
+            end do
+         end do
       else
          do k = 1, ncomp
             do i = imin,imax
                do j = jmin,jmax
                   dest(i,j,k) = val
-               enddo
-            enddo
-         enddo
-      endif
+               end do
+            end do
+         end do
+      end if
 
       end
 

@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.5 1998-01-24 01:35:58 lijewski Exp $
+c $Id: INTERP_2D.F,v 1.6 1998-02-22 19:06:58 car Exp $
 c
 
 #undef  BL_LANG_CC
@@ -84,7 +84,7 @@ c         ::: first fill a strip that will fit
             sl(i,SLY) = invratioy*(crse(i,j+1,n)-crse(i,j,n))
             sl(i,SLXY) =(crse(i+1,j+1,n)-crse(i+1,j,n)
      $ 	               - crse(i  ,j+1,n)+crse(i  ,j,n) )*invratiox*invratioy
-          enddo
+          end do
           i = ARG_H1(cb)
           sl(i,SLY) = invratioy*(crse(i,j+1,n)-crse(i,j,n))
 
@@ -96,8 +96,8 @@ c         ::: first fill a strip that will fit
      $		             + dfloat(lx)*sl(i,SLX) 
      $			     + dfloat(ly)*sl(i,SLY)
      $			     + dfloat(ly*lx)*sl(i,SLXY)
-	      enddo
-	    enddo
+	      end do
+	    end do
             i = ARG_H1(cb)
             ii = i*lratiox
             strip(ii,ly) = crse(i,j,n) 
@@ -113,12 +113,12 @@ c ::: fill top  of strip
                 strip(ii,ly) = crse(i,j+1,n) 
      $		             + dfloat(lx)*invratiox*
      $                        (crse(i+1,j+1,n)-crse(i,j+1,n))
-	      enddo
-	    enddo
+	      end do
+	    end do
             i = ARG_H1(cb)
             ii = i*lratiox
             strip(ii,ly) = crse(i,j+1,n)
-          endif
+          end if
 c ::: copy on intersection
           jbeg = max(jstrs,ARG_L2(fine))
           jend = min(jends,ARG_H2(fine))
@@ -128,8 +128,8 @@ c ::: copy on intersection
             jj = lratioy*j + ly
             do i = ibeg,iend 
               fine(i,jj,n) = strip(i,ly)
-            enddo
-          enddo
+            end do
+          end do
 110     continue
 100   continue
       return
@@ -209,7 +209,7 @@ c ::: first fill a strip that will fit
                sl(ic,SLY) = crse(ic,jc+1,n)-crse(ic,jc,n)
                sl(ic,SLXY) = crse(ic+1,jc+1,n)-crse(ic+1,jc,n)
      $              - crse(ic  ,jc+1,n)+crse(ic  ,jc,n)
-            enddo
+            end do
 
             do ly = 0, lratioy-1 
                jfn = jc*lratioy + ly
@@ -222,18 +222,18 @@ c ::: first fill a strip that will fit
                         x = denomx*(two*lx + one)
                         strip(i) = crse(ic,jc,n) + x*sl(ic,SLX) +
      $                             y*sl(ic,SLY) + x*y*sl(ic,SLXY)
-                     enddo
-                  enddo
+                     end do
+                  end do
 
 c ::: stuff into output array
 
                   do i = ARG_L1(fb), ARG_H1(fb) 
                      fine(i,jfc,n) = strip(i-hratx)
-                  enddo
-               endif
-            enddo
-         enddo
-      enddo
+                  end do
+               end if
+            end do
+         end do
+      end do
 
       return
       end
@@ -424,7 +424,7 @@ c ::: local var
           fcen = half*(fvcx(i)+fvcx(i+1))
           ccen = half*(cvcx(ic)+cvcx(ic+1))
           voff(fn) = (fcen-ccen)/(cvcx(ic+1)-cvcx(ic))
-        enddo   
+        end do   
       else
         do j = fb_l2, fb_h2 
           fn = j-fslo(2)+1
@@ -432,16 +432,16 @@ c ::: local var
           fcen = half*(fvcy(j)+fvcy(j+1))
           ccen = half*(cvcy(jc)+cvcy(jc+1))
           voff(fn) = (fcen-ccen)/(cvcy(jc+1)-cvcy(jc))
-        enddo   
-      endif
+        end do   
+      end if
 
 
 c ::: ::::: added to prevent underflow for small crse values
       do n = 1, nvar 
         do i = clo, chi 
           crse(i,n) = cvmgt(crse(i,n),zero,abs(crse(i,n)).gt.1.0e-20)
-        enddo
-      enddo
+        end do
+      end do
 
       do 290 n = 1, nvar 
 
@@ -454,7 +454,7 @@ c ::: ::::: compute slopes in x direction
                slp  = min(abs(forw),abs(back))
                slp  = cvmgp(slp,zero,forw*back)
                cslope(i,1)=sign(one,cen)*min(slp,abs(cen))
-            enddo
+            end do
             if (xok) then
                if (bclo(1,n) .eq. EXT_DIR .or. bclo(1,n).eq.HOEXTRAP) then
                   do i = 1, clen, jst 
@@ -466,8 +466,8 @@ c ::: ::::: compute slopes in x direction
                      slp  = min(abs(forw),abs(back))
                      slp  = cvmgp(slp,zero,forw*back)
                      cslope(i,1)=sgn*min(slp,abs(cen))
-                  enddo
-               endif
+                  end do
+               end if
                if (bchi(1,n) .eq. EXT_DIR .or. bchi(1,n).eq.HOEXTRAP) then
                   do i = ncbx, clen, jst 
                      cen = sixteen/fifteen*crse(i+ist,n) - half*crse(i,n)
@@ -478,31 +478,31 @@ c ::: ::::: compute slopes in x direction
                      slp  = min(abs(forw),abs(back))
                      slp  = cvmgp(slp,zero,forw*back)
                      cslope(i,1)=sgn*min(slp,abs(cen))
-                  enddo
-               endif
-            endif
+                  end do
+               end if
+            end if
          else
             do i = 1, clen 
                cen = half*(crse(i+ist,n)-crse(i-ist,n))
                cslope(i,1)=cen
-            enddo
+            end do
             if (xok) then
                if (bclo(1,n) .eq. EXT_DIR .or. bclo(1,n).eq.HOEXTRAP) then
                   do i = 1, clen, jst 
                      cen  = -sixteen/fifteen*crse(i-ist,n) + half*crse(i,n)
      $                    + two3rd*crse(i+ist,n) - tenth*crse(i+2*ist,n)
                      cslope(i,1)=cen
-                  enddo
-               endif
+                  end do
+               end if
                if (bchi(1,n) .eq. EXT_DIR .or. bchi(1,n).eq.HOEXTRAP) then
                   do i = ncbx, clen, jst 
                      cen = sixteen/fifteen*crse(i+ist,n) - half*crse(i,n)
      $                    - two3rd*crse(i-ist,n) + tenth*crse(i-2*ist,n)
                      cslope(i,1)=cen
-                  enddo
-               endif
-            endif
-         endif
+                  end do
+               end if
+            end if
+         end if
 
 c ::: ::::: compute slopes in y direction
          if (limslope .ne. 0) then
@@ -513,7 +513,7 @@ c ::: ::::: compute slopes in y direction
                slp  = min(abs(forw),abs(back))
                slp  = cvmgp(slp,zero,forw*back)
                cslope(i,2)=sign(one,cen)*min(slp,abs(cen))
-            enddo
+            end do
             if (yok) then
                if (bclo(2,n) .eq. EXT_DIR .or. bclo(2,n).eq.HOEXTRAP) then
                   do i = 1, ncbx 
@@ -525,8 +525,8 @@ c ::: ::::: compute slopes in y direction
                      slp  = min(abs(forw),abs(back))
                      slp  = cvmgp(slp,zero,forw*back)
                      cslope(i,2)=sgn*min(slp,abs(cen))
-                  enddo
-               endif
+                  end do
+               end if
                if (bchi(2,n) .eq. EXT_DIR .or. bchi(2,n).eq.HOEXTRAP) then
                   do i = clen-ncbx,clen 
                      cen = sixteen/fifteen*crse(i+jst,n) - half*crse(i,n)
@@ -537,31 +537,31 @@ c ::: ::::: compute slopes in y direction
                      slp  = min(abs(forw),abs(back))
                      slp  = cvmgp(slp,zero,forw*back)
                      cslope(i,2)=sgn*min(slp,abs(cen))
-                  enddo
-               endif
-            endif
+                  end do
+               end if
+            end if
          else
             do i = 1, clen 
                cen  = half*(crse(i+jst,n)-crse(i-jst,n))
                cslope(i,2)=cen
-            enddo
+            end do
             if (yok) then
                if (bclo(2,n) .eq. EXT_DIR .or. bclo(2,n).eq.HOEXTRAP) then
                   do i = 1, ncbx 
                      cen  = -sixteen/fifteen*crse(i-jst,n) + half*crse(i,n)
      $                    + two3rd*crse(i+jst,n) - tenth*crse(i+2*jst,n)
                      cslope(i,2)=cen
-                  enddo
-               endif
+                  end do
+               end if
                if (bchi(2,n) .eq. EXT_DIR .or. bchi(2,n).eq.HOEXTRAP) then
                   do i = clen-ncbx,clen 
                      cen = sixteen/fifteen*crse(i+jst,n) - half*crse(i,n)
      $                    - two3rd*crse(i-jst,n) + tenth*crse(i-2*jst,n)
                      cslope(i,2)=cen
-                  enddo
-               endif
-            endif
-         endif
+                  end do
+               end if
+            end if
+         end if
 
         if (maxlen .eq. lenx) then
           do 360 jc = cb_l2, cb_h2 
@@ -582,10 +582,10 @@ c           ::::: strip out a fine grid slope vector
               j = lratioy*jc + joff
               if (j .lt. fb_l2) then
                 goto 390
-              endif
+              end if
               if (j .gt. fb_h2) then
                 goto 391
-              endif
+              end if
               fcen = half*(fvcy(j)+fvcy(j+1))
               ccen = half*(cvcy(jc)+cvcy(jc+1))
               yoff = (fcen-ccen)/(cvcy(jc+1)-cvcy(jc))
@@ -617,10 +617,10 @@ c           ::::: strip out a fine grid slope vector
               i = lratiox*ic + ioff
               if (i .lt. fb_l1) then
                 goto 440
-              endif
+              end if
               if (i .gt. fb_h1) then
                 goto 441
-              endif
+              end if
               fcen = half*(fvcx(i)+fvcx(i+1))
               ccen = half*(cvcx(ic)+cvcx(ic+1))
               xoff = (fcen-ccen)/(cvcx(ic+1)-cvcx(ic))
@@ -633,7 +633,7 @@ c           ::::: strip out a fine grid slope vector
 440         continue
 441         continue
 410       continue
-        endif
+        end if
 290   continue
 
       return
@@ -745,13 +745,13 @@ c ::: local var
         fycen = half*(fvcy(j)+fvcy(j+1))
         cycen = half*(cvcy(jc)+cvcy(jc+1))
         voffy(j) = (fycen-cycen)/(cvcy(jc+1)-cvcy(jc))
-      enddo
+      end do
       do i = fblo(1), fbhi(1)
          ic = IX_PROJ(i,lratiox)
          fxcen = half*(fvcx(i)+fvcx(i+1))
          cxcen = half*(cvcx(ic)+cvcx(ic+1))
          voffx(i) = (fxcen-cxcen)/(cvcx(ic+1)-cvcx(ic))
-      enddo
+      end do
 
       if(ncbx.gt.ncby)then
 
@@ -763,9 +763,9 @@ c ... added to prevent underflow for small crse values
           do j = cslopelo(2)-1,cslopehi(2)+1
             do i = cslopelo(1)-1, cslopehi(1)+1 
               crse(i,j,n) = cvmgt(crse(i,j,n),zero,abs(crse(i,j,n)).gt.1.0e-20)
-            enddo
-          enddo
-        enddo
+            end do
+          end do
+        end do
 
 c ... computed unlimited and limited slopes
 
@@ -790,8 +790,8 @@ c           it alone unless you can make it faster -- rbp
               slp  = cvmgp(slp,zero,forw*back)
               lc_xslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
 
-             enddo
-          enddo
+             end do
+          end do
           if (xok) then
             if (bclo(1,n) .eq. EXT_DIR .or. bclo(1,n).eq.HOEXTRAP) then
               i = cslopelo(1)
@@ -807,8 +807,8 @@ c           it alone unless you can make it faster -- rbp
                 slp  = cvmgp(slp,zero,forw*back)
                 lc_xslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
 
-               enddo
-            endif
+               end do
+            end if
             if (bchi(1,n) .eq. EXT_DIR .or. bchi(1,n).eq.HOEXTRAP) then
               i = cslopehi(1)
               do j=cslopelo(2), cslopehi(2)
@@ -823,9 +823,9 @@ c           it alone unless you can make it faster -- rbp
                 slp  = cvmgp(slp,zero,forw*back)
                 lc_xslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
 
-               enddo
-            endif
-          endif
+               end do
+            end if
+          end if
 
 c ... --> in y direction
 
@@ -840,8 +840,8 @@ c ... --> in y direction
               slp  = cvmgp(slp,zero,forw*back)
               lc_yslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
 
-             enddo
-          enddo
+             end do
+          end do
           if (yok) then
             if (bclo(2,n) .eq. EXT_DIR .or. bclo(2,n).eq.HOEXTRAP) then
               j = cslopelo(2)
@@ -857,8 +857,8 @@ c ... --> in y direction
                 slp  = cvmgp(slp,zero,forw*back)
                 lc_yslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
 
-               enddo
-            endif
+               end do
+            end if
             if (bchi(2,n) .eq. EXT_DIR .or. bchi(2,n).eq.HOEXTRAP) then
               j = cslopehi(2)
               do i=cslopelo(1), cslopehi(1)
@@ -873,10 +873,10 @@ c ... --> in y direction
                 slp  = cvmgp(slp,zero,forw*back)
                 lc_yslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
 
-               enddo
-            endif
-          endif
-        enddo
+               end do
+            end if
+          end if
+        end do
 
         if (lin_limit.eq.1)then
 
@@ -890,8 +890,8 @@ c ... --> compute slope factors
             do i=cslopelo(1), cslopehi(1)
               xslope_factor(i,j) = one
               yslope_factor(i,j) = one
-            enddo
-          enddo
+            end do
+          end do
 
           do n = 1, nvar 
             do j=cslopelo(2), cslopehi(2)
@@ -907,9 +907,9 @@ c ... --> compute slope factors
                 factorn = lc_yslope(i,j,n)/denom
                 factorn = cvmgt(one,factorn,denom.eq.zero)
                 yslope_factor(i,j) = min(yslope_factor(i,j),factorn)
-              enddo
-            enddo
-          enddo
+              end do
+            end do
+          end do
 
 c ... --> compute linear limited slopes
 
@@ -918,10 +918,10 @@ c ... --> compute linear limited slopes
               do i=cslopelo(1), cslopehi(1)
                 lc_xslope(i,j,n) = xslope_factor(i,j)*uc_xslope(i,j,n)
                 lc_yslope(i,j,n) = yslope_factor(i,j)*uc_yslope(i,j,n)
-              enddo
-            enddo
-          enddo
-        endif
+              end do
+            end do
+          end do
+        end if
 
 c ... do the interpolation
 
@@ -932,9 +932,9 @@ c ... do the interpolation
               ic = IX_PROJ(i,lratiox)
               fine(i,j,n) = crse(ic,jc,n) + voffx(i)*lc_xslope(ic,jc,n)
      &                                    + voffy(j)*lc_yslope(ic,jc,n)
-            enddo
-          enddo
-        enddo
+            end do
+          end do
+        end do
 
       else
 
@@ -946,9 +946,9 @@ c ... added to prevent underflow for small crse values
           do i = cslopelo(1)-1, cslopehi(1)+1 
             do j = cslopelo(2)-1,cslopehi(2)+1
               crse(i,j,n) = cvmgt(crse(i,j,n),zero,abs(crse(i,j,n)).gt.1.0e-20)
-            enddo
-          enddo
-        enddo
+            end do
+          end do
+        end do
 
 c ... computed unlimited and limited slopes
 
@@ -967,8 +967,8 @@ c ... --> in x direction
               slp  = cvmgp(slp,zero,forw*back)
               lc_xslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
 
-             enddo
-          enddo
+             end do
+          end do
           if (xok) then
             if (bclo(1,n) .eq. EXT_DIR .or. bclo(1,n).eq.HOEXTRAP) then
               i = cslopelo(1)
@@ -984,8 +984,8 @@ c ... --> in x direction
                 slp  = cvmgp(slp,zero,forw*back)
                 lc_xslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
 
-               enddo
-            endif
+               end do
+            end if
             if (bchi(1,n) .eq. EXT_DIR .or. bchi(1,n).eq.HOEXTRAP) then
               i = cslopehi(1)
               do j=cslopelo(2), cslopehi(2)
@@ -1000,9 +1000,9 @@ c ... --> in x direction
                 slp  = cvmgp(slp,zero,forw*back)
                 lc_xslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
 
-               enddo
-            endif
-          endif
+               end do
+            end if
+          end if
 
 c ... --> in y direction
 
@@ -1017,8 +1017,8 @@ c ... --> in y direction
               slp  = cvmgp(slp,zero,forw*back)
               lc_yslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
 
-            enddo
-          enddo
+            end do
+          end do
           if (yok) then
             if (bclo(2,n) .eq. EXT_DIR .or. bclo(2,n).eq.HOEXTRAP) then
               j = cslopelo(2)
@@ -1034,8 +1034,8 @@ c ... --> in y direction
                 slp  = cvmgp(slp,zero,forw*back)
                 lc_yslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
 
-              enddo
-            endif
+              end do
+            end if
             if (bchi(2,n) .eq. EXT_DIR .or. bchi(2,n).eq.HOEXTRAP) then
               j = cslopehi(2)
               do i=cslopelo(1), cslopehi(1)
@@ -1050,10 +1050,10 @@ c ... --> in y direction
                 slp  = cvmgp(slp,zero,forw*back)
                 lc_yslope(i,j,n)=sign(one,cen)*min(slp,abs(cen))
 
-              enddo
-            endif
-          endif
-        enddo
+              end do
+            end if
+          end if
+        end do
 
         if (lin_limit.eq.1)then
 
@@ -1067,8 +1067,8 @@ c ... --> compute slope factors
             do j=cslopelo(2), cslopehi(2)
               xslope_factor(i,j) = 1.0
               yslope_factor(i,j) = 1.0
-            enddo
-          enddo
+            end do
+          end do
 
           do n = 1, nvar 
             do i=cslopelo(1), cslopehi(1)
@@ -1084,9 +1084,9 @@ c ... --> compute slope factors
                 factorn = lc_yslope(i,j,n)/denom
                 factorn = cvmgt(one,factorn,denom.eq.zero)
                 yslope_factor(i,j) = min(yslope_factor(i,j),factorn)
-              enddo
-            enddo
-          enddo
+              end do
+            end do
+          end do
 
 c ... --> compute linear limited slopes
 
@@ -1095,10 +1095,10 @@ c ... --> compute linear limited slopes
               do j=cslopelo(2), cslopehi(2)
                 lc_xslope(i,j,n) = xslope_factor(i,j)*uc_xslope(i,j,n)
                 lc_yslope(i,j,n) = yslope_factor(i,j)*uc_yslope(i,j,n)
-              enddo
-            enddo
-          enddo
-        endif
+              end do
+            end do
+          end do
+        end if
 
 c ... do the interpolation
 
@@ -1109,11 +1109,11 @@ c ... do the interpolation
               jc = IX_PROJ(j,lratioy)
               fine(i,j,n) = crse(ic,jc,n) + voffx(i)*lc_xslope(ic,jc,n)
      &                                    + voffy(j)*lc_yslope(ic,jc,n)
-            enddo
-          enddo
-        enddo
+            end do
+          end do
+        end do
 
-      endif
+      end if
       return
       end
 c ::: 
@@ -1189,7 +1189,7 @@ c ::: local var
           fcen = half*(fvcx(i)+fvcx(i+1))
           ccen = half*(cvcx(ic)+cvcx(ic+1))
           voff(fn) = (fcen-ccen)/(cvcx(ic+1)-cvcx(ic))
-        enddo   
+        end do   
       else
         do j = fb_l2, fb_h2 
           fn = j-fslo(2)+1
@@ -1197,16 +1197,16 @@ c ::: local var
           fcen = half*(fvcy(j)+fvcy(j+1))
           ccen = half*(cvcy(jc)+cvcy(jc+1))
           voff(fn) = (fcen-ccen)/(cvcy(jc+1)-cvcy(jc))
-        enddo   
-      endif
+        end do   
+      end if
 
 
 c ::: ::::: added to prevent underflow for small crse values
       do n = 1, nvar 
         do i = clo, chi 
           crse(i,n) = cvmgt(crse(i,n),zero,abs(crse(i,n)).gt.1.0e-20)
-        enddo
-      enddo
+        end do
+      end do
 
       do 290 n = 1, nvar 
 
@@ -1219,7 +1219,7 @@ c ::: ::::: compute slopes in x direction
                cslope(i,1)=cen
                cslope(i,3)=diffxx
                cslope(i,5)=diffxy
-            enddo
+            end do
             if (xok) then
                if (bclo(1,n) .eq. EXT_DIR .or. bclo(1,n).eq.HOEXTRAP) then
                   do i = 1, clen, jst 
@@ -1228,8 +1228,8 @@ c ::: ::::: compute slopes in x direction
                      cslope(i,1)=cen
                      cslope(i,3)=zero
                      cslope(i,5)=zero
-                  enddo
-               endif
+                  end do
+               end if
                if (bchi(1,n) .eq. EXT_DIR .or. bchi(1,n).eq.HOEXTRAP) then
                   do i = ncbx, clen, jst 
                      cen = sixteen/fifteen*crse(i+ist,n) - half*crse(i,n)
@@ -1237,9 +1237,9 @@ c ::: ::::: compute slopes in x direction
                      cslope(i,1)=cen
                      cslope(i,3)=zero
                      cslope(i,5)=zero
-                  enddo
-               endif
-            endif
+                  end do
+               end if
+            end if
 
 c ::: ::::: compute slopes in y direction
             do i = 1, clen 
@@ -1247,7 +1247,7 @@ c ::: ::::: compute slopes in y direction
                diffyy = crse(i+jst,n)-two*crse(i,n)+crse(i-jst,n)
                cslope(i,2)=cen
                cslope(i,4)=diffyy
-            enddo
+            end do
             if (yok) then
                if (bclo(2,n) .eq. EXT_DIR .or. bclo(2,n).eq.HOEXTRAP) then
                   do i = 1, ncbx 
@@ -1256,8 +1256,8 @@ c ::: ::::: compute slopes in y direction
                      cslope(i,2)=cen
                      cslope(i,4)=zero
                      cslope(i,5)=zero
-                  enddo
-               endif
+                  end do
+               end if
                if (bchi(2,n) .eq. EXT_DIR .or. bchi(2,n).eq.HOEXTRAP) then
                   do i = clen-ncbx,clen 
                      cen = sixteen/fifteen*crse(i+jst,n) - half*crse(i,n)
@@ -1265,9 +1265,9 @@ c ::: ::::: compute slopes in y direction
                      cslope(i,2)=cen
                      cslope(i,4)=zero
                      cslope(i,5)=zero
-                  enddo
-               endif
-            endif
+                  end do
+               end if
+            end if
 
         if (maxlen .eq. lenx) then
           do 360 jc = cb_l2, cb_h2 
@@ -1291,10 +1291,10 @@ c           ::::: strip out a fine grid slope vector
               j = lratioy*jc + joff
               if (j .lt. fb_l2) then
                 goto 390
-              endif
+              end if
               if (j .gt. fb_h2) then
                 goto 391
-              endif
+              end if
               fcen = half*(fvcy(j)+fvcy(j+1))
               ccen = half*(cvcy(jc)+cvcy(jc+1))
               yoff = (fcen-ccen)/(cvcy(jc+1)-cvcy(jc))
@@ -1332,10 +1332,10 @@ c           ::::: strip out a fine grid slope vector
               i = lratiox*ic + ioff
               if (i .lt. fb_l1) then
                 goto 440
-              endif
+              end if
               if (i .gt. fb_h1) then
                 goto 441
-              endif
+              end if
               fcen = half*(fvcx(i)+fvcx(i+1))
               ccen = half*(cvcx(ic)+cvcx(ic+1))
               xoff = (fcen-ccen)/(cvcx(ic+1)-cvcx(ic))
@@ -1351,7 +1351,7 @@ c           ::::: strip out a fine grid slope vector
 440         continue
 441         continue
 410       continue
-        endif
+        end if
 290   continue
 
       return
@@ -1405,18 +1405,18 @@ c :::
 	       do ic = cblo(1), cbhi(1)
 	          i = lratiox*ic + ioff
 	          ftmp(i) = crse(ic,jc,n)
-               enddo
-	    enddo
+               end do
+	    end do
 	    do joff = 0, lratioy-1
 	       j = lratioy*jc + joff
 	       if (j.ge.fblo(2).and.j.le.fbhi(2)) then
 	          do i = fblo(1), fbhi(1)
 		     fine(i,j,n) = ftmp(i)
-		  enddo
-	       endif
-	    enddo
-	 enddo
-	 enddo
+		  end do
+	       end if
+	    end do
+	 end do
+	 end do
       else
          do n = 1, nvar
          do ic = cblo(1), cbhi(1)
@@ -1425,19 +1425,19 @@ c :::
 	       do jc = cblo(2), cbhi(2)
 	          j = lratioy*jc + joff
 	          ftmp(j) = crse(ic,jc,n)
-               enddo
-	    enddo
+               end do
+	    end do
 	    do ioff = 0, lratiox-1
 	       i = lratiox*ic + ioff
 	       if (i.ge.fblo(1).and.i.le.fbhi(1)) then
 	          do j = fblo(2), fbhi(2)
 		     fine(i,j,n) = ftmp(j)
-		  enddo
-	       endif
-	    enddo
-	 enddo
-	 enddo
-      endif
+		  end do
+	       end if
+	    end do
+	 end do
+	 end do
+      end if
 
       return
       end

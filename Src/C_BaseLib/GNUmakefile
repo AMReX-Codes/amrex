@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.4 1997-11-24 22:05:11 car Exp $
+# $Id: GNUmakefile,v 1.5 1998-02-22 19:07:01 car Exp $
 #
 
 #
@@ -21,6 +21,7 @@ DEBUG = TRUE
 # DIM can be 1, 2, or 3.
 #
 DIM = 2
+DIM = 3
 
 #
 # Your choice of C++ compiler: g++-2.5.8, OCC, CC, KCC, CFRONT

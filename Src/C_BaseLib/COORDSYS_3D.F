@@ -1,5 +1,5 @@
 c
-c $Id: COORDSYS_3D.F,v 1.4 1998-02-05 22:15:55 vince Exp $
+c $Id: COORDSYS_3D.F,v 1.5 1998-02-22 19:07:00 car Exp $
 c
 
 #undef  BL_LANG_CC
@@ -42,13 +42,13 @@ c         ::::: cartesian
           do j = ARG_L2(vol), ARG_H2(vol)
              do i = ARG_L1(vol), ARG_H1(vol)
                 vol(i,j,k) = v
-             enddo
-          enddo
-          enddo
+             end do
+          end do
+          end do
        else
           write(6,*) "FORT_SETVOLUME not define for coord = ",coord
           stop
-       endif
+       end if
        
        return
        end
@@ -77,25 +77,25 @@ c ::
        if (coord .eq. 0) then
           if (dir .eq. 0) then
              fa = dx(2)*dx(3)
-          elseif (dir .eq. 1) then
+          else if (dir .eq. 1) then
              fa = dx(1)*dx(3)
-          elseif (dir .eq. 2) then
+          else if (dir .eq. 2) then
              fa = dx(1)*dx(2)
           else
              write(6,*) "FORT_SETAREA: invalid dir = ",dir
              stop
-          endif
+          end if
           do k = ARG_L3(area), ARG_H3(area)
              do j = ARG_L2(area), ARG_H2(area)
                 do i = ARG_L1(area), ARG_H1(area)
                    area(i,j,k) = fa
-                enddo
-             enddo
-          enddo
+                end do
+             end do
+          end do
        else
           write(6,*) "FORT_SETAREA not define for coord = ",coord
           stop
-       endif
+       end if
        
        return
        end

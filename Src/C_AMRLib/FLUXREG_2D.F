@@ -1,5 +1,5 @@
 c
-c $Id: FLUXREG_2D.F,v 1.3 1997-12-12 22:43:15 lijewski Exp $
+c $Id: FLUXREG_2D.F,v 1.4 1998-02-22 19:06:58 car Exp $
 c
 
 #undef  BL_LANG_CC
@@ -45,18 +45,18 @@ c ::: -----------------------------------------------------------
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
                reg(i,j,n) =  mult*flx(i,j,n)
-            enddo
-         enddo
-         enddo
+            end do
+         end do
+         end do
       else
          do n = 1, numcomp
          do i = lo(1), hi(1)
             do j = lo(2), hi(2)
                reg(i,j,n) = mult*flx(i,j,n)
-            enddo
-         enddo
-         enddo
-      endif
+            end do
+         end do
+         end do
+      end if
 
       return
       end
@@ -97,18 +97,18 @@ c ::: -----------------------------------------------------------
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
                reg(i,j,n) = mult*area(i,j)*flx(i,j,n)
-            enddo
-         enddo
-         enddo
+            end do
+         end do
+         end do
       else
          do n = 1, numcomp
          do i = lo(1), hi(1)
             do j = lo(2), hi(2)
                reg(i,j,n) = mult*area(i,j)*flx(i,j,n)
-            enddo
-         enddo
-         enddo
-      endif
+            end do
+         end do
+         end do
+      end if
 
       return
       end
@@ -152,19 +152,19 @@ c        ::::: flux normal to X direction
          if (ARG_L1(reg) .ne. ARG_H1(reg)) then
             write(6,*) "FORT_FRFINEADD: bad register direction"
             stop
-         endif
+         end if
          if (i .lt. ARG_L1(flx) .or. i .gt. ARG_H1(flx)) then
             write(6,*) "FORT_FRFINEADD: index outside flux range"
             stop
-         endif
+         end if
          do n = 1, numcomp
          do off = 0, ratioy-1
          do jc = ARG_L2(reg), ARG_H2(reg)
             j = ratioy*jc + off
             reg(ic,jc,n) = reg(ic,jc,n) + mult*flx(i,j,n)
-         enddo
-         enddo
-         enddo
+         end do
+         end do
+         end do
       else
 c        ::::: flux normal to Y direction
          jc = ARG_L2(reg)
@@ -172,20 +172,20 @@ c        ::::: flux normal to Y direction
          if (ARG_L2(reg) .ne. ARG_H2(reg)) then
             write(6,*) "FORT_FRFINEADD: bad register direction"
             stop
-         endif
+         end if
          if (j .lt. ARG_L2(flx) .or. j .gt. ARG_H2(flx)) then
             write(6,*) "FORT_FRFINEADD: index outside flux range"
             stop
-         endif
+         end if
          do n = 1, numcomp
          do off = 0, ratiox-1
          do ic = ARG_L1(reg), ARG_H1(reg)
             i = ratiox*ic + off
             reg(ic,jc,n) = reg(ic,jc,n) + mult*flx(i,j,n)
-         enddo
-         enddo
-         enddo
-      endif
+         end do
+         end do
+         end do
+      end if
 
       return
       end
@@ -234,19 +234,19 @@ c        ::::: flux normal to X direction
          if (ARG_L1(reg) .ne. ARG_H1(reg)) then
             write(6,*) "FORT_FRFAADD: bad register direction"
             stop
-         endif
+         end if
          if (i .lt. ARG_L1(flx) .or. i .gt. ARG_H1(flx)) then
             write(6,*) "FORT_FRFAADD: index outside flux range"
             stop
-         endif
+         end if
          do n = 1, numcomp
          do off = 0, ratioy-1
          do jc = ARG_L2(reg), ARG_H2(reg)
             j = ratioy*jc + off
             reg(ic,jc,n) = reg(ic,jc,n) + mult*area(i,j)*flx(i,j,n)
-         enddo
-         enddo
-         enddo
+         end do
+         end do
+         end do
       else
 c        ::::: flux normal to Y direction
          jc = ARG_L2(reg)
@@ -254,20 +254,20 @@ c        ::::: flux normal to Y direction
          if (ARG_L2(reg) .ne. ARG_H2(reg)) then
             write(6,*) "FORT_FRFAADD: bad register direction"
             stop
-         endif
+         end if
          if (j .lt. ARG_L2(flx) .or. j .gt. ARG_H2(flx)) then
             write(6,*) "FORT_FRFAADD: index outside flux range"
             stop
-         endif
+         end if
          do n = 1, numcomp
          do off = 0, ratiox-1
          do ic = ARG_L1(reg), ARG_H1(reg)
             i = ratiox*ic + off
             reg(ic,jc,n) = reg(ic,jc,n) + mult*area(i,j)*flx(i,j,n)
-         enddo
-         enddo
-         enddo
-      endif
+         end do
+         end do
+         end do
+      end if
 
       return
       end
@@ -310,18 +310,18 @@ c ::
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
                   s(i,j,n) = s(i,j,n) + mult*reg(i,j,n)/vol(i,j)
-               enddo
-            enddo
-         enddo
+               end do
+            end do
+         end do
       else
          do n = 1, numcomp
             do i = lo(1), hi(1)
                do j = lo(2), hi(2)
                   s(i,j,n) = s(i,j,n) + mult*reg(i,j,n)/vol(i,j)
-               enddo
-            enddo
-         enddo
-      endif
+               end do
+            end do
+         end do
+      end if
 
       return
       end
@@ -363,18 +363,18 @@ c ::
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
                   s(i,j,n) = s(i,j,n) + mult*reg(i,j,n)/vol
-               enddo
-            enddo
-         enddo
+               end do
+            end do
+         end do
       else
          do n = 1, numcomp
             do i = lo(1), hi(1)
                do j = lo(2), hi(2)
                   s(i,j,n) = s(i,j,n) + mult*reg(i,j,n)/vol
-               enddo
-            enddo
-         enddo
-      endif
+               end do
+            end do
+         end do
+      end if
 
       return
       end
@@ -411,20 +411,20 @@ c ::: -----------------------------------------------------------
         do n = 1, numcomp
         do j = lo(2), hi(2)
           flx(lo(1),j,n) = flx(lo(1),j,n)
-        enddo
-        enddo
+        end do
+        end do
         istart = lo(1)+1
       else
         istart = lo(1)
-      endif
+      end if
 
       do n = 1, numcomp
        do j = lo(2), hi(2)
         do i = istart, hi(1)
           flx(i,j,n) = flx(i,j,n) + mult*reg(i,j,numcomp)/area(i,j)
-        enddo
-       enddo
-      enddo
+        end do
+       end do
+      end do
 
       return
       end

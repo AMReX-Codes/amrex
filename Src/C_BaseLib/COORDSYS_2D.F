@@ -1,5 +1,5 @@
 c
-c $Id: COORDSYS_2D.F,v 1.2 1997-12-12 22:42:42 lijewski Exp $
+c $Id: COORDSYS_2D.F,v 1.3 1998-02-22 19:07:00 car Exp $
 c
 
 #undef  BL_LANG_CC
@@ -43,8 +43,8 @@ c         ::::: cartesian
           do j = ARG_L2(vol), ARG_H2(vol)
              do i = ARG_L1(vol), ARG_H1(vol)
                 vol(i,j) = v
-             enddo
-          enddo
+             end do
+          end do
        else
 c         ::::: R-Z
           do i = ARG_L1(vol), ARG_H1(vol)
@@ -53,9 +53,9 @@ c         ::::: R-Z
              v = (half*RZFACTOR)*dx(2)*dx(1)*(ro + ri)
              do j = ARG_L2(vol), ARG_H2(vol)
                 vol(i,j) = v
-             enddo
-          enddo
-       endif
+             end do
+          end do
+       end if
        
        return
        end
@@ -89,8 +89,8 @@ c         ::::: cartesian
           do j = ARG_L2(dloga), ARG_H2(dloga)
              do i = ARG_L1(dloga), ARG_H1(dloga)
                 dloga(i,j) = zero
-             enddo
-          enddo
+             end do
+          end do
 
        else if( coord .eq. 1 ) then
 c         ::::: R-Z
@@ -102,8 +102,8 @@ c         ::::: R-Z
                 dlga = two/(ro+ri)                                        
                 do j = ARG_L2(dloga), ARG_H2(dloga)
                    dloga(i,j) = dlga
-                enddo
-             enddo
+                end do
+             end do
           else if( dir .eq. 1 ) then
              do i = ARG_L1(dloga), ARG_H1(dloga)
                 ri = offset(1) + dx(1)*i
@@ -111,16 +111,16 @@ c         ::::: R-Z
                 dlga = two/(ro+ri)                                        
                 do j = ARG_L2(dloga), ARG_H2(dloga)
                    dloga(i,j) = zero
-                enddo
-             enddo
+                end do
+             end do
           else
              write(6,*)'setdloga: illega direction ',dir
              stop
-          endif
+          end if
        else
           write(6,*)'setdloga: illegal coordinate system ',coord
           stop
-       endif
+       end if
        
        return
        end
@@ -155,15 +155,15 @@ c         ::::: cartesian
              do j = ARG_L2(area), ARG_H2(area)
                 do i = ARG_L1(area), ARG_H1(area)
                    area(i,j) = dx(2)
-                enddo
-             enddo
+                end do
+             end do
           else
              do j = ARG_L2(area), ARG_H2(area)
                 do i = ARG_L1(area), ARG_H1(area)
                    area(i,j) = dx(1)
-                enddo
-             enddo
-          endif
+                end do
+             end do
+          end if
        else
 c         ::::: R-Z
           if (dir .eq. 0) then
@@ -172,8 +172,8 @@ c         ::::: R-Z
                 a = RZFACTOR*ri*dx(2)
                 do j = ARG_L2(area), ARG_H2(area)
                    area(i,j) = a
-                enddo
-             enddo
+                end do
+             end do
           else
              do i = ARG_L1(area), ARG_H1(area)
                 ri = offset(1) + dx(1)*i
@@ -181,10 +181,10 @@ c         ::::: R-Z
                 a = dx(1)*(half*RZFACTOR)*(ri + ro)
                 do j = ARG_L2(area), ARG_H2(area)
                    area(i,j) = a
-                enddo
-             enddo
-          endif
-       endif
+                end do
+             end do
+          end if
+       end if
        
        return
        end
