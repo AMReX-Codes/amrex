@@ -402,7 +402,7 @@ static void sync_internal_borders (MultiFab&              r,
 	if (igrid < 0 || jgrid < 0 || lev_interface.geo(0, icor) != level_interface::ALL)
 	    break;
 	if (jgrid == lev_interface.grid(0, icor, 1))
-	    tl.add_task(new task_copy(r,jgrid,r,igrid,lev_interface.box(0,icor)));
+	    tl.add_task(new task_copy(tl, r, jgrid, r, igrid, lev_interface.box(0, icor)));
     }
 #else
     for (int iedge = 0; iedge < lev_interface.nboxes(1); iedge++) 
@@ -655,8 +655,8 @@ static void fill_internal_borders (MultiFab&              r,
 	    if (idim == 1)
 		b.grow(0, w);
 	    b.growLo(idim, w).convert(IntVect::TheCellVector());
-	    tl.add_task(new task_copy(r,jgrid,r,igrid,b));
-	    tl.add_task(new task_copy(r,igrid,r,jgrid,b.shift(idim,w)));
+	    tl.add_task(new task_copy(tl, r, jgrid, r, igrid, b));
+	    tl.add_task(new task_copy(tl, r, igrid, r, jgrid, b.shift(idim, w)));
 #else
 	    Box bj = lev_interface.box(level_interface::FACEDIM, iface);
 	    Box bi = lev_interface.box(level_interface::FACEDIM, iface);

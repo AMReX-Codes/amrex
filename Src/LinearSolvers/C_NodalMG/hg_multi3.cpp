@@ -153,6 +153,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
     }
     else
     {
+#if defined(HG_FULL_STENCIL)
 #if BL_SPACEDIM != 3
 	const Real hx = h[mglev][0];
 	const Real hy = h[mglev][1];
@@ -197,6 +198,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
 	{
 	    clear_part_interface(r, lev_interface[mglev]);
 	}
+#endif
 #endif
     }
 }
@@ -264,6 +266,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		    }
 		    else
 		    {
+#if defined(HG_FULL_STENCIL)
 #if	BL_SPACEDIM != 3
 			const Real hxyz[BL_SPACEDIM] = { D_DECL(h[mglev][0], h[mglev][1], h[mglev][2]) };
 			DependentMultiFabIterator D_DECL(s0_dmfi(r_mfi, sigma_nd[0][mglev]),
@@ -291,6 +294,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 					  s2_dmfi->dataPtr()), DIMLIST(sigbox),
 				   cn_dmfi->dataPtr(), DIMLIST(cenbox),
 				   DIMLIST(freg), D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]));
+#endif
 #endif
 #endif
 		    }
@@ -440,6 +444,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		}
 		else
 		{
+#if defined(HG_FULL_STENCIL)
 #if	BL_SPACEDIM!=3
 		    const Real hxyz[BL_SPACEDIM] = { D_DECL(h[mglev][0], h[mglev][1], h[mglev][2]) };
 		    const Box& sigbox = sigma_nd[0][mglev][igrid].box();
@@ -465,6 +470,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 				       sigma_nd[2][mglev][igrid].dataPtr()), DIMLIST(sigbox),
 				cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
 				DIMLIST(freg), DIMLIST(tdom), D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]));
+#endif
 #endif
 #endif
 		}		

@@ -10,12 +10,19 @@ class level_interface
 public:
     
 #if (BL_SPACEDIM == 2)
+#if 0
     enum 
     { 
 	LL = 0x1, HL = 0x2, LH = 0x4, HH = 0x8,
 	XL = 0x5, XH = 0xA, YL = 0x3, YH = 0xC,
 	ALL = 0xF, LOW = 0x1 
     };
+#else
+    enum
+    {
+	ALL = 0xF, LOW = 0x01
+    };
+#endif
 #else
     enum 
     {

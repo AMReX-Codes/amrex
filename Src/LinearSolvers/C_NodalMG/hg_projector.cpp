@@ -59,7 +59,6 @@ extern "C"
     void FORT_HGIDIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*, const int*);
     void FORT_HGDDIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
 
-    void FORT_HGFDIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
     void FORT_HGEDIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
     void FORT_HGCDIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
 
@@ -67,7 +66,9 @@ extern "C"
     void FORT_HGAVG         (Real*, intS, const Real*, intS, intS, const Real*, const int*, const int*);
     void FORT_HGFAVG        (Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*, const Real*, const int*, const int*);
     void FORT_HGCAVG        (Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*, const Real*, const int*, const int*);
+    void FORT_HGFDIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*, const int*, const int*);
 #elif (BL_SPACEDIM == 3)
+    void FORT_HGFDIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
     void FORT_HGAVG         (Real*, intS, const Real*, intS, intS);
     void FORT_HGFAVG        (Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*);
     void FORT_HGEAVG        (Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*);
@@ -85,9 +86,16 @@ typedef void (*FECFUNC)(Real*, intS, const Real*, intS, const Real*, intS, intS,
 class task_fecavg : public task_fec_base
 {
 public:
-    task_fecavg(FECFUNC f_, task_list& tl_, MultiFab& s_, const MultiFab& S_, int igrid_, task_fab* tf_, const Box& creg_, const IntVect& rat_, int idim_, int idir_)
+    task_fecavg(FECFUNC f_, task_list& tl_, MultiFab& s_, const MultiFab& S_, int igrid_, task_fab* tf_, const Box& creg_, const IntVect& rat_, int idim_, int idir_
+#if BL_SPACEDIM == 2
+	, Real hx_, int isRZ_, int imax_
+#endif
+	)
 	:
         task_fec_base(tl_, s_, igrid_), f(f_), S(S_), creg(creg_), rat(rat_), idim(idim_), idir(idir_)
+#if BL_SPACEDIM == 2
+	, hx(hx_), isRZ(isRZ_), imax(imax_)
+#endif
     {
         push_back(tf_);
     }
@@ -102,7 +110,11 @@ public:
 	    const Box&       cfab_box = cfab.box();
 	    const FArrayBox& Sfab     = S[igrid];
 	    const Box&       Sfab_box = Sfab.box();
-	    (*f)(sfab.dataPtr(), DIMLIST(sfab_box), cfab.dataPtr(), DIMLIST(cfab_box), Sfab.dataPtr(), DIMLIST(Sfab_box), DIMLIST(creg), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir);
+	    (*f)(sfab.dataPtr(), DIMLIST(sfab_box), cfab.dataPtr(), DIMLIST(cfab_box), Sfab.dataPtr(), DIMLIST(Sfab_box), DIMLIST(creg), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir
+#if BL_SPACEDIM == 2
+	    , &hx, &isRZ, &imax
+#endif
+	    );
 	}
 	return true;
     }
@@ -113,15 +125,27 @@ private:
     const IntVect   rat;
     const int       idim;
     const int       idir;
+#if BL_SPACEDIM == 2
+    Real hx;
+    int isRZ;
+    int imax;
+#endif
 };
 
 
 class task_fecavg_2 : public task_fec_base
 {
 public:
-    task_fecavg_2(FECFUNC f_, task_list& tl_, MultiFab& s_, int igrid_, task_fab* Sfp_, task_fab* Scp_, const Box& creg_, const IntVect& rat_, const Array<int>& ga_, const IntVect& t_ = IntVect())
+    task_fecavg_2(FECFUNC f_, task_list& tl_, MultiFab& s_, int igrid_, task_fab* Sfp_, task_fab* Scp_, const Box& creg_, const IntVect& rat_, const Array<int>& ga_, const IntVect& t_
+#if BL_SPACEDIM==2
+	, Real hx_, int isRZ_, int imax_
+#endif
+    )
 	:
         task_fec_base(tl_, s_, igrid_), f(f_), creg(creg_), rat(rat_), t(t_), ga(ga_) 
+#if BL_SPACEDIM == 2
+	, hx(hx_), isRZ(isRZ_), imax(imax_)	
+#endif
     {
         push_back(Sfp_);
         push_back(Scp_);
@@ -137,7 +161,11 @@ public:
 	    const Box&       Sf_fab_box =  Sf_fab.box();
 	    const FArrayBox& Sc_fab     = task_fab_result(1);
 	    const Box&       Sc_fab_box = Sc_fab.box();
-	    (*f)(sfab.dataPtr(), DIMLIST(sfab_box), Sf_fab.dataPtr(), DIMLIST(Sf_fab_box), Sc_fab.dataPtr(), DIMLIST(Sc_fab_box), DIMLIST(creg), D_DECL( rat[0], rat[1], rat[2]), t.getVect(), ga.dataPtr());
+	    (*f)(sfab.dataPtr(), DIMLIST(sfab_box), Sf_fab.dataPtr(), DIMLIST(Sf_fab_box), Sc_fab.dataPtr(), DIMLIST(Sc_fab_box), DIMLIST(creg), D_DECL( rat[0], rat[1], rat[2]), t.getVect(), ga.dataPtr()
+#if BL_SPACEDIM == 2
+		, &hx, &isRZ, &imax
+#endif
+	    );
 	}
 	return true;
     }
@@ -147,15 +175,31 @@ private:
     const IntVect    rat;
     const IntVect    t;
     const Array<int> ga;
+#if BL_SPACEDIM == 2
+    Real hx;
+    int isRZ;
+    int imax;
+#endif
 };
 
 class task_fecdiv : public task_fec_base
 {
-    typedef void (*FECDIV)(Real*,  intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
+    typedef void (*FECDIV)(Real*,  intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int* 
+#if BL_SPACEDIM == 2
+    , const int*, const int *
+#endif 
+    );
 public:
-    task_fecdiv(FECDIV f_, task_list& tl_, MultiFab& s_, MultiFab* upt_[], int igrid_, task_fab* ucp_[], const Box& creg_, const Real* h_, const IntVect& rat_, int idim_, int idir_)
+    task_fecdiv(FECDIV f_, task_list& tl_, MultiFab& s_, MultiFab* upt_[], int igrid_, task_fab* ucp_[], const Box& creg_, const Real* h_, const IntVect& rat_, int idim_, int idir_
+#if BL_SPACEDIM == 2
+	,int isRZ_, int imax_
+#endif
+	)
 	:
         task_fec_base(tl_, s_, igrid_), f(f_), creg(creg_), rat(rat_), idim(idim_), idir(idir_)
+#if BL_SPACEDIM == 2
+	, isRZ(isRZ_), imax(imax_)
+#endif
     {
         for (int i = 0; i  < BL_SPACEDIM; ++i)
         {
@@ -175,7 +219,11 @@ public:
 	    const Box&  up_box          = upt[0]->operator[](igrid).box();
 	    const Real* uc[BL_SPACEDIM] = { D_DECL( task_fab_result(0).dataPtr(), task_fab_result(1).dataPtr(), task_fab_result(2).dataPtr() ) };
 	    const Box&  uc_box          = task_fab_result(0).box();
-	    (*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(up[0], up[1], up[2]), DIMLIST(up_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir);
+	    (*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(up[0], up[1], up[2]), DIMLIST(up_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir
+#if BL_SPACEDIM == 2
+		, &isRZ, &imax
+#endif
+		);
 	}
 	return true;
     }
@@ -191,6 +239,10 @@ private:
     const IntVect rat;
     const int     idim;
     const int     idir;
+#if BL_SPACEDIM  == 2
+    const int isRZ;
+    const int imax;
+#endif
 };
 
 class task_fecdiv_2 : public task_fec_base
@@ -705,9 +757,9 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	const Real hx = h[mglev][0];
 	const int isRZ = IsRZ();
 	const int imax = mg_domain[mglev].bigEnd(0) + 1;
-	task::task_proxy tp = tl.add_task(new task_fecavg_?(&FORT_HGCAVG, tl, source[lev], igrid, Sfp, Scp, creg, rat, ga, IntVect(0), hx, isRz, imax));
+	task::task_proxy tp = tl.add_task(new task_fecavg_2(&FORT_HGCAVG, tl, source[lev], igrid, Sfp, Scp, creg, rat, ga, IntVect(0), hx, isRZ, imax));
 #else
-	task::task_proxy tp = tl.add_task(new task_fecavg_2(&FORT_HGCAVG, tl, source[lev], igrid, Sfp, Scp, creg, rat, ga));
+	task::task_proxy tp = tl.add_task(new task_fecavg_2(&FORT_HGCAVG, tl, source[lev], igrid, Sfp, Scp, creg, rat, ga, IntVect(0)));
 #endif
         //
 	// Fill in the grids on the other sides, if any.
@@ -771,7 +823,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 #if (BL_SPACEDIM == 2)
 	    const int isRZ = IsRZ();
 	    const int imax = mg_domain[mglev].bigEnd(0) + 1;
-	    tl.add_task(new task_fecdiv(&FORT_HGFDIV, tl, source[lev], upt, igrid, ucp, creg, h[mglev], rat, idim, idir, isRz, imax));
+	    tl.add_task(new task_fecdiv(&FORT_HGFDIV, tl, source[lev], upt, igrid, ucp, creg, h[mglev], rat, idim, idir, isRZ, imax));
 #else
 	    tl.add_task(new task_fecdiv(&FORT_HGFDIV, tl, source[lev], upt, igrid, ucp, creg, h[mglev], rat, idim, idir));
 #endif
@@ -780,7 +832,6 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
     tl.execute();
 
     HG_TEST_NORM(source[lev], "interface_divergence,a");
-#if (BL_SPACEDIM == 3) || (defined HG_TERRAIN)
     
 #if (BL_SPACEDIM == 3)
     
@@ -892,182 +943,6 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
     }
     tl.execute();
     HG_TEST_NORM(source[lev], "interface_divergence,a2");
-#else
-    for (int icor = 0; icor < lev_interface[mglev].nboxes(0); icor++) 
-    {
-	// find a fine grid touching this corner
-	int igrid;
-	for (int i = 0; i < 4; i++) 
-	{
-	    igrid = lev_interface[mglev].grid(0, icor, i);
-	    if (igrid >= 0)
-		break;
-	}
-	const unsigned int geo = lev_interface[mglev].geo(0, icor);
-	// reject fine-fine interfaces and those without an interior fine grid
-	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(0, icor) )
-	    continue;
-	else if (geo == level_interface::XL || geo == level_interface::XH || geo == level_interface::YL || geo == level_interface::YH) 
-	{
-	    // fine grid on two adjacent sides
-	    const int idim = (geo == level_interface::XL || geo == level_interface::XH) ? 0 : 1;
-	    const int idir = (geo & level_interface::LL) ? -1 : 1;
-	    Box cbox = lev_interface[mglev].box(0, icor);
-	    Box fbox = lev_interface[mglev].box(0, icor);
-	    cbox.grow(1 - idim, rat[1-idim]);
-	    fbox.grow(1 - idim, rat[1-idim]);
-	    if (idir > 0) 
-	    {
-		cbox.growLo(idim, rat[idim]);
-		fbox.growHi(idim, 1);
-	    }
-	    else 
-	    {
-		cbox.growHi(idim, rat[idim]);
-		fbox.growLo(idim, 1);
-	    }
-	    cbox.convert(IntVect::TheCellVector()).coarsen(rat);
-	    fbox.convert(IntVect::TheCellVector());
-	    task_fab* ucp[BL_SPACEDIM];
-	    task_fab* ufp[BL_SPACEDIM];
-	    for (int i = 0; i < BL_SPACEDIM; ++i)
-	    {
-		ucp[i] = new task_fill_patch(cbox, u[i][lev-1], lev_interface[mgc],   boundary.velocity(i), -1, -1);
-		ufp[i] = new task_fill_patch(fbox, u[i][lev],   lev_interface[mglev], boundary.velocity(i), 0, icor);
-	    }
-	    Box creg = lev_interface[mglev].box(0, icor);
-	    creg.coarsen(rat);
-	    const int isRZ = IsRZ();
-	    const int imax = mg_domain[mglev].bigEnd(0) + 1;
-	    task::task_proxy tp = tl.add_task(new task_fecdiv_?(&FORT_HGFDIV, tll, freg, source[lev], igrid, ufp, ucp, creg, h[mglev], rat, idim, idir, isRZ, imax));
-	    // fill in the grids on the other sides, if any
-	    const Box& freg = lev_interface[mglev].box(0, icor);
-	    for (int i = 1; i < 4; i++) 
-	    {
-		const int jgrid = lev_interface[mglev].grid(0, icor, i);
-		if (jgrid >= 0 && jgrid != igrid)
-		{
-		    tll.push_back(jgrid);
-		}
-	    }
-	}
-	else if (geo == level_interface::LL || geo == level_interface::HL || geo == level_interface::LH || geo == level_interface::HH) 
-	{
-	    // outside corner
-	    const int idir0 = (geo & level_interface::XL) ? -1 : 1;
-	    const int idir1 = (geo & level_interface::YL) ? -1 : 1;
-	    Box cbox = lev_interface[mglev].box(0, icor);
-	    cbox.grow(rat).convert(IntVect::TheCellVector()).coarsen(rat);
-	    const Box& fbox = u[0][lev][igrid].box();
-	    task_fab* ucp[BL_SPACEDIM];
-	    MultiFab* upt[BL_SPACEDIM;
-	    for (int i = 0; i < BL_SPACEDIM; ++i)
-	    {
-		ucp[i] = new task_fill_patch(cbox, u[i][lev-1], lev_interface[mgc], boundary.velocity(i), -1, -1);
-		upt[i] = &u[i][lev];
-	    }
-	    Box creg = lev_interface[mglev].box(0, icor);
-	    creg.coarsen(rat);
-	    const int isRZ = IsRZ();
-	    tl.add_task(new task_fecdiv(&FORT_HGODIV, source[lev], upt, igrid, ucp, creg, h[mglev], rat, idir0, idir1, isRZ));
-	}
-	else if (geo == (level_interface::LL | level_interface::HH) || geo == (level_interface::LH | level_interface::HL)) 
-	{
-	    // diagonal corner
-	    Box cbox = lev_interface[mglev].box(0, icor);
-	    cbox.grow(rat).convert(IntVect::TheCellVector()).coarsen(rat);
-	    Box fbox = lev_interface[mglev].box(0, icor);
-	    fbox.grow(rat).convert(IntVect::TheCellVector());
-	    task_fab* ucp[BL_SPACEDIM];
-	    task_fab* ufp[BL_SPACEDIM];
-	    for (int i = 0; i < BL_SPACEDIM; ++i)
-	    {
-	        ucp[i] = new task_fill_patch(cbox, u[i][lev-1], lev_interface[mgc],   boundary.velocity(i), -1, -1);
-		ufp[i] = new task_fill_patch(fbox, u[i][lev],   lev_interface[mglev], boundary.velocity(i), 0, icor);
-	    }
-	    int jdir = (geo == (level_interface::LL | level_interface::HH)) ? 1 : -1;
-	    Box creg = lev_interface[mglev].box(0, icor);
-	    creg.coarsen(rat);
-	    const int isRZ = IsRZ();
-	    // fill in the grids on the other sides, if any
-	    list<int> tll;
-	    const Box& freg = lev_interface[mglev].box(0, icor);
-	    for (int i = 1; i < 4; i++) 
-	    {
-		const int jgrid = lev_interface[mglev].grid(0, icor, i);
-		if (jgrid >= 0 && jgrid != igrid)
-		{
-		    tll.push_back(jgrid);
-		}
-	    }
-	    tl.add_task(new task_fecdiv_?(&FORT_HGDDIV, tll, freg, source[lev], igrid, ufp, ucp, creg, h[mglev], rat, jdir, isRZ));
-	}
-	else 
-	{
-	    // inside corner
-	    Box cbox = lev_interface[mglev].box(0, icor);
-	    Box fbox = lev_interface[mglev].box(0, icor);
-	    cbox.grow(rat).convert(IntVect::TheCellVector()).coarsen(rat);
-	    fbox.grow(1).convert(IntVect::TheCellVector());
-	    if ((geo & level_interface::XL) == level_interface::XL)
-		fbox.growHi(0, rat[0]-1);
-	    else
-		fbox.growLo(0, rat[0]-1);
-	    if ((geo & level_interface::YL) == level_interface::YL)
-		fbox.growHi(1, rat[1]-1);
-	    else
-		fbox.growLo(1, rat[1]-1);
-	    task_fab*  ufp[BL_SPACEDIM];
-	    for (int i = 0; i < BL_SPACEDIM; ++i)
-	    {
-		ufp[i] = new task_fill_patch(fbox, u[i][lev], lev_interface[mglev], boundary.velocity(i), 0, icor);
-	    }
-	    int idir0;
-	    int idir1;
-	    if ((geo & level_interface::XL) == level_interface::XL) 
-	    {
-		idir0 = -1;
-		cbox.growLo(0, -1);
-	    }
-	    else 
-	    {
-		idir0 = 1;
-		cbox.growHi(0, -1);
-	    }
-	    if ((geo & level_interface::YL) == level_interface::YL) 
-	    {
-		idir1 = -1;
-		cbox.growLo(1, -1);
-	    }
-	    else 
-	    {
-		idir1 = 1;
-		cbox.growHi(1, -1);
-	    }
-	    task_fab* ucp[BL_SPACEDIM];
-	    for (int i = 0; i < BL_SPACEDIM; ++i)
-	    {
-	        ucp[i] = new task_fill_patch(cbox, u[i][lev-1], lev_interface[mgc], boundary.velocity(i), -1, -1);
-	    }
-	    Box creg = lev_interface[mglev].box(0, icor);
-	    creg.coarsen(rat);
-	    const int isRZ = IsRZ();
-	    // fill in the grids on the other sides, if any
-	    list<int> tll;
-	    const Box& freg = lev_interface[mglev].box(0, icor);
-	    for (int i = 1; i < 4; i++) 
-	    {
-		const int jgrid = lev_interface[mglev].grid(0, icor, i);
-		if (jgrid >= 0 && jgrid != igrid)
-		{
-		    tll.push_back(jgrid);
-		}
-	    }
-	    tl.add_task(new task_fecdiv_?(&FORT_HGEDIV, tll, freg, source[lev], igrid, ufp, ucp, creg, h[mglev], rat, idir0, idir1, isRZ));
-	}
-    }
-    tl.execute();
-#endif
 }
 
 void holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u, const PArray<MultiFab>& sigma_in)
