@@ -3,7 +3,7 @@
 #define _DivVis_H_
 
 //
-// $Id: DivVis.H,v 1.5 2000-10-02 20:53:39 lijewski Exp $
+// $Id: DivVis.H,v 1.6 2001-08-01 21:51:06 lijewski Exp $
 //
 
 #include <Tuple.H>
@@ -211,10 +211,10 @@ private:
     //
     // Flag, can a coeffs be trusted at a level.
     //
-    Array< bool > a_valid;
+    std::vector<bool> a_valid;
     // Flag, can b coeffs be trusted at a level.
     //
-    Array< bool > b_valid;
+    std::vector<bool> b_valid;
     //
     // Default value for a (MultiFab) coeficient.
     //

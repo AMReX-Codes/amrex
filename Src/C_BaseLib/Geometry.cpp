@@ -1,40 +1,114 @@
-
 //
-// $Id: Geometry.cpp,v 1.54 2000-12-06 23:13:58 almgren Exp $
+// $Id: Geometry.cpp,v 1.55 2001-08-01 21:50:50 lijewski Exp $
 //
+#include <iostream>
 
+#include <BoxArray.H>
 #include <Geometry.H>
 #include <ParmParse.H>
-#include <BoxArray.H>
-
+#include <MultiFab.H>
 //
 // The definition of static data members.
 //
 RealBox Geometry::prob_domain;
 
 bool Geometry::is_periodic[BL_SPACEDIM];
+//
+// Src/dest box pairs to copy for periodic.
+//
+struct PIRec
+{
+    PIRec ()
+        :
+        mfid(-1),
+        srcId(-1) {}
 
-Geometry::FPBList Geometry::m_FPBCache;
+    PIRec (int        _mfid,
+           int        _srcId,
+           const Box& _srcBox,
+           const Box& _dstBox)
+        :
+        mfid(_mfid),
+        srcId(_srcId),
+        srcBox(_srcBox),
+        dstBox(_dstBox) {}
 
-ostream&
-operator<< (ostream&        os,
+    int       mfid;
+    int       srcId;
+    Box       srcBox;
+    Box       dstBox;
+    FillBoxId fbid;
+};
+//
+// A handy typedef.
+//
+typedef std::vector<PIRec> PIRMMap;
+//
+// Used in caching PIRMMaps && CommData.
+//
+struct FPB
+{
+    FPB ();
+
+    FPB (const BoxArray& ba,
+         const Box&      domain,
+         int             scomp,
+         int             ncomp,
+         int             ngrow,
+         bool            do_corners);
+
+    FPB (const FPB& rhs);
+
+    ~FPB ();
+
+    bool operator== (const FPB& rhs) const;
+    bool operator!= (const FPB& rhs) const;
+
+    Array<int>    m_cache;    // Snds cached for CollectData().
+    CommDataCache m_commdata; // Yet another cache for CollectData().
+    PIRMMap       m_pirm;
+    BoxArray      m_ba;
+    Box           m_domain;
+    int           m_scomp;
+    int           m_ncomp;
+    int           m_ngrow;
+    bool          m_do_corners;
+};
+//
+// A useful typedef.
+//
+typedef std::list<FPB> FPBList;
+//
+// A cache of FPBs.
+//
+static FPBList m_FPBCache;
+
+std::ostream&
+operator<< (std::ostream&   os,
             const Geometry& g)
 {
-    os << (CoordSys&) g << g.prob_domain << g.domain;
+    os << (CoordSys&) g << g.ProbDomain() << g.Domain();
     return os;
 }
 
-istream&
-operator>> (istream&  is,
-            Geometry& g)
+std::istream&
+operator>> (std::istream& is,
+            Geometry&     g)
 {
-    is >> (CoordSys&) g >> g.prob_domain >> g.domain;
+    Box     bx;
+    RealBox rb;
+
+    is >> (CoordSys&) g >> rb >> bx;
+
+    g.Domain(bx);
+    Geometry::ProbDomain(rb);
+
     return is;
 }
 
-ostream&
-operator<< (ostream&               os,
-            const Geometry::PIRec& pir)
+std::ostream&
+operator<< (std::ostream& os,
+            const PIRec&  pir)
 {
     os << "mfi: "
        << pir.mfid
@@ -48,13 +122,186 @@ operator<< (ostream&               os,
     return os;
 }
 
-ostream&
-operator<< (ostream&                 os,
-	    const Geometry::PIRMMap& pirm)
+std::ostream&
+operator<< (std::ostream&  os,
+	    const PIRMMap& pirm)
 {
     for (int i = 0; i < pirm.size(); i++)
         os << pirm[i] << '\n';
     return os;
+}
+
+FPB::FPB ()
+    :
+    m_scomp(-1),
+    m_ncomp(-1),
+    m_ngrow(-1),
+    m_do_corners(false)
+{}
+
+FPB::FPB (const BoxArray& ba,
+          const Box&      domain,
+          int             scomp,
+          int             ncomp,
+          int             ngrow,
+          bool            do_corners)
+    :
+    m_ba(ba),
+    m_domain(domain),
+    m_scomp(scomp),
+    m_ncomp(ncomp),
+    m_ngrow(ngrow),
+    m_do_corners(do_corners)
+{
+    BL_ASSERT(scomp >= 0);
+    BL_ASSERT(ncomp >  0);
+    BL_ASSERT(ngrow >= 0);
+    BL_ASSERT(domain.ok());
+}
+
+FPB::FPB (const FPB& rhs)
+    :
+    m_cache(rhs.m_cache),
+    m_commdata(rhs.m_commdata),
+    m_pirm(rhs.m_pirm),
+    m_ba(rhs.m_ba),
+    m_domain(rhs.m_domain),
+    m_scomp(rhs.m_scomp),
+    m_ncomp(rhs.m_ncomp),
+    m_ngrow(rhs.m_ngrow),
+    m_do_corners(rhs.m_do_corners)
+{}
+
+FPB::~FPB () {}
+
+bool
+FPB::operator== (const FPB& rhs) const
+{
+    return
+        m_scomp      == rhs.m_scomp      &&
+        m_ncomp      == rhs.m_ncomp      &&
+        m_ngrow      == rhs.m_ngrow      &&
+        m_do_corners == rhs.m_do_corners &&
+        m_domain     == rhs.m_domain     &&
+        m_ba         == rhs.m_ba;
+}
+
+bool
+FPB::operator!= (const FPB& rhs) const
+{
+    return !operator==(rhs);
+}
+
+const RealBox&
+Geometry::ProbDomain ()
+{
+    return prob_domain;
+}
+
+void
+Geometry::ProbDomain (const RealBox& rb)
+{
+    prob_domain = rb;
+}
+
+const Box&
+Geometry::Domain () const
+{
+    return domain;
+}
+
+void
+Geometry::Domain (const Box& bx)
+{
+    domain = bx;
+}
+
+bool
+Geometry::isPeriodic (int dir)
+{
+    return is_periodic[dir] != 0;
+}
+
+bool
+Geometry::isAnyPeriodic ()
+{
+    return isPeriodic(0)
+#if BL_SPACEDIM>1
+        ||   isPeriodic(1)
+#endif
+#if BL_SPACEDIM>2
+        ||   isPeriodic(2)
+#endif
+        ;
+}
+
+int
+Geometry::period (int dir) const
+{
+    BL_ASSERT(is_periodic[dir]);
+    return domain.length(dir);
+}
+
+const Real*
+Geometry::ProbLo ()
+{
+    return prob_domain.lo();
+}
+
+const Real*
+Geometry::ProbHi ()
+{
+    return prob_domain.hi();
+}
+
+Real
+Geometry::ProbLo (int dir)
+{
+    return prob_domain.lo(dir);
+}
+
+Real
+Geometry::ProbHi (int dir)
+{
+    return prob_domain.hi(dir);
+}
+
+const Real*
+Geometry::ProbLength ()
+{
+    return prob_domain.length();
+}
+
+Real
+Geometry::ProbLength (int dir)
+{
+    return prob_domain.length(dir);
+}
+
+void
+Geometry::FillPeriodicBoundary (MultiFab& mf,
+                                bool do_corners) const
+{
+    FillPeriodicBoundary(mf,0,mf.nComp(),do_corners);
+}
+
+FPB&
+Geometry::getFPB (MultiFab&  mf,
+                  const FPB& fpb) const
+{
+    BL_ASSERT(isAnyPeriodic());
+    //
+    // Have we already made one with appropriate characteristics?
+    //
+    // Search from the front to the back ...
+    //
+    FPBList::iterator it = m_FPBCache.begin();
+
+    for ( ; it != m_FPBCache.end(); ++it)
+        if (*it == fpb)
+            return *it;
+
+    return buildFPB(mf,fpb);
 }
 
 int
@@ -69,7 +316,7 @@ Geometry::FlushPIRMCache ()
     m_FPBCache.clear();
 }
 
-Geometry::FPB&
+FPB&
 Geometry::buildFPB (MultiFab&  mf,
                     const FPB& fpb) const
 {
@@ -81,12 +328,11 @@ Geometry::buildFPB (MultiFab&  mf,
 
     Array<IntVect> pshifts(27);
 
-    for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
-        Box dest = mfi().box();
+        Box dest = mf[mfi].box();
 
-        BL_ASSERT(dest == ::grow(mfi.validbox(), mf.nGrow()));
-//      BL_ASSERT(dest.ixType().cellCentered() || dest.ixType().nodeCentered());
+        BL_ASSERT(dest == BoxLib::grow(mfi.validbox(), mf.nGrow()));
 
         bool DoIt;
         Box  TheDomain;
@@ -98,8 +344,8 @@ Geometry::buildFPB (MultiFab&  mf,
         }
         else if (dest.ixType().nodeCentered())
         {
-            TheDomain = ::surroundingNodes(Domain());
-            DoIt      = !::grow(TheDomain,-1).contains(dest);
+            TheDomain = BoxLib::surroundingNodes(Domain());
+            DoIt      = !BoxLib::grow(TheDomain,-1).contains(dest);
         }
         else 
         {
@@ -114,7 +360,7 @@ Geometry::buildFPB (MultiFab&  mf,
         {
             const BoxArray& grids = mf.boxArray();
 
-            for (int j = 0; j < grids.length(); j++)
+            for (int j = 0; j < grids.size(); j++)
             {
                 Box src = grids[j] & TheDomain;
 
@@ -134,7 +380,7 @@ Geometry::buildFPB (MultiFab&  mf,
 
                 periodicShift(dest, src, pshifts);
 
-                for (int i = 0; i < pshifts.length(); i++)
+                for (int i = 0; i < pshifts.size(); i++)
                 {
                     Box shftbox = src + pshifts[i];
                     Box src_box = dest & shftbox;
@@ -156,10 +402,6 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
                                 bool      corners) const
 {
     if (!isAnyPeriodic()) return;
-
-    static RunStats stats("fill_periodic_bndry");
-
-    stats.start();
 
     MultiFabCopyDescriptor mfcd;
 
@@ -193,8 +435,6 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
         mfcd.FillFab(mfid, pirm[i].fbid, mf[pirm[i].mfid], pirm[i].dstBox);
     }
-
-    stats.end();
 }
 
 Geometry::Geometry () {}
@@ -241,10 +481,10 @@ Geometry::Setup ()
 
     Array<Real> prob_lo(BL_SPACEDIM);
     pp.getarr("prob_lo",prob_lo,0,BL_SPACEDIM);
-    BL_ASSERT(prob_lo.length() == BL_SPACEDIM);
+    BL_ASSERT(prob_lo.size() == BL_SPACEDIM);
     Array<Real> prob_hi(BL_SPACEDIM);
     pp.getarr("prob_hi",prob_hi,0,BL_SPACEDIM);
-    BL_ASSERT(prob_lo.length() == BL_SPACEDIM);
+    BL_ASSERT(prob_lo.size() == BL_SPACEDIM);
     prob_domain.setLo(prob_lo);
     prob_domain.setHi(prob_hi);
     //
@@ -269,9 +509,9 @@ Geometry::GetVolume (MultiFab&       vol,
                      int             ngrow) const
 {
     vol.define(grds,1,ngrow,Fab_noallocate);
-    for (MultiFabIterator mfi(vol); mfi.isValid(); ++mfi)
+    for (MFIter mfi(vol); mfi.isValid(); ++mfi)
     {
-        Box gbx = ::grow(grds[mfi.index()],ngrow);
+        Box gbx = BoxLib::grow(grds[mfi.index()],ngrow);
         vol.setFab(mfi.index(),CoordSys::GetVolume(gbx));
     }
 }
@@ -284,9 +524,9 @@ Geometry::GetDLogA (MultiFab&       dloga,
                     int             ngrow) const
 {
     dloga.define(grds,1,ngrow,Fab_noallocate);
-    for (MultiFabIterator mfi(dloga); mfi.isValid(); ++mfi)
+    for (MFIter mfi(dloga); mfi.isValid(); ++mfi)
     {
-        Box gbx = ::grow(grds[mfi.index()],ngrow);
+        Box gbx = BoxLib::grow(grds[mfi.index()],ngrow);
         dloga.setFab(mfi.index(),CoordSys::GetDLogA(gbx,dir));
     }
 }
@@ -301,9 +541,9 @@ Geometry::GetFaceArea (MultiFab&       area,
     BoxArray edge_boxes(grds);
     edge_boxes.surroundingNodes(dir);
     area.define(edge_boxes,1,ngrow,Fab_noallocate);
-    for (MultiFabIterator mfi(area); mfi.isValid(); ++mfi)
+    for (MFIter mfi(area); mfi.isValid(); ++mfi)
     {
-        Box gbx = ::grow(grds[mfi.index()],ngrow);
+        Box gbx = BoxLib::grow(grds[mfi.index()],ngrow);
         area.setFab(mfi.index(),CoordSys::GetFaceArea(gbx,dir));
     }
 }
@@ -368,8 +608,8 @@ Geometry::periodicShift (const Box&      target,
                     D_TERM(sh.setVal(0,ri*domain.length(0));,
                            sh.setVal(1,rj*domain.length(1));,
                            sh.setVal(2,rk*domain.length(2));)
-                        out.resize(out.length()+1); 
-                        out[out.length()-1] = sh;
+                    out.resize(out.size()+1); 
+                    out[out.size()-1] = sh;
                 }
                 if (rk != 0
 #if (BL_SPACEDIM == 3)

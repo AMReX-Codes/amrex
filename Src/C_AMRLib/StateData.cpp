@@ -1,16 +1,16 @@
 
 //
-// $Id: StateData.cpp,v 1.31 2001-05-09 22:30:59 lijewski Exp $
+// $Id: StateData.cpp,v 1.32 2001-08-01 21:50:46 lijewski Exp $
 //
 
+#include <algorithm>
+
+#include <RealBox.H>
 #include <StateData.H>
+#include <StateDescriptor.H>
 #include <ParallelDescriptor.H>
 
-#if defined(BL_USE_FLOAT) && !defined(BL_ARCH_CRAY)
 const Real INVALID_TIME = -1.0e30;
-#else
-const Real INVALID_TIME = -1.0e100;
-#endif
 
 const int MFNEWDATA = 0;
 const int MFOLDDATA = 1;
@@ -23,6 +23,15 @@ StateData::StateData ()
    new_time.stop  = INVALID_TIME;
    old_time.start = INVALID_TIME;
    old_time.stop  = INVALID_TIME;
+}
+
+StateData::StateData (const Box&             p_domain,
+                      const BoxArray&        grds,
+                      const StateDescriptor* d,
+                      Real                   cur_time,
+                      Real                   dt)
+{
+    define(p_domain, grds, *d, cur_time, dt);
 }
 
 void
@@ -70,13 +79,13 @@ StateData::reset ()
 {
     new_time = old_time;
     old_time.start = old_time.stop = INVALID_TIME;
-    Swap(old_data, new_data);
+    std::swap(old_data, new_data);
 }
 
 void
-StateData::restart (istream&               is,
+StateData::restart (std::istream&          is,
                     const StateDescriptor& d,
-                    const aString&         chkfile,
+                    const std::string&     chkfile,
                     bool                   bReadSpecial)
 {
     if (bReadSpecial)
@@ -85,10 +94,15 @@ StateData::restart (istream&               is,
     desc = &d;
 
     is >> domain;
+
     if (bReadSpecial)
-        readBoxArray(grids, is, bReadSpecial);
+    {
+        BoxLib::readBoxArray(grids, is, bReadSpecial);
+    }
     else
-        grids.define(is);
+    {
+        grids.readFrom(is);
+    }
 
     is >> old_time.start;
     is >> old_time.stop;
@@ -101,14 +115,14 @@ StateData::restart (istream&               is,
     old_data = 0;
 
     new_data = new MultiFab;
-    aString mf_name;
+    std::string mf_name;
     is >> mf_name;
     //
     // Note that mf_name is relative to the Header file.
     // We need to prepend the name of the chkfile directory.
     //
-    aString FullPathName = chkfile;
-    if (!chkfile.isNull() && chkfile[chkfile.length()-1] != '/')
+    std::string FullPathName = chkfile;
+    if (!chkfile.empty() && chkfile[chkfile.length()-1] != '/')
         FullPathName += '/';
     FullPathName += mf_name;
     VisMF::Read(*new_data, FullPathName);
@@ -122,7 +136,7 @@ StateData::restart (istream&               is,
         // We need to prepend the name of the chkfile directory.
         //
         FullPathName = chkfile;
-        if (!chkfile.isNull() && chkfile[chkfile.length()-1] != '/')
+        if (!chkfile.empty() && chkfile[chkfile.length()-1] != '/')
             FullPathName += '/';
         FullPathName += mf_name;
         VisMF::Read(*old_data, FullPathName);
@@ -138,11 +152,11 @@ StateData::buildBC ()
     bc.resize(ncomp);
     for (int i = 0; i < ncomp; i++)
     {
-        bc[i].resize(grids.length());
-        for (int j = 0; j < grids.length(); j++)
+        bc[i].resize(grids.size());
+        for (int j = 0; j < grids.size(); j++)
         {
             BCRec bcr;
-            setBC(grids[j],domain,desc->getBC(i),bcr);
+            BoxLib::setBC(grids[j],domain,desc->getBC(i),bcr);
             bc[i].set(j,bcr);
         }
     }
@@ -153,6 +167,118 @@ StateData::~StateData()
    desc = 0;
    delete new_data;
    delete old_data;
+}
+
+void
+StateData::allocOldData ()
+{
+    if (old_data == 0)
+    {
+        old_data = new MultiFab(grids,desc->nComp(),desc->nExtra());
+    }
+}
+
+void
+StateData::removeOldData ()
+{
+    delete old_data;
+    old_data = 0;
+}
+
+const StateDescriptor*
+StateData::descriptor () const
+{
+    return desc;
+}
+
+const Box&
+StateData::getDomain () const
+{
+    return domain;
+}
+
+const BoxArray&
+StateData::boxArray () const
+{
+    return grids;
+}
+
+Real
+StateData::curTime () const
+{
+    return 0.5*(new_time.start + new_time.stop);
+}
+
+Real
+StateData::prevTime () const
+{
+    return 0.5*(old_time.start + old_time.stop);
+}
+
+MultiFab&
+StateData::newData ()
+{
+    BL_ASSERT(new_data != 0);
+    return *new_data;
+}
+
+const MultiFab&
+StateData::newData () const
+{
+    BL_ASSERT(new_data != 0);
+    return *new_data;
+}
+
+MultiFab&
+StateData::oldData ()
+{
+    BL_ASSERT(old_data != 0);
+    return *old_data;
+}
+
+const MultiFab&
+StateData::oldData () const
+{
+    BL_ASSERT(old_data != 0);
+    return *old_data;
+}
+
+FArrayBox&
+StateData::newGrid (int i)
+{
+    BL_ASSERT(new_data != 0);
+    return (*new_data)[i];
+}
+
+FArrayBox&
+StateData::oldGrid (int i)
+{
+    BL_ASSERT(old_data != 0);
+    return (*old_data)[i];
+}
+
+Array<BCRec>&
+StateData::getBCs (int comp)
+{
+    return bc[comp];
+}
+
+const BCRec&
+StateData::getBC (int comp, int i) const
+{
+    return bc[comp][i];
+}
+
+bool
+StateData::hasOldData () const
+{
+    return old_data != 0;
+}
+
+bool
+StateData::hasNewData () const
+{
+    return new_data != 0;
 }
 
 void
@@ -214,7 +340,7 @@ StateData::swapTimeLevels (Real dt)
         new_time.start = new_time.stop;
         new_time.stop += dt;
     }
-    Swap(old_data, new_data);
+    std::swap(old_data, new_data);
 }
 
 void
@@ -251,11 +377,11 @@ StateData::FillBoundary (const Real*    dx,
 
     BL_ASSERT((do_new && new_data != 0) || old_data != 0);
 
-    MultiFabIterator mfi(do_new ? *new_data : *old_data);
+    MultiFab& mf = do_new ? *new_data : *old_data;
    
-    for ( ; mfi.isValid(); ++mfi)
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
-        FillBoundary(mfi(),cur_time,dx,prob_domain,src_comp,src_comp,num_comp);
+        FillBoundary(mf[mfi],cur_time,dx,prob_domain,src_comp,src_comp,num_comp);
     }
 }
 
@@ -291,7 +417,7 @@ StateData::FillBoundary (FArrayBox&     dest,
         const int dc  = dest_comp+i;
         const int sc  = src_comp+i;
         Real*     dat = dest.dataPtr(dc);
-        setBC(bx,domain,desc->getBC(sc),bcr);
+        BoxLib::setBC(bx,domain,desc->getBC(sc),bcr);
         desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcr.vect());
     }
 }
@@ -331,19 +457,19 @@ StateData::linInterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
         }
         else
         {
-            ::linInterpAddBox(multiFabCopyDesc,
-                              unfillableBoxes,
-                              returnedFillBoxIds,
-                              subbox,
-                              mfid[MFOLDDATA],
-                              mfid[MFNEWDATA],
-                              old_time.start,
-                              new_time.start,
-                              time,
-                              src_comp,
-                              dest_comp,
-                              num_comp,
-                              extrap);
+            BoxLib::linInterpAddBox(multiFabCopyDesc,
+                                    unfillableBoxes,
+                                    returnedFillBoxIds,
+                                    subbox,
+                                    mfid[MFOLDDATA],
+                                    mfid[MFNEWDATA],
+                                    old_time.start,
+                                    new_time.start,
+                                    time,
+                                    src_comp,
+                                    dest_comp,
+                                    num_comp,
+                                    extrap);
         }
     }
     else
@@ -397,18 +523,18 @@ StateData::linInterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
         }
         else
         {
-            ::linInterpFillFab(multiFabCopyDesc,
-                               fillBoxIds,
-                               mfid[MFOLDDATA],
-                               mfid[MFNEWDATA],
-                               dest,
-                               old_time.start,
-                               new_time.start,
-                               time,
-                               src_comp,
-                               dest_comp,
-                               num_comp,
-                               extrap);
+            BoxLib::linInterpFillFab(multiFabCopyDesc,
+                                     fillBoxIds,
+                                     mfid[MFOLDDATA],
+                                     mfid[MFNEWDATA],
+                                     dest,
+                                     old_time.start,
+                                     new_time.start,
+                                     time,
+                                     src_comp,
+                                     dest_comp,
+                                     num_comp,
+                                     extrap);
         }
     }
     else
@@ -433,14 +559,14 @@ StateData::linInterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
 }
 
 void
-StateData::checkPoint (const aString& name,
-                       const aString& fullpathname,
-                       ostream&       os,
+StateData::checkPoint (const std::string& name,
+                       const std::string& fullpathname,
+                       std::ostream&  os,
                        VisMF::How     how,
                        bool           dump_old)
 {
-    static const aString NewSuffix("_New_MF");
-    static const aString OldSuffix("_Old_MF");
+    static const std::string NewSuffix("_New_MF");
+    static const std::string OldSuffix("_Old_MF");
 
     if (dump_old == true && old_data == 0)
     {
@@ -452,8 +578,8 @@ StateData::checkPoint (const aString& name,
         //
         // The relative name gets written to the Header file.
         //
-        aString mf_name_old = name; mf_name_old += OldSuffix;
-        aString mf_name_new = name; mf_name_new += NewSuffix;
+        std::string mf_name_old = name; mf_name_old += OldSuffix;
+        std::string mf_name_new = name; mf_name_new += NewSuffix;
 
         os << domain << '\n';
 
@@ -474,19 +600,19 @@ StateData::checkPoint (const aString& name,
         }
     }
     BL_ASSERT(new_data);
-    aString mf_fullpath_new = fullpathname; mf_fullpath_new += NewSuffix;
+    std::string mf_fullpath_new = fullpathname; mf_fullpath_new += NewSuffix;
     VisMF::Write(*new_data,mf_fullpath_new,how);
 
     if (dump_old)
     {
         BL_ASSERT(old_data);
-        aString mf_fullpath_old = fullpathname; mf_fullpath_old += OldSuffix;
+        std::string mf_fullpath_old = fullpathname; mf_fullpath_old += OldSuffix;
         VisMF::Write(*old_data,mf_fullpath_old,how);
     }
 }
 
 void
-StateData::printTimeInterval (ostream &os) const
+StateData::printTimeInterval (std::ostream &os) const
 {
     os << '['
        << old_time.start
@@ -500,32 +626,38 @@ StateData::printTimeInterval (ostream &os) const
        << '\n';
 }
 
-
-///// ---------------------------------------------------------------
-// the following is from the asci version of StateData.C
+//
+// The following is from the asci version of StateData.C
+//
 
 const int BL_IGNORE_MAX = 100000;
 
-void readBoxArray(BoxArray& ba, istream& is, bool bReadSpecial)
+void
+BoxLib::readBoxArray (BoxArray&     ba,
+                      std::istream& is,
+                      bool          bReadSpecial)
 {
-  if (bReadSpecial == false) {
-    ba.define(is);
-  }
-  else {
-    BL_ASSERT(ba.length() == 0);
-    int maxbox;
-    unsigned long in_hash; // will be ignored
-    is.ignore(BL_IGNORE_MAX, '(') >> maxbox >> in_hash;
-    ba.resize(maxbox);
-    for (int i = 0; i < maxbox; i++) {
-      Box b;
-      is >> b;
-      ba.set(i, b);
+    if (bReadSpecial == false)
+    {
+        ba.readFrom(is);
     }
-    is.ignore(BL_IGNORE_MAX, ')');
+    else
+    {
+        BL_ASSERT(ba.size() == 0);
+        int maxbox;
+        unsigned long in_hash; // will be ignored
+        is.ignore(BL_IGNORE_MAX, '(') >> maxbox >> in_hash;
+        ba.resize(maxbox);
+        for (int i = 0; i < maxbox; i++)
+        {
+            Box b;
+            is >> b;
+            ba.set(i, b);
+        }
+        is.ignore(BL_IGNORE_MAX, ')');
 
-    if (is.fail())
-      BoxLib::Error("readBoxArray(BoxArray&,istream&,int) failed");
-  }
+        if (is.fail())
+            BoxLib::Error("readBoxArray(BoxArray&,istream&,int) failed");
+    }
 }
 

@@ -4,27 +4,12 @@
 #include <CArena.H>
 #include <Utility.H>
 #include <ParmParse.H>
-#include <RunStats.H>
 
-#ifdef BL_USE_NEW_HFILES
 #include <iostream>
 #include <iomanip>
 #include <fstream>
 #include <new>
-#ifndef __GNUC__
 #include <sstream>
-#else
-#include <cstdio>
-#endif
-using namespace std;
-
-#else
-#include <iostream.h>
-#include <iomanip.h>
-#include <fstream.h>
-#include <stdio.h>
-#include <new.h>
-#endif
 
 #ifndef WIN32
 #include <unistd.h>
@@ -53,12 +38,9 @@ holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::cross;
 int
 main(int argc, char **argv)
 {
-#ifndef WIN32
-    set_new_handler(Utility::OutOfMemory);
-#endif
-    ParallelDescriptor::StartParallel(&argc, &argv);
-    if ( argc < 2 ) BoxLib::Error("expected inputs file");
-    ParmParse pp(argc-2,argv+2, 0, argv[1]);
+    BoxLib::Initialize(argc,argv);
+
+    ParmParse pp;
 
     HG_is_debugging = true;
     HG_is_debugging = false;
@@ -74,12 +56,12 @@ main(int argc, char **argv)
     pp.query("sleep", slp);
     if ( slp > 0 )
     {
-	cout << "going to sleep for " << slp
-	     << " seconds, debug pid = " << ::getpid() << endl;
+	std::cout << "going to sleep for " << slp
+	     << " seconds, debug pid = " << ::getpid() << std::endl;
 	::sleep(slp);
     }
 #endif
-    aString ass;
+    std::string ass;
     if ( pp.query("bcall", ass) ) bcall = RegTypeSet(ass);
     bc00 = bc10 = bc20 = bc01 = bc11 = bc21 = bcall;
     if ( pp.query("bc00", ass) ) bc00 = RegTypeSet(ass);
@@ -92,7 +74,7 @@ main(int argc, char **argv)
     pp.query("pcode", pcode);
     pp.query("tol", tol);
     pp.query("coordsys", coordsys);
-    aString stencil;
+    std::string stencil;
     pp.query("stencil", stencil);
     if ( stencil == "cross" )
     {
@@ -113,25 +95,23 @@ main(int argc, char **argv)
 
     if ( ParallelDescriptor::IOProcessor() )
     {
-	cout << "nrep = " << nrep << endl;
-	cout << "pcode = " << pcode << endl;
-	cout << "tol = " << tol << endl;
+	std::cout << "nrep = " << nrep << std::endl;
+	std::cout << "pcode = " << pcode << std::endl;
+	std::cout << "tol = " << tol << std::endl;
     }
-    cout << setprecision(15);
+    std::cout << std::setprecision(15);
 
     int num = pp.countname("file");
     for ( int k = 0; k < num; k++)
     {
-	aString filename;
+	std::string filename;
 	pp.getkth("file", k, filename, 0);
 	if ( ParallelDescriptor::IOProcessor() )
 	{
-	    cout << "file " << k << " is " << filename << endl;
+	    std::cout << "file " << k << " is " << filename << std::endl;
 	}
 	driver(filename.c_str());
     }
-
-    RunStats::report(cout);
 
     if (CArena* arena = dynamic_cast<CArena*>(The_FAB_Arena))
     {
@@ -153,12 +133,12 @@ main(int argc, char **argv)
                 ParallelDescriptor::MyProc(),
                 arena->heap_space_used());
 
-        cout << buf << endl;
+        std::cout << buf << std::endl;
     }
 
     HG::MPI_finish();
 
-    ParallelDescriptor::EndParallel();
+    BoxLib::Finalize();
 
     return 0;
 }
@@ -170,8 +150,8 @@ driver(const char *filename)
     Array<IntVect> ratio;
     Array<Box> domain;
 
-    fstream grid;
-    grid.open(filename, ios::in);
+    std::fstream grid;
+    grid.open(filename, std::ios::in);
     if ( grid.fail() )
     {
 	BoxLib::Warning("Failed to open grid file");
@@ -194,24 +174,17 @@ init(PArray<MultiFab> u[], PArray<MultiFab>& p,
     }
     if (m.length() == 1)
     {
-	for (MultiFabIterator u_mfi(u[0][0]); u_mfi.isValid(); ++u_mfi)
+	for (MFIter u_mfi(u[0][0]); u_mfi.isValid(); ++u_mfi)
 	{
-	    (*u_mfi)(m[0][u_mfi.index()].smallEnd() + IntVect(2,2)) = 3.0;
-	    //u[0][0][igrid](m[0][igrid].smallEnd() + IntVect(3,3)) = 1.0;
-	    //u[1][0][igrid](m[0][igrid].smallEnd() + IntVect(3,3)) = 1.0;
-	    //u[0][0][igrid](m[0][igrid].smallEnd() + IntVect(20,2)) = 3.0;
-	    //u[1][0][igrid](m[0][igrid].smallEnd() + IntVect(2,2)) = 3.0;
+	    u[0][0][u_mfi](m[0][u_mfi.index()].smallEnd() + IntVect(2,2)) = 3.0;
 	}
     }
     else if (m.length() == 2)
     {
-	for (MultiFabIterator u_mfi(u[0][1]); u_mfi.isValid(); ++u_mfi)
+	for (MFIter u_mfi(u[0][1]); u_mfi.isValid(); ++u_mfi)
 	{
-	    (*u_mfi)(m[1][u_mfi.index()].smallEnd() + IntVect(2,2)) = 3.0;
+	    u[0][1][u_mfi](m[1][u_mfi.index()].smallEnd() + IntVect(2,2)) = 3.0;
 	}
-	//u[0][1][0](IntVect(20,90)) = 1.0;
-	//u[0][1][0](IntVect(50,50)) = 1.0;
-	//u[0][1][0](IntVect(22,12)) = 1.0;
 	if (hg_stencil != holy_grail_amr_multigrid::terrain)
 	{
 	    if ( is_local(u[0][0], 0) )
@@ -219,41 +192,25 @@ init(PArray<MultiFab> u[], PArray<MultiFab>& p,
 	}
 	else
 	{
-//	    if ( is_local(u[0][0], 0) )
-//		u[0][0][0](IntVect(12,12)) = 3.0 * ratio[0][0];
 	    if ( is_local(u[0][0], 0) )
 		u[0][0][0](IntVect(12,12)) = 3.0;
-	    /*
-	      if (m[0].domain().length(0) == 32)
-	      u[0][1][0](IntVect(30,30)) = 1.0;
-	      else if (m[0].domain().length(0) == 64)
-	      u[0][1][0](IntVect(60,60)) = 1.0;
-	      else
-	      u[0][1][0](IntVect(120,120)) = 1.0;
-	    */
 	}
     }
     else if (m.length() == 3)
     {
-	for (MultiFabIterator u_mfi(u[0][1]); u_mfi.isValid(); ++u_mfi)
+	for (MFIter u_mfi(u[0][1]); u_mfi.isValid(); ++u_mfi)
 	{
-	    (*u_mfi)(m[1][u_mfi.index()].smallEnd() + IntVect(2,2)) = 3.0;
+	    u[0][1][u_mfi](m[1][u_mfi.index()].smallEnd() + IntVect(2,2)) = 3.0;
 	}
-	//u[0][1][0](IntVect(20,90)) = 1.0;
-	//u[0][1][0](IntVect(50,50)) = 1.0;
-	//u[0][1][0](IntVect(22,12)) = 1.0;
     }
     else
     {
 	for (int ilev = 0; ilev < m.length(); ilev++)
 	{
-	    for ( MultiFabIterator u_mfi(u[0][ilev]); u_mfi.isValid(); ++u_mfi)
+	    for ( MFIter u_mfi(u[0][ilev]); u_mfi.isValid(); ++u_mfi)
 	    {
-		DependentMultiFabIterator u_dmfi(u_mfi, u[1][ilev]);
-		//u[0][ilev][igrid].setVal(1.0e20);
-		//u[1][ilev][igrid].setVal(3.0e20);
-		u_mfi->setVal(0.0, m[ilev][u_mfi.index()], 0);
-		u_dmfi->setVal(0.0, m[ilev][u_mfi.index()], 0);
+		u[0][ilev][u_mfi].setVal(0.0, m[ilev][u_mfi.index()], 0);
+		u[1][ilev][u_mfi].setVal(0.0, m[ilev][u_mfi.index()], 0);
 	    }
 	}
 	if ( is_local(u[0][2], 0) )
@@ -273,45 +230,39 @@ init(PArray<MultiFab> u[], PArray<MultiFab>& p,
 	p[ilev].setVal(0.0);
     }
 #else
-    for (int ilev = 0; ilev < m.length(); ilev++)
+    for (int ilev = 0; ilev < m.size(); ilev++)
     {
 	u[0][ilev].setVal(0.0);
 	u[1][ilev].setVal(0.0);
 	u[2][ilev].setVal(0.0);
     }
-    if (m.length() == 1)
+    if (m.size() == 1)
     {
 	//int ioff = m[0].domain().length(0) / 8;
 	int ioff = 2;
-	for (MultiFabIterator u_mfi(u[0][0]); u_mfi.isValid(); ++u_mfi)
+	for (MFIter u_mfi(u[0][0]); u_mfi.isValid(); ++u_mfi)
 	{
-	    // Used for timings3_94:
-	    //u[0][0][igrid](m[0][igrid].smallEnd() + IntVect(2,2,2)) = 3.0;
-	    (*u_mfi)(m[0][u_mfi.index()].smallEnd() + IntVect(ioff,ioff,ioff)) = 3.0;
+	    u[0][0][u_mfi](m[0][u_mfi.index()].smallEnd() + IntVect(ioff,ioff,ioff)) = 3.0;
 	}
     }
-    else if (m.length() == 2)
+    else if (m.size() == 2)
     {
-	// used for convergence-rate tests:
-	//int ioff = m[1].domain().length(0) / 8;
 	int ioff = 2;
-	for (MultiFabIterator u_mfi(u[0][1]); u_mfi.isValid(); ++u_mfi)
+	for (MFIter u_mfi(u[0][1]); u_mfi.isValid(); ++u_mfi)
 	{
-	    // Used for timings3_94:
-	    //u[0][1][igrid](m[1][igrid].smallEnd() + IntVect(2,2,2)) = 3.0;
-	    (*u_mfi)(m[1][u_mfi.index()].smallEnd() + IntVect(ioff,ioff,ioff)) = 3.0;
+	    u[0][1][u_mfi](m[1][u_mfi.index()].smallEnd() + IntVect(ioff,ioff,ioff)) = 3.0;
 	}
 	if ( is_local(u[0][0], 0) ) u[0][0][0](IntVect(1,1,1)) = 3.0;
     }
-    else if (m.length() == 3)
+    else if (m.size() == 3)
     {
 	int ioff = 2;
-	for ( MultiFabIterator u_mfi(u[0][2]); u_mfi.isValid(); ++u_mfi)
+	for ( MFIter u_mfi(u[0][2]); u_mfi.isValid(); ++u_mfi)
 	{
-	    (*u_mfi)(m[2][u_mfi.index()].smallEnd() + IntVect(ioff,ioff,ioff)) = 3.0;
+	    u[0][2][u_mfi](m[2][u_mfi.index()].smallEnd() + IntVect(ioff,ioff,ioff)) = 3.0;
 	}
     }
-    for (int ilev = 0; ilev < m.length(); ilev++)
+    for (int ilev = 0; ilev < m.size(); ilev++)
     {
 	p[ilev].setVal(0.0);
     }
@@ -322,13 +273,12 @@ init(PArray<MultiFab> u[], PArray<MultiFab>& p,
 void
 hb93_test1(PArray<MultiFab> u[], const Array<BoxArray>& m, const Array<Box>& d)
 {
-    for (int ilev = 0 ; ilev < m.length() ; ilev++)
+    for (int ilev = 0 ; ilev < m.size() ; ilev++)
     {
 	double h = 1.0 / d[ilev].length(0);
 	double pi = 3.14159265358979323846;
-	for ( MultiFabIterator u_mfi(u[0][ilev]); u_mfi.isValid(); ++u_mfi)
+	for ( MFIter u_mfi(u[0][ilev]); u_mfi.isValid(); ++u_mfi)
 	{
-	    DependentMultiFabIterator u_dmfi(u_mfi, u[1][ilev]);
 	    int igrid = u_mfi.index();
 	    for (int i = m[ilev][igrid].smallEnd(0);
 		 i <= m[ilev][igrid].bigEnd(0); i++)
@@ -338,12 +288,8 @@ hb93_test1(PArray<MultiFab> u[], const Array<BoxArray>& m, const Array<Box>& d)
 		{
 		    double x = (i + 0.5) * h;
 		    double y = (j + 0.5) * h;
-		    (*u_mfi)(IntVect(i,j)) = -0.5*(1.0-cos(2*pi*x))*sin(2*pi*y);
-		    (*u_dmfi)(IntVect(i,j)) =  0.5*(1.0-cos(2*pi*y))*sin(2*pi*x);
-		    //u[0][ilev][igrid](IntVect(i,j)) =  0.2*(x+1)*sin(pi*x)*
-		    //  (pi*(y+1)*cos(pi*y)+sin(pi*y));
-		    //u[1][ilev][igrid](IntVect(i,j)) = -0.2*(y+1)*sin(pi*y)*
-		    //  (pi*(x+1)*cos(pi*x)+sin(pi*x));
+		    u[0][ilev][u_mfi](IntVect(i,j)) = -0.5*(1.0-cos(2*pi*x))*sin(2*pi*y);
+		    u[1][ilev][u_mfi](IntVect(i,j)) =  0.5*(1.0-cos(2*pi*y))*sin(2*pi*x);
 		}
 	    }
 	}
@@ -353,12 +299,11 @@ hb93_test1(PArray<MultiFab> u[], const Array<BoxArray>& m, const Array<Box>& d)
 void
 linear_test(PArray<MultiFab> u[], const Array<BoxArray>& m, const Array<Box>& d)
 {
-    for (int ilev = 0 ; ilev < m.length() ; ilev++)
+    for (int ilev = 0 ; ilev < m.size() ; ilev++)
     {
 	double h = 1.0 / d[ilev].length(0);
-	for ( MultiFabIterator u_mfi(u[0][ilev]); u_mfi.isValid(); ++u_mfi)
+	for ( MFIter u_mfi(u[0][ilev]); u_mfi.isValid(); ++u_mfi)
 	{
-	    DependentMultiFabIterator u_dmfi(u_mfi, u[1][ilev]);
 	    int igrid = u_mfi.index();
 	    for (int i = m[ilev][igrid].smallEnd(0);
 		 i <= m[ilev][igrid].bigEnd(0); i++)
@@ -368,8 +313,8 @@ linear_test(PArray<MultiFab> u[], const Array<BoxArray>& m, const Array<Box>& d)
 		{
 		    double x = (i + 0.5) * h;
 		    // double y = (j + 0.5) * h;
-		    (*u_mfi)(IntVect(i,j)) = 0.0;
-		    (*u_dmfi)(IntVect(i,j)) = x;
+		    u[0][ilev][u_mfi](IntVect(i,j)) = 0.0;
+		    u[1][ilev][u_mfi](IntVect(i,j)) = x;
 		}
 	    }
 	}
@@ -381,13 +326,12 @@ rz_adj(PArray<MultiFab> u[], PArray<MultiFab>& rhs,
        PArray<MultiFab>& rhoinv, const Array<BoxArray>& m,
        const Array<Box>& d)
 {
-    for (int ilev = 0 ; ilev < m.length() ; ilev++)
+    for (int ilev = 0 ; ilev < m.size() ; ilev++)
     {
 	double h = 1.0 / d[ilev].length(0);
 	// double pi = 3.14159265358979323846;
-	for ( MultiFabIterator u_mfi(u[1][ilev]); u_mfi.isValid(); ++u_mfi)
+	for ( MFIter u_mfi(u[1][ilev]); u_mfi.isValid(); ++u_mfi)
 	{
-	    DependentMultiFabIterator r_dmfi(u_mfi, rhoinv[ilev]);
 	    int igrid = u_mfi.index();
 	    for (int i = m[ilev][igrid].smallEnd(0);
 		 i <= m[ilev][igrid].bigEnd(0); i++)
@@ -396,13 +340,9 @@ rz_adj(PArray<MultiFab> u[], PArray<MultiFab>& rhs,
 		     j <= m[ilev][igrid].bigEnd(1); j++)
 		{
 		    double x = (i + 0.5) * h;
-		    // double y = (j + 0.5) * h;
-		    // double x0 = i * h, x1 = x0 + h;
-		    //u[0][ilev][igrid](IntVect(i,j)) = 0.0;
-		    (*u_mfi)(IntVect(i,j)) *= x;
-		    //u[1][ilev][igrid](IntVect(i,j)) = x;
+		    u[1][ilev][u_mfi](IntVect(i,j)) *= x;
 		    if (j >= m[ilev][igrid].smallEnd(1))
-			(*r_dmfi)(IntVect(i,j)) *= x;
+			rhoinv[ilev][r_dmfi](IntVect(i,j)) *= x;
 		}
 	    }
 	}
@@ -448,13 +388,13 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
-	u[i].resize(m.length());
+	u[i].resize(m.size());
     }
-    p.resize(m.length());
-    rhoinv.resize(m.length());
-    rhs.resize(m.length());
+    p.resize(m.size());
+    rhoinv.resize(m.size());
+    rhs.resize(m.size());
 
-    for (int ilev = 0; ilev < m.length(); ilev++)
+    for (int ilev = 0; ilev < m.size(); ilev++)
     {
 	const BoxArray& cmesh = m[ilev];
 	BoxArray nmesh = cmesh;
@@ -503,7 +443,7 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 	// Assume spacing on level 0 already incorporated into values assigned above.
 	// (h is ignored.)
 	IntVect rat = IntVect::TheUnitVector();
-	for (int ilev = 1; ilev < m.length(); ilev++)
+	for (int ilev = 1; ilev < m.size(); ilev++)
 	{
 	    rat *= ratio[ilev-1];
 #if (BL_SPACEDIM == 2)
@@ -525,7 +465,7 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 	// Assume spacing on level 0 already incorporated into values assigned above.
 	// (h is ignored.)
 	IntVect rat = IntVect::TheUnitVector();
-	for (int ilev = 1; ilev < m.length(); ilev++)
+	for (int ilev = 1; ilev < m.size(); ilev++)
 	{
 	    rat *= ratio[ilev-1];
 #if (BL_SPACEDIM == 2)
@@ -540,7 +480,7 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 	}
     }
     init(u, p, m, ratio);
-    for(int ilev = 0; ilev < m.length(); ilev++)
+    for(int ilev = 0; ilev < m.size(); ilev++)
     {
 	HG_TEST_NORM( rhoinv[ilev], "proj");
 	HG_TEST_NORM(p[ilev], "proj");
@@ -572,9 +512,9 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
       //Box bb(0,27,63,36);
       Box bb(27,0,36,63);
       //Box bb(26,0,37,63);
-      for (ilev = 0; ilev < m.length(); ilev++)
+      for (ilev = 0; ilev < m.size(); ilev++)
       {
-      for (int igrid = 0; igrid < m[ilev].length(); igrid++)
+      for (int igrid = 0; igrid < m[ilev].size(); igrid++)
       {
       rhoinv[ilev][igrid].assign(100.0, (bb & m[ilev][igrid]));
       }
@@ -588,10 +528,10 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     #else
     Box bb(IntVect(0,0,0),IntVect(8,8,8));
     #endif
-    for (ilev = 0; ilev < m.length(); ilev++)
+    for (ilev = 0; ilev < m.size(); ilev++)
     {
     Box b = refine(bb, m[ilev].sig()/16);
-    for (int igrid = 0; igrid < m[ilev].length(); igrid++)
+    for (int igrid = 0; igrid < m[ilev].size(); igrid++)
     {
     rhoinv[ilev][igrid].assign(1000.0, (b & m[ilev][igrid]));
     //rhoinv[ilev][igrid].assign(1.0, (b & m[ilev][igrid]));
@@ -600,10 +540,10 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     */
     /*
     Box bb(0,1,1,4);
-    for (ilev = 0; ilev < m.length(); ilev++)
+    for (ilev = 0; ilev < m.size(); ilev++)
     {
     Box b = refine(bb, m[ilev].sig()/8);
-    for (int igrid = 0; igrid < m[ilev].length(); igrid++)
+    for (int igrid = 0; igrid < m[ilev].size(); igrid++)
     {
     rhoinv[ilev][igrid].assign(1000.0, (b & m[ilev][igrid]));
     }
@@ -612,10 +552,10 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     /* Layer
     //Box bb(0,1,1,4);
     Box bb(0,0,63,4);
-    for (ilev = 0; ilev < m.length(); ilev++)
+    for (ilev = 0; ilev < m.size(); ilev++)
     {
     Box b = refine(bb, m[ilev].sig()/32);
-    for (int igrid = 0; igrid < m[ilev].length(); igrid++)
+    for (int igrid = 0; igrid < m[ilev].size(); igrid++)
     {
     rhoinv[ilev][igrid].assign(0.00001, (b & m[ilev][igrid]));
     }
@@ -623,10 +563,10 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     */
     /* Drop
     Box bbb(16,6,19,9);
-    for (ilev = 0; ilev < m.length(); ilev++)
+    for (ilev = 0; ilev < m.size(); ilev++)
     {
     Box b = refine(bbb, m[ilev].sig()/32);
-    for (int igrid = 0; igrid < m[ilev].length(); igrid++)
+    for (int igrid = 0; igrid < m[ilev].size(); igrid++)
     {
     rhoinv[ilev][igrid].assign(0.00001, (b & m[ilev][igrid]));
     }
@@ -636,18 +576,18 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     int sum = 0;
     if ( ParallelDescriptor::IOProcessor() )
     {
-	cout << "Cells by level: ";
-	for (int ilev = 0; ilev < m.length(); ilev++)
+	std::cout << "Cells by level: ";
+	for (int ilev = 0; ilev < m.size(); ilev++)
 	{
 	    int lsum = 0;
-	    for (int i = 0; i < m[ilev].length(); i++)
+	    for (int i = 0; i < m[ilev].size(); i++)
 	    {
 		lsum += m[ilev][i].numPts();
 	    }
-	    cout << " " << lsum;
+	    std::cout << " " << lsum;
 	    sum += lsum;
 	}
-	cout << "\nTotal cells:  " << sum << endl;
+	std::cout << "\nTotal cells:  " << sum << std::endl;
     }
 
     double t0, t1, t2;
@@ -666,11 +606,11 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     // Real tol = 2.e-10;
     //Real tol = 5.e-9;
 #endif
-    t0 = Utility::second();
+    t0 = BoxLib::second();
     inviscid_fluid_boundary afb(bc);
     holy_grail_amr_projector proj(m, ratio,
-				  domain[m.length() - 1], 0,
-				  m.length() - 1, m.length() - 1,
+				  domain[m.size() - 1], 0,
+				  m.size() - 1, m.size() - 1,
 				  afb, hg_stencil, pcode);
 
 #if BL_SPACEDIM == 2
@@ -686,9 +626,9 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     //proj.line_solve_dim = BL_SPACEDIM - 1;
     //proj.line_solve_dim = -1;
 
-    if (m.length() == 1)
+    if (m.size() == 1)
     {
-	t1 = Utility::second();
+	t1 = BoxLib::second();
 	proj.project(u, p, null_amr_real, rhoinv,
 		     0, 0, crse_geom,
 		     h, tol);
@@ -699,37 +639,37 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 			 0, 0, crse_geom,
 			 h, tol);
 	}
-	t2 = Utility::second();
+	t2 = BoxLib::second();
 	for(int i = 0; i < BL_SPACEDIM; ++i )
 	{
 	    HG_TEST_NORM( u[i][0], "proj");
 	}
 	if ( ParallelDescriptor::IOProcessor() )
 	{
-	    cout << "Init time was " << t1 - t0 << endl;
-	    cout << "Proj time was " << t2 - t1 << endl;
-	    cout << "Speed was " << double(t2 - t1) / (nrep * sum) << endl;
+	    std::cout << "Init time was " << t1 - t0 << std::endl;
+	    std::cout << "Proj time was " << t2 - t1 << std::endl;
+	    std::cout << "Speed was " << double(t2 - t1) / (nrep * sum) << std::endl;
 	}
 	if ( false )
 	{
-	    cout << setprecision(16);
+	    std::cout << std::setprecision(16);
 	    for(int i = 0; i < BL_SPACEDIM; ++i)
 	    {
-		cout << "uvm"[i] << "min = " << u[i][0].min(0)
-		     << ", " << "uvw"[i] << "max = " << u[i][0].max(0) << endl;
+		std::cout << "uvm"[i] << "min = " << u[i][0].min(0)
+		     << ", " << "uvw"[i] << "max = " << u[i][0].max(0) << std::endl;
 	    }
-	    cout << setprecision(6);
+	    std::cout << std::setprecision(6);
 	}
     }
-    else if (m.length() == 2)
+    else if (m.size() == 2)
     {
 	//proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 0);
 	//proj.project(u, p, null_amr_real, rhoinv, h, tol, 1, 1);
-	for (int i = 0; i < p.length(); i++)
+	for (int i = 0; i < p.size(); i++)
 	{
 	    p[i].setVal(0.0);
 	}
-	t1 = Utility::second();
+	t1 = BoxLib::second();
 	proj.project(u, p, null_amr_real, rhoinv,
 		     0, 0, crse_geom,
 		     h, tol, 0, 1);
@@ -741,71 +681,71 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 			 0, 0, crse_geom,
 			 h, tol, 0, 1);
 	}
-	t2 = Utility::second();
+	t2 = BoxLib::second();
 	for(int i = 0; i < BL_SPACEDIM; ++i )
 	{
 	    HG_TEST_NORM( u[i][0], "proj");
 	}
 	if ( ParallelDescriptor::IOProcessor() )
 	{
-	    cout << "First time is " << t1 - t0 << endl;
-	    cout << "Second time is " << t2 - t1 << endl;
-	    cout << "Sync speed was " << double(t2 - t1) / (nrep * sum) << endl;
+	    std::cout << "First time is " << t1 - t0 << std::endl;
+	    std::cout << "Second time is " << t2 - t1 << std::endl;
+	    std::cout << "Sync speed was " << double(t2 - t1) / (nrep * sum) << std::endl;
 	}
 	/*
 	for (i = m[1][0].smallEnd(1); i <= m[1][0].bigEnd(1)+1; i++)
 	{
-	cout << p[1][0](IntVect(0, i)) << endl;
+	std::cout << p[1][0](IntVect(0, i)) << std::endl;
 	}
 	proj.project(u, p, null_amr_real, rhoinv, h, tol, 1, 1);
 	for (i = m[1][0].smallEnd(1); i <= m[1][0].bigEnd(1)+1; i++)
 	{
-	cout << p[1][0](IntVect(0, i)) << endl;
+	std::cout << p[1][0](IntVect(0, i)) << std::endl;
 	}
 	*/
     }
-    else if (m.length() == 3)
+    else if (m.size() == 3)
     {
         double t00, t01, t10, t11, t20, t21;
         init(u, p, m, ratio);
-	t00 = Utility::second();
+	t00 = BoxLib::second();
 	proj.project(u, p, null_amr_real, rhoinv,
 		     0, 0, crse_geom,
 		     h, tol,
 		     2, 2);
-	t01 = Utility::second();
-	for (int i = 0; i < p.length(); i++)
+	t01 = BoxLib::second();
+	for (int i = 0; i < p.size(); i++)
 	{
 	    p[i].setVal(0.0);
 	}
         init(u, p, m, ratio);
-	t10 = Utility::second();
+	t10 = BoxLib::second();
 	proj.project(u, p, null_amr_real, rhoinv,
 		     0, 0, crse_geom,
 		     h, tol,
 		     1, 2);
-	t11 = Utility::second();
-	for (int i = 0; i < p.length(); i++)
+	t11 = BoxLib::second();
+	for (int i = 0; i < p.size(); i++)
 	{
 	    p[i].setVal(0.0);
 	}
         init(u, p, m, ratio);
-	t20 = Utility::second();
+	t20 = BoxLib::second();
 	proj.project(u, p, null_amr_real, rhoinv,
 		     0, 0, crse_geom,
 		     h, tol,
 		     0, 2);
-	t21 = Utility::second();
+	t21 = BoxLib::second();
 	for(int i = 0; i < BL_SPACEDIM; ++i )
 	{
 	    HG_TEST_NORM( u[i][0], "proj");
 	}
 	if ( ParallelDescriptor::IOProcessor() )
 	{
-	    cout << "First time is " << t01 - t00 << endl;
-	    cout << "Second time is " << t11 - t10 << endl;
-	    cout << "Third time is " << t21 - t20 << endl;
-	    cout << "Total time (counting inits) was  " << t21 - t00 << endl;
+	    std::cout << "First time is " << t01 - t00 << std::endl;
+	    std::cout << "Second time is " << t11 - t10 << std::endl;
+	    std::cout << "Third time is " << t21 - t20 << std::endl;
+	    std::cout << "Total time (counting inits) was  " << t21 - t00 << std::endl;
 	}
     }
     else
@@ -815,26 +755,26 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 			    0, 0, crse_geom,
 			    true,
 			    h, tol, 0, 3);
-	t1 = Utility::second();
+	t1 = BoxLib::second();
 	for(int i = 0; i < BL_SPACEDIM; ++i )
 	{
 	    HG_TEST_NORM( u[i][0], "proj");
 	}
-	cout << "First time is " << t1 - t0 << endl;
+	std::cout << "First time is " << t1 - t0 << std::endl;
     }
     /*
-    if (m.length() < 3)
+    if (m.size() < 3)
     {
-    for (i = 0; i < p.length(); i++)
+    for (i = 0; i < p.size(); i++)
     p[i].setVal(0.0);
-    holy_grail_amr_projector proj(m, 0, m.length() - 1, afb, pcode);
+    holy_grail_amr_projector proj(m, 0, m.size() - 1, afb, pcode);
     proj.project(u, p, null_amr_real, rhoinv, h, 1.e-14);
-    t2 = Utility::second();
-    cout << "Second time is " << t2 - t1 << endl;
-    cout << "Total time was  " << t2 - t0 << endl;
+    t2 = BoxLib::second();
+    std::cout << "Second time is " << t2 - t1 << std::endl;
+    std::cout << "Total time was  " << t2 - t0 << std::endl;
     }
     */
-    for (int ilev = 0; ilev < m.length(); ilev++)
+    for (int ilev = 0; ilev < m.size(); ilev++)
     {
 	for (int i = 0; i < BL_SPACEDIM; i++)
 	{

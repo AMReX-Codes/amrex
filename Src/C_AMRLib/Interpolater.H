@@ -1,15 +1,14 @@
-
 #ifndef _INTERPOLATER_H_
 #define _INTERPOLATER_H_ 
-
 //
-// $Id: Interpolater.H,v 1.7 2000-10-02 20:48:42 lijewski Exp $
+// $Id: Interpolater.H,v 1.8 2001-08-01 21:50:46 lijewski Exp $
 //
-
 #include <Box.H>
-#include <Geometry.H>
-#include <FArrayBox.H>
 #include <BCRec.H>
+#include <REAL.H>
+
+class Geometry;
+class FArrayBox;
 
 //
 //@Man:
@@ -22,10 +21,6 @@
 class Interpolater
 {
 public:
-    //
-    //@ManDoc: The constructor.
-    //
-    Interpolater () {}
     //
     //@ManDoc: The destructor.
     //

@@ -1,22 +1,17 @@
-
 #ifndef _GEOMETRY_H_
 #define _GEOMETRY_H_
-
 //
-// $Id: Geometry.H,v 1.36 2000-10-02 20:49:03 lijewski Exp $
+// $Id: Geometry.H,v 1.37 2001-08-01 21:50:50 lijewski Exp $
 //
+#include <iosfwd>
+#include <list>
 
 #include <CoordSys.H>
-#include <RealBox.H>
 #include <MultiFab.H>
+#include <ParallelDescriptor.H>
+#include <RealBox.H>
 
-#ifdef BL_USE_NEW_HFILES
-#include <list>
-using std::ostream;
-using std::list;
-#else
-#include <list.h>
-#endif
+class FPB;
 
 //
 //@Man:
@@ -33,14 +28,6 @@ class Geometry
     public CoordSys
 {
 public:
-    //
-    //@ManDoc: Nice ASCII output.
-    //
-    friend ostream& operator<< (ostream&, const Geometry& );
-    //
-    //@ManDoc: Nice ASCII input.
-    //
-    friend istream& operator>> (istream&, Geometry& );
     //
     //@ManDoc: The default constructor.
     //
@@ -70,6 +57,10 @@ public:
     //
     static const RealBox& ProbDomain ();
     //
+    //@ManDoc: Sets the problem domain.
+    //
+    static void ProbDomain (const RealBox& rb);
+    //
     //@ManDoc: Returns the lo end of the problem domain in each dimension.
     //
     static const Real* ProbLo ();
@@ -97,6 +88,10 @@ public:
     //@ManDoc: Returns our rectangular domain.
     //
     const Box& Domain () const;
+    //
+    //@ManDoc: Sets our rectangular domain.
+    //
+    void Domain (const Box& bx);
     //
     //@ManDoc: Define a multifab of areas and volumes with given grow factor.
     //
@@ -157,44 +152,6 @@ public:
                                int       num_comp,
                                bool      do_corners = false) const;
     //
-    // Src/dest box pairs to copy for periodic.
-    //
-    struct PIRec
-    {
-	PIRec ()
-            :
-            mfid(-1),
-            srcId(-1) {}
-
-	PIRec (int        _mfid,
-               int        _srcId,
-               const Box& _srcBox,
-               const Box& _dstBox)
-	    :
-            mfid(_mfid),
-            srcId(_srcId),
-            srcBox(_srcBox),
-            dstBox(_dstBox) {}
-
-        int       mfid;
-	int       srcId;
-	Box       srcBox;
-	Box       dstBox;
-	FillBoxId fbid;
-
-	friend ostream& operator<< (ostream&      os,
-                                    const PIRec&  pir);
-    };
-    //
-    //@ManDoc: Handy typedef.
-    //
-    typedef vector<PIRec> PIRMMap;
-    //
-    //@ManDoc: Handy output function.
-    //
-    friend ostream& operator<< (ostream&       os,
-                                const PIRMMap& pirm);
-    //
     //@ManDoc: Flush the cache of PIRM information.
     //
     static void FlushPIRMCache ();
@@ -204,41 +161,6 @@ public:
     static int PIRMCacheSize ();
 
 protected:
-    //
-    // Used in caching PIRMMaps && CommData.
-    //
-    struct FPB
-    {
-        FPB ();
-
-        FPB (const BoxArray& ba,
-             const Box&      domain,
-             int             scomp,
-             int             ncomp,
-             int             ngrow,
-             bool            do_corners);
-
-        FPB (const FPB& rhs);
-
-        ~FPB ();
-
-        bool operator== (const FPB& rhs) const;
-        bool operator!= (const FPB& rhs) const;
-
-        Array<int>    m_cache;    // Snds cached for CollectData().
-        CommDataCache m_commdata; // Yet another cache for CollectData().
-        PIRMMap       m_pirm;
-        BoxArray      m_ba;
-        Box           m_domain;
-        int           m_scomp;
-        int           m_ncomp;
-        int           m_ngrow;
-        bool          m_do_corners;
-    };
-    //
-    // A useful typedef.
-    //
-    typedef list<FPB> FPBList;
     //
     // Helper functions.
     //
@@ -256,195 +178,18 @@ protected:
     //
     static bool    is_periodic[BL_SPACEDIM]; // 0 means not periodic
     static RealBox prob_domain;
-    static FPBList m_FPBCache;
     //
     // Non-static data.
     //
     Box domain;
 };
-
 //
-// Inlines.
+//@ManDoc: Nice ASCII output.
 //
-
-inline
-Geometry::FPB::FPB ()
-    :
-    m_scomp(-1),
-    m_ncomp(-1),
-    m_ngrow(-1),
-    m_do_corners(false)
-{}
-
-inline
-Geometry::FPB::FPB (const BoxArray& ba,
-                    const Box&      domain,
-                    int             scomp,
-                    int             ncomp,
-                    int             ngrow,
-                    bool            do_corners)
-    :
-    m_ba(ba),
-    m_domain(domain),
-    m_scomp(scomp),
-    m_ncomp(ncomp),
-    m_ngrow(ngrow),
-    m_do_corners(do_corners)
-{
-    BL_ASSERT(scomp >= 0);
-    BL_ASSERT(ncomp >  0);
-    BL_ASSERT(ngrow >= 0);
-    BL_ASSERT(domain.ok());
-}
-
-inline
-Geometry::FPB::FPB (const FPB& rhs)
-    :
-    m_cache(rhs.m_cache),
-    m_commdata(rhs.m_commdata),
-    m_pirm(rhs.m_pirm),
-    m_ba(rhs.m_ba),
-    m_domain(rhs.m_domain),
-    m_scomp(rhs.m_scomp),
-    m_ncomp(rhs.m_ncomp),
-    m_ngrow(rhs.m_ngrow),
-    m_do_corners(rhs.m_do_corners)
-{}
-
-inline
-Geometry::FPB::~FPB () {}
-
-inline
-bool
-Geometry::FPB::operator== (const FPB& rhs) const
-{
-    return
-        m_scomp      == rhs.m_scomp      &&
-        m_ncomp      == rhs.m_ncomp      &&
-        m_ngrow      == rhs.m_ngrow      &&
-        m_do_corners == rhs.m_do_corners &&
-        m_domain     == rhs.m_domain     &&
-        m_ba         == rhs.m_ba;
-}
-
-inline
-bool
-Geometry::FPB::operator!= (const FPB& rhs) const
-{
-    return !operator==(rhs);
-}
-
-inline
-const RealBox&
-Geometry::ProbDomain ()
-{
-    return prob_domain;
-}
-
-inline
-const Box&
-Geometry::Domain () const
-{
-    return domain;
-}
-
-inline
-bool
-Geometry::isPeriodic (int dir)
-{
-    return is_periodic[dir]!=0;
-}
-
-inline
-bool
-Geometry::isAnyPeriodic ()
-{
-    return isPeriodic(0)
-#if BL_SPACEDIM>1
-        ||   isPeriodic(1)
-#endif
-#if BL_SPACEDIM>2
-        ||   isPeriodic(2)
-#endif
-        ;
-}
-
-inline
-int
-Geometry::period (int dir) const
-{
-    BL_ASSERT(is_periodic[dir]);
-    return domain.length(dir);
-}
-
-inline
-const Real*
-Geometry::ProbLo ()
-{
-    return prob_domain.lo();
-}
-
-inline
-const Real*
-Geometry::ProbHi ()
-{
-    return prob_domain.hi();
-}
-
-inline
-Real
-Geometry::ProbLo (int dir)
-{
-    return prob_domain.lo(dir);
-}
-
-inline
-Real
-Geometry::ProbHi (int dir)
-{
-    return prob_domain.hi(dir);
-}
-
-inline
-const Real*
-Geometry::ProbLength ()
-{
-    return prob_domain.length();
-}
-
-inline
-Real
-Geometry::ProbLength (int dir)
-{
-    return prob_domain.length(dir);
-}
-
-inline
-void
-Geometry::FillPeriodicBoundary (MultiFab& mf,
-                                bool do_corners) const
-{
-    FillPeriodicBoundary(mf,0,mf.nComp(),do_corners);
-}
-
-inline
-Geometry::FPB&
-Geometry::getFPB (MultiFab&  mf,
-                  const FPB& fpb) const
-{
-    BL_ASSERT(isAnyPeriodic());
-    //
-    // Have we already made one with appropriate characteristics?
-    //
-    // Search from the front to the back ...
-    //
-    FPBList::iterator it = m_FPBCache.begin();
-
-    for ( ; it != m_FPBCache.end(); ++it)
-        if (*it == fpb)
-            return *it;
-
-    return buildFPB(mf,fpb);
-}
+std::ostream& operator<< (std::ostream&, const Geometry&);
+//
+//@ManDoc: Nice ASCII input.
+//
+std::istream& operator>> (std::istream&, Geometry&);
 
 #endif /*_GEOMETRY_H_*/

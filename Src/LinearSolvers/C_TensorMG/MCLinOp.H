@@ -3,7 +3,7 @@
 #define _MCLINOP_H_
 
 //
-// $Id: MCLinOp.H,v 1.9 2000-10-02 20:53:39 lijewski Exp $
+// $Id: MCLinOp.H,v 1.10 2001-08-01 21:51:07 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -191,7 +191,7 @@ public:
     //
     //@ManDoc: output the operator to an ASCII stream
     //
-    friend ostream& operator<< (ostream& os, const MCLinOp&  lp);
+    friend std::ostream& operator<< (std::ostream& os, const MCLinOp&  lp);
     //
     //@ManDoc: compute the number of components required in BCRec.
     //
@@ -312,7 +312,7 @@ inline
 int
 MCLinOp::numLevels () const
 {
-    return h.length();
+    return h.size();
 }
 
 inline
@@ -327,7 +327,7 @@ inline
 int
 MCLinOp::numGrids () const
 {
-    return gbox[0].length();
+    return gbox[0].size();
 }
 
 inline

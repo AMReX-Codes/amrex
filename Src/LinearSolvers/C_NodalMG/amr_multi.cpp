@@ -1,4 +1,6 @@
 
+#include <cmath>
+
 #include "amr_multi.H"
 
 //#if BL_SPACEDIM==2
@@ -7,52 +9,60 @@
 
 
 #ifdef HG_DEBUG
-static Real mfnorm_0 (const MultiFab& mf)
+static
+Real
+mfnorm_0 (const MultiFab& mf)
 {
     Real r = 0;
-    for (ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi)
+    for (MFIter cmfi(mf); cmfi.isValid(); ++cmfi)
     {
-	Real s = cmfi->norm(cmfi->box(), 0, 0, cmfi->nComp());
+	Real s = mf[cmfi].norm(mf[cmfi].box(), 0, 0, mf[cmfi].nComp());
 	r = (r > s) ? r : s;
     }
     ParallelDescriptor::ReduceRealMax(r);
     return r;
 }
 
-static Real mfnorm_2 (const MultiFab& mf)
+static
+Real
+mfnorm_2 (const MultiFab& mf)
 {
     Real r = 0;
-    for (ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi)
+    for (MFIter cmfi(mf); cmfi.isValid(); ++cmfi)
     {
-	Real s = cmfi->norm(cmfi->box(), 2, 0, cmfi->nComp());
+	Real s = mf[cmfi].norm(mf[cmfi].box(), 2, 0, mf[cmfi].nComp());
 	r += s*s;
     }
     ParallelDescriptor::ReduceRealSum(r);
-    return ::sqrt(r);
+    return std::sqrt(r);
 }
 
-static Real mfnorm_0_valid (const MultiFab& mf)
+static
+Real
+mfnorm_0_valid (const MultiFab& mf)
 {
     Real r = 0;
-    for (ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi)
+    for (MFIter cmfi(mf); cmfi.isValid(); ++cmfi)
     {
-	Real s = cmfi->norm(cmfi.validbox(), 0, 0, cmfi->nComp());
+	Real s = mf[cmfi].norm(cmfi.validbox(), 0, 0, mf[cmfi].nComp());
 	r = (r > s) ? r : s;
     }
     ParallelDescriptor::ReduceRealMax(r);
     return r;
 }
 
-static Real mfnorm_2_valid (const MultiFab& mf)
+static
+Real
+mfnorm_2_valid (const MultiFab& mf)
 {
     Real r = 0;
-    for (ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi)
+    for (MFIter cmfi(mf); cmfi.isValid(); ++cmfi)
     {
-	Real s = cmfi->norm(cmfi.validbox(), 2, 0, cmfi->nComp());
+	Real s = mf[cmfi].norm(cmfi.validbox(), 2, 0, mf[cmfi].nComp());
 	r += s*s;
     }
     ParallelDescriptor::ReduceRealSum(r);
-    return ::sqrt(r);
+    return std::sqrt(r);
 }
 
 static
@@ -74,7 +84,7 @@ hg_debug_norm_2 (const MultiFab& d,
     debug_out << str1;
     if (ParallelDescriptor::IOProcessor())
     {
-	debug_out << " : Norm[" << d.length() << ","
+	debug_out << " : Norm[" << d.size() << ","
 	<< mf_centeredness(d) << ","
 	<< d.nComp() << ","
 	<< d.nGrow() << "]( " << str2 << " ) = ("
@@ -90,13 +100,15 @@ hg_debug_norm_2 (const MultiFab& d,
 // Norm helper function:
 //
 
-static Real mfnorm (const MultiFab& mf)
+static
+Real
+mfnorm (const MultiFab& mf)
 {
     Real r = 0;
     BL_ASSERT(mf.nComp() == 1);
-    for (ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi)
+    for (MFIter cmfi(mf); cmfi.isValid(); ++cmfi)
     {
-	Real s = cmfi->norm(0);
+	Real s = mf[cmfi].norm(0);
 	r = (r > s) ? r : s;
     }
     ParallelDescriptor::ReduceRealMax(r);
@@ -154,14 +166,14 @@ void
 amr_multigrid::mesh_read (Array<BoxArray>& m,
                           Array<IntVect>&  r,
                           Array<Box>&      d,
-                          istream&         is)
+                          std::istream&    is)
 {
     int ilev;
     is >> ilev;
     m.resize(ilev);
     r.resize(ilev-1);
     d.resize(ilev);
-    for (int ilev = 0; ilev < m.length(); ilev++)
+    for (int ilev = 0; ilev < m.size(); ilev++)
     {
 	Box b;
 	int igrid;
@@ -176,7 +188,7 @@ amr_multigrid::mesh_read (Array<BoxArray>& m,
 	    r.set(ilev-1, d[ilev].length() / d[ilev-1].length());
 	}
 	m[ilev].resize(igrid);
-	for (int igrid = 0; igrid < m[ilev].length(); igrid++)
+	for (int igrid = 0; igrid < m[ilev].size(); igrid++)
 	{
 	    is >> b;
 	    if (is.fail())
@@ -191,15 +203,15 @@ amr_multigrid::mesh_read (Array<BoxArray>& m,
 void
 amr_multigrid::mesh_write (const Array<BoxArray>& m,
                            const Array<Box>&      d,
-                           ostream&               os)
+                           std::ostream&          os)
 {
-    os << m.length() << endl;
-    for (int ilev = 0; ilev < m.length(); ilev++)
+    os << m.size() << std::endl;
+    for (int ilev = 0; ilev < m.size(); ilev++)
     {
-	os << "    " << d[ilev] << " " << m[ilev].length() << endl;
-	for (int igrid = 0; igrid < m[ilev].length(); igrid++)
+	os << "    " << d[ilev] << " " << m[ilev].size() << std::endl;
+	for (int igrid = 0; igrid < m[ilev].size(); igrid++)
 	{
-	    os << '\t' << m[ilev][igrid] << endl;;
+	    os << '\t' << m[ilev][igrid] << std::endl;
 	}
     }
 }
@@ -208,21 +220,21 @@ void
 amr_multigrid::mesh_write (const Array<BoxArray>& m,
                            const Array<IntVect>&  r,
                            Box                    fd,
-                           ostream&               os)
+                           std::ostream&          os)
 {
-    for (int ilev = m.length() - 2; ilev >= 0; ilev--)
+    for (int ilev = m.size() - 2; ilev >= 0; ilev--)
     {
 	fd.coarsen(r[ilev]);
     }
-    os << m.length() << endl;
-    for (int ilev = 0; ilev < m.length(); ilev++)
+    os << m.size() << std::endl;
+    for (int ilev = 0; ilev < m.size(); ilev++)
     {
-	os << "    " << fd << " " << m[ilev].length() << endl;
-	for (int igrid = 0; igrid < m[ilev].length(); igrid++)
+	os << "    " << fd << " " << m[ilev].size() << std::endl;
+	for (int igrid = 0; igrid < m[ilev].size(); igrid++)
 	{
-	    os << '\t' << m[ilev][igrid] << endl;;
+	    os << '\t' << m[ilev][igrid] << std::endl;
 	}
-	if (ilev <= m.length() - 2)
+	if (ilev <= m.size() - 2)
 	{
 	    fd.refine(r[ilev]);
 	}
@@ -250,7 +262,7 @@ amr_multigrid::build_mesh (const Box& fdomain)
 
     if (pcode >= 2 && ParallelDescriptor::IOProcessor())
     {
-	mesh_write(ml_mesh, gen_ratio, fdomain, cout);
+	mesh_write(ml_mesh, gen_ratio, fdomain, std::cout);
     }
 
     lev_max = lev_max_max;
@@ -263,13 +275,13 @@ amr_multigrid::build_mesh (const Box& fdomain)
 	    build_down(ml_mesh[lev_max], fdomain,
 		       lev_max, IntVect::TheUnitVector(), 0);
 #ifndef NDEBUG
-	for (int i = 0; i < mg_mesh.length(); i++)
+	for (int i = 0; i < mg_mesh.size(); i++)
 	    BL_ASSERT(mg_mesh[i].ok());
 #endif
 
 	if (pcode >= 2 && ParallelDescriptor::IOProcessor())
 	{
-	    mesh_write(mg_mesh, mg_domain, cout);
+	    mesh_write(mg_mesh, mg_domain, std::cout);
 	}
 
 	mg_domain_array.set(lev_min, mg_domain);
@@ -277,10 +289,10 @@ amr_multigrid::build_mesh (const Box& fdomain)
 	//
 	// Initialize lev_interface.
 	//
-	int ldiff, mglev_common = mg_mesh.length();
+	int ldiff, mglev_common = mg_mesh.size();
 	if (lev_min > lev_min_min)
 	{
-	    ldiff = mg_mesh_array[lev_min - 1].length() - mg_mesh.length();
+	    ldiff = mg_mesh_array[lev_min - 1].size() - mg_mesh.size();
 	    //
 	    // ml_index here is still the index for the previous mg_mesh:
             //
@@ -300,10 +312,10 @@ amr_multigrid::build_mesh (const Box& fdomain)
 	// will be used below and on the next loop:
 	build_index();
 
-	const int imgl = mg_mesh.length();
+	const int imgl = mg_mesh.size();
 	lev_interface = new level_interface[imgl];
 
-	for (int mglev = mg_mesh.length() - 1, lev = lev_max + 1;
+	for (int mglev = mg_mesh.size() - 1, lev = lev_max + 1;
 	     mglev >= 0; mglev--)
 	{
 	    if (lev > lev_min && mglev == ml_index[lev - 1])
@@ -357,7 +369,7 @@ amr_multigrid::build_down (const BoxArray& l_mesh,
                            IntVect         rat,
                            int             nlev)
 {
-    if (l_mesh.length() == 0)
+    if (l_mesh.size() == 0)
     {
 	mg_mesh.resize(nlev);
 	mg_domain.resize(nlev);
@@ -448,7 +460,7 @@ amr_multigrid::alloc_amr_multi (PArray<MultiFab>& Dest,
     {
 	dest.set(i, &Dest[i]);
 	source.set(i, &Source[i]);
-	if (i < Coarse_source.length() && Coarse_source.defined(i))
+	if (i < Coarse_source.size() && Coarse_source.defined(i))
 	{
 	    coarse_source.set(i, &Coarse_source[i]);
 	}
@@ -533,7 +545,7 @@ amr_multigrid::solve (Real reltol,
 	const Real lev_norm = mfnorm(source[lev]);
 	norm = (lev_norm > norm) ? lev_norm : norm;
     }
-    if (coarse_source.ready())
+    if (coarse_source.size())
     {
 	for (int lev = lev_min; lev < lev_max; lev++)
 	{
@@ -546,13 +558,13 @@ amr_multigrid::solve (Real reltol,
     }
     if (pcode >= 1 && ParallelDescriptor::IOProcessor())
     {
-	cout << "HG: Source norm is " << norm << endl;
+	std::cout << "HG: Source norm is " << norm << std::endl;
     }
 
     Real err = ml_cycle(lev_max, mglev_max, i1, i2, abstol, 0.0);
     if (pcode >= 2 && ParallelDescriptor::IOProcessor())
     {
-	cout << "HG: Err from ml_cycle is " << err << endl;
+	std::cout << "HG: Err from ml_cycle is " << err << std::endl;
     }
     norm = (err > norm) ? err : norm;
     Real tol = reltol * norm;
@@ -564,8 +576,8 @@ amr_multigrid::solve (Real reltol,
 	err = ml_cycle(lev_max, mglev_max, i1, i2, tol, 0.0);
 	if ( pcode >= 2 && ParallelDescriptor::IOProcessor())
 	{
-	    cout << "HG: Err from "
-		 << it + 1 << "th ml_cycle is " << err << endl;
+	    std::cout << "HG: Err from "
+                      << it + 1 << "th ml_cycle is " << err << std::endl;
 	}
 	if (++it > HG::multigrid_maxiter)
 	{
@@ -575,7 +587,7 @@ amr_multigrid::solve (Real reltol,
     }
     if (pcode >= 1 && ParallelDescriptor::IOProcessor())
     {
-	cout << "HG: " << it << " cycles required" << endl;
+	std::cout << "HG: " << it << " cycles required" << std::endl;
     }
     //
     //This final restriction not needed unless you want coarse and fine
@@ -597,7 +609,7 @@ amr_multigrid::ml_cycle (int  lev,
                          Real tol,
                          Real res_norm_fine)
 {
-    HG_DEBUG_OUT( "ml_cycle: lev = " << lev << ", mglev = " << mglev << endl );
+    HG_DEBUG_OUT( "ml_cycle: lev = " << lev << ", mglev = " << mglev << std::endl );
     MultiFab& dtmp = dest[lev];
     MultiFab& ctmp = corr[mglev];
     //
@@ -608,7 +620,7 @@ amr_multigrid::ml_cycle (int  lev,
 
     if (pcode >= 2  && ParallelDescriptor::IOProcessor())
     {
-	cout << "HG: Residual at level " << lev << " is " << res_norm << endl;
+	std::cout << "HG: Residual at level " << lev << " is " << res_norm << std::endl;
     }
 
     res_norm = (res_norm_fine > res_norm) ? res_norm_fine : res_norm;
@@ -708,7 +720,7 @@ amr_multigrid::ml_residual (int mglev,
 	work[mgf].copy(resid[mgf]);
 	HG_TEST_NORM( work[mgf], "ml_residual 3");
 	mg_restrict_level(mglev, mgf);
-	if (coarse_source.ready() && coarse_source.defined(lev))
+	if (coarse_source.size() && coarse_source.defined(lev))
 	{
 	    resid[mglev].plus(coarse_source[lev], 0, 1, 0);
 	}
@@ -741,8 +753,8 @@ amr_multigrid::mg_cycle (int mglev,
 	    double nm = mfnorm(wtmp);
 	    if ( ParallelDescriptor::IOProcessor() )
 	    {
-		cout << "HG: Residual at multigrid level "
-		     << mglev << " is " << nm << endl;
+		std::cout << "HG: Residual at multigrid level "
+                          << mglev << " is " << nm << std::endl;
 	    }
 	}
 	else

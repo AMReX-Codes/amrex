@@ -1,33 +1,33 @@
-
 #ifndef _Derive_H_
 #define _Derive_H_
-
 //
-// $Id: Derive.H,v 1.14 2000-10-02 20:48:41 lijewski Exp $
+// $Id: Derive.H,v 1.15 2001-08-01 21:50:45 lijewski Exp $
 //
+#include <list>
+#include <string>
 
+#include <ArrayLim.H>
 #include <REAL.H>
-#include <List.H>
-#include <aString.H>
 #include <Box.H>
 #include <Interpolater.H>
-#include <StateDescriptor.H>
+
+class DescriptorList;
 
 extern "C"
 {
-//
-// Type of extern "C" function called by DeriveRec to compute derived quantity.
-//
-typedef void (*DeriveFunc)(REAL* data, ARLIM_P(dlo), ARLIM_P(dhi),
-                           const int* nvar, const REAL* compdat,
-                           ARLIM_P(compdat_lo), ARLIM_P(compdat_hi),
-                           const int* ncomp,
-                           const int* lo, const int* hi,
-                           const int* domain_lo, const int* domain_hi,
-                           const REAL* delta, const REAL* xlo,
-                           const REAL* time, const REAL* dt, 
-                           const int* bcrec,
-                           const int* level, const int* grid_no) ;
+    //
+    // Type of extern "C" function called by DeriveRec to compute derived quantity.
+    //
+    typedef void (*DeriveFunc)(Real* data, ARLIM_P(dlo), ARLIM_P(dhi),
+                               const int* nvar, const Real* compdat,
+                               ARLIM_P(compdat_lo), ARLIM_P(compdat_hi),
+                               const int* ncomp,
+                               const int* lo, const int* hi,
+                               const int* domain_lo, const int* domain_hi,
+                               const Real* delta, const Real* xlo,
+                               const Real* time, const Real* dt, 
+                               const int* bcrec,
+                               const int* level, const int* grid_no) ;
 }
 
 //
@@ -48,7 +48,7 @@ class DeriveRec
 
 public:
     //
-    //@ManDoc: A userful typedef -- pointer to function taking and returning a Box. 
+    //@ManDoc: A pointer to function taking and returning a Box. 
     //
     typedef Box (*DeriveBoxMap)(const Box&);
     //
@@ -58,43 +58,43 @@ public:
     //
     //@ManDoc: The name of the derived type.
     //
-    const aString& name () const { return derive_name; }
+    const std::string& name () const;
     //
     //@ManDoc: The names of components
     //
-    const aString& variableName (int comp) const;
+    const std::string& variableName (int comp) const;
     //
     //@ManDoc: The IndexType of the derived type.
     //
-    IndexType deriveType () const { return der_type; }
+    IndexType deriveType () const;
     //
     //@ManDoc: The DeriveFunc used to calculate the derived type.
     //
-    DeriveFunc derFunc () const { return func; }
+    DeriveFunc derFunc () const;
     //
     //@ManDoc: Maps state data box to derived data box.
     //
-    DeriveBoxMap boxMap () const { return bx_map; }
+    DeriveBoxMap boxMap () const;
     //
     //@ManDoc: Type of interpolater to use in computing derived type.
     //
-    Interpolater* interp () const { return mapper; }
+    Interpolater* interp () const;
     //
     //@ManDoc: Number of components in the derived type.
     //
-    int numDerive () const { return n_derive; }
+    int numDerive () const;
     //
     //@ManDoc: Number of different chunks of state data needed for derived type.
     //
-    int numRange () const { return nsr; }
+    int numRange () const;
     //
     //@ManDoc: Total number of state variables needed for derived type.
     //
-    int numState () const { return n_state; }
+    int numState () const;
     //
     //@ManDoc: The boundary conditions.
     //
-    const int* getBC () const { return bcr; }
+    const int* getBC () const;
 
     /*@ManDoc: Sets state\_indx, src\_comp and num\_comp for the kth
                range (or chunk) of state data components needed to calculate
@@ -108,7 +108,7 @@ protected:
     //
     // Constructor.
     //
-    DeriveRec (const aString& name,
+    DeriveRec (const std::string& name,
                IndexType      result_type,
                int            nvar_derive,
                DeriveFunc     der_func,
@@ -117,15 +117,13 @@ protected:
     //
     // Constructor.
     //
-    DeriveRec (const aString& name,
-               IndexType      result_type,
-               int            nvar_derive,
-	       Array<aString>& var_names,
-               DeriveFunc     der_func,
-               DeriveBoxMap   box_map,
-               Interpolater*  interp = &pc_interp);
-
-    
+    DeriveRec (const std::string&  name,
+               IndexType           result_type,
+               int                 nvar_derive,
+	       Array<std::string>& var_names,
+               DeriveFunc          der_func,
+               DeriveBoxMap        box_map,
+               Interpolater*       interp = &pc_interp);
 
     void addRange (const DescriptorList& d_list,
                    int                   state_indx,
@@ -146,11 +144,11 @@ protected:
     //
     // Name of derived quantity.
     //
-    aString derive_name;
+    std::string derive_name;
     //    
     // Names of derived variables
     //
-    Array<aString> variable_names;  
+    Array<std::string> variable_names;  
     //
     // Type of derived quantity.
     //
@@ -203,73 +201,44 @@ public:
     //
     //@ManDoc: The default constructor.
     //
-    DeriveList () {}
-    //
-    //@ManDoc: The destructor.
-    //
-    ~DeriveList () {}
+    DeriveList ();
     //
     //@ManDoc: Determines whether quantity identified by <name> is in the registry.
     //
-    bool canDerive (const aString& name) const;
+    bool canDerive (const std::string& name) const;
     //
     //@ManDoc: Access the particular record in registry.
     //
-    const DeriveRec* get (const aString& name) const;
+    const DeriveRec* get (const std::string& name) const;
     //
     //@ManDoc: Adds another entry to the registry.
     //
-    void add (const aString&          name,
+    void add (const std::string&      name,
               IndexType               result_type,
               int                     nvar_derive,
               DeriveFunc              der_func,
               DeriveRec::DeriveBoxMap box_map,
-              Interpolater*           interp = &pc_interp)
-    {
-        lst.add(DeriveRec(name,
-                          result_type,
-                          nvar_derive,
-                          der_func,
-                          box_map,
-                          interp));
-    }
-
+              Interpolater*           interp = &pc_interp);
     //
     //@ManDoc: Adds another entry to the registry.
     //
-    void add (const aString&          name,
+    void add (const std::string&      name,
               IndexType               result_type,
               int                     nvar_derive,
-	      Array<aString>&         var_names,
+	      Array<std::string>&     var_names,
               DeriveFunc              der_func,
               DeriveRec::DeriveBoxMap box_map,
-              Interpolater*           interp = &pc_interp)
-    {
-        lst.add(DeriveRec(name,
-                          result_type,
-                          nvar_derive,
-			  var_names,
-                          der_func,
-                          box_map,
-                          interp));
-    }
-
-
+              Interpolater*           interp = &pc_interp);
     //
     //@ManDoc: Adds another StateRange to the DeriveRec identified by <name>.
     //
-    void addComponent (const aString&        name,
+    void addComponent (const std::string&    name,
                        const DescriptorList& d_list,
                        int                   state_indx,
                        int                   start_comp,
                        int                   ncomp);
-
  
-    List<DeriveRec>& dlist () { return lst; }
-
-protected:
-
-    List<DeriveRec> lst;
+    std::list<DeriveRec>& dlist ();
 
 private:
     //
@@ -277,7 +246,8 @@ private:
     //
     DeriveList (const DeriveList&);
     DeriveList& operator= (const DeriveList&);
-};
 
+    std::list<DeriveRec> lst;
+};
 
 #endif /*_Derive_H_*/

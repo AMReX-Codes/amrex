@@ -2,7 +2,7 @@
 #ifndef _MASK_H_
 #define _MASK_H_
 //
-// $Id: Mask.H,v 1.4 2000-10-02 20:51:16 lijewski Exp $
+// $Id: Mask.H,v 1.5 2001-08-01 21:51:04 lijewski Exp $
 //
 
 #include <BaseFab.H>
@@ -27,8 +27,7 @@
 
 class Mask
     :
-    public ArithFab<int>,
-    public OrderedFab<int>
+    public BaseFab<int>
 {
 public:
     //
@@ -47,7 +46,7 @@ public:
     //
     //@ManDoc: construct from input stream
     //
-    Mask (istream& is);
+    Mask (std::istream& is);
     //
     //@ManDoc: destructor
     //
@@ -55,19 +54,19 @@ public:
     //
     //@ManDoc: Initialize from stream.
     //
-    friend istream& operator>> (istream&, Mask&);
+    friend std::istream& operator>> (std::istream&, Mask&);
     //
     //@ManDoc: initialize from stream, FAB-style
     //
-    void readFrom (istream&);
+    void readFrom (std::istream&);
     //
     //@ManDoc: output to stream
     //
-    friend ostream& operator<< (ostream&, const Mask&);
+    friend std::ostream& operator<< (std::ostream&, const Mask&);
     //
     //@ManDoc: output to stream, FAB-style
     //
-    void writeOn (ostream&) const;
+    void writeOn (std::ostream&) const;
     //
     //@ManDoc: in-place And operator
     //

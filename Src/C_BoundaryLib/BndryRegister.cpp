@@ -1,9 +1,9 @@
-
 //
-// $Id: BndryRegister.cpp,v 1.12 2000-10-02 20:49:02 lijewski Exp $
+// $Id: BndryRegister.cpp,v 1.13 2001-08-01 21:50:49 lijewski Exp $
 //
 
 #include <BndryRegister.H>
+#include <Orientation.H>
 
 const Real BL_SAFE_BOGUS = -666.e30;
 
@@ -11,26 +11,20 @@ BndryRegister::BndryRegister () {}
 
 BndryRegister::~BndryRegister () {}
 
-BndryRegister::BndryRegister (const BoxArray& _grids,
-                              int             _in_rad,
-                              int             _out_rad,
-                              int             _extent_rad,
-                              int             _ncomp)
+BndryRegister::BndryRegister (const BoxArray& grids,
+                              int             in_rad,
+                              int             out_rad,
+                              int             extent_rad,
+                              int             ncomp)
     :
-    grids(_grids)
+    grids(grids)
 {
-    BL_ASSERT(_ncomp > 0);
-    BL_ASSERT(grids.ready());
+    BL_ASSERT(ncomp > 0);
     BL_ASSERT(grids[0].cellCentered());
 
     for (OrientationIter face; face; ++face)
     {
-        define(face(),
-               IndexType::TheCellType(),
-               _in_rad,
-               _out_rad,
-               _extent_rad,
-               _ncomp);
+        define(face(),IndexType::TheCellType(),in_rad,out_rad,extent_rad,ncomp);
     }
 }
 
@@ -41,13 +35,11 @@ BndryRegister::init (const BndryRegister& src)
 
     for (int i = 0; i < 2*BL_SPACEDIM; i++)
     {
-        FabSet& fs = bndry[i];
+        bndry[i].define(src.bndry[i].boxArray(), src.bndry[i].nComp());
 
-        fs.define(src.bndry[i].boxArray(), src.bndry[i].nComp());
-
-        for (ConstFabSetIterator mfi(src.bndry[i]); mfi.isValid(); ++mfi)
+        for (FabSetIter mfi(src.bndry[i]); mfi.isValid(); ++mfi)
         {
-            fs[mfi.index()].copy(mfi());
+            bndry[i][mfi.index()].copy(src.bndry[i][mfi]);
         }
     }
 }
@@ -57,10 +49,34 @@ BndryRegister::BndryRegister (const BndryRegister& src)
     init(src);
 }
 
+const BoxArray&
+BndryRegister::boxes () const
+{
+    return grids;
+}
+
+int
+BndryRegister::size () const
+{
+    return grids.size();
+}
+
+const FabSet&
+BndryRegister::operator[] (const Orientation& _face) const
+{
+    return bndry[_face];
+}
+
+FabSet&
+BndryRegister::operator[] (const Orientation& _face)
+{
+    return bndry[_face];
+}
+
 BndryRegister&
 BndryRegister::operator= (const BndryRegister& src)
 {
-    if (grids.ready())
+    if (grids.size() > 0)
     {
         grids.clear();
 
@@ -81,20 +97,20 @@ BndryRegister::define (const Orientation& _face,
                        int                _extent_rad,
                        int                _ncomp)
 {
-    BL_ASSERT(grids.ready());
+    BL_ASSERT(grids.size() > 0);
 
     FabSet& fabs = bndry[_face];
 
-    BL_ASSERT(!fabs.ready());
+    BL_ASSERT(fabs.size() == 0);
 
     const int coord_dir = _face.coordDir();
     const int lo_side   = _face.isLow();
     //
     // Build the BoxArray on which to define the FabSet on this face.
     //
-    BoxArray fsBA(grids.length());
+    BoxArray fsBA(grids.size());
 
-    for (int idx = 0; idx < grids.length(); ++idx)
+    for (int idx = 0; idx < grids.size(); ++idx)
     {
         Box b;
         //
@@ -103,9 +119,9 @@ BndryRegister::define (const Orientation& _face,
         if (_out_rad > 0)
         {
             if (_typ.ixType(coord_dir) == IndexType::CELL)
-                b = ::adjCell(grids[idx], _face, _out_rad);
+                b = BoxLib::adjCell(grids[idx], _face, _out_rad);
             else
-                b = ::bdryNode(grids[idx], _face, _out_rad);
+                b = BoxLib::bdryNode(grids[idx], _face, _out_rad);
 
             if (_in_rad > 0)
                 b.grow(_face.flip(), _in_rad);
@@ -115,9 +131,9 @@ BndryRegister::define (const Orientation& _face,
             if (_in_rad > 0)
             {
                 if (_typ.ixType(coord_dir) == IndexType::CELL)
-                    b = ::adjCell(grids[idx], _face, _in_rad);
+                    b = BoxLib::adjCell(grids[idx], _face, _in_rad);
                 else
-                    b = ::bdryNode(grids[idx], _face, _in_rad);
+                    b = BoxLib::bdryNode(grids[idx], _face, _in_rad);
 
                 b.shift(coord_dir, lo_side ? _in_rad : -_in_rad);
             }
@@ -158,8 +174,8 @@ BndryRegister::define (const Orientation& _face,
 void
 BndryRegister::setBoxes (const BoxArray& _grids)
 {
-    BL_ASSERT(!grids.ready());
-    BL_ASSERT(_grids.ready());
+    BL_ASSERT(grids.size() == 0);
+    BL_ASSERT(_grids.size() > 0);
     BL_ASSERT(_grids[0].cellCentered());
 
     grids.define(_grids);
@@ -167,7 +183,7 @@ BndryRegister::setBoxes (const BoxArray& _grids)
     // Check that bndry regions are not allocated.
     //
     for (int k = 0; k < 2*BL_SPACEDIM; k++)
-        BL_ASSERT(!bndry[k].ready());
+        BL_ASSERT(bndry[k].size() == 0);
 }
 
 void BndryRegister::setVal (Real v)

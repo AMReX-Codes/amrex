@@ -5,7 +5,8 @@
 #include "amr_multi.H"
 
 class holy_grail_amr_multigrid
-    : public amr_multigrid
+    :
+    public amr_multigrid
 {
 public:
     enum stencil { terrain = 0, full = 1, cross = 2 };
@@ -115,11 +116,11 @@ protected:
     Array< Array<Box> > cres_sfbox;
     Array< Array<Box> > cres_scbox;
     Array< Array<Box> > cres_creg;
-
-    // orderings for full-level line solves:
-
-    Array< Array<int> > line_order;
-    Array< Array< List<int> > > line_after;
+    //
+    // Orderings for full-level line solves:
+    //
+    Array< Array<int> >              line_order;
+    Array< Array< std::list<int> > > line_after;
 
 };
 

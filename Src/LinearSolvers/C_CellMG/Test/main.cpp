@@ -1,19 +1,11 @@
 //
-// $Id: main.cpp,v 1.20 2001-04-23 19:33:30 car Exp $
+// $Id: main.cpp,v 1.21 2001-08-01 21:51:04 lijewski Exp $
 //
 
-#ifdef BL_ARCH_CRAY
-#ifdef BL_USE_DOUBLE
-#error "DOUBLE PRECISION NOT ALLOWED ON CRAY"
-#endif
-#endif
-
-#ifndef        WIN32
-#include <unistd.h>
-#endif
+#include <fstream>
+#include <iomanip>
 
 #include <Utility.H>
-#include <Tracer.H>
 #include <ParmParse.H>
 #include <LO_BCTYPES.H>
 #include <BndryData.H>
@@ -28,22 +20,6 @@
 #include <BoxLib3/WorkQueue.H>
 BoxLib3::WorkQueue wrkq;
 #endif
-#ifdef BL3_PROFILING
-#include <BoxLib3/BoxLib3.H>
-#include <BoxLib3/Parallel.H>
-#include <BoxLib3/Timer.H>
-#endif
-
-
-#ifdef BL_USE_NEW_HFILES
-#include <new>
-using std::setprecision;
-#ifndef WIN32
-using std::set_new_handler;
-#endif
-#else
-#include <new.h>
-#endif
 
 #include <WritePlotFile.H>
 #ifdef MG_USE_HYPRE
@@ -55,9 +31,9 @@ Real
 mfnorm_0_valid (const MultiFab& mf)
 {
   Real r = 0;
-  for ( ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi )
+  for ( MFIter cmfi(mf); cmfi.isValid(); ++cmfi )
     {
-      Real s = cmfi->norm(cmfi.validbox(), 0, 0, cmfi->nComp());
+      Real s = mf[cmfi].norm(cmfi.validbox(), 0, 0, mf[cmfi].nComp());
       r = (r > s) ? r : s;
     }
   ParallelDescriptor::ReduceRealMax(r);
@@ -69,68 +45,38 @@ Real
 mfnorm_2_valid (const MultiFab& mf)
 {
   Real r = 0;
-  for ( ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi )
+  for ( MFIter cmfi(mf); cmfi.isValid(); ++cmfi )
     {
-      Real s = cmfi->norm(cmfi.validbox(), 2, 0, cmfi->nComp());
+      Real s = mf[cmfi].norm(cmfi.validbox(), 2, 0, mf[cmfi].nComp());
       r += s*s;
     }
   ParallelDescriptor::ReduceRealSum(r);
   return ::sqrt(r);
 }
 
-BoxList readBoxList (aString file, BOX& domain);
+BoxList readBoxList (std::string file, Box& domain);
 
 int
 main (int   argc, char* argv[])
 {
-  //
-  // Make sure to catch new failures.
-  //
-#ifndef WIN32
-  set_new_handler(Utility::OutOfMemory);
-#endif
-#ifdef BL3_PROFILING
-  BL3_PROFILE_TIMER(mg_main, "main()");
-  BL3_PROFILE_START(mg_main);
-  BoxLib3::Profiler::Initialize(argc, argv);
-  BoxLib3::Initialize(argc, argv);
-#endif
-  ParallelDescriptor::StartParallel(&argc, &argv);
+  BoxLib::Initialize(argc,argv);
 
-  cout << setprecision(15);
+  std::cout << std::setprecision(15);
 
-  if ( argc < 2 )
-    {
-      cerr << "usage:  " << argv[0] << " inputsfile [options]" << '\n';
-      exit(-1);
-    }
+  ParmParse pp;
 
-  ParmParse pp(argc-2,argv+2,NULL,argv[1]); 
-  //
-  // Initialize random seed after we're running in parallel.
-  //
-  Utility::InitRandom(ParallelDescriptor::MyProc() + 1);
-  //
-  // Instantiate after we're running in Parallel.
-  //
-#ifndef WIN32
-  int sleeptime = 0; pp.query("sleep", sleeptime);
-  sleep(sleeptime);
-#endif
 #ifdef BL3_PTHREADS
   int maxthreads = 1; pp.query("maxthreads", maxthreads);
   wrkq.max_threads(maxthreads);
-  cout << "maxthreads = " << wrkq.max_threads() << endl;
+  std::cout << "maxthreads = " << wrkq.max_threads() << std::endl;
 #endif
-    
-  TRACER("mg");
-    
+
   // Obtain prob domain and box-list, set H per phys domain [0:1]Xn
-  BOX container;
+  Box container;
 #if (BL_SPACEDIM == 2)
-  aString boxfile("grids/gr.2_small_a") ; pp.query("boxes", boxfile);
+  std::string boxfile("grids/gr.2_small_a") ; pp.query("boxes", boxfile);
 #elif (BL_SPACEDIM == 3)
-  aString boxfile("grids/gr.3_small_a") ; pp.query("boxes", boxfile);
+  std::string boxfile("grids/gr.3_small_a") ; pp.query("boxes", boxfile);
 #endif
   BoxArray bs(readBoxList(boxfile,container));
   Geometry geom( container );
@@ -146,14 +92,14 @@ main (int   argc, char* argv[])
   int Nghost=0;
   MultiFab soln(bs, Ncomp, Nghost, Fab_allocate); soln.setVal(0.0);
   MultiFab  rhs(bs, Ncomp, Nghost, Fab_allocate);  rhs.setVal(0.0);
-  for ( MultiFabIterator rhsmfi(rhs); rhsmfi.isValid(); ++rhsmfi )
+  for ( MFIter rhsmfi(rhs); rhsmfi.isValid(); ++rhsmfi )
     {
-      INTVECT ivmid = (rhsmfi().smallEnd() + rhsmfi().bigEnd())/2;
+      IntVect ivmid = (rhs[rhsmfi].smallEnd() + rhs[rhsmfi].bigEnd())/2;
       //ivmid -= IntVect(0, (rhsmfi().bigEnd()[1]-rhsmfi().smallEnd()[1])/2);
       //ivmid = rhsmfi().smallEnd();
-      rhsmfi().operator()(ivmid,0) = 1;
+      rhs[rhsmfi].operator()(ivmid,0) = 1;
       ivmid += IntVect::TheUnitVector();
-      rhsmfi().operator()(ivmid,0) = -1;
+      rhs[rhsmfi].operator()(ivmid,0) = -1;
       // rhsmfi->setVal(1.0);
     }
 
@@ -163,7 +109,7 @@ main (int   argc, char* argv[])
   int comp = 0;
   for ( int n=0; n<BL_SPACEDIM; ++n )
     {
-      for ( MultiFabIterator mfi(rhs); mfi.isValid(); ++mfi )
+      for ( MFIter mfi(rhs); mfi.isValid(); ++mfi )
 	{
 	  int i = mfi.index();  //   ^^^ using rhs to get mfi.index() yes, this is a hack
 	  bd.setBoundLoc(Orientation(n, Orientation::low) ,i,0.0 );
@@ -202,7 +148,7 @@ main (int   argc, char* argv[])
 	double d = lp.norm();
 	if ( ParallelDescriptor::IOProcessor() )
 	  {
-	    cout << "Norm = " << d << endl;
+	    std::cout << "Norm = " << d << std::endl;
 	  }
       }
       if ( mg )
@@ -213,7 +159,7 @@ main (int   argc, char* argv[])
 	  mg.solve(soln, rhs, tolerance, tolerance_abs);
 	  if ( new_bc )
 	    {
-	      for ( MultiFabIterator mfi(rhs); mfi.isValid(); ++mfi )
+	      for ( MFIter mfi(rhs); mfi.isValid(); ++mfi )
 		{
 		  int i = mfi.index(); //   ^^^ using rhs to get mfi.index() yes, this is a hack
 		  for (int n=0; n<BL_SPACEDIM; ++n)
@@ -231,10 +177,10 @@ main (int   argc, char* argv[])
 	  CGSolver cg(lp,use_mg_pre); cg.setCGSolver(CGSolver::CG);
 	  cg.setMaxIter(maxiter);
 	  res = cg.solve(soln, rhs, tolerance, tolerance_abs);
-	  cout << "CG Result = " << res << endl;
+	  std::cout << "CG Result = " << res << std::endl;
 	  if ( new_bc )
 	    {
-	      for ( MultiFabIterator mfi(rhs); mfi.isValid(); ++mfi )
+	      for ( MFIter mfi(rhs); mfi.isValid(); ++mfi )
 		{
 		  int i = mfi.index();  //   ^^^ using rhs to get mfi.index() yes, this is a hack
 		  for ( int n=0; n<BL_SPACEDIM; ++n )
@@ -245,7 +191,7 @@ main (int   argc, char* argv[])
                 }
 	      lp.bndryData(bd);
 	      res  = cg.solve(soln, rhs, tolerance, tolerance_abs);
-	      cout << "CG (new_bc) Result = " << res << endl;
+	      std::cout << "CG (new_bc) Result = " << res << std::endl;
             }
         }
       if ( bicg )
@@ -253,10 +199,10 @@ main (int   argc, char* argv[])
 	  CGSolver cg(lp,use_mg_pre); cg.setCGSolver(CGSolver::BiCGStab);
 	  cg.setMaxIter(maxiter);
 	  res = cg.solve(soln, rhs, tolerance, tolerance_abs);
-	  cout << "BiCGStab Result = " << res << endl;
+	  std::cout << "BiCGStab Result = " << res << std::endl;
 	  if ( new_bc )
 	    {
-	      for ( MultiFabIterator mfi(rhs); mfi.isValid(); ++mfi )
+	      for ( MFIter mfi(rhs); mfi.isValid(); ++mfi )
 		{
 		  int i = mfi.index();  //   ^^^ using rhs to get mfi.index() yes, this is a hack
 		  for ( int n=0; n<BL_SPACEDIM; ++n )
@@ -267,7 +213,7 @@ main (int   argc, char* argv[])
                 }
 	      lp.bndryData(bd);
 	      res = cg.solve(soln, rhs, tolerance, tolerance_abs);
-	      cout << "BiCGStab (new_bc) Result = " << res << endl;
+	      std::cout << "BiCGStab (new_bc) Result = " << res << std::endl;
             }
         }
       if ( acg )
@@ -275,10 +221,10 @@ main (int   argc, char* argv[])
 	  CGSolver cg(lp,use_mg_pre); cg.setCGSolver(CGSolver::CG_Alt);
 	  cg.setMaxIter(maxiter);
 	  res = cg.solve(soln, rhs, tolerance, tolerance_abs);
-	  cout << "aCG Result = " << res << endl;
+	  std::cout << "aCG Result = " << res << std::endl;
 	  if ( new_bc )
 	    {
-	      for ( MultiFabIterator mfi(rhs); mfi.isValid(); ++mfi )
+	      for ( MFIter mfi(rhs); mfi.isValid(); ++mfi )
 		{
 		  int i = mfi.index();  //   ^^^ using rhs to get mfi.index() yes, this is a hack
 		  for ( int n=0; n<BL_SPACEDIM; ++n )
@@ -289,13 +235,13 @@ main (int   argc, char* argv[])
                 } 
 	      lp.bndryData(bd);
 	      res = cg.solve(soln, rhs, tolerance, tolerance_abs);
-	      cout << "aCG (new_bc) Result = " << res << endl;
+	      std::cout << "aCG (new_bc) Result = " << res << std::endl;
             }
         }
 
       // Look at operator
       if ( dump_Lp )
-	cout << lp << endl;
+	std::cout << lp << std::endl;
 	
         
     }
@@ -351,7 +297,7 @@ main (int   argc, char* argv[])
 	    double d = lp.norm();
 	    if ( ParallelDescriptor::IOProcessor() )
 	      {
-		cout << "Norm = " << d << endl;
+		std::cout << "Norm = " << d << std::endl;
 	      }
           }
 
@@ -363,7 +309,7 @@ main (int   argc, char* argv[])
 	      mg.solve(soln, rhs, tolerance, tolerance_abs);
 	      if ( new_bc )
 		{
-		  for ( int i=0; i < bs.length(); ++i )
+		  for ( int i=0; i < bs.size(); ++i )
 		    {
 		      for ( int n=0; n<BL_SPACEDIM; ++n )
 			{
@@ -382,7 +328,7 @@ main (int   argc, char* argv[])
 	      cg.solve(soln, rhs, tolerance, tolerance_abs);
 	      if ( new_bc )
 		{
-		  for ( int i=0; i < bs.length(); ++i )
+		  for ( int i=0; i < bs.size(); ++i )
 		    {
 		      for ( int n=0; n<BL_SPACEDIM; ++n )
 			{
@@ -401,7 +347,7 @@ main (int   argc, char* argv[])
 	      cg.solve(soln, rhs, tolerance, tolerance_abs);
 	      if ( new_bc )
 		{
-		  for ( int i=0; i < bs.length(); ++i )
+		  for ( int i=0; i < bs.size(); ++i )
 		    {
 		      for ( int n=0; n<BL_SPACEDIM; ++n )
 			{
@@ -420,7 +366,7 @@ main (int   argc, char* argv[])
 	      cg.solve(soln, rhs, tolerance, tolerance_abs);
 	      if ( new_bc )
 		{
-		  for ( int i=0; i < bs.length(); ++i )
+		  for ( int i=0; i < bs.size(); ++i )
 		    {
 		      for ( int n=0; n<BL_SPACEDIM; ++n )
 			{
@@ -435,7 +381,7 @@ main (int   argc, char* argv[])
 
 	  // Look at operator
 	  if ( dump_Lp )
-	    cout << lp << endl;
+	    std::cout << lp << std::endl;
 	}
     } // -->> solve D^2(soln)=rhs   or   (alpha*a - beta*D.(b.G))soln=rhs
 
@@ -446,7 +392,7 @@ main (int   argc, char* argv[])
       double d2 = mfnorm_0_valid(soln);
       if ( ParallelDescriptor::IOProcessor() )
 	{
-	  cout << "solution norm = " << d1 << "/" << d2 << endl;
+	  std::cout << "solution norm = " << d1 << "/" << d2 << std::endl;
 	}
     }
   if ( dump_Mf || dump_VisMF )
@@ -467,40 +413,42 @@ main (int   argc, char* argv[])
   
   if ( dump_ascii )
     {
-      for ( MultiFabIterator mfi(soln); mfi.isValid(); ++mfi )
+      for ( MFIter mfi(soln); mfi.isValid(); ++mfi )
 	{
-	  cout << *mfi << endl;
+	  std::cout << soln[mfi] << std::endl;
 	}
     }
+
+  BoxLib::Finalize();
 
 #ifdef BL3_PROFILING
   BL3_PROFILE_STOP(mg_main);
   BoxLib3::Profiler::Finalize();
 #endif
-  ParallelDescriptor::EndParallel();
+
 }
 
 BoxList
-readBoxList(const aString file, BOX& domain)
+readBoxList(const std::string file, Box& domain)
 {
   BoxList retval;
-  ifstream boxspec(file.c_str());
+  std::ifstream boxspec(file.c_str());
   if( !boxspec )
     {
       BoxLib::Error("readBoxList: unable to open " + *file.c_str());
     }
   boxspec >> domain;
     
-  int numbox;
+  int numbox = 0;
   boxspec >> numbox;
 
   for ( int i=0; i<numbox; i++ )
     {
-      BOX tmpbox;
+      Box tmpbox;
       boxspec >> tmpbox;
       if( ! domain.contains(tmpbox))
 	{
-	  cerr << "readBoxList: bogus box " << tmpbox << '\n';
+	  std::cerr << "readBoxList: bogus box " << tmpbox << '\n';
 	  exit(1);
         }
       retval.append(tmpbox);

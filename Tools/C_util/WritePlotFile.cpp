@@ -3,64 +3,39 @@
 // level 1 data. All this could be cleaner, but this is throw-away code
 // anyway, so why bother?
 
-#ifdef BL_USE_NEW_HFILES
 #include <iostream>
 #include <fstream>
 #include <cstdio>
-using std::ios;
-#else
-#include <iostream.h>
-#include <fstream.h>
-#include <stdio.h>
-#endif
-
-#ifdef BL_ARCH_CRAY
-#ifdef BL_USE_DOUBLE
-#error "DOUBLE PRECISION NOT ALLOWED ON CRAY"
-#endif
-#endif
 
 #ifndef        WIN32
 #include <unistd.h>
 #endif
 
 #include <Utility.H>
-#include <Tracer.H>
 #include <ParallelDescriptor.H>
 #include <VisMF.H>
 #include <RealBox.H>
 #include <Geometry.H>
-
-#ifdef BL_USE_NEW_HFILES
-#include <new>
-using std::setprecision;
-#ifndef WIN32
-using std::set_new_handler;
-#endif
-#else
-#include <new.h>
-#endif
-
 #include <WritePlotFile.H>
 
 #ifdef BL_USE_SETBUF
 #define pubsetbuf setbuf
 #endif
 
-aString
+std::string
 thePlotFileType ()
 {
     //
     // Increment this whenever the writePlotFile() format changes.
     //
-    static const aString the_plot_file_type("HyperCLaw-V1.1");
+    static const std::string the_plot_file_type("HyperCLaw-V1.1");
 
     return the_plot_file_type;
 }
 
 void
-writePlotFile (const aString&  dir,
-	       ostream&        os,
+writePlotFile (const std::string&  dir,
+	       std::ostream&        os,
 	       int             level,
 	       const MultiFab& mf,
 	       const Geometry& geom,
@@ -107,8 +82,8 @@ writePlotFile (const aString&  dir,
 	    grid_loc[j].resize(1);
 	    grid_loc[j][0] = RealBox(Geometry::ProbLo(),Geometry::ProbHi());
 	} else {
-	    grid_loc[j].resize(grids.length());
-	    for (int L=0; L < grids.length(); L++)
+	    grid_loc[j].resize(grids.size());
+	    for (int L=0; L < grids.size(); L++)
 	    {
 		const Box bx = grids[L];
 		grid_loc[j][L] = RealBox(D_DECL( dx[j][0]*bx.smallEnd(0),
@@ -129,27 +104,27 @@ writePlotFile (const aString&  dir,
     //
     // There is only one MultiFab written out at each level in HyperCLaw.
     //
-    static const aString MultiFabBaseName("/MultiFab");
+    static const std::string MultiFabBaseName("/MultiFab");
     //
     // Build the directory to hold the MultiFabs at this level.
     // The name is relative to the directory containing the Header file.
     //
     char buf[64];
     sprintf(buf, "Level_%d", level);
-    aString Level = buf;
+    std::string Level = buf;
     //
     // Now for the full pathname of that directory.
     //
-    aString FullPath = dir;
-    if (!FullPath.isNull() && FullPath[FullPath.length()-1] != '/')
+    std::string FullPath = dir;
+    if (!FullPath.empty() && FullPath[FullPath.length()-1] != '/')
 	FullPath += '/';
     FullPath += Level;
     //
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-	if (!Utility::UtilCreateDirectory(FullPath, 0755))
-	    Utility::CreateDirectoryFailed(FullPath);
+	if (!BoxLib::UtilCreateDirectory(FullPath, 0755))
+	    BoxLib::CreateDirectoryFailed(FullPath);
     //
     // Force other processors to wait till directory is built.
     //
@@ -206,7 +181,7 @@ writePlotFile (const aString&  dir,
 	//
 	// Now write state data.
 	//
-	int ngrds          = (level==0 ? 1 : grids.length());
+	int ngrds          = (level==0 ? 1 : grids.size());
 	Real cur_time      = curTime;
 	const MultiFab& cell_dat = (level==0 ? level0_dat : mf);
 	    
@@ -214,7 +189,7 @@ writePlotFile (const aString&  dir,
 	// level steps
 	os << levelSteps << '\n';
 	
-	for (i = 0; i < cell_dat.boxArray().length(); ++i)
+	for (i = 0; i < cell_dat.boxArray().size(); ++i)
 	{
 	    for (n = 0; n < BL_SPACEDIM; n++)
 		// lo/hi position of this grid
@@ -226,7 +201,7 @@ writePlotFile (const aString&  dir,
 	// The name is relative to the Header file containing this name.
 	// It's the name that gets written into the Header.
 	//
-	aString PathNameInHeader = Level;
+	std::string PathNameInHeader = Level;
 	PathNameInHeader += MultiFabBaseName;
 
 	os << PathNameInHeader << '\n';
@@ -250,29 +225,29 @@ writePlotFile (const char*     name,
 {
 
     double dPlotFileTime0(ParallelDescriptor::second());
-    //aString pltfile = Concatenate(root, num);
-    aString pltfile(name);
+    //std::string pltfile = Concatenate(root, num);
+    std::string pltfile(name);
 
     //
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!Utility::UtilCreateDirectory(pltfile, 0755))
-            Utility::CreateDirectoryFailed(pltfile);
+        if (!BoxLib::UtilCreateDirectory(pltfile, 0755))
+            BoxLib::CreateDirectoryFailed(pltfile);
     //
     // Force other processors to wait till directory is built.
     //
     ParallelDescriptor::Barrier();
 
-    aString HeaderFileName = pltfile + "/Header";
+    std::string HeaderFileName = pltfile + "/Header";
 
 #ifdef BL_USE_SETBUF
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 #endif
-    ofstream HeaderFile;
+    std::ofstream HeaderFile;
 
 #ifdef BL_USE_SETBUF
-    HeaderFile.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
+    HeaderFile.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.size());
 #endif
     int old_prec;
 
@@ -281,10 +256,10 @@ writePlotFile (const char*     name,
         //
         // Only the IOProcessor() writes to the header file.
         //
-        HeaderFile.open(HeaderFileName.c_str(), ios::out|ios::trunc);
+        HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc);
 
         if (!HeaderFile.good())
-            Utility::FileOpenFailed(HeaderFileName);
+            BoxLib::FileOpenFailed(HeaderFileName);
 
         old_prec = HeaderFile.precision(30);
     }
@@ -292,19 +267,11 @@ writePlotFile (const char*     name,
     int finest_level = 1;
     for (int k = 0; k <= finest_level; k++)
     {
-        RunStats write_pltfile_stats("write_pltfile", k);
-        write_pltfile_stats.start();
         writePlotFile(pltfile, HeaderFile, k, mf, geom, refRatio, bgVal);
-        write_pltfile_stats.end();
     }
 
     if (ParallelDescriptor::IOProcessor())
     {
-        //
-        // Accumulate # of bytes written to header file.
-        //
-        RunStats::addBytes(VisMF::FileOffset(HeaderFile));
-
         HeaderFile.precision(old_prec);
 
         if (!HeaderFile.good())
@@ -315,48 +282,44 @@ writePlotFile (const char*     name,
     double dPlotFileTime(dPlotFileTime1 - dPlotFileTime0);
     ParallelDescriptor::ReduceRealMax(dPlotFileTime);
     if(ParallelDescriptor::IOProcessor()) {
-      cout << "Write plotfile time = " << dPlotFileTime << "  seconds." << endl;
+      std::cout << "Write plotfile time = " << dPlotFileTime << "  seconds." << std::endl;
     }
     
 }
 
 void WritePlotFile(const Array<MultiFab*> mfa,
 		   AmrData&               amrdToMimic,
-		   const aString&         oFile,
+		   const std::string&         oFile,
 		   bool                   verbose)
 {
-    const Array<aString>& derives = amrdToMimic.PlotVarNames();
+    const Array<std::string>& derives = amrdToMimic.PlotVarNames();
     int ntype = amrdToMimic.NComp();
     int finestLevel = amrdToMimic.FinestLevel();    
     
     if (ParallelDescriptor::IOProcessor())
-        if (!Utility::UtilCreateDirectory(oFile,0755))
-            Utility::CreateDirectoryFailed(oFile);
+        if (!BoxLib::UtilCreateDirectory(oFile,0755))
+            BoxLib::CreateDirectoryFailed(oFile);
     //
     // Force other processors to wait till directory is built.
     //
     ParallelDescriptor::Barrier();
 
-    aString oFileHeader(oFile);
+    std::string oFileHeader(oFile);
     oFileHeader += "/Header";
   
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
-    ofstream os;
+    std::ofstream os;
   
-    os.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
+    os.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
   
     if (verbose && ParallelDescriptor::IOProcessor())
-        cout << "Opening file = " << oFileHeader << '\n';
+        std::cout << "Opening file = " << oFileHeader << '\n';
 
-#ifdef BL_USE_NEW_HFILES
-    os.open(oFileHeader.c_str(), ios::out|ios::binary);
-#else
-    os.open(oFileHeader.c_str(), ios::out);
-#endif
+    os.open(oFileHeader.c_str(), std::ios::out|std::ios::binary);
 
     if (os.fail())
-        Utility::FileOpenFailed(oFileHeader);
+        BoxLib::FileOpenFailed(oFileHeader);
     //
     // Start writing plotfile.
     //
@@ -394,7 +357,7 @@ void WritePlotFile(const Array<MultiFab*> mfa,
         //
         // Write state data.
         //
-        int nGrids = amrdToMimic.boxArray(iLevel).length();
+        int nGrids = amrdToMimic.boxArray(iLevel).size();
         char buf[64];
         sprintf(buf, "Level_%d", iLevel);
     
@@ -416,12 +379,12 @@ void WritePlotFile(const Array<MultiFab*> mfa,
             //
             // Build the directory to hold the MultiFabs at this level.
             //
-            aString Level(oFile);
+            std::string Level(oFile);
             Level += '/';
             Level += buf;
     
-            if (!Utility::UtilCreateDirectory(Level, 0755))
-                Utility::CreateDirectoryFailed(Level);
+            if (!BoxLib::UtilCreateDirectory(Level, 0755))
+                BoxLib::CreateDirectoryFailed(Level);
         }
         //
         // Force other processors to wait till directory is built.
@@ -430,9 +393,9 @@ void WritePlotFile(const Array<MultiFab*> mfa,
         //
         // Now build the full relative pathname of the MultiFab.
         //
-        static const aString MultiFabBaseName("/MultiFab");
+        static const std::string MultiFabBaseName("/MultiFab");
     
-        aString PathName(oFile);
+        std::string PathName(oFile);
         PathName += '/';
         PathName += buf;
         PathName += MultiFabBaseName;
@@ -442,7 +405,7 @@ void WritePlotFile(const Array<MultiFab*> mfa,
             //
             // The full name relative to the Header file.
             //
-            aString RelativePathName(buf);
+            std::string RelativePathName(buf);
             RelativePathName += '/';
             RelativePathName += MultiFabBaseName;
             os << RelativePathName << '\n';

@@ -1,13 +1,9 @@
 
 //
-// $Id: MCInterpBndryData.cpp,v 1.12 2000-10-02 20:53:39 lijewski Exp $
+// $Id: MCInterpBndryData.cpp,v 1.13 2001-08-01 21:51:07 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <cmath>
-#else
-#include <math.h>
-#endif
 
 #include <LO_BCTYPES.H>
 #include <MCInterpBndryData.H>
@@ -84,20 +80,18 @@ MCInterpBndryData::setBndryValues(const MultiFab&     mf,
     if (!bdfunc_set)
         bdfunc_init();
 
-    BL_ASSERT(grids.ready());
+    BL_ASSERT(grids.size());
     BL_ASSERT(grids == mf.boxArray());
     int nDer = MCLinOp::bcComponentsNeeded();
-    BL_ASSERT(bc.length()==nDer);
+    BL_ASSERT(bc.size()==nDer);
 
     int ratio = 1;
     for (int n=bnd_start; n<bnd_start+nDer; ++n)
         setBndryConds(bc[n], ratio, n);
 
     const Real* h = geom.CellSize();
-    //
-    // HACK: cast away const to satisfy incomplete BoxLib interface.
-    //
-    for (MultiFabIterator mfi((MultiFab&)mf); mfi.isValid(); ++mfi)
+
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
 	BL_ASSERT(grids[mfi.index()] == mfi.validbox());
 
@@ -106,6 +100,7 @@ MCInterpBndryData::setBndryValues(const MultiFab&     mf,
         for (OrientationIter fi; fi; ++fi)
         {
             Orientation face(fi());
+
 	    const int dir = face.coordDir();
             //
 	    // Physical bndry, copy from grid.
@@ -123,16 +118,15 @@ MCInterpBndryData::setBndryValues(const MultiFab&     mf,
                         continue;
 		    hfine[kdir++] = h[idir];
 		}
-
-		DependentFabSetIterator bfsi(mfi,bndry[face]);
 		//
 		// Copy and compute deriv.
                 //
-		bdider[face](bfsi().dataPtr(bnd_start),
-			     ARLIM(bfsi().loVect()),ARLIM(bfsi().hiVect()),
+		bdider[face](bndry[face][mfi.index()].dataPtr(bnd_start),
+			     ARLIM(bndry[face][mfi.index()].loVect()),
+                             ARLIM(bndry[face][mfi.index()].hiVect()),
 			     bx.loVect(),bx.hiVect(),
-			     mfi().dataPtr(mf_start),
-			     ARLIM(mfi().loVect()),ARLIM(mfi().hiVect()),
+			     mf[mfi].dataPtr(mf_start),
+			     ARLIM(mf[mfi].loVect()),ARLIM(mf[mfi].hiVect()),
 			     &num_comp,hfine);
             }
         }
@@ -159,10 +153,10 @@ MCInterpBndryData::setBndryValues (const ::BndryRegister& crse,
     if (!bdfunc_set)
         bdfunc_init();
 
-    BL_ASSERT(grids.ready());
+    BL_ASSERT(grids.size());
     BL_ASSERT(grids == fine.boxArray());
     int nDer = MCLinOp::bcComponentsNeeded();
-    BL_ASSERT(bc.length()==nDer);
+    BL_ASSERT(bc.size()==nDer);
 
     for (int n=bnd_start; n<bnd_start+nDer; ++n)
         setBndryConds(bc[n], ratio, n);
@@ -177,12 +171,12 @@ MCInterpBndryData::setBndryValues (const ::BndryRegister& crse,
     //
     Real* derives = 0;
     int tmplen    = 0;
-    for (ConstMultiFabIterator finemfi(fine); finemfi.isValid(); ++finemfi)
+    for (MFIter finemfi(fine); finemfi.isValid(); ++finemfi)
     {
         BL_ASSERT(grids[finemfi.index()] == finemfi.validbox());
 
         const Box& fine_bx = finemfi.validbox();
-        Box crse_bx        = ::coarsen(fine_bx,ratio);
+        Box crse_bx        = BoxLib::coarsen(fine_bx,ratio);
         const int* cblo    = crse_bx.loVect();
         const int* cbhi    = crse_bx.hiVect();
         int mxlen          = crse_bx.longside() + 2;
@@ -198,7 +192,7 @@ MCInterpBndryData::setBndryValues (const ::BndryRegister& crse,
         }
 	const int* lo             = fine_bx.loVect();
 	const int* hi             = fine_bx.hiVect();
-	const FArrayBox& fine_grd = finemfi();
+	const FArrayBox& fine_grd = fine[finemfi];
         const int* finelo         = fine_grd.loVect();
         const int* finehi         = fine_grd.hiVect();
         const Real* finedat       = fine_grd.dataPtr(f_start);

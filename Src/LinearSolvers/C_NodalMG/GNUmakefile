@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.48 2001-03-28 19:37:17 car Exp $
+# $Id: GNUmakefile,v 1.49 2001-08-01 21:50:50 lijewski Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -54,10 +54,10 @@ endif
 
 ifeq ($(EBASE),proj)
   include $(TOP)/bndrylib/Make.package
-  include $(TOP)/pBoxLib_2/Make.package
+  include $(TOP)/BoxLib/Make.package
 
   INCLUDE_LOCATIONS += $(TOP)/bndrylib
-  INCLUDE_LOCATIONS += $(TOP)/pBoxLib_2
+  INCLUDE_LOCATIONS += $(TOP)/BoxLib
 
   ifeq ($(DEBUG),TRUE)
 #    CPPFLAGS += -DHG_DEBUG
@@ -81,8 +81,8 @@ ifeq ($(EBASE),proj)
   LIBRARY_LOCATIONS +=
   CEXE_sources      += proj.cpp
 
-  vpath %.cpp	. $(TOP)/pBoxLib_2 $(TOP)/bndrylib
-  vpath %.H     . $(TOP)/pBoxLib_2 $(TOP)/bndrylib
+  vpath %.cpp	. $(TOP)/BoxLib $(TOP)/bndrylib
+  vpath %.H     . $(TOP)/BoxLib $(TOP)/bndrylib
   vpath %.F	.                  $(TOP)/bndrylib
   all: $(executable)
 endif
@@ -125,7 +125,7 @@ o/3d.OSF1.KCC/hg_multi3d_terrain.o: hg_multi3d_terrain.F
 	$(COMPILE.f) $(FEXEFLAGS) -O f/3d.OSF1.KCC/hg_multi3d_terrain.f $(FORT_OUTPUT_OPTION)
 
 libs:
-	cd $(TOP)/pBoxLib_2; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
+	cd $(TOP)/BoxLib; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
 
 clean::
 	$(RM) gu*_*

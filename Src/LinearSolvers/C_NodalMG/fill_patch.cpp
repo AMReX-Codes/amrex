@@ -33,26 +33,25 @@ inner_product (const MultiFab& r,
 
     if (type(r) == IntVect::TheCellVector())
     {
-	for (ConstMultiFabIterator rcmfi(r); rcmfi.isValid(); ++rcmfi)
+	for (MFIter rcmfi(r); rcmfi.isValid(); ++rcmfi)
 	{
-	    ConstDependentMultiFabIterator scmfi(rcmfi, s);
-	    const Box& rbox = rcmfi->box();
-	    const Box& sbox = scmfi->box();
+	    const Box& rbox = r[rcmfi].box();
+	    const Box& sbox = s[rcmfi].box();
 	    const Box& reg  = rcmfi.validbox();
-	    FORT_FIPRODC(rcmfi->dataPtr(), DIMLIST(rbox),
-			 scmfi->dataPtr(), DIMLIST(sbox), DIMLIST(reg), &sum);
+	    FORT_FIPRODC(r[rcmfi].dataPtr(), DIMLIST(rbox),
+			 s[rcmfi].dataPtr(), DIMLIST(sbox),
+                         DIMLIST(reg), &sum);
 	}
     }
     else if (type(r) == IntVect::TheNodeVector())
     {
-	for (ConstMultiFabIterator rcmfi(r); rcmfi.isValid(); ++rcmfi)
+	for (MFIter rcmfi(r); rcmfi.isValid(); ++rcmfi)
 	{
-	    ConstDependentMultiFabIterator scmfi(rcmfi, s);
-	    const Box& rbox = rcmfi->box();
-	    const Box& sbox = scmfi->box();
+	    const Box& rbox = r[rcmfi].box();
+	    const Box& sbox = s[rcmfi].box();
 	    const Box& reg  = rcmfi.validbox();
-	    FORT_FIPRODN(rcmfi->dataPtr(), DIMLIST(rbox),
-			 scmfi->dataPtr(), DIMLIST(sbox), DIMLIST(reg), &sum);
+	    FORT_FIPRODN(r[rcmfi].dataPtr(), DIMLIST(rbox),
+			 s[rcmfi].dataPtr(), DIMLIST(sbox), DIMLIST(reg), &sum);
 	}
     }
     else
@@ -93,11 +92,11 @@ task_fill_patch::fill_patch_blindly ()
 {
     const BoxArray& r_ba = r.boxArray();
 
-    for (int igrid = 0; igrid < r.length(); igrid++)
+    for (int igrid = 0; igrid < r.size(); igrid++)
     {
 	if (is_local(r, igrid))
 	{
-	    BL_ASSERT(::grow(r[igrid].box(), -r.nGrow()) == r_ba[igrid]);
+	    BL_ASSERT(BoxLib::grow(r[igrid].box(), -r.nGrow()) == r_ba[igrid]);
 	}
 	if (r_ba[igrid].contains(region))
 	{
@@ -110,11 +109,11 @@ task_fill_patch::fill_patch_blindly ()
 	    return true;
 	}
     }
-    for (int igrid = 0; igrid < r.length(); igrid++)
+    for (int igrid = 0; igrid < r.size(); igrid++)
     {
 	if (is_local(r, igrid))
 	{
-	    BL_ASSERT(::grow(r[igrid].box(), -r.nGrow()) == r_ba[igrid]);
+	    BL_ASSERT(BoxLib::grow(r[igrid].box(), -r.nGrow()) == r_ba[igrid]);
 	}
 	if (r_ba[igrid].intersects(region))
 	{
@@ -135,7 +134,7 @@ task_fill_patch::fill_exterior_patch_blindly ()
 {
     const BoxArray& em = lev_interface.exterior_mesh();
 
-    for (int igrid = 0; igrid < em.length(); igrid++)
+    for (int igrid = 0; igrid < em.size(); igrid++)
     {
 	const int jgrid = lev_interface.direct_exterior_ref(igrid);
 
@@ -190,7 +189,7 @@ task_fill_patch::fill_patch ()
     Box tdomain = lev_interface.domain();
     tdomain.convert(region.type());
     BL_ASSERT(target == 0 || type(*target) == region.type());
-    Box idomain = ::grow(tdomain, IntVect::TheZeroVector() - type(r));
+    Box idomain = BoxLib::grow(tdomain, IntVect::TheZeroVector() - type(r));
 
     if (idim == -1)
     {
@@ -893,7 +892,7 @@ task_restric_fill::hint () const
 	HG_DEBUG_OUT( "?" );
     }
     HG_DEBUG_OUT( ' ' << m_box  << ' ' << m_dgrid << ' '; );
-    HG_DEBUG_OUT( ")" << endl );
+    HG_DEBUG_OUT( ")" << std::endl );
 }
 
 void
@@ -921,11 +920,11 @@ restrict_level (MultiFab&                   dest,
     const BoxArray& dest_ba = dest.boxArray();
 
     task_list tl;
-    for (int jgrid = 0; jgrid < dest.length(); jgrid++)
+    for (int jgrid = 0; jgrid < dest.size(); jgrid++)
     {
 	const Box& region = dest_ba[jgrid];
 
-	for (int igrid = 0; igrid < r.length(); igrid++)
+	for (int igrid = 0; igrid < r.size(); igrid++)
 	{
 	    Box cbox = restric.box(r_ba[igrid], rat);
 

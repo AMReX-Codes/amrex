@@ -1,3 +1,4 @@
+#include <algorithm>
 
 #include "interface.H"
 #include "boundary.H"
@@ -6,10 +7,10 @@ const level_interface default_level_interface;
 
 inline
 void
-ins (List<Box>& bl, const Box& b)
+ins (std::list<Box>& bl, const Box& b)
 {
-    if (!bl.includes(b))
-	bl.append(b);
+    if (std::find(bl.begin(),bl.end(),b) == bl.end())
+	bl.push_back(b);
 }
 
 level_interface::~level_interface()
@@ -99,7 +100,7 @@ level_interface::alloc_coarsened (const BoxArray&           Im,
 
     status = 1;
 
-    dom = coarsen(src.dom, rat);
+    dom = BoxLib::coarsen(src.dom, rat);
     im  = Im;
 
     grid_ref = src.grid_ref;
@@ -122,7 +123,7 @@ level_interface::alloc_coarsened (const BoxArray&           Im,
 	bx[i] = new Box[nbx[i]];
 	for (int igrid = 0; igrid < nbx[i]; igrid++)
 	{
-	    bx[i][igrid] = coarsen(src.bx[i][igrid], rat);
+	    bx[i][igrid] = BoxLib::coarsen(src.bx[i][igrid], rat);
 	}
     }
 
@@ -132,13 +133,13 @@ level_interface::alloc_coarsened (const BoxArray&           Im,
 	nodebx[i] = new Box[nbx[i]];
 	for (int igrid = 0; igrid < nbx[i]; igrid++)
 	{
-	    nodebx[i][igrid] = coarsen(src.nodebx[i][igrid], rat);
+	    nodebx[i][igrid] = BoxLib::coarsen(src.nodebx[i][igrid], rat);
 	}
     }
 
-    pf = new Box[im.length()];
+    pf = new Box[im.size()];
 
-    for (int igrid = 0; igrid < im.length(); igrid++)
+    for (int igrid = 0; igrid < im.size(); igrid++)
     {
 	pf[igrid] = im[igrid];
 	pf[igrid].convert(IntVect::TheNodeVector()).grow(-1);
@@ -182,15 +183,15 @@ level_interface::alloc (const BoxArray&           Im,
     //
     // Add edges in 2D or faces in 3D:
     //
-    List<Box> bl;
-    for (int igrid = 0; igrid < im.length(); igrid++)
+    std::list<Box> bl;
+    for (int igrid = 0; igrid < im.size(); igrid++)
     {
 	for (int i = 0; i < BL_SPACEDIM; i++)
 	{
 	    IntVect t = IntVect::TheCellVector();
 	    t[i] = IndexType::NODE;
-	    add(bl, bdryLo(im[igrid], i).convert(t), 0);
-	    add(bl, bdryHi(im[igrid], i).convert(t), 0);
+	    add(bl, BoxLib::bdryLo(im[igrid], i).convert(t), 0);
+	    add(bl, BoxLib::bdryHi(im[igrid], i).convert(t), 0);
 	}
     }
 
@@ -211,8 +212,8 @@ level_interface::alloc (const BoxArray&           Im,
 		continue;
 	    else
 		t[i] = IndexType::NODE;
-	    add(bl, bdryLo(bx[2][iface], i).convert(t), 0);
-	    add(bl, bdryHi(bx[2][iface], i).convert(t), 0);
+	    add(bl, BoxLib::bdryLo(bx[2][iface], i).convert(t), 0);
+	    add(bl, BoxLib::bdryHi(bx[2][iface], i).convert(t), 0);
 	}
     }
 
@@ -230,8 +231,8 @@ level_interface::alloc (const BoxArray&           Im,
 	{
 	    if (t[i] == IndexType::NODE)
 		continue;
-	    ins(bl, bdryLo(bx[1][iedge], i));
-	    ins(bl, bdryHi(bx[1][iedge], i));
+	    ins(bl, BoxLib::bdryLo(bx[1][iedge], i));
+	    ins(bl, BoxLib::bdryHi(bx[1][iedge], i));
 	}
     }
 
@@ -278,7 +279,7 @@ level_interface::alloc (const BoxArray&           Im,
 	    {
 		if (dom.contains(b))
 		{
-		    for (int igrid = 0; igrid < im.length(); igrid++)
+		    for (int igrid = 0; igrid < im.size(); igrid++)
 		    {
 			if (im[igrid].contains(b))
 			{
@@ -289,7 +290,7 @@ level_interface::alloc (const BoxArray&           Im,
 		}
 		else
 		{
-		    for (int igrid = 0; igrid < em.length(); igrid++)
+		    for (int igrid = 0; igrid < em.size(); igrid++)
 		    {
 			if (em[igrid].contains(b))
 			{
@@ -334,7 +335,7 @@ level_interface::alloc (const BoxArray&           Im,
 	    {
 		if (dom.contains(b))
 		{
-		    for (int igrid = 0; igrid < im.length(); igrid++)
+		    for (int igrid = 0; igrid < im.size(); igrid++)
 		    {
 			if (im[igrid].contains(b))
 			{
@@ -345,7 +346,7 @@ level_interface::alloc (const BoxArray&           Im,
 		}
 		else
 		{
-		    for (int igrid = 0; igrid < em.length(); igrid++)
+		    for (int igrid = 0; igrid < em.size(); igrid++)
 		    {
 			if (em[igrid].contains(b))
 			{
@@ -391,7 +392,7 @@ level_interface::alloc (const BoxArray&           Im,
 	    {
 		if (dom.contains(b))
 		{
-		    for (int igrid = 0; igrid < im.length(); igrid++)
+		    for (int igrid = 0; igrid < im.size(); igrid++)
 		    {
 			if (im[igrid].contains(b))
 			{
@@ -402,7 +403,7 @@ level_interface::alloc (const BoxArray&           Im,
 		}
 		else
 		{
-		    for (int igrid = 0; igrid < em.length(); igrid++)
+		    for (int igrid = 0; igrid < em.size(); igrid++)
 		    {
 			if (em[igrid].contains(b))
 			{
@@ -438,9 +439,9 @@ level_interface::alloc (const BoxArray&           Im,
 	}
     }
 
-    pf = new Box[im.length()];
+    pf = new Box[im.size()];
 
-    for (int igrid = 0; igrid < im.length(); igrid++)
+    for (int igrid = 0; igrid < im.size(); igrid++)
     {
 	//pf[igrid] = im.boxn(igrid);
 	//pf[igrid].grow(-1);
@@ -555,18 +556,18 @@ level_interface::alloc (const BoxArray&           Im,
 }
 
 void
-level_interface::add (List<Box>& bl,
-                      Box        b,
-                      int        startgrid)
+level_interface::add (std::list<Box>& bl,
+                      Box             b,
+                      int             startgrid)
 {
     const IntVect t = b.type();
-    for (int igrid = startgrid; igrid < im.length() + em.length(); igrid++)
+    for (int igrid = startgrid; igrid < im.size() + em.size(); igrid++)
     {
 	Box ibox;
-	if (igrid < im.length())
+	if (igrid < im.size())
 	    ibox = im[igrid];
 	else
-	    ibox = em[igrid-im.length()];
+	    ibox = em[igrid-im.size()];
 	ibox.convert(t);
 	if (ibox.intersects(b) && !ibox.contains(b))
 	{
@@ -597,20 +598,21 @@ level_interface::add (List<Box>& bl,
 }
 
 void
-level_interface::xfer (const List<Box>& bl,
-                       int              idim)
+level_interface::xfer (const std::list<Box>& bl,
+                       int                   idim)
 {
-    nbx[idim] = bl.length();
+    nbx[idim] = bl.size();
     bx[idim]  = new Box[nbx[idim]];
     ge[idim]  = new unsigned int[nbx[idim]];
     flg[idim] = new bool[nbx[idim]];
 
-    ListIterator<Box> bn(bl);
-    for (int i = 0; bn; bn++, i++)
+    std::list<Box>::const_iterator bn = bl.begin();
+
+    for (int i = 0; bn != bl.end(); ++bn, ++i)
     {
-	bx[idim][i] = bn();
+	bx[idim][i] = *bn;
 	const Box btmp =
-	    grow(bn(), bn().type()).convert(IntVect::TheCellVector());
+	    BoxLib::grow(*bn,bn->type()).convert(IntVect::TheCellVector());
 	IntVect tmp = btmp.smallEnd();
 	if (dom.contains(btmp))
 	{

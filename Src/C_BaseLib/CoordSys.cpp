@@ -1,15 +1,9 @@
-
 //
-// $Id: CoordSys.cpp,v 1.14 2000-11-01 18:29:37 lijewski Exp $
+// $Id: CoordSys.cpp,v 1.15 2001-08-01 21:50:50 lijewski Exp $
 //
-
-#ifdef BL_USE_NEW_HFILES
 #include <cmath>
-#else
-#include <math.h>
-#endif
+#include <iostream>
 
-#include <Misc.H>
 #include <CoordSys.H>
 #include <COORDSYS_F.H>
 #include <FArrayBox.H>
@@ -35,6 +29,293 @@ Real* fabdat = (fab).dataPtr();
 CoordSys::CoordType CoordSys::c_sys = CoordSys::undef;
 
 Real CoordSys::offset[BL_SPACEDIM];
+
+CoordSys::~CoordSys () {}
+
+CoordSys::CoordType
+CoordSys::Coord ()
+{
+    return c_sys;
+}
+
+const Real*
+CoordSys::Offset ()
+{
+    return offset;
+}
+
+Real
+CoordSys::Offset (int dir)
+{
+    return offset[dir];
+}
+
+const Real*
+CoordSys::CellSize () const
+{
+    BL_ASSERT(ok);
+    return dx;
+}
+
+Real
+CoordSys::CellSize (int dir) const
+{
+    BL_ASSERT(ok);
+    return dx[dir];
+}
+
+void
+CoordSys::SetCoord (CoordType coord)
+{
+    c_sys = coord;
+}
+
+void
+CoordSys::SetOffset (const Real* x_lo)
+{
+    for (int k = 0; k < BL_SPACEDIM; k++)
+    {
+        offset[k] = x_lo[k];
+    }
+}
+
+bool
+CoordSys::IsSPHERICAL ()
+{
+    BL_ASSERT(c_sys != undef);
+#if (BL_SPACEDIM <= 2)
+    return (c_sys == SPHERICAL);
+#endif    
+#if (BL_SPACEDIM == 3)
+    return false;
+#endif    
+}
+
+bool
+CoordSys::IsRZ ()
+{
+    BL_ASSERT(c_sys != undef);
+#if (BL_SPACEDIM == 2)
+    return (c_sys == RZ);
+#endif    
+#if (BL_SPACEDIM == 3)
+    return false;
+#endif    
+}
+
+bool
+CoordSys::IsCartesian ()
+{
+    BL_ASSERT(c_sys != undef);
+    return (c_sys == cartesian);
+}
+
+CoordSys::CoordSys ()
+{
+    ok = false;
+}
+
+void
+CoordSys::define (const Real* cell_dx)
+{
+    BL_ASSERT(c_sys != undef);
+    ok = true;
+    for (int k = 0; k < BL_SPACEDIM; k++)
+    {
+        dx[k] = cell_dx[k];
+    }
+}
+
+CoordSys::CoordSys (const Real* cell_dx)
+{
+    define(cell_dx);
+}
+
+void
+CoordSys::CellCenter (const IntVect& point,
+                      Real*          loc) const
+{
+    BL_ASSERT(ok);
+    BL_ASSERT(loc != 0);
+    for (int k = 0; k < BL_SPACEDIM; k++)
+    {
+        loc[k] = offset[k] + dx[k]*(0.5+ (Real)point[k]);
+    }
+}
+
+void
+CoordSys::CellCenter (const IntVect& point,
+                      Array<Real>&   loc) const
+{
+    BL_ASSERT(ok);
+    loc.resize(BL_SPACEDIM);
+    CellCenter(point, loc.dataPtr());
+}
+
+Real
+CoordSys::CellCenter (int point,
+                      int dir) const
+{
+    BL_ASSERT(ok);
+    return offset[dir] + dx[dir]*(0.5+ (Real)point);
+}
+
+Real
+CoordSys::LoEdge (int point,
+                  int dir) const
+{
+    BL_ASSERT(ok);
+    return offset[dir] + dx[dir]*point;
+}
+
+Real
+CoordSys::LoEdge (const IntVect& point,
+                  int            dir) const
+{
+    BL_ASSERT(ok);
+    return offset[dir] + dx[dir]*point[dir];
+}
+
+Real
+CoordSys::HiEdge (int point,
+                  int dir) const
+{
+    BL_ASSERT(ok);
+    return offset[dir] + dx[dir]*(point + 1);
+}
+
+Real
+CoordSys::HiEdge (const IntVect& point,
+                  int            dir) const
+{
+    BL_ASSERT(ok);
+    return offset[dir] + dx[dir]*(point[dir] + 1);
+}
+
+void
+CoordSys::LoFace (const IntVect& point,
+                  int            dir,
+                  Real*          loc) const
+{
+    BL_ASSERT(ok);
+    BL_ASSERT(loc != 0);
+    for (int k = 0; k < BL_SPACEDIM; k++)
+    {
+        Real off = (k == dir) ? 0.0 : 0.5;
+        loc[k] = offset[k] + dx[k]*(off + (Real)point[k]);
+    }
+}
+
+void
+CoordSys::LoFace (const IntVect& point,
+                  int            dir,
+                  Array<Real>&   loc) const
+{
+    loc.resize(BL_SPACEDIM);
+    LoFace(point,dir, loc.dataPtr());
+}
+
+void
+CoordSys::HiFace (const IntVect& point,
+                  int            dir,
+                  Real*          loc) const
+{
+    BL_ASSERT(ok);
+    BL_ASSERT(loc != 0);
+    for (int k = 0; k < BL_SPACEDIM; k++)
+    {
+        Real off = (k == dir) ? 1.0 : 0.5;
+        loc[k] = offset[k] + dx[k]*(off + (Real)point[k]);
+    }
+}
+
+void
+CoordSys::HiFace (const IntVect& point,
+                  int            dir,
+                  Array<Real>&   loc) const
+{
+    loc.resize(BL_SPACEDIM);
+    HiFace(point,dir, loc.dataPtr());
+}
+
+void
+CoordSys::LoNode (const IntVect& point,
+                  Real*          loc) const
+{
+    BL_ASSERT(ok);
+    BL_ASSERT(loc != 0);
+    for (int k = 0; k < BL_SPACEDIM; k++)
+    {
+        loc[k] = offset[k] + dx[k]*point[k];
+    }
+}
+
+void
+CoordSys::LoNode (const IntVect& point,
+                  Array<Real>&   loc) const
+{
+    loc.resize(BL_SPACEDIM);
+    LoNode(point, loc.dataPtr());
+}
+
+void
+CoordSys::HiNode (const IntVect& point,
+                  Real*          loc) const
+{
+    BL_ASSERT(ok);
+    BL_ASSERT(loc != 0);
+    for (int k = 0; k < BL_SPACEDIM; k++)
+    {
+        loc[k] = offset[k] + dx[k]*(point[k] + 1);
+    }
+}
+
+void
+CoordSys::HiNode (const IntVect& point,
+                  Array<Real>&   loc) const
+{
+    loc.resize(BL_SPACEDIM);
+    HiNode(point, loc.dataPtr());
+}
+
+IntVect
+CoordSys::CellIndex (const Real* point) const
+{
+    BL_ASSERT(ok);
+    BL_ASSERT(point != 0);
+    IntVect ix;
+    for (int k = 0; k < BL_SPACEDIM; k++)
+    {
+        ix[k] = (int) ((point[k]-offset[k])/dx[k]);
+    }
+    return ix;
+}
+
+IntVect
+CoordSys::LowerIndex (const Real* point) const
+{
+    BL_ASSERT(ok);
+    BL_ASSERT(point != 0);
+    IntVect ix;
+    for (int k = 0; k < BL_SPACEDIM; k++)
+    {
+        ix[k] = (int) ((point[k]-offset[k])/dx[k]);
+    }
+    return ix;
+}
+
+IntVect
+CoordSys::UpperIndex(const Real* point) const
+{
+    BL_ASSERT(ok);
+    BL_ASSERT(point != 0);
+    IntVect ix;
+    for (int k = 0; k < BL_SPACEDIM; k++)
+    {
+        ix[k] = (int) ((point[k]-offset[k])/dx[k]);
+    }
+    return ix;
+}
 
 FArrayBox*
 CoordSys::GetVolume (const Box& region) const 
@@ -156,7 +437,7 @@ CoordSys::GetEdgeVolCoord (Array<Real>& vc,
 #if (BL_SPACEDIM == 2)
     if (dir == 0 && c_sys == RZ)
     {
-        int len = vc.length();
+        int len = vc.size();
         for (int i = 0; i < len; i++)
         {
             Real r = vc[i];
@@ -166,7 +447,7 @@ CoordSys::GetEdgeVolCoord (Array<Real>& vc,
     else
     {
         if(dir == 0 && c_sys == SPHERICAL) {
-            int len = vc.length();
+            int len = vc.size();
             int i;
             for (i = 0; i < len; i++) {
                 Real r = vc[i];
@@ -193,7 +474,7 @@ CoordSys::GetCellVolCoord (Array<Real>& vc,
 #if (BL_SPACEDIM == 2)
     if (dir == 0 && c_sys == RZ)
     {
-        int len = vc.length();
+        int len = vc.size();
         for (int i = 0; i < len; i++)
         {
             Real r = vc[i];
@@ -203,7 +484,7 @@ CoordSys::GetCellVolCoord (Array<Real>& vc,
     else
     {
         if(dir == 0 && c_sys == SPHERICAL) {
-            int len = vc.length();
+            int len = vc.size();
             int i;
             for (i = 0; i < len; i++) {
                 Real r = vc[i];
@@ -214,17 +495,17 @@ CoordSys::GetCellVolCoord (Array<Real>& vc,
 #endif    
 }
 
-ostream&
-operator<< (ostream&        os,
+std::ostream&
+operator<< (std::ostream&   os,
             const CoordSys& c)
 {
-    os << '(' << (int) c.c_sys << ' ';
-    os << D_TERM( '(' << c.offset[0] , <<
-                  ',' << c.offset[1] , <<
-                  ',' << c.offset[2])  << ')';
-    os << D_TERM( '(' << c.dx[0] , <<
-                  ',' << c.dx[1] , <<
-                  ',' << c.dx[2])  << ')';
+    os << '(' << (int) c.Coord() << ' ';
+    os << D_TERM( '(' << c.Offset(0) , <<
+                  ',' << c.Offset(1) , <<
+                  ',' << c.Offset(2))  << ')';
+    os << D_TERM( '(' << c.CellSize(0) , <<
+                  ',' << c.CellSize(1) , <<
+                  ',' << c.CellSize(2))  << ')';
     os << ' ' << int(c.ok) << ")\n";
     return os;
 }
@@ -234,9 +515,9 @@ operator<< (ostream&        os,
 //
 #define BL_IGNORE_MAX 100000
 
-istream&
-operator>> (istream&  is,
-            CoordSys& c)
+std::istream&
+operator>> (std::istream& is,
+            CoordSys&     c)
 {
     int coord;
     is.ignore(BL_IGNORE_MAX, '(') >> coord;

@@ -1,13 +1,9 @@
 
 //
-// $Id: InterpBndryData.cpp,v 1.12 2001-01-19 22:57:49 marc Exp $
+// $Id: InterpBndryData.cpp,v 1.13 2001-08-01 21:51:03 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <cmath>
-#else
-#include <math.h>
-#endif
 
 #include <LO_BCTYPES.H>
 #include <InterpBndryData.H>
@@ -80,14 +76,14 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
     //
     // Check that boxarrays are identical.
     //
-    BL_ASSERT(grids.ready());
+    BL_ASSERT(grids.size());
     BL_ASSERT(grids == mf.boxArray());
 
     IntVect ref_ratio = IntVect::TheUnitVector();
-    for (int n=bnd_start; n<bnd_start+num_comp; ++n)
+    for (int n = bnd_start; n < bnd_start+num_comp; ++n)
 	setBndryConds(bc, ref_ratio, n);
 
-    for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
         BL_ASSERT(grids[mfi.index()] == mfi.validbox());
 
@@ -132,7 +128,7 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
     //
     // Check that boxarrays are identical.
     //
-    BL_ASSERT(grids.ready());
+    BL_ASSERT(grids.size());
     BL_ASSERT(grids == fine.boxArray());
     //
     // Set bndry types and bclocs.
@@ -148,12 +144,12 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
     Real* derives = 0;
     int tmplen    = 0;
 
-    for (ConstMultiFabIterator fine_mfi(fine); fine_mfi.isValid(); ++fine_mfi)
+    for (MFIter fine_mfi(fine); fine_mfi.isValid(); ++fine_mfi)
     {
         BL_ASSERT(grids[fine_mfi.index()] == fine_mfi.validbox());
 
         const Box& fine_bx = fine_mfi.validbox();
-        Box crse_bx        = coarsen(fine_bx,ratio);
+        Box crse_bx        = BoxLib::coarsen(fine_bx,ratio);
         const int* cblo    = crse_bx.loVect();
         const int* cbhi    = crse_bx.hiVect();
         int mxlen          = crse_bx.longside() + 2;
@@ -169,7 +165,7 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
         }
         const int* lo             = fine_bx.loVect();
         const int* hi             = fine_bx.hiVect();
-        const FArrayBox &fine_grd = fine_mfi();
+        const FArrayBox &fine_grd = fine[fine_mfi];
         const int *finelo         = fine_grd.loVect();
         const int *finehi         = fine_grd.hiVect();
         const Real *finedat       = fine_grd.dataPtr(f_start);
@@ -197,7 +193,7 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
                 Real* bdat                = bnd_fab.dataPtr(bnd_start);
                 int is_not_covered        = BndryData::not_covered;
 
-                Box crsebnd = adjCell(crse_bx,face,1);
+                Box crsebnd = BoxLib::adjCell(crse_bx,face,1);
                 for (int k=0;k<BL_SPACEDIM;k++)
                     if (k!=dir)
                         crsebnd.grow(k,2);

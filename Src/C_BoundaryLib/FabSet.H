@@ -1,14 +1,9 @@
-
 #ifndef _FABSET_H_
 #define _FABSET_H_
-
 //
-// $Id: FabSet.H,v 1.18 2000-10-02 20:49:03 lijewski Exp $
+// $Id: FabSet.H,v 1.19 2001-08-01 21:50:50 lijewski Exp $
 //
-
-#include <FArrayBox.H>
 #include <MultiFab.H>
-#include <ParallelDescriptor.H>
 
 //@Man:
 /*@Memo:
@@ -194,15 +189,14 @@ public:
                      int             num_comp,
                      int             n_ghost=0);
 
-    friend class FabSetIterator;
-    friend class DependentFabSetIterator;
-    friend class ConstFabSetIterator;
-    friend class ConstDependentFabSetIterator;
+    friend class FabSetIter;
     friend class FabSetCopyDescriptor;
     //
     //@ManDoc: Promote operator[] back to public.
     //
     MultiFab::operator[];
+
+    MultiFab::get;
     //
     //@ManDoc: Promote clear() back to public.
     //
@@ -212,9 +206,9 @@ public:
     //
     MultiFab::DistributionMap;
     //
-    //@ManDoc: True if there is at least one FAB in the underlying MultiFab.
+    //@ManDoc: Promote size() back to public.
     //
-    bool ready () const { return fabparray.ready(); }
+    MultiFab::size;
     //
     //@ManDoc: True if there is a FAB at specified index.
     //
@@ -248,138 +242,19 @@ protected:
   only those FABs in the FabSet that are actually owned by that CPU.
 */
 
-class FabSetIterator
+class FabSetIter
     :
-    public MultiFabIterator
+    public MFIter
 {
 public:
     //
-    //@ManDoc: Construct a FabSetIterator.
+    //@ManDoc: The constructor.
     //
-    FabSetIterator (FabSet& fabset)
-        :
-        MultiFabIterator(fabset) {}
+    FabSetIter (const FabSet& fabset);
     //
     //@ManDoc: The destructor.
     //
-    ~FabSetIterator () {}
-};
-
-//
-//@Man:
-//@Memo: An iterator over a dependent FabSet.
-/*@Doc:
-
-  This class is used to iterator over a FabSet (the dependent FabSet) that
-  is defined over a BoxArray that is the same as (or sufficiently similar to)
-  one for which we already have a FabSetIterator.  This allows us to iterate
-  over a FabSet and access the associated FAB(s) in one or more dependent
-  FabSets.
-*/
-
-class DependentFabSetIterator
-    :
-    public DependentMultiFabIterator
-{
-public:
-    //
-    //@ManDoc: Constructor over a mutable dependent FabSet.
-    //
-    DependentFabSetIterator (FabSetIterator& controllerfsiter,
-                             FabSet&         fabset)
-        :
-        DependentMultiFabIterator(controllerfsiter, fabset) {}
-    //
-    //@ManDoc: Constructor over an immutable dependent FabSet.
-    //
-    DependentFabSetIterator (FabSetIterator& controllerfsiter,
-                             const FabSet&   fabset)
-        :
-        DependentMultiFabIterator(controllerfsiter, fabset) {}
-    //
-    //@ManDoc: Constructor over a mutable dependent FabSet initialized with a MultiFabIterator.
-    //
-    DependentFabSetIterator (MultiFabIterator& controllerfsiter,
-                             FabSet&           fabset)
-        :
-        DependentMultiFabIterator(controllerfsiter, fabset) {}
-    //
-    //@ManDoc: Constructor over an immutable dependent FabSet initialized with a MultiFabIterator.
-    //
-    DependentFabSetIterator (MultiFabIterator& controllerfsiter,
-                             const FabSet&     fabset)
-        :
-        DependentMultiFabIterator(controllerfsiter, fabset) {}
-    //
-    //@ManDoc: The destructor.
-    //
-    ~DependentFabSetIterator () {}
-};
-
-//
-//@Man:
-//@Memo: A constant iterator over the FABs in a FabSet.
-/*@Doc:
-
-  This class encapsulates an iterator over the FABs in a FabSet such that
-  each CPU in a Single Program Multiple Data (SPMD) parallel program accesses
-  only those FABs in the FabSet that are actually owned by that CPU.  It is
-  a constant iterator; you can access the FABs but you cannot change them.
-*/
-
-class ConstFabSetIterator
-    :
-    public ConstMultiFabIterator
-{
-public:
-    //
-    //@ManDoc: Construct a ConstFabSetIterator.
-    //
-    ConstFabSetIterator (const FabSet &fabset)
-        :
-        ConstMultiFabIterator(fabset) {}
-
-    //
-    //@ManDoc: The destructor.
-    //
-    ~ConstFabSetIterator () {}
-};
-
-//
-//@Man:
-//@Memo: A constant iterator over a dependent FabSet.
-/*@Doc:
-
-  This class is used to iterator over a FabSet (the dependent FabSet) that
-  is defined over a BoxArray that is the same as (or sufficiently similar to)
-  one for which we already have a ConstFabSetIterator.  This allows us to
-  iterate over a constant FabSet and access the associated FAB(s) in one or
-  more dependent FabSets.
-*/
-
-class ConstDependentFabSetIterator
-    :
-    public ConstDependentMultiFabIterator
-{
-public:
-    //
-    //@ManDoc: Constructor taking a ConstFabSetIterator.
-    //
-    ConstDependentFabSetIterator (ConstFabSetIterator& controllerfsiter,
-                                  const FabSet&        fabset)
-        :
-        ConstDependentMultiFabIterator(controllerfsiter, fabset) {}
-    //
-    //@ManDoc: Constructor taking a ConstMultiFabIterator.
-    //
-    ConstDependentFabSetIterator (ConstMultiFabIterator& controllerfsiter,
-                                  const FabSet&          fabset)
-        :
-        ConstDependentMultiFabIterator(controllerfsiter, fabset) {}
-    //
-    //@ManDoc: The destructor.
-    //
-    ~ConstDependentFabSetIterator () {}
+    ~FabSetIter ();
 };
 
 typedef FabArrayId FabSetId;
@@ -389,16 +264,13 @@ class FabSetCopyDescriptor
     public MultiFabCopyDescriptor
 {
 public:
-    FabSetCopyDescriptor ()
-        :
-        MultiFabCopyDescriptor() {}
 
-    ~FabSetCopyDescriptor () {}
+    FabSetCopyDescriptor ();
 
-    FabSetId RegisterFabSet (FabSet* fabset)
-    {
-        return RegisterMultiFab(fabset);
-    }
+    ~FabSetCopyDescriptor ();
+
+    FabSetId RegisterFabSet (FabSet* fabset);
+
 private:
     //
     // These are disallowed.
@@ -406,125 +278,5 @@ private:
     FabSetCopyDescriptor (const FabSetCopyDescriptor& rhs);
     FabSetCopyDescriptor& operator= (const FabSetCopyDescriptor& rhs);
 };
-
-//
-// Inlines.
-//
-
-inline
-void
-FabSet::define (const BoxArray& grids, int ncomp)
-{
-    MultiFab* tmp = this;
-
-    tmp->define(grids, ncomp, 0, Fab_allocate);
-}
-
-inline
-const FabSet&
-FabSet::copyTo (FArrayBox& dest) const
-{
-    copy(dest);
-    return *this;
-}
-
-inline
-const FabSet&
-FabSet::copyTo (FArrayBox& dest,
-                int        src_comp,
-                int        dest_comp,
-                int        num_comp) const
-{
-    copy(dest,src_comp,dest_comp,num_comp);
-    return *this;
-}
-
-inline
-const FabSet&
-FabSet::copyTo (FArrayBox& dest,
-                const Box& subbox,
-                int        src_comp,
-                int        dest_comp,
-                int        num_comp) const
-{
-    copy(dest,subbox,src_comp,dest_comp,num_comp);
-    return *this;
-}
-
-inline
-void
-FabSet::copyTo (MultiFab& dest) const
-{
-    dest.copy(*this);
-}
-
-inline
-FabSet&
-FabSet::copyFrom (const FabSet& src)
-{
-    copy(src);
-    return *this;
-}
-
-inline
-FabSet&
-FabSet::copyFrom (const FabSet& src,
-                  int           src_comp,
-                  int           dest_comp,
-                  int           num_comp)
-{
-    copy(src,src_comp,dest_comp,num_comp);
-    return *this;
-}
-
-//
-// The following are different from MultiFab only in the return value
-//
-
-inline
-FabSet&
-FabSet::plus (Real v,
-              int  comp,
-              int  num_comp)
-{
-    MultiFab* tmp = this;
-    tmp->plus(v, comp, num_comp);
-    return *this;
-}
-
-inline
-FabSet&
-FabSet::plus (Real       v,
-              const Box& subreg,
-              int        comp,
-              int        num_comp)
-{
-    MultiFab* tmp = this;
-    tmp->plus(v, subreg, comp, num_comp);
-    return *this;
-}
-
-inline
-FabSet&
-FabSet::mult (Real v,
-              int  comp,
-              int  num_comp)
-{
-    MultiFab* tmp = this;
-    tmp->mult(v, comp, num_comp);
-    return *this;
-}
-
-inline
-FabSet&
-FabSet::mult (Real       v,
-              const Box& subreg,
-              int        comp,
-              int        num_comp)
-{
-    MultiFab* tmp = this;
-    tmp->mult(v, subreg, comp, num_comp);
-    return *this;
-}
 
 #endif /*_FABSET_H_*/

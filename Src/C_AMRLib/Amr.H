@@ -1,27 +1,17 @@
-
 #ifndef _Amr_H_
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.29 2000-10-02 20:48:40 lijewski Exp $
+// $Id: Amr.H,v 1.30 2001-08-01 21:50:44 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <fstream>
-using std::ofstream;
-#else
-#include <fstream.h>
-#endif
 
 #include <Box.H>
-#include <BoxList.H>
-#include <RealBox.H>
 #include <Geometry.H>
 #include <BoxArray.H>
 #include <Array.H>
 #include <PArray.H>
-#include <FArrayBox.H>
-#include <aString.H>
 #include <StationData.H>
 
 class AmrLevel;
@@ -59,7 +49,7 @@ public:
     //
     //@ManDoc: Set the dtmin on each level.
     //
-    void setDtMin(const Array<REAL>& dt_lev);
+    void setDtMin (const Array<Real>& dt_lev);
     //
     //@ManDoc: Set the cycle count on each level.
     //
@@ -141,57 +131,56 @@ public:
                plotfile.  They can be set using the amr.plot\_vars variable
                in a ParmParse inputs file. 
     */
-    static const List<aString>& statePlotVars ();
+    static const std::list<std::string>& statePlotVars ();
 
     /*@ManDoc: Is the string the name of a variable in state\_plot\_vars?
     */
-    static bool isStatePlotVar (const aString& name);
+    static bool isStatePlotVar (const std::string& name);
 
     /*@ManDoc: If the string is not the name of a variable in state\_plot\_vars,
                add it to state\_plot\_vars.  
     */
-    static void addStatePlotVar (const aString& name);
+    static void addStatePlotVar (const std::string& name);
 
     /*@ManDoc: Remove the string from state\_plot\_vars.
     */
-    static void deleteStatePlotVar (const aString& name);
+    static void deleteStatePlotVar (const std::string& name);
 
     /*@ManDoc: Clear the list of state\_plot\_vars.
     */
-    static void clearStatePlotVarList();
+    static void clearStatePlotVarList ();
 
     /*@ManDoc:  Fill the list of state\_plot\_vars with all of the state
                 quantities.
     */
-    static void fillStatePlotVarList();
+    static void fillStatePlotVarList ();
 
     /*@ManDoc: The names of derived variables to output in the
                plotfile.  They can be set using the amr.derive\_plot\_vars 
                variable in a ParmParse inputs file.
     */
-    static const List<aString>& derivePlotVars ();
+    static const std::list<std::string>& derivePlotVars ();
 
     /*@ManDoc: Is the string the name of a variable in derive\_plot\_vars?
     */
-    static bool isDerivePlotVar (const aString& name);
+    static bool isDerivePlotVar (const std::string& name);
 
     /*@ManDoc: If the string is not the name of a variable in 
                derive\_plot\_vars, add it to derive\_plot\_vars.  
     */
-    static void addDerivePlotVar (const aString& name);
+    static void addDerivePlotVar (const std::string& name);
 
     /*@ManDoc: Remove the string from derive\_plot\_vars.
     */
-    static void deleteDerivePlotVar (const aString& name);
+    static void deleteDerivePlotVar (const std::string& name);
 
     /*@ManDoc: Clear the list of derive\_plot\_vars.
     */
-    static void clearDerivePlotVarList();
+    static void clearDerivePlotVarList ();
 
     /*@ManDoc:  Fill the list of derive\_plot\_vars with all derived quantities.
     */
-    static void fillDerivePlotVarList();
-
+    static void fillDerivePlotVarList ();
     //
     //@ManDoc: Number of buffer cells in error estimator.
     //
@@ -243,18 +232,18 @@ public:
     //
     //@ManDoc: Retrieve derived data. User is responsible for deleting pointer.
     //
-    MultiFab* derive (const aString& name,
+    MultiFab* derive (const std::string& name,
                       Real           time,
                       int            lev,
                       int            ngrow);
     //
     //@ManDoc: Name of the restart file.
     //
-    const aString& theRestartFile () const;
+    const std::string& theRestartFile () const;
     //
     //@ManDoc: The ith datalog file.  Do with it what you want.
     //
-    ostream& DataLog(int i) { return datalog[i]; }
+    std::ostream& DataLog (int i);
 
 protected:
     //
@@ -265,7 +254,7 @@ protected:
     //
     // Write the plot file to be used for visualization.
     //
-    void writePlotFile (const aString& root, int num);
+    void writePlotFile (const std::string& root, int num);
     //
     // Initialize grid hierarchy.
     //
@@ -281,7 +270,7 @@ protected:
     //
     // Restart from a checkpoint file.
     //
-    void restart (const aString& filename);
+    void restart (const std::string& filename);
     //
     // Define and initialize coarsest level.
     //
@@ -311,19 +300,19 @@ protected:
                    int  iter,
                    int  ncycle);
 
-    void printGridInfo (ostream& os,
-                        int      min_lev,
-                        int      max_lev);
+    void printGridInfo (std::ostream& os,
+                        int           min_lev,
+                        int           max_lev);
 
-    void setRecordGridInfo (const aString&);
+    void setRecordGridInfo (const std::string&);
 
-    void setRecordRunInfo (const aString&);
+    void setRecordRunInfo (const std::string&);
 
-    void setRecordDataInfo (int i, const aString&);
+    void setRecordDataInfo (int i, const std::string&);
     //
     // The data ...
     //
-    aString          grids_file;   // Grids file that will bypass regridding.
+    std::string      grids_file;   // Grids file that will bypass regridding.
     int              max_level;    // Maximum allowed level.
     int              finest_level; // Current finest level.
     Array<IntVect>   ref_ratio;    // Refinement ratios [0:finest_level-1]
@@ -345,26 +334,28 @@ protected:
     int              last_checkpoint; // Step number of previous checkpoint.
     int              check_int;       // How often checkpoint (# time steps).
     Real             check_per;       // How often checkpoint (units of time).
-    aString          check_file_root; // Root name of checkpoint file.
+    std::string          check_file_root; // Root name of checkpoint file.
     int              last_plotfile;   // Step number of previous plotfile.
     int              plot_int;        // How often plotfile (# of time steps)
     Real             plot_per;        // How often plotfile (in units of time)
-    aString          plot_file_root;  // Root name of plotfile.
-    static List<aString> state_plot_vars;  // State Vars to dump to plotfile 
-    static List<aString> derive_plot_vars; // Derived Vars to dump to plotfile 
-    static bool first_plotfile;
-
+    std::string      plot_file_root;  // Root name of plotfile.
     StationData      station;
     int              verbose;
     int              record_grid_info;
     int              record_run_info;
-    ofstream         gridlog;
-    ofstream         runlog;
-    PArray<ofstream> datalog;
+    std::ofstream    gridlog;
+    std::ofstream    runlog;
+    PArray<std::ofstream> datalog;
     int              sub_cycle;
-    aString          restart_file;
-    aString          probin_file;
+    std::string      restart_file;
+    std::string      probin_file;
     LevelBld*        levelbld;
+    //
+    // The static data ...
+    //
+    static std::list<std::string> state_plot_vars;  // State Vars to dump to plotfile 
+    static std::list<std::string> derive_plot_vars; // Derived Vars to dump to plotfile 
+    static bool                   first_plotfile;
 
 private:
     //
@@ -373,170 +364,5 @@ private:
     Amr (const Amr& rhs);
     Amr& operator= (const Amr& rhs);
 };
-
-//
-// Inlines.
-//
-
-inline
-int
-Amr::checkInt () const
-{
-    return check_int;
-}
-
-inline
-Real
-Amr::checkPer () const
-{
-    return check_per;
-}
-
-inline
-int
-Amr::plotInt () const
-{
-    return plot_int;
-}
-
-inline
-Real
-Amr::plotPer () const
-{
-    return plot_per;
-}
-
-inline
-const List<aString>&
-Amr::statePlotVars ()
-{
-    return state_plot_vars;
-}
-
-inline
-const List<aString>&
-Amr::derivePlotVars ()
-{
-    return derive_plot_vars;
-}
-
-inline
-int
-Amr::maxGridSize () const
-{
-    return max_grid_size;
-}
-
-inline
-int
-Amr::maxLevel () const
-{
-    return max_level;
-}
-
-inline
-int
-Amr::finestLevel () const
-{
-    return finest_level;
-}
-
-inline
-IntVect
-Amr::refRatio (int level) const
-{
-    return ref_ratio[level];
-}
-
-inline
-int
-Amr::nCycle (int level) const
-{
-    return n_cycle[level];
-}
-
-inline
-const Array<IntVect>&
-Amr::refRatio () const
-{
-    return ref_ratio;
-}
-
-inline
-Real
-Amr::dtLevel (int level) const
-{
-    return dt_level[level];
-}
-
-inline
-const Array<Real>&
-Amr::dtLevel () const
-{
-    return dt_level;
-}
-
-inline
-const Geometry&
-Amr::Geom (int level) const
-{
-    return geom[level];
-}
-
-inline
-int
-Amr::levelSteps (int i) const
-{
-    return level_steps[i];
-}
-
-inline
-Real
-Amr::cumTime () const
-{
-    return cumtime;
-}
-
-inline
-int
-Amr::regridInt (int lev) const
-{
-    return regrid_int[lev];
-}
-
-inline
-int
-Amr::nErrorBuf (int lev) const
-{
-    return n_error_buf[lev];
-}
-
-inline
-Real
-Amr::gridEff () const
-{
-    return grid_eff;
-}
-
-inline
-int
-Amr::subCycle () const
-{
-    return sub_cycle;
-}
-
-inline
-int
-Amr::nProper () const
-{
-    return n_proper;
-}
-
-inline
-const aString&
-Amr::theRestartFile () const
-{
-    return restart_file;
-}
 
 #endif /*_Amr_H_*/

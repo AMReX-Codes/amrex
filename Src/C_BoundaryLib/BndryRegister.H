@@ -1,15 +1,14 @@
-
 #ifndef _BNDRYREGISTER_H_
 #define _BNDRYREGISTER_H_
 
 //
-// $Id: BndryRegister.H,v 1.9 2000-10-02 20:49:02 lijewski Exp $
+// $Id: BndryRegister.H,v 1.10 2001-08-01 21:50:47 lijewski Exp $
 //
 
 #include <BoxArray.H>
-#include <FArrayBox.H>
 #include <FabSet.H>
-#include <Orientation.H>
+
+class Orientation;
 
 //@Man:
 /*@Memo:
@@ -71,7 +70,7 @@ public:
     //
     //@ManDoc: Return the number of grids in this domain.
     //
-    int length () const;
+    int size () const;
     //
     //@ManDoc: Return const set of FABs bounding the domain grid boxes on a given orientation
     //
@@ -136,37 +135,5 @@ protected:
     FabSet    bndry[2*BL_SPACEDIM];
     BoxArray  grids;
 };
-
-//
-// Inlines
-//
-
-inline
-const BoxArray&
-BndryRegister::boxes () const
-{
-    return grids;
-}
-
-inline
-int
-BndryRegister::length () const
-{
-    return grids.length();
-}
-
-inline
-const FabSet&
-BndryRegister::operator[] (const Orientation& _face) const
-{
-    return bndry[_face];
-}
-
-inline
-FabSet&
-BndryRegister::operator[] (const Orientation& _face)
-{
-    return bndry[_face];
-}
 
 #endif /*_BNDRYREGISTER_H_*/

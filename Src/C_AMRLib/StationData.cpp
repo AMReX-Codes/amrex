@@ -1,20 +1,19 @@
-
 //
-// $Id: StationData.cpp,v 1.13 2001-07-23 20:06:07 vince Exp $
+// $Id: StationData.cpp,v 1.14 2001-08-01 21:50:46 lijewski Exp $
 //
-#ifdef BL_USE_NEW_HFILES
 #include <cstdio>
 #include <cstring>
-#else
-#include <stdio.h>
-#include <string.h>
-#endif
 
 #include <AmrLevel.H>
 #include <ParmParse.H>
 #include <StationData.H>
 
-StationData::StationData () {}
+StationRec::StationRec ()
+{
+    D_TERM(pos[0],=pos[1],=pos[2]) = -1;
+    id = level = grd = -1;
+    own = false;
+}
 
 StationData::~StationData ()
 {
@@ -48,23 +47,26 @@ StationData::init ()
             pp.get("vars", m_vars[i], i);
 
             m_IsDerived[i] = false;
-            if ( ! AmrLevel::isStateVariable(m_vars[i],m_typ[i],m_ncomp[i]))
-            {
-              if(AmrLevel::get_derive_lst().canDerive(m_vars[i])) {
-                m_IsDerived[i] = true;
-                m_ncomp[i] = 0;
-              } else {
-                cout << "StationData::init(): `"
-                     << m_vars[i]
-                     << "' is not a state or derived variable\n";
-                 BoxLib::Abort();
-              }
 
+            if (!AmrLevel::isStateVariable(m_vars[i],m_typ[i],m_ncomp[i]))
+            {
+                if (AmrLevel::get_derive_lst().canDerive(m_vars[i]))
+                {
+                    m_IsDerived[i] = true;
+                    m_ncomp[i] = 0;
+                }
+                else
+                {
+                    std::cout << "StationData::init(): `"
+                              << m_vars[i]
+                              << "' is not a state or derived variable\n";
+                    BoxLib::Abort();
+                }
             }
         }
     }
 
-    if (m_vars.length() > 0 && pp.contains("coord"))
+    if (m_vars.size() > 0 && pp.contains("coord"))
     {
         static int identifier;
 
@@ -88,18 +90,18 @@ StationData::init ()
         }
     }
 
-    if (m_vars.length() > 0)
+    if (m_vars.size() > 0)
     {
         //
         // Make "Stations/" directory.
         //
         // Only the I/O processor makes the directory if it doesn't exist.
         //
-        static const aString Dir("Stations");
+        static const std::string Dir("Stations");
 
         if (ParallelDescriptor::IOProcessor())
-            if (!Utility::UtilCreateDirectory(Dir, 0755))
-                Utility::CreateDirectoryFailed(Dir);
+            if (!BoxLib::UtilCreateDirectory(Dir, 0755))
+                BoxLib::CreateDirectoryFailed(Dir);
         //
         // Everyone must wait till directory is built.
         //
@@ -113,7 +115,7 @@ StationData::init ()
                 "Stations/stn_CPU_%04d",
                 ParallelDescriptor::MyProc());
 
-        m_ofile.open(buf, ios::out|ios::app);
+        m_ofile.open(buf, std::ios::out|std::ios::app);
 
         m_ofile.precision(30);
 
@@ -121,9 +123,9 @@ StationData::init ()
         //
         // Output the list of stations.
         //
-        ofstream os("Stations/Station.List", ios::out);
+        std::ofstream os("Stations/Station.List", std::ios::out);
 
-        for (int i = 0; i < m_stn.length(); i++)
+        for (int i = 0; i < m_stn.size(); i++)
         {
             os << m_stn[i].id;
 
@@ -142,26 +144,28 @@ StationData::report (Real            time,
                      int             level,
                      const AmrLevel& amrlevel)
 {
-    if (m_stn.length() <= 0)
+    if (m_stn.size() <= 0)
         return;
 
     static Array<Real> data;
 
-    const int N      = m_vars.length();
+    const int N      = m_vars.size();
     const int MyProc = ParallelDescriptor::MyProc();
 
     data.resize(N);
 
-    Array<MultiFab *> mfPtrs(N, NULL);
-    int nGhost(0);
-    for(int iVar(0); iVar < m_vars.length(); ++iVar) {
-      if(m_IsDerived[iVar]) {
-        mfPtrs[iVar] =
-	     const_cast<AmrLevel &>(amrlevel).derive(m_vars[iVar], time, nGhost);
-      }
+    Array<MultiFab*> mfPtrs(N, 0);
+    int nGhost = 0;
+    for (int iVar = 0; iVar < m_vars.size(); ++iVar)
+    {
+        if (m_IsDerived[iVar])
+        {
+            mfPtrs[iVar] =
+                const_cast<AmrLevel&>(amrlevel).derive(m_vars[iVar], time, nGhost);
+        }
     }
 
-    for (int i = 0; i < m_stn.length(); i++)
+    for (int i = 0; i < m_stn.size(); i++)
     {
         if (m_stn[i].own && m_stn[i].level == level)
         {
@@ -170,54 +174,55 @@ StationData::report (Real            time,
             //
             for (int j = 0; j < N; j++)
             {
-              if(m_IsDerived[j]) {
-                const MultiFab *mf = mfPtrs[j];
+                if(m_IsDerived[j])
+                {
+                    const MultiFab* mf = mfPtrs[j];
 
-                BL_ASSERT(mf != NULL);
-                BL_ASSERT(mf->DistributionMap() ==
-		          amrlevel.get_new_data(0).DistributionMap());
-                BL_ASSERT(mf->DistributionMap()[m_stn[i].grd] == MyProc);
-                //
-                // Find IntVect so we can index into FAB.
-                // We want to use Geometry::CellIndex().
-                // Must adjust the position to account for NodeCentered-ness.
-                //
-                IndexType ityp = 
+                    BL_ASSERT(mf != NULL);
+                    BL_ASSERT(mf->DistributionMap() ==
+                              amrlevel.get_new_data(0).DistributionMap());
+                    BL_ASSERT(mf->DistributionMap()[m_stn[i].grd] == MyProc);
+                    //
+                    // Find IntVect so we can index into FAB.
+                    // We want to use Geometry::CellIndex().
+                    // Must adjust the position to account for NodeCentered-ness.
+                    //
+                    IndexType ityp = 
                         amrlevel.get_derive_lst().get(m_vars[j])->deriveType();
 
-                Real pos[BL_SPACEDIM];
+                    Real pos[BL_SPACEDIM];
 
-                D_TERM(pos[0] = m_stn[i].pos[0] + .5 * ityp[0];,
-                       pos[1] = m_stn[i].pos[1] + .5 * ityp[1];,
-                       pos[2] = m_stn[i].pos[2] + .5 * ityp[2];);
+                    D_TERM(pos[0] = m_stn[i].pos[0] + .5 * ityp[0];,
+                           pos[1] = m_stn[i].pos[1] + .5 * ityp[1];,
+                           pos[2] = m_stn[i].pos[2] + .5 * ityp[2];);
 
-                IntVect idx = amrlevel.Geom().CellIndex(&pos[0]);
+                    IntVect idx = amrlevel.Geom().CellIndex(&pos[0]);
 
-                data[j] = (*mf)[m_stn[i].grd](idx,m_ncomp[j]);
+                    data[j] = (*mf)[m_stn[i].grd](idx,m_ncomp[j]);
+                }
+                else
+                {
+                    const MultiFab& mf = amrlevel.get_new_data(m_typ[j]);
 
-	      } else {
+                    BL_ASSERT(mf.nComp() > m_ncomp[j]);
+                    BL_ASSERT(mf.DistributionMap()[m_stn[i].grd] == MyProc);
+                    //
+                    // Find IntVect so we can index into FAB.
+                    // We want to use Geometry::CellIndex().
+                    // Must adjust the position to account for NodeCentered-ness.
+                    //
+                    IndexType ityp = amrlevel.get_desc_lst()[m_typ[j]].getType();
 
-                const MultiFab& mf = amrlevel.get_new_data(m_typ[j]);
+                    Real pos[BL_SPACEDIM];
 
-                BL_ASSERT(mf.nComp() > m_ncomp[j]);
-                BL_ASSERT(mf.DistributionMap()[m_stn[i].grd] == MyProc);
-                //
-                // Find IntVect so we can index into FAB.
-                // We want to use Geometry::CellIndex().
-                // Must adjust the position to account for NodeCentered-ness.
-                //
-                IndexType ityp = amrlevel.get_desc_lst()[m_typ[j]].getType();
+                    D_TERM(pos[0] = m_stn[i].pos[0] + .5 * ityp[0];,
+                           pos[1] = m_stn[i].pos[1] + .5 * ityp[1];,
+                           pos[2] = m_stn[i].pos[2] + .5 * ityp[2];);
 
-                Real pos[BL_SPACEDIM];
+                    IntVect idx = amrlevel.Geom().CellIndex(&pos[0]);
 
-                D_TERM(pos[0] = m_stn[i].pos[0] + .5 * ityp[0];,
-                       pos[1] = m_stn[i].pos[1] + .5 * ityp[1];,
-                       pos[2] = m_stn[i].pos[2] + .5 * ityp[2];);
-
-                IntVect idx = amrlevel.Geom().CellIndex(&pos[0]);
-
-                data[j] = mf[m_stn[i].grd](idx,m_ncomp[j]);
-	      }
+                    data[j] = mf[m_stn[i].grd](idx,m_ncomp[j]);
+                }
             }
             //
             // Write data to output stream.
@@ -240,11 +245,12 @@ StationData::report (Real            time,
 
     BL_ASSERT(!m_ofile.bad());
 
-
-    for(int iVarD(0); iVarD < m_vars.length(); ++iVarD) {
-      if(m_IsDerived[iVarD]) {
-        delete mfPtrs[iVarD];
-      }
+    for (int iVarD = 0; iVarD < m_vars.size(); ++iVarD)
+    {
+        if (m_IsDerived[iVarD])
+        {
+            delete mfPtrs[iVarD];
+        }
     }
 }
 
@@ -252,33 +258,33 @@ void
 StationData::findGrid (const PArray<AmrLevel>& levels,
                        const Array<Geometry>&  geoms)
 {
-    BL_ASSERT(geoms.length() == levels.length());
+    BL_ASSERT(geoms.size() == levels.size());
 
-    if (m_stn.length() <= 0)
+    if (m_stn.size() <= 0)
         return;
     //
     // Flag all stations as not having a home.
     //
-    for (int i = 0; i < m_stn.length(); i++)
+    for (int i = 0; i < m_stn.size(); i++)
         m_stn[i].level = -1;
     //
     // Find level and grid owning the data.
     //
     const int MyProc = ParallelDescriptor::MyProc();
 
-    for (int level = levels.length()-1; level >= 0; level--)
+    for (int level = levels.size()-1; level >= 0; level--)
     {
         const Array<RealBox>& boxes = levels[level].gridLocations();
 
         MultiFab mf(levels[level].boxArray(),1,0,Fab_noallocate);
 
-        BL_ASSERT(mf.boxArray().length() == boxes.length());
+        BL_ASSERT(mf.boxArray().size() == boxes.size());
 
-        for (int i = 0; i < m_stn.length(); i++)
+        for (int i = 0; i < m_stn.size(); i++)
         {
             if (m_stn[i].level < 0)
             {
-                for (int j = 0; j < boxes.length(); j++)
+                for (int j = 0; j < boxes.size(); j++)
                 {
                     if (boxes[j].contains(&m_stn[i].pos[0]))
                     {

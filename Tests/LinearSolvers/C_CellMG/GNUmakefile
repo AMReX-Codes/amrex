@@ -5,12 +5,12 @@ DEBUG	= FALSE
 DEBUG	= TRUE
 DIM	= 3
 DIM	= 2
-COMP = KCC
 COMP = g++
-USE_MPI=FALSE
+COMP = KCC
 USE_MPI=TRUE
-USE_THREADS=FALSE
+USE_MPI=FALSE
 USE_THREADS=TRUE
+USE_THREADS=FALSE
 NAMESPACE=FALSE
 STRICTLY=TRUE
 
@@ -20,8 +20,8 @@ USE_ARRAYVIEW = FALSE
 USE_HYPRE=TRUE
 USE_HYPRE=FALSE
 
-USE_BL3 = FALSE
 USE_BL3 = TRUE
+USE_BL3 = FALSE
 
 PBOXLIB_HOME := ../..
 
@@ -58,13 +58,13 @@ endif
 include Make.package
 include $(PBOXLIB_HOME)/bndrylib/Make.package
 include $(PBOXLIB_HOME)/mglib/Make.package
-include $(PBOXLIB_HOME)/pBoxLib_2/Make.package
+include $(PBOXLIB_HOME)/BoxLib/Make.package
 include $(PBOXLIB_HOME)/util/Make.package
 
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/bndrylib
 vpathdir += $(PBOXLIB_HOME)/bndrylib
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/pBoxLib_2
-vpathdir += $(PBOXLIB_HOME)/pBoxLib_2
+INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/BoxLib
+vpathdir += $(PBOXLIB_HOME)/BoxLib
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/iamrlib
 vpathdir += $(PBOXLIB_HOME)/iamrlib
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/mglib

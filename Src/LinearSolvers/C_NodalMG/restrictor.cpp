@@ -412,14 +412,14 @@ bilinear_restrictor::fill_interface (MultiFab&                 dest,
     const BoxArray& dest_ba = dest.boxArray();
     const BoxArray& fine_ba = fine.boxArray();
 
-    for (int jgrid = 0; jgrid < dest.length(); jgrid++)
+    for (int jgrid = 0; jgrid < dest.size(); jgrid++)
     {
         const Box& region = dest_ba[jgrid];
         //
         // Interface restriction is sufficiently rare and specialized that
         // we will let the restrictor handle it---at least for now.
         //
-        const Box regplus = ::grow(region, 1);
+        const Box regplus = BoxLib::grow(region, 1);
 
 	task_list tl;
         for (int iface = 0;

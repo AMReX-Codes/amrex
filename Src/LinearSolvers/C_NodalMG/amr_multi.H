@@ -28,16 +28,16 @@ public:
     static void mesh_read (Array<BoxArray>& m,
                            Array<IntVect>&  r,
                            Array<Box>&      d,
-                           istream&         is);
+                           std::istream&    is);
 
     static void mesh_write (const Array<BoxArray>& m,
                             const Array<Box>&      d,
-                            ostream&               os);
+                            std::ostream&          os);
 
     static void mesh_write (const Array<BoxArray>& m,
                             const Array<IntVect>&  r,
                             Box                    fd,
-                            ostream&               os);
+                            std::ostream&          os);
 
     void solve (Real reltol,
                 Real abstol,

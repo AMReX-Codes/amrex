@@ -1,10 +1,9 @@
-
 #ifndef _RealBox_H_
 #define _RealBox_H_ 
-
 //
-// $Id: RealBox.H,v 1.10 2000-10-02 20:49:03 lijewski Exp $
+// $Id: RealBox.H,v 1.11 2001-08-01 21:50:50 lijewski Exp $
 //
+#include <iosfwd>
 
 #include <Array.H>
 #include <REAL.H>
@@ -21,14 +20,6 @@
 class RealBox
 {
 public:
-    //
-    //@ManDoc: Nice ASCII output.
-    //
-    friend ostream& operator<< (ostream&, const RealBox& );
-    //
-    //@ManDoc: Nice ASCII input.
-    //
-    friend istream& operator>> (istream&, RealBox& );
     //
     //@ManDoc: The default constructor.  Builds invalid RealBox.
     //
@@ -135,173 +126,13 @@ protected:
     //
     static Real eps;
 };
-
 //
-// Inlines.
+//@ManDoc: Nice ASCII output.
 //
-
-inline
-void
-RealBox::setEpsilon (Real epsilon)
-{
-    eps = epsilon;
-}
-
-inline
-Real
-RealBox::epsilon ()
-{
-    return eps;
-}
-
-inline
-const Real*
-RealBox::lo () const
-{
-    return xlo;
-}
-
-inline
-const Real*
-RealBox::hi () const
-{
-    return xhi;
-}
-
-inline
-const Real*
-RealBox::length () const
-{
-    return len;
-}
-
-inline
-Real
-RealBox::lo (int dir) const
-{
-    return xlo[dir];
-}
-
-inline
-Real
-RealBox::hi (int dir) const
-{
-    return xhi[dir];
-}
-
-inline
-Real
-RealBox::length (int dir) const
-{
-    return len[dir];
-}
-
-inline
-void
-RealBox::computeBoxLen ()
-{
-    D_EXPR(len[0] = xhi[0]-xlo[0],
-           len[1] = xhi[1]-xlo[1],
-           len[2] = xhi[2]-xlo[2]);
-}
-
-inline
-RealBox::RealBox ()
-{
-    D_TERM(xlo[0] , = xlo[1] , = xlo[2] ) = 0.;
-    D_TERM(xhi[0] , = xhi[1] , = xhi[2] ) = -1.;
-    computeBoxLen();
-}
-
-inline
-RealBox::RealBox (const Real* lo,
-                  const Real* hi)
-{
-    D_EXPR(xlo[0] = lo[0] , xlo[1] = lo[1] , xlo[2] = lo[2]);
-    D_EXPR(xhi[0] = hi[0] , xhi[1] = hi[1] , xhi[2] = hi[2]);
-    computeBoxLen() ;
-}
-
-inline
-RealBox::RealBox (D_DECL(Real x0, Real y0, Real z0),
-                  D_DECL(Real x1, Real y1, Real z1))
-{
-    D_EXPR(xlo[0] = x0 , xlo[1] = y0 , xlo[2] = z0);
-    D_EXPR(xhi[0] = x1 , xhi[1] = y1 , xhi[2] = z1);
-    computeBoxLen() ;
-}
-
-inline
-void
-RealBox::setLo (const Real* lo)
-{
-    D_EXPR(xlo[0] = lo[0], xlo[1] = lo[1], xlo[2] = lo[2]);
-    computeBoxLen();
-}
-
-inline
-void
-RealBox::setLo (const Array<Real> &lo)
-{
-    D_EXPR(xlo[0] = lo[0], xlo[1] = lo[1], xlo[2] = lo[2]);
-    computeBoxLen();
-}
-
-inline
-void
-RealBox::setHi (const Real* hi)
-{
-    D_EXPR(xhi[0] = hi[0], xhi[1] = hi[1], xhi[2] = hi[2]);
-    computeBoxLen();
-}
-
-inline
-void
-RealBox::setHi (const Array<Real>& hi)
-{
-    D_EXPR(xhi[0] = hi[0], xhi[1] = hi[1], xhi[2] = hi[2]);
-    computeBoxLen();
-}
-
-inline
-void
-RealBox::setLo (int  indx,
-                Real lo)
-{
-   BL_ASSERT(indx >= 0 && indx < BL_SPACEDIM);
-   xlo[indx] = lo;
-   computeBoxLen();
-}
-
-inline
-void
-RealBox::setHi (int  indx,
-                Real hi)
-{
-    BL_ASSERT(indx >= 0 && indx < BL_SPACEDIM);
-    xhi[indx] = hi;
-    computeBoxLen();
-}
-
-inline
-bool
-RealBox::contains (const RealBox& rb) const
-{
-    return contains(rb.xlo) && contains(rb.xhi);
-}
-
-inline
-bool
-RealBox::ok () const
-{
-    return (len[0] > eps)
-#if (BL_SPACEDIM > 1)
-        && (len[1] > eps)
-#endif   
-#if (BL_SPACEDIM > 2)
-        && (len[2] > eps)
-#endif
-   ;
-}
+std::ostream& operator<< (std::ostream&, const RealBox&);
+//
+//@ManDoc: Nice ASCII input.
+//
+std::istream& operator>> (std::istream&, RealBox&);
 
 #endif /*_RealBox_H_*/

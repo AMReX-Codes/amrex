@@ -2,8 +2,6 @@
 #ifndef _RegType_H_
 #define _RegType_H_
 
-#include <aString.H>
-
 enum RegType
 {
     interior, exterior, periodic, refWall, inflow, outflow, REG_TYPE_SIZE
@@ -11,7 +9,7 @@ enum RegType
 
 inline
 RegType
-RegTypeSet(const aString& ass)
+RegTypeSet(const std::string& ass)
 {
     if ( ass == "interior" ) return interior ;
     if ( ass == "exterior" ) return exterior ;
