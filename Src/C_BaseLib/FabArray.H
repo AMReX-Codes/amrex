@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.143 2001-07-25 23:36:16 lijewski Exp $
+// $Id: FabArray.H,v 1.144 2001-07-25 23:39:18 lijewski Exp $
 //
 
 #include <cstring>
@@ -1001,7 +1001,7 @@ template <class FAB>
 bool
 FabArray<FAB>::ok () const
 {
-    bool isok = true;
+    int isok = true;
 
     for (MFIter fai(*this); fai.isValid() && isok; ++fai)
     {
@@ -1009,12 +1009,12 @@ FabArray<FAB>::ok () const
         {
             if (get(fai).box() != BoxLib::grow(box(fai.index()),n_grow))
             {
-                isok = 0;
+                isok = false;
             }
         }
         else
         {
-            isok = 0;
+            isok = false;
         }
     }
 
