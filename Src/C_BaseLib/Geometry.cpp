@@ -1,5 +1,5 @@
 //
-// $Id: Geometry.cpp,v 1.56 2001-08-09 22:42:00 marc Exp $
+// $Id: Geometry.cpp,v 1.57 2001-08-10 19:52:21 almgren Exp $
 //
 #include <winstd.H>
 
@@ -493,16 +493,11 @@ Geometry::Setup ()
     // Now get periodicity info.
     //
     D_EXPR(is_periodic[0]=0, is_periodic[1]=0, is_periodic[2]=0);
-    if (pp.contains("period_0"))
-        is_periodic[0] = 1;
-#if BL_SPACEDIM>1
-    if (pp.contains("period_1"))
-        is_periodic[1] = 1;
-#endif
-#if BL_SPACEDIM>2
-    if (pp.contains("period_2"))
-        is_periodic[2] = 1;
-#endif
+
+    Array<int> is_per(BL_SPACEDIM);
+    pp.queryarr("is_periodic",is_per,0,BL_SPACEDIM);
+    for (int n = 0; n < BL_SPACEDIM; n++)  
+      is_periodic[n] = is_per[n];
 }
 
 void
