@@ -60,7 +60,7 @@ contains
     integer, intent(in) :: cf, cu
     integer :: ratio
     integer :: face, dim
-    integer :: i, n
+    integer :: i
     real(kind=dp_t), pointer :: fp(:,:,:,:)
     real(kind=dp_t), pointer :: up(:,:,:,:)
     real(kind=dp_t), pointer :: sp(:,:,:,:)
