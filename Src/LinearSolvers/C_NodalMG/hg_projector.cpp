@@ -600,21 +600,8 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	const int isRZ = IsRZ();
 	const int imax = mg_domain[mglev].bigEnd(0) + 1;
 	tl.add_task(new task_fecavg(&FORT_HGFAVG, source[lev], S[lev], igrid, Scp, creg, rat, idim, idir, hx, isRZ, imax));
-/*	FORT_HGFAVG(sptr, DIMLIST(sbox),
-		    Scp->fab().dataPtr(), DIMLIST(cbox),
-		    Sfptr, DIMLIST(fbox), DIMLIST(creg),
-		    D_DECL(rat[0], rat[1], rat[2]),
-		    &idim, &idir, 
-		    &hx, &isRZ, &imax);
-*/
 #else
 	tl.add_task(new task_fecavg(&FORT_HGFAVG, source[lev], S[lev], igrid, Scp, creg, rat, idim, idir));
-/*	FORT_HGFAVG(sptr, DIMLIST(sbox),
-		    Scp->fab().dataPtr(), DIMLIST(cbox),
-		    Sfptr, DIMLIST(fbox), DIMLIST(creg),
-		    D_DECL(rat[0], rat[1], rat[2]), 
-		    &idim, &idir);
-*/
 #endif
     }
     tl.execute();
@@ -646,12 +633,6 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	creg.coarsen(rat).grow(t - 1);
 	Array<int> ga = lev_interface[mglev].geo_array(1, iedge);
 	tl.add_task(new task_fecavg_2(&FORT_HGEAVG, source[lev], igrid, Scp, Sf, creg, rat, ga, t));
-/*	FORT_HGEAVG(sptr, DIMLIST(sbox),
-		    Scp->fab().dataPtr(), DIMLIST(cbox),
-		    Sf->fab().dataPtr(), DIMLIST(fbox),
-		    DIMLIST(creg), D_DECL(rat[0], rat[1], rat[2]), 
-		    t.getVect(), ga.dataPtr());
-*/
 	// fill in the grids on the other sides, if any
 	const Box& freg = lev_interface[mglev].node_box(1, iedge);
 	for (int i = 1; i < lev_interface[mglev].ngrids(1); i++) 
@@ -693,21 +674,8 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	const int isRZ = IsRZ();
 	const int imax = mg_domain[mglev].bigEnd(0) + 1;
 	tl.add_task(new task_fecavg_2(&FORT_HGCAVG, source[lev], igrid, Scp, Sf, creg, rat, ga, IntVect(0), hx, isRz, imax));
-/*	FORT_HGCAVG(sptr, DIMLIST(sbox),
-		    Scp->fab().dataPtr(), DIMLIST(cbox),
-		    Sf->fab().dataPtr(), DIMLIST(fbox),
-		    DIMLIST(creg), D_DECL(rat[0], rat[1], rat[2]),
-		    ga.dataPtr(), 0,
-		    &hx, &isRZ, &imax);
-*/
 #else
 	tl.add_task(new task_fecavg_2(&FORT_HGCAVG, source[lev], igrid, Scp, Sf, creg, rat, ga));
-/*	FORT_HGCAVG(sptr, DIMLIST(sbox),
-		    Scp->fab().dataPtr(), DIMLIST(cbox),
-		    Sf->fab().dataPtr(), DIMLIST(fbox),
-		    DIMLIST(creg), D_DECL(rat[0], rat[1], rat[2]), 
-		    ga.dataPtr(), 0);
-*/
 #endif
 	// fill in the grids on the other sides, if any
 	const Box& freg = lev_interface[mglev].box(0, icor);
@@ -767,11 +735,6 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	if (m_hg_terrain)
 	{
 	    tl.add_task(new task_fecdiv(&FORT_HGFDIV_TERRAIN, source[lev], uptr, igrid, ucp, creg, h[mglev], rat, idim, idir));
-/*	    FORT_HGFDIV_TERRAIN(sptr, DIMLIST(sbox),
-				D_DECL(ucp[0]->fab().dataPtr(), ucp[1]->fab().dataPtr(), ucp[2]->fab().dataPtr()), DIMLIST(cbox),
-				D_DECL(uptr[0], uptr[1], uptr[2]), DIMLIST(fbox), DIMLIST(creg),
-				D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir);
-*/
 	}
 	else
 	{
@@ -779,20 +742,8 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    const int isRZ = IsRZ();
 	    const int imax = mg_domain[mglev].bigEnd(0) + 1;
 	    tl.add_task(new task_fecdiv(&FORT_HGFDIV, source[lev], uptr, ucp, creg, h[mglev],  rat, idim, idir, isRz, imax));
-/*	    FORT_HGFDIV(sptr, DIMLIST(sbox),
-			D_DECL(ucp[0]->fab().dataPtr(), ucp[1]->fab().dataPtr(), ucp[2]->fab().dataPtr()), DIMLIST(cbox),
-			D_DECL(uptr[0], uptr[1], uptr[2]), DIMLIST(fbox), DIMLIST(creg),
-			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), 
-			&idim, &idir, &isRZ, &imax);
-*/
 #else
 	    tl.add_task(new task_fecdiv(&FORT_HGFDIV, source[lev], uptr, igrid, ucp, creg, h[mglev], rat, idim, idir));
-/*	    FORT_HGFDIV(sptr, DIMLIST(sbox),
-			D_DECL(ucp[0]->fab().dataPtr(), ucp[1]->fab().dataPtr(), ucp[2]->fab().dataPtr()), DIMLIST(cbox),
-			D_DECL(uptr[0], uptr[1], uptr[2]), DIMLIST(fbox), DIMLIST(creg),
-			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), 
-			&idim, &idir, 0, 0);
-*/
 #endif
 	}
     }
@@ -835,25 +786,11 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	Array<int> ga = lev_interface[mglev].geo_array(1, iedge);
 	if (m_hg_terrain)
 	{
-	    tl.add_task(new task_fecdiv_2(&FORT_HGEDIV_TERRAIN, source[lev], igrid, ucp, uf, creg, h[mglev], rat, ga, t));
-/*	    FORT_HGEDIV_TERRAIN(sptr, DIMLIST(sbox),
-				D_DECL(ucp[0]->fab().dataPtr(), ucp[1]->fab().dataPtr(), ucp[2]->fab().dataPtr()), DIMLIST(cbox),
-				D_DECL(uf[0]->fab().dataPtr(), uf[1]->fab().dataPtr(), uf[2]->fab().dataPtr()), DIMLIST(fbox),
-				DIMLIST(creg),
-				D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]),
-				t.getVect(), ga.dataPtr());
-*/
+	    tl.add_task(new task_fecdiv_2(&FORT_HGEDIV_TERRAIN, source[lev], igrid, uf, ucp, creg, h[mglev], rat, ga, t));
 	}
 	else
 	{
-	    tl.add_task(new task_fecdiv_2(&FORT_HGEDIV, source[lev], igrid, ucp, uf, creg, h[mglev], rat, ga, t));
-/*	    FORT_HGEDIV(sptr, DIMLIST(sbox),
-			D_DECL(ucp[0]->fab().dataPtr(), ucp[1]->fab().dataPtr(), ucp[2]->fab().dataPtr()), DIMLIST(cbox),
-			D_DECL(uf[0]->fab().dataPtr(), uf[1]->fab().dataPtr(), uf[2]->fab().dataPtr()), DIMLIST(fbox),
-			DIMLIST(creg),
-			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]),
-			t.getVect(), ga.dataPtr());
-*/
+	    tl.add_task(new task_fecdiv_2(&FORT_HGEDIV, source[lev], igrid, uf, ucp, creg, h[mglev], rat, ga, t));
 	}
 	// fill in the grids on the other sides, if any
 	const Box& freg = lev_interface[mglev].node_box(1, iedge);
@@ -898,22 +835,11 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	Array<int> ga = lev_interface[mglev].geo_array(0, icor);
 	if (m_hg_terrain)
 	{
-	    tl.add_task(new task_fecdiv_2(&FORT_HGCDIV_TERRAIN, source[lev], igrid, ucp, uf, creg, h[mglev], rat, ga));
-/*	    FORT_HGCDIV_TERRAIN(sptr, DIMLIST(sbox),
-				D_DECL(ucp[0]->fab().dataPtr(), ucp[1]->fab().dataPtr(), ucp[2]->fab().dataPtr()), DIMLIST(cbox),
-				D_DECL(uf[0]->fab().dataPtr(), uf[1]->fab().dataPtr(), uf[2]->fab().dataPtr()), DIMLIST(fbox), DIMLIST(creg),
-				D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), 
-				ga.dataPtr(), 0);
-*/	}
+	    tl.add_task(new task_fecdiv_2(&FORT_HGCDIV_TERRAIN, source[lev], igrid, uf, ucp, creg, h[mglev], rat, ga));
+	}
 	else
 	{
-	    tl.add_task(new task_fecdiv_2(&FORT_HGCDIV_TERRAIN, source[lev], igrid, ucp, uf, creg, h[mglev], rat, ga));
-/*	    FORT_HGCDIV(sptr, DIMLIST(sbox),
-			D_DECL(ucp[0]->fab().dataPtr(), ucp[1]->fab().dataPtr(), ucp[2]->fab().dataPtr()), DIMLIST(cbox),
-			D_DECL(uf[0]->fab().dataPtr(), uf[1]->fab().dataPtr(), uf[2]->fab().dataPtr()), DIMLIST(fbox), DIMLIST(creg),
-			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), 
-			ga.dataPtr(), 0);
-*/
+	    tl.add_task(new task_fecdiv_2(&FORT_HGCDIV, source[lev], igrid, uf, ucp, creg, h[mglev], rat, ga));
 	}
 	// fill in the grids on the other sides, if any
 	const Box& freg = lev_interface[mglev].box(0, icor);

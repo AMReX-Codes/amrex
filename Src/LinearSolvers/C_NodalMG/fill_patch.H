@@ -12,7 +12,7 @@ Real inner_product(const MultiFab& r, const MultiFab& s);
 
 // returns grid number if patch is contained in a single grid, -1 otherwise.
 
-int find_patch(const Box& region, const MultiFab& r);
+// int find_patch(const Box& region, const MultiFab& r);
 
 // Fills all ghost cells that can be obtained from other grids or
 // from the boundary conditions.  If w is between 0 and border(),
