@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.43 1998-07-15 22:42:12 lijewski Exp $
+// $Id: TagBox.cpp,v 1.44 1998-07-21 17:44:45 car Exp $
 //
 
 #include <TagBox.H>
@@ -445,7 +445,7 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
     FabArrayId        faid   = facd.RegisterFabArray(this);
     const int         MyProc = ParallelDescriptor::MyProc();
-    const Box&        domain(geom.Domain());
+    const Box&        domain = geom.Domain();
     Array<IntVect>    pshifts(27);
     vector<FillBoxId> fillBoxId;
     vector<IntVect>   shifts;
