@@ -509,6 +509,9 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
 	    cout << "Init time was " << t1 - t0 << endl;
 	    cout << "Proj time was " << t2 - t1 << endl;
 	    cout << "Speed was " << double(t2 - t1) / (nrep * sum) << endl;
+	}
+	if ( false ) 
+	{
 	    cout << setprecision(16);
 	    for(int i = 0; i < BL_SPACEDIM; ++i)
 	    {
