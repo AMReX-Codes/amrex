@@ -78,6 +78,9 @@ protected:
     list< task** > dependencies;
     bool m_started;
     MPI_Comm m_comm;
+private:
+    task(const task&);
+    void operator==(const task&);
 };
 
 // The list...
@@ -200,13 +203,12 @@ public:
     {
 	task::init(sno, comm);
 	bool result = is_local(s, igrid);
-	for(int i = 0; i < BL_SPACEDIM; ++i)
+	for(vector<task_fab*>::iterator tli = tfvect.begin(); tli != tfvect.end(); ++tli)
 	{
-	    bool tresult = tfvect[i]->init(sno, comm);
+	    bool tresult = (*tli)->init(sno, comm);
 	    result = tresult ||  result;
 	}
-	list<int>::const_iterator tli = tll.begin();
-	while ( tli != tll.end() )
+	for ( list<int>::const_iterator tli = tll.begin(); tli != tll.end(); /*NOTHING*/ )
 	{
 	    bool tresult = is_local(s, *tli++);
 	    result = result || tresult;

@@ -832,7 +832,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    tl.add_task(new task_fecdiv_2(&FORT_HGEDIV,         tll, freg, source[lev], igrid, ufp, ucp, creg, h[mglev], rat, ga, t));
 	}
     }
-    
+    tl.execute();    
 #endif
     for (int icor = 0; icor < lev_interface[mglev].nboxes(0); icor++) 
     {
