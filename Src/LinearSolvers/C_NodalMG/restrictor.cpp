@@ -27,17 +27,17 @@
 extern "C" {
   void FACRST1(Real*, intS, intS, Real*, intS, intRS);
   void FANRST1(Real*, intS, intS, Real*, intS, intRS);
-  void FANRST2(Real*, intS, intS, Real*, intS, intRS);
+  void FANRST2(Real*, intS, intS, Real*, intS, intRS, const int&);
   void FANFR2(Real*, intS, intS, Real*, intS,
-	      intRS, const int&, const int&);
+	      intRS, const int&, const int&, const int&);
   void FANER2(Real*, intS, intS, Real*, intS,
-	      intRS, const int*, const int*);
-  void FANCR2(Real*, intS, intS, Real*, intS, intRS, const int*);
+	      intRS, const int*, const int*, const int&);
+  void FANCR2(Real*, intS, intS, Real*, intS, intRS, const int*, const int&);
   void FANOR2(Real*, intS, intS, Real*, intS,
-	      intRS, const int&, const int&);
+	      intRS, const int&, const int&, const int&);
   void FANIR2(Real*, intS, intS, Real*, intS,
-	      intRS, const int&, const int&);
-  void FANDR2(Real*, intS, intS, Real*, intS, intRS, const int&);
+	      intRS, const int&, const int&, const int&);
+  void FANDR2(Real*, intS, intS, Real*, intS, intRS, const int&, const int&);
 }
 
 Box cell_average_restrictor_class::box(const Box& fb, const IntVect& rat) const
@@ -118,7 +118,7 @@ void bilinear_restrictor_class::fill(Fab& patch,
     for (int i = 0; i < patch.nVar(); i++) {
       FANRST2(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
 	      fgr.dataPtr(i), dimlist(fgr.box()),
-	      D_DECL(rat[0], rat[1], rat[2]));
+	      D_DECL(rat[0], rat[1], rat[2]), integrate);
     }
   }
   else
@@ -165,7 +165,7 @@ void bilinear_restrictor_class::interface(Fab& patch,
 	  for (int i = 0; i < patch.nVar(); i++) {
 	    FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		    fgr.dataPtr(i), dimlist(fb),
-		    D_DECL(rat[0], rat[1], rat[2]));
+		    D_DECL(rat[0], rat[1], rat[2]), integrate);
 	  }
 	}
       }
@@ -188,7 +188,7 @@ void bilinear_restrictor_class::interface(Fab& patch,
 	  for (int i = 0; i < patch.nVar(); i++) {
 	    FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		    fgr.dataPtr(i), dimlist(fb),
-		    D_DECL(rat[0], rat[1], rat[2]));
+		    D_DECL(rat[0], rat[1], rat[2]), integrate);
 	  }
 	}
       }
@@ -206,7 +206,7 @@ void bilinear_restrictor_class::interface(Fab& patch,
 	  for (int i = 0; i < patch.nVar(); i++) {
 	    FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		    fgr.dataPtr(i), dimlist(fb),
-		    D_DECL(rat[0], rat[1], rat[2]));
+		    D_DECL(rat[0], rat[1], rat[2]), integrate);
 	  }
 	}
       }
@@ -233,7 +233,7 @@ void bilinear_restrictor_class::interface(Fab& patch,
 	    Real *const fptr = fine[igrid].dataPtr(i);
 	    FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		    fptr, dimlist(fb),
-		    D_DECL(rat[0], rat[1], rat[2]));
+		    D_DECL(rat[0], rat[1], rat[2]), integrate);
 	  }
 	}
       }
@@ -258,7 +258,7 @@ void bilinear_restrictor_class::interface(Fab& patch,
 	    Real *const fptr = fine[igrid].dataPtr(i);
 	    FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		    fptr, dimlist(fb),
-		    D_DECL(rat[0], rat[1], rat[2]));
+		    D_DECL(rat[0], rat[1], rat[2]), integrate);
 	  }
 	}
       }
@@ -278,7 +278,7 @@ void bilinear_restrictor_class::interface(Fab& patch,
 	    Real *const fptr = fine[igrid].dataPtr(i);
 	    FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		    fptr, dimlist(fb),
-		    D_DECL(rat[0], rat[1], rat[2]));
+		    D_DECL(rat[0], rat[1], rat[2]), integrate);
 	  }
 	}
       }
@@ -335,7 +335,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	    Real *const fptr = fine[igrid].dataPtr(i);
 	    FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		    fptr, dimlist(fb),
-		    D_DECL(rat[0], rat[1], rat[2]));
+		    D_DECL(rat[0], rat[1], rat[2]), integrate);
 	  }
 	}
 	else {
@@ -345,7 +345,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	  for (int i = 0; i < patch.nVar(); i++) {
 	    FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		    fgr.dataPtr(i), dimlist(fbox),
-		    D_DECL(rat[0], rat[1], rat[2]));
+		    D_DECL(rat[0], rat[1], rat[2]), integrate);
 	  }
 	}
       }
@@ -359,7 +359,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	  for (int i = 0; i < patch.nVar(); i++) {
 	    FANFR2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		   fine[igrid].dataPtr(i), dimlist(fb),
-		   D_DECL(rat[0], rat[1], rat[2]), idim, idir);
+		   D_DECL(rat[0], rat[1], rat[2]), idim, idir, integrate);
 	  }
 	}
 	else {
@@ -374,7 +374,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	  for (int i = 0; i < patch.nVar(); i++) {
 	    FANFR2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		   fgr.dataPtr(i), dimlist(fbox),
-		   D_DECL(rat[0], rat[1], rat[2]), idim, idir);
+		   D_DECL(rat[0], rat[1], rat[2]), idim, idir, integrate);
 	  }
 	}
       }
@@ -399,7 +399,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	  Real *const fptr = fine[igrid].dataPtr(i);
 	  FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		  fptr, dimlist(fb),
-		  D_DECL(rat[0], rat[1], rat[2]));
+		  D_DECL(rat[0], rat[1], rat[2]), integrate);
 	}
       }
       else if (geo == ALL) { // fine grid on all sides
@@ -409,7 +409,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	for (int i = 0; i < patch.nVar(); i++) {
 	  FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		  fgr.dataPtr(i), dimlist(fb),
-		  D_DECL(rat[0], rat[1], rat[2]));
+		  D_DECL(rat[0], rat[1], rat[2]), integrate);
 	}
       }
       else if (geo == XL || geo == XH || geo == YL || geo == YH) {
@@ -426,7 +426,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	for (int i = 0; i < patch.nVar(); i++) {
 	  FANFR2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		 fgr.dataPtr(i), dimlist(fbox),
-		 D_DECL(rat[0], rat[1], rat[2]), idim, idir);
+		 D_DECL(rat[0], rat[1], rat[2]), idim, idir, integrate);
 	}
       }
       else if (geo == LL || geo == HL || geo == LH || geo == HH) {
@@ -454,7 +454,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	for (int i = 0; i < patch.nVar(); i++) {
 	  FANOR2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		 fgr.dataPtr(i), dimlist(fbox),
-		 D_DECL(rat[0], rat[1], rat[2]), idir0, idir1);
+		 D_DECL(rat[0], rat[1], rat[2]), idir0, idir1, integrate);
 	}
       }
       else if (geo == (LL | HH) || geo == (LH | HL)) {
@@ -466,7 +466,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	for (int i = 0; i < patch.nVar(); i++) {
 	  FANDR2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		 fgr.dataPtr(i), dimlist(fbox),
-		 D_DECL(rat[0], rat[1], rat[2]), idir1);
+		 D_DECL(rat[0], rat[1], rat[2]), idir1, integrate);
 	}
       }
       else {
@@ -479,7 +479,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	for (int i = 0; i < patch.nVar(); i++) {
 	  FANIR2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		 fgr.dataPtr(i), dimlist(fbox),
-		 D_DECL(rat[0], rat[1], rat[2]), idir0, idir1);
+		 D_DECL(rat[0], rat[1], rat[2]), idir0, idir1, integrate);
 	}
       }
     }
@@ -509,7 +509,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	  Real *const fptr = fine[igrid].dataPtr(i);
 	  FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		  fptr, dimlist(fb),
-		  D_DECL(rat[0], rat[1], rat[2]));
+		  D_DECL(rat[0], rat[1], rat[2]), integrate);
 	}
       }
       else {
@@ -520,7 +520,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	  for (int i = 0; i < patch.nVar(); i++) {
 	    FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		    fgr.dataPtr(i), dimlist(fbox),
-		    D_DECL(rat[0], rat[1], rat[2]));
+		    D_DECL(rat[0], rat[1], rat[2]), integrate);
 	  }
 	}
 	else {
@@ -528,7 +528,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	  for (int i = 0; i < patch.nVar(); i++) {
 	    FANER2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		   fgr.dataPtr(i), dimlist(fbox),
-		   D_DECL(rat[0], rat[1], rat[2]), t.getVect(), ga);
+		   D_DECL(rat[0], rat[1], rat[2]), t.getVect(), ga, integrate);
 	  }
 	}
       }
@@ -551,7 +551,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	  Real *const fptr = fine[igrid].dataPtr(i);
 	  FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		  fptr, dimlist(fb),
-		  D_DECL(rat[0], rat[1], rat[2]));
+		  D_DECL(rat[0], rat[1], rat[2]), integrate);
 	}
       }
       else {
@@ -562,7 +562,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	  for (int i = 0; i < patch.nVar(); i++) {
 	    FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		    fgr.dataPtr(i), dimlist(fbox),
-		    D_DECL(rat[0], rat[1], rat[2]));
+		    D_DECL(rat[0], rat[1], rat[2]), integrate);
 	  }
 	}
 	else {
@@ -570,7 +570,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	  for (int i = 0; i < patch.nVar(); i++) {
 	    FANCR2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		   fgr.dataPtr(i), dimlist(fbox),
-		   D_DECL(rat[0], rat[1], rat[2]), ga);
+		   D_DECL(rat[0], rat[1], rat[2]), ga, integrate);
 	  }
 	}
       }

@@ -10,7 +10,6 @@ c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)
      @ dest, dims(dest),
      @ dims(freg),
      @ hx, hy, irz)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(gp)
       integer dims(dest)
       integer dims(freg)
@@ -19,6 +18,8 @@ c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)
       real*8 dest(dimdec(dest))
       real*8 hx, hy
       integer irz
+      real*8 hxm1h, hym1h, fac, r
+      integer i, j
       hxm1h = 0.5d0 / hx
       hym1h = 0.5d0 / hy
       do 10 j = fregl1, fregh1
@@ -43,7 +44,6 @@ c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)
      @ uf, vf, dims(f),
      @ dims(freg),
      @ hx, hy, irz, imax)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(src)
       integer dims(f)
       integer dims(freg)
@@ -52,6 +52,8 @@ c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)
       real*8 vf(dimdec(f))
       real*8 hx, hy
       integer irz, imax
+      real*8 hxm1, hym1, fac, r1, r0m, r1m
+      integer i, j
       hxm1 = 1.d0 / hx
       hym1 = 1.d0 / hy
       fac = 0.5d0
@@ -87,7 +89,6 @@ c Note---only generates values at coarse points along edge of fine grid
      @ uf, vf, dims(f),
      @ dims(creg),
      @ hx, hy, ir, jr, idim, idir, irz, imax)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(src)
       integer dims(c)
       integer dims(f)
@@ -99,6 +100,9 @@ c Note---only generates values at coarse points along edge of fine grid
       real*8 vf(dimdec(f))
       real*8 hx, hy
       integer ir, jr, idim, idir, irz, imax
+      real*8 hxm1, hym1, fac0, fac1, r, rfac, rfac0, rfac1
+      real*8 rfac0m, rfac1m, rfac0p, rfac1p
+      integer i, j, iuf, juf, iuc, juc, m, n
       if (idim .eq. 0) then
          i = cregl0
          if (idir .eq. 1) then
@@ -225,7 +229,6 @@ c Note---only generates values at coarse points along edge of fine grid
      @ uf, vf, dims(f),
      @ dims(creg),
      @ hx, hy, ir, jr, idir, jdir, irz)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(src)
       integer dims(c)
       integer dims(f)
@@ -237,6 +240,9 @@ c Note---only generates values at coarse points along edge of fine grid
       real*8 vf(dimdec(f))
       real*8 hx, hy
       integer ir, jr, idir, jdir, irz
+      real*8 hxm1, hym1, fac0, fac1, r, rfac, rfac0, rfac1
+      real*8 rfac0p, rfac1p
+      integer i, j, iuf, juf, iuc, juc, m, n
       fac0 = (ir * jr) / (1.5d0*ir*jr + 0.5d0*ir + 0.5d0*jr - 0.5d0)
       hxm1 = 1.d0 / (ir * hx)
       hym1 = 1.d0 / (jr * hy)
@@ -318,7 +324,6 @@ c Note---only generates values at coarse points along edge of fine grid
      @ uf, vf, dims(f),
      @ dims(creg),
      @ hx, hy, ir, jr, idir, jdir, irz)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(src)
       integer dims(c)
       integer dims(f)
@@ -330,6 +335,9 @@ c Note---only generates values at coarse points along edge of fine grid
       real*8 vf(dimdec(f))
       real*8 hx, hy
       integer ir, jr, idir, jdir, irz
+      real*8 hxm1, hym1, fac0, fac1, r, rfac, rfac0, rfac1
+      real*8 rfac0m, rfac1m
+      integer i, j, iuf, juf, iuc, juc, m, n
       fac0 = (ir * jr) / (0.5d0*ir*jr + 0.5d0*ir + 0.5d0*jr + 0.5d0)
       hxm1 = 1.d0 / (ir * hx)
       hym1 = 1.d0 / (jr * hy)
@@ -411,7 +419,6 @@ c Note---only generates values at coarse points along edge of fine grid
      @ uf, vf, dims(f),
      @ dims(creg),
      @ hx, hy, ir, jr, jdir, irz)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(src)
       integer dims(c)
       integer dims(f)
@@ -423,6 +430,9 @@ c Note---only generates values at coarse points along edge of fine grid
       real*8 vf(dimdec(f))
       real*8 hx, hy
       integer ir, jr, jdir, irz
+      real*8 hxm1, hym1, fac0, fac1, r, rfac, rfac0, rfac1
+      real*8 rfac0m, rfac1m, rfac0p, rfac1p
+      integer i, j, juf, juc, m, n
       fac0 = (ir * jr) / (ir*jr + ir + jr - 1.d0)
       hxm1 = 1.d0 / (ir * hx)
       hym1 = 1.d0 / (jr * hy)

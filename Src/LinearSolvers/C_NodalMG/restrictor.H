@@ -60,8 +60,10 @@ class default_restrictor_class : public amr_restrictor_class {
 // Restricts fine-fine interfaces, even those at the boundary.
 // Does nothing at coarse-fine interfaces.
 class bilinear_restrictor_class : public amr_restrictor_class {
+ protected:
+  int integrate;
  public:
-  bilinear_restrictor_class() { }
+  bilinear_restrictor_class(int i) { integrate = i; }
   Box box(const Box& fb, const IntVect& rat) const;
   void fill(Fab& patch, const Box& region,
 	    Fab& fgr, const IntVect& rat) const;
@@ -76,7 +78,8 @@ class bilinear_restrictor_class : public amr_restrictor_class {
 class bilinear_restrictor_coarse_class
  : public bilinear_restrictor_class {
  public:
-  bilinear_restrictor_coarse_class() { }
+  bilinear_restrictor_coarse_class(int i)
+    : bilinear_restrictor_class(i) { }
   void interface(Fab& patch, const Box& region,
 	         MultiFab& fine, const copy_cache*,
 		 const level_interface& interface,
@@ -87,7 +90,9 @@ const amr_restrictor_class error_restrictor;
 const cell_average_restrictor_class cell_average_restrictor;
 const injection_restrictor_class injection_restrictor;
 const default_restrictor_class default_restrictor;
-const bilinear_restrictor_class bilinear_restrictor;
-const bilinear_restrictor_coarse_class bilinear_restrictor_coarse;
+const bilinear_restrictor_class bilinear_restrictor(0);
+const bilinear_restrictor_coarse_class bilinear_restrictor_coarse(0);
+const bilinear_restrictor_class bilinear_integrator(1);
+const bilinear_restrictor_coarse_class bilinear_integrator_coarse(1);
 
 #endif
