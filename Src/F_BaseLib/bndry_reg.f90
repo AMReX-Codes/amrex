@@ -12,6 +12,10 @@ module bndry_reg_module
      type(layout), pointer :: laf(:,:) => Null()
   end type bndry_reg
 
+  interface destroy
+     module procedure bndry_reg_destroy
+  end interface
+
 contains
 
   subroutine bndry_reg_destroy(br)
