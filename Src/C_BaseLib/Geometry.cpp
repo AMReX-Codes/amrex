@@ -1,5 +1,5 @@
 //
-// $Id: Geometry.cpp,v 1.59 2001-08-15 21:51:55 almgren Exp $
+// $Id: Geometry.cpp,v 1.60 2001-08-22 19:21:00 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -450,7 +450,10 @@ Geometry::Geometry (const Box& dom)
 
 Geometry::Geometry (const Geometry& g)
 {
-    define(g.domain);
+    ok     = g.ok;
+    domain = g.domain;
+
+    D_TERM(dx[0]=g.dx[0];,dx[1]=g.dx[1];,dx[2]=g.dx[2];)
 }
 
 Geometry::~Geometry() {}
@@ -468,8 +471,10 @@ Geometry::define (const Box& dom)
     }
     if (spherical_origin_fix == 1)
     {
-	if (c_sys == SPHERICAL && prob_domain.lo(0) == 0 && BL_SPACEDIM > 1) {
-            prob_domain.setLo(0,2.*dx[0]);
+	if (c_sys == SPHERICAL && prob_domain.lo(0) == 0 && BL_SPACEDIM > 1)
+        {
+            prob_domain.setLo(0,2*dx[0]);
+
             for (int k = 0; k < BL_SPACEDIM; k++)
             {
                 dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
