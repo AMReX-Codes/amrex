@@ -1,5 +1,5 @@
 c
-c $Id: COORDSYS_2D.F,v 1.8 2001-08-15 19:23:55 lijewski Exp $
+c $Id: COORDSYS_2D.F,v 1.9 2002-11-14 23:04:56 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -100,8 +100,7 @@ c========================================================
         elseif(coord .eq. 2) then
            vol = RZFACTOR*(ro**3-ri**3)*(cos(pi)-cos(po))/three
         else
-            write(6,*) ' bogus value of coord ... bndrylib::SETVOLPT'
-            stop
+            call bl_abort('bogus value of coord ... bndrylib::SETVOLPT')
         endif
 
         return
@@ -165,8 +164,7 @@ c
                 end do
              end do
           else
-             write(6,*)'setdloga: illega direction ',dir
-             stop
+             call bl_abort('setdloga: illegal direction')
           end if
        else if( coord .eq. 2) then
           if(dir .eq. 0) then
@@ -194,8 +192,7 @@ c
                 enddo
              enddo
 	  else
-          write(6,*)'setdloga: illegal coordinate system ',coord
-          stop
+          call bl_abort('setdloga: illegal coordinate system')
 	  endif
        end if
        
@@ -287,7 +284,7 @@ c
                  enddo
               else
                  write(6,*)' bogus dir ', dir
-                 stop
+                 call bl_abort(" ")
               endif
 
        end if

@@ -1,5 +1,5 @@
 c
-c $Id: FLUXREG_2D.F,v 1.7 2000-06-02 17:09:16 lijewski Exp $
+c $Id: FLUXREG_2D.F,v 1.8 2002-11-14 23:04:56 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -124,12 +124,10 @@ c        ::::: flux normal to X direction
          ic = ARG_L1(reg)
          i = ic*ratiox
          if (ARG_L1(reg) .ne. ARG_H1(reg)) then
-            write(6,*) "FORT_FRFINEADD: bad register direction"
-            stop
+            call bl_abort("FORT_FRFINEADD: bad register direction")
          end if
          if (i .lt. ARG_L1(flx) .or. i .gt. ARG_H1(flx)) then
-            write(6,*) "FORT_FRFINEADD: index outside flux range"
-            stop
+            call bl_abort("FORT_FRFINEADD: index outside flux range")
          end if
          do n = 1, numcomp
             do off = 0, ratioy-1
@@ -144,12 +142,10 @@ c        ::::: flux normal to Y direction
          jc = ARG_L2(reg)
          j = jc*ratioy
          if (ARG_L2(reg) .ne. ARG_H2(reg)) then
-            write(6,*) "FORT_FRFINEADD: bad register direction"
-            stop
+            call bl_abort("FORT_FRFINEADD: bad register direction")
          end if
          if (j .lt. ARG_L2(flx) .or. j .gt. ARG_H2(flx)) then
-            write(6,*) "FORT_FRFINEADD: index outside flux range"
-            stop
+            call bl_abort("FORT_FRFINEADD: index outside flux range")
          end if
          do n = 1, numcomp
             do off = 0, ratiox-1
@@ -205,12 +201,10 @@ c        ::::: flux normal to X direction
          ic = ARG_L1(reg)
          i = ic*ratiox
          if (ARG_L1(reg) .ne. ARG_H1(reg)) then
-            write(6,*) "FORT_FRFAADD: bad register direction"
-            stop
+            call bl_abort("FORT_FRFAADD: bad register direction")
          end if
          if (i .lt. ARG_L1(flx) .or. i .gt. ARG_H1(flx)) then
-            write(6,*) "FORT_FRFAADD: index outside flux range"
-            stop
+            call bl_abort("FORT_FRFAADD: index outside flux range")
          end if
          do n = 1, numcomp
             do off = 0, ratioy-1
@@ -225,12 +219,10 @@ c        ::::: flux normal to Y direction
          jc = ARG_L2(reg)
          j = jc*ratioy
          if (ARG_L2(reg) .ne. ARG_H2(reg)) then
-            write(6,*) "FORT_FRFAADD: bad register direction"
-            stop
+            call bl_abort("FORT_FRFAADD: bad register direction")
          end if
          if (j .lt. ARG_L2(flx) .or. j .gt. ARG_H2(flx)) then
-            write(6,*) "FORT_FRFAADD: index outside flux range"
-            stop
+            call bl_abort("FORT_FRFAADD: index outside flux range")
          end if
          do n = 1, numcomp
             do off = 0, ratiox-1
