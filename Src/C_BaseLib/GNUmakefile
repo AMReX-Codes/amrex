@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.8 1998-05-01 18:23:58 car Exp $
+# $Id: GNUmakefile,v 1.9 1998-08-20 17:40:10 car Exp $
 #
 
 #
@@ -72,6 +72,11 @@ INCLUDE_LOCATIONS += $(MPI_HOME)/include
 LIBRARY_LOCATIONS += $(MPI_HOME)/lib/alpha/ch_p4
 LIBRARIES += -lmpi
 endif
+
+ifeq ($(KCC_VERSION),3.3)
+CXXFLAGS+=--one_instantiation_per_object
+endif
+
 
 all: $(optionsLib)
 
