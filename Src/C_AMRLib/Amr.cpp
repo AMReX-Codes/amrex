@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.72 1999-03-05 23:18:37 almgren Exp $
+// $Id: Amr.cpp,v 1.73 1999-03-11 17:48:39 marc Exp $
 //
 
 #include <TagBox.H>
@@ -190,7 +190,7 @@ Amr::Amr ()
     //
     for (i = 0; i < nlev; i++)
     {
-        dt_level[i] = 0.0;
+        dt_level[i] = 1.e20; // something nonzero
         level_steps[i] = 0;
         level_count[i] = 0;
         regrid_int[i] = 0;
