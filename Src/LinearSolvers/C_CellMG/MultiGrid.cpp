@@ -1,6 +1,6 @@
 
 //
-// $Id: MultiGrid.cpp,v 1.24 2000-12-01 23:35:19 marc Exp $
+// $Id: MultiGrid.cpp,v 1.25 2001-02-01 23:17:57 lijewski Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -85,17 +85,18 @@ MultiGrid::initialize ()
     pp.query("nu_b", def_nu_b);
     pp.query("numLevelsMAX", def_numLevelsMAX);
     pp.query("smooth_on_cg_unstable", def_smooth_on_cg_unstable);
-    int ii = 0;
-    pp.query("cg_solver", ii );
-    switch (ii)
-      {
-      case 0: def_cg_solver = CGSolver::CG; break;
-      case 1: def_cg_solver = CGSolver::BiCGStab; break;
-      case 2: def_cg_solver = CGSolver::CG_Alt; break;
-      default:
-	BoxLib::Error("MultiGrid::initialize(): bad cg_solver value");
-      }
-	
+    int ii;
+    if (pp.query("cg_solver", ii ))
+    {
+        switch (ii)
+        {
+        case 0: def_cg_solver = CGSolver::CG; break;
+        case 1: def_cg_solver = CGSolver::BiCGStab; break;
+        case 2: def_cg_solver = CGSolver::CG_Alt; break;
+        default:
+            BoxLib::Error("MultiGrid::initialize(): bad cg_solver value");
+        }
+    }
 
     if (ParallelDescriptor::IOProcessor() && def_verbose)
     {

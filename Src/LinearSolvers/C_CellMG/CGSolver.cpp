@@ -1,6 +1,6 @@
 
 //
-// $Id: CGSolver.cpp,v 1.21 2000-10-02 20:51:16 lijewski Exp $
+// $Id: CGSolver.cpp,v 1.22 2001-02-01 23:17:57 lijewski Exp $
 //
 
 // Conjugate gradient support
@@ -42,16 +42,18 @@ CGSolver::initialize ()
     pp.query("maxiter", def_maxiter);
     pp.query("v", def_verbose);
     pp.query("unstable_criterion",def_unstable_criterion);
-    int ii = 0;
-    pp.query("cg_solver", ii);
-    switch (ii)
-      {
-      case 0: def_cg_solver = CG; break;
-      case 1: def_cg_solver = BiCGStab; break;
-      case 2: def_cg_solver = CG_Alt; break;
-      default:
-	BoxLib::Error("CGSolver::initialize(): bad cg_solver");
-      }
+    int ii;
+    if (pp.query("cg_solver", ii))
+    {
+        switch (ii)
+        {
+        case 0: def_cg_solver = CG; break;
+        case 1: def_cg_solver = BiCGStab; break;
+        case 2: def_cg_solver = CG_Alt; break;
+        default:
+            BoxLib::Error("CGSolver::initialize(): bad cg_solver");
+        }
+    }
 
     if (ParallelDescriptor::IOProcessor() && def_verbose)
     {
