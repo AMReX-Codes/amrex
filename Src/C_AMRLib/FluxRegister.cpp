@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.8 1998-03-30 20:23:46 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.9 1998-03-30 20:45:51 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -9,8 +9,6 @@
 
 #include <FLUXREG_F.H>
 #include <ParallelDescriptor.H>
-
-const char NL = '\n';
 
 #define DEF_CLIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();          \
@@ -55,8 +53,7 @@ FluxRegister::define (const BoxArray& fine_boxes,
     ncomp = nvar;
     grids.define(fine_boxes);
     grids.coarsen(ratio);
-    int dir;
-    for (dir = 0; dir < BL_SPACEDIM; dir++)
+    for (int dir = 0; dir < BL_SPACEDIM; dir++)
     {
         Orientation lo_face(dir,Orientation::low);
         Orientation hi_face(dir,Orientation::high);
@@ -194,6 +191,7 @@ FluxRegister::Reflux (MultiFab&       S,
                 // it back later, so the overall change is nil.  But to do
                 // this, I have to cheat and do a cast.  This is pretty 
                 // disgusting.
+                //
                 FArrayBox &cheatvol = *(FArrayBox *)&vol;
                 cheatvol.shift(iv);
                 const int *vlo = cheatvol.loVect();
@@ -243,10 +241,6 @@ FluxRegister::Reflux (MultiFab&       S,
         ++ifbi;
     }
     fillBoxIdList.clear();
-
-
-    //cout << "_in Reflux 1:  CopyDescriptor stats:" << endl;
-    //fscd.PrintStats();
 
     fscd.CollectData();
 
@@ -320,18 +314,19 @@ FluxRegister::Reflux (MultiFab&       S,
             {
                 Array<IntVect> pshifts(27);
                 geom.periodicShift(bx,s_box,pshifts);
-                for (int iiv=0; iiv<pshifts.length(); iiv++)
+                for (int iiv = 0; iiv < pshifts.length(); iiv++)
                 {
                     IntVect iv = pshifts[iiv];
                     s.shift(iv);
-                    const int *slo = s.loVect();
-                    const int *shi = s.hiVect();
+                    const int* slo = s.loVect();
+                    const int* shi = s.hiVect();
                     //
                     // This is a funny situation.  I don't want to permanently
                     // change vol, but I need to do a shift on it.  I'll shift
                     // it back later, so the overall change is nil.  But to do
                     // this, I have to cheat and do a cast.  This is pretty 
                     // disgusting.
+                    //
                     FArrayBox &cheatvol = *(FArrayBox *)&vol;
                     cheatvol.shift(iv);
                     const int *vlo = cheatvol.loVect();
@@ -346,9 +341,11 @@ FluxRegister::Reflux (MultiFab&       S,
                     for(OrientationIter fi; fi; ++fi) {
                         Orientation face = fi();
                         Box fine_face(adjCell(reg_box,face));
+                        //
                         // low(hight)  face of fine grid => high (low)
                         // face of the exterior crarse grid cell updated.
                         // adjust sign of scale accordingly.
+                        //
                         Real mult = (face.isLow() ? -scale : scale);
                         Box ovlp(s_box);
                         ovlp &= fine_face;
@@ -379,7 +376,6 @@ FluxRegister::Reflux (MultiFab&       S,
             }
         }
     }
-
 }
 
 void
@@ -455,13 +451,16 @@ FluxRegister::Reflux (MultiFab&       S,
                 {
                     Orientation face = fi();
                     Box fine_face(adjCell(reg_box,face));
+                    //
                     // low(hight)  face of fine grid => high (low)
                     // face of the exterior coarse grid cell updated.
                     // adjust sign of scale accordingly.
+                    //
                     Real mult = (face.isLow() ? -scale : scale);
                     Box ovlp(s_box);
                     ovlp &= fine_face;
-                    if(ovlp.ok()) {
+                    if (ovlp.ok())
+                    {
                         Box regBox(bndry[face].box(k));
                         BoxList unfilledBoxes(regBox.ixType());
 
@@ -495,10 +494,6 @@ FluxRegister::Reflux (MultiFab&       S,
         ++ifbi;
     }
     fillBoxIdList.clear();
-
-
-    //cout << "_in Reflux 2:  CopyDescriptor stats:" << endl;
-    //fscd.PrintStats();
 
     fscd.CollectData();
 
@@ -611,26 +606,6 @@ if(src_comp != 0) {
 
 void
 FluxRegister::CrseInit (const MultiFab& mflx,
-                        int             dir,
-                        int             srccomp,
-                        int             destcomp,
-                        int             numcomp,
-                        Real            mult)
-{
-if(ParallelDescriptor::NProcs() > 1) {
-  ParallelDescriptor::Abort("CrseInit(multifab, ...) not implemented in parallel.");
-} else {
-  cerr << "CrseInit(multifab, ...) not implemented in parallel.\n";
-}
-    const BoxArray& bxa = mflx.boxArray();
-    for(ConstMultiFabIterator mfi(mflx); mfi.isValid(); ++mfi) {
-        assert(mfi.validbox() == bxa[mfi.index()]);
-        CrseInit(mfi(),mfi.validbox(),dir,srccomp,destcomp,numcomp,mult);
-    }
-}
-
-void
-FluxRegister::CrseInit (const MultiFab& mflx,
                         const MultiFab& area,
                         int             dir,
                         int             srccomp,
@@ -696,9 +671,6 @@ FluxRegister::CrseInit (const MultiFab& mflx,
         }
       }
     }
-
-    //cout << "_in CrseInit:  CopyDescriptor stats:" << endl;
-    //mfcd.PrintStats();
 
     mfcd.CollectData();
 
@@ -901,16 +873,19 @@ FluxRegister::CrseInitFinish ()
         long t_long = fabComTag.box.numPts() * fabComTag.nComp * sizeof(Real);
         assert(t_long < INT_MAX);
         int shouldReceiveBytes = int(t_long);
-        if (dataWaitingSize != shouldReceiveBytes) {
+        if (dataWaitingSize != shouldReceiveBytes)
+        {
             cerr << "Error in FluxRegister::CrseInitFinish():  "
                  << "dataWaitingSize != shouldReceiveBytes:  = "
-                 << dataWaitingSize << " != " << shouldReceiveBytes << NL;
+                 << dataWaitingSize << " != " << shouldReceiveBytes
+                 << '\n';
             BoxLib::Abort("Bad received nbytes");
         }
         if (!fabComTag.box.ok())
         {
             cerr << "Error in FluxRegister::CrseInitFinish():  "
-                 << "bad fabComTag.box\n";
+                 << "bad fabComTag.box"
+                 << '\n';
             BoxLib::Abort("Bad received box");
         }
 
@@ -924,71 +899,6 @@ FluxRegister::CrseInitFinish ()
                                                        fabComTag.destComp,
                                                        fabComTag.nComp);
     }
-}
-
-void
-FluxRegister::CrseInit (const FArrayBox& flux,
-                        const FArrayBox& area,
-                        const Box&       subbox,
-                        int              dir,
-                        int              srccomp,
-                        int              destcomp,
-                        int              numcomp,
-                        Real             mult)
-{
-  ParallelDescriptor::Abort("CrseInit(fab, fab, ...) not implemented in parallel.");
-/*
-    int nvf = flux.nComp();
-    assert(srccomp >= 0 && srccomp+numcomp <= nvf);
-    assert(destcomp >= 0 && destcomp+numcomp <= ncomp);
-
-    const Box& flxbox = flux.box();
-    assert(flxbox.contains(subbox));
-    const int* flo = flxbox.loVect();
-    const int* fhi = flxbox.hiVect();
-    const Real* flx_dat = flux.dataPtr(srccomp);
-
-    const Box& areabox = area.box();
-    assert(areabox.contains(subbox));
-    const int* alo = areabox.loVect();
-    const int* ahi = areabox.hiVect();
-    const Real* area_dat = area.dataPtr();
-
-    int nreg = grids.length();
-    int k;
-    for (k = 0; k < nreg; k++) {
-        Orientation face_lo(dir,Orientation::low);
-        FArrayBox& loreg = bndry[face_lo][k];
-        Box lobox(loreg.box());
-        lobox &= subbox;
-        if (lobox.ok()) {
-            const int* rlo = loreg.loVect();
-            const int* rhi = loreg.hiVect();
-            Real* lodat = loreg.dataPtr(destcomp);
-            const int* lo = lobox.loVect();
-            const int* hi = lobox.hiVect();
-            FORT_FRCAINIT(lodat,ARLIM(rlo),ARLIM(rhi),
-                          flx_dat,ARLIM(flo),ARLIM(fhi),
-                          area_dat,ARLIM(alo),ARLIM(ahi),         
-                          lo,hi,&numcomp,&dir,&mult);
-        }
-        Orientation face_hi(dir,Orientation::high);
-        FArrayBox& hireg = bndry[face_hi][k];
-        Box hibox(hireg.box());
-        hibox &= subbox;
-        if (hibox.ok()) {
-            const int* rlo = hireg.loVect();
-            const int* rhi = hireg.hiVect();
-            Real* hidat = hireg.dataPtr(destcomp);
-            const int* lo = hibox.loVect();
-            const int* hi = hibox.hiVect();
-            FORT_FRCAINIT(hidat,ARLIM(rlo),ARLIM(rhi), 
-                          flx_dat,ARLIM(flo),ARLIM(fhi),
-                          area_dat,ARLIM(alo),ARLIM(ahi),lo,hi,&numcomp,
-                          &dir,&mult);
-        }
-    }
-*/
 }
 
 void
@@ -1112,29 +1022,4 @@ FluxRegister::FineAdd (const FArrayBox& flux,
                  flxdat,ARLIM(flo),ARLIM(fhi),
                  area_dat,ARLIM(alo),ARLIM(ahi),
                  &numcomp,&dir,ratio.getVect(),&mult);
-}
-
-void
-FluxRegister::print (ostream &os)
-{
-//if(ParallelDescriptor::NProcs() > 1 ) {
-  ParallelDescriptor::Abort("FluxRegister::print() not implemented in parallel.");
-//}
-/*
-    int ngrd = grids.length();
-    os << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n";
-    os << "FluxRegister with coarse level = " << crseLevel() << NL;
-    int k;
-    for (k = 0; k < ngrd; k++) {
-        os << "  Registers surrounding coarsened box " << grids[k] << NL;
-        int comp;
-        for (comp = 0; comp < ncomp; comp++) {
-            for (OrientationIter face; face; ++face) {
-                const FArrayBox& reg = bndry[face()][k];
-                printFAB(os,reg,comp);
-            }
-        }
-    }
-    os << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << NL;
-*/
 }

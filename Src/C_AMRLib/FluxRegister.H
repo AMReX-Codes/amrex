@@ -4,7 +4,7 @@
 #define _FLUXREGISTER_H_
 
 //
-// $Id: FluxRegister.H,v 1.5 1998-03-30 20:23:45 lijewski Exp $
+// $Id: FluxRegister.H,v 1.6 1998-03-30 20:45:51 lijewski Exp $
 //
 
 #include <BndryRegister.H>
@@ -85,11 +85,7 @@ public:
     ///coarse-fine fixup
 
 ///
-    void CrseInit(const MultiFab& mflx, int dir,
-                  int srccomp, int destcomp, int numcomp,
-                  Real mult = -1.0);
 
-///
     void CrseInit(const MultiFab& mflx, const MultiFab& area, int dir,
                   int srccomp, int destcomp, int numcomp,
                   Real mult = -1.0);
@@ -100,12 +96,6 @@ public:
                   Real mult = -1.0);
 
     void CrseInitFinish();
-///
-    void CrseInit(const FArrayBox& flux, const FArrayBox& area,
-                  const Box& subbox, int dir,
-                  int srccomp, int destcomp, int numcomp,
-                  Real mult = -1.0);
-
 ///
     void FineAdd(const MultiFab& mflx, int dir, 
                  int srccomp, int destcomp, int numcomp, Real mult);
@@ -131,9 +121,6 @@ public:
       //@ManDoc: constant volume version of reflux
     void Reflux(MultiFab& mf, Real scale,
                 int srccomp, int destcomp, int numcomp, const Geometry&geom);
-
-//@ManDoc: i-o function
-    void print(ostream& os);
 
 protected:
       
