@@ -4,7 +4,7 @@
 #define BL_ARITHFAB_H
 
 //
-// $Id: ArithFab.H,v 1.1 1997-12-14 01:05:52 lijewski Exp $
+// $Id: ArithFab.H,v 1.2 1998-04-30 16:35:33 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -82,23 +82,6 @@ public:
                   const Box&         srcbox,
                   int                reversal_index,
                   T*                 multiplier);
-
-#if !defined(BL_CRAY_BUG_DEFARG)
-
-    /*@ManDoc: Copies with a reversal.  The index that is
-               reversed is reversal\_index.  Comp is the component copied.
-               This is not defined if the macro BL\_CRAY\_BUG\_DEFARG is
-               defined.
-    */
-    friend void copyFABRev (const ArithFab<T>& src,
-                            const Box&         srcbox,
-                            ArithFab<T>&       dest,
-                            const Box&         destbox,
-                            int                reversal_index,
-                            int                comp,
-                            T                  multiplier);
-#endif
-
     //
     //@ManDoc: Compute sum of given component of FAB state vector.
     //
@@ -528,6 +511,10 @@ ArithFab<T>::copyRev (const Box&         destbox,
     } EndFor
 }
 
+#if !defined(BL_CRAY_BUG_DEFARG)
+//
+// Yes, a global function.
+//
 template <class T>
 void
 copyFABRev (const ArithFab<T>& src,
@@ -543,6 +530,7 @@ copyFABRev (const ArithFab<T>& src,
         destR = multiplier * srcR;
     } EndFor
 }
+#endif
 
 template <class T>
 T
