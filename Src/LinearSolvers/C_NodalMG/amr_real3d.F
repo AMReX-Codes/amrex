@@ -1594,26 +1594,30 @@ c each face is two faces and an edge
  250        continue
          fac2 = ir * fac0
          cfac = 0.5d0 * cube * fac0 * kr * (jr-1)
-         do 270 ji = 0, 1
+         do ji = 0, 1
             jdir = 2 * ji - 1
             if (ga(0,ji,0) + ga(1,ji,0) .eq. 2) then
-               do 260 l = 0, kr-1
+               do l = 0, kr-1
                   fac1 = (kr-l) * fac2
                   if (l .eq. 0) fac1 = 0.5d0 * fac1
-                  do 260 n = jdir, jdir*(jr-1), jdir
+                  do n = jdir, jdir*(jr-1), jdir
                      fac = (jr-abs(n)) * fac1
-                     do 260 k = regl2, regh2
- 260                    dest(i,j,k) = dest(i,j,k) +
+                     do k = regl2, regh2
+                        dest(i,j,k) = dest(i,j,k) +
      &                    fac * (src(i*ir,j*jr+n,k*kr-l) +
      &                           src(i*ir,j*jr+n,k*kr+l))
+                     end do
+                  end do
+               end do
             else if (integ .eq. 0) then
                center = center + cfac
             end if
- 270        continue
+            end do
 c center
-         do 280 k = regl2, regh2
- 280        dest(i,j,k) = dest(i,j,k) +
+         do k = regl2, regh2
+            dest(i,j,k) = dest(i,j,k) +
      &        center * src(i*ir,j*jr,k*kr)
+         end do
       end if
       end
 
@@ -1647,106 +1651,122 @@ c Handles any corner geometry except all-coarse.
          fac0 = 1.d0 / cube
       end if
 c octants
-      do 20 ki = 0, 1
+      do ki = 0, 1
          kdir = 2 * ki - 1
-         do 20 ji = 0, 1
+         do ji = 0, 1
             jdir = 2 * ji - 1
-            do 20 ii = 0, 1
+            do ii = 0, 1
                idir = 2 * ii - 1
                if (ga(ii,ji,ki) .eq. 1) then
-                  do 10 l = kdir, kdir*(kr-1), kdir
+                  do l = kdir, kdir*(kr-1), kdir
                      fac2 = (kr-abs(l)) * fac0
-                     do 10 n = jdir, jdir*(jr-1), jdir
+                     do n = jdir, jdir*(jr-1), jdir
                         fac1 = (jr-abs(n)) * fac2
-                        do 10 m = idir, idir*(ir-1), idir
+                        do m = idir, idir*(ir-1), idir
                            fac = (ir-abs(m)) * fac1
- 10                        dest(i,j,k) = dest(i,j,k) +
+                           dest(i,j,k) = dest(i,j,k) +
      &                       fac * src(i*ir+m,j*jr+n,k*kr+l)
+                        end do
+                     end do
+                  end do
                else if (integ .eq. 0) then
                   center = center + cfac
                end if
- 20            continue
+            end do
+         end do
+      end do
 c faces
       fac2 = kr * fac0
       cfac = 0.25d0 * cube * fac0 * (ir-1) * (jr-1)
-      do 40 ji = 0, 1
+      do ji = 0, 1
          jdir = 2 * ji - 1
-         do 40 ii = 0, 1
+         do ii = 0, 1
             idir = 2 * ii - 1
             if (ga(ii,ji,0) + ga(ii,ji,1) .eq. 2) then
-               do 30 n = jdir, jdir*(jr-1), jdir
+               do n = jdir, jdir*(jr-1), jdir
                   fac1 = (jr-abs(n)) * fac2
-                  do 30 m = idir, idir*(ir-1), idir
+                  do m = idir, idir*(ir-1), idir
                      fac = (ir-abs(m)) * fac1
- 30                  dest(i,j,k) = dest(i,j,k) +
+                     dest(i,j,k) = dest(i,j,k) +
      &                 fac * src(i*ir+m,j*jr+n,k*kr)
+                  end do
+               end do
             else if (integ .eq. 0) then
                center = center + cfac
             end if
- 40         continue
+         end do
+      end do
       fac2 = jr * fac0
       cfac = 0.25d0 * cube * fac0 * (ir-1) * (kr-1)
-      do 60 ki = 0, 1
+      do ki = 0, 1
          kdir = 2 * ki - 1
-         do 60 ii = 0, 1
+         do ii = 0, 1
             idir = 2 * ii - 1
             if (ga(ii,0,ki) + ga(ii,1,ki) .eq. 2) then
-               do 50 l = kdir, kdir*(kr-1), kdir
+               do l = kdir, kdir*(kr-1), kdir
                   fac1 = (kr-abs(l)) * fac2
-                  do 50 m = idir, idir*(ir-1), idir
+                  do m = idir, idir*(ir-1), idir
                      fac = (ir-abs(m)) * fac1
- 50                  dest(i,j,k) = dest(i,j,k) +
+                     dest(i,j,k) = dest(i,j,k) +
      &                 fac * src(i*ir+m,j*jr,k*kr+l)
+                  end do
+               end do
             else if (integ .eq. 0) then
                center = center + cfac
             end if
- 60         continue
+         end do
+      end do
       fac2 = ir * fac0
       cfac = 0.25d0 * cube * fac0 * (jr-1) * (kr-1)
-      do 80 ki = 0, 1
+      do ki = 0, 1
          kdir = 2 * ki - 1
-         do 80 ji = 0, 1
+         do ji = 0, 1
             jdir = 2 * ji - 1
             if (ga(0,ji,ki) + ga(1,ji,ki) .eq. 2) then
-               do 70 l = kdir, kdir*(kr-1), kdir
+               do l = kdir, kdir*(kr-1), kdir
                   fac1 = (kr-abs(l)) * fac2
-                  do 70 n = jdir, jdir*(jr-1), jdir
+                  do n = jdir, jdir*(jr-1), jdir
                      fac = (jr-abs(n)) * fac1
- 70                  dest(i,j,k) = dest(i,j,k) +
+                     dest(i,j,k) = dest(i,j,k) +
      &                 fac * src(i*ir,j*jr+n,k*kr+l)
+                  end do
+               end do
             else if (integ .eq. 0) then
                center = center + cfac
             end if
- 80         continue
+         end do
+      end do
 c edges
       fac1 = jr * kr * fac0
       cfac = 0.5d0 * cube * fac0 * (ir-1)
-      do 100 ii = 0, 1
+      do ii = 0, 1
          idir = 2 * ii - 1
          if (ga(ii,0,0) + ga(ii,0,1) +
      &       ga(ii,1,0) + ga(ii,1,1) .eq. 4) then
-            do 90 m = idir, idir*(ir-1), idir
+            do m = idir, idir*(ir-1), idir
                fac = (ir-abs(m)) * fac1
- 90            dest(i,j,k) = dest(i,j,k) +
+               dest(i,j,k) = dest(i,j,k) +
      &           fac * src(i*ir+m,j*jr,k*kr)
+            end do
          else if (integ .eq. 0) then
             center = center + cfac
          end if
- 100     continue
+      end do
       fac1 = ir * kr * fac0
       cfac = 0.5d0 * cube * fac0 * (jr-1)
-      do 120 ji = 0, 1
+      do ji = 0, 1
          jdir = 2 * ji - 1
          if (ga(0,ji,0) + ga(0,ji,1) +
      &       ga(1,ji,0) + ga(1,ji,1) .eq. 4) then
-            do 110 n = jdir, jdir*(jr-1), jdir
+            do n = jdir, jdir*(jr-1), jdir
                fac = (jr-abs(n)) * fac1
- 110           dest(i,j,k) = dest(i,j,k) +
-     &           fac * src(i*ir,j*jr+n,k*kr)
+               dest(i,j,k) = dest(i,j,k) +
+     &            fac * src(i*ir,j*jr+n,k*kr)
+            end do
          else if (integ .eq. 0) then
             center = center + cfac
          end if
- 120     continue
+      end do
       fac1 = ir * jr * fac0
       cfac = 0.5d0 * cube * fac0 * (kr-1)
       do ki = 0, 1

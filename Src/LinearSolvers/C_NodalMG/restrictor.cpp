@@ -29,15 +29,11 @@ extern "C"
     void FORT_FACRST1(Real*, intS, intS, const Real*, intS, intRS, const int&);
     void FORT_FANRST1(Real*, intS, intS, const Real*, intS, intRS);
     void FORT_FANRST2(Real*, intS, intS, const Real*, intS, intRS, const int&);
-    void FORT_FANFR2(Real*, intS, intS, const Real*, intS,
-	intRS, const int&, const int&, const int&);
-    void FORT_FANER2(Real*, intS, intS, const Real*, intS,
-	intRS, const int*, const int*, const int&);
+    void FORT_FANFR2(Real*, intS, intS, const Real*, intS, intRS, const int&, const int&, const int&);
+    void FORT_FANER2(Real*, intS, intS, const Real*, intS, intRS, const int*, const int*, const int&);
     void FORT_FANCR2(Real*, intS, intS, const Real*, intS, intRS, const int*, const int&);
-    void FORT_FANOR2(Real*, intS, intS, const Real*, intS,
-	intRS, const int&, const int&, const int&);
-    void FORT_FANIR2(Real*, intS, intS, const Real*, intS,
-	intRS, const int&, const int&, const int&);
+    void FORT_FANOR2(Real*, intS, intS, const Real*, intS, intRS, const int&, const int&, const int&);
+    void FORT_FANIR2(Real*, intS, intS, const Real*, intS, intRS, const int&, const int&, const int&);
     void FORT_FANDR2(Real*, intS, intS, const Real*, intS, intRS, const int&, const int&);
 }
 
