@@ -129,21 +129,18 @@ ifeq ($(ARCH),FreeBSD)
 endif
 
 ifeq ($(ARCH),Linux)
-  ifdef MPI
-    ifndef MPICHHOME
-      $(error "MPI needed but MPIHOME not defined")
-    endif
-    mpi_home = $(MPICHHOME)
-    mpi_include = $(mpi_home)/include
-    mpi_lib = $(mpi_home)/lib
-    mpi_libraries = -lmpich -lfmpich
-  endif
   ifeq ($(COMP),PathScale)
-    FC = pathf90
-    F90 = pathf90
-    FFLAGS += -nog77mangle
-    F90FLAGS += -nog77mangle
+    ifdef MPI
+      FC = mpif90
+      F90 = mpif90
+    else
+      FC = pathf90
+      F90 = pathf90
+    endif
+    FC += -module $(mdir) -I$(mdir) -I$(MPIHOME)/include
+    F90 += -module $(mdir) -I$(mdir) -I$(MPIHOME)/include
     CC  = pathcc
+    F_C_LINK := DBL_UNDERSCORE
     ifndef NDEBUG
       F90FLAGS += -g
       FFLAGS += -g
@@ -155,7 +152,7 @@ ifeq ($(ARCH),Linux)
       FFLAGS += -Ofast
       CFLAGS += -Ofast
     endif
-    LDFLAGS += -static
+#   LDFLAGS += -static
     CPPFLAGS += -DBL_HAS_SECOND
   endif
   ifeq ($(COMP),Intel)

@@ -50,13 +50,13 @@ module mboxarray_module
 
 contains
 
-  pure function mboxarray_dim(mba) result(r)
+  function mboxarray_dim(mba) result(r)
     integer :: r
     type(mboxarray), intent(in) :: mba
     r = mba%dim
   end function mboxarray_dim
 
-  pure function mboxarray_get_nlevel(mba) result(r)
+  function mboxarray_get_nlevel(mba) result(r)
     integer :: r
     type(mboxarray), intent(in) :: mba
     r = mba%nlevel
