@@ -4,7 +4,7 @@
 #define _HGPARALLEL_H_
 
 //
-// $Id: hgparallel.h,v 1.68 1999-01-29 19:24:01 lijewski Exp $
+// $Id: hgparallel.h,v 1.69 1999-01-29 23:19:51 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -21,20 +21,26 @@
 //#error Must define BL_USE_MPI in this file
 #endif
 
-inline int processor_number (const MultiFab& r,
-                             int             igrid)
+inline
+int
+processor_number (const MultiFab& r,
+                  int             igrid)
 {
     return r.DistributionMap()[igrid];
 }
 
-inline bool is_remote (const MultiFab& r,
-                       int             igrid)
+inline
+bool
+is_remote (const MultiFab& r,
+           int             igrid)
 {
     return ParallelDescriptor::MyProc() != processor_number(r, igrid);
 }
 
-inline bool is_local (const MultiFab& r,
-                      int             igrid)
+inline
+bool
+is_local (const MultiFab& r,
+          int             igrid)
 {
     return ParallelDescriptor::MyProc() == processor_number(r, igrid);
 }
@@ -67,6 +73,7 @@ class task_list;
 class task
 {
 public:
+
     class task_proxy
     {
     public:
@@ -175,7 +182,9 @@ public:
     virtual void hint () const;
     void print_dependencies (ostream& os) const;
     sequence_number get_sequence_number () const { return m_sno; }
+
 protected:
+
     void _do_depend ();
     void _hint () const;
     //
@@ -185,6 +194,7 @@ protected:
     list<task_proxy>      dependencies;
     bool                  m_started;
     task_list&            m_task_list;
+
 private:
     //
     // Not defined.
@@ -196,6 +206,7 @@ private:
 class task_list
 {
 public:
+
     explicit task_list ();
     ~task_list ();
     task::task_proxy add_task (task* t);
@@ -219,20 +230,22 @@ public:
         return tmp;
     }
     void print_dependencies (ostream& os) const;
+
 private:
     //
     // The data.
     //
-    list< task::task_proxy > tasks;
-    task::sequence_number    seq_no;
-    int                      seq_delta;
-    bool                     verbose;
-    static bool              def_verbose;
+    list<task::task_proxy> tasks;
+    task::sequence_number  seq_no;
+    int                    seq_delta;
+    bool                   verbose;
+    static bool            def_verbose;
 };
 
 class task_copy : public task
 {
 public:
+
     task_copy (task_list&      tl_,
                MultiFab&       mf,
                int             dgrid,
@@ -262,6 +275,7 @@ public:
     virtual void hint () const;
     virtual bool startup ();
     virtual bool work_to_do () const;
+
 protected:
     //
     // Common function called by constructors.
@@ -287,6 +301,7 @@ protected:
 class task_copy_local : public task
 {
 public:
+
     task_copy_local (task_list&      tl_,
                      FArrayBox*      fab_,
                      int             target_proc_id,
@@ -320,6 +335,7 @@ private:
 class task_fab : public task
 {
 public:
+
     task_fab (task_list&      tl_,
               const MultiFab& t_,
               int             tt_,
@@ -329,7 +345,9 @@ public:
     virtual ~task_fab ();
     virtual const FArrayBox& fab ();
     virtual bool work_to_do () const;
+
 protected:
+
     int target_proc_id () const { return m_target_proc_id; }
     //
     // The data.
@@ -346,6 +364,7 @@ class amr_boundary_class;
 class task_fill_patch : public task_fab
 {
 public:
+
     task_fill_patch (task_list&                tl_,
                      const MultiFab&           t_,
                      int                       tt_,
@@ -358,11 +377,13 @@ public:
 
     virtual ~task_fill_patch ();
     virtual bool work_to_do () const;
+
 private:
+
     bool fill_patch_blindly ();
     bool fill_exterior_patch_blindly ();
     void fill_patch ();
-private:
+
     const MultiFab&           r;
     const level_interface&    lev_interface;
     const amr_boundary_class* bdy;
@@ -373,20 +394,27 @@ private:
 class task_fec_base : public task
 {
 public:
+
     task_fec_base (task_list& tl_,
                    MultiFab&  s_,
                    int        igrid_);
 
     virtual ~task_fec_base ();
+
 protected:
+
     void push_back (task_fab* tf);
+
     bool is_local_target () const { return is_local(s, igrid); }
+
     FArrayBox& target_fab ()
     {
         assert(is_local_target());
         return s[igrid];
     }
+
     int grid_number () const { return igrid; }
+
     const FArrayBox& task_fab_result (int n)
     {
         assert(is_local_target());
@@ -395,14 +423,15 @@ protected:
         assert(tf != 0);
         return tf->fab();
     }
+
     virtual bool work_to_do () const;
-private:
     //
     // The data.
     //
     MultiFab&                s;
     const int                igrid;
     vector<task::task_proxy> tfvect;
+    bool                     done;
 };
 
 #endif /*_HGPARALLEL_H_*/

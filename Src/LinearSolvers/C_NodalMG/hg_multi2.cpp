@@ -78,6 +78,8 @@ public:
 
 private:
 
+    void doit ();
+
     FCERES          f;
     const MultiFab& s;
     const MultiFab& d;
@@ -116,34 +118,46 @@ task_fceres_2::task_fceres_2 (FCERES          f_,
 {
     push_back(c_);
     push_back(sc_);
-    for (int i = 0; i < BL_SPACEDIM; ++i)
-    {
-        h[i] = h_[i];
-    }
+
+    for (int i = 0; i < BL_SPACEDIM; ++i) h[i] = h_[i];
+
+    if (is_local_target() && dependencies.empty()) doit();
 }
 
 bool
 task_fceres_2::ready ()
 {
-    if (is_local_target())
-    {
-        const int        igrid      = grid_number();
-        FArrayBox&       r_fab      = target_fab();
-        const Box&       r_fab_box  = r_fab.box();
-        const FArrayBox& s_fab      = s[igrid];
-        const Box&       s_fab_box  = s_fab.box();
-        const FArrayBox& d_fab      = d[igrid];
-        const Box&       d_fab_box  = d_fab.box();
-        const FArrayBox& c_fab      = task_fab_result(0);
-        const Box&       c_fab_box  = c_fab.box();
-        const FArrayBox& sg_fab     = sg[igrid];
-        const Box&       sg_fab_box = sg_fab.box();
-        const FArrayBox& sc_fab     = task_fab_result(1);
-        const Box&       sc_fab_box = sc_fab.box();
- 
-       (*f)(r_fab.dataPtr(), DIMLIST(r_fab_box), s_fab.dataPtr(), DIMLIST(s_fab_box), d_fab.dataPtr(), DIMLIST(d_fab_box), c_fab.dataPtr(), DIMLIST(c_fab_box), sg_fab.dataPtr(), DIMLIST(sg_fab_box), sc_fab.dataPtr(), DIMLIST(sc_fab_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir);
-    }
+    assert(!done);
+
+    if (is_local_target()) doit();
+
     return true;
+}
+
+void
+task_fceres_2::doit ()
+{
+    assert(!done);
+    assert(is_local_target());
+    assert(dependencies.empty());
+
+    done = true;
+
+    const int        igrid      = grid_number();
+    FArrayBox&       r_fab      = target_fab();
+    const Box&       r_fab_box  = r_fab.box();
+    const FArrayBox& s_fab      = s[igrid];
+    const Box&       s_fab_box  = s_fab.box();
+    const FArrayBox& d_fab      = d[igrid];
+    const Box&       d_fab_box  = d_fab.box();
+    const FArrayBox& c_fab      = task_fab_result(0);
+    const Box&       c_fab_box  = c_fab.box();
+    const FArrayBox& sg_fab     = sg[igrid];
+    const Box&       sg_fab_box = sg_fab.box();
+    const FArrayBox& sc_fab     = task_fab_result(1);
+    const Box&       sc_fab_box = sc_fab.box();
+ 
+    (*f)(r_fab.dataPtr(), DIMLIST(r_fab_box), s_fab.dataPtr(), DIMLIST(s_fab_box), d_fab.dataPtr(), DIMLIST(d_fab_box), c_fab.dataPtr(), DIMLIST(c_fab_box), sg_fab.dataPtr(), DIMLIST(sg_fab_box), sc_fab.dataPtr(), DIMLIST(sc_fab_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir);
 }
 
 class task_fceres_4 : public task_fec_base
@@ -168,6 +182,8 @@ public:
     virtual bool ready ();
 
 private:
+
+    void doit ();
 
     FCERES          f;
     const MultiFab& s;
@@ -205,35 +221,50 @@ task_fceres_4::task_fceres_4 (FCERES            f_,
     push_back(cc_);
     push_back(sigmaf_);
     push_back(sigmac_);
+
     for (int i = 0; i < BL_SPACEDIM; ++i)
     {
         h[i] = h_[i];
         t[i] = t_[i];
     }
+
+    if (is_local_target() && dependencies.empty()) doit();
 }
 
 bool
 task_fceres_4::ready ()
 {
-    if (is_local_target())
-    {
-        const int        igrid          = grid_number();
-        FArrayBox&       r_fab          = target_fab();
-        const Box&       r_fab_box      = r_fab.box();
-        const FArrayBox& s_fab          = s[igrid];
-        const Box&       s_fab_box      = s_fab.box();
-        const FArrayBox& ff_fab         = task_fab_result(0);
-        const Box&       ff_fab_box     = ff_fab.box();
-        const FArrayBox& cc_fab         = task_fab_result(1);
-        const Box&       cc_fab_box     = cc_fab.box();
-        const FArrayBox& sigmaf_fab     = task_fab_result(2);
-        const Box&       sigmaf_fab_box = sigmaf_fab.box();
-        const FArrayBox& sigmac_fab     = task_fab_result(3);
-        const Box&       sigmac_fab_box = sigmac_fab.box();
+    assert(!done);
 
-        (*f)(r_fab.dataPtr(), DIMLIST(r_fab_box), s_fab.dataPtr(), DIMLIST(s_fab_box), ff_fab.dataPtr(), DIMLIST(ff_fab_box), cc_fab.dataPtr(), DIMLIST(cc_fab_box), sigmaf_fab.dataPtr(), DIMLIST(sigmaf_fab_box), sigmac_fab.dataPtr(), DIMLIST(sigmac_fab_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), t.dataPtr());
-    }
+    if (is_local_target()) doit();
+
     return true;
+}
+
+void
+task_fceres_4::doit ()
+{
+    assert(!done);
+    assert(is_local_target());
+    assert(dependencies.empty());
+
+    done = true;
+
+    const int        igrid          = grid_number();
+    FArrayBox&       r_fab          = target_fab();
+    const Box&       r_fab_box      = r_fab.box();
+    const FArrayBox& s_fab          = s[igrid];
+    const Box&       s_fab_box      = s_fab.box();
+    const FArrayBox& ff_fab         = task_fab_result(0);
+    const Box&       ff_fab_box     = ff_fab.box();
+    const FArrayBox& cc_fab         = task_fab_result(1);
+    const Box&       cc_fab_box     = cc_fab.box();
+    const FArrayBox& sigmaf_fab     = task_fab_result(2);
+    const Box&       sigmaf_fab_box = sigmaf_fab.box();
+    const FArrayBox& sigmac_fab     = task_fab_result(3);
+    const Box&       sigmac_fab_box = sigmac_fab.box();
+
+    (*f)(r_fab.dataPtr(), DIMLIST(r_fab_box), s_fab.dataPtr(), DIMLIST(s_fab_box), ff_fab.dataPtr(), DIMLIST(ff_fab_box), cc_fab.dataPtr(), DIMLIST(cc_fab_box), sigmaf_fab.dataPtr(), DIMLIST(sigmaf_fab_box), sigmac_fab.dataPtr(), DIMLIST(sigmac_fab_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), t.dataPtr());
 }
 
 void
@@ -411,7 +442,7 @@ holy_grail_amr_multigrid::build_sync_cache (int mglev,
 	const IntVect t = lev_interface[mglev].box(1, iedge).type();
 	cbox = lev_interface[mglev].node_box(1, iedge);
 	cbox.coarsen(rat).grow(t);
-	fbox = refine(cbox, rat);
+	fbox = ::refine(cbox, rat);
 	Box& sigmafbox = eres_sfbox[lev][iedge];
 	Box& sigmacbox = eres_scbox[lev][iedge];
 	sigmafbox = fbox;

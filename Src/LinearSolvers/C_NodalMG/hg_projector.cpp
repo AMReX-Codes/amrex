@@ -107,6 +107,8 @@ public:
 
 private:
 
+    void doit ();
+
     FECFUNC         f;
     const MultiFab& S;
     const Box       creg;
@@ -147,28 +149,42 @@ task_fecavg::task_fecavg (FECFUNC         f_,
 #endif
 {
     push_back(tf_);
+
+    if (is_local_target() && dependencies.empty()) doit();
 }
 
 bool
 task_fecavg::ready ()
 {
-    if (is_local_target())
-    {
-        const int        igrid    = grid_number();
-        FArrayBox&       sfab     = target_fab();
-        const Box&       sfab_box = sfab.box();
-        const FArrayBox& cfab     = task_fab_result(0);
-        const Box&       cfab_box = cfab.box();
-        const FArrayBox& Sfab     = S[igrid];
-        const Box&       Sfab_box = Sfab.box();
+    assert(!done);
 
-        (*f)(sfab.dataPtr(), DIMLIST(sfab_box), cfab.dataPtr(), DIMLIST(cfab_box), Sfab.dataPtr(), DIMLIST(Sfab_box), DIMLIST(creg), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir
-#if BL_SPACEDIM == 2
-             , &hx, &isRZ, &imax
-#endif
-	    );
-    }
+    if (is_local_target()) doit();
+
     return true;
+}
+
+void
+task_fecavg::doit ()
+{
+    assert(!done);
+    assert(is_local_target());
+    assert(dependencies.empty());
+
+    done = true;
+
+    const int        igrid    = grid_number();
+    FArrayBox&       sfab     = target_fab();
+    const Box&       sfab_box = sfab.box();
+    const FArrayBox& cfab     = task_fab_result(0);
+    const Box&       cfab_box = cfab.box();
+    const FArrayBox& Sfab     = S[igrid];
+    const Box&       Sfab_box = Sfab.box();
+
+    (*f)(sfab.dataPtr(), DIMLIST(sfab_box), cfab.dataPtr(), DIMLIST(cfab_box), Sfab.dataPtr(), DIMLIST(Sfab_box), DIMLIST(creg), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir
+#if BL_SPACEDIM == 2
+         , &hx, &isRZ, &imax
+#endif
+        );
 }
 
 class task_fecavg_2 : public task_fec_base
@@ -193,6 +209,9 @@ public:
     virtual bool ready ();
 
 private:
+
+    void doit ();
+
     FECFUNC          f;
     const Box        creg;
     const IntVect    rat;
@@ -232,28 +251,42 @@ task_fecavg_2::task_fecavg_2 (FECFUNC           f_,
 {
     push_back(Sfp_);
     push_back(Scp_);
+
+    if (is_local_target() && dependencies.empty()) doit();
 }
 
 bool
 task_fecavg_2::ready ()
 {
-    if (is_local_target())
-    {
-        const int        igrid      = grid_number();
-        FArrayBox&       sfab       = target_fab();
-        const Box&       sfab_box   = sfab.box();
-        const FArrayBox& Sf_fab     = task_fab_result(0);
-        const Box&       Sf_fab_box =  Sf_fab.box();
-        const FArrayBox& Sc_fab     = task_fab_result(1);
-        const Box&       Sc_fab_box = Sc_fab.box();
+    assert(!done);
 
-        (*f)(sfab.dataPtr(), DIMLIST(sfab_box), Sf_fab.dataPtr(), DIMLIST(Sf_fab_box), Sc_fab.dataPtr(), DIMLIST(Sc_fab_box), DIMLIST(creg), D_DECL( rat[0], rat[1], rat[2]), t.getVect(), ga.dataPtr()
-#if BL_SPACEDIM == 2
-             , &hx, &isRZ, &imax
-#endif
-	    );
-    }
+    if (is_local_target()) doit();
+
     return true;
+}
+
+void
+task_fecavg_2::doit ()
+{
+    assert(!done);
+    assert(is_local_target());
+    assert(dependencies.empty());
+
+    done = true;
+
+    const int        igrid      = grid_number();
+    FArrayBox&       sfab       = target_fab();
+    const Box&       sfab_box   = sfab.box();
+    const FArrayBox& Sf_fab     = task_fab_result(0);
+    const Box&       Sf_fab_box =  Sf_fab.box();
+    const FArrayBox& Sc_fab     = task_fab_result(1);
+    const Box&       Sc_fab_box = Sc_fab.box();
+
+    (*f)(sfab.dataPtr(), DIMLIST(sfab_box), Sf_fab.dataPtr(), DIMLIST(Sf_fab_box), Sc_fab.dataPtr(), DIMLIST(Sc_fab_box), DIMLIST(creg), D_DECL( rat[0], rat[1], rat[2]), t.getVect(), ga.dataPtr()
+#if BL_SPACEDIM == 2
+         , &hx, &isRZ, &imax
+#endif
+        );
 }
 
 class task_fecdiv : public task_fec_base
@@ -281,11 +314,12 @@ public:
 #endif
 	);
 
+    virtual ~task_fecdiv ();
     virtual bool ready ();
 
-    virtual ~task_fecdiv ();
-
 private:
+
+    void doit ();
 
     FECDIV        f;
     MultiFab*     upt[BL_SPACEDIM];
@@ -332,28 +366,42 @@ task_fecdiv::task_fecdiv (FECDIV         f_,
         push_back(ucp_[i]);
         h[i] = h_[i];
     }
+
+    if (is_local_target() && dependencies.empty()) doit();
 }
 
 bool
 task_fecdiv::ready ()
 {
-    if (is_local_target())
-    {
-        const int   igrid           = grid_number();
-        FArrayBox&  s               = target_fab();
-        const Box&  s_box           = target_fab().box();
-        const Real* up[BL_SPACEDIM] = { D_DECL( upt[0]->operator[](igrid).dataPtr(), upt[1]->operator[](igrid).dataPtr(), upt[2]->operator[](igrid).dataPtr() ) };
-        const Box&  up_box          = upt[0]->operator[](igrid).box();
-        const Real* uc[BL_SPACEDIM] = { D_DECL( task_fab_result(0).dataPtr(), task_fab_result(1).dataPtr(), task_fab_result(2).dataPtr() ) };
-        const Box&  uc_box          = task_fab_result(0).box();
+    assert(!done);
 
-        (*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(up[0], up[1], up[2]), DIMLIST(up_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir
-#if BL_SPACEDIM == 2
-             , &isRZ, &imax
-#endif
-            );
-    }
+    if (is_local_target()) doit();
+
     return true;
+}
+
+void
+task_fecdiv::doit ()
+{
+    assert(!done);
+    assert(is_local_target());
+    assert(dependencies.empty());
+
+    done = true;
+
+    const int   igrid           = grid_number();
+    FArrayBox&  s               = target_fab();
+    const Box&  s_box           = target_fab().box();
+    const Real* up[BL_SPACEDIM] = { D_DECL( upt[0]->operator[](igrid).dataPtr(), upt[1]->operator[](igrid).dataPtr(), upt[2]->operator[](igrid).dataPtr() ) };
+    const Box&  up_box          = upt[0]->operator[](igrid).box();
+    const Real* uc[BL_SPACEDIM] = { D_DECL( task_fab_result(0).dataPtr(), task_fab_result(1).dataPtr(), task_fab_result(2).dataPtr() ) };
+    const Box&  uc_box          = task_fab_result(0).box();
+
+    (*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(up[0], up[1], up[2]), DIMLIST(up_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir
+#if BL_SPACEDIM == 2
+         , &isRZ, &imax
+#endif
+        );
 }
 
 task_fecdiv::~task_fecdiv ()
@@ -379,6 +427,8 @@ public:
 
     virtual bool ready ();
 private:
+
+    void doit ();
 
     FECDIV           f;
     const Box        creg;
@@ -416,24 +466,38 @@ task_fecdiv_2::task_fecdiv_2 (FECDIV            f_,
         push_back(ufp_[i]);
         h[i]   = h_[i];
     }
+
+    if (is_local_target() && dependencies.empty()) doit();
 }
 
 bool
 task_fecdiv_2::ready ()
 {
-    if (is_local_target())
-    {
-        const int   igrid           = grid_number();
-        FArrayBox&  s               = target_fab();
-        const Box&  s_box           = target_fab().box();
-        const Real* uf[BL_SPACEDIM] = { D_DECL( task_fab_result(BL_SPACEDIM+0).dataPtr(), task_fab_result(BL_SPACEDIM+1).dataPtr(), task_fab_result(BL_SPACEDIM+2).dataPtr() ) };
-        const Box&  uf_box          = task_fab_result(3).box();
-        const Real* uc[BL_SPACEDIM] = { D_DECL( task_fab_result(0).dataPtr(), task_fab_result(1).dataPtr(), task_fab_result(2).dataPtr() ) };
-        const Box&  uc_box          = task_fab_result(0).box();
+    assert(!done);
 
-        (*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(uf[0], uf[1], uf[2]), DIMLIST(uf_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), t.getVect());
-    }
+    if (is_local_target()) doit();
+
     return true;
+}
+
+void
+task_fecdiv_2::doit ()
+{
+    assert(!done);
+    assert(is_local_target());
+    assert(dependencies.empty());
+
+    done = true;
+
+    const int   igrid           = grid_number();
+    FArrayBox&  s               = target_fab();
+    const Box&  s_box           = target_fab().box();
+    const Real* uf[BL_SPACEDIM] = { D_DECL( task_fab_result(3).dataPtr(), task_fab_result(4).dataPtr(), task_fab_result(5).dataPtr() ) };
+    const Box&  uf_box          = task_fab_result(3).box();
+    const Real* uc[BL_SPACEDIM] = { D_DECL( task_fab_result(0).dataPtr(), task_fab_result(1).dataPtr(), task_fab_result(2).dataPtr() ) };
+    const Box&  uc_box          = task_fab_result(0).box();
+
+    (*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(uf[0], uf[1], uf[2]), DIMLIST(uf_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), t.getVect());
 }
 
 PArray<MultiFab> null_amr_real;
