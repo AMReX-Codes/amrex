@@ -26,11 +26,6 @@ c-----------------------------------------------------------------------
       double precision fac0, fac1, tmp
       integer i, j, is, js, m, n
       integer idd1
-//      double precision MXX, MYY
-//      MXX(ii,jj) = ( cdst(ii,jj) - cdst(i,jj)
-//     &     + 2.0*(cdst(ii,j) - cdst(i,j)))
-//      MYY(ii,jj) = ( cdst(ii,jj) - cdst(ii,j)
-//     &     + 2.0*(cdst(i,jj) - cdst(i,j)))
       if (idim .eq. 0) then
          i = regl0
          if (idir .eq. 1) then
