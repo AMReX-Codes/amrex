@@ -120,9 +120,9 @@ task_bdy_fill::task_bdy_fill (task_list&                tl_,
     m_target_proc_id(target_proc_id),
     m_local(false)
 {
-    m_bx = m_bdy->image(m_region,m_smf.boxArray()[m_sgrid],m_domain);
-
     BL_ASSERT(m_bdy != 0);
+
+    m_bx = m_bdy->image(m_region,m_smf.boxArray()[m_sgrid],m_domain);
 
     if (m_fab != 0 && is_local(m_smf,m_sgrid))
     {
@@ -130,14 +130,6 @@ task_bdy_fill::task_bdy_fill (task_list&                tl_,
 
 	m_bdy->fill(*m_fab, m_region, m_smf[m_sgrid], m_domain);
     }
-
-    Box fabbox = ::grow(m_smf.boxArray()[m_sgrid],m_smf.nGrow());
-
-    if (!fabbox.contains(m_bx))
-        //
-        // No work to do -- skip bad code in mixed_boundary_class::fill().
-        //
-        m_local = true;
 }
 
 task_bdy_fill::~task_bdy_fill ()
@@ -780,7 +772,6 @@ fill_internal_borders (MultiFab&              r,
 	    if (igrid < 0 || jgrid < 0 || lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL)
 		break;
 	    const Box& b = lev_interface.node_box(level_interface::FACEDIM, iface);
-	    // tl.add_task(new task_copy_2(r, igrid, r, jgrid, b, w));
             const int idim = lev_interface.fdim(iface);
             Box bj = lev_interface.node_box(level_interface::FACEDIM, iface);
             Box bi = lev_interface.node_box(level_interface::FACEDIM, iface);
