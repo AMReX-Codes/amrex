@@ -1,16 +1,20 @@
 //
-// $Id: BoxLib.cpp,v 1.21 2001-07-22 23:25:24 car Exp $
+// $Id: BoxLib.cpp,v 1.22 2001-07-23 17:39:00 lijewski Exp $
 //
 
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <new>
 
 #include <BoxLib.H>
 #include <BLVERSION.H>
+#include <FArrayBox.H>
 #include <ParallelDescriptor.H>
+#include <ParmParse.H>
 #include <Profiler.H>
+#include <Utility.H>
 
 #define bl_str(s)  # s
 #define bl_xstr(s) bl_str(s)
@@ -138,18 +142,61 @@ BoxLib::OutOfMemory (const char* file,
 
 namespace
 {
-Profiler* bl_prf;
+    Profiler* bl_prf;
+
+    void PrintUsage (int, char *argv[])
+    {
+        std::cerr << "usage:\n";
+        std::cerr << argv[0] << " infile [options] \n\tOptions:\n";
+        std::cerr << "\t     [<root>.]<var>  = <val_list>\n";
+        std::cerr << "\tor  -[<root>.]<var>\n";
+        std::cerr << "\t where:\n";
+        std::cerr << "\t    <root>     =  class name of variable\n";
+        std::cerr << "\t    <var>      =  variable name\n";
+        std::cerr << "\t    <val_list> =  list of values\n";
+
+        BoxLib::Error();
+    }
+
 }
 
 void
 BoxLib::Initialize(int& argc, char**& argv)
 {
     static Profiler::Tag bl_prf_tag("BoxLib");
+
+#ifndef WIN32
+    //
+    // Make sure to catch new failures.
+    //
+    std::set_new_handler(BoxLib::OutOfMemory);
+#endif
+
     bl_prf = new Profiler(bl_prf_tag, true);
     bl_prf->start();
-    Profiler::Initialize(argc, argv);
+
     ParallelDescriptor::StartParallel(&argc, &argv);
     
+    if (argc < 2)
+        PrintUsage(argc,argv);
+
+    if (argv[1][0] == '-')
+    {
+        std::cerr << "input file must be first argument\n";
+        PrintUsage(argc, argv);
+    }
+
+    ParmParse pp(argc-2,argv+2,NULL,argv[1]); 
+
+    Profiler::Initialize(argc, argv);
+    //
+    // Initialize random seed after we're running in parallel.
+    //
+    BoxLib::InitRandom(ParallelDescriptor::MyProc() + 1);
+
+    FArrayBox::init();
+
+    std::cout << std::setprecision(10);
 }
 
 void

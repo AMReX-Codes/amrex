@@ -2,7 +2,7 @@
 #define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.23 2001-07-20 16:54:08 lijewski Exp $
+// $Id: FArrayBox.H,v 1.24 2001-07-23 17:39:00 lijewski Exp $
 //
 
 #include <Pointers.H>
@@ -352,17 +352,16 @@ public:
     */
     static void setFABio (FABio* rd);
 
-    ///
-    static bool set_do_initval(bool tf);
-    static bool get_do_initval();
-    static Real set_initval(Real iv);
-    static Real get_initval();
-
-protected:
+    static bool set_do_initval (bool tf);
+    static bool get_do_initval ();
+    static Real set_initval    (Real iv);
+    static Real get_initval    ();
     //
     // Initialize from ParmParse with "fab" prefix.
     //
     static void init ();
+
+protected:
     //
     // Format and ordering for all FAB output.
     // This stuff exists solely to support reading old FABs.
@@ -370,17 +369,15 @@ protected:
     static FABio::Format   format;
     static FABio::Ordering ordering;
     //
-    // Has init() been called?
-    //
-    static bool Initialized;
-    //
     // The FABio pointer describing our output format.
     //
     static FABio* fabio;
-
+    //
     // initial value
+    //
     static bool do_initval;
     static Real initval;
+
 private:
     //
     // These are disallowed.
