@@ -178,6 +178,7 @@ public:
     }
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
+	task::init(sno, comm);
 	bool result = is_local(s, igrid);
 	for(int i = 0; i < BL_SPACEDIM; ++i)
 	{
