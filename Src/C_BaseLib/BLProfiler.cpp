@@ -1,5 +1,5 @@
 //
-// $Id: BLProfiler.cpp,v 1.17 2001-07-31 17:56:25 lijewski Exp $
+// $Id: BLProfiler.cpp,v 1.18 2001-08-14 22:21:08 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -547,11 +547,13 @@ Profiler::Initialize(int& argc, char**& argv)
     ParmParse pp("profiler");
     pp.query("filename", filename);
     pp.query("mma", mma);
+    pp.query("profiling", profiling);
     pp.query("verbose", verbose);
     if ( verbose )
     {
 	std::cout << "profiler.filename" << filename << std::endl;
 	std::cout << "profiler.mma" << mma << std::endl;
+	std::cout << "profiler.profiling" << profiling << std::endl;
 	std::cout << "profiler.verbose" << verbose << std::endl;
     }
 }
