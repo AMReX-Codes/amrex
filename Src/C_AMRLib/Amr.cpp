@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.60 1998-11-03 21:53:05 almgren Exp $
+// $Id: Amr.cpp,v 1.61 1998-11-04 20:30:22 almgren Exp $
 //
 
 #include <TagBox.H>
@@ -335,18 +335,6 @@ Amr::Amr ()
     int k;
     for (k = 0; k <= max_level; k++)
         regrid_int[k] = ri;
-    if (!sub_cycle)
-    {
-        //
-        // Must adjust regridding trigger.
-        //
-        int factor = 1;
-        for (k = max_level-1; k >= 0; k--)
-        {
-            factor *= MaxRefRatio(k);
-            regrid_int[k] = ri*factor;
-        }
-    }
 }
 
 bool
