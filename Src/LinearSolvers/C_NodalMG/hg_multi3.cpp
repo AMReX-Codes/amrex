@@ -272,6 +272,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		    const Box& cenbox = cn_dmfi->box();
 		    if(m_hg_cross_stencil)
 		    {
+#if BL_SPACEDIM==2
 			DependentMultiFabIterator sg_dmfi(r_mfi, sigma[mglev]);
 			DependentMultiFabIterator s0_dmfi(r_mfi, sigma_nd[0][mglev]);
 			DependentMultiFabIterator s1_dmfi(r_mfi, sigma_nd[1][mglev]);
@@ -285,6 +286,14 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 			    DIMLIST(freg), DIMLIST(tdom),
 			    hx, hy,
 			    IsRZ(), mg_domain[mglev].bigEnd(0), line_solve_dim);
+#else
+                        const Box& sigbox = sn_dmfi->box();
+                        FORT_HGRLXL(c_dmfi->dataPtr(), DIMLIST(fbox),
+                            r_mfi->dataPtr(), DIMLIST(sbox),
+                            sn_dmfi->dataPtr(), DIMLIST(sigbox),
+                            cn_dmfi->dataPtr(), DIMLIST(cenbox),
+                            DIMLIST(freg), DIMLIST(tdom), line_solve_dim);
+#endif
 		    }
 		    else
 		    {
@@ -320,6 +329,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
     }
     else 
     {
+	BoxLib::Error("Line Solves aren't parallelized");
 	// Full-level line solve section:
 	if (line_order.length() == 0) 
 	{
