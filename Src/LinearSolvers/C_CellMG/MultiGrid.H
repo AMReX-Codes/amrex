@@ -4,7 +4,7 @@
 #define _MULTIGRID_H_
 
 //
-// $Id: MultiGrid.H,v 1.8 2000-08-24 16:02:46 car Exp $
+// $Id: MultiGrid.H,v 1.9 2000-08-30 19:19:13 car Exp $
 //
 
 #include <Array.H>
@@ -211,6 +211,12 @@ public:
 
     CGSolver::Solver getCGSolver() const;
     void setCGSolver(CGSolver::Solver solver_);
+
+    void set_maxiter_b (int n);
+    //
+    //@ManDoc: get the maximum permitted relative tolerance
+    //
+    int  get_maxiter_b () const;
 protected:
     //@ManMemo: Internal members
     
@@ -305,6 +311,7 @@ protected:
     //@ManDoc: default relative, absolute tolerance for cg solve
     //
     static Real def_rtol_b, def_atol_b;
+    static int def_maxiter_b;
     //
     //@ManDoc: default maximum number of mg levels
     //
@@ -345,9 +352,10 @@ protected:
     //
     int usecg;
     //
-    //@ManDoc: relative, absolute tolerance
+    //@ManDoc: relative, absolute tolerance, maxiter for cg bottom solver.
     //
     Real rtol_b, atol_b;
+    int maxiter_b;
     //
     //@ManDoc: maximum number of mg levels
     //
@@ -376,7 +384,7 @@ protected:
     //@ManDoc: internal reference to linear operator
     //
     LinOp &Lp;
-    
+
 private:
     //
     // Flag, whether initialized.
@@ -541,6 +549,20 @@ Real
 MultiGrid::get_rtol_b () const
 {
     return rtol_b;
+}
+
+inline
+void
+MultiGrid::set_maxiter_b (int n)
+{
+    maxiter_b = n;
+}
+
+inline
+int
+MultiGrid::get_maxiter_b () const
+{
+  return maxiter_b;
 }
 
 inline

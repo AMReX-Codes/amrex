@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiGrid.cpp,v 1.20 2000-08-24 22:39:02 car Exp $
+// $Id: MultiGrid.cpp,v 1.21 2000-08-30 19:19:13 car Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -28,15 +28,42 @@ int MultiGrid::def_nu_1         = 2;
 int MultiGrid::def_nu_2         = 2;
 int MultiGrid::def_nu_f         = 8;
 int MultiGrid::def_maxiter      = 40;
+int MultiGrid::def_maxiter_b    = 80;
 int MultiGrid::def_numiter      = -1;
 int MultiGrid::def_verbose      = 0;
 int MultiGrid::def_usecg        = 1;
+#ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
+Real MultiGrid::def_rtol_b      = 0.001;
+#else
 Real MultiGrid::def_rtol_b      = 0.01;
+#endif
 Real MultiGrid::def_atol_b      = -1.0;
 int MultiGrid::def_nu_b         = 0;
 int MultiGrid::def_numLevelsMAX = 1024;
 int MultiGrid::def_smooth_on_cg_unstable = 0;
 CGSolver::Solver MultiGrid::def_cg_solver    = CGSolver::CG;
+
+static
+Real
+norm_inf (const MultiFab& res)
+{
+  Real restot = 0.0;
+  for (ConstMultiFabIterator mfi(res); mfi.isValid(); ++mfi) 
+    {
+      restot = Max(restot, mfi->norm(mfi.validbox(), 0));
+    }
+  ParallelDescriptor::ReduceRealMax(restot);
+  return restot;
+}
+
+static void
+spacer(ostream& os, int lev)
+{
+  for (int k = 0; k < lev; k++)
+    {
+      os << "   ";
+    }
+}
 
 void
 MultiGrid::initialize ()
@@ -46,6 +73,7 @@ MultiGrid::initialize ()
     initialized = true;
 
     pp.query("maxiter", def_maxiter);
+    pp.query("maxiter_b", def_maxiter_b);
     pp.query("numiter", def_numiter);
     pp.query("nu_0", def_nu_0);
     pp.query("nu_1", def_nu_1);
@@ -79,6 +107,7 @@ MultiGrid::initialize ()
         cout << "   def_nu_f =         " << def_nu_f         << '\n';
         cout << "   def_maxiter =      " << def_maxiter      << '\n';
         cout << "   def_usecg =        " << def_usecg        << '\n';
+        cout << "   def_maxiter_b =      " << def_maxiter_b  << '\n';
         cout << "   def_rtol_b =       " << def_rtol_b       << '\n';
         cout << "   def_atol_b =       " << def_atol_b       << '\n';
         cout << "   def_nu_b =         " << def_nu_b         << '\n';
@@ -104,6 +133,7 @@ MultiGrid::MultiGrid (LinOp &_Lp)
     nu_f         = def_nu_f;
     usecg        = def_usecg;
     verbose      = def_verbose;
+    maxiter_b   = def_maxiter_b;
     rtol_b       = def_rtol_b;
     atol_b       = def_atol_b;
     nu_b         = def_nu_b;
@@ -150,23 +180,8 @@ Real
 MultiGrid::errorEstimate (int            level,
                           LinOp::BC_Mode bc_mode)
 {
-    //
-    // Get inf-norm of residual.
-    //
-    int p = 0;
     Lp.residual(*res[level], *rhs[level], *cor[level], level, bc_mode);
-    Real restot = 0.0;
-    Real resk   = 0.0;
-    const BoxArray& gbox = Lp.boxArray(level);
-    for (MultiFabIterator resmfi(*res[level]); resmfi.isValid(); ++resmfi)
-    {
-        BL_ASSERT(gbox[resmfi.index()] == resmfi.validbox());
-
-        resk   = (resmfi().norm(resmfi.validbox(), p));
-        restot = Max(restot, resk);
-    }
-    ParallelDescriptor::ReduceRealMax(restot);
-    return restot;
+    return norm_inf(*res[level]);
 }
 
 void
@@ -229,7 +244,7 @@ MultiGrid::solve (MultiFab&       _sol,
     // value problem to within relative error _eps_rel.  Customized
     // to solve at level=0.
     //
-    int level = 0;
+    const int level = 0;
     prepareForLevel(level);
     residualCorrectionForm(*rhs[level],_rhs,*cor[level],_sol,bc_mode,level);
     if (!solve_(_sol, _eps_rel, _eps_abs, LinOp::Homogeneous_BC, level))
@@ -245,75 +260,78 @@ MultiGrid::solve_ (MultiFab&      _sol,
                    LinOp::BC_Mode bc_mode,
                    int            level)
 {
-    //
-    // Relax system maxiter times, stop if relative error <= _eps_rel or
-    // if absolute err <= _abs_eps
-    //
-    int  returnVal = 0;
-    Real error0    = errorEstimate(level, bc_mode);
-    Real error     = error0;
-    if (ParallelDescriptor::IOProcessor() && verbose)
+  //
+  // Relax system maxiter times, stop if relative error <= _eps_rel or
+  // if absolute err <= _abs_eps
+  //
+  int  returnVal = 0;
+  const Real error0    = errorEstimate(level, bc_mode);
+  Real error     = error0;
+  if (ParallelDescriptor::IOProcessor() && verbose)
     {
-        for (int k=0; k<level; k++)
-            cout << "   ";
-        cout << "MultiGrid: Initial error (error0) = " << error0 << '\n';
+      spacer(cout, level);
+      cout << "MultiGrid: Initial error (error0) = " << error0 << '\n';
     }
 
-    if (ParallelDescriptor::IOProcessor() && eps_rel < 1.0e-16 && eps_rel > 0)
+  if (ParallelDescriptor::IOProcessor() && eps_rel < 1.0e-16 && eps_rel > 0)
     {
-        cerr << "MultiGrid: Tolerance "
-             << eps_rel
-             << " < 1e-16 is probably set too low" << '\n';
+      cerr << "MultiGrid: Tolerance "
+	   << eps_rel
+	   << " < 1e-16 is probably set too low" << '\n';
     }
-    int nit;
-    //
-    // Initialize correction to zero at this level (auto-filled at levels below)
-    //
-    (*cor[level]).setVal(0.0);
-    //
-    // Note: if eps_rel, eps_abs < 0 then that test is effectively bypassed
-    //
-    for (nit = 0;
-         nit < maxiter &&
-             (nit < numiter || numiter < 0) &&
-             error > eps_rel*error0 &&
-             error > eps_abs;
-         ++nit)
-    {
-        relax(*cor[level], *rhs[level], level, eps_rel, eps_abs, bc_mode);
-        error = errorEstimate(level, bc_mode);
 
-        if (ParallelDescriptor::IOProcessor())
+  //
+  // Initialize correction to zero at this level (auto-filled at levels below)
+  //
+  (*cor[level]).setVal(0.0);
+  //
+  // Note: if eps_rel, eps_abs < 0 then that test is effectively bypassed
+  //
+  const Real norm_rhs = norm_inf(*rhs[level]);
+  const Real norm_Lp  = Lp.norm(0, level);
+  const Real new_error_0 = norm_rhs;
+  Real norm_cor = 0.0;
+  int nit = 1;
+  for (;nit <= maxiter; ++nit)
+    {
+      relax(*cor[level], *rhs[level], level, eps_rel, eps_abs, bc_mode);
+      norm_cor = norm_inf(*cor[level]);
+      error = errorEstimate(level, bc_mode);
+	
+      if ( error < eps_rel*(norm_Lp*norm_cor + norm_rhs ) ) break;
+      //if ( error < eps_rel*error0 ) break;
+      if ( error < eps_abs ) break;
+      if ( nit == numiter ) break;
+      if (ParallelDescriptor::IOProcessor())
         {
-            if (verbose > 1 ||
-                (((eps_rel > 0. && error < eps_rel*error0) ||
-                  (eps_abs > 0. && error < eps_abs)) && verbose))
+	  if (verbose > 1 )
             {
-                for (int k = 0; k < level; k++)
-                    cout << "   ";
-
-                cout << "MultiGrid: Iteration "
-                     << nit
-                     << " error/error0 "
-                     << error/error0 << '\n';
+	      spacer(cout, level);
+	      cout << "MultiGrid: Iteration "
+		   << nit
+		   << " error/error0 "
+		   << error/new_error_0 << '\n';
             }
         }
     }
 
-    if (nit == numiter || error <= eps_rel*error0 || error <= eps_abs)
+  // if (nit == numiter || error <= eps_rel*error0 || error <= eps_abs)
+  if ( nit == numiter
+       || error <= eps_rel*(norm_Lp*norm_cor+norm_rhs)
+       || error <= eps_abs )
     {
-        //
-        // Omit ghost update since maybe not initialized in calling routine.
-        // Add to boundary values stored in initialsolution.
-        //
-        _sol.copy(*cor[level]);
-        _sol.plus(*initialsolution,0,_sol.nComp(),0);
-        returnVal = 1;
+      //
+      // Omit ghost update since maybe not initialized in calling routine.
+      // Add to boundary values stored in initialsolution.
+      //
+      _sol.copy(*cor[level]);
+      _sol.plus(*initialsolution,0,_sol.nComp(),0);
+      returnVal = 1;
     }
-    //
-    // Otherwise, failed to solve satisfactorily
-    //
-    return returnVal;
+  //
+  // Otherwise, failed to solve satisfactorily
+  //
+  return returnVal;
 }
 
 int
@@ -435,6 +453,7 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
         bool use_mg_precond = false;
 	CGSolver cg(Lp, use_mg_precond, level);
 	cg.setExpert(true);
+	cg.setMaxIter(maxiter_b);
 	int ret = cg.solve(solL, rhsL, rtol_b, atol_b, bc_mode, cg_solver);
 	if (ret != 0)
         {

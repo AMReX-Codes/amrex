@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CGSolver.cpp,v 1.18 2000-08-28 15:54:02 car Exp $
+// $Id: CGSolver.cpp,v 1.19 2000-08-30 19:19:13 car Exp $
 //
 
 // Conjugate gradient support
@@ -9,6 +9,9 @@
 #ifdef BL3_PROFILING
 #include <BoxLib3/Profiler.H>
 #endif
+
+#include <iomanip>
+using std::setw;
 
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
@@ -96,46 +99,17 @@ CGSolver::~CGSolver ()
     delete mg_precond;
 }
 
+static
 Real
-CGSolver::norm (const MultiFab& res)
+norm_inf (const MultiFab& res)
 {
-    //
-    // Compute max-norm.
-    //
-    const int p       = 0;
-    Real restot = 0.0;
-    const BoxArray& gbox = res.boxArray();
-
-    for (ConstMultiFabIterator mfi(res); mfi.isValid(); ++mfi) 
+  Real restot = 0.0;
+  for (ConstMultiFabIterator mfi(res); mfi.isValid(); ++mfi) 
     {
-        BL_ASSERT(mfi.validbox() == gbox[mfi.index()]);
-
-        Real resk = mfi().norm(mfi.validbox(), p);
-
-        if (p == 0)
-        {
-            restot = Max(restot, resk);
-        }
-        else if (p == 2)
-        {
-            restot += resk*resk;
-        }
-        else
-        {
-            BoxLib::Error("BOGUS P IN NORM" );
-        } 
+      restot = Max(restot, mfi->norm(mfi.validbox(), 0));
     }
-    if (p == 0)
-    {
-        ParallelDescriptor::ReduceRealMax(restot);
-    }
-    else if (p == 2)
-    {
-        ParallelDescriptor::ReduceRealSum(restot);
-        restot = sqrt(restot);
-    }
-
-    return restot;
+  ParallelDescriptor::ReduceRealMax(restot);
+  return restot;
 }
 
 int
@@ -224,7 +198,7 @@ CGSolver::solve_00 (MultiFab&       sol,
     //
     LinOp::BC_Mode temp_bc_mode=LinOp::Homogeneous_BC;
 
-    Real rnorm  = norm(*r);
+    Real rnorm  = norm_inf(*r);
     Real rnorm0 = rnorm;
     Real minrnorm = rnorm;
     int ret = 0; // will return this value if all goes well
@@ -340,7 +314,7 @@ CGSolver::solve_00 (MultiFab&       sol,
         //
         rhoold = rho;
         update(sol, alpha, *r, *p, *w);
-        rnorm = norm(*r);
+        rnorm = norm_inf(*r);
 	if( rnorm > def_unstable_criterion*minrnorm ){
 	  ret = 2;
 	  break;
@@ -357,7 +331,7 @@ CGSolver::solve_00 (MultiFab&       sol,
             {
 	      spacer(cout, lev);
                 cout << "CGSolver_00: Iteration "
-                     << nit
+                     << setw(4) << nit
                      << " error/error0 "
                      << rnorm/rnorm0 << '\n';
             }
@@ -372,7 +346,7 @@ CGSolver::solve_00 (MultiFab&       sol,
 	  {
 	    spacer(cout, lev);
 	    cout << "CGSolver_00: Final: Iteration "
-		 << nit
+		 << setw(4) << nit
 		 << " error/error0 "
 		 << rnorm/rnorm0 << '\n';
 	  }
@@ -580,11 +554,12 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
   sol.setVal(0.0);
   const LinOp::BC_Mode temp_bc_mode=LinOp::Homogeneous_BC;
 
-  Real rnorm = norm(r);
+  Real rnorm = norm_inf(r);
   const Real rnorm0 = rnorm;
 
   const Real Lp_norm = Lp.norm(0, lev);
   const Real rh_norm =   rnorm0;
+  Real sol_norm = 0.0;
   
   if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
@@ -637,9 +612,10 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
 
       sxay(sol, sol, alpha, ph);
       sxay(s, r, -alpha, v);
-      rnorm = norm(s);
+      rnorm = norm_inf(s);
 #ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
-      if ( rnorm < eps_rel*(Lp_norm*norm(sol) + rh_norm ) || rnorm < eps_abs )
+      sol_norm = norm_inf(sol);
+      if ( rnorm < eps_rel*(Lp_norm*sol_norm + rh_norm ) || rnorm < eps_abs )
 	{
 	  break;
 	}
@@ -657,9 +633,9 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
             {
 	      spacer(cout, lev);
 	      cout << "CGSolver_bicgstab: Half Iter "
-		   << nit
-		   << " error/error0 "
-		   << rnorm/rnorm0 << '\n';
+		   << setw(4) << nit
+		   << " rel. err. "
+		   << rnorm/(Lp_norm*sol_norm+rh_norm) << '\n';
             }
         }
 
@@ -684,9 +660,10 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
 	}
       sxay(sol, sol, omega, sh);
       sxay(r, s, -omega, t);
-      rnorm = norm(r);
+      rnorm = norm_inf(r);
 #ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
-      if ( rnorm < eps_rel*(Lp_norm*norm(sol) + rh_norm ) || rnorm < eps_abs )
+      sol_norm = norm_inf(sol);
+      if ( rnorm < eps_rel*(Lp_norm*sol_norm + rh_norm ) || rnorm < eps_abs )
 	{
 	  break;
 	}
@@ -709,9 +686,9 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
             {
 	      spacer(cout, lev);
 	      cout << "CGSolver_bicgstab: Iteration "
-		   << nit
-		   << " error/error0 "
-		   << rnorm/rnorm0 << '\n';
+		   << setw(4) << nit
+		   << " rel. err. "
+		   << rnorm/(Lp_norm*sol_norm+rh_norm) << '\n';
             }
         }
       rho_1 = rho;
@@ -728,9 +705,9 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
 	{
 	  spacer(cout, lev);
 	  cout << "CGSolver_bicgstab: Final: Iteration "
-	       << nit
-	       << " error/error0 "
-	       << rnorm/rnorm0 << '\n';
+	       << setw(4) << nit
+	       << " rel. err. "
+	       << rnorm/(Lp_norm*sol_norm+rh_norm) << '\n';
 	}
     }
   if( ret != 0 && isExpert == false )
@@ -738,7 +715,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
       BoxLib::Error("CGSolver_bicgstab:: apparent accuracy problem; try expert setting or change unstable_criterion");
     }
 #ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
-  if ( ret == 0 && rnorm < eps_rel*(Lp_norm*norm(sol) + rh_norm ) && rnorm < eps_abs )
+  if ( ret == 0 && rnorm > eps_rel*(Lp_norm*sol_norm + rh_norm ) && rnorm > eps_abs )
     {
       BoxLib::Error("CGSolver_bicgstab:: failed to converge!");
     }
@@ -783,7 +760,7 @@ CGSolver::solve_cg (MultiFab&       sol,
   sol.setVal(0.0);
   const LinOp::BC_Mode temp_bc_mode=LinOp::Homogeneous_BC;
 
-  Real rnorm  = norm(r);
+  Real rnorm  = norm_inf(r);
   const Real rnorm0 = rnorm;
   Real minrnorm = rnorm;
 
@@ -795,7 +772,7 @@ CGSolver::solve_cg (MultiFab&       sol,
 
   const Real Lp_norm = Lp.norm(0, lev);
   const Real rh_norm =   rnorm0;
-
+  Real sol_norm = 0.0;
   int ret = 0;			// will return this value if all goes well
   Real rho_1;
   int nit = 1;
@@ -844,9 +821,10 @@ CGSolver::solve_cg (MultiFab&       sol,
         }
       sxay(sol, sol, alpha, p);
       sxay(  r,   r,-alpha, q);
-      rnorm = norm(r);
+      rnorm = norm_inf(r);
+      sol_norm = norm_inf(sol);
 #ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
-      if ( rnorm < eps_rel*(Lp_norm*norm(sol) + rh_norm) || rnorm < eps_abs )
+      if ( rnorm < eps_rel*(Lp_norm*sol_norm + rh_norm) || rnorm < eps_abs )
 	{
 	  break;
 	}
@@ -875,9 +853,9 @@ CGSolver::solve_cg (MultiFab&       sol,
             {
 	      spacer(cout, lev);
 	      cout << "CGSolver_cg: Iteration "
-		   << nit
-		   << " error/error0 "
-		   << rnorm/rnorm0 << '\n';
+		   << setw(4) << nit
+		   << " rel. err. "
+		   << rnorm/(Lp_norm*sol_norm+rh_norm) << '\n';
             }
         }
       rho_1 = rho;
@@ -891,9 +869,9 @@ CGSolver::solve_cg (MultiFab&       sol,
 	{
 	  spacer(cout, lev);
 	  cout << "CGSolver_cg: Final: Iteration "
-	       << nit
-	       << " error/error0 "
-	       << rnorm/rnorm0 << '\n';
+	       << setw(4) << nit
+	       << " rel. err. "
+	       << rnorm/(Lp_norm*sol_norm+rh_norm) << '\n';
 	}
     }
   if ( ret != 0 && !isExpert )
@@ -901,7 +879,7 @@ CGSolver::solve_cg (MultiFab&       sol,
       BoxLib::Error("CGSolver_cg:: apparent accuracy problem; try expert setting or change unstable_criterion");
     }
 #ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
-  if ( ret == 0 && rnorm > eps_rel*(Lp_norm*norm(sol) + rh_norm) && rnorm > eps_abs )
+  if ( ret == 0 && rnorm > eps_rel*(Lp_norm*sol_norm + rh_norm) && rnorm > eps_abs )
     {
       BoxLib::Error("CGSolver_cg:: failed to converge!");
     }

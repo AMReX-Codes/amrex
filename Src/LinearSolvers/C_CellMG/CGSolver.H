@@ -4,7 +4,7 @@
 #define _CGSOLVER_H_
 
 //
-// $Id: CGSolver.H,v 1.7 2000-08-28 15:54:01 car Exp $
+// $Id: CGSolver.H,v 1.8 2000-08-30 19:19:13 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -200,10 +200,6 @@ protected:
     Real axp (MultiFab&      w,
               MultiFab&      p,
               LinOp::BC_Mode bc_mode);
-    //
-    //@ManDoc: compute a suitable norm of the residual, used to check stopping criteria
-    //
-    static Real norm (const MultiFab& res);
     //
     //@ManDoc: Initialized yet?
     //
