@@ -1,6 +1,6 @@
 
 //
-// $Id: LinOp.cpp,v 1.25 2001-03-20 19:42:02 car Exp $
+// $Id: LinOp.cpp,v 1.26 2001-04-23 19:33:42 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -179,7 +179,7 @@ public:
   task_applybc_orientation(const OrientationIter& oitr_,
 			   int level_,
 			   int flagden_, int flagbc_, int maxorder_,
-			   MultiFab& inout_, int srccomp_, int numcomp_,
+			   MultiFab& inout_, int src_comp_, int num_comp_,
 			   int cdr_,
 			   const Array< Array<BoundCond> >&  b_, const Array<Real>& r_,
 			   const FabSet& fs_,
@@ -209,7 +209,7 @@ private:
 
 task_applybc_orientation::task_applybc_orientation(const OrientationIter& oitr_, int level_,
 						   int flagden_, int flagbc_, int maxorder_,
-						   MultiFab& inout_,
+						   MultiFab& inout_, int src_comp_, int num_comp_,
 						   int cdr_,
 						   const Array< Array<BoundCond> >& b_, const Array<Real>& r_,
 						   const FabSet& fs_,
@@ -218,7 +218,7 @@ task_applybc_orientation::task_applybc_orientation(const OrientationIter& oitr_,
 						   int nc_,
 						   const REAL* h_)
   : oitr(oitr_), level(level_), flagden(flagden_), flagbc(flagbc_), maxorder(maxorder_),
-    inout(inout_), src_comp(srccomp_), num_comp(numcomp_), cdr(cdr_), b(b_), r(r_), fs(fs_), maskvals(maskvals_), f(f_), nc(nc_), h(h_)
+    inout(inout_), src_comp(src_comp_), num_comp(num_comp_), cdr(cdr_), b(b_), r(r_), fs(fs_), maskvals(maskvals_), f(f_), nc(nc_), h(h_)
 {}
 
 void
@@ -252,37 +252,38 @@ task_applybc_orientation::run()
 }
 
 class task_applybc
-  : public BoxLib3::WorkQueue::task
+    : public BoxLib3::WorkQueue::task
 {
 public:
-  task_applybc(int flagden_, int flagbc_, int maxorder_,
-	       FArrayBox& inout_,
-	       int cdr_, int bct_, Real bcl_,
-	       const FArrayBox& fs_,
-	       const Mask& m_,
-	       FArrayBox& f_,
-	       const Box& vbox_,
-	       int nc_,
-	       const REAL* h_);
-  virtual void run();
+    task_applybc(int flagden_, int flagbc_, int maxorder_,
+		 FArrayBox& inout_, int srccomp_,
+		 int cdr_, int bct_, Real bcl_,
+		 const FArrayBox& fs_,
+		 const Mask& m_,
+		 FArrayBox& f_,
+		 const Box& vbox_,
+		 int nc_,
+		 const REAL* h_);
+    virtual void run();
 private:  
-  const int flagden;
-  const int flagbc;
-  const int maxorder;
-  FArrayBox& inout;
-  const int cdr;
-  const int bcl;
-  Real bct;
-  const FArrayBox& fs;
-  const Mask& m;
-  FArrayBox& f;
-  const Box vbox;
-  int nc;
-  const Real* h;
+    const int flagden;
+    const int flagbc;
+    const int maxorder;
+    FArrayBox& inout;
+    int src_comp;
+    const int cdr;
+    const int bcl;
+    Real bct;
+    const FArrayBox& fs;
+    const Mask& m;
+    FArrayBox& f;
+    const Box vbox;
+    int nc;
+    const Real* h;
 };
 
 task_applybc::task_applybc(int flagden_, int flagbc_, int maxorder_,
-			   FArrayBox& inout_,
+			   FArrayBox& inout_, int srccomp_,
 			   int cdr_, int bcl_, Real bct_,
 			   const FArrayBox& fs_,
 			   const Mask& m_,
@@ -291,7 +292,7 @@ task_applybc::task_applybc(int flagden_, int flagbc_, int maxorder_,
 			   int nc_,
 			   const REAL* h_)
   : flagden(flagden_), flagbc(flagbc_), maxorder(maxorder_),
-    inout(inout_), cdr(cdr_), bcl(bcl_), bct(bct_), fs(fs_), m(m_), f(f_), vbox(vbox_), nc(nc_), h(h_)
+    inout(inout_), src_comp(srccomp_), cdr(cdr_), bcl(bcl_), bct(bct_), fs(fs_), m(m_), f(f_), vbox(vbox_), nc(nc_), h(h_)
 {}
 
 void

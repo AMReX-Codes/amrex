@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.19 2001-03-28 21:22:20 car Exp $
+// $Id: main.cpp,v 1.20 2001-04-23 19:33:30 car Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -120,6 +120,7 @@ main (int   argc, char* argv[])
 #ifdef BL3_PTHREADS
   int maxthreads = 1; pp.query("maxthreads", maxthreads);
   wrkq.max_threads(maxthreads);
+  cout << "maxthreads = " << wrkq.max_threads() << endl;
 #endif
     
   TRACER("mg");
