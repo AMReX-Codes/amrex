@@ -108,7 +108,9 @@ public:
     {
 	abort(); return false;
     }
+    virtual bool depends_on_q(const task* t) const;
 private:
+    void startup();
     FArrayBox& m_fab;
     const MultiFab& m_smf;
     const int m_sgrid;

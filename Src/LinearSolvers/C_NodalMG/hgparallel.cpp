@@ -183,6 +183,56 @@ bool task_copy_local::ready()
     abort(); return m_local;
 }
 
+bool task_copy_local::depends_on_q(const task* t1) const
+{
+    if ( const task_copy_local* t1tc = dynamic_cast<const task_copy_local*>(t1) )
+    {
+	const Box& t1_bx = t1tc->m_bx;
+	if ( m_bx.intersects(t1_bx) ) return true;
+    }
+    else
+    {
+	BoxLib::Abort("Nightmare");
+    }
+    return false;
+}
+
+void task_copy_local::startup()
+{
+    if ( is_local(m_smf, m_sgrid) )
+    {
+	m_local = true;
+    }
+    else if ( is_local(m_mf, m_dgrid) )
+    {
+	tmp = new FArrayBox(m_sbx, m_smf.nComp());
+	int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, m_comm, &m_request);
+	if ( res != 0 )
+	    ParallelDescriptor::Abort(res);
+	assert( m_request != MPI_REQUEST_NULL );
+    }
+    else if ( is_local(m_smf, m_sgrid) ) 
+    {
+	tmp = new FArrayBox(m_sbx, m_smf.nComp());
+	// before I can post the receive, I have to ensure that there are no dependent zones in the
+	// grid
+	tmp->copy(m_smf[m_sgrid], m_sbx);
+	HG_DEBUG_OUT( "<< Norm(S) of tmp " << m_sno << " " << tmp->norm(m_sbx, 2) << endl );
+	HG_DEBUG_OUT( "<<<Box(S) of tmp "   << m_sno << " " << tmp->box() << endl );
+	// printRange(debug_out, *tmp, m_sbx, 0, tmp->nComp());
+	int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_mf,  m_dgrid), m_sno, m_comm, &m_request);
+	if ( res != 0 )
+	    ParallelDescriptor::Abort(res);
+	assert( m_request != MPI_REQUEST_NULL );
+    }
+    else
+    {
+	BoxLib::Error("task_copy::ready: Can't be here");
+	// neither fab lives on local processor
+    }
+    m_started = true;
+}
+
 // TASK_LIST
 
 bool task_list::def_verbose = true;
