@@ -4,7 +4,7 @@
 #define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.15 1998-07-24 01:25:53 lijewski Exp $
+// $Id: BaseFab.H,v 1.16 1998-10-02 19:36:48 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -653,7 +653,7 @@ inline
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src)
 {
-    assert(nvar == src.nvar);
+    assert(nvar <= src.nvar);
     assert(domain.sameType(src.domain));
     Box overlap(domain);
     overlap &= src.domain;
@@ -668,7 +668,7 @@ BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src,
                   const Box&        destbox)
 {
-    assert(nvar == src.nvar);
+    assert(nvar <= src.nvar);
     assert(domain.contains(destbox));
     Box overlap(destbox);
     overlap &= src.domain;
