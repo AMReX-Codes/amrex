@@ -1,5 +1,5 @@
 c
-c $Id: MG_2D.F,v 1.3 1999-02-03 00:39:25 lijewski Exp $
+c $Id: MG_2D.F,v 1.4 2003-09-18 19:21:00 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -11,12 +11,10 @@ c
 #include "MG_F.H"
 #include "ArrayLim.H"
 
-c-----------------------------------------------------------------------
       subroutine FORT_AVERAGE (
      $     c, DIMS(c),
      $     f, DIMS(f),
-     $     lo, hi, nc
-     $     )
+     $     lo, hi, nc)
       integer nc
       integer DIMDEC(f)
       integer DIMDEC(c)
@@ -24,13 +22,13 @@ c-----------------------------------------------------------------------
       integer hi(BL_SPACEDIM)
       REAL_T f(DIMV(f),nc)
       REAL_T c(DIMV(c),nc)
-c
+
       integer i
       integer j
       integer n
       REAL_T denom
       parameter(denom=fourth)
-c
+
       do n = 1, nc
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
@@ -40,14 +38,13 @@ c
             end do
          end do
       end do
-c
+
       end
-c-----------------------------------------------------------------------
+
       subroutine FORT_INTERP (
      $     f, DIMS(f),
      $     c, DIMS(c),
-     $     lo, hi, nc
-     $     )
+     $     lo, hi, nc)
       integer nc
       integer DIMDEC(f)
       integer DIMDEC(c)
@@ -55,14 +52,13 @@ c-----------------------------------------------------------------------
       integer hi(BL_SPACEDIM)
       REAL_T f(DIMV(f),nc)
       REAL_T c(DIMV(c),nc)
-c
+
       integer i
       integer j
       integer n
-c
+
       do n = 1, nc
          do j = lo(2), hi(2)
-cdir$   ivdep
             do i = lo(1), hi(1)
                f(2*i+1,2*j+1,n) = c(i,j,n) + f(2*i+1,2*j+1,n)
                f(2*i  ,2*j+1,n) = c(i,j,n) + f(2*i  ,2*j+1,n)
@@ -71,5 +67,5 @@ cdir$   ivdep
             end do
          end do
       end do
-c
+
       end

@@ -635,7 +635,6 @@ c NODE-based data only.
             p = 1.0D0 - q
             do jc = bbl1, bbh1-1
                do ic = bbl0, bbh0
-cdir$ ivdep
                   do k = regl2, regh2
                      dest(ir*ic,jr*jc+m,k,nc) =
      &                  p * dest(ir*ic,jr*jc,k,nc) +
@@ -649,7 +648,6 @@ cdir$ ivdep
                p = 1.0D0 - q
                do ic = bbl0, bbh0-1
                   do k = regl2, regh2
-cdir$ ivdep
                      do j = regl1, regh1
                         dest(ir*ic+m,j,k,nc) =
      &                     p * dest(ir*ic,j,k,nc) +
