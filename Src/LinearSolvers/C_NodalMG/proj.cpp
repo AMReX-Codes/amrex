@@ -32,7 +32,7 @@ int main(int argc, char **argv)
 #ifndef WIN32
     set_new_handler(Utility::OutOfMemory);
 #endif
-    ParallelDescriptor::StartParallel(1, &argc, &argv);
+    ParallelDescriptor::StartParallel(&argc, &argv);
     
 #ifdef HG_DEBUG
 #ifdef __GNUC__
