@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.8 1997-11-10 17:54:41 lijewski Exp $
+// $Id: VisMF.H,v 1.9 1997-11-10 19:30:12 lijewski Exp $
 //
 
 #include <sys/types.h>
@@ -94,12 +94,37 @@ public:
         Array< Array<Real> > m_max;   // The max()s of each component of FABs.
     };
     //
+    // The number of components in the on-disk MultiFab.
+    //
+    int nComp () const;
+    //
+    // The grow factor of the on-disk MultiFab.
+    //
+    int nGrow () const;
+    //
+    // The BoxArray of the on-disk MultiFab.
+    //
+    const BoxArray& boxArray () const;
+    //
+    // The min of the FAB at the specified index and component.
+    //
+    Real min (int i, int nComp) const;
+    //
+    // The max of the FAB at the specified index and component.
+    //
+    Real max (int i, int nComp) const;
+    //
+    // The FAB at the specified index.
+    //
+    // Reads it from disk if necessary.
+    //
+    const FArrayBox& operator[] (int i) const;
+    //
     // Write a MultiFab to disk in a "smart" way.
     //
     static void Write (const MultiFab& mf,
                        const aString&  name,
                        VisMF::How      how);
-
 private:
     //
     // These are disallowed.
@@ -119,6 +144,10 @@ private:
     static void WriteOneFilePerFab (const MultiFab& mf,
                                     const aString&  mf_name);
     //
+    // Read the specified FAB from disk.
+    //
+    void readFAB (int i) const;
+    //
     // Returns the CPU number as a four character string.
     //
     static aString TheCpuNumber ();
@@ -131,9 +160,13 @@ private:
     //
     static const aString MultiFabHdrFileSuffix;
     //
-    // The data.
+    // The VisMF header as read from disk.
     //
     Header m_hdr;
+    //
+    // We manage the FABs individually.
+    //
+    mutable PArray<FArrayBox> m_pa;
 };
 
 //
@@ -165,5 +198,48 @@ ostream& operator<< (ostream& os, const VisMF::Header& hd);
 // Read a VisMF::Header from an istream.
 //
 istream& operator>> (istream& is, VisMF::Header& hd);
+
+//
+// Inlines.
+//
+
+inline
+int
+VisMF::nComp () const
+{
+    return m_hdr.m_ncomp;
+}
+
+inline
+int
+VisMF::nGrow () const
+{
+    return m_hdr.m_ngrow;
+}
+
+inline
+const BoxArray&
+VisMF::boxArray () const
+{
+    return m_hdr.m_ba;
+}
+
+inline
+Real
+VisMF::min (int i, int nComp) const
+{
+    assert(0 <= i && i < m_hdr.m_ba.length());
+    assert(0 <= nComp && nComp < m_hdr.m_ncomp);
+    return m_hdr.m_min[i][nComp];
+}
+
+inline
+Real
+VisMF::max (int i, int nComp) const
+{
+    assert(0 <= i && i < m_hdr.m_ba.length());
+    assert(0 <= nComp && nComp < m_hdr.m_ncomp);
+    return m_hdr.m_max[i][nComp];
+}
 
 #endif /*BL_VISMF_H*/

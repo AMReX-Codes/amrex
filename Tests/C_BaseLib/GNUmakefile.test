@@ -1,0 +1,49 @@
+#
+# $Id: GNUmakefile.test,v 1.1 1997-11-10 19:30:12 lijewski Exp $
+#
+
+#
+# Set these to the appropriate place.
+#
+GUTHAMR_HOME = ..
+COMP         = KCC
+DIM          = 2
+PRECISION    = DOUBLE
+DEBUG        = TRUE
+
+include $(GUTHAMR_HOME)/mk/Make.defs
+
+#
+# Base name of each of the executables we want to build.
+# I'm assuming that each of these is a stand-alone program,
+# that simply needs to link against BoxLib.
+#
+_progs = tVisMF
+
+LIBRARIES += -lbox$(optionsSuffix)
+
+all: $(addsuffix $(optionsSuffix).ex, $(_progs))
+
+VPATH = ../pBoxLib_2:$(GUTHAMR_HOME)/lib
+
+$(addsuffix $(optionsSuffix).ex, $(_progs)) \
+   : %$(optionsSuffix).ex : %.cpp -lbox$(optionsSuffix)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $< $(libraries)
+	$(RM) $@.o
+
+#
+# Run the tests ...
+#
+runtests : $(addsuffix $(optionsSuffix).ex, $(_progs))
+        #
+        # 
+        #
+	for f in $(filter-out tFABiofilt%,                 \
+          $(addsuffix $(optionsSuffix).ex, $(_progs))); do \
+          echo "====> Testing $$f ..."; echo; ./$$f; echo; \
+        done
+
+INCLUDE_LOCATIONS += ../src
+LIBRARY_LOCATIONS += ../src
+
+include $(GUTHAMR_HOME)/mk/Make.rules

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.8 1997-11-10 17:54:41 lijewski Exp $
+// $Id: VisMF.cpp,v 1.9 1997-11-10 19:30:13 lijewski Exp $
 //
 
 #include <VisMF.H>
@@ -351,6 +351,8 @@ VisMF::Write (const MultiFab& mf,
 }
 
 VisMF::VisMF (const aString& mf_name)
+    :
+    m_pa(PArrayManage)
 {
     aString file = mf_name;
 
@@ -366,4 +368,52 @@ VisMF::VisMF (const aString& mf_name)
     }
 
     ifs >> m_hdr;
+
+    m_pa.resize(m_hdr.m_ba.length());
 }
+
+void
+VisMF::readFAB (int i) const
+{
+    Box fab_box = m_hdr.m_ba[i];
+
+    if (m_hdr.m_ngrow)
+    {
+        fab_box.grow(m_hdr.m_ngrow);
+    }
+
+    FArrayBox* fab = new FArrayBox(fab_box, m_hdr.m_ncomp);
+    if (fab == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
+
+    m_pa.set(i, fab);
+
+    const aString& file = m_hdr.m_fod[i].m_name;
+
+    ifstream ifs(file.c_str());
+
+    if (!ifs.good())
+    {
+        aString msg("Couldn't open file: ");
+        msg += file;
+        BoxLib::Error(msg.c_str());
+    }
+
+    ifs.seekg(m_hdr.m_fod[i].m_head, ios::beg);
+
+    fab->readFrom(ifs);
+}
+
+const FArrayBox&
+VisMF::operator[] (int i) const
+{
+    assert(0 <= i && i < m_pa.length());
+
+    if (!m_pa.defined(i))
+    {
+        readFAB(i);
+    }
+
+    return m_pa[i];
+}
+
