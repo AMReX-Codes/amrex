@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _BOXLIST_H_
-#define _BOXLIST_H_
+#ifndef BL_BOXLIST_H
+#define BL_BOXLIST_H
 
 //
-// $Id: BoxList.H,v 1.1 1997-09-12 18:00:05 lijewski Exp $
+// $Id: BoxList.H,v 1.2 1997-09-17 22:51:14 lijewski Exp $
 //
 
 #include <iostream.h>
@@ -518,4 +518,4 @@ BoxList::operator!= (const BoxList& rhs) const
     return !operator==(rhs);
 }
 
-#endif /*_BOXLIST_H_*/
+#endif /*BL_BOXLIST_H*/

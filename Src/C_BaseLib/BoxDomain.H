@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _BOXDOMAIN_H_
-#define _BOXDOMAIN_H_
+#ifndef BL_BOXDOMAIN_H
+#define BL_BOXDOMAIN_H
 
 //
-// $Id: BoxDomain.H,v 1.1 1997-09-12 18:00:04 lijewski Exp $
+// $Id: BoxDomain.H,v 1.2 1997-09-17 22:51:14 lijewski Exp $
 //
 
 #include <stdlib.h>
@@ -401,4 +401,4 @@ BoxDomain::operator!= (const BoxDomain& rhs) const
     return !BoxList::operator==(rhs);
 }
 
-#endif /*_BOXDOMAIN_H_*/
+#endif /*BL_BOXDOMAIN_H*/

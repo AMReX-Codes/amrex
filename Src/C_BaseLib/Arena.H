@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _ARENA_H_
-#define _ARENA_H_
+#ifndef BL_ARENA
+#define BL_ARENA
 
 //
-// $Id: Arena.H,v 1.1 1997-09-12 18:00:00 lijewski Exp $
+// $Id: Arena.H,v 1.2 1997-09-17 22:51:11 lijewski Exp $
 //
 
 #include <stddef.h>
@@ -62,4 +62,4 @@ Arena::align (size_t s)
     return x;
 }
 
-#endif /*_ARENA_H_*/
+#endif /*BL_ARENA*/

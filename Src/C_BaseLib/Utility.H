@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _UTILITY_H_
-#define _UTILITY_H_
+#ifndef BL_UTILITY_H
+#define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.1 1997-09-12 18:00:17 lijewski Exp $
+// $Id: Utility.H,v 1.2 1997-09-17 22:51:22 lijewski Exp $
 //
 
 #include <iostream.h>
@@ -208,4 +208,4 @@ public:
 #define BL_IGNORE_MAX 100000
 
 
-#endif /*_UTILITY_H_*/
+#endif /*BL_UTILITY_H*/

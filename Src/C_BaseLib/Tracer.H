@@ -1,11 +1,11 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Tracer.H,v 1.1 1997-09-12 18:00:16 lijewski Exp $
+// $Id: Tracer.H,v 1.2 1997-09-17 22:51:21 lijewski Exp $
 //
 
-#ifndef CELLLIB_TRACER_H
-#define CELLLIB_TRACER_H
+#ifndef BL_TRACER_H
+#define BL_TRACER_H
 
 //
 //@Man:
@@ -61,4 +61,4 @@ class Tracer
 #define TRACER(s)
 #endif
 
-#endif /*CELLLIB_TRACER_H*/
+#endif /*BL_TRACER_H*/

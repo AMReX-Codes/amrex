@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _BOXARRAY_H_
-#define _BOXARRAY_H_
+#ifndef BL_BOXARRAY_H
+#define BL_BOXARRAY_H
 
 //
-// $Id: BoxArray.H,v 1.1 1997-09-12 18:00:03 lijewski Exp $
+// $Id: BoxArray.H,v 1.2 1997-09-17 22:51:13 lijewski Exp $
 //
 
 #include <stddef.h>
@@ -343,4 +343,4 @@ BoxArray::reserve (long _truesize)
     abox.reserve(_truesize);
 }
 
-#endif /*_BOXARRAY_H_*/
+#endif /*BL_BOXARRAY_H*/

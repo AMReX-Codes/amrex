@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _TUPLE_H_
-#define _TUPLE_H_
+#ifndef BL_TUPLE_H
+#define BL_TUPLE_H
 
 //
-// $Id: Tuple.H,v 1.2 1997-09-16 22:28:15 lijewski Exp $
+// $Id: Tuple.H,v 1.3 1997-09-17 22:51:22 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -18,7 +18,7 @@
   This class represents ordered tuples of some user-specified concrete
   type T for N > 0. The type T must have a default constructor.  If the
   non-default constructor, copy constructor, or copy assignment operator
-  are used is used, T must also have a copy constructor.
+  are used, T must also have a copy constructor.
 */
 
 template <class T, size_t N>
@@ -133,4 +133,4 @@ Tuple<T,N>::operator= (const Tuple<T,N>& rhs)
     return *this;
 }
 
-#endif /*_TUPLE_H_*/
+#endif /*BL_TUPLE_H*/

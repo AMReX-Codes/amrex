@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _FABARRAY_H_
-#define _FABARRAY_H_
+#ifndef BL_FABARRAY_H
+#define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.6 1997-09-17 00:03:26 lijewski Exp $
+// $Id: FabArray.H,v 1.7 1997-09-17 22:51:16 lijewski Exp $
 //
 
 #include <limits.h>
@@ -2274,4 +2274,4 @@ FabArrayCopyDescriptor<T,FAB>::PrintStats ()
   */
 }
 
-#endif
+#endif /*BL_FABARRAY_H*/

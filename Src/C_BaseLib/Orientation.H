@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _ORIENTATION_H_
-#define _ORIENTATION_H_
+#ifndef BL_ORIENTATION_H
+#define BL_ORIENTATION_H
 
 //
-// $Id: Orientation.H,v 1.1 1997-09-12 18:00:13 lijewski Exp $
+// $Id: Orientation.H,v 1.2 1997-09-17 22:51:19 lijewski Exp $
 //
 
 #include <iostream.h>
@@ -424,4 +424,4 @@ OrientationIter::operator!= (const OrientationIter& oi) const
     return face != oi.face;
 }
 
-#endif /*_ORIENTATION_H_*/
+#endif /*BL_ORIENTATION_H*/

@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _BOXASSOC_H_
-#define _BOXASSOC_H_
+#ifndef BL_BOXASSOC_H
+#define BL_BOXASSOC_H
 
 //
-// $Id: BoxAssoc.H,v 1.1 1997-09-12 18:00:04 lijewski Exp $
+// $Id: BoxAssoc.H,v 1.2 1997-09-17 22:51:13 lijewski Exp $
 //
 
 #include <Boolean.H>
@@ -474,4 +474,4 @@ BoxAssoc::isSelfAssociaton () const
     return bs == bso;
 }
 
-#endif /*_BOXASSOC_H_*/
+#endif /*BL_BOXASSOC_H*/

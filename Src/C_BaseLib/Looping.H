@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _LOOPING_H_
-#define _LOOPING_H_
+#ifndef BL_LOOPING_H
+#define BL_LOOPING_H
 
 //
-// $Id: Looping.H,v 1.2 1997-09-16 03:30:37 lijewski Exp $
+// $Id: Looping.H,v 1.3 1997-09-17 22:51:18 lijewski Exp $
 //
 
 #if (BL_SPACEDIM == 1)
@@ -1241,4 +1241,4 @@
 */
 #define ForAllThisXC(T,x)       ForAllThisBNNXC(T,domain,0,nComp(),x,0)
 
-#endif /*_LOOPING_H_*/
+#endif /*BL_LOOPING_H*/

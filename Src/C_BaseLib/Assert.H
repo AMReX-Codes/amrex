@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _ASSERT_H_
-#define _ASSERT_H_
+#ifndef BL_ASSERT_H
+#define BL_ASSERT_H
 
 //
-// $Id: Assert.H,v 1.1 1997-09-12 18:00:01 lijewski Exp $
+// $Id: Assert.H,v 1.2 1997-09-17 22:51:12 lijewski Exp $
 //
 
 #include <BoxLib.H>
@@ -49,4 +49,4 @@
 #endif
 #endif
 
-#endif /*_ASSERT_H_*/
+#endif /*BL_ASSERT_H*/

@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _FARRAYBOX_H_
-#define _FARRAYBOX_H_
+#ifndef BL_FARRAYBOX_H
+#define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.2 1997-09-15 23:33:20 lijewski Exp $
+// $Id: FArrayBox.H,v 1.3 1997-09-17 22:51:15 lijewski Exp $
 //
 
 #include <iostream.h>
@@ -496,4 +496,4 @@ FArrayBox::setFABio (FABio* rd)
     fabio = rd;
 }
 
-#endif /*_FARRAYBOX_H_*/
+#endif /*BL_FARRAYBOX_H*/

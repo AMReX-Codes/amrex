@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _FABCONV_H_
-#define _FABCONV_H_
+#ifndef BL_FABCONV_H
+#define BL_FABCONV_H
 
 //
-// $Id: FabConv.H,v 1.1 1997-09-12 18:00:08 lijewski Exp $
+// $Id: FabConv.H,v 1.2 1997-09-17 22:51:16 lijewski Exp $
 //
 #include <iostream.h>
 
@@ -357,4 +357,4 @@ RealDescriptor::operator != (const RealDescriptor& rd) const
     return !operator==(rd);
 }
 
-#endif /*_FABCONV_H_*/
+#endif /*BL_FABCONV_H*/

@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _INTVECT_H_
-#define _INTVECT_H_
+#ifndef BL_INTVECT_H
+#define BL_INTVECT_H
 
 //
-// $Id: IntVect.H,v 1.1 1997-09-12 18:00:09 lijewski Exp $
+// $Id: IntVect.H,v 1.2 1997-09-17 22:51:17 lijewski Exp $
 //
 
 #include <SPACE.H>
@@ -854,5 +854,5 @@ IntVect::coarsen (const IntVect& p)
     return *this;
 }
 
-#endif /*_INTVECT_H_*/
+#endif /*BL_INTVECT_H*/
 

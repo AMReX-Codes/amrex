@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _INDEXTYPE_H_
-#define _INDEXTYPE_H_
+#ifndef BL_INDEXTYPE_H
+#define BL_INDEXTYPE_H
 
 //
-// $Id: IndexType.H,v 1.1 1997-09-12 18:00:08 lijewski Exp $
+// $Id: IndexType.H,v 1.2 1997-09-17 22:51:16 lijewski Exp $
 //
 
 #include <iostream.h>
@@ -307,4 +307,4 @@ IndexType::ixType () const
     return IntVect(D_DECL(itype&1, (itype>>1)&1, (itype>>2)&1));
 }
 
-#endif /*_INDEXTYPE_H_*/
+#endif /*BL_INDEXTYPE_H*/

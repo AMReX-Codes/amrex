@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _BOXLIB_H_
-#define _BOXLIB_H_
+#ifndef BL_BOXLIB_H
+#define BL_BOXLIB_H
 
 //
-// $Id: BoxLib.H,v 1.1 1997-09-12 18:00:05 lijewski Exp $
+// $Id: BoxLib.H,v 1.2 1997-09-17 22:51:14 lijewski Exp $
 //
 
 //
@@ -66,4 +66,4 @@ public:
     static const char * const version;
 };
 
-#endif /*_BOXLIB_H_*/
+#endif /*BL_BOXLIB_H*/

@@ -1,9 +1,10 @@
+//BL_COPYRIGHT_NOTICE
 
-#ifndef _REAL_H_
-#define _REAL_H_
+#ifndef BL_REAL_H
+#define BL_REAL_H
 
 /*
-** $Id: REAL.H,v 1.1 1997-09-12 18:00:15 lijewski Exp $
+** $Id: REAL.H,v 1.2 1997-09-17 22:51:21 lijewski Exp $
 */
 
 #if defined(BL_ARCH_CRAY)
@@ -78,4 +79,4 @@
 #error Exactly one of BL_USE_FLOAT or BL_USE_DOUBLE must be defined
 #endif
 
-#endif /*_REAL_H_*/
+#endif /*BL_REAL_H*/

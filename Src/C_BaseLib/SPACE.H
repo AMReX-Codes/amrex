@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _SPACE_H_
-#define _SPACE_H_
+#ifndef BL_SPACE_H
+#define BL_SPACE_H
 
 //
-// $Id: SPACE.H,v 1.1 1997-09-12 18:00:15 lijewski Exp $
+// $Id: SPACE.H,v 1.2 1997-09-17 22:51:21 lijewski Exp $
 //
 
 #if defined(BL_SPACEDIM) && !defined(SPACEDIM)
@@ -129,4 +129,4 @@
 #  define D_TERM(a,b,c) a b c
 #endif
 
-#endif /*_SPACE_H_*/
+#endif /*BL_SPACE_H*/

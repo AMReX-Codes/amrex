@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef MISC_H
-#define MISC_H
+#ifndef BL_MISC_H
+#define BL_MISC_H
 
 //
-// $Id: Misc.H,v 1.1 1997-09-12 18:00:11 lijewski Exp $
+// $Id: Misc.H,v 1.2 1997-09-17 22:51:18 lijewski Exp $
 //
 
 #include <SPACE.H>
@@ -75,4 +75,4 @@ Swap (T& a, T& b)
     b = tmp;
 }
 
-#endif /*MISC_H*/
+#endif /*BL_MISC_H*/

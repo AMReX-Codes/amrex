@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _ARRAY_H_
-#define _ARRAY_H_
+#ifndef BL_ARRAY
+#define BL_ARRAY
 
 //
-// $Id: Array.H,v 1.3 1997-09-16 22:28:14 lijewski Exp $
+// $Id: Array.H,v 1.4 1997-09-17 22:51:11 lijewski Exp $
 //
 
 #include <iostream.h>
@@ -528,4 +528,4 @@ Array<T>::operator== (const Array<T>& rhs) const
     return rc;
 }
 
-#endif /*_ARRAY_H_*/
+#endif /*BL_ARRAY*/

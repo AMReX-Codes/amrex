@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _ARRAYLIM_H_
-#define _ARRAYLIM_H_
+#ifndef BL_ARRAYLIM_H
+#define BL_ARRAYLIM_H
 
 //
-// $Id: ArrayLim.H,v 1.1 1997-09-12 18:00:00 lijewski Exp $
+// $Id: ArrayLim.H,v 1.2 1997-09-17 22:51:12 lijewski Exp $
 //
 
 #if !defined(BL_LANG_FORT)
@@ -129,4 +129,4 @@
 
 #endif
 
-#endif /*_ARRAYLIM_H_*/
+#endif /*BL_ARRAYLIM_H*/

@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _POINTERS_H_
-#define _POINTERS_H_
+#ifndef BL_POINTERS_H
+#define BL_POINTERS_H
 
 //
-// $Id: Pointers.H,v 1.2 1997-09-16 22:28:15 lijewski Exp $
+// $Id: Pointers.H,v 1.3 1997-09-17 22:51:20 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -648,4 +648,4 @@ VcClassPtr<T>::release()
 }
 #endif
 
-#endif /*_POINTERS_H_*/
+#endif /*BL_POINTERS_H*/

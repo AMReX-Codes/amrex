@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _PARRAY_H_
-#define _PARRAY_H_
+#ifndef BL_PARRAY_H
+#define BL_PARRAY_H
 
 //
-// $Id: PArray.H,v 1.2 1997-09-16 22:28:15 lijewski Exp $
+// $Id: PArray.H,v 1.3 1997-09-17 22:51:19 lijewski Exp $
 //
 
 #include <Array.H>
@@ -355,4 +355,4 @@ PArray<T>::clear (int n)
     vp[n] = 0;
 }
 
-#endif /*_PARRAY_H_*/
+#endif /*BL_PARRAY_H*/

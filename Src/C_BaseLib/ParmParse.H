@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _PARMPARSE_H_
-#define _PARMPARSE_H_
+#ifndef BL_PARMPARSE_H
+#define BL_PARMPARSE_H
 
 //
-// $Id: ParmParse.H,v 1.1 1997-09-12 18:00:14 lijewski Exp $
+// $Id: ParmParse.H,v 1.2 1997-09-17 22:51:20 lijewski Exp $
 //
 
 #include <stdlib.h>
@@ -1133,4 +1133,4 @@ ParmParse::countname (const aString& name)
     return countname(name.c_str());
 }
 
-#endif /*_PARMPARSE_H_*/
+#endif /*BL_PARMPARSE_H*/

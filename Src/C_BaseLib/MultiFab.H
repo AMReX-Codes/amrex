@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _MULTIFAB_H_
-#define _MULTIFAB_H_
+#ifndef BL_MULTIFAB_H
+#define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.3 1997-09-17 17:46:31 lijewski Exp $
+// $Id: MultiFab.H,v 1.4 1997-09-17 22:51:18 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -594,4 +594,4 @@ MultiFab::negate (const Box& region,
     negate(region,0,n_comp,nghost);
 }
 
-#endif /*_MULTIFAB_H_*/
+#endif /*BL_MULTIFAB_H*/

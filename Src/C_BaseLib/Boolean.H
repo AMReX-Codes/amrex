@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _BOOLEAN_H_
-#define _BOOLEAN_H_
+#ifndef BL_BOOLEAN_H
+#define BL_BOOLEAN_H
 
 //
-// $Id: Boolean.H,v 1.1 1997-09-12 18:00:02 lijewski Exp $
+// $Id: Boolean.H,v 1.2 1997-09-17 22:51:12 lijewski Exp $
 //
 
 #undef TRUE
@@ -47,5 +47,5 @@
 #define FALSE  0
 #endif
 
-#endif /*_BOOLEAN_H_*/
+#endif /*BL_BOOLEAN_H*/
 

@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _ASTRING_H_
-#define _ASTRING_H_
+#ifndef BL_ASTRING_H
+#define BL_ASTRING_H
 
 //
-// $Id: aString.H,v 1.1 1997-09-12 18:00:17 lijewski Exp $
+// $Id: aString.H,v 1.2 1997-09-17 22:51:23 lijewski Exp $
 //
 
 #include <iostream.h>
@@ -481,4 +481,4 @@ operator>  (const char*    left,
     return ::strcmp(left, right.c_str()) > 0;
 }
 
-#endif /*_ASTRING_H_*/
+#endif /*BL_ASTRING_H*/

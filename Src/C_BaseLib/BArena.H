@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _BARENA_H_
-#define _BARENA_H_
+#ifndef BL_BARENA_H
+#define BL_BARENA_H
 
 //
-// $Id: BArena.H,v 1.2 1997-09-16 16:05:00 lijewski Exp $
+// $Id: BArena.H,v 1.3 1997-09-17 22:51:12 lijewski Exp $
 //
 
 #include <Arena.H>
@@ -33,4 +33,4 @@ public:
     virtual void free (void* pt);
 };
 
-#endif /*_BARENA_H_*/
+#endif /*BL_BARENA_H*/

@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _USECOUNT_H_
-#define _USECOUNT_H_
+#ifndef BL_USECOUNT_H
+#define BL_USECOUNT_H
 
 //
-// $Id: UseCount.H,v 1.1 1997-09-12 18:00:17 lijewski Exp $
+// $Id: UseCount.H,v 1.2 1997-09-17 22:51:22 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -123,4 +123,4 @@ UseCount::linkCount () const
     return *cnt;
 }
 
-#endif /*_USECOUNT_H_*/
+#endif /*BL_USECOUNT_H*/

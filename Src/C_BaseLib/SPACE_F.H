@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _SPACE_F_H_
-#define _SPACE_F_H_
+#ifndef BL_SPACE_F_H
+#define BL_SPACE_F_H
 
 //
-// $Id: SPACE_F.H,v 1.1 1997-09-12 18:00:15 lijewski Exp $
+// $Id: SPACE_F.H,v 1.2 1997-09-17 22:51:21 lijewski Exp $
 //
 
 #include <SPACE.H>
@@ -39,4 +39,4 @@
 #  endif
 #endif
 
-#endif /*_SPACE_F_H_*/
+#endif /*BL_SPACE_F_H*/

@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _BOX_H_
-#define _BOX_H_
+#ifndef BL_BOX_H
+#define BL_BOX_H
 
 //
-// $Id: Box.H,v 1.1 1997-09-12 18:00:02 lijewski Exp $
+// $Id: Box.H,v 1.2 1997-09-17 22:51:13 lijewski Exp $
 //
 
 #ifdef NODEV
@@ -1102,4 +1102,4 @@ Box::grow (const Orientation& face,
     return *this;
 }
 
-#endif /*_BOX_H_*/
+#endif /*BL_BOX_H*/

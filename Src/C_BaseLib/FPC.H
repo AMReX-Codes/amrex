@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef FPC_H
-#define FPC_H
+#ifndef BL_FPC_H
+#define BL_FPC_H
 
 //
-// $Id: FPC.H,v 1.1 1997-09-12 18:00:07 lijewski Exp $
+// $Id: FPC.H,v 1.2 1997-09-17 22:51:15 lijewski Exp $
 //
 
 #include <FabConv.H>
@@ -105,4 +105,4 @@ public:
     static const RealDescriptor& Ieee64NormalRealDescriptor ();
 };
 
-#endif /*FPC_H*/
+#endif /*BL_FPC_H*/

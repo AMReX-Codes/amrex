@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _LIST_H_
-#define _LIST_H_
+#ifndef BL_LIST_H
+#define BL_LIST_H
 
 //
-// $Id: List.H,v 1.2 1997-09-16 22:28:14 lijewski Exp $
+// $Id: List.H,v 1.3 1997-09-17 22:51:17 lijewski Exp $
 //
 
 #include <Boolean.H>
@@ -911,4 +911,4 @@ List<T>::remove (ListLink<T>* ln)
     ln = 0;
 }
 
-#endif /*_LIST_H_*/
+#endif /*BL_LIST_H*/
