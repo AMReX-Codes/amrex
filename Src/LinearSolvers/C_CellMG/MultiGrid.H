@@ -4,7 +4,7 @@
 #define _MULTIGRID_H_
 
 //
-// $Id: MultiGrid.H,v 1.6 1999-05-10 18:54:16 car Exp $
+// $Id: MultiGrid.H,v 1.7 2000-07-17 16:58:03 sstanley Exp $
 //
 
 #include <Array.H>
@@ -268,7 +268,8 @@ protected:
                                  int            level,
                                  Real           eps_rel,
                                  Real           eps_abs,
-                                 LinOp::BC_Mode bc_mode);
+                                 LinOp::BC_Mode bc_mode,
+                                 int            local_usecg);
     //
     //@ManDoc: default flag, whether to use CG at bottom of MG cycle
     //
@@ -306,6 +307,10 @@ protected:
     //
     static int def_numLevelsMAX;
     //
+    //@ManDoc: default flag controlling the behaviour when the cg solver returns indicating unstable
+    //
+    static int def_smooth_on_cg_unstable;
+    //
     //@ManDoc: verbosity
     //
     int verbose;
@@ -341,6 +346,10 @@ protected:
     //@ManDoc: maximum number of mg levels
     //
     int numLevelsMAX;
+    //
+    //@ManDoc: flag controlling the behaviour when the cg solver returns indicating unstable
+    //
+    int smooth_on_cg_unstable;
     //
     //@ManDoc: internal temp data to store initial guess of solution
     //
