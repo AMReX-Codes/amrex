@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.11 1998-01-08 23:06:04 vince Exp $
+// $Id: ParallelDescriptor.H,v 1.12 1998-01-23 22:48:38 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -132,12 +132,10 @@ public:
     {
         return false;  // no messages waiting
     } 
-
     static bool MessageQueueEmpty ()
     {
         return true;  // no messages waiting
     } 
-
     static void SendData (int         toproc,
                           const void* messageHeader,
                           const void* data,
@@ -170,62 +168,66 @@ class ParallelDescriptor
     static int  IOProcessorNumber () { return (ioProcessor); }
     static void Abort (const char* msg)  { bsp_abort((char*)msg); }
     static double second ()  { return bsp_time(); }
-
-    // reduction operations
+    //
+    // Reduction operations.
+    //
     template<class T> static void ReduceMin (T& rvar);
-
+    //
     // bool
+    //
     static void ReduceBoolAnd (bool& rvar);
     static void ReduceBoolOr  (bool& rvar);
+    //
     // Real
+    //
     static void ReduceRealSum (Real& rvar);
     static void ReduceRealMax (Real& rvar);
     static void ReduceRealMin (Real& rvar);
+    //
     // int
+    //
     static void ReduceIntSum (int& rvar);
     static void ReduceIntMax (int& rvar);
     static void ReduceIntMin (int& rvar);
+    //
     // long
+    //
     static void ReduceLongSum (long& rvar);
     static void ReduceLongMax (long& rvar);
     static void ReduceLongMin (long& rvar);
     static void ReduceLongAnd (long& rvar);
-
-    // data transfer functions
+    //
+    // Data transfer functions.
+    //
     static void ShareVar (const void* var,
                           int         bytes)
     {
         bsp_pushregister(var, bytes);
     }
-
     static void UnshareVar (const void* var)
     {
         bsp_popregister(var);
     }
-
     static void WriteData (int         procnum,
                            const void* src,
                            void*       dest,
                            int         offset,
                            int         bytes)
     {
-        bsp_put(procnum, src, dest, offset, bytes);
+        bsp_hpput(procnum, src, dest, offset, bytes);
     }
-
     static void ReadData (int         procnum,
                           const void* src,
                           int         offset,
                           void*       dest,
                           int         bytes)
     {
-        bsp_get(procnum, src, offset, dest, bytes);
+        bsp_hpget(procnum, src, offset, dest, bytes);
     }
-
     static void SetMessageHeaderSize (int messageHeaderSize)
     {
         bsp_set_tag_size(&messageHeaderSize);
     } 
-
     static bool GetMessageHeader (int& dataSize,
                                   void* messageHeader)
     {
@@ -235,7 +237,6 @@ class ParallelDescriptor
             ? false  // By bsp definition
             : true;  // A message is waiting
     } 
-
     static bool MessageQueueEmpty ();
 
     static void SendData (int         toproc,
@@ -254,7 +255,7 @@ class ParallelDescriptor
                                              T*  src,
                                              T*  dest)
     {
-        bsp_bcast(fromproc, (void *) src, (void *) dest, sizeof(T));
+        bsp_bcast(fromproc, (void*) src, (void*) dest, sizeof(T));
     }
 
   private:
