@@ -1191,7 +1191,7 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
     }
     if ( false )
     {
-	static cnt = 0;
+	static int cnt = 0;
 	static std::ofstream ofs("pud");
 	ofs << "cnt = " << cnt << std::endl;
 	ofs << "rhs = " << rhs[0][0] << std::endl;
