@@ -1,8 +1,9 @@
 NDEBUG :=
-NDEBUG :=
 MPI    :=
 OMP    :=
 
+COMP := g95
+COMP := Lahey
 COMP := Intel
 
 FPARALLEL := ../..

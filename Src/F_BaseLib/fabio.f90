@@ -16,22 +16,42 @@ module fabio_module
      subroutine fabio_close(fd)
        integer, intent(out) :: fd
      end subroutine fabio_close
+
      subroutine fabio_read(fd, offset, d, count)
        use bl_types
        integer, intent(in) :: offset, fd, count
        real(kind=dp_t), intent(out) :: d(count)
      end subroutine fabio_read
+     subroutine fabio_read_s(fd, offset, s, count)
+       use bl_types
+       integer, intent(in) :: offset, fd, count
+       real(kind=sp_t), intent(out) :: s(count)
+     end subroutine fabio_read_s
+
      subroutine fabio_read_comp(fd, offset, skip, d, count)
        use bl_types
        integer, intent(in) :: offset, fd, count, skip
        real(kind=dp_t), intent(out) :: d(count)
      end subroutine fabio_read_comp
+     subroutine fabio_read_comp_s(fd, offset, skip, s, count)
+       use bl_types
+       integer, intent(in) :: offset, fd, count, skip
+       real(kind=sp_t), intent(out) :: s(count)
+     end subroutine fabio_read_comp_s
+
      subroutine fabio_write_raw(fd, offset, d, count, dm, lo, hi, nd, nc)
        use bl_types
        integer, intent(in) :: fd, count, dm, lo(dm), hi(dm), nd(dm), nc
        real(kind=dp_t), intent(in) :: d(count)
        integer, intent(out) :: offset
      end subroutine fabio_write_raw
+     subroutine fabio_write_raw_s(fd, offset, s, count, dm, lo, hi, nd, nc)
+       use bl_types
+       integer, intent(in) :: fd, count, dm, lo(dm), hi(dm), nd(dm), nc
+       real(kind=sp_t), intent(in) :: s(count)
+       integer, intent(out) :: offset
+     end subroutine fabio_write_raw_s
+
   end interface
 
   interface fabio_write
