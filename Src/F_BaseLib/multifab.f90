@@ -589,7 +589,7 @@ contains
     integer :: i
     if ( .not. mf%bound ) then
        call mem_stats_dealloc(multifab_ms, volume(mf, all = .TRUE.))
-       do i = 1, mf%nboxes; if ( remote(mf, i) ) cycle
+       do i = 1, mf%nboxes
           call fab_destroy(mf%fbs(i))
        end do
     end if
@@ -605,7 +605,7 @@ contains
     integer :: i
     if ( .not. mf%bound ) then
        call mem_stats_dealloc(imultifab_ms, volume(mf, all = .TRUE.))
-       do i = 1, mf%nboxes; if ( remote(mf, i) ) cycle
+       do i = 1, mf%nboxes
           call ifab_destroy(mf%fbs(i))
        end do
     end if
@@ -621,7 +621,7 @@ contains
     integer :: i
     if ( .not. mf%bound ) then
        call mem_stats_dealloc(lmultifab_ms, volume(mf, all = .TRUE.))
-       do i = 1, mf%nboxes; if ( remote(mf, i) ) cycle
+       do i = 1, mf%nboxes
           call lfab_destroy(mf%fbs(i))
        end do
     end if
