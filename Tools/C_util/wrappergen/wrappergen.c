@@ -2763,7 +2763,7 @@ char *ReadFileIntoString( const char* fileName )
       if (!(inf = fopen( fileName, "r" ))) {
 	fprintf( stderr, "Cannot open wrapper definition file \"%s\".\n",
 		 fileName );
-	return;
+	return 0;
       }
 
       fstat( fileno( inf ), &filestat );
