@@ -1,1 +1,4 @@
 RunStats.statvar = hg_project hg_manual_project
+pcode=4
+nrep=1
+tol=2.0e-10

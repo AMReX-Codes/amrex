@@ -73,6 +73,12 @@ int main(int argc, char **argv)
     pp.query("nrep", nrep);
     pp.query("pcode", pcode);
     pp.query("tol", tol);
+    if ( ParallelDescriptor::IOProcessor() )
+    {
+	cout << "nrep = " << nrep << endl;
+	cout << "pcode = " << pcode << endl;
+	cout << "tol = " << tol << endl;
+    }
     cout << setprecision(15);
 
     int num = pp.countname("file");
@@ -80,6 +86,10 @@ int main(int argc, char **argv)
     {
 	aString filename;
 	pp.getkth("file", k, filename, 0);
+	if ( ParallelDescriptor::IOProcessor() )
+	{
+	    cout << "file " << k << " is " << filename << endl;
+	}
 	driver(filename.c_str());
     }
 
