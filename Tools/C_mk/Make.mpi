@@ -46,6 +46,11 @@ ifeq ($(MACHINE), Linux)
   else
     ifdef LAMHOME
       BL_MPI_LIBS += -lmpi -ltstdio -ltrillium -largs -lt
+      #
+      # If the above line doesn't work give the following a try.
+      # It worked on someone's Linux cluster with LAM version 7.0.6
+      #
+      #BL_MPI_LIBS += -lmpi -llammpi++ -llamf77mpi -llammpio -lpthread
       LIBRARY_LOCATIONS += $(LAMHOME)/lib
       INCLUDE_LOCATIONS += $(LAMHOME)/include
     endif
