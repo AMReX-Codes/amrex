@@ -1,5 +1,5 @@
 //
-// $Id: RunStats.cpp,v 1.32 2001-07-23 17:55:33 lijewski Exp $
+// $Id: RunStats.cpp,v 1.33 2001-07-23 21:32:38 car Exp $
 //
 #include <winstd.H>
 
@@ -18,7 +18,7 @@ Real               RunStats::TotalWCT;
 Real               RunStats::DiskBytes;
 Array<long>        RunStats::TheCells;
 Array<Real>        RunStats::TheNumPts;
-List<RunStatsData> RunStats::TheStats;
+std::list<RunStatsData> RunStats::TheStats;
 bool               RunStats::Initialized = false;
 
 int
@@ -57,16 +57,16 @@ RunStatsData*
 RunStats::find (const std::string& _name,
                 int            _level)
 {
-    for (ListIterator<RunStatsData> it(RunStats::TheStats); it; ++it)
+    for (std::list<RunStatsData>::iterator it = TheStats.begin(); it != TheStats.end(); ++it)
     {
-        if (it().level == _level && it().name == _name)
+        if (it->level == _level && it->name == _name)
         {
-            return &RunStats::TheStats[it];
+            return &*it;
         }
     }
-    RunStats::TheStats.append(RunStatsData(_name, _level));
+    TheStats.push_back(RunStatsData(_name, _level));
 
-    return &RunStats::TheStats.lastElement();
+    return &TheStats.back();
 }
 
 RunStats::RunStats (const std::string& _name,
@@ -166,7 +166,7 @@ RunStats::Print (std::ostream&       os,
 }
 
 void
-RunStats::ReduceIt (List<RunStatsData>& stats)
+RunStats::ReduceIt (std::list<RunStatsData>& stats)
 {
 #ifdef BL_USE_MPI
     //
@@ -178,8 +178,10 @@ RunStats::ReduceIt (List<RunStatsData>& stats)
     //
     int N = 64;
 
-    for (ListIterator<RunStatsData> it(stats); it; ++it)
-        N += stats[it].name.length() + 64;
+    for (std::list<RunStatsData>::iterator it = stats.begin(); it != stats.end(); ++it)
+    {
+        N += it->name.length() + 64;
+    }
 
     ParallelDescriptor::ReduceIntMax(N);
 
@@ -189,7 +191,7 @@ RunStats::ReduceIt (List<RunStatsData>& stats)
 
     if (!ParallelDescriptor::IOProcessor())
     {
-        int rc = 0, pos = 0, len = stats.length();
+        int rc = 0, pos = 0, len = stats.size();
 
         if ((rc = MPI_Pack(&len,
                            1,
@@ -200,12 +202,12 @@ RunStats::ReduceIt (List<RunStatsData>& stats)
                            ParallelDescriptor::Communicator())) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
 
-        for (ListIterator<RunStatsData> it(stats); it; ++it)
+        for (std::list<RunStatsData>::iterator it = stats.begin(); it != stats.end(); ++it)
         {
-            int  slen     = it().name.length()+1;
-            int  level    = it().level;
-            Real runtime  = it().run_time;
-            Real runwtime = it().run_wtime;
+            int  slen     = it->name.length()+1;
+            int  level    = it->level;
+            Real runtime  = it->run_time;
+            Real runwtime = it->run_wtime;
 
             if ((rc = MPI_Pack(&slen,
                                1,
@@ -216,7 +218,7 @@ RunStats::ReduceIt (List<RunStatsData>& stats)
                                ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
 
-            if ((rc = MPI_Pack(const_cast<char*>(it().name.c_str()),
+            if ((rc = MPI_Pack(const_cast<char*>(it->name.c_str()),
                                slen,
                                MPI_CHAR,
                                pbuf,
@@ -373,7 +375,7 @@ RunStats::report (std::ostream& os)
     //
     // Make a copy of the local RunStats::TheStats and reduce it to IOProc.
     //
-    List<RunStatsData> TheTotals = RunStats::TheStats;
+    std::list<RunStatsData> TheTotals = RunStats::TheStats;
 
     ReduceIt(TheTotals);
 
@@ -389,17 +391,19 @@ RunStats::report (std::ostream& os)
         int old_prec = os.precision(15);
 
         int maxlev = 0;
-        ListIterator<RunStatsData> it(TheTotals);
-        for ( ; it; ++it)
-            maxlev = std::max(maxlev, it().level);
-
-        it.rewind();
-
+        for ( std::list<RunStatsData>::iterator it = TheTotals.begin(); it != TheTotals.end(); ++it)
+	{
+            maxlev = std::max(maxlev, it->level);
+	}
         os << '\n';
 
-        for ( ; it; ++it)
-            if (it().level == -1 && it().is_on )
-                Print(os,it(),tot_run_time,tot_run_wtime);
+        for (std::list<RunStatsData>::iterator it = TheTotals.begin(); it != TheTotals.end(); ++it)
+	{
+            if (it->level == -1 && it->is_on )
+	    {
+                Print(os,*it,tot_run_time,tot_run_wtime);
+	    }
+	}
 
         os << '\n'
            << "Total CPU time        : " << tot_run_time  << '\n'
@@ -424,9 +428,13 @@ RunStats::report_names (Array<std::string>& stat_names)
     //
     int nstat = 0;
     
-    for (ListIterator<RunStatsData> ldi(RunStats::TheStats); ldi; ++ldi)
-        if (ldi().level == -1)
+    for (std::list<RunStatsData>::iterator ldi = TheStats.begin(); ldi != TheStats.end(); ++ldi)
+    {
+        if (ldi->level == -1)
+	{
             nstat++;
+	}
+    }
 
     stat_names.resize(nstat);
     //
@@ -434,11 +442,11 @@ RunStats::report_names (Array<std::string>& stat_names)
     //
     int ind = 0;
 
-    for (ListIterator<RunStatsData> ldi(RunStats::TheStats); ldi; ++ldi)
+    for (std::list<RunStatsData>::iterator ldi = TheStats.begin(); ldi != TheStats.end(); ++ldi)
     {
-        if (ldi().level == -1)
+        if (ldi->level == -1)
         {
-            stat_names[ind] = ldi().name;
+            stat_names[ind] = ldi->name;
             std::cout << " found statistic = " << stat_names[ind] << '\n';
             ind++;
         }
@@ -471,7 +479,7 @@ RunStats::report_values (const Array<std::string>& stat_names,
     //
     // Make a copy of the local RunStats::TheStats and reduce it.
     //
-    List<RunStatsData> TheTotals = RunStats::TheStats;
+    std::list<RunStatsData> TheTotals = TheStats;
 
     ReduceIt(TheTotals);
 
@@ -506,7 +514,7 @@ RunStats::dumpStats (std::ofstream& os)
     //
     // Make a copy of the local RunStats::TheStats and reduce to IOProc.
     //
-    List<RunStatsData> TheTotals = RunStats::TheStats;
+    std::list<RunStatsData> TheTotals = RunStats::TheStats;
 
     ReduceIt(TheTotals);
 
@@ -515,13 +523,13 @@ RunStats::dumpStats (std::ofstream& os)
     if (ParallelDescriptor::IOProcessor())
     {
         os << "(ListRunStats "
-           << TheTotals.length()            << '\n'
+           << TheTotals.size()            << '\n'
            << (RunStats::TotalCPU + rtime)  << '\n'
            << (RunStats::TotalWCT + rwtime) << '\n'
            << RunStats::DiskBytes           << '\n';
 
-        for (ListIterator<RunStatsData> it(TheTotals); it; ++it)
-            os << it();
+        for (std::list<RunStatsData>::iterator it = TheTotals.begin(); it != TheTotals.end(); ++it)
+            os << *it;
 
         long nlev = RunStats::TheNumPts.length();
 
