@@ -45,6 +45,8 @@ module stencil_module
      logical :: extrap_bc = .false.
      real(kind=dp_t), pointer :: xa(:) => Null()
      real(kind=dp_t), pointer :: xb(:) => Null()
+     real(kind=dp_t), pointer :: pxa(:) => Null()
+     real(kind=dp_t), pointer :: pxb(:) => Null()
      real(kind=dp_t), pointer :: dh(:) => Null()
      integer :: extrap_max_order = 0
   end type stencil
@@ -387,7 +389,7 @@ contains
     type(stencil), intent(inout) :: st
     call destroy(st%ss)
     call destroy(st%mm)
-    deallocate(st%skewed, st%xa, st%xb, st%dh, st%diag_0)
+    deallocate(st%skewed, st%xa, st%xb, st%dh, st%diag_0,st%pxa,st%pxb)
     st%dim = 0
     st%ns = -1
   end subroutine stencil_destroy
@@ -417,9 +419,11 @@ contains
     call imultifab_build(st%mm, la,     1, 0, nodal = nodal)
     allocate(st%skewed(nboxes(la)))
     allocate(st%diag_0(nboxes(la)))
-    allocate(st%xa(st%dim), st%xb(st%dim), st%dh(st%dim))
+    allocate(st%xa(st%dim), st%xb(st%dim), st%dh(st%dim),st%pxa(st%dim),st%pxb(st%dim))
     st%xa = ZERO
     st%xb = ZERO
+    st%pxa = ZERO
+    st%pxb = ZERO
     st%dh = dh
   end subroutine stencil_build
 
@@ -807,11 +811,13 @@ contains
           lxa = st%xa
           lxb = st%xb
           do id = 1, pd%dim
-             if (bx%lo(id) == pd%lo(id)) then
-                lxa(id) = ZERO
-             end if
-             if (bx%hi(id) == pd%hi(id)) then
-                lxb(id) = ZERO
+             if ( .not. st%ss%la%lap%pmask(id) ) then
+                if ( bx%lo(id) == pd%lo(id) ) then
+                   lxa(id) = st%pxa(id)
+                end if
+                if ( bx%hi(id) == pd%hi(id) ) then
+                   lxb(id) = st%pxb(id)
+                end if
              end if
           end do
           select case (st%dim)
@@ -895,6 +901,10 @@ contains
        write(unit=un, fmt='(" XA      = ",3(ES20.10,1x))') st%xa
        call unit_skip(un, skip)
        write(unit=un, fmt='(" XB      = ",3(ES20.10,1x))') st%xb
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" PXA     = ",3(ES20.10,1x))') st%pxa
+       call unit_skip(un, skip)
+       write(unit=un, fmt='(" PXB     = ",3(ES20.10,1x))') st%pxb
        call unit_skip(un, skip)
        write(unit=un, fmt='(" DH      = ",3(ES20.10,1x))') st%dh
     end if
@@ -1382,7 +1392,7 @@ contains
 
   end subroutine stencil_set_bc
 
-  subroutine stencil_fill_cc(ss, coeffs, dh, pdv, mask, xa, xb, pd, order, bc_face, fnc)
+  subroutine stencil_fill_cc(ss, coeffs, dh, pdv, mask, xa, xb, pxa, pxb, pd, order, bc_face, fnc)
     type(multifab), intent(inout) :: ss
     type(multifab), intent(in   ) :: coeffs
     real(kind=dp_t), intent(in) :: dh(:)
@@ -1391,7 +1401,7 @@ contains
     type(imultifab), intent(inout) :: mask
     integer, intent(in) :: order
     integer, intent(in) :: bc_face(:,:)
-    real(kind=dp_t), intent(in) :: xa(:), xb(:)
+    real(kind=dp_t), intent(in) :: xa(:), xb(:), pxa(:), pxb(:)
     interface
        function fnc(i, j, k, n) result(r)
          integer, intent(in) :: i, j, k, n
@@ -1417,11 +1427,11 @@ contains
        lxb = xb
        do id = 1,pd%dim
           if ( .not. ss%la%lap%pmask(id) ) then
-             if (bx%lo(id) == pd%lo(id)) then
-                lxa(id) = ZERO
+             if ( bx%lo(id) == pd%lo(id) ) then
+                lxa(id) = pxa(id)
              end if
-             if (bx%hi(id) == pd%hi(id)) then
-                lxb(id) = ZERO
+             if ( bx%hi(id) == pd%hi(id) ) then
+                lxb(id) = pxb(id)
              end if
           end if
        end do
