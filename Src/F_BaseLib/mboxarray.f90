@@ -16,6 +16,10 @@ module mboxarray_module
      module procedure mboxarray_destroy
   end interface
 
+  interface copy
+     module procedure mboxarray_copy
+  end interface
+
   interface build
      module procedure mboxarray_build_ba
      module procedure mboxarray_build_n
@@ -68,6 +72,19 @@ contains
     r = mboxarray_ms
   end function mboxarray_mem_stats
 
+  subroutine mboxarray_copy(mba, mbai)
+    type(mboxarray), intent(out) :: mba
+    type(mboxarray), intent(in)  :: mbai
+    integer :: i
+    call build(mba, mbai%nlevel, mbai%dim)
+    mba%pd = mbai%pd
+    !! FIXME: TOTALVIEW
+    if ( associated(mba%rr) ) mba%rr = mbai%rr
+    do i = 1, mba%nlevel
+       call copy(mba%bas(i), mbai%bas(i))
+    end do
+  end subroutine mboxarray_copy
+
   subroutine mboxarray_build_n(mba, nlevel, dim)
     type(mboxarray), intent(out) :: mba
     integer, intent(in) :: nlevel
@@ -90,7 +107,10 @@ contains
        call bl_error("MBOXARRAY_ALLOC_RR: rr already allocated")
     end if
     mba%dim = dim
-    allocate(mba%rr(mba%nlevel-1,mba%dim))
+    !! FIXME: TOTALVIEW
+    if ( mba%nlevel-1 > 0 ) then
+       allocate(mba%rr(mba%nlevel-1,mba%dim))
+    end if
   end subroutine mboxarray_alloc_rr
 
   subroutine mboxarray_build_ba(mba, ba, pd)
@@ -100,7 +120,9 @@ contains
 
     mba%nlevel = 1
     mba%dim = ba%dim
-    allocate(mba%rr(0,mba%dim), mba%bas(1), mba%pd(1))
+    !! FIXME: TOTALVIEW
+    allocate(mba%bas(1), mba%pd(1))
+    ! allocate(mba%rr(0,mba%dim), mba%bas(1), mba%pd(1))
     call boxarray_build_copy(mba%bas(1), ba)
     if ( present(pd) ) then
        mba%pd(1) = pd
@@ -117,7 +139,9 @@ contains
        do i = 1, mba%nlevel
           call boxarray_destroy(mba%bas(i))
        end do
-       deallocate(mba%bas, mba%rr, mba%pd)
+       deallocate(mba%bas, mba%pd)
+       !! FIXME: TOTALVIEW
+       if ( associated(mba%rr) ) deallocate(mba%rr)
        call mem_stats_dealloc(mboxarray_ms)
     end if
   end subroutine mboxarray_destroy

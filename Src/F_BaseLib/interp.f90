@@ -3,7 +3,7 @@ module interp_module
   use bl_types
   use bl_error_module
   use bl_constants_module
-  use bc_module
+!  use bc_module
 
   implicit none
 
