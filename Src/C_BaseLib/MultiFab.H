@@ -4,7 +4,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.24 1998-11-07 00:30:43 lijewski Exp $
+// $Id: MultiFab.H,v 1.25 1999-03-04 22:18:37 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -340,6 +340,15 @@ class MultiFab
     //
     static int SICacheSize ();
 
+    /*@ManDoc: Copy from `src' to `dst' including `nghost' ghost cells.
+               The two MultiFabs MUST have the same underlying BoxArray.
+    */
+    static void Copy (MultiFab&       dst,
+                      const MultiFab& src,
+                      int             srccomp,
+                      int             dstcomp,
+                      int             numcomp,
+                      int             nghost);
 private:
     //
     // These are disabled.

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.31 1998-12-01 21:56:23 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.32 1999-03-04 22:18:37 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -34,6 +34,32 @@ using std::setw;
 #elif defined(BL_ARCH_CRAY)
     const Real INFINITY = 1.0e100;
 #endif
+
+void
+MultiFab::Copy (MultiFab&       dst,
+                const MultiFab& src,
+                int             srccomp,
+                int             dstcomp,
+                int             numcomp,
+                int             nghost)
+{
+    assert(dst.boxArray() == src.boxArray());
+    assert(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+
+    for (MultiFabIterator mfi(dst); mfi.isValid(); ++mfi)
+    {
+        DependentMultiFabIterator dmfi(mfi,src);
+
+        assert(mfi.validbox() == dmfi.validbox());
+
+        Box bx = ::grow(mfi.validbox(),nghost);
+
+        if (bx.ok())
+        {
+            mfi().copy(dmfi(), bx, srccomp, bx, dstcomp, numcomp);
+        }
+    }
+}
 
 MultiFab::MultiFab ()
     :
