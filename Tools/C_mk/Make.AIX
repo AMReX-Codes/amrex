@@ -59,8 +59,3 @@ CPRFF +=
 XTRALIBS += -lm -lxlf90
 
 DEFINES += -D_POSIX_SOURCE
-
-FORTPREP	= perl $(PBOXLIB_HOME)/scripts/strip72 -c
-FORT_EXE_OUTPUT_OPTION	= ; mv $*.o $(objEXETempDir)/$*.o
-FORT_LIB_OUTPUT_OPTION	= ; mv $*.o $(objTempDir)/$*.o
-#FORTLINK	= UPPERCASE
