@@ -5,31 +5,19 @@
 
 #include "fill_patch.H"
 
-class amr_multigrid 
+class amr_multigrid
 {
 public:
-    
+
     amr_multigrid (const Array<BoxArray>&    Mesh,
                    const Array<IntVect>&     Gen_ratio,
                    int                       Lev_min_min,
                    int                       Lev_min_max,
                    int                       Lev_max_max,
                    const amr_boundary* Boundary,
-                   int                       Pcode) 
-	:
-        ml_mesh(Mesh),
-        gen_ratio(Gen_ratio),
-        lev_min_min(Lev_min_min),
-        lev_min_max(Lev_min_max),
-        lev_max_max(Lev_max_max),
-        mg_boundary(Boundary),
-        pcode(Pcode),
-        integrate(0),
-	c_sys(cartesian)
-    {}
-    
+                   int                       Pcode) ;
     virtual ~amr_multigrid ();
-    
+
 #if BL_SPACEDIM==2
     enum CoordSys { cartesian = 0, rz = 1 };
 #else
@@ -37,12 +25,12 @@ public:
 #endif
     CoordSys setCoordSys (CoordSys c_sys_);
     CoordSys getCoordSys () const;
-    
+
     static void mesh_read (Array<BoxArray>& m,
                            Array<IntVect>&  r,
                            Array<Box>&      d,
                            istream&         is);
-    
+
     static void mesh_write (const Array<BoxArray>& m,
                             const Array<Box>&      d,
                             ostream&               os);
@@ -51,7 +39,7 @@ public:
                             const Array<IntVect>&  r,
                             Box                    fd,
                             ostream&               os);
-    
+
     void solve (Real reltol,
                 Real abstol,
                 int  i1,
@@ -68,7 +56,7 @@ public:
                                  MultiFab& d,
                                  int       mglev,
                                  bool      iclear,
-                                 int       for_sync_resid = 0) = 0;
+                                 int       for_sync_resid) = 0;
 
     virtual void interface_residual (int mglev,
                                      int mgc) = 0;
@@ -96,20 +84,8 @@ protected:
                       int lev);
 
     void build_index ();
-    
-    int get_amr_level (int mglev) const 
-    {
-	int result = -1;
-	for (int i = lev_min; i <= lev_max; i++) 
-	{
-	    if (ml_index[i] == mglev)
-	    {
-		result = i;
-		break;
-	    }
-	}
-	return result;
-    }
+
+    int get_amr_level (int mglev) const ;
     //
     // All of these have built-in defaults except can_coarsen().
     //
@@ -135,13 +111,13 @@ protected:
     // complicated lev_interface.
     //
     void alloc_amr_multi (PArray<MultiFab>& Dest,
-                PArray<MultiFab>& Source,
-                PArray<MultiFab>& Coarse_source,
-                int               Lev_min,
-                int               Lev_max);
+			  PArray<MultiFab>& Source,
+			  PArray<MultiFab>& Coarse_source,
+			  int               Lev_min,
+			  int               Lev_max);
 
     void clear_amr_multi ();
-    
+
     virtual void sync_interfaces () = 0;
 
     virtual bool can_coarsen (const BoxArray& mesh,
@@ -172,28 +148,12 @@ protected:
     PArray<MultiFab>          work;
     PArray<MultiFab>          save;               // on middle levels of ml_mesh
     PArray<MultiFab>          coarse_source;      // on ml_mesh, if it exists
-    
+
 
     CoordSys                  c_sys;
-    
+
     int                       pcode;
     int                       integrate;
 };
-
-inline
-amr_multigrid::CoordSys
-amr_multigrid::setCoordSys (CoordSys c_sys_)
-{
-    CoordSys o_c_sys = c_sys;
-    c_sys = c_sys_;
-    return o_c_sys;
-}
-
-inline
-amr_multigrid::CoordSys
-amr_multigrid::getCoordSys () const
-{
-    return c_sys;
-}
 
 #endif /*_AMR_MULTI_H_*/

@@ -3,7 +3,7 @@ c Works for CELL-based data.
       subroutine iprodc(
      & v0,    v0l0, v0h0, v0l1, v0h1,
      & v1,    v1l0, v1h0, v1l1, v1h1,
-     &        regl0, regh0, regl1, regh1, 
+     &        regl0, regh0, regl1, regh1,
      & sum)
       integer v0l0, v0h0, v0l1, v0h1
       integer v1l0, v1h0, v1l1, v1h1
@@ -23,7 +23,7 @@ c Works for NODE-based data.
       subroutine iprodn(
      & v0,    v0l0, v0h0, v0l1, v0h1,
      & v1,    v1l0, v1h0, v1l1, v1h1,
-     &        regl0, regh0, regl1, regh1, 
+     &        regl0, regh0, regl1, regh1,
      & sum)
       integer v0l0, v0h0, v0l1, v0h1
       integer v1l0, v1h0, v1l1, v1h1
@@ -57,7 +57,7 @@ c Works for CELL- or NODE-based data.
      & dest,  destl0, desth0, destl1, desth1,
      &        regl0, regh0, regl1, regh1,
      & src,   srcl0, srch0, srcl1, srch1,
-     &        bbl0, bbh0, bbl1, bbh1, 
+     &        bbl0, bbh0, bbl1, bbh1,
      & idir, ncomp)
       integer ncomp
       integer destl0, desth0, destl1, desth1
@@ -229,14 +229,14 @@ c inflow face, so that binfil can be run for subsequent fills
          if (regl0 .lt. bbh0) then
             do i = regl0, regh0
                do j = regl1, regh1
-                  dest(i,j,nc) = 2.d0 * dest(regh0,j,nc) 
+                  dest(i,j,nc) = 2.d0 * dest(regh0,j,nc)
      &            - src(bbh0-(i-regl0),j,nc)
                end do
             end do
          else
             do i = regh0, regl0, -1
                do j = regl1, regh1
-                  dest(i,j,nc) = 2.d0 * dest(regl0,j,nc) 
+                  dest(i,j,nc) = 2.d0 * dest(regl0,j,nc)
      &            - src(bbh0-(i-regl0),j,nc)
                end do
             end do
@@ -245,14 +245,14 @@ c inflow face, so that binfil can be run for subsequent fills
          if (regl1 .lt. bbh1) then
             do j = regl1, regh1
                do i = regl0, regh0
-                  dest(i,j,nc) = 2.d0 * dest(i,regh1,nc) 
+                  dest(i,j,nc) = 2.d0 * dest(i,regh1,nc)
      &            - src(i,bbh1-(j-regl1),nc)
                end do
             end do
          else
             do j = regh1, regl1, -1
                do i = regl0, regh0
-                  dest(i,j,nc) = 2.d0 * dest(i,regl1,nc) 
+                  dest(i,j,nc) = 2.d0 * dest(i,regl1,nc)
      &            - src(i,bbh1-(j-regl1),nc)
                end do
             end do
@@ -325,7 +325,7 @@ c CELL-based data only.
      & dest,  destl0, desth0, destl1, desth1,
      &        regl0, regh0, regl1, regh1,
      & src,   srcl0, srch0, srcl1, srch1,
-     &        bbl0, bbh0, bbl1, bbh1, 
+     &        bbl0, bbh0, bbl1, bbh1,
      & ir, jr, ncomp, integ, i1, i2)
       integer ncomp
       integer destl0, desth0, destl1, desth1
@@ -358,7 +358,7 @@ c NODE-based data only.
      & dest,  destl0, desth0, destl1, desth1,
      &        regl0, regh0, regl1, regh1,
      & src,   srcl0, srch0, srcl1, srch1,
-     &        bbl0, bbh0, bbl1, bbh1, 
+     &        bbl0, bbh0, bbl1, bbh1,
      & ir, jr, ncomp, i1, i2, integ)
       integer ncomp
       integer destl0, desth0, destl1, desth1
@@ -663,7 +663,7 @@ c Fills coarse point defined by reg.
             dest(i,j,nc) = dest(i,j,nc) + fac * src(i*ir,j*jr+n,nc)
             do m = idir0, idir0*(ir-1), idir0
                fac = (ir-abs(m)) * fac1
-               dest(i,j,nc) = dest(i,j,nc) + fac * 
+               dest(i,j,nc) = dest(i,j,nc) + fac *
      &               (src(i*ir+m,j*jr+n,nc) +
      &                src(i*ir-m,j*jr+n,nc) +
      &                src(i*ir+m,j*jr-n,nc))
@@ -703,7 +703,7 @@ c Fills coarse point defined by reg.
             fac1 = (jr-abs(n)) * fac0
             do m = 1, ir-1
                fac = (ir-m) * fac1
-               dest(i,j,nc) = dest(i,j,nc) + fac * 
+               dest(i,j,nc) = dest(i,j,nc) + fac *
      &               (src(i*ir+m,j*jr+n,nc) +
      &                src(i*ir-m,j*jr-n,nc))
             end do

@@ -1,6 +1,6 @@
 c-----------------------------------------------------------------------
       subroutine hggrad_dense(
-     & gpx, gpy, 
+     & gpx, gpy,
      &     gpl0, gph0, gpl1, gph1,
      & dest, destl0, desth0, destl1, desth1,
      &     fregl0, fregh0, fregl1, fregh1,
@@ -25,7 +25,7 @@ c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
       subroutine hgdiv_dense(
      & src, srcl0, srch0, srcl1, srch1,
-     & uf, vf, 
+     & uf, vf,
      &     fl0, fh0, fl1, fh1,
      &     fregl0, fregh0, fregl1, fregh1,
      & hx, hy)
@@ -53,9 +53,9 @@ c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
       subroutine hgfdiv_dense(
      & src, srcl0, srch0, srcl1, srch1,
-     & uc, vc, 
+     & uc, vc,
      &     cl0, ch0, cl1, ch1,
-     & uf, vf, 
+     & uf, vf,
      &     fl0, fh0, fl1, fh1,
      &     cregl0, cregh0, cregl1, cregh1,
      & hx, hy, ir, jr, idim, idir, idd1, idd2)
@@ -135,9 +135,9 @@ c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
       subroutine hgcdiv_dense(
      & src, srcl0, srch0, srcl1, srch1,
-     & uc, vc, 
+     & uc, vc,
      &     cl0, ch0, cl1, ch1,
-     & uf, vf, 
+     & uf, vf,
      &     fl0, fh0, fl1, fh1,
      &     cregl0, cregh0, cregl1, cregh1,
      & hx, hy, ir, jr, ga, idd)
@@ -206,11 +206,11 @@ c weighting
       end
 c-----------------------------------------------------------------------
       subroutine hggrad(
-     & gpx, gpy, gpl0, 
+     & gpx, gpy, gpl0,
      &     gph0, gpl1, gph1,
      & dest, destl0, desth0, destl1, desth1,
      &     fregl0, fregh0, fregl1, fregh1,
-     & hx, hy, 
+     & hx, hy,
      & irz)
       integer gpl0, gph0, gpl1, gph1
       integer destl0, desth0, destl1, desth1
@@ -251,10 +251,10 @@ c     We dont want to use these terms for the five-point stencil.
 c-----------------------------------------------------------------------
       subroutine hgdiv(
      & src, srcl0, srch0, srcl1, srch1,
-     & uf, vf, 
+     & uf, vf,
      &     fl0, fh0, fl1, fh1,
      &     fregl0, fregh0, fregl1, fregh1,
-     & hx, hy, 
+     & hx, hy,
      & irz, imax)
       integer srcl0, srch0, srcl1, srch1
       integer fl0, fh0, fl1, fh1
@@ -283,7 +283,7 @@ c     This correction is *only* for the cross stencil
       if (irz .eq. 1 .and. fregl0 .le. 0 .and. fregh0 .ge. 0) then
          i = 0
          do j = fregl1, fregh1
-            src(i,j) = src(i,j) - fac * hym1 * 0.5d0 * 
+            src(i,j) = src(i,j) - fac * hym1 * 0.5d0 *
      @                (vf(i-1,j) - vf(i-1,j-1) +
      @                 vf(i,j)   - vf(i  ,j-1))
          end do
@@ -316,9 +316,9 @@ c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
       subroutine hgfdiv(
      & src, srcl0, srch0, srcl1, srch1,
-     & uc, vc, 
+     & uc, vc,
      &     cl0, ch0, cl1, ch1,
-     & uf, vf, 
+     & uf, vf,
      &     fl0, fh0, fl1, fh1,
      &     cregl0, cregh0, cregl1, cregh1,
      & hx, hy, ir, jr, idim, idir, irz, imax)
@@ -453,7 +453,7 @@ c This should only occur with a corner at the outer boundary:
             if (irz .eq. 1 .and. m .eq. 0 .and.
      @          ir*cregl0 .le. 0 .and. ir*cregh0 .ge. 0) then
               i = 0
-              src(i,j) = src(i,j) - fac1 * 0.5d0 *  
+              src(i,j) = src(i,j) - fac1 * 0.5d0 *
      @              hym1 * idir * (vf(i-m,juf) + vf(i-m-1,juf) +
      @                             vf(i+m,juf) + vf(i+m-1,juf))
             endif
@@ -467,9 +467,9 @@ c  We dont want to use these extra terms for the five-point stencil
                   rfac0p = hx / (6.d0 * hy * (r + (m - 1) * hx))
                   rfac1p = hx / (6.d0 * hy * (r + m * hx))
                   src(i,j) = src(i,j) - fac1 *
-     &              (idir * (rfac1m * vf(i-m,juf) 
+     &              (idir * (rfac1m * vf(i-m,juf)
      &                  - rfac0m * vf(i-m-1,juf) +
-     &                       rfac1p * vf(i+m,juf) 
+     &                       rfac1p * vf(i+m,juf)
      &                  - rfac0p * vf(i+m-1,juf)))
                end do
             else if (irz .eq. 1) then
@@ -485,9 +485,9 @@ c This should only occur with a corner at the outer boundary:
                rfac0p = -rfac1m
                rfac1p = -rfac0m
                src(i,j) = src(i,j) - fac1 *
-     &              (idir * (rfac1m * vf(i-m,juf) 
+     &              (idir * (rfac1m * vf(i-m,juf)
      &            - rfac0m * vf(i-m-1,juf) +
-     &                       rfac1p * vf(i+m,juf) 
+     &                       rfac1p * vf(i+m,juf)
      &                     - rfac0p * vf(i+m-1,juf)))
             end if
 #endif
@@ -605,4 +605,3 @@ c weighting
       src(if,jf) = sum / center
 
       end
-

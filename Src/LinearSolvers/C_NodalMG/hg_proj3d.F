@@ -17,17 +17,17 @@ c-----------------------------------------------------------------------
       do k = fregl2, fregh2
           do j = fregl1, fregh1
               do i = fregl0, fregh0
-               gpx(i,j,k) = 0.25d0 * 
+               gpx(i,j,k) = 0.25d0 *
      &            (dest(i+1,j,k  ) + dest(i+1,j+1,k  ) +
      &             dest(i+1,j,k+1) + dest(i+1,j+1,k+1) -
      &             dest(i  ,j,k  ) - dest(i  ,j+1,k  ) -
      &             dest(i  ,j,k+1) - dest(i  ,j+1,k+1))
-               gpy(i,j,k) = 0.25d0 * 
+               gpy(i,j,k) = 0.25d0 *
      &            (dest(i,j+1,k  ) + dest(i+1,j+1,k  ) +
      &             dest(i,j+1,k+1) + dest(i+1,j+1,k+1) -
      &             dest(i,j  ,k  ) - dest(i+1,j  ,k  ) -
      &             dest(i,j  ,k+1) - dest(i+1,j  ,k+1))
-               gpz(i,j,k) = 0.25d0 * 
+               gpz(i,j,k) = 0.25d0 *
      &            (dest(i,j  ,k+1) + dest(i+1,j  ,k+1) +
      &             dest(i,j+1,k+1) + dest(i+1,j+1,k+1) -
      &             dest(i,j  ,k  ) - dest(i+1,j  ,k  ) -
@@ -140,7 +140,7 @@ c Note---only generates values at coarse points along edge of fine grid
      &                  uf(iuf,j+n-1,k-l) + uf(iuf,j+n-1,k-l-1) +
      &                  uf(iuf,j+n  ,k+l) + uf(iuf,j+n  ,k+l-1) +
      &                  uf(iuf,j+n-1,k+l) + uf(iuf,j+n-1,k+l-1))
-                     tmp = tmp + 
+                     tmp = tmp +
      &                 (vf(iuf,j-n,k-l  ) - vf(iuf,j-n-1,k-l  ) +
      &                  vf(iuf,j-n,k-l-1) - vf(iuf,j-n-1,k-l-1) +
      &                  vf(iuf,j-n,k+l  ) - vf(iuf,j-n-1,k+l  ) +
@@ -149,7 +149,7 @@ c Note---only generates values at coarse points along edge of fine grid
      &                  vf(iuf,j+n,k-l-1) - vf(iuf,j+n-1,k-l-1) +
      &                  vf(iuf,j+n,k+l  ) - vf(iuf,j+n-1,k+l  ) +
      &                  vf(iuf,j+n,k+l-1) - vf(iuf,j+n-1,k+l-1))
-                     src(i,j,k) = src(i,j,k) + fac * (tmp + 
+                     src(i,j,k) = src(i,j,k) + fac * (tmp +
      &                 (wf(iuf,j-n  ,k-l) - wf(iuf,j-n  ,k-l-1) +
      &                  wf(iuf,j-n-1,k-l) - wf(iuf,j-n-1,k-l-1) +
      &                  wf(iuf,j-n  ,k+l) - wf(iuf,j-n  ,k+l-1) +
@@ -193,7 +193,7 @@ c Note---only generates values at coarse points along edge of fine grid
                if (m .eq. 0) fac = 0.5D0 * fac
                do k = kr*cregl2, kr*cregh2, kr
                   do i = ir*cregl0, ir*cregh0, ir
-                     tmp = 
+                     tmp =
      &                 (uf(i-m,juf,k-l  ) - uf(i-m-1,juf,k-l) +
      &                  uf(i-m,juf,k-l-1) - uf(i-m-1,juf,k-l-1) +
      &                  uf(i-m,juf,k+l  ) - uf(i-m-1,juf,k+l) +
@@ -211,7 +211,7 @@ c Note---only generates values at coarse points along edge of fine grid
      &                  vf(i+m-1,juf,k-l) + vf(i+m-1,juf,k-l-1) +
      &                  vf(i+m  ,juf,k+l) + vf(i+m  ,juf,k+l-1) +
      &                  vf(i+m-1,juf,k+l) + vf(i+m-1,juf,k+l-1))
-                     src(i,j,k) = src(i,j,k) + fac * (tmp + 
+                     src(i,j,k) = src(i,j,k) + fac * (tmp +
      &                 (wf(i-m  ,juf,k-l) - wf(i-m  ,juf,k-l-1) +
      &                  wf(i-m-1,juf,k-l) - wf(i-m-1,juf,k-l-1) +
      &                  wf(i-m  ,juf,k+l) - wf(i-m  ,juf,k+l-1) +
@@ -255,7 +255,7 @@ c Note---only generates values at coarse points along edge of fine grid
                if (m .eq. 0) fac = 0.5D0 * fac
                do j = jr*cregl1, jr*cregh1, jr
                   do i = ir*cregl0, ir*cregh0, ir
-                     tmp = 
+                     tmp =
      &                 (uf(i-m,j-n  ,kuf) - uf(i-m-1,j-n  ,kuf) +
      &                  uf(i-m,j-n-1,kuf) - uf(i-m-1,j-n-1,kuf) +
      &                  uf(i-m,j+n  ,kuf) - uf(i-m-1,j+n  ,kuf) +
@@ -264,7 +264,7 @@ c Note---only generates values at coarse points along edge of fine grid
      &                  uf(i+m,j-n-1,kuf) - uf(i+m-1,j-n-1,kuf) +
      &                  uf(i+m,j+n  ,kuf) - uf(i+m-1,j+n  ,kuf) +
      &                  uf(i+m,j+n-1,kuf) - uf(i+m-1,j+n-1,kuf))
-                     tmp = tmp + 
+                     tmp = tmp +
      &                 (vf(i-m  ,j-n,kuf) - vf(i-m  ,j-n-1,kuf) +
      &                  vf(i-m-1,j-n,kuf) - vf(i-m-1,j-n-1,kuf) +
      &                  vf(i-m  ,j+n,kuf) - vf(i-m  ,j+n-1,kuf) +
@@ -355,7 +355,7 @@ c each quadrant is two octants and their share of the two central edges
                   juc = jc + ji - 1
                   do ic = cregl0, cregh0
                      if = ic * ir
-                     src(if,jf,kf) = src(if,jf,kf) + 
+                     src(if,jf,kf) = src(if,jf,kf) +
      &                 (       (uc(ic,juc,kuc) - uc(ic-1,juc,kuc)) +
      &                  jdir * (vc(ic,juc,kuc) + vc(ic-1,juc,kuc)) +
      &                  kdir * (wc(ic,juc,kuc) + wc(ic-1,juc,kuc)))
@@ -469,7 +469,7 @@ c
                   iuc = ic + ii - 1
                   do jc = cregl1, cregh1
                      jf = jc * jr
-                     src(if,jf,kf) = src(if,jf,kf) + 
+                     src(if,jf,kf) = src(if,jf,kf) +
      &                 (idir * (uc(iuc,jc,kuc) + uc(iuc,jc-1,kuc)) +
      &                         (vc(iuc,jc,kuc) - vc(iuc,jc-1,kuc)) +
      &                  kdir * (wc(iuc,jc,kuc) + wc(iuc,jc-1,kuc)))
@@ -580,7 +580,7 @@ c
                   iuc = ic + ii - 1
                   do kc = cregl2, cregh2
                      kf = kc * kr
-                     src(if,jf,kf) = src(if,jf,kf) + 
+                     src(if,jf,kf) = src(if,jf,kf) +
      &                 (idir * (uc(iuc,juc,kc) + uc(iuc,juc,kc-1)) +
      &                  jdir * (vc(iuc,juc,kc) + vc(iuc,juc,kc-1)) +
      &                         (wc(iuc,juc,kc) - wc(iuc,juc,kc-1)))
@@ -614,7 +614,7 @@ c each face is two faces and two sides of an edge
      &             vf(if+m-1,juf,kf-l) + vf(if+m-1,juf,kf-l-1) +
      &             vf(if+m  ,juf,kf+l) + vf(if+m  ,juf,kf+l-1) +
      &             vf(if+m-1,juf,kf+l) + vf(if+m-1,juf,kf+l-1)) +
-c                                             
+c
      &            (wf(if+m  ,juf,kf-l) - wf(if+m  ,juf,kf-l-1) +
      &             wf(if+m-1,juf,kf-l) - wf(if+m-1,juf,kf-l-1) +
      &             wf(if+m  ,juf,kf+l) - wf(if+m  ,juf,kf+l-1) +
@@ -643,7 +643,7 @@ c
      &             vf(iuf,jf+n,kf-l-1) - vf(iuf,jf+n-1,kf-l-1) +
      &             vf(iuf,jf+n,kf+l  ) - vf(iuf,jf+n-1,kf+l  ) +
      &             vf(iuf,jf+n,kf+l-1) - vf(iuf,jf+n-1,kf+l-1)) +
-c                                             
+c
      &            (wf(iuf,jf+n,kf-l  ) - wf(iuf,jf+n  ,kf-l-1) +
      &             wf(iuf,jf+n-1,kf-l) - wf(iuf,jf+n-1,kf-l-1) +
      &             wf(iuf,jf+n,kf+l  ) - wf(iuf,jf+n  ,kf+l-1) +
@@ -706,13 +706,13 @@ c octants
                idir = 2 * ii - 1
                if (ga(ii,ji,ki) .eq. 1) then
                   iuf = if + ii - 1
-                  sum = sum + 
+                  sum = sum +
      &              (idir * uf(iuf,juf,kuf) +
      &               jdir * vf(iuf,juf,kuf) +
      &               kdir * wf(iuf,juf,kuf))
                else
                   iuc = ic + ii - 1
-                  sum = sum + 
+                  sum = sum +
      &              (idir * uc(iuc,juc,kuc) +
      &               jdir * vc(iuc,juc,kuc) +
      &               kdir * wc(iuc,juc,kuc))
@@ -843,7 +843,7 @@ c
          end do
       end do
 c weighting
-      src(if,jf,kf) = 0.25d0 * sum 
+      src(if,jf,kf) = 0.25d0 * sum
       end
 c-----------------------------------------------------------------------
       subroutine hggrad(
@@ -1314,7 +1314,7 @@ c each face is two faces and two sides of an edge
                end if
             end do
          end do
-c weighting 
+c weighting
          do if = ir*cregl0, ir*cregh0, ir
             src(if,jf,kf) = src(if,jf,kf) / center
          end do

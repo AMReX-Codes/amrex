@@ -13,8 +13,6 @@
 
 #ifdef BL_USE_MPI
 #include <mpi.h>
-#else
-//#error Must define BL_USE_MPI in this file
 #endif
 
 inline
@@ -73,57 +71,16 @@ public:
     class task_proxy
     {
     public:
-        explicit task_proxy (task* t_ = 0)
-        {
-            m_t = t_;
-        }
-        task_proxy (const task_proxy& r)
-        {
-            if ((m_t = r.m_t)) m_t->m_cnt++;
-        }
-        ~task_proxy ()
-        {
-            if (m_t && --m_t->m_cnt == 0) delete m_t;
-        }
-        task_proxy& operator= (const task_proxy& r)
-        {
-            if (this != &r)
-            {
-                if (m_t && --m_t->m_cnt == 0) delete m_t;
-
-                if ((m_t = r.m_t)) m_t->m_cnt++;
-            }
-            return *this;
-        }
-        task* operator-> () const
-        {
-            BL_ASSERT(!null());
-            return m_t;
-        }
-        task* operator* () const
-        {
-            BL_ASSERT(!null());
-            return m_t;
-        }
-        task* get () const
-        {
-            BL_ASSERT(!null());
-            return m_t;
-        }
-        void set_finished ()
-        {
-            BL_ASSERT(!null());
-            m_t->m_finished = true;
-        }
-        bool is_finished () const
-        {
-            BL_ASSERT(!null());
-            return m_t->m_finished;
-        }
-        bool null () const
-        {
-            return m_t == 0;
-        }
+	explicit task_proxy (task* t_ = 0);
+	task_proxy (const task_proxy& r);
+	~task_proxy ();
+	task_proxy& operator= (const task_proxy& r);
+	task* operator-> () const;
+	task* operator* () const;
+	task* get () const;
+	void set_finished ();
+	bool is_finished () const;
+	bool null () const;
     private:
         //
         // The data.
@@ -136,7 +93,7 @@ public:
     virtual ~task ();
     virtual bool ready ();
     virtual bool startup (long& sdncnt, long& rcvcnt);
-    bool is_started () const { return m_started; }
+    bool is_started () const ;
     virtual bool depends_on_q (const task* t1) const;
     virtual bool work_to_do () const;
     virtual bool need_to_communicate (int& with) const;
@@ -144,8 +101,8 @@ public:
     bool depend_ready ();
     virtual void hint () const;
     void print_dependencies (ostream& os) const;
-    sequence_number get_sequence_number () const { return m_sno; }
-    void set_sequence_number (sequence_number sno) { m_sno = sno; }
+    sequence_number get_sequence_number () const;
+    void set_sequence_number (sequence_number sno);
 
 protected:
     friend class task_proxy;
@@ -169,11 +126,109 @@ private:
     task& operator= (const task&);
 };
 
+inline
+task::task_proxy::task_proxy (task* t_)
+{
+    m_t = t_;
+}
+
+inline
+task::task_proxy::task_proxy (const task_proxy& r)
+{
+    if ((m_t = r.m_t)) m_t->m_cnt++;
+}
+
+inline
+task::task_proxy::~task_proxy ()
+{
+    if (m_t && --m_t->m_cnt == 0) delete m_t;
+}
+
+inline
+task::task_proxy&
+task::task_proxy::operator= (const task_proxy& r)
+{
+    if (this != &r)
+    {
+	if (m_t && --m_t->m_cnt == 0) delete m_t;
+
+	if ((m_t = r.m_t)) m_t->m_cnt++;
+    }
+    return *this;
+}
+
+inline
+task*
+task::task_proxy::operator-> () const
+{
+    BL_ASSERT(!null());
+    return m_t;
+}
+
+inline
+task*
+task::task_proxy::operator* () const
+{
+    BL_ASSERT(!null());
+    return m_t;
+}
+
+inline
+task*
+task::task_proxy::get () const
+{
+    BL_ASSERT(!null());
+    return m_t;
+}
+
+inline
+void
+task::task_proxy::set_finished ()
+{
+    BL_ASSERT(!null());
+    m_t->m_finished = true;
+}
+
+inline
+bool
+task::task_proxy::is_finished () const
+{
+    BL_ASSERT(!null());
+    return m_t->m_finished;
+}
+
+inline
+bool
+task::task_proxy::null () const
+{
+    return m_t == 0;
+}
+
+inline
+bool
+task::is_started () const
+{
+    return m_started;
+}
+
+inline
+task::sequence_number
+task::get_sequence_number () const
+{
+    return m_sno;
+}
+
+inline
+void
+task::set_sequence_number (task::sequence_number sno)
+{
+    m_sno = sno;
+}
+
 class task_list
 {
 public:
-
-    explicit task_list ();
+    task_list ();
     ~task_list ();
     task::task_proxy add_task (task* t);
     //
@@ -181,33 +236,15 @@ public:
     //
     void execute (const char* msg);
 
-    list<task::task_proxy>::const_iterator begin () const
-    {
-	return tasks.begin();
-    }
-    list<task::task_proxy>::iterator begin ()
-    {
-	return tasks.begin();
-    }
-    list<task::task_proxy>::const_iterator end () const
-    {
-	return tasks.end();
-    }
-    list<task::task_proxy>::iterator end ()
-    {
-	return tasks.end();
-    }
+    list<task::task_proxy>::const_iterator begin () const;
+    list<task::task_proxy>::iterator begin ();
+    list<task::task_proxy>::const_iterator end () const;
+    list<task::task_proxy>::iterator end ();
 
-    bool empty () const { return tasks.empty(); }
-    int size () const { return tasks.size(); }
+    bool empty () const;
+    int size () const;
 
-    task::sequence_number get_then_advance (int proc)
-    {
-        task::sequence_number sno = seq_no[proc];
-        seq_no[proc] = sno + 1;
-        return sno;
-    }
-
+    task::sequence_number get_then_advance (int proc);
     void print_dependencies (ostream& os) const;
 
 private:
@@ -223,7 +260,59 @@ private:
     static bool def_verbose;
 };
 
-class task_copy : public task
+inline
+list<task::task_proxy>::const_iterator
+task_list::begin () const
+{
+    return tasks.begin();
+}
+
+inline
+list<task::task_proxy>::iterator
+task_list::begin ()
+{
+    return tasks.begin();
+}
+
+inline
+list<task::task_proxy>::const_iterator
+task_list::end () const
+{
+    return tasks.end();
+}
+
+inline
+list<task::task_proxy>::iterator
+task_list::end ()
+{
+    return tasks.end();
+}
+
+inline
+bool
+task_list::empty () const
+{
+    return tasks.empty();
+}
+
+inline
+int
+task_list::size () const
+{
+    return tasks.size();
+}
+
+inline
+task::sequence_number
+task_list::get_then_advance (int proc)
+{
+    task::sequence_number sno = seq_no[proc];
+    seq_no[proc] = sno + 1;
+    return sno;
+}
+
+class task_copy
+    : public task
 {
 public:
 
@@ -280,7 +369,8 @@ protected:
     bool            m_done;
 };
 
-class task_copy_local : public task
+class task_copy_local
+    : public task
 {
 public:
 
@@ -316,7 +406,8 @@ private:
     bool            m_done;
 };
 
-class task_fab : public task
+class task_fab
+    : public task
 {
 public:
 
@@ -329,11 +420,11 @@ public:
     virtual ~task_fab ();
     virtual bool work_to_do () const;
 
-    const FArrayBox& fab () { BL_ASSERT(target != 0); return *target; }
+    const FArrayBox& fab ();
 
 protected:
 
-    int target_proc_id () const { return m_target_proc_id; }
+    int target_proc_id () const;
     //
     // The data.
     //
@@ -342,6 +433,21 @@ protected:
     const int  ncomp;
     int        m_target_proc_id;
 };
+
+inline
+const FArrayBox&
+task_fab::fab ()
+{
+    BL_ASSERT(target != 0);
+    return *target;
+}
+
+inline
+int
+task_fab::target_proc_id () const
+{
+    return m_target_proc_id;
+}
 
 class level_interface;
 class amr_boundary;
@@ -377,7 +483,8 @@ private:
     const int                 index;
 };
 
-class task_fec_base : public task
+class task_fec_base
+    : public task
 {
 public:
 
@@ -386,31 +493,14 @@ public:
                    int        igrid_);
 
     virtual ~task_fec_base ();
-
+    virtual bool work_to_do () const;
 protected:
 
     void push_back (task_fab* tf);
-
-    bool is_local_target () const { return is_local(s, igrid); }
-
-    FArrayBox& target_fab ()
-    {
-        BL_ASSERT(is_local_target());
-        return s[igrid];
-    }
-
-    int grid_number () const { return igrid; }
-
-    const FArrayBox& task_fab_result (int n)
-    {
-        BL_ASSERT(is_local_target());
-        BL_ASSERT(n >= 0 && n < tfvect.size());
-        task_fab* tf = dynamic_cast<task_fab*>(tfvect[n].get());
-        BL_ASSERT(tf != 0);
-        return tf->fab();
-    }
-
-    virtual bool work_to_do () const;
+    bool is_local_target () const;
+    FArrayBox& target_fab ();
+    int grid_number () const;
+    const FArrayBox& task_fab_result (int n);
     //
     // The data.
     //
@@ -419,5 +509,38 @@ protected:
     const int                igrid;
     bool                     done;
 };
+
+inline
+bool
+task_fec_base::is_local_target () const
+{
+    return is_local(s, igrid);
+}
+
+inline
+FArrayBox&
+task_fec_base::target_fab ()
+{
+    BL_ASSERT(is_local_target());
+    return s[igrid];
+}
+
+inline
+int
+task_fec_base::grid_number () const
+{
+    return igrid;
+}
+
+inline
+const FArrayBox&
+task_fec_base::task_fab_result (int n)
+{
+    BL_ASSERT(is_local_target());
+    BL_ASSERT(n >= 0 && n < tfvect.size());
+    task_fab* tf = dynamic_cast<task_fab*>(tfvect[n].get());
+    BL_ASSERT(tf != 0);
+    return tf->fab();
+}
 
 #endif /*_HGPARALLEL_H_*/

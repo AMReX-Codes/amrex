@@ -19,12 +19,10 @@
 // regardless of the type of the region.
 //
 
-class amr_boundary 
+class amr_boundary
 {
 public:
-    // amr_boundary () {}
-
-    virtual ~amr_boundary ();
+    virtual ~amr_boundary () = 0;
 
     int dir (const Box&,
              const Box&) const;
@@ -52,28 +50,28 @@ public:
     virtual bool singular () const  = 0;
 
     virtual Box anImage (const Box& region,
-                       const Box& srcbox,
-                       const Box& domain) const = 0;
+			 const Box& srcbox,
+			 const Box& domain) const = 0;
 
 protected:
 
     virtual Box box_ (const Box&,
-                     const Box&,
-                     int) const = 0;
+		      const Box&,
+		      int) const = 0;
 
     virtual void fill_ (FArrayBox&,
-                       const Box&,
-                       const FArrayBox&,
-                       const Box&,
-                       const Box&,
-                       int) const = 0;
+			const Box&,
+			const FArrayBox&,
+			const Box&,
+			const Box&,
+			int) const = 0;
 
     virtual void check_against_boundary_ (BoxList&   bl,
-                                         List<int>& il,
-                                         const Box& b,
-                                         int        ib,
-                                         const Box& d,
-                                         int        dim1) const = 0;
+					  List<int>& il,
+					  const Box& b,
+					  int        ib,
+					  const Box& d,
+					  int        dim1) const = 0;
 };
 
 //
@@ -84,14 +82,14 @@ protected:
 // a base for derivation.
 //
 
-class amr_fluid_boundary 
+class amr_fluid_boundary
 {
 public:
 
     amr_fluid_boundary ();
 
     virtual ~amr_fluid_boundary ();
-    
+
     virtual const amr_boundary* velocity (int i) const;
 
     virtual const amr_boundary* scalar() const;
@@ -121,13 +119,13 @@ protected:
 class inviscid_fluid_boundary;
 
 class mixed_boundary
-    : public amr_boundary 
+    : public amr_boundary
 {
 public:
 
     mixed_boundary (inviscid_fluid_boundary* Ptr,
 		    int                      idim)  ;
-    
+
     virtual void fill (FArrayBox&,
                        const Box&,
                        const FArrayBox&,
@@ -146,28 +144,28 @@ public:
     virtual bool singular () const;
 
     virtual Box anImage (const Box& region,
-                       const Box& srcbox,
-                       const Box& domain) const;
+			 const Box& srcbox,
+			 const Box& domain) const;
 
 protected:
 
     virtual Box box_ (const Box&,
-                     const Box&,
-                     int) const;
+		      const Box&,
+		      int) const;
 
     virtual void fill_ (FArrayBox&,
-                       const Box&,
-                       const FArrayBox&,
-                       const Box&,
-                       const Box&,
-                       int) const;
+			const Box&,
+			const FArrayBox&,
+			const Box&,
+			const Box&,
+			int) const;
 
     virtual void check_against_boundary_ (BoxList&   bl,
-                                         List<int>& il,
-                                         const Box& b,
-                                         int        ib,
-                                         const Box& d,
-                                         int        dim1) const;
+					  List<int>& il,
+					  const Box& b,
+					  int        ib,
+					  const Box& d,
+					  int        dim1) const;
     //
     // The data.
     //
@@ -181,7 +179,7 @@ protected:
 // boundaries are supported.
 
 class inviscid_fluid_boundary
-    : public amr_fluid_boundary 
+    : public amr_fluid_boundary
 {
     friend class mixed_boundary;
 public:

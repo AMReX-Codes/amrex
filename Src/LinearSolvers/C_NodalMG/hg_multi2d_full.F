@@ -199,7 +199,7 @@ c quadrants
          do ii = 0, 1
             idir = 2 * ii - 1
             if (ga(ii,ji) .eq. 1) then
-               sum = sum 
+               sum = sum
      &              + sigmaf(if+ii-1,jf+ji-1,1) *
      &              (fdst(if+idir,jf+jdir) - fdst(if,jf+jdir)
      &              + 2.d0 * (fdst(if+idir,jf) - fdst(if,jf)))
@@ -207,7 +207,7 @@ c quadrants
      &            (fdst(if+idir,jf+jdir) - fdst(if+idir,jf)
      &             + 2.d0 * (fdst(if,jf+jdir) - fdst(if,jf)))
             else
-               sum = sum 
+               sum = sum
      &              + sigmac(ic+ii-1,jc+ji-1,1) *
      &            (cdst(ic+idir,jc+jdir) - cdst(ic,jc+jdir)
      &             + 2.d0 * (cdst(ic+idir,jc) - cdst(ic,jc)))
@@ -267,7 +267,7 @@ c edges
 c weighting
       res(if,jf) = src(if,jf) - sum / 6.d0
       end
-      
+
 c nine-point terrain stencils
 c-----------------------------------------------------------------------
       subroutine hgcen_full(cen, cenl0, cenh0, cenl1, cenh1,
@@ -281,7 +281,7 @@ c-----------------------------------------------------------------------
       integer i, j
       do j = regl1, regh1
          do i = regl0, regh0
-            cen(i,j) = 3.d0 / 
+            cen(i,j) = 3.d0 /
      &           (
      &           + sig(i-1,j-1,1) + sig(i-1,j,1)
      &           + sig(i  ,j-1,1) + sig(i  ,j,1)
@@ -430,40 +430,40 @@ c-----------------------------------------------------------------------
       double precision fac, betm, aj
       double precision RHSL0,RHSL1
       integer i, j, ioff
-      RHSL0() = (res(i,j) - fac * ( 
-     &           sig(i-1,j-1,1) * 
-     &             (cor(i-1,j-1) - cor(i,j-1)) + 
-     &            sig(i-1,j,1) * 
-     &             (cor(i-1,j+1) - cor(i,j+1)) + 
-     &            sig(i,j-1,1) * 
-     &             (cor(i+1,j-1) - cor(i,j-1)) + 
-     &            sig(i,j,1) * 
-     &             (cor(i+1,j+1) - cor(i,j+1)) + 
-     &            sig(i-1,j-1,2) * 
-     &             (cor(i-1,j-1) + 2.d0 * cor(i,j-1)) + 
-     &            sig(i-1,j,2) * 
-     &             (cor(i-1,j+1) + 2.d0 * cor(i,j+1)) + 
-     &            sig(i,j-1,2) * 
-     &             (cor(i+1,j-1) + 2.d0 * cor(i,j-1)) + 
-     &            sig(i,j,2) * 
+      RHSL0() = (res(i,j) - fac * (
+     &           sig(i-1,j-1,1) *
+     &             (cor(i-1,j-1) - cor(i,j-1)) +
+     &            sig(i-1,j,1) *
+     &             (cor(i-1,j+1) - cor(i,j+1)) +
+     &            sig(i,j-1,1) *
+     &             (cor(i+1,j-1) - cor(i,j-1)) +
+     &            sig(i,j,1) *
+     &             (cor(i+1,j+1) - cor(i,j+1)) +
+     &            sig(i-1,j-1,2) *
+     &             (cor(i-1,j-1) + 2.d0 * cor(i,j-1)) +
+     &            sig(i-1,j,2) *
+     &             (cor(i-1,j+1) + 2.d0 * cor(i,j+1)) +
+     &            sig(i,j-1,2) *
+     &             (cor(i+1,j-1) + 2.d0 * cor(i,j-1)) +
+     &            sig(i,j,2) *
      &             (cor(i+1,j+1) + 2.d0 * cor(i,j+1))))
 
-      RHSL1() = (res(i,j) - fac * ( 
-     &           sig(i-1,j-1,1) * 
-     &             (cor(i-1,j-1) + 2.d0 * cor(i-1,j)) + 
-     &            sig(i-1,j,1) * 
-     &             (cor(i-1,j+1) + 2.d0 * cor(i-1,j)) + 
-     &            sig(i,j-1,1) * 
-     &             (cor(i+1,j-1) + 2.d0 * cor(i+1,j)) + 
-     &            sig(i,j,1) * 
-     &             (cor(i+1,j+1) + 2.d0 * cor(i+1,j)) + 
-     &            sig(i-1,j-1,2) * 
-     &             (cor(i-1,j-1) - cor(i-1,j)) + 
-     &            sig(i-1,j,2) * 
-     &             (cor(i-1,j+1) - cor(i-1,j)) + 
-     &            sig(i,j-1,2) * 
-     &            (cor(i+1,j-1) - cor(i+1,j)) + 
-     &            sig(i,j,2) * 
+      RHSL1() = (res(i,j) - fac * (
+     &           sig(i-1,j-1,1) *
+     &             (cor(i-1,j-1) + 2.d0 * cor(i-1,j)) +
+     &            sig(i-1,j,1) *
+     &             (cor(i-1,j+1) + 2.d0 * cor(i-1,j)) +
+     &            sig(i,j-1,1) *
+     &             (cor(i+1,j-1) + 2.d0 * cor(i+1,j)) +
+     &            sig(i,j,1) *
+     &             (cor(i+1,j+1) + 2.d0 * cor(i+1,j)) +
+     &            sig(i-1,j-1,2) *
+     &             (cor(i-1,j-1) - cor(i-1,j)) +
+     &            sig(i-1,j,2) *
+     &             (cor(i-1,j+1) - cor(i-1,j)) +
+     &            sig(i,j-1,2) *
+     &            (cor(i+1,j-1) - cor(i+1,j)) +
+     &            sig(i,j,2) *
      &             (cor(i+1,j+1) - cor(i+1,j))))
       fac = 1.d0 / 6.d0
       if (lsd .eq. 0) then
@@ -561,7 +561,7 @@ c forward solve loop:
      &           (2.d0 * (sig(i-1,j,2) + sig(i,j,2)) -
      &            (sig(i-1,j,1) + sig(i,j,1)))
                wrk(i,j+1) = aj
-               wrk(i,j) = aj * betm 
+               wrk(i,j) = aj * betm
             end do
          end do
          j = regh1
@@ -586,5 +586,3 @@ c interface to grid at same level:
          end do
       end if
       end
-
-      

@@ -7,88 +7,77 @@
 
 class amr_boundary;
 
-class level_interface 
+class level_interface
 {
 public:
-    
+
 #if (BL_SPACEDIM == 2)
     enum
     {
 	ALL = 0xF, LOW = 0x01
     };
 #else
-    enum 
+    enum
     {
-	ALL = 0xFF, LOW = 0x01 
+	ALL = 0xFF, LOW = 0x01
     };
 #endif
-    enum 
+    enum
     {
 	FACEDIM = BL_SPACEDIM-1
     };
-    
-    level_interface() 
-	:
-        status(-1) 
-    {}
 
+    level_interface() ;
     ~level_interface ();
     //
     // A pseudo constructor.
     //
     void alloc (const BoxArray&           Im,
-                const Box&                Domain,
-                const amr_boundary* Bdy);
+		const Box&                Domain,
+		const amr_boundary* Bdy);
     //
     // Two pseudo copy operators/constructors.
     //
     void copy (const level_interface& src);
     void alloc_coarsened (const BoxArray&           Im,
-                          const amr_boundary* Bdy,
-                          const level_interface&    src,
-                          const IntVect&            rat);
-    
-    bool ok () const			     { return (status >= 0); }
-    
-    const Box& domain () const		     { return dom; }
-    const BoxArray& interior_mesh () const   { return im; }
-    const BoxArray& exterior_mesh () const   { return em; }
-    int exterior_ref (int igrid) const
-    {
-	BL_ASSERT(igrid < -1);
-	return grid_ref[-2-igrid];
-    }
-    int direct_exterior_ref (int igrid) const
-    {
-	BL_ASSERT(igrid > -1); return grid_ref[   igrid];
-    }
-    const Box& part_fine (int i) const	     { return pf[i]; }
-    
+			  const amr_boundary* Bdy,
+			  const level_interface&    src,
+			  const IntVect&            rat);
+
+    bool ok () const;
+
+    const Box& domain () const;
+    const BoxArray& interior_mesh () const;
+    const BoxArray& exterior_mesh () const;
+    int exterior_ref (int igrid) const;
+    int direct_exterior_ref (int igrid) const;
+    const Box& part_fine (int i) const;
+
     Array<int> geo_array (int idim, int i) const;
 
     int grid (int idim, int i, int j)  const;
 
-    int fdim (int i) const		     { return fdm[i]; }
+    int fdim (int i) const;
 
-    int nboxes (int idim) const		     { return nbx[idim]; }
-    const Box& box (int idim, int i) const   { return bx[idim][i]; }
-    const Box& node_box (int idim, int i) const { return nodebx[idim][i]; }
-    unsigned int geo (int idim, int i) const { return ge[idim][i]; }
-    unsigned int aux (int idim, int i) const { return ax[idim][i]; }
-    bool flag (int idim, int i) const	     { return flg[idim][i]; }
+    int nboxes (int idim) const;
+    const Box& box (int idim, int i) const;
+    const Box& node_box (int idim, int i) const;
+    unsigned int geo (int idim, int i) const;
+    unsigned int aux (int idim, int i) const;
+    bool flag (int idim, int i) const;
     static int ngrids (int idim);
 
 private:
 
 #if (BL_SPACEDIM == 2)
     enum
-    { 
+    {
 	N_FACE_GRIDS = 2,
 	N_CORNER_GRIDS = 4
     };
 #elif (BL_SPACEDIM == 3)
-    enum 
-    { 
+    enum
+    {
 	N_FACE_GRIDS = 2,
 	N_EDGE_GRIDS = 4,
 	N_CORNER_GRIDS = 8
@@ -105,8 +94,8 @@ private:
     Box* bx[BL_SPACEDIM];               // array of interface boxes
     unsigned int* ge[BL_SPACEDIM];      // geometries of interface boxes
     int* ax[BL_SPACEDIM];               // if >= 0, gives the number of the
-          // grid which must be cleared of bogus data along this edge, corner,
-          // or face after computing on the part_fine section of that grid
+    // grid which must be cleared of bogus data along this edge, corner,
+    // or face after computing on the part_fine section of that grid
     bool* flg[BL_SPACEDIM];             // flags dirichlet bdys
     int* fdm;                           // which is flat dim for this face
     Box* nodebx[BL_SPACEDIM];           // node-based versions of interface boxes
@@ -115,7 +104,7 @@ private:
     int (*egr)[N_EDGE_GRIDS];           // grid neighbor data for edges
 #endif
     int (*cgr)[N_CORNER_GRIDS];         // grid neighbor data for corners
-    
+
     void  add (List<Box>& bl, Box b, int startgrid);
     void xfer (const List<Box>& bl, int idim);
 private:
@@ -128,12 +117,70 @@ private:
 
 extern const level_interface default_level_interface;
 
-inline int level_interface::grid (int idim, int i, int j) const 
-{ 
+inline
+level_interface::level_interface()
+    :
+    status(-1)
+{}
+
+inline
+bool
+level_interface::ok () const
+{
+    return (status >= 0);
+}
+
+inline
+const Box&
+level_interface::domain () const
+{
+    return dom;
+}
+
+inline
+const BoxArray&
+level_interface::interior_mesh () const
+{
+    return im;
+}
+
+inline
+const BoxArray&
+level_interface::exterior_mesh () const
+{
+    return em;
+}
+
+inline
+int
+level_interface::exterior_ref (int igrid) const
+{
+    BL_ASSERT(igrid < -1);
+    return grid_ref[-2-igrid];
+}
+
+inline
+int
+level_interface::direct_exterior_ref (int igrid) const
+{
+    BL_ASSERT(igrid > -1); return grid_ref[   igrid];
+}
+
+inline
+const Box&
+level_interface::part_fine (int i) const
+{
+    return pf[i];
+}
+
+inline
+int
+level_interface::grid (int idim, int i, int j) const
+{
     BL_ASSERT(idim >= 0 && idim <= FACEDIM);
     BL_ASSERT(j >= 0 && i >= 0);
     int ret;
-    switch(idim) 
+    switch(idim)
     {
     case FACEDIM:
 	BL_ASSERT(j < N_FACE_GRIDS && i < nboxes(FACEDIM));
@@ -153,7 +200,9 @@ inline int level_interface::grid (int idim, int i, int j) const
     return ret;
 }
 
-inline int level_interface::ngrids(int idim)
+inline
+int
+level_interface::ngrids(int idim)
 {
     BL_ASSERT(idim >= 0 && idim <= FACEDIM);
     int ret;
@@ -167,4 +216,54 @@ inline int level_interface::ngrids(int idim)
     }
     return ret;
 }
+
+inline
+int
+level_interface::fdim (int i) const
+{
+    return fdm[i];
+}
+
+inline
+int
+level_interface::nboxes (int idim) const
+{
+    return nbx[idim];
+}
+
+inline
+const Box&
+level_interface::box (int idim, int i) const
+{
+    return bx[idim][i];
+}
+
+inline
+const Box&
+level_interface::node_box (int idim, int i) const
+{
+    return nodebx[idim][i];
+}
+
+inline
+unsigned int
+level_interface::geo (int idim, int i) const
+{
+    return ge[idim][i];
+}
+
+inline
+unsigned int
+level_interface::aux (int idim, int i) const
+{
+    return ax[idim][i];
+}
+
+inline
+bool
+level_interface::flag (int idim, int i) const
+{
+    return flg[idim][i];
+}
+
 #endif /*_INTERFACE_H_*/

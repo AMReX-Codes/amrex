@@ -65,8 +65,8 @@ main(int argc, char **argv)
     if ( argc < 2 ) BoxLib::Error("expected inputs file");
     ParmParse pp(argc-2,argv+2, 0, argv[1]);
 
-    HG_is_debugging = true;   
-    HG_is_debugging = false;   
+    HG_is_debugging = true;
+    HG_is_debugging = false;
 #ifdef HG_DEBUG
 #ifdef __GNUC__
     char buf[1024];
@@ -190,7 +190,7 @@ driver(const char *filename)
     Array<BoxArray> m;
     Array<IntVect> ratio;
     Array<Box> domain;
-    
+
     fstream grid;
     grid.open(filename, ios::in);
     if ( grid.fail() )
@@ -208,12 +208,12 @@ init(PArray<MultiFab> u[], PArray<MultiFab>& p,
      const Array<BoxArray>& m, const Array<IntVect>& ratio)
 {
 #if (BL_SPACEDIM == 2)
-    for (int ilev = 0; ilev < m.length(); ilev++) 
+    for (int ilev = 0; ilev < m.length(); ilev++)
     {
 	u[0][ilev].setVal(0.0);
 	u[1][ilev].setVal(0.0);
     }
-    if (m.length() == 1) 
+    if (m.length() == 1)
     {
 	for (MultiFabIterator u_mfi(u[0][0]); u_mfi.isValid(); ++u_mfi)
 	{
@@ -224,7 +224,7 @@ init(PArray<MultiFab> u[], PArray<MultiFab>& p,
 	    //u[1][0][igrid](m[0][igrid].smallEnd() + IntVect(2,2)) = 3.0;
 	}
     }
-    else if (m.length() == 2) 
+    else if (m.length() == 2)
     {
 	for (MultiFabIterator u_mfi(u[0][1]); u_mfi.isValid(); ++u_mfi)
 	{
@@ -264,15 +264,15 @@ init(PArray<MultiFab> u[], PArray<MultiFab>& p,
 	//u[0][1][0](IntVect(50,50)) = 1.0;
 	//u[0][1][0](IntVect(22,12)) = 1.0;
     }
-    else 
+    else
     {
-	for (int ilev = 0; ilev < m.length(); ilev++) 
+	for (int ilev = 0; ilev < m.length(); ilev++)
 	{
 	    for ( MultiFabIterator u_mfi(u[0][ilev]); u_mfi.isValid(); ++u_mfi)
 	    {
 		DependentMultiFabIterator u_dmfi(u_mfi, u[1][ilev]);
-		//u[0][ilev][igrid].setVal(1.e20);
-		//u[1][ilev][igrid].setVal(3.e20);
+		//u[0][ilev][igrid].setVal(1.0e20);
+		//u[1][ilev][igrid].setVal(3.0e20);
 		u_mfi->setVal(0.0, m[ilev][u_mfi.index()], 0);
 		u_dmfi->setVal(0.0, m[ilev][u_mfi.index()], 0);
 	    }
@@ -294,13 +294,13 @@ init(PArray<MultiFab> u[], PArray<MultiFab>& p,
 	p[ilev].setVal(0.0);
     }
 #else
-    for (int ilev = 0; ilev < m.length(); ilev++) 
+    for (int ilev = 0; ilev < m.length(); ilev++)
     {
 	u[0][ilev].setVal(0.0);
 	u[1][ilev].setVal(0.0);
 	u[2][ilev].setVal(0.0);
     }
-    if (m.length() == 1) 
+    if (m.length() == 1)
     {
 	//int ioff = m[0].domain().length(0) / 8;
 	int ioff = 2;
@@ -311,7 +311,7 @@ init(PArray<MultiFab> u[], PArray<MultiFab>& p,
 	    (*u_mfi)(m[0][u_mfi.index()].smallEnd() + IntVect(ioff,ioff,ioff)) = 3.0;
 	}
     }
-    else if (m.length() == 2) 
+    else if (m.length() == 2)
     {
 	// used for convergence-rate tests:
 	//int ioff = m[1].domain().length(0) / 8;
@@ -324,7 +324,7 @@ init(PArray<MultiFab> u[], PArray<MultiFab>& p,
 	}
 	if ( is_local(u[0][0], 0) ) u[0][0][0](IntVect(1,1,1)) = 3.0;
     }
-    else if (m.length() == 3) 
+    else if (m.length() == 3)
     {
 	int ioff = 2;
 	for ( MultiFabIterator u_mfi(u[0][2]); u_mfi.isValid(); ++u_mfi)
@@ -332,7 +332,7 @@ init(PArray<MultiFab> u[], PArray<MultiFab>& p,
 	    (*u_mfi)(m[2][u_mfi.index()].smallEnd() + IntVect(ioff,ioff,ioff)) = 3.0;
 	}
     }
-    for (int ilev = 0; ilev < m.length(); ilev++) 
+    for (int ilev = 0; ilev < m.length(); ilev++)
     {
 	p[ilev].setVal(0.0);
     }
@@ -343,7 +343,7 @@ init(PArray<MultiFab> u[], PArray<MultiFab>& p,
 void
 hb93_test1(PArray<MultiFab> u[], const Array<BoxArray>& m, const Array<Box>& d)
 {
-    for (int ilev = 0 ; ilev < m.length() ; ilev++) 
+    for (int ilev = 0 ; ilev < m.length() ; ilev++)
     {
 	double h = 1.0 / d[ilev].length(0);
 	double pi = 3.14159265358979323846;
@@ -352,10 +352,10 @@ hb93_test1(PArray<MultiFab> u[], const Array<BoxArray>& m, const Array<Box>& d)
 	    DependentMultiFabIterator u_dmfi(u_mfi, u[1][ilev]);
 	    int igrid = u_mfi.index();
 	    for (int i = m[ilev][igrid].smallEnd(0);
-		 i <= m[ilev][igrid].bigEnd(0); i++) 
+		 i <= m[ilev][igrid].bigEnd(0); i++)
 	    {
 		for (int j = m[ilev][igrid].smallEnd(1);
-		     j <= m[ilev][igrid].bigEnd(1); j++) 
+		     j <= m[ilev][igrid].bigEnd(1); j++)
 		{
 		    double x = (i + 0.5) * h;
 		    double y = (j + 0.5) * h;
@@ -374,7 +374,7 @@ hb93_test1(PArray<MultiFab> u[], const Array<BoxArray>& m, const Array<Box>& d)
 void
 linear_test(PArray<MultiFab> u[], const Array<BoxArray>& m, const Array<Box>& d)
 {
-    for (int ilev = 0 ; ilev < m.length() ; ilev++) 
+    for (int ilev = 0 ; ilev < m.length() ; ilev++)
     {
 	double h = 1.0 / d[ilev].length(0);
 	for ( MultiFabIterator u_mfi(u[0][ilev]); u_mfi.isValid(); ++u_mfi)
@@ -382,10 +382,10 @@ linear_test(PArray<MultiFab> u[], const Array<BoxArray>& m, const Array<Box>& d)
 	    DependentMultiFabIterator u_dmfi(u_mfi, u[1][ilev]);
 	    int igrid = u_mfi.index();
 	    for (int i = m[ilev][igrid].smallEnd(0);
-		 i <= m[ilev][igrid].bigEnd(0); i++) 
+		 i <= m[ilev][igrid].bigEnd(0); i++)
 	    {
 		for (int j = m[ilev][igrid].smallEnd(1);
-		     j <= m[ilev][igrid].bigEnd(1); j++) 
+		     j <= m[ilev][igrid].bigEnd(1); j++)
 		{
 		    double x = (i + 0.5) * h;
 		    // double y = (j + 0.5) * h;
@@ -402,7 +402,7 @@ rz_adj(PArray<MultiFab> u[], PArray<MultiFab>& rhs,
        PArray<MultiFab>& rhoinv, const Array<BoxArray>& m,
        const Array<Box>& d)
 {
-    for (int ilev = 0 ; ilev < m.length() ; ilev++) 
+    for (int ilev = 0 ; ilev < m.length() ; ilev++)
     {
 	double h = 1.0 / d[ilev].length(0);
 	// double pi = 3.14159265358979323846;
@@ -411,10 +411,10 @@ rz_adj(PArray<MultiFab> u[], PArray<MultiFab>& rhs,
 	    DependentMultiFabIterator r_dmfi(u_mfi, rhoinv[ilev]);
 	    int igrid = u_mfi.index();
 	    for (int i = m[ilev][igrid].smallEnd(0);
-		 i <= m[ilev][igrid].bigEnd(0); i++) 
+		 i <= m[ilev][igrid].bigEnd(0); i++)
 	    {
 		for (int j = m[ilev][igrid].smallEnd(1) - 1;
-		     j <= m[ilev][igrid].bigEnd(1); j++) 
+		     j <= m[ilev][igrid].bigEnd(1); j++)
 		{
 		    double x = (i + 0.5) * h;
 		    // double y = (j + 0.5) * h;
@@ -436,15 +436,15 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 {
     // Note:  For terrain and full problems, h is ignored.
     Geometry crse_geom(domain[0]);
-  
+
     Real h[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
 	h[i] = 1;
     }
-    
+
     RegType bc[BL_SPACEDIM][2];
-    
+
     bc[0][0] = bc00;
     bc[1][0] = bc10;
     bc[0][1] = bc01;
@@ -463,10 +463,10 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     // bc[2][1] = periodic;
     // bc[1][0] = inflow;
     // bc[1][1] = outflow;
-        
+
     PArray<MultiFab> u[BL_SPACEDIM];
     PArray<MultiFab> p, rhoinv, rhs;
-    
+
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
 	u[i].resize(m.length());
@@ -474,8 +474,8 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     p.resize(m.length());
     rhoinv.resize(m.length());
     rhs.resize(m.length());
-    
-    for (int ilev = 0; ilev < m.length(); ilev++) 
+
+    for (int ilev = 0; ilev < m.length(); ilev++)
     {
 	const BoxArray& cmesh = m[ilev];
 	BoxArray nmesh = cmesh;
@@ -517,14 +517,14 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 	//rhs.set(ilev, new MultiFab(cmesh, 1, 1));
 	rhs[ilev].setVal(0.0);
     }
-    
+
     if (hg_stencil == holy_grail_amr_multigrid::terrain)
     {
 	// Adjust sigmas using refinement ratio information.
 	// Assume spacing on level 0 already incorporated into values assigned above.
 	// (h is ignored.)
 	IntVect rat = IntVect::TheUnitVector();
-	for (int ilev = 1; ilev < m.length(); ilev++) 
+	for (int ilev = 1; ilev < m.length(); ilev++)
 	{
 	    rat *= ratio[ilev-1];
 #if (BL_SPACEDIM == 2)
@@ -546,7 +546,7 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 	// Assume spacing on level 0 already incorporated into values assigned above.
 	// (h is ignored.)
 	IntVect rat = IntVect::TheUnitVector();
-	for (int ilev = 1; ilev < m.length(); ilev++) 
+	for (int ilev = 1; ilev < m.length(); ilev++)
 	{
 	    rat *= ratio[ilev-1];
 #if (BL_SPACEDIM == 2)
@@ -570,8 +570,8 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 	    HG_TEST_NORM( u[i][ilev], "proj");
 	}
     }
-	    
-    
+
+
 #if (BL_SPACEDIM == 2)
     //hb93_test1(u, m);
     //linear_test(u, m, domain);
@@ -585,17 +585,17 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     //rhs[1][0](IntVect(16,20,40)) = 100.0;
     //rhs[1][0](IntVect(16,20,21)) = 100.0;
 #endif
-    
+
     /*
     u[0].assign(0.0);
     u[1].assign(-980.0);
-    
+
       //Box bb(0,27,63,36);
       Box bb(27,0,36,63);
       //Box bb(26,0,37,63);
-      for (ilev = 0; ilev < m.length(); ilev++) 
+      for (ilev = 0; ilev < m.length(); ilev++)
       {
-      for (int igrid = 0; igrid < m[ilev].length(); igrid++) 
+      for (int igrid = 0; igrid < m[ilev].length(); igrid++)
       {
       rhoinv[ilev][igrid].assign(100.0, (bb & m[ilev][igrid]));
       }
@@ -612,7 +612,7 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     for (ilev = 0; ilev < m.length(); ilev++)
     {
     Box b = refine(bb, m[ilev].sig()/16);
-    for (int igrid = 0; igrid < m[ilev].length(); igrid++) 
+    for (int igrid = 0; igrid < m[ilev].length(); igrid++)
     {
     rhoinv[ilev][igrid].assign(1000.0, (b & m[ilev][igrid]));
     //rhoinv[ilev][igrid].assign(1.0, (b & m[ilev][igrid]));
@@ -621,10 +621,10 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     */
     /*
     Box bb(0,1,1,4);
-    for (ilev = 0; ilev < m.length(); ilev++) 
+    for (ilev = 0; ilev < m.length(); ilev++)
     {
     Box b = refine(bb, m[ilev].sig()/8);
-    for (int igrid = 0; igrid < m[ilev].length(); igrid++) 
+    for (int igrid = 0; igrid < m[ilev].length(); igrid++)
     {
     rhoinv[ilev][igrid].assign(1000.0, (b & m[ilev][igrid]));
     }
@@ -633,10 +633,10 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     /* Layer
     //Box bb(0,1,1,4);
     Box bb(0,0,63,4);
-    for (ilev = 0; ilev < m.length(); ilev++) 
+    for (ilev = 0; ilev < m.length(); ilev++)
     {
     Box b = refine(bb, m[ilev].sig()/32);
-    for (int igrid = 0; igrid < m[ilev].length(); igrid++) 
+    for (int igrid = 0; igrid < m[ilev].length(); igrid++)
     {
     rhoinv[ilev][igrid].assign(0.00001, (b & m[ilev][igrid]));
     }
@@ -644,24 +644,24 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     */
     /* Drop
     Box bbb(16,6,19,9);
-    for (ilev = 0; ilev < m.length(); ilev++) 
+    for (ilev = 0; ilev < m.length(); ilev++)
     {
     Box b = refine(bbb, m[ilev].sig()/32);
-    for (int igrid = 0; igrid < m[ilev].length(); igrid++) 
+    for (int igrid = 0; igrid < m[ilev].length(); igrid++)
     {
     rhoinv[ilev][igrid].assign(0.00001, (b & m[ilev][igrid]));
     }
     }
     */
-    
+
     int sum = 0;
     if ( ParallelDescriptor::IOProcessor() )
     {
 	cout << "Cells by level: ";
-	for (int ilev = 0; ilev < m.length(); ilev++) 
+	for (int ilev = 0; ilev < m.length(); ilev++)
 	{
 	    int lsum = 0;
-	    for (int i = 0; i < m[ilev].length(); i++) 
+	    for (int i = 0; i < m[ilev].length(); i++)
 	    {
 		lsum += m[ilev][i].numPts();
 	    }
@@ -670,9 +670,9 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 	}
 	cout << "\nTotal cells:  " << sum << endl;
     }
-    
+
     double t0, t1, t2;
-    
+
 #ifdef UNICOS
     //int pcode = 1, nrep = 8;
     // int pcode = 1, nrep = 1;
@@ -702,18 +702,18 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 	proj.setCoordSys(amr_multigrid::rz);
     }
 #endif
-    
+
     //proj.smoother_mode  = 1;
     //proj.line_solve_dim = BL_SPACEDIM - 1;
     //proj.line_solve_dim = -1;
-    
-    if (m.length() == 1) 
+
+    if (m.length() == 1)
     {
 	t1 = Utility::second();
 	proj.project(u, p, null_amr_real, rhoinv,
 		     0, 0, crse_geom,
 		     h, tol);
-	for (int i = 1; i < nrep; i++) 
+	for (int i = 1; i < nrep; i++)
 	{
 	    init(u, p, m, ratio);
 	    proj.project(u, p, null_amr_real, rhoinv,
@@ -731,7 +731,7 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 	    cout << "Proj time was " << t2 - t1 << endl;
 	    cout << "Speed was " << double(t2 - t1) / (nrep * sum) << endl;
 	}
-	if ( false ) 
+	if ( false )
 	{
 	    cout << setprecision(16);
 	    for(int i = 0; i < BL_SPACEDIM; ++i)
@@ -742,7 +742,7 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 	    cout << setprecision(6);
 	}
     }
-    else if (m.length() == 2) 
+    else if (m.length() == 2)
     {
 	//proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 0);
 	//proj.project(u, p, null_amr_real, rhoinv, h, tol, 1, 1);
@@ -755,7 +755,7 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 		     0, 0, crse_geom,
 		     h, tol, 0, 1);
 	//proj.manual_project(u, p, rhs, null_amr_real, rhoinv, 1, h, tol, 0, 1);
-	for (int i = 1; i < nrep; i++) 
+	for (int i = 1; i < nrep; i++)
 	{
 	    init(u, p, m, ratio);
 	    proj.project(u, p, null_amr_real, rhoinv,
@@ -774,18 +774,18 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 	    cout << "Sync speed was " << double(t2 - t1) / (nrep * sum) << endl;
 	}
 	/*
-	for (i = m[1][0].smallEnd(1); i <= m[1][0].bigEnd(1)+1; i++) 
+	for (i = m[1][0].smallEnd(1); i <= m[1][0].bigEnd(1)+1; i++)
 	{
 	cout << p[1][0](IntVect(0, i)) << endl;
 	}
 	proj.project(u, p, null_amr_real, rhoinv, h, tol, 1, 1);
-	for (i = m[1][0].smallEnd(1); i <= m[1][0].bigEnd(1)+1; i++) 
+	for (i = m[1][0].smallEnd(1); i <= m[1][0].bigEnd(1)+1; i++)
 	{
 	cout << p[1][0](IntVect(0, i)) << endl;
 	}
 	*/
     }
-    else if (m.length() == 3) 
+    else if (m.length() == 3)
     {
         double t00, t01, t10, t11, t20, t21;
         init(u, p, m, ratio);
@@ -829,7 +829,7 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 	    cout << "Total time (counting inits) was  " << t21 - t00 << endl;
 	}
     }
-    else 
+    else
     {
 	proj.make_it_so();
 	proj.manual_project(u, p, null_amr_real, rhs, rhoinv,
@@ -844,7 +844,7 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 	cout << "First time is " << t1 - t0 << endl;
     }
     /*
-    if (m.length() < 3) 
+    if (m.length() < 3)
     {
     for (i = 0; i < p.length(); i++)
     p[i].setVal(0.0);
@@ -855,7 +855,7 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     cout << "Total time was  " << t2 - t0 << endl;
     }
     */
-    for (int ilev = 0; ilev < m.length(); ilev++) 
+    for (int ilev = 0; ilev < m.length(); ilev++)
     {
 	for (int i = 0; i < BL_SPACEDIM; i++)
 	{

@@ -453,41 +453,41 @@ c each face is two faces and two sides of an edge
                         if (m .eq. 0) fac = 0.5D0 * fac
                         do if = ir*regl0, ir*regh0, ir
                            tmp = hxm2 *
-     &       ((sigmaf(if-m-1,jf+n-1,kf+ki-1) 
+     &       ((sigmaf(if-m-1,jf+n-1,kf+ki-1)
      &            + sigmaf(if-m-1,jf+n,kf+ki-1)) *
      &         (fdst(if-m-1,jf+n,kf) - fdst(if-m,jf+n,kf)) +
-     &        (sigmaf(if-m,jf+n-1,kf+ki-1) 
+     &        (sigmaf(if-m,jf+n-1,kf+ki-1)
      &            + sigmaf(if-m,jf+n,kf+ki-1)) *
      &         (fdst(if-m+1,jf+n,kf) - fdst(if-m,jf+n,kf)) +
-     &        (sigmaf(if+m-1,jf+n-1,kf+ki-1) 
+     &        (sigmaf(if+m-1,jf+n-1,kf+ki-1)
      &            + sigmaf(if+m-1,jf+n,kf+ki-1)) *
      &         (fdst(if+m-1,jf+n,kf) - fdst(if+m,jf+n,kf)) +
-     &        (sigmaf(if+m,jf+n-1,kf+ki-1) 
+     &        (sigmaf(if+m,jf+n-1,kf+ki-1)
      &            + sigmaf(if+m,jf+n,kf+ki-1)) *
      &         (fdst(if+m+1,jf+n,kf) - fdst(if+m,jf+n,kf)))
                            tmp = tmp + hym2 *
-     &       ((sigmaf(if-m-1,jf+n-1,kf+ki-1) 
+     &       ((sigmaf(if-m-1,jf+n-1,kf+ki-1)
      &            + sigmaf(if-m,jf+n-1,kf+ki-1)) *
      &         (fdst(if-m,jf+n-1,kf) - fdst(if-m,jf+n,kf)) +
-     &        (sigmaf(if-m-1,jf+n,kf+ki-1) 
+     &        (sigmaf(if-m-1,jf+n,kf+ki-1)
      &            + sigmaf(if-m,jf+n,kf+ki-1)) *
      &         (fdst(if-m,jf+n+1,kf) - fdst(if-m,jf+n,kf)) +
-     &        (sigmaf(if+m-1,jf+n-1,kf+ki-1) 
+     &        (sigmaf(if+m-1,jf+n-1,kf+ki-1)
      &            + sigmaf(if+m,jf+n-1,kf+ki-1)) *
      &         (fdst(if+m,jf+n-1,kf) - fdst(if+m,jf+n,kf)) +
-     &        (sigmaf(if+m-1,jf+n,kf+ki-1) 
+     &        (sigmaf(if+m-1,jf+n,kf+ki-1)
      &            + sigmaf(if+m,jf+n,kf+ki-1)) *
      &         (fdst(if+m,jf+n+1,kf) - fdst(if+m,jf+n,kf)))
-                  res(if,jf,kf) = res(if,jf,kf) 
+                  res(if,jf,kf) = res(if,jf,kf)
      &            + fac * (tmp + hzm2 *
-     &       ((sigmaf(if-m-1,jf+n-1,kf+ki-1) 
+     &       ((sigmaf(if-m-1,jf+n-1,kf+ki-1)
      &            + sigmaf(if-m-1,jf+n,kf+ki-1) +
-     &         sigmaf(if-m,jf+n-1,kf+ki-1) 
+     &         sigmaf(if-m,jf+n-1,kf+ki-1)
      &            + sigmaf(if-m,jf+n,kf+ki-1)) *
      &         (fdst(if-m,jf+n,kf+kdir) - fdst(if-m,jf+n,kf)) +
-     &        (sigmaf(if+m-1,jf+n-1,kf+ki-1) 
+     &        (sigmaf(if+m-1,jf+n-1,kf+ki-1)
      &            + sigmaf(if+m-1,jf+n,kf+ki-1) +
-     &         sigmaf(if+m,jf+n-1,kf+ki-1) 
+     &         sigmaf(if+m,jf+n-1,kf+ki-1)
      &            + sigmaf(if+m,jf+n,kf+ki-1)) *
      &         (fdst(if+m,jf+n,kf+kdir) - fdst(if+m,jf+n,kf))))
                         end do
@@ -505,41 +505,41 @@ c each face is two faces and two sides of an edge
                         if (m .eq. 0) fac = 0.5D0 * fac
                         do if = ir*regl0, ir*regh0, ir
                            tmp = hxm2 *
-     &       ((sigmaf(if-m-1,jf+ji-1,kf+l-1) 
+     &       ((sigmaf(if-m-1,jf+ji-1,kf+l-1)
      &            + sigmaf(if-m-1,jf+ji-1,kf+l)) *
      &         (fdst(if-m-1,jf,kf+l) - fdst(if-m,jf,kf+l)) +
-     &        (sigmaf(if-m,jf+ji-1,kf+l-1) 
+     &        (sigmaf(if-m,jf+ji-1,kf+l-1)
      &            + sigmaf(if-m,jf+ji-1,kf+l)) *
      &         (fdst(if-m+1,jf,kf+l) - fdst(if-m,jf,kf+l)) +
-     &        (sigmaf(if+m-1,jf+ji-1,kf+l-1) 
+     &        (sigmaf(if+m-1,jf+ji-1,kf+l-1)
      &            + sigmaf(if+m-1,jf+ji-1,kf+l)) *
      &         (fdst(if+m-1,jf,kf+l) - fdst(if+m,jf,kf+l)) +
-     &        (sigmaf(if+m,jf+ji-1,kf+l-1) 
+     &        (sigmaf(if+m,jf+ji-1,kf+l-1)
      &            + sigmaf(if+m,jf+ji-1,kf+l)) *
      &         (fdst(if+m+1,jf,kf+l) - fdst(if+m,jf,kf+l)))
                            tmp = tmp + hym2 *
-     &       ((sigmaf(if-m-1,jf+ji-1,kf+l-1) 
+     &       ((sigmaf(if-m-1,jf+ji-1,kf+l-1)
      &            + sigmaf(if-m-1,jf+ji-1,kf+l) +
-     &         sigmaf(if-m,jf+ji-1,kf+l-1) 
+     &         sigmaf(if-m,jf+ji-1,kf+l-1)
      &            + sigmaf(if-m,jf+ji-1,kf+l)) *
      &         (fdst(if-m,jf+jdir,kf+l) - fdst(if-m,jf,kf+l)) +
-     &        (sigmaf(if+m-1,jf+ji-1,kf+l-1) 
+     &        (sigmaf(if+m-1,jf+ji-1,kf+l-1)
      &            + sigmaf(if+m-1,jf+ji-1,kf+l) +
-     &         sigmaf(if+m,jf+ji-1,kf+l-1) 
+     &         sigmaf(if+m,jf+ji-1,kf+l-1)
      &            + sigmaf(if+m,jf+ji-1,kf+l)) *
      &         (fdst(if+m,jf+jdir,kf+l) - fdst(if+m,jf,kf+l)))
-                           res(if,jf,kf) = res(if,jf,kf) 
+                           res(if,jf,kf) = res(if,jf,kf)
      &            + fac * (tmp + hzm2 *
-     &       ((sigmaf(if-m-1,jf+ji-1,kf+l-1) 
+     &       ((sigmaf(if-m-1,jf+ji-1,kf+l-1)
      &            + sigmaf(if-m,jf+ji-1,kf+l-1)) *
      &         (fdst(if-m,jf,kf+l-1) - fdst(if-m,jf,kf+l)) +
-     &        (sigmaf(if-m-1,jf+ji-1,kf+l) 
+     &        (sigmaf(if-m-1,jf+ji-1,kf+l)
      &            + sigmaf(if-m,jf+ji-1,kf+l)) *
      &         (fdst(if-m,jf,kf+l+1) - fdst(if-m,jf,kf+l)) +
-     &        (sigmaf(if+m-1,jf+ji-1,kf+l-1) 
+     &        (sigmaf(if+m-1,jf+ji-1,kf+l-1)
      &            + sigmaf(if+m,jf+ji-1,kf+l-1)) *
      &         (fdst(if+m,jf,kf+l-1) - fdst(if+m,jf,kf+l)) +
-     &        (sigmaf(if+m-1,jf+ji-1,kf+l) 
+     &        (sigmaf(if+m-1,jf+ji-1,kf+l)
      &            + sigmaf(if+m,jf+ji-1,kf+l)) *
      &         (fdst(if+m,jf,kf+l+1) - fdst(if+m,jf,kf+l))))
                         end do
@@ -630,41 +630,41 @@ c each face is two faces and two sides of an edge
                         fac = (ir-abs(m)) * fac1
                         do jf = jr*regl1, jr*regh1, jr
                            tmp = hxm2 *
-     &       ((sigmaf(if+m-1,jf-n-1,kf+ki-1) 
+     &       ((sigmaf(if+m-1,jf-n-1,kf+ki-1)
      &            + sigmaf(if+m-1,jf-n,kf+ki-1)) *
      &         (fdst(if+m-1,jf-n,kf) - fdst(if+m,jf-n,kf)) +
-     &        (sigmaf(if+m,jf-n-1,kf+ki-1) 
+     &        (sigmaf(if+m,jf-n-1,kf+ki-1)
      &            + sigmaf(if+m,jf-n,kf+ki-1)) *
      &         (fdst(if+m+1,jf-n,kf) - fdst(if+m,jf-n,kf)) +
-     &        (sigmaf(if+m-1,jf+n-1,kf+ki-1) 
+     &        (sigmaf(if+m-1,jf+n-1,kf+ki-1)
      &            + sigmaf(if+m-1,jf+n,kf+ki-1)) *
      &         (fdst(if+m-1,jf+n,kf) - fdst(if+m,jf+n,kf)) +
-     &        (sigmaf(if+m,jf+n-1,kf+ki-1) 
+     &        (sigmaf(if+m,jf+n-1,kf+ki-1)
      &            + sigmaf(if+m,jf+n,kf+ki-1)) *
      &         (fdst(if+m+1,jf+n,kf) - fdst(if+m,jf+n,kf)))
                            tmp = tmp + hym2 *
-     &       ((sigmaf(if+m-1,jf-n-1,kf+ki-1) 
+     &       ((sigmaf(if+m-1,jf-n-1,kf+ki-1)
      &            + sigmaf(if+m,jf-n-1,kf+ki-1)) *
      &         (fdst(if+m,jf-n-1,kf) - fdst(if+m,jf-n,kf)) +
-     &        (sigmaf(if+m-1,jf-n,kf+ki-1) 
+     &        (sigmaf(if+m-1,jf-n,kf+ki-1)
      &            + sigmaf(if+m,jf-n,kf+ki-1)) *
      &         (fdst(if+m,jf-n+1,kf) - fdst(if+m,jf-n,kf)) +
-     &        (sigmaf(if+m-1,jf+n-1,kf+ki-1) 
+     &        (sigmaf(if+m-1,jf+n-1,kf+ki-1)
      &            + sigmaf(if+m,jf+n-1,kf+ki-1)) *
      &         (fdst(if+m,jf+n-1,kf) - fdst(if+m,jf+n,kf)) +
-     &        (sigmaf(if+m-1,jf+n,kf+ki-1) 
+     &        (sigmaf(if+m-1,jf+n,kf+ki-1)
      &            + sigmaf(if+m,jf+n,kf+ki-1)) *
      &         (fdst(if+m,jf+n+1,kf) - fdst(if+m,jf+n,kf)))
-                           res(if,jf,kf) = res(if,jf,kf) 
+                           res(if,jf,kf) = res(if,jf,kf)
      &            + fac * (tmp + hzm2 *
-     &       ((sigmaf(if+m-1,jf-n-1,kf+ki-1) 
+     &       ((sigmaf(if+m-1,jf-n-1,kf+ki-1)
      &            + sigmaf(if+m-1,jf-n,kf+ki-1) +
-     &         sigmaf(if+m,jf-n-1,kf+ki-1) 
+     &         sigmaf(if+m,jf-n-1,kf+ki-1)
      &            + sigmaf(if+m,jf-n,kf+ki-1)) *
      &         (fdst(if+m,jf-n,kf+kdir) - fdst(if+m,jf-n,kf)) +
-     &        (sigmaf(if+m-1,jf+n-1,kf+ki-1) 
+     &        (sigmaf(if+m-1,jf+n-1,kf+ki-1)
      &            + sigmaf(if+m-1,jf+n,kf+ki-1) +
-     &         sigmaf(if+m,jf+n-1,kf+ki-1) 
+     &         sigmaf(if+m,jf+n-1,kf+ki-1)
      &            + sigmaf(if+m,jf+n,kf+ki-1)) *
      &         (fdst(if+m,jf+n,kf+kdir) - fdst(if+m,jf+n,kf))))
                         end do
@@ -682,41 +682,41 @@ c each face is two faces and two sides of an edge
                         if (n .eq. 0) fac = 0.5D0 * fac
                         do jf = jr*regl1, jr*regh1, jr
                            tmp = hxm2 *
-     &       ((sigmaf(if+ii-1,jf-n-1,kf+l-1) 
+     &       ((sigmaf(if+ii-1,jf-n-1,kf+l-1)
      &            + sigmaf(if+ii-1,jf-n-1,kf+l) +
-     &         sigmaf(if+ii-1,jf-n,kf+l-1) 
+     &         sigmaf(if+ii-1,jf-n,kf+l-1)
      &            + sigmaf(if+ii-1,jf-n,kf+l)) *
      &         (fdst(if+idir,jf-n,kf+l) - fdst(if,jf-n,kf+l)) +
-     &        (sigmaf(if+ii-1,jf+n-1,kf+l-1) 
+     &        (sigmaf(if+ii-1,jf+n-1,kf+l-1)
      &            + sigmaf(if+ii-1,jf+n-1,kf+l) +
-     &         sigmaf(if+ii-1,jf+n,kf+l-1) 
+     &         sigmaf(if+ii-1,jf+n,kf+l-1)
      &            + sigmaf(if+ii-1,jf+n,kf+l)) *
      &         (fdst(if+idir,jf+n,kf+l) - fdst(if,jf+n,kf+l)))
                            tmp = tmp + hym2 *
-     &       ((sigmaf(if+ii-1,jf-n-1,kf+l-1) 
+     &       ((sigmaf(if+ii-1,jf-n-1,kf+l-1)
      &            + sigmaf(if+ii-1,jf-n-1,kf+l)) *
      &         (fdst(if,jf-n-1,kf+l) - fdst(if,jf-n,kf+l)) +
-     &        (sigmaf(if+ii-1,jf-n,kf+l-1) 
+     &        (sigmaf(if+ii-1,jf-n,kf+l-1)
      &            + sigmaf(if+ii-1,jf-n,kf+l)) *
      &         (fdst(if,jf-n+1,kf+l) - fdst(if,jf-n,kf+l)) +
-     &        (sigmaf(if+ii-1,jf+n-1,kf+l-1) 
+     &        (sigmaf(if+ii-1,jf+n-1,kf+l-1)
      &            + sigmaf(if+ii-1,jf+n-1,kf+l)) *
      &         (fdst(if,jf+n-1,kf+l) - fdst(if,jf+n,kf+l)) +
-     &        (sigmaf(if+ii-1,jf+n,kf+l-1) 
+     &        (sigmaf(if+ii-1,jf+n,kf+l-1)
      &            + sigmaf(if+ii-1,jf+n,kf+l)) *
      &         (fdst(if,jf+n+1,kf+l) - fdst(if,jf+n,kf+l)))
-                           res(if,jf,kf) = res(if,jf,kf) 
+                           res(if,jf,kf) = res(if,jf,kf)
      &            + fac * (tmp + hzm2 *
-     &       ((sigmaf(if+ii-1,jf-n-1,kf+l-1) 
+     &       ((sigmaf(if+ii-1,jf-n-1,kf+l-1)
      &            + sigmaf(if+ii-1,jf-n,kf+l-1)) *
      &         (fdst(if,jf-n,kf+l-1) - fdst(if,jf-n,kf+l)) +
-     &        (sigmaf(if+ii-1,jf-n-1,kf+l) 
+     &        (sigmaf(if+ii-1,jf-n-1,kf+l)
      &            + sigmaf(if+ii-1,jf-n,kf+l)) *
      &         (fdst(if,jf-n,kf+l+1) - fdst(if,jf-n,kf+l)) +
-     &        (sigmaf(if+ii-1,jf+n-1,kf+l-1) 
+     &        (sigmaf(if+ii-1,jf+n-1,kf+l-1)
      &            + sigmaf(if+ii-1,jf+n,kf+l-1)) *
      &         (fdst(if,jf+n,kf+l-1) - fdst(if,jf+n,kf+l)) +
-     &        (sigmaf(if+ii-1,jf+n-1,kf+l) 
+     &        (sigmaf(if+ii-1,jf+n-1,kf+l)
      &            + sigmaf(if+ii-1,jf+n,kf+l)) *
      &         (fdst(if,jf+n,kf+l+1) - fdst(if,jf+n,kf+l))))
                         end do
@@ -807,41 +807,41 @@ c each face is two faces and two sides of an edge
                         fac = (ir-abs(m)) * fac1
                         do kf = kr*regl2, kr*regh2, kr
                            tmp = hxm2 *
-     &       ((sigmaf(if+m-1,jf+ji-1,kf-l-1) 
+     &       ((sigmaf(if+m-1,jf+ji-1,kf-l-1)
      &            + sigmaf(if+m-1,jf+ji-1,kf-l)) *
      &         (fdst(if+m-1,jf,kf-l) - fdst(if+m,jf,kf-l)) +
-     &        (sigmaf(if+m,jf+ji-1,kf-l-1) 
+     &        (sigmaf(if+m,jf+ji-1,kf-l-1)
      &            + sigmaf(if+m,jf+ji-1,kf-l)) *
      &         (fdst(if+m+1,jf,kf-l) - fdst(if+m,jf,kf-l)) +
-     &        (sigmaf(if+m-1,jf+ji-1,kf+l-1) 
+     &        (sigmaf(if+m-1,jf+ji-1,kf+l-1)
      &            + sigmaf(if+m-1,jf+ji-1,kf+l)) *
      &         (fdst(if+m-1,jf,kf+l) - fdst(if+m,jf,kf+l)) +
-     &        (sigmaf(if+m,jf+ji-1,kf+l-1) 
+     &        (sigmaf(if+m,jf+ji-1,kf+l-1)
      &            + sigmaf(if+m,jf+ji-1,kf+l)) *
      &         (fdst(if+m+1,jf,kf+l) - fdst(if+m,jf,kf+l)))
                            tmp = tmp + hym2 *
-     &       ((sigmaf(if+m-1,jf+ji-1,kf-l-1) 
+     &       ((sigmaf(if+m-1,jf+ji-1,kf-l-1)
      &            + sigmaf(if+m-1,jf+ji-1,kf-l) +
      &         sigmaf(if+m,jf+ji-1,kf-l-1)
      &            + sigmaf(if+m,jf+ji-1,kf-l)) *
      &         (fdst(if+m,jf+jdir,kf-l) - fdst(if+m,jf,kf-l)) +
-     &        (sigmaf(if+m-1,jf+ji-1,kf+l-1) 
+     &        (sigmaf(if+m-1,jf+ji-1,kf+l-1)
      &            + sigmaf(if+m-1,jf+ji-1,kf+l) +
-     &         sigmaf(if+m,jf+ji-1,kf+l-1) 
+     &         sigmaf(if+m,jf+ji-1,kf+l-1)
      &            + sigmaf(if+m,jf+ji-1,kf+l)) *
      &         (fdst(if+m,jf+jdir,kf+l) - fdst(if+m,jf,kf+l)))
-                        res(if,jf,kf) = res(if,jf,kf) 
+                        res(if,jf,kf) = res(if,jf,kf)
      &            + fac * (tmp + hzm2 *
-     &       ((sigmaf(if+m-1,jf+ji-1,kf-l-1) 
+     &       ((sigmaf(if+m-1,jf+ji-1,kf-l-1)
      &            + sigmaf(if+m,jf+ji-1,kf-l-1)) *
      &         (fdst(if+m,jf,kf-l-1) - fdst(if+m,jf,kf-l)) +
-     &        (sigmaf(if+m-1,jf+ji-1,kf-l) 
+     &        (sigmaf(if+m-1,jf+ji-1,kf-l)
      &            + sigmaf(if+m,jf+ji-1,kf-l)) *
      &         (fdst(if+m,jf,kf-l+1) - fdst(if+m,jf,kf-l)) +
-     &        (sigmaf(if+m-1,jf+ji-1,kf+l-1) 
+     &        (sigmaf(if+m-1,jf+ji-1,kf+l-1)
      &            + sigmaf(if+m,jf+ji-1,kf+l-1)) *
      &         (fdst(if+m,jf,kf+l-1) - fdst(if+m,jf,kf+l)) +
-     &        (sigmaf(if+m-1,jf+ji-1,kf+l) 
+     &        (sigmaf(if+m-1,jf+ji-1,kf+l)
      &            + sigmaf(if+m,jf+ji-1,kf+l)) *
      &         (fdst(if+m,jf,kf+l+1) - fdst(if+m,jf,kf+l))))
                         end do
@@ -859,41 +859,41 @@ c each face is two faces and two sides of an edge
                         fac = (jr-abs(n)) * fac1
                         do kf = kr*regl2, kr*regh2, kr
                            tmp = hxm2 *
-     &       ((sigmaf(if+ii-1,jf+n-1,kf-l-1) 
+     &       ((sigmaf(if+ii-1,jf+n-1,kf-l-1)
      &            + sigmaf(if+ii-1,jf+n-1,kf-l) +
-     &         sigmaf(if+ii-1,jf+n,kf-l-1) 
+     &         sigmaf(if+ii-1,jf+n,kf-l-1)
      &            + sigmaf(if+ii-1,jf+n,kf-l)) *
      &         (fdst(if+idir,jf+n,kf-l) - fdst(if,jf+n,kf-l)) +
-     &        (sigmaf(if+ii-1,jf+n-1,kf+l-1) 
+     &        (sigmaf(if+ii-1,jf+n-1,kf+l-1)
      &            + sigmaf(if+ii-1,jf+n-1,kf+l) +
-     &         sigmaf(if+ii-1,jf+n,kf+l-1) 
+     &         sigmaf(if+ii-1,jf+n,kf+l-1)
      &            + sigmaf(if+ii-1,jf+n,kf+l)) *
      &         (fdst(if+idir,jf+n,kf+l) - fdst(if,jf+n,kf+l)))
                            tmp = tmp + hym2 *
-     &       ((sigmaf(if+ii-1,jf+n-1,kf-l-1) 
+     &       ((sigmaf(if+ii-1,jf+n-1,kf-l-1)
      &            + sigmaf(if+ii-1,jf+n-1,kf-l)) *
      &         (fdst(if,jf+n-1,kf-l) - fdst(if,jf+n,kf-l)) +
-     &        (sigmaf(if+ii-1,jf+n,kf-l-1) 
+     &        (sigmaf(if+ii-1,jf+n,kf-l-1)
      &            + sigmaf(if+ii-1,jf+n,kf-l)) *
      &         (fdst(if,jf+n+1,kf-l) - fdst(if,jf+n,kf-l)) +
-     &        (sigmaf(if+ii-1,jf+n-1,kf+l-1) 
+     &        (sigmaf(if+ii-1,jf+n-1,kf+l-1)
      &            + sigmaf(if+ii-1,jf+n-1,kf+l)) *
      &         (fdst(if,jf+n-1,kf+l) - fdst(if,jf+n,kf+l)) +
-     &        (sigmaf(if+ii-1,jf+n,kf+l-1) 
+     &        (sigmaf(if+ii-1,jf+n,kf+l-1)
      &            + sigmaf(if+ii-1,jf+n,kf+l)) *
      &         (fdst(if,jf+n+1,kf+l) - fdst(if,jf+n,kf+l)))
-                           res(if,jf,kf) = res(if,jf,kf) 
+                           res(if,jf,kf) = res(if,jf,kf)
      &            + fac * (tmp + hzm2 *
-     &       ((sigmaf(if+ii-1,jf+n-1,kf-l-1) 
+     &       ((sigmaf(if+ii-1,jf+n-1,kf-l-1)
      &            + sigmaf(if+ii-1,jf+n,kf-l-1)) *
      &         (fdst(if,jf+n,kf-l-1) - fdst(if,jf+n,kf-l)) +
-     &        (sigmaf(if+ii-1,jf+n-1,kf-l) 
+     &        (sigmaf(if+ii-1,jf+n-1,kf-l)
      &            + sigmaf(if+ii-1,jf+n,kf-l)) *
      &         (fdst(if,jf+n,kf-l+1) - fdst(if,jf+n,kf-l)) +
-     &        (sigmaf(if+ii-1,jf+n-1,kf+l-1) 
+     &        (sigmaf(if+ii-1,jf+n-1,kf+l-1)
      &            + sigmaf(if+ii-1,jf+n,kf+l-1)) *
      &         (fdst(if,jf+n,kf+l-1) - fdst(if,jf+n,kf+l)) +
-     &        (sigmaf(if+ii-1,jf+n-1,kf+l) 
+     &        (sigmaf(if+ii-1,jf+n-1,kf+l)
      &            + sigmaf(if+ii-1,jf+n,kf+l)) *
      &         (fdst(if,jf+n,kf+l+1) - fdst(if,jf+n,kf+l))))
                         end do
@@ -996,23 +996,23 @@ c faces
                         fac = (ir-abs(m)) * fac1
                         sum = sum + fac *
      &                    (hxm2 *
-     &       ((sigmaf(if+m-1,jf+n-1,kf+ki-1) 
+     &       ((sigmaf(if+m-1,jf+n-1,kf+ki-1)
      &            + sigmaf(if+m-1,jf+n,kf+ki-1)) *
      &         (fdst(if+m-1,jf+n,kf) - fdst(if+m,jf+n,kf)) +
-     &        (sigmaf(if+m,jf+n-1,kf+ki-1) 
+     &        (sigmaf(if+m,jf+n-1,kf+ki-1)
      &            + sigmaf(if+m,jf+n,kf+ki-1)) *
      &         (fdst(if+m+1,jf+n,kf) - fdst(if+m,jf+n,kf))) +
      &                     hym2 *
-     &       ((sigmaf(if+m-1,jf+n-1,kf+ki-1) 
+     &       ((sigmaf(if+m-1,jf+n-1,kf+ki-1)
      &            + sigmaf(if+m,jf+n-1,kf+ki-1)) *
      &         (fdst(if+m,jf+n-1,kf) - fdst(if+m,jf+n,kf)) +
-     &        (sigmaf(if+m-1,jf+n,kf+ki-1) 
+     &        (sigmaf(if+m-1,jf+n,kf+ki-1)
      &            + sigmaf(if+m,jf+n,kf+ki-1)) *
      &         (fdst(if+m,jf+n+1,kf) - fdst(if+m,jf+n,kf))) +
      &                     hzm2 *
-     &       ((sigmaf(if+m-1,jf+n-1,kf+ki-1) 
+     &       ((sigmaf(if+m-1,jf+n-1,kf+ki-1)
      &            + sigmaf(if+m-1,jf+n,kf+ki-1) +
-     &         sigmaf(if+m,jf+n-1,kf+ki-1) 
+     &         sigmaf(if+m,jf+n-1,kf+ki-1)
      &            + sigmaf(if+m,jf+n,kf+ki-1)) *
      &         (fdst(if+m,jf+n,kf+kdir) - fdst(if+m,jf+n,kf))))
                      end do
@@ -1028,23 +1028,23 @@ c faces
                         fac = (ir-abs(m)) * fac1
                         sum = sum + fac *
      &                    (hxm2 *
-     &       ((sigmaf(if+m-1,jf+ji-1,kf+l-1) 
+     &       ((sigmaf(if+m-1,jf+ji-1,kf+l-1)
      &            + sigmaf(if+m-1,jf+ji-1,kf+l)) *
      &         (fdst(if+m-1,jf,kf+l) - fdst(if+m,jf,kf+l)) +
-     &        (sigmaf(if+m,jf+ji-1,kf+l-1) 
+     &        (sigmaf(if+m,jf+ji-1,kf+l-1)
      &            + sigmaf(if+m,jf+ji-1,kf+l)) *
      &         (fdst(if+m+1,jf,kf+l) - fdst(if+m,jf,kf+l))) +
      &                     hym2 *
-     &       ((sigmaf(if+m-1,jf+ji-1,kf+l-1) 
+     &       ((sigmaf(if+m-1,jf+ji-1,kf+l-1)
      &            + sigmaf(if+m-1,jf+ji-1,kf+l) +
-     &         sigmaf(if+m,jf+ji-1,kf+l-1) 
+     &         sigmaf(if+m,jf+ji-1,kf+l-1)
      &            + sigmaf(if+m,jf+ji-1,kf+l)) *
      &         (fdst(if+m,jf+jdir,kf+l) - fdst(if+m,jf,kf+l))) +
      &                     hzm2 *
-     &       ((sigmaf(if+m-1,jf+ji-1,kf+l-1) 
+     &       ((sigmaf(if+m-1,jf+ji-1,kf+l-1)
      &            + sigmaf(if+m,jf+ji-1,kf+l-1)) *
      &         (fdst(if+m,jf,kf+l-1) - fdst(if+m,jf,kf+l)) +
-     &        (sigmaf(if+m-1,jf+ji-1,kf+l) 
+     &        (sigmaf(if+m-1,jf+ji-1,kf+l)
      &            + sigmaf(if+m,jf+ji-1,kf+l)) *
      &         (fdst(if+m,jf,kf+l+1) - fdst(if+m,jf,kf+l))))
                      end do
@@ -1060,23 +1060,23 @@ c faces
                         fac = (jr-abs(n)) * fac1
                         sum = sum + fac *
      &                    (hxm2 *
-     &       ((sigmaf(if+ii-1,jf+n-1,kf+l-1) 
+     &       ((sigmaf(if+ii-1,jf+n-1,kf+l-1)
      &            + sigmaf(if+ii-1,jf+n-1,kf+l) +
-     &         sigmaf(if+ii-1,jf+n,kf+l-1) 
+     &         sigmaf(if+ii-1,jf+n,kf+l-1)
      &            + sigmaf(if+ii-1,jf+n,kf+l)) *
      &         (fdst(if+idir,jf+n,kf+l) - fdst(if,jf+n,kf+l))) +
      &                     hym2 *
-     &       ((sigmaf(if+ii-1,jf+n-1,kf+l-1) 
+     &       ((sigmaf(if+ii-1,jf+n-1,kf+l-1)
      &            + sigmaf(if+ii-1,jf+n-1,kf+l)) *
      &         (fdst(if,jf+n-1,kf+l) - fdst(if,jf+n,kf+l)) +
-     &        (sigmaf(if+ii-1,jf+n,kf+l-1) 
+     &        (sigmaf(if+ii-1,jf+n,kf+l-1)
      &            + sigmaf(if+ii-1,jf+n,kf+l)) *
      &         (fdst(if,jf+n+1,kf+l) - fdst(if,jf+n,kf+l))) +
      &                     hzm2 *
-     &       ((sigmaf(if+ii-1,jf+n-1,kf+l-1) 
+     &       ((sigmaf(if+ii-1,jf+n-1,kf+l-1)
      &            + sigmaf(if+ii-1,jf+n,kf+l-1)) *
      &         (fdst(if,jf+n,kf+l-1) - fdst(if,jf+n,kf+l)) +
-     &        (sigmaf(if+ii-1,jf+n-1,kf+l) 
+     &        (sigmaf(if+ii-1,jf+n-1,kf+l)
      &            + sigmaf(if+ii-1,jf+n,kf+l)) *
      &         (fdst(if,jf+n,kf+l+1) - fdst(if,jf+n,kf+l))))
                      end do
@@ -1107,11 +1107,11 @@ c edges
      &        sigmaf(if+m,jf+ji-1,kf+ki-1) *
      &         (fdst(if+m+1,jf,kf) - fdst(if+m,jf,kf))) +
      &                     hym2 *
-     &       (sigmaf(if+m-1,jf+ji-1,kf+ki-1) 
+     &       (sigmaf(if+m-1,jf+ji-1,kf+ki-1)
      &            + sigmaf(if+m,jf+ji-1,kf+ki-1)) *
      &         (fdst(if+m,jf+jdir,kf) - fdst(if+m,jf,kf)) +
      &                     hzm2 *
-     &       (sigmaf(if+m-1,jf+ji-1,kf+ki-1) 
+     &       (sigmaf(if+m-1,jf+ji-1,kf+ki-1)
      &            + sigmaf(if+m,jf+ji-1,kf+ki-1)) *
      &         (fdst(if+m,jf,kf+kdir) - fdst(if+m,jf,kf)))
                   end do
@@ -1126,7 +1126,7 @@ c edges
                      fac = (jr-abs(n)) * fac1
                      sum = sum + fac *
      &                    (hxm2 *
-     &       (sigmaf(if+ii-1,jf+n-1,kf+ki-1) 
+     &       (sigmaf(if+ii-1,jf+n-1,kf+ki-1)
      &            + sigmaf(if+ii-1,jf+n,kf+ki-1)) *
      &         (fdst(if+idir,jf+n,kf) - fdst(if,jf+n,kf)) +
      &                     hym2 *
@@ -1135,7 +1135,7 @@ c edges
      &        sigmaf(if+ii-1,jf+n,kf+ki-1) *
      &         (fdst(if,jf+n+1,kf) - fdst(if,jf+n,kf))) +
      &                     hzm2 *
-     &       (sigmaf(if+ii-1,jf+n-1,kf+ki-1) 
+     &       (sigmaf(if+ii-1,jf+n-1,kf+ki-1)
      &            + sigmaf(if+ii-1,jf+n,kf+ki-1)) *
      &         (fdst(if,jf+n,kf+kdir) - fdst(if,jf+n,kf)))
                   end do
@@ -1150,11 +1150,11 @@ c edges
                      fac = (kr-abs(l)) * fac1
                      sum = sum + fac *
      &                    (hxm2 *
-     &       (sigmaf(if+ii-1,jf+ji-1,kf+l-1) 
+     &       (sigmaf(if+ii-1,jf+ji-1,kf+l-1)
      &            + sigmaf(if+ii-1,jf+ji-1,kf+l)) *
      &         (fdst(if+idir,jf,kf+l) - fdst(if,jf,kf+l)) +
      &                     hym2 *
-     &       (sigmaf(if+ii-1,jf+ji-1,kf+l-1) 
+     &       (sigmaf(if+ii-1,jf+ji-1,kf+l-1)
      &            + sigmaf(if+ii-1,jf+ji-1,kf+l)) *
      &         (fdst(if,jf+jdir,kf+l) - fdst(if,jf,kf+l)) +
      &                     hzm2 *
@@ -1178,7 +1178,7 @@ c NODE-based data, factor of 2 only.
      & sigx, sigy, sigz,
      &       sbl0,sbh0,sbl1,sbh1,sbl2,sbh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     &       bbl0,bbh0,bbl1,bbh1,bbl2,bbh2, 
+     &       bbl0,bbh0,bbl1,bbh1,bbl2,bbh2,
      & ir, jr, kr)
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
@@ -1409,7 +1409,7 @@ c NODE-based data, factor of 2 only.
      &        regl0,regh0,regl1,regh1,regl2,regh2,
      & signd, snl0,snh0,snl1,snh1,snl2,snh2,
      & src,   srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     &        bbl0,bbh0,bbl1,bbh1,bbl2,bbh2, 
+     &        bbl0,bbh0,bbl1,bbh1,bbl2,bbh2,
      & ir, jr, kr)
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
@@ -1532,7 +1532,7 @@ cdir$ ivdep
                   i = ir * ic
                   j = jr * jc
                   k = kr * kc
-                  dest(i+1,j+1,k+1) = 
+                  dest(i+1,j+1,k+1) =
      &                (signd(i,j+1,k+1,1)   * dest(i,j+1,k+1) +
      &                 signd(i+1,j+1,k+1,1) * dest(i+2,j+1,k+1) +
      &                 signd(i+1,j,k+1,2)   * dest(i+1,j,k+1) +
@@ -1554,7 +1554,7 @@ c CELL-based data only.
      &     destl0,desth0,destl1,desth1,destl2,desth2,
      &     regl0,regh0,regl1,regh1,regl2,regh2,
      & srcx, srcy, srcz,
-     &     srcl0,srch0,srcl1,srch1,srcl2,srch2, 
+     &     srcl0,srch0,srcl1,srch1,srcl2,srch2,
      & ir, jr, kr)
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
@@ -1766,7 +1766,7 @@ cdir$ ivdep
      &          (regl0 - resl0) + 1,
      &          (regh2 - resl2) * kdiff + (regh1 - resl1) * jdiff +
      &          (regh0 - resl0) + 1, 2
-         cor(i) = cor(i) 
+         cor(i) = cor(i)
      &      + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
       end do
 cdir$ ivdep
@@ -1774,7 +1774,7 @@ cdir$ ivdep
      &          (regl0 - resl0) + 2,
      &          (regh2 - resl2) * kdiff + (regh1 - resl1) * jdiff +
      &          (regh0 - resl0) + 1, 2
-         cor(i) = cor(i) 
+         cor(i) = cor(i)
      &      + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
       end do
       end
@@ -1846,7 +1846,7 @@ c-----------------------------------------------------------------------
      &                        signd(i,j,k,1)   * cor(i+1,j,k) +
      &                        signd(i,j-1,k,2) * cor(i,j-1,k) +
      &                        signd(i,j,k,2)   * cor(i,j+1,k)))
-      
+
       if (lsd .ne. 2) then
          print *, "Line solve not implemented in dimension", lsd
           stop
@@ -1939,9 +1939,9 @@ c-----------------------------------------------------------------------
       double precision betm, aj
       double precision rhsl0, rhsl1, rhsl2
       integer i, j, k, ioff, ipar
-      RHSL0() = (res(i,j,k) - (signd(i,j-1,k,2) * cor(i,j-1,k) + 
-     &                        signd(i,j,k,2)   * cor(i,j+1,k) + 
-     &                        signd(i,j,k-1,3) * cor(i,j,k-1) + 
+      RHSL0() = (res(i,j,k) - (signd(i,j-1,k,2) * cor(i,j-1,k) +
+     &                        signd(i,j,k,2)   * cor(i,j+1,k) +
+     &                        signd(i,j,k-1,3) * cor(i,j,k-1) +
      &                        signd(i,j,k,3)   * cor(i,j,k+1)))
 
       RHSL1() = (res(i,j,k) - (signd(i-1,j,k,1) * cor(i-1,j,k) +
@@ -1987,7 +1987,7 @@ c forward solve loop:
                   if (cen(i,j,k) .eq. 0.0D0) then
                      betm = 0.0D0
                   else
-                     betm = 1.0D0 
+                     betm = 1.0D0
      &                    / (-1.0D0 / cen(i,j,k) - aj * wrk(i-1,j,k))
                   end if
                   cor(i,j,k) = (RHSL0() - aj * cor(i-1,j,k)) * betm
@@ -2051,7 +2051,7 @@ c forward solve loop:
                   if (cen(i,j,k) .eq. 0.0D0) then
                      betm = 0.0D0
                   else
-                     betm = 1.0D0 
+                     betm = 1.0D0
      &                    / (-1.0D0 / cen(i,j,k) - aj * wrk(i,j-1,k))
                   end if
                   cor(i,j,k) = (RHSL1() - aj * cor(i,j-1,k)) * betm
@@ -2115,7 +2115,7 @@ c forward solve loop:
                   if (cen(i,j,k) .eq. 0.0D0) then
                      betm = 0.0D0
                   else
-                     betm = 1.0D0 
+                     betm = 1.0D0
      &                    / (-1.0D0 / cen(i,j,k) - aj * wrk(i,j,k-1))
                   end if
                   cor(i,j,k) = (RHSL2() - aj * cor(i,j,k-1)) * betm
@@ -2234,7 +2234,7 @@ c-----------------------------------------------------------------------
       do k = regl2, regh2
          do j = regl1, regh1
             do i = regl0-1, regh0
-               signd(i,j,k,1) = facx * 
+               signd(i,j,k,1) = facx *
      &               (sigx(i,j-1,k-1) + sigx(i,j-1,k) +
      &                sigx(i,j,k-1)   + sigx(i,j,k))
             end do
@@ -2243,7 +2243,7 @@ c-----------------------------------------------------------------------
       do k = regl2, regh2
          do j = regl1-1, regh1
             do i = regl0, regh0
-               signd(i,j,k,2) = facy * 
+               signd(i,j,k,2) = facy *
      &               (sigy(i-1,j,k-1) + sigy(i-1,j,k) +
      &                sigy(i,j,k-1)   + sigy(i,j,k))
             end do
@@ -2252,7 +2252,7 @@ c-----------------------------------------------------------------------
       do k = regl2-1, regh2
          do j = regl1, regh1
             do i = regl0, regh0
-               signd(i,j,k,3) = facz * 
+               signd(i,j,k,3) = facz *
      &               (sigz(i-1,j-1,k) + sigz(i-1,j,k) +
      &                sigz(i,j-1,k)   + sigz(i,j,k))
             end do

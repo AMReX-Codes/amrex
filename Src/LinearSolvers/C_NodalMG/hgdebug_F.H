@@ -6,7 +6,7 @@
 #else
 #ifndef _HG_DEBUG_F_H_
 #define _HG_DEBUG_F_H_
-      
+
 #if defined( BL_FORT_USE_UNDERSCORE )
 #define FORT_HGDEBUGINIT  hgdebuginit_
 #define FORT_HGDEBUGCTL   hgdebugctl_
@@ -26,7 +26,7 @@
 #error "none of BL_FORT_USE_{UNDERSCORE,UPPERCASE,LOWERCASE} defined"
 #endif
 
-extern "C" 
+extern "C"
 {
     void FORT_HGDEBUGINIT (const int*, const int*);
     void FORT_HGDEBUGCTL (const int*, const int*, const int*);
@@ -35,4 +35,4 @@ extern "C"
 }
 
 #endif
-#endif      
+#endif

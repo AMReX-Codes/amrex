@@ -57,7 +57,7 @@ c Note---only generates values at coarse points along edge of fine grid
      & rc,    cl0, ch0, cl1, ch1,
      & rf,    fl0, fh0, fl1, fh1,
      &        cregl0, cregh0, cregl1, cregh1,
-     & ir, jr, idim, idir, 
+     & ir, jr, idim, idir,
      & hx, irz, imax, idense)
       integer srcl0, srch0, srcl1, srch1
       integer cl0, ch0, cl1, ch1
@@ -72,7 +72,7 @@ c Note---only generates values at coarse points along edge of fine grid
       double precision rfac0m, rfac1m, rfac0p, rfac1p
       integer i, j, irc, jrc, irf, jrf, m, n
       integer idense
-      
+
       if (idim .eq. 0) then
          i = cregl0
          if (idir .eq. 1) then
@@ -220,7 +220,7 @@ c Note---only generates values at coarse points along edge of fine grid
      & rc,    cl0, ch0, cl1, ch1,
      & rf,    fl0, fh0, fl1, fh1,
      &        cregl0, cregh0, cregl1, cregh1,
-     & ir, jr, ga, idd, 
+     & ir, jr, ga, idd,
      & hx, irz, imax, idense)
       integer srcl0, srch0, srcl1, srch1
       integer cl0, ch0, cl1, ch1
