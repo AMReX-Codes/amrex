@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.96 1999-10-08 20:54:50 propp Exp $
+// $Id: Amr.cpp,v 1.97 1999-10-20 18:24:58 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -53,7 +53,16 @@ static const aString CheckPointVersion = "CheckPointVersion_1.0";
 // Force immediate full (level 0) regrid() on restart?
 //
 static int regrid_on_restart = 0;
+
 static int plotfile_on_restart = 0;
+//
+// Tar up and then remove checkpoint and plot files?
+//
+#if defined(BL_T3E)
+static int tar_and_rm_files = 1;
+#else
+static int tar_and_rm_files = 0;
+#endif
 
 void
 Amr::setDtMin (const Array<REAL>& dt_min_in)
@@ -154,6 +163,13 @@ Amr::Amr ()
 
     pp.query("regrid_on_restart",regrid_on_restart);
     pp.query("plotfile_on_restart",plotfile_on_restart);
+
+    if (pp.contains("tar_and_rm_files"))
+        //
+        // Only query() if it's in the file.
+        // Otherwise, we could overwrite any non-zero default.
+        //
+        pp.query("tar_and_rm_files",tar_and_rm_files);
 
     sub_cycle = true;
     if (pp.contains("nosub"))
@@ -526,7 +542,7 @@ Amr::writePlotFile (const aString& root,
 
     Real dPlotFileTime0 = ParallelDescriptor::second();
 
-    aString pltfile = Utility::Concatenate(root, num);
+    const aString pltfile = Utility::Concatenate(root,num);
 
     if (verbose && ParallelDescriptor::IOProcessor())
         cout << "PLOTFILE: file = " << pltfile << endl;
@@ -590,10 +606,26 @@ Amr::writePlotFile (const aString& root,
 
     ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
 
+    stats.end();
+
     if (ParallelDescriptor::IOProcessor())
+    {
         cout << "Write plotfile time = " << dPlotFileTime << "  seconds." << endl;
 
-    stats.end();
+        if (tar_and_rm_files)
+        {
+            aString cmd;
+
+            cmd += "tar cf ";
+            cmd += pltfile;
+            cmd += ".tar ";
+            cmd += pltfile;
+            cmd += "; rm -rf ";
+            cmd += pltfile;
+
+            Utility::Execute(cmd.c_str());
+        }
+    }
 }
 
 void
@@ -942,7 +974,7 @@ Amr::checkPoint ()
 
     Real dCheckPointTime0 = ParallelDescriptor::second();
 
-    aString ckfile = Utility::Concatenate(check_file_root, level_steps[0]);
+    const aString ckfile = Utility::Concatenate(check_file_root,level_steps[0]);
 
     if (verbose && ParallelDescriptor::IOProcessor())
         cout << "CHECKPOINT: file = " << ckfile << endl;
@@ -1036,7 +1068,23 @@ Amr::checkPoint ()
     ParallelDescriptor::ReduceRealMax(dCheckPointTime,IOProc);
 
     if (ParallelDescriptor::IOProcessor())
+    {
         cout << "checkPoint() time = " << dCheckPointTime << " secs." << endl;
+
+        if (tar_and_rm_files)
+        {
+            aString cmd;
+
+            cmd += "tar cf ";
+            cmd += ckfile;
+            cmd += ".tar ";
+            cmd += ckfile;
+            cmd += "; rm -rf ";
+            cmd += ckfile;
+
+            Utility::Execute(cmd.c_str());
+        }
+    }
 }
 
 void
