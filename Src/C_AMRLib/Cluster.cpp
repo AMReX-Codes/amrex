@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Cluster.cpp,v 1.11 1998-02-18 21:35:33 vince Exp $
+// $Id: Cluster.cpp,v 1.12 1998-08-08 17:25:40 lijewski Exp $
 //
 
 #include <Cluster.H>
@@ -10,7 +10,7 @@
 #include <algorithm>
 using std::partition;
 #else
-#if (defined(BL_T3E) && !defined(__KCC)) || defined(__GNUC__) || defined (BL_CRAY)
+#ifdef BL_OLD_STL
 #include <algo.h>
 #else
 #include <algorithm.h>

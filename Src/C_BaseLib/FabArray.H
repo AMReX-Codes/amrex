@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.70 1998-07-29 19:10:29 lijewski Exp $
+// $Id: FabArray.H,v 1.71 1998-08-08 17:26:04 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -18,7 +18,7 @@ using std::vector;
 #else
 #include <limits.h>
 #include <vector.h>
-#ifdef BL_T3E
+#ifdef BL_OLD_STL
 #include <pair.h>
 #include <multimap.h>
 #else
