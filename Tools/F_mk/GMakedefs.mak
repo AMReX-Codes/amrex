@@ -340,14 +340,14 @@ ifeq ($(ARCH),IRIX64)
 #   FFLAGS += -C
     FFLAGS += -DEBUG:verbose_runtime=ON
     FFLAGS += -DEBUG:subscript_check=ON
-    FFLAGS += -DEBUG:trap_uninitialized=ON
+#   FFLAGS += -DEBUG:trap_uninitialized=ON
     FFLAGS += -g
     FFLAGS += -ansi
 #   F90FLAGS += -C
     F90FLAGS += -DEBUG:verbose_runtime=ON
     F90FLAGS += -DEBUG:conform_check=ON
     F90FLAGS += -DEBUG:subscript_check=ON
-    F90FLAGS += -DEBUG:trap_uninitialized=ON
+#   F90FLAGS += -DEBUG:trap_uninitialized=ON
     F90FLAGS += -g
     F90FLAGS += -ansi
   endif
