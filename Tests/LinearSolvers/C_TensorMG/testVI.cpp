@@ -310,12 +310,10 @@ main (int   argc,
     REAL tolerance = 1.0e-10; pp.query("tol", tolerance);
     REAL tolerance_abs = 1.0e-10; pp.query("tol_abs", tolerance_abs);
 
-
-    cout << "MCLinOp object:" << endl;
-    cout << lp << endl;
-    
+#if 0
     cout << "Bndry Data object:" << endl;
     cout << lp.bndryData() << endl;
+#endif
     
 #if 0
     bool use_mg_pre = false;

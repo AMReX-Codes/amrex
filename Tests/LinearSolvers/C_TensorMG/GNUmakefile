@@ -31,12 +31,10 @@ LIBRARIES += -lmcmg$(DIM)d -lmg$(DIM)d -lamr$(DIM)d -lbndry$(DIM)d -lbox$(DIM)d
 
 ifeq ($(DEBUG),TRUE)
 ifeq ($(USE_ARRAYVIEW),TRUE)
-ARRAYVIEWDIR  = $(PBOXLIB_HOME)/util
-INCLUDE_LOCATIONS += $(ARRAYVIEWDIR)
-CEXE_headers += DatasetClient.H ArrayView.H
-CEXE_sources += DatasetClient.cpp
+ARRAYVIEWDIR  = $(PBOXLIB_HOME)/ArrayView
+LIBRARY_LOCATIONS += $(ARRAYVIEWDIR)
+LIBRARIES += -larrayview$(optionsSuffix)
 DEFINES += -DBL_USE_ARRAYVIEW
-#DEFINES += -DBL_ARRAYVIEW_TAGBOX
 endif
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/util
 CEXE_headers += TV_TempWrite.H
@@ -87,6 +85,9 @@ libs:
 	cd $(PBOXLIB_HOME)/amrlib; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
 	cd $(PBOXLIB_HOME)/mglib; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
 	cd $(PBOXLIB_HOME)/tensorMG; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
+ifdef USE_ARRAYVIEW
+	cd $(ARRAYVIEWDIR); $(MAKE) -f GNUmakefile.arrayviewlib PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI)
+endif
 
 vpath %.cpp : . .. 
 vpath %.F   : . .. 
