@@ -49,10 +49,13 @@ foreach my $file (@ARGV) {
   while ( defined($line=<FILE>) ) {
     chomp $line;
     if ( $line =~ /^\?\?/ ) {
+      $line =~ s/^\?\? *//;
       $line =~ s/!.*$/ /;
       $line =~ s/ *$//;
-      if ( $line =~ s/&$/ / ) {
-	$line .= <FILE>;
+      if ( $line =~ s/&$// ) {
+	my $nline = <FILE>;
+	$nline =~ s/^\?\? *//;
+	$line .= $nline;
 	redo unless eof(FILE);
       }
       print OUT "line = \"$line\"\n";
