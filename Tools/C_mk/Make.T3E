@@ -4,43 +4,43 @@
 CPP = cpp
 
 ifeq ($(COMP),CC)
-CXX		:= CC -h instantiate=local
+CXX := CC -h instantiate=local
 endif
 
 ifeq ($(COMP),KCC)
-CXX             := KCC
+CXX := KCC
 endif
 
 ifeq ($(COMP),CFRONT)
-CXX		  := OCC
+CXX		          := OCC
 override XTRADEFS += -DBL_BUG_DEFARG
 OUTPUT_OPTION	   =  ; mv $*.o $@
 endif
 
 ifeq ($(COMP),CC)
-CXXOPTF		+= -O2 -h new_for_init
-CXXDEBF		+= -g -h new_for_init
-override XTRADEFS += -DBL_SETBUF_SIGNED_CHAR
+CXXOPTF	          += -O2 -h new_for_init
+CXXDEBF	          += -g -h new_for_init
+override XTRADEFS += -DBL_USE_SETBUF -DBL_SETBUF_SIGNED_CHAR
 endif
 
 ifeq ($(COMP),KCC)
-CXXOPTF         += -O2
-CXXDEBF         += -g
+CXXOPTF += -O2
+CXXDEBF += -g
 endif
 
 ifeq ($(PROFILE), TRUE)
-CXXPRFF		+= -happrentice
-XTRALIBS    += -lapp
+CXXPRFF	 += -happrentice
+XTRALIBS += -lapp
 endif
 
-FC		= f90 -N 80 -e I
-FOPTF		+= -O2
-FDEBF		+= -g
-FPRFF		+= -eA
+FC     = f90 -N 80 -e I
+FOPTF += -O2
+FDEBF += -g
+FPRFF += -eA
 
-COPTF		+= -O2
-CDEBF		+= -g
-CPRFF		+=
+COPTF += -O2
+CDEBF += -g
+CPRFF +=
 
 OUTPUT_OPTION	= ; mv $*.o $(objTempDir)/$*.o
 
