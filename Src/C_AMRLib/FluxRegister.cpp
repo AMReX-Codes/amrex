@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.51 1998-10-24 22:26:42 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.52 1998-10-26 20:51:38 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -785,9 +785,9 @@ FluxRegister::CrseInitFinish ()
 #ifdef BL_USE_MPI
     static RunStats mpi_recv("mpi_recv");
     static RunStats mpi_send("mpi_send");
-    static RunStats mpi_redu("mpi_reduce");
+    static RunStats mpi_wait("mpi_wait");
     static RunStats mpi_gath("mpi_gather");
-    static RunStats mpi_wait("mpi_waitall");
+    static RunStats mpi_redu("mpi_reduce");
     static RunStats mpi_stat("crse_init_finish");
 
     mpi_stat.start();
