@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.47 1998-05-04 21:24:57 lijewski Exp $
+// $Id: FabArray.H,v 1.48 1998-05-21 16:48:39 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -452,6 +452,10 @@ class FabArrayIterator
     //@ManDoc: The index into the underlying BoxArray of the current FAB.
     //
     int index () const;
+    //
+    //@ManDoc: Constant reference to FabArray over which we're iterating.
+    //
+    const FabArray<T,FAB>& theFabArray () const { return fabArray; }
 
   protected:
 
@@ -595,6 +599,10 @@ class ConstFabArrayIterator
     //@ManDoc: The index into the underlying BoxArray of the current FAB.
     //
     int index () const;
+    //
+    //@ManDoc: Constant reference to FabArray over which we're iterating.
+    //
+    const FabArray<T,FAB>& theFabArray () const { return fabArray; }
 
   protected:
 
@@ -1140,7 +1148,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
 {
     TRACER("FabArray<T,FAB>::copy(FabArray)");
 
-    if (DistributionMap().ProcessorMap() == farray.DistributionMap().ProcessorMap())
+    if (farray.boxarray == boxarray)
     {
         for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
         {
@@ -1415,11 +1423,11 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
 {
     assert(nghost <= n_grow);
     assert(nghost <= src.n_grow);
-    assert(DistributionMap().ProcessorMap() == src.DistributionMap().ProcessorMap());
+    assert(src.boxarray == boxarray);
 
     for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
     {
-        Box b(::grow(fai.validbox(), nghost));
+        Box b = ::grow(fai.validbox(), nghost);
         fai().copy(src[fai.index()], b, src_comp, b, dest_comp, num_comp);
     }
 }
@@ -1822,7 +1830,10 @@ DependentFabArrayIterator<T,FAB>::DependentFabArrayIterator(
     :
     fabArray(dependentfabarray),
     controller(&controllerfaiter)
-{}
+{
+    assert(controllerfaiter.theFabArray().DistributionMap().ProcessorMap() ==
+           dependentfabarray.DistributionMap().ProcessorMap());
+}
 
 template <class T, class FAB>
 inline
@@ -1832,7 +1843,10 @@ DependentFabArrayIterator<T,FAB>::DependentFabArrayIterator(
     :
     fabArray(const_cast<FabArray<T,FAB>&>(dependentfabarray)),
     controller(&controllerfaiter)
-{}
+{
+    assert(controllerfaiter.theFabArray().DistributionMap().ProcessorMap() ==
+           dependentfabarray.DistributionMap().ProcessorMap());
+}
 
 template <class T, class FAB>
 inline
@@ -2013,7 +2027,10 @@ ConstDependentFabArrayIterator<T,FAB>::ConstDependentFabArrayIterator(
     :
     fabArray(dependentfabarray),
     controller(&controllerfaiter)
-{}
+{
+    assert(controllerfaiter.theFabArray().DistributionMap().ProcessorMap() ==
+           dependentfabarray.DistributionMap().ProcessorMap());
+}
 
 template <class T, class FAB>
 inline
