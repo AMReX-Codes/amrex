@@ -18,8 +18,8 @@ override XTRALIBS += -L/usr/absoft/lib -lfio -lf77math
 #override FORTLINK := LOWERCASE
 else
 #DEFINES += -DBL_FORT_USE_UNDERSCORE
-#override XTRALIBS += -lg2c
-override XTRALIBS +=  -lf2c
+#override XTRALIBS +=  -lf2c
+override XTRALIBS += -lg2c
 override XTRALIBS +=   -lm
 endif
 
