@@ -39,32 +39,19 @@ contains
     r = .not. associated(mla1%la, mla2%la)
   end function ml_layout_not_equal
 
-  subroutine ml_layout_destroy(mla)
-    type(ml_layout), intent(inout) :: mla
-    integer :: n
-    do n = 1, mla%nlevel-1
-       call destroy(mla%mask(n))
-    end do
-    call destroy(mla%mba)
-    call destroy(mla%la(1))
-    deallocate(mla%la, mla%mask)
-    mla%dim = 0
-    mla%nlevel = 0
-  end subroutine ml_layout_destroy
-
-  function ml_get_layout(mla, n) result(r)
+  function ml_layout_get_layout(mla, n) result(r)
     type(layout) :: r
     type(ml_layout), intent(in) :: mla
     integer, intent(in) :: n
     r = mla%la(n)
-  end function ml_get_layout
+  end function ml_layout_get_layout
 
-  function ml_get_pd(mla, n) result(r)
+  function ml_layout_get_pd(mla, n) result(r)
     type(box) :: r
     type(ml_layout), intent(in) :: mla
     integer, intent(in) :: n
     r = ml_boxarray_get_pd(mla%mba, n)
-  end function ml_get_pd
+  end function ml_layout_get_pd
 
   subroutine ml_layout_build(mla, mba)
     type(ml_layout), intent(inout) :: mla
@@ -89,5 +76,18 @@ contains
        call destroy(bac)
     end do
   end subroutine ml_layout_build
+
+  subroutine ml_layout_destroy(mla)
+    type(ml_layout), intent(inout) :: mla
+    integer :: n
+    do n = 1, mla%nlevel-1
+       call destroy(mla%mask(n))
+    end do
+    call destroy(mla%mba)
+    call destroy(mla%la(1))
+    deallocate(mla%la, mla%mask)
+    mla%dim = 0
+    mla%nlevel = 0
+  end subroutine ml_layout_destroy
 
 end module ml_layout_module

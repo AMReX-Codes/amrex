@@ -13,6 +13,10 @@ module ml_multifab_module
      type(multifab), pointer :: mf(:) => Null()
   end type ml_multifab
 
+  interface built_q
+     module procedure ml_multifab_built_q
+  end interface
+
   interface build
      module procedure ml_multifab_build
   end interface
@@ -65,10 +69,6 @@ module ml_multifab_module
   interface sub_sub
      module procedure ml_multifab_sub_sub_s
      module procedure ml_multifab_sub_sub
-  end interface
-
-  interface built_q
-     module procedure ml_multifab_built_q
   end interface
 
 contains
@@ -164,19 +164,27 @@ contains
     r = mmf%nc
   end function ml_multifab_ncomp
 
-  subroutine ml_multifab_build(mmf, mla, nc, ng, nodal)
+  subroutine ml_multifab_build(mmf, mla, nc, ng, maxlev, nodal)
     type(ml_multifab), intent(inout) :: mmf
     type(ml_layout), intent(inout) :: mla
     integer, intent(in), optional :: nc
     integer, intent(in), optional :: ng
+    integer, intent(in), optional :: maxlev
     logical, intent(in), optional :: nodal(:)
     integer :: n
     mmf%dim = mla%dim
-    mmf%nlevel = mla%nlevel
+    if ( present(maxlev) ) then
+       if ( mla%nlevel < maxlev ) then
+          call bl_error("ML_MULTIFAB_BUILD: mla%nlevel < maxlev: maxlev = ", maxlev)
+       end if
+       mmf%nlevel = maxlev
+    else
+       mmf%nlevel = mla%nlevel
+    end if
     mmf%mla = mla
     if ( present(nc) ) mmf%nc = nc
     if ( present(ng) ) mmf%ng = ng
-    allocate(mmf%mf(mla%nlevel))
+    allocate(mmf%mf(mmf%nlevel))
     do n = 1, mmf%nlevel
        call multifab_build(mmf%mf(n), mla%la(n), nc, ng, nodal)
     end do
@@ -194,45 +202,6 @@ contains
     mmf%nc = 1
     mmf%ng = 0
   end subroutine ml_multifab_destroy
-
-  subroutine ml_multifab_print(mmf, str, unit, all, data, skip)
-    use bl_IO_module
-    type(ml_multifab), intent(in) :: mmf
-    character (len=*), intent(in), optional :: str
-    integer, intent(in), optional :: unit
-    logical, intent(in), optional :: all, data
-    integer, intent(in), optional :: skip
-    integer :: n, un
-    character(len=16) :: levstr
-    un = unit_stdout(unit)
-    if ( parallel_IOProcessor() ) then
-       call unit_skip(un, skip)
-       write(unit=un, fmt='("ML_MULTIFAB ", i1)', advance = 'NO') 
-       if ( present(str) ) then
-          write(unit=un, fmt='(": ",A)') str
-       else
-          write(unit=un, fmt='()')
-       end if
-    end if
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" DIM     = ",i2)') mmf%dim
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" NC      = ",i2)') mmf%nc
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" NG      = ",i2)') mmf%ng
-    call unit_skip(un, skip)
-    write(unit=un, fmt='(" NLEVEL  = ",i2)') mmf%nlevel
-    do n = 1, mmf%nlevel
-       write(unit=levstr,fmt='("LEVEL ", i1)') n
-       call multifab_print(mmf%mf(n), &
-            str = trim(levstr), &
-            unit = unit,  &
-            all = all, &
-            data = data, &
-            skip = unit_get_skip(skip) + 2 &
-            )
-    end do
-  end subroutine ml_multifab_print
 
   function ml_multifab_dot_cc(x, compx, y, compy) result(r)
     real(kind=dp_t) :: r
@@ -320,6 +289,45 @@ contains
        call rescale(x%mf(n), val, off)
     end do
   end subroutine ml_multifab_rescale
+
+  subroutine ml_multifab_print(mmf, str, unit, all, data, skip)
+    use bl_IO_module
+    type(ml_multifab), intent(in) :: mmf
+    character (len=*), intent(in), optional :: str
+    integer, intent(in), optional :: unit
+    logical, intent(in), optional :: all, data
+    integer, intent(in), optional :: skip
+    integer :: n, un
+    character(len=16) :: levstr
+    un = unit_stdout(unit)
+    if ( parallel_IOProcessor() ) then
+       call unit_skip(un, skip)
+       write(unit=un, fmt='("ML_MULTIFAB ", i1)', advance = 'NO') 
+       if ( present(str) ) then
+          write(unit=un, fmt='(": ",A)') str
+       else
+          write(unit=un, fmt='()')
+       end if
+    end if
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" DIM     = ",i2)') mmf%dim
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" NC      = ",i2)') mmf%nc
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" NG      = ",i2)') mmf%ng
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" NLEVEL  = ",i2)') mmf%nlevel
+    do n = 1, mmf%nlevel
+       write(unit=levstr,fmt='("LEVEL ", i1)') n
+       call multifab_print(mmf%mf(n), &
+            str = trim(levstr), &
+            unit = unit,  &
+            all = all, &
+            data = data, &
+            skip = unit_get_skip(skip) + 2 &
+            )
+    end do
+  end subroutine ml_multifab_print
 
 end module ml_multifab_module
 

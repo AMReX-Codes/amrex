@@ -785,35 +785,45 @@ contains
     integer, intent(in) :: cyc
     integer :: i
     logical :: do_diag
-    real(dp_t) :: nrm
+    real(dp_t) :: nrm, nrm1, nrm2, nrm3
 
     do_diag = .false.; if ( mgt%verbose >= 4 ) do_diag = .true.
+
+    if (do_diag) then
+       nrm = norm_inf(uu)
+       nrm1 = norm_inf(rh)
+       nrm2 = norm_inf(ss)
+       if ( parallel_IOProcessor() ) then
+          print *,'IN: NORM RH, UU, SS',lev, nrm, nrm1, nrm2
+       end if
+    end if
 
     call timer_start(mgt%tm(lev))
     if ( lev == 1 ) then
        if (do_diag) then
-         call mg_defect(ss, mgt%cc(lev), rh, uu, mm)
-         nrm = norm_inf(mgt%cc(lev))
-         if ( parallel_IOProcessor() ) then
-            print *,'DN: NORM BEFORE BOTTOM ',lev, nrm
-         end if
+          call mg_defect(ss, mgt%cc(lev), rh, uu, mm)
+          nrm = norm_inf(mgt%cc(lev))
+          if ( parallel_IOProcessor() ) then
+             print *,'DN: NORM BEFORE BOTTOM ',lev, nrm
+          end if
        end if
        call mg_tower_bottom_solve(mgt, lev, ss, uu, rh, mm)
        if ( cyc == MG_FCycle ) gamma = 1
        if (do_diag) then
-         call mg_defect(ss, mgt%cc(lev), rh, uu, mm)
-         nrm = norm_inf(mgt%cc(lev))
-         if ( parallel_IOProcessor() ) then
-            print *,'DN: NORM AFTER BOTTOM ',lev, nrm
-         end if
+          call mg_defect(ss, mgt%cc(lev), rh, uu, mm)
+          nrm = norm_inf(mgt%cc(lev))
+          if ( parallel_IOProcessor() ) then
+             print *,'DN: NORM AFTER BOTTOM ',lev, nrm
+          end if
        end if
     else 
 
        if (do_diag) then
-         nrm = norm_inf(rh)
-         if ( parallel_IOProcessor() ) then
-            print *,'DN: NORM BEFORE RELAX ',lev, nrm
-         end if
+          nrm = norm_inf(rh)
+          nrm1 = norm_inf(uu)
+          if ( parallel_IOProcessor() ) then
+             print *,'DN: NORM BEFORE RELAX ',lev, nrm, nrm1
+          end if
        end if
        do i = 1, nu1
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
@@ -821,28 +831,29 @@ contains
        call mg_defect(ss, mgt%cc(lev), rh, uu, mm)
 
        if (do_diag) then
-         nrm = norm_inf(mgt%cc(lev))
-         if ( parallel_IOProcessor() ) then
-            print *,'DN: NORM AFTER RELAX ',lev, nrm
-         end if
+          nrm = norm_inf(mgt%cc(lev))
+          nrm1 = norm_inf(uu)
+          if ( parallel_IOProcessor() ) then
+             print *,'DN: NORM AFTER RELAX, CC, UU ',lev, nrm, nrm1
+          end if
        end if
 
        call mg_tower_restriction(mgt, lev, mgt%dd(lev-1), mgt%cc(lev), &
-                                 mgt%mm(lev),mgt%mm(lev-1))
+            mgt%mm(lev),mgt%mm(lev-1))
        call setval(mgt%uu(lev-1), zero, all = .TRUE.)
        do i = gamma, 1, -1
           call mg_tower_cycle(mgt, cyc, lev-1, mgt%ss(lev-1), mgt%uu(lev-1), &
-                              mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma)
+               mgt%dd(lev-1), mgt%mm(lev-1), nu1, nu2, gamma)
        end do
        ! uu  += cc, done, by convention, using the prolongation routine.
        call mg_tower_prolongation(mgt, lev, uu, mgt%uu(lev-1))
 
        if (do_diag) then
-         call mg_defect(ss, mgt%cc(lev), rh, uu, mm)
-         nrm = norm_inf(mgt%cc(lev))
-         if ( parallel_IOProcessor() ) then
-            print *,'UP: NORM AFTER INTERP ',lev, nrm
-         end if
+          call mg_defect(ss, mgt%cc(lev), rh, uu, mm)
+          nrm = norm_inf(mgt%cc(lev))
+          if ( parallel_IOProcessor() ) then
+             print *,'UP: NORM AFTER INTERP ',lev, nrm
+          end if
        end if
 
        do i = 1, nu2
@@ -850,11 +861,11 @@ contains
        end do
 
        if (do_diag) then
-         call mg_defect(ss, mgt%cc(lev), rh, uu, mm)
-         nrm = norm_inf(mgt%cc(lev))
-         if ( parallel_IOProcessor() ) then
-            print *,'UP: NORM AFTER RELAX ',lev, nrm
-         end if
+          call mg_defect(ss, mgt%cc(lev), rh, uu, mm)
+          nrm = norm_inf(mgt%cc(lev))
+          if ( parallel_IOProcessor() ) then
+             print *,'UP: NORM AFTER RELAX ',lev, nrm
+          end if
        end if
 
        ! if at top of tower and doing an FCycle reset gamma
@@ -862,6 +873,14 @@ contains
     end if
 
     call timer_stop(mgt%tm(lev))
+
+    if (do_diag) then
+       nrm = norm_inf(uu)
+       nrm1 = norm_inf(rh)
+       if ( parallel_IOProcessor() ) then
+          print *,'OT: NORM RH, UU ',lev, nrm, nrm1
+       end if
+    end if
 
   end subroutine mg_tower_cycle
 
