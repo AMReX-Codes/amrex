@@ -3171,4 +3171,74 @@ contains
     !$OMP END PARALLEL DO
   end subroutine multifab_plus_plus_s_c
 
+  !! Copies valid data of MF onto FB
+  !! FB: Array data
+  !! LO: array of lo bound of fb
+  !! CF: Start component of destination
+  !! MF: Src multifab
+  !! CM: start component of source
+  !! NC: Number of components to copy
+  subroutine multifab_fab_copy(fb, lo, cf, mf, cm, nc)
+    integer, intent(in) :: cf, cm, nc, lo(:)
+    real(dp_t), intent(inout) :: fb(:,:,:,:)
+    type(multifab), intent(in) :: mf
+    real(kind=dp_t), pointer :: mp(:,:,:,:)
+    integer :: i, xo(mf%dim)
+    if ( parallel_q() ) then
+       call bl_error("MULTIFAB_FAB_COPY: not ready for parallel")
+    end if
+    if ( size(fb,dim=4) > cf + nc - 1 ) then
+       call bl_error("MULTIFAB_FAB_COPY: fb extent to small")
+    end if
+    if ( ncomp(mf) > cm + nc - 1 ) then
+       call bl_error("MULTIFAB_FAB_COPY: mf extent to small")
+    end if
+    do i = 1, nboxes(mf); if ( remote(mf,i) ) cycle
+       mp => dataptr(mf, i, get_ibox(mf,i), cm, nc)
+       xo = lwb(get_ibox(mf,i))
+       select case ( mf%dim ) 
+       case (1)
+          call c_1d(fb(:,1,1,cf:cf+nc-1), lo, mp(:,1,1,cm:cm+nc-1), xo)
+       case (2)
+          call c_2d(fb(:,:,1,cf:cf+nc-1), lo, mp(:,:,1,cm:cm+nc-1), xo)
+       case (3)
+          call c_3d(fb(:,:,:,cf:cf+nc-1), lo, mp(:,:,:,cm:cm+nc-1), xo)
+       end select
+    end do
+  contains
+    subroutine c_1d(f, lo, x, xo)
+      integer, intent(in) :: lo(:), xo(:)
+      real(kind=dp_t) :: f(lo(1):,:)
+      real(kind=dp_t) :: x(xo(1):,:)
+      integer :: i
+      do i = max(lo(1),xo(1)), min(lo(1),xo(1))
+         f(i,:) = x(i,:)
+      end do
+    end subroutine c_1d
+    subroutine c_2d(f, lo, x, xo)
+      integer, intent(in) :: lo(:), xo(:)
+      real(kind=dp_t) :: f(lo(1):,lo(2):,:)
+      real(kind=dp_t) :: x(xo(1):,xo(2):,:)
+      integer :: i, j
+      do j = max(lo(2),xo(2)), min(lo(2),xo(2))
+         do i = max(lo(1),xo(1)), min(lo(1),xo(1))
+            f(i,j,:) = x(i,j,:)
+         end do
+      end do
+    end subroutine c_2d
+    subroutine c_3d(f, lo, x, xo)
+      integer, intent(in) :: lo(:), xo(:)
+      real(kind=dp_t) :: f(lo(1):,lo(2):,lo(3):,:)
+      real(kind=dp_t) :: x(xo(1):,xo(2):,xo(3):,:)
+      integer :: i, j, k
+      do k = max(lo(3),xo(3)), min(lo(3),xo(3))
+         do j = max(lo(2),xo(2)), min(lo(2),xo(2))
+            do i = max(lo(1),xo(1)), min(lo(1),xo(1))
+               f(i,j,k,:) = x(i,j,k,:)
+            end do
+         end do
+      end do
+    end subroutine c_3d
+  end subroutine multifab_fab_copy
+  
 end module multifab_module
