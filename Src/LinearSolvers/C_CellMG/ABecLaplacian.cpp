@@ -1,6 +1,6 @@
 
 //
-// $Id: ABecLaplacian.cpp,v 1.18 2002-10-31 21:56:55 lijewski Exp $
+// $Id: ABecLaplacian.cpp,v 1.19 2002-11-06 20:51:41 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -370,24 +370,28 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
 
     OrientationIter oitr;
 
-    const FabSet &f0 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet &f1 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet &f2 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet &f3 = (*undrrelxr[level])[oitr()]; oitr++;
+    const FabSet& f0 = (*undrrelxr[level])[oitr()]; oitr++;
+    const FabSet& f1 = (*undrrelxr[level])[oitr()]; oitr++;
+    const FabSet& f2 = (*undrrelxr[level])[oitr()]; oitr++;
+    const FabSet& f3 = (*undrrelxr[level])[oitr()]; oitr++;
 #if (BL_SPACEDIM > 2)
-    const FabSet &f4 = (*undrrelxr[level])[oitr()]; oitr++;
-    const FabSet &f5 = (*undrrelxr[level])[oitr()]; oitr++;
+    const FabSet& f4 = (*undrrelxr[level])[oitr()]; oitr++;
+    const FabSet& f5 = (*undrrelxr[level])[oitr()]; oitr++;
 #endif    
-    const MultiFab  &a = aCoefficients(level);
+    const MultiFab& a = aCoefficients(level);
+
     D_TERM(const MultiFab  &bX = bCoefficients(0,level);,
            const MultiFab  &bY = bCoefficients(1,level);,
            const MultiFab  &bZ = bCoefficients(2,level););
 
-    int nc = solnL.nComp();
+    const int nc = solnL.nComp();
+
     for (MFIter solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
     {
         oitr.rewind();
-        int gn = solnLmfi.index();
+
+        const int gn = solnLmfi.index();
+
         const Mask& m0 = *maskvals[level][gn][oitr()]; oitr++;
         const Mask& m1 = *maskvals[level][gn][oitr()]; oitr++;
         const Mask& m2 = *maskvals[level][gn][oitr()]; oitr++;
@@ -470,10 +474,12 @@ ABecLaplacian::Fapply (MultiFab&       y,
 {
     const BoxArray& bxa = gbox[level];
     const MultiFab& a   = aCoefficients(level);
+
     D_TERM(const MultiFab& bX  = bCoefficients(0,level);,
            const MultiFab& bY  = bCoefficients(1,level);,
            const MultiFab& bZ  = bCoefficients(2,level););
-    int nc = y.nComp();
+
+    const int nc = y.nComp();
 
     for (MFIter ymfi(y); ymfi.isValid(); ++ymfi)
     {
