@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Tracer.cpp,v 1.4 1998-04-20 22:16:38 lijewski Exp $
+// $Id: Tracer.cpp,v 1.5 1998-04-21 05:21:08 lijewski Exp $
 //
 // Definition of Tracer member functions.
 //
@@ -18,6 +18,7 @@
 
 #include <BoxLib.H>
 #include <Tracer.H>
+#include <ParallelDescriptor.H>
 
 const char* Tracer::m_program = 0;
 
@@ -27,7 +28,7 @@ bool Tracer::m_trace = false;
 
 char* Tracer::m_substr = 0;
 
-const char* SPACES = "    ";
+const int IDENT = 3;  // Indent by three spaces.
 
 Tracer::Tracer (const char* function)
 {
@@ -49,17 +50,22 @@ Tracer::Tracer (const char* function)
 
     if (m_trace && (m_substr == 0 || strstr(m_func, m_substr)))
     {
-        //
-        // We use printf() instead of <iostream.h> function as
-        // the former is thread-safe in our environment.
-        //
-        for (int i = 0; i < m_count-1; i++)
-        {
-            fputs(SPACES, stdout);
-        }
-        printf("%s: entered %s\n", m_program, m_func);
+        const int DIM = 1024;
 
-        fflush(stdout);
+        char buf[DIM+1], *bp = buf;
+
+        for (int i = 0; i < IDENT*m_count-1; i++)
+            *bp++ = ' ';
+
+        sprintf(bp,
+                "%s (%d): entered %s\n",
+                m_program,
+                ParallelDescriptor::MyProc(),
+                m_func);
+
+        buf[DIM] = 0;  // Just to be really careful.
+
+        printf(buf);
     }
 }
 
@@ -67,13 +73,22 @@ Tracer::~Tracer ()
 {
     if (m_trace && (m_substr == 0 || strstr(m_func, m_substr)))
     {
-        for (int i = 0; i < m_count-1; i++)
-        {
-            fputs(SPACES, stdout);
-        }
-        printf("%s: exited  %s\n", m_program, m_func);
+        const int DIM = 1024;
 
-        fflush(stdout);
+        char buf[DIM+1], *bp = buf;
+
+        for (int i = 0; i < IDENT*m_count-1; i++)
+            *bp++ = ' ';
+
+        sprintf(bp,
+                "%s (%d): exited %s\n",
+                m_program,
+                ParallelDescriptor::MyProc(),
+                m_func);
+
+        buf[DIM] = 0;  // Just to be really careful.
+
+        printf(buf);
     }
 
     if (--m_count == 0)
