@@ -167,6 +167,7 @@ public:
 	    const Real* up[BL_SPACEDIM] = { D_DECL( upt[0]->operator[](igrid).dataPtr(), upt[1]->operator[](igrid).dataPtr(), upt[2]->operator[](igrid).dataPtr() ) };
 	    const Box& sbox = s[igrid].box();
 	    const Box& fbox = upt[0]->operator[](igrid).box();
+	    throw( "task_fecdiv::ready(): FIXME" ); /*NOTREACHED*/
 	    // (*f)(s[igrid].dataPtr(), DIMLIST(s[igrid].box()));
 	    for(int i = 0 ; i < BL_SPACEDIM; ++i)
 	    {
