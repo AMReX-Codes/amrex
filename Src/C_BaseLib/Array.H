@@ -4,7 +4,7 @@
 #define _ARRAY_H_
 
 //
-// $Id: Array.H,v 1.1 1997-09-12 18:00:00 lijewski Exp $
+// $Id: Array.H,v 1.2 1997-09-16 19:18:11 lijewski Exp $
 //
 
 #include <iostream.h>
@@ -12,6 +12,7 @@
 #include <Boolean.H>
 #include <Assert.H>
 #include <BoxLib.H>
+#include <Misc.H>
 
 template <class T> class Array;
 
@@ -364,9 +365,9 @@ Array<T>::operator!= (const Array<T>& rhs) const
     return !(operator==(rhs));
 }
 
-
-#include <Assert.H>
-#include <Misc.H>
+//
+// Non-inlined stuff.
+//
 
 template <class T>
 Array<T>::Array (long     len,

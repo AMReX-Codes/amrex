@@ -4,12 +4,15 @@
 #define _BASEFAB_H_
 
 //
-// $Id: BaseFab.H,v 1.4 1997-09-16 16:05:00 lijewski Exp $
+// $Id: BaseFab.H,v 1.5 1997-09-16 19:18:12 lijewski Exp $
 //
+#include <stdlib.h>
 
 #include <Assert.H>
 #include <Boolean.H>
 #include <Box.H>
+#include <BoxList.H>
+#include <Looping.H>
 #include <PArray.H>
 
 #ifdef BL_USE_POINTLIB
@@ -18,6 +21,10 @@
 #include <PointDomain.H>
 #endif /*BL_CRAY_BUG_DEFARG*/
 #endif /*BL_USE_POINTLIB*/
+
+#ifdef BL_USE_POINTLIB
+#include <PointLooping.H>
+#endif
 
 template <class T> class BaseFab;
 
@@ -115,7 +122,7 @@ public:
     /*@ManDoc: The function returns the `BaseFab' to the invalid state.  (See
                comments for constructors above.)  The memory is freed.
     */
-    void clear ();
+    inline void clear ();
     //
     //@ManDoc: Returns the number of components.
     //
@@ -205,10 +212,10 @@ public:
                component N, from position pos in the domain into array data,
                that must be allocated by the user.
     */
-    void getVal (T*             data,
-                 const IntVect& pos,
-                 int            N,
-                 int            numcomp) const;
+    inline void getVal (T*             data,
+                        const IntVect& pos,
+                        int            N,
+                        int            numcomp) const;
 
     /*@ManDoc: Same as above, except that starts at component 0 and
                copies ALL comps.
@@ -268,12 +275,12 @@ public:
 	       UNDEFINED if the src and dest are the same and the srcbox and
 	       destbox overlap.
     */
-    BaseFab<T>& copy (const BaseFab<T>& src,
-                      const Box&        srcbox,
-                      int               srccomp,
-                      const Box&        destbox,
-                      int               destcomp,
-                      int               numcomp);
+    inline BaseFab<T>& copy (const BaseFab<T>& src,
+                             const Box&        srcbox,
+                             int               srccomp,
+                             const Box&        destbox,
+                             int               destcomp,
+                             int               numcomp);
 
     /*@ManDoc: As above, except the destination `Box' and the source `Box'
                are taken to be the entire domain of the destination.   A copy
@@ -281,10 +288,10 @@ public:
                copy is made by the function `performCopy' of this
                class.
     */
-    BaseFab<T>& copy (const BaseFab<T>& src,
-                      int               srccomp,
-                      int               destcomp,
-                      int               numcomp = 1);
+    inline BaseFab<T>& copy (const BaseFab<T>& src,
+                             int               srccomp,
+                             int               destcomp,
+                             int               numcomp = 1);
 
     /*@ManDoc: As above, except that the destination `Box' is specified,
                but the source `Box' is taken to the equal to the source
@@ -292,15 +299,15 @@ public:
                copied.  Note that the actual copy is made by the
                function `performCopy' of this class.
     */
-    BaseFab<T>& copy (const BaseFab<T>& src,
-                      const Box&        destbox);
+    inline BaseFab<T>& copy (const BaseFab<T>& src,
+                             const Box&        destbox);
 
     /*@ManDoc: As above, except that the destbox defaults to the entire domain
                of the destination BaseFab, and all components are copied.
                Note that the actual copy is made by the function
                `performCopy' of this class.
     */
-    BaseFab<T>& copy (const BaseFab<T>& src);
+    inline BaseFab<T>& copy (const BaseFab<T>& src);
 
     /*@ManDoc: Perform shifts upon the domain of the `BaseFab'. They are
                completely analogous to the corresponding `Box' functions.
@@ -332,7 +339,7 @@ protected:
     //
     // Allocates memory for the `BaseFab<T>'.
     //
-    void define ();
+    inline void define ();
     //
     // The function called by BaseFab copy operations.
     //
@@ -516,12 +523,29 @@ BaseFab<T>::operator() (const IntVect& p) const
 template <class T>
 inline
 void
+BaseFab<T>::getVal  (T*             data,
+                     const IntVect& pos,
+                     int            n,
+                     int            numcomp) const
+{
+    const int loc      = domain.index(pos);
+    const long size    = domain.numPts();
+
+    assert(!(dptr == 0));
+    assert(n >= 0 && n + numcomp <= nvar);
+
+    for (int k = 0; k < numcomp; k++)
+        data[k] = dptr[loc+(n+k)*size];
+}
+
+template <class T>
+inline
+void
 BaseFab<T>::getVal (T*             data,
                     const IntVect& pos) const
 {
     getVal(data,pos,0,nvar);
 }
-
 
 template <class T>
 inline
@@ -599,13 +623,102 @@ BaseFab<T>::setVal (T          x,
     performSetVal(x,b,ns,num);
 }
 
-#include <stdlib.h>
-#include <BoxList.H>
-#include <Looping.H>
+template <class T>
+inline
+void
+BaseFab<T>::define ()
+{
+    assert(nvar > 0);
+    assert(numpts > 0);
 
-#ifdef BL_USE_POINTLIB
-#include <PointLooping.H>
-#endif
+    if (dptr == 0)
+    {
+        if ((dptr = new T[nvar*numpts]) == 0)
+            BoxLib::OutOfMemory(__FILE__, __LINE__);
+    }
+}
+
+template <class T>
+inline
+void
+BaseFab<T>::clear ()
+{
+    if (!(dptr == 0))
+        delete [] dptr;
+    dptr   = 0;
+    domain = Box();
+    nvar   = 0;
+    numpts = 0;
+}
+
+template <class T>
+inline
+BaseFab<T>&
+BaseFab<T>::copy (const BaseFab<T>& src,
+                  const Box&        srcbox,
+                  int               srccomp,
+                  const Box&        destbox,
+                  int               destcomp,
+                  int               numcomp)
+{
+    assert(srcbox.sameSize(destbox));
+    assert(src.box().contains(srcbox));
+    assert(domain.contains(destbox));
+    assert(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+    assert(destcomp >= 0 && destcomp+numcomp <= nvar);
+    performCopy(src,srcbox,srccomp,destbox,destcomp,numcomp);
+    return *this;
+}
+
+template <class T>
+inline
+BaseFab<T>&
+BaseFab<T>::copy (const BaseFab<T>& src)
+{
+    assert(nvar == src.nvar);
+    assert(domain.sameType(src.domain));
+    Box overlap(domain);
+    overlap &= src.domain;
+    if (overlap.ok())
+        performCopy(src,overlap,0,overlap,0,nvar);
+    return *this;
+}
+
+template <class T>
+inline
+BaseFab<T>&
+BaseFab<T>::copy (const BaseFab<T>& src,
+                  const Box&        destbox)
+{
+    assert(nvar == src.nvar);
+    assert(domain.contains(destbox));
+    Box overlap(destbox);
+    overlap &= src.domain;
+    if (overlap.ok())
+        performCopy(src,overlap,0,overlap,0,nvar);
+    return *this;
+}
+
+template <class T>
+inline
+BaseFab<T>&
+BaseFab<T>::copy (const BaseFab<T>& src,
+                  int               srccomp,
+                  int               destcomp,
+                  int               numcomp)
+{
+    assert(srccomp >= 0 && srccomp + numcomp <= src.nvar);
+    assert(destcomp >= 0 && destcomp + numcomp <= nvar);
+    Box overlap(domain);
+    overlap &= src.domain;
+    if (overlap.ok())
+        performCopy(src,overlap,srccomp,overlap,destcomp,numcomp);
+    return *this;
+}
+
+//
+// Non-inlined stuff
+//
 
 template <class T>
 BaseFab<T>::BaseFab ()
@@ -648,20 +761,6 @@ BaseFab<T>::BaseFab (const PointBaseFab<PointDomain,T>& pbf,
 }
 #endif /*BL_CRAY_BUG_DEFARG*/
 #endif /*BL_USE_POINTLIB*/
-
-template <class T>
-void
-BaseFab<T>::define ()
-{
-    assert(nvar > 0);
-    assert(numpts > 0);
-
-    if (dptr == 0)
-    {
-        if ((dptr = new T[nvar*numpts]) == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
-    }
-}
 
 //
 // This isn't inlined as it's virtual.
@@ -713,22 +812,10 @@ BaseFab<T>::resize (const Box& b,
     }
 }
 
-template <class T>
-void
-BaseFab<T>::clear ()
-{
-    if (!(dptr == 0))
-        delete [] dptr;
-    dptr   = 0;
-    domain = Box();
-    nvar   = 0;
-    numpts = 0;
-}
-
 //
 // performCopy() has been rewritten here so we can insert pragma's which
 // will enhance vectorization on the Cray's.  The downside is that the
-// code is greatly expanded and rather incompreshensible.
+// code is greatly expanded and rather incomprehensible.
 //
 
 template <class T>
@@ -815,8 +902,6 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
 #endif
                 for (int _i = 0; _i < _subbox_len[0]; ++_i, ++_th_pp)
                 {  
-//                    int iR = _i + _subbox_lo[0]; iR += 0; 
-//                    int ixR = _i + _bx_lo[0]; ixR += 0; 
                     T &thisR = * _th_pp; const T & srcR = _x_pp[_i]; 
 #elif (BL_SPACEDIM == 3)
 { 
@@ -839,8 +924,6 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
         const T* _x_p  = (src).dataPtr(srccomp); 
         for (int _n = 0; _n < (numcomp); ++_n)
         { 
-//            int nR = _n + destcomp; nR += 0; 
-//            int nxR = _n + srccomp; nxR += 0; 
             for (int _k = 0; _k < _subbox_len[2]; ++_k)
             { 
                 const int kR = _k + _subbox_lo[2]; 
@@ -864,8 +947,6 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
 #endif
                     for (int _i = 0; _i < _subbox_len[0]; ++_i, ++_th_pp)
                     {
-//                        int iR = _i + _subbox_lo[0]; iR += 0; 
-//                        int ixR = _i + _bx_lo[0]; ixR += 0; 
                         T &thisR = * _th_pp; const T & srcR = _x_pp[_i]; 
 #endif
     {
@@ -896,7 +977,7 @@ BaseFab<T>::performCopy (const PointBaseFab<PointDomain,T>& src,
     assert(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     assert(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    destcomp -= srccomp; // Adjust
+    destcomp -= srccomp;
     Box bx(domain);
     bx &= srcbox;
     bx &= destbox;
@@ -910,84 +991,6 @@ BaseFab<T>::performCopy (const PointBaseFab<PointDomain,T>& src,
 }
 #endif /*!BL_CRAY_BUG_DEFARG*/
 #endif /*BL_USE_POINTLIB*/
-
-template <class T>
-BaseFab<T>&
-BaseFab<T>::copy (const BaseFab<T>& src,
-                  const Box&        srcbox,
-                  int               srccomp,
-                  const Box&        destbox,
-                  int               destcomp,
-                  int               numcomp)
-{
-    assert(srcbox.sameSize(destbox));
-    assert(src.box().contains(srcbox));
-    assert(domain.contains(destbox));
-    assert(srccomp >= 0 && srccomp+numcomp <= src.nComp());
-    assert(destcomp >= 0 && destcomp+numcomp <= nvar);
-    performCopy(src,srcbox,srccomp,destbox,destcomp,numcomp);
-    return *this;
-}
-
-template <class T>
-BaseFab<T>&
-BaseFab<T>::copy (const BaseFab<T>& src)
-{
-    assert(nvar == src.nvar);
-    assert(domain.sameType(src.domain));
-    Box overlap(domain);
-    overlap &= src.domain;
-    if (overlap.ok())
-        performCopy(src,overlap,0,overlap,0,nvar);
-    return *this;
-}
-
-template <class T>
-BaseFab<T>&
-BaseFab<T>::copy (const BaseFab<T>& src,
-                  const Box&        destbox)
-{
-    assert(nvar == src.nvar);
-    assert(domain.contains(destbox));
-    Box overlap(destbox);
-    overlap &= src.domain;
-    if (overlap.ok())
-        performCopy(src,overlap,0,overlap,0,nvar);
-    return *this;
-}
-
-template <class T>
-BaseFab<T>&
-BaseFab<T>::copy  (const BaseFab<T>& src,
-                   int               srccomp,
-                   int               destcomp,
-                   int               numcomp)
-{
-    assert(srccomp >= 0 && srccomp + numcomp <= src.nvar);
-    assert(destcomp >= 0 && destcomp + numcomp <= nvar);
-    Box overlap(domain);
-    overlap &= src.domain;
-    if (overlap.ok())
-        performCopy(src,overlap,srccomp,overlap,destcomp,numcomp);
-    return *this;
-}
-
-template <class T>
-void
-BaseFab<T>::getVal  (T*             data,
-                     const IntVect& pos,
-                     int            n,
-                     int            numcomp) const
-{
-    const int loc      = domain.index(pos);
-    const long size    = domain.numPts();
-
-    assert(!(dptr == 0));
-    assert(n >= 0 && n + numcomp <= nvar);
-
-    for (int k = 0; k < numcomp; k++)
-        data[k] = dptr[loc+(n+k)*size];
-}
 
 template <class T>
 void
