@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.44 2002-06-17 22:00:17 car Exp $
+// $Id: ParmParse.cpp,v 1.45 2002-06-19 20:49:44 car Exp $
 //
 #include <winstd.H>
 
@@ -1661,7 +1661,7 @@ Trim (const std::string& str)
 	if ( str[n] != ' ' ) break;
     }
     std::string result;
-    for (int i = 0; i < n; ++i )
+    for (int i = 0; i <= n; ++i )
     {
 	result += str[i];
     }
