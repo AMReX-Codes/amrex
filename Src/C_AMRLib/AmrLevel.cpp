@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.48 1998-12-25 18:58:09 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.49 1999-01-15 21:44:22 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -355,37 +355,7 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
 {
     Initialize(boxGrow,time,state_index,src_comp,ncomp,mapper);
 }
-
-static
-void
-Simplify (vector<Box>& boxes)
-{
-    if (boxes.empty())
-        return;
-
-    BoxList bl(boxes[0].ixType());
-
-    bl.append(boxes[0]);
-
-    for (int i = 1; i < boxes.size(); i++)
-    {
-        bl.join(::complementIn(boxes[i],bl));
-    }
-
-    assert(bl.isDisjoint());
-
-    bl.simplify();
-
-    boxes.resize(bl.length());
-
-    BoxListIterator bli(bl);
-        
-    for (int i = 0; i < boxes.size(); ++i, ++bli)
-    {
-        boxes[i] = bli();
-    }
-}
-
+ 
 //
 // Used in a couple RunStat calls in FillPatchIterator.
 //
@@ -411,8 +381,9 @@ FillPatchIterator::Initialize (int           boxGrow,
 
     const int         MyProc     = ParallelDescriptor::MyProc();
     PArray<AmrLevel>& amrLevels  = m_amrlevel.parent->getAmrLevels();
-    AmrLevel&         topLevel   = amrLevels[m_amrlevel.level];
+    const AmrLevel&   topLevel   = amrLevels[m_amrlevel.level];
     const Box&        topPDomain = topLevel.state[m_stateindex].getDomain();
+    const IndexType   boxType    = m_leveldata.boxArray()[0].ixType();
 
     for (int l = 0; l <= m_amrlevel.level; ++l)
     {
@@ -433,10 +404,7 @@ FillPatchIterator::Initialize (int           boxGrow,
     }
     m_ba.grow(m_growsize);  // These are the ones we want to fillpatch.
 
-    const IndexType boxType(m_leveldata.boxArray()[0].ixType());
-
     BoxList unfillableThisLevel(boxType), tempUnfillable(boxType);
-
     vector<Box> unfilledThisLevel, crse_boxes;
 
     if (topLevel.geom.isAnyPeriodic())
@@ -448,26 +416,42 @@ FillPatchIterator::Initialize (int           boxGrow,
             continue;
 
         unfilledThisLevel.clear();
-
         unfilledThisLevel.push_back(m_ba[ibox]);
 
-        if (topLevel.geom.isAnyPeriodic() && !topPDomain.contains(m_ba[ibox]))
+        if (!topPDomain.contains(m_ba[ibox]))
         {
-            //
-            // May need to add additional unique pieces of valid region
-            // in order to do periodic copies into ghost cells.
-            //
-            topLevel.geom.periodicShift(topPDomain,m_ba[ibox],m_pshifts);
+            unfilledThisLevel.back() &= topPDomain;
 
-            for (int iiv = 0; iiv < m_pshifts.length(); iiv++)
+            if (topLevel.geom.isAnyPeriodic())
             {
-                Box shbox  = m_ba[ibox] + m_pshifts[iiv];
-                shbox     &= topPDomain;
-                BoxList bl = ::boxDiff(shbox,m_ba[ibox]);
-                for (BoxListIterator bli(bl); bli; ++bli)
+                //
+                // May need to add additional unique pieces of valid region
+                // in order to do periodic copies into ghost cells.
+                //
+                topLevel.geom.periodicShift(topPDomain,m_ba[ibox],m_pshifts);
+
+                for (int iiv = 0; iiv < m_pshifts.length(); iiv++)
                 {
-                    assert(bli().ok());
-                    unfilledThisLevel.push_back(bli());
+                    Box shbox  = m_ba[ibox] + m_pshifts[iiv];
+                    shbox     &= topPDomain;
+
+                    if (boxType.nodeCentered())
+                    {
+                        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+                        {
+                            if (m_pshifts[iiv][dir] > 0)
+                                shbox.growHi(dir,-1);
+                            else if (m_pshifts[iiv][dir] < 0)
+                                shbox.growLo(dir,-1);
+                        }
+                    }
+
+                    if (shbox.ok())
+                    {
+                        BoxList bl = ::boxDiff(shbox,m_ba[ibox]);
+                        for (BoxListIterator bli(bl); bli; ++bli)
+                            unfilledThisLevel.push_back(bli());
+                    }
                 }
             }
         }
@@ -478,26 +462,20 @@ FillPatchIterator::Initialize (int           boxGrow,
         {
             unfillableThisLevel.clear();
 
-            StateData&     theState    = amrLevels[l].state[m_stateindex];
-            const Box&     thePDomain  = theState.getDomain();
-            bool           is_periodic = amrLevels[l].geom.isAnyPeriodic();
-            const IntVect& fine_ratio  = amrLevels[l].fine_ratio;
+            StateData&      theState      = amrLevels[l].state[m_stateindex];
+            const Box&      thePDomain    = theState.getDomain();
+            const Geometry& theGeom       = amrLevels[l].geom;
+            const bool      is_periodic   = theGeom.isAnyPeriodic();
+            const IntVect&  fine_ratio    = amrLevels[l].fine_ratio;
             //
-            // These are the valid boxes on this level that need to be
-            // filled in order to directly fill at the highest level or
-            // to interpolate up to the next higher level.
+            // These are the boxes on this level contained in thePDomain
+            // that need to be filled in order to directly fill at the
+            // highest level or to interpolate up to the next higher level.
             //
             m_finebox[ibox][l].resize(unfilledThisLevel.size());
 
             for (int i = 0; i < unfilledThisLevel.size(); i++)
-            {
                 m_finebox[ibox][l][i] = unfilledThisLevel[i];
-
-                if (l == m_amrlevel.level)
-                    m_finebox[ibox][l][i] &= thePDomain;
-
-                assert(m_finebox[ibox][l][i].ok());
-            }
             //
             // Now build coarse boxes needed to interpolate to fine.
             //
@@ -511,29 +489,40 @@ FillPatchIterator::Initialize (int           boxGrow,
 
             for (int i = 0; i < FineBoxes.length(); i++)
             {
-                Box cbox = FineBoxes[i];
+                crse_boxes.push_back(FineBoxes[i]);
 
                 if (l != m_amrlevel.level)
+                {
+                    Box& cbox = crse_boxes.back();
+
                     cbox = m_map[l]->CoarseBox(FineBoxes[i],fine_ratio);
 
-                crse_boxes.push_back(cbox);
-
-                if (is_periodic && !thePDomain.contains(cbox))
-                {
-                    amrLevels[l].geom.periodicShift(thePDomain,cbox,m_pshifts);
-
-                    for (int iiv = 0; iiv < m_pshifts.length(); iiv++)
+                    if (is_periodic && !thePDomain.contains(cbox))
                     {
-                        Box shbox = cbox + m_pshifts[iiv];
-                        shbox    &= thePDomain;
-                        assert(shbox.ok());
-                        crse_boxes.push_back(shbox);
+                        theGeom.periodicShift(thePDomain,cbox,m_pshifts);
+
+                        for (int iiv = 0; iiv < m_pshifts.length(); iiv++)
+                        {
+                            Box shbox = cbox + m_pshifts[iiv];
+                            shbox    &= thePDomain;
+
+                            if (boxType.nodeCentered())
+                            {
+                                for (int dir = 0; dir < BL_SPACEDIM; dir++)
+                                {
+                                    if (m_pshifts[iiv][dir] > 0)
+                                        shbox.growHi(dir,-1);
+                                    else if (m_pshifts[iiv][dir] < 0)
+                                        shbox.growLo(dir,-1);
+                                }
+                            }
+
+                            if (shbox.ok())
+                                crse_boxes.push_back(shbox);
+                        }
                     }
                 }
             }
-
-            if (is_periodic)
-                Simplify(crse_boxes);                
 
             m_crsebox[ibox][l].resize(crse_boxes.size());
 
@@ -652,6 +641,7 @@ FillPatchIterator::isValid ()
     {
         StateData&         TheState = amrLevels[l].state[m_stateindex];
         PArray<FArrayBox>& CrseFabs = m_cfab[l];
+        const Geometry&    TheGeom  = amrLevels[l].geom;
         //
         // Set non-periodic BCs in coarse data -- what we interpolate with.
         //
@@ -661,15 +651,15 @@ FillPatchIterator::isValid ()
             {
                 TheState.FillBoundary(CrseFabs[i],
                                       m_time,
-                                      amrLevels[l].geom.CellSize(),
-                                      amrLevels[l].geom.ProbDomain(),
+                                      TheGeom.CellSize(),
+                                      TheGeom.ProbDomain(),
                                       0,
                                       m_scomp,
                                       m_ncomp);
             }
         }
 
-        if (amrLevels[l].geom.isAnyPeriodic())
+        if (TheGeom.isAnyPeriodic())
         {
             //
             // Fill CrseFabs with periodic data in preparation for interp().
@@ -682,9 +672,7 @@ FillPatchIterator::isValid ()
 
                 if (!thePDomain.contains(dstfab.box()))
                 {
-                    amrLevels[l].geom.periodicShift(thePDomain,
-                                                    dstfab.box(),
-                                                    m_pshifts);
+                    TheGeom.periodicShift(thePDomain,dstfab.box(),m_pshifts);
 
                     for (int iiv = 0; iiv < m_pshifts.length(); iiv++)
                     {
