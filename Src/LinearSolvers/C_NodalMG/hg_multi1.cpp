@@ -528,6 +528,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 	}
 	else
 	{
+	    HG_TEST_NORM(sigma_node[mglev],"buildsigma");
 	    for (MultiFabIterator c_mfi(cen[mglev]); c_mfi.isValid(); ++c_mfi)
 	    {
 		const Box& cenbox = c_mfi->box();
@@ -551,6 +552,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 #endif
 	    }
 	}	
+	HG_TEST_NORM(ctmp, "buildsigma");
 	clear_part_interface(ctmp, lev_interface[mglev]);
     }
     
@@ -567,6 +569,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 	    {
 		m_mfi->setVal(1.0, lev_interface[mglev].part_fine(m_mfi.index()), 0);
 	    }
+	    HG_TEST_NORM(mtmp, "buildsigma 2");
 	    clear_part_interface(mtmp, lev_interface[mglev]);
 	}
 #endif

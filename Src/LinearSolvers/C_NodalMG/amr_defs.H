@@ -2,7 +2,7 @@
 #define _AMR_DEFS_H_
 
 //
-// $Id: amr_defs.H,v 1.15 1998-08-05 21:42:15 car Exp $
+// $Id: amr_defs.H,v 1.16 1998-08-06 03:46:58 car Exp $
 //
 
 #include <MultiFab.H>
@@ -31,7 +31,7 @@
 
 #define HG_TEST_NORM(d, s) \
     if ( true ) { \
-	double dz = mfnorm(d); \
+	double dz = mfnorm_2(d); \
 	if ( ParallelDescriptor::IOProcessor() ) \
 	    cout << s << " : Norm( " #d " ) = " << dz << endl; \
     } else
@@ -61,6 +61,18 @@ inline IndexType::CellIndex type(const FabArray<Real,FArrayBox>& r, int idir)
 }
 
 // norm helper functions:
+
+inline Real mfnorm_2(const MultiFab& mf) 
+{
+    Real r = 0;
+    for ( ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi ) 
+    {
+	Real s = cmfi->norm(2);
+	r += s*s;
+    }
+    ParallelDescriptor::ReduceRealSum(r);
+    return sqrt(r);
+}
 
 inline Real mfnorm(const MultiFab& mf) 
 {

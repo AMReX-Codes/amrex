@@ -114,6 +114,11 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
     }
     else if (m_hg_cross_stencil)
     {
+	HG_TEST_NORM(sigma_node[mglev], "level_residual");
+	HG_TEST_NORM(mask[mglev], "level_residual");
+	HG_TEST_NORM(s, "level_residual");
+	HG_TEST_NORM(d, "level_residual");
+	HG_TEST_NORM(r, "level_residual");
 	for (MultiFabIterator r_mfi(r); r_mfi.isValid(); ++r_mfi)
 	{
 	    DependentMultiFabIterator s_dmfi(r_mfi, s);
@@ -144,6 +149,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
 			s_dmfi->dataPtr(), d_dmfi->dataPtr(), sn_dmfi->dataPtr(), m_dmfi->dataPtr(), DIMLIST(freg));
 #endif
 	}
+	HG_TEST_NORM(r, "level_residual");
     }
     else
     {
@@ -193,7 +199,6 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
 	}
 #endif
     }
-    HG_TEST_NORM(r, "level_residual");
 }
 
 void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
