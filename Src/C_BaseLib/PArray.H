@@ -2,7 +2,7 @@
 #define BL_PARRAY_H
 
 //
-// $Id: PArray.H,v 1.17 2001-07-19 20:02:47 lijewski Exp $
+// $Id: PArray.H,v 1.18 2001-07-20 01:45:48 car Exp $
 //
 
 #include <iostream>
@@ -165,13 +165,19 @@ protected:
     //
     PArrayPolicy managed;
 
-private:
+public:
     //
-    // Disallow these.
+    // Disallow these. FIXME
     //
     PArray (const PArray<T>&);
-    PArray<T> operator= (const PArray<T>&);
+    // PArray<T> operator= (const PArray<T>&);
 };
+
+template <class T>
+PArray<T>::PArray (const PArray<T>& c)
+{
+    BL_ASSERT(c.length()==0);
+}
 
 template <class T>
 PArray<T>::PArray (PArrayPolicy _managed)
