@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.59 1998-11-03 18:16:36 lijewski Exp $
+// $Id: Amr.cpp,v 1.60 1998-11-03 21:53:05 almgren Exp $
 //
 
 #include <TagBox.H>
@@ -1602,6 +1602,7 @@ Amr::grid_places (int              lbase,
             ba_proj.define(new_grids[levf+1]);
             ba_proj.coarsen(ref_ratio[levf]);
             ba_proj.grow(n_proper);
+            ba_proj = intersect(ba_proj,geom[levf].Domain());
             ba_proj.coarsen(ref_ratio[levc]);
             while (!blst.contains(ba_proj))
             {
@@ -1618,8 +1619,29 @@ Amr::grid_places (int              lbase,
         // those grids down and tag cells on intersections to ensure
         // proper nesting.
         //
-        if (levf < new_finest)
-            tags.setVal(ba_proj,TagBox::SET);
+
+        // NOTE: this loop replaces the previous code:
+        //      if (levf < new_finest) 
+        //          tags.setVal(ba_proj,TagBox::SET);
+        // The problem with this code is that it effectively 
+        //  "buffered the buffer cells",  i.e., the grids at level
+        //   levf+1 which were created by buffering with n_error_buf[levf+1]
+        //   are then coarsened down twice to define tagging at
+        //   level levc, which will then also be buffered.  This can
+        //   create grids which are larger than necessary.
+
+        if (levf < new_finest) {
+            BoxList bl_tagged;
+            for (int i=0; i< new_grids[levf+1].length(); i++)
+              bl_tagged.add(coarsen(new_grids[levf+1][i],ref_ratio[levf]));
+            Box mboxF = Box(bl_tagged.minimalBox()).grow(1);
+            BoxList blFcomp = complementIn(mboxF,bl_tagged);
+            blFcomp.accrete(n_error_buf[levf]);
+            BoxList blF = complementIn(mboxF,blFcomp);
+            BoxArray baF(blF);
+            baF.coarsen(ref_ratio[levc]);
+            tags.setVal(baF,TagBox::SET);
+        }
         //
         // Buffer error cells.
         //
@@ -1630,8 +1652,9 @@ Amr::grid_places (int              lbase,
         int bl_max = 0;
         for (int n=0; n<BL_SPACEDIM; n++)
           bl_max = Max(bl_max,bf_lev[levc][n]);
-        if (bl_max > 1)
+        if (bl_max > 1) 
             tags.coarsen(bf_lev[levc]);
+
         //
         // Map tagged points through periodic boundaries, if any.
         //
