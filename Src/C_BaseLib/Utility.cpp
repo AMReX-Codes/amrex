@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.47 2001-07-21 00:32:37 car Exp $
+// $Id: Utility.cpp,v 1.48 2001-07-21 01:17:26 car Exp $
 //
 
 #include <cstdlib>
@@ -757,3 +757,48 @@ BoxLib::mt19937::u_value()
     return igenrand();
 }
 
+std::istream&
+BoxLib::operator>>(std::istream& is, const expect& exp)
+{
+    int len = exp.istr.size();
+    int n = 0;
+    while ( n < len )
+    {
+	char c;
+	is >> c;
+	if ( !is ) break;
+	if ( c != exp.istr[n++] )
+	{
+	    is.putback(c);
+	    break;
+	}
+    }
+    if ( n != len )
+    {
+	is.clear(std::ios::badbit|is.rdstate());
+	std::string msg = "expect fails to find \"" + exp.the_string() + "\"";
+	BoxLib::Error(msg.c_str());
+    }
+    return is;
+}
+
+BoxLib::expect::expect(const char* istr_)
+    : istr(istr_)
+{
+}
+
+BoxLib::expect::expect(const std::string& str_)
+    : istr(str_)
+{
+}
+
+BoxLib::expect::expect(char c)
+{
+    istr += c;
+}
+
+const std::string&
+BoxLib::expect::the_string() const
+{
+    return istr;
+}

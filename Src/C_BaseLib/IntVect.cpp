@@ -1,5 +1,5 @@
 //
-// $Id: IntVect.cpp,v 1.13 2001-07-19 21:31:09 lijewski Exp $
+// $Id: IntVect.cpp,v 1.14 2001-07-21 01:17:25 car Exp $
 //
 
 #include <BLassert.H>
@@ -476,11 +476,13 @@ operator<< (std::ostream&  os,
 // Copied from <Utility.H>
 //
 #define BL_IGNORE_MAX 100000
+#include <Utility.H>
 
 std::istream&
 operator>> (std::istream& is,
             IntVect&      iv)
 {
+    using BoxLib::expect;
     is >> std::ws;
     char c;
     is >> c;

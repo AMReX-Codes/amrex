@@ -2,7 +2,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.39 2001-07-21 00:32:37 car Exp $
+// $Id: Utility.H,v 1.40 2001-07-21 01:17:26 car Exp $
 //
 
 #include <iostream>
@@ -208,6 +208,20 @@ namespace BoxLib
 	int mti;		// mti==N+1 means mt[N] is not initialized
     };
 
+    class expect;
+    std::istream& operator>>(std::istream&, const expect& exp);
+    
+    class expect
+    {
+	friend std::istream& operator>>(std::istream&, const expect& exp);
+    public:
+	explicit expect(const std::string& str_);
+	explicit expect(const char* istr_);
+	explicit expect(char c);
+	const std::string& the_string() const;
+    private:
+	std::string istr;
+    };
 };
 
 //
