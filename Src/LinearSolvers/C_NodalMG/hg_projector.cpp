@@ -236,6 +236,8 @@ PArray<MultiFab> null_amr_real;
 
 void holy_grail_amr_projector::project(PArray<MultiFab>* u, PArray<MultiFab>& p, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma, Real H[], Real tol, int Lev_min, int Lev_max, Real scale)
 {
+    static RunStats hg_proj("hg_project");
+    hg_proj.start();
     if (Lev_min < 0)
 	Lev_min = lev_min_max;
     if (Lev_max < 0)
@@ -257,6 +259,7 @@ void holy_grail_amr_projector::project(PArray<MultiFab>* u, PArray<MultiFab>& p,
     solve(tol, scale, 2, 2);
     form_solution_vector(u, Sigma);
     clear();
+    hg_proj.end();
 }
 
 void holy_grail_amr_projector::sync_project(PArray<MultiFab>* u, PArray<MultiFab>& p, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma, Real H[], Real tol, int Lev_min, int Lev_max, Real scale)
@@ -286,6 +289,8 @@ void holy_grail_amr_projector::sync_project(PArray<MultiFab>* u, PArray<MultiFab
 
 void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u, PArray<MultiFab>& p, PArray<MultiFab>& rhs, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma, bool use_u, Real H[], Real tol, int Lev_min, int Lev_max, Real scale)
 {
+    static RunStats hg_man_proj("hg_manual_project");
+    hg_man_proj.start();
     if (Lev_min < 0)
 	Lev_min = lev_min_max;
     if (Lev_max < 0)
@@ -353,6 +358,7 @@ void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u, PArray<MultiF
     solve(tol, scale, 2, 2);
     form_solution_vector(u, Sigma);
     clear();
+    hg_man_proj.end();
 }
 
 void holy_grail_amr_projector::sparse_node_source_adjustment(PArray<MultiFab>& sparse_source)
