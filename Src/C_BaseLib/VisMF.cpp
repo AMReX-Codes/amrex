@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.4 1997-11-09 20:11:26 lijewski Exp $
+// $Id: VisMF.cpp,v 1.5 1997-11-09 20:31:41 lijewski Exp $
 //
 
 #include <VisMF.H>
@@ -18,8 +18,7 @@ operator<< (ostream&                os,
 {
     os << VisMF::FabOnDisk::Prefix << ' '
        << fod.m_name               << ' '
-       << fod.m_head               << ' '
-       << fod.m_data;
+       << fod.m_head               << ' ';
 
     if (!os.good())
         BoxLib::Error("Write of VisMF::FabOnDisk failed");
@@ -82,11 +81,9 @@ VisMF::Write (const FArrayBox& fab,
               const aString&   filename,
               ostream&         os)
 {
-    VisMF::FabOnDisk fod(filename);
+    VisMF::FabOnDisk fod(filename, os.tellp().offset());
 
-    //
-    // TODO -- set the other two fields.
-    //
+    fab.writeOn(os);
 
     return fod;
 }

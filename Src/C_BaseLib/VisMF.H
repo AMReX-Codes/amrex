@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.4 1997-11-09 20:11:25 lijewski Exp $
+// $Id: VisMF.H,v 1.5 1997-11-09 20:31:40 lijewski Exp $
 //
 
 #include <sys/types.h>
@@ -39,15 +39,15 @@ public:
         //
         // The default constructor -- null out all fields.
         //
-        FabOnDisk () : m_head(0), m_data(0) {}
+        FabOnDisk () {}
         //
-        // Constructor that sets the file name field and  nulls out others.
+        // Constructor that sets the two values.
         //
-        FabOnDisk (const aString& name) : m_name(name), m_head(0), m_data(0) {}
+        FabOnDisk (const aString& name, long offset)
+            : m_name(name), m_head(offset) {}
 
         aString m_name; // The name of file containing the FAB.
-        off_t   m_head; // Offset of start of FAB header in file.
-        off_t   m_data; // Offset of start of FAB data in file.
+        long    m_head; // Offset of start of FAB header in file.
         //
         // Prefixed to lines of FabOnDisk I/O.
         //
