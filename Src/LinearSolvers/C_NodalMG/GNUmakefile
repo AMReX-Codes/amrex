@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.32 1999-03-31 18:19:37 car Exp $
+# $Id: GNUmakefile,v 1.33 1999-03-31 22:52:27 car Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -80,8 +80,6 @@ ifeq ($(USE_MPI), TRUE)
   endif
   ifeq ($(MACHINE), Linux)
     LIBRARIES += -lmpich
-    INCLUDE_LOCATIONS += $(HOME)/mpich/include
-    LIBRARY_LOCATIONS += $(HOME)/mpich/build/LINUX/ch_p4/lib/
   endif
 endif
 #
