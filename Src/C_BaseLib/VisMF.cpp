@@ -1,6 +1,8 @@
 //
-// $Id: VisMF.cpp,v 1.84 2001-08-01 20:24:22 lijewski Exp $
+// $Id: VisMF.cpp,v 1.85 2001-08-06 19:39:25 car Exp $
 //
+
+#include <winstd.H>
 #include <cstdio>
 #include <fstream>
 
