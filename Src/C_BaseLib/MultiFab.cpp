@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.52 2001-07-17 23:02:25 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.53 2001-07-18 20:41:04 car Exp $
 //
 
 #include <algorithm>
@@ -231,7 +231,7 @@ MultiFab::max (int comp,
 #ifndef BL_NAMESPACE
         mn = std::max(mn,mfi().max(::grow(mfi.validbox(),nghost),comp));
 #else
-        mn = Max(mn,mfi().max(BL_NAMESPACE::grow(mfi.validbox(),nghost),comp));
+        mn = std::max(mn,mfi().max(BL_NAMESPACE::grow(mfi.validbox(),nghost),comp));
 #endif
     }
 
