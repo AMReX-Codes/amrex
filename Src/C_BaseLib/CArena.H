@@ -6,7 +6,7 @@
 #ifdef BL_USE_NEW_HFILES
 #include <cstddef>
 #include <iostream>
-#include <list>
+#include <set>
 #include <vector>
 using std::list;
 using std::ostream;
@@ -14,7 +14,7 @@ using std::vector;
 #else
 #include <stddef.h>
 #include <iostream.h>
-#include <list.h>
+#include <set.h>
 #include <vector.h>
 #endif
 
@@ -40,24 +40,14 @@ public:
     //
     // Allocate some memory.
     //
-    // `ind' is the address of the memory in the user's code.
-    // We use this when we compress memory.
-    // If user's cache data pointers, they're (sooner or later) hosed.
-    //
-    virtual void* alloc (size_t nbytes, void** ind);
+    virtual void* alloc (size_t nbytes);
     //
     // Free up allocated memory.
     //
     virtual void free (void* ap);
-    //
-    // Compact the `used' memory.
-    //
-    void compact ();
 
 protected:
-    //
-    // If hunk_size==0 on construction, use this size.
-    //
+
     enum { DefaultHunkSize = 1024*1024 };
     //
     // The nodes in our free list and block list.
@@ -70,13 +60,28 @@ protected:
         //
         Node ()
             :
-            m_block(0), m_client(0), m_size(0) {}
+            m_block(0), m_size(0) {}
         //
         // Another constructor.
         //
-        Node (void* block, void** client, size_t size)
+        Node (void* block, size_t size)
             :
-            m_block(block), m_client(client), m_size(size) {}
+            m_block(block), m_size(size) {}
+        //
+        // The copy constructor.
+        //
+        Node (const Node& rhs)
+            :
+            m_block(rhs.m_block), m_size(rhs.m_size) {}
+        //
+        // The copy assignment constructor.
+        //
+        Node& operator= (const Node& rhs)
+        {
+            m_block = rhs.m_block;
+            m_size  = rhs.m_size;
+            return *this;
+        }
         //
         // The "less-than" operator.
         //
@@ -100,14 +105,6 @@ protected:
         //
         void block (void* blk) { m_block = blk; }
         //
-        // The client address.
-        //
-        void** client () const { return m_client; }
-        //
-        // Set client address.
-        //
-        void client (void** clnt) { m_client = clnt; }
-        //
         // The size of the memory block.
         //
         size_t size () const { return m_size; }
@@ -122,24 +119,22 @@ protected:
         //
         void* m_block;
         //
-        // The address of the client pointer that points to m_block. 
-        //
-        void** m_client;
-        //
         // The size of the block we represent.
         //
         size_t m_size;
     };
     //
     // The type of our freelist and blocklist.
+    // We use a set sorted from lo to hi memory addresses.
     //
-    typedef list < Node > NL;
+    typedef set < Node > NL;
     //
     // The list of blocks allocated via ::operator new().
     //
     vector<void*> m_alloc;
     //
     // The free list of allocated but not currently used blocks.
+    // Maintained in lo to hi memory sorted order.
     //
     NL m_freelist;
     //
@@ -161,8 +156,8 @@ private:
 };
 
 //
-// The CArena used by BaseFab code.
+// The Arena used by BaseFab code.
 //
-extern CArena* The_FAB_CArena;
+extern Arena* The_FAB_Arena;
 
 #endif /*BL_CARENA*/

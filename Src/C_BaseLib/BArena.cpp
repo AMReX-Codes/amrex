@@ -1,23 +1,20 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BArena.cpp,v 1.4 1998-02-06 18:22:03 lijewski Exp $
+// $Id: BArena.cpp,v 1.5 1998-02-09 20:46:52 lijewski Exp $
 //
 
 #include <BArena.H>
 #include <BoxLib.H>
 
 void*
-BArena::alloc (size_t _sz,
-               void** _pt)
+BArena::alloc (size_t _sz)
 {
-    void* pt = ::operator new(_sz);
-    if (_pt != 0)
-        *_pt = pt;
-    return pt;
+    return ::operator new(_sz);
 }
 
-void BArena::free (void* pt)
+void
+BArena::free (void* pt)
 {
     ::operator delete(pt);
 }

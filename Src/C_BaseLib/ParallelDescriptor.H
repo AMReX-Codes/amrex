@@ -4,15 +4,13 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.13 1998-02-05 23:01:36 vince Exp $
+// $Id: ParallelDescriptor.H,v 1.14 1998-02-09 20:46:54 lijewski Exp $
 //
 
 #include <Assert.H>
 #include <Boolean.H>
 #include <REAL.H>
 #include <Box.H>
-#include <BaseFab.H>
-#include <FArrayBox.H>
 
 #ifdef BL_USE_BSP
 #include "bsp.h"

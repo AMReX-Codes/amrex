@@ -4,7 +4,7 @@
 #define BL_ARENA
 
 //
-// $Id: Arena.H,v 1.4 1998-02-08 17:52:07 lijewski Exp $
+// $Id: Arena.H,v 1.5 1998-02-09 20:46:52 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -26,22 +26,10 @@
 class Arena
 {
 public:
-
-    typedef void (*FP) ();
-
-    union Word
-    {
-        void*  p;
-        double d;
-        long   l;
-        FP     f;
-    };
-
-    /*@ManDoc: A pure virtual function for allocating a dynamic memory arena
-               of size sz.  A pointer to this memory should be returned.
-               Also the *pt is set to the returned pointer if pt != 0;
+    /*@ManDoc: Allocate a dynamic memory arena of size sz.
+               A pointer to this memory should be returned.
     */
-    virtual void* alloc (size_t sz, void** pt = 0) = 0;
+    virtual void* alloc (size_t sz) = 0;
 
     /*@ManDoc: A pure virtual function for deleting the arena pointed
                to by pt.
@@ -54,6 +42,20 @@ public:
                double and function pointer.
     */
     static size_t align (size_t sz);
+
+protected:
+    //
+    // Types used by align().
+    //
+    typedef void (*FP) ();
+
+    union Word
+    {
+        void*  p;
+        double d;
+        long   l;
+        FP     f;
+    };
 };
 
 //

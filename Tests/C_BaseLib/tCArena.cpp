@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tCArena.cpp,v 1.2 1998-02-08 21:13:31 lijewski Exp $
+// $Id: tCArena.cpp,v 1.3 1998-02-09 20:46:54 lijewski Exp $
 //
 
 #ifndef WIN32
@@ -55,7 +55,7 @@ CArena FB::m_CArena(100*CHUNKSIZE);
 FB::FB ()
 {
     m_size = CHUNKSIZE*Utility::Random();
-    m_CArena.alloc(m_size*sizeof(double), (void**) &m_data);
+    m_data = (double*) m_CArena.alloc(m_size*sizeof(double));
     //
     // Set specific values in the data.
     //

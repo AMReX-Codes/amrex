@@ -4,7 +4,7 @@
 #define BL_BARENA_H
 
 //
-// $Id: BArena.H,v 1.3 1997-09-17 22:51:12 lijewski Exp $
+// $Id: BArena.H,v 1.4 1998-02-09 20:46:52 lijewski Exp $
 //
 
 #include <Arena.H>
@@ -18,15 +18,15 @@
 */
 
 class BArena
-    : public Arena
+    :
+    public Arena
 {
 public:
 
     /*@ManDoc: Allocates a dynamic memory arena of size sz.  Returns a
-               pointer to this memory.  Also stores in it in *pt, if pt != 0.
+               pointer to this memory.
     */
-    virtual void* alloc (size_t sz,
-                         void** pt);
+    virtual void* alloc (size_t sz);
     //
     //@ManDoc: Deletes the arena pointed to by pt.
     //

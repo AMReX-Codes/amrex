@@ -4,7 +4,7 @@
 #define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.13 1997-12-14 01:05:52 lijewski Exp $
+// $Id: BaseFab.H,v 1.14 1998-02-09 20:46:53 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -17,8 +17,10 @@
 #include <Boolean.H>
 #include <Box.H>
 #include <BoxList.H>
+#include <CArena.H>
 #include <Looping.H>
 #include <PArray.H>
+#include <RunStats.H>
 
 #ifdef BL_USE_POINTLIB
 #ifndef BL_CRAY_BUG_DEFARG
@@ -30,8 +32,6 @@
 #ifdef BL_USE_POINTLIB
 #include <PointLooping.H>
 #endif
-
-template <class T> class BaseFab;
 
 //
 //@Man:
@@ -628,30 +628,7 @@ BaseFab<T>::setVal (T          x,
     performSetVal(x,b,ns,num);
 }
 
-template <class T>
-inline
-void
-BaseFab<T>::define ()
-{
-    assert(nvar > 0);
-    assert(numpts > 0);
 
-    if (dptr == 0)
-        dptr = new T[nvar*numpts];
-}
-
-template <class T>
-inline
-void
-BaseFab<T>::clear ()
-{
-    if (!(dptr == 0))
-        delete [] dptr;
-    dptr   = 0;
-    domain = Box();
-    nvar   = 0;
-    numpts = 0;
-}
 
 template <class T>
 inline
@@ -769,7 +746,46 @@ BaseFab<T>::BaseFab (const PointBaseFab<PointDomain,T>& pbf,
 template <class T>
 BaseFab<T>::~BaseFab ()
 {
-    delete [] dptr;
+    assert(!(The_FAB_Arena == 0));
+
+    RunStats stats("fab_arena");
+    stats.start();
+    The_FAB_Arena->free(dptr);
+    stats.end();
+}
+
+template <class T>
+void
+BaseFab<T>::define ()
+{
+    assert(nvar > 0);
+    assert(numpts > 0);
+
+    if (dptr == 0)
+    {
+        assert(!(The_FAB_Arena == 0));
+        RunStats stats("fab_arena");
+        stats.start();
+        dptr = (T*) The_FAB_Arena->alloc(nvar*numpts*sizeof(T));
+        stats.end();
+    }
+}
+
+template <class T>
+void
+BaseFab<T>::clear ()
+{
+    assert(!(The_FAB_Arena == 0));
+
+    RunStats stats("fab_arena");
+    stats.start();
+    The_FAB_Arena->free(dptr);
+    stats.end();
+
+    dptr   = 0;
+    domain = Box();
+    nvar   = 0;
+    numpts = 0;
 }
 
 template <class T>
@@ -793,11 +809,13 @@ BaseFab<T>::resize (const Box& b,
 
         if (new_size > old_size)
         {
-            T* ndptr = new T[new_size];
-            for (long i = 0; i < old_size; i++)
-                ndptr[i] = dptr[i];
-            delete [] dptr;
-            dptr = ndptr;
+            assert(!(The_FAB_Arena == 0));
+            T* odptr = dptr;
+            RunStats stats("fab_arena");
+            stats.start();
+            dptr = (T*) The_FAB_Arena->alloc(new_size*sizeof(T));
+            The_FAB_Arena->free(odptr);
+            stats.end();
         }
     }
 }
