@@ -1,5 +1,3 @@
-#ifdef HG_CROSS_STENCIL
-
 c variable density versions:
 
 c Note---assumes fdst linearly interpolated from cdst along edge
@@ -220,8 +218,6 @@ c weighting
       res(if,jf) = src(if,jf) - sum / center
       end
 
-
-#else
 
 c 9-point stencil versions:
 
@@ -459,7 +455,7 @@ c This should only occur with a corner at the outer boundary:
       end
 c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along edge
-      subroutine hgores(res, resl0, resh0, resl1, resh1,
+      subroutine hgores_full_stencil(res, resl0, resh0, resl1, resh1,
      @ src,  srcl0, srch0, srcl1, srch1,
      @ fdst, fdstl0, fdsth0, fdstl1, fdsth1,
      @ cdst, cdstl0, cdsth0, cdstl1, cdsth1,
@@ -608,7 +604,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       end
 c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along edge
-      subroutine hgires(res, resl0, resh0, resl1, resh1,
+      subroutine hgires_full_stencil(res, resl0, resh0, resl1, resh1,
      @ src,  srcl0, srch0, srcl1, srch1,
      @ fdst, fdstl0, fdsth0, fdstl1, fdsth1,
      @ cdst, cdstl0, cdsth0, cdstl1, cdsth1,
@@ -757,7 +753,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       end
 c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along edge
-      subroutine hgdres(res, resl0, resh0, resl1, resh1,
+      subroutine hgdres_full_stencil(res, resl0, resh0, resl1, resh1,
      @ src,  srcl0, srch0, srcl1, srch1,
      @ fdst, fdstl0, fdsth0, fdstl1, fdsth1,
      @ cdst, cdstl0, cdsth0, cdstl1, cdsth1,
@@ -929,9 +925,6 @@ c Note---assumes fdst linearly interpolated from cdst along edge
          end if
  20      continue
       end
-
-#endif
-
 c-----------------------------------------------------------------------
 c NODE-based data, factor of 2 only.
       subroutine hgints(dest, destl0, desth0, destl1, desth1,
@@ -1041,9 +1034,6 @@ c CELL-based data only.
  30            continue
       end if
       end
-
-#ifdef HG_CROSS_STENCIL
-
 c five-point variable stencils
 c-----------------------------------------------------------------------
       subroutine hgcen(cen, cenl0, cenh0, cenl1, cenh1,
@@ -1141,12 +1131,12 @@ c-----------------------------------------------------------------------
       integer irz, imax, lsd
       double precision hxm2, hym2, betm, aj
       integer i, j, jw, ipass
-      RHSL0()=(res(i,j) - 0.5d0 * hym2 * \
-                ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) + \
+      RHSL0()=(res(i,j) - 0.5d0 * hym2 * 
+                ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) + 
                  (sigy(i-1,j) + sigy(i,j)) * cor(i,j+1)))
 
-      RHSL1()=(res(i,j) - 0.5d0 * hxm2 * \
-                ((sigx(i-1,j-1) + sigx(i-1,j)) * cor(i-1,j) + \
+      RHSL1()=(res(i,j) - 0.5d0 * hxm2 * 
+                ((sigx(i-1,j-1) + sigx(i-1,j)) * cor(i-1,j) + 
                  (sigx(i,j-1) + sigx(i,j)) * cor(i+1,j)))
 
       hxm2 = 1.d0 / (hx*hx)
@@ -1238,12 +1228,12 @@ c-----------------------------------------------------------------------
       integer irz, imax, lsd, ipass
       double precision hxm2, hym2, betm, aj
       integer i, j, ioff
-      RHSL0()=(res(i,j) - 0.5d0 * hym2 * \
-                ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) + \
+      RHSL0()=(res(i,j) - 0.5d0 * hym2 * 
+                ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) + 
                  (sigy(i-1,j) + sigy(i,j)) * cor(i,j+1)))
 
-      RHSL1()=(res(i,j) - 0.5d0 * hxm2 * \
-                ((sigx(i-1,j-1) + sigx(i-1,j)) * cor(i-1,j) + \
+      RHSL1()=(res(i,j) - 0.5d0 * hxm2 * 
+                ((sigx(i-1,j-1) + sigx(i-1,j)) * cor(i-1,j) + 
                  (sigx(i,j-1) + sigx(i,j)) * cor(i+1,j)))
       hxm2 = 1.d0 / (hx*hx)
       hym2 = 1.d0 / (hy*hy)
@@ -1401,11 +1391,6 @@ c-----------------------------------------------------------------------
      @             (dest(i,j+1) - dest(i,j))))
       end if
       end
-
-#else
-
-#if (defined HG_TERRAIN)
-
 c nine-point terrain stencils
 c-----------------------------------------------------------------------
       subroutine hgcen_terrain(cen, cenl0, cenh0, cenl1, cenh1,
@@ -1481,49 +1466,6 @@ cdir$ ivdep
       end if
       end
 c-----------------------------------------------------------------------
-#define RHSL0 (res(i,j) - fac * ( \
-                 sig(i-1,j-1,1) * \
-                  (cor(i-1,j-1) - cor(i,j-1)) + \
-                 sig(i-1,j,1) * \
-                  (cor(i-1,j+1) - cor(i,j+1)) + \
-                 sig(i,j-1,1) * \
-                  (cor(i+1,j-1) - cor(i,j-1)) + \
-                 sig(i,j,1) * \
-                  (cor(i+1,j+1) - cor(i,j+1)) + \
-                 sig(i-1,j-1,2) * \
-                  (cor(i-1,j-1) + 2.d0 * cor(i,j-1)) + \
-                 sig(i-1,j,2) * \
-                  (cor(i-1,j+1) + 2.d0 * cor(i,j+1)) + \
-                 sig(i,j-1,2) * \
-                  (cor(i+1,j-1) + 2.d0 * cor(i,j-1)) + \
-                 sig(i,j,2) * \
-                  (cor(i+1,j+1) + 2.d0 * cor(i,j+1)) - \
-                 3.d0 * (sig(i-1,j-1,3) * cor(i-1,j-1) - \
-                         sig(i-1,j,3)   * cor(i-1,j+1) - \
-                         sig(i,j-1,3)   * cor(i+1,j-1) + \
-                         sig(i,j,3)     * cor(i+1,j+1))))
-
-#define RHSL1 (res(i,j) - fac * ( \
-                 sig(i-1,j-1,1) * \
-                  (cor(i-1,j-1) + 2.d0 * cor(i-1,j)) + \
-                 sig(i-1,j,1) * \
-                  (cor(i-1,j+1) + 2.d0 * cor(i-1,j)) + \
-                 sig(i,j-1,1) * \
-                  (cor(i+1,j-1) + 2.d0 * cor(i+1,j)) + \
-                 sig(i,j,1) * \
-                  (cor(i+1,j+1) + 2.d0 * cor(i+1,j)) + \
-                 sig(i-1,j-1,2) * \
-                  (cor(i-1,j-1) - cor(i-1,j)) + \
-                 sig(i-1,j,2) * \
-                  (cor(i-1,j+1) - cor(i-1,j)) + \
-                 sig(i,j-1,2) * \
-                  (cor(i+1,j-1) - cor(i+1,j)) + \
-                 sig(i,j,2) * \
-                  (cor(i+1,j+1) - cor(i+1,j)) - \
-                 3.d0 * (sig(i-1,j-1,3) * cor(i-1,j-1) - \
-                         sig(i-1,j,3)   * cor(i-1,j+1) - \
-                         sig(i,j-1,3)   * cor(i+1,j-1) + \
-                         sig(i,j,3)     * cor(i+1,j+1))))
 
       subroutine hgrlnf_terrain(cor, corl0, corh0, corl1, corh1,
      @ res, resl0, resh0, resl1, resh1,
@@ -1548,6 +1490,49 @@ c-----------------------------------------------------------------------
       integer lsd, ipass
       double precision fac, betm, aj
       integer i, j, ioff
+      RHSL0() = (res(i,j) - fac * ( 
+     &           sig(i-1,j-1,1) * 
+     &             (cor(i-1,j-1) - cor(i,j-1)) + 
+     &            sig(i-1,j,1) * 
+     &             (cor(i-1,j+1) - cor(i,j+1)) + 
+     &            sig(i,j-1,1) * 
+     &             (cor(i+1,j-1) - cor(i,j-1)) + 
+     &            sig(i,j,1) * 
+     &             (cor(i+1,j+1) - cor(i,j+1)) + 
+     &            sig(i-1,j-1,2) * 
+     &             (cor(i-1,j-1) + 2.d0 * cor(i,j-1)) + 
+     &            sig(i-1,j,2) * 
+     &             (cor(i-1,j+1) + 2.d0 * cor(i,j+1)) + 
+     &            sig(i,j-1,2) * 
+     &             (cor(i+1,j-1) + 2.d0 * cor(i,j-1)) + 
+     &            sig(i,j,2) * 
+     &             (cor(i+1,j+1) + 2.d0 * cor(i,j+1)) - 
+     &            3.d0 * (sig(i-1,j-1,3) * cor(i-1,j-1) - 
+     &                    sig(i-1,j,3)   * cor(i-1,j+1) - 
+     &                    sig(i,j-1,3)   * cor(i+1,j-1) + 
+     &                    sig(i,j,3)     * cor(i+1,j+1))))
+
+      RHSL1() = (res(i,j) - fac * ( 
+     &           sig(i-1,j-1,1) * 
+     &             (cor(i-1,j-1) + 2.d0 * cor(i-1,j)) + 
+     &            sig(i-1,j,1) * 
+     &             (cor(i-1,j+1) + 2.d0 * cor(i-1,j)) + 
+     &            sig(i,j-1,1) * 
+     &             (cor(i+1,j-1) + 2.d0 * cor(i+1,j)) + 
+     &            sig(i,j,1) * 
+     &             (cor(i+1,j+1) + 2.d0 * cor(i+1,j)) + 
+     &            sig(i-1,j-1,2) * 
+     &             (cor(i-1,j-1) - cor(i-1,j)) + 
+     &            sig(i-1,j,2) * 
+     &             (cor(i-1,j+1) - cor(i-1,j)) + 
+     &            sig(i,j-1,2) * 
+     &            (cor(i+1,j-1) - cor(i+1,j)) + 
+     &            sig(i,j,2) * 
+     &             (cor(i+1,j+1) - cor(i+1,j)) - 
+     &            3.d0 * (sig(i-1,j-1,3) * cor(i-1,j-1) - 
+     &                   sig(i-1,j,3)   * cor(i-1,j+1) - 
+     &                    sig(i,j-1,3)   * cor(i+1,j-1) + 
+     &                    sig(i,j,3)     * cor(i+1,j+1))))
       fac = 1.d0 / 6.d0
       if (lsd .eq. 0) then
          if (mod(regl1,2) .eq. 0) then
@@ -1764,11 +1749,8 @@ c-----------------------------------------------------------------------
      @             (dest(i+1,j+1) - dest(i,j)))
       end if
       end
-
-#else
-
+c-----------------------------------------------------------------------
 c nine-point variable stencils
-
       subroutine hgcen_full_stencil(cen, cenl0, cenh0, cenl1, cenh1,
      @ sigx, sigy, sbl0, sbh0, sbl1, sbh1,
      @ regl0, regh0, regl1, regh1,
@@ -1896,50 +1878,6 @@ cdir$ ivdep
       end if
       end
 c-----------------------------------------------------------------------
-#define RHSL0 (res(i,j) - fac * (hxm2 * \
-                (sigx(i-1,j-1) * \
-                  (cor(i-1,j-1) - cor(i,j-1)) + \
-                 sigx(i-1,j) * \
-                  (cor(i-1,j+1) - cor(i,j+1)) + \
-                 sigx(i,j-1) * \
-                  (cor(i+1,j-1) - cor(i,j-1)) + \
-                 sigx(i,j) * \
-                  (cor(i+1,j+1) - cor(i,j+1))) + \
-                                 hym2 * \
-                (sigy(i-1,j-1) * \
-                  (cor(i-1,j-1) + 2.d0 * cor(i,j-1)) + \
-                 sigy(i-1,j) * \
-                  (cor(i-1,j+1) + 2.d0 * cor(i,j+1)) + \
-                 sigy(i,j-1) * \
-                  (cor(i+1,j-1) + 2.d0 * cor(i,j-1)) + \
-                 sigy(i,j) * \
-                  (cor(i+1,j+1) + 2.d0 * cor(i,j+1)))))
-
-#define RHSL1 (res(i,j) - fac * (hxm2 * \
-                (sigx(i-1,j-1) * \
-                  (cor(i-1,j-1) + 2.d0 * cor(i-1,j)) + \
-                 sigx(i-1,j) * \
-                  (cor(i-1,j+1) + 2.d0 * cor(i-1,j)) + \
-                 sigx(i,j-1) * \
-                  (cor(i+1,j-1) + 2.d0 * cor(i+1,j)) + \
-                 sigx(i,j) * \
-                  (cor(i+1,j+1) + 2.d0 * cor(i+1,j))) + \
-                                 hym2 * \
-                (sigy(i-1,j-1) * \
-                  (cor(i-1,j-1) - cor(i-1,j)) + \
-                 sigy(i-1,j) * \
-                  (cor(i-1,j+1) - cor(i-1,j)) + \
-                 sigy(i,j-1) * \
-                  (cor(i+1,j-1) - cor(i+1,j)) + \
-                 sigy(i,j) * \
-                  (cor(i+1,j+1) - cor(i+1,j)))))
-
-#define RHSRZL0 (RHSL0 - facrz * \
-                 ((sigy(i-1,j-1) / r0 - sigy(i,j-1) / r1) * cor(i,j-1) + \
-                  (sigy(i-1,j)   / r0 - sigy(i,j)   / r1) * cor(i,j+1)))
-
-#define RHSRZL1 RHSL1
-
       subroutine hgrlxl_full_stencil(cor, corl0, corh0, corl1, corh1,
      @ res, resl0, resh0, resl1, resh1,
      @ sigx, sigy, sfl0, sfh0, sfl1, sfh1,
@@ -1963,6 +1901,49 @@ c-----------------------------------------------------------------------
       integer irz, imax, lsd
       double precision hxm2, hym2, fac, facrz, r0, r1, betm, aj
       integer i, j, jw, ipass
+	double precision RHSL0, RHSL1, RHSRZL0, RHSRZL1
+      RHSL0() = (res(i,j) - fac * (hxm2 *
+     &           (sigx(i-1,j-1) *
+     &             (cor(i-1,j-1) - cor(i,j-1)) +
+     &            sigx(i-1,j) *
+     &             (cor(i-1,j+1) - cor(i,j+1)) +
+     &            sigx(i,j-1) *
+     &             (cor(i+1,j-1) - cor(i,j-1)) +
+     &            sigx(i,j) * 
+     &             (cor(i+1,j+1) - cor(i,j+1))) + 
+     &                            hym2 * 
+     &           (sigy(i-1,j-1) * 
+     &             (cor(i-1,j-1) + 2.d0 * cor(i,j-1)) + 
+     &            sigy(i-1,j) * 
+     &             (cor(i-1,j+1) + 2.d0 * cor(i,j+1)) + 
+     &            sigy(i,j-1) * 
+     &             (cor(i+1,j-1) + 2.d0 * cor(i,j-1)) + 
+     &            sigy(i,j) * 
+     &             (cor(i+1,j+1) + 2.d0 * cor(i,j+1)))))
+      RHSL1() = (res(i,j) - fac * (hxm2 *
+     &          (sigx(i-1,j-1) *
+     &             (cor(i-1,j-1) + 2.d0 * cor(i-1,j)) +
+     &            sigx(i-1,j) *
+     &             (cor(i-1,j+1) + 2.d0 * cor(i-1,j)) +
+     &            sigx(i,j-1) *
+     &             (cor(i+1,j-1) + 2.d0 * cor(i+1,j)) +
+     &            sigx(i,j) *
+     &             (cor(i+1,j+1) + 2.d0 * cor(i+1,j))) +
+     &                            hym2 * 
+     &           (sigy(i-1,j-1) * 
+     &             (cor(i-1,j-1) - cor(i-1,j)) + 
+     &            sigy(i-1,j) * 
+     &             (cor(i-1,j+1) - cor(i-1,j)) + 
+     &            sigy(i,j-1) * 
+     &             (cor(i+1,j-1) - cor(i+1,j)) + 
+     &            sigy(i,j) * 
+     &             (cor(i+1,j+1) - cor(i+1,j)))))
+
+      RHSRZL0() = (RHSL0 - facrz *
+     &           ((sigy(i-1,j-1) / r0 - sigy(i,j-1) / r1) * cor(i,j-1) +
+     &            (sigy(i-1,j)   / r0 - sigy(i,j)   / r1) * cor(i,j+1)))
+
+      RHSRZL1()= RHSL1
       hxm2 = 1.d0 / (hx*hx)
       hym2 = 1.d0 / (hy*hy)
       fac = 1.d0 / 6.d0
@@ -2465,9 +2446,6 @@ c-----------------------------------------------------------------------
       end if
       end
 
-#endif
-
-#endif
 c-----------------------------------------------------------------------
       subroutine hgrlnb(cor, corl0, corh0, corl1, corh1,
      @ wrk, wrkl0, wrkh0, wrkl1, wrkh1,

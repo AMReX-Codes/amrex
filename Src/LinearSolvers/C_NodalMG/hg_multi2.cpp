@@ -8,9 +8,9 @@
 #  define   FORT_HGERES_TERRAIN     hgeres_terrain_
 #  define   FORT_HGCRES     hgcres_
 #  define   FORT_HGCRES_TERRAIN     hgcres_terrain_
-#  define   FORT_HGORES     hgores_
-#  define   FORT_HGIRES     hgires_
-#  define   FORT_HGDRES     hgdres_
+#  define   FORT_HGORES     hgores_full_stencil_
+#  define   FORT_HGIRES     hgires_full_stencil_
+#  define   FORT_HGDRES     hgdres_full_stencil_
 #else
 #  define   FORT_HGFRES     HGFRES
 #  define   FORT_HGFRES_TERRAIN     HGFRES_TERRAIN
@@ -18,9 +18,9 @@
 #  define   FORT_HGERES_TERRAIN     HGERES_TERRAIN
 #  define   FORT_HGCRES     HGCRES
 #  define   FORT_HGCRES_TERRAIN     HGCRES_TERRAIN
-#  define   FORT_HGORES     HGORES
-#  define   FORT_HGIRES     HGIRES
-#  define   FORT_HGDRES     HGDRES
+#  define   FORT_HGORES     HGORES_FULL_STENCIL
+#  define   FORT_HGIRES     HGIRES_FULL_STENCIL
+#  define   FORT_HGDRES     HGDRES_FULL_STENCIL
 #endif
 
 extern "C" 
