@@ -4,8 +4,14 @@
 #define BL_DISTRIBUTIONMAPPING_H
 
 //
-// $Id: DistributionMapping.H,v 1.9 1998-06-13 15:49:43 lijewski Exp $
+// $Id: DistributionMapping.H,v 1.10 1998-06-13 21:00:35 lijewski Exp $
 //
+#ifdef BL_USE_NEW_HFILES
+#include <vector>
+using std::vector;
+#else
+#include <vector.h>
+#endif
 
 #include <BoxLib.H>
 #include <Array.H>
@@ -111,7 +117,7 @@ class DistributionMapping
     //
     // Our cache of processor maps.
     //
-    static List< Array<int> > m_Cache;
+    static vector< Array<int> > m_Cache;
     //
     // Look for a cached processor map.
     //
@@ -173,7 +179,7 @@ inline
 int
 DistributionMapping::CacheSize ()
 {
-    return m_Cache.length();
+    return m_Cache.size();
 }
 
 #endif /*BL_DISTRIBUTIONMAPPING_H*/
