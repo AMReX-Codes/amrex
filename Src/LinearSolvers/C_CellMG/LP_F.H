@@ -2,7 +2,7 @@
 #define _LP_F_H_
 
 /*
-** $Id: LP_F.H,v 1.2 1999-01-04 18:11:46 marc Exp $
+** $Id: LP_F.H,v 1.3 1999-04-01 21:42:49 car Exp $
 */
 
 #include <REAL.H>
@@ -13,12 +13,14 @@
 #define FORT_GSRB      gsrb2dsim
 #define FORT_CGPRECND  cgprecnd2dsim
 #define FORT_ADOTX     adotx2dsim
+#define FORT_FLUX      flux2dsim
 #endif
 
 #if (BL_SPACEDIM == 3)
 #define FORT_GSRB      gsrb3dsim
 #define FORT_CGPRECND  cgprecnd3dsim
 #define FORT_ADOTX     adotx3dsim
+#define FORT_FLUX      flux3dsim
 #endif
 
 #endif
@@ -30,11 +32,13 @@
 #define FORT_GSRB      GSRB2DSIM
 #define FORT_CGPRECND  CGPRECND2DSIM
 #define FORT_ADOTX     ADOTX2DSIM
+#define FORT_FLUX      FLUX2DSIM
 #endif
 #ifdef BL_FORT_USE_UNDERSCORE
 #define FORT_GSRB      gsrb2dsim_
 #define FORT_CGPRECND  cgprecnd2dsim_
 #define FORT_ADOTX     adotx2dsim_
+#define FORT_FLUX      flux2dsim_
 #endif
 #endif
 
@@ -43,11 +47,13 @@
 #define FORT_GSRB      GSRB3DSIM
 #define FORT_CGPRECND  CGPRECND3DSIM
 #define FORT_ADOTX     ADOTX3DSIM
+#define FORT_FLUX      FLUX3DSIM
 #endif
 #ifdef BL_FORT_USE_UNDERSCORE
 #define FORT_GSRB      gsrb3dsim_
 #define FORT_CGPRECND  cgprecnd3dsim_
 #define FORT_ADOTX     adotx3dsim_
+#define FORT_FLUX      flux3dsim_
 #endif
 
 #endif
