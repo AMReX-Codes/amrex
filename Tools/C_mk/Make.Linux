@@ -79,6 +79,9 @@ ifeq ($(FCOMP),Intel)
   endif
   endif
   endif
+  ifeq ($(USE_THREADS),TRUE)
+    override XTRALIBS += -lpthread
+  endif
 else
   # default g77/f77 version
   FOPTF += -O
