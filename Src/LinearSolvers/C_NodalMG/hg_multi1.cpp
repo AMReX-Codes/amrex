@@ -395,7 +395,9 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 	}
 	for (int mglev = 0; mglev < mglev_max; mglev++) 
 	{
+	    HG_TEST_NORM(sigma_split[mglev], "build_sigma 0");
 	    fill_borders(sigma_split[mglev], lev_interface[mglev], boundary.scalar(), -1, m_hg_terrain);
+	    HG_TEST_NORM(sigma_split[mglev], "build_sigma");
 	}
 	
 	for (int i = 0; i < BL_SPACEDIM; i++) 

@@ -422,7 +422,6 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 	if(hg_terrain)
 	{
 	    // attempt to deal with corner-coupling problem with 27-point stencils
-	    task_list tl;
 	    for (int iedge = 0; iedge < lev_interface.nboxes(1); iedge++) 
 	    {
 		if (lev_interface.geo(1, iedge) == level_interface::ALL)
@@ -538,9 +537,12 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 
 void fill_borders(MultiFab& r, const level_interface& lev_interface, const amr_boundary_class* bdy, int w, bool hg_terrain)
 {
+    HG_TEST_NORM(r, "fill_borders 0");
     fill_internal_borders(r, lev_interface, w, hg_terrain);
+    HG_TEST_NORM(r, "fill_borders 1");
     assert(bdy != 0);
     bdy->fill_borders(r, lev_interface, w);
+    HG_TEST_NORM(r, "fill_borders 2");
 }
 
 void clear_part_interface(MultiFab& r, const level_interface& lev_interface)
