@@ -1,11 +1,13 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BndryData.cpp,v 1.6 1998-08-21 17:58:29 car Exp $
+// $Id: BndryData.cpp,v 1.7 1999-01-04 18:09:37 marc Exp $
 //
 
 #include <BndryData.H>
 #include <Utility.H>
+#include <LO_BCTYPES.H>
+#include <ParallelDescriptor.H>
 
 BndryData::BndryData (const BoxArray&      _grids,
                       int                  _ncomp, 
@@ -49,7 +51,8 @@ ostream&
 operator<< (ostream&         os,
             const BndryData& bd)
 {
-    BoxLib::Abort("BndryData::operator<< not yet implemented in parallel");
+    if (ParallelDescriptor::NProcs() != 1)
+	BoxLib::Abort("BndryData::operator<< not yet implemented in parallel");
     const BoxArray& grds = bd.boxes();
     int ngrds = grds.length();
     int ncomp = bd.bcond[0][0].length();
@@ -86,7 +89,7 @@ BndryData::operator= (const BndryData& src)
     //
     BndryRegister::operator= ( (BndryRegister) src);
     int ngrd = grids.length();
-    int ncomp = src.bcond[0][0].length();
+    int ncomp = src.nComp();
     clear_masks();
     for (OrientationIter fi; fi; ++fi)
     {
@@ -95,13 +98,15 @@ BndryData::operator= (const BndryData& src)
         for (int grd = 0; grd < ngrd; ++grd)
         {
             bcond[face][grd].resize(ncomp);
+	    for (int n=0; n<ncomp; ++n)
+		bcond[face][grd][n] = src.bcond[face][grd][n];
         }
         bcloc[face].resize(ngrd);
         masks[face].resize(ngrd);
         for (ConstFabSetIterator bfsi(bndry[face]); bfsi.isValid(); ++bfsi)
         {
             const int grd = bfsi.index();
-            bcond[face][grd] = src.bcond[face][grd];
+            //bcond[face][grd] = src.bcond[face][grd];
             bcloc[face][grd] = src.bcloc[face][grd];
             const Mask& src_mask = src.masks[face][grd];
             Mask* m = new Mask(src_mask.box(),src_mask.nComp());

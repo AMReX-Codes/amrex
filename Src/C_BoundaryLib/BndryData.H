@@ -4,7 +4,7 @@
 #define _BNDRYDATA_H_
 
 //
-// $Id: BndryData.H,v 1.4 1998-07-07 17:25:12 lijewski Exp $
+// $Id: BndryData.H,v 1.5 1999-01-04 18:09:36 marc Exp $
 //
 
 #include <Assert.H>
@@ -150,6 +150,10 @@ public:
     //
     const PArray<Mask>& bndryMasks (const Orientation& _face) const;
     //
+    //@ManDoc: return number of components for which this object is inteded
+    //
+    int nComp() const;
+    //
     //@ManDoc: return domain used to define masks
     //
     const Box& getDomain () const;
@@ -251,6 +255,13 @@ const PArray<Mask>&
 BndryData::bndryMasks (const Orientation& _face) const
 {
     return masks[_face];
+}
+
+inline
+int
+BndryData::nComp () const
+{
+    return bcond[0][0].length();
 }
 
 inline
