@@ -5,7 +5,7 @@ program main
   call boxlib_initialize()
 
 ! call t_box_read()
-! call t_pingpong
+  call t_pingpong
 ! call t_plotfile
 ! call t_ba
 ! call t_cluster
@@ -22,7 +22,7 @@ program main
 ! call t_nodal_mf_fabio
 ! call t_timer
 ! call t_knap
-  call t_ml_mf_read()
+! call t_ml_mf_read()
 
   call boxlib_finalize()
 

@@ -31,7 +31,7 @@ int_2_str(char filename[], int n, const int ifilename[])
 	  filename[i] = 0;
 	  break;
 	}
-      filename[i] = ifilename[i];
+      filename[i] = (char)ifilename[i];
     }
   if ( i == n )
     {
@@ -74,9 +74,9 @@ STORE_PPM_STR (const int ifilename[], const int* width, const int* height, int i
 	  fprintf(stderr,"out of bounds on image[%d] = %d\n", i, j);
 	  exit(1);
 	}
-      image[3*i+0] = r[j];
-      image[3*i+1] = g[j];
-      image[3*i+2] = b[j];
+      image[3*i+0] = (unsigned char)r[j];
+      image[3*i+1] = (unsigned char)g[j];
+      image[3*i+2] = (unsigned char)b[j];
     }
   fprintf(image_fp, "%c%c\n%d %d\n%d\n", PGM_MAGIC1, RPGM_MAGIC3,
 	  wid, hgt, 255);
@@ -112,7 +112,7 @@ STORE_PGM_STR (const int ifilename[], const int* width, const int* height, int i
     }
   for ( i = 0; i < wid*hgt; ++i )
     {
-      image[i] = iimage[i];
+      image[i] = (unsigned char)iimage[i];
     }
   fprintf(image_fp, "%c%c\n%d %d\n%d\n", PGM_MAGIC1, RPGM_MAGIC2,
 	  wid, hgt, 255);
