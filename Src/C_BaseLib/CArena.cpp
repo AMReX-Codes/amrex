@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CArena.cpp,v 1.18 1999-07-21 21:02:49 lijewski Exp $
+// $Id: CArena.cpp,v 1.19 1999-07-21 21:06:08 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -31,7 +31,7 @@ using std::pair;
 //
 // Only really use the coalescing FAB arena if BL_COALESCE_FABS.
 //
-//#ifdef BL_COALESCE_FABS
+#ifdef BL_COALESCE_FABS
 static CArena The_Static_FAB_CArena;
 Arena* The_FAB_Arena = &The_Static_FAB_CArena;
 #else
