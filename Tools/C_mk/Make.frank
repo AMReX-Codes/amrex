@@ -2,7 +2,7 @@ CXX = mpxlC
 FC  = mpxlf
 fC  = mpxlf
 
-MACHINE=BGL
+override MACHINE:=BGL
 FORTLINK  	= LOWERCASE
 FORT_CPP = /usr/bin/cpp -traditional
 LIBRARY_LOCATIONS = /opt/ibmcmp/xlf/9.1/blrts_lib/
