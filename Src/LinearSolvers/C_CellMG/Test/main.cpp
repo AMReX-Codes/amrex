@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.15 2000-08-24 20:28:29 car Exp $
+// $Id: main.cpp,v 1.16 2000-08-30 19:19:13 car Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -98,7 +98,7 @@ main (int   argc, char* argv[])
 #endif
   ParallelDescriptor::StartParallel(&argc, &argv);
 
-  cout << setprecision(10);
+  cout << setprecision(15);
 
   if ( argc < 2 )
     {
@@ -175,23 +175,24 @@ main (int   argc, char* argv[])
     } // -->> over dimension
 
   // Choose operator (Laplacian or ABecLaplacian), get tolerance, numiter
-  bool ABec=false; pp.query("ABec",ABec);
-  bool Hypre=false; pp.query("Hypre", Hypre);
-  Real tolerance = 1.0e-10; pp.query("tol", tolerance);
-  Real tolerance_abs = 1.0e-10; pp.query("tol_abs", tolerance_abs);
-  int numiter = 41; pp.query("numiter", numiter);
-  int maxiter = 40; pp.query("maxiter", maxiter);
-  bool mg = true; pp.query("mg", mg);
-  bool cg = false; pp.query("cg", cg);
-  bool bicg = false; pp.query("bicg", bicg);
-  bool acg = false; pp.query("acg", acg);
-  bool use_mg_pre=false; pp.query("mg_pre",use_mg_pre);
-  bool new_bc=false; pp.query("new_bc",new_bc);
-  bool dump_norm=true; pp.query("dump_norm", dump_norm);
-  bool dump_Lp=false; pp.query("dump_Lp",dump_Lp);
-  bool dump_Mf=false; pp.query("dump_Mf", dump_Mf);
-  bool dump_VisMF=false; pp.query("dump_VisMF", dump_VisMF);
-  bool dump_ascii=false; pp.query("dump_ascii", dump_ascii);
+  bool ABec=false           ; pp.query("ABec",ABec);
+  bool Hypre=false          ; pp.query("Hypre", Hypre);
+  Real tolerance = 1.0e-10  ; pp.query("tol", tolerance);
+  Real tolerance_abs = -1.0 ; pp.query("tol_abs", tolerance_abs);
+  int numiter = 41          ; pp.query("numiter", numiter);
+  int maxiter = 40          ; pp.query("maxiter", maxiter);
+  bool mg = true            ; pp.query("mg", mg);
+  bool cg = false           ; pp.query("cg", cg);
+  bool bicg = false         ; pp.query("bicg", bicg);
+  bool acg = false          ; pp.query("acg", acg);
+  bool use_mg_pre=false     ; pp.query("mg_pre",use_mg_pre);
+  bool new_bc=false         ; pp.query("new_bc",new_bc);
+  bool dump_norm=true       ; pp.query("dump_norm", dump_norm);
+  bool dump_Lp=false        ; pp.query("dump_Lp",dump_Lp);
+  bool dump_Mf=false        ; pp.query("dump_Mf", dump_Mf);
+  bool dump_VisMF=false     ; pp.query("dump_VisMF", dump_VisMF);
+  bool dump_ascii=false     ; pp.query("dump_ascii", dump_ascii);
+  int res;
   if ( !ABec && !Hypre )
     {
       // Build Laplacian operator, solver, then solve 
@@ -218,11 +219,12 @@ main (int   argc, char* argv[])
 	      mg.solve(soln, rhs, tolerance, tolerance_abs);
             }
         }
-      else if ( cg )
+      if ( cg )
 	{
 	  CGSolver cg(lp,use_mg_pre); cg.setCGSolver(CGSolver::CG);
 	  cg.setMaxIter(maxiter);
-	  cg.solve(soln, rhs, tolerance, tolerance_abs);
+	  res = cg.solve(soln, rhs, tolerance, tolerance_abs);
+	  cout << "CG Result = " << res << endl;
 	  if ( new_bc )
 	    {
 	      for ( MultiFabIterator mfi(rhs); mfi.isValid(); ++mfi )
@@ -235,14 +237,16 @@ main (int   argc, char* argv[])
                     } // -->> over dimensions
                 } // -->> over boxes in domain
 	      lp.bndryData(bd);
-	      cg.solve(soln, rhs, tolerance, tolerance_abs);
+	      res  = cg.solve(soln, rhs, tolerance, tolerance_abs);
+	      cout << "CG (new_bc) Result = " << res << endl;
             }
         }
-      else if ( bicg )
+      if ( bicg )
 	{
 	  CGSolver cg(lp,use_mg_pre); cg.setCGSolver(CGSolver::BiCGStab);
 	  cg.setMaxIter(maxiter);
-	  cg.solve(soln, rhs, tolerance, tolerance_abs);
+	  res = cg.solve(soln, rhs, tolerance, tolerance_abs);
+	  cout << "BiCGStab Result = " << res << endl;
 	  if ( new_bc )
 	    {
 	      for ( MultiFabIterator mfi(rhs); mfi.isValid(); ++mfi )
@@ -255,14 +259,16 @@ main (int   argc, char* argv[])
                     } // -->> over dimensions
                 } // -->> over boxes in domain
 	      lp.bndryData(bd);
-	      cg.solve(soln, rhs, tolerance, tolerance_abs);
+	      res = cg.solve(soln, rhs, tolerance, tolerance_abs);
+	      cout << "BiCGStab (new_bc) Result = " << res << endl;
             }
         }
-      else if ( acg )
+      if ( acg )
 	{
 	  CGSolver cg(lp,use_mg_pre); cg.setCGSolver(CGSolver::CG_Alt);
 	  cg.setMaxIter(maxiter);
-	  cg.solve(soln, rhs, tolerance, tolerance_abs);
+	  res = cg.solve(soln, rhs, tolerance, tolerance_abs);
+	  cout << "aCG Result = " << res << endl;
 	  if ( new_bc )
 	    {
 	      for ( MultiFabIterator mfi(rhs); mfi.isValid(); ++mfi )
@@ -275,7 +281,8 @@ main (int   argc, char* argv[])
                     } // -->> over dimensions
                 } // -->> over boxes in domain
 	      lp.bndryData(bd);
-	      cg.solve(soln, rhs, tolerance, tolerance_abs);
+	      res = cg.solve(soln, rhs, tolerance, tolerance_abs);
+	      cout << "aCG (new_bc) Result = " << res << endl;
             }
         }
 
@@ -355,7 +362,7 @@ main (int   argc, char* argv[])
 		  mg.solve(soln, rhs, tolerance, tolerance_abs);
 		}
 	    }
-	  else if ( cg )
+	  if ( cg )
 	    {
 	      CGSolver cg(lp,use_mg_pre);
 	      cg.setMaxIter(maxiter);
@@ -374,7 +381,7 @@ main (int   argc, char* argv[])
 		  cg.solve(soln, rhs, tolerance, tolerance_abs);
 		}
 	    }
-	  else if ( bicg )
+	  if ( bicg )
 	    {
 	      CGSolver cg(lp,use_mg_pre); cg.setCGSolver(CGSolver::BiCGStab);
 	      cg.setMaxIter(maxiter);
@@ -393,7 +400,7 @@ main (int   argc, char* argv[])
 		  cg.solve(soln, rhs, tolerance, tolerance_abs);
 		}
 	    }
-	  else if ( acg )
+	  if ( acg )
 	    {
 	      CGSolver cg(lp,use_mg_pre); cg.setCGSolver(CGSolver::CG_Alt);
 	      cg.setMaxIter(maxiter);
