@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParmParse.cpp,v 1.10 2000-06-01 15:39:16 car Exp $
+// $Id: ParmParse.cpp,v 1.11 2000-06-27 20:54:50 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -920,34 +920,33 @@ PP_entry::dump (ostream& os) const
         BoxLib::Error("PP_entry::dump(ostream&) failed");
 }
 
-inline
 bool
 ParmParse::isBoolean (const aString& str,
-		      bool& val)
+		      bool&          val)
 {
-  if ( str == "true"  )
+    if ( str == "true"  )
     {
-      val = true;
-      return true;
+        val = true;
+        return true;
     }
-  if ( str == "false" )
+    if ( str == "false" )
     {
-      val = false;
-      return true;
+        val = false;
+        return true;
     }
-  int int_val;
-  if ( isInteger(str, int_val) )
+    int int_val;
+    if ( isInteger(str, int_val) )
     {
-      val = int_val != 0;
-      return true;
+        val = int_val != 0;
+        return true;
     }
-  double dbl_val;
-  if ( isDouble(str, dbl_val) )
+    double dbl_val;
+    if ( isDouble(str, dbl_val) )
     {
-      val = dbl_val != 0;
-      return true;
+        val = dbl_val != 0;
+        return true;
     }
-  return false;
+    return false;
 }
 
 #ifdef BL_NAMESPACE
