@@ -26,7 +26,7 @@ public:
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& cgr, const Box& cb, const IntVect&) const;
 protected:
     Real *sigptr;
-    const Box& sigbox;
+    const Box sigbox;
 };
 
 class holy_grail_sigma_restrictor_class : public cell_average_restrictor_class 

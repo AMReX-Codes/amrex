@@ -42,7 +42,7 @@ void task::hint() const
 
 // TASK_LIST
 
-bool task_list::def_verbose = false;
+bool task_list::def_verbose = true;
 
 task_list::task_list(MPI_Comm comm_)
     : seq_no(0), seq_delta(10), verbose(def_verbose)
@@ -92,6 +92,7 @@ void task_list::add_task(task* t, task::sequence_number seq_no_)
 
 void task_list::execute()
 {
+    MPI_Barrier(comm);
     list< task** > dead_tasks;
     // The dead_task list is used, because the tasks being processed also appear
     // in tasks dependecy lists.

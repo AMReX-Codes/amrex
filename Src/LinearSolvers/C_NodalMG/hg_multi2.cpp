@@ -273,7 +273,9 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 	Box& fbox = fres_fbox[lev][iface];
 	Box& cbox = fres_cbox[lev][iface];
 	Box& creg = fres_creg[lev][iface];
-	fbox = dest[lev][igrid].box();
+	fbox = dest[lev].box(igrid); fbox.grow(dest[lev].nGrow());
+	assert(is_remote(dest[lev], igrid) || fbox == dest[lev][igrid].box());
+	// fbox = dest[lev][igrid].box();
 	cbox = lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
 	cbox.coarsen(rat);
 	if (idir > 0)
@@ -282,7 +284,9 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 	    cbox.growHi(idim, 1);
 	Box& sigmafbox = fres_sfbox[lev][iface];
 	Box& sigmacbox = fres_scbox[lev][iface];
-	sigmafbox = sigma[mglev][igrid].box();
+	sigmafbox = sigma[mglev].box(igrid); sigmafbox.grow(sigma[mglev].nGrow());
+	assert( is_remote(sigma[mglev], igrid) || sigmafbox == sigma[mglev][igrid].box());
+	// sigmafbox = sigma[mglev][igrid].box();
 	sigmacbox = cbox;
 	sigmacbox.convert(IntVect::TheCellVector());
 	const IntVect t = lev_interface[mglev].box(level_interface::FACEDIM, iface).type();

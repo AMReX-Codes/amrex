@@ -23,6 +23,8 @@ using namespace std;
 std::ofstream debug_out;
 #endif
 
+bool HG_is_debugging = false;
+
 void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain);
 
 void driver(const char* filename);
@@ -33,7 +35,7 @@ int main(int argc, char **argv)
     set_new_handler(Utility::OutOfMemory);
 #endif
     ParallelDescriptor::StartParallel(&argc, &argv);
-    
+    HG_is_debugging = true;   
 #ifdef HG_DEBUG
 #ifdef __GNUC__
     debug_out.open("guf", ios::trunc);

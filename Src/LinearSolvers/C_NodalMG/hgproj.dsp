@@ -70,7 +70,7 @@ LINK32=link.exe
 # ADD BASE F90 /include:"Debug/" /compile_only /nologo /debug:full /optimize:0 /warn:nofileopt
 # ADD F90 /browser /include:"Debug/" /compile_only /nologo /warn:declarations /debug:full /optimize:0 /check:bounds /warn:argument_checking /stand:f90 /iface:cref /threads /dbglibs /warn:nofileopt
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /MTd /W3 /Gm /GR /GX /Zi /Od /I "." /I "..\pBoxLib_2" /D "_CONSOLE" /D "_MBCS" /D "BL_USE_MPI" /D "_DEBUG" /D "WIN32" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_USE_NEW_HFILES" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D for="if(0);else for" /D "HG_DEBUG" /FR /YX /FD /c
+# ADD CPP /nologo /MTd /W3 /Gm /GR /GX /Zi /Od /I "." /I "..\pBoxLib_2" /D "_CONSOLE" /D "_MBCS" /D "HG_DEBUG" /D "BL_USE_MPI" /D "_DEBUG" /D "WIN32" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_USE_NEW_HFILES" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D for="if(0);else for" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -93,10 +93,6 @@ LINK32=link.exe
 # Begin Source File
 
 SOURCE=.\amr_multi.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\bl_abort.cpp
 # End Source File
 # Begin Source File
 
@@ -279,19 +275,6 @@ SOURCE=.\hg_proj3d.F
 # Begin Source File
 
 SOURCE=.\hgproj.pg
-# End Source File
-# Begin Source File
-
-SOURCE=.\matherr.f90
-
-!IF  "$(CFG)" == "hgproj - Win32 Release"
-
-!ELSEIF  "$(CFG)" == "hgproj - Win32 Debug"
-
-# SUBTRACT F90 /stand:<none>
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
