@@ -189,19 +189,19 @@ init(PArray<MultiFab> u[], PArray<MultiFab>& p,
 	if (hg_stencil != holy_grail_amr_multigrid::terrain)
 	{
 	    if ( is_local(u[0][0], 0) )
-		u[0][0][0](IntVect(12,12)) = 3.0;
+		u[0][0][0](IntVect(2,2)) = 3.0;
 	}
 	else
 	{
 	    if ( is_local(u[0][0], 0) )
-		u[0][0][0](IntVect(12,12)) = 3.0;
+		u[0][0][0](IntVect(2,2)) = 3.0;
 	}
     }
     else if (m.size() == 3)
     {
 	for (MFIter u_mfi(u[0][1]); u_mfi.isValid(); ++u_mfi)
 	{
-	    u[0][1][u_mfi](m[1][u_mfi.index()].smallEnd() + IntVect(2,2)) = 3.0;
+	    u[0][2][u_mfi](m[2][u_mfi.index()].smallEnd() + IntVect(2,2)) = 3.0;
 	}
     }
     else
@@ -216,16 +216,10 @@ init(PArray<MultiFab> u[], PArray<MultiFab>& p,
 	}
 	if ( is_local(u[0][2], 0) )
 	{
-	    u[0][2][0](m[2][0].smallEnd() + IntVect(2,2)) = 3.0;
+	    u[0][m.size()-1][0](m[m.size()-1][0].smallEnd() + IntVect(2,2)) = 3.0;
 	}
 	// for gr2ann
-	//u[0][2][0](IntVect(20,20)) = 1.0;
-	//u[0][2][0](IntVect(20,20)) = 0.0;
-	//u[0][2][2](IntVect(70,80)) = 1.0;
     }
-    //u[0][1][0](IntVect(31,31)) = -1.0;
-    //u[1][1][0](IntVect(31,30)) = 1.0;
-    //u[1][1][0](IntVect(30,31)) = -1.0;
     for (int ilev = 0; ilev < p.size(); ilev++)
     {
 	p[ilev].setVal(0.0);
@@ -664,17 +658,24 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     }
     else if (m.size() == 2)
     {
-	//proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 0);
-	//proj.project(u, p, null_amr_real, rhoinv, h, tol, 1, 1);
+        double t00, t01, t10, t11, t20, t21;
+#if 1
+        init(u, p, m, ratio);
+	t00 = BoxLib::second();
+	proj.project(u, p, null_amr_real, rhoinv,
+		     0, 0, crse_geom,
+		     h, tol, 1, 1);
+	t01 = BoxLib::second();
+#endif
 	for (int i = 0; i < p.size(); i++)
 	{
 	    p[i].setVal(0.0);
 	}
-	t1 = BoxLib::second();
+        init(u, p, m, ratio);
+	t10 = BoxLib::second();
 	proj.project(u, p, null_amr_real, rhoinv,
 		     0, 0, crse_geom,
 		     h, tol, 0, 1);
-	//proj.manual_project(u, p, rhs, null_amr_real, rhoinv, 1, h, tol, 0, 1);
 	for (int i = 1; i < nrep; i++)
 	{
 	    init(u, p, m, ratio);
@@ -682,16 +683,15 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 			 0, 0, crse_geom,
 			 h, tol, 0, 1);
 	}
-	t2 = BoxLib::second();
+	t11 = BoxLib::second();
 	for(int i = 0; i < BL_SPACEDIM; ++i )
 	{
 	    HG_TEST_NORM( u[i][0], "proj");
 	}
 	if ( ParallelDescriptor::IOProcessor() )
 	{
-	    std::cout << "First time is " << t1 - t0 << std::endl;
-	    std::cout << "Second time is " << t2 - t1 << std::endl;
-	    std::cout << "Sync speed was " << double(t2 - t1) / (nrep * sum) << std::endl;
+	    std::cout << "Level proj time is " << t01 - t00 << std::endl;
+	    std::cout << "Sync  proj time is " << t11 - t10 << std::endl;
 	}
 	/*
 	for (i = m[1][0].smallEnd(1); i <= m[1][0].bigEnd(1)+1; i++)
