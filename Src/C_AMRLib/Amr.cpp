@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.53 1998-09-15 22:31:40 lijewski Exp $
+// $Id: Amr.cpp,v 1.54 1998-09-22 23:42:59 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -15,7 +15,6 @@
 #include <AmrLevel.H>
 #include <PROB_AMR_F.H>
 #include <Amr.H>
-#include <Amr_auxil.H>
 #include <ParallelDescriptor.H>
 #include <Utility.H>
 
@@ -1373,6 +1372,64 @@ proj_periodic (BoxDomain&      bd,
     bd.add(blout);
 }
 
+static
+void
+MaxSizeBox (BoxList&       bx_list,
+            const IntVect& block_size)
+{
+    for (BoxListIterator bli(bx_list); bli; ++bli)
+    {
+        const IntVect& ivlen = bli().length();
+        const int* len       = ivlen.getVect();
+
+        for (int i = 0; i < SpaceDim; i++)
+        {
+            if (len[i] > block_size[i])
+            {
+                //
+                // Reduce by powers of 2.
+                //
+                int ratio = 1;
+                int bs    = block_size[i];
+                int nlen  = len[i];
+                while ((bs%2 == 0) && (nlen%2 == 0))
+                {
+                    ratio *= 2;
+                    bs /=2;
+                    nlen /=2;
+                }
+                //
+                // Determine number and size of (coarsened) cuts.
+                //
+                int numblk = nlen/bs + (nlen%bs ? 1 : 0);
+                int size   = nlen/numblk;
+                int extra  = nlen%numblk;
+                //
+                // Number of cuts = number of blocks - 1.
+                //
+                for (int k = 0; k < numblk-1; k++)
+                {
+                    //
+                    // Compute size of this chunk, expand by power of 2.
+                    //
+                    int ksize = (k < extra ? size+1 : size) * ratio;
+                    //
+                    // Chop from high end.
+                    //
+                    int pos = bli().bigEnd(i) - ksize + 1;
+
+                    bx_list.append(bx_list[bli].chop(i,pos));
+                }
+            }
+        }
+        //
+        // b has been chopped down to size and pieces split off
+        // have been added to the end of the list so that they
+        // can be checked for splitting (in other directions) later.
+        //
+    }
+}
+
 void
 Amr::grid_places (int              lbase,
                   Real             time,
@@ -1578,11 +1635,11 @@ Amr::grid_places (int              lbase,
             // Ensure new grid boxes are at most max_grid_size in
             // each index direction.
             //
-            maxSizeBox(new_bx,largest_grid_size);
+            MaxSizeBox(new_bx,largest_grid_size);
             //
             // Refine up to levf.
             //
-            refineBoxList(new_bx,lratio);
+            new_bx.refine(lratio);
 
             if (!new_bx.isDisjoint())
             {
@@ -1601,11 +1658,10 @@ void
 Amr::bldFineLevels (Real strt_time)
 {
     finest_level = 0;
-    int more_levels = true;
 
-    int num_levs = max_level+1;
-    Array<BoxArray> new_grid_places(num_levs);
-    while (more_levels)
+    Array<BoxArray> new_grid_places(max_level+1);
+
+    do
     {
         //
         // Get new grid placement.
@@ -1616,7 +1672,7 @@ Amr::bldFineLevels (Real strt_time)
 
         if (new_finest <= finest_level)
         {
-            more_levels = false;
+            break;
         }
         else
         {
@@ -1624,84 +1680,13 @@ Amr::bldFineLevels (Real strt_time)
             // Create a new level and link with others.
             //
             int levf = new_finest;
+
             finest_level = new_finest;
 
             amr_level.set(levf,(*levelbld)(*this,levf,geom[levf],
-                                           new_grid_places[levf],
-                                           strt_time));
-            //
-            // Init data on new level.
-            //
+                                           new_grid_places[levf], strt_time));
             amr_level[levf].initData();
-
-            more_levels = (finest_level < max_level);
         }
     }
-}
-
-extern "C" void maxSizeBox (BoxList& bx_list, IntVect& block_size)
-{
-    for (BoxListIterator bli(bx_list); bli; ++bli)
-    {
-        const IntVect& ivlen = bli().length();
-        const int* len       = ivlen.getVect();
-        for (int i = 0; i < SpaceDim; i++)
-        {
-            if (len[i] > block_size[i])
-            {
-                //
-                // Reduce by powers of 2.
-                //
-                int ratio = 1;
-                int bs    = block_size[i];
-                int nlen  = len[i];
-                while ((bs%2==0) && (nlen%2==0))
-                {
-                    ratio *= 2;
-                    bs /=2;
-                    nlen /=2;
-                }
-                //
-                // Determine number and size of (coarsened) cuts.
-                //
-                int numblk = nlen/bs + (nlen%bs ? 1 : 0);
-                int size   = nlen/numblk;
-                int extra  = nlen%numblk;
-                //
-                // Number of cuts = number of blocks - 1.
-                //
-                for (int k = 0; k < numblk-1; k++)
-                {
-                    //
-                    // Compute size of this chunk, expand by power of 2.
-                    //
-                    int ksize = (k < extra) ? size+1 : size;
-                    ksize *= ratio;
-                    //
-                    // Chop from high end.
-                    //
-                    IntVect iv = bli().bigEnd();
-                    int pos    = iv[i] - ksize + 1;
-
-                    bx_list.append(bx_list[bli].chop(i,pos));
-                }
-            }
-        }
-        //
-        // b has been chopped down to size and pieces split off
-        // have been added to the end of the list so that they
-        // can be checked for splitting (in other directions) later.
-        //
-    }
-}
-
-extern "C" void refineBoxList (BoxList& bx_list, IntVect& lratio)
-{
-    BoxList bl;
-    for (BoxListIterator bli(bx_list); bli; ++bli)
-    {
-      bl.add(refine(bli(),lratio));
-    }
-    bx_list.clear();
-    bx_list = bl;
+    while (finest_level < max_level);
 }
