@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.10 1998-03-30 21:57:33 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.11 1998-04-02 00:13:03 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -114,7 +114,7 @@ FluxRegister::Reflux (MultiFab&       S,
                       int             num_comp, 
                       const Geometry& geom)
 {
-    FabSetCopyDescriptor fscd(true);
+    FabSetCopyDescriptor fscd;
     FabSetId fsid[2*BL_SPACEDIM];
     for (OrientationIter fi; fi; ++fi)
     {
@@ -386,7 +386,7 @@ FluxRegister::Reflux (MultiFab&       S,
 {
     const Real* dx = geom.CellSize();
 
-    FabSetCopyDescriptor fscd(true);
+    FabSetCopyDescriptor fscd;
     FabSetId fsid[2*BL_SPACEDIM];
     for (OrientationIter fi; fi; ++fi)
     {
@@ -611,9 +611,9 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     Orientation face_lo(dir,Orientation::low);
     Orientation face_hi(dir,Orientation::high);
 
-    MultiFabCopyDescriptor mfcd(true);
-    MultiFabId mfid_mflx = mfcd.RegisterFabArray((MultiFab *) &mflx);
-    MultiFabId mfid_area = mfcd.RegisterFabArray((MultiFab *) &area);
+    MultiFabCopyDescriptor mfcd;
+    MultiFabId mfid_mflx = mfcd.RegisterFabArray((MultiFab*) &mflx);
+    MultiFabId mfid_area = mfcd.RegisterFabArray((MultiFab*) &area);
 
     List<FillBoxId> fillBoxIdList_mflx;
     List<FillBoxId> fillBoxIdList_area;

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.6 1998-03-30 20:24:11 lijewski Exp $
+// $Id: FabSet.cpp,v 1.7 1998-04-02 00:13:16 lijewski Exp $
 //
 
 #include <FabSet.H>
@@ -95,7 +95,7 @@ FabSet::copyFrom (const MultiFab& src,
 {
     assert (nghost <= src.nGrow());
 
-    FabSetCopyDescriptor fscd(true);
+    FabSetCopyDescriptor fscd;
     MultiFabId srcmfid = fscd.RegisterFabArray((MultiFab *) &src);  // cast away
                                                  // const, this must be fixed
     List<FillBoxId> fillBoxIdList;
@@ -164,7 +164,7 @@ FabSet::plusFrom (const MultiFab& src,
 
     const BoxArray& sba = src.boxArray();
 
-    MultiFabCopyDescriptor mfcd(true);
+    MultiFabCopyDescriptor mfcd;
     MultiFabId mfidsrc  = mfcd.RegisterFabArray((MultiFab *) &src);
     List<FillBoxId> fillBoxIdList;
 
@@ -264,7 +264,7 @@ FabSet::linComb (Real            a,
     // This can be optimized by only communicating the components used in
     // the linComp--this implementation communicates all the components.
     //
-    MultiFabCopyDescriptor mfcd(true);
+    MultiFabCopyDescriptor mfcd;
     MultiFabId mfid_mfa = mfcd.RegisterFabArray((MultiFab *) &mfa);
     MultiFabId mfid_mfb = mfcd.RegisterFabArray((MultiFab *) &mfb);
     List<FillBoxId> fillBoxIdList_mfa;

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.27 1998-04-01 18:21:51 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.28 1998-04-02 00:13:02 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -290,7 +290,6 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
     MultiFabIterator(leveldata),
     amrLevel(amrlevel),
     levelData(leveldata),
-    multiFabCopyDesc(true),
     bIsInitialized(false)
 {}
 
@@ -314,7 +313,6 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
     destComp(dest_comp),
     nComp(ncomp),
     interpTime(time),
-    multiFabCopyDesc(true),
     bIsInitialized(false)
 {
     Initialize(boxGrow, dest_comp, time, state_index, src_comp, ncomp, mapper);
@@ -693,8 +691,7 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
     srcComp(src_comp),
     destComp(dest_comp),
     nComp(ncomp),
-    interpTime(time),
-    multiFabCopyDesc(true)
+    interpTime(time)
 {
     //
     // This function sets up and performs the communication pattern for

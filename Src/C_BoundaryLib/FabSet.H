@@ -4,7 +4,7 @@
 #define _FABSET_H_
 
 //
-// $Id: FabSet.H,v 1.6 1998-03-30 20:24:11 lijewski Exp $
+// $Id: FabSet.H,v 1.7 1998-04-02 00:13:15 lijewski Exp $
 //
 
 #include <FArrayBox.H>
@@ -272,9 +272,9 @@ class FabSetCopyDescriptor
     public MultiFabCopyDescriptor
 {
 public:
-    FabSetCopyDescriptor (bool cacheremotedata = true)
+    FabSetCopyDescriptor ()
         :
-        MultiFabCopyDescriptor(cacheremotedata) {}
+        MultiFabCopyDescriptor() {}
 
     ~FabSetCopyDescriptor () {}
 
@@ -286,7 +286,6 @@ private:
     //
     // These are disallowed.
     //
-    // FabSetCopyDescriptor ();
     FabSetCopyDescriptor (const FabSetCopyDescriptor& rhs);
     FabSetCopyDescriptor& operator= (const FabSetCopyDescriptor& rhs);
 };

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.16 1998-02-19 18:10:46 lijewski Exp $
+// $Id: TagBox.cpp,v 1.17 1998-04-02 00:13:03 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -437,7 +437,7 @@ TagBoxArray::buffer (int nbuf)
 void
 TagBoxArray::mergeUnique ()
 {
-    FabArrayCopyDescriptor<TagType,TagBox> facd(true);
+    FabArrayCopyDescriptor<TagType,TagBox> facd;
     FabArrayId faid = facd.RegisterFabArray(this);
     int nOverlap = 0;
     int myproc = ParallelDescriptor::MyProc();
@@ -545,7 +545,7 @@ TagBoxArray::mergeUnique ()
 void
 TagBoxArray::mapPeriodic (const Geometry& geom)
 {
-    FabArrayCopyDescriptor<TagType,TagBox> facd(true);
+    FabArrayCopyDescriptor<TagType,TagBox> facd;
     FabArrayId faid = facd.RegisterFabArray(this);
     int myproc = ParallelDescriptor::MyProc();
     List<FillBoxId> fillBoxIdList;
