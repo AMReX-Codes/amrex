@@ -130,6 +130,9 @@ contains
        call destroy(procs(i))
     end do
 
+    !! INTEL FIXME !!
+    deallocate(procs, iprocs, pweights)
+
   contains
 
     subroutine swap_balls(m,i,j,k)
