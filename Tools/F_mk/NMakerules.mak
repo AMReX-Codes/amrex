@@ -12,11 +12,11 @@ $(tdir)\c.depends: $(csources) "$(tdir)"
 
 .f{$(obj_dir)}.obj:
 	@if not exist "$(obj_dir)\" mkdir "$(obj_dir)"
-	$(FOR) /c $(FFLAGS) /object:$(obj_dir)\ $<
+	$(FOR) /c $(FFLAGS) $(FOB) $<
 
 .f90{$(obj_dir)}.obj:
 	@if not exist "$(obj_dir)\" mkdir "$(obj_dir)"
-	$(FOR) /c $(FFLAGS) /object:$(obj_dir)\ $<
+	$(FOR) /c $(FFLAGS) $(FOB) $<
 
 .c{$(obj_dir)}.obj:
 	@if not exist "$(obj_dir)\" mkdir "$(obj_dir)"
