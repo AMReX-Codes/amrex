@@ -120,6 +120,10 @@ SOURCE=.\hg_projector.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\hgparallel.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\interface.cpp
 # End Source File
 # Begin Source File
@@ -157,6 +161,10 @@ SOURCE=.\hg_multi.H
 # Begin Source File
 
 SOURCE=.\hg_projector.H
+# End Source File
+# Begin Source File
+
+SOURCE=.\hgparallel.h
 # End Source File
 # Begin Source File
 
