@@ -3,6 +3,10 @@
 
 #include <MultiFab.H>
 
+#ifdef BL_USE_MPI
+#include <mpi.h>
+#endif
+
 inline bool is_remote(const MultiFab& r, int igrid)
 {
     if (ParallelDescriptor::MyProc() == r.DistributionMap()[igrid]) return false;
@@ -36,6 +40,11 @@ public:
     virtual ~task_copy();
     virtual bool ready();
 private:
+#ifdef BL_USE_MPI
+    MPI_Request m_request;
+    FArrayBox* d_tmp;
+    FArrayBox* s_tmp;
+#endif
     MultiFab& m_mf;
     const MultiFab& m_smf;
     int m_dgrid;
