@@ -36,6 +36,8 @@ FabArrayBase::fabbox (int K) const
     return BoxLib::grow(boxarray[K], n_grow);
 }
 
+bool MFIter::g_debugging = false;
+
 MFIter::MFIter (const FabArrayBase& fabarray)
     :
     fabArray(fabarray),
@@ -67,8 +69,6 @@ MFIter::operator++ ()
     }
     while (fabArray.DistributionMap()[currentIndex] != MyProc);
 }
-
-bool MFIter::g_debugging = false;
 
 void
 MFIter::setDebugging (bool debugging)
