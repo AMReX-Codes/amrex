@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MCLinOp.cpp,v 1.13 1999-08-25 17:52:33 lijewski Exp $
+// $Id: MCLinOp.cpp,v 1.14 1999-10-25 18:31:33 marc Exp $
 //
 // Differences from LinOp: den has nc components, bct has nc components.
 //
@@ -152,8 +152,8 @@ MCLinOp::initConstruct (const Real* _h)
 int
 MCLinOp::bcComponentsNeeded()
 {
-  float d = BL_SPACEDIM;
-  int nDer = pow(d,d-1)+d;
+  float d = (float) BL_SPACEDIM;
+  int nDer = (int) (pow(d,d-1)+d);
   return nDer;
 }
 
