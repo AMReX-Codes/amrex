@@ -64,7 +64,7 @@ LIBRARIES += -ldnet_stub
 FDEBF += -automatic
 # FOR RUNNING 3RD ONLY
 endif
-FDEBF += -u
+FDEBF += -u -C
 
 # Lower optimization level for this big file
 o/3d.OSF1.KCC/hg_multi3d_terrain.o: hg_multi3d_terrain.F

@@ -455,7 +455,7 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
     Real tol = 1.e-6;
     //Real tol = 2.e-10;
 #else
-    int pcode = 3, nrep = 1;
+    int pcode = 4, nrep = 1;
     //Real tol = 1.e-14;
     //int pcode = 1, nrep = 3;
     //Real tol = 1.e-6;
