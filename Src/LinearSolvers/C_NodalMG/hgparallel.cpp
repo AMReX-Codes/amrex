@@ -3,10 +3,10 @@
 
 bool task::depend_ready()
 {
-    list< counted_ptr<task> >::iterator lit = dependencies.begin();
+    list< task** >::iterator lit = dependencies.begin();
     while ( lit != dependencies.end() )
     {
-	if ( ! (*lit)->ready() )
+	if ( **lit )
 	    return false;
     }
     return true;
@@ -199,11 +199,16 @@ void task_list::execute()
 {
     while ( !tasks.empty() )
     {
-	counted_ptr<task> t = tasks.front();
+	task* t = tasks.front();
 	tasks.pop_front();
 	if ( verbose )
 	    t->hint();
-	if ( ! t->ready() )
+	if ( t->ready() )
+	{
+	    delete t;
+	    t = 0;
+	}
+	else
 	{
 	    tasks.push_back(t);
 	}
@@ -219,7 +224,7 @@ void task_list::add_task(task* t)
     }
     else
     {
-	tasks.push_back( counted_ptr<task>(t) );
+	tasks.push_back( t );
     }
 }
 
