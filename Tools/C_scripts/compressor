@@ -1,0 +1,44 @@
+#!/bin/ksh
+#
+# Prefix's for chk and plt files.
+#
+chk_prefix=chk
+plt_prefix=plt
+#
+# Number of seconds to sleep before checking again.
+#
+N=60
+#
+# Tar up and then remove plt and chk directories.
+#
+function tar_up_and_rm_files
+{
+  list=$(ls -d ${chk_prefix}* ${plt_prefix}*)
+
+  for dir in ${list}
+  do
+    if [ -d ${dir} ]
+    then
+      #
+      # If the Header is non-zero sized the chk or plt file is complete.
+      # This relies on the Header being the last file written to disk.
+      #
+      if [ -s ${dir}/Header ]
+      then
+        if `tar cf ${dir}.tar ${dir}`
+        then
+          rm -rf ${dir}
+        fi
+      fi
+    fi
+  done
+}
+#
+# Looping waiting for plt and chk directories to appear.
+#
+while true
+do
+  tar_up_and_rm_files
+  sleep $N
+done
+
