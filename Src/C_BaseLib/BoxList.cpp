@@ -1,10 +1,11 @@
 //
-// $Id: BoxList.cpp,v 1.15 2001-07-21 17:37:10 car Exp $
+// $Id: BoxList.cpp,v 1.16 2001-07-23 20:07:14 lijewski Exp $
 //
 #include <winstd.H>
 
 #include <algorithm>
 
+#include <BoxArray.H>
 #include <BoxList.H>
 
 BoxList::~BoxList()

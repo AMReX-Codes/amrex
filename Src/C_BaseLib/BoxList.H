@@ -2,62 +2,58 @@
 #define BL_BOXLIST_H
 
 //
-// $Id: BoxList.H,v 1.20 2001-07-19 17:19:32 car Exp $
+// $Id: BoxList.H,v 1.21 2001-07-23 20:07:14 lijewski Exp $
 //
 
 #include <iostream>
+#include <list>
 
 #include <IntVect.H>
 #include <IndexType.H>
 #include <Box.H>
-#include <BoxArray.H>
-#include <List.H>
 //
-// Forward declaration.
+// Forward declarations.
 //
 class BoxArray;
-class BoxListIterator;
-
 class BoxList;
 
 namespace BoxLib
 {
-/*@ManDoc: Returns a BoxList defining the complement of BoxList bl
-  in Box b.
-*/
-BoxList complementIn(const Box& b, const BoxList& bl);
-//
-//@ManDoc: Returns BoxList defining the compliment of b2 in b1in.
-//
-BoxList boxDiff (const Box& b1in, const Box& b2);
-/*@ManDoc: Returns a new BoxList in which each Box is refined by the
-  given ratio.
-*/
-BoxList refine (const BoxList&  bl, int ratio);
-/*@ManDoc: Returns a new BoxList in which each Box is coarsened by
-  the given ratio.
-*/
-BoxList coarsen (const BoxList& bl, int ratio);
-//
-//@ManDoc: Returns a BoxList defining the intersection of bl with b.
-//
-BoxList intersect (const BoxList& bl, const Box& b);
-//
-//@ManDoc: Returns a BoxList defining the intersection of bl with br.
-//
-BoxList intersect (const BoxList& bl, const BoxList& br);
+    /*@ManDoc: Returns a BoxList defining the complement of BoxList bl
+      in Box b.
+    */
+    BoxList complementIn(const Box& b, const BoxList& bl);
+    //
+    //@ManDoc: Returns BoxList defining the compliment of b2 in b1in.
+    //
+    BoxList boxDiff (const Box& b1in, const Box& b2);
+    /*@ManDoc: Returns a new BoxList in which each Box is refined by the
+      given ratio.
+    */
+    BoxList refine (const BoxList&  bl, int ratio);
+    /*@ManDoc: Returns a new BoxList in which each Box is coarsened by
+      the given ratio.
+    */
+    BoxList coarsen (const BoxList& bl, int ratio);
+    //
+    //@ManDoc: Returns a BoxList defining the intersection of bl with b.
+    //
+    BoxList intersect (const BoxList& bl, const Box& b);
+    //
+    //@ManDoc: Returns a BoxList defining the intersection of bl with br.
+    //
+    BoxList intersect (const BoxList& bl, const BoxList& br);
 
-/*@ManDoc: Returns a new BoxList in which each Box is grown by the
-  given size.
-*/
-BoxList accrete (const BoxList& bl, int sz);
+    /*@ManDoc: Returns a new BoxList in which each Box is grown by the
+      given size.
+    */
+    BoxList accrete (const BoxList& bl, int sz);
 }
 
 //
 //@ManDoc: Output a BoxList to an ostream in ASCII format.
 //
 std::ostream& operator<< (std::ostream&  os, const BoxList& blist);
-
 
 //
 //@Man:
@@ -72,10 +68,12 @@ std::ostream& operator<< (std::ostream&  os, const BoxList& blist);
 
 class BoxList
 {
-    friend class BoxListIterator;
     friend class BoxDomain;
 
 public:
+
+    typedef std::list<Box>::iterator       Iterator;
+    typedef std::list<Box>::const_iterator ConstIterator;
     //
     //@ManDoc: Construct an empty BoxList with IndexType::TheCellType().
     //
@@ -123,12 +121,12 @@ public:
     //
     //@ManDoc: Add the Box after where the iterator points.
     //
-    void addAfter (BoxListIterator& bli,
+    void addAfter (Iterator& bli,
                    const Box&       bn);
     //
     //@ManDoc: Add the Box before where the iterator points.
     //
-    void addBefore (BoxListIterator& bli,
+    void addBefore (Iterator& bli,
                     const Box&       bn);
     //
     //@ManDoc: Remove all Boxes from this BoxList.
@@ -138,6 +136,12 @@ public:
     //@ManDoc: The number of Boxes in this BoxList.
     //
     int length () const;
+
+    Iterator begin ();
+    ConstIterator begin () const;
+
+    Iterator end ();
+    ConstIterator end () const;
 
     /*@ManDoc: True if this BoxList is valid; i.e. all the Boxes are
                valid and they all have the same IndexType.  Also returns
@@ -163,11 +167,11 @@ public:
     //
     //@ManDoc: Access the Box to which the iterator points.
     //
-    const Box& operator[] (const BoxListIterator& bli) const;
+    const Box& operator[] (const Iterator& bli) const;
     //
     //@ManDoc: Access the Box to which the iterator points.
     //
-    Box& operator[] (const BoxListIterator& bli);
+    Box& operator[] (const Iterator& bli);
     //
     //@ManDoc: True if the set of intersecting Boxes is empty.
     //
@@ -207,7 +211,7 @@ public:
     //
     //@ManDoc: Remove the pointed to Box from this BoxList.
     //
-    BoxList& remove (BoxListIterator& bli);
+    BoxList& remove (Iterator& bli);
     //
     //@ManDoc: Creates the complement of BoxList bl in Box b.
     //
@@ -301,47 +305,21 @@ protected:
     //
     // The list of Boxes.
     //
-    List<Box> lbox;
+    std::list<Box> lbox;
     //
     // Returns a reference to the List<Box>.
     //
-    List<Box>& listBox();
+    std::list<Box>& listBox();
     //
     // Returns a constant reference to the List<Box>.
     //
-    const List<Box>& listBox() const;
+    const std::list<Box>& listBox() const;
 
 private:
     //
     // The IndexType of Boxes in the BoxList.
     //
     IndexType btype;
-};
-
-//
-//@Man:
-//@Memo: An Iterator for BoxList
-/*@Doc:
-
-  An iterator class allowing traversal over the Boxes in a BoxList.
-
-  This class does support copying -- the compiler will generate
-  a copy constructor on the fly if you need it.
-
-  This class does NOT provide a default constructor or an assignment operator.
-*/
-
-class BoxListIterator
-    :
-    public ListIterator<Box>
-{
-public:
-    //
-    //@ManDoc: Construct a BoxListIterator on the supplied BoxList.
-    //
-    BoxListIterator (const BoxList& bl)
-        :
-        ListIterator<Box>(bl.lbox) {}
 };
 
 #endif /*BL_BOXLIST_H*/

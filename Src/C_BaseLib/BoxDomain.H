@@ -2,7 +2,7 @@
 #define BL_BOXDOMAIN_H
 
 //
-// $Id: BoxDomain.H,v 1.15 2001-07-19 17:23:41 car Exp $
+// $Id: BoxDomain.H,v 1.16 2001-07-23 20:07:14 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -72,12 +72,9 @@ class BoxDomain
     :
     protected BoxList
 {
-    //
-    // BoxDomainIterator is a friend of ours :-)
-    //
-    friend class BoxDomainIterator;
-
 public:
+    typedef BoxList::Iterator Iterator;
+    typedef BoxList::ConstIterator ConstIterator;
     //
     //@ManDoc: Construct an empty BoxDomain of IndexType::TheCellType().
     //
@@ -122,35 +119,43 @@ public:
     //
     //@ManDoc: Promoted from BoxList.
     //
-    BoxList::clear;
+    using BoxList::clear;
     //
     //@ManDoc: Promoted from BoxList.
     //
-    BoxList::length;
+    using BoxList::length;
     //
     //@ManDoc: Promoted from BoxList.
     //
-    BoxList::isEmpty;
+    using BoxList::isEmpty;
     //
     //@ManDoc: Promoted from BoxList.
     //
-    BoxList::isNotEmpty;
+    using BoxList::isNotEmpty;
     //
     //@ManDoc: Promoted from BoxList.
     //
-    BoxList::minimalBox;
+    using BoxList::minimalBox;
     //
     //@ManDoc: Promoted from BoxList.
     //
-    BoxList::ixType;
+    using BoxList::ixType;
     //
     //@ManDoc: Promoted from BoxList.
     //
-    BoxList::minimize;
+    using BoxList::minimize;
     //
     //@ManDoc: Promoted from BoxList.
     //
-    BoxList::simplify;
+    using BoxList::simplify;
+    //
+    //@ManDoc: Promoted from BoxList.
+    //
+    using BoxList::begin;
+    //
+    //@ManDoc: Promoted from BoxList.
+    //
+    using BoxList::end;
     //
     //@ManDoc: Create a BoxList from this BoxDomain.
     //
@@ -217,33 +222,6 @@ public:
     //
     BoxDomain& complementIn (const Box&       b,
                              const BoxDomain& bl);
-};
-
-//
-//@Man:
-//@Memo: An Iterator for BoxDomain
-/*@Doc:
-
-  An iterator class allowing traversal over the Boxes in a BoxDomain.
-
-  This class does support a coping -- the compiler will generate
-  a copy constructor on the fly if you need one.
-
-  This class also does NOT provide a default constructor or
-  a copy assignment operator.
-*/
-
-class BoxDomainIterator
-    :
-    public ListIterator<Box>
-{
-public:
-    //
-    //@ManDoc: Construct a BoxDomianIterator on the supplied BoxDomain.
-    //
-    BoxDomainIterator (const BoxDomain& bl)
-        :
-        ListIterator<Box>(bl.lbox) {}
 };
 
 #endif /*BL_BOXDOMAIN_H*/
