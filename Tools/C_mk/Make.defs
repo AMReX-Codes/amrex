@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.58 2003-01-02 14:59:30 car Exp $
+# Make.defs $Id: Make.defs,v 1.59 2003-01-22 19:19:27 car Exp $
 #
 
 #
@@ -205,7 +205,8 @@ ifeq ($(FCOMP),g77)
 endif
 ifeq ($(COMP),Intel)
    CXX := icc
-   CXXOPTF += -O
+   CXXOPTF += -O3
+   CXXOPTF += -axK
    CXXDEBF += -g
    __icc_version := $(shell $(CXX) -V 2>&1 1>/dev/null | grep Version)
    ifeq ($(findstring Version 5.0.1, $(__icc_version)), Version 5.0.1)
