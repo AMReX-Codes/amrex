@@ -15,8 +15,8 @@ bool HG_is_debugging = false;
 #ifdef BL_USE_MPI
 MPI_Comm HG::mpi_comm = MPI_COMM_WORLD;
 int HG::mpi_tag_ub;
-int HG::max_live_tasks = 50;
 #endif
+int HG::max_live_tasks = 50;
 int HG::multigrid_maxiter = 100;
 int HG::cgsolve_maxiter = 250;
 bool HG::initialized = false;
@@ -297,6 +297,7 @@ static inline bool eq(const MultiFab& a, const MultiFab& b)
 
 bool task_copy::depends_on_q(const task* t1) const
 {
+    if ( is_remote(m_mf, m_dgrid) && is_remote(m_smf, m_sgrid)) return false;
     if ( !eq(m_mf, m_smf) ) return false;
     if ( const task_copy* t1tc = dynamic_cast<const task_copy*>(t1) )
     {
@@ -308,7 +309,7 @@ bool task_copy::depends_on_q(const task* t1) const
     return false;
 }
 
-void task_copy::_do_depend()
+void task::_do_depend()
 {
     
     for ( list< task::task_proxy >::const_iterator cit = m_task_list.begin(); cit != m_task_list.end(); ++cit)
@@ -429,6 +430,7 @@ void task_copy::hint() const
 task_copy_local::task_copy_local(task_list& tl_, FArrayBox* fab_, int target_proc_id, const Box& bx, const MultiFab& smf_, int grid)
     : task(tl_), m_fab(fab_), m_smf(smf_), m_sgrid(grid), m_bx(bx), tmp(0), m_local(false), m_target_proc_id(target_proc_id)
 {
+    _do_depend();
 }
 
 task_copy_local::~task_copy_local()
@@ -518,6 +520,17 @@ bool task_copy_local::ready()
 #endif
     return false;
 }
+
+bool task_copy_local::depends_on_q(const task* t1) const
+{
+    if ( m_fab==0 && is_remote(m_smf, m_sgrid)) return false;
+    if ( const task_copy_local* t1tc = dynamic_cast<const task_copy_local*>(t1) )
+    {
+	// if ( m_sgrid == t1tc->m_sgrid && m_bx.intersects(t1tc->m_bx) ) return true;
+    }
+    return false;
+}
+
 
 // TASK_FAB
 
