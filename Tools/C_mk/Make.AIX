@@ -13,7 +13,6 @@ ifeq ($(COMP),KCC)
   CXX     := KCC
   CXXOPTF += +K2
   CXXDEBF += +K0
-  override XTRADEFS += -DBL_USE_NEW_HFILES
 endif
 
 ifeq ($(COMP),newKCC)
@@ -26,7 +25,8 @@ ifeq ($(COMP),mpKCC)
   CXX     := mpKCC
   CXXOPTF += +K2
   CXXDEBF += +K0
-  override XTRADEFS += -DBL_USE_NEW_HFILES
+  override XTRADEFS += -DBL_USE_NEW_HFILES -DBL_COALESCE_FABS
+  override XTRADEFS += --no_exceptions --backend '-qmaxmem=4096'
 endif
 
 ifeq ($(PROFILE), TRUE)
