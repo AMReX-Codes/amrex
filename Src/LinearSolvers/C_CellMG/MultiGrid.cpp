@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiGrid.cpp,v 1.5 1998-12-08 18:25:45 wyc Exp $
+// $Id: MultiGrid.cpp,v 1.6 1999-01-04 18:10:22 marc Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -55,16 +55,16 @@ MultiGrid::initialize ()
 
     if (ParallelDescriptor::IOProcessor() && def_verbose)
     {
-        cout << "def_nu_0 = " << def_nu_0 << '\n';
-        cout << "def_nu_1 = " << def_nu_1 << '\n';
-        cout << "def_nu_2 = " << def_nu_2 << '\n';
-        cout << "def_nu_f = " << def_nu_f << '\n';
-        cout << "def_maxiter = " << def_maxiter << '\n';
-        cout << "def_usecg = "  << def_usecg << '\n';
-        cout << "def_rtol_b = " << def_rtol_b << '\n';
-        cout << "def_atol_b = " << def_atol_b << '\n';
-        cout << "def_nu_b = "   << def_nu_b << '\n';
-        cout << "def_numLevelsMAX = "   << def_numLevelsMAX << '\n';
+        cout << "MultiGrid: def_nu_0 = " << def_nu_0 << '\n';
+        cout << "MultiGrid: def_nu_1 = " << def_nu_1 << '\n';
+        cout << "MultiGrid: def_nu_2 = " << def_nu_2 << '\n';
+        cout << "MultiGrid: def_nu_f = " << def_nu_f << '\n';
+        cout << "MultiGrid: def_maxiter = " << def_maxiter << '\n';
+        cout << "MultiGrid: def_usecg = "  << def_usecg << '\n';
+        cout << "MultiGrid: def_rtol_b = " << def_rtol_b << '\n';
+        cout << "MultiGrid: def_atol_b = " << def_atol_b << '\n';
+        cout << "MultiGrid: def_nu_b = "   << def_nu_b << '\n';
+        cout << "MultiGrid: def_numLevelsMAX = "   << def_numLevelsMAX << '\n';
     }
 }
 
@@ -89,6 +89,27 @@ MultiGrid::MultiGrid (LinOp &_Lp)
     nu_b         = def_nu_b;
     numLevelsMAX = def_numLevelsMAX;
     numlevels    = numLevels();
+    if (ParallelDescriptor::IOProcessor() && verbose > 2)
+    {
+	cout << "MultiGrid: " << numlevels
+	     << " multigrid levels created for this solve" << '\n';
+	cout << "Grids: " << '\n';
+	BoxArray tmp = Lp.boxArray();
+	for (int i=0; i<numlevels; ++i)
+	{
+	    if (i>0)
+		tmp.coarsen(2);
+	    cout << " Level: " << i << '\n';
+	    for (int k = 0; k < tmp.length(); k++)
+	    {
+		const Box& b = tmp[k];
+		cout << "  [" << k << "]: " << b << "   ";
+		for (int j = 0; j < BL_SPACEDIM; j++)
+		    cout << b.length(j) << ' ';
+		cout << '\n';
+	    }
+	}
+    }
 }
 
 MultiGrid::~MultiGrid ()

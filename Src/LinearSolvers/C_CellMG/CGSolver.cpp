@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CGSolver.cpp,v 1.6 1998-12-08 18:25:44 wyc Exp $
+// $Id: CGSolver.cpp,v 1.7 1999-01-04 18:10:22 marc Exp $
 //
 
 // Conjugate gradient support
@@ -29,7 +29,7 @@ CGSolver::initialize ()
 
     if (ParallelDescriptor::IOProcessor() && def_verbose)
     {
-        cout << "def_maxiter=" << def_maxiter << '\n';
+        cout << "CGSolver: def_maxiter=" << def_maxiter << '\n';
     }
 
     initialized = 1;
