@@ -12,7 +12,7 @@ c-----------------------------------------------------------------------
       dbon   = .FALSE.
 #endif
       write(unit=hgdump,fmt='(a,i3.3,''_'',i3.3)')
-     &     'fgu', procno, numpc
+     &     'fgu', numpc, procno
       open(unit=dbunit, file=hgdump, status='replace')
       end
 c-----------------------------------------------------------------------
@@ -78,7 +78,7 @@ c-----------------------------------------------------------------------
       integer il0,il1,ih0,ih1
       double precision a(al0:ah0,al1:ah1,1:nc)
       double precision norm(4)
-      integer i,j,k,n
+      integer i,j,n
 #include "hgdebug_F.H"
       if ( .NOT. dbon ) return
       if ( dbnorm ) then
@@ -88,8 +88,8 @@ c-----------------------------------------------------------------------
          do n = 1, nc
             do i = il0, ih0
                do j = il1, ih1
-                  norm(1) = norm(1) + a(i,j,k,n)
-                  norm(3) = norm(3) + a(i,j,k,n)**2
+                  norm(1) = norm(1) + a(i,j,n)
+                  norm(3) = norm(3) + a(i,j,n)**2
                end do
             end do
          end do
@@ -97,8 +97,8 @@ c-----------------------------------------------------------------------
          do n = 1, nc
             do i = al0, ah0
                do j = al1, ah1
-                  norm(2) = norm(2) + a(i,j,k,n)
-                  norm(4) = norm(4) + a(i,j,k,n)**2
+                  norm(2) = norm(2) + a(i,j,n)
+                  norm(4) = norm(4) + a(i,j,n)**2
                end do
             end do
          end do
@@ -119,7 +119,7 @@ c-----------------------------------------------------------------------
             do i = il0, ih0
                do j = il1, ih1
                   write(unit=dbunit, fmt=*) name,
-     &                 '(', i,j,k,n,')', a(i,j,k,n)
+     &                 '(', i,j,n,')', a(i,j,n)
                end do
             end do
          end do
