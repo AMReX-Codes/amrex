@@ -66,12 +66,12 @@ task::task (task_list& tl_)
     m_finished(false),
     m_started(false)
 {
-    BL_ASSERT(m_sno != 0);
+    BL_ASSERT(m_sno > 0);
 }
 
 task::~task () 
 {
-    BL_ASSERT(m_sno != 0);
+    BL_ASSERT(m_sno > 0);
 }
 
 bool
@@ -122,7 +122,7 @@ void
 task::_hint () const
 {
 #ifdef HG_DEBUG
-    BL_ASSERT(m_sno != 0);
+    BL_ASSERT(m_sno > 0);
     HG_DEBUG_OUT("(" << typeid(*this).name() << ' ' << m_sno << ' ' << m_started << ' ');
     print_dependencies(debug_out);
 #endif
@@ -689,7 +689,7 @@ task_fab::task_fab (task_list&      tl_,
     ncomp(ncomp_),
     m_target_proc_id(processor_number(t_,tt_))
 {
-    BL_ASSERT(m_sno != 0);
+    BL_ASSERT(m_sno > 0);
     if (is_local(t_, tt_))
         target = new FArrayBox(region, ncomp);
 }
