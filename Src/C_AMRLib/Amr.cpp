@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.86 1999-05-27 20:55:59 sstanley Exp $
+// $Id: Amr.cpp,v 1.87 1999-06-08 00:57:37 marc Exp $
 //
 
 #include <TagBox.H>
@@ -371,22 +371,22 @@ Amr::Amr ()
 bool
 Amr::isPlotVar (const aString& name)
 {
-    if (plot_vars.length() == 0)
-        return false;
+    bool retval = false;
+    for (int i = 0; i < plot_vars.length() && !retval; i++)
+        if (plot_vars[i] == name || plot_vars[i] == "ALL")
+            retval = true;
 
-    if (plot_vars.length() == 1 && plot_vars[0] == "ALL")
-        return true;
-
-    for (int i = 0; i < plot_vars.length(); i++)
-        if (plot_vars[i] == name)
-            return true;
-
-    return false;
+    return retval;
 }
 
 void
 Amr::addPlotVar (const aString& name)
 {
+    if (name=="ALL")
+        for (int i = 0; i < plot_vars.length(); i++)
+            if (plot_vars[i] == "NONE")
+                plot_vars[i] = name;
+
     if (!isPlotVar(name))
     {
         plot_vars.resize(plot_vars.length() + 1);
@@ -397,36 +397,35 @@ Amr::addPlotVar (const aString& name)
 bool
 Amr::isDerivePlotVar (const aString& name)
 {
-    if (derive_plot_vars.length() == 0)
-        return false;
-
-    if (derive_plot_vars.length() == 1 && derive_plot_vars[0] == "NONE")
-        return false;
-
-    if (derive_plot_vars.length() == 1 && derive_plot_vars[0] == "ALL")
-        return true;
-
     for (int i = 0; i < derive_plot_vars.length(); i++)
-        if (derive_plot_vars[i] == name)
-            return true;
+        if (derive_plot_vars[i] == "NONE")
+            return false;
 
-    return false;
+    bool retval = false;
+    for (int i = 0; i < derive_plot_vars.length() && !retval; i++)
+        if (derive_plot_vars[i] == name || derive_plot_vars[i] == "ALL")
+            retval = true;
+
+    return retval;
 }
 
 void
 Amr::addDerivePlotVar (const aString& name)
 {
+    if (name=="ALL")
+        for (int i = 0; i < derive_plot_vars.length(); i++)
+            if (derive_plot_vars[i] == "NONE")
+                derive_plot_vars[i] = name;
+
+    if (name=="NONE")
+        for (int i = 0; i < derive_plot_vars.length(); i++)
+            if (derive_plot_vars[i] == "ALL")
+                derive_plot_vars[i] = name;
+
     if (!isDerivePlotVar(name))
     {
-        if (derive_plot_vars.length() == 1 && derive_plot_vars[0] == "NONE")
-        {
-            derive_plot_vars[0] = name;
-        }
-        else
-        {
-            derive_plot_vars.resize(derive_plot_vars.length() + 1);
-            derive_plot_vars[derive_plot_vars.length() - 1] = name;
-        }
+        derive_plot_vars.resize(derive_plot_vars.length() + 1);
+        derive_plot_vars[derive_plot_vars.length() - 1] = name;
     }
 }
 
