@@ -3,7 +3,7 @@
 #define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.26 2000-11-08 21:48:21 lijewski Exp $
+// $Id: BaseFab.H,v 1.27 2000-11-08 22:01:50 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -505,7 +505,7 @@ BaseFab<T>::dataPtr (int n) const
 
 template <class T>
 inline
-book
+bool
 BaseFab<T>::isAllocated () const
 {
     return dptr != 0;
