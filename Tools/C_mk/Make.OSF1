@@ -1,5 +1,5 @@
 #
-# $Id: Make.OSF1,v 1.6 1998-05-14 22:06:03 lijewski Exp $
+# $Id: Make.OSF1,v 1.7 1998-06-09 15:02:43 lijewski Exp $
 #
 
 #
@@ -12,6 +12,7 @@ CXXOPTF  += -O2 -tune ev5 -Olimit 2400
 CXXDEBF  += -g
 CXXPRFF  := -p
 override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
+DEFINES += -DBL_USE_SETBUF
 endif
 
 ifeq ($(COMP),KCC)
@@ -24,10 +25,12 @@ FULLWARN    := --strict_warnings
 CXXOPTF     += -O3 +K3 -g3 -Olimit 2000
 CXXDEBF     += +K0
 override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
+DEFINES += -DBL_USE_SETBUF
 endif
 
 ifeq ($(COMP),g++)
 override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
+DEFINES += -DBL_USE_SETBUF
 endif
 
 FC = f90
