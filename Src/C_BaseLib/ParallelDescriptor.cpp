@@ -1,11 +1,12 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.30 1998-04-20 04:18:54 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.31 1998-04-20 22:18:29 lijewski Exp $
 //
 
 #include <Utility.H>
 #include <ParallelDescriptor.H>
+#include <Tracer.H>
 
 //
 // Definition of non-inline members of CommData.
@@ -396,6 +397,8 @@ ParallelDescriptor::StartParallel (int,
                                    int*    argc,
                                    char*** argv)
 {
+    TRACER("ParallelDescriptor::StartParallel()");
+
     int rc;
 
     if ((rc = MPI_Init(argc, argv)) != MPI_SUCCESS)
@@ -411,6 +414,8 @@ ParallelDescriptor::StartParallel (int,
 void
 ParallelDescriptor::EndParallel ()
 {
+    TRACER("ParallelDescriptor::EndParallel()");
+
     int rc = MPI_Finalize();
 
     if (!(rc == MPI_SUCCESS))
@@ -453,6 +458,8 @@ ParallelDescriptor::second ()
 void
 ParallelDescriptor::Barrier ()
 {
+    TRACER("ParallelDescriptor::Barrier()");
+
     int rc = MPI_Barrier(MPI_COMM_WORLD);
 
     if (!(rc == MPI_SUCCESS))
@@ -470,6 +477,8 @@ void ParallelDescriptor::SetMessageHeaderSize (int) {}
 void
 ParallelDescriptor::ReduceRealMax (Real& r)
 {
+    TRACER("ParallelDescriptor::ReduceRealMax()");
+
     Real recv;
 
     int rc = MPI_Allreduce(&r,
@@ -488,6 +497,8 @@ ParallelDescriptor::ReduceRealMax (Real& r)
 void
 ParallelDescriptor::ReduceRealMin (Real& r)
 {
+    TRACER("ParallelDescriptor::ReduceRealMin()");
+
     Real recv;
 
     int rc = MPI_Allreduce(&r,
@@ -506,6 +517,8 @@ ParallelDescriptor::ReduceRealMin (Real& r)
 void
 ParallelDescriptor::ReduceRealSum (Real& r)
 {
+    TRACER("ParallelDescriptor::ReduceRealSum()");
+
     Real recv;
 
     int rc = MPI_Allreduce(&r,
@@ -524,6 +537,8 @@ ParallelDescriptor::ReduceRealSum (Real& r)
 void
 ParallelDescriptor::ReduceLongAnd (long& r)
 {
+    TRACER("ParallelDescriptor::ReduceLongAnd()");
+
     long recv;
 
     int rc = MPI_Allreduce(&r, &recv, 1, MPI_LONG, MPI_LAND, MPI_COMM_WORLD);
@@ -537,6 +552,8 @@ ParallelDescriptor::ReduceLongAnd (long& r)
 void
 ParallelDescriptor::ReduceLongSum (long& r)
 {
+    TRACER("ParallelDescriptor::ReduceLongSum()");
+
     long recv;
 
     int rc = MPI_Allreduce(&r, &recv, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
@@ -550,6 +567,8 @@ ParallelDescriptor::ReduceLongSum (long& r)
 void
 ParallelDescriptor::ReduceIntSum (int& r)
 {
+    TRACER("ParallelDescriptor::ReduceIntSum()");
+
     int recv;
 
     int rc = MPI_Allreduce(&r, &recv, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -566,6 +585,8 @@ ParallelDescriptor::Gather (Real* sendbuf,
                             Real* recvbuf,
                             int   root)
 {
+    TRACER("ParallelDescriptor::Gather()");
+
     assert(root >= 0);
     assert(nsend > 0);
     assert(!(sendbuf == 0));
