@@ -1272,13 +1272,13 @@ contains
     type(boxarray), intent(out) :: ba
     type(box),      intent(in)  :: bx
     integer,        intent(in)  :: ng
-    integer                     :: i
-    integer                     :: len(1:bx%dim)
+    integer                     :: i, len(1:bx%dim)
     type(boxarray)              :: tba
 
     if (ng < 0) call bl_error("BOXARRAY_BOX_CORNERS: ng must be >= 0!")
 
     call boxarray_build_bx(ba, grow(bx, ng))
+
     len = 0
     do i = 1, bx%dim
        len(i) = ng
