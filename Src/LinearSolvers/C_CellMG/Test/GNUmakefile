@@ -1,6 +1,6 @@
 PRECISION = DOUBLE
-DEBUG	= TRUE
 DEBUG	= FALSE
+DEBUG	= TRUE
 PROFILE = FALSE
 
 DIM	= 2
@@ -10,18 +10,9 @@ COMP = KCC
 
 PBOXLIB_HOME = ../..
 
-USE_BSP=FALSE
-USE_BSP=TRUE
 USE_NETCDF=FALSE
-USE_ARRAYVIEW = FALSE
 USE_ARRAYVIEW = TRUE
-
-#
-# What is the type of BSP device?
-#
-ifeq ($(USE_BSP),TRUE)
-BSP_DEVICE = SHMEM_SYSV
-endif
+USE_ARRAYVIEW = FALSE
 
 EBASE = mg
 LBASE = 
@@ -31,23 +22,6 @@ HERE = .
 include $(PBOXLIB_HOME)/mk/Make.defs
 
 CPPFLAGS += -DBL_USE_NEW_HFILES
-
-ifeq ($(USE_BSP), TRUE)
-DEFINES += -DBL_USE_BSP
-ifeq ($(BSP_MACHINE), OSF1)
-BSP_HOME = /usr/people/vince/Parallel/BSP/BSP
-endif
-ifeq ($(MACHINE), T3E)
-ifeq ($(WHICHT3E), NERSC)
-DEFINES += -DBL_T3E_NERSC
-BSP_HOME = /u1/vince/BSP
-endif
-ifeq ($(WHICHT3E), NAVO)
-DEFINES += -DBL_T3E_NAVO
-BSP_HOME = /home/Cvince/BSP
-endif
-endif
-endif
 
 include $(HERE)/Make.package
 
@@ -64,31 +38,14 @@ INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/util
 CEXE_headers += TV_TempWrite.H
 endif
 
-ifeq ($(USE_BSP), TRUE)
-INCLUDE_LOCATIONS += $(BSP_HOME)/include
-LIBRARY_LOCATIONS += $(BSP_HOME)/lib/$(BSP_MACHINE)
-LIBRARY_LOCATIONS += $(BSP_HOME)/lib/$(BSP_MACHINE)/$(BSP_DEVICE)
-endif
-
 ifeq ($(USE_NETCDF),TRUE)
 LIBRARIES += /usr/people/stevens/bin/libnetcdf.a
 INCLUDE_LOCATIONS += /usr/people/stevens/bin
 endif
 
-ifeq ($(USE_BSP), TRUE)
-ifeq ($(DEBUG), TRUE)
-LIBRARIES += -lbspcore_O0 -lbsplevel1_O0
-else
-ifeq ($(BSP_MACHINE), OSF1)
-LIBRARIES += -lbspcore_O2 -lbsplevel1_O0
-else
-LIBRARIES += -lbspcore_O2 -lbsplevel1_O2
-endif
-endif
-endif
 
 ###### exception library (for newest bsplib)
-ifeq ($(BSP_MACHINE), OSF1)
+ifeq ($(MACHINE), OSF1)
 LIBRARY_LOCATIONS += /usr/ccs/lib/cmplrs/cc
 LIBRARIES += -lexc 
 endif
@@ -115,11 +72,7 @@ CDEBF +=
 
 FOPTF = -fast
 
-ifeq ($(USE_BSP),TRUE)
-vpath %.cpp : . $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/amrlib $(PBOXLIB_HOME)/bndrylib $(PBOXLIB_HOME)/mglib $(UTILITY_DIR) $(PRELOAD_DIR)
-else
 vpath %.cpp : . $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/amrlib $(PBOXLIB_HOME)/bndrylib $(PBOXLIB_HOME)/mglib $(UTILITY_DIR) 
-endif
 vpath %.F   : . $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/amrlib $(PBOXLIB_HOME)/bndrylib $(PBOXLIB_HOME)/mglib
 
 all: $(executable)

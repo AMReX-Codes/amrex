@@ -79,15 +79,6 @@ CEXE_sources += main.cpp
 INCLUDE_LOCATIONS +=  .
 
 #
-# BSP stuff
-#
-ifeq ($(USE_BSP),TRUE)
-PRELOAD_DIR = $(PBOXLIB_HOME)/util
-INCLUDE_LOCATIONS += $(PRELOAD_DIR)
-CEXE_sources += preload.cpp
-endif
-
-#
 # utility stuff
 #
 CEXE_sources += WritePlotFile.cpp

@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.5 1998-04-15 20:59:27 marc Exp $
+// $Id: main.cpp,v 1.6 1998-07-30 23:14:16 car Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -64,14 +64,6 @@ main (int   argc,
     ParmParse pp(argc-2,argv+2,NULL,argv[1]); 
 
     int nprocs = NPROCS; pp.query("nprocs", nprocs);
-#ifndef BL_USE_BSP
-    if (nprocs > 1)
-    {
-      cerr << "Error in main:  multiple processors specified with "
-           << "code compiled without a parallel library.\n";
-      exit(-1);
-    }
-#endif
     ParallelDescriptor::StartParallel(nprocs, &argc, &argv);
 
     int i, n;
