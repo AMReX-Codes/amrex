@@ -358,30 +358,17 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
     
     RegType bc[BL_SPACEDIM][2];
     
-#if (BL_SPACEDIM == 2)
-    //bc[0][0] = inflow;
-    //bc[0][1] = outflow;
-    bc[0][0] = periodic;
-    bc[0][1] = periodic;
-    //bc[0][0] = refWall;
-    //bc[0][1] = refWall;
-    bc[1][0] = periodic;
-    bc[1][1] = periodic;
-    //bc[1][0] = refWall;
-    //bc[1][1] = refWall;
-    //bc[1][0] = inflow;
-    //bc[1][1] = outflow;
-#else
     for (int i = 0; i < BL_SPACEDIM; i++) 
     {
-	//bc[i][0] = refWall;
-	//bc[i][1] = refWall;
-	bc[i][0] = periodic;
-	bc[i][1] = periodic;
+	bc[i][0] = refWall;
+	bc[i][1] = refWall;
+	// bc[i][0] = periodic;
+	// bc[i][1] = periodic;
     }
-#endif
     bc[1][0] = refWall;
     bc[1][1] = refWall;
+    bc[1][0] = inflow;
+    bc[1][1] = outflow;
         
     PArray<MultiFab> u[BL_SPACEDIM];
     PArray<MultiFab> p, rhoinv, rhs;
