@@ -53,7 +53,7 @@ int main(int argc, char **argv)
     HG_is_debugging = false;   
 #ifdef HG_DEBUG
 #ifdef __GNUC__
-    debug_out.open("guf", ios::trunc);
+    debug_out.open("guf");
 #else
     std::ostringstream fname;
     fname << "gu" << ParallelDescriptor::NProcs() << "_" << ParallelDescriptor::MyProc() << std::ends;
