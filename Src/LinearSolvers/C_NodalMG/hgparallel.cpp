@@ -8,6 +8,7 @@
 
 #ifdef HG_DEBUG
 #include <algorithm>
+#include <iomanip>
 #include <typeinfo>
 #include <cstdio>
 #include <fstream>
@@ -35,6 +36,7 @@ HG::MPI_init ()
         ParmParse pp("HG");
 
         pp.query("cgsolve_maxiter", cgsolve_maxiter);
+	pp.query("debugging", HG_is_debugging);
         pp.query("multigrid_maxiter", multigrid_maxiter);
         pp.query("cgsolve_tolfact", cgsolve_tolfact);
         pp.query("max_live_tasks", max_live_tasks);

@@ -587,16 +587,16 @@ c CELL-based data only.
       do nc = 1, ncomp
       do k = regl2, regh2
          kc = k/kr
-         zoff = (mod(k,kr) + 0.5) / kr - 0.5
+         zoff = (mod(k,kr) + 0.5D0) / kr - 0.5D0
          do j = regl1, regh1
             jc = j/jr
-            yoff = (mod(j,jr) + 0.5) / jr - 0.5
+            yoff = (mod(j,jr) + 0.5D0) / jr - 0.5D0
             do i = regl0, regh0
                ic = i/ir
-               xoff = (mod(i,ir) + 0.5) / ir - 0.5
-               sz = 0.5 * (src(ic,jc,kc+1,nc) - src(ic,jc,kc-1,nc))
-               sy = 0.5 * (src(ic,jc+1,kc,nc) - src(ic,jc-1,kc,nc))
-               sx = 0.5 * (src(ic+1,jc,kc,nc) - src(ic-1,jc,kc,nc))
+               xoff = (mod(i,ir) + 0.5D0) / ir - 0.5D0
+               sz = 0.5D0 * (src(ic,jc,kc+1,nc) - src(ic,jc,kc-1,nc))
+               sy = 0.5D0 * (src(ic,jc+1,kc,nc) - src(ic,jc-1,kc,nc))
+               sx = 0.5D0 * (src(ic+1,jc,kc,nc) - src(ic-1,jc,kc,nc))
                dest(i,j,k,nc) = src(ic,jc,kc,nc)
      &          + xoff*sx + yoff*sy + zoff*sz
             end do

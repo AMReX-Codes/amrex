@@ -341,12 +341,12 @@ c CELL-based data only.
       do nc = 1, ncomp
       do j = regl1, regh1
          jc = j/jr
-         yoff = (mod(j,jr) + 0.5) / jr - 0.5
+         yoff = (mod(j,jr) + 0.5D0) / jr - 0.5D0
          do i = regl0, regh0
             ic = i/ir
-            xoff = (mod(i,ir) + 0.5) / ir - 0.5
-            sy = 0.5 * (src(ic,jc+1,nc) - src(ic,jc-1,nc))
-            sx = 0.5 * (src(ic+1,jc,nc) - src(ic-1,jc,nc))
+            xoff = (mod(i,ir) + 0.5D0) / ir - 0.5D0
+            sy = 0.5D0 * (src(ic,jc+1,nc) - src(ic,jc-1,nc))
+            sx = 0.5D0 * (src(ic+1,jc,nc) - src(ic-1,jc,nc))
             dest(i,j,nc) = src(ic,jc,nc) + xoff * sx + yoff * sy
          end do
       end do
