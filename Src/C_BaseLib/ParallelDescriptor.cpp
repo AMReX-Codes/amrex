@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.29 1998-04-19 03:46:41 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.30 1998-04-20 04:18:54 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -434,7 +434,7 @@ ParallelDescriptor::NProcs ()
 bool
 ParallelDescriptor::IOProcessor ()
 {
-    assert(MyId == -1);
+    assert(MyId != -1);
     return MyId == ioProcessor;
 }
 
