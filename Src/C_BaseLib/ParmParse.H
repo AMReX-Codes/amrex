@@ -1,12 +1,13 @@
 #ifndef BL_PARMPARSE_H
 #define BL_PARMPARSE_H
 //
-// $Id: ParmParse.H,v 1.22 2001-07-26 20:08:45 lijewski Exp $
+// $Id: ParmParse.H,v 1.23 2001-08-06 19:39:59 car Exp $
 //
+#include <stack>
 #include <string>
 #include <iosfwd>
+#include <vector>
 
-#include <Array.H>
 //
 // ParmParse class implements a simple database for the storage and
 // retrieval of command-line and input-file arguments.  The entries are
@@ -235,6 +236,7 @@ class IntVect;
 class ParmParse
 {
 public:
+    class Frame;
 
     enum { LAST = -1, FIRST = 0, ALL = -1 };
 
@@ -244,7 +246,7 @@ public:
                for this particular ParmParse object.
     */
     
-    explicit ParmParse (const char* prefix = 0);
+    explicit ParmParse (const std::string& prefix = std::string());
     
     //
     //@ManDoc: Returns true if name is in table.
@@ -526,11 +528,11 @@ public:
                Box&        ref,
                int         ival = FIRST) const;
 
-    /*@ManDoc: Gets an Array<int> of num\_val values from kth occurrence of
+    /*@ManDoc: Gets an std::vector<int> of num\_val values from kth occurrence of
                given name.  If successful, the values are converted to an int
-               and stored in the Array<int> object ref.  ref is resized (if
+               and stored in the std::vector<int> object ref.  ref is resized (if
                necessary) to hold num\_val values.  The value in the list
-               indexed by start\_ix is copied into Array<int>[0], Array<int>[1]
+               indexed by start\_ix is copied into std::vector<int>[0], std::vector<int>[1]
                holds start\_ix+1, etc.  If the kth occurrence does not exist
                or there are fewer than start\_ix + num\_val values associated
                with the kth occurrence, or if some of the values cannot be
@@ -539,14 +541,14 @@ public:
     */
     void getktharr (const char* name,
                     int         k,
-                    Array<int>& ref,
+                    std::vector<int>& ref,
                     int         start_ix = FIRST,
                     int         num_val = ALL) const;
     //
     //@ManDoc: Same as getktharr() but searches for last occurrence of name.
     //
     void getarr (const char* name,
-                 Array<int>& ref,
+                 std::vector<int>& ref,
                  int         start_ix = FIRST,
                  int         num_val = ALL) const;
     //
@@ -554,23 +556,23 @@ public:
     //
     int queryktharr (const char* name,
                      int         k,
-                     Array<int>& ref,
+                     std::vector<int>& ref,
                      int         start_ix = FIRST,
                      int         num_val = ALL) const;
     //
     //@ManDoc: Same as queryktharr() but searches for last occurrence of name.
     //
     int queryarr (const char* name,
-                  Array<int>& ref,
+                  std::vector<int>& ref,
                   int         start_ix = FIRST,
                   int         num_val = ALL) const;
 
-    /*@ManDoc: Gets an Array<float> of num\_val values from kth occurrence of
+    /*@ManDoc: Gets an std::vector<float> of num\_val values from kth occurrence of
                given name.  If successful, the values are converted to a float
-               and stored in the Array<float> object ref.  ref is resized (if
+               and stored in the std::vector<float> object ref.  ref is resized (if
                necessary) to hold num\_val values.  The value in the list
-               indexed by start\_ix is copied into Array<float>[0],
-               Array<float>[1] holds start\_ix+1, etc.  If the kth occurrence
+               indexed by start\_ix is copied into std::vector<float>[0],
+               std::vector<float>[1] holds start\_ix+1, etc.  If the kth occurrence
                does not exist or there are fewer than start\_ix + num\_val
                values associated with the kth occurrence, or if some of the
                values cannot be converted to a float, an error message is
@@ -578,14 +580,14 @@ public:
     */
     void getktharr (const char*   name,
                     int           k,
-                    Array<float>& ref,
+                    std::vector<float>& ref,
                     int           start_ix = FIRST,
                     int           num_val = ALL) const;
     //
     //@ManDoc: Same as getktharr() but searches for last occurrence of name.
     //
     void getarr (const char*   name,
-                 Array<float>& ref,
+                 std::vector<float>& ref,
                  int           start_ix = FIRST,
                  int           num_val = ALL) const;
     //
@@ -593,23 +595,23 @@ public:
     //
     int queryktharr (const char*   name,
                      int           k,
-                     Array<float>& ref,
+                     std::vector<float>& ref,
                      int           start_ix = FIRST,
                      int           num_val = ALL) const;
     //
     //@ManDoc: Same as queryktharr() but searches for last occurrence of name.
     //
     int queryarr (const char*   name,
-                  Array<float>& ref,
+                  std::vector<float>& ref,
                   int           start_ix = FIRST,
                   int           num_val = ALL) const;
 
-    /*@ManDoc: Gets an Array<double> of num\_val values from kth occurrence of
+    /*@ManDoc: Gets an std::vector<double> of num\_val values from kth occurrence of
                given name.  If successful, the values are converted to a double
-               and stored in the Array<double> object ref.  ref is resized (if
+               and stored in the std::vector<double> object ref.  ref is resized (if
                necessary) to hold num\_val values.  The value in the list
-               indexed by start\_ix is copied into Array<double>[0],
-               Array<double>[1] holds start\_ix+1, etc.  If the kth occurrence
+               indexed by start\_ix is copied into std::vector<double>[0],
+               std::vector<double>[1] holds start\_ix+1, etc.  If the kth occurrence
                does not exist or there are fewer than start\_ix + num\_val
                values associated with the kth occurrence, or if some of the
                values cannot be converted to a double, an error message is
@@ -617,14 +619,14 @@ public:
     */
     void getktharr (const char*    name,
                     int            k,
-                    Array<double>& ref,
+                    std::vector<double>& ref,
                     int            start_ix = FIRST,
                     int            num_val = ALL) const;
     //
     //@ManDoc: Same as getktharr() but searches for last occurrence of name.
     //
     void getarr (const char*    name,
-                 Array<double>& ref,
+                 std::vector<double>& ref,
                  int            start_ix = FIRST,
                  int            num_val = ALL) const;
     //
@@ -632,23 +634,23 @@ public:
     //
     int queryktharr (const char*    name,
                      int            k,
-                     Array<double>& ref,
+                     std::vector<double>& ref,
                      int            start_ix = FIRST,
                      int            num_val = ALL) const;
     //
     //@ManDoc: Same as queryktharr() but searches for last occurrence of name.
     //
     int queryarr (const char*    name,
-                  Array<double>& ref,
+                  std::vector<double>& ref,
                   int            start_ix = FIRST,
                   int            num_val = ALL) const;
 
-    /*@ManDoc: Gets an Array<std::string> of num\_val values from kth occurrence of
+    /*@ManDoc: Gets an std::vector<std::string> of num\_val values from kth occurrence of
                given name.  If successful, the values are converted to an
-               std::string and stored in the Array<std::string> object ref.  ref is
+               std::string and stored in the std::vector<std::string> object ref.  ref is
                resized (if necessary) to hold num\_val values.  The value in
-               the list indexed by start\_ix is copied into Array<std::string>[0],
-               Array<std::string>[1] holds start\_ix+1, etc.  If the kth occurrence
+               the list indexed by start\_ix is copied into std::vector<std::string>[0],
+               std::vector<std::string>[1] holds start\_ix+1, etc.  If the kth occurrence
                does not exist or there are fewer than start\_ix + num\_val
                values associated with the kth occurrence, or if some of the
                values cannot be converted to an std::string, an error message is
@@ -656,14 +658,14 @@ public:
     */
     void getktharr (const char*     name,
                     int             k,
-                    Array<std::string>& ref,
+                    std::vector<std::string>& ref,
                     int             start_ix = FIRST,
                     int             num_val = ALL) const;
     //
     //@ManDoc: Same as getktharr() but searches for last occurrence of name.
     //
     void getarr (const char*     name,
-                 Array<std::string>& ref,
+                 std::vector<std::string>& ref,
                  int             start_ix = FIRST,
                  int             num_val = ALL) const;
     //
@@ -671,23 +673,23 @@ public:
     //
     int queryktharr (const char*     name,
                      int             k,
-                     Array<std::string>& ref,
+                     std::vector<std::string>& ref,
                      int             start_ix = FIRST,
                      int             num_val = ALL) const;
     //
     //@ManDoc: Same as queryktharr() but searches for last occurrence of name.2
     //
     int queryarr (const char*     name,
-                  Array<std::string>& ref,
+                  std::vector<std::string>& ref,
                   int             start_ix = FIRST,
                   int             num_val = ALL) const;
 
-    /*@ManDoc: Gets an Array<IntVect> of num\_val values from kth occurrence of
+    /*@ManDoc: Gets an std::vector<IntVect> of num\_val values from kth occurrence of
                given name.  If successful, the values are converted to an
-               IntVect and stored in the Array<IntVect> object ref.  ref is
+               IntVect and stored in the std::vector<IntVect> object ref.  ref is
                resized (if necessary) to hold num\_val values.  The value in
-               the list indexed by start\_ix is copied into Array<IntVect>[0],
-               Array<IntVect>[1] holds start\_ix+1, etc.  If the kth occurrence
+               the list indexed by start\_ix is copied into std::vector<IntVect>[0],
+               std::vector<IntVect>[1] holds start\_ix+1, etc.  If the kth occurrence
                does not exist or there are fewer than start\_ix + num\_val
                values associated with the kth occurrence, or if some of the
                values cannot be converted to an IntVect, an error message is
@@ -695,14 +697,14 @@ public:
     */
     void getktharr (const char*     name,
                     int             k,
-                    Array<IntVect>& ref,
+                    std::vector<IntVect>& ref,
                     int             start_ix = FIRST,
                     int             num_val = ALL) const;
     //
     //@ManDoc: Same as getktharr() but searches for last occurrence of name.
     //
     void getarr (const char*     name,
-                 Array<IntVect>& ref,
+                 std::vector<IntVect>& ref,
                  int             start_ix = FIRST,
                  int             num_val = ALL) const;
     //
@@ -710,23 +712,23 @@ public:
     //
     int queryktharr (const char*     name,
                      int             k,
-                     Array<IntVect>& ref,
+                     std::vector<IntVect>& ref,
                      int             start_ix = FIRST,
                      int             num_val = ALL) const;
     //
     //@ManDoc: Same as queryktharr() but searches for last occurrence of name.2
     //
     int queryarr (const char*     name,
-                  Array<IntVect>& ref,
+                  std::vector<IntVect>& ref,
                   int             start_ix = FIRST,
                   int             num_val = ALL) const;
 
-    /*@ManDoc: Gets an Array<Box> of num\_val values from kth occurrence of
+    /*@ManDoc: Gets an std::vector<Box> of num\_val values from kth occurrence of
                given name.  If successful, the values are converted to an
-               Box and stored in the Array<Box> object ref.  ref is
+               Box and stored in the std::vector<Box> object ref.  ref is
                resized (if necessary) to hold num\_val values.  The value in
-               the list indexed by start\_ix is copied into Array<Box>[0],
-               Array<Box>[1] holds start\_ix+1, etc.  If the kth occurrence
+               the list indexed by start\_ix is copied into std::vector<Box>[0],
+               std::vector<Box>[1] holds start\_ix+1, etc.  If the kth occurrence
                does not exist or there are fewer than start\_ix + num\_val
                values associated with the kth occurrence, or if some of the
                values cannot be converted to an Box, an error message is
@@ -734,14 +736,14 @@ public:
     */
     void getktharr (const char*     name,
                     int             k,
-                    Array<Box>& ref,
+                    std::vector<Box>& ref,
                     int             start_ix = FIRST,
                     int             num_val = ALL) const;
     //
     //@ManDoc: Same as getktharr() but searches for last occurrence of name.
     //
     void getarr (const char*     name,
-                 Array<Box>& ref,
+                 std::vector<Box>& ref,
                  int             start_ix = FIRST,
                  int             num_val = ALL) const;
     //
@@ -749,14 +751,14 @@ public:
     //
     int queryktharr (const char*     name,
                      int             k,
-                     Array<Box>& ref,
+                     std::vector<Box>& ref,
                      int             start_ix = FIRST,
                      int             num_val = ALL) const;
     //
     //@ManDoc: Same as queryktharr() but searches for last occurrence of name.2
     //
     int queryarr (const char*     name,
-                  Array<Box>& ref,
+                  std::vector<Box>& ref,
                   int             start_ix = FIRST,
                   int             num_val = ALL) const;
 
@@ -777,11 +779,32 @@ public:
                if there are no other ParmParse objects in existence.
     */
     static void Finalize();
+
 private:
+    friend class Frame;
+    /// Set/Get the prefix.
+    std::string getPrefix() const;
+    std::string setPrefix(const std::string& str);
+    void pushPrefix(const std::string& str);
+    void popPrefix();
+    std::string prefixedName (const std::string& str) const;
     //
     // Prefix used in keyword search.
     //
-    std::string thePrefix;
+    std::stack<std::string> pstack;
+};
+
+class ParmParse::Frame
+{
+public:
+    Frame (ParmParse& pp, const std::string& str);
+    ~Frame ();
+    void push(const std::string& str);
+    void pop();
+    std::string getPrefix() const;
+private:
+    ParmParse& m_pp;
+    int m_np;
 };
 
 #endif /*BL_PARMPARSE_H*/
