@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.31 1999-07-12 16:42:11 lijewski Exp $
+// $Id: AmrLevel.H,v 1.32 1999-07-20 20:42:13 almgren Exp $
 //
 
 #include <REAL.H>
@@ -337,6 +337,14 @@ public:
     //         (to allow grid placement via methods other than error tagging)
     //
     virtual void manual_grid_placement(BoxList& boxes) {}
+
+    //
+    //
+    // 
+    //@ManDoc: Called in grid_places after other tagging routines to modify
+    //         the list of tagged points
+    //
+    virtual void manual_tags_placement(TagBoxArray& tags, IntVect& bf) {}
 
 protected:
     //
