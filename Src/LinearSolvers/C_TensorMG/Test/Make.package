@@ -57,17 +57,23 @@ T_headers += BaseFab.H FabArray.H
 # multigrid sources
 #
 MGLIB_BASE=EXE
-C$(MGLIB_BASE)_headers += CG_F.H DivVis.H MCBndryData.H MCCGSolver.H \
-                          MCInterpBndryData.H MCLinOp.H MCMultiGrid.H Mask.H
+C$(MGLIB_BASE)_headers += BndryData.H Mask.H
+C$(MGLIB_BASE)_sources += BndryData.cpp Mask.cpp
+F$(MGLIB_BASE)_headers += CG_F.H MG_F.H
+F$(MGLIB_BASE)_sources += CG_$(DIM)D.F LO_UTIL.F MG_$(DIM)D.F
+#
+# tensorMG sources
+#
+MGLIB_BASE=EXE
+C$(MGLIB_BASE)_headers += DivVis.H MCCGSolver.H MCInterpBndryData.H MCLinOp.H \
+                          MCMultiGrid.H
 
-C$(MGLIB_BASE)_sources += DivVis.cpp MCBndryData.cpp MCCGSolver.cpp \
-                          MCInterpBndryData.cpp MCLinOp.cpp MCMultiGrid.cpp \
-                          Mask.cpp
+C$(MGLIB_BASE)_sources += DivVis.cpp MCCGSolver.cpp MCInterpBndryData.cpp MCLinOp.cpp \
+                          MCMultiGrid.cpp
 
-F$(MGLIB_BASE)_headers += DivVis_F.H LO_F.H MCINTERPBNDRYDATA_F.H MG_F.H
+F$(MGLIB_BASE)_headers += DivVis_F.H MCINTERPBNDRYDATA_F.H
 
-F$(MGLIB_BASE)_sources += CG_$(DIM)D.F LO_UTIL.F MG_$(DIM)D.F \
-                          MCINTERPBNDRYDATA_$(DIM)D.F
+F$(MGLIB_BASE)_sources += MCINTERPBNDRYDATA_$(DIM)D.F
 
 ifeq ($(DIM),2)
 F$(MGLIB_BASE)_sources += DV_2D.F
@@ -76,10 +82,10 @@ F$(MGLIB_BASE)_sources += DV_3D1.F DV_3D2.F DV_3D3.F DV_3D4.F
 endif
 
 #
-# multigrid test sources
+# tensorMG test sources
 #
-CEXE_sources += TestMCViscBndry.cpp testVI.cpp
-CEXE_headers += TestMCViscBndry.H
+CEXE_sources += TestMCViscBndry.cpp testVI.cpp WritePlotFile.cpp
+CEXE_headers += TestMCViscBndry.H WritePlotfile.H
 
 FEXE_sources += MCLO_$(DIM)D.F main_$(DIM)D.F
 FEXE_headers += main_F.H

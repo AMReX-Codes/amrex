@@ -1,6 +1,6 @@
 PRECISION = DOUBLE
-DEBUG	= FALSE
 DEBUG	= TRUE
+DEBUG	= FALSE
 PROFILE = FALSE
 
 DIM	= 2
@@ -53,20 +53,19 @@ endif
 endif
 endif
 
-#
-# Uncomment this is you want to use Parallel I/O.
-#
-DEFINES += -DBL_PARALLEL_IO
-
+ifeq ($(DEBUG),TRUE)
 ifeq ($(USE_ARRAYVIEW),TRUE)
-#ARRAYVIEWDIR  = /usr/local/ccse/ArrayView
-#ARRAYVIEWDIR  = /usr/people/vince/Visualization/ArrayView
-ARRAYVIEWDIR  = .
+ARRAYVIEWDIR  = /usr/local/ccse/ArrayView
 INCLUDE_LOCATIONS += $(ARRAYVIEWDIR)
 #LIBRARY_LOCATIONS += $(ARRAYVIEWDIR) 
 #LIBRARIES += -larrayview$(DIM)d.$(machineSuffix) 
+CEXE_headers += DatasetClient.H ArrayView.H
+CEXE_sources += DatasetClient.cpp
 DEFINES += -DBL_USE_ARRAYVIEW
-DEFINES += -DBL_ARRAYVIEW_TAGBOX
+#DEFINES += -DBL_ARRAYVIEW_TAGBOX
+endif
+INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/util
+CEXE_headers += TV_TempWrite.H
 endif
 
 ifeq ($(USE_BSP), TRUE)
@@ -134,8 +133,13 @@ include $(HERE)/Make.package
 
 FOPTF = -fast
 
+ifeq ($(DEBUG),TRUE)
+vpath %.cpp : . $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/amrlib $(PBOXLIB_HOME)/tensorMG $(PBOXLIB_HOME)/bndrylib $(PBOXLIB_HOME)/mglib $(PBOXLIB_HOME)/util
+vpath %.F   : . $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/amrlib $(PBOXLIB_HOME)/tensorMG $(PBOXLIB_HOME)/bndrylib $(PBOXLIB_HOME)/mglib $(PBOXLIB_HOME)/util
+else
 vpath %.cpp : . $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/amrlib $(PBOXLIB_HOME)/tensorMG $(PBOXLIB_HOME)/bndrylib $(PBOXLIB_HOME)/mglib
 vpath %.F   : . $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/amrlib $(PBOXLIB_HOME)/tensorMG $(PBOXLIB_HOME)/bndrylib $(PBOXLIB_HOME)/mglib
+endif
 
 all: $(executable)
 

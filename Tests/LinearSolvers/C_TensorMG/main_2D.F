@@ -1,6 +1,5 @@
 #include <CONSTANTS.H>
 #include <REAL.H>
-#include <DIMS.H>
 
 #include "main_F.H"
 
