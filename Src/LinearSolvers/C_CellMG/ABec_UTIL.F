@@ -1,5 +1,5 @@
 c
-c $Id: ABec_UTIL.F,v 1.2 1998-07-14 20:23:41 car Exp $
+c $Id: ABec_UTIL.F,v 1.3 2003-02-18 20:54:40 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -28,7 +28,8 @@ c
       integer j
       REAL_T bet
       REAL_T gam(nmax)
-      if (b(1) .eq. 0) print *,'CANT HAVE B(1) = ZERO'
+      if (n .gt. nmax ) call bl_error('tridiag: size exceeded')
+      if (b(1) .eq. 0) call bl_error('tridiag: CANT HAVE B(1) = ZERO')
 
       bet = b(1)
       u(1) = r(1)/bet
@@ -36,10 +37,7 @@ c
       do j = 2,n
         gam(j) = c(j-1)/bet
         bet = b(j) - a(j)*gam(j)
-        if (bet .eq. 0) then
-          print *,'TRIDIAG FAILED '
-          stop
-        end if
+        if (bet .eq. 0) call bl_error('tridiag: TRIDIAG FAILED')
         u(j) = (r(j)-a(j)*u(j-1))/bet
       end do
 
