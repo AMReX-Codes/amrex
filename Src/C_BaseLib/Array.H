@@ -2,7 +2,7 @@
 #define BL_ARRAY_H
 
 //
-// $Id: Array.H,v 1.21 2001-07-20 16:54:07 lijewski Exp $
+// $Id: Array.H,v 1.22 2001-07-20 17:01:44 car Exp $
 //
 
 #include <cstddef>
@@ -96,7 +96,7 @@ public:
     //
     //@ManDoc: Return number of elements in the array.
     //
-    size_t length () const;
+    long length () const;
  
  
     /*@ManDoc: Returns a reference to the K'th element in this `Array<T>'.
@@ -151,7 +151,7 @@ Array<T>::ready () const
 }
 
 template <class T>
-size_t
+long
 Array<T>::length () const
 {
     return size();

@@ -2,7 +2,7 @@
 #define BL_BOXLIB_H
 
 //
-// $Id: BoxLib.H,v 1.12 2001-07-19 16:57:31 lijewski Exp $
+// $Id: BoxLib.H,v 1.13 2001-07-20 17:01:44 car Exp $
 //
 
 //
@@ -48,6 +48,11 @@ namespace BoxLib
     */
     void OutOfMemory (const char* file,
                       int         line);
+#ifdef NDEBUG
+    const bool NDebug = true;
+#else
+    const bool NDebug = false;
+#endif
 }
 
 #endif /*BL_BOXLIB_H*/

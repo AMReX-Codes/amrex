@@ -1,7 +1,8 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.76 2001-07-20 04:46:21 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.77 2001-07-20 17:01:45 car Exp $
 //
 
+#include <cstdio>
 #include <Utility.H>
 #include <ParallelDescriptor.H>
 #include <ParmParse.H>
@@ -9,6 +10,44 @@
 //
 // Definition of non-inline members of CommData.
 //
+namespace ParallelDescriptor
+{
+    //
+    // My processor ID.
+    //
+    int m_MyId;
+    //
+    // The number of processors.
+    //
+    int m_nProcs;
+    //
+    // The number of processors in CFD part of computation.
+    //
+    int m_nProcsCFD;
+    //
+    // BoxLib's Communicator
+    //
+    MPI_Comm m_comm;
+
+    const int ioProcessor = 0;
+
+    namespace util
+    {
+	//
+	// Reduce helper functons.
+	//
+	void DoAllReduceReal (Real& r, MPI_Op op);
+	void DoAllReduceLong (long& r, MPI_Op op);
+	void DoAllReduceInt (int& r, MPI_Op op);
+	void DoReduceReal (Real& r, MPI_Op op, int cpu);
+	void DoReduceLong (long& r, MPI_Op op, int cpu);
+	void DoReduceInt (int& r, MPI_Op op, int cpu);
+	//
+	// Sets number of CPUs to use in CFD portion of computation via ParmParse.
+	//
+	void SetNProcsCFD ();
+    }
+}
 
 int
 ParallelDescriptor::MyProc ()
@@ -28,7 +67,7 @@ int
 ParallelDescriptor::NProcsCFD ()
 {
     if (m_nProcsCFD == -1)
-        SetNProcsCFD();
+        util::SetNProcsCFD();
 
     BL_ASSERT(m_nProcsCFD != -1);
 
@@ -149,12 +188,49 @@ operator<< (std::ostream&          os,
 
 #include <ccse-mpi.H>
 
-static const aString REDUCE("mpi_reduce");
+namespace
+{
 
-int ParallelDescriptor::m_nProcs    = -1;
-int ParallelDescriptor::m_nProcsCFD = -1;
-int ParallelDescriptor::m_MyId      = -1;
-MPI_Comm ParallelDescriptor::m_comm = MPI_COMM_WORLD;
+    const char*
+    ErrorString(int errorcode)
+    {
+	int len = 0;
+	static char msg[MPI_MAX_ERROR_STRING+1];
+	MPI_REQUIRE( MPI_Error_string(errorcode, msg, &len) );
+	return msg;
+    }
+
+    const char*
+    the_message_string(const char* file, int line, const char* call, int status)
+    {
+	//
+	// Should be large enough.
+	//
+	const int DIM = 1024;
+	static char buf[DIM];
+	if ( status )
+	{
+	    std::sprintf(buf, "File %s, line %d, %s: %s", file, line, call, ErrorString(status));
+	}
+	else
+	{
+	    std::sprintf(buf, "File %s, line %d, %s", file, line, call);
+	}
+	buf[DIM-1] = '\0';		// Just to be safe.
+	return buf;
+    }
+}
+
+namespace ParallelDescriptor
+{
+    void
+    MPI_Error(const char* file, int line, const char* str, int rc)
+    {
+	BoxLib::Error(the_message_string(file, line, str, rc));
+    }
+}
+
+static const aString REDUCE("mpi_reduce");
 
 void
 ParallelDescriptor::Abort ()
@@ -187,8 +263,68 @@ const char* ParallelDescriptor::ErrorString (int errorcode)
     return msg;
 }
 
+ParallelDescriptor::Message::Message()
+    : m_finished(true), m_type(MPI_DATATYPE_NULL), m_req(MPI_REQUEST_NULL)
+{
+}
+
+ParallelDescriptor::Message::Message(MPI_Request req_, MPI_Datatype type_)
+    : m_finished(false), m_type(type_), m_req(req_)
+{
+}
+
+ParallelDescriptor::Message::Message(MPI_Status stat_, MPI_Datatype type_)
+    : m_finished(true), m_type(type_), m_req(MPI_REQUEST_NULL), m_stat(stat_)
+{
+}
+
 void
-ParallelDescriptor::SetNProcsCFD ()
+ParallelDescriptor::Message::wait()
+{
+    MPI_REQUIRE( MPI_Wait(&m_req, &m_stat) );
+}
+
+bool
+ParallelDescriptor::Message::test()
+{
+    int flag;
+    MPI_REQUIRE( MPI_Test(&m_req, &flag, &m_stat) );
+    m_finished = flag != 0;
+    return m_finished;
+}
+
+int
+ParallelDescriptor::Message::tag() const
+{
+    if ( !m_finished ) BoxLib::Error("Message::tag: Not Finished!");
+    return m_stat.MPI_TAG;
+}
+
+int
+ParallelDescriptor::Message::pid() const
+{
+    if ( !m_finished ) BoxLib::Error("Message::pid: Not Finished!");
+    return m_stat.MPI_SOURCE;
+}
+
+size_t
+ParallelDescriptor::Message::count() const
+{
+    if ( m_type == MPI_DATATYPE_NULL ) BoxLib::Error("Message::count: Bad Type!");
+    if ( !m_finished ) BoxLib::Error("Message::count: Not Finished!");
+    int cnt;
+    MPI_REQUIRE( MPI_Get_count(&m_stat, m_type, &cnt) );
+    return cnt;
+}
+
+MPI_Datatype
+ParallelDescriptor::Message::type() const
+{
+    return m_type;
+}
+
+void
+ParallelDescriptor::util::SetNProcsCFD ()
 {
     BL_ASSERT(m_nProcs != -1);
     BL_ASSERT(m_nProcsCFD == -1);
@@ -266,7 +402,7 @@ ParallelDescriptor::Barrier ()
 }
 
 void
-ParallelDescriptor::DoAllReduceReal (Real& r,
+ParallelDescriptor::util::DoAllReduceReal (Real& r,
                                      MPI_Op   op)
 {
     Real recv;
@@ -285,7 +421,7 @@ ParallelDescriptor::DoAllReduceReal (Real& r,
 }
 
 void
-ParallelDescriptor::DoReduceReal (Real& r,
+ParallelDescriptor::util::DoReduceReal (Real& r,
                                   MPI_Op   op,
                                   int   cpu)
 {
@@ -309,41 +445,41 @@ ParallelDescriptor::DoReduceReal (Real& r,
 void
 ParallelDescriptor::ReduceRealMax (Real& r)
 {
-    DoAllReduceReal(r,MPI_MAX);
+    util::DoAllReduceReal(r,MPI_MAX);
 }
 
 void
 ParallelDescriptor::ReduceRealMin (Real& r)
 {
-    DoAllReduceReal(r,MPI_MIN);
+    util::DoAllReduceReal(r,MPI_MIN);
 }
 
 void
 ParallelDescriptor::ReduceRealSum (Real& r)
 {
-    DoAllReduceReal(r,MPI_SUM);
+    util::DoAllReduceReal(r,MPI_SUM);
 }
 
 void
 ParallelDescriptor::ReduceRealMax (Real& r, int cpu)
 {
-    DoReduceReal(r,MPI_MAX,cpu);
+    util::DoReduceReal(r,MPI_MAX,cpu);
 }
 
 void
 ParallelDescriptor::ReduceRealMin (Real& r, int cpu)
 {
-    DoReduceReal(r,MPI_MIN,cpu);
+    util::DoReduceReal(r,MPI_MIN,cpu);
 }
 
 void
 ParallelDescriptor::ReduceRealSum (Real& r, int cpu)
 {
-    DoReduceReal(r,MPI_SUM,cpu);
+    util::DoReduceReal(r,MPI_SUM,cpu);
 }
 
 void
-ParallelDescriptor::DoAllReduceLong (long& r,
+ParallelDescriptor::util::DoAllReduceLong (long& r,
                                      MPI_Op   op)
 {
     long recv;
@@ -362,7 +498,7 @@ ParallelDescriptor::DoAllReduceLong (long& r,
 }
 
 void
-ParallelDescriptor::DoReduceLong (long& r,
+ParallelDescriptor::util::DoReduceLong (long& r,
                                   MPI_Op   op,
                                   int   cpu)
 {
@@ -386,53 +522,53 @@ ParallelDescriptor::DoReduceLong (long& r,
 void
 ParallelDescriptor::ReduceLongAnd (long& r)
 {
-    DoAllReduceLong(r,MPI_LAND);
+    util::DoAllReduceLong(r,MPI_LAND);
 }
 
 void
 ParallelDescriptor::ReduceLongSum (long& r)
 {
-    DoAllReduceLong(r,MPI_SUM);
+    util::DoAllReduceLong(r,MPI_SUM);
 }
 
 void
 ParallelDescriptor::ReduceLongMax (long& r)
 {
-    DoAllReduceLong(r,MPI_MAX);
+    util::DoAllReduceLong(r,MPI_MAX);
 }
 
 void
 ParallelDescriptor::ReduceLongMin (long& r)
 {
-    DoAllReduceLong(r,MPI_MIN);
+    util::DoAllReduceLong(r,MPI_MIN);
 }
 
 void
 ParallelDescriptor::ReduceLongAnd (long& r, int cpu)
 {
-    DoReduceLong(r,MPI_LAND,cpu);
+    util::DoReduceLong(r,MPI_LAND,cpu);
 }
 
 void
 ParallelDescriptor::ReduceLongSum (long& r, int cpu)
 {
-    DoReduceLong(r,MPI_SUM,cpu);
+    util::DoReduceLong(r,MPI_SUM,cpu);
 }
 
 void
 ParallelDescriptor::ReduceLongMax (long& r, int cpu)
 {
-    DoReduceLong(r,MPI_MAX,cpu);
+    util::DoReduceLong(r,MPI_MAX,cpu);
 }
 
 void
 ParallelDescriptor::ReduceLongMin (long& r, int cpu)
 {
-    DoReduceLong(r,MPI_MIN,cpu);
+    util::DoReduceLong(r,MPI_MIN,cpu);
 }
 
 void
-ParallelDescriptor::DoAllReduceInt (int& r,
+ParallelDescriptor::util::DoAllReduceInt (int& r,
                                     MPI_Op  op)
 {
     int recv;
@@ -451,7 +587,7 @@ ParallelDescriptor::DoAllReduceInt (int& r,
 }
 
 void
-ParallelDescriptor::DoReduceInt (int& r,
+ParallelDescriptor::util::DoReduceInt (int& r,
                                  MPI_Op  op,
                                  int  cpu)
 {
@@ -475,37 +611,37 @@ ParallelDescriptor::DoReduceInt (int& r,
 void
 ParallelDescriptor::ReduceIntSum (int& r)
 {
-    DoAllReduceInt(r,MPI_SUM);
+    util::DoAllReduceInt(r,MPI_SUM);
 }
 
 void
 ParallelDescriptor::ReduceIntMax (int& r)
 {
-    DoAllReduceInt(r,MPI_MAX);
+    util::DoAllReduceInt(r,MPI_MAX);
 }
 
 void
 ParallelDescriptor::ReduceIntMin (int& r)
 {
-    DoAllReduceInt(r,MPI_MIN);
+    util::DoAllReduceInt(r,MPI_MIN);
 }
 
 void
 ParallelDescriptor::ReduceIntSum (int& r, int cpu)
 {
-    DoReduceInt(r,MPI_SUM,cpu);
+    util::DoReduceInt(r,MPI_SUM,cpu);
 }
 
 void
 ParallelDescriptor::ReduceIntMax (int& r, int cpu)
 {
-    DoReduceInt(r,MPI_MAX,cpu);
+    util::DoReduceInt(r,MPI_MAX,cpu);
 }
 
 void
 ParallelDescriptor::ReduceIntMin (int& r, int cpu)
 {
-    DoReduceInt(r,MPI_MIN,cpu);
+    util::DoReduceInt(r,MPI_MIN,cpu);
 }
 
 void
@@ -513,7 +649,7 @@ ParallelDescriptor::ReduceBoolAnd (bool& r)
 {
     int src = r; // `src' is either 0 or 1.
 
-    DoAllReduceInt(src,MPI_SUM);
+    util::DoAllReduceInt(src,MPI_SUM);
 
     r = (src == ParallelDescriptor::NProcs()) ? true : false;
 }
@@ -523,7 +659,7 @@ ParallelDescriptor::ReduceBoolOr (bool& r)
 {
     int src = r; // `src' is either 0 or 1.
 
-    DoAllReduceInt(src,MPI_SUM);
+    util::DoAllReduceInt(src,MPI_SUM);
 
     r = (src == 0) ? false : true;
 }
@@ -533,7 +669,7 @@ ParallelDescriptor::ReduceBoolAnd (bool& r, int cpu)
 {
     int src = r; // `src' is either 0 or 1.
 
-    DoReduceInt(src,MPI_SUM,cpu);
+    util::DoReduceInt(src,MPI_SUM,cpu);
 
     if (ParallelDescriptor::MyProc() == cpu)
         r = (src == ParallelDescriptor::NProcs()) ? true : false;
@@ -544,7 +680,7 @@ ParallelDescriptor::ReduceBoolOr (bool& r, int cpu)
 {
     int src = r; // `src' is either 0 or 1.
 
-    DoReduceInt(src,MPI_SUM,cpu);
+    util::DoReduceInt(src,MPI_SUM,cpu);
 
     if (ParallelDescriptor::MyProc() == cpu)
         r = (src == 0) ? false : true;
@@ -587,12 +723,145 @@ ParallelDescriptor::Gather (Real* sendbuf,
         ParallelDescriptor::Abort(rc);
 }
 
+MPI_Op
+ParallelDescriptor::Max::op()
+{
+    return  MPI_MAX;
+}
+
+MPI_Op
+ParallelDescriptor::Min::op()
+{
+    return  MPI_MIN;
+}
+
+MPI_Op
+ParallelDescriptor::Sum::op()
+{
+    return  MPI_SUM;
+}
+
+MPI_Op
+ParallelDescriptor::Prod::op()
+{
+    return  MPI_PROD;
+}
+
+MPI_Op
+ParallelDescriptor::Logical_And::op()
+{
+    return  MPI_LAND;
+}
+
+MPI_Op
+ParallelDescriptor::Boolean_And::op()
+{
+    return  MPI_BAND;
+}
+
+MPI_Op
+ParallelDescriptor::Logical_Or::op()
+{
+    return  MPI_LOR;
+}
+
+MPI_Op
+ParallelDescriptor::Boolean_Or::op()
+{
+    return  MPI_BOR;
+}
+
+MPI_Op
+ParallelDescriptor::Logical_XOr::op()
+{
+    return  MPI_LXOR;
+}
+
+MPI_Op
+ParallelDescriptor::Boolean_XOr::op()
+{
+    return  MPI_BXOR;
+}
+
+template <>
+MPI_Datatype
+ParallelDescriptor::Mpi_typemap<char>::type()
+{
+    return  MPI_CHAR;
+}
+
+template <>
+MPI_Datatype
+ParallelDescriptor::Mpi_typemap<short>::type()
+{
+    return  MPI_SHORT;
+}
+
+template <>
+MPI_Datatype
+ParallelDescriptor::Mpi_typemap<int>::type()
+{
+    return  MPI_INT;
+}
+
+template <>
+MPI_Datatype
+ParallelDescriptor::Mpi_typemap<long>::type()
+{
+    return  MPI_LONG;
+}
+
+template <>
+MPI_Datatype
+ParallelDescriptor::Mpi_typemap<unsigned char>::type()
+{
+    return  MPI_UNSIGNED_CHAR;
+}
+
+template <>
+MPI_Datatype
+ParallelDescriptor::Mpi_typemap<unsigned short>::type()
+{
+    return  MPI_UNSIGNED_SHORT;
+}
+
+template <>
+MPI_Datatype
+ParallelDescriptor::Mpi_typemap<unsigned int>::type()
+{
+    return  MPI_UNSIGNED;
+}
+
+template <>
+MPI_Datatype
+ParallelDescriptor::Mpi_typemap<unsigned long>::type()
+{
+    return  MPI_UNSIGNED_LONG;
+}
+
+template <>
+MPI_Datatype
+ParallelDescriptor::Mpi_typemap<float>::type()
+{
+    return  MPI_FLOAT;
+}
+
+template <>
+MPI_Datatype
+ParallelDescriptor::Mpi_typemap<double>::type()
+{
+    return  MPI_DOUBLE;
+}
+
 #else
 
-int ParallelDescriptor::m_nProcs    = 1;
-int ParallelDescriptor::m_nProcsCFD = 1;
-int ParallelDescriptor::m_MyId      = 0;
-MPI_Comm ParallelDescriptor::m_comm = 0;
+void ParallelDescriptor::StartParallel (int*, char***)
+{
+    m_nProcs    = 1;
+    m_nProcsCFD = 1;
+    m_MyId      = 0;
+    m_comm = 0;
+}
 
 void
 ParallelDescriptor::Gather (Real* sendbuf,
@@ -609,9 +878,25 @@ ParallelDescriptor::Gather (Real* sendbuf,
         recvbuf[i] = sendbuf[i];
 }
 
-void ParallelDescriptor::SetNProcsCFD () {}
 
-void ParallelDescriptor::StartParallel (int*, char***) {}
+ParallelDescriptor::Message::Message()
+    : m_finished(true)
+{
+}
+
+void
+ParallelDescriptor::Message::wait()
+{
+}
+
+bool
+ParallelDescriptor::Message::test()
+{
+    return m_finished;
+}
+
+void ParallelDescriptor::util::SetNProcsCFD () {}
+
 void ParallelDescriptor::EndParallel () {}
 
 void ParallelDescriptor::Abort () { ::abort(); }

@@ -124,7 +124,7 @@ do									\
 while ( false )
 
 #ifdef BL_USE_MPI
-template <> MPI_Datatype mpi_data_type(timer_packet*)
+template <> MPI_Datatype ParallelDescriptor::Mpi_typemap<timer_packet>::type()
 {
     static MPI_Datatype mine(MPI_DATATYPE_NULL);
     if ( mine == MPI_DATATYPE_NULL )
@@ -175,7 +175,7 @@ public:
     typedef std::map<std::string, ThreadTimerNode*>::iterator iterator;
     typedef std::map<std::string, ThreadTimerNode*>::const_iterator const_iterator;
     ThreadTimerNode()
-	: wtimer(new WallTimer),
+	: wtimer(new BoxLib::WallTimer),
 	  avg_time(0), var_time(0), max_time(0), min_time(0)
     {}
     ThreadTimerNode* operator[](const std::string& str);
@@ -211,7 +211,7 @@ public:
 private:
     ThreadTimerNode(const ThreadTimerNode&);
     ThreadTimerNode& operator=(const ThreadTimerNode&);
-    WallTimer* wtimer;
+    BoxLib::WallTimer* wtimer;
     double avg_time;
     double var_time;
     double max_time;
@@ -731,7 +731,7 @@ Profiler::glean()
 	os << "------------------------------------------------------------------------\n\n";
 	os << "Profiling report\n\n";
 	os << "------------------------------------------------------------------------\n\n";
-	os << "Timer resolution is "; show_time(os, WallTimer::tick(), 1000000); os << " (us)\n";
+	os << "Timer resolution is "; show_time(os, BoxLib::WallTimer::tick(), 1000000); os << " (us)\n";
 	os << "Number of Processors: " << ParallelDescriptor::NProcs() << std::endl;
 
 	spacer(os,  2, '\n');

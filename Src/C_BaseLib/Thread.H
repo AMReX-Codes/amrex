@@ -15,7 +15,7 @@ typedef int pthread_t;
 
 #include <stdexcept>
 #include <Profiler.H>
-#include <Timer.H>
+#include <Utility.H>
 
 //
 // Generic exception class for POSIX thread errors.
@@ -235,8 +235,8 @@ public:
     void broadcast();		// Signal all waiting threads.
     void wait();			// Wait on the condition.
     void wait(Mutex& m);			// Wait on the condition.
-    bool timedwait(const Time& abstime); // Wait until a specified time.
-    bool timedwait(Mutex& m, const Time& abstime); // Wait until a specified time.
+    bool timedwait(const BoxLib::Time& abstime); // Wait until a specified time.
+    bool timedwait(Mutex& m, const BoxLib::Time& abstime); // Wait until a specified time.
     pthread_cond_t& theCV();
 private:
     ConditionVariable(const ConditionVariable&);
@@ -617,7 +617,7 @@ public:
     //
     // Go to sleep for the specified Time
     //
-    static void sleep(const Time& tspec);
+    static void sleep(const BoxLib::Time& tspec);
     //
     //
     //
@@ -743,6 +743,11 @@ protected:
     pthread_t m_tid;
 };
 
+namespace BoxLib
+{
+    void Thread_Error(const char* file, int lineno, const char* message, int status);
+}
+
 #ifdef BL_PTHREADS
 
 #define THREAD_REQUIRE(x)						\
@@ -750,7 +755,7 @@ do									\
 {									\
   if ( int status = (x) )						\
     {									\
-      throw Thread::thread_error(__FILE__, __LINE__, #x, status); \
+      BoxLib::Thread_Error(__FILE__, __LINE__, #x, status); 		\
     }									\
 }									\
 while ( false )

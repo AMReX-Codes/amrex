@@ -2,7 +2,7 @@
 #define BL_SPACE_H
 
 /*
-** $Id: SPACE.H,v 1.8 2001-07-19 16:57:37 lijewski Exp $
+** $Id: SPACE.H,v 1.9 2001-07-20 17:01:45 car Exp $
 */
 
 #if defined(BL_SPACEDIM) && !defined(SPACEDIM)
@@ -43,7 +43,10 @@
   visible to debuggers while macros are not.
 */
 
-   const int SpaceDim = BL_SPACEDIM;
+namespace BoxLib
+{
+    const int SpaceDim = BL_SPACEDIM;
+}
 #endif
 
 #if BL_SPACEDIM==1

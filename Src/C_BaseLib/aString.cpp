@@ -1,7 +1,8 @@
 //
-// $Id: aString.cpp,v 1.14 2001-07-20 04:46:22 car Exp $
+// $Id: aString.cpp,v 1.15 2001-07-20 17:01:45 car Exp $
 //
 
+#include <BLassert.H>
 #include <aString.H>
 
 aString::aString()
@@ -19,21 +20,21 @@ aString::aString(const std::string& str)
 {
 }
 
-int
+aString::size_type
 aString::length() const
 {
     return size();
 }
 
 char
-aString::operator[] (int index) const
+aString::operator[] (size_type index) const
 {
-    BL_ASSERT(index >=0 && index < size());
+    BL_ASSERT(index >=0 && index < length());
     return std::string::operator[](index);
 }
 
 char&
-aString::operator[] (int index)
+aString::operator[] (size_type index)
 {
     BL_ASSERT(index >= 0 && index < size());
     return std::string::operator[](index);
