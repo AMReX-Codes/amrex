@@ -3608,7 +3608,7 @@ c must do this loop over entire array to initialize borders of p
       do 140 k = 1, ngrids
          do 140 i = strid(k) + 1, nvals(k) - strid(k) - 2
  140        p(ps(k)+i) = alpha * p(ps(k)+i) + z(zs(k)+i)
-      goto 100
+      go to 100
       end
 
 #endif

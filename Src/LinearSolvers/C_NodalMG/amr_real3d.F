@@ -3,14 +3,12 @@ c Works for CELL- or NODE-based data.
      & destl0,desth0,destl1,desth1,destl2,desth2,
      & regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2, ncomp)
+	integer ncomp
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
-c      real*8 dest(destl0:desth0,destl1:desth1,destl2:desth2, ncomp)
-c      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       real*8 dest(destl0:desth0,destl1:desth1,destl2:desth2, ncomp)
       real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
-      integer ncomp
       integer i, j, k, ic
       if (regh2 - regl2 .gt. regh1 - regl1 .and.
      &    regh2 - regl2 .gt. regh0 - regl0) then
@@ -902,6 +900,7 @@ c NODE-based data only.
       real*8 fac0, fac1, fac2, fac
       integer i, j, k, l, m, n
 	integer r,s
+	real*8 RESTR2, RR0, RS0, REST4A, REST4B, REST4C, REST4D, REST4E
 	RESTR2() = 0.125d0 * src(2*i,2*j,2*k) + 
      &  0.0625d0   * (src(2*i,2*j,2*k-1) + src(2*i,2*j,2*k+1) + 
      &                src(2*i,2*j-1,2*k) + src(2*i,2*j+1,2*k) + 

@@ -3056,8 +3056,8 @@ c Note---assumes fdst linearly interpolated from cdst along face
       real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       real*8 fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
       real*8 cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
-      real*8 hx, hm2,fac0
-      integer irat, idim, idir, i, k, j
+      real*8 hx, hm2,fac0, fac1, fac2
+      integer irat, idim, idir, i, k, j, l, n, m
       hm2 = 1.d0 / (hx*hx)
       fac0 = 0.5d0 / (irat*irat+irat)
       if (idim .eq. 0) then
@@ -3185,8 +3185,11 @@ c Note---assumes fdst linearly interpolated from cdst along face
       real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       real*8 fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
       real*8 cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
-      real*8 hx
+      real*8 hx, r2, rm1, rm2, hm2
       integer irat, ivect(0:2), ga(0:1,0:1,0:1)
+	integer ic, jc, kc, if, jf, kf
+	real*8 center, fac0, ffac, cfac, fac, fac1
+	integer ki, kdir, ji, jdir, m, l, n, ii, idir
       r2 = irat * irat
       rm1 = 1.d0 / irat
       rm2 = rm1 * rm1
@@ -3480,6 +3483,10 @@ c Note---assumes fdst linearly interpolated from cdst along face
       real*8 cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
       real*8 hx
       integer irat, ga(0:1,0:1,0:1)
+	integer ic, jc, kc, if, jf, kf, ki, kdir, ji, jdir, ii, idir
+	integer n, m, l
+	real*8 r2, rm1, rm2, hm2, sum, center, fac, ffac, cfac, fac2
+	real*8 fac1
       r2 = irat * irat
       rm1 = 1.d0 / irat
       rm2 = rm1 * rm1
@@ -4104,6 +4111,7 @@ c NODE(EDGE)-based data only.
       real*8 srcx(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       real*8 srcy(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       real*8 srcz(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+	integer l, k, j, i, i2, j2, k2
       print *, "Warning:  Don't use this routine.  Not modified for "
       print *, "          IntVect refinement ratios"
       do 10 k = regl2, regh2
@@ -4175,7 +4183,9 @@ c     &                                 1.d0 / srcz(i2+1,j2+1,k2+1))
       real*8 cor(*)
       real*8 res(*)
       real*8 mask(*)
-      real*8 hx
+      real*8 hx, fac, hxm2, cen
+	real*8 avg
+	integer jdiff, kdiff, i
       avg() = fac * (cor(i-1) + cor(i+1) +
      &               cor(i-jdiff) + cor(i+jdiff) +
      &               cor(i-kdiff) + cor(i+kdiff))
@@ -4209,7 +4219,8 @@ cdir$ ivdep
       real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
       real*8 src(resl0:resh0,resl1:resh1,resl2:resh2)
       real*8 dest(resl0:resh0,resl1:resh1,resl2:resh2)
-      real*8 hx
+      real*8 hx, hxm2, fac
+	integer i, j, k
       hxm2 = 1.d0 / (hx*hx)
       fac = hxm2
       if (regh2 - regl2 .gt. regh1 - regl1 .and.
@@ -4254,7 +4265,8 @@ cdir$ ivdep
       real*8 res(*)
       real*8 src(*)
       real*8 dest(*)
-      real*8 hx
+      real*8 hx, hxm2, fac
+	integer jdiff, kdiff, i
       hxm2 = 1.d0 / (hx*hx)
       fac = hxm2
       jdiff = resh0 - resl0 + 1
@@ -4303,6 +4315,7 @@ c sig here contains three different directions all stored on "nodes"
       real*8 sig(*)
       real*8 cen(*)
       real*8 mask(*)
+	real*8 avg
       integer i, jdiff, kdiff, ly, lz
       avg() = (sig(i-1)        * cor(i-1) +
      &         sig(i)          * cor(i+1) +
@@ -4347,6 +4360,7 @@ cdir$ ivdep
       real*8 signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
       real*8 cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       integer i, j, k, ipar0, ipar, ipass
+	real*8 avg
       avg() = (signd(i-1,j,k,1) * cor(i-1,j,k) +
      &         signd(i,j,k,1)   * cor(i+1,j,k) +
      &         signd(i,j-1,k,2) * cor(i,j-1,k) +
@@ -4417,6 +4431,7 @@ cdir$ ivdep
       real*8 wrk(256)
       integer lsd
       real*8 betm, aj
+	real*8 rhsl0, rhsl1, rhsl2
       integer i, j, k, kw, ipass, ipar
 	RHSL0() = (res(i,j,k) - (signd(i,j-1,k,2) * cor(i,j-1,k) + 
      &                        signd(i,j,k,2)   * cor(i,j+1,k) + 
@@ -4519,6 +4534,7 @@ c back substitution loop:
       real*8 cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       integer lsd, ipass
       real*8 betm, aj
+	real*8 rhsl0, rhsl1, rhsl2
       integer i, j, k, ioff, ipar
 	RHSL0() = (res(i,j,k) - (signd(i,j-1,k,2) * cor(i,j-1,k) + 
      &                        signd(i,j,k,2)   * cor(i,j+1,k) + 
@@ -4852,6 +4868,8 @@ c interface to grid at same level:
       real*8 sigy(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
       real*8 sigz(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
       real*8 hx, hy, hz
+	real*8 hxm2, hym2, hzm2
+	integer k, j, i
       hxm2 = 1.d0 / (hx*hx)
       hym2 = 1.d0 / (hy*hy)
       hzm2 = 1.d0 / (hz*hz)
@@ -4895,7 +4913,9 @@ c interface to grid at same level:
       real*8 sigy(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
       real*8 sigz(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
       real*8 cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
-      real*8 hx, hy, hz
+      real*8 hx, hy, hz, hxm2, hym2, hzm2
+	real*8 avg
+	integer i, j, k, ipass, ipar, ipar0
       avg() = 0.25d0 * (hxm2 *
      &          ((sigx(i-1,j-1,k-1) + sigx(i-1,j-1,k) +
      &            sigx(i-1,j,k-1)   + sigx(i-1,j,k)) * cor(i-1,j,k) +
@@ -4976,7 +4996,8 @@ cdir$ ivdep
       real*8 sigx(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
       real*8 sigy(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
       real*8 sigz(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
-      real*8 hx, hy, hz
+      real*8 hx, hy, hz, hxm2, hym2, hzm2
+	integer i, j, k
       hxm2 = 1.d0 / (hx*hx)
       hym2 = 1.d0 / (hy*hy)
       hzm2 = 1.d0 / (hz*hz)
@@ -5662,20 +5683,21 @@ c Works for NODE-based data.
      & dstrd1, dstrd2, sstrd1, sstrd2,
      & hx, alpha, rho, it, pcode)
       implicit real*8(a-h,o-z), integer(i-n)
-      real*8 r(0:1), p(0:1), z(0:1)
-      real*8 x(0:1), w(0:1), c(0:1), mask(0:1)
+      real*8 r(0:*), p(0:*), z(0:*)
+      real*8 x(0:*), w(0:*), c(0:*), mask(0:*)
       integer ngrids
       integer strid1(ngrids), strid2(ngrids), nvals(ngrids)
       integer rs(ngrids), ps(ngrids), zs(ngrids)
       integer xs(ngrids), ws(ngrids), cs(ngrids), ms(ngrids)
-      real*8 edge(0:1)
+      real*8 edge(0:*)
       integer nsets
       integer nvals1(nsets), nvals2(nsets)
       integer dstart(nsets), sstart(nsets)
       integer dstrd1(nsets), dstrd2(nsets)
       integer sstrd1(nsets), sstrd2(nsets)
       real*8 hx, alpha, rho
-      integer it, pcode
+	real*8 hxm2, facm, tol, rhoold
+      integer it, pcode, k, i, j
       hxm2 = 1.d0 / (hx*hx)
 c#ifdef HG_CROSS_STENCIL
       facm = -hxm2
@@ -5738,6 +5760,6 @@ c#endif
          do 140 i = strid1(k) + strid2(k) + 1,
      &              nvals(k) - strid1(k) - strid2(k) - 2
  140        p(ps(k)+i) = alpha * p(ps(k)+i) + z(zs(k)+i)
-      goto 100
+      go to 100
       end
 
