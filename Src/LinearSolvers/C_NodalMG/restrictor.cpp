@@ -394,7 +394,6 @@ bilinear_restrictor_class::fill_interface (MultiFab&                 dest,
     const BoxArray& dest_ba = dest.boxArray();
     const BoxArray& fine_ba = fine.boxArray();
 
-    task_list tl;
     for (int jgrid = 0; jgrid < dest.length(); jgrid++)
     {
         const Box& region = dest_ba[jgrid];
@@ -407,6 +406,7 @@ bilinear_restrictor_class::fill_interface (MultiFab&                 dest,
         //
         const Box regplus = ::grow(region,1);
     
+	task_list tl;
         for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
         {
             if (lev_interface.flag(level_interface::FACEDIM, iface))
@@ -484,6 +484,8 @@ bilinear_restrictor_class::fill_interface (MultiFab&                 dest,
                 }
             }
         }
+	tl.execute();
+	
 #if (BL_SPACEDIM == 3)
     
         for (int iedge = 0; iedge < lev_interface.nboxes(1); iedge++) 
@@ -529,6 +531,7 @@ bilinear_restrictor_class::fill_interface (MultiFab&                 dest,
                 }
             }
         }
+	tl.execute();
 #endif
         for (int icor = 0; icor < lev_interface.nboxes(0); icor++) 
         {
@@ -569,6 +572,6 @@ bilinear_restrictor_class::fill_interface (MultiFab&                 dest,
                 }
             }
         }
+	tl.execute();
     }
-    tl.execute();
 }
