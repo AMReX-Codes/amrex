@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.4 1997-12-03 19:24:54 vince Exp $
+# Make.defs $Id: Make.defs,v 1.5 1997-12-16 23:34:14 vince Exp $
 #
 
 #
@@ -26,6 +26,10 @@ endif
 ifeq	($(findstring T3E, $(UNAMEM)), T3E)
     MACHINE := T3E
 ifeq	($(findstring mcurie, $(UNAMEN)), mcurie)
+    WHICHT3E := NERSC
+endif
+# currently both nersc t3es have the same home path names
+ifeq	($(findstring pierre, $(UNAMEN)), pierre)
     WHICHT3E := NERSC
 endif
 ifeq	($(findstring seymour, $(UNAMEN)), seymour)
