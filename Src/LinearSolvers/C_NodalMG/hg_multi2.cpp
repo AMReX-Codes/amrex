@@ -68,6 +68,8 @@ extern "C"
 typedef void (*FCERES) (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
 
 typedef void (*FCERES3) (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*, const int*);
+
+typedef void (*FCERES5) (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
 }
 
 class task_fceres_2 : public task_fec_base
@@ -389,6 +391,112 @@ task_fceres_4::doit ()
     const Box&       sigmac_fab_box = sigmac_fab.box();
 
     (*f)(r_fab.dataPtr(), DIMLIST(r_fab_box), s_fab.dataPtr(), DIMLIST(s_fab_box), ff_fab.dataPtr(), DIMLIST(ff_fab_box), cc_fab.dataPtr(), DIMLIST(cc_fab_box), sigmaf_fab.dataPtr(), DIMLIST(sigmaf_fab_box), sigmac_fab.dataPtr(), DIMLIST(sigmac_fab_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), t.dataPtr());
+}
+
+class task_fceres_5 : public task_fec_base
+{
+public:
+
+    task_fceres_5 (FCERES5           f_,
+                   task_list&        tl_,
+                   MultiFab&         r_,
+                   const MultiFab&   s_,
+                   int               igrid_,
+                   task_fab*         ff_,
+                   task_fab*         cc_,
+                   task_fab*         sigmaf_,
+                   task_fab*         sigmac_,
+                   const Box&        creg_,
+                   const Real        h_[BL_SPACEDIM],
+                   const IntVect&    rat_,
+                   const Array<int>& ga_,
+                   const int         isrz_);
+
+    virtual bool ready ();
+
+private:
+
+    void doit ();
+
+    FCERES          f;
+    const MultiFab& s;
+    const Box       creg;
+    Real            h[BL_SPACEDIM];
+    const IntVect   rat;
+    Array<int>      ga;
+    const int       isrz;
+};
+
+task_fceres_5::task_fceres_5 (FCERES5           f_,
+                              task_list&        tl_,
+                              MultiFab&         r_,
+                              const MultiFab&   s_,
+                              int               igrid_,
+                              task_fab*         ff_,
+                              task_fab*         cc_,
+                              task_fab*         sigmaf_,
+                              task_fab*         sigmac_,
+                              const Box&        creg_,
+                              const Real        h_[BL_SPACEDIM],
+                              const IntVect&    rat_,
+                              const Array<int>& ga_,
+                              const int         isrz_)
+    :
+    task_fec_base(tl_,r_,igrid_),
+    f(f_),
+    s(s_),
+    creg(creg_),
+    rat(rat_),
+    ga(ga_),
+    isrz(isrz_)
+{
+    push_back(ff_);
+    push_back(cc_);
+    push_back(sigmaf_);
+    push_back(sigmac_);
+
+    for (int i = 0; i < BL_SPACEDIM; ++i)
+    {
+        h[i] = h_[i];
+    }
+
+    if (is_local_target() && dependencies.empty()) doit();
+}
+
+bool
+task_fceres_5::ready ()
+{
+    BL_ASSERT(!done);
+
+    if (is_local_target()) doit();
+
+    return true;
+}
+
+void
+task_fceres_5::doit ()
+{
+    BL_ASSERT(!done);
+    BL_ASSERT(is_local_target());
+    BL_ASSERT(dependencies.empty());
+
+    done = true;
+
+    const int        igrid          = grid_number();
+    FArrayBox&       r_fab          = target_fab();
+    const Box&       r_fab_box      = r_fab.box();
+    const FArrayBox& s_fab          = s[igrid];
+    const Box&       s_fab_box      = s_fab.box();
+    const FArrayBox& ff_fab         = task_fab_result(0);
+    const Box&       ff_fab_box     = ff_fab.box();
+    const FArrayBox& cc_fab         = task_fab_result(1);
+    const Box&       cc_fab_box     = cc_fab.box();
+    const FArrayBox& sigmaf_fab     = task_fab_result(2);
+    const Box&       sigmaf_fab_box = sigmaf_fab.box();
+    const FArrayBox& sigmac_fab     = task_fab_result(3);
+    const Box&       sigmac_fab_box = sigmac_fab.box();
+
+    (*f)(r_fab.dataPtr(), DIMLIST(r_fab_box), s_fab.dataPtr(), DIMLIST(s_fab_box), ff_fab.dataPtr(), DIMLIST(ff_fab_box), cc_fab.dataPtr(), DIMLIST(cc_fab_box), sigmaf_fab.dataPtr(), DIMLIST(sigmaf_fab_box), sigmac_fab.dataPtr(), DIMLIST(sigmac_fab_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), &isrz);
 }
 
 void
@@ -768,7 +876,12 @@ holy_grail_amr_multigrid::interface_residual (int mglev,
 		}
 		else
 		{
+#if (BL_SPACEDIM == 2)
+                    const int isrz = IsRZ();
+		    tp = tl.add_task(new task_fceres_5(&FORT_HGCRES,tl,resid[mglev],source[lev],igrid,fdst,cdst,sigmaf,sigmac,creg,h[mglev],rat,ga,isrz));
+#elif (BL_SPACEDIM ==3)
 		    tp = tl.add_task(new task_fceres_4(&FORT_HGCRES,tl,resid[mglev],source[lev],igrid,fdst,cdst,sigmaf,sigmac,creg,h[mglev],rat,ga));
+#endif
 		}
                 //
 		// Fill in the grids on the other sides, if any.

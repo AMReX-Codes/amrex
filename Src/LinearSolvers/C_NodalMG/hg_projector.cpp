@@ -13,9 +13,6 @@
 #define   FORT_HGEDIV_TERRAIN   hgediv_terrain_
 #define   FORT_HGCDIV		hgcdiv_
 #define   FORT_HGCDIV_TERRAIN   hgcdiv_terrain_
-#define   FORT_HGODIV		hgodiv_
-#define   FORT_HGIDIV		hgidiv_
-#define   FORT_HGDDIV		hgddiv_
 #define   FORT_HGGRAD		hggrad_
 #define   FORT_HGGRAD_TERRAIN   hggrad_terrain_
 #define   FORT_HGAVG		hgavg_
@@ -31,9 +28,6 @@
 #define   FORT_HGEDIV_TERRAIN   HGEDIV_TERRAIN
 #define   FORT_HGCDIV		HGCDIV
 #define   FORT_HGCDIV_TERRAIN   HGCDIV_TERRAIN
-#define   FORT_HGODIV		HGODIV
-#define   FORT_HGIDIV		HGIDIV
-#define   FORT_HGDDIV		HGDDIV
 #define   FORT_HGGRAD		HGGRAD
 #define   FORT_HGGRAD_TERRAIN   HGGRAD_TERRAIN
 #define   FORT_HGAVG		HGAVG
@@ -49,9 +43,6 @@
 #define   FORT_HGEDIV_TERRAIN   hgediv_terrain
 #define   FORT_HGCDIV		hgcdiv
 #define   FORT_HGCDIV_TERRAIN   hgcdiv_terrain
-#define   FORT_HGODIV		hgodiv
-#define   FORT_HGIDIV		hgidiv
-#define   FORT_HGDDIV		hgddiv
 #define   FORT_HGGRAD		hggrad
 #define   FORT_HGGRAD_TERRAIN   hggrad_terrain
 #define   FORT_HGAVG		hgavg
@@ -78,9 +69,6 @@ extern "C"
     
 
     void FORT_HGDIV         (Real*, intS, CRealPS, intS, intS, CRealPS, const int*, const int*);
-    void FORT_HGODIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*, const int*);
-    void FORT_HGIDIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*, const int*);
-    void FORT_HGDDIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
 
     void FORT_HGEDIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
 #if (BL_SPACEDIM == 2)
