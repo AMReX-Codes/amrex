@@ -372,18 +372,18 @@ static inline void node_dirs(int dir[2], const IntVect& typ)
 class task_copy_2 : public task
 {
 public:
-    task_copy_2(MultiFab* r1, int i1, const MultiFab& r2, int i2, const Box& bx, int w)
+    task_copy_2(MultiFab& r1, int i1, const MultiFab& r2, int i2, const Box& bx, int w)
 	: m_r1(r1), m_i1(i1), m_r2(r2), m_i2(i2), m_bx(bx), m_w(w)
     {
-	    Real* ptra = (*m_r1)[m_i1].dataPtr();
+	    Real* ptra = m_r1[m_i1].dataPtr();
 	    const Real* ptrb = m_r2[m_i2].dataPtr();
-	    const Box& boxa = (*m_r1)[m_i1].box();
+	    const Box& boxa = m_r1[m_i1].box();
 	    const Box& boxb = m_r2[m_i2].box();
 #if (BL_SPACEDIM == 2)
-	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(m_bx), &m_w, m_r1->nComp());
+	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(m_bx), &m_w, m_r1.nComp());
 #else
-	    const int ibord = m_r1->nGrow();
-	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(m_bx), &m_w, &ibord, m_r1->nComp());
+	    const int ibord = m_r1.nGrow();
+	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(m_bx), &m_w, &ibord, m_r1.nComp());
 #endif
     }
     virtual bool ready()
@@ -391,7 +391,7 @@ public:
 	return true;
     }
 private:
-    MultiFab* m_r1;
+    MultiFab& m_r1;
     const int m_i1;
     const MultiFab& m_r2;
     const int m_i2;
@@ -492,7 +492,7 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 	    if (igrid < 0 || jgrid < 0 || lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL)
 		break;
 	    const Box& b = lev_interface.node_box(level_interface::FACEDIM, iface);
-	    tl.add_task(new task_copy_2(&r, igrid, r, jgrid, b, w));
+	    tl.add_task(new task_copy_2(r, igrid, r, jgrid, b, w));
 	}
     }
     else if (type(r) == IntVect::TheCellVector()) 
