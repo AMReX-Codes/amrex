@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.2 1997-12-11 23:25:47 lijewski Exp $
+// $Id: RunStats.cpp,v 1.3 1997-12-16 15:27:47 car Exp $
 //
 
 #include <Utility.H>
@@ -260,7 +260,7 @@ RunStats::report (ostream& os)
 
         for ( ; it; ++it)
         {
-            if (it().level == -1 && it().is_on == true)
+            if (it().level == -1 && it().is_on )
             {
                 Print(os, it(), tot_run_time, tot_run_wtime);
             }
