@@ -194,7 +194,7 @@ SOURCE=.\amr_real3d.F
 
 !ELSEIF  "$(CFG)" == "hgproj - Win32 Debug"
 
-# ADD F90 /warn:declarations
+# ADD F90 /warn:declarations /stand:f90
 # SUBTRACT F90 /check:bounds
 
 !ENDIF 
@@ -208,7 +208,7 @@ SOURCE=.\hg_avg3d.F
 
 !ELSEIF  "$(CFG)" == "hgproj - Win32 Debug"
 
-# ADD F90 /warn:declarations
+# ADD F90 /warn:declarations /stand:f90
 # SUBTRACT F90 /check:bounds
 
 !ENDIF 
@@ -222,7 +222,7 @@ SOURCE=.\hg_multi3d.F
 
 !ELSEIF  "$(CFG)" == "hgproj - Win32 Debug"
 
-# ADD F90 /warn:declarations
+# ADD F90 /warn:declarations /stand:f90
 # SUBTRACT F90 /check:bounds
 
 !ENDIF 
@@ -236,6 +236,9 @@ SOURCE=.\hg_multi3d_terrain.F
 
 !ELSEIF  "$(CFG)" == "hgproj - Win32 Debug"
 
+# PROP Exclude_From_Build 1
+# ADD F90 /stand:f90
+
 !ENDIF 
 
 # End Source File
@@ -247,7 +250,7 @@ SOURCE=.\hg_proj3d.F
 
 !ELSEIF  "$(CFG)" == "hgproj - Win32 Debug"
 
-# ADD F90 /warn:declarations
+# ADD F90 /warn:declarations /stand:f90
 # SUBTRACT F90 /check:bounds
 
 !ENDIF 

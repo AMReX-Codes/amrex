@@ -1128,12 +1128,7 @@ c edges
 c weighting
       res(if,jf,kf) = src(if,jf,kf) - sum / center
       end
-
-c end of variable density non-terrain version
-
-
 c constant density versions:
-
 c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along face
       subroutine hgfres_cd(res, resl0,resh0,resl1,resh1,resl2,resh2,
@@ -1710,7 +1705,6 @@ c edges
 c weighting
       res(if,jf,kf) = src(if,jf,kf) - sum / center
       end
-
 c-----------------------------------------------------------------------
 c NODE-based data, factor of 2 only.
       subroutine hgints_no_sigma_node(dest,
@@ -1919,7 +1913,6 @@ cdir$ ivdep
      &                              sigz(i+1,j,k+1) + sigz(i+1,j+1,k+1))
       end if
       end
-
 c-----------------------------------------------------------------------
 c NODE-based data, factor of 2 only.
       subroutine hgints(dest,
@@ -2375,10 +2368,7 @@ c-----------------------------------------------------------------------
      &      6.d0 * dest(i))
       end do
       end
-
-
 c seven-point variable stencils
-
 c-----------------------------------------------------------------------
       subroutine hgcen(cen,cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
      & signd,snl0,snh0,snl1,snh1,snl2,snh2,
@@ -3255,7 +3245,6 @@ c back substitution loop:
  30               continue
       end if
       end
-
 c Unrolled indexing in these 3 routines uses the fact that each array
 c has a border of width 1
 c-----------------------------------------------------------------------
