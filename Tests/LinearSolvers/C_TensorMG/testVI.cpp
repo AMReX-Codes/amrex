@@ -105,7 +105,7 @@ main(int   argc,
     MultiFab soln(bs, Ncomp, Nghost, Fab_allocate); soln.setVal(0.0);
     MultiFab out(bs, Ncomp, Nghost, Fab_allocate); 
     MultiFab rhs(bs, Ncomp, Nghost, Fab_allocate); rhs.setVal(0.0);
-    for(MultiFabIterator rhsmfi(rhs); rhsmfi.isValid(false); ++rhsmfi)
+    for(MultiFabIterator rhsmfi(rhs); rhsmfi.isValid(); ++rhsmfi)
     {
 	FORT_FILLRHS(rhsmfi().dataPtr(),
 		     ARLIM(rhsmfi().loVect()),ARLIM(rhsmfi().hiVect()),
@@ -161,7 +161,7 @@ main(int   argc,
     
     Nghost = 1; // need space for bc info
     MultiFab fine(bs,Ncomp,Nghost,Fab_allocate);
-    for(MultiFabIterator finemfi(fine); finemfi.isValid(false); ++finemfi)
+    for(MultiFabIterator finemfi(fine); finemfi.isValid(); ++finemfi)
     {
 	FORT_FILLFINE(finemfi().dataPtr(),
 		      ARLIM(finemfi().loVect()),ARLIM(finemfi().hiVect()),
@@ -219,7 +219,7 @@ main(int   argc,
 	bcoefs[n].define(bsC.surroundingNodes(n), 1,
 			 Nghost, Fab_allocate);
 #if 1
-	for(MultiFabIterator bmfi(bcoefs[n]); bmfi.isValid(false); ++bmfi)
+	for(MultiFabIterator bmfi(bcoefs[n]); bmfi.isValid(); ++bmfi)
 	{
 	    FORT_MAKEMU(bmfi().dataPtr(),
 			ARLIM(bmfi().loVect()),ARLIM(bmfi().hiVect()),H,n);
@@ -330,7 +330,7 @@ main(int   argc,
     writePlotFile("plt_apply",soln,geom,refRatio,bgVal);
 
     // Compute truncation
-    for(MultiFabIterator smfi(soln); smfi.isValid(false); ++smfi)
+    for(MultiFabIterator smfi(soln); smfi.isValid(); ++smfi)
     {
 	DependentMultiFabIterator fmfi(smfi,fine);
 	smfi() -= fmfi();

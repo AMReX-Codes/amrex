@@ -64,7 +64,7 @@ MCCGSolver::norm (const MultiFab& res)
     Real restot = 0.0;
     Real resk  = 0.0;
     const BoxArray &gbox = res.boxArray();
-    for(ConstMultiFabIterator mfi(res); mfi.isValid(false); ++mfi) 
+    for(ConstMultiFabIterator mfi(res); mfi.isValid(); ++mfi) 
     {
         assert(mfi.validbox() == gbox[mfi.index()]);
         resk = mfi().norm(mfi.validbox(), p);
@@ -196,7 +196,7 @@ MCCGSolver::solve (MultiFab&       sol,
 	rho = 0.0;
 	int ncomp = z->nComp();
 	const BoxArray& gbox = r->boxArray();
-        for(MultiFabIterator rmfi(*r); rmfi.isValid(false); ++rmfi)
+        for(MultiFabIterator rmfi(*r); rmfi.isValid(); ++rmfi)
 	{
 	    DependentMultiFabIterator zmfi(rmfi, (*z));
             Real trho;
@@ -297,7 +297,7 @@ MCCGSolver::advance (MultiFab&       p,
     // Compute p = z  +  beta p
     const BoxArray &gbox = Lp.boxArray(lev);
     int ncomp = p.nComp();
-    for(MultiFabIterator pmfi(p); pmfi.isValid(false); ++pmfi)
+    for(MultiFabIterator pmfi(p); pmfi.isValid(); ++pmfi)
     {
 	DependentMultiFabIterator zmfi(pmfi, z);
 	FORT_CGADVCP(
@@ -320,7 +320,7 @@ MCCGSolver::update (MultiFab&       sol,
     // compute x =+ alpha p  and  r -= alpha w
     const BoxArray &gbox = Lp.boxArray(lev);
     int ncomp = r.nComp();
-    for(MultiFabIterator solmfi(sol); solmfi.isValid(false); ++solmfi)
+    for(MultiFabIterator solmfi(sol); solmfi.isValid(); ++solmfi)
     {
 	DependentMultiFabIterator rmfi(solmfi, r);
 	DependentMultiFabIterator pmfi(solmfi, p);
@@ -347,7 +347,7 @@ MCCGSolver::axp (MultiFab& w,
     const BoxArray &gbox = Lp.boxArray(lev);
     Lp.apply(w, p, lev, bc_mode);
     int ncomp = p.nComp();
-    for(MultiFabIterator pmfi(p); pmfi.isValid(false); ++pmfi)
+    for(MultiFabIterator pmfi(p); pmfi.isValid(); ++pmfi)
     {
 	DependentMultiFabIterator wmfi(pmfi, w);
 	Real tpw;

@@ -1,4 +1,4 @@
-// $Id: MCMultiGrid.cpp,v 1.3 1998-04-15 21:48:14 marc Exp $
+// $Id: MCMultiGrid.cpp,v 1.4 1998-07-29 20:26:00 lijewski Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -108,7 +108,7 @@ MCMultiGrid::errorEstimate (int       level,
     Real restot = 0.0;
     Real resk  = 0.0;
     const BoxArray &gbox = Lp.boxArray(0);
-    for(MultiFabIterator resmfi(*res[level]); resmfi.isValid(false); ++resmfi) {
+    for(MultiFabIterator resmfi(*res[level]); resmfi.isValid(); ++resmfi) {
         assert(gbox[resmfi.index()] == resmfi.validbox());
         Box tmp(resmfi.validbox());
         resk = resmfi().norm(tmp, p, 0, numcomps);
@@ -364,7 +364,7 @@ MCMultiGrid::average (MultiFab&       c,
 		      const MultiFab& f)
 {
     // Use Fortran function to average down (restrict) f to c
-    for(MultiFabIterator cmfi(c); cmfi.isValid(false); ++cmfi)
+    for(MultiFabIterator cmfi(c); cmfi.isValid(); ++cmfi)
     {
 	DependentMultiFabIterator fmfi(cmfi, f);
         assert(c.boxArray().get(cmfi.index()) == cmfi.validbox());
@@ -384,7 +384,7 @@ MCMultiGrid::interpolate (MultiFab&       f,
 {
     // Use fortran function to interpolate up (prolong) c to f
     // Note: returns f=f+P(c) , i.e. ADDS interp'd c to f
-    for(MultiFabIterator fmfi(f); fmfi.isValid(false); ++fmfi)
+    for(MultiFabIterator fmfi(f); fmfi.isValid(); ++fmfi)
     {
 	DependentMultiFabIterator cmfi(fmfi, c);
         assert(c.boxArray().get(cmfi.index()) == cmfi.validbox());

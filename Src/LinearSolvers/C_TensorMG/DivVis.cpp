@@ -1,4 +1,4 @@
-// $Id: DivVis.cpp,v 1.2 1998-04-15 21:48:09 marc Exp $
+// $Id: DivVis.cpp,v 1.3 1998-07-29 20:25:55 lijewski Exp $
 
 #include <DivVis.H>
 #include <DivVis_F.H>
@@ -256,7 +256,7 @@ DivVis::Fsmooth(MultiFab &solnL, const MultiFab &rhsL,
     const MultiFab  &bZ = bCoefficients(2,level);
 #endif
     int nc = solnL.nComp();
-    for(MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(false); ++solnLmfi) {
+    for(MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi) {
 	DependentMultiFabIterator rhsLmfi(solnLmfi, rhsL);
 	DependentMultiFabIterator amfi(solnLmfi,  a);
 	DependentMultiFabIterator bXmfi(solnLmfi, bX);
@@ -390,7 +390,7 @@ DivVis::compFlux (MultiFab &xflux,
     assert( nc == yflux.nComp() );
 
 
-    for(MultiFabIterator xmfi(x); xmfi.isValid(false); ++xmfi) {
+    for(MultiFabIterator xmfi(x); xmfi.isValid(); ++xmfi) {
 	DependentMultiFabIterator amfi(xmfi,  a);
 	DependentMultiFabIterator bXmfi(xmfi, bX);
 	DependentMultiFabIterator xfluxmfi(xmfi, xflux);
@@ -502,7 +502,7 @@ DivVis::Fapply(MultiFab& y, const MultiFab &x, int level)
 #endif
     int nc = y.nComp();
     // HACK: Cast away const for compatibility with BoxLib constructors
-    for(MultiFabIterator xmfi((MultiFab&)x); xmfi.isValid(false); ++xmfi) {
+    for(MultiFabIterator xmfi((MultiFab&)x); xmfi.isValid(); ++xmfi) {
         DependentMultiFabIterator ymfi(xmfi,  y);
         DependentMultiFabIterator amfi(xmfi,  a);
         DependentMultiFabIterator bXmfi(xmfi, bX);
