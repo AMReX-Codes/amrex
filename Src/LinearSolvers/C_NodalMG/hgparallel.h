@@ -88,7 +88,8 @@ public:
     ~task_list();
     void add_task(task* t);
     void execute();
-    bool execute_till_block();
+    bool execute_no_block();
+	// executes once through the task list, return true if any elements left
     const MPI_Comm& mpi_comm() const { return comm; }
     bool empty() const { return tasks.empty(); }
 private:
