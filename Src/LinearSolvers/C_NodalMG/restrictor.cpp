@@ -328,7 +328,7 @@ void bilinear_restrictor_class::fill_interface(
 		    const Box fb = refine(grow(cbox, 1), rat);
 		    // FArrayBox fgr(refine(grow(cbox, 1), rat), dest[jgrid].nComp());
 		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
-		    task_fab* tfab = new task_fill_patch(fb, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor);
+		    task_fab* tfab = new task_fill_patch(fb, fine, lev_interface, bdy, 0, icor);
 		    tl.add_task(
 			new task_restriction_fill(&FORT_FANRST2, dest, jgrid, pb, cbox, tfab, rat, integrate)
 			);
@@ -347,7 +347,7 @@ void bilinear_restrictor_class::fill_interface(
 			fbox.growHi(idim, rat[idim]);
 		    // FArrayBox fgr(fbox, dest[jgrid].nComp());
 		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
-		    task_fab* tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor);
+		    task_fab* tfab = new task_fill_patch(fbox, fine, lev_interface, bdy, 0, icor);
 		    tl.add_task(
 			new task_restriction_fill(&FORT_FANFR2, dest, jgrid, pb, cbox, tfab, rat, integrate, idim, idir)
 			);
@@ -382,7 +382,7 @@ void bilinear_restrictor_class::fill_interface(
 		    }
 		    // FArrayBox fgr(fbox, dest[jgrid].nComp());
 		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
-		    task_fab* tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor);
+		    task_fab* tfab = new task_fill_patch(fbox, fine, lev_interface, bdy, 0, icor);
 		    tl.add_task(
 			new task_restriction_fill(&FORT_FANOR2, dest, jgrid, pb, cbox, tfab, rat, integrate, idir0, idir1)
 			);
@@ -396,7 +396,7 @@ void bilinear_restrictor_class::fill_interface(
 		    // FArrayBox fgr(fbox, dest[jgrid].nComp());
 		    const int idir1 = (geo == (level_interface::LL | level_interface::HH)) ? 1 : -1;
 		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
-		    task_fab* tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor);
+		    task_fab* tfab = new task_fill_patch(fbox, fine, lev_interface, bdy, 0, icor);
 		    tl.add_task(
 			new task_restriction_fill(&FORT_FANDR2, dest, jgrid, pb, cbox, tfab, rat, integrate, idir1)
 			);
@@ -411,7 +411,7 @@ void bilinear_restrictor_class::fill_interface(
 		    const int idir0 = ((geo & level_interface::XL) == level_interface::XL) ? -1 : 1;
 		    const int idir1 = ((geo & level_interface::YL) == level_interface::YL) ? -1 : 1;
 		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
-		    task_fab* tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor);
+		    task_fab* tfab = new task_fill_patch(fbox, fine, lev_interface, bdy, 0, icor);
 		    tl.add_task(
 			new task_restriction_fill(&FORT_FANIR2, dest, jgrid, pb, cbox, tfab, rat, integrate, idir0, idir1)
 			);

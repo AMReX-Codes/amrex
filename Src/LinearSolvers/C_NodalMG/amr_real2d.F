@@ -543,7 +543,7 @@ c fine region by at least one coarse cell on all sides.
                do i = regl0, regh0
                   dest(i,j,nc) = fac * dest(i,j,nc)
                end do
-            end dp
+            end do
          end if
       end do
       end
@@ -584,8 +584,8 @@ c Fills coarse region defined by reg.
                   fac = (ir-abs(m)) * fac1
                   do j = regl1, regh1
                      dest(i,j,nc) = dest(i,j,nc) +
-           &			 fac * (src(i*ir+m,j*jr-n,nc)+
-           &                              src(i*ir+m,j*jr+n,nc))
+     &			 fac * (src(i*ir+m,j*jr-n,nc)+
+     &                              src(i*ir+m,j*jr+n,nc))
                   end do
                end do
             end do
@@ -608,8 +608,8 @@ c Fills coarse region defined by reg.
                   if (m .eq. 0) fac = 0.5d0 * fac
                   do  i = regl0, regh0
                      dest(i,j,nc) = dest(i,j,nc)
-           &		+ fac * (src(i*ir-m,j*jr+n,nc)
-           &                        +src(i*ir+m,j*jr+n,nc))
+     &		+ fac * (src(i*ir-m,j*jr+n,nc)
+     &                        +src(i*ir+m,j*jr+n,nc))
                   end do
                end do
             end do
@@ -693,9 +693,9 @@ c Fills coarse point defined by reg.
             do m = idir0, idir0*(ir-1), idir0
                fac = (ir-abs(m)) * fac1
                dest(i,j,nc) = dest(i,j,nc) + fac * 
-           &               (src(i*ir+m,j*jr+n,nc) +
-           &                src(i*ir-m,j*jr+n,nc) +
-           &                src(i*ir+m,j*jr-n,nc))
+     &               (src(i*ir+m,j*jr+n,nc) +
+     &                src(i*ir-m,j*jr+n,nc) +
+     &                src(i*ir+m,j*jr-n,nc))
             end do
          end do
       end do
