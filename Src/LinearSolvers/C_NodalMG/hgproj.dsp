@@ -190,16 +190,7 @@ SOURCE=.\restrictor.H
 # Begin Source File
 
 SOURCE=.\amr_real2d.F
-
-!IF  "$(CFG)" == "hgproj - Win32 Release"
-
-!ELSEIF  "$(CFG)" == "hgproj - Win32 Debug"
-
 # PROP Exclude_From_Build 1
-# ADD F90 /check:bounds
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
@@ -218,16 +209,7 @@ SOURCE=.\amr_real3d.F
 # Begin Source File
 
 SOURCE=.\hg_avg2d.F
-
-!IF  "$(CFG)" == "hgproj - Win32 Release"
-
-!ELSEIF  "$(CFG)" == "hgproj - Win32 Debug"
-
 # PROP Exclude_From_Build 1
-# ADD F90 /check:bounds
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
@@ -246,16 +228,7 @@ SOURCE=.\hg_avg3d.F
 # Begin Source File
 
 SOURCE=.\hg_multi2d.F
-
-!IF  "$(CFG)" == "hgproj - Win32 Release"
-
-!ELSEIF  "$(CFG)" == "hgproj - Win32 Debug"
-
 # PROP Exclude_From_Build 1
-# ADD F90 /check:bounds
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
@@ -288,16 +261,7 @@ SOURCE=.\hg_multi3d_terrain.F
 # Begin Source File
 
 SOURCE=.\hg_proj2d.F
-
-!IF  "$(CFG)" == "hgproj - Win32 Release"
-
-!ELSEIF  "$(CFG)" == "hgproj - Win32 Debug"
-
 # PROP Exclude_From_Build 1
-# ADD F90 /check:bounds
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
