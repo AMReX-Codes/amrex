@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.57 1998-06-04 00:16:32 lijewski Exp $
+// $Id: FabArray.H,v 1.58 1998-06-09 21:41:39 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1808,10 +1808,12 @@ FabArrayIterator<T,FAB>::isValid (bool bDoSync)
 {
     bool valid = (currentIndex >= 0 && currentIndex < fabArray.length());
 
+#ifdef USE_BSP
     if (!valid && bDoSync)
     {
         ParallelDescriptor::Synchronize();
     }
+#endif
 
     return valid;
 }
@@ -2006,10 +2008,13 @@ ConstFabArrayIterator<T,FAB>::isValid (bool bDoSync) const
 {
     bool valid = (currentIndex >= 0 && currentIndex < fabArray.length());
 
+#ifdef USE_BSP
     if (!valid && bDoSync)
     {
         ParallelDescriptor::Synchronize();
     }
+#endif
+
     return valid;
 }
 
