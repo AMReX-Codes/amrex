@@ -1,22 +1,12 @@
-
 #ifndef BL_NORMEDFAB_H
 #define BL_NORMEDFAB_H
 
 //
-// $Id: NormedFab.H,v 1.8 2000-10-02 20:52:36 lijewski Exp $
+// $Id: NormedFab.H,v 1.9 2001-07-17 23:02:25 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <iostream>
 #include <cmath>
-using std::cin;
-using std::cout;
-using std::cerr;
-using std::endl;
-#else
-#include <iostream.h>
-#include <math.h>
-#endif
 
 #include <BoxLib.H>
 #include <Looping.H>
@@ -184,17 +174,17 @@ NormedFab<T>::norm (const Box& subbox,
                 tmp    = new Real[thisLen];
                 tmplen = thisLen;
                 for (int i = 0; i < thisLen; i++)
-                    tmp[i] = Abs(Real(row[i]));
+                    tmp[i] = std::abs(Real(row[i]));
             }
             else
             {
                 for (int i = 0; i < thisLen; i++)
-                    tmp[i] = Max(tmp[i],Real(Abs(row[i])));
+                    tmp[i] = std::max(tmp[i],Real(std::abs(row[i])));
             }
         } EndForPencil
         nrm = tmp[0];
         for (int i = 1; i < tmplen; i++)
-            nrm = Max(nrm, tmp[i]);
+            nrm = std::max(nrm, tmp[i]);
     }
     else if (p == 1)
     {
@@ -206,12 +196,12 @@ NormedFab<T>::norm (const Box& subbox,
                 tmp    = new Real[thisLen];
                 tmplen = thisLen;
                 for (int i = 0; i < thisLen; i++)
-                    tmp[i] = Abs(Real(row[i]));
+                    tmp[i] = std::abs(Real(row[i]));
             }
             else
             {
                 for (int i = 0; i < thisLen; i++)
-                    tmp[i] += Abs(Real(row[i]));
+                    tmp[i] += std::abs(Real(row[i]));
             }
         } EndForPencil
         nrm = tmp[0];

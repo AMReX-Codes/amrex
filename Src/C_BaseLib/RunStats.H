@@ -1,24 +1,14 @@
-
 #ifndef _RUNSTATS_H_
 #define _RUNSTATS_H_ 
 
 //
-// $Id: RunStats.H,v 1.10 2000-10-02 20:52:38 lijewski Exp $
+// $Id: RunStats.H,v 1.11 2001-07-17 23:02:27 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <cstdlib>
 #include <fstream>
 #include <cstring>
 #include <cmath>
-using std::ifstream;
-using std::ofstream;
-#else
-#include <stdlib.h>
-#include <fstream.h>
-#include <string.h>
-#include <math.h>
-#endif
 
 #include <aString.H>
 #include <List.H>
@@ -33,8 +23,8 @@ namespace BL_NAMESPACE
 class RunStatsData
 {
     friend class RunStats;
-    friend ostream& operator<< (ostream&, const RunStatsData&);
-    friend istream& operator>> (istream&, RunStatsData&);
+    friend std::ostream& operator<< (std::ostream&, const RunStatsData&);
+    friend std::istream& operator>> (std::istream&, RunStatsData&);
 
 private:
 
@@ -86,7 +76,7 @@ public:
     //
     //@ManDoc: A friendly output operator.
     //
-    friend ostream& operator<< (ostream& os, const RunStats& r);
+    friend std::ostream& operator<< (std::ostream& os, const RunStats& r);
     //
     //@ManDoc: Start timing given variable.
     //
@@ -118,15 +108,15 @@ public:
     //
     //@ManDoc: Report stats in formatted form to output stream.
     //
-    static void report (ostream &os);
+    static void report (std::ostream &os);
     //
     //@ManDoc: Unformatted write to output stream.
     //
-    static void dumpStats (ofstream &os);
+    static void dumpStats (std::ofstream &os);
     //
     //@ManDoc: Unformatted read from input stream.
     //
-    static void readStats (ifstream &is, bool restart = false);
+    static void readStats (std::ifstream &is, bool restart = false);
     //
     //@ManDoc: Report the names of the statistics as an array of aString.
     //
@@ -156,7 +146,7 @@ private:
 
     static void ReduceIt (List<RunStatsData>& stats);
 
-    static void Print (ostream&, const RunStatsData&, Real, Real);
+    static void Print (std::ostream&, const RunStatsData&, Real, Real);
 
     static void CollectNumPts ();
     //

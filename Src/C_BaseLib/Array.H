@@ -1,24 +1,14 @@
-
 #ifndef BL_ARRAY_H
 #define BL_ARRAY_H
 
 //
-// $Id: Array.H,v 1.16 2000-10-02 20:52:32 lijewski Exp $
+// $Id: Array.H,v 1.17 2001-07-17 23:02:17 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <iostream>
-using std::cin;
-using std::cout;
-using std::cerr;
-using std::endl;
-#else
-#include <iostream.h>
-#endif
 
 #include <BLassert.H>
 #include <BoxLib.H>
-#include <Misc.H>
 
 #ifdef BL_NAMESPACE
 namespace BL_NAMESPACE

@@ -1,9 +1,7 @@
-
 //
-// $Id: FArrayBox.cpp,v 1.32 2000-10-02 20:52:34 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.33 2001-07-17 23:02:21 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <cstdlib>
 #include <iostream>
 #include <iomanip>
@@ -15,22 +13,7 @@
 #else
 #include <cfloat>
 #endif
-using std::cin;
-using std::cout;
-using std::cerr;
-using std::setw;
-using std::setprecision;
-using std::ios;
-#else
-#include <stdlib.h>
-#include <iostream.h>
-#include <iomanip.h>
-#include <float.h>
-#include <math.h>
-#include <string.h>
-#endif
 
-#include <Misc.H>
 #include <FArrayBox.H>
 #include <FabConv.H>
 #include <ParmParse.H>
@@ -41,21 +24,15 @@ using std::ios;
 #include <BoxLib.H>
 #include <Looping.H>
 
-#if defined(BL_ARCH_CRAY)
-#ifdef BL_USE_DOUBLE
-#error DOUBLE not allowed on CRAY
-#endif
-#endif
-
 #ifdef BL_NAMESPACE
 namespace BL_NAMESPACE
 {
 #endif
 
-#if defined(BL_ARCH_IEEE)
-   static const char sys_name[] = "IEEE";
-#elif defined(BL_ARCH_CRAY)
+#if defined(BL_ARCH_CRAY)
    static const char sys_name[] = "CRAY";
+#else
+   static const char sys_name[] = "IEEE";
 #endif
 
 //
@@ -71,19 +48,22 @@ class FABio_8bit
     public FABio
 {
 public:
-    virtual void read (istream&   is,
-                       FArrayBox& fb) const;
-    virtual void write (ostream&         os,
+    virtual void read (std::istream& is,
+                       FArrayBox&    fb) const;
+
+    virtual void write (std::ostream&    os,
                         const FArrayBox& fb,
                         int              comp,
                         int              num_comp) const;
-    virtual void skip (istream&   is,
-                       FArrayBox& f) const;
-    virtual void skip (istream&   is,
-                       FArrayBox& f,
-		       int nCompToSkip) const;
+
+    virtual void skip (std::istream& is,
+                       FArrayBox&    f) const;
+
+    virtual void skip (std::istream& is,
+                       FArrayBox&    f,
+		       int           nCompToSkip) const;
 protected:
-    virtual void write_header (ostream&         os,
+    virtual void write_header (std::ostream&    os,
                                const FArrayBox& f,
                                int              nvar) const;
 };
@@ -96,19 +76,22 @@ class FABio_ascii
     public FABio
 {
 public:
-    virtual void read (istream&   is,
-                       FArrayBox& fb) const;
-    virtual void write (ostream&         os,
+    virtual void read (std::istream&   is,
+                       FArrayBox&      fb) const;
+
+    virtual void write (std::ostream&    os,
                         const FArrayBox& fb,
                         int              comp,
                         int              num_comp) const;
-    virtual void skip (istream&   is,
-                       FArrayBox& f) const;
-    virtual void skip (istream&   is,
-                       FArrayBox& f,
-		       int nCompToSkip) const;
+
+    virtual void skip (std::istream& is,
+                       FArrayBox&    f) const;
+
+    virtual void skip (std::istream& is,
+                       FArrayBox&    f,
+		       int           nCompToSkip) const;
 protected:
-    virtual void write_header (ostream&         os,
+    virtual void write_header (std::ostream&    os,
                                const FArrayBox& f,
                                int              nvar) const;
 };
@@ -123,20 +106,23 @@ class FABio_binary
 public:
     FABio_binary (RealDescriptor* rd_);
 
-    virtual void read (istream&   is,
-                       FArrayBox& fb) const;
-    virtual void write (ostream&         os,
+    virtual void read (std::istream& is,
+                       FArrayBox&    fb) const;
+
+    virtual void write (std::ostream&    os,
                         const FArrayBox& fb,
                         int              comp,
                         int              num_comp) const;
-    virtual void skip (istream&   is,
-                       FArrayBox& f) const;
-    virtual void skip (istream&   is,
-                       FArrayBox& f,
-		       int nCompToSkip) const;
+
+    virtual void skip (std::istream& is,
+                       FArrayBox&    f) const;
+
+    virtual void skip (std::istream& is,
+                       FArrayBox&    f,
+		       int           nCompToSkip) const;
 
 protected:
-    virtual void write_header (ostream&         os,
+    virtual void write_header (std::ostream&    os,
                                const FArrayBox& f,
                                int              nvar) const;
 
@@ -150,7 +136,7 @@ protected:
 FABio::~FABio () {}
 
 void
-FABio::write_header (ostream&         os,
+FABio::write_header (std::ostream&    os,
                      const FArrayBox& f,
                      int              nvar) const
 {
@@ -173,6 +159,81 @@ bool FArrayBox::Initialized = false;
 FABio::Format FArrayBox::format = FABio::FAB_NATIVE;
 
 FABio* FArrayBox::fabio = new FABio_binary(FPC::NativeRealDescriptor().clone());
+
+FArrayBox::FArrayBox ()
+{
+    if (!FArrayBox::Initialized)
+        FArrayBox::init();
+}
+
+FArrayBox::FArrayBox (const Box& b,
+                      int        n)
+    :
+    BaseFab<Real>(b,n)
+{
+    if (!FArrayBox::Initialized)
+        FArrayBox::init();
+    //
+    // For debugging purposes set values to QNAN when possible.
+    //
+    if ( do_initval )
+	setVal(initval);
+}
+
+void
+FArrayBox::resize (const Box& b,
+                   int        N)
+{
+    BaseFab<Real>::resize(b,N);
+    //
+    // For debugging purposes set values to QNAN when possible.
+    //
+    if ( do_initval )
+      setVal(initval);
+}
+
+FABio::Format
+FArrayBox::getFormat ()
+{
+    return format;
+}
+
+const FABio&
+FArrayBox::getFABio ()
+{
+    return *fabio;
+}
+
+void
+FArrayBox::setFABio (FABio* rd)
+{
+    BL_ASSERT(rd != 0);
+    delete fabio;
+    fabio = rd;
+}
+
+Real
+FArrayBox::norm (int p,
+                 int comp,
+                 int numcomp) const
+{
+    return norm(domain,p,comp,numcomp);
+}
+
+void
+FArrayBox::writeOn (std::ostream& os) const
+{
+    writeOn(os,0,nComp());
+}
+
+void
+FArrayBox::skipFAB (std::istream& is)
+{
+    int ignore = 0;
+    skipFAB(is, ignore);
+}
+
+FArrayBox::~FArrayBox () {}
 
 void
 FArrayBox::setFormat (FABio::Format fmt)
@@ -202,7 +263,7 @@ FArrayBox::setFormat (FABio::Format fmt)
         fio = new FABio_binary(rd);
         break;
     default:
-        cerr << "FArrayBox::setFormat(): Bad FABio::Format = " << fmt;
+        std::cerr << "FArrayBox::setFormat(): Bad FABio::Format = " << fmt;
         BoxLib::Abort();
     }
 
@@ -243,16 +304,16 @@ bool FArrayBox::do_initval = true;
 #else
 bool FArrayBox::do_initval = false;
 #endif
-#if defined(BL_USE_NEW_HFILES) && !defined(__GNUC__)
+#if !defined(__GNUC__)
 Real FArrayBox::initval =
     std::numeric_limits<Real>::has_quiet_NaN
   ? std::numeric_limits<Real>::quiet_NaN()
   : std::numeric_limits<Real>::max();
 #else
-#ifdef BL_USE_DOUBLE
-Real FArrayBox::initval = DBL_MAX;
-#else
+#ifdef BL_USE_FLOAT
 Real FArrayBox::initval = FLT_MAX;
+#else
+Real FArrayBox::initval = DBL_MAX;
 #endif
 #endif
 
@@ -283,19 +344,6 @@ FArrayBox::get_initval ()
 {
   return initval;
 }
-
-#ifdef BL_USE_POINTLIB
-#ifndef BL_CRAY_BUG_DEFARG
-FArrayBox::FArrayBox (const PointFab<PointDomain>& pf,
-                      Real                         val)
-    :
-    BaseFab<Real>(pf,val)
-{
-    if (!FArrayBox::Initialized)
-        FArrayBox::init();
-}
-#endif /*BL_CRAY_BUG_DEFARG*/
-#endif /*BL_USE_POINTLIB*/
 
 void
 FArrayBox::init ()
@@ -346,7 +394,7 @@ FArrayBox::init ()
         }
         else
         {
-            cerr << "FArrayBox::init(): Bad FABio::Format = " << fmt;
+            std::cerr << "FArrayBox::init(): Bad FABio::Format = " << fmt;
             BoxLib::Abort();
         }
 
@@ -367,7 +415,7 @@ FArrayBox::init ()
             FArrayBox::setOrdering(FABio::FAB_REVERSE_ORDER_2);
         else
         {
-            cerr << "FArrayBox::init(): Bad FABio::Ordering = " << ord;
+            std::cerr << "FArrayBox::init(): Bad FABio::Ordering = " << ord;
             BoxLib::Abort();
         }
     }
@@ -458,8 +506,8 @@ FArrayBox::norm (const Box& subbox,
 //
 
 FABio*
-FABio::read_header (istream&   is,
-                    FArrayBox& f)
+FABio::read_header (std::istream& is,
+                    FArrayBox&    f)
 {
     int nvar;
     Box bx;
@@ -535,10 +583,10 @@ FABio::read_header (istream&   is,
 
 
 FABio*
-FABio::read_header (istream&   is,
-                    FArrayBox& f,
-		    int compIndex,
-		    int &nCompAvailable)
+FABio::read_header (std::istream& is,
+                    FArrayBox&    f,
+		    int           compIndex,
+		    int&          nCompAvailable)
 {
     int nvar;
     Box bx;
@@ -616,7 +664,7 @@ FABio::read_header (istream&   is,
     return fio;
 }
 
-FArrayBox::FArrayBox (istream& ifile)
+FArrayBox::FArrayBox (std::istream& ifile)
 {
     if (!FArrayBox::Initialized)
         FArrayBox::init();
@@ -625,9 +673,9 @@ FArrayBox::FArrayBox (istream& ifile)
 }
 
 void
-FArrayBox::writeOn (ostream& os,
-                    int      comp,
-                    int      num_comp) const
+FArrayBox::writeOn (std::ostream& os,
+                    int           comp,
+                    int           num_comp) const
 {
     BL_ASSERT(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= nComp());
     fabio->write_header(os, *this, num_comp);
@@ -635,7 +683,7 @@ FArrayBox::writeOn (ostream& os,
 }
 
 void
-FArrayBox::readFrom (istream& is)
+FArrayBox::readFrom (std::istream& is)
 {
     FABio* fabrd = FABio::read_header(is, *this);
     fabrd->read(is, *this);
@@ -644,7 +692,7 @@ FArrayBox::readFrom (istream& is)
 
 
 int
-FArrayBox::readFrom (istream& is, int compIndex)
+FArrayBox::readFrom (std::istream& is, int compIndex)
 {
     int nCompAvailable;
     FABio* fabrd = FABio::read_header(is, *this, compIndex, nCompAvailable);
@@ -661,8 +709,8 @@ FArrayBox::readFrom (istream& is, int compIndex)
 
 
 Box
-FArrayBox::skipFAB (istream& is,
-                    int&     num_comp)
+FArrayBox::skipFAB (std::istream& is,
+                    int&          num_comp)
 {
     FArrayBox f;
     FABio* fabrd = FABio::read_header(is, f);
@@ -673,7 +721,7 @@ FArrayBox::skipFAB (istream& is,
 }
 
 void
-FABio_ascii::write (ostream&         os,
+FABio_ascii::write (std::ostream&    os,
                     const FArrayBox& f,
                     int              comp,
                     int              num_comp) const
@@ -699,8 +747,8 @@ FABio_ascii::write (ostream&         os,
 }
 
 void
-FABio_ascii::read (istream&   is,
-                   FArrayBox& f) const
+FABio_ascii::read (std::istream& is,
+                   FArrayBox&    f) const
 {
     const Box& bx = f.box();
 
@@ -712,7 +760,11 @@ FABio_ascii::read (istream&   is,
         is >> q;
         if (p != q)
         {
-          cerr << "Error: read IntVect " << q << "  should be " << p << '\n';
+          std::cerr << "Error: read IntVect "
+                    << q
+                    << "  should be "
+                    << p
+                    << '\n';
           BoxLib::Error("FABio_ascii::read() bad IntVect");
         }
         for (int k = 0; k < f.nComp(); k++)
@@ -724,22 +776,22 @@ FABio_ascii::read (istream&   is,
 }
 
 void
-FABio_ascii::skip (istream&   is,
-                   FArrayBox& f) const
+FABio_ascii::skip (std::istream& is,
+                   FArrayBox&    f) const
 {
     FABio_ascii::read(is, f);
 }
 
 void
-FABio_ascii::skip (istream&   is,
-                   FArrayBox& f,
-		   int nCompToSkip) const
+FABio_ascii::skip (std::istream& is,
+                   FArrayBox&    f,
+		   int           nCompToSkip) const
 {
     BoxLib::Error("FABio_ascii::skip(..., int nCompToSkip) not implemented");
 }
 
 void
-FABio_ascii::write_header (ostream&         os,
+FABio_ascii::write_header (std::ostream&    os,
                            const FArrayBox& f,
                            int              nvar) const
 {
@@ -754,7 +806,7 @@ FABio_ascii::write_header (ostream&         os,
 }
 
 void
-FABio_8bit::write (ostream&         os,
+FABio_8bit::write (std::ostream&    os,
                    const FArrayBox& f,
                    int              comp,
                    int              num_comp) const
@@ -771,7 +823,7 @@ FABio_8bit::write (ostream&         os,
         const Real mn   = f.min(k+comp);
         const Real mx   = f.max(k+comp);
         const Real* dat = f.dataPtr(k+comp);
-        Real rng = Abs(mx-mn);
+        Real rng = std::abs(mx-mn);
         rng = (rng < eps) ? 0.0 : 255.0/(mx-mn);
         for (long i = 0; i < siz; i++)
         {
@@ -790,8 +842,8 @@ FABio_8bit::write (ostream&         os,
 }
 
 void
-FABio_8bit::read (istream&   is,
-                  FArrayBox& f) const
+FABio_8bit::read (std::istream& is,
+                  FArrayBox&    f) const
 {
     long siz         = f.box().numPts();
     unsigned char* c = new unsigned char[siz];
@@ -820,8 +872,8 @@ FABio_8bit::read (istream&   is,
 }
 
 void
-FABio_8bit::skip (istream&   is,
-                  FArrayBox& f) const
+FABio_8bit::skip (std::istream& is,
+                  FArrayBox&    f) const
 {
     const Box& bx = f.box();
     long siz      = bx.numPts();
@@ -832,7 +884,7 @@ FABio_8bit::skip (istream&   is,
         BL_ASSERT(nbytes == siz);
         while (is.get() != '\n')
             ;
-        is.seekg(siz, ios::cur);
+        is.seekg(siz, std::ios::cur);
     }
 
     if (is.fail())
@@ -840,9 +892,9 @@ FABio_8bit::skip (istream&   is,
 }
 
 void
-FABio_8bit::skip (istream&   is,
-                  FArrayBox& f,
-		  int nCompToSkip) const
+FABio_8bit::skip (std::istream& is,
+                  FArrayBox&    f,
+		  int           nCompToSkip) const
 {
     const Box& bx = f.box();
     long siz      = bx.numPts();
@@ -853,7 +905,7 @@ FABio_8bit::skip (istream&   is,
         BL_ASSERT(nbytes == siz);
         while (is.get() != '\n')
             ;
-        is.seekg(siz, ios::cur);
+        is.seekg(siz, std::ios::cur);
     }
 
     if (is.fail())
@@ -861,7 +913,7 @@ FABio_8bit::skip (istream&   is,
 }
 
 void
-FABio_8bit::write_header (ostream&         os,
+FABio_8bit::write_header (std::ostream&    os,
                           const FArrayBox& f,
                           int              nvar) const
 {
@@ -875,7 +927,7 @@ FABio_binary::FABio_binary (RealDescriptor* rd_)
 {}
 
 void
-FABio_binary::write_header (ostream&         os,
+FABio_binary::write_header (std::ostream&    os,
                             const FArrayBox& f,
                             int              nvar) const
 {
@@ -884,8 +936,8 @@ FABio_binary::write_header (ostream&         os,
 }
 
 void
-FABio_binary::read (istream&   is,
-                    FArrayBox& f) const
+FABio_binary::read (std::istream& is,
+                    FArrayBox&    f) const
 {
     const long base_siz = f.box().numPts();
     Real* comp_ptr      = f.dataPtr(0);
@@ -896,7 +948,7 @@ FABio_binary::read (istream&   is,
 }
 
 void
-FABio_binary::write (ostream&         os,
+FABio_binary::write (std::ostream&    os,
                      const FArrayBox& f,
                      int              comp,
                      int              num_comp) const
@@ -913,32 +965,32 @@ FABio_binary::write (ostream&         os,
 }
 
 void
-FABio_binary::skip (istream&   is,
-                    FArrayBox& f) const
+FABio_binary::skip (std::istream& is,
+                    FArrayBox&    f) const
 {
     const Box& bx = f.box();
     long base_siz = bx.numPts();
     long siz      = base_siz * f.nComp();
-    is.seekg(siz*rd->numBytes(), ios::cur);
+    is.seekg(siz*rd->numBytes(), std::ios::cur);
     if (is.fail())
         BoxLib::Error("FABio_binary::skip() failed");
 }
 
 void
-FABio_binary::skip (istream&   is,
-                    FArrayBox& f,
-		    int nCompToSkip) const
+FABio_binary::skip (std::istream& is,
+                    FArrayBox&    f,
+		    int           nCompToSkip) const
 {
     const Box& bx = f.box();
     long base_siz = bx.numPts();
     long siz      = base_siz * nCompToSkip;
-    is.seekg(siz*rd->numBytes(), ios::cur);
+    is.seekg(siz*rd->numBytes(), std::ios::cur);
     if (is.fail())
         BoxLib::Error("FABio_binary::skip(..., int nCompToSkip) failed");
 }
 
 void
-printRange (ostream&         os,
+printRange (std::ostream&    os,
             const FArrayBox& fab,
             const Box&       reg,
             int              comp,
@@ -974,14 +1026,14 @@ printRange (ostream&         os,
         os << point;
         for (int k = comp; k < comp+ncomp; k++)
         {
-            os << setw(15) << fab(point,k);
+            os << std::setw(15) << fab(point,k);
             if (k < comp+ncomp-1)
                 if ((k-comp)%4 == 3)
                     os << "\n\t";
         }
         os << '\n';
     }
-    os << setprecision(old_prec) << '\n';
+    os << std::setprecision(old_prec) << '\n';
 
     if (os.fail())
         BoxLib::Error("printRange() failed");
@@ -989,7 +1041,7 @@ printRange (ostream&         os,
 
 #if (BL_SPACEDIM==1)
 void
-printRange (ostream&         os,
+printRange (std::ostream&    os,
             const FArrayBox& fab,
             int              ilo,
             int              ihi,
@@ -1010,13 +1062,13 @@ printRange (const FArrayBox& fab,
             int              comp,
             int              ncomp)
 {
-    printRange(cout,fab,ilo,ihi,comp,ncomp);
+    printRange(std::cout,fab,ilo,ihi,comp,ncomp);
 }
 
 #elif (BL_SPACEDIM==2)
 
 void
-printRange (ostream&         os,
+printRange (std::ostream&    os,
             const FArrayBox& fab,
             int              ilo,
             int              ihi,
@@ -1041,12 +1093,12 @@ printRange (const FArrayBox& fab,
             int              comp,
             int              ncomp)
 {
-    printRange(cout,fab,ilo,ihi,jlo,jhi,comp,ncomp);
+    printRange(std::cout,fab,ilo,ihi,jlo,jhi,comp,ncomp);
 }
 
 #elif   (BL_SPACEDIM==3)
 void
-printRange (ostream&         os,
+printRange (std::ostream&    os,
             const FArrayBox& fab,
             int              ilo,
             int              ihi,
@@ -1078,12 +1130,12 @@ printRange (const FArrayBox& fab,
             int              comp,
             int              ncomp)
 {
-    printRange(cout,fab,ilo,ihi,jlo,jhi,klo,khi,comp,ncomp);
+    printRange(std::cout,fab,ilo,ihi,jlo,jhi,klo,khi,comp,ncomp);
 }
 #endif
 
-ostream&
-operator<< (ostream&         os,
+std::ostream&
+operator<< (std::ostream&    os,
             const FArrayBox& f)
 {
     static FABio_ascii fabio_ascii;
@@ -1091,9 +1143,9 @@ operator<< (ostream&         os,
     return os;
 }
 
-istream&
-operator>> (istream&   is,
-            FArrayBox& f)
+std::istream&
+operator>> (std::istream& is,
+            FArrayBox&    f)
 {
     FABio* fabrd = FABio::read_header(is,f);
     fabrd->read(is,f);

@@ -1,20 +1,11 @@
-
 #ifndef BL_PARRAY_H
 #define BL_PARRAY_H
 
 //
-// $Id: PArray.H,v 1.14 2000-10-02 20:52:37 lijewski Exp $
+// $Id: PArray.H,v 1.15 2001-07-17 23:02:26 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <iostream>
-using std::cin;
-using std::cout;
-using std::cerr;
-using std::endl;
-#else
-#include <iostream.h>
-#endif
 
 #include <Array.H>
 

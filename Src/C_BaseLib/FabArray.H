@@ -1,32 +1,15 @@
-
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.119 2001-04-25 22:54:09 car Exp $
+// $Id: FabArray.H,v 1.120 2001-07-17 23:02:21 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <climits>
 #include <cstring>
 #include <map>
 #include <utility>
 #include <vector>
-using std::multimap;
-using std::pair;
-using std::vector;
-#else
-#include <string.h>
-#include <limits.h>
-#include <vector.h>
-#ifdef BL_OLD_STL
-#include <pair.h>
-#include <multimap.h>
-#else
-#include <utility.h>
-#include <map.h>
-#endif
-#endif
 
 #include <BLassert.H>
 #include <aString.H>
@@ -41,7 +24,6 @@ using std::vector;
 #include <DistributionMapping.H>
 #include <ParallelDescriptor.H>
 #include <RunStats.H>
-#include <Tracer.H>
 #include <ccse-mpi.H>
 
 #ifdef BL3_PROFILING
@@ -148,8 +130,8 @@ private:
 };
 
 inline
-ostream&
-operator<< (ostream&               os,
+std::ostream&
+operator<< (std::ostream&          os,
             const Array<CommData>& cd)
 {
     for (int i = 0; i < cd.length(); i++)
@@ -851,10 +833,10 @@ FabCopyDescriptor<FAB>::~FabCopyDescriptor ()
 template <class T, class FAB>
 class FabArrayCopyDescriptor
 {
-  typedef multimap<int,FabCopyDescriptor<FAB>*> FCDMap;
-  typedef typename FCDMap::value_type           FCDMapValueType;
-  typedef typename FCDMap::iterator             FCDMapIter;
-  typedef typename FCDMap::const_iterator       FCDMapConstIter;
+  typedef std::multimap<int,FabCopyDescriptor<FAB>*> FCDMap;
+  typedef typename FCDMap::value_type                FCDMapValueType;
+  typedef typename FCDMap::iterator                  FCDMapIter;
+  typedef typename FCDMap::const_iterator            FCDMapConstIter;
 
   public:
 
@@ -927,11 +909,11 @@ class FabArrayCopyDescriptor
                      BoxDomain& unfilledBoxDomain,
                      BoxList&   filledBoxes);
 
-    vector<FabArray<T,FAB>*> fabArrays;
-    vector<FCDMap>           fabCopyDescList;
-    vector<FabComTag>        fabComTagList;
-    int                      nextFillBoxId;
-    bool                     dataAvailable;
+    std::vector<FabArray<T,FAB>*> fabArrays;
+    std::vector<FCDMap>           fabCopyDescList;
+    std::vector<FabComTag>        fabComTagList;
+    int                           nextFillBoxId;
+    bool                          dataAvailable;
 
   private:
     //
@@ -2618,7 +2600,7 @@ FabArrayCopyDescriptor<T,FAB>::FillFab (FabArrayId       faid,
 {
     BL_ASSERT(dataAvailable);
 
-    pair<FCDMapIter,FCDMapIter> match = fabCopyDescList[faid.Id()].equal_range(fillboxid.Id());
+    std::pair<FCDMapIter,FCDMapIter> match = fabCopyDescList[faid.Id()].equal_range(fillboxid.Id());
 
     for (FCDMapIter fmi = match.first; fmi != match.second; ++fmi)
     {

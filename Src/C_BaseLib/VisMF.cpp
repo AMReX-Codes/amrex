@@ -1,18 +1,9 @@
-
 //
-// $Id: VisMF.cpp,v 1.73 2001-04-24 19:42:20 car Exp $
+// $Id: VisMF.cpp,v 1.74 2001-07-17 23:02:29 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <cstdio>
 #include <fstream>
-using std::ios;
-using std::ifstream;
-using std::ofstream;
-#else
-#include <stdio.h>
-#include <fstream.h>
-#endif
 
 //
 // This MUST be defined if don't have pubsetbuf() in I/O Streams Library.
@@ -24,7 +15,6 @@ using std::ofstream;
 #include <ccse-mpi.H>
 #include <Utility.H>
 #include <VisMF.H>
-#include <Tracer.H>
 
 #ifdef BL_NAMESPACE
 namespace BL_NAMESPACE
@@ -35,8 +25,8 @@ const aString VisMF::FabFileSuffix("_D_");
 const aString VisMF::MultiFabHdrFileSuffix("_H");
 const aString VisMF::FabOnDisk::Prefix("FabOnDisk:");
 
-ostream&
-operator<< (ostream&                os,
+std::ostream&
+operator<< (std::ostream&           os,
             const VisMF::FabOnDisk& fod)
 {
     os << VisMF::FabOnDisk::Prefix << ' ' << fod.m_name << ' ' << fod.m_head;
@@ -47,8 +37,8 @@ operator<< (ostream&                os,
     return os;
 }
 
-istream&
-operator>> (istream&          is,
+std::istream&
+operator>> (std::istream&     is,
             VisMF::FabOnDisk& fod)
 {
     aString str;
@@ -65,8 +55,8 @@ operator>> (istream&          is,
     return is;
 }
 
-ostream&
-operator<< (ostream&                       os,
+std::ostream&
+operator<< (std::ostream&                  os,
             const Array<VisMF::FabOnDisk>& fa)
 {
     long i = 0, N = fa.length();
@@ -84,8 +74,8 @@ operator<< (ostream&                       os,
     return os;
 }
 
-istream&
-operator>> (istream&                 is,
+std::istream&
+operator>> (std::istream&            is,
             Array<VisMF::FabOnDisk>& fa)
 {
     long i = 0, N;
@@ -107,8 +97,8 @@ operator>> (istream&                 is,
 }
 
 static
-ostream&
-operator<< (ostream&                    os,
+std::ostream&
+operator<< (std::ostream&               os,
             const Array< Array<Real> >& ar)
 {
     long i = 0, N = ar.length(), M = (N == 0) ? 0 : ar[0].length();
@@ -133,8 +123,8 @@ operator<< (ostream&                    os,
 }
 
 static
-istream&
-operator>> (istream&              is,
+std::istream&
+operator>> (std::istream&         is,
             Array< Array<Real> >& ar)
 {
     char ch;
@@ -165,8 +155,8 @@ operator>> (istream&              is,
     return is;
 }
 
-ostream&
-operator<< (ostream&             os,
+std::ostream&
+operator<< (std::ostream&        os,
             const VisMF::Header& hd)
 {
     //
@@ -193,8 +183,8 @@ operator<< (ostream&             os,
     return os;
 }
 
-istream&
-operator>> (istream&       is,
+std::istream&
+operator>> (std::istream&  is,
             VisMF::Header& hd)
 {
     is >> hd.m_vers;
@@ -231,6 +221,95 @@ operator>> (istream&       is,
         BoxLib::Error("Read of VisMF::Header failed");
 
     return is;
+}
+
+int
+VisMF::nComp () const
+{
+    return m_hdr.m_ncomp;
+}
+
+int
+VisMF::nGrow () const
+{
+    return m_hdr.m_ngrow;
+}
+
+int
+VisMF::length () const
+{
+    return m_hdr.m_ba.length();
+}
+
+const BoxArray&
+VisMF::boxArray () const
+{
+    return m_hdr.m_ba;
+}
+
+Real
+VisMF::min (int fabIndex,
+            int nComp) const
+{
+    BL_ASSERT(0 <= fabIndex && fabIndex < m_hdr.m_ba.length());
+    BL_ASSERT(0 <= nComp && nComp < m_hdr.m_ncomp);
+    return m_hdr.m_min[fabIndex][nComp];
+}
+
+Real
+VisMF::max (int fabIndex,
+            int nComp) const
+{
+    BL_ASSERT(0 <= fabIndex && fabIndex < m_hdr.m_ba.length());
+    BL_ASSERT(0 <= nComp && nComp < m_hdr.m_ncomp);
+    return m_hdr.m_max[fabIndex][nComp];
+}
+
+const FArrayBox&
+VisMF::GetFab (int fabIndex,
+               int ncomp) const
+{
+    if (m_pa[ncomp][fabIndex] == 0)
+    {
+        m_pa[ncomp][fabIndex] = VisMF::readFAB(fabIndex,m_mfname,m_hdr,ncomp);
+    }
+    return *m_pa[ncomp][fabIndex];
+}
+
+void
+VisMF::clear (int fabIndex,
+              int compIndex)
+{
+    delete m_pa[compIndex][fabIndex];
+}
+
+long
+VisMF::FileOffset (std::ostream& os)
+{
+    return
+#if defined(__KCC) 
+#if BL_KCC_MAJOR_VERSION >= 4 || (BL_KCC_MAJOR_VERSION == 3 && BL_KCC_MINOR_VERSION > 3)
+      os.tellp();
+#else
+    os.tellp().offset();
+#endif
+#else
+    os.tellp();
+#endif
+}
+
+FArrayBox*
+VisMF::readFAB (int            idx,
+                const aString& mf_name)
+{
+    return VisMF::readFAB(idx,mf_name,m_hdr,-1);
+}
+
+FArrayBox*
+VisMF::readFAB (int idx,
+		int ncomp)
+{
+    return VisMF::readFAB(idx,m_mfname,m_hdr,ncomp);
 }
 
 aString
@@ -294,7 +373,7 @@ VisMF::DirName (const aString& filename)
 VisMF::FabOnDisk
 VisMF::Write (const FArrayBox& fab,
               const aString&   filename,
-              ostream&         os,
+              std::ostream&    os,
               long&            bytes)
 {
     VisMF::FabOnDisk fab_on_disk(filename, VisMF::FileOffset(os));
@@ -501,13 +580,13 @@ VisMF::WriteHeader (const aString& mf_name,
 
         VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
-        ofstream MFHdrFile;
+        std::ofstream MFHdrFile;
 
 #ifdef BL_USE_SETBUF
         MFHdrFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
 
-        MFHdrFile.open(MFHdrFileName.c_str(), ios::out|ios::trunc);
+        MFHdrFile.open(MFHdrFileName.c_str(), std::ios::out|std::ios::trunc);
 
         if (!MFHdrFile.good())
             Utility::FileOpenFailed(MFHdrFileName);
@@ -571,17 +650,16 @@ VisMF::Write (const MultiFab& mf,
     sprintf(buf, "%04d", MyProc);
     FullFileName += buf;
 
-    ofstream FabFile;
+    std::ofstream FabFile;
 
 #ifdef BL_USE_SETBUF
     FabFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
 
-#ifdef BL_USE_NEW_HFILES
-    FabFile.open(FullFileName.c_str(), ios::out|ios::trunc|ios::binary);
-#else
-    FabFile.open(FullFileName.c_str(), ios::out|ios::trunc);
-#endif
+    FabFile.open(FullFileName.c_str(), std::ios::out|
+                                       std::ios::trunc|
+                                       std::ios::binary);
+
     if (!FabFile.good())
         Utility::FileOpenFailed(FullFileName);
 
@@ -705,13 +783,13 @@ VisMF::VisMF (const aString& mf_name)
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
-    ifstream ifs;
+    std::ifstream ifs;
 
 #ifdef BL_USE_SETBUF
     ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
 
-    ifs.open(FullHdrFileName.c_str(), ios::in);
+    ifs.open(FullHdrFileName.c_str(), std::ios::in);
 
     if (!ifs.good())
         Utility::FileOpenFailed(FullHdrFileName);
@@ -750,23 +828,19 @@ VisMF::readFAB (int                  idx,
     
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
-    ifstream ifs;
+    std::ifstream ifs;
 
 #ifdef BL_USE_SETBUF
     ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
 
-#ifdef BL_USE_NEW_HFILES
-    ifs.open(FullFileName.c_str(), ios::in|ios::binary);
-#else
-    ifs.open(FullFileName.c_str(), ios::in);
-#endif
+    ifs.open(FullFileName.c_str(), std::ios::in|std::ios::binary);
 
     if (!ifs.good())
         Utility::FileOpenFailed(FullFileName);
 
     if (hdr.m_fod[idx].m_head)
-        ifs.seekg(hdr.m_fod[idx].m_head, ios::beg);
+        ifs.seekg(hdr.m_fod[idx].m_head, std::ios::beg);
 
     if (ncomp == -1)
     {
@@ -792,13 +866,13 @@ VisMF::Read (MultiFab&      mf,
     {
         VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
-        ifstream ifs;
+        std::ifstream ifs;
 
 #ifdef BL_USE_SETBUF
         ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
 
-        ifs.open(FullHdrFileName.c_str(), ios::in);
+        ifs.open(FullHdrFileName.c_str(), std::ios::in);
 
         if (!ifs.good())
             Utility::FileOpenFailed(FullHdrFileName);

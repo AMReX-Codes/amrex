@@ -1,13 +1,8 @@
-
 //
-// $Id: aString.cpp,v 1.10 2001-04-24 19:42:20 car Exp $
+// $Id: aString.cpp,v 1.11 2001-07-17 23:02:30 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <cctype>
-#else
-#include <ctype.h>
-#endif
 
 #include <BLassert.H>
 #include <aString.H>
@@ -16,6 +11,195 @@
 namespace BL_NAMESPACE
 {
 #endif
+
+StringRep::StringRep (int _len)
+{
+    bufferlength = _len;
+    s = new char [bufferlength];
+}
+
+StringRep::~StringRep ()
+{
+    delete [] s;
+    s = 0;
+}
+
+bool
+aString::isNull () const
+{
+    return len == 0;
+}
+
+int
+aString::length () const
+{
+    return len;
+}
+
+double
+aString::toDouble () const
+{
+    return len == 0 ? 0 : atof(p->s);
+}
+
+int
+aString::toInteger () const
+{
+    return len == 0 ? 0 : atoi(p->s);
+}
+
+long
+aString::toLong () const
+{
+    return len == 0 ? 0 : atol(p->s);
+}
+
+const char*
+aString::c_str () const
+{
+    return p->s;
+}
+
+char
+aString::operator[] (int index) const
+{
+    BL_ASSERT(index >=0 && index < len);
+    return p->s[index];
+}
+
+aString
+operator+ (const aString& left,
+           const aString& right)
+{
+    aString result(left);
+    return result += right;
+}
+
+bool
+operator< (const aString& left,
+           const aString& right)
+{
+    return ::strcmp(left.c_str(), right.c_str()) < 0;
+}
+
+bool
+operator<= (const aString& left,
+            const aString& right)
+{
+    return ::strcmp(left.c_str(), right.c_str()) <= 0;
+}
+
+bool
+operator!= (const aString& left,
+            const aString& right)
+{
+    return ::strcmp(left.c_str(), right.c_str()) != 0;
+}
+
+bool
+operator== (const aString& left,
+            const aString& right)
+{
+    return ::strcmp(left.c_str(), right.c_str()) == 0;
+}
+
+bool
+operator>= (const aString& left,
+            const aString& right)
+{
+    return ::strcmp(left.c_str(), right.c_str()) >= 0;
+}
+
+bool
+operator>  (const aString& left,
+            const aString& right)
+{
+    return ::strcmp(left.c_str(), right.c_str()) > 0;
+}
+
+bool
+operator< (const aString& left,
+           const char*    right)
+{
+    return ::strcmp(left.c_str(), right) < 0;
+}
+
+bool
+operator<= (const aString& left,
+            const char*    right)
+{
+    return ::strcmp(left.c_str(), right) <= 0;
+}
+
+bool
+operator!= (const aString& left,
+            const char*    right)
+{
+    return ::strcmp(left.c_str(), right) != 0;
+}
+
+bool
+operator== (const aString& left,
+            const char*    right)
+{
+    return ::strcmp(left.c_str(), right) == 0;
+}
+
+bool
+operator>= (const aString& left,
+            const char*    right)
+{
+    return ::strcmp(left.c_str(), right) >= 0;
+}
+
+bool
+operator>  (const aString& left,
+            const char*    right)
+{
+    return ::strcmp(left.c_str(), right) > 0;
+}
+
+bool
+operator< (const char*    left,
+           const aString& right)
+{
+    return ::strcmp(left, right.c_str()) < 0;
+}
+
+bool
+operator<= (const char*    left,
+            const aString& right)
+{
+    return ::strcmp(left, right.c_str()) <= 0;
+}
+
+bool
+operator!= (const char*    left,
+            const aString& right)
+{
+    return ::strcmp(left, right.c_str()) != 0;
+}
+
+bool
+operator== (const char*    left,
+            const aString& right)
+{
+    return ::strcmp(left, right.c_str()) == 0;
+}
+
+bool
+operator>= (const char*    left,
+            const aString& right)
+{
+    return ::strcmp(left, right.c_str()) >= 0;
+}
+
+bool
+operator>  (const char*    left,
+            const aString& right)
+{
+    return ::strcmp(left, right.c_str()) > 0;
+}
 
 void
 StringRep::resize (int n)
@@ -149,9 +333,9 @@ aString::toLower ()
     return *this;
 }
 
-istream&
-operator>> (istream& is,
-            aString& str)
+std::istream&
+operator>> (std::istream& is,
+            aString&      str)
 {
     const int BufferSize = 128;
     char buf[BufferSize + 1];
@@ -187,8 +371,8 @@ operator>> (istream& is,
     return is;
 }
 
-ostream&
-operator<< (ostream&       out,
+std::ostream&
+operator<< (std::ostream&  out,
             const aString& str)
 {
     out.write(str.c_str(), str.len);
@@ -197,8 +381,8 @@ operator<< (ostream&       out,
     return out;
 }
 
-istream&
-aString::getline (istream& is)
+std::istream&
+aString::getline (std::istream& is)
 {
     char      c;
     const int BufferSize = 256;
@@ -233,10 +417,10 @@ aString::getline (istream& is)
     return is;
 }
 
-vector<aString>
+std::vector<aString>
 aString::tokenize (const aString& separators) const
 {
-    vector<char*> ptr;
+    std::vector<char*> ptr;
     //
     // Make copy of line that we can modify.
     //
@@ -253,7 +437,7 @@ aString::tokenize (const aString& separators) const
             ptr.push_back(token);
     }
 
-    vector<aString> tokens(ptr.size());
+    std::vector<aString> tokens(ptr.size());
 
     for (unsigned int i = 1; i < ptr.size(); i++)
     {

@@ -1,20 +1,11 @@
-
 #ifndef BL_BOXLIST_H
 #define BL_BOXLIST_H
 
 //
-// $Id: BoxList.H,v 1.17 2000-10-02 20:52:34 lijewski Exp $
+// $Id: BoxList.H,v 1.18 2001-07-17 23:02:19 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <iostream>
-using std::cin;
-using std::cout;
-using std::cerr;
-using std::endl;
-#else
-#include <iostream.h>
-#endif
 
 #include <IntVect.H>
 #include <IndexType.H>
@@ -280,8 +271,8 @@ public:
     //
     //@ManDoc: Output a BoxList to an ostream in ASCII format.
     //
-    friend ostream& operator<< (ostream&       os,
-                                const BoxList& blist);
+    friend std::ostream& operator<< (std::ostream&  os,
+                                     const BoxList& blist);
     //
     //@ManDoc: Returns a BoxList defining the intersection of bl with b.
     //
@@ -367,217 +358,6 @@ public:
         :
         ListIterator<Box>(bl.lbox) {}
 };
-
-//
-// Inlines.
-//
-
-inline
-BoxList::~BoxList()
-{}
-
-inline
-IndexType
-BoxList::ixType () const
-{
-    return btype;
-}
-
-inline
-void
-BoxList::append (const Box& bn)
-{
-    BL_ASSERT(ixType() == bn.ixType());
-    lbox.append(bn);
-}
-
-inline
-void
-BoxList::add (const Box& bn)
-{
-    append(bn);
-}
-
-inline
-void
-BoxList::prepend (const Box& bn)
-{
-    BL_ASSERT(ixType() == bn.ixType());
-    lbox.prepend(bn);
-}
-
-inline
-void
-BoxList::join (const BoxList& blist)
-{
-    BL_ASSERT(ixType() == blist.ixType());
-    lbox.join(blist.lbox);
-}
-
-inline
-bool
-BoxList::isEmpty () const
-{
-    return lbox.isEmpty();
-}
-
-inline
-void
-BoxList::catenate (BoxList& blist)
-{
-    BL_ASSERT(ixType() == blist.ixType());
-    lbox.catenate(blist.lbox);
-    BL_ASSERT(blist.isEmpty());
-}
-
-inline
-void
-BoxList::clear ()
-{
-    lbox.clear();
-}
-
-inline
-void
-BoxList::addAfter (BoxListIterator& bli,
-                   const Box&       bn)
-{
-    BL_ASSERT(ixType() == bn.ixType());
-    lbox.addAfter(bli, bn);
-}
-
-inline
-int
-BoxList::length () const
-{
-    return lbox.length();
-}
-
-inline
-bool
-BoxList::isNotEmpty () const
-{
-    return lbox.isNotEmpty();
-}
-
-inline
-bool
-BoxList::contains (const Box& b) const
-{
-#ifndef BL_NAMESPACE
-    BoxList bnew = ::complementIn(b,*this);
-#else
-    BoxList bnew = BL_NAMESPACE::complementIn(b,*this);
-#endif
-    return bnew.isEmpty();
-}
-
-inline
-BoxList&
-BoxList::remove (const Box& bx)
-{
-    BL_ASSERT(ixType() == bx.ixType());
-    lbox.remove(bx);
-    return *this;
-}
-
-inline
-void
-BoxList::addBefore (BoxListIterator& bli,
-                    const Box&       bn)
-{
-    BL_ASSERT(ixType() == bn.ixType());
-    lbox.addBefore(bli, bn);
-}
-
-inline
-const Box&
-BoxList::operator[] (const BoxListIterator& bli) const
-{
-    return lbox[bli];
-}
-
-inline
-Box&
-BoxList::operator[] (const BoxListIterator& bli)
-{
-    return lbox[bli];
-}
-
-inline
-BoxList&
-BoxList::remove (BoxListIterator& bli)
-{
-    BL_ASSERT(ixType() == bli().ixType());
-    lbox.remove(bli);
-    return *this;
-}
-
-inline
-BoxList
-intersect (const BoxList& bl,
-           const Box&     b)
-{
-    BoxList newbl(bl);
-    return newbl.intersect(b);
-}
-
-inline
-BoxList
-intersect (const BoxList& bl,
-           const BoxList& br)
-{
-    BoxList newbl(bl);
-    return newbl.intersect(br);
-}
-
-inline
-BoxList
-refine (const BoxList& bl,
-        int            ratio)
-{
-    BoxList nbl(bl);
-    return nbl.refine(ratio);
-}
-
-inline
-BoxList
-coarsen (const BoxList& bl,
-         int            ratio)
-{
-    BoxList nbl(bl);
-    return nbl.coarsen(ratio);
-}
-
-inline
-BoxList
-accrete (const BoxList& bl,
-         int            sz)
-{
-    BoxList nbl(bl);
-    return nbl.accrete(sz);
-}
-
-inline
-List<Box>&
-BoxList::listBox()
-{
-    return lbox;
-}
-
-inline
-const List<Box>&
-BoxList::listBox() const
-{
-    return lbox;
-}
-
-inline
-bool
-BoxList::operator!= (const BoxList& rhs) const
-{
-    return !operator==(rhs);
-}
 
 #ifdef BL_NAMESPACE
 }

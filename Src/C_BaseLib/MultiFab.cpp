@@ -1,28 +1,14 @@
-
 //
-// $Id: MultiFab.cpp,v 1.51 2001-04-24 19:42:19 car Exp $
+// $Id: MultiFab.cpp,v 1.52 2001-07-17 23:02:25 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
+#include <algorithm>
 #include <cfloat>
 #include <iostream>
 #include <iomanip>
 #include <list>
-using std::list;
-using std::cin;
-using std::cout;
-using std::cerr;
-using std::endl;
-using std::setw;
-#else
-#include <float.h>
-#include <iostream.h>
-#include <iomanip.h>
-#include <list.h>
-#endif
 
 #include <BLassert.H>
-#include <Misc.H>
 #include <MultiFab.H>
 #include <ParallelDescriptor.H>
 
@@ -64,6 +50,70 @@ MultiFab::Copy (MultiFab&       dst,
     }
 }
 
+void
+MultiFab::FillBoundary ()
+{
+    FillBoundary(0, n_comp);
+}
+
+void
+MultiFab::plus (Real val,
+                int  nghost)
+{
+    plus(val,0,n_comp,nghost);
+}
+
+void
+MultiFab::plus (Real       val,
+                const Box& region,
+                int        nghost)
+{
+    plus(val,region,0,n_comp,nghost);
+}
+
+void
+MultiFab::mult (Real val,
+                int  nghost)
+{
+    mult(val,0,n_comp,nghost);
+}
+
+void
+MultiFab::mult (Real       val,
+                const Box& region,
+                int        nghost)
+{
+    mult(val,region,0,n_comp,nghost);
+}
+
+void
+MultiFab::invert (Real numerator,
+                  int  nghost)
+{
+    invert(numerator,0,n_comp,nghost);
+}
+
+void
+MultiFab::invert (Real       numerator,
+                  const Box& region,
+                  int        nghost)
+{
+    invert(numerator,region,0,n_comp,nghost);
+}
+
+void
+MultiFab::negate (int nghost)
+{
+    negate(0,n_comp,nghost);
+}
+
+void
+MultiFab::negate (const Box& region,
+                  int        nghost)
+{
+    negate(region,0,n_comp,nghost);
+}
+
 MultiFab::MultiFab () {}
 
 MultiFab::MultiFab (const BoxArray& bxs,
@@ -80,8 +130,8 @@ MultiFab::MultiFab (const BoxArray& bxs,
 MultiFab::~MultiFab () {}
 
 void
-MultiFab::probe (ostream& os,
-                 IntVect& pt)
+MultiFab::probe (std::ostream& os,
+                 IntVect&      pt)
 {
     Real  dat[20];
     int prec = os.precision(14);
@@ -98,7 +148,7 @@ MultiFab::probe (ostream& os,
                << mfi.validbox()
                << " data = ";
             for (int i = 0, N = mfi().nComp(); i < N; i++)
-                os << ' ' << setw(20) << dat[i];
+                os << ' ' << std::setw(20) << dat[i];
             os << '\n';
         }
     }
@@ -114,18 +164,18 @@ MultiFab::min (int comp,
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
-#ifdef BL_USE_DOUBLE
-    Real mn = DBL_MAX;
-#elif  BL_USE_FLOAT
+#ifdef  BL_USE_FLOAT
     Real mn = FLT_MAX;
+#else
+    Real mn = DBL_MAX;
 #endif
 
     for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
 #ifndef BL_NAMESPACE
-        mn = Min(mn,mfi().min(::grow(mfi.validbox(),nghost),comp));
+        mn = std::min(mn,mfi().min(::grow(mfi.validbox(),nghost),comp));
 #else
-        mn = Min(mn,mfi().min(BL_NAMESPACE::grow(mfi.validbox(),nghost),comp));
+        mn = std::min(mn,mfi().min(BL_NAMESPACE::grow(mfi.validbox(),nghost),comp));
 #endif
     }
 
@@ -141,10 +191,10 @@ MultiFab::min (const Box& region,
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
-#ifdef BL_USE_DOUBLE
-    Real mn = DBL_MAX;
-#elif  BL_USE_FLOAT
+#ifdef  BL_USE_FLOAT
     Real mn = FLT_MAX;
+#else
+    Real mn = DBL_MAX;
 #endif
 
     for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
@@ -156,7 +206,7 @@ MultiFab::min (const Box& region,
 #endif
 
         if (b.ok())
-            mn = Min(mn,mfi().min(b,comp));
+            mn = std::min(mn,mfi().min(b,comp));
     }
 
     ParallelDescriptor::ReduceRealMin(mn);
@@ -170,16 +220,16 @@ MultiFab::max (int comp,
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
-#ifdef BL_USE_DOUBLE
-    Real mn = -DBL_MAX;
-#elif  BL_USE_FLOAT
+#ifdef  BL_USE_FLOAT
     Real mn = -FLT_MAX;
+#else
+    Real mn = -DBL_MAX;
 #endif
 
     for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
 #ifndef BL_NAMESPACE
-        mn = Max(mn,mfi().max(::grow(mfi.validbox(),nghost),comp));
+        mn = std::max(mn,mfi().max(::grow(mfi.validbox(),nghost),comp));
 #else
         mn = Max(mn,mfi().max(BL_NAMESPACE::grow(mfi.validbox(),nghost),comp));
 #endif
@@ -197,10 +247,10 @@ MultiFab::max (const Box& region,
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
-#ifdef BL_USE_DOUBLE
-    Real mn = -DBL_MAX;
-#elif  BL_USE_FLOAT
+#ifdef  BL_USE_FLOAT
     Real mn = -FLT_MAX;
+#else
+    Real mn = -DBL_MAX;
 #endif
 
     for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
@@ -212,7 +262,7 @@ MultiFab::max (const Box& region,
 #endif
 
         if (b.ok())
-            mn = Max(mn,mfi().max(b,comp));
+            mn = std::max(mn,mfi().max(b,comp));
     }
 
     ParallelDescriptor::ReduceRealMax(mn);
@@ -613,7 +663,7 @@ struct SI
 
     Array<int>    m_cache;    // Snds cached for CollectData().
     CommDataCache m_commdata; // Yet another cache for CollectData().
-    vector<SIRec> m_sirec;
+    std::vector<SIRec> m_sirec;
     BoxArray      m_ba;
     int           m_scomp;
     int           m_ncomp;
@@ -680,7 +730,7 @@ SI::operator!= (const SI& rhs) const
 //
 // A useful typedef.
 //
-typedef list<SI> SIList;
+typedef std::list<SI> SIList;
 
 //
 // Cache of SI info.
@@ -719,7 +769,7 @@ BuildFBsirec (const SI&       si,
     const BoxArray&            ba     = mf.boxArray();
     const DistributionMapping& DMap   = mf.DistributionMap();
     const int                  MyProc = ParallelDescriptor::MyProc();
-    vector<SIRec>&             sirec  = SICache.front().m_sirec;
+    std::vector<SIRec>&        sirec  = SICache.front().m_sirec;
     Array<int>&                cache  = SICache.front().m_cache;
 
     cache.resize(ParallelDescriptor::NProcs(),0);

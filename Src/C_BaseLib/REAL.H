@@ -1,42 +1,40 @@
-
 #ifndef BL_REAL_H
 #define BL_REAL_H
 
-/*
-** $Id: REAL.H,v 1.5 2000-10-02 20:52:37 lijewski Exp $
-*/
-
-#if defined(BL_ARCH_CRAY)
-#  ifdef BL_USE_DOUBLE
-#    error BL_USE_DOUBLE not allowed on CRAY architectures
-#  endif
-#  define BL_USE_FLOAT 1
-#endif
+//
+// $Id: REAL.H,v 1.6 2001-07-17 23:02:27 lijewski Exp $
+//
 
 #ifdef BL_USE_FLOAT
 #  undef BL_USE_DOUBLE
 #  undef BL_USE_FLOAT
+/*@ManDoc:
+  The macro BL\_USE\_FLOAT indicates that C++ floating-point calculations should
+  use "float" variables and Fortran floating-point calculations should use
+  "real*4" variables.  One of BL\_USE\_FLOAT or BL\_USE\_DOUBLE must always be
+  defined when compiling and using BoxLib.
+*/
 #  define BL_USE_FLOAT 1
-#  if !defined(BL_LANG_FORT)
+#else
+#  undef  BL_USE_FLOAT
+#  undef  BL_USE_DOUBLE
+/*@ManDoc:
+  The macro BL\_USE\_DOUBLE indicates that C++ floating-point calculations
+  should use "double" variables and Fortran floating-point calculations
+  should use "real*8" variables.  One of BL\_USE\_FLOAT or BL\_USE\_DOUBLE must
+  always be defined when compiling and using BoxLib.  This macro is not
+  allowed on Cray architectures; i.e. only BL\_USE\_FLOAT is allowed on Cray
+  architectures.
+*/
+#  define BL_USE_DOUBLE 1
+#endif
+
+#if !defined(BL_LANG_FORT)
 
 #ifdef BL_NAMESPACE
 namespace BL_NAMESPACE
 {
 #endif
-
-/*@ManDoc:
-  REAL is a typedef specifying the precision of the floating-point
-  calculations in C++ code.  It will be either `float' or `double'
-  depending upon which of the macros BL\_USE\_FLOAT or
-  BL\_USE\_DOUBLE, respectively, is defined during compilations.  For
-  portability, you should write floating-point code in terms of this
-  typedef, instead of using `float' or `double' directly.
-
-  Note that exactly one of these macros must be defined
-  when compiling any module that uses floating-point.  Also,
-  on Cray architectures all floating-point computations are done in 64 bits.
-*/
-     typedef float REAL;
 
 /*@ManDoc: 
   Real is a typedef specifying the precision of the floating-point
@@ -50,18 +48,17 @@ namespace BL_NAMESPACE
   when compiling any module that uses floating-point.  Also,
   on Cray architectures all floating-point computations are done in 64 bits.
 */
-     typedef float Real;
-#  else             /* LANG_FORT */
-#    define REAL_T real*4
-#  endif
-#else               /* ! USE_FLOAT */
-#  undef  BL_USE_FLOAT
-#  undef  BL_USE_DOUBLE
-#  define BL_USE_DOUBLE 1
-#  if !defined(BL_LANG_FORT)
-     typedef double REAL;
-     typedef double Real;
-#  else             /* LANG_FORT */
+#ifdef BL_USE_FLOAT
+    typedef float Real;
+#else
+    typedef double Real;
+#endif
+
+#ifdef BL_NAMESPACE
+}
+#endif
+
+#else
 
 /*@ManDoc:
   The REAL\_T macro specifies the precision of the floating-point
@@ -75,12 +72,19 @@ namespace BL_NAMESPACE
   when compiling any module that uses floating-point.  Also,
   on Cray architectures all floating-point computations are done in 64 bits.
 */
+
+#ifdef BL_USE_FLOAT
+#    define REAL_T real*4
+#else
 #    define REAL_T real*8
-#  endif
 #endif
 
-#if !defined(BL_USE_FLOAT) && !defined(BL_USE_DOUBLE)
-#error Exactly one of BL_USE_FLOAT or BL_USE_DOUBLE must be defined
+#endif /* !BL_LANG_FORT */
+
+#if defined(BL_ARCH_CRAY)
+#  if !defined(BL_USE_FLOAT)
+#    error BL_USE_FLOAT required on CRAY architectures
+#  endif
 #endif
 
 #endif /*BL_REAL_H*/

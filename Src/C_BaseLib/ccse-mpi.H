@@ -1,9 +1,8 @@
-
 #ifndef BL_CCSE_MPP
 #define BL_CCSE_MPP
 
 //
-// $Id: ccse-mpi.H,v 1.6 2000-10-02 20:52:40 lijewski Exp $
+// $Id: ccse-mpi.H,v 1.7 2001-07-17 23:02:30 lijewski Exp $
 //
 
 //

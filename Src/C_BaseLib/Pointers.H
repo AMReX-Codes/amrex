@@ -1,9 +1,8 @@
-
 #ifndef BL_POINTERS_H
 #define BL_POINTERS_H
 
 //
-// $Id: Pointers.H,v 1.11 2000-10-02 20:52:37 lijewski Exp $
+// $Id: Pointers.H,v 1.12 2001-07-17 23:02:26 lijewski Exp $
 //
 
 #include <BLassert.H>

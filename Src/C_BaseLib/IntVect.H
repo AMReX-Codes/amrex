@@ -1,28 +1,15 @@
-
 #ifndef BL_INTVECT_H
 #define BL_INTVECT_H
 
 //
-// $Id: IntVect.H,v 1.12 2000-10-02 20:52:35 lijewski Exp $
+// $Id: IntVect.H,v 1.13 2001-07-17 23:02:24 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
+#include <algorithm>
 #include <iostream>
 #include <cstdlib>
-using std::cin;
-using std::cout;
-using std::cerr;
-using std::endl;
-using std::ostream;
-using std::istream;
-using std::ws;
-#else
-#include <iostream.h>
-#include <stdlib.h>
-#endif
 
 #include <SPACE.H>
-#include <Misc.H>
 #include <Array.H>
 #include <BLassert.H>
 
@@ -187,8 +174,8 @@ public:
     //
     //@ManDoc: Returns p + s.
     //
-    friend inline IntVect operator+ (int            s,
-                                     const IntVect& p);
+    friend IntVect operator+ (int            s,
+                              const IntVect& p);
     //
     //@ManDoc: Returns component-wise difference of IntVect and argument.
     //
@@ -200,8 +187,8 @@ public:
     //
     //@ManDoc: Returns -p + s.
     //
-    friend inline IntVect operator- (int            s,
-                                     const IntVect& p);
+    friend IntVect operator- (int            s,
+                              const IntVect& p);
     //
     //@ManDoc: Returns component-wise product of IntVect and argument.
     //
@@ -213,8 +200,8 @@ public:
     //
     //@ManDoc: Returns p * s.
     //
-    friend inline IntVect operator* (int            s,
-                                     const IntVect& p);
+    friend IntVect operator* (int            s,
+                              const IntVect& p);
     //
     //@ManDoc: Returns component-wise division of IntVect by argument.
     //
@@ -265,11 +252,11 @@ public:
     //
     //@ManDoc: Print an IntVect to the ostream.
     //
-    void printOn (ostream& os = cout) const;
+    void printOn (std::ostream& os = std::cout) const;
     //
     //@ManDoc: Print an IntVect to the ostream a bit more verbosely.
     //
-    void dumpOn (ostream& os = cout) const;
+    void dumpOn (std::ostream& os = std::cout) const;
 
     /*@ManDoc:
       This static member function returns a reference to a constant IntVect
@@ -305,61 +292,61 @@ public:
                eg.  IntVect3d BASISV(1) == (0,1,0).  Note that the coordinate
                directions are zero based.
     */
-    friend inline IntVect BASISV (int dir);
+    friend IntVect BASISV (int dir);
 
     /*@ManDoc: Returns the IntVect that is the component-wise minimum of two
                argument IntVects.
     */
-    friend inline IntVect min (const IntVect& p1,
-                               const IntVect& p2);
+    friend IntVect min (const IntVect& p1,
+                        const IntVect& p2);
 
     /*@ManDoc: Returns the IntVect that is the component-wise minimum of two
                argument IntVects.
     */
-    friend inline IntVect max (const IntVect& p1,
-                               const IntVect& p2);
+    friend IntVect max (const IntVect& p1,
+                        const IntVect& p2);
 
     /*@ManDoc: Returns a IntVect obtained by multiplying each of the
                components of this IntVect by s.
     */
-    friend inline IntVect scale (const IntVect& p,
-                                 int            s);
+    friend IntVect scale (const IntVect& p,
+                          int            s);
 
     /*@ManDoc: Returns an IntVect that is the reflection of input in the
                plane which passes through ref\_ix and normal to the
                coordinate direction idir.
     */
-    friend inline IntVect reflect(const IntVect& a,
-                                  int            ref_ix,
-                                  int            idir);
+    friend IntVect reflect(const IntVect& a,
+                           int            ref_ix,
+                           int            idir);
 
     /*@ManDoc: Returns IntVect obtained by adding s to each of the
                components of this IntVect.
     */
-    friend inline IntVect diagShift (const IntVect& p,
-                                     int            s);
+    friend IntVect diagShift (const IntVect& p,
+                              int            s);
 
     /*@ManDoc: Returns an IntVect that is the component-wise integer
                projection of p by s.
     */
-    friend inline IntVect coarsen (const IntVect& p,
-                                   int            s);
+    friend IntVect coarsen (const IntVect& p,
+                            int            s);
 
     /*@ManDoc: Returns an IntVect which is the component-wise integer
                projection of IntVect p1 by IntVect p2.
     */
-    friend inline IntVect coarsen (const IntVect& p1,
-                                   const IntVect& p2);
+    friend IntVect coarsen (const IntVect& p1,
+                            const IntVect& p2);
     //
     //@ManDoc: Print the IntVect to given output stream in ASCII.
     //
-    friend ostream& operator<< (ostream&       os,
-                                const IntVect& iv);
+    friend std::ostream& operator<< (std::ostream&  os,
+                                     const IntVect& iv);
     //
     //@ManDoc: Read next IntVect from given input stream.
     //
-    friend istream& operator>> (istream& os,
-                                IntVect& iv);
+    friend std::istream& operator>> (std::istream& os,
+                                     IntVect&      iv);
 
 protected:
     //
@@ -369,494 +356,6 @@ protected:
 
     int vect[BL_SPACEDIM];
 };
-
-//
-//@ManDoc: A typedef to IntVect provided for backward compatibility. 
-//
-
-typedef IntVect INTVECT;
-
-//
-// Inlines.
-//
-
-inline
-IntVect::IntVect ()
-{
-    D_EXPR(vect[0] = 0, vect[1] = 0, vect[2] = 0);
-}
-
-inline
-IntVect::IntVect (D_DECL(int i, int j, int k))
-{
-    D_EXPR(vect[0] = i, vect[1] = j, vect[2] = k);
-}
-
-inline
-IntVect::IntVect (const int *a)
-{
-    D_EXPR(vect[0] = a[0], vect[1] = a[1], vect[2] = a[2]);
-}
-
-inline
-IntVect::IntVect (const Array<int> &a)
-{
-    BL_ASSERT(a.length() == BL_SPACEDIM);
-    D_EXPR(vect[0] = a[0], vect[1] = a[1], vect[2] = a[2]);
-}
-
-inline
-IntVect::IntVect (const IntVect &iv)
-{
-    D_EXPR(vect[0]=iv.vect[0], vect[1]=iv.vect[1], vect[2]=iv.vect[2]);
-}
-
-inline
-IntVect&
-IntVect::operator= (const IntVect &iv)
-{
-    D_EXPR(vect[0]=iv.vect[0], vect[1]=iv.vect[1], vect[2]=iv.vect[2]);
-    return *this;
-}
-
-inline
-int&
-IntVect::operator[] (int i)
-{
-    BL_ASSERT(i>=0 && i < BL_SPACEDIM);
-    return vect[i];
-}
-
-inline
-int
-IntVect::operator[] (int i) const
-{
-    BL_ASSERT(i>=0 && i < BL_SPACEDIM);
-    return vect[i];
-}
-
-inline
-IntVect&
-IntVect::setVal (int i,
-                 int val)
-{
-    BL_ASSERT(i >=0 && i < BL_SPACEDIM);
-    vect[i] = val;
-    return *this;
-}
-
-inline
-const int*
-IntVect::getVect () const
-{
-    return vect;
-}
-
-inline
-bool
-IntVect::operator== (const IntVect& p) const
-{
-    return D_TERM(vect[0] == p[0], && vect[1] == p[1], && vect[2] == p[2]);
-}
-
-inline
-bool
-IntVect::operator!= (const IntVect& p) const
-{
-    return D_TERM(vect[0] != p[0], || vect[1] != p[1], || vect[2] != p[2]);
-}
-
-inline
-bool
-IntVect::operator< (const IntVect& p) const
-{
-    return D_TERM(vect[0] < p[0], && vect[1] < p[1], && vect[2] < p[2]);
-}
-
-inline
-bool
-IntVect::operator<= (const IntVect& p) const
-{
-    return D_TERM(vect[0] <= p[0], && vect[1] <= p[1], && vect[2] <= p[2]);
-}
-
-inline
-bool
-IntVect::operator> (const IntVect& p) const
-{
-    return D_TERM(vect[0] > p[0], && vect[1] > p[1], && vect[2] > p[2]);
-}
-
-inline
-bool
-IntVect::operator>= (const IntVect& p) const
-{
-    return D_TERM(vect[0] >= p[0], && vect[1] >= p[1], && vect[2] >= p[2]);
-}
-
-inline
-bool
-IntVect::lexLT (const IntVect &s) const
-{
-#define LLT0 (vect[0] < s[0])
-#define LLT1 ((vect[0] == s[0]) && (vect[1] < s[1]))
-#define LLT2 ((vect[1] == s[1]) && (vect[2] < s[2]))
-#if   BL_SPACEDIM == 1
-    return LLT0;
-#elif BL_SPACEDIM == 2
-    return LLT0 || LLT1;
-#elif BL_SPACEDIM == 3
-    return LLT0 || (vect[0]==s[0] && ((vect[1] < s[1] || LLT2)));
-#endif
-#undef LLT0
-#undef LLT1
-#undef LLT2
-}
-
-inline
-bool
-IntVect::lexGT (const IntVect& s) const
-{
-#define LGT0 (vect[0] > s[0])
-#define LGT1 ((vect[0] == s[0]) && (vect[1] > s[1]))
-#define LGT2 ((vect[1] == s[1]) && (vect[2] > s[2]))
-#if   BL_SPACEDIM == 1
-   return LGT0;
-#elif BL_SPACEDIM == 2
-   return LGT0 || LGT1;
-#elif BL_SPACEDIM == 3
-   return LGT0 || (vect[0] == s[0] && ((vect[1] > s[1] || LGT2)));
-#endif
-#undef LGT0
-#undef LGT1
-#undef LGT2
-}
-
-inline
-IntVect
-IntVect::operator+ () const
-{
-    return IntVect(*this);
-}
-
-inline
-IntVect
-IntVect::operator- () const
-{
-    return IntVect(D_DECL(-vect[0], -vect[1], -vect[2] ));
-}
-
-inline
-IntVect&
-IntVect::operator+= (int s)
-{
-    D_EXPR(vect[0] += s, vect[1] += s, vect[2] += s);
-    return *this;
-}
-
-inline
-IntVect&
-IntVect::operator+= (const IntVect& p)
-{
-    D_EXPR(vect[0] += p[0], vect[1] += p[1], vect[2] += p[2]);
-    return *this;
-}
-
-inline
-IntVect&
-IntVect::operator*= (int s)
-{
-    D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s);
-    return *this;
-}
-
-inline
-IntVect&
-IntVect::operator*= (const IntVect &p)
-{
-    D_EXPR(vect[0] *= p[0], vect[1] *= p[1], vect[2] *= p[2]);
-    return *this;
-}
-
-inline
-IntVect&
-IntVect::operator/= (int s)
-{
-    D_EXPR(vect[0] /= s, vect[1] /= s, vect[2] /= s);
-    return *this;
-}
-
-inline
-IntVect&
-IntVect::operator/= (const IntVect& p)
-{
-    D_EXPR(vect[0] /= p[0], vect[1] /= p[1], vect[2] /= p[2]);
-    return *this;
-}
-
-inline
-IntVect&
-IntVect::operator-= (int s)
-{
-    D_EXPR(vect[0] -= s, vect[1] -= s, vect[2] -= s);
-    return *this;
-}
-
-inline
-IntVect&
-IntVect::operator-= (const IntVect& p)
-{
-    D_EXPR(vect[0] -= p[0], vect[1] -= p[1], vect[2] -= p[2]);
-    return *this;
-}
-
-inline
-IntVect
-IntVect::operator+ (const IntVect& p) const
-{
-    return IntVect(D_DECL(vect[0] + p[0], vect[1] + p[1], vect[2] + p[2]));
-}
-
-inline
-IntVect
-IntVect::operator+ (int s) const
-{
-    return IntVect(D_DECL(vect[0] + s, vect[1] + s, vect[2] + s));
-}
-
-inline
-IntVect
-IntVect::operator- (const IntVect& p) const
-{
-    return IntVect(D_DECL(vect[0] - p[0], vect[1] - p[1], vect[2] - p[2]));
-}
-
-inline
-IntVect
-IntVect::operator- (int s) const
-{
-    return IntVect(D_DECL(vect[0] - s, vect[1] - s, vect[2] - s));
-}
-
-inline
-IntVect
-IntVect::operator* (const IntVect& p) const
-{
-    return IntVect(D_DECL(vect[0] * p[0], vect[1] * p[1], vect[2] * p[2]));
-}
-
-inline
-IntVect
-IntVect::operator* (int s) const
-{
-    return IntVect(D_DECL(vect[0] * s, vect[1] * s, vect[2] * s));
-}
-
-inline
-IntVect
-IntVect::operator/ (const IntVect& p) const
-{
-    return IntVect(D_DECL(vect[0] / p[0], vect[1] / p[1], vect[2] / p[2]));
-}
-
-inline
-IntVect
-IntVect::operator/ (int s) const
-{
-    return IntVect(D_DECL(vect[0] / s, vect[1] / s, vect[2] / s));
-}
-
-inline
-IntVect&
-IntVect::min (const IntVect& p)
-{
-    D_EXPR(vect[0] = Min(vect[0], p.vect[0]),
-           vect[1] = Min(vect[1], p.vect[1]),
-           vect[2] = Min(vect[2], p.vect[2]));
-    return *this;
-}
-
-inline
-IntVect&
-IntVect::max (const IntVect& p)
-{
-    D_EXPR(vect[0] = Max(vect[0], p.vect[0]),
-           vect[1] = Max(vect[1], p.vect[1]),
-           vect[2] = Max(vect[2], p.vect[2]));
-    return *this;
-}
-
-inline
-IntVect&
-IntVect::scale (int s)
-{
-    D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s);
-    return *this;
-}
-
-inline
-IntVect&
-IntVect::reflect (int ref_ix,
-                  int idir)
-{
-    BL_ASSERT(idir >= 0 && idir < BL_SPACEDIM);
-    vect[idir] = -vect[idir] + 2*ref_ix;
-    return *this;
-}
-
-inline
-IntVect&
-IntVect::shift (int coord,
-                int s)
-{
-    BL_ASSERT(coord >= 0 && coord < BL_SPACEDIM);
-    vect[coord] += s;
-    return *this;
-}
-
-inline
-IntVect&
-IntVect::shift (const IntVect& iv)
-{
-    *this += iv;
-    return *this;
-}
-
-inline
-IntVect&
-IntVect::diagShift (int s)
-{
-    D_EXPR(vect[0] += s, vect[1] += s, vect[2] += s);
-    return *this;
-}
-
-inline
-IntVect
-operator+ (int            s,
-           const IntVect& p)
-{
-    return IntVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
-}
-
-inline
-IntVect
-operator- (int            s,
-           const IntVect& p)
-{
-    return IntVect(D_DECL(s - p[0], s - p[1], s - p[2]));
-}
-
-inline
-IntVect
-operator* (int            s,
-           const IntVect& p)
-{
-    return IntVect(D_DECL(s * p[0], s * p[1], s * p[2]));
-}
-
-inline
-IntVect
-scale (const IntVect& p,
-       int            s)
-{
-    return IntVect(D_DECL(s * p[0], s * p[1], s * p[2]));
-}
-
-inline
-IntVect
-diagShift (const IntVect &p, int s)
-{
-    return IntVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
-}
-
-inline
-IntVect
-min (const IntVect& p1,
-     const IntVect& p2)
-{
-    IntVect p(p1);
-    return p.min(p2);
-}
-
-inline
-IntVect
-max (const IntVect& p1,
-     const IntVect& p2)
-{
-    IntVect p(p1);
-    return p.max(p2);
-}
-
-inline
-IntVect
-BASISV (int dir)
-{
-    BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM);
-    IntVect tmp;
-    tmp.vect[dir] = 1;
-    return tmp;
-}
-
-inline
-IntVect
-reflect (const IntVect& a,
-         int            ref_ix,
-         int            idir)
-{
-    BL_ASSERT(idir >= 0 && idir < BL_SPACEDIM);
-    IntVect b(a);
-    b.vect[idir] = -b.vect[idir] + 2*ref_ix;
-    return b;
-}
-
-inline
-IntVect
-coarsen (const IntVect& p,
-         int            s)
-{
-    BL_ASSERT(s > 0);
-    return IntVect(
-        D_DECL((p.vect[0]<0) ? -abs(p.vect[0]+1)/s-1 : p.vect[0]/s ,
-               (p.vect[1]<0) ? -abs(p.vect[1]+1)/s-1 : p.vect[1]/s ,
-               (p.vect[2]<0) ? -abs(p.vect[2]+1)/s-1 : p.vect[2]/s ));
-}
-
-inline
-IntVect
-coarsen (const IntVect& p1,
-         const IntVect& p2)
-{
-    BL_ASSERT(p2 > IntVect::TheZeroVector());
-    return IntVect(
-        D_DECL(
-        (p1.vect[0]<0)?-abs(p1.vect[0]+1)/p2.vect[0]-1:p1.vect[0]/p2.vect[0],
-        (p1.vect[1]<0)?-abs(p1.vect[1]+1)/p2.vect[1]-1:p1.vect[1]/p2.vect[1],
-        (p1.vect[2]<0)?-abs(p1.vect[2]+1)/p2.vect[2]-1:p1.vect[2]/p2.vect[2])
-    );
-}
-
-inline
-IntVect&
-IntVect::coarsen (int s)
-{
-    BL_ASSERT(s > 0);
-    for (int i = 0; i < BL_SPACEDIM; ++i)
-        vect[i] = ((vect[i]<0) ? -abs(vect[i]+1)/s-1 : vect[i]/s);
-    return *this;
-}
-
-inline
-IntVect&
-IntVect::coarsen (const IntVect& p)
-{
-    BL_ASSERT(p > IntVect::TheZeroVector());
-    for (int i = 0; i <BL_SPACEDIM; ++i)
-    {
-        const int s = p.vect[i];
-        vect[i] = ((vect[i]<0) ? -abs(vect[i]+1)/s-1 : vect[i]/s);
-    }
-    return *this;
-}
 
 #ifdef BL_NAMESPACE
 }

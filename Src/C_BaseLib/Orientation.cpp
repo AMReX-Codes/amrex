@@ -1,6 +1,5 @@
-
 //
-// $Id: Orientation.cpp,v 1.4 2000-10-02 20:52:37 lijewski Exp $
+// $Id: Orientation.cpp,v 1.5 2001-07-17 23:02:26 lijewski Exp $
 //
 
 #include <BoxLib.H>
@@ -11,8 +10,199 @@ namespace BL_NAMESPACE
 {
 #endif
 
-ostream&
-operator<< (ostream&           os,
+Orientation::Orientation (int _val)
+    : val(_val)
+{}
+
+Orientation::Orientation ()
+    : val(-1)
+{}
+
+Orientation::Orientation (int  _dir,
+                          Side _side)
+    : val(BL_SPACEDIM*_side + _dir)
+{
+    BL_ASSERT(0 <= _dir && _dir < BL_SPACEDIM);
+}
+
+Orientation::Orientation (const Orientation& o)
+    : val(o.val)
+{}
+
+Orientation&
+Orientation::operator= (const Orientation& o)
+{
+    val = o.val;
+    return *this;
+}
+
+bool
+Orientation::operator== (const Orientation& o) const
+{
+    return val == o.val;
+}
+
+bool
+Orientation::operator!= (const Orientation& o) const
+{
+    return val != o.val;
+}
+
+bool
+Orientation::operator<  (const Orientation& o) const
+{
+    return val < o.val;
+}
+
+bool
+Orientation::operator<= (const Orientation& o) const
+{
+    return val <= o.val;
+}
+
+bool
+Orientation::operator>  (const Orientation& o) const
+{
+    return val > o.val;
+}
+
+bool
+Orientation::operator>= (const Orientation& o) const
+{
+    return val >= o.val;
+}
+
+Orientation::operator int () const
+{
+    return val;
+}
+
+Orientation
+Orientation::flip () const
+{
+    return Orientation(val < BL_SPACEDIM ? val+BL_SPACEDIM : val-BL_SPACEDIM);
+}
+
+int
+Orientation::coordDir () const
+{
+    return val%BL_SPACEDIM;
+}
+
+Orientation::Side
+Orientation::faceDir () const
+{
+    return Side(val/BL_SPACEDIM);
+}
+
+bool
+Orientation::isLow () const
+{
+    return val < BL_SPACEDIM;
+}
+
+bool
+Orientation::isHigh () const
+{
+    return val >= BL_SPACEDIM;
+}
+
+OrientationIter::OrientationIter (int _face)
+    : face(_face)
+{}
+
+OrientationIter::OrientationIter ()
+    : face(0)
+{}
+
+OrientationIter::OrientationIter (const Orientation& _face)
+    : face(_face)
+{}
+
+bool
+OrientationIter::ok () const
+{
+    return 0 <= face && face < 2*BL_SPACEDIM;
+}
+
+OrientationIter::OrientationIter (const OrientationIter& it)
+{
+    BL_ASSERT(it.ok());
+    face = it.face;
+}
+
+OrientationIter&
+OrientationIter::operator= (const OrientationIter& it)
+{
+    BL_ASSERT(it.ok());
+    face = it.face;
+    return *this;
+}
+
+void
+OrientationIter::rewind ()
+{
+    face = 0;
+}
+
+Orientation
+OrientationIter::operator() () const
+{
+    BL_ASSERT(ok());
+    return Orientation(face);
+}
+
+OrientationIter::operator void* ()
+{
+    return 0 <= face && face < 2*BL_SPACEDIM ? this : 0;
+}
+
+OrientationIter&
+OrientationIter::operator-- ()
+{
+    BL_ASSERT(ok());
+    --face;
+    return *this;
+}
+
+OrientationIter&
+OrientationIter::operator++ ()
+{
+    BL_ASSERT(ok());
+    ++face;
+    return *this;
+}
+
+OrientationIter
+OrientationIter::operator-- (int)
+{
+    BL_ASSERT(ok());
+    return OrientationIter(face--);
+}
+
+OrientationIter
+OrientationIter::operator++ (int)
+{
+    BL_ASSERT(ok());
+    return OrientationIter(face++);
+}
+
+bool
+OrientationIter::operator== (const OrientationIter& oi) const
+{
+    BL_ASSERT(ok() && oi.ok());
+    return face == oi.face;
+}
+
+bool
+OrientationIter::operator!= (const OrientationIter& oi) const
+{
+    BL_ASSERT(ok() && oi.ok());
+    return face != oi.face;
+}
+
+std::ostream&
+operator<< (std::ostream&      os,
             const Orientation& o)
 {
     os << '('<< o.val << ')' ;
@@ -26,9 +216,9 @@ operator<< (ostream&           os,
 //
 #define BL_IGNORE_MAX 100000
 
-istream&
-operator>> (istream&     is,
-            Orientation& o)
+std::istream&
+operator>> (std::istream& is,
+            Orientation&  o)
 {
     char c;
     is >> c;

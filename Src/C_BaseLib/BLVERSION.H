@@ -1,9 +1,8 @@
-
 #ifndef BLVERSION_H
 #define BLVERSION_H
 
 //
-// $Id: BLVERSION.H,v 1.3 2000-10-02 20:52:32 lijewski Exp $
+// $Id: BLVERSION.H,v 1.4 2001-07-17 23:02:18 lijewski Exp $
 //
 
 /*@ManDoc: The major version number of boxlib -- an integer.

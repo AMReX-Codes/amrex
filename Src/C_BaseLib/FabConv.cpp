@@ -1,28 +1,16 @@
-
 //
-// $Id: FabConv.cpp,v 1.11 2001-04-24 19:42:19 car Exp $
+// $Id: FabConv.cpp,v 1.12 2001-07-17 23:02:21 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <iostream>
 #include <cstdlib>
 #include <climits>
 #include <cstring>
-using std::cin;
-using std::cout;
-using std::cerr;
-#else
-#include <iostream.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <string.h>
-#endif
 
 #include <BoxLib.H>
 #include <FabConv.H>
 #include <FArrayBox.H>
 #include <FPC.H>
-#include <Misc.H>
 #include <REAL.H>
 
 #ifdef BL_NAMESPACE
@@ -49,10 +37,119 @@ extern "C"
 RealDescriptor::~RealDescriptor() {}
 
 bool RealDescriptor::bAlwaysFixDenormals(false);
+
+IntDescriptor::IntDescriptor ()
+{}
+
+IntDescriptor::IntDescriptor (long     nb,
+                              Ordering o)
+    : numbytes(nb),
+      ord(o)
+{}
+
+IntDescriptor::Ordering
+IntDescriptor::order () const
+{
+    return ord;
+}
+
+int
+IntDescriptor::numBytes () const
+{
+    return numbytes;
+}
+
+bool
+IntDescriptor::operator== (const IntDescriptor& id) const
+{
+    return ord == id.ord && numbytes == id.numbytes;
+}
+
+bool
+IntDescriptor::operator!= (const IntDescriptor& id) const
+{
+    return !operator==(id);
+}
+
+RealDescriptor::RealDescriptor ()
+{}
+
+RealDescriptor::RealDescriptor (const long* fr_,
+                                const int*  ord_,
+                                int         ordl_)
+    : fr(fr_, 8),
+      ord(ord_, ordl_)
+{}
+
+RealDescriptor::RealDescriptor (const RealDescriptor& rhs)
+    : fr(rhs.fr),
+      ord(rhs.ord)
+{}
+
+RealDescriptor&
+RealDescriptor::operator= (const RealDescriptor& rhs)
+{
+    fr  = rhs.fr;
+    ord = rhs.ord;
+    return *this;
+}
+
+const long*
+RealDescriptor::format () const
+{
+    BL_ASSERT(fr.length() != 0);
+    return fr.dataPtr();
+}
+
+const Array<long>&
+RealDescriptor::formatarray () const
+{
+    BL_ASSERT(fr.length() != 0);
+    return fr;
+}
+
+const int*
+RealDescriptor::order () const
+{
+    BL_ASSERT(ord.length() != 0);
+    return ord.dataPtr();
+}
+
+const Array<int>&
+RealDescriptor::orderarray () const
+{
+    BL_ASSERT(ord.length() != 0);
+    return ord;
+}
+
+int
+RealDescriptor::numBytes () const
+{
+    BL_ASSERT(fr.length() != 0);
+    return (fr[0] + 7 ) >> 3;
+}
+
+bool
+RealDescriptor::operator== (const RealDescriptor& rd) const
+{
+    return fr == rd.fr && ord == rd.ord;
+}
+
+bool
+RealDescriptor::operator != (const RealDescriptor& rd) const
+{
+    return !operator==(rd);
+}
+
+void
+RealDescriptor::SetFixDenormals()
+{
+    bAlwaysFixDenormals = true;
+}
+
 //
 // This is not inlined as it's an inherited virtual.
 //
-
 RealDescriptor*
 RealDescriptor::clone () const
 {
@@ -840,7 +937,7 @@ PD_fixdenormals (void*       out,
 #define GETARRAY(TYPE)                                             \
 static                                                             \
 void                                                               \
-getarray (istream&       is,                                       \
+getarray (std::istream&  is,                                       \
           Array< TYPE >& ar)                                       \
 {                                                                  \
     char c;                                                        \
@@ -873,7 +970,7 @@ GETARRAY(long)
 #define PUTARRAY(TYPE)                 \
 static                                 \
 void                                   \
-putarray (ostream&             os,     \
+putarray (std::ostream&        os,     \
           const Array< TYPE >& ar)     \
 {                                      \
     int i;                             \
@@ -891,8 +988,8 @@ PUTARRAY(int)
 PUTARRAY(long)
 #undef PUTARRAY
 
-ostream&
-operator<< (ostream&              os,
+std::ostream&
+operator<< (std::ostream&         os,
             const RealDescriptor& id)
 {
     os << "(";
@@ -905,8 +1002,8 @@ operator<< (ostream&              os,
     return os;
 }
 
-istream&
-operator>> (istream&        is,
+std::istream&
+operator>> (std::istream&   is,
             RealDescriptor& rd)
 {
     char c;
@@ -1225,7 +1322,7 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
 void
 RealDescriptor::convertToNativeFormat (Real*                 out,
                                        long                  nitems,
-                                       istream&              is,
+                                       std::istream&         is,
                                        const RealDescriptor& id)
 {
     const int SHOULDREAD = 8192;
@@ -1283,7 +1380,7 @@ RealDescriptor::convertFromNativeFormat (void*                 out,
 //
 
 void
-RealDescriptor::convertFromNativeFormat (ostream&              os,
+RealDescriptor::convertFromNativeFormat (std::ostream&         os,
                                          long                  nitems,
                                          const Real*           in,
                                          const RealDescriptor& od)

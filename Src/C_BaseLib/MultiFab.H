@@ -1,9 +1,8 @@
-
 #ifndef BL_MULTIFAB_H
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.32 2000-10-02 20:52:36 lijewski Exp $
+// $Id: MultiFab.H,v 1.33 2001-07-17 23:02:25 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -101,8 +100,8 @@ class MultiFab
                of the cell in the MultiFab with index location given by pnt
                to the output stream strm.
     */
-    void probe (ostream& strm,
-                IntVect& pt);
+    void probe (std::ostream& strm,
+                IntVect&      pt);
 
     /*@ManDoc: Returns the minimum value contained in component comp of the
                MultiFab.  The parameter nghost determines the number of
@@ -547,83 +546,6 @@ class MultiFabCopyDescriptor
     MultiFabCopyDescriptor (const MultiFabCopyDescriptor&);
     MultiFabCopyDescriptor& operator= (const MultiFabCopyDescriptor&);
 };
-
-//
-// Inlines.
-//
-
-inline
-void
-MultiFab::FillBoundary ()
-{
-    FillBoundary(0, n_comp);
-}
-
-inline
-void
-MultiFab::plus (Real val,
-                int  nghost)
-{
-    plus(val,0,n_comp,nghost);
-}
-
-inline
-void
-MultiFab::plus (Real       val,
-                const Box& region,
-                int        nghost)
-{
-    plus(val,region,0,n_comp,nghost);
-}
-
-inline
-void
-MultiFab::mult (Real val,
-                int  nghost)
-{
-    mult(val,0,n_comp,nghost);
-}
-
-inline
-void
-MultiFab::mult (Real       val,
-                const Box& region,
-                int        nghost)
-{
-    mult(val,region,0,n_comp,nghost);
-}
-
-inline
-void
-MultiFab::invert (Real numerator,
-                  int  nghost)
-{
-    invert(numerator,0,n_comp,nghost);
-}
-
-inline
-void
-MultiFab::invert (Real       numerator,
-                  const Box& region,
-                  int        nghost)
-{
-    invert(numerator,region,0,n_comp,nghost);
-}
-
-inline
-void
-MultiFab::negate (int nghost)
-{
-    negate(0,n_comp,nghost);
-}
-
-inline
-void
-MultiFab::negate (const Box& region,
-                  int        nghost)
-{
-    negate(region,0,n_comp,nghost);
-}
 
 #ifdef BL_NAMESPACE
 }

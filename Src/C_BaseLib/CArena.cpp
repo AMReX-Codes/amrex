@@ -1,33 +1,14 @@
-
 //
-// $Id: CArena.cpp,v 1.22 2001-04-24 19:42:19 car Exp $
+// $Id: CArena.cpp,v 1.23 2001-07-17 23:02:20 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <iostream>
 #include <iomanip>
 #include <fstream>
 #include <utility>
 #include <cstring>
-using std::ofstream;
-using std::ios;
-using std::setw;
-using std::clog;
-using std::endl;
-using std::pair;
-#else
-#include <iostream.h>
-#include <iomanip.h>
-#include <fstream.h>
-#include <stdlib.h>
-#ifndef BL_OLD_STL
-#include <utility.h>
-#endif
-#include <string.h>
-#endif
 
 #include <CArena.H>
-
 
 //
 // Only really use the coalescing FAB arena if BL_COALESCE_FABS.
@@ -172,7 +153,7 @@ CArena::free (void* vp)
     //
     // Put free'd block on free list and save iterator to insert()ed position.
     //
-    pair<NL::iterator,bool> pair_it = m_freelist.insert(*busy_it);
+    std::pair<NL::iterator,bool> pair_it = m_freelist.insert(*busy_it);
 
     BL_ASSERT(pair_it.second == true);
 

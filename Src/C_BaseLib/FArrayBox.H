@@ -1,20 +1,11 @@
-
 #ifndef BL_FARRAYBOX_H
 #define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.18 2000-10-02 20:52:34 lijewski Exp $
+// $Id: FArrayBox.H,v 1.19 2001-07-17 23:02:20 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <iostream>
-using std::cin;
-using std::cout;
-using std::cerr;
-using std::endl;
-#else
-#include <iostream.h>
-#endif
 
 #include <Pointers.H>
 #include <Box.H>
@@ -24,13 +15,6 @@ using std::endl;
 #include <OrderedFab.H>
 #include <REAL.H>
 #include <SPACE.H>
-
-#ifdef BL_USE_POINTLIB
-#ifndef BL_CRAY_BUG_DEFARG
-#include <PointDomain.H>
-#include <PointFab.H>
-#endif /*BL_CRAY_BUG_DEFARG*/
-#endif /*BL_USE_POINTLIB*/
 
 #ifdef BL_NAMESPACE
 namespace BL_NAMESPACE
@@ -128,8 +112,8 @@ public:
     // function to read an FArrayBox from the istream, under the
     // assumption that the header has alread been read.
     //
-    virtual void read (istream&   is,
-                       FArrayBox& fb) const = 0;
+    virtual void read (std::istream& is,
+                       FArrayBox&    fb) const = 0;
     //
     // Pure virtual function.  Derived classes MUST override this
     // function to write the FArrayBox to the ostream, under the
@@ -137,7 +121,7 @@ public:
     // written.  Write it out as if it only had num_comp components
     // with component comp being the first one.
     //
-    virtual void write (ostream&         os,
+    virtual void write (std::ostream&    os,
                         const FArrayBox& fb,
                         int              comp,
                         int              num_comp) const = 0;
@@ -147,16 +131,17 @@ public:
     // assumption that the header for the FAB f has already been
     // skpped over.
     //
-    virtual void skip (istream&   is,
-                       FArrayBox& f) const = 0;
-    virtual void skip (istream&   is,
-                       FArrayBox& f,
-		       int nCompToSkip) const = 0;
+    virtual void skip (std::istream& is,
+                       FArrayBox&    f) const = 0;
+
+    virtual void skip (std::istream& is,
+                       FArrayBox&    f,
+		       int           nCompToSkip) const = 0;
     //
     // Write out a header describing FArrayBox f that contains
     // nvar components.  It must be the case that nvar <= f.nComp().
     //
-    virtual void write_header (ostream&         os,
+    virtual void write_header (std::ostream&    os,
                                const FArrayBox& f,
                                int              nvar) const;
     //
@@ -170,16 +155,16 @@ public:
     // the read functions virtual, while having all the code for
     // detailing the type of FArrayBox that was written out in one place.
     //
-    static FABio* read_header (istream&   is,
-                               FArrayBox& f);
+    static FABio* read_header (std::istream& is,
+                               FArrayBox&    f);
 
     // Same as above except create a single component fab with
     // data from the compIndex component of the istream fab.
     // Return the number of available components in the istream fab.
-    static FABio* read_header (istream&   is,
-                               FArrayBox& f,
-			       int compIndex,
-			       int &nCompAvailable);
+    static FABio* read_header (std::istream& is,
+                               FArrayBox&    f,
+			       int           compIndex,
+			       int&          nCompAvailable);
 };
 
 //@Man:
@@ -247,24 +232,10 @@ public:
     */
     explicit FArrayBox (const Box& b,
                         int        ncomp=1);
-
-#ifdef BL_USE_POINTLIB
-#ifndef BL_CRAY_BUG_DEFARG
- 
-    /*@ManDoc: Build a Fab From a PointFab.  This is defined only if 
-               BL\_CRAY\_BUG\_DEFARG is not defined and if BL\_USE\_POINTLIB
-               is defined.
-    */
-    FArrayBox (const PointFab<PointDomain>& pf,
-               Real                         val);
-
-#endif /*BL_CRAY_BUG_DEFARG*/
-#endif /*BL_USE_POINTLIB*/
-
     //
     //@ManDoc: Constructs FAB by reading it from istream.
     //
-    explicit FArrayBox (istream& is);
+    explicit FArrayBox (std::istream& is);
     //
     //@ManDoc:  The destructor.
     //
@@ -294,7 +265,7 @@ public:
     //
     //@ManDoc: Print subrange of FAB in formatted form to output stream.
     //
-    friend void printRange (ostream&         os,
+    friend void printRange (std::ostream&    os,
                             const FArrayBox& fab,
                             const Box&       bx,
                             int              scomp,
@@ -348,7 +319,7 @@ public:
     /*@ManDoc: Print subrange defined by (ilo:ihi) X (jlo:jhi) X (klo:khi)
                using components (scomp : scomp+ncomp-1).
     */
-    friend void printRange (ostream&          os,
+    friend void printRange (std::ostream&     os,
                             const FArrayBox&  fab,
                             int               ilo,
                             int               ihi,
@@ -375,18 +346,18 @@ public:
     //
     //@ManDoc: Write FABs in ASCII form.
     //
-    friend ostream& operator<< (ostream&         os,
-                                const FArrayBox& fb);
+    friend std::ostream& operator<< (std::ostream&    os,
+                                     const FArrayBox& fb);
     //
     //@ManDoc: Read FABs in ASCII form.
     //
-    friend istream& operator>> (istream&   is,
-                                FArrayBox& fb);
+    friend std::istream& operator>> (std::istream& is,
+                                     FArrayBox&    fb);
 
     /*@ManDoc: Writes out the FAB in whatever format you've set.
                The default format is ASCII.
     */
-    void writeOn (ostream& of) const;
+    void writeOn (std::ostream& of) const;
 
     /*@ManDoc: Write only selected range of components.  comp specifies
                from which component (starting at 0) to write at each
@@ -398,31 +369,31 @@ public:
                ASCII.  The FAB that is written to disk will be an
                num\_comp component FAB.
     */
-    void writeOn (ostream& of,
-                  int      comp,
-                  int      num_comp=1) const;
+    void writeOn (std::ostream& of,
+                  int           comp,
+                  int           num_comp=1) const;
     //
     //@ManDoc: Read FAB from istream.  Format is as it was written out.
     //
-    void readFrom (istream& is);
+    void readFrom (std::istream& is);
 
     /*@ManDoc: Read FAB from istream.  Format is as it was written out.
 	       This creates a single component FAB with data from
 	       compIndex of the FAB from the istream.
 	       Returns the number of components available in the fab.
     */
-    int readFrom (istream& is, int compIndex);
+    int readFrom (std::istream& is, int compIndex);
 
     /*@ManDoc: Skip over the next FAB from the input stream.
                Return the Box defining the domain of the FAB and the
                number of components.
     */
-    static Box skipFAB (istream& is,
-                        int&     num_comp);
+    static Box skipFAB (std::istream& is,
+                        int&          num_comp);
     //
     //@ManDoc: Skip over the next FAB from the input stream.
     //
-    static void skipFAB (istream& is);
+    static void skipFAB (std::istream& is);
 
     /*@ManDoc: Set the FABio::Format in the program.
                This is the preferred way to set the output format
@@ -510,99 +481,6 @@ private:
     FArrayBox (const FArrayBox&);
     FArrayBox& operator= (const FArrayBox&);
 };
-
-//
-//@ManDoc: A typedef for backward compatibility with old code.
-//
-typedef FArrayBox FARRAYBOX;
-
-//
-// Inlines.
-//
-
-inline
-FArrayBox::FArrayBox ()
-{
-    if (!FArrayBox::Initialized)
-        FArrayBox::init();
-}
-
-inline
-FArrayBox::FArrayBox (const Box& b,
-                      int        n)
-    :
-    BaseFab<Real>(b,n)
-{
-    if (!FArrayBox::Initialized)
-        FArrayBox::init();
-    //
-    // For debugging purposes set values to QNAN when possible.
-    //
-    if ( do_initval )
-	setVal(initval);
-}
-
-inline
-void
-FArrayBox::resize (const Box& b,
-                   int        N)
-{
-    BaseFab<Real>::resize(b,N);
-    //
-    // For debugging purposes set values to QNAN when possible.
-    //
-    if ( do_initval )
-      setVal(initval);
-}
-
-inline
-FABio::Format
-FArrayBox::getFormat ()
-{
-    return format;
-}
-
-inline
-const FABio&
-FArrayBox::getFABio ()
-{
-    return *fabio;
-}
-
-inline
-void
-FArrayBox::setFABio (FABio* rd)
-{
-    BL_ASSERT(rd != 0);
-    delete fabio;
-    fabio = rd;
-}
-
-inline
-Real
-FArrayBox::norm (int p,
-                 int comp,
-                 int numcomp) const
-{
-    return norm(domain,p,comp,numcomp);
-}
-
-inline
-void
-FArrayBox::writeOn (ostream& os) const
-{
-    writeOn(os,0,nComp());
-}
-
-inline
-void
-FArrayBox::skipFAB (istream& is)
-{
-    int ignore = 0;
-    skipFAB(is, ignore);
-}
-
-inline FArrayBox::~FArrayBox () {}
 
 #ifdef BL_NAMESPACE
 }

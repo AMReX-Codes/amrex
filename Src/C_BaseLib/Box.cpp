@@ -1,17 +1,11 @@
-
 //
-// $Id: Box.cpp,v 1.11 2000-10-02 20:52:33 lijewski Exp $
+// $Id: Box.cpp,v 1.12 2001-07-17 23:02:18 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <climits>
-#else
-#include <limits.h>
-#endif
 
 #include <BLassert.H>
 #include <BoxLib.H>
-#include <Misc.H>
 #include <Box.H>
 
 #ifdef BL_NAMESPACE
@@ -26,9 +20,471 @@ Box::TheUnitBox ()
     return Unit;
 }
 
-//
-// Administrative functions.
-//
+Box::Box (const Box& b)
+    :
+    smallend(b.smallend),
+    bigend(b.bigend),
+    btype(b.btype)
+{ }
+
+Box::Box ()
+    :
+    smallend(IntVect::TheUnitVector()),
+    bigend(IntVect::TheZeroVector()),
+    btype()
+{ }
+
+Box::Box (const IntVect& small,
+          const int*     vec_len)
+    :
+    smallend(small),
+    bigend(D_DECL(small[0]+vec_len[0]-1,
+                  small[1]+vec_len[1]-1,
+                  small[2]+vec_len[2]-1))
+{ }
+
+Box::Box (const IntVect&   small,
+          const IntVect&   big,
+          const IndexType& t)
+    :
+    smallend(small),
+    bigend(big),
+    btype(t)
+{ }
+
+Box::Box (const IntVect& small,
+          const IntVect& big)
+    :
+    smallend(small),
+    bigend(big)
+{ }
+
+Box::Box (const IntVect& small,
+          const IntVect& big,
+          const IntVect& typ)
+    :
+    smallend(small),
+    bigend(big),
+    btype(typ)
+{
+    BL_ASSERT(typ >= IntVect::TheZeroVector() && typ <= IntVect::TheUnitVector());
+}
+
+Box&
+Box::operator= (const Box& b)
+{
+    smallend = b.smallend;
+    bigend   = b.bigend;
+    btype    = b.btype;
+    return *this;
+}
+
+bool
+Box::ok () const
+{
+    return (bigend >= smallend) && btype.ok();
+}
+
+const IntVect&
+Box::smallEnd () const
+{
+    return smallend;
+}
+
+int
+Box::smallEnd (int dir) const
+{
+    return smallend[dir];
+}
+
+const IntVect&
+Box::bigEnd () const
+{
+    return bigend;
+}
+
+int
+Box::bigEnd (int dir) const
+{
+    return bigend[dir];
+}
+
+IndexType
+Box::ixType () const
+{
+    return btype;
+}
+
+IntVect
+Box::type () const
+{
+    return btype.ixType();
+}
+
+IndexType::CellIndex
+Box::type (int dir) const
+{
+    return btype.ixType(dir);
+}
+
+int
+Box::length (int dir) const
+{
+    return bigend[dir] - smallend[dir] + 1;
+}
+
+const int*
+Box::loVect () const
+{
+    return smallend.getVect();
+}
+
+const int*
+Box::hiVect () const
+{
+    return bigend.getVect();
+}
+
+const int*
+Box::getVect () const
+{
+    return smallend.getVect();
+}
+
+int
+Box::operator[] (const Orientation& face) const
+{
+    const int dir = face.coordDir();
+    return face.isLow() ? smallend[dir] : bigend[dir];
+}
+
+bool
+Box::numPtsOK () const
+{
+    long ignore;
+    return numPtsOK(ignore);
+}
+
+bool
+Box::isEmpty () const
+{
+    return numPts() == 0;
+}
+
+bool
+Box::contains (const IntVect& p) const
+{
+    return p >= smallend && p <= bigend;
+}
+
+bool
+Box::sameType (const Box &b) const
+{
+    return btype == b.btype;
+}
+
+bool
+Box::contains (const Box& b) const
+{
+    BL_ASSERT(sameType(b));
+    return b.smallend >= smallend && b.bigend <= bigend;
+}
+
+bool
+Box::sameSize (const Box& b) const
+{
+    BL_ASSERT(sameType(b));
+    return D_TERM(length(0) == b.length(0),
+                  && length(1)==b.length(1),
+                  && length(2)==b.length(2));
+}
+
+bool
+Box::operator== (const Box& b) const
+{
+    return smallend == b.smallend && bigend == b.bigend && b.btype == btype;
+}
+
+bool
+Box::operator!= (const Box& b) const
+{
+    return !operator==(b);
+}
+
+bool
+Box::cellCentered () const
+{
+    return !btype.any();
+}
+
+bool
+Box::volumeOK () const
+{
+    long ignore;
+    return volumeOK(ignore);
+}
+
+long
+Box::index (const IntVect& v) const
+{
+    long result = v.vect[0]-smallend.vect[0];
+#if   BL_SPACEDIM==2
+    result += length(0)*(v.vect[1]-smallend.vect[1]);
+#elif BL_SPACEDIM==3
+    result += length(0)*(v.vect[1]-smallend.vect[1]
+                      +(v.vect[2]-smallend.vect[2])*length(1));
+#endif
+    return result;
+}
+
+const IntVect&
+Box::length () const
+{
+    D_EXPR(len[0] = bigend[0]-smallend[0] + 1,
+           len[1] = bigend[1]-smallend[1] + 1,
+           len[2] = bigend[2]-smallend[2] + 1);
+
+    return len;
+}
+
+Box&
+Box::setSmall (const IntVect& sm)
+{
+    smallend = sm;
+    return *this;
+}
+
+Box&
+Box::setSmall (int dir,
+               int sm_index)
+{
+    smallend.setVal(dir,sm_index);
+    return *this;
+}
+
+Box&
+Box::setBig (const IntVect& bg)
+{
+    bigend = bg;
+    return *this;
+}
+
+Box&
+Box::setBig (int dir,
+             int bg_index)
+{
+    bigend.setVal(dir,bg_index);
+    return *this;
+}
+
+Box&
+Box::setRange (int dir,
+               int sm_index,
+               int n_cells)
+{
+    smallend.setVal(dir,sm_index);
+    bigend.setVal(dir,sm_index+n_cells-1);
+    return *this;
+}
+
+Box&
+Box::shift (int dir,
+            int nzones)
+{
+    smallend.shift(dir,nzones);
+    bigend.shift(dir,nzones);
+    return *this;
+}
+
+Box&
+Box::shift (const IntVect& iv)
+{
+    smallend.shift(iv);
+    bigend.shift(iv);
+    return *this;
+}
+
+Box&
+Box::convert (const IntVect& typ)
+{
+    BL_ASSERT(typ >= IntVect::TheZeroVector() && typ <= IntVect::TheUnitVector());
+    IntVect shft(typ - btype.ixType());
+    bigend += shft;
+    btype = IndexType(typ);
+    return *this;
+}
+
+Box&
+Box::surroundingNodes (int dir)
+{
+    if (!(btype[dir]))
+    {
+        bigend.shift(dir,1);
+        //
+        // Set dir'th bit to 1 = IndexType::NODE.
+        //
+        btype.set(dir);
+    }
+    return *this;
+}
+
+Box&
+Box::enclosedCells (int dir)
+{
+    if (btype[dir])
+    {
+        bigend.shift(dir,-1);
+        //
+        // Set dir'th bit to 0 = IndexType::CELL.
+        //
+        btype.unset(dir);
+    }
+    return *this;
+}
+
+Box
+surroundingNodes (const Box& b,
+                  int        dir)
+{
+    Box bx(b);
+    return bx.surroundingNodes(dir);
+}
+
+Box
+surroundingNodes (const Box& b)
+{
+    Box bx(b);
+    return bx.surroundingNodes();
+}
+
+Box
+enclosedCells (const Box& b,
+               int        dir)
+{
+    Box bx(b);
+    return bx.enclosedCells(dir);
+}
+
+Box
+enclosedCells (const Box& b)
+{
+    Box bx(b);
+    return bx.enclosedCells();
+}
+
+Box&
+Box::operator+= (const IntVect& v)
+{
+    smallend += v;
+    bigend   += v;
+    return *this;
+}
+
+Box
+Box::operator+  (const IntVect& v) const
+{
+    IntVect small(smallend);
+    IntVect big(bigend);
+    small += v;
+    big   += v;
+    return Box(small,big,btype);
+}
+
+Box&
+Box::operator-= (const IntVect& v)
+{
+    smallend -= v;
+    bigend   -= v;
+    return *this;
+}
+
+Box
+Box::operator-  (const IntVect& v) const
+{
+    IntVect small = smallend;
+    IntVect big = bigend;
+    small -= v;
+    big   -= v;
+    return Box(small,big,btype);
+}
+
+Box&
+Box::grow (int i)
+{
+    smallend.diagShift(-i);
+    bigend.diagShift(i);
+    return *this;
+}
+
+Box
+grow (const Box& b,
+      int        i)
+{
+    IntVect small = diagShift(b.smallend,-i);
+    IntVect big   = diagShift(b.bigend,i);
+    return Box(small,big,b.btype);
+}
+
+Box&
+Box::grow (const IntVect& v)
+{
+    smallend -= v;
+    bigend   += v;
+    return *this;
+}
+
+Box
+grow (const Box&     b,
+      const IntVect& v)
+{
+    IntVect small = b.smallend - v;
+    IntVect big   = b.bigend   + v;
+    return Box(small,big,b.btype);
+}
+
+Box&
+Box::grow (int idir,
+           int n_cell)
+{
+    smallend.shift(idir, -n_cell);
+    bigend.shift(idir, n_cell);
+    return *this;
+}
+
+Box&
+Box::growLo (int idir,
+             int n_cell)
+{
+    smallend.shift(idir, -n_cell);
+    return *this;
+}
+
+Box&
+Box::growHi (int idir,
+             int n_cell)
+{
+    bigend.shift(idir,n_cell);
+    return *this;
+}
+
+Box&
+Box::grow (const Orientation& face,
+           int                n_cell)
+{
+    int idir = face.coordDir();
+    if (face.isLow())
+        smallend.shift(idir, -n_cell);
+    else
+        bigend.shift(idir,n_cell);
+    return *this;
+}
+
+Box
+Box::operator& (const Box& rhs) const
+{
+    Box lhs(*this);
+    return lhs &= rhs;
+}
 
 bool
 Box::numPtsOK (long& N) const
@@ -581,9 +1037,9 @@ coarsen (const Box&     b,
 // I/O functions.
 //
 
-ostream&
-operator<< (ostream&   os,
-            const Box& b)
+std::ostream&
+operator<< (std::ostream& os,
+            const Box&    b)
 {
     os << '('
        << b.smallend << ' '
@@ -602,11 +1058,11 @@ operator<< (ostream&   os,
 //
 #define BL_IGNORE_MAX 100000
 
-istream&
-operator>> (istream& is,
-            Box&     b)
+std::istream&
+operator>> (std::istream& is,
+            Box&          b)
 {
-    is >> ws;
+    is >> std::ws;
     char c;
     is >> c;
     is.putback(c);
@@ -640,7 +1096,7 @@ operator>> (istream& is,
 }
 
 void
-Box::dumpOn (ostream& strm) const
+Box::dumpOn (std::ostream& strm) const
 {
     strm << "Box ("
          << BoxLib::version

@@ -1,6 +1,5 @@
-
 //
-// $Id: BoxDomain.cpp,v 1.6 2000-10-02 20:52:33 lijewski Exp $
+// $Id: BoxDomain.cpp,v 1.7 2001-07-17 23:02:19 lijewski Exp $
 //
 
 #include <BoxDomain.H>
@@ -9,6 +8,141 @@
 namespace BL_NAMESPACE
 {
 #endif
+
+const Box&
+BoxDomain::operator[] (const BoxDomainIterator& bli) const
+{
+    return lbox[bli];
+}
+
+bool
+BoxDomain::contains (const IntVect& v) const
+{
+    return BoxList::contains(v);
+}
+
+bool
+BoxDomain::contains (const Box& b) const
+{
+    return BoxList::contains(b);
+}
+
+bool
+BoxDomain::contains (const BoxList& bl) const
+{
+    return BoxList::contains(bl);
+}
+
+BoxDomain&
+BoxDomain::intersect (const Box& b)
+{
+    BoxList::intersect(b);
+    BL_ASSERT(ok());
+    return *this;
+}
+
+void
+intersect (BoxDomain&       dest,
+           const BoxDomain& fin,
+           const Box&       b)
+{
+   dest = fin;
+   dest.intersect(b);
+}
+
+BoxDomain&
+BoxDomain::refine (int ratio)
+{
+    BoxList::refine(ratio);
+    BL_ASSERT(ok());
+    return *this;
+}
+
+void
+refine (BoxDomain&       dest,
+        const BoxDomain& fin,
+        int              ratio)
+{
+    dest = fin;
+    dest.refine(ratio);
+}
+
+void
+accrete (BoxDomain&       dest,
+         const BoxDomain& fin,
+         int              sz)
+{
+    dest = fin;
+    dest.accrete(sz);
+}
+
+void
+coarsen (BoxDomain&       dest,
+         const BoxDomain& fin,
+         int              ratio)
+{
+    dest = fin;
+    dest.coarsen(ratio);
+}
+
+BoxDomain&
+BoxDomain::complementIn (const Box&       b,
+                         const BoxDomain& bl)
+{
+    BoxList::complementIn(b,bl);
+    BL_ASSERT(ok());
+    return *this;
+}
+
+BoxDomain
+complementIn (const Box&       b,
+              const BoxDomain& bl)
+{
+    BoxDomain result;
+    result.complementIn(b,bl);
+    return result;
+}
+
+BoxDomain&
+BoxDomain::shift (int dir,
+                  int nzones)
+{
+    BoxList::shift(dir, nzones);
+    return *this;
+}
+
+BoxDomain&
+BoxDomain::shiftHalf (int dir,
+                      int num_halfs)
+{
+    BoxList::shiftHalf(dir, num_halfs);
+    return *this;
+}
+
+BoxDomain&
+BoxDomain::shiftHalf (const IntVect& iv)
+{
+    BoxList::shiftHalf(iv);
+    return *this;
+}
+
+BoxList
+BoxDomain::boxList () const
+{
+    return BoxList(*this);
+}
+
+bool
+BoxDomain::operator== (const BoxDomain& rhs) const
+{
+    return BoxList::operator==(rhs);
+}
+
+bool
+BoxDomain::operator!= (const BoxDomain& rhs) const
+{
+    return !BoxList::operator==(rhs);
+}
 
 BoxDomain::BoxDomain ()
     : BoxList(IndexType::TheCellType())
@@ -116,9 +250,9 @@ BoxDomain::ok () const
             {
                 if (bli().intersects(blii()))
                 {
-                    cout << "Invalid DOMAIN, boxes overlap" << '\n';
-                    cout << "b1 = " << bli() << '\n';
-                    cout << "b2 = " << blii() << '\n';
+                    std::cout << "Invalid DOMAIN, boxes overlap" << '\n'
+                              << "b1 = " << bli() << '\n'
+                              << "b2 = " << blii() << '\n';
                     status = false;
                 }
                 ++blii;
@@ -148,11 +282,11 @@ BoxDomain::coarsen (int ratio)
     return *this;
 }
 
-ostream&
-operator<< (ostream&         os,
+std::ostream&
+operator<< (std::ostream&    os,
             const BoxDomain& bd)
 {
-    os << "(BoxDomain " << BoxList(bd) << ")" << flush;
+    os << "(BoxDomain " << BoxList(bd) << ")" << std::flush;
     if (os.fail())
         BoxLib::Error("operator<<(ostream&,BoxDomain&) failed");
     return os;

@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.17 2001-05-10 17:16:40 lijewski Exp $
+# $Id: Make.package,v 1.18 2001-07-17 23:02:25 lijewski Exp $
 #
 
 BOXLIB_BASE=EXE
@@ -17,7 +17,7 @@ C$(BOXLIB_BASE)_sources += ParmParse.cpp Utility.cpp aString.cpp
 C$(BOXLIB_BASE)_headers += ParmParse.H Utility.H BLassert.H aString.H ArrayLim.H
 
 C$(BOXLIB_BASE)_headers += REAL.H CONSTANTS.H SPACE.H SPACE_F.H
-C$(BOXLIB_BASE)_headers += UseCount.H Misc.H
+C$(BOXLIB_BASE)_headers += UseCount.H
 
 C$(BOXLIB_BASE)_sources += DistributionMapping.cpp ParallelDescriptor.cpp
 C$(BOXLIB_BASE)_headers += DistributionMapping.H ParallelDescriptor.H

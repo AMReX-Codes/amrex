@@ -1,16 +1,10 @@
-
 #ifndef BL_DISTRIBUTIONMAPPING_H
 #define BL_DISTRIBUTIONMAPPING_H
 
 //
-// $Id: DistributionMapping.H,v 1.17 2001-01-25 23:52:36 lijewski Exp $
+// $Id: DistributionMapping.H,v 1.18 2001-07-17 23:02:20 lijewski Exp $
 //
-#ifdef BL_USE_NEW_HFILES
 #include <vector>
-using std::vector;
-#else
-#include <vector.h>
-#endif
 
 #include <BoxLib.H>
 #include <Array.H>
@@ -105,7 +99,7 @@ class DistributionMapping
     //
     //@ManDoc: Output some simple cache statistics.
     //
-    static void CacheStats (ostream& os);
+    static void CacheStats (std::ostream& os);
     //
     //@ManDoc: Are the distributions equal?
     //
@@ -116,7 +110,7 @@ class DistributionMapping
     bool operator!= (const DistributionMapping& rhs) const;
 
     void RoundRobinProcessorMap (int nboxes, int nprocs);
-    void KnapSackProcessorMap   (const vector<long>& boxes, int nprocs);
+    void KnapSackProcessorMap   (const std::vector<long>& boxes, int nprocs);
 
   private:
     //
@@ -136,7 +130,7 @@ class DistributionMapping
     //
     // Our cache of processor maps.
     //
-    static vector< Array<int> > m_Cache;
+    static std::vector< Array<int> > m_Cache;
     //
     // Look for a cached processor map.
     //
@@ -172,41 +166,9 @@ class DistributionMapping
 //
 // Our output operator.
 //
-ostream&
-operator<< (ostream&                   os,
+std::ostream&
+operator<< (std::ostream&              os,
             const DistributionMapping& pmap);
-
-//
-// Inlines.
-//
-
-inline
-const Array<int>&
-DistributionMapping::ProcessorMap () const
-{
-    return m_procmap;
-}
-
-inline
-int
-DistributionMapping::operator[] (int index) const
-{
-    return m_procmap[index];
-}
-
-inline
-DistributionMapping::Strategy
-DistributionMapping::strategy ()
-{
-    return DistributionMapping::m_Strategy;
-}
-
-inline
-int
-DistributionMapping::CacheSize ()
-{
-    return m_Cache.size();
-}
 
 #ifdef BL_NAMESPACE
 }

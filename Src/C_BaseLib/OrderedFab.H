@@ -1,25 +1,14 @@
-
 #ifndef BL_ORDEREDFAB_H
 #define BL_ORDEREDFAB_H
 
 //
-// $Id: OrderedFab.H,v 1.5 2000-10-02 20:52:36 lijewski Exp $
+// $Id: OrderedFab.H,v 1.6 2001-07-17 23:02:25 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <iostream>
 #include <iomanip>
-using std::cin;
-using std::cout;
-using std::cerr;
-using std::endl;
-#else
-#include <iostream.h>
-#include <iomanip.h>
-#endif
 
 #include <BaseFab.H>
-#include <Misc.H>
 #include <Looping.H>
 
 #ifdef BL_NAMESPACE
@@ -190,13 +179,13 @@ OrderedFab<T>::min (int comp) const
         else
         {
             for (int i = 0; i < thisLen; i++)
-                _min_row[i] = Min(_row[i],_min_row[i]);
+                _min_row[i] = std::min(_row[i],_min_row[i]);
         }
     } EndForPencil;
 
     T _min = _min_row[0];
     for (int i = 1; i < _X_len; i++)
-        _min = Min(_min,_min_row[i]);
+        _min = std::min(_min,_min_row[i]);
 
     delete [] _min_row;
 
@@ -223,13 +212,13 @@ OrderedFab<T>::min (const Box& subbox,
         else
         {
             for (int i = 0; i < thisLen; i++)
-                _min_row[i] = Min(_row[i],_min_row[i]);
+                _min_row[i] = std::min(_row[i],_min_row[i]);
         }
     } EndForPencil;
 
     T _min = _min_row[0];
     for (int i = 1; i < _X_len; i++)
-        _min = Min(_min,_min_row[i]);
+        _min = std::min(_min,_min_row[i]);
 
     delete [] _min_row;
 
@@ -255,13 +244,13 @@ OrderedFab<T>::max (int comp) const
         else
         {
             for (int i = 0; i < thisLen; i++)
-                _max_row[i] = Max(_row[i],_max_row[i]);
+                _max_row[i] = std::max(_row[i],_max_row[i]);
         }
     } EndForPencil;
 
     T _max = _max_row[0];
     for (int i = 1; i < _X_len; i++)
-        _max = Max(_max,_max_row[i]);
+        _max = std::max(_max,_max_row[i]);
 
     delete [] _max_row;
 
@@ -288,13 +277,13 @@ OrderedFab<T>::max (const Box& subbox,
         else
         {
             for (int i = 0; i < thisLen; i++)
-                _max_row[i] = Max(_row[i],_max_row[i]);
+                _max_row[i] = std::max(_row[i],_max_row[i]);
         }
     } EndForPencil;
 
     T _max = _max_row[0];
     for (int i = 1; i < _X_len; i++)
-        _max = Max(_max,_max_row[i]);
+        _max = std::max(_max,_max_row[i]);
 
     delete [] _max_row;
 

@@ -1,10 +1,12 @@
-
 #ifndef BL_CONSTANTS_H
 #define BL_CONSTANTS_H
 
-/*
-** $Id: CONSTANTS.H,v 1.8 2000-10-02 20:52:34 lijewski Exp $
-*/
+//
+// $Id: CONSTANTS.H,v 1.9 2001-07-17 23:02:20 lijewski Exp $
+//
+
+#include <REAL.H>
+
 
 #ifdef BL_LANG_FORT
 
@@ -38,9 +40,7 @@
 #define two3rd  0.66666666666667
 #define Pi      3.14159265358979
 
-#endif /*BL_USE_FLOAT*/
-
-#if defined(BL_USE_DOUBLE) && !(defined(BL_T3E) || defined(BL_CRAY))
+#else
 
 #define bigreal 1.0d+30
 #define zero    0.0d0

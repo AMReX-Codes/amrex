@@ -1,16 +1,11 @@
-
 #ifndef BL_BOXARRAY_H
 #define BL_BOXARRAY_H
 
 //
-// $Id: BoxArray.H,v 1.18 2000-11-12 17:26:12 car Exp $
+// $Id: BoxArray.H,v 1.19 2001-07-17 23:02:19 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <cstddef>
-#else
-#include <stddef.h>
-#endif
 
 #include <IndexType.H>
 #include <BoxList.H>
@@ -49,8 +44,8 @@ public:
     //
     //@ManDoc: Write a BoxArray to an ostream in ASCII format.
     //
-    friend ostream& operator<< (ostream&        os,
-                                const BoxArray& ba);
+    friend std::ostream& operator<< (std::ostream&   os,
+                                     const BoxArray& ba);
     //
     //@ManDoc: Construct an empty BoxArray.
     //
@@ -75,7 +70,7 @@ public:
     //
     //@ManDoc: Construct a BoxArray from a checkpoint file.
     //
-    explicit BoxArray (istream& is);
+    explicit BoxArray (std::istream& is);
     //
     //@ManDoc: The assignment operator.
     //
@@ -100,7 +95,7 @@ public:
                Note that the BoxArray in the istream must have been written
                using writeOn().
     */
-    void define (istream& is);
+    void define (std::istream& is);
     //
     //@ManDoc: Remove all Boxes from the BoxArray.
     //
@@ -124,7 +119,7 @@ public:
     //
     //@ManDoc: Output this BoxArray to a checkpoint file.
     //
-    ostream& writeOn (ostream&) const;
+    std::ostream& writeOn (std::ostream&) const;
     //
     //@ManDoc: Are the BoxArrays equal?
     //
@@ -278,7 +273,7 @@ protected:
     //
     // Helper for ASCII stream output.
     //
-    ostream& print (ostream& os) const;
+    std::ostream& print (std::ostream& os) const;
 
     class Ref
     {
@@ -295,7 +290,7 @@ protected:
 
         Ref (const BoxList& bl);
 
-        Ref (istream& is);
+        Ref (std::istream& is);
 
         Ref (const Ref& rhs);
         //
@@ -303,7 +298,7 @@ protected:
         //
         void define (const BoxList& bl);
 
-        void define (istream& is);
+        void define (std::istream& is);
         //
         // The data -- an Array of Boxes.
         //
@@ -318,47 +313,6 @@ protected:
     //
     LnClassPtr<Ref> m_ref;
 };
-
-//
-// Inlines.
-//
-
-inline
-int
-BoxArray::length () const
-{
-    return m_ref->m_abox.length();
-}
-
-inline
-bool
-BoxArray::ready () const
-{
-    return m_ref->m_abox.ready();
-}
-
-inline
-const Box&
-BoxArray::operator[] (int index) const
-{
-    return m_ref->m_abox.get(index);
-}
-
-inline
-const Box&
-BoxArray::get (int index) const
-{
-    return m_ref->m_abox.get(index);
-}
-
-inline
-void
-BoxArray::reserve (long _truesize)
-{
-    if (!m_ref.unique())
-        uniqify();
-    m_ref->m_abox.reserve(_truesize);
-}
 
 #ifdef BL_NAMESPACE
 }

@@ -1,9 +1,8 @@
-
 #ifndef BL_USECOUNT_H
 #define BL_USECOUNT_H
 
 //
-// $Id: UseCount.H,v 1.8 2000-10-02 20:52:38 lijewski Exp $
+// $Id: UseCount.H,v 1.9 2001-07-17 23:02:28 lijewski Exp $
 //
 
 #include <BLassert.H>
