@@ -3269,7 +3269,7 @@ contains
     if ( b == 0.0_dp_t ) then
        call bl_error("MULTIFAB_DIV_DIV: divide by zero")
     end if
-    !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+    !$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
        if ( multifab_remote(a,i) ) cycle
        if ( lall ) then
@@ -3366,7 +3366,7 @@ contains
     integer :: i
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+    !$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
        if ( multifab_remote(a,i) ) cycle
        if ( lall ) then
@@ -3457,7 +3457,7 @@ contains
     integer :: i
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+    !$OMP PARALLEL DO PRIVATE(i,ap)
     do i = 1, a%nboxes
        if ( multifab_remote(a,i) ) cycle
        if ( lall ) then
