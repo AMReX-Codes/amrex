@@ -394,9 +394,7 @@ c inflow face, so that binfil can be run for subsequent fills
      &   ncomp)
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       integer i, j, k, nc
-c      call hgdebugmat('out dest in',
-c    &     dest, destl0,destl1,destl2, desth0, desth1, desth2,
-c    &     regl0,regl1,regl2,regh0, regh1,regh2, ncomp)
+c
       do nc = 1, ncomp
       if (idir .eq. 0) then
          if (regl0 .lt. bbh0) then
@@ -460,9 +458,6 @@ c    &     regl0,regl1,regl2,regh0, regh1,regh2, ncomp)
          end if
       end if
       end do
-c     call hgdebugmat('out dest out',
-c    &     dest, destl0,destl1,destl2, desth0, desth1, desth2,
-c    &     regl0,regl1,regl2,regh0, regh1,regh2, ncomp)
       end
 c-----------------------------------------------------------------------
 c Works for CELL-based velocity data.
@@ -484,12 +479,7 @@ c been altered by a call to fill_borders.
      &   ncomp)
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       integer i, j, k, nc
-c     call hgdebugmat('in dest in',
-c    &     dest, destl0,destl1,destl2, desth0, desth1, desth2,
-c    &     regl0,regl1,regl2,regh0, regh1,regh2,ncomp)
-c     call hgdebugmat('in src in',
-c    &     src, srcl0,srcl1,srcl2, srch0, srch1, srch2,
-c    &     bbl0,bbl1,bbl2,bbh0, bbh1,bbh2,ncomp)
+c
       do nc = 1, ncomp
       if (idir .eq. 0) then
          if (regl0 .lt. bbh0) then
@@ -559,9 +549,6 @@ c    &     bbl0,bbl1,bbl2,bbh0, bbh1,bbh2,ncomp)
          end if
       end if
       end do
-c     call hgdebugmat('in dest out',
-c    &     dest, destl0,destl1,destl2, desth0, desth1, desth2,
-c    &     regl0,regl1,regl2,regh0, regh1,regh2, ncomp)
       end
 c-----------------------------------------------------------------------
 c     Interpolation routines

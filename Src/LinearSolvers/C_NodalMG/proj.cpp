@@ -46,11 +46,6 @@ main(int argc, char **argv)
     HG_is_debugging = true;
     HG_is_debugging = false;
 
-    {
-	int i = ParallelDescriptor::MyProc();
-	int j = ParallelDescriptor::NProcs();
-	FORT_HGDEBUGINIT(&i, &j);
-    }
     HG::MPI_init();
 #ifndef WIN32
     int slp = 0;
