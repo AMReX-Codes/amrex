@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.127 2001-09-13 23:09:16 lijewski Exp $
+// $Id: Amr.cpp,v 1.128 2001-09-24 20:31:35 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -750,13 +750,19 @@ Amr::writePlotFile (const std::string& root,
 
     Real dPlotFileTime1 = ParallelDescriptor::second();
     Real dPlotFileTime  = dPlotFileTime1 - dPlotFileTime0;
+    Real wctime         = ParallelDescriptor::second();
 
+    ParallelDescriptor::ReduceRealMax(wctime,IOProc);
     ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
 
     if (ParallelDescriptor::IOProcessor())
+    {
         std::cout << "Write plotfile time = "
                   << dPlotFileTime
-                  << "  seconds." << std::endl;
+                  << "  seconds" << '\n'
+                  << "Total wall clock seconds since start(restart) = "
+                  << wctime << std::endl;
+    }
 }
 
 void
