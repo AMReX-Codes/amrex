@@ -426,7 +426,7 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     // bc[1][0] = inflow;
     // bc[1][1] = outflow;
     bc[0][0] = inflow;
-    bc[1][1] = outflow;
+    bc[0][1] = outflow;
         
     PArray<MultiFab> u[BL_SPACEDIM];
     PArray<MultiFab> p, rhoinv, rhs;
