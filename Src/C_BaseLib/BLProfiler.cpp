@@ -1,5 +1,5 @@
 //
-// $Id: BLProfiler.cpp,v 1.21 2001-09-04 16:59:41 car Exp $
+// $Id: BLProfiler.cpp,v 1.22 2001-10-10 15:44:41 car Exp $
 //
 #include <winstd.H>
 
@@ -81,7 +81,7 @@ struct timer_packet
 	{
 	    name = tp.name;
 	}
-	assert( name == tp.name );
+	BL_ASSERT( name == tp.name );
 	count   += tp.count;
 	time    += tp.time;
 	self    += tp.self;
@@ -145,9 +145,9 @@ template <> MPI_Datatype ParallelDescriptor::Mpi_typemap<timer_packet>::type()
 	{
 	    disp[i] -= disp[0];
 	}
-	assert( n == sizeof(types)/sizeof(MPI_Datatype) );
-	assert( n == sizeof(disp)/sizeof(MPI_Aint) );
-	assert( n == sizeof(blocklens)/sizeof(int) );
+	BL_ASSERT( n == sizeof(types)/sizeof(MPI_Datatype) );
+	BL_ASSERT( n == sizeof(disp)/sizeof(MPI_Aint) );
+	BL_ASSERT( n == sizeof(blocklens)/sizeof(int) );
 	BL_MPI_REQUIRE( MPI_Type_struct(n, blocklens, disp, types, &mine) );
 	BL_MPI_REQUIRE( MPI_Type_commit( &mine ) );
     }
@@ -623,7 +623,7 @@ Profiler::~Profiler()
 void
 Profiler::start()
 {
-    assert( !started );
+    BL_ASSERT( !started );
     if ( profiling ) tt_data[*tt_i.get()]->push(tag.name())->start();
     started = true;
 }
@@ -631,7 +631,7 @@ Profiler::start()
 void
 Profiler::stop()
 {
-    assert( started );
+    BL_ASSERT( started );
     if ( profiling ) tt_data[*tt_i.get()]->pop()->stop();
     started = false;
 }
