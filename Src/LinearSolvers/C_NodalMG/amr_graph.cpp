@@ -700,7 +700,7 @@ void plot_slice(Box b, int idim, int ratio)
     mkbox(x0, x1, y0, y1);
 }
 
-void slice(const grid_real& r, Box subbox, int ratio,
+void slice(const Fab& r, Box subbox, int ratio,
 	   int idim, int islice,
 	   Real value, int cflag, const Box& domain,
 	   void (*set_contour_color)(int,int))
@@ -790,7 +790,7 @@ void slice(const grid_real& r, Box subbox, int ratio,
   gflush(1);
 }
 
-void slice(const grid_real& r, Box subbox, int ratio,
+void slice(const Fab& r, Box subbox, int ratio,
            int idim, int islice,
 	   int nval, Real value[], int cflag, const Box& domain,
 	   void (*set_contour_color)(int,int))
@@ -888,7 +888,7 @@ void slice(const grid_real& r, Box subbox, int ratio,
   gflush(1);
 }
 
-void slice(const grid_real& r, Box subbox, int ratio,
+void slice(const Fab& r, Box subbox, int ratio,
            int idim, int islice,
 	   int nval, int flag,
 	   Real a, Real b, Real p,
@@ -902,7 +902,7 @@ void slice(const grid_real& r, Box subbox, int ratio,
   Real *value = new Real[nval];
   if (flag == 0 || flag == 1) {
     if (a == 0.0)
-      a = r.norm(0, subbox) * (nval-1) / nval;
+      a = r.norm(subbox, 0) * (nval-1) / nval;
     Real mid = 0.5 * (nval-1);
     for (int i = 0; i < nval; i++)
       value[i] = a * (i - mid) / mid;

@@ -359,9 +359,7 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2,
     else {
       level_residual(rtmp, stmp, dtmp, dest_bcache[lev], mglev, 0);
     }
-    cout << " dest[0] norm " << mfnorm(dest[0]) << endl;
     interface_residual(mglev, lev);
-    cout << " dest[0] norm " << mfnorm(dest[0]) << endl;
     int mgc = ml_index[lev-1];
     res_norm = ml_cycle(lev-1, mgc, i1, i2, tol, res_norm);
     // This assignment is only done to clear the borders of work,

@@ -11,22 +11,22 @@
 extern const Box      null_Box;
 extern const BoxArray null_level_mesh;
 
-#if (SPACEDIM == 1)
+#if (BL_SPACEDIM == 1)
 void real_coords(const IntVect& iv, const IntVect& type, int ratio, Real& x);
 void real_coords(const Box& bx, int ratio, Real& x0, Real& x1);
-#elif (SPACEDIM == 2)
+#elif (BL_SPACEDIM == 2)
 void real_coords(const IntVect& iv, const IntVect& type, int ratio,
 		 Real& x, Real& y);
 void real_coords(const Box& bx, int ratio,
 		 Real& x0, Real& x1, Real& y0, Real& y1);
-#elif (SPACEDIM == 3)
+#elif (BL_SPACEDIM == 3)
 void real_coords(const IntVect& iv, const IntVect& type, int ratio,
 		 Real& x, Real& y, Real& z);
 void real_coords(const Box& bx, int ratio,
 		 Real& x0, Real& x1, Real& y0, Real& y1, Real& z0, Real& z1);
 #endif
 
-#if (SPACEDIM == 3)
+#if (BL_SPACEDIM == 3)
 void set_graphics_knobs(Real theta, Real phi);
 #endif
 
@@ -118,7 +118,7 @@ void contour(PArray<MultiFab>& r, const Array<IntVect>& gen_ratio,
 	     int cflag = 1, const Box& domain0 = null_Box,
 	     void (*set_contour_color)(int,int) = default_contour_color);
 
-#if (SPACEDIM == 3)
+#if (BL_SPACEDIM == 3)
 
 // Slice routines: plot 2D slice out of 3D grid.  Only single-grid
 // version currently exists.
@@ -130,19 +130,19 @@ void fit_slice(Box b, int idim, int ratio = 1, Real margin = 0.05);
 
 void plot_slice(Box b, int idim, int ratio = 1);
 
-void slice(const grid_real& r, Box subbox, int ratio,
+void slice(const Fab& r, Box subbox, int ratio,
            int idim, int islice,
            Real value,
            int cflag = 1, const Box& domain = null_Box,
            void (*set_contour_color)(int,int) = default_contour_color);
 
-void slice(const grid_real& r, Box subbox, int ratio,
+void slice(const Fab& r, Box subbox, int ratio,
            int idim, int islice,
            int nval, Real value[],
            int cflag = 1, const Box& domain = null_Box,
            void (*set_contour_color)(int,int) = default_contour_color);
 
-void slice(const grid_real& r, Box subbox, int ratio,
+void slice(const Fab& r, Box subbox, int ratio,
            int idim, int islice,
            int nval, int flag = 0,
            Real a = 0.0, Real b = 0.0, Real p = 1.0,

@@ -125,8 +125,8 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m)
     u[2][ilev].setVal(0.0);
   }
   if (m.length() == 1) {
-    int ioff = m[0].domain().length(0) / 8;
-    //int ioff = 2;
+    //int ioff = m[0].domain().length(0) / 8;
+    int ioff = 2;
     for (int igrid = 0; igrid < m[0].length(); igrid++) {
       // Used for timings3_94:
       //u[0][0][igrid](m[0][igrid].smallEnd() + Iv(2,2,2)) = 3.0;
