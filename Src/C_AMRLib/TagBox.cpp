@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.26 1998-04-17 18:14:12 lijewski Exp $
+// $Id: TagBox.cpp,v 1.27 1998-04-17 22:21:32 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -560,7 +560,14 @@ TagBoxArray::mergeUnique ()
 
     for (int i = 0; i < clearList.size(); i++)
     {
-        CommData senddata(0, clearList[i].fabIndex, 0,0, clearList[i].ovlpBox);
+        CommData senddata(0, // Not Used.
+                          clearList[i].fabIndex,
+                          0, // Not Used.
+                          0, // Not Used.
+                          0, // Not Used.
+                          0, // Not Used.
+                          0, // Not Used.
+                          clearList[i].ovlpBox);
 
         if ((rc = MPI_Send(senddata.dataPtr(),
                            senddata.length(),
