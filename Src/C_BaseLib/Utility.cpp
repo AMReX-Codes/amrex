@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.11 1997-11-25 19:09:42 lijewski Exp $
+// $Id: Utility.cpp,v 1.12 1997-11-26 04:22:35 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -48,7 +48,9 @@ Utility::second (double* t)
     struct tms buffer;
 
     times(&buffer);
+
     static long CyclesPerSecond = 0;
+
     if (CyclesPerSecond == 0)
     {
 #if defined(_SC_CLK_TCK)
@@ -62,20 +64,23 @@ Utility::second (double* t)
         BoxLib::Warning("second(): sysconf(): default value of 100 for hz, worry about timings");
 #endif
     }
+
     double dt = (buffer.tms_utime + buffer.tms_stime)/(1.0*CyclesPerSecond);
+
     if (t != 0)
         *t = dt;
+
     return dt;
 }
 
 static
 double
-get_time_of_day ()
+get_initial_wall_clock_time ()
 {
     struct timeval tp;
 
     if (gettimeofday(&tp, 0) != 0)
-        BoxLib::Abort("wsecond_int: gettimeofday() failed");
+        BoxLib::Abort("get_time_of_day(): gettimeofday() failed");
 
     return tp.tv_sec + tp.tv_usec/1000000.0;
 }
@@ -83,7 +88,7 @@ get_time_of_day ()
 //
 // Attempt to guarantee wsecond() gets initialized on program startup.
 //
-static double Initial_Wall_Clock_Time = get_time_of_day();
+static double Initial_Wall_Clock_Time = get_initial_wall_clock_time();
 
 double
 Utility::wsecond (double* t)
@@ -101,6 +106,7 @@ Utility::wsecond (double* t)
 }
 
 #elif defined(BL_ARCH_CRAY)
+
 extern "C" double SECOND();
 extern "C" double RTC();
 
@@ -113,21 +119,24 @@ Utility::second (double* t_)
     return t;
 }
 
+static
+double
+get_initial_wall_clock_time ()
+{
+    return RTC();
+}
+
+//
+// Attempt to guarantee wsecond() gets initialized on program startup.
+//
+static double Initial_Wall_Clock_Time = get_initial_wall_clock_time();
+
 double
 Utility::wsecond (double* t_)
 {
-    static double epoch = -1.0;
-
-    if (epoch < 0.0)
-    {
-        epoch = RTC();
-    }
-
-    double t = RTC() - epoch;
-
+    double t = RTC() - Initial_Wall_Clock_Time;
     if (t_)
         *t_ = t;
-
     return t;
 }
 
@@ -143,9 +152,7 @@ Utility::second (double* r)
     clock_t finish = clock();
 
     if (start == -1)
-    {
 	start = finish;
-    }
 
     double rr = double(finish - start)/CLOCKS_PER_SEC;
 
@@ -154,21 +161,27 @@ Utility::second (double* r)
 
     return rr;
 }
+
+static
+time_t
+get_initial_wall_clock_time ()
+{
+    return ::time();
+}
+
+//
+// Attempt to guarantee wsecond() gets initialized on program startup.
+//
+static time_t Initial_Wall_Clock_Time = get_initial_wall_clock_time();
+
 double
 Utility::wsecond (double* r)
 {
-    static time_t start = -1;
-
     time_t finish;
 
     time(&finish);
 
-    if (start == -1)
-    {
-	start = finish;
-    }
-
-    double rr = double(finish - start);
+    double rr = double(finish - Initial_Wall_Clock_Time);
 
     if (r)
         *r = rr;

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.11 1997-11-25 22:17:51 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.12 1997-11-26 04:22:34 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -158,7 +158,7 @@ static vector< list<int> > knapsack (const vector<long>&, int);
 void
 DistributionMapping::KnapSackProcessorMap ()
 {
-    if (m_boxarray.length() <= m_nprocs)
+    if (m_boxarray.length() <= m_nprocs || m_nprocs < 2)
     {
         RoundRobinProcessorMap();
     }

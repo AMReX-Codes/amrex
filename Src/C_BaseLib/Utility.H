@@ -4,7 +4,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.12 1997-11-22 17:52:06 lijewski Exp $
+// $Id: Utility.H,v 1.13 1997-11-26 04:22:34 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -46,7 +46,7 @@ public:
     static double second (double* t = 0);
 
     /*@ManDoc: Returns the current time as the number of microseconds
-               relative to some epoch in the past.  If t != 0, it also
+               relative to program startup.  If t != 0, it also
                stores the result in t.
     */
     static double wsecond (double* t = 0);
