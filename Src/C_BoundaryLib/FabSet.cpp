@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.18 1998-06-03 23:11:19 lijewski Exp $
+// $Id: FabSet.cpp,v 1.19 1998-06-11 17:23:10 lijewski Exp $
 //
 
 #include <FabSet.H>
@@ -116,31 +116,27 @@ FabSet::copyFrom (const MultiFab& src,
                                                     dest_comp,
                                                     num_comp,
                                                     false));
+                //
+                // Also save the index of our FAB needed filling.
+                //
+                fillBoxIdList.back().FabIndex(fsi.index());
             }
         }
     }
 
     fscd.CollectData();
 
-    vector<FillBoxId>::const_iterator fbidli = fillBoxIdList.begin();
+    const int MyProc = ParallelDescriptor::MyProc();
 
-    for (FabSetIterator fsi(*this); fsi.isValid(false); ++fsi)
+    for (int i = 0; i < fillBoxIdList.size(); i++)
     {
-        for (int s = 0; s < src.length(); ++s)
-        {
-            Box ovlp = fsi().box() & ::grow(src.boxArray()[s],nghost);
+        int fabindex = fillBoxIdList[i].FabIndex();
 
-            if (ovlp.ok())
-            {
-                assert(!(fbidli == fillBoxIdList.end()));
-                const FillBoxId& fbid = *fbidli++;
-                assert(fbid.box() == ovlp);
-                //
-                // Directly fill the FAB.
-                //
-                fscd.FillFab(srcmfid, fbid, fsi());
-            }
-        }
+        assert(DistributionMap().ProcessorMap()[fabindex] == MyProc);
+        //
+        // Directly fill the FAB.
+        //
+        fscd.FillFab(srcmfid, fillBoxIdList[i], (*this)[fabindex]);
     }
 
     return *this;
@@ -160,11 +156,11 @@ FabSet::plusFrom (const MultiFab& src,
     vector<FillBoxId>      fillBoxIdList;
     FArrayBox              tmpfab;
 
-    for (FabSetIterator thismfi(*this); thismfi.isValid(false); ++thismfi)
+    for (FabSetIterator fsi(*this); fsi.isValid(false); ++fsi)
     {
         for (int isrc = 0; isrc < src.length(); ++isrc)
         {
-            Box ovlp = thismfi().box() & ::grow(src.boxArray()[isrc], nghost);
+            Box ovlp = fsi().box() & ::grow(src.boxArray()[isrc], nghost);
 
             if (ovlp.ok())
             {
@@ -176,30 +172,31 @@ FabSet::plusFrom (const MultiFab& src,
                                                     dest_comp,
                                                     num_comp,
                                                     false));
+                //
+                // Also save the index of our FAB needed filling.
+                //
+                fillBoxIdList.back().FabIndex(fsi.index());
             }
         }
     }
 
     mfcd.CollectData();
 
-    vector<FillBoxId>::const_iterator fbidli = fillBoxIdList.begin();
+    const int MyProc = ParallelDescriptor::MyProc();
 
-    for (FabSetIterator thismfi(*this); thismfi.isValid(false); ++thismfi)
+    for (int i = 0; i < fillBoxIdList.size(); i++)
     {
-        for (int isrc = 0; isrc < src.length(); ++isrc)
-        {
-            Box ovlp = thismfi().box() & ::grow(src.boxArray()[isrc], nghost);
+        const FillBoxId& fbidsrc = fillBoxIdList[i];
 
-            if (ovlp.ok())
-            {
-                assert(!(fbidli == fillBoxIdList.end()));
-                const FillBoxId& fbidsrc = *fbidli++;
-                assert(fbidsrc.box() == ovlp);
-                tmpfab.resize(fbidsrc.box(), num_comp);
-                mfcd.FillFab(mfidsrc, fbidsrc, tmpfab);
-                thismfi().plus(tmpfab,ovlp,src_comp,dest_comp,num_comp);
-            }
-        }
+        int fabidx = fbidsrc.FabIndex();
+
+        assert(DistributionMap().ProcessorMap()[fabidx] == MyProc);
+
+        tmpfab.resize(fbidsrc.box(), num_comp);
+
+        mfcd.FillFab(mfidsrc, fbidsrc, tmpfab);
+
+        (*this)[fabidx].plus(tmpfab,fbidsrc.box(),src_comp,dest_comp,num_comp);
     }
 
     return *this;
@@ -267,11 +264,11 @@ FabSet::linComb (Real            a,
 
     vector<FillBoxId> fillBoxIdList_mfa, fillBoxIdList_mfb;
 
-    for (FabSetIterator thismfi(*this); thismfi.isValid(false); ++thismfi)
+    for (FabSetIterator fsi(*this); fsi.isValid(false); ++fsi)
     {
         for (int grd = 0; grd < bxa.length(); grd++)
         {
-            Box ovlp = thismfi().box() & ::grow(bxa[grd],n_ghost);
+            Box ovlp = fsi().box() & ::grow(bxa[grd],n_ghost);
 
             if (ovlp.ok())
             {
@@ -302,11 +299,11 @@ FabSet::linComb (Real            a,
     vector<FillBoxId>::const_iterator fbidli_mfa = fillBoxIdList_mfa.begin();
     vector<FillBoxId>::const_iterator fbidli_mfb = fillBoxIdList_mfb.begin();
 
-    for (FabSetIterator thismfi(*this); thismfi.isValid(false); ++thismfi)
+    for (FabSetIterator fsi(*this); fsi.isValid(false); ++fsi)
     {
         for (int grd = 0; grd < bxa.length(); grd++)
         {
-            Box ovlp = thismfi().box() & ::grow(bxa[grd],n_ghost);
+            Box ovlp = fsi().box() & ::grow(bxa[grd],n_ghost);
 
             if (ovlp.ok())
             {
@@ -322,17 +319,17 @@ FabSet::linComb (Real            a,
                 b_fab.resize(fbid_mfb.box(), num_comp);
                 mfcd.FillFab(mfid_mfb, fbid_mfb, b_fab);
 
-                thismfi().linComb(a_fab,
-                                  ovlp,
-                                  0,
-                                  b_fab,
-                                  ovlp,
-                                  0,
-                                  a,
-                                  b,
-                                  ovlp,
-                                  dest_comp,
-                                  num_comp);
+                fsi().linComb(a_fab,
+                              ovlp,
+                              0,
+                              b_fab,
+                              ovlp,
+                              0,
+                              a,
+                              b,
+                              ovlp,
+                              dest_comp,
+                              num_comp);
             }
         }
     }
