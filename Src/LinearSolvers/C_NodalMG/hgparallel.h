@@ -3,10 +3,6 @@
 #ifndef _HGPARALLEL_H_
 #define _HGPARALLEL_H_
 
-//
-// $Id: hgparallel.h,v 1.69 1999-01-29 23:19:51 lijewski Exp $
-//
-
 #ifdef BL_USE_NEW_HFILES
 #include <cstdlib>
 #else
