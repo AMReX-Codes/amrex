@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.50 1998-11-24 01:00:54 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.51 1999-03-26 19:19:34 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -65,6 +65,16 @@ CommData::operator= (const CommData& rhs)
             m_data[i] = rhs.m_data[i];
     }
     return *this;
+}
+
+bool
+CommData::operator== (const CommData& rhs) const
+{
+    for (int i = 0; i < length(); i++)
+        if (!(m_data[i] == rhs.m_data[i]))
+            return false;
+
+    return true;
 }
 
 #ifdef BL_USE_MPI

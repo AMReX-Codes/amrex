@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.41 1999-02-10 21:09:57 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.42 1999-03-26 19:19:34 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -78,6 +78,12 @@ struct CommData
     CommData (const CommData& rhs);
 
     CommData& operator= (const CommData& rhs);
+    //
+    // Compare two CommData's.
+    //
+    bool operator== (const CommData& rhs) const;
+
+    bool operator!= (const CommData& rhs) const { return !operator==(rhs); }
     //
     // The number of integers.
     //
