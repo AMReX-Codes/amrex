@@ -4,7 +4,7 @@
 #define BL_BOXARRAY_H
 
 //
-// $Id: BoxArray.H,v 1.9 1998-06-15 23:53:44 lijewski Exp $
+// $Id: BoxArray.H,v 1.10 1999-01-13 04:14:19 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -258,10 +258,6 @@ public:
 
 protected:
     //
-    // Recalculate the internal hash value.
-    //
-    void rehash ();
-    //
     // Helper for ASCII stream output.
     //
     ostream& print (ostream& os) const;
@@ -285,27 +281,15 @@ protected:
 
         Ref (const Ref& rhs);
         //
-        // defines()s to match those in BoxArray.
+        // Some defines()s to match those in BoxArray.
         //
         void define (const BoxList& bl);
 
-        void define (const Array<Box>& ba, unsigned long hash);
-
         void define (istream& is);
         //
-        // Check for equality.
+        // The data -- an Array of Boxes.
         //
-        bool operator== (const Ref& rhs) const;
-        //
-        // Check for inequality.
-        //
-        bool operator!= (const Ref& rhs) const;
-
-        //
-        // The data.
-        //
-        Array<Box>    m_abox;     // The Array of Boxes.
-        unsigned long m_hash_sig; // Pseudo-random 24 bit number.
+        Array<Box> m_abox;   
     };
     //
     // Make `this' unique.
@@ -333,34 +317,6 @@ bool
 BoxArray::ready () const
 {
     return m_ref->m_abox.ready();
-}
-
-inline
-bool
-BoxArray::operator== (const BoxArray& rhs) const
-{
-    return m_ref == rhs.m_ref || *m_ref == *rhs.m_ref;
-}
-
-inline
-bool
-BoxArray::Ref::operator== (const BoxArray::Ref& rhs) const
-{
-    return m_hash_sig == rhs.m_hash_sig && m_abox == rhs.m_abox;
-}
-
-inline
-bool
-BoxArray::operator!= (const BoxArray& rhs) const
-{
-    return !operator==(rhs);
-}
-
-inline
-bool
-BoxArray::Ref::operator!= (const BoxArray::Ref& rhs) const
-{
-    return !operator==(rhs);
 }
 
 inline
