@@ -3,7 +3,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.118 2001-04-24 19:42:19 car Exp $
+// $Id: FabArray.H,v 1.119 2001-04-25 22:54:09 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -2258,7 +2258,6 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
 {
     dataAvailable = true;
 
-    const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
 
     if (NProcs == 1) return;
@@ -2268,6 +2267,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
 #endif
 
 #ifdef BL_USE_MPI
+    const int MyProc = ParallelDescriptor::MyProc();
     static RunStats stats("collect_data");
 
     static Array<int>         Snds(NProcs);
