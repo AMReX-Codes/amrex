@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.32 2001-08-21 19:01:51 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.33 2002-03-11 21:53:57 car Exp $
 //
 #include <iostream>
 
@@ -474,7 +474,7 @@ operator<< (std::ostream&   os,
 BoxList
 BoxArray::boxList () const
 {
-    BL_ASSERT(size() > 0);
+    if ( size() == 0 ) return BoxList();
     BoxList newb(get(0).ixType());
     for (int i = 0; i < size(); ++i)
         newb.push_back(get(i));
