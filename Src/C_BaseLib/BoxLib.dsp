@@ -42,10 +42,11 @@ RSC=rc.exe
 # PROP Intermediate_Dir "Release"
 # PROP Target_Dir ""
 # ADD BASE F90 /compile_only /include:"Release/" /nologo /warn:nofileopt
-# ADD F90 /compile_only /define:BL_SPACEDIM=2 /define:"BL_LANG_FORT" /fpp /include:"Release/" /nologo /stand:f90 /threads /warn:nofileopt
+# ADD F90 /compile_only /define:BL_SPACEDIM=2 /define:"BL_LANG_FORT" /fpp /iface:cref /include:"Release/" /libs:dll /nologo /stand:f90 /threads /warn:nofileopt
 # SUBTRACT F90 /nodefine
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GR /GX /O2 /I "." /I "..\BoxLib" /D "NDEBUG" /D "_WINDOWS" /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D for="if(0);else for" /D for="for(0);else for" /D "WIN32" /D BL_SPACEDIM=2 /FR /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GR /GX /O2 /I "." /I "..\BoxLib" /D "_WINDOWS" /D "BL_LANG_CC" /D "NDEBUG" /D for="if(0);else for" /D "WIN32" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /YX /FD /c
+# SUBTRACT CPP /Fr
 # ADD BASE RSC /l 0x409
 # ADD RSC /l 0x409
 BSC32=bscmake.exe
