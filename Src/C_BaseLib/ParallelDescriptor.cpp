@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.43 1998-08-21 22:20:21 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.44 1998-09-10 17:59:13 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -104,6 +104,11 @@ ParallelDescriptor::StartParallel (int,
         ParallelDescriptor::Abort(rc);
 
     if ((rc = MPI_Comm_rank(MPI_COMM_WORLD, &m_MyId)) != MPI_SUCCESS)
+        ParallelDescriptor::Abort(rc);
+    //
+    // Now wait till all other processes are properly started.
+    //
+    if ((rc = MPI_Barrier(MPI_COMM_WORLD)) != MPI_SUCCESS)
         ParallelDescriptor::Abort(rc);
 }
 
