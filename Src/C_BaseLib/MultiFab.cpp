@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.1 1997-09-12 18:00:12 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.2 1997-09-17 17:16:00 lijewski Exp $
 //
 
 #include <iostream.h>
@@ -180,8 +180,10 @@ MultiFab::probe (ostream& os,
 {
     Real  dat[20];
     int prec = os.precision(14);
-    for(MultiFabIterator mfi(*this); mfi.isValid(); ++mfi) {
-        if(mfi.validbox().contains(pt)) {
+    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    {
+        if (mfi.validbox().contains(pt))
+        {
             int nv = mfi().nComp();
 
             assert(nv <= 20);
@@ -651,73 +653,3 @@ linInterpFillFab (MultiFabCopyDescriptor &fabCopyDesc,
                        t1, t2, t, dest.box(), dest_comp, num_comp);
     }
 }
-
-
-// ------------------------------------------------------------------------
-MultiFabIterator::MultiFabIterator(MultiFab &multifab, const int nghost)
-                 : FabArrayIterator<Real, FArrayBox>(multifab, nghost)
-{
-}
-
-// ------------------------------------------------------------------------
-MultiFabIterator::~MultiFabIterator() {
-}
-
-// ------------------------------------------------------------------------
-DependentMultiFabIterator::DependentMultiFabIterator(
-                              MultiFabIterator &controllermfiter,
-                              MultiFab &dependentmultifab)
-             : DependentFabArrayIterator<Real, FArrayBox>(controllermfiter,
-                                                          dependentmultifab)
-{
-}
-
-// ------------------------------------------------------------------------
-DependentMultiFabIterator::DependentMultiFabIterator(
-                              MultiFabIterator &controllermfiter,
-                              const MultiFab &dependentmultifab)
-             : DependentFabArrayIterator<Real, FArrayBox>(controllermfiter,
-                                                          dependentmultifab)
-{
-}
-
-// ------------------------------------------------------------------------
-DependentMultiFabIterator::~DependentMultiFabIterator() {
-}
-
-// ------------------------------------------------------------------------
-ConstMultiFabIterator::ConstMultiFabIterator(const MultiFab &multifab,
-                                             const int nghost)
-                     : ConstFabArrayIterator<Real, FArrayBox>(multifab, nghost)
-{
-}
-
-// ------------------------------------------------------------------------
-ConstMultiFabIterator::~ConstMultiFabIterator() {
-}
-
-// ------------------------------------------------------------------------
-ConstDependentMultiFabIterator::ConstDependentMultiFabIterator(
-                                   ConstMultiFabIterator &controllermfiter,
-                                   const MultiFab &dependentmultifab)
-             : ConstDependentFabArrayIterator<Real, FArrayBox>(controllermfiter,
-                                                         dependentmultifab)
-{
-}
-
-// ------------------------------------------------------------------------
-ConstDependentMultiFabIterator::~ConstDependentMultiFabIterator() {
-}
-
-// ------------------------------------------------------------------------
-MultiFabCopyDescriptor::MultiFabCopyDescriptor(bool cacheremotedata)
-         : FabArrayCopyDescriptor<Real, FArrayBox>(cacheremotedata)
-{
-}
-
-// ------------------------------------------------------------------------
-MultiFabCopyDescriptor::~MultiFabCopyDescriptor() {
-}
-// ------------------------------------------------------------------------
-// ------------------------------------------------------------------------
-

@@ -4,7 +4,7 @@
 #define _MULTIFAB_H_
 
 //
-// $Id: MultiFab.H,v 1.1 1997-09-12 18:00:11 lijewski Exp $
+// $Id: MultiFab.H,v 1.2 1997-09-17 17:15:59 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -389,124 +389,116 @@ private:
     MultiFab& operator= (const MultiFab&);
 };
 
-
-
-// ========================================================================
 class ConstMultiFabIterator;
 
-// ------------------------------------------------------------------------
-// MultiFabIterator
-// ------------------------------------------------------------------------
-class MultiFabIterator : public FabArrayIterator<Real, FArrayBox> {
-  public:
-    MultiFabIterator(MultiFab &multifab, const int nghost = 0);
-		     //: FabArrayIterator<Real, FArrayBox>(multifab, nghost)
-    //{ }
-    ~MultiFabIterator();
-
-  private:
-    // These are disallowed.
-    MultiFabIterator();
-    MultiFabIterator(const MultiFabIterator &);
-    MultiFabIterator &operator=(const MultiFabIterator &);
-};
-
-
-// ------------------------------------------------------------------------
-// DependentMultiFabIterator
-// ------------------------------------------------------------------------
-class DependentMultiFabIterator : public DependentFabArrayIterator<Real, FArrayBox>
+class MultiFabIterator
+    :
+    public FabArrayIterator<Real,FArrayBox>
 {
   public:
-    DependentMultiFabIterator(MultiFabIterator &controllermfiter,
-	                      MultiFab &dependentmultifab);
-	     //: DependentFabArrayIterator<Real, FArrayBox>(controllermfiter,
-							  //dependentmultifab)
-    //{ }
 
-    DependentMultiFabIterator(MultiFabIterator &controllermfiter,
-	                      const MultiFab &dependentmultifab);
-	     //: DependentFabArrayIterator<Real, FArrayBox>(controllermfiter,
-							  //dependentmultifab)
-    //{ }
-    ~DependentMultiFabIterator();
+    MultiFabIterator (MultiFab& multifab,
+                      const int nghost = 0)
+        :
+        FabArrayIterator<Real, FArrayBox>(multifab, nghost) {}
 
   private:
+    //
     // These are disallowed.
-    DependentMultiFabIterator();
-    DependentMultiFabIterator(const DependentMultiFabIterator &);
-    DependentMultiFabIterator &operator=(const DependentMultiFabIterator &);
+    //
+    MultiFabIterator ();
+    MultiFabIterator (const MultiFabIterator&);
+    MultiFabIterator& operator= (const MultiFabIterator&);
 };
 
-
-// ------------------------------------------------------------------------
-// ConstMultiFabIterator
-// ------------------------------------------------------------------------
-class ConstMultiFabIterator : public ConstFabArrayIterator<Real, FArrayBox> {
+class DependentMultiFabIterator
+    :
+    public DependentFabArrayIterator<Real,FArrayBox>
+{
   public:
-    ConstMultiFabIterator(const MultiFab &multifab, const int nghost = 0);
-		     //: ConstFabArrayIterator<Real, FArrayBox>(multifab, nghost)
-    //{ }
-    ~ConstMultiFabIterator();
 
+    DependentMultiFabIterator (MultiFabIterator& controllermfiter,
+                               MultiFab&         dependentmultifab)
+        :
+        DependentFabArrayIterator<Real,FArrayBox>(controllermfiter,
+                                                  dependentmultifab) {}
+
+    DependentMultiFabIterator (MultiFabIterator& controllermfiter,
+                               const MultiFab&   dependentmultifab)
+        : DependentFabArrayIterator<Real,FArrayBox>(controllermfiter,
+                                                    dependentmultifab) {}
   private:
+    //
     // These are disallowed.
-    ConstMultiFabIterator();
-    ConstMultiFabIterator(const ConstMultiFabIterator &);
-    ConstMultiFabIterator &operator=(const ConstMultiFabIterator &);
+    //
+    DependentMultiFabIterator ();
+    DependentMultiFabIterator (const DependentMultiFabIterator&);
+    DependentMultiFabIterator& operator=(const DependentMultiFabIterator&);
 };
 
+class ConstMultiFabIterator
+    :
+    public ConstFabArrayIterator<Real,FArrayBox>
+{
+  public:
 
-// ------------------------------------------------------------------------
-// ConstDependentMultiFabIterator
-// ------------------------------------------------------------------------
+    ConstMultiFabIterator (const MultiFab& multifab,
+                           const int       nghost = 0)
+        :
+        ConstFabArrayIterator<Real,FArrayBox>(multifab, nghost) {}
+
+  private:
+    //
+    // These are disallowed.
+    //
+    ConstMultiFabIterator ();
+    ConstMultiFabIterator (const ConstMultiFabIterator&);
+    ConstMultiFabIterator& operator= (const ConstMultiFabIterator&);
+};
+
 class ConstDependentMultiFabIterator
-    : public ConstDependentFabArrayIterator<Real, FArrayBox>
+    :
+    public ConstDependentFabArrayIterator<Real,FArrayBox>
 {
   public:
-    ConstDependentMultiFabIterator(ConstMultiFabIterator &controllermfiter,
-	                           const MultiFab &dependentmultifab);
-	     //: ConstDependentFabArrayIterator<Real, FArrayBox>(controllermfiter,
-							 //dependentmultifab)
-    //{ }
-    ~ConstDependentMultiFabIterator();
 
+    ConstDependentMultiFabIterator (ConstMultiFabIterator& controllermfiter,
+                                    const MultiFab&        dependentmultifab)
+        :
+        ConstDependentFabArrayIterator<Real,FArrayBox>(controllermfiter,
+                                                       dependentmultifab) {}
   private:
+    //
     // These are disallowed.
-    ConstDependentMultiFabIterator();
-    ConstDependentMultiFabIterator(const ConstDependentMultiFabIterator &);
-    ConstDependentMultiFabIterator &operator=(const ConstDependentMultiFabIterator &);
+    //
+    ConstDependentMultiFabIterator ();
+    ConstDependentMultiFabIterator (const ConstDependentMultiFabIterator &);
+    ConstDependentMultiFabIterator& operator= (const ConstDependentMultiFabIterator &);
 };
 
-
-// ========================================================================
-// this is set at the top of this file
-//typedef FabArrayId MultiFabId;
-
-// ------------------------------------------------------------------------
-// MultiFabCopyDescriptor
-// ------------------------------------------------------------------------
 class MultiFabCopyDescriptor
-      : public FabArrayCopyDescriptor<Real, FArrayBox>
+    :
+    public FabArrayCopyDescriptor<Real,FArrayBox>
 {
   public:
-    MultiFabCopyDescriptor(bool cacheremotedata);
-         //: FabArrayCopyDescriptor<Real, FArrayBox>(cacheremotedata)
-    //{ }
-    ~MultiFabCopyDescriptor();
-    MultiFabId RegisterMultiFab(MultiFab *mf) {
-      return RegisterFabArray(mf);
+
+    MultiFabCopyDescriptor (bool cacheremotedata)
+        :
+        FabArrayCopyDescriptor<Real, FArrayBox>(cacheremotedata) {}
+
+    MultiFabId RegisterMultiFab (MultiFab* mf)
+    {
+        return RegisterFabArray(mf);
     }
 
   private:
+    //
     // These are disallowed.
-    // MultiFabCopyDescriptor();
-    MultiFabCopyDescriptor(const MultiFabCopyDescriptor &);
-    MultiFabCopyDescriptor &operator=(const MultiFabCopyDescriptor &);
+    //
+    MultiFabCopyDescriptor ();
+    MultiFabCopyDescriptor (const MultiFabCopyDescriptor&);
+    MultiFabCopyDescriptor& operator= (const MultiFabCopyDescriptor&);
 };
-// ========================================================================
-
-
 
 //
 // Inlines.
