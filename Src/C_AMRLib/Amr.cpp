@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.92 1999-08-13 16:28:57 propp Exp $
+// $Id: Amr.cpp,v 1.93 1999-09-16 23:12:41 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -135,12 +135,7 @@ Amr::Amr ()
     last_plotfile    = 0;
     plot_int         = -1;
     n_proper         = 1;
-
-#if (BL_SPACEDIM == 2)
-    max_grid_size    = 128;
-#else
-    max_grid_size    = 32;
-#endif
+    max_grid_size    = (BL_SPACEDIM == 2) ? 128 : 32;
 
     int i;
     for (i = 0; i < BL_SPACEDIM; i++)
@@ -1216,11 +1211,11 @@ Amr::defBaseLevel (Real strt_time)
         if (d_len[idir]%2 != 0)
             BoxLib::Error("defBaseLevel: must have even number of cells");
     //
-    // Coarsening before we split the grids ensures that
-    // each resulting grid will have an even number of
-    // cells in each direction.
+    // Coarsening before we split the grids ensures that each resulting
+    // grid will have an even number of cells in each direction.
     //
     BoxArray lev0(1);
+
     lev0.set(0,::coarsen(domain,2));
     //
     // Now split up into list of grids within max_grid_size limit.
@@ -1264,16 +1259,22 @@ Amr::regrid (int  lbase,
     //
     // Compute positions of new grids.
     //
+    int             new_finest;
     Array<BoxArray> new_grid_places(max_level+1);
-
-    int new_finest;
 
     if (lbase <= Min(finest_level,max_level-1))
       grid_places(lbase,time,new_finest, new_grid_places);
+
+    bool regrid_level_zero = false;
+
+    if (lbase == 0 && new_grid_places[0] != amr_level[0].boxArray())
+        regrid_level_zero = true;
+
+    const int start = regrid_level_zero ? 0 : lbase+1;
     //
     // Reclaim old-time grid space for all remain levels > lbase.
     //
-    for (int lev = lbase+1; lev <= finest_level; lev++)
+    for (int lev = start; lev <= finest_level; lev++)
         amr_level[lev].removeOldData();
     //
     // Reclaim all remaining storage for levels > new_finest.
@@ -1289,17 +1290,21 @@ Amr::regrid (int  lbase,
         MultiFab::FlushSICache();
         Geometry::FlushPIRMCache();
         DistributionMapping::FlushCache();
-        //
-        // Since we NEVER regrid level 0 we've got to recache its procmap.
-        // Otherwise we'd have a problem if a higher level had the same
-        // number of grids as does level 0.
-        //
-        MultiFab dummy(amr_level[0].boxArray(),1,0,Fab_noallocate);
+
+        if (!regrid_level_zero)
+        {
+            //
+            // Since we're not regridding level 0 we've got to recache its
+            // procmap.  Otherwise we'd have a problem if a higher level had
+            // the same number of grids as does level 0.
+            //
+            MultiFab dummy(amr_level[0].boxArray(),1,0,Fab_noallocate);
+        }
     }
     //
-    // Define the new grids from level lbase+1 up to new_finest.
+    // Define the new grids from level start up to new_finest.
     //
-    for (int lev = lbase+1; lev <= new_finest; lev++)
+    for (int lev = start; lev <= new_finest; lev++)
     {
         //
         // Construct skeleton of new level.
@@ -1344,7 +1349,7 @@ Amr::regrid (int  lbase,
     //
     if ((verbose || record_run_info) && ParallelDescriptor::IOProcessor())
     {
-        for (int lev = lbase+1; lev <= finest_level; lev++)
+        for (int lev = start; lev <= finest_level; lev++)
         {
             const int  numgrids = amr_level[lev].numGrids();
             const long ncells   = amr_level[lev].countCells();
@@ -1390,7 +1395,7 @@ Amr::regrid (int  lbase,
                 << lbase
                 << endl;
 
-        printGridInfo(gridlog,lbase+1,finest_level);
+        printGridInfo(gridlog,start,finest_level);
     }
 
     stats.end();
@@ -1678,10 +1683,11 @@ Amr::grid_places (int              lbase,
 
             BoxArray baF(blF);
             baF.grow(n_proper);
-
-//          We need to do this in case the error buffering at
-//            levc will not be enough to cover the error buffering
-//            at levf which was just subtracted off
+            //
+            // We need to do this in case the error buffering at
+            // levc will not be enough to cover the error buffering
+            // at levf which was just subtracted off.
+            //
             for (int idir=0; idir < BL_SPACEDIM; idir++) 
             {
               if (nerr > n_error_buf[levc]*ref_ratio[levc][idir]) 
@@ -1703,13 +1709,11 @@ Amr::grid_places (int              lbase,
             bl_max = Max(bl_max,bf_lev[levc][n]);
         if (bl_max > 1) 
             tags.coarsen(bf_lev[levc]);
-
         //
         // Remove or add tagged points which violate/satisfy additional 
-        //   user-specified criteria
+        // user-specified criteria.
         //
         amr_level[levc].manual_tags_placement(tags, bf_lev[levc]);
-
         //
         // Map tagged points through periodic boundaries, if any.
         //
@@ -1719,7 +1723,6 @@ Amr::grid_places (int              lbase,
         // Remove cells outside proper nesting domain for this level.
         //
         tags.setVal(p_n_comp[levc],TagBox::CLEAR);
-
         //
         // Create initial cluster containing all tagged points.
         //
@@ -1774,6 +1777,23 @@ Amr::grid_places (int              lbase,
             new_grids[levf].define(new_bx);
         }
     }
+    //
+    // Recalculate level 0 BoxArray in case max_grid_size has changed.
+    // This is done exactly as in defBaseLev().
+    //
+    BoxArray lev0(1);
+
+    lev0.set(0,::coarsen(geom[0].Domain(),2));
+    //
+    // Now split up into list of grids within max_grid_size limit.
+    //
+    lev0.maxSize(max_grid_size/2);
+    //
+    // Now refine these boxes back to level 0.
+    //
+    lev0.refine(2);
+
+    new_grids[0] = lev0;
 }
 
 void
