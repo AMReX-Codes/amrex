@@ -20,7 +20,7 @@ public:
     virtual void fill(FArrayBox&, const Box&, const FArrayBox&, const IntVect&) const = 0;
     virtual void lev_interface(FArrayBox&, const Box&, MultiFab&,
 	const copy_cache*, 
-	const level_interface&, const amr_boundary_class&, const IntVect&) const { }
+	const level_interface&, const amr_boundary_class*, const IntVect&) const { }
 };
 
 class cell_average_restrictor_class : public amr_restrictor_class 
@@ -67,7 +67,7 @@ public:
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
     virtual void lev_interface(FArrayBox& patch, const Box& region, MultiFab& fine, 
 	const copy_cache*,
-	const level_interface& lev_interface, const amr_boundary_class& bdy, const IntVect& rat) const;
+	const level_interface& lev_interface, const amr_boundary_class* bdy, const IntVect& rat) const;
 protected:
     int integrate;
 };
@@ -80,7 +80,7 @@ public:
     bilinear_restrictor_coarse_class(int i) : bilinear_restrictor_class(i) { }
     virtual void lev_interface(FArrayBox& patch, const Box& region, MultiFab& fine, 
 	const copy_cache*,
-	const level_interface& lev_interface, const amr_boundary_class& bdy, const IntVect& rat) const;
+	const level_interface& lev_interface, const amr_boundary_class* bdy, const IntVect& rat) const;
 };
 
 #endif

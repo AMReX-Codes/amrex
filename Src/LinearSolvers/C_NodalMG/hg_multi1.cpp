@@ -190,7 +190,7 @@ void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
     }
     
     singular = false;
-    if (mg_boundary.singular()) 
+    if (mg_boundary->singular()) 
     {
 	long sng = 0;
 	for (int i = 0; i < mg_mesh[0].length(); i++) 
@@ -327,12 +327,12 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
     for (int mglev = mglev_max; mglev > 0; mglev--) 
     {
 	IntVect rat = mg_domain[mglev].length() / mg_domain[mglev-1].length();
-	restrict_level(sigma[mglev-1], sigma[mglev], rat, 
-	    0, holy_grail_sigma_restrictor_class());
+	restrict_level(sigma[mglev-1], false, sigma[mglev], rat, 
+	    0, holy_grail_sigma_restrictor_class(), level_interface(), 0);
     }
     for (int mglev = 0; mglev <= mglev_max; mglev++) 
     {
-	fill_borders(sigma[mglev], 0, lev_interface[mglev], boundary.terrain_sigma());
+	fill_borders(sigma[mglev], 0, lev_interface[mglev], boundary.terrain_sigma(), -1);
     }
     
 #elif (! defined HG_CONSTANT)
@@ -398,18 +398,19 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
     if (mglev_max > 0) 
     {
 	IntVect rat = mg_domain[mglev_max].length() / mg_domain[mglev_max-1].length();
-	restrict_level(sigma_split[mglev_max-1], sigma[mglev_max], rat, 
-	    0, holy_grail_sigma_restrictor_class());
+	restrict_level(sigma_split[mglev_max-1], false, sigma[mglev_max], rat, 
+	    0, holy_grail_sigma_restrictor_class(), level_interface(), 0);
     }
-    fill_borders(sigma[mglev_max], 0, lev_interface[mglev_max], boundary.scalar());
+    fill_borders(sigma[mglev_max], 0, lev_interface[mglev_max], boundary.scalar(), -1);
     for (int mglev = mglev_max - 1; mglev > 0; mglev--) 
     {
 	IntVect rat = mg_domain[mglev].length() / mg_domain[mglev-1].length();
-	restrict_level(sigma_split[mglev-1], sigma_split[mglev], rat, 0, holy_grail_sigma_restrictor_class());
+	restrict_level(sigma_split[mglev-1], false, sigma_split[mglev], rat, 
+	    0, holy_grail_sigma_restrictor_class(), level_interface(), 0);
     }
     for (int mglev = 0; mglev < mglev_max; mglev++) 
     {
-	fill_borders(sigma_split[mglev], 0, lev_interface[mglev], boundary.scalar());
+	fill_borders(sigma_split[mglev], 0, lev_interface[mglev], boundary.scalar(), -1);
     }
     
     for (int i = 0; i < BL_SPACEDIM; i++) 
@@ -732,7 +733,7 @@ void holy_grail_amr_multigrid::sync_interfaces()
 		continue;
 	    interpolate_patch(target[igrid], lev_interface[mglev].node_face(iface),
 		dest[lev-1], rat,
-		bilinear_interpolator_class(), lev_interface[mgc]);
+		bilinear_interpolator_class(), lev_interface[mgc], 0);
 	}
     }
 }
@@ -759,8 +760,7 @@ void holy_grail_amr_multigrid::sync_periodic_interfaces()
 	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].fflag(iface) == 1 ||
 		idomain.intersects(nbox))
 		continue;
-	    interpolate_patch(target[igrid], nbox, dest[lev-1], rat,
-		bilinear_interpolator_class(), lev_interface[mgc]);
+	    interpolate_patch(target[igrid], nbox, dest[lev-1], rat, bilinear_interpolator_class(), lev_interface[mgc], 0);
 	}
     }
 }
@@ -772,12 +772,12 @@ void holy_grail_amr_multigrid::mg_restrict_level(int lto, int lfrom)
     {
 	if (integrate == 0) 
 	{
-	    restrict_level(resid[lto], 0, work[lfrom], rat, 
+	    restrict_level(resid[lto], false, work[lfrom], rat, 
 		work_bcache[lfrom], bilinear_restrictor_coarse_class(0), lev_interface[lfrom], mg_boundary);
 	}
 	else 
 	{
-	    restrict_level(resid[lto], 0, work[lfrom], rat, 
+	    restrict_level(resid[lto], false, work[lfrom], rat, 
 		work_bcache[lfrom], bilinear_restrictor_coarse_class(1), lev_interface[lfrom], mg_boundary);
 	}
     }
@@ -790,7 +790,7 @@ void holy_grail_amr_multigrid::mg_restrict_level(int lto, int lfrom)
 void holy_grail_amr_multigrid::mg_restrict(int lto, int lfrom)
 {
     int igrid;
-    fill_borders(work[lfrom], work_bcache[lfrom], lev_interface[lfrom], mg_boundary);
+    fill_borders(work[lfrom], work_bcache[lfrom], lev_interface[lfrom], mg_boundary, -1);
     IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
     for (igrid = 0; igrid < resid[lto].length(); igrid++) 
     {
@@ -871,7 +871,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 	    interpolate_patch(target[igrid], target.box(igrid),
 		corr[lfrom], rat,
 		holy_grail_interpolator_class(sigptr, sigbox),
-		lev_interface[lfrom], error_boundary);
+		lev_interface[lfrom], 0);
 	}
 	if (lto > ltmp) 
 	{

@@ -2,11 +2,17 @@
 #include "interface.H"
 #include "boundary.H"
 
-const level_interface null_level_interface;
+//const level_interface null_level_interface;
+
+static inline void ins(List<Box>& bl, const Box& b) 
+{
+    if (!bl.includes(b))
+	bl.append(b);
+}
 
 level_interface::~level_interface()
 {
-    if (null())
+    if (!ok())
 	return;
     
     if (status & 1) 
@@ -39,7 +45,7 @@ level_interface::~level_interface()
 
 void level_interface::copy(const level_interface& src)
 {
-    if (ok())
+    if ( ok() )
 	BoxLib::Error("level_interface::copy---this object already allocated");
     
     status = 0;
@@ -69,7 +75,7 @@ void level_interface::copy(const level_interface& src)
 }
 
 void level_interface::alloc_coarsened(const BoxArray& Im,
-				      const amr_boundary_class& /*bdy*/,
+				      const amr_boundary_class* /*bdy*/,
 				      const level_interface& src,
 				      const IntVect& rat)
 {
@@ -141,7 +147,7 @@ void level_interface::alloc_coarsened(const BoxArray& Im,
     }
 }
 
-void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_boundary_class& bdy)
+void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_boundary_class* bdy)
 {
     if (ok())
 	BoxLib::Error("level_interface::alloc---this object already allocated");
@@ -152,7 +158,8 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     
     dom = Domain;
     im = Im;
-    bdy.boundary_mesh(em, grid_ref, im, dom);
+    assert( bdy != 0 );
+    bdy->boundary_mesh(em, grid_ref, im, dom);
     
     List<Box> bl;
     
@@ -164,12 +171,13 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
 	{
 	    IntVect t = IntVect::TheCellVector();
 	    t.setVal(i, IndexType::NODE);
-	    add(bl, bdryLo(im[igrid], i).convert(t));
-	    add(bl, bdryHi(im[igrid], i).convert(t));
+	    add(bl, bdryLo(im[igrid], i).convert(t), 0);
+	    add(bl, bdryHi(im[igrid], i).convert(t), 0);
 	}
     }
     
-    bdy.duplicate(bl, dom);
+    assert(bdy != 0);
+    bdy->duplicate(bl, dom);
     
     xfer(bl, FACEDIM);
     
@@ -186,12 +194,13 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
 		continue;
 	    else
 		t.setVal(i, IndexType::NODE);
-	    add(bl, bdryLo(bx[2][iface], i).convert(t));
-	    add(bl, bdryHi(bx[2][iface], i).convert(t));
+	    add(bl, bdryLo(bx[2][iface], i).convert(t), 0);
+	    add(bl, bdryHi(bx[2][iface], i).convert(t), 0);
 	}
     }
     
-    bdy.duplicate(bl, dom);
+    assert(bdy != 0);
+    bdy->duplicate(bl, dom);
     
     xfer(bl, 1);
 #endif
@@ -210,7 +219,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
 	}
     }
     
-    bdy.duplicate(bl, dom);
+    bdy->duplicate(bl, dom);
     
     xfer(bl, 0);
     

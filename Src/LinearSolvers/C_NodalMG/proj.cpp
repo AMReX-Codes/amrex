@@ -575,7 +575,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     else 
     {
 	proj.make_it_so();
-	proj.manual_project(u, p, null_amr_real, rhs, rhoinv, 1, h, tol, 0, 3);
+	proj.manual_project(u, p, null_amr_real, rhs, rhoinv, true, h, tol, 0, 3);
 	t1 = Utility::second();
 	cout << "First time is " << t1 - t0 << endl;
     }

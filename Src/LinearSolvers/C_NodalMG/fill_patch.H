@@ -43,22 +43,15 @@ Real inner_product(const MultiFab& r, const MultiFab& s);
 // returns grid number if patch is contained in a single grid,
 // uses only 2-bit of flags
 
-int find_patch(const Box& region, const MultiFab& r, int flags = 0);
+int find_patch(const Box& region, const MultiFab& r, int flags);
 
 bool fill_patch(FArrayBox& patch, const Box& region,
 		const MultiFab& r,
 		const level_interface& lev_interface,
-		const amr_boundary_class& bdy = error_boundary,
-		int flags = 0, int idim = -1, int index = -1);
+		const amr_boundary_class* bdy,
+		int flags, int idim = -1, int index = -1);
 
-inline bool fill_patch(FArrayBox& patch,
-		       const MultiFab& r,
-		       const level_interface& lev_interface,
-		       const amr_boundary_class& bdy = error_boundary,
-		       int flags = 0, int idim = -1, int index = -1)
-{
-    return fill_patch(patch, patch.box(), r, lev_interface, bdy, flags, idim, index);
-}
+
 
 // Fills all ghost cells that can be obtained from other grids or
 // from the boundary conditions.  If w is between 0 and border(),
@@ -68,59 +61,31 @@ inline bool fill_patch(FArrayBox& patch,
 void sync_borders(MultiFab& r,
 		  const copy_cache* sync_cache,
 		  const level_interface& lev_interface, 
-		  const amr_boundary_class& bdy = error_boundary);
+		  const amr_boundary_class* bdy);
 
 void fill_borders(MultiFab& r,
 		  const copy_cache* border_cache,
-		  const level_interface& lev_interface, const amr_boundary_class& bdy = error_boundary, int w = -1);
+		  const level_interface& lev_interface, const amr_boundary_class* bdy, int w);
 
 void clear_part_interface(MultiFab& r, const level_interface& lev_interface);
 
 void interpolate_patch(FArrayBox& patch, const Box& region,
 		       const MultiFab& r, const IntVect& rat,
-		       const amr_interpolator_class& interp = bilinear_interpolator_class(),
-		       const level_interface& lev_interface = null_level_interface,
-		       const amr_boundary_class& bdy = error_boundary);
-inline void interpolate_patch(FArrayBox& patch,
-			      const MultiFab& r, const IntVect& rat,
-			      const amr_interpolator_class& interp = bilinear_interpolator_class(),
-			      const level_interface& lev_interface = null_level_interface,
-			      const amr_boundary_class& bdy = error_boundary)
-{
-    interpolate_patch(patch, patch.box(), r, rat, interp, lev_interface, bdy);
-}
+		       const amr_interpolator_class& interp,
+		       const level_interface& lev_interface,
+		       const amr_boundary_class* bdy);
 
 void restrict_patch(FArrayBox& patch, const Box& region,
 		    MultiFab& r, const IntVect& rat,
-		    const copy_cache* border_cache = 0,
-		    const amr_restrictor_class& restric = default_restrictor(),
-		    const level_interface& lev_interface = null_level_interface,
-		    const amr_boundary_class& bdy = error_boundary);
+		    const copy_cache* border_cache,
+		    const amr_restrictor_class& restric,
+		    const level_interface& lev_interface,
+		    const amr_boundary_class* bdy);
 
-inline void  restrict_patch(FArrayBox& patch,
-			    MultiFab& r, const IntVect& rat,
-			    const copy_cache* border_cache = 0,
-			    const amr_restrictor_class& restric = default_restrictor(),
-			    const level_interface& lev_interface = null_level_interface,
-			    const amr_boundary_class& bdy = error_boundary)
-{
-    restrict_patch(patch, patch.box(), r, rat, border_cache, restric, lev_interface, bdy);
-}
-
-void restrict_level(MultiFab& dest, int bflag, MultiFab& r, const IntVect& rat,
-		    const copy_cache* border_cache = 0,
-		    const amr_restrictor_class& restric = default_restrictor(),
-		    const level_interface& lev_interface = null_level_interface,
-		    const amr_boundary_class& bdy = error_boundary);
-
-inline
-void restrict_level(MultiFab& dest, MultiFab& r, const IntVect& rat,
-		    const copy_cache* border_cache = 0,
-		    const amr_restrictor_class& restric = default_restrictor(),
-		    const level_interface& lev_interface = null_level_interface,
-		    const amr_boundary_class& bdy = error_boundary)
-{
-    restrict_level(dest, 0, r, rat,  border_cache, restric, lev_interface, bdy);
-}
+void restrict_level(MultiFab& dest, bool bflag, MultiFab& r, const IntVect& rat,
+		    const copy_cache* border_cache,
+		    const amr_restrictor_class& restric,
+		    const level_interface& lev_interface,
+		    const amr_boundary_class* bdy);
 
 #endif

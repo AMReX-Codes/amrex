@@ -30,7 +30,7 @@ copy_cache::copy_cache(int Nsets, Real *Dptr, Real *Sptr)
 
 // sync cache
 
-copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface, const amr_boundary_class& bdy)
+copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface, const amr_boundary_class* bdy)
 {
     assert(r.length() > 0);
     assert(r.nComp() == 1);
@@ -152,7 +152,7 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface, const 
 	const int igrid = lev_interface.cgrid(icor, 0);
 	const int jgrid = lev_interface.cgrid(icor, 3);
 	// only do interior corners with fine grid on all sides
-	if (igrid < 0 || jgrid < 0 || lev_interface.cgeo(icor) != level_interface::ALL)
+	if (igrid < 0 || jgrid < 0 || lev_interface.geo(0, icor) != level_interface::ALL)
 	    break;
 	if (jgrid == lev_interface.cgrid(icor, 1)) 
 	{
@@ -175,7 +175,7 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface, const 
 	const int igrid = lev_interface.egrid(iedge, 0);
 	const int jgrid = lev_interface.egrid(iedge, 3);
 	// only do interior edges with fine grid on all sides
-	if (igrid < 0 || jgrid < 0 || lev_interface.egeo(iedge) != level_interface::ALL)
+	if (igrid < 0 || jgrid < 0 || lev_interface.geo(1, iedge) != level_interface::ALL)
 	    break;
 	if (jgrid == lev_interface.egrid(iedge, 1)) 
 	{
@@ -215,7 +215,7 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface, const 
 	const int igrid = lev_interface.cgrid(icor, 0);
 	int jgrid = lev_interface.cgrid(icor, 7);
 	// only do interior corners with fine grid on all sides
-	if (igrid < 0 || jgrid < 0 || lev_interface.cgeo(icor) != level_interface::ALL)
+	if (igrid < 0 || jgrid < 0 || lev_interface.geo(0, icor) != level_interface::ALL)
 	    break;
 	if (lev_interface.cgrid(icor, 3) == lev_interface.cgrid(icor, 1)) 
 	{
@@ -297,15 +297,15 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface, const 
 	}
     }
 #endif
-    
-    bdy.set_sync_cache(this, nsets, iset, r, lev_interface);
+    assert(bdy != 0);
+    bdy->set_sync_cache(this, nsets, iset, r, lev_interface);
     nsets = iset;
 }
 
 // border cache
 
 copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface,
-		       const amr_boundary_class& bdy, int w)
+		       const amr_boundary_class* bdy, int w)
 {
     assert(r.length() > 0);
     assert(r.nComp() == 1);
@@ -514,8 +514,8 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface,
 	}
 #endif
   }
-  
-  bdy.set_border_cache(this, nsets, iset, r, lev_interface, w);
+  assert( bdy != 0);
+  bdy->set_border_cache(this, nsets, iset, r, lev_interface, w);
   nsets = iset;
 }
 

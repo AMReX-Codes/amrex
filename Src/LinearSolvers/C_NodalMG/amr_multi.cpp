@@ -539,16 +539,15 @@ void amr_multigrid::mg_interpolate_level(int lto, int lfrom)
     {
 	for (int i = 0; i < target.length(); i++) 
 	{
-	    interpolate_patch(target[i], corr[lfrom], rat,
-		bilinear_interpolator_class(), lev_interface[lfrom]);
+	    assert( target[i].box() == target.box(i) );
+	    interpolate_patch(target[i], target[i].box(), corr[lfrom], rat, bilinear_interpolator_class(), lev_interface[lfrom], 0);
 	}
     }
     else 
     {
 	for (int i = 0; i < target.length(); i++) 
 	{
-	    interpolate_patch(target[i], target.box(i), corr[lfrom], rat,
-		bilinear_interpolator_class(), lev_interface[lfrom]);
+	    interpolate_patch(target[i], target.box(i), corr[lfrom], rat, bilinear_interpolator_class(), lev_interface[lfrom], 0);
 	}
     }
 }
@@ -558,18 +557,19 @@ void amr_multigrid::mg_restrict_level(int lto, int lfrom)
     IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
     if (type(resid[lto]) == IntVect::TheCellVector()) 
     {
-	restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom], cell_average_restrictor_class(0));
+	restrict_level(resid[lto], false, work[lfrom], rat, 
+	    work_bcache[lfrom], cell_average_restrictor_class(0), level_interface(), 0);
     }
     else if (integrate == 0) 
     {
 	if (get_amr_level(lto) >= 0) 
 	{
-	    restrict_level(resid[lto], 0, work[lfrom], rat,
+	    restrict_level(resid[lto], false, work[lfrom], rat,
 		work_bcache[lfrom], bilinear_restrictor_coarse_class(0), lev_interface[lfrom], mg_boundary);
 	}
 	else 
 	{
-	    restrict_level(resid[lto], 0, work[lfrom], rat, 
+	    restrict_level(resid[lto], false, work[lfrom], rat, 
 		work_bcache[lfrom], bilinear_restrictor_class(0), lev_interface[lfrom], mg_boundary);
 	}
     }
@@ -577,12 +577,12 @@ void amr_multigrid::mg_restrict_level(int lto, int lfrom)
     {
 	if (get_amr_level(lto) >= 0) 
 	{
-	    restrict_level(resid[lto], 0, work[lfrom], rat, 
+	    restrict_level(resid[lto], false, work[lfrom], rat, 
 		work_bcache[lfrom], bilinear_restrictor_coarse_class(1), lev_interface[lfrom], mg_boundary);
 	}
 	else 
 	{
-	    restrict_level(resid[lto], 0, work[lfrom], rat, 
+	    restrict_level(resid[lto], false, work[lfrom], rat, 
 		work_bcache[lfrom], bilinear_restrictor_class(1), lev_interface[lfrom], mg_boundary);
 	}
     }

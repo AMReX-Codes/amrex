@@ -303,10 +303,10 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     
 #ifdef HG_TERRAIN
     int ncomp = 2 * BL_SPACEDIM - 1;
-    const amr_boundary_class& bndry = boundary.terrain_sigma();
+    const amr_boundary_class* bndry = boundary.terrain_sigma();
 #else
     int ncomp = 1;
-    const amr_boundary_class& bndry = boundary.scalar();
+    const amr_boundary_class* bndry = boundary.scalar();
 #endif
     
     for (int iface = 0; iface < lev_interface[mglev].nfaces(); iface++) 
@@ -335,7 +335,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 	    cbox.growLo(idim, 1);
 	else
 	    cbox.growHi(idim, 1);
-	int cgrid = find_patch(cbox, dest[lev-1]);
+	int cgrid = find_patch(cbox, dest[lev-1], 0);
 #ifndef HG_CONSTANT
 	Box& sigmafbox = fres_sfbox[lev][iface];
 	Box& sigmacbox = fres_scbox[lev][iface];
@@ -350,7 +350,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 	else 
 	{
 	    fres_sc[lev].set(iface, new FArrayBox(sigmacbox, ncomp));
-	    fill_patch(fres_sc[lev][iface], sigma[mglevc], lev_interface[mglevc], bndry);
+	    fill_patch(fres_sc[lev][iface], fres_sc[lev][iface].box(), sigma[mglevc], lev_interface[mglevc], bndry, 0);
 	}
 #endif
 	if (cgrid >= 0) 
@@ -381,9 +381,9 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 	    if (igrid >= 0)
 		break;
 	}
-	unsigned geo = lev_interface[mglev].egeo(iedge);
+	unsigned geo = lev_interface[mglev].geo(1, iedge);
 	// reject fine-fine interfaces and those without an interior fine grid
-	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].eflag(iedge) == 1) 
+	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(1, iedge) == 1) 
 	{
 	    eres_flag[lev][iedge] = 1; // means "eres_dc[lev][iedge] not allocated"
 	    continue;
@@ -396,14 +396,14 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 	cbox.coarsen(rat).grow(t);
 	fbox = refine(cbox, rat);
 	eres_df[lev].set(iedge, new FArrayBox(fbox));
-	int cgrid = find_patch(cbox, dest[lev-1]);
+	int cgrid = find_patch(cbox, dest[lev-1], 0);
 #  ifndef HG_CONSTANT
 	Box& sigmafbox = eres_sfbox[lev][iedge];
 	Box& sigmacbox = eres_scbox[lev][iedge];
 	sigmafbox = fbox;
 	sigmafbox.convert(IntVect::TheCellVector());
 	eres_sf[lev].set(iedge, new FArrayBox(sigmafbox, ncomp));
-	fill_patch(eres_sf[lev][iedge], sigma[mglev], lev_interface[mglev], bndry, 0, 1, iedge);
+	fill_patch(eres_sf[lev][iedge], eres_sf[lev][iedge].box(), sigma[mglev], lev_interface[mglev], bndry, 0, 1, iedge);
 	sigmacbox = cbox;
 	sigmacbox.convert(IntVect::TheCellVector());
 	if (cgrid >= 0) 
@@ -414,7 +414,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 	else 
 	{
 	    eres_sc[lev].set(iedge, new FArrayBox(sigmacbox, ncomp));
-	    fill_patch(eres_sc[lev][iedge], sigma[mglevc], lev_interface[mglevc], bndry);
+	    fill_patch(eres_sc[lev][iedge], eres_sc[lev][iedge].box(), sigma[mglevc], lev_interface[mglevc], bndry, 0);
 	}
 #  endif
 	if (cgrid >= 0) 
@@ -444,9 +444,9 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 	    if (igrid >= 0)
 		break;
 	}
-	unsigned geo = lev_interface[mglev].cgeo(icor);
+	unsigned geo = lev_interface[mglev].geo(0, icor);
 	// reject fine-fine interfaces and those without an interior fine grid
-	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].cflag(icor) == 1) 
+	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(0, icor) == 1) 
 	{
 	    cres_flag[lev][icor] = 1; // means "cres_dc[lev][icor] not allocated"
 	    continue;
@@ -459,14 +459,14 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 	cbox.coarsen(rat).grow(1);
 	fbox.grow(rat);
 	cres_df[lev].set(icor, new FArrayBox(fbox));
-	int cgrid = find_patch(cbox, dest[lev-1]);
+	int cgrid = find_patch(cbox, dest[lev-1], 0);
 #ifndef HG_CONSTANT
 	Box& sigmafbox = cres_sfbox[lev][icor];
 	Box& sigmacbox = cres_scbox[lev][icor];
 	sigmafbox = fbox;
 	sigmafbox.convert(IntVect::TheCellVector());
 	cres_sf[lev].set(icor, new FArrayBox(sigmafbox, ncomp));
-	fill_patch(cres_sf[lev][icor], sigma[mglev], lev_interface[mglev], bndry, 0, 0, icor);
+	fill_patch(cres_sf[lev][icor], cres_sf[lev][icor].box(), sigma[mglev], lev_interface[mglev], bndry, 0, 0, icor);
 	sigmacbox = cbox;
 	sigmacbox.convert(IntVect::TheCellVector());
 	if (cgrid >= 0) 
@@ -477,7 +477,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 	else 
 	{
 	    cres_sc[lev].set(icor, new FArrayBox(sigmacbox, ncomp));
-	    fill_patch(cres_sc[lev][icor], sigma[mglevc], lev_interface[mglevc], bndry);
+	    fill_patch(cres_sc[lev][icor], cres_sc[lev][icor].box(), sigma[mglevc], lev_interface[mglevc], bndry, 0);
 	}
 #endif
 	if (cgrid >= 0) 
@@ -533,7 +533,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	FArrayBox& cdst = fres_dc[lev][iface];
 	if (fres_flag[lev][iface] == 0) 
 	{
-	    fill_patch(cdst, dest[lev-1], lev_interface[mglevc], boundary.pressure());
+	    fill_patch(cdst, cdst.box(), dest[lev-1], lev_interface[mglevc], boundary.pressure(), 0);
 	}
 	Real *const rptr = resid[mglev][igrid].dataPtr();
 	Real *const sptr = source[lev][igrid].dataPtr();
@@ -583,9 +583,9 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    if (igrid >= 0)
 		break;
 	}
-	unsigned geo = lev_interface[mglev].egeo(iedge);
+	unsigned geo = lev_interface[mglev].geo(1, iedge);
 	// reject fine-fine interfaces and those without an interior fine grid
-	if (geo != level_interface::ALL && igrid >= 0 && lev_interface[mglev].eflag(iedge) == 0) 
+	if (geo != level_interface::ALL && igrid >= 0 && lev_interface[mglev].flag(1, iedge) == 0) 
 	{
 	    const Box& sbox = source[lev][igrid].box();
 	    const Box& fbox = eres_fbox[lev][iedge];
@@ -599,11 +599,11 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    const Box& creg = eres_creg[lev][iedge];
 	    IntVect t = lev_interface[mglev].edge(iedge).type();
 	    FArrayBox& fdst = eres_df[lev][iedge];
-	    fill_patch(fdst, dest[lev], lev_interface[mglev], boundary.pressure(), 0, 1, iedge);
+	    fill_patch(fdst, fdst.box(), dest[lev], lev_interface[mglev], boundary.pressure(), 0, 1, iedge);
 	    FArrayBox& cdst = eres_dc[lev][iedge];
 	    if (eres_flag[lev][iedge] == 0) 
 	    {
-		fill_patch(cdst, dest[lev-1], lev_interface[mglevc], boundary.pressure());
+		fill_patch(cdst, cdst.box(), dest[lev-1], lev_interface[mglevc], boundary.pressure(), 0);
 	    }
 	    Real *const rptr = resid[mglev][igrid].dataPtr();
 	    Real *const sptr = source[lev][igrid].dataPtr();
@@ -648,9 +648,9 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    if (igrid >= 0)
 		break;
 	}
-	unsigned geo = lev_interface[mglev].cgeo(icor);
+	unsigned geo = lev_interface[mglev].geo(0, icor);
 	// reject fine-fine interfaces and those without an interior fine grid
-	if (geo != level_interface::ALL && igrid >= 0 && lev_interface[mglev].cflag(icor) == 0) 
+	if (geo != level_interface::ALL && igrid >= 0 && lev_interface[mglev].flag(0, icor) == 0) 
 	{
 	    const Box& sbox = source[lev][igrid].box();
 	    const Box& fbox = cres_fbox[lev][icor];
@@ -663,11 +663,11 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 #endif
 	    const Box& creg = cres_creg[lev][icor];
 	    FArrayBox& fdst = cres_df[lev][icor];
-	    fill_patch(fdst, dest[lev], lev_interface[mglev], boundary.pressure(), 0, 0, icor);
+	    fill_patch(fdst, fdst.box(), dest[lev], lev_interface[mglev], boundary.pressure(), 0, 0, icor);
 	    FArrayBox& cdst = cres_dc[lev][icor];
 	    if (cres_flag[lev][icor] == 0) 
 	    {
-		fill_patch(cdst, dest[lev-1], lev_interface[mglevc], boundary.pressure());
+		fill_patch(cdst, cdst.box(), dest[lev-1], lev_interface[mglevc], boundary.pressure(), 0);
 	    }
 	    Real *const rptr = resid[mglev][igrid].dataPtr();
 	    Real *const sptr = source[lev][igrid].dataPtr();
@@ -712,9 +712,9 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    if (igrid >= 0)
 		break;
 	}
-	unsigned geo = lev_interface[mglev].cgeo(icor);
+	unsigned geo = lev_interface[mglev].geo(0, icor);
 	// reject fine-fine interfaces and those without an interior fine grid
-	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].cflag(icor) == 1)
+	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(0, icor) == 1)
 	    continue;
 	else if (geo == level_interface::XL || geo == level_interface::XH || geo == level_interface::YL || geo == level_interface::YH) 
 	{

@@ -35,38 +35,21 @@ Box amr_boundary_class::box(const Box& region, const Box& domain, int idir) cons
     if (idir < 0) 
     {
 	if (region.type(idim) == IndexType::CELL)
-	    retbox.shift(idim, 2 * domain.smallEnd(idim) - 1 -
-	    region.bigEnd(idim) - region.smallEnd(idim));
+	    retbox.shift(idim, 2 * domain.smallEnd(idim) - 1 - region.bigEnd(idim) - region.smallEnd(idim));
 	else
-	    retbox.shift(idim, 2 * domain.smallEnd(idim) -
-	    region.bigEnd(idim) - region.smallEnd(idim));
+	    retbox.shift(idim, 2 * domain.smallEnd(idim) - region.bigEnd(idim) - region.smallEnd(idim));
     }
     else if (idir > 0) 
     {
 	if (region.type(idim) == IndexType::CELL)
-	    retbox.shift(idim, 2 * domain.bigEnd(idim) + 1 -
-	    region.bigEnd(idim) - region.smallEnd(idim));
+	    retbox.shift(idim, 2 * domain.bigEnd(idim) + 1 - region.bigEnd(idim) - region.smallEnd(idim));
 	else
-	    retbox.shift(idim, 2 * domain.bigEnd(idim) + 2 -
-	    region.bigEnd(idim) - region.smallEnd(idim));
+	    retbox.shift(idim, 2 * domain.bigEnd(idim) + 2 - region.bigEnd(idim) - region.smallEnd(idim));
     }
     else 
     {
 	BoxLib::Error("amr_boundary_class::box---undefined boundary direction");
     }
-    return retbox;
-}
-
-Box periodic_boundary_class::box(const Box& region, const Box& domain, int idir) const
-{
-    const int idim = abs(idir) - 1;
-    Box retbox(region);
-    if (idir < 0)
-	retbox.shift(idim, domain.length(idim));
-    else if (idir > 0)
-	retbox.shift(idim, -domain.length(idim));
-    else
-	BoxLib::Error("periodic_boundary_class::box---undefined boundary direction");
     return retbox;
 }
 
@@ -82,20 +65,16 @@ Box mixed_boundary_class::box(const Box& region, const Box& domain, int idir) co
 	if (idir < 0) 
 	{
 	    if (region.type(idim) == IndexType::CELL)
-		retbox.shift(idim, 2 * domain.smallEnd(idim) - 1 -
-		region.bigEnd(idim) - region.smallEnd(idim));
+		retbox.shift(idim, 2 * domain.smallEnd(idim) - 1 - region.bigEnd(idim) - region.smallEnd(idim));
 	    else
-		retbox.shift(idim, 2 * domain.smallEnd(idim) -
-		region.bigEnd(idim) - region.smallEnd(idim));
+		retbox.shift(idim, 2 * domain.smallEnd(idim) - region.bigEnd(idim) - region.smallEnd(idim));
 	}
 	else if (idir > 0) 
 	{
 	    if (region.type(idim) == IndexType::CELL)
-		retbox.shift(idim, 2 * domain.bigEnd(idim) + 1 -
-		region.bigEnd(idim) - region.smallEnd(idim));
+		retbox.shift(idim, 2 * domain.bigEnd(idim) + 1 - region.bigEnd(idim) - region.smallEnd(idim));
 	    else
-		retbox.shift(idim, 2 * domain.bigEnd(idim) + 2 -
-		region.bigEnd(idim) - region.smallEnd(idim));
+		retbox.shift(idim, 2 * domain.bigEnd(idim) + 2 - region.bigEnd(idim) - region.smallEnd(idim));
 	}
 	else 
 	{
@@ -114,14 +93,12 @@ Box mixed_boundary_class::box(const Box& region, const Box& domain, int idir) co
 	{
 	    if (region.type(idim) == IndexType::CELL) 
 	    {
-		retbox.shift(idim, 2 * domain.smallEnd(idim) - 1 -
-		    region.bigEnd(idim) - region.smallEnd(idim));
+		retbox.shift(idim, 2 * domain.smallEnd(idim) - 1 - region.bigEnd(idim) - region.smallEnd(idim));
 		retbox.setSmall(idim, domain.smallEnd(idim) - 1);
 	    }
 	    else 
 	    {
-		retbox.shift(idim, 2 * domain.smallEnd(idim) -
-		    region.bigEnd(idim) - region.smallEnd(idim));
+		retbox.shift(idim, 2 * domain.smallEnd(idim) - region.bigEnd(idim) - region.smallEnd(idim));
 		retbox.setSmall(idim, domain.smallEnd(idim));
 	    }
 	}
@@ -129,14 +106,12 @@ Box mixed_boundary_class::box(const Box& region, const Box& domain, int idir) co
 	{
 	    if (region.type(idim) == IndexType::CELL) 
 	    {
-		retbox.shift(idim, 2 * domain.bigEnd(idim) + 1 -
-		    region.bigEnd(idim) - region.smallEnd(idim));
+		retbox.shift(idim, 2 * domain.bigEnd(idim) + 1 - region.bigEnd(idim) - region.smallEnd(idim));
 		retbox.setBig(idim, domain.bigEnd(idim) + 1);
 	    }
 	    else 
 	    {
-		retbox.shift(idim, 2 * domain.bigEnd(idim) + 2 -
-		    region.bigEnd(idim) - region.smallEnd(idim));
+		retbox.shift(idim, 2 * domain.bigEnd(idim) + 2 - region.bigEnd(idim) - region.smallEnd(idim));
 		retbox.setBig(idim, domain.bigEnd(idim) + 1);
 	    }
 	}
@@ -159,46 +134,6 @@ Box mixed_boundary_class::box(const Box& region, const Box& domain, int idir) co
 	BoxLib::Error("mixed_boundary_class::box---boundary type not supported");
     }
     return retbox;
-}
-
-void reflection_boundary_class::fill(FArrayBox& patch,
-				     const Box& region,
-				     const FArrayBox& bgr,
-				     const Box& bb,
-				     const Box& /*domain*/,
-				     int idir) const
-{
-    const int idim = abs(idir) - 1;
-    for (int i = 0; i < patch.nComp(); i++) 
-    {
-	FORT_FBREF(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
-	    bgr.dataPtr(i), DIMLIST(bgr.box()), DIMLIST(bb), idim);
-    }
-}
-
-void negation_boundary_class::fill(FArrayBox& patch,
-				   const Box& region,
-				   const FArrayBox& bgr,
-				   const Box& bb,
-				   const Box& /*domain*/,
-				   int idir) const
-{
-    const int idim = abs(idir) - 1;
-    for (int i = 0; i < patch.nComp(); i++) 
-    {
-	FORT_FBNEG(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
-	    bgr.dataPtr(i), DIMLIST(bgr.box()), DIMLIST(bb), idim);
-    }
-}
-
-void periodic_boundary_class::fill(FArrayBox& patch,
-				   const Box& region,
-				   const FArrayBox& bgr,
-				   const Box& bb,
-				   const Box& /*domain*/,
-				   int /*idir*/) const
-{
-    patch.copy(bgr, bb, 0, region, 0, patch.nComp());
 }
 
 // Reflects on all outflow cases (which aren't called anyway).
@@ -237,8 +172,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 	    else if (t == refWall || t == inflow || t == outflow) 
 	    {
 		refarray[idim] = 1;
-		image.shift(idim, tdomain.smallEnd(idim) + idomain.smallEnd(idim)
-                    - 1 - region.bigEnd(idim) - region.smallEnd(idim));
+		image.shift(idim, tdomain.smallEnd(idim) + idomain.smallEnd(idim) - 1 - region.bigEnd(idim) - region.smallEnd(idim));
 		if (flowdim == -3 || t == refWall && idim == flowdim)
 		    negflag = -negflag;
 		if (flowdim == -4) 
@@ -273,8 +207,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 	    if (t == refWall || t == inflow || t == outflow) 
 	    {
 		refarray[idim] = 1;
-		image.shift(idim, tdomain.bigEnd(idim) + idomain.bigEnd(idim)
-                    + 1 - region.bigEnd(idim) - region.smallEnd(idim));
+		image.shift(idim, tdomain.bigEnd(idim) + idomain.bigEnd(idim) + 1 - region.bigEnd(idim) - region.smallEnd(idim));
 		if (flowdim == -3 || t == refWall && idim == flowdim)
 		    negflag = -negflag;
 		if (flowdim == -4) 
@@ -571,8 +504,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		if (flowdim == -4 && (t == refWall || t == inflow)) 
 		{
 		    // terrain sigma
-		    bb.shift(idim, 2 * domain.smallEnd(idim) - 1 + a -
-			b.bigEnd(idim) - b.smallEnd(idim));
+		    bb.shift(idim, 2 * domain.smallEnd(idim) - 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
 		    const Box& rbox = r[jgrid].box();
 		    for (int i = 0; i < r.nComp(); i++) 
 		    {
@@ -590,8 +522,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		}
 		else if (t == refWall) 
 		{
-		    bb.shift(idim, 2 * domain.smallEnd(idim) - 1 + a -
-			b.bigEnd(idim) - b.smallEnd(idim));
+		    bb.shift(idim, 2 * domain.smallEnd(idim) - 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
 		    const Box& rbox = r[jgrid].box();
 		    if (idim == flowdim || flowdim == -3) 
 		    {
@@ -618,8 +549,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		}
 		else if (t == inflow) 
 		{
-		    bb.shift(idim, 2 * domain.smallEnd(idim) - 1 + a -
-			b.bigEnd(idim) - b.smallEnd(idim));
+		    bb.shift(idim, 2 * domain.smallEnd(idim) - 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
 		    const Box& rbox = r[jgrid].box();
 		    if (flowdim == -2) 
 		    {
@@ -662,8 +592,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		    // Do nothing if NODE-based, reflect if CELL-based 
 		    if (type(r,idim) == IndexType::CELL) 
 		    {
-			bb.shift(idim, 2 * domain.smallEnd(idim) - 1 + a -
-			    b.bigEnd(idim) - b.smallEnd(idim));
+			bb.shift(idim, 2 * domain.smallEnd(idim) - 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
 			const Box& rbox = r[jgrid].box();
 			for (int i = 0; i < r.nComp(); i++) 
 			{
@@ -827,7 +756,7 @@ void mixed_boundary_class::set_sync_cache(copy_cache* cache,
 		if (idim == 0) 
 		{
 		    nvals = b.length(1);
-		    dstart = r[jgrid].dataPtr() - baseptr +
+		    dstart = r[jgrid].dataPtr() - baseptr + 
 			b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
 			dstrid * (b.smallEnd(1) - r[jgrid].box().smallEnd(1));
 		    sstart = r[igrid].dataPtr() - baseptr +
@@ -1376,32 +1305,6 @@ void amr_boundary_class::check_against_boundary(BoxList& bl, List<int>& il,
     }
 }
 
-void periodic_boundary_class::check_against_boundary(BoxList& bl, List<int>& il,
-						     const Box& b, int ib,
-						     const Box& d,
-						     int dim1) const
-{
-    for (int i = dim1; i < BL_SPACEDIM; i++) 
-    {
-	if (b.smallEnd(i) == d.smallEnd(i)) 
-	{
-	    Box bn = b;
-	    bn.setRange(i,d.bigEnd(i)+1);
-	    bl.append(bn);
-	    il.append(ib);
-	    check_against_boundary(bl, il, bn, ib, d, i+1);
-	}
-	if (b.bigEnd(i) == d.bigEnd(i)) 
-	{
-	    Box bn = b;
-	    bn.setRange(i,d.smallEnd(i)-1);
-	    bl.append(bn);
-	    il.append(ib);
-	    check_against_boundary(bl, il, bn, ib, d, i+1);
-	}
-    }
-}
-
 void mixed_boundary_class::check_against_boundary(BoxList& bl, List<int>& il,
 						  const Box& b, int ib,
 						  const Box& d, int dim1) const
@@ -1410,8 +1313,7 @@ void mixed_boundary_class::check_against_boundary(BoxList& bl, List<int>& il,
     {
 	if (b.smallEnd(i) == d.smallEnd(i)) 
 	{
-	    if (ptr->bc[i][0] == refWall ||
-		ptr->bc[i][0] == inflow) 
+	    if (ptr->bc[i][0] == refWall || ptr->bc[i][0] == inflow) 
 	    {
 		Box bn = b;
 		bn.shift(i,-b.length(i));
@@ -1475,35 +1377,7 @@ void mixed_boundary_class::check_against_boundary(BoxList& bl, List<int>& il,
     }
 }
 
-void periodic_boundary_class::duplicate(List<Box>& bl,
-					const Box& domain) const
-{
-    for (int i = 0; i < BL_SPACEDIM; i++) 
-    {
-	ListIterator<Box> bn(bl.last());
-	for ( ; bn; bn--) 
-	{
-	    if (bn().type(i) == IndexType::NODE) 
-	    {
-		if (bn().smallEnd(i) == domain.smallEnd(i)) 
-		{
-		    Box btmp = bn();
-		    btmp.shift(i, domain.length(i));
-		    bl.append(btmp);
-		}
-		else if (bn().bigEnd(i) - 1 == domain.bigEnd(i)) 
-		{
-		    Box btmp = bn();
-		    btmp.shift(i, -domain.length(i));
-		    bl.append(btmp);
-		}
-	    }
-	}
-    }
-}
-
-void mixed_boundary_class::duplicate(List<Box>& bl,
-				     const Box& domain) const
+void mixed_boundary_class::duplicate(List<Box>& bl, const Box& domain) const
 {
     for (int i = 0; i < BL_SPACEDIM; i++) 
     {
@@ -1518,68 +1392,21 @@ void mixed_boundary_class::duplicate(List<Box>& bl,
 		    {
 			Box btmp = bn();
 			btmp.shift(i, domain.length(i));
-			level_interface::ins(bl, btmp);
+			if(!bl.includes(btmp))
+			    bl.append(btmp);
 		    }
 		    else if (bn().bigEnd(i) - 1 == domain.bigEnd(i)) 
 		    {
 			Box btmp = bn();
 			btmp.shift(i, -domain.length(i));
-			level_interface::ins(bl, btmp);
+			if(!bl.includes(btmp))
+			    bl.append(btmp);
 		    }
 		}
 	    }
 	}
     }
 }
-
-#if 0
-int 
-mixed_boundary_class::fill_patch_special(FArrayBox& patch, const Box& region,
-					     MultiFab& r,
-					     const Box& domain,
-					     int flags) const
-{
-    cout << "fill_patch_special---patch is " << region << endl;
-    BoxLib::Error("mixed_boundary_class::fill_patch_special disabled");
-    Box tdomain = domain;
-    tdomain.convert(type(r));
-    static int idim = 0;
-    for (int i = idim; i < BL_SPACEDIM; i++) 
-    {
-	if (ptr->bc[i][0] == periodic) 
-	{
-	    int bdir = 0;
-	    if (region.smallEnd(i) == tdomain.smallEnd(i) &&
-		region.bigEnd(i)   == tdomain.smallEnd(i)) 
-	    {
-		bdir = -1 - i;
-	    }
-	    else if (region.smallEnd(i) == tdomain.bigEnd(i) &&
-		region.bigEnd(i)   == tdomain.bigEnd(i)) 
-	    {
-		bdir = 1 + i;
-	    }
-	    if (bdir != 0) 
-	    {
-		Box bb = box(region, domain, bdir);
-		FArrayBox gb(bb, patch.nComp());
-		idim = i + 1;
-		int retval = 0;
-		// to reenable fill_patch_special, provide a substitute for
-		// fill_patch in the following line:
-		//int retval = r.fill_patch(gb, *this, flags);
-		idim = 0;  // this reset applies to next top-level call
-		if (retval == 1) 
-		{
-		    fill(patch, region, gb, bb, domain, bdir);
-		    return 1;
-		}
-	    }
-	}
-    }
-    return 0;
-}
-#endif
 
 bool mixed_boundary_class::singular() const
 {
@@ -1603,11 +1430,11 @@ amr_fluid_boundary_class::amr_fluid_boundary_class()
 {
     for (int i = 0; i < BL_SPACEDIM; i++) 
     {
-	v[i] = &error_boundary;
+	v[i] = 0;
     }
-    s = &error_boundary;
-    p = &error_boundary;
-    ts = &error_boundary;
+    s = 0;
+    p = 0;
+    ts = 0;
 }
 
 inviscid_fluid_boundary_class::inviscid_fluid_boundary_class(RegType Bc[BL_SPACEDIM][2])
@@ -1629,9 +1456,9 @@ inviscid_fluid_boundary_class::~inviscid_fluid_boundary_class()
 {
     for (int i = 0; i < BL_SPACEDIM; i++) 
     {
-	delete (mixed_boundary_class*) v[i];
+	delete v[i];
     }
-    delete (mixed_boundary_class*) s;
-    delete (mixed_boundary_class*) p;
-    delete (mixed_boundary_class*) ts;
+    delete s;
+    delete p;
+    delete ts;
 }

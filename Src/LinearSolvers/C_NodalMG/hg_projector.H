@@ -24,7 +24,7 @@ public:
 	Boundary, Pcode),
 	make_sparse_node_source_solvable(false) { }
     
-    Array<BoxArray>& mesh() 
+    const Array<BoxArray>& mesh() const
     {
 	return ml_mesh;
     }
@@ -40,7 +40,7 @@ public:
     // For sync_project, the right hand side will be Du computed at the
     // coarse-fine interface, and 0 everywhere in the grid interiors.
     // For manual_project, the right hand side is a separate input field,
-    // and u can be passed in NULL if you don't care about the update.
+    // and u can be passed in 0(NULL) if you don't care about the update.
     // If use_u is false (0), the right hand side will be used without
     // modification.  If it is true (1), Du will be added to the rhs provided.
     
@@ -107,10 +107,10 @@ public:
     // that it integrates to 0 to maximum precision.
     
     void manual_project(PArray<MultiFab>* u, PArray<MultiFab>& p,
-		      PArray<MultiFab>& rhs,
-		      PArray<MultiFab>& Coarse_source,
+			PArray<MultiFab>& rhs,
+			PArray<MultiFab>& Coarse_source,
 			bool use_u, Real H[], Real tol,
-		      int Lev_min = -1, int Lev_max = -1, Real scale = 0.0) 
+			int Lev_min = -1, int Lev_max = -1, Real scale = 0.0) 
     {
 	manual_project(u, p, rhs, Coarse_source, null_amr_real, use_u, H, tol, Lev_min, Lev_max, scale);
     }
@@ -121,12 +121,12 @@ public:
 		      bool use_u, Real H[], Real tol,
 		      int Lev_min = -1, int Lev_max = -1, Real scale = 0.0);
     
-    bool make_sparse_node_source_solvable;
     void make_it_so() 
     {
 	make_sparse_node_source_solvable = true;
     }
 protected:
+    bool make_sparse_node_source_solvable;
     void right_hand_side(PArray<MultiFab>* u, PArray<MultiFab>& S);
     void grid_average(PArray<MultiFab>& S);
     void grid_divergence(PArray<MultiFab>* u);

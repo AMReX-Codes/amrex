@@ -9,8 +9,8 @@ public:
     
     amr_multigrid(const Array<BoxArray>& Mesh, const Array<IntVect>& Gen_ratio,
 	int Lev_min_min, int Lev_min_max, int Lev_max_max,
-	const amr_boundary_class& Boundary, int Pcode) :
-    ml_mesh(Mesh), gen_ratio(Gen_ratio),
+	const amr_boundary_class* Boundary, int Pcode) 
+	: ml_mesh(Mesh), gen_ratio(Gen_ratio),
 	lev_min_min(Lev_min_min), lev_min_max(Lev_min_max),
 	lev_max_max(Lev_max_max), mg_boundary(Boundary), pcode(Pcode),
 	integrate(0)
@@ -52,8 +52,9 @@ protected:
     Array<BoxArray> ml_mesh, mg_mesh;
     Array< Array<Box> > mg_domain_array;
     Array< Array<BoxArray> > mg_mesh_array;
-    const amr_boundary_class& mg_boundary;
-    level_interface *lev_interface, **interface_array;
+    const amr_boundary_class* mg_boundary;
+    level_interface* lev_interface;
+    level_interface** interface_array;
     PArray<MultiFab> source, dest;       // live on active levels of ml_mesh
     PArray<MultiFab> resid, corr, work;  // live on mg_mesh
     PArray<MultiFab> save;               // lives on middle levels of ml_mesh

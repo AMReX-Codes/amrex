@@ -23,30 +23,19 @@ public:
     amr_boundary_class() { }
     virtual ~amr_boundary_class() { }
     int dir(const Box&, const Box&) const;
-    virtual bool defined() const { return false; }
     virtual Box box(const Box&, const Box&, int) const;
-    virtual void fill(FArrayBox&, const Box&, const FArrayBox&, const Box&, const Box&, int) const
-    { BoxLib::Error("amr_boundary_class::fill---boundary fill function not defined."); }
-    virtual void fill(FArrayBox&, const Box&, const MultiFab&, int, const Box&) const
-    { BoxLib::Error("amr_boundary_class::fill---boundary fill function not defined."); }
-    virtual void sync_borders(MultiFab&, const level_interface&) const { }
-    virtual void fill_borders(MultiFab& r, const level_interface& lev_interface, int w = -1) const
-    { BoxLib::Error("amr_boundary_class::fill---fill_borders function not defined."); }
-    virtual void set_sync_cache(copy_cache*, int, int&, const MultiFab&, const level_interface&) const { }
-    virtual void set_border_cache(copy_cache*, int, int&, const MultiFab&, const level_interface&, int) const 
-    { BoxLib::Error("amr_boundary_class::set_border_cache---boundary condition not defined."); }
-    virtual void boundary_mesh(BoxArray& exterior_mesh, int *&grid_ref, const BoxArray& interior_mesh, const Box& domain) const;
-    virtual void duplicate(List<Box>&, const Box&) const { }
-    // virtual int fill_patch_special(FArrayBox&, const Box&, MultiFab&, const Box&, int) const { return 0; }
-    virtual bool singular() const 
-    {
-	BoxLib::Error("amr_boundary_class::singular---boundary condition not defined.");
-	return false;
-    }
+    void boundary_mesh(BoxArray& exterior_mesh, int *&grid_ref, const BoxArray& interior_mesh, const Box& domain) const;
+
+    virtual void fill(FArrayBox&, const Box&, const FArrayBox&, const Box&, const Box&, int) const = 0;
+    virtual void fill(FArrayBox&, const Box&, const MultiFab&, int, const Box&) const = 0;
+    virtual void sync_borders(MultiFab&, const level_interface&) const = 0;
+    virtual void fill_borders(MultiFab& r, const level_interface& lev_interface, int w) const = 0;
+    virtual void set_sync_cache(copy_cache*, int, int&, const MultiFab&, const level_interface&) const = 0;
+    virtual void set_border_cache(copy_cache*, int, int&, const MultiFab&, const level_interface&, int) const  = 0;
+    virtual void duplicate(List<Box>&, const Box&) const = 0;
+    virtual bool singular() const  = 0;
 protected:
-    virtual void check_against_boundary(BoxList& bl, List<int>& il,
-	const Box& b, int ib,
-	const Box& d, int dim1) const;
+    virtual void check_against_boundary(BoxList& bl, List<int>& il, const Box& b, int ib, const Box& d, int dim1) const;
 };
 
 inline int amr_boundary_class::dir(const Box& region, const Box& domain) const
@@ -69,47 +58,6 @@ inline int amr_boundary_class::dir(const Box& region, const Box& domain) const
     return 0;
 }
 
-class reflection_boundary_class : public amr_boundary_class 
-{
-public:
-    reflection_boundary_class() { }
-    virtual bool defined() const { return true; }
-    virtual void fill(FArrayBox&, const Box&, const FArrayBox&, const Box&, const Box&, int) const;
-    virtual void fill(FArrayBox&, const Box&, const MultiFab&, int, const Box&) const
-    { BoxLib::Error("reflection_boundary_class::fill---lev_interface version not defined"); }
-    virtual bool singular() const { return true; }
-};
-
-class negation_boundary_class : public amr_boundary_class 
-{
-public:
-    negation_boundary_class() { }
-    virtual bool defined() const { return true; }
-    virtual void fill(FArrayBox&, const Box&, const FArrayBox&, const Box&, const Box&, int) const;
-    virtual void fill(FArrayBox&, const Box&, const MultiFab&, int, const Box&) const
-    { BoxLib::Error("negation_boundary_class::fill---lev_interface version not defined"); }
-    virtual bool singular() const { return false; }
-};
-
-class periodic_boundary_class : public amr_boundary_class 
-{
-public:
-    periodic_boundary_class() { }
-    virtual bool defined() const { return true; }
-    virtual Box box(const Box&, const Box&, int) const;
-    virtual void fill(FArrayBox&, const Box&, const FArrayBox&, const Box&, const Box&, int) const;
-    virtual void fill(FArrayBox&, const Box&, const MultiFab&, int, const Box&) const
-    { BoxLib::Error("periodic_boundary_class::fill---lev_interface version not defined"); }
-    virtual void duplicate(List<Box>& bl, const Box& domain) const;
-    virtual bool singular() const { return true; }
-protected:
-    void check_against_boundary(BoxList& bl, List<int>& il,
-	const Box& b, int ib,
-	const Box& d, int dim1) const;
-};
-
-const amr_boundary_class error_boundary;
-
 // This is the base class for physical boundary conditions of the
 // types used in the AMR code.  Members return appropriate
 // amr_boundary objects for various flow variables.  The defaults
@@ -122,21 +70,21 @@ public:
     amr_fluid_boundary_class();
     virtual ~amr_fluid_boundary_class() { }
     
-    virtual const amr_boundary_class& velocity(int i) const 
+    virtual const amr_boundary_class* velocity(int i) const 
     {
-	return *v[i];
+	return v[i];
     }
-    virtual const amr_boundary_class& scalar() const 
+    virtual const amr_boundary_class* scalar() const 
     {
-	return *s;
+	return s;
     }
-    virtual const amr_boundary_class& pressure() const 
+    virtual const amr_boundary_class* pressure() const 
     {
-	return *p;
+	return p;
     }
-    virtual const amr_boundary_class& terrain_sigma() const 
+    virtual const amr_boundary_class* terrain_sigma() const 
     {
-	return *ts;
+	return ts;
     }
 protected:
     const amr_boundary_class *v[BL_SPACEDIM];
@@ -159,33 +107,21 @@ class inviscid_fluid_boundary_class;
 class mixed_boundary_class : public amr_boundary_class 
 {
 public:
-    mixed_boundary_class(inviscid_fluid_boundary_class *Ptr, int idim) 
-    {
-	ptr = Ptr; flowdim = idim;
-    }
+    mixed_boundary_class(inviscid_fluid_boundary_class *Ptr, int idim)  : ptr(Ptr), flowdim(idim) {}
     
-    virtual bool defined() const { return true; }
     virtual Box box(const Box&, const Box&, int) const;
     virtual void fill(FArrayBox&, const Box&, const FArrayBox&, const Box&, const Box&, int) const;
     virtual void fill(FArrayBox&, const Box&, const MultiFab&, int, const Box&) const;
     virtual void sync_borders(MultiFab&, const level_interface&) const;
-    virtual void fill_borders(MultiFab& r, const level_interface& lev_interface, int w = -1) const;
-    virtual void set_sync_cache(copy_cache* cache, int nsets, int& iset,
-		      const MultiFab& r,
-		      const level_interface& lev_interface) const;
-    virtual void set_border_cache(copy_cache* cache, int nsets, int& iset,
-	const MultiFab& r,
-	const level_interface& lev_interface,
-	int w) const;
+    virtual void fill_borders(MultiFab& r, const level_interface& lev_interface, int w) const;
+    virtual void set_sync_cache(copy_cache* cache, int nsets, int& iset, const MultiFab& r, const level_interface& lev_interface) const;
+    virtual void set_border_cache(copy_cache* cache, int nsets, int& iset, const MultiFab& r, const level_interface& lev_interface, int w) const;
     virtual void duplicate(List<Box>& bl, const Box& domain) const;
-    // int fill_patch_special(FArrayBox&, const Box&, MultiFab&, const Box&, int flags) const;
     virtual bool singular() const;
 protected:
-    inviscid_fluid_boundary_class *ptr;
-    int flowdim;
-    void check_against_boundary(BoxList& bl, List<int>& il,
-	const Box& b, int ib,
-	const Box& d, int dim1) const;
+    const inviscid_fluid_boundary_class* ptr;
+    const int flowdim;
+    virtual void check_against_boundary(BoxList& bl, List<int>& il, const Box& b, int ib, const Box& d, int dim1) const;
 };
 
 // This is a simple boundary condition with slip walls.
@@ -198,7 +134,7 @@ class inviscid_fluid_boundary_class : public amr_fluid_boundary_class
     friend mixed_boundary_class;
 public:
     inviscid_fluid_boundary_class(RegType Bc[BL_SPACEDIM][2]);
-    ~inviscid_fluid_boundary_class();
+    virtual ~inviscid_fluid_boundary_class();
 protected:
     RegType bc[BL_SPACEDIM][2];
 };

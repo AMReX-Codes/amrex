@@ -4,9 +4,6 @@
 #include "amr_defs.H"
 
 class amr_boundary_class;
-//typedef const amr_boundary_class& amr_boundary;
-
-extern const class level_interface null_level_interface;
 
 class level_interface 
 {
@@ -17,10 +14,8 @@ public:
 	XL = 0x5, XH = 0xA, YL = 0x3, YH = 0xC,
 	ALL = 0xF, LOW = 0x1 };
 #elif (BL_SPACEDIM == 3)
-    enum { LLL = 0x01, HLL = 0x02, LHL = 0x04, HHL = 0x08,
-	LLH = 0x10, HLH = 0x20, LHH = 0x40, HHH = 0x80,
-	XL  = 0x55, XH  = 0xAA, YL  = 0x33, YH  = 0xCC,
-	ZL  = 0x0F, ZH  = 0xF0, ALL = 0xFF, LOW = 0x01 };
+    enum {
+	ALL = 0xFF, LOW = 0x01 };
 #endif
     enum { FACEDIM  = BL_SPACEDIM - 1} ;
 #if (BL_SPACEDIM == 2)
@@ -36,18 +31,16 @@ public:
     level_interface() : status(-1) { }
     ~level_interface();
     
-    void alloc(const BoxArray& Im, const Box& Domain, const amr_boundary_class& Bdy);
-    level_interface(const BoxArray& Im, const Box& Domain, const amr_boundary_class& Bdy)
+    void alloc(const BoxArray& Im, const Box& Domain, const amr_boundary_class* Bdy);
+    level_interface(const BoxArray& Im, const Box& Domain, const amr_boundary_class* Bdy)
 	: status(-1) 
     {
 	alloc(Im, Domain, Bdy);
     }
     void copy(const level_interface& src);
-    void alloc_coarsened(const BoxArray& Im, const amr_boundary_class& Bdy,
-	const level_interface& src, const IntVect& rat);
+    void alloc_coarsened(const BoxArray& Im, const amr_boundary_class* Bdy, const level_interface& src, const IntVect& rat);
     
-    int ok()                          const { return (status >= 0); }
-    int null()                        const { return (status <  0); }
+    bool ok()                          const { return (status >= 0); }
     
     const Box& domain()               const { return dom; }
     const BoxArray& interior_mesh()   const { return im; }
@@ -56,43 +49,41 @@ public:
     int direct_exterior_ref(int igrid)const { return grid_ref[igrid]; }
     const Box& part_fine(int i)       const { return pf[i]; }
     
-    int nboxes(int idim)                 const { return nbx[idim]; }
-    const Box& box(int idim, int i)      const { return bx[idim][i]; }
-    const Box& node_box(int idim, int i) const { return nodebx[idim][i]; }
-    unsigned geo(int idim, int i)        const { return ge[idim][i]; }
-    unsigned aux(int idim, int i)        const { return ax[idim][i]; }
-    unsigned flag(int idim, int i)       const { return flg[idim][i]; }
     
     void geo_array(int ga[], int idim, int i) const;
+    
+    int fgrid(int i, int j)           const { return fgr[i][j]; }
+    int egrid(int i, int j)           const { return egr[i][j]; }
+    int cgrid(int i, int j)           const { return cgr[i][j]; }
+
+    int fdim(int i)                   const { return fdm[i]; }
+    
+    int nboxes(int idim)              const { return nbx[idim]; }
+    const Box& box(int idim, int i)   const { return bx[idim][i]; }
+    const Box& node_box(int idim, int i) const { return nodebx[idim][i]; }
+    unsigned geo(int idim, int i)     const { return ge[idim][i]; }
+    unsigned aux(int idim, int i)     const { return ax[idim][i]; }
+    unsigned flag(int idim, int i)    const { return flg[idim][i]; }
+
+    int ncorners()                    const { return nbx[0]; }
+    const Box& corner(int i)          const { return bx[0][i]; }
+
+    int nedges()                      const { return nbx[1]; }
+    const Box& edge(int i)            const { return bx[1][i]; }
+    const Box& node_edge(int i)       const { return nodebx[1][i]; }
     
     int nfaces()                      const { return nbx[FACEDIM]; }
     const Box& face(int i)            const { return bx[FACEDIM][i]; }
     const Box& node_face(int i)       const { return nodebx[FACEDIM][i]; }
     unsigned fgeo(int i)              const { return ge[FACEDIM][i]; }
-    int faux(int i)                   const { return ax[FACEDIM][i]; }
     unsigned fflag(int i)             const { return flg[FACEDIM][i]; }
-    int fgrid(int i, int j)           const { return fgr[i][j]; }
-    int fdim(int i)                   const { return fdm[i]; }
+
     
-    int nedges()                      const { return nbx[1]; }
-    const Box& edge(int i)            const { return bx[1][i]; }
-    const Box& node_edge(int i)       const { return nodebx[1][i]; }
-    unsigned egeo(int i)              const { return ge[1][i]; }
-    int eaux(int i)                   const { return ax[1][i]; }
-    unsigned eflag(int i)             const { return flg[1][i]; }
-    int egrid(int i, int j)           const { return egr[i][j]; }
-    
-    int ncorners()                    const { return nbx[0]; }
-    const Box& corner(int i)          const { return bx[0][i]; }
-    unsigned cgeo(int i)              const { return ge[0][i]; }
-    int caux(int i)                   const { return ax[0][i]; }
-    unsigned cflag(int i)             const { return flg[0][i]; }
-    int cgrid(int i, int j)           const { return cgr[i][j]; }
-    
-protected:
-    int status;                       // tells if some arrays are shared
-    Box dom;                          // BoxArray doesn't know domain
-    BoxArray im, em;                  // interior and exterior BoxArray
+private:
+    int status;				// tells if some arrays are shared
+    Box dom;				// BoxArray doesn't know domain
+    BoxArray im;			// interior BoxArray
+    BoxArray em;			// exterior BoxArray
     int *grid_ref;                    // one for each exterior box
     Box *pf;                          // expanded NODE boxes for interior grids
     int nbx[BL_SPACEDIM];             // numbers of interface boxes
@@ -108,17 +99,11 @@ protected:
     int (*egr)[N_EDGE_GRIDS];         // grid neighbor data for edges
     int (*cgr)[N_CORNER_GRIDS];       // grid neighbor data for corners
     
-    void  add(List<Box>& bl, Box b, int startgrid = 0);
+    void  add(List<Box>& bl, Box b, int startgrid);
     void xfer(List<Box>& bl, int idim);
 private:
     level_interface(const level_interface&);
     void operator=(const level_interface&);
-public:
-    static void ins(List<Box>& bl, const Box& b) 
-    {
-	if (!bl.includes(b))
-	    bl.append(b);
-    }
 };
 
 #endif
