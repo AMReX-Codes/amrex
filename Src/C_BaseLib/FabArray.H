@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.103 2000-04-24 17:52:34 car Exp $
+// $Id: FabArray.H,v 1.104 2000-04-25 16:29:56 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1692,7 +1692,11 @@ FabArray<T,FAB>::setVal (T   val,
 
     for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
-        fai().setVal(val, ::grow(fai.validbox(),nghost), comp, ncomp);
+#ifndef BL_NAMESPACE
+        fai().setVal(val,::grow(fai.validbox(),nghost), comp, ncomp);
+#else
+        fai().setVal(val, BL_NAMESPACE::grow(fai.validbox(),nghost), comp, ncomp);
+#endif
     }
 }
 
@@ -1709,7 +1713,11 @@ FabArray<T,FAB>::setVal (T          val,
 
     for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
+#ifndef BL_NAMESPACE
         Box b = ::grow(fai.validbox(),nghost) & region;
+#else
+        Box b = BL_NAMESPACE::grow(fai.validbox(),nghost) & region;
+#endif
 
         if (b.ok())
             fai().setVal(val, b, comp, ncomp);
