@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MCCGSolver.cpp,v 1.5 1999-01-04 21:31:48 lijewski Exp $
+// $Id: MCCGSolver.cpp,v 1.6 1999-04-13 21:37:36 sstanley Exp $
 //
 
 #include <ParmParse.H>
@@ -69,11 +69,12 @@ MCCGSolver::norm (const MultiFab& res)
     const int p = 0;
     Real restot = 0.0;
     Real resk   = 0.0;
+    const int ncomp = res.nComp();
     const BoxArray& gbox = res.boxArray();
     for (ConstMultiFabIterator mfi(res); mfi.isValid(); ++mfi)
     {
         assert(mfi.validbox() == gbox[mfi.index()]);
-        resk = mfi().norm(mfi.validbox(), p);
+        resk = mfi().norm(mfi.validbox(), p, 0, ncomp);
         if (p == 0)
 	{
 	    restot = Max(restot, resk);
