@@ -11,92 +11,82 @@
 // restrictors like node-based full-weighting that do special stuff
 // at the edges of grids.
 
-class amr_restrictor_class {
- public:
-  amr_restrictor_class() { }
-  virtual ~amr_restrictor_class() { }
-  virtual Box box(const Box&, const IntVect&) const = 0;
-    // { BoxLib::Error("amr_restrictor_class::box---Restriction function not defined."); return Box(); }
-  virtual void fill(FArrayBox&, const Box&,
-	            const FArrayBox&, const IntVect&) const = 0;
-    // { BoxLib::Error("amr_restrictor_class::fill---Restriction function not defined."); }
-  virtual void lev_interface(FArrayBox&, const Box&, MultiFab&,
+class amr_restrictor_class 
+{
+public:
+    amr_restrictor_class() { }
+    virtual ~amr_restrictor_class() { }
+    virtual Box box(const Box&, const IntVect&) const = 0;
+    virtual void fill(FArrayBox&, const Box&, const FArrayBox&, const IntVect&) const = 0;
+    virtual void lev_interface(FArrayBox&, const Box&, MultiFab&,
 #ifdef HG_USE_CACHE
-			 const copy_cache*, 
+	const copy_cache*, 
 #endif
-			 const level_interface&,
-			 const amr_boundary_class&, const IntVect&) const { }
+	const level_interface&, const amr_boundary_class&, const IntVect&) const { }
 };
 
-class cell_average_restrictor_class : public amr_restrictor_class {
- protected:
-  int integrate;
- public:
-  cell_average_restrictor_class(int i) { integrate = i; }
-  Box box(const Box& fb, const IntVect& rat) const;
-  void fill(FArrayBox& patch, const Box& region,
-	    const FArrayBox& fgr, const IntVect& rat) const;
+class cell_average_restrictor_class : public amr_restrictor_class 
+{
+protected:
+    int integrate;
+public:
+    cell_average_restrictor_class(int i) { integrate = i; }
+    virtual Box box(const Box& fb, const IntVect& rat) const;
+    virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
 };
 
-class terrain_velocity_restrictor_class
-  : public cell_average_restrictor_class {
- public:
-  terrain_velocity_restrictor_class(int i)
-    : cell_average_restrictor_class(i) { }
-  void fill(FArrayBox& patch, const Box& region,
-	    const FArrayBox& fgr, const IntVect& rat) const;
+class terrain_velocity_restrictor_class : public cell_average_restrictor_class 
+{
+public:
+    terrain_velocity_restrictor_class(int i) : cell_average_restrictor_class(i) { }
+    virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
 };
 
-class injection_restrictor_class : public amr_restrictor_class {
- public:
-  injection_restrictor_class() { }
-  Box box(const Box& fb, const IntVect& rat) const;
-  void fill(FArrayBox& patch, const Box& region,
-	    const FArrayBox& fgr, const IntVect& rat) const;
+class injection_restrictor_class : public amr_restrictor_class 
+{
+public:
+    injection_restrictor_class() { }
+    virtual Box box(const Box& fb, const IntVect& rat) const;
+    virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
 };
 
-class default_restrictor : public amr_restrictor_class {
- public:
-  default_restrictor() { }
-  Box box(const Box& fb, const IntVect& rat) const;
-  void fill(FArrayBox& patch, const Box& region,
-	    const FArrayBox& fgr, const IntVect& rat) const;
+class default_restrictor : public amr_restrictor_class 
+{
+public:
+    default_restrictor() { }
+    virtual Box box(const Box& fb, const IntVect& rat) const;
+    virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
 };
 
 // Vanilla bilinear (full-weighting) restrictor class.
 // Restricts fine-fine interfaces, even those at the boundary.
 // Does nothing at coarse-fine interfaces.
-class bilinear_restrictor_class : public amr_restrictor_class {
- protected:
-  int integrate;
- public:
-  bilinear_restrictor_class(int i) { integrate = i; }
-  Box box(const Box& fb, const IntVect& rat) const;
-  virtual void fill(FArrayBox& patch, const Box& region,
-	    const FArrayBox& fgr, const IntVect& rat) const;
-  virtual void lev_interface(FArrayBox& patch, const Box& region,
-	         MultiFab& fine, 
+class bilinear_restrictor_class : public amr_restrictor_class 
+{
+protected:
+    int integrate;
+public:
+    bilinear_restrictor_class(int i) { integrate = i; }
+    virtual Box box(const Box& fb, const IntVect& rat) const;
+    virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
+    virtual void lev_interface(FArrayBox& patch, const Box& region, MultiFab& fine, 
 #ifdef HG_USE_CACHE
-		 const copy_cache*,
+	const copy_cache*,
 #endif
-		 const level_interface& lev_interface,
-		 const amr_boundary_class& bdy, const IntVect& rat) const;
+	const level_interface& lev_interface, const amr_boundary_class& bdy, const IntVect& rat) const;
 };
 
 // Restricts all interfaces, uses data at coarse points
 // along coarse-fine interfaces.
-class bilinear_restrictor_coarse_class
- : public bilinear_restrictor_class {
- public:
-  bilinear_restrictor_coarse_class(int i)
-    : bilinear_restrictor_class(i) { }
-  virtual void lev_interface(FArrayBox& patch, const Box& region,
-	         MultiFab& fine, 
+class bilinear_restrictor_coarse_class : public bilinear_restrictor_class 
+{
+public:
+    bilinear_restrictor_coarse_class(int i) : bilinear_restrictor_class(i) { }
+    virtual void lev_interface(FArrayBox& patch, const Box& region, MultiFab& fine, 
 #ifdef HG_USE_CACHE
-		 const copy_cache*,
+	const copy_cache*,
 #endif
-		 const level_interface& lev_interface,
-		 const amr_boundary_class& bdy, const IntVect& rat) const;
+	const level_interface& lev_interface, const amr_boundary_class& bdy, const IntVect& rat) const;
 };
 
 #endif

@@ -10,23 +10,21 @@
 // fill the requested patch with coarse data and call fill.  How you
 // get the coarse data is your problem.
 
-class amr_interpolator {
- public:
-  amr_interpolator() { }
-  virtual ~amr_interpolator() { }
-  virtual Box box(const Box&, const IntVect&) const = 0;
-    // { BoxLib::Error("amr_interpolator::box---Interpolation function not defined."); return Box(); }
-  virtual void fill(FArrayBox&, const Box&,
-		    const FArrayBox&, const Box&, const IntVect&) const = 0;
-    // { BoxLib::Error("amr_interpolator::box---Interpolation function not defined."); }
+class amr_interpolator_class 
+{
+public:
+    amr_interpolator_class() { }
+    virtual ~amr_interpolator_class() { }
+    virtual Box box(const Box&, const IntVect&) const = 0;
+    virtual void fill(FArrayBox&, const Box&, const FArrayBox&, const Box&, const IntVect&) const = 0;
 };
 
-class bilinear_interpolator : public amr_interpolator {
- public:
-  bilinear_interpolator() { }
-  Box box(const Box&, const IntVect&) const;
-  void fill(FArrayBox&, const Box&,
-	    const FArrayBox&, const Box&, const IntVect&) const;
+class bilinear_interpolator_class : public amr_interpolator_class 
+{
+public:
+    bilinear_interpolator_class() { }
+    Box box(const Box&, const IntVect&) const;
+    void fill(FArrayBox&, const Box&, const FArrayBox&, const Box&, const IntVect&) const;
 };
 
 #endif

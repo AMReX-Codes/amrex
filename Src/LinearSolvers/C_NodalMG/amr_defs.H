@@ -2,7 +2,7 @@
 #define _AMR_DEFS_H_
 
 //
-// $Id: amr_defs.H,v 1.8 1998-01-27 00:14:50 car Exp $
+// $Id: amr_defs.H,v 1.9 1998-01-28 21:58:32 car Exp $
 //
 
 #include <MultiFab.H>
@@ -34,24 +34,24 @@
 
 inline IntVect type(const FArrayBox& f) 
 {
-  return f.box().type();
+    return f.box().type();
 }
 
 inline IndexType::CellIndex type(const FArrayBox& f, int idir) 
 {
-  return f.box().type(idir);
+    return f.box().type(idir);
 }
 
 inline IntVect type(const FabArray<Real,FArrayBox>& r) 
 {
-  assert(r.length() > 0 && r.boxArray().ok());
-  return r.box(0).type();
+    assert(r.length() > 0 && r.boxArray().ok());
+    return r.box(0).type();
 }
 
 inline IndexType::CellIndex type(const FabArray<Real,FArrayBox>& r, int idir) 
 {
-  assert(r.length() > 0 && r.boxArray().ok());
-  return r.box(0).type(idir);
+    assert(r.length() > 0 && r.boxArray().ok());
+    return r.box(0).type(idir);
 }
 
 // norm helper functions:
