@@ -58,7 +58,7 @@ inline Real mfnorm_2(const MultiFab& mf)
     Real r = 0;
     for ( ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi ) 
     {
-	Real s = cmfi->norm(2);
+	Real s = cmfi->norm(cmfi->box(), 2, 0, cmfi->nComp());
 	r += s*s;
     }
     ParallelDescriptor::ReduceRealSum(r);
@@ -68,6 +68,7 @@ inline Real mfnorm_2(const MultiFab& mf)
 inline Real mfnorm(const MultiFab& mf) 
 {
     Real r = 0;
+    assert(mf.nComp() == 1);
     for ( ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi ) 
     {
 	Real s = cmfi->norm(0);
