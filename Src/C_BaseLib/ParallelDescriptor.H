@@ -4,15 +4,13 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.22 1998-04-01 17:52:37 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.23 1998-04-08 21:04:28 lijewski Exp $
 //
 
 #include <Assert.H>
 #include <Boolean.H>
 #include <REAL.H>
 #include <Box.H>
-
-
 
 //
 // Some of these can be collapsed.
@@ -119,7 +117,8 @@ class ParallelDescriptor
                           int         bytes);
 
     static void SetMessageHeaderSize (int messageHeaderSize);
-    static bool GetMessageHeader (int& dataSize, void* messageHeader);
+    static bool GetMessageHeader (int&  dataSize,
+                                  void* messageHeader);
     static bool MessageQueueEmpty ();
 
     static void SendData (int         toproc,
@@ -130,8 +129,15 @@ class ParallelDescriptor
     static void ReceiveData (void* data,
                              int   datasizeinbytes);
 
-    static void Broadcast (int fromproc, void*  src, void*  dest, int nbytes);
+    static void Broadcast (int   fromproc,
+                           void* src,
+                           void* dest,
+                           int   nbytes);
 
+    static void Gather (Real* sendbuf,
+                        int   sendcount,
+                        Real* recvbuf,
+                        int   root);
   private:
 
     enum { ioProcessor = 0 };

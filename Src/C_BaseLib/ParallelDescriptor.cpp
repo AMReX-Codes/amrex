@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.20 1998-04-01 17:52:37 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.21 1998-04-08 21:04:30 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -270,12 +270,50 @@ ParallelDescriptor::MessageQueueEmpty ()
 }
 
 void
-ParallelDescriptor::Broadcast (int    fromproc,
-                               void*  src,
-                               void*  dest,
-                               int    nbytes)
+ParallelDescriptor::Broadcast (int   fromproc,
+                               void* src,
+                               void* dest,
+                               int   nbytes)
 {
-    bsp_bcast(fromproc, (void*) src, (void*) dest, nbytes);
+    bsp_bcast(fromproc, src, dest, nbytes);
+}
+
+void
+ParallelDescriptor::Gather (Real* sendbuf,
+                            int   sendcount,
+                            Real* recvbuf,
+                            int   root)
+{
+    assert(root >= 0);
+    assert(sendcount > 0);
+    assert(!(sendbuf == 0));
+    assert(!(recvbuf == 0));
+
+    int myproc = ParallelDescriptor::MyProc();
+
+    ParallelDescriptor::SetMessageHeaderSize(sizeof(int));
+
+    if (!(myproc == root))
+    {
+        ParallelDescriptor::SendData(root,
+                                     &myproc,
+                                     sendbuf,
+                                     sizeof(Real)*sendcount);
+    }
+    ParallelDescriptor::Synchronize();
+
+    if (myproc == root)
+    {
+        int len, nproc;
+
+        for ( ; ParallelDescriptor::GetMessageHeader(len, &nproc); )
+        {
+            assert(len == sizeof(Real)*sendcount);
+
+            ParallelDescriptor::ReceiveData(recvbuf+nproc, len);
+        }
+        memcpy(recvbuf+root, sendbuf+root, sizeof(Real)*sendcount);
+    }
 }
 
 #elif defined(BL_USE_MPI)
@@ -284,6 +322,13 @@ ParallelDescriptor::Broadcast (int    fromproc,
 
 static int numprocs = -1;
 static int myid     = -1;
+
+inline
+MPI_Datatype
+TheRealType ()
+{
+    return sizeof(Real) == sizeof(float) ? MPI_FLOAT : MPI_DOUBLE;
+}
 
 void
 ParallelDescriptor::StartParallel (int,
@@ -346,7 +391,7 @@ void
 ParallelDescriptor::ReduceRealMax (Real& r)
 {
     Real recv;
-    MPI_Allreduce(&r, &recv, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Allreduce(&r, &recv, 1, TheRealType(), MPI_MAX, MPI_COMM_WORLD);
     r = recv;
 }
 
@@ -354,7 +399,7 @@ void
 ParallelDescriptor::ReduceRealMin (Real& r)
 {
     Real recv;
-    MPI_Allreduce(&r, &recv, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+    MPI_Allreduce(&r, &recv, 1, TheRealType(), MPI_MIN, MPI_COMM_WORLD);
     r = recv;
 }
 
@@ -362,7 +407,7 @@ void
 ParallelDescriptor::ReduceRealSum (Real& r)
 {
     Real recv;
-    MPI_Allreduce(&r, &recv, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(&r, &recv, 1, TheRealType(), MPI_SUM, MPI_COMM_WORLD);
     r = recv;
 }
 
@@ -395,6 +440,22 @@ ParallelDescriptor::Abort (const char* msg)
 {
     BoxLib::Warning(msg);
     MPI_Abort(MPI_COMM_WORLD, -1);
+}
+
+void
+ParallelDescriptor::Gather (Real* sendbuf,
+                            int   nsend,
+                            Real* recvbuf,
+                            int   root)
+{
+    assert(root >= 0);
+    assert(nsend > 0);
+    assert(!(sendbuf == 0));
+    assert(!(recvbuf == 0));
+
+    MPI_Datatype typ = TheRealType();
+
+    MPI_Gather(sendbuf, nsend, typ, recvbuf, nsend, typ, root, MPI_COMM_WORLD);
 }
 
 #else
