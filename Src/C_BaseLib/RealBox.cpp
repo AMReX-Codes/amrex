@@ -1,6 +1,6 @@
 
 //
-// $Id: RealBox.cpp,v 1.7 2000-10-02 20:49:03 lijewski Exp $
+// $Id: RealBox.cpp,v 1.8 2000-11-01 18:29:37 lijewski Exp $
 //
 
 #include <aString.H>
@@ -30,14 +30,9 @@ RealBox::RealBox (const Box&  bx,
 bool
 RealBox::contains (const Real* point) const
 {
-    return  (xlo[0]-eps < point[0]) && (point[0] < xhi[0]+eps)
-#if (BL_SPACEDIM > 1)   
-        && (xlo[1]-eps < point[1]) && (point[1] < xhi[1]+eps)
-#endif
-#if (BL_SPACEDIM > 2)   
-        && (xlo[2]-eps < point[2]) && (point[2] < xhi[2]+eps)
-#endif
-   ;
+    return  D_TERM((xlo[0]-eps < point[0]) && (point[0] < xhi[0]+eps),
+                   && (xlo[1]-eps < point[1]) && (point[1] < xhi[1]+eps),
+                   && (xlo[2]-eps < point[2]) && (point[2] < xhi[2]+eps));
 }
 
 ostream&
