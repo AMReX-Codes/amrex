@@ -227,12 +227,7 @@ void task_copy::startup()
     else if ( is_local(m_smf, m_sgrid) ) 
     {
 	tmp = new FArrayBox(m_sbx, m_smf.nComp());
-	// before I can post the receive, I have to ensure that there are no dependent zones in the
-	// grid
 	tmp->copy(m_smf[m_sgrid], m_sbx);
-	// HG_DEBUG_OUT( "<< Norm(S) of tmp " << m_sno << " " << tmp->norm(m_sbx, 2) << endl );
-	// HG_DEBUG_OUT( "<<<Box(S) of tmp "   << m_sno << " " << tmp->box() << endl );
-	// printRange(debug_out, *tmp, m_sbx, 0, tmp->nComp());
 	int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_mf,  m_dgrid), m_sno, m_comm, &m_request);
 	if ( res != 0 )
 	    ParallelDescriptor::Abort(res);
@@ -241,7 +236,6 @@ void task_copy::startup()
     else
     {
 	BoxLib::Abort( "task_copy::ready(): Can't be here" );
-	// neither fab lives on local processor
     }
     m_started = true;
 }
@@ -252,8 +246,6 @@ bool task_copy::ready()
     if ( ! m_started ) startup();
     if ( m_local )
     {
-	// HG_DEBUG_OUT( "Norm(L) " << m_sno << " " << m_smf[m_sgrid].norm(m_sbx, 2) << endl );
-	// printRange(debug_out, m_smf[m_sgrid], m_sbx, 0, m_smf.nComp());
 	m_mf[m_dgrid].copy(m_smf[m_sgrid], m_sbx, 0, m_bx, 0, m_mf.nComp());
 	return true;
     }
@@ -275,9 +267,6 @@ bool task_copy::ready()
 	    if ( res != 0 )
 		ParallelDescriptor::Abort( res );
 	    assert(count == tmp->box().numPts()*tmp->nComp());
-	    // HG_DEBUG_OUT( ">> Norm(R) of tmp " << m_sno << " " << tmp->norm(m_sbx, 2) << endl );
-	    // HG_DEBUG_OUT( ">>>Box(R) of tmp "   << m_sno << " " << tmp->box() << endl );
-	    // printRange(debug_out, *tmp, m_sbx, 0, tmp->nComp());
 	    m_mf[m_dgrid].copy(*tmp, m_sbx, 0, m_bx, 0, m_smf.nComp());
 	}
 	return true;
@@ -361,12 +350,7 @@ void task_copy_local::startup()
     else if ( m_fab == 0 && is_local(m_smf, m_sgrid) ) 
     {
 	tmp = new FArrayBox(m_bx, m_smf.nComp());
-	// before I can post the receive, I have to ensure that there are no dependent zones in the
-	// grid
 	tmp->copy(m_smf[m_sgrid], m_bx);
-	// HG_DEBUG_OUT( "<< Norm(S) of tmp "  << m_sno << " " << tmp->norm(m_bx, 2) << endl );
-	// HG_DEBUG_OUT( "<<<Box(S) of tmp "   << m_sno << " " << tmp->box() << endl );
-	// printRange(debug_out, *tmp, m_sbx, 0, tmp->nComp());
 	int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(), m_sno, m_comm, &m_request);
 	if ( res != 0 )
 	    ParallelDescriptor::Abort(res);
@@ -375,7 +359,6 @@ void task_copy_local::startup()
     else
     {
 	BoxLib::Abort( "task_copy_local::ready(): Can't Happen" );
-	// neither fab lives on local processor
     }
     m_started = true;
 }
@@ -387,7 +370,6 @@ bool task_copy_local::ready()
     if ( m_local )
     {
 	m_fab->copy(m_smf[m_sgrid], m_bx);
-	// printRange(debug_out, *m_fab, m_bx, 0, m_fab->nComp());
 	return true;
     }
     int flag;
