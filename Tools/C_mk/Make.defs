@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.1 1997-09-15 20:37:04 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.2 1997-09-15 20:46:01 lijewski Exp $
 #
 
 #
@@ -148,11 +148,7 @@ ifeq ($(findstring KAI C++ 3., $(__kcc_version)), KAI C++ 3.)
 endif
 endif
 
-ifndef MAKEARCHFILE
-    include $(GUTHAMR_HOME)/mk/Make.$(MACHINE)
-else
-    include $(MAKEARCHFILE)
-endif
+include ../mk/Make.$(MACHINE)
 
 ifeq ($(DEBUG),TRUE)
     FFLAGS	+= $(FDEBF)
