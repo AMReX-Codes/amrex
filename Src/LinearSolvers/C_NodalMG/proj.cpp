@@ -10,6 +10,7 @@
 #include <fstream>
 #include <new>
 #include <sstream>
+#include <cstdio>
 
 #ifndef WIN32
 #include <unistd.h>
