@@ -46,7 +46,7 @@ extern "C"
 #error not relevant
 #endif
     void FORT_HGFRES_TERRAIN(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
-    void FORT_HGFRES        (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
+    void FORT_HGFRES        (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*, const int*);
     void FORT_HGCRES_TERRAIN(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
     void FORT_HGCRES        (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
     void FORT_HGERES_TERRAIN(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
@@ -61,10 +61,10 @@ extern "C"
 
 extern "C"
 {
-  typedef void (*FCERES) (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS,
-			  const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
-}
+typedef void (*FCERES) (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
 
+typedef void (*FCERES3) (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*, const int*);
+}
 
 class task_fceres_2 : public task_fec_base
 {
@@ -169,6 +169,115 @@ task_fceres_2::doit ()
     const Box&       sc_fab_box = sc_fab.box();
  
     (*f)(r_fab.dataPtr(), DIMLIST(r_fab_box), s_fab.dataPtr(), DIMLIST(s_fab_box), d_fab.dataPtr(), DIMLIST(d_fab_box), c_fab.dataPtr(), DIMLIST(c_fab_box), sg_fab.dataPtr(), DIMLIST(sg_fab_box), sc_fab.dataPtr(), DIMLIST(sc_fab_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir);
+}
+
+class task_fceres_3 : public task_fec_base
+{
+public:
+
+    task_fceres_3 (FCERES3         f_,
+                   task_list&      tl_,
+                   MultiFab&       r_,
+                   const MultiFab& s_,
+                   const MultiFab& d_,
+                   const MultiFab& sg_,
+                   int             igrid_,
+                   task_fab*       c_,
+                   task_fab*       sc_,
+                   const Box&      creg_,
+                   const Real      h_[BL_SPACEDIM],
+                   const IntVect&  rat_,
+                   int             idim_,
+                   int             idir_,
+                   int             isrz_);
+
+    virtual bool ready ();
+
+private:
+
+    void doit ();
+
+    FCERES3         f;
+    const MultiFab& s;
+    const MultiFab& d;
+    const MultiFab& sg;
+    const Box       creg;
+    Real            h[BL_SPACEDIM];
+    const IntVect   rat;
+    int             idim;
+    int             idir;
+    int             isrz;
+};
+
+task_fceres_3::task_fceres_3 (FCERES3         f_,
+                              task_list&      tl_,
+                              MultiFab&       r_,
+                              const MultiFab& s_,
+                              const MultiFab& d_,
+                              const MultiFab& sg_,
+                              int             igrid_,
+                              task_fab*       c_,
+                              task_fab*       sc_,
+                              const Box&      creg_,
+                              const Real      h_[BL_SPACEDIM],
+                              const IntVect&  rat_,
+                              int             idim_,
+                              int             idir_,
+                              int             isrz_)
+    :
+    task_fec_base(tl_,r_,igrid_),
+    f(f_),
+    s(s_),
+    d(d_),
+    sg(sg_),
+    creg(creg_),
+    rat(rat_),
+    idim(idim_),
+    idir(idir_),
+    isrz(isrz_)
+{
+    push_back(c_);
+    push_back(sc_);
+
+    for (int i = 0; i < BL_SPACEDIM; ++i) h[i] = h_[i];
+
+    if (is_local_target() && dependencies.empty()) doit();
+}
+
+bool
+task_fceres_3::ready ()
+{
+    BL_ASSERT(!done);
+
+    if (is_local_target()) doit();
+
+    return true;
+}
+
+void
+task_fceres_3::doit ()
+{
+    BL_ASSERT(!done);
+    BL_ASSERT(is_local_target());
+    BL_ASSERT(dependencies.empty());
+
+    done = true;
+
+    const int        igrid      = grid_number();
+    FArrayBox&       r_fab      = target_fab();
+    const Box&       r_fab_box  = r_fab.box();
+    const FArrayBox& s_fab      = s[igrid];
+    const Box&       s_fab_box  = s_fab.box();
+    const FArrayBox& d_fab      = d[igrid];
+    const Box&       d_fab_box  = d_fab.box();
+    const FArrayBox& c_fab      = task_fab_result(0);
+    const Box&       c_fab_box  = c_fab.box();
+    const FArrayBox& sg_fab     = sg[igrid];
+    const Box&       sg_fab_box = sg_fab.box();
+    const FArrayBox& sc_fab     = task_fab_result(1);
+    const Box&       sc_fab_box = sc_fab.box();
+ 
+    (*f)(r_fab.dataPtr(), DIMLIST(r_fab_box), s_fab.dataPtr(), DIMLIST(s_fab_box), d_fab.dataPtr(), DIMLIST(d_fab_box), c_fab.dataPtr(), DIMLIST(c_fab_box), sg_fab.dataPtr(), DIMLIST(sg_fab_box), sc_fab.dataPtr(), DIMLIST(sc_fab_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir,&isrz);
 }
 
 class task_fceres_4 : public task_fec_base
@@ -553,7 +662,8 @@ holy_grail_amr_multigrid::interface_residual (int mglev,
 	}
 	else
 	{
-	    tl.add_task(new task_fceres_2(&FORT_HGFRES,tl,resid[mglev],source[lev],dest[lev],sigma[mglev],igrid,cdst,sigmac,creg,h[mglev],rat,idim,idir));
+	    const int isRZ = IsRZ();
+	    tl.add_task(new task_fceres_3(&FORT_HGFRES,tl,resid[mglev],source[lev],dest[lev],sigma[mglev],igrid,cdst,sigmac,creg,h[mglev],rat,idim,idir,isRZ));
 	}
     }
     tl.execute();
