@@ -2,7 +2,7 @@
 #define BL_BOXARRAY_H
 
 //
-// $Id: BoxArray.H,v 1.20 2001-07-19 16:57:30 lijewski Exp $
+// $Id: BoxArray.H,v 1.21 2001-07-19 17:19:32 car Exp $
 //
 
 #include <cstddef>
@@ -18,10 +18,31 @@
 class BoxList;
 
 class BoxArray;
-BoxArray boxComplement (const Box& b1in, const Box& b2);
-BoxArray complementIn (const Box& b, const BoxArray& ba);
-BoxArray intersect (const BoxArray& ba, const Box& b);
-BoxArray intersect (const BoxArray& lhs, const BoxArray& rhs);
+
+namespace BoxLib
+{
+    //
+    //@ManDoc: Makes a BoxArray from the the complement of b2 in b1in.
+    //
+    BoxArray boxComplement (const Box& b1in, const Box& b2);
+    //
+    //@ManDoc: Makes a BoxArray from the complement of BoxArray ba in Box b.
+    //
+    BoxArray complementIn (const Box& b, const BoxArray& ba);
+    //
+    //@ManDoc: Makes a BoxArray from the intersection of Box b and BoxArray ba.
+    //
+    BoxArray intersect (const BoxArray& ba, const Box& b);
+    //
+    //@ManDoc: Makes a BoxArray from the intersection of two BoxArrays.
+    //
+    BoxArray intersect (const BoxArray& lhs, const BoxArray& rhs);
+}
+
+//
+//@ManDoc: Write a BoxArray to an ostream in ASCII format.
+//
+std::ostream& operator<< (std::ostream& os, const BoxArray& ba);
 
 //
 //@Man:
@@ -36,11 +57,6 @@ BoxArray intersect (const BoxArray& lhs, const BoxArray& rhs);
 class BoxArray
 {
 public:
-    //
-    //@ManDoc: Write a BoxArray to an ostream in ASCII format.
-    //
-    friend std::ostream& operator<< (std::ostream&   os,
-                                     const BoxArray& ba);
     //
     //@ManDoc: Construct an empty BoxArray.
     //
@@ -241,26 +257,6 @@ public:
     //@ManDoc: Returns smallest Box that contains all Boxes in this BoxArray.
     //
     Box minimalBox () const;
-    //
-    //@ManDoc: Makes a BoxArray from the the complement of b2 in b1in.
-    //
-    friend BoxArray boxComplement (const Box& b1in,
-                                   const Box& b2);
-    //
-    //@ManDoc: Makes a BoxArray from the complement of BoxArray ba in Box b.
-    //
-    friend BoxArray complementIn (const Box&      b,
-                                  const BoxArray& ba);
-    //
-    //@ManDoc: Makes a BoxArray from the intersection of Box b and BoxArray ba.
-    //
-    friend BoxArray intersect (const BoxArray& ba,
-                               const Box&      b);
-    //
-    //@ManDoc: Makes a BoxArray from the intersection of two BoxArrays.
-    //
-    friend BoxArray intersect (const BoxArray& lhs,
-                               const BoxArray& rhs);
 
     void reserve (long _truesize);
 

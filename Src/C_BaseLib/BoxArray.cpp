@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.19 2001-07-19 16:57:31 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.20 2001-07-19 17:23:41 car Exp $
 //
 
 #include <BLassert.H>
@@ -525,29 +525,29 @@ BoxArray::minimalBox () const
 }
 
 BoxArray
-boxComplement (const Box& b1in,
-               const Box& b2)
+BoxLib::boxComplement (const Box& b1in,
+		       const Box& b2)
 {
     return BoxArray(::boxDiff(b1in, b2));
 }
 
 BoxArray
-complementIn (const Box&      b,
-              const BoxArray& ba)
+BoxLib::complementIn (const Box&      b,
+		      const BoxArray& ba)
 {
     return BoxArray(::complementIn(b, ba.boxList()));
 }
 
 BoxArray
-intersect (const BoxArray& ba,
-           const Box&      b)
+BoxLib::intersect (const BoxArray& ba,
+		   const Box&      b)
 {
     return BoxArray(::intersect(ba.boxList(), b));
 }
 
 BoxArray
-intersect (const BoxArray& lhs,
-           const BoxArray& rhs)
+BoxLib::intersect (const BoxArray& lhs,
+		   const BoxArray& rhs)
 {
     return BoxArray(::intersect(lhs.boxList(), rhs.boxList()));
 }

@@ -2,7 +2,7 @@
 #define BL_BOXLIST_H
 
 //
-// $Id: BoxList.H,v 1.19 2001-07-19 16:57:31 lijewski Exp $
+// $Id: BoxList.H,v 1.20 2001-07-19 17:19:32 car Exp $
 //
 
 #include <iostream>
@@ -19,10 +19,44 @@ class BoxArray;
 class BoxListIterator;
 
 class BoxList;
+
+namespace BoxLib
+{
+/*@ManDoc: Returns a BoxList defining the complement of BoxList bl
+  in Box b.
+*/
 BoxList complementIn(const Box& b, const BoxList& bl);
+//
+//@ManDoc: Returns BoxList defining the compliment of b2 in b1in.
+//
 BoxList boxDiff (const Box& b1in, const Box& b2);
+/*@ManDoc: Returns a new BoxList in which each Box is refined by the
+  given ratio.
+*/
 BoxList refine (const BoxList&  bl, int ratio);
+/*@ManDoc: Returns a new BoxList in which each Box is coarsened by
+  the given ratio.
+*/
 BoxList coarsen (const BoxList& bl, int ratio);
+//
+//@ManDoc: Returns a BoxList defining the intersection of bl with b.
+//
+BoxList intersect (const BoxList& bl, const Box& b);
+//
+//@ManDoc: Returns a BoxList defining the intersection of bl with br.
+//
+BoxList intersect (const BoxList& bl, const BoxList& br);
+
+/*@ManDoc: Returns a new BoxList in which each Box is grown by the
+  given size.
+*/
+BoxList accrete (const BoxList& bl, int sz);
+}
+
+//
+//@ManDoc: Output a BoxList to an ostream in ASCII format.
+//
+std::ostream& operator<< (std::ostream&  os, const BoxList& blist);
 
 
 //
@@ -263,50 +297,6 @@ public:
     //@ManDoc: Applies Box::convert(IndexType) to each Box in the BoxList.
     //
     BoxList& convert (IndexType typ);
-    //
-    //@ManDoc: Output a BoxList to an ostream in ASCII format.
-    //
-    friend std::ostream& operator<< (std::ostream&  os,
-                                     const BoxList& blist);
-    //
-    //@ManDoc: Returns a BoxList defining the intersection of bl with b.
-    //
-    friend BoxList intersect (const BoxList& bl,
-                              const Box&     b);
-    //
-    //@ManDoc: Returns a BoxList defining the intersection of bl with br.
-    //
-    friend BoxList intersect (const BoxList& bl,
-                              const BoxList& br);
-
-    /*@ManDoc: Returns a new BoxList in which each Box is refined by the
-               given ratio.
-    */
-    friend BoxList refine (const BoxList&  bl,
-                           int             ratio);
-
-    /*@ManDoc: Returns a new BoxList in which each Box is coarsened by
-               the given ratio.
-    */
-    friend BoxList coarsen (const BoxList& bl,
-                            int            ratio);
-
-    /*@ManDoc: Returns a new BoxList in which each Box is grown by the
-               given size.
-    */
-    friend BoxList accrete (const BoxList& bl,
-                            int            sz);
-    //
-    //@ManDoc: Returns BoxList defining the compliment of b2 in b1in.
-    //
-    friend BoxList boxDiff (const Box& b1in,
-                            const Box& b2);
-
-    /*@ManDoc: Returns a BoxList defining the complement of BoxList bl
-               in Box b.
-    */
-    friend BoxList complementIn  (const Box&     b,
-                                  const BoxList& bl);
 protected:
     //
     // The list of Boxes.
