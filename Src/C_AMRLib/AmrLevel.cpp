@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.16 1997-12-17 23:04:53 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.17 1997-12-19 18:43:52 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1764,23 +1764,21 @@ AmrLevel::FillDerive (FArrayBox&     dest,
     }
 }
 
-int* 
+Array<int>
 AmrLevel::getBCArray (int State_Type,
                       int gridno,
                       int strt_comp,
                       int num_comp)
 {
-    int* bc = new int[2*BL_SPACEDIM*num_comp];
-    int* b = bc;
-    int n;
-    for (n = 0; n < num_comp; n++)
+    Array<int> bc(2*BL_SPACEDIM*num_comp);
+
+    for (int n = 0; n < num_comp; n++)
     {
-        const int* b_rec = 
-        state[State_Type].getBC(strt_comp+n,gridno).vect();
-        int m;
-        for (m = 0; m < 2*BL_SPACEDIM; m++)
-            *b++ = b_rec[m];
+        const int* b_rec = state[State_Type].getBC(strt_comp+n,gridno).vect();
+        for (int m = 0; m < 2*BL_SPACEDIM; m++)
+            bc[2*BL_SPACEDIM*n + m] = b_rec[m];
     }
+
     return bc;
 }
 

@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.9 1997-12-11 23:27:47 lijewski Exp $
+// $Id: AmrLevel.H,v 1.10 1997-12-19 18:43:51 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -285,10 +285,10 @@ public:
     //
     // Boundary condition access function.
     //
-    int* getBCArray (int State_Type,
-                     int gridno,
-                     int strt_comp,
-                     int num_comp);
+    Array<int> getBCArray (int State_Type,
+                           int gridno,
+                           int strt_comp,
+                           int num_comp);
 
     MultiFab& get_data(int state_indx, Real time);
 
