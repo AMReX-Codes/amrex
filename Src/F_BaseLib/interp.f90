@@ -3,11 +3,9 @@ module interp_module
   use bl_types
   use bl_error_module
   use bl_constants_module
+  use bc_module
 
   implicit none
-
-  integer, parameter :: INTERP_BC_EXT_DIR  =  3
-  integer, parameter :: INTERP_BC_HOEXTRAP =  4
 
   private :: ix_proj
 
@@ -131,7 +129,7 @@ contains
        cycen = HALF*(cvcy(jc)+cvcy(jc+1))
        voffy(j) = (fycen-cycen)/(cvcy(jc+1)-cvcy(jc))
     end do
-    do i = 0, size(fine,2)-1
+    do i = 0, size(fine,1)-1
        ic = IX_PROJ(i,lratio(1))
        fxcen = HALF*(fvcx(i)+fvcx(i+1))
        cxcen = HALF*(cvcx(ic)+cvcx(ic+1))
@@ -169,7 +167,7 @@ contains
           end do
        end do
 
-       if (bc(1,1,n)  ==  INTERP_BC_EXT_DIR .or. bc(1,1,n) == INTERP_BC_HOEXTRAP) then
+       if (bc(1,1,n)  ==  EXT_DIR .or. bc(1,1,n) == HOEXTRAP) then
           i = 0
           if ( xok(1) ) then
              do j = 0, nxc(2)-1
@@ -186,7 +184,7 @@ contains
           end do
        end if
 
-       if (bc(1,2,n)  ==  INTERP_BC_EXT_DIR .or. bc(1,2,n) == INTERP_BC_HOEXTRAP) then
+       if (bc(1,2,n)  ==  EXT_DIR .or. bc(1,2,n) == HOEXTRAP) then
           i = nxc(1)-1
           if ( xok(1) ) then
              do j = 0, nxc(2)-1
@@ -210,7 +208,7 @@ contains
           end do
        end do
 
-       if (bc(2,1,n)  == INTERP_BC_EXT_DIR .or. bc(2,1,n) == INTERP_BC_HOEXTRAP) then
+       if (bc(2,1,n)  == EXT_DIR .or. bc(2,1,n) == HOEXTRAP) then
           j = 0
           if ( xok(1) ) then
              do i = 0, nxc(1)-1
@@ -227,7 +225,7 @@ contains
           end do
        end if
 
-       if (bc(2,2,n)  ==  INTERP_BC_EXT_DIR .or. bc(2,2,n) == INTERP_BC_HOEXTRAP) then
+       if (bc(2,2,n)  ==  EXT_DIR .or. bc(2,2,n) == HOEXTRAP) then
           j = nxc(2)-1
           if ( xok(2) ) then
              do i = 0, nxc(1)-1
@@ -862,7 +860,7 @@ contains
           end do
        end do
 
-       if (bc(1,1,n)  ==  INTERP_BC_EXT_DIR .or. bc(1,1,n) == INTERP_BC_HOEXTRAP) then
+       if (bc(1,1,n)  ==  EXT_DIR .or. bc(1,1,n) == HOEXTRAP) then
           i = 0
           if ( xok(1) ) then
              do k=0, nxc(3)-1
@@ -885,7 +883,7 @@ contains
           end do
        end if
 
-       if (bc(1,2,n)  ==  INTERP_BC_EXT_DIR .or. bc(1,2,n) == INTERP_BC_HOEXTRAP) then
+       if (bc(1,2,n)  ==  EXT_DIR .or. bc(1,2,n) == HOEXTRAP) then
           i = nxc(1) - 1
           if ( xok(1) ) then
              do k=0, nxc(3)-1
@@ -918,7 +916,7 @@ contains
           end do
        end do
 
-       if (bc(2,1,n)  ==  INTERP_BC_EXT_DIR .or. bc(2,1,n) == INTERP_BC_HOEXTRAP) then
+       if (bc(2,1,n)  ==  EXT_DIR .or. bc(2,1,n) == HOEXTRAP) then
           j = 0
           if ( xok(2) ) then
              do k=0, nxc(3)-1
@@ -941,7 +939,7 @@ contains
           end do
        end if
 
-       if (bc(2,2,n)  ==  INTERP_BC_EXT_DIR .or. bc(2,2,n) == INTERP_BC_HOEXTRAP) then
+       if (bc(2,2,n)  ==  EXT_DIR .or. bc(2,2,n) == HOEXTRAP) then
           j = nxc(2)-1
           if ( xok(2) ) then
              do k=0, nxc(3)-1
@@ -974,7 +972,7 @@ contains
           end do
        end do
 
-       if (bc(3,1,n)  == INTERP_BC_EXT_DIR .or. bc(3,1,n) == INTERP_BC_HOEXTRAP ) then
+       if (bc(3,1,n)  == EXT_DIR .or. bc(3,1,n) == HOEXTRAP ) then
           k = 0
           if ( xok(3) ) then
              do j=0, nxc(2)-1
@@ -997,7 +995,7 @@ contains
           end do
        end if
 
-       if (bc(3,2,n)  ==  INTERP_BC_EXT_DIR .or. bc(3,2,n)  ==  INTERP_BC_HOEXTRAP) then
+       if (bc(3,2,n)  ==  EXT_DIR .or. bc(3,2,n)  ==  HOEXTRAP) then
           k = nxc(3)-1
           if ( xok(3) ) then
              do j=0, nxc(2)-1
