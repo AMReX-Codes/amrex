@@ -17,7 +17,7 @@ endif
 
 ifeq ($(COMP),KCC)
 CXX     := KCC
-CXXOPTF += -O3 +K3
+CXXOPTF += +K2
 CXXDEBF += +K0
 endif
 
