@@ -1,8 +1,8 @@
 c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
       subroutine fcpy(dest, destl0, desth0, destl1, desth1,
-     @ regl0, regh0, regl1, regh1,
-     @ src,  srcl0, srch0, srcl1, srch1, ncomp)
+     & regl0, regh0, regl1, regh1,
+     & src,  srcl0, srch0, srcl1, srch1, ncomp)
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
@@ -25,8 +25,8 @@ c Works for CELL- or NODE-based data.
 c-----------------------------------------------------------------------
 c Unrolled copy---works for CELL- or NODE-based data.
       subroutine fcpyu(dest, src,
-     @ regl0, regh0, regl1, regh1,
-     @ ncomp)
+     & regl0, regh0, regl1, regh1,
+     & ncomp)
       integer regl0, regh0, regl1, regh1
       double precision dest(*)
       double precision src(*)
@@ -39,8 +39,8 @@ c Unrolled copy---works for CELL- or NODE-based data.
 c-----------------------------------------------------------------------
 c Works for NODE-based data.
       subroutine fcpy2(da, dal0, dah0, dal1, dah1,
-     @ db,  dbl0, dbh0, dbl1, dbh1,
-     @ regl0, regh0, regl1, regh1, w, ncomp)
+     & db,  dbl0, dbh0, dbl1, dbh1,
+     & regl0, regh0, regl1, regh1, w, ncomp)
       integer dal0, dah0, dal1, dah1
       integer dbl0, dbh0, dbl1, dbh1
       integer regl0, regh0, regl1, regh1
@@ -64,7 +64,7 @@ c Works for NODE-based data.
       end
 c-----------------------------------------------------------------------
       subroutine fccpy1(dest, src, nsets, dstart, sstart,
-     @                  dstrid, sstrid, nvals)
+     &                  dstrid, sstrid, nvals)
       double precision dest(0:*), src(0:*)
       integer nsets
       integer dstart(nsets), sstart(nsets)
@@ -73,13 +73,13 @@ c-----------------------------------------------------------------------
       do 10 k = 1, nsets
          do 10 i = 0, nvals(k) - 1
  10         dest(dstart(k) + i * dstrid(k)) =
-     @       src(sstart(k) + i * sstrid(k))
+     &       src(sstart(k) + i * sstrid(k))
       end
 c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
       subroutine mxnorm(src, srcl0, srch0, srcl1, srch1,
-     @ regl0, regh0, regl1, regh1,
-     @ retval)
+     & regl0, regh0, regl1, regh1,
+     & retval)
       integer srcl0, srch0, srcl1, srch1
       integer regl0, regh0, regl1, regh1
       double precision src(srcl0:srch0,srcl1:srch1)
