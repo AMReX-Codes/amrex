@@ -407,6 +407,7 @@ bool task_copy_local::ready()
 	    assert(count == tmp->box().numPts()*tmp->nComp());
 	    m_fab->copy(*tmp, m_bx);
 	}
+	return true;
     }
     return false;
 }
@@ -425,8 +426,9 @@ bool task_fab::init(sequence_number sno, MPI_Comm comm)
     if ( m_local_target )
     {
 	target = new FArrayBox(region, ncomp);
+	return true;
     }
-    return true;
+    return false;
 }
 
 

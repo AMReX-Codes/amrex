@@ -161,6 +161,7 @@ bool task_bdy_fill::ready()
 	    assert(count == tmp->box().numPts()*tmp->nComp());
 	    m_bdy->fill(*m_fab, m_region, *tmp, m_domain);
 	}
+	return true;
     }
     return false;
 }
