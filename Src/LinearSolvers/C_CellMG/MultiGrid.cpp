@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiGrid.cpp,v 1.4 1998-07-29 19:09:56 lijewski Exp $
+// $Id: MultiGrid.cpp,v 1.5 1998-12-08 18:25:45 wyc Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -371,7 +371,14 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
     {
         bool use_mg_precond = false;
         CGSolver cg(Lp, use_mg_precond, level);
-        cg.solve(solL, rhsL, rtol_b, atol_b, bc_mode);
+	cg.setExpert(true);
+        int ret = cg.solve(solL, rhsL, rtol_b, atol_b, bc_mode);
+	if( ret != 0 ){
+	  // cg failure probably indicates loss of precision accident.
+	  // setting solL to 0 should be ok
+	  solL.setVal(0.);
+	  cout << "wyc -- setting coarse corr to zero"<<endl;
+	}
         for (int i = 0; i < nu_b; i++)
         {
             Lp.smooth(solL, rhsL, level, bc_mode);

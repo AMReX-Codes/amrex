@@ -4,7 +4,7 @@
 #define _CGSOLVER_H_
 
 //
-// $Id: CGSolver.H,v 1.3 1998-07-07 17:25:13 lijewski Exp $
+// $Id: CGSolver.H,v 1.4 1998-12-08 18:25:44 wyc Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -67,6 +67,13 @@
         definition of the operator.  If cg performance is bad however,
         setting the LinOp's maxorder=2 is a good place to start.
 
+	\item CGSolver can fail to converge, or more likely diverge, if you
+	run into a solvability problem (likely the accuracy cannot be 
+	achieved).  CGSolver can be put into a different mode by using 
+	setExpert, where instead of bombing out, solve() returns an error
+	code.  0 means good, 1 means loss-of-accuracy, 2 means iteration
+	count exceeded.
+
         \end{itemize}
         
         Default settings:
@@ -77,6 +84,9 @@
         \item verbose(0) Verbosity (1-results, 2-progress, 3-detailed progress)
         \item use\_mg\_precond(false) Whether to use the V-cycle multigrid
         solver for the preconditioner system
+	\item unstable\_criterion(10) if norm of residual grows by more than 
+	this factor, it is taken as signal that you've run into a solvability
+	problem.
         \end{itemize}
         
         This class does NOT provide a copy constructor or assignment operator.
@@ -98,8 +108,12 @@ public:
     virtual ~CGSolver ();
     //
     //@ManDoc: solve the system, Lp(solnL)=rhsL to relative err, tolerance
+    // RETURNS AN INT!!!! indicating success or failure.  
+    // 0 means success
+    // 1 means failed for loss of precision
+    // 2 means iterations exceeded
     //
-    virtual void solve (MultiFab&       solnL,
+    virtual int solve (MultiFab&       solnL,
                         const MultiFab& rhsL,
                         Real            eps_rel = -1.0,
                         Real            eps_abs = -1.0,
@@ -112,6 +126,12 @@ public:
     //@ManDoc: get maximum allowed number of CG iterations
     //
     int getMaxIter () const;
+    //
+    //@ManDoc: set expert mode
+    void setExpert( bool flag ) { isExpert = flag; }
+    //
+    //@ManDoc: get expert flag
+    bool getExpert() { return isExpert; }
     //
     //@ManDoc: set flag determining whether MG preconditioning is used
     //
@@ -170,6 +190,14 @@ protected:
     //@ManDoc: Default maximum number of allowed iterations.
     //
     static int def_maxiter;
+    //
+    //@ManDoc: default unstable_criterion used to test for loss of accuracy in
+    //
+    static double def_unstable_criterion;
+    //
+    //@ManDoc: flag determining action when error conditions are hit
+    //
+    bool isExpert;
     //
     //@ManDoc: Default verbosity flag.
     //
