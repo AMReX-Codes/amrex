@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.89 2002-11-13 05:04:58 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.90 2002-11-14 00:13:23 marc Exp $
 //
 #include <winstd.H>
 
@@ -1117,11 +1117,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     // Copy intersect coarse into destination fab.
     //
     for (int i = 0; i < FinestCrseFabs.size(); i++)
-    {
-        const Box& bx = FinestCrseFabs[i].box();
-
-        fab.copy(FinestCrseFabs[i],bx,0,bx,dcomp,m_ncomp);
-    }
+        fab.copy(FinestCrseFabs[i],0,dcomp,m_ncomp);
 
     if (FineGeom.isAnyPeriodic() && !FineDomain.contains(fab.box()))
     {
