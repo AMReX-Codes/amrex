@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.39 2000-01-06 19:03:27 lijewski Exp $
+// $Id: AmrLevel.H,v 1.40 2000-02-28 23:26:36 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -22,6 +22,7 @@
 #include <BCRec.H>
 #include <Interpolater.H>
 #include <Amr.H>
+#include <SlabStat.H>
 #include <StateDescriptor.H>
 #include <StateData.H>
 #include <VisMF.H>
@@ -189,7 +190,7 @@ public:
     //
     //@ManDoc: Returns this AmrLevel.
     //
-    int Level () { return level; }
+    int Level () const { return level; }
     //
     //@ManDoc: List of grids at this level.
     //
@@ -314,6 +315,13 @@ public:
         return derive_lst;
     }
     //
+    //@ManDoc: Returns list of slab stats.
+    //
+    static SlabStatList& get_slabstat_lst ()
+    {
+        return slabstat_lst;
+    }
+    //
     //@ManDoc: Boundary condition access function.
     //
     Array<int> getBCArray (int State_Type,
@@ -341,7 +349,8 @@ public:
     //@ManDoc: Called in grid\_places after other tagging routines to modify
     //         the list of tagged points.  Default implementation does nothing.
     //
-    virtual void manual_tags_placement (TagBoxArray& tags, Array<IntVect>& bf_lev);
+    virtual void manual_tags_placement (TagBoxArray&    tags,
+                                        Array<IntVect>& bf_lev);
     //
     //@ManDoc: Modify list of variables to be plotted
     // 
@@ -365,16 +374,17 @@ protected:
     //
     // The Data.
     //
-    int level;                      // AMR level (0 is coarsest).
-    Geometry geom;                  // Geom at this level.
-    BoxArray grids;                 // Cell-centered locations of grids.
-    Array<RealBox> grid_loc;        // Physical locations of each grid.
-    Amr* parent;                    // Pointer to parent AMR structure.
-    IntVect crse_ratio;             // Refinement ratio to coarser level.
-    IntVect fine_ratio;             // Refinement ratio to finer level.
-    static DeriveList derive_lst;   // List of derived quantities.
-    static DescriptorList desc_lst; // List of state variables.
-    Array<StateData> state;         // Array of state data.
+    int level;                        // AMR level (0 is coarsest).
+    Geometry geom;                    // Geom at this level.
+    BoxArray grids;                   // Cell-centered locations of grids.
+    Array<RealBox> grid_loc;          // Physical locations of each grid.
+    Amr* parent;                      // Pointer to parent AMR structure.
+    IntVect crse_ratio;               // Refinement ratio to coarser level.
+    IntVect fine_ratio;               // Refinement ratio to finer level.
+    static DeriveList derive_lst;     // List of derived quantities.
+    static DescriptorList desc_lst;   // List of state variables.
+    static SlabStatList slabstat_lst; // List of SlabStats.
+    Array<StateData> state;           // Array of state data.
 
 private:
     //

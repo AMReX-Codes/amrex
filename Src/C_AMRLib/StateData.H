@@ -4,7 +4,7 @@
 #define _StateData_H_ 
 
 //
-// $Id: StateData.H,v 1.15 1999-07-15 01:37:02 sstanley Exp $
+// $Id: StateData.H,v 1.16 2000-02-28 23:26:37 lijewski Exp $
 //
 
 #include <Box.H>
@@ -171,27 +171,51 @@ public:
     //
     //@ManDoc: Returns the new data.
     //
-    MultiFab& newData () { return *new_data; }
+    MultiFab& newData ()
+    {
+        BL_ASSERT(new_data != 0);
+        return *new_data;
+    }
     //
     //@ManDoc: Returns the new data.
     //
-    const MultiFab& newData () const { return *new_data; }
+    const MultiFab& newData () const
+    {
+        BL_ASSERT(new_data != 0);
+        return *new_data;
+    }
     //
     //@ManDoc: Returns the old data.
     //
-    MultiFab& oldData () { return *old_data; }
+    MultiFab& oldData ()
+    {
+        BL_ASSERT(old_data != 0);
+        return *old_data;
+    }
     //
     //@ManDoc: Returns the old data.
     //
-    const MultiFab& oldData () const { return *old_data; }
+    const MultiFab& oldData () const
+    {
+        BL_ASSERT(old_data != 0);
+        return *old_data;
+    }
     //
     //@ManDoc: Returns the FAB of new data at grid index `i'.
     //
-    FArrayBox& newGrid (int i) { return (*new_data)[i]; }
+    FArrayBox& newGrid (int i)
+    {
+        BL_ASSERT(new_data != 0);
+        return (*new_data)[i];
+    }
     //
     //@ManDoc: Returns the FAB of old data at grid index `i'.
     //
-    FArrayBox& oldGrid (int i) { return (*old_data)[i]; }
+    FArrayBox& oldGrid (int i)
+    {
+        BL_ASSERT(old_data != 0);
+        return (*old_data)[i];
+    }
     //
     //@ManDoc: Returns an array of boundary condition records for the 
     //         specified component.  Each element in the array corresponds
@@ -211,6 +235,10 @@ public:
     //@ManDoc: True if there is any old data available.
     //
     bool hasOldData () const { return old_data != 0; }
+    //
+    //@ManDoc: True if there is any new data available.
+    //
+    bool hasNewData () const { return new_data != 0; }
 
 protected:
 

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.103 1999-12-02 07:43:05 sstanley Exp $
+// $Id: Amr.cpp,v 1.104 2000-02-28 23:26:36 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -1198,6 +1198,8 @@ Amr::timeStep (int  level,
     RunStats::addCells(level,amr_level[level].countCells());
 
     station.report(time+dt_level[level],level,amr_level[level]);
+
+    AmrLevel::get_slabstat_lst().update(amr_level[level],time,dt_level[level]);
     //
     // Advance grids at higher level.
     //
@@ -1386,13 +1388,19 @@ Amr::regrid (int  lbase,
 
         if (!regrid_level_zero)
         {
-            //
-            // Since we're not regridding level 0 we've got to recache its
-            // procmap.  Otherwise we'd have a problem if a higher level had
-            // the same number of grids as does level 0.
-            //
-            MultiFab dummy(amr_level[0].boxArray(),1,0,Fab_noallocate);
+            const MultiFab& mf = amr_level[0].get_new_data(0);
+
+            BL_ASSERT(mf.ok());
+
+            DistributionMapping::AddToCache(mf.DistributionMap());
         }
+        //
+        // Recache the distribution maps for SlabStat MFs.
+        //
+        ListIterator<SlabStatRec*> li(AmrLevel::get_slabstat_lst().list());
+
+        for ( ; li; ++li)
+            DistributionMapping::AddToCache(li()->mf().DistributionMap());
     }
     //
     // Define the new grids from level start up to new_finest.
@@ -1402,11 +1410,8 @@ Amr::regrid (int  lbase,
         //
         // Construct skeleton of new level.
         //
-        AmrLevel* a = (*levelbld)(*this,
-                                  lev,
-                                  geom[lev],
-                                  new_grid_places[lev],
-                                  cumtime);
+        AmrLevel* a = (*levelbld)(*this,lev,geom[lev],new_grid_places[lev],cumtime);
+
         if (initial)
         {
             //

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateData.cpp,v 1.26 1999-05-10 18:54:08 car Exp $
+// $Id: StateData.cpp,v 1.27 2000-02-28 23:26:37 lijewski Exp $
 //
 
 #include <RunStats.H>
@@ -81,18 +81,16 @@ StateData::restart (istream&               is,
                     const aString&         chkfile,
                     bool                   bReadSpecial)
 {
-    if(bReadSpecial) {
-      ParallelDescriptor::Abort();  // not implemented
-    }
+    if (bReadSpecial)
+        ParallelDescriptor::Abort();  // not implemented
 
     desc = &d;
 
     is >> domain;
-    if(bReadSpecial) {
-      readBoxArray(grids, is, bReadSpecial);
-    } else {
-      grids.define(is);
-    }
+    if (bReadSpecial)
+        readBoxArray(grids, is, bReadSpecial);
+    else
+        grids.define(is);
 
     is >> old_time.start;
     is >> old_time.stop;

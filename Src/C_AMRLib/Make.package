@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.7 1999-04-01 21:43:10 car Exp $
+# $Id: Make.package,v 1.8 2000-02-28 23:26:37 lijewski Exp $
 #
 
 AMRLIB_BASE=EXE
@@ -9,12 +9,12 @@ endif
 
 C$(AMRLIB_BASE)_sources += Amr.cpp AmrLevel.cpp BCRec.cpp Cluster.cpp \
                 Derive.cpp ErrorList.cpp FluxRegister.cpp \
-                Interpolater.cpp StateData.cpp \
+                Interpolater.cpp SlabStat.cpp StateData.cpp \
                 StateDescriptor.cpp StationData.cpp TagBox.cpp
 
 C$(AMRLIB_BASE)_headers += Amr.H AmrLevel.H BCRec.H BC_TYPES.H \
                 Cluster.H Derive.H ErrorList.H FluxRegister.H \
-                LevelBld.H Interpolater.H StateData.H \
+                LevelBld.H Interpolater.H SlabStat.H StateData.H \
                 StateDescriptor.H StationData.H TagBox.H PROB_AMR_F.H 
 
 F$(AMRLIB_BASE)_headers += FLUXREG_F.H INTERP_F.H MAKESLICE_F.H
