@@ -186,6 +186,7 @@ c Note---assumes fdst linearly interpolated from cdst along edges
       jc = regl1
       if = ic * ir
       jf = jc * jr
+
       sum = 0.d0
       center = 0.d0
 c quadrants
@@ -250,7 +251,6 @@ c edges
 c weighting
       res(if,jf) = src(if,jf) - sum / center
       end
-
 
 c 9-point stencil versions:
 
@@ -1843,7 +1843,7 @@ c-----------------------------------------------------------------------
          end do
       end do
 
-      if (irz .eq. 1 .and. regl0 .eq. 0) then
+      if (irz .eq. 1 .and. regl0 .le. 0 .and. regh0 .ge. 0) then
          i = 0
          do j = regl1, regh1
             res(i,j) = res(i,j) + .25d0 * hym2 * 
@@ -3258,5 +3258,4 @@ cdir$ ivdep
            endif
         end do
       endif
-
       end
