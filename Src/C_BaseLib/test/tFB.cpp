@@ -1,6 +1,6 @@
 
 //
-// $Id: tFB.cpp,v 1.7 2001-07-22 18:25:48 car Exp $
+// $Id: tFB.cpp,v 1.8 2001-10-17 17:53:33 lijewski Exp $
 //
 // A test program for FillBoundary().
 //
@@ -8,13 +8,9 @@
 #include <Utility.H>
 #include <MultiFab.H>
 
-#ifdef BL_USE_NEW_HFILES
 #include <new>
 #ifndef WIN32
 using std::set_new_handler;
-#endif
-#else
-#include <new.h>
 #endif
 
 static

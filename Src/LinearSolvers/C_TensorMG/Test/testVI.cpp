@@ -34,14 +34,10 @@
 #include <MCCGSolver.H>
 #include <ParallelDescriptor.H>
 
-#ifdef BL_USE_NEW_HFILES
 #include <new>
 using std::setprecision;
 #ifndef WIN32
 using std::set_new_handler;
-#endif
-#else
-#include <new.h>
 #endif
 
 #include <main_F.H>

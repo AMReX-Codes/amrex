@@ -5,7 +5,6 @@ ifeq ($(COMP),KCC)
   CXXOPTF += -O1 +K1
   CXXDEBF += +K0
   FULLWARN := --strict_warnings
-  override XTRADEFS += -DBL_USE_NEW_HFILES
 else
 ifeq ($(COMP),Intel)
   CXX      = icc

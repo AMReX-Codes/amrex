@@ -241,14 +241,12 @@ writePlotFile (const char*     name,
 
     std::string HeaderFileName = pltfile + "/Header";
 
-#ifdef BL_USE_SETBUF
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-#endif
+
     std::ofstream HeaderFile;
 
-#ifdef BL_USE_SETBUF
-    HeaderFile.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.size());
-#endif
+    HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+
     int old_prec;
 
     if (ParallelDescriptor::IOProcessor())

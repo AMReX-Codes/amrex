@@ -1,6 +1,6 @@
 
 //
-// $Id: tCArena.cpp,v 1.8 2001-07-23 04:31:03 car Exp $
+// $Id: tCArena.cpp,v 1.9 2001-10-17 17:53:33 lijewski Exp $
 //
 
 #ifndef WIN32
@@ -11,16 +11,11 @@
 #include <CArena.H>
 #include <Utility.H>
 
-#ifdef BL_USE_NEW_HFILES
 #include <list>
 #include <new>
 using std::list;
 #ifndef WIN32
 using std::set_new_handler;
-#endif
-#else
-#include <list.h>
-#include <new.h>
 #endif
 
 //

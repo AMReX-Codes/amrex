@@ -15,16 +15,11 @@
 #include "ParallelDescriptor.H"
 #include "TV_TempWrite.H"
 
-#ifdef BL_USE_NEW_HFILES
 #include <new>
 using std::setprecision;
 #include <iostream>
 #ifndef WIN32
 using std::set_new_handler;
-#endif
-#else
-#include <new.h>
-#include <iostream.h>
 #endif
 
 const int NPROCS = 1;

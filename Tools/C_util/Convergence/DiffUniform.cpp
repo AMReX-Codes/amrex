@@ -1,9 +1,8 @@
 
 //
-// $Id: DiffUniform.cpp,v 1.7 2000-10-02 21:08:54 lijewski Exp $
+// $Id: DiffUniform.cpp,v 1.8 2001-10-17 17:53:33 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <new>
 #include <iostream>
 #include <cstdio>
@@ -11,13 +10,6 @@
 #include <cstring>
 using std::ios;
 using std::set_new_handler;
-#else
-#include <new.h>
-#include <iostream.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#endif
 
 #include <unistd.h>
 
@@ -36,13 +28,6 @@ using std::set_new_handler;
 #endif
 
 #include "AVGDOWN_F.H"
-
-//
-// This MUST be defined if don't have pubsetbuf() in I/O Streams Library.
-//
-#ifdef BL_USE_SETBUF
-#define pubsetbuf setbuf
-#endif
 
 #define GARBAGE 666.e+40
 

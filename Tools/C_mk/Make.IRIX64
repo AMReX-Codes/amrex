@@ -33,7 +33,6 @@ FORT_CPP = KCC -E
 #
 # Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
 #
-override XTRADEFS += -DBL_USE_NEW_HFILES
 endif
 
 ifeq ($(WHICHIRIX64), ESCHER)

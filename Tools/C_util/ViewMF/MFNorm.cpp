@@ -11,18 +11,12 @@
 #include "MultiFab.H"
 #include "MFNorm.H"
 
-#ifdef BL_USE_NEW_HFILES
 #include <new>
 using std::setprecision;
 #include <iostream>
 #ifndef WIN32
 using std::set_new_handler;
 #endif
-#else
-#include <new.h>
-#include <iostream.h>
-#endif
-
 
 //
 // What's the slowest way I can think of to compute all the norms??

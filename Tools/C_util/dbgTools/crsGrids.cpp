@@ -3,19 +3,12 @@
 // $ $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <new>
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
 using std::ios;
 using std::set_new_handler;
-#else
-#include <new.h>
-#include <iostream.h>
-#include <stdlib.h>
-#include <string.h>
-#endif
 
 #include <unistd.h>
 
