@@ -379,7 +379,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		is_zero = false;
 	    
 	    // Forward solve:
-	    // PARALLEL TODO
+	    // PARALLEL
 	    for (int i = 0; i < mg_mesh[mglev].length(); i++) 
 	    {
 		
@@ -467,7 +467,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 	    }
 	    
 	    // Back substitution:
-	    // PARALLEL TODO
+	    // PARALLEL
 	    for (int i = mg_mesh[mglev].length() - 1; i >= 0; i--) 
 	    {
 		
