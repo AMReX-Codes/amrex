@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.21 2001-07-23 04:32:20 car Exp $
+# $Id: GNUmakefile,v 1.22 2004-04-27 17:04:05 car Exp $
 #
 
 PBOXLIB_HOME = ..
@@ -28,6 +28,11 @@ include $(TOP)/mk/Make.defs ./Make.package
 ifeq ($(KCC_VERSION),3.3)
 CXXFLAGS += --one_instantiation_per_object
 endif
+
+new_all:
+	@echo "You don't want to to build BoxLib libraries"
+	@echo "Build in place instead"
+	@exit 2
 
 all: $(optionsLib)
 #
