@@ -1,5 +1,5 @@
 c
-c $Id: COORDSYS_3D.F,v 1.3 1997-12-12 22:42:42 lijewski Exp $
+c $Id: COORDSYS_3D.F,v 1.4 1998-02-05 22:15:55 vince Exp $
 c
 
 #undef  BL_LANG_CC
@@ -93,7 +93,7 @@ c ::
              enddo
           enddo
        else
-          write(6,*) "FORT_SETVOLUME not define for coord = ",coord
+          write(6,*) "FORT_SETAREA not define for coord = ",coord
           stop
        endif
        
