@@ -57,8 +57,9 @@ ifeq ($(COMP),g95)
   FFLAGS   += -std=f95
   F90FLAGS += -fmod=$(mdir) -I $(mdir)
   FFLAGS   += -fmod=$(mdir) -I $(mdir)
-  F90FLAGS += -Wall -Wno=112 -Wno=113
-  FFLAGS += -Wall -Wno=112 -Wno=113
+  F90FLAGS += -Wall 
+  FFLAGS += -Wall 
+  CFLAGS += -Wall
   ifdef NDEBUG
     F90FLAGS += -O
     FFLAGS += -O
@@ -109,6 +110,7 @@ ifeq ($(ARCH),Linux)
     CC := gcc
     F90FLAGS += -J$(mdir) -I $(mdir)
     FFLAGS   += -J$(mdir) -I $(mdir)
+    CFLAGS += -Wall
     ifdef NDEBUG
       F90FLAGS += -O
       FFLAGS += -O
@@ -277,6 +279,7 @@ ifeq ($(ARCH),Linux)
     F90FLAGS += -mdir $(mdir) -I $(mdir)
     FFLAGS   += -mdir $(mdir) -I $(mdir)
     FFLAGS   += -w=x77 -fixed
+    CFLAGS += -Wall
 #   F90FLAGS += -Oassumed=always_contig
     f2kcli_suf := _nag
     ifdef NDEBUG
@@ -305,6 +308,7 @@ ifeq ($(ARCH),Linux)
     FFLAGS =
     F90FLAGS =
     F90FLAGS += -M $(mdir)
+    CFLAGS += -Wall
     ifdef NDEBUG
       FFLAGS += --tpp --prefetch 2 --nap --nchk -O --npca --nsav --ntrace
       F90FLAGS += --tpp --prefetch 2 --nap --nchk -O --npca --nsav --ntrace
