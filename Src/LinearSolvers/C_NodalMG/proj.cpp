@@ -219,11 +219,13 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 {
   int ilev, i;
 
+  // Note:  For terrain problems, h is ignored.
+
   Real h[BL_SPACEDIM];
   for (i = 0; i < BL_SPACEDIM; i++)
     h[i] = 1;
   //h[BL_SPACEDIM-1] = 0.1;
-  h[BL_SPACEDIM-1] = 2.0;
+  //h[BL_SPACEDIM-1] = 2.0;
 
   RegType bc[BL_SPACEDIM][2];
 
@@ -283,13 +285,15 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 #  if (BL_SPACEDIM == 2)
     rhoinv.set(ilev, new MultiFab(cmesh, 3, 0));
     rhoinv[ilev].setVal(1.0);
-    rhoinv[ilev].setVal(0.0, 2, 1);
-    //rhoinv[ilev].setVal(0.2, 2, 1);
+    //rhoinv[ilev].setVal(0.0, 2, 1);
+    rhoinv[ilev].setVal(0.2, 2, 1);
 #  else
     rhoinv.set(ilev, new MultiFab(cmesh, 5, 0));
     rhoinv[ilev].setVal(1.0);
-    rhoinv[ilev].setVal(0.2, 3, 1);
-    rhoinv[ilev].setVal(0.5, 4, 1);
+    //rhoinv[ilev].setVal(0.2, 3, 1);
+    //rhoinv[ilev].setVal(0.5, 4, 1);
+    rhoinv[ilev].setVal(0.0, 3, 1);
+    rhoinv[ilev].setVal(0.0, 4, 1);
 #  endif
 #else
     rhoinv.set(ilev, new MultiFab(cmesh, 1, 0));
@@ -300,13 +304,34 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     rhs[ilev].setVal(0.0);
   }
 
+#ifdef TERRAIN
+  // Adjust sigmas using refinement ratio information.
+  // Assume spacing on level 0 already incorporated into values assigned above.
+  // (h is ignored.)
+  IntVect rat = IntVect::TheUnitVector();
+  for (ilev = 1; ilev < m.length(); ilev++) {
+    rat *= ratio[ilev-1];
+#  if (BL_SPACEDIM == 2)
+    rhoinv[ilev].mult((Real) rat[0] / rat[1], 0, 1);
+    rhoinv[ilev].mult((Real) rat[1] / rat[0], 1, 1);
+    // component 2 remains unchanged
+#  else
+    rhoinv[ilev].mult((Real) rat[0] / (rat[1] * rat[2]), 0, 1);
+    rhoinv[ilev].mult((Real) rat[1] / (rat[0] * rat[2]), 1, 1);
+    rhoinv[ilev].mult((Real) rat[2] / (rat[0] * rat[1]), 2, 1);
+    rhoinv[ilev].mult(1.0 / rat[1]                     , 3, 1);
+    rhoinv[ilev].mult(1.0 / rat[0]                     , 4, 1);
+#  endif
+  }
+#endif
+
   init(u, p, m, ratio);
 
 #if (BL_SPACEDIM == 2)
   //hb93_test1(u, m);
   //rhs[1][0](Iv(16,51)) = 100.0;
   //rhs[1][0](Iv(16,50)) = 100.0;
-  rhs[0][0](Iv(24,32)) = 100.0;
+  //rhs[0][0](Iv(24,32)) = 100.0;
   //rhs[1][0](Iv(30,40)) = -100.0;
   //rhs[0][0](Iv(4,13)) = 100.0;
   //rhs[0][0](Iv(20,90)) = 100.0;
@@ -402,11 +427,11 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
   //Real tol = 2.e-10;
 #else
   int pcode = 2, nrep = 1;
-  Real tol = 1.e-14;
+  //Real tol = 1.e-14;
   //int pcode = 1, nrep = 3;
   //Real tol = 1.e-6;
   // for vd tests in May, and most code validation tests:
-  //Real tol = 2.e-10;
+  Real tol = 2.e-10;
   //Real tol = 5.e-9;
 #endif
   t0 = clock();
@@ -414,8 +439,10 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
   i = m.length() - 1;
   holy_grail_amr_projector proj(m, ratio, domain[i], 0, i, i, afb, pcode);
 #if (BL_SPACEDIM == 2)
+#  ifndef TERRAIN
   rz_adj(u, rhs, rhoinv, m, domain);
   proj.SetRZ();
+#  endif
 #endif
   //proj.smoother_mode  = 1;
   //proj.line_solve_dim = BL_SPACEDIM - 1;
@@ -444,15 +471,15 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     cout << setprecision(6);
   }
   else if (m.length() == 2) {
-    proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 0);
-    proj.project(u, p, null_amr_real, rhoinv, h, tol, 1, 1);
+    //proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 0);
+    //proj.project(u, p, null_amr_real, rhoinv, h, tol, 1, 1);
     t1 = clock();
     cout << "First time is " << t1 - t0 << endl;
     for (i = 0; i < p.length(); i++)
       p[i].setVal(0.0);
     t1 = clock();
-    //proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 1);
-    proj.manual_project(u, p, rhs, null_amr_real, rhoinv, 1, h, tol, 0, 1);
+    proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 1);
+    //proj.manual_project(u, p, rhs, null_amr_real, rhoinv, 1, h, tol, 0, 1);
     for (i = 1; i < nrep; i++) {
       init(u, p, m, ratio);
       proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 1);

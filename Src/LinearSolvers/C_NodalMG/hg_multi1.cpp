@@ -223,8 +223,8 @@ void holy_grail_sigma_restrictor_class::fill(Fab& patch,
 		D_DECL(rat[0], rat[1], rat[2]), 0);
 
 #  if (BL_SPACEDIM == 2)
-    patch.mult((Real) rat[1] / rat[0], 0, 1);
-    patch.mult((Real) rat[0] / rat[1], 1, 1);
+    patch.mult((Real) rat[1] / rat[0], region, 0, 1);
+    patch.mult((Real) rat[0] / rat[1], region, 1, 1);
     // component 2 remains unchanged
 #  else
     FACRST1(patch.dataPtr(BL_SPACEDIM+1),
@@ -233,11 +233,11 @@ void holy_grail_sigma_restrictor_class::fill(Fab& patch,
 		fgr.dataPtr(BL_SPACEDIM+1),
 		dimlist(fgr.box()),
 		D_DECL(rat[0], rat[1], rat[2]), 0);
-    patch.mult((Real) rat[1] * rat[2] / rat[0], 0, 1);
-    patch.mult((Real) rat[0] * rat[2] / rat[1], 1, 1);
-    patch.mult((Real) rat[0] * rat[1] / rat[2], 2, 1);
-    patch.mult((Real) rat[1],                   3, 1);
-    patch.mult((Real) rat[0],                   4, 1);
+    patch.mult((Real) rat[1] * rat[2] / rat[0], region, 0, 1);
+    patch.mult((Real) rat[0] * rat[2] / rat[1], region, 1, 1);
+    patch.mult((Real) rat[0] * rat[1] / rat[2], region, 2, 1);
+    patch.mult((Real) rat[1],                   region, 3, 1);
+    patch.mult((Real) rat[0],                   region, 4, 1);
 #  endif
 
 #else
