@@ -576,7 +576,7 @@ private:
     const IntVect m_rat;
 };
 
-#if 0
+
 bool task_restric_fill::ready()
 {
     if ( ! depend_ready() ) return false;
@@ -599,30 +599,6 @@ bool task_restric_fill::ready()
     }
     return false;
 }
-
-#else
-bool task_restric_fill::ready()
-{
-    // abort();
-    if ( m_local )
-    {
-	m_restric.fill(m_mf[m_dgrid], m_bx, m_smf[m_sgrid], m_rat);
-	return true;
-    }
-    int flag;
-    MPI_Status status;
-    int res = MPI_Test(&m_request, &flag, &status);
-    if ( res != 0 )
-	ParallelDescriptor::Abort( res );
-    if ( flag )
-    {
-	if ( is_local(m_mf, m_dgrid) )
-	    m_restric.fill(m_mf[m_dgrid], m_bx, *tmp, m_rat);
-	return true;
-    }
-    return false;
-}
-#endif
 
 void restrict_level(MultiFab& dest, 
 		    MultiFab& r, const IntVect& rat,
