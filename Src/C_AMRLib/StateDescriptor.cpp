@@ -1,5 +1,5 @@
 //
-// $Id: StateDescriptor.cpp,v 1.17 2003-01-22 22:39:44 lijewski Exp $
+// $Id: StateDescriptor.cpp,v 1.18 2003-02-06 18:14:29 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -13,12 +13,21 @@
 
 StateDescriptor::BndryFunc::BndryFunc ()
     :
-    m_func(0)
+    m_func(0),
+    m_gfunc(0)
 {}
 
 StateDescriptor::BndryFunc::BndryFunc (BndryFuncDefault inFunc)
     :
-    m_func(inFunc)
+    m_func(inFunc),
+    m_gfunc(0)
+{}
+
+StateDescriptor::BndryFunc::BndryFunc (BndryFuncDefault inFunc,
+                                       BndryFuncDefault gFunc)
+    :
+    m_func(inFunc),
+    m_gfunc(gFunc)
 {}
 
 StateDescriptor::BndryFunc*
@@ -38,6 +47,17 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
     BL_ASSERT(m_func != 0);
 
     m_func(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+}
+
+void
+StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
+                                         const int* dom_lo, const int* dom_hi,
+                                         const Real* dx, const Real* grd_lo,
+                                         const Real* time, const int* bc, bool) const
+{
+    BL_ASSERT(m_gfunc != 0);
+
+    m_gfunc(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
 }
 
 DescriptorList::DescriptorList ()
@@ -282,9 +302,10 @@ StateDescriptor::setComponent (int                               comp,
                                int                               max_map_start_comp_,
                                int                               min_map_end_comp_)
 {
-    BL_ASSERT(comp >= 0 && comp < ncomp && names[comp].empty());
-    names[comp]       = nm;
+    bc_func.clear(comp);
     bc_func.set(comp,func.clone());
+
+    names[comp]       = nm;
     bc[comp]          = bcr;
     mapper_comp[comp] = interp;
     m_master[comp]    = false;

@@ -1,6 +1,6 @@
 
 //
-// $Id: StateData.cpp,v 1.39 2003-01-22 22:39:44 lijewski Exp $
+// $Id: StateData.cpp,v 1.40 2003-02-06 18:14:29 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -428,23 +428,40 @@ StateData::FillBoundary (FArrayBox&     dest,
 
             BL_ASSERT(groupsize != 0);
 
-            int* bcrs = new int[2*BL_SPACEDIM*groupsize];
-            int* bci  = bcrs;
-
-            for (int j = 0; j < groupsize; j++)
+            if (groupsize+i <= num_comp)
             {
-                BoxLib::setBC(bx,domain,desc->getBC(sc+j),bcr);
-                const int* bc = bcr.vect();
-                for (int k = 0; k < 2*BL_SPACEDIM; k++)
+                //
+                // Can do the whole group at once.
+                //
+                int* bcrs = new int[2*BL_SPACEDIM*groupsize];
+                int* bci  = bcrs;
+
+                for (int j = 0; j < groupsize; j++)
                 {
-                    bci[k] = bc[k];
+                    BoxLib::setBC(bx,domain,desc->getBC(sc+j),bcr);
+
+                    const int* bc = bcr.vect();
+
+                    for (int k = 0; k < 2*BL_SPACEDIM; k++)
+                        bci[k] = bc[k];
+
+                    bci += 2*BL_SPACEDIM;
                 }
-                bci += 2*BL_SPACEDIM;
+                //
+                // Use the "group" boundary fill routine.
+                //
+                desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcrs,true);
+
+                delete [] bcrs;
+
+                i += groupsize;
             }
-
-            desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcrs);
-
-            i += groupsize;
+            else
+            {
+                BoxLib::setBC(bx,domain,desc->getBC(sc),bcr);
+                desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcr.vect());
+                i++;
+            }
         }
         else
         {
