@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.77 2004-08-25 19:32:27 car Exp $
+# Make.defs $Id: Make.defs,v 1.78 2004-10-11 21:17:13 car Exp $
 #
 
 #
@@ -191,6 +191,24 @@ FORT_LIB_OUTPUT_OPTION = -o $(objTempDir)/$*.o
 #
 # Generic setup for using g++ ...
 #
+ifeq ($(COMP),gcc)
+    CXXPRFF    := -p
+    CXXOPTF    += -O
+    CXXDEBF    += -g
+    CXXOPTF    += -g
+    FULLWARN   := -Wall 
+    FULLWARN   += -Wno-sign-compare
+    CXX	       := g++ -ftemplate-depth-64
+    __gcc_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;')
+    __gcc_major_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
+    __gcc_minor_version := $(shell $(CXX) -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
+    DEFINES += -DBL_GCC_VERSION='$(__gcc_version)'
+    DEFINES += -DBL_GCC_MAJOR_VERSION=$(__gcc_major_version)
+    DEFINES += -DBL_GCC_MINOR_VERSION=$(__gcc_minor_version)
+    ifneq ($(__gcc_major_version),3)
+       GNU_STD_INCL = $(PBOXLIB_HOME)/BoxLib/std
+    endif
+endif
 ifeq ($(COMP),g++)
     CXXPRFF    := -p
     CXXOPTF    += -O
@@ -234,25 +252,28 @@ endif
 ifeq ($(FCOMP),g95)
     FC := g95 -fno-second-underscore
     fC := g95 -fno-second-underscore
-    override XTRALIBS += /tmp/g95/lib/gcc-lib/i686-pc-linux-gnu/3.5-tree-ssa/libf95.a
-    FOPTF +=
-    fOPTF +=
+    override XTRALIBS += /tmp/g95/lib/gcc-lib/i686-pc-linux-gnu/3.5.0/libf95.a
+    FOPTF += -O -g
+    fOPTF += -O -g
     FDEBF += -g
     fDEBF += -g
 endif
 
 ifeq ($(COMP),Intel)
    ifeq ($(UNAMEM),ia64)
-     CXX := ecc
+     _icpc := ecc
+     _icc  := ecc
    else
-     CXX := icc
+     _icpc := icc
+     _icc  := icc
    endif
    CXXOPTF += -g
-#  CXXOPTF += -O2
    CXXOPTF += -O3
-   # CXXOPTF += -axK
    CXXDEBF += -g
-   __icc_version := $(shell $(CXX) -V 2>&1 1>/dev/null | grep Version)
+   ifeq ($(COMP),Intel)
+     CXXOPTF += -ip
+   endif
+   __icc_version := $(shell $(_icpc) -V 2>&1 1>/dev/null | grep Version)
    ifeq ($(findstring Version 5.0.1, $(__icc_version)), Version 5.0.1)
        ICC_VERSION := 5.0.1
        ICC_MAJOR_VERSION := 5
@@ -279,10 +300,22 @@ ifeq ($(COMP),Intel)
        ICC_VERSION := 8.0
        ICC_MAJOR_VERSION := 8
        ICC_MINOR_VERSION := 0
+   else
+   ifeq ($(findstring Version 8.1, $(__icc_version)), Version 8.1)
+       ICC_VERSION := 8.1
+       ICC_MAJOR_VERSION := 8
+       ICC_MINOR_VERSION := 1
+       _icpc := icpc
+       CXXOPTF += -wd1572
+       CXXDEBF += -wd1572
+#      LIBRARY_LOCATIONS += /opt/intel_cc_80/lib
    endif
    endif
    endif
    endif
+   endif
+   CXX = $(_icpc)
+   CC  = $(_icc)
    DEFINES += -DBL_ICC_VERSION=$(ICC_VERSION)
    DEFINES += -DBL_ICC_MAJOR_VERSION=$(ICC_MAJOR_VERSION)
    DEFINES += -DBL_ICC_MINOR_VERSION=$(ICC_MINOR_VERSION)
@@ -290,25 +323,19 @@ endif
 
 ifeq ($(FCOMP),Intel)
    ifeq ($(UNAMEM),ia64)
-     FC := efc -mp
-     fC := efc -mp
+     _ifc := efc
    else
-     FC := ifc -cm -mp
-     fC := ifc -cm -mp
+     _ifc := ifc
    endif
    FDEBF += -g
    fDEBF += -g
    FOPTF += -g
    fOPTF += -g
-#  FOPTF += -O2
    FOPTF += -O3
-   # FOPTF += -axK
-#  fOPTF += -O2
    fOPTF += -O3
-   # fOPTF += -axK
-   fDEBF += -w
-   fOPTF += -w
-   __ifc_version := $(shell $(FC) -V 2>&1 | grep Version)
+   FOPTF += -ip
+   fOPTF += -ip
+   __ifc_version := $(shell $(_ifc) -V 2>&1 | grep Version)
    ifeq ($(findstring Version 5.0.1, $(__ifc_version)), Version 5.0.1)
        IFC_VERSION := 5.0.1
        IFC_MAJOR_VERSION := 5
@@ -340,6 +367,13 @@ ifeq ($(FCOMP),Intel)
        IFC_MAJOR_VERSION := 8
        IFC_MINOR_VERSION := 0
        LIBRARY_LOCATIONS += /opt/intel_fc_80/lib
+   else
+   ifeq ($(findstring Version 8.1, $(__ifc_version)), Version 8.1)
+       IFC_VERSION := 8.1
+       IFC_MAJOR_VERSION := 8
+       IFC_MINOR_VERSION := 1
+       LIBRARY_LOCATIONS += /opt/intel_fc_80/lib
+   endif
    endif
    endif
    endif
@@ -349,9 +383,8 @@ ifeq ($(FCOMP),Intel)
      fDEBF += -CB -CU
    endif
    ifeq ($(IFC_MAJOR_VERSION),8)
-     FC := ifort
-     fC := ifort
-     override XTRALIBS += -lifcore -limf -lcprts -lcxa -lirc -lunwind
+     _ifc := ifort
+     override XTRALIBS += -lifcore 
    else
      override XTRALIBS += -lintrins -lIEPCF90 -lF90 -limf -lcprts -lcxa -lirc
      ifneq ($(DIM),3)
@@ -362,6 +395,9 @@ ifeq ($(FCOMP),Intel)
    ifeq ($(USE_THREADS),TRUE)
      override XTRALIBS += -lpthread
    endif
+   _ifc += -mp
+    FC = $(_ifc)
+    fC = $(_ifc)
 endif
 #
 # Generic setup for using cfront ...
