@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.32 1998-04-07 22:24:44 lijewski Exp $
+// $Id: FabArray.H,v 1.33 1998-04-14 19:38:49 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1334,11 +1334,7 @@ FabArray<T,FAB>::setVal (T   val,
 
     for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
     {
-        Box b(::grow(fai.validbox(), nghost));
-        for (int k = 0; k < num_comp; k++)
-        {
-            fai().setVal(val, b, comp + k);
-        }
+        fai().setVal(val, ::grow(fai.validbox(), nghost), comp, num_comp);
     }
 }
 
@@ -1359,10 +1355,7 @@ FabArray<T,FAB>::setVal (T          val,
 
         if (b.ok())
         {
-            for (int k = 0; k < num_comp; k++)
-            {
-                fai().setVal(val, b, comp + k);
-            }
+            fai().setVal(val, b, comp, num_comp);
         }
     }
 }
