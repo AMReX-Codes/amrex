@@ -361,7 +361,9 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2)
 	    BoxLib::Error("amr_multigrid::solve---multigrid iteration failed");
     }
     if (pcode >= 1 && ParallelDescriptor::IOProcessor())
+    {
 	cout << it << " cycles required" << endl;
+    }
     
     //This final restriction not needed unless you want coarse and fine
     //potentials to match up for use by the calling program.  Coarse

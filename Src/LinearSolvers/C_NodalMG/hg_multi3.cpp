@@ -622,7 +622,9 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 	}
 	ParallelDescriptor::ReduceRealSum(rho);
 	if (pcode >= 3  && ParallelDescriptor::IOProcessor())
+	{
 	    cout << i << " " << rho << endl;
+	}
 	if (rho <= tol || i > 250)
 	    break;
 	alpha = rho / rho_old;
@@ -635,5 +637,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
     }
     
     if (pcode >= 2  && ParallelDescriptor::IOProcessor())
+    {
 	cout << i << " iterations required for conjugate-gradient" << endl;
+    }
 }
