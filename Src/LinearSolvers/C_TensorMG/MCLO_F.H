@@ -1,9 +1,9 @@
 #ifndef _MCLO_F_H_
-#define _MCLO_F_H_ "$Id: MCLO_F.H,v 1.1 1998-03-26 19:15:35 marc Exp $"
+#define _MCLO_F_H_
 
-#include <Real.H>
+#include <REAL.H>
 
-#if	defined(BL_LANG_FORT)
+#if defined(BL_LANG_FORT)
 
 #if (BL_SPACEDIM == 2)
 #define FORT_AVERAGECC mcaveragecc2dgen
@@ -19,10 +19,10 @@
 #define FORT_RESIDL    mcresid3dgen
 #endif
 
-#endif
+#endif /*defined(BL_LANG_FORT)*/
 
 
-#if	defined(BL_LANG_CC)
+#if defined(BL_LANG_CC)
 
 #if (BL_SPACEDIM == 2)
 #ifdef BL_FORT_USE_UPPERCASE
@@ -104,6 +104,6 @@ extern "C"
 	const int *axis
 	);
 }
-#endif
+#endif /*defined(BL_LANG_CC)*/
 
-#endif
+#endif /*_MCLO_F_H_*/

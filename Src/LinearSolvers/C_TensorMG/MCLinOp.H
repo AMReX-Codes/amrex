@@ -1,5 +1,5 @@
 #ifndef _MCLINOP_H_
-#define _MCLINOP_H_ "$Id: MCLinOp.H,v 1.2 1998-04-15 21:48:13 marc Exp $"
+#define _MCLINOP_H_ "$Id: MCLinOp.H,v 1.3 1998-11-17 19:11:09 lijewski Exp $"
 
 #include <Assert.H>
 #include <Array.H>
@@ -250,19 +250,10 @@ protected:
     //@ManDoc: boundary data class
     //
     BndryData bgb;
-
     //
     //@ManDoc: Array (on level) of geometry objects.  Needed for determining whether stuff intersects on periodic domains
     //
     Array< Geometry > geomarray;
-    //
-    //@ManDoc: Array (on level) of periodic intersection info
-    //
-    Array< Geometry::PIRMMap > pirmmapArray;
-    //
-    //@ManDoc: internal function which constructs pirmmaps
-    //
-    void preComputePeriodicInfo (int level);
     //
     //@ManDoc: flag (=1 if use harmonic averaged interpolation for coefficients, =0 is arithmetic averaging)
     //
