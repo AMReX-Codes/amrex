@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.17 1997-12-11 23:25:41 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.18 1997-12-12 00:14:57 car Exp $
 //
 
 #include <DistributionMapping.H>
@@ -13,9 +13,9 @@
 #ifdef BL_USE_NEW_HFILES
 #include <iostream>
 #include <cstdlib>
+#include <list>
 #include <vector>
 #include <queue>
-#include <list>
 #include <algorithm>
 using namespace std;
 #else
@@ -210,10 +210,11 @@ DistributionMapping::RoundRobinProcessorMap (int             nprocs,
     }
 }
 
+
 //
 // Forward declaration.
 //
-static vector< list<int> > knapsack (const vector<long>&, int);
+vector< list<int> > knapsack (const vector<long>&, int);
 
 void
 DistributionMapping::KnapSackProcessorMap (int             nprocs,
@@ -367,6 +368,7 @@ operator< (const WeightedBoxList& lhs,
     return lhs.weight() > rhs.weight();
 }
 
+
 static
 vector< list<int> >
 knapsack (const vector<long>& pts,
@@ -376,7 +378,7 @@ knapsack (const vector<long>& pts,
     //
     // Sort balls by size largest first.
     //
-    vector< list<int> > result(nprocs);
+    vector< list<int> > result(nprocs, list<int>() );	// FIXME: MSVC BUG
     vector<WeightedBox> lb;
     lb.reserve(pts.size());
     for (int i = 0; i < pts.size(); ++i)
@@ -384,7 +386,7 @@ knapsack (const vector<long>& pts,
         lb.push_back(WeightedBox(i, pts[i]));
     }
     assert(lb.size() == pts.size());
-    sort(lb.begin(), lb.end());
+    sort(lb.begin(), lb.end());				// This line gives fatal compiler error
     assert(lb.size() == pts.size());
     //
     // For each ball, starting with heaviest, assign ball to the lightest box.
