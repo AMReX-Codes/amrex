@@ -32,13 +32,10 @@ contains
     integer :: ii, jj
     integer :: iii, jjj
     integer :: ir, jr
-    integer, dimension(pf%dim) :: lo, hi, thi
+    integer, dimension(pf%dim) :: lo, hi
     integer :: nc
 
     nc = ubound(f_fab, dim = 3)
-    do n = 1, 3
-       thi(n) = ubound(f_fab, dim=n)
-    end do
 
     level = plotfile_nlevels(pf)
     if ( present(max_level) ) level = min(max_level, level)
@@ -84,13 +81,10 @@ contains
     integer :: ii, jj, kk
     integer :: iii, jjj, kkk
     integer :: ir, jr, kr
-    integer, dimension(pf%dim) :: lo, hi, thi
+    integer, dimension(pf%dim) :: lo, hi
     integer :: nc
 
     nc = ubound(f_fab, dim = 4)
-    do n = 1, 3
-       thi(n) = ubound(f_fab, dim=n)
-    end do
 
     level = plotfile_nlevels(pf)
     if ( present(max_level) ) level = min(max_level, level)
