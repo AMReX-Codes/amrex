@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.86 1998-12-10 23:34:58 lijewski Exp $
+// $Id: FabArray.H,v 1.87 1998-12-11 02:46:18 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -834,11 +834,6 @@ class FabArrayCopyDescriptor
                   const FillBoxId& fillboxid,
                   FAB&             destFab,
                   const Box&       destBox);
-
-    void FillFabPlus (FabArrayId       fabarrayid,
-                      const FillBoxId& fillboxid,
-                      FAB&             destFab,
-                      const Box&       destBox);
 
     void PrintStats () const;
 
@@ -2714,35 +2709,6 @@ FabArrayCopyDescriptor<T,FAB>::FillFab (FabArrayId       faid,
                  fcdp->subBox,
                  (fcdp->fillType == FillLocally) ? fcdp->srcComp : 0,
                  destBox,
-                 fcdp->destComp,
-                 fcdp->nComp);
-
-    assert(++fmi == fabCopyDescList[faid.Id()].upper_bound(fillboxid.Id()));
-}
-
-template <class T, class FAB>
-void
-FabArrayCopyDescriptor<T,FAB>::FillFabPlus (FabArrayId       faid,
-                                            const FillBoxId& fillboxid,
-                                            FAB&             destFab,
-                                            const Box&       destBox)
-{
-    assert(dataAvailable);
-
-    FCDMapIter fmi = fabCopyDescList[faid.Id()].lower_bound(fillboxid.Id());
-
-    assert(!(fmi == fabCopyDescList[faid.Id()].end()));
-
-    FabCopyDescriptor<FAB>* fcdp = (*fmi).second;
-
-    assert(fcdp->fillBoxId == fillboxid.Id());
-
-    assert(fcdp->subBox.sameSize(destBox));
-
-    destFab.plus(*(fcdp->localFabSource),
-                 fcdp->subBox,
-                 destBox,
-                 (fcdp->fillType == FillLocally) ? fcdp->srcComp : 0,
                  fcdp->destComp,
                  fcdp->nComp);
 
