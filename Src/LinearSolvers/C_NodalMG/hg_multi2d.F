@@ -2,13 +2,13 @@ c variable density versions:
 
 c Note---assumes fdst linearly interpolated from cdst along edge
       subroutine hgfres(res, resl0, resh0, resl1, resh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ fdst, fdstl0, fdsth0, fdstl1, fdsth1,
-     @ cdst, cdstl0, cdsth0, cdstl1, cdsth1,
-     @ sigmaf, sfl0, sfh0, sfl1, sfh1,
-     @ sigmac, scl0, sch0, scl1, sch1,
-     @ regl0, regh0, regl1, regh1,
-     @ hx, hy, ir, jr, idim, idir)
+     & src,  srcl0, srch0, srcl1, srch1,
+     & fdst, fdstl0, fdsth0, fdstl1, fdsth1,
+     & cdst, cdstl0, cdsth0, cdstl1, cdsth1,
+     & sigmaf, sfl0, sfh0, sfl1, sfh1,
+     & sigmac, scl0, sch0, scl1, sch1,
+     & regl0, regh0, regl1, regh1,
+     & hx, hy, ir, jr, idim, idir)
       integer resl0, resh0, resl1, resh1
       integer srcl0, srch0, srcl1, srch1
       integer fdstl0, fdsth0, fdstl1, fdsth1
@@ -38,14 +38,14 @@ c Note---assumes fdst linearly interpolated from cdst along edge
          hym2 = 1.d0 / (jr * jr * hy * hy)
          do 10 j = regl1, regh1
  10         res(i*ir,j*jr) = src(i*ir,j*jr) - fac0 *
-     @        (hxm2 *
-     @          ((sigmac(is,j-1) + sigmac(is,j)) *
-     @            (cdst(i-idir,j) - cdst(i,j))) +
-     @         hym2 *
-     @          (sigmac(is,j-1) *
-     @            (cdst(i,j-1) - cdst(i,j)) +
-     @           sigmac(is,j) *
-     @            (cdst(i,j+1) - cdst(i,j))))
+     &        (hxm2 *
+     &          ((sigmac(is,j-1) + sigmac(is,j)) *
+     &            (cdst(i-idir,j) - cdst(i,j))) +
+     &         hym2 *
+     &          (sigmac(is,j-1) *
+     &            (cdst(i,j-1) - cdst(i,j)) +
+     &           sigmac(is,j) *
+     &            (cdst(i,j+1) - cdst(i,j))))
          fac0 = fac0 / (ir * jr * jr)
          hxm2 = ir * ir * hxm2
          hym2 = jr * jr * hym2
@@ -60,19 +60,19 @@ c Note---assumes fdst linearly interpolated from cdst along edge
             if (n .eq. 0) fac1 = 0.5d0 * fac1
             do 20 j = jr*regl1, jr*regh1, jr
                tmp = hxm2 *
-     @           ((sigmaf(is,j-n-1) + sigmaf(is,j-n)) *
-     @             (fdst(i+idir,j-n) - fdst(i,j-n)) +
-     @		  (sigmaf(is,j+n-1) + sigmaf(is,j+n)) *
-     @             (fdst(i+idir,j+n) - fdst(i,j+n)))
+     &           ((sigmaf(is,j-n-1) + sigmaf(is,j-n)) *
+     &             (fdst(i+idir,j-n) - fdst(i,j-n)) +
+     &		  (sigmaf(is,j+n-1) + sigmaf(is,j+n)) *
+     &             (fdst(i+idir,j+n) - fdst(i,j+n)))
  20            res(i,j) = res(i,j) - fac1 * (tmp + hym2 *
-     @		 (sigmaf(is,j-n-1) *
-     @             (fdst(i,j-n-1) - fdst(i,j-n)) +
-     @		  sigmaf(is,j-n) *
-     @             (fdst(i,j-n+1) - fdst(i,j-n)) +
-     @		  sigmaf(is,j+n-1) *
-     @             (fdst(i,j+n-1) - fdst(i,j+n)) +
-     @		  sigmaf(is,j+n) *
-     @             (fdst(i,j+n+1) - fdst(i,j+n))))
+     &		 (sigmaf(is,j-n-1) *
+     &             (fdst(i,j-n-1) - fdst(i,j-n)) +
+     &		  sigmaf(is,j-n) *
+     &             (fdst(i,j-n+1) - fdst(i,j-n)) +
+     &		  sigmaf(is,j+n-1) *
+     &             (fdst(i,j+n-1) - fdst(i,j+n)) +
+     &		  sigmaf(is,j+n) *
+     &             (fdst(i,j+n+1) - fdst(i,j+n))))
       else
          j = regl1
          if (idir .eq. 1) then
@@ -85,14 +85,14 @@ c Note---assumes fdst linearly interpolated from cdst along edge
          hym2 = 1.d0 / (jr * jr * hy * hy)
          do 30 i = regl0, regh0
  30         res(i*ir,j*jr) = src(i*ir,j*jr) - fac0 *
-     @        (hxm2 *
-     @          (sigmac(i-1,js) *
-     @            (cdst(i-1,j) - cdst(i,j)) +
-     @           sigmac(i,js) *
-     @            (cdst(i+1,j) - cdst(i,j))) +
-     @         hym2 *
-     @          ((sigmac(i-1,js) + sigmac(i,js)) *
-     @            (cdst(i,j-idir) - cdst(i,j))))
+     &        (hxm2 *
+     &          (sigmac(i-1,js) *
+     &            (cdst(i-1,j) - cdst(i,j)) +
+     &           sigmac(i,js) *
+     &            (cdst(i+1,j) - cdst(i,j))) +
+     &         hym2 *
+     &          ((sigmac(i-1,js) + sigmac(i,js)) *
+     &            (cdst(i,j-idir) - cdst(i,j))))
          fac0 = fac0 / (ir * ir * jr)
          hxm2 = ir * ir * hxm2
          hym2 = jr * jr * hym2
@@ -107,31 +107,31 @@ c Note---assumes fdst linearly interpolated from cdst along edge
             if (m .eq. 0) fac1 = 0.5d0 * fac1
             do 40 i = ir*regl0, ir*regh0, ir
                tmp = hxm2 *
-     @		 (sigmaf(i-m-1,js) *
-     @             (fdst(i-m-1,j) - fdst(i-m,j)) +
-     @		  sigmaf(i-m,js) *
-     @             (fdst(i-m+1,j) - fdst(i-m,j)) +
-     @		  sigmaf(i+m-1,js) *
-     @             (fdst(i+m-1,j) - fdst(i+m,j)) +
-     @		  sigmaf(i+m,js) *
-     @             (fdst(i+m+1,j) - fdst(i+m,j)))
+     &		 (sigmaf(i-m-1,js) *
+     &             (fdst(i-m-1,j) - fdst(i-m,j)) +
+     &		  sigmaf(i-m,js) *
+     &             (fdst(i-m+1,j) - fdst(i-m,j)) +
+     &		  sigmaf(i+m-1,js) *
+     &             (fdst(i+m-1,j) - fdst(i+m,j)) +
+     &		  sigmaf(i+m,js) *
+     &             (fdst(i+m+1,j) - fdst(i+m,j)))
  40            res(i,j) = res(i,j) - fac1 * (tmp + hym2 *
-     @           ((sigmaf(i-m-1,js) + sigmaf(i-m,js)) *
-     @             (fdst(i-m,j+idir) - fdst(i-m,j)) +
-     @		  (sigmaf(i+m-1,js) + sigmaf(i+m,js)) *
-     @             (fdst(i+m,j+idir) - fdst(i+m,j))))
+     &           ((sigmaf(i-m-1,js) + sigmaf(i-m,js)) *
+     &             (fdst(i-m,j+idir) - fdst(i-m,j)) +
+     &		  (sigmaf(i+m-1,js) + sigmaf(i+m,js)) *
+     &             (fdst(i+m,j+idir) - fdst(i+m,j))))
       end if
       end
 
 c Note---assumes fdst linearly interpolated from cdst along edges
       subroutine hgcres(res, resl0, resh0, resl1, resh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ fdst, fdstl0, fdsth0, fdstl1, fdsth1,
-     @ cdst, cdstl0, cdsth0, cdstl1, cdsth1,
-     @ sigmaf, sfl0, sfh0, sfl1, sfh1,
-     @ sigmac, scl0, sch0, scl1, sch1,
-     @ regl0, regh0, regl1, regh1,
-     @ hx, hy, ir, jr, ga)
+     & src,  srcl0, srch0, srcl1, srch1,
+     & fdst, fdstl0, fdsth0, fdstl1, fdsth1,
+     & cdst, cdstl0, cdsth0, cdstl1, cdsth1,
+     & sigmaf, sfl0, sfh0, sfl1, sfh1,
+     & sigmac, scl0, sch0, scl1, sch1,
+     & regl0, regh0, regl1, regh1,
+     & hx, hy, ir, jr, ga)
       integer resl0, resh0, resl1, resh1
       integer srcl0, srch0, srcl1, srch1
       integer fdstl0, fdsth0, fdstl1, fdsth1
@@ -170,13 +170,13 @@ c quadrants
             if (ga(ii,ji) .eq. 1) then
                center = center + ffac
                sum = sum + sigmaf(if+ii-1,jf+ji-1) *
-     @           (hxm2 * (fdst(if+idir,jf) - fdst(if,jf)) +
-     @            hym2 * (fdst(if,jf+jdir) - fdst(if,jf)))
+     &           (hxm2 * (fdst(if+idir,jf) - fdst(if,jf)) +
+     &            hym2 * (fdst(if,jf+jdir) - fdst(if,jf)))
             else
                center = center + cfac
                sum = sum + ir * jr * sigmac(ic+ii-1,jc+ji-1) *
-     @           (hxm2c * (cdst(ic+idir,jc) - cdst(ic,jc)) +
-     @            hym2c * (cdst(ic,jc+jdir) - cdst(ic,jc)))
+     &           (hxm2c * (cdst(ic+idir,jc) - cdst(ic,jc)) +
+     &            hym2c * (cdst(ic,jc+jdir) - cdst(ic,jc)))
             end if
  10         continue
 c edges
@@ -191,13 +191,13 @@ c edges
                do 20 m = idir, idir*(ir-1), idir
                   fac = (ir-abs(m)) * fac1
  20               sum = sum + fac *
-     @              (hxm2 * (sigmaf(if+m-1,jf+ji-1) *
-     @                        (fdst(if+m-1,jf) - fdst(if+m,jf)) +
-     @                       sigmaf(if+m,jf+ji-1) *
-     @                        (fdst(if+m+1,jf) - fdst(if+m,jf))) +
-     @               hym2 *
-     @                 (sigmaf(if+m-1,jf+ji-1) + sigmaf(if+m,jf+ji-1)) *
-     @                 (fdst(if+m,jf+jdir) - fdst(if+m,jf)))
+     &              (hxm2 * (sigmaf(if+m-1,jf+ji-1) *
+     &                        (fdst(if+m-1,jf) - fdst(if+m,jf)) +
+     &                       sigmaf(if+m,jf+ji-1) *
+     &                        (fdst(if+m+1,jf) - fdst(if+m,jf))) +
+     &               hym2 *
+     &                 (sigmaf(if+m-1,jf+ji-1) + sigmaf(if+m,jf+ji-1)) *
+     &                 (fdst(if+m,jf+jdir) - fdst(if+m,jf)))
             end if
             if (ga(ii,ji) - ga(1-ii,ji) .eq. 1) then
                fac1 = 1.d0 / jr
@@ -206,13 +206,13 @@ c edges
                do 30 n = jdir, jdir*(jr-1), jdir
                   fac = (jr-abs(n)) * fac1
  30               sum = sum + fac *
-     @              (hxm2 *
-     @                 (sigmaf(if+ii-1,jf+n-1) + sigmaf(if+ii-1,jf+n)) *
-     @                 (fdst(if+idir,jf+n) - fdst(if,jf+n)) +
-     @               hym2 * (sigmaf(if+ii-1,jf+n-1) *
-     @                        (fdst(if,jf+n-1) - fdst(if,jf+n)) +
-     @                       sigmaf(if+ii-1,jf+n) *
-     @                        (fdst(if,jf+n+1) - fdst(if,jf+n))))
+     &              (hxm2 *
+     &                 (sigmaf(if+ii-1,jf+n-1) + sigmaf(if+ii-1,jf+n)) *
+     &                 (fdst(if+idir,jf+n) - fdst(if,jf+n)) +
+     &               hym2 * (sigmaf(if+ii-1,jf+n-1) *
+     &                        (fdst(if,jf+n-1) - fdst(if,jf+n)) +
+     &                       sigmaf(if+ii-1,jf+n) *
+     &                        (fdst(if,jf+n+1) - fdst(if,jf+n))))
             end if
  40         continue
 c weighting
@@ -227,13 +227,13 @@ c 9-point variable density stencils:
 c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along edge
       subroutine hgfres_full_stencil(res, resl0, resh0, resl1, resh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ fdst, fdstl0, fdsth0, fdstl1, fdsth1,
-     @ cdst, cdstl0, cdsth0, cdstl1, cdsth1,
-     @ sigmaf, sfl0, sfh0, sfl1, sfh1,
-     @ sigmac, scl0, sch0, scl1, sch1,
-     @ regl0, regh0, regl1, regh1,
-     @ hx, hy, ir, jr, idim, idir, irz, imax)
+     & src,  srcl0, srch0, srcl1, srch1,
+     & fdst, fdstl0, fdsth0, fdstl1, fdsth1,
+     & cdst, cdstl0, cdsth0, cdstl1, cdsth1,
+     & sigmaf, sfl0, sfh0, sfl1, sfh1,
+     & sigmac, scl0, sch0, scl1, sch1,
+     & regl0, regh0, regl1, regh1,
+     & hx, hy, ir, jr, idim, idir, irz, imax)
       integer resl0, resh0, resl1, resh1
       integer srcl0, srch0, srcl1, srch1
       integer fdstl0, fdsth0, fdstl1, fdsth1
@@ -265,27 +265,27 @@ c Note---assumes fdst linearly interpolated from cdst along edge
          hym2 = 1.d0 / (jr * jr * hy * hy)
          do 10 j = regl1, regh1
  10         res(i*ir,j*jr) = src(i*ir,j*jr) - fac0 *
-     @        (hxm2 *
-     @          (sigmac(is,j-1) *
-     @            (cdst(i-idir,j-1) - cdst(i,j-1) +
-     @             2.d0 * (cdst(i-idir,j) - cdst(i,j))) +
-     @           sigmac(is,j) *
-     @            (cdst(i-idir,j+1) - cdst(i,j+1) +
-     @             2.d0 * (cdst(i-idir,j) - cdst(i,j)))) +
-     @         hym2 *
-     @          (sigmac(is,j-1) *
-     @            (cdst(i-idir,j-1) - cdst(i-idir,j) +
-     @             2.d0 * (cdst(i,j-1) - cdst(i,j))) +
-     @           sigmac(is,j) *
-     @            (cdst(i-idir,j+1) - cdst(i-idir,j) +
-     @             2.d0 * (cdst(i,j+1) - cdst(i,j)))))
+     &        (hxm2 *
+     &          (sigmac(is,j-1) *
+     &            (cdst(i-idir,j-1) - cdst(i,j-1) +
+     &             2.d0 * (cdst(i-idir,j) - cdst(i,j))) +
+     &           sigmac(is,j) *
+     &            (cdst(i-idir,j+1) - cdst(i,j+1) +
+     &             2.d0 * (cdst(i-idir,j) - cdst(i,j)))) +
+     &         hym2 *
+     &          (sigmac(is,j-1) *
+     &            (cdst(i-idir,j-1) - cdst(i-idir,j) +
+     &             2.d0 * (cdst(i,j-1) - cdst(i,j))) +
+     &           sigmac(is,j) *
+     &            (cdst(i-idir,j+1) - cdst(i-idir,j) +
+     &             2.d0 * (cdst(i,j+1) - cdst(i,j)))))
          if (irz .eq. 1) then
             r = (is + 0.5d0) * (hx * ir)
             rfac = idir * ir * hx * hym2 / (2.d0 * r)
             do 20 j = regl1, regh1
  20            res(i*ir,j*jr) = res(i*ir,j*jr) - fac0 *
-     @           (rfac * (sigmac(is,j-1) * (cdst(i,j-1) - cdst(i,j)) +
-     @                    sigmac(is,j)   * (cdst(i,j+1) - cdst(i,j))))
+     &           (rfac * (sigmac(is,j-1) * (cdst(i,j-1) - cdst(i,j)) +
+     &                    sigmac(is,j)   * (cdst(i,j+1) - cdst(i,j))))
          end if
          fac0 = fac0 / (ir * jr * jr)
          hxm2 = ir * ir * hxm2
@@ -305,38 +305,38 @@ c Note---assumes fdst linearly interpolated from cdst along edge
             if (n .eq. 0) fac1 = 0.5d0 * fac1
             do 30 j = jr*regl1, jr*regh1, jr
                tmp = hxm2 *
-     @           (sigmaf(is,j-n-1) *
-     @             (fdst(i+idir,j-n-1) - fdst(i,j-n-1) +
-     @              2.d0 * (fdst(i+idir,j-n) - fdst(i,j-n))) +
-     @		  sigmaf(is,j-n) *
-     @             (fdst(i+idir,j-n+1) - fdst(i,j-n+1) +
-     @              2.d0 * (fdst(i+idir,j-n) - fdst(i,j-n))) +
-     @		  sigmaf(is,j+n-1) *
-     @             (fdst(i+idir,j+n-1) - fdst(i,j+n-1) +
-     @              2.d0 * (fdst(i+idir,j+n) - fdst(i,j+n))) +
-     @		  sigmaf(is,j+n) *
-     @             (fdst(i+idir,j+n+1) - fdst(i,j+n+1) +
-     @              2.d0 * (fdst(i+idir,j+n) - fdst(i,j+n))))
+     &           (sigmaf(is,j-n-1) *
+     &             (fdst(i+idir,j-n-1) - fdst(i,j-n-1) +
+     &              2.d0 * (fdst(i+idir,j-n) - fdst(i,j-n))) +
+     &		  sigmaf(is,j-n) *
+     &             (fdst(i+idir,j-n+1) - fdst(i,j-n+1) +
+     &              2.d0 * (fdst(i+idir,j-n) - fdst(i,j-n))) +
+     &		  sigmaf(is,j+n-1) *
+     &             (fdst(i+idir,j+n-1) - fdst(i,j+n-1) +
+     &              2.d0 * (fdst(i+idir,j+n) - fdst(i,j+n))) +
+     &		  sigmaf(is,j+n) *
+     &             (fdst(i+idir,j+n+1) - fdst(i,j+n+1) +
+     &              2.d0 * (fdst(i+idir,j+n) - fdst(i,j+n))))
  30            res(i,j) = res(i,j) - fac1 * (tmp + hym2 *
-     @		 (sigmaf(is,j-n-1) *
-     @             (fdst(i+idir,j-n-1) - fdst(i+idir,j-n) +
-     @              2.d0 * (fdst(i,j-n-1) - fdst(i,j-n))) +
-     @		  sigmaf(is,j-n) *
-     @             (fdst(i+idir,j-n+1) - fdst(i+idir,j-n) +
-     @              2.d0 * (fdst(i,j-n+1) - fdst(i,j-n))) +
-     @		  sigmaf(is,j+n-1) *
-     @             (fdst(i+idir,j+n-1) - fdst(i+idir,j+n) +
-     @              2.d0 * (fdst(i,j+n-1) - fdst(i,j+n))) +
-     @		  sigmaf(is,j+n) *
-     @             (fdst(i+idir,j+n+1) - fdst(i+idir,j+n) +
-     @              2.d0 * (fdst(i,j+n+1) - fdst(i,j+n)))))
+     &		 (sigmaf(is,j-n-1) *
+     &             (fdst(i+idir,j-n-1) - fdst(i+idir,j-n) +
+     &              2.d0 * (fdst(i,j-n-1) - fdst(i,j-n))) +
+     &		  sigmaf(is,j-n) *
+     &             (fdst(i+idir,j-n+1) - fdst(i+idir,j-n) +
+     &              2.d0 * (fdst(i,j-n+1) - fdst(i,j-n))) +
+     &		  sigmaf(is,j+n-1) *
+     &             (fdst(i+idir,j+n-1) - fdst(i+idir,j+n) +
+     &              2.d0 * (fdst(i,j+n-1) - fdst(i,j+n))) +
+     &		  sigmaf(is,j+n) *
+     &             (fdst(i+idir,j+n+1) - fdst(i+idir,j+n) +
+     &              2.d0 * (fdst(i,j+n+1) - fdst(i,j+n)))))
             if (irz .eq. 1) then
                do 40 j = jr*regl1, jr*regh1, jr
  40               res(i,j) = res(i,j) + fac1 *
-     @       (rfac * (sigmaf(is,j-n-1) * (fdst(i,j-n-1) - fdst(i,j-n)) +
-     @                sigmaf(is,j-n)   * (fdst(i,j-n+1) - fdst(i,j-n)) +
-     @                sigmaf(is,j+n-1) * (fdst(i,j+n-1) - fdst(i,j+n)) +
-     @                sigmaf(is,j+n)   * (fdst(i,j+n+1) - fdst(i,j+n))))
+     &       (rfac * (sigmaf(is,j-n-1) * (fdst(i,j-n-1) - fdst(i,j-n)) +
+     &                sigmaf(is,j-n)   * (fdst(i,j-n+1) - fdst(i,j-n)) +
+     &                sigmaf(is,j+n-1) * (fdst(i,j+n-1) - fdst(i,j+n)) +
+     &                sigmaf(is,j+n)   * (fdst(i,j+n+1) - fdst(i,j+n))))
             end if
  50         continue
       else
@@ -351,28 +351,28 @@ c Note---assumes fdst linearly interpolated from cdst along edge
          hym2 = 1.d0 / (jr * jr * hy * hy)
          do 60 i = regl0, regh0
  60         res(i*ir,j*jr) = src(i*ir,j*jr) - fac0 *
-     @        (hxm2 *
-     @          (sigmac(i-1,js) *
-     @            (cdst(i-1,j-idir) - cdst(i,j-idir) +
-     @             2.d0 * (cdst(i-1,j) - cdst(i,j))) +
-     @           sigmac(i,js) *
-     @            (cdst(i+1,j-idir) - cdst(i,j-idir) +
-     @             2.d0 * (cdst(i+1,j) - cdst(i,j)))) +
-     @         hym2 *
-     @          (sigmac(i-1,js) *
-     @            (cdst(i-1,j-idir) - cdst(i-1,j) +
-     @             2.d0 * (cdst(i,j-idir) - cdst(i,j))) +
-     @           sigmac(i,js) *
-     @            (cdst(i+1,j-idir) - cdst(i+1,j) +
-     @             2.d0 * (cdst(i,j-idir) - cdst(i,j)))))
+     &        (hxm2 *
+     &          (sigmac(i-1,js) *
+     &            (cdst(i-1,j-idir) - cdst(i,j-idir) +
+     &             2.d0 * (cdst(i-1,j) - cdst(i,j))) +
+     &           sigmac(i,js) *
+     &            (cdst(i+1,j-idir) - cdst(i,j-idir) +
+     &             2.d0 * (cdst(i+1,j) - cdst(i,j)))) +
+     &         hym2 *
+     &          (sigmac(i-1,js) *
+     &            (cdst(i-1,j-idir) - cdst(i-1,j) +
+     &             2.d0 * (cdst(i,j-idir) - cdst(i,j))) +
+     &           sigmac(i,js) *
+     &            (cdst(i+1,j-idir) - cdst(i+1,j) +
+     &             2.d0 * (cdst(i,j-idir) - cdst(i,j)))))
          if (irz .eq. 1 .and. regh0 .lt. imax) then
             do 70 i = regl0, regh0
                r = (i + 0.5d0) * (hx * ir)
                rfac0 = ir * hx * hym2 / (2.d0 * (r - hx * ir))
                rfac1 = ir * hx * hym2 / (2.d0 * r)
  70            res(i*ir,j*jr) = res(i*ir,j*jr) - fac0 *
-     @           (rfac0 * sigmac(i-1,js) - rfac1 * sigmac(i,js)) *
-     @           (cdst(i,j-idir) - cdst(i,j))
+     &           (rfac0 * sigmac(i-1,js) - rfac1 * sigmac(i,js)) *
+     &           (cdst(i,j-idir) - cdst(i,j))
          else if (irz .eq. 1) then
 c This should only occur with a corner at the outer boundary:
             i = regh0
@@ -380,8 +380,8 @@ c This should only occur with a corner at the outer boundary:
             rfac0 = ir * hx * hym2 / (2.d0 * r)
             rfac1 = -rfac0
             res(i*ir,j*jr) = res(i*ir,j*jr) - fac0 *
-     @           (rfac0 * sigmac(i-1,js) - rfac1 * sigmac(i,js)) *
-     @           (cdst(i,j-idir) - cdst(i,j))
+     &           (rfac0 * sigmac(i-1,js) - rfac1 * sigmac(i,js)) *
+     &           (cdst(i,j-idir) - cdst(i,j))
          end if
          fac0 = fac0 / (ir * ir * jr)
          hxm2 = ir * ir * hxm2
@@ -397,31 +397,31 @@ c This should only occur with a corner at the outer boundary:
             if (m .eq. 0) fac1 = 0.5d0 * fac1
             do 80 i = ir*regl0, ir*regh0, ir
                tmp = hxm2 *
-     @		 (sigmaf(i-m-1,js) *
-     @             (fdst(i-m-1,j+idir) - fdst(i-m,j+idir) +
-     @              2.d0 * (fdst(i-m-1,j) - fdst(i-m,j))) +
-     @		  sigmaf(i-m,js) *
-     @             (fdst(i-m+1,j+idir) - fdst(i-m,j+idir) +
-     @              2.d0 * (fdst(i-m+1,j) - fdst(i-m,j))) +
-     @		  sigmaf(i+m-1,js) *
-     @             (fdst(i+m-1,j+idir) - fdst(i+m,j+idir) +
-     @              2.d0 * (fdst(i+m-1,j) - fdst(i+m,j))) +
-     @		  sigmaf(i+m,js) *
-     @             (fdst(i+m+1,j+idir) - fdst(i+m,j+idir) +
-     @              2.d0 * (fdst(i+m+1,j) - fdst(i+m,j))))
+     &		 (sigmaf(i-m-1,js) *
+     &             (fdst(i-m-1,j+idir) - fdst(i-m,j+idir) +
+     &              2.d0 * (fdst(i-m-1,j) - fdst(i-m,j))) +
+     &		  sigmaf(i-m,js) *
+     &             (fdst(i-m+1,j+idir) - fdst(i-m,j+idir) +
+     &              2.d0 * (fdst(i-m+1,j) - fdst(i-m,j))) +
+     &		  sigmaf(i+m-1,js) *
+     &             (fdst(i+m-1,j+idir) - fdst(i+m,j+idir) +
+     &              2.d0 * (fdst(i+m-1,j) - fdst(i+m,j))) +
+     &		  sigmaf(i+m,js) *
+     &             (fdst(i+m+1,j+idir) - fdst(i+m,j+idir) +
+     &              2.d0 * (fdst(i+m+1,j) - fdst(i+m,j))))
  80            res(i,j) = res(i,j) - fac1 * (tmp + hym2 *
-     @           (sigmaf(i-m-1,js) *
-     @             (fdst(i-m-1,j+idir) - fdst(i-m-1,j) +
-     @              2.d0 * (fdst(i-m,j+idir) - fdst(i-m,j))) +
-     @		  sigmaf(i-m,js) *
-     @             (fdst(i-m+1,j+idir) - fdst(i-m+1,j) +
-     @              2.d0 * (fdst(i-m,j+idir) - fdst(i-m,j))) +
-     @		  sigmaf(i+m-1,js) *
-     @             (fdst(i+m-1,j+idir) - fdst(i+m-1,j) +
-     @              2.d0 * (fdst(i+m,j+idir) - fdst(i+m,j))) +
-     @		  sigmaf(i+m,js) *
-     @             (fdst(i+m+1,j+idir) - fdst(i+m+1,j) +
-     @              2.d0 * (fdst(i+m,j+idir) - fdst(i+m,j)))))
+     &           (sigmaf(i-m-1,js) *
+     &             (fdst(i-m-1,j+idir) - fdst(i-m-1,j) +
+     &              2.d0 * (fdst(i-m,j+idir) - fdst(i-m,j))) +
+     &		  sigmaf(i-m,js) *
+     &             (fdst(i-m+1,j+idir) - fdst(i-m+1,j) +
+     &              2.d0 * (fdst(i-m,j+idir) - fdst(i-m,j))) +
+     &		  sigmaf(i+m-1,js) *
+     &             (fdst(i+m-1,j+idir) - fdst(i+m-1,j) +
+     &              2.d0 * (fdst(i+m,j+idir) - fdst(i+m,j))) +
+     &		  sigmaf(i+m,js) *
+     &             (fdst(i+m+1,j+idir) - fdst(i+m+1,j) +
+     &              2.d0 * (fdst(i+m,j+idir) - fdst(i+m,j)))))
          if (irz .eq. 1 .and. regh0 .lt. imax) then
             do 90 i = ir*regl0, ir*regh0, ir
                r = (i + 0.5d0) * hx
@@ -430,10 +430,10 @@ c This should only occur with a corner at the outer boundary:
                rfac0p = hx * hym2 / (2.d0 * (r + (m - 1) * hx))
                rfac1p = hx * hym2 / (2.d0 * (r + m * hx))
  90            res(i,j) = res(i,j) - fac1 *
-     @          ((rfac0m * sigmaf(i-m-1,js) - rfac1m * sigmaf(i-m,js)) *
-     @           (fdst(i-m,j+idir) - fdst(i-m,j)) +
-     @           (rfac0p * sigmaf(i+m-1,js) - rfac1p * sigmaf(i+m,js)) *
-     @           (fdst(i+m,j+idir) - fdst(i+m,j)))
+     &          ((rfac0m * sigmaf(i-m-1,js) - rfac1m * sigmaf(i-m,js)) *
+     &           (fdst(i-m,j+idir) - fdst(i-m,j)) +
+     &           (rfac0p * sigmaf(i+m-1,js) - rfac1p * sigmaf(i+m,js)) *
+     &           (fdst(i+m,j+idir) - fdst(i+m,j)))
          else if (irz .eq. 1) then
 c This should only occur with a corner at the outer boundary:
             i = ir * regh0
@@ -447,10 +447,10 @@ c This should only occur with a corner at the outer boundary:
             rfac0p = -rfac1m
             rfac1p = -rfac0m
             res(i,j) = res(i,j) - fac1 *
-     @          ((rfac0m * sigmaf(i-m-1,js) - rfac1m * sigmaf(i-m,js)) *
-     @           (fdst(i-m,j+idir) - fdst(i-m,j)) +
-     @           (rfac0p * sigmaf(i+m-1,js) - rfac1p * sigmaf(i+m,js)) *
-     @           (fdst(i+m,j+idir) - fdst(i+m,j)))
+     &          ((rfac0m * sigmaf(i-m-1,js) - rfac1m * sigmaf(i-m,js)) *
+     &           (fdst(i-m,j+idir) - fdst(i-m,j)) +
+     &           (rfac0p * sigmaf(i+m-1,js) - rfac1p * sigmaf(i+m,js)) *
+     &           (fdst(i+m,j+idir) - fdst(i+m,j)))
          end if
  100     continue
       end if
@@ -458,13 +458,13 @@ c This should only occur with a corner at the outer boundary:
 c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along edge
       subroutine hgores_full_stencil(res, resl0, resh0, resl1, resh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ fdst, fdstl0, fdsth0, fdstl1, fdsth1,
-     @ cdst, cdstl0, cdsth0, cdstl1, cdsth1,
-     @ sigmaf, sfl0, sfh0, sfl1, sfh1,
-     @ sigmac, scl0, sch0, scl1, sch1,
-     @ regl0, regh0, regl1, regh1,
-     @ hx, hy, ir, jr, idir, jdir, irz)
+     & src,  srcl0, srch0, srcl1, srch1,
+     & fdst, fdstl0, fdsth0, fdstl1, fdsth1,
+     & cdst, cdstl0, cdsth0, cdstl1, cdsth1,
+     & sigmaf, sfl0, sfh0, sfl1, sfh1,
+     & sigmac, scl0, sch0, scl1, sch1,
+     & regl0, regh0, regl1, regh1,
+     & hx, hy, ir, jr, idir, jdir, irz)
       integer resl0, resh0, resl1, resh1
       integer srcl0, srch0, srcl1, srch1
       integer fdstl0, fdsth0, fdstl1, fdsth1
@@ -500,32 +500,32 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       hym2 = 1.d0 / (jr * jr * hy * hy)
       fac0 = (ir * jr) / (4.5d0*ir*jr + 1.5d0*ir + 1.5d0*jr - 1.5d0)
       res(i*ir,j*jr) = src(i*ir,j*jr) - fac0 *
-     @  (hxm2 * (sigmac(is,js+jdir) *
-     @            (cdst(i-idir,j+jdir) - cdst(i,j+jdir) +
-     @             2.d0 * (cdst(i-idir,j) - cdst(i,j))) +
-     @           sigmac(is,js) *
-     @            (cdst(i-idir,j-jdir) - cdst(i,j-jdir) +
-     @             2.d0 * (cdst(i-idir,j) - cdst(i,j))) +
-     @           sigmac(is+idir,js) *
-     @            (cdst(i+idir,j-jdir) - cdst(i,j-jdir) +
-     @             2.d0 * (cdst(i+idir,j) - cdst(i,j)))) +
-     @   hym2 * (sigmac(is,js+jdir) *
-     @            (cdst(i-idir,j+jdir) - cdst(i-idir,j) +
-     @             2.d0 * (cdst(i,j+jdir) - cdst(i,j))) +
-     @           sigmac(is,js) *
-     @            (cdst(i-idir,j-jdir) - cdst(i-idir,j) +
-     @             2.d0 * (cdst(i,j-jdir) - cdst(i,j))) +
-     @           sigmac(is+idir,js) *
-     @            (cdst(i+idir,j-jdir) - cdst(i+idir,j) +
-     @             2.d0 * (cdst(i,j-jdir) - cdst(i,j)))))
+     &  (hxm2 * (sigmac(is,js+jdir) *
+     &            (cdst(i-idir,j+jdir) - cdst(i,j+jdir) +
+     &             2.d0 * (cdst(i-idir,j) - cdst(i,j))) +
+     &           sigmac(is,js) *
+     &            (cdst(i-idir,j-jdir) - cdst(i,j-jdir) +
+     &             2.d0 * (cdst(i-idir,j) - cdst(i,j))) +
+     &           sigmac(is+idir,js) *
+     &            (cdst(i+idir,j-jdir) - cdst(i,j-jdir) +
+     &             2.d0 * (cdst(i+idir,j) - cdst(i,j)))) +
+     &   hym2 * (sigmac(is,js+jdir) *
+     &            (cdst(i-idir,j+jdir) - cdst(i-idir,j) +
+     &             2.d0 * (cdst(i,j+jdir) - cdst(i,j))) +
+     &           sigmac(is,js) *
+     &            (cdst(i-idir,j-jdir) - cdst(i-idir,j) +
+     &             2.d0 * (cdst(i,j-jdir) - cdst(i,j))) +
+     &           sigmac(is+idir,js) *
+     &            (cdst(i+idir,j-jdir) - cdst(i+idir,j) +
+     &             2.d0 * (cdst(i,j-jdir) - cdst(i,j)))))
       if (irz .eq. 1) then
          r = (is + 0.5d0) * (hx * ir)
          rfac0 = ir * hx * hym2 / (2.d0 * (r + idir * hx * ir))
          rfac1 = ir * hx * hym2 / (2.d0 * r)
          res(i*ir,j*jr) = res(i*ir,j*jr) + idir * fac0 *
-     @     ((rfac0 * sigmac(is+idir,js) - rfac1 * sigmac(is,js)) *
-     @      (cdst(i,j-jdir) - cdst(i,j)) -
-     @      rfac1 * sigmac(is,js+jdir) * (cdst(i,j+jdir) - cdst(i,j)))
+     &     ((rfac0 * sigmac(is+idir,js) - rfac1 * sigmac(is,js)) *
+     &      (cdst(i,j-jdir) - cdst(i,j)) -
+     &      rfac1 * sigmac(is,js+jdir) * (cdst(i,j+jdir) - cdst(i,j)))
       end if
       fac0 = fac0 / (ir * jr)
       hxm2 = ir * ir * hxm2
@@ -543,78 +543,78 @@ c Note---assumes fdst linearly interpolated from cdst along edge
          js = j - 1
       end if
       res(i,j) = res(i,j) - fac0 * sigmaf(is,js) *
-     @  (hxm2 * (fdst(i+idir,j+jdir) - fdst(i,j+jdir) +
-     @           2.d0 * (fdst(i+idir,j) - fdst(i,j))) +
-     @   hym2 * (fdst(i+idir,j+jdir) - fdst(i+idir,j) +
-     @           2.d0 * (fdst(i,j+jdir) - fdst(i,j))))
+     &  (hxm2 * (fdst(i+idir,j+jdir) - fdst(i,j+jdir) +
+     &           2.d0 * (fdst(i+idir,j) - fdst(i,j))) +
+     &   hym2 * (fdst(i+idir,j+jdir) - fdst(i+idir,j) +
+     &           2.d0 * (fdst(i,j+jdir) - fdst(i,j))))
       if (irz .eq. 1) then
          r = (is + 0.5d0) * hx
          rfac = hx * hym2 / (2.d0 * r)
          res(i,j) = res(i,j) + idir * fac0 *
-     @      rfac * sigmaf(is,js) * (fdst(i,j+jdir) - fdst(i,j))
+     &      rfac * sigmaf(is,js) * (fdst(i,j+jdir) - fdst(i,j))
       end if
       fac0 = fac0 / ir
       do 10 m = idir, idir*(ir-1), idir
          fac1 = (ir-abs(m)) * fac0
          tmp = hxm2 *
-     @     (sigmaf(i+m-1,js) *
-     @       (fdst(i+m-1,j+jdir) - fdst(i+m,j+jdir) +
-     @        2.d0 * (fdst(i+m-1,j) - fdst(i+m,j))) +
-     @      sigmaf(i+m,js) *
-     @       (fdst(i+m+1,j+jdir) - fdst(i+m,j+jdir) +
-     @        2.d0 * (fdst(i+m+1,j) - fdst(i+m,j))))
+     &     (sigmaf(i+m-1,js) *
+     &       (fdst(i+m-1,j+jdir) - fdst(i+m,j+jdir) +
+     &        2.d0 * (fdst(i+m-1,j) - fdst(i+m,j))) +
+     &      sigmaf(i+m,js) *
+     &       (fdst(i+m+1,j+jdir) - fdst(i+m,j+jdir) +
+     &        2.d0 * (fdst(i+m+1,j) - fdst(i+m,j))))
          res(i,j) = res(i,j) - fac1 * (tmp + hym2 *
-     @     (sigmaf(i+m-1,js) *
-     @       (fdst(i+m-1,j+jdir) - fdst(i+m-1,j) +
-     @        2.d0 * (fdst(i+m,j+jdir) - fdst(i+m,j))) +
-     @	    sigmaf(i+m,js) *
-     @       (fdst(i+m+1,j+jdir) - fdst(i+m+1,j) +
-     @        2.d0 * (fdst(i+m,j+jdir) - fdst(i+m,j)))))
+     &     (sigmaf(i+m-1,js) *
+     &       (fdst(i+m-1,j+jdir) - fdst(i+m-1,j) +
+     &        2.d0 * (fdst(i+m,j+jdir) - fdst(i+m,j))) +
+     &	    sigmaf(i+m,js) *
+     &       (fdst(i+m+1,j+jdir) - fdst(i+m+1,j) +
+     &        2.d0 * (fdst(i+m,j+jdir) - fdst(i+m,j)))))
          if (irz .eq. 1) then
             r = (i + m + 0.5d0) * hx
             rfac0p = hx * hym2 / (2.d0 * (r - hx))
             rfac1p = hx * hym2 / (2.d0 * r)
             res(i,j) = res(i,j) - fac1 *
-     @         (rfac0p * sigmaf(i+m-1,js) - rfac1p * sigmaf(i+m,js)) *
-     @          (fdst(i+m,j+jdir) - fdst(i+m,j))
+     &         (rfac0p * sigmaf(i+m-1,js) - rfac1p * sigmaf(i+m,js)) *
+     &          (fdst(i+m,j+jdir) - fdst(i+m,j))
          end if
  10      continue
       fac0 = ir * fac0 / jr
       do 20 n = jdir, jdir*(jr-1), jdir
          fac1 = (jr-abs(n)) * fac0
          tmp = hxm2 *
-     @     (sigmaf(is,j+n-1) *
-     @       (fdst(i+idir,j+n-1) - fdst(i,j+n-1) +
-     @        2.d0 * (fdst(i+idir,j+n) - fdst(i,j+n))) +
-     @      sigmaf(is,j+n) *
-     @       (fdst(i+idir,j+n+1) - fdst(i,j+n+1) +
-     @        2.d0 * (fdst(i+idir,j+n) - fdst(i,j+n))))
+     &     (sigmaf(is,j+n-1) *
+     &       (fdst(i+idir,j+n-1) - fdst(i,j+n-1) +
+     &        2.d0 * (fdst(i+idir,j+n) - fdst(i,j+n))) +
+     &      sigmaf(is,j+n) *
+     &       (fdst(i+idir,j+n+1) - fdst(i,j+n+1) +
+     &        2.d0 * (fdst(i+idir,j+n) - fdst(i,j+n))))
          res(i,j) = res(i,j) - fac1 * (tmp + hym2 *
-     @     (sigmaf(is,j+n-1) *
-     @       (fdst(i+idir,j+n-1) - fdst(i+idir,j+n) + 
-     @        2.d0 * (fdst(i,j+n-1) - fdst(i,j+n))) +
-     @	    sigmaf(is,j+n) *
-     @       (fdst(i+idir,j+n+1) - fdst(i+idir,j+n) +
-     @        2.d0 * (fdst(i,j+n+1) - fdst(i,j+n)))))
+     &     (sigmaf(is,j+n-1) *
+     &       (fdst(i+idir,j+n-1) - fdst(i+idir,j+n) + 
+     &        2.d0 * (fdst(i,j+n-1) - fdst(i,j+n))) +
+     &	    sigmaf(is,j+n) *
+     &       (fdst(i+idir,j+n+1) - fdst(i+idir,j+n) +
+     &        2.d0 * (fdst(i,j+n+1) - fdst(i,j+n)))))
          if (irz .eq. 1) then
             r = (is + 0.5d0) * hx
             rfac1 = -idir * hx * hym2 / (2.d0 * r)
             res(i,j) = res(i,j) - fac1 *
-     @        rfac1 *(sigmaf(is,j+n-1) * (fdst(i,j+n-1) - fdst(i,j+n)) +
-     @                sigmaf(is,j+n)   * (fdst(i,j+n+1) - fdst(i,j+n)))
+     &        rfac1 *(sigmaf(is,j+n-1) * (fdst(i,j+n-1) - fdst(i,j+n)) +
+     &                sigmaf(is,j+n)   * (fdst(i,j+n+1) - fdst(i,j+n)))
          end if
  20      continue
       end
 c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along edge
       subroutine hgires_full_stencil(res, resl0, resh0, resl1, resh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ fdst, fdstl0, fdsth0, fdstl1, fdsth1,
-     @ cdst, cdstl0, cdsth0, cdstl1, cdsth1,
-     @ sigmaf, sfl0, sfh0, sfl1, sfh1,
-     @ sigmac, scl0, sch0, scl1, sch1,
-     @ regl0, regh0, regl1, regh1,
-     @ hx, hy, ir, jr, idir, jdir, irz)
+     & src,  srcl0, srch0, srcl1, srch1,
+     & fdst, fdstl0, fdsth0, fdstl1, fdsth1,
+     & cdst, cdstl0, cdsth0, cdstl1, cdsth1,
+     & sigmaf, sfl0, sfh0, sfl1, sfh1,
+     & sigmac, scl0, sch0, scl1, sch1,
+     & regl0, regh0, regl1, regh1,
+     & hx, hy, ir, jr, idir, jdir, irz)
       integer resl0, resh0, resl1, resh1
       integer srcl0, srch0, srcl1, srch1
       integer fdstl0, fdsth0, fdstl1, fdsth1
@@ -650,15 +650,15 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       hym2 = 1.d0 / (jr * jr * hy * hy)
       fac0 = (ir * jr) / (1.5d0*ir*jr + 1.5d0*ir + 1.5d0*jr + 1.5d0)
       res(i*ir,j*jr) = src(i*ir,j*jr) - fac0 * sigmac(is,js) *
-     @  (hxm2 * (cdst(i-idir,j-jdir) - cdst(i,j-jdir) +
-     @           2.d0 * (cdst(i-idir,j) - cdst(i,j))) +
-     @   hym2 * (cdst(i-idir,j-jdir) - cdst(i-idir,j) +
-     @           2.d0 * (cdst(i,j-jdir) - cdst(i,j))))
+     &  (hxm2 * (cdst(i-idir,j-jdir) - cdst(i,j-jdir) +
+     &           2.d0 * (cdst(i-idir,j) - cdst(i,j))) +
+     &   hym2 * (cdst(i-idir,j-jdir) - cdst(i-idir,j) +
+     &           2.d0 * (cdst(i,j-jdir) - cdst(i,j))))
       if (irz .eq. 1) then
          r = (is + 0.5d0) * (hx * ir)
          rfac = ir * hx * hym2 / (2.d0 * r)
          res(i*ir,j*jr) = res(i*ir,j*jr) - idir * fac0 *
-     @     rfac * sigmac(is,js) * (cdst(i,j-jdir) - cdst(i,j))
+     &     rfac * sigmac(is,js) * (cdst(i,j-jdir) - cdst(i,j))
       end if
       fac0 = fac0 / (ir * jr)
       hxm2 = ir * ir * hxm2
@@ -676,95 +676,95 @@ c Note---assumes fdst linearly interpolated from cdst along edge
          js = j - 1
       end if
       res(i,j) = res(i,j) - fac0 *
-     @  (hxm2 * (sigmaf(is,js-jdir) *
-     @            (fdst(i+idir,j-jdir) - fdst(i,j-jdir) +
-     @             2.d0 * (fdst(i+idir,j) - fdst(i,j))) +
-     @           sigmaf(is,js) *
-     @            (fdst(i+idir,j+jdir) - fdst(i,j+jdir) +
-     @             2.d0 * (fdst(i+idir,j) - fdst(i,j))) +
-     @           sigmaf(is-idir,js) *
-     @            (fdst(i-idir,j+jdir) - fdst(i,j+jdir) +
-     @             2.d0 * (fdst(i-idir,j) - fdst(i,j)))) +
-     @   hym2 * (sigmaf(is,js-jdir) *
-     @            (fdst(i+idir,j-jdir) - fdst(i+idir,j) +
-     @             2.d0 * (fdst(i,j-jdir) - fdst(i,j))) +
-     @           sigmaf(is,js) *
-     @            (fdst(i+idir,j+jdir) - fdst(i+idir,j) +
-     @             2.d0 * (fdst(i,j+jdir) - fdst(i,j))) +
-     @           sigmaf(is-idir,js) *
-     @            (fdst(i-idir,j+jdir) - fdst(i-idir,j) +
-     @             2.d0 * (fdst(i,j+jdir) - fdst(i,j)))))
+     &  (hxm2 * (sigmaf(is,js-jdir) *
+     &            (fdst(i+idir,j-jdir) - fdst(i,j-jdir) +
+     &             2.d0 * (fdst(i+idir,j) - fdst(i,j))) +
+     &           sigmaf(is,js) *
+     &            (fdst(i+idir,j+jdir) - fdst(i,j+jdir) +
+     &             2.d0 * (fdst(i+idir,j) - fdst(i,j))) +
+     &           sigmaf(is-idir,js) *
+     &            (fdst(i-idir,j+jdir) - fdst(i,j+jdir) +
+     &             2.d0 * (fdst(i-idir,j) - fdst(i,j)))) +
+     &   hym2 * (sigmaf(is,js-jdir) *
+     &            (fdst(i+idir,j-jdir) - fdst(i+idir,j) +
+     &             2.d0 * (fdst(i,j-jdir) - fdst(i,j))) +
+     &           sigmaf(is,js) *
+     &            (fdst(i+idir,j+jdir) - fdst(i+idir,j) +
+     &             2.d0 * (fdst(i,j+jdir) - fdst(i,j))) +
+     &           sigmaf(is-idir,js) *
+     &            (fdst(i-idir,j+jdir) - fdst(i-idir,j) +
+     &             2.d0 * (fdst(i,j+jdir) - fdst(i,j)))))
       if (irz .eq. 1) then
          r = (is + 0.5d0) * hx
          rfac0 = hx * hym2 / (2.d0 * (r - idir * hx))
          rfac1 = hx * hym2 / (2.d0 * r)
          res(i,j) = res(i,j) - idir * fac0 *
-     @     ((rfac0 * sigmaf(is-idir,js) - rfac1 * sigmaf(is,js)) *
-     @      (fdst(i,j+jdir) - fdst(i,j)) -
-     @      rfac1 * sigmaf(is,js-jdir) * (fdst(i,j-jdir) - fdst(i,j)))
+     &     ((rfac0 * sigmaf(is-idir,js) - rfac1 * sigmaf(is,js)) *
+     &      (fdst(i,j+jdir) - fdst(i,j)) -
+     &      rfac1 * sigmaf(is,js-jdir) * (fdst(i,j-jdir) - fdst(i,j)))
       end if
       fac0 = fac0 / ir
       do 10 m = idir, idir*(ir-1), idir
          fac1 = (ir-abs(m)) * fac0
          tmp = hxm2 *
-     @     (sigmaf(i-m-1,js) *
-     @       (fdst(i-m-1,j+jdir) - fdst(i-m,j+jdir) +
-     @        2.d0 * (fdst(i-m-1,j) - fdst(i-m,j))) +
-     @      sigmaf(i-m,js) *
-     @       (fdst(i-m+1,j+jdir) - fdst(i-m,j+jdir) +
-     @        2.d0 * (fdst(i-m+1,j) - fdst(i-m,j))))
+     &     (sigmaf(i-m-1,js) *
+     &       (fdst(i-m-1,j+jdir) - fdst(i-m,j+jdir) +
+     &        2.d0 * (fdst(i-m-1,j) - fdst(i-m,j))) +
+     &      sigmaf(i-m,js) *
+     &       (fdst(i-m+1,j+jdir) - fdst(i-m,j+jdir) +
+     &        2.d0 * (fdst(i-m+1,j) - fdst(i-m,j))))
          res(i,j) = res(i,j) - fac1 * (tmp + hym2 *
-     @     (sigmaf(i-m-1,js) *
-     @       (fdst(i-m-1,j+jdir) - fdst(i-m-1,j) +
-     @        2.d0 * (fdst(i-m,j+jdir) - fdst(i-m,j))) +
-     @	    sigmaf(i-m,js) *
-     @       (fdst(i-m+1,j+jdir) - fdst(i-m+1,j) +
-     @        2.d0 * (fdst(i-m,j+jdir) - fdst(i-m,j)))))
+     &     (sigmaf(i-m-1,js) *
+     &       (fdst(i-m-1,j+jdir) - fdst(i-m-1,j) +
+     &        2.d0 * (fdst(i-m,j+jdir) - fdst(i-m,j))) +
+     &	    sigmaf(i-m,js) *
+     &       (fdst(i-m+1,j+jdir) - fdst(i-m+1,j) +
+     &        2.d0 * (fdst(i-m,j+jdir) - fdst(i-m,j)))))
          if (irz .eq. 1) then
             r = (i - m + 0.5d0) * hx
             rfac0m = hx * hym2 / (2.d0 * (r - hx))
             rfac1m = hx * hym2 / (2.d0 * r)
             res(i,j) = res(i,j) - fac1 *
-     @         (rfac0m * sigmaf(i-m-1,js) - rfac1m * sigmaf(i-m,js)) *
-     @          (fdst(i-m,j+jdir) - fdst(i-m,j))
+     &         (rfac0m * sigmaf(i-m-1,js) - rfac1m * sigmaf(i-m,js)) *
+     &          (fdst(i-m,j+jdir) - fdst(i-m,j))
          end if
  10      continue
       fac0 = ir * fac0 / jr
       do 20 n = jdir, jdir*(jr-1), jdir
          fac1 = (jr-abs(n)) * fac0
          tmp = hxm2 *
-     @     (sigmaf(is,j-n-1) *
-     @       (fdst(i+idir,j-n-1) - fdst(i,j-n-1) +
-     @        2.d0 * (fdst(i+idir,j-n) - fdst(i,j-n))) +
-     @      sigmaf(is,j-n) *
-     @       (fdst(i+idir,j-n+1) - fdst(i,j-n+1) +
-     @        2.d0 * (fdst(i+idir,j-n) - fdst(i,j-n))))
+     &     (sigmaf(is,j-n-1) *
+     &       (fdst(i+idir,j-n-1) - fdst(i,j-n-1) +
+     &        2.d0 * (fdst(i+idir,j-n) - fdst(i,j-n))) +
+     &      sigmaf(is,j-n) *
+     &       (fdst(i+idir,j-n+1) - fdst(i,j-n+1) +
+     &        2.d0 * (fdst(i+idir,j-n) - fdst(i,j-n))))
          res(i,j) = res(i,j) - fac1 * (tmp + hym2 *
-     @     (sigmaf(is,j-n-1) *
-     @       (fdst(i+idir,j-n-1) - fdst(i+idir,j-n) + 
-     @        2.d0 * (fdst(i,j-n-1) - fdst(i,j-n))) +
-     @	    sigmaf(is,j-n) *
-     @       (fdst(i+idir,j-n+1) - fdst(i+idir,j-n) +
-     @        2.d0 * (fdst(i,j-n+1) - fdst(i,j-n)))))
+     &     (sigmaf(is,j-n-1) *
+     &       (fdst(i+idir,j-n-1) - fdst(i+idir,j-n) + 
+     &        2.d0 * (fdst(i,j-n-1) - fdst(i,j-n))) +
+     &	    sigmaf(is,j-n) *
+     &       (fdst(i+idir,j-n+1) - fdst(i+idir,j-n) +
+     &        2.d0 * (fdst(i,j-n+1) - fdst(i,j-n)))))
          if (irz .eq. 1) then
             r = (is + 0.5d0) * hx
             rfac1 = -idir * hx * hym2 / (2.d0 * r)
             res(i,j) = res(i,j) - fac1 *
-     @        rfac1 *(sigmaf(is,j-n-1) * (fdst(i,j-n-1) - fdst(i,j-n)) +
-     @                sigmaf(is,j-n)   * (fdst(i,j-n+1) - fdst(i,j-n)))
+     &        rfac1 *(sigmaf(is,j-n-1) * (fdst(i,j-n-1) - fdst(i,j-n)) +
+     &                sigmaf(is,j-n)   * (fdst(i,j-n+1) - fdst(i,j-n)))
          end if
  20      continue
       end
 c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along edge
       subroutine hgdres_full_stencil(res, resl0, resh0, resl1, resh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ fdst, fdstl0, fdsth0, fdstl1, fdsth1,
-     @ cdst, cdstl0, cdsth0, cdstl1, cdsth1,
-     @ sigmaf, sfl0, sfh0, sfl1, sfh1,
-     @ sigmac, scl0, sch0, scl1, sch1,
-     @ regl0, regh0, regl1, regh1,
-     @ hx, hy, ir, jr, jdir, irz)
+     & src,  srcl0, srch0, srcl1, srch1,
+     & fdst, fdstl0, fdsth0, fdstl1, fdsth1,
+     & cdst, cdstl0, cdsth0, cdstl1, cdsth1,
+     & sigmaf, sfl0, sfh0, sfl1, sfh1,
+     & sigmac, scl0, sch0, scl1, sch1,
+     & regl0, regh0, regl1, regh1,
+     & hx, hy, ir, jr, jdir, irz)
       integer resl0, resh0, resl1, resh1
       integer srcl0, srch0, srcl1, srch1
       integer fdstl0, fdsth0, fdstl1, fdsth1
@@ -794,25 +794,25 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       hym2 = 1.d0 / (jr * jr * hy * hy)
       fac0 = (ir * jr) / (3.d0*ir*jr + 3.d0*ir + 3.d0*jr - 3.d0)
       res(i*ir,j*jr) = src(i*ir,j*jr) - fac0 *
-     @  (hxm2 * (sigmac(i,js-jdir) *
-     @            (cdst(i+1,j-jdir) - cdst(i,j-jdir) +
-     @             2.d0 * (cdst(i+1,j) - cdst(i,j))) +
-     @           sigmac(i-1,js) *
-     @            (cdst(i-1,j+jdir) - cdst(i,j+jdir) +
-     @             2.d0 * (cdst(i-1,j) - cdst(i,j)))) +
-     @   hym2 * (sigmac(i,js-jdir) *
-     @            (cdst(i+1,j-jdir) - cdst(i+1,j) +
-     @             2.d0 * (cdst(i,j-jdir) - cdst(i,j))) +
-     @           sigmac(i-1,js) *
-     @            (cdst(i-1,j+jdir) - cdst(i-1,j) +
-     @             2.d0 * (cdst(i,j+jdir) - cdst(i,j)))))
+     &  (hxm2 * (sigmac(i,js-jdir) *
+     &            (cdst(i+1,j-jdir) - cdst(i,j-jdir) +
+     &             2.d0 * (cdst(i+1,j) - cdst(i,j))) +
+     &           sigmac(i-1,js) *
+     &            (cdst(i-1,j+jdir) - cdst(i,j+jdir) +
+     &             2.d0 * (cdst(i-1,j) - cdst(i,j)))) +
+     &   hym2 * (sigmac(i,js-jdir) *
+     &            (cdst(i+1,j-jdir) - cdst(i+1,j) +
+     &             2.d0 * (cdst(i,j-jdir) - cdst(i,j))) +
+     &           sigmac(i-1,js) *
+     &            (cdst(i-1,j+jdir) - cdst(i-1,j) +
+     &             2.d0 * (cdst(i,j+jdir) - cdst(i,j)))))
       if (irz .eq. 1) then
          r = (i + 0.5d0) * (hx * ir)
          rfac0 = ir * hx * hym2 / (2.d0 * (r - hx * ir))
          rfac1 = ir * hx * hym2 / (2.d0 * r)
          res(i*ir,j*jr) = res(i*ir,j*jr) - fac0 *
-     @     (rfac0 * sigmac(i-1,js)    * (cdst(i,j+jdir) - cdst(i,j)) -
-     @      rfac1 * sigmac(i,js-jdir) * (cdst(i,j-jdir) - cdst(i,j)))
+     &     (rfac0 * sigmac(i-1,js)    * (cdst(i,j+jdir) - cdst(i,j)) -
+     &      rfac1 * sigmac(i,js-jdir) * (cdst(i,j-jdir) - cdst(i,j)))
       end if
       fac0 = fac0 / (ir * jr)
       hxm2 = ir * ir * hxm2
@@ -825,55 +825,55 @@ c Note---assumes fdst linearly interpolated from cdst along edge
          js = j - 1
       end if
       res(i,j) = res(i,j) - fac0 *
-     @  (hxm2 * (sigmaf(i,js) *
-     @            (fdst(i+1,j+jdir) - fdst(i,j+jdir) +
-     @             2.d0 * (fdst(i+1,j) - fdst(i,j))) +
-     @           sigmaf(i-1,js-jdir) *
-     @            (fdst(i-1,j-jdir) - fdst(i,j-jdir) +
-     @             2.d0 * (fdst(i-1,j) - fdst(i,j)))) +
-     @   hym2 * (sigmaf(i,js) *
-     @            (fdst(i+1,j+jdir) - fdst(i+1,j) +
-     @             2.d0 * (fdst(i,j+jdir) - fdst(i,j))) +
-     @           sigmaf(i-1,js-jdir) *
-     @            (fdst(i-1,j-jdir) - fdst(i-1,j) +
-     @             2.d0 * (fdst(i,j-jdir) - fdst(i,j)))))
+     &  (hxm2 * (sigmaf(i,js) *
+     &            (fdst(i+1,j+jdir) - fdst(i,j+jdir) +
+     &             2.d0 * (fdst(i+1,j) - fdst(i,j))) +
+     &           sigmaf(i-1,js-jdir) *
+     &            (fdst(i-1,j-jdir) - fdst(i,j-jdir) +
+     &             2.d0 * (fdst(i-1,j) - fdst(i,j)))) +
+     &   hym2 * (sigmaf(i,js) *
+     &            (fdst(i+1,j+jdir) - fdst(i+1,j) +
+     &             2.d0 * (fdst(i,j+jdir) - fdst(i,j))) +
+     &           sigmaf(i-1,js-jdir) *
+     &            (fdst(i-1,j-jdir) - fdst(i-1,j) +
+     &             2.d0 * (fdst(i,j-jdir) - fdst(i,j)))))
       if (irz .eq. 1) then
          r = (i + 0.5d0) * hx
          rfac0 = hx * hym2 / (2.d0 * (r - hx))
          rfac1 = hx * hym2 / (2.d0 * r)
          res(i,j) = res(i,j) - fac0 *
-     @     (rfac0 * sigmaf(i-1,js-jdir) * (fdst(i,j-jdir) - fdst(i,j)) -
-     @      rfac1 * sigmaf(i,js)        * (fdst(i,j+jdir) - fdst(i,j)))
+     &     (rfac0 * sigmaf(i-1,js-jdir) * (fdst(i,j-jdir) - fdst(i,j)) -
+     &      rfac1 * sigmaf(i,js)        * (fdst(i,j+jdir) - fdst(i,j)))
       end if
       fac0 = fac0 / ir
       do 10 m = 1, ir-1
          fac1 = (ir-m) * fac0
          tmp = hxm2 *
-     @     (sigmaf(i+m-1,js) *
-     @       (fdst(i+m-1,j+jdir) - fdst(i+m,j+jdir) +
-     @        2.d0 * (fdst(i+m-1,j) - fdst(i+m,j))) +
-     @      sigmaf(i+m,js) *
-     @       (fdst(i+m+1,j+jdir) - fdst(i+m,j+jdir) +
-     @        2.d0 * (fdst(i+m+1,j) - fdst(i+m,j))) +
-     @      sigmaf(i-m-1,js-jdir) *
-     @       (fdst(i-m-1,j-jdir) - fdst(i-m,j-jdir) +
-     @        2.d0 * (fdst(i-m-1,j) - fdst(i-m,j))) +
-     @      sigmaf(i-m,js-jdir) *
-     @       (fdst(i-m+1,j-jdir) - fdst(i-m,j-jdir) +
-     @        2.d0 * (fdst(i-m+1,j) - fdst(i-m,j))))
+     &     (sigmaf(i+m-1,js) *
+     &       (fdst(i+m-1,j+jdir) - fdst(i+m,j+jdir) +
+     &        2.d0 * (fdst(i+m-1,j) - fdst(i+m,j))) +
+     &      sigmaf(i+m,js) *
+     &       (fdst(i+m+1,j+jdir) - fdst(i+m,j+jdir) +
+     &        2.d0 * (fdst(i+m+1,j) - fdst(i+m,j))) +
+     &      sigmaf(i-m-1,js-jdir) *
+     &       (fdst(i-m-1,j-jdir) - fdst(i-m,j-jdir) +
+     &        2.d0 * (fdst(i-m-1,j) - fdst(i-m,j))) +
+     &      sigmaf(i-m,js-jdir) *
+     &       (fdst(i-m+1,j-jdir) - fdst(i-m,j-jdir) +
+     &        2.d0 * (fdst(i-m+1,j) - fdst(i-m,j))))
          res(i,j) = res(i,j) - fac1 * (tmp + hym2 *
-     @     (sigmaf(i+m-1,js) *
-     @       (fdst(i+m-1,j+jdir) - fdst(i+m-1,j) +
-     @        2.d0 * (fdst(i+m,j+jdir) - fdst(i+m,j))) +
-     @      sigmaf(i+m,js) *
-     @       (fdst(i+m+1,j+jdir) - fdst(i+m+1,j) +
-     @        2.d0 * (fdst(i+m,j+jdir) - fdst(i+m,j))) +
-     @      sigmaf(i-m-1,js-jdir) *
-     @       (fdst(i-m-1,j-jdir) - fdst(i-m-1,j) +
-     @        2.d0 * (fdst(i-m,j-jdir) - fdst(i-m,j))) +
-     @      sigmaf(i-m,js-jdir) *
-     @       (fdst(i-m+1,j-jdir) - fdst(i-m+1,j) +
-     @        2.d0 * (fdst(i-m,j-jdir) - fdst(i-m,j)))))
+     &     (sigmaf(i+m-1,js) *
+     &       (fdst(i+m-1,j+jdir) - fdst(i+m-1,j) +
+     &        2.d0 * (fdst(i+m,j+jdir) - fdst(i+m,j))) +
+     &      sigmaf(i+m,js) *
+     &       (fdst(i+m+1,j+jdir) - fdst(i+m+1,j) +
+     &        2.d0 * (fdst(i+m,j+jdir) - fdst(i+m,j))) +
+     &      sigmaf(i-m-1,js-jdir) *
+     &       (fdst(i-m-1,j-jdir) - fdst(i-m-1,j) +
+     &        2.d0 * (fdst(i-m,j-jdir) - fdst(i-m,j))) +
+     &      sigmaf(i-m,js-jdir) *
+     &       (fdst(i-m+1,j-jdir) - fdst(i-m+1,j) +
+     &        2.d0 * (fdst(i-m,j-jdir) - fdst(i-m,j)))))
          if (irz .eq. 1) then
             r = (i - m + 0.5d0) * hx
             rfac0m = hx * hym2 / (2.d0 * (r - hx))
@@ -882,63 +882,63 @@ c Note---assumes fdst linearly interpolated from cdst along edge
             rfac0p = hx * hym2 / (2.d0 * (r - hx))
             rfac1p = hx * hym2 / (2.d0 * r)
             res(i,j) = res(i,j) - fac1 *
-     @       ((rfac0m * sigmaf(i-m-1,js-jdir) 
+     &       ((rfac0m * sigmaf(i-m-1,js-jdir) 
      &			- rfac1m * sigmaf(i-m,js-jdir)) *
-     @         (fdst(i-m,j-jdir) - fdst(i-m,j)) +
-     @        (rfac0p * sigmaf(i+m-1,js) - rfac1p * sigmaf(i+m,js)) *
-     @          (fdst(i+m,j+jdir) - fdst(i+m,j)))
+     &         (fdst(i-m,j-jdir) - fdst(i-m,j)) +
+     &        (rfac0p * sigmaf(i+m-1,js) - rfac1p * sigmaf(i+m,js)) *
+     &          (fdst(i+m,j+jdir) - fdst(i+m,j)))
          end if
  10      continue
       fac0 = ir * fac0 / jr
       do 20 n = jdir, jdir*(jr-1), jdir
          fac1 = (jr-abs(n)) * fac0
          tmp = hxm2 *
-     @     (sigmaf(i,j+n-1) *
-     @       (fdst(i+1,j+n-1) - fdst(i,j+n-1) +
-     @        2.d0 * (fdst(i+1,j+n) - fdst(i,j+n))) +
-     @      sigmaf(i,j+n) *
-     @       (fdst(i+1,j+n+1) - fdst(i,j+n+1) +
-     @        2.d0 * (fdst(i+1,j+n) - fdst(i,j+n))) +
-     @      sigmaf(i-1,j-n-1) *
-     @       (fdst(i-1,j-n-1) - fdst(i,j-n-1) +
-     @        2.d0 * (fdst(i-1,j-n) - fdst(i,j-n))) +
-     @      sigmaf(i-1,j-n) *
-     @       (fdst(i-1,j-n+1) - fdst(i,j-n+1) +
-     @        2.d0 * (fdst(i-1,j-n) - fdst(i,j-n))))
+     &     (sigmaf(i,j+n-1) *
+     &       (fdst(i+1,j+n-1) - fdst(i,j+n-1) +
+     &        2.d0 * (fdst(i+1,j+n) - fdst(i,j+n))) +
+     &      sigmaf(i,j+n) *
+     &       (fdst(i+1,j+n+1) - fdst(i,j+n+1) +
+     &        2.d0 * (fdst(i+1,j+n) - fdst(i,j+n))) +
+     &      sigmaf(i-1,j-n-1) *
+     &       (fdst(i-1,j-n-1) - fdst(i,j-n-1) +
+     &        2.d0 * (fdst(i-1,j-n) - fdst(i,j-n))) +
+     &      sigmaf(i-1,j-n) *
+     &       (fdst(i-1,j-n+1) - fdst(i,j-n+1) +
+     &        2.d0 * (fdst(i-1,j-n) - fdst(i,j-n))))
          res(i,j) = res(i,j) - fac1 * (tmp + hym2 *
-     @     (sigmaf(i,j+n-1) *
-     @       (fdst(i+1,j+n-1) - fdst(i+1,j+n) +
-     @        2.d0 * (fdst(i,j+n-1) - fdst(i,j+n))) +
-     @      sigmaf(i,j+n) *
-     @       (fdst(i+1,j+n+1) - fdst(i+1,j+n) +
-     @        2.d0 * (fdst(i,j+n+1) - fdst(i,j+n))) +
-     @      sigmaf(i-1,j-n-1) *
-     @       (fdst(i-1,j-n-1) - fdst(i-1,j-n) +
-     @        2.d0 * (fdst(i,j-n-1) - fdst(i,j-n))) +
-     @      sigmaf(i-1,j-n) *
-     @       (fdst(i-1,j-n+1) - fdst(i-1,j-n) +
-     @        2.d0 * (fdst(i,j-n+1) - fdst(i,j-n)))))
+     &     (sigmaf(i,j+n-1) *
+     &       (fdst(i+1,j+n-1) - fdst(i+1,j+n) +
+     &        2.d0 * (fdst(i,j+n-1) - fdst(i,j+n))) +
+     &      sigmaf(i,j+n) *
+     &       (fdst(i+1,j+n+1) - fdst(i+1,j+n) +
+     &        2.d0 * (fdst(i,j+n+1) - fdst(i,j+n))) +
+     &      sigmaf(i-1,j-n-1) *
+     &       (fdst(i-1,j-n-1) - fdst(i-1,j-n) +
+     &        2.d0 * (fdst(i,j-n-1) - fdst(i,j-n))) +
+     &      sigmaf(i-1,j-n) *
+     &       (fdst(i-1,j-n+1) - fdst(i-1,j-n) +
+     &        2.d0 * (fdst(i,j-n+1) - fdst(i,j-n)))))
          if (irz .eq. 1) then
             r = (i + 0.5d0) * hx
             rfac0 = hx * hym2 / (2.d0 * (r - hx))
             rfac1 = hx * hym2 / (2.d0 * r)
             res(i,j) = res(i,j) - fac1 *
-     @       (rfac0 * (sigmaf(i-1,j-n-1) *
+     &       (rfac0 * (sigmaf(i-1,j-n-1) *
      &				(fdst(i,j-n-1) - fdst(i,j-n)) +
-     @                 sigmaf(i-1,j-n)   * 
+     &                 sigmaf(i-1,j-n)   * 
      &				(fdst(i,j-n+1) - fdst(i,j-n))) -
-     @        rfac1 * (sigmaf(i,j+n-1) * (fdst(i,j+n-1) - fdst(i,j+n)) +
-     @                 sigmaf(i,j+n)   * (fdst(i,j+n+1) - fdst(i,j+n))))
+     &        rfac1 * (sigmaf(i,j+n-1) * (fdst(i,j+n-1) - fdst(i,j+n)) +
+     &                 sigmaf(i,j+n)   * (fdst(i,j+n+1) - fdst(i,j+n))))
          end if
  20      continue
       end
 c-----------------------------------------------------------------------
 c NODE-based data, factor of 2 only.
       subroutine hgints(dest, destl0, desth0, destl1, desth1,
-     @ regl0, regh0, regl1, regh1,
-     @ sigx, sigy, sbl0, sbh0, sbl1, sbh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ bbl0, bbh0, bbl1, bbh1, ir, jr)
+     & regl0, regh0, regl1, regh1,
+     & sigx, sigy, sbl0, sbh0, sbl1, sbh1,
+     & src,  srcl0, srch0, srcl1, srch1,
+     & bbl0, bbh0, bbl1, bbh1, ir, jr)
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer sbl0, sbh0, sbl1, sbh1
@@ -959,10 +959,10 @@ c NODE-based data, factor of 2 only.
                i = ir * ic
                j = jr * jc
  20            dest(i+1,j) =
-     @           ((sigx(i,j-1)+sigx(i,j)) * src(ic,jc) +
-     @            (sigx(i+1,j-1)+sigx(i+1,j)) * src(ic+1,jc)) /
-     @           (sigx(i,j-1)+sigx(i,j)+
-     @            sigx(i+1,j-1)+sigx(i+1,j))
+     &           ((sigx(i,j-1)+sigx(i,j)) * src(ic,jc) +
+     &            (sigx(i+1,j-1)+sigx(i+1,j)) * src(ic+1,jc)) /
+     &           (sigx(i,j-1)+sigx(i,j)+
+     &            sigx(i+1,j-1)+sigx(i+1,j))
       end if
       if (jr .eq. 2) then
          do 30 jc = bbl1, bbh1-1
@@ -970,10 +970,10 @@ c NODE-based data, factor of 2 only.
                i = ir * ic
                j = jr * jc
  30            dest(i,j+1) =
-     @           ((sigy(i-1,j)+sigy(i,j)) * src(ic,jc) +
-     @            (sigy(i-1,j+1)+sigy(i,j+1)) * src(ic,jc+1)) /
-     @           (sigy(i-1,j)+sigy(i,j)+
-     @            sigy(i-1,j+1)+sigy(i,j+1))
+     &           ((sigy(i-1,j)+sigy(i,j)) * src(ic,jc) +
+     &            (sigy(i-1,j+1)+sigy(i,j+1)) * src(ic,jc+1)) /
+     &           (sigy(i-1,j)+sigy(i,j)+
+     &            sigy(i-1,j+1)+sigy(i,j+1))
       end if
       if (ir .eq. 2 .and. jr .eq. 2) then
          do 40 jc = bbl1, bbh1-1
@@ -982,26 +982,26 @@ cdir$ ivdep
                i = ir * ic
                j = jr * jc
  40            dest(i+1,j+1) = ((sigx(i,j) + sigx(i,j+1)) *
-     @                            dest(i,j+1) +
-     @                          (sigx(i+1,j) + sigx(i+1,j+1)) *
-     @                            dest(i+2,j+1) +
-     @                          (sigy(i,j) + sigy(i+1,j)) *
-     @                            dest(i+1,j) +
-     @                          (sigy(i,j+1) + sigy(i+1,j+1)) *
-     @                            dest(i+1,j+2)) /
-     @                         (sigx(i,j) + sigx(i,j+1) +
-     @                          sigx(i+1,j) + sigx(i+1,j+1) +
-     @                          sigy(i,j) + sigy(i+1,j) +
-     @                          sigy(i,j+1) + sigy(i+1,j+1))
+     &                            dest(i,j+1) +
+     &                          (sigx(i+1,j) + sigx(i+1,j+1)) *
+     &                            dest(i+2,j+1) +
+     &                          (sigy(i,j) + sigy(i+1,j)) *
+     &                            dest(i+1,j) +
+     &                          (sigy(i,j+1) + sigy(i+1,j+1)) *
+     &                            dest(i+1,j+2)) /
+     &                         (sigx(i,j) + sigx(i,j+1) +
+     &                          sigx(i+1,j) + sigx(i+1,j+1) +
+     &                          sigy(i,j) + sigy(i+1,j) +
+     &                          sigy(i,j+1) + sigy(i+1,j+1))
       end if
       end
 c-----------------------------------------------------------------------
 c CELL-based data only.
       subroutine hgsrst(destx, desty,
-     @ destl0, desth0, destl1, desth1,
-     @ regl0, regh0, regl1, regh1,
-     @ srcx, srcy, srcl0, srch0, srcl1, srch1,
-     @ ir, jr)
+     & destl0, desth0, destl1, desth1,
+     & regl0, regh0, regl1, regh1,
+     & srcx, srcy, srcl0, srch0, srcl1, srch1,
+     & ir, jr)
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
@@ -1017,18 +1017,18 @@ c CELL-based data only.
                i2 = 2 * i
                j2 = 2 * j
                destx(i,j) = 1.d0 /
-     @                      (1.d0 / (srcx(i2,j2)   + srcx(i2,j2+1)) +
-     @                       1.d0 / (srcx(i2+1,j2) + srcx(i2+1,j2+1)))
+     &                      (1.d0 / (srcx(i2,j2)   + srcx(i2,j2+1)) +
+     &                       1.d0 / (srcx(i2+1,j2) + srcx(i2+1,j2+1)))
                desty(i,j) = 1.d0 /
-     @                      (1.d0 / (srcy(i2,j2)   + srcy(i2+1,j2)) +
-     @                       1.d0 / (srcy(i2,j2+1) + srcy(i2+1,j2+1)))
+     &                      (1.d0 / (srcy(i2,j2)   + srcy(i2+1,j2)) +
+     &                       1.d0 / (srcy(i2,j2+1) + srcy(i2+1,j2+1)))
  10            continue
       else if (ir .eq. 2) then
          do 20 j = regl1, regh1
             do 20 i = regl0, regh0
                i2 = 2 * i
                destx(i,j) = 2.d0 /
-     @                      (1.d0 / srcx(i2,j) + 1.d0 / srcx(i2+1,j))
+     &                      (1.d0 / srcx(i2,j) + 1.d0 / srcx(i2+1,j))
                desty(i,j) = 0.5d0 * (srcy(i2,j) + srcy(i2+1,j))
  20            continue
       else
@@ -1037,16 +1037,16 @@ c CELL-based data only.
                j2 = 2 * j
                destx(i,j) = 0.5d0 * (srcx(i,j2) + srcx(i,j2+1))
                desty(i,j) = 2.d0 /
-     @                      (1.d0 / srcy(i,j2) + 1.d0 / srcy(i,j2+1))
+     &                      (1.d0 / srcy(i,j2) + 1.d0 / srcy(i,j2+1))
  30            continue
       end if
       end
 c five-point variable stencils
 c-----------------------------------------------------------------------
       subroutine hgcen(cen, cenl0, cenh0, cenl1, cenh1,
-     @ sigx, sigy, sbl0, sbh0, sbl1, sbh1,
-     @ regl0, regh0, regl1, regh1,
-     @ hx, hy)
+     & sigx, sigy, sbl0, sbh0, sbl1, sbh1,
+     & regl0, regh0, regl1, regh1,
+     & hx, hy)
       integer cenl0, cenh0, cenl1, cenh1
       integer sbl0, sbh0, sbl1, sbh1
       integer regl0, regh0, regl1, regh1
@@ -1061,17 +1061,17 @@ c-----------------------------------------------------------------------
       do 10 j = regl1, regh1
          do 10 i = regl0, regh0
  10         cen(i,j) = 2.d0 / (hxm2 * (sigx(i-1,j-1) + sigx(i-1,j) +
-     @                                 sigx(i,j-1) + sigx(i,j)) +
-     @                         hym2 * (sigy(i-1,j-1) + sigy(i-1,j) +
-     @                                 sigy(i,j-1) + sigy(i,j)))
+     &                                 sigx(i,j-1) + sigx(i,j)) +
+     &                         hym2 * (sigy(i-1,j-1) + sigy(i-1,j) +
+     &                                 sigy(i,j-1) + sigy(i,j)))
       end
 c-----------------------------------------------------------------------
       subroutine hgrlx(cor, corl0, corh0, corl1, corh1,
-     @ res, resl0, resh0, resl1, resh1,
-     @ sigx, sigy, sfl0, sfh0, sfl1, sfh1,
-     @ cen, cenl0, cenh0, cenl1, cenh1,
-     @ regl0, regh0, regl1, regh1,
-     @ hx, hy, irz, imax)
+     & res, resl0, resh0, resl1, resh1,
+     & sigx, sigy, sfl0, sfh0, sfl1, sfh1,
+     & cen, cenl0, cenh0, cenl1, cenh1,
+     & regl0, regh0, regl1, regh1,
+     & hx, hy, irz, imax)
       integer corl0, corh0, corl1, corh1
       integer resl0, resh0, resl1, resh1
       integer sfl0, sfh0, sfl1, sfh1
@@ -1087,11 +1087,11 @@ c-----------------------------------------------------------------------
       double precision hxm2, hym2
       integer i, j, ipass, ipar
       avg() = 0.5d0 * (hxm2 *
-     @          ((sigx(i-1,j-1) + sigx(i-1,j)) * cor(i-1,j) +
-     @           (sigx(i,j-1) + sigx(i,j)) * cor(i+1,j)) +
-     @                 hym2 *
-     @          ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) +
-     @           (sigy(i-1,j) + sigy(i,j)) * cor(i,j+1)))
+     &          ((sigx(i-1,j-1) + sigx(i-1,j)) * cor(i-1,j) +
+     &           (sigx(i,j-1) + sigx(i,j)) * cor(i+1,j)) +
+     &                 hym2 *
+     &          ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) +
+     &           (sigy(i-1,j) + sigy(i,j)) * cor(i,j+1)))
       hxm2 = 1.d0 / (hx*hx)
       hym2 = 1.d0 / (hy*hy)
       if (regh1 - regl1 .gt. regh0 - regl0) then
@@ -1116,12 +1116,12 @@ cdir$ ivdep
       end
 c-----------------------------------------------------------------------
       subroutine hgrlxl(cor, corl0, corh0, corl1, corh1,
-     @ res, resl0, resh0, resl1, resh1,
-     @ sigx, sigy, sfl0, sfh0, sfl1, sfh1,
-     @ cen, cenl0, cenh0, cenl1, cenh1,
-     @ regl0, regh0, regl1, regh1,
-     @ doml0, domh0, doml1, domh1,
-     @ hx, hy, irz, imax, lsd)
+     & res, resl0, resh0, resl1, resh1,
+     & sigx, sigy, sfl0, sfh0, sfl1, sfh1,
+     & cen, cenl0, cenh0, cenl1, cenh1,
+     & regl0, regh0, regl1, regh1,
+     & doml0, domh0, doml1, domh1,
+     & hx, hy, irz, imax, lsd)
       integer corl0, corh0, corl1, corh1
       integer resl0, resh0, resl1, resh1
       integer sfl0, sfh0, sfl1, sfh1
@@ -1211,13 +1211,13 @@ c back substitution loop:
       end
 c-----------------------------------------------------------------------
       subroutine hgrlnf(cor, corl0, corh0, corl1, corh1,
-     @ res, resl0, resh0, resl1, resh1,
-     @ wrk, wrkl0, wrkh0, wrkl1, wrkh1,
-     @ sigx, sigy, sfl0, sfh0, sfl1, sfh1,
-     @ cen, cenl0, cenh0, cenl1, cenh1,
-     @ regl0, regh0, regl1, regh1,
-     @ doml0, domh0, doml1, domh1,
-     @ hx, hy, irz, imax, lsd, ipass)
+     & res, resl0, resh0, resl1, resh1,
+     & wrk, wrkl0, wrkh0, wrkl1, wrkh1,
+     & sigx, sigy, sfl0, sfh0, sfl1, sfh1,
+     & cen, cenl0, cenh0, cenl1, cenh1,
+     & regl0, regh0, regl1, regh1,
+     & doml0, domh0, doml1, domh1,
+     & hx, hy, irz, imax, lsd, ipass)
       integer corl0, corh0, corl1, corh1
       integer resl0, resh0, resl1, resh1
       integer wrkl0, wrkh0, wrkl1, wrkh1
@@ -1350,11 +1350,11 @@ c interface to grid at same level:
       end
 c-----------------------------------------------------------------------
       subroutine hgres(res, resl0, resh0, resl1, resh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ dest, destl0, desth0, destl1, desth1,
-     @ sigx, sigy, sfl0, sfh0, sfl1, sfh1,
-     @ regl0, regh0, regl1, regh1,
-     @ hx, hy)
+     & src,  srcl0, srch0, srcl1, srch1,
+     & dest, destl0, desth0, destl1, desth1,
+     & sigx, sigy, sfl0, sfh0, sfl1, sfh1,
+     & regl0, regh0, regl1, regh1,
+     & hx, hy)
       integer resl0, resh0, resl1, resh1
       integer srcl0, srch0, srcl1, srch1
       integer destl0, desth0, destl1, desth1
@@ -1374,35 +1374,35 @@ c-----------------------------------------------------------------------
          do 10 i = regl0, regh0
             do 10 j = regl1, regh1
  10            res(i,j) = src(i,j) - 0.5d0 * (hxm2 *
-     @           ((sigx(i-1,j-1) + sigx(i-1,j)) *
-     @             (dest(i-1,j) - dest(i,j)) +
-     @            (sigx(i,j-1) + sigx(i,j)) *
-     @             (dest(i+1,j) - dest(i,j))) +
-     @                                        hym2 *
-     @           ((sigy(i-1,j-1) + sigy(i,j-1)) *
-     @             (dest(i,j-1) - dest(i,j)) +
-     @            (sigy(i-1,j) + sigy(i,j)) *
-     @             (dest(i,j+1) - dest(i,j))))
+     &           ((sigx(i-1,j-1) + sigx(i-1,j)) *
+     &             (dest(i-1,j) - dest(i,j)) +
+     &            (sigx(i,j-1) + sigx(i,j)) *
+     &             (dest(i+1,j) - dest(i,j))) +
+     &                                        hym2 *
+     &           ((sigy(i-1,j-1) + sigy(i,j-1)) *
+     &             (dest(i,j-1) - dest(i,j)) +
+     &            (sigy(i-1,j) + sigy(i,j)) *
+     &             (dest(i,j+1) - dest(i,j))))
       else
          do 20 j = regl1, regh1
             do 20 i = regl0, regh0
  20            res(i,j) = src(i,j) - 0.5d0 * (hxm2 *
-     @           ((sigx(i-1,j-1) + sigx(i-1,j)) *
-     @             (dest(i-1,j) - dest(i,j)) +
-     @            (sigx(i,j-1) + sigx(i,j)) *
-     @             (dest(i+1,j) - dest(i,j))) +
-     @                                        hym2 *
-     @           ((sigy(i-1,j-1) + sigy(i,j-1)) *
-     @             (dest(i,j-1) - dest(i,j)) +
-     @            (sigy(i-1,j) + sigy(i,j)) *
-     @             (dest(i,j+1) - dest(i,j))))
+     &           ((sigx(i-1,j-1) + sigx(i-1,j)) *
+     &             (dest(i-1,j) - dest(i,j)) +
+     &            (sigx(i,j-1) + sigx(i,j)) *
+     &             (dest(i+1,j) - dest(i,j))) +
+     &                                        hym2 *
+     &           ((sigy(i-1,j-1) + sigy(i,j-1)) *
+     &             (dest(i,j-1) - dest(i,j)) +
+     &            (sigy(i-1,j) + sigy(i,j)) *
+     &             (dest(i,j+1) - dest(i,j))))
       end if
       end
 c nine-point terrain stencils
 c-----------------------------------------------------------------------
       subroutine hgcen_terrain(cen, cenl0, cenh0, cenl1, cenh1,
-     @ sig, sbl0, sbh0, sbl1, sbh1,
-     @ regl0, regh0, regl1, regh1)
+     & sig, sbl0, sbh0, sbl1, sbh1,
+     & regl0, regh0, regl1, regh1)
       integer cenl0, cenh0, cenl1, cenh1
       integer sbl0, sbh0, sbl1, sbh1
       integer regl0, regh0, regl1, regh1
@@ -1412,18 +1412,18 @@ c-----------------------------------------------------------------------
       do 10 j = regl1, regh1
          do 10 i = regl0, regh0
  10         cen(i,j) = 6.d0 / (2.d0 * (sig(i-1,j-1,1) + sig(i-1,j,1) +
-     @                                 sig(i,j-1,1) + sig(i,j,1) +
-     @                                 sig(i-1,j-1,2) + sig(i-1,j,2) +
-     @                                 sig(i,j-1,2) + sig(i,j,2)) +
-     @                         3.d0 * (sig(i-1,j,3) - sig(i-1,j-1,3) +
-     @                                 sig(i,j-1,3) - sig(i,j,3)))
+     &                                 sig(i,j-1,1) + sig(i,j,1) +
+     &                                 sig(i-1,j-1,2) + sig(i-1,j,2) +
+     &                                 sig(i,j-1,2) + sig(i,j,2)) +
+     &                         3.d0 * (sig(i-1,j,3) - sig(i-1,j-1,3) +
+     &                                 sig(i,j-1,3) - sig(i,j,3)))
       end
 c-----------------------------------------------------------------------
       subroutine hgrlx_terrain(cor, corl0, corh0, corl1, corh1,
-     @ res, resl0, resh0, resl1, resh1,
-     @ sig, sfl0, sfh0, sfl1, sfh1,
-     @ cen, cenl0, cenh0, cenl1, cenh1,
-     @ regl0, regh0, regl1, regh1)
+     & res, resl0, resh0, resl1, resh1,
+     & sig, sfl0, sfh0, sfl1, sfh1,
+     & cen, cenl0, cenh0, cenl1, cenh1,
+     & regl0, regh0, regl1, regh1)
       integer corl0, corh0, corl1, corh1
       integer resl0, resh0, resl1, resh1
       integer sfl0, sfh0, sfl1, sfh1
@@ -1475,13 +1475,13 @@ cdir$ ivdep
 c-----------------------------------------------------------------------
 
       subroutine hgrlnf_terrain(cor, corl0, corh0, corl1, corh1,
-     @ res, resl0, resh0, resl1, resh1,
-     @ wrk, wrkl0, wrkh0, wrkl1, wrkh1,
-     @ sig, sfl0, sfh0, sfl1, sfh1,
-     @ cen, cenl0, cenh0, cenl1, cenh1,
-     @ regl0, regh0, regl1, regh1,
-     @ doml0, domh0, doml1, domh1,
-     @ lsd, ipass)
+     & res, resl0, resh0, resl1, resh1,
+     & wrk, wrkl0, wrkh0, wrkl1, wrkh1,
+     & sig, sfl0, sfh0, sfl1, sfh1,
+     & cen, cenl0, cenh0, cenl1, cenh1,
+     & regl0, regh0, regl1, regh1,
+     & doml0, domh0, doml1, domh1,
+     & lsd, ipass)
       integer corl0, corh0, corl1, corh1
       integer resl0, resh0, resl1, resh1
       integer wrkl0, wrkh0, wrkl1, wrkh1
@@ -1550,8 +1550,8 @@ c-----------------------------------------------------------------------
          i = regl0
          do 10 j = regl1 + ioff, regh1, 2
             aj = fac *
-     @        (2.d0 * (sig(i,j-1,1) + sig(i,j,1)) -
-     @         (sig(i,j-1,2) + sig(i,j,2)))
+     &        (2.d0 * (sig(i,j-1,1) + sig(i,j,1)) -
+     &         (sig(i,j-1,2) + sig(i,j,2)))
             if (cen(i,j) .eq. 0.d0) then
 c dirichlet bdy:
                wrk(i,j) = 0.d0
@@ -1574,8 +1574,8 @@ c forward solve loop:
                end if
                cor(i,j) = (RHSL0() - aj * cor(i-1,j)) * betm
                aj = fac *
-     @           (2.d0 * (sig(i,j-1,1) + sig(i,j,1)) -
-     @            (sig(i,j-1,2) + sig(i,j,2)))
+     &           (2.d0 * (sig(i,j-1,1) + sig(i,j,1)) -
+     &            (sig(i,j-1,2) + sig(i,j,2)))
                wrk(i+1,j) = aj
  20            wrk(i,j) = aj * betm
          i = regh0
@@ -1593,8 +1593,8 @@ c interface to grid at same level:
                betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i-1,j))
                cor(i,j) = (RHSL0() - aj * cor(i-1,j)) * betm
                aj = fac *
-     @           (2.d0 * (sig(i,j-1,1) + sig(i,j,1)) -
-     @            (sig(i,j-1,2) + sig(i,j,2)))
+     &           (2.d0 * (sig(i,j-1,1) + sig(i,j,1)) -
+     &            (sig(i,j-1,2) + sig(i,j,2)))
                wrk(i,j) = aj * betm
             end if
  30         continue
@@ -1607,8 +1607,8 @@ c interface to grid at same level:
          j = regl1
          do 110 i = regl0 + ioff, regh0, 2
             aj = fac *
-     @        (2.d0 * (sig(i-1,j,2) + sig(i,j,2)) -
-     @         (sig(i-1,j,1) + sig(i,j,1)))
+     &        (2.d0 * (sig(i-1,j,2) + sig(i,j,2)) -
+     &         (sig(i-1,j,1) + sig(i,j,1)))
             if (cen(i,j) .eq. 0.d0) then
 c dirichlet bdy:
                wrk(i,j) = 0.d0
@@ -1631,8 +1631,8 @@ c forward solve loop:
                end if
                cor(i,j) = (RHSL1() - aj * cor(i,j-1)) * betm
                aj = fac *
-     @           (2.d0 * (sig(i-1,j,2) + sig(i,j,2)) -
-     @            (sig(i-1,j,1) + sig(i,j,1)))
+     &           (2.d0 * (sig(i-1,j,2) + sig(i,j,2)) -
+     &            (sig(i-1,j,1) + sig(i,j,1)))
                wrk(i,j+1) = aj
  120           wrk(i,j) = aj * betm
          j = regh1
@@ -1650,8 +1650,8 @@ c interface to grid at same level:
                betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i,j-1))
                cor(i,j) = (RHSL1() - aj * cor(i,j-1)) * betm
                aj = fac *
-     @           (2.d0 * (sig(i-1,j,2) + sig(i,j,2)) -
-     @            (sig(i-1,j,1) + sig(i,j,1)))
+     &           (2.d0 * (sig(i-1,j,2) + sig(i,j,2)) -
+     &            (sig(i-1,j,1) + sig(i,j,1)))
                wrk(i,j) = aj * betm
             end if
  130        continue
@@ -1659,11 +1659,11 @@ c interface to grid at same level:
       end
 c-----------------------------------------------------------------------
       subroutine hgres_terrain(res, resl0, resh0, resl1, resh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ dest, destl0, desth0, destl1, desth1,
-     @ sig, sfl0, sfh0, sfl1, sfh1,
-     @ cen, cenl0, cenh0, cenl1, cenh1,
-     @ regl0, regh0, regl1, regh1)
+     & src,  srcl0, srch0, srcl1, srch1,
+     & dest, destl0, desth0, destl1, desth1,
+     & sig, sfl0, sfh0, sfl1, sfh1,
+     & cen, cenl0, cenh0, cenl1, cenh1,
+     & regl0, regh0, regl1, regh1)
       integer resl0, resh0, resl1, resh1
       integer srcl0, srch0, srcl1, srch1
       integer destl0, desth0, destl1, desth1
@@ -1684,84 +1684,84 @@ c-----------------------------------------------------------------------
                tmp =
      &           (sig(i-1,j-1,1) *
      &             (dest(i-1,j-1) - dest(i,j-1) +
-     @              2.d0 * (dest(i-1,j) - dest(i,j))) +
-     @            sig(i-1,j,1) *
-     @             (dest(i-1,j+1) - dest(i,j+1) +
-     @              2.d0 * (dest(i-1,j) - dest(i,j))) +
-     @            sig(i,j-1,1) *
-     @             (dest(i+1,j-1) - dest(i,j-1) +
-     @              2.d0 * (dest(i+1,j) - dest(i,j))) +
-     @            sig(i,j,1) *
-     @             (dest(i+1,j+1) - dest(i,j+1) +
-     @              2.d0 * (dest(i+1,j) - dest(i,j))))
+     &              2.d0 * (dest(i-1,j) - dest(i,j))) +
+     &            sig(i-1,j,1) *
+     &             (dest(i-1,j+1) - dest(i,j+1) +
+     &              2.d0 * (dest(i-1,j) - dest(i,j))) +
+     &            sig(i,j-1,1) *
+     &             (dest(i+1,j-1) - dest(i,j-1) +
+     &              2.d0 * (dest(i+1,j) - dest(i,j))) +
+     &            sig(i,j,1) *
+     &             (dest(i+1,j+1) - dest(i,j+1) +
+     &              2.d0 * (dest(i+1,j) - dest(i,j))))
                tmp = src(i,j) - fac * (tmp +
-     @           (sig(i-1,j-1,2) *
-     @             (dest(i-1,j-1) - dest(i-1,j) +
-     @              2.d0 * (dest(i,j-1) - dest(i,j))) +
-     @            sig(i-1,j,2) *
-     @             (dest(i-1,j+1) - dest(i-1,j) +
-     @              2.d0 * (dest(i,j+1) - dest(i,j))) +
-     @            sig(i,j-1,2) *
-     @             (dest(i+1,j-1) - dest(i+1,j) +
-     @              2.d0 * (dest(i,j-1) - dest(i,j))) +
-     @            sig(i,j,2) *
-     @             (dest(i+1,j+1) - dest(i+1,j) +
-     @              2.d0 * (dest(i,j+1) - dest(i,j)))))
+     &           (sig(i-1,j-1,2) *
+     &             (dest(i-1,j-1) - dest(i-1,j) +
+     &              2.d0 * (dest(i,j-1) - dest(i,j))) +
+     &            sig(i-1,j,2) *
+     &             (dest(i-1,j+1) - dest(i-1,j) +
+     &              2.d0 * (dest(i,j+1) - dest(i,j))) +
+     &            sig(i,j-1,2) *
+     &             (dest(i+1,j-1) - dest(i+1,j) +
+     &              2.d0 * (dest(i,j-1) - dest(i,j))) +
+     &            sig(i,j,2) *
+     &             (dest(i+1,j+1) - dest(i+1,j) +
+     &              2.d0 * (dest(i,j+1) - dest(i,j)))))
  10            res(i,j) = tmp + 0.5d0 *
-     @           (sig(i-1,j-1,3) *
-     @             (dest(i-1,j-1) - dest(i,j)) -
-     @            sig(i-1,j,3) *
-     @             (dest(i-1,j+1) - dest(i,j)) -
-     @            sig(i,j-1,3) *
-     @             (dest(i+1,j-1) - dest(i,j)) +
-     @            sig(i,j,3) *
-     @             (dest(i+1,j+1) - dest(i,j)))
+     &           (sig(i-1,j-1,3) *
+     &             (dest(i-1,j-1) - dest(i,j)) -
+     &            sig(i-1,j,3) *
+     &             (dest(i-1,j+1) - dest(i,j)) -
+     &            sig(i,j-1,3) *
+     &             (dest(i+1,j-1) - dest(i,j)) +
+     &            sig(i,j,3) *
+     &             (dest(i+1,j+1) - dest(i,j)))
       else
          do 20 j = regl1, regh1
             do 20 i = regl0, regh0
                tmp =
-     @           (sig(i-1,j-1,1) *
-     @             (dest(i-1,j-1) - dest(i,j-1) +
-     @              2.d0 * (dest(i-1,j) - dest(i,j))) +
-     @            sig(i-1,j,1) *
-     @             (dest(i-1,j+1) - dest(i,j+1) +
-     @              2.d0 * (dest(i-1,j) - dest(i,j))) +
-     @            sig(i,j-1,1) *
-     @             (dest(i+1,j-1) - dest(i,j-1) +
-     @              2.d0 * (dest(i+1,j) - dest(i,j))) +
-     @            sig(i,j,1) *
-     @             (dest(i+1,j+1) - dest(i,j+1) +
-     @              2.d0 * (dest(i+1,j) - dest(i,j))))
+     &           (sig(i-1,j-1,1) *
+     &             (dest(i-1,j-1) - dest(i,j-1) +
+     &              2.d0 * (dest(i-1,j) - dest(i,j))) +
+     &            sig(i-1,j,1) *
+     &             (dest(i-1,j+1) - dest(i,j+1) +
+     &              2.d0 * (dest(i-1,j) - dest(i,j))) +
+     &            sig(i,j-1,1) *
+     &             (dest(i+1,j-1) - dest(i,j-1) +
+     &              2.d0 * (dest(i+1,j) - dest(i,j))) +
+     &            sig(i,j,1) *
+     &             (dest(i+1,j+1) - dest(i,j+1) +
+     &              2.d0 * (dest(i+1,j) - dest(i,j))))
                tmp = src(i,j) - fac * (tmp +
-     @           (sig(i-1,j-1,2) *
-     @             (dest(i-1,j-1) - dest(i-1,j) +
-     @              2.d0 * (dest(i,j-1) - dest(i,j))) +
-     @            sig(i-1,j,2) *
-     @             (dest(i-1,j+1) - dest(i-1,j) +
-     @              2.d0 * (dest(i,j+1) - dest(i,j))) +
-     @            sig(i,j-1,2) *
-     @             (dest(i+1,j-1) - dest(i+1,j) +
-     @              2.d0 * (dest(i,j-1) - dest(i,j))) +
-     @            sig(i,j,2) *
-     @             (dest(i+1,j+1) - dest(i+1,j) +
-     @              2.d0 * (dest(i,j+1) - dest(i,j)))))
+     &           (sig(i-1,j-1,2) *
+     &             (dest(i-1,j-1) - dest(i-1,j) +
+     &              2.d0 * (dest(i,j-1) - dest(i,j))) +
+     &            sig(i-1,j,2) *
+     &             (dest(i-1,j+1) - dest(i-1,j) +
+     &              2.d0 * (dest(i,j+1) - dest(i,j))) +
+     &            sig(i,j-1,2) *
+     &             (dest(i+1,j-1) - dest(i+1,j) +
+     &              2.d0 * (dest(i,j-1) - dest(i,j))) +
+     &            sig(i,j,2) *
+     &             (dest(i+1,j+1) - dest(i+1,j) +
+     &              2.d0 * (dest(i,j+1) - dest(i,j)))))
  20            res(i,j) = tmp + 0.5d0 *
-     @           (sig(i-1,j-1,3) *
-     @             (dest(i-1,j-1) - dest(i,j)) -
-     @            sig(i-1,j,3) *
-     @             (dest(i-1,j+1) - dest(i,j)) -
-     @            sig(i,j-1,3) *
-     @             (dest(i+1,j-1) - dest(i,j)) +
-     @            sig(i,j,3) *
-     @             (dest(i+1,j+1) - dest(i,j)))
+     &           (sig(i-1,j-1,3) *
+     &             (dest(i-1,j-1) - dest(i,j)) -
+     &            sig(i-1,j,3) *
+     &             (dest(i-1,j+1) - dest(i,j)) -
+     &            sig(i,j-1,3) *
+     &             (dest(i+1,j-1) - dest(i,j)) +
+     &            sig(i,j,3) *
+     &             (dest(i+1,j+1) - dest(i,j)))
       end if
       end
 c-----------------------------------------------------------------------
 c nine-point variable stencils
       subroutine hgcen_full_stencil(cen, cenl0, cenh0, cenl1, cenh1,
-     @ sigx, sigy, sbl0, sbh0, sbl1, sbh1,
-     @ regl0, regh0, regl1, regh1,
-     @ hx, hy, irz, imax)
+     & sigx, sigy, sbl0, sbh0, sbl1, sbh1,
+     & regl0, regh0, regl1, regh1,
+     & hx, hy, irz, imax)
       integer cenl0, cenh0, cenl1, cenh1
       integer sbl0, sbh0, sbl1, sbh1
       integer regl0, regh0, regl1, regh1
@@ -1778,9 +1778,9 @@ c nine-point variable stencils
          do 10 j = regl1, regh1
             do 10 i = regl0, regh0
  10            cen(i,j) = 3.d0 / (hxm2 * (sigx(i-1,j-1) + sigx(i-1,j) +
-     @                                    sigx(i,j-1) + sigx(i,j)) +
-     @                            hym2 * (sigy(i-1,j-1) + sigy(i-1,j) +
-     @                                    sigy(i,j-1) + sigy(i,j)))
+     &                                    sigx(i,j-1) + sigx(i,j)) +
+     &                            hym2 * (sigy(i-1,j-1) + sigy(i-1,j) +
+     &                                    sigy(i,j-1) + sigy(i,j)))
       else
          facrz = 0.25d0 * hx * hym2
          do 20 i = regl0, regh0
@@ -1791,20 +1791,20 @@ c nine-point variable stencils
             end if
             do 20 j = regl1, regh1
  20            cen(i,j) = 3.d0 / (hxm2 * (sigx(i-1,j-1) + sigx(i-1,j) +
-     @                                    sigx(i,j-1) + sigx(i,j)) +
-     @                            hym2 * (sigy(i-1,j-1) + sigy(i-1,j) +
-     @                                    sigy(i,j-1) + sigy(i,j)) +
-     @                    facrz * ((sigy(i-1,j-1) + sigy(i-1,j)) / r0 -
-     @                             (sigy(i,j-1)   + sigy(i,j))   / r1))
+     &                                    sigx(i,j-1) + sigx(i,j)) +
+     &                            hym2 * (sigy(i-1,j-1) + sigy(i-1,j) +
+     &                                    sigy(i,j-1) + sigy(i,j)) +
+     &                    facrz * ((sigy(i-1,j-1) + sigy(i-1,j)) / r0 -
+     &                             (sigy(i,j-1)   + sigy(i,j))   / r1))
       end if
       end
 c-----------------------------------------------------------------------
       subroutine hgrlx_full_stencil(cor, corl0, corh0, corl1, corh1,
-     @ res, resl0, resh0, resl1, resh1,
-     @ sigx, sigy, sfl0, sfh0, sfl1, sfh1,
-     @ cen, cenl0, cenh0, cenl1, cenh1,
-     @ regl0, regh0, regl1, regh1,
-     @ hx, hy, irz, imax)
+     & res, resl0, resh0, resl1, resh1,
+     & sigx, sigy, sfl0, sfh0, sfl1, sfh1,
+     & cen, cenl0, cenh0, cenl1, cenh1,
+     & regl0, regh0, regl1, regh1,
+     & hx, hy, irz, imax)
       integer corl0, corh0, corl1, corh1
       integer resl0, resh0, resl1, resh1
       integer sfl0, sfh0, sfl1, sfh1
@@ -1820,26 +1820,26 @@ c-----------------------------------------------------------------------
       double precision hxm2, hym2, fac, facrz, r0, r1
       integer i, j
       avg() = fac * (hxm2 *
-     @          (sigx(i-1,j-1) *
-     @            (cor(i-1,j-1) - cor(i,j-1) + 2.d0 * cor(i-1,j)) +
-     @           sigx(i-1,j) *
-     @            (cor(i-1,j+1) - cor(i,j+1) + 2.d0 * cor(i-1,j)) +
-     @           sigx(i,j-1) *
-     @            (cor(i+1,j-1) - cor(i,j-1) + 2.d0 * cor(i+1,j)) +
-     @           sigx(i,j) *
-     @            (cor(i+1,j+1) - cor(i,j+1) + 2.d0 * cor(i+1,j))) +
-     @               hym2 *
-     @          (sigy(i-1,j-1) *
-     @            (cor(i-1,j-1) - cor(i-1,j) + 2.d0 * cor(i,j-1)) +
-     @           sigy(i-1,j) *
-     @            (cor(i-1,j+1) - cor(i-1,j) + 2.d0 * cor(i,j+1)) +
-     @           sigy(i,j-1) *
-     @            (cor(i+1,j-1) - cor(i+1,j) + 2.d0 * cor(i,j-1)) +
-     @           sigy(i,j) *
-     @            (cor(i+1,j+1) - cor(i+1,j) + 2.d0 * cor(i,j+1))))
+     &          (sigx(i-1,j-1) *
+     &            (cor(i-1,j-1) - cor(i,j-1) + 2.d0 * cor(i-1,j)) +
+     &           sigx(i-1,j) *
+     &            (cor(i-1,j+1) - cor(i,j+1) + 2.d0 * cor(i-1,j)) +
+     &           sigx(i,j-1) *
+     &            (cor(i+1,j-1) - cor(i,j-1) + 2.d0 * cor(i+1,j)) +
+     &           sigx(i,j) *
+     &            (cor(i+1,j+1) - cor(i,j+1) + 2.d0 * cor(i+1,j))) +
+     &               hym2 *
+     &          (sigy(i-1,j-1) *
+     &            (cor(i-1,j-1) - cor(i-1,j) + 2.d0 * cor(i,j-1)) +
+     &           sigy(i-1,j) *
+     &            (cor(i-1,j+1) - cor(i-1,j) + 2.d0 * cor(i,j+1)) +
+     &           sigy(i,j-1) *
+     &            (cor(i+1,j-1) - cor(i+1,j) + 2.d0 * cor(i,j-1)) +
+     &           sigy(i,j) *
+     &            (cor(i+1,j+1) - cor(i+1,j) + 2.d0 * cor(i,j+1))))
       avgrz() = avg() + facrz *
-     @           ((sigy(i-1,j-1) / r0 - sigy(i,j-1) / r1) * cor(i,j-1) +
-     @             (sigy(i-1,j)   / r0 - sigy(i,j)   / r1) * cor(i,j+1))
+     &           ((sigy(i-1,j-1) / r0 - sigy(i,j-1) / r1) * cor(i,j-1) +
+     &             (sigy(i-1,j)   / r0 - sigy(i,j)   / r1) * cor(i,j+1))
       hxm2 = 1.d0 / (hx*hx)
       hym2 = 1.d0 / (hy*hy)
       fac = 1.d0 / 6.d0
@@ -1886,12 +1886,12 @@ cdir$ ivdep
       end
 c-----------------------------------------------------------------------
       subroutine hgrlxl_full_stencil(cor, corl0, corh0, corl1, corh1,
-     @ res, resl0, resh0, resl1, resh1,
-     @ sigx, sigy, sfl0, sfh0, sfl1, sfh1,
-     @ cen, cenl0, cenh0, cenl1, cenh1,
-     @ regl0, regh0, regl1, regh1,
-     @ doml0, domh0, doml1, domh1,
-     @ hx, hy, irz, imax, lsd)
+     & res, resl0, resh0, resl1, resh1,
+     & sigx, sigy, sfl0, sfh0, sfl1, sfh1,
+     & cen, cenl0, cenh0, cenl1, cenh1,
+     & regl0, regh0, regl1, regh1,
+     & doml0, domh0, doml1, domh1,
+     & hx, hy, irz, imax, lsd)
       integer corl0, corh0, corl1, corh1
       integer resl0, resh0, resl1, resh1
       integer sfl0, sfh0, sfl1, sfh1
@@ -1968,18 +1968,18 @@ c dirichlet bdy:
 c neumann bdy:
                   cor(i,j) = RHSL1() * betm
                   aj = fac *
-     @              (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
-     @               hxm2 * (sigx(i-1,j) + sigx(i,j)))
+     &              (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
+     &               hxm2 * (sigx(i-1,j) + sigx(i,j)))
                   wrk(1) = 2.d0 * aj * betm
                else
 c interface to grid at same level:
                   aj = fac *
-     @              (hym2 * 2.d0 * (sigy(i-1,j-1) + sigy(i,j-1)) -
-     @               hxm2 * (sigx(i-1,j-1) + sigx(i,j-1)))
+     &              (hym2 * 2.d0 * (sigy(i-1,j-1) + sigy(i,j-1)) -
+     &               hxm2 * (sigx(i-1,j-1) + sigx(i,j-1)))
                   cor(i,j) = (RHSL1() - aj * cor(i,j-1)) * betm
                   aj = fac *
-     @              (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
-     @               hxm2 * (sigx(i-1,j) + sigx(i,j)))
+     &              (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
+     &               hxm2 * (sigx(i-1,j) + sigx(i,j)))
                   wrk(1) = aj * betm
                end if
 c forward solve loop:
@@ -1992,8 +1992,8 @@ c forward solve loop:
                   end if
                   cor(i,j) = (RHSL1() - aj * cor(i,j-1)) * betm
                   aj = fac *
-     @              (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
-     @               hxm2 * (sigx(i-1,j) + sigx(i,j)))
+     &              (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
+     &               hxm2 * (sigx(i-1,j) + sigx(i,j)))
                   wrk(jw + 1) = aj * betm
  10               continue
                j = regh1
@@ -2011,8 +2011,8 @@ c interface to grid at same level:
                   betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(jw))
                   cor(i,j) = RHSL1() - aj * cor(i,j-1)
                   aj = fac *
-     @              (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
-     @               hxm2 * (sigx(i-1,j) + sigx(i,j)))
+     &              (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
+     &               hxm2 * (sigx(i-1,j) + sigx(i,j)))
                   cor(i,j) = (cor(i,j) - aj * cor(i,j+1)) * betm
                end if
 c back substitution loop:
@@ -2064,13 +2064,13 @@ cdir$ ivdep
       end
 c-----------------------------------------------------------------------
       subroutine hgrlnf_full_stencil(cor, corl0, corh0, corl1, corh1,
-     @ res, resl0, resh0, resl1, resh1,
-     @ wrk, wrkl0, wrkh0, wrkl1, wrkh1,
-     @ sigx, sigy, sfl0, sfh0, sfl1, sfh1,
-     @ cen, cenl0, cenh0, cenl1, cenh1,
-     @ regl0, regh0, regl1, regh1,
-     @ doml0, domh0, doml1, domh1,
-     @ hx, hy, irz, imax, lsd, ipass)
+     & res, resl0, resh0, resl1, resh1,
+     & wrk, wrkl0, wrkh0, wrkl1, wrkh1,
+     & sigx, sigy, sfl0, sfh0, sfl1, sfh1,
+     & cen, cenl0, cenh0, cenl1, cenh1,
+     & regl0, regh0, regl1, regh1,
+     & doml0, domh0, doml1, domh1,
+     & hx, hy, irz, imax, lsd, ipass)
       integer corl0, corh0, corl1, corh1
       integer resl0, resh0, resl1, resh1
       integer wrkl0, wrkh0, wrkl1, wrkh1
@@ -2101,8 +2101,8 @@ c-----------------------------------------------------------------------
             i = regl0
             do 10 j = regl1 + ioff, regh1, 2
                aj = fac *
-     @           (hxm2 * 2.d0 * (sigx(i,j-1) + sigx(i,j)) -
-     @            hym2 * (sigy(i,j-1) + sigy(i,j)))
+     &           (hxm2 * 2.d0 * (sigx(i,j-1) + sigx(i,j)) -
+     &            hym2 * (sigy(i,j-1) + sigy(i,j)))
                if (cen(i,j) .eq. 0.d0) then
 c dirichlet bdy:
                   wrk(i,j) = 0.d0
@@ -2125,8 +2125,8 @@ c forward solve loop:
                   end if
                   cor(i,j) = (RHSL0() - aj * cor(i-1,j)) * betm
                   aj = fac *
-     @              (hxm2 * 2.d0 * (sigx(i,j-1) + sigx(i,j)) -
-     @               hym2 * (sigy(i,j-1) + sigy(i,j)))
+     &              (hxm2 * 2.d0 * (sigx(i,j-1) + sigx(i,j)) -
+     &               hym2 * (sigy(i,j-1) + sigy(i,j)))
                   wrk(i+1,j) = aj
  20               wrk(i,j) = aj * betm
             i = regh0
@@ -2144,8 +2144,8 @@ c interface to grid at same level:
                   betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i-1,j))
                   cor(i,j) = (RHSL0() - aj * cor(i-1,j)) * betm
                   aj = fac *
-     @              (hxm2 * 2.d0 * (sigx(i,j-1) + sigx(i,j)) -
-     @               hym2 * (sigy(i,j-1) + sigy(i,j)))
+     &              (hxm2 * 2.d0 * (sigx(i,j-1) + sigx(i,j)) -
+     &               hym2 * (sigy(i,j-1) + sigy(i,j)))
                   wrk(i,j) = aj * betm
                end if
  30            continue
@@ -2158,8 +2158,8 @@ c interface to grid at same level:
             j = regl1
             do 110 i = regl0 + ioff, regh0, 2
                aj = fac *
-     @           (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
-     @            hxm2 * (sigx(i-1,j) + sigx(i,j)))
+     &           (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
+     &            hxm2 * (sigx(i-1,j) + sigx(i,j)))
                if (cen(i,j) .eq. 0.d0) then
 c dirichlet bdy:
                   wrk(i,j) = 0.d0
@@ -2182,8 +2182,8 @@ c forward solve loop:
                   end if
                   cor(i,j) = (RHSL1() - aj * cor(i,j-1)) * betm
                   aj = fac *
-     @              (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
-     @               hxm2 * (sigx(i-1,j) + sigx(i,j)))
+     &              (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
+     &               hxm2 * (sigx(i-1,j) + sigx(i,j)))
                   wrk(i,j+1) = aj
  120              wrk(i,j) = aj * betm
             j = regh1
@@ -2201,8 +2201,8 @@ c interface to grid at same level:
                   betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i,j-1))
                   cor(i,j) = (RHSL1() - aj * cor(i,j-1)) * betm
                   aj = fac *
-     @              (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
-     @               hxm2 * (sigx(i-1,j) + sigx(i,j)))
+     &              (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
+     &               hxm2 * (sigx(i-1,j) + sigx(i,j)))
                   wrk(i,j) = aj * betm
                end if
  130           continue
@@ -2220,8 +2220,8 @@ c interface to grid at same level:
             r0 = r1 - hx
             do 210 j = regl1 + ioff, regh1, 2
                aj = fac *
-     @           (hxm2 * 2.d0 * (sigx(i,j-1) + sigx(i,j)) -
-     @            hym2 * (sigy(i,j-1) + sigy(i,j)))
+     &           (hxm2 * 2.d0 * (sigx(i,j-1) + sigx(i,j)) -
+     &            hym2 * (sigy(i,j-1) + sigy(i,j)))
                if (cen(i,j) .eq. 0.d0) then
 c dirichlet bdy:
                   wrk(i,j) = 0.d0
@@ -2246,8 +2246,8 @@ c forward solve loop:
                   end if
                   cor(i,j) = (RHSRZL0() - aj * cor(i-1,j)) * betm
                   aj = fac *
-     @              (hxm2 * 2.d0 * (sigx(i,j-1) + sigx(i,j)) -
-     @               hym2 * (sigy(i,j-1) + sigy(i,j)))
+     &              (hxm2 * 2.d0 * (sigx(i,j-1) + sigx(i,j)) -
+     &               hym2 * (sigy(i,j-1) + sigy(i,j)))
                   wrk(i+1,j) = aj
  220              wrk(i,j) = aj * betm
             i = regh0
@@ -2270,8 +2270,8 @@ c interface to grid at same level:
                   betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i-1,j))
                   cor(i,j) = (RHSRZL0() - aj * cor(i-1,j)) * betm
                   aj = fac *
-     @              (hxm2 * 2.d0 * (sigx(i,j-1) + sigx(i,j)) -
-     @               hym2 * (sigy(i,j-1) + sigy(i,j)))
+     &              (hxm2 * 2.d0 * (sigx(i,j-1) + sigx(i,j)) -
+     &               hym2 * (sigy(i,j-1) + sigy(i,j)))
                   wrk(i,j) = aj * betm
                end if
  230           continue
@@ -2289,9 +2289,9 @@ c interface to grid at same level:
                   r1 = -r0
                end if
                aj = fac *
-     @                (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
-     @                 hxm2 * (sigx(i-1,j) + sigx(i,j))) +
-     @              facrz * (sigy(i-1,j) / r0 - sigy(i,j) / r1)
+     &                (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
+     &                 hxm2 * (sigx(i-1,j) + sigx(i,j))) +
+     &              facrz * (sigy(i-1,j) / r0 - sigy(i,j) / r1)
                if (cen(i,j) .eq. 0.d0) then
 c dirichlet bdy:
                   wrk(i,j) = 0.d0
@@ -2319,9 +2319,9 @@ c forward solve loop:
                   end if
                   cor(i,j) = (RHSRZL1() - aj * cor(i,j-1)) * betm
                   aj = fac *
-     @                   (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
-     @                    hxm2 * (sigx(i-1,j) + sigx(i,j))) +
-     @                 facrz * (sigy(i-1,j) / r0 - sigy(i,j) / r1)
+     &                   (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
+     &                    hxm2 * (sigx(i-1,j) + sigx(i,j))) +
+     &                 facrz * (sigy(i-1,j) / r0 - sigy(i,j) / r1)
                   wrk(i,j+1) = aj
  320              wrk(i,j) = aj * betm
             j = regh1
@@ -2344,9 +2344,9 @@ c interface to grid at same level:
                   betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i,j-1))
                   cor(i,j) = (RHSRZL1() - aj * cor(i,j-1)) * betm
                   aj = fac *
-     @                   (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
-     @                    hxm2 * (sigx(i-1,j) + sigx(i,j))) +
-     @                 facrz * (sigy(i-1,j) / r0 - sigy(i,j) / r1)
+     &                   (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
+     &                    hxm2 * (sigx(i-1,j) + sigx(i,j))) +
+     &                 facrz * (sigy(i-1,j) / r0 - sigy(i,j) / r1)
                   wrk(i,j) = aj * betm
                end if
  330           continue
@@ -2355,11 +2355,11 @@ c interface to grid at same level:
       end
 c-----------------------------------------------------------------------
       subroutine hgres_full_stencil(res, resl0, resh0, resl1, resh1,
-     @ src,  srcl0, srch0, srcl1, srch1,
-     @ dest, destl0, desth0, destl1, desth1,
-     @ sigx, sigy, sfl0, sfh0, sfl1, sfh1,
-     @ regl0, regh0, regl1, regh1,
-     @ hx, hy, irz, imax)
+     & src,  srcl0, srch0, srcl1, srch1,
+     & dest, destl0, desth0, destl1, desth1,
+     & sigx, sigy, sfl0, sfh0, sfl1, sfh1,
+     & regl0, regh0, regl1, regh1,
+     & hx, hy, irz, imax)
       integer resl0, resh0, resl1, resh1
       integer srcl0, srch0, srcl1, srch1
       integer destl0, desth0, destl1, desth1
@@ -2381,60 +2381,60 @@ c-----------------------------------------------------------------------
          do 10 i = regl0, regh0
             do 10 j = regl1, regh1
                tmp = hxm2 *
-     @           (sigx(i-1,j-1) *
-     @             (dest(i-1,j-1) - dest(i,j-1) +
-     @              2.d0 * (dest(i-1,j) - dest(i,j))) +
-     @            sigx(i-1,j) *
-     @             (dest(i-1,j+1) - dest(i,j+1) +
-     @              2.d0 * (dest(i-1,j) - dest(i,j))) +
-     @            sigx(i,j-1) *
-     @             (dest(i+1,j-1) - dest(i,j-1) +
-     @              2.d0 * (dest(i+1,j) - dest(i,j))) +
-     @            sigx(i,j) *
-     @             (dest(i+1,j+1) - dest(i,j+1) +
-     @              2.d0 * (dest(i+1,j) - dest(i,j))))
+     &           (sigx(i-1,j-1) *
+     &             (dest(i-1,j-1) - dest(i,j-1) +
+     &              2.d0 * (dest(i-1,j) - dest(i,j))) +
+     &            sigx(i-1,j) *
+     &             (dest(i-1,j+1) - dest(i,j+1) +
+     &              2.d0 * (dest(i-1,j) - dest(i,j))) +
+     &            sigx(i,j-1) *
+     &             (dest(i+1,j-1) - dest(i,j-1) +
+     &              2.d0 * (dest(i+1,j) - dest(i,j))) +
+     &            sigx(i,j) *
+     &             (dest(i+1,j+1) - dest(i,j+1) +
+     &              2.d0 * (dest(i+1,j) - dest(i,j))))
  10            res(i,j) = src(i,j) - fac * (tmp + hym2 *
-     @           (sigy(i-1,j-1) *
-     @             (dest(i-1,j-1) - dest(i-1,j) +
-     @              2.d0 * (dest(i,j-1) - dest(i,j))) +
-     @            sigy(i-1,j) *
-     @             (dest(i-1,j+1) - dest(i-1,j) +
-     @              2.d0 * (dest(i,j+1) - dest(i,j))) +
-     @            sigy(i,j-1) *
-     @             (dest(i+1,j-1) - dest(i+1,j) +
-     @              2.d0 * (dest(i,j-1) - dest(i,j))) +
-     @            sigy(i,j) *
-     @             (dest(i+1,j+1) - dest(i+1,j) +
-     @              2.d0 * (dest(i,j+1) - dest(i,j)))))
+     &           (sigy(i-1,j-1) *
+     &             (dest(i-1,j-1) - dest(i-1,j) +
+     &              2.d0 * (dest(i,j-1) - dest(i,j))) +
+     &            sigy(i-1,j) *
+     &             (dest(i-1,j+1) - dest(i-1,j) +
+     &              2.d0 * (dest(i,j+1) - dest(i,j))) +
+     &            sigy(i,j-1) *
+     &             (dest(i+1,j-1) - dest(i+1,j) +
+     &              2.d0 * (dest(i,j-1) - dest(i,j))) +
+     &            sigy(i,j) *
+     &             (dest(i+1,j+1) - dest(i+1,j) +
+     &              2.d0 * (dest(i,j+1) - dest(i,j)))))
       else
          do 20 j = regl1, regh1
             do 20 i = regl0, regh0
                tmp = hxm2 *
-     @           (sigx(i-1,j-1) *
-     @             (dest(i-1,j-1) - dest(i,j-1) +
-     @              2.d0 * (dest(i-1,j) - dest(i,j))) +
-     @            sigx(i-1,j) *
-     @             (dest(i-1,j+1) - dest(i,j+1) +
-     @              2.d0 * (dest(i-1,j) - dest(i,j))) +
-     @            sigx(i,j-1) *
-     @             (dest(i+1,j-1) - dest(i,j-1) +
-     @              2.d0 * (dest(i+1,j) - dest(i,j))) +
-     @            sigx(i,j) *
-     @             (dest(i+1,j+1) - dest(i,j+1) +
-     @              2.d0 * (dest(i+1,j) - dest(i,j))))
+     &           (sigx(i-1,j-1) *
+     &             (dest(i-1,j-1) - dest(i,j-1) +
+     &              2.d0 * (dest(i-1,j) - dest(i,j))) +
+     &            sigx(i-1,j) *
+     &             (dest(i-1,j+1) - dest(i,j+1) +
+     &              2.d0 * (dest(i-1,j) - dest(i,j))) +
+     &            sigx(i,j-1) *
+     &             (dest(i+1,j-1) - dest(i,j-1) +
+     &              2.d0 * (dest(i+1,j) - dest(i,j))) +
+     &            sigx(i,j) *
+     &             (dest(i+1,j+1) - dest(i,j+1) +
+     &              2.d0 * (dest(i+1,j) - dest(i,j))))
  20            res(i,j) = src(i,j) - fac * (tmp + hym2 *
-     @           (sigy(i-1,j-1) *
-     @             (dest(i-1,j-1) - dest(i-1,j) +
-     @              2.d0 * (dest(i,j-1) - dest(i,j))) +
-     @            sigy(i-1,j) *
-     @             (dest(i-1,j+1) - dest(i-1,j) +
-     @              2.d0 * (dest(i,j+1) - dest(i,j))) +
-     @            sigy(i,j-1) *
-     @             (dest(i+1,j-1) - dest(i+1,j) +
-     @              2.d0 * (dest(i,j-1) - dest(i,j))) +
-     @            sigy(i,j) *
-     @             (dest(i+1,j+1) - dest(i+1,j) +
-     @              2.d0 * (dest(i,j+1) - dest(i,j)))))
+     &           (sigy(i-1,j-1) *
+     &             (dest(i-1,j-1) - dest(i-1,j) +
+     &              2.d0 * (dest(i,j-1) - dest(i,j))) +
+     &            sigy(i-1,j) *
+     &             (dest(i-1,j+1) - dest(i-1,j) +
+     &              2.d0 * (dest(i,j+1) - dest(i,j))) +
+     &            sigy(i,j-1) *
+     &             (dest(i+1,j-1) - dest(i+1,j) +
+     &              2.d0 * (dest(i,j-1) - dest(i,j))) +
+     &            sigy(i,j) *
+     &             (dest(i+1,j+1) - dest(i+1,j) +
+     &              2.d0 * (dest(i,j+1) - dest(i,j)))))
       end if
       if (irz .eq. 1) then
          fac = hx * hym2 / 12.d0
@@ -2446,18 +2446,18 @@ c-----------------------------------------------------------------------
             end if
             do 30 j = regl1, regh1
  30            res(i,j) = res(i,j) - fac *
-     @          ((sigy(i-1,j-1) * (dest(i,j-1) - dest(i,j)) +
-     @            sigy(i-1,j)   * (dest(i,j+1) - dest(i,j))) / r0 -
-     @           (sigy(i,j-1)   * (dest(i,j-1) - dest(i,j)) +
-     @            sigy(i,j)     * (dest(i,j+1) - dest(i,j))) / r1)
+     &          ((sigy(i-1,j-1) * (dest(i,j-1) - dest(i,j)) +
+     &            sigy(i-1,j)   * (dest(i,j+1) - dest(i,j))) / r0 -
+     &           (sigy(i,j-1)   * (dest(i,j-1) - dest(i,j)) +
+     &            sigy(i,j)     * (dest(i,j+1) - dest(i,j))) / r1)
       end if
       end
 
 c-----------------------------------------------------------------------
       subroutine hgrlnb(cor, corl0, corh0, corl1, corh1,
-     @ wrk, wrkl0, wrkh0, wrkl1, wrkh1,
-     @ regl0, regh0, regl1, regh1,
-     @ lsd, ipass)
+     & wrk, wrkl0, wrkh0, wrkl1, wrkh1,
+     & regl0, regh0, regl1, regh1,
+     & lsd, ipass)
       integer corl0, corh0, corl1, corh1
       integer wrkl0, wrkh0, wrkl1, wrkh1
       integer regl0, regh0, regl1, regh1
@@ -2495,7 +2495,7 @@ c has a border of width 1
 c-----------------------------------------------------------------------
 c Works for NODE-based data.
       subroutine hgip(v0, v1, mask,
-     @ regl0, regh0, regl1, regh1, sum)
+     & regl0, regh0, regl1, regh1, sum)
       integer regl0, regh0, regl1, regh1
       double precision v0(*)
       double precision v1(*)
@@ -2509,8 +2509,8 @@ c      do 10 i = 1, (regh0 - regl0 + 1) * (regh1 - regl1 + 1)
       end
 c-----------------------------------------------------------------------
       subroutine hgcg1(r, p, z, x, w, c, mask,
-     @ regl0, regh0, regl1, regh1,
-     @ alpha, rho)
+     & regl0, regh0, regl1, regh1,
+     & alpha, rho)
       integer regl0, regh0, regl1, regh1
       double precision r(*)
       double precision p(*)
@@ -2531,8 +2531,8 @@ c      do 10 i = 1, (regh0 - regl0 + 1) * (regh1 - regl1 + 1)
       end
 
       subroutine hgcg2(p, z,
-     @ regl0, regh0, regl1, regh1,
-     @ alpha)
+     & regl0, regh0, regl1, regh1,
+     & alpha)
       integer regl0, regh0, regl1, regh1
       double precision p(*)
       double precision z(*)
