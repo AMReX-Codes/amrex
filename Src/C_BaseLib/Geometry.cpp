@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.20 1998-06-13 21:00:09 lijewski Exp $
+// $Id: Geometry.cpp,v 1.21 1998-06-14 06:10:40 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -15,7 +15,9 @@ RealBox Geometry::prob_domain;
 
 bool Geometry::is_periodic[BL_SPACEDIM];
 
-vector<Geometry::FPB> Geometry::m_Cache;
+const int MaxCacheSize = 20;
+
+list<Geometry::FPB> Geometry::m_Cache(MaxCacheSize);
 
 ostream&
 operator<< (ostream&        os,
@@ -76,33 +78,45 @@ operator<< (ostream&                 os,
 bool
 Geometry::FPB::operator== (const FPB& rhs) const
 {
-    return m_ba == rhs.m_ba && m_ngrow == rhs.m_ngrow && m_noovlp == rhs.m_noovlp;
+    return m_ba == rhs.m_ba &&
+        m_scomp == rhs.m_scomp &&
+        m_ncomp == rhs.m_ncomp &&
+        m_ngrow == rhs.m_ngrow &&
+        m_noovlp == rhs.m_noovlp;
 }
 
 void
 Geometry::FlushPIRMCache ()
 {
-    for (int i = 0; i < m_Cache.size(); i++)
+    list<Geometry::FPB>::iterator it = m_Cache.begin();
+
+    for ( ; it != m_Cache.end(); ++it)
     {
-        delete m_Cache[i].m_pirm;
+        delete (*it).m_pirm;
     }
     m_Cache.clear();
 }
 
 Geometry::PIRMMap&
 Geometry::buildPIRMMap (const BoxArray& grids,
+                        int             src_comp,
+                        int             num_comp,
                         int             nGrow,
                         bool            no_ovlp) const
 {
     assert(isAnyPeriodic());
-    //
-    // Add new FPBs to the back of the cache.
-    //
-    m_Cache.push_back(FPB(new PIRMMap,grids,nGrow,no_ovlp));
 
-    PIRMMap& pirm = *m_Cache.back().m_pirm;
+    if (m_Cache.size() == MaxCacheSize)
+    {
+        delete m_Cache.back().m_pirm;
+        m_Cache.pop_back();
+    }
+    //
+    // Add new FPBs to the front of the cache.
+    //
+    m_Cache.push_front(FPB(new PIRMMap,grids,src_comp,num_comp,nGrow,no_ovlp));
 
-    const int len = grids.length();
+    PIRMMap& pirm = *m_Cache.front().m_pirm;
     //
     // Make a junk multifab to access its iterator.
     // Don't allocate any mem for it.
@@ -113,15 +127,15 @@ Geometry::buildPIRMMap (const BoxArray& grids,
     //
     // Do only those I own.
     //
-    for (ConstMultiFabIterator mfmfi(mf); mfmfi.isValid(); ++mfmfi)
+    for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
     {
-        Box dest = ::grow(mfmfi.validbox(), nGrow);
+        Box dest = ::grow(mfi.validbox(), nGrow);
 
         assert(dest.ixType().cellCentered() || dest.ixType().nodeCentered());
 
         if (no_ovlp)
         {
-            const Box& validbox = mfmfi.validbox();
+            const Box& validbox = mfi.validbox();
 
             for (int idir = 0; idir < BL_SPACEDIM; idir++)
             {
@@ -148,7 +162,7 @@ Geometry::buildPIRMMap (const BoxArray& grids,
 
         if (doit)
         {
-            for (int j = 0; j < len; j++)
+            for (int j = 0; j < grids.length(); j++)
             {
                 periodicShift(dest, grids[j], pshifts);
 
@@ -164,7 +178,7 @@ Geometry::buildPIRMMap (const BoxArray& grids,
                     Box dstBox = srcBox;
                     dstBox.shift(-pshifts[iiv]);
 
-                    pirm.insert(PIRMMap::value_type(mfmfi.index(),
+                    pirm.insert(PIRMMap::value_type(mfi.index(),
                                                     PIRec(j,dstBox,srcBox)));
                 }
             }
@@ -176,6 +190,8 @@ Geometry::buildPIRMMap (const BoxArray& grids,
 
 Geometry::PIRMMap&
 Geometry::getPIRMMap (const BoxArray& grids,
+                      int             src_comp,
+                      int             num_comp,
                       int             nGrow,
                       bool            no_ovlp) const
 {
@@ -183,19 +199,21 @@ Geometry::getPIRMMap (const BoxArray& grids,
     //
     // Have we already made one with appropriate characteristics?
     //
-    const FPB fpb(grids,nGrow,no_ovlp);
+    const FPB fpb(grids,src_comp,num_comp,nGrow,no_ovlp);
     //
-    // Search from the back to the front ...
+    // Search from the front to the back ...
     //
-    int i = m_Cache.size() - 1;
+    list<Geometry::FPB>::iterator it = m_Cache.begin();
 
-    for ( ; i >= 0; i--)
+    for ( ; it != m_Cache.end(); ++it)
     {
-        if (m_Cache[i] == fpb)
-            return *m_Cache[i].m_pirm;
+        if ((*it) == fpb)
+        {
+            return *(*it).m_pirm;
+        }
     }
 
-    return buildPIRMMap(grids,nGrow,no_ovlp);
+    return buildPIRMMap(grids,src_comp,num_comp,nGrow,no_ovlp);
 
 }
 
@@ -212,12 +230,18 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
     fpb_stats.start();
 
-    PIRMMap& pirm = getPIRMMap(mf.boxArray(),mf.nGrow(),no_ovlp);
+    PIRMMap& pirm = getPIRMMap(mf.boxArray(),
+                               src_comp,
+                               num_comp,
+                               mf.nGrow(),
+                               no_ovlp);
 
     MultiFabCopyDescriptor& mfcd = mf.theFPBmfcd(*this,
                                                  src_comp,
                                                  num_comp,
                                                  no_ovlp);
+
+    const MultiFabId mfid = MultiFabId(0);
     //
     // Gather/scatter distributed data to (local) internal buffers.
     //

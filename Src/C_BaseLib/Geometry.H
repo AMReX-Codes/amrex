@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.15 1998-06-13 21:00:09 lijewski Exp $
+// $Id: Geometry.H,v 1.16 1998-06-14 06:10:40 lijewski Exp $
 //
 
 #include <CoordSys.H>
@@ -12,10 +12,13 @@
 #include <MultiFab.H>
 
 #ifdef BL_USE_NEW_HFILES
+#include <list>
 #include <map>
 using std::ostream;
+using std::list;
 using std::multimap;
 #else
+#include <list.h>
 #include <map.h>
 #endif
 
@@ -211,9 +214,11 @@ public:
 
     /*@ManDoc: Compute periodic intersection records for data into each
                fab on this proc.  It's an error to call this if
-               !isAnyPeriodic().
+               !isAnyPeriodic().  The map is cached internally.
     */
     PIRMMap& getPIRMMap (const BoxArray& grids,
+                         int             src_comp,
+                         int             num_comp,
                          int             nGrow,
                          bool            no_ovlp) const;
 protected:
@@ -225,15 +230,21 @@ protected:
         FPB ()
             :
             m_pirm(0),
+            m_scomp(-1),
+            m_ncomp(-1),
             m_ngrow(-1),
             m_noovlp(false) {}
 
         FPB (const BoxArray& ba,
+             int             scomp,
+             int             ncomp,
              int             ngrow,
              bool            noovlp)
             :
             m_pirm(0),
             m_ba(ba),
+            m_scomp(scomp),
+            m_ncomp(ncomp),
             m_ngrow(ngrow),
             m_noovlp(true)
         {
@@ -242,14 +253,20 @@ protected:
 
         FPB (PIRMMap*        pirm,
              const BoxArray& ba,
+             int             scomp,
+             int             ncomp,
              int             ngrow,
              bool            noovlp)
             :
             m_pirm(pirm),
             m_ba(ba),
+            m_scomp(scomp),
+            m_ncomp(ncomp),
             m_ngrow(ngrow),
             m_noovlp(true)
         {
+            assert(scomp >=0);
+            assert(ncomp > 0);
             assert(ngrow >= 0);
             assert(!(pirm == 0));
         }
@@ -260,6 +277,8 @@ protected:
 
         PIRMMap* m_pirm;
         BoxArray m_ba;
+        int      m_scomp;
+        int      m_ncomp;
         int      m_ngrow;
         bool     m_noovlp;
     };
@@ -267,19 +286,20 @@ protected:
     // Helper functions.
     //
     void read_params ();
-
     //
     // Helper function for getPIRMMap().
     //
     PIRMMap& buildPIRMMap (const BoxArray& grids,
+                           int             src_comp,
+                           int             num_comp,
                            int             nGrow,
                            bool            no_ovlp) const;
     //
     // Static data.
     //
-    static bool        is_periodic[BL_SPACEDIM]; // 0 means not periodic
-    static RealBox     prob_domain;
-    static vector<FPB> m_Cache;
+    static bool      is_periodic[BL_SPACEDIM]; // 0 means not periodic
+    static RealBox   prob_domain;
+    static list<FPB> m_Cache;
     //
     // Non-static data.
     //
