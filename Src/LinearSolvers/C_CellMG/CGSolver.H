@@ -4,7 +4,7 @@
 #define _CGSOLVER_H_
 
 //
-// $Id: CGSolver.H,v 1.4 1998-12-08 18:25:44 wyc Exp $
+// $Id: CGSolver.H,v 1.5 1999-02-10 21:09:44 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -13,7 +13,6 @@
 #include <math.h>
 #endif
 
-#include <Boolean.H>
 #include <Array.H>
 #include <Pointers.H>
 #include <MultiFab.H>

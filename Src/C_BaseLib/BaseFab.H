@@ -4,7 +4,7 @@
 #define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.17 1998-11-30 21:30:09 lijewski Exp $
+// $Id: BaseFab.H,v 1.18 1999-02-10 21:09:55 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -14,7 +14,6 @@
 #endif
 
 #include <Assert.H>
-#include <Boolean.H>
 #include <Box.H>
 #include <BoxList.H>
 #include <CArena.H>

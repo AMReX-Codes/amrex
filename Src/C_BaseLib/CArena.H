@@ -21,7 +21,6 @@ using std::vector;
 #include <vector.h>
 #endif
 
-#include <Boolean.H>
 #include <Arena.H>
 #include <Array.H>
 

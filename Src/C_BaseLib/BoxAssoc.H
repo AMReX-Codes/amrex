@@ -4,10 +4,9 @@
 #define BL_BOXASSOC_H
 
 //
-// $Id: BoxAssoc.H,v 1.4 1997-12-11 23:25:40 lijewski Exp $
+// $Id: BoxAssoc.H,v 1.5 1999-02-10 21:09:55 lijewski Exp $
 //
 
-#include <Boolean.H>
 #include <Assert.H>
 #include <BoxLib.H>
 #include <BoxList.H>

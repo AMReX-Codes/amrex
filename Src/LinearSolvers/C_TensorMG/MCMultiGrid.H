@@ -4,10 +4,9 @@
 #define _MCMULTIGRID_H_
 
 //
-// $Id: MCMultiGrid.H,v 1.3 1999-01-04 21:31:49 lijewski Exp $
+// $Id: MCMultiGrid.H,v 1.4 1999-02-10 21:10:01 lijewski Exp $
 //
 
-#include <Boolean.H>
 #include <Array.H>
 #include <PArray.H>
 #include <Pointers.H>

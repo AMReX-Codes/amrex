@@ -4,7 +4,7 @@
 #define BL_BOXLIST_H
 
 //
-// $Id: BoxList.H,v 1.7 1998-12-18 16:47:52 lijewski Exp $
+// $Id: BoxList.H,v 1.8 1999-02-10 21:09:56 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -17,7 +17,6 @@ using std::endl;
 #include <iostream.h>
 #endif
 
-#include <Boolean.H>
 #include <IntVect.H>
 #include <IndexType.H>
 #include <Box.H>

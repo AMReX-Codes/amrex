@@ -4,7 +4,7 @@
 #define _MCCGSOLVER_H_
 
 //
-// $Id: MCCGSolver.H,v 1.4 1999-01-04 21:31:48 lijewski Exp $
+// $Id: MCCGSolver.H,v 1.5 1999-02-10 21:10:00 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -13,7 +13,6 @@
 #include <math.h>
 #endif
 
-#include <Boolean.H>
 #include <Array.H>
 #include <Pointers.H>
 

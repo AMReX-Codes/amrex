@@ -4,7 +4,7 @@
 #define BL_ORIENTATION_H
 
 //
-// $Id: Orientation.H,v 1.3 1997-09-18 20:12:56 lijewski Exp $
+// $Id: Orientation.H,v 1.4 1999-02-10 21:09:57 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -20,7 +20,6 @@ using std::istream;
 #endif
 
 #include <Assert.H>
-#include <Boolean.H>
 #include <SPACE.H>
 
 class OrientationIter;

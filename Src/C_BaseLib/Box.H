@@ -4,7 +4,7 @@
 #define BL_BOX_H
 
 //
-// $Id: Box.H,v 1.9 1998-05-08 15:57:12 lijewski Exp $
+// $Id: Box.H,v 1.10 1999-02-10 21:09:55 lijewski Exp $
 //
 
 #ifdef NODEV
@@ -22,7 +22,6 @@ using std::ws;
 #include <iostream.h>
 #endif
 
-#include <Boolean.H>
 #include <IntVect.H>
 #include <Misc.H>
 #include <IndexType.H>
