@@ -1,5 +1,5 @@
 //
-// $Id: FPC.cpp,v 1.6 2001-07-19 16:57:32 lijewski Exp $
+// $Id: FPC.cpp,v 1.7 2003-08-28 17:17:27 car Exp $
 //
 
 #include <FPC.H>
@@ -33,7 +33,7 @@ const
 IntDescriptor&
 FPC::NativeLongDescriptor ()
 {
-#if defined(__alpha) || defined(__i486__) || defined(WIN32) || defined(i386) || defined(__i386__)
+#if defined(__alpha) || defined(__i486__) || defined(WIN32) || defined(i386) || defined(__i386__) || defined(__amd64__)
     static const IntDescriptor nld(sizeof(long), IntDescriptor::ReverseOrder);
 #endif
 
@@ -56,7 +56,7 @@ const
 RealDescriptor&
 FPC::NativeRealDescriptor ()
 {
-#if defined(__alpha) || defined(__i486__) || defined(WIN32) || defined(i386) || defined(__i386__)
+#if defined(__alpha) || defined(__i486__) || defined(WIN32) || defined(i386) || defined(__i386__) || defined(__amd64__)
 #ifdef BL_USE_FLOAT
     static const RealDescriptor nrd(ieee_float, reverse_float_order, 4);
 #else
@@ -119,6 +119,7 @@ FPC::Ieee64NormalRealDescriptor ()
       defined(__i486__) || \
       defined(i386)     || \
       defined(__i386__) || \
+      defined(__amd64__) || \
       defined(__hpux)   || \
       defined(_MSC_VER) || \
       defined(_AIX))
