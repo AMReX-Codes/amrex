@@ -1,5 +1,5 @@
 #!/usr/local/gnu/bin/perl
-# "$Id: strip72,v 1.5 1999-08-26 18:10:47 lijewski Exp $"
+# "$Id: strip72,v 1.6 2000-06-01 16:41:14 sstanley Exp $"
 # -------------------------------------------------------------------------
 # This PERL script will act as a filter for FORTRAN code.
 # It will:
@@ -325,7 +325,7 @@ sub chop_line {
    # if we got here the line is still too long
    $mx_len = 72 - $i_len;       # num allowed char after indent
    $line_no = 0;
-   $no_split_chars = "[a-zA-Z0-9_\.]";
+   $no_split_chars = "'[a-zA-Z0-9_\.]";
    while (($_len = length($_line)) > 0) {
       # find closest word bndry prior to $l_len and split there
       $pos = $_len;
