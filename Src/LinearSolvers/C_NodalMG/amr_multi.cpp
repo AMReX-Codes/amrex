@@ -322,10 +322,8 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2)
     
     for (int lev = lev_min; lev <= lev_max; lev++) 
     {
-	Real lev_norm = mfnorm(source[lev]);
+	const Real lev_norm = mfnorm(source[lev]);
 	norm = (lev_norm > norm) ? lev_norm : norm;
-	//if (pcode >= 2)
-	//  cout << "Source norm is " << lev_norm << " at level " << lev << endl;
     }
     if (coarse_source.ready()) 
     {
@@ -342,17 +340,16 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2)
 	cout << "Source norm is " << norm << endl;
     
     Real err = ml_cycle(lev_max, mglev_max, i1, i2, abstol);
-    int it = 1;
     
     norm = (err > norm) ? err : norm;
     Real tol = reltol * norm;
     tol = (tol > abstol) ? tol : abstol;
     
+    int it = 0;
     while (err > tol) 
     {
 	err = ml_cycle(lev_max, mglev_max, i1, i2, tol);
-	it++;
-	if (it > 100)
+	if (++it > 100)
 	    BoxLib::Error("amr_multigrid::solve---multigrid iteration failed");
     }
     if (pcode >= 1 && ParallelDescriptor::IOProcessor())
@@ -408,7 +405,7 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2, Real tol, Real 
 	    level_residual(rtmp, stmp, dtmp, mglev, false);
 	}
 	interface_residual(mglev, lev);
-	int mgc = ml_index[lev-1];
+	const int mgc = ml_index[lev-1];
 	res_norm = ml_cycle(lev-1, mgc, i1, i2, tol, res_norm);
 	// This assignment is only done to clear the borders of work,
 	// so that garbage will not make it into corr and dest.  In
@@ -458,7 +455,7 @@ Real amr_multigrid::ml_residual(int mglev, int lev)
     level_residual(resid[mglev], source[lev], dest[lev], mglev, true);
     if (lev < lev_max) 
     {
-	int mgf = ml_index[lev+1];
+	const int mgf = ml_index[lev+1];
 	work[mgf].copy(resid[mgf]);
 	mg_restrict_level(mglev, mgf);
 	if (coarse_source.ready() && coarse_source.defined(lev)) 

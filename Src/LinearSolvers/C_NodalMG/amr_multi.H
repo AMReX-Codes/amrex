@@ -75,19 +75,27 @@ protected:
     virtual void sync_interfaces() = 0;
     virtual bool can_coarsen(const BoxArray& mesh, const Box& domain) const = 0;
     
-    const int lev_min_min, lev_min_max, lev_max_max;
-    int lev_min, lev_max, mglev_max;
+    const int lev_min_min;
+    const int lev_min_max;
+    const int lev_max_max;
+    int lev_min;
+    int lev_max;
+    int mglev_max;
     Array<IntVect> gen_ratio;            // assoc with ml_mesh
     Array<int> ml_index;                 // assoc with ml_mesh
     Array<Box> mg_domain;                // assoc with mg_mesh
-    Array<BoxArray> ml_mesh, mg_mesh;
+    Array<BoxArray> ml_mesh;
+    Array<BoxArray> mg_mesh;
     Array< Array<Box> > mg_domain_array;
     Array< Array<BoxArray> > mg_mesh_array;
     const amr_boundary_class* mg_boundary;
     level_interface* lev_interface;
     level_interface** interface_array;
-    PArray<MultiFab> source, dest;       // live on active levels of ml_mesh
-    PArray<MultiFab> resid, corr, work;  // live on mg_mesh
+    PArray<MultiFab> source;             // live on active levels of ml_mesh
+    PArray<MultiFab> dest;
+    PArray<MultiFab> resid;              // live on mg_mesh
+    PArray<MultiFab> corr;
+    PArray<MultiFab> work;
     PArray<MultiFab> save;               // lives on middle levels of ml_mesh
     PArray<MultiFab> coarse_source;      // lives on ml_mesh, if it exists
     

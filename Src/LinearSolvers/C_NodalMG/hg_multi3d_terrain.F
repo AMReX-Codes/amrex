@@ -2,14 +2,14 @@ c twenty-seven point terrain version:
 
 c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along face
-      subroutine hgfres_terrain(res, resl0,resh0,resl1,resh1,
-     &        resl2,resh2,
-     & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & fdst, fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
-     & cdst, cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
+      subroutine hgfres_terrain(
+     & res,    resl0,resh0,resl1,resh1,resl2,resh2,
+     & src,    srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     & fdst,   fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
+     & cdst,   cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
      & sigmaf, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
      & sigmac, scl0,sch0,scl1,sch1,scl2,sch2,
-     & regl0,regh0,regl1,regh1,regl2,regh2,
+     &         regl0,regh0,regl1,regh1,regl2,regh2,
      & ir, jr, kr, idim, idir)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
@@ -490,13 +490,14 @@ c Note---assumes fdst linearly interpolated from cdst along face
       end
 c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along face
-      subroutine hgeres_terrain(res,resl0,resh0,resl1,resh1,resl2,resh2,
-     & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & fdst, fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
-     & cdst, cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
+      subroutine hgeres_terrain(
+     & res,    resl0,resh0,resl1,resh1,resl2,resh2,
+     & src,    srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     & fdst,   fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
+     & cdst,   cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
      & sigmaf, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
      & sigmac, scl0,sch0,scl1,sch1,scl2,sch2,
-     & regl0,regh0,regl1,regh1,regl2,regh2,
+     &         regl0,regh0,regl1,regh1,regl2,regh2,
      & ir, jr, kr, ivect, ga)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
@@ -1406,13 +1407,14 @@ c weighting
       end
 c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along face
-      subroutine hgcres_terrain(res,resl0,resh0,resl1,resh1,resl2,resh2,
-     & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & fdst, fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
-     & cdst, cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
+      subroutine hgcres_terrain(
+     & res,    resl0,resh0,resl1,resh1,resl2,resh2,
+     & src,    srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     & fdst,   fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
+     & cdst,   cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
      & sigmaf, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
      & sigmac, scl0,sch0,scl1,sch1,scl2,sch2,
-     & regl0,regh0,regl1,regh1,regl2,regh2,
+     &         regl0,regh0,regl1,regh1,regl2,regh2,
      & ir, jr, kr, ga)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
@@ -1958,9 +1960,10 @@ c weighting
       end
 c twenty-seven-point terrain stencils
 c-----------------------------------------------------------------------
-      subroutine hgcen_terrain(cen, cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
+      subroutine hgcen_terrain(
+     & cen, cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
      & sig, sbl0,sbh0,sbl1,sbh1,sbl2,sbh2,
-     & regl0,regh0,regl1,regh1,regl2,regh2)
+     &      regl0,regh0,regl1,regh1,regl2,regh2)
       integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
       integer sbl0,sbh0,sbl1,sbh1,sbl2,sbh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
@@ -1996,11 +1999,12 @@ c-----------------------------------------------------------------------
       end do
       end
 c-----------------------------------------------------------------------
-      subroutine hgrlx_terrain(cor, corl0,corh0,corl1,corh1,corl2,corh2,
+      subroutine hgrlx_terrain(
+     & cor, corl0,corh0,corl1,corh1,corl2,corh2,
      & res, resl0,resh0,resl1,resh1,resl2,resh2,
      & sig, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
      & cen, cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
-     & regl0,regh0,regl1,regh1,regl2,regh2)
+     &      regl0,regh0,regl1,regh1,regl2,regh2)
       integer corl0,corh0,corl1,corh1,corl2,corh2
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
@@ -2208,12 +2212,13 @@ cdir$ ivdep
 
 c cor substituted for dest to use same macro:
 c-----------------------------------------------------------------------
-      subroutine hgres_terrain(res, resl0,resh0,resl1,resh1,resl2,resh2,
-     & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
+      subroutine hgres_terrain(
+     & res, resl0,resh0,resl1,resh1,resl2,resh2,
+     & src, srcl0,srch0,srcl1,srch1,srcl2,srch2,
      & cor, destl0,desth0,destl1,desth1,destl2,desth2,
      & sig, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
      & cen, cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
-     & regl0,regh0,regl1,regh1,regl2,regh2)
+     &      regl0,regh0,regl1,regh1,regl2,regh2)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer destl0,desth0,destl1,desth1,destl2,desth2
@@ -2433,14 +2438,14 @@ c-----------------------------------------------------------------------
       end if
       end
 c-----------------------------------------------------------------------
-      subroutine hgrlnf_terrain(cor,
-     & corl0,corh0,corl1,corh1,corl2,corh2,
-     & res, resl0,resh0,resl1,resh1,resl2,resh2,
-     & wrk, wrkl0,wrkh0,wrkl1,wrkh1,wrkl2,wrkh2,
+      subroutine hgrlnf_terrain(
+     & cor,   corl0,corh0,corl1,corh1,corl2,corh2,
+     & res,   resl0,resh0,resl1,resh1,resl2,resh2,
+     & wrk,   wrkl0,wrkh0,wrkl1,wrkh1,wrkl2,wrkh2,
      & signd, snl0,snh0,snl1,snh1,snl2,snh2,
-     & cen, cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
-     & regl0,regh0,regl1,regh1,regl2,regh2,
-     & doml0,domh0,doml1,domh1,doml2,domh2,
+     & cen,   cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
+     &        regl0,regh0,regl1,regh1,regl2,regh2,
+     &        doml0,domh0,doml1,domh1,doml2,domh2,
      & lsd, ipass)
       integer corl0,corh0,corl1,corh1,corl2,corh2
       integer resl0,resh0,resl1,resh1,resl2,resh2

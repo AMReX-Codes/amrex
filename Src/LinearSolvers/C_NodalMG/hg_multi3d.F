@@ -1,12 +1,13 @@
 c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along face
-      subroutine hgfres(res, resl0,resh0,resl1,resh1,resl2,resh2,
-     & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & fdst, fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
-     & cdst, cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
+      subroutine hgfres(
+     & res,    resl0,resh0,resl1,resh1,resl2,resh2,
+     & src,    srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     & fdst,   fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
+     & cdst,   cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
      & sigmaf, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
      & sigmac, scl0,sch0,scl1,sch1,scl2,sch2,
-     & regl0,regh0,regl1,regh1,regl2,regh2,
+     &         regl0,regh0,regl1,regh1,regl2,regh2,
      & hx, hy, hz, ir, jr, kr, idim, idir)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
@@ -331,13 +332,14 @@ c Note---assumes fdst linearly interpolated from cdst along face
 c end of variable density stencils
 c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along face
-      subroutine hgeres(res, resl0,resh0,resl1,resh1,resl2,resh2,
-     & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & fdst, fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
-     & cdst, cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
+      subroutine hgeres(
+     & res,    resl0,resh0,resl1,resh1,resl2,resh2,
+     & src,    srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     & fdst,   fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
+     & cdst,   cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
      & sigmaf, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
      & sigmac, scl0,sch0,scl1,sch1,scl2,sch2,
-     & regl0,regh0,regl1,regh1,regl2,regh2,
+     &         regl0,regh0,regl1,regh1,regl2,regh2,
      & hx, hy, hz, ir, jr, kr, ivect, ga)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
@@ -907,13 +909,14 @@ c weighting
       end
 c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along face
-      subroutine hgcres(res, resl0,resh0,resl1,resh1,resl2,resh2,
-     & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & fdst, fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
-     & cdst, cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
+      subroutine hgcres(
+     & res,    resl0,resh0,resl1,resh1,resl2,resh2,
+     & src,    srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     & fdst,   fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
+     & cdst,   cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
      & sigmaf, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
      & sigmac, scl0,sch0,scl1,sch1,scl2,sch2,
-     & regl0,regh0,regl1,regh1,regl2,regh2,
+     &         regl0,regh0,regl1,regh1,regl2,regh2,
      & hx, hy, hz, ir, jr, kr, ga)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
@@ -1168,14 +1171,14 @@ c weighting
       end
 c-----------------------------------------------------------------------
 c NODE-based data, factor of 2 only.
-      subroutine hgints_no_sigma_node(dest,
-     & destl0,desth0,destl1,desth1,destl2,desth2,
-     & regl0,regh0,regl1,regh1,regl2,regh2,
+      subroutine hgints_no_sigma_node(
+     & dest, destl0,desth0,destl1,desth1,destl2,desth2,
+     &       regl0,regh0,regl1,regh1,regl2,regh2,
      & sigx, sigy, sigz,
-     & sbl0,sbh0,sbl1,sbh1,sbl2,sbh2,
-     & src,
-     & srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & bbl0,bbh0,bbl1,bbh1,bbl2,bbh2, ir, jr, kr)
+     &       sbl0,sbh0,sbl1,sbh1,sbl2,sbh2,
+     & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     &       bbl0,bbh0,bbl1,bbh1,bbl2,bbh2, 
+     & ir, jr, kr)
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer sbl0,sbh0,sbl1,sbh1,sbl2,sbh2
@@ -1400,14 +1403,13 @@ cdir$ ivdep
       end
 c-----------------------------------------------------------------------
 c NODE-based data, factor of 2 only.
-      subroutine hgints(dest,
-     & destl0,desth0,destl1,desth1,destl2,desth2,
-     & regl0,regh0,regl1,regh1,regl2,regh2,
-     & signd,
-     & snl0,snh0,snl1,snh1,snl2,snh2,
-     & src,
-     & srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & bbl0,bbh0,bbl1,bbh1,bbl2,bbh2, ir, jr, kr)
+      subroutine hgints(
+     & dest,  destl0,desth0,destl1,desth1,destl2,desth2,
+     &        regl0,regh0,regl1,regh1,regl2,regh2,
+     & signd, snl0,snh0,snl1,snh1,snl2,snh2,
+     & src,   srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     &        bbl0,bbh0,bbl1,bbh1,bbl2,bbh2, 
+     & ir, jr, kr)
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer snl0,snh0,snl1,snh1,snl2,snh2
@@ -1546,11 +1548,13 @@ cdir$ ivdep
       end
 c-----------------------------------------------------------------------
 c CELL-based data only.
-      subroutine hgsrst(destx, desty, destz,
-     & destl0,desth0,destl1,desth1,destl2,desth2,
-     & regl0,regh0,regl1,regh1,regl2,regh2,
+      subroutine hgsrst(
+     & destx, desty, destz,
+     &     destl0,desth0,destl1,desth1,destl2,desth2,
+     &     regl0,regh0,regl1,regh1,regl2,regh2,
      & srcx, srcy, srcz,
-     & srcl0,srch0,srcl1,srch1,srcl2,srch2, ir, jr, kr)
+     &     srcl0,srch0,srcl1,srch1,srcl2,srch2, 
+     & ir, jr, kr)
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
@@ -1705,11 +1709,12 @@ c CELL-based data only.
       end
 c-----------------------------------------------------------------------
 c NODE(EDGE)-based data only.
-      subroutine hgsrst_no_sigma_node_all(destx, desty, destz,
-     & destl0,desth0,destl1,desth1,destl2,desth2,
-     & regl0,regh0,regl1,regh1,regl2,regh2,
+      subroutine hgsrst_no_sigma_node_all(
+     & destx, desty, destz,
+     &     destl0,desth0,destl1,desth1,destl2,desth2,
+     &     regl0,regh0,regl1,regh1,regl2,regh2,
      & srcx, srcy, srcz,
-     & srcl0,srch0,srcl1,srch1,srcl2,srch2)
+     &     srcl0,srch0,srcl1,srch1,srcl2,srch2)
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
@@ -1759,9 +1764,10 @@ c NODE(EDGE)-based data only.
       end
 c seven-point variable stencils
 c-----------------------------------------------------------------------
-      subroutine hgcen(cen,cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
-     & signd,snl0,snh0,snl1,snh1,snl2,snh2,
-     & regl0,regh0,regl1,regh1,regl2,regh2)
+      subroutine hgcen(
+     & cen,   cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
+     & signd, snl0,snh0,snl1,snh1,snl2,snh2,
+     &        regl0,regh0,regl1,regh1,regl2,regh2)
       integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
       integer snl0,snh0,snl1,snh1,snl2,snh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
@@ -1780,10 +1786,11 @@ c-----------------------------------------------------------------------
       end
 c-----------------------------------------------------------------------
 c sig here contains three different directions all stored on "nodes"
-      subroutine hgrlxu(cor, res, sig, cen,
-     & resl0,resh0,resl1,resh1,resl2,resh2,
+      subroutine hgrlxu(
+     & cor, res, sig, cen,
+     &     resl0,resh0,resl1,resh1,resl2,resh2,
      & mask,
-     & regl0,regh0,regl1,regh1,regl2,regh2)
+     &     regl0,regh0,regl1,regh1,regl2,regh2)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       double precision cor(*)
@@ -1821,15 +1828,12 @@ cdir$ ivdep
       end do
       end
 c-----------------------------------------------------------------------
-      subroutine hgrlx(cor,
-     & corl0,corh0,corl1,corh1,corl2,corh2,
-     & res,
-     & resl0,resh0,resl1,resh1,resl2,resh2,
-     & signd,
-     & snl0,snh0,snl1,snh1,snl2,snh2,
-     & cen,
-     & cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
-     & regl0,regh0,regl1,regh1,regl2,regh2)
+      subroutine hgrlx(
+     & cor,   corl0,corh0,corl1,corh1,corl2,corh2,
+     & res,   resl0,resh0,resl1,resh1,resl2,resh2,
+     & signd, snl0,snh0,snl1,snh1,snl2,snh2,
+     & cen,   cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
+     &        regl0,regh0,regl1,regh1,regl2,regh2)
       integer corl0,corh0,corl1,corh1,corl2,corh2
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer snl0,snh0,snl1,snh1,snl2,snh2
@@ -1896,12 +1900,13 @@ cdir$ ivdep
       end if
       end
 c-----------------------------------------------------------------------
-      subroutine hgrlxl(cor, corl0,corh0,corl1,corh1,corl2,corh2,
-     & res, resl0,resh0,resl1,resh1,resl2,resh2,
+      subroutine hgrlxl(
+     & cor,   corl0,corh0,corl1,corh1,corl2,corh2,
+     & res,   resl0,resh0,resl1,resh1,resl2,resh2,
      & signd, snl0,snh0,snl1,snh1,snl2,snh2,
-     & cen, cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
-     & regl0,regh0,regl1,regh1,regl2,regh2,
-     & doml0,domh0,doml1,domh1,doml2,domh2,
+     & cen,   cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
+     &        regl0,regh0,regl1,regh1,regl2,regh2,
+     &        doml0,domh0,doml1,domh1,doml2,domh2,
      & lsd)
       integer corl0,corh0,corl1,corh1,corl2,corh2
       integer resl0,resh0,resl1,resh1,resl2,resh2
@@ -2000,14 +2005,14 @@ c back substitution loop:
       end do
       end
 c-----------------------------------------------------------------------
-      subroutine hgrlnf(cor,
-     & corl0,corh0,corl1,corh1,corl2,corh2,
-     & res, resl0,resh0,resl1,resh1,resl2,resh2,
-     & wrk, wrkl0,wrkh0,wrkl1,wrkh1,wrkl2,wrkh2,
+      subroutine hgrlnf(
+     & cor,   corl0,corh0,corl1,corh1,corl2,corh2,
+     & res,   resl0,resh0,resl1,resh1,resl2,resh2,
+     & wrk,   wrkl0,wrkh0,wrkl1,wrkh1,wrkl2,wrkh2,
      & signd, snl0,snh0,snl1,snh1,snl2,snh2,
-     & cen, cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
-     & regl0,regh0,regl1,regh1,regl2,regh2,
-     & doml0,domh0,doml1,domh1,doml2,domh2,
+     & cen,   cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
+     & regl0, regh0,regl1,regh1,regl2,regh2,
+     & doml0, domh0,doml1,domh1,doml2,domh2,
      & lsd, ipass)
       integer corl0,corh0,corl1,corh1,corl2,corh2
       integer resl0,resh0,resl1,resh1,resl2,resh2
@@ -2235,15 +2240,12 @@ c interface to grid at same level:
       end if
       end
 c-----------------------------------------------------------------------
-      subroutine hgres(res,
-     & resl0,resh0,resl1,resh1,resl2,resh2,
-     & src,
-     & srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & dest,
-     & destl0,desth0,destl1,desth1,destl2,desth2,
-     & signd,
-     & snl0,snh0,snl1,snh1,snl2,snh2,
-     & regl0,regh0,regl1,regh1,regl2,regh2)
+      subroutine hgres(
+     & res,   resl0,resh0,resl1,resh1,resl2,resh2,
+     & src,   srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     & dest,  destl0,desth0,destl1,desth1,destl2,desth2,
+     & signd, snl0,snh0,snl1,snh1,snl2,snh2,
+     &        regl0,regh0,regl1,regh1,regl2,regh2)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer destl0,desth0,destl1,desth1,destl2,desth2
@@ -2300,10 +2302,10 @@ c-----------------------------------------------------------------------
       end if
       end
 c-----------------------------------------------------------------------
-      subroutine hgresu(res,
-     & resl0,resh0,resl1,resh1,resl2,resh2,
+      subroutine hgresu(
+     & res, resl0,resh0,resl1,resh1,resl2,resh2,
      & src, dest, signd, mask,
-     & regl0,regh0,regl1,regh1,regl2,regh2)
+     &      regl0,regh0,regl1,regh1,regl2,regh2)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       double precision res(*)
@@ -2330,11 +2332,11 @@ c-----------------------------------------------------------------------
       end do
       end
 c-----------------------------------------------------------------------
-      subroutine hgscon(signd,
-     & snl0,snh0,snl1,snh1,snl2,snh2,
+      subroutine hgscon(
+     & signd, snl0,snh0,snl1,snh1,snl2,snh2,
      & sigx, sigy, sigz,
-     & scl0,sch0,scl1,sch1,scl2,sch2,
-     & regl0,regh0,regl1,regh1,regl2,regh2,
+     &        scl0,sch0,scl1,sch1,scl2,sch2,
+     &        regl0,regh0,regl1,regh1,regl2,regh2,
      & hx, hy, hz)
       integer snl0,snh0,snl1,snh1,snl2,snh2
       integer scl0,sch0,scl1,sch1,scl2,sch2
@@ -2378,11 +2380,11 @@ c-----------------------------------------------------------------------
       end do
       end
 c-----------------------------------------------------------------------
-      subroutine hgcen_no_sigma_node(cen,
-     & cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
+      subroutine hgcen_no_sigma_node(
+     & cen,  cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
      & sigx, sigy, sigz,
-     & sbl0,sbh0,sbl1,sbh1,sbl2,sbh2,
-     & regl0,regh0,regl1,regh1,regl2,regh2,
+     &       sbl0,sbh0,sbl1,sbh1,sbl2,sbh2,
+     &       regl0,regh0,regl1,regh1,regl2,regh2,
      & hx, hy, hz)
       integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
       integer sbl0,sbh0,sbl1,sbh1,sbl2,sbh2
@@ -2418,15 +2420,13 @@ c-----------------------------------------------------------------------
       end do
       end
 c-----------------------------------------------------------------------
-      subroutine hgrlx_no_sigma_node(cor,
-     & corl0,corh0,corl1,corh1,corl2,corh2,
-     & res,
-     & resl0,resh0,resl1,resh1,resl2,resh2,
+      subroutine hgrlx_no_sigma_node(
+     & cor, corl0,corh0,corl1,corh1,corl2,corh2,
+     & res, resl0,resh0,resl1,resh1,resl2,resh2,
      & sigx, sigy, sigz,
-     & sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
-     & cen,
-     & cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
-     & regl0,regh0,regl1,regh1,regl2,regh2,
+     &      sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
+     & cen, cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
+     &      regl0,regh0,regl1,regh1,regl2,regh2,
      & hx, hy, hz)
       integer corl0,corh0,corl1,corh1,corl2,corh2
       integer resl0,resh0,resl1,resh1,resl2,resh2
@@ -2509,15 +2509,13 @@ cdir$ ivdep
       end if
       end
 c-----------------------------------------------------------------------
-      subroutine hgres_no_sigma_node(res,
-     & resl0,resh0,resl1,resh1,resl2,resh2,
-     & src,
-     & srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & dest,
-     & destl0,desth0,destl1,desth1,destl2,desth2,
+      subroutine hgres_no_sigma_node(
+     & res,  resl0,resh0,resl1,resh1,resl2,resh2,
+     & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      & sigx, sigy, sigz,
-     & sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
-     & regl0,regh0,regl1,regh1,regl2,regh2,
+     &       sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
+     &       regl0,regh0,regl1,regh1,regl2,regh2,
      & hx, hy, hz)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
@@ -2617,9 +2615,10 @@ c-----------------------------------------------------------------------
       end if
       end
 c-----------------------------------------------------------------------
-      subroutine hgrlnb(cor, corl0,corh0,corl1,corh1,corl2,corh2,
+      subroutine hgrlnb(
+     & cor, corl0,corh0,corl1,corh1,corl2,corh2,
      & wrk, wrkl0,wrkh0,wrkl1,wrkh1,wrkl2,wrkh2,
-     & regl0,regh0,regl1,regh1,regl2,regh2,
+     &      regl0,regh0,regl1,regh1,regl2,regh2,
      & lsd, ipass)
       integer corl0,corh0,corl1,corh1,corl2,corh2
       integer wrkl0,wrkh0,wrkl1,wrkh1,wrkl2,wrkh2
@@ -2682,8 +2681,9 @@ c Unrolled indexing in these 3 routines uses the fact that each array
 c has a border of width 1
 c-----------------------------------------------------------------------
 c Works for NODE-based data.
-      subroutine hgip(v0, v1, mask,
-     & regl0,regh0,regl1,regh1,regl2,regh2,
+      subroutine hgip(
+     & v0, v1, mask,
+     &     regl0,regh0,regl1,regh1,regl2,regh2,
      & sum)
       integer regl0,regh0,regl1,regh1,regl2,regh2
       double precision v0(*)
@@ -2698,8 +2698,9 @@ c Works for NODE-based data.
       end do
       end
 c-----------------------------------------------------------------------
-      subroutine hgcg1(r, p, z, x, w, c, mask,
-     & regl0,regh0,regl1,regh1,regl2,regh2,
+      subroutine hgcg1(
+     & r, p, z, x, w, c, mask,
+     &     regl0,regh0,regl1,regh1,regl2,regh2,
      & alpha, rho)
       integer regl0,regh0,regl1,regh1,regl2,regh2
       double precision r(*)
@@ -2721,8 +2722,9 @@ c-----------------------------------------------------------------------
       end do
       end
 c-----------------------------------------------------------------------
-      subroutine hgcg2(p, z,
-     & regl0,regh0,regl1,regh1,regl2,regh2,
+      subroutine hgcg2(
+     & p, z,
+     &     regl0,regh0,regl1,regh1,regl2,regh2,
      & alpha)
       integer regl0,regh0,regl1,regh1,regl2,regh2
       double precision p(*)
@@ -2736,7 +2738,8 @@ c-----------------------------------------------------------------------
       end do
       end
 c-----------------------------------------------------------------------
-      subroutine hgcg_cd(r, p, z, x, w, c, mask,
+      subroutine hgcg_cd(
+     & r, p, z, x, w, c, mask,
      & ngrids, strid1, strid2, nvals,
      & rs, ps, zs, xs, ws, cs, ms,
      & nsets, edge, nvals1, nvals2, dstart, sstart,

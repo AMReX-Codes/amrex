@@ -50,7 +50,7 @@ void bilinear_interpolator_class::fill(FArrayBox& patch,
     }
     else if (patch.box().type() == IntVect::TheNodeVector()) 
     {
-	Box eregion = refine(cb, rat);
+	const Box eregion = refine(cb, rat);
 	if (eregion == region) 
 	{
 	    for (int i = 0; i < patch.nComp(); i++) 

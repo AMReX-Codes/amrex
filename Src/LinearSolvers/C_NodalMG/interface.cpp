@@ -2,8 +2,6 @@
 #include "interface.H"
 #include "boundary.H"
 
-//const level_interface null_level_interface;
-
 static inline void ins(List<Box>& bl, const Box& b) 
 {
     if (!bl.includes(b))
@@ -130,7 +128,7 @@ void level_interface::alloc_coarsened(const BoxArray& Im,
     int idim = FACEDIM;
     for (int iface = 0; iface < nbx[idim]; iface++) 
     {
-	if (ge[idim][iface] == ALL && flg[idim][iface] == 0) 
+	if (ge[idim][iface] == ALL && !flg[idim][iface] ) 
 	{
 	    int igrid;
 	    if ((igrid = fgr[iface][0]) >= 0) 
@@ -244,7 +242,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
 	int id = fdm[iface];
 	b.growLo(id, 1).convert(IntVect::TheCellVector());
 	int imask = 1;
-	flg[idim][iface] = 0;
+	flg[idim][iface] = false;
 	for (int i = 0; i < N_FACE_GRIDS; i++) 
 	{
 	    fgr[iface][i] = -1;
@@ -269,7 +267,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
 			{
 			    fgr[iface][i] = -2 - igrid;
 			    if (grid_ref[igrid] == -2)
-				flg[idim][iface] = 1;
+				flg[idim][iface] = true;
 			    break;
 			}
 		    }
@@ -298,7 +296,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
 	    jd++;
 	b.growLo(id, 1).growLo(jd, 1).convert(IntVect::TheCellVector());
 	int imask = 1;
-	flg[idim][iedge] = 0;
+	flg[idim][iedge] = false;
 	for (int i = 0; i < N_EDGE_GRIDS; i++) 
 	{
 	    egr[iedge][i] = -1;
@@ -323,7 +321,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
 			{
 			    egr[iedge][i] = -2 - igrid;
 			    if (grid_ref[igrid] == -2)
-				flg[idim][iedge] = 1;
+				flg[idim][iedge] = true;
 			    break;
 			}
 		    }
@@ -354,7 +352,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
 #endif
 	b.growLo(0, 1).growLo(1, 1).convert(IntVect::TheCellVector());
 	int imask = 1;
-	flg[idim][icor] = 0;
+	flg[idim][icor] = false;
 	for (int i = 0; i < N_CORNER_GRIDS; i++) 
 	{
 	    cgr[icor][i] = -1;
@@ -379,7 +377,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
 			{
 			    cgr[icor][i] = -2 - igrid;
 			    if (grid_ref[igrid] == -2)
-				flg[idim][icor] = 1;
+				flg[idim][icor] = true;
 			    break;
 			}
 		    }
@@ -422,7 +420,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     idim = FACEDIM;
     for (int iface = 0; iface < nbx[idim]; iface++) 
     {
-	if (ge[idim][iface] == ALL && flg[idim][iface] == 0) 
+	if (ge[idim][iface] == ALL && !flg[idim][iface] ) 
 	{
 	    int igrid;
 	    if ((igrid = fgr[iface][0]) >= 0) 
@@ -569,16 +567,15 @@ void level_interface::xfer(List<Box>& bl, int idim)
     nbx[idim] = bl.length();
     bx[idim]  = new Box[nbx[idim]];
     ge[idim]  = new unsigned[nbx[idim]];
-    flg[idim] = new unsigned[nbx[idim]];
+    flg[idim] = new bool[nbx[idim]];
     
-    Box btmp;
     //Boxnode *bn;
     //for (bn = bl.first(); bn; bn = bl.next(bn), i++) {
     ListIterator<Box> bn(bl);
     for ( int i = 0; bn; bn++, i++) 
     {
 	bx[idim][i] = bn();
-	btmp = grow(bn(), bn().type()).convert(IntVect::TheCellVector());
+	Box btmp = grow(bn(), bn().type()).convert(IntVect::TheCellVector());
 	IntVect tmp = btmp.smallEnd();
 	if (dom.contains(btmp)) 
 	{
@@ -659,7 +656,7 @@ void level_interface::xfer(List<Box>& bl, int idim)
 	    {
 		if (ge[idim][j] == ALL) 
 		{
-		    btmp = bx[idim][j];
+		    Box btmp = bx[idim][j];
 		    bx[idim][j] = bx[idim][i];
 		    bx[idim][i] = btmp;
 		    ge[idim][j] = ge[idim][i];
@@ -686,7 +683,7 @@ void level_interface::xfer(List<Box>& bl, int idim)
 	    {
 		while (--j > i) 
 		{
-		    btmp = bx[idim][j];
+		    Box btmp = bx[idim][j];
 		    if (btmp.intersects(idomain)) 
 		    {
 			bx[idim][j] = bx[idim][i];
@@ -701,17 +698,17 @@ void level_interface::xfer(List<Box>& bl, int idim)
     {
 	for (int i = 0; i < j; i++) 
 	{
-	    btmp = bx[idim][i];
+	    Box btmp = bx[idim][i];
 	    btmp.convert(IntVect::TheNodeVector());
 	    if (!btmp.intersects(idomain)) 
 	    {
 		while (--j > i) 
 		{
-		    btmp = bx[idim][j];
+		    Box btmp = bx[idim][j];
 		    btmp.convert(IntVect::TheNodeVector());
 		    if (btmp.intersects(idomain)) 
 		    {
-			btmp = bx[idim][j];
+			Box btmp = bx[idim][j];
 			bx[idim][j] = bx[idim][i];
 			bx[idim][i] = btmp;
 			break;
@@ -726,7 +723,7 @@ void level_interface::xfer(List<Box>& bl, int idim)
 	j = -1;
 	while (++j < nff) 
 	{
-	    btmp = bx[idim][j];
+	    Box btmp = bx[idim][j];
 	    btmp.convert(IntVect::TheNodeVector());
 	    if (!btmp.intersects(idomain))
 		break;
@@ -742,7 +739,7 @@ void level_interface::xfer(List<Box>& bl, int idim)
 		{
 		    if (bx[idim][j].type(0) == IndexType::NODE) 
 		    {
-			btmp = bx[idim][j];
+			Box btmp = bx[idim][j];
 			bx[idim][j] = bx[idim][i];
 			bx[idim][i] = btmp;
 			break;
@@ -762,7 +759,7 @@ void level_interface::xfer(List<Box>& bl, int idim)
 		    {
 			if (bx[idim][j].type(1) == IndexType::NODE) 
 			{
-			    btmp = bx[idim][j];
+			    Box btmp = bx[idim][j];
 			    bx[idim][j] = bx[idim][i];
 			    bx[idim][i] = btmp;
 			    break;
@@ -783,7 +780,7 @@ void level_interface::xfer(List<Box>& bl, int idim)
 		{
 		    if (bx[idim][j].type(0) == IndexType::NODE) 
 		    {
-			btmp = bx[idim][j];
+			Box btmp = bx[idim][j];
 			bx[idim][j] = bx[idim][i];
 			bx[idim][i] = btmp;
 			break;
@@ -803,7 +800,7 @@ void level_interface::xfer(List<Box>& bl, int idim)
 		    {
 			if (bx[idim][j].type(1) == IndexType::NODE) 
 			{
-			    btmp = bx[idim][j];
+			    Box btmp = bx[idim][j];
 			    bx[idim][j] = bx[idim][i];
 			    bx[idim][i] = btmp;
 			    break;

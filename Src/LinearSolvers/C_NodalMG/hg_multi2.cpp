@@ -36,14 +36,14 @@ extern "C"
     void FORT_HGIRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, RealRS, intRS, int&, int&, const int& );
     void FORT_HGDRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, RealRS, intRS, int&, const int& );
     void FORT_HGCRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, RealRS, intRS, const int*);
-    void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, RealRS, intRS, int&, int&);
+    void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, RealRS, intRS, int&, const int&);
     void FORT_HGFRES_FULL_STENCIL(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, RealRS, intRS, int&, int&, const int&, const int&);
     void FORT_HGORES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, RealRS, intRS, int&, int&, const int& );
 #elif (BL_SPACEDIM == 3)
-    void FORT_HGFRES_TERRAIN(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, int&, int&);
+    void FORT_HGFRES_TERRAIN(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, const int*, const int*);
     void FORT_HGERES_TERRAIN(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, const int*, const int*);
     void FORT_HGCRES_TERRAIN(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, const int*);
-    void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, RealRS, intRS, int&, int&);
+    void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, RealRS, intRS, const int*, const int*);
     void FORT_HGERES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, RealRS, intRS, const int*, const int*);
     void FORT_HGCRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, RealRS, intRS, const int*);
 #endif
@@ -214,9 +214,9 @@ void holy_grail_amr_multigrid::delete_sync_caches()
 void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 {
     const IntVect& rat = gen_ratio[lev-1];
-    int mglevc = ml_index[lev-1];
+    const int mglevc = ml_index[lev-1];
     
-    int ncomp = (m_hg_terrain)? 2*BL_SPACEDIM-1 : 1;
+    const int ncomp = (m_hg_terrain)? 2*BL_SPACEDIM-1 : 1;
     const amr_boundary_class* bndry = (m_hg_terrain)? boundary.terrain_sigma() : boundary.scalar();
     
     for (int iface = 0; iface < lev_interface[mglev].nfaces(); iface++) 
@@ -225,9 +225,9 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 	int igrid = lev_interface[mglev].fgrid(iface, 0);
 	if (igrid < 0)
 	    igrid = lev_interface[mglev].fgrid(iface, 1);
-	unsigned geo = lev_interface[mglev].fgeo(iface);
+	const unsigned geo = lev_interface[mglev].fgeo(iface);
 	// reject fine-fine interfaces and those without an interior fine grid
-	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].fflag(iface) == 1) 
+	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].fflag(iface) ) 
 	{
 	    fres_flag[lev][iface] = 1; // means "fres_dc[lev][iface] not allocated"
 	    continue;
@@ -291,7 +291,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 	}
 	unsigned geo = lev_interface[mglev].geo(1, iedge);
 	// reject fine-fine interfaces and those without an interior fine grid
-	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(1, iedge) == 1) 
+	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(1, iedge) ) 
 	{
 	    eres_flag[lev][iedge] = 1; // means "eres_dc[lev][iedge] not allocated"
 	    continue;
@@ -352,7 +352,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 	}
 	unsigned geo = lev_interface[mglev].geo(0, icor);
 	// reject fine-fine interfaces and those without an interior fine grid
-	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(0, icor) == 1) 
+	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(0, icor) ) 
 	{
 	    cres_flag[lev][icor] = 1; // means "cres_dc[lev][icor] not allocated"
 	    continue;
@@ -402,14 +402,14 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 
 void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 { 
-    Real hx = h[mglev][0];
-    Real hy = h[mglev][1];
+    const Real hx = h[mglev][0];
+    const Real hy = h[mglev][1];
 #if (BL_SPACEDIM == 3)
-    Real hz = h[mglev][2];
+    const Real hz = h[mglev][2];
 #endif
     
     const IntVect& rat = gen_ratio[lev-1];
-    int mglevc = ml_index[lev-1];
+    const int mglevc = ml_index[lev-1];
     
     // PARALLEL TODO
     for (int iface = 0; iface < lev_interface[mglev].nfaces(); iface++) 
@@ -420,11 +420,11 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    igrid = lev_interface[mglev].fgrid(iface, 1);
 	unsigned geo = lev_interface[mglev].fgeo(iface);
 	// reject fine-fine interfaces and those without an interior fine grid
-	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].fflag(iface) == 1)
+	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].fflag(iface) )
 	    continue;
 	// fine grid on just one side
-	int idim = lev_interface[mglev].fdim(iface);
-	int idir = (geo & level_interface::LOW) ? -1 : 1;
+	const int idim = lev_interface[mglev].fdim(iface);
+	const int idir = (geo & level_interface::LOW) ? -1 : 1;
 	const Box& sbox = source[lev][igrid].box();
 	const Box& fbox = fres_fbox[lev][iface];
 	const Box& cbox = fres_cbox[lev][iface];
@@ -438,10 +438,10 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	{
 	    fill_patch(cdst, cdst.box(), dest[lev-1], lev_interface[mglevc], boundary.pressure(), 0);
 	}
-	Real *const rptr = resid[mglev][igrid].dataPtr();
-	Real *const sptr = source[lev][igrid].dataPtr();
-	Real *const dptr = dest[lev][igrid].dataPtr();
-	if(m_hg_terrain)
+	Real* rptr = resid[mglev][igrid].dataPtr();
+	Real* sptr = source[lev][igrid].dataPtr();
+	Real* dptr = dest[lev][igrid].dataPtr();
+	if (m_hg_terrain)
 	{
 	    FORT_HGFRES_TERRAIN(rptr, DIMLIST(sbox),
 		sptr, DIMLIST(sbox),
@@ -450,7 +450,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		sigmafptr, DIMLIST(sigmafbox),
 		sigmac.dataPtr(), DIMLIST(sigmacbox),
 		DIMLIST(creg),
-		D_DECL(rat[0], rat[1], rat[2]), idim, idir
+		D_DECL(rat[0], rat[1], rat[2]), &idim, &idir
 		);
 	}
 	else if (m_hg_full_stencil)
@@ -479,12 +479,12 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		sigmac.dataPtr(), DIMLIST(sigmacbox),
 		DIMLIST(creg),
 		D_DECL(hx, hy, hz),
-		D_DECL(rat[0], rat[1], rat[2]), idim, idir
+		D_DECL(rat[0], rat[1], rat[2]), &idim, &idir
 		);
 	}
     }
     
-    if(m_hg_cross_stencil || m_hg_terrain)
+    if (m_hg_cross_stencil || m_hg_terrain)
     {
 	
 	int ga[level_interface::N_CORNER_GRIDS];
@@ -504,7 +504,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    }
 	    unsigned geo = lev_interface[mglev].geo(1, iedge);
 	    // reject fine-fine interfaces and those without an interior fine grid
-	    if (geo != level_interface::ALL && igrid >= 0 && lev_interface[mglev].flag(1, iedge) == 0) 
+	    if (geo != level_interface::ALL && igrid >= 0 && !lev_interface[mglev].flag(1, iedge) ) 
 	    {
 		const Box& sbox = source[lev][igrid].box();
 		const Box& fbox = eres_fbox[lev][iedge];
@@ -525,7 +525,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		Real *const rptr = resid[mglev][igrid].dataPtr();
 		Real *const sptr = source[lev][igrid].dataPtr();
 		lev_interface[mglev].geo_array(ga, 1, iedge);
-		if(m_hg_terrain)
+		if (m_hg_terrain)
 		{
 		    FORT_HGERES_TERRAIN(rptr, DIMLIST(sbox),
 			sptr, DIMLIST(sbox),
@@ -553,7 +553,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		const Box& freg = lev_interface[mglev].node_edge(iedge);
 		for (int i = 1; i < level_interface::N_EDGE_GRIDS; i++) 
 		{
-		    int jgrid = lev_interface[mglev].egrid(iedge, i);
+		    const int jgrid = lev_interface[mglev].egrid(iedge, i);
 		    if (jgrid >= 0 && jgrid != igrid)
 			internal_copy(resid[mglev], jgrid, igrid, freg);
 		}
@@ -575,7 +575,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    }
 	    unsigned geo = lev_interface[mglev].geo(0, icor);
 	    // reject fine-fine interfaces and those without an interior fine grid
-	    if (geo != level_interface::ALL && igrid >= 0 && lev_interface[mglev].flag(0, icor) == 0) 
+	    if (geo != level_interface::ALL && igrid >= 0 && !lev_interface[mglev].flag(0, icor) ) 
 	    {
 		const Box& sbox = source[lev][igrid].box();
 		const Box& fbox = cres_fbox[lev][icor];
@@ -592,10 +592,10 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		{
 		    fill_patch(cdst, cdst.box(), dest[lev-1], lev_interface[mglevc], boundary.pressure(), 0);
 		}
-		Real *const rptr = resid[mglev][igrid].dataPtr();
-		Real *const sptr = source[lev][igrid].dataPtr();
+		Real * rptr = resid[mglev][igrid].dataPtr();
+		Real * sptr = source[lev][igrid].dataPtr();
 		lev_interface[mglev].geo_array(ga, 0, icor);
-		if(m_hg_terrain)
+		if (m_hg_terrain)
 		{
 		    FORT_HGCRES_TERRAIN(rptr, DIMLIST(sbox),
 			sptr, DIMLIST(sbox),
@@ -623,7 +623,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		const Box& freg = lev_interface[mglev].corner(icor);
 		for (int i = 1; i < level_interface::N_CORNER_GRIDS; i++) 
 		{
-		    int jgrid = lev_interface[mglev].cgrid(icor, i);
+		    const int jgrid = lev_interface[mglev].cgrid(icor, i);
 		    if (jgrid >= 0 && jgrid != igrid)
 			internal_copy(resid[mglev], jgrid, igrid, freg);
 		}
@@ -646,7 +646,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    }
 	    unsigned geo = lev_interface[mglev].geo(0, icor);
 	    // reject fine-fine interfaces and those without an interior fine grid
-	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(0, icor) == 1)
+	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(0, icor) )
 		continue;
 	    else if (geo == level_interface::XL || geo == level_interface::XH || geo == level_interface::YL || geo == level_interface::YH) 
 	    {
@@ -668,8 +668,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		{
 		    fill_patch(cdst, cdst.box(), dest[lev-1], lev_interface[mglevc], boundary.pressure(), 0, 0, -1);
 		}
-		Real *const rptr = resid[mglev][igrid].dataPtr();
-		Real *const sptr = source[lev][igrid].dataPtr();
+		Real * rptr = resid[mglev][igrid].dataPtr();
+		Real * sptr = source[lev][igrid].dataPtr();
 		FORT_HGFRES_FULL_STENCIL(rptr, DIMLIST(sbox),
 		    sptr, DIMLIST(sbox),
 		    fdst.dataPtr(), DIMLIST(fbox),
@@ -685,7 +685,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		const Box& freg = lev_interface[mglev].corner(icor);
 		for (int i = 1; i < level_interface::N_CORNER_GRIDS; i++) 
 		{
-		    int jgrid = lev_interface[mglev].cgrid(icor, i);
+		    const int jgrid = lev_interface[mglev].cgrid(icor, i);
 		    if (jgrid >= 0 && jgrid != igrid)
 			internal_copy(resid[mglev], jgrid, igrid, freg);
 		}
@@ -707,10 +707,10 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		{
 		    fill_patch(cdst, cdst.box(), dest[lev-1], lev_interface[mglevc], boundary.pressure(), 0);
 		}
-		Real *const rptr = resid[mglev][igrid].dataPtr();
-		Real *const sptr = source[lev][igrid].dataPtr();
+		Real* rptr = resid[mglev][igrid].dataPtr();
+		Real* sptr = source[lev][igrid].dataPtr();
 		const Box& fbox = dest[lev][igrid].box();
-		Real *const dptr = dest[lev][igrid].dataPtr();
+		Real* dptr = dest[lev][igrid].dataPtr();
 		FORT_HGORES(rptr, DIMLIST(sbox),
 		    sptr, DIMLIST(sbox),
 		    dptr, DIMLIST(fbox),
@@ -725,7 +725,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    else if (geo == (level_interface::LL | level_interface::HH) || geo == (level_interface::LH | level_interface::HL)) 
 	    {
 		// diagonal corner
-		int jdir = (geo == (level_interface::LL | level_interface::HH)) ? 1 : -1;
+		const int jdir = (geo == (level_interface::LL | level_interface::HH)) ? 1 : -1;
 		const Box& sbox = source[lev][igrid].box();
 		const Box& fbox = cres_fbox[lev][icor];
 		const Box& cbox = cres_cbox[lev][icor];

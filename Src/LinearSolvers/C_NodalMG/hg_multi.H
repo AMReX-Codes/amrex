@@ -105,7 +105,10 @@ protected:
     int smoother_mode;
     int line_solve_dim;
     const amr_fluid_boundary_class& boundary;
-    PArray<MultiFab> sigma, sigma_nd[BL_SPACEDIM], sigma_node, cen;
+    PArray<MultiFab> sigma;
+    PArray<MultiFab> sigma_nd[BL_SPACEDIM];
+    PArray<MultiFab> sigma_node;
+    PArray<MultiFab> cen;
     Real (*h)[BL_SPACEDIM];
     
     PArray<MultiFab> mask;   // lives on mg_mesh
@@ -114,17 +117,36 @@ protected:
     bool source_owned;
     
     // sync caches:
-    Box **fres_fbox, **fres_cbox, **fres_sfbox, **fres_scbox, **fres_creg;
-    PArray<FArrayBox> *fres_sc, *fres_dc;
-    int **fres_flag;
+    Box** fres_fbox;
+    Box** fres_cbox;
+    Box** fres_sfbox;
+    Box** fres_scbox;
+    Box** fres_creg;
+    PArray<FArrayBox>* fres_sc;
+    PArray<FArrayBox>* fres_dc;
+    int** fres_flag;
 #if (BL_SPACEDIM == 3)
-    Box **eres_fbox, **eres_cbox, **eres_sfbox, **eres_scbox, **eres_creg;
-    PArray<FArrayBox> *eres_sf, *eres_sc, *eres_df, *eres_dc;
-    int **eres_flag;
+    Box** eres_fbox;
+    Box** eres_cbox;
+    Box** eres_sfbox;
+    Box** eres_scbox;
+    Box** eres_creg;
+    PArray<FArrayBox>* eres_sf;
+    PArray<FArrayBox>* eres_sc;
+    PArray<FArrayBox>* eres_df;
+    PArray<FArrayBox>* eres_dc;
+    int** eres_flag;
 #endif
-    Box **cres_fbox, **cres_cbox, **cres_sfbox, **cres_scbox, **cres_creg;
-    PArray<FArrayBox> *cres_sf, *cres_sc, *cres_df, *cres_dc;
-    int **cres_flag;
+    Box** cres_fbox;
+    Box** cres_cbox;
+    Box** cres_sfbox;
+    Box** cres_scbox;
+    Box** cres_creg;
+    PArray<FArrayBox>* cres_sf;
+    PArray<FArrayBox>* cres_sc;
+    PArray<FArrayBox>* cres_df;
+    PArray<FArrayBox>* cres_dc;
+    int** cres_flag;
     
     // orderings for full-level line solves:
     

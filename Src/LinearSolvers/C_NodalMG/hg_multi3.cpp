@@ -80,7 +80,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
     assert(mglev >= 0);
     fill_borders(d, lev_interface[mglev], mg_boundary, -1, m_hg_terrain);
     
-    if(m_hg_terrain)
+    if (m_hg_terrain)
     {
 	
 	for (MultiFabIterator r_mfi(r); r_mfi.isValid(); ++r_mfi)
@@ -126,10 +126,10 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
     else
     {
 #if BL_SPACEDIM != 3
-	Real hx = h[mglev][0];
-	Real hy = h[mglev][1];
+	const Real hx = h[mglev][0];
+	const Real hy = h[mglev][1];
 #  if (BL_SPACEDIM == 3)
-	Real hz = h[mglev][2];
+	const Real hz = h[mglev][2];
 #  endif
 	
 	for (MultiFabIterator r_mfi(r); r_mfi.isValid(); ++r_mfi)
@@ -207,7 +207,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		if (line_solve_dim == -1) 
 		{
 		    // Gauss-Seidel section:
-		    if(m_hg_terrain)
+		    if (m_hg_terrain)
 		    {
 			DependentMultiFabIterator sg_dmfi(r_mfi, sigma[mglev]);
 			const Box& fbox = c_dmfi->box();
@@ -270,7 +270,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 			BoxLib::Error("Terrain line solves not implemented");
 		    const Box& fbox = c_dmfi->box();
 		    const Box& cenbox = cn_dmfi->box();
-		    if(m_hg_cross_stencil)
+		    if (m_hg_cross_stencil)
 		    {
 #if BL_SPACEDIM==2
 			DependentMultiFabIterator sg_dmfi(r_mfi, sigma[mglev]);
@@ -358,7 +358,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		const Box& wbox = work[mglev][igrid].box();
 		const Box& cenbox = cen[mglev][igrid].box();
 		const Box& freg = corr[mglev].box(igrid);
-		if(m_hg_terrain)
+		if (m_hg_terrain)
 		{
 		    const Box& sigbox = sigma[mglev][igrid].box();
 		    FORT_HGRLNF_TERRAIN(corr[mglev][igrid].dataPtr(), DIMLIST(fbox),
@@ -409,7 +409,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		// Copy work arrays to following grids:
 		for (ListIterator<int> j(line_after[lev][igrid]); j; j++) 
 		{
-		    Box b = (freg & corr[mglev].box(j()));
+		    const Box b = (freg & corr[mglev].box(j()));
 		    internal_copy(corr[mglev], j(), igrid, b);
 		    internal_copy(work[mglev], j(), igrid, b);
 		}
@@ -421,13 +421,13 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 	    {
 		
 		// Do grids in reverse order along line_solve_dim:
-		int igrid = line_order[lev][i];
+		const int igrid = line_order[lev][i];
 		const Box& freg = corr[mglev].box(igrid);
 		
 		// Copy solution array from following grids:
 		for (ListIterator<int> j(line_after[lev][igrid]); j; j++) 
 		{
-		    Box b = (freg & corr[mglev].box(j()));
+		    const Box b = (freg & corr[mglev].box(j()));
 		    internal_copy(corr[mglev], igrid, j(), b);
 		}
 		
@@ -461,8 +461,7 @@ void holy_grail_amr_multigrid::build_line_order(int lsd)
 	    // bubble sort, replace with something faster if necessary:
 	    for (int i = igrid; i > 0; i--) 
 	    {
-		if (ml_mesh[lev][line_order[lev][i]].smallEnd(lsd) <
-		    ml_mesh[lev][line_order[lev][i-1]].smallEnd(lsd)) 
+		if (ml_mesh[lev][line_order[lev][i]].smallEnd(lsd) < ml_mesh[lev][line_order[lev][i-1]].smallEnd(lsd)) 
 		{
 		    int tmp              = line_order[lev][i-1];
 		    line_order[lev][i-1] = line_order[lev][i];
@@ -476,8 +475,7 @@ void holy_grail_amr_multigrid::build_line_order(int lsd)
 	    
 	    for (int i = 0; i < ngrids; i++) 
 	    {
-		if (bdryLo(ml_mesh[lev][i], lsd).intersects
-		    (bdryHi(ml_mesh[lev][igrid], lsd))) 
+		if (bdryLo(ml_mesh[lev][i], lsd).intersects(bdryHi(ml_mesh[lev][igrid], lsd))) 
 		{
 		    line_after[lev][igrid].append(i);
 		}
@@ -499,11 +497,8 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
     MultiFab& zero_array = cgwork[6];
     MultiFab& ipmask = cgwork[7];
     
-    
-    Real alpha, rho;
-    
     // x (corr[0]) should be all 0.0 at this point
-    for(MultiFabIterator r_mfi(r); r_mfi.isValid(); ++r_mfi)
+    for (MultiFabIterator r_mfi(r); r_mfi.isValid(); ++r_mfi)
     {
 	DependentMultiFabIterator r_dmfi(r_mfi, resid[mglev]);
 	r_mfi->copy(r_dmfi());
@@ -516,12 +511,12 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
     {
 	// singular systems are very sensitive to solvability
 	w.setVal(1.0);
-	alpha = inner_product(r, w) / mg_domain[mglev].volume();
-	r.plus(-alpha, 0);
+	Real aa = inner_product(r, w) / mg_domain[mglev].volume();
+	r.plus(-aa, 0);
     }
     
-    rho = 0.0;
-    for(MultiFabIterator r_mfi(r); r_mfi.isValid(); ++r_mfi)
+    Real rho = 0.0;
+    for (MultiFabIterator r_mfi(r); r_mfi.isValid(); ++r_mfi)
     {
 	DependentMultiFabIterator z_dmfi(r_mfi, z);
 	DependentMultiFabIterator c_dmfi(r_mfi, c);
@@ -534,20 +529,19 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 	p_dmfi->copy(z_dmfi());
     }
     ParallelDescriptor::ReduceRealSum(rho);
-    Real tol = 1.e-3 * rho;
+    const Real tol = 1.e-3 * rho;
     
     int i = 0;
     while (tol > 0.0) 
     {
-	i++;
-	if (i > 250 && pcode >= 2  && ParallelDescriptor::IOProcessor())
+	if (++i > 250 && pcode >= 2  && ParallelDescriptor::IOProcessor())
 	    cout << "Conjugate-gradient iteration failed to converge" << endl;
 	Real rho_old = rho;
 	// safe to set the clear flag to 0 here---bogus values make it
 	// into r but are cleared from z by the mask in c
 	level_residual(w, zero_array, p, 0, false);
-	alpha = 0.0;
-	for(MultiFabIterator p_mfi(p); p_mfi.isValid(); ++p_mfi)
+	Real alpha = 0.0;
+	for (MultiFabIterator p_mfi(p); p_mfi.isValid(); ++p_mfi)
 	{
 	    DependentMultiFabIterator w_dmfi(p_mfi, w);
 	    DependentMultiFabIterator i_dmfi(p_mfi, ipmask);
@@ -558,7 +552,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 	ParallelDescriptor::ReduceRealSum(alpha);
 	alpha = rho / alpha;
 	rho = 0.0;
-	for(MultiFabIterator r_mfi(r); r_mfi.isValid(); ++r_mfi)
+	for (MultiFabIterator r_mfi(r); r_mfi.isValid(); ++r_mfi)
 	{
 	    DependentMultiFabIterator p_dmfi(r_mfi, p);
 	    DependentMultiFabIterator z_dmfi(r_mfi, z);
@@ -576,7 +570,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 	if (rho <= tol || i > 250)
 	    break;
 	alpha = rho / rho_old;
-	for(MultiFabIterator p_mfi(p); p_mfi.isValid(); ++p_mfi)
+	for (MultiFabIterator p_mfi(p); p_mfi.isValid(); ++p_mfi)
 	{
 	    DependentMultiFabIterator z_dmfi(p_mfi, z);
 	    const Box& reg = p_mfi->box();
