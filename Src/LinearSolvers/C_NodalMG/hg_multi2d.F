@@ -249,7 +249,8 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       double precision sigmac(scl0:sch0,scl1:sch1)
       double precision hx, hy
       integer ir, jr, idim, idir, irz, imax
-      double precision hxm2, hym2, fac0, fac1, r, rfac, rfac0, rfac1, tmp
+      double precision hxm2, hym2, fac0, fac1, r, rfac,
+     &		rfac0, rfac1, tmp
       double precision rfac0m, rfac1m, rfac0p, rfac1p
       integer i, j, is, js, m, n
       if (idim .eq. 0) then
@@ -332,10 +333,10 @@ c Note---assumes fdst linearly interpolated from cdst along edge
             if (irz .eq. 1) then
                do 40 j = jr*regl1, jr*regh1, jr
  40               res(i,j) = res(i,j) + fac1 *
-     @           (rfac * (sigmaf(is,j-n-1) * (fdst(i,j-n-1) - fdst(i,j-n)) +
-     @                    sigmaf(is,j-n)   * (fdst(i,j-n+1) - fdst(i,j-n)) +
-     @                    sigmaf(is,j+n-1) * (fdst(i,j+n-1) - fdst(i,j+n)) +
-     @                    sigmaf(is,j+n)   * (fdst(i,j+n+1) - fdst(i,j+n))))
+     @       (rfac * (sigmaf(is,j-n-1) * (fdst(i,j-n-1) - fdst(i,j-n)) +
+     @                sigmaf(is,j-n)   * (fdst(i,j-n+1) - fdst(i,j-n)) +
+     @                sigmaf(is,j+n-1) * (fdst(i,j+n-1) - fdst(i,j+n)) +
+     @                sigmaf(is,j+n)   * (fdst(i,j+n+1) - fdst(i,j+n))))
             end if
  50         continue
       else
@@ -429,10 +430,10 @@ c This should only occur with a corner at the outer boundary:
                rfac0p = hx * hym2 / (2.d0 * (r + (m - 1) * hx))
                rfac1p = hx * hym2 / (2.d0 * (r + m * hx))
  90            res(i,j) = res(i,j) - fac1 *
-     @           ((rfac0m * sigmaf(i-m-1,js) - rfac1m * sigmaf(i-m,js)) *
-     @            (fdst(i-m,j+idir) - fdst(i-m,j)) +
-     @            (rfac0p * sigmaf(i+m-1,js) - rfac1p * sigmaf(i+m,js)) *
-     @            (fdst(i+m,j+idir) - fdst(i+m,j)))
+     @          ((rfac0m * sigmaf(i-m-1,js) - rfac1m * sigmaf(i-m,js)) *
+     @           (fdst(i-m,j+idir) - fdst(i-m,j)) +
+     @           (rfac0p * sigmaf(i+m-1,js) - rfac1p * sigmaf(i+m,js)) *
+     @           (fdst(i+m,j+idir) - fdst(i+m,j)))
          else if (irz .eq. 1) then
 c This should only occur with a corner at the outer boundary:
             i = ir * regh0
@@ -446,10 +447,10 @@ c This should only occur with a corner at the outer boundary:
             rfac0p = -rfac1m
             rfac1p = -rfac0m
             res(i,j) = res(i,j) - fac1 *
-     @           ((rfac0m * sigmaf(i-m-1,js) - rfac1m * sigmaf(i-m,js)) *
-     @            (fdst(i-m,j+idir) - fdst(i-m,j)) +
-     @            (rfac0p * sigmaf(i+m-1,js) - rfac1p * sigmaf(i+m,js)) *
-     @            (fdst(i+m,j+idir) - fdst(i+m,j)))
+     @          ((rfac0m * sigmaf(i-m-1,js) - rfac1m * sigmaf(i-m,js)) *
+     @           (fdst(i-m,j+idir) - fdst(i-m,j)) +
+     @           (rfac0p * sigmaf(i+m-1,js) - rfac1p * sigmaf(i+m,js)) *
+     @           (fdst(i+m,j+idir) - fdst(i+m,j)))
          end if
  100     continue
       end if
@@ -479,7 +480,8 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       double precision sigmac(scl0:sch0,scl1:sch1)
       double precision hx, hy
       integer ir, jr, idir, jdir, irz
-      double precision hxm2, hym2, fac0, fac1, r, rfac, rfac0, rfac1, tmp
+      double precision hxm2, hym2, fac0, fac1, r, rfac,
+     &		rfac0, rfac1, tmp
       double precision rfac0p, rfac1p
       integer i, j, is, js, m, n
       i = regl0
@@ -598,8 +600,8 @@ c Note---assumes fdst linearly interpolated from cdst along edge
             r = (is + 0.5d0) * hx
             rfac1 = -idir * hx * hym2 / (2.d0 * r)
             res(i,j) = res(i,j) - fac1 *
-     @        rfac1 * (sigmaf(is,j+n-1) * (fdst(i,j+n-1) - fdst(i,j+n)) +
-     @                 sigmaf(is,j+n)   * (fdst(i,j+n+1) - fdst(i,j+n)))
+     @        rfac1 *(sigmaf(is,j+n-1) * (fdst(i,j+n-1) - fdst(i,j+n)) +
+     @                sigmaf(is,j+n)   * (fdst(i,j+n+1) - fdst(i,j+n)))
          end if
  20      continue
       end
@@ -628,7 +630,8 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       double precision sigmac(scl0:sch0,scl1:sch1)
       double precision hx, hy
       integer ir, jr, idir, jdir, irz
-      double precision hxm2, hym2, fac0, fac1, r, rfac, rfac0, rfac1, tmp
+      double precision hxm2, hym2, fac0, fac1, r, rfac,
+     &		rfac0, rfac1, tmp
       double precision rfac0m, rfac1m
       integer i, j, is, js, m, n
       i = regl0
@@ -747,8 +750,8 @@ c Note---assumes fdst linearly interpolated from cdst along edge
             r = (is + 0.5d0) * hx
             rfac1 = -idir * hx * hym2 / (2.d0 * r)
             res(i,j) = res(i,j) - fac1 *
-     @        rfac1 * (sigmaf(is,j-n-1) * (fdst(i,j-n-1) - fdst(i,j-n)) +
-     @                 sigmaf(is,j-n)   * (fdst(i,j-n+1) - fdst(i,j-n)))
+     @        rfac1 *(sigmaf(is,j-n-1) * (fdst(i,j-n-1) - fdst(i,j-n)) +
+     @                sigmaf(is,j-n)   * (fdst(i,j-n+1) - fdst(i,j-n)))
          end if
  20      continue
       end
@@ -879,8 +882,9 @@ c Note---assumes fdst linearly interpolated from cdst along edge
             rfac0p = hx * hym2 / (2.d0 * (r - hx))
             rfac1p = hx * hym2 / (2.d0 * r)
             res(i,j) = res(i,j) - fac1 *
-     @       ((rfac0m * sigmaf(i-m-1,js-jdir) - rfac1m * sigmaf(i-m,js-jdir)) *
-     @          (fdst(i-m,j-jdir) - fdst(i-m,j)) +
+     @       ((rfac0m * sigmaf(i-m-1,js-jdir) 
+     &			- rfac1m * sigmaf(i-m,js-jdir)) *
+     @         (fdst(i-m,j-jdir) - fdst(i-m,j)) +
      @        (rfac0p * sigmaf(i+m-1,js) - rfac1p * sigmaf(i+m,js)) *
      @          (fdst(i+m,j+jdir) - fdst(i+m,j)))
          end if
@@ -919,8 +923,10 @@ c Note---assumes fdst linearly interpolated from cdst along edge
             rfac0 = hx * hym2 / (2.d0 * (r - hx))
             rfac1 = hx * hym2 / (2.d0 * r)
             res(i,j) = res(i,j) - fac1 *
-     @       (rfac0 * (sigmaf(i-1,j-n-1) * (fdst(i,j-n-1) - fdst(i,j-n)) +
-     @                 sigmaf(i-1,j-n)   * (fdst(i,j-n+1) - fdst(i,j-n))) -
+     @       (rfac0 * (sigmaf(i-1,j-n-1) *
+     &				(fdst(i,j-n-1) - fdst(i,j-n)) +
+     @                 sigmaf(i-1,j-n)   * 
+     &				(fdst(i,j-n+1) - fdst(i,j-n))) -
      @        rfac1 * (sigmaf(i,j+n-1) * (fdst(i,j+n-1) - fdst(i,j+n)) +
      @                 sigmaf(i,j+n)   * (fdst(i,j+n+1) - fdst(i,j+n))))
          end if
@@ -1788,8 +1794,8 @@ c nine-point variable stencils
      @                                    sigx(i,j-1) + sigx(i,j)) +
      @                            hym2 * (sigy(i-1,j-1) + sigy(i-1,j) +
      @                                    sigy(i,j-1) + sigy(i,j)) +
-     @                            facrz * ((sigy(i-1,j-1) + sigy(i-1,j)) / r0 -
-     @                                     (sigy(i,j-1)   + sigy(i,j))   / r1))
+     @                    facrz * ((sigy(i-1,j-1) + sigy(i-1,j)) / r0 -
+     @                             (sigy(i,j-1)   + sigy(i,j))   / r1))
       end if
       end
 c-----------------------------------------------------------------------
@@ -2537,4 +2543,3 @@ c      do 10 i = 1, (regh0 - regl0 + 1) * (regh1 - regl1 + 1)
       do 10 i = idiff + 2, idiff * (regh1 - regl1) - 1
  10      p(i) = alpha * p(i) + z(i)
       end
-
