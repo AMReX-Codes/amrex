@@ -54,7 +54,7 @@ task_copy::~task_copy()
 #if 0
 bool task_copy::init(sequence_number sno, MPI_Comm comm)
 {
-    m_sno = sno;
+    task::init(sno, comm);
     assert( m_sbx.numPts() == m_bx.numPts() );
     if ( is_local(m_mf, m_dgrid) || is_local(m_smf, m_sgrid) )
     {
@@ -65,7 +65,81 @@ bool task_copy::init(sequence_number sno, MPI_Comm comm)
 	return false;
     }
 }
-#endif
+
+bool task_copy::ready()
+{
+    if ( ! depend_ready() ) return false;
+    if ( ! m_started )
+    {
+	if ( is_local(m_mf, m_dgrid) && is_local(m_smf, m_sgrid) )
+	{
+	    m_local = true;
+	}
+	else if ( is_local(m_mf, m_dgrid) )
+	{
+	    tmp = new FArrayBox(m_sbx, m_smf.nComp());
+	    int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, m_comm, &m_request);
+	    if ( res != 0 )
+		ParallelDescriptor::Abort(res);
+	    assert( m_request != MPI_REQUEST_NULL );
+	}
+	else if ( is_local(m_smf, m_sgrid) ) 
+	{
+	    tmp = new FArrayBox(m_sbx, m_smf.nComp());
+	    // before I can post the receive, I have to ensure that there are no dependent zones in the
+	    // grid
+	    tmp->copy(m_smf[m_sgrid], m_sbx);
+	    HG_DEBUG_OUT( "<< Norm(S) of tmp " << m_sno << " " << tmp->norm(m_sbx, 2) << endl );
+	    HG_DEBUG_OUT( "<<<Box(S) of tmp "   << m_sno << " " << tmp->box() << endl );
+	    // printRange(debug_out, *tmp, m_sbx, 0, tmp->nComp());
+	    int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_mf,  m_dgrid), m_sno, m_comm, &m_request);
+	    if ( res != 0 )
+		ParallelDescriptor::Abort(res);
+	    assert( m_request != MPI_REQUEST_NULL );
+	}
+	else
+	{
+	    BoxLib::Error("task_copy::ready: Can't be here");
+	    // neither fab lives on local processor
+	}
+	m_started = true;
+    }
+    if ( m_local )
+    {
+	HG_DEBUG_OUT( "Norm(L) " << m_sno << " " << m_smf[m_sgrid].norm(m_sbx, 2) << endl );
+	// printRange(debug_out, m_smf[m_sgrid], m_sbx, 0, m_smf.nComp());
+	m_mf[m_dgrid].copy(m_smf[m_sgrid], m_sbx, 0, m_bx, 0, m_mf.nComp());
+	return true;
+    }
+    int flag;
+    MPI_Status status;
+    assert( m_request != MPI_REQUEST_NULL );
+    int res = MPI_Test(&m_request, &flag, &status);
+    if ( res != 0 )
+	ParallelDescriptor::Abort( res );
+    if ( flag )
+    {
+	assert ( m_request == MPI_REQUEST_NULL );
+	if ( is_local(m_mf, m_dgrid) )
+	{
+	    int count;
+	    assert( status.MPI_SOURCE == processor_number(m_smf, m_sgrid) );
+	    assert( status.MPI_TAG    == m_sno );
+	    int res = MPI_Get_count(&status, MPI_DOUBLE, &count);
+	    if ( res != 0 )
+		ParallelDescriptor::Abort( res );
+	    assert(count == tmp->box().numPts()*tmp->nComp());
+	    HG_DEBUG_OUT( ">> Norm(R) of tmp " << m_sno << " " << tmp->norm(m_sbx, 2) << endl );
+	    HG_DEBUG_OUT( ">>>Box(R) of tmp "   << m_sno << " " << tmp->box() << endl );
+	    // printRange(debug_out, *tmp, m_sbx, 0, tmp->nComp());
+	    m_mf[m_dgrid].copy(*tmp, m_sbx, 0, m_bx, 0, m_smf.nComp());
+	}
+	return true;
+    }
+    return false;
+}
+
+#else
 
 bool task_copy::init(sequence_number sno, MPI_Comm comm)
 {
@@ -110,29 +184,6 @@ bool task_copy::init(sequence_number sno, MPI_Comm comm)
     return true;
 }
 
-void task_copy::hint() const
-{
-    HG_DEBUG_OUT( "task_copy : ");
-    if ( m_local )
-    {
-	HG_DEBUG_OUT( "L" );
-    }
-    else if ( is_local(m_smf, m_sgrid) )
-    {
-	HG_DEBUG_OUT( "S" );
-    }
-    else
-    {
-    	HG_DEBUG_OUT( "R" );
-    }
-    HG_DEBUG_OUT( 
-	' ' <<
-	m_sno << ' ' <<
-	m_bx  << ' ' << m_dgrid << ' ' <<
-	m_sbx  << ' ' << m_sgrid << ' ' <<
-	endl );	// to flush
-}
-
 bool task_copy::ready()
 {
     if ( !depend_ready() ) return false;
@@ -172,6 +223,32 @@ bool task_copy::ready()
     return false;
 #endif
 }
+
+#endif
+
+void task_copy::hint() const
+{
+    HG_DEBUG_OUT( "task_copy : ");
+    if ( m_local )
+    {
+	HG_DEBUG_OUT( "L" );
+    }
+    else if ( is_local(m_smf, m_sgrid) )
+    {
+	HG_DEBUG_OUT( "S" );
+    }
+    else
+    {
+    	HG_DEBUG_OUT( "R" );
+    }
+    HG_DEBUG_OUT( 
+	' ' <<
+	m_sno << ' ' <<
+	m_bx  << ' ' << m_dgrid << ' ' <<
+	m_sbx  << ' ' << m_sgrid << ' ' <<
+	endl );	// to flush
+}
+
 
 // TASK_COPY_LOCAL
 
