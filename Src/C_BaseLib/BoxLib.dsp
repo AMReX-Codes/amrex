@@ -42,7 +42,8 @@ RSC=rc.exe
 # PROP Intermediate_Dir "Release"
 # PROP Target_Dir ""
 # ADD BASE F90 /compile_only /include:"Release/" /nologo /warn:nofileopt
-# ADD F90 /compile_only /iface:cref /include:"Release/" /nologo /stand:f90 /threads /warn:nofileopt
+# ADD F90 /compile_only /define:BL_SPACEDIM=2 /define:"BL_LANG_FORT" /fpp /include:"Release/" /nologo /stand:f90 /threads /warn:nofileopt
+# SUBTRACT F90 /nodefine
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /MD /W3 /GR /GX /O2 /I "." /I "..\BoxLib" /D "NDEBUG" /D "_WINDOWS" /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D for="if(0);else for" /D for="for(0);else for" /D "WIN32" /D BL_SPACEDIM=2 /FR /YX /FD /c
 # ADD BASE RSC /l 0x409
@@ -67,7 +68,8 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
 # ADD BASE F90 /compile_only /debug:full /include:"Debug/" /nologo /warn:nofileopt
-# ADD F90 /browser /check:bounds /compile_only /dbglibs /debug:full /fpe:0 /iface:cref /include:"Debug/" /libs:dll /nologo /stand:f90 /threads /warn:argument_checking /warn:declarations /warn:nofileopt
+# ADD F90 /browser /check:bounds /compile_only /dbglibs /debug:full /define:BL_SPACEDIM=2 /define:"BL_LANG_FORT" /extend_source:132 /fpe:0 /include:"Debug/" /libs:dll /nologo /stand:f90 /threads /warn:argument_checking /warn:declarations /warn:nofileopt
+# SUBTRACT F90 /fpp
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /MDd /W3 /Gm /GR /GX /ZI /Od /I "." /I "..\BoxLib" /D "HG_DEBUG" /D "_WINDOWS" /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D for="if(0);else for" /D "_DEBUG" /D "WIN32" /D BL_SPACEDIM=2 /FR /YX /FD /c
 # ADD BASE RSC /l 0x409
@@ -96,6 +98,11 @@ SOURCE=.\Arena.cpp
 
 SOURCE=.\BArena.cpp
 # SUBTRACT CPP /I "."
+# End Source File
+# Begin Source File
+
+SOURCE=.\BLMpi.cpp
+# PROP Exclude_From_Build 1
 # End Source File
 # Begin Source File
 
@@ -216,23 +223,11 @@ SOURCE=.\Arena.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\ArithFab.H
-# End Source File
-# Begin Source File
-
 SOURCE=.\Array.H
 # End Source File
 # Begin Source File
 
 SOURCE=.\ArrayLim.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\Assert.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\aString.H
 # End Source File
 # Begin Source File
 
@@ -244,11 +239,11 @@ SOURCE=.\BaseFab.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Blversion.h
+SOURCE=.\BLassert.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Boolean.H
+SOURCE=.\Blversion.h
 # End Source File
 # Begin Source File
 
@@ -257,10 +252,6 @@ SOURCE=.\Box.H
 # Begin Source File
 
 SOURCE=.\BoxArray.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\BoxAssoc.H
 # End Source File
 # Begin Source File
 
@@ -316,27 +307,11 @@ SOURCE=.\IntVect.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\List.H
-# End Source File
-# Begin Source File
-
 SOURCE=.\Looping.H
 # End Source File
 # Begin Source File
 
-SOURCE=.\Misc.H
-# End Source File
-# Begin Source File
-
 SOURCE=.\MultiFab.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\NormedFab.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\OrderedFab.H
 # End Source File
 # Begin Source File
 
@@ -360,6 +335,10 @@ SOURCE=.\Pointers.H
 # End Source File
 # Begin Source File
 
+SOURCE=.\Profiler.H
+# End Source File
+# Begin Source File
+
 SOURCE=.\Real.h
 # End Source File
 # Begin Source File
@@ -376,7 +355,7 @@ SOURCE=.\Space_f.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\Tracer.H
+SOURCE=.\Thread.H
 # End Source File
 # Begin Source File
 
@@ -393,6 +372,14 @@ SOURCE=.\Utility.H
 # Begin Source File
 
 SOURCE=.\VisMF.H
+# End Source File
+# Begin Source File
+
+SOURCE=.\winstd.H
+# End Source File
+# Begin Source File
+
+SOURCE=.\WorkQueue.H
 # End Source File
 # End Group
 # End Target
