@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StationData.cpp,v 1.3 1998-11-28 21:58:43 lijewski Exp $
+// $Id: StationData.cpp,v 1.4 1998-11-29 00:21:41 lijewski Exp $
 //
 #ifdef BL_USE_NEW_HFILES
 #include <cstring>
@@ -9,26 +9,15 @@
 #include <string.h>
 #endif
 
-#include "AmrLevel.H"
-#include "ParmParse.H"
-#include "StationData.H"
+#include <AmrLevel.H>
+#include <ParmParse.H>
+#include <StationData.H>
 
 static int id_count = 0;
 
 StationData::StationData () {}
 
 StationData::~StationData () {}
-
-inline
-void
-AddCoord (const Array<Real>& coord,
-          StationRec&        rec)
-{
-    for (int n = 0; n < BL_SPACEDIM; n++)
-        rec.pos[n] = coord[n];
-
-    rec.id = id_count++;
-}
 
 void
 StationData::init ()
@@ -68,71 +57,60 @@ StationData::init ()
     {
         Array<Real> data(BL_SPACEDIM);
 
-        m_stn.resize(pp.countval("coord"));
+        m_stn.resize(pp.countname("coord"));
 
         for (int k = 0; k < m_stn.length(); k++)
         {
-            pp.getktharray("coord", k, data, 0, BL_SPACEDIM);
+            pp.getktharr("coord", k, data, 0, BL_SPACEDIM);
 
-            AddCoord(data, m_stn[k]);
+            D_TERM(m_stn[k].pos[0] = data[0];,
+                   m_stn[k].pos[1] = data[1];,
+                   m_stn[k].pos[2] = data[2];);
+
+            m_stn[k].id = id_count++;
+            //
+            // TODO -- check that coords are valid.
+            //
         }
     }
 
-    m_name = "stations/stn";
+    m_name = "stn";
 
     pp.query("rootname",m_name);
 
     if (m_name[m_name.length()-1] == '/')
         BoxLib::Error("StationData::init(): rootname must be valid filename");
-    //
-    // Make any directories assumed by m_name.
-    //
-    if (m_vars.length() > 0)
-    {
-        if (char* slash = strrchr(m_name.c_str(), '/'))
-        {
-            int idx = slash - m_name.c_str();
 
-            assert(idx > 0);
-            assert(m_name[idx] == '/');
-            //
-            // Some aString hanky-panky.
-            //
-            m_name[idx] = 0;
-            aString dir = m_name.c_str();
-            m_name[idx] = '/';
-            //
-            // Only the I/O processor makes the directory if it doesn't exist.
-            //
-            if (ParallelDescriptor::IOProcessor())
-                if (!Utility::UtilCreateDirectory(dir, 0755))
-                    Utility::CreateDirectoryFailed(dir);
-        }
-    }
+    openFile();
 
     listStations();
 }
 
 void
-StationData::openFile (int timestep)
+StationData::openFile ()
 {
-   char buf[80];
+    if (m_stn.length() > 0)
+    {
+        char buf[80];
 
-   sprintf(buf, "_CPU_%04d_%06d", ParallelDescriptor::MyProc(), timestep);
+        sprintf(buf, "_CPU_%04d", ParallelDescriptor::MyProc());
 
-   aString filename = m_name;
+        aString filename = m_name;
 
-   filename += buf;
+        filename += buf;
 
-   m_ofile.open(filename.c_str(), ios::out|ios::app);
+        m_ofile.open(filename.c_str(), ios::out|ios::app);
 
-   m_ofile.precision(15);
+        m_ofile.precision(15);
+
+        assert(!m_ofile.bad());
+    }
 }
 
 void
 StationData::listStations () const
 {
-    if (m_stn.length() > 0)
+    if (m_stn.length() > 0 && ParallelDescriptor::IOProcessor())
     {
         ofstream os("Station.List", ios::out);
 
@@ -151,8 +129,9 @@ StationData::listStations () const
 }
 
 void
-StationData::report (Real time,
-                     int  level) const
+StationData::report (Real            time,
+                     int             level,
+                     const AmrLevel& amrlevel)
 {
     if (m_stn.length() <= 0)
         return;
@@ -164,8 +143,6 @@ StationData::report (Real time,
 
     data.resize(N);
 
-    const DescriptorList& desc_lst = AmrLevel::get_desc_lst();
-
     for (int i = 0; i < m_stn.length(); i++)
     {
         if (m_stn[i].own && m_stn[i].level == level)
@@ -175,7 +152,7 @@ StationData::report (Real time,
             //
             for (int j = 0; j < N; j++)
             {
-                const MultiFab& mf = desc_lst[m_typ[j]].newData();
+                const MultiFab& mf = amrlevel.get_new_data(m_typ[j]);
 
                 assert(mf.DistributionMap()[m_stn[i].grd] == MyProc);
 
@@ -199,13 +176,17 @@ StationData::report (Real time,
             m_ofile << '\n';
         }
     }
+
+    m_ofile.flush();
+
+    assert(!m_ofile.bad());
 }
 
 void
 StationData::findGrid (const PArray<AmrLevel>& levels,
                        const Array<Geometry>&  geoms)
 {
-    assert(geom.length() == levels.length());
+    assert(geoms.length() == levels.length());
 
     if (m_stn.length() <= 0)
         return;
@@ -221,10 +202,12 @@ StationData::findGrid (const PArray<AmrLevel>& levels,
     //
     const int MyProc = ParallelDescriptor::MyProc();
 
-    for (int level = levels.length(); level >= 0; level--)
+    for (int level = levels.length()-1; level >= 0; level--)
     {
         const BoxArray& ba          = levels[level].boxArray();
         const Array<RealBox>& boxes = levels[level].gridLocations();
+
+        assert(ba.length() == boxes.length());
 
         for (int i = 0; i < m_stn.length(); i++)
         {
@@ -238,6 +221,9 @@ StationData::findGrid (const PArray<AmrLevel>& levels,
                     {
                         m_stn[i].level = level;
                         m_stn[i].grd   = j;
+                        //
+                        // TODO -- `ix' may depend on StateDescriptor::getType()
+                        //
                         m_stn[i].ix    = geoms[level].CellIndex(pos);
                         //
                         // Does this CPU own the data?
@@ -246,6 +232,7 @@ StationData::findGrid (const PArray<AmrLevel>& levels,
 
                         m_stn[i].own = (mf.DistributionMap()[j] == MyProc);
 
+                        
                         break;
                     }
                 }
