@@ -402,45 +402,32 @@ CopyFile[ "DV_3D1.mF" , "dog.mf"];
 Splice["dog.mf",FormatType->OutputForm];
 DeleteFile[ "DV_3D1.F"];
 CopyFile[ "dog.f", "DV_3D1.F" ];
-<<"!touch DV_3D1.F"
+SetFileDate["DV_3D1.F"];
+*)
 
-*)
-(*
-DeleteFile::nffil: File not found during DeleteFile[DV_3D1.F].
-*)
 (*
 DeleteFile[ "dog.mf"];
 CopyFile[ "DV_3D2.mF" , "dog.mf"];
 Splice["dog.mf",FormatType->OutputForm];
 DeleteFile[ "DV_3D2.F"];
 CopyFile[ "dog.f", "DV_3D2.F" ];
-<<"!touch DV_3D2.F"
+SetFileDate["DV_3D2.F";
+*)
 
-*)
-(*
-DeleteFile::nffil: File not found during DeleteFile[DV_3D2.F].
-*)
 (*
 DeleteFile[ "dog.mf"];
 CopyFile[ "DV_3D3.mF" , "dog.mf"];
 Splice["dog.mf",FormatType->OutputForm];
 DeleteFile[ "DV_3D3.F"];
 CopyFile[ "dog.f", "DV_3D3.F" ];
-<<"!touch DV_3D3.F"
+SetFileDate["DV_3D3.F"];
+*)
 
-*)
-(*
-DeleteFile::nffil: File not found during DeleteFile[DV_3D3.F].
-*)
 (*
 DeleteFile[ "dog.mf"];
 CopyFile[ "DV_3D4.mF" , "dog.mf"];
 Splice["dog.mf",FormatType->OutputForm];
 DeleteFile[ "DV_3D4.F"];
 CopyFile[ "dog.f", "DV_3D4.F" ];
-<<"!touch DV_3D4.F"
-
-*)
-(*
-DeleteFile::nffil: File not found during DeleteFile[DV_3D4.F].
+SetFileDate["DV_3D4.F"];
 *)
