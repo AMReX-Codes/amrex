@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiGrid.cpp,v 1.16 2000-08-02 16:06:44 car Exp $
+// $Id: MultiGrid.cpp,v 1.17 2000-08-09 15:38:50 lijewski Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -235,7 +235,7 @@ MultiGrid::solve_ (MultiFab&      _sol,
     // Relax system maxiter times, stop if relative error <= _eps_rel or
     // if absolute err <= _abs_eps
     //
-    long returnVal = 0;
+    int  returnVal = 0;
     Real error0    = errorEstimate(level, bc_mode);
     Real error     = error0;
     if (ParallelDescriptor::IOProcessor() && verbose)
@@ -296,15 +296,6 @@ MultiGrid::solve_ (MultiFab&      _sol,
         _sol.plus(*initialsolution,0,_sol.nComp(),0);
         returnVal = 1;
     }
-    else
-    {
-        returnVal = 0;
-    }
-    //
-    // Use long instead of bool--there is a bug on the t3e which
-    // causes reduction problems with bool.
-    //
-    ParallelDescriptor::ReduceLongAnd(returnVal);
     //
     // Otherwise, failed to solve satisfactorily
     //
