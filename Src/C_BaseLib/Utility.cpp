@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.4 1997-11-12 21:57:28 lijewski Exp $
+// $Id: Utility.cpp,v 1.5 1997-11-13 15:47:34 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -240,6 +240,9 @@ Utility::CreateDirectory (const aString& path,
                     return false;
                 *slash = '/';
             } while ((slash = strchr(slash+1, '/')) != 0);
+
+            if (mkdir(dir, mode) < 0 && errno != EEXIST)
+                return false;
         }
 
         delete [] dir;
