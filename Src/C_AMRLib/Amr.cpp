@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.97 1999-10-20 18:24:58 lijewski Exp $
+// $Id: Amr.cpp,v 1.98 1999-10-21 17:27:21 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -31,6 +31,14 @@ using std::ios;
 #else
 #include <stdio.h>
 #endif
+
+#include <sys/types.h>
+#include <sys/wait.h>
+
+//
+// This is supposed to be in <sys/types.h>
+//
+extern "C" pid_t fork();
 
 //
 // This MUST be defined if don't have pubsetbuf() in I/O Streams Library.
@@ -63,6 +71,31 @@ static int tar_and_rm_files = 1;
 #else
 static int tar_and_rm_files = 0;
 #endif
+//
+// The pid's of the last `tar_and_rm_files' commands for chk and plt files.
+//
+static pid_t pid_chk = -1;
+static pid_t pid_plt = -1;
+
+//
+// Run cmd in a child process.  Returns child pid.  Ignores errors.
+//
+
+static
+pid_t
+DoIt (const char* cmd)
+{
+    pid_t pid = fork();
+
+    if (pid == 0)
+    {
+        system(cmd);
+
+        exit(0);
+    }
+
+    return pid;
+}
 
 void
 Amr::setDtMin (const Array<REAL>& dt_min_in)
@@ -457,6 +490,17 @@ Amr::~Amr ()
         writePlotFile();
 
     levelbld->variableCleanUp();
+
+    if (ParallelDescriptor::IOProcessor() && tar_and_rm_files)
+    {
+        //
+        // Wait for the last chk and plt file tar_and_rm processes.
+        //
+        int status;
+
+        if (pid_chk != -1) waitpid(pid_chk, &status, 0);
+        if (pid_plt != -1) waitpid(pid_plt, &status, 0);
+    }
 }
 
 void
@@ -614,6 +658,10 @@ Amr::writePlotFile (const aString& root,
 
         if (tar_and_rm_files)
         {
+            int status;
+
+            if (pid_plt != -1) waitpid(pid_plt, &status, 0);
+
             aString cmd;
 
             cmd += "tar cf ";
@@ -623,7 +671,7 @@ Amr::writePlotFile (const aString& root,
             cmd += "; rm -rf ";
             cmd += pltfile;
 
-            Utility::Execute(cmd.c_str());
+            pid_plt = DoIt(cmd.c_str());
         }
     }
 }
@@ -1073,6 +1121,10 @@ Amr::checkPoint ()
 
         if (tar_and_rm_files)
         {
+            int status;
+
+            if (pid_chk != -1) waitpid(pid_chk, &status, 0);
+
             aString cmd;
 
             cmd += "tar cf ";
@@ -1082,7 +1134,7 @@ Amr::checkPoint ()
             cmd += "; rm -rf ";
             cmd += ckfile;
 
-            Utility::Execute(cmd.c_str());
+            pid_chk = DoIt(cmd.c_str());
         }
     }
 }
@@ -1132,10 +1184,10 @@ Amr::timeStep (int  level,
     // This routine is here so it is done after the restart regrid.
     //
     if (plotfile_on_restart && !(restart_file.isNull()) )
-      {
+    {
 	plotfile_on_restart = 0;
 	writePlotFile();
-      }
+    }
     //
     // Advance grids at this level.
     //
