@@ -119,9 +119,11 @@ c Works for CELL-based data.
       double precision v1(v1l0:v1h0,v1l1:v1h1)
       double precision sum
       integer i, j
-         do 20 j = regl1, regh1
-            do 20 i = regl0, regh0
- 20            sum = sum + v0(i,j) * v1(i,j)
+      do j = regl1, regh1
+         do i = regl0, regh0
+            sum = sum + v0(i,j) * v1(i,j)
+         end do
+      end do
       end
 c-----------------------------------------------------------------------
 c Works for NODE-based data.
@@ -139,16 +141,20 @@ c Works for NODE-based data.
      &                v0(regl0,regh1) * v1(regl0,regh1) +
      &                v0(regh0,regl1) * v1(regh0,regl1) +
      &                v0(regh0,regh1) * v1(regh0,regh1))
-      do 10 i = regl0 + 1, regh0 - 1
- 10      sum0 = sum0 + (v0(i,regl1) * v1(i,regl1) +
+      do i = regl0 + 1, regh0 - 1
+         sum0 = sum0 + (v0(i,regl1) * v1(i,regl1) +
      &                  v0(i,regh1) * v1(i,regh1))
-      do 20 j = regl1 + 1, regh1 - 1
- 20      sum0 = sum0 + (v0(regl0,j) * v1(regl0,j) +
+      end do
+      do j = regl1 + 1, regh1 - 1
+         sum0 = sum0 + (v0(regl0,j) * v1(regl0,j) +
      &                  v0(regh0,j) * v1(regh0,j))
+      end do
       sum = sum + 0.5d0 * sum0
-         do 40 j = regl1 + 1, regh1 - 1
-            do 40 i = regl0 + 1, regh0 - 1
- 40            sum = sum + v0(i,j) * v1(i,j)
+      do j = regl1 + 1, regh1 - 1
+         do i = regl0 + 1, regh0 - 1
+            sum = sum + v0(i,j) * v1(i,j)
+         end do
+      end do
       end
 c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
@@ -165,13 +171,17 @@ c Works for CELL- or NODE-based data.
       double precision src(srcl0:srch0,srcl1:srch1)
       integer i, j
       if (idir .eq. 0) then
-         do 10 i = regl0, regh0
-            do 10 j = regl1, regh1
- 10            dest(i,j) = src(bbh0-(i-regl0),j)
+         do i = regl0, regh0
+            do j = regl1, regh1
+               dest(i,j) = src(bbh0-(i-regl0),j)
+            end do
+         end do
       else
-         do 20 j = regl1, regh1
-            do 20 i = regl0, regh0
- 20            dest(i,j) = src(i,bbh1-(j-regl1))
+         do j = regl1, regh1
+            do i = regl0, regh0
+               dest(i,j) = src(i,bbh1-(j-regl1))
+            end do
+         end do
       end if
       end
 c-----------------------------------------------------------------------
@@ -189,13 +199,17 @@ c Works for CELL- or NODE-based data.
       double precision src(srcl0:srch0,srcl1:srch1)
       integer i, j
       if (ra(0) .eq. 0 .and. ra(1) .eq. 0) then
-            do 12 j = regl1, regh1
-               do 12 i = regl0, regh0
- 12               dest(i,j) = src(bbl0+(i-regl0),bbl1+(j-regl1))
+         do j = regl1, regh1
+            do i = regl0, regh0
+                  dest(i,j) = src(bbl0+(i-regl0),bbl1+(j-regl1))
+            end do
+         end do
       else if (ra(0) .eq. 0 .and. ra(1) .eq. 1) then
-         do 20 j = regl1, regh1
-            do 20 i = regl0, regh0
- 20            dest(i,j) = src(bbl0+(i-regl0),bbh1-(j-regl1))
+         do j = regl1, regh1
+            do i = regl0, regh0
+               dest(i,j) = src(bbl0+(i-regl0),bbh1-(j-regl1))
+            end do
+         end do
       else if (ra(0) .eq. 1 .and. ra(1) .eq. 0) then
          do 30 i = regl0, regh0
             do 30 j = regl1, regh1
@@ -221,13 +235,17 @@ c Works for CELL- or NODE-based data.
       double precision src(srcl0:srch0,srcl1:srch1)
       integer i, j
       if (idir .eq. 0) then
-         do 10 i = regl0, regh0
-            do 10 j = regl1, regh1
- 10            dest(i,j) = -src(bbh0-(i-regl0),j)
+         do i = regl0, regh0
+            do j = regl1, regh1
+               dest(i,j) = -src(bbh0-(i-regl0),j)
+            end do
+         end do
       else
-         do 20 j = regl1, regh1
-            do 20 i = regl0, regh0
- 20            dest(i,j) = -src(i,bbh1-(j-regl1))
+         do j = regl1, regh1
+            do i = regl0, regh0
+               dest(i,j) = -src(i,bbh1-(j-regl1))
+            end do
+         end do
       end if
       end
 c-----------------------------------------------------------------------
@@ -245,9 +263,11 @@ c Works for CELL- or NODE-based data.
       double precision src(srcl0:srch0,srcl1:srch1)
       integer i, j
       if (ra(0) .eq. 0 .and. ra(1) .eq. 0) then
-            do 12 j = regl1, regh1
-               do 12 i = regl0, regh0
- 12               dest(i,j) = -src(bbl0+(i-regl0),bbl1+(j-regl1))
+         do j = regl1, regh1
+            do i = regl0, regh0
+               dest(i,j) = -src(bbl0+(i-regl0),bbl1+(j-regl1))
+            end do
+         end do
       else if (ra(0) .eq. 0 .and. ra(1) .eq. 1) then
          do 20 j = regl1, regh1
             do 20 i = regl0, regh0
@@ -412,7 +432,7 @@ cdir$ ivdep
       else if (jr .ne. 1) then
          do 220 m = 1, jr-1
             q = dble(m)/jr
-            p = 1.0 - q
+            p = 1.0d0 - q
             do 220 jc = bbl1, bbh1-1
                do 220 ic = bbl0, bbh0
  220              dest(ir*ic,jr*jc+m) = p * src(ic,jc) +
@@ -437,7 +457,7 @@ cdir$ ivdep
       else if (ir .ne. 1) then
          do 230 m = 1, ir-1
             q = dble(m)/ir
-            p = 1.0 - q
+            p = 1.0d0 - q
             do 230 ic = bbl0, bbh0-1
 cdir$ ivdep
                do 230 j = regl1, regh1
@@ -487,9 +507,11 @@ c NODE-based data only.
       double precision dest(destl0:desth0,destl1:desth1)
       double precision src(srcl0:srch0,srcl1:srch1)
       integer i, j
-      do 10 j = regl1, regh1
-         do 10 i = regl0, regh0
- 10         dest(i,j) = src(i*ir,j*jr)
+      do j = regl1, regh1
+         do i = regl0, regh0
+            dest(i,j) = src(i*ir,j*jr)
+         end do
+      end do
       end
 c-----------------------------------------------------------------------
 c NODE-based data only.
@@ -532,39 +554,39 @@ c fine region by at least one coarse cell on all sides.
      & 0.00390625d0* (src(4*i-3,4*j-3) + src(4*i-3,4*j+3) +
      &               src(4*i+3,4*j-3) + src(4*i+3,4*j+3))
       if (ir .eq. 2 .and. jr .eq. 2) then
-            do 20 j = regl1, regh1
-               do 20 i = regl0, regh0
- 20               dest(i,j) = 0.25d0   *  src(i*ir,j*jr) +
-     &                        0.125d0  * (src(i*ir,j*jr-1) +
-     &                                    src(i*ir,j*jr+1) +
-     &                                    src(i*ir-1,j*jr) +
-     &                                    src(i*ir+1,j*jr)) +
-     &                        0.0625d0 * (src(i*ir-1,j*jr-1) +
-     &                                    src(i*ir-1,j*jr+1) +
-     &                                    src(i*ir+1,j*jr-1) +
-     &                                    src(i*ir+1,j*jr+1))
+         do 20 j = regl1, regh1
+            do 20 i = regl0, regh0
+ 20            dest(i,j) = 0.25d0   *  src(i*ir,j*jr) +
+     &                     0.125d0  * (src(i*ir,j*jr-1) +
+     &                                 src(i*ir,j*jr+1) +
+     &                                 src(i*ir-1,j*jr) +
+     &                                 src(i*ir+1,j*jr)) +
+     &                     0.0625d0 * (src(i*ir-1,j*jr-1) +
+     &                                 src(i*ir-1,j*jr+1) +
+     &                                 src(i*ir+1,j*jr-1) +
+     &                                 src(i*ir+1,j*jr+1))
       else if (ir .eq. 4 .and. jr .eq. 4) then
-            do 120 j = regl1, regh1
-               do 120 i = regl0, regh0
- 120              dest(i,j) = RESTR4()
+         do 120 j = regl1, regh1
+            do 120 i = regl0, regh0
+ 120           dest(i,j) = RESTR4()
       else
-            do 230 j = regl1, regh1
-               do 230 i = regl0, regh0
- 230              dest(i,j) = 0.d0
-            fac0 = 1.d0 / (ir*ir * jr*jr)
-            do 240 n = 0, jr-1
-               fac1 = (jr-n) * fac0
-               if (n .eq. 0) fac1 = 0.5d0 * fac1
-               do 240 m = 0, ir-1
-                  fac = (ir-m) * fac1
-                  if (m .eq. 0) fac = 0.5d0 * fac
-                  do 240 j = regl1, regh1
-                     do 240 i = regl0, regh0
- 240                    dest(i,j) = dest(i,j) +
-     &                              fac * (src(i*ir-m,j*jr-n)+
-     &                                     src(i*ir-m,j*jr+n)+
-     &                                     src(i*ir+m,j*jr-n)+
-     &                                     src(i*ir+m,j*jr+n))
+         do 230 j = regl1, regh1
+            do 230 i = regl0, regh0
+ 230           dest(i,j) = 0.d0
+         fac0 = 1.d0 / (ir*ir * jr*jr)
+         do 240 n = 0, jr-1
+            fac1 = (jr-n) * fac0
+            if (n .eq. 0) fac1 = 0.5d0 * fac1
+            do 240 m = 0, ir-1
+               fac = (ir-m) * fac1
+               if (m .eq. 0) fac = 0.5d0 * fac
+               do 240 j = regl1, regh1
+                  do 240 i = regl0, regh0
+ 240                 dest(i,j) = dest(i,j) +
+     &                           fac * (src(i*ir-m,j*jr-n)+
+     &                                  src(i*ir-m,j*jr+n)+
+     &                                  src(i*ir+m,j*jr-n)+
+     &                                  src(i*ir+m,j*jr+n))
       end if
       if (integ .eq. 1) then
          fac = ir * jr
