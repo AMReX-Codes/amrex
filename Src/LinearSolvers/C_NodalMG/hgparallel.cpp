@@ -51,6 +51,22 @@ task_copy::~task_copy()
 #endif
 }
 
+#if 0
+bool task_copy::init(sequence_number sno, MPI_Comm comm)
+{
+    m_sno = sno;
+    assert( m_sbx.numPts() == m_bx.numPts() );
+    if ( is_local(m_mf, m_dgrid) || is_local(m_smf, m_sgrid) )
+    {
+	return true;
+    }
+    else
+    {
+	return false;
+    }
+}
+#endif
+
 bool task_copy::init(sequence_number sno, MPI_Comm comm)
 {
     m_sno = sno;
