@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tCArena.cpp,v 1.1 1998-02-08 18:19:48 lijewski Exp $
+// $Id: tCArena.cpp,v 1.2 1998-02-08 21:13:31 lijewski Exp $
 //
 
 #ifndef WIN32
@@ -84,11 +84,11 @@ main ()
 
     list<FB*> fbl;
 
-    for (int j = 0; j < 1000; j++)
+    for (int j = 0; j < 10; j++)
     {
         cout << "Loop == " << j << endl;
 
-        for (int i = 0; i < 100; i++)
+        for (int i = 0; i < 1000; i++)
         {
             fbl.push_back(new FB);
         }
