@@ -55,10 +55,11 @@ extern "C"
     
 
     void FORT_HGDIV         (Real*, intS, CRealPS, intS, intS, CRealPS, const int*, const int*);
-    void FORT_HGFDIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*, const int*, const int*);
     void FORT_HGODIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*, const int*);
     void FORT_HGIDIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*, const int*);
     void FORT_HGDDIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
+
+    void FORT_HGFDIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
     void FORT_HGEDIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
     void FORT_HGCDIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
 
@@ -84,18 +85,105 @@ typedef void (*FECFUNC)(Real*, intS, const Real*, intS, const Real*, intS, intS,
 class task_fecavg : public task
 {
 public:
-    task_fecavg(FECFUNC f_);
+    task_fecavg(FECFUNC f_, MultiFab& s_, const MultiFab& S_, int igrid_, task_fab* tf_, const Box& creg_, const IntVect& rat_, int idim_, int idir_)
+	: f(f_), s(s_), S(S_), igrid(igrid_), tf(tf_), creg(creg_), rat(rat_), idim(idim_), idir(idir_) {}
+    virtual bool ready()
+    {
+	return false;
+    }
 private:
     FECFUNC f;
+    MultiFab& s;
+    const MultiFab& S;
+    const int igrid;
+    task_fab* tf;
+    const Box creg;
+    const IntVect rat;
+    const int idim;
+    const int idir;
 };
 
 class task_fecavg_2 : public task
 {
 public:
-    task_fecavg_2(FECFUNC f_);
+    task_fecavg_2(FECFUNC f_, MultiFab& s_, int igrid_, task_fab* Scp_, task_fab* Sf_, const Box& creg_, const IntVect& rat_, const Array<int>& ga_, const IntVect& t_ = IntVect())
+	: f(f_), s(s_), igrid(igrid_), Scp(Scp_), Sf(Sf_), creg(creg_), rat(rat_), t(t_), ga(ga_) {}
+    virtual bool ready()
+    {
+	return false;
+    }
 private:
     FECFUNC f;
+    MultiFab& s;
+    const int igrid;
+    task_fab* Scp;
+    task_fab* Sf;
+    const Box creg;
+    const IntVect rat;
+    const IntVect t;
+    const Array<int> ga;
+};
 
+class task_fecdiv : public task
+{
+    typedef void (*FECDIV)(Real*,  intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
+public:
+    task_fecdiv(FECDIV f_, MultiFab& s_, MultiFab* uptr_[], int igrid_, task_fab* ucp_[], const Box& creg_, const Real* h_, const IntVect& rat_, int idim_, int idir_)
+	: f(f_), s(s_), igrid(igrid_), creg(creg_), rat(rat_), idim(idim_), idir(idir_)
+    {
+	for(int i = 0; i  < BL_SPACEDIM; ++i)
+	{
+	    uptr[i] = uptr_[i];
+	    ucp[i] = ucp_[i];
+	    h[i] = h_[i];
+	}
+    }
+    virtual bool ready()
+    {
+	return false;
+    }
+private:
+    FECDIV f;
+    MultiFab& s;
+    MultiFab* uptr[BL_SPACEDIM];
+    const int igrid;
+    task_fab* ucp[BL_SPACEDIM];
+    const Box creg;
+    Real h[BL_SPACEDIM];
+    const IntVect rat;
+    const int idim;
+    const int idir;
+};
+
+class task_fecdiv_2 : public task
+{
+    typedef void (*FECDIV)(Real*,  intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
+public:
+    task_fecdiv_2(FECDIV f_, MultiFab& s_, int igrid_, task_fab* uf_[], task_fab* ucp_[], const Box& creg_, const Real* h_, const IntVect& rat_, const Array<int>& ga_, const IntVect& t_ = IntVect())
+	: f(f_), s(s_), igrid(igrid_), creg(creg_), rat(rat_), ga(ga_), t(t_)
+    {
+	for(int i = 0; i  < BL_SPACEDIM; ++i)
+	{
+	    ucp[i] = ucp_[i];
+	    uf[i] = uf_[i];
+	    h[i] = h_[i];
+	}
+    }
+    virtual bool ready()
+    {
+	return false;
+    }
+private:
+    FECDIV f;
+    MultiFab& s;
+    const int igrid;
+    task_fab* uf[BL_SPACEDIM];
+    task_fab* ucp[BL_SPACEDIM];
+    const Box creg;
+    Real h[BL_SPACEDIM];
+    const IntVect rat;
+    const Array<int> ga;
+    const IntVect t;
 };
 
 PArray<MultiFab> null_amr_real;
@@ -494,7 +582,6 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	// fine grid on just one side
 	const int idim = lev_interface[mglev].fdim(iface);
 	const int idir = (geo & level_interface::LOW) ? -1 : 1;
-	const Box& sbox = source[lev][igrid].box();
 	const Box& fbox = S[lev][igrid].box();
 	Box cbox = lev_interface[mglev].box(level_interface::FACEDIM, iface);
 	const IntVect t = cbox.type();
@@ -503,18 +590,7 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	else
 	    cbox.growHi(idim, rat[idim]);
 	cbox.convert(IntVect::TheCellVector()).coarsen(rat);
-	int jgrid = find_patch(cbox, S[lev-1]);
-	task_fab* Scp;
-	if (jgrid < 0) 
-	{
-	    Scp = new task_fill_patch(cbox, S[lev-1], lev_interface[mgc], boundary.scalar());
-	}
-	else 
-	{
-	    Scp = new task_fab_get(S[lev-1], jgrid, cbox);
-	    cbox = Scp->fab().box();
-
-	}
+	task_fab* Scp = new task_fill_patch(cbox, S[lev-1], lev_interface[mgc], boundary.scalar());
 	Box creg = lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
 	creg.coarsen(rat).grow(t - 1);
 	// Real* sptr = source[lev][igrid].dataPtr();
@@ -559,29 +635,17 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(1, iedge) )
 	    continue;
 	// fine grid on just one side
-	const Box& sbox = source[lev][igrid].box();
-	// Real* sptr = source[lev][igrid].dataPtr();
 	Box cbox = lev_interface[mglev].box(1, iedge);
 	const IntVect t = cbox.type();
 	cbox.coarsen(rat).grow(t).convert(IntVect::TheCellVector());
 	Box fbox = cbox;
 	fbox.refine(rat);
-	task_fab* Scp;
-	int jgrid = find_patch(cbox, S[lev-1]);
-	if (jgrid < 0) 
-	{
-	    Scp = new task_fill_patch(cbox, S[lev-1], lev_interface[mgc], boundary.scalar());
-	}
-	else 
-	{
-	    Scp = new task_fab_get(S[lev-1], jgrid, cbox);
-	    cbox = Scp->fab().box();
-	}
+	task_fab* Scp = new task_fill_patch(cbox, S[lev-1], lev_interface[mgc], boundary.scalar());
 	task_fab* Sf = new task_fill_patch(fbox, S[lev], lev_interface[mglev], boundary.scalar(), 1, iedge);
 	Box creg = lev_interface[mglev].node_box(1, iedge);
 	creg.coarsen(rat).grow(t - 1);
 	Array<int> ga = lev_interface[mglev].geo_array(1, iedge);
-	tl.add_task(new task_fecavg_2(&FORT_HGEAVG, source[lev], igrid, Scp, Sf, creg, rat, t, ga));
+	tl.add_task(new task_fecavg_2(&FORT_HGEAVG, source[lev], igrid, Scp, Sf, creg, rat, ga, t));
 /*	FORT_HGEAVG(sptr, DIMLIST(sbox),
 		    Scp->fab().dataPtr(), DIMLIST(cbox),
 		    Sf->fab().dataPtr(), DIMLIST(fbox),
@@ -592,7 +656,7 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	const Box& freg = lev_interface[mglev].node_box(1, iedge);
 	for (int i = 1; i < lev_interface[mglev].ngrids(1); i++) 
 	{
-	    jgrid = lev_interface[mglev].grid(1, iedge, i);
+	    const int jgrid = lev_interface[mglev].grid(1, iedge, i);
 	    if (jgrid >= 0 && jgrid != igrid)
 		internal_copy(source[lev], jgrid, igrid, freg);
 	}
@@ -615,23 +679,11 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(0, icor) )
 	    continue;
 	// fine grid on just one side
-	const Box& sbox = source[lev][igrid].box();
-	// Real* sptr = source[lev][igrid].dataPtr();
 	Box cbox = lev_interface[mglev].box(0, icor);
 	cbox.coarsen(rat).grow(1).convert(IntVect::TheCellVector());
 	Box fbox = cbox;
 	fbox.refine(rat);
-	int jgrid = find_patch(cbox, S[lev-1]);
-	task_fab* Scp;
-	if (jgrid < 0) 
-	{
-	    Scp = new task_fill_patch(cbox, S[lev-1], lev_interface[mgc], boundary.scalar());
-	}
-	else 
-	{
-	    Scp = new task_fab_get(S[lev-1], jgrid, cbox);
-	    cbox = Scp->fab().box();
-	}
+	task_fab* Scp = new task_fill_patch(cbox, S[lev-1], lev_interface[mgc], boundary.scalar());
 	task_fab* Sf = new task_fill_patch(fbox, S[lev], lev_interface[mglev], boundary.scalar(), 0, icor);
 	Box creg = lev_interface[mglev].box(0, icor);
 	creg.coarsen(rat);
@@ -640,7 +692,7 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	const Real hx = h[mglev][0];
 	const int isRZ = IsRZ();
 	const int imax = mg_domain[mglev].bigEnd(0) + 1;
-	tl.add_task(new task_fecavg_2(&FORT_HGCAVG, source[lev], igrid, Scp, Sf, creg, rat, ga, hx, isRz, imax));
+	tl.add_task(new task_fecavg_2(&FORT_HGCAVG, source[lev], igrid, Scp, Sf, creg, rat, ga, IntVect(0), hx, isRz, imax));
 /*	FORT_HGCAVG(sptr, DIMLIST(sbox),
 		    Scp->fab().dataPtr(), DIMLIST(cbox),
 		    Sf->fab().dataPtr(), DIMLIST(fbox),
@@ -649,7 +701,7 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 		    &hx, &isRZ, &imax);
 */
 #else
-	tl.add_task(new task_fecavg_2(&FORT_HGCAVG, source[lev], igrid, Scp, Sf, creg, rat, ga, 0));
+	tl.add_task(new task_fecavg_2(&FORT_HGCAVG, source[lev], igrid, Scp, Sf, creg, rat, ga));
 /*	FORT_HGCAVG(sptr, DIMLIST(sbox),
 		    Scp->fab().dataPtr(), DIMLIST(cbox),
 		    Sf->fab().dataPtr(), DIMLIST(fbox),
@@ -661,7 +713,7 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	const Box& freg = lev_interface[mglev].box(0, icor);
 	for (int i = 1; i < lev_interface[mglev].ngrids(0); i++) 
 	{
-	    jgrid = lev_interface[mglev].grid(0, icor, i);
+	    const int jgrid = lev_interface[mglev].grid(0, icor, i);
 	    if (jgrid >= 0 && jgrid != igrid)
 		internal_copy(source[lev], jgrid, igrid, freg);
 	}
@@ -695,7 +747,6 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	// fine grid on just one side
 	const int idim = lev_interface[mglev].fdim(iface);
 	const int idir = (geo & level_interface::LOW) ? -1 : 1;
-	const Box& sbox = source[lev][igrid].box();
 	const Box& fbox = u[0][lev][igrid].box();
 	Box cbox = lev_interface[mglev].box(level_interface::FACEDIM, iface);
 	const IntVect t = cbox.type();
@@ -705,33 +756,17 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    cbox.growHi(idim, rat[idim]);
 	cbox.convert(IntVect::TheCellVector()).coarsen(rat);
 	task_fab* ucp[BL_SPACEDIM];
-	const int jgrid = find_patch(cbox, u[0][lev-1]);
-	if (jgrid < 0) 
-	{
-	    for(int i = 0; i < BL_SPACEDIM; ++i)
-	    {
-		ucp[i] = new task_fill_patch(cbox, u[i][lev-1], lev_interface[mgc], boundary.velocity(i));
-	    }
-	}
-	else 
-	{
-	    for(int i = 0; i < BL_SPACEDIM; ++i)
-	    {
-		ucp[i] = new task_fab_get(u[i][lev-1], jgrid, cbox);
-	    }
-	    cbox = ucp[0]->fab().box();
-	}
 	MultiFab* uptr[BL_SPACEDIM];
 	for(int i = 0; i < BL_SPACEDIM; ++i)
 	{
+	    ucp[i] = new task_fill_patch(cbox, u[i][lev-1], lev_interface[mgc], boundary.velocity(i));
 	    uptr[i] = &u[i][lev];
 	}
 	Box creg = lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
 	creg.coarsen(rat).grow(t - 1);
-	Real* sptr = source[lev][igrid].dataPtr();
 	if (m_hg_terrain)
 	{
-	    tl.add_task(new task_fecdiv(&FORT_HGFDIV_TERRAIN, source[lev], uptr, igrid, ucp, cbox, h[mglev], rat, idim, idir));
+	    tl.add_task(new task_fecdiv(&FORT_HGFDIV_TERRAIN, source[lev], uptr, igrid, ucp, creg, h[mglev], rat, idim, idir));
 /*	    FORT_HGFDIV_TERRAIN(sptr, DIMLIST(sbox),
 				D_DECL(ucp[0]->fab().dataPtr(), ucp[1]->fab().dataPtr(), ucp[2]->fab().dataPtr()), DIMLIST(cbox),
 				D_DECL(uptr[0], uptr[1], uptr[2]), DIMLIST(fbox), DIMLIST(creg),
@@ -751,7 +786,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 			&idim, &idir, &isRZ, &imax);
 */
 #else
-	    tl.add_task(new task_fecdiv(&FORT_HGFDIV, source[lev], uptr, igrid, ucp, cbox, creg, h[mglev], rat, idim, idir, 0, 0));
+	    tl.add_task(new task_fecdiv(&FORT_HGFDIV, source[lev], uptr, igrid, ucp, creg, h[mglev], rat, idim, idir));
 /*	    FORT_HGFDIV(sptr, DIMLIST(sbox),
 			D_DECL(ucp[0]->fab().dataPtr(), ucp[1]->fab().dataPtr(), ucp[2]->fab().dataPtr()), DIMLIST(cbox),
 			D_DECL(uptr[0], uptr[1], uptr[2]), DIMLIST(fbox), DIMLIST(creg),
@@ -783,41 +818,24 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(1, iedge) )
 	    continue;
 	// fine grid on just one side
-	const Box& sbox = source[lev][igrid].box();
-	Real* sptr = source[lev][igrid].dataPtr();
 	Box cbox = lev_interface[mglev].box(1, iedge);
 	const IntVect t = cbox.type();
 	cbox.coarsen(rat).grow(t).convert(IntVect::TheCellVector());
 	Box fbox = cbox;
 	fbox.refine(rat);
 	task_fab* ucp[BL_SPACEDIM];
-	int jgrid = find_patch(cbox, u[0][lev-1]);
-	if (jgrid < 0) 
-	{
-	    for(int i = 0; i < BL_SPACEDIM; ++i)
-	    {
-		ucp[i] = new task_fill_patch(cbox, u[i][lev-1], lev_interface[mgc], boundary.velocity(i));
-	    }
-	}
-	else 
-	{
-	    for(int i = 0; i < BL_SPACEDIM; ++i)
-	    {
-		ucp[i] = new task_fab_get(u[i][lev-1], jgrid, cbox);
-	    }
-	    cbox = ucp[0]->fab().box();
-	}
 	task_fab* uf[BL_SPACEDIM];
 	for(int i = 0; i < BL_SPACEDIM; ++i)
 	{
-	    uf[i] = new task_fill_patch(fbox, u[i][lev], lev_interface[mglev], boundary.velocity(i), 1, iedge);
+	    ucp[i] = new task_fill_patch(cbox, u[i][lev-1], lev_interface[mgc], boundary.velocity(i));
+	    uf[i] =  new task_fill_patch(fbox, u[i][lev], lev_interface[mglev], boundary.velocity(i), 1, iedge);
 	}
 	Box creg = lev_interface[mglev].node_box(1, iedge);
 	creg.coarsen(rat).grow(t - 1);
 	Array<int> ga = lev_interface[mglev].geo_array(1, iedge);
 	if (m_hg_terrain)
 	{
-	    tl.add_task(new task_fecdiv(&FORT_HGEDIV_TERRAIN, source[lev], igrid, ucp, uf, creg, h[mglev], rat, t, ga));
+	    tl.add_task(new task_fecdiv_2(&FORT_HGEDIV_TERRAIN, source[lev], igrid, ucp, uf, creg, h[mglev], rat, ga, t));
 /*	    FORT_HGEDIV_TERRAIN(sptr, DIMLIST(sbox),
 				D_DECL(ucp[0]->fab().dataPtr(), ucp[1]->fab().dataPtr(), ucp[2]->fab().dataPtr()), DIMLIST(cbox),
 				D_DECL(uf[0]->fab().dataPtr(), uf[1]->fab().dataPtr(), uf[2]->fab().dataPtr()), DIMLIST(fbox),
@@ -828,7 +846,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	}
 	else
 	{
-	    tl.add_task(new task_fecdiv(&FORT_HGEDIV, source[lev], igrid, ucp, uf, creg, h[mglev], rat, t, ga));
+	    tl.add_task(new task_fecdiv_2(&FORT_HGEDIV, source[lev], igrid, ucp, uf, creg, h[mglev], rat, ga, t));
 /*	    FORT_HGEDIV(sptr, DIMLIST(sbox),
 			D_DECL(ucp[0]->fab().dataPtr(), ucp[1]->fab().dataPtr(), ucp[2]->fab().dataPtr()), DIMLIST(cbox),
 			D_DECL(uf[0]->fab().dataPtr(), uf[1]->fab().dataPtr(), uf[2]->fab().dataPtr()), DIMLIST(fbox),
@@ -841,7 +859,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	const Box& freg = lev_interface[mglev].node_box(1, iedge);
 	for (int i = 1; i < lev_interface[mglev].ngrids(1); i++) 
 	{
-	    jgrid = lev_interface[mglev].grid(1, iedge, i);
+	    const int jgrid = lev_interface[mglev].grid(1, iedge, i);
 	    if (jgrid >= 0 && jgrid != igrid)
 		internal_copy(source[lev], jgrid, igrid, freg);
 	}
@@ -864,32 +882,15 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(0, icor) )
 	    continue;
 	// fine grid on just one side
-	const Box& sbox = source[lev][igrid].box();
-	Real* sptr = source[lev][igrid].dataPtr();
 	Box cbox = lev_interface[mglev].box(0, icor);
 	cbox.coarsen(rat).grow(1).convert(IntVect::TheCellVector());
 	Box fbox = cbox;
 	fbox.refine(rat);
 	task_fab* ucp[BL_SPACEDIM];
-	int jgrid = find_patch(cbox, u[0][lev-1]);
-	if (jgrid < 0) 
-	{
-	    for(int i = 0; i < BL_SPACEDIM; ++i)
-	    {
-		ucp[i] = new task_fill_patch(cbox, u[i][lev-1], lev_interface[mgc], boundary.velocity(i));
-	    }
-	}
-	else 
-	{
-	    for(int i = 0; i < BL_SPACEDIM; ++i)
-	    {
-		ucp[i] = new task_fab_get(u[i][lev-1], jgrid, cbox);
-	    }
-	    cbox = ucp[0]->fab().box();
-	}
 	task_fab* uf[BL_SPACEDIM];
 	for(int i = 0; i < BL_SPACEDIM; ++i)
 	{
+	    ucp[i] = new task_fill_patch(cbox, u[i][lev-1], lev_interface[mgc], boundary.velocity(i));
 	    uf[i] = new task_fill_patch(fbox, u[i][lev], lev_interface[mglev], boundary.velocity(i), 0, icor);
 	}
 	Box creg = lev_interface[mglev].box(0, icor);
@@ -897,7 +898,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	Array<int> ga = lev_interface[mglev].geo_array(0, icor);
 	if (m_hg_terrain)
 	{
-	    tl.add_task(new task_fecdiv(&FORT_HGCDIV_TERRAIN, source[lev], igrid, ucp, uf, creg, h[mglev], rat, ga));
+	    tl.add_task(new task_fecdiv_2(&FORT_HGCDIV_TERRAIN, source[lev], igrid, ucp, uf, creg, h[mglev], rat, ga));
 /*	    FORT_HGCDIV_TERRAIN(sptr, DIMLIST(sbox),
 				D_DECL(ucp[0]->fab().dataPtr(), ucp[1]->fab().dataPtr(), ucp[2]->fab().dataPtr()), DIMLIST(cbox),
 				D_DECL(uf[0]->fab().dataPtr(), uf[1]->fab().dataPtr(), uf[2]->fab().dataPtr()), DIMLIST(fbox), DIMLIST(creg),
@@ -906,7 +907,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 */	}
 	else
 	{
-	    tl.add_task(new task_fecdiv(&FORT_HGCDIV_TERRAIN, source[lev], igrid, ucp, uf, creg, h[mglev], rat, ga));
+	    tl.add_task(new task_fecdiv_2(&FORT_HGCDIV_TERRAIN, source[lev], igrid, ucp, uf, creg, h[mglev], rat, ga));
 /*	    FORT_HGCDIV(sptr, DIMLIST(sbox),
 			D_DECL(ucp[0]->fab().dataPtr(), ucp[1]->fab().dataPtr(), ucp[2]->fab().dataPtr()), DIMLIST(cbox),
 			D_DECL(uf[0]->fab().dataPtr(), uf[1]->fab().dataPtr(), uf[2]->fab().dataPtr()), DIMLIST(fbox), DIMLIST(creg),
@@ -918,7 +919,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	const Box& freg = lev_interface[mglev].box(0, icor);
 	for (int i = 1; i < lev_interface[mglev].ngrids(0); i++) 
 	{
-	    jgrid = lev_interface[mglev].grid(0, icor, i);
+	    const int jgrid = lev_interface[mglev].grid(0, icor, i);
 	    if (jgrid >= 0 && jgrid != igrid)
 		internal_copy(source[lev], jgrid, igrid, freg);
 	}
@@ -945,7 +946,6 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    // fine grid on two adjacent sides
 	    const int idim = (geo == level_interface::XL || geo == level_interface::XH) ? 0 : 1;
 	    const int idir = (geo & level_interface::LL) ? -1 : 1;
-	    const Box& sbox = source[lev][igrid].box();
 	    Box cbox = lev_interface[mglev].box(0, icor);
 	    Box fbox = lev_interface[mglev].box(0, icor);
 	    cbox.grow(1 - idim, rat[1-idim]);
@@ -961,32 +961,16 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 		fbox.growLo(idim, 1);
 	    }
 	    cbox.convert(IntVect::TheCellVector()).coarsen(rat);
-	    task_fab* ucp[BL_SPACEDIM];
-	    int jgrid = find_patch(cbox, u[0][lev-1]);
-	    if (jgrid < 0) 
-	    {
-		for(int i = 0; i < BL_SPACEDIM; ++i)
-		{
-		    ucp[i] = new task_fill_patch(cbox, u[i][lev-1], lev_interface[mgc], boundary.velocity(i));
-		}
-	    }
-	    else 
-	    {
-		for(int i = 0; i < BL_SPACEDIM; ++i)
-		{
-		    ucp[i] = new task_fab_get(u[i][lev-1], jgrid, cbox);
-		}
-		cbox = ucp[0]->fab().box();
-	    }
 	    fbox.convert(IntVect::TheCellVector());
+	    task_fab* ucp[BL_SPACEDIM];
 	    task_fab* uf[BL_SPACEDIM];
-	    for (int i = 0; i < BL_SPACEDIM; ++i)
+	    for(int i = 0; i < BL_SPACEDIM; ++i)
 	    {
+		ucp[i] = new task_fill_patch(cbox, u[i][lev-1], lev_interface[mgc], boundary.velocity(i));
 		uf[i] = new task_fill_patch(fbox, u[i][lev], lev_interface[mglev], boundary.velocity(i), 0, icor);
 	    }
 	    Box creg = lev_interface[mglev].box(0, icor);
 	    creg.coarsen(rat);
-	    Real* sptr = source[lev][igrid].dataPtr();
 	    const int isRZ = IsRZ();
 	    const int imax = mg_domain[mglev].bigEnd(0) + 1;
 	    FORT_HGFDIV(sptr, DIMLIST(sbox),
@@ -998,7 +982,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    const Box& freg = lev_interface[mglev].box(0, icor);
 	    for (int i = 1; i < 4; i++) 
 	    {
-		jgrid = lev_interface[mglev].grid(0, icor, i);
+		const int jgrid = lev_interface[mglev].grid(0, icor, i);
 		if (jgrid >= 0 && jgrid != igrid)
 		    internal_copy(source[lev], jgrid, igrid, freg);
 	    }
@@ -1008,32 +992,18 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    // outside corner
 	    const int idir0 = (geo & level_interface::XL) ? -1 : 1;
 	    const int idir1 = (geo & level_interface::YL) ? -1 : 1;
-	    const Box& sbox = source[lev][igrid].box();
 	    Box cbox = lev_interface[mglev].box(0, icor);
 	    cbox.grow(rat).convert(IntVect::TheCellVector()).coarsen(rat);
-	    task_fab* ucp[BL_SPACEDIM];
-	    int jgrid = find_patch(cbox, u[0][lev-1]);
-	    if (jgrid < 0) 
-	    {
-		for(int i = 0; i < BL_SPACEDIM; ++i)
-		{
-		    ucp[i] = new task_fill_patch(cbox, u[i][lev-1], lev_interface[mgc], boundary.velocity(i));
-		}
-	    }
-	    else 
-	    {
-		for(int i = 0; i < BL_SPACEDIM; ++i)
-		{
-		    ucp[i] = new task_fab_get(u[i][lev-1], jgrid, cbox);
-		}
-		cbox = ucp[0]->fab().box();
-	    }
 	    const Box& fbox = u[0][lev][igrid].box();
+	    task_fab* ucp[BL_SPACEDIM];
+	    MultiFab* uptr[BL_SPACEDIM;
+	    for(int i = 0; i < BL_SPACEDIM; ++i)
+	    {
+		ucp[i] = new task_fill_patch(cbox, u[i][lev-1], lev_interface[mgc], boundary.velocity(i));
+		uptr[i] = &u[i][lev];
+	    }
 	    Box creg = lev_interface[mglev].box(0, icor);
 	    creg.coarsen(rat);
-	    Real* sptr = source[lev][igrid].dataPtr();
-	    Real* u0ptr = u[0][lev][igrid].dataPtr();
-	    Real* u1ptr = u[1][lev][igrid].dataPtr();
 	    const int isRZ = IsRZ();
 	    FORT_HGODIV(sptr, DIMLIST(sbox),
 			D_DECL(ucp[0]->fab().dataPtr(), ucp[1]->fab().dataPtr(), ucp[2]->fab().dataPtr()), DIMLIST(cbox),
@@ -1044,37 +1014,20 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	else if (geo == (level_interface::LL | level_interface::HH) || geo == (level_interface::LH | level_interface::HL)) 
 	{
 	    // diagonal corner
-	    const Box& sbox = source[lev][igrid].box();
 	    Box cbox = lev_interface[mglev].box(0, icor);
 	    cbox.grow(rat).convert(IntVect::TheCellVector()).coarsen(rat);
-	    task_fab* ucp[BL_SPACEDIM];
-	    int jgrid = find_patch(cbox, u[0][lev-1]);
-	    if (jgrid < 0) 
-	    {
-		for(int i = 0; i < BL_SPACEDIM; ++i)
-		{
-		    ucp[i] = new task_fill_patch(cbox, u[i][lev-1], lev_interface[mgc], boundary.velocity(i));
-		}
-	    }
-	    else 
-	    {
-		for(int i = 0; i < BL_SPACEDIM; ++i)
-		{
-    		    ucp[i] = new task_fab_get(u[i][lev-1], jgrid, cbox);
-		}
-		cbox = ucp[0]->fab().box();
-	    }
 	    Box fbox = lev_interface[mglev].box(0, icor);
 	    fbox.grow(rat).convert(IntVect::TheCellVector());
+	    task_fab* ucp[BL_SPACEDIM];
 	    task_fab* uf[BL_SPACEDIM];
 	    for(int i = 0; i < BL_SPACEDIM; ++i)
 	    {
+	        ucp[i] = new task_fill_patch(cbox, u[i][lev-1], lev_interface[mgc], boundary.velocity(i));
 		uf[i] = new task_fill_patch(fbox, u[i][lev], lev_interface[mglev], boundary.velocity(i), 0, icor);
 	    }
 	    int jdir = (geo == (level_interface::LL | level_interface::HH)) ? 1 : -1;
 	    Box creg = lev_interface[mglev].box(0, icor);
 	    creg.coarsen(rat);
-	    Real* sptr = source[lev][igrid].dataPtr();
 	    const int isRZ = IsRZ();
 	    FORT_HGDDIV(sptr, DIMLIST(sbox),
 			D_DECL(ucp[0]->fab().dataPtr(), ucp[1]->fab().dataPtr(), ucp[2]->fab().dataPtr()), DIMLIST(cbox),
@@ -1085,7 +1038,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    const Box& freg = lev_interface[mglev].box(0, icor);
 	    for (int i = 1; i < 4; i++) 
 	    {
-		jgrid = lev_interface[mglev].grid(0, icor, i);
+		const int jgrid = lev_interface[mglev].grid(0, icor, i);
 		if (jgrid >= 0 && jgrid != igrid)
 		    internal_copy(source[lev], jgrid, igrid, freg);
 	    }
@@ -1093,7 +1046,6 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	else 
 	{
 	    // inside corner
-	    const Box& sbox = source[lev][igrid].box();
 	    Box cbox = lev_interface[mglev].box(0, icor);
 	    Box fbox = lev_interface[mglev].box(0, icor);
 	    cbox.grow(rat).convert(IntVect::TheCellVector()).coarsen(rat);
@@ -1134,25 +1086,12 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 		cbox.growHi(1, -1);
 	    }
 	    task_fab* ucp[BL_SPACEDIM];
-	    int jgrid = find_patch(cbox, u[0][lev-1]);
-	    if (jgrid < 0) 
+	    for(int i = 0; i < BL_SPACEDIM; ++i)
 	    {
-		for(int i = 0; i < BL_SPACEDIM; ++i)
-		{
-		    ucp[i] = new task_fill_patch(cbox, u[i][lev-1], lev_interface[mgc], boundary.velocity(i));
-		}
-	    }
-	    else 
-	    {
-		for(int i = 0; i < BL_SPACEDIM; ++i)
-		{
-		    ucp[i] = new task_fab_get(u[i][lev-1], jgrid, cbox);
-		}
-		cbox = ucp[0]->fab().box();
+	        ucp[i] = new task_fill_patch(cbox, u[i][lev-1], lev_interface[mgc], boundary.velocity(i));
 	    }
 	    Box creg = lev_interface[mglev].box(0, icor);
 	    creg.coarsen(rat);
-	    Real* sptr = source[lev][igrid].dataPtr();
 	    const int isRZ = IsRZ();
 	    FORT_HGIDIV(sptr, DIMLIST(sbox),
 			D_DECL(ucp[0]->fab().dataPtr(), ucp[1]->fab().dataPtr(), ucp[2]->fab().dataPtr()), DIMLIST(cbox),
@@ -1163,7 +1102,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    const Box& freg = lev_interface[mglev].box(0, icor);
 	    for (int i = 1; i < 4; i++) 
 	    {
-		jgrid = lev_interface[mglev].grid(0, icor, i);
+		const int jgrid = lev_interface[mglev].grid(0, icor, i);
 		if (jgrid >= 0 && jgrid != igrid)
 		    internal_copy(source[lev], jgrid, igrid, freg);
 	    }

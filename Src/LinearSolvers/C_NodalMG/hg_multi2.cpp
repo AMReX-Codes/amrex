@@ -219,7 +219,6 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     const int ncomp = (m_hg_terrain)? 2*BL_SPACEDIM-1 : 1;
     const amr_boundary_class* bndry = (m_hg_terrain)? boundary.terrain_sigma() : boundary.scalar();
     
-    // PARALLEL
     for (int iface = 0; iface < lev_interface[mglev].nboxes(level_interface::FACEDIM); iface++) 
     {
 	// find a fine grid touching this face
@@ -259,7 +258,6 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     }
     
 #if (BL_SPACEDIM == 3)
-    // PARALLEL
     for (int iedge = 0; iedge < lev_interface[mglev].nboxes(1); iedge++) 
     {
 	// find a fine grid touching this edge
@@ -299,7 +297,6 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     }
     
 #endif
-    // PARALLEL
     for (int icor = 0; icor < lev_interface[mglev].nboxes(0); icor++) 
     {
 	// find a fine grid touching this corner
