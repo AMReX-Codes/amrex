@@ -2,7 +2,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.46 2001-07-19 16:57:37 lijewski Exp $
+// $Id: VisMF.H,v 1.47 2001-07-23 17:55:34 lijewski Exp $
 //
 
 #include <MultiFab.H>
@@ -27,7 +27,7 @@ public:
                The MF on-disk is read lazily. The name here is the name of
                the MF not the name of the on-disk file.
     */
-    explicit VisMF (const aString& mf_name);
+    explicit VisMF (const std::string& mf_name);
     //
     //@ManDoc: A structure containing info regarding an on-disk FAB.
     //
@@ -40,18 +40,18 @@ public:
         //
         //@ManDoc: Constructor that sets the two values.
         //
-        FabOnDisk (const aString& name, long offset)
+        FabOnDisk (const std::string& name, long offset)
             :
             m_name(name), m_head(offset) {}
         //
         // The two data values in a FabOnDisk structure.
         //
-        aString m_name;  // The name of file containing the FAB.
+        std::string m_name;  // The name of file containing the FAB.
         long    m_head;  // Offset to start of FAB in file.
         //
         // Prefixed to lines of FabOnDisk I/O.
         //
-        static const aString Prefix;
+        static const std::string Prefix;
     };
     //
     //@ManDoc: An on-disk MultiFab contains this info in a header file.
@@ -136,7 +136,7 @@ public:
                of each contained FAB.
      */
     static long Write (const MultiFab& mf,
-                       const aString&  name,
+                       const std::string&  name,
                        VisMF::How      how = OneFilePerCPU,
                        bool            set_ghost = false);
 
@@ -145,7 +145,7 @@ public:
                constructor.
     */
     static void Read (MultiFab&      mf,
-                      const aString& name);
+                      const std::string& name);
     //
     //@ManDoc: We try to do I/O with buffers of this size.
     //
@@ -170,7 +170,7 @@ public:
     //@ManDoc: Read the entire fab (all components).
     //
     FArrayBox* readFAB (int            fabIndex,
-                        const aString& mfName);
+                        const std::string& mfName);
     //
     //@ManDoc: Read the specified fab component.
     //
@@ -185,11 +185,11 @@ private:
     VisMF& operator= (const VisMF&);
 
     static FabOnDisk Write (const FArrayBox& fab,
-                            const aString&   filename,
+                            const std::string&   filename,
                             std::ostream&    os,
                             long&            bytes);
 
-    static long WriteHeader (const aString& mf_name,
+    static long WriteHeader (const std::string& mf_name,
                              VisMF::Header& hdr);
 
     //
@@ -198,25 +198,25 @@ private:
     // Otherwise read just that component.
     //
     static FArrayBox* readFAB (int            fabIndex,
-                               const aString& mf_name,
+                               const std::string& mf_name,
                                const Header&  hdr,
 			       int            ncomp = -1);
 
-    static aString DirName (const aString& filename);
+    static std::string DirName (const std::string& filename);
 
-    static aString BaseName (const aString& filename);
+    static std::string BaseName (const std::string& filename);
     //
     // The suffix appended to files containing FAB data.
     //
-    static const aString FabFileSuffix;
+    static const std::string FabFileSuffix;
     //
     // The suffix appended to files containing MultiFabs.
     //
-    static const aString MultiFabHdrFileSuffix;
+    static const std::string MultiFabHdrFileSuffix;
     //
     // Name of the MultiFab.
     //
-    aString m_mfname;
+    std::string m_mfname;
     //
     // The VisMF header as read from disk.
     //

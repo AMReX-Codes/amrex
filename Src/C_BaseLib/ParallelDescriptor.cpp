@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.81 2001-07-22 18:11:02 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.82 2001-07-23 17:55:33 lijewski Exp $
 //
 
 #include <cstdio>
@@ -222,7 +222,7 @@ namespace ParallelDescriptor
     }
 }
 
-static const aString REDUCE("mpi_reduce");
+static const std::string REDUCE("mpi_reduce");
 
 void
 ParallelDescriptor::Abort ()

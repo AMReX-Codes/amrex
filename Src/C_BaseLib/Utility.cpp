@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.51 2001-07-22 22:12:22 car Exp $
+// $Id: Utility.cpp,v 1.52 2001-07-23 17:55:33 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -328,11 +328,11 @@ BoxLib::is_integer (const char* str)
     return true;
 }
 
-aString
-BoxLib::Concatenate (const aString& root,
+std::string
+BoxLib::Concatenate (const std::string& root,
                      int            num)
 {
-    aString result = root;
+    std::string result = root;
     char buf[sizeof(int) + 1];
     sprintf(buf, "%04d", num);
     result += buf;
@@ -355,10 +355,10 @@ BoxLib::Concatenate (const aString& root,
 
 bool
 #ifdef WIN32
-BoxLib::UtilCreateDirectory (const aString& path,
+BoxLib::UtilCreateDirectory (const std::string& path,
                              int)
 #else
-BoxLib::UtilCreateDirectory (const aString& path,
+BoxLib::UtilCreateDirectory (const std::string& path,
                              mode_t         mode)
 #endif
 {
@@ -423,23 +423,23 @@ BoxLib::UtilCreateDirectory (const aString& path,
 }
 
 void
-BoxLib::CreateDirectoryFailed (const aString& dir)
+BoxLib::CreateDirectoryFailed (const std::string& dir)
 {
-    aString msg("Couldn't create directory: ");
+    std::string msg("Couldn't create directory: ");
     msg += dir;
     BoxLib::Error(msg.c_str());
 }
 
 void
-BoxLib::FileOpenFailed (const aString& file)
+BoxLib::FileOpenFailed (const std::string& file)
 {
-    aString msg("Couldn't open file: ");
+    std::string msg("Couldn't open file: ");
     msg += file;
     BoxLib::Error(msg.c_str());
 }
 
 void
-BoxLib::UnlinkFile (const aString& file)
+BoxLib::UnlinkFile (const std::string& file)
 {
     unlink(file.c_str());
 }

@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.78 2001-07-20 19:31:07 car Exp $
+// $Id: VisMF.cpp,v 1.79 2001-07-23 17:55:34 lijewski Exp $
 //
 
 #include <cstdio>
@@ -16,9 +16,9 @@
 #include <Utility.H>
 #include <VisMF.H>
 
-const aString VisMF::FabFileSuffix("_D_");
-const aString VisMF::MultiFabHdrFileSuffix("_H");
-const aString VisMF::FabOnDisk::Prefix("FabOnDisk:");
+const std::string VisMF::FabFileSuffix("_D_");
+const std::string VisMF::MultiFabHdrFileSuffix("_H");
+const std::string VisMF::FabOnDisk::Prefix("FabOnDisk:");
 
 std::ostream&
 operator<< (std::ostream&           os,
@@ -36,7 +36,7 @@ std::istream&
 operator>> (std::istream&     is,
             VisMF::FabOnDisk& fod)
 {
-    aString str;
+    std::string str;
     is >> str;
 
     BL_ASSERT(str == VisMF::FabOnDisk::Prefix);
@@ -295,7 +295,7 @@ VisMF::FileOffset (std::ostream& os)
 
 FArrayBox*
 VisMF::readFAB (int            idx,
-                const aString& mf_name)
+                const std::string& mf_name)
 {
     return VisMF::readFAB(idx,mf_name,m_hdr,-1);
 }
@@ -307,8 +307,8 @@ VisMF::readFAB (int idx,
     return VisMF::readFAB(idx,m_mfname,m_hdr,ncomp);
 }
 
-aString
-VisMF::BaseName (const aString& filename)
+std::string
+VisMF::BaseName (const std::string& filename)
 {
     BL_ASSERT(filename[filename.length() - 1] != '/');
 
@@ -317,7 +317,7 @@ VisMF::BaseName (const aString& filename)
         //
         // Got at least one slash -- give'm the following tail.
         //
-        return aString(slash + 1);
+        return std::string(slash + 1);
     }
     else
     {
@@ -328,12 +328,12 @@ VisMF::BaseName (const aString& filename)
     }
 }
 
-aString
-VisMF::DirName (const aString& filename)
+std::string
+VisMF::DirName (const std::string& filename)
 {
     BL_ASSERT(filename[filename.length() - 1] != '/');
 
-    static const aString TheNullString("");
+    static const std::string TheNullString("");
 
     const char* str = filename.c_str();    
 
@@ -350,7 +350,7 @@ VisMF::DirName (const aString& filename)
 
         buf[len] = 0; // Stringify
 
-        aString dirname = buf;
+        std::string dirname = buf;
 
         delete [] buf;
 
@@ -367,7 +367,7 @@ VisMF::DirName (const aString& filename)
 
 VisMF::FabOnDisk
 VisMF::Write (const FArrayBox& fab,
-              const aString&   filename,
+              const std::string&   filename,
               std::ostream&    os,
               long&            bytes)
 {
@@ -557,7 +557,7 @@ VisMF::Header::Header (const MultiFab& mf,
 }
 
 long
-VisMF::WriteHeader (const aString& mf_name,
+VisMF::WriteHeader (const std::string& mf_name,
                     VisMF::Header& hdr)
 {
     long bytes = 0;
@@ -566,7 +566,7 @@ VisMF::WriteHeader (const aString& mf_name,
     //
     if (ParallelDescriptor::IOProcessor())
     {
-        aString MFHdrFileName = mf_name;
+        std::string MFHdrFileName = mf_name;
 
         MFHdrFileName += VisMF::MultiFabHdrFileSuffix;
 
@@ -594,7 +594,7 @@ VisMF::WriteHeader (const aString& mf_name,
 
 long
 VisMF::Write (const MultiFab& mf,
-              const aString&  mf_name,
+              const std::string&  mf_name,
               VisMF::How      how,
               bool            set_ghost)
 {
@@ -636,7 +636,7 @@ VisMF::Write (const MultiFab& mf,
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
-    aString FullFileName = mf_name;
+    std::string FullFileName = mf_name;
 
     FullFileName += VisMF::FabFileSuffix;
     sprintf(buf, "%04d", MyProc);
@@ -655,7 +655,7 @@ VisMF::Write (const MultiFab& mf,
     if (!FabFile.good())
         BoxLib::FileOpenFailed(FullFileName);
 
-    aString basename = VisMF::BaseName(FullFileName);
+    std::string basename = VisMF::BaseName(FullFileName);
 
     for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
         hdr.m_fod[mfi.index()] = VisMF::Write(mfi(),basename,FabFile,bytes);
@@ -738,7 +738,7 @@ VisMF::Write (const MultiFab& mf,
                     {
                         hdr.m_fod[idx].m_head = data[Ncpu][offset++];
 
-                        aString name = mf_name;
+                        std::string name = mf_name;
 
                         name += VisMF::FabFileSuffix;
                         sprintf(buf, "%04d", Ncpu);
@@ -762,11 +762,11 @@ VisMF::Write (const MultiFab& mf,
     return bytes;
 }
 
-VisMF::VisMF (const aString& mf_name)
+VisMF::VisMF (const std::string& mf_name)
     :
     m_mfname(mf_name)
 {
-    aString FullHdrFileName = m_mfname;
+    std::string FullHdrFileName = m_mfname;
 
     FullHdrFileName += VisMF::MultiFabHdrFileSuffix;
 
@@ -800,7 +800,7 @@ VisMF::VisMF (const aString& mf_name)
 
 FArrayBox*
 VisMF::readFAB (int                  idx,
-                const aString&       mf_name,
+                const std::string&       mf_name,
                 const VisMF::Header& hdr,
 		int                  ncomp)
 {
@@ -811,7 +811,7 @@ VisMF::readFAB (int                  idx,
 
     FArrayBox* fab = new FArrayBox(fab_box, ncomp == -1 ? hdr.m_ncomp : 1);
 
-    aString FullFileName = VisMF::DirName(mf_name);
+    std::string FullFileName = VisMF::DirName(mf_name);
 
     FullFileName += hdr.m_fod[idx].m_name;
     
@@ -845,11 +845,11 @@ VisMF::readFAB (int                  idx,
 
 void
 VisMF::Read (MultiFab&      mf,
-             const aString& mf_name)
+             const std::string& mf_name)
 {
     VisMF::Header hdr;
 
-    aString FullHdrFileName = mf_name;
+    std::string FullHdrFileName = mf_name;
 
     FullHdrFileName += VisMF::MultiFabHdrFileSuffix;
     {
