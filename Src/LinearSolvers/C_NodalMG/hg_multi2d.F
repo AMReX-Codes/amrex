@@ -138,7 +138,8 @@ c        This correction is *only* for the cross stencil
      &             (fdst(i+m,j+idir) - fdst(i+m,j))))
             end do
 
-            if (irz .eq. 1 .and. regl0 .le. 0 .and. regh0 .ge. 0) then
+            if (irz .eq. 1 .and. m .eq. 0 .and.
+     &          regl0 .le. 0 .and. regh0 .ge. 0) then
                i = 0
                res(i,j) = res(i,j) + fac1 * hym2 * 0.5d0 * 
      &           ((sigmaf(i-m-1,js) + sigmaf(i-m,js)) *
@@ -203,7 +204,7 @@ c quadrants
      &            hym2 * (fdst(if,jf+jdir) - fdst(if,jf)))
                if (irz .eq. 1 .and. ic .eq. 0) then
                  sum = sum - sigmaf(if+ii-1,jf+ji-1) * 0.5d0 *
-     @             (hym2 * (fdst(if,jf+jdir) - fdst(if,jf)))
+     &             (hym2 * (fdst(if,jf+jdir) - fdst(if,jf)))
                endif
             else
                center = center + cfac
@@ -212,7 +213,7 @@ c quadrants
      &            hym2c * (cdst(ic,jc+jdir) - cdst(ic,jc)))
                if (irz .eq. 1 .and. ic .eq. 0) then
                  sum = sum - ir * jr * sigmac(ic+ii-1,jc+ji-1) * 0.5d0 *
-     @             (hym2c * (cdst(ic,jc+jdir) - cdst(ic,jc)))
+     &             (hym2c * (cdst(ic,jc+jdir) - cdst(ic,jc)))
                endif
             end if
          end do
@@ -1855,10 +1856,10 @@ c-----------------------------------------------------------------------
          i = 0
          do j = regl1, regh1
             res(i,j) = res(i,j) + .25d0 * hym2 * 
-     @        ((sigy(i-1,j-1) + sigy(i,j-1)) *
-     @          (dest(i,j-1) - dest(i,j)) +
-     @         (sigy(i-1,j) + sigy(i,j)) *
-     @          (dest(i,j+1) - dest(i,j)))
+     &        ((sigy(i-1,j-1) + sigy(i,j-1)) *
+     &          (dest(i,j-1) - dest(i,j)) +
+     &         (sigy(i-1,j) + sigy(i,j)) *
+     &          (dest(i,j+1) - dest(i,j)))
          end do
       endif
 
