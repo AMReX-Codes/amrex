@@ -223,9 +223,9 @@ contains
        ! FIXME
        la2 = mgt%cc(1)%la
        call layout_build_derived(la1, la2)
-       call multifab_build(mgt%rh1, la1, mgt%nc, 0)
-       call multifab_build(mgt%uu1, la1, mgt%nc, 0)
-       call multifab_build(mgt%ss1, la1, ns,     0)
+       call multifab_build(mgt%rh1, la1, mgt%nc, 0, nodal)
+       call multifab_build(mgt%uu1, la1, mgt%nc, 0, nodal)
+       call multifab_build(mgt%ss1, la1, ns,     0, nodal)
     end if
 
     if ( present(dh) ) then
@@ -384,13 +384,18 @@ contains
           call mg_tower_smoother(mgt, lev, ss, uu, rh, mm)
        end do
     case (3)
-
        if ( parallel_nprocs() > 0 ) then
           ! call bl_error("can't do this yet")
           ! Copy into a local mf the rhs, copy out the solution to the distributed uu
           call copy(mgt%rh1, rh)
-          call sparse_solve(mgt%sparse_object, mgt%uu1, mgt%rh1, &
-               mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%verbose, stat)
+          if (nodal_q(rh)) then
+            call setval(mgt%uu1,zero)
+            call sparse_nodal_solve(mgt%sparse_object, mgt%uu1, mgt%rh1, &
+                 mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%verbose, stat)
+          else
+            call sparse_solve(mgt%sparse_object, mgt%uu1, mgt%rh1, &
+                 mgt%bottom_solver_eps, mgt%bottom_max_iter, mgt%verbose, stat)
+          end if
           call copy(uu, mgt%uu1)
        else
           call sparse_solve(mgt%sparse_object, uu, rh, &
