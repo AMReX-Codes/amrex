@@ -159,7 +159,6 @@ contains
           do ii = 1, ba%nboxes
              bx1 = ba%bxs(ii)
              if (box_contains(pd,bx1)) then
-               print *,'BX1 ',bx1%lo(1:2), bx1%hi(1:2)
                if (ib .eq. -1 .and. jb .eq. 0) then
                  do j = bx1%lo(2)-jlo+1,bx1%hi(2)-jlo+2
                    mm(1,j) = ibset(mm(1,j),BC_BIT(BC_DIR,1,0))
@@ -189,12 +188,6 @@ contains
           end do
           call destroy(ba)
        end do
-    end do
-
-    do j = 1,ny
-    do i = 1,nx
-      if (bc_dirichlet(mm(i,j),1,0)) print *,'DIR ',i,j
-    end do
     end do
 
     ! Set sg on edges at a Neumann boundary.
