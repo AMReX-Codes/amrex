@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.71 1999-02-03 21:55:32 lijewski Exp $
+// $Id: Amr.cpp,v 1.72 1999-03-05 23:18:37 almgren Exp $
 //
 
 #include <TagBox.H>
@@ -971,9 +971,9 @@ Amr::timeStep (int  level,
     int lev_top = Min(finest_level, max_level-1);
     for (int i = level; i <= lev_top; i++)
     {
-        if (level_count[i] >= regrid_int[i])
+        int old_finest = finest_level;
+        if (level_count[i] >= regrid_int[i] && amr_level[i].okToRegrid())
         {
-            int old_finest = finest_level;
             regrid(i,time);
             int k;
             for (k = i; k <= finest_level; k++)
@@ -1000,6 +1000,8 @@ Amr::timeStep (int  level,
                 }
             }
         }
+        if (old_finest > finest_level)
+          lev_top = Min(finest_level, max_level-1);
     }
     //
     // Advance grids at this level.
