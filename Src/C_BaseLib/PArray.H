@@ -2,7 +2,7 @@
 #define BL_PARRAY_H
 
 //
-// $Id: PArray.H,v 1.18 2001-07-20 01:45:48 car Exp $
+// $Id: PArray.H,v 1.19 2001-07-20 23:06:18 lijewski Exp $
 //
 
 #include <iostream>
@@ -150,10 +150,6 @@ public:
                in the PArray<T>.
     */
     T* remove (int i);
-    //
-    //@ManDoc: Returns true if the array is not empty.
-    //
-    bool ready () const;
 
 protected:
     //
@@ -251,13 +247,6 @@ PArray<T>::remove (int i)
 }
 
 template <class T>
-bool
-PArray<T>::ready () const
-{
-    return vp.ready();
-}
-
-template <class T>
 void
 PArray<T>::clear (int n)
 {
@@ -302,7 +291,7 @@ template <class T>
 void
 PArray<T>::resize (int newlen)
 {
-    void** ovp = vp.ready() ? &vp[0] : 0;
+    void** ovp = vp.size() ? &vp[0] : 0;
 
     int oldlen = vp.length();
 

@@ -2,14 +2,14 @@
 #define _BL_THREAD_H_
 
 //
-// $Id: Thread.H,v 1.5 2001-07-20 19:45:43 car Exp $
+// $Id: Thread.H,v 1.6 2001-07-20 23:06:18 lijewski Exp $
 //
 
 #ifdef BL_PTHREADS
 #include <pthread.h>
 #include <unistd.h>
 #else
-#if !( defined(__GNUC__) || defined(BL_AIX) )
+#if !( defined(__GNUC__) || defined(BL_AIX) || defined(BL_OSF1) )
 typedef int pthread_mutex_t;
 typedef int pthread_cond_t;
 typedef int pthread_key_t;

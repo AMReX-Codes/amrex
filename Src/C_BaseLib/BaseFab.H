@@ -2,7 +2,7 @@
 #define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.33 2001-07-20 17:20:48 car Exp $
+// $Id: BaseFab.H,v 1.34 2001-07-20 23:06:17 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -1981,27 +1981,6 @@ BaseFab<T>::copyRev (const Box&         destbox,
         destR = multiplier[_n]*srcR;
     } EndFor
 }
-
-#if !defined(BL_CRAY_BUG_DEFARG)
-//
-// Yes, a global function.
-//
-template <class T>
-void
-copyFABRev (const BaseFab<T>& src,
-            const Box&         srcbox,
-            BaseFab<T>&       dest,
-            const Box&         destbox,
-            int                reversal_index,
-            int                comp,
-            T                  multiplier)
-{
-    ForAllRevXBNYCBNNN(T,dest,destbox,comp,src,srcbox,comp,1,reversal_index)
-    {
-        destR = multiplier * srcR;
-    } EndFor
-}
-#endif
 
 template <class T>
 T

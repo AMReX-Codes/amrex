@@ -2,7 +2,7 @@
 #define BL_ARRAY_H
 
 //
-// $Id: Array.H,v 1.22 2001-07-20 17:01:44 car Exp $
+// $Id: Array.H,v 1.23 2001-07-20 23:06:17 lijewski Exp $
 //
 
 #include <cstddef>
@@ -79,26 +79,11 @@ public:
     */
     Array (const T* vec,
            size_t     len);
-
-    //
-    //@ManDoc: Returns true if this `Array<T>' is not empty.
-    //
-    bool ready  () const;
- 
-    /*@ManDoc: Shrink allocated memory to be just enough for elements in
-               Array.  This is useful if you allocated a lot of memory to
-               avoid memory allocation delays as you add elements.  Once all
-               the elements are added, you can reduce memory usage to
-               the minimum by calling this function.
-    */
-    void shrinkWrap ();
- 
     //
     //@ManDoc: Return number of elements in the array.
     //
     long length () const;
- 
- 
+  
     /*@ManDoc: Returns a reference to the K'th element in this `Array<T>'.
                The element can be modified through this reference.  The
                result can be used as an L-value.
@@ -142,13 +127,6 @@ private:
     //
     Array<T>& operator= (int);
 };
-
-template <class T>
-bool
-Array<T>::ready () const
-{
-    return size()==0?false:true;
-}
 
 template <class T>
 long

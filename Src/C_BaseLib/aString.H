@@ -2,7 +2,7 @@
 #define BL_ASTRING_H
 
 //
-// $Id: aString.H,v 1.16 2001-07-20 17:01:45 car Exp $
+// $Id: aString.H,v 1.17 2001-07-20 23:06:18 lijewski Exp $
 //
 
 #include <cstddef>
@@ -35,18 +35,14 @@ class aString;
 */
 
 class aString
-    : public std::string
+    :
+    public std::string
 {
 public:
     //
     //@ManDoc: Constructs an empty string.
     //
     aString ();
-
-    /*@ManDoc: Constructs an aString containing the single character c.
-               If c is the null character then this will be the empty string.
-    */
-    explicit aString (char c);
 
     /*@ManDoc: Constructs an empty aString but allocates enough space to hold
                a character string of length len.  This may be useful when
@@ -56,23 +52,12 @@ public:
                on an empty string.  In general though, you won't notice any
                difference and you really shouldn't use this constructor.
     */
-    aString(const std::string& str);
+    aString (const std::string& str);
     
-    explicit aString (size_type len);
-
     /*@ManDoc: Constructs an aString initialized to the character string s.
                It is an error is `s' is the null string.
     */
     aString (const char* s);
-    /*@ManDoc: Converts all characters in this aString to upper case.
-               Returns a reference to self to allow for operator chaining.
-    */
-    aString& toUpper ();
-
-    /*@ManDoc: Converts all characters in this aString to lower case.
-               Returns a reference to self to allow for operator chaining.
-    */
-    aString& toLower ();
 
     /*@ManDoc: Read the next line from the input stream strm and store it
                as the value of the string.  The delimiter for a line of text
@@ -81,12 +66,6 @@ public:
                limit to the length of string that can be extracted.
     */
     std::istream& getline (std::istream& strm);
-
-    /*@ManDoc: Returns the number of characters stored in this aString.
-               This does not include the terminating null character.
-    */
-    size_type length () const;
-
     //
     //@ManDoc: Returns true if this is the null string.
     //
@@ -101,29 +80,6 @@ public:
                if k < 0 or k >= length().
     */
     char operator[] (size_type k) const;
-
-
-    /*@ManDoc: Returns the value of the string as a double.  In the case
-               when the string is empty or when the initial characters
-               in the string are strictly alphabetic characters, this
-               returns zero.  It's equivalent to `atof(c\_str())'.
-    */
-    double toDouble () const;
-
-    /*@ManDoc: Returns the value of the string as a integer.  In the case
-               when the string is empty or when the initial characters
-               in the string are strictly alphabetic characters, this
-               returns zero.  It's equivalent to `atoi(c\_str())'.
-    */
-    int toInteger () const;
-
-    /*@ManDoc: Returns the value of the string as a long.  In the case
-               when the string is empty or when the initial characters
-               in the string are strictly alphabetic characters, this
-               returns zero.  It's equivalent to `atol(c\_str())'.
-    */
-    long toLong () const;
-
 };
 
 #endif /*BL_ASTRING_H*/

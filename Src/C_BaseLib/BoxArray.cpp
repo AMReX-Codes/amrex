@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.21 2001-07-19 19:02:42 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.22 2001-07-20 23:06:17 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -9,12 +9,6 @@ int
 BoxArray::length () const
 {
     return m_ref->m_abox.length();
-}
-
-bool
-BoxArray::ready () const
-{
-    return m_ref->m_abox.ready();
 }
 
 const Box&
