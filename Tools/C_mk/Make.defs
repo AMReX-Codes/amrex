@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.76 2004-08-24 22:33:16 car Exp $
+# Make.defs $Id: Make.defs,v 1.77 2004-08-25 19:32:27 car Exp $
 #
 
 #
@@ -210,11 +210,17 @@ ifeq ($(COMP),g++)
     endif
 endif
 ifeq ($(FCOMP),g77)
-    FC := g77
+    FC := g77 -fno-second-underscore
+    fC := g77 -fno-second-underscore
     FOPTF += -O
     fOPTF += -O
     FDEBF += -g
     fDEBF += -g
+    XTRALIBS += -lg2c
+    FDEBF +=   -ffortran-bounds-check 
+    FDEBF += -Wimplicit
+    fDEBF += -Wimplicit
+    fDEBF +=   -ffortran-bounds-check
 endif
 ifeq ($(FCOMP),gfortran)
     FC := gfortran -fno-second-underscore
