@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.10 1998-05-19 17:10:52 lijewski Exp $
+// $Id: Geometry.cpp,v 1.11 1998-05-19 20:27:04 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -73,7 +73,8 @@ operator << (ostream&                 os,
 
 Geometry::PIRMMap
 Geometry:: computePIRMMapForMultiFab(const BoxArray& grids,
-				     int             nGrow) const
+				     int             nGrow,
+                                     bool            no_ovlp) const
 {
     //
     // Build a MultiMap of <i,PIRec> pairs, where i is the index of
@@ -91,20 +92,50 @@ Geometry:: computePIRMMapForMultiFab(const BoxArray& grids,
     // Don't allocate any mem for it.
     //
     MultiFab mf(grids, 1, nGrow, Fab_noallocate);
+
+    Array<IntVect> pshifts(27);
     //
     // Do only those I own.
     //
-    Array<IntVect> pshifts(27);
-
     for (ConstMultiFabIterator mfmfi(mf); mfmfi.isValid(); ++mfmfi)
     {
+        assert(dest.ixType().cellCentered() || dest.ixType().nodeCentered());
+
 	Box dest = ::grow(mfmfi.validbox(), nGrow);
 
-	if (!Domain().contains(dest))
+        if (no_ovlp)
+        {
+            const Box& validbox = mfmfi.validbox();
+
+            for (int idir = 0; idir < BL_SPACEDIM; idir++)
+            {
+                //
+                // Shrink box if the +/- direction is not physical boundary.
+                //
+                if (validbox.smallEnd(idir) != Domain().smallEnd(idir))
+                    dest.growLo(idir,-nGrow);
+                if (validbox.bigEnd(idir) != Domain().bigEnd(idir))
+                    dest.growHi(idir,-nGrow);
+            }
+        }
+
+        bool doit = false;
+
+        if (dest.ixType().cellCentered())
+        {
+            doit = !Domain().contains(dest);
+        }
+        else
+        {
+            doit = ::grow(::surroundingNodes(Domain()),-1).contains(dest);
+        }
+
+	if (doit)
 	{
 	    for (int j = 0; j < len; j++)
 	    {
 		periodicShift(dest, grids[j], pshifts);
+
 		for (int iiv = 0; iiv < pshifts.length(); iiv++)
 		{
 		    IntVect& iv = pshifts[iiv];
@@ -203,12 +234,13 @@ Geometry::FillPeriodicFabArray (FabArray<Real,FArrayBox>& fa,
 void
 Geometry::FillPeriodicBoundary (MultiFab& mf,
                                 int       src_comp,
-                                int       num_comp) const
+                                int       num_comp,
+                                bool      no_ovlp) const
 {
     //
     // Get list of intersection boxes.
     //
-    PIRMMap pirm = computePIRMMapForMultiFab(mf.boxArray(), mf.nGrow());
+    PIRMMap pirm = computePIRMMapForMultiFab(mf.boxArray(),mf.nGrow(),no_ovlp);
     //
     // Fill intersection list.
     //

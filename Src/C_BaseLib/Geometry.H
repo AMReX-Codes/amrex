@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.9 1998-05-17 00:57:23 lijewski Exp $
+// $Id: Geometry.H,v 1.10 1998-05-19 20:27:03 lijewski Exp $
 //
 
 #include <CoordSys.H>
@@ -163,11 +163,15 @@ public:
     //
     //@ManDoc: Fill ghost cells with periodic data.
     //
-    void FillPeriodicBoundary (MultiFab& mf) const;
+    void FillPeriodicBoundary (MultiFab& mf,
+                               bool      no_ovlp = false) const;
     //
     //@ManDoc: Fill ghost cells with periodic data.
     //
-    void FillPeriodicBoundary (MultiFab& mf, int src_comp, int num_comp) const;
+    void FillPeriodicBoundary (MultiFab& mf,
+                               int       src_comp,
+                               int       num_comp,
+                               bool      no_ovlp = false) const;
     //
     // Src/dest box pairs to copy for periodic (PIR=periodic intersection record)
     //
@@ -204,7 +208,8 @@ public:
     // Compute periodic intersection records for data into each fab on this proc
     //
     PIRMMap computePIRMMapForMultiFab(const BoxArray& grids,
-				      int             nGrow) const;
+				      int             nGrow,
+                                      bool            no_ovlp = false) const;
     //
     // Fill peridoc cells in FabArray per PIRMMap
     //
@@ -319,9 +324,9 @@ Geometry::ProbLength (int dir)
 
 inline
 void
-Geometry::FillPeriodicBoundary (MultiFab& mf) const
+Geometry::FillPeriodicBoundary (MultiFab& mf, bool no_ovlp) const
 {
-    FillPeriodicBoundary(mf, 0, mf.nComp());
+    FillPeriodicBoundary(mf, 0, mf.nComp(), no_ovlp);
 }
 
 #endif /*_GEOMETRY_H_*/
