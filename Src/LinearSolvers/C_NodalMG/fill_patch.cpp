@@ -69,6 +69,7 @@ inner_product (const MultiFab& r,
 class task_bdy_fill : public task
 {
 public:
+
     task_bdy_fill (task_list&                tl_,
                    const amr_boundary_class* bdy_,
                    FArrayBox*                fab_,
@@ -120,9 +121,9 @@ task_bdy_fill::task_bdy_fill (task_list&                tl_,
     m_target_proc_id(target_proc_id),
     m_local(false)
 {
-    BL_ASSERT(m_bdy != 0);
-
     m_bx = m_bdy->image(m_region,m_smf.boxArray()[m_sgrid],m_domain);
+
+    BL_ASSERT(m_bdy != 0);
 
     if (m_fab != 0 && is_local(m_smf,m_sgrid))
     {
@@ -772,6 +773,7 @@ fill_internal_borders (MultiFab&              r,
 	    if (igrid < 0 || jgrid < 0 || lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL)
 		break;
 	    const Box& b = lev_interface.node_box(level_interface::FACEDIM, iface);
+	    // tl.add_task(new task_copy_2(r, igrid, r, jgrid, b, w));
             const int idim = lev_interface.fdim(iface);
             Box bj = lev_interface.node_box(level_interface::FACEDIM, iface);
             Box bi = lev_interface.node_box(level_interface::FACEDIM, iface);
@@ -900,10 +902,10 @@ private:
     FArrayBox*                  m_tmp;
     MultiFab&                   m_d;
     const MultiFab&             m_r;
-    const IntVect               m_rat;
-    const Box                   m_box;
     const int                   m_dgrid;
     const int                   m_rgrid;
+    const Box                   m_box;
+    const IntVect               m_rat;
     bool                        m_local;
 };
 
@@ -920,14 +922,14 @@ task_restric_fill::task_restric_fill (task_list&                  tl_,
     m_restric(restric),
     m_d(dest),
     m_r(r),
-    m_rat(rat),
-    m_box(box),
     m_dgrid(dgrid),
     m_rgrid(rgrid),
     m_tmp(0),
+    m_box(box),
+    m_rat(rat),
     m_local(false)
 {
-    if (is_local(m_d,m_dgrid) && is_local(m_r,m_rgrid))
+    if (is_local(m_d, m_dgrid) && is_local(m_r, m_rgrid))
     {
 	m_local = true;
 
@@ -983,7 +985,7 @@ task_restric_fill::startup (long& sndcnt, long& rcvcnt)
         if (is_local(m_d, m_dgrid))
         {
             static RunStats irecv_stats("hg_irecv");
-            m_tmp = new FArrayBox(m_box, m_r.nComp());
+            m_tmp = new FArrayBox(m_box, m_d.nComp());
             irecv_stats.start();
             rcvcnt = m_tmp->box().numPts()*m_tmp->nComp();
             int res = MPI_Irecv(m_tmp->dataPtr(),
@@ -1002,7 +1004,7 @@ task_restric_fill::startup (long& sndcnt, long& rcvcnt)
         else if (is_local(m_r, m_rgrid))
         {
             static RunStats isend_stats("hg_isend");
-            m_tmp = new FArrayBox(m_box, m_r.nComp());
+            m_tmp = new FArrayBox(m_box, m_d.nComp());
 	    m_restric.fill(*m_tmp, m_box, m_r[m_rgrid], m_rat);
             isend_stats.start();
             sndcnt = m_tmp->box().numPts()*m_tmp->nComp();
@@ -1046,7 +1048,7 @@ task_restric_fill::ready ()
     test_stats.end();
     if (flag)
     {
-	if (is_local(m_d,m_dgrid))
+	if (is_local(m_d, m_dgrid))
 	{
             m_d[m_dgrid].copy(*m_tmp);
 	}
@@ -1082,38 +1084,37 @@ task_restric_fill::hint () const
 }
 
 void
-restrict_level (MultiFab&                   crse_dest,
-                MultiFab&                   fine_src,
+restrict_level (MultiFab&                   dest,
+                MultiFab&                   r,
                 const IntVect&              rat,
                 const amr_restrictor_class& restric,
                 const level_interface&      lev_interface,
                 const amr_boundary_class*   bdy)
 {
-    BL_ASSERT(type(crse_dest) == type(fine_src));
+    BL_ASSERT(type(dest) == type(r));
 
-    HG_TEST_NORM(crse_dest, "restrict_level a");
+    HG_TEST_NORM( dest, "restrict_level a");
 
-    const BoxArray& fine_src_ba    = fine_src.boxArray();
-    const BoxArray& crse_dest_ba = crse_dest.boxArray();
+    const BoxArray& r_ba    = r.boxArray();
+    const BoxArray& dest_ba = dest.boxArray();
 
     task_list tl;
-    for (int jgrid = 0; jgrid < crse_dest.length(); jgrid++) 
+    for (int jgrid = 0; jgrid < dest.length(); jgrid++) 
     {
-	const Box& region = crse_dest_ba[jgrid];
+	const Box& region = dest_ba[jgrid];
 
-	for (int igrid = 0; igrid < fine_src.length(); igrid++) 
+	for (int igrid = 0; igrid < r.length(); igrid++) 
 	{
-	    Box cbox = restric.box(fine_src_ba[igrid], rat);
+	    Box cbox = restric.box(r_ba[igrid], rat);
 
 	    if (region.intersects(cbox)) 
 	    {
 		cbox &= region;
-
 		tl.add_task(new task_restric_fill(tl,
                                                   restric,
-                                                  crse_dest,
+                                                  dest,
                                                   jgrid,
-                                                  fine_src,
+                                                  r,
                                                   igrid,
                                                   cbox,
                                                   rat));
@@ -1124,8 +1125,8 @@ restrict_level (MultiFab&                   crse_dest,
 
     if (lev_interface.ok())
     {
-	restric.fill_interface(crse_dest, fine_src, lev_interface, bdy, rat);
+	restric.fill_interface( dest, r, lev_interface, bdy, rat);
     }
 
-    HG_TEST_NORM(crse_dest, "restrict_level a1");
+    HG_TEST_NORM( dest, "restrict_level a1");
 }
