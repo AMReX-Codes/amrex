@@ -377,37 +377,49 @@ static inline void node_dirs(int dir[2], const IntVect& typ)
 #endif
 
 
-class task_copy_2 : public task
+class task_copy_2 : public task_copy
 {
 public:
     task_copy_2(MultiFab& r1, int i1, const MultiFab& r2, int i2, const Box& bx, int w)
-	: m_r1(r1), m_i1(i1), m_r2(r2), m_i2(i2), m_bx(bx), m_w(w)
+	: task_copy(r1, i1, r2, i2, bx), m_w(w)
     {
-	    Real* ptra = m_r1[m_i1].dataPtr();
-	    const Real* ptrb = m_r2[m_i2].dataPtr();
-	    const Box& boxa = m_r1[m_i1].box();
-	    const Box& boxb = m_r2[m_i2].box();
-#if (BL_SPACEDIM == 2)
-	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(m_bx), &m_w, m_r1.nComp());
-#else
-	    const int ibord = m_r1.nGrow();
-	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(m_bx), &m_w, &ibord, m_r1.nComp());
-#endif
     }
     virtual bool ready()
     {
-	abort(); return true;
-    }
-    virtual bool init(sequence_number sno, MPI_Comm comm)
-    {
-	abort(); return false;
+	if ( m_local )
+	{
+	    doit(m_smf[m_sgrid]);
+	    return true;
+	}
+#ifdef BL_USE_MPI
+	int flag;
+	MPI_Status status;
+    	MPI_Test(&m_request, &flag, &status);
+	if ( flag )
+	{
+	    if ( is_local(m_mf, m_dgrid) )
+		doit(*tmp);
+	    return true;
+	}
+	return false;
+#endif
+	return true;
     }
 private:
-    MultiFab& m_r1;
-    const int m_i1;
-    const MultiFab& m_r2;
-    const int m_i2;
-    const Box m_bx;
+    void doit (const FArrayBox& m_sf)
+    {
+	    Real* ptra = m_mf[m_dgrid].dataPtr();
+	    const Real* ptrb = m_sf.dataPtr();
+	    const Box& boxa = m_mf[m_dgrid].box();
+	    const Box& boxb = m_sf.box();
+#if (BL_SPACEDIM == 2)
+	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(m_bx), &m_w, m_mf.nComp());
+#else
+	    const int ibord = m_mf.nGrow();
+	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(m_bx), &m_w, &ibord, m_mf.nComp());
+#endif
+    }
+
     const int m_w;
 };
 
@@ -571,34 +583,40 @@ void clear_part_interface(MultiFab& r, const level_interface& lev_interface)
     }
 }
 
-class task_restric_fill : public task
+class task_restric_fill : public task_copy
 {
 public:
     task_restric_fill(const amr_restrictor_class& restric,
 	MultiFab& dest, int dgrid, MultiFab& r, int rgrid, const Box& box, const IntVect& rat)
-	: m_restric(restric), m_dest(dest), m_dgrid(dgrid), m_rgrid(rgrid), m_r(r), m_box(box), m_rat(rat)
+	: m_restric(restric), task_copy(dest, dgrid, r, rgrid, box), m_rat(rat)
     {
-	m_restric.fill(m_dest[m_dgrid], m_box, m_r[m_rgrid], m_rat);
     }
     virtual bool ready();
-    virtual bool init(sequence_number sno, MPI_Comm comm)
-    {
-	abort(); return false;
-    }
 private:
     const amr_restrictor_class& m_restric;
-    MultiFab& m_dest;
-    const int m_dgrid;
-    MultiFab& m_r;
-    const int m_rgrid;
-    const Box m_box;
     const IntVect m_rat;
 };
 
 bool
 task_restric_fill::ready()
 {
-    abort(); return true;
+    if ( m_local )
+    {
+	m_restric.fill(m_mf[m_dgrid], m_bx, m_smf[m_sgrid], m_rat);
+	return true;
+    }
+#ifdef BL_USE_MPI
+    int flag;
+    MPI_Status status;
+    MPI_Test(&m_request, &flag, &status);
+    if ( flag )
+    {
+	if ( is_local(m_mf, m_dgrid) )
+	    m_restric.fill(m_mf[m_dgrid], m_bx, *tmp, m_rat);
+	return true;
+    }
+    return false;
+#endif
 }
 
 void restrict_level(MultiFab& dest, 

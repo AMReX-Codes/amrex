@@ -43,6 +43,13 @@ bool task_copy::init(sequence_number sno, MPI_Comm comm)
 	tmp->copy(m_smf[m_sgrid]);
 	MPI_Isend(tmp->dataPtr(), s_bx.numPts()*tmp->nComp(), MPI_DOUBLE, sno, processor_number(m_mf,  m_dgrid), comm, &m_request);
     }
+    else
+    {
+	// neither fab lives on local processor
+	return false;
+    }
+#else
+    m_local = true;
 #endif
     return true;
 }
@@ -66,9 +73,6 @@ bool task_copy::ready()
 	return true;
     }
     return false;
-#else
-    m_mf[m_dgrid].copy(m_smf[m_sgrid], s_bx, 0, m_bx, 0, m_mf.nComp());
-    return true;
 #endif
 }
 
