@@ -1,7 +1,8 @@
 c-----------------------------------------------------------------------
-      subroutine hgavg(src, srcl0, srch0, srcl1, srch1, srcl2, srch2,
-     & rf, fl0, fh0, fl1, fh1, fl2, fh2,
-     & fregl0, fregh0, fregl1, fregh1, fregl2, fregh2)
+      subroutine hgavg(
+     & src, srcl0, srch0, srcl1, srch1, srcl2, srch2,
+     & rf,  fl0, fh0, fl1, fh1, fl2, fh2,
+     &      fregl0, fregh0, fregl1, fregh1, fregl2, fregh2)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer fregl0,fregh0,fregl1,fregh1,fregl2,fregh2
@@ -24,13 +25,11 @@ c-----------------------------------------------------------------------
       end
 c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgfavg(src,
-     & srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & rc,
-     & cl0,ch0,cl1,ch1,cl2,ch2,
-     & rf,
-     & fl0,fh0,fl1,fh1,fl2,fh2,
-     & cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
+      subroutine hgfavg(
+     & src, srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     & rc,  cl0,ch0,cl1,ch1,cl2,ch2,
+     & rf,  fl0,fh0,fl1,fh1,fl2,fh2,
+     &      cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
      & ir, jr, kr, idim, idir)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer cl0,ch0,cl1,ch1,cl2,ch2
@@ -169,13 +168,11 @@ c Note---only generates values at coarse points along edge of fine grid
       end
 c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgeavg(src,
-     & srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & rc,
-     & cl0,ch0,cl1,ch1,cl2,ch2,
-     & rf,
-     & fl0,fh0,fl1,fh1,fl2,fh2,
-     & cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
+      subroutine hgeavg(
+     & src, srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     & rc,  cl0,ch0,cl1,ch1,cl2,ch2,
+     & rf,  fl0,fh0,fl1,fh1,fl2,fh2,
+     &      cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
      & ir, jr, kr, ivect, ga)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer cl0,ch0,cl1,ch1,cl2,ch2
@@ -491,13 +488,11 @@ c each face is two faces and two sides of an edge
       end
 c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgcavg(src,
-     & srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & rc,
-     & cl0,ch0,cl1,ch1,cl2,ch2,
-     & rf,
-     & fl0,fh0,fl1,fh1,fl2,fh2,
-     & cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
+      subroutine hgcavg(
+     & src, srcl0,srch0,srcl1,srch1,srcl2,srch2,
+     & rc,  cl0,ch0,cl1,ch1,cl2,ch2,
+     & rf,  fl0,fh0,fl1,fh1,fl2,fh2,
+     &      cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
      & ir, jr, kr, ga)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer cl0,ch0,cl1,ch1,cl2,ch2

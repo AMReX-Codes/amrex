@@ -45,7 +45,7 @@ int main(int argc, char **argv)
 #endif
     ParallelDescriptor::StartParallel(1, &argc, &argv);
     
-    for(int i = 1; i < argc; ++i)
+    for (int i = 1; i < argc; ++i)
 	driver(argv[i]);
     ParallelDescriptor::EndParallel();
     return 0;
@@ -483,7 +483,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     inviscid_fluid_boundary_class afb(bc);
     holy_grail_amr_projector proj(m, ratio, domain[m.length() - 1], 0, m.length() - 1, m.length() - 1, afb, false, true, false, pcode);
 #if (BL_SPACEDIM == 2)
-    if(!hg_terrain)
+    if (!hg_terrain)
     {
 	rz_adj(u, rhs, rhoinv, m, domain);
 	proj.SetRZ();

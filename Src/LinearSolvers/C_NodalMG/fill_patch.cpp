@@ -19,16 +19,16 @@ extern "C"
     void FORT_FIPRODN(const Real*, intS, const Real*, intS, intS, Real&);
     void FORT_FFCPY(Real*, intS, intS, const Real*, intS, const int&);
 #if (BL_SPACEDIM == 2)
-    void FORT_FFCPY2(Real*, intS, Real*, intS, intS, const int&, const int&);
+    void FORT_FFCPY2(Real*, intS, const Real*, intS, intS, const int&, const int&);
 #else
-    void FORT_FFCPY2(Real*, intS, Real*, intS, intS, const int&, const int&, const int&);
+    void FORT_FFCPY2(Real*, intS, const Real*, intS, intS, const int&, const int&, const int&);
 #endif
 }
 
 void internal_copy(MultiFab& r, int destgrid, int srcgrid, const Box& b) 
 {
-    Real *const dptr = r[destgrid].dataPtr();
-    Real *const sptr = r[srcgrid].dataPtr();
+    Real* dptr = r[destgrid].dataPtr();
+    const Real* sptr = r[srcgrid].dataPtr();
     const Box& dbx = r[destgrid].box();
     const Box& sbx = r[srcgrid].box();
     FORT_FFCPY(dptr, DIMLIST(dbx), DIMLIST(b), sptr, DIMLIST(sbx), r.nComp());
@@ -524,13 +524,13 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 #endif
 	for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
 	{
-	    int igrid = lev_interface.fgrid(iface, 0);
-	    int jgrid = lev_interface.fgrid(iface, 1);
+	    const int igrid = lev_interface.fgrid(iface, 0);
+	    const int jgrid = lev_interface.fgrid(iface, 1);
 	    if (igrid < 0 || jgrid < 0 || lev_interface.fgeo(iface) != level_interface::ALL)
 		break;
 	    const Box& b = lev_interface.node_face(iface);
-	    Real *const ptra = r[igrid].dataPtr();
-	    Real *const ptrb = r[jgrid].dataPtr();
+	    Real* ptra = r[igrid].dataPtr();
+	    const Real* ptrb = r[jgrid].dataPtr();
 	    const Box& boxa = r[igrid].box();
 	    const Box& boxb = r[jgrid].box();
 #  if (BL_SPACEDIM == 2)
@@ -545,8 +545,8 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
     {
 	for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
 	{
-	    int igrid = lev_interface.fgrid(iface, 0);
-	    int jgrid = lev_interface.fgrid(iface, 1);
+	    const int igrid = lev_interface.fgrid(iface, 0);
+	    const int jgrid = lev_interface.fgrid(iface, 1);
 	    if (igrid < 0 || jgrid < 0 || lev_interface.fgeo(iface) != level_interface::ALL)
 		break;
 	    const int idim = lev_interface.fdim(iface);
@@ -619,8 +619,8 @@ void clear_part_interface(MultiFab& r, const level_interface& lev_interface)
 	for (int ibox = 0; ibox < lev_interface.nboxes(i); ibox++) 
 	{
 	    // coarse-fine face contained in part_fine grid, or orphan edge/corner
-	    int igrid;
-	    if ((igrid = lev_interface.aux(i, ibox)) >= 0)
+	    int igrid = lev_interface.aux(i, ibox);
+	    if ( igrid >= 0 )
 		r[igrid].setVal(0.0, lev_interface.node_box(i, ibox), 0);
 	}
     }
@@ -634,8 +634,8 @@ void interpolate_patch(FArrayBox& patch, const Box& region,
 {
     assert(region.sameType(patch.box()));
     
-    Box cb = interp.box(region, rat);
-    int igrid = find_patch(cb, r, 0);
+    const Box cb = interp.box(region, rat);
+    const int igrid = find_patch(cb, r, 0);
     if (igrid == -1) 
     {
 	FArrayBox cgr(cb, r.nComp());

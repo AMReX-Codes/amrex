@@ -63,7 +63,7 @@ public:
     const Box& node_box(int idim, int i) const { return nodebx[idim][i]; }
     unsigned geo(int idim, int i)     const { return ge[idim][i]; }
     unsigned aux(int idim, int i)     const { return ax[idim][i]; }
-    unsigned flag(int idim, int i)    const { return flg[idim][i]; }
+    bool flag(int idim, int i)        const { return flg[idim][i]; }
 
     int ncorners()                    const { return nbx[0]; }
     const Box& corner(int i)          const { return bx[0][i]; }
@@ -76,7 +76,7 @@ public:
     const Box& face(int i)            const { return bx[FACEDIM][i]; }
     const Box& node_face(int i)       const { return nodebx[FACEDIM][i]; }
     unsigned fgeo(int i)              const { return ge[FACEDIM][i]; }
-    unsigned fflag(int i)             const { return flg[FACEDIM][i]; }
+    bool fflag(int i)                 const { return flg[FACEDIM][i]; }
 
     
 private:
@@ -84,17 +84,17 @@ private:
     Box dom;				// BoxArray doesn't know domain
     BoxArray im;			// interior BoxArray
     BoxArray em;			// exterior BoxArray
-    int *grid_ref;                    // one for each exterior box
-    Box *pf;                          // expanded NODE boxes for interior grids
+    int* grid_ref;                    // one for each exterior box
+    Box* pf;                          // expanded NODE boxes for interior grids
     int nbx[BL_SPACEDIM];             // numbers of interface boxes
-    Box *bx[BL_SPACEDIM];             // array of interface boxes
+    Box* bx[BL_SPACEDIM];             // array of interface boxes
     unsigned *ge[BL_SPACEDIM];        // geometries of interface boxes
-    int *ax[BL_SPACEDIM];             // if >= 0, gives the number of the
+    int* ax[BL_SPACEDIM];             // if >= 0, gives the number of the
     // grid which must be cleared of bogus data along this edge, corner,
     // or face after computing on the part_fine section of that grid
-    unsigned *flg[BL_SPACEDIM];       // flags dirichlet bdys
-    int *fdm;                         // which is flat dim for this face
-    Box *nodebx[BL_SPACEDIM];         // node-based versions of interface boxes
+    bool* flg[BL_SPACEDIM];       // flags dirichlet bdys
+    int* fdm;                         // which is flat dim for this face
+    Box* nodebx[BL_SPACEDIM];         // node-based versions of interface boxes
     int (*fgr)[2];                    // grid neighbor data for faces
     int (*egr)[N_EDGE_GRIDS];         // grid neighbor data for edges
     int (*cgr)[N_CORNER_GRIDS];       // grid neighbor data for corners

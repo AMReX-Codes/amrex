@@ -1,9 +1,9 @@
 c-----------------------------------------------------------------------
-      subroutine hggrad_terrain(gpx, gpy, gpz,
-     & gpl0,gph0,gpl1,gph1,gpl2,gph2,
-     & dest,
-     & destl0,desth0,destl1,desth1,destl2,desth2,
-     & fregl0,fregh0,fregl1,fregh1,fregl2,fregh2)
+      subroutine hggrad_terrain(
+     & gpx, gpy, gpz,
+     &       gpl0,gph0,gpl1,gph1,gpl2,gph2,
+     & dest, destl0,desth0,destl1,desth1,destl2,desth2,
+     &       fregl0,fregh0,fregl1,fregh1,fregl2,fregh2)
       integer gpl0,gph0,gpl1,gph1,gpl2,gph2
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer fregl0,fregh0,fregl1,fregh1,fregl2,fregh2
@@ -35,11 +35,11 @@ c-----------------------------------------------------------------------
       end do
       end
 c-----------------------------------------------------------------------
-      subroutine hgdiv_terrain(src,
-     & srcl0,srch0,srcl1,srch1,srcl2,srch2,
+      subroutine hgdiv_terrain(
+     & src, srcl0,srch0,srcl1,srch1,srcl2,srch2,
      & uf, vf, wf,
-     & fl0,fh0,fl1,fh1,fl2,fh2,
-     & fregl0,fregh0,fregl1,fregh1,fregl2,fregh2)
+     &      fl0,fh0,fl1,fh1,fl2,fh2,
+     &      fregl0,fregh0,fregl1,fregh1,fregl2,fregh2)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer fregl0,fregh0,fregl1,fregh1,fregl2,fregh2
@@ -72,13 +72,13 @@ c-----------------------------------------------------------------------
       end
 c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgfdiv_terrain(src,
-     & srcl0,srch0,srcl1,srch1,srcl2,srch2,
+      subroutine hgfdiv_terrain(
+     & src, srcl0,srch0,srcl1,srch1,srcl2,srch2,
      & uc, vc, wc,
-     & cl0,ch0,cl1,ch1,cl2,ch2,
+     &      cl0,ch0,cl1,ch1,cl2,ch2,
      & uf, vf, wf,
-     & fl0,fh0,fl1,fh1,fl2,fh2,
-     & cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
+     &      fl0,fh0,fl1,fh1,fl2,fh2,
+     &      cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
      & ir, jr, kr, idim, idir)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer cl0,ch0,cl1,ch1,cl2,ch2
@@ -284,13 +284,13 @@ c Note---only generates values at coarse points along edge of fine grid
       end
 c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgediv_terrain(src,
-     & srcl0,srch0,srcl1,srch1,srcl2,srch2,
+      subroutine hgediv_terrain(
+     & src, srcl0,srch0,srcl1,srch1,srcl2,srch2,
      & uc, vc, wc,
-     & cl0,ch0,cl1,ch1,cl2,ch2,
+     &      cl0,ch0,cl1,ch1,cl2,ch2,
      & uf, vf, wf,
-     & fl0,fh0,fl1,fh1,fl2,fh2,
-     & cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
+     &     fl0,fh0,fl1,fh1,fl2,fh2,
+     &     cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
      & ir, jr, kr, ivect, ga)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer cl0,ch0,cl1,ch1,cl2,ch2
@@ -655,13 +655,13 @@ c weighting
       end
 c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgcdiv_terrain(src,
-     & srcl0,srch0,srcl1,srch1,srcl2,srch2,
+      subroutine hgcdiv_terrain(
+     & src, srcl0,srch0,srcl1,srch1,srcl2,srch2,
      & uc, vc, wc,
-     & cl0,ch0,cl1,ch1,cl2,ch2,
+     &      cl0,ch0,cl1,ch1,cl2,ch2,
      & uf, vf, wf,
-     & fl0,fh0,fl1,fh1,fl2,fh2,
-     & cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
+     &      fl0,fh0,fl1,fh1,fl2,fh2,
+     &      cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
      & ir, jr, kr, ga)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer cl0,ch0,cl1,ch1,cl2,ch2
@@ -838,11 +838,11 @@ c weighting
       src(if,jf,kf) = .25d0 * sum 
       end
 c-----------------------------------------------------------------------
-      subroutine hggrad(gpx, gpy, gpz,
-     & gpl0,gph0,gpl1,gph1,gpl2,gph2,
-     & dest,
-     & destl0,desth0,destl1,desth1,destl2,desth2,
-     & fregl0,fregh0,fregl1,fregh1,fregl2,fregh2,
+      subroutine hggrad(
+     & gpx, gpy, gpz,
+     &       gpl0,gph0,gpl1,gph1,gpl2,gph2,
+     & dest, destl0,desth0,destl1,desth1,destl2,desth2,
+     &       fregl0,fregh0,fregl1,fregh1,fregl2,fregh2,
      & hx, hy, hz)
       integer gpl0,gph0,gpl1,gph1,gpl2,gph2
       integer destl0,desth0,destl1,desth1,destl2,desth2
@@ -877,11 +877,11 @@ c-----------------------------------------------------------------------
       end do
       end
 c-----------------------------------------------------------------------
-      subroutine hgdiv(src,
-     & srcl0,srch0,srcl1,srch1,srcl2,srch2,
+      subroutine hgdiv(
+     & src, srcl0,srch0,srcl1,srch1,srcl2,srch2,
      & uf, vf, wf,
-     & fl0,fh0,fl1,fh1,fl2,fh2,
-     & fregl0,fregh0,fregl1,fregh1,fregl2,fregh2,
+     &      fl0,fh0,fl1,fh1,fl2,fh2,
+     &      fregl0,fregh0,fregl1,fregh1,fregl2,fregh2,
      & hx, hy, hz)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
@@ -919,12 +919,12 @@ c-----------------------------------------------------------------------
       end
 c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgfdiv(src,
-     & srcl0,srch0,srcl1,srch1,srcl2,srch2,
+      subroutine hgfdiv(
+     & src, srcl0,srch0,srcl1,srch1,srcl2,srch2,
      & uc, vc, wc,
-     & cl0,ch0,cl1,ch1,cl2,ch2,
+     &      cl0,ch0,cl1,ch1,cl2,ch2,
      & uf, vf, wf,
-     & fl0,fh0,fl1,fh1,fl2,fh2,
+     &      fl0,fh0,fl1,fh1,fl2,fh2,
      & cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
      & hx, hy, hz, ir, jr, kr, idim, idir)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
@@ -1150,13 +1150,13 @@ c Note---only generates values at coarse points along edge of fine grid
       end
 c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgediv(src,
-     & srcl0,srch0,srcl1,srch1,srcl2,srch2,
+      subroutine hgediv(
+     & src, srcl0,srch0,srcl1,srch1,srcl2,srch2,
      & uc, vc, wc,
-     & cl0,ch0,cl1,ch1,cl2,ch2,
+     &      cl0,ch0,cl1,ch1,cl2,ch2,
      & uf, vf, wf,
-     & fl0,fh0,fl1,fh1,fl2,fh2,
-     & cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
+     &      fl0,fh0,fl1,fh1,fl2,fh2,
+     &      cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
      & hx, hy, hz, ir, jr, kr, ivect, ga)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer cl0,ch0,cl1,ch1,cl2,ch2
@@ -1556,13 +1556,13 @@ c weighting
       end
 c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgcdiv(src,
-     & srcl0,srch0,srcl1,srch1,srcl2,srch2,
+      subroutine hgcdiv(
+     & src, srcl0,srch0,srcl1,srch1,srcl2,srch2,
      & uc, vc, wc,
-     & cl0,ch0,cl1,ch1,cl2,ch2,
+     &      cl0,ch0,cl1,ch1,cl2,ch2,
      & uf, vf, wf,
-     & fl0,fh0,fl1,fh1,fl2,fh2,
-     & cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
+     &      fl0,fh0,fl1,fh1,fl2,fh2,
+     &      cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
      & hx, hy, hz, ir, jr, kr, ga)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer cl0,ch0,cl1,ch1,cl2,ch2
