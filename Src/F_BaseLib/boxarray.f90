@@ -14,9 +14,9 @@ module boxarray_module
      type(box), pointer :: bxs(:) => Null()
   end type boxarray
 
-  interface dim
-     module procedure boxarray_dim
-  end interface
+!  interface dim
+!     module procedure boxarray_dim
+!  end interface
 
   interface empty
      module procedure boxarray_empty
@@ -861,7 +861,7 @@ contains
     integer :: dm
     integer :: ext(pd%dim)
     if ( size(bxl) == 0 ) return
-    dm = dim(front(bxl))
+    dm = box_dim(front(bxl))
     ext = extent(pd)
     call norm
   contains
@@ -896,7 +896,7 @@ contains
     integer :: dm
     
     if ( size(bxl) == 0 ) return
-    dm = dim(front(bxl))
+    dm = box_dim(front(bxl))
     do while ( simp_old() > 0 )
     end do
 

@@ -56,10 +56,10 @@ module fab_module
   end type lfab
 
   !! Returns the Dimension  of the FAB
-  interface dim
-     module procedure fab_dim
-     module procedure ifab_dim
-  end interface
+!  interface get_dim
+!     module procedure fab_dim
+!     module procedure ifab_dim
+!  end interface
 
   !! Returns whether the FAB has been built, this is different from
   !! whether the underlying pointer has been allocated since on parallel
@@ -571,12 +571,12 @@ contains
   function fab_dim(fb) result(r)
     type(fab), intent(in) :: fb
     integer :: r
-    r = dim(fb%bx)
+    r = box_dim(fb%bx)
   end function fab_dim
   function ifab_dim(fb) result(r)
     type(ifab), intent(in) :: fb
     integer :: r
-    r = dim(fb%bx)
+    r = box_dim(fb%bx)
   end function ifab_dim
 
   function fab_dataptr(fb) result(r)
@@ -939,8 +939,14 @@ contains
     call unit_skip(un, skip)
     write(unit=un, fmt='(" NC      = ",i2)') fb%nc
     call unit_skip(un, skip)
-    write(unit=un, fmt='(" BX      = ",i2)', advance = 'no')
+    write(unit=un, fmt='(" IBX     = ",i2)', advance = 'no')
     call print(fb%ibx, unit = un)
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" PBX     = ",i2)', advance = 'no')
+    call print(fb%pbx, unit = un)
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" BX      = ",i2)', advance = 'no')
+    call print(fb%bx, unit = un)
     if ( .not. associated(fb%p) ) then
        call unit_skip(un, skip)
        write(unit=un) 'NOT ASSOCIATED'
@@ -1061,8 +1067,14 @@ contains
     call unit_skip(un, skip)
     write(unit=un, fmt='(" NC      = ",i2)') fb%nc
     call unit_skip(un, skip)
-    write(unit=un, fmt='(" BX      = ",i2)', advance = 'no')
+    write(unit=un, fmt='(" IBX     = ",i2)', advance = 'no')
     call print(fb%ibx, unit = un)
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" PBX     = ",i2)', advance = 'no')
+    call print(fb%pbx, unit = un)
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" BX      = ",i2)', advance = 'no')
+    call print(fb%bx, unit = un)
     if ( .not. associated(fb%p) ) then
        call unit_skip(un, skip)
        write(unit=un) 'NOT ASSOCIATED'
@@ -1183,8 +1195,14 @@ contains
     call unit_skip(un, skip)
     write(unit=un, fmt='(" NC      = ",i2)') fb%nc
     call unit_skip(un, skip)
-    write(unit=un, fmt='(" BX      = ",i2)', advance = 'no')
+    write(unit=un, fmt='(" IBX     = ",i2)', advance = 'no')
     call print(fb%ibx, unit = un)
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" PBX     = ",i2)', advance = 'no')
+    call print(fb%pbx, unit = un)
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" BX      = ",i2)', advance = 'no')
+    call print(fb%bx, unit = un)
     if ( .not. associated(fb%p) ) then
        call unit_skip(un, skip)
        write(unit=un) 'NOT ASSOCIATED'

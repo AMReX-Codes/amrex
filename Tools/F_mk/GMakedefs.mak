@@ -172,9 +172,8 @@ ifeq ($(ARCH),Linux)
     endif
     ifeq ($(_comp),Intel8)
       ifndef NDEBUG
-                                # Someday, can eliminate these	
-        F90FLAGS += -g 
-        FFLAGS   += -g 
+        F90FLAGS += -g -traceback
+        FFLAGS   += -g -traceback
         F90FLAGS += -check all
         FFLAGS   += -check all
         F90FLAGS += -check noshape -check nopointer

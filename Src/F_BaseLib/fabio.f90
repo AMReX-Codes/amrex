@@ -8,6 +8,7 @@ module fabio_module
   use bl_types
   use fab_module
   use multifab_module
+  use mboxarray_module
   use parallel
 
   implicit none
@@ -549,5 +550,162 @@ contains
       end do
     end subroutine build_ns_plotfile
   end subroutine fabio_ml_multifab_read_d
+
+  subroutine fabio_ml_boxarray_read(mba, root)
+    use bl_stream_module
+    use bl_IO_module
+    type(mboxarray), intent(out) :: mba
+    character(len=*), intent(in) :: root
+    integer :: lun
+    type(bl_stream) :: strm, strm1
+    character(len=256) :: str
+
+    call build(strm)
+    lun = bl_stream_the_unit(strm)
+    open(unit=lun, &
+         file = trim(root) // "/" // "Header", &
+         status = 'old', action = 'read')
+    read(unit=lun,fmt='(a)') str
+    if ( str == '&ML_MULTIFAB' ) then
+       call bl_error("PLOTFILE_BUILD: not implemented")
+    else if ( str == 'NavierStokes-V1.1' .or. str == 'HyperCLaw-V1.1' ) then 
+       call build_ns_plotfile
+    else
+       call bl_error('FABIO_ML_MULTIFAB_WRITE_D: Header has improper magic string', str)
+    end if
+    call destroy(strm)
+
+  contains
+
+    ! NavierStokes-V1.1 Plotfile Formats
+    ! Record
+    !     : c : NavierStokes-V1.1/HyperClaw-V1.1
+    !     : c : Numbers of fields = n
+    !    n: i : Field Names
+    !     : i : Dimension = dm
+    !     : r : Time
+    !     : i : Number of Levels - 1 : nl
+    !     : r : Physical domain lo end [1:dm]
+    !     : r : Physical domain hi end [1:dm]
+    !     : i : Refinement Ratios [1:nl-1]
+    !     : b : Prob domains per level [1:nl]
+    !     : i : unused [1:nl]
+    !   nl: r : grid spacing, per level, [1:dm]
+    !     : i : unused  :
+    !     : i : unused
+    !     For each level
+    !     [
+    !       : iiri : dummy, nboxes, dummy, dummy
+    !       For each box, j
+    !       [
+    !         : r :  plo[1:dm,j], phi[1:dm, j]
+    !       ]
+    !       : c : level directory
+    !     ]
+    !     Close Header File
+    !     For each level
+    !     [
+    !       Open Header of sub-directory
+    !       : iiii: dummy, dummy, ncomponents, dummy
+    !       : i ; '(', nboxes dummy
+    !       For each box, j
+    !       [
+    !         : b : bx[j]
+    !       ]
+    !       :  : ')'
+    !       For each box, j
+    !       [
+    !         : ci : 'FabOnDisk: ' Filename[j], Offset[j]
+    !       ]
+    !       : i : nboxes, ncomponents
+    !       For each box, j
+    !       [
+    !         : r : min[j]
+    !       ]
+    !       : i : nboxes, ncomponents
+    !       For each box, j
+    !       [
+    !         : r : man[j]
+    !       ]
+    !       Close subgrid file
+    !     ]
+
+    subroutine build_ns_plotfile()
+      integer :: i, n, k
+      integer :: j, nc
+      character(len=256) :: str, str1, cdummy, filename
+      integer :: idummy, lun1, fd
+      real(kind=dp_t) :: rdummy
+      integer :: nvars, dm, flevel
+      integer :: nboxes
+      type(box), allocatable :: bxs(:)
+      type(box) :: bdummy
+      character(len=256) :: fileprefix
+      character(len=256) :: header
+
+      read(unit=lun,fmt=*) nvars
+      do i = 1, nvars
+         read(unit=lun,fmt='(a)') cdummy
+      end do
+      read(unit=lun, fmt=*) dm
+      read(unit=lun, fmt=*) rdummy
+      read(unit=lun, fmt=*) flevel
+      flevel = flevel + 1
+
+      call build(mba, flevel, dm)
+
+      read(unit=lun, fmt=*) (rdummy, k=1, 2*dm)
+      !! Not make this really work correctly, I need to see if these are
+      !! IntVects here.  I have no examples of this.
+      read(unit=lun, fmt=*) mba%rr(:,1)
+      mba%rr(:,2:dm) = spread(mba%rr(:,1), dim=2, ncopies=dm-1)
+
+      do i = 1, flevel
+         call box_read(bdummy, unit = lun)
+      end do
+      read(unit=lun, fmt=*) (idummy, i=1, flevel)
+      do i = 1, flevel
+         read(unit=lun, fmt=*) (rdummy,j=1,dm)
+      end do
+
+      read(unit=lun, fmt=*) idummy, idummy
+      do i = 1, flevel
+         read(unit=lun, fmt=*) idummy, nboxes, rdummy, idummy
+         do j = 1, nboxes
+            read(unit=lun, fmt=*) (rdummy, k=1, 2*dm)
+         end do
+         read(unit=lun, fmt='(a)') str
+         str1 = str(:index(str, "/")-1)
+         fileprefix = str1
+         str1 = trim(str(index(str, "/")+1:)) // "_H"
+         header = trim(str1)
+         call bl_stream_build(strm1)
+         lun1 = bl_stream_the_unit(strm1)
+         open(unit=lun1, &
+              action = 'read', &
+              status = 'old', file = trim(trim(root) // "/" //  &
+              trim(fileprefix) // "/" // &
+              trim(header)) )
+         read(unit=lun1, fmt=*) idummy, idummy, nc, idummy
+         allocate(bxs(nboxes))
+         if ( nc /= nvars ) &
+              call bl_error("BUILD_PLOTFILE: unexpected nc", nc)
+         call bl_stream_expect(strm1, '(')
+         n = bl_stream_scan_int(strm1)
+         if ( n /= nboxes ) &
+              call bl_error("BUILD_PLOTFILE: unexpected n", n)
+         idummy = bl_stream_scan_int(strm1)
+         do j = 1, nboxes
+            call box_read(bxs(j), unit = lun1)
+         end do
+         call bl_stream_expect(strm1, ')')
+         call build(mba%bas(i), bxs)
+         deallocate(bxs)
+         close(unit=lun1)
+         call destroy(strm1)
+      end do
+      close(unit=lun)
+    end subroutine build_ns_plotfile
+  end subroutine fabio_ml_boxarray_read
 
 end module fabio_module

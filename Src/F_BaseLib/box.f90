@@ -42,9 +42,9 @@ module box_module
   end interface
 
   !! Returns the dimensionality of the box.
-  interface dim
-     module procedure box_dim
-  end interface
+!  interface dim
+!     module procedure box_dim
+!  end interface
 
   !! Returns the volume of the box as a ll_t
   interface volume
