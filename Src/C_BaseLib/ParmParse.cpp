@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.39 2001-08-13 01:54:26 car Exp $
+// $Id: ParmParse.cpp,v 1.40 2001-08-23 21:44:32 car Exp $
 //
 #include <winstd.H>
 
@@ -24,7 +24,7 @@
 //
 // Used by constructor to build table.
 //
-ParmParse::PP_entry::PP_entry (const std::string&		  name,
+ParmParse::PP_entry::PP_entry (const std::string& name,
                     const std::list<std::string>& vals)
     :
     m_name(name),
@@ -37,7 +37,7 @@ ParmParse::PP_entry::PP_entry (const std::string&		  name,
     }
 }
 
-ParmParse::PP_entry::PP_entry (const std::string&		  name,
+ParmParse::PP_entry::PP_entry (const std::string& name,
                     const std::list<PP_entry>&   table)
     :
     m_name(name),

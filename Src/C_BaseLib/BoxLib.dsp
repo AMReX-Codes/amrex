@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Target_Dir ""
 # ADD BASE F90 /compile_only /nologo /warn:nofileopt
 # ADD F90 /compile_only /iface:cref /libs:dll /nologo /threads /warn:nofileopt
-# ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /YX /FD /D "_LIB /D " _MBCS" /c
+# ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_LIB /D" /YX /FD _MBCS" /c
 # ADD CPP /nologo /MD /W3 /GR /GX /O2 /I "." /I "..\BoxLib" /D "WIN32" /D "NDEBUG" /D "_LIB" /D "_MBCS" /D "BL_LANG_CC" /D for="if(0);else for" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /YX /FD /c
 # ADD BASE RSC /l 0x409
 # ADD RSC /l 0x409
@@ -339,10 +339,6 @@ SOURCE=.\Profiler.H
 # Begin Source File
 
 SOURCE=.\Real.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\RunStats.H
 # End Source File
 # Begin Source File
 

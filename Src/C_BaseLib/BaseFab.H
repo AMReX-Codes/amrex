@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.44 2001-08-15 16:25:21 lijewski Exp $
+// $Id: BaseFab.H,v 1.45 2001-08-23 21:44:32 car Exp $
 //
 #include <winstd.H>
 
@@ -73,8 +73,9 @@ public:
     {
 	friend class BaseFab;
     public:
-	BFProxy operator[] (const Box& bx) const;
-	BFProxy operator[] (int n) const;
+	BFProxy operator() (const Box& bx, int n) const;
+	BFProxy operator() (const Box& bx) const;
+	BFProxy operator() (int n) const;
 	BFProxy& operator= (const T& t);
     private:
 	enum {ALL = -1};
@@ -87,8 +88,9 @@ public:
     {
 	friend class BaseFab;
     public:
-	CBFProxy operator[] (const Box& bx) const;
-	CBFProxy operator[] (int n) const;
+	CBFProxy operator() (const Box& bx, int n) const;
+	CBFProxy operator() (const Box& bx) const;
+	CBFProxy operator() (int n) const;
     private:
 	enum {ALL = -1};
 	CBFProxy (BaseFab& bf, const Box& bx, int n);
@@ -109,10 +111,12 @@ public:
     //
     // Proxy Interface
     //
-    BFProxy operator[] (const Box& bx);
-    BFProxy operator[] (int n);
-    CBFProxy operator[] (const Box& bx) const;
-    CBFProxy operator[] (int n) const;
+    BFProxy operator() (const Box& bx, int n);
+    BFProxy operator() (const Box& bx);
+    BFProxy operator() (int n);
+    CBFProxy operator() (const Box& bx, int n) const;
+    CBFProxy operator() (const Box& bx) const;
+    CBFProxy operator() (int n) const;
     //
     //@ManDoc: Make BaseFab with desired domain and number of components.
     //
@@ -2606,14 +2610,14 @@ BaseFab<T>::linComb (const BaseFab<T>&  f1,
 
 template <class T>
 BaseFab<T>::BFProxy
-BaseFab<T>::operator[] (const Box& bx)
+BaseFab<T>::operator() (const Box& bx)
 {
     return BFProxy(*this, bx&box(), BFProxy::All);
 }
 
 template <class T>
 BaseFab<T>::CBFProxy
-BaseFab<T>::operator[] (const Box& bx) const
+BaseFab<T>::operator() (const Box& bx) const
 {
     return CBFProxy(*this, bx&box(), CBFProxy::All);
 }
