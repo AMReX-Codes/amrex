@@ -495,8 +495,7 @@ void holy_grail_amr_projector::grid_average(PArray<MultiFab>& S)
 	    const Real hx = h[mglev][0];
 	    const int isRZ = IsRZ();
 	    const int imax = mg_domain[mglev].bigEnd(0) + 1;
-	    FORT_HGAVG(sptr, DIMLIST(sbox), csptr, DIMLIST(fbox), DIMLIST(freg),
-		       &hx, &isRZ, &imax);
+	    FORT_HGAVG(sptr, DIMLIST(sbox), csptr, DIMLIST(fbox), DIMLIST(freg), &hx, &isRZ, &imax);
 #else
 	    FORT_HGAVG(sptr, DIMLIST(sbox), csptr, DIMLIST(fbox), DIMLIST(freg));
 #endif
@@ -537,21 +536,16 @@ void holy_grail_amr_projector::grid_divergence(PArray<MultiFab>* u)
 #endif
 	    if (m_hg_terrain)
 	    {
-		FORT_HGDIV_TERRAIN(sptr, DIMLIST(sbox), D_DECL(u0ptr, u1ptr, u2ptr), DIMLIST(fbox),
-				   DIMLIST(freg), D_DECL(&hx, &hy, &hz));
+		FORT_HGDIV_TERRAIN(sptr, DIMLIST(sbox), D_DECL(u0ptr, u1ptr, u2ptr), DIMLIST(fbox), DIMLIST(freg), D_DECL(&hx, &hy, &hz));
 	    }
 	    else
 	    {
 #if (BL_SPACEDIM == 2)
 		const int isRZ = IsRZ();
 		const int imax = mg_domain[mglev].bigEnd(0) + 1;
-		FORT_HGDIV(sptr, DIMLIST(sbox), D_DECL(u0ptr, u1ptr, u2ptr), DIMLIST(fbox),
-			   DIMLIST(freg), D_DECL(&hx, &hy, &hz), 
-			   &isRZ, &imax);
+		FORT_HGDIV(sptr, DIMLIST(sbox), D_DECL(u0ptr, u1ptr, u2ptr), DIMLIST(fbox), DIMLIST(freg), D_DECL(&hx, &hy, &hz), &isRZ, &imax);
 #else
-		FORT_HGDIV(sptr, DIMLIST(sbox), D_DECL(u0ptr, u1ptr, u2ptr), DIMLIST(fbox),
-			   DIMLIST(freg), D_DECL(&hx, &hy, &hz), 
-			   0, 0);
+		FORT_HGDIV(sptr, DIMLIST(sbox), D_DECL(u0ptr, u1ptr, u2ptr), DIMLIST(fbox), DIMLIST(freg), D_DECL(&hx, &hy, &hz), 0, 0);
 #endif
 	    }
 	}
@@ -649,8 +643,8 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	cbox.coarsen(rat).grow(t).convert(IntVect::TheCellVector());
 	Box fbox = cbox;
 	fbox.refine(rat);
-	task_fab* Scp = new task_fill_patch(source[lev], igrid, cbox, S[lev-1], lev_interface[mgc], boundary.scalar());
-	task_fab* Sfp = new task_fill_patch(source[lev], igrid, fbox, S[lev], lev_interface[mglev], boundary.scalar(), 1, iedge);
+	task_fab* Scp = new task_fill_patch(source[lev], igrid, cbox, S[lev-1], lev_interface[mgc],   boundary.scalar());
+	task_fab* Sfp = new task_fill_patch(source[lev], igrid, fbox, S[lev],   lev_interface[mglev], boundary.scalar(), 1, iedge);
 	Box creg = lev_interface[mglev].node_box(1, iedge);
 	creg.coarsen(rat).grow(t - 1);
 	Array<int> ga = lev_interface[mglev].geo_array(1, iedge);

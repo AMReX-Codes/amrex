@@ -497,7 +497,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 	    {
 		const Box& cenbox = c_mfi->box();
 		const Box& reg = lev_interface[mglev].part_fine(c_mfi.index());
-		DependentMultiFabIterator D_DECL(sn0(c_mfi, sigma_nd[0][mglev]),
+		DependentMultiFabIterator D_DECL(sn0(c_mfi, sigma_nd[0][mglev]), 
 		    sn1(c_mfi, sigma_nd[1][mglev]),
 		    sn2(c_mfi, sigma_nd[2][mglev]));
 		const Box& sigbox = sn0->box();
@@ -510,7 +510,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 		    D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]), &isRZ, &imax);
 #else
 		FORT_HGCEN_NO_SIGMA(c_mfi->dataPtr(), DIMLIST(cenbox),
-		    D_DECL(sn0->dataPtr(), sn1->dataPtr(),sn2->dataPtr()),DIMLIST(sigbox),
+		    D_DECL(sn0->dataPtr(), sn1->dataPtr(), sn2->dataPtr()),DIMLIST(sigbox),
 		    DIMLIST(reg),
 		    D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]));
 #endif
@@ -530,16 +530,11 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 		    sn1(c_mfi, sigma_nd[1][mglev]),
 		    sn2(c_mfi, sigma_nd[2][mglev]));
 		const Box& sigbox = sn0->box();
-		FORT_HGCEN_NO_SIGMA(c_mfi->dataPtr(), DIMLIST(cenbox),
-		    D_DECL(sn0->dataPtr(),sn1->dataPtr(),sn2->dataPtr()),DIMLIST(sigbox),
-		    DIMLIST(reg),
-		    D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]));	    
+		FORT_HGCEN_NO_SIGMA(c_mfi->dataPtr(), DIMLIST(cenbox), D_DECL(sn0->dataPtr(), sn1->dataPtr(), sn2->dataPtr()),DIMLIST(sigbox), DIMLIST(reg), D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]));	    
 #else
 		DependentMultiFabIterator sn_dmfi(c_mfi, sigma_node[mglev]);
 		const Box& sigbox = sn_dmfi->box();
-		FORT_HGCEN(c_mfi->dataPtr(), DIMLIST(cenbox),
-		    sn_dmfi->dataPtr(), DIMLIST(sigbox),
-		    DIMLIST(reg));
+		FORT_HGCEN(c_mfi->dataPtr(), DIMLIST(cenbox), sn_dmfi->dataPtr(), DIMLIST(sigbox), DIMLIST(reg));
 #endif
 	    }
 	}	
@@ -664,9 +659,11 @@ bool holy_grail_amr_multigrid::can_coarsen(const BoxArray& mesh, const Box& doma
 	retval &= (domain.length(i) >= 4);
 	for (int igrid = 0; igrid < mesh.length(); igrid++) 
 	{
-	    retval &= ((mesh[igrid].smallEnd(i)&1) == 0 &&
+	    retval &= (
+		(mesh[igrid].smallEnd(i)&1) == 0 &&
 		(mesh[igrid].bigEnd(i)&1)   == 1 &&
-		(mesh[igrid].length(i) >= 4));
+		(mesh[igrid].length(i) >= 4)
+		);
 	}
     }
     return retval != 0;

@@ -88,11 +88,15 @@ inline const char* mf_centeredness(const MultiFab& m)
 }
 
 #define HG_DEBUG_OUT(s) debug_out << s
-#define HG_TEST_NORM(d, s) \
-    if ( true ) { \
-	double dz = mfnorm_2(d); \
-	if ( ParallelDescriptor::IOProcessor() ) \
-	    debug_out << s << " : Norm[" << d.length() << "," << mf_centeredness(d) << "," << d.nComp() << "," << d.nGrow() << "]( " #d " ) = " << dz << std::endl; \
+#define HG_TEST_NORM(d, s)					    \
+    if ( true ) {						    \
+	double dz = mfnorm_2(d);				    \
+	if ( ParallelDescriptor::IOProcessor() )		    \
+	    debug_out << s << " : Norm[" << d.length() << ","	    \
+	    << mf_centeredness(d) << ","			    \
+	    << d.nComp() << ","					    \
+	    << d.nGrow() << "]( " #d " ) = " << dz		    \
+	    << std::endl;					    \
     } else
 #else
 #define HG_DEBUG_OUT(s)

@@ -84,6 +84,7 @@ private:
 task_bdy_fill::task_bdy_fill(const amr_boundary_class* bdy_, FArrayBox& fab_, const Box& region_, const MultiFab& src_, int grid_, const Box& domain_)
     : bdy(bdy_), fab(fab_), region(region_), src(src_), grid(grid_), domain(domain_)
 {
+    assert(bdy != 0);
 }
 
 bool task_bdy_fill::ready()
@@ -98,6 +99,7 @@ bool task_bdy_fill::ready()
 task_fill_patch::task_fill_patch(const MultiFab& t_, int tt_, const Box& region_, const MultiFab& r_, const level_interface& lev_interface_, const amr_boundary_class* bdy_, int idim_, int index_)
     : r(r_), lev_interface(lev_interface_), bdy(bdy_), idim(idim_), index(index_), task_fab(t_, tt_, region_, r_.nComp())
 {
+    assert(bdy != 0);
 }
 
 bool task_fill_patch::init(sequence_number sno, MPI_Comm comm)
@@ -153,7 +155,6 @@ bool task_fill_patch::fill_exterior_patch_blindly()
 	int jgrid = lev_interface.direct_exterior_ref(igrid);
 	if (jgrid >= 0) 
 	{
-	    assert(bdy != 0);
 	    Box tb = em[igrid];
 	    tb.convert(type(r));
 	    if (tb.contains(region)) 
@@ -236,7 +237,6 @@ void task_fill_patch::fill_patch()
 			    Box tb = lev_interface.exterior_mesh()[igrid];
 			    tb.convert(type(r));
 			    tb &= region;
-			    assert( bdy != 0 );
 			    tl.add_task(
 				new task_bdy_fill(bdy, *target, tb, r, lev_interface.direct_exterior_ref(igrid), lev_interface.domain())
 				);
