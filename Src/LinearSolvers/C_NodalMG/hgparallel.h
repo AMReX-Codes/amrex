@@ -62,7 +62,7 @@ public:
     {
     public:
 	explicit task_proxy(task* t_ = 0)
-	    : m_t(new task*(t_)), m_cnt( t_ ? new unsigned int(1) : 0), m_finished( t_ ? new bool (false) : 0 )
+	    : m_t(t_ ? new task*(t_) : 0), m_cnt( t_ ? new unsigned int(1) : 0), m_finished( t_ ? new bool (false) : 0 )
 	{
 	}
 	task_proxy(const task_proxy& r)
