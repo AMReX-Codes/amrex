@@ -78,7 +78,7 @@ amr_boundary::boundary_mesh (BoxArray&       exterior_mesh,
     const Box& d = domain;
     for (int igrid = 0; igrid < interior_mesh.length(); igrid++) 
     {
-	check_against_boundary(bl, il, interior_mesh[igrid], igrid, d, 0);
+	check_against_boundary_(bl, il, interior_mesh[igrid], igrid, d, 0);
     }
     exterior_mesh.define(bl);
     bl.clear();
@@ -94,8 +94,18 @@ amr_boundary::boundary_mesh (BoxArray&       exterior_mesh,
     il.clear();
 }
 
+
+//
+mixed_boundary::mixed_boundary (inviscid_fluid_boundary* Ptr,
+			       int                      idim)  
+    :
+    ptr(Ptr),
+    flowdim(idim) 
+{
+}
+    
 Box
-mixed_boundary::box (const Box& region,
+mixed_boundary::box_ (const Box& region,
 		     const Box& domain,
 		     int        idir) const
 {
@@ -103,92 +113,57 @@ mixed_boundary::box (const Box& region,
     const RegType t = ptr->bc[idim][idir > 0];
     Box retbox(region);
     
-    if (t == refWall || t == outflow || (t == inflow && idim != flowdim)) 
+    BL_ASSERT(idir != 0);
+    if (t == refWall || t == outflow || t == inflow)
     {
         //
 	// All these cases use a reflected box.
         //
-	BL_ASSERT(idir != 0);
 	if (idir < 0) 
 	{
 	    if (region.type(idim) == IndexType::CELL)
-		retbox.shift(
-		    idim,
-		    (2 * domain.smallEnd(idim) - 1
-		     - region.bigEnd(idim) - region.smallEnd(idim)));
-	    else
-		retbox.shift(
-		    idim,
-		    (2 * domain.smallEnd(idim)
-		     - region.bigEnd(idim) - region.smallEnd(idim)));
-	}
-	else if (idir > 0) 
-	{
-	    if (region.type(idim) == IndexType::CELL)
-		retbox.shift(
-		    idim,
-		    (2 * domain.bigEnd(idim) + 1
-		     - region.bigEnd(idim) - region.smallEnd(idim)));
-	    else
-		retbox.shift(
-		    idim,
-		    (2 * domain.bigEnd(idim) + 2
-		     - region.bigEnd(idim) - region.smallEnd(idim)));
-	}
-    }
-    else if (t == inflow) 
-    {
-        //
-	// This case needs the boundary node or the first cell outside
-	// the domain to extrapolate.
-	// For cell-based, the fill_patch call must set the use-ghost-cell
-	// option (flags & 2) or an infinite recursion will result.
-	// It's a kludge, hopefully temporary, so fill_patch does not
-	// test to see if this is the case.
-        //
-	if (idir < 0) 
-	{
-	    if (region.type(idim) == IndexType::CELL) 
 	    {
 		retbox.shift(
 		    idim,
 		    (2 * domain.smallEnd(idim) - 1
 		     - region.bigEnd(idim) - region.smallEnd(idim)));
+	    }
+	    else
+	    {
+		retbox.shift(
+		    idim,
+		    (2 * domain.smallEnd(idim)
+		     - region.bigEnd(idim) - region.smallEnd(idim)));
+	    }
+	    if ( t == inflow && idim == flowdim )
+	    {
 		retbox.setSmall(idim, domain.smallEnd(idim) - 1);
 	    }
-	    else 
-	    {
-		retbox.shift(
-		    idim,
-		    (2 * domain.smallEnd(idim)
-		     - region.bigEnd(idim) - region.smallEnd(idim)));
-		retbox.setSmall(idim, domain.smallEnd(idim));
-	    }
 	}
 	else if (idir > 0) 
 	{
-	    BL_ASSERT(idir != 0);
-	    if (region.type(idim) == IndexType::CELL) 
+	    if (region.type(idim) == IndexType::CELL)
 	    {
 		retbox.shift(
 		    idim,
 		    (2 * domain.bigEnd(idim) + 1
 		     - region.bigEnd(idim) - region.smallEnd(idim)));
-		retbox.setBig(idim, domain.bigEnd(idim) + 1);
 	    }
-	    else 
+	    else
 	    {
 		retbox.shift(
 		    idim,
 		    (2 * domain.bigEnd(idim) + 2
 		     - region.bigEnd(idim) - region.smallEnd(idim)));
+	    }
+	    if ( t == inflow && idim == flowdim )
+	    {
 		retbox.setBig(idim, domain.bigEnd(idim) + 1);
 	    }
 	}
     }
     else if (t == periodic) 
     {
-	BL_ASSERT(idir != 0);
 	if (idir < 0)
 	{
 	    retbox.shift(idim, domain.length(idim));
@@ -206,7 +181,7 @@ mixed_boundary::box (const Box& region,
 }
 
 Box
-mixed_boundary::image (const Box& region,
+mixed_boundary::anImage (const Box& region,
 		       const Box& srcbox,
 		       const Box& domain) const
 {
@@ -221,13 +196,7 @@ mixed_boundary::image (const Box& region,
 	{
 	    const RegType t = ptr->bc[idim][0];
 
-	    if (t == inflow && idim == flowdim)
-	    {
-		// FIXME ME MIKE
-		// This was in the pre-optimized code, it seems to make
-		// little sense (see other if block below).
-	    }
-	    else if (t == refWall || t == inflow || t == outflow) 
+	    if (t == refWall || t == inflow || t == outflow) 
 	    {
 		image.shift(
 		    idim,
@@ -243,13 +212,7 @@ mixed_boundary::image (const Box& region,
 	{
 	    const RegType t = ptr->bc[idim][1];
 
-	    // FIXME ?????????????????????? car 11-18
-	    // There is no correspondence with above???
-	    // This fixed a bug in for inflow on the high side of an idim.
-	    if ( t== inflow && idim == flowdim )
-	      {
-	      }
-	    else if (t == refWall || t == inflow || t == outflow) 
+	    if (t == refWall || t == inflow || t == outflow) 
 	    {
 		image.shift(
 		    idim,
@@ -283,7 +246,7 @@ mixed_boundary::fill (FArrayBox&       patch,
     Box tdomain = domain;
     tdomain.convert(type(src));
     Box idomain = ::grow(tdomain, IntVect::TheZeroVector()-type(src));
-    Box img     = image(region,src.box(),domain);
+    Box img     = anImage(region,src.box(),domain);
     int idir = 0;
     int refarray[BL_SPACEDIM] = {0};
     bool negflag = true;
@@ -304,7 +267,7 @@ mixed_boundary::fill (FArrayBox&       patch,
 	    {
 		idir = -1 - idim;
 	    }
-	    else if (t == refWall || t == inflow || t == outflow) 
+	    if (t == refWall || t == inflow || t == outflow) 
 	    {
 		refarray[idim] = 1;
 
@@ -320,8 +283,10 @@ mixed_boundary::fill (FArrayBox&       patch,
 		    }
 		    else 
 		    {
-			for (int i = 0; i < BL_SPACEDIM - 1; i++) 
+			for (int i = 0; i < BL_SPACEDIM - 1; i++)
+			{
 			    negarray[i] = !negarray[i];
+			}
 		    }
 		}
 	    }
@@ -360,23 +325,27 @@ mixed_boundary::fill (FArrayBox&       patch,
 	}
     }
 
-// cout<< "reg = " << region;
-// cout<< " img = " << img;
-// cout<< " src = " << src.box() << endl;
+    HG_DEBUG_OUT("idir = " << idir
+		 << " flowdim = " << flowdim
+		 << " reg = " << region
+		 << " img = " << img
+		 << " src = " << src.box()
+		 << endl );
 
     if (idir != 0) 
     {
         //
 	// Normal-component inflow section, assume patch.nComp() == 1
         //
-	Box bb = box(img, domain, idir);
+	Box bb = box_(img, domain, idir);
 
 	if (img == region)
         {
             //
 	    // Only bdy involved, can fill directly from interior
             //
-	    fill(patch, region, src, bb, domain, idir);
+	    HG_DEBUG_OUT("IMG==REGION" << img << region << endl);
+	    fill_(patch, region, src, bb, domain, idir);
         }
 	else 
 	{
@@ -384,7 +353,8 @@ mixed_boundary::fill (FArrayBox&       patch,
 	    // Multiple bdys, fill intermediate patch.
             //
 	    FArrayBox gb(img);
-	    fill(gb, img, src, bb, domain, idir);
+	    fill_(gb, img, src, bb, domain, idir);
+	    HG_DEBUG_OUT("IMG!=REGION negflag" << negflag << img << region << endl);
 	    if (negflag) 
 	    {
 		FORT_FBREFM(patch.dataPtr(), DIMLIST(patch.box()),
@@ -439,6 +409,7 @@ mixed_boundary::fill (FArrayBox&       patch,
         {
             if (negflag) 
             {
+		HG_DEBUG_OUT("GOT HERE negflag\n");
                 FORT_FBREFM(patch.dataPtr(), DIMLIST(patch.box()),
                             DIMLIST(region),
                             src.dataPtr(), DIMLIST(src.box()), DIMLIST(img),
@@ -446,6 +417,7 @@ mixed_boundary::fill (FArrayBox&       patch,
             }
             else
             {
+		HG_DEBUG_OUT("GOT HERE not negflag\n");
                 FORT_FBNEGM(patch.dataPtr(), DIMLIST(patch.box()),
                             DIMLIST(region),
                             src.dataPtr(), DIMLIST(src.box()), DIMLIST(img),
@@ -456,7 +428,7 @@ mixed_boundary::fill (FArrayBox&       patch,
 }
 
 void
-mixed_boundary::fill (FArrayBox&       patch,
+mixed_boundary::fill_ (FArrayBox&       patch,
 		      const Box&       region,
 		      const FArrayBox& bgr,
 		      const Box&       bb,
@@ -527,6 +499,7 @@ mixed_boundary::fill (FArrayBox&       patch,
 	    // For this to work, fill_borders must already have been called
 	    // to initialize values in the first ghost cell outside the domain.
             //
+	    HG_DEBUG_OUT("fill: region" << region << "bgr" << bgr.box() << "bb" << bb << endl);
 	    FORT_FBINFIL(patch.dataPtr(), DIMLIST(patch.box()),
 			 DIMLIST(region),
 			 bgr.dataPtr(), DIMLIST(bgr.box()),
@@ -960,12 +933,12 @@ mixed_boundary::fill_borders (MultiFab&              r,
 
 
 void
-mixed_boundary::check_against_boundary (BoxList&   bl,
-					List<int>& il,
-					const Box& b,
-					int        ib,
-					const Box& d,
-					int        dim1) const
+mixed_boundary::check_against_boundary_ (BoxList&   bl,
+					 List<int>& il,
+					 const Box& b,
+					 int        ib,
+					 const Box& d,
+					 int        dim1) const
 {
     for (int i = dim1; i < BL_SPACEDIM; i++) 
     {
@@ -977,7 +950,7 @@ mixed_boundary::check_against_boundary (BoxList&   bl,
 		bn.shift(i,-b.length(i));
 		bl.append(bn);
 		il.append(ib);
-		check_against_boundary(bl, il, bn, ib, d, i+1);
+		check_against_boundary_(bl, il, bn, ib, d, i+1);
 	    }
 	    else if (ptr->bc[i][0] == periodic) 
 	    {
@@ -985,7 +958,7 @@ mixed_boundary::check_against_boundary (BoxList&   bl,
 		bn.shift(i,d.length(i));
 		bl.append(bn);
 		il.append(ib);
-		check_against_boundary(bl, il, bn, ib, d, i+1);
+		check_against_boundary_(bl, il, bn, ib, d, i+1);
 	    }
 	    else if (ptr->bc[i][0] == outflow) 
 	    {
@@ -993,7 +966,7 @@ mixed_boundary::check_against_boundary (BoxList&   bl,
 		bn.shift(i,-b.length(i));
 		bl.append(bn);
 		il.append(-2);
-		check_against_boundary(bl, il, bn, -1, d, i+1);
+		check_against_boundary_(bl, il, bn, -1, d, i+1);
 	    }
 	    else 
 	    {
@@ -1009,7 +982,7 @@ mixed_boundary::check_against_boundary (BoxList&   bl,
 		bn.shift(i,b.length(i));
 		bl.append(bn);
 		il.append(ib);
-		check_against_boundary(bl, il, bn, ib, d, i+1);
+		check_against_boundary_(bl, il, bn, ib, d, i+1);
 	    }
 	    else if (ptr->bc[i][1] == periodic) 
 	    {
@@ -1017,7 +990,7 @@ mixed_boundary::check_against_boundary (BoxList&   bl,
 		bn.shift(i,-d.length(i));
 		bl.append(bn);
 		il.append(ib);
-		check_against_boundary(bl, il, bn, ib, d, i+1);
+		check_against_boundary_(bl, il, bn, ib, d, i+1);
 	    }
 	    else if (ptr->bc[i][1] == outflow) 
 	    {
@@ -1025,7 +998,7 @@ mixed_boundary::check_against_boundary (BoxList&   bl,
 		bn.shift(i,b.length(i));
 		bl.append(bn);
 		il.append(-2);
-		check_against_boundary(bl, il, bn, -1, d, i+1);
+		check_against_boundary_(bl, il, bn, -1, d, i+1);
 	    }
 	    else 
 	    {

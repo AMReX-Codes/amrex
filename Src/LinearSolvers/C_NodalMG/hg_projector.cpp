@@ -678,12 +678,27 @@ task_cdiv::doit ()
 		task_fab_result(2).dataPtr() ) };
     const Box&  uc_box          = task_fab_result(0).box();
 
+    HG_DEBUG_OUT( "CDIV >>>\n");
+    HG_DEBUG_OUT( "s " << s.norm() << "\n" );
+    HG_DEBUG_OUT( "CDIV <<<\n");
     (*f)(s.dataPtr(), DIMLIST(s_box),
-	 D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box),
+	 D_DECL(uc[0], uc[1], uc[2]), DIMLIST(uc_box),
 	 D_DECL(uf[0], uf[1], uf[2]), DIMLIST(uf_box),
 	 DIMLIST(creg),
 	 D_DECL(&h[0], &h[1], &h[2]),
 	 D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), &isrz);
+    HG_DEBUG_OUT( "CDIV[1] >>>\n");
+    HG_DEBUG_OUT( "s " << s.norm() << "\n" );
+    HG_DEBUG_OUT( "uc[0] " << task_fab_result(0).norm() << "\n" );
+    HG_DEBUG_OUT( "uc[1] " << task_fab_result(1).norm() << "\n" );
+    HG_DEBUG_OUT( "uc[2] " << task_fab_result(2).norm() << "\n" );
+    HG_DEBUG_OUT( "uf[0] " << task_fab_result(3+0).norm() << "\n" );
+    HG_DEBUG_OUT( "uf[1] " << task_fab_result(3+1).norm() << "\n" );
+    HG_DEBUG_OUT( "uf[2] " << task_fab_result(3+2).norm() << "\n" );
+    HG_DEBUG_OUT( "s_box " << s_box << "\n");
+    HG_DEBUG_OUT( "uf_box " << uf_box << "\n");
+    HG_DEBUG_OUT( "uc_box " << uc_box << "\n");
+    HG_DEBUG_OUT( "CDIV[1] <<<\n");
 }
 
 PArray<MultiFab> null_amr_real;
@@ -2043,6 +2058,7 @@ holy_grail_amr_projector::interface_divergence (PArray<MultiFab>* u,
     }
     tl.execute("holy_grail_amr_projector::interface_divergence(3)");
     HG_TEST_NORM(source[lev], "interface_divergence,a2");
+    // BoxLib::Abort();
 }
 
 void

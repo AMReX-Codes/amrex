@@ -74,6 +74,11 @@ main(int argc, char **argv)
     if ( debug_out.fail() ) BoxLib::Error( "Failed to open debug file" );
     debug_out << std::setprecision(15);
 #endif
+    {
+	int i = ParallelDescriptor::MyProc();
+	int j = ParallelDescriptor::NProcs();
+	FORT_HGDEBUGINIT(&i, &j);
+    }
     HG::MPI_init();
 #ifndef WIN32
     int slp = 0;
@@ -418,15 +423,17 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     {
 	bc[i][0] = refWall;
 	bc[i][1] = refWall;
-	// bc[i][0] = periodic;
-	// bc[i][1] = periodic;
+	bc[i][0] = periodic;
+	bc[i][1] = periodic;
     }
     // bc[1][0] = refWall;
     // bc[1][1] = refWall;
+    // bc[0][0] = refWall;
+    // bc[0][1] = refWall;
+    // bc[1][0] = periodic;
+    // bc[1][1] = periodic;
     // bc[1][0] = inflow;
     // bc[1][1] = outflow;
-    bc[0][0] = inflow;
-    bc[0][1] = outflow;
         
     PArray<MultiFab> u[BL_SPACEDIM];
     PArray<MultiFab> p, rhoinv, rhs;

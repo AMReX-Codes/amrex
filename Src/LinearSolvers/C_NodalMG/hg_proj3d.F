@@ -1602,6 +1602,18 @@ c Note---only generates values at coarse points along edge of fine grid
       if = ic * ir
       jf = jc * jr
       kf = kc * kr
+c     call hgdebugi('IC', ic)
+c     call hgdebugi('JC', jc)
+c     call hgdebugi('KC', kc)
+c     call hgdebugi('IR', ir)
+c     call hgdebugctl(1,0,0)
+c     call hgdebugmat('uc', uc, cl0,cl1,cl2,ch0,ch1,ch2, cl0,cl1,cl2,ch0,ch1,ch2,1)
+c      call hgdebugmat('vc', vc, cl0,cl1,cl2,ch0,ch1,ch2, cl0,cl1,cl2,ch0,ch1,ch2,1)
+c      call hgdebugmat('wc', wc, cl0,cl1,cl2,ch0,ch1,ch2, cl0,cl1,cl2,ch0,ch1,ch2,1)
+c      call hgdebugmat('uf', uf, fl0,fl1,fl2,fh0,fh1,fh2, fl0,fl1,fl2,fh0,fh1,fh2,1)
+c      call hgdebugmat('vf', vf, fl0,fl1,fl2,fh0,fh1,fh2, fl0,fl1,fl2,fh0,fh1,fh2,1)
+c      call hgdebugmat('wf', wf, fl0,fl1,fl2,fh0,fh1,fh2, fl0,fl1,fl2,fh0,fh1,fh2,1)
+c      call hgdebugctl(1,0,0)
       sum = 0.0D0
       center = 0.0D0
 c octants
@@ -1772,4 +1784,5 @@ c edges
       end do
 c weighting
       src(if,jf,kf) = sum / center
+c     call hgdebugd('src(ij,jf,kf)', src(if,jf,kf))
       end

@@ -22,7 +22,7 @@
 class amr_boundary 
 {
 public:
-    amr_boundary () {}
+    // amr_boundary () {}
 
     virtual ~amr_boundary ();
 
@@ -33,10 +33,6 @@ public:
                         int*&           grid_ref,
                         const BoxArray& interior_mesh,
                         const Box&      domain) const;
-
-    virtual Box box (const Box&,
-                     const Box&,
-                     int) const = 0;
 
     virtual void fill (FArrayBox&,
                        const Box&,
@@ -55,20 +51,24 @@ public:
 
     virtual bool singular () const  = 0;
 
-    virtual Box image (const Box& region,
+    virtual Box anImage (const Box& region,
                        const Box& srcbox,
                        const Box& domain) const = 0;
 
 protected:
 
-    virtual void fill (FArrayBox&,
+    virtual Box box_ (const Box&,
+                     const Box&,
+                     int) const = 0;
+
+    virtual void fill_ (FArrayBox&,
                        const Box&,
                        const FArrayBox&,
                        const Box&,
                        const Box&,
                        int) const = 0;
 
-    virtual void check_against_boundary (BoxList&   bl,
+    virtual void check_against_boundary_ (BoxList&   bl,
                                          List<int>& il,
                                          const Box& b,
                                          int        ib,
@@ -126,16 +126,8 @@ class mixed_boundary
 public:
 
     mixed_boundary (inviscid_fluid_boundary* Ptr,
-		    int                      idim)  
-	:
-        ptr(Ptr),
-        flowdim(idim) 
-    {}
+		    int                      idim)  ;
     
-    virtual Box box (const Box&,
-                     const Box&,
-                     int) const;
-
     virtual void fill (FArrayBox&,
                        const Box&,
                        const FArrayBox&,
@@ -153,20 +145,24 @@ public:
 
     virtual bool singular () const;
 
-    virtual Box image (const Box& region,
+    virtual Box anImage (const Box& region,
                        const Box& srcbox,
                        const Box& domain) const;
 
 protected:
 
-    virtual void fill (FArrayBox&,
+    virtual Box box_ (const Box&,
+                     const Box&,
+                     int) const;
+
+    virtual void fill_ (FArrayBox&,
                        const Box&,
                        const FArrayBox&,
                        const Box&,
                        const Box&,
                        int) const;
 
-    virtual void check_against_boundary (BoxList&   bl,
+    virtual void check_against_boundary_ (BoxList&   bl,
                                          List<int>& il,
                                          const Box& b,
                                          int        ib,
