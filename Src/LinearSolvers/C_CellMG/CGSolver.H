@@ -3,7 +3,7 @@
 #define _CGSOLVER_H_
 
 //
-// $Id: CGSolver.H,v 1.10 2001-08-01 21:51:03 lijewski Exp $
+// $Id: CGSolver.H,v 1.11 2004-12-15 18:39:56 car Exp $
 //
 
 #include <cmath>
@@ -64,10 +64,8 @@ class MultiGrid;
 
 	\item CGSolver can fail to converge, or more likely diverge, if you
 	run into a solvability problem (likely the accuracy cannot be 
-	achieved).  CGSolver can be put into a different mode by using 
-	setExpert, where instead of bombing out, solve() returns an error
-	code.  0 means good, 1 means loss-of-accuracy, 2 means iteration
-	count exceeded.
+	achieved).  CGSolver returns error codes 0 means good, 1--7 means
+	loss-of-accuracy, 8 means iteration count exceeded.
 
         \end{itemize}
         
@@ -124,12 +122,6 @@ public:
     //@ManDoc: get maximum allowed number of CG iterations
     //
     int getMaxIter () const;
-    //
-    //@ManDoc: set expert mode
-    void setExpert( bool flag ) { isExpert = flag; }
-    //
-    //@ManDoc: get expert flag
-    bool getExpert() { return isExpert; }
     //
     //@ManDoc: set flag determining whether MG preconditioning is used
     //
@@ -207,10 +199,6 @@ protected:
     //@ManDoc: default unstable_criterion used to test for loss of accuracy in
     //
     static double def_unstable_criterion;
-    //
-    //@ManDoc: flag determining action when error conditions are hit
-    //
-    bool isExpert;
     //
     //@ManDoc: Default verbosity flag.
     //
