@@ -128,7 +128,7 @@ holy_grail_amr_multigrid::level_residual (MultiFab& r,
 	    const Box& dbox = d_dmfi->box();
 	    const Box& cenbox = c_dmfi->box();
 	    const Box& sigbox = sg_dmfi->box();
-            Box freg = (for_sync_reg == 1) ? 
+            Box freg = (for_sync_reg > 0) ? 
               surroundingNodes(mg_mesh[mglev][r_mfi.index()]) :
               Box(lev_interface[mglev].part_fine(r_mfi.index()));
 	    FORT_HGRES_TERRAIN(r_mfi->dataPtr(), DIMLIST(rbox),
@@ -157,7 +157,7 @@ holy_grail_amr_multigrid::level_residual (MultiFab& r,
 	    DependentMultiFabIterator s_dmfi(r_mfi, s);
 	    DependentMultiFabIterator d_dmfi(r_mfi, d);
 	    const Box& rbox = r_mfi->box();
-            Box freg = (for_sync_reg == 1) ? 
+            Box freg = (for_sync_reg > 0) ? 
               surroundingNodes(mg_mesh[mglev][r_mfi.index()]) :
               Box(lev_interface[mglev].part_fine(r_mfi.index()));
 
@@ -190,7 +190,7 @@ holy_grail_amr_multigrid::level_residual (MultiFab& r,
 	    const Box& rbox = r_mfi->box();
 	    const Box& sbox = s_dmfi->box();
 	    const Box& dbox = d_dmfi->box();
-            Box freg = (for_sync_reg == 1) ? 
+            Box freg = (for_sync_reg > 0) ? 
               surroundingNodes(mesh[mglev][r_mfi.index()]) :
               Box(lev_interface[mglev].part_fine(r_mfi.index()));
 	    DependentMultiFabIterator D_DECL(s0_dmfi(r_mfi, sigma_nd[0][mglev]),
