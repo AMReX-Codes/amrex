@@ -2,17 +2,17 @@
 
 // TASK_COPY
 task_copy::task_copy(MultiFab& mf, int dgrid, const MultiFab& smf, int sgrid, const Box& bx)
-: m_mf(mf), m_dgrid(dgrid), m_smf(smf), m_sgrid(sgrid), m_bx(bx), s_bx(bx), m_ready(false)
+: m_mf(mf), m_dgrid(dgrid), m_smf(smf), m_sgrid(sgrid), m_bx(bx), s_bx(bx), m_local(false)
 #ifdef BL_USE_MPI
-, s_tmp(0), d_tmp(0)
+, tmp(0)
 #endif
 {
 }
 
 task_copy::task_copy(MultiFab& mf, int dgrid, const Box& db, const MultiFab& smf, int sgrid, const Box& sb)
-: m_mf(mf), m_bx(db), m_dgrid(dgrid), m_smf(smf), s_bx(sb), m_sgrid(sgrid), m_ready(false)
+: m_mf(mf), m_bx(db), m_dgrid(dgrid), m_smf(smf), s_bx(sb), m_sgrid(sgrid), m_local(false)
 #ifdef BL_USE_MPI
-, s_tmp(0), d_tmp(0)
+, tmp(0)
 #endif
 {
 }
@@ -21,8 +21,7 @@ task_copy::task_copy(MultiFab& mf, int dgrid, const Box& db, const MultiFab& smf
 task_copy::~task_copy()
 {
 #ifdef BL_USE_MPI
-    delete s_tmp;
-    delete d_tmp;
+    delete tmp;
 #endif
 }
 
@@ -31,42 +30,44 @@ bool task_copy::init(sequence_number sno, MPI_Comm comm)
 #ifdef BL_USE_MPI
     if ( is_local(m_mf, m_dgrid) && is_local(m_smf, m_sgrid) )
     {
-	m_ready = true;
-	m_mf[m_dgrid].copy(m_smf[m_sgrid], s_bx, 0, m_bx, 0, m_mf.nComp());
+	m_local = true;
     }
     else if ( is_local(m_mf, m_dgrid) )
     {
-	d_tmp = new FArrayBox(m_bx, m_mf.nComp());
-	MPI_Irecv(d_tmp->dataPtr(), m_bx.numPts()*s_tmp->nComp(), MPI_DOUBLE, sno, processor_number(m_smf, m_sgrid), comm, &m_request);
+	tmp = new FArrayBox(m_bx, m_mf.nComp());
+	MPI_Irecv(tmp->dataPtr(), m_bx.numPts()*tmp->nComp(), MPI_DOUBLE, sno, processor_number(m_smf, m_sgrid), comm, &m_request);
     }
     else if ( is_local(m_smf, m_sgrid) ) 
     {
-	s_tmp = new FArrayBox(m_bx, m_mf.nComp());
-	s_tmp->copy(m_smf[m_sgrid]);
-	MPI_Isend(s_tmp->dataPtr(), m_bx.numPts()*s_tmp->nComp(), MPI_DOUBLE, sno, processor_number(m_mf,  m_dgrid), comm, &m_request);
+	tmp = new FArrayBox(s_bx, m_mf.nComp());
+	tmp->copy(m_smf[m_sgrid]);
+	MPI_Isend(tmp->dataPtr(), s_bx.numPts()*tmp->nComp(), MPI_DOUBLE, sno, processor_number(m_mf,  m_dgrid), comm, &m_request);
     }
-    return m_ready;
-#else
-    m_ready = true;
-    return true;
 #endif
+    return true;
 }
 
 
 bool task_copy::ready()
 {
-    abort();
+    if ( m_local )
+    {
+	m_mf[m_dgrid].copy(m_smf[m_sgrid], s_bx, 0, m_bx, 0, m_mf.nComp());
+	return true;
+    }
 #ifdef BL_USE_MPI
     int flag;
     MPI_Status status;
     MPI_Test(&m_request, &flag, &status);
     if ( flag )
     {
+	if ( is_local(m_mf, m_dgrid) )
+	    m_mf[m_dgrid].copy(*tmp, s_bx, 0, m_bx, 0, m_mf.nComp());
 	return true;
     }
     return false;
 #else
-    m_mf[m_dgrid].copy(m_smf[m_sgrid], m_bx);
+    m_mf[m_dgrid].copy(m_smf[m_sgrid], s_bx, 0, m_bx, 0, m_mf.nComp());
     return true;
 #endif
 }
@@ -76,7 +77,7 @@ bool task_copy::ready()
 task_copy_local::task_copy_local(FArrayBox& fab_, const MultiFab& smf_, int grid, const Box& bx)
 : m_fab(fab_), m_smf(smf_), m_sgrid(grid), m_bx(bx)
 {
-    m_ready = true;
+    m_local = true;
     m_fab.copy(m_smf[m_sgrid]);
 }
 
@@ -86,7 +87,7 @@ task_copy_local::~task_copy_local()
 
 bool task_copy_local::ready()
 {
-    abort(); return m_ready;
+    abort(); return m_local;
 }
 
 // TASK_LIST
@@ -135,15 +136,12 @@ void task_list::add_task(task* t)
 
 // TASK_FAB_GET
 
-task_fab_get::task_fab_get(const MultiFab& r_, int grid_) 
-: r(r_), grid(grid_), bx(r_.box(grid_)) {}
-
-task_fab_get::task_fab_get(const MultiFab& r_, int grid_, const Box& bx_) 
-: r(r_), grid(grid_), bx(bx_) {}
+task_fab_get::task_fab_get(const MultiFab& d_, int dgrid_, const MultiFab& s_, int sgrid_, const Box& bx_) 
+: d(d_), dgrid(dgrid_), s(s_), sgrid(sgrid_), bx(bx_) {}
 
 const FArrayBox& task_fab_get::fab()
 {
-    return r[grid];
+    return s[sgrid];
 }
 
 task_fab_get::~task_fab_get()

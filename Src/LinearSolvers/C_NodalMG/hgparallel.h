@@ -55,8 +55,7 @@ public:
 private:
 #ifdef BL_USE_MPI
     MPI_Request m_request;
-    FArrayBox* d_tmp;
-    FArrayBox* s_tmp;
+    FArrayBox* tmp;
 #endif
     MultiFab& m_mf;
     const MultiFab& m_smf;
@@ -64,7 +63,7 @@ private:
     const int m_sgrid;
     const Box m_bx;
     const Box s_bx;
-    bool m_ready;
+    bool m_local;
 };
 
 class task_copy_local : public task
@@ -83,7 +82,7 @@ private:
     const int m_sgrid;
     const Box m_bx;
     const Box s_bx;
-    bool m_ready;
+    bool m_local;
 };
 
 class task_fab : public task
@@ -96,8 +95,7 @@ public:
 class task_fab_get : public task_fab
 {
 public:
-    task_fab_get(const MultiFab& r_, int grid_);
-    task_fab_get(const MultiFab& r_, int grid_, const Box& bx);
+    task_fab_get(const MultiFab& d_, int dgrid_, const MultiFab& s_, int sgrid_, const Box& bx);
     virtual ~task_fab_get();
     virtual const FArrayBox& fab();
     virtual bool ready();
@@ -106,8 +104,10 @@ public:
 	abort(); return false;
     }
 private:
-    const MultiFab& r;
-    const int grid;
+    const MultiFab& s;
+    const MultiFab& d;
+    const int dgrid;
+    const int sgrid;
     const Box bx;
 };
 
