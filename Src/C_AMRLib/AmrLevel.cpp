@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.29 1998-04-27 19:42:54 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.30 1998-05-18 17:52:20 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -410,13 +410,13 @@ FillPatchIterator::Initialize (int           boxGrow,
             StateData& currentState   = amrLevels[currentLevel].state[stateIndex];
             const Box& currentPDomain = currentState.getDomain();
 
-// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv periodic
             bool is_periodic = amrLevels[currentLevel].geom.isAnyPeriodic();
 
             if (is_periodic)
             {
                 BoxList tempUnfilledBoxes(boxType);
-                for (BoxListIterator pbli(unfilledBoxesOnThisLevel); pbli; ++pbli) {
+                for (BoxListIterator pbli(unfilledBoxesOnThisLevel); pbli; ++pbli)
+                {
                     assert(pbli().ok());
                     const Box& dbox = pbli();
                     if (!currentPDomain.contains(dbox))
@@ -431,14 +431,13 @@ FillPatchIterator::Initialize (int           boxGrow,
                                    shbox.shift(1,iv[1]);,
                                    shbox.shift(2,iv[2]);)
                             shbox &= currentPDomain;
-                            if (shbox.ok())
-                                tempUnfilledBoxes.add(shbox);
+                            assert(shbox.ok());
+                            tempUnfilledBoxes.add(shbox);
                         }
                     }
                 }
                 unfilledBoxesOnThisLevel.join(tempUnfilledBoxes);
             }
-// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ end periodic
 
             fillBoxId[ibox][currentLevel].resize(unfilledBoxesOnThisLevel.length());
             savedFineBox[ibox][currentLevel].resize(unfilledBoxesOnThisLevel.length());
