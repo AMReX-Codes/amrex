@@ -60,6 +60,8 @@ ifeq ($(COMP),g95)
 # F90FLAGS += -Wall 
 # FFLAGS += -Wall 
 # CFLAGS += -Wall
+# FFLAGS += -ffloat-store
+# F90FLAGS += -ffloat-store
   ifdef NDEBUG
     F90FLAGS += -O
     FFLAGS += -O
