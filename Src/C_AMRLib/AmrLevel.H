@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.20 1998-07-09 17:59:24 lijewski Exp $
+// $Id: AmrLevel.H,v 1.21 1998-07-09 18:27:33 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -222,6 +222,7 @@ public:
     //@ManDoc: Interpolate up from coarse level.
     //
     void FillCoarsePatch (MultiFab&     dest,
+                          int           dst_comp,
                           Real          time,
                           int           state_indx,
                           int           src_comp,

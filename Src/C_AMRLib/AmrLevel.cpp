@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.40 1998-07-09 17:59:25 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.41 1998-07-09 18:27:34 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -761,9 +761,10 @@ FillPatchIterator::~FillPatchIterator () {}
 
 void
 AmrLevel::FillCoarsePatch (MultiFab&     mfdest,
+                           int           dcomp,
                            Real          time,
                            int           state_indx,
-                           int           src_comp,
+                           int           scomp,
                            int           ncomp,
                            Interpolater* mapper)
 {
@@ -771,7 +772,7 @@ AmrLevel::FillCoarsePatch (MultiFab&     mfdest,
     // Must fill this region on crse level and interpolate.
     //
     assert(level != 0);
-    assert(ncomp <= mfdest.nComp());
+    assert(ncomp <= (mfdest.nComp()-dcomp));
     assert((0 <= state_indx) && (state_indx < desc_lst.length()));
 
     const StateDescriptor& desc = desc_lst[state_indx];
@@ -780,7 +781,7 @@ AmrLevel::FillCoarsePatch (MultiFab&     mfdest,
     const Box& p_domain         = state[state_indx].getDomain();
     AmrLevel& crse_lev          = parent->getLevel(level-1);
 
-    assert(desc.inRange(src_comp, ncomp));
+    assert(desc.inRange(scomp, ncomp));
     //
     // Build a properly coarsened boxarray.
     //
@@ -799,11 +800,9 @@ AmrLevel::FillCoarsePatch (MultiFab&     mfdest,
 
     Array<BCRec> bcr(ncomp);
 
-    const int boxGrow = 0;
-    MultiFab mf_crse_reg(crse_regBoxArray, ncomp, boxGrow, Fab_noallocate);
+    MultiFab mf(crse_regBoxArray, ncomp, 0, Fab_noallocate);
 
-    FillPatchIterator fpi(crse_lev, mf_crse_reg, boxGrow,
-                          time, state_indx, src_comp, ncomp, mapper);
+    FillPatchIterator fpi(crse_lev,mf,0,time,state_indx,scomp,ncomp,mapper);
 
     for ( ; fpi.isValid(); ++fpi)
     {
@@ -815,17 +814,28 @@ AmrLevel::FillCoarsePatch (MultiFab&     mfdest,
         //
         // Get bndry conditions for this patch.
         //
-        setBC(dbox,p_domain,src_comp,0,ncomp,desc.getBCs(),bcr);
+        setBC(dbox,p_domain,scomp,0,ncomp,desc.getBCs(),bcr);
         //
         // Interpolate up to fine patch.
         //
-        map->interp(fpi(),0,mfdest_mfi(),0,ncomp,dbox,
-                    crse_ratio,crse_lev.geom,geom,bcr);
+        map->interp(fpi(),
+                    0,
+                    mfdest_mfi(),
+                    dcomp,
+                    ncomp,
+                    dbox,
+                    crse_ratio,
+                    crse_lev.geom,geom,bcr);
 
         if (!p_domain.contains(mfdest_mfi().box()))
         {
-            state[state_indx].FillBoundary(mfdest_mfi(),time,geom.CellSize(),
-                                           prob_domain,0,src_comp,ncomp);
+            state[state_indx].FillBoundary(mfdest_mfi(),
+                                           time,
+                                           geom.CellSize(),
+                                           prob_domain,
+                                           dcomp,
+                                           scomp,
+                                           ncomp);
         }
     }
 }
