@@ -1,99 +1,112 @@
 #
 # amrlib sources
 #
-AMR_C_SOURCES = BCRec.cpp 
+CEXE_sources = BCRec.cpp 
+CEXE_headers = BCRec.H BC_Types.H
 
-AMR_C_HEADERS = BCRec.H BC_Types.H
-
-CEXE_sources += $(AMR_C_SOURCES)
-CEXE_headers += $(AMR_H_HEADERS)
+INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/amrlib
 
 #
 # bndrylib sources
 #
-BNDRYLIB_BASE=EXE
-C$(BNDRYLIB_BASE)_sources += FabSet.cpp BndryRegister.cpp \
-			     Geometry.cpp CoordSys.cpp RealBox.cpp
-C$(BNDRYLIB_BASE)_headers += FabSet.H BndryRegister.H \
-			     Geometry.H CoordSys.H RealBox.H
+CEXE_sources += FabSet.cpp BndryRegister.cpp Geometry.cpp CoordSys.cpp RealBox.cpp
+CEXE_headers += FabSet.H BndryRegister.H Geometry.H CoordSys.H RealBox.H
 
-F$(BNDRYLIB_BASE)_headers += COORDSYS_F.H
-F$(BNDRYLIB_BASE)_sources += COORDSYS_$(DIM)D.F
+FEXE_headers += COORDSYS_F.H
+FEXE_sources += COORDSYS_$(DIM)D.F
+
+INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/bndrylib
+
 #
 # boxlib sources
 #
-BOXLIB_BASE=EXE
- 
-C$(BOXLIB_BASE)_sources += BoxLib.cpp Tracer.cpp RunStats.cpp
-C$(BOXLIB_BASE)_headers += BoxLib.H BLVERSION.H Tracer.H RunStats.H
+CEXE_sources += BoxLib.cpp Tracer.cpp RunStats.cpp
+CEXE_headers += BoxLib.H BLVERSION.H Tracer.H RunStats.H
 
-C$(BOXLIB_BASE)_sources += ParmParse.cpp Utility.cpp aString.cpp
-C$(BOXLIB_BASE)_headers += ParmParse.H Utility.H Assert.H aString.H
+CEXE_sources += ParmParse.cpp Utility.cpp aString.cpp
+CEXE_headers += ParmParse.H Utility.H Assert.H aString.H
 
-C$(BOXLIB_BASE)_headers += ArrayLim.H REAL.H Boolean.H SPACE.H SPACE_F.H
-C$(BOXLIB_BASE)_headers += CONSTANTS.H UseCount.H
+CEXE_headers += ArrayLim.H REAL.H Boolean.H SPACE.H SPACE_F.H
+CEXE_headers += CONSTANTS.H UseCount.H
 
-C$(BOXLIB_BASE)_sources += DistributionMapping.cpp ParallelDescriptor.cpp
-C$(BOXLIB_BASE)_headers += DistributionMapping.H ParallelDescriptor.H
+CEXE_sources += DistributionMapping.cpp ParallelDescriptor.cpp
+CEXE_headers += DistributionMapping.H ParallelDescriptor.H
 
-C${BOXLIB_BASE}_sources += FabConv.cpp FPC.cpp BoxAssoc.cpp FArrayBox.cpp
-C${BOXLIB_BASE}_headers += FabConv.H FPC.H BoxAssoc.H FArrayBox.H
+CEXE_sources += FabConv.cpp FPC.cpp BoxAssoc.cpp FArrayBox.cpp
+CEXE_headers += FabConv.H FPC.H BoxAssoc.H FArrayBox.H
 
-C$(BOXLIB_BASE)_sources += Box.cpp IntVect.cpp IndexType.cpp Orientation.cpp
-C$(BOXLIB_BASE)_headers += Box.H IntVect.H IndexType.H Orientation.H
+CEXE_sources += Box.cpp IntVect.cpp IndexType.cpp Orientation.cpp
+CEXE_headers += Box.H IntVect.H IndexType.H Orientation.H
 
-C$(BOXLIB_BASE)_sources += BoxList.cpp BoxArray.cpp BoxDomain.cpp MultiFab.cpp
-C$(BOXLIB_BASE)_headers += BoxList.H BoxArray.H BoxDomain.H Looping.H MultiFab.H
+CEXE_sources += BoxList.cpp BoxArray.cpp BoxDomain.cpp MultiFab.cpp
+CEXE_headers += BoxList.H BoxArray.H BoxDomain.H Looping.H MultiFab.H
 
-C$(BOXLIB_BASE)_sources += VisMF.cpp BArena.cpp CArena.cpp
-C$(BOXLIB_BASE)_headers += VisMF.H Arena.H BArena.H CArena.H
+CEXE_sources += VisMF.cpp BArena.cpp CArena.cpp
+CEXE_headers += VisMF.H Arena.H BArena.H CArena.H
 
 T_sources += Array.cpp PArray.cpp List.cpp Pointers.cpp Tuple.cpp
 T_headers += Array.H PArray.H List.H Pointers.H Tuple.H Misc.H
 
 T_sources += FabArray.cpp
 T_headers += BaseFab.H FabArray.H
+
+INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/pBoxLib_2
+
 #
 # multigrid sources
 #
-MGLIB_BASE=EXE
-C$(MGLIB_BASE)_headers += BndryData.H Mask.H
-C$(MGLIB_BASE)_sources += BndryData.cpp Mask.cpp
-F$(MGLIB_BASE)_headers += CG_F.H MG_F.H
-F$(MGLIB_BASE)_sources += CG_$(DIM)D.F LO_UTIL.F MG_$(DIM)D.F
+CEXE_headers += BndryData.H Mask.H
+CEXE_sources += BndryData.cpp Mask.cpp
+
+FEXE_headers += CG_F.H MG_F.H
+FEXE_sources += CG_$(DIM)D.F LO_UTIL.F MG_$(DIM)D.F
+
+INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/mglib
+
 #
 # tensorMG sources
 #
-MGLIB_BASE=EXE
-C$(MGLIB_BASE)_headers += DivVis.H MCCGSolver.H MCInterpBndryData.H MCLinOp.H \
-                          MCMultiGrid.H
+CEXE_headers += DivVis.H MCCGSolver.H MCInterpBndryData.H MCLinOp.H MCMultiGrid.H
+CEXE_sources += DivVis.cpp MCCGSolver.cpp MCInterpBndryData.cpp MCLinOp.cpp
+CEXE_sources += MCMultiGrid.cpp
 
-C$(MGLIB_BASE)_sources += DivVis.cpp MCCGSolver.cpp MCInterpBndryData.cpp MCLinOp.cpp \
-                          MCMultiGrid.cpp
-
-F$(MGLIB_BASE)_headers += DivVis_F.H MCINTERPBNDRYDATA_F.H
-
-F$(MGLIB_BASE)_sources += MCINTERPBNDRYDATA_$(DIM)D.F
+FEXE_headers += DivVis_F.H MCINTERPBNDRYDATA_F.H
+FEXE_sources += MCLO_$(DIM)D.F MCINTERPBNDRYDATA_$(DIM)D.F
 
 ifeq ($(DIM),2)
-F$(MGLIB_BASE)_sources += DV_2D.F
+FEXE_sources += DV_2D.F
 else
-F$(MGLIB_BASE)_sources += DV_3D1.F DV_3D2.F DV_3D3.F DV_3D4.F
+FEXE_sources += DV_3D1.F DV_3D2.F DV_3D3.F DV_3D4.F
 endif
+
+INCLUDE_LOCATIONS +=  $(PBOXLIB_HOME)/tensorMG
 
 #
 # tensorMG test sources
 #
-CEXE_sources += TestMCViscBndry.cpp testVI.cpp WritePlotFile.cpp
-CEXE_headers += TestMCViscBndry.H WritePlotfile.H
+CEXE_sources += TestMCViscBndry.cpp testVI.cpp
+CEXE_headers += TestMCViscBndry.H
 
-FEXE_sources += MCLO_$(DIM)D.F main_$(DIM)D.F
+FEXE_sources += main_$(DIM)D.F
 FEXE_headers += main_F.H
+
+INCLUDE_LOCATIONS +=  .
 
 #
 # BSP stuff
 #
 ifeq ($(USE_BSP),TRUE)
+PRELOAD_DIR = $(PBOXLIB_HOME)/util
+INCLUDE_LOCATIONS += $(PRELOAD_DIR)
 CEXE_sources += preload.cpp
 endif
+
+#
+# utility stuff
+#
+CEXE_sources += WritePlotFile.cpp
+CEXE_headers += WritePlotfile.H
+
+UTILITY_DIR = $(PBOXLIB_HOME)/util
+INCLUDE_LOCATIONS += $(UTILITY_DIR)
 
