@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.43 1998-04-23 16:38:00 lijewski Exp $
+// $Id: FabArray.H,v 1.44 1998-04-24 17:10:37 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -2051,7 +2051,7 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
                 fabComTag.fabIndex          = i;
                 fabComTag.procThatNeedsData = MyProc;
                 fabComTag.procThatHasData   = remoteProc;
-                fabComTag.subBox            = intersectBox;
+                fabComTag.box               = intersectBox;
                 fabComTag.srcComp           = srccomp;
                 fabComTag.destComp          = destcomp;
                 fabComTag.nComp             = numcomp;
@@ -2135,7 +2135,7 @@ FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
             fabComTag.fabIndex          = i;
             fabComTag.procThatNeedsData = MyProc;
             fabComTag.procThatHasData   = remoteProc;
-            fabComTag.subBox            = intersectBox;
+            fabComTag.box               = intersectBox;
             fabComTag.srcComp           = srccomp;
             fabComTag.destComp          = destcomp;
             fabComTag.nComp             = numcomp;
@@ -2198,7 +2198,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
     //
     for (int i = 0; i < fabComTagList.size(); i++)
     {
-        assert(fabComTagList[i].subBox.ok());
+        assert(fabComTagList[i].box.ok());
         assert(fabComTagList[i].procThatNeedsData == MyProc);
         assert(fabComTagList[i].procThatHasData   != MyProc);
 
@@ -2255,7 +2255,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
                           fabComTagList[i].nComp,
                           fabComTagList[i].srcComp,
                           fabComTagList[i].fabArrayId,
-                          fabComTagList[i].subBox);
+                          fabComTagList[i].box);
         //
         // Use MPI_Send() as we don't care whether or not this is buffered.
         //
@@ -2292,12 +2292,12 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
 
             assert(fcdp->fillBoxId == tag.fillBoxId);
 
-            if (fcdp->subBox == tag.subBox)
+            if (fcdp->subBox == tag.box)
             {
                 T* dataPtr = fcdp->localFabSource->dataPtr();
 
                 if ((rc = MPI_Irecv(dataPtr,
-                                    tag.subBox.numPts() * tag.nComp,
+                                    tag.box.numPts() * tag.nComp,
                                     mpi_data_type(dataPtr),
                                     tag.procThatHasData,
                                     //
@@ -2360,7 +2360,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
 
     for (int i = 0; i < fabComTagList.size(); i++)
     {
-        assert(fabComTagList[i].subBox.ok());
+        assert(fabComTagList[i].box.ok());
         assert(fabComTagList[i].procThatNeedsData == MyProc);
         assert(fabComTagList[i].procThatHasData   != MyProc);
 
@@ -2375,7 +2375,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
     {
         while (ParallelDescriptor::GetMessageHeader(dataWaitingSize, &tag))
         {
-            assert(tag.subBox.ok());
+            assert(tag.box.ok());
             assert(dataWaitingSize == 0);
             assert(tag.procThatHasData == MyProc);
 
@@ -2384,12 +2384,12 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
             //
             // Now send the requested data from the fabs on this processor.
             //
-            FAB fab(tag.subBox, tag.nComp);
+            FAB fab(tag.box, tag.nComp);
 
             fab.copy((*fabArrays[tag.fabArrayId])[tag.fabIndex],
-                     tag.subBox,
+                     tag.box,
                      tag.srcComp,
-                     tag.subBox,
+                     tag.box,
                      0,
                      tag.nComp);
             //
@@ -2398,7 +2398,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
             ParallelDescriptor::SendData(tag.procThatNeedsData,
                                          &tag,
                                          fab.dataPtr(),
-                                         tag.subBox.numPts()*tag.nComp*sizeof(T));
+                                         tag.box.numPts()*tag.nComp*sizeof(T));
 
             ++nFabMessages;
         }
@@ -2410,7 +2410,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
     //
     while (ParallelDescriptor::GetMessageHeader(dataWaitingSize, &tag))
     {
-        assert(tag.subBox.ok());
+        assert(tag.box.ok());
         assert(tag.procThatHasData != MyProc);
         assert(MyProc == tag.procThatNeedsData);
         //
@@ -2428,10 +2428,10 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
 
             assert(fcdp->fillBoxId == tag.fillBoxId);
 
-            if (fcdp->subBox == tag.subBox)
+            if (fcdp->subBox == tag.box)
             {
                 ParallelDescriptor::ReceiveData(fcdp->localFabSource->dataPtr(),
-                                                tag.subBox.numPts() *
+                                                tag.box.numPts() *
                                                 tag.nComp * sizeof(T));
                 --nFabMessages;
                 break;
@@ -2447,9 +2447,13 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
     assert(nFabMessages == 0);
 #endif
 #endif /*BL_USE_MPI*/
-
-    fabComTagList.erase(fabComTagList.begin(), fabComTagList.end());
-
+    //
+    // Clear out fabComTagList space.
+    //
+    {
+        vector<FabComTag> tmp;
+        tmp.swap(fabComTagList);
+    }
     dataAvailable = true;
 }
 

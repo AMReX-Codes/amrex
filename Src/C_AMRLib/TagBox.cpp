@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.31 1998-04-23 16:37:32 lijewski Exp $
+// $Id: TagBox.cpp,v 1.32 1998-04-24 17:10:18 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -509,7 +509,7 @@ TagBoxArray::mergeUnique ()
                     if (tbmdList[j].nOverlap < i)
                         src.setVal(TagBox::CLEAR, ovlpBox, 0);
                     tbmdClear.fabIndex = desc.mergeIndexSrc;
-                    tbmdClear.ovlpBox  = desc.overlapBox;
+                    tbmdClear.box      = desc.overlapBox;
                     clearList.push_back(tbmdClear);
                 }
             }
@@ -572,7 +572,7 @@ TagBoxArray::mergeUnique ()
                           0, // Not Used.
                           0, // Not Used.
                           0, // Not Used.
-                          clearList[i].ovlpBox);
+                          clearList[i].box);
 
         if ((rc = MPI_Ssend(senddata.dataPtr(),
                             senddata.length(),
@@ -613,7 +613,7 @@ TagBoxArray::mergeUnique ()
     {
        assert(distributionMap[tbmdClear.fabIndex] == MyProc);
 
-       fabparray[tbmdClear.fabIndex].setVal(TagBox::CLEAR,tbmdClear.ovlpBox,0);
+       fabparray[tbmdClear.fabIndex].setVal(TagBox::CLEAR,tbmdClear.box,0);
 
        ParallelDescriptor::ReceiveData(0, 0);  // To advance message header.
     }
