@@ -67,7 +67,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
 # ADD BASE F90 /compile_only /debug:full /nologo /warn:nofileopt
-# ADD F90 /browser /check:bounds /compile_only /dbglibs /debug:full /iface:cref /libs:dll /nologo /threads /warn:argument_checking /warn:declarations /warn:nofileopt
+# ADD F90 /browser /check:bounds /compile_only /dbglibs /debug:full /iface:cref /libs:dll /nologo /stand:none /threads /warn:argument_checking /warn:declarations /warn:nofileopt
 # SUBTRACT F90 /traceback
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_LIB" /D "_MBCS" /YX /FD /c
 # ADD CPP /nologo /MDd /W3 /Gm /GR /GX /ZI /Od /I "." /I "..\BoxLib" /D "_LIB" /D "BL_LANG_CC" /D "_DEBUG" /D "BL_PROFILING" /D "BL_USE_FLOAT" /D "WIN32" /D "_MBCS" /D for="if(0);else for" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /FR /YX /FD /c
