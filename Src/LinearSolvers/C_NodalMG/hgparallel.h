@@ -173,7 +173,6 @@ private:
     bool fill_patch_blindly();
     bool fill_exterior_patch_blindly();
     void fill_patch();
-    bool newed;
     FArrayBox* target;
     const Box region;
     const MultiFab& r;
@@ -183,7 +182,6 @@ private:
     const int index;
     task_list tl;
 };
-
 
 class task_linked_task : public task
 {

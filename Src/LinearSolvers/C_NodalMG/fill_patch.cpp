@@ -242,33 +242,32 @@ task_fill_patch::task_fill_patch(const Box& region_,
 				 const level_interface& lev_interface_,
 				 const amr_boundary_class* bdy_,
 				 int idim_, int index_)
-				 : region(region_),
+				 : region(region_), target(0),
 				 r(r_), lev_interface(lev_interface_), bdy(bdy_), idim(idim_), index(index_)
 {
 }
 
 bool task_fill_patch::init(sequence_number, MPI_Comm comm)
 {
-    target = new FArrayBox(region, r.nComp());
-    newed = true;
+    abort(); target = new FArrayBox(region, r.nComp());
     return true;
 }
 
 task_fill_patch::~task_fill_patch()
 {
-    if ( newed ) delete target;
+    abort(); delete target;
 }
 
 bool task_fill_patch::ready()
 {
-    abort();    fill_patch();
+    abort(); fill_patch();
     tl.execute();
     return true;
 }
 
 const FArrayBox& task_fill_patch::fab()
 {
-    ready();
+    abort(); ready();
     return *target;
 }
 
