@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.44 2000-05-31 17:44:24 lijewski Exp $
+// $Id: AmrLevel.H,v 1.45 2000-06-12 23:43:04 almgren Exp $
 //
 
 #include <REAL.H>
@@ -115,7 +115,7 @@ public:
                pure virtual function and hence MUST be implemented by derived
                classes.
     */
-    virtual  void post_timestep () = 0;
+    virtual  void post_timestep (int iteration) = 0;
 
     /*@ManDoc: Contains operations to be done only after a full coarse
                timestep.  The default implementation does nothing.

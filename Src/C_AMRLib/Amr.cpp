@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.107 2000-04-22 00:34:14 sstanley Exp $
+// $Id: Amr.cpp,v 1.108 2000-06-12 23:43:03 almgren Exp $
 //
 
 #include <TagBox.H>
@@ -1232,7 +1232,7 @@ Amr::timeStep (int  level,
         }
     }
 
-    amr_level[level].post_timestep();
+    amr_level[level].post_timestep(iteration);
 }
 
 void
