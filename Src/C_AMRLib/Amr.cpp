@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.67 1998-12-22 22:42:56 almgren Exp $
+// $Id: Amr.cpp,v 1.68 1999-01-06 21:27:58 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -17,8 +17,11 @@
 #include <Amr.H>
 #include <ParallelDescriptor.H>
 #include <Utility.H>
-
 #include <DistributionMapping.H>
+
+#ifdef BL_USE_ARRAYVIEW
+#include <DatasetClient.H>
+#endif
 
 #ifdef BL_USE_NEW_HFILES
 #include <cstdio>
@@ -35,13 +38,11 @@ using std::ios;
 #define pubsetbuf setbuf
 #endif
 
-
 void
-Amr::setDtMin(const Array<REAL>& dt_min_in)
+Amr::setDtMin (const Array<REAL>& dt_min_in)
 {
-    for (int i = 0; i <= finest_level; i++) {
+    for (int i = 0; i <= finest_level; i++)
         dt_min[i] = dt_min_in[i];
-    }
 }
 
 AmrLevel&
@@ -112,11 +113,10 @@ Amr::Amr ()
     //
     // Set default values.
     //
-    max_level     = -1;
+    max_level         = -1;
     record_run_info   = false;
     record_grid_info  = false;
-
-    grid_eff              = 0.7;
+    grid_eff          = 0.7;
     blocking_factor   = 1;
     last_checkpoint   = 0;
     last_plotfile     = 0;
