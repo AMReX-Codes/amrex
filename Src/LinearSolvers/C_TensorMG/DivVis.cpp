@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DivVis.cpp,v 1.4 1999-01-04 21:31:48 lijewski Exp $
+// $Id: DivVis.cpp,v 1.5 1999-04-20 23:54:55 sstanley Exp $
 //
 
 #include <DivVis.H>
@@ -480,8 +480,8 @@ DivVis::compFlux (MultiFab& xflux,
 	    yfluxmfi().dataPtr(), 
 	    ARLIM(yfluxmfi().loVect()), ARLIM(yfluxmfi().hiVect()),
 #if BL_SPACEDIM>2
-	    yfluxmfi().dataPtr(), 
-	    ARLIM(yfluxmfi().loVect()), ARLIM(yfluxmfi().hiVect()),
+	    zfluxmfi().dataPtr(), 
+	    ARLIM(zfluxmfi().loVect()), ARLIM(zfluxmfi().hiVect()),
 #endif
 	    mn.dataPtr(),
 	    ARLIM(mn.loVect()),ARLIM(mn.hiVect()),
