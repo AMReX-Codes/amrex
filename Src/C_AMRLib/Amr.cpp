@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.99 1999-10-28 21:49:52 lijewski Exp $
+// $Id: Amr.cpp,v 1.100 1999-10-30 00:01:36 propp Exp $
 //
 
 #include <TagBox.H>
@@ -32,13 +32,10 @@ using std::ios;
 #include <stdio.h>
 #endif
 
-#include <sys/types.h>
-#include <sys/wait.h>
-
 //
 // This is supposed to be in <sys/types.h>
 //
-extern "C" pid_t fork();
+//
 
 //
 // This MUST be defined if don't have pubsetbuf() in I/O Streams Library.
@@ -76,26 +73,6 @@ static int tar_and_rm_files = 0;
 //
 static pid_t pid_chk = -1;
 static pid_t pid_plt = -1;
-
-//
-// Run cmd in a child process.  Returns child pid.  Ignores errors.
-//
-
-static
-pid_t
-DoIt (const char* cmd)
-{
-    pid_t pid = fork();
-
-    if (pid == 0)
-    {
-        system(cmd);
-
-        exit(0);
-    }
-
-    return pid;
-}
 
 void
 Amr::setDtMin (const Array<REAL>& dt_min_in)
@@ -671,7 +648,7 @@ Amr::writePlotFile (const aString& root,
             cmd += "; rm -rf ";
             cmd += pltfile;
 
-            pid_plt = DoIt(cmd.c_str());
+            pid_plt = Utility::Execute(cmd.c_str());
         }
     }
 }
@@ -1148,7 +1125,7 @@ Amr::checkPoint ()
                 cmd += the_previous_ckfile;
             }
 
-            pid_chk = DoIt(cmd.c_str());
+            pid_chk = Utility::Execute(cmd.c_str());
 
             the_previous_ckfile = ckfile;
         }

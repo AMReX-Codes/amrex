@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.35 1999-10-20 18:25:13 lijewski Exp $
+// $Id: Utility.cpp,v 1.36 1999-10-30 00:01:38 propp Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -500,53 +500,20 @@ blutilrand_ (Real* rn)
 }
 #endif 
 
-//
-// This is supposed to be in <sys/types.h>
-//
 extern "C" pid_t fork();
 
-//
-// Try to execute a shell command in a subshell.  Doesn't exit on error.
-// Does a system(cmd) in a grandchild with the child immediately exit()ing.
-// The grandchild is orphaned to and eventually grokked by the init process.
-//
-
-void
+pid_t
 Utility::Execute (const char* cmd)
 {
-    int status;
 
     pid_t pid = fork();
 
-    if (pid == -1)
+    if (pid == 0)
     {
-        cout << "The parent -> child fork() failed" << endl;
-    }
-    else if (pid == 0)
-    {
-        //
-        // The child process ...
-        //
-        pid_t pid = fork();
-
-        if (pid == -1)
-        {
-            cout << "The child -> grandchild fork() failed" << endl;
-        }
-        else if (pid == 0)
-        {
-            //
-            // The grandchild process -- do the work.
-            //
-            if (system(cmd) < 0)
-                cout << "The system() failed" << endl;
-        }
+        system(cmd);
 
         exit(0);
     }
-    else
-        //
-        // The parent process -- wait for the child.
-        //
-        waitpid(pid, &status, 0);
+
+    return pid;
 }

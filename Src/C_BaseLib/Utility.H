@@ -4,7 +4,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.27 1999-10-20 18:25:13 lijewski Exp $
+// $Id: Utility.H,v 1.28 1999-10-30 00:01:38 propp Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -19,6 +19,7 @@ using std::endl;
 
 #ifndef WIN32
 #include <sys/types.h>
+#include <sys/wait.h>
 #endif
 
 #include <aString.H>
@@ -217,13 +218,10 @@ public:
     static void InitRandom (int seed);
 
     /*@ManDoc: Try to execute a shell command in a subshell.
-               Doesn't exit (but attempts to issue warnings) on error.
-               Does a system(cmd) in a grandchild with the child
-               immediately exit()ing.
-               The grandchild is orphaned to and eventually grokked by
-               the init process.
+               User is responsible for calling waitpid() on the pid
+	       returned from this function.
     */
-    static void Execute (const char* cmd);
+    static pid_t Execute (const char* cmd);
 };
 
 //
