@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.5 1997-11-09 20:31:41 lijewski Exp $
+// $Id: VisMF.cpp,v 1.6 1997-11-10 03:37:30 lijewski Exp $
 //
 
 #include <VisMF.H>
@@ -12,13 +12,21 @@ const aString VisMF::MultiFabHdrFileSuffix("_hdr_");
 
 const aString VisMF::FabOnDisk::Prefix("FOD:");
 
+inline
+void
+GetTheChar (istream& is,
+            char     ch)
+{
+    char c;
+    is.get(c);
+    assert(c == ch);
+}
+
 ostream&
 operator<< (ostream&                os,
             const VisMF::FabOnDisk& fod)
 {
-    os << VisMF::FabOnDisk::Prefix << ' '
-       << fod.m_name               << ' '
-       << fod.m_head               << ' ';
+    os << VisMF::FabOnDisk::Prefix << ' ' << fod.m_name << ',' << fod.m_head;
 
     if (!os.good())
         BoxLib::Error("Write of VisMF::FabOnDisk failed");
@@ -26,11 +34,35 @@ operator<< (ostream&                os,
     return os;
 }
 
+istream&
+operator>> (istream&          is,
+            VisMF::FabOnDisk& fod)
+{
+    aString str;
+    is >> str;
+    assert(str == VisMF::FabOnDisk::Prefix);
+
+    GetTheChar(is, ' ');
+
+    char ch;
+    is >> fod.m_name >> ch >> fod.m_head;
+    assert(ch == ',');
+
+    if (!is.good())
+        BoxLib::Error("Read of VisMF::FabOnDisk failed");
+
+    return is;
+}
+
 ostream&
 operator<< (ostream&                       os,
             const Array<VisMF::FabOnDisk>& fa)
 {
-    for (int i = 0, N = fa.length(); i < N; i++)
+    long i = 0, N = fa.length();
+
+    os << N << '\n';
+
+    for ( ; i < N; i++)
     {
         os << fa[i] << '\n';
     }
@@ -41,16 +73,45 @@ operator<< (ostream&                       os,
     return os;
 }
 
+istream&
+operator>> (istream&                 is,
+            Array<VisMF::FabOnDisk>& fa)
+{
+    long i = 0, N;
+
+    is >> N;
+    assert(N >= 0);
+
+    fa.resize(N);
+
+    for ( ; i < N; i++)
+    {
+        is >> fa[i];
+        GetTheChar(is, '\n');
+    }
+
+    if (!is.good())
+        BoxLib::Error("Read of Array<VisMF::FabOnDisk> failed");
+
+    return is;
+}
+
 static
 ostream&
 operator<< (ostream&                    os,
             const Array< Array<Real> >& ar)
 {
-    for (int i = 0, N = ar.length(); i < N; i++)
+    long i = 0, N = ar.length(), M = (N == 0) ? 0 : ar[0].length();
+
+    os << N << ',' << M << '\n';
+
+    for ( ; i < N; i++)
     {
-        for (int j = 0, M = ar[i].length(); j < M; j++)
+        assert(ar[i].length() == M);
+
+        for (long j = 0; j < M; j++)
         {
-            os << ar[i][j] << ' ';
+            os << ar[i][j] << ',';
         }
         os << '\n';
     }
@@ -61,19 +122,106 @@ operator<< (ostream&                    os,
     return os;
 }
 
-void
-VisMF::Header::writeOn (ostream& os) const
+static
+istream&
+operator>> (istream&              is,
+            Array< Array<Real> >& ar)
 {
-    os << m_vers     << '\n';
-    os << int(m_how) << '\n';
-    os << m_ncomp    << '\n';
-    os << m_ba       << '\n';
-    os << m_fod      << '\n';
-    os << m_min      << '\n';
-    os << m_max      << '\n';
+    char ch;
+    long i = 0, N, M;
+
+    is >> N >> ch >> M;
+
+    assert(N >= 0);
+    assert(ch == ',');
+    assert(M >= 0);
+
+    GetTheChar(is, '\n');
+
+    ar.resize(N);
+    
+    for ( ; i < N; i++)
+    {
+        ar[i].resize(M);
+
+        for (long j = 0; j < M; j++)
+        {
+            is >> ar[i][j] >> ch;
+            assert(ch == ',');
+        }
+
+        GetTheChar(is, '\n');
+    }
+
+    if (!is.good())
+        BoxLib::Error("Read of Array<Array<Real>> failed");
+
+    return is;
+}
+
+ostream&
+operator<< (ostream&             os,
+            const VisMF::Header& hd)
+{
+    os << hd.m_vers     << '\n';
+    os << int(hd.m_how) << '\n';
+    os << hd.m_ncomp    << '\n';
+    os << hd.m_ba       << '\n';
+    os << hd.m_fod      << '\n';
+    os << hd.m_min      << '\n';
+    os << hd.m_max      << '\n';
 
     if (!os.good())
-        BoxLib::Error("VisMF::Header::WriteOn() failed");
+        BoxLib::Error("Write of VisMF::Header failed");
+
+    return os;
+}
+
+istream&
+operator>> (istream&       is,
+            VisMF::Header& hd)
+{
+    is >> hd.m_vers;
+    assert(hd.m_vers == VisMF::Header::Version);
+    GetTheChar(is, '\n');
+
+    int how;
+    is >> how;
+    switch (how)
+    {
+    case VisMF::OneFilePerCPU:
+        hd.m_how = VisMF::OneFilePerCPU; break;
+    case VisMF::OneFilePerFab:
+        hd.m_how = VisMF::OneFilePerFab; break;
+    default:
+        BoxLib::Error("Bad case in switch");
+    }
+    GetTheChar(is, '\n');
+
+    is >> hd.m_ncomp;
+    assert(hd.m_ncomp >= 0);
+    GetTheChar(is, '\n');
+
+    hd.m_ba.define(is);
+    GetTheChar(is, '\n');
+
+    is >> hd.m_fod;
+    assert(hd.m_ba.length() == hd.m_fod.length());
+    GetTheChar(is, '\n');
+
+    is >> hd.m_min;
+    GetTheChar(is, '\n');
+
+    is >> hd.m_max;
+    GetTheChar(is, '\n');
+
+    assert(hd.m_ba.length() == hd.m_min.length());
+    assert(hd.m_ba.length() == hd.m_max.length());
+
+    if (!is.good())
+        BoxLib::Error("Read of VisMF::Header failed");
+
+    return is;
 }
 
 VisMF::FabOnDisk
@@ -159,7 +307,7 @@ VisMF::WriteOneFilePerCPU (const MultiFab& mf,
 
     ofstream mf_hdr_file(mf_hdr_file_name.c_str());
 
-    hdr.writeOn(mf_hdr_file);
+    mf_hdr_file << hdr;
 }
 
 void

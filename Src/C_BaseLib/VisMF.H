@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.5 1997-11-09 20:31:40 lijewski Exp $
+// $Id: VisMF.H,v 1.6 1997-11-10 03:37:29 lijewski Exp $
 //
 
 #include <sys/types.h>
@@ -67,10 +67,6 @@ public:
         //
         Header (const MultiFab& mf, VisMF::How how);
         //
-        // Writes the Header in ASCII to the supplied ostream.
-        //
-        void writeOn (ostream& os) const;
-        //
         // What's in the header.
         //
         int                  m_vers;  // The version # of the Header.
@@ -128,9 +124,36 @@ private:
 ostream& operator<< (ostream& os, const VisMF::FabOnDisk& fod);
 
 //
+// Read a FabOnDisk from an istream.
+//
+
+istream& operator>> (istream& is, VisMF::FabOnDisk& fod);
+
+//
 // Write an Array<FabOnDisk> to an ostream in ASCII.
 //
 
 ostream& operator<< (ostream& os, const Array<VisMF::FabOnDisk>& fa);
+
+//
+// Read an Array<FabOnDisk> from an istream.
+//
+
+istream& operator>> (istream& is, Array<VisMF::FabOnDisk>& fa);
+
+
+
+
+//
+// Write a VisMF::Header to an ostream in ASCII.
+//
+
+ostream& operator<< (ostream& os, const VisMF::Header& hd);
+
+//
+// Read a VisMF::Header from an istream.
+//
+
+istream& operator>> (istream& is, VisMF::Header& hd);
 
 #endif /*BL_VISMF_H*/
