@@ -1,10 +1,11 @@
 /* 
-   $Id: fabio_c.c,v 1.2 2004-05-26 21:48:51 car Exp $ 
+   $Id: fabio_c.c,v 1.3 2004-05-27 22:32:25 car Exp $ 
    Contains the IO routines for fabio module
 */
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <float.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -26,26 +27,35 @@ typedef int mode_t;
 #endif
 
 #if defined(BL_FORT_USE_UNDERSCORE)
-#define FABIO_OPEN_STR  fabio_open_str_
-#define FABIO_MKDIR_STR fabio_mkdir_str_
-#define FABIO_READ      fabio_read_
-#define FABIO_WRITE_RAW fabio_write_raw_
-#define FABIO_READ_SKIP fabio_read_skip_
-#define FABIO_CLOSE     fabio_close_
+#define FABIO_OPEN_STR    fabio_open_str_
+#define FABIO_MKDIR_STR   fabio_mkdir_str_
+#define FABIO_READ_D      fabio_read_d_
+#define FABIO_READ_S      fabio_read_s_
+#define FABIO_WRITE_RAW_D fabio_write_raw_d_
+#define FABIO_WRITE_RAW_S fabio_write_raw_s_
+#define FABIO_READ_SKIP_D fabio_read_skip_d_
+#define FABIO_READ_SKIP_S fabio_read_skip_s_
+#define FABIO_CLOSE       fabio_close_
 #elif defined(BL_FORT_USE_DBL_UNDERSCORE)
-#define FABIO_OPEN_STR  fabio_open_str__
-#define FABIO_MKDIR_STR fabio_mkdir_str__
-#define FABIO_READ      fabio_read__
-#define FABIO_WRITE_RAW fabio_write_raw__
-#define FABIO_READ_SKIP fabio_read_skip__
-#define FABIO_CLOSE     fabio_close__
+#define FABIO_OPEN_STR    fabio_open_str__
+#define FABIO_MKDIR_STR   fabio_mkdir_str__
+#define FABIO_READ_D      fabio_read_d__
+#define FABIO_READ_S      fabio_read_s__
+#define FABIO_WRITE_RAW_D fabio_write_raw_d__
+#define FABIO_WRITE_RAW_S fabio_write_raw_s__
+#define FABIO_READ_SKIP_D fabio_read_skip_d__
+#define FABIO_READ_SKIP_S fabio_read_skip_s__
+#define FABIO_CLOSE       fabio_close__
 #elif defined(BL_FORT_USE_LOWERCASE)
-#define FABIO_OPEN_STR  fabio_open_str
-#define FABIO_MKDIR_STR fabio_mkdir_str
-#define FABIO_READ      fabio_read
-#define FABIO_WRITE_RAW fabio_write_raw
-#define FABIO_READ_SKIP fabio_read_skip
-#define FABIO_CLOSE     fabio_close
+#define FABIO_OPEN_STR    fabio_open_str
+#define FABIO_MKDIR_STR   fabio_mkdir_str
+#define FABIO_READ_D      fabio_read_d
+#define FABIO_READ_S      fabio_read_s
+#define FABIO_WRITE_RAW_D fabio_write_raw_d
+#define FABIO_WRITE_RAW_S fabio_write_raw_s
+#define FABIO_READ_SKIP_D fabio_read_skip_d
+#define FABIO_READ_SKIP_S fabio_read_skip_s
+#define FABIO_CLOSE       fabio_close
 #endif
 
 static
@@ -106,10 +116,14 @@ FABIO_OPEN_STR(int* fdp, const int* ifilename, const int* flagp)
  * DOUBLE data
  * FAB ((8, (64 11 52 0 1 12 0 1023)),(8, (1 2 3 4 5 6 7 8)))((0,0) (63,63) (0,0)) 27
  * FLOAT data
- * FAB ((8, (32  8 23 0 1  9 0  127)),(4, (1 2 3 4)        ))((0,0) (63,63) (0,0)) 27
+ * FAB ((8, (32 8 23 0 1 9 0 127)),(4, (1 2 3 4)        ))((0,0) (63,63) (0,0)) 27
  */
 
-
+/*
+ * NORDER_? : normal byte order floats(f), doubles(d) on this architecture
+ */
+static const char* str_ieee_d = "64 11 52 0 1 12 0 1023";
+static const char* str_ieee_f = "32 8 23 0 1 9 0 127";
 #if defined(BL_AIX)
 static const int norder_d[8] = { 1, 2, 3, 4, 5, 6, 7, 8};
 static const char* str_norder_d = "1 2 3 4 5 6 7 8";
@@ -122,7 +136,12 @@ static const int norder_f[4] = { 4, 3, 2, 1 };
 static const char* str_norder_f = "4 3 2 1";
 #endif
 
-enum {FI_FLOAT, FI_DOUBLE};
+enum
+  {
+    /* cf. fabio.f90 */
+    FABIO_SINGLE  = 2, 
+    FABIO_DOUBLE = 1
+  };
 
 static
 int
@@ -149,12 +168,12 @@ scan_buffer(const char* buffer, int border[])
 		  "Not double precision data\n");
 	  exit(1);
 	}
-      return FI_DOUBLE;
+      return FABIO_DOUBLE;
     }
 
   /* second, try for float data */
   i = sscanf(buffer,
-	     "FAB ((8, (32  8 23 0 1  9 0  127)),(%d, (%[^)])))",
+	     "FAB ((8, (32 8 23 0 1 9 0 127)),(%d, (%[^)])))",
 	     &bcount,
 	     bstr);
   if ( i == 2 )
@@ -169,7 +188,7 @@ scan_buffer(const char* buffer, int border[])
 		  "Not double precision data\n");
 	  exit(1);
 	}
-      return FI_FLOAT;
+      return FABIO_SINGLE;
     }
   
   fprintf(stderr, "FABIO: scan_buffer failed to parse FAB header\n"
@@ -178,8 +197,8 @@ scan_buffer(const char* buffer, int border[])
 }
 
 void
-FABIO_READ_SKIP(const int* fdp, const int* offsetp, const int* skipp, 
-		double dp[], const int* countp)
+FABIO_READ_SKIP_D(const int* fdp, const int* offsetp, const int* skipp, 
+		  double dp[], const int* countp)
 {
   int fd = *fdp;
   char c;
@@ -194,7 +213,7 @@ FABIO_READ_SKIP(const int* fdp, const int* offsetp, const int* skipp,
   
   if ( lseek(fd, offset, SEEK_SET) < 0 )
     {
-      fprintf(stderr, "FABIO_READ_SKIP: failed to seek to %ld: %s\n", 
+      fprintf(stderr, "FABIO_READ_SKIP_D: failed to seek to %ld: %s\n", 
 	      offset, strerror(errno));
       exit(1);
     }
@@ -202,14 +221,14 @@ FABIO_READ_SKIP(const int* fdp, const int* offsetp, const int* skipp,
     {
       if ( read(fd, &c, 1) != 1 )
 	{
-	  fprintf(stderr, "FABIO_READ_SKIP: failed to read a char: %s\n",
+	  fprintf(stderr, "FABIO_READ_SKIP_D: failed to read a char: %s\n",
 		  strerror(errno));
 	  exit(1);
 	}
       if ( c == '\n' ) break;
       if ( i == sizeof(buffer) )
 	{
-	  fprintf(stderr, "FABIO_READ_SKIP: failed FAB header\n");
+	  fprintf(stderr, "FABIO_READ_SKIP_D: failed FAB header\n");
 	  exit(1);
 	}
       buffer[i] = c;
@@ -217,18 +236,18 @@ FABIO_READ_SKIP(const int* fdp, const int* offsetp, const int* skipp,
   buffer[i] = 0;
 
   i = scan_buffer(buffer, border);
-  if ( i == FI_DOUBLE ) 
+  if ( i == FABIO_DOUBLE ) 
     {
       /* should be positioned to read the doubles */
       if ( skip && lseek(fd, skip*sizeof(double), SEEK_CUR) < 0 )
 	{
-	  fprintf(stderr, "FABIO_READ_SKIP: failed to seek to comp %ld: %s\n", 
+	  fprintf(stderr, "FABIO_READ_SKIP_D: failed to seek to comp %ld: %s\n", 
 		  offset, strerror(errno));
 	  exit(1);
 	}
       if ( count*sizeof(double) != read(fd, dp, count*sizeof(double)) )
 	{
-	  fprintf(stderr, "FABIO_READ_SKIP: failed to read %ld doubles: %s\n", 
+	  fprintf(stderr, "FABIO_READ_SKIP_D: failed to read %ld doubles: %s\n", 
 		  count, strerror(errno));
 	  exit(1);
 	}
@@ -258,24 +277,24 @@ FABIO_READ_SKIP(const int* fdp, const int* offsetp, const int* skipp,
 	    }
 	}
     }
-  else
+  else if ( i == FABIO_SINGLE )
     {
       float* fp;
       if ( (fp = (float *) malloc(count*sizeof(float))) == NULL)
 	{
-	  fprintf(stderr, "FABIO_READ_SKIP: failed to allocate fp\n");
+	  fprintf(stderr, "FABIO_READ_SKIP_D: failed to allocate fp\n");
 	  exit(1);
 	}
       /* should be positioned to read the doubles */
       if ( skip && lseek(fd, skip*sizeof(float), SEEK_CUR) < 0 )
 	{
-	  fprintf(stderr, "FABIO_READ_SKIP: failed to seek to comp %ld: %s\n", 
+	  fprintf(stderr, "FABIO_READ_SKIP_D: failed to seek to comp %ld: %s\n", 
 		  offset, strerror(errno));
 	  exit(1);
 	}
       if ( count*sizeof(float) != read(fd, fp, count*sizeof(float)) )
 	{
-	  fprintf(stderr, "FABIO_READ_SKIP: failed to read %ld doubles: %s\n", 
+	  fprintf(stderr, "FABIO_READ_SKIP_D: failed to read %ld doubles: %s\n", 
 		  count, strerror(errno));
 	  exit(1);
 	}
@@ -329,7 +348,7 @@ FABIO_READ_SKIP_S(const int* fdp, const int* offsetp, const int* skipp,
   
   if ( lseek(fd, offset, SEEK_SET) < 0 )
     {
-      fprintf(stderr, "FABIO_READ_SKIP: failed to seek to %ld: %s\n", 
+      fprintf(stderr, "FABIO_READ_SKIP_S: failed to seek to %ld: %s\n", 
 	      offset, strerror(errno));
       exit(1);
     }
@@ -337,7 +356,7 @@ FABIO_READ_SKIP_S(const int* fdp, const int* offsetp, const int* skipp,
     {
       if ( read(fd, &c, 1) != 1 )
 	{
-	  fprintf(stderr, "FABIO_READ_SKIP: failed to read a char: %s\n",
+	  fprintf(stderr, "FABIO_READ_SKIP_S: failed to read a char: %s\n",
 		  strerror(errno));
 	  exit(1);
 	}
@@ -352,7 +371,7 @@ FABIO_READ_SKIP_S(const int* fdp, const int* offsetp, const int* skipp,
   buffer[i] = 0;
 
   i = scan_buffer(buffer, border);
-  if ( i == FI_DOUBLE ) 
+  if ( i == FABIO_DOUBLE ) 
     {
       double* dp;
       if ( (dp = (double *) malloc(count*sizeof(double))) == NULL)
@@ -399,23 +418,25 @@ FABIO_READ_SKIP_S(const int* fdp, const int* offsetp, const int* skipp,
 	    }
 	}
       free(dp);
-      for ( i = 0; i < count; i++)
+      for ( i = 0; i < count; i++ )
 	{
-	  sp[i] = (float)dp[i];
+	  if      ( dp[i] >  FLT_MAX )  sp[i] =  FLT_MAX;
+	  else if ( dp[i] < -FLT_MAX )  sp[i] = -FLT_MAX;
+	  else                          sp[i] = (float)dp[i];
 	}
     }
-  else
+  else if ( i == FABIO_SINGLE )
     {
       /* should be positioned to read the doubles */
       if ( skip && lseek(fd, skip*sizeof(float), SEEK_CUR) < 0 )
 	{
-	  fprintf(stderr, "FABIO_READ_SKIP: failed to seek to comp %ld: %s\n", 
+	  fprintf(stderr, "FABIO_READ_SKIP_S: failed to seek to comp %ld: %s\n", 
 		  offset, strerror(errno));
 	  exit(1);
 	}
       if ( count*sizeof(float) != read(fd, sp, count*sizeof(float)) )
 	{
-	  fprintf(stderr, "FABIO_READ_SKIP: failed to read %ld doubles: %s\n", 
+	  fprintf(stderr, "FABIO_READ_SKIP_S: failed to read %ld doubles: %s\n", 
 		  count, strerror(errno));
 	  exit(1);
 	}
@@ -448,8 +469,9 @@ FABIO_READ_SKIP_S(const int* fdp, const int* offsetp, const int* skipp,
 }
 
 void
-FABIO_WRITE_RAW(const int* fdp, int* offsetp, const double* vp, const int* countp, 
-		const int* dmp, const int lo[], const int hi[], const int nd[], const int* ncp)
+FABIO_WRITE_RAW_D(const int* fdp, int* offsetp, const double* vp, const int* countp, 
+		  const int* dmp, const int lo[], const int hi[], const int nd[],
+		  const int* ncp, const int* prec)
 {
   int fd = *fdp;
   int dm = *dmp;
@@ -461,11 +483,11 @@ FABIO_WRITE_RAW(const int* fdp, int* offsetp, const double* vp, const int* count
   double* dp = (double*)vp;
 
   offset = lseek(fd, 0, SEEK_CUR);
-  sprintf(buffer, "FAB ((8, (64 11 52 0 1 12 0 1023)),(8, (%s)))", str_norder_d);
+  sprintf(buffer, "FAB ((8, (%s)),(8, (%s)))", str_ieee_d, str_norder_d);
   ilen = strlen(buffer);
   if ( ilen != write(fd, buffer, ilen) )
     {
-      fprintf(stderr, "FABIO_WRITE_RAW: failed to write %d bytes: %s\n", 
+      fprintf(stderr, "FABIO_WRITE_RAW_D: failed to write %d bytes: %s\n", 
 	      ilen, strerror(errno));
       exit(1);
     }
@@ -484,7 +506,7 @@ FABIO_WRITE_RAW(const int* fdp, int* offsetp, const double* vp, const int* count
 	      lo[0], lo[1], lo[2], hi[0], hi[1], hi[2], nd[0], nd[1], nd[2], nc);
       break;
     default:
-      fprintf(stderr, "FABIO_WRITE_RAW: strange dimension = %d\n", dm);
+      fprintf(stderr, "FABIO_WRITE_RAW_D: strange dimension = %d\n", dm);
       exit(1);
     }
   write(fd, buffer, strlen(buffer));
@@ -492,7 +514,7 @@ FABIO_WRITE_RAW(const int* fdp, int* offsetp, const double* vp, const int* count
   ilen = nc*count*sizeof(double);
   if ( ilen != write(fd, dp, ilen) )
     {
-      fprintf(stderr, "FABIO_WRITE_RAW: failed to write %ld doubles: %s\n", 
+      fprintf(stderr, "FABIO_WRITE_RAW_D: failed to write %ld doubles: %s\n", 
 	      nc*count, strerror(errno));
       exit(1);
     }
@@ -501,7 +523,8 @@ FABIO_WRITE_RAW(const int* fdp, int* offsetp, const double* vp, const int* count
 
 void
 FABIO_WRITE_RAW_S(const int* fdp, int* offsetp, const float* vp, const int* countp, 
-		  const int* dmp, const int lo[], const int hi[], const int nd[], const int* ncp)
+		  const int* dmp, const int lo[], const int hi[], const int nd[], 
+		  const int* ncp, const int* prec)
 {
   int fd = *fdp;
   int dm = *dmp;
@@ -513,11 +536,11 @@ FABIO_WRITE_RAW_S(const int* fdp, int* offsetp, const float* vp, const int* coun
   float* sp = (float*)vp;
 
   offset = lseek(fd, 0, SEEK_CUR);
-  sprintf(buffer, "FAB ((8, (32 8 23 0 1 9 0 127)),(4, (%s)))", str_norder_f);
+  sprintf(buffer, "FAB ((8, (%s)),(4, (%s)))", str_ieee_f, str_norder_f);
   ilen = strlen(buffer);
   if ( ilen != write(fd, buffer, ilen) )
     {
-      fprintf(stderr, "FABIO_WRITE_RAW: failed to write %d bytes: %s\n", 
+      fprintf(stderr, "FABIO_WRITE_RAW_S: failed to write %d bytes: %s\n", 
 	      ilen, strerror(errno));
       exit(1);
     }
@@ -536,7 +559,7 @@ FABIO_WRITE_RAW_S(const int* fdp, int* offsetp, const float* vp, const int* coun
 	      lo[0], lo[1], lo[2], hi[0], hi[1], hi[2], nd[0], nd[1], nd[2], nc);
       break;
     default:
-      fprintf(stderr, "FABIO_WRITE_RAW: strange dimension = %d\n", dm);
+      fprintf(stderr, "FABIO_WRITE_RAW_S: strange dimension = %d\n", dm);
       exit(1);
     }
   write(fd, buffer, strlen(buffer));
@@ -544,7 +567,7 @@ FABIO_WRITE_RAW_S(const int* fdp, int* offsetp, const float* vp, const int* coun
   ilen = nc*count*sizeof(float);
   if ( ilen != write(fd, sp, ilen) )
     {
-      fprintf(stderr, "FABIO_WRITE_RAW: failed to write %ld floats: %s\n", 
+      fprintf(stderr, "FABIO_WRITE_RAW_S: failed to write %ld floats: %s\n", 
 	      nc*count, strerror(errno));
       exit(1);
     }
@@ -553,10 +576,10 @@ FABIO_WRITE_RAW_S(const int* fdp, int* offsetp, const float* vp, const int* coun
 
 
 void
-FABIO_READ(const int* fdp, const int* offsetp, double dp[], const int* countp)
+FABIO_READ_D(const int* fdp, const int* offsetp, double dp[], const int* countp)
 {
   int skip = 0;
-  FABIO_READ_SKIP(fdp, offsetp, &skip, dp, countp);
+  FABIO_READ_SKIP_D(fdp, offsetp, &skip, dp, countp);
 }
 
 void

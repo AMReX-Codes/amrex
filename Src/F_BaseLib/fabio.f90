@@ -12,51 +12,61 @@ module fabio_module
 
   implicit none
 
+  integer, parameter :: FABIO_DOUBLE = 1
+  integer, parameter :: FABIO_SINGLE = 2
+
   interface
      subroutine fabio_close(fd)
        integer, intent(out) :: fd
      end subroutine fabio_close
 
-     subroutine fabio_read(fd, offset, d, count)
+     subroutine fabio_read_d(fd, offset, d, count)
        use bl_types
        integer, intent(in) :: offset, fd, count
        real(kind=dp_t), intent(out) :: d(count)
-     end subroutine fabio_read
+     end subroutine fabio_read_d
      subroutine fabio_read_s(fd, offset, s, count)
        use bl_types
        integer, intent(in) :: offset, fd, count
        real(kind=sp_t), intent(out) :: s(count)
      end subroutine fabio_read_s
 
-     subroutine fabio_read_comp(fd, offset, skip, d, count)
+     subroutine fabio_read_comp_d(fd, offset, skip, d, count)
        use bl_types
        integer, intent(in) :: offset, fd, count, skip
        real(kind=dp_t), intent(out) :: d(count)
-     end subroutine fabio_read_comp
+     end subroutine fabio_read_comp_d
      subroutine fabio_read_comp_s(fd, offset, skip, s, count)
        use bl_types
        integer, intent(in) :: offset, fd, count, skip
        real(kind=sp_t), intent(out) :: s(count)
      end subroutine fabio_read_comp_s
 
-     subroutine fabio_write_raw(fd, offset, d, count, dm, lo, hi, nd, nc)
+     subroutine fabio_write_raw_d(fd, offset, d, count, dm, lo, hi, nd, nc, prec)
        use bl_types
-       integer, intent(in) :: fd, count, dm, lo(dm), hi(dm), nd(dm), nc
+       integer, intent(in) :: fd, count, dm, lo(dm), hi(dm), nd(dm), nc, prec
        real(kind=dp_t), intent(in) :: d(count)
        integer, intent(out) :: offset
-     end subroutine fabio_write_raw
-     subroutine fabio_write_raw_s(fd, offset, s, count, dm, lo, hi, nd, nc)
+     end subroutine fabio_write_raw_d
+     subroutine fabio_write_raw_s(fd, offset, s, count, dm, lo, hi, nd, nc, prec)
        use bl_types
-       integer, intent(in) :: fd, count, dm, lo(dm), hi(dm), nd(dm), nc
+       integer, intent(in) :: fd, count, dm, lo(dm), hi(dm), nd(dm), nc, prec
        real(kind=sp_t), intent(in) :: s(count)
        integer, intent(out) :: offset
      end subroutine fabio_write_raw_s
 
   end interface
 
+  private :: fabio_write_raw_d
+  private :: fabio_write_raw_s
+
   interface fabio_write
      module procedure fabio_fab_write_d
      module procedure fabio_multifab_write_d
+  end interface
+
+  interface fabio_read
+     module procedure fabio_fab_read_d
   end interface
 
   integer, parameter :: FABIO_RDONLY = 0
@@ -111,16 +121,21 @@ contains
 
   end subroutine fabio_open
 
-  subroutine fabio_fab_write_d(fd, offset, fb, nodal, all)
+  subroutine fabio_fab_write_d(fd, offset, fb, nodal, all, prec)
     integer, intent(in) :: fd
     integer, intent(out) :: offset
     type(fab), intent(in) :: fb
     logical, intent(in), optional :: nodal(:)
     logical, intent(in), optional :: all
+    integer, intent(in), optional :: prec
     type(box) :: bx
     logical :: lall
     real(kind=dp_t), pointer :: fbp(:,:,:,:)
-    integer :: count, lo(fb%dim), hi(fb%dim), nd(fb%dim), nc
+    integer :: count, lo(fb%dim), hi(fb%dim), nd(fb%dim), nc, lprec
+    lprec = FABIO_DOUBLE; if ( present(prec) ) lprec = prec
+    if ( lprec /= FABIO_DOUBLE .or. lprec /= FABIO_SINGLE ) then
+       call bl_error("FABIO_WRITE: prec is wrong ", lprec)
+    end if
     lall = .false.; if ( present(all) ) lall = all
     bx = get_ibox(fb)
     count = volume(bx)
@@ -132,13 +147,14 @@ contains
     if ( present(nodal) ) then
        where ( nodal ) nd = 1
     end if
-    call fabio_write_raw(fd, offset, fbp, count, fb%dim, lo, hi, nd, nc)
+    call fabio_write_raw_d(fd, offset, fbp, count, fb%dim, lo, hi, nd, nc, lprec)
   end subroutine fabio_fab_write_d
 
-  subroutine fabio_multifab_write_d(mf, dirname, header)
+  subroutine fabio_multifab_write_d(mf, dirname, header, prec)
     use bl_IO_module
     type(multifab), intent(in) :: mf
     character(len=*), intent(in) :: dirname, header
+    integer, intent(in), optional :: prec
     character(len=128) :: fname
     integer :: un
     integer :: nc, nb, i, fd, j
@@ -174,7 +190,7 @@ contains
     write(unit=fname, fmt='(a,"_D_",i5.5)') trim(header), parallel_myproc()
     call fabio_open(fd, trim(dirname) // "/" // trim(fname), FABIO_WRONLY)
     do i = 1, nb; if ( remote(mf, i) ) cycle
-       call fabio_write(fd, offset(i), mf%fbs(i), nodal = mf%nodal)
+       call fabio_write(fd, offset(i), mf%fbs(i), nodal = mf%nodal, prec = prec)
     end do
     call fabio_close(fd)
     call parallel_reduce(loffset, offset, MPI_MAX, parallel_IOProcessorNode())
@@ -228,6 +244,16 @@ contains
        close(unit=un)
     end if
   end subroutine fabio_multifab_write_d
+
+  subroutine fabio_fab_read_d(fd, fb)
+    integer, intent(in)  :: fd
+    type(fab), intent(out) :: fb
+  end subroutine fabio_fab_read_d
+
+  subroutine fabio_multifab_read_d(fd, mf)
+    integer, intent(in)  :: fd
+    type(multifab), intent(out) :: mf
+  end subroutine fabio_multifab_read_d
 
   subroutine fabio_ml_multifab_write_d(mfs, rrs, dirname, names, bounding_box, time, dx)
     use bl_IO_module

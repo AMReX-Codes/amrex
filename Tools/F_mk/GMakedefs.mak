@@ -378,8 +378,10 @@ sources =                       $(sort $(f90sources)        ) $(sort $(fsources)
 
 html_sources = $(addprefix $(hdir)/, $(sort $(f90sources:.f90=.html)) $(sort $(fsources:.f=.html)))
 
-COMPILE.f   = $(FC)  $(FFLAGS) $(FPPFLAGS) $(TARGET_ARCH) -c
+pnames = $(addsuffix .$(suf).exe, $(basename $(programs)))
+
+COMPILE.f   = $(FC)  $(FFLAGS)$(FPPFLAGS) $(TARGET_ARCH) -c
 COMPILE.f90 = $(F90) $(F90FLAGS) $(FPPFLAGS) $(TARGET_ARCH) -c
 
-LINK.f      = $(FC)  $(FFLAGS) $(FPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)
+LINK.f      = $(FC)  $(FFLAGS)$(FPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)
 LINK.f90    = $(F90) $(F90FLAGS) $(FPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)
