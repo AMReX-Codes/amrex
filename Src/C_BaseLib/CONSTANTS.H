@@ -4,7 +4,7 @@
 #define BL_CONSTANTS_H
 
 /*
-** $Id: CONSTANTS.H,v 1.5 1998-08-08 17:26:01 lijewski Exp $
+** $Id: CONSTANTS.H,v 1.6 1998-08-10 17:03:57 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -38,7 +38,7 @@
 
 #endif /*BL_USE_FLOAT*/
 
-#if defined(BL_USE_DOUBLE) && ! defined(BL_T3E) || defined(BL_CRAY)
+#if defined(BL_USE_DOUBLE) && !(defined(BL_T3E) || defined(BL_CRAY))
 
 #define bigreal 1.0d+30
 #define zero    0.0d0
