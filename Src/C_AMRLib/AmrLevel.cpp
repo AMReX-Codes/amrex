@@ -1,11 +1,11 @@
 //
-// $Id: AmrLevel.cpp,v 1.92 2003-02-07 17:42:26 car Exp $
+// $Id: AmrLevel.cpp,v 1.93 2003-02-18 20:55:00 car Exp $
 //
 #include <winstd.H>
 
 #include <cstdio>
 #include <cstring>
-#include <strstream>
+#include <sstream>
 
 #include <AmrLevel.H>
 #include <Derive.H>
