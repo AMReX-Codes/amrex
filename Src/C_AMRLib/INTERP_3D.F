@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.21 2002-11-09 02:15:52 lijewski Exp $
+c $Id: INTERP_3D.F,v 1.22 2002-11-10 14:57:54 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -2279,7 +2279,7 @@ c                the remaining positive proportionally.
                        i = lratiox*ic + ioff
                        j = lratioy*jc + joff
                        k = lratioz*kc + koff
-                       if (fine_state(i,j,k,n) .gt. 0.d0) then
+                       if (fine_state(i,j,k,n) .ge. 0.d0) then
                          fine(i,j,k,n) = alpha * fine_state(i,j,k,n)
                        endif
                     enddo
