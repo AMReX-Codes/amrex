@@ -5,7 +5,6 @@
 #include "Box.H"
 #include "FArrayBox.H"
 #include "ParmParse.H"
-#include "Boolean.H"
 #include "ParallelDescriptor.H"
 #include "Utility.H"
 #include "VisMF.H"

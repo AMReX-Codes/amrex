@@ -22,7 +22,6 @@ using std::set_new_handler;
 
 #include "ComputeAmrDataNorms.H"
 #include "ParmParse.H"
-#include "Boolean.H"
 #include "ParallelDescriptor.H"
 #include "DataServices.H"
 #include "Utility.H"
