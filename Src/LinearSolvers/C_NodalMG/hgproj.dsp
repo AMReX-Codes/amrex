@@ -187,14 +187,6 @@ SOURCE=.\restrictor.H
 # Begin Group "Fortran"
 
 # PROP Default_Filter "f"
-# Begin Group "Temp"
-
-# PROP Default_Filter "for"
-# Begin Source File
-
-SOURCE=.\hg_multi3d.for
-# End Source File
-# End Group
 # Begin Source File
 
 SOURCE=.\amr_real3d.F
@@ -208,9 +200,9 @@ InputName=amr_real3d
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /Sinclude\3d.v7 /S..\amrlib /S..\bndrylib /S..\pBoxLib_2\
-             /DBL_LANG_FORT            /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH\
-             /DHG_CROSS_STENCIL    $(InputName).F | perl         ..\scripts\strip72 -c >\
-             $(InputName).for
+              /DBL_LANG_FORT            /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH\
+              /DHG_CROSS_STENCIL    $(InputName).F | perl         ..\scripts\strip72 -c >\
+              $(InputName).for
 
 # End Custom Build
 
@@ -232,9 +224,9 @@ InputName=hg_avg3d
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /Sinclude\3d.v7 /S..\amrlib /S..\bndrylib /S..\pBoxLib_2\
-             /DBL_LANG_FORT            /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH\
-             /DHG_CROSS_STENCIL    $(InputName).F | perl         ..\scripts\strip72 -c >\
-             $(InputName).for
+              /DBL_LANG_FORT            /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH\
+              /DHG_CROSS_STENCIL    $(InputName).F | perl         ..\scripts\strip72 -c >\
+              $(InputName).for
 
 # End Custom Build
 
@@ -256,26 +248,13 @@ InputName=hg_multi3d
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /Sinclude\3d.v7 /S..\amrlib /S..\bndrylib /S..\pBoxLib_2\
-             /DBL_LANG_FORT            /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH\
-             /DHG_CROSS_STENCIL    $(InputName).F | perl         ..\scripts\strip72 -c >\
-             $(InputName).for
+              /DBL_LANG_FORT            /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH\
+              /DHG_CROSS_STENCIL    $(InputName).F | perl         ..\scripts\strip72 -c >\
+              $(InputName).for
 
 # End Custom Build
 
 !ELSEIF  "$(CFG)" == "hgproj - Win32 Debug"
-
-# PROP Ignore_Default_Tool 1
-# Begin Custom Build
-InputPath=.\hg_multi3d.F
-InputName=hg_multi3d
-
-"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /Sinclude\3d.v7 /S..\amrlib /S..\bndrylib /S..\pBoxLib_2\
-             /DBL_LANG_FORT            /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH\
-             /DHG_CROSS_STENCIL    $(InputName).F | perl         ..\scripts\strip72 -c >\
-             $(InputName).for
-
-# End Custom Build
 
 !ENDIF 
 
@@ -293,9 +272,9 @@ InputName=hg_proj3d
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /Sinclude\3d.v7 /S..\amrlib /S..\bndrylib /S..\pBoxLib_2\
-             /DBL_LANG_FORT            /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH\
-             /DHG_CROSS_STENCIL    $(InputName).F | perl         ..\scripts\strip72 -c >\
-             $(InputName).for
+              /DBL_LANG_FORT            /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH\
+              /DHG_CROSS_STENCIL    $(InputName).F | perl         ..\scripts\strip72 -c >\
+              $(InputName).for
 
 # End Custom Build
 
