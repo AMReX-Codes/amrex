@@ -1,0 +1,131 @@
+
+PRECISION = DOUBLE
+DEBUG     = FALSE
+DEBUG     = TRUE
+PROFILE   = FALSE
+DIM       = 2
+PRVERSION = c9
+COMP      = cxx
+COMP      = KCC
+#COMP      = g++
+
+# for Cray (CC must be /usr/bin/new/CC as of 7/17/96):
+#COMP      = CC
+#PRECISION = FLOAT
+#GUTHAMR_HOME = /tmp/work/lijewski/tmp/guthamr
+
+#GUTHAMR_HOME = /usr/local/ccse/guthamr-developers/guthamr
+GUTHAMR_HOME = /usr/local/ccse/guthamr
+#GUTHAMR_HOME = /usr/local/ccse/guthamr-2.0-KCC3.1a
+#GUTHAMR_HOME = /home/jbb/guthamr
+TOP = $(GUTHAMR_HOME)
+
+INCLUDE_LOCATIONS += $(TOP)/include
+LIBRARY_LOCATIONS += $(TOP)/lib/$(machineSuffix) ./graphtools
+#DEFINES += -DGUTHAMR
+
+#.IGNORE:
+
+include $(TOP)/mk/Make.defs
+
+# g77 is the "real" Fortran compiler on Linux
+ifeq ($(MACHINE),Linux)
+    FC := g77
+    LINUXLIBS := $(LIBRARIES)
+    LIBRARIES :=
+endif
+
+# The sync-project on skink fails when compiled with "-ptused -prelink"
+ifeq ($(MACHINE),IRIX)
+    CXX := $(filter-out -ptused -prelink, $(CXX))
+endif
+
+ifeq ($(COMP),KCC)
+    CXX := $(CXX) --display_error_number --diag_suppress 177
+endif
+
+ifeq ($(MACHINE),OSF1)
+    FOPTF += -inline all
+endif
+
+ifeq ($(MACHINE),CRAY)
+    CXX             := CC
+    CXXLIBFLAGS     := -h instantiate=local
+#    CXXOPTF := $(filter-out -O, $(CXXOPTF)) -O -h noexceptions,scalar
+#    CXXOPTF := -h noexceptions,scalar0,task0,inline1
+# inline0 for hg_projector.C only, only in 3D:
+    CXXOPTF := -h noexceptions,inline0
+    CXXOPTF := -h noexceptions
+    FOPTF += -Wf"-dp"
+    FDEBF += -Wf"-dp"
+    FPRFF += -Wf"-dp"
+endif
+
+ALIAS_DIR = .
+
+include $(ALIAS_DIR)/Make.package
+
+vpath %.C $(ALIAS_DIR)
+vpath %.F $(ALIAS_DIR)
+
+instLibDir = ./lib/$(machineSuffix)
+
+ifeq ($(LBASE),proj)
+  INCLUDE_LOCATIONS += ./include/$(DIM)d.$(PRVERSION)
+  optionsSuffix      = $(DIM)d.$(PRVERSION).$(machineSuffix)
+  instLib            = $(instLibDir)/lib$(LBASE)$(DIM)d.$(PRVERSION).a
+  ifeq ($(COMP),KCC)
+    LibsToCloseAgainst := $(instLibDir)/libalias$(DIM)d.a
+    LibsToCloseAgainst += $(GUTHAMR_HOME)/lib/$(machineSuffix)/libbox$(DIM)d.a
+  endif
+  all: $(instLib)
+endif
+
+ifeq ($(LBASE),ell)
+  INCLUDE_LOCATIONS += ./include/$(DIM)d.$(PRVERSION)
+  optionsSuffix      = $(DIM)d.$(PRVERSION).$(machineSuffix)
+  instLib            = $(instLibDir)/lib$(LBASE)$(DIM)d.$(PRVERSION).a
+  ifeq ($(COMP),KCC)
+    LibsToCloseAgainst += $(GUTHAMR_HOME)/lib/$(machineSuffix)/libbox$(DIM)d.a
+  endif
+  all: $(instLib)
+endif
+
+ifeq ($(EBASE),driver)
+  LIBRARIES         += -lalias$(DIM)d.$(machineSuffix)
+  all: $(executable)
+endif
+
+ifeq ($(EBASE),proj)
+  INCLUDE_LOCATIONS += ./include/$(DIM)d.$(PRVERSION)
+  optionsSuffix      = $(DIM)d.$(PRVERSION).$(machineSuffix)
+  LIBRARIES         += -lproj$(optionsSuffix)
+  all: $(executable)
+  $(executable) : lib/$(machineSuffix)/libproj$(DIM)d.$(PRVERSION).a
+endif
+
+ifeq ($(EBASE),poisson)
+  INCLUDE_LOCATIONS += ./include/$(DIM)d.$(PRVERSION)
+  optionsSuffix      = $(DIM)d.$(PRVERSION).$(machineSuffix)
+  LIBRARIES         += -lell$(optionsSuffix)
+  all: $(executable)
+endif
+
+LIBRARIES += -lbox$(DIM)d -lgraph -lX11
+
+ifeq ($(MACHINE),Linux)
+  LIBRARIES += $(LINUXLIBS)
+endif
+
+#3RD = 1
+ifdef 3RD
+# FOR RUNNING 3RD ONLY
+#CXXFLAGS += --link_command_prefix 3rd
+CXXDEBF = +K0 --link_command_prefix 3rd
+LIBRARIES += -ldnet_stub
+FDEBF += -automatic
+# FOR RUNNING 3RD ONLY
+endif
+
+include $(TOP)/mk/Make.rules
+#include $(TOP)/mk/Make.rules.new
