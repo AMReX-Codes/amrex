@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.43 2002-06-17 17:00:40 car Exp $
+// $Id: ParmParse.cpp,v 1.44 2002-06-17 22:00:17 car Exp $
 //
 #include <winstd.H>
 
@@ -1678,6 +1678,15 @@ require_valid_parmparse(const std::string& str, int pp)
 	BoxLib::Error("require_valid_parser::not a valid parsers");
     }
 }
+void
+require_valid_size(const std::string& str, int asize, int nsize)
+{
+    if (asize > nsize)
+    {
+	std::cerr << "In routine: " << str <<  ": ";
+	BoxLib::Error("require_valid_size::not large enough input array");
+    }
+}
 }
 
 BL_FORT_PROC_DECL(BL_PP_NEW_CPP, bl_pp_new_cpp)(int* pp, const int istr[], const int* nstr)
@@ -1698,6 +1707,19 @@ BL_FORT_PROC_DECL(BL_PP_GET_INT_CPP, bl_pp_get_int_cpp)(int* ierr, const int* pp
     *ierr = parsers[*pp]->query(Fint_2_string(istr, *nstr).c_str(), *val);
 }
 
+BL_FORT_PROC_DECL(BL_PP_GET_INT_N_CPP, bl_pp_get_int_n_cpp)(int* ierr, const int* pp, const int istr[], const int* nstr, int val[], int* nval)
+{
+    std::vector<int> arr;
+    require_valid_parmparse("BL_PP_GET_INT_N", *pp);
+    *ierr = parsers[*pp]->queryarr(Fint_2_string(istr, *nstr).c_str(), arr);
+    require_valid_size("BL_PP_GET_INT_N", arr.size(), *nval);
+    for ( int i = 0; i < arr.size(); ++i )
+    {
+	val[i] = arr[i];
+    }
+    *nval = arr.size();
+}
+
 BL_FORT_PROC_DECL(BL_PP_GET_LOGICAL_CPP, bl_pp_get_logical_cpp)(int* ierr, const int* pp, const int istr[], const int* nstr, int* lval)
 {
     bool val;
@@ -1715,10 +1737,36 @@ BL_FORT_PROC_DECL(BL_PP_GET_REAL_CPP, bl_pp_get_real_cpp)(int* ierr, const int* 
     *ierr = parsers[*pp]->query(Fint_2_string(istr, *nstr).c_str(), *val);
 }
 
+BL_FORT_PROC_DECL(BL_PP_GET_REAL_N_CPP, bl_pp_get_real_n_cpp)(int* ierr, const int* pp, const int istr[], const int* nstr, float val[], int* nval)
+{
+    std::vector<float> arr;
+    require_valid_parmparse("BL_PP_GET_REAL_N", *pp);
+    *ierr = parsers[*pp]->queryarr(Fint_2_string(istr, *nstr).c_str(), arr);
+    require_valid_size("BL_PP_GET_REAL_N", arr.size(), *nval);
+    for ( int i = 0; i < arr.size(); ++i )
+    {
+	val[i] = arr[i];
+    }
+    *nval = arr.size();
+}
+
 BL_FORT_PROC_DECL(BL_PP_GET_DOUBLE_CPP, bl_pp_get_double_cpp)(int* ierr, const int* pp, const int istr[], const int* nstr, double* val)
 {
     require_valid_parmparse("BL_PP_GET_DOUBLE", *pp);
     *ierr = parsers[*pp]->query(Fint_2_string(istr, *nstr).c_str(), *val);
+}
+
+BL_FORT_PROC_DECL(BL_PP_GET_DOUBLE_N_CPP, bl_pp_get_double_n_cpp)(int* ierr, const int* pp, const int istr[], const int* nstr, double val[], int* nval)
+{
+    std::vector<double> arr;
+    require_valid_parmparse("BL_PP_GET_DOUBLE_N", *pp);
+    *ierr = parsers[*pp]->queryarr(Fint_2_string(istr, *nstr).c_str(), arr);
+    require_valid_size("BL_PP_GET_INT_N", arr.size(), *nval);
+    for ( int i = 0; i < arr.size(); ++i )
+    {
+	val[i] = arr[i];
+    }
+    *nval = arr.size();
 }
 
 BL_FORT_PROC_DECL(BL_PP_GET_STRING_CPP, bl_pp_get_string_cpp)(int* ierr, const int* pp, const int istr[], const int* nstr, int ostr[], const int* onstr)
