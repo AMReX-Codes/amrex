@@ -2266,47 +2266,6 @@ c-----------------------------------------------------------------------
       end do
       end
 c-----------------------------------------------------------------------
-      subroutine hgcen_no_sigma(
-     & cen,  cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
-     & sigx, sigy, sigz,
-     &       sbl0,sbh0,sbl1,sbh1,sbl2,sbh2,
-     &       regl0,regh0,regl1,regh1,regl2,regh2,
-     & hx, hy, hz, idd)
-      integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
-      integer sbl0,sbh0,sbl1,sbh1,sbl2,sbh2
-      integer regl0,regh0,regl1,regh1,regl2,regh2
-      double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
-      double precision sigx(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
-      double precision sigy(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
-      double precision sigz(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
-      double precision hx, hy, hz
-      double precision hxm2, hym2, hzm2
-      integer k, j, i
-      integer idd
-      hxm2 = 1.0D0 / (hx*hx)
-      hym2 = 1.0D0 / (hy*hy)
-      hzm2 = 1.0D0 / (hz*hz)
-      do k = regl2, regh2
-         do j = regl1, regh1
-            do i = regl0, regh0
-               cen(i,j,k) = 4.0D0 /
-     &                   (hxm2 * (sigx(i-1,j-1,k-1) + sigx(i-1,j-1,k) +
-     &                              sigx(i-1,j,k-1)   + sigx(i-1,j,k) +
-     &                              sigx(i,j-1,k-1)   + sigx(i,j-1,k) +
-     &                              sigx(i,j,k-1)     + sigx(i,j,k)) +
-     &                    hym2 * (sigy(i-1,j-1,k-1) + sigy(i-1,j-1,k) +
-     &                              sigy(i-1,j,k-1)   + sigy(i-1,j,k) +
-     &                              sigy(i,j-1,k-1)   + sigy(i,j-1,k) +
-     &                              sigy(i,j,k-1)     + sigy(i,j,k)) +
-     &                    hzm2 * (sigz(i-1,j-1,k-1) + sigz(i-1,j-1,k) +
-     &                              sigz(i-1,j,k-1)   + sigz(i-1,j,k) +
-     &                              sigz(i,j-1,k-1)   + sigz(i,j-1,k) +
-     &                              sigz(i,j,k-1)     + sigz(i,j,k)))
-            end do
-         end do
-      end do
-      end
-c-----------------------------------------------------------------------
       subroutine hgrlx_no_sigma(
      & cor, corl0,corh0,corl1,corh1,corl2,corh2,
      & res, resl0,resh0,resl1,resh1,resl2,resh2,
