@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.38 1997-12-11 23:25:49 lijewski Exp $
+// $Id: VisMF.cpp,v 1.39 1997-12-17 23:05:21 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -19,6 +19,7 @@ using std::ofstream;
 #define setbuf pubsetbuf
 #endif
 
+#include <Utility.H>
 #include <VisMF.H>
 
 const aString VisMF::FabFileSuffix("_D_");

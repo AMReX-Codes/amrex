@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CoordSys.cpp,v 1.4 1997-12-11 23:26:59 lijewski Exp $
+// $Id: CoordSys.cpp,v 1.5 1997-12-17 23:04:32 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -11,7 +11,6 @@
 #endif
 
 #include <Misc.H>
-#include <Utility.H>
 #include <CoordSys.H>
 #include <COORDSYS_F.H>
 #include <FArrayBox.H>
@@ -238,6 +237,11 @@ operator<< (ostream&        os,
     os << ' ' << int(c.ok) << ")\n";
     return os;
 }
+
+//
+// Copied from <Utility.H>
+//
+#define BL_IGNORE_MAX 100000
 
 istream&
 operator>> (istream&  is,

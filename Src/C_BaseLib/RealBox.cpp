@@ -1,12 +1,11 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RealBox.cpp,v 1.3 1997-12-11 23:27:01 lijewski Exp $
+// $Id: RealBox.cpp,v 1.4 1997-12-17 23:04:33 lijewski Exp $
 //
 
 #include <aString.H>
 #include <Misc.H>
-#include <Utility.H>
 #include <RealBox.H>
 
 Real RealBox::eps = 1.0e-6;
@@ -48,6 +47,11 @@ operator << (ostream &os, const RealBox& b)
     os << ')';
     return os;
 }
+
+//
+// Copied from <Utility.H>
+//
+#define BL_IGNORE_MAX 100000
 
 istream&
 operator >> (istream &is, RealBox& b)

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.7 1997-12-11 23:25:44 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.8 1997-12-17 23:05:20 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -22,7 +22,6 @@ using std::streampos;
 #include <Misc.H>
 #include <MultiFab.H>
 #include <ParallelDescriptor.H>
-#include <Utility.H>
 
 #if defined(BL_ARCH_IEEE)
 #ifdef BL_USE_DOUBLE

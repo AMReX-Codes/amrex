@@ -1,12 +1,11 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxArray.cpp,v 1.4 1997-11-18 00:04:47 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.5 1997-12-17 23:05:18 lijewski Exp $
 //
 
 #include <Assert.H>
 #include <BoxArray.H>
-#include <Utility.H>
 
 BoxArray::BoxArray ()
     :
@@ -67,6 +66,11 @@ BoxArray::set (int        i,
     abox.set(i, ibox);
     hash_sig = do_hash();
 }
+
+//
+// Moved out of Utility.H
+//
+#define BL_IGNORE_MAX 100000
 
 void
 BoxArray::define (istream& is)

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: IndexType.cpp,v 1.3 1997-09-24 22:06:44 lijewski Exp $
+// $Id: IndexType.cpp,v 1.4 1997-12-17 23:05:19 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -16,7 +16,6 @@ using std::cerr;
 #endif
 
 #include <IndexType.H>
-#include <Utility.H>
 
 IndexType
 IndexType::TheCellType ()
@@ -50,6 +49,11 @@ operator<< (ostream&         os,
 
     return os;
 }
+
+//
+// Copied from <Utility.H>
+//
+#define BL_IGNORE_MAX 100000
 
 istream&
 operator>> (istream&   is,

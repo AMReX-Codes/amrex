@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: IntVect.cpp,v 1.2 1997-09-18 20:12:49 lijewski Exp $
+// $Id: IntVect.cpp,v 1.3 1997-12-17 23:05:20 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -9,7 +9,6 @@
 #include <Misc.H>
 #include <IntVect.H>
 #include <IndexType.H>
-#include <Utility.H>
 
 const IntVect&
 IntVect::TheUnitVector ()
@@ -55,6 +54,11 @@ operator<< (ostream&       os,
         BoxLib::Error("operator<<(ostream&,IntVect&) failed");
     return os;
 }
+
+//
+// Copied from <Utility.H>
+//
+#define BL_IGNORE_MAX 100000
 
 istream&
 operator>> (istream& is,

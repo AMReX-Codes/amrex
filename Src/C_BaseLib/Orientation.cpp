@@ -1,12 +1,11 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Orientation.cpp,v 1.1 1997-09-12 18:00:13 lijewski Exp $
+// $Id: Orientation.cpp,v 1.2 1997-12-17 23:05:20 lijewski Exp $
 //
 
 #include <BoxLib.H>
 #include <Orientation.H>
-#include <Utility.H>
 
 ostream&
 operator<< (ostream&           os,
@@ -17,6 +16,11 @@ operator<< (ostream&           os,
         BoxLib::Error("operator<<(ostream&,Orientation&) failed");
     return os;
 }
+
+//
+// Copied from <Utility.H>
+//
+#define BL_IGNORE_MAX 100000
 
 istream&
 operator>> (istream&     is,

@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.23 1997-12-11 23:25:42 lijewski Exp $
+// $Id: FabArray.H,v 1.24 1997-12-17 23:05:19 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -27,7 +27,6 @@
 #include <DistributionMapping.H>
 #include <ParallelDescriptor.H>
 #include <RunStats.H>
-#include <Utility.H>
 
 /*@ManDoc: An enumumeration that controls whether or not the memory for a FAB
            will actually be allocated on construction of a FabArray.

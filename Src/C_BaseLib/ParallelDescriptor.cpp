@@ -1,13 +1,13 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.6 1997-11-21 20:33:25 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.7 1997-12-17 23:05:21 lijewski Exp $
 //
 
 #ifdef BL_USE_BSP
 
-#include <ParallelDescriptor.H>
 #include <Utility.H>
+#include <ParallelDescriptor.H>
 
 //
 // Type of function pointer required by bsp_fold().

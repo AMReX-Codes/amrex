@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Box.cpp,v 1.4 1997-11-18 00:04:46 lijewski Exp $
+// $Id: Box.cpp,v 1.5 1997-12-17 23:05:18 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -14,7 +14,6 @@
 #include <BoxLib.H>
 #include <Misc.H>
 #include <Box.H>
-#include <Utility.H>
 
 const Box&
 Box::TheUnitBox ()
@@ -649,6 +648,11 @@ operator<< (ostream&   os,
 
     return os;
 }
+
+//
+// Moved out of Utility.H
+//
+#define BL_IGNORE_MAX 100000
 
 istream&
 operator>> (istream& is,

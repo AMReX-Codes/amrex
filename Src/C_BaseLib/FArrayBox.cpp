@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.9 1997-12-14 01:05:53 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.10 1997-12-17 23:05:18 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -34,7 +34,6 @@ using std::ios;
 #include <Assert.H>
 #include <BoxLib.H>
 #include <Looping.H>
-#include <Utility.H>
 
 #if defined(BL_ARCH_CRAY)
 #ifdef BL_USE_DOUBLE
@@ -370,6 +369,11 @@ FArrayBox::norm (const Box& subbox,
     delete [] tmp;
     return nrm;
 }
+
+//
+// Copied from Utility.H.
+//
+#define BL_IGNORE_MAX 100000
 
 //
 // This is where lies all the smarts for recognizing FAB headers.
