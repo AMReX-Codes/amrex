@@ -118,12 +118,6 @@ task::startup (long&, long&)
 }
 
 bool
-task::work_to_do () const
-{
-    return true;
-}
-
-bool
 task::need_to_communicate (int& /*with*/) const
 {
     return false;
@@ -133,6 +127,7 @@ void
 task::print_dependencies (ostream& os) const
 {
     os << "Task " << get_sequence_number() << " depends on ( ";
+
     for (list<task_proxy>::const_iterator lit = dependencies.begin();
 	 lit != dependencies.end();
 	 ++lit)
@@ -142,14 +137,16 @@ task::print_dependencies (ostream& os) const
             os << (*lit)->get_sequence_number() << " ";
         }
     }
+
     os << ") ";
 }
 
 bool
 task::depend_ready ()
 {
-    for (list<task_proxy>::iterator lit = dependencies.begin();
-	 lit != dependencies.end();)
+    list<task_proxy>::iterator lit = dependencies.begin();
+
+    while (lit != dependencies.end())
     {
         if ((*lit).is_finished())
         {
@@ -212,7 +209,8 @@ task::_do_depend ()
         return;
 
     for (list<task::task_proxy>::const_iterator cit = m_task_list.begin();
-	 cit != m_task_list.end(); ++cit)
+	 cit != m_task_list.end();
+         ++cit)
     {
         BL_ASSERT(!(*cit).null());
 
@@ -229,24 +227,22 @@ task_list::task_list ()
     verbose(HG::pverbose)
 {}
 
-task_list::~task_list ()
-{
-}
+task_list::~task_list () {}
 
 task::task_proxy
 task_list::add_task (task* t)
 {
     BL_ASSERT(t != 0);
 
-    if (t->work_to_do())
-    {
-        tasks.push_back(task::task_proxy(t));
-        return tasks.back();
-    }
-    else
+    if (t->is_finished())
     {
         delete t;
         return task::task_proxy(0);
+    }
+    else
+    {
+        tasks.push_back(task::task_proxy(t));
+        return tasks.back();
     }
 }
 
@@ -254,13 +250,16 @@ void
 task_list::print_dependencies (ostream& os) const
 {
     os << "Task list ( " << '\n';
+
     for (list<task::task_proxy>::const_iterator tli = tasks.begin();
-	 tli != tasks.end(); ++tli)
+	 tli != tasks.end();
+         ++tli)
     {
         (*tli)->print_dependencies(os);
         os << '\n';
     }
-    os << ")" << endl;
+
+    os << ')' << endl;
 }
 
 void
@@ -395,10 +394,8 @@ task_copy_base::task_copy_base(task_list&      tl_,
   m_smf(smf_),
   m_sgrid(sgrid_),
   m_sbx(sb_),
-  m_local(false),
-  m_done(false)
-{
-}
+  m_local(false)
+{}
 
 task_copy_base::~task_copy_base ()
 {
@@ -411,8 +408,6 @@ task_copy_base::~task_copy_base ()
 bool
 task_copy_base::depends_on_q (const task* t1) const
 {
-    if (!work_to_do()) return false;
-
     if (!mfeq(m_dmf, m_smf)) return false;
 
     if (const task_copy_base* t1tc = dynamic_cast<const task_copy_base*>(t1))
@@ -424,12 +419,6 @@ task_copy_base::depends_on_q (const task* t1) const
     }
 
     return false;
-}
-
-bool
-task_copy_base::work_to_do () const
-{
-    return (is_local(m_dmf, m_dgrid) || is_local(m_smf, m_sgrid)) && !m_done;
 }
 
 bool
@@ -549,7 +538,7 @@ task_copy::task_copy (task_list&      tl_,
                       int             sgrid,
                       const Box&      bx)
     :
-  task_copy_base(tl_, mf, dgrid, bx, smf, sgrid, bx)
+    task_copy_base(tl_, mf, dgrid, bx, smf, sgrid, bx)
 {
     init();
 }
@@ -562,7 +551,7 @@ task_copy::task_copy (task_list&      tl_,
                       int             sgrid,
                       const Box&      sb)
     :
-  task_copy_base(tl_, mf, dgrid, db, smf, sgrid, sb)
+    task_copy_base(tl_, mf, dgrid, db, smf, sgrid, sb)
 {
     init();
 }
@@ -575,7 +564,7 @@ task_copy::task_copy (task_list&        tl_,
                       const Box&        bx,
                       const task_proxy& tp)
     :
-  task_copy_base(tl_, mf, dgrid, bx, smf, sgrid, bx)
+    task_copy_base(tl_, mf, dgrid, bx, smf, sgrid, bx)
 {
     depend_on(tp);
     init();
@@ -584,7 +573,7 @@ task_copy::task_copy (task_list&        tl_,
 void
 task_copy::init ()
 {
-    if (work_to_do())
+    if (is_local(m_dmf, m_dgrid) || is_local(m_smf, m_sgrid))
     {
         _do_depend();
 
@@ -595,12 +584,14 @@ task_copy::init ()
             if (dependencies.empty())
             {
                 m_dmf[m_dgrid].copy(m_smf[m_sgrid], m_sbx, 0, m_dbx, 0, m_dmf.nComp());
-                //
-                // Flip the work_to_do() bit.
-                //
-                m_done = true;
+
+                m_finished = true;
             }
         }
+    }
+    else
+    {
+        m_finished = true;
     }
 }
 
@@ -611,7 +602,7 @@ task_copy::ready ()
 
     if (m_local)
     {
-        BL_ASSERT(!m_done);
+        BL_ASSERT(!m_finished);
         m_dmf[m_dgrid].copy(m_smf[m_sgrid], m_sbx, 0, m_dbx, 0, m_dmf.nComp());
         return true;
     }
@@ -668,20 +659,12 @@ task_local_base::task_local_base (task_list&      tl_,
     m_region(region),
     m_sgrid(grid),
     m_target_proc_id(target_proc_id),
-    m_local(false),
-    m_done(false)
-{
-}
+    m_local(false)
+{}
 
 task_local_base::~task_local_base ()
 {
     delete m_tmp;
-}
-
-bool
-task_local_base::work_to_do () const
-{
-    return (m_fab != 0 || is_local(m_smf, m_sgrid)) && !m_done;
 }
 
 bool
@@ -770,8 +753,6 @@ task_local_base::startup (long& sndcnt, long& rcvcnt)
 bool
 task_local_base::depends_on_q (const task* t1) const
 {
-    if (!work_to_do()) return false;
-
     if (const task_local_base* t1tc = dynamic_cast<const task_local_base*>(t1))
     {
         if (!(m_fab == t1tc->m_fab))     return false;
@@ -809,7 +790,7 @@ task_copy_local::task_copy_local (task_list&      tl_,
     :
     task_local_base(tl_,fab_,target_proc_id,bx,bx,smf_,grid)
 {
-    if (work_to_do())
+    if (m_fab != 0 || is_local(m_smf, m_sgrid))
     {
         _do_depend();
 
@@ -820,12 +801,14 @@ task_copy_local::task_copy_local (task_list&      tl_,
             if (dependencies.empty())
             {
                 m_fab->copy(m_smf[m_sgrid], m_bx);
-                //
-                // Flip the work_to_do() bit.
-                //
-                m_done = true;
+
+                m_finished = true;
             }
         }
+    }
+    else
+    {
+        m_finished = true;
     }
 }
 
@@ -836,7 +819,7 @@ task_copy_local::ready ()
 
     if (m_local)
     {
-        BL_ASSERT(!m_done);
+        BL_ASSERT(!m_finished);
         m_fab->copy(m_smf[m_sgrid], m_bx);
         return true;
     }
@@ -896,7 +879,7 @@ task_bdy_fill::task_bdy_fill (task_list&          tl_,
     //
     m_bx = ::grow(tmpb, 4);
 
-    if (work_to_do())
+    if (m_fab != 0 || is_local(m_smf, m_sgrid))
     {
         _do_depend();
 
@@ -907,12 +890,14 @@ task_bdy_fill::task_bdy_fill (task_list&          tl_,
             if (dependencies.empty())
             {
                 m_bdy->fill(*m_fab, m_region, m_smf[m_sgrid], m_domain);
-                //
-                // Flip the work_to_do() bit.
-                //
-                m_done = true;
+
+                m_finished = true;
             }
         }
+    }
+    else
+    {
+        m_finished = true;
     }
 }
 
@@ -923,7 +908,7 @@ task_bdy_fill::ready ()
 
     if (m_local)
     {
-        BL_ASSERT(!m_done);
+        BL_ASSERT(!m_finished);
 	m_bdy->fill(*m_fab, m_region, m_smf[m_sgrid], m_domain);
 	return true;
     }
@@ -972,19 +957,20 @@ task_fab::task_fab (task_list&      tl_,
     m_target_proc_id(processor_number(t_, tt_))
 {
     BL_ASSERT(m_sno > 0);
+
     if (is_local(t_, tt_))
+    {
         target = new FArrayBox(region, ncomp);
+    }
+    else
+    {
+        m_finished = true;
+    }
 }
 
 task_fab::~task_fab ()
 {
     delete target;
-}
-
-bool
-task_fab::work_to_do () const
-{
-    return ParallelDescriptor::MyProc() == m_target_proc_id;
 }
 
 task_fec_base::task_fec_base (task_list& tl_,
@@ -993,20 +979,12 @@ task_fec_base::task_fec_base (task_list& tl_,
     :
     task(tl_),
     s(s_),
-    igrid(igrid_),
-    done(false)
-{}
-
-task_fec_base::~task_fec_base ()
+    igrid(igrid_)
 {
-    // HG_DEBUG_OUT("task_fec_base::~task_fec_base()" << endl);
+    if (!is_local_target()) m_finished = true;
 }
 
-bool
-task_fec_base::work_to_do () const
-{
-    return (is_local_target() || !tfvect.empty()) && !done;
-}
+task_fec_base::~task_fec_base () {}
 
 void
 task_fec_base::push_back (task_fab* tf)

@@ -94,7 +94,7 @@ public:
     virtual bool startup (long& sdncnt, long& rcvcnt);
     bool is_started () const ;
     virtual bool depends_on_q (const task* t1) const;
-    virtual bool work_to_do () const;
+    bool is_finished () const;
     virtual bool need_to_communicate (int& with) const;
     void depend_on (const task_proxy& t1);
     bool depend_ready ();
@@ -211,6 +211,13 @@ task::is_started () const
 }
 
 inline
+bool
+task::is_finished () const
+{
+    return m_finished;
+}
+
+inline
 task::sequence_number
 task::get_sequence_number () const
 {
@@ -311,39 +318,42 @@ task_list::get_then_advance (int proc)
 }
 
 class task_copy_base
-  : public task
+  :
+    public task
 {
 public:
-  task_copy_base(task_list&      tl_,
-		 MultiFab&       dmf_,
-		 int             dgrid_,
-		 const Box&      db_,
-		 const MultiFab& smf_,
-		 int             sgrid_,
-		 const Box&      sb_);
-  virtual ~task_copy_base();
-  virtual bool depends_on_q (const task* t) const;
-  virtual bool startup (long&,long&);
-  virtual bool work_to_do () const;
-  virtual bool need_to_communicate (int& with) const;
-  virtual void hint () const;
+
+    task_copy_base(task_list&      tl_,
+                   MultiFab&       dmf_,
+                   int             dgrid_,
+                   const Box&      db_,
+                   const MultiFab& smf_,
+                   int             sgrid_,
+                   const Box&      sb_);
+
+    virtual ~task_copy_base();
+    virtual bool depends_on_q (const task* t) const;
+    virtual bool startup (long&,long&);
+    virtual bool need_to_communicate (int& with) const;
+    virtual void hint () const;
+
 protected:
 #ifdef BL_USE_MPI
   MPI_Request     m_request;
 #endif
-  FArrayBox* m_tmp;
-  MultiFab& m_dmf;
-  const int m_dgrid;
-  const Box m_dbx;
+  FArrayBox*      m_tmp;
+  MultiFab&       m_dmf;
+  const int       m_dgrid;
+  const Box       m_dbx;
   const MultiFab& m_smf;
-  const int m_sgrid;
-  const Box m_sbx;
-  bool m_done;
-  bool m_local;
+  const int       m_sgrid;
+  const Box       m_sbx;
+  bool            m_local;
 };
 
 class task_copy
-    : public task_copy_base
+    :
+    public task_copy_base
 {
 public:
 
@@ -371,6 +381,7 @@ public:
                const task_proxy& tp);
 
     virtual bool ready ();
+
 private:
     //
     // Common function called by constructors.
@@ -395,7 +406,6 @@ public:
     virtual ~task_local_base ();
     virtual bool startup (long&, long&);
     virtual bool depends_on_q (const task* t1) const;
-    virtual bool work_to_do () const;
     virtual bool need_to_communicate (int& with) const;
     virtual void hint () const;
 
@@ -412,7 +422,6 @@ protected:
     const int       m_sgrid;
     const int       m_target_proc_id;
     bool            m_local;
-    bool            m_done;
 };
 
 class task_copy_local
@@ -429,7 +438,6 @@ public:
                      int             grid_);
 
     virtual bool ready ();
-
 };
 
 //
@@ -473,7 +481,6 @@ public:
               int             ncomp_);
 
     virtual ~task_fab ();
-    virtual bool work_to_do () const;
 
     const FArrayBox& fab ();
 
@@ -523,7 +530,6 @@ public:
                      int                       index_ /*= -1*/);
 
     virtual ~task_fill_patch ();
-    virtual bool work_to_do () const;
 
 private:
 
@@ -531,15 +537,16 @@ private:
     bool fill_exterior_patch_blindly ();
     void fill_patch ();
 
-    const MultiFab&           r;
-    const level_interface&    lev_interface;
-    const amr_boundary* bdy;
-    const int                 idim;
-    const int                 index;
+    const MultiFab&        r;
+    const level_interface& lev_interface;
+    const amr_boundary*    bdy;
+    const int              idim;
+    const int              index;
 };
 
 class task_fec_base
-    : public task
+    :
+    public task
 {
 public:
 
@@ -548,7 +555,7 @@ public:
                    int        igrid_);
 
     virtual ~task_fec_base ();
-    virtual bool work_to_do () const;
+
 protected:
 
     void push_back (task_fab* tf);
@@ -562,7 +569,6 @@ protected:
     vector<task::task_proxy> tfvect;
     MultiFab&                s;
     const int                igrid;
-    bool                     done;
 };
 
 inline

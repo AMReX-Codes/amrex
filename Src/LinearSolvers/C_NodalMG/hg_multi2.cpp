@@ -106,7 +106,8 @@ typedef void (*F_ERES) (Real*, intS, const Real*, intS,
 }
 
 class task_fres
-    : public task_fec_base
+    :
+    public task_fec_base
 {
 public:
 
@@ -139,9 +140,9 @@ private:
     const Box       creg;
     Real            h[BL_SPACEDIM];
     const IntVect   rat;
-    const int idim;
-    const int idir;
-    const int isrz;
+    const int       idim;
+    const int       idir;
+    const int       isrz;
 };
 
 task_fres::task_fres (F_FRES          f_,
@@ -174,7 +175,7 @@ task_fres::task_fres (F_FRES          f_,
     push_back(c_);
     push_back(sc_);
 
-    for (int i = 0; i < BL_SPACEDIM; ++i) h[i] = h_[i];
+    D_TERM(h[0] = h_[0];, h[1] = h_[1];, h[2] = h_[2];);
 
     if (is_local_target() && dependencies.empty()) doit();
 }
@@ -182,7 +183,7 @@ task_fres::task_fres (F_FRES          f_,
 bool
 task_fres::ready ()
 {
-    BL_ASSERT(!done);
+    BL_ASSERT(!m_finished);
 
     if (is_local_target()) doit();
 
@@ -192,11 +193,11 @@ task_fres::ready ()
 void
 task_fres::doit ()
 {
-    BL_ASSERT(!done);
+    BL_ASSERT(!m_finished);
     BL_ASSERT(is_local_target());
     BL_ASSERT(dependencies.empty());
 
-    done = true;
+    m_finished = true;
 
     const int        igrid      = grid_number();
     FArrayBox&       r_fab      = target_fab();
@@ -212,12 +213,6 @@ task_fres::doit ()
     const FArrayBox& sc_fab     = task_fab_result(1);
     const Box&       sc_fab_box = sc_fab.box();
 
-    HG_DEBUG_OUT( "r_fab.norm() = " << r_fab.norm() << endl);
-    HG_DEBUG_OUT( "s_fab.norm() = " << s_fab.norm() << endl);
-    HG_DEBUG_OUT( "d_fab.norm() = " << d_fab.norm() << endl);
-    HG_DEBUG_OUT( "c_fab.norm() = " << c_fab.norm() << endl);
-    HG_DEBUG_OUT( "sg_fab.norm() = " << sg_fab.norm() << endl);
-    HG_DEBUG_OUT( "sc_fab.norm() = " << sc_fab.norm() << endl);
     (*f)(r_fab.dataPtr(), DIMLIST(r_fab_box),
 	 s_fab.dataPtr(), DIMLIST(s_fab_box),
 	 d_fab.dataPtr(), DIMLIST(d_fab_box),
@@ -231,7 +226,8 @@ task_fres::doit ()
 
 
 class task_eres
-    : public task_fec_base
+    :
+    public task_fec_base
 {
 public:
 
@@ -293,11 +289,8 @@ task_eres::task_eres (F_ERES            f_,
     push_back(sigmaf_);
     push_back(sigmac_);
 
-    for (int i = 0; i < BL_SPACEDIM; ++i)
-    {
-        h[i] = h_[i];
-        t[i] = t_[i];
-    }
+    D_TERM(h[0] = h_[0];, h[1] = h_[1];, h[2] = h_[2];);
+    D_TERM(t[0] = t_[0];, t[1] = t_[1];, t[2] = t_[2];);
 
     if (is_local_target() && dependencies.empty()) doit();
 }
@@ -305,7 +298,7 @@ task_eres::task_eres (F_ERES            f_,
 bool
 task_eres::ready ()
 {
-    BL_ASSERT(!done);
+    BL_ASSERT(!m_finished);
 
     if (is_local_target()) doit();
 
@@ -315,11 +308,11 @@ task_eres::ready ()
 void
 task_eres::doit ()
 {
-    BL_ASSERT(!done);
+    BL_ASSERT(!m_finished);
     BL_ASSERT(is_local_target());
     BL_ASSERT(dependencies.empty());
 
-    done = true;
+    m_finished = true;
 
     const int        igrid          = grid_number();
     FArrayBox&       r_fab          = target_fab();
@@ -409,10 +402,7 @@ task_cres::task_cres (F_CRES           f_,
     push_back(sigmaf_);
     push_back(sigmac_);
 
-    for (int i = 0; i < BL_SPACEDIM; ++i)
-    {
-        h[i] = h_[i];
-    }
+    D_TERM(h[0] = h_[0];, h[1] = h_[1];, h[2] = h_[2];);
 
     if (is_local_target() && dependencies.empty()) doit();
 }
@@ -420,7 +410,7 @@ task_cres::task_cres (F_CRES           f_,
 bool
 task_cres::ready ()
 {
-    BL_ASSERT(!done);
+    BL_ASSERT(!m_finished);
 
     if (is_local_target()) doit();
 
@@ -430,11 +420,11 @@ task_cres::ready ()
 void
 task_cres::doit ()
 {
-    BL_ASSERT(!done);
+    BL_ASSERT(!m_finished);
     BL_ASSERT(is_local_target());
     BL_ASSERT(dependencies.empty());
 
-    done = true;
+    m_finished = true;
 
     const int        igrid          = grid_number();
     FArrayBox&       r_fab          = target_fab();

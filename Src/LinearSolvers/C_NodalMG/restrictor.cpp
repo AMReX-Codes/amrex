@@ -65,17 +65,17 @@ extern "C"
 }
 
 class task_fab_get
-    : public task_fab
+    :
+    public task_fab
 {
 public:
+
     task_fab_get (task_list&      tl_,
                   const MultiFab& d_,
                   int             dgrid_,
                   const Box&      bx,
                   const MultiFab& s_,
                   int             sgrid_);
-
-    virtual bool work_to_do () const;
 private:
     //
     // The data.
@@ -99,14 +99,12 @@ task_fab_get::task_fab_get (task_list&      tl_,
     bx(bx_),
     tf(0)
 {
-    depend_on(tf = m_task_list.add_task(
-	new task_copy_local(m_task_list, target, target_proc_id(), bx, s, sgrid)));
-}
-
-bool
-task_fab_get::work_to_do () const
-{
-    return ParallelDescriptor::MyProc() == m_target_proc_id || !tf.null();
+    depend_on(tf = m_task_list.add_task(new task_copy_local(m_task_list,
+                                                            target,
+                                                            target_proc_id(),
+                                                            bx,
+                                                            s,
+                                                            sgrid)));
 }
 
 extern "C"
@@ -116,7 +114,8 @@ extern "C"
 }
 
 struct task_restriction_fill
-    : public task
+    :
+    public task
 {
     task_restriction_fill (const RESTFUN  ref_,
                            task_list&     tl_,
@@ -151,7 +150,6 @@ struct task_restriction_fill
                            const Array<int>& i2_);
 
     virtual bool ready ();
-    virtual bool work_to_do () const;
 
 private:
     //
@@ -261,12 +259,6 @@ task_restriction_fill::ready ()
     return true;
 }
 
-bool
-task_restriction_fill::work_to_do () const
-{
-    return is_local(m, ind) || !tf.null();
-}
-
 amr_restrictor::~amr_restrictor () {}
 
 Box
@@ -360,7 +352,7 @@ default_restrictor::fill (FArrayBox&       patch,
     }
 }
 
-bilinear_restrictor::bilinear_restrictor (int i,
+bilinear_restrictor::bilinear_restrictor (int  i,
 					  bool hg_dense)
     :
     integrate(i),
