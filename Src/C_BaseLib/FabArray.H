@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.155 2001-09-25 22:45:40 lijewski Exp $
+// $Id: FabArray.H,v 1.156 2001-09-26 02:16:58 car Exp $
 //
 #include <cstring>
 #include <limits>
@@ -1452,7 +1452,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
     const int NProcs = ParallelDescriptor::NProcs();
 
     if (NProcs == 1) return;
-
+#if defined(BL_USE_MPI) || !defined(WIN32)
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::CollectData()");
 
     const int MyProc = ParallelDescriptor::MyProc();
@@ -1758,6 +1758,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
             fab_data[indx[k]] = 0;
         }
     }
+#endif
 }
 
 template <class FAB>

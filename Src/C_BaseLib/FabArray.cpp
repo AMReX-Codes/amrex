@@ -72,6 +72,7 @@ MFIter::isValid ()
 {
     BL_ASSERT(currentIndex >= 0);
 
+#ifdef MIKE_WE_HAVE_TO_FIXME
     extern bool HG_is_debugging;
 
     if (HG_is_debugging)
@@ -80,7 +81,7 @@ MFIter::isValid ()
 	ParallelDescriptor::Barrier();
 	return false;
     }
-
+#endif
     return currentIndex < fabArray.size();
 }
 
