@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.129 2001-07-20 17:20:48 car Exp $
+// $Id: FabArray.H,v 1.130 2001-07-20 17:57:27 car Exp $
 //
 
 #include <climits>
@@ -1267,7 +1267,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
             BL_ASSERT(N < INT_MAX);
 
-            fab_data[i] = static_cast<T*>(The_FAB_Arena->alloc(N*sizeof(T)));
+            fab_data[i] = static_cast<value_type*>(The_FAB_Arena->alloc(N*sizeof(value_type)));
 
             if ((rc = MPI_Irecv(fab_data[i],
                                 int(N),
@@ -1295,8 +1295,8 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
             BL_ASSERT(N < INT_MAX);
 
-            T* data = static_cast<T*>(The_FAB_Arena->alloc(N*sizeof(T)));
-            T* dptr = data;
+            value_type* data = static_cast<value_type*>(The_FAB_Arena->alloc(N*sizeof(value_type)));
+            value_type* dptr = data;
 
             for (unsigned int j = 0; j < SndTags[i].size(); j++)
             {
@@ -1304,7 +1304,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                 fab.resize(bx, ncomp);
                 fab.copy(src[SndTags[i][j].fabIndex],bx,scomp,bx,0,ncomp);
                 int count = bx.numPts() * ncomp;
-                memcpy(dptr, fab.dataPtr(), count*sizeof(T));
+                memcpy(dptr, fab.dataPtr(), count*sizeof(value_type));
                 dptr += count;
             }
 
@@ -1335,7 +1335,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
         for (int k = 0; k < completed; k++)
         {
-            T* dptr = fab_data[indx[k]];
+            value_type* dptr = fab_data[indx[k]];
 
             BL_ASSERT(!(dptr == 0));
 
@@ -1344,7 +1344,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
                 const Box& bx = RcvTags[indx[k]][j].box;
                 fab.resize(bx, ncomp);
                 int N = bx.numPts() * ncomp;
-                memcpy(fab.dataPtr(), dptr, N*sizeof(T));
+                memcpy(fab.dataPtr(), dptr, N*sizeof(value_type));
                 fabparray[RcvTags[indx[k]][j].fabIndex].copy(fab,bx,0,bx,dcomp,ncomp);
                 dptr += N;
             }
@@ -2332,7 +2332,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
             BL_ASSERT(N < INT_MAX);
 
-            fab_data[i] = static_cast<T*>(The_FAB_Arena->alloc(N*sizeof(T)));
+            fab_data[i] = static_cast<value_type*>(The_FAB_Arena->alloc(N*sizeof(value_type)));
 
             if ((rc = MPI_Irecv(fab_data[i],
                                 int(N),
@@ -2368,8 +2368,8 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
             BL_ASSERT(N < INT_MAX);
 
-            T* data = static_cast<T*>(The_FAB_Arena->alloc(N*sizeof(T)));
-            T* dptr = data;
+            value_type* data = static_cast<value_type*>(The_FAB_Arena->alloc(N*sizeof(value_type)));
+            value_type* dptr = data;
 
             for (int j = 0; j < Snds[i]; j++)
             {
@@ -2389,7 +2389,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
                          0,
                          cd.nComp());
 
-                memcpy(dptr, fab.dataPtr(), count*sizeof(T));
+                memcpy(dptr, fab.dataPtr(), count*sizeof(value_type));
 
                 dptr += count;
             }
@@ -2433,7 +2433,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
         for (int k = 0; k < completed; k++)
         {
             int Processed = 0;
-            T*  dptr      = fab_data[indx[k]];
+            value_type*  dptr      = fab_data[indx[k]];
 
             BL_ASSERT(!(dptr == 0));
 
@@ -2455,11 +2455,11 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
                         if (fcdp->subBox == tag.box)
                         {
-                            T* dataPtr = fcdp->localFabSource->dataPtr();
+                            value_type* dataPtr = fcdp->localFabSource->dataPtr();
                             BL_ASSERT(!(dataPtr == 0));
                             BL_ASSERT(fcdp->localFabSource->box() == tag.box);
                             int N = tag.box.numPts()*tag.nComp;
-                            memcpy(dataPtr, dptr, N*sizeof(T));
+                            memcpy(dataPtr, dptr, N*sizeof(value_type));
                             dptr += N;
                             Processed++;
                             break;
