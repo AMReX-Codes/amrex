@@ -167,24 +167,25 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     bdy->boundary_mesh(em, grid_ref, im, dom);
 
     processorMap = new int[im.length()];
-    
-    List<Box> bl;
-    
-    // Add edges in 2D or faces in 3D:
-    
     for (int igrid = 0; igrid < im.length(); igrid++) 
     {
 	processorMap[igrid] = pd[igrid];
+    }
+    
+    // Add edges in 2D or faces in 3D:
+
+    List<Box> bl;
+    for (int igrid = 0; igrid < im.length(); igrid++) 
+    {
 	for (int i = 0; i < BL_SPACEDIM; i++) 
 	{
 	    IntVect t = IntVect::TheCellVector();
-	    t.setVal(i, IndexType::NODE);
+	    t[i] = IndexType::NODE;
 	    add(bl, bdryLo(im[igrid], i).convert(t), 0);
 	    add(bl, bdryHi(im[igrid], i).convert(t), 0);
 	}
     }
     
-    assert(bdy != 0);
     bdy->duplicate(bl, dom);
     xfer(bl, FACEDIM);
     bl.clear();
@@ -201,13 +202,12 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
 	    if (t[i] == IndexType::NODE)
 		continue;
 	    else
-		t.setVal(i, IndexType::NODE);
+		t[i] = IndexType::NODE;
 	    add(bl, bdryLo(bx[2][iface], i).convert(t), 0);
 	    add(bl, bdryHi(bx[2][iface], i).convert(t), 0);
 	}
     }
     
-    assert(bdy != 0);
     bdy->duplicate(bl, dom);
     xfer(bl, 1);
     bl.clear();
@@ -228,7 +228,6 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     }
     
     bdy->duplicate(bl, dom);
-    assert(bdy != 0);
     xfer(bl, 0);
     bl.clear();
     
