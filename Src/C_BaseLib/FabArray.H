@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.65 1998-06-16 18:00:46 lijewski Exp $
+// $Id: FabArray.H,v 1.66 1998-07-08 16:36:12 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -399,16 +399,7 @@ public:
     {
         return distributionMap;
     }
-
-    //
-    //@ManDoc: Returns constant reference to associated processor map.
-    //
-    const Array<int>& ProcessorMap () const
-    {
-        return distributionMap.ProcessorMap();
-    }
 protected:
-
     //
     // The data ...
     //
@@ -1125,6 +1116,7 @@ FabArray<T,FAB>::AllocFabs (int nvar)
 }
 
 template <class T, class FAB>
+inline
 void
 FabArray<T,FAB>::setFab (int  boxno,
                          FAB* elem)
@@ -1139,7 +1131,7 @@ FabArray<T,FAB>::setFab (int  boxno,
     assert(boxarray.ready());
     assert(elem->box() == ::grow(boxarray[boxno],n_grow));
     assert(!fabparray.defined(boxno));
-    assert(distributionMap.ProcessorMap()[boxno]==ParallelDescriptor::MyProc());
+    assert(distributionMap[boxno] == ParallelDescriptor::MyProc());
 
     fabparray.set(boxno,elem);
 }
@@ -1659,7 +1651,7 @@ FabArrayIterator<T,FAB>::FabArrayIterator (FabArray<T,FAB>& fabarray)
     const int MyProc = ParallelDescriptor::MyProc();
 
     while (currentIndex < fabArray.length() &&
-          fabArray.DistributionMap().ProcessorMap()[currentIndex] != MyProc)
+           fabArray.DistributionMap()[currentIndex] != MyProc)
     {
         ++currentIndex;
     }
@@ -1672,7 +1664,7 @@ FabArrayIterator<T,FAB>::operator() ()
 {
   const int MyProc = ParallelDescriptor::MyProc();
 
-  assert(fabArray.DistributionMap().ProcessorMap()[currentIndex] == MyProc);
+  assert(fabArray.DistributionMap()[currentIndex] == MyProc);
 
   return fabArray[currentIndex];
 }
@@ -1716,12 +1708,13 @@ FabArrayIterator<T,FAB>::operator() () const
 {
   const int MyProc = ParallelDescriptor::MyProc();
 
-  assert(fabArray.DistributionMap().ProcessorMap()[currentIndex] == MyProc);
+  assert(fabArray.DistributionMap()[currentIndex] == MyProc);
 
   return fabArray[currentIndex];
 }
 
 template <class T, class FAB>
+inline
 FabArrayIterator<T,FAB>&
 FabArrayIterator<T,FAB>::operator++ ()
 {
@@ -1733,8 +1726,7 @@ FabArrayIterator<T,FAB>::operator++ ()
     {
         ++currentIndex;
     }
-    while (currentIndex < fabArray.length() &&
-           fabArray.DistributionMap().ProcessorMap()[currentIndex] != MyProc);
+    while (fabArray.DistributionMap()[currentIndex] != MyProc);
 
     return *this;
 }
@@ -1768,7 +1760,9 @@ inline
 bool
 FabArrayIterator<T,FAB>::isValid (bool bDoSync)
 {
-    bool valid = (currentIndex >= 0 && currentIndex < fabArray.length());
+    assert(currentIndex >= 0);
+
+    bool valid = currentIndex < fabArray.length();
 
 #ifdef USE_BSP
     if (!valid && bDoSync)
@@ -1789,8 +1783,8 @@ DependentFabArrayIterator<T,FAB>::DependentFabArrayIterator(
     fabArray(dependentfabarray),
     controller(&controllerfaiter)
 {
-    assert(controllerfaiter.theFabArray().DistributionMap().ProcessorMap() ==
-           dependentfabarray.DistributionMap().ProcessorMap());
+    assert(controllerfaiter.theFabArray().DistributionMap() ==
+           dependentfabarray.DistributionMap());
 }
 
 template <class T, class FAB>
@@ -1802,8 +1796,8 @@ DependentFabArrayIterator<T,FAB>::DependentFabArrayIterator(
     fabArray(const_cast<FabArray<T,FAB>&>(dependentfabarray)),
     controller(&controllerfaiter)
 {
-    assert(controllerfaiter.theFabArray().DistributionMap().ProcessorMap() ==
-           dependentfabarray.DistributionMap().ProcessorMap());
+    assert(controllerfaiter.theFabArray().DistributionMap() ==
+           dependentfabarray.DistributionMap());
 }
 
 template <class T, class FAB>
@@ -1933,8 +1927,7 @@ ConstFabArrayIterator<T,FAB>::operator++ ()
     {
         ++currentIndex;
     }
-    while (currentIndex < fabArray.length() &&
-           fabArray.DistributionMap()[currentIndex] != MyProc);
+    while (fabArray.DistributionMap()[currentIndex] != MyProc);
 
     return *this;
 }
@@ -1968,7 +1961,9 @@ inline
 bool
 ConstFabArrayIterator<T,FAB>::isValid (bool bDoSync) const
 {
-    bool valid = (currentIndex >= 0 && currentIndex < fabArray.length());
+    assert(currentIndex >= 0);
+
+    bool valid = currentIndex < fabArray.length();
 
 #ifdef USE_BSP
     if (!valid && bDoSync)
@@ -1989,8 +1984,8 @@ ConstDependentFabArrayIterator<T,FAB>::ConstDependentFabArrayIterator(
     fabArray(dependentfabarray),
     controller(&controllerfaiter)
 {
-    assert(controllerfaiter.theFabArray().DistributionMap().ProcessorMap() ==
-           dependentfabarray.DistributionMap().ProcessorMap());
+    assert(controllerfaiter.theFabArray().DistributionMap() ==
+           dependentfabarray.DistributionMap());
 }
 
 template <class T, class FAB>
@@ -2101,7 +2096,7 @@ FabArrayCopyDescriptor<T,FAB>::AddBoxDoIt (FabArrayId fabarrayid,
 
         FabCopyDescriptor<FAB>* fcd = new FabCopyDescriptor<FAB>;
 
-        int remoteProc     = fabArray->DistributionMap().ProcessorMap()[faindex];
+        int remoteProc     = fabArray->DistributionMap()[faindex];
         fcd->fillBoxId     = nextFillBoxId;
         fcd->subBox        = intersect;
         fcd->myProc        = MyProc;
