@@ -239,7 +239,7 @@ writePlotFile (const aString&  dir,
     //RunStats::addBytes(VisMF::Write(state[State_Type].newData(),FullPath,how));
     const MultiFab& cell_dat = (level==0 ? level0_dat : mf);
     VisMF::Write(cell_dat,FullPath,VisMF::OneFilePerCPU);
-};
+}
 
 void
 writePlotFile (const char*     name,
