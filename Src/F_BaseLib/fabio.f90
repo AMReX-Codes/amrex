@@ -65,6 +65,10 @@ module fabio_module
      module procedure fabio_multifab_write_d
   end interface
 
+  interface fabio_ml_write
+     module procedure fabio_ml_multifab_write_d
+  end interface
+
   interface fabio_read
      module procedure fabio_fab_read_d
   end interface

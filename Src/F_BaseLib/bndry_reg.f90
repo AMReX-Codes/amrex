@@ -139,7 +139,7 @@ contains
     type(bndry_reg), intent(inout) :: br
     logical, intent(in), optional :: all
     integer i, f
-    do i = 1,br%dim
+    do i = 1, br%dim
        do f = 0, 1
           call copy(br%bmf(i,f), mf, all=all)
        end do
@@ -172,5 +172,31 @@ contains
     r = get_layout(br%bmf(i,f))
   end function bndry_reg_get_layout
 
+  subroutine bndry_reg_print(br, str, unit, all, data, skip)
+    use bl_IO_module
+    type(bndry_reg), intent(in) :: br
+    character (len=*), intent(in), optional :: str
+    integer, intent(in), optional :: unit
+    logical, intent(in), optional :: all, data
+    integer, intent(in), optional :: skip
+    integer :: i, f, un
+    un = unit_stdout(unit)
+    call unit_skip(un, skip)
+    write(unit=un, fmt='("BNDRY_REG")', advance = 'no')
+    if ( present(str) ) then
+       write(unit=un, fmt='(": ",A)') str
+    else
+       write(unit=un, fmt='()')
+    end if
+    do i = 1, br%dim
+       do f = 0, 1
+          call multifab_print(br%bmf(i,f), &
+               unit = unit, &
+               all = all, &
+               data = data,  &
+               skip = unit_get_skip(skip) + 2)
+       end do
+    end do
+  end subroutine bndry_reg_print
 
 end module bndry_reg_module

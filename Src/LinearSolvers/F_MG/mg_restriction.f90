@@ -6,17 +6,17 @@ module mg_restriction_module
 
   implicit none
 
-  interface cc_restriction
-     module procedure cc_restriction_1d
-     module procedure cc_restriction_2d
-     module procedure cc_restriction_3d
-  end interface
+!   interface cc_restriction
+!      module procedure cc_restriction_1d
+!      module procedure cc_restriction_2d
+!      module procedure cc_restriction_3d
+!   end interface
 
-  interface nodal_restriction
-     module procedure nodal_restriction_1d
-     module procedure nodal_restriction_2d
-     module procedure nodal_restriction_3d
-  end interface
+!   interface nodal_restriction
+!      module procedure nodal_restriction_1d
+!      module procedure nodal_restriction_2d
+!      module procedure nodal_restriction_3d
+!   end interface
 
   real(kind=dp_t), private, parameter :: ZERO = 0.0_dp_t
   real(kind=dp_t), private, parameter :: ONE  = 1.0_dp_t
