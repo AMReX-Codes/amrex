@@ -60,9 +60,11 @@ void HG::MPI_finish () {}
 
 task::task (task_list& tl_) 
     :
+    m_task_list(tl_),
     m_sno(tl_.get_then_advance()),
-    m_started(false),
-    m_task_list(tl_) 
+    m_cnt(1),
+    m_finished(false),
+    m_started(false)
 {
     assert(m_sno != 0);
 }
@@ -291,6 +293,9 @@ task_copy::task_copy (task_list&      tl_,
                       const Box&      bx)
     :
     task(tl_),
+#ifdef BL_USE_MPI
+    m_request(MPI_REQUEST_NULL),
+#endif
     tmp(0),
     m_mf(mf),
     m_smf(smf),
@@ -298,9 +303,6 @@ task_copy::task_copy (task_list&      tl_,
     m_sgrid(sgrid),
     m_bx(bx),
     m_sbx(bx),
-#ifdef BL_USE_MPI
-    m_request(MPI_REQUEST_NULL),
-#endif
     m_local(false),
     m_done(false)
 {
@@ -316,6 +318,9 @@ task_copy::task_copy (task_list&      tl_,
                       const Box&      sb)
     :
     task(tl_),
+#ifdef BL_USE_MPI
+    m_request(MPI_REQUEST_NULL),
+#endif
     tmp(0),
     m_mf(mf),
     m_smf(smf),
@@ -323,9 +328,6 @@ task_copy::task_copy (task_list&      tl_,
     m_sgrid(sgrid),
     m_bx(db),
     m_sbx(sb),
-#ifdef BL_USE_MPI
-    m_request(MPI_REQUEST_NULL),
-#endif
     m_local(false),
     m_done(false)
 {
@@ -341,6 +343,9 @@ task_copy::task_copy (task_list&        tl_,
                       const task_proxy& tp)
     :
     task(tl_),
+#ifdef BL_USE_MPI
+    m_request(MPI_REQUEST_NULL),
+#endif
     tmp(0),
     m_mf(mf),
     m_smf(smf),
@@ -348,9 +353,6 @@ task_copy::task_copy (task_list&        tl_,
     m_sgrid(sgrid),
     m_bx(bx),
     m_sbx(bx),
-#ifdef BL_USE_MPI
-    m_request(MPI_REQUEST_NULL),
-#endif
     m_local(false),
     m_done(false)
 {
@@ -682,10 +684,10 @@ task_fab::task_fab (task_list&      tl_,
                     int             ncomp_)
     :
     task(tl_),
-    m_target_proc_id(processor_number(t_,tt_)),
+    target(0),
     region(region_),
     ncomp(ncomp_),
-    target(0) 
+    m_target_proc_id(processor_number(t_,tt_))
 {
     assert(m_sno != 0);
     if (is_local(t_, tt_))
