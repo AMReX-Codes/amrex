@@ -1,10 +1,11 @@
 #ifndef _AMR_DEFS_H_
 #define _AMR_DEFS_H_
 
-// includes IntVect.H, IndexType.H, Real.H, FArrayBox.H, BoxArray.H etc.
-#include <MultiFab.H>
+//
+// $Id: amr_defs.H,v 1.6 1998-01-21 21:35:50 car Exp $
+//
 
-#undef SPACEDIM
+#include <MultiFab.H>
 
 #if (BL_SPACEDIM == 1)
 #  define intRS const int&
@@ -50,41 +51,14 @@ inline IndexType::CellIndex type(const FabArray<Real,FArrayBox>& r, int idir) {
 
 inline Real mfnorm(MultiFab& mf) {
   Real r = 0;
-  int i;
-  for (i = 0; i < mf.length(); i++) {
-    Real s = mf[i].norm(0);
+  // int i;
+  // for (i = 0; i < mf.length(); i++) {
+  for ( ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi ) 
+  {
+    Real s = cmfi->norm(0);
     r = (r > s) ? r : s;
   }
-  return r;
-}
-
-inline Real pmfnorm(PArray<MultiFab>& pmf) {
-  Real r = 0;
-  int i;
-  for (i = 0; i < pmf.length(); i++) {
-    Real s = mfnorm(pmf[i]);
-    r = (r > s) ? r : s;
-  }
-  return r;
-}
-
-inline Real pmfmin(PArray<MultiFab>& pmf) {
-  Real r = pmf[0].min(0);
-  int i;
-  for (i = 1; i < pmf.length(); i++) {
-    Real s = pmf[i].min(0);
-    r = (r < s) ? r : s;
-  }
-  return r;
-}
-
-inline Real pmfmax(PArray<MultiFab>& pmf) {
-  Real r = pmf[0].max(0);
-  int i;
-  for (i = 1; i < pmf.length(); i++) {
-    Real s = pmf[i].max(0);
-    r = (r > s) ? r : s;
-  }
+  ParallelDescriptor::ReduceRealMax(r);
   return r;
 }
 

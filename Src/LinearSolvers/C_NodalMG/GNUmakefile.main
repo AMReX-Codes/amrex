@@ -11,6 +11,26 @@ COMP      = cxx
 COMP      = KCC
 #COMP      = g++
 
+#
+# Holy Grail stuff ...
+#
+ifeq ($(DIM),2)
+#
+# c5: -DHG_CONSTANT -DHG_CROSS_STENCIL
+# v5: -DHG_CROSS_STENCIL
+# c9: -DHG_CONSTANT
+# v9:
+#
+CPPFLAGS +=
+else
+#
+# c7: -DHG_CONSTANT -DHG_CROSS_STENCIL
+# v7: -DHG_CROSS_STENCIL
+#
+CPPFLAGS += -DHG_CROSS_STENCIL
+endif
+
+
 GUTHAMR_HOME = ..
 TOP = $(GUTHAMR_HOME)
 

@@ -3,14 +3,6 @@
 using std::set_new_handler;
 #endif
 
-#if	!defined( UNICOS ) && 0
-#  define USE_GRAPHICS
-#endif
-
-#ifdef USE_GRAPHICS
-#  include "amr_graph.H"
-#endif
-
 #include "hg_projector.H"
 
 #include <Utility.H>
@@ -51,10 +43,6 @@ main(int argc, char **argv)
   set_new_handler(Utility::OutOfMemory);
 #endif
   StartParallel(1);
-#ifdef USE_GRAPHICS
-  gopen(5);
-  black();
-#endif
 
   Array<BoxArray> m;
   Array<IntVect> ratio;
@@ -81,9 +69,6 @@ main(int argc, char **argv)
     malloc_info();
   }
 */
-#ifdef USE_GRAPHICS
-  gclose();
-#endif
   EndParallel();
   return 0;
 }
@@ -275,10 +260,6 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
   RegType bc[BL_SPACEDIM][2];
 
 #if (BL_SPACEDIM == 2)
-#  ifdef USE_GRAPHICS
-  int ncont = 11;
-  //int ncont = 101;
-#  endif
   //bc[0][0] = inflow;
   //bc[0][1] = outflow;
   bc[0][0] = periodic;
@@ -292,10 +273,6 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
   //bc[1][0] = inflow;
   //bc[1][1] = outflow;
 #else
-#  ifdef USE_GRAPHICS
-  set_graphics_knobs(30.0, 10.0);
-  int ncont = 3;
-#  endif
   for (i = 0; i < BL_SPACEDIM; i++) {
     bc[i][0] = refWall;
     bc[i][1] = refWall;
@@ -441,14 +418,6 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
   }
 */
 
-#ifdef USE_GRAPHICS
-  fit(domain[0]);
-  plot(m, ratio);
-#  ifndef HG_CONSTANT
-  //contour(rhoinv, ratio, ncont);
-#  endif
-#endif
-
   int sum = 0;
   cout << "Cells by level: ";
   for (ilev = 0; ilev < m.length(); ilev++) {
@@ -562,18 +531,6 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     t1 = Utility::second();
     cout << "First time is " << t1 - t0 << endl;
   }
-#ifdef USE_GRAPHICS
-  //contour(u[0], ratio, 11);
-  //contour(p, ratio, 99);
-  for (i = 0; i < BL_SPACEDIM; i++) {
-    cout << "Dimension " << i << " norm is " << pmfnorm(u[i]) << endl;
-    contour(u[i], ratio, ncont);
-    cin.get();
-  }
-  cout << "Pressure norm is " << pmfnorm(p) << endl;
-  contour(p, ratio, ncont);
-  cin.get();
-#endif
 /*
   if (m.length() < 3) {
     for (i = 0; i < p.length(); i++)
