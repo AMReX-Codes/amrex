@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BndryData.cpp,v 1.5 1998-07-29 19:09:51 lijewski Exp $
+// $Id: BndryData.cpp,v 1.6 1998-08-21 17:58:29 car Exp $
 //
 
 #include <BndryData.H>
@@ -49,7 +49,7 @@ ostream&
 operator<< (ostream&         os,
             const BndryData& bd)
 {
-    ParallelDescriptor::Abort("BndryData::operator<< not yet implemented in parallel");
+    BoxLib::Abort("BndryData::operator<< not yet implemented in parallel");
     const BoxArray& grds = bd.boxes();
     int ngrds = grds.length();
     int ncomp = bd.bcond[0][0].length();
