@@ -1,6 +1,4 @@
 
-#include <RunStats.H>
-
 #include "fill_patch.H"
 
 #if defined( BL_FORT_USE_UNDERSCORE )
@@ -808,9 +806,7 @@ task_restric_fill::startup (long& sndcnt, long& rcvcnt)
     {
         if (is_local(m_d, m_dgrid))
         {
-            static RunStats irecv_stats("hg_irecv");
             m_tmp = new FArrayBox(m_box, m_d.nComp());
-            irecv_stats.start();
             rcvcnt = m_tmp->box().numPts()*m_tmp->nComp();
             int res = MPI_Irecv(m_tmp->dataPtr(),
                                 rcvcnt,
@@ -820,17 +816,14 @@ task_restric_fill::startup (long& sndcnt, long& rcvcnt)
                                 HG::mpi_comm,
                                 &m_request);
             rcvcnt *= sizeof(double);
-            irecv_stats.end();
             if (res != 0)
                 ParallelDescriptor::Abort(res);
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
         else if (is_local(m_r, m_rgrid))
         {
-            static RunStats isend_stats("hg_isend");
             m_tmp = new FArrayBox(m_box, m_d.nComp());
 	    m_restric.fill(*m_tmp, m_box, m_r[m_rgrid], m_rat);
-            isend_stats.start();
             sndcnt = m_tmp->box().numPts()*m_tmp->nComp();
             int res = MPI_Isend(m_tmp->dataPtr(),
                                 sndcnt,
@@ -840,7 +833,6 @@ task_restric_fill::startup (long& sndcnt, long& rcvcnt)
                                 HG::mpi_comm,
                                 &m_request);
             sndcnt *= sizeof(double);
-            isend_stats.end();
             if (res != 0)
                 ParallelDescriptor::Abort(res);
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
@@ -865,11 +857,8 @@ task_restric_fill::ready ()
 #ifdef BL_USE_MPI
     int flag, res;
     MPI_Status status;
-    static RunStats test_stats("hg_test");
-    test_stats.start();
     if ((res = MPI_Test(&m_request, &flag, &status)) != 0)
 	ParallelDescriptor::Abort(res);
-    test_stats.end();
     if (flag)
     {
 	if (is_local(m_d, m_dgrid))
