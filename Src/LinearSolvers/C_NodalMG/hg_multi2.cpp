@@ -378,9 +378,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	if (m_hg_terrain)
 	{
 	    tl.add_task(
-		new task_fceres(&FORT_HGFRES_TERRAIN, resid[mglev], source[mglev], dest[mglev], igrid,
-		cdst, 0 /* FIXME */, 0 /* FIXME */,
-		creg, h[mglev], rat, idim, idir)
+		new task_fceres(&FORT_HGFRES_TERRAIN, resid[mglev], source[mglev], dest[mglev], igrid, cdst, 0 /* FIXME */, 0 /* FIXME */, creg, h[mglev], rat, idim, idir)
 		);
 	    /*
 	    FORT_HGFRES_TERRAIN(
@@ -402,9 +400,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    const int isRZ = IsRZ();
 	    const int imax = mg_domain[mglevc].bigEnd(0) + 1;
 	    tl.add_task(
-		new task_fceres(&FORT_HGFRES_FULL, resid[mglev], source[mglev], dest[mglev], igrid,
-		cdst, 0 /* FIXME */, 0 /* FIXME */,
-		creg, h[mglev], rat, idim, idir, isRZ, imax)
+		0
+		// new task_fceres(&FORT_HGFRES_FULL, resid[mglev], source[mglev], dest[mglev], igrid, cdst, 0 /* FIXME */, 0 /* FIXME */, creg, h[mglev], rat, idim, idir, isRZ, imax)
 		);
 	    FORT_HGFRES_FULL(
 		rptr, DIMLIST(sbox),
@@ -423,9 +420,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	else
 	{
 	    tl.add_task(
-		new task_fceres(&FORT_HGFRES, resid[mglev], source[mglev], dest[mglev], igrid,
-		cdst, 0 /* FIXME */, 0 /* FIXME */,
-		creg, h[mglev], rat, idim, idir)
+		new task_fceres(&FORT_HGFRES, resid[mglev], source[mglev], dest[mglev], igrid, cdst, 0 /* FIXME */, 0 /* FIXME */, creg, h[mglev], rat, idim, idir)
 		);
 	    FORT_HGFRES(
 		rptr, DIMLIST(sbox),
