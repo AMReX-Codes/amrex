@@ -4,7 +4,7 @@
 #define BL_PARRAY_H
 
 //
-// $Id: PArray.H,v 1.4 1997-09-18 20:12:56 lijewski Exp $
+// $Id: PArray.H,v 1.5 1997-09-18 21:22:19 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -204,11 +204,7 @@ inline
 const T&
 PArray<T>::operator[] (int i) const
 {
-    //assert(vp[i] != 0);
-    if(vp[i] == 0) {
-      //cerr << "_in PArray<T>::operator[] const: vp[" << i << "] = 0   (fix parallel)"
-	   //<< endl;
-    }
+    assert(vp[i] != 0);
     return *((T*)(vp[i]));
 }
 
@@ -217,11 +213,7 @@ inline
 T&
 PArray<T>::operator[] (int i)
 {
-    //assert(vp[i] != 0);
-    if(vp[i] == 0) {
-      //cerr << "_in PArray<T>::operator[] : vp[" << i << "] = 0   (fix parallel)"
-	   //<< endl;
-    }
+    assert(vp[i] != 0);
     return *((T*)(vp[i]));
 }
 
@@ -230,11 +222,7 @@ inline
 const T&
 PArray<T>::get (int i) const
 {
-    //assert(vp[i] != 0);
-    if(vp[i] == 0) {
-      //cerr << "_in PArray<T>::get const: vp[" << i << "] = 0   (fix parallel)"
-	   //<< endl;
-    }
+    assert(vp[i] != 0);
     return *((T*)(vp[i]));
 }
 
@@ -243,11 +231,7 @@ inline
 T&
 PArray<T>::get (int i)
 {
-    //assert(vp[i] != 0);
-    if(vp[i] == 0) {
-      //cerr << "_in PArray<T>::get : vp[" << i << "] = 0   (fix parallel)"
-	   //<< endl;
-    }
+    assert(vp[i] != 0);
     return *((T*)(vp[i]));
 }
 
@@ -308,15 +292,8 @@ PArray<T>::clear ()
     {
         for (int i = 0; i < length(); ++i)
         {
-	  if (vp[i] == 0)
-          {
-	    //cerr << "Error in PArray<T>::clear vp[" << i << "] = 0 (fix parallel)"
-		 //<< endl;
-	  }
-          else
-          {
+	  if (!(vp[i] == 0))
               delete ((T*)(vp[i]));
-	  }
 	}
     }
     for (int i = 0; i < length(); ++i)
@@ -333,7 +310,7 @@ template <class T>
 void
 PArray<T>::resize (int newlen)
 {
-    void **ovp = vp.ready() ? & vp[0] : 0;
+    void** ovp = vp.ready() ? &vp[0] : 0;
     int onelem = vp.length();
     vp.resize(newlen);
     for (int i = onelem; i < newlen; ++i)
@@ -342,12 +319,7 @@ PArray<T>::resize (int newlen)
     {
         for (int i = newlen; i < onelem; i++)
         {
-	  if (ovp[i] == 0)
-          {
-	    //cerr << "Error in PArray<T>::clear ovp[" << i << "] = 0 (fix parallel)"
-		 //<< endl;
-	  }
-          else
+	  if (!(ovp[i] == 0))
           {
               delete ((T*)(ovp[i]));
               ovp[i]  = 0;
@@ -360,18 +332,8 @@ template <class T>
 void
 PArray<T>::clear (int n)
 {
-    if (managed)
-    {
-	  if(vp[n] == 0)
-          {
-	    //cerr << "Error in PArray<T>::clear vp[" << n << "] = 0 (fix parallel)"
-		 //<< endl;
-	  }
-          else
-          {
-              delete ((T*)(vp[n]));
-	  }
-    }
+    if (managed && vp[n] != 0)
+        delete ((T*)(vp[n]));
     vp[n] = 0;
 }
 
