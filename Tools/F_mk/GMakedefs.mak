@@ -184,9 +184,12 @@ ifeq ($(ARCH),Linux)
         F90FLAGS += -O3
         FFLAGS += -O3
         CFLAGS += -O3
-        F90FLAGS += -ipo
-       FFLAGS += -ipo
-       CFLAGS += -ipo
+#       F90FLAGS += -ip
+#       FFLAGS += -ip
+#       CFLAGS += -ip
+#       F90FLAGS += -ipo
+#       FFLAGS += -ipo
+#       CFLAGS += -ipo
 #       LDFLAGS += -static
       endif
       ifdef PROF
