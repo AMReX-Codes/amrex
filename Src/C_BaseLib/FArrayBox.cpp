@@ -1,5 +1,5 @@
 //
-// $Id: FArrayBox.cpp,v 1.43 2001-08-01 20:24:22 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.44 2001-08-02 16:01:43 car Exp $
 //
 #include <cstdlib>
 #include <iostream>
@@ -154,9 +154,16 @@ FArrayBox::FArrayBox (const FArrayBox& fab)
 {}
 
 FArrayBox&
-FArrayBox::operator=(const FArrayBox& fab)
+FArrayBox::operator= (const FArrayBox& fab)
 {
     BaseFab<Real>::operator=(fab);
+    return *this;
+}
+
+FArrayBox&
+FArrayBox::operator= (const Real& v)
+{
+    BaseFab<Real>::operator=(v);
     return *this;
 }
 

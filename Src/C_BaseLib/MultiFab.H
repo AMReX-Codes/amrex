@@ -1,7 +1,7 @@
 #ifndef BL_MULTIFAB_H
 #define BL_MULTIFAB_H
 //
-// $Id: MultiFab.H,v 1.42 2001-07-31 17:56:27 lijewski Exp $
+// $Id: MultiFab.H,v 1.43 2001-08-02 16:01:44 car Exp $
 //
 #include <winstd.H>
 
@@ -89,6 +89,7 @@ public:
               int             ngrow,
               FabAlloc        mem_mode = Fab_allocate);
 
+    void operator= (const Real& r);
     /*@ManDoc: Returns the minimum value contained in component comp of the
                MultiFab.  The parameter nghost determines the number of
                boundary cells to search for the minimum.  The default is to

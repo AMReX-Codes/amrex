@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.151 2001-08-02 01:22:48 car Exp $
+// $Id: FabArray.H,v 1.152 2001-08-02 16:01:43 car Exp $
 //
 #include <cstring>
 #include <limits>
@@ -270,6 +270,7 @@ public:
     //@ManDoc: Set all components in the valid region of each FAB to val.
     //
     void setVal (value_type val);
+    void operator= (const value_type& val);
 
     /*@ManDoc: Set the value of num\_comp components in the valid region of
                each FAB in the FabArray, starting at component comp to val.
@@ -1267,6 +1268,14 @@ FabArray<FAB>::setVal (value_type val)
 }
 
 template <class FAB>
+inline
+void
+FabArray<FAB>::operator= (const value_type& val)
+{
+    setVal(val);
+}
+
+template <class FAB>
 void
 FabArray<FAB>::setVal (value_type val,
                        int        comp,
@@ -1354,7 +1363,7 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
 
     if (intersect.ok())
     {
-        filledBoxes.append(intersect);
+        filledBoxes.push_back(intersect);
 
         FabCopyDescriptor<FAB>* fcd = new FabCopyDescriptor<FAB>;
 

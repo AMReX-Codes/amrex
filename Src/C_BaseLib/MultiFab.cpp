@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.67 2001-07-25 23:36:17 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.68 2001-08-02 16:01:44 car Exp $
 //
 #include <winstd.H>
 
@@ -109,6 +109,12 @@ MultiFab::MultiFab (const BoxArray& bxs,
     :
     FabArray<FArrayBox>(bxs,ncomp,ngrow,alloc)
 {}
+
+void
+MultiFab::operator= (const Real& r)
+{
+    setVal(r);
+}
 
 Real
 MultiFab::min (int comp,

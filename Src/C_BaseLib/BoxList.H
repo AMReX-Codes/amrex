@@ -1,7 +1,7 @@
 #ifndef BL_BOXLIST_H
 #define BL_BOXLIST_H
 //
-// $Id: BoxList.H,v 1.28 2001-07-31 22:43:17 lijewski Exp $
+// $Id: BoxList.H,v 1.29 2001-08-02 16:01:43 car Exp $
 //
 #include <iosfwd>
 #include <list>
@@ -90,11 +90,11 @@ public:
     //
     //@ManDoc: Append a Box to this BoxList.
     //
-    void append (const Box& bn);
+    void push_back (const Box& bn);
     //
     //@ManDoc:  Prepend a Box to this BoxList.
     //
-    void prepend (const Box& bn);
+    void push_front (const Box& bn);
     //
     //@ManDoc: Join the BoxList to ourselves.
     //
@@ -326,7 +326,7 @@ BoxList::ixType () const
 
 inline
 void
-BoxList::append (const Box& bn)
+BoxList::push_back (const Box& bn)
 {
     BL_ASSERT(ixType() == bn.ixType());
     lbox.push_back(bn);
@@ -334,7 +334,7 @@ BoxList::append (const Box& bn)
 
 inline
 void
-BoxList::prepend (const Box& bn)
+BoxList::push_front (const Box& bn)
 {
     BL_ASSERT(ixType() == bn.ixType());
     lbox.push_front(bn);
