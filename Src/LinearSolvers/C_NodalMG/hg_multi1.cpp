@@ -843,6 +843,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 		hgi = new holy_grail_interpolator_class(sigptr, sigbox);
 #endif
 	    }
+	    // BUG
 	    tl.add_task(
 		new task_interpolate_patch(target ,igrid, target.box(igrid), corr[lfrom], rat, *hgi, lev_interface[lfrom])
 		);
