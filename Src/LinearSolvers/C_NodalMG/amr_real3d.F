@@ -1,3 +1,4 @@
+c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
       subroutine fcpy(dest,
      & destl0,desth0,destl1,desth1,destl2,desth2,
@@ -44,7 +45,7 @@ c Works for CELL- or NODE-based data.
          end do
       end if
       end
-
+c-----------------------------------------------------------------------
 c Unrolled copy---works for CELL- or NODE-based data.
       subroutine fcpyu(dest, src,
      & regl0,regh0,regl1,regh1,regl2,regh2,
@@ -60,7 +61,7 @@ c Unrolled copy---works for CELL- or NODE-based data.
          dest(i) = src(i)
       end do
       end
-
+c-----------------------------------------------------------------------
 c Works for NODE-based data.
       subroutine fcpy2(da,
      & dal0,dah0,dal1,dah1,dal2,dah2,
@@ -138,7 +139,8 @@ c Works for NODE-based data.
          end do
       end if
       end
-
+c-----------------------------------------------------------------------
+c This procedure doesn't work correctly under Windows95
       subroutine fccpy2(dest, src, nsets, dstart, sstart,
      &                  dstrd1, dstrd2, sstrd1, sstrd2,
      &                  nvals1, nvals2)
@@ -158,7 +160,7 @@ c Works for NODE-based data.
          end do
       end do
       end
-
+c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
       subroutine mxnorm(src,
      & srcl0,srch0,srcl1,srch1,srcl2,srch2,
@@ -228,7 +230,7 @@ c Works for CELL- or NODE-based data.
          end do
       end if
       end
-
+c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
       subroutine fassnu(v, x,
      & regl0,regh0,regl1,regh1,regl2,regh2,
@@ -244,7 +246,7 @@ c Works for CELL- or NODE-based data.
          v(i) = x
       end do
       end
-
+c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
       subroutine fplusu(v0, v1,
      & regl0,regh0,regl1,regh1,regl2,regh2)
@@ -256,7 +258,7 @@ c Works for CELL- or NODE-based data.
          v0(i) = v0(i) + v1(i)
       end do
       end
-
+c-----------------------------------------------------------------------
 c Works for CELL-based data.
       subroutine iprodc(v0,
      & v0l0,v0h0,v0l1,v0h1,v0l2,v0h2,
@@ -296,7 +298,7 @@ c Works for CELL-based data.
          end do
       end if
       end
-
+c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
       subroutine iprodn(v0,
      & v0l0,v0h0,v0l1,v0h1,v0l2,v0h2,
@@ -387,7 +389,7 @@ c Works for CELL- or NODE-based data.
          end do
       end if
       end
-
+c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
       subroutine bref(dest,
      & destl0,desth0,destl1,desth1,destl2,desth2,
@@ -428,7 +430,7 @@ c Works for CELL- or NODE-based data.
          end do
       end if
       end
-
+c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
       subroutine brefm(dest,
      & destl0,desth0,destl1,desth1,destl2,desth2,
@@ -513,7 +515,7 @@ c Works for CELL- or NODE-based data.
      &                              bbh1-(j-regl1), bbh2-(k-regl2))
       end if
       end
-
+c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
       subroutine bneg(dest,
      & destl0,desth0,destl1,desth1,destl2,desth2,
@@ -545,7 +547,7 @@ c Works for CELL- or NODE-based data.
  30               dest(i,j,k) = -src(i,j,bbh2-(k-regl2))
       end if
       end
-
+c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
       subroutine bnegm(dest,
      & destl0,desth0,destl1,desth1,destl2,desth2,
@@ -624,7 +626,7 @@ c Works for CELL- or NODE-based data.
      &                               bbh1-(j-regl1), bbh2-(k-regl2))
       end if
       end
-
+c-----------------------------------------------------------------------
 c Works for CELL-based velocity data.
 c This routine assumes that the inflow face velocity data has not yet
 c been altered.  Running fill_borders should call this routine on every
@@ -686,7 +688,7 @@ c inflow face, so that binfil can be run for subsequent fills
          end if
       end if
       end
-
+c-----------------------------------------------------------------------
 c Works for CELL-based velocity data.
 c This routine is called when the inflow face velocity data has already
 c been altered by a call to fill_borders.
@@ -747,7 +749,7 @@ c been altered by a call to fill_borders.
          end if
       end if
       end
-
+c-----------------------------------------------------------------------
 c CELL-based data only.
       subroutine acint2(dest,
      & destl0,desth0,destl1,desth1,destl2,desth2,
@@ -777,7 +779,7 @@ c CELL-based data only.
                sx = 0.5 * (src(ic+1,jc,kc) - src(ic-1,jc,kc))
  10         dest(i,j,k) = src(ic,jc,kc) + xoff*sx + yoff*sy + zoff*sz
       end
-
+c-----------------------------------------------------------------------
 c NODE-based data only.
       subroutine anint2(dest,
      & destl0,desth0,destl1,desth1,destl2,desth2,
@@ -921,7 +923,7 @@ cdir$ ivdep
          end if
       end if
       end
-
+c-----------------------------------------------------------------------
 c CELL-based data only.
       subroutine acrst1(dest,
      & destl0,desth0,destl1,desth1,destl2,desth2,
@@ -956,7 +958,7 @@ c CELL-based data only.
  30               dest(i,j,k) = dest(i,j,k) * fac
       end if
       end
-
+c-----------------------------------------------------------------------
 c NODE-based data only.
       subroutine anrst1(dest,
      & destl0,desth0,destl1,desth1,destl2,desth2,
@@ -975,8 +977,7 @@ c NODE-based data only.
             do 10 i = regl0, regh0
  10            dest(i,j,k) = src(i*ir, j*jr, k*kr)
       end
-
-
+c-----------------------------------------------------------------------
 c NODE-based data only.
       subroutine anrst2(dest,
      & destl0,desth0,destl1,desth1,destl2,desth2,
@@ -1259,7 +1260,7 @@ c NODE-based data only.
          end if
       end if
       end
-
+c-----------------------------------------------------------------------
 c NODE-based data only.
 c Fills coarse region defined by reg.
 c Handles coarse-fine face, with orientation determined by idim and idir
@@ -1361,7 +1362,7 @@ c Handles coarse-fine face, with orientation determined by idim and idir
      &                              src(i*ir+m,j*jr+n,k*kr+l))
       end if
       end
-
+c-----------------------------------------------------------------------
 c NODE-based data only.
 c Fills coarse region defined by reg.
 c Handles any edge geometry except all-coarse or all-fine.
@@ -1620,7 +1621,7 @@ c center
          end do
       end if
       end
-
+c-----------------------------------------------------------------------
 c NODE-based data only.
 c Fills coarse region defined by reg.
 c Handles any corner geometry except all-coarse.

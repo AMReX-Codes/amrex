@@ -1,6 +1,6 @@
 c twenty-seven point terrain version:
 
-
+c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along face
       subroutine hgfres_terrain(res, resl0,resh0,resl1,resh1,
      &        resl2,resh2,
@@ -479,7 +479,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
 
       end if
       end
-
+c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along face
       subroutine hgeres_terrain(res,resl0,resh0,resl1,resh1,resl2,resh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
@@ -1383,7 +1383,7 @@ c weighting
  280        res(if,jf,kf) = src(if,jf,kf) - res(if,jf,kf) * fac00
       end if
       end
-
+c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along face
       subroutine hgcres_terrain(res,resl0,resh0,resl1,resh1,resl2,resh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
@@ -1936,7 +1936,7 @@ c end of terrain stencils
 
 
 c variable density versions:
-
+c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along face
       subroutine hgfres(res, resl0,resh0,resl1,resh1,resl2,resh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
@@ -2249,7 +2249,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
       end
 
 c end of variable density stencils
-
+c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along face
       subroutine hgeres(res, resl0,resh0,resl1,resh1,resl2,resh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
@@ -2786,7 +2786,7 @@ c weighting
  280        res(if,jf,kf) = src(if,jf,kf) - res(if,jf,kf) / center
       end if
       end
-
+c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along face
       subroutine hgcres(res, resl0,resh0,resl1,resh1,resl2,resh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
@@ -3038,7 +3038,7 @@ c end of variable density non-terrain version
 
 c constant density versions:
 
-
+c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along face
       subroutine hgfres_cd(res, resl0,resh0,resl1,resh1,resl2,resh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
@@ -3166,7 +3166,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                  fdst(i+m,j-n,k) + fdst(i+m,j+n,k)))
       end if
       end
-
+c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along face
       subroutine hgeres_cd(res, resl0,resh0,resl1,resh1,resl2,resh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
@@ -3461,7 +3461,7 @@ c weighting
  280        res(if,jf,kf) = src(if,jf,kf) - res(if,jf,kf) / center
       end if
       end
-
+c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along face
       subroutine hgcres_cd(res, resl0,resh0,resl1,resh1,resl2,resh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
@@ -3614,7 +3614,7 @@ c weighting
       res(if,jf,kf) = src(if,jf,kf) - sum / center
       end
 
-
+c-----------------------------------------------------------------------
 c NODE-based data, factor of 2 only.
       subroutine hgints_no_sigma_node(dest,
      & destl0,desth0,destl1,desth1,destl2,desth2,
@@ -3823,7 +3823,7 @@ cdir$ ivdep
       end if
       end
 
-
+c-----------------------------------------------------------------------
 c NODE-based data, factor of 2 only.
       subroutine hgints(dest,
      & destl0,desth0,destl1,desth1,destl2,desth2,
@@ -3945,7 +3945,7 @@ cdir$ ivdep
      &                  signd(i+1,j+1,k,3) + signd(i+1,j+1,k+1,3))
       end if
       end
-
+c-----------------------------------------------------------------------
 c CELL-based data only.
       subroutine hgsrst(destx, desty, destz,
      & destl0,desth0,destl1,desth1,destl2,desth2,
@@ -4090,8 +4090,7 @@ c CELL-based data only.
  70               continue
       end if
       end
-
-
+c-----------------------------------------------------------------------
 c NODE(EDGE)-based data only.
       subroutine hgsrst_no_sigma_node_all(destx, desty, destz,
      & destl0,desth0,destl1,desth1,destl2,desth2,
@@ -4167,7 +4166,7 @@ c     &                                 1.d0 / srcz(i2+1,j2+1,k2+1))
      &                                         srcz(i2+1,j2+1,k2+1)))
  10         continue
       end
-
+c-----------------------------------------------------------------------
       subroutine hgrlxu_cd(cor,
      & res,
      & resl0,resh0,resl1,resh1,resl2,resh2,
@@ -4203,7 +4202,7 @@ cdir$ ivdep
      &          (regh0 - resl0) + 1, 2
  20      cor(i) = cor(i) + mask(i) * ((AVG() - res(i)) * cen - cor(i))
       end
-
+c-----------------------------------------------------------------------
       subroutine hgres_cd(res,
      & resl0,resh0,resl1,resh1,resl2,resh2,
      & src, dest,
@@ -4248,7 +4247,7 @@ cdir$ ivdep
      &            6.d0 * dest(i,j,k))
       end if
       end
-
+c-----------------------------------------------------------------------
       subroutine hgresu_cd(res,
      & resl0,resh0,resl1,resh1,resl2,resh2,
      & src, dest,
@@ -4279,7 +4278,7 @@ cdir$ ivdep
 
 c seven-point variable stencils
 
-
+c-----------------------------------------------------------------------
       subroutine hgcen(cen,cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
      & signd,snl0,snh0,snl1,snh1,snl2,snh2,
      & regl0,regh0,regl1,regh1,regl2,regh2)
@@ -4296,7 +4295,7 @@ c seven-point variable stencils
      &                              signd(i,j-1,k,2) + signd(i,j,k,2) +
      &                              signd(i,j,k-1,3) + signd(i,j,k,3))
       end
-
+c-----------------------------------------------------------------------
 c sig here contains three different directions all stored on "nodes"
       subroutine hgrlxu(cor, res, sig, cen,
      & resl0,resh0,resl1,resh1,resl2,resh2,
@@ -4334,7 +4333,7 @@ cdir$ ivdep
      &          (regh0 - resl0) + 1, 2
  20   cor(i) = cor(i) + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
       end
-
+c-----------------------------------------------------------------------
       subroutine hgrlx(cor,
      & corl0,corh0,corl1,corh1,corl2,corh2,
      & res,
@@ -4400,7 +4399,7 @@ cdir$ ivdep
  30                  continue
       end if
       end
-
+c-----------------------------------------------------------------------
       subroutine hgrlxl(cor,
      & corl0,corh0,corl1,corh1,corl2,corh2,
      & res,
@@ -4505,7 +4504,7 @@ c back substitution loop:
           stop
       end if
       end
-
+c-----------------------------------------------------------------------
       subroutine hgrlnf(cor,
      & corl0,corh0,corl1,corh1,corl2,corh2,
      & res, resl0,resh0,resl1,resh1,resl2,resh2,
@@ -4725,7 +4724,7 @@ c interface to grid at same level:
  230           continue
       end if
       end
-
+c-----------------------------------------------------------------------
       subroutine hgres(res,
      & resl0,resh0,resl1,resh1,resl2,resh2,
      & src,
@@ -4781,7 +4780,7 @@ c interface to grid at same level:
      &               signd(i,j,k,3)   * (dest(i,j,k+1) - dest(i,j,k)))
       end if
       end
-
+c-----------------------------------------------------------------------
       subroutine hgresu(res,
      & resl0,resh0,resl1,resh1,resl2,resh2,
      & src, dest, signd, mask,
@@ -4810,7 +4809,7 @@ c interface to grid at same level:
      &      signd(i+lz-kdiff) * (dest(i-kdiff) - dest(i)) +
      &      signd(i+lz)       * (dest(i+kdiff) - dest(i))))
       end
-
+c-----------------------------------------------------------------------
       subroutine hgscon(signd,
      & snl0,snh0,snl1,snh1,snl2,snh2,
      & sigx, sigy, sigz,
@@ -4846,8 +4845,7 @@ c interface to grid at same level:
  30           signd(i,j,k,3) = facz * (sigz(i-1,j-1,k) + sigz(i-1,j,k) +
      &                                  sigz(i,j-1,k)   + sigz(i,j,k))
       end
-
-
+c-----------------------------------------------------------------------
       subroutine hgcen_no_sigma_node(cen,
      & cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
      & sigx, sigy, sigz,
@@ -4884,7 +4882,7 @@ c interface to grid at same level:
      &                              sigz(i,j-1,k-1)   + sigz(i,j-1,k) +
      &                              sigz(i,j,k-1)     + sigz(i,j,k)))
       end
-
+c-----------------------------------------------------------------------
       subroutine hgrlx_no_sigma_node(cor,
      & corl0,corh0,corl1,corh1,corl2,corh2,
      & res,
@@ -4966,7 +4964,7 @@ cdir$ ivdep
  30                  continue
       end if
       end
-
+c-----------------------------------------------------------------------
       subroutine hgres_no_sigma_node(res,
      & resl0,resh0,resl1,resh1,resl2,resh2,
      & src,
@@ -5068,7 +5066,7 @@ cdir$ ivdep
 
 
 c twenty-seven-point terrain stencils
-
+c-----------------------------------------------------------------------
       subroutine hgcen_terrain(cen, cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
      & sig, sbl0,sbh0,sbl1,sbh1,sbl2,sbh2,
      & regl0,regh0,regl1,regh1,regl2,regh2)
@@ -5103,8 +5101,7 @@ c twenty-seven-point terrain stencils
      &                    sig(i,j-1,k,5)     - sig(i,j-1,k-1,5) +
      &                    sig(i,j,k-1,5)     - sig(i,j,k,5)))
       end
-
-
+c-----------------------------------------------------------------------
       subroutine hgrlx_terrain(cor, corl0,corh0,corl1,corh1,corl2,corh2,
      & res, resl0,resh0,resl1,resh1,resl2,resh2,
      & sig, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
@@ -5310,7 +5307,7 @@ cdir$ ivdep
       end
 
 c cor substituted for dest to use same macro:
-
+c-----------------------------------------------------------------------
       subroutine hgres_terrain(res, resl0,resh0,resl1,resh1,resl2,resh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
      & cor, destl0,desth0,destl1,desth1,destl2,desth2,
@@ -5529,7 +5526,7 @@ c cor substituted for dest to use same macro:
  30               continue
       end if
       end
-
+c-----------------------------------------------------------------------
       subroutine hgrlnf_terrain(cor,
      & corl0,corh0,corl1,corh1,corl2,corh2,
      & res, resl0,resh0,resl1,resh1,resl2,resh2,
@@ -5555,7 +5552,7 @@ c cor substituted for dest to use same macro:
       real*8 betm, aj
       integer i, j, k, ioff, ipar
       end
-
+c-----------------------------------------------------------------------
       subroutine hgrlnb(cor, corl0,corh0,corl1,corh1,corl2,corh2,
      & wrk, wrkl0,wrkh0,wrkl1,wrkh1,wrkl2,wrkh2,
      & regl0,regh0,regl1,regh1,regl2,regh2,
@@ -5614,7 +5611,7 @@ c back substitution loop:
 
 c Unrolled indexing in these 3 routines uses the fact that each array
 c has a border of width 1
-
+c-----------------------------------------------------------------------
 c Works for NODE-based data.
       subroutine hgip(v0, v1, mask,
      & regl0,regh0,regl1,regh1,regl2,regh2,
@@ -5627,10 +5624,11 @@ c Works for NODE-based data.
       integer i, jdiff, kdiff
       jdiff = regh0 - regl0 + 1
       kdiff = (regh1 - regl1 + 1) * jdiff
-      do 10 i = kdiff + jdiff + 2, kdiff * (regh2 - regl2) - jdiff - 1
- 10      sum = sum + mask(i) * v0(i) * v1(i)
+      do i = kdiff + jdiff + 2, kdiff * (regh2 - regl2) - jdiff - 1
+         sum = sum + mask(i) * v0(i) * v1(i)
+      end do
       end
-
+c-----------------------------------------------------------------------
       subroutine hgcg1(r, p, z, x, w, c, mask,
      & regl0,regh0,regl1,regh1,regl2,regh2,
      & alpha, rho)
@@ -5646,13 +5644,14 @@ c Works for NODE-based data.
       integer i, jdiff, kdiff
       jdiff = regh0 - regl0 + 1
       kdiff = (regh1 - regl1 + 1) * jdiff
-      do 10 i = kdiff + jdiff + 2, kdiff * (regh2 - regl2) - jdiff - 1
+      do i = kdiff + jdiff + 2, kdiff * (regh2 - regl2) - jdiff - 1
          r(i) = r(i) - alpha * w(i)
          x(i) = x(i) + alpha * p(i)
          z(i) = r(i) * c(i)
- 10      rho = rho + mask(i) * z(i) * r(i)
+         rho = rho + mask(i) * z(i) * r(i)
+      end do
       end
-
+c-----------------------------------------------------------------------
       subroutine hgcg2(p, z,
      & regl0,regh0,regl1,regh1,regl2,regh2,
      & alpha)
@@ -5663,11 +5662,11 @@ c Works for NODE-based data.
       integer i, jdiff, kdiff
       jdiff = regh0 - regl0 + 1
       kdiff = (regh1 - regl1 + 1) * jdiff
-      do 10 i = kdiff + jdiff + 2, kdiff * (regh2 - regl2) - jdiff - 1
- 10      p(i) = alpha * p(i) + z(i)
+      do i = kdiff + jdiff + 2, kdiff * (regh2 - regl2) - jdiff - 1
+         p(i) = alpha * p(i) + z(i)
+      end do
       end
-
-
+c-----------------------------------------------------------------------
       subroutine hgcg_cd(r, p, z, x, w, c, mask,
      & ngrids, strid1, strid2, nvals,
      & rs, ps, zs, xs, ws, cs, ms,
@@ -5688,7 +5687,8 @@ c Works for NODE-based data.
       integer sstrd1(nsets), sstrd2(nsets)
       real*8 hx, alpha, rho
       real*8 hxm2, facm, tol, rhoold
-      integer it, pcode, k, i, j
+      integer it, pcode, k, i, j, MAXITER
+	parameter (MAXITER = 250)
       hxm2 = 1.d0 / (hx*hx)
 c#ifdef HG_CROSS_STENCIL
       facm = -hxm2
@@ -5696,30 +5696,33 @@ c#else
 c      facm = -hxm2 / 3.d0
 c#endif
       rho = 0.d0
-      do 10 k = 1, ngrids
+      do k = 1, ngrids
 c must do this loop over entire array to initialize borders of p
-         do 10 i = 0, nvals(k) - 1
+         do i = 0, nvals(k) - 1
             z(zs(k)+i) = r(rs(k)+i) * c(cs(k)+i)
             p(ps(k)+i) = z(zs(k)+i)
- 10         rho = rho + mask(ms(k)+i) * z(zs(k)+i) * r(rs(k)+i)
+            rho = rho + mask(ms(k)+i) * z(zs(k)+i) * r(rs(k)+i)
+         end do
+      end do
       tol = 1.d-3 * rho
-      if (tol .le. 0.d0) then
-         return
-      end if
+      if (tol .le. 0.d0) return
  100  continue
       it = it + 1
-      if (it .gt. 250) then
+      if (it .gt. MAXITER) then
          print *, "FORTRAN hgcg---conjugate-gradient iteration failed"
       end if
       rhoold = rho
       alpha = 0.d0
-      do 110 k = 1, nsets
-         do 110 j = 0, nvals2(k) - 1
-            do 110 i = 0, nvals1(k) - 1
- 110           edge(dstart(k) + j * dstrd2(k) + i * dstrd1(k)) =
+      do k = 1, nsets
+         do j = 0, nvals2(k) - 1
+            do i = 0, nvals1(k) - 1
+               edge(dstart(k) + j * dstrd2(k) + i * dstrd1(k)) =
      &         edge(sstart(k) + j * sstrd2(k) + i * sstrd1(k))
-      do 120 k = 1, ngrids
-         do 120 i = strid1(k) + strid2(k) + 1,
+            end do
+         end do
+      end do
+      do k = 1, ngrids
+         do i = strid1(k) + strid2(k) + 1,
      &              nvals(k) - strid1(k) - strid2(k) - 2
 c#ifdef HG_CROSS_STENCIL
             w(ws(k)+i) = facm *
@@ -5730,27 +5733,30 @@ c#ifdef HG_CROSS_STENCIL
 c#else
 c            print *, "FORTRAN hgcg---full box stencils not implemented"
 c#endif
- 120        alpha = alpha + mask(ms(k)+i) * p(ps(k)+i) * w(ws(k)+i)
+            alpha = alpha + mask(ms(k)+i) * p(ps(k)+i) * w(ws(k)+i)
+         end do
+      end do
       alpha = rho / alpha
       rho = 0.d0
-      do 130 k = 1, ngrids
-         do 130 i = strid1(k) + strid2(k) + 1,
+      do k = 1, ngrids
+         do i = strid1(k) + strid2(k) + 1,
      &              nvals(k) - strid1(k) - strid2(k) - 2
             r(rs(k)+i) = r(rs(k)+i) - alpha * w(ws(k)+i)
             x(xs(k)+i) = x(xs(k)+i) + alpha * p(ps(k)+i)
             z(zs(k)+i) = r(rs(k)+i) * c(cs(k)+i)
- 130        rho = rho + mask(ms(k)+i) * z(zs(k)+i) * r(rs(k)+i)
+            rho = rho + mask(ms(k)+i) * z(zs(k)+i) * r(rs(k)+i)
+         end do
+      end do
       if (pcode .ge. 3) then
          print *, it, rho
       end if
-      if (rho .le. tol .or. it .gt. 250) then
-         return
-      end if
+      if (rho .le. tol .or. it .gt. MAXITER) return
       alpha = rho / rhoold
-      do 140 k = 1, ngrids
-         do 140 i = strid1(k) + strid2(k) + 1,
+      do k = 1, ngrids
+         do i = strid1(k) + strid2(k) + 1,
      &              nvals(k) - strid1(k) - strid2(k) - 2
- 140        p(ps(k)+i) = alpha * p(ps(k)+i) + z(zs(k)+i)
+            p(ps(k)+i) = alpha * p(ps(k)+i) + z(zs(k)+i)
+         end do
+      end do
       go to 100
       end
-
