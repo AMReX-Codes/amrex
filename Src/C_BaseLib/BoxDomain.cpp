@@ -1,14 +1,8 @@
 //
-// $Id: BoxDomain.cpp,v 1.10 2001-07-19 19:02:42 lijewski Exp $
+// $Id: BoxDomain.cpp,v 1.11 2001-07-23 21:15:16 car Exp $
 //
 
 #include <BoxDomain.H>
-
-const Box&
-BoxDomain::operator[] (const BoxDomainIterator& bli) const
-{
-    return lbox[bli];
-}
 
 bool
 BoxDomain::contains (const IntVect& v) const
@@ -166,41 +160,41 @@ BoxDomain::add (const Box& b)
 {
     BL_ASSERT(b.ixType() == ixType());
 
-    List<Box> check;
-    check.append(b);
-    for (ListIterator<Box> bli(lbox); bli; ++bli)
+    std::list<Box> check;
+    check.push_back(b);
+    for (Iterator bli = lbox.begin(); bli != lbox.end(); ++bli)
     {
-        List<Box> tmp;
-        for (ListIterator<Box> ci(check); ci; )
+        std::list<Box> tmp;
+        for (Iterator ci = check.begin(); ci != check.end(); )
         {
-            if (ci().intersects(bli()))
+            if (ci->intersects(*bli))
             {
                 //
                 // Remove c from the check list, compute the
                 // part of it that is outside bln and collect
                 // those boxes in the tmp list.
                 //
-                BoxList tmpbl(BoxLib::boxDiff(ci(), bli()));
-                tmp.catenate(tmpbl.listBox());
-                check.remove(ci);
+                BoxList tmpbl(BoxLib::boxDiff(*ci, *bli));
+                tmp.splice(tmp.end(), tmpbl.listBox());
+                ci = check.erase(ci);
             }
             else
                 ++ci;
         }
-        check.catenate(tmp);
+        check.splice(check.end(), tmp);
     }
     //
     // At this point, the only thing left in the check list
     // are boxes that nowhere intersect boxes in the domain.
     //
-    lbox.catenate(check);
+    lbox.splice(lbox.end(), check);
     BL_ASSERT(ok());
 }
 
 void
 BoxDomain::add (const BoxList& bl)
 {
-    for (BoxListIterator bli(bl); bli; ++bli)
+    for (BoxList::ConstIterator bli = bl.begin(); bli != bl.end(); ++bli)
         add(*bli);
 }
 
@@ -209,20 +203,20 @@ BoxDomain::rmBox (const Box& b)
 {
     BL_ASSERT(b.ixType() == ixType());
 
-    List<Box> tmp;
+    std::list<Box> tmp;
 
-    for (ListIterator<Box> bli(lbox); bli; )
+    for (std::list<Box>::iterator  bli = lbox.begin(); bli != lbox.end(); )
     {
-        if (bli().intersects(b))
+        if (bli->intersects(b))
         {
-            BoxList tmpbl(BoxLib::boxDiff(bli(),b));
-            tmp.catenate(tmpbl.listBox());
-            lbox.remove(bli);
+            BoxList tmpbl(BoxLib::boxDiff(*bli,b));
+            tmp.splice(tmp.end(), tmpbl.listBox());
+            bli = lbox.erase(bli);
         }
         else
             ++bli;
     }
-    lbox.catenate(tmp);
+    lbox.splice(lbox.end(), tmp);
     return *this;
 }
 
@@ -238,16 +232,16 @@ BoxDomain::ok () const
         //
         // Now check to see that boxes are disjoint.
         //
-        for (BoxListIterator bli(*this); bli; ++bli)
+        for (ConstIterator bli = begin(); bli != end(); ++bli)
         {
-            BoxListIterator blii(bli); ++blii;
-            while (blii)
+            ConstIterator blii = bli; ++blii;
+            while ( blii != end() )
             {
-                if (bli().intersects(blii()))
+                if ( bli->intersects(*blii) )
                 {
                     std::cout << "Invalid DOMAIN, boxes overlap" << '\n'
-                              << "b1 = " << bli() << '\n'
-                              << "b2 = " << blii() << '\n';
+                              << "b1 = " << *bli << '\n'
+                              << "b2 = " << *blii << '\n';
                     status = false;
                 }
                 ++blii;
