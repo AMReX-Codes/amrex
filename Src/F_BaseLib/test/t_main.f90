@@ -455,7 +455,7 @@ subroutine t_nodal_mf_fabio
 end subroutine t_nodal_mf_fabio
 
 subroutine t_kiss_rn
-  use kiss_module
+  use bl_kiss_module
   print *, kiss()
 end subroutine t_kiss_rn
 
