@@ -4,7 +4,7 @@
 #define BL_CCSE_MPP
 
 //
-// $Id: ccse-mpi.H,v 1.2 1998-07-28 03:21:17 car Exp $
+// $Id: ccse-mpi.H,v 1.3 1999-07-07 22:48:33 car Exp $
 //
 
 //
@@ -40,6 +40,8 @@ template<> inline MPI_Datatype mpi_data_type(unsigned short*) { return MPI_UNSIG
 template<> inline MPI_Datatype mpi_data_type(unsigned int*)   { return MPI_UNSIGNED;    }
 template<> inline MPI_Datatype mpi_data_type(unsigned long*)  { return MPI_UNSIGNED_LONG;   }
 
+#else
+typedef int MPI_Op;
 #endif /*BL_USE_MPI*/
 
 #endif /*BL_CCSE_MPP*/
