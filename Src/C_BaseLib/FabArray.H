@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.50 1998-05-22 23:52:27 lijewski Exp $
+// $Id: FabArray.H,v 1.51 1998-05-25 06:01:24 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -799,18 +799,18 @@ class FabArrayCopyDescriptor
 
     FabArrayId RegisterFabArray(FabArray<T,FAB> *fabarray);
 
-    FillBoxId AddBox(const FabArrayId& fabarrayid,
-                     const Box&        destFabBox,
-                     BoxList*          unfilledBoxes,
-                     bool              bUseValidBox = true);
+    FillBoxId AddBox (const FabArrayId& fabarrayid,
+                      const Box&        destFabBox,
+                      BoxList*          unfilledBoxes,
+                      bool              bUseValidBox = true);
 
-    FillBoxId AddBox(const FabArrayId& fabarrayid,
-                     const Box&        destFabBox,
-                     BoxList*          unfilledBoxes,
-                     int               srccomp,
-                     int               destcomp,
-                     int               numcomp,
-                     bool              bUseValidBox = true);
+    FillBoxId AddBox (const FabArrayId& fabarrayid,
+                      const Box&        destFabBox,
+                      BoxList*          unfilledBoxes,
+                      int               srccomp,
+                      int               destcomp,
+                      int               numcomp,
+                      bool              bUseValidBox = true);
     //
     // Add a box but only from FabArray[fabarrayindex].
     //
@@ -1635,7 +1635,8 @@ FabArray<T,FAB>::FillBoundary (int start_comp,
 {
     FabArrayCopyDescriptor<T,FAB> facd;
 
-    FabArrayId        faid = facd.RegisterFabArray(this);
+    FabArrayId faid = facd.RegisterFabArray(this);
+
     vector<FillBoxId> fillBoxIdList;
 
     for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
@@ -1664,8 +1665,6 @@ FabArray<T,FAB>::FillBoundary (int start_comp,
 
     facd.CollectData();
 
-    FArrayBox overlapFab;
-
     vector<FillBoxId>::const_iterator fbidli = fillBoxIdList.begin();
 
     for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
@@ -1684,13 +1683,8 @@ FabArray<T,FAB>::FillBoundary (int start_comp,
             {
                 assert(!(fbidli == fillBoxIdList.end()));
                 FillBoxId fbid = *fbidli++;
-
                 assert(destbox == fbid.box());
-                overlapFab.resize(fbid.box(), fai().nComp());
-                facd.FillFab(faid, fbid, overlapFab);
-
-                fai().copy(overlapFab, overlapFab.box(), start_comp,
-                           destbox, start_comp, num_comp);
+                facd.FillFab(faid, fbid, fai());
             }
         }
     }
@@ -2116,10 +2110,10 @@ FabArrayCopyDescriptor<T,FAB>::RegisterFabArray(FabArray<T,FAB>* fabarray)
 template <class T, class FAB>
 inline
 FillBoxId
-FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
-                                      const Box&        destFabBox,
-                                      BoxList*          returnedUnfilledBoxes,
-                                      bool              bUseValidBox)
+FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
+                                       const Box&        destFabBox,
+                                       BoxList*          returnedUnfilledBoxes,
+                                       bool              bUseValidBox)
 {
     return AddBox(fabarrayid,
                   destFabBox,
@@ -2140,9 +2134,12 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
                                        bool              bUseValidBox)
 {
     const int MyProc = ParallelDescriptor::MyProc();
+
     BoxDomain unfilledBoxDomain(destFabBox.ixType());
     BoxList filledBoxes(destFabBox.ixType());
+
     unfilledBoxDomain.add(destFabBox);
+
     FabArray<T,FAB>* fabArray = fabArrays[fabarrayid.Id()];
 
     for (int i = 0; i < fabArray->length(); ++i)
@@ -2201,12 +2198,9 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
                 fabComTagList.push_back(fabComTag);
 
                 totalRemoteBoxes++;
-                totalRemoteBytes += intersectBox.numPts() *
-				    fabArray->nComp() * sizeof(T);
+                totalRemoteBytes += intersectBox.numPts()*fabArray->nComp()*sizeof(T);
             }
-
-            fabCopyDescList[fabarrayid.Id()].insert(
-                      FCDMapValueType(fcd->fillBoxId, fcd));
+            fabCopyDescList[fabarrayid.Id()].insert(FCDMapValueType(fcd->fillBoxId,fcd));
             unfilledBoxDomain.rmBox(intersectBox);
         }
     }
@@ -2221,21 +2215,26 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
 
 template <class T, class FAB>
 FillBoxId
-FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
-                                      const Box&        destFabBox,
-                                      BoxList*          returnedUnfilledBoxes,
-                                      int               fabarrayindex,
-                                      int               srccomp,
-                                      int               destcomp,
-                                      int               numcomp,
-                                      bool              bUseValidBox)
+FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
+                                       const Box&        destFabBox,
+                                       BoxList*          returnedUnfilledBoxes,
+                                       int               fabarrayindex,
+                                       int               srccomp,
+                                       int               destcomp,
+                                       int               numcomp,
+                                       bool              bUseValidBox)
 {
     const int MyProc = ParallelDescriptor::MyProc();
+
     BoxDomain unfilledBoxDomain(destFabBox.ixType());
     BoxList filledBoxes(destFabBox.ixType());
+
     unfilledBoxDomain.add(destFabBox);
+
     FabArray<T,FAB>* fabArray = fabArrays[fabarrayid.Id()];
+
     assert(fabarrayindex >= 0 && fabarrayindex < fabArray->length());
+
     int i = fabarrayindex;
     Box intersectBox(destFabBox);
 
@@ -2288,11 +2287,11 @@ FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
             fabComTagList.push_back(fabComTag);
 
             totalRemoteBoxes++;
-            totalRemoteBytes += intersectBox.numPts() * fabArray->nComp() * sizeof(T);
+            totalRemoteBytes += intersectBox.numPts()*fabArray->nComp()*sizeof(T);
         }
 
-        fabCopyDescList[fabarrayid.Id()].insert(
-                      FCDMapValueType(fcd->fillBoxId, fcd));
+        fabCopyDescList[fabarrayid.Id()].insert(FCDMapValueType(fcd->fillBoxId,
+                                                                fcd));
         unfilledBoxDomain.rmBox(intersectBox);
     }
     if (!(returnedUnfilledBoxes == 0))
@@ -2316,9 +2315,9 @@ FabArrayCopyDescriptor<T,FAB>::clear ()
 {
    for (int i = 0; i < fabCopyDescList.length(); ++i)
    {
-       for (FCDMapIter fmi = fabCopyDescList[i].begin();
-            fmi != fabCopyDescList[i].end();
-            ++fmi)
+       FCDMapIter fmi = fabCopyDescList[i].begin();
+
+       for ( ; fmi != fabCopyDescList[i].end(); ++fmi)
        { 
            delete (*fmi).second;
        }
