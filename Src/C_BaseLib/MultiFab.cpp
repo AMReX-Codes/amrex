@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.18 1998-06-14 06:10:58 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.19 1998-06-15 20:06:16 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -21,7 +21,6 @@ using std::setw;
 #include <Misc.H>
 #include <MultiFab.H>
 #include <ParallelDescriptor.H>
-#include <Geometry.H>
 
 #if defined(BL_ARCH_IEEE)
 #ifdef BL_USE_DOUBLE
@@ -41,7 +40,8 @@ MultiFab::MultiFab ()
     m_FB_ncomp(-1),
     m_FPB_mfcd(0),
     m_FPB_scomp(-1),
-    m_FPB_ncomp(-1)
+    m_FPB_ncomp(-1),
+    m_FPB_noovlp(false)
 {}
 
 MultiFab::MultiFab (const BoxArray& bxs,
@@ -56,7 +56,8 @@ MultiFab::MultiFab (const BoxArray& bxs,
     m_FB_ncomp(-1),
     m_FPB_mfcd(0),
     m_FPB_scomp(-1),
-    m_FPB_ncomp(-1)
+    m_FPB_ncomp(-1),
+    m_FPB_noovlp(false)
 {}
 
 //
@@ -576,55 +577,4 @@ MultiFab::FillBoundary (int src_comp,
     }
 
     fill_boundary_stats.end();
-}
-
-void
-MultiFab::buildFPBmfcd (const Geometry& geom,
-                        int             src_comp,
-                        int             num_comp,
-                        bool            no_ovlp)
-{
-    assert(src_comp >= 0);
-    assert(num_comp > 0);
-
-    m_FPB_scomp = src_comp;
-    m_FPB_ncomp = num_comp;
-    //
-    // Get list of intersection boxes.
-    //
-    Geometry::PIRMMap& pirm = geom.getPIRMMap(boxArray(),
-                                              src_comp,
-                                              num_comp,
-                                              nGrow(),
-                                              no_ovlp);
-    //
-    // Fill intersection list.
-    //
-    // Assumes PIRec MultiMap built correctly (i.e. each entry indexed on
-    // local fab id, contains srcBox/dstBox pairs to copy valid data from
-    // other fabs in the array).  Assumes box-pairs constructed so that
-    // all data is "fillable" from the valid region of "fa".
-    //
-    delete m_FPB_mfcd;
-
-    m_FPB_mfcd = new MultiFabCopyDescriptor;
-
-    MultiFabId mfid = m_FPB_mfcd->RegisterMultiFab(this);
-
-    assert(mfid == MultiFabId(0));
-
-    typedef Geometry::PIRMMap::iterator PIRMMapIt;
-    //
-    // Register boxes in copy descriptor.
-    //
-    for (PIRMMapIt p_it = pirm.begin(); p_it != pirm.end(); ++p_it)
-    {
-        (*p_it).second.fbid = m_FPB_mfcd->AddBox(mfid,
-                                                 (*p_it).second.srcBox,
-                                                 0,
-                                                 (*p_it).second.srcId,
-                                                 src_comp,
-                                                 src_comp,
-                                                 num_comp);
-    }
 }
