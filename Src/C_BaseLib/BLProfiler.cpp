@@ -1,5 +1,5 @@
 //
-// $Id: BLProfiler.cpp,v 1.13 2001-07-22 23:25:24 car Exp $
+// $Id: BLProfiler.cpp,v 1.14 2001-07-23 04:16:52 car Exp $
 //
 
 #include <winstd.H>
@@ -764,7 +764,6 @@ Profiler::glean()
 	os << "------------------------------------------------------------------------\n\n";
 	os << "Timer resolution is "; show_time(os, BoxLib::WallTimer::tick(), 1000000); os << " (us)\n";
 	os << "Number of Processors: " << ParallelDescriptor::NProcs() << std::endl;
-    std::cout << "got here" << std::endl;
 
 	spacer(os,  2, '\n');
 	spacer(os, 72, '-'); os << '\n';
