@@ -25,9 +25,10 @@ void METIS_PartGraphRecursive(int *, int *, int *, int *, int *, int *, int *, i
 }
 #endif
 
-static int metis_opt    = 0;
-static int verbose = 0;
-static double max_efficiency = .95;
+static int    metis_opt                  = 0;
+static int    verbose                    = 0;
+static double max_efficiency             = .95;
+static bool   do_not_minimize_comm_costs = false;
 //
 // Everyone uses the same Strategy -- defaults to KNAPSACK.
 //
@@ -103,6 +104,8 @@ DistributionMapping::Initialize ()
     pp.query("verbose", verbose);
 
     pp.query("efficiency", max_efficiency);
+
+    pp.query("do_not_minimize_comm_costs", do_not_minimize_comm_costs);
 
     std::string theStrategy;
 
@@ -353,9 +356,9 @@ DistributionMapping::MetisProcessorMap (const BoxArray& boxes, int nprocs)
 
         if (ParallelDescriptor::IOProcessor())
         {
-            std::cout << "knapsack: efficiency = " << efficiency << std::endl;
-            std::cout << "METIS_PartGraphKway time: " << stoptime << std::endl;
-            std::cout << "METIS_PartGraphKway edgecut: " << edgecut << std::endl;
+            std::cout << "METIS_PartGraphKway efficiency: " << efficiency << '\n';
+            std::cout << "METIS_PartGraphKway time: " << stoptime << '\n';
+            std::cout << "METIS_PartGraphKway edgecut: " << edgecut << '\n';
         }
     }
 
@@ -567,8 +570,7 @@ top:
 
  bottom:
 
-    if (verbose && ParallelDescriptor::IOProcessor())
-        std::cout << "knapsack: efficiency = " << efficiency << std::endl;
+
     //
     // Here I am "load-balanced".
     //
@@ -592,13 +594,14 @@ top:
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "knapsack() time: " << stoptime << std::endl;
+        {
+            std::cout << "knapsack efficiency: " << efficiency << '\n';
+            std::cout << "knapsack time: " << stoptime << '\n';
+        }
     }
 
     return result;
 }
-
-
 
 //static
 //int
@@ -621,9 +624,6 @@ SwapAndTest (const std::map< int,std::vector<int>,std::greater<int> >& samesize,
          it != samesize.end();
          ++it)
     {
-        if (verbose > 1 && ParallelDescriptor::IOProcessor())
-            std::cout << "Trying to swap boxes of size: " << it->first << "\n";
-
         for (std::vector<int>::const_iterator lit1 = it->second.begin();
              lit1 != it->second.end();
              ++lit1)
@@ -703,11 +703,7 @@ SwapAndTest (const std::map< int,std::vector<int>,std::greater<int> >& samesize,
                 if (cost_new < cost_old)
                 {
                     swapped = true;
-
 //                    Hvy = HeaviestCPU(percpu);
-
-                    if (verbose > 2 && ParallelDescriptor::IOProcessor())
-                        std::cout << "Swapping " << *lit1 << " & " << *lit2 << "\n";
                 }
                 else
                 {
@@ -740,7 +736,7 @@ MinimizeCommCosts (std::vector<int>&        procmap,
     BL_ASSERT(ba.size() == pts.size());
     BL_ASSERT(procmap.size() >= ba.size());
 
-    if (nprocs < 2) return;
+    if (nprocs < 2 || do_not_minimize_comm_costs) return;
 
     const Real strttime = ParallelDescriptor::second();
     //
@@ -755,19 +751,15 @@ MinimizeCommCosts (std::vector<int>&        procmap,
     BoxArray grown(ba.size());
 
     for (int i = 0; i < ba.size(); i++)
-    {
         grown.set(i,BoxLib::grow(ba[i],Ngrow));
-    }
 
     for (int i = 0; i < grown.size(); i++)
     {
         std::list<int> li;
 
         for (int j = 0; j < grown.size(); j++)
-        {
             if (i != j && grown[i].intersects(ba[j]))
                 li.push_back(j);
-        }
 
         nbrs[i].resize(li.size());
 
@@ -804,9 +796,7 @@ MinimizeCommCosts (std::vector<int>&        procmap,
     std::map< int,std::vector<int>,std::greater<int> > samesize;
 
     for (int i = 0; i < pts.size(); i++)
-    {
         samesize[pts[i]].push_back(i);
-    }
 
     if (verbose > 1 && ParallelDescriptor::IOProcessor())
     {
@@ -849,9 +839,9 @@ MinimizeCommCosts (std::vector<int>&        procmap,
 
         for (int i = 0; i < percpu.size(); i++) cnt += percpu[i];
 
-        std::cout << "Initial off-CPU connection count: " << cnt << std::endl;
+        std::cout << "Initial off-CPU connection count: " << cnt << '\n';
 
-        if (verbose > 1 && ParallelDescriptor::IOProcessor())
+        if (verbose > 1)
         {
             std::cout << "Initial per-CPU latency distribution:\n";
 
@@ -874,6 +864,7 @@ MinimizeCommCosts (std::vector<int>&        procmap,
     // Now need to swap boxes of equal size & see if global minimum decreases.
     //
     bool swapped;
+    static int Nsnt = 0;
     //
     // Then minimize number of off-CPU messages.
     //
@@ -882,6 +873,8 @@ MinimizeCommCosts (std::vector<int>&        procmap,
         swapped = false;
 
         SwapAndTest(samesize,nbrs,procmap,percpu,swapped);
+
+        Nsnt++;
     }
     while (swapped);
 
@@ -891,9 +884,10 @@ MinimizeCommCosts (std::vector<int>&        procmap,
 
         for (int i = 0; i < percpu.size(); i++) cnt += percpu[i];
 
-        std::cout << "Final off-CPU connection count: " << cnt << std::endl;
+        std::cout << "Final off-CPU connection count: " << cnt << '\n';
+        std::cout << "# of calls to SwapAndTest(): " << Nsnt << '\n';
 
-        if (verbose > 1 && ParallelDescriptor::IOProcessor())
+        if (verbose > 1)
         {
             std::cout << "Final per-CPU latency distribution:\n";
 
@@ -921,7 +915,7 @@ MinimizeCommCosts (std::vector<int>&        procmap,
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
         if (ParallelDescriptor::IOProcessor())
-            std::cout << "MinimizeCommCosts() time: " << stoptime << std::endl;
+            std::cout << "MinimizeCommCosts() time: " << stoptime << '\n';
     }
 }
 
@@ -985,12 +979,8 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
         std::list<int>::iterator lit;
 
         for (unsigned int i = 0; i < vec.size(); i++)
-        {
             for (lit = vec[i].begin(); lit != vec[i].end(); ++lit)
-            {
                 m_procmap[*lit] = i;
-            }
-        }
 
 	MinimizeCommCosts(m_procmap,boxes,pts,nprocs);
         //
