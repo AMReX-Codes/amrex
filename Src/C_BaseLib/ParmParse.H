@@ -4,7 +4,7 @@
 #define BL_PARMPARSE_H
 
 //
-// $Id: ParmParse.H,v 1.7 2000-04-24 17:52:37 car Exp $
+// $Id: ParmParse.H,v 1.8 2000-06-01 15:39:16 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -324,6 +324,44 @@ public:
     void dumpTable (ostream& os);
 
     /*@ManDoc: Get the ival'th value of kth occurrence of the requested name.
+               If successful, the value is converted to a bool and stored
+               in reference ref.  If the kth occurrence does not exist or
+               ival'th value does not exist, or if the printed representation
+               of the value cannot be converted to an bool, an error message is
+               output and the program halts.   Note that ival == 0 is the first
+               value in the list.  ParmParse converte the value 'true', and non-zero
+	       integers or floats to bool(true), and bool(false) for 'false'
+	       or zero integer or float values.
+    */
+    void getkth (const char* name,
+                 int         k,
+                 bool&        ref,
+                 int         ival=0);
+    //
+    //@ManDoc: Same as getkth() but searches for the last occurrence of name.
+    //
+    void get (const char* name,
+              bool&        ref,
+              int         ival=0);
+
+    /*@ManDoc: Similar to getkth() but returns 0 if there is no kth occurrence
+               of name.  If successful, it returns 1 and stores the value in
+               ref.  If the kth occurrence exists, but ival'th value of that
+               occurrence does not, or if there is a type mismatch, then the
+               program signals an error and halts.
+    */
+    int querykth (const char* name,
+                  int         k,
+                  bool&       ref,
+                  int         ival=0);
+    //
+    //@ManDoc: Same as querykth() but searches for the last occurrence of name.
+    //
+    int query (const char* name,
+               bool&        ref,
+               int         ival=0);
+
+    /*@ManDoc: Get the ival'th value of kth occurrence of the requested name.
                If successful, the value is converted to an int and stored
                in reference ref.  If the kth occurrence does not exist or
                ival'th value does not exist, or if the printed representation
@@ -629,6 +667,7 @@ public:
     {
         ppDefn,
         ppOption,
+	ppBool,
         ppInt,
         ppFloat,
         ppDouble,
@@ -726,6 +765,9 @@ protected:
                   int          num_val,
                   int          k=-1);
 
+    bool isBoolean (const aString& str,
+		  bool& val);
+
     bool isInteger (const aString& str,
                     int&           val);
     int isDouble (const aString& str,
@@ -769,6 +811,44 @@ ParmParse::countval (const char* name,
     return def == 0 ? 0 : def->val.length();
 }
 
+
+inline
+void
+ParmParse::getkth (const char* name,
+                   int         k,
+                   bool&        ptr,
+                   int         ival)
+{
+    getval(name,ppBool,&ptr,ival,k);
+}
+
+inline
+void
+ParmParse::get (const char* name,
+                bool&        ptr,
+                int ival)
+{
+    getval(name,ppBool,&ptr,ival,-1);
+}
+
+inline
+int
+ParmParse::querykth (const char* name,
+                     int         k,
+                     bool&        ptr,
+                     int         ival)
+{
+    return queryval(name,ppBool,&ptr,ival,k);
+}
+
+inline
+int
+ParmParse::query (const char* name,
+                  bool&        ptr,
+                  int         ival)
+{
+    return queryval(name,ppBool,&ptr,ival,-1);
+}
 
 inline
 void
@@ -1131,7 +1211,7 @@ ParmParse::isInteger (const aString& str,
     // Start token scan.
     //
     char* endp = 0;
-    val = (int) strtol(str.c_str(), &endp, 10);
+    val = int(::strtol(str.c_str(), &endp, 10));
     return *endp == 0;
 }
 
@@ -1141,7 +1221,7 @@ ParmParse::isDouble (const aString& str,
                      double&        val)
 {
    char* endp = 0;
-   val = strtod(str.c_str(), &endp);
+   val = ::strtod(str.c_str(), &endp);
    return *endp == 0;
 }
 

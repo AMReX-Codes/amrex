@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParmParse.cpp,v 1.9 2000-04-24 17:52:37 car Exp $
+// $Id: ParmParse.cpp,v 1.10 2000-06-01 15:39:16 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -346,6 +346,9 @@ ParmParse::queryval (const char*  name,
     //
     switch (type)
     {
+    case ppBool:
+        ok = isBoolean(valname, *(bool*)ptr);
+        break;
     case ppInt:
         ok = isInteger(valname,*(int*)ptr);
         break;
@@ -449,6 +452,10 @@ ParmParse::queryarr (const char*  name,
        double val_dbl;
        switch (type)
        {
+       case ppBool:
+           ok = isBoolean(valname,*(bool*)ptr);
+           ptr = (bool*)ptr+1;
+           break;
        case ppInt:
            ok = isInteger(valname,*(int*)ptr);
            ptr = (int*)ptr+1;
@@ -826,6 +833,7 @@ ParmParse::bldTable (const char*      str,
           //
           // Otherwise, fall through, this may be a string.
           //
+      case ppBool:
       case ppInt:
       case ppFloat:
       case ppDouble:
@@ -910,6 +918,36 @@ PP_entry::dump (ostream& os) const
 
     if (os.fail())
         BoxLib::Error("PP_entry::dump(ostream&) failed");
+}
+
+inline
+bool
+ParmParse::isBoolean (const aString& str,
+		      bool& val)
+{
+  if ( str == "true"  )
+    {
+      val = true;
+      return true;
+    }
+  if ( str == "false" )
+    {
+      val = false;
+      return true;
+    }
+  int int_val;
+  if ( isInteger(str, int_val) )
+    {
+      val = int_val != 0;
+      return true;
+    }
+  double dbl_val;
+  if ( isDouble(str, dbl_val) )
+    {
+      val = dbl_val != 0;
+      return true;
+    }
+  return false;
 }
 
 #ifdef BL_NAMESPACE
