@@ -2,12 +2,17 @@
 
 #include "interpolator.H"
 
-#ifdef BL_FORT_USE_UNDERSCORE
+#if defined( BL_FORT_USE_UNDERSCORE )
 #define FORT_FACINT2  acint2_
 #define FORT_FANINT2  anint2_
-#else
+#elif defined( BL_FORT_USE_UPPERCASE )
 #define FORT_FACINT2  ACINT2
 #define FORT_FANINT2  ANINT2
+#elif defined( BL_FORT_USE_LOWERCASE )
+#define FORT_FACINT2  acint2
+#define FORT_FANINT2  anint2
+#else
+#error "none of BL_FORT_USE_{UNDERSCORE,UPPERCASE,LOWERCASE} defined"
 #endif
 
 extern "C" 

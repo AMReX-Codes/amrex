@@ -2,7 +2,7 @@
 
 #include "hg_multi.H"
 
-#ifdef BL_FORT_USE_UNDERSCORE
+#if defined( BL_FORT_USE_UNDERSCORE )
 #define   FORT_HGSRST		hgsrst_
 #define   FORT_HGSCON		hgscon_
 #define   FORT_HGCEN		hgcen_
@@ -13,7 +13,7 @@
 #define   FORT_HGINTS_NO_SIGMA  hgints_no_sigma_
 #define   FORT_FACRST1		acrst1_
 #define   FORT_FANRST2		anrst2_
-#else
+#elif defined( BL_FORT_USE_UPPERCASE )
 #define   FORT_HGSRST		HGSRST
 #define   FORT_HGSCON		HGSCON
 #define   FORT_HGCEN		HGCEN
@@ -24,6 +24,19 @@
 #define   FORT_HGINTS_NO_SIGMA  HGINTS_NO_SIGMA
 #define   FORT_FACRST1		ACRST1
 #define   FORT_FANRST2		ANRST2
+#elif defined( BL_FORT_USE_LOWERCASE )
+#define   FORT_HGSRST		hgsrst
+#define   FORT_HGSCON		hgscon
+#define   FORT_HGCEN		hgcen
+#define   FORT_HGCEN_FULL	hgcen_full
+#define   FORT_HGCEN_NO_SIGMA   hgcen_no_sigma
+#define   FORT_HGCEN_TERRAIN	hgcen_terrain
+#define   FORT_HGINTS		hgints
+#define   FORT_HGINTS_NO_SIGMA  hgints_no_sigma
+#define   FORT_FACRST1		acrst1
+#define   FORT_FANRST2		anrst2
+#else
+#error "none of BL_FORT_USE_{UNDERSCORE,UPPERCASE,LOWERCASE} defined"
 #endif
 
 extern "C" 

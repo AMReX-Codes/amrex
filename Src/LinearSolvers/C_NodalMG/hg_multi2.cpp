@@ -2,7 +2,7 @@
 
 #include "hg_multi.H"
 
-#ifdef BL_FORT_USE_UNDERSCORE
+#if defined( BL_FORT_USE_UNDERSCORE )
 #define   FORT_HGFRES		hgfres_
 #define   FORT_HGFRES_TERRAIN   hgfres_terrain_
 #define   FORT_HGFRES_FULL	hgfres_full_
@@ -13,7 +13,7 @@
 #define   FORT_HGORES		hgores_full_
 #define   FORT_HGIRES		hgires_full_
 #define   FORT_HGDRES		hgdres_full_
-#else
+#elif defined( BL_FORT_USE_UPPERCASE )
 #define   FORT_HGFRES		HGFRES
 #define   FORT_HGFRES_TERRAIN   HGFRES_TERRAIN
 #define   FORT_HGFRES_FULL	HGFRES_FULL
@@ -24,6 +24,19 @@
 #define   FORT_HGORES		HGORES_FULL
 #define   FORT_HGIRES		HGIRES_FULL
 #define   FORT_HGDRES		HGDRES_FULL
+#elif defined( BL_FORT_USE_LOWERCASE )
+#define   FORT_HGFRES		hgfres
+#define   FORT_HGFRES_TERRAIN   hgfres_terrain
+#define   FORT_HGFRES_FULL	hgfres_full
+#define   FORT_HGERES		hgeres
+#define   FORT_HGERES_TERRAIN   hgeres_terrain
+#define   FORT_HGCRES		hgcres
+#define   FORT_HGCRES_TERRAIN   hgcres_terrain
+#define   FORT_HGORES		hgores_full
+#define   FORT_HGIRES		hgires_full
+#define   FORT_HGDRES		hgdres_full
+#else
+#error "none of BL_FORT_USE_{UNDERSCORE,UPPERCASE,LOWERCASE} defined"
 #endif
 
 extern "C" 
@@ -46,14 +59,7 @@ extern "C"
 #endif
 }
 
-typedef void (*OFDIRES)(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*, const int*, const int*);
 typedef void (*FCERES) (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
-
-struct task_ofdires : public task
-{
-private:
-    OFDIRES func;
-};
 
 class task_fceres_2 : public task_fec_base
 {

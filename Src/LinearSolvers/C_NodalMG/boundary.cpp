@@ -2,20 +2,29 @@
 
 #include "boundary.H"
 
-#ifdef BL_FORT_USE_UNDERSCORE
+#if defined( BL_FORT_USE_UNDERSCORE )
 #define FORT_FBREF    bref_
 #define FORT_FBREFM   brefm_
 #define FORT_FBNEG    bneg_
 #define FORT_FBNEGM   bnegm_
 #define FORT_FBINFLO  binflo_
 #define FORT_FBINFIL  binfil_
-#else
+#elif defined( BL_FORT_USE_UPPERCASE )
 #define FORT_FBREF    BREF
 #define FORT_FBREFM   BREFM
 #define FORT_FBNEG    BNEG
 #define FORT_FBNEGM   BNEGM
 #define FORT_FBINFLO  BINFLO
 #define FORT_FBINFIL  BINFIL
+#elif defined( BL_FORT_USE_LOWERCASE )
+#define FORT_FBREF    bref
+#define FORT_FBREFM   brefm
+#define FORT_FBNEG    bneg
+#define FORT_FBNEGM   bnegm
+#define FORT_FBINFLO  binflo
+#define FORT_FBINFIL  binfil
+#else
+#error "none of BL_FORT_USE_{UNDERSCORE,UPPERCASE,LOWERCASE} defined"
 #endif
 
 extern "C" 
