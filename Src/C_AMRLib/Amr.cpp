@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.102 1999-11-11 21:26:08 lijewski Exp $
+// $Id: Amr.cpp,v 1.103 1999-12-02 07:43:05 sstanley Exp $
 //
 
 #include <TagBox.H>
@@ -1675,7 +1675,7 @@ Amr::grid_places (int              lbase,
     Array<IntVect> bf_lev(max_level); // Blocking factor at each level.
     Array<IntVect> rr_lev(max_level);
     Array<Box> pc_domain(max_level);  // Coarsened problem domain.
-    for (i = lbase; i <= max_crse; i++)
+    for (i = 0; i <= max_crse; i++)
     {
         for (int n=0; n<BL_SPACEDIM; n++)
             bf_lev[i][n] = Max(1,blocking_factor/ref_ratio[i][n]);
@@ -1826,7 +1826,7 @@ Amr::grid_places (int              lbase,
         // Remove or add tagged points which violate/satisfy additional 
         // user-specified criteria.
         //
-        amr_level[levc].manual_tags_placement(tags, bf_lev[levc]);
+        amr_level[levc].manual_tags_placement(tags, bf_lev);
         //
         // Map tagged points through periodic boundaries, if any.
         //
