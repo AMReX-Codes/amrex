@@ -14,8 +14,8 @@
 #endif
 
 extern "C" {
-  void FIPRODC(Real*, intS, Real*, intS, intS, Real&);
-  void FIPRODN(Real*, intS, Real*, intS, intS, Real&);
+  void FIPRODC(const Real*, intS, const Real*, intS, intS, Real&);
+  void FIPRODN(const Real*, intS, const Real*, intS, intS, Real&);
   void FFCPYU(Real*, Real*, intS, const int&);
 #if (BL_SPACEDIM == 2)
   void FFCPY2(Real*, intS, Real*, intS, intS, const int&, const int&);
@@ -24,40 +24,43 @@ extern "C" {
 #endif
 }
 
-Real inner_product(MultiFab& r, MultiFab& s)
+Real inner_product(const MultiFab& r, const MultiFab& s)
 {
   assert(r.ok() && s.ok());
   assert(r.nComp() == 1);
   assert(s.nComp() == 1);
   assert(type(r) == type(s));
 
-  int igrid;
   Real sum = 0.0;
 
   if (type(r) == IntVect::TheCellVector()) {
-    for (igrid = 0; igrid < r.length(); igrid++) {
-      const Box& rbox = r[igrid].box();
-      const Box& sbox = s[igrid].box();
-      const Box& reg  = r.box(igrid);
-      FIPRODC(r[igrid].dataPtr(), dimlist(rbox),
-	      s[igrid].dataPtr(), dimlist(sbox),
+    // for (igrid = 0; igrid < r.length(); igrid++) {
+    for ( ConstMultiFabIterator rcmfi(r); rcmfi.isValid(); ++rcmfi) {
+	ConstDependentMultiFabIterator scmfi(rcmfi, s);
+      const Box& rbox = rcmfi->box();
+      const Box& sbox = scmfi->box();
+      const Box& reg  = rcmfi.validbox();
+      FIPRODC(rcmfi->dataPtr(), dimlist(rbox),
+	      scmfi->dataPtr(), dimlist(sbox),
 	      dimlist(reg), sum);
     }
   }
   else if (type(r) == IntVect::TheNodeVector()) {
-    for (igrid = 0; igrid < r.length(); igrid++) {
-      const Box& rbox = r[igrid].box();
-      const Box& sbox = s[igrid].box();
-      const Box& reg  = r.box(igrid);
-      FIPRODN(r[igrid].dataPtr(), dimlist(rbox),
-	      s[igrid].dataPtr(), dimlist(sbox),
+    // for (igrid = 0; igrid < r.length(); igrid++) {
+    for ( ConstMultiFabIterator rcmfi(r); rcmfi.isValid(); ++rcmfi) {
+	ConstDependentMultiFabIterator scmfi(rcmfi, s);
+      const Box& rbox = rcmfi->box();
+      const Box& sbox = scmfi->box();
+      const Box& reg  = rcmfi.validbox();
+      FIPRODN(rcmfi->dataPtr(), dimlist(rbox),
+	      scmfi->dataPtr(), dimlist(sbox),
 	      dimlist(reg), sum);
     }
   }
   else {
     BoxLib::Error("inner_product---only supported for CELL- or NODE-based data");
   }
-
+    ParallelDescriptor::ReduceRealSum(sum);
   return sum;
 }
 
@@ -72,6 +75,7 @@ const MultiFab&
 }
 */
 
+#if 0
 // Begin fillpatch stuff, still in unfinished state.
 // Significant optimizations possible: avoid copying patches
 // whenever an existing one will do.
@@ -158,6 +162,7 @@ static int best_match(MultiFab& r, const Box& region, int& igrid, int bord)
   }
   return (overlap > 0) ? (overlap == region.numPts() ? 1 : 2) : 0;
 }
+#endif
 
 /*
 grid_real get_patch(const Box& region,
@@ -233,7 +238,7 @@ int get_patch(FArrayBox& patch, const Box& region,
 }
 */
 
-int find_patch(const Box& region, MultiFab& r, int flags)
+int find_patch(const Box& region, const MultiFab& r, int flags)
 {
   int igrid;
   if (r.nGrow() == 0 || (flags & 2)) {
@@ -254,7 +259,7 @@ int find_patch(const Box& region, MultiFab& r, int flags)
 
 int fill_patch_blindly(FArrayBox& patch,
 		       const Box& region,
-		       MultiFab& r,
+		       const MultiFab& r,
 		       int flags)
 {
   int igrid;
@@ -293,7 +298,7 @@ int fill_patch_blindly(FArrayBox& patch,
 
 int fill_exterior_patch_blindly(FArrayBox& patch,
 				const Box& region,
-				MultiFab& r,
+				const MultiFab& r,
 				const level_interface& interface,
 				amr_boundary bdy,
 				int flags)
@@ -322,7 +327,7 @@ int fill_exterior_patch_blindly(FArrayBox& patch,
 }
 
 int fill_patch(FArrayBox& patch, const Box& region,
-	       MultiFab& r,
+	       const MultiFab& r,
 	       const level_interface& interface,
 	       amr_boundary bdy, int flags,
 	       int idim, int index)
@@ -830,7 +835,7 @@ void clear_part_interface(MultiFab& r, const level_interface& interface)
 
 void interpolate_patch(FArrayBox& patch, const Box& region,
 		       MultiFab& r, const IntVect& rat,
-		       amr_interpolator interp,
+		       const amr_interpolator& interp,
 		       const level_interface& interface,
 		       amr_boundary bdy)
 {

@@ -13,28 +13,28 @@
 
 #  ifndef SIGMA_NODE
 
-class holy_grail_interpolator_class : public bilinear_interpolator_class {
+class holy_grail_interpolator : public bilinear_interpolator {
  protected:
   Real **sigptr;
   const Box& sigbox;
  public:
-  holy_grail_interpolator_class(Real **Sigptr, const Box& Sigbox)
+  holy_grail_interpolator(Real **Sigptr, const Box& Sigbox)
     : sigptr(Sigptr), sigbox(Sigbox) { }
   void fill(FArrayBox& patch, const Box& region,
-	    FArrayBox& cgr, const Box& cb, const IntVect& rat) const;
+	    const FArrayBox& cgr, const Box& cb, const IntVect& rat) const;
 };
 
 #  else
 
-class holy_grail_interpolator_class : public bilinear_interpolator_class {
+class holy_grail_interpolator : public bilinear_interpolator {
  protected:
   Real *sigptr;
   const Box& sigbox;
  public:
-  holy_grail_interpolator_class(Real *Sigptr, const Box& Sigbox)
+  holy_grail_interpolator(Real *Sigptr, const Box& Sigbox)
     : sigptr(Sigptr), sigbox(Sigbox) { }
   void fill(FArrayBox& patch, const Box& region,
-	    FArrayBox& cgr, const Box& cb, const IntVect&) const;
+	    const FArrayBox& cgr, const Box& cb, const IntVect&) const;
 };
 
 #  endif
@@ -44,10 +44,10 @@ class holy_grail_sigma_restrictor_class :
  public:
   holy_grail_sigma_restrictor_class() : cell_average_restrictor_class(0) { }
   void fill(FArrayBox& patch, const Box& region,
-	    FArrayBox& fgr, const IntVect& rat) const;
+	    const FArrayBox& fgr, const IntVect& rat) const;
 };
 
-const holy_grail_sigma_restrictor_class holy_grail_sigma_restrictor;
+//const holy_grail_sigma_restrictor_class holy_grail_sigma_restrictor;
 
 #endif
 

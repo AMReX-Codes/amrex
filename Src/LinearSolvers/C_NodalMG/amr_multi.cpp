@@ -487,7 +487,6 @@ Real amr_multigrid::ml_residual(int mglev, int lev)
 
 void amr_multigrid::mg_cycle(int mglev, int i1, int i2, int is_zero)
 {
-  int ltmp;
   if (mglev == 0) {
     cgsolve(mglev);
   }
@@ -537,13 +536,13 @@ void amr_multigrid::mg_interpolate_level(int lto, int lfrom)
   if (target.nGrow() == 0) {
     for (int i = 0; i < target.length(); i++) {
       interpolate_patch(target[i], corr[lfrom], rat,
-			bilinear_interpolator, interface[lfrom]);
+			bilinear_interpolator(), interface[lfrom]);
     }
   }
   else {
     for (int i = 0; i < target.length(); i++) {
       interpolate_patch(target[i], target.box(i), corr[lfrom], rat,
-			bilinear_interpolator, interface[lfrom]);
+			bilinear_interpolator(), interface[lfrom]);
     }
   }
 }

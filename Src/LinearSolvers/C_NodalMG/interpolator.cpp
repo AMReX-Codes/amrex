@@ -10,11 +10,11 @@
 #endif
 
 extern "C" {
-  void FACINT2(Real*, intS, intS, Real*, intS, intS, intRS);
-  void FANINT2(Real*, intS, intS, Real*, intS, intS, intRS);
+  void FACINT2(Real*, intS, intS, const Real*, intS, intS, intRS);
+  void FANINT2(Real*, intS, intS, const Real*, intS, intS, intRS);
 }
 
-Box bilinear_interpolator_class::box(const Box& region,
+Box bilinear_interpolator::box(const Box& region,
 				     const IntVect& rat) const
 {
   if (region.cellCentered()) {
@@ -24,14 +24,14 @@ Box bilinear_interpolator_class::box(const Box& region,
     return coarsen(region, rat);
   }
   else {
-    BoxLib::Error("bilinear_interpolator_class::box---Interpolation only defined for pure CELL- or NODE-based data");
+    BoxLib::Error("bilinear_interpolator::box---Interpolation only defined for pure CELL- or NODE-based data");
     return Box();
   }
 }
 
-void bilinear_interpolator_class::fill(FArrayBox& patch,
+void bilinear_interpolator::fill(FArrayBox& patch,
 				       const Box& region,
-				       FArrayBox& cgr,
+				       const FArrayBox& cgr,
 				       const Box& cb,
 				       const IntVect& rat) const
 {
@@ -62,5 +62,5 @@ void bilinear_interpolator_class::fill(FArrayBox& patch,
     }
   }
   else
-    BoxLib::Error("bilinear_interpolator_class::fill---Interpolation only defined for pure CELL- or NODE-based data");
+    BoxLib::Error("bilinear_interpolator::fill---Interpolation only defined for pure CELL- or NODE-based data");
 }

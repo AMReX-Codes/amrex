@@ -31,10 +31,10 @@ class amr_boundary_class {
   virtual int defined() const { return 0; }
   virtual Box box(const Box&, const Box&, int) const;
   virtual void fill(FArrayBox&, const Box&,
-		    FArrayBox&, const Box&, const Box&, int) const
+		    const FArrayBox&, const Box&, const Box&, int) const
     { BoxLib::Error("amr_boundary_class::fill---boundary fill function not defined."); }
   virtual void fill(FArrayBox&, const Box&,
-		    MultiFab&, int, const Box&) const
+		    const MultiFab&, int, const Box&) const
     { BoxLib::Error("amr_boundary_class::fill---boundary fill function not defined."); }
   virtual void sync_borders(MultiFab&,
 			    const level_interface&) const { }
@@ -67,8 +67,27 @@ class amr_boundary_class {
 
 inline int amr_boundary_class::dir(const Box& region, const Box& domain) const
 {
+#if 1
+  for ( int i = 0; i < BL_SPACEDIM; ++i )
+  {
+      if ( region.bigEnd(i) < domain.smallEnd(i) )
+          return -(i+1);
+      if ( region.smallEnd(i) > domain.bigEnd(i) )
+          return +(i+1);
+  }
+  for ( int i = 0; i < BL_SPACEDIM; ++i )
+  {
+      if ( region.bigEnd(i) == domain.smallEnd(i) )
+	  return -(i+1);
+      if ( region.smallEnd(i) == domain.bigEnd(i) )
+	  return (i+1);
+  }
+  BoxLib::Error("amr_boundary_class::dir---boundary box not outside domain.");
+  return 0;
+
+#else
   int retval = 0;
-  if (region.bigEnd(0) < domain.smallEnd(0))
+  if      (region.bigEnd(0) < domain.smallEnd(0))
     retval = -1;
   else if (region.smallEnd(0) > domain.bigEnd(0))
     retval = 1;
@@ -99,6 +118,7 @@ inline int amr_boundary_class::dir(const Box& region, const Box& domain) const
   else
     BoxLib::Error("amr_boundary_class::dir---boundary box not outside domain.");
   return retval;
+#endif
 }
 
 class reflection_boundary_class : public amr_boundary_class {
@@ -106,9 +126,9 @@ class reflection_boundary_class : public amr_boundary_class {
   reflection_boundary_class() { }
   int defined() const { return 1; }
   void fill(FArrayBox&, const Box&,
-	    FArrayBox&, const Box&, const Box&, int) const;
+	    const FArrayBox&, const Box&, const Box&, int) const;
   void fill(FArrayBox&, const Box&,
-	    MultiFab&, int, const Box&) const
+	    const MultiFab&, int, const Box&) const
     { BoxLib::Error("reflection_boundary_class::fill---interface version not defined"); }
   int singular() const {
     return 1;
@@ -120,9 +140,9 @@ class negation_boundary_class : public amr_boundary_class {
   negation_boundary_class() { }
   int defined() const { return 1; }
   void fill(FArrayBox&, const Box&,
-	    FArrayBox&, const Box&, const Box&, int) const;
+	    const FArrayBox&, const Box&, const Box&, int) const;
   void fill(FArrayBox&, const Box&,
-	    MultiFab&, int, const Box&) const
+	    const MultiFab&, int, const Box&) const
     { BoxLib::Error("negation_boundary_class::fill---interface version not defined"); }
   int singular() const {
     return 0;
@@ -139,9 +159,9 @@ class periodic_boundary_class : public amr_boundary_class {
   int defined() const { return 1; }
   Box box(const Box&, const Box&, int) const;
   void fill(FArrayBox&, const Box&,
-	    FArrayBox&, const Box&, const Box&, int) const;
+	    const FArrayBox&, const Box&, const Box&, int) const;
   void fill(FArrayBox&, const Box&,
-	    MultiFab&, int, const Box&) const
+	    const MultiFab&, int, const Box&) const
     { BoxLib::Error("periodic_boundary_class::fill---interface version not defined"); }
   void duplicate(List<Box>& bl, const Box& domain) const;
   int singular() const {
@@ -214,9 +234,9 @@ class mixed_boundary_class : public amr_boundary_class {
   int defined() const { return 1; }
   Box box(const Box&, const Box&, int) const;
   void fill(FArrayBox&, const Box&,
-	    FArrayBox&, const Box&, const Box&, int) const;
+	    const FArrayBox&, const Box&, const Box&, int) const;
   void fill(FArrayBox&, const Box&,
-	    MultiFab&, int, const Box&) const;
+	    const MultiFab&, int, const Box&) const;
   void sync_borders(MultiFab&,
 		    const level_interface&) const;
   void fill_borders(MultiFab& r,

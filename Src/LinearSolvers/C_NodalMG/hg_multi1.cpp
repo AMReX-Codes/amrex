@@ -28,17 +28,17 @@ extern "C" {
   void FACRST1(Real*, intS, intS, Real*, intS, intRS, const int&);
   void FORT_HGSRST(RealPS, intS, intS, RealPS, intS, intRS);
   void FORT_HGCEN(Real*, intS, Real*, intS, intS);
-  void FORT_HGINTS(Real*, intS, intS, RealPS, intS, Real*, intS, intS, intRS);
+  void FORT_HGINTS(Real*, intS, intS, RealPS, intS, const Real*, intS, intS, intRS);
 #  elif (! defined HG_CONSTANT)
-  void FORT_HGSRST(RealPS, intS, intS, RealPS, intS, intRS);
+  void FORT_HGSRST(RealPS, intS, intS, CRealPS, intS, intRS);
 #    ifndef SIGMA_NODE
   void FORT_HGCEN(Real*, intS, RealPS, intS, intS, RealRS,
 		  const int&, const int&);
-  void FORT_HGINTS(Real*, intS, intS, RealPS, intS, Real*, intS, intS, intRS);
+  void FORT_HGINTS(Real*, intS, intS, RealPS, intS, const Real*, intS, intS, intRS);
 #    else
   void FORT_HGSCON(Real*, intS, RealPS, intS, intS, RealRS);
   void FORT_HGCEN(Real*, intS, Real*, intS, intS);
-  void FORT_HGINTS(Real*, intS, intS, Real*, intS, Real*, intS, intS, intRS);
+  void FORT_HGINTS(Real*, intS, intS, Real*, intS, const Real*, intS, intS, intRS);
 #    endif
 #  endif
   void FANRST2(Real*, intS, intS, Real*, intS, intRS, const int&);
@@ -200,7 +200,7 @@ void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
 
 void holy_grail_sigma_restrictor_class::fill(FArrayBox& patch,
 					     const Box& region,
-					     FArrayBox& fgr,
+					     const FArrayBox& fgr,
 					     const IntVect& rat) const
 {
   assert(patch.box().cellCentered());
@@ -317,7 +317,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 #ifdef HG_USE_CACHE
 	0,
 #endif
-		   holy_grail_sigma_restrictor);
+		   holy_grail_sigma_restrictor_class());
   }
   for (mglev = 0; mglev <= mglev_max; mglev++) {
     fill_borders(sigma[mglev], 0, interface[mglev], boundary.terrain_sigma());
@@ -386,7 +386,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 #ifdef HG_USE_CACHE
 	0,
 #endif
-		   holy_grail_sigma_restrictor);
+		   holy_grail_sigma_restrictor_class());
   }
   fill_borders(sigma[mglev], 
 #ifdef HG_USE_CACHE
@@ -399,7 +399,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 #ifdef HG_USE_CACHE
 	0,
 #endif
-		   holy_grail_sigma_restrictor);
+		   holy_grail_sigma_restrictor_class());
   }
   for (mglev = 0; mglev < mglev_max; mglev++) {
     fill_borders(sigma_split[mglev], 
@@ -578,7 +578,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 
 void holy_grail_amr_multigrid::clear()
 {
-  int i, lev, mglev;
+  int lev, mglev;
 
   line_order.clear();
   line_after.clear();
@@ -590,7 +590,7 @@ void holy_grail_amr_multigrid::clear()
 #endif
 
 #ifdef HG_CONSTANT
-  for (i = 0; i < 8; i++) {
+  for (int i = 0; i < 8; i++) {
     delete cgw_ucache[i];
     cgw_ucache[i] = 0;
   }
@@ -623,7 +623,7 @@ void holy_grail_amr_multigrid::clear()
   }
   for (mglev = 0; mglev < mglev_max; mglev++) {
     sigma.remove(mglev);
-    for (i = 0; i < BL_SPACEDIM; i++) {
+    for (int i = 0; i < BL_SPACEDIM; i++) {
       delete sigma_nd[i].remove(mglev);
     }
   }
@@ -702,7 +702,7 @@ void holy_grail_amr_multigrid::sync_interfaces()
 	continue;
       interpolate_patch(target[igrid], interface[mglev].node_face(iface),
 			dest[lev-1], rat,
-			bilinear_interpolator, interface[mgc]);
+			bilinear_interpolator(), interface[mgc]);
     }
   }
 }
@@ -728,7 +728,7 @@ void holy_grail_amr_multigrid::sync_periodic_interfaces()
 	  idomain.intersects(nbox))
 	continue;
       interpolate_patch(target[igrid], nbox, dest[lev-1], rat,
-			bilinear_interpolator, interface[mgc]);
+			bilinear_interpolator(), interface[mgc]);
     }
   }
 }
@@ -782,9 +782,9 @@ void holy_grail_amr_multigrid::mg_restrict(int lto, int lfrom)
 
 #ifndef HG_CONSTANT
 
-void holy_grail_interpolator_class::fill(FArrayBox& patch,
+void holy_grail_interpolator::fill(FArrayBox& patch,
 					 const Box& region,
-					 FArrayBox& cgr,
+					 const FArrayBox& cgr,
 					 const Box& cb,
 					 const IntVect& rat) const
 {
@@ -841,7 +841,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 #endif
       interpolate_patch(target[igrid], target.box(igrid),
 			corr[lfrom], rat,
-			holy_grail_interpolator_class(sigptr, sigbox),
+			holy_grail_interpolator(sigptr, sigbox),
 			interface[lfrom], error_boundary);
     }
     if (lto > ltmp) {
@@ -863,7 +863,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
       const Box& sigbox = sigma[lto][igrid].box();
       corr[lfrom].interpolate_patch(target[igrid], target.box(igrid),
 	corr[lfrom], rat,
-	error_boundary, holy_grail_interpolator_class(sigptr, sigbox));
+	error_boundary, holy_grail_interpolator(sigptr, sigbox));
     }
 */
     // multigrid interpolation, grids known to match up

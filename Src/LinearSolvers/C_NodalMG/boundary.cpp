@@ -19,12 +19,12 @@
 #endif
 
 extern "C" {
-  void FBREF(Real*, intS, intS, Real*, intS, intS, const int&);
-  void FBREFM(Real*, intS, intS, Real*, intS, intS, const int*);
-  void FBNEG(Real*, intS, intS, Real*, intS, intS, const int&);
-  void FBNEGM(Real*, intS, intS, Real*, intS, intS, const int*);
-  void FBINFLO(Real*, intS, intS, Real*, intS, intS, const int&);
-  void FBINFIL(Real*, intS, intS, Real*, intS, intS, const int&);
+  void FBREF(Real*, intS, intS, const Real*, intS, intS, const int&);
+  void FBREFM(Real*, intS, intS, const Real*, intS, intS, const int*);
+  void FBNEG(Real*, intS, intS, const Real*, intS, intS, const int&);
+  void FBNEGM(Real*, intS, intS, const Real*, intS, intS, const int*);
+  void FBINFLO(Real*, intS, intS, const Real*, intS, intS, const int&);
+  void FBINFIL(Real*, intS, intS, const Real*, intS, intS, const int&);
 }
 
 Box amr_boundary_class::box(const Box& region, const Box& domain,
@@ -149,7 +149,7 @@ Box mixed_boundary_class::box(const Box& region, const Box& domain,
 
 void reflection_boundary_class::fill(FArrayBox& patch,
 				     const Box& region,
-				     FArrayBox& bgr,
+				     const FArrayBox& bgr,
 				     const Box& bb,
 				     const Box& /*domain*/,
 				     int idir) const
@@ -163,7 +163,7 @@ void reflection_boundary_class::fill(FArrayBox& patch,
 
 void negation_boundary_class::fill(FArrayBox& patch,
 				   const Box& region,
-				   FArrayBox& bgr,
+				   const FArrayBox& bgr,
 				   const Box& bb,
 				   const Box& /*domain*/,
 				   int idir) const
@@ -177,7 +177,7 @@ void negation_boundary_class::fill(FArrayBox& patch,
 
 void periodic_boundary_class::fill(FArrayBox& patch,
 				   const Box& region,
-				   FArrayBox& bgr,
+				   const FArrayBox& bgr,
 				   const Box& bb,
 				   const Box& /*domain*/,
 				   int /*idir*/) const
@@ -191,7 +191,7 @@ void periodic_boundary_class::fill(FArrayBox& patch,
 
 void mixed_boundary_class::fill(FArrayBox& patch,
 				const Box& region,
-				MultiFab& src,
+				const MultiFab& src,
 				int igrid, const Box& domain) const
 {
   Box tdomain = domain;
@@ -346,7 +346,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 
 void mixed_boundary_class::fill(FArrayBox& patch,
 				const Box& region,
-				FArrayBox& bgr,
+				const FArrayBox& bgr,
 				const Box& bb,
 				const Box& domain,
 				int idir) const

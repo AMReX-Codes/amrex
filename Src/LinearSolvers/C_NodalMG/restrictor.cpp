@@ -25,19 +25,19 @@
 #endif
 
 extern "C" {
-  void FACRST1(Real*, intS, intS, Real*, intS, intRS, const int&);
-  void FANRST1(Real*, intS, intS, Real*, intS, intRS);
-  void FANRST2(Real*, intS, intS, Real*, intS, intRS, const int&);
-  void FANFR2(Real*, intS, intS, Real*, intS,
+  void FACRST1(Real*, intS, intS, const Real*, intS, intRS, const int&);
+  void FANRST1(Real*, intS, intS, const Real*, intS, intRS);
+  void FANRST2(Real*, intS, intS, const Real*, intS, intRS, const int&);
+  void FANFR2(Real*, intS, intS, const Real*, intS,
 	      intRS, const int&, const int&, const int&);
-  void FANER2(Real*, intS, intS, Real*, intS,
+  void FANER2(Real*, intS, intS, const Real*, intS,
 	      intRS, const int*, const int*, const int&);
-  void FANCR2(Real*, intS, intS, Real*, intS, intRS, const int*, const int&);
-  void FANOR2(Real*, intS, intS, Real*, intS,
+  void FANCR2(Real*, intS, intS, const Real*, intS, intRS, const int*, const int&);
+  void FANOR2(Real*, intS, intS, const Real*, intS,
 	      intRS, const int&, const int&, const int&);
-  void FANIR2(Real*, intS, intS, Real*, intS,
+  void FANIR2(Real*, intS, intS, const Real*, intS,
 	      intRS, const int&, const int&, const int&);
-  void FANDR2(Real*, intS, intS, Real*, intS, intRS, const int&, const int&);
+  void FANDR2(Real*, intS, intS, const Real*, intS, intRS, const int&, const int&);
 }
 
 Box cell_average_restrictor_class::box(const Box& fb, const IntVect& rat) const
@@ -48,7 +48,7 @@ Box cell_average_restrictor_class::box(const Box& fb, const IntVect& rat) const
 
 void cell_average_restrictor_class::fill(FArrayBox& patch,
 					 const Box& region,
-					 FArrayBox& fgr,
+					 const FArrayBox& fgr,
 					 const IntVect& rat) const
 {
   assert(patch.box().cellCentered());
@@ -61,7 +61,7 @@ void cell_average_restrictor_class::fill(FArrayBox& patch,
 
 void terrain_velocity_restrictor_class::fill(FArrayBox& patch,
 					     const Box& region,
-					     FArrayBox& fgr,
+					     const FArrayBox& fgr,
 					     const IntVect& rat) const
 {
   assert(patch.box().cellCentered());
@@ -81,7 +81,7 @@ Box injection_restrictor_class::box(const Box& fb, const IntVect& rat) const
 
 void injection_restrictor_class::fill(FArrayBox& patch,
 				      const Box& region,
-				      FArrayBox& fgr,
+				      const FArrayBox& fgr,
 				      const IntVect& rat) const
 {
   if (patch.box().type() == IntVect::TheNodeVector()) {
@@ -103,7 +103,7 @@ Box default_restrictor_class::box(const Box& fb, const IntVect& rat) const
 
 void default_restrictor_class::fill(FArrayBox& patch,
 				    const Box& region,
-				    FArrayBox& fgr,
+				    const FArrayBox& fgr,
 				    const IntVect& rat) const
 {
   if (patch.box().cellCentered())
@@ -122,7 +122,7 @@ Box bilinear_restrictor_class::box(const Box& fb, const IntVect& rat) const
 
 void bilinear_restrictor_class::fill(FArrayBox& patch,
 				     const Box& region,
-				     FArrayBox& fgr,
+				     const FArrayBox& fgr,
 				     const IntVect& rat) const
 {
   if (patch.box().type() == IntVect::TheNodeVector()) {

@@ -14,7 +14,7 @@
 #endif
 
 extern "C" {
-  void FFCPY(Real*, intS, intS, Real*, intS, const int&);
+  void FFCPY(Real*, intS, intS, const Real*, intS, const int&);
 }
 
 /*
@@ -45,7 +45,7 @@ inline void internal_copy(MultiFab& r,
   FFCPY(dptr, dimlist(dbx), dimlist(b), sptr, dimlist(sbx), r.nComp());
 }
 
-Real inner_product(MultiFab& r, MultiFab& s);
+Real inner_product(const MultiFab& r, const MultiFab& s);
 
 /*
 const level_real&
@@ -77,16 +77,16 @@ const level_real&
 // returns grid number if patch is contained in a single grid,
 // uses only 2-bit of flags
 
-int find_patch(const Box& region, MultiFab& r, int flags = 0);
+int find_patch(const Box& region, const MultiFab& r, int flags = 0);
 
 int fill_patch(FArrayBox& patch, const Box& region,
-	       MultiFab& r,
+	       const MultiFab& r,
 	       const level_interface& interface,
 	       amr_boundary bdy = error_boundary,
 	       int flags = 0, int idim = -1, int index = -1);
 
 inline int fill_patch(FArrayBox& patch,
-		      MultiFab& r,
+		      const MultiFab& r,
 		      const level_interface& interface,
 		      amr_boundary bdy = error_boundary,
 		      int flags = 0, int idim = -1, int index = -1)
@@ -176,13 +176,13 @@ void clear_part_interface(MultiFab& r, const level_interface& interface);
 
 void interpolate_patch(FArrayBox& patch, const Box& region,
 		       MultiFab& r, const IntVect& rat,
-		       amr_interpolator interp = bilinear_interpolator,
+		       const amr_interpolator& interp = bilinear_interpolator(),
 		       const level_interface& interface = null_level_interface,
 		       amr_boundary bdy = error_boundary);
 inline
 void interpolate_patch(FArrayBox& patch,
 		       MultiFab& r, const IntVect& rat,
-		       amr_interpolator interp = bilinear_interpolator,
+		       const amr_interpolator& interp = bilinear_interpolator(),
 		       const level_interface& interface = null_level_interface,
 		       amr_boundary bdy = error_boundary)
 {
@@ -194,7 +194,7 @@ void restrict_patch(FArrayBox& patch, const Box& region,
 #ifdef HG_USE_CACHE
 		    const copy_cache* border_cache = 0,
 #endif
-		    amr_restrictor restric = default_restrictor,
+		    amr_restrictor restric = default_restrictor_class(),
 		    const level_interface& interface = null_level_interface,
 		    amr_boundary bdy = error_boundary);
 inline
@@ -203,7 +203,7 @@ void restrict_patch(FArrayBox& patch,
 #ifdef HG_USE_CACHE
 		    const copy_cache* border_cache = 0,
 #endif
-		    amr_restrictor restric = default_restrictor,
+		    amr_restrictor restric = default_restrictor_class(),
 		    const level_interface& interface = null_level_interface,
 		    amr_boundary bdy = error_boundary)
 {
@@ -219,7 +219,7 @@ void restrict_level(MultiFab& dest, int bflag,
 #ifdef HG_USE_CACHE
 		    const copy_cache* border_cache = 0,
 #endif
-		    amr_restrictor restric = default_restrictor,
+		    amr_restrictor restric = default_restrictor_class(),
 		    const level_interface& interface = null_level_interface,
 		    amr_boundary bdy = error_boundary);
 inline
@@ -228,7 +228,7 @@ void restrict_level(MultiFab& dest,
 #ifdef HG_USE_CACHE
 		    const copy_cache* border_cache = 0,
 #endif
-		    amr_restrictor restric = default_restrictor,
+		    amr_restrictor restric = default_restrictor_class(),
 		    const level_interface& interface = null_level_interface,
 		    amr_boundary bdy = error_boundary)
 {
