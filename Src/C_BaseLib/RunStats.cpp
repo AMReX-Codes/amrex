@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.19 1999-07-01 19:44:49 lijewski Exp $
+// $Id: RunStats.cpp,v 1.20 1999-07-21 21:02:40 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -445,7 +445,7 @@ RunStats::report (ostream& os)
         {
             os << "\nThe Parallel speedup  : "
                << tot_run_time/tot_run_wtime
-               << '\n';
+               << "\n\n";
         }
 
         os.precision(old_prec);
