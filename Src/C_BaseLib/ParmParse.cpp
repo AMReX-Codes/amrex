@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.18 2001-07-22 23:25:24 car Exp $
+// $Id: ParmParse.cpp,v 1.19 2001-07-22 23:41:27 car Exp $
 //
 
 #include <iostream>
@@ -9,10 +9,13 @@
 #include <cstring>
 #include <cctype>
 
+#include <List.H>
 #include <BoxLib.H>
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
 
+namespace
+{
 enum PPType
 {
     ppDefn,
@@ -28,8 +31,6 @@ enum PPType
 
 struct PP_entry
 {
-    friend class ParmParse;
-
     PP_entry() : queried(false) {}
 
     PP_entry (aString&          name,
@@ -46,8 +47,6 @@ struct PP_entry
     void dump (std::ostream& os) const;
 };
 
-namespace
-{
 bool
 isInteger (const std::string& str,
 	   int&           val)
@@ -99,14 +98,9 @@ isBoolean (const std::string& str,
     return false;
 }
 
-}
-
-namespace
-{
 int             num_obj = 0;
 List<PP_entry*> table;
 
-static
 const char* const
 tok_name[] =
 {
@@ -119,51 +113,514 @@ tok_name[] =
    "EQ_SIGN",
    "EOF"
 };
+
+//
+// Simple lexical analyser.
+//
+
+enum lexState
+{
+    START,
+    MINUS,
+    SIGN,
+    OPTION,
+    STRING,
+    QUOTED_STRING,
+    INTEGER,
+    START_FRACTION,
+    FRACTION,
+    START_EXP,
+    SIGNED_EXP,
+    EXP,
+    PREFIX,
+    SUFFIX,
+    STAR
+};
+
+const char* const
+state_name[] =
+{
+   "START",
+   "MINUS",
+   "SIGN",
+   "OPTION",
+   "STRING",
+   "QUOTED_STRING",
+   "INTEGER",
+   "START_FRACTION",
+   "FRACTION",
+   "START_EXP",
+   "SIGNED_EXP",
+   "EXP",
+   "PREFIX",
+   "SUFFIX",
+   "STAR"
+};
+
+void
+eat_garbage (const char* str,
+             int&        i,
+             int         len)
+{
+    for (;;)
+    {
+        if (i < len && str[i] == '#')
+        {
+            while (i < len && str[i] != '\n')
+                i++;
+        }
+        else if (i < len && isspace(str[i]))
+            i++;
+        else
+            break;
+    }
+}
+
+PPType
+getToken (const char* str,
+                     int&        i,
+                     int         slen,
+                     char*       ostr)
+{
+#define ERROR_MESS \
+   ostr[k++] = '\0'; \
+   std::cerr << "ParmParse::getToken(): invalid string = " << ostr << '\n'; \
+   std::cerr << "STATE = " << state_name[state] \
+             << ", next char = " << ch << '\n'; \
+   std::cerr << ", rest of input = \n" << (str+i) << '\n'; \
+   BoxLib::Abort()
+   //
+   // Eat white space and comments.
+   //
+   eat_garbage(str,i,slen);
+   //
+   // Check for end of file.
+   //
+   if (i >= slen || str[i] == '\0')
+       return ppEOF;
+   //
+   // Start token scan.
+   //
+   lexState state = START;
+   int k = 0;
+   while (1)
+   {
+       char ch = str[i];
+       switch (state)
+       {
+       case START:
+           if (ch == '=')
+           {
+               ostr[k++] = ch; i++;
+               ostr[k++] = 0;
+               return ppEQ_sign;
+           }
+           else if (ch == '"')
+           {
+               i++;
+               state = QUOTED_STRING;
+           }
+           else if (ch == '*')
+           {
+               ostr[k++] = ch; i++;
+               state = STAR;
+           }
+           else if (isalpha(ch) || ch == '_')
+           {
+               ostr[k++] = ch; i++;
+               state = PREFIX;
+           }
+           else if (ch == '-')
+           {
+               ostr[k++] = ch; i++;
+               state = MINUS;
+           }
+           else
+           {
+               ostr[k++] = ch; i++;
+               state = STRING;
+           }
+           break;
+       case MINUS:
+           if (isalpha(ch) || ch == '_')
+           {
+               k--;
+               ostr[k++] = ch; i++;
+               state = OPTION;
+           }
+           else
+           {
+               ostr[k++] = ch; i++;
+               state = STRING;
+           }
+           break;
+       case OPTION:
+           if (isalnum(ch) || ch=='_' || ch=='.')
+           {
+               ostr[k++] = ch; i++;
+           }
+           else if (isspace(ch))
+           {
+               ostr[k++] = 0;
+               return ppOption;
+           }
+           else
+           {
+               ERROR_MESS;
+           }
+           break;
+       case STAR:
+           if (ch == '.')
+           {
+               ostr[k++] = ch; i++;
+               state = SUFFIX;
+           }
+           else
+           {
+               ostr[k++] = ch; i++;
+               state = STRING;
+           }
+           break;
+       case PREFIX:
+           if (isalnum(ch) || ch == '_')
+           {
+               ostr[k++] = ch; i++;
+           }
+           else if (ch == '.')
+           {
+               ostr[k++] = ch; i++;
+               state = SUFFIX;
+           }
+           else if (isspace(ch) || ch == '=')
+           {
+               ostr[k++] = 0;
+               return ppDefn;
+           }
+           else
+           {
+               ostr[k++] = ch; i++;
+               state = STRING;
+           }
+           break;
+       case SUFFIX:
+           if (isalnum(ch) || ch == '_')
+           {
+               ostr[k++] = ch; i++;
+           }
+           else if (isspace(ch) || ch == '=')
+           {
+               ostr[k++] = 0;
+               return ppDefn;
+           }
+           else
+           {
+               ostr[k++] = ch; i++;
+               state = STRING;
+           }
+           break;
+       case QUOTED_STRING:
+           if (ch == '"')
+           {
+               i++;
+               ostr[k++] = 0;
+               return ppString;
+           }
+           else
+           {
+               ostr[k++] = ch; i++;
+           }
+           break;
+       case STRING:
+           if (isspace(ch) || ch == '=')
+           {
+               ostr[k++] = 0;
+               return ppString;
+           }
+           else
+           {
+               ostr[k++] = ch; i++;
+           }
+           break;
+       default:
+           ERROR_MESS;
+       }
+   }
+#undef ERROR_MESS
+}
+
+
+//
+// Keyword aware string comparison.
+//
+
+static
+bool
+ppfound (const char*    keyword,
+         const aString& key,
+         const aString& prefix)
+{
+    //
+    // Return true if key==keyword || key == prefix.keyword.
+    //
+    if (!prefix.isNull())
+    {
+        aString tmp(prefix);
+        tmp += '.';
+        tmp += keyword;
+        return (key == tmp);
+    }
+    else
+    {
+        return (key == keyword);
+    }
 }
 
 //
-// Table of entries common to all objects.
-//
-//static List<PP_entry*> table;
-//
-// Keep track of number of ParmParse objects out there.
-//
-//static int num_obj;
-//
-// Parses string and builds table.
-//
-static void bldTable (const char*      str,
-		      int              lenstr,
-		      List<PP_entry*>& tab);
-//
-// Add defn to table, check for file inclusion.
-//
-static void addDefn (aString&         def,
-		     List<aString>&   val,
-		     List<PP_entry*>& tab);
-//
-// Reads file into string then parses it with call to bldTable.
-//
-static void read_file (const char*      fname,
-		       List<PP_entry*>& tab);
-//
-// Lexical analyser called by bldTable.
-//
-static PPType getToken (const char*,
-			int&,
-			int,
-			char*);
-
-//
-// Find n'th occurence of name in table.
+// Return the index of the n'th occurence of a parameter name,
+// except if n==-1, return the index of the last occurence.
+// Return 0 if the specified occurence does not exist.
 //
 
-static const PP_entry* ppindex (int         n,
-				const char* name,
-				const std::string& thePrefix);
-//
-// This should be protected, but cfront-derived compilers complain :-(
-//
+const PP_entry*
+ppindex (int         n,
+	 const char* name,
+	 const std::string& thePrefix)
+{
+    PP_entry* fnd = 0;
+
+    if (n < 0)
+    {
+        //
+        // Search from back of list.
+        //
+        for (ListIterator<PP_entry*> li = table.last(); li; --li)
+        {
+            if (ppfound(name,li()->defname,thePrefix))
+            {
+                fnd = li();
+                break;
+            }
+        }
+    }
+    else
+    {
+        for (ListIterator<PP_entry*> li(table); li; ++li)
+        {
+            if (ppfound(name,li()->defname,thePrefix))
+            {
+                fnd = li();
+                if (--n < 0)
+                    break;
+            }
+        }
+        if (n >= 0)
+            fnd = 0;
+    }
+
+    if (fnd)
+    {
+        //
+        // Found an entry; mark all occurences of name as used.
+        //
+        for (ListIterator<PP_entry*> li(table); li; ++li)
+            if (ppfound(name,li()->defname,thePrefix))
+                li()->queried = true;
+    }
+
+    return fnd;
+}
+
+void
+bldTable (const char*      str,
+	  int              lenstr,
+	  List<PP_entry*>& tab);
+
+static void
+read_file (const char*      fname,
+                      List<PP_entry*>& tab)
+{
+    //
+    // Space for input file if it exists.
+    // Note: on CRAY, access requires (char*) not (const char*).
+    //
+    if (fname != 0 && fname[0] != 0)
+    {
+        FILE* pffd = fopen(fname, "rb");
+        if (pffd == 0)
+        {
+            std::cerr << "ParmParse::read_file(): couldn't open \""
+                      << fname
+                      << "\"";
+            BoxLib::Abort();
+        }
+        //
+        // Get the length.
+        //
+        fseek(pffd, 0, 2);
+        int pflen = (int)ftell(pffd);
+        rewind(pffd);
+        char* str = new char[pflen+1];
+        memset(str,0,pflen+1);
+        int nread = fread(str, 1, pflen, pffd);
+        if (!(nread == pflen))
+        {
+            std::cerr << "ParmParse::read_file(): fread() only "
+                      << nread
+                      << " bytes out of "
+                      << pflen
+                      << " from "
+                      << fname;
+            BoxLib::Abort();
+        }
+        fclose(pffd);
+        bldTable(str,pflen+1,tab);
+        delete [] str;
+    }
+}
+
+void
+addDefn (aString&         def,
+                    List<aString>&   val,
+                    List<PP_entry*>& tab)
+{
+    static const aString FileKeyword("FILE");
+    //
+    // Check that defn exists.
+    //
+    if (def.length() == 0)
+    {
+        val.clear();
+        return;
+    }
+    //
+    // Check that it has values.
+    //
+    if (val.isEmpty())
+    {
+        std::cerr << "ParmParse::addDefn(): no values for definition " << def;
+        BoxLib::Abort();
+    }
+    //
+    // Check if this defn is a file include directive.
+    //
+    if (def == FileKeyword && val.length() == 1)
+    {
+        //
+        // Read file and add to this table.
+        //
+        const char* fname = val.firstElement().c_str();
+        read_file(fname, tab);
+    }
+    else
+    {
+        PP_entry* pp = new PP_entry(def,ppDefn,val);
+        tab.append(pp);
+    }
+    val.clear();
+    def = aString();
+}
+
+void
+bldTable (const char*      str,
+                     int              lenstr,
+                     List<PP_entry*>& tab)
+{
+   aString       cur_name;
+   List<aString> cur_list;
+   aString       tmp_str;
+   PP_entry      *pp;
+
+   int       i = 0;
+   PPType    token;
+   const int SCRATCH_STR_LEN  = 200;
+   char      tokname[SCRATCH_STR_LEN];
+
+   while (true)
+   {
+      token = getToken(str,i,lenstr,tokname);
+
+      switch (token)
+      {
+      case ppEOF:
+          addDefn(cur_name,cur_list,tab);
+          return;
+      case ppOption:
+          addDefn(cur_name,cur_list,tab);
+          tmp_str = tokname;
+          pp = new PP_entry(tmp_str,ppOption,cur_list);
+          tab.append(pp);
+          break;
+      case ppEQ_sign:
+          if (cur_name.length() == 0)
+              BoxLib::Abort("ParmParse::bldTable() EQ with no current defn");
+          if (cur_list.isEmpty())
+              //
+              // First time we see equal sign, just ignore.
+              //
+              break;
+          //
+          // Read one too far, remove last name on list.
+          //
+          tmp_str = cur_list.lastElement();
+          cur_list.removeLast();
+          addDefn(cur_name,cur_list,tab);
+          cur_name = tmp_str;
+          break;
+      case ppDefn:
+          if (cur_name.length() == 0)
+          {
+              cur_name = tokname;
+              break;
+          }
+          //
+          // Otherwise, fall through, this may be a string.
+          //
+      case ppBool:
+      case ppInt:
+      case ppFloat:
+      case ppDouble:
+      case ppString:
+          if (cur_name.length() == 0)
+          {
+              tokname[SCRATCH_STR_LEN-1] = 0;
+              aString msg("ParmParse::bldTable(): value with no defn: ");
+              msg += tokname;
+              BoxLib::Abort(msg.c_str());
+          }
+          cur_list.append(tokname);
+          break;
+      }
+   }
+}
+
+
+void
+PP_entry::dump (std::ostream& os) const
+{
+    static const char TokenInitial[] = { 'N','O','I','F','D','S','=','E' };
+
+    char tmp[200];
+    long nval = val.length();
+    sprintf(tmp,
+            "(%c,%1d) %15s :: ",
+            TokenInitial[deftype],
+            int(nval),
+            defname.c_str());
+    os << tmp;
+    for (int i = 0; i < nval; i++)
+    {
+       os << " ("
+          << TokenInitial[ppString]
+          << ','
+          << val[i]
+          << ')';
+    }
+    os << '\n';
+
+    if (os.fail())
+        BoxLib::Error("PP_entry::dump(ostream&) failed");
+}
+
 static
 int
 queryval (const char*  name,
@@ -394,6 +851,123 @@ getarr (const char*  name,
 // Used by constructor to build table.
 //
 static void ppinit (int argc, char** argv, const char* parfile);
+
+PP_entry::PP_entry (aString&          name,
+                    PPType typ,
+                    List<aString>&    vals)
+    :
+    val(vals.length()),
+    defname(name),
+    deftype(typ),
+    queried(false)
+{
+   ListIterator<aString> li(vals);
+   for (int i = 0; li; i++, ++li)
+      val[i] = vals[li];
+}
+
+//
+// Initialize ParmParse.
+//
+
+void
+ppinit (int argc, char** argv, const char* parfile)
+{
+    if (parfile != 0)
+       read_file(parfile,table);
+
+    if (argc > 0)
+    {
+        aString argstr;
+        const char SPACE = ' ';
+        for (int i = 0; i < argc; i++)
+        {
+            argstr += argv[i];
+            argstr += SPACE;
+        }
+        List<PP_entry*> arg_table;
+        bldTable(argstr.c_str(), argstr.length()+1, arg_table);
+        //
+        // Append arg_table to end of existing table.
+        //
+        table.catenate(arg_table);
+    }
+}
+}
+
+ParmParse::ParmParse (int         argc,
+                      char**      argv,
+                      const char* prefix,
+                      const char* parfile)
+{
+    if (table.length() > 0)
+       BoxLib::Error("ParmParse::ParmParse(): table already built");
+    num_obj++;
+    if (prefix != 0)
+       thePrefix = prefix;
+    ppinit(argc, argv, parfile);
+}
+
+ParmParse::ParmParse (const char* prefix)
+{
+    num_obj++;
+    if (prefix != 0)
+       thePrefix = prefix;
+}
+
+ParmParse::~ParmParse ()
+{
+    if (--num_obj == 0)
+    {
+        //
+        // First loop through and delete all queried entries.
+        //
+        for (ListIterator<PP_entry*> li(table); li; )
+        {
+            if (li()->queried)
+            {
+                delete table[li];
+
+                ListIterator<PP_entry*> tmp = li++;
+                
+                table.remove(tmp);
+            }
+            else
+            {
+                ++li;
+            }
+        }
+
+        if (!table.isEmpty())
+        {
+            //
+            // Now spit out unused entries.
+            //
+            if (ParallelDescriptor::IOProcessor())
+                std::cout << "\nUnused ParmParse Variables: ";
+
+            for (ListIterator<PP_entry*> li(table); li; ++li)
+            {
+                if (ParallelDescriptor::IOProcessor())
+                    std::cout << li()->defname << ' ';
+
+                delete table[li];
+            }
+
+            if (ParallelDescriptor::IOProcessor())
+                std::cout << '\n' << '\n';
+
+            table.clear();
+        }
+    }
+}
+
+void
+ParmParse::dumpTable (std::ostream& os)
+{
+   for (ListIterator<PP_entry*> li(table); li; ++li)
+      li()->dump(os);
+}
 
 int
 ParmParse::countval (const char* name,
@@ -767,148 +1341,6 @@ ParmParse::countname (const aString& name)
     return countname(name.c_str());
 }
 
-PP_entry::PP_entry (aString&          name,
-                    PPType typ,
-                    List<aString>&    vals)
-    :
-    val(vals.length()),
-    defname(name),
-    deftype(typ),
-    queried(false)
-{
-   ListIterator<aString> li(vals);
-   for (int i = 0; li; i++, ++li)
-      val[i] = vals[li];
-}
-
-ParmParse::ParmParse (int         argc,
-                      char**      argv,
-                      const char* prefix,
-                      const char* parfile)
-{
-    if (table.length() > 0)
-       BoxLib::Error("ParmParse::ParmParse(): table already built");
-    num_obj++;
-    if (prefix != 0)
-       thePrefix = prefix;
-    ppinit(argc, argv, parfile);
-}
-
-ParmParse::ParmParse (const char* prefix)
-{
-    num_obj++;
-    if (prefix != 0)
-       thePrefix = prefix;
-}
-
-void
-ParmParse::dumpTable (std::ostream& os)
-{
-   for (ListIterator<PP_entry*> li(table); li; ++li)
-      li()->dump(os);
-}
-
-//
-// Initialize ParmParse.
-//
-
-void
-ppinit (int argc, char** argv, const char* parfile)
-{
-    if (parfile != 0)
-       read_file(parfile,table);
-
-    if (argc > 0)
-    {
-        aString argstr;
-        const char SPACE = ' ';
-        for (int i = 0; i < argc; i++)
-        {
-            argstr += argv[i];
-            argstr += SPACE;
-        }
-        List<PP_entry*> arg_table;
-        bldTable(argstr.c_str(), argstr.length()+1, arg_table);
-        //
-        // Append arg_table to end of existing table.
-        //
-        table.catenate(arg_table);
-    }
-}
-
-ParmParse::~ParmParse ()
-{
-    if (--num_obj == 0)
-    {
-        //
-        // First loop through and delete all queried entries.
-        //
-        for (ListIterator<PP_entry*> li(table); li; )
-        {
-            if (li()->queried)
-            {
-                delete table[li];
-
-                ListIterator<PP_entry*> tmp = li++;
-                
-                table.remove(tmp);
-            }
-            else
-            {
-                ++li;
-            }
-        }
-
-        if (!table.isEmpty())
-        {
-            //
-            // Now spit out unused entries.
-            //
-            if (ParallelDescriptor::IOProcessor())
-                std::cout << "\nUnused ParmParse Variables: ";
-
-            for (ListIterator<PP_entry*> li(table); li; ++li)
-            {
-                if (ParallelDescriptor::IOProcessor())
-                    std::cout << li()->defname << ' ';
-
-                delete table[li];
-            }
-
-            if (ParallelDescriptor::IOProcessor())
-                std::cout << '\n' << '\n';
-
-            table.clear();
-        }
-    }
-}
-
-//
-// Keyword aware string comparison.
-//
-
-static
-bool
-ppfound (const char*    keyword,
-         const aString& key,
-         const aString& prefix)
-{
-    //
-    // Return true if key==keyword || key == prefix.keyword.
-    //
-    if (!prefix.isNull())
-    {
-        aString tmp(prefix);
-        tmp += '.';
-        tmp += keyword;
-        return (key == tmp);
-    }
-    else
-    {
-        return (key == keyword);
-    }
-}
-
 //
 // Return number of occurences of parameter name.
 //
@@ -944,483 +1376,5 @@ ParmParse::contains (const char* name)
        }
     }
     return false;
-}
-
-//
-// Return the index of the n'th occurence of a parameter name,
-// except if n==-1, return the index of the last occurence.
-// Return 0 if the specified occurence does not exist.
-//
-
-const PP_entry*
-ppindex (int         n,
-	 const char* name,
-	 const std::string& thePrefix)
-{
-    PP_entry* fnd = 0;
-
-    if (n < 0)
-    {
-        //
-        // Search from back of list.
-        //
-        for (ListIterator<PP_entry*> li = table.last(); li; --li)
-        {
-            if (ppfound(name,li()->defname,thePrefix))
-            {
-                fnd = li();
-                break;
-            }
-        }
-    }
-    else
-    {
-        for (ListIterator<PP_entry*> li(table); li; ++li)
-        {
-            if (ppfound(name,li()->defname,thePrefix))
-            {
-                fnd = li();
-                if (--n < 0)
-                    break;
-            }
-        }
-        if (n >= 0)
-            fnd = 0;
-    }
-
-    if (fnd)
-    {
-        //
-        // Found an entry; mark all occurences of name as used.
-        //
-        for (ListIterator<PP_entry*> li(table); li; ++li)
-            if (ppfound(name,li()->defname,thePrefix))
-                li()->queried = true;
-    }
-
-    return fnd;
-}
-
-namespace
-{
-void
-read_file (const char*      fname,
-                      List<PP_entry*>& tab)
-{
-    //
-    // Space for input file if it exists.
-    // Note: on CRAY, access requires (char*) not (const char*).
-    //
-    if (fname != 0 && fname[0] != 0)
-    {
-        FILE* pffd = fopen(fname, "rb");
-        if (pffd == 0)
-        {
-            std::cerr << "ParmParse::read_file(): couldn't open \""
-                      << fname
-                      << "\"";
-            BoxLib::Abort();
-        }
-        //
-        // Get the length.
-        //
-        fseek(pffd, 0, 2);
-        int pflen = (int)ftell(pffd);
-        rewind(pffd);
-        char* str = new char[pflen+1];
-        memset(str,0,pflen+1);
-        int nread = fread(str, 1, pflen, pffd);
-        if (!(nread == pflen))
-        {
-            std::cerr << "ParmParse::read_file(): fread() only "
-                      << nread
-                      << " bytes out of "
-                      << pflen
-                      << " from "
-                      << fname;
-            BoxLib::Abort();
-        }
-        fclose(pffd);
-        bldTable(str,pflen+1,tab);
-        delete [] str;
-    }
-}
-
-static
-void
-eat_garbage (const char* str,
-             int&        i,
-             int         len)
-{
-    for (;;)
-    {
-        if (i < len && str[i] == '#')
-        {
-            while (i < len && str[i] != '\n')
-                i++;
-        }
-        else if (i < len && isspace(str[i]))
-            i++;
-        else
-            break;
-    }
-}
-
-//
-// Simple lexical analyser.
-//
-
-enum lexState
-{
-    START,
-    MINUS,
-    SIGN,
-    OPTION,
-    STRING,
-    QUOTED_STRING,
-    INTEGER,
-    START_FRACTION,
-    FRACTION,
-    START_EXP,
-    SIGNED_EXP,
-    EXP,
-    PREFIX,
-    SUFFIX,
-    STAR
-};
-
-static
-const char* const
-state_name[] =
-{
-   "START",
-   "MINUS",
-   "SIGN",
-   "OPTION",
-   "STRING",
-   "QUOTED_STRING",
-   "INTEGER",
-   "START_FRACTION",
-   "FRACTION",
-   "START_EXP",
-   "SIGNED_EXP",
-   "EXP",
-   "PREFIX",
-   "SUFFIX",
-   "STAR"
-};
-
-PPType
-getToken (const char* str,
-                     int&        i,
-                     int         slen,
-                     char*       ostr)
-{
-#define ERROR_MESS \
-   ostr[k++] = '\0'; \
-   std::cerr << "ParmParse::getToken(): invalid string = " << ostr << '\n'; \
-   std::cerr << "STATE = " << state_name[state] \
-             << ", next char = " << ch << '\n'; \
-   std::cerr << ", rest of input = \n" << (str+i) << '\n'; \
-   BoxLib::Abort()
-   //
-   // Eat white space and comments.
-   //
-   eat_garbage(str,i,slen);
-   //
-   // Check for end of file.
-   //
-   if (i >= slen || str[i] == '\0')
-       return ppEOF;
-   //
-   // Start token scan.
-   //
-   lexState state = START;
-   int k = 0;
-   while (1)
-   {
-       char ch = str[i];
-       switch (state)
-       {
-       case START:
-           if (ch == '=')
-           {
-               ostr[k++] = ch; i++;
-               ostr[k++] = 0;
-               return ppEQ_sign;
-           }
-           else if (ch == '"')
-           {
-               i++;
-               state = QUOTED_STRING;
-           }
-           else if (ch == '*')
-           {
-               ostr[k++] = ch; i++;
-               state = STAR;
-           }
-           else if (isalpha(ch) || ch == '_')
-           {
-               ostr[k++] = ch; i++;
-               state = PREFIX;
-           }
-           else if (ch == '-')
-           {
-               ostr[k++] = ch; i++;
-               state = MINUS;
-           }
-           else
-           {
-               ostr[k++] = ch; i++;
-               state = STRING;
-           }
-           break;
-       case MINUS:
-           if (isalpha(ch) || ch == '_')
-           {
-               k--;
-               ostr[k++] = ch; i++;
-               state = OPTION;
-           }
-           else
-           {
-               ostr[k++] = ch; i++;
-               state = STRING;
-           }
-           break;
-       case OPTION:
-           if (isalnum(ch) || ch=='_' || ch=='.')
-           {
-               ostr[k++] = ch; i++;
-           }
-           else if (isspace(ch))
-           {
-               ostr[k++] = 0;
-               return ppOption;
-           }
-           else
-           {
-               ERROR_MESS;
-           }
-           break;
-       case STAR:
-           if (ch == '.')
-           {
-               ostr[k++] = ch; i++;
-               state = SUFFIX;
-           }
-           else
-           {
-               ostr[k++] = ch; i++;
-               state = STRING;
-           }
-           break;
-       case PREFIX:
-           if (isalnum(ch) || ch == '_')
-           {
-               ostr[k++] = ch; i++;
-           }
-           else if (ch == '.')
-           {
-               ostr[k++] = ch; i++;
-               state = SUFFIX;
-           }
-           else if (isspace(ch) || ch == '=')
-           {
-               ostr[k++] = 0;
-               return ppDefn;
-           }
-           else
-           {
-               ostr[k++] = ch; i++;
-               state = STRING;
-           }
-           break;
-       case SUFFIX:
-           if (isalnum(ch) || ch == '_')
-           {
-               ostr[k++] = ch; i++;
-           }
-           else if (isspace(ch) || ch == '=')
-           {
-               ostr[k++] = 0;
-               return ppDefn;
-           }
-           else
-           {
-               ostr[k++] = ch; i++;
-               state = STRING;
-           }
-           break;
-       case QUOTED_STRING:
-           if (ch == '"')
-           {
-               i++;
-               ostr[k++] = 0;
-               return ppString;
-           }
-           else
-           {
-               ostr[k++] = ch; i++;
-           }
-           break;
-       case STRING:
-           if (isspace(ch) || ch == '=')
-           {
-               ostr[k++] = 0;
-               return ppString;
-           }
-           else
-           {
-               ostr[k++] = ch; i++;
-           }
-           break;
-       default:
-           ERROR_MESS;
-       }
-   }
-#undef ERROR_MESS
-}
-
-void
-bldTable (const char*      str,
-                     int              lenstr,
-                     List<PP_entry*>& tab)
-{
-   aString       cur_name;
-   List<aString> cur_list;
-   aString       tmp_str;
-   PP_entry      *pp;
-
-   int       i = 0;
-   PPType    token;
-   const int SCRATCH_STR_LEN  = 200;
-   char      tokname[SCRATCH_STR_LEN];
-
-   while (true)
-   {
-      token = getToken(str,i,lenstr,tokname);
-
-      switch (token)
-      {
-      case ppEOF:
-          addDefn(cur_name,cur_list,tab);
-          return;
-      case ppOption:
-          addDefn(cur_name,cur_list,tab);
-          tmp_str = tokname;
-          pp = new PP_entry(tmp_str,ppOption,cur_list);
-          tab.append(pp);
-          break;
-      case ppEQ_sign:
-          if (cur_name.length() == 0)
-              BoxLib::Abort("ParmParse::bldTable() EQ with no current defn");
-          if (cur_list.isEmpty())
-              //
-              // First time we see equal sign, just ignore.
-              //
-              break;
-          //
-          // Read one too far, remove last name on list.
-          //
-          tmp_str = cur_list.lastElement();
-          cur_list.removeLast();
-          addDefn(cur_name,cur_list,tab);
-          cur_name = tmp_str;
-          break;
-      case ppDefn:
-          if (cur_name.length() == 0)
-          {
-              cur_name = tokname;
-              break;
-          }
-          //
-          // Otherwise, fall through, this may be a string.
-          //
-      case ppBool:
-      case ppInt:
-      case ppFloat:
-      case ppDouble:
-      case ppString:
-          if (cur_name.length() == 0)
-          {
-              tokname[SCRATCH_STR_LEN-1] = 0;
-              aString msg("ParmParse::bldTable(): value with no defn: ");
-              msg += tokname;
-              BoxLib::Abort(msg.c_str());
-          }
-          cur_list.append(tokname);
-          break;
-      }
-   }
-}
-
-void
-addDefn (aString&         def,
-                    List<aString>&   val,
-                    List<PP_entry*>& tab)
-{
-    static const aString FileKeyword("FILE");
-    //
-    // Check that defn exists.
-    //
-    if (def.length() == 0)
-    {
-        val.clear();
-        return;
-    }
-    //
-    // Check that it has values.
-    //
-    if (val.isEmpty())
-    {
-        std::cerr << "ParmParse::addDefn(): no values for definition " << def;
-        BoxLib::Abort();
-    }
-    //
-    // Check if this defn is a file include directive.
-    //
-    if (def == FileKeyword && val.length() == 1)
-    {
-        //
-        // Read file and add to this table.
-        //
-        const char* fname = val.firstElement().c_str();
-        read_file(fname, tab);
-    }
-    else
-    {
-        PP_entry* pp = new PP_entry(def,ppDefn,val);
-        tab.append(pp);
-    }
-    val.clear();
-    def = aString();
-}
-
-void
-PP_entry::dump (std::ostream& os) const
-{
-    static const char TokenInitial[] = { 'N','O','I','F','D','S','=','E' };
-
-    char tmp[200];
-    long nval = val.length();
-    sprintf(tmp,
-            "(%c,%1d) %15s :: ",
-            TokenInitial[deftype],
-            int(nval),
-            defname.c_str());
-    os << tmp;
-    for (int i = 0; i < nval; i++)
-    {
-       os << " ("
-          << TokenInitial[ppString]
-          << ','
-          << val[i]
-          << ')';
-    }
-    os << '\n';
-
-    if (os.fail())
-        BoxLib::Error("PP_entry::dump(ostream&) failed");
 }
 
