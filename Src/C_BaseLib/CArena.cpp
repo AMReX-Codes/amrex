@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CArena.cpp,v 1.17 1999-05-10 18:54:20 car Exp $
+// $Id: CArena.cpp,v 1.18 1999-07-21 21:02:49 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -31,7 +31,7 @@ using std::pair;
 //
 // Only really use the coalescing FAB arena if BL_COALESCE_FABS.
 //
-#ifdef BL_COALESCE_FABS
+//#ifdef BL_COALESCE_FABS
 static CArena The_Static_FAB_CArena;
 Arena* The_FAB_Arena = &The_Static_FAB_CArena;
 #else
@@ -54,9 +54,7 @@ CArena::CArena (size_t hunk_size)
 CArena::~CArena ()
 {
     for (int i = 0; i < m_alloc.size(); i++)
-    {
         ::operator delete(m_alloc[i]);
-    }
 }
 
 void*
@@ -69,16 +67,18 @@ CArena::alloc (size_t nbytes)
     NL::iterator free_it = m_freelist.begin();
 
     for ( ; free_it != m_freelist.end(); ++free_it)
-    {
         if ((*free_it).size() >= nbytes)
             break;
-    }
 
     void* vp = 0;
 
     if (free_it == m_freelist.end())
     {
-        vp = ::operator new(nbytes < m_hunk ? m_hunk : nbytes);
+        const size_t N = nbytes < m_hunk ? m_hunk : nbytes;
+
+        vp = ::operator new(N);
+
+        m_used += N;
 
         m_alloc.push_back(vp);
 
@@ -97,7 +97,6 @@ CArena::alloc (size_t nbytes)
     else
     {
         BL_ASSERT((*free_it).size() >= nbytes);
-
         BL_ASSERT(m_busylist.find(*free_it) == m_busylist.end());
 
         vp = (*free_it).block();
@@ -142,7 +141,6 @@ CArena::free (void* vp)
     NL::iterator busy_it = m_busylist.find(Node(vp,0));
 
     BL_ASSERT(!(busy_it == m_busylist.end()));
-
     BL_ASSERT(m_freelist.find(*busy_it) == m_freelist.end());
 
     void* freeblock = static_cast<char*>((*busy_it).block());
@@ -166,7 +164,9 @@ CArena::free (void* vp)
     if (!(free_it == m_freelist.begin()))
     {
         NL::iterator lo_it = free_it;
+
         --lo_it;
+
         void* addr = static_cast<char*>((*lo_it).block()) + (*lo_it).size();
 
         if (addr == (*free_it).block())
@@ -206,17 +206,16 @@ CArena::free (void* vp)
     }
 }
 
+size_t CArena::heap_space_used () const { return m_used; }
+
 void*
 CArena::calloc (size_t nmemb,
                 size_t size)
 {
     BL_ASSERT(!(size == 0));
     BL_ASSERT(!(nmemb == 0));
-
     void* vp = CArena::alloc(nmemb*size);
-
     memset(vp, 0, nmemb*size);
-
     return vp;
 }
 
@@ -244,7 +243,6 @@ CArena::realloc (void*  ptr,
             NL::iterator busy_it = m_busylist.find(Node(ptr,0));
 
             BL_ASSERT(!(busy_it == m_busylist.end()));
-
             BL_ASSERT(m_freelist.find(*busy_it) == m_freelist.end());
 
             if (size > (*busy_it).size())
@@ -253,11 +251,8 @@ CArena::realloc (void*  ptr,
                 // If the new size is larger than old allocate new chunk.
                 //
                 void* vp = CArena::alloc(size);
-
                 memcpy(vp, ptr, (*busy_it).size());
-
                 CArena::free(ptr);
-
                 ptr = vp;
             }
         }

@@ -71,6 +71,10 @@ public:
     */
     void* realloc (void* ptr, size_t size);
     //
+    //@ManDoc: The current amount of heap space used by the CArena object.
+    //
+    size_t heap_space_used () const;
+    //
     //@ManDoc: The default memory hunk size to grab from the heap.
     //
     enum { DefaultHunkSize = 1024*1024 };
@@ -154,7 +158,7 @@ protected:
     // The type of our freelist and blocklist.
     // We use a set sorted from lo to hi memory addresses.
     //
-    typedef set < Node > NL;
+    typedef set<Node> NL;
     //
     // The list of blocks allocated via ::operator new().
     //
@@ -173,6 +177,10 @@ protected:
     // The minimal size of hunks to request via ::operator new().
     //
     size_t m_hunk;
+    //
+    // The amount of heap space currently allocated.
+    //
+    size_t m_used;
 
 private:
     //
