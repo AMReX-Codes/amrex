@@ -4,129 +4,127 @@
 #define BL_ARRAYLIM_H
 
 /*
- * $Id: ArrayLim.H,v 1.3 1997-09-19 16:17:30 car Exp $
+** $Id: ArrayLim.H,v 1.4 1997-12-12 22:44:54 lijewski Exp $
 */
 
 #if !defined(BL_LANG_FORT)
 
-//
-// The #ifdef ... #endif subterfuge here is to force doc++ to properly
-// document BL_USE_ARLIM :-(
-//
+/*
+** C stuff ...
+*/
+
 #ifdef BL_USE_ARLIM
-#undef BL_USE_ARLIM
-/*@ManDoc:
-  The macro BL\_USE\_ARLIM indicates that the Fortran compiler allows array
-  limits to be passed as integer vectors.  The default for Standard Fortran
-  is to expand the integer vector into its respective components.  This
-  macro is used to control the expansion of the macros ARLIM\_P(x) and
-  ARLIM(x).
-*/
-#define BL_USE_ARLIM 1
 
-/*@ManDoc:
-  The macro ARLIM\_P(x) should be used in C++ code when prototyping a Fortran
-  function in an extern "C" statement (or block) that takes a
-  BL\_SPACEDIM-dimensional array and a BL\_SPACEDIM-dimensional integer vector
-  indicating the upper and lower dimensions of the array.
+#define ARLIM_P(x)  const int*
+#define ARLIM(x)  x
 
-  For example:
-
-    extern "C" void f (Real* array, ARLIM\_P(ivec));
-
-  When BL\_USE\_ARLIM is defined, this macro expands to
-
-    const int *
-
-  When BL\_USE\_ARLIM is not defined, this macro expands to one of
-
-    const int \&
-
-    const int \&, const int \&
-
-    const int \&, const int \&, const int \&
-
-  depending on the value of BL\_SPACEDIM.
-*/
-# define ARLIM\_P(x)  const int*
-
-/*@ManDoc:
-  The macro ARLIM(x) should be used in C++ code when passing an integer vector
-  specifying the dimensions of an array, to a Fortran routine that has
-  previously been prototyped with ARLIM\_P(x).
-
-  For example:
-
-     f(array, ARLIM(ivec));
-
-  When BL\_USE\_ARLIM is defined, this macro expands to
-
-    x
-
-  When BL\_USE\_ARLIM is not defined, this macro expands to one of
-
-    x[0]
-
-    x[0],x[1]
-
-    x[0],x[1],x[2]
-
-  depending on the value of BL\_SPACEDIM.
-*/
-# define ARLIM(x)  x
 #else
-#   if   BL_SPACEDIM==1
-#       define  ARLIM_P(x)  const int&
-#       define  ARLIM(x)  x[0]
-#   elif BL_SPACEDIM==2
-#       define  ARLIM_P(x)  const int&,const int&
-#       define  ARLIM(x)  x[0],x[1]
-#   elif BL_SPACEDIM==3
-#       define  ARLIM_P(x)  const int&,const int&,const int&
-#       define  ARLIM(x)  x[0],x[1],x[2]
-#   endif
+
+#if     BL_SPACEDIM==1
+#define ARLIM_P(x)  const int&
+#define ARLIM(x)  x[0]
+#elif   BL_SPACEDIM==2
+#define ARLIM_P(x)  const int&,const int&
+#define ARLIM(x)  x[0],x[1]
+#elif   BL_SPACEDIM==3
+#define ARLIM_P(x)  const int&,const int&,const int&
+#define ARLIM(x)  x[0],x[1],x[2]
 #endif
 
-#define BL_FAA_TYPE(u) REAL* u, ARLIM_P(u), ARLIM_P(u)
+#endif
 
-#define BL_BOXARG_TYPE(bx) const int*, const int*
+#else
 
-#define BL_FAA(u) u.dataPtr(),ARLIM(u.loVect()),ARLIM(u.hiVect())
-
-#define BL_FAAN(u,n) u.dataPtr(n),ARLIM(u.loVect()),ARLIM(u.hiVect())
-
-#define BL_BOXARG(b) b.loVect(), b.hiVect()
-
-#else /* Fortran stuff */
+/*
+** Fortran stuff ...
+*/
 
 #include <REAL.H>
 
+#ifdef BL_USE_ARLIM
+
 #if (BL_SPACEDIM == 1)
-#define BL_FARG(u) u, u##loi1, u##hii1
-#define BL_BBOUNDS(b) integer b##lo(1), b##hi(1)
-#define BL_FBOUNDS(u) integer u##loi1, u##hii1
-#define BL_FARRAY(u,n) REAL_T u(u##loi1:u##hii1, n)
-#define BL_FARRAY1(u) REAL_T u(u##loi1:u##hii1)
+#define DIMS(a) a##_lo, a##_hi
+#define DIMDEC(a) a##_lo(1), a##_hi(1)
+#define DIMV(a) a##_lo(1):a##_hi(1)
+#define DIM1(a) a##_lo(1):a##_hi(1)
+#define ARG_L1(a) a##_lo(1)
+#define ARG_H1(a) a##_hi(1)
 #endif
 
 #if (BL_SPACEDIM == 2)
-#define BL_FARG(u) u, u##loi1, u##loi2, u##hii1, u##hii2
-#define BL_BBOUNDS(b) integer b##lo(2), b##hi(2)
-#define BL_FBOUNDS(u) integer u##loi1, u##loi2, u##hii1, u##hii2
-#define BL_FARRAY(u,n) REAL_T u(u##loi1:u##hii1, u##loi2:u##hii2, n)
-#define BL_FARRAY1(u) REAL_T u(u##loi1:u##hii1, u##loi2:u##hii2)
+#define DIMS(a) a##_lo, a##_hi
+#define DIMDEC(a) a##_lo(2), a##_hi(2)
+#define DIMV(a) a##_lo(1):a##_hi(1), a##_lo(2):a##_hi(2)
+#define DIM1(a) a##_lo(1):a##_hi(1)
+#define DIM2(a) a##_lo(2):a##_hi(2)
+#define ARG_L1(a) a##_lo(1)
+#define ARG_L2(a) a##_lo(2)
+#define ARG_H1(a) a##_hi(1)
+#define ARG_H2(a) a##_hi(2)
 #endif
 
 #if (BL_SPACEDIM == 3)
-#define BL_FARG(u) u, u##loi1, u##loi2, u##loi3, u##hii1, u##hii2, u##hii3
-#define BL_BBOUNDS(b) integer b##lo(3), b##hi(3)
-#define BL_FBOUNDS(u) integer u##loi1, u##loi2, u##loi3, u##hii1, u##hii2, u##hii3
-#define BL_FARRAY(u,n) REAL_T u(u##loi1:u##hii1, u##loi2:u##hii2, u##loi3:u##hii3, n)
-#define BL_FARRAY1(u) REAL_T u(u##loi1:u##hii1, u##loi2:u##hii2, u##loi3:u##hii3)
+#define DIMS(a) a##_lo, a##_hi
+#define DIMDEC(a) a##_lo(3), a##_hi(3)
+#define DIMV(a) a##_lo(1):a##_hi(1), a##_lo(2):a##_hi(2), a##_lo(3):a##_hi(3)
+#define DIM1(a) a##_lo(1):a##_hi(1)
+#define DIM2(a) a##_lo(2):a##_hi(2)
+#define DIM3(a) a##_lo(3):a##_hi(3)
+#define DIM12(a) a##_lo(1):a##_hi(1), a##_lo(2):a##_hi(2)
+#define DIM23(a) a##_lo(2):a##_hi(2), a##_lo(3):a##_hi(3)
+#define DIM13(a) a##_lo(1):a##_hi(1), a##_lo(3):a##_hi(3)
+#define ARG_L1(a) a##_lo(1)
+#define ARG_L2(a) a##_lo(2)
+#define ARG_L3(a) a##_lo(3)
+#define ARG_H1(a) a##_hi(1)
+#define ARG_H2(a) a##_hi(2)
+#define ARG_H3(a) a##_hi(3)
 #endif
 
-#define BL_BARG(b) b##lo, b##hi
+#else
 
+#if (BL_SPACEDIM == 1)
+#define DIMS(a) a##_l1, a##_h1
+#define DIMDEC(a) a##_l1, a##_h1
+#define DIMV(a) a##_l1:a##_h1
+#define DIM1(a) a##_l1:a##_h1
+#define ARG_L1(a) a##_l1
+#define ARG_H1(a) a##_h1
 #endif
+
+#if (BL_SPACEDIM == 2)
+#define DIMS(a) a##_l1, a##_l2 , a##_h1, a##_h2
+#define DIMDEC(a) a##_l1, a##_l2 , a##_h1, a##_h2
+#define DIMV(a) a##_l1:a##_h1, a##_l2:a##_h2
+#define DIM1(a) a##_l1:a##_h1
+#define DIM2(a) a##_l2:a##_h2
+#define ARG_L1(a) a##_l1
+#define ARG_L2(a) a##_l2
+#define ARG_H1(a) a##_h1
+#define ARG_H2(a) a##_h2
+#endif
+
+#if (BL_SPACEDIM == 3)
+#define DIMS(a) a##_l1, a##_l2 , a##_l3, a##_h1, a##_h2, a##_h3
+#define DIMDEC(a) a##_l1, a##_l2 , a##_l3, a##_h1, a##_h2, a##_h3
+#define DIMV(a) a##_l1:a##_h1, a##_l2:a##_h2, a##_l3:a##_h3
+#define DIM1(a) a##_l1:a##_h1
+#define DIM2(a) a##_l2:a##_h2
+#define DIM3(a) a##_l3:a##_h3
+#define DIM12(a) a##_l1:a##_h1, a##_l2:a##_h2
+#define DIM23(a) a##_l2:a##_h2, a##_l3:a##_h3
+#define DIM13(a) a##_l1:a##_h1, a##_l3:a##_h3
+#define ARG_L1(a) a##_l1
+#define ARG_L2(a) a##_l2
+#define ARG_L3(a) a##_l3
+#define ARG_H1(a) a##_h1
+#define ARG_H2(a) a##_h2
+#define ARG_H3(a) a##_h3
+#endif
+
+#endif /*BL_USE_ARLIM*/
+
+#endif /*!defined(BL_LANG_FORT)*/
 
 #endif /*BL_ARRAYLIM_H*/
