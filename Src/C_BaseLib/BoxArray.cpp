@@ -1,6 +1,6 @@
 
 //
-// $Id: BoxArray.cpp,v 1.16 2000-10-02 20:52:33 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.17 2000-11-12 17:26:12 car Exp $
 //
 
 #include <BLassert.H>
@@ -422,6 +422,17 @@ BoxArray::ok () const
         }
     }
     return isok;
+}
+
+long
+BoxArray::numPts () const
+{
+  long result = 0;
+  for ( int i = 0; i < length(); ++i )
+    {
+      result += m_ref->m_abox.get(i).numPts();
+    }
+  return result;
 }
 
 BoxArray&
