@@ -181,11 +181,16 @@ public:
 	    h[i]   = h_[i];
 	}
     }
-    virtual bool ready()
-    {
-	abort(); return false;
-    }
     virtual bool init(sequence_number sno, MPI_Comm comm)
+    {
+	abort(); 
+	for(int i = 0; i < BL_SPACEDIM; ++i)
+	{
+	    ufp[i]->init(sno, comm);
+	}
+        return false;
+    }
+    virtual bool ready()
     {
 	abort(); return false;
     }
