@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.96 2005-01-10 22:04:45 car Exp $
+// $Id: AmrLevel.cpp,v 1.97 2005-02-17 22:03:31 car Exp $
 //
 #include <winstd.H>
 
@@ -918,9 +918,6 @@ FixUpPhysCorners (FArrayBox&      fab,
         }
     }
 }
-
-#include <Thread.H>
-static Mutex fill_mutex;
 
 void
 FillPatchIteratorHelper::fill (FArrayBox& fab,
