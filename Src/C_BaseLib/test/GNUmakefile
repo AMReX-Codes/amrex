@@ -1,51 +1,37 @@
 #
-# $Id: GNUmakefile.test,v 1.9 1998-11-18 20:33:02 lijewski Exp $
+# $Id: GNUmakefile,v 1.1 2001-07-20 19:37:36 car Exp $
 #
 
 #
 # Set these to the appropriate value.
 #
-GUTHAMR_HOME = ..
 COMP         = KCC
+COMP         = g++
 DIM          = 2
 PRECISION    = DOUBLE
 DEBUG        = TRUE
 USE_MPI      = FALSE
 
-PBOXLIB_HOME = ..
-include $(GUTHAMR_HOME)/mk/Make.defs
-
-LIBRARIES += -lbox$(optionsSuffix)
+PBOXLIB_HOME = ../..
+include $(PBOXLIB_HOME)/mk/Make.defs
 
 MPI_HOME =
-
-ifeq ($(USE_MPI), TRUE)
-ifeq ($(MACHINE), OSF1)
-MPI_HOME = /usr/local/mpi
-endif
-endif
-
-ifeq ($(USE_MPI), TRUE)
-ifeq ($(MACHINE), OSF1)
-INCLUDE_LOCATIONS += $(MPI_HOME)/include
-LIBRARY_LOCATIONS += $(MPI_HOME)/lib/alpha/ch_p4
-endif
-LIBRARIES += -lmpi
-endif
 
 #
 # Base name of each of the executables we want to build.
 # I'm assuming that each of these is a stand-alone program,
 # that simply needs to link against BoxLib.
 #
-_progs = tVisMF tDir t8BIT tFB tFAC
+#_progs = tVisMF tDir t8BIT tFB tFAC
+_progs = tProfiler
 
 all: $(addsuffix $(optionsSuffix).ex, $(_progs))
 
-VPATH = ../pBoxLib_2:$(GUTHAMR_HOME)/lib
+INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/BoxLib
+VPATH = $(PBOXLIB_HOME)/BoxLib
 
 $(addsuffix $(optionsSuffix).ex, $(_progs)) \
-   : %$(optionsSuffix).ex : %.cpp -lbox$(optionsSuffix)
+   : %$(optionsSuffix).ex : %.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $< $(libraries)
 	$(RM) $@.o
 
@@ -61,4 +47,4 @@ runtests : $(addsuffix $(optionsSuffix).ex, $(_progs))
           echo "====> Testing $$f ..."; echo; ./$$f; echo; \
         done
 
-include $(GUTHAMR_HOME)/mk/Make.rules
+include $(PBOXLIB_HOME)/mk/Make.rules
