@@ -411,7 +411,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
     const IntVect& rat = gen_ratio[lev-1];
     const int mglevc = ml_index[lev-1];
     
-    // PARALLEL TODO
+    // PARALLEL
     for (int iface = 0; iface < lev_interface[mglev].nboxes(level_interface::FACEDIM); iface++) 
     {
 	// find a fine grid touching this face
@@ -493,7 +493,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	
 #if (BL_SPACEDIM == 3)
 	
-	// PARALLEL TODO
+	// PARALLEL
 	for (int iedge = 0; iedge < lev_interface[mglev].nboxes(1); iedge++) 
 	{
 	    // find a fine grid touching this edge
@@ -564,7 +564,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	
 #endif
 	
-	// PARALLEL TODO
+	// PARALLEL
 	for (int icor = 0; icor < lev_interface[mglev].nboxes(0); icor++) 
 	{
 	    // find a fine grid touching this corner
@@ -635,7 +635,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
     else if (m_hg_full_stencil)
     {
 #if BL_SPACEDIM != 3
-	// PARALLEL TODO
+	// PARALLEL
 	for (int icor = 0; icor < lev_interface[mglev].nboxes(0); icor++) 
 	{
 	    // find a fine grid touching this corner

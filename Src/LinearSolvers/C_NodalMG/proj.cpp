@@ -458,7 +458,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 	cout << "\nTotal cells:  " << sum << endl;
     }
     
-    double t0, t1, t2, t3;
+    double t0, t1, t2;
     
 #ifdef UNICOS
     //int pcode = 1, nrep = 8;
