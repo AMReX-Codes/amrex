@@ -1135,7 +1135,7 @@ holy_grail_amr_multigrid::mg_interpolate_level (int lto,
 	for (int igrid = 0; igrid < target.length(); igrid++) 
 	{
 	    amr_interpolator* hgi;
-	    if (m_stencil == terrain || m_stencil == full )
+	    if ( is_dense(m_stencil) )
 	    {
 		Real* sigptr[BL_SPACEDIM] = { D_DECL(0,0,0) };
 		if ( is_local(sigma[ltmp], igrid) )
