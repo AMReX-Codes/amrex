@@ -4,7 +4,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.29 1999-12-09 22:06:08 lijewski Exp $
+// $Id: Utility.H,v 1.30 2000-04-03 23:11:40 marc Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -217,12 +217,13 @@ public:
     /*@ManDoc: Set the seed of the random number generator.
     */
     static void InitRandom (unsigned long seed);
-
+#ifndef WIN32
     /*@ManDoc: Try to execute a shell command in a subshell.
                User is responsible for calling waitpid() on the pid
 	       returned from this function.
     */
     static pid_t Execute (const char* cmd);
+#endif
 };
 
 //

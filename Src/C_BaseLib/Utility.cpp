@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.37 1999-12-09 22:06:08 lijewski Exp $
+// $Id: Utility.cpp,v 1.38 2000-04-03 23:11:40 marc Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -18,7 +18,9 @@
 
 #include <sys/stat.h>
 #include <sys/types.h>
+#ifndef WIN32
 #include <sys/wait.h>
+#endif
 #include <errno.h>
 
 #include <REAL.H>
@@ -535,6 +537,7 @@ blutilrand_ (Real* rn)
 }
 #endif 
 
+#ifndef WIN32
 extern "C" pid_t fork();
 
 pid_t
@@ -552,3 +555,4 @@ Utility::Execute (const char* cmd)
 
     return pid;
 }
+#endif
