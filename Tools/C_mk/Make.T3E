@@ -14,7 +14,7 @@ endif
 
 ifeq ($(COMP),KCC)
 CXX     := KCC
-CXXOPTF += +K2
+CXXOPTF += +K3 -O2
 CXXDEBF += +K0
 #
 # Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
