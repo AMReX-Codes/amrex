@@ -1,6 +1,6 @@
 
 //
-// $Id: DatasetClient.cpp,v 1.18 2001-08-01 21:50:45 lijewski Exp $
+// $Id: DatasetClient.cpp,v 1.19 2004-07-26 22:24:29 vince Exp $
 //
 
 #include <climits>
@@ -283,11 +283,11 @@ ArrayViewMultiFabElementFormatLabel (MultiFab*   mf,
         cerr << "Error in ArrayViewMultiFabComp: MultiFab is not ok()." << endl;
         return false;
     }
-    if (element < 0 || element >= mf->length())
+    if (element < 0 || element >= mf->size())
     {
         cerr << "Error in ArrayViewMultiFabElement:  element index is not" << endl;
-        cerr << "  within range of MultiFab.length()." << endl;
-        cerr << "  MultiFab.length() = " << mf->length() << endl;
+        cerr << "  within range of MultiFab.size()." << endl;
+        cerr << "  MultiFab.size() = " << mf->size() << endl;
         cerr << "  Requested element = " << element << endl;
         return false;
     }
@@ -647,14 +647,14 @@ ArrayViewMultiFabFormatLabel (MultiFab*   mf,
     //
     // Send nElements.
     //
-    sprintf(buffer, "%d", mf->length());
+    sprintf(buffer, "%d", mf->size());
 
     if (!SendString(sockfd, buffer))
         return false;
     //
     // Send the data.
     //
-    for (int element = 0; element < mf->length(); element++)
+    for (int element = 0; element < mf->size(); element++)
     {
         //
         // Construct dataArray for this element.
@@ -747,7 +747,7 @@ ArrayViewTagBoxArray (TagBoxArray* tba)
     //
     MultiFab debugMultiFab(tba->boxArray(), N, tba->nGrow());
 
-    for (int nfab = 0; nfab < tba->length(); ++nfab)
+    for (int nfab = 0; nfab < tba->size(); ++nfab)
     {
         FArrayBox& debugFab    = debugMultiFab[nfab];
         TagBox   & debugTagBox = (*tba)[nfab];
