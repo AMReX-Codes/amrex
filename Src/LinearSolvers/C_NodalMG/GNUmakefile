@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.33 1999-03-31 22:52:27 car Exp $
+# $Id: GNUmakefile,v 1.34 1999-04-01 16:57:48 car Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -11,11 +11,12 @@ DEBUG     = TRUE
 PROFILE   = FALSE
 DIM       = 2
 DIM       = 3
-COMP	  = g++
 COMP      = cxx
+COMP	  = g++
 COMP      = KCC
 USE_MPI   = FALSE
 USE_MPI   = TRUE
+
 #
 # To build the executable: EBASE=proj LBASE=
 #
@@ -56,11 +57,12 @@ ifeq ($(EBASE),proj)
     CPPFLAGS          += -DHG_DEBUG
   endif
   LIBRARIES         +=
-  LIBRARY_LOCATIONS +=
+  LIBRARY_LOCATIONS += 
   CEXE_sources      += proj.cpp
 
   INCLUDE_LOCATIONS += $(TOP)/pBoxLib_2 
   vpath %.cpp	. $(TOP)/pBoxLib_2
+  vpath %.H     . $(TOP)/pBoxLib_2
   vpath %.F	. 
   all: $(executable)
 endif
@@ -82,6 +84,9 @@ ifeq ($(USE_MPI), TRUE)
     LIBRARIES += -lmpich
   endif
 endif
+
+#LDFLAGS += -v
+
 #
 # For 3rd ...
 #
@@ -117,3 +122,4 @@ o/3d.OSF1.KCC/hg_multi3d_terrain.o: hg_multi3d_terrain.F
 
 libs:
 	cd $(TOP)/pBoxLib_2; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
+
