@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.20 2002-11-14 23:04:56 lijewski Exp $
+c $Id: INTERP_2D.F,v 1.21 2002-12-07 05:59:35 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -1547,7 +1547,7 @@ c                the remaining positive proportionally.
                    do ioff = 0, lratiox-1
                       i = lratiox*ic + ioff
                       j = lratioy*jc + joff
-                      if (fine_state(i,j,n) .lt. 0.d0) then
+                      if (fine_state(i,j,n) .le. 0.d0) then
                         fine(i,j,n) = -fine_state(i,j,n)
                       endif
                    enddo
@@ -1561,7 +1561,7 @@ c                the remaining positive proportionally.
                      do ioff = 0, lratiox-1
                         i = lratiox*ic + ioff
                         j = lratioy*jc + joff
-                        if (fine_state(i,j,n) .gt. 0.d0) then
+                        if (fine_state(i,j,n) .ge. 0.d0) then
                           fine(i,j,n) = alpha * fine_state(i,j,n)
                         endif
                      enddo
