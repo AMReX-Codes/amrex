@@ -272,8 +272,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 	for (int mglev = mglev_max; mglev > 0; mglev--) 
 	{
 	    IntVect rat = mg_domain[mglev].length() / mg_domain[mglev-1].length();
-	    restrict_level(sigma[mglev-1], sigma[mglev], rat, 
-		holy_grail_sigma_restrictor_class(), level_interface(), 0);
+	    restrict_level(sigma[mglev-1], sigma[mglev], rat, holy_grail_sigma_restrictor_class(), level_interface(), 0);
 	}
 	for (int mglev = 0; mglev <= mglev_max; mglev++) 
 	{
@@ -345,15 +344,13 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 	if (mglev_max > 0) 
 	{
 	    IntVect rat = mg_domain[mglev_max].length() / mg_domain[mglev_max-1].length();
-	    restrict_level(sigma_split[mglev_max-1], sigma[mglev_max], rat, 
-		holy_grail_sigma_restrictor_class(), level_interface(), 0);
+	    restrict_level(sigma_split[mglev_max-1], sigma[mglev_max], rat, holy_grail_sigma_restrictor_class(), level_interface(), 0);
 	}
 	fill_borders(sigma[mglev_max], lev_interface[mglev_max], boundary.scalar(), -1, m_hg_terrain);
 	for (int mglev = mglev_max - 1; mglev > 0; mglev--) 
 	{
 	    IntVect rat = mg_domain[mglev].length() / mg_domain[mglev-1].length();
-	    restrict_level(sigma_split[mglev-1], sigma_split[mglev], rat, 
-		holy_grail_sigma_restrictor_class(), level_interface(), 0);
+	    restrict_level(sigma_split[mglev-1], sigma_split[mglev], rat, holy_grail_sigma_restrictor_class(), level_interface(), 0);
 	}
 	for (int mglev = 0; mglev < mglev_max; mglev++) 
 	{
@@ -444,8 +441,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
     cen.resize(mglev_max + 1);
     for (int mglev = 0; mglev <= mglev_max; mglev++) 
     {
-	cen.set(mglev, new MultiFab(corr[mglev].boxArray(), 1,
-	    dest[lev_min].nGrow()));
+	cen.set(mglev, new MultiFab(corr[mglev].boxArray(), 1, dest[lev_min].nGrow()));
 	MultiFab& ctmp = cen[mglev];
 	ctmp.setVal(0.0);
 	
@@ -658,10 +654,10 @@ void holy_grail_amr_multigrid::sync_interfaces()
 		igrid = lev_interface[mglev].grid(level_interface::FACEDIM, iface, 1);
 	    const unsigned int geo = lev_interface[mglev].geo(level_interface::FACEDIM, iface);
 	    // reject fine-fine interfaces and those without an interior fine grid
+	    const Box& nbox = lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
 	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(level_interface::FACEDIM, iface) )
 		continue;
-	    interpolate_patch(target[igrid], lev_interface[mglev].node_box(level_interface::FACEDIM, iface),
-		dest[lev-1], rat, bilinear_interpolator_class(), lev_interface[mgc], 0);
+	    interpolate_patch(target[igrid], nbox, dest[lev-1], rat, bilinear_interpolator_class(), lev_interface[mgc], 0);
 	}
     }
 }
@@ -688,8 +684,7 @@ void holy_grail_amr_multigrid::sync_periodic_interfaces()
 	    const Box& nbox = lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
 	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(level_interface::FACEDIM, iface) || idomain.intersects(nbox))
 		continue;
-	    interpolate_patch(target[igrid], nbox, 
-		dest[lev-1], rat, bilinear_interpolator_class(), lev_interface[mgc], 0);
+	    interpolate_patch(target[igrid], nbox, dest[lev-1], rat, bilinear_interpolator_class(), lev_interface[mgc], 0);
 	}
     }
 }
@@ -701,13 +696,11 @@ void holy_grail_amr_multigrid::mg_restrict_level(int lto, int lfrom)
     {
 	if (integrate == 0) 
 	{
-	    restrict_level(resid[lto], work[lfrom], rat, 
-		bilinear_restrictor_coarse_class(0, m_hg_terrain), lev_interface[lfrom], mg_boundary);
+	    restrict_level(resid[lto], work[lfrom], rat, bilinear_restrictor_coarse_class(0, m_hg_terrain), lev_interface[lfrom], mg_boundary);
 	}
 	else 
 	{
-	    restrict_level(resid[lto], work[lfrom], rat, 
-		bilinear_restrictor_coarse_class(1, m_hg_terrain), lev_interface[lfrom], mg_boundary);
+	    restrict_level(resid[lto], work[lfrom], rat, bilinear_restrictor_coarse_class(1, m_hg_terrain), lev_interface[lfrom], mg_boundary);
 	}
     }
     else 
@@ -773,6 +766,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 	// PARALLEL
 	for (int igrid = 0; igrid < target.length(); igrid++) 
 	{
+	    amr_interpolator_class* hgi;
 	    if (m_hg_terrain)
 	    {
 		Real *sigptr[BL_SPACEDIM];
@@ -781,8 +775,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 		    sigptr[i] = sigma[ltmp][igrid].dataPtr(i);
 		}
 		const Box& sigbox = sigma[ltmp][igrid].box();
-		interpolate_patch(target[igrid], target.box(igrid),
-		    corr[lfrom], rat, holy_grail_interpolator_class_not_cross(sigptr, sigbox), lev_interface[lfrom], 0);
+		hgi = new holy_grail_interpolator_class_not_cross(sigptr, sigbox);
 	    }
 	    else if (m_hg_full_stencil)
 	    {
@@ -792,8 +785,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 		    sigptr[i] = sigma_nd[i][ltmp][igrid].dataPtr();
 		}
 		const Box& sigbox = sigma[ltmp][igrid].box();
-		interpolate_patch(target[igrid], target.box(igrid),
-		    corr[lfrom], rat, holy_grail_interpolator_class_not_cross(sigptr, sigbox), lev_interface[lfrom], 0);
+		hgi = new holy_grail_interpolator_class_not_cross(sigptr, sigbox);
 	    }
 	    else
 	    {
@@ -803,15 +795,15 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 		    sigptr[i] = sigma_nd[i][ltmp][igrid].dataPtr();
 		}
 		const Box& sigbox = sigma_nd[0][ltmp][igrid].box();
-		interpolate_patch(target[igrid], target.box(igrid),
-		    corr[lfrom], rat, holy_grail_interpolator_class_not_cross(sigptr, sigbox), lev_interface[lfrom], 0);
+		hgi = new holy_grail_interpolator_class_not_cross(sigptr, sigbox);
 #else
 		Real *sigptr = sigma_node[ltmp][igrid].dataPtr();
 		const Box& sigbox = sigma_node[ltmp][igrid].box();
-		interpolate_patch(target[igrid], target.box(igrid),
-		    corr[lfrom], rat, holy_grail_interpolator_class(sigptr, sigbox), lev_interface[lfrom], 0);
+		hgi = new holy_grail_interpolator_class(sigptr, sigbox);
 #endif
 	    }
+	    interpolate_patch(target[igrid], target.box(igrid), corr[lfrom], rat, *hgi, lev_interface[lfrom], 0);
+	    delete hgi;
 	}
 	if (lto > ltmp) 
 	{
