@@ -1,6 +1,8 @@
 //
-// $Id: FArrayBox.cpp,v 1.44 2001-08-02 16:01:43 car Exp $
+// $Id: FArrayBox.cpp,v 1.45 2001-08-13 22:34:45 car Exp $
 //
+#include <winstd.H>
+
 #include <cstdlib>
 #include <iostream>
 #include <iomanip>
