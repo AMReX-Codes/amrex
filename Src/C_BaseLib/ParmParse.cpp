@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParmParse.cpp,v 1.6 1997-12-11 23:25:46 lijewski Exp $
+// $Id: ParmParse.cpp,v 1.7 1998-09-30 20:07:18 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -770,7 +770,12 @@ ParmParse::bldTable (const char*      str,
       case ppDouble:
       case ppString:
           if (cur_name.length() == 0)
-              BoxLib::Abort("ParmParse::bldTable(): value with no defn");
+          {
+              tokname[SCRATCH_STR_LEN-1] = 0;
+              aString msg("ParmParse::bldTable(): value with no defn: ");
+              msg += tokname;
+              BoxLib::Abort(msg.c_str());
+          }
           cur_list.append(tokname);
           break;
       }
