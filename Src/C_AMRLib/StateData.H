@@ -4,7 +4,7 @@
 #define _StateData_H_ 
 
 //
-// $Id: StateData.H,v 1.14 1999-04-13 15:28:33 lijewski Exp $
+// $Id: StateData.H,v 1.15 1999-07-15 01:37:02 sstanley Exp $
 //
 
 #include <Box.H>
@@ -193,11 +193,14 @@ public:
     //
     FArrayBox& oldGrid (int i) { return (*old_data)[i]; }
     //
-    //@ManDoc: Returns the boundary conditions of specified component.
+    //@ManDoc: Returns an array of boundary condition records for the 
+    //         specified component.  Each element in the array corresponds
+    //         to a grid in the state.
     //
     Array<BCRec>& getBCs (int comp) { return bc[comp]; }
     //
-    //@ManDoc: Returns boundary conditions of specified component and direction.
+    //@ManDoc: Returns boundary conditions of specified component on the
+    //         specified grid.
     //
     const BCRec& getBC (int comp, int i) const { return bc[comp][i]; }
     //
