@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Interpolater.cpp,v 1.16 1999-05-10 18:54:08 car Exp $
+// $Id: Interpolater.cpp,v 1.17 2000-04-05 18:22:03 sstanley Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -112,19 +112,7 @@ NodeBilinear::interp (const FArrayBox& crse,
         slope_len = slp_len;
         slope = new Real[slope_len];
     }
-    int strp_len = len0*ratio[0];
-    for (int n = 1; n < BL_SPACEDIM; n++ )
-    {
-      strp_len *= ratio[n]+1;
-    }
-    if (strip_len < strp_len)
-    {
-        delete [] strip;
-        strip_len = strp_len;
-        strip     = new Real[strip_len];
-    }
-    int strip_lo      = ratio[0] * clo[0];
-    int strip_hi      = ratio[0] * chi[0];
+
     const Real* cdat  = crse.dataPtr(crse_comp);
     Real*       fdat  = fine.dataPtr(fine_comp);
     const int* ratioV = ratio.getVect();
@@ -132,7 +120,7 @@ NodeBilinear::interp (const FArrayBox& crse,
     FORT_NBINTERP (cdat,ARLIM(clo),ARLIM(chi),ARLIM(clo),ARLIM(chi),
                    fdat,ARLIM(flo),ARLIM(fhi),ARLIM(lo),ARLIM(hi),
                    D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),&ncomp,
-                   slope,&num_slope,strip,&strip_lo,&strip_hi);
+                   slope,&num_slope);
 }
 
 CellBilinear::CellBilinear ()
