@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StationData.H,v 1.4 1998-11-29 00:21:41 lijewski Exp $
+// $Id: StationData.H,v 1.5 1998-11-29 01:33:53 lijewski Exp $
 //
 
 #ifndef _StationData_H_
@@ -66,7 +66,7 @@ public:
     //   StationData.coord    -- ditto ...
     //   StationData.rootname -- root name of output files.
     //
-    // Default rootname is: "stn"
+    // Default rootname is: "Stations/stn"
     //
     void init ();
     //
@@ -86,7 +86,7 @@ private:
     //
     //  "rootname_CPU_NNNN"
     //
-    // Default rootname is: "stn"
+    // Default rootname is: "Stations/stn"
     //
     void openFile ();
     //
