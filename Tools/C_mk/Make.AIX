@@ -3,13 +3,13 @@ FORT_CPP = /usr/ccs/lib/cpp
 
 ifeq ($(COMP),xlC)
   CXX     := xlC
-  CXXOPTF += -O2 -qrtti=all -qsuppress=1500-029
+  CXXOPTF += -O2 -qrtti=all -qsuppress=1500-029 -qmaxmem=-1
   CXXDEBF += -g
 endif
 
 ifeq ($(COMP),mpCC)
   CXX     := mpCC
-  CXXOPTF += -O2 -qrtti=all -qsuppress=1500-029
+  CXXOPTF += -O2 -qrtti=all -qsuppress=1500-029 -qmaxmem=-1
   CXXDEBF += -g
 endif
 
@@ -29,14 +29,14 @@ FC = xlf
 fC = $(FC)
 
 ifeq ($(PRECISION),FLOAT)
-  FOPTF += -O2 -qarch=auto -qtune=auto -qsuppress=1500-036
+  FOPTF += -O2 -qarch=auto -qtune=auto -qmaxmem=-1
   FDEBF += -g
-  fOPTF += -O2 -qarch=auto -qtune=auto -qsuppress=1500-036
+  fOPTF += -O2 -qarch=auto -qtune=auto -qmaxmem=-1
   fDEBF += -g
 else
-  FOPTF += -qdpc -O2 -qarch=auto -qtune=auto -qsuppress=1500-036
+  FOPTF += -qdpc -O2 -qarch=auto -qtune=auto -qmaxmem=-1
   FDEBF += -qdpc -g
-  fOPTF += -qdpc -O2 -qarch=auto -qtune=auto -qsuppress=1500-036
+  fOPTF += -qdpc -O2 -qarch=auto -qtune=auto -qmaxmem=-1
   fDEBF += -qdpc -g
 endif
 
