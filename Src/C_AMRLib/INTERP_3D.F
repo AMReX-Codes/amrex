@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_3D.F,v 1.8 1998-11-03 18:16:37 lijewski Exp $
+c $Id: INTERP_3D.F,v 1.9 2000-04-05 18:22:03 sstanley Exp $
 c
 
 #undef  BL_LANG_CC
@@ -18,28 +18,28 @@ c
 
 c ::: --------------------------------------------------------------
 c ::: nbinterp:  node based bilinear interpolation
-c ::: 
+c :::
 c ::: INPUTS/OUTPUTS
 c ::: fine        <=>  (modify) fine grid array
 c ::: DIMS(fine)   =>  (const)  index limits of fine grid
 c ::: fblo,fbhi    =>  (const)  subregion of fine grid to get values
-c ::: 
+c :::
 c ::: crse         =>  (const)  coarse grid data widened by 1 zone
 c ::: DIMS(crse)   =>  (const)  index limits of coarse grid
-c ::: 
+c :::
 c ::: lratio(3)    =>  (const)  refinement ratio between levels
 c ::: nvar         =>  (const)  number of components in array
 c ::: num_slp      =>  (const)  number of types of slopes
-c ::: 
+c :::
 c ::: TEMPORARY ARRAYS
 c ::: sl           =>  num_slp 1-D slope arrays
 c ::: strip        =>  1-D temp array
 c ::: --------------------------------------------------------------
-c ::: 
+c :::
       subroutine FORT_NBINTERP (crse, DIMS(crse), DIMS(cb),
      $                          fine, DIMS(fine), DIMS(fb),
-     $		                lratiox, lratioy, lratioz, nvar,
-     $                          sl, num_slp, strip, strip_lo, strip_hi)
+     $                          lratiox, lratioy, lratioz, nvar,
+     $                          sl, num_slp)
 
       integer DIMDEC(crse)
       integer DIMDEC(cb)
@@ -47,11 +47,9 @@ c :::
       integer DIMDEC(fb)
       integer lratiox, lratioy, lratioz, nvar
       integer num_slp
-      integer strip_lo, strip_hi
       REAL_T  fine(DIMV(fine),nvar)
       REAL_T  crse(DIMV(crse),nvar)
       REAL_T  sl(DIM1(cb),num_slp)
-      REAL_T  strip(strip_lo: strip_hi, 0:lratioy, 0:lratioz)
 
 #define  SLX 1
 #define  SLY 2
@@ -63,19 +61,18 @@ c :::
 
 c ::: local var
       integer lx, ly, lz
-      integer i,j,k,ii,jj,kk,n
+      integer i, j, k, ifn, jfn, kfn, n
       integer ilo, ihi, jlo, jhi, klo, khi
-      integer kstrt, kstop, jstrt, jstop
-      integer jratio, kratio
+      integer kstrtFine, kstopFine, jstrtFine, jstopFine, istrtFine, istopFine
 
       REAL_T fx, fy,fz
       REAL_T RX, RY, RZ, RXY, RXZ, RYZ, RXYZ
       REAL_T dx00, d0x0, d00x, dx10, dx01, d0x1, dx11
       REAL_T slope
 
-      slope(i,j,k,n,fx,fy,fz) = crse(i,j,k,n) + 
+      slope(i,j,k,n,fx,fy,fz) = crse(i,j,k,n) +
      &     fx*sl(i,SLX) + fy*sl(i,SLY) + fz*sl(i,SLZ) +
-     &	   fx*fy*sl(i,SLXY) + fx*fz*sl(i,SLXZ) + fy*fz*sl(i,SLYZ) +
+     &     fx*fy*sl(i,SLXY) + fx*fz*sl(i,SLXZ) + fy*fz*sl(i,SLYZ) +
      &     fx*fy*fz*sl(i,SLXYZ)
 
       RX = one/dfloat(lratiox)
@@ -86,288 +83,129 @@ c ::: local var
       RYZ = RY*RZ
       RXYZ = RX*RY*RZ
 
-      ilo = max( ARG_L1(cb)*lratiox, ARG_L1(fine) )
-      ihi = min( ARG_H1(cb)*lratiox, ARG_H1(fine) )
-
+c
+c     NOTES:
+c         1) (i, j, k) loop over the coarse cells
+c         2) ?strtFine and ?stopFine are the beginning and ending fine cell
+c            indices corresponding to the current coarse cell.  ?stopFine
+c            is restricted for the last coarse cell in each direction since
+c            for this cell we only need to do the face and not the fine nodes
+c            inside this cell.
+c         3) (lx, ly, lz) as well as ?lo and ?hi refer to the fine node indices
+c            as an offset from ?strtFine.
+c
       do 100 n = 1, nvar
-        do 110 k = ARG_L3(cb), ARG_H3(cb)-1
-          kratio = lratioz-1
-          if (k .eq. ARG_H3(cb)-1) kratio = lratioz
-	  do 120 j = ARG_L2(cb), ARG_H2(cb)-1
-            jratio = lratioy-1
-            if (j .eq. ARG_H2(cb)-1) jratio = lratioy
+        do 110 k = ARG_L3(cb), ARG_H3(cb)
+          kstrtFine = k * lratioz
+          kstopFine = kstrtFine + lratioz - 1
+          if (k .eq. ARG_H3(cb)) kstopFine = kstrtFine
 
-c	    ::::: compute slopes           
-	    do i = ARG_L1(cb), ARG_H1(cb)-1
-	      dx00 = crse(i+1,j,k,n) - crse(i,j,k,n)
-	      d0x0 = crse(i,j+1,k,n) - crse(i,j,k,n)
-	      d00x = crse(i,j,k+1,n) - crse(i,j,k,n)
+          klo = max(ARG_L3(fb),kstrtFine) - kstrtFine
+          khi = min(ARG_H3(fb),kstopFine) - kstrtFine
 
-	      dx10 = crse(i+1,j+1,k,n) - crse(i,j+1,k,n)
-	      dx01 = crse(i+1,j,k+1,n) - crse(i,j,k+1,n)
-	      d0x1 = crse(i,j+1,k+1,n) - crse(i,j,k+1,n)
+          do 120 j = ARG_L2(cb), ARG_H2(cb)
+            jstrtFine = j * lratioy
+            jstopFine = jstrtFine + lratioy - 1
+            if (j .eq. ARG_H2(cb)) jstopFine = jstrtFine
 
-	      dx11 = crse(i+1,j+1,k+1,n) - crse(i,j+1,k+1,n)
+            jlo = max(ARG_L2(fb),jstrtFine) - jstrtFine
+            jhi = min(ARG_H2(fb),jstopFine) - jstrtFine
 
-	      sl(i,SLX) = RX*dx00
-	      sl(i,SLY) = RY*d0x0
-	      sl(i,SLZ) = RZ*d00x
-	      
-	      sl(i,SLXY) = RXY*(dx10 - dx00)
-	      sl(i,SLXZ) = RXZ*(dx01 - dx00)
-	      sl(i,SLYZ) = RYZ*(d0x1 - d0x0)
 
-	      sl(i,SLXYZ) = RXYZ*(dx11 - dx01 - dx10 + dx00)
-	      
-	    end do
+c
+c           ::::: compute slopes :::::
+c
+c           NOTE: The IF logic in the calculation of the slopes is to
+c                 prevent stepping out of bounds on the coarse data when
+c                 computing the slopes on the ARG_H?(cb) cells.  These
+c                 slopes actually are not used since they are multiplied by
+c                 zero.
+c
+            do i = ARG_L1(cb), ARG_H1(cb)
+              dx00 = zero
+              if (i .NE. ARG_H1(cb)) dx00 = crse(i+1,j,k,n) - crse(i,j,k,n)
 
-c	    ::::: compute fine strip of interpolated data
-	    do lz = 0, lratioz-1
-	      kk = lratioz*k + lz
-	      fz = dfloat(lz)
-	      do ly = 0, lratioy-1
-	        jj = lratioy*j + ly
-	        fy = dfloat(ly)
-	        do lx = 0, lratiox-1
-	        do i = ARG_L1(cb), ARG_H1(cb)-1
-		   ii = lratiox*i + lx
-		   fx = dfloat(lx)
-		   strip(ii,ly,lz) = slope(i,j,k,n,fx,fy,fz)
-	        end do
-	        end do
+              d0x0 = zero
+              if (j .NE. ARG_H2(cb)) d0x0 = crse(i,j+1,k,n) - crse(i,j,k,n)
 
-c               Here do max value of i
-	        i = ARG_H1(cb)
-	        ii = i*lratiox
-	        d0x0 = crse(i,j+1,k,n) - crse(i,j,k,n)
-	        d00x = crse(i,j,k+1,n) - crse(i,j,k,n)
-	        d0x1 = crse(i,j+1,k+1,n) - crse(i,j,k+1,n)
-	        strip(ii,ly,lz) = crse(i,j,k,n) +
-     &                            fy*RY*d0x0 + fz*RZ*d00x +
-     &	                          fy*fz*RYZ*(d0x1 - d0x0)
-	      end do
+              d00x = zero
+              if (k .NE. ARG_H3(cb)) d00x = crse(i,j,k+1,n) - crse(i,j,k,n)
 
-c             Here do max value of j
-              if (j .eq. ARG_H2(cb)-1) then
-                jj = (j+1)*lratioy
-                ly = lratioy
+              dx10 = zero
+              if (i .NE. ARG_H1(cb) .and. j .NE. ARG_H2(cb))
+     $          dx10 = crse(i+1,j+1,k,n) - crse(i,j+1,k,n)
 
-                do lx = 0, lratiox-1
-                do i = ARG_L1(cb), ARG_H1(cb)-1
-                   ii = lratiox*i + lx
-                   fx = dfloat(lx)
-	           dx00 = crse(i+1,j+1,k,n) - crse(i,j+1,k,n)
-	           d00x = crse(i,j+1,k+1,n) - crse(i,j+1,k,n)
-	           dx01 = crse(i+1,j+1,k+1,n) - crse(i,j+1,k+1,n)
-                   strip(ii,ly,lz) = crse(i,j+1,k,n) +
-     &                               fx*RX*dx00 + fz*RZ*d00x +
-     &	                             fx*fz*RXZ*(dx01 - dx00)
+              dx01 = zero
+              if (i .NE. ARG_H1(cb) .and. k .NE. ARG_H3(cb))
+     $          dx01 = crse(i+1,j,k+1,n) - crse(i,j,k+1,n)
+
+              d0x1 = zero
+              if (j .NE. ARG_H2(cb) .and. k .NE. ARG_H3(cb))
+     $          d0x1 = crse(i,j+1,k+1,n) - crse(i,j,k+1,n)
+
+              dx11 = zero
+              if (i .NE. ARG_H1(cb) .and. j .NE. ARG_H2(cb)
+     $                              .and. k .NE. ARG_H3(cb)) 
+     $          dx11 = crse(i+1,j+1,k+1,n) - crse(i,j+1,k+1,n)
+
+              sl(i,SLX) = RX*dx00
+              sl(i,SLY) = RY*d0x0
+              sl(i,SLZ) = RZ*d00x
+
+              sl(i,SLXY) = RXY*(dx10 - dx00)
+              sl(i,SLXZ) = RXZ*(dx01 - dx00)
+              sl(i,SLYZ) = RYZ*(d0x1 - d0x0)
+
+              sl(i,SLXYZ) = RXYZ*(dx11 - dx01 - dx10 + dx00)
+            end do
+
+c
+c           ::::: compute fine strip of interpolated data
+c
+            do lz = klo, khi
+              kfn = lratioz * k + lz
+              fz = dfloat(lz)
+
+              do ly = jlo, jhi
+                jfn = lratioy * j + ly
+                fy = dfloat(ly)
+
+                do i = ARG_L1(cb), ARG_H1(cb)
+                  istrtFine = i * lratiox
+                  istopFine = istrtFine + lratiox - 1
+                  if (i .eq. ARG_H1(cb)) istopFine = istrtFine
+
+                  ilo = max(ARG_L1(fb),istrtFine) - istrtFine
+                  ihi = min(ARG_H1(fb),istopFine) - istrtFine
+
+                  do lx = ilo, ihi
+                    ifn = lratiox * i + lx
+                    fx = dfloat(lx)
+
+                    fine(ifn,jfn,kfn,n) = slope(i,j,k,n,fx,fy,fz)
+                  end do
                 end do
-                end do
+              end do
+            end do
 
-c               Here do max value of i and j
-                i = ARG_H1(cb)
-                ii = i*lratiox
-                d00x = crse(i,j+1,k+1,n) - crse(i,j+1,k,n)
-                strip(ii,ly,lz) = crse(i,j+1,k,n) + fz*RZ*d00x
-	      end if
-
-	    end do
-
-c           Here do max value of k
-            if (k .eq. ARG_H3(cb)-1) then
-	      kk = (k+1)*lratioz
-              lz = lratioz
-
-	      do ly = 0, lratioy-1
-	        jj = lratioy*j + ly
-	        fy = dfloat(ly)
-	        do lx = 0, lratiox-1
-	        do i = ARG_L1(cb), ARG_H1(cb)-1
-		   ii = lratiox*i + lx
-		   fx = dfloat(lx)
-	           dx00 = crse(i+1,j,k+1,n) - crse(i,j,k+1,n)
-	           d0x0 = crse(i,j+1,k+1,n) - crse(i,j,k+1,n)
-	           dx10 = crse(i+1,j+1,k+1,n) - crse(i,j+1,k+1,n)
-		   strip(ii,ly,lz) = crse(i,j,k+1,n) +
-     &                               fx*RX*dx00 + fy*RY*d0x0 +
-     &	                             fx*fy*RXY*(dx10 - dx00)
-	        end do
-	        end do
-
-c               Here do max values of i and k
-	        i = ARG_H1(cb)
-	        ii = i*lratiox
-	        d0x0 = crse(i,j+1,k+1,n) - crse(i,j,k+1,n)
-	        strip(ii,ly,lz) = crse(i,j,k+1,n) + fy*RY*d0x0 
-	      end do
-
-c             Here do max values of j and k
-              if (j .eq. ARG_H2(cb)-1) then
-                jj = (j+1)*lratioy
-                do lx = 0, lratiox-1
-                do i = ARG_L1(cb), ARG_H1(cb)-1
-                   ii = lratiox*i + lx
-                   fx = dfloat(lx)
-	           dx00 = crse(i+1,j+1,k+1,n) - crse(i,j+1,k+1,n)
-                   strip(ii,ly,lz) = crse(i,j+1,k+1,n) + fx*RX*dx00
-                end do
-                end do
-
-c               Here do max value of i and j and k
-                i = ARG_H1(cb)
-                ii = i*lratiox
-                strip(ii,ly,lz) = crse(i,j+1,k+1,n)
-	      end if
-
-            end if
-c           end of max value of k
-
-c	    ::::: copy onto output array
-	    kstrt = k*lratioz
-	    kstop = kstrt + kratio
-	    klo = max(ARG_L3(fine),kstrt) - kstrt
-	    khi = min(ARG_H3(fine),kstop) - kstrt
-	    do lz = klo, khi
-	      kk = lratioz*k + lz
-	      jstrt = j*lratioy
-	      jstop = jstrt + jratio
-	      jlo = max(ARG_L2(fine),jstrt) - jstrt
-	      jhi = min(ARG_H2(fine),jstop) - jstrt
-	      do ly = jlo, jhi
-	        jj = lratioy*j + ly
-  	        do ii = ilo, ihi
-	           fine(ii,jj,kk,n) = strip(ii,ly,lz)
-	        end do  
-	      end do
-	    end do
-
-c         ::::: end of do k
+c         ::::: end of do j
 120       continue
-c       ::::: end of do j
+c       ::::: end of do k
 110     continue
 c     ::::: end of do n
 100   continue
 
-#undef  SLX 
-#undef  SLY 
-#undef  SLZ 
+#undef  SLX
+#undef  SLY
+#undef  SLZ
 #undef  SLXY
-#undef  SLXZ 
-#undef  SLYZ 
-#undef  SLXYZ 
+#undef  SLXZ
+#undef  SLYZ
+#undef  SLXYZ
 
+      return
       end
 
-#if 0
-c ::: --------------------------------------------------------------
-c ::: THIS IS A SCALAR VERSION OF THE ABOVE CODE
-c ::: --------------------------------------------------------------
-      subroutine FORT_NBINTERP2 (crse, DIMS(crse), DIMS(cb),
-     $                           fine, DIMS(fine), DIMS(fb),
-     $		                 lratiox, lratioy, lratioz, nvar,
-     $                           sl, num_slp, strip, strip_lo, strip_hi)
-
-      integer DIMDEC(crse)
-      integer DIMDEC(cb)
-      integer DIMDEC(fine)
-      integer DIMDEC(fb)
-      integer lratiox, lratioy, lratioz, nvar
-      integer num_slp
-      integer strip_lo, strip_hi
-      REAL_T fine(DIMV(fine),nvar)
-      REAL_T crse(DIMV(crse),nvar)
-      REAL_T strip(strip_lo:strip_hi,0:lratioy,0:lratioz)
-      REAL_T sl(DIM1(cb),num_slp)
-
-c ::: local var
-      integer ioff, joff, koff
-      integer i, j, k, ic, jc, kc, n
-      integer ilo, ihi, jlo, jhi, klo, khi
-      integer iratio, jratio, kratio
-      integer kstrt, kstop, jstrt, jstop, istrt, istop
-
-      REAL_T fx, fy,fz
-      REAL_T sx, sy, sz, sxy, sxz, syz, sxyz
-      REAL_T RX, RY, RZ, RXY, RXZ, RYZ, RXYZ
-      REAL_T dx00, d0x0, d00x, dx10, dx01, d0x1, dx11
-
-      RX = one/dfloat(lratiox)
-      RY = one/dfloat(lratioy)
-      RZ = one/dfloat(lratioz)
-      RXY = RX*RY
-      RXZ = RX*RZ
-      RYZ = RY*RZ
-      RXYZ = RX*RY*RZ
-
-      do n = 1, nvar
-      do kc = ARG_L3(cb), ARG_H3(cb)-1
-         kratio = lratioz-1
-         if (kc .eq. ARG_H3(cb)-1) kratio = lratioz
-	 kstrt = kc*lratioz
-	 kstop = kstrt + kratio
-	 klo = max(ARG_L3(fine),kstrt) - kstrt
-	 khi = min(ARG_H3(fine),kstop) - kstrt
-      do jc = ARG_L2(cb), ARG_H2(cb)-1
-	 jratio = lratioy-1
-	 if (jc .eq. ARG_H2(cb)-1) jratio = lratioy
-         jstrt = jc*lratioy
-	 jstop = jstrt + jratio
-	 jlo = max(ARG_L2(fine),jstrt) - jstrt
-	 jhi = min(ARG_H2(fine),jstop) - jstrt
-
-      do ic = ARG_L1(cb), ARG_H1(cb)-1
-	 iratio = lratiox-1
-	 if (ic .eq. ARG_H1(cb)-1) iratio = lratiox
-         istrt = ic*lratiox
-	 istop = istrt + iratio
-	 ilo = max(ARG_L1(fine),istrt) - istrt
-	 ihi = min(ARG_H1(fine),istop) - istrt
-
-c        ::::: compute slopes
-	 dx00 = crse(ic+1,jc,kc,n) - crse(ic,jc,kc,n)
-	 d0x0 = crse(ic,jc+1,kc,n) - crse(ic,jc,kc,n)
-	 d00x = crse(ic,jc,kc+1,n) - crse(ic,jc,kc,n)
-
-	 dx10 = crse(ic+1,jc+1,kc,n) - crse(ic,jc+1,kc,n)
-	 dx01 = crse(ic+1,jc,kc+1,n) - crse(ic,jc,kc+1,n)
-	 d0x1 = crse(ic,jc+1,kc+1,n) - crse(ic,jc,kc+1,n)
-
-	 dx11 = crse(ic+1,jc+1,kc+1,n) - crse(ic,jc+1,kc+1,n)
-
-	 sx = RX*dx00
-	 sy = RY*d0x0
-	 sz = RZ*d00x
-	 sxy = RXY*(dx10 - dx00)
-	 sxz = RXY*(dx01 - dx00)
-	 syz = RXY*(d0x1 - d0x0)
-	 sxyz = RXYZ*(dx11 - dx01 - dx10 + dx00)
-
-c        ::::: interpolate to fine grid
-         do koff = klo, khi
-	   k = lratioz*kc + koff
-	   fz = dfloat(koff)
-	   do joff = jlo, jhi
-	      j = lratioy*jc + joff
-	      fy = dfloat(joff)
-	      do ioff = ilo, ihi
-	         i = lratiox*ic + ioff
-		 fx = dfloat(ioff)
-		 fine(i,j,k,n) = crse(ic,jc,kc,n) +
-     $		   fx*sx + fy*sy + fz*sz +
-     $		   fx*fy*sxy + fx*fz*sxz + fy*fz*syz +
-     $		   fx*fy*fz*sxyz
-	      end do
-	   end do
-	 end do	          
-
-      end do
-      end do
-      end do
-      end do
-
-      end
-#endif
 
 c ::: 
 c ::: --------------------------------------------------------------

@@ -2,7 +2,7 @@
 #define _INTERP_NAMES_H
 
 /*
-** $Id: INTERP_F.H,v 1.8 1999-04-05 17:39:20 car Exp $
+** $Id: INTERP_F.H,v 1.9 2000-04-05 18:22:03 sstanley Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -53,8 +53,7 @@ extern "C"
                         Real* fine, ARLIM_P(flo), ARLIM_P(fhi),
                         ARLIM_P(fblo), ARLIM_P(fbhi),
                         D_DECL(const int* lrx,const int* lry,const int* lrz),
-                        const int* nvar, Real* slope, const int* num_slope,
-                        Real* strip, const int* strip_lo, const int* strip_hi);
+                        const int* nvar, Real* slope, const int* num_slope);
       
     void FORT_CBINTERP (const Real* crse, ARLIM_P(clo), ARLIM_P(chi),
                         ARLIM_P(cblo), ARLIM_P(cbhi),
