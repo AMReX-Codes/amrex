@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.34 1998-05-15 18:13:12 lijewski Exp $
+// $Id: TagBox.cpp,v 1.35 1998-05-22 21:46:01 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -486,6 +486,7 @@ TagBoxArray::mergeUnique ()
     }
     facd.CollectData();
 
+    TagBox            src;
     FabComTag         tbmdClear;
     vector<FabComTag> clearList;
 
@@ -495,7 +496,7 @@ TagBoxArray::mergeUnique ()
 
         if (desc.destLocal)
         {
-            TagBox src(desc.overlapBox);
+            src.resize(desc.overlapBox);
 
             facd.FillFab(faid, desc.fillBoxId, src);
 
@@ -671,7 +672,7 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
     facd.CollectData();
 
-    TagBox tagtmp;
+    TagBox src;
 
     for (int i = 0, iFillBox = 0; i < fabparray.length(); i++)
     {
@@ -704,7 +705,7 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
                         if (intbox.ok())
                         {
                             FillBoxId fillboxid = fillBoxId[iFillBox++];
-                            TagBox src(fillboxid.box(), n_comp);
+                            src.resize(fillboxid.box(), n_comp);
                             facd.FillFab(faid, fillboxid, src);
                             src.shift(iv);
                             fabparray[j].merge(src);

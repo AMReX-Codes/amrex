@@ -4,7 +4,7 @@
 #define _TagBox_H_
 
 //
-// $Id: TagBox.H,v 1.10 1998-05-06 17:50:52 lijewski Exp $
+// $Id: TagBox.H,v 1.11 1998-05-22 21:46:01 lijewski Exp $
 //
 
 #include <IntVect.H>
@@ -65,7 +65,10 @@ public:
     //
     //@ManDoc: Resize the box on which the TagBox is defined.
     //
-    void resize (const Box& b) { BaseFab<TagType>::resize(b,1); }
+    void resize (const Box& b, int ncomp=1)
+    {
+        BaseFab<TagType>::resize(b,ncomp);
+    }
 
     /*@ManDoc: Construct and return a new tagbox in which the coarsened cell
                is tagged of any of the corresponding fine cells are tagged.
