@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CArena.cpp,v 1.7 1998-02-09 20:46:53 lijewski Exp $
+// $Id: CArena.cpp,v 1.8 1998-02-09 22:02:14 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -87,37 +87,43 @@ CArena::alloc (size_t nbytes)
             //
             // Add leftover chunk to free list.
             //
+            // Insert with a hint -- should be largest block in the set.
+            //
             void* block = static_cast<char*>(vp) + nbytes;
 
-            m_freelist.insert(Node(block, m_hunk - nbytes));
+            m_freelist.insert(m_freelist.end(), Node(block, m_hunk-nbytes));
         }
     }
     else
     {
         assert((*free_it).size() >= nbytes);
 
-        Node freeblock = *free_it;
+        assert(m_busylist.find(*free_it) == m_busylist.end());
 
-        m_freelist.erase(free_it);
+        vp = (*free_it).block();
 
-        vp = freeblock.block();
-
-        if (freeblock.size() > nbytes)
+        if ((*free_it).size() > nbytes)
         {
             //
             // Insert remainder of free block back into freelist.
             //
+            // Insert with a hint -- right after the current block being split.
+            //
+            Node freeblock = *free_it;
+
             freeblock.size(freeblock.size() - nbytes);
 
             freeblock.block(static_cast<char*>(vp) + nbytes);
 
-            m_freelist.insert(freeblock);
+            m_freelist.insert(free_it, freeblock);
         }
+
+        m_freelist.erase(free_it);
     }
 
-    assert(!(vp == 0));
-
     m_busylist.insert(Node(vp, nbytes));
+
+    assert(!(vp == 0));
 
     return vp;
 }
@@ -137,9 +143,11 @@ CArena::free (void* vp)
 
     assert(!(busy_it == m_busylist.end()));
 
-    void* free_block = static_cast<char*>((*busy_it).block());
+    assert(m_freelist.find(*busy_it) == m_freelist.end());
+
+    void* freeblock = static_cast<char*>((*busy_it).block());
     //
-    // Put free'd block on the free list and save iterator to it.
+    // Put free'd block on free list and save iterator to insert()ed position.
     //
     pair<NL::iterator,bool> pair_it = m_freelist.insert(*busy_it);
 
@@ -147,7 +155,7 @@ CArena::free (void* vp)
 
     NL::iterator free_it = pair_it.first;
 
-    assert(free_it != m_freelist.end() && (*free_it).block() == free_block);
+    assert(free_it != m_freelist.end() && (*free_it).block() == freeblock);
     //
     // And remove from busy list.
     //
@@ -158,9 +166,7 @@ CArena::free (void* vp)
     if (!(free_it == m_freelist.begin()))
     {
         NL::iterator lo_it = free_it;
-
         --lo_it;
-
         void* addr = static_cast<char*>((*lo_it).block()) + (*lo_it).size();
 
         if (addr == (*free_it).block())
@@ -177,13 +183,9 @@ CArena::free (void* vp)
             // back into the same place in the set.
             //
             Node* node = const_cast<Node*>(&(*lo_it));
-
             assert(!(node == 0));
-
             node->size((*lo_it).size() + (*free_it).size());
-
             m_freelist.erase(free_it);
-
             free_it = lo_it;
         }
     }
@@ -198,11 +200,8 @@ CArena::free (void* vp)
         // Ditto the above comment.
         //
         Node* node = const_cast<Node*>(&(*free_it));
-
         assert(!(node == 0));
-
         node->size((*free_it).size() + (*hi_it).size());
-
         m_freelist.erase(hi_it);
     }
 }
