@@ -78,8 +78,7 @@ contains
     integer :: i
     call build(mba, mbai%nlevel, mbai%dim)
     mba%pd = mbai%pd
-    !! FIXME: TOTALVIEW
-    if ( associated(mba%rr) ) mba%rr = mbai%rr
+    mba%rr = mbai%rr
     do i = 1, mba%nlevel
        call copy(mba%bas(i), mbai%bas(i))
     end do
@@ -107,10 +106,7 @@ contains
        call bl_error("MBOXARRAY_ALLOC_RR: rr already allocated")
     end if
     mba%dim = dim
-    !! FIXME: TOTALVIEW
-    if ( mba%nlevel-1 > 0 ) then
-       allocate(mba%rr(mba%nlevel-1,mba%dim))
-    end if
+    allocate(mba%rr(mba%nlevel-1,mba%dim))
   end subroutine mboxarray_alloc_rr
 
   subroutine mboxarray_build_ba(mba, ba, pd)
@@ -120,9 +116,7 @@ contains
 
     mba%nlevel = 1
     mba%dim = ba%dim
-    !! FIXME: TOTALVIEW
-    allocate(mba%bas(1), mba%pd(1))
-    ! allocate(mba%rr(0,mba%dim), mba%bas(1), mba%pd(1))
+    allocate(mba%rr(0,mba%dim), mba%bas(1), mba%pd(1))
     call boxarray_build_copy(mba%bas(1), ba)
     if ( present(pd) ) then
        mba%pd(1) = pd
@@ -140,8 +134,7 @@ contains
           call boxarray_destroy(mba%bas(i))
        end do
        deallocate(mba%bas, mba%pd)
-       !! FIXME: TOTALVIEW
-       if ( associated(mba%rr) ) deallocate(mba%rr)
+       deallocate(mba%rr)
        call mem_stats_dealloc(mboxarray_ms)
     end if
   end subroutine mboxarray_destroy

@@ -165,7 +165,7 @@ contains
     real(kind=dp_t), intent(in) :: val
     logical, intent(in), optional :: all
     integer :: i, f
-    do i = 1,br%dim
+    do i = 1, br%dim
        do f = 0, 1
           call setval(br%bmf(i,f), val, all=all)
        end do

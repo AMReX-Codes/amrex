@@ -218,7 +218,7 @@ contains
     interface
        subroutine wall_second(s)
          use bl_types
-         real(kind=dp_t) s
+         real(kind=dp_t), intent(out) :: s
        end subroutine wall_second
     end interface
     call wall_second(r)
@@ -228,7 +228,7 @@ contains
     interface
        subroutine wall_second_tick(s)
          use bl_types
-         real(kind=dp_t) s
+         real(kind=dp_t), intent(out) :: s
        end subroutine wall_second_tick
     end interface
     call wall_second_tick(r)
