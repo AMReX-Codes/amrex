@@ -281,7 +281,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 	// multigrid purposes.  This simplifies handling as we do not
 	// need to maintain separate arrays for different purposes.
 	
-	int ncomp = 2 * BL_SPACEDIM - 1;
+	const int ncomp = 2 * BL_SPACEDIM - 1;
 	
 	sigma.resize(mglev_max+1);
 	
@@ -297,7 +297,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 		for (MultiFabIterator s_mfi(s_in); s_mfi.isValid(); ++s_mfi)
 		{
 		    DependentMultiFabIterator t_dmfi(s_mfi, target);
-		    t_dmfi->copy(s_mfi(), s_mfi.validbox(), 0, t_dmfi.validbox(), 0, ncomp);    // FIXME???
+		    t_dmfi->copy(s_mfi(), s_mfi.validbox(), 0, t_dmfi.validbox(), 0, ncomp);
 		}
 	    }
 	}
