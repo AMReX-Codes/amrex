@@ -3,28 +3,16 @@
 
 #include "amr_multi.H"
 
-//#ifndef HG_CONSTANT
-
-#ifndef HG_TERRAIN
-#  if (BL_SPACEDIM == 3)
-#    define HG_SIGMA_NODE
-#  endif
-#endif
-
-#  ifndef HG_SIGMA_NODE
-
-class holy_grail_interpolator_class : public bilinear_interpolator_class 
+class holy_grail_interpolator_class_not_cross : public bilinear_interpolator_class 
 {
 public:
-    holy_grail_interpolator_class(Real **Sigptr, const Box& Sigbox)
+    holy_grail_interpolator_class_not_cross(Real **Sigptr, const Box& Sigbox)
 	: sigptr(Sigptr), sigbox(Sigbox) { }
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& cgr, const Box& cb, const IntVect& rat) const;
 protected:
     Real **sigptr;
     const Box& sigbox;
 };
-
-#  else
 
 class holy_grail_interpolator_class : public bilinear_interpolator_class 
 {
@@ -37,18 +25,17 @@ protected:
     const Box& sigbox;
 };
 
-#  endif
-
 class holy_grail_sigma_restrictor_class : public cell_average_restrictor_class 
 {
 public:
-    holy_grail_sigma_restrictor_class() : cell_average_restrictor_class(0) { }
+    holy_grail_sigma_restrictor_class() : cell_average_restrictor_class(0), m_hg_terrain(false) { }
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
+private:
+    bool m_hg_terrain;
 };
 
 //const holy_grail_sigma_restrictor_class holy_grail_sigma_restrictor_class;
 
-//#endif
 
 class holy_grail_amr_multigrid : public amr_multigrid 
 {
@@ -61,8 +48,11 @@ public:
 	: amr_multigrid(Mesh, Gen_ratio, Lev_min_min, Lev_min_max, Lev_max_max,
 	Boundary.pressure(), Pcode),
 	boundary(Boundary), smoother_mode(2), line_solve_dim(-1), m_use_cache(use_cache),
-	m_hg_constant(false), m_hg_terrain(false), m_hg_sigma_node(true)
+	m_hg_terrain(false),
+	m_hg_cross_stencil(true),
+	m_hg_full_stencil(false)
     {
+	assert( !(BL_SPACEDIM==3 && m_hg_full_stencil) );
 	build_mesh(fdomain);
     }
     void set_line_solve_dimension(int dim)
@@ -79,9 +69,9 @@ protected:
 	Real H[], int Lev_min, int Lev_max, bool use_cache);
     void clear();
     
-    bool m_hg_constant;	// false
     bool m_hg_terrain; // false
-    bool m_hg_sigma_node; // true
+    bool m_hg_cross_stencil;
+    bool m_hg_full_stencil;
     bool m_use_cache;
     int smoother_mode;
     int line_solve_dim;

@@ -106,9 +106,7 @@ void holy_grail_amr_projector::project(PArray<MultiFab>* u,
     if (Lev_max < 0)
 	Lev_max = Lev_min;
     
-#ifndef HG_CONSTANT
     assert(Sigma.length() > 0);
-#endif
     
     assert(u[      0      ][Lev_min].nGrow() == 1);
     assert(u[      1      ][Lev_min].nGrow() == 1);
@@ -139,9 +137,7 @@ void holy_grail_amr_projector::sync_project(PArray<MultiFab>* u,
     if (Lev_max < 0)
 	Lev_max = Lev_min;
     
-#ifndef HG_CONSTANT
     assert(Sigma.length() > 0);
-#endif
     
     assert(u[      0      ][Lev_min].nGrow() == 1);
     assert(u[      1      ][Lev_min].nGrow() == 1);
@@ -174,9 +170,7 @@ void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u,
     if (Lev_max < 0)
 	Lev_max = Lev_min;
     
-#ifndef HG_CONSTANT
     assert(Sigma.length() > 0);
-#endif
     
     if (use_u) 
     {
@@ -1222,9 +1216,7 @@ void holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u, const P
 #ifndef HG_TERRAIN
 		for (int i = 0; i < BL_SPACEDIM; i++) 
 		{
-#  ifndef HG_CONSTANT
 		    gp[i].mult(sigma_in[lev][igrid]);
-#  endif
 		    u[i][lev][igrid].minus(gp[i]);
 		}
 #else
