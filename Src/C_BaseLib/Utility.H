@@ -4,7 +4,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.16 1997-12-15 17:00:52 lijewski Exp $
+// $Id: Utility.H,v 1.17 1997-12-17 18:09:34 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -183,10 +183,12 @@ public:
     //
     // A good random number generator.  Returns values in (0,1).
     //
-    // Ths following are the original random variations from
-    // "Random Number Generators: Good Ones Are Hard To Find",
-    // Stephen K. Park and Keith W. Miller, "Communications of the ACM",
-    // October 1988 Volume 31 Number 10, pages 1192 - 1201.
+    // Reference:
+    //
+    //   Random Number Generators: Good Ones Are Hard To Find,
+    //   Stephen K. Park and Keith W. Miller,
+    //   Communications of the ACM,
+    //   October 1988 Volume 31 Number 10, pages 1192 - 1201.
     //
     // There is also an entry point for Fortran callable as:
     //
@@ -196,7 +198,7 @@ public:
     static double Random ();
     //
     // Set the seed of the above random number generator to any
-    // integer other than zero.
+    // integer other than zero and 2147483647 (2^31-1).
     //
     static void InitRandom (int seed);
 };

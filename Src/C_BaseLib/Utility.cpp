@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.17 1997-12-15 17:00:54 lijewski Exp $
+// $Id: Utility.cpp,v 1.18 1997-12-17 18:09:33 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -356,6 +356,7 @@ void
 Utility::InitRandom (int seed)
 {
     assert(seed != 0);
+    assert(seed != 2147483647);
     The_Random_Seed = seed;
 }
 
