@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: aString.cpp,v 1.3 1997-12-11 23:25:50 lijewski Exp $
+// $Id: aString.cpp,v 1.4 1998-02-12 16:56:08 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -202,13 +202,17 @@ aString::getline (istream& is)
     int       index = 0;
 
     *this = "";
-
     //
     // Get those characters.
+    // We read the newline but don't add it to the string.
     //
-    while (is.get(c) && c != '\n')
+    while (is.get(c))
     {
+        if (c == '\n')
+            break;
+
         buf[index++] = c;
+
         if (index == BufferSize)
         {
             buf[BufferSize] = 0;
@@ -216,11 +220,10 @@ aString::getline (istream& is)
             index = 0;
         }
     }
-    is.putback(c);
     buf[index] = 0;
     *this += buf;
 
-    if (is.fail())
+    if (!(is || is.eof()))
         BoxLib::Abort("aString::getline(istream&) failed");
 
     return is;
