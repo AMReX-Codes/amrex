@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MCLinOp.cpp,v 1.12 1999-08-06 21:48:36 propp Exp $
+// $Id: MCLinOp.cpp,v 1.13 1999-08-25 17:52:33 lijewski Exp $
 //
 // Differences from LinOp: den has nc components, bct has nc components.
 //
@@ -129,10 +129,12 @@ MCLinOp::initConstruct (const Real* _h)
     {
         maskvals[level][i].resize(2*BL_SPACEDIM, (Mask*)0);
     }
-    int myproc = ParallelDescriptor::MyProc();
-    for (OrientationIter oitr; oitr; oitr++)
+
+    const int myproc = ParallelDescriptor::MyProc();
+
+    for (OrientationIter oitr; oitr; ++oitr)
     {
-        Orientation face = oitr();
+        Orientation face    = oitr();
         const FabSet& bndry = bgb[face];
         for (int i = 0; i < gbox[level].length(); i++)
         {
@@ -200,6 +202,7 @@ MCLinOp::applyBC (MultiFab& inout,
     // Fill boundary cells.
     //
     OrientationIter oitr;
+
     while (oitr)
     {
 	const Array<Array<BoundCond> > &b = bgb.bndryConds(oitr());
@@ -214,7 +217,7 @@ MCLinOp::applyBC (MultiFab& inout,
             DependentFabSetIterator ffsi(inoutmfi, f);
             DependentFabSetIterator tdfsi(inoutmfi, td);
             DependentFabSetIterator fsfsi(inoutmfi, fs);
-	    int gn = inoutmfi.index();
+	    const int gn = inoutmfi.index();
 	    BL_ASSERT(gbox[level][inoutmfi.index()] == inoutmfi.validbox());
 	    Real bcl(r[gn]);
 	    const int *bct = (const int *)b[gn].dataPtr();
@@ -285,7 +288,7 @@ MCLinOp::applyBC (MultiFab& inout,
 		&nc, h[level]);
 #endif
 	}
-	oitr++;
+	++oitr;
     }
 }
     
@@ -297,6 +300,7 @@ MCLinOp::residual (MultiFab&       residL,
 		   MCBC_Mode       bc_mode)
 {
     apply(residL, solnL, level, bc_mode);
+
     for (MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
     {
         DependentMultiFabIterator residLmfi(solnLmfi, residL);
@@ -359,11 +363,11 @@ MCLinOp::clearToLevel (int level)
 void
 MCLinOp::prepareForLevel (int level)
 {
-    if (level == 0)
-	return;
+    if (level == 0) return;
+
     MCLinOp::prepareForLevel(level-1);
-    if (h.length() > level)
-	return;
+
+    if (h.length() > level) return;
     //
     // Assume from here down that this is a new level one coarser than existing
     //
@@ -397,9 +401,7 @@ MCLinOp::prepareForLevel (int level)
     // Figure out how many components.
     //
     const FabSet& samplefs = (*tangderiv[level-1])[Orientation(0,Orientation::low)];
-    ConstFabSetIterator samplefsi(samplefs);
-    int ntdcomp = samplefsi().nComp();
-    tangderiv[level] = new BndryRegister(gbox[level], 0, 1, 0, ntdcomp);
+    tangderiv[level] = new BndryRegister(gbox[level],0,1,0,samplefs.nComp());
     //
     // Add an Array of Array of maskvals to the new coarser level
     // For each orientation, build NULL masks, then use distributed allocation
@@ -417,7 +419,7 @@ MCLinOp::prepareForLevel (int level)
 
     Array<IntVect> pshifts(27);
 
-    for (OrientationIter oitr; oitr; oitr++)
+    for (OrientationIter oitr; oitr; ++oitr)
     {
         Orientation face = oitr();
         //
@@ -425,8 +427,8 @@ MCLinOp::prepareForLevel (int level)
         //
         for (ConstFabSetIterator bndryfsi(bgb[face]); bndryfsi.isValid(); ++bndryfsi)
 	{
-	    int gn = bndryfsi.index();
-	    Box bx_k = adjCell(gbox[level][gn], face, 1);
+	    const int gn   = bndryfsi.index();
+	    Box       bx_k = ::adjCell(gbox[level][gn], face, 1);
             //
 	    // Extend box in directions orthogonal to face normal.
             //
