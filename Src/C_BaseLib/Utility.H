@@ -2,8 +2,9 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.42 2001-07-22 18:11:02 car Exp $
+// $Id: Utility.H,v 1.43 2001-07-22 22:12:22 car Exp $
 //
+#include <winstd.H>
 
 #include <iostream>
 #include <ctime>

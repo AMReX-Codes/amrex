@@ -1,5 +1,5 @@
 //
-// $Id: BLProfiler.cpp,v 1.11 2001-07-22 19:38:15 car Exp $
+// $Id: BLProfiler.cpp,v 1.12 2001-07-22 22:12:22 car Exp $
 //
 
 #include <winstd.H>
@@ -530,7 +530,8 @@ bool Profiler::initialized = false;
 
 namespace
 {
-std::string filename("bl3_prof");
+std::string filename("bl_prof");
+bool mma = false;
 }
 
 void
@@ -542,6 +543,8 @@ Profiler::Initialize(int& argc, char**& argv)
     }
     initialized = true;
     ParmParse pp("profiler");
+    pp.query("mma", mma);
+    pp.query("filename", filename);
 }
 
 std::ostream&
@@ -632,6 +635,47 @@ Profiler::stop()
     assert( started );
     if ( profiling ) tt_data[*tt_i.get()]->pop()->stop();
     started = false;
+}
+
+namespace
+{
+void
+mma_dump()
+{
+	// MMA dump
+	std::string mma_fname = filename + ".m";
+	if ( ParallelDescriptor::IOProcessor() )
+	{
+	    std::ofstream os(mma_fname.c_str());
+	    os << "{";
+	}
+	for ( int i = 0; i < ParallelDescriptor::NProcs(); ++i )
+	{
+	    if ( i == ParallelDescriptor::MyProc() )
+	{
+	    std::ofstream os(mma_fname.c_str(), std::ios::app);
+	    std::ios::fmtflags oldFlags = os.flags();
+	    os.setf(std::ios::fixed, std::ios::floatfield);
+	    int oprec = os.precision(8);
+	    os << "{";
+	    for ( std::vector<ThreadTimerTree*>::const_iterator it = tt_data.begin(); it != tt_data.end(); )
+	    {
+		(*it)->mma_print(os);
+		if ( ++it != tt_data.end() ) os << ", ";
+	    }
+	    os.precision(oprec);
+	    os.flags(oldFlags);
+	    os << "}\n";
+	    if ( i != ParallelDescriptor::NProcs()-1 ) os << ", ";
+	}
+	ParallelDescriptor::Barrier();
+    }
+    if ( ParallelDescriptor::IOProcessor() )
+    {
+	std::ofstream os(mma_fname.c_str(), std::ios::app);
+	os << "}";
+    }
+}
 }
 
 void
@@ -733,6 +777,7 @@ Profiler::glean()
 	os << "------------------------------------------------------------------------\n\n";
 	os << "Timer resolution is "; show_time(os, BoxLib::WallTimer::tick(), 1000000); os << " (us)\n";
 	os << "Number of Processors: " << ParallelDescriptor::NProcs() << std::endl;
+    std::cout << "got here" << std::endl;
 
 	spacer(os,  2, '\n');
 	spacer(os, 72, '-'); os << '\n';
@@ -815,40 +860,12 @@ Profiler::glean()
 	}
 	ParallelDescriptor::Barrier();
     }
-    // MMA dump
-    std::string mma_fname = filename + ".m";
-    if ( ParallelDescriptor::IOProcessor() )
+    if ( mma )
     {
-	std::ofstream os(mma_fname.c_str());
-	os << "{";
-    }
-    for ( int i = 0; i < ParallelDescriptor::NProcs(); ++i )
-    {
-	if ( i == ParallelDescriptor::MyProc() )
-	{
-	    std::ofstream os(mma_fname.c_str(), std::ios::app);
-	    std::ios::fmtflags oldFlags = os.flags();
-	    os.setf(std::ios::fixed, std::ios::floatfield);
-	    int oprec = os.precision(8);
-	    os << "{";
-	    for ( std::vector<ThreadTimerTree*>::const_iterator it = tt_data.begin(); it != tt_data.end(); )
-	    {
-		(*it)->mma_print(os);
-		if ( ++it != tt_data.end() ) os << ", ";
-	    }
-	    os.precision(oprec);
-	    os.flags(oldFlags);
-	    os << "}\n";
-	    if ( i != ParallelDescriptor::NProcs()-1 ) os << ", ";
-	}
-	ParallelDescriptor::Barrier();
-    }
-    if ( ParallelDescriptor::IOProcessor() )
-    {
-	std::ofstream os(mma_fname.c_str(), std::ios::app);
-	os << "}";
+	mma_dump();
     }
 }
+
 
 bool
 Profiler::is_profiling()
