@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.19 2002-11-05 05:34:21 lijewski Exp $
+c $Id: INTERP_3D.F,v 1.20 2002-11-05 21:21:58 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -427,6 +427,7 @@ c     :::::: helpful statement functions
       integer strd
       REAL_T  slplft, slprgt
       REAL_T  corr_fact
+      REAL_T  orig_corr_fact
       sloc(i,j,k) = clo+i-cslo(1)+ncsx*(j-cslo(2)+ncsy*(k-cslo(3)))
 
       slplft(i,strd,n) =  -sixteen/fifteen*crse(i-strd,n)
@@ -475,14 +476,16 @@ c     :::::: helpful statement functions
             alpha(i) = 1.d0
 
             cmax(i) = crse(i,n)
-            cmax(i) = max(max(cmax(i),crse(i+ist,n)),crse(i-ist,n))
-            cmax(i) = max(max(cmax(i),crse(i+jst,n)),crse(i-jst,n))
-            cmax(i) = max(max(cmax(i),crse(i+kst,n)),crse(i-kst,n))
-
             cmin(i) = crse(i,n)
-            cmin(i) = min(min(cmin(i),crse(i+ist,n)),crse(i-ist,n))
-            cmin(i) = min(min(cmin(i),crse(i+jst,n)),crse(i-jst,n))
-            cmin(i) = min(min(cmin(i),crse(i+kst,n)),crse(i-kst,n))
+
+            do koff = -kst,kst,kst
+            do joff = -jst,jst,jst
+            do ioff = -ist,ist,ist
+              cmax(i) = max(cmax(i),crse(i+ioff+joff+koff,n))
+              cmin(i) = min(cmin(i),crse(i+ioff+joff+koff,n))
+            end do
+            end do
+            end do
 
           end do
 
@@ -700,36 +703,37 @@ c               Limit slopes so as to not introduce new maxs or mins.
                       yoff = (fcen-ccen)/(cvcy(jc+1)-cvcy(jc))
                       do i = fb_l1, fb_h1
                          fn = i-fslo(1)+1
-                         fine(i,j,k,n) = fdat(fn) + 
+                         orig_corr_fact = 
      $                        voff(fn)*fslope(fn,1)+
      $                        yoff*fslope(fn,2)+
      $                        zoff*fslope(fn,3)
+                         fine(i,j,k,n) = fdat(fn) + orig_corr_fact
 
                          ic = IX_PROJ(i,lratiox)
                          icc = sloc(ic,jc,kc)
-                         if (fine(i,j,k,n) .gt. cmax(icc)) then
-                           corr_fact = (cmax(icc) - fdat(fn)) / 
-     $                        ( voff(fn)*fslope(fn,1)
-     $                         +yoff    *fslope(fn,2)
-     $                         +zoff    *fslope(fn,3) )
+
+                         if ( (fine(i,j,k,n) .gt. cmax(icc)) .and.
+     $                       (abs(orig_corr_fact) .gt. 1.e-10*abs(fdat(fn)))) then 
+                           corr_fact = (cmax(icc) - fdat(fn)) / orig_corr_fact
                            alpha(icc) = min(alpha(icc),corr_fact)
                          endif
-                         if (fine(i,j,k,n) .lt. cmin(icc)) then
-                           corr_fact = 
-     $                        (cmin(icc) - fdat(fn)) / 
-     $                        ( voff(fn)*fslope(fn,1)
-     $                         +yoff    *fslope(fn,2)
-     $                         +zoff    *fslope(fn,3) )
+                         if ( (fine(i,j,k,n) .lt. cmin(icc)) .and.
+     $                       (abs(orig_corr_fact) .gt. 1.e-10*abs(fdat(fn)))) then 
+                           corr_fact = (cmin(icc) - fdat(fn)) / orig_corr_fact
                            alpha(icc) = min(alpha(icc),corr_fact)
                          endif
                          if (alpha(icc) .lt. 0.d0) then
                            print *,'OOPS - ALPHA SHOULD BE POSITIVE IN CCINTERP '
                            print *,'ICC = ',icc
+                           print *,'ALPHA = ',alpha(icc)
+                           print *,'ORIG_CORR_FACT = ',orig_corr_fact
                            stop
                          endif
                          if (alpha(icc) .gt. 1.d0) then
                            print *,'OOPS - ALPHA SHOULD BE <= 1. IN CCINTERP '
                            print *,'ICC = ',icc
+                           print *,'ALPHA = ',alpha(icc)
+                           print *,'ORIG_CORR_FACT = ',orig_corr_fact
                            stop
                          endif
                        end do

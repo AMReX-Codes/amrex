@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.17 2002-11-04 18:43:06 almgren Exp $
+c $Id: INTERP_2D.F,v 1.18 2002-11-05 21:21:58 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -409,6 +409,7 @@ c ::: local var
       REAL_T fcen, ccen
       REAL_T xoff, yoff
       REAL_T corr_fact
+      REAL_T orig_corr_fact
       integer ncbx, ncby
       integer ncsx, ncsy
       integer islo, jslo
@@ -456,12 +457,14 @@ c ::: ::::: added to prevent underflow for small crse values
             alpha(i) = 1.d0
 
             cmax(i) = crse(i,n)
-            cmax(i) = max(max(cmax(i),crse(i+ist,n)),crse(i-ist,n))
-            cmax(i) = max(max(cmax(i),crse(i+jst,n)),crse(i-jst,n))
-
             cmin(i) = crse(i,n)
-            cmin(i) = min(min(cmin(i),crse(i+ist,n)),crse(i-ist,n))
-            cmin(i) = min(min(cmin(i),crse(i+jst,n)),crse(i-jst,n))
+
+            do joff = -jst,jst,jst
+            do ioff = -ist,ist,ist
+              cmax(i) = max(cmax(i),crse(i+ioff+joff,n))
+              cmin(i) = min(cmin(i),crse(i+ioff+joff,n))
+            enddo
+            enddo
 
           end do
 
@@ -607,26 +610,35 @@ c           Limit slopes so as to not introduce new maxs or mins.
 
                do 387 i = fb_l1, fb_h1 
                   fn = i-fslo(1)+1
-                  fine(i,j,n) = fdat(fn) + voff(fn)*fslope(fn,1)
-     &                                   + yoff    *fslope(fn,2)
+                  orig_corr_fact = voff(fn)*fslope(fn,1)
+     &                           + yoff    *fslope(fn,2)
+                  fine(i,j,n) = fdat(fn) + orig_corr_fact
+
                   ic = IX_PROJ(i,lratiox)
                   icc = sloc(ic,jc)
-                  if (fine(i,j,n) .gt. cmax(icc)) then
-                    corr_fact = (cmax(icc) - fdat(fn)) / 
-     $                 ( voff(fn)*fslope(fn,1)
-     $                  +yoff    *fslope(fn,2) )
+                  if ((fine(i,j,n) .gt. cmax(icc)) .and. 
+     $                (abs(orig_corr_fact) .gt. 1.e-10*abs(fdat(fn)))) then
+                    corr_fact = (cmax(icc) - fdat(fn)) / orig_corr_fact
                     alpha(icc) = min(alpha(icc),corr_fact)
                   endif
-                  if (fine(i,j,n) .lt. cmin(icc)) then
-                    corr_fact = 
-     $                 (cmin(icc) - fdat(fn)) / 
-     $                 ( voff(fn)*fslope(fn,1)
-     $                  +yoff    *fslope(fn,2) )
+                  if ((fine(i,j,n) .lt. cmin(icc)) .and. 
+     $                (abs(orig_corr_fact) .gt. 1.e-10*abs(fdat(fn)))) then
+                    corr_fact = (cmin(icc) - fdat(fn)) / orig_corr_fact
                     alpha(icc) = min(alpha(icc),corr_fact)
                   endif
+
                   if (alpha(icc) .lt. 0.d0) then
                     print *,'OOPS - ALPHA SHOULD BE POSITIVE IN CCINTERP '
                     print *,'ICC = ',icc
+                    print *,'ALPHA = ',alpha(icc)
+                    print *,'ORIG_CORR_FACT = ',orig_corr_fact
+                    stop
+                  endif
+                  if (alpha(icc) .gt. 1.d0) then
+                    print *,'OOPS - ALPHA SHOULD BE <= 1.0 IN CCINTERP '
+                    print *,'ICC = ',icc
+                    print *,'ALPHA = ',alpha(icc)
+                    print *,'ORIG_CORR_FACT = ',orig_corr_fact
                     stop
                   endif
 
