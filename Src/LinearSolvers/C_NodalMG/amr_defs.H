@@ -25,6 +25,8 @@
 
 #include "hgparallel.h"
 
+extern bool HG_is_debugging;
+
 // index type helper functions:
 
 inline IntVect type(const FArrayBox& f) 
@@ -91,12 +93,13 @@ inline const char* mf_centeredness(const MultiFab& m)
 #define HG_TEST_NORM(d, s)					    \
     if ( true ) {						    \
 	double dz = mfnorm_2(d);				    \
+	debug_out << s;						    \
 	if ( ParallelDescriptor::IOProcessor() )		    \
-	    debug_out << s << " : Norm[" << d.length() << ","	    \
+	    debug_out << " : Norm[" << d.length() << ","	    \
 	    << mf_centeredness(d) << ","			    \
 	    << d.nComp() << ","					    \
-	    << d.nGrow() << "]( " #d " ) = " << dz		    \
-	    << std::endl;					    \
+	    << d.nGrow() << "]( " #d " ) = " << dz;		    \
+	debug_out << std::endl;					    \
     } else
 #else
 #define HG_DEBUG_OUT(s)

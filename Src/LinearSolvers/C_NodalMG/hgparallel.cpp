@@ -30,7 +30,7 @@ bool task::recommit(list<task*>*)
 void task::_hint() const
 {
     HG_DEBUG_OUT( 
-	"(" << typeid(*this).name() << ' ' << m_sno << ' ' << m_started << ' '
+	"(" << typeid(*this).name() << ' ' << m_sno << ' ' << m_started << ' ' << m_comm << ' '
 	);
 }
 
@@ -92,6 +92,7 @@ void task_list::add_task(task* t, task::sequence_number seq_no_)
 
 void task_list::execute()
 {
+    if ( HG_is_debugging ) MPI_Barrier(comm);
     list< task** > dead_tasks;
     // The dead_task list is used, because the tasks being processed also appear
     // in tasks dependecy lists.
@@ -106,9 +107,10 @@ void task_list::execute()
 	    list<task*> tl;
 	    if ( (*t)->recommit(&tl) )
 	    {
+		int i = 0;
 		for(list<task*>::iterator tli = tl.begin(); tli != tl.end(); ++tli)
 		{
-		    add_task(*tli, (*tli)->get_sequence_number() + 1);
+		    add_task(*tli, (*tli)->get_sequence_number() + ++i);
 		}
 	    }
 	    delete *t;
@@ -140,9 +142,10 @@ bool task_list::execute_no_block()
 	    list<task*> tl;
 	    if ( (*t)->recommit(&tl) )
 	    {
+		int i = 0;
 		for(list<task*>::iterator tli = tl.begin(); tli != tl.end(); ++tli)
 		{
-		    add_task(*tli, (*tli)->get_sequence_number() + 1);
+		    add_task(*tli, (*tli)->get_sequence_number() + ++i);
 		}
 	    }
 	    delete *t;
@@ -285,7 +288,7 @@ bool task_copy::ready()
 void task_copy::hint() const
 {
     task::_hint();
-    if ( m_local )
+    if ( is_local(m_smf, m_sgrid) && is_local(m_mf, m_dgrid))
     {
 	HG_DEBUG_OUT( "L" );
     }
@@ -293,9 +296,13 @@ void task_copy::hint() const
     {
 	HG_DEBUG_OUT( "S" );
     }
-    else
+    else if ( is_local(m_mf, m_dgrid) )
     {
     	HG_DEBUG_OUT( "R" );
+    }
+    else
+    {
+	HG_DEBUG_OUT( "?" );
     }
     HG_DEBUG_OUT(
 	' ' <<
@@ -307,7 +314,7 @@ void task_copy::hint() const
 
 
 task_copy_local::task_copy_local(FArrayBox* fab_, const Box& bx, const MultiFab& smf_, int grid)
-    : m_fab(fab_), m_smf(smf_), m_sgrid(grid), m_bx(bx), tmp(0)
+    : m_fab(fab_), m_smf(smf_), m_sgrid(grid), m_bx(bx), tmp(0), m_local(false)
 {
 }
 
@@ -430,6 +437,77 @@ bool task_fab::init(sequence_number sno, MPI_Comm comm)
 
 // task_fec_base
 
+task_fec_base::task_fec_base(const list<int>& tll_, const Box& freg_, MultiFab& s_, int igrid_)
+    : tll(tll_), freg(freg_), s(s_), igrid(igrid_)
+{
+}
+task_fec_base::task_fec_base( MultiFab& s_, int igrid_)
+: s(s_), igrid(igrid_)
+{
+}
+task_fec_base::~task_fec_base()
+{
+    for( vector<task_fab*>::iterator tfi = tfvect.begin(); tfi != tfvect.end(); ++tfi)
+    {
+	delete *tfi;
+    }
+}
+
+bool task_fec_base::init(sequence_number sno, MPI_Comm comm)
+{
+    task::init(sno, comm);
+    bool result = is_local(s, igrid);
+    for(vector<task_fab*>::iterator tli = tfvect.begin(); tli != tfvect.end(); ++tli)
+    {
+	bool tresult = (*tli)->init(sno, comm);
+	result = tresult ||  result;
+    }
+    for ( list<int>::const_iterator tli = tll.begin(); tli != tll.end(); /*NOTHING*/ )
+    {
+	bool tresult = is_local(s, *tli++);
+	result = result || tresult;
+    }
+    return result;
+}
+
+bool task_fec_base::ready()
+{
+    bool result = true;
+    for(vector<task_fab*>::iterator tfi = tfvect.begin(); tfi != tfvect.end(); ++tfi)
+    {
+	bool tresult = (*tfi)->ready();
+	result = tresult && result;
+    }
+    return result;
+}
+
+void task_fec_base::push_back(task_fab* tf)
+{
+    tfvect.push_back(tf);
+}
+
+bool task_fec_base::is_local_target() const
+{
+    return is_local(s, igrid);
+}
+
+FArrayBox& task_fec_base::target_fab()
+{
+    assert ( is_local_target() );
+    return s[igrid];
+}
+
+int task_fec_base::grid_number() const
+{
+    return igrid;
+}
+
+const FArrayBox& task_fec_base::task_fab_result(int n)
+{
+    assert ( n >= 0 && n < tfvect.size() );
+    return tfvect[n]->fab();
+}
+
 bool task_fec_base::recommit(list<task*>* tl)
 {
     for(list<int>::const_iterator tlli = tll.begin(); tlli != tll.end(); ++tlli)
@@ -439,4 +517,8 @@ bool task_fec_base::recommit(list<task*>* tl)
 	    );
     }
     return tl->size() > 0;
+}
+
+void task_fec_base::clean_up()
+{
 }
