@@ -12,12 +12,14 @@ module bl_types
   !! REAL(KIND=dp_t), this is akin to the old non-standard 
   !! REAL*8, or DOUBLE PRECISION
 
-  integer, parameter :: dp_t = kind(0.0d0)
+! integer, parameter :: dp_t = kind(0.0d0)
+  integer, parameter :: dp_t = selected_real_kind(15,307)
 
   !! Single precision floating point data are declared as
   !! REAL(kind=sp_t), or simply as REAL.
 
-  integer, parameter :: sp_t = kind(0.0)
+! integer, parameter :: sp_t = kind(0.0)
+  integer, parameter :: sp_t = selected_real_kind(6, 37)
   
   !! A long long data type used to attempt to get sufficient
   !! decimal digits to compute box volues.
