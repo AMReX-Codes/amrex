@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.12 1998-06-10 22:18:58 lijewski Exp $
+// $Id: Geometry.H,v 1.13 1998-06-13 15:49:08 lijewski Exp $
 //
 
 #include <CoordSys.H>
@@ -16,6 +16,7 @@
 #include <map>
 using std::ostream;
 using std::multimap;
+using std::list;
 #else
 #include <list.h>
 #include <map.h>
@@ -173,15 +174,17 @@ public:
                                int       num_comp,
                                bool      no_ovlp = false) const;
     //
-    // Src/dest box pairs to copy for periodic (PIR=periodic intersection record)
+    // Src/dest box pairs to copy for periodic.
     //
     class PIRec
     {
     public:
-	PIRec()
+	PIRec ()
             :
             srcId(-1) {}
-	PIRec(int _srcId, const Box& _srcBox, const Box& _dstBox)
+	PIRec (int        _srcId,
+               const Box& _srcBox,
+               const Box& _dstBox)
 	    :
             srcId(_srcId),
             srcBox(_srcBox),
@@ -202,31 +205,87 @@ public:
     //
     typedef multimap<int,PIRec> PIRMMap;
 
-    friend ostream& operator << (ostream&                 os,
-                                 const PIRMMap& pirm);
+    friend ostream& operator<< (ostream&       os,
+                                const PIRMMap& pirm);
     //
-    // Compute periodic intersection records for data into each fab on this proc
+    // Flush the cache of PIRM information.
     //
-    PIRMMap computePIRMMapForMultiFab(const BoxArray& grids,
-				      int             nGrow,
-                                      bool            no_ovlp = false) const;
+    static void FlushPIRMCache ();
     //
-    // Fill periodic cells in FabArray per PIRMMap
+    // The size of the cache.
     //
-    void FillPeriodicFabArray (FabArray<Real,FArrayBox>& fa,
-			       PIRMMap&                  pirm,
-			       int                       sComp,
-			       int                       nComp) const;
+    static int PIRMCacheSize ();
+
 protected:
     //
-    // Helper function.
+    // Used in caching FillPeriodicBoundary information.
+    //
+    struct FPB
+    {
+        FPB ()
+            :
+            m_pirm(0),
+            m_ngrow(-1),
+            m_noovlp(false) {}
+
+        FPB (const BoxArray& ba,
+             int             ngrow,
+             bool            noovlp)
+            :
+            m_pirm(0),
+            m_ba(ba),
+            m_ngrow(ngrow),
+            m_noovlp(true)
+        {
+            assert(ngrow >= 0);
+        }
+
+        FPB (PIRMMap*        pirm,
+             const BoxArray& ba,
+             int             ngrow,
+             bool            noovlp)
+            :
+            m_pirm(pirm),
+            m_ba(ba),
+            m_ngrow(ngrow),
+            m_noovlp(true)
+        {
+            assert(ngrow >= 0);
+            assert(!(pirm == 0));
+        }
+
+        ~FPB () { /* Don't delete m_pirm in destructor! */ }
+
+        bool operator== (const FPB& rhs) const;
+
+        PIRMMap* m_pirm;
+        BoxArray m_ba;
+        int      m_ngrow;
+        bool     m_noovlp;
+    };
+    //
+    // Helper functions.
     //
     void read_params ();
     //
+    // Compute periodic intersection records for data into each
+    // fab on this proc.  It's an error to call this if !isAnyPeriodic().
+    //
+    PIRMMap& getPIRMMap (const BoxArray& grids,
+                         int             nGrow,
+                         bool            no_ovlp) const;
+    //
+    // Helper function for getPIRMMap().
+    //
+    PIRMMap& buildPIRMMap (const BoxArray& grids,
+                           int             nGrow,
+                           bool            no_ovlp) const;
+    //
     // Static data.
     //
-    static bool    is_periodic[BL_SPACEDIM]; // 0 means not periodic
-    static RealBox prob_domain;
+    static bool      is_periodic[BL_SPACEDIM]; // 0 means not periodic
+    static RealBox   prob_domain;
+    static list<FPB> m_Cache;
     //
     // Non-static data.
     //
@@ -327,6 +386,13 @@ void
 Geometry::FillPeriodicBoundary (MultiFab& mf, bool no_ovlp) const
 {
     FillPeriodicBoundary(mf, 0, mf.nComp(), no_ovlp);
+}
+
+inline
+int
+Geometry::PIRMCacheSize ()
+{
+    return m_Cache.size();
 }
 
 #endif /*_GEOMETRY_H_*/
