@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.52 2002-04-26 22:40:00 car Exp $
+# Make.defs $Id: Make.defs,v 1.53 2002-06-04 17:42:37 car Exp $
 #
 
 #
@@ -185,10 +185,10 @@ ifeq ($(COMP),g++)
     FULLWARN   := -Wall 
     FULLWARN   += -Wno-sign-compare
     CXX	       := g++ -ftemplate-depth-25
-    __gcc_version := $(shell $(CXX) --version)
-    __gcc_major_version := $(shell $(CXX) --version | sed -e 's;\..*;;')
-    __gcc_minor_version := $(shell $(CXX) --version | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
-    DEFINES += -DBL_GCC_VERSION=$(__gcc_version)
+    __gcc_version := $(shell $(CXX) --version | head -1 | sed -e 's;.*  *;;')
+    __gcc_major_version := $(shell $(CXX) --version | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
+    __gcc_minor_version := $(shell $(CXX) --version | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
+    DEFINES += -DBL_GCC_VERSION='$(__gcc_version)'
     DEFINES += -DBL_GCC_MAJOR_VERSION=$(__gcc_major_version)
     DEFINES += -DBL_GCC_MINOR_VERSION=$(__gcc_minor_version)
     ifneq ($(__gcc_major_version),3)
