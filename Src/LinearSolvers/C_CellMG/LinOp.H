@@ -2,7 +2,7 @@
 #define _LINOP_H_
 
 //
-// $Id: LinOp.H,v 1.3 1998-04-22 23:48:13 car Exp $
+// $Id: LinOp.H,v 1.4 1998-06-10 22:19:49 lijewski Exp $
 //
 
 #include <Array.H>
@@ -179,7 +179,6 @@ public:
 				      const LinOp&  lp);
 
 protected:
-    
     //
     //@ManDoc: remove internal data necessary for a level and all higher
     //
@@ -200,7 +199,6 @@ protected:
 			  int             level,
                           int             rgbflag) = 0;
 protected:
-
     //
     //@ManDoc: build coefficients at coarser level by interpolating "fine"
     //  (builds in appropriate node/cell centering)
@@ -219,22 +217,23 @@ protected:
     //
     //@ManDoc: Array (on level) of Tuples (on dimension) of grid spacings
     //
-    Array< Tuple< Real, BL_SPACEDIM > > h;
+    vector< Tuple< Real, BL_SPACEDIM > > h;
     //
     //@ManDoc: Array (on level) of BoxArray's of LinOp's domain
     //
-    Array< BoxArray > gbox;
+    vector< BoxArray > gbox;
     //
     //@ManDoc: Array (on level) of pointers to BndryRegisters along each grid
     //  for scratch data required to modify internal stencil on boundary
     //
-    Array< CpClassPtr<BndryRegister> > undrrelxr;
+    vector< CpClassPtr<BndryRegister> > undrrelxr;
     //
     //@ManDoc: Array (on level) of Arrays (on grid) of Arrays (on orientation)
     // of pointers to Masks for whether boundary Fabs are covered,
     // not\_covered, outside\_domain
     //
     //  FIXME: This should really be an array of integer BndryRegisters
+    //
     Array< Array< Array< Mask*> > > maskvals;
     //
     //@ManDoc: boundary data class
@@ -244,11 +243,11 @@ protected:
     //@ManDoc: Array (on level) of geometry objects.  Needed for determining
     // whether stuff intersects on periodic domains
     //
-    Array< Geometry > geomarray;
+    vector< Geometry > geomarray;
     //
     //@ManDoc: Array (on level) of periodic intersection info
     //
-    Array< Geometry::PIRMMap > pirmmapArray;
+    vector< Geometry::PIRMMap > m_pirmmap;
     //
     //@ManDoc: internal function which constructs pirarray
     //
@@ -298,7 +297,7 @@ LinOp::bndryData () const
 inline void
 LinOp::bndryData (const BndryData& bd)
 {
-    assert ( gbox[0] == bd.boxes() );
+    assert(gbox[0] == bd.boxes());
     bgb = bd;
 }
 
@@ -318,7 +317,7 @@ LinOp::numGrids () const
 inline int
 LinOp::numLevels () const
 {
-    return h.length();
+    return h.size();
 }
 
 inline int
