@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.167 2003-07-18 04:51:46 lijewski Exp $
+// $Id: FabArray.H,v 1.168 2004-04-27 17:00:44 car Exp $
 //
 #include <cstring>
 #include <limits>
@@ -1834,13 +1834,13 @@ FabArrayCopyDescriptor<FAB>::PrintStats () const
 {
     const int MyProc = ParallelDescriptor::MyProc();
 
-    cout << "----- "
+    std::cout << "----- "
          << MyProc
          << ":  Parallel stats for FabArrayCopyDescriptor:" << '\n';
 
     for (int fa = 0; fa < fabArrays.size(); ++fa)
     {
-        cout << "fabArrays["
+      std::cout << "fabArrays["
              << fa
              << "]->boxArray() = "
              << fabArrays[fa]->boxArray()
