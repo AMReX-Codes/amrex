@@ -1,5 +1,5 @@
 //
-// $Id: BoxLib.cpp,v 1.17 2001-07-20 19:52:54 car Exp $
+// $Id: BoxLib.cpp,v 1.18 2001-07-21 00:53:50 car Exp $
 //
 
 #include <cstdio>
@@ -146,6 +146,6 @@ BoxLib::Initialize(int& argc, char**& argv)
 void
 BoxLib::Finalize()
 {
-    ParallelDescriptor::EndParallel();
     Profiler::Finalize();
+    ParallelDescriptor::EndParallel();
 }
