@@ -2,7 +2,7 @@
 #define _BNDRYDATA_H_
 
 //
-// $Id: BndryData.H,v 1.1 1998-03-24 07:05:54 almgren Exp $
+// $Id: BndryData.H,v 1.2 1998-03-30 20:05:57 lijewski Exp $
 //
 
 #include <BoxArray.H>
@@ -112,8 +112,6 @@ public:
     BndryData() : BndryRegister() {};
 //@ManDoc: constructor specifying number of components and box of physical domain (cell-centered)
     BndryData(const BoxArray& _grids, int _ncomp, const ProxyGeometry& geom);
-//@ManDoc: construct on stream input
-    BndryData(istream&);
 //@ManDoc: destructor
     virtual ~BndryData();
 //@ManDoc: copy constructor
@@ -122,15 +120,6 @@ public:
     BndryData& operator = (const BndryData& src);
 //@ManDoc: alocate bndry fabs along given face
     void define(const BoxArray& _grids, int _ncomp, const ProxyGeometry& geom);
-
-//@ManMemo: I/O functions
-//@ManDoc: write to output stream
-    friend ostream& operator << (ostream&, const BndryData&);
-//@ManDoc: write as FAB to output stream
-    void writeOn(ostream&) const;
-//@ManDoc: read from input stream
-    void readFrom(istream&);
-
 
 //@ManMemo: access functions
 //@ManDoc: return FabSet on given face

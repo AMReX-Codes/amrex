@@ -4,7 +4,7 @@
 #define _BNDRYREGISTER_H_
 
 //
-// $Id: BndryRegister.H,v 1.4 1997-12-11 23:26:58 lijewski Exp $
+// $Id: BndryRegister.H,v 1.5 1998-03-30 20:05:34 lijewski Exp $
 //
 
 #include <BoxArray.H>
@@ -53,10 +53,6 @@ public:
                    int             _extent_rad,
                    int             _ncomp);
     //
-    //@ManDoc: construct from input stream.
-    //
-    BndryRegister (istream& is);
-    //
     //@ManDoc: copy constructor.
     //
     BndryRegister (const BndryRegister& src);
@@ -68,18 +64,6 @@ public:
     //@ManDoc: destructor.
     //
     virtual ~BndryRegister();
-    //
-    //@ManDoc: write to stream, FAB-style.
-    //
-    ostream& writeOn (ostream &os) const;
-    //
-    //@ManDoc: write to stream in ASCII.
-    //
-    friend ostream& operator << (ostream &os, const BndryRegister &br);
-    //
-    //@ManDoc: read from stream.
-    //
-    istream& readFrom(istream &is);
     //
     //@ManDoc: get box domain (as an array of boxes).
     //

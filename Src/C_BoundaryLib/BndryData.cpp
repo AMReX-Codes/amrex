@@ -1,13 +1,10 @@
 
 //
-// $Id: BndryData.cpp,v 1.1 1998-03-24 07:05:16 almgren Exp $
+// $Id: BndryData.cpp,v 1.2 1998-03-30 20:05:57 lijewski Exp $
 //
 
 #include <BndryData.H>
 #include <Utility.H>
-
-const char NL = '\n';
-const char SP = ' ';
 
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
@@ -31,11 +28,6 @@ BndryData::BndryData(const BndryData& src)
     (*this) = src;
 }
 
-BndryData::BndryData(istream& is)
-{
-    readFrom(is);
-}
-
 BndryData::~BndryData()
 {
       // masks was not allocated with PArrayManage, must manually dealloc
@@ -56,70 +48,6 @@ BndryData::clear_masks()
         }
     }
 }
-
-ostream& operator << (ostream& os, const BndryData &mgb)
-{
-ParallelDescriptor::Abort("BndryData::operator<< not yet implemented in parallel");
-    const BoxArray& grds = mgb.boxes();
-    int ngrds = grds.length();
-    os << "[BndryData with " << ngrds << " grids:\n";
-    for (int grd = 0; grd < ngrds; grd++){
-        for (OrientationIter face; face; ++face) {
-            Orientation f = face();
-            os << "::: face " << f << " of grid " << grds[grd] << NL;
-            os << "BC = " << mgb.bcond[f][grd]
-               << " LOC = " << mgb.bcloc[f][grd] << NL;
-            os << mgb.masks[f][grd];
-            os << mgb.bndry[f][grd];
-        }
-        os << "--------------------------------------------------\n";
-    }
-    return os;
-}
-
-void
-BndryData::writeOn(ostream &os) const
-{
-ParallelDescriptor::Abort("BndryData::writeOn not yet implemented in parallel");
-    BndryRegister::writeOn(os);
-    int len = grids.length();
-    for (OrientationIter fi; fi; ++fi) {
-        Orientation face = fi();
-        for (int grd = 0; grd < len; grd++) {
-            os << face << SP << grids[grd] << SP
-               << bcond[face][grd] << SP << bcloc[face][grd] << NL;
-            masks[face][grd].writeOn(os);
-        }
-    }
-    os << NL;
-}
-
-void
-BndryData::readFrom(istream& is)
-{
-ParallelDescriptor::Abort("BndryData::readFrom not yet implemented in parallel");
-    BndryRegister::readFrom(is);
-    int len = grids.length();
-    for (OrientationIter fi; fi; ++fi) {
-        Orientation face = fi();
-        for (int grd = 0; grd < len; grd++) {
-            Orientation face_in;
-            int grd_in;
-            is >> face_in;
-            assert(face == face_in);
-            is >> grd_in;
-            assert(grd_in);
-            int bcond_i;
-            is >> bcond_i;
-            bcond[face][grd] = bcond_i;
-            is >> bcloc[face][grd];
-            is.ignore(BL_IGNORE_MAX,'\n');
-            masks[face][grd].readFrom(is);
-        }
-    }
-    is.ignore(BL_IGNORE_MAX,'\n');
-}
-
 
 BndryData&
 BndryData::operator = (const BndryData& src)
@@ -219,4 +147,3 @@ BndryData::define(const BoxArray& _grids, int _ncomp, const ProxyGeometry& _geom
         }
     }
 }
-

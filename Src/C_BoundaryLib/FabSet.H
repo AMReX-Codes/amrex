@@ -4,7 +4,7 @@
 #define _FABSET_H_
 
 //
-// $Id: FabSet.H,v 1.4 1997-12-12 00:15:58 car Exp $
+// $Id: FabSet.H,v 1.5 1998-03-30 20:05:35 lijewski Exp $
 //
 
 #include <FArrayBox.H>
@@ -53,26 +53,9 @@ public:
     //
     FabSet (int _len);
     //
-    //@ManDoc: construct, based on stream input.
-    //
-    FabSet(istream &is);
-    //
     //@ManDoc: destructor.
     //
     virtual ~FabSet ();
-    //
-    //@ManDoc: write to output fab-style output files.
-    //
-    ostream& writeOn (ostream &os) const;
-    //
-    //@ManDoc: write to output stream.
-    //
-    friend ostream& operator<< (ostream&      os,
-                                const FabSet& mf);
-    //
-    //@ManDoc: initialize from input stream.
-    //
-    istream& readFrom (istream& is);
     //
     // promote these back to public.
     //
@@ -115,25 +98,6 @@ public:
                       int              src_comp,
                       int              dest_comp,
                       int              num_comp);
-    //
-    //@ManDoc: copy from the FabSet to this FabSet.
-    //
-    FabSet& copyFrom (const FabSet& src);
-    //
-    //@ManDoc: copy from the specified components of a source FabSet to the component of this destination FabSet
-    //
-    FabSet& copyFrom (const FabSet& src,
-                      int           src_comp,
-                      int           dest_comp,
-                      int           num_comp);
-    //
-    //@ManDoc: copy from the specified components of a source FabSet to the component of this destination FabSet over a subregion
-    //
-    FabSet& copyFrom (const FabSet& src,
-                      const Box&    subbox,
-                      int           src_comp,
-                      int           dest_comp,
-                      int           num_comp);
     //
     //@ManDoc: copy from the source MultiFab to this destination FabSet.
     //
@@ -413,25 +377,6 @@ FabSet::mult (Real       v,
               int        num_comp)
 {
     this->mult(v, subreg, comp, num_comp);
-    return *this;
-}
-
-inline
-FabSet&
-FabSet::copyFrom (const FabSet& src)
-{
-    this->copy(src);
-    return *this;
-}
-
-inline
-FabSet&
-FabSet::copyFrom (const FabSet& src,
-                  int           src_comp,
-                  int           dest_comp,
-                  int           num_comp)
-{
-    this->copy(src, src_comp, dest_comp, num_comp);
     return *this;
 }
 

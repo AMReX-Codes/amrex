@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BndryRegister.cpp,v 1.4 1997-12-11 23:26:59 lijewski Exp $
+// $Id: BndryRegister.cpp,v 1.5 1998-03-30 20:05:34 lijewski Exp $
 //
 
 #include <BndryRegister.H>
@@ -46,57 +46,6 @@ BndryRegister::BndryRegister (const BoxArray& _grids,
         define(face(),IndexType::TheCellType(),_in_rad,
                _out_rad,_extent_rad,_ncomp);
     }
-}
-
-BndryRegister::BndryRegister (istream& is)
-{
-    readFrom(is);
-}
-
-ostream&
-operator<< (ostream&             os,
-            const BndryRegister& br)
-{
-    os << "(BndryRegister \n";
-    for (OrientationIter face; face; ++face)
-    {
-        os << '('
-           << face()
-           << '\n'
-           << br.bndry[face()]
-           << ")\n";
-    }
-    os << ")\n";
-    return os;
-}
-
-ostream&
-BndryRegister::writeOn (ostream& os) const
-{
-    grids.writeOn(os);
-    for (OrientationIter face; face; ++face)
-    {
-        os << face() << '\n';
-        bndry[face()].writeOn(os);
-    }
-    return os;
-}
-
-istream&
-BndryRegister::readFrom (istream& is)
-{
-    grids.define(is);
-    Orientation face_in;
-    for (OrientationIter face; face; ++face)
-    {
-        is >> face_in;
-        if (face() != face_in)
-            BoxLib::Error("BndryRegister::readFrom(): bad orientation");
-        while (is.get() != '\n')
-            ;
-        bndry[face()].readFrom(is);
-    }
-    return is;
 }
 
 BndryRegister&

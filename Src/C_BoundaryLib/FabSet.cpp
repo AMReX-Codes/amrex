@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.4 1998-02-18 21:36:07 vince Exp $
+// $Id: FabSet.cpp,v 1.5 1998-03-30 20:05:35 lijewski Exp $
 //
 
 #include <FabSet.H>
@@ -14,11 +14,6 @@ FabSet::~FabSet () {}
 FabSet::FabSet (int _len)
 {
     fabparray.resize(_len);
-}
-
-FabSet::FabSet (istream& is)
-{
-    readFrom(is);
 }
 
 void
@@ -75,7 +70,9 @@ FabSet::copyFrom (const FArrayBox& src,
                   int              num_comp)
 {
     const Box& sbox = src.box();
+
     assert(sbox.contains(subbox));
+
     for (FabSetIterator fsi(*this); fsi.isValid(false); ++fsi)
     {
         FArrayBox& fab = fsi();
@@ -90,39 +87,12 @@ FabSet::copyFrom (const FArrayBox& src,
 }
 
 FabSet&
-FabSet::copyFrom (const FabSet& src,
-                  const Box&    subreg,
-                  int           src_comp,
-                  int           dest_comp,
-                  int           num_comp)
-{
-    BoxLib::Error("FabSet::copyFrom(FabSet, Box, ...) not implemented");
-    return *this;
-}
-
-FabSet&
 FabSet::copyFrom (const MultiFab& src,
                   int             nghost,
                   int             src_comp,
                   int             dest_comp,
                   int             num_comp)
 {
-/*  original code vvvvvvvvvvvvvvvvvvvvvvvvvv
-    assert (nghost <= src.nGrow());
-    const BoxArray& sba = src.boxArray();
-    for (int s = 0; s < src.length; s++) {
-        const FArrayBox& sfab = src[s];
-        Box sbox = grow(sba[s],nghost);
-        for (int d = 0; d < length(); d++) {
-            FArrayBox& dfab = (*this)[d];
-            Box ovlp = dfab.box();
-            ovlp &= sbox;
-            if (ovlp.ok()) {
-                dfab.copy(sfab,ovlp,src_comp,ovlp,dest_comp,num_comp);
-            }
-        }
-    }
-*/
     assert (nghost <= src.nGrow());
 
     FabSetCopyDescriptor fscd(true);
@@ -186,21 +156,19 @@ FabSet::copyTo (MultiFab& dest,
                 int       dest_comp,
                 int       num_comp) const
 {
-if(ParallelDescriptor::NProcs() > 1) {
-  cerr << "FabSet::copyTo(MultiFab, nghost, ...) not implemented in parallel." << endl;
-  ParallelDescriptor::Abort("Exiting.");
-} else {
-  cerr << "FabSet::copyTo(MultiFab, nghost, ...) not implemented in parallel." << endl;
-}
+    if (ParallelDescriptor::NProcs() > 1)
+        BoxLib::Error("FabSet::copyTo(MultiFab) not implemented");
 
     int dlen = dest.length();
     int slen = length();
     assert (nghost <= dest.nGrow());
     const BoxArray& dba = dest.boxArray();
-    for (int d = 0; d < dlen; d++) {
+    for (int d = 0; d < dlen; d++)
+    {
         FArrayBox& dfab = dest[d];
         Box dbox = grow(dba[d],nghost);
-        for (int s = 0; s < slen; s++) {
+        for (int s = 0; s < slen; s++)
+        {
             const FArrayBox& sfab = (*this)[s];
             const Box& sbox = sfab.box();
             Box ovlp = dbox;
@@ -391,57 +359,4 @@ FabSet::linComb (Real            a,
     }
 
     return *this;
-}
-
-ostream &
-operator<< (ostream&      os,
-            const FabSet& mf)
-{
-    BoxLib::Error("FabSet::operator<<() not yet implemented");
-/*
-    int nfab = mf.length();
-    os << "(FabSet "
-       << nfab << '\n';
-    for (int i = 0; i < nfab; i++) {
-        os << mf[i] << '\n';
-    }
-    os << ')';
-*/
-    return os;
-}
-
-ostream &
-FabSet::writeOn (ostream& os) const
-{
-    BoxLib::Error("FabSet::writeOn() not yet implemented");
-/*
-    assert( ready() );
-    int nfab = length();
-    os << nfab << '\n';
-    for (int i = 0; i < nfab; i++) {
-        get(i).writeOn(os);
-    }
-*/
-    return os;
-}
-
-istream&
-FabSet::readFrom (istream& is)
-{
-    BoxLib::Error("FabSet::readFrom() not yet implemented");
-/*
-    if (ready()) {
-        clear();
-    }
-    int ngrd;
-    is >> ngrd;
-    while (is.get() != '\n');
-    resize(ngrd);
-    for (int i = 0; i < ngrd; i++) {
-        FArrayBox* tmp = new FArrayBox;
-        tmp->readFrom(is);
-        set(i,tmp);
-    }
-*/
-    return is;
 }
