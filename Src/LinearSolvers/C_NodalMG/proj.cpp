@@ -271,16 +271,14 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     Real h[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++)
 	h[i] = 1;
-    //h[BL_SPACEDIM-1] = 0.1;
-    //h[BL_SPACEDIM-1] = 2.0;
     
     RegType bc[BL_SPACEDIM][2];
     
 #if (BL_SPACEDIM == 2)
     //bc[0][0] = inflow;
     //bc[0][1] = outflow;
-    bc[0][0] = periodic;
-    bc[0][1] = periodic;
+    //bc[0][0] = periodic;
+    //bc[0][1] = periodic;
     bc[0][0] = refWall;
     bc[0][1] = refWall;
     //bc[1][0] = periodic;
@@ -295,14 +293,6 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 	bc[i][0] = refWall;
 	bc[i][1] = refWall;
     }
-    //bc[0][0] = inflow;
-    //bc[0][1] = outflow;
-    //bc[0][0] = periodic;
-    //bc[0][1] = periodic;
-    //bc[1][0] = periodic;
-    //bc[1][1] = periodic;
-    //bc[2][0] = periodic;
-    //bc[2][1] = periodic;
 #endif
     
     PArray<MultiFab> u[BL_SPACEDIM];
