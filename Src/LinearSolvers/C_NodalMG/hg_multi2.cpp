@@ -368,7 +368,7 @@ holy_grail_amr_multigrid::build_sync_cache (int mglev,
     const IntVect& rat    = gen_ratio[lev-1];
     const int      mglevc = ml_index[lev-1];
     
-    const amr_boundary_class* bndry = (m_hg_terrain)? boundary.terrain_sigma() : boundary.scalar();
+    const amr_boundary_class* bndry = (m_stencil==terrain)? boundary.terrain_sigma() : boundary.scalar();
     
     for (int iface = 0; iface < lev_interface[mglev].nboxes(level_interface::FACEDIM); iface++) 
     {
@@ -496,7 +496,7 @@ void
 holy_grail_amr_multigrid::interface_residual (int mglev,
                                               int lev)
 { 
-    const amr_boundary_class* bndry = m_hg_terrain ? boundary.terrain_sigma() : boundary.scalar();
+    const amr_boundary_class* bndry = (m_stencil==terrain) ? boundary.terrain_sigma() : boundary.scalar();
 
     const IntVect& rat = gen_ratio[lev-1];
     const int mglevc = ml_index[lev-1];
@@ -526,11 +526,11 @@ holy_grail_amr_multigrid::interface_residual (int mglev,
 	task_fab* sigmac = new task_fill_patch(tl, resid[mglev], igrid, sigmacbox, sigma[mglevc], lev_interface[mglevc], bndry, -1, -1);
 	task_fab* cdst   = new task_fill_patch(tl, resid[mglev], igrid, cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure(), -1, -1);
 	const Box& creg = fres_creg[lev][iface];
-	if (m_hg_terrain)
+	if (m_stencil==terrain)
 	{
 	    tl.add_task(new task_fceres_2(&FORT_HGFRES_TERRAIN,tl,resid[mglev],source[lev],dest[lev],sigma[mglev],igrid,cdst,sigmac,creg,h[mglev],rat,idim,idir));
 	}
-	else if (m_hg_full_stencil)
+	else if (m_stencil == full)
 	{
 #if defined(HG_FULL_STENCIL)
 #if BL_SPACEDIM == 2
@@ -546,7 +546,7 @@ holy_grail_amr_multigrid::interface_residual (int mglev,
 	}
     }
     tl.execute();
-    if (m_hg_cross_stencil || m_hg_terrain)
+    if (m_stencil == cross || m_stencil==terrain)
     {
 #if (BL_SPACEDIM == 3)
 	task_list tl;
@@ -580,7 +580,7 @@ holy_grail_amr_multigrid::interface_residual (int mglev,
 		task_fab* cdst = new task_fill_patch(tl, resid[mglev], igrid, cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure(), -1, -1);
 		Array<int> ga = lev_interface[mglev].geo_array(1, iedge);
 		task::task_proxy tp;
-		if (m_hg_terrain)
+		if (m_stencil==terrain)
 		{
 		    tp = tl.add_task(new task_fceres_4(&FORT_HGERES_TERRAIN,tl,resid[mglev],source[lev],igrid,fdst,cdst,sigmaf,sigmac,creg,h[mglev],rat,ga,t));
 		}
@@ -633,7 +633,7 @@ holy_grail_amr_multigrid::interface_residual (int mglev,
 		task_fab* cdst = new task_fill_patch(tl, resid[mglev], igrid, cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure(), -1, -1);
 		Array<int> ga = lev_interface[mglev].geo_array(0, icor);
 		task::task_proxy tp;
-		if (m_hg_terrain)
+		if (m_stencil==terrain)
 		{
 		    tp = tl.add_task(new task_fceres_4(&FORT_HGCRES_TERRAIN,tl,resid[mglev],source[lev],igrid,fdst,cdst,sigmaf,sigmac,creg,h[mglev],rat,ga));
 		}
@@ -657,7 +657,7 @@ holy_grail_amr_multigrid::interface_residual (int mglev,
 	}
 	tl.execute();
     }
-    else if (m_hg_full_stencil)
+    else if (m_stencil == full)
     {
 #if defined(HG_FULL_STENCIL)
 #if BL_SPACEDIM == 2

@@ -805,7 +805,7 @@ holy_grail_amr_projector::grid_average (PArray<MultiFab>& S)
     {
 	const int mglev = ml_index[lev];
 	
-	fill_borders(S[lev], lev_interface[mglev], boundary.scalar(), -1, m_hg_terrain);
+	fill_borders(S[lev], lev_interface[mglev], boundary.scalar(), -1, m_stencil == terrain);
 	
 	for (MultiFabIterator s_mfi(source[lev]); s_mfi.isValid(); ++s_mfi)
 	{
@@ -844,7 +844,7 @@ holy_grail_amr_projector::grid_divergence (PArray<MultiFab>* u)
 #endif
 	for (int i = 0; i < BL_SPACEDIM; i++) 
 	{
-	    fill_borders(u[i][lev], lev_interface[mglev], boundary.velocity(i), -1, m_hg_terrain);
+	    fill_borders(u[i][lev], lev_interface[mglev], boundary.velocity(i), -1, m_stencil == terrain);
 	}
 	
 	for (MultiFabIterator s_mfi(source[lev]); s_mfi.isValid(); ++s_mfi)
@@ -861,7 +861,7 @@ holy_grail_amr_projector::grid_divergence (PArray<MultiFab>* u)
 	    DependentMultiFabIterator u_dmfi_2(s_mfi, u[2][lev]);
 	    Real* u2ptr = u_dmfi_2->dataPtr();
 #endif
-	    if (m_hg_terrain)
+	    if (m_stencil == terrain)
 	    {
 		FORT_HGDIV_TERRAIN(sptr, DIMLIST(sbox), D_DECL(u0ptr, u1ptr, u2ptr), DIMLIST(fbox), DIMLIST(freg), D_DECL(&hx, &hy, &hz));
 	    }
@@ -898,7 +898,7 @@ holy_grail_amr_projector::sync_right_hand_side (PArray<MultiFab>* u)
     {
 	const int mglev1 = ml_index[lev_min+1];
 	restrict_level(source[lev_min], source[lev_min+1], gen_ratio[lev_min], 
-	    bilinear_restrictor_class(0, m_hg_terrain), lev_interface[mglev1], mg_boundary);
+	    bilinear_restrictor_class(0, m_stencil == terrain), lev_interface[mglev1], mg_boundary);
 	work[mglev0].setVal(1.0);
 	Real adjustment = inner_product(source[lev_min], work[mglev0]) /
 	    mg_domain[ml_index[lev_min]].volume();
@@ -1107,7 +1107,7 @@ holy_grail_amr_projector::interface_divergence (PArray<MultiFab>* u,
 	}
 	Box creg = lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
 	creg.coarsen(rat).grow(t - 1);
-	if (m_hg_terrain)
+	if (m_stencil == terrain)
 	{
 	    BoxLib::Error("Not Ready");
 	    // tl.add_task(new task_fecdiv(&FORT_HGFDIV_TERRAIN, tl, source[lev], upt, igrid, ucp, creg, h[mglev], rat, idim, idir));
@@ -1166,7 +1166,7 @@ holy_grail_amr_projector::interface_divergence (PArray<MultiFab>* u,
 	creg.coarsen(rat).grow(t - 1);
 	Array<int> ga = lev_interface[mglev].geo_array(1, iedge);
 	task::task_proxy tp;
-	if (m_hg_terrain)
+	if (m_stencil == terrain)
 	{
 	    tp = tl.add_task(new task_fecdiv_2(&FORT_HGEDIV_TERRAIN, tl, source[lev], igrid, ufp, ucp, creg, h[mglev], rat, ga, t));
 	}
@@ -1226,7 +1226,7 @@ holy_grail_amr_projector::interface_divergence (PArray<MultiFab>* u,
 	creg.coarsen(rat);
 	Array<int> ga = lev_interface[mglev].geo_array(0, icor);
 	task::task_proxy tp;
-	if (m_hg_terrain)
+	if (m_stencil == terrain)
 	{
 	    tp = tl.add_task(new task_fecdiv_2(&FORT_HGCDIV_TERRAIN, tl, source[lev], igrid, ufp, ucp, creg, h[mglev], rat, ga));
 	}
@@ -1272,7 +1272,7 @@ holy_grail_amr_projector::form_solution_vector (PArray<MultiFab>*       u,
 		{
 		    gp[i].resize(gbox);
 		}
-		if (m_hg_terrain)
+		if (m_stencil == terrain)
 		{
 		    FORT_HGGRAD_TERRAIN(D_DECL(gp[0].dataPtr(), gp[1].dataPtr(), gp[2].dataPtr()), DIMLIST(gbox),
 					d_mfi->dataPtr(), DIMLIST(dbox),
@@ -1291,7 +1291,7 @@ holy_grail_amr_projector::form_solution_vector (PArray<MultiFab>*       u,
 				DIMLIST(gbox), D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]), 0);
 #endif
 		}		
-		if (!m_hg_terrain)
+		if (m_stencil != terrain)
 		{
 		    DependentMultiFabIterator s_dmfi(d_mfi, sigma_in[lev]);
 		    for (int i = 0; i < BL_SPACEDIM; i++) 
@@ -1334,7 +1334,7 @@ holy_grail_amr_projector::form_solution_vector (PArray<MultiFab>*       u,
 	    restrict_level(dest[lev-1], dest[lev], rat, injection_restrictor_class(), level_interface(), 0);
 	    for (int i = 0; i < BL_SPACEDIM; i++) 
 	    {
-		if (!m_hg_terrain)
+		if (m_stencil != terrain)
 		{
 		    restrict_level(u[i][lev-1], u[i][lev], rat, default_restrictor(), level_interface(), 0);
 		}
