@@ -639,17 +639,15 @@ contains
     st%extrap_max_order = max_order
   end subroutine stencil_set_extrap_bc
 
-  subroutine stencil_set_bc_st(st, pdv, bc_face)
-    type(stencil), intent(inout)  :: st
-    type(boxarray), intent(in) :: pdv
-    integer, intent(in) :: bc_face(:,:)
-    integer, pointer :: mp(:,:,:,:)
-    integer :: i
-    type(box) :: bx
-    do i = 1, st%ss%nboxes; if ( multifab_remote(st%ss,i) ) cycle
-       bx = get_box(st%ss,i)
+  subroutine stencil_set_bc_st(st, bc_face)
+    type(stencil), intent(inout) :: st
+    integer,       intent(in)    :: bc_face(:,:)
+    integer,       pointer       :: mp(:,:,:,:)
+    integer                      :: i
+    do i = 1, st%ss%nboxes
+       if ( multifab_remote(st%ss,i) ) cycle
        mp => dataptr(st%mm, i)
-       call stencil_set_bc(bx, pdv, st%mm%fbs(i), bc_face)
+       call stencil_set_bc(st%ss, i, st%mm%fbs(i), bc_face)
        st%skewed(i) = skewed_q(mp)
     end do
   end subroutine stencil_set_bc_st
@@ -1086,43 +1084,85 @@ contains
 
   end subroutine extrap_3d
 
-  subroutine stencil_set_bc(bx, pdv, mask, bc_face, fnc)
-    type(box), intent(in) :: bx
-    type(ifab), intent(inout) :: mask
-    type(boxarray), intent(in) :: pdv
-    integer, intent(in) :: bc_face(:,:)
-    type(box) :: bx1
-    type(boxarray) :: ba
-    integer :: i, j, ii, jj
-    integer, pointer :: mp(:,:,:,:)
-    interface
-       function fnc(i, j, k, n) result(r)
-         integer, intent(in) :: i, j, k, n
-         integer :: r
-       end function fnc
-    end interface
-    optional :: fnc
+  subroutine stencil_set_bc(st, idx, mask, bc_face, cf_face)
+    type(multifab), intent(in)           :: st
+    integer,        intent(in)           :: idx
+    type(ifab),     intent(inout)        :: mask
+    integer,        intent(in)           :: bc_face(:,:)
+    integer,        intent(in), optional :: cf_face(:,:)
 
-    ! This sets the mask to be BC_DIR on every "border" of this level's boxarray.
+    type(box)        :: bx1, src
+    type(boxarray)   :: ba, sba
+    integer          :: i, j, ii, jj, k, ldom
+    integer, pointer :: mp(:,:,:,:)
+    integer          :: lcf_face(size(bc_face, 1), size(bc_face, 2))
+    !
+    ! The Coarse-Fine boundary is Dirichlet unless specified.
+    !
+    lcf_face = BC_DIR; if ( present(cf_face) ) lcf_face = cf_face
+    !
+    ! Initialize every border to Fine-Fine (Interior).
+    !
     call setval(mask, BC_INT)
-    do i = 1, bx%dim
-       ! PERIODIC FACES are Interior
-       if ( bc_face(i,1) == BC_PER ) then
-          if ( bc_face(i,1) /= bc_face(i,2) ) then
-             call bl_error("STENCIL_SET_BC: confusion in bc_face")
-          end if
-          cycle
+
+    do i = 1, st%dim
+       if ( bc_face(i,1) == BC_PER .and. ( bc_face(i,1) /= bc_face(i,2) )) then
+          call bl_error("STENCIL_SET_BC: confusion in bc_face")
        end if
        do j = -1, 1, 2
-          bx1 = shift(bx, j, i)
-          jj = (3 + j)/2 
-          call boxarray_boxarray_diff(ba, bx1, pdv)
-          do ii = 1, ba%nboxes
-             bx1 = shift(ba%bxs(ii),-j,i)
-             mp => dataptr(mask, bx1)
-             mp = ibset(mp, BC_BIT(bc_face(i,jj), i, j))
-          end do
-          call destroy(ba)
+          bx1 = shift(get_box(st, idx), j, i)
+          jj = (3 + j)/2
+          if ( contains(st%la%lap%pd, bx1) ) then
+             !
+             ! We're not touching a physical boundary -- set any/all C-F bndrys.
+             !
+             call boxarray_boxarray_diff(ba, bx1, st%la%lap%bxa)
+             do ii = 1, ba%nboxes
+                bx1 = shift(ba%bxs(ii), -j, i)
+                mp => dataptr(mask, bx1)
+                mp = ibset(mp, BC_BIT(lcf_face(i, jj), i, j))
+             end do
+             call destroy(ba)
+          else
+             !
+             ! We touch a physical boundary in that direction.
+             !
+             if ( .not. st%la%lap%pmask(i) ) then
+                !
+                ! We're not periodic in that direction -- use physical BCs.
+                !
+                call boxarray_box_diff(ba, bx1, st%la%lap%pd)
+                do ii = 1, ba%nboxes
+                   bx1 = shift(ba%bxs(ii), -j, i)
+                   mp => dataptr(mask, bx1)
+                   mp = ibset(mp, BC_BIT(bc_face(i, jj), i, j))
+                end do
+                call destroy(ba)
+             else
+                !
+                ! Remove any/all Fine-Fine intersections.
+                !
+                ldom = extent(st%la%lap%pd, i)
+                call boxarray_build_bx(ba, bx1)
+                do k = 1, st%nboxes
+                   src = shift(get_box(st, k), j*ldom, i)
+                   if ( intersects(bx1, src) ) then
+                      call boxarray_build_bx(sba, src)
+                      call boxarray_diff(ba, sba)
+                      call destroy(sba)
+                   end if
+                end do
+                !
+                ! Set any remaining boxes to C-F.
+                !
+                do ii = 1, ba%nboxes
+                   bx1 = shift(ba%bxs(ii), -j, i)
+                   mp => dataptr(mask, bx1)
+                   mp = ibset(mp, BC_BIT(lcf_face(i, jj), i, j))
+                end do
+                call destroy(ba)
+             end if
+          end if
        end do
     end do
 
@@ -1157,18 +1197,18 @@ contains
 
     do i = 1, ss%nboxes
        if ( multifab_remote(ss,i) ) cycle
-
        bx = get_box(ss,i)
-       call stencil_set_bc(bx, pdv, mask%fbs(i), bc_face)
-
+       call stencil_set_bc(ss, i, mask%fbs(i), bc_face)
        lxa = xa
        lxb = xb
        do id = 1,pd%dim
-          if (bx%lo(id) == pd%lo(id)) then
-             lxa(id) = ZERO
-          end if
-          if (bx%hi(id) == pd%hi(id)) then
-             lxb(id) = ZERO
+          if ( .not. ss%la%lap%pmask(id) ) then
+             if (bx%lo(id) == pd%lo(id)) then
+                lxa(id) = ZERO
+             end if
+             if (bx%hi(id) == pd%hi(id)) then
+                lxb(id) = ZERO
+             end if
           end if
        end do
 
