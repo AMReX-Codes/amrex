@@ -1,6 +1,6 @@
 
 //
-// $Id: MultiFab.cpp,v 1.50 2000-10-02 20:52:36 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.51 2001-04-24 19:42:19 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -792,7 +792,7 @@ MultiFab::FillBoundary (int scomp,
     //
     // Add boxes we need to collect.
     //
-    for (int i = 0; i < si.m_sirec.size(); i++)
+    for (unsigned int i = 0; i < si.m_sirec.size(); i++)
     {
         si.m_sirec[i].m_fbid = mfcd.AddBox(mfid,
                                            si.m_sirec[i].m_bx,
@@ -805,7 +805,7 @@ MultiFab::FillBoundary (int scomp,
 
     mfcd.CollectData(&si.m_cache,&si.m_commdata);
 
-    for (int i = 0; i < si.m_sirec.size(); i++)
+    for (unsigned int i = 0; i < si.m_sirec.size(); i++)
     {
         BL_ASSERT(DistributionMap()[si.m_sirec[i].m_i] == ParallelDescriptor::MyProc());
         //

@@ -1,6 +1,6 @@
 
 //
-// $Id: ParmParse.cpp,v 1.13 2000-10-02 20:52:37 lijewski Exp $
+// $Id: ParmParse.cpp,v 1.14 2001-04-24 19:42:19 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -342,7 +342,7 @@ ParmParse::queryval (const char*  name,
 
     const aString& valname = def->val[ival];
 
-    int ok;
+    bool ok = false;
     double val_dbl;
     //
     // Retrieve value.
@@ -451,7 +451,7 @@ ParmParse::queryarr (const char*  name,
        //
        // Retrieve value.
        //
-       int ok = false;
+       bool ok = false;
        double val_dbl;
        switch (type)
        {

@@ -1,6 +1,6 @@
 
 //
-// $Id: aString.cpp,v 1.9 2000-10-02 20:52:40 lijewski Exp $
+// $Id: aString.cpp,v 1.10 2001-04-24 19:42:20 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -255,7 +255,7 @@ aString::tokenize (const aString& separators) const
 
     vector<aString> tokens(ptr.size());
 
-    for (int i = 1; i < ptr.size(); i++)
+    for (unsigned int i = 1; i < ptr.size(); i++)
     {
         char* p = ptr[i];
 
@@ -263,7 +263,7 @@ aString::tokenize (const aString& separators) const
             *--p = 0;
     }
 
-    for (int i = 0; i < ptr.size(); i++)
+    for (unsigned int i = 0; i < ptr.size(); i++)
         tokens[i] = ptr[i];
 
     delete line;

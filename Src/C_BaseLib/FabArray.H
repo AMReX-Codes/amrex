@@ -3,7 +3,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.117 2001-04-11 18:11:04 lijewski Exp $
+// $Id: FabArray.H,v 1.118 2001-04-24 19:42:19 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1332,7 +1332,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
 
             size_t N = 0;
 
-            for (int j = 0; j < RcvTags[i].size(); j++)
+            for (unsigned int j = 0; j < RcvTags[i].size(); j++)
                 N += RcvTags[i][j].box.numPts() * ncomp;
 
             BL_ASSERT(N < INT_MAX);
@@ -1360,7 +1360,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
         {
             size_t N = 0;
 
-            for (int j = 0; j < SndTags[i].size(); j++)
+            for (unsigned int j = 0; j < SndTags[i].size(); j++)
                     N += SndTags[i][j].box.numPts() * ncomp;
 
             BL_ASSERT(N < INT_MAX);
@@ -1368,7 +1368,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
             T* data = static_cast<T*>(The_FAB_Arena->alloc(N*sizeof(T)));
             T* dptr = data;
 
-            for (int j = 0; j < SndTags[i].size(); j++)
+            for (unsigned int j = 0; j < SndTags[i].size(); j++)
             {
                 const Box& bx = SndTags[i][j].box;
                 fab.resize(bx, ncomp);
@@ -1409,7 +1409,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
 
             BL_ASSERT(!(dptr == 0));
 
-            for (int j = 0; j < RcvTags[indx[k]].size(); j++)
+            for (unsigned int j = 0; j < RcvTags[indx[k]].size(); j++)
             {
                 const Box& bx = RcvTags[indx[k]][j].box;
                 fab.resize(bx, ncomp);
@@ -2233,7 +2233,7 @@ template <class T, class FAB>
 void
 FabArrayCopyDescriptor<T,FAB>::clear ()
 {
-   for (int i = 0; i < fabCopyDescList.size(); ++i)
+   for (unsigned int i = 0; i < fabCopyDescList.size(); ++i)
    {
        FCDMapIter fmi = fabCopyDescList[i].begin();
 
@@ -2295,7 +2295,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
     //
     // Set Rcvs[i] to # of blocks needed from CPU i
     //
-    for (int i = 0; i < fabComTagList.size(); i++)
+    for (unsigned int i = 0; i < fabComTagList.size(); i++)
     {
         BL_ASSERT(fabComTagList[i].box.ok());
         BL_ASSERT(fabComTagList[i].procThatNeedsData == MyProc);
@@ -2386,7 +2386,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
 
                 int Processed = 0;
 
-                for (int j = 0; j < fabComTagList.size(); j++)
+                for (unsigned int j = 0; j < fabComTagList.size(); j++)
                 {
                     if (fabComTagList[j].procThatHasData == i)
                     {
@@ -2454,7 +2454,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
             //
             size_t N = 0;
 
-            for (int j = 0; j < fabComTagList.size(); j++)
+            for (unsigned int j = 0; j < fabComTagList.size(); j++)
                 if (fabComTagList[j].procThatHasData == i)
                     N += fabComTagList[j].box.numPts()*fabComTagList[j].nComp;
 
@@ -2565,7 +2565,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
 
             BL_ASSERT(!(dptr == 0));
 
-            for (int j = 0; j < fabComTagList.size(); j++)
+            for (unsigned int j = 0; j < fabComTagList.size(); j++)
             {
                 if (fabComTagList[j].procThatHasData == indx[k])
                 {

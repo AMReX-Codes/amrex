@@ -1,6 +1,6 @@
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.67 2001-03-22 22:58:41 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.68 2001-04-24 19:42:19 car Exp $
 //
 
 #include <Utility.H>
@@ -179,7 +179,7 @@ ParallelDescriptor::StartParallel (int*    argc,
 
     int rc, sflag;
 
-    if (rc = MPI_Initialized(&sflag))
+    if ((rc = MPI_Initialized(&sflag)) != MPI_SUCCESS)
 	ParallelDescriptor::Abort(rc);
 
     if (!sflag)
