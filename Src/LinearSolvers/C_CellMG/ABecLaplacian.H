@@ -4,7 +4,7 @@
 #define _ABecLAPLACIAN_H_
 
 //
-// $Id: ABecLaplacian.H,v 1.5 1999-02-10 21:09:44 lijewski Exp $
+// $Id: ABecLaplacian.H,v 1.6 1999-05-10 17:18:38 car Exp $
 //
 
 #include <Tuple.H>
@@ -233,8 +233,8 @@ inline
 void
 ABecLaplacian::aCoefficients (const MultiFab& _a)
 {
-    assert(_a.ok());
-    assert(_a.boxArray() == (acoefs[0])->boxArray());
+    BLassert(_a.ok());
+    BLassert(_a.boxArray() == (acoefs[0])->boxArray());
     invalidate_a_to_level(0);
     (*acoefs[0]).copy(_a,0,0,1);
 }
@@ -244,8 +244,8 @@ void
 ABecLaplacian::bCoefficients (const MultiFab& _b,
                               int             dir)
 {
-    assert(_b.ok());
-    assert(_b.boxArray() == (bcoefs[0][dir])->boxArray());
+    BLassert(_b.ok());
+    BLassert(_b.boxArray() == (bcoefs[0][dir])->boxArray());
     invalidate_b_to_level(0);
     (*bcoefs[0][dir]).copy(_b,0,0,1);
 }

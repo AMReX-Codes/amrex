@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.30 1999-03-12 01:09:24 lijewski Exp $
+// $Id: Utility.cpp,v 1.31 1999-05-10 17:18:48 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -415,8 +415,8 @@ static int The_Random_Seed = 1;
 void
 Utility::InitRandom (int seed)
 {
-    assert(seed != 0);
-    assert(seed != 2147483647);
+    BLassert(seed != 0);
+    BLassert(seed != 2147483647);
     The_Random_Seed = seed;
 }
 
@@ -467,7 +467,7 @@ extern "C" void BLUTILRAND (Real* rn);
 void
 BLUTILRAND (Real* rn)
 {
-    assert(rn != 0);
+    BLassert(rn != 0);
     *rn = Utility::Random();
 }
 
@@ -480,7 +480,7 @@ extern "C" void blutilrand (Real* rn);
 void
 blutilrand (Real* rn)
 {
-    assert(rn != 0);
+    BLassert(rn != 0);
     *rn = Utility::Random();
 }
 
@@ -490,7 +490,7 @@ extern "C" void blutilrand_ (Real* rn);
 void
 blutilrand_ (Real* rn)
 {
-    assert(rn != 0);
+    BLassert(rn != 0);
     *rn = Utility::Random();
 }
 

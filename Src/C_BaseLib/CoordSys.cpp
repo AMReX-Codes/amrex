@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CoordSys.cpp,v 1.9 1999-02-25 17:35:35 car Exp $
+// $Id: CoordSys.cpp,v 1.10 1999-05-10 17:18:30 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -49,8 +49,8 @@ void
 CoordSys::GetVolume (FArrayBox& vol,
                      const Box& region) const 
 {
-    assert(ok);
-    assert(region.cellCentered());
+    BLassert(ok);
+    BLassert(region.cellCentered());
     vol.resize(region,1);
     DEF_LIMITS(vol,vol_dat,vlo,vhi);
     int coord = (int) c_sys;
@@ -63,8 +63,8 @@ CoordSys::GetDLogA (FArrayBox& dloga,
                     const Box& region,
                     int        dir) const
 {
-    assert(ok);
-    assert(region.cellCentered());
+    BLassert(ok);
+    BLassert(region.cellCentered());
     dloga.resize(region,1);
     DEF_LIMITS(dloga,dloga_dat,dlo,dhi);
     int coord = (int) c_sys;
@@ -95,8 +95,8 @@ CoordSys::GetFaceArea (FArrayBox& area,
                        const Box& region,
                        int        dir) const
 {
-    assert(ok);
-    assert(region.cellCentered());
+    BLassert(ok);
+    BLassert(region.cellCentered());
     Box reg(region);
     reg.surroundingNodes(dir);
     area.resize(reg,1);
@@ -110,8 +110,8 @@ CoordSys::GetEdgeLoc (Array<Real>& loc,
                       const Box&   region,
                       int          dir) const 
 {
-    assert(ok);
-    assert(region.cellCentered());
+    BLassert(ok);
+    BLassert(region.cellCentered());
     const int* lo = region.loVect();
     const int* hi = region.hiVect();
     int len       = hi[dir] - lo[dir] + 2;
@@ -128,8 +128,8 @@ CoordSys::GetCellLoc (Array<Real>& loc,
                       const Box&   region,
                       int          dir) const
 {
-    assert(ok);
-    assert(region.cellCentered());
+    BLassert(ok);
+    BLassert(region.cellCentered());
     const int* lo = region.loVect();
     const int* hi = region.hiVect();
     int len       = hi[dir] - lo[dir] + 1;
@@ -287,7 +287,7 @@ CoordSys::Volume (const Real xlo[BL_SPACEDIM],
         return (0.5*RZFACTOR)*(xhi[1]-xlo[1])*(xhi[0]*xhi[0]-xlo[0]*xlo[0]);
 #endif
     default:
-        assert(0);
+        BLassert(0);
     }
     return 0;
 }                      
@@ -314,7 +314,7 @@ CoordSys::AreaLo (const IntVect& point,
         case 1: return ((xlo[0]+dx[0])*(xlo[0]+dx[0])-xlo[0]*xlo[0])*(0.5*RZFACTOR);
         }
     default:
-        assert(0);
+        BLassert(0);
     }
 #endif
 #if (BL_SPACEDIM==3)
@@ -350,7 +350,7 @@ CoordSys::AreaHi (const IntVect& point,
         case 1: return (xhi[0]*xhi[0]-(xhi[0]-dx[0])*(xhi[0]-dx[0]))*(RZFACTOR*0.5);
         }
     default:
-        assert(0);
+        BLassert(0);
     }
 #endif
 #if (BL_SPACEDIM==3)

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BCRec.cpp,v 1.5 1998-03-30 21:57:32 lijewski Exp $
+// $Id: BCRec.cpp,v 1.6 1999-05-10 17:18:27 car Exp $
 //
 
 #include <BCRec.H>
@@ -16,8 +16,8 @@ BCRec::BCRec (D_DECL(int loX, int loY, int loZ),
 BCRec::BCRec (const int* lo,
               const int* hi)
 {
-    assert(!(lo == 0));
-    assert(!(hi == 0));
+    BLassert(!(lo == 0));
+    BLassert(!(hi == 0));
 
     for (int i = 0; i < BL_SPACEDIM; i++)
     {

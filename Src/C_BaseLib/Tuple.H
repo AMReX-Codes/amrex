@@ -4,7 +4,7 @@
 #define BL_TUPLE_H
 
 //
-// $Id: Tuple.H,v 1.5 1997-11-18 00:04:54 lijewski Exp $
+// $Id: Tuple.H,v 1.6 1999-05-10 17:18:47 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #endif
 
-#include <Assert.H>
+#include <BLassert.H>
 
 //
 //@Man:
@@ -93,7 +93,7 @@ inline
 T&
 Tuple<T,N>::operator[] (int i)
 {
-    assert(0 <= i && i < N);
+    BLassert(0 <= i && i < N);
     return vect[i];
 }
 
@@ -102,7 +102,7 @@ inline
 const T&
 Tuple<T,N>::operator[] (int i) const
 {
-    assert(0 <= i && i < N);
+    BLassert(0 <= i && i < N);
     return vect[i];
 }
 
@@ -117,7 +117,7 @@ Tuple<T,N>::operator const T* () const
 template <class T, size_t N>
 Tuple<T,N>::Tuple (const T* v)
 {
-    assert(v != 0);
+    BLassert(v != 0);
     for (size_t i = 0; i < N; ++i)
         vect[i] = v[i];
 }

@@ -51,7 +51,7 @@ public:
     holy_grail_amr_multigrid(const Array<BoxArray>& Mesh, const Array<IntVect>& Gen_ratio, const Box& fdomain, int Lev_min_min, int Lev_min_max, int Lev_max_max, const amr_fluid_boundary_class& Boundary, stencil stencil_ = cross, int Pcode = 2)
 	: amr_multigrid(Mesh, Gen_ratio, Lev_min_min, Lev_min_max, Lev_max_max, Boundary.pressure(), Pcode), boundary(Boundary), smoother_mode(2), line_solve_dim(-1),  m_stencil(stencil_)
     {
-	assert(m_stencil != full );
+	BLassert(m_stencil != full );
 	build_mesh(fdomain);
     }
     void set_line_solve_dimension(int dim)

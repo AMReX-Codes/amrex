@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.39 1999-04-12 20:31:47 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.40 1999-05-10 17:18:46 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -22,7 +22,7 @@ using std::setw;
 #include <list.h>
 #endif
 
-#include <Assert.H>
+#include <BLassert.H>
 #include <Misc.H>
 #include <MultiFab.H>
 #include <ParallelDescriptor.H>
@@ -35,15 +35,15 @@ MultiFab::Copy (MultiFab&       dst,
                 int             numcomp,
                 int             nghost)
 {
-    assert(dst.boxArray() == src.boxArray());
-    assert(dst.distributionMap == src.distributionMap);
-    assert(dst.nGrow() >= nghost && src.nGrow() >= nghost);
+    BLassert(dst.boxArray() == src.boxArray());
+    BLassert(dst.distributionMap == src.distributionMap);
+    BLassert(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
     for (MultiFabIterator mfi(dst); mfi.isValid(); ++mfi)
     {
         DependentMultiFabIterator dmfi(mfi,src);
 
-        assert(mfi.validbox() == dmfi.validbox());
+        BLassert(mfi.validbox() == dmfi.validbox());
 
         Box bx = ::grow(mfi.validbox(),nghost);
 
@@ -120,7 +120,7 @@ Real
 MultiFab::min (int comp,
                int nghost) const
 {
-    assert(nghost >= 0 && nghost <= n_grow);
+    BLassert(nghost >= 0 && nghost <= n_grow);
 
 #ifdef BL_USE_DOUBLE
     Real mn = FLT_MAX;
@@ -143,7 +143,7 @@ MultiFab::min (const Box& region,
                int        comp,
                int        nghost) const
 {
-    assert(nghost >= 0 && nghost <= n_grow);
+    BLassert(nghost >= 0 && nghost <= n_grow);
 
 #ifdef BL_USE_DOUBLE
     Real mn = FLT_MAX;
@@ -168,7 +168,7 @@ Real
 MultiFab::max (int comp,
                int nghost) const
 {
-    assert(nghost >= 0 && nghost <= n_grow);
+    BLassert(nghost >= 0 && nghost <= n_grow);
 
 #ifdef BL_USE_DOUBLE
     Real mn = FLT_MIN;
@@ -191,7 +191,7 @@ MultiFab::max (const Box& region,
                int        comp,
                int        nghost) const
 {
-    assert(nghost >= 0 && nghost <= n_grow);
+    BLassert(nghost >= 0 && nghost <= n_grow);
 
 #ifdef BL_USE_DOUBLE
     Real mn = FLT_MIN;
@@ -218,13 +218,13 @@ MultiFab::minus (const MultiFab& mf,
                  int             num_comp,
                  int             nghost)
 {
-    assert(boxarray == mf.boxarray);
-    assert(strt_comp >= 0);
+    BLassert(boxarray == mf.boxarray);
+    BLassert(strt_comp >= 0);
 #ifndef NDEBUG
     int lst_comp = strt_comp + num_comp - 1;
 #endif
-    assert(lst_comp < n_comp && lst_comp < mf.n_comp);
-    assert(nghost <= n_grow && nghost <= mf.n_grow);
+    BLassert(lst_comp < n_comp && lst_comp < mf.n_comp);
+    BLassert(nghost <= n_grow && nghost <= mf.n_grow);
 
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
@@ -242,8 +242,8 @@ MultiFab::plus (Real val,
                 int  num_comp,
                 int  nghost)
 {
-    assert(nghost >= 0 && nghost <= n_grow);
-    assert(comp+num_comp <= n_comp);
+    BLassert(nghost >= 0 && nghost <= n_grow);
+    BLassert(comp+num_comp <= n_comp);
 
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
@@ -258,8 +258,8 @@ MultiFab::plus (Real       val,
                 int        num_comp,
                 int        nghost)
 {
-    assert(nghost >= 0 && nghost <= n_grow);
-    assert(comp+num_comp <= n_comp);
+    BLassert(nghost >= 0 && nghost <= n_grow);
+    BLassert(comp+num_comp <= n_comp);
 
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
@@ -276,13 +276,13 @@ MultiFab::plus (const MultiFab& mf,
                 int             num_comp,
                 int             nghost)
 {
-    assert(boxarray == mf.boxarray);
-    assert(strt_comp >= 0);
+    BLassert(boxarray == mf.boxarray);
+    BLassert(strt_comp >= 0);
 #ifndef NDEBUG
     int lst_comp = strt_comp + num_comp - 1;
 #endif
-    assert(lst_comp < n_comp && lst_comp < mf.n_comp);
-    assert(nghost <= n_grow && nghost <= mf.n_grow);
+    BLassert(lst_comp < n_comp && lst_comp < mf.n_comp);
+    BLassert(nghost <= n_grow && nghost <= mf.n_grow);
 
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
@@ -300,8 +300,8 @@ MultiFab::mult (Real val,
                 int  num_comp,
                 int  nghost)
 {
-    assert(nghost >= 0 && nghost <= n_grow);
-    assert(comp+num_comp <= n_comp);
+    BLassert(nghost >= 0 && nghost <= n_grow);
+    BLassert(comp+num_comp <= n_comp);
 
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
@@ -316,8 +316,8 @@ MultiFab::mult (Real       val,
                 int        num_comp,
                 int        nghost)
 {
-    assert(nghost >= 0 && nghost <= n_grow);
-    assert(comp+num_comp <= n_comp);
+    BLassert(nghost >= 0 && nghost <= n_grow);
+    BLassert(comp+num_comp <= n_comp);
 
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
@@ -334,8 +334,8 @@ MultiFab::invert (Real numerator,
                   int  num_comp,
                   int  nghost)
 {
-    assert(nghost >= 0 && nghost <= n_grow);
-    assert(comp+num_comp <= n_comp);
+    BLassert(nghost >= 0 && nghost <= n_grow);
+    BLassert(comp+num_comp <= n_comp);
 
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
@@ -350,8 +350,8 @@ MultiFab::invert (Real       numerator,
                   int        num_comp,
                   int        nghost)
 {
-    assert(nghost >= 0 && nghost <= n_grow);
-    assert(comp+num_comp <= n_comp);
+    BLassert(nghost >= 0 && nghost <= n_grow);
+    BLassert(comp+num_comp <= n_comp);
 
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
@@ -367,8 +367,8 @@ MultiFab::negate (int comp,
                   int num_comp,
                   int nghost)
 {
-    assert(nghost >= 0 && nghost <= n_grow);
-    assert(comp+num_comp <= n_comp);
+    BLassert(nghost >= 0 && nghost <= n_grow);
+    BLassert(comp+num_comp <= n_comp);
 
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
@@ -382,8 +382,8 @@ MultiFab::negate (const Box& region,
                   int        num_comp,
                   int        nghost)
 {
-    assert(nghost >= 0 && nghost <= n_grow);
-    assert(comp+num_comp <= n_comp);
+    BLassert(nghost >= 0 && nghost <= n_grow);
+    BLassert(comp+num_comp <= n_comp);
 
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
@@ -411,7 +411,7 @@ linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
 {
     const Real teps = (t2-t1)/1000.0;
 
-    assert(t>t1-teps && (extrap || t < t2+teps));
+    BLassert(t>t1-teps && (extrap || t < t2+teps));
 
     if (t < t1+teps)
     {
@@ -472,7 +472,7 @@ linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
 {
     const Real teps = (t2-t1)/1000.0;
 
-    assert(t>t1-teps && (extrap || t < t2+teps));
+    BLassert(t>t1-teps && (extrap || t < t2+teps));
 
     if (t < t1+teps)
     {
@@ -484,7 +484,7 @@ linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
     }
     else
     {
-        assert(dest_comp + num_comp <= dest.nComp());
+        BLassert(dest_comp + num_comp <= dest.nComp());
 
         FArrayBox dest1(dest.box(), dest.nComp());
         dest1.setVal(1.e30);
@@ -526,8 +526,8 @@ struct SIRec
         m_j(j),
         m_bx(bx)
     {
-        assert(i >= 0);
-        assert(j >= 0);
+        BLassert(i >= 0);
+        BLassert(j >= 0);
     }
 
     SIRec (const SIRec& rhs)
@@ -591,9 +591,9 @@ SI::SI (const BoxArray& ba,
     m_ncomp(ncomp),
     m_ngrow(ngrow)
 {
-    assert(ncomp >  0);
-    assert(scomp >= 0);
-    assert(ngrow >= 0);
+    BLassert(ncomp >  0);
+    BLassert(scomp >= 0);
+    BLassert(ngrow >= 0);
 }
 
 inline
@@ -649,11 +649,11 @@ SI&
 BuildFBsirec (const SI&       si,
               const MultiFab& mf)
 {
-    assert(si.m_ncomp >  0);
-    assert(si.m_scomp >= 0);
-    assert(si.m_ngrow >= 0);
-    assert(mf.nGrow() == si.m_ngrow);
-    assert(mf.boxArray() == si.m_ba);
+    BLassert(si.m_ncomp >  0);
+    BLassert(si.m_scomp >= 0);
+    BLassert(si.m_ngrow >= 0);
+    BLassert(mf.nGrow() == si.m_ngrow);
+    BLassert(mf.boxArray() == si.m_ba);
     //
     // Insert new ones at beginning of list.
     //
@@ -692,7 +692,7 @@ BuildFBsirec (const SI&       si,
             }
         }
 
-        assert(cache[DMap[i]] == 0);
+        BLassert(cache[DMap[i]] == 0);
     }
 
     return SICache.front();
@@ -708,8 +708,8 @@ TheFBsirec (int             scomp,
             int             ncomp,
             const MultiFab& mf)
 {
-    assert(ncomp >  0);
-    assert(scomp >= 0);
+    BLassert(ncomp >  0);
+    BLassert(scomp >= 0);
 
     const SI si(mf.boxArray(), scomp, ncomp, mf.nGrow());
     
@@ -757,7 +757,7 @@ MultiFab::FillBoundary (int scomp,
 
     for (int i = 0; i < si.m_sirec.size(); i++)
     {
-        assert(DistributionMap()[si.m_sirec[i].m_i] == ParallelDescriptor::MyProc());
+        BLassert(DistributionMap()[si.m_sirec[i].m_i] == ParallelDescriptor::MyProc());
         //
         // Directly fill the FAB.
         //

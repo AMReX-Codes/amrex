@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MCMultiGrid.cpp,v 1.5 1999-01-04 21:31:49 lijewski Exp $
+// $Id: MCMultiGrid.cpp,v 1.6 1999-05-10 17:18:54 car Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -117,7 +117,7 @@ MCMultiGrid::errorEstimate (int       level,
     const BoxArray& gbox = Lp.boxArray(0);
     for (MultiFabIterator resmfi(*res[level]); resmfi.isValid(); ++resmfi)
     {
-        assert(gbox[resmfi.index()] == resmfi.validbox());
+        BLassert(gbox[resmfi.index()] == resmfi.validbox());
 
         resk = resmfi().norm(resmfi.validbox(), p, 0, numcomps);
 
@@ -177,7 +177,7 @@ MCMultiGrid::solve (MultiFab&       _sol,
 		    Real            _eps_abs,
 		    MCBC_Mode       bc_mode)
 {
-    assert(numcomps == _sol.nComp());
+    BLassert(numcomps == _sol.nComp());
     //
     // Prepare memory for new level, and solve the general boundary
     // value problem to within relative error _eps_rel.  Customized
@@ -279,7 +279,7 @@ MCMultiGrid::solve_ (MultiFab& _sol,
 int
 MCMultiGrid::getNumLevels (int _numlevels)
 {
-    assert(_numlevels >= 0);
+    BLassert(_numlevels >= 0);
     int oldnumlevels = numlevels;
     numlevels = Min(_numlevels, numLevels());
     return oldnumlevels;
@@ -400,7 +400,7 @@ MCMultiGrid::average (MultiFab&       c,
     for (MultiFabIterator cmfi(c); cmfi.isValid(); ++cmfi)
     {
 	DependentMultiFabIterator fmfi(cmfi, f);
-        assert(c.boxArray().get(cmfi.index()) == cmfi.validbox());
+        BLassert(c.boxArray().get(cmfi.index()) == cmfi.validbox());
         const Box& bx = cmfi.validbox();
 	int nc = c.nComp();
 	FORT_AVERAGE(
@@ -421,7 +421,7 @@ MCMultiGrid::interpolate (MultiFab&       f,
     for (MultiFabIterator fmfi(f); fmfi.isValid(); ++fmfi)
     {
 	DependentMultiFabIterator cmfi(fmfi, c);
-        assert(c.boxArray().get(cmfi.index()) == cmfi.validbox());
+        BLassert(c.boxArray().get(cmfi.index()) == cmfi.validbox());
         const Box& bx = cmfi.validbox();
 	int nc = f.nComp();
 	FORT_INTERP(

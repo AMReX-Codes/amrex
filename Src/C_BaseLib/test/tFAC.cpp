@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tFAC.cpp,v 1.1 1998-10-26 20:50:53 lijewski Exp $
+// $Id: tFAC.cpp,v 1.2 1999-05-10 17:18:49 car Exp $
 //
 // A simple program to test FabArray<T>::copy() in parallel.
 //
@@ -18,7 +18,7 @@ main (int argc, char** argv)
     int nProcs = 1;
     ParallelDescriptor::StartParallel(nProcs, &argc, &argv);
 
-    assert(ParallelDescriptor::NProcs() == 2);
+    BLassert(ParallelDescriptor::NProcs() == 2);
 
     BoxArray ba_1(1);
     BoxArray ba_2(5);

@@ -4,7 +4,7 @@
 #define BL_BOXDOMAIN_H
 
 //
-// $Id: BoxDomain.H,v 1.6 1999-02-10 21:09:55 lijewski Exp $
+// $Id: BoxDomain.H,v 1.7 1999-05-10 17:18:44 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -292,7 +292,7 @@ BoxDomain&
 BoxDomain::intersect (const Box& b)
 {
     BoxList::intersect(b);
-    assert(ok());
+    BLassert(ok());
     return *this;
 }
 
@@ -311,7 +311,7 @@ BoxDomain&
 BoxDomain::refine (int ratio)
 {
     BoxList::refine(ratio);
-    assert(ok());
+    BLassert(ok());
     return *this;
 }
 
@@ -351,7 +351,7 @@ BoxDomain::complementIn (const Box&       b,
                          const BoxDomain& bl)
 {
     BoxList::complementIn(b,bl);
-    assert(ok());
+    BLassert(ok());
     return *this;
 }
 

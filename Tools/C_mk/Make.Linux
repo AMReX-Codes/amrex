@@ -13,4 +13,6 @@ CPP    = gcc -E -x c++
 FDEBF += -g
 
 
-override XTRALIBS +=  -lf2c -lm
+#override XTRALIBS +=  -lf2c
+override XTRALIBS += -lg2c
+override XTRALIBS +=   -lm

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DiffUniform.cpp,v 1.2 1999-03-12 20:09:10 sstanley Exp $
+// $Id: DiffUniform.cpp,v 1.3 1999-05-10 17:18:54 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -130,7 +130,7 @@ main (int   argc,
     AmrData& amrDataC = dataServicesC.AmrDataRef();
     AmrData& amrDataF = dataServicesF.AmrDataRef();
 
-    assert(amrDatasHaveSameDerives(amrDataC,amrDataF));
+    BLassert(amrDatasHaveSameDerives(amrDataC,amrDataF));
     int exact_level = finestLevelCoveringDomain(amrDataF);
     if (exact_level < 0)
     {

@@ -4,7 +4,7 @@
 #define BL_ORIENTATION_H
 
 //
-// $Id: Orientation.H,v 1.5 1999-04-26 20:09:23 lijewski Exp $
+// $Id: Orientation.H,v 1.6 1999-05-10 17:18:47 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -19,7 +19,7 @@ using std::istream;
 #include <iostream.h>
 #endif
 
-#include <Assert.H>
+#include <BLassert.H>
 #include <SPACE.H>
 
 class OrientationIter;
@@ -226,7 +226,7 @@ Orientation::Orientation (int  _dir,
                           Side _side)
     : val(BL_SPACEDIM*_side + _dir)
 {
-    assert(0 <= _dir && _dir < BL_SPACEDIM);
+    BLassert(0 <= _dir && _dir < BL_SPACEDIM);
 }
 
 inline
@@ -350,7 +350,7 @@ OrientationIter::ok () const
 inline
 OrientationIter::OrientationIter (const OrientationIter& it)
 {
-    assert(it.ok());
+    BLassert(it.ok());
     face = it.face;
 }
 
@@ -358,7 +358,7 @@ inline
 OrientationIter&
 OrientationIter::operator= (const OrientationIter& it)
 {
-    assert(it.ok());
+    BLassert(it.ok());
     face = it.face;
     return *this;
 }
@@ -374,7 +374,7 @@ inline
 Orientation
 OrientationIter::operator() () const
 {
-    assert(ok());
+    BLassert(ok());
     return Orientation(face);
 }
 
@@ -388,7 +388,7 @@ inline
 OrientationIter&
 OrientationIter::operator-- ()
 {
-    assert(ok());
+    BLassert(ok());
     --face;
     return *this;
 }
@@ -397,7 +397,7 @@ inline
 OrientationIter&
 OrientationIter::operator++ ()
 {
-    assert(ok());
+    BLassert(ok());
     ++face;
     return *this;
 }
@@ -406,7 +406,7 @@ inline
 OrientationIter
 OrientationIter::operator-- (int)
 {
-    assert(ok());
+    BLassert(ok());
     return OrientationIter(face--);
 }
 
@@ -414,7 +414,7 @@ inline
 OrientationIter
 OrientationIter::operator++ (int)
 {
-    assert(ok());
+    BLassert(ok());
     return OrientationIter(face++);
 }
 
@@ -422,7 +422,7 @@ inline
 bool
 OrientationIter::operator== (const OrientationIter& oi) const
 {
-    assert(ok() && oi.ok());
+    BLassert(ok() && oi.ok());
     return face == oi.face;
 }
 
@@ -430,7 +430,7 @@ inline
 bool
 OrientationIter::operator!= (const OrientationIter& oi) const
 {
-    assert(ok() && oi.ok());
+    BLassert(ok() && oi.ok());
     return face != oi.face;
 }
 

@@ -4,10 +4,10 @@
 #define BL_USECOUNT_H
 
 //
-// $Id: UseCount.H,v 1.5 1999-02-10 21:09:57 lijewski Exp $
+// $Id: UseCount.H,v 1.6 1999-05-10 17:18:47 car Exp $
 //
 
-#include <Assert.H>
+#include <BLassert.H>
 #include <BoxLib.H>
 
 //

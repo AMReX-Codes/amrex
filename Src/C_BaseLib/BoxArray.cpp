@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxArray.cpp,v 1.10 1999-01-13 04:14:19 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.11 1999-05-10 17:18:44 car Exp $
 //
 
-#include <Assert.H>
+#include <BLassert.H>
 #include <BoxArray.H>
 
 BoxArray::Ref::Ref () {}
@@ -112,7 +112,7 @@ BoxArray::set (int        i,
 void
 BoxArray::define (istream& is)
 {
-    assert(length() == 0);
+    BLassert(length() == 0);
     if (!m_ref.unique())
         uniqify();
     m_ref->define(is);
@@ -124,7 +124,7 @@ BoxArray::Ref::define (istream& is)
     //
     // TODO -- completely remove the fiction of a hash value.
     //
-    assert(m_abox.length() == 0);
+    BLassert(m_abox.length() == 0);
     int           maxbox;
     unsigned long hash;
     is.ignore(BL_IGNORE_MAX, '(') >> maxbox >> hash;
@@ -139,7 +139,7 @@ BoxArray::Ref::define (istream& is)
 void
 BoxArray::define (const BoxList& bl)
 {
-    assert(length() == 0);
+    BLassert(length() == 0);
     if (!m_ref.unique())
         uniqify();
     m_ref->define(bl);
@@ -148,7 +148,7 @@ BoxArray::define (const BoxList& bl)
 void
 BoxArray::Ref::define (const BoxList& bl)
 {
-    assert(m_abox.length() == 0);
+    BLassert(m_abox.length() == 0);
     m_abox.resize(bl.length());
     int count = 0;
     for (BoxListIterator bli(bl); bli; ++bli)
@@ -158,7 +158,7 @@ BoxArray::Ref::define (const BoxList& bl)
 void
 BoxArray::define (const BoxArray& bs)
 {
-    assert(length() == 0);
+    BLassert(length() == 0);
     m_ref = bs.m_ref;
 }
 
@@ -357,7 +357,7 @@ BoxArray::convert (IndexType typ)
 BoxArray&
 BoxArray::convert (Box (*fp)(const Box&))
 {
-    assert(!(fp == 0));
+    BLassert(!(fp == 0));
 
     if (!m_ref.unique())
         uniqify();
@@ -462,7 +462,7 @@ BoxArray::print (ostream& os) const
 BoxList
 BoxArray::boxList () const
 {
-    assert(length() > 0);
+    BLassert(length() > 0);
     BoxList newb(get(0).ixType());
     for (int i = 0; i < length(); ++i)
         newb.append(get(i));

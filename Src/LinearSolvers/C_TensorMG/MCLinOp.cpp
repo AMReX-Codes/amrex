@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MCLinOp.cpp,v 1.9 1999-02-24 01:56:04 propp Exp $
+// $Id: MCLinOp.cpp,v 1.10 1999-05-10 17:18:54 car Exp $
 //
 // Differences from LinOp: den has nc components, bct has nc components.
 //
@@ -52,7 +52,7 @@ MCLinOp::MCLinOp (const BndryData& _bgb,
     :
     bgb(_bgb)
 {
-    assert (MCLinOp::bcComponentsNeeded() == bgb.nComp());
+    BLassert (MCLinOp::bcComponentsNeeded() == bgb.nComp());
     Real __h[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
@@ -66,7 +66,7 @@ MCLinOp::MCLinOp (const BndryData& _bgb,
     :
     bgb(_bgb)
 {
-    assert (MCLinOp::bcComponentsNeeded() == bgb.nComp());
+    BLassert (MCLinOp::bcComponentsNeeded() == bgb.nComp());
     initConstruct(_h);
 }
 
@@ -88,7 +88,7 @@ MCLinOp::MCLinOp (const MCLinOp& _lp,
     :
     bgb(_lp.bgb)
 {
-    assert(_lp.numLevels() > level);
+    BLassert(_lp.numLevels() > level);
     harmavg = _lp.harmavg;
     verbose = _lp.verbose;
     gbox.resize(1);
@@ -140,7 +140,7 @@ MCLinOp::initConstruct (const Real* _h)
             if (bndry.DistributionMap()[i] == myproc)
             {
                 const PArray<Mask>& pam = bgb.bndryMasks(face);
-                assert(maskvals[level][i][face] == 0);
+                BLassert(maskvals[level][i][face] == 0);
                 maskvals[level][i][face] = new Mask(pam[i].box(), 1);
                 maskvals[level][i][face]->copy(pam[i]);
             }
@@ -175,23 +175,23 @@ MCLinOp::applyBC (MultiFab& inout,
     // The inout MultiFab must have at least MCLinOp_grow ghost cells
     // for applyBC()
     //
-    assert(inout.nGrow() >= MCLinOp_grow);
+    BLassert(inout.nGrow() >= MCLinOp_grow);
     //
     // The inout MultiFab must have at least Periodic_BC_grow cells for the
     // algorithms taking care of periodic boundary conditions.
     //
-    assert(inout.nGrow() >= MCLinOp_grow);
+    BLassert(inout.nGrow() >= MCLinOp_grow);
     //
     // No coarsened boundary values, cannot apply inhomog at lev>0.
     //
-    assert(!(level>0 && bc_mode == MCInhomogeneous_BC));
+    BLassert(!(level>0 && bc_mode == MCInhomogeneous_BC));
     
     int flagden = 1;	// fill in the bndry data and undrrelxr
     int flagbc  = 1;	// with values
     if (bc_mode == MCHomogeneous_BC)
         flagbc = 0; // nodata if homog
     int nc = inout.nComp();
-    assert(nc == numcomp );
+    BLassert(nc == numcomp );
 
     inout.FillBoundary();
     prepareForLevel(level);
@@ -216,7 +216,7 @@ MCLinOp::applyBC (MultiFab& inout,
             DependentFabSetIterator tdfsi(inoutmfi, td);
             DependentFabSetIterator fsfsi(inoutmfi, fs);
 	    int gn = inoutmfi.index();
-	    assert(gbox[level][inoutmfi.index()] == inoutmfi.validbox());
+	    BLassert(gbox[level][inoutmfi.index()] == inoutmfi.validbox());
 	    Real bcl(r[gn]);
 	    const int *bct = (const int *)b[gn].dataPtr();
 	    FArrayBox& fsfab = fsfsi();
@@ -368,7 +368,7 @@ MCLinOp::prepareForLevel (int level)
     //
     // Assume from here down that this is a new level one coarser than existing
     //
-    assert(h.length() == level);
+    BLassert(h.length() == level);
     h.resize(level+1);
     int i;
     for (i = 0; i < BL_SPACEDIM; ++i)
@@ -385,14 +385,14 @@ MCLinOp::prepareForLevel (int level)
     //
     // Add the BndryRegister of relax values to the new coarser level.
     //
-    assert(undrrelxr.length() == level);
+    BLassert(undrrelxr.length() == level);
     undrrelxr.resize(level+1);
     undrrelxr[level] = new BndryRegister(gbox[level], 1, 0, 0, numcomp);
     //
     // Add the BndryRegister to hold tagential derivatives to the new
     // coarser level.
     //
-    assert(tangderiv.length() == level);
+    BLassert(tangderiv.length() == level);
     tangderiv.resize(level+1);
     //
     // Figure out how many components.
@@ -407,7 +407,7 @@ MCLinOp::prepareForLevel (int level)
     // Initial masks for coarse levels, ignore outside_domain possibility since
     // we always solve homogeneous equation on coarse levels.
     //
-    assert(maskvals.length() == level);
+    BLassert(maskvals.length() == level);
     maskvals.resize(level+1);
     maskvals[level].resize(gbox[level].length());
     for (i = 0; i < gbox[level].length(); i++)
@@ -437,7 +437,7 @@ MCLinOp::prepareForLevel (int level)
                     continue;
 		bx_k.grow(dir,1);
 	    }
-	    assert(maskvals[level][gn][face] == 0);
+	    BLassert(maskvals[level][gn][face] == 0);
 	    maskvals[level][gn][face] = new Mask(bx_k, 1);
 	    Mask& curmask = *(maskvals[level][gn][face]);
 	    curmask.setVal(BndryData::not_covered);

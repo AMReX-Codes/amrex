@@ -89,7 +89,7 @@ task_interpolate_patch::task_interpolate_patch (task_list&      tl_,
     lev_interface(lev_interface_),
     tf(0)
 {
-    assert(dbx.sameType(dmf.box(dgrid)));
+    BLassert(dbx.sameType(dmf.box(dgrid)));
     tf = m_task_list.add_task(new task_fill_patch(m_task_list,dmf,dgrid,interp->box(dbx,rat),smf,lev_interface,0,-1,-1));
     depend_on(tf);
 }
@@ -99,11 +99,11 @@ task_interpolate_patch::ready ()
 {
     if (is_local(dmf,dgrid))
     {
-        assert(is_started());
-        assert(!tf.null());
-        assert(tf->ready());
+        BLassert(is_started());
+        BLassert(!tf.null());
+        BLassert(tf->ready());
 	task_fab* tff = dynamic_cast<task_fab*>(tf.get());
-        assert(tff != 0);
+        BLassert(tff != 0);
 	interp->fill(dmf[dgrid], dbx, tff->fab(), tff->fab().box(), rat);
     }
     return true;
@@ -129,8 +129,8 @@ holy_grail_amr_multigrid::alloc (PArray<MultiFab>& Dest,
                                  int               Lev_min,
                                  int               Lev_max)
 {
-    assert(Dest.length() > Lev_max);
-    assert(Dest[Lev_min].nGrow() == 1);
+    BLassert(Dest.length() > Lev_max);
+    BLassert(Dest[Lev_min].nGrow() == 1);
     
     if (Source.ready()) 
     {
@@ -180,7 +180,7 @@ holy_grail_amr_multigrid::alloc (PArray<MultiFab>& Dest,
     cgwork[6].setVal(0.0);
     cgwork.set(7, new MultiFab(mesh0, 1, ib));
     
-    assert(cgwork[3].nGrow() == ib &&
+    BLassert(cgwork[3].nGrow() == ib &&
 	cgwork[4].nGrow() == ib &&
 	cgwork[5].nGrow() == ib);
     
@@ -252,8 +252,8 @@ holy_grail_sigma_restrictor_class::fill (FArrayBox&       patch,
                                          const FArrayBox& fgr,
                                          const IntVect&   rat) const
 {
-    assert(patch.box().cellCentered());
-    assert(rat[0] == 2 && rat[1] == 2 ||
+    BLassert(patch.box().cellCentered());
+    BLassert(rat[0] == 2 && rat[1] == 2 ||
 	rat[0] == 2 && rat[1] == 1 ||
 	rat[0] == 1 && rat[1] == 2);
     
@@ -881,7 +881,7 @@ holy_grail_amr_multigrid::mg_interpolate_level (int lto,
 		}
 		//const Box& sigbox = sigma[ltmp][igrid].box();
 		const Box& sigbox = sigma[ltmp].box(igrid);
-		assert( is_remote(sigma[ltmp], igrid) || sigbox == sigma[ltmp][igrid].box());
+		BLassert( is_remote(sigma[ltmp], igrid) || sigbox == sigma[ltmp][igrid].box());
 		hgi = new holy_grail_interpolator_class_not_cross(sigptr, sigbox);
 	    }
 	    else if (m_stencil == full)
@@ -896,7 +896,7 @@ holy_grail_amr_multigrid::mg_interpolate_level (int lto,
 		    }
 		}
 		const Box& sigbox = grow(sigma_nd[0][ltmp].box(igrid), sigma_nd[0][ltmp].nGrow());
-		assert(is_remote(sigma_nd[0][ltmp], igrid) || sigbox == sigma[ltmp][igrid].box());
+		BLassert(is_remote(sigma_nd[0][ltmp], igrid) || sigbox == sigma[ltmp][igrid].box());
 		// const Box& sigbox = sigma[ltmp][igrid].box();
 		hgi = new holy_grail_interpolator_class_not_cross(sigptr, sigbox);
 #endif
@@ -913,7 +913,7 @@ holy_grail_amr_multigrid::mg_interpolate_level (int lto,
 		    }
 		}
 		const Box& sigbox = grow(sigma_nd[0][ltmp].box(igrid), sigma_nd[0][ltmp].nGrow());
-		assert( is_remote(sigma_nd[0][ltmp], igrid) || sigbox == sigma_nd[0][ltmp][igrid].box());
+		BLassert( is_remote(sigma_nd[0][ltmp], igrid) || sigbox == sigma_nd[0][ltmp][igrid].box());
 		// const Box& sigbox = sigma_nd[0][ltmp][igrid].box();
 		hgi = new holy_grail_interpolator_class_not_cross(sigptr, sigbox);
 #else
@@ -923,7 +923,7 @@ holy_grail_amr_multigrid::mg_interpolate_level (int lto,
 		    sigptr = sigma_node[ltmp][igrid].dataPtr();
 		}
 		const Box& sigbox = grow(sigma_node[ltmp].box(igrid), sigma_node[ltmp].nGrow());
-		assert( is_remote(sigma_node[ltmp], igrid) || sigbox == sigma_node[ltmp][igrid].box());
+		BLassert( is_remote(sigma_node[ltmp], igrid) || sigbox == sigma_node[ltmp][igrid].box());
 		// const Box& sigbox = sigma_node[ltmp][igrid].box();
 		hgi = new holy_grail_interpolator_class(sigptr, sigbox);
 #endif

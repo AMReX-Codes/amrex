@@ -1,5 +1,5 @@
 //
-// $Id: Specialize.cpp,v 1.1 1997-12-18 18:44:39 lijewski Exp $
+// $Id: Specialize.cpp,v 1.2 1999-05-10 17:18:47 car Exp $
 //
 
 #ifdef BL_USE_SPECIALIZE
@@ -21,15 +21,15 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
                             int                  destcomp,
                             int                  numcomp)
 {
-    assert(src.box().contains(srcbox));
-    assert(box().contains(destbox));
-    assert(destbox.sameSize(srcbox));
-    assert(srccomp >= 0 && srccomp+numcomp <= src.nComp());
-    assert(destcomp >= 0 && destcomp+numcomp <= nComp());
+    BLassert(src.box().contains(srcbox));
+    BLassert(box().contains(destbox));
+    BLassert(destbox.sameSize(srcbox));
+    BLassert(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+    BLassert(destcomp >= 0 && destcomp+numcomp <= nComp());
  
     Box _subbox_(box()); 
     _subbox_ &= destbox; 
-    assert((srcbox).sameSize(_subbox_)); 
+    BLassert((srcbox).sameSize(_subbox_)); 
  
     if (_subbox_.ok())
     { 
@@ -70,8 +70,8 @@ BaseFab<Real>::performSetVal (Real       val,
                               int        ns,
                               int        num)
 {
-    assert(domain.contains(bx));
-    assert(ns >= 0 && ns + num <= nvar);
+    BLassert(domain.contains(bx));
+    BLassert(ns >= 0 && ns + num <= nvar);
 
     const int* _box_lo = bx.loVect();            
     const int* _box_hi = bx.hiVect();            

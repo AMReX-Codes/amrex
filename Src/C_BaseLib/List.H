@@ -4,10 +4,10 @@
 #define BL_LIST_H
 
 //
-// $Id: List.H,v 1.7 1999-02-10 21:09:57 lijewski Exp $
+// $Id: List.H,v 1.8 1999-05-10 17:18:46 car Exp $
 //
 
-#include <Assert.H>
+#include <BLassert.H>
 #include <BoxLib.H>
 
 template <class T> class ListLink;
@@ -401,7 +401,7 @@ inline
 const T&
 ListIterator<T>::operator() () const
 {
-    assert(p != 0);
+    BLassert(p != 0);
     return p->val;
 }
 
@@ -410,7 +410,7 @@ inline
 const T&
 ListIterator<T>::operator* () const
 {
-    assert(p != 0);
+    BLassert(p != 0);
     return p->val;
 }
 
@@ -434,7 +434,7 @@ inline
 const T&
 ListIterator<T>::value () const
 {
-    assert(p != 0);
+    BLassert(p != 0);
     return p->val;
 }
 
@@ -534,7 +534,7 @@ inline
 T&
 List<T>::firstElement () const
 {
-    assert(head != 0);
+    BLassert(head != 0);
     return head->val;
 }
 
@@ -543,7 +543,7 @@ inline
 T&
 List<T>::lastElement () const
 {
-    assert(tail != 0);
+    BLassert(tail != 0);
     return tail->val;
 }
 
@@ -584,7 +584,7 @@ inline
 const T&
 List<T>::operator[] (const ListIterator<T>& li) const
 {
-    assert(li.p != 0);
+    BLassert(li.p != 0);
     return li.p->val;
 }
 
@@ -593,7 +593,7 @@ inline
 T&
 List<T>::operator[] (const ListIterator<T>& li)
 {
-    assert(li.p != 0);
+    BLassert(li.p != 0);
     return li.p->val;
 }
 
@@ -603,7 +603,7 @@ void
 List<T>::replace (ListIterator<T>& li,
                   const T&         _val)
 {
-    assert(li.p != 0);
+    BLassert(li.p != 0);
     li.p->val = _val;
 }
 
@@ -697,7 +697,7 @@ ListLink<T> *
 List<T>::addBefore (ListLink<T>* ln,
                     const T&     val)
 {
-    assert(ln != 0 || head == 0);
+    BLassert(ln != 0 || head == 0);
 
     ListLink<T>* newlink;
 
@@ -726,7 +726,7 @@ ListLink<T>*
 List<T>::addAfter (ListLink<T>* ln,
                    const T&     val)
 {
-    assert(ln != 0 || tail == 0);
+    BLassert(ln != 0 || tail == 0);
 
     ListLink<T>* newlink;
 
@@ -862,25 +862,25 @@ template <class T>
 void
 List<T>::remove (ListLink<T>* ln)
 {
-    assert(head !=0 && tail != 0);
+    BLassert(head !=0 && tail != 0);
 
     if (head == ln && tail == ln)
         head = tail = 0;
     else if (head == ln)
     {
-        assert(ln->pre == 0);
+        BLassert(ln->pre == 0);
         head = ln->suc;
         head->pre = 0;
     }
     else if (tail == ln)
     {
-        assert(ln->suc == 0);
+        BLassert(ln->suc == 0);
         tail = ln->pre;
         tail->suc  = 0;
     }
     else
     {
-        assert(ln->suc != 0 && ln->pre != 0);
+        BLassert(ln->suc != 0 && ln->pre != 0);
         ln->suc->pre = ln->pre;
         ln->pre->suc = ln->suc;
     }

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MCCGSolver.cpp,v 1.6 1999-04-13 21:37:36 sstanley Exp $
+// $Id: MCCGSolver.cpp,v 1.7 1999-05-10 17:18:53 car Exp $
 //
 
 #include <ParmParse.H>
@@ -73,7 +73,7 @@ MCCGSolver::norm (const MultiFab& res)
     const BoxArray& gbox = res.boxArray();
     for (ConstMultiFabIterator mfi(res); mfi.isValid(); ++mfi)
     {
-        assert(mfi.validbox() == gbox[mfi.index()]);
+        BLassert(mfi.validbox() == gbox[mfi.index()]);
         resk = mfi().norm(mfi.validbox(), p, 0, ncomp);
         if (p == 0)
 	{
@@ -120,8 +120,8 @@ MCCGSolver::solve (MultiFab&       sol,
     //      r -= alpha w
     //   }
     //
-    assert(sol.boxArray() == Lp.boxArray(lev));
-    assert(rhs.boxArray() == Lp.boxArray(lev));
+    BLassert(sol.boxArray() == Lp.boxArray(lev));
+    BLassert(rhs.boxArray() == Lp.boxArray(lev));
 
     int nghost = 1;
     int ncomp  = sol.nComp();

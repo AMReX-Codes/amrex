@@ -4,7 +4,7 @@
 #define BL_LOOPING_H
 
 //
-// $Id: Looping.H,v 1.6 1999-04-26 20:09:22 lijewski Exp $
+// $Id: Looping.H,v 1.7 1999-05-10 17:18:46 car Exp $
 //
 
 #if (BL_SPACEDIM == 1)
@@ -30,7 +30,7 @@
     template <class T>
     void BaseFab<T>::performSetVal(const T val, const Box bx, int ns, int nc)
     {
-       assert(domain.contains(bx));
+       BLassert(domain.contains(bx));
        ForAllThisPencil(T,bx,ns,nc)
        {
           T* dog = \&thisR;
@@ -49,8 +49,8 @@
 */
 #define ForAllThisPencil(T,b,ns,nc)                                     \
 {                                                                       \
-    assert(contains(b));                                                \
-    assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BLassert(contains(b));                                                \
+    BLassert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
     const int *_th_plo = loVect();                                     \
     const int *_th_plen = length();                                    \
     const int *_b_lo = (b).loVect();                                    \
@@ -83,8 +83,8 @@
 */
 #define ForAllThisCPencil(T,b,ns,nc)                                    \
 {                                                                       \
-    assert(contains(b));                                                \
-    assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BLassert(contains(b));                                                \
+    BLassert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
     const int *_th_plo = loVect();                                      \
     const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
@@ -121,8 +121,8 @@
 */
 #define ForAllXBNN(T,x,b,ns,nc)                                         \
 {                                                                       \
-    assert(x.contains(b));                                              \
-    assert((ns) >= 0 && (ns) + (nc) <= (x).nComp());                    \
+    BLassert(x.contains(b));                                              \
+    BLassert((ns) >= 0 && (ns) + (nc) <= (x).nComp());                    \
     const int *_x_plo = (x).loVect();                                  \
     const int *_x_plen = (x).length();                                 \
     const int *_b_lo = (b).loVect();                                    \
@@ -156,8 +156,8 @@
 */
 #define ForAllXCBNN(T,x,b,ns,nc)                                        \
 {                                                                       \
-    assert(x.contains(b));                                              \
-    assert((ns) >= 0 && (ns) + (nc) <= (x).nComp());                    \
+    BLassert(x.contains(b));                                              \
+    BLassert((ns) >= 0 && (ns) + (nc) <= (x).nComp());                    \
     const int *_x_plo = (x).loVect();                                   \
     const int *_x_plen = (x).length();                                  \
     const int *_b_lo = (b).loVect();                                    \
@@ -190,7 +190,7 @@
     void
     BaseFab<T>::performSetVal (const T val, const Box bx, int ns, int num)
     {
-      assert(domain.contains(bx));
+      BLassert(domain.contains(bx));
       ForAllThisBNN(T,bx,ns,num)
       {
         thisR = val;
@@ -207,8 +207,8 @@
 */
 #define ForAllThisBNN(T,b,ns,nc)                                        \
 {                                                                       \
-    assert(contains(b));                                                \
-    assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BLassert(contains(b));                                                \
+    BLassert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
     const int *_th_plo = loVect();                                      \
     const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
@@ -242,8 +242,8 @@
 */
 #define ForAllThisCBNN(T,b,ns,nc)                                       \
 {                                                                       \
-    assert(contains(b));                                                \
-    assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BLassert(contains(b));                                                \
+    BLassert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
     const int *_th_plo = loVect();                                      \
     const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
@@ -281,8 +281,8 @@
 */
 #define ForAllThisBNNXC(T,b,ns,nc,x,nss)                                \
 {                                                                       \
-    assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    assert((nss) >= 0 && (nss) + (nc) <= (x).nComp());                  \
+    BLassert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BLassert((nss) >= 0 && (nss) + (nc) <= (x).nComp());                  \
     Box _subbox_((x).box());                                            \
     _subbox_ &= box();                                                  \
     _subbox_ &= b;                                                      \
@@ -330,11 +330,11 @@
 */
 #define ForAllThisBNNXCBN(T,b,ns,nc,x,bx,nss)                           \
 {                                                                       \
-    assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    assert((nss) >= 0 && (nss) + (nc) <= (x).nComp());                  \
+    BLassert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BLassert((nss) >= 0 && (nss) + (nc) <= (x).nComp());                  \
     Box _subbox_ = box();                                               \
     _subbox_ &= b;                                                      \
-    assert(bx.sameSize(_subbox_));                                      \
+    BLassert(bx.sameSize(_subbox_));                                      \
     if(_subbox_.ok()) {                                                 \
         const int *_th_plo = loVect();                                  \
         const int *_th_plen = length();                                 \
@@ -387,13 +387,13 @@
 */
 #define ForAllThisBNNXCBNYCBN(T,b,ns,nc,x,bx,nsx,y,by,nsy)              \
 {                                                                       \
-    assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    assert((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());                  \
-    assert((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());                  \
+    BLassert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BLassert((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());                  \
+    BLassert((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());                  \
     Box _subbox_ = box();                                               \
     _subbox_ &= b;                                                      \
-    assert((bx).sameSize(_subbox_));                                    \
-    assert((by).sameSize(_subbox_));                                    \
+    BLassert((bx).sameSize(_subbox_));                                    \
+    BLassert((by).sameSize(_subbox_));                                    \
     if(_subbox_.ok()) {                                                 \
         const int *_th_plo = loVect();                                  \
         const int *_th_plen = length();                                 \
@@ -433,11 +433,11 @@
 
 #define ForAllRevXBNYCBNNN(T,x,bx,nsx,y,by,nsy,nc,ri)                   \
 {                                                                       \
-    assert((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());                  \
-    assert((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());                  \
-    assert((x).contains(bx));                                           \
-    assert((y).contains(by));                                           \
-    assert((bx).sameSize(by));                                          \
+    BLassert((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());                  \
+    BLassert((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());                  \
+    BLassert((x).contains(bx));                                           \
+    BLassert((y).contains(by));                                           \
+    BLassert((bx).sameSize(by));                                          \
     const int *_x_plo = (x).loVect();                                   \
     const int *_x_plen = (x).length();                                  \
     const int *_y_plo = (y).loVect();                                   \
@@ -482,8 +482,8 @@
 
 #define ForAllThisCPencil(T,b,ns,nc)                                    \
 {                                                                       \
-    assert(contains(b));                                                \
-    assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BLassert(contains(b));                                                \
+    BLassert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
     const int *_th_plo = loVect();                                      \
     const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
@@ -503,8 +503,8 @@
 
 #define ForAllThisPencil(T,b,ns,nc)                                     \
 {                                                                       \
-    assert(contains(b));                                                \
-    assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BLassert(contains(b));                                                \
+    BLassert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
     const int *_th_plo = loVect();                                      \
     const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
@@ -525,8 +525,8 @@
 
 #define ForAllXBNN(T,x,b,ns,nc)                                         \
 {                                                                       \
-    assert(x.contains(b));                                              \
-    assert((ns) >= 0 && (ns) + (nc) <= (x).nComp());                    \
+    BLassert(x.contains(b));                                              \
+    BLassert((ns) >= 0 && (ns) + (nc) <= (x).nComp());                    \
     const int *_x_plo = (x).loVect();                                   \
     const int *_x_plen = (x).length();                                  \
     const int *_b_lo = (b).loVect();                                    \
@@ -547,8 +547,8 @@
 
 #define ForAllXCBNN(T,x,b,ns,nc)                                        \
 {                                                                       \
-    assert(x.contains(b));                                              \
-    assert((ns) >= 0 && (ns) + (nc) <= (x).nComp());                    \
+    BLassert(x.contains(b));                                              \
+    BLassert((ns) >= 0 && (ns) + (nc) <= (x).nComp());                    \
     const int *_x_plo = (x).loVect();                                   \
     const int *_x_plen = (x).length();                                  \
     const int *_b_lo = (b).loVect();                                    \
@@ -570,8 +570,8 @@
 
 #define ForAllThisBNN(T,b,ns,nc)                                        \
 {                                                                       \
-    assert(contains(b));                                                \
-    assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BLassert(contains(b));                                                \
+    BLassert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
     const int *_th_plo = loVect();                                      \
     const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
@@ -592,8 +592,8 @@
 
 #define ForAllThisCBNN(T,b,ns,nc)                                       \
 {                                                                       \
-    assert(contains(b));                                                \
-    assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BLassert(contains(b));                                                \
+    BLassert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
     const int *_th_plo = loVect();                                      \
     const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
@@ -614,8 +614,8 @@
 
 #define ForAllThisBNNXC(T,b,ns,nc,x,nss)                                \
 {                                                                       \
-    assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    assert((nss) >= 0 && (nss) + (nc) <= (x).nComp());                  \
+    BLassert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BLassert((nss) >= 0 && (nss) + (nc) <= (x).nComp());                  \
     Box _subbox_((x).box());                                            \
     _subbox_ &= box();                                                  \
     _subbox_ &= b;                                                      \
@@ -648,11 +648,11 @@
 
 #define ForAllThisBNNXCBN(T,b,ns,nc,x,bx,nss)                           \
 {                                                                       \
-    assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    assert((nss) >= 0 && (nss) + (nc) <= (x).nComp());                  \
+    BLassert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BLassert((nss) >= 0 && (nss) + (nc) <= (x).nComp());                  \
     Box _subbox_ = box();                                               \
     _subbox_ &= b;                                                      \
-    assert(bx.sameSize(_subbox_));                                      \
+    BLassert(bx.sameSize(_subbox_));                                      \
     if(_subbox_.ok()) {                                                 \
         const int *_th_plo = loVect();                                  \
         const int *_th_plen = length();                                 \
@@ -687,13 +687,13 @@
 
 #define ForAllThisBNNXCBNYCBN(T,b,ns,nc,x,bx,nsx,y,by,nsy)              \
 {                                                                       \
-    assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    assert((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());                  \
-    assert((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());                  \
+    BLassert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BLassert((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());                  \
+    BLassert((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());                  \
     Box _subbox_ = box();                                               \
     _subbox_ &= b;                                                      \
-    assert((bx).sameSize(_subbox_));                                    \
-    assert((by).sameSize(_subbox_));                                    \
+    BLassert((bx).sameSize(_subbox_));                                    \
+    BLassert((by).sameSize(_subbox_));                                    \
     if(_subbox_.ok()) {                                                 \
         const int *_th_plo = loVect();                                  \
         const int *_th_plen = length();                                 \
@@ -743,12 +743,12 @@
 
 #define ForAllRevXBNYCBNNN(T,x,bx,nsx,y,by,nsy,nc,ir)                   \
 {                                                                       \
-    assert((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());                  \
-    assert((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());                  \
-    assert((ir) >= 0 && (ir) < BL_SPACEDIM);                            \
-    assert((x).contains(bx));                                           \
-    assert((y).contains(by));                                           \
-    assert((bx).sameSize(by));                                          \
+    BLassert((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());                  \
+    BLassert((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());                  \
+    BLassert((ir) >= 0 && (ir) < BL_SPACEDIM);                            \
+    BLassert((x).contains(bx));                                           \
+    BLassert((y).contains(by));                                           \
+    BLassert((bx).sameSize(by));                                          \
     const int *_x_plo = (x).loVect();                                   \
     const int *_x_plen = (x).length();                                  \
     const int *_y_plo = (y).loVect();                                   \
@@ -802,8 +802,8 @@
 
 #define ForAllThisCPencil(T,b,ns,nc)                                    \
 {                                                                       \
-    assert(contains(b));                                                \
-    assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BLassert(contains(b));                                                \
+    BLassert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
     const int *_th_plo = loVect();                                      \
     const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
@@ -827,8 +827,8 @@
 
 #define ForAllThisPencil(T,b,ns,nc)                                     \
 {                                                                       \
-    assert(contains(b));                                                \
-    assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BLassert(contains(b));                                                \
+    BLassert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
     const int *_th_plo = loVect();                                      \
     const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
@@ -853,8 +853,8 @@
 
 #define ForAllXBNN(T,x,b,ns,nc)                                         \
 {                                                                       \
-    assert(x.contains(b));                                              \
-    assert((ns) >= 0 && (ns) + (nc) <= (x).nComp());                    \
+    BLassert(x.contains(b));                                              \
+    BLassert((ns) >= 0 && (ns) + (nc) <= (x).nComp());                    \
     const int *_x_plo = (x).loVect();                                   \
     const int *_x_plen = (x).length();                                  \
     const int *_b_lo = (b).loVect();                                    \
@@ -879,8 +879,8 @@
 
 #define ForAllXCBNN(T,x,b,ns,nc)                                        \
 {                                                                       \
-    assert(x.contains(b));                                              \
-    assert((ns) >= 0 && (ns) + (nc) <= (x).nComp());                    \
+    BLassert(x.contains(b));                                              \
+    BLassert((ns) >= 0 && (ns) + (nc) <= (x).nComp());                    \
     const int *_x_plo = (x).loVect();                                   \
     const int *_x_plen = (x).length();                                  \
     const int *_b_lo = (b).loVect();                                    \
@@ -906,8 +906,8 @@
 
 #define ForAllThisBNN(T,b,ns,nc)                                        \
 {                                                                       \
-    assert(contains(b));                                                \
-    assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BLassert(contains(b));                                                \
+    BLassert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
     const int *_th_plo = loVect();                                      \
     const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
@@ -932,8 +932,8 @@
 
 #define ForAllThisCBNN(T,b,ns,nc)                                       \
 {                                                                       \
-    assert(contains(b));                                                \
-    assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BLassert(contains(b));                                                \
+    BLassert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
     const int *_th_plo = loVect();                                      \
     const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
@@ -958,8 +958,8 @@
 
 #define ForAllThisBNNXC(T,b,ns,nc,x,nss)                                \
 {                                                                       \
-    assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    assert((nss) >= 0 && (nss) + (nc) <= (x).nComp());                  \
+    BLassert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BLassert((nss) >= 0 && (nss) + (nc) <= (x).nComp());                  \
     Box _subbox_((x).box());                                            \
     _subbox_ &= box();                                                  \
     _subbox_ &= b;                                                      \
@@ -998,11 +998,11 @@
 
 #define ForAllThisBNNXCBN(T,b,ns,nc,x,bx,nss)                           \
 {                                                                       \
-    assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    assert((nss) >= 0 && (nss) + (nc) <= (x).nComp());                  \
+    BLassert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BLassert((nss) >= 0 && (nss) + (nc) <= (x).nComp());                  \
     Box _subbox_(box());                                                \
     _subbox_ &= b;                                                      \
-    assert((bx).sameSize(_subbox_));                                    \
+    BLassert((bx).sameSize(_subbox_));                                    \
     if(_subbox_.ok()) {                                                 \
         const int *_th_plo = loVect();                                  \
         const int *_th_plen = length();                                 \
@@ -1044,13 +1044,13 @@
 
 #define ForAllThisBNNXCBNYCBN(T,b,ns,nc,x,bx,nsx,y,by,nsy)              \
 {                                                                       \
-    assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    assert((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());                  \
-    assert((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());                  \
+    BLassert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
+    BLassert((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());                  \
+    BLassert((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());                  \
     Box _subbox_(box());                                                \
     _subbox_ &= b;                                                      \
-    assert((bx).sameSize(_subbox_));                                    \
-    assert((by).sameSize(_subbox_));                                    \
+    BLassert((bx).sameSize(_subbox_));                                    \
+    BLassert((by).sameSize(_subbox_));                                    \
     if(_subbox_.ok()) {                                                 \
         const int *_th_plo = loVect();                                  \
         const int *_th_plen = length();                                 \
@@ -1110,12 +1110,12 @@
 
 #define ForAllRevXBNYCBNNN(T,x,bx,nsx,y,by,nsy,nc,ir)                   \
 {                                                                       \
-    assert((ir) >= 0 && (ir) < BL_SPACEDIM);                            \
-    assert((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());                  \
-    assert((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());                  \
-    assert((x).contains(bx));                                           \
-    assert((y).contains(by));                                           \
-    assert((bx).sameSize(by));                                          \
+    BLassert((ir) >= 0 && (ir) < BL_SPACEDIM);                            \
+    BLassert((nsx) >= 0 && (nsx) + (nc) <= (x).nComp());                  \
+    BLassert((nsy) >= 0 && (nsy) + (nc) <= (y).nComp());                  \
+    BLassert((x).contains(bx));                                           \
+    BLassert((y).contains(by));                                           \
+    BLassert((bx).sameSize(by));                                          \
     const int *_x_plo = (x).loVect();                                   \
     const int *_x_plen = (x).length();                                  \
     const int *_y_plo = (y).loVect();                                   \

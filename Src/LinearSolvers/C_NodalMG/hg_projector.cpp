@@ -156,7 +156,7 @@ task_fecavg::task_fecavg (FECFUNC         f_,
 bool
 task_fecavg::ready ()
 {
-    assert(!done);
+    BLassert(!done);
 
     if (is_local_target()) doit();
 
@@ -166,9 +166,9 @@ task_fecavg::ready ()
 void
 task_fecavg::doit ()
 {
-    assert(!done);
-    assert(is_local_target());
-    assert(dependencies.empty());
+    BLassert(!done);
+    BLassert(is_local_target());
+    BLassert(dependencies.empty());
 
     done = true;
 
@@ -258,7 +258,7 @@ task_fecavg_2::task_fecavg_2 (FECFUNC           f_,
 bool
 task_fecavg_2::ready ()
 {
-    assert(!done);
+    BLassert(!done);
 
     if (is_local_target()) doit();
 
@@ -268,9 +268,9 @@ task_fecavg_2::ready ()
 void
 task_fecavg_2::doit ()
 {
-    assert(!done);
-    assert(is_local_target());
-    assert(dependencies.empty());
+    BLassert(!done);
+    BLassert(is_local_target());
+    BLassert(dependencies.empty());
 
     done = true;
 
@@ -373,7 +373,7 @@ task_fecdiv::task_fecdiv (FECDIV         f_,
 bool
 task_fecdiv::ready ()
 {
-    assert(!done);
+    BLassert(!done);
 
     if (is_local_target()) doit();
 
@@ -383,9 +383,9 @@ task_fecdiv::ready ()
 void
 task_fecdiv::doit ()
 {
-    assert(!done);
-    assert(is_local_target());
-    assert(dependencies.empty());
+    BLassert(!done);
+    BLassert(is_local_target());
+    BLassert(dependencies.empty());
 
     done = true;
 
@@ -473,7 +473,7 @@ task_fecdiv_2::task_fecdiv_2 (FECDIV            f_,
 bool
 task_fecdiv_2::ready ()
 {
-    assert(!done);
+    BLassert(!done);
 
     if (is_local_target()) doit();
 
@@ -483,9 +483,9 @@ task_fecdiv_2::ready ()
 void
 task_fecdiv_2::doit ()
 {
-    assert(!done);
-    assert(is_local_target());
-    assert(dependencies.empty());
+    BLassert(!done);
+    BLassert(is_local_target());
+    BLassert(dependencies.empty());
 
     done = true;
 
@@ -521,11 +521,11 @@ holy_grail_amr_projector::project (PArray<MultiFab>* u,
     if (Lev_max < 0)
 	Lev_max = Lev_min;
     
-    assert(Sigma.length() > 0);
+    BLassert(Sigma.length() > 0);
     
-    assert(u[      0      ][Lev_min].nGrow() == 1);
-    assert(u[      1      ][Lev_min].nGrow() == 1);
-    assert(u[BL_SPACEDIM-1][Lev_min].nGrow() == 1);
+    BLassert(u[      0      ][Lev_min].nGrow() == 1);
+    BLassert(u[      1      ][Lev_min].nGrow() == 1);
+    BLassert(u[BL_SPACEDIM-1][Lev_min].nGrow() == 1);
     
     alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max);
     right_hand_side(u, null_amr_real);
@@ -556,11 +556,11 @@ holy_grail_amr_projector::sync_project (PArray<MultiFab>* u,
     if (Lev_max < 0)
 	Lev_max = Lev_min;
     
-    assert(Sigma.length() > 0);
+    BLassert(Sigma.length() > 0);
     
-    assert(u[      0      ][Lev_min].nGrow() == 1);
-    assert(u[      1      ][Lev_min].nGrow() == 1);
-    assert(u[BL_SPACEDIM-1][Lev_min].nGrow() == 1);
+    BLassert(u[      0      ][Lev_min].nGrow() == 1);
+    BLassert(u[      1      ][Lev_min].nGrow() == 1);
+    BLassert(u[BL_SPACEDIM-1][Lev_min].nGrow() == 1);
     
     alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max);
     sync_right_hand_side(u);
@@ -595,13 +595,13 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
     if (Lev_max < 0)
 	Lev_max = Lev_min;
     
-    assert(Sigma.length() > 0);
+    BLassert(Sigma.length() > 0);
     
     if (use_u) 
     {
-	assert(u[      0      ][Lev_min].nGrow() == 1);
-	assert(u[      1      ][Lev_min].nGrow() == 1);
-	assert(u[BL_SPACEDIM-1][Lev_min].nGrow() == 1);
+	BLassert(u[      0      ][Lev_min].nGrow() == 1);
+	BLassert(u[      1      ][Lev_min].nGrow() == 1);
+	BLassert(u[BL_SPACEDIM-1][Lev_min].nGrow() == 1);
 	
 	alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max);
 	if (rhs.length() > 0) 
@@ -621,7 +621,7 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
 	    }
 	    else 
 	    {
-		assert(rhs[Lev_min].nGrow() == 1);
+		BLassert(rhs[Lev_min].nGrow() == 1);
 		right_hand_side(u, rhs);
 	    }
 	}
@@ -632,8 +632,8 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
     }
     else 
     {
-	assert(rhs.length() > 0);
-	assert(rhs[Lev_min].nGrow() == 1);
+	BLassert(rhs.length() > 0);
+	BLassert(rhs[Lev_min].nGrow() == 1);
 	
 	if (type(rhs[Lev_min]) == IntVect::TheNodeVector()) 
 	{
@@ -680,8 +680,8 @@ holy_grail_amr_projector::sparse_node_source_adjustment (PArray<MultiFab>& spars
     // sparse_source, since the sparse structure of the latter
     // may need to be preserved.
     //
-    assert(singular);
-    assert(make_sparse_node_source_solvable);
+    BLassert(singular);
+    BLassert(make_sparse_node_source_solvable);
     
     Real adjust = 0.0;
     for (int lev = lev_max; lev >= lev_min; lev--) 
@@ -774,7 +774,7 @@ holy_grail_amr_projector::right_hand_side (PArray<MultiFab>* u,
 void
 holy_grail_amr_projector::grid_average (PArray<MultiFab>& S)
 {
-    assert(S[lev_min].nGrow() == 1);
+    BLassert(S[lev_min].nGrow() == 1);
     
     if (singular) 
     {
@@ -1255,7 +1255,7 @@ void
 holy_grail_amr_projector::form_solution_vector (PArray<MultiFab>*       u,
                                                 const PArray<MultiFab>& sigma_in)
 {
-    assert(u != 0);
+    BLassert(u != 0);
 
     if (u)
     {

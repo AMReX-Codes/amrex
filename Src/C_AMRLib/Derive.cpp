@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Derive.cpp,v 1.10 1998-03-27 00:06:39 lijewski Exp $
+// $Id: Derive.cpp,v 1.11 1999-05-10 17:18:28 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -89,7 +89,7 @@ DeriveRec::getRange (int  k,
 
     for (r = rng; r != 0 && k > 0; k--, r = r->next)
         ;
-    assert(r != 0);
+    BLassert(r != 0);
     state_indx = r->typ;
     src_comp   = r->sc;
     num_comp   = r->nc;
@@ -98,7 +98,7 @@ DeriveRec::getRange (int  k,
 void
 DeriveRec::buildBC (const DescriptorList& d_list)
 {
-    assert(nsr > 0);
+    BLassert(nsr > 0);
     delete [] bcr;
     bcr = new int[2*BL_SPACEDIM*n_state];
     int* bci = bcr;
@@ -155,7 +155,7 @@ DeriveList::addComponent (const aString&        name,
         if (li().derive_name == name)
             break;
     }
-    assert (li != 0);
+    BLassert (li != 0);
     lst[li].addRange(d_list, state_indx, s_comp, n_comp);
 }
 

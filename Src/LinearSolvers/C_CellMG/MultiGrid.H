@@ -4,7 +4,7 @@
 #define _MULTIGRID_H_
 
 //
-// $Id: MultiGrid.H,v 1.4 1999-02-10 21:09:44 lijewski Exp $
+// $Id: MultiGrid.H,v 1.5 1999-05-10 17:18:39 car Exp $
 //
 
 #include <Array.H>
@@ -546,7 +546,7 @@ inline
 int
 MultiGrid::getNumLevels (int _numlevels)
 {
-    assert(_numlevels >= 0);
+    BLassert(_numlevels >= 0);
     int oldnumlevels = numlevels;
     numlevels = Min(_numlevels, numLevels());
     return oldnumlevels;

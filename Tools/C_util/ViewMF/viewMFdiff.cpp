@@ -92,7 +92,7 @@ int main (int   argc,
     
     int ngrow = 0;
     pp.query("ngrow",ngrow);
-    assert(ngrow>=0);
+    BLassert(ngrow>=0);
 
     aString outfile;
     pp.query("outfile",outfile);

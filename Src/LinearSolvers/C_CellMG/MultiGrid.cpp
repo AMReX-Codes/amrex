@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiGrid.cpp,v 1.9 1999-03-18 00:13:01 lijewski Exp $
+// $Id: MultiGrid.cpp,v 1.10 1999-05-10 17:18:39 car Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -139,7 +139,7 @@ MultiGrid::errorEstimate (int            level,
     const BoxArray& gbox = Lp.boxArray(0);
     for (MultiFabIterator resmfi(*res[level]); resmfi.isValid(); ++resmfi)
     {
-        assert(gbox[resmfi.index()] == resmfi.validbox());
+        BLassert(gbox[resmfi.index()] == resmfi.validbox());
 
         resk   = (resmfi().norm(resmfi.validbox(), p));
         restot = Max(restot, resk);
@@ -425,7 +425,7 @@ MultiGrid::average (MultiFab&       c,
     {
         DependentMultiFabIterator fmfi(cmfi, f);
 
-        assert(c.boxArray().get(cmfi.index()) == cmfi.validbox());
+        BLassert(c.boxArray().get(cmfi.index()) == cmfi.validbox());
 
         const Box& bx = cmfi.validbox();
 
@@ -450,7 +450,7 @@ MultiGrid::interpolate(MultiFab&       f,
     {
         DependentMultiFabIterator cmfi(fmfi, c);
 
-        assert(c.boxArray().get(cmfi.index()) == cmfi.validbox());
+        BLassert(c.boxArray().get(cmfi.index()) == cmfi.validbox());
 
         const Box& bx = cmfi.validbox();
         int nc        = f.nComp();

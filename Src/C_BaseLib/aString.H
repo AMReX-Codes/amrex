@@ -4,7 +4,7 @@
 #define BL_ASTRING_H
 
 //
-// $Id: aString.H,v 1.6 1998-05-29 18:01:37 lijewski Exp $
+// $Id: aString.H,v 1.7 1999-05-10 17:18:48 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -23,7 +23,7 @@ using std::istream;
 #include <stdlib.h>
 #endif
 
-#include <Assert.H>
+#include <BLassert.H>
 #include <BoxLib.H>
 #include <Pointers.H>
 
@@ -377,7 +377,7 @@ inline
 char
 aString::operator[] (int index) const
 {
-    assert(index >=0 && index < len);
+    BLassert(index >=0 && index < len);
     return p->s[index];
 }
 

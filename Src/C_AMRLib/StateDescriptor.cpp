@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateDescriptor.cpp,v 1.9 1998-11-03 18:16:39 lijewski Exp $
+// $Id: StateDescriptor.cpp,v 1.10 1999-05-10 17:18:29 car Exp $
 //
 
 #include <StateDescriptor.H>
@@ -53,7 +53,7 @@ StateDescriptor::StateDescriptor (IndexType                   btyp,
     mapper(interp),
     bc_func(PArrayManage)
 {
-    assert (num_comp > 0);
+    BLassert (num_comp > 0);
    
     names.resize(num_comp);
     bc.resize(num_comp);
@@ -83,7 +83,7 @@ StateDescriptor::define (IndexType                   btyp,
     ncomp  = num_comp;
     mapper = interp;
 
-    assert (num_comp > 0);
+    BLassert (num_comp > 0);
    
     names.resize(num_comp);
     bc.resize(num_comp);
@@ -102,7 +102,7 @@ StateDescriptor::setComponent (int                               comp,
                                int                               max_map_start_comp_,
                                int                               min_map_end_comp_)
 {
-    assert(comp >= 0 && comp < ncomp && names[comp].isNull());
+    BLassert(comp >= 0 && comp < ncomp && names[comp].isNull());
     names[comp]       = nm;
     bc_func.set(comp,func.clone());
     bc[comp]          = bcr;
@@ -110,7 +110,7 @@ StateDescriptor::setComponent (int                               comp,
 
     if (max_map_start_comp_>=0 && min_map_end_comp_>=0)
     {
-        assert(comp >= max_map_start_comp_ &&
+        BLassert(comp >= max_map_start_comp_ &&
                comp <= min_map_end_comp_   &&
                min_map_end_comp_ < ncomp);
         max_map_start_comp[comp] = max_map_start_comp_;
@@ -128,7 +128,7 @@ StateDescriptor::dumpNames (ostream& os,
                             int      start_comp,
                             int      num_comp) const
 {
-    assert(start_comp >= 0 && start_comp+num_comp <= ncomp);
+    BLassert(start_comp >= 0 && start_comp+num_comp <= ncomp);
 
     for (int k = 0; k < num_comp; k++)
     {
@@ -148,7 +148,7 @@ StateDescriptor::setUpMaps (int&                use_default_map,
                             int*&               max_start_comp,
                             int*&               min_end_comp) const
 {
-    assert(start_comp>=0 && start_comp+num_comp-1 < ncomp && num_comp>0);
+    BLassert(start_comp>=0 && start_comp+num_comp-1 < ncomp && num_comp>0);
 
     maps           = 0;
     map_start_comp = 0;
@@ -215,7 +215,7 @@ StateDescriptor::setUpMaps (int&                use_default_map,
         {
             imap++;
 
-            assert (imap < nmaps);
+            BLassert (imap < nmaps);
 
             maps[imap]           = mapper_icomp;
             map_start_comp[imap] = icomp;

@@ -4,7 +4,7 @@
 #define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.14 1999-05-06 16:57:28 car Exp $
+// $Id: FArrayBox.H,v 1.15 1999-05-10 17:18:45 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -570,7 +570,7 @@ inline
 void
 FArrayBox::setFABio (FABio* rd)
 {
-    assert(rd != 0);
+    BLassert(rd != 0);
     delete fabio;
     fabio = rd;
 }

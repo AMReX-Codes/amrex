@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DiffFab.cpp,v 1.2 1999-03-12 20:09:10 sstanley Exp $
+// $Id: DiffFab.cpp,v 1.3 1999-05-10 17:18:54 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -117,7 +117,7 @@ main (int   argc,
     dataI.readFrom(is1);
     dataE.readFrom(is2);
 
-    assert(dataI.nComp() == dataE.nComp());
+    BLassert(dataI.nComp() == dataE.nComp());
 	
     //
     // Compute the error

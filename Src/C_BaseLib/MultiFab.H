@@ -4,10 +4,10 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.25 1999-03-04 22:18:37 lijewski Exp $
+// $Id: MultiFab.H,v 1.26 1999-05-10 17:18:46 car Exp $
 //
 
-#include <Assert.H>
+#include <BLassert.H>
 #include <FArrayBox.H>
 #include <FabArray.H>
 
@@ -545,8 +545,8 @@ MultiFabCopyDescriptor&
 MultiFab::theFBmfcd (int src_comp,
                      int num_comp)
 {
-    assert(num_comp > 0);
-    assert(src_comp >= 0);
+    BLassert(num_comp > 0);
+    BLassert(src_comp >= 0);
 
     if (!(m_FB_scomp == src_comp && m_FB_ncomp == num_comp))
     {
@@ -564,7 +564,7 @@ MultiFab::theFBmfcd (int src_comp,
 
         MultiFabId mfid = m_FB_mfcd->RegisterMultiFab(this);
 
-        assert(mfid == MultiFabId(0));
+        BLassert(mfid == MultiFabId(0));
     }
 
     return *m_FB_mfcd;
@@ -577,8 +577,8 @@ MultiFab::theFPBmfcd (int   src_comp,
                       bool  no_overlap,
                       bool  do_corners)
 {
-    assert(src_comp >= 0);
-    assert(num_comp > 0);
+    BLassert(src_comp >= 0);
+    BLassert(num_comp > 0);
 
     if (!(m_FPB_scomp  == src_comp   &&
           m_FPB_ncomp  == num_comp   &&
@@ -601,7 +601,7 @@ MultiFab::theFPBmfcd (int   src_comp,
 
         MultiFabId mfid = m_FPB_mfcd->RegisterMultiFab(this);
 
-        assert(mfid == MultiFabId(0));
+        BLassert(mfid == MultiFabId(0));
     }
 
     return *m_FPB_mfcd;

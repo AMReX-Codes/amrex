@@ -223,10 +223,10 @@ task_restriction_fill::ready ()
 {
     if (is_local(m, ind))
     {
-        assert(!tf.null());
-        assert(tf->ready());
+        BLassert(!tf.null());
+        BLassert(tf->ready());
         task_fab* tff = dynamic_cast<task_fab*>(tf.get());
-        assert(tff != 0);
+        BLassert(tff != 0);
         const Box& fb = tff->fab().box();
         const Box& pb = m[ind].box();
         (*ref)(m[ind].dataPtr(), DIMLIST(pb), DIMLIST(cbox), tff->fab().dataPtr(), DIMLIST(fb), D_DECL(rat[0], rat[1], rat[2]), m.nComp(), &integrate, arg1.dataPtr(), arg2.dataPtr());
@@ -272,8 +272,8 @@ cell_average_restrictor_class::fill (FArrayBox&       patch,
                                      const FArrayBox& fgr,
                                      const IntVect&   rat) const
 {
-    assert(patch.box().cellCentered());
-    assert(patch.nComp() == 1);
+    BLassert(patch.box().cellCentered());
+    BLassert(patch.nComp() == 1);
     FORT_FACRST1(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), fgr.dataPtr(), DIMLIST(fgr.box()),
     D_DECL(rat[0], rat[1], rat[2]), patch.nComp(), &integrate, 0, 0);
 }
@@ -284,8 +284,8 @@ terrain_velocity_restrictor_class::fill (FArrayBox&       patch,
                                          const FArrayBox& fgr,
                                          const IntVect&   rat) const
 {
-    assert(patch.box().cellCentered());
-    assert(patch.nComp() == 1);
+    BLassert(patch.box().cellCentered());
+    BLassert(patch.nComp() == 1);
     const int integ = 1;
     FORT_FACRST1(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), fgr.dataPtr(), DIMLIST(fgr.box()),
     D_DECL(rat[0], rat[1], rat[2]), 1, &integ, 0, 0);
@@ -299,8 +299,8 @@ injection_restrictor_class::fill (FArrayBox&       patch,
                                   const FArrayBox& fgr,
                                   const IntVect&   rat) const
 {
-    assert(patch.box().type() == IntVect::TheNodeVector());
-    assert(patch.nComp() == fgr.nComp());
+    BLassert(patch.box().type() == IntVect::TheNodeVector());
+    BLassert(patch.nComp() == fgr.nComp());
     FORT_FANRST1(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), fgr.dataPtr(), DIMLIST(fgr.box()),
     D_DECL(rat[0], rat[1], rat[2]), patch.nComp(), 0, 0, 0);
 }
@@ -311,8 +311,8 @@ default_restrictor::fill (FArrayBox&       patch,
                           const FArrayBox& fgr,
                           const IntVect&   rat) const
 {
-    assert(patch.box().cellCentered() || patch.box().type() == IntVect::TheNodeVector());
-    assert(patch.nComp() == fgr.nComp());
+    BLassert(patch.box().cellCentered() || patch.box().type() == IntVect::TheNodeVector());
+    BLassert(patch.nComp() == fgr.nComp());
     if (patch.box().cellCentered())
     {
         cell_average_restrictor_class(0).fill(patch, region, fgr, rat);
@@ -329,7 +329,7 @@ bilinear_restrictor_class::bilinear_restrictor_class (int i,
     integrate(i),
     m_hg_terrain(hg_terrain)
 {
-    assert(i == 0 || i == 1);
+    BLassert(i == 0 || i == 1);
 }
 
 Box
@@ -354,8 +354,8 @@ bilinear_restrictor_class::fill (FArrayBox&       patch,
                                  const FArrayBox& fgr,
                                  const IntVect&   rat) const
 {
-    assert(patch.box().type() == IntVect::TheNodeVector());
-    assert(patch.nComp() == fgr.nComp());
+    BLassert(patch.box().type() == IntVect::TheNodeVector());
+    BLassert(patch.nComp() == fgr.nComp());
     FORT_FANRST2(patch.dataPtr(), DIMLIST(patch.box()), 
                  DIMLIST(region), 
                  fgr.dataPtr(), DIMLIST(fgr.box()),
@@ -369,8 +369,8 @@ bilinear_restrictor_class::fill_interface (MultiFab&                 dest,
                                            const amr_boundary_class* bdy,
                                            const IntVect&            rat) const
 {
-    assert(type(dest) == IntVect::TheNodeVector());
-    assert(dest.nComp() == fine.nComp());
+    BLassert(type(dest) == IntVect::TheNodeVector());
+    BLassert(dest.nComp() == fine.nComp());
 
     int ratmax = rat[0];
     for (int i = 1; i < BL_SPACEDIM; ++i)
@@ -391,7 +391,7 @@ bilinear_restrictor_class::fill_interface (MultiFab&                 dest,
         // we will let the restrictor handle it---at least for now.
         //
         // This assertion difficult in BoxLib since r.mesh() is not cc:
-        //assert(r.mesh() == lev_interface.interior_mesh());
+        //BLassert(r.mesh() == lev_interface.interior_mesh());
         //
         const Box regplus = ::grow(region,1);
     
@@ -425,7 +425,7 @@ bilinear_restrictor_class::fill_interface (MultiFab&                 dest,
                         // FIXME--want minimal box.
                         //
                         const Box fb = ::grow(fine_ba[igrid], fine.nGrow());
-                        assert(is_remote(fine,igrid) || fb == fine[igrid].box());
+                        BLassert(is_remote(fine,igrid) || fb == fine[igrid].box());
                         // const Box& fb = fine[igrid].box();
                         task_fab* tfab = new task_fab_get(tl,dest,jgrid,fb,fine,igrid);
                         tl.add_task(new task_restriction_fill(&FORT_FANRST2,tl,dest,jgrid,cbox,tfab,rat,integrate));
@@ -451,7 +451,7 @@ bilinear_restrictor_class::fill_interface (MultiFab&                 dest,
                         // Usual case, a fine grid extends all along the face.
                         //
                         Box fb = ::grow(fine_ba[igrid], fine.nGrow());
-                        assert(is_remote(fine, igrid) || fb == fine[igrid].box());
+                        BLassert(is_remote(fine, igrid) || fb == fine[igrid].box());
                         // const Box& fb = fine[igrid].box();
                         task_fab* tfab = new task_fab_get(tl,dest,jgrid,fb,fine,igrid);
                         tl.add_task(new task_restriction_fill(&FORT_FANFR2,tl,dest,jgrid,cbox,tfab,rat,integrate,idim,idir));
@@ -495,7 +495,7 @@ bilinear_restrictor_class::fill_interface (MultiFab&                 dest,
                     for (int itmp = 1; igrid < 0; itmp++)
                         igrid = lev_interface.grid(1, iedge, itmp);
                     Box fb = ::grow(fine_ba[igrid], fine.nGrow());
-                    assert(is_remote(fine, igrid) || fb == fine[igrid].box());
+                    BLassert(is_remote(fine, igrid) || fb == fine[igrid].box());
                     // const Box& fb = fine[igrid].box();
                     task_fab* tfab = new task_fab_get(tl,dest,jgrid,fb,fine,igrid);
                     tl.add_task(new task_restriction_fill(&FORT_FANRST2,tl,dest,jgrid,cbox,tfab,rat,integrate));
@@ -533,7 +533,7 @@ bilinear_restrictor_class::fill_interface (MultiFab&                 dest,
                     for (int itmp = 1; igrid < 0; itmp++)
                         igrid = lev_interface.grid(0, icor, itmp);
                     Box fb = ::grow(fine_ba[igrid], fine.nGrow());
-                    assert(is_remote(fine, igrid) || fb == fine[igrid].box());
+                    BLassert(is_remote(fine, igrid) || fb == fine[igrid].box());
                     // const Box& fb = fine[igrid].box();
                     task_fab* tfab = new task_fab_get(tl,dest,jgrid,fb,fine,igrid);
                     tl.add_task(new task_restriction_fill(&FORT_FANRST2,tl,dest,jgrid,cbox,tfab,rat,integrate));

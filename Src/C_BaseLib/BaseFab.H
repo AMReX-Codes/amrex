@@ -4,7 +4,7 @@
 #define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.21 1999-04-29 20:41:45 lijewski Exp $
+// $Id: BaseFab.H,v 1.22 1999-05-10 17:18:43 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #endif
 
-#include <Assert.H>
+#include <BLassert.H>
 #include <Box.H>
 #include <BoxList.H>
 #include <CArena.H>
@@ -482,7 +482,7 @@ inline
 T*
 BaseFab<T>::dataPtr (int n)
 {
-    assert(!(dptr == 0));
+    BLassert(!(dptr == 0));
     return &dptr[n*numpts];
 }
 
@@ -491,7 +491,7 @@ inline
 const T*
 BaseFab<T>::dataPtr (int n) const
 {
-    assert(!(dptr == 0));
+    BLassert(!(dptr == 0));
     return &dptr[n*numpts];
 }
 
@@ -501,10 +501,10 @@ T&
 BaseFab<T>::operator() (const IntVect& p,
                         int            n)
 {
-    assert(n >= 0);
-    assert(n < nvar);
-    assert(!(dptr == 0));
-    assert(domain.contains(p));
+    BLassert(n >= 0);
+    BLassert(n < nvar);
+    BLassert(!(dptr == 0));
+    BLassert(domain.contains(p));
 
     return dptr[domain.index(p)+n*numpts];
 }
@@ -514,8 +514,8 @@ inline
 T&
 BaseFab<T>::operator() (const IntVect& p)
 {
-    assert(!(dptr == 0));
-    assert(domain.contains(p));
+    BLassert(!(dptr == 0));
+    BLassert(domain.contains(p));
 
     return dptr[domain.index(p)];
 }
@@ -526,10 +526,10 @@ const T&
 BaseFab<T>::operator() (const IntVect& p,
                         int            n) const
 {
-    assert(n >= 0);
-    assert(n < nvar);
-    assert(!(dptr == 0));
-    assert(domain.contains(p));
+    BLassert(n >= 0);
+    BLassert(n < nvar);
+    BLassert(!(dptr == 0));
+    BLassert(domain.contains(p));
 
     return dptr[domain.index(p)+n*numpts];
 }
@@ -539,8 +539,8 @@ inline
 const T&
 BaseFab<T>::operator() (const IntVect& p) const
 {
-    assert(!(dptr == 0));
-    assert(domain.contains(p));
+    BLassert(!(dptr == 0));
+    BLassert(domain.contains(p));
 
     return dptr[domain.index(p)];
 }
@@ -556,8 +556,8 @@ BaseFab<T>::getVal  (T*             data,
     const int loc      = domain.index(pos);
     const long size    = domain.numPts();
 
-    assert(!(dptr == 0));
-    assert(n >= 0 && n + numcomp <= nvar);
+    BLassert(!(dptr == 0));
+    BLassert(n >= 0 && n + numcomp <= nvar);
 
     for (int k = 0; k < numcomp; k++)
         data[k] = dptr[loc+(n+k)*size];
@@ -658,11 +658,11 @@ BaseFab<T>::copy (const BaseFab<T>& src,
                   int               destcomp,
                   int               numcomp)
 {
-    assert(srcbox.sameSize(destbox));
-    assert(src.box().contains(srcbox));
-    assert(domain.contains(destbox));
-    assert(srccomp >= 0 && srccomp+numcomp <= src.nComp());
-    assert(destcomp >= 0 && destcomp+numcomp <= nvar);
+    BLassert(srcbox.sameSize(destbox));
+    BLassert(src.box().contains(srcbox));
+    BLassert(domain.contains(destbox));
+    BLassert(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+    BLassert(destcomp >= 0 && destcomp+numcomp <= nvar);
     performCopy(src,srcbox,srccomp,destbox,destcomp,numcomp);
     return *this;
 }
@@ -672,8 +672,8 @@ inline
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src)
 {
-    assert(nvar <= src.nvar);
-    assert(domain.sameType(src.domain));
+    BLassert(nvar <= src.nvar);
+    BLassert(domain.sameType(src.domain));
     Box overlap(domain);
     overlap &= src.domain;
     if (overlap.ok())
@@ -687,8 +687,8 @@ BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src,
                   const Box&        destbox)
 {
-    assert(nvar <= src.nvar);
-    assert(domain.contains(destbox));
+    BLassert(nvar <= src.nvar);
+    BLassert(domain.contains(destbox));
     Box overlap(destbox);
     overlap &= src.domain;
     if (overlap.ok())
@@ -704,8 +704,8 @@ BaseFab<T>::copy (const BaseFab<T>& src,
                   int               destcomp,
                   int               numcomp)
 {
-    assert(srccomp >= 0 && srccomp + numcomp <= src.nvar);
-    assert(destcomp >= 0 && destcomp + numcomp <= nvar);
+    BLassert(srccomp >= 0 && srccomp + numcomp <= src.nvar);
+    BLassert(destcomp >= 0 && destcomp + numcomp <= nvar);
     Box overlap(domain);
     overlap &= src.domain;
     if (overlap.ok())
@@ -717,10 +717,10 @@ template <class T>
 void
 BaseFab<T>::define ()
 {
-    assert(nvar > 0);
-    assert(dptr == 0);
-    assert(numpts > 0);
-    assert(!(The_FAB_Arena == 0));
+    BLassert(nvar > 0);
+    BLassert(dptr == 0);
+    BLassert(numpts > 0);
+    BLassert(!(The_FAB_Arena == 0));
 
     truesize = nvar*numpts;
     dptr     = static_cast<T*>(The_FAB_Arena->alloc(truesize*sizeof(T)));
@@ -737,7 +737,7 @@ template <class T>
 void
 BaseFab<T>::undefine ()
 {
-    assert(!(The_FAB_Arena == 0));
+    BLassert(!(The_FAB_Arena == 0));
     //
     // Call T::~T() on the to-be-destroyed memory.
     //
@@ -852,19 +852,19 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
                          int               destcomp,
                          int               numcomp)
 {
-    assert(src.box().contains(srcbox));
-    assert(box().contains(destbox));
-    assert(destbox.sameSize(srcbox));
-    assert(srccomp >= 0 && srccomp+numcomp <= src.nComp());
-    assert(destcomp >= 0 && destcomp+numcomp <= nComp());
+    BLassert(src.box().contains(srcbox));
+    BLassert(box().contains(destbox));
+    BLassert(destbox.sameSize(srcbox));
+    BLassert(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+    BLassert(destcomp >= 0 && destcomp+numcomp <= nComp());
 
 #if (BL_SPACEDIM == 1)
 {                                                                       
-    assert((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp());
-    assert((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp());
+    BLassert((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp());
+    BLassert((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp());
     Box _subbox_ = box(); 
     _subbox_ &= destbox; 
-    assert(srcbox.sameSize(_subbox_)); 
+    BLassert(srcbox.sameSize(_subbox_)); 
     if (_subbox_.ok()) 
     { 
         const int *_th_plo = loVect(); 
@@ -891,11 +891,11 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
                 T &thisR = * _th_pp; const T & srcR = _x_pp[_i];
 #elif (BL_SPACEDIM == 2)
 {                                                                       
-    assert((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp()); 
-    assert((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp()); 
+    BLassert((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp()); 
+    BLassert((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp()); 
     Box _subbox_ = box(); 
     _subbox_ &= destbox; 
-    assert(srcbox.sameSize(_subbox_)); 
+    BLassert(srcbox.sameSize(_subbox_)); 
     if (_subbox_.ok())
     { 
         const int *_th_plo = loVect(); 
@@ -930,11 +930,11 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
                     T &thisR = * _th_pp; const T & srcR = _x_pp[_i]; 
 #elif (BL_SPACEDIM == 3)
 { 
-    assert((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp()); 
-    assert((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp()); 
+    BLassert((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp()); 
+    BLassert((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp()); 
     Box _subbox_(box()); 
     _subbox_ &= destbox; 
-    assert((srcbox).sameSize(_subbox_)); 
+    BLassert((srcbox).sameSize(_subbox_)); 
     if (_subbox_.ok())
     { 
         const int *_th_plo = loVect(); 
@@ -997,10 +997,10 @@ BaseFab<T>::performCopy (const PointBaseFab<PointDomain,T>& src,
                          int                                destcomp,
                          int                                numcomp)
 {
-    assert(box().contains(destbox));
-    assert(destbox.sameSize(srcbox));
-    assert(srccomp >= 0 && srccomp+numcomp <= src.nComp());
-    assert(destcomp >= 0 && destcomp+numcomp <= nComp());
+    BLassert(box().contains(destbox));
+    BLassert(destbox.sameSize(srcbox));
+    BLassert(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+    BLassert(destcomp >= 0 && destcomp+numcomp <= nComp());
 
     destcomp -= srccomp;
     Box bx(domain);
@@ -1024,8 +1024,8 @@ BaseFab<T>::performSetVal (T         val,
                            int        ns,
                            int        num)
 {
-    assert(domain.contains(bx));
-    assert(ns >= 0 && ns + num <= nvar);
+    BLassert(domain.contains(bx));
+    BLassert(ns >= 0 && ns + num <= nvar);
 
     if (bx == domain)
     {

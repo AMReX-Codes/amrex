@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.50 1998-10-23 16:54:01 lijewski Exp $
+// $Id: TagBox.cpp,v 1.51 1999-05-10 17:18:29 car Exp $
 //
 
 #include <TagBox.H>
@@ -39,7 +39,7 @@ IntVect* TagBoxArray::m_CollateSpace = new IntVect[TagBoxArray::ChunkSize];
 void
 TagBoxArray::BumpCollateSpace (long numtags)
 {
-    assert(TagBoxArray::m_CollateCount < numtags);
+    BLassert(TagBoxArray::m_CollateCount < numtags);
 
     do
     {
@@ -320,7 +320,7 @@ TagBox::numTags () const
 {
    int nt = 0;
    long t_long = domain.numPts();
-   assert(t_long < INT_MAX);
+   BLassert(t_long < INT_MAX);
    int len = int(t_long);
    const TagType* d = dataPtr();
    for (int n = 0; n < len; n++)
@@ -343,8 +343,8 @@ int
 TagBox::collate (IntVect* ar,
                  int      start) const
 {
-    assert(!(ar == 0));
-    assert(start >= 0);
+    BLassert(!(ar == 0));
+    BLassert(start >= 0);
     //
     // Starting at given offset of array ar, enter location (IntVect) of
     // each tagged cell in tagbox.
@@ -394,7 +394,7 @@ TagBox::tags () const
 void
 TagBox::tags (const Array<int>& ar)
 {
-    assert(ar.length() == domain.numPts());
+    BLassert(ar.length() == domain.numPts());
 
     TagType*   cptr = dataPtr();
     const int* iptr = ar.dataPtr();
@@ -423,7 +423,7 @@ TagBoxArray::buffer (int nbuf)
 {
     if (!(nbuf == 0))
     {
-        assert(nbuf <= m_border);
+        BLassert(nbuf <= m_border);
         for (FabArrayIterator<TagType,TagBox> fai(*this); fai.isValid(); ++fai)
         {
             fai().buffer(nbuf, m_border);
@@ -476,7 +476,7 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
                                                             0,
                                                             n_comp));
 
-                            assert(fillBoxId.back().box() == intbox);
+                            BLassert(fillBoxId.back().box() == intbox);
                             //
                             // Here we'll save the index into fabparray.
                             //
@@ -494,13 +494,13 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
     facd.CollectData();
 
-    assert(fillBoxId.size() == shifts.size());
+    BLassert(fillBoxId.size() == shifts.size());
 
     TagBox src;
 
     for (int i = 0; i < fillBoxId.size(); i++)
     {
-        assert(distributionMap[fillBoxId[i].FabIndex()] == MyProc);
+        BLassert(distributionMap[fillBoxId[i].FabIndex()] == MyProc);
 
         src.resize(fillBoxId[i].box(), n_comp);
 
@@ -591,7 +591,7 @@ TagBoxArray::collate (long& numtags) const
     //
     // Make sure can pass IntVect as array of ints.
     //
-    assert(sizeof(IntVect) == BL_SPACEDIM * sizeof(int));
+    BLassert(sizeof(IntVect) == BL_SPACEDIM * sizeof(int));
 
     mpi_bcast.start();
     for (int i = 0, rc = 0; i < NGrids; ++i)
@@ -621,7 +621,7 @@ TagBoxArray::collate (long& numtags) const
 
     ptrdiff_t duplicates = (m_CollateSpace+numtags) - end;
 
-    assert(duplicates >= 0);
+    BLassert(duplicates >= 0);
 
     numtags -= duplicates;
 
