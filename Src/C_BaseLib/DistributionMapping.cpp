@@ -1,5 +1,5 @@
 //
-// $Id: DistributionMapping.cpp,v 1.57 2002-07-12 23:07:38 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.58 2002-09-13 19:19:41 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -11,6 +11,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <list>
+#include <map>
 #include <vector>
 #include <queue>
 #include <algorithm>
@@ -455,6 +456,310 @@ top:
     return result;
 }
 
+static bool verbose = false;
+
+static
+int
+HeaviestCPU (const std::vector<long>& percpu)
+{
+  return std::distance(percpu.begin(),std::max_element(percpu.begin(),percpu.end()));
+}
+
+static
+void
+SwapAndTest (const std::map< int,std::vector<int>,std::greater<int> >& samesize,
+             const std::vector< std::vector<int> >&                    nbrs,
+             std::vector<int>&                                         procmap,
+             std::vector<long>&                                        percpu,
+             bool&                                                     swapped)
+{
+    int Hvy = HeaviestCPU(percpu);
+
+    for (std::map< int,std::vector<int>,std::greater<int> >::const_iterator it = samesize.begin();
+         it != samesize.end();
+         ++it)
+    {
+        if (verbose)
+            std::cout << "Trying to swap boxes of size: " << it->first << "\n";
+
+        for (std::vector<int>::const_iterator lit1 = it->second.begin();
+             lit1 != it->second.end();
+             ++lit1)
+        {
+            std::vector<int>::const_iterator lit2 = lit1;
+
+            lit2++;
+
+            for ( ; lit2 != it->second.end(); ++lit2)
+            {
+                BL_ASSERT(*lit1 != *lit2);
+                //
+                // Don't consider Boxes on the same CPU.
+                //
+                if (procmap[*lit1] == procmap[*lit2]) continue;
+                //
+                // Only swaps between CPU of highest latency to another.
+                //
+                if (procmap[*lit1] != Hvy && procmap[*lit2] != Hvy) continue;
+                //
+                // Will swapping these boxes decrease latency?
+                //
+                const long percpu_lit1 = percpu[procmap[*lit1]];
+                const long percpu_lit2 = percpu[procmap[*lit2]];
+                //
+                // Now change procmap & redo necessary calculations ...
+                //
+                std::swap(procmap[*lit1],procmap[*lit2]);
+                //
+                // Update percpu[] in place.
+                //
+                for (std::vector<int>::const_iterator it = nbrs[*lit1].begin();
+                     it != nbrs[*lit1].end();
+                     ++it)
+                {
+                    if (procmap[*it] == procmap[*lit2])
+                    {
+                        percpu[procmap[*lit1]]++;
+                        percpu[procmap[*lit2]]++;
+                    }
+                    else if (procmap[*it] == procmap[*lit1])
+                    {
+                        percpu[procmap[*lit1]]--;
+                        percpu[procmap[*lit2]]--;
+                    }
+                    else
+                    {
+                        percpu[procmap[*lit2]]--;
+                        percpu[procmap[*lit1]]++;
+                    }
+                }
+
+                for (std::vector<int>::const_iterator it = nbrs[*lit2].begin();
+                     it != nbrs[*lit2].end();
+                     ++it)
+                {
+                    if (procmap[*it] == procmap[*lit1])
+                    {
+                        percpu[procmap[*lit1]]++;
+                        percpu[procmap[*lit2]]++;
+                    }
+                    else if (procmap[*it] == procmap[*lit2])
+                    {
+                        percpu[procmap[*lit1]]--;
+                        percpu[procmap[*lit2]]--;
+                    }
+                    else
+                    {
+                        percpu[procmap[*lit1]]--;
+                        percpu[procmap[*lit2]]++;
+                    }
+                }
+
+                const long cost_old = percpu_lit1+percpu_lit2;
+                const long cost_new = percpu[procmap[*lit1]]+percpu[procmap[*lit2]];
+
+                if (cost_new < cost_old)
+                {
+                    swapped = true;
+
+                    Hvy = HeaviestCPU(percpu);
+
+                    if (verbose)
+                        std::cout << "Swapping " << *lit1 << " & " << *lit2 << "\n";
+                }
+                else
+                {
+                    //
+                    // Undo our changes ...
+                    //
+                    std::swap(procmap[*lit1],procmap[*lit2]);
+
+                    percpu[procmap[*lit1]] = percpu_lit1;
+                    percpu[procmap[*lit2]] = percpu_lit2;
+                }
+            }
+        }
+    }
+}
+
+//
+// Try to "improve" the knapsack()d procmap ...
+//
+
+static
+void
+MinimizeCommCosts (std::vector<int>&        procmap,
+                   const BoxArray&          ba,
+                   const std::vector<long>& pts,
+                   int                      nprocs)
+{
+    BL_ASSERT(ba.size() == pts.size());
+    BL_ASSERT(procmap.size() >= ba.size());
+
+    if (nprocs < 2) return;
+    //
+    // Build a data structure that'll tell us who are our neighbors.
+    //
+    std::vector< std::vector<int> > nbrs(ba.size());
+    //
+    // Our "grow" factor; i.e. how far our tentacles grope for our neighbors.
+    //
+    const int Ngrow = 1;
+
+    for (int i = 0; i < ba.size(); i++)
+    {
+        std::list<int> li;
+
+        const Box ibx = BoxLib::grow(ba[i],Ngrow);
+
+        for (int j = 0; j < ba.size(); j++)
+        {
+            if (i != j)
+            {
+                const Box isect = ibx & BoxLib::grow(ba[j],Ngrow);
+
+                if (isect.ok())
+                {
+                    li.push_back(j);
+                }
+            }
+        }
+
+        nbrs[i].resize(li.size());
+
+        BL_ASSERT(nbrs[i].size() == li.size());
+
+        int k = 0;
+        for (std::list<int>::const_iterator it = li.begin();
+             it != li.end();
+             ++it, ++k)
+        {
+            nbrs[i][k] = *it;
+        }
+    }
+
+    if (verbose)
+    {
+        std::cout << "The neighbors list:\n";
+
+        for (int i = 0; i < nbrs.size(); i++)
+        {
+            std::cout << i << "\t:";
+
+            for (std::vector<int>::const_iterator it = nbrs[i].begin();
+                 it != nbrs[i].end();
+                 ++it)
+            {
+                std::cout << *it << ' ';
+            }
+
+            std::cout << "\n";
+        }
+    }
+    //
+    // Want lists of box IDs having the same size.
+    //
+    std::map< int,std::vector<int>,std::greater<int> > samesize;
+
+    for (int i = 0; i < pts.size(); i++)
+    {
+        samesize[pts[i]].push_back(i);
+    }
+
+    if (verbose)
+    {
+        std::cout << "Boxes sorted via numPts():\n";
+
+        for (std::map< int,std::vector<int>,std::greater<int> >::const_iterator it = samesize.begin();
+             it != samesize.end();
+             ++it)
+        {
+            std::cout << it->first << "\t:";
+
+            for (std::vector<int>::const_iterator lit = it->second.begin();
+                 lit != it->second.end();
+                 ++lit)
+            {
+                std::cout << *lit << ' ';
+            }
+
+            std::cout << "\n";
+        }
+    }
+    //
+    // Build a data structure to maintain the latency count on a per-CPU basis.
+    //
+    std::vector<long> percpu(nprocs,0);
+
+    for (int i = 0; i < nbrs.size(); i++)
+    {
+        for (std::vector<int>::const_iterator it = nbrs[i].begin();
+             it != nbrs[i].end();
+             ++it)
+        {
+            if (procmap[i] != procmap[*it]) percpu[procmap[*it]]++;
+        }
+    }
+
+    if (verbose)
+    {
+        long cnt = 0;
+
+        for (int i = 0; i < percpu.size(); i++) cnt += percpu[i];
+
+        std::cout << "Initial off-CPU connection count: " << cnt << std::endl;
+        std::cout << "Initial per-CPU latency distribution:\n";
+
+        long mn = cnt, mx = 0;
+
+        for (int i = 0; i < percpu.size(); i++)
+        {
+            mn = std::min(mn,percpu[i]);
+            mx = std::max(mx,percpu[i]);
+
+            std::cout << "CPU: " << i << '\t' << percpu[i] << '\n';
+        }
+
+        std::cout << "Efficiency: " << double(mn)/double(mx) << "\n";
+    }
+    //
+    // Now need to swap boxes of equal size & see if global minimum decreases.
+    //
+    bool swapped;
+    //
+    // Then minimize number of off-CPU messages.
+    //
+    do
+    {
+        swapped = false;
+
+        SwapAndTest(samesize,nbrs,procmap,percpu,swapped);
+    }
+    while (swapped);
+
+    if (verbose)
+    {
+        long cnt = 0;
+
+        for (int i = 0; i < percpu.size(); i++) cnt += percpu[i];
+
+        std::cout << "Final off-CPU connection count: " << cnt << std::endl;
+        std::cout << "Final per-CPU latency distribution:\n";
+
+        long mn = cnt, mx = 0;
+
+        for (int i = 0; i < percpu.size(); i++)
+        {
+            mn = std::min(mn,percpu[i]);
+            mx = std::max(mx,percpu[i]);
+
+            std::cout << "CPU " << i << ":\t" << percpu[i] << '\n';
+        }
+
+        std::cout << "Efficiency: " << double(mn)/double(mx) << "\n";
+    }
+}
+
 void
 DistributionMapping::KnapSackProcessorMap (const std::vector<long>& pts,
                                            int                      nprocs)
@@ -489,7 +794,8 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<long>& pts,
 }
 
 void
-DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes, int nprocs)
+DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes,
+					   int             nprocs)
 {
     BL_ASSERT(boxes.size() > 0);
     BL_ASSERT(m_procmap.size() == boxes.size()+1);
@@ -518,6 +824,8 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes, int nprocs)
                 m_procmap[*lit] = i;
             }
         }
+
+	MinimizeCommCosts(m_procmap,boxes,pts,nprocs);
         //
         // Set sentinel equal to our processor number.
         //
