@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.36 1999-08-20 21:54:22 lijewski Exp $
+// $Id: AmrLevel.H,v 1.37 1999-08-24 16:28:29 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -78,7 +78,7 @@ public:
     //
     static int isStateVariable (const aString& name,
                                 int&           state_indx,
-                                int&           n_comp);
+                                int&           ncomp);
 
     /*@ManDoc: Compute the initial time step.  This is a pure virtual function
                and hence MUST be implemented by derived classes.
@@ -313,42 +313,39 @@ public:
     {
         return derive_lst;
     }
-
     //
     //@ManDoc: Boundary condition access function.
     //
     Array<int> getBCArray (int State_Type,
                            int gridno,
-                           int strt_comp,
-                           int num_comp);
+                           int scomp,
+                           int ncomp);
     //
     //@ManDoc: Get state data at specified index and time.
     //
     MultiFab& get_data (int  state_indx,
                         Real time);
-
     //
     //@ManDoc: Hack to allow override of (non-fine-fine) fillpatched boundary data
     //
     virtual void set_preferred_boundary_values(FArrayBox& S,
                                                int        state_index,
                                                int        iGrid,
-                                               int        src_comp,
-                                               int        dst_comp,
-                                               int        num_comp,
+                                               int        scomp,
+                                               int        dcomp,
+                                               int        ncomp,
                                                Real       time) const {}
     //
     //
     // 
     //@ManDoc: Called in grid_places after other tagging routines to modify
-    //         the list of tagged points
+    //         the list of tagged points.  Default implementation does nothing.
     //
-    virtual void manual_tags_placement(TagBoxArray& tags, IntVect& bf) {}
-
+    virtual void manual_tags_placement (TagBoxArray& tags, IntVect& bf);
     //
     //@ManDoc: Modify list of variables to be plotted
     // 
-    virtual void setPlotVariables();
+    virtual void setPlotVariables ();
 
 protected:
     //
@@ -397,9 +394,7 @@ class FillPatchIterator
     public MultiFabIterator
 {
   public:
-    //
-    // Constructors.
-    //
+
     FillPatchIterator (AmrLevel& amrlevel,
                        MultiFab& leveldata);
 
@@ -408,26 +403,34 @@ class FillPatchIterator
                        int       boxGrow,
                        Real      time,
                        int       state_indx,
-                       int       src_comp,
+                       int       scomp,
                        int       ncomp);
 
     void Initialize (int  boxGrow,
                      Real time,
                      int  state_indx,
-                     int  src_comp,
+                     int  scomp,
                      int  ncomp);
 
     ~FillPatchIterator ();
 
-    const FArrayBox& operator() () const { return m_fab; }
+    FArrayBox& operator() ()             { return m_fab;  }
 
-    FArrayBox& operator() ()  { return m_fab; }
+    const FArrayBox& operator() () const { return m_fab;  }
+
+    FArrayBox& operator* ()              { return m_fab;  }
+
+    const FArrayBox& operator* () const  { return m_fab;  }
+
+    FArrayBox* operator-> ()             { return &m_fab; }
+
+    const FArrayBox* operator-> () const { return &m_fab; }
 
     bool isValid ();
 
     FabArrayIterator<Real,FArrayBox>& operator++ ();
 
-    const Box& UngrownBox () const { return validbox(); }
+    const Box& UngrownBox () const { return MultiFabIterator::validbox(); }
 
   private:
     //
@@ -453,10 +456,8 @@ class FillPatchIteratorHelper
 {
 public:
 
-    enum FillType { FillLocally, FillRemotely, FillFromBoundary, Unfillable };
-    //
-    // Constructors.
-    //
+//    enum FillType { FillLocally, FillRemotely, FillFromBoundary, Unfillable };
+
     FillPatchIteratorHelper (AmrLevel& amrlevel,
                              MultiFab& leveldata);
 
@@ -465,26 +466,32 @@ public:
                              int           boxGrow,
                              Real          time,
                              int           state_indx,
-                             int           src_comp,
+                             int           scomp,
                              int           ncomp,
                              Interpolater* mapper);
 
     void Initialize (int           boxGrow,
                      Real          time,
                      int           state_indx,
-                     int           src_comp,
+                     int           scomp,
                      int           ncomp,
                      Interpolater* mapper);
 
     ~FillPatchIteratorHelper ();
 
-    const FArrayBox& operator() () const { return m_fab; }
+    FArrayBox& operator() ()             { return m_fab;  }
 
-    FArrayBox& operator() ()  { return m_fab; }
+    const FArrayBox& operator() () const { return m_fab;  }
+
+    FArrayBox& operator* ()              { return m_fab;  }
+
+    const FArrayBox& operator* () const  { return m_fab;  }
+
+    FArrayBox* operator-> ()             { return &m_fab; }
+
+    const FArrayBox* operator-> () const { return &m_fab; }
 
     bool isValid ();
-
-    const Box& UngrownBox () const { return validbox(); }
 
 private:
     //
