@@ -15,8 +15,9 @@ function tar_up_and_rm_files
 {
   #
   # Take all but the final chk file -- want job chaining to work.
+  # Strip out any tar files that are lying around. 
   #
-  chklist=$(ls -d ${chk_prefix}* 2>/dev/null)
+  chklist=$(ls -d ${chk_prefix}* 2>/dev/null | grep -v *.tar)
 
   if [ "$chklist" ]
   then
@@ -32,7 +33,7 @@ function tar_up_and_rm_files
   #
   # Take all the plt files.
   #
-  pltlist=$(ls -d ${plt_prefix}* 2>/dev/null)
+  pltlist=$(ls -d ${plt_prefix}* 2>/dev/null | grep -v *.tar)
 
   list="$chklist $pltlist"
 
