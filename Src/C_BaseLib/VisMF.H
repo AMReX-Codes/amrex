@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.1 1997-11-08 23:24:16 lijewski Exp $
+// $Id: VisMF.H,v 1.2 1997-11-09 00:58:56 lijewski Exp $
 //
 
 #include <sys/types.h>
@@ -36,6 +36,15 @@ public:
     //
     struct FabOnDisk
     {
+        //
+        // The default constructor -- null out all fields.
+        //
+        FabOnDisk () : m_head(0), m_data(0) {}
+        //
+        // Constructor that sets the file name field and  nulls out others.
+        //
+        FabOnDisk (const aString name) : m_name(name), m_head(0), m_data(0) {}
+
         aString m_name; // The name of file containing the FAB.
         off_t   m_head; // Offset of start of FAB header in file.
         off_t   m_data; // Offset of start of FAB data in file.
@@ -50,19 +59,23 @@ public:
         //
         enum { Version = 1 };
         //
-        // Construct from a MF -- fills in all data members.
+        // Construct from a MultiFab -- fills in all but m_fad member.
         //
         Header (const MultiFab& mf, VisMF::How how);
         //
+        // Writes the Header in ASCII to the supplied ostream.
+        //
+        void writeOn (ostream& os) const;
+        //
         // What's in the header.
         //
-        int                 m_vers;  // The version # of the Header.
-        How                 m_how;   // How the MF was written to disk.
-        int                 m_ncomp; // Number of components in MF.
-        BoxArray            m_ba;    // The BoxArray of the MF.
-        Array<FabOnDisk>    m_fad;   // FabOnDisk info for contained FABs.
-        Array<Array<Real> > m_min;   // The min()s of each component of FABs.
-        Array<Array<Real> > m_max;   // The max()s of each component of FABs.
+        int                  m_vers;  // The version # of the Header.
+        How                  m_how;   // How the MF was written to disk.
+        int                  m_ncomp; // Number of components in MF.
+        BoxArray             m_ba;    // The BoxArray of the MF.
+        Array< FabOnDisk >   m_fad;   // FabOnDisk info for contained FABs.
+        Array< Array<Real> > m_min;   // The min()s of each component of FABs.
+        Array< Array<Real> > m_max;   // The max()s of each component of FABs.
     };
     //
     // Write a MultiFab to disk in a "smart" way.
@@ -81,14 +94,26 @@ private:
     // Writes a FAB to disk.
     //
     static FabOnDisk Write (const FArrayBox& fab,
-                            const aString&   name,
+                            const aString&   filename,
                             ostream&         os);
 
     static void WriteOneFilePerCPU (const MultiFab& mf,
-                                    const aString&  name);
+                                    const aString&  mf_name);
 
     static void WriteOneFilePerFab (const MultiFab& mf,
-                                    const aString&  name);
+                                    const aString&  mf_name);
 };
+
+//
+// Write a FabOnDisk to an ostream in ASCII.
+//
+
+ostream& operator<< (ostream& os, const VisMF::FabOnDisk& fad);
+
+//
+// Write an Array<FabOnDisk> to an ostream in ASCII.
+//
+
+ostream& operator<< (ostream& os, const Array<VisMF::FabOnDisk>& fa);
 
 #endif /*BL_VISMF_H*/
