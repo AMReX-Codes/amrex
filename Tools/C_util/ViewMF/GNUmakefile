@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.4 1999-09-29 21:46:08 sstanley Exp $
+# $Id: GNUmakefile,v 1.5 2000-03-29 23:05:54 sstanley Exp $
 #
 PBOXLIB_HOME = ../../
 
@@ -8,11 +8,17 @@ TOP = $(PBOXLIB_HOME)
 # Variables for the user to set ...
 #
 PRECISION     = DOUBLE
-DEBUG	      = FALSE
+DEBUG	      = TRUE
 PROFILE       = FALSE
 DIM	      = 3
 COMP          = KCC
-USE_MPI       = FALSE
+USE_MPI       = TRUE
+
+#
+# Control Make Procedure
+#
+BUILD_INPLACE:=FALSE
+BUILD_INPLACE:=TRUE
 
 #
 # Base name of the executable.
@@ -28,9 +34,14 @@ DEFINES += -DBL_PARALLEL_IO
 #
 # Local INCLUDES
 #
-INCLUDE_LOCATIONS += . $(TOP)/include $(TOP)/pAmrvis ../
-LIBRARY_LOCATIONS += $(TOP)/lib/$(machineSuffix)
-LIBRARIES         += -lbox$(DIM)d
+ifeq ($(BUILD_INPLACE), TRUE)
+  include $(TOP)/pBoxLib_2/Make.package
+  INCLUDE_LOCATIONS += . $(TOP)/pBoxLib_2 $(TOP)/pAmrvis ../
+else
+  INCLUDE_LOCATIONS += . $(TOP)/include $(TOP)/pAmrvis ../
+  LIBRARY_LOCATIONS += $(TOP)/lib/$(machineSuffix)
+  LIBRARIES         += -lbox$(DIM)d
+endif
 
 ifeq ($(MACHINE),OSF1)
 #
@@ -69,10 +80,16 @@ LDFLAGS += --link_command_prefix 3rd
 LDFLAGS += -non_shared -v
 endif
 
-vpath %.F   .. $(TOP)/pAmrvis
-vpath %.H   .. $(TOP)/pAmrvis
-vpath %.cpp .. $(TOP)/pAmrvis
-vpath %.a   $(LIBRARY_LOCATIONS)
+ifeq ($(BUILD_INPLACE), TRUE)
+  vpath %.F   .. $(TOP)/pAmrvis $(TOP)/pBoxLib_2
+  vpath %.H   .. $(TOP)/pAmrvis $(TOP)/pBoxLib_2
+  vpath %.cpp .. $(TOP)/pAmrvis $(TOP)/pBoxLib_2
+else
+  vpath %.F   .. $(TOP)/pAmrvis
+  vpath %.H   .. $(TOP)/pAmrvis
+  vpath %.cpp .. $(TOP)/pAmrvis
+  vpath %.a   $(LIBRARY_LOCATIONS)
+endif
 
 all: $(executable)
 
