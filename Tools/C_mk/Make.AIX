@@ -23,10 +23,9 @@ endif
 
 ifeq ($(COMP),mpKCC)
   CXX     := mpKCC
-  CXXOPTF += +K2
-  CXXDEBF += +K0
+  CXXOPTF += +K2 --no_exceptions --backend '-qmaxmem=6144'
+  CXXDEBF += +K0 --no_exceptions
   override XTRADEFS += -DBL_USE_NEW_HFILES -DBL_COALESCE_FABS
-  override CXXFLAGS += --no_exceptions --backend '-qmaxmem=6144'
 endif
 
 ifeq ($(PROFILE), TRUE)
