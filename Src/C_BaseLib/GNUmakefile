@@ -1,32 +1,14 @@
 #
-# $Id: GNUmakefile,v 1.10 1998-08-21 17:58:33 car Exp $
+# $Id: GNUmakefile,v 1.11 1998-10-28 17:42:16 lijewski Exp $
 #
 
-#
-# Where is GUTHAMR?
-#
-GUTHAMR_HOME = ../IAMRAll
+PBOXLIB_HOME = ..
 
-#
-# PRECISION can be DOUBLE or FLOAT.
-#
 PRECISION = DOUBLE
-
-#
-# Debug can be TRUE or FALSE
-#
 DEBUG = TRUE
-
-#
-# DIM can be 1, 2, or 3.
-#
-DIM = 2
 DIM = 3
-
-#
-# Your choice of C++ compiler: g++-2.5.8, OCC, CC, KCC, CFRONT
-#
 COMP = KCC
+USE_MPI = TRUE
 
 #
 # The base name of the library we're building.
@@ -34,26 +16,25 @@ COMP = KCC
 LBASE = box
 
 #
-# Should we use MPI?
+# Where libraries and include files will be installed.
 #
-USE_MPI = FALSE
-USE_MPI = TRUE
+INSTALL_ROOT = $(PBOXLIB_HOME)
 
-PBOXLIB_HOME = ..
 include ../mk/Make.defs Make.package
 
 ifeq ($(USE_MPI),TRUE)
 DEFINES += -DBL_USE_MPI
+LIBRARIES += -lmpi
+ifeq ($(MACHINE), OSF1)
 MPI_HOME = /usr/local/mpi
 INCLUDE_LOCATIONS += $(MPI_HOME)/include
 LIBRARY_LOCATIONS += $(MPI_HOME)/lib/alpha/ch_p4
-LIBRARIES += -lmpi
+endif
 endif
 
 ifeq ($(KCC_VERSION),3.3)
-CXXFLAGS+=--one_instantiation_per_object
+CXXFLAGS += --one_instantiation_per_object
 endif
-
 
 all: $(optionsLib)
 
@@ -65,8 +46,6 @@ all: $(optionsLib)
 install: all
 
 include ../mk/Make.rules
-
-CPPFLAGS += -DBL_USE_NEW_HFILES
 
 #
 # Temp stuff for doing html docs.
@@ -119,11 +98,11 @@ BoxLib.ps: BoxLib.dvi
 	dvips BoxLib.dvi -o BoxLib.ps
 
 #
-# Install the PostScript file into GUTHMAR_HOME/ps
+# Install the PostScript file into ./ps
 #
 install_ps: BoxLib.ps
-	-if [ ! -d $(GUTHAMR_HOME)/ps ]; then \
-              mkdir -p $(GUTHAMR_HOME)/ps;    \
-              chmod 755 $(GUTHAMR_HOME)/ps;   \
+	-if [ ! -d $(INSTALL_ROOT)/ps ]; then \
+              mkdir -p $(INSTALL_ROOT)/ps;    \
+              chmod 755 $(INSTALL_ROOT)/ps;   \
         fi
-	$(INSTALL_DATA) BoxLib.ps $(GUTHAMR_HOME)/ps
+	$(INSTALL_DATA) BoxLib.ps $(INSTALL_ROOT)/ps
