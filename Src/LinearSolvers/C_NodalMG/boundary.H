@@ -19,11 +19,11 @@ class amr_boundary_class
 public:
     amr_boundary_class() { }
     virtual ~amr_boundary_class() { }
+
     int dir(const Box&, const Box&) const;
-    virtual Box box(const Box&, const Box&, int) const;
     void boundary_mesh(BoxArray& exterior_mesh, int *&grid_ref, const BoxArray& interior_mesh, const Box& domain) const;
 
-    // virtual void fill(FArrayBox&, const Box&, const MultiFab&, int, const Box&) const = 0;
+    virtual Box box(const Box&, const Box&, int) const = 0;
     virtual void fill(FArrayBox&, const Box&, const FArrayBox&, int, const Box&) const = 0;
     virtual void sync_borders(MultiFab&, const level_interface&) const = 0;
     virtual void fill_borders(MultiFab& r, const level_interface& lev_interface, int w) const = 0;
@@ -31,7 +31,7 @@ public:
     virtual bool singular() const  = 0;
 protected:
     virtual void fill(FArrayBox&, const Box&, const FArrayBox&, const Box&, const Box&, int) const = 0;
-    virtual void check_against_boundary(BoxList& bl, List<int>& il, const Box& b, int ib, const Box& d, int dim1) const;
+    virtual void check_against_boundary(BoxList& bl, List<int>& il, const Box& b, int ib, const Box& d, int dim1) const = 0;
 };
 
 inline int amr_boundary_class::dir(const Box& region, const Box& domain) const
