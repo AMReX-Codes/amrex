@@ -26,7 +26,11 @@ module bl_constants_module
   real(kind = dp_t), parameter :: HALF   = 0.5_dp_t
   real(kind = dp_t), parameter :: THIRD  = ONE/THREE
   real(kind = dp_t), parameter :: FOURTH = 0.25_dp_t
+  real(kind = dp_t), parameter :: FIFTH  = ONE/FIVE
+  real(kind = dp_t), parameter :: SIXTH  = ONE/SIX
+  real(kind = dp_t), parameter :: SEVENTH  = ONE/SEVEN
   real(kind = dp_t), parameter :: EIGHTH = 0.125_dp_t
+  real(kind = dp_t), parameter :: NINETH = ONE/NINE
   real(kind = dp_t), parameter :: TENTH  = 0.10_dp_t
   real(kind = dp_t), parameter :: TWO3RD = TWO/THREE
 
