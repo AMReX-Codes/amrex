@@ -765,7 +765,7 @@ contains
     call poly_interp_coeff(cc(0:norder(1),1), -HALF, xx(0:norder(1),1))
     call poly_interp_coeff(cc(0:norder(1),2), -HALF, xx(0:norder(1),2))
     if ( bc_dirichlet(mm( 1), 1, -1) ) &
-         ph(0   ) = sum(ph(0:norder(1)         )*cc(0:norder(1),1))
+         ph(0) = sum(ph(0:norder(1))*cc(0:norder(1),1))
     if ( bc_dirichlet(mm(nn(1)), 1, +1) ) &
          ph(nn(1)+1) = sum(ph(nn(1)+1:nn(1)-(norder(1)-1):-1)*cc(0:norder(1),2))
 
@@ -799,7 +799,7 @@ contains
     call poly_interp_coeff(cc(0:norder(1),2), -HALF, xx(0:norder(1),2))
     do j = 1, nn(2)
        if ( bc_dirichlet(mm( 1,j), 1, -1) ) &
-            ph(0   ,j) = sum(ph(0:norder(1)         ,j)*cc(0:norder(1),1))
+            ph(0,j) = sum(ph(0:norder(1),j)*cc(0:norder(1),1))
        if ( bc_dirichlet(mm(nn(1),j), 1, +1) ) &
             ph(nn(1)+1,j) = sum(ph(nn(1)+1:nn(1)-(norder(1)-1):-1,j)*cc(0:norder(1),2))
     end do
@@ -810,47 +810,41 @@ contains
     call poly_interp_coeff(cc(0:norder(2),2), -HALF, xx(0:norder(2),2))
     do i = 1, nn(1)
        if ( bc_dirichlet(mm(i, 1), 2, -1) ) &
-            ph(i   ,0) = sum(ph(i,0:norder(2)         )*cc(0:norder(2),1))
+            ph(i,0) = sum(ph(i,0:norder(2))*cc(0:norder(2),1))
        if ( bc_dirichlet(mm(i,nn(2)), 2, +1) ) &
             ph(i,nn(2)+1) = sum(ph(i,nn(2)+1:nn(2)-(norder(2)-1):-1)*cc(0:norder(2),2))
     end do
 
     if ( .not. cross ) then
        norder = min(nn, max_order+1)
-       xc(:)   = (/           (i+HALF, i=0, max_order ) /)
-!print *, 'nn = ', nn
-!print *, 'norder = ', norder
-!print *, 'xc = ', xc
+       xc(:)  = (/(i+HALF, i=0, max_order)/)
        !! Corners
        do i = 1, 2
           call poly_interp_coeff(cc(0:norder(i)-1,i), -HALF, xc(1:norder(i)))
        end do
 
-!print *, 'cc_1 = ', cc(0:norder(1)-1,1)
-!print *, 'cc_2 = ', cc(0:norder(2)-1,2)
-
        if ( bc_dirichlet(mm(1,1),1,-1) .and. bc_dirichlet(mm(1,1),2,-1) ) then
           ph(0,0) = ( &
-               + sum(ph(1:norder(1),0          )*cc(0:norder(1)-1,1)) &
-               + sum(ph(0          ,1:norder(2))*cc(0:norder(2)-1,2)) &
+               + sum(ph(1:norder(1),0)*cc(0:norder(1)-1,1)) &
+               + sum(ph(0,1:norder(2))*cc(0:norder(2)-1,2)) &
                ) * HALF
        end if
        if ( bc_dirichlet(mm(1,nn(2)),1,-1) .and. bc_dirichlet(mm(1,nn(2)),2,+1) ) then
           ph(0,nn(2)+1) = ( &
-               + sum(ph(1:norder(1),nn(2)+1       )*cc(0:norder(1)-1,1)) &
-               + sum(ph(0          ,nn(2):nn(2)-(norder(2)-1):-1)*cc(0:norder(2)-1,2)) &
+               + sum(ph(1:norder(1),nn(2)+1)           *cc(0:norder(1)-1,1)) &
+               + sum(ph(0,nn(2):nn(2)-(norder(2)-1):-1)*cc(0:norder(2)-1,2)) &
                ) * HALF
        end if
        if ( bc_dirichlet(mm(nn(1),1),1,+1) .and. bc_dirichlet(mm(nn(1),1),2,-1) ) then
           ph(nn(1)+1,0) = ( &
-               + sum(ph(nn(1):nn(1)-(norder(1)-1):-1,0          )*cc(0:norder(1)-1,1)) &
-               + sum(ph(nn(1)+1          ,1:norder(2))*cc(0:norder(2)-1,2)) &
+               + sum(ph(nn(1):nn(1)-(norder(1)-1):-1,0)*cc(0:norder(1)-1,1)) &
+               + sum(ph(nn(1)+1,1:norder(2))           *cc(0:norder(2)-1,2)) &
                ) * HALF
        end if
        if ( bc_dirichlet(mm(nn(1),nn(2)),1,+1) .and. bc_dirichlet(mm(nn(1),nn(2)),2,+1) ) then
           ph(nn(1)+1,nn(2)+1) = ( &
-               + sum(ph(nn(1):nn(1)-(norder(1)-1):-1,nn(2)+1       )*cc(0:norder(1)-1,1)) &
-               + sum(ph(nn(1)+1         ,nn(2):nn(2)-(norder(2)-1):-1)*cc(0:norder(2)-1,2)) &
+               + sum(ph(nn(1):nn(1)-(norder(1)-1):-1,nn(2)+1)*cc(0:norder(1)-1,1)) &
+               + sum(ph(nn(1)+1,nn(2):nn(2)-(norder(2)-1):-1)*cc(0:norder(2)-1,2)) &
                ) * HALF
        end if
     end if
@@ -887,7 +881,7 @@ contains
     do k = 1, nn(3)
        do j = 1, nn(2)
           if ( bc_dirichlet(mm( 1,j,k), 1, -1) ) &
-               ph(0   ,j,k) = sum(ph(0:norder(1)         ,j,k)*cc(0:norder(1),1))
+               ph(0,j,k)       = sum(ph(0:norder(1),j,k)                   *cc(0:norder(1),1))
           if ( bc_dirichlet(mm(nn(1),j,k), 1, +1) ) &
                ph(nn(1)+1,j,k) = sum(ph(nn(1)+1:nn(1)-(norder(1)-1):-1,j,k)*cc(0:norder(1),2))
        end do
@@ -900,7 +894,7 @@ contains
     do k = 1, nn(3)
        do i = 1, nn(1)
           if ( bc_dirichlet(mm(i, 1,k), 2, -1) ) &
-               ph(i   ,0,k) = sum(ph(i,0:norder(2)         ,k)*cc(0:norder(2),1))
+               ph(i,0,k)       = sum(ph(i,0:norder(2),k)                   *cc(0:norder(2),1))
           if ( bc_dirichlet(mm(i,nn(2),k), 2, +1) ) &
                ph(i,nn(2)+1,k) = sum(ph(i,nn(2)+1:nn(2)-(norder(2)-1):-1,k)*cc(0:norder(2),2))
        end do
@@ -913,7 +907,7 @@ contains
     do j = 1, nn(2)
        do i = 1, nn(1)
           if ( bc_dirichlet(mm(i,j, 1), 3, -1) ) &
-               ph(i,j,   0) = sum(ph(i,j,0:norder(3)         )*cc(0:norder(3),1))
+               ph(i,j,0)       = sum(ph(i,j,0:norder(3))                   *cc(0:norder(3),1))
           if ( bc_dirichlet(mm(i,j,nn(3)), 2, +1) ) &
                ph(i,j,nn(3)+1) = sum(ph(i,j,nn(3)+1:nn(3)-(norder(3)-1):-1)*cc(0:norder(3),2))
        end do
@@ -921,11 +915,176 @@ contains
 
     if ( .not. cross ) then
        norder = min(nn, max_order+1)
-       xc(:)   = (/           (i+HALF, i=0, max_order  ) /)
-call bl_error("EXTRAP_3D: NOT READY YET")
-       !! Corners
+       xc(:)  = (/(i+HALF, i=0, max_order)/)
        do i = 1, 3
           call poly_interp_coeff(cc(0:norder(i)-1,1), -HALF, xc(1:norder(i)))
+       end do
+
+       !! Corners
+       if ( bc_dirichlet(mm(1,1,1),1,-1) .and. &
+            bc_dirichlet(mm(1,1,1),2,-1) .and. &
+            bc_dirichlet(mm(1,1,1),3,-1) ) then
+          ph(0,0,0) = ( &
+               + sum(ph(1:norder(1),0,0)*cc(0:norder(1)-1,1)) &
+               + sum(ph(0,1:norder(2),0)*cc(0:norder(2)-1,2)) &
+               + sum(ph(0,0,1:norder(3))*cc(0:norder(3)-1,3)) &
+               ) * THIRD
+       end if
+       if ( bc_dirichlet(mm(1,nn(2),1),1,-1) .and. &
+            bc_dirichlet(mm(1,nn(2),1),2,+1) .and. &
+            bc_dirichlet(mm(1,nn(2),1),3,-1) ) then
+          ph(0,nn(2)+1,0) = ( &
+               + sum(ph(1:norder(1),nn(2)+1,0)           *cc(0:norder(1)-1,1)) &
+               + sum(ph(0,nn(2):nn(2)-(norder(2)-1):-1,0)*cc(0:norder(2)-1,2)) &
+               + sum(ph(0,nn(2)+1,1:norder(3))           *cc(0:norder(3)-1,3)) &
+               ) * THIRD
+       end if
+       if ( bc_dirichlet(mm(nn(1),1,1),1,+1) .and. &
+            bc_dirichlet(mm(nn(1),1,1),2,-1) .and. &
+            bc_dirichlet(mm(nn(1),1,1),3,-1) ) then
+          ph(nn(1)+1,0,0) = ( &
+               + sum(ph(nn(1):nn(1)-(norder(1)-1):-1,0,0)*cc(0:norder(1)-1,1)) &
+               + sum(ph(nn(1)+1,1:norder(2),0)           *cc(0:norder(2)-1,2)) &
+               + sum(ph(nn(1)+1,0,1:norder(3))           *cc(0:norder(3)-1,3)) &
+               ) * THIRD
+       end if
+       if ( bc_dirichlet(mm(nn(1),nn(2),1),1,+1) .and. &
+            bc_dirichlet(mm(nn(1),nn(2),1),2,+1) .and. &
+            bc_dirichlet(mm(nn(1),nn(2),1),3,-1) ) then
+          ph(nn(1)+1,nn(2)+1,0) = ( &
+               + sum(ph(nn(1):nn(1)-(norder(1)-1):-1,nn(2)+1,0)*cc(0:norder(1)-1,1)) &
+               + sum(ph(nn(1)+1,nn(2):nn(2)-(norder(2)-1):-1,0)*cc(0:norder(2)-1,2)) &
+               + sum(ph(nn(1)+1,nn(2)+1,1:norder(3))           *cc(0:norder(3)-1,3)) &
+               ) * THIRD
+       end if
+       if ( bc_dirichlet(mm(1,1,nn(3)),1,-1) .and. &
+            bc_dirichlet(mm(1,1,nn(3)),2,-1) .and. &
+            bc_dirichlet(mm(1,1,nn(3)),3,+1) ) then
+          ph(0,0,nn(3)+1) = ( &
+               + sum(ph(1:norder(1),0,0)                 *cc(0:norder(1)-1,1)) &
+               + sum(ph(0,1:norder(2),0)                 *cc(0:norder(2)-1,2)) &
+               + sum(ph(0,0,nn(3):nn(3)-(norder(3)-1):-1)*cc(0:norder(3)-1,3)) &
+               ) * THIRD
+       end if
+       if ( bc_dirichlet(mm(1,nn(2),nn(3)),1,-1) .and. &
+            bc_dirichlet(mm(1,nn(2),nn(3)),2,+1) .and. &
+            bc_dirichlet(mm(1,nn(2),nn(3)),3,+1) ) then
+          ph(0,nn(2)+1,nn(3)+1) = ( &
+               + sum(ph(1:norder(1),nn(2)+1,0)                 *cc(0:norder(1)-1,1)) &
+               + sum(ph(0,nn(2):nn(2)-(norder(2)-1):-1,0)      *cc(0:norder(2)-1,2)) &
+               + sum(ph(0,nn(2)+1,nn(3):nn(3)-(norder(3)-1):-1)*cc(0:norder(3)-1,3)) &
+               ) * THIRD
+       end if
+       if ( bc_dirichlet(mm(nn(1),1,nn(3)),1,+1) .and. &
+            bc_dirichlet(mm(nn(1),1,nn(3)),2,-1) .and. &
+            bc_dirichlet(mm(nn(1),1,nn(3)),3,+1) ) then
+          ph(nn(1)+1,0,nn(3)+1) = ( &
+               + sum(ph(nn(1):nn(1)-(norder(1)-1):-1,0,0)      *cc(0:norder(1)-1,1)) &
+               + sum(ph(nn(1)+1,1:norder(2),0)                 *cc(0:norder(2)-1,2)) &
+               + sum(ph(nn(1)+1,0,nn(3):nn(3)-(norder(3)-1):-1)*cc(0:norder(3)-1,3)) &
+               ) * THIRD
+       end if
+       if ( bc_dirichlet(mm(nn(1),nn(2),nn(3)),1,+1) .and. &
+            bc_dirichlet(mm(nn(1),nn(2),nn(3)),2,+1) .and. &
+            bc_dirichlet(mm(nn(1),nn(2),nn(3)),3,+1) ) then
+          ph(nn(1)+1,nn(2)+1,nn(3)+1) = ( &
+               + sum(ph(nn(1):nn(1)-(norder(1)-1):-1,nn(2)+1,0)      *cc(0:norder(1)-1,1)) &
+               + sum(ph(nn(1)+1,nn(2):nn(2)-(norder(2)-1):-1,0)      *cc(0:norder(2)-1,2)) &
+               + sum(ph(nn(1)+1,nn(2)+1,nn(3):nn(3)-(norder(3)-1):-1)*cc(0:norder(3)-1,3)) &
+               ) * THIRD
+       end if
+       !! X edges
+       do i = 1, nn(1)
+          if ( bc_dirichlet(mm(i,1,1),2,-1) .and. &
+               bc_dirichlet(mm(i,1,1),3,-1) ) then
+             ph(i,0,0) = ( &
+                  + sum(ph(i,1:norder(2),0)*cc(0:norder(2)-1,2)) &
+                  + sum(ph(i,0,1:norder(3))*cc(0:norder(3)-1,3)) &
+                  ) * TWO
+          end if
+          if ( bc_dirichlet(mm(i,nn(2),1),2,+1) .and. &
+               bc_dirichlet(mm(i,nn(2),1),3,-1) ) then
+             ph(i,nn(2)+1,0) = ( &
+                  + sum(ph(i,nn(2):nn(2)-(norder(2)-1):-1,0)*cc(0:norder(2)-1,2)) &
+                  + sum(ph(i,nn(2)+1,1:norder(3))           *cc(0:norder(3)-1,3)) &
+                  ) * TWO
+          end if
+          if ( bc_dirichlet(mm(i,1,nn(3)),2,-1) .and. &
+               bc_dirichlet(mm(i,1,nn(3)),3,+1) ) then
+             ph(i,0,nn(3)+1) = ( &
+                  + sum(ph(i,1:norder(2),nn(3)+1)           *cc(0:norder(2)-1,2)) &
+                  + sum(ph(i,0,nn(3):nn(3)-(norder(3)-1):-1)*cc(0:norder(3)-1,3)) &
+                  ) * TWO
+          end if
+          if ( bc_dirichlet(mm(i,nn(2),nn(3)),2,+1) .and. &
+               bc_dirichlet(mm(i,nn(2),nn(3)),3,+1) ) then
+             ph(i,nn(2)+1,nn(3)+1) = ( &
+                  + sum(ph(i,nn(2):nn(2)-(norder(2)-1):-1,nn(3)+1)*cc(0:norder(2)-1,2)) &
+                  + sum(ph(i,nn(2)+1,nn(3):nn(3)-(norder(3)-1):-1)*cc(0:norder(3)-1,3)) &
+                  ) * TWO
+          end if
+       end do
+       !! Y edges
+       do j = 1, nn(2)
+          if ( bc_dirichlet(mm(1,j,1),1,-1) .and. &
+               bc_dirichlet(mm(1,j,1),3,-1) ) then
+             ph(0,j,0) = ( &
+                  + sum(ph(1:norder(1),j,0)*cc(0:norder(1)-1,1)) &
+                  + sum(ph(0,j,1:norder(3))*cc(0:norder(3)-1,3)) &
+                  ) * TWO
+          end if
+          if ( bc_dirichlet(mm(nn(1),j,1),1,+1) .and. &
+               bc_dirichlet(mm(nn(1),j,1),3,-1) ) then
+             ph(nn(1)+1,j,0) = ( &
+                  + sum(ph(nn(1):nn(1)-(norder(1)-1):-1,j,0)*cc(0:norder(1)-1,1)) &
+                  + sum(ph(nn(1)+1,j,1:norder(3))           *cc(0:norder(3)-1,3)) &
+                  ) * TWO
+          end if
+          if ( bc_dirichlet(mm(1,j,nn(3)),1,-1) .and. &
+               bc_dirichlet(mm(1,j,nn(3)),3,+1) ) then
+             ph(0,j,nn(3)+1) = ( &
+                  + sum(ph(1:norder(1),j,nn(3)+1)           *cc(0:norder(1)-1,1)) &
+                  + sum(ph(0,j,nn(3):nn(3)-(norder(3)-1):-1)*cc(0:norder(3)-1,3)) &
+                  ) * TWO
+          end if
+          if ( bc_dirichlet(mm(nn(1),j,nn(3)),1,+1) .and. &
+               bc_dirichlet(mm(nn(1),j,nn(3)),3,+1) ) then
+             ph(nn(1)+1,j,nn(3)+1) = ( &
+                  + sum(ph(nn(1):nn(1)-(norder(1)-1):-1,j,nn(3)+1)*cc(0:norder(1)-1,1)) &
+                  + sum(ph(nn(1)+1,j,nn(3):nn(3)-(norder(3)-1):-1)*cc(0:norder(3)-1,3)) &
+                  ) * TWO
+          end if
+       end do
+       !! Z edges
+       do k = 1, nn(3)
+          if ( bc_dirichlet(mm(1,1,k),1,-1) .and. &
+               bc_dirichlet(mm(1,1,k),2,-1) ) then
+             ph(0,0,k) = ( &
+                  + sum(ph(1:norder(1),0,k)*cc(0:norder(1)-1,1)) &
+                  + sum(ph(0,1:norder(2),k)*cc(0:norder(2)-1,2)) &
+                  ) * TWO
+          end if
+          if ( bc_dirichlet(mm(nn(1),1,k),1,+1) .and. &
+               bc_dirichlet(mm(nn(1),1,k),2,-1) ) then
+             ph(nn(1)+1,0,k) = ( &
+                  + sum(ph(nn(1):nn(1)-(norder(1)-1):-1,0,k)*cc(0:norder(1)-1,1)) &
+                  + sum(ph(nn(1)+1,1:norder(2),k)           *cc(0:norder(2)-1,2)) &
+                  ) * TWO
+          end if
+          if ( bc_dirichlet(mm(1,nn(2),k),1,-1) .and. &
+               bc_dirichlet(mm(1,nn(2),k),2,+1) ) then
+             ph(0,nn(2)+1,k) = ( &
+                  + sum(ph(1:norder(1),nn(2)+1,k)           *cc(0:norder(1)-1,1)) &
+                  + sum(ph(0,nn(2):nn(2)-(norder(2)-1):-1,k)*cc(0:norder(2)-1,2)) &
+                  ) * TWO
+          end if
+          if ( bc_dirichlet(mm(nn(1),nn(2),k),1,+1) .and. &
+               bc_dirichlet(mm(nn(1),nn(2),k),2,+1) ) then
+             ph(nn(1)+1,nn(2)+1,k) = ( &
+                  + sum(ph(nn(1):nn(1)-(norder(1)-1):-1,nn(2)+1,k)*cc(0:norder(1)-1,1)) &
+                  + sum(ph(nn(1)+1,nn(2):nn(2)-(norder(2)-1):-1,k)*cc(0:norder(2)-1,2)) &
+                  ) * TWO
+          end if
        end do
     end if
 
