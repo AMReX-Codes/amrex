@@ -1076,7 +1076,7 @@ contains
 
   end subroutine box_read
 
-  subroutine periodic_shift(dmn,b,nodal,pmask,ng,shft,bxs,cnt)
+  subroutine box_periodic_shift(dmn,b,nodal,pmask,ng,shft,bxs,cnt)
 
     type(box), intent(in)  :: dmn,b
     logical,   intent(in)  :: nodal(:),pmask(:)
@@ -1145,6 +1145,6 @@ contains
         if (i >= 1 .and. i <= bx%dim) r = pmask(i) .eqv. .true.
       end function is_periodic
 
-  end subroutine periodic_shift
+  end subroutine box_periodic_shift
 
 end module box_module
