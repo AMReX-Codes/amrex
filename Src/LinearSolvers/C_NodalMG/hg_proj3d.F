@@ -933,7 +933,7 @@ c Note---only generates values at coarse points along edge of fine grid
      & uf, vf, wf,
      &      fl0,fh0,fl1,fh1,fl2,fh2,
      & cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
-     & hx, hy, hz, ir, jr, kr, idim, idir)
+     & hx, hy, hz, ir, jr, kr, idim, idir, i1, i2)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
@@ -946,7 +946,7 @@ c Note---only generates values at coarse points along edge of fine grid
       double precision vf(fl0:fh0,fl1:fh1,fl2:fh2)
       double precision wf(fl0:fh0,fl1:fh1,fl2:fh2)
       double precision hx, hy, hz
-      integer ir, jr, kr, idim, idir
+      integer ir, jr, kr, idim, idir, i1, i2
       double precision hxm1, hym1, hzm1, fac0, fac1, fac, tmp
       integer i, j, k, iuc, iuf, juc, juf, kuc, kuf, l, m, n
       if (idim .eq. 0) then

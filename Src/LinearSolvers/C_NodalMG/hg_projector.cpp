@@ -695,7 +695,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	{
 	    for(int i = 0; i < BL_SPACEDIM; ++i)
 	    {
-		ucp[0] = new FArrayBox(cbox);
+		ucp[i] = new FArrayBox(cbox);
 		fill_patch(*ucp[i], ucp[i]->box(), u[i][lev-1], lev_interface[mgc], boundary.velocity(i));
 	    }
 	}
@@ -703,7 +703,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	{
 	    for(int i = 0; i < BL_SPACEDIM; ++i)
 	    {
-		ucp[0] = &u[0][lev-1][jgrid];
+		ucp[i] = &u[i][lev-1][jgrid];
 	    }
 	    cbox = ucp[0]->box();
 	}

@@ -63,7 +63,7 @@ public:
     bilinear_restrictor_class(int i, bool hg_terrain);
     virtual Box box(const Box& fb, const IntVect& rat) const;
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
-    virtual void fill_interface(MultiFab&, MultiFab&, const level_interface&, const amr_boundary_class*, const IntVect&) const;
+    virtual void fill_interface(MultiFab&, MultiFab&, const level_interface&, const amr_boundary_class*, const IntVect&) const = 0;
 protected:
     int integrate;
     bool m_hg_terrain;
