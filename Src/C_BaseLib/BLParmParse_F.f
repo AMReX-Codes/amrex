@@ -1,3 +1,6 @@
+c
+c $Id: BLParmParse_F.f,v 1.5 2002-06-18 16:28:28 car Exp $
+c
 c-----------------------------------------------------------------------
       SUBROUTINE bl_pp_new(ipp, str)
       INTEGER ipp
