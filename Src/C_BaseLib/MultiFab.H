@@ -4,7 +4,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.8 1998-03-30 18:03:00 lijewski Exp $
+// $Id: MultiFab.H,v 1.9 1998-03-30 18:14:49 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -63,13 +63,6 @@ public:
     //@ManDoc: The (virtual) destructor.
     //
     virtual ~MultiFab();
-
-    /*@ManDoc: This writes out the entire contents of a MultiFab, one line for
-               each cell of data, in an ASCII format.  It is included mainly
-               for completeness.  It is not recommended for general use.
-    */
-    friend ostream& operator<< (ostream&        strm,
-                                const MultiFab& mf);
 
     /*@ManDoc: This is a diagnostic function.  It writes (in ASCII) the state
                of the cell in the MultiFab with index location given by pnt

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.11 1998-03-30 18:03:01 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.12 1998-03-30 18:14:50 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -36,25 +36,6 @@ using std::setw;
 // This isn't inlined as it's virtual.
 //
 MultiFab::~MultiFab() {}
-
-ostream &
-operator<< (ostream&        os,
-            const MultiFab& mf)
-{
-    BoxLib::Error("MultiFab operator<<(): not implemented");
-
-    os << "(MultiFab "
-       << mf.length() <<  ' '
-       << mf.nGrow()  << '\n';
-    for(int i = 0; i < mf.length(); ++i)
-        os << mf[i] << '\n';
-    os << ")" << flush;
-
-    if (os.fail())
-        BoxLib::Error("operator<<(ostream&,MultiFab&) failed");
-
-    return os;
-}
 
 void
 MultiFab::probe (ostream& os,
