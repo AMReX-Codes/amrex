@@ -1,6 +1,6 @@
 
 //
-// $Id: ABecLaplacian.cpp,v 1.17 2001-08-21 22:15:41 car Exp $
+// $Id: ABecLaplacian.cpp,v 1.18 2002-10-31 21:56:55 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -468,8 +468,6 @@ ABecLaplacian::Fapply (MultiFab&       y,
                        const MultiFab& x,
                        int             level)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::Fapply()");
-
     const BoxArray& bxa = gbox[level];
     const MultiFab& a   = aCoefficients(level);
     D_TERM(const MultiFab& bX  = bCoefficients(0,level);,

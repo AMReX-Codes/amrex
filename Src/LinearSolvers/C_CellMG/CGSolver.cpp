@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.29 2002-07-24 23:42:57 car Exp $
+// $Id: CGSolver.cpp,v 1.30 2002-10-31 21:56:55 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -469,8 +469,6 @@ static
 void
 sxay (MultiFab& ss, const MultiFab& xx, Real a, const MultiFab& yy)
 {
-    BL_PROFILE("CGSolver::sxay");
-
     const int ncomp = ss.nComp();
 
     for (MFIter smfi(ss); smfi.isValid(); ++smfi)
