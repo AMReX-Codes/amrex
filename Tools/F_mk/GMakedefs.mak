@@ -57,9 +57,9 @@ ifeq ($(COMP),g95)
   FFLAGS   += -std=f95
   F90FLAGS += -fmod=$(mdir)
   FFLAGS   += -fmod=$(mdir)
-  F90FLAGS += -Wall 
-  FFLAGS += -Wall 
-  CFLAGS += -Wall
+# F90FLAGS += -Wall 
+# FFLAGS += -Wall 
+# CFLAGS += -Wall
   ifdef NDEBUG
     F90FLAGS += -O
     FFLAGS += -O
@@ -101,6 +101,11 @@ ifeq ($(COMP),gfortran)
 endif
 
 ifeq ($(ARCH),Darwin)
+  ifdef MPI
+     F90FLAGS += -I$(HOME)/MacMPI_X 
+     FFLAGS += -I$(HOME)/MacMPI_X 
+     CFLAGS += -I$(HOME)/MacMPI_X 
+  endif
   ifeq ($(COMP),IBM)
     F_C_LINK := LOWERCASE
     FC := xlf

@@ -3114,29 +3114,29 @@ contains
     call parallel_reduce(r, r1, MPI_SUM)
   end function lmultifab_count
 
-  function lmultifab_any(mf, all) result(r)
-    logical :: r
-    logical, intent(in), optional :: all
-    type(lmultifab), intent(in) :: mf
-    logical, pointer :: mp(:,:,:,:)
-    integer :: i
-    logical :: r1
-    logical :: lall
-    lall = .false.; if ( present(all) ) lall = all
-    r1 = .false.
-    !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(.and.:r1)
-    do i = 1, mf%nboxes
-       if ( lmultifab_remote(mf,i) ) cycle
-       if ( lall ) then
-          mp => dataptr(mf, i, get_pbox(mf, i))
-       else
-          mp => dataptr(mf, i, get_ibox(mf, i))
-       end if
-       r1 = r1 .and. any(mp)
-    end do
-    !$OMP END PARALLEL DO
-    call parallel_reduce(r, r1, MPI_LAND)
-  end function lmultifab_any
+!   function lmultifab_any(mf, all) result(r)
+!     logical :: r
+!     logical, intent(in), optional :: all
+!     type(lmultifab), intent(in) :: mf
+!     logical, pointer :: mp(:,:,:,:)
+!     integer :: i
+!     logical :: r1
+!     logical :: lall
+!     lall = .false.; if ( present(all) ) lall = all
+!     r1 = .false.
+!     !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(.and.:r1)
+!     do i = 1, mf%nboxes
+!        if ( lmultifab_remote(mf,i) ) cycle
+!        if ( lall ) then
+!           mp => dataptr(mf, i, get_pbox(mf, i))
+!        else
+!           mp => dataptr(mf, i, get_ibox(mf, i))
+!        end if
+!        r1 = r1 .and. any(mp)
+!     end do
+!     !$OMP END PARALLEL DO
+!     call parallel_reduce(r, r1, MPI_LAND)
+!   end function lmultifab_any
 
   subroutine multifab_div_div(a, b, all)
     type(multifab), intent(inout) :: a
