@@ -99,7 +99,7 @@ contains
        call box_read(bx1, un)
        if ( i == 1 ) then
           call mboxarray_alloc_rr(mba, bx1%dim)
-          mba%rr = 2
+          if (nl > 1) mba%rr = 2
        end if
        mba%pd(i) = bx1
        if (i > 1) mba%rr(i-1,:) = box_extent_d(mba%pd(i),1) / box_extent_d(mba%pd(i-1),1)
