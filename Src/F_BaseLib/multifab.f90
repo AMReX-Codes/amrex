@@ -7,6 +7,7 @@ module multifab_module
   implicit none
 
   type multifab
+     logical :: bound = .false.
      integer :: dim = 0
      integer :: nboxes = 0
      integer :: nc = 1
@@ -17,6 +18,7 @@ module multifab_module
   end type multifab
 
   type imultifab
+     logical :: bound = .false.
      integer :: dim = 0
      integer :: nboxes = 0
      integer :: nc = 1
@@ -27,6 +29,7 @@ module multifab_module
   end type imultifab
 
   type lmultifab
+     logical :: bound = .false.
      integer :: dim = 0
      integer :: nboxes = 0
      integer :: nc = 1
@@ -236,6 +239,10 @@ module multifab_module
      module procedure multifab_plus_plus_s
      module procedure multifab_plus_plus_c
      module procedure multifab_plus_plus_s_c
+  end interface
+
+  interface div_div
+     module procedure multifab_div_div
   end interface
 
   type(mem_stats), private, save ::  multifab_ms
@@ -563,10 +570,12 @@ contains
   subroutine multifab_destroy(mf)
     type(multifab), intent(inout) :: mf
     integer :: i
-    call mem_stats_dealloc(multifab_ms, volume(mf, all = .TRUE.))
-    do i = 1, mf%nboxes; if ( remote(mf, i) ) cycle
-       call fab_destroy(mf%fbs(i))
-    end do
+    if ( .not. mf%bound ) then
+       call mem_stats_dealloc(multifab_ms, volume(mf, all = .TRUE.))
+       do i = 1, mf%nboxes; if ( remote(mf, i) ) cycle
+          call fab_destroy(mf%fbs(i))
+       end do
+    end if
     deallocate(mf%fbs)
     deallocate(mf%nodal)
     mf%dim = 0
@@ -577,10 +586,12 @@ contains
   subroutine imultifab_destroy(mf)
     type(imultifab), intent(inout) :: mf
     integer :: i
-    call mem_stats_dealloc(imultifab_ms, volume(mf, all = .TRUE.))
-    do i = 1, mf%nboxes; if ( remote(mf, i) ) cycle
-       call ifab_destroy(mf%fbs(i))
-    end do
+    if ( .not. mf%bound ) then
+       call mem_stats_dealloc(imultifab_ms, volume(mf, all = .TRUE.))
+       do i = 1, mf%nboxes; if ( remote(mf, i) ) cycle
+          call ifab_destroy(mf%fbs(i))
+       end do
+    end if
     deallocate(mf%fbs)
     deallocate(mf%nodal)
     mf%dim = 0
@@ -591,10 +602,12 @@ contains
   subroutine lmultifab_destroy(mf)
     type(lmultifab), intent(inout) :: mf
     integer :: i
-    call mem_stats_dealloc(lmultifab_ms, volume(mf, all = .TRUE.))
-    do i = 1, mf%nboxes; if ( remote(mf, i) ) cycle
-       call lfab_destroy(mf%fbs(i))
-    end do
+    if ( .not. mf%bound ) then
+       call mem_stats_dealloc(lmultifab_ms, volume(mf, all = .TRUE.))
+       do i = 1, mf%nboxes; if ( remote(mf, i) ) cycle
+          call lfab_destroy(mf%fbs(i))
+       end do
+    end if
     deallocate(mf%fbs)
     deallocate(mf%nodal)
     mf%dim = 0
@@ -3108,6 +3121,33 @@ contains
     !$OMP END PARALLEL DO
     call parallel_reduce(r, r1, MPI_LAND)
   end function lmultifab_any
+
+  subroutine multifab_div_div(a, b, all)
+    type(multifab), intent(inout) :: a
+    type(multifab), intent(in)  :: b
+    logical, intent(in), optional :: all
+    real(dp_t), pointer :: ap(:,:,:,:)
+    real(dp_t), pointer :: bp(:,:,:,:)
+    integer :: i
+    logical :: lall
+    lall = .false.; if ( present(all) ) lall = all
+    !$OMP PARALLEL DO PRIVATE(i,ap,bp)
+    do i = 1, a%nboxes
+       if ( multifab_remote(a,i) ) cycle
+       if ( lall ) then
+          ap => dataptr(a, i)
+          bp => dataptr(b, i)
+       else
+          ap => dataptr(a, i, get_ibox(a, i))
+          bp => dataptr(b, i, get_ibox(b, i))
+       end if
+       if ( any(bp == 0.0_dp_t) ) then
+          call bl_error("MULTIFAB_DIV_DIV: divide by zero")
+       end if
+       ap = ap/bp
+    end do
+    !$OMP END PARALLEL DO
+  end subroutine multifab_div_div
 
   subroutine multifab_plus_plus(a, b, all)
     type(multifab), intent(inout) :: a
