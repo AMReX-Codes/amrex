@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxArray.cpp,v 1.6 1998-02-04 01:03:21 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.7 1998-02-04 16:25:50 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -231,20 +231,21 @@ BoxArray::define (const BoxArray& bs)
     assert(length() == 0);
     if (!m_ref.unique())
         uniqify();
-    m_ref->define(bs);
+    m_ref->define(bs.m_ref->m_abox, bs.m_ref->m_hash_sig);
 }
 
 void
-BoxArray::Ref::define (const BoxArray& bs)
+BoxArray::Ref::define (const Array<Box>& ba,
+                       unsigned long     hash)
 {
     assert(m_abox.length() == 0);
     //
     // Init box's and compute m_hash_sig at the same time.
     //
-    m_abox.resize(bs.length());
-    for (int i = 0; i < m_abox.length(); i++)
-        m_abox.set(i,bs[i]);
-    m_hash_sig = bs.m_ref->m_hash_sig;
+    m_abox.resize(ba.length());
+    for (int i = 0; i < ba.length(); i++)
+        m_abox.set(i,ba[i]);
+    m_hash_sig = hash;
 }
 
 BoxArray::~BoxArray () {}

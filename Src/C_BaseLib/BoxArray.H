@@ -4,7 +4,7 @@
 #define BL_BOXARRAY_H
 
 //
-// $Id: BoxArray.H,v 1.5 1998-02-04 01:03:20 lijewski Exp $
+// $Id: BoxArray.H,v 1.6 1998-02-04 16:25:50 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -289,7 +289,7 @@ protected:
         //
         void define (const BoxList& bl);
 
-        void define (const BoxArray& bs);
+        void define (const Array<Box>& ba, unsigned long hash);
 
         void define (istream& is);
         //
