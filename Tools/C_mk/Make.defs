@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.50 2002-04-17 22:22:37 vince Exp $
+# Make.defs $Id: Make.defs,v 1.51 2002-04-24 17:55:30 car Exp $
 #
 
 #
@@ -212,10 +212,31 @@ ifeq ($(COMP),Intel)
        ICC_VERSION := 5.0.1
        ICC_MAJOR_VERSION := 5
        ICC_MINOR_VERSION := 0
+   else
+   ifeq ($(findstring Version 6.0, $(__icc_version)), Version 6.0)
+       ICC_VERSION := 6.0
+       ICC_MAJOR_VERSION := 6
+       ICC_MINOR_VERSION := 0
+   endif
    endif
    DEFINES += -DBL_ICC_VERSION=$(ICC_VERSION)
    DEFINES += -DBL_ICC_MAJOR_VERSION=$(ICC_MAJOR_VERSION)
    DEFINES += -DBL_ICC_MINOR_VERSION=$(ICC_MINOR_VERSION)
+endif
+ifeq ($(FCOMP),Intel)
+   FC := ifc
+   __ifc_version := $(shell $(FC) -V 2>&1 1>/dev/null | grep Version)
+   ifeq ($(findstring Version 5.0.1, $(__ifc_version)), Version 5.0.1)
+       IFC_VERSION := 5.0.1
+       IFC_MAJOR_VERSION := 5
+       IFC_MINOR_VERSION := 0
+   else
+   ifeq ($(findstring Version 6.0, $(__ifc_version)), Version 6.0)
+       IFC_VERSION := 6.0
+       IFC_MAJOR_VERSION := 6
+       IFC_MINOR_VERSION := 0
+   endif
+   endif
 endif
 #
 # Generic setup for using cfront ...
