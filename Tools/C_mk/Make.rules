@@ -1,9 +1,30 @@
 #
-# $Id: Make.rules,v 1.5 1998-11-21 00:15:40 lijewski Exp $
+# $Id: Make.rules,v 1.6 1998-11-21 02:49:39 lijewski Exp $
 #
-# Rule for closing a library.  Unless we're using KCC, we only close boxlib.
+
+$(addprefix $(instIncludeDir)/, $(instSources)): $(instIncludeDir)/% : %
+	@if [ ! -d $(instIncludeDir) ]; then mkdir -p $(instIncludeDir); fi
+	$(INSTALL_DATA) $< $@
+
+$(instLib) : $(optionsLib)
+	@if [ ! -d $(instLibDir) ]; then mkdir -p $(instLibDir); fi
+	$(INSTALL_DATA) $< $@
+	$(RANLIB) $@
+
+install: $(instLib) $(addprefix $(instIncludeDir)/, $(instSources))
+
+clean:
+	$(RM) $(optionsLib) $(objTempDir)/*.o $(f77TempDir)/*.f $(objEXETempDir)/*.o
+ifeq ($(CLOSELIB),TRUE)
+	$(RM) *.o *.ii $(ptRepDir)/*.o
+	$(RM) $(optionsLib) $(objTempDir)/KCC_files
+endif
+	$(RM) $(EBASE)$(optionsSuffix).ex *.pure
 #
-closelib:
+# Rule for building libraries.
+#
+$(optionsLib): $(optionsLib)( $(objForLibs) )
+ifeq ($(CLOSELIB),TRUE)
 ifeq ($(CLOSELIB),TRUE)
 ifeq ($(COMP), CFRONT)
 ifeq ($(LBASE),box)
@@ -32,32 +53,6 @@ ifeq ($(COMP), KCC)
 	$(CXX) $(CXXLIBFLAGS) $(CXXFLAGS) $(CPPFLAGS) -DBL_LANG_CC -o $(optionsLib) $(addprefix $(objTempDir)/, $(objForLibs)) $(LibsToCloseAgainst)
 endif
 endif
-
-$(addprefix $(instIncludeDir)/, $(instSources)): $(instIncludeDir)/% : %
-	@if [ ! -d $(instIncludeDir) ]; then mkdir -p $(instIncludeDir); fi
-	$(INSTALL_DATA) $< $@
-
-$(instLib) : $(optionsLib)
-	@if [ ! -d $(instLibDir) ]; then mkdir -p $(instLibDir); fi
-	$(INSTALL_DATA) $< $@
-	$(RANLIB) $@
-
-install: $(instLib) $(addprefix $(instIncludeDir)/, $(instSources))
-
-clean:
-	$(RM) $(optionsLib) $(objTempDir)/*.o $(f77TempDir)/*.f $(objEXETempDir)/*.o
-ifeq ($(CLOSELIB),TRUE)
-	$(RM) *.o *.ii $(ptRepDir)/*.o
-	$(RM) $(optionsLib) $(objTempDir)/KCC_files
-endif
-	$(RM) $(EBASE)$(optionsSuffix).ex *.pure
-#
-# Rule for building libraries.
-#
-ifeq ($(CLOSELIB),TRUE)
-$(optionsLib): $(optionsLib)( $(objForLibs) ) closelib
-else
-$(optionsLib): $(optionsLib)( $(objForLibs) )
 endif
 	$(RANLIB) $@
 
