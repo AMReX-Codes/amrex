@@ -4,7 +4,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.16 1998-06-13 17:28:58 lijewski Exp $
+// $Id: MultiFab.H,v 1.17 1998-06-14 06:10:58 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -63,8 +63,6 @@ class MultiFab
               int             ncomp,
               int             ngrow,
               FabAlloc        mem_mode = Fab_allocate);
-
-public:
     //
     //@ManDoc: The (virtual) destructor.
     //
@@ -368,9 +366,13 @@ private:
     //
     // Some additional cached data.
     //
-    MultiFabCopyDescriptor* m_FB_mfcd;  /* Hack for FillBoundary */
-    vector<FillBoxId>*      m_FB_fbid;  /* Hack for FillBoundary */
-    MultiFabCopyDescriptor* m_FPB_mfcd; /* Hack for FillPeriodicBoundary */
+    MultiFabCopyDescriptor* m_FB_mfcd;   /* Hack for FillBoundary */
+    vector<FillBoxId>*      m_FB_fbid;   /* Hack for FillBoundary */
+    int                     m_FB_scomp;  /* Hack for FillBoundary */
+    int                     m_FB_ncomp;  /* Hack for FillBoundary */
+    MultiFabCopyDescriptor* m_FPB_mfcd;  /* Hack for FillPeriodicBoundary */
+    int                     m_FPB_scomp; /* Hack for FillPeriodicBoundary */
+    int                     m_FPB_ncomp; /* Hack for FillPeriodicBoundary */
 };
 
 class ConstMultiFabIterator;
@@ -545,6 +547,7 @@ vector<FillBoxId>&
 MultiFab::theFBfbid () const
 {
     assert(m_FB_fbid != 0);
+
     return *m_FB_fbid;
 }
 
@@ -553,7 +556,10 @@ MultiFabCopyDescriptor&
 MultiFab::theFBmfcd (int src_comp,
                      int num_comp)
 {
-    if (m_FB_mfcd == 0)
+    assert(src_comp >= 0);
+    assert(num_comp > 0);
+
+    if (!(m_FB_scomp == src_comp && m_FB_ncomp == num_comp))
     {
         buildFBmfcd(src_comp, num_comp);
     }
@@ -568,7 +574,10 @@ MultiFab::theFPBmfcd (const Geometry& geom,
                       int             num_comp,
                       bool            no_ovlp)
 {
-    if (m_FPB_mfcd == 0)
+    assert(src_comp >= 0);
+    assert(num_comp > 0);
+
+    if (!(m_FPB_scomp == src_comp && m_FPB_ncomp == num_comp))
     {
         buildFPBmfcd(geom,src_comp,num_comp,no_ovlp);
     }

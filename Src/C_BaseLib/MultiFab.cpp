@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.17 1998-06-13 17:28:58 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.18 1998-06-14 06:10:58 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -37,7 +37,11 @@ MultiFab::MultiFab ()
     :
     m_FB_mfcd(0),
     m_FB_fbid(0),
-    m_FPB_mfcd(0)
+    m_FB_scomp(-1),
+    m_FB_ncomp(-1),
+    m_FPB_mfcd(0),
+    m_FPB_scomp(-1),
+    m_FPB_ncomp(-1)
 {}
 
 MultiFab::MultiFab (const BoxArray& bxs,
@@ -48,13 +52,17 @@ MultiFab::MultiFab (const BoxArray& bxs,
     FabArray<Real,FArrayBox>(bxs,ncomp,ngrow,alloc),
     m_FB_mfcd(0),
     m_FB_fbid(0),
-    m_FPB_mfcd(0)
+    m_FB_scomp(-1),
+    m_FB_ncomp(-1),
+    m_FPB_mfcd(0),
+    m_FPB_scomp(-1),
+    m_FPB_ncomp(-1)
 {}
 
 //
 // This isn't inlined as it's virtual.
 //
-MultiFab::~MultiFab()
+MultiFab::~MultiFab ()
 {
     delete m_FB_mfcd;
     delete m_FB_fbid;
@@ -489,16 +497,24 @@ linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
 }
 
 void
-MultiFab::buildFBmfcd (int start_comp,
+MultiFab::buildFBmfcd (int src_comp,
                        int num_comp)
 {
-    assert(m_FB_mfcd == 0);
+    assert(src_comp >= 0);
+    assert(num_comp > 0);
+
+    m_FB_scomp = src_comp;
+    m_FB_ncomp = num_comp;
+
+    delete m_FB_mfcd;
 
     m_FB_mfcd = new MultiFabCopyDescriptor;
 
     MultiFabId mfid = m_FB_mfcd->RegisterMultiFab(this);
 
     assert(mfid == MultiFabId(0));
+
+    delete m_FB_fbid;
 
     m_FB_fbid = new vector<FillBoxId>;
 
@@ -520,8 +536,8 @@ MultiFab::buildFBmfcd (int start_comp,
                                                        bx,
                                                        0,
                                                        j,
-                                                       start_comp,
-                                                       start_comp,
+                                                       src_comp,
+                                                       src_comp,
                                                        num_comp));
 
                 m_FB_fbid->back().FabIndex(mfi.index());
@@ -531,14 +547,14 @@ MultiFab::buildFBmfcd (int start_comp,
 }
 
 void
-MultiFab::FillBoundary (int start_comp,
+MultiFab::FillBoundary (int src_comp,
                         int num_comp)
 {
     RunStats fill_boundary_stats("fill_boundary");
 
     fill_boundary_stats.start();
 
-    MultiFabCopyDescriptor& mfcd = theFBmfcd(start_comp,num_comp);
+    MultiFabCopyDescriptor& mfcd = theFBmfcd(src_comp,num_comp);
 
     const vector<FillBoxId>& fillBoxIDs = theFBfbid();
 
@@ -568,11 +584,19 @@ MultiFab::buildFPBmfcd (const Geometry& geom,
                         int             num_comp,
                         bool            no_ovlp)
 {
-    assert(m_FPB_mfcd == 0);
+    assert(src_comp >= 0);
+    assert(num_comp > 0);
+
+    m_FPB_scomp = src_comp;
+    m_FPB_ncomp = num_comp;
     //
     // Get list of intersection boxes.
     //
-    Geometry::PIRMMap& pirm = geom.getPIRMMap(boxArray(),nGrow(),no_ovlp);
+    Geometry::PIRMMap& pirm = geom.getPIRMMap(boxArray(),
+                                              src_comp,
+                                              num_comp,
+                                              nGrow(),
+                                              no_ovlp);
     //
     // Fill intersection list.
     //
@@ -581,6 +605,8 @@ MultiFab::buildFPBmfcd (const Geometry& geom,
     // other fabs in the array).  Assumes box-pairs constructed so that
     // all data is "fillable" from the valid region of "fa".
     //
+    delete m_FPB_mfcd;
+
     m_FPB_mfcd = new MultiFabCopyDescriptor;
 
     MultiFabId mfid = m_FPB_mfcd->RegisterMultiFab(this);
