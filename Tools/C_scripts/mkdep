@@ -6,6 +6,7 @@
 # Usage:  mk_dep -DBG [-I<dir>]* [-X<dir>]* filename ...
 # Notes:  *  -I<path> defines a search path for include files
 #         *  -DBG turn on debug flag
+#         +  -fortran: parse fortran style include directives
 #         *  -X<path> means disgard entries with this path (NOT IMPLEMENTED)
 #         *   searches current directory only if -I. is in search
 #             path or #include directive uses double quotes rather
@@ -25,6 +26,7 @@
 
 $debug = 0;
 @incldir = ("");
+$fortran = 0;
 
 # search command line for -I and -X options
 while ($ARGV[0] =~ /^-/) {
@@ -39,6 +41,8 @@ while ($ARGV[0] =~ /^-/) {
 	push(@excldir,($1));
     } elsif (/^-DBG/) {
 	$debug = 1;
+    } elsif (/^-fortran/) {
+        $fortran = 1;
     } else {
 	die "invalid argument: $_\n";
     }
@@ -54,7 +58,11 @@ foreach $ifile (@ARGV) {
     ($ofile = $ARGV[0]) =~ s#.*/##;
     # change suffix to .o
     ($ofile = $ifile) =~ s/\.[^.\/]*$/.o/;
-    @searchlist = ("$ifile\"");
+    if ( $fortran ) {
+        @searchlist = ("$ifile\'");
+    } else {
+	@searchlist = ("$ifile\"");
+    }
     %usedfiles = ();
     %deptable = ();
     $usedfiles{ $ifile } = 1;
@@ -102,6 +110,11 @@ foreach $ifile (@ARGV) {
 			    # NOTE: last char is either double quote
 			    #       or right angle bracket.
 			    push(@searchlist,($1));
+			}
+		    } elsif ($fortran && /^[ \t]+include\s+'([^']+['])/) {
+		        if ($usedfiles{ $1 }++ == 0) {
+			   print " ::: inluding ::$1::\n" if $debug;
+			   push(@searchlist,($1));
 			}
 		    }
 		}
