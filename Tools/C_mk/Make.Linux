@@ -25,15 +25,15 @@ FORT_CPP := gcc -E -traditional
 FORT_CPP := cpp -E -traditional
 
 ifeq ($(FCOMP),PathScale)
-  FC = pathf90 -fixedform -nog77mangle
-  fC = pathf90 -fixedform -nog77mangle
+  FC = pathf90 -fixedform -fno-second-underscore
+  fC = pathf90 -fixedform -fno-second-underscore
   FDEBF += -O0 -g
   fDEBF += -O0 -g
   CXXDEBF += -O0 -g
   CXXOPTF += -O3
   FORT_CPP := cpp -traditional
-  override XTRALIBS += -lfortran -lF77 -lffio -lmv
-  LDFLAGS += -static
+  override XTRALIBS += -lpathfortran  -lmv
+#  LDFLAGS += -static
 else
 ifeq ($(FCOMP),Lahey)
   FC    := lf95 --ml cdecl
