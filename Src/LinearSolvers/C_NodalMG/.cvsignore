@@ -3,6 +3,7 @@ Debug
 Debug3D
 Release
 Release3D
+lib
 hglib___
 *.ncb *.opt *.plg
 grdlog
