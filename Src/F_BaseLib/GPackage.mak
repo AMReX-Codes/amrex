@@ -2,11 +2,18 @@ f90sources += BoxLib.f90
 f90sources += omp.f90
 f90sources += f2kcli$(f2kcli_suf).f90
 f90sources += mt19937ar.f90
-f90sources += bl_space.f90  
-f90sources += bl_error.f90  
-f90sources += bl_types.f90  
-f90sources += bl_utility.f90
+
 f90sources += bl_constants.f90
+f90sources += bl_error.f90  
+f90sources += bl_IO.f90
+f90sources += bl_kiss.f90
+f90sources += bl_mem_stat.f90
+f90sources += bl_space.f90  
+f90sources += bl_stream.f90  
+f90sources += bl_string.f90  
+f90sources += bl_timer.f90  
+f90sources += bl_types.f90  
+
 f90sources += box.f90  
 f90sources += knapsack.f90 
 f90sources += layout.f90  
