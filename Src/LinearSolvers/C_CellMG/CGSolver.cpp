@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CGSolver.cpp,v 1.17 2000-08-25 19:23:28 car Exp $
+// $Id: CGSolver.cpp,v 1.18 2000-08-28 15:54:02 car Exp $
 //
 
 // Conjugate gradient support
@@ -23,16 +23,13 @@ int CGSolver::def_verbose = 0;
 CGSolver::Solver CGSolver::def_cg_solver = CG;
 double CGSolver::def_unstable_criterion = 10.;
 
-namespace
-{
-void
+static void
 spacer(ostream& os, int lev)
 {
   for (int k = 0; k < lev; k++)
     {
       os << "   ";
     }
-}
 }
 
 void
@@ -500,9 +497,7 @@ CGSolver::axp (MultiFab&      w,
     return pw;
 }
 
-namespace
-{
-void
+static void
 sxay (MultiFab& ss, const MultiFab& xx, Real a, const MultiFab& yy)
 {
 #ifdef BL3_PROFILING
@@ -546,7 +541,6 @@ dotxy(const MultiFab& r, const MultiFab& z)
   ParallelDescriptor::ReduceRealSum(rho);
   return rho;
 }
-}
 
 int
 CGSolver::solve_bicgstab (MultiFab&       sol,
@@ -589,6 +583,9 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
   Real rnorm = norm(r);
   const Real rnorm0 = rnorm;
 
+  const Real Lp_norm = Lp.norm(0, lev);
+  const Real rh_norm =   rnorm0;
+  
   if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
       spacer(cout, lev);
@@ -638,13 +635,20 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
 	  break;
 	}
 
+      sxay(sol, sol, alpha, ph);
       sxay(s, r, -alpha, v);
       rnorm = norm(s);
-      if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs )
+#ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
+      if ( rnorm < eps_rel*(Lp_norm*norm(sol) + rh_norm ) || rnorm < eps_abs )
 	{
-	  sxay(sol, sol, alpha, ph);
 	  break;
 	}
+#else
+      if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs )
+	{
+	  break;
+	}
+#endif
       if (ParallelDescriptor::IOProcessor())
         {
 	  if (verbose > 1 ||
@@ -678,14 +682,20 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
 	  ret = 3;
 	  break;
 	}
-      sxay(sol, sol, alpha, ph);
       sxay(sol, sol, omega, sh);
       sxay(r, s, -omega, t);
       rnorm = norm(r);
+#ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
+      if ( rnorm < eps_rel*(Lp_norm*norm(sol) + rh_norm ) || rnorm < eps_abs )
+	{
+	  break;
+	}
+#else
       if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs )
 	{
 	  break;
 	}
+#endif
       if ( omega == 0 )
 	{
 	  ret = 4;
@@ -727,10 +737,17 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
     {
       BoxLib::Error("CGSolver_bicgstab:: apparent accuracy problem; try expert setting or change unstable_criterion");
     }
+#ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
+  if ( ret == 0 && rnorm < eps_rel*(Lp_norm*norm(sol) + rh_norm ) && rnorm < eps_abs )
+    {
+      BoxLib::Error("CGSolver_bicgstab:: failed to converge!");
+    }
+#else
   if ( ret == 0 && rnorm > eps_rel*rnorm0 && rnorm > eps_abs)
     {
       BoxLib::Error("CGSolver_bicgstab:: failed to converge!");
     }
+#endif
 
   if ( ret == 0 )
     {
@@ -828,7 +845,7 @@ CGSolver::solve_cg (MultiFab&       sol,
       sxay(sol, sol, alpha, p);
       sxay(  r,   r,-alpha, q);
       rnorm = norm(r);
-#if 0
+#ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
       if ( rnorm < eps_rel*(Lp_norm*norm(sol) + rh_norm) || rnorm < eps_abs )
 	{
 	  break;
@@ -883,7 +900,7 @@ CGSolver::solve_cg (MultiFab&       sol,
     {
       BoxLib::Error("CGSolver_cg:: apparent accuracy problem; try expert setting or change unstable_criterion");
     }
-#if 0
+#ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
   if ( ret == 0 && rnorm > eps_rel*(Lp_norm*norm(sol) + rh_norm) && rnorm > eps_abs )
     {
       BoxLib::Error("CGSolver_cg:: failed to converge!");

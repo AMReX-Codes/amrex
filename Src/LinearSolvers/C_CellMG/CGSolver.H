@@ -4,7 +4,7 @@
 #define _CGSOLVER_H_
 
 //
-// $Id: CGSolver.H,v 1.6 2000-08-24 16:02:46 car Exp $
+// $Id: CGSolver.H,v 1.7 2000-08-28 15:54:01 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -152,10 +152,11 @@ public:
     //
     int getVerbose ();
 
-  void setCGSolver(Solver cg_solver_);
-  Solver getCGSolver() const;
-  
+    void setCGSolver(Solver cg_solver_);
+    Solver getCGSolver() const;
+
 protected:
+
     int solve_00 (MultiFab&       solnL,
 	       const MultiFab& rhsL,
 	       Real            eps_rel = -1.0,
