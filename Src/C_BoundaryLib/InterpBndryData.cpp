@@ -1,6 +1,6 @@
 
 //
-// $Id: InterpBndryData.cpp,v 1.1 1998-03-24 07:05:26 almgren Exp $
+// $Id: InterpBndryData.cpp,v 1.2 1998-03-26 17:51:58 almgren Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -72,7 +72,7 @@ InterpBndryData::setBndryValues(const MultiFab& mf, int mf_start,
       // set bndry flags and locations
 /*  original code vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
     IntVect ref_ratio = IntVect::TheUnitVector();
-    setBndryConds(bc, geom, ref_ratio);
+    setBndryConds(bc, ref_ratio);
 
     int ngrd = grids.length();
     for (int grd = 0; grd < ngrd; grd++) {
@@ -97,7 +97,7 @@ InterpBndryData::setBndryValues(const MultiFab& mf, int mf_start,
 
 
     IntVect ref_ratio = IntVect::TheUnitVector();
-    setBndryConds(bc, geom, ref_ratio);
+    setBndryConds(bc, ref_ratio);
 
     // this needs to be turned inside out for proper parallel implementation
     // (start with OrientationIter in the outer loop)
@@ -161,7 +161,7 @@ InterpBndryData::setBndryValues(BndryRegister& crse, int c_start,
     assert( grids == fine.boxArray() );
 
       // set bndry types and bclocs
-    setBndryConds(bc, geom, ratio);
+    setBndryConds(bc, ratio);
 
     int ngrd = grids.length();
 
@@ -239,12 +239,11 @@ InterpBndryData::setBndryValues(BndryRegister& crse, int c_start,
     }
 }
 
-void InterpBndryData::setBndryConds(const BCRec& phys_bc,
-                                    const Geometry& geom, int ratio)
+void InterpBndryData::setBndryConds(const BCRec& phys_bc, int ratio)
 {
 
     IntVect ratio_vect = ratio * IntVect::TheUnitVector();
-    setBndryConds(phys_bc, geom, ratio_vect);
+    setBndryConds(phys_bc, ratio_vect);
 
 }
 
