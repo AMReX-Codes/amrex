@@ -1,7 +1,7 @@
 ifeq ($(MACHINE), OSF1)
   MPI_HOME:=/usr/local/mpi
   BL_MPI_LIBS += -lmpich
-  LIBRARY_LOCATIONS += $(MPI_HOME)/build/alpha/ch_p4/lib
+  LIBRARY_LOCATIONS += $(MPI_HOME)/lib
   INCLUDE_LOCATIONS += $(MPI_HOME)/include
 endif
 
