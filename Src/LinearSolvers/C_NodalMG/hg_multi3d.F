@@ -610,7 +610,7 @@ c each quadrant is two octants and their share of the two central edges
      @             + 6.d0 * ( sigmaf(if+m-1,jf+ji-1,kf+ki-1,4)
      @                       -sigmaf(if+m  ,jf+ji-1,kf+ki-1,4)) * kdir 
      @             + 6.d0 * (-sigmaf(if+m-1,jf+ji-1,kf+ki-1,5)
-     @                  -sigmaf(if+m  ,jf+ji-1,kf+ki-1,5)) * jdir * kdir 
+     @                  -sigmaf(if+m  ,jf+ji-1,kf+ki-1,5)) * jdir * kdir
 
                   tmp = tmp - cen * fdst(if+m,jf,kf)
 
@@ -1482,7 +1482,7 @@ c octants
      @             -sigmaf(if+ii-1,jf+ji-1,kf+ki-1,4) * 
      @              MXZF(if,jf,kf,if+idir,jf+jdir,kf+kdir) * idir * kdir
      @             -sigmaf(if+ii-1,jf+ji-1,kf+ki-1,5) * 
-     @              MYZF(if,jf,kf,if+idir,jf+jdir,kf+kdir) * jdir * kdir 
+     @              MYZF(if,jf,kf,if+idir,jf+jdir,kf+kdir) * jdir * kdir
 
          cen =
      @      4.d0 * ( sigmaf(if+ii-1,jf+ji-1,kf+ki-1,1)
