@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxLib.cpp,v 1.5 1997-11-13 18:45:14 lijewski Exp $
+// $Id: BoxLib.cpp,v 1.6 1998-08-20 23:53:47 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -77,22 +77,14 @@ void
 BoxLib::Error (const char* msg)
 {
     write_to_stderr_without_buffering(msg);
-#ifdef BL_USE_BSP
-    ParallelDescriptor::Abort(BoxLib::nullString);
-#else
-    abort();
-#endif
+    ParallelDescriptor::Abort();
 }
 
 void
 BoxLib::Abort (const char* msg)
 {
     write_to_stderr_without_buffering(msg);
-#ifdef BL_USE_BSP
-    ParallelDescriptor::Abort(BoxLib::nullString);
-#else
-    abort();
-#endif
+    ParallelDescriptor::Abort();
 }
 
 void
@@ -125,7 +117,7 @@ BoxLib::Assert (const char* EX,
 
     write_to_stderr_without_buffering(buf);
 
-    abort();
+    ParallelDescriptor::Abort();
 }
 
 void

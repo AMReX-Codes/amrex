@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.40 1998-08-12 18:01:10 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.41 1998-08-20 23:53:47 car Exp $
 //
 
 #include <Utility.H>
@@ -61,10 +61,8 @@ int ParallelDescriptor::m_nProcs = -1;
 int ParallelDescriptor::m_MyId   = -1;
 
 void
-ParallelDescriptor::Abort (const char* msg)
+ParallelDescriptor::Abort ()
 {
-    BoxLib::Warning(msg);
-
     MPI_Abort(MPI_COMM_WORLD, -1);
 }
 
@@ -81,7 +79,7 @@ ParallelDescriptor::Abort (int errorcode)
 
     assert(len <= MPI_MAX_ERROR_STRING);
 
-    ParallelDescriptor::Abort(msg);
+    BoxLib::Abort(msg);
 }
 
 void
@@ -395,7 +393,7 @@ ParallelDescriptor::Gather (Real* sendbuf,
 void ParallelDescriptor::StartParallel(int, int*, char***) {}
 void ParallelDescriptor::EndParallel() {}
 
-void ParallelDescriptor::Abort (const char* str) { BoxLib::Abort(str); }
+void ParallelDescriptor::Abort () { ::abort(); }
 void ParallelDescriptor::Barrier () {}
 
 void ParallelDescriptor::ReduceBoolAnd (bool& rvar) {}
