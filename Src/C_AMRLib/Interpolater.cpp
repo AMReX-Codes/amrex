@@ -1,6 +1,6 @@
 
 //
-// $Id: Interpolater.cpp,v 1.18 2000-10-02 20:48:42 lijewski Exp $
+// $Id: Interpolater.cpp,v 1.19 2000-11-17 18:00:55 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -471,12 +471,9 @@ CellConservativeLinear::interp (const FArrayBox& crse, int crse_comp,
         fvcbhi[dir] = fvcblo[dir] + fvc[dir].length() - 1;
     }
 
-    Real* voffx = new Real[fvc[0].length()];
-    Real* voffy = new Real[fvc[1].length()];
-
-#if (BL_SPACEDIM==3)
-    Real* voffz = new Real[fvc[2].length()];
-#endif
+    D_TERM(Real* voffx = new Real[fvc[0].length()];,
+           Real* voffy = new Real[fvc[1].length()];,
+           Real* voffz = new Real[fvc[2].length()];);
 
     Array<int> bc     = GetBCArray(bcr);
     const int* ratioV = ratio.getVect();
@@ -497,14 +494,9 @@ CellConservativeLinear::interp (const FArrayBox& crse, int crse_comp,
                       bc.dataPtr(), &lin_limit,
                       D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
                       D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()),
-                      D_DECL(voffx,voffy,voffz)
-                      );
-    delete [] voffx;
-    delete [] voffy;
-#if (BL_SPACEDIM==3)
-    delete [] voffz;
-#endif
+                      D_DECL(voffx,voffy,voffz));
 
+    D_TERM(delete [] voffx;, delete [] voffy;, delete [] voffz;);
 }
 
 CellQuadratic::CellQuadratic (bool limit)
