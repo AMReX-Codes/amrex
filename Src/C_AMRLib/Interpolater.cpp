@@ -1,5 +1,5 @@
 //
-// $Id: Interpolater.cpp,v 1.22 2001-08-16 23:06:48 lijewski Exp $
+// $Id: Interpolater.cpp,v 1.23 2001-10-30 20:26:29 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -30,17 +30,7 @@ CellConservativeLinear nonlincc_interp(0);
 
 Interpolater::~Interpolater () {}
 
-NodeBilinear::NodeBilinear ()
-{
-    strip = slope = 0;
-    strip_len = slope_len = 0;
-}
-
-NodeBilinear::~NodeBilinear ()
-{
-    delete [] strip;
-    delete [] slope;
-}
+NodeBilinear::~NodeBilinear () {}
 
 Box
 NodeBilinear::CoarseBox (const Box& fine,
@@ -106,12 +96,8 @@ NodeBilinear::interp (const FArrayBox& crse,
     int num_slope  = (int) pow(2.0,BL_SPACEDIM)-1;
     int len0       = crse.box().length()[0];
     int slp_len    = num_slope*len0;
-    if (slope_len < slp_len)
-    {
-        delete [] slope;
-        slope_len = slp_len;
-        slope = new Real[slope_len];
-    }
+
+    Array<Real> strip(slp_len);
 
     const Real* cdat  = crse.dataPtr(crse_comp);
     Real*       fdat  = fine.dataPtr(fine_comp);
@@ -120,20 +106,10 @@ NodeBilinear::interp (const FArrayBox& crse,
     FORT_NBINTERP (cdat,ARLIM(clo),ARLIM(chi),ARLIM(clo),ARLIM(chi),
                    fdat,ARLIM(flo),ARLIM(fhi),ARLIM(lo),ARLIM(hi),
                    D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),&ncomp,
-                   slope,&num_slope);
+                   strip.dataPtr(),&num_slope);
 }
 
-CellBilinear::CellBilinear ()
-{
-    strip = slope = 0;
-    strip_len = slope_len = 0;
-}
-
-CellBilinear::~CellBilinear ()
-{
-    delete [] strip;
-    delete [] slope;
-}
+CellBilinear::~CellBilinear () {}
 
 Box
 CellBilinear::CoarseBox (const Box& fine,
@@ -190,19 +166,13 @@ CellBilinear::interp (const FArrayBox& crse,
     int num_slope  = (int) pow(2.0,BL_SPACEDIM)-1;
     int len0       = crse.box().length()[0];
     int slp_len    = num_slope*len0;
-    if (slope_len < slp_len)
-    {
-        delete [] slope;
-        slope_len = slp_len;
-        slope     = new Real[slope_len];
-    }
+
+    Array<Real> slope(slp_len);
+
     int strp_len = len0*ratio[0];
-    if (strip_len < strp_len)
-    {
-        delete [] strip;
-        strip_len = strp_len;
-        strip     = new Real[strip_len];
-    }
+
+    Array<Real> strip(strp_len);
+
     int strip_lo = ratio[0] * clo[0];
     int strip_hi = ratio[0] * chi[0];
 
@@ -213,21 +183,15 @@ CellBilinear::interp (const FArrayBox& crse,
     FORT_CBINTERP (cdat,ARLIM(clo),ARLIM(chi),ARLIM(clo),ARLIM(chi),
                    fdat,ARLIM(flo),ARLIM(fhi),ARLIM(lo),ARLIM(hi),
                    D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),&ncomp,
-                   slope,&num_slope,strip,&strip_lo,&strip_hi);
+                   slope.dataPtr(),&num_slope,strip.dataPtr(),&strip_lo,&strip_hi);
 }
 
 CellConservative::CellConservative (bool limit)
 {
-    strip = cslope = 0;
-    strip_len = slope_len = 0;
     do_limited_slope = limit;
 }
 
-CellConservative::~CellConservative ()
-{
-    delete [] strip;
-    delete [] cslope;
-}
+CellConservative::~CellConservative () {}
 
 Box
 CellConservative::CoarseBox (const Box&     fine,
@@ -295,12 +259,8 @@ CellConservative::interp (const FArrayBox& crse,
     long t_long = cslope_bx.numPts();
     BL_ASSERT(t_long < INT_MAX);
     int c_len = int(t_long);
-    if (slope_len < BL_SPACEDIM*c_len)
-    {
-        slope_len = BL_SPACEDIM*c_len;
-        delete [] cslope;
-        cslope = new Real[slope_len];
-    }
+
+    Array<Real> cslope(BL_SPACEDIM*c_len);
 
     int loslp = cslope_bx.index(crse_bx.smallEnd());
     int hislp = cslope_bx.index(crse_bx.bigEnd());
@@ -316,14 +276,10 @@ CellConservative::interp (const FArrayBox& crse,
     //
     int dir;
     int f_len = fslope_bx.longside(dir);
-    if (strip_len < (BL_SPACEDIM+2)*f_len)
-    {
-        strip_len = (BL_SPACEDIM+2)*f_len;
-        delete [] strip;
-        strip = new Real[strip_len];
-    }
 
-    Real* fstrip = strip;
+    Array<Real> strip((BL_SPACEDIM+2)*f_len);
+
+    Real* fstrip = strip.dataPtr();
     Real* foff   = fstrip + f_len;
     Real* fslope = foff + f_len;
     //
@@ -361,7 +317,7 @@ CellConservative::interp (const FArrayBox& crse,
                    cdat,&clo,&chi,
                    ARLIM(cblo), ARLIM(cbhi),
                    fslo,fshi,
-                   cslope,&c_len,fslope,fstrip,&f_len,foff,
+                   cslope.dataPtr(),&c_len,fslope,fstrip,&f_len,foff,
                    bc.dataPtr(), &slope_flag,
                    D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
                    D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()));
@@ -512,16 +468,10 @@ CellConservativeLinear::interp (const FArrayBox& crse,
 
 CellQuadratic::CellQuadratic (bool limit)
 {
-    strip = cslope = 0;
-    strip_len = slope_len = 0;
     do_limited_slope = limit;
 }
 
-CellQuadratic::~CellQuadratic ()
-{
-    delete [] strip;
-    delete [] cslope;
-}
+CellQuadratic::~CellQuadratic () {}
 
 Box
 CellQuadratic::CoarseBox (const Box&     fine,
@@ -572,12 +522,9 @@ CellQuadratic::interp (const FArrayBox& crse,
     long t_long = cslope_bx.numPts();
     BL_ASSERT(t_long < INT_MAX);
     int c_len = int(t_long);
-    if (slope_len < 5*c_len)
-    {
-        slope_len = 5*c_len;
-        delete [] cslope;
-        cslope = new Real[slope_len];
-    }
+
+    Array<Real> cslope(5*c_len);
+
     int loslp = cslope_bx.index(crse_bx.smallEnd());
     int hislp = cslope_bx.index(crse_bx.bigEnd());
 
@@ -593,13 +540,10 @@ CellQuadratic::interp (const FArrayBox& crse,
     //
     int dir;
     int f_len = fslope_bx.longside(dir);
-    if (strip_len < (5+2)*f_len)
-    {
-        strip_len = (5+2)*f_len;
-        delete [] strip;
-        strip = new Real[strip_len];
-    }
-    Real* fstrip = strip;
+
+    Array<Real> strip((5+2)*f_len);
+
+    Real* fstrip = strip.dataPtr();
     Real* foff   = fstrip + f_len;
     Real* fslope = foff + f_len;
     //
@@ -639,7 +583,7 @@ CellQuadratic::interp (const FArrayBox& crse,
                    cdat,&clo,&chi,
                    ARLIM(cblo), ARLIM(cbhi),
                    fslo,fshi,
-                   cslope,&c_len,fslope,fstrip,&f_len,foff,
+                   cslope.dataPtr(),&c_len,fslope,fstrip,&f_len,foff,
                    bc.dataPtr(), &slope_flag,
                    D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
                    D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()));
@@ -647,16 +591,7 @@ CellQuadratic::interp (const FArrayBox& crse,
 #endif /*(BL_SPACEDIM > 1)*/
 }
 
-PCInterp::PCInterp ()
-{
-    strip = 0;
-    strip_len = 0;
-}
-
-PCInterp::~PCInterp ()
-{
-    delete [] strip;
-}
+PCInterp::~PCInterp () {}
 
 Box
 PCInterp::CoarseBox (const Box& fine,
@@ -698,15 +633,13 @@ PCInterp::interp (const FArrayBox& crse,
 
     const int* cblo = cregion.loVect();
     const int* cbhi = cregion.hiVect();
+
     int long_dir;
     int long_len = cregion.longside(long_dir);
-    int s_len = long_len*ratio[long_dir];
-    if (strip_len < s_len)
-    {
-        delete [] strip;
-        strip_len = s_len;
-        strip     = new Real[strip_len];
-    }
+    int s_len    = long_len*ratio[long_dir];
+
+    Array<Real> strip(s_len);
+
     int strip_lo = ratio[long_dir] * cblo[long_dir];
     int strip_hi = ratio[long_dir] * (cbhi[long_dir]+1) - 1;
     //
@@ -717,9 +650,8 @@ PCInterp::interp (const FArrayBox& crse,
     Real*       fdat  = fine.dataPtr(fine_comp);
     const int* ratioV = ratio.getVect();
 
-
     FORT_PCINTERP (cdat,ARLIM(clo),ARLIM(chi),cblo,cbhi,
                    fdat,ARLIM(flo),ARLIM(fhi),fblo,fbhi,
                    &long_dir,D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
-                   &ncomp,strip,&strip_lo,&strip_hi);
+                   &ncomp,strip.dataPtr(),&strip_lo,&strip_hi);
 }

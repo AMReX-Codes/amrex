@@ -1,7 +1,7 @@
 #ifndef _INTERPOLATER_H_
 #define _INTERPOLATER_H_ 
 //
-// $Id: Interpolater.H,v 1.8 2001-08-01 21:50:46 lijewski Exp $
+// $Id: Interpolater.H,v 1.9 2001-10-30 20:26:29 lijewski Exp $
 //
 #include <Box.H>
 #include <BCRec.H>
@@ -70,10 +70,6 @@ class NodeBilinear
 {
 public:
     //
-    //@ManDoc: The constructor.
-    //
-    NodeBilinear ();
-    //
     //@ManDoc: The destructor.
     //
     virtual ~NodeBilinear ();
@@ -100,11 +96,6 @@ public:
                          const Geometry&  crse_geom,
                          const Geometry&  fine_geom,
                          Array<BCRec>&    bcr);
-private:
-    Real* strip;       // temp space passed to FORTRAN
-    int   strip_len;
-    Real* slope;
-    int   slope_len;
 };
 
 //
@@ -120,10 +111,6 @@ class CellBilinear
     public Interpolater
 {
 public:
-    //
-    //@ManDoc: The constructor.
-    //
-    CellBilinear ();
     //
     //@ManDoc: The destructor.
     //
@@ -151,11 +138,6 @@ public:
                          const Geometry&  crse_geom,
                          const Geometry&  fine_geom,
                          Array<BCRec>&    bcr);
-private:
-    Real* strip;       // temp space passed to FORTRAN
-    int   strip_len;
-    Real* slope;
-    int   slope_len;
 };
 
 //
@@ -202,12 +184,8 @@ public:
                          const Geometry&  crse_geom,
                          const Geometry&  fine_geom,
                          Array<BCRec>&    bcr);
-
 private:
-    Real*  strip;       // temp space passed to FORTRAN
-    int    strip_len;
-    Real*  cslope;
-    int    slope_len;
+
     bool   do_limited_slope;
 };
 
@@ -315,10 +293,7 @@ public:
                          const Geometry&  fine_geom,
                          Array<BCRec>&    bcr);
 private:
-    Real* strip;       // temp space passed to FORTRAN
-    int   strip_len;
-    Real* cslope;
-    int   slope_len;
+
     bool  do_limited_slope;
 };
 
@@ -335,10 +310,6 @@ class PCInterp
     public Interpolater
 {
 public:
-    //
-    //@ManDoc: The constructor.
-    //
-    PCInterp ();
     //
     //@ManDoc: The destructor.
     //
@@ -366,9 +337,6 @@ public:
                          const Geometry&  crse_geom,
                          const Geometry&  fine_geom,
                          Array<BCRec>&    bcr);
-private:
-    Real* strip;       // temp space passed to FORTRAN
-    int   strip_len;
 };
 
 //
