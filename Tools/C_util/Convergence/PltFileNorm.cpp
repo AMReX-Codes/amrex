@@ -42,6 +42,9 @@ void
 PrintUsage (const char* progName)
 {
     cout << '\n';
+    cout << "This routine reads a pltfile and calculates the Linfty," << endl
+         << "L1 and L2 norms ov every component.                    " << endl
+         << endl;
     cout << "Usage:" << '\n';
     cout << progName << '\n';
     cout << "    infile=inputFileName" << '\n';

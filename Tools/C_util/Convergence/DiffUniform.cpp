@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DiffUniform.cpp,v 1.4 1999-05-10 18:54:27 car Exp $
+// $Id: DiffUniform.cpp,v 1.5 1999-10-20 20:08:35 sstanley Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -52,6 +52,11 @@ void
 PrintUsage (const char* progName)
 {
     cout << '\n';
+    cout << "This utility computes the difference of two plotfiles " << endl
+         << "which are at resolutions differing by a power of 2.   " << endl
+         << "The finer solution is averaged down to the coarse grid" << endl
+         << "resolution and then the difference is taken.          " << endl
+         << endl;
     cout << "Usage:" << '\n';
     cout << progName << '\n';
     cout << "    infile  = inputFileName" << '\n';
@@ -149,53 +154,50 @@ main (int   argc,
     
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
     {
-        const BoxArray& ba = amrDataC.boxArray(iLevel);
-	int nComp          = amrDataC.NComp();
-	const Box& domainC = amrDataC.ProbDomain()[iLevel];
-	const Box& domainF = amrDataF.ProbDomain()[exact_level];
-	IntVect refine_ratio = getRefRatio(domainC, domainF);
+        const BoxArray& crseBA = amrDataC.boxArray(iLevel);
+	int nComp              = amrDataC.NComp();
+	const Box& domainC     = amrDataC.ProbDomain()[iLevel];
+	const Box& domainF     = amrDataF.ProbDomain()[exact_level];
+	IntVect refine_ratio   = getRefRatio(domainC, domainF);
 	if (refine_ratio == IntVect())
 	    BoxLib::Error("Cannot find refinement ratio from data to exact");
+        cout << "Ratio for level " << iLevel << " is " << refine_ratio << endl;
 
-	error[iLevel] = new MultiFab(ba, nComp, 0);
+	error[iLevel] = new MultiFab(crseBA, nComp, 0);
 	error[iLevel]->setVal(GARBAGE);
 
 	for (int iComp=0; iComp<nComp; ++iComp)
 	{
-	    for (int iGrid=0; iGrid<ba.length(); ++iGrid)
-	    {
-		const Box& dataGrid = ba[iGrid];
-		const Box fineGrid = ::Box(dataGrid).refine(refine_ratio);
-		
-		MultiFab& exact = amrDataF.GetGrids(finestLevel,iComp,fineGrid);
-		int nc = exact.nComp();
-		BoxArray cba = ::BoxArray(exact.boxArray()).coarsen(refine_ratio);
-		MultiFab exactAvg(cba,nc,0);
-		for (MultiFabIterator mfi(exact); mfi.isValid(); ++mfi)
-		{
-		    DependentMultiFabIterator amfi(mfi, exactAvg);
-		    const FArrayBox& srcFab = mfi();
-		    FArrayBox& dstFab = amfi();
-		    const Box& box = amfi.validbox();
-		    FORT_CV_AVGDOWN(dstFab.dataPtr(),
-				    ARLIM(dstFab.loVect()), ARLIM(dstFab.hiVect()), &nc,
-				    srcFab.dataPtr(),
-				    ARLIM(srcFab.loVect()), ARLIM(srcFab.hiVect()),
-				    box.loVect(), box.hiVect(), refine_ratio.getVect());
-		}
+            MultiFab& exact = amrDataF.GetGrids(finestLevel,iComp);
+            const BoxArray& exactBA = exact.boxArray();
+            const BoxArray crseBA = ::BoxArray(exactBA).coarsen(refine_ratio);
+            MultiFab aveExact(crseBA,1,0,Fab_allocate);
+            int nc = exact.nComp();
+            for (MultiFabIterator amfi(aveExact); amfi.isValid(); ++amfi)
+            {
+                DependentMultiFabIterator emfi(amfi, exact);
+                const Box& crseBox = amfi.validbox();
+                FORT_CV_AVGDOWN(amfi().dataPtr(),
+                                ARLIM(amfi().loVect()),
+                                ARLIM(amfi().hiVect()), &nc,
+                                emfi().dataPtr(),
+                                ARLIM(emfi().loVect()), ARLIM(emfi().hiVect()),
+                                crseBox.loVect(), crseBox.hiVect(),
+                                refine_ratio.getVect());
+            }
 
-		// Copy result of coarsening into error as temporary storage
-		error[iLevel]->copy(exactAvg,0,iComp,exact.nComp());
-	    }
+            // Copy result of coarsening into error as temporary storage
+            error[iLevel]->copy(aveExact,0,iComp,nc);
 
-	    // Subtract coarse data from coarsened exact data
-	    MultiFab& data = amrDataC.GetGrids(iLevel,iComp);
-	    for (MultiFabIterator dmfi(data); dmfi.isValid(); ++dmfi)
-	    {
-		DependentMultiFabIterator emfi(dmfi, *error[iLevel]);
-		emfi().minus(dmfi(),0,iComp,1);
-	    }
-	}
+            // Subtract coarse data from coarsened exact data
+            MultiFab& data = amrDataC.GetGrids(iLevel,iComp);
+            BL_ASSERT(data.boxArray() == error[iLevel]->boxArray());
+            for (MultiFabIterator dmfi(data); dmfi.isValid(); ++dmfi)
+            {
+                DependentMultiFabIterator emfi(dmfi, *error[iLevel]);
+                emfi().minus(dmfi(),0,iComp,1);
+            }
+        }
     }
 
     WritePlotFile(error, amrDataC, oFile, verbose);
@@ -236,6 +238,16 @@ getRefRatio(const Box& crse,
 {
     // Compute refinement ratio between crse and fine boxes, return invalid
     // IntVect if there is none suitable
+    ParmParse pp("");
+    Array<int> rr_in(BL_SPACEDIM,-1);
+    int Nrr = pp.countval("ref_ratio",Nrr);
+    BL_ASSERT(Nrr==0 || Nrr==BL_SPACEDIM || Nrr==1);
+    if (Nrr>0) 
+    {
+        pp.queryarr("ref_ratio",rr_in,0,Nrr);
+        return IntVect(rr_in);
+    }
+
     IntVect ref_ratio;
     for (int i=0; i<BL_SPACEDIM; ++i)
 	ref_ratio[i] = fine.length(i) / crse.length(i);
