@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.11 1998-02-05 23:01:35 vince Exp $
+// $Id: FArrayBox.cpp,v 1.12 1998-02-06 22:09:13 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -215,14 +215,14 @@ FArrayBox::setFormat (FABio::Format fmt)
 void
 FArrayBox::setOrdering (FABio::Ordering ordering_)
 {
-    BoxLib::Warning("FArrayBox::setOrdering() has been deprecated");
+    //BoxLib::Warning("FArrayBox::setOrdering() has been deprecated");
     ordering = ordering_;
 }
 
 FABio::Ordering
 FArrayBox::getOrdering ()
 {
-    BoxLib::Warning("FArrayBox::getOrdering() has been deprecated");
+    //BoxLib::Warning("FArrayBox::getOrdering() has been deprecated");
     return ordering;
 }
 
