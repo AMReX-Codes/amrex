@@ -1,17 +1,14 @@
-
-#define dims(a) a##l0, a##h0, a##l1, a##h1
-#define dimdec(a) a##l0:a##h0,a##l1:a##h1
-
+c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
-      subroutine fcpy(dest, dims(dest),
-     @ dims(reg),
-     @ src,  dims(src), ncomp)
-      integer dims(dest)
-      integer dims(reg)
-      integer dims(src)
+      subroutine fcpy(dest, destl0, desth0, destl1, desth1,
+     @ regl0, regh0, regl1, regh1,
+     @ src,  srcl0, srch0, srcl1, srch1, ncomp)
+      integer destl0, desth0, destl1, desth1
+      integer regl0, regh0, regl1, regh1
+      integer srcl0, srch0, srcl1, srch1
       integer ncomp
-      real*8 dest(dimdec(dest), ncomp)
-      real*8 src(dimdec(src), ncomp)
+      double precision dest(destl0:desth0,destl1:desth1, ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1, ncomp)
       integer i, j, k
       if (regh1 - regl1 .gt. regh0 - regl0) then
          do 10 k = 1, ncomp
@@ -25,31 +22,31 @@ c Works for CELL- or NODE-based data.
  20               dest(i,j,k) = src(i,j,k)
       end if
       end
-
+c-----------------------------------------------------------------------
 c Unrolled copy---works for CELL- or NODE-based data.
       subroutine fcpyu(dest, src,
-     @ dims(reg),
+     @ regl0, regh0, regl1, regh1,
      @ ncomp)
-      integer dims(reg)
-      real*8 dest(*)
-      real*8 src(*)
+      integer regl0, regh0, regl1, regh1
+      double precision dest(*)
+      double precision src(*)
       integer ncomp
       integer nvals, i
       nvals = (regh0-regl0+1) * (regh1-regl1+1) * ncomp
       do 10 i = 1, nvals
  10      dest(i) = src(i)
       end
-
+c-----------------------------------------------------------------------
 c Works for NODE-based data.
-      subroutine fcpy2(da, dims(da),
-     @ db,  dims(db),
-     @ dims(reg), w, ncomp)
-      integer dims(da)
-      integer dims(db)
-      integer dims(reg)
+      subroutine fcpy2(da, dal0, dah0, dal1, dah1,
+     @ db,  dbl0, dbh0, dbl1, dbh1,
+     @ regl0, regh0, regl1, regh1, w, ncomp)
+      integer dal0, dah0, dal1, dah1
+      integer dbl0, dbh0, dbl1, dbh1
+      integer regl0, regh0, regl1, regh1
       integer w, ncomp
-      real*8 da(dimdec(da), ncomp)
-      real*8 db(dimdec(db), ncomp)
+      double precision da(dal0:dah0,dal1:dah1, ncomp)
+      double precision db(dbl0:dbh0,dbl1:dbh1, ncomp)
       integer i, j, k
       if (regh1 - regl1 .gt. regh0 - regl0) then
          do 10 k = 1, ncomp
@@ -65,10 +62,10 @@ c Works for NODE-based data.
  20               db(i,regl1-j,k) = da(i,regl1-j,k)
       end if
       end
-
+c-----------------------------------------------------------------------
       subroutine fccpy1(dest, src, nsets, dstart, sstart,
      @                  dstrid, sstrid, nvals)
-      real*8 dest(0:1), src(0:1)
+      double precision dest(0:*), src(0:*)
       integer nsets
       integer dstart(nsets), sstart(nsets)
       integer dstrid(nsets), sstrid(nsets), nvals(nsets)
@@ -78,18 +75,18 @@ c Works for NODE-based data.
  10         dest(dstart(k) + i * dstrid(k)) =
      @       src(sstart(k) + i * sstrid(k))
       end
-
+c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
-      subroutine mxnorm(src, dims(src),
-     @ dims(reg),
+      subroutine mxnorm(src, srcl0, srch0, srcl1, srch1,
+     @ regl0, regh0, regl1, regh1,
      @ retval)
-      integer dims(src)
-      integer dims(reg)
-      real*8 src(dimdec(src))
-      real*8 retval
+      integer srcl0, srch0, srcl1, srch1
+      integer regl0, regh0, regl1, regh1
+      double precision src(srcl0:srch0,srcl1:srch1)
+      double precision retval
       integer bufsiz
       parameter(bufsiz = 128)
-      real*8 buf(0:bufsiz-1)
+      double precision buf(0:bufsiz-1)
       integer i, j, k, ii, jj, idif, jdif
       idif = regh0 - regl0
       jdif = regh1 - regl1
@@ -115,14 +112,14 @@ c Works for CELL- or NODE-based data.
  60         retval = max(retval, buf(i))
       end if
       end
-
+c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
       subroutine fassnu(v, x,
-     @ dims(reg),
+     @ regl0, regh0, regl1, regh1,
      @ ncomp)
-      integer dims(reg)
-      real*8 v(*)
-      real*8 x
+      integer regl0, regh0, regl1, regh1
+      double precision v(*)
+      double precision x
       integer ncomp
       integer nvals, i
       nvals = (regh0-regl0+1) * (regh1-regl1+1) * ncomp
@@ -132,25 +129,25 @@ c Works for CELL- or NODE-based data.
 
 c Works for CELL- or NODE-based data.
       subroutine fplusu(v0, v1,
-     @ dims(reg))
-      integer dims(reg)
-      real*8 v0(*)
-      real*8 v1(*)
+     @ regl0, regh0, regl1, regh1)
+      integer regl0, regh0, regl1, regh1
+      double precision v0(*)
+      double precision v1(*)
       integer i
       do 10 i = 1, (regh0 - regl0 + 1) * (regh1 - regl1 + 1)
  10      v0(i) = v0(i) + v1(i)
       end
-
+c-----------------------------------------------------------------------
 c Works for CELL-based data.
-      subroutine iprodc(v0, dims(v0),
-     @ v1, dims(v1),
-     @ dims(reg), sum)
-      integer dims(v0)
-      integer dims(v1)
-      integer dims(reg)
-      real*8 v0(dimdec(v0))
-      real*8 v1(dimdec(v1))
-      real*8 sum
+      subroutine iprodc(v0, v0l0, v0h0, v0l1, v0h1,
+     @ v1, v1l0, v1h0, v1l1, v1h1,
+     @ regl0, regh0, regl1, regh1, sum)
+      integer v0l0, v0h0, v0l1, v0h1
+      integer v1l0, v1h0, v1l1, v1h1
+      integer regl0, regh0, regl1, regh1
+      double precision v0(v0l0:v0h0,v0l1:v0h1)
+      double precision v1(v1l0:v1h0,v1l1:v1h1)
+      double precision sum
       integer i, j
       if (regh1 - regl1 .gt. regh0 - regl0) then
          do 10 i = regl0, regh0
@@ -162,17 +159,17 @@ c Works for CELL-based data.
  20            sum = sum + v0(i,j) * v1(i,j)
       end if
       end
-
+c-----------------------------------------------------------------------
 c Works for NODE-based data.
-      subroutine iprodn(v0, dims(v0),
-     @ v1, dims(v1),
-     @ dims(reg), sum)
-      integer dims(v0)
-      integer dims(v1)
-      integer dims(reg)
-      real*8 v0(dimdec(v0))
-      real*8 v1(dimdec(v1))
-      real*8 sum, sum0
+      subroutine iprodn(v0, v0l0, v0h0, v0l1, v0h1,
+     @ v1, v1l0, v1h0, v1l1, v1h1,
+     @ regl0, regh0, regl1, regh1, sum)
+      integer v0l0, v0h0, v0l1, v0h1
+      integer v1l0, v1h0, v1l1, v1h1
+      integer regl0, regh0, regl1, regh1
+      double precision v0(v0l0:v0h0,v0l1:v0h1)
+      double precision v1(v1l0:v1h0,v1l1:v1h1)
+      double precision sum, sum0
       integer i, j
       sum0 = 0.5d0 * (v0(regl0,regl1) * v1(regl0,regl1) +
      @                v0(regl0,regh1) * v1(regl0,regh1) +
@@ -195,19 +192,19 @@ c Works for NODE-based data.
  40            sum = sum + v0(i,j) * v1(i,j)
       end if
       end
-
+c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
-      subroutine bref(dest, dims(dest),
-     @ dims(reg),
-     @ src,  dims(src),
-     @ dims(bb), idir)
-      integer dims(dest)
-      integer dims(reg)
-      integer dims(src)
-      integer dims(bb)
+      subroutine bref(dest, destl0, desth0, destl1, desth1,
+     @ regl0, regh0, regl1, regh1,
+     @ src,  srcl0, srch0, srcl1, srch1,
+     @ bbl0, bbh0, bbl1, bbh1, idir)
+      integer destl0, desth0, destl1, desth1
+      integer regl0, regh0, regl1, regh1
+      integer srcl0, srch0, srcl1, srch1
+      integer bbl0, bbh0, bbl1, bbh1
       integer idir
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
+      double precision dest(destl0:desth0,destl1:desth1)
+      double precision src(srcl0:srch0,srcl1:srch1)
       integer i, j
       if (idir .eq. 0) then
          do 10 i = regl0, regh0
@@ -219,19 +216,19 @@ c Works for CELL- or NODE-based data.
  20            dest(i,j) = src(i,bbh1-(j-regl1))
       end if
       end
-
+c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
-      subroutine brefm(dest, dims(dest),
-     @ dims(reg),
-     @ src,  dims(src),
-     @ dims(bb), ra)
-      integer dims(dest)
-      integer dims(reg)
-      integer dims(src)
-      integer dims(bb)
+      subroutine brefm(dest, destl0, desth0, destl1, desth1,
+     @ regl0, regh0, regl1, regh1,
+     @ src,  srcl0, srch0, srcl1, srch1,
+     @ bbl0, bbh0, bbl1, bbh1, ra)
+      integer destl0, desth0, destl1, desth1
+      integer regl0, regh0, regl1, regh1
+      integer srcl0, srch0, srcl1, srch1
+      integer bbl0, bbh0, bbl1, bbh1
       integer ra(0:1)
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
+      double precision dest(destl0:desth0,destl1:desth1)
+      double precision src(srcl0:srch0,srcl1:srch1)
       integer i, j
       if (ra(0) .eq. 0 .and. ra(1) .eq. 0) then
          if (regh1 - regl1 .gt. regh0 - regl0) then
@@ -257,19 +254,19 @@ c Works for CELL- or NODE-based data.
  40            dest(i,j) = src(bbh0-(i-regl0),bbh1-(j-regl1))
       end if
       end
-
+c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
-      subroutine bneg(dest, dims(dest),
-     @ dims(reg),
-     @ src,  dims(src),
-     @ dims(bb), idir)
-      integer dims(dest)
-      integer dims(reg)
-      integer dims(src)
-      integer dims(bb)
+      subroutine bneg(dest, destl0, desth0, destl1, desth1,
+     @ regl0, regh0, regl1, regh1,
+     @ src,  srcl0, srch0, srcl1, srch1,
+     @ bbl0, bbh0, bbl1, bbh1, idir)
+      integer destl0, desth0, destl1, desth1
+      integer regl0, regh0, regl1, regh1
+      integer srcl0, srch0, srcl1, srch1
+      integer bbl0, bbh0, bbl1, bbh1
       integer idir
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
+      double precision dest(destl0:desth0,destl1:desth1)
+      double precision src(srcl0:srch0,srcl1:srch1)
       integer i, j
       if (idir .eq. 0) then
          do 10 i = regl0, regh0
@@ -281,19 +278,19 @@ c Works for CELL- or NODE-based data.
  20            dest(i,j) = -src(i,bbh1-(j-regl1))
       end if
       end
-
+c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
-      subroutine bnegm(dest, dims(dest),
-     @ dims(reg),
-     @ src,  dims(src),
-     @ dims(bb), ra)
-      integer dims(dest)
-      integer dims(reg)
-      integer dims(src)
-      integer dims(bb)
+      subroutine bnegm(dest, destl0, desth0, destl1, desth1,
+     @ regl0, regh0, regl1, regh1,
+     @ src,  srcl0, srch0, srcl1, srch1,
+     @ bbl0, bbh0, bbl1, bbh1, ra)
+      integer destl0, desth0, destl1, desth1
+      integer regl0, regh0, regl1, regh1
+      integer srcl0, srch0, srcl1, srch1
+      integer bbl0, bbh0, bbl1, bbh1
       integer ra(0:1)
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
+      double precision dest(destl0:desth0,destl1:desth1)
+      double precision src(srcl0:srch0,srcl1:srch1)
       integer i, j
       if (ra(0) .eq. 0 .and. ra(1) .eq. 0) then
          if (regh1 - regl1 .gt. regh0 - regl0) then
@@ -319,23 +316,23 @@ c Works for CELL- or NODE-based data.
  40            dest(i,j) = -src(bbh0-(i-regl0),bbh1-(j-regl1))
       end if
       end
-
+c-----------------------------------------------------------------------
 c Works for CELL-based velocity data.
 c This routine assumes that the inflow face velocity data has not yet
 c been altered.  Running fill_borders should call this routine on every
 c inflow face, so that binfil can be run for subsequent fills
-      subroutine binflo(dest, dims(dest),
-     @ dims(reg),
-     @ src,  dims(src),
-     @ dims(bb),
+      subroutine binflo(dest, destl0, desth0, destl1, desth1,
+     @ regl0, regh0, regl1, regh1,
+     @ src,  srcl0, srch0, srcl1, srch1,
+     @ bbl0, bbh0, bbl1, bbh1,
      @ idir)
-      integer dims(dest)
-      integer dims(reg)
-      integer dims(src)
-      integer dims(bb)
+      integer destl0, desth0, destl1, desth1
+      integer regl0, regh0, regl1, regh1
+      integer srcl0, srch0, srcl1, srch1
+      integer bbl0, bbh0, bbl1, bbh1
       integer idir
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
+      double precision dest(destl0:desth0,destl1:desth1)
+      double precision src(srcl0:srch0,srcl1:srch1)
       integer i, j
       if (idir .eq. 0) then
          if (regl0 .lt. bbh0) then
@@ -359,24 +356,24 @@ c inflow face, so that binfil can be run for subsequent fills
          end if
       end if
       end
-
+c-----------------------------------------------------------------------
 c Works for CELL-based velocity data.
 c This routine is called when the inflow face velocity data has already
 c been altered by a call to fill_borders.  The box bb must have been
 c extended to one cell past the boundary by the boundary::box routine.
 
-      subroutine binfil(dest, dims(dest),
-     @ dims(reg),
-     @ src,  dims(src),
-     @ dims(bb),
+      subroutine binfil(dest, destl0, desth0, destl1, desth1,
+     @ regl0, regh0, regl1, regh1,
+     @ src,  srcl0, srch0, srcl1, srch1,
+     @ bbl0, bbh0, bbl1, bbh1,
      @ idir)
-      integer dims(dest)
-      integer dims(reg)
-      integer dims(src)
-      integer dims(bb)
+      integer destl0, desth0, destl1, desth1
+      integer regl0, regh0, regl1, regh1
+      integer srcl0, srch0, srcl1, srch1
+      integer bbl0, bbh0, bbl1, bbh1
       integer idir
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
+      double precision dest(destl0:desth0,destl1:desth1)
+      double precision src(srcl0:srch0,srcl1:srch1)
       integer i, j
       if (idir .eq. 0) then
          if (regl0 .lt. bbh0) then
@@ -404,20 +401,20 @@ c extended to one cell past the boundary by the boundary::box routine.
          end if
       end if
       end
-
+c-----------------------------------------------------------------------
 c CELL-based data only.
-      subroutine acint2(dest, dims(dest),
-     @ dims(reg),
-     @ src,  dims(src),
-     @ dims(bb), ir, jr)
-      integer dims(dest)
-      integer dims(reg)
-      integer dims(src)
-      integer dims(bb)
+      subroutine acint2(dest, destl0, desth0, destl1, desth1,
+     @ regl0, regh0, regl1, regh1,
+     @ src,  srcl0, srch0, srcl1, srch1,
+     @ bbl0, bbh0, bbl1, bbh1, ir, jr)
+      integer destl0, desth0, destl1, desth1
+      integer regl0, regh0, regl1, regh1
+      integer srcl0, srch0, srcl1, srch1
+      integer bbl0, bbh0, bbl1, bbh1
       integer ir, jr
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
-      real*8 xoff, yoff, sx, sy
+      double precision dest(destl0:desth0,destl1:desth1)
+      double precision src(srcl0:srch0,srcl1:srch1)
+      double precision xoff, yoff, sx, sy
       integer i, j, ic, jc
       do 10 j = regl1, regh1
          jc = j/jr
@@ -429,20 +426,20 @@ c CELL-based data only.
             sx = 0.5 * (src(ic+1,jc) - src(ic-1,jc))
  10         dest(i,j) = src(ic,jc) + xoff * sx + yoff * sy
       end
-
+c-----------------------------------------------------------------------
 c NODE-based data only.
-      subroutine anint2(dest, dims(dest),
-     @ dims(reg),
-     @ src,  dims(src),
-     @ dims(bb), ir, jr)
-      integer dims(dest)
-      integer dims(reg)
-      integer dims(src)
-      integer dims(bb)
+      subroutine anint2(dest, destl0, desth0, destl1, desth1,
+     @ regl0, regh0, regl1, regh1,
+     @ src,  srcl0, srch0, srcl1, srch1,
+     @ bbl0, bbh0, bbl1, bbh1, ir, jr)
+      integer destl0, desth0, destl1, desth1
+      integer regl0, regh0, regl1, regh1
+      integer srcl0, srch0, srcl1, srch1
+      integer bbl0, bbh0, bbl1, bbh1
       integer ir, jr
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
-      real*8 p, q
+      double precision dest(destl0:desth0,destl1:desth1)
+      double precision src(srcl0:srch0,srcl1:srch1)
+      double precision p, q
       integer ic, jc, j, m
       do 10 jc = bbl1, bbh1
          do 10 ic = bbl0, bbh0
@@ -498,19 +495,19 @@ cdir$ ivdep
      @                              q * dest(ir*(ic+1),j)
       end if
       end
-
+c-----------------------------------------------------------------------
 c CELL-based data only.
-      subroutine acrst1(dest, dims(dest),
-     @ dims(reg),
-     @ src,  dims(src),
+      subroutine acrst1(dest, destl0, desth0, destl1, desth1,
+     @ regl0, regh0, regl1, regh1,
+     @ src,  srcl0, srch0, srcl1, srch1,
      @ ir, jr, integ)
-      integer dims(dest)
-      integer dims(reg)
-      integer dims(src)
+      integer destl0, desth0, destl1, desth1
+      integer regl0, regh0, regl1, regh1
+      integer srcl0, srch0, srcl1, srch1
       integer ir, jr, integ
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
-      real*8 fac
+      double precision dest(destl0:desth0,destl1:desth1)
+      double precision src(srcl0:srch0,srcl1:srch1)
+      double precision fac
       integer i, j, m, n
       do 10 j = regl1, regh1
          do 10 i = regl0, regh0
@@ -527,61 +524,63 @@ c CELL-based data only.
  30            dest(i,j) = dest(i,j) * fac
       end if
       end
-
+c-----------------------------------------------------------------------
 c NODE-based data only.
-      subroutine anrst1(dest, dims(dest),
-     @ dims(reg),
-     @ src,  dims(src),
+      subroutine anrst1(dest, destl0, desth0, destl1, desth1,
+     @ regl0, regh0, regl1, regh1,
+     @ src,  srcl0, srch0, srcl1, srch1,
      @ ir, jr)
-      integer dims(dest)
-      integer dims(reg)
-      integer dims(src)
+      integer destl0, desth0, destl1, desth1
+      integer regl0, regh0, regl1, regh1
+      integer srcl0, srch0, srcl1, srch1
       integer ir, jr
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
+      double precision dest(destl0:desth0,destl1:desth1)
+      double precision src(srcl0:srch0,srcl1:srch1)
       integer i, j
       do 10 j = regl1, regh1
          do 10 i = regl0, regh0
  10         dest(i,j) = src(i*ir,j*jr)
       end
-
-#define RESTR4 0.0625d0 * src(4*i,4*j) + \
-      0.046875d0  * (src(4*i,4*j-1) + src(4*i,4*j+1) + \
-                     src(4*i-1,4*j) + src(4*i+1,4*j)) + \
-      0.03125d0   * (src(4*i,4*j-2) + src(4*i,4*j+2) + \
-                     src(4*i-2,4*j) + src(4*i+2,4*j)) + \
-      0.015625d0  * (src(4*i,4*j-3) + src(4*i,4*j+3) + src(4*i-3,4*j) + \
-                     src(4*i+3,4*j) + src(4*i-2,4*j-2) + src(4*i-2,4*j+2) + \
-                     src(4*i+2,4*j-2) + src(4*i+2,4*j+2)) + \
-      0.03515625d0* (src(4*i-1,4*j-1) + src(4*i-1,4*j+1) + \
-                     src(4*i+1,4*j-1) + src(4*i+1,4*j+1)) + \
-      0.0234375d0 * (src(4*i-2,4*j-1) + src(4*i-2,4*j+1) + src(4*i-1,4*j-2) + \
-                     src(4*i-1,4*j+2) + src(4*i+1,4*j-2) + src(4*i+1,4*j+2) + \
-                     src(4*i+2,4*j-1) + src(4*i+2,4*j+1)) + \
-      0.01171875d0* (src(4*i-3,4*j-1) + src(4*i-3,4*j+1) + src(4*i-1,4*j-3) + \
-                     src(4*i-1,4*j+3) + src(4*i+1,4*j-3) + src(4*i+1,4*j+3) + \
-                     src(4*i+3,4*j-1) + src(4*i+3,4*j+1)) + \
-      0.0078125d0 * (src(4*i-3,4*j-2) + src(4*i-3,4*j+2) + src(4*i-2,4*j-3) + \
-                     src(4*i-2,4*j+3) + src(4*i+2,4*j-3) + src(4*i+2,4*j+3) + \
-                     src(4*i+3,4*j-2) + src(4*i+3,4*j+2)) + \
-      0.00390625d0* (src(4*i-3,4*j-3) + src(4*i-3,4*j+3) + \
-                     src(4*i+3,4*j-3) + src(4*i+3,4*j+3))
-
+c-----------------------------------------------------------------------
 c NODE-based data only.
 c Fills coarse region defined by reg, which must be smaller than
 c fine region by at least one coarse cell on all sides.
-      subroutine anrst2(dest, dims(dest),
-     @ dims(reg),
-     @ src,  dims(src),
+      subroutine anrst2(dest, destl0, desth0, destl1, desth1,
+     @ regl0, regh0, regl1, regh1,
+     @ src,  srcl0, srch0, srcl1, srch1,
      @ ir, jr, integ)
-      integer dims(dest)
-      integer dims(reg)
-      integer dims(src)
+      integer destl0, desth0, destl1, desth1
+      integer regl0, regh0, regl1, regh1
+      integer srcl0, srch0, srcl1, srch1
       integer ir, jr, integ
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
-      real*8 fac0, fac1, fac
+      double precision dest(destl0:desth0,destl1:desth1)
+      double precision src(srcl0:srch0,srcl1:srch1)
+      double precision fac0, fac1, fac, restr4
       integer i, j, m, n
+      RESTR4() 0.0625d0 * src(4*i,4*j) +
+     & 0.046875d0  * (src(4*i,4*j-1) + src(4*i,4*j+1) +
+     &                src(4*i-1,4*j) + src(4*i+1,4*j)) +
+     & 0.03125d0   * (src(4*i,4*j-2) + src(4*i,4*j+2) + 
+     &                src(4*i-2,4*j) + src(4*i+2,4*j)) + 
+     & 0.015625d0  * (src(4*i,4*j-3) + src(4*i,4*j+3) + src(4*i-3,4*j) +
+     &            src(4*i+3,4*j) + src(4*i-2,4*j-2) + src(4*i-2,4*j+2) +
+     &                src(4*i+2,4*j-2) + src(4*i+2,4*j+2)) +
+     & 0.03515625d0* (src(4*i-1,4*j-1) + src(4*i-1,4*j+1) + 
+     &                src(4*i+1,4*j-1) + src(4*i+1,4*j+1)) +
+     & 0.0234375d0 * (
+     &          src(4*i-2,4*j-1) + src(4*i-2,4*j+1) + src(4*i-1,4*j-2) +
+     &          src(4*i-1,4*j+2) + src(4*i+1,4*j-2) + src(4*i+1,4*j+2) +
+     &                src(4*i+2,4*j-1) + src(4*i+2,4*j+1)) +
+     & 0.01171875d0* (
+     &          src(4*i-3,4*j-1) + src(4*i-3,4*j+1) + src(4*i-1,4*j-3) +
+     &          src(4*i-1,4*j+3) + src(4*i+1,4*j-3) + src(4*i+1,4*j+3) +
+     &                src(4*i+3,4*j-1) + src(4*i+3,4*j+1)) +
+     & 0.0078125d0 * (
+     &          src(4*i-3,4*j-2) + src(4*i-3,4*j+2) + src(4*i-2,4*j-3) +
+     &          src(4*i-2,4*j+3) + src(4*i+2,4*j-3) + src(4*i+2,4*j+3) +
+     &                src(4*i+3,4*j-2) + src(4*i+3,4*j+2)) +
+     & 0.00390625d0* (src(4*i-3,4*j-3) + src(4*i-3,4*j+3) +
+                     src(4*i+3,4*j-3) + src(4*i+3,4*j+3))
       if (ir .eq. 2 .and. jr .eq. 2) then
          if (regh1 - regl1 .gt. regh0 - regl0) then
             do 10 i = regl0, regh0
@@ -612,11 +611,11 @@ c fine region by at least one coarse cell on all sides.
          if (regh1 - regl1 .gt. regh0 - regl0) then
             do 110 i = regl0, regh0
                do 110 j = regl1, regh1
- 110              dest(i,j) = RESTR4
+ 110              dest(i,j) = RESTR4()
          else
             do 120 j = regl1, regh1
                do 120 i = regl0, regh0
- 120              dest(i,j) = RESTR4
+ 120              dest(i,j) = RESTR4()
          end if
       else
          if (regh1 - regl1 .gt. regh0 - regl0) then
@@ -670,20 +669,20 @@ c fine region by at least one coarse cell on all sides.
          end if
       end if
       end
-
+c-----------------------------------------------------------------------
 c NODE-based data only.
 c Fills coarse region defined by reg.
-      subroutine anfr2(dest, dims(dest),
-     @ dims(reg),
-     @ src,  dims(src),
+      subroutine anfr2(dest, destl0, desth0, destl1, desth1,
+     @ regl0, regh0, regl1, regh1,
+     @ src,  srcl0, srch0, srcl1, srch1,
      @ ir, jr, idim, idir, integ)
-      integer dims(dest)
-      integer dims(reg)
-      integer dims(src)
+      integer destl0, desth0, destl1, desth1
+      integer regl0, regh0, regl1, regh1
+      integer srcl0, srch0, srcl1, srch1
       integer ir, jr, idim, idir, integ
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
-      real*8 fac0, fac1, fac
+      double precision dest(destl0:desth0,destl1:desth1)
+      double precision src(srcl0:srch0,srcl1:srch1)
+      double precision fac0, fac1, fac
       integer i, j, m, n
       if (idim .eq. 0) then
          if (integ .eq. 0) then
@@ -725,20 +724,20 @@ c Fills coarse region defined by reg.
      @                                           src(i*ir+m,j*jr+n))
       end if
       end
-
+c-----------------------------------------------------------------------
 c NODE-based data only.
 c Fills coarse point defined by reg.
-      subroutine anor2(dest, dims(dest),
-     @ dims(reg),
-     @ src,  dims(src),
+      subroutine anor2(dest, destl0, desth0, destl1, desth1,
+     @ regl0, regh0, regl1, regh1,
+     @ src,  srcl0, srch0, srcl1, srch1,
      @ ir, jr, idir0, idir1, integ)
-      integer dims(dest)
-      integer dims(reg)
-      integer dims(src)
+      integer destl0, desth0, destl1, desth1
+      integer regl0, regh0, regl1, regh1
+      integer srcl0, srch0, srcl1, srch1
       integer ir, jr, idir0, idir1, integ
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
-      real*8 fac0, fac1, fac
+      double precision dest(destl0:desth0,destl1:desth1)
+      double precision src(srcl0:srch0,srcl1:srch1)
+      double precision fac0, fac1, fac
       integer i, j, m, n
       if (integ .eq. 0) then
          fac = (0.75d0 + 0.25d0 / ir + 0.25d0 / jr - 0.25d0 / (ir*jr))
@@ -756,20 +755,20 @@ c Fills coarse point defined by reg.
             fac = (ir-abs(m)) * fac1
  20         dest(i,j) = dest(i,j) + fac * src(i*ir+m,j*jr+n)
       end
-
+c-----------------------------------------------------------------------
 c NODE-based data only.
 c Fills coarse point defined by reg.
-      subroutine anir2(dest, dims(dest),
-     @ dims(reg),
-     @ src,  dims(src),
+      subroutine anir2(dest, destl0, desth0, destl1, desth1,
+     @ regl0, regh0, regl1, regh1,
+     @ src,  srcl0, srch0, srcl1, srch1,
      @ ir, jr, idir0, idir1, integ)
-      integer dims(dest)
-      integer dims(reg)
-      integer dims(src)
+      integer destl0, desth0, destl1, desth1
+      integer regl0, regh0, regl1, regh1
+      integer srcl0, srch0, srcl1, srch1
       integer ir, jr, idir0, idir1, integ
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
-      real*8 fac0, fac1, fac
+      double precision dest(destl0:desth0,destl1:desth1)
+      double precision src(srcl0:srch0,srcl1:srch1)
+      double precision fac0, fac1, fac
       integer i, j, m, n
       if (integ .eq. 0) then
          fac = (0.25d0 + 0.25d0 / ir + 0.25d0 / jr + 0.25d0 / (ir*jr))
@@ -795,20 +794,20 @@ c Fills coarse point defined by reg.
      @                                     src(i*ir-m,j*jr+n) +
      @                                     src(i*ir+m,j*jr-n))
       end
-
+c-----------------------------------------------------------------------
 c NODE-based data only.
 c Fills coarse point defined by reg.
-      subroutine andr2(dest, dims(dest),
-     @ dims(reg),
-     @ src,  dims(src),
+      subroutine andr2(dest, destl0, desth0, destl1, desth1,
+     @ regl0, regh0, regl1, regh1,
+     @ src,  srcl0, srch0, srcl1, srch1,
      @ ir, jr, idir1, integ)
-      integer dims(dest)
-      integer dims(reg)
-      integer dims(src)
+      integer destl0, desth0, destl1, desth1
+      integer regl0, regh0, regl1, regh1
+      integer srcl0, srch0, srcl1, srch1
       integer ir, jr, idir1, integ
-      real*8 dest(dimdec(dest))
-      real*8 src(dimdec(src))
-      real*8 fac0, fac1, fac
+      double precision dest(destl0:desth0,destl1:desth1)
+      double precision src(srcl0:srch0,srcl1:srch1)
+      double precision fac0, fac1, fac
       integer i, j, m, n
       if (integ .eq. 0) then
          fac = (0.5d0 + 0.5d0 / ir + 0.5d0 / jr - 0.5d0 / (ir*jr))

@@ -1,16 +1,13 @@
-
-#define dims(a) a##l0, a##h0, a##l1, a##h1
-#define dimdec(a) a##l0:a##h0,a##l1:a##h1
-
-      subroutine hggrad_terrain(gpx, gpy, dims(gp),
-     @ dest, dims(dest),
-     @ dims(freg))
-      integer dims(gp)
-      integer dims(dest)
-      integer dims(freg)
-      real*8 gpx(dimdec(gp))
-      real*8 gpy(dimdec(gp))
-      real*8 dest(dimdec(dest))
+c-----------------------------------------------------------------------
+      subroutine hggrad_terrain(gpx, gpy, gpl0, gph0, gpl1, gph1,
+     @ dest, destl0, desth0, destl1, desth1,
+     @ fregl0, fregh0, fregl1, fregh1)
+      integer gpl0, gph0, gpl1, gph1
+      integer destl0, desth0, destl1, desth1
+      integer fregl0, fregh0, fregl1, fregh1
+      double precision gpx(gpl0:gph0,gpl1:gph1)
+      double precision gpy(gpl0:gph0,gpl1:gph1)
+      double precision dest(destl0:desth0,destl1:desth1)
       integer i, j
       do 10 j = fregl1, fregh1
          do 10 i = fregl0, fregh0
@@ -19,17 +16,17 @@
  10         gpy(i,j) = 0.5d0 * (dest(i,j+1) + dest(i+1,j+1) -
      @                          dest(i,j  ) - dest(i+1,j  ))
       end
-
-      subroutine hgdiv_terrain(src, dims(src),
-     @ uf, vf, dims(f),
-     @ dims(freg))
-      integer dims(src)
-      integer dims(f)
-      integer dims(freg)
-      real*8 src(dimdec(src))
-      real*8 uf(dimdec(f))
-      real*8 vf(dimdec(f))
-      real*8 fac
+c-----------------------------------------------------------------------
+      subroutine hgdiv_terrain(src, srcl0, srch0, srcl1, srch1,
+     @ uf, vf, fl0, fh0, fl1, fh1,
+     @ fregl0, fregh0, fregl1, fregh1)
+      integer srcl0, srch0, srcl1, srch1
+      integer fl0, fh0, fl1, fh1
+      integer fregl0, fregh0, fregl1, fregh1
+      double precision src(srcl0:srch0,srcl1:srch1)
+      double precision uf(fl0:fh0,fl1:fh1)
+      double precision vf(fl0:fh0,fl1:fh1)
+      double precision fac
       integer i, j
       fac = 0.5d0
       do 10 j = fregl1, fregh1
@@ -40,24 +37,24 @@
      @         vf(i-1,j) - vf(i-1,j-1) +
      @         vf(i  ,j) - vf(i,j-1))
       end
-
+c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgfdiv_terrain(src, dims(src),
-     @ uc, vc, dims(c),
-     @ uf, vf, dims(f),
-     @ dims(creg),
+      subroutine hgfdiv_terrain(src, srcl0, srch0, srcl1, srch1,
+     @ uc, vc, cl0, ch0, cl1, ch1,
+     @ uf, vf, fl0, fh0, fl1, fh1,
+     @ cregl0, cregh0, cregl1, cregh1,
      @ ir, jr, idim, idir)
-      integer dims(src)
-      integer dims(c)
-      integer dims(f)
-      integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 uc(dimdec(c))
-      real*8 vc(dimdec(c))
-      real*8 uf(dimdec(f))
-      real*8 vf(dimdec(f))
+      integer srcl0, srch0, srcl1, srch1
+      integer cl0, ch0, cl1, ch1
+      integer fl0, fh0, fl1, fh1
+      integer cregl0, cregh0, cregl1, cregh1
+      double precision src(srcl0:srch0,srcl1:srch1)
+      double precision uc(cl0:ch0,cl1:ch1)
+      double precision vc(cl0:ch0,cl1:ch1)
+      double precision uf(fl0:fh0,fl1:fh1)
+      double precision vf(fl0:fh0,fl1:fh1)
       integer ir, jr, idim, idir
-      real*8 fac0, fac1
+      double precision fac0, fac1
       integer i, j, iuf, juf, iuc, juc, m, n
       if (idim .eq. 0) then
          i = cregl0
@@ -111,24 +108,24 @@ c Note---only generates values at coarse points along edge of fine grid
      @                    vf(i+m,juf) + vf(i+m-1,juf)))
       end if
       end
-
+c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgcdiv_terrain(src, dims(src),
-     @ uc, vc, dims(c),
-     @ uf, vf, dims(f),
-     @ dims(creg),
+      subroutine hgcdiv_terrain(src, srcl0, srch0, srcl1, srch1,
+     @ uc, vc, cl0, ch0, cl1, ch1,
+     @ uf, vf, fl0, fh0, fl1, fh1,
+     @ cregl0, cregh0, cregl1, cregh1,
      @ ir, jr, ga)
-      integer dims(src)
-      integer dims(c)
-      integer dims(f)
-      integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 uc(dimdec(c))
-      real*8 vc(dimdec(c))
-      real*8 uf(dimdec(f))
-      real*8 vf(dimdec(f))
+      integer srcl0, srch0, srcl1, srch1
+      integer cl0, ch0, cl1, ch1
+      integer fl0, fh0, fl1, fh1
+      integer cregl0, cregh0, cregl1, cregh1
+      double precision src(srcl0:srch0,srcl1:srch1)
+      double precision uc(cl0:ch0,cl1:ch1)
+      double precision vc(cl0:ch0,cl1:ch1)
+      double precision uf(fl0:fh0,fl1:fh1)
+      double precision vf(fl0:fh0,fl1:fh1)
       integer ir, jr, ga(0:1,0:1)
-      real*8 sum, fac, fac1
+      double precision sum, fac, fac1
       integer ic, jc, if, jf, ii, ji, idir, jdir, m, n
       ic = cregl0
       jc = cregl1
@@ -175,20 +172,20 @@ c edges
 c weighting
       src(if,jf) = 0.5d0 * sum
       end
-
-      subroutine hggrad(gpx, gpy, dims(gp),
-     @ dest, dims(dest),
-     @ dims(freg),
+c-----------------------------------------------------------------------
+      subroutine hggrad(gpx, gpy, gpl0, gph0, gpl1, gph1,
+     @ dest, destl0, desth0, destl1, desth1,
+     @ fregl0, fregh0, fregl1, fregh1,
      @ hx, hy, irz)
-      integer dims(gp)
-      integer dims(dest)
-      integer dims(freg)
-      real*8 gpx(dimdec(gp))
-      real*8 gpy(dimdec(gp))
-      real*8 dest(dimdec(dest))
-      real*8 hx, hy
+      integer gpl0, gph0, gpl1, gph1
+      integer destl0, desth0, destl1, desth1
+      integer fregl0, fregh0, fregl1, fregh1
+      double precision gpx(gpl0:gph0,gpl1:gph1)
+      double precision gpy(gpl0:gph0,gpl1:gph1)
+      double precision dest(destl0:desth0,destl1:desth1)
+      double precision hx, hy
       integer irz
-      real*8 hxm1h, hym1h, fac, r
+      double precision hxm1h, hym1h, fac, r
       integer i, j
       hxm1h = 0.5d0 / hx
       hym1h = 0.5d0 / hy
@@ -209,20 +206,20 @@ c weighting
      @                                dest(i,j+1) + dest(i,j))
       end if
       end
-
-      subroutine hgdiv(src, dims(src),
-     @ uf, vf, dims(f),
-     @ dims(freg),
+c-----------------------------------------------------------------------
+      subroutine hgdiv(src, srcl0, srch0, srcl1, srch1,
+     @ uf, vf, fl0, fh0, fl1, fh1,
+     @ fregl0, fregh0, fregl1, fregh1,
      @ hx, hy, irz, imax)
-      integer dims(src)
-      integer dims(f)
-      integer dims(freg)
-      real*8 src(dimdec(src))
-      real*8 uf(dimdec(f))
-      real*8 vf(dimdec(f))
-      real*8 hx, hy
+      integer srcl0, srch0, srcl1, srch1
+      integer fl0, fh0, fl1, fh1
+      integer fregl0, fregh0, fregl1, fregh1
+      double precision src(srcl0:srch0,srcl1:srch1)
+      double precision uf(fl0:fh0,fl1:fh1)
+      double precision vf(fl0:fh0,fl1:fh1)
+      double precision hx, hy
       integer irz, imax
-      real*8 hxm1, hym1, fac, r1, r0m, r1m
+      double precision hxm1, hym1, fac, r1, r0m, r1m
       integer i, j
       hxm1 = 1.d0 / hx
       hym1 = 1.d0 / hy
@@ -252,26 +249,26 @@ c weighting
      @             r1m * (vf(i,j-1) - vf(i,j)))
       end if
       end
-
+c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgfdiv(src, dims(src),
-     @ uc, vc, dims(c),
-     @ uf, vf, dims(f),
-     @ dims(creg),
+      subroutine hgfdiv(src, srcl0, srch0, srcl1, srch1,
+     @ uc, vc, cl0, ch0, cl1, ch1,
+     @ uf, vf, fl0, fh0, fl1, fh1,
+     @ cregl0, cregh0, cregl1, cregh1,
      @ hx, hy, ir, jr, idim, idir, irz, imax)
-      integer dims(src)
-      integer dims(c)
-      integer dims(f)
-      integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 uc(dimdec(c))
-      real*8 vc(dimdec(c))
-      real*8 uf(dimdec(f))
-      real*8 vf(dimdec(f))
-      real*8 hx, hy
+      integer srcl0, srch0, srcl1, srch1
+      integer cl0, ch0, cl1, ch1
+      integer fl0, fh0, fl1, fh1
+      integer cregl0, cregh0, cregl1, cregh1
+      double precision src(srcl0:srch0,srcl1:srch1)
+      double precision uc(cl0:ch0,cl1:ch1)
+      double precision vc(cl0:ch0,cl1:ch1)
+      double precision uf(fl0:fh0,fl1:fh1)
+      double precision vf(fl0:fh0,fl1:fh1)
+      double precision hx, hy
       integer ir, jr, idim, idir, irz, imax
-      real*8 hxm1, hym1, fac0, fac1, r, rfac, rfac0, rfac1
-      real*8 rfac0m, rfac1m, rfac0p, rfac1p
+      double precision hxm1, hym1, fac0, fac1, r, rfac, rfac0, rfac1
+      double precision rfac0m, rfac1m, rfac0p, rfac1p
       integer i, j, iuf, juf, iuc, juc, m, n
       if (idim .eq. 0) then
          i = cregl0
@@ -392,26 +389,26 @@ c This should only occur with a corner at the outer boundary:
  100        continue
       end if
       end
-
+c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgodiv(src, dims(src),
-     @ uc, vc, dims(c),
-     @ uf, vf, dims(f),
-     @ dims(creg),
+      subroutine hgodiv(src, srcl0, srch0, srcl1, srch1,
+     @ uc, vc, cl0, ch0, cl1, ch1,
+     @ uf, vf, fl0, fh0, fl1, fh1,
+     @ cregl0, cregh0, cregl1, cregh1,
      @ hx, hy, ir, jr, idir, jdir, irz)
-      integer dims(src)
-      integer dims(c)
-      integer dims(f)
-      integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 uc(dimdec(c))
-      real*8 vc(dimdec(c))
-      real*8 uf(dimdec(f))
-      real*8 vf(dimdec(f))
-      real*8 hx, hy
+      integer srcl0, srch0, srcl1, srch1
+      integer cl0, ch0, cl1, ch1
+      integer fl0, fh0, fl1, fh1
+      integer cregl0, cregh0, cregl1, cregh1
+      double precision src(srcl0:srch0,srcl1:srch1)
+      double precision uc(cl0:ch0,cl1:ch1)
+      double precision vc(cl0:ch0,cl1:ch1)
+      double precision uf(fl0:fh0,fl1:fh1)
+      double precision vf(fl0:fh0,fl1:fh1)
+      double precision hx, hy
       integer ir, jr, idir, jdir, irz
-      real*8 hxm1, hym1, fac0, fac1, r, rfac, rfac0, rfac1
-      real*8 rfac0p, rfac1p
+      double precision hxm1, hym1, fac0, fac1, r, rfac, rfac0, rfac1
+      double precision rfac0p, rfac1p
       integer i, j, iuf, juf, iuc, juc, m, n
       fac0 = (ir * jr) / (1.5d0*ir*jr + 0.5d0*ir + 0.5d0*jr - 0.5d0)
       hxm1 = 1.d0 / (ir * hx)
@@ -487,26 +484,26 @@ c Note---only generates values at coarse points along edge of fine grid
          end if
  20      continue
       end
-
+c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgidiv(src, dims(src),
-     @ uc, vc, dims(c),
-     @ uf, vf, dims(f),
-     @ dims(creg),
+      subroutine hgidiv(src, srcl0, srch0, srcl1, srch1,
+     @ uc, vc, cl0, ch0, cl1, ch1,
+     @ uf, vf, fl0, fh0, fl1, fh1,
+     @ cregl0, cregh0, cregl1, cregh1,
      @ hx, hy, ir, jr, idir, jdir, irz)
-      integer dims(src)
-      integer dims(c)
-      integer dims(f)
-      integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 uc(dimdec(c))
-      real*8 vc(dimdec(c))
-      real*8 uf(dimdec(f))
-      real*8 vf(dimdec(f))
-      real*8 hx, hy
+      integer srcl0, srch0, srcl1, srch1
+      integer cl0, ch0, cl1, ch1
+      integer fl0, fh0, fl1, fh1
+      integer cregl0, cregh0, cregl1, cregh1
+      double precision src(srcl0:srch0,srcl1:srch1)
+      double precision uc(cl0:ch0,cl1:ch1)
+      double precision vc(cl0:ch0,cl1:ch1)
+      double precision uf(fl0:fh0,fl1:fh1)
+      double precision vf(fl0:fh0,fl1:fh1)
+      double precision hx, hy
       integer ir, jr, idir, jdir, irz
-      real*8 hxm1, hym1, fac0, fac1, r, rfac, rfac0, rfac1
-      real*8 rfac0m, rfac1m
+      double precision hxm1, hym1, fac0, fac1, r, rfac, rfac0, rfac1
+      double precision rfac0m, rfac1m
       integer i, j, iuf, juf, iuc, juc, m, n
       fac0 = (ir * jr) / (0.5d0*ir*jr + 0.5d0*ir + 0.5d0*jr + 0.5d0)
       hxm1 = 1.d0 / (ir * hx)
@@ -582,26 +579,26 @@ c Note---only generates values at coarse points along edge of fine grid
          end if
  20      continue
       end
-
+c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgddiv(src, dims(src),
-     @ uc, vc, dims(c),
-     @ uf, vf, dims(f),
-     @ dims(creg),
+      subroutine hgddiv(src, srcl0, srch0, srcl1, srch1,
+     @ uc, vc, cl0, ch0, cl1, ch1,
+     @ uf, vf, fl0, fh0, fl1, fh1,
+     @ cregl0, cregh0, cregl1, cregh1,
      @ hx, hy, ir, jr, jdir, irz)
-      integer dims(src)
-      integer dims(c)
-      integer dims(f)
-      integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 uc(dimdec(c))
-      real*8 vc(dimdec(c))
-      real*8 uf(dimdec(f))
-      real*8 vf(dimdec(f))
-      real*8 hx, hy
+      integer srcl0, srch0, srcl1, srch1
+      integer cl0, ch0, cl1, ch1
+      integer fl0, fh0, fl1, fh1
+      integer cregl0, cregh0, cregl1, cregh1
+      double precision src(srcl0:srch0,srcl1:srch1)
+      double precision uc(cl0:ch0,cl1:ch1)
+      double precision vc(cl0:ch0,cl1:ch1)
+      double precision uf(fl0:fh0,fl1:fh1)
+      double precision vf(fl0:fh0,fl1:fh1)
+      double precision hx, hy
       integer ir, jr, jdir, irz
-      real*8 hxm1, hym1, fac0, fac1, r, rfac, rfac0, rfac1
-      real*8 rfac0m, rfac1m, rfac0p, rfac1p
+      double precision hxm1, hym1, fac0, fac1, r, rfac, rfac0, rfac1
+      double precision rfac0m, rfac1m, rfac0p, rfac1p
       integer i, j, juf, juc, m, n
       fac0 = (ir * jr) / (ir*jr + ir + jr - 1.d0)
       hxm1 = 1.d0 / (ir * hx)

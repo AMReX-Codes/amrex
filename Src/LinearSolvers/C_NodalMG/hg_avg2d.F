@@ -1,20 +1,17 @@
-
-#define dims(a) a##l0,a##h0,a##l1,a##h1
-#define dimdec(a) a##l0:a##h0,a##l1:a##h1
-
+c-----------------------------------------------------------------------
       subroutine hgavg(src,
-     @ dims(src),
+     @ srcl0, srch0, srcl1, srch1,
      @ rf,
-     @ dims(f),
-     @ dims(freg), hx, irz, imax)
-      integer dims(src)
-      integer dims(f)
-      integer dims(freg)
-      real*8 src(dimdec(src))
-      real*8 rf(dimdec(f))
-      real*8 hx
+     @ fl0, fh0, fl1, fh1,
+     @ fregl0, fregh0, fregl1, fregh1, hx, irz, imax)
+      integer srcl0, srch0, srcl1, srch1
+      integer fl0, fh0, fl1, fh1
+      integer fregl0, fregh0, fregl1, fregh1
+      double precision src(srcl0:srch0,srcl1:srch1)
+      double precision rf(fl0:fh0,fl1:fh1)
+      double precision hx
       integer irz, imax
-      real*8 fac, r1, r0m, r1m
+      double precision fac, r1, r0m, r1m
       integer i, j
       fac = 0.25d0
       do 10 j = fregl1, fregh1
@@ -39,27 +36,27 @@
      @             r1m * (rf(i,j-1) + rf(i,j)))
       end if
       end
-
+c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
       subroutine hgfavg(src,
-     @ dims(src),
+     @ srcl0, srch0, srcl1, srch1,
      @ rc,
-     @ dims(c),
+     @ cl0, ch0, cl1, ch1,
      @ rf,
-     @ dims(f),
-     @ dims(creg),
+     @ fl0, fh0, fl1, fh1,
+     @ cregl0, cregh0, cregl1, cregh1,
      @ ir, jr, idim, idir, hx, irz, imax)
-      integer dims(src)
-      integer dims(c)
-      integer dims(f)
-      integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 rc(dimdec(c))
-      real*8 rf(dimdec(f))
-      real*8 hx
+      integer srcl0, srch0, srcl1, srch1
+      integer cl0, ch0, cl1, ch1
+      integer fl0, fh0, fl1, fh1
+      integer cregl0, cregh0, cregl1, cregh1
+      double precision src(srcl0:srch0,srcl1:srch1)
+      double precision rc(cl0:ch0,cl1:ch1)
+      double precision rf(fl0:fh0,fl1:fh1)
+      double precision hx
       integer ir, jr, idim, idir, irz, imax
-      real*8 fac0, fac, r, rfac, rfac0, rfac1
-      real*8 rfac0m, rfac1m, rfac0p, rfac1p
+      double precision fac0, fac, r, rfac, rfac0, rfac1
+      double precision rfac0m, rfac1m, rfac0p, rfac1p
       integer i, j, irc, jrc, irf, jrf, m, n
       if (idim .eq. 0) then
          i = cregl0
@@ -168,27 +165,27 @@ c should be handled by the cavg routine instead:
  100        continue
       end if
       end
-
+c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
       subroutine hgcavg(src,
-     @ dims(src),
+     @ srcl0, srch0, srcl1, srch1,
      @ rc,
-     @ dims(c),
+     @ cl0, ch0, cl1, ch1,
      @ rf,
-     @ dims(f),
-     @ dims(creg),
+     @ fl0, fh0, fl1, fh1,
+     @ cregl0, cregh0, cregl1, cregh1,
      @ ir, jr, ga, hx, irz, imax)
-      integer dims(src)
-      integer dims(c)
-      integer dims(f)
-      integer dims(creg)
-      real*8 src(dimdec(src))
-      real*8 rc(dimdec(c))
-      real*8 rf(dimdec(f))
-      real*8 hx
+      integer srcl0, srch0, srcl1, srch1
+      integer cl0, ch0, cl1, ch1
+      integer fl0, fh0, fl1, fh1
+      integer cregl0, cregh0, cregl1, cregh1
+      double precision src(srcl0:srch0,srcl1:srch1)
+      double precision rc(cl0:ch0,cl1:ch1)
+      double precision rf(fl0:fh0,fl1:fh1)
+      double precision hx
       integer ir, jr, ga(0:1,0:1), irz, imax
-      real*8 rm2, sum, center, fac, ffac, cfac, fac1
-      real*8 r, rfac, rfac0, rfac1
+      double precision rm2, sum, center, fac, ffac, cfac, fac1
+      double precision r, rfac, rfac0, rfac1
       integer ic, jc, if, jf, ii, ji, irc, jrc, irf, jrf
       integer m, n, idir, jdir
       rm2 = 1.d0 / (ir * jr)

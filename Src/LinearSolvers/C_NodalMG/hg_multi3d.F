@@ -2763,11 +2763,11 @@ c-----------------------------------------------------------------------
       integer it, pcode, k, i, j, MAXITER
       parameter (MAXITER = 250)
       hxm2 = 1.d0 / (hx*hx)
-c#ifdef HG_CROSS_STENCIL
+cifdef HG_CROSS_STENCIL
       facm = -hxm2
-c#else
+celse
 c      facm = -hxm2 / 3.d0
-c#endif
+cendif
       rho = 0.d0
       do k = 1, ngrids
 c must do this loop over entire array to initialize borders of p
@@ -2797,15 +2797,15 @@ c must do this loop over entire array to initialize borders of p
       do k = 1, ngrids
          do i = strid1(k) + strid2(k) + 1,
      &              nvals(k) - strid1(k) - strid2(k) - 2
-c#ifdef HG_CROSS_STENCIL
+cifdef HG_CROSS_STENCIL
             w(ws(k)+i) = facm *
      &        (p(ps(k)+i-1) + p(ps(k)+i+1) +
      &         p(ps(k)+i-strid1(k)) + p(ps(k)+i+strid1(k)) +
      &         p(ps(k)+i-strid2(k)) + p(ps(k)+i+strid2(k)) -
      &         6.d0 * p(ps(k)+i))
-c#else
+celse
 c            print *, "FORTRAN hgcg---full box stencils not implemented"
-c#endif
+cendif
             alpha = alpha + mask(ms(k)+i) * p(ps(k)+i) * w(ws(k)+i)
          end do
       end do
