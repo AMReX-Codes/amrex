@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.14 1998-04-15 16:50:45 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.15 1998-04-15 18:04:11 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -14,41 +14,58 @@
 
 #include <mpi.h>
 //
-// Data structure used by mergeUnique() to communicate a `int' and a `Box'.
+// Data structure used by CrseInit().
+//
+// CrseInit() needs to communicate four integers and a box.
+// We'll store all the info in a single array of integers.
 //
 struct CIData
 {
     //
-    // We encapsulate a `int' and a `Box' as an `int[3*BL_SPACEDIM+1]'.
+    // We encapsulate four `int's and a `Box' as an `int[3*BL_SPACEDIM+4]'.
     //
-    int m_data[3*BL_SPACEDIM+1];
+    enum { DIM = 3*BL_SPACEDIM+4 };
+
+    int m_data[DIM];
 
     CIData ();
-    CIData (int idx, const Box& box);
+    CIData (int        ncomp,
+            int        destcomp,
+            int        face,
+            int        fabindex,
+            const Box& box);
     //
     // The number of integers.
     //
-    int length () const { return 3*BL_SPACEDIM+1; }
+    int length () const { return DIM; }
     //
     // Pointer to the data.
     //
     int* dataPtr() { return &m_data[0]; }
     //
-    // Pointer to the data.
+    // The number of components
     //
-    const int* dataPtr() const { return &m_data[0]; }
+    int ncomp () const { return m_data[0]; }
     //
-    // The contained index.
+    // The number of destination components.
     //
-    int idx () const { return m_data[0]; }
+    int destcomp () const { return m_data[1]; }
+    //
+    // The face.
+    //
+    int face () const { return m_data[2]; }
+    //
+    // The fabindex.
+    //
+    int fabindex () const { return m_data[3]; }
     //
     // The contained box.
     //
     Box box () const
     {
-        return Box(IntVect(&m_data[1]),
-                   IntVect(&m_data[1+BL_SPACEDIM]),
-                   IntVect(&m_data[1+2*BL_SPACEDIM]));
+        return Box(IntVect(&m_data[4]),
+                   IntVect(&m_data[4+BL_SPACEDIM]),
+                   IntVect(&m_data[4+2*BL_SPACEDIM]));
     }
 };
 
@@ -58,25 +75,31 @@ CIData::CIData ()
         m_data[i] = 0;
 }
 
-CIData::CIData (int        idx,
-                const Box& box)
+CIData::CIData (int        ncomp,
+                int        destcomp,
+                int        face,
+                int        fabindex,
+                const Box& box);
 {
-    m_data[0] = idx;
+    m_data[0] = ncomp;
+    m_data[1] = destcomp;
+    m_data[2] = face;
+    m_data[3] = fabindex;
 
     const IntVect& sm = box.smallEnd();
 
     for (int i = 0; i < BL_SPACEDIM; i++)
-        m_data[1+i] = sm[i];
+        m_data[4+i] = sm[i];
 
     const IntVect& bg = box.bigEnd();
 
     for (int i = 0; i < BL_SPACEDIM; i++)
-        m_data[1+BL_SPACEDIM+i] = bg[i];
+        m_data[4+BL_SPACEDIM+i] = bg[i];
 
     IntVect typ = box.type();
 
     for (int i = 0; i < BL_SPACEDIM; i++)
-        m_data[1+2*BL_SPACEDIM+i] = typ[i];
+        m_data[4+2*BL_SPACEDIM+i] = typ[i];
 }
 #endif /*BL_USE_MPI*/
 
@@ -906,7 +929,7 @@ FluxRegister::CrseInit (const FArrayBox& flux,
 
 #ifdef BL_USE_MPI
     //
-    // Calculate # of recieves each processor expects.
+    // Pass each processor # of IRecv()s it'll need to post.
     //
     int rc;
 
@@ -926,45 +949,84 @@ FluxRegister::CrseInit (const FArrayBox& flux,
     Array<MPI_Request> reqs(NumRecv);
     Array<MPI_Status>  stat(NumRecv);
     Array<CIData>      recv(NumRecv);
+    PArray<FArrayBox>  fabs(NumRecv,PArrayManage);
+    //
+    // First send/receive the box information.
+    //
+    for (int i = 0; i < NumRecv; i++)
     {
-        //
-        // First send/receive the box information.
-        //
-        for (int i = 0; i < NumRecv; i++)
-        {
-            if ((rc = MPI_Irecv(recv[i].dataPtr(),
-                                recv[i].length(),
-                                MPI_INT,
-                                MPI_ANY_SOURCE,
-                                711,
-                                MPI_COMM_WORLD,
-                                &reqs[i])) != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
-        }
-
-        for (ListIterator<FabComTag> it(sendList); it; ++it)
-        {
-            CIData senddata(it());
-
-            if ((rc = MPI_Send(senddata.dataPtr(),
-                               senddata.length(),
-                               MPI_INT,
-                               distributionMap[it().fabIndex],
-                               711,
-                               MPI_COMM_WORLD)) != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
-        }
-
-        if ((rc = MPI_Waitall(NumRecv,
-                              reqs.dataPtr(),
-                              stat.dataPtr())) != MPI_SUCCESS)
+        if ((rc = MPI_Irecv(recv[i].dataPtr(),
+                            recv[i].length(),
+                            MPI_INT,
+                            MPI_ANY_SOURCE,
+                            711,
+                            MPI_COMM_WORLD,
+                            &reqs[i])) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
+
+    for (ListIterator<FabComTag> it(sendList); it; ++it)
     {
-        //
-        // Now the FAB data itself.
-        //
+        CIData senddata(it().nComp,
+                        it().destComp,
+                        it().face,
+                        it().fabIndex,
+                        it().box);
+
+        if ((rc = MPI_Send(senddata.dataPtr(),
+                           senddata.length(),
+                           MPI_INT,
+                           it().toProc,
+                           711,
+                           MPI_COMM_WORLD)) != MPI_SUCCESS)
+            ParallelDescriptor::Abort(rc);
     }
+
+    if ((rc = MPI_Waitall(NumRecv,
+                          reqs.dataPtr(),
+                          stat.dataPtr())) != MPI_SUCCESS)
+        ParallelDescriptor::Abort(rc);
+    //
+    // Now the FAB data itself.
+    //
+    for (int i = 0; i < NumRecv; i++)
+    {
+        fabs.set(i, new FArrayBox(CIData[i].box(), numcomp));
+    }
+
+    for (int i = 0; i < NumRecv; i++)
+    {
+        if ((rc = MPI_Irecv(fabs[i].dataPtr(),
+                            fabs[i].box().numPts() * numcomp,
+                            sizeof(Real) == sizeof(float) ? MPI_FLOAT : MPI_DOUBLE,
+                            MPI_ANY_SOURCE,
+                            803,
+                            MPI_COMM_WORLD,
+                            &reqs[i])) != MPI_SUCCESS)
+            ParallelDescriptor::Abort(rc);
+    }
+
+    for (ListIterator<FabComTag> it(sendList); it; ++it)
+    {
+        FArrayBox fab(it().box, numcomp);
+
+        fab.copy(flux, it().box, srccomp, it().box, 0, numcomp);
+        fab.mult(mult, it().box, 0, numcomp);
+
+        if ((rc = MPI_Send(fab.dataPtr(),
+                           it().box.numPts() * numcomp,
+                           sizeof(Real) == sizeof(float) ? MPI_FLOAT : MPI_DOUBLE,
+                           it().toProc,
+                           803,
+                           MPI_COMM_WORLD)) != MPI_SUCCESS)
+            ParallelDescriptor::Abort(rc);
+    }
+
+    if ((rc = MPI_Waitall(NumRecv,
+                          reqs.dataPtr(),
+                          stat.dataPtr())) != MPI_SUCCESS)
+        ParallelDescriptor::Abort(rc);
+    
 
 #endif /*BL_USE_MPI*/
 }
