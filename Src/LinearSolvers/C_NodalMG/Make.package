@@ -8,7 +8,8 @@ CLIB_headers += cache.H interface.H boundary.H interpolator.H restrictor.H \
                 fill_patch.H amr_multi.H hg_multi.H hg_projector.H
 
 FLIB_sources += amr_real$(DIM)d.F \
-                hg_multi$(DIM)d.F hg_proj$(DIM)d.F hg_avg$(DIM)d.F
+                hg_multi$(DIM)d.F hg_proj$(DIM)d.F hg_avg$(DIM)d.F \
+		hg_multi$(DIM)d_terrain.F
 FLIB_headers +=
 
 endif

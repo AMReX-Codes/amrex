@@ -135,8 +135,6 @@ public:
 #endif
     }
     
-//    explicit unroll_cache(const MultiFab& r);
-    
     ~unroll_cache() 
     {
 	delete [] start;
