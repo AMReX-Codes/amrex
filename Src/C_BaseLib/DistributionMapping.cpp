@@ -1,5 +1,5 @@
 //
-// $Id: DistributionMapping.cpp,v 1.56 2001-09-21 21:38:21 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.57 2002-07-12 23:07:38 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -376,8 +376,7 @@ knapsack (const std::vector<long>& pts, int nprocs)
     }
 top:
     std::list<WeightedBoxList>::iterator it_top = wblqg.begin();
-    std::list<WeightedBoxList>::iterator it_chk = it_top;
-    it_chk++;
+
     WeightedBoxList wbl_top = *it_top;
     //
     // For each ball in the heaviest box.
@@ -388,6 +387,8 @@ top:
         //
         // For each ball not in the heaviest box.
         //
+        std::list<WeightedBoxList>::iterator it_chk = it_top;
+        it_chk++;
         for ( ; it_chk != wblqg.end(); ++it_chk)
         {
             WeightedBoxList wbl_chk = *it_chk;
