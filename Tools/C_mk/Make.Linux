@@ -8,9 +8,9 @@ FULLWARN := --strict_warnings
 override XTRADEFS += -DBL_USE_NEW_HFILES
 endif
 
-FC  = f77 -extend_source -fno-second-underscore
+FC  = f77 -fno-second-underscore
 CPP    = gcc -E -x c++
 FDEBF += -g
 
 
-LIBRARIES +=  -lf2c -lm
+override XTRALIBS +=  -lf2c -lm
