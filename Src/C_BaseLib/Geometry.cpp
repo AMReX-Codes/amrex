@@ -1,5 +1,5 @@
 //
-// $Id: Geometry.cpp,v 1.62 2002-12-03 18:35:38 lijewski Exp $
+// $Id: Geometry.cpp,v 1.63 2002-12-11 17:05:25 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -294,10 +294,7 @@ Geometry::getFPB (MultiFab&  mf,
             //
             // Adjust the ncomp & scomp in CommData.
             //
-            BL_ASSERT((*it).m_commdata.isValid());
-
             Array<CommData>& cd = (*it).m_commdata.theCommData();
-
 
             for (int i = 0; i < cd.size(); i++)
             {
