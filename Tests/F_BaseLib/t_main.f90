@@ -789,3 +789,10 @@ subroutine t_timer
   call wall_second_tick(d)
   print *, 'WALL_SECOND_TICK = ', d
 end subroutine t_timer
+
+subroutine t_bl_types
+  use bl_types
+  use bl_IO_module
+  implicit none
+  call bl_types_info(unit_stdout())
+end subroutine t_bl_types

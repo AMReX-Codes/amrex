@@ -35,6 +35,9 @@ module bl_types
   ! integer, parameter, public :: ll_t = selected_int_kind(15)
   integer, parameter, public :: ll_t = (1 + sign(1,i8_t))/2*i8_t + (1 - sign(1,i8_t))/2*i4_t
 
+  !! Prints useful type information for some of the basic type
+  public :: bl_types_info
+
 contains
   
   subroutine bl_types_info(unit)
