@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.9 2001-08-21 20:30:02 car Exp $
+// $Id: BLThread.cpp,v 1.10 2001-08-23 21:44:32 car Exp $
 //
 
 #include <winstd.H>
@@ -776,20 +776,54 @@ Thread::Attr::set_schedparam(const sched_param& schedparam)
 //
 //Mutex
 //
+class Mutex::Implementation
+{
+public:
+    Implementation ();
+    ~Implementation ();
+    void lock ();
+    bool trylock ();
+    void unlock ();
+protected:
+    friend class ConditionVariable::Implementation;
+    pthread_mutex_t m_mutex;
+};
 
-Mutex::Mutex()
+Mutex::Implementation::Implementation()
 {
     THREAD_REQUIRE( pthread_mutex_init(&m_mutex, 0) );
 }
 
-Mutex::Mutex(const Attr& attr)
+Mutex::Implementation::~Implemetation()
 {
-#ifdef _AIX_PTHREADS_D7
-    THREAD_REQUIRE( pthread_mutex_init(&m_mutex,
-				       const_cast<pthread_mutexattr_t*>(&attr.attribute())) );
-#else
-    THREAD_REQUIRE( pthread_mutex_init(&m_mutex, &attr.attribute()) );
-#endif
+    THREAD_REQUIRE( pthread_mutex_destroy(&m_mutex) );
+}
+
+void
+Mutex::Implementation::lock()
+{
+    THREAD_REQUIRE( pthread_mutex_lock(&m_mutex) );
+}
+
+bool
+Mutex::Implementation::trylock()
+{
+    int status = pthread_mutex_trylock(&m_mutex);
+    if ( status == 0 ) return true;
+    if ( status == EBUSY ) return false;
+    BoxLib::Thread_Error(__FILE__,__LINE__,"pthread_mutex_trylock(&m_mutex)", status);
+    return false;
+}
+
+void
+Mutex::Implementation::unlock()
+{
+    THREAD_REQUIRE( pthread_mutex_unlock(&m_mutex) );
+}
+
+Mutex::Mutex()
+{
+    THREAD_REQUIRE( pthread_mutex_init(&m_mutex, 0) );
 }
 
 Mutex::~Mutex()
@@ -801,12 +835,6 @@ void
 Mutex::lock()
 {
     THREAD_REQUIRE( pthread_mutex_lock(&m_mutex) );
-}
-
-pthread_mutex_t&
-Mutex::theMutex()
-{
-    return m_mutex;
 }
 
 bool
@@ -824,6 +852,24 @@ Mutex::unlock()
 {
     THREAD_REQUIRE( pthread_mutex_unlock(&m_mutex) );
 }
+
+#if 0
+Mutex::Mutex(const Attr& attr)
+{
+#ifdef _AIX_PTHREADS_D7
+    THREAD_REQUIRE( pthread_mutex_init(&m_mutex,
+				       const_cast<pthread_mutexattr_t*>(&attr.attribute())) );
+#else
+    THREAD_REQUIRE( pthread_mutex_init(&m_mutex, &attr.attribute()) );
+#endif
+}
+
+pthread_mutex_t&
+Mutex::theMutex()
+{
+    return m_mutex;
+}
+#endif
 
 
 //
@@ -857,19 +903,50 @@ Mutex::Attr::attribute()
 // ConditionVariable
 //
 
-ConditionVariable::ConditionVariable()
+class ConditionVariable::Implementation
+    : public Mutex::Implementation
+{
+public:
+    Implementation ();
+    ~Implementation ();
+    void signal ();
+    void broadcast ();
+    void wait ();
+protected:
+    pthread_cond_t m_cv;
+};
+
+ConditionVariable::Implementation::Implementation()
 {
     THREAD_REQUIRE( pthread_cond_init(&m_cv, 0) );
 }
 
-ConditionVariable::ConditionVariable(const Attr& attr)
+ConditionVariable::Implementation::~Implementation()
 {
-#ifdef _AIX_PTHREADS_D7
-    THREAD_REQUIRE( pthread_cond_init(&m_cv,
-				      const_cast<pthread_condattr_t*>(&attr.attribute())) );
-#else
-    THREAD_REQUIRE( pthread_cond_init(&m_cv, &attr.attribute()) );
-#endif
+    THREAD_REQUIRE( pthread_cond_destroy(&m_cv) );
+}
+
+void
+ConditionVariable::Implementation::signal()
+{
+    THREAD_REQUIRE( pthread_cond_signal(&m_cv) );
+}
+
+void
+ConditionVariable::Implementation::broadcast()
+{
+    THREAD_REQUIRE( pthread_cond_broadcast(&m_cv) );
+}
+
+void
+ConditionVariable::Implementation::wait()
+{
+    THREAD_REQUIRE( pthread_cond_wait(&m_cv, &m_mutex) );
+}
+
+ConditionVariable::ConditionVariable()
+{
+    THREAD_REQUIRE( pthread_cond_init(&m_cv, 0) );
 }
 
 ConditionVariable::~ConditionVariable()
@@ -892,13 +969,24 @@ ConditionVariable::broadcast()
 void
 ConditionVariable::wait()
 {
-    THREAD_REQUIRE( pthread_cond_wait(&m_cv, &theMutex()) );
+    THREAD_REQUIRE( pthread_cond_wait(&m_cv, &m_mutex) );
+}
+
+#if 0
+ConditionVariable::ConditionVariable(const Attr& attr)
+{
+#ifdef _AIX_PTHREADS_D7
+    THREAD_REQUIRE( pthread_cond_init(&m_cv,
+				      const_cast<pthread_condattr_t*>(&attr.attribute())) );
+#else
+    THREAD_REQUIRE( pthread_cond_init(&m_cv, &attr.attribute()) );
+#endif
 }
 
 void
 ConditionVariable::wait(Mutex& m)
 {
-    THREAD_REQUIRE( pthread_cond_wait(&m_cv, &m.theMutex()) );
+    THREAD_REQUIRE( pthread_cond_wait(&m_cv, &m.m_mutex) );
 }
 
 bool
@@ -930,6 +1018,7 @@ ConditionVariable::theCV()
 {
     return m_cv;
 }
+#endif
 
 //
 // ConditionVariable Attributes
@@ -1269,6 +1358,7 @@ Thread::setCancelState(CancelState)
 // A ConditionVariable
 //
 
+#if 0
 bool
 ConditionVariable::timedwait(const BoxLib::Time& t)
 {
@@ -1282,6 +1372,7 @@ ConditionVariable::timedwait(Mutex&, const BoxLib::Time& t)
     Thread::sleep(t);
     return true;
 }
+#endif
 
 
 //

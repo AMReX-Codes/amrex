@@ -2,7 +2,7 @@
 #define _BL_THREAD_H_
 
 //
-// $Id: Thread.H,v 1.9 2001-08-21 20:30:02 car Exp $
+// $Id: Thread.H,v 1.10 2001-08-23 21:44:32 car Exp $
 //
 
 #ifdef BL_THREADS
@@ -77,17 +77,23 @@ class Mutex
 {
 public:
     class Attr;
+    class Implementation;
     Mutex();
+#if 0
     explicit Mutex(const Attr& attr);
+#endif
     virtual ~Mutex();
     void lock();
     void unlock();
     bool trylock();
+#if 0
     pthread_mutex_t& theMutex();
+#endif
 private:
     Mutex(const Mutex&);
     void operator=(const Mutex&);
     void* operator new(size_t size);
+    Implementation* m_impl;
     pthread_mutex_t m_mutex;
 };
 
@@ -231,19 +237,25 @@ class ConditionVariable
 {
 public:
     class Attr;
+    class Implementation;
     ConditionVariable();
+#if 0
     explicit ConditionVariable(const Attr& attr);
+#endif
     ~ConditionVariable();
     void signal();		// Signal at least one waiting thread.
     void broadcast();		// Signal all waiting threads.
     void wait();			// Wait on the condition.
+#if 0
     void wait(Mutex& m);			// Wait on the condition.
     bool timedwait(const BoxLib::Time& abstime); // Wait until a specified time.
     bool timedwait(Mutex& m, const BoxLib::Time& abstime); // Wait until a specified time.
     pthread_cond_t& theCV();
+#endif
 private:
     ConditionVariable(const ConditionVariable&);
     void operator=(const ConditionVariable&);
+    Implementation* m_impl;
     pthread_cond_t m_cv;
 };
 
@@ -917,7 +929,9 @@ inline ConditionVariable::~ConditionVariable() {}
 inline void ConditionVariable::broadcast() {}
 inline void ConditionVariable::signal() {}
 inline void ConditionVariable::wait() {}
+#if 0
 inline void ConditionVariable::wait(Mutex&) {}
+#endif
 
 #endif
 
