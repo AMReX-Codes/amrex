@@ -1,5 +1,5 @@
 //
-// $Id: Box.cpp,v 1.22 2001-08-16 17:57:43 lijewski Exp $
+// $Id: Box.cpp,v 1.23 2002-02-25 20:59:43 car Exp $
 //
 #include <iostream>
 #include <limits>
@@ -11,7 +11,7 @@
 const Box&
 Box::TheUnitBox ()
 {
-    static const Box Unit(IntVect::TheZeroVector(), IntVect::TheUnitVector());
+    static const Box Unit(IntVect::TheZeroVector(), IntVect::TheZeroVector());
     return Unit;
 }
 
