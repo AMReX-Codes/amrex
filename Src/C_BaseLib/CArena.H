@@ -8,7 +8,7 @@
 #include <iostream>
 #include <set>
 #include <vector>
-using std::list;
+using std::set;
 using std::ostream;
 using std::vector;
 #else
