@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.13 1998-04-14 23:01:50 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.14 1998-04-15 16:50:45 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -9,6 +9,76 @@
 
 #include <FLUXREG_F.H>
 #include <ParallelDescriptor.H>
+
+#ifdef BL_USE_MPI
+
+#include <mpi.h>
+//
+// Data structure used by mergeUnique() to communicate a `int' and a `Box'.
+//
+struct CIData
+{
+    //
+    // We encapsulate a `int' and a `Box' as an `int[3*BL_SPACEDIM+1]'.
+    //
+    int m_data[3*BL_SPACEDIM+1];
+
+    CIData ();
+    CIData (int idx, const Box& box);
+    //
+    // The number of integers.
+    //
+    int length () const { return 3*BL_SPACEDIM+1; }
+    //
+    // Pointer to the data.
+    //
+    int* dataPtr() { return &m_data[0]; }
+    //
+    // Pointer to the data.
+    //
+    const int* dataPtr() const { return &m_data[0]; }
+    //
+    // The contained index.
+    //
+    int idx () const { return m_data[0]; }
+    //
+    // The contained box.
+    //
+    Box box () const
+    {
+        return Box(IntVect(&m_data[1]),
+                   IntVect(&m_data[1+BL_SPACEDIM]),
+                   IntVect(&m_data[1+2*BL_SPACEDIM]));
+    }
+};
+
+CIData::CIData ()
+{
+    for (int i = 0; i < length(); i++)
+        m_data[i] = 0;
+}
+
+CIData::CIData (int        idx,
+                const Box& box)
+{
+    m_data[0] = idx;
+
+    const IntVect& sm = box.smallEnd();
+
+    for (int i = 0; i < BL_SPACEDIM; i++)
+        m_data[1+i] = sm[i];
+
+    const IntVect& bg = box.bigEnd();
+
+    for (int i = 0; i < BL_SPACEDIM; i++)
+        m_data[1+BL_SPACEDIM+i] = bg[i];
+
+    IntVect typ = box.type();
+
+    for (int i = 0; i < BL_SPACEDIM; i++)
+        m_data[1+2*BL_SPACEDIM+i] = typ[i];
+}
+#endif /*BL_USE_MPI*/
 
 FluxRegister::FluxRegister ()
 {
@@ -727,6 +797,66 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     }
 }
 
+//
+// Helper function for CrseInit().
+//
+static
+void
+DoIt (Orientation      face,
+      int              k,
+      FabSet*          bndry,
+      const Box&       bx,
+      const FArrayBox& flux,
+      int              srccomp,
+      int              destcomp,
+      int              numcomp,
+      Real             mult
+#ifdef BL_USE_MPI
+      ,
+      List<FabComTag>& sendList,
+      Array<int>&      msgs
+#endif
+    )
+{
+    FabComTag fabComTag;
+
+    const int                  MyProc = ParallelDescriptor::MyProc();
+    const DistributionMapping& dMap   = bndry[face].DistributionMap();
+
+    if (MyProc == dMap[k])
+    {
+        FArrayBox& loreg = bndry[face][k];
+
+        loreg.copy(flux, bx, srccomp, bx, destcomp, numcomp);
+        loreg.mult(mult, bx, destcomp, numcomp);
+    }
+    else
+    {
+#ifndef BL_USE_MPI
+        FArrayBox fabCom(bx, numcomp);
+
+        fabCom.copy(flux, bx, srccomp, bx, 0, numcomp);
+        fabCom.mult(mult, bx, 0, numcomp);
+#endif /*BL_USE_MPI*/
+        fabComTag.fromProc = MyProc;
+        fabComTag.toProc   = dMap[k];
+        fabComTag.fabIndex = k;
+        fabComTag.destComp = destcomp;
+        fabComTag.nComp    = numcomp;
+        fabComTag.box      = bx;
+        fabComTag.face     = face;
+#ifdef BL_USE_MPI
+        sendList.append(fabComTag);
+        msgs[dMap[k]]++;
+#else
+        ParallelDescriptor::SendData(dMap[k],
+                                     &fabComTag,
+                                     fabCom.dataPtr(),
+                                     bx.numPts() * numcomp * sizeof(Real));
+#endif /*BL_USE_MPI*/
+    }
+}
+
 void
 FluxRegister::CrseInit (const FArrayBox& flux,
                         const Box&       subbox,
@@ -740,99 +870,103 @@ FluxRegister::CrseInit (const FArrayBox& flux,
     assert(srccomp  >= 0 && srccomp+numcomp  <= flux.nComp());
     assert(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
-    const int MyProc = ParallelDescriptor::MyProc();
-    //
-    // First do local work.
-    //
-    for (int k = 0; k < grids.length(); k++)
-    {
-        Orientation face_lo(dir,Orientation::low);
-        Box lobox = bndry[face_lo].box(k) & subbox;
-        if (lobox.ok())
-        {
-            if (MyProc == bndry[face_lo].DistributionMap()[k])
-            {
-                FArrayBox& loreg = bndry[face_lo][k];
-                loreg.copy(flux, lobox, srccomp, lobox, destcomp, numcomp);
-                loreg.mult(mult, lobox, destcomp, numcomp);
-            }
-        }
-        Orientation face_hi(dir,Orientation::high);
-        Box hibox = bndry[face_hi].box(k) & subbox;
-        if (hibox.ok())
-        {
-            if (MyProc == bndry[face_hi].DistributionMap()[k])
-            {
-                FArrayBox& hireg = bndry[face_hi][k];
-                hireg.copy(flux, hibox, srccomp, hibox, destcomp, numcomp);
-                hireg.mult(mult, hibox, destcomp, numcomp);
-            }
-        }
-    }
-    //
-    // Now do non-local work.
-    //
-    FabComTag fabComTag;
+#ifdef BL_USE_MPI
+    List<FabComTag> sendList;
+    Array<int>      msgs(ParallelDescriptor::NProcs(), 0);
+    Array<int>      nrcv(ParallelDescriptor::NProcs(), 0);
+#endif
 
     for (int k = 0; k < grids.length(); k++)
     {
-        Orientation face_lo(dir,Orientation::low);
-        Box lobox = bndry[face_lo].box(k) & subbox;
+        Orientation lo(dir,Orientation::low);
+
+        Box lobox = bndry[lo].box(k) & subbox;
+
         if (lobox.ok())
         {
-            const DistributionMapping& dMap = bndry[face_lo].DistributionMap();
-
-            if (!(MyProc == dMap[k]))
-            {
-                FArrayBox fabCom(lobox, numcomp);
-
-                fabCom.copy(flux, lobox, srccomp, lobox, 0, numcomp);
-                fabCom.mult(mult, lobox, 0, numcomp);
-
-                fabComTag.fromProc = MyProc;
-                fabComTag.toProc   = dMap[k];
-                fabComTag.fabIndex = k;
-                fabComTag.destComp = destcomp;
-                fabComTag.nComp    = fabCom.nComp();
-                fabComTag.box      = fabCom.box();
-                fabComTag.face     = face_lo;
-
-                ParallelDescriptor::SendData(fabComTag.toProc,
-                                             &fabComTag,
-                                             fabCom.dataPtr(),
-                                             fabComTag.box.numPts() *
-                                             fabComTag.nComp * sizeof(Real));
-            }
+            DoIt(lo, k, bndry, lobox, flux, srccomp, destcomp, numcomp, mult
+#ifdef BL_USE_MPI
+                 , sendList, msgs
+#endif
+                );
         }
-        Orientation face_hi(dir,Orientation::high);
-        Box hibox = bndry[face_hi].box(k) & subbox;
+        Orientation hi(dir,Orientation::high);
+
+        Box hibox = bndry[hi].box(k) & subbox;
+
         if (hibox.ok())
         {
-            const DistributionMapping& dMap = bndry[face_hi].DistributionMap();
-
-            if (!(MyProc == dMap[k]))
-            {
-                FArrayBox fabCom(hibox, numcomp);
-
-                fabCom.copy(flux, hibox, srccomp, hibox, 0, numcomp);
-                fabCom.mult(mult, hibox, 0, numcomp);
-
-                fabComTag.fromProc = MyProc;
-                fabComTag.toProc   = dMap[k];
-                fabComTag.fabIndex = k;
-                fabComTag.destComp = destcomp;
-                fabComTag.nComp    = fabCom.nComp();
-                fabComTag.box      = fabCom.box();
-                fabComTag.face     = face_hi;
-
-                ParallelDescriptor::SendData(fabComTag.toProc,
-                                             &fabComTag,
-                                             fabCom.dataPtr(),
-                                             fabComTag.box.numPts() *
-                                             fabComTag.nComp * sizeof(Real));
-            }
+            DoIt(hi, k, bndry, hibox, flux, srccomp, destcomp, numcomp, mult
+#ifdef BL_USE_MPI
+                 , sendList, msgs
+#endif
+                );
         }
     }
+
+#ifdef BL_USE_MPI
+    //
+    // Calculate # of recieves each processor expects.
+    //
+    int rc;
+
+    for (int i = 0; i < msgs.length(); i++)
+    {
+        if ((rc = MPI_Reduce(&msgs[i],
+                             &nrcv[i],
+                             1,
+                             MPI_INT,
+                             MPI_SUM,
+                             i,
+                             MPI_COMM_WORLD)) != MPI_SUCCESS)
+            ParallelDescriptor::Abort(rc);
+    }
+    const int NumRecv = nrcv[ParallelDescriptor::MyProc()];
+
+    Array<MPI_Request> reqs(NumRecv);
+    Array<MPI_Status>  stat(NumRecv);
+    Array<CIData>      recv(NumRecv);
+    {
+        //
+        // First send/receive the box information.
+        //
+        for (int i = 0; i < NumRecv; i++)
+        {
+            if ((rc = MPI_Irecv(recv[i].dataPtr(),
+                                recv[i].length(),
+                                MPI_INT,
+                                MPI_ANY_SOURCE,
+                                711,
+                                MPI_COMM_WORLD,
+                                &reqs[i])) != MPI_SUCCESS)
+                ParallelDescriptor::Abort(rc);
+        }
+
+        for (ListIterator<FabComTag> it(sendList); it; ++it)
+        {
+            CIData senddata(it());
+
+            if ((rc = MPI_Send(senddata.dataPtr(),
+                               senddata.length(),
+                               MPI_INT,
+                               distributionMap[it().fabIndex],
+                               711,
+                               MPI_COMM_WORLD)) != MPI_SUCCESS)
+                ParallelDescriptor::Abort(rc);
+        }
+
+        if ((rc = MPI_Waitall(NumRecv,
+                              reqs.dataPtr(),
+                              stat.dataPtr())) != MPI_SUCCESS)
+            ParallelDescriptor::Abort(rc);
+    }
+    {
+        //
+        // Now the FAB data itself.
+        //
+    }
+
+#endif /*BL_USE_MPI*/
 }
 
 void
@@ -846,14 +980,19 @@ FluxRegister::CrseInitFinish ()
     while (ParallelDescriptor::GetMessageHeader(dataWaitingSize, &fabComTag))
     {
         long t_long = fabComTag.box.numPts() * fabComTag.nComp * sizeof(Real);
+
         assert(t_long < INT_MAX);
         assert(dataWaitingSize == int(t_long));
         assert(fabComTag.box.ok());
 
         FArrayBox tempFab(fabComTag.box, fabComTag.nComp);
+
         ParallelDescriptor::ReceiveData(tempFab.dataPtr(), int(t_long));
-        bndry[fabComTag.face][fabComTag.fabIndex].copy(tempFab, fabComTag.box,
-                                                       0, fabComTag.box,
+
+        bndry[fabComTag.face][fabComTag.fabIndex].copy(tempFab,
+                                                       fabComTag.box,
+                                                       0,
+                                                       fabComTag.box,
                                                        fabComTag.destComp,
                                                        fabComTag.nComp);
     }
