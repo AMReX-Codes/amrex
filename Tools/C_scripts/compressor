@@ -32,7 +32,7 @@ function tar_up_and_rm_files
   #
   # Take all the plt files.
   #
-  pltlist=$(ls -d ${plt_prefix}*)
+  pltlist=$(ls -d ${plt_prefix}* 2>/dev/null)
 
   list="$chklist $pltlist"
 
