@@ -1,7 +1,7 @@
 #ifndef BL_BOX_H
 #define BL_BOX_H
 //
-// $Id: Box.H,v 1.24 2001-08-16 17:57:43 lijewski Exp $
+// $Id: Box.H,v 1.25 2001-10-10 20:12:44 car Exp $
 //
 #ifdef NODEV
 #undef NODEV
@@ -9,6 +9,7 @@
 
 #include <iosfwd>
 
+#include <ccse-mpi.H>
 #include <IntVect.H>
 #include <IndexType.H>
 #include <Orientation.H>
@@ -159,6 +160,7 @@ std::istream& operator>> (std::istream& os, Box& bx);
 */
 class Box
 {
+    friend MPI_Datatype ParallelDescriptor::Mpi_typemap<Box>::type();
 public:
 
     /*@ManDoc: The default constructor.  For safety, the constructed Box is  

@@ -1,10 +1,11 @@
 #ifndef BL_INDEXTYPE_H
 #define BL_INDEXTYPE_H
 //
-// $Id: IndexType.H,v 1.13 2001-07-31 22:43:18 lijewski Exp $
+// $Id: IndexType.H,v 1.14 2001-10-10 20:12:44 car Exp $
 //
 #include <iosfwd>
 
+#include <ccse-mpi.H>
 #include <IntVect.H>
 #include <SPACE.H>
 
@@ -21,6 +22,7 @@
 
 class IndexType
 {
+    friend MPI_Datatype ParallelDescriptor::Mpi_typemap<IndexType>::type();
 public:
     //
     //@ManDoc: The cell index type: one of CELL or NODE.
