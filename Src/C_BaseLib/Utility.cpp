@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.9 1997-11-22 17:52:06 lijewski Exp $
+// $Id: Utility.cpp,v 1.10 1997-11-24 23:45:51 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -45,6 +45,11 @@
 #if defined(__GNUG__) && defined(__sun) && defined(BL_SunOS)
 extern "C" int gettimeofday (struct timeval*, struct timezone*);
 #endif
+
+//
+// Attempt to guarantee wsecond() gets initialized on program startup.
+//
+double The_BL_Utility_Wsecond_Initializer = Utility::wsecond();
 
 double
 Utility::second (double* t)
