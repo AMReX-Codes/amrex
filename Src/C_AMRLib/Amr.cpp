@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.114 2000-08-23 20:16:29 lijewski Exp $
+// $Id: Amr.cpp,v 1.115 2000-09-14 19:44:06 almgren Exp $
 //
 
 #include <TagBox.H>
@@ -199,12 +199,17 @@ Amr::Amr ()
         pp.get("grid_log",grid_file_name);
         setRecordGridInfo(grid_file_name);
     }
+
     if (pp.contains("data_log"))
     {
-	aString data_file_name;
-	pp.get("data_log",data_file_name);
-	setRecordDataInfo(data_file_name);
+      int num_datalogs = pp.countval("data_log");
+      datalog.resize(num_datalogs);
+      Array<aString> data_file_names(num_datalogs);
+      pp.queryarr("data_log",data_file_names,0,num_datalogs);
+      for (int i = 0; i < num_datalogs; i++) 
+        setRecordDataInfo(i,data_file_names[i]);
     }
+
     if (pp.contains("probin_file"))
     {
         pp.get("probin_file",probin_file);
@@ -511,10 +516,11 @@ Amr::setRecordRunInfo (const aString& filename)
 }
 
 void
-Amr::setRecordDataInfo (const aString& filename)
+Amr::setRecordDataInfo (int i, const aString& filename)
 {
-    datalog.open(filename.c_str(),ios::out|ios::app);
-    if (!datalog.good())
+    datalog.set(i,new ofstream);
+    datalog[i].open(filename.c_str(),ios::out|ios::app);
+    if (!datalog[i].good())
         Utility::FileOpenFailed(filename);
 }
 

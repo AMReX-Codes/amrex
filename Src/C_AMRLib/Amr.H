@@ -4,7 +4,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.27 2000-08-17 17:31:00 marc Exp $
+// $Id: Amr.H,v 1.28 2000-09-14 19:44:06 almgren Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -253,9 +253,9 @@ public:
     //
     const aString& theRestartFile () const;
     //
-    //@ManDoc: The datalog file.  Do with it what you want.
+    //@ManDoc: The ith datalog file.  Do with it what you want.
     //
-    ostream& DataLog() { return datalog; }
+    ostream& DataLog(int i) { return datalog[i]; }
 
 protected:
     //
@@ -320,7 +320,7 @@ protected:
 
     void setRecordRunInfo (const aString&);
 
-    void setRecordDataInfo (const aString&);
+    void setRecordDataInfo (int i, const aString&);
     //
     // The data ...
     //
@@ -361,7 +361,7 @@ protected:
     int              record_run_info;
     ofstream         gridlog;
     ofstream         runlog;
-    ofstream         datalog;
+    PArray<ofstream> datalog;
     int              sub_cycle;
     aString          restart_file;
     aString          probin_file;
