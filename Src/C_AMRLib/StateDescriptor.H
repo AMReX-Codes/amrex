@@ -4,7 +4,7 @@
 #define _StateDescriptor_H_ 
 
 //
-// $Id: StateDescriptor.H,v 1.15 1999-08-18 21:53:02 lijewski Exp $
+// $Id: StateDescriptor.H,v 1.16 2000-01-28 01:14:05 sstanley Exp $
 //
 
 #include <Array.H>
@@ -29,14 +29,6 @@ using std::vector;
 
 class Interpolater;
 
-//
-//@Man:
-//@Memo: Attributes of StateData.
-/*@Doc:
-
-  Attributes of StateData.
-*/
-
 extern "C"
 {
   typedef void (*BndryFuncDefault)(Real* data, ARLIM_P(lo), ARLIM_P(hi),
@@ -45,6 +37,14 @@ extern "C"
 				   const Real* time, const int* bc);
 }
 
+
+//
+//@Man:
+//@Memo: Attributes of StateData.
+/*@Doc:
+
+  Attributes of StateData.
+*/
 
 class StateDescriptor
 {
