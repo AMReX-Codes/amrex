@@ -4,7 +4,7 @@
 #define BL_LOOPING_H
 
 //
-// $Id: Looping.H,v 1.4 1997-11-18 00:04:51 lijewski Exp $
+// $Id: Looping.H,v 1.5 1998-11-13 00:16:14 marc Exp $
 //
 
 #if (BL_SPACEDIM == 1)
@@ -85,10 +85,10 @@
 {                                                                       \
     assert(contains(b));                                                \
     assert((ns) >= 0 && (ns) + (nc) <= nComp());                        \
-    const int *_th_plo = loVect();                                     \
-    const int *_th_plen = length();                                    \
+    const int *_th_plo = loVect();                                      \
+    const int *_th_plen = length();                                     \
     const int *_b_lo = (b).loVect();                                    \
-    const int *_b_len = (b).length();                                   \
+    const int *_b_len = (b).length().getVect();                         \
     const T* _th_p = dptr;                                              \
     for(int _n = (ns); _n < (ns)+(nc); ++_n) {                          \
         int nR = _n; nR += 0;                                           \
