@@ -186,6 +186,7 @@ bool task_fill_patch::init(sequence_number sno, MPI_Comm comm)
 
 task_fill_patch::~task_fill_patch()
 {
+    HG_DEBUG_OUT("deleting fill patch " << this << endl );
 }
 
 bool task_fill_patch::ready()

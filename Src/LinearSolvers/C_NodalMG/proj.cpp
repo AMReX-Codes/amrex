@@ -23,7 +23,7 @@ using namespace std;
 std::ofstream debug_out;
 #endif
 
-bool HG_is_debugging = false;
+// bool HG_is_debugging = false;
 
 void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain);
 
