@@ -584,9 +584,8 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
         else if (for_fill_sync_reg == 1)
         {
 	    // FIXME, not terrain sigma?
-  	    fill_sync_reg_borders(sigma[mglev_max], lev_interface[mglev_max],
-  			          boundary.terrain_sigma(), 
-          			 -1, is_dense(m_stencil));
+            boundary.terrain_sigma()->
+  	      fill_sync_reg_borders(sigma[mglev_max], lev_interface[mglev_max],-1);
         }
     }
     else
