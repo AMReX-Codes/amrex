@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef _BASEFAB_H_
-#define _BASEFAB_H_
+#ifndef BL_BASEFAB_H
+#define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.6 1997-09-16 22:28:14 lijewski Exp $
+// $Id: BaseFab.H,v 1.7 1997-09-17 22:22:49 lijewski Exp $
 //
 #include <stdlib.h>
 
@@ -389,7 +389,7 @@ protected:
 };
 
 //
-// Inlines.
+// Implementation.
 //
 
 template <class T>
@@ -716,11 +716,8 @@ BaseFab<T>::copy (const BaseFab<T>& src,
     return *this;
 }
 
-//
-// Non-inlined stuff
-//
-
 template <class T>
+inline
 BaseFab<T>::BaseFab ()
     :
     domain(Box()),
@@ -730,6 +727,7 @@ BaseFab<T>::BaseFab ()
 {}
 
 template <class T>
+inline
 BaseFab<T>::BaseFab (const Box& bx,
                      int        n)
     :
@@ -794,16 +792,11 @@ BaseFab<T>::resize (const Box& b,
         if (new_size > old_size)
         {
             T* ndptr = new T[new_size];
-
             if (ndptr == 0)
                 BoxLib::OutOfMemory(__FILE__, __LINE__);
-
-            long i = 0;
-
-            for ( ; i < old_size; i++)
-            {
+            
+            for (long i = 0; i < old_size; i++)
                 ndptr[i] = dptr[i];
-            }
 
             delete [] dptr;
 
@@ -1001,6 +994,7 @@ BaseFab<T>::performSetVal (T         val,
 {
     assert(domain.contains(bx));
     assert(ns >= 0 && ns + num <= nvar);
+
     ForAllThisBNN(T,bx,ns,num)
     {
         thisR = val;
@@ -1019,4 +1013,4 @@ BaseFab<T>::setComplement (T          x,
         performSetVal(x,bli(),ns,num);
 }
 
-#endif /*_BASEFAB_H_*/
+#endif /*BL_BASEFAB_H*/
