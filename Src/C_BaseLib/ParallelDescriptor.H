@@ -1,7 +1,7 @@
 #ifndef BL_PARALLELDESCRIPTOR_H
 #define BL_PARALLELDESCRIPTOR_H
 //
-// $Id: ParallelDescriptor.H,v 1.72 2001-09-27 21:54:13 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.73 2001-10-02 16:30:41 lijewski Exp $
 //
 #include <BLassert.H>
 #include <REAL.H>
@@ -704,13 +704,6 @@ template <class T>
 void
 Bcast(T* t, size_t n, int root)
 {}
-
-template <class T>
-T
-Bcast(const T& t, int root)
-{
-    return t;
-}
 
 template <class T, class T1>
 void
