@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.41 2000-04-24 17:52:34 car Exp $
+// $Id: DistributionMapping.cpp,v 1.42 2000-08-15 19:24:29 car Exp $
 //
 
 #include <DistributionMapping.H>
@@ -239,6 +239,24 @@ DistributionMapping::AddToCache (const DistributionMapping& dm)
         if (doit)
             m_Cache.push_back(pmap);
     }
+}
+
+void
+DistributionMapping::RoundRobinProcessorMap (int nprocs,
+                                             int nboxes)
+{
+    BL_ASSERT(nprocs > 0);
+    BL_ASSERT(nboxes > 0);
+    m_procmap.resize(nboxes+1);
+
+    for (int i = 0; i < nboxes; i++)
+    {
+        m_procmap[i] = i % nprocs;
+    }
+    //
+    // Set sentinel equal to our processor number.
+    //
+    m_procmap[nboxes] = ParallelDescriptor::MyProc();
 }
 
 void
@@ -491,6 +509,47 @@ top:
     return result;
 }
 #endif /*BL_USE_MPI*/
+
+void
+DistributionMapping::KnapSackProcessorMap (int             nprocs,
+                                           const vector<long>& pts)
+{
+    BL_ASSERT(nprocs > 0);
+    BL_ASSERT(pts.size() > 0);
+    m_procmap.resize(pts.size()+1);
+
+    if (pts.size() <= nprocs || nprocs < 2)
+    {
+        //
+        // Might as well just use ROUNDROBIN.
+        //
+        RoundRobinProcessorMap(nprocs, pts.size());
+    }
+    else
+    {
+#ifdef BL_USE_MPI
+        vector< list<int> > vec = knapsack(pts, nprocs);
+
+        BL_ASSERT(vec.size() == nprocs);
+
+        list<int>::iterator lit;
+
+        for (int i = 0; i < vec.size(); i++)
+        {
+            for (lit = vec[i].begin(); lit != vec[i].end(); ++lit)
+            {
+                m_procmap[*lit] = i;
+            }
+        }
+        //
+        // Set sentinel equal to our processor number.
+        //
+        m_procmap[pts.size()] = ParallelDescriptor::MyProc();
+#else
+        BoxLib::Error("How did this happen?");
+#endif
+    }
+}
 
 void
 DistributionMapping::KnapSackProcessorMap (int             nprocs,

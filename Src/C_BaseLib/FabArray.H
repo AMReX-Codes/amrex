@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.108 2000-08-04 18:06:22 car Exp $
+// $Id: FabArray.H,v 1.109 2000-08-15 19:24:29 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -286,6 +286,12 @@ public:
     void define (const BoxArray& bxs,
                  int             nvar,
                  int             ngrow,
+                 FabAlloc        mem_mode);
+
+    void define (const BoxArray& bxs,
+                 int             nvar,
+                 int             ngrow,
+		 const DistributionMapping& dm,
                  FabAlloc        mem_mode);
 
     /*@ManDoc: Returns true if the FabArray is well-defined.  That is,
@@ -1135,6 +1141,24 @@ FabArray<T,FAB>::define (const BoxArray& bxs,
     n_comp = nvar;
     boxarray.define(bxs);
     distributionMap.define(ParallelDescriptor::NProcs(), boxarray);
+    fabparray.resize(bxs.length());
+    if (alloc == Fab_allocate)
+        AllocFabs();
+}
+
+template <class T, class FAB>
+void
+FabArray<T,FAB>::define (const BoxArray& bxs,
+                         int             nvar,
+                         int             ngrow,
+			 const DistributionMapping& dm,
+                         FabAlloc        alloc)
+{
+    BL_ASSERT(!boxarray.ready());
+    n_grow = ngrow;
+    n_comp = nvar;
+    boxarray.define(bxs);
+    distributionMap = dm;
     fabparray.resize(bxs.length());
     if (alloc == Fab_allocate)
         AllocFabs();
