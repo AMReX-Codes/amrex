@@ -32,7 +32,6 @@ extern "C"
 #error not relevant
 #elif (BL_SPACEDIM == 2)
     void FORT_HGFRES_TERRAIN(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, int&, int&);
-    void FORT_HGFRES_FULL_STENCIL(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, int&, int&);
     void FORT_HGCRES_TERRAIN(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, const int*);
     void FORT_HGIRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, RealRS, intRS, int&, int&, const int& );
     void FORT_HGDRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, RealRS, intRS, int&, const int& );

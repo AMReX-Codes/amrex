@@ -338,21 +338,25 @@ c inflow face, so that binfil can be run for subsequent fills
          if (regl0 .lt. bbh0) then
             do 10 i = regl0, regh0
                do 10 j = regl1, regh1
- 10               dest(i,j) = 2.d0 * dest(regh0,j) - src(bbh0-(i-regl0),j)
+ 10               dest(i,j) = 2.d0 * dest(regh0,j) 
+     &			- src(bbh0-(i-regl0),j)
          else
             do 20 i = regh0, regl0, -1
                do 20 j = regl1, regh1
- 20               dest(i,j) = 2.d0 * dest(regl0,j) - src(bbh0-(i-regl0),j)
+ 20               dest(i,j) = 2.d0 * dest(regl0,j) 
+     &			- src(bbh0-(i-regl0),j)
          end if
       else
          if (regl1 .lt. bbh1) then
             do 30 j = regl1, regh1
                do 30 i = regl0, regh0
- 30               dest(i,j) = 2.d0 * dest(i,regh1) - src(i,bbh1-(j-regl1))
+ 30               dest(i,j) = 2.d0 * dest(i,regh1) 
+     &			- src(i,bbh1-(j-regl1))
          else
             do 40 j = regh1, regl1, -1
                do 40 i = regl0, regh0
- 40               dest(i,j) = 2.d0 * dest(i,regl1) - src(i,bbh1-(j-regl1))
+ 40               dest(i,j) = 2.d0 * dest(i,regl1) 
+     &			- src(i,bbh1-(j-regl1))
          end if
       end if
       end
@@ -557,7 +561,7 @@ c fine region by at least one coarse cell on all sides.
       double precision src(srcl0:srch0,srcl1:srch1)
       double precision fac0, fac1, fac, restr4
       integer i, j, m, n
-      RESTR4() 0.0625d0 * src(4*i,4*j) +
+      RESTR4() = 0.0625d0 * src(4*i,4*j) +
      & 0.046875d0  * (src(4*i,4*j-1) + src(4*i,4*j+1) +
      &                src(4*i-1,4*j) + src(4*i+1,4*j)) +
      & 0.03125d0   * (src(4*i,4*j-2) + src(4*i,4*j+2) + 
@@ -580,7 +584,7 @@ c fine region by at least one coarse cell on all sides.
      &          src(4*i-2,4*j+3) + src(4*i+2,4*j-3) + src(4*i+2,4*j+3) +
      &                src(4*i+3,4*j-2) + src(4*i+3,4*j+2)) +
      & 0.00390625d0* (src(4*i-3,4*j-3) + src(4*i-3,4*j+3) +
-                     src(4*i+3,4*j-3) + src(4*i+3,4*j+3))
+     &               src(4*i+3,4*j-3) + src(4*i+3,4*j+3))
       if (ir .eq. 2 .and. jr .eq. 2) then
          if (regh1 - regl1 .gt. regh0 - regl0) then
             do 10 i = regl0, regh0

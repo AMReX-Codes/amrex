@@ -50,8 +50,8 @@ extern "C"
     void FORT_HGRLXL(Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intS, const int&);
     void FORT_HGRLNF(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intS, const int&, const int&);
 #    else
-    void FORT_HGRES(Real*, intS, const Real*, intS, const Real*, intS, CRealPS, intS, intS, CRealRS, const int&, const int&);
-    void FORT_HGRLX(Real*, intS, const Real*, intS, CRealPS, intS, const Real*, intS, intS, CRealRS, const int&, const int&);
+    void FORT_HGRES(Real*, intS, const Real*, intS, const Real*, intS, CRealPS, intS, intS, CRealPS, const int&, const int&);
+    void FORT_HGRLX(Real*, intS, const Real*, intS, CRealPS, intS, const Real*, intS, intS, CRealPS, const int&, const int&);
     void FORT_HGRLXL(Real*, intS, Real*, intS, RealPS, intS, Real*, intS, intS, intS, RealRS, const int&, const int&, const int&);
     void FORT_HGRLNF(Real*, intS, Real*, intS, Real*, intS, RealPS, intS, Real*, intS, intS, intS, RealRS, const int&, const int&, const int&, const int&);
 #    endif
@@ -141,7 +141,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
 	    FORT_HGRES(r_mfi->dataPtr(), DIMLIST(rbox),
 		s_dmfi->dataPtr(), DIMLIST(sbox),
 		d_dmfi->dataPtr(), DIMLIST(dbox),
-		sigma_nd[0][mglev][igrid].dataPtr(),
+		s0_dmfi->dataPtr(),
 		s1_dmfi->dataPtr(), DIMLIST(sigbox),
 		DIMLIST(freg), hx, hy,
 		IsRZ(), mg_domain[mglev].bigEnd(0) + 1
@@ -222,15 +222,18 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		    else
 		    {
 #if	BL_SPACEDIM != 3
+			DependentMultiFabIterator sg_dmfi(r_mfi, sigma[mglev]);
+			DependentMultiFabIterator s0_dmfi(r_mfi, sigma_nd[0][mglev]);
+			DependentMultiFabIterator s1_dmfi(r_mfi, sigma_nd[1][mglev]);
 			const Box& fbox = c_dmfi->box();
 			const Box& cenbox = cn_dmfi->box();
-			const Box& sigbox = sigma[mglev][igrid].box();
+			const Box& sigbox = sg_dmfi->box();
 #if (BL_SPACEDIM==2)
-			FORT_HGRLX(corr[mglev][igrid].dataPtr(), DIMLIST(fbox),
-			    resid[mglev][igrid].dataPtr(), DIMLIST(sbox),
-			    sigma_nd[0][mglev][igrid].dataPtr(),
-			    sigma_nd[1][mglev][igrid].dataPtr(), DIMLIST(sigbox),
-			    cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
+			FORT_HGRLX(cn_dmfi->dataPtr(), DIMLIST(fbox),
+			    r_mfi->dataPtr(), DIMLIST(sbox),
+			    s0_dmfi->dataPtr(),
+			    s1_dmfi->dataPtr(), DIMLIST(sigbox),
+			    cn_dmfi->dataPtr(), DIMLIST(cenbox),
 			    DIMLIST(freg), hx, hy,
 			    IsRZ(), mg_domain[mglev].bigEnd(0) + 1
 			    );
@@ -266,23 +269,24 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		    else
 		    {
 #if BL_SPACEDIM!=3
-			const Box& sigbox = sigma[mglev][igrid].box();
+			DependentMultiFabIterator sg_dmfi(r_mfi, sigma[mglev]);
+			const Box& sigbox = sg_dmfi->box();
 #if (BL_SPACEDIM==2)
-			FORT_HGRLXL(corr[mglev][igrid].dataPtr(), DIMLIST(fbox),
-			    resid[mglev][igrid].dataPtr(), DIMLIST(sbox),
-			    sigma_nd[0][mglev][igrid].dataPtr(),
-			    sigma_nd[1][mglev][igrid].dataPtr(), DIMLIST(sigbox),
-			    cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
+			FORT_HGRLXL(c_dmfi->dataPtr(), DIMLIST(fbox),
+			    r_mfi->dataPtr(), DIMLIST(sbox),
+			    s0_dmfi->dataPtr(),
+			    s1_dmfi->dataPtr(), DIMLIST(sigbox),
+			    cn_dmfi->dataPtr(), DIMLIST(cenbox),
 			    DIMLIST(freg), DIMLIST(tdom), hx, hy,
 			    IsRZ(), mg_domain[mglev].bigEnd(0) + 1, line_solve_dim
 			    );
 #else
-			FORT_HGRLXL(corr[mglev][igrid].dataPtr(), DIMLIST(fbox),
-			    resid[mglev][igrid].dataPtr(), DIMLIST(sbox),
-			    sigma_nd[0][mglev][igrid].dataPtr(),
-			    sigma_nd[1][mglev][igrid].dataPtr(),
-			    sigma_nd[2][mglev][igrid].dataPtr(), DIMLIST(sigbox),
-			    cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
+			FORT_HGRLXL(c_dmfi->dataPtr(), DIMLIST(fbox),
+			    r_mfi->dataPtr(), DIMLIST(sbox),
+			    s0_dmfi->dataPtr(),
+			    s1_dmfi->dataPtr(),
+			    s2_dmfi->dataPtr(), DIMLIST(sigbox),
+			    cn_dmfi->dataPtr(), DIMLIST(cenbox),
 			    DIMLIST(freg), DIMLIST(tdom), hx, hy, hz
 			    );
 #endif
