@@ -23,14 +23,16 @@ module stencil_nodal_module
 
 contains
 
-  subroutine stencil_fill_nodal(ss, sg, dh_local, dh, mask, face_type, pd)
+  subroutine stencil_fill_nodal(ss, sg, dh_local, dh, mask, face_type, pd, pdv)
     type(multifab), intent(inout) :: ss
     type(multifab), intent(inout) :: sg
     real(kind=dp_t), intent(in)   :: dh_local(:), dh(:)
     type(box), intent(in) :: pd
+    type(boxarray), intent(in) :: pdv
     type(imultifab), intent(inout) :: mask
     integer, intent(in)            :: face_type(:,:,:)
 
+    type(box     ) :: bx
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     real(kind=dp_t), pointer :: cp(:,:,:,:)
     integer, pointer :: mp(:,:,:,:)
@@ -49,13 +51,17 @@ contains
        cp => dataptr(sg, i)
        mp => dataptr(mask, i)
 
+       bx = get_box(mask,i)
+
        select case (ss%dim)
        case (1)
           call s_simple_1d_nodal(sp(:,1,1,:), cp(:,1,1,1), mp(:,1,1,1), face_type(i,1,:), dh)
        case (2)
-          call s_simple_2d_nodal(sp(:,:,1,:), cp(:,:,1,1), mp(:,:,1,1), face_type(i,:,:), dh)
+          call s_simple_2d_nodal(sp(:,:,1,:), cp(:,:,1,1), mp(:,:,1,1), &
+                                 face_type(i,:,:), dh, bx, pd, pdv)
        case (3)
-          call s_simple_3d_nodal(sp(:,:,:,:), cp(:,:,:,1), mp(:,:,:,1), face_type(i,:,:), dh, dh_local)
+          call s_simple_3d_nodal(sp(:,:,:,:), cp(:,:,:,1), mp(:,:,:,1), &
+                                 face_type(i,:,:), dh, dh_local, bx, pd, pdv)
        end select
     end do
 
@@ -84,7 +90,7 @@ contains
     if (face_type(1) .eq. BC_NEU) then
        mm( 1) = ibset(mm(1),BC_BIT(BC_NEU,1,-1))
     else if (face_type(1) .eq. BC_DIR) then
-       mm( 1) = ibset(mm(1),BC_BIT(BC_DIR,1,-1))
+       mm( 1) = ibset(mm(1),BC_BIT(BC_DIR,1,0))
     end if
 
     if (face_type(2) .eq. BC_NEU) then
@@ -98,13 +104,19 @@ contains
 
   end subroutine s_simple_1d_nodal
 
-  subroutine s_simple_2d_nodal(ss, sg, mm, face_type, dh)
+  subroutine s_simple_2d_nodal(ss, sg, mm, face_type, dh, bx, pd, pdv)
     real (kind = dp_t), intent(  out) :: ss(:,:,0:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:)
     integer           , intent(inout) :: mm(:,:)
     integer, intent(in)               :: face_type(:,:)
     real (kind = dp_t), intent(in   ) :: dh(:)
-    integer i, j, nx, ny
+    type(box     ), intent(in) :: bx
+    type(box     ), intent(in) :: pd
+    type(boxarray), intent(in) :: pdv
+
+    type(box    )  :: bx1
+    type(boxarray) :: ba
+    integer i, j, ib, jb, ilo, jlo, ii, jj, nx, ny
     real (kind = dp_t) fx, fy
 
     fx = HALF*THIRD/dh(1)**2
@@ -113,92 +125,95 @@ contains
     nx = size(ss,dim=1)
     ny = size(ss,dim=2)
 
-    if (face_type(2,1) .eq. BC_NEU) then
-       do i = 1,nx
-          mm(i,1) = ibset(mm(i,1),BC_BIT(BC_NEU,2,-1))
-       end do
-    else if (face_type(2,1) .eq. BC_DIR) then
-       do i = 1,nx
-          mm(i,1) = ibset(mm(i,1),BC_BIT(BC_DIR,1,0))
-       end do
-    else 
-       do i = 1,nx
-          if (sg(i,0) .eq. ZERO .or. sg(i-1,0) .eq. ZERO) &
-             mm(i,1) = ibset(mm(i,1),BC_BIT(BC_DIR,1,0))
-       end do
-    end if
+    ! Set the mask to BC_DIR or BC_NEU based on face_type at a physical boundary.
+    if (face_type(2,1) .eq. BC_NEU) &
+        mm(1:nx,1) = ibset(mm(1:nx,1),BC_BIT(BC_NEU,2,-1))
+    if (face_type(2,1) .eq. BC_DIR) &
+        mm(1:nx,1) = ibset(mm(1:nx,1),BC_BIT(BC_DIR,1,0))
 
-    if (face_type(2,2) .eq. BC_NEU) then
-       do i = 1,nx
-          mm(i,ny) = ibset(mm(i,ny),BC_BIT(BC_NEU,2,+1))
-       end do
-    else if (face_type(2,2) .eq. BC_DIR) then
-       do i = 1,nx
-          mm(i,ny) = ibset(mm(i,ny),BC_BIT(BC_DIR,1,0))
-       end do
-    else 
-       do i = 1,nx
-          if (sg(i,ny) .eq. ZERO .or. sg(i-1,ny) .eq. ZERO) &
-             mm(i,ny) = ibset(mm(i,ny),BC_BIT(BC_DIR,1,0))
-       end do
-    end if
+    if (face_type(2,2) .eq. BC_NEU) &
+        mm(1:nx,ny) = ibset(mm(1:nx,ny),BC_BIT(BC_NEU,2,+1))
+    if (face_type(2,2) .eq. BC_DIR) &
+        mm(1:nx,ny) = ibset(mm(1:nx,ny),BC_BIT(BC_DIR,1,0))
 
-    if (face_type(1,1) .eq. BC_NEU) then
-       do j = 1,ny
-          mm(1,j) = ibset(mm(1,j),BC_BIT(BC_NEU,1,-1))
-       end do
-    else if (face_type(1,1) .eq. BC_DIR) then
-       do j = 1,ny
-          mm(1,j) = ibset(mm(1,j),BC_BIT(BC_DIR,1,0))
-       end do
-    else 
-       do j = 1,ny
-          if (sg(0,j) .eq. ZERO .or. sg(0,j-1) .eq. ZERO) &
-             mm(1,j) = ibset(mm(1,j),BC_BIT(BC_DIR,1,0))
-       end do
-    end if
+    if (face_type(1,1) .eq. BC_NEU) &
+        mm(1,1:ny) = ibset(mm(1,1:ny),BC_BIT(BC_NEU,1,-1))
+    if (face_type(1,1) .eq. BC_DIR) &
+        mm(1,1:ny) = ibset(mm(1,1:ny),BC_BIT(BC_DIR,1,0))
     
-    if (face_type(1,2) .eq. BC_NEU) then
-       do j = 1,ny
-          mm(nx,j) = ibset(mm(nx,j),BC_BIT(BC_NEU,1,+1))
-       end do
-    else if (face_type(1,2) .eq. BC_DIR) then
-       do j = 1,ny
-          mm(nx,j) = ibset(mm(nx,j),BC_BIT(BC_DIR,1,0))
-       end do
-    else 
-       do j = 1,ny
-          if (sg(nx,j) .eq. ZERO .or. sg(nx,j-1) .eq. ZERO) &
-             mm(nx,j) = ibset(mm(nx,j),BC_BIT(BC_DIR,1,0))
-       end do
-    end if
+    if (face_type(1,2) .eq. BC_NEU) &
+        mm(nx,1:ny) = ibset(mm(nx,1:ny),BC_BIT(BC_NEU,1,+1))
+    if (face_type(1,2) .eq. BC_DIR) &
+        mm(nx,1:ny) = ibset(mm(nx,1:ny),BC_BIT(BC_DIR,1,0))
 
+    ! Set the mask to BC_DIR at a coarse-fine boundary interior to the problem domain.
+    ilo = bx%lo(1)
+    jlo = bx%lo(2)
+    print *,'BX ',bx%lo(1:2), bx%hi(1:2)
+    print *,'PD ',pd%lo(1:2),pd%hi(1:2)
+    do ib = 1, bx%dim
+       do jb = -1, 1, 2
+          bx1 = shift(bx, jb, ib)
+          jj = (3 + jb)/2
+          call boxarray_boxarray_diff(ba, bx1, pdv)
+          do ii = 1, ba%nboxes
+             bx1 = ba%bxs(ii)
+             if (box_contains(pd,bx1)) then
+               print *,'BX1 ',bx1%lo(1:2), bx1%hi(1:2)
+               if (ib .eq. 1 .and. jb .eq. -1) then
+                 do j = bx1%lo(2)-jlo+1,bx1%hi(2)-jlo+2
+                   mm(1,j) = ibset(mm(1,j),BC_BIT(BC_DIR,1,0))
+                 end do
+               else if (ib .eq. 1 .and. jb .eq.  1) then
+                 do j = bx1%lo(2)-jlo+1,bx1%hi(2)-jlo+2
+                   mm(nx,j) = ibset(mm(nx,j),BC_BIT(BC_DIR,1,0))
+                 end do
+               else if (ib .eq. 2 .and. jb .eq. -1) then
+                 do i = bx1%lo(1)-ilo+1,bx1%hi(1)-ilo+2
+                   mm(i,1) = ibset(mm(i,1),BC_BIT(BC_DIR,1,0))
+                 end do
+               else if (ib .eq. 2 .and. jb .eq.  1) then
+                 do i = bx1%lo(1)-ilo+1,bx1%hi(1)-ilo+2
+                   mm(i,ny) = ibset(mm(i,ny),BC_BIT(BC_DIR,1,0))
+                 end do
+               end if
+             end if
+          end do
+          call destroy(ba)
+       end do
+    end do
+
+    ! Set sg on edges at a Neumann boundary.
     do i = 1,nx-1
-       if (bc_neumann(mm(i,1),2,-1)) &
-         sg(i,0) = sg(i,1)
-       if (bc_neumann(mm(i,ny),2,+1)) &
-         sg(i,ny) = sg(i,ny-1)
+       if (bc_neumann(mm(i, 1),2,-1)) sg(i, 0) = sg(i,1)
+       if (bc_neumann(mm(i,ny),2,+1)) sg(i,ny) = sg(i,ny-1)
     end do
 
     do j = 1,ny-1
-       if (bc_neumann(mm( 1,j),1,-1)) &
-         sg( 0,j) = sg(   1,j)
-       if (bc_neumann(mm(nx,j),1,+1)) &
-         sg(nx,j) = sg(nx-1,j)
+       if (bc_neumann(mm( 1,j),1,-1)) sg( 0,j) = sg(   1,j)
+       if (bc_neumann(mm(nx,j),1,+1)) sg(nx,j) = sg(nx-1,j)
     end do
 
-    if (bc_neumann(mm(1,1),1,-1) .and. bc_neumann(mm(1,1),2,-1)) &
-         sg(0,0) = sg(1,1)
-    if (bc_neumann(mm(nx,1),1,+1) .and. bc_neumann(mm(nx,1),2,-1)) &
-         sg(nx,0) = sg(nx-1,1)
-    if (bc_neumann(mm(1,ny),1,-1) .and. bc_neumann(mm(1,ny),2,+1)) &
-         sg(0,ny) = sg(1,ny-1)
-    if (bc_neumann(mm(nx,ny),1,+1) .and. bc_neumann(mm(nx,ny),2,+1)) &
-         sg(nx,ny) = sg(nx-1,ny-1)
+!   Note: we do the corners *after* each of the edge has been done.
+    if (face_type(1,1) .eq. BC_NEU) then
+       sg(0, 0) = sg(1, 0)
+       sg(0,ny) = sg(1,ny)
+    end if
+    if (face_type(1,2) .eq. BC_NEU) then
+       sg(nx, 0) = sg(nx-1,0)
+       sg(nx,ny) = sg(nx-1,ny)
+    end if
+    if (face_type(2,1) .eq. BC_NEU) then
+       sg( 0,0) = sg( 0,1)
+       sg(ny,0) = sg(nx,1)
+    end if
+    if (face_type(2,2) .eq. BC_NEU) then
+       sg( 0,ny) = sg( 0,ny-1)
+       sg(ny,ny) = sg(nx,ny-1)
+    end if
 
     do j = 1,ny
       do i = 1,nx
-
           ss(i,j,1) = -(fx+fy)* sg(i-1,j-1)
           ss(i,j,2) = -(TWO*fy-fx)*(sg(i  ,j-1) + sg(i-1,j-1))
           ss(i,j,3) = -(fx+fy)* sg(i  ,j-1)
@@ -212,21 +227,26 @@ contains
  
           ss(i,j,0) = -ss(i,j,1) - ss(i,j,2) - ss(i,j,3) - ss(i,j,4) &
                       -ss(i,j,5) - ss(i,j,6) - ss(i,j,7) - ss(i,j,8)
-
       end do
     end do
 
   end subroutine s_simple_2d_nodal
 
-  subroutine s_simple_3d_nodal(ss, sg, mm, face_type, dh, dh_local)
+  subroutine s_simple_3d_nodal(ss, sg, mm, face_type, dh, dh_local, bx, pd, pdv)
     real (kind = dp_t), intent(  out) :: ss(:,:,:,0:)
     real (kind = dp_t), intent(inout) :: sg(0:,0:,0:)
     integer           , intent(inout) :: mm(:,:,:)
     integer, intent(in)               :: face_type(:,:)
     real (kind = dp_t), intent(in   ) :: dh(:), dh_local(:)
-    integer i, j, k, nx, ny, nz
-    real (kind = dp_t) fx,fy,fz,f0
-    real (kind = dp_t) ratio
+    type(box     ), intent(in) :: bx
+    type(box     ), intent(in) :: pd
+    type(boxarray), intent(in) :: pdv
+
+    type(box     ) :: bx1
+    type(boxarray) :: ba
+    integer :: i, j, k, ilo, jlo, klo, ib, jb, ii, jj, nx, ny, nz
+    real (kind = dp_t) :: fx,fy,fz,f0
+    real (kind = dp_t) :: ratio
 
     nx = size(ss,dim=1)
     ny = size(ss,dim=2)
@@ -250,227 +270,188 @@ contains
 !
 !   END STENCIL
 
+    ! Set the mask to BC_DIR or BC_NEU based on face_type at a physical boundary.
+    if (face_type(1,1) .eq. BC_NEU) &
+       mm(1,1:ny,1:nz) = ibset(mm(1,1:ny,1:nz),BC_BIT(BC_NEU,1,-1))
+    if (face_type(1,1) .eq. BC_DIR) &
+       mm(1,1:ny,1:nz) = ibset(mm(1,1:ny,1:nz),BC_BIT(BC_DIR,1,0))
 
-    if (face_type(1,1) .eq. BC_NEU) then
-       do k = 1,nz
-       do j = 1,ny
-          mm(1,j,k) = ibset(mm(1,j,k),BC_BIT(BC_NEU,1,-1))
-       end do
-       end do
-    else if (face_type(1,1) .eq. BC_DIR) then
-       do k = 1,nz
-       do j = 1,ny
-          mm(1,j,k) = ibset(mm(1,j,k),BC_BIT(BC_DIR,1,0))
-       end do
-       end do
-    else 
-       do k = 1,nz
-       do j = 1,ny
-          if (sg(0,j,k  ) .eq. ZERO .or. sg(0,j-1,k  ) .eq. ZERO .or. &
-              sg(0,j,k-1) .eq. ZERO .or. sg(0,j-1,k-1) .eq. ZERO) &
-             mm(1,j,k) = ibset(mm(1,j,k),BC_BIT(BC_DIR,1,0))
-       end do
-       end do
-    end if
+    if (face_type(1,2) .eq. BC_NEU) &
+       mm(nx,1:ny,1:nz) = ibset(mm(nx,1:ny,1:nz),BC_BIT(BC_NEU,1,+1))
+    if (face_type(1,2) .eq. BC_DIR) &
+       mm(nx,1:ny,1:nz) = ibset(mm(nx,1:ny,1:nz),BC_BIT(BC_DIR,1,0))
 
-    if (face_type(1,2) .eq. BC_NEU) then
-       do k = 1,nz
-       do j = 1,ny
-          mm(nx,j,k) = ibset(mm(nx,j,k),BC_BIT(BC_NEU,1,+1))
-       end do
-       end do
-    else if (face_type(1,2) .eq. BC_DIR) then
-       do k = 1,nz
-       do j = 1,ny
-          mm(nx,j,k) = ibset(mm(nx,j,k),BC_BIT(BC_DIR,1,0))
-       end do
-       end do
-    else 
-       do k = 1,nz
-       do j = 1,ny
-          if (sg(nx,j,k  ) .eq. ZERO .or. sg(nx,j-1,k  ) .eq. ZERO .or. &
-              sg(nx,j,k-1) .eq. ZERO .or. sg(nx,j-1,k-1) .eq. ZERO) &
-             mm(nx,j,k) = ibset(mm(nx,j,k),BC_BIT(BC_DIR,1,0))
-       end do
-       end do
-    end if
+    if (face_type(2,1) .eq. BC_NEU) &
+       mm(1:nx,1,1:nz) = ibset(mm(1:nx,1,1:nz),BC_BIT(BC_NEU,2,-1))
+    if (face_type(2,1) .eq. BC_DIR) &
+       mm(1:nx,1,1:nz) = ibset(mm(1:nx,1,1:nz),BC_BIT(BC_DIR,1,0))
 
-    if (face_type(2,1) .eq. BC_NEU) then
-       do k = 1,nz
-       do i = 1,nx
-          mm(i, 1,k) = ibset(mm(i,1,k),BC_BIT(BC_NEU,2,-1))
-       end do
-       end do
-    else if (face_type(2,1) .eq. BC_DIR) then
-       do k = 1,nz
-       do i = 1,nx
-          mm(i, 1,k) = ibset(mm(i,1,k),BC_BIT(BC_DIR,1,0))
-       end do
-       end do
-    else 
-       do k = 1,nz
-       do i = 1,nx
-          if (sg(i,0,k  ) .eq. ZERO .or. sg(i-1,0,k  ) .eq. ZERO .or. &
-              sg(i,0,k-1) .eq. ZERO .or. sg(i-1,0,k-1) .eq. ZERO) &
-             mm(i, 1,k) = ibset(mm(i,1,k),BC_BIT(BC_DIR,1,0))
-       end do
-       end do
-    end if
+    if (face_type(2,2) .eq. BC_NEU) &
+       mm(1:nx,ny,1:nz) = ibset(mm(1:nx,ny,1:nz),BC_BIT(BC_NEU,2,+1))
+    if (face_type(2,2) .eq. BC_DIR) &
+       mm(1:nx,ny,1:nz) = ibset(mm(1:nx,ny,1:nz),BC_BIT(BC_DIR,1,0))
 
-    if (face_type(2,2) .eq. BC_NEU) then
-       do k = 1,nz
-       do i = 1,nx
-          mm(i,ny,k) = ibset(mm(i,ny,k),BC_BIT(BC_NEU,2,+1))
-       end do
-       end do
-    else if (face_type(2,2) .eq. BC_DIR) then
-       do k = 1,nz
-       do i = 1,nx
-          mm(i,ny,k) = ibset(mm(i,ny,k),BC_BIT(BC_DIR,1,0))
-       end do
-       end do
-    else 
-       do k = 1,nz
-       do i = 1,nx
-          if (sg(i,ny,k  ) .eq. ZERO .or. sg(i-1,ny,k  ) .eq. ZERO .or. &
-              sg(i,ny,k-1) .eq. ZERO .or. sg(i-1,ny,k-1) .eq. ZERO) &
-          mm(i,ny,k) = ibset(mm(i,ny,k),BC_BIT(BC_DIR,1,0))
-       end do
-       end do
-    end if
+    if (face_type(3,1) .eq. BC_NEU) &
+       mm(1:nx,1:ny,1) = ibset(mm(1:nx,1:ny,1),BC_BIT(BC_NEU,3,-1))
+    if (face_type(3,1) .eq. BC_DIR) &
+       mm(1:nx,1:ny,1) = ibset(mm(1:nx,1:ny,1),BC_BIT(BC_DIR,1,0))
 
-    if (face_type(3,1) .eq. BC_NEU) then
-       do j = 1,ny
-       do i = 1,nx
-          mm(i,j,1) = ibset(mm(i,j,1),BC_BIT(BC_NEU,3,-1))
-       end do
-       end do
-    else if (face_type(3,1) .eq. BC_DIR) then
-       do j = 1,ny
-       do i = 1,nx
-          mm(i,j,1) = ibset(mm(i,j,1),BC_BIT(BC_DIR,1,0))
-       end do
-       end do
-    else 
-       do j = 1,ny
-       do i = 1,nx
-          if (sg(i,j  ,0) .eq. ZERO .or. sg(i-1,j  ,0) .eq. ZERO .or. &
-              sg(i,j-1,0) .eq. ZERO .or. sg(i-1,j-1,0) .eq. ZERO) &
-             mm(i,j,1) = ibset(mm(i,j,1),BC_BIT(BC_DIR,1,0))
-       end do
-       end do
-    end if
+    if (face_type(3,2) .eq. BC_NEU) &
+       mm(1:nx,1:ny,nz) = ibset(mm(1:nx,1:ny,nz),BC_BIT(BC_NEU,3,+1))
+    if (face_type(3,2) .eq. BC_DIR) &
+       mm(1:nx,1:ny,nz) = ibset(mm(1:nx,1:ny,nz),BC_BIT(BC_DIR,1,0))
 
-    if (face_type(3,2) .eq. BC_NEU) then
-       do j = 1,ny
-       do i = 1,nx
-          mm(i,j,nz) = ibset(mm(i,j,nz),BC_BIT(BC_NEU,3,+1))
+    ! Set the mask to BC_DIR at a coarse-fine boundary interior to the problem domain.
+    ilo = bx%lo(1)
+    jlo = bx%lo(2)
+    klo = bx%lo(3)
+    do ib = 1, bx%dim
+       do jb = -1, 1, 2
+          bx1 = shift(bx, jb, ib)
+          jj = (3 + jb)/2
+          call boxarray_boxarray_diff(ba, bx1, pdv)
+          do ii = 1, ba%nboxes
+             bx1 = ba%bxs(ii)
+             if (box_contains(pd,bx1)) then
+               if (ib .eq. 1 .and. jb .eq. -1) then
+                 do k = bx1%lo(3)-klo+1,bx1%hi(3)-klo+2
+                 do j = bx1%lo(2)-jlo+1,bx1%hi(2)-jlo+2
+                   mm(1,j,k) = ibset(mm(1,j,k),BC_BIT(BC_DIR,1,0))
+                 end do
+                 end do
+               else if (ib .eq. 1 .and. jb .eq.  1) then
+                 do k = bx1%lo(3)-klo+1,bx1%hi(3)-klo+2
+                 do j = bx1%lo(2)-jlo+1,bx1%hi(2)-jlo+2
+                   mm(nx,j,k) = ibset(mm(nx,j,k),BC_BIT(BC_DIR,1,0))
+                 end do
+                 end do
+               else if (ib .eq. 2 .and. jb .eq. -1) then
+                 do k = bx1%lo(3)-klo+1,bx1%hi(3)-klo+2
+                 do i = bx1%lo(1)-ilo+1,bx1%hi(1)-ilo+2
+                   mm(i,1,k) = ibset(mm(i,1,k),BC_BIT(BC_DIR,1,0))
+                 end do
+                 end do
+               else if (ib .eq. 2 .and. jb .eq.  1) then
+                 do k = bx1%lo(3)-klo+1,bx1%hi(3)-klo+2
+                 do i = bx1%lo(1)-ilo+1,bx1%hi(1)-ilo+2
+                   mm(i,ny,k) = ibset(mm(i,ny,k),BC_BIT(BC_DIR,1,0))
+                 end do
+                 end do
+               else if (ib .eq. 3 .and. jb .eq. -1) then
+                 do j = bx1%lo(2)-jlo+1,bx1%hi(2)-jlo+2
+                 do i = bx1%lo(1)-ilo+1,bx1%hi(1)-ilo+2
+                   mm(i,j,nz) = ibset(mm(i,j,nz),BC_BIT(BC_DIR,1,0))
+                 end do
+                 end do
+               else if (ib .eq. 3 .and. jb .eq.  1) then
+                 do j = bx1%lo(2)-jlo+1,bx1%hi(2)-jlo+2
+                 do i = bx1%lo(1)-ilo+1,bx1%hi(1)-ilo+2
+                   mm(i,j,nz) = ibset(mm(i,j,nz),BC_BIT(BC_DIR,1,0))
+                 end do
+                 end do
+               end if
+             end if
+          end do
+          call destroy(ba)
        end do
-       end do
-    else if (face_type(3,2) .eq. BC_DIR) then
-       do j = 1,ny
-       do i = 1,nx
-          mm(i,j,nz) = ibset(mm(i,j,nz),BC_BIT(BC_DIR,1,0))
-       end do
-       end do
-    else 
-       do j = 1,ny
-       do i = 1,nx
-          if (sg(i,j  ,nz) .eq. ZERO .or. sg(i-1,j  ,nz) .eq. ZERO .or. &
-              sg(i,j-1,nz) .eq. ZERO .or. sg(i-1,j-1,nz) .eq. ZERO) &
-             mm(i,j,nz) = ibset(mm(i,j,nz),BC_BIT(BC_DIR,1,0))
-       end do
-       end do
-    end if
+    end do
 
-!   Faces
+    ! Set sg on faces at a Neumann boundary.
     do j = 1,ny-1
     do i = 1,nx-1
-       if (bc_neumann(mm(i,j,1),3,-1)) &
-         sg(i,j,0) = sg(i,j,1)
-       if (bc_neumann(mm(i,j,nz),3,+1)) &
-         sg(i,j,nz) = sg(i,j,nz-1)
+       if (bc_neumann(mm(i,j, 1),3,-1)) sg(i,j, 0) = sg(i,j,1)
+       if (bc_neumann(mm(i,j,nz),3,+1)) sg(i,j,nz) = sg(i,j,nz-1)
     end do
     end do
 
     do k = 1,nz-1
     do i = 1,nx-1
-       if (bc_neumann(mm(i,1,k),2,-1)) &
-         sg(i,0,k) = sg(i,1,k)
-       if (bc_neumann(mm(i,ny,k),2,+1)) &
-         sg(i,ny,k) = sg(i,ny-1,k)
+       if (bc_neumann(mm(i, 1,k),2,-1)) sg(i, 0,k) = sg(i,1,k)
+       if (bc_neumann(mm(i,ny,k),2,+1)) sg(i,ny,k) = sg(i,ny-1,k)
     end do
     end do
 
     do k = 1,nz-1
     do j = 1,ny-1
-       if (bc_neumann(mm( 1,j,k),1,-1)) &
-         sg( 0,j,k) = sg(   1,j,k)
-       if (bc_neumann(mm(nx,j,k),1,+1)) &
-         sg(nx,j,k) = sg(nx-1,j,k)
+       if (bc_neumann(mm( 1,j,k),1,-1)) sg( 0,j,k) = sg(   1,j,k)
+       if (bc_neumann(mm(nx,j,k),1,+1)) sg(nx,j,k) = sg(nx-1,j,k)
     end do
     end do
 
-!   Edges
+    ! Set sg on edges at a Neumann boundary.
     do i = 1,nx-1
-       if (bc_neumann(mm(i, 1, 1),2,-1) .and. bc_neumann(mm(i, 1, 1),3,-1)) &
-         sg(i, 0, 0) = sg(i,1,1)
-       if (bc_neumann(mm(i,ny, 1),2,+1) .and. bc_neumann(mm(i,ny, 1),3,-1)) &
-         sg(i,ny, 0) = sg(i,ny-1,1)
-       if (bc_neumann(mm(i, 1,nz),2,-1) .and. bc_neumann(mm(i, 1,nz),3,+1)) &
-         sg(i, 0,nz) = sg(i,1,nz-1)
-       if (bc_neumann(mm(i,ny,nz),2,+1) .and. bc_neumann(mm(i,ny,nz),3,+1)) &
-         sg(i,ny,nz) = sg(i,ny-1,nz-1)
+       if (bc_neumann(mm(i, 1, 1),2,-1)) sg(i, 0, 0) = sg(i,1, 0) 
+       if (bc_neumann(mm(i, 1,nz),2,-1)) sg(i, 0,nz) = sg(i,1,nz) 
+
+       if (bc_neumann(mm(i,ny, 1),2,+1)) sg(i,ny, 0) = sg(i,ny-1, 0)
+       if (bc_neumann(mm(i,ny,nz),2,+1)) sg(i,ny,nz) = sg(i,ny-1,nz)
+
+       if (bc_neumann(mm(i, 1, 1),3,-1)) sg(i, 0, 0) = sg(i, 0,1)
+       if (bc_neumann(mm(i,ny, 1),3,-1)) sg(i,ny, 0) = sg(i,ny,1)
+
+       if (bc_neumann(mm(i, 1,nz),3,+1)) sg(i, 0,nz) = sg(i, 0,nz-1)
+       if (bc_neumann(mm(i,ny,nz),3,+1)) sg(i,ny,nz) = sg(i,ny,nz-1)
     end do
 
     do j = 1,ny-1
-       if (bc_neumann(mm( 1,j, 1),1,-1) .and. bc_neumann(mm( 1,j, 1),3,-1)) &
-         sg( 0,j, 0) = sg(1,j,1)
-       if (bc_neumann(mm(nx,j, 1),1,+1) .and. bc_neumann(mm(nx,j, 1),3,-1)) &
-         sg(nx,j, 0) = sg(nx-1,j,1)
-       if (bc_neumann(mm( 1,j,nz),1,-1) .and. bc_neumann(mm( 1,j,nz),3,+1)) &
-         sg( 0,j,nz) = sg(1,j,nz-1)
-       if (bc_neumann(mm(nx,j,nz),1,+1) .and. bc_neumann(mm(nx,j,nz),3,+1)) &
-         sg(nx,j,nz) = sg(nx-1,j,nz-1)
+       if (bc_neumann(mm( 1,j, 1),1,-1)) sg( 0,j, 0) = sg(1,j, 0)
+       if (bc_neumann(mm( 1,j,nz),1,-1)) sg( 0,j,nz) = sg(1,j,nz)
+
+       if (bc_neumann(mm(nx,j, 1),1,+1)) sg(nx,j, 0) = sg(nx-1,j, 0)
+       if (bc_neumann(mm(nx,j,nz),1,+1)) sg(nx,j,nz) = sg(nx-1,j,nz)
+
+       if (bc_neumann(mm( 1,j, 1),3,-1)) sg( 0,j, 0) = sg( 0,j,1)
+       if (bc_neumann(mm(nx,j, 1),3,-1)) sg(nx,j, 0) = sg(nx,j,1)
+
+       if (bc_neumann(mm( 1,j,nz),3,+1)) sg( 0,j,nz) = sg( 0,j,nz-1)
+       if (bc_neumann(mm(nx,j,nz),3,+1)) sg(nx,j,nz) = sg(nx,j,nz-1)
     end do
 
     do k = 1,nz-1
-       if (bc_neumann(mm( 1, 1,k),1,-1) .and. bc_neumann(mm( 1, 1,k),2,-1)) &
-         sg( 0, 0,k) = sg(1,1,k)
-       if (bc_neumann(mm(nx, 1,k),1,+1) .and. bc_neumann(mm(nx, 1,k),2,-1)) &
-         sg(nx, 0,k) = sg(nx-1,1,k)
-       if (bc_neumann(mm(1,ny,k),1,-1) .and. bc_neumann(mm( 1,ny,k),2,+1)) &
-         sg( 0,ny,k) = sg(1,ny-1,k)
-       if (bc_neumann(mm(nx,ny,k),1,+1) .and. bc_neumann(mm(nx,ny,k),2,+1)) &
-         sg(nx,ny,k) = sg(nx-1,ny-1,k)
+       if (bc_neumann(mm( 1, 1,k),1,-1)) sg( 0, 0,k) = sg(1, 0,k)
+       if (bc_neumann(mm( 1,ny,k),1,-1)) sg( 0,ny,k) = sg(1,ny,k)
+
+       if (bc_neumann(mm(nx, 1,k),1,+1)) sg(nx, 0,k) = sg(nx-1, 0,k)
+       if (bc_neumann(mm(nx,ny,k),1,+1)) sg(nx,ny,k) = sg(nx-1,ny,k)
+
+       if (bc_neumann(mm( 1, 1,k),2,-1)) sg( 0, 0,k) = sg( 0,1,k)
+       if (bc_neumann(mm(nx, 1,k),2,-1)) sg(nx, 0,k) = sg(nx,1,k)
+
+       if (bc_neumann(mm( 1,ny,k),2,+1)) sg( 0,ny,k) = sg( 0,ny-1,k)
+       if (bc_neumann(mm(nx,ny,k),2,+1)) sg(nx,ny,k) = sg(nx,ny-1,k)
     end do
 
-!   Corners
-    if (bc_neumann(mm( 1, 1, 1),1,-1) .and. bc_neumann(mm( 1, 1, 1),2,-1) &
-                                      .and. bc_neumann(mm( 1, 1, 1),3,-1)) &
-         sg( 0, 0, 0) = sg(1,1,1)
-    if (bc_neumann(mm(nx, 1, 1),1,+1) .and. bc_neumann(mm(nx, 1, 1),2,-1) &
-                                      .and. bc_neumann(mm(nx, 1, 1),3,-1)) &
-         sg(nx, 0, 0) = sg(nx-1,1,1)
-    if (bc_neumann(mm( 1,ny, 1),1,-1) .and. bc_neumann(mm( 1,ny, 1),2,+1) &
-                                      .and. bc_neumann(mm( 1,ny, 1),3,-1)) &
-         sg( 0,ny, 0) = sg(1,ny-1,1)
-    if (bc_neumann(mm(nx,ny, 1),1,+1) .and. bc_neumann(mm(nx,ny, 1),2,+1) &
-                                      .and. bc_neumann(mm(nx,ny, 1),3,-1)) &
-         sg(nx,ny, 0) = sg(nx-1,ny-1,1)
+    if (bc_neumann(mm( 1, 1, 1),1,-1)) sg( 0, 0, 0) = sg( 1, 0, 0) 
+    if (bc_neumann(mm( 1, 1, 1),2,-1)) sg( 0, 0, 0) = sg( 0, 1, 0) 
+    if (bc_neumann(mm( 1, 1, 1),3,-1)) sg( 0, 0, 0) = sg( 0, 0, 1) 
 
-    if (bc_neumann(mm( 1, 1,nz),1,-1) .and. bc_neumann(mm( 1, 1,nz),2,-1) &
-                                      .and. bc_neumann(mm( 1, 1,nz),3,+1)) &
-         sg( 0, 0,nz) = sg(1,1,nz-1)
-    if (bc_neumann(mm(nx, 1,nz),1,+1) .and. bc_neumann(mm(nx, 1,nz),2,-1) &
-                                      .and. bc_neumann(mm(nx, 1,nz),3,+1)) &
-         sg(nx, 0,nz) = sg(nx-1,1,nz-1)
-    if (bc_neumann(mm( 1,ny,nz),1,-1) .and. bc_neumann(mm( 1,ny,nz),2,+1) &
-                                      .and. bc_neumann(mm( 1,ny,nz),3,+1)) &
-         sg( 0,ny,nz) = sg(1,ny-1,nz-1)
-    if (bc_neumann(mm(nx,ny,nz),1,+1) .and. bc_neumann(mm(nx,ny,nz),2,+1) &
-                                      .and. bc_neumann(mm(nx,ny,nz),3,+1)) &
-         sg(nx,ny,nz) = sg(nx-1,ny-1,nz-1)
+    if (bc_neumann(mm(nx, 1, 1),1,+1)) sg(nx, 0, 0) = sg(nx-1, 0, 0) 
+    if (bc_neumann(mm(nx, 1, 1),2,-1)) sg(nx, 0, 0) = sg(nx  , 1, 0) 
+    if (bc_neumann(mm(nx, 1, 1),3,-1)) sg(nx, 0, 0) = sg(nx  , 0, 1) 
+
+    if (bc_neumann(mm( 1,ny, 1),1,-1)) sg( 0,ny, 0) = sg( 1,ny  , 0) 
+    if (bc_neumann(mm( 1,ny, 1),2,+1)) sg( 0,ny, 0) = sg( 0,ny-1, 0) 
+    if (bc_neumann(mm( 1,ny, 1),3,-1)) sg( 0,ny, 0) = sg( 0,ny  , 1) 
+
+    if (bc_neumann(mm( 1, 1,nz),1,-1)) sg( 0, 0,nz) = sg( 1, 0,nz  ) 
+    if (bc_neumann(mm( 1, 1,nz),2,-1)) sg( 0, 0,nz) = sg( 0, 1,nz  ) 
+    if (bc_neumann(mm( 1, 1,nz),3,+1)) sg( 0, 0,nz) = sg( 0, 0,nz-1) 
+
+    if (bc_neumann(mm(nx,ny, 1),1,+1)) sg(nx,ny, 0) = sg(nx-1,ny  , 0) 
+    if (bc_neumann(mm(nx,ny, 1),2,+1)) sg(nx,ny, 0) = sg(nx  ,ny-1, 0) 
+    if (bc_neumann(mm(nx,ny, 1),3,-1)) sg(nx,ny, 0) = sg(nx  ,ny  , 1) 
+
+    if (bc_neumann(mm(nx, 1,nz),1,+1)) sg(nx, 0,nz) = sg(nx-1, 0,nz  ) 
+    if (bc_neumann(mm(nx, 1,nz),2,-1)) sg(nx, 0,nz) = sg(nx  , 1,nz  ) 
+    if (bc_neumann(mm(nx, 1,nz),3,+1)) sg(nx, 0,nz) = sg(nx  , 0,nz-1) 
+
+    if (bc_neumann(mm( 1,ny,nz),1,-1)) sg( 0,ny,nz) = sg( 1,ny  ,nz  ) 
+    if (bc_neumann(mm( 1,ny,nz),2,+1)) sg( 0,ny,nz) = sg( 0,ny-1,nz  ) 
+    if (bc_neumann(mm( 1,ny,nz),3,+1)) sg( 0,ny,nz) = sg( 0,ny  ,nz-1) 
+
+    if (bc_neumann(mm(nx,ny,nz),1,+1)) sg(nx,ny,nz) = sg(nx-1,ny  ,nz  ) 
+    if (bc_neumann(mm(nx,ny,nz),2,+1)) sg(nx,ny,nz) = sg(nx  ,ny-1,nz  ) 
+    if (bc_neumann(mm(nx,ny,nz),3,+1)) sg(nx,ny,nz) = sg(nx  ,ny  ,nz-1) 
 
     do k = 1, nz
     do j = 1, ny
@@ -1525,14 +1506,17 @@ contains
        if (bc_neumann(mm(hi(1),j),1,+1)) uu(hi(1)+1,j) = uu(hi(1)-1,j)
     end do
 
-    if (bc_neumann(mm(lo(1),lo(2)),1,-1) .and. &
-        bc_neumann(mm(lo(1),lo(2)),2,-1)) uu(lo(1)-1,lo(2)-1) = uu(lo(1)+1,lo(2)+1)
-    if (bc_neumann(mm(hi(1),lo(2)),1,+1) .and. &
-        bc_neumann(mm(hi(1),lo(2)),2,-1)) uu(hi(1)+1,lo(2)-1) = uu(hi(1)-1,lo(2)+1)
-    if (bc_neumann(mm(lo(1),hi(2)),1,-1) .and. &
-        bc_neumann(mm(lo(1),hi(2)),2,+1)) uu(lo(1)-1,hi(2)+1) = uu(lo(1)+1,hi(2)-1)
-    if (bc_neumann(mm(hi(1),hi(2)),1,+1) .and. &
-        bc_neumann(mm(hi(1),hi(2)),2,+1)) uu(hi(1)+1,hi(2)+1) = uu(hi(1)-1,hi(2)-1)
+    if (bc_neumann(mm(lo(1),lo(2)),1,-1)) uu(lo(1)-1,lo(2)-1) = uu(lo(1)+1,lo(2)-1) 
+    if (bc_neumann(mm(lo(1),lo(2)),2,-1)) uu(lo(1)-1,lo(2)-1) = uu(lo(1)-1,lo(2)+1) 
+
+    if (bc_neumann(mm(hi(1),lo(2)),1,+1)) uu(hi(1)+1,lo(2)-1) = uu(hi(1)-1,lo(2)-1) 
+    if (bc_neumann(mm(hi(1),lo(2)),2,-1)) uu(hi(1)+1,lo(2)-1) = uu(hi(1)+1,lo(2)+1) 
+
+    if (bc_neumann(mm(lo(1),hi(2)),1,-1)) uu(lo(1)-1,hi(2)+1) = uu(lo(1)+1,hi(2)+1) 
+    if (bc_neumann(mm(lo(1),hi(2)),2,+1)) uu(lo(1)-1,hi(2)+1) = uu(lo(1)-1,hi(2)-1) 
+
+    if (bc_neumann(mm(hi(1),hi(2)),1,+1)) uu(hi(1)+1,hi(2)+1) = uu(hi(1)-1,hi(2)+1) 
+    if (bc_neumann(mm(hi(1),hi(2)),2,+1)) uu(hi(1)+1,hi(2)+1) = uu(hi(1)+1,hi(2)-1) 
 
   end subroutine impose_neumann_bcs_2d
 
@@ -1551,103 +1535,130 @@ contains
     do k = lo(3),hi(3)
     do j = lo(2),hi(2)
       i = lo(1)
-      if (bc_neumann(mm(i,j,k),1,-1)) &
-         uu(i-1,j,k) = uu(i+1,j,k)
+      if (bc_neumann(mm(i,j,k),1,-1)) uu(i-1,j,k) = uu(i+1,j,k)
       i = hi(1)
-      if (bc_neumann(mm(i,j,k),1,+1)) &
-         uu(i+1,j,k) = uu(i-1,j,k)
+      if (bc_neumann(mm(i,j,k),1,+1)) uu(i+1,j,k) = uu(i-1,j,k)
     end do
     end do
    
     do k = lo(3),hi(3)
     do i = lo(1),hi(1)
       j = lo(2)
-      if (bc_neumann(mm(i,j,k),2,-1)) &
-         uu(i,j-1,k) = uu(i,j+1,k)
+      if (bc_neumann(mm(i,j,k),2,-1)) uu(i,j-1,k) = uu(i,j+1,k)
       j = hi(2)
-      if (bc_neumann(mm(i,j,k),2,+1)) &
-         uu(i,j+1,k) = uu(i,j-1,k)
+      if (bc_neumann(mm(i,j,k),2,+1)) uu(i,j+1,k) = uu(i,j-1,k)
     end do
     end do
    
     do j = lo(2),hi(2)
     do i = lo(1),hi(1)
       k = lo(3)
-      if (bc_neumann(mm(i,j,k),3,-1)) &
-         uu(i,j,k-1) = uu(i,j,k+1)
+      if (bc_neumann(mm(i,j,k),3,-1)) uu(i,j,k-1) = uu(i,j,k+1)
       k = hi(3)
-      if (bc_neumann(mm(i,j,k),3,+1)) &
-         uu(i,j,k+1) = uu(i,j,k-1)
+      if (bc_neumann(mm(i,j,k),3,+1)) uu(i,j,k+1) = uu(i,j,k-1)
     end do
     end do
 
 !   Edges
     do i = lo(1),hi(1)
-      if (bc_neumann(mm(i,lo(2),lo(3)),2,-1) .and. bc_neumann(mm(i,lo(2),lo(3)),3,-1)) &
-         uu(i,lo(2)-1,lo(3)-1) = uu(i,lo(2)+1,lo(3)+1)
-      if (bc_neumann(mm(i,hi(2),lo(3)),2,+1) .and. bc_neumann(mm(i,hi(2),lo(3)),3,-1)) &
-         uu(i,hi(2)+1,lo(3)-1) = uu(i,hi(2)-1,lo(3)+1)
-      if (bc_neumann(mm(i,lo(2),hi(3)),2,-1) .and. bc_neumann(mm(i,lo(2),hi(3)),3,+1)) &
-         uu(i,lo(2)-1,hi(3)+1) = uu(i,lo(2)+1,hi(3)-1)
-      if (bc_neumann(mm(i,hi(2),hi(3)),2,+1) .and. bc_neumann(mm(i,hi(2),hi(3)),3,+1)) &
-         uu(i,hi(2)+1,hi(3)+1) = uu(i,hi(2)-1,hi(3)-1)
+      if (bc_neumann(mm(i,lo(2),lo(3)),2,-1)) uu(i,lo(2)-1,lo(3)-1) = uu(i,lo(2)+1,lo(3)-1)
+      if (bc_neumann(mm(i,lo(2),hi(3)),2,-1)) uu(i,lo(2)-1,hi(3)+1) = uu(i,lo(2)+1,hi(3)+1)
+
+      if (bc_neumann(mm(i,hi(2),lo(3)),2,+1)) uu(i,hi(2)+1,lo(3)-1) = uu(i,hi(2)-1,lo(3)-1)
+      if (bc_neumann(mm(i,hi(2),hi(3)),2,+1)) uu(i,hi(2)+1,hi(3)+1) = uu(i,hi(2)-1,hi(3)+1)
+
+      if (bc_neumann(mm(i,lo(2),lo(3)),3,-1)) uu(i,lo(2)-1,lo(3)-1) = uu(i,lo(2)-1,lo(3)+1)
+      if (bc_neumann(mm(i,hi(2),lo(3)),3,-1)) uu(i,hi(2)+1,lo(3)-1) = uu(i,hi(2)+1,lo(3)+1)
+
+      if (bc_neumann(mm(i,lo(2),hi(3)),3,+1)) uu(i,lo(2)-1,hi(3)+1) = uu(i,lo(2)-1,hi(3)-1)
+      if (bc_neumann(mm(i,hi(2),hi(3)),3,+1)) uu(i,hi(2)+1,hi(3)+1) = uu(i,hi(2)+1,hi(3)-1)
     end do
 
     do j = lo(2),hi(2)
-      if (bc_neumann(mm(lo(1),j,lo(3)),1,-1) .and. bc_neumann(mm(lo(1),j,lo(3)),3,-1)) &
-         uu(lo(1)-1,j,lo(3)-1) = uu(lo(1)+1,j,lo(3)+1)
-      if (bc_neumann(mm(hi(1),j,lo(3)),1,+1) .and. bc_neumann(mm(hi(1),j,lo(3)),3,-1)) &
-         uu(hi(1)+1,j,lo(3)-1) = uu(hi(1)-1,j,lo(3)+1)
-      if (bc_neumann(mm(lo(1),j,hi(3)),1,-1) .and. bc_neumann(mm(lo(1),j,hi(3)),3,+1)) &
-         uu(lo(1)-1,j,hi(3)+1) = uu(lo(1)+1,j,hi(3)-1)
-      if (bc_neumann(mm(hi(1),j,hi(3)),1,+1) .and. bc_neumann(mm(hi(1),j,hi(3)),3,+1)) &
-         uu(hi(1)+1,j,hi(3)+1) = uu(hi(1)-1,j,hi(3)-1)
+      if (bc_neumann(mm(lo(1),j,lo(3)),1,-1)) uu(lo(1)-1,j,lo(3)-1) = uu(lo(1)+1,j,lo(3)-1)
+      if (bc_neumann(mm(lo(1),j,hi(3)),1,-1)) uu(lo(1)-1,j,hi(3)+1) = uu(lo(1)+1,j,hi(3)+1)
+
+      if (bc_neumann(mm(hi(1),j,lo(3)),1,+1)) uu(hi(1)+1,j,lo(3)-1) = uu(hi(1)-1,j,lo(3)-1)
+      if (bc_neumann(mm(hi(1),j,hi(3)),1,+1)) uu(hi(1)+1,j,hi(3)+1) = uu(hi(1)-1,j,hi(3)+1)
+
+      if (bc_neumann(mm(lo(1),j,lo(3)),3,-1)) uu(lo(1)-1,j,lo(3)-1) = uu(lo(1)-1,j,lo(3)+1)
+      if (bc_neumann(mm(hi(1),j,lo(3)),3,-1)) uu(hi(1)+1,j,lo(3)-1) = uu(hi(1)+1,j,lo(3)+1)
+
+      if (bc_neumann(mm(lo(1),j,hi(3)),3,+1)) uu(lo(1)-1,j,hi(3)+1) = uu(lo(1)-1,j,hi(3)-1)
+      if (bc_neumann(mm(hi(1),j,hi(3)),3,+1)) uu(hi(1)+1,j,hi(3)+1) = uu(hi(1)+1,j,hi(3)-1)
     end do
 
     do k = lo(3),hi(3)
-      if (bc_neumann(mm(lo(1),lo(2),k),1,-1) .and. bc_neumann(mm(lo(1),lo(2),k),2,-1)) &
-         uu(lo(1)-1,lo(2)-1,k) = uu(lo(1)+1,lo(2)+1,k)
-      if (bc_neumann(mm(hi(1),lo(2),k),1,+1) .and. bc_neumann(mm(hi(1),lo(2),k),2,-1)) &
-         uu(hi(1)+1,lo(2)-1,k) = uu(hi(1)-1,lo(2)+1,k)
-      if (bc_neumann(mm(lo(1),hi(2),k),1,-1) .and. bc_neumann(mm(lo(1),hi(2),k),2,+1)) &
-         uu(lo(1)-1,hi(2)+1,k) = uu(lo(1)+1,hi(2)-1,k)
-      if (bc_neumann(mm(hi(1),hi(2),k),1,+1) .and. bc_neumann(mm(hi(1),hi(2),k),2,+1)) &
-         uu(hi(1)+1,hi(2)+1,k) = uu(hi(1)-1,hi(2)-1,k)
+      if (bc_neumann(mm(lo(1),lo(2),k),1,-1)) uu(lo(1)-1,lo(2)-1,k) = uu(lo(1)+1,lo(2)-1,k)
+      if (bc_neumann(mm(lo(1),hi(2),k),1,-1)) uu(lo(1)-1,hi(2)+1,k) = uu(lo(1)+1,hi(2)+1,k)
+
+      if (bc_neumann(mm(hi(1),lo(2),k),1,+1)) uu(hi(1)+1,lo(2)-1,k) = uu(hi(1)-1,lo(2)-1,k)
+      if (bc_neumann(mm(hi(1),hi(2),k),1,+1)) uu(hi(1)+1,hi(2)+1,k) = uu(hi(1)-1,hi(2)+1,k)
+
+      if (bc_neumann(mm(lo(1),lo(2),k),2,-1)) uu(lo(1)-1,lo(2)-1,k) = uu(lo(1)-1,lo(2)+1,k)
+      if (bc_neumann(mm(hi(1),lo(2),k),2,-1)) uu(hi(1)+1,lo(2)-1,k) = uu(hi(1)+1,lo(2)+1,k)
+
+      if (bc_neumann(mm(lo(1),hi(2),k),2,+1)) uu(lo(1)-1,hi(2)+1,k) = uu(lo(1)-1,hi(2)-1,k)
+      if (bc_neumann(mm(hi(1),hi(2),k),2,+1)) uu(hi(1)+1,hi(2)+1,k) = uu(hi(1)+1,hi(2)-1,k)
+
     end do
 
 !   Corners
-    if (bc_neumann(mm(lo(1),lo(2),lo(3)),1,-1) .and. &
-        bc_neumann(mm(lo(1),lo(2),lo(3)),2,-1) .and. &
-        bc_neumann(mm(lo(1),lo(2),lo(3)),3,-1))  &
-                   uu(lo(1)-1,lo(2)-1,lo(3)-1) = uu(lo(1)+1,lo(2)+1,lo(3)+1)
-    if (bc_neumann(mm(hi(1),lo(2),lo(3)),1,+1) .and. &
-        bc_neumann(mm(hi(1),lo(2),lo(3)),2,-1) .and. &
-        bc_neumann(mm(hi(1),lo(2),lo(3)),3,-1))  &
-                   uu(hi(1)+1,lo(2)-1,lo(3)-1) = uu(hi(1)-1,lo(2)+1,lo(3)+1)
-    if (bc_neumann(mm(lo(1),hi(2),lo(3)),1,-1) .and. &
-        bc_neumann(mm(lo(1),hi(2),lo(3)),2,+1) .and. &
-        bc_neumann(mm(lo(1),hi(2),lo(3)),3,-1))  &
-                   uu(lo(1)-1,hi(2)+1,lo(3)-1) = uu(lo(1)+1,hi(2)-1,lo(3)+1)
-    if (bc_neumann(mm(hi(1),hi(2),lo(3)),1,+1) .and. &
-        bc_neumann(mm(hi(1),hi(2),lo(3)),2,+1) .and. &
-        bc_neumann(mm(hi(1),hi(2),lo(3)),3,-1))  &
-                   uu(hi(1)+1,hi(2)+1,lo(3)-1) = uu(hi(1)-1,hi(2)-1,lo(3)+1)
-    if (bc_neumann(mm(lo(1),lo(2),hi(3)),1,-1) .and. &
-        bc_neumann(mm(lo(1),lo(2),hi(3)),2,-1) .and. &
-        bc_neumann(mm(lo(1),lo(2),hi(3)),3,+1))  &
-                   uu(lo(1)-1,lo(2)-1,hi(3)+1) = uu(lo(1)+1,lo(2)+1,hi(3)-1)
-    if (bc_neumann(mm(hi(1),lo(2),hi(3)),1,+1) .and. &
-        bc_neumann(mm(hi(1),lo(2),hi(3)),2,-1) .and. &
-        bc_neumann(mm(hi(1),lo(2),hi(3)),3,+1))  &
-                   uu(hi(1)+1,lo(2)-1,hi(3)+1) = uu(hi(1)-1,lo(2)+1,hi(3)-1)
-    if (bc_neumann(mm(lo(1),hi(2),hi(3)),1,-1) .and. &
-        bc_neumann(mm(lo(1),hi(2),hi(3)),2,+1) .and. &
-        bc_neumann(mm(lo(1),hi(2),hi(3)),3,+1))  &
-                   uu(lo(1)-1,hi(2)+1,hi(3)+1) = uu(lo(1)+1,hi(2)-1,hi(3)-1)
-    if (bc_neumann(mm(hi(1),hi(2),hi(3)),1,+1) .and. &
-        bc_neumann(mm(hi(1),hi(2),hi(3)),2,+1) .and. &
-        bc_neumann(mm(hi(1),hi(2),hi(3)),3,+1))  &
-                   uu(hi(1)+1,hi(2)+1,hi(3)+1) = uu(hi(1)-1,hi(2)-1,hi(3)-1)
+    i = lo(1)
+    j = lo(2)
+    k = lo(3)
+    if (bc_neumann(mm(i,j,k),1,-1))  uu(i-1,j-1,k-1) = uu(i+1,j-1,k-1)
+    if (bc_neumann(mm(i,j,k),2,-1))  uu(i-1,j-1,k-1) = uu(i-1,j+1,k-1)
+    if (bc_neumann(mm(i,j,k),3,-1))  uu(i-1,j-1,k-1) = uu(i-1,j-1,k+1)
+
+    i = hi(1)
+    j = lo(2)
+    k = lo(3)
+    if (bc_neumann(mm(i,j,k),1,+1))  uu(i+1,j-1,k-1) = uu(i-1,j-1,k-1)
+    if (bc_neumann(mm(i,j,k),2,-1))  uu(i+1,j-1,k-1) = uu(i+1,j+1,k-1)
+    if (bc_neumann(mm(i,j,k),3,-1))  uu(i+1,j-1,k-1) = uu(i+1,j-1,k+1)
+
+    i = lo(1)
+    j = hi(2)
+    k = lo(3)
+    if (bc_neumann(mm(i,j,k),1,-1))  uu(i-1,j+1,k-1) = uu(i+1,j+1,k-1)
+    if (bc_neumann(mm(i,j,k),2,+1))  uu(i-1,j+1,k-1) = uu(i-1,j-1,k-1)
+    if (bc_neumann(mm(i,j,k),3,-1))  uu(i-1,j+1,k-1) = uu(i-1,j+1,k+1)
+
+    i = lo(1)
+    j = lo(2)
+    k = hi(3)
+    if (bc_neumann(mm(i,j,k),1,-1))  uu(i-1,j-1,k+1) = uu(i+1,j-1,k+1)
+    if (bc_neumann(mm(i,j,k),2,-1))  uu(i-1,j-1,k+1) = uu(i-1,j+1,k+1)
+    if (bc_neumann(mm(i,j,k),3,+1))  uu(i-1,j-1,k+1) = uu(i-1,j-1,k-1)
+
+    i = hi(1)
+    j = hi(2)
+    k = lo(3)
+    if (bc_neumann(mm(i,j,k),1,+1))  uu(i+1,j+1,k-1) = uu(i-1,j+1,k-1)
+    if (bc_neumann(mm(i,j,k),2,+1))  uu(i+1,j+1,k-1) = uu(i+1,j-1,k-1)
+    if (bc_neumann(mm(i,j,k),3,-1))  uu(i+1,j+1,k-1) = uu(i+1,j+1,k+1)
+
+    i = hi(1)
+    j = lo(2)
+    k = hi(3)
+    if (bc_neumann(mm(i,j,k),1,+1))  uu(i+1,j-1,k+1) = uu(i-1,j-1,k+1)
+    if (bc_neumann(mm(i,j,k),2,-1))  uu(i+1,j-1,k+1) = uu(i+1,j+1,k+1)
+    if (bc_neumann(mm(i,j,k),3,+1))  uu(i+1,j-1,k+1) = uu(i+1,j-1,k-1)
+
+    i = lo(1)
+    j = hi(2)
+    k = hi(3)
+    if (bc_neumann(mm(i,j,k),1,-1))  uu(i-1,j+1,k+1) = uu(i+1,j+1,k+1)
+    if (bc_neumann(mm(i,j,k),2,+1))  uu(i-1,j+1,k+1) = uu(i-1,j-1,k+1)
+    if (bc_neumann(mm(i,j,k),3,+1))  uu(i-1,j+1,k+1) = uu(i-1,j+1,k-1)
+
+    i = hi(1)
+    j = hi(2)
+    k = hi(3)
+    if (bc_neumann(mm(i,j,k),1,+1))  uu(i+1,j+1,k+1) = uu(i-1,j+1,k+1)
+    if (bc_neumann(mm(i,j,k),2,+1))  uu(i+1,j+1,k+1) = uu(i+1,j-1,k+1)
+    if (bc_neumann(mm(i,j,k),3,+1))  uu(i+1,j+1,k+1) = uu(i+1,j+1,k-1)
 
   end subroutine impose_neumann_bcs_3d
 
