@@ -3,14 +3,14 @@ PROFILE = FALSE
 PROFILE = TRUE
 DEBUG	= FALSE
 DEBUG	= TRUE
-DIM	= 3
 DIM	= 2
+DIM	= 3
 COMP = g++
 COMP = KCC
-USE_MPI=FALSE
 USE_MPI=TRUE
-USE_THREADS=FALSE
+USE_MPI=FALSE
 USE_THREADS=TRUE
+USE_THREADS=FALSE
 NAMESPACE=FALSE
 
 USE_ARRAYVIEW = TRUE
@@ -21,13 +21,13 @@ USE_HYPRE=FALSE
 
 PBOXLIB_HOME := ../..
 
-EBASE = mg
+EBASE = main
 LBASE = 
 
 include $(PBOXLIB_HOME)/mk/Make.defs
 
 # multigrid test sources
-CEXE_sources += main.cpp
+CEXE_sources += $(EBASE).cpp
 
 ifeq ($(USE_HYPRE),TRUE)
   HYPRE_DIR := $(PBOXLIB_HOME)/hypre
@@ -54,6 +54,7 @@ ifeq ($(USE_THREADS),TRUE)
   DEFINES += -DBL3_PTHREADS
 endif
 
+include Make.package
 include $(PBOXLIB_HOME)/bndrylib/Make.package
 include $(PBOXLIB_HOME)/mglib/Make.package
 include $(PBOXLIB_HOME)/pBoxLib_2/Make.package
@@ -63,6 +64,8 @@ INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/bndrylib
 vpathdir += $(PBOXLIB_HOME)/bndrylib
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/pBoxLib_2
 vpathdir += $(PBOXLIB_HOME)/pBoxLib_2
+INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/iamrlib
+vpathdir += $(PBOXLIB_HOME)/iamrlib
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/mglib
 vpathdir += $(PBOXLIB_HOME)/mglib
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/util

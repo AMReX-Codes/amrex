@@ -1,0 +1,8 @@
+#
+# $Id: Make.package,v 1.7 2000-07-15 00:12:23 sstanley Exp $
+#
+
+CEXE_sources += MacOperator.cpp MacBndry.cpp
+#CEXE_headers += 
+#FEXE_headers += 
+FEXE_sources += MACPROJ_$(DIM)D.F MACOPERATOR_$(DIM)D.F
