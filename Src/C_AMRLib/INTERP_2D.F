@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.4 1998-01-16 23:14:23 lijewski Exp $
+c $Id: INTERP_2D.F,v 1.5 1998-01-24 01:35:58 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -199,37 +199,41 @@ c ::: local var
       hratx = lratiox/2
       hraty = lratioy/2
 
-      do 200 n = 1, nvar 
-        do 210 jc = ARG_L2(cb), ARG_H2(cb)-1 
-c ::: first fill a strip that will fit
-          do ic = ARG_L1(cb),ARG_H1(cb)-1
-            sl(ic,SLX) = crse(ic+1,jc,n)-crse(ic,jc,n)
-            sl(ic,SLY) = crse(ic,jc+1,n)-crse(ic,jc,n)
-            sl(ic,SLXY) = crse(ic+1,jc+1,n)-crse(ic+1,jc,n)
-     $               - crse(ic  ,jc+1,n)+crse(ic  ,jc,n)
-	  enddo
+      do n = 1, nvar 
+         do jc = ARG_L2(cb), ARG_H2(cb)-1 
 
-          do 230 ly = 0, lratioy-1 
-            jfn = jc*lratioy + ly
-            jfc = jfn + hraty
-            if (jfc .ge. ARG_L2(fb)  .and.  jfc .le. ARG_H2(fb)) then
-             y = denomy*(two*ly + one)
-             do lx = 0, lratiox-1
-               do ic = ARG_L1(cb), ARG_H1(cb)-1
-                 i = ic*lratiox + lx
-                 x = denomx*(two*lx + one)
-                 strip(i) = crse(ic,jc,n) + x*sl(ic,SLX) + y*sl(ic,SLY) 
-     $                    + x*y*sl(ic,SLXY)
-	      enddo
-	    enddo
+c ::: first fill a strip that will fit
+
+            do ic = ARG_L1(cb), ARG_H1(cb)-1
+               sl(ic,SLX) = crse(ic+1,jc,n)-crse(ic,jc,n)
+               sl(ic,SLY) = crse(ic,jc+1,n)-crse(ic,jc,n)
+               sl(ic,SLXY) = crse(ic+1,jc+1,n)-crse(ic+1,jc,n)
+     $              - crse(ic  ,jc+1,n)+crse(ic  ,jc,n)
+            enddo
+
+            do ly = 0, lratioy-1 
+               jfn = jc*lratioy + ly
+               jfc = jfn + hraty
+               if (jfc .ge. ARG_L2(fb)  .and.  jfc .le. ARG_H2(fb)) then
+                  y = denomy*(two*ly + one)
+                  do lx = 0, lratiox-1
+                     do ic = ARG_L1(cb), ARG_H1(cb)-1
+                        i = ic*lratiox + lx
+                        x = denomx*(two*lx + one)
+                        strip(i) = crse(ic,jc,n) + x*sl(ic,SLX) +
+     $                             y*sl(ic,SLY) + x*y*sl(ic,SLXY)
+                     enddo
+                  enddo
 
 c ::: stuff into output array
-            do i = ARG_L1(fb), ARG_H1(fb) 
-              fine(i,jfc,n) = strip(i-hratx)
+
+                  do i = ARG_L1(fb), ARG_H1(fb) 
+                     fine(i,jfc,n) = strip(i-hratx)
+                  enddo
+               endif
             enddo
-230       continue
-210     continue
-200   continue
+         enddo
+      enddo
 
       return
       end
