@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.39 1998-05-12 22:12:42 lijewski Exp $
+// $Id: Amr.cpp,v 1.40 1998-05-13 18:57:09 almgren Exp $
 //
 
 #include <TagBox.H>
@@ -113,7 +113,7 @@ Amr::Amr ()
     n_proper          = 1;
 
 #if (BL_SPACEDIM == 2)
-    max_grid_size     = 120;
+    max_grid_size     = 128;
 #else
     max_grid_size     = 32;
 #endif
@@ -125,8 +125,8 @@ Amr::Amr ()
     //
     // Check for command line flags.
     //
+    verbose = 0;
     pp.query("v",verbose);
-    verbose = (verbose ? 1 : 0);
 
     sub_cycle = true;
     if (pp.contains("nosub")) sub_cycle = false;
@@ -221,10 +221,10 @@ Amr::Amr ()
 
     pp.query("max_grid_size",max_grid_size);
     pp.query("n_proper",n_proper);
-    pp.get("blocking_factor",blocking_factor);
-    pp.get("grid_eff",grid_eff);
+    pp.query("blocking_factor",blocking_factor);
+    pp.query("grid_eff",grid_eff);
 
-    pp.getarr("n_error_buf",n_error_buf,0,max_level);
+    pp.queryarr("n_error_buf",n_error_buf,0,max_level);
     //
     // Read in the refinement ratio IntVects as integer BL_SPACEDIM-tuples.
     //
@@ -545,7 +545,7 @@ Amr::init ()
     {
         initialInit();
         checkPoint();
-        if (plot_int > 0)
+        if (plot_int > 0 || plot_per > 0)
             writePlotFile();
     }
 }
