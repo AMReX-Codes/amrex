@@ -244,6 +244,18 @@ SOURCE=.\FILCC_3D.F
 
 !IF  "$(CFG)" == "amrlib - Win32 Release"
 
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\FILCC_3D.F
+InputName=FILCC_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
 !ELSEIF  "$(CFG)" == "amrlib - Win32 Debug"
 
 # PROP Ignore_Default_Tool 1
@@ -253,8 +265,8 @@ InputName=FILCC_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-        /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-        ..\scripts\strip72 -c > $(InputName).for
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
 
 # End Custom Build
 
@@ -267,6 +279,18 @@ SOURCE=.\FLUXREG_3D.F
 
 !IF  "$(CFG)" == "amrlib - Win32 Release"
 
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\FLUXREG_3D.F
+InputName=FLUXREG_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
 !ELSEIF  "$(CFG)" == "amrlib - Win32 Debug"
 
 # PROP Ignore_Default_Tool 1
@@ -276,8 +300,8 @@ InputName=FLUXREG_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-        /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-        ..\scripts\strip72 -c > $(InputName).for
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
 
 # End Custom Build
 
@@ -290,6 +314,18 @@ SOURCE=.\INTERP_3D.F
 
 !IF  "$(CFG)" == "amrlib - Win32 Release"
 
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\INTERP_3D.F
+InputName=INTERP_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
 !ELSEIF  "$(CFG)" == "amrlib - Win32 Debug"
 
 # PROP Ignore_Default_Tool 1
@@ -299,8 +335,8 @@ InputName=INTERP_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-        /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-        ..\scripts\strip72 -c > $(InputName).for
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
 
 # End Custom Build
 
@@ -313,6 +349,18 @@ SOURCE=.\MAKESLICE_3D.F
 
 !IF  "$(CFG)" == "amrlib - Win32 Release"
 
+# PROP Ignore_Default_Tool 1
+# Begin Custom Build
+InputPath=.\MAKESLICE_3D.F
+InputName=MAKESLICE_3D
+
+"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
+
+# End Custom Build
+
 !ELSEIF  "$(CFG)" == "amrlib - Win32 Debug"
 
 # PROP Ignore_Default_Tool 1
@@ -322,8 +370,8 @@ InputName=MAKESLICE_3D
 
 "$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
 	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-        /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-        ..\scripts\strip72 -c > $(InputName).for
+          /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
+          ..\scripts\strip72 -c > $(InputName).for
 
 # End Custom Build
 
