@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.24 1999-04-15 23:28:00 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.25 1999-05-06 16:57:28 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -11,6 +11,11 @@
 #include <cfloat>
 #include <cmath>
 #include <cstring>
+#ifndef __GNUC__
+#include <limits>
+#else
+#include <cfloat>
+#endif
 using std::cin;
 using std::cout;
 using std::cerr;
@@ -229,6 +234,53 @@ FArrayBox::getPrecision ()
     return FABio::FAB_FLOAT;
 }
 
+#if !defined(NDEBUG)
+bool FArrayBox::do_initval = true;
+#else
+bool FArrayBox::do_initval = false;
+#endif
+#if defined(BL_USE_NEW_HFILES) && !defined(__GNUC__)
+Real FArrayBox::initval =
+    std::numeric_limits<Real>::has_quiet_NaN
+  ? std::numeric_limits<Real>::quiet_NaN()
+  : std::numeric_limits<Real>::max();
+#else
+#ifdef BL_USE_DOUBLE
+Real FArrayBox::initval = DBL_MAX;
+#else
+Real FArrayBox::initval = FLT_MAX;
+#endif
+#endif
+
+
+bool
+FArrayBox::set_do_initval(bool tf)
+{
+  bool o_tf = do_initval;
+  do_initval = tf;
+  return o_tf;
+}
+
+bool
+FArrayBox::get_do_initval()
+{
+  return do_initval;
+}
+
+Real
+FArrayBox::set_initval(Real iv)
+{
+  bool o_iv = initval;
+  initval = iv;
+  return o_iv;
+}
+
+Real
+FArrayBox::get_initval()
+{
+  return initval;
+}
+
 #ifdef BL_USE_POINTLIB
 #ifndef BL_CRAY_BUG_DEFARG
 FArrayBox::FArrayBox (const PointFab<PointDomain>& pf,
@@ -249,7 +301,7 @@ FArrayBox::init ()
 
     ParmParse pp("fab");
 
-    aString ord, fmt;
+    aString fmt;
     //
     // This block can legitimately set FAB output format.
     //
@@ -301,6 +353,7 @@ FArrayBox::init ()
     // This block sets ordering which doesn't affect output format.
     // It is only used when reading in an old FAB.
     //
+    aString ord;
     if (pp.query("ordering", ord))
     {
         if (ord == "NORMAL_ORDER")
@@ -315,6 +368,10 @@ FArrayBox::init ()
             BoxLib::Abort();
         }
     }
+    pp.query("initval", initval);
+    int do_ini;
+    pp.query("do_initval", do_ini);
+    do_initval = bool(do_ini);
 }
 
 Real

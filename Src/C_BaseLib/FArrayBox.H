@@ -4,14 +4,11 @@
 #define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.13 1999-04-15 23:27:59 lijewski Exp $
+// $Id: FArrayBox.H,v 1.14 1999-05-06 16:57:28 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
 #include <iostream>
-#ifndef __GNUC__
-#include <limits>
-#endif
 using std::cin;
 using std::cout;
 using std::cerr;
@@ -474,6 +471,12 @@ public:
     */
     static void setFABio (FABio* rd);
 
+    ///
+    static bool set_do_initval(bool tf);
+    static bool get_do_initval();
+    static Real set_initval(Real iv);
+    static Real get_initval();
+
 protected:
     //
     // Initialize from ParmParse with "fab" prefix.
@@ -494,6 +497,9 @@ protected:
     //
     static FABio* fabio;
 
+    // initial value
+    static bool do_initval;
+    static Real initval;
 private:
     //
     // These are disallowed.
@@ -529,10 +535,8 @@ FArrayBox::FArrayBox (const Box& b,
     //
     // For debugging purposes set values to QNAN when possible.
     //
-#if !defined(NDEBUG) && defined(BL_USE_NEW_HFILES) && !defined(__GNUC__)
-    if (std::numeric_limits<Real>::has_quiet_NaN)
-	setVal(std::numeric_limits<Real>::quiet_NaN());
-#endif
+    if ( do_initval )
+	setVal(initval);
 }
 
 inline
@@ -544,10 +548,8 @@ FArrayBox::resize (const Box& b,
     //
     // For debugging purposes set values to QNAN when possible.
     //
-#if !defined(NDEBUG) && defined(BL_USE_NEW_HFILES) && !defined(__GNUC__)
-    if (std::numeric_limits<Real>::has_quiet_NaN)
-	setVal(std::numeric_limits<Real>::quiet_NaN());
-#endif
+    if ( do_initval )
+      setVal(initval);
 }
 
 inline
