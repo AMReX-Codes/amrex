@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.35 1998-05-22 21:46:01 lijewski Exp $
+// $Id: TagBox.cpp,v 1.36 1998-05-25 05:01:10 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -641,11 +641,10 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
             geom.periodicShift(domain, boxarray[i], pshifts);
             for (int iiv = 0; iiv < pshifts.length(); iiv++)
             {
-                IntVect iv = pshifts[iiv];
                 Box shiftbox(boxarray[i]);
-                D_TERM(shiftbox.shift(0,iv[0]);,
-                       shiftbox.shift(1,iv[1]);,
-                       shiftbox.shift(2,iv[2]);)
+                D_TERM(shiftbox.shift(0,pshifts[iiv][0]);,
+                       shiftbox.shift(1,pshifts[iiv][1]);,
+                       shiftbox.shift(2,pshifts[iiv][2]);)
                 //
                 // Possible periodic remapping, try each tagbox.
                 //
