@@ -1,11 +1,11 @@
-//BL_COPYRIGHT_NOTICE
+/* BL_COPYRIGHT_NOTICE */
 
 #ifndef BL_SPACE_H
 #define BL_SPACE_H
 
-//
-// $Id: SPACE.H,v 1.2 1997-09-17 22:51:21 lijewski Exp $
-//
+/*
+** $Id: SPACE.H,v 1.3 2000-04-06 17:05:39 sstanley Exp $
+*/
 
 #if defined(BL_SPACEDIM) && !defined(SPACEDIM)
 #define SPACEDIM BL_SPACEDIM
