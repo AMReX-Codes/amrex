@@ -42,6 +42,8 @@ using namespace std;
 #include <list.h>
 #endif
 
+class task_list;
+
 class task
 {
 public:
@@ -73,6 +75,7 @@ public:
 	dependencies.push_back( &t1 );
     }
     bool depend_ready();
+    virtual bool recommit(list<task*>*);
 protected:
     sequence_number m_sno;
     list< task** > dependencies;
@@ -95,10 +98,13 @@ public:
 	// executes once through the task list, return true if any elements left
     const MPI_Comm& mpi_comm() const { return comm; }
     bool empty() const { return tasks.empty(); }
+protected:
+    void add_task(task* t, task::sequence_number sno_);
 private:
     list< task** > tasks;
     MPI_Comm comm;
     task::sequence_number seq_no;
+    int seq_delta;
     bool verbose;
     static bool def_verbose;
 };
@@ -226,6 +232,7 @@ public:
 	if ( !result ) return false;
 	return true;
     }
+    virtual bool recommit(list<task*>* tl);
 protected:
     void push_back(task_fab* tf)
     {
@@ -253,7 +260,7 @@ private:
     const list<int> tll;
     const Box freg;
     MultiFab& s;
-    int igrid;
+    const int igrid;
     vector<task_fab*> tfvect;
 };
 

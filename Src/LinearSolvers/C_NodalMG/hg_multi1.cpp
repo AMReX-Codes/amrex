@@ -45,29 +45,30 @@ extern "C"
 class task_interpolate_patch : public task
 {
 public:
-    task_interpolate_patch(MultiFab& dmf_, int dgrid_, const Box& dbx_, const MultiFab& smf_, const IntVect& rat_, const amr_interpolator_class& interp_, const level_interface& lev_interface_)
+    task_interpolate_patch(MultiFab& dmf_, int dgrid_, const Box& dbx_, const MultiFab& smf_, const IntVect& rat_, const amr_interpolator_class* interp_, const level_interface& lev_interface_)
 	: dmf(dmf_), dgrid(dgrid_), dbx(dbx_), smf(smf_), rat(rat_), interp(interp_), lev_interface(lev_interface_)
     {
 	assert(dbx.sameType(dmf[dgrid].box()));
-	const Box cb = interp.box(dbx, rat);
+	const Box cb = interp->box(dbx, rat);
 	tf = new task_fill_patch( dmf, dgrid, cb, smf, lev_interface, 0, -1, -1);
     }
     virtual bool ready()
     {
 	if ( tf->ready() )
 	{
-	    interp.fill(dmf[dgrid], dbx, tf->fab(), tf->fab().box(), rat);
+	    interp->fill(dmf[dgrid], dbx, tf->fab(), tf->fab().box(), rat);
+	    delete tf;
 	    return true;
 	}
 	return false;
     }
-    virtual ~task_interpolate_patch()
-    {
-	delete tf;
-    }
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
 	return tf->init(sno, comm);
+    }
+    virtual ~task_interpolate_patch()
+    {
+	delete interp;
     }
 private:
     task_fab* tf;
@@ -76,7 +77,7 @@ private:
     const Box dbx;
     const MultiFab& smf;
     const IntVect rat;
-    const amr_interpolator_class& interp;
+    const amr_interpolator_class* interp;
     const level_interface& lev_interface;
 };
 
@@ -690,7 +691,7 @@ void holy_grail_amr_multigrid::sync_interfaces()
 	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(level_interface::FACEDIM, iface) )
 		continue;
 	    tl.add_task(
-		new task_interpolate_patch(target, igrid, nbox, dest[lev-1], rat, bilinear_interpolator_class(), lev_interface[mgc])
+		new task_interpolate_patch(target, igrid, nbox, dest[lev-1], rat, new bilinear_interpolator_class(), lev_interface[mgc])
 		);
 	}
 	tl.execute();
@@ -721,7 +722,7 @@ void holy_grail_amr_multigrid::sync_periodic_interfaces()
 		continue;
 	    if ( idomain.intersects(nbox) ) continue;
 	    tl.add_task(
-		new task_interpolate_patch(target, igrid, nbox, dest[lev-1], rat, bilinear_interpolator_class(), lev_interface[mgc])
+		new task_interpolate_patch(target, igrid, nbox, dest[lev-1], rat, new bilinear_interpolator_class(), lev_interface[mgc])
 	    );
 	}
 	tl.execute();
@@ -829,11 +830,9 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 		hgi = new holy_grail_interpolator_class(sigptr, sigbox);
 #endif
 	    }
-	    // BUG --  must keep a clone of the interpolator
 	    tl.add_task(
-		new task_interpolate_patch(target, igrid, target.box(igrid), corr[lfrom], rat, *hgi, lev_interface[lfrom])
+		new task_interpolate_patch(target, igrid, target.box(igrid), corr[lfrom], rat, hgi, lev_interface[lfrom])
 		);
-	    delete hgi;
 	}
 	tl.execute();
 	if (lto > ltmp) 
