@@ -2,7 +2,11 @@
 #include "hgparallel.h"
 
 #ifdef HG_DEBUG
+#ifdef BL_USE_NEW_HFILES
 #include <typeinfo>
+#else
+#include <typeinfo.h>
+#endif
 #endif
 
 bool HG_is_debugging = false;
