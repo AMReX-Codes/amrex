@@ -383,5 +383,8 @@ cat >> $OFILE << EOF
 # End Project
 EOF
 
+# Add lf's needed by Windows junk
+perl -e 'while(<>) {s/\n/\r\n/;print;}' < $OFILE > junk.$$
+mv junk.$$ $OFILE
 exit 0
 
