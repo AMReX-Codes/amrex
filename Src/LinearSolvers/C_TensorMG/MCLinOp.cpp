@@ -1,9 +1,15 @@
-// $Id: MCLinOp.cpp,v 1.1 1998-03-26 19:15:36 marc Exp $
+// $Id: MCLinOp.cpp,v 1.2 1998-03-26 22:24:25 marc Exp $
 
 // differences from LinOp: den has nc components, bct has nc components
 
+#ifdef BL_USE_NEW_HFILES
+#include <cstdlib>
+#else
 #include <stdlib.h>
+#endif
+
 #include <ParmParse.H>
+#include <ParallelDescriptor.H>
 
 #include "LO_BCTYPES.H"
 #include "DivVis_F.H"

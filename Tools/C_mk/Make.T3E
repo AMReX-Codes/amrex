@@ -48,6 +48,6 @@ BSP_MACHINE = CRAYT3E
 
 OUTPUT_OPTION	= ; mv $*.o $(objTempDir)/$*.o
 
-FORTPREP	= perl ../scripts/strip72 -c
+FORTPREP	= perl $(PBOXLIB_HOME)/scripts/strip72 -c
 FORT_OUTPUT_OPTION	= ; mv $*.o $(objTempDir)/$*.o
 FORTLINK	= UPPERCASE

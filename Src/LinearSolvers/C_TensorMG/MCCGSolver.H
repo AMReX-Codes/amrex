@@ -1,7 +1,12 @@
 #ifndef _MCCGSOLVER_H_
-#define _MCCGSOLVER_H_ "$Id: MCCGSolver.H,v 1.1 1998-03-26 19:15:33 marc Exp $"
+#define _MCCGSOLVER_H_ "$Id: MCCGSolver.H,v 1.2 1998-03-26 22:24:24 marc Exp $"
 
+#ifdef BL_USE_NEW_HFILES
+#include <cmath>
+#else
 #include <math.h>
+#endif
+
 #include <Boolean.H>
 #include <Array.H>
 #include <Pointers.H>

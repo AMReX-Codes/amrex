@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.6 1998-03-25 20:54:31 car Exp $
+# $Id: GNUmakefile,v 1.7 1998-03-26 22:24:16 marc Exp $
 #
 
 #
@@ -45,6 +45,7 @@ USE_BSP = FALSE
 USE_MPI = TRUE
 USE_MPI = FALSE
 
+PBOXLIB_HOME = ..
 include ../mk/Make.defs Make.package
 
 #

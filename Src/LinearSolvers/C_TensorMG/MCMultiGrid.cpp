@@ -1,13 +1,17 @@
-// $Id: MCMultiGrid.cpp,v 1.1 1998-03-26 19:15:37 marc Exp $
+// $Id: MCMultiGrid.cpp,v 1.2 1998-03-26 22:24:25 marc Exp $
 // 
 
+#ifdef BL_USE_NEW_HFILES
+#include <cstdlib>
+#else
 #include <stdlib.h>
+#endif
 
 #include <ParmParse.H>
 #include <Misc.H>
-
+#include <Utility.H>
+#include <ParallelDescriptor.H>
 #include <MCCGSolver.H>
-
 #include "MG_F.H"
 #include "MCMultiGrid.H"
 

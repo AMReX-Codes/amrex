@@ -1,7 +1,6 @@
 #ifndef _MCBNDRYDATA_H_
-#define _MCBNDRYDATA_H_  "%W% %G%"
+#define _MCBNDRYDATA_H_
 
-#include <iostream.h>
 #include <Assert.H>
 #include <BoxArray.H>
 #include <FArrayBox.H>

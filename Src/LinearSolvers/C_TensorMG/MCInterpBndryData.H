@@ -1,7 +1,6 @@
 #ifndef _MCINTERPBNDRYDATA_H_
 #define _MCINTERPBNDRYDATA_H_  "%W% %G%"
 
-#include <iostream.h>
 #include <Assert.H>
 #include <BoxArray.H>
 #include <FArrayBox.H>

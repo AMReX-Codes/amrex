@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile.tCArena,v 1.1 1998-02-08 18:19:48 lijewski Exp $
+# $Id: GNUmakefile.tCArena,v 1.2 1998-03-26 22:24:16 marc Exp $
 #
 
 #
@@ -12,6 +12,7 @@ PRECISION    = DOUBLE
 DEBUG        = TRUE
 USE_BSP      = FALSE
 
+PBOXLIB_HOME = ..
 include $(GUTHAMR_HOME)/mk/Make.defs
 
 #
