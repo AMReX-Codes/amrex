@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.100 1999-05-10 17:18:45 car Exp $
+// $Id: FabArray.H,v 1.101 1999-05-10 18:54:21 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1094,7 +1094,7 @@ template <class T, class FAB>
 bool
 FabArray<T,FAB>::ok () const
 {
-    BLassert(boxarray.ready());
+    BL_ASSERT(boxarray.ready());
 
     long isok = 1;
 
@@ -1124,7 +1124,7 @@ FabArray<T,FAB>::define (const BoxArray& bxs,
                          int             ngrow,
                          FabAlloc        alloc)
 {
-    BLassert(!boxarray.ready());
+    BL_ASSERT(!boxarray.ready());
     n_grow = ngrow;
     n_comp = 0;
     boxarray.define(bxs);
@@ -1144,7 +1144,7 @@ FabArray<T,FAB>::define (const BoxArray& bxs,
                          int             ngrow,
                          FabAlloc        alloc)
 {
-    BLassert(!boxarray.ready());
+    BL_ASSERT(!boxarray.ready());
     n_grow = ngrow;
     n_comp = nvar;
     boxarray.define(bxs);
@@ -1178,11 +1178,11 @@ FabArray<T,FAB>::setFab (int  boxno,
     if (n_comp == 0)
         n_comp = elem->nComp();
 
-    BLassert(n_comp == elem->nComp());
-    BLassert(boxarray.ready());
-    BLassert(elem->box() == ::grow(boxarray[boxno],n_grow));
-    BLassert(!fabparray.defined(boxno));
-    BLassert(distributionMap[boxno] == ParallelDescriptor::MyProc());
+    BL_ASSERT(n_comp == elem->nComp());
+    BL_ASSERT(boxarray.ready());
+    BL_ASSERT(elem->box() == ::grow(boxarray[boxno],n_grow));
+    BL_ASSERT(!fabparray.defined(boxno));
+    BL_ASSERT(distributionMap[boxno] == ParallelDescriptor::MyProc());
 
     fabparray.set(boxno,elem);
 }
@@ -1219,13 +1219,13 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
 {
     if (boxarray == src.boxarray)
     {
-        BLassert(distributionMap == src.distributionMap);
+        BL_ASSERT(distributionMap == src.distributionMap);
 
         for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
         {
             DependentFabArrayIterator<T,FAB> dfai(fai,src);
 
-            BLassert(fai.validbox() == dfai.validbox());
+            BL_ASSERT(fai.validbox() == dfai.validbox());
 
             const Box& bx = fai.validbox();
 
@@ -1298,7 +1298,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
 #ifdef BL_USE_MPI
     if (ParallelDescriptor::NProcs() == 1) return;
 
-    BLassert(Snds[MyProc] == 0);
+    BL_ASSERT(Snds[MyProc] == 0);
 
     int rc;
 
@@ -1326,7 +1326,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
             ParallelDescriptor::Abort(rc);
     mpi_gath.end();
 
-    BLassert(Rcvs[MyProc] == 0);
+    BL_ASSERT(Rcvs[MyProc] == 0);
 
     int NumRcvs = 0;
 
@@ -1338,7 +1338,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
     //
     // Make sure we can treat CommData as a stream of integers.
     //
-    BLassert(sizeof(CommData) == CommData::DIM*sizeof(int));
+    BL_ASSERT(sizeof(CommData) == CommData::DIM*sizeof(int));
     //
     // Post one receive for each chunk being sent by other CPUs.
     // This is the CommData describing the FAB data that will be sent.
@@ -1364,7 +1364,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
     }
     mpi_recv.end();
 
-    BLassert(idx == NumRcvs);
+    BL_ASSERT(idx == NumRcvs);
     //
     // Now send the CommData.
     //
@@ -1394,7 +1394,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                     senddata[Processed++] = data;
                 }
             }
-            BLassert(Processed == Snds[i]);
+            BL_ASSERT(Processed == Snds[i]);
             //
             // Use MPI_Ssend() to try and force the system not to buffer.
             //
@@ -1434,7 +1434,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
             for (int j = 0; j < Rcvs[i]; j++)
                 N += rcv_cd[idx+j].box().numPts() * ncomp;
 
-            BLassert(N < INT_MAX);
+            BL_ASSERT(N < INT_MAX);
 
             fab_data[i] = static_cast<T*>(The_FAB_Arena->alloc(N*sizeof(T)));
 
@@ -1455,7 +1455,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
 
     FAB fab;
 
-    BLassert(idx == NumRcvs);
+    BL_ASSERT(idx == NumRcvs);
     //
     // Send the agglomerated FAB data.
     //
@@ -1469,7 +1469,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                 if (SndTags[j].toProc == i)
                     N += SndTags[j].box.numPts() * ncomp;
 
-            BLassert(N < INT_MAX);
+            BL_ASSERT(N < INT_MAX);
 
             T* data = static_cast<T*>(The_FAB_Arena->alloc(N*sizeof(T)));
             T* dptr = data;
@@ -1480,7 +1480,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                 {
                     fab.resize(SndTags[j].box, ncomp);
 
-                    BLassert(src.distributionMap[SndTags[j].fineIndex] == MyProc);
+                    BL_ASSERT(src.distributionMap[SndTags[j].fineIndex] == MyProc);
 
                     fab.copy(src[SndTags[j].fineIndex],
                              SndTags[j].box,
@@ -1497,7 +1497,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                 }
             }
 
-            BLassert(data + N == dptr);
+            BL_ASSERT(data + N == dptr);
             //
             // Use MPI_Ssend() to try and force the system not to buffer.
             //
@@ -1532,7 +1532,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
 
             T* dptr = fab_data[i];
 
-            BLassert(!(dptr == 0));
+            BL_ASSERT(!(dptr == 0));
 
             for (int j = 0; j < Rcvs[i]; j++)
             {
@@ -1544,7 +1544,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
 
                 memcpy(fab.dataPtr(), dptr, N*sizeof(T));
 
-                BLassert(distributionMap[cd.fabindex()] == MyProc);
+                BL_ASSERT(distributionMap[cd.fabindex()] == MyProc);
 
                 fabparray[cd.fabindex()].copy(fab,
                                               fab.box(),
@@ -1557,7 +1557,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                 Processed++;
             }
 
-            BLassert(Processed == Rcvs[i]);
+            BL_ASSERT(Processed == Rcvs[i]);
 
             The_FAB_Arena->free(fab_data[i]);
 
@@ -1567,7 +1567,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
         }
     }
 
-    BLassert(idx == NumRcvs);
+    BL_ASSERT(idx == NumRcvs);
 
     stats.end();
 #endif /*BL_USE_MPI*/
@@ -1621,7 +1621,7 @@ FabArray<T,FAB>::copy (FAB&       dest,
                        int        dcomp,
                        int        ncomp) const
 {
-    BLassert(dcomp + ncomp <= dest.nComp());
+    BL_ASSERT(dcomp + ncomp <= dest.nComp());
 
     if (ParallelDescriptor::NProcs() == 1)
     {
@@ -1697,8 +1697,8 @@ FabArray<T,FAB>::setVal (T   val,
                          int ncomp,
                          int nghost)
 {
-    BLassert(nghost >= 0 && nghost <= n_grow);
-    BLassert(comp+ncomp <= n_comp);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(comp+ncomp <= n_comp);
 
     for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
@@ -1714,8 +1714,8 @@ FabArray<T,FAB>::setVal (T          val,
                          int        ncomp,
                          int        nghost)
 {
-    BLassert(nghost >= 0 && nghost <= n_grow);
-    BLassert(comp+ncomp <= n_comp);
+    BL_ASSERT(nghost >= 0 && nghost <= n_grow);
+    BL_ASSERT(comp+ncomp <= n_comp);
 
     for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
@@ -1752,7 +1752,7 @@ inline
 FAB&
 FabArrayIterator<T,FAB>::operator() ()
 {
-  BLassert(fabArray.DistributionMap()[currentIndex] == ParallelDescriptor::MyProc());
+  BL_ASSERT(fabArray.DistributionMap()[currentIndex] == ParallelDescriptor::MyProc());
 
   return fabArray[currentIndex];
 }
@@ -1794,7 +1794,7 @@ inline
 const FAB&
 FabArrayIterator<T,FAB>::operator() () const
 {
-  BLassert(fabArray.DistributionMap()[currentIndex] == ParallelDescriptor::MyProc());
+  BL_ASSERT(fabArray.DistributionMap()[currentIndex] == ParallelDescriptor::MyProc());
 
   return fabArray[currentIndex];
 }
@@ -1850,7 +1850,7 @@ inline
 bool
 FabArrayIterator<T,FAB>::isValid ()
 {
-    BLassert(currentIndex >= 0);
+    BL_ASSERT(currentIndex >= 0);
 
 #if defined(BL_USE_MPI) && defined(HG_DEBUG)
     extern bool HG_is_debugging;
@@ -1874,7 +1874,7 @@ DependentFabArrayIterator<T,FAB>::DependentFabArrayIterator(
     fabArray(dependentfabarray),
     controller(&controllerfaiter)
 {
-    BLassert(controllerfaiter.theFabArray().DistributionMap() ==
+    BL_ASSERT(controllerfaiter.theFabArray().DistributionMap() ==
            dependentfabarray.DistributionMap());
 }
 
@@ -1887,7 +1887,7 @@ DependentFabArrayIterator<T,FAB>::DependentFabArrayIterator(
     fabArray(const_cast<FabArray<T,FAB>&>(dependentfabarray)),
     controller(&controllerfaiter)
 {
-    BLassert(controllerfaiter.theFabArray().DistributionMap() ==
+    BL_ASSERT(controllerfaiter.theFabArray().DistributionMap() ==
            dependentfabarray.DistributionMap());
 }
 
@@ -2059,7 +2059,7 @@ inline
 bool
 ConstFabArrayIterator<T,FAB>::isValid () const
 {
-    BLassert(currentIndex >= 0);
+    BL_ASSERT(currentIndex >= 0);
 
 #if defined(BL_USE_MPI) && defined(HG_DEBUG)
     extern bool HG_is_debugging;
@@ -2083,7 +2083,7 @@ ConstDependentFabArrayIterator<T,FAB>::ConstDependentFabArrayIterator(
     fabArray(dependentfabarray),
     controller(&controllerfaiter)
 {
-    BLassert(controllerfaiter.theFabArray().DistributionMap() ==
+    BL_ASSERT(controllerfaiter.theFabArray().DistributionMap() ==
            dependentfabarray.DistributionMap());
 }
 
@@ -2146,7 +2146,7 @@ template <class T, class FAB>
 FabArrayId
 FabArrayCopyDescriptor<T,FAB>::RegisterFabArray(FabArray<T,FAB>* fabarray)
 {
-    BLassert(fabArrays.size() == fabCopyDescList.size());
+    BL_ASSERT(fabArrays.size() == fabCopyDescList.size());
 
     fabArrays.push_back(fabarray);  /* Bump size() by one */
 
@@ -2172,7 +2172,7 @@ FabArrayCopyDescriptor<T,FAB>::AddBoxDoIt (FabArrayId fabarrayid,
 
     FabArray<T,FAB>* fabArray = fabArrays[fabarrayid.Id()];
 
-    BLassert(faindex >= 0 && faindex < fabArray->length());
+    BL_ASSERT(faindex >= 0 && faindex < fabArray->length());
 
     Box intersect = destFabBox;
 
@@ -2404,13 +2404,13 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
     //
     for (int i = 0; i < fabComTagList.size(); i++)
     {
-        BLassert(fabComTagList[i].box.ok());
-        BLassert(fabComTagList[i].procThatNeedsData == MyProc);
-        BLassert(fabComTagList[i].procThatHasData   != MyProc);
+        BL_ASSERT(fabComTagList[i].box.ok());
+        BL_ASSERT(fabComTagList[i].procThatNeedsData == MyProc);
+        BL_ASSERT(fabComTagList[i].procThatHasData   != MyProc);
 
         Rcvs[fabComTagList[i].procThatHasData]++;
     }
-    BLassert(Rcvs[MyProc] == 0);
+    BL_ASSERT(Rcvs[MyProc] == 0);
     //
     // Set Snds[i] to # of blocks we must send to CPU i ...
     //
@@ -2433,14 +2433,14 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
                 ParallelDescriptor::Abort(rc);
         mpi_gath.end();
 
-        BLassert(Snds[MyProc] == 0);
+        BL_ASSERT(Snds[MyProc] == 0);
     }
 
     if (snd_cache)
     {
         if (snd_cache->length() > 0)
         {
-            BLassert(Snds == *snd_cache);
+            BL_ASSERT(Snds == *snd_cache);
 
             Snds = *snd_cache;
         }
@@ -2465,7 +2465,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
         //
         // Make sure we can treat CommData as a stream of integers.
         //
-        BLassert(sizeof(CommData) == CommData::DIM*sizeof(int));
+        BL_ASSERT(sizeof(CommData) == CommData::DIM*sizeof(int));
 
         Array<CommData>    senddata;
         Array<MPI_Request> reqs_cd(NProcs);
@@ -2489,7 +2489,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
         }
         mpi_recv.end();
 
-        BLassert(idx == NumReqs);
+        BL_ASSERT(idx == NumReqs);
         //
         // Make one send to each CPU from which we want data.
         // Start Ssend()ing to upper neighbor.
@@ -2521,7 +2521,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
                     }
                 }
 
-                BLassert(Processed == Rcvs[i]);
+                BL_ASSERT(Processed == Rcvs[i]);
                 //
                 // Use MPI_Ssend() to try and force the system not to buffer.
                 //
@@ -2555,7 +2555,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
     {
         if (cd_cache->isValid())
         {
-            BLassert(recv_cd == cd_cache->theCommData());
+            BL_ASSERT(recv_cd == cd_cache->theCommData());
 
             recv_cd = cd_cache->theCommData();
         }
@@ -2580,7 +2580,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
                 if (fabComTagList[j].procThatHasData == i)
                     N += fabComTagList[j].box.numPts()*fabComTagList[j].nComp;
 
-            BLassert(N < INT_MAX);
+            BL_ASSERT(N < INT_MAX);
 
             fab_data[i] = static_cast<T*>(The_FAB_Arena->alloc(N*sizeof(T)));
 
@@ -2617,7 +2617,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
             for (int j = 0; j < Snds[i]; j++)
                 N += recv_cd[strt+j].box().numPts() * recv_cd[strt+j].nComp();
 
-            BLassert(N < INT_MAX);
+            BL_ASSERT(N < INT_MAX);
 
             T* data = static_cast<T*>(The_FAB_Arena->alloc(N*sizeof(T)));
             T* dptr = data;
@@ -2626,8 +2626,8 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
             {
                 const CommData& cd = recv_cd[strt+j];
 
-                BLassert(cd.id() == 0);
-                BLassert(cd.fromproc() == i);
+                BL_ASSERT(cd.id() == 0);
+                BL_ASSERT(cd.fromproc() == i);
 
                 fab.resize(cd.box(), cd.nComp());
 
@@ -2645,7 +2645,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
                 dptr += count;
             }
 
-            BLassert(data+N == dptr);
+            BL_ASSERT(data+N == dptr);
             //
             // Use MPI_Ssend() to try and force the system not to buffer.
             //
@@ -2665,7 +2665,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
         }
     }
 
-    BLassert(idx == NumReqs);
+    BL_ASSERT(idx == NumReqs);
     //
     // Now receive and unpack FAB data. Start Wait()ing with lower neighbor.
     //
@@ -2686,7 +2686,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
 
             T* dptr = fab_data[i];
 
-            BLassert(!(dptr == 0));
+            BL_ASSERT(!(dptr == 0));
 
             for (int j = 0; j < fabComTagList.size(); j++)
             {
@@ -2702,13 +2702,13 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
                     {
                         FabCopyDescriptor<FAB>* fcdp = (*fmi).second;
 
-                        BLassert(fcdp->fillBoxId == tag.fillBoxId);
+                        BL_ASSERT(fcdp->fillBoxId == tag.fillBoxId);
 
                         if (fcdp->subBox == tag.box)
                         {
                             T* dataPtr = fcdp->localFabSource->dataPtr();
-                            BLassert(!(dataPtr == 0));
-                            BLassert(fcdp->localFabSource->box() == tag.box);
+                            BL_ASSERT(!(dataPtr == 0));
+                            BL_ASSERT(fcdp->localFabSource->box() == tag.box);
                             int N = tag.box.numPts()*tag.nComp;
                             memcpy(dataPtr, dptr, N*sizeof(T));
                             dptr += N;
@@ -2717,11 +2717,11 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
                         }
                     }
 
-                    BLassert(!(fmi == match.second));
+                    BL_ASSERT(!(fmi == match.second));
                 }
             }
 
-            BLassert(Processed == Rcvs[i]);
+            BL_ASSERT(Processed == Rcvs[i]);
 
             The_FAB_Arena->free(fab_data[i]);
 
@@ -2739,7 +2739,7 @@ FabArrayCopyDescriptor<T,FAB>::FillFab (FabArrayId       faid,
                                         const FillBoxId& fillboxid,
                                         FAB&             destFab)
 {
-    BLassert(dataAvailable);
+    BL_ASSERT(dataAvailable);
 
     pair<FCDMapIter,FCDMapIter> match = fabCopyDescList[faid.Id()].equal_range(fillboxid.Id());
 
@@ -2747,7 +2747,7 @@ FabArrayCopyDescriptor<T,FAB>::FillFab (FabArrayId       faid,
     {
         FabCopyDescriptor<FAB>* fcdp = (*fmi).second;
 
-        BLassert(fcdp->fillBoxId == fillboxid.Id());
+        BL_ASSERT(fcdp->fillBoxId == fillboxid.Id());
 
         destFab.copy(*fcdp->localFabSource,
                      fcdp->subBox,
@@ -2765,17 +2765,17 @@ FabArrayCopyDescriptor<T,FAB>::FillFab (FabArrayId       faid,
                                         FAB&             destFab,
                                         const Box&       destBox)
 {
-    BLassert(dataAvailable);
+    BL_ASSERT(dataAvailable);
 
     FCDMapIter fmi = fabCopyDescList[faid.Id()].lower_bound(fillboxid.Id());
 
-    BLassert(!(fmi == fabCopyDescList[faid.Id()].end()));
+    BL_ASSERT(!(fmi == fabCopyDescList[faid.Id()].end()));
 
     FabCopyDescriptor<FAB>* fcdp = (*fmi).second;
 
-    BLassert(fcdp->fillBoxId == fillboxid.Id());
+    BL_ASSERT(fcdp->fillBoxId == fillboxid.Id());
 
-    BLassert(fcdp->subBox.sameSize(destBox));
+    BL_ASSERT(fcdp->subBox.sameSize(destBox));
 
     destFab.copy(*fcdp->localFabSource,
                  fcdp->subBox,
@@ -2784,7 +2784,7 @@ FabArrayCopyDescriptor<T,FAB>::FillFab (FabArrayId       faid,
                  fcdp->destComp,
                  fcdp->nComp);
 
-    BLassert(++fmi == fabCopyDescList[faid.Id()].upper_bound(fillboxid.Id()));
+    BL_ASSERT(++fmi == fabCopyDescList[faid.Id()].upper_bound(fillboxid.Id()));
 }
 
 template <class T, class FAB>

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BndryRegister.cpp,v 1.10 1999-05-10 17:18:29 car Exp $
+// $Id: BndryRegister.cpp,v 1.11 1999-05-10 18:54:09 car Exp $
 //
 
 #include <BndryRegister.H>
@@ -20,9 +20,9 @@ BndryRegister::BndryRegister (const BoxArray& _grids,
     :
     grids(_grids)
 {
-    BLassert(_ncomp > 0);
-    BLassert(grids.ready());
-    BLassert(grids[0].cellCentered());
+    BL_ASSERT(_ncomp > 0);
+    BL_ASSERT(grids.ready());
+    BL_ASSERT(grids[0].cellCentered());
 
     for (OrientationIter face; face; ++face)
     {
@@ -82,11 +82,11 @@ BndryRegister::define (const Orientation& _face,
                        int                _extent_rad,
                        int                _ncomp)
 {
-    BLassert(grids.ready());
+    BL_ASSERT(grids.ready());
 
     FabSet& fabs = bndry[_face];
 
-    BLassert(!fabs.ready());
+    BL_ASSERT(!fabs.ready());
 
     const int coord_dir = _face.coordDir();
     const int lo_side   = _face.isLow();
@@ -138,12 +138,12 @@ BndryRegister::define (const Orientation& _face,
                 b.grow(dir,_extent_rad);
         }
 
-        BLassert(b.ok());
+        BL_ASSERT(b.ok());
 
         fsBA.set(idx,b);
     }
 
-    BLassert(fsBA.ok());
+    BL_ASSERT(fsBA.ok());
 
     fabs.define(fsBA,_ncomp);
 
@@ -159,16 +159,16 @@ BndryRegister::define (const Orientation& _face,
 void
 BndryRegister::setBoxes (const BoxArray& _grids)
 {
-    BLassert(!grids.ready());
-    BLassert(_grids.ready());
-    BLassert(_grids[0].cellCentered());
+    BL_ASSERT(!grids.ready());
+    BL_ASSERT(_grids.ready());
+    BL_ASSERT(_grids[0].cellCentered());
 
     grids.define(_grids);
     //
     // Check that bndry regions are not allocated.
     //
     for (int k = 0; k < 2*BL_SPACEDIM; k++)
-        BLassert(!bndry[k].ready());
+        BL_ASSERT(!bndry[k].ready());
 }
 
 void BndryRegister::setVal (Real v)

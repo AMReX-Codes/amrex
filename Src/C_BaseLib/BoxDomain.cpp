@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxDomain.cpp,v 1.3 1999-05-10 17:18:44 car Exp $
+// $Id: BoxDomain.cpp,v 1.4 1999-05-10 18:54:20 car Exp $
 //
 
 #include <BoxDomain.H>
@@ -31,7 +31,7 @@ BoxDomain::~BoxDomain ()
 void
 BoxDomain::add (const Box& b)
 {
-    BLassert(b.ixType() == ixType());
+    BL_ASSERT(b.ixType() == ixType());
 
     List<Box> check;
     check.append(b);
@@ -61,7 +61,7 @@ BoxDomain::add (const Box& b)
     // are boxes that nowhere intersect boxes in the domain.
     //
     lbox.catenate(check);
-    BLassert(ok());
+    BL_ASSERT(ok());
 }
 
 void
@@ -74,7 +74,7 @@ BoxDomain::add (const BoxList& bl)
 BoxDomain&
 BoxDomain::rmBox (const Box& b)
 {
-    BLassert(b.ixType() == ixType());
+    BL_ASSERT(b.ixType() == ixType());
 
     List<Box> tmp;
 

@@ -4,7 +4,7 @@
 #define _RealBox_H_ 
 
 //
-// $Id: RealBox.H,v 1.8 1999-05-10 17:18:30 car Exp $
+// $Id: RealBox.H,v 1.9 1999-05-10 18:54:09 car Exp $
 //
 
 #include <Array.H>
@@ -269,7 +269,7 @@ void
 RealBox::setLo (int  indx,
                 Real lo)
 {
-   BLassert(indx >= 0 && indx < BL_SPACEDIM);
+   BL_ASSERT(indx >= 0 && indx < BL_SPACEDIM);
    xlo[indx] = lo;
    computeBoxLen();
 }
@@ -279,7 +279,7 @@ void
 RealBox::setHi (int  indx,
                 Real hi)
 {
-    BLassert(indx >= 0 && indx < BL_SPACEDIM);
+    BL_ASSERT(indx >= 0 && indx < BL_SPACEDIM);
     xhi[indx] = hi;
     computeBoxLen();
 }

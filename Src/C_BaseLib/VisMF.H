@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.38 1999-05-10 17:18:48 car Exp $
+// $Id: VisMF.H,v 1.39 1999-05-10 18:54:23 car Exp $
 //
 
 #include <MultiFab.H>
@@ -296,8 +296,8 @@ Real
 VisMF::min (int fabIndex,
             int nComp) const
 {
-    BLassert(0 <= fabIndex && fabIndex < m_hdr.m_ba.length());
-    BLassert(0 <= nComp && nComp < m_hdr.m_ncomp);
+    BL_ASSERT(0 <= fabIndex && fabIndex < m_hdr.m_ba.length());
+    BL_ASSERT(0 <= nComp && nComp < m_hdr.m_ncomp);
     return m_hdr.m_min[fabIndex][nComp];
 }
 
@@ -306,8 +306,8 @@ Real
 VisMF::max (int fabIndex,
             int nComp) const
 {
-    BLassert(0 <= fabIndex && fabIndex < m_hdr.m_ba.length());
-    BLassert(0 <= nComp && nComp < m_hdr.m_ncomp);
+    BL_ASSERT(0 <= fabIndex && fabIndex < m_hdr.m_ba.length());
+    BL_ASSERT(0 <= nComp && nComp < m_hdr.m_ncomp);
     return m_hdr.m_max[fabIndex][nComp];
 }
 

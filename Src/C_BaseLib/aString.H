@@ -4,7 +4,7 @@
 #define BL_ASTRING_H
 
 //
-// $Id: aString.H,v 1.7 1999-05-10 17:18:48 car Exp $
+// $Id: aString.H,v 1.8 1999-05-10 18:54:23 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -377,7 +377,7 @@ inline
 char
 aString::operator[] (int index) const
 {
-    BLassert(index >=0 && index < len);
+    BL_ASSERT(index >=0 && index < len);
     return p->s[index];
 }
 

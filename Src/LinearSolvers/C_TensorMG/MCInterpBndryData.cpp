@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MCInterpBndryData.cpp,v 1.9 1999-05-10 17:18:53 car Exp $
+// $Id: MCInterpBndryData.cpp,v 1.10 1999-05-10 18:54:27 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -85,10 +85,10 @@ MCInterpBndryData::setBndryValues(const MultiFab&     mf,
     if (!bdfunc_set)
         bdfunc_init();
 
-    BLassert(grids.ready());
-    BLassert(grids == mf.boxArray());
+    BL_ASSERT(grids.ready());
+    BL_ASSERT(grids == mf.boxArray());
     int nDer = MCLinOp::bcComponentsNeeded();
-    BLassert(bc.length()==nDer);
+    BL_ASSERT(bc.length()==nDer);
 
     int ratio = 1;
     for (int n=bnd_start; n<bnd_start+nDer; ++n)
@@ -100,7 +100,7 @@ MCInterpBndryData::setBndryValues(const MultiFab&     mf,
     //
     for (MultiFabIterator mfi((MultiFab&)mf); mfi.isValid(); ++mfi)
     {
-	BLassert(grids[mfi.index()] == mfi.validbox());
+	BL_ASSERT(grids[mfi.index()] == mfi.validbox());
 
         const Box& bx = mfi.validbox();
 
@@ -160,10 +160,10 @@ MCInterpBndryData::setBndryValues (const BndryRegister& crse,
     if (!bdfunc_set)
         bdfunc_init();
 
-    BLassert(grids.ready());
-    BLassert(grids == fine.boxArray());
+    BL_ASSERT(grids.ready());
+    BL_ASSERT(grids == fine.boxArray());
     int nDer = MCLinOp::bcComponentsNeeded();
-    BLassert(bc.length()==nDer);
+    BL_ASSERT(bc.length()==nDer);
 
     for (int n=bnd_start; n<bnd_start+nDer; ++n)
         setBndryConds(bc[n], ratio, n);
@@ -180,7 +180,7 @@ MCInterpBndryData::setBndryValues (const BndryRegister& crse,
     int tmplen    = 0;
     for (ConstMultiFabIterator finemfi(fine); finemfi.isValid(); ++finemfi)
     {
-        BLassert(grids[finemfi.index()] == finemfi.validbox());
+        BL_ASSERT(grids[finemfi.index()] == finemfi.validbox());
 
         const Box& fine_bx = finemfi.validbox();
         Box crse_bx        = ::coarsen(fine_bx,ratio);

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: LinOp.cpp,v 1.11 1999-05-10 17:18:39 car Exp $
+// $Id: LinOp.cpp,v 1.12 1999-05-10 18:54:16 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -100,7 +100,7 @@ LinOp::LinOp (const LinOp& _lp,
     geomarray.resize(1);
     geomarray[0] = bgb.getGeom();
     h.resize(1);
-    BLassert(_lp.numLevels() > level);
+    BL_ASSERT(_lp.numLevels() > level);
     h[0] = _lp.h[level];
     undrrelxr.resize(1);
     undrrelxr[0] = _lp.undrrelxr[level];
@@ -147,7 +147,7 @@ LinOp::initConstruct (const Real* _h)
             if (bndry.DistributionMap()[i] == MyProc)
             {
                 const PArray<Mask>& pam = bgb.bndryMasks(face);
-                BLassert(maskvals[level][i][face] == 0);
+                BL_ASSERT(maskvals[level][i][face] == 0);
                 maskvals[level][i][face] = new Mask(pam[i].box(), 1);
                 maskvals[level][i][face]->copy(pam[i]);
             }
@@ -173,16 +173,16 @@ LinOp::applyBC (MultiFab&      inout,
     //
     // The inout MultiFab needs at least LinOp_grow ghost cells for applyBC.
     //
-    BLassert(inout.nGrow() >= LinOp_grow);
+    BL_ASSERT(inout.nGrow() >= LinOp_grow);
     //
     // The inout MultiFab must have at least Periodic_BC_grow cells for the
     // algorithms taking care of periodic boundary conditions.
     //
-    BLassert(inout.nGrow() >= LinOp_grow);
+    BL_ASSERT(inout.nGrow() >= LinOp_grow);
     //
     // No coarsened boundary values, cannot apply inhomog at lev>0.
     //
-    BLassert(!(level > 0 && bc_mode == Inhomogeneous_BC));
+    BL_ASSERT(!(level > 0 && bc_mode == Inhomogeneous_BC));
 
     int nc      = inout.nComp();    
     int flagden = 1; // Fill in undrrelxr.
@@ -193,7 +193,7 @@ LinOp::applyBC (MultiFab&      inout,
     //
     // Only single-component solves supported (verified) by this class.
     //
-    BLassert(nc == 1);
+    BL_ASSERT(nc == 1);
 
     inout.FillBoundary();
 
@@ -222,7 +222,7 @@ LinOp::applyBC (MultiFab&      inout,
 
             const int gn = inoutmfi.index();
 
-            BLassert(gbox[level][inoutmfi.index()] == inoutmfi.validbox());
+            BL_ASSERT(gbox[level][inoutmfi.index()] == inoutmfi.validbox());
 
             const Mask& m = *maskvals[level][gn][oitr()];
             Real bcl      = r[gn];
@@ -261,8 +261,8 @@ LinOp::residual (MultiFab&       residL,
         //
         // Only single-component solves supported (verified) by this class.
         //
-        BLassert(nc == 1);
-        BLassert(gbox[level][solnLmfi.index()] == solnLmfi.validbox());
+        BL_ASSERT(nc == 1);
+        BL_ASSERT(gbox[level][solnLmfi.index()] == solnLmfi.validbox());
         FORT_RESIDL(
             residLmfi().dataPtr(), 
             ARLIM(residLmfi().loVect()), ARLIM(residLmfi().hiVect()),
@@ -323,7 +323,7 @@ LinOp::prepareForLevel (int level)
     //
     // Assume from here down that this is a new level one coarser than existing
     //
-    BLassert(h.size() == level);
+    BL_ASSERT(h.size() == level);
     h.resize(level+1);
     for (int i = 0; i < BL_SPACEDIM; ++i)
     {
@@ -341,7 +341,7 @@ LinOp::prepareForLevel (int level)
     //
     // Add the BndryRegister of relax values to the new coarser level.
     //
-    BLassert(undrrelxr.size() == level);
+    BL_ASSERT(undrrelxr.size() == level);
     undrrelxr.resize(level+1);
     undrrelxr[level] = new BndryRegister(gbox[level], 1, 0, 0, 1);
     //
@@ -350,7 +350,7 @@ LinOp::prepareForLevel (int level)
     // Initial masks for coarse levels, ignore outside_domain possibility since
     // we always solve homogeneous equation on coarse levels.
     //
-    BLassert(maskvals.length() == level);
+    BL_ASSERT(maskvals.length() == level);
     maskvals.resize(level+1);
     maskvals[level].resize(gbox[level].length());
     for (int i = 0; i < gbox[level].length(); i++)
@@ -374,7 +374,7 @@ LinOp::prepareForLevel (int level)
         {
             int gn = bndryfsi.index();
             Box bx_k = ::adjCell(gbox[level][gn], face, 1);
-            BLassert(maskvals[level][gn][face] == 0);
+            BL_ASSERT(maskvals[level][gn][face] == 0);
             maskvals[level][gn][face] = new Mask(bx_k, 1);
             Mask& curmask = *(maskvals[level][gn][face]);
             curmask.setVal(BndryData::not_covered);

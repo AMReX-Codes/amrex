@@ -4,7 +4,7 @@
 #define BL_ORIENTATION_H
 
 //
-// $Id: Orientation.H,v 1.6 1999-05-10 17:18:47 car Exp $
+// $Id: Orientation.H,v 1.7 1999-05-10 18:54:22 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -226,7 +226,7 @@ Orientation::Orientation (int  _dir,
                           Side _side)
     : val(BL_SPACEDIM*_side + _dir)
 {
-    BLassert(0 <= _dir && _dir < BL_SPACEDIM);
+    BL_ASSERT(0 <= _dir && _dir < BL_SPACEDIM);
 }
 
 inline
@@ -350,7 +350,7 @@ OrientationIter::ok () const
 inline
 OrientationIter::OrientationIter (const OrientationIter& it)
 {
-    BLassert(it.ok());
+    BL_ASSERT(it.ok());
     face = it.face;
 }
 
@@ -358,7 +358,7 @@ inline
 OrientationIter&
 OrientationIter::operator= (const OrientationIter& it)
 {
-    BLassert(it.ok());
+    BL_ASSERT(it.ok());
     face = it.face;
     return *this;
 }
@@ -374,7 +374,7 @@ inline
 Orientation
 OrientationIter::operator() () const
 {
-    BLassert(ok());
+    BL_ASSERT(ok());
     return Orientation(face);
 }
 
@@ -388,7 +388,7 @@ inline
 OrientationIter&
 OrientationIter::operator-- ()
 {
-    BLassert(ok());
+    BL_ASSERT(ok());
     --face;
     return *this;
 }
@@ -397,7 +397,7 @@ inline
 OrientationIter&
 OrientationIter::operator++ ()
 {
-    BLassert(ok());
+    BL_ASSERT(ok());
     ++face;
     return *this;
 }
@@ -406,7 +406,7 @@ inline
 OrientationIter
 OrientationIter::operator-- (int)
 {
-    BLassert(ok());
+    BL_ASSERT(ok());
     return OrientationIter(face--);
 }
 
@@ -414,7 +414,7 @@ inline
 OrientationIter
 OrientationIter::operator++ (int)
 {
-    BLassert(ok());
+    BL_ASSERT(ok());
     return OrientationIter(face++);
 }
 
@@ -422,7 +422,7 @@ inline
 bool
 OrientationIter::operator== (const OrientationIter& oi) const
 {
-    BLassert(ok() && oi.ok());
+    BL_ASSERT(ok() && oi.ok());
     return face == oi.face;
 }
 
@@ -430,7 +430,7 @@ inline
 bool
 OrientationIter::operator!= (const OrientationIter& oi) const
 {
-    BLassert(ok() && oi.ok());
+    BL_ASSERT(ok() && oi.ok());
     return face != oi.face;
 }
 

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CGSolver.cpp,v 1.10 1999-05-10 17:18:38 car Exp $
+// $Id: CGSolver.cpp,v 1.11 1999-05-10 18:54:16 car Exp $
 //
 
 // Conjugate gradient support
@@ -83,7 +83,7 @@ CGSolver::norm (const MultiFab& res)
 
     for (ConstMultiFabIterator mfi(res); mfi.isValid(); ++mfi) 
     {
-        BLassert(mfi.validbox() == gbox[mfi.index()]);
+        BL_ASSERT(mfi.validbox() == gbox[mfi.index()]);
 
         resk = mfi().norm(mfi.validbox(), p);
 
@@ -136,8 +136,8 @@ CGSolver::solve (MultiFab&       sol,
     //      r -= alpha w
     //   }
     //
-    BLassert(sol.boxArray() == Lp.boxArray(lev));
-    BLassert(rhs.boxArray() == Lp.boxArray(lev));
+    BL_ASSERT(sol.boxArray() == Lp.boxArray(lev));
+    BL_ASSERT(rhs.boxArray() == Lp.boxArray(lev));
 
     int nghost = 1; int ncomp = sol.nComp();
     MultiFab* s = new MultiFab(sol.boxArray(), ncomp, nghost, Fab_allocate);
@@ -232,7 +232,7 @@ CGSolver::solve (MultiFab&       sol,
         {
             DependentMultiFabIterator zmfi(rmfi, (*z));
             Real trho;
-            BLassert(rmfi.validbox() == gbox[rmfi.index()]);
+            BL_ASSERT(rmfi.validbox() == gbox[rmfi.index()]);
             FORT_CGXDOTY(&trho,zmfi().dataPtr(), 
                          ARLIM(zmfi().loVect()),ARLIM(zmfi().hiVect()),
                          rmfi().dataPtr(), 
@@ -364,7 +364,7 @@ CGSolver::advance (MultiFab&       p,
     {
         DependentMultiFabIterator zmfi(pmfi, z);
 
-        BLassert(zmfi.validbox() == gbox[zmfi.index()]);
+        BL_ASSERT(zmfi.validbox() == gbox[zmfi.index()]);
 
         FORT_CGADVCP(pmfi().dataPtr(),
                      ARLIM(pmfi().loVect()), ARLIM(pmfi().hiVect()),
@@ -394,7 +394,7 @@ CGSolver::update (MultiFab&       sol,
         DependentMultiFabIterator pmfi(solmfi, p);
         DependentMultiFabIterator wmfi(solmfi, w);
 
-        BLassert(solmfi.validbox() == gbox[solmfi.index()]);
+        BL_ASSERT(solmfi.validbox() == gbox[solmfi.index()]);
 
         FORT_CGUPDATE(solmfi().dataPtr(),
                       ARLIM(solmfi().loVect()), ARLIM(solmfi().hiVect()),
@@ -427,7 +427,7 @@ CGSolver::axp (MultiFab&      w,
     {
         DependentMultiFabIterator wmfi(pmfi, w);
         Real tpw;
-        BLassert(pmfi.validbox() == gbox[pmfi.index()]);
+        BL_ASSERT(pmfi.validbox() == gbox[pmfi.index()]);
         FORT_CGXDOTY(&tpw,
                      pmfi().dataPtr(),
                      ARLIM(pmfi().loVect()), ARLIM(pmfi().hiVect()),

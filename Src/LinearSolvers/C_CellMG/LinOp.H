@@ -4,7 +4,7 @@
 #define _LINOP_H_
 
 //
-// $Id: LinOp.H,v 1.8 1999-05-10 17:18:39 car Exp $
+// $Id: LinOp.H,v 1.9 1999-05-10 18:54:16 car Exp $
 //
 
 #include <Array.H>
@@ -300,7 +300,7 @@ inline
 void
 LinOp::bndryData (const BndryData& bd)
 {
-    BLassert(gbox[0] == bd.boxes());
+    BL_ASSERT(gbox[0] == bd.boxes());
     bgb = bd;
 }
 
@@ -308,7 +308,7 @@ inline
 const BoxArray&
 LinOp::boxArray (int level) const
 {
-    BLassert(level < numLevels());
+    BL_ASSERT(level < numLevels());
     return gbox[level];
 }
 
@@ -337,7 +337,7 @@ inline
 int
 LinOp::maxOrder (int maxorder_)
 {
-    BLassert(maxorder_ >= 2);
+    BL_ASSERT(maxorder_ >= 2);
     maxorder_ = (maxorder_ < 2 ? 2 : maxorder_ );
     int omaxorder = maxorder;
     maxorder = maxorder_;

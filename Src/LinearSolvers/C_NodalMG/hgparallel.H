@@ -97,27 +97,27 @@ public:
         }
         task* operator-> () const
         {
-            BLassert(!null());
+            BL_ASSERT(!null());
             return m_t;
         }
         task* operator* () const
         {
-            BLassert(!null());
+            BL_ASSERT(!null());
             return m_t;
         }
         task* get () const
         {
-            BLassert(!null());
+            BL_ASSERT(!null());
             return m_t;
         }
         void set_finished ()
         {
-            BLassert(!null());
+            BL_ASSERT(!null());
             m_t->m_finished = true;
         }
         bool is_finished () const
         {
-            BLassert(!null());
+            BL_ASSERT(!null());
             return m_t->m_finished;
         }
         bool null () const
@@ -312,7 +312,7 @@ public:
     virtual ~task_fab ();
     virtual bool work_to_do () const;
 
-    const FArrayBox& fab () { BLassert(target != 0); return *target; }
+    const FArrayBox& fab () { BL_ASSERT(target != 0); return *target; }
 
 protected:
 
@@ -377,7 +377,7 @@ protected:
 
     FArrayBox& target_fab ()
     {
-        BLassert(is_local_target());
+        BL_ASSERT(is_local_target());
         return s[igrid];
     }
 
@@ -385,10 +385,10 @@ protected:
 
     const FArrayBox& task_fab_result (int n)
     {
-        BLassert(is_local_target());
-        BLassert(n >= 0 && n < tfvect.size());
+        BL_ASSERT(is_local_target());
+        BL_ASSERT(n >= 0 && n < tfvect.size());
         task_fab* tf = dynamic_cast<task_fab*>(tfvect[n].get());
-        BLassert(tf != 0);
+        BL_ASSERT(tf != 0);
         return tf->fab();
     }
 

@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.44 1999-05-10 17:18:47 car Exp $
+// $Id: ParallelDescriptor.H,v 1.45 1999-05-10 18:54:22 car Exp $
 //
 
 #include <BLassert.H>
@@ -335,7 +335,7 @@ inline
 int
 ParallelDescriptor::MyProc ()
 {
-    BLassert(m_MyId != -1);
+    BL_ASSERT(m_MyId != -1);
     return m_MyId;
 }
 
@@ -343,7 +343,7 @@ inline
 int
 ParallelDescriptor::NProcs ()
 {
-    BLassert(m_nProcs != -1);
+    BL_ASSERT(m_nProcs != -1);
     return m_nProcs;
 }
 
@@ -351,7 +351,7 @@ inline
 bool
 ParallelDescriptor::IOProcessor ()
 {
-    BLassert(m_MyId != -1);
+    BL_ASSERT(m_MyId != -1);
     return m_MyId == ioProcessor;
 }
 

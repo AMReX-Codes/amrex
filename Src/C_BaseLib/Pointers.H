@@ -4,7 +4,7 @@
 #define BL_POINTERS_H
 
 //
-// $Id: Pointers.H,v 1.8 1999-05-10 17:18:47 car Exp $
+// $Id: Pointers.H,v 1.9 1999-05-10 18:54:22 car Exp $
 //
 
 #include <BLassert.H>
@@ -350,7 +350,7 @@ inline
 T&
 CpPtr<T>::operator* () const
 {
-    BLassert(ptr != 0);
+    BL_ASSERT(ptr != 0);
     return *ptr;
 }
 
@@ -479,7 +479,7 @@ inline
 T&
 LnPtr<T>::operator* () const
 {
-    BLassert(ptr != 0);
+    BL_ASSERT(ptr != 0);
     return *ptr;
 }
 

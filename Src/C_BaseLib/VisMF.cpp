@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.62 1999-05-10 17:18:48 car Exp $
+// $Id: VisMF.cpp,v 1.63 1999-05-10 18:54:23 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -51,7 +51,7 @@ operator>> (istream&          is,
     aString str;
     is >> str;
 
-    BLassert(str == VisMF::FabOnDisk::Prefix);
+    BL_ASSERT(str == VisMF::FabOnDisk::Prefix);
 
     is >> fod.m_name;
     is >> fod.m_head;
@@ -88,7 +88,7 @@ operator>> (istream&                 is,
     long i = 0, N;
 
     is >> N;
-    BLassert(N >= 0);
+    BL_ASSERT(N >= 0);
 
     fa.resize(N);
 
@@ -114,7 +114,7 @@ operator<< (ostream&                    os,
 
     for ( ; i < N; i++)
     {
-        BLassert(ar[i].length() == M);
+        BL_ASSERT(ar[i].length() == M);
 
         for (long j = 0; j < M; j++)
         {
@@ -139,9 +139,9 @@ operator>> (istream&              is,
 
     is >> N >> ch >> M;
 
-    BLassert(N >= 0);
-    BLassert(ch == ',');
-    BLassert(M >= 0);
+    BL_ASSERT(N >= 0);
+    BL_ASSERT(ch == ',');
+    BL_ASSERT(M >= 0);
 
     ar.resize(N);
     
@@ -152,7 +152,7 @@ operator>> (istream&              is,
         for (long j = 0; j < M; j++)
         {
             is >> ar[i][j] >> ch;
-            BLassert(ch == ',');
+            BL_ASSERT(ch == ',');
         }
     }
 
@@ -195,7 +195,7 @@ operator>> (istream&       is,
             VisMF::Header& hd)
 {
     is >> hd.m_vers;
-    BLassert(hd.m_vers == VisMF::Header::Version);
+    BL_ASSERT(hd.m_vers == VisMF::Header::Version);
 
     int how;
     is >> how;
@@ -208,21 +208,21 @@ operator>> (istream&       is,
     }
 
     is >> hd.m_ncomp;
-    BLassert(hd.m_ncomp >= 0);
+    BL_ASSERT(hd.m_ncomp >= 0);
 
     is >> hd.m_ngrow;
-    BLassert(hd.m_ngrow >= 0);
+    BL_ASSERT(hd.m_ngrow >= 0);
 
     hd.m_ba = BoxArray(is);
 
     is >> hd.m_fod;
-    BLassert(hd.m_ba.length() == hd.m_fod.length());
+    BL_ASSERT(hd.m_ba.length() == hd.m_fod.length());
 
     is >> hd.m_min;
     is >> hd.m_max;
 
-    BLassert(hd.m_ba.length() == hd.m_min.length());
-    BLassert(hd.m_ba.length() == hd.m_max.length());
+    BL_ASSERT(hd.m_ba.length() == hd.m_min.length());
+    BL_ASSERT(hd.m_ba.length() == hd.m_max.length());
 
     if (!is.good())
         BoxLib::Error("Read of VisMF::Header failed");
@@ -233,7 +233,7 @@ operator>> (istream&       is,
 aString
 VisMF::BaseName (const aString& filename)
 {
-    BLassert(filename[filename.length() - 1] != '/');
+    BL_ASSERT(filename[filename.length() - 1] != '/');
 
     if (char* slash = strrchr(filename.c_str(), '/'))
     {
@@ -254,7 +254,7 @@ VisMF::BaseName (const aString& filename)
 aString
 VisMF::DirName (const aString& filename)
 {
-    BLassert(filename[filename.length() - 1] != '/');
+    BL_ASSERT(filename[filename.length() - 1] != '/');
 
     static const aString TheNullString("");
 
@@ -347,7 +347,7 @@ VisMF::Header::Header (const MultiFab& mf,
         m_min[idx].resize(m_ncomp);
         m_max[idx].resize(m_ncomp);
 
-        BLassert(mfi().box().contains(m_ba[idx]));
+        BL_ASSERT(mfi().box().contains(m_ba[idx]));
 
         for (long j = 0; j < m_ncomp; j++)
         {
@@ -460,7 +460,7 @@ VisMF::Write (const MultiFab& mf,
               VisMF::How      how,
               bool            set_ghost)
 {
-    BLassert(mf_name[mf_name.length() - 1] != '/');
+    BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
 
     const int IoProc = ParallelDescriptor::IOProcessorNumber();
 
@@ -472,9 +472,9 @@ VisMF::Write (const MultiFab& mf,
     {
         MultiFab* the_mf = const_cast<MultiFab*>(&mf);
 
-        BLassert(!(the_mf == 0));
-        BLassert(hdr.m_ba == mf.boxArray());
-        BLassert(hdr.m_ncomp == mf.nComp());
+        BL_ASSERT(!(the_mf == 0));
+        BL_ASSERT(hdr.m_ba == mf.boxArray());
+        BL_ASSERT(hdr.m_ncomp == mf.nComp());
 
         for (MultiFabIterator mfi(*the_mf); mfi.isValid(); ++mfi)
         {
@@ -786,7 +786,7 @@ VisMF::Read (MultiFab&      mf,
         mf.setFab(mfi.index(), VisMF::readFAB(mfi.index(), mf_name, hdr));
     }
 
-    BLassert(mf.ok());
+    BL_ASSERT(mf.ok());
 }
 
 void

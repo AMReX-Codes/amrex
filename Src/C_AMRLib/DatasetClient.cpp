@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DatasetClient.cpp,v 1.15 1999-05-10 17:18:27 car Exp $
+// $Id: DatasetClient.cpp,v 1.16 1999-05-10 18:54:08 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -166,7 +166,7 @@ SendRealArray (int        sockfd,
     //
     long t_long = sizeof(Real) * dataBox.numPts();
 
-    BLassert(t_long < INT_MAX);
+    BL_ASSERT(t_long < INT_MAX);
 
     int totalDataBytes = int(t_long);
 

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tCArena.cpp,v 1.4 1999-05-10 17:18:49 car Exp $
+// $Id: tCArena.cpp,v 1.5 1999-05-10 18:54:24 car Exp $
 //
 
 #ifndef WIN32
@@ -73,7 +73,7 @@ bool
 FB::ok () const
 {
     for (int i = 0; i < m_size; i++)
-        BLassert(m_data[i] == m_size);
+        BL_ASSERT(m_data[i] == m_size);
     return true;
 }
 

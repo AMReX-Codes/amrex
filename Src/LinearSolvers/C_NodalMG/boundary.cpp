@@ -50,7 +50,7 @@ amr_boundary_class::dir (const Box& region,
 	if (region.smallEnd(i) == domain.bigEnd(i))
 	    return +(i+1);
     }
-    BLassert("amr_boundary_class::dir---boundary box not outside domain." == 0);
+    BL_ASSERT("amr_boundary_class::dir---boundary box not outside domain." == 0);
     return 0;
 }
 
@@ -70,7 +70,7 @@ amr_boundary_class::boundary_mesh (BoxArray&       exterior_mesh,
     exterior_mesh.define(bl);
     bl.clear();
     
-    BLassert(il.length() == exterior_mesh.length());
+    BL_ASSERT(il.length() == exterior_mesh.length());
     
     grid_ref = new int[exterior_mesh.length()];
     ListIterator<int> in(il);
@@ -95,7 +95,7 @@ mixed_boundary_class::box (const Box& region,
         //
 	// All these cases use a reflected box.
         //
-	BLassert(idir != 0);
+	BL_ASSERT(idir != 0);
 	if (idir < 0) 
 	{
 	    if (region.type(idim) == IndexType::CELL)
@@ -136,7 +136,7 @@ mixed_boundary_class::box (const Box& region,
 	}
 	else if (idir > 0) 
 	{
-	    BLassert(idir != 0);
+	    BL_ASSERT(idir != 0);
 	    if (region.type(idim) == IndexType::CELL) 
 	    {
 		retbox.shift(idim, 2 * domain.bigEnd(idim) + 1 - region.bigEnd(idim) - region.smallEnd(idim));
@@ -151,7 +151,7 @@ mixed_boundary_class::box (const Box& region,
     }
     else if (t == periodic) 
     {
-	BLassert(idir != 0);
+	BL_ASSERT(idir != 0);
 	if (idir < 0)
 	{
 	    retbox.shift(idim, domain.length(idim));
@@ -434,7 +434,7 @@ void
 mixed_boundary_class::sync_borders (MultiFab&              r,
                                     const level_interface& lev_interface) const
 {
-    BLassert(type(r) == IntVect::TheNodeVector());
+    BL_ASSERT(type(r) == IntVect::TheNodeVector());
     
     task_list tl;
     for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
@@ -466,7 +466,7 @@ mixed_boundary_class::fill_borders (MultiFab&              r,
 {
     w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
 
-    BLassert(w == 1 || w == 0);
+    BL_ASSERT(w == 1 || w == 0);
 
     const Box& domain = lev_interface.domain();
 
@@ -828,7 +828,7 @@ mixed_boundary_class::duplicate (List<Box>& bl,
 bool
 mixed_boundary_class::singular () const
 {
-    BLassert(flowdim == -2); // pressure boundary only
+    BL_ASSERT(flowdim == -2); // pressure boundary only
 
     for (int idim = 0; idim < BL_SPACEDIM; idim++) 
     {

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Mask.cpp,v 1.3 1999-05-10 17:18:39 car Exp $
+// $Id: Mask.cpp,v 1.4 1999-05-10 18:54:16 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -41,7 +41,7 @@ operator<< (ostream&    os,
     }
     os << ")\n";
 
-    BLassert(os.good());
+    BL_ASSERT(os.good());
 
     return os;
 }
@@ -62,12 +62,12 @@ operator>> (istream& is,
     for (IntVect p = sm; p <= bg; b.next(p))
     {
         is >> q;
-        BLassert( p == q);
+        BL_ASSERT( p == q);
         for( int k=0; k<ncomp; k++ ) is >> m(p,k);
         is.ignore(BL_IGNORE_MAX, '\n');
     }
     is.ignore(BL_IGNORE_MAX,'\n');
-    BLassert(is.good());
+    BL_ASSERT(is.good());
     return is;
 }
 

@@ -173,7 +173,7 @@ level_interface::alloc (const BoxArray&           Im,
     
     dom = Domain;
     im  = Im;
-    BLassert( bdy != 0 );
+    BL_ASSERT( bdy != 0 );
     bdy->boundary_mesh(em, grid_ref, im, dom);
     //
     // Add edges in 2D or faces in 3D:
@@ -249,11 +249,11 @@ level_interface::alloc (const BoxArray&           Im,
                 //
 		// One and only one face will be designated as a the direction.
                 //
-		BLassert(fdm[iface] == -1);
+		BL_ASSERT(fdm[iface] == -1);
 		fdm[iface] = i;
 	    }
 	}
-	BLassert(fdm[iface] >= 0 && fdm[iface] < BL_SPACEDIM);
+	BL_ASSERT(fdm[iface] >= 0 && fdm[iface] < BL_SPACEDIM);
     }
     //
     // Initialize face grid array.

@@ -34,7 +34,7 @@ MFNorm (const MultiFab& mfab,
         const int       numComp,
         const int       numGrow)
 {
-    BLassert (numGrow <= mfab.nGrow());
+    BL_ASSERT (numGrow <= mfab.nGrow());
     BoxArray boxes = mfab.boxArray();
     boxes.grow(numGrow);
     //

@@ -30,11 +30,11 @@ public:
     virtual ~amr_multigrid ();
     
 #if BL_SPACEDIM==2
-    static void SetRZ ()	{ c_sys = 1; BLassert(c_sys == 0); }
-    static void SetCartesian ()	{ c_sys = 0; BLassert(c_sys == 0); }
+    static void SetRZ ()	{ c_sys = 1; BL_ASSERT(c_sys == 0); }
+    static void SetCartesian ()	{ c_sys = 0; BL_ASSERT(c_sys == 0); }
     
-    static int IsRZ ()		{ BLassert(c_sys == 0); return c_sys == 1; }
-    static int IsCartesian ()	{ BLassert(c_sys == 0); return c_sys == 0; }
+    static int IsRZ ()		{ BL_ASSERT(c_sys == 0); return c_sys == 1; }
+    static int IsCartesian ()	{ BL_ASSERT(c_sys == 0); return c_sys == 0; }
 #endif
     
     static void mesh_read (Array<BoxArray>& m,

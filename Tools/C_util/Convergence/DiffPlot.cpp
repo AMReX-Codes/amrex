@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DiffPlot.cpp,v 1.3 1999-05-10 17:18:54 car Exp $
+// $Id: DiffPlot.cpp,v 1.4 1999-05-10 18:54:27 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -132,7 +132,7 @@ main (int   argc,
     //
     // Initial Tests 
     //
-    BLassert(amrDatasHaveSameDerives(amrDataI,amrDataE));
+    BL_ASSERT(amrDatasHaveSameDerives(amrDataI,amrDataE));
     if (amrDataI.ProbDomain()[0] != amrDataE.ProbDomain()[0])
     {
         cerr << "ERROR: ProbDomain[0] not the same:\n"
@@ -140,7 +140,7 @@ main (int   argc,
              <<                    amrDataI.ProbDomain()[0] << endl
              << "                  amrDataE.ProbDomain()[0] = " 
              <<                    amrDataE.ProbDomain()[0] << endl;
-        BLassert(amrDataI.ProbDomain()[0] == amrDataE.ProbDomain()[0]);
+        BL_ASSERT(amrDataI.ProbDomain()[0] == amrDataE.ProbDomain()[0]);
         
     }
 

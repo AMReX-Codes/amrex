@@ -4,7 +4,7 @@
 #define BL_ARRAY_H
 
 //
-// $Id: Array.H,v 1.13 1999-05-10 17:18:43 car Exp $
+// $Id: Array.H,v 1.14 1999-05-10 18:54:19 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -252,8 +252,8 @@ inline
 T&
 Array<T>::operator[] (long i)
 {
-    BLassert(vp != 0);
-    BLassert(i >= 0 && i < nelem);
+    BL_ASSERT(vp != 0);
+    BL_ASSERT(i >= 0 && i < nelem);
     return vp[i];
 }
 
@@ -262,8 +262,8 @@ inline
 const T&
 Array<T>::operator[] (long i) const
 {
-    BLassert(vp != 0);
-    BLassert(i >= 0 && i < nelem);
+    BL_ASSERT(vp != 0);
+    BL_ASSERT(i >= 0 && i < nelem);
     return vp[i];
 }
 
@@ -272,8 +272,8 @@ inline
 T&
 Array<T>::get (long i)
 {
-    BLassert(vp != 0);
-    BLassert(i >= 0 && i < nelem);
+    BL_ASSERT(vp != 0);
+    BL_ASSERT(i >= 0 && i < nelem);
     return vp[i];
 }
 
@@ -282,8 +282,8 @@ inline
 const T&
 Array<T>::get (long i) const
 {
-    BLassert(vp != 0);
-    BLassert(i >= 0 && i < nelem);
+    BL_ASSERT(vp != 0);
+    BL_ASSERT(i >= 0 && i < nelem);
     return vp[i];
 }
 
@@ -293,8 +293,8 @@ void
 Array<T>::set (long     i,
                const T& elem)
 {
-    BLassert(vp != 0);
-    BLassert(i >= 0 && i < nelem);
+    BL_ASSERT(vp != 0);
+    BL_ASSERT(i >= 0 && i < nelem);
     vp[i] = elem;
 }
 
@@ -320,8 +320,8 @@ void
 Array<T>::swap (long i,
                 long j)
 {
-    BLassert(i >= 0 && i < nelem);
-    BLassert(j >= 0 && j < nelem);
+    BL_ASSERT(i >= 0 && i < nelem);
+    BL_ASSERT(j >= 0 && j < nelem);
     T tmp = vp[i];
     vp[i] = vp[j];
     vp[j] = tmp;
@@ -340,7 +340,7 @@ template <class T>
 inline
 Array<T>::Array (long len)
 {
-    BLassert(len >= 0);
+    BL_ASSERT(len >= 0);
     nelem    = len;
     vp       = new T[len];
     truesize = len;
@@ -380,7 +380,7 @@ template <class T>
 Array<T>::Array (long     len,
                  const T& initialValue)
 {
-    BLassert(len >= 0);
+    BL_ASSERT(len >= 0);
 
     nelem    = len;
     vp       = new T[len];
@@ -393,8 +393,8 @@ template <class T>
 Array<T>::Array (const T* vec,
                  long     len)
 {
-    BLassert(len >= 0);
-    BLassert(len == 0 || vec != 0);
+    BL_ASSERT(len >= 0);
+    BL_ASSERT(len == 0 || vec != 0);
 
     nelem    = len;
     vp       = new T[len];
