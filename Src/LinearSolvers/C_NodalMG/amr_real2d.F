@@ -1,8 +1,6 @@
 
-#define dims(a) a l0, a h0, a l1, a h1
-#define dimdec(a) a l0:a h0,a l1:a h1
-c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)
-#define dimdecu(a) *
+#define dims(a) a##l0, a##h0, a##l1, a##h1
+#define dimdec(a) a##l0:a##h0,a##l1:a##h1
 
 c Works for CELL- or NODE-based data.
       subroutine fcpy(dest, dims(dest),
@@ -123,7 +121,7 @@ c Works for CELL- or NODE-based data.
      @ dims(reg),
      @ ncomp)
       integer dims(reg)
-      real*8 v(dimdecu(reg))
+      real*8 v(*)
       real*8 x
       integer ncomp
       integer nvals, i
@@ -136,8 +134,8 @@ c Works for CELL- or NODE-based data.
       subroutine fplusu(v0, v1,
      @ dims(reg))
       integer dims(reg)
-      real*8 v0(dimdecu(reg))
-      real*8 v1(dimdecu(reg))
+      real*8 v0(*)
+      real*8 v1(*)
       integer i
       do 10 i = 1, (regh0 - regl0 + 1) * (regh1 - regl1 + 1)
  10      v0(i) = v0(i) + v1(i)

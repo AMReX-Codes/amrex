@@ -1,10 +1,6 @@
 
-c#include "hg_version.H"
-
-#define dims(a) a l0,a h0,a l1,a h1
-#define dimdec(a) a l0:a h0,a l1:a h1
-c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)
-#define dimdecu(a) *
+#define dims(a) a##l0,a##h0,a##l1,a##h1
+#define dimdec(a) a##l0:a##h0,a##l1:a##h1
 
       subroutine hgavg(src,
      @ dims(src),

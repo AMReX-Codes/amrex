@@ -2,8 +2,6 @@
 
 #define dims(a) a##l0,a##h0,a##l1,a##h1,a##l2,a##h2
 #define dimdec(a) a##l0:a##h0,a##l1:a##h1,a##l2:a##h2
-c#define dimdecu(a) (a##h0-a##l0+1)*(a##h1-a##l1+1)*(a##h2-a##l2+1)
-#define dimdecu(a) *
 
 #ifndef HG_CONSTANT
 
@@ -3957,9 +3955,9 @@ c     @                                 1.d0 / srcz(i2+1,j2+1,k2+1))
       implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(reg)
-      real*8 cor(dimdecu(res))
-      real*8 res(dimdecu(res))
-      real*8 mask(dimdecu(res))
+      real*8 cor(*)
+      real*8 res(*)
+      real*8 mask(*)
       real*8 hx
 #if 0
       avg() = fac * (cor(i-1) + cor(i+1) +
@@ -4038,9 +4036,9 @@ cdir$ ivdep
       implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(reg)
-      real*8 res(dimdecu(res))
-      real*8 src(dimdecu(res))
-      real*8 dest(dimdecu(res))
+      real*8 res(*)
+      real*8 src(*)
+      real*8 dest(*)
       real*8 hx
       hxm2 = 1.d0 / (hx*hx)
       fac = hxm2
@@ -4096,11 +4094,11 @@ c sig here contains three different directions all stored on "nodes"
      @ dims(reg))
       integer dims(res)
       integer dims(reg)
-      real*8 cor(dimdecu(res))
-      real*8 res(dimdecu(res))
-      real*8 sig(dimdecu(res))
-      real*8 cen(dimdecu(res))
-      real*8 mask(dimdecu(res))
+      real*8 cor(*)
+      real*8 res(*)
+      real*8 sig(*)
+      real*8 cen(*)
+      real*8 mask(*)
       integer i, jdiff, kdiff, ly, lz
 #if 0
       avg() = (sig(i-1)        * cor(i-1) +
@@ -4568,11 +4566,11 @@ c interface to grid at same level:
      @ dims(reg))
       integer dims(res)
       integer dims(reg)
-      real*8 res(dimdecu(res))
-      real*8 src(dimdecu(res))
-      real*8 dest(dimdecu(res))
-      real*8 signd(dimdecu(res))
-      real*8 mask(dimdecu(res))
+      real*8 res(*)
+      real*8 src(*)
+      real*8 dest(*)
+      real*8 signd(*)
+      real*8 mask(*)
       integer i, jdiff, kdiff, ly, lz
       jdiff = resh0 - resl0 + 1
       kdiff = (resh1 - resl1 + 1) * jdiff
@@ -5410,9 +5408,9 @@ c Works for NODE-based data.
      @ dims(reg),
      @ sum)
       integer dims(reg)
-      real*8 v0(dimdecu(reg))
-      real*8 v1(dimdecu(reg))
-      real*8 mask(dimdecu(reg))
+      real*8 v0(*)
+      real*8 v1(*)
+      real*8 mask(*)
       real*8 sum
       integer i, jdiff, kdiff
       jdiff = regh0 - regl0 + 1
@@ -5425,13 +5423,13 @@ c Works for NODE-based data.
      @ dims(reg),
      @ alpha, rho)
       integer dims(reg)
-      real*8 r(dimdecu(reg))
-      real*8 p(dimdecu(reg))
-      real*8 z(dimdecu(reg))
-      real*8 x(dimdecu(reg))
-      real*8 w(dimdecu(reg))
-      real*8 c(dimdecu(reg))
-      real*8 mask(dimdecu(reg))
+      real*8 r(*)
+      real*8 p(*)
+      real*8 z(*)
+      real*8 x(*)
+      real*8 w(*)
+      real*8 c(*)
+      real*8 mask(*)
       real*8 alpha, rho
       integer i, jdiff, kdiff
       jdiff = regh0 - regl0 + 1
@@ -5447,8 +5445,8 @@ c Works for NODE-based data.
      @ dims(reg),
      @ alpha)
       integer dims(reg)
-      real*8 p(dimdecu(reg))
-      real*8 z(dimdecu(reg))
+      real*8 p(*)
+      real*8 z(*)
       real*8 alpha
       integer i, jdiff, kdiff
       jdiff = regh0 - regl0 + 1

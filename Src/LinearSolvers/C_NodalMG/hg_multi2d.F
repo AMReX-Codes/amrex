@@ -1,10 +1,6 @@
 
-c#include "hg_version.H"
-
-#define dims(a) a l0, a h0, a l1, a h1
-#define dimdec(a) a l0:a h0,a l1:a h1
-c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)
-#define dimdecu(a) *
+#define dims(a) a##l0, a##h0, a##l1, a##h1
+#define dimdec(a) a##l0:a##h0,a##l1:a##h1
 
 #ifdef HG_CROSS_STENCIL
 
@@ -1763,9 +1759,9 @@ c five-point constant stencils
       implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(reg)
-      real*8 cor(dimdecu(res))
-      real*8 res(dimdecu(res))
-      real*8 mask(dimdecu(res))
+      real*8 cor(*)
+      real*8 res(*)
+      real*8 mask(*)
       real*8 hx
 #if 0
       avg() = fac * (cor(i-1) + cor(i+1) +
@@ -1822,9 +1818,9 @@ cdir$ ivdep
       implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(reg)
-      real*8 res(dimdecu(res))
-      real*8 src(dimdecu(res))
-      real*8 dest(dimdecu(res))
+      real*8 res(*)
+      real*8 src(*)
+      real*8 dest(*)
       real*8 hx
       hxm2 = 1.d0 / (hx*hx)
       fac = hxm2
@@ -2284,9 +2280,9 @@ cdir$ ivdep
       implicit real*8(a-h,o-z), integer(i-n)
       integer dims(res)
       integer dims(reg)
-      real*8 res(dimdecu(res))
-      real*8 src(dimdecu(res))
-      real*8 dest(dimdecu(res))
+      real*8 res(*)
+      real*8 src(*)
+      real*8 dest(*)
       real*8 hx
       hxm2 = 1.d0 / (hx*hx)
       fac = hxm2 / 3.d0
@@ -3481,9 +3477,9 @@ c Works for NODE-based data.
       subroutine hgip(v0, v1, mask,
      @ dims(reg), sum)
       integer dims(reg)
-      real*8 v0(dimdecu(reg))
-      real*8 v1(dimdecu(reg))
-      real*8 mask(dimdecu(reg))
+      real*8 v0(*)
+      real*8 v1(*)
+      real*8 mask(*)
       real*8 sum
       integer i, idiff
 c      do 10 i = 1, (regh0 - regl0 + 1) * (regh1 - regl1 + 1)
@@ -3496,13 +3492,13 @@ c      do 10 i = 1, (regh0 - regl0 + 1) * (regh1 - regl1 + 1)
      @ dims(reg),
      @ alpha, rho)
       integer dims(reg)
-      real*8 r(dimdecu(reg))
-      real*8 p(dimdecu(reg))
-      real*8 z(dimdecu(reg))
-      real*8 x(dimdecu(reg))
-      real*8 w(dimdecu(reg))
-      real*8 c(dimdecu(reg))
-      real*8 mask(dimdecu(reg))
+      real*8 r(*)
+      real*8 p(*)
+      real*8 z(*)
+      real*8 x(*)
+      real*8 w(*)
+      real*8 c(*)
+      real*8 mask(*)
       real*8 alpha, rho
       integer i, idiff
 c      do 10 i = 1, (regh0 - regl0 + 1) * (regh1 - regl1 + 1)
@@ -3518,8 +3514,8 @@ c      do 10 i = 1, (regh0 - regl0 + 1) * (regh1 - regl1 + 1)
      @ dims(reg),
      @ alpha)
       integer dims(reg)
-      real*8 p(dimdecu(reg))
-      real*8 z(dimdecu(reg))
+      real*8 p(*)
+      real*8 z(*)
       real*8 alpha
       integer i, idiff
 c      do 10 i = 1, (regh0 - regl0 + 1) * (regh1 - regl1 + 1)
