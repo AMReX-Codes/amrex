@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MCLinOp.cpp,v 1.7 1999-01-04 21:31:49 lijewski Exp $
+// $Id: MCLinOp.cpp,v 1.8 1999-01-06 00:30:52 marc Exp $
 //
 // Differences from LinOp: den has nc components, bct has nc components.
 //
@@ -454,7 +454,7 @@ MCLinOp::prepareForLevel (int level)
 			curmask.setVal(BndryData::covered, btmp,0);
 		    }
 
-		    curmask.shift(pshifts[iiv]);
+		    curmask.shift(-pshifts[iiv]);
 		}
 	    }
         }
