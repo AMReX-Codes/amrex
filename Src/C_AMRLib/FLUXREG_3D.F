@@ -1,5 +1,5 @@
 c
-c $Id: FLUXREG_3D.F,v 1.3 1997-12-12 22:43:15 lijewski Exp $
+c $Id: FLUXREG_3D.F,v 1.4 1997-12-13 19:48:03 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -11,6 +11,16 @@ c
 #include "CONSTANTS.H"
 #include "FLUXREG_F.H"
 #include "ArrayLim.H"
+
+#if defined(BL_USE_FLOAT) || defined(BL_T3E)
+#define  BL_USE_FLOAT_CONST
+#define  onetominuseight 1.0e-8
+#endif
+
+#if defined(BL_USE_DOUBLE) && !defined(BL_T3E)
+#define  BL_USE_DOUBLE_CONST
+#define  onetominuseight 1.0d-8
+#endif
 
 #define SDIM 3
 
@@ -495,7 +505,7 @@ c ::: -----------------------------------------------------------
 
       integer    n, i, j, k, istart
 
-      if (area(lo(1),lo(2),lo(3)) .lt. 1.d-8) then
+      if (area(lo(1),lo(2),lo(3)) .lt. onetominuseight) then
         do n = 1, numcomp
         do k = lo(3), hi(3)
         do j = lo(2), hi(2)
