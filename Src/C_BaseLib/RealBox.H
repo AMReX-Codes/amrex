@@ -4,7 +4,7 @@
 #define _RealBox_H_ 
 
 //
-// $Id: RealBox.H,v 1.1 1997-12-10 19:07:42 lijewski Exp $
+// $Id: RealBox.H,v 1.2 1997-12-10 21:56:02 lijewski Exp $
 //
 
 #include <Array.H>
@@ -86,7 +86,6 @@ public:
     int ok() const;
     int contains(const Real* point);
     int contains(const RealBox &bx);
-    int intersects(const RealBox &bx);
 
       // -------------------------------------------
       // -------  intersection functions  ----------

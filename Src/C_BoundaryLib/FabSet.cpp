@@ -1,42 +1,54 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.1 1997-12-10 19:07:41 lijewski Exp $
+// $Id: FabSet.cpp,v 1.2 1997-12-10 21:56:02 lijewski Exp $
 //
 
 #include <FabSet.H>
 #include <Looping.H>
 
-// --------------------------------------------------------------------
 FabSet::FabSet() : MultiFab() {
 }
 
-
-// --------------------------------------------------------------------
 FabSet::~FabSet() {
 }
 
-
-// --------------------------------------------------------------------
 FabSet::FabSet(int _len) : MultiFab() {
   fabparray.resize(_len);
 }
 
-
-// --------------------------------------------------------------------
 FabSet::FabSet(istream &is) : MultiFab() {
     readFrom(is);
 }
 
+void
+FabSet::setFab (int        boxno,
+                FArrayBox* fab)
+{
+    if (n_comp == 0)
+    {
+        n_comp = fab->nComp();
+    }
+    assert(n_comp == fab->nComp());
+    assert(boxarray.ready());
+    assert(!fabparray.defined(boxno));
+    if (distributionMap.ProcessorMap()[boxno] == ParallelDescriptor::MyProc())
+    {
+        fabparray.set(boxno, fab);
+    }
+    else
+    {
+        BoxLib::Error("FabSet::setFab(): nonlocal set");
+    }
+    fabboxarray.convert(fab->box().ixType());
+    fabboxarray.set(boxno, fab->box());
+}
 
-// --------------------------------------------------------------------
 const FabSet &FabSet::copyTo(FArrayBox &dest) const {
     this->copy(dest);
     return *this;
 }
 
-
-// --------------------------------------------------------------------
 const FabSet &FabSet::copyTo(FArrayBox& dest, int src_comp,
 			     int dest_comp, int num_comp) const
 {
@@ -44,8 +56,6 @@ const FabSet &FabSet::copyTo(FArrayBox& dest, int src_comp,
     return *this;
 }
 
-
-// --------------------------------------------------------------------
 const FabSet &FabSet::copyTo(FArrayBox &dest, const Box &subbox,
 			     int src_comp, int dest_comp,
 			     int num_comp) const
@@ -54,7 +64,6 @@ const FabSet &FabSet::copyTo(FArrayBox &dest, const Box &subbox,
     return *this;
 }
 
-// --------------------------------------------------------------------
 FabSet &FabSet::copyFrom(const FArrayBox &src) {
     for(FabSetIterator fsi(*this); fsi.isValid(); ++fsi) {
 	fsi().copy(src);
@@ -62,7 +71,6 @@ FabSet &FabSet::copyFrom(const FArrayBox &src) {
     return *this;
 }
 
-// --------------------------------------------------------------------
 FabSet &FabSet::copyFrom(const FArrayBox& src, int src_comp,
 			 int dest_comp, int num_comp)
 {
@@ -72,8 +80,6 @@ FabSet &FabSet::copyFrom(const FArrayBox& src, int src_comp,
     return *this;
 }
 
-
-// --------------------------------------------------------------------
 FabSet &FabSet::copyFrom(const FArrayBox &src, const Box &subbox,
 		         int src_comp, int dest_comp, int num_comp)
 {
@@ -90,46 +96,37 @@ FabSet &FabSet::copyFrom(const FArrayBox &src, const Box &subbox,
     return *this;
 }
 
+//
+// The following are different from MultiFab only in the return value
+//
 
-// --------------------------------------------------------------------
-// the following are different from MultiFab only in the return value
-
-// --------------------------------------------------------------------
 FabSet &FabSet::plus(Real v, int comp, int num_comp) {
     this->plus(v, comp, num_comp);
     return *this;
 }
 
-
-// --------------------------------------------------------------------
 FabSet &FabSet::plus(Real v, const Box &subreg, int comp, int num_comp)
 {
     this->plus(v, subreg, comp, num_comp);
     return *this;
 }
 
-
-// --------------------------------------------------------------------
 FabSet &FabSet::mult(Real v, int comp, int num_comp) {
     this->mult(v, comp, num_comp);
     return *this;
 }
 
-
-// --------------------------------------------------------------------
 FabSet &FabSet::mult(Real v, const Box &subreg, int comp, int num_comp)
 {
     this->mult(v, subreg, comp, num_comp);
     return *this;
 }
 
-// --------------------------------------------------------------------
 FabSet &FabSet::copyFrom(const FabSet &src) {
     this->copy(src);
     return *this;
 }
 
-// --------------------------------------------------------------------
 FabSet &FabSet::copyFrom(const FabSet &src, int src_comp, int dest_comp,
 		         int num_comp)
 {
@@ -137,7 +134,6 @@ FabSet &FabSet::copyFrom(const FabSet &src, int src_comp, int dest_comp,
     return *this;
 }
 
-// --------------------------------------------------------------------
 FabSet &FabSet::copyFrom(const FabSet &src, const Box &subreg,
 		         int src_comp, int dest_comp, int num_comp)
 {
@@ -145,56 +141,175 @@ FabSet &FabSet::copyFrom(const FabSet &src, const Box &subreg,
     return *this;
 }
 
-
-// --------------------------------------------------------------------
 FabSet &FabSet::copyFrom(const MultiFab &src, int nghost, int src_comp,
 		         int dest_comp, int num_comp)
 {
-    BoxLib::Error("FabSet::copyFrom(MultiFab, nghost, ...) not implemented");
+/*  original code vvvvvvvvvvvvvvvvvvvvvvvvvv
+    assert (nghost <= src.nGrow());
+    const BoxArray& sba = src.boxArray();
+    for (int s = 0; s < src.length; s++) {
+        const FArrayBox& sfab = src[s];
+        Box sbox = grow(sba[s],nghost);
+        for (int d = 0; d < length(); d++) {
+            FArrayBox& dfab = (*this)[d];
+            Box ovlp = dfab.box();
+            ovlp &= sbox;
+            if (ovlp.ok()) {
+                dfab.copy(sfab,ovlp,src_comp,ovlp,dest_comp,num_comp);
+            }
+        }
+    }
+*/
+
+
+    assert (nghost <= src.nGrow());
+
+    FabSetCopyDescriptor fscd(true);
+    MultiFabId srcmfid = fscd.RegisterFabArray((MultiFab *) &src);  // cast away
+						 // const, this must be fixed
+    List<FillBoxId> fillBoxIdList;
+
+    const BoxArray& sba = src.boxArray();
+    for(FabSetIterator fsi(*this); fsi.isValid(); ++fsi) {
+       FArrayBox &dfab = fsi();
+       for(int s = 0; s < src.length(); ++s) {
+        Box sbox = grow(sba[s],nghost);
+            Box ovlp = dfab.box();
+            ovlp &= sbox;
+            if(ovlp.ok()) {
+              //dfab.copy(sfab,ovlp,src_comp,ovlp,dest_comp,num_comp);
+	      IndexType boxType(ovlp.ixType());
+	      BoxList unfilledBoxes(boxType);  // unused here
+	      //FillBoxId fbid = fscd.AddBox(srcmfid, ovlp, unfilledBoxes,
+	      FillBoxId fbid = fscd.AddBox(srcmfid, src.fabbox(s), unfilledBoxes,
+				           //src_comp, dest_comp, num_comp);
+				           src_comp, dest_comp, num_comp, false);
+	      fillBoxIdList.append(fbid);
+            }
+        }
+    }
+
+    fscd.CollectData();
+
+    ListIterator<FillBoxId> fbidli(fillBoxIdList);
+
+    for(FabSetIterator fsi(*this); fsi.isValid(); ++fsi) {
+       FArrayBox &dfab = fsi();
+       for(int s = 0; s < src.length(); ++s) {
+        Box sbox = grow(sba[s],nghost);
+            Box ovlp = dfab.box();
+            ovlp &= sbox;
+            if(ovlp.ok()) {
+	      assert(fbidli);
+	      FillBoxId fbid = fbidli();
+	      ++fbidli;
+
+	      FArrayBox sfabTemp(fbid.box(), num_comp);
+	      fscd.FillFab(srcmfid, fbid, sfabTemp);
+	      int srcCompTemp = 0;  // copy from temp src = 0
+              dfab.copy(sfabTemp, ovlp, srcCompTemp, ovlp, dest_comp, num_comp);
+            }
+        }
+    }
+
     return *this;
 }
 
-// --------------------------------------------------------------------
 const FabSet &FabSet::copyTo(MultiFab &dest, int nghost, int src_comp,
 	                     int dest_comp, int num_comp) const
 {
-    BoxLib::Error("FabSet::copyTo(MultiFab, nghost, ...) not implemented");
+if(ParallelDescriptor::NProcs() > 1) {
+  cerr << "FabSet::copyTo(MultiFab, nghost, ...) not implemented in parallel." << endl;
+  ParallelDescriptor::Abort("Exiting.");
+} else {
+  cerr << "FabSet::copyTo(MultiFab, nghost, ...) not implemented in parallel." << endl;
+}
+
+    int dlen = dest.length();
+    int slen = length();
+    assert (nghost <= dest.nGrow());
+    const BoxArray& dba = dest.boxArray();
+    for (int d = 0; d < dlen; d++) {
+        FArrayBox& dfab = dest[d];
+        Box dbox = grow(dba[d],nghost);
+        for (int s = 0; s < slen; s++) {
+            const FArrayBox& sfab = (*this)[s];
+            const Box& sbox = sfab.box();
+            Box ovlp = dbox;
+            ovlp &= sbox;
+            if (ovlp.ok()) {
+                dfab.copy(sfab,ovlp,src_comp,ovlp,dest_comp,num_comp);
+            }
+        }
+    }
+
     return *this;
 }
 
-// --------------------------------------------------------------------
 FabSet &FabSet::plusFrom(const MultiFab &src, int nghost, int src_comp,
 		         int dest_comp, int num_comp)
 {
-    BoxLib::Error("FabSet::plusFrom(MultiFab, nghost, ...) not implemented");
-/*
-    int slen = src.length();
-    int dlen = length();
-    assert (nghost <= src.nGrow());
+    //
+    // This can be optimized by only communicating the components used in
+    // the linComp--this implementation communicates all the components.
+    //
+    assert(nghost <= src.nGrow());
+
     const BoxArray& sba = src.boxArray();
 
- // turn this loop inside out for parallel (mfiterate over *this)
- // to fill dest locally
+    MultiFabCopyDescriptor mfcd(true);
+    MultiFabId mfidsrc  = mfcd.RegisterFabArray((MultiFab *) &src);
+    List<FillBoxId> fillBoxIdList;
 
-    for(ConstMultiFabIterator cmfi(src); cmfi.isValid(); ++cmfi) {
-	const FArrayBox& sfab = cmfi();
-	Box sbox = grow(cmfi.validbox(), nghost);
-	for (int d = 0; d < dlen; d++) {
-	    FArrayBox& dfab = (*this)[d];
-	    Box ovlp = dfab.box();
-	    ovlp &= sbox;
-	    if (ovlp.ok()) {
-		dfab.plus(sfab,ovlp,src_comp,dest_comp,num_comp);
-	    }
-	}
+    for (FabSetIterator thismfi(*this); thismfi.isValid(); ++thismfi)
+    {
+        FArrayBox& dfab = thismfi();
+        for (int isrc = 0; isrc < src.length(); ++isrc)
+        {
+            Box sbox = grow(sba[isrc], nghost);
+            Box ovlp(dfab.box());
+            ovlp &= sbox;
+            if (ovlp.ok())
+            {
+                BoxList unfilledBoxes(ovlp.ixType()); // Unused here.
+                FillBoxId fbidsrc;
+                fbidsrc = mfcd.AddBox(mfidsrc,ovlp,unfilledBoxes,0,0,num_comp);
+                fillBoxIdList.append(fbidsrc);
+            }
+        }
     }
-*/
+
+    mfcd.CollectData();
+
+    ListIterator<FillBoxId> fbidli(fillBoxIdList);
+
+    for (FabSetIterator thismfi(*this); thismfi.isValid(); ++thismfi)
+    {
+        FArrayBox& dfab = thismfi();
+        for (int isrc = 0; isrc < src.length(); ++isrc)
+        {
+            Box sbox = grow(sba[isrc], nghost);
+            Box ovlp(dfab.box());
+            ovlp &= sbox;
+            if (ovlp.ok())
+            {
+                assert(fbidli);
+                FillBoxId fbidsrc = fbidli();
+                ++fbidli;
+                FArrayBox sfab(fbidsrc.box(), num_comp);
+                mfcd.FillFab(mfidsrc, fbidsrc, sfab);
+                dfab.plus(sfab,ovlp,src_comp,dest_comp,num_comp);
+            }
+        }
+    }
+
     return *this;
 }
 
-// --------------------------------------------------------------------
+//
 // Linear combination this := a*this + b*src
-// Note: corresponding fabsets must be commensurate
+// Note: corresponding fabsets must be commensurate.
+//
 FabSet &FabSet::linComb(Real a, Real b, const FabSet &src, int src_comp,
 		        int dest_comp, int num_comp)
 {
@@ -213,41 +328,82 @@ FabSet &FabSet::linComb(Real a, Real b, const FabSet &src, int src_comp,
     return *this;
 }
 
-// --------------------------------------------------------------------
 FabSet &FabSet::linComb(Real a, const MultiFab &mfa, int a_comp,
 		        Real b, const MultiFab &mfb, int b_comp,
-		        int dest_comp, int num_comp)
+		        int dest_comp, int num_comp, int n_ghost)
 {
-    BoxLib::Error("FabSet::linComb(2) not yet implemented");
-/*
-    const BoxArray &bxa = mfa.boxArray();
-    const BoxArray &bxb = mfb.boxArray();
-    assert( bxa == bxb);
+    const BoxArray& bxa = mfa.boxArray();
+    const BoxArray& bxb = mfb.boxArray();
+    assert(bxa == bxb);
+    assert(n_ghost <= mfa.nGrow());
+    assert(n_ghost <= mfb.nGrow());
+    //
+    // This can be optimized by only communicating the components used in
+    // the linComp--this implementation communicates all the components.
+    //
+    MultiFabCopyDescriptor mfcd(true);
+    MultiFabId mfid_mfa = mfcd.RegisterFabArray((MultiFab *) &mfa);
+    MultiFabId mfid_mfb = mfcd.RegisterFabArray((MultiFab *) &mfb);
+    List<FillBoxId> fillBoxIdList_mfa;
+    List<FillBoxId> fillBoxIdList_mfb;
 
- // turn this loop inside out for parallel (mfiterate over *this)
- // to fill dest locally
-
-    //for (int grd = 0; grd < bxa.length(); grd++) {
-    for(ConstMultiFabIterator cmfi(mfa); cmfi.isValid(); ++cmfi) {
-	int grd = cmfi.index();
-	const Box& grd_box = bxa[grd];
-	const FArrayBox& a_fab = mfa[grd];
-	const FArrayBox& b_fab = mfb[grd];
-	for (int reg = 0; reg < length(); reg++) {
-	    FArrayBox &reg_fab = (*this)[reg];
-	    Box ovlp(reg_fab.box());
-	    ovlp &= grd_box;
-	    if (ovlp.ok()) {
-		reg_fab.linComb(a_fab,ovlp,a_comp,b_fab,ovlp,b_comp,
-				a,b,ovlp,dest_comp,num_comp);
-	    }
-	}
+    for (FabSetIterator thismfi(*this); thismfi.isValid(); ++thismfi)
+    {
+        FArrayBox& reg_fab = thismfi();
+        for (int grd = 0; grd < bxa.length(); grd++)
+        {
+            const Box &grd_box = grow(bxa[grd],n_ghost);
+            Box ovlp(reg_fab.box());
+            ovlp &= grd_box;
+            if (ovlp.ok())
+            {
+                BoxList unfilledBoxes(ovlp.ixType()); // Unused here.
+                FillBoxId fbid_mfa;
+                fbid_mfa = mfcd.AddBox(mfid_mfa, mfa.fabbox(grd),
+                                       unfilledBoxes, 0, 0, num_comp, false);
+                fillBoxIdList_mfa.append(fbid_mfa);
+                FillBoxId fbid_mfb;
+                fbid_mfb = mfcd.AddBox(mfid_mfb, mfb.fabbox(grd),
+                                       unfilledBoxes, 0, 0, num_comp, false);
+                fillBoxIdList_mfb.append(fbid_mfb);
+            }
+        }
     }
-*/
+
+    mfcd.CollectData();
+
+    ListIterator<FillBoxId> fbidli_mfa(fillBoxIdList_mfa);
+    ListIterator<FillBoxId> fbidli_mfb(fillBoxIdList_mfb);
+
+    for (FabSetIterator thismfi(*this); thismfi.isValid(); ++thismfi)
+    {
+        FArrayBox& reg_fab = thismfi();
+        for (int grd = 0; grd < bxa.length(); grd++)
+        {
+            const Box& grd_box = grow(bxa[grd],n_ghost);
+            Box ovlp(reg_fab.box());
+            ovlp &= grd_box;
+            if (ovlp.ok())
+            {
+                assert(fbidli_mfa);
+                FillBoxId fbid_mfa = fbidli_mfa();
+                ++fbidli_mfa;
+                FArrayBox a_fab(fbid_mfa.box(), num_comp);
+                mfcd.FillFab(mfid_mfa, fbid_mfa, a_fab);
+                assert(fbidli_mfb);
+                FillBoxId fbid_mfb = fbidli_mfb();
+                ++fbidli_mfb;
+                FArrayBox b_fab(fbid_mfb.box(), num_comp);
+                mfcd.FillFab(mfid_mfb, fbid_mfb, b_fab);
+                reg_fab.linComb(a_fab,ovlp,a_comp,b_fab,ovlp,b_comp,
+                                a,b,ovlp,dest_comp,num_comp);
+            }
+        }
+    }
+
     return *this;
 }
 
-// --------------------------------------------------------------------
 ostream &
 operator << (ostream &os, const FabSet &mf)
 {
@@ -259,12 +415,11 @@ operator << (ostream &os, const FabSet &mf)
     for (int i = 0; i < nfab; i++) {
 	os << mf[i] << '\n';
     }
-    os << ')' << flush;
+    os << ')';
 */
     return os;
 }
 
-// --------------------------------------------------------------------
 ostream &
 FabSet::writeOn(ostream &os) const
 {
@@ -280,7 +435,6 @@ FabSet::writeOn(ostream &os) const
     return os;
 }
 
-// --------------------------------------------------------------------
 istream &
 FabSet::readFrom(istream &is)
 {
@@ -303,95 +457,3 @@ FabSet::readFrom(istream &is)
 */
     return is;
 }
-
-
-
-// --------------------------------------------------------------------
-FabSetIterator::FabSetIterator(FabSet &fabset)
-               : MultiFabIterator(fabset)
-{
-}
-
-// --------------------------------------------------------------------
-FabSetIterator::~FabSetIterator() {
-}
-
-
-// --------------------------------------------------------------------
-DependentFabSetIterator::DependentFabSetIterator(FabSetIterator &controllerfsiter,
-                                                 FabSet &fabset)
-                        : DependentMultiFabIterator(controllerfsiter, fabset)
-{
-}
-
-// --------------------------------------------------------------------
-DependentFabSetIterator::DependentFabSetIterator(FabSetIterator &controllerfsiter,
-                                                 const FabSet &fabset)
-                        : DependentMultiFabIterator(controllerfsiter, fabset)
-{
-}
-
-// --------------------------------------------------------------------
-DependentFabSetIterator::DependentFabSetIterator(MultiFabIterator &controllerfsiter,
-                                                 FabSet &fabset)
-                        : DependentMultiFabIterator(controllerfsiter, fabset)
-{
-}
-
-// --------------------------------------------------------------------
-DependentFabSetIterator::DependentFabSetIterator(MultiFabIterator &controllerfsiter,
-                                                 const FabSet &fabset)
-                        : DependentMultiFabIterator(controllerfsiter, fabset)
-{
-}
-
-// --------------------------------------------------------------------
-DependentFabSetIterator::~DependentFabSetIterator() {
-}
-
-
-// --------------------------------------------------------------------
-ConstFabSetIterator::ConstFabSetIterator(const FabSet &fabset)
-                    : ConstMultiFabIterator(fabset)
-{
-}
-
-// --------------------------------------------------------------------
-ConstFabSetIterator::~ConstFabSetIterator() {
-}
-
-
-// --------------------------------------------------------------------
-ConstDependentFabSetIterator::ConstDependentFabSetIterator(
-                                 ConstFabSetIterator &controllerfsiter,
-                                 const FabSet &fabset)
-                : ConstDependentMultiFabIterator(controllerfsiter, fabset)
-{
-}
-
-// --------------------------------------------------------------------
-ConstDependentFabSetIterator::ConstDependentFabSetIterator(
-                                 ConstMultiFabIterator &controllerfsiter,
-                                 const FabSet &fabset)
-                : ConstDependentMultiFabIterator(controllerfsiter, fabset)
-{
-}
-
-// --------------------------------------------------------------------
-ConstDependentFabSetIterator::~ConstDependentFabSetIterator() {
-}
-
-
-
-// --------------------------------------------------------------------
-FabSetCopyDescriptor::FabSetCopyDescriptor(bool cacheremotedata)
-                     : MultiFabCopyDescriptor(cacheremotedata)
-{
-}
-
-// --------------------------------------------------------------------
-FabSetCopyDescriptor::~FabSetCopyDescriptor() {
-}
-
-// --------------------------------------------------------------------
-// --------------------------------------------------------------------

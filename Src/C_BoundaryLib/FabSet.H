@@ -4,7 +4,7 @@
 #define _FABSET_H_
 
 //
-// $Id: FabSet.H,v 1.1 1997-12-10 19:07:40 lijewski Exp $
+// $Id: FabSet.H,v 1.2 1997-12-10 21:56:01 lijewski Exp $
 //
 
 #include <FArrayBox.H>
@@ -125,7 +125,7 @@ public:
 //@ManDoc: Linear combination: this := a*mfa + b*mfb on intersection with valid region
     FabSet &linComb(Real a, const MultiFab& mfa, int a_comp,
 		    Real b, const MultiFab& mfb, int b_comp,
-		    int dest_comp, int num_comp);
+		    int dest_comp, int num_comp, int n_ghost=0);
 
     friend class FabSetIterator;
     friend class DependentFabSetIterator;
@@ -140,23 +140,11 @@ public:
     const Box &box(int K) const {
       return fabboxarray[K];
     }
-
-    //MultiFab::setFab;
-    void setFab(int boxno, FArrayBox *fab) {
-      if(n_comp == 0) {
-	n_comp = fab->nComp();
-      }
-      assert(n_comp == fab->nComp());
-      assert(boxarray.ready());
-      assert( ! fabparray.defined(boxno));
-      if(distributionMap.ProcessorMap()[boxno] == ParallelDescriptor::MyProc()) {
-        fabparray.set(boxno, fab);
-      } else {
-        BoxLib::Error("FabArray<T,FAB>::setFab: nonlocal set");
-      }
-      fabboxarray.convert(fab->box().ixType());
-      fabboxarray.set(boxno, fab->box());
+    const Box fabbox(int K) const {
+      return fabboxarray[K];
     }
+
+    void setFab(int boxno, FArrayBox *fab);
 
     void resize(int newsize) { fabparray.resize(newsize); }
     void setBox(int index, const Box &b) { fabboxarray.set(index, b); }
@@ -174,63 +162,98 @@ public:
     BoxArray fabboxarray;
 };
 
-
-// --------------------------------------------------------------------
-class FabSetIterator : public MultiFabIterator {
-  public:
-    FabSetIterator(FabSet &fabset);
-    ~FabSetIterator();
+class FabSetIterator
+    :
+    public MultiFabIterator
+{
+public:
+    FabSetIterator (FabSet& fabset)
+        :
+        MultiFabIterator(fabset) {}
+    ~FabSetIterator () {}
 };
 
+class DependentFabSetIterator
+    :
+    public DependentMultiFabIterator
+{
+public:
+    DependentFabSetIterator (FabSetIterator& controllerfsiter,
+                             FabSet&         fabset)
+        : DependentMultiFabIterator(controllerfsiter, fabset) {}
 
-// --------------------------------------------------------------------
-class DependentFabSetIterator : public DependentMultiFabIterator {
-  public:
-    DependentFabSetIterator(FabSetIterator &controllerfsiter, FabSet &fabset);
-    DependentFabSetIterator(FabSetIterator &controllerfsiter, const FabSet &fabset);
-    DependentFabSetIterator(MultiFabIterator &controllerfsiter, FabSet &fabset);
-    DependentFabSetIterator(MultiFabIterator &controllerfsiter, const FabSet &fabset);
-    ~DependentFabSetIterator();
+    DependentFabSetIterator (FabSetIterator& controllerfsiter,
+                             const FabSet&   fabset)
+        :
+        DependentMultiFabIterator(controllerfsiter, fabset) {}
+
+    DependentFabSetIterator (MultiFabIterator& controllerfsiter,
+                             FabSet&           fabset)
+        :
+        DependentMultiFabIterator(controllerfsiter, fabset) {}
+
+    DependentFabSetIterator (MultiFabIterator& controllerfsiter,
+                             const FabSet&     fabset)
+        :
+        DependentMultiFabIterator(controllerfsiter, fabset) {}
+
+    ~DependentFabSetIterator () {}
 };
 
+class ConstFabSetIterator
+    :
+    public ConstMultiFabIterator
+{
+public:
+    ConstFabSetIterator (const FabSet &fabset)
+        :
+        ConstMultiFabIterator(fabset) {}
 
-// --------------------------------------------------------------------
-class ConstFabSetIterator : public ConstMultiFabIterator {
-  public:
-    ConstFabSetIterator(const FabSet &fabset);
-    ~ConstFabSetIterator();
+    ~ConstFabSetIterator () {}
 };
 
+class ConstDependentFabSetIterator
+    :
+    public ConstDependentMultiFabIterator
+{
+public:
+    ConstDependentFabSetIterator (ConstFabSetIterator& controllerfsiter,
+                                  const FabSet&        fabset)
+        :
+        ConstDependentMultiFabIterator(controllerfsiter, fabset) {}
 
-// --------------------------------------------------------------------
-class ConstDependentFabSetIterator : public ConstDependentMultiFabIterator {
-  public:
-    ConstDependentFabSetIterator(ConstFabSetIterator &controllerfsiter,
-				 const FabSet &fabset);
-    ConstDependentFabSetIterator(ConstMultiFabIterator &controllerfsiter,
-				 const FabSet &fabset);
-    ~ConstDependentFabSetIterator();
+    ConstDependentFabSetIterator (ConstMultiFabIterator& controllerfsiter,
+                                  const FabSet&          fabset)
+        :
+        ConstDependentMultiFabIterator(controllerfsiter, fabset) {}
+
+    ~ConstDependentFabSetIterator () {}
 };
 
-
-// --------------------------------------------------------------------
 typedef FabArrayId FabSetId;
 
-class FabSetCopyDescriptor : public MultiFabCopyDescriptor {
-  public:
-    FabSetCopyDescriptor(bool cacheremotedata = true);
-    ~FabSetCopyDescriptor();
-    FabSetId RegisterFabSet(FabSet *fabset) {
-      return RegisterMultiFab(fabset);
+class FabSetCopyDescriptor
+    :
+    public MultiFabCopyDescriptor
+{
+public:
+    FabSetCopyDescriptor (bool cacheremotedata = true)
+        :
+        MultiFabCopyDescriptor(cacheremotedata) {}
+
+    ~FabSetCopyDescriptor () {}
+
+    FabSetId RegisterFabSet (FabSet* fabset)
+    {
+        return RegisterMultiFab(fabset);
     }
-
-  private:
+private:
+    //
     // These are disallowed.
-    FabSetCopyDescriptor();
-    FabSetCopyDescriptor(const FabSetCopyDescriptor &);
-    FabSetCopyDescriptor &operator=(const FabSetCopyDescriptor &);
+    //
+    FabSetCopyDescriptor ();
+    FabSetCopyDescriptor (const FabSetCopyDescriptor& rhs);
+    FabSetCopyDescriptor& operator= (const FabSetCopyDescriptor& rhs);
 };
-// --------------------------------------------------------------------
 
-
-#endif
+#endif /*_FABSET_H_*/

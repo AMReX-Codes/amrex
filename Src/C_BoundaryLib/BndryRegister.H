@@ -4,7 +4,7 @@
 #define _BNDRYREGISTER_H_
 
 //
-// $Id: BndryRegister.H,v 1.1 1997-12-10 19:07:38 lijewski Exp $
+// $Id: BndryRegister.H,v 1.2 1997-12-10 21:56:01 lijewski Exp $
 //
 
 #include <BoxArray.H>
@@ -104,7 +104,7 @@ public:
 //@ManDoc: Linear combination: this := a*mfa + b*mfb on intersection of MultiFabs with the boundary FABs
     BndryRegister& linComb(Real a, const MultiFab& mfa, int a_comp,
 			   Real b, const MultiFab& mfb, int b_comp,
-			   int dest_comp, int num_comp);
+			   int dest_comp, int num_comp, int n_ghost=0);
 
 //@ManMemo: internal administrative functions
 //@ManDoc: set box domain, if not set previously

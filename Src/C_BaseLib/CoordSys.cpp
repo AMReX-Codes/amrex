@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CoordSys.cpp,v 1.1 1997-12-10 19:07:40 lijewski Exp $
+// $Id: CoordSys.cpp,v 1.2 1997-12-10 21:56:01 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -15,7 +15,9 @@
 #include <CoordSys.H>
 #include <COORDSYS_F.H>
 
-#define RZFACTOR  (2*M_PI)
+#if (BL_SPACEDIM==2)
+const double RZFACTOR = 2*M_PI;
+#endif
 
 CoordSys::CoordType  CoordSys::c_sys = CoordSys::undef;
 Real CoordSys::offset[BL_SPACEDIM];

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BndryRegister.cpp,v 1.1 1997-12-10 19:07:39 lijewski Exp $
+// $Id: BndryRegister.cpp,v 1.2 1997-12-10 21:56:01 lijewski Exp $
 //
 
 #include <BndryRegister.H>
@@ -21,13 +21,17 @@ BndryRegister::BndryRegister(const BndryRegister &src)
 {
     grids.define(src.grids);
     int ngrd = grids.length();
-    for(int i = 0; i < 2*BL_SPACEDIM; i++) {
+    for (int i = 0; i < 2*BL_SPACEDIM; i++)
+    {
 	bndry[i].resize(ngrd);
-	const FabSet &srcfs = src.bndry[i];
-	for(ConstFabSetIterator mfi(srcfs); mfi.isValid(); ++mfi) {
+	const FabSet& srcfs = src.bndry[i];
+        bndry[i].DefineGrids(grids);
+        bndry[i].DefineDistributionMap(grids);
+	for (ConstFabSetIterator mfi(srcfs); mfi.isValid(); ++mfi)
+        {
 	    FArrayBox* fab = new FArrayBox(mfi().box(),mfi().nComp());
-        if (fab == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
+            if (fab == 0)
+                BoxLib::OutOfMemory(__FILE__, __LINE__);
 	    fab->copy(mfi());
 	    bndry[i].setFab(mfi.index(),fab);
 	}
@@ -95,22 +99,30 @@ istream &BndryRegister::readFrom(istream &is) {
 
 
 // ------------------------------------------------------------------------
-BndryRegister &BndryRegister::operator=(const BndryRegister &src) {
-    if(grids.ready()) {
+BndryRegister&
+BndryRegister::operator= (const BndryRegister& src)
+{
+    if (grids.ready())
+    {
 	grids.clear();
-	for(int i = 0; i < 2*BL_SPACEDIM; i++) {
+	for (int i = 0; i < 2*BL_SPACEDIM; i++)
+        {
 	    bndry[i].clear();
 	}
     }
     grids.define(src.grids);
     int ngrd = grids.length();
-    for(int i = 0; i < 2*BL_SPACEDIM; i++) {
+    for (int i = 0; i < 2*BL_SPACEDIM; i++)
+    {
 	bndry[i].resize(ngrd);
-	const FabSet &srcfs = src.bndry[i];
-	for(ConstFabSetIterator mfi(srcfs); mfi.isValid(); ++mfi) {
+        bndry[i].DefineGrids(grids);
+        bndry[i].DefineDistributionMap(grids);
+	const FabSet& srcfs = src.bndry[i];
+	for (ConstFabSetIterator mfi(srcfs); mfi.isValid(); ++mfi)
+        {
 	    FArrayBox* fab = new FArrayBox(mfi().box(), mfi().nComp());
-        if (fab == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
+            if (fab == 0)
+                BoxLib::OutOfMemory(__FILE__, __LINE__);
 	    fab->copy(mfi());
 	    bndry[i].setFab(mfi.index(),fab);
 	}
@@ -196,8 +208,8 @@ BndryRegister::define(const Orientation &_face, const IndexType &_typ,
 	  assert( ! fabs.defined(mfiindex) );
 	  fabs.clear(mfiindex);
 	  FArrayBox* fab = new FArrayBox(b,_ncomp);
-      if (fab == 0)
-          BoxLib::OutOfMemory(__FILE__, __LINE__);
+          if (fab == 0)
+              BoxLib::OutOfMemory(__FILE__, __LINE__);
 	  fabs.setFab(mfiindex,fab);
 	}
     }
@@ -215,10 +227,12 @@ void BndryRegister::setVal(Real v) {
 BndryRegister&
 BndryRegister::linComb(Real a, const MultiFab& mfa, int a_comp,
 		       Real b, const MultiFab& mfb, int b_comp,
-		       int dest_comp, int num_comp)
+		       int dest_comp, int num_comp, int n_ghost)
 {
-    for(OrientationIter face; face; ++face) {
-	bndry[face()].linComb(a,mfa,a_comp,b,mfb,b_comp,dest_comp,num_comp);
+    for (OrientationIter face; face; ++face)
+    {
+	bndry[face()].linComb(a,mfa,a_comp,b,mfb,b_comp,
+                              dest_comp,num_comp,n_ghost);
     }
     return *this;
 }
