@@ -453,7 +453,7 @@ contains
                  if ( k >= lo(3) .and. k <= hi(3) .and. &
                       j >= lo(2) .and. j <= hi(2) .and. &
                       i >= lo(1) .and. i <= hi(1) ) cycle
-                 fb%p(i,j,k,n) = val
+                 fb%p(i,j,k,n) = tval
              end do
           end do
        end do
@@ -478,7 +478,7 @@ contains
                  if ( k >= lo(3) .and. k <= hi(3) .and. &
                       j >= lo(2) .and. j <= hi(2) .and. &
                       i >= lo(1) .and. i <= hi(1) ) cycle
-                 fb%p(i,j,k,n) = val
+                 fb%p(i,j,k,n) = tval
              end do
           end do
        end do
@@ -506,7 +506,7 @@ contains
                  if ( k >= lo(3) .and. k <= hi(3) .and. &
                       j >= lo(2) .and. j <= hi(2) .and. &
                       i >= lo(1) .and. i <= hi(1) ) cycle
-                 fb%p(i,j,k,n) = val
+                 fb%p(i,j,k,n) = tval
              end do
           end do
        end do
@@ -1032,11 +1032,11 @@ contains
     else
        select case (fb%dim)
        case (1)
-          call print_1d(fb%p(:,1,1,:), lbound(fb%p), fb%ibx)
+          call print_1d(fb%p(:,1,1,:), lbound(fb%p), intersection(fb%ibx,lbx))
        case (2)
-          call print_2d(fb%p(:,:,1,:), lbound(fb%p), fb%ibx)
+          call print_2d(fb%p(:,:,1,:), lbound(fb%p), intersection(fb%ibx,lbx))
        case (3)
-          call print_3d(fb%p(:,:,:,:), lbound(fb%p), fb%ibx)
+          call print_3d(fb%p(:,:,:,:), lbound(fb%p), intersection(fb%ibx,lbx))
        end select
     end if
   contains
@@ -1160,11 +1160,11 @@ contains
     else
        select case (fb%dim)
        case (1)
-          call print_1d(fb%p(:,1,1,:), lbound(fb%p), fb%ibx)
+          call print_1d(fb%p(:,1,1,:), lbound(fb%p), intersection(fb%ibx,lbx))
        case (2)
-          call print_2d(fb%p(:,:,1,:), lbound(fb%p), fb%ibx)
+          call print_2d(fb%p(:,:,1,:), lbound(fb%p), intersection(fb%ibx,lbx))
        case (3)
-          call print_3d(fb%p(:,:,:,:), lbound(fb%p), fb%ibx)
+          call print_3d(fb%p(:,:,:,:), lbound(fb%p), intersection(fb%ibx,lbx))
        end select
     end if
   contains
@@ -1288,11 +1288,11 @@ contains
     else
        select case (fb%dim)
        case (1)
-          call print_1d(fb%p(:,1,1,:), lbound(fb%p), fb%ibx)
+          call print_1d(fb%p(:,1,1,:), lbound(fb%p), intersection(fb%ibx, lbx))
        case (2)
-          call print_2d(fb%p(:,:,1,:), lbound(fb%p), fb%ibx)
+          call print_2d(fb%p(:,:,1,:), lbound(fb%p), intersection(fb%ibx, lbx))
        case (3)
-          call print_3d(fb%p(:,:,:,:), lbound(fb%p), fb%ibx)
+          call print_3d(fb%p(:,:,:,:), lbound(fb%p), intersection(fb%ibx, lbx))
        end select
     end if
   contains

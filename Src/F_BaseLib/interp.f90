@@ -411,10 +411,7 @@ contains
     logical :: redo_me
     integer :: ilo, ihi, jlo, jhi
     integer :: i, j, ic, jc, n
-    integer :: icase, nxc(2)
-
-    nxc(1) = size(crse,1)-2
-    nxc(2) = size(crse,2)-2
+    integer :: icase
 
     do jc = 0, size(crse,2)-1
        do ic = 0, size(crse,1)-1

@@ -146,7 +146,7 @@ subroutine t_box_conn
   use box_util_module
   implicit none
   type(mboxarray) :: mba
-  integer dm, i
+  integer :: i
   integer :: ml
   real(kind=dp_t) :: d
 
@@ -154,7 +154,6 @@ subroutine t_box_conn
 
   call box_conn(mba%bas(4))
 
-  dm = mba%dim
   do i = 1, mba%nlevel
      ml =  local_max_mg_levels(mba%bas(i),1)
      print *, i, "mg_levels: ", ml
@@ -202,11 +201,10 @@ contains
     integer :: r
     integer, parameter :: rrr = 2
     type(box) :: bx, bx1
-    integer :: i, rr, lmn, dm
+    integer :: i, rr, lmn
     lmn = 1; if ( present(min_size) ) lmn = min_size
     r = 1
     rr = rrr
-    dm = ba%dim
     do
        do i = 1, size(ba%bxs)
           bx = ba%bxs(i)
@@ -329,10 +327,9 @@ contains
     integer, intent(in) :: plo(:), lo(:), hi(:)
     real(kind=dp_t), intent(in) :: ar(plo(1):,plo(2):)
     integer, intent(in) :: unit
-    integer i, j
-    integer ext(2), wid
-    character c
-    ext = hi(1:2)-lo(1:2) + 1
+    integer :: i, j
+    integer :: wid
+    character :: c
     wid = size(ar,dim=1)*10
     do j = ubound(ar,2), lbound(ar,2), -1
        if ( j == hi(2) .or. j == lo(2)-1 ) then
@@ -362,6 +359,7 @@ subroutine t_mf_fabio
   type (boxassoc) :: bxasc
   integer :: rrs(1)
 
+  rrs = 2
   bx = refine(unit_box(dim=2),2)
   bxs(1) = bx
   bxs(2) = shift(bx,2,dim=1)
@@ -542,7 +540,7 @@ subroutine t_domain
   use mt19937_module
   implicit none
   type(mboxarray) :: mba
-  character(len=128) :: dfile, test_set
+  character(len=128) :: test_set
   logical :: test_set_mglib
   logical :: test_set_hgproj
   integer :: narg, farg
@@ -551,7 +549,7 @@ subroutine t_domain
   logical :: test_random_boxes
   integer :: random_min_size, random_max_size
   integer :: random_blocking_factor, random_num_boxes, random_iseed
-  integer :: ba_maxsize, pd_xyz(MAX_SPACEDIM)
+  integer :: pd_xyz(MAX_SPACEDIM)
   integer :: dm
   integer :: i, un
   logical :: verbose
@@ -564,7 +562,6 @@ subroutine t_domain
   namelist /probin/ test_random_boxes
   namelist /probin/ random_blocking_factor, random_min_size
   namelist /probin/ random_max_size, random_num_boxes, random_iseed
-  namelist /probin/ dfile
   namelist /probin/ test_set
   namelist /probin/ test_set_mglib
   namelist /probin/ test_set_hgproj

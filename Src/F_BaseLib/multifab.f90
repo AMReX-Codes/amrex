@@ -1228,7 +1228,6 @@ contains
   subroutine multifab_set_border_val(mf, val)
     type(multifab), intent(inout) :: mf
     real(kind=dp_t), intent(in), optional :: val
-    real(kind=dp_t) :: tval
     integer :: i
     do i = 1, mf%nboxes; if ( multifab_remote(mf, i) ) cycle
        call fab_set_border_val(mf%fbs(i), val)
