@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.17 1998-04-15 22:49:54 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.18 1998-04-16 22:05:13 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -17,81 +17,8 @@ using std::vector;
 #endif
 
 #ifdef BL_USE_MPI
-
 #include <mpi.h>
-//
-// Data structure used by CrseInit().
-//
-// CrseInit() needs to communicate two integers and a box.
-// We'll store all the info in a single array of integers.
-//
-struct CIData
-{
-    //
-    // We encapsulate two `int's and a `Box' as an `int[3*BL_SPACEDIM+2]'.
-    //
-    enum { DIM = 3*BL_SPACEDIM+2 };
-
-    int m_data[DIM];
-
-    CIData ();
-    CIData (int face, int fabindex, const Box& box);
-    //
-    // The number of integers.
-    //
-    int length () const { return DIM; }
-    //
-    // Pointer to the data.
-    //
-    int* dataPtr() { return &m_data[0]; }
-    //
-    // The face.
-    //
-    int face () const { return m_data[0]; }
-    //
-    // The fabindex.
-    //
-    int fabindex () const { return m_data[1]; }
-    //
-    // The contained box.
-    //
-    Box box () const
-    {
-        return Box(IntVect(&m_data[2]),
-                   IntVect(&m_data[2+BL_SPACEDIM]),
-                   IntVect(&m_data[2+2*BL_SPACEDIM]));
-    }
-};
-
-CIData::CIData ()
-{
-    for (int i = 0; i < length(); i++)
-        m_data[i] = 0;
-}
-
-CIData::CIData (int        face,
-                int        fabindex,
-                const Box& box)
-{
-    m_data[0] = face;
-    m_data[1] = fabindex;
-
-    const IntVect& sm = box.smallEnd();
-
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        m_data[2+i] = sm[i];
-
-    const IntVect& bg = box.bigEnd();
-
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        m_data[2+BL_SPACEDIM+i] = bg[i];
-
-    IntVect typ = box.type();
-
-    for (int i = 0; i < BL_SPACEDIM; i++)
-        m_data[2+2*BL_SPACEDIM+i] = typ[i];
-}
-#endif /*BL_USE_MPI*/
+#endif
 
 FluxRegister::FluxRegister ()
 {
@@ -921,7 +848,7 @@ FluxRegister::CrseInit (const FArrayBox& flux,
 
     Array<MPI_Request> reqs(NumRecv);
     Array<MPI_Status>  stat(NumRecv);
-    Array<CIData>      recv(NumRecv);
+    Array<CommData>    recv(NumRecv);
     PArray<FArrayBox>  fabs(NumRecv,PArrayManage);
     //
     // First send/receive the box information.
@@ -940,7 +867,7 @@ FluxRegister::CrseInit (const FArrayBox& flux,
 
     for (int i = 0; i < sTags.size(); i++)
     {
-        CIData senddata(sTags[i].face, sTags[i].fabIndex, sTags[i].box);
+        CommData senddata(sTags[i].face, sTags[i].fabIndex, sTags[i].box);
 
         if ((rc = MPI_Send(senddata.dataPtr(),
                            senddata.length(),
