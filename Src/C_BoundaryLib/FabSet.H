@@ -4,7 +4,7 @@
 #define _FABSET_H_
 
 //
-// $Id: FabSet.H,v 1.8 1998-05-06 22:36:16 lijewski Exp $
+// $Id: FabSet.H,v 1.9 1998-05-22 21:52:49 lijewski Exp $
 //
 
 #include <FArrayBox.H>
@@ -106,6 +106,20 @@ public:
                       int             src_comp,
                       int             dest_comp,
                       int             num_comp);
+    //
+    //@ManDoc: Copy from the source MultiFab to this destination FabSet.
+    //
+    void copyTo (MultiFab& dest,
+                 int       nghost,
+                 int       src_comp,
+                 int       dest_comp,
+                 int       num_comp) const;
+
+    /*@ManDoc: Copy from the source MultiFab to this destination FabSet.
+               The number of components and the grow factor must be the
+               same in the MultiFab and this FabSet.
+    */
+    void copyTo (MultiFab& dest) const;
     //
     //@ManDoc: Componentwise multiply each datum in this FabSet for specified components.
     //
@@ -430,6 +444,26 @@ FabSet::copyTo (FArrayBox& dest,
 {
     this->copy(dest, subbox, src_comp, dest_comp, num_comp);
     return *this;
+}
+
+inline
+void
+FabSet::copyTo (MultiFab& dest) const
+{
+    assert(dest.nComp() == nComp());
+    assert(dest.nGrow() == nGrow());
+    dest.copy(*this, 0, 0, nComp(), nGrow());
+}
+
+inline
+void
+FabSet::copyTo (MultiFab& dest,
+                int       nghost,
+                int       src_comp,
+                int       dest_comp,
+                int       num_comp) const
+{
+    dest.copy(*this, src_comp, dest_comp, num_comp, nghost);
 }
 
 //

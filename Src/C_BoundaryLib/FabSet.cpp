@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.9 1998-04-27 19:43:19 lijewski Exp $
+// $Id: FabSet.cpp,v 1.10 1998-05-22 21:52:50 lijewski Exp $
 //
 
 #include <FabSet.H>
@@ -117,6 +117,8 @@ FabSet::copyFrom (const MultiFab& src,
 
     fscd.CollectData();
 
+    FArrayBox sfabTemp;
+
     vector<FillBoxId>::const_iterator fbidli = fillBoxIdList.begin();
 
     for (FabSetIterator fsi(*this); fsi.isValid(false); ++fsi)
@@ -131,7 +133,8 @@ FabSet::copyFrom (const MultiFab& src,
             {
                 assert(!(fbidli == fillBoxIdList.end()));
                 FillBoxId fbid = *fbidli++;
-                FArrayBox sfabTemp(fbid.box(), num_comp);
+                assert(fbid.box() == ovlp);
+                sfabTemp.resize(fbid.box(), num_comp);
                 fscd.FillFab(srcmfid, fbid, sfabTemp);
                 dfab.copy(sfabTemp, ovlp, 0, ovlp, dest_comp, num_comp);
             }
@@ -168,17 +171,14 @@ FabSet::plusFrom (const MultiFab& src,
 
             if (ovlp.ok())
             {
-                fillBoxIdList.push_back(mfcd.AddBox(mfidsrc,
-                                                    ovlp,
-                                                    0,
-                                                    0,
-                                                    0,
-                                                    num_comp));
+                fillBoxIdList.push_back(mfcd.AddBox(mfidsrc,ovlp,0,0,0,num_comp));
             }
         }
     }
 
     mfcd.CollectData();
+
+    FArrayBox sfab;
 
     vector<FillBoxId>::const_iterator fbidli = fillBoxIdList.begin();
 
@@ -194,7 +194,8 @@ FabSet::plusFrom (const MultiFab& src,
             {
                 assert(!(fbidli == fillBoxIdList.end()));
                 FillBoxId fbidsrc = *fbidli++;
-                FArrayBox sfab(fbidsrc.box(), num_comp);
+                assert(fbidsrc.box() == ovlp);
+                sfab.resize(fbidsrc.box(), num_comp);
                 mfcd.FillFab(mfidsrc, fbidsrc, sfab);
                 dfab.plus(sfab,ovlp,src_comp,dest_comp,num_comp);
             }
@@ -305,6 +306,9 @@ FabSet::linComb (Real            a,
 
     mfcd.CollectData();
 
+    FArrayBox a_fab;
+    FArrayBox b_fab;
+
     vector<FillBoxId>::const_iterator fbidli_mfa = fillBoxIdList_mfa.begin();
     vector<FillBoxId>::const_iterator fbidli_mfb = fillBoxIdList_mfb.begin();
 
@@ -320,12 +324,13 @@ FabSet::linComb (Real            a,
             {
                 assert(!(fbidli_mfa == fillBoxIdList_mfa.end()));
                 FillBoxId fbid_mfa = *fbidli_mfa++;
-                FArrayBox a_fab(fbid_mfa.box(), num_comp);
+                a_fab.resize(fbid_mfa.box(), num_comp);
                 mfcd.FillFab(mfid_mfa, fbid_mfa, a_fab);
 
                 assert(!(fbidli_mfb == fillBoxIdList_mfb.end()));
                 FillBoxId fbid_mfb = *fbidli_mfb++;
-                FArrayBox b_fab(fbid_mfb.box(), num_comp);
+                assert(fbid_mfb.box() == ovlp);
+                b_fab.resize(fbid_mfb.box(), num_comp);
                 mfcd.FillFab(mfid_mfb, fbid_mfb, b_fab);
 
                 reg_fab.linComb(a_fab,
