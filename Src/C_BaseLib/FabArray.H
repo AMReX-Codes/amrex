@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.120 2001-07-17 23:02:21 lijewski Exp $
+// $Id: FabArray.H,v 1.121 2001-07-18 19:37:19 lijewski Exp $
 //
 
 #include <climits>
@@ -1245,8 +1245,8 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
     static Array<MPI_Status>  status(NProcs);
     static Array<MPI_Request> reqs(NProcs);
 
-    Array< vector<FabComTag> > SndTags(NProcs);
-    Array< vector<FabComTag> > RcvTags(NProcs);
+    Array< std::vector<FabComTag> > SndTags(NProcs);
+    Array< std::vector<FabComTag> > RcvTags(NProcs);
 
     FabComTag tag;
 
@@ -2524,7 +2524,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
     //
     // Now receive and unpack FAB data.
     //
-    pair<FCDMapIter,FCDMapIter> match;
+    std::pair<FCDMapIter,FCDMapIter> match;
 
     NWaits = 0;
     for (int i = 0; i < NProcs; i++)

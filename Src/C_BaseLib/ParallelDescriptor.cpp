@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.71 2001-07-17 23:14:13 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.72 2001-07-18 19:37:20 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -53,7 +53,6 @@ ParallelDescriptor::IOProcessorNumber ()
     return ioProcessor;
 }
 
-inline
 MPI_Comm
 ParallelDescriptor::Communicator ()
 {
