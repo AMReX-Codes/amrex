@@ -33,7 +33,7 @@ void fill_borders(MultiFab& r, const level_interface& lev_interface, const amr_b
 
 void clear_part_interface(MultiFab& r, const level_interface& lev_interface);
 
-void interpolate_patch(FArrayBox& patch, const Box& region,
+void interpolate_patch(MultiFab& target, int igrid, const Box& region,
 		       const MultiFab& r, const IntVect& rat,
 		       const amr_interpolator_class& interp,
 		       const level_interface& lev_interface);

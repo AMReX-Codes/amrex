@@ -520,15 +520,16 @@ void clear_part_interface(MultiFab& r, const level_interface& lev_interface)
     }
 }
 
-void interpolate_patch(FArrayBox& patch, const Box& region,
+void interpolate_patch(MultiFab& target, int igrid, const Box& region,
 		       const MultiFab& r, const IntVect& rat,
 		       const amr_interpolator_class& interp,
 		       const level_interface& lev_interface)
 {
+    FArrayBox& patch = target[igrid];
     assert(region.sameType(patch.box()));
     const Box cb = interp.box(region, rat);
-    const int igrid = find_patch(cb, r);
-    if (igrid == -1) 
+    const int jgrid = find_patch(cb, r);
+    if (jgrid == -1) 
     {
 	FArrayBox cgr(cb, r.nComp());
 	fill_patch(cgr, cb, r, lev_interface, 0);
@@ -536,7 +537,7 @@ void interpolate_patch(FArrayBox& patch, const Box& region,
     }
     else 
     {
-	interp.fill(patch, region, r[igrid], cb, rat);
+	interp.fill(patch, region, r[jgrid], cb, rat);
     }
 }
 

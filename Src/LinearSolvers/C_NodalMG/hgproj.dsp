@@ -247,6 +247,10 @@ SOURCE=.\hg_proj3d.F
 !ENDIF 
 
 # End Source File
+# Begin Source File
+
+SOURCE=.\KOPT_hg_multi3d_terrain.F
+# End Source File
 # End Group
 # Begin Source File
 
