@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.13 1997-11-26 20:51:36 lijewski Exp $
+// $Id: Amr.cpp,v 1.14 1997-11-28 18:14:42 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -18,6 +18,8 @@
 #include <Amr_auxil.H>
 #include <ParallelDescriptor.H>
 #include <Utility.H>
+
+#include <DistributionMapping.H>
 
 #ifdef BL_USE_NEW_HFILES
 #include <cstdio>
@@ -1118,6 +1120,10 @@ Amr::regrid (int  lbase,
 	amr_level.clear(lev);
 
     finest_level = new_finest;
+    //
+    // Flush the grid -> processor map cache. 
+    //
+    DistributionMapping::FlushCache();
     //
     // Define the new grids from level lbase+1 up to new_finest.
     //
