@@ -57,11 +57,9 @@ extern "C"
 	);
 #  endif
 #elif (BL_SPACEDIM == 3)
-#  if (defined HG_TERRAIN)
     void FORT_HGFRES_TERRAIN(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, int&, int&);
     void FORT_HGERES_TERRAIN(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, const int*, const int*);
     void FORT_HGCRES_TERRAIN(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, const int*);
-#  else
     void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
 	Real*, intS, Real*, intS, intS, RealRS, intRS,
 	int&, int&);
@@ -71,7 +69,6 @@ extern "C"
     void FORT_HGCRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
 	Real*, intS, Real*, intS, intS, RealRS, intRS,
 	const int*);
-#  endif
 #endif
 }
 
@@ -471,6 +468,20 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	Real *const rptr = resid[mglev][igrid].dataPtr();
 	Real *const sptr = source[lev][igrid].dataPtr();
 	Real *const dptr = dest[lev][igrid].dataPtr();
+	if(m_hg_terrain)
+	{
+	FORT_HGFRES_TERRAIN(rptr, DIMLIST(sbox),
+	    sptr, DIMLIST(sbox),
+	    dptr, DIMLIST(fbox),
+	    cdst.dataPtr(), DIMLIST(cbox),
+	    sigmafptr, DIMLIST(sigmafbox),
+	    sigmac.dataPtr(), DIMLIST(sigmacbox),
+	    DIMLIST(creg),
+	    D_DECL(rat[0], rat[1], rat[2]), idim, idir
+	    );
+	}
+	else
+	{
 	FORT_HGFRES(rptr, DIMLIST(sbox),
 	    sptr, DIMLIST(sbox),
 	    dptr, DIMLIST(fbox),
@@ -478,9 +489,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    sigmafptr, DIMLIST(sigmafbox),
 	    sigmac.dataPtr(), DIMLIST(sigmacbox),
 	    DIMLIST(creg),
-#if (defined HG_TERRAIN)
-	    D_DECL(rat[0], rat[1], rat[2]), idim, idir
-#elif (BL_SPACEDIM == 2)
+#if (BL_SPACEDIM == 2)
 	    hx, hy,
 #  ifdef HG_CROSS_STENCIL
 	    rat[0], rat[1], idim, idir
@@ -493,6 +502,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    rat[0], rat[1], rat[2], idim, idir
 #endif
 	    );
+	}
     }
     
 #if (defined HG_CROSS_STENCIL) || (defined HG_TERRAIN)
@@ -534,6 +544,20 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    Real *const rptr = resid[mglev][igrid].dataPtr();
 	    Real *const sptr = source[lev][igrid].dataPtr();
 	    lev_interface[mglev].geo_array(ga, 1, iedge);
+	    if(m_hg_terrain)
+	    {
+	    FORT_HGERES_TERRAIN(rptr, DIMLIST(sbox),
+		sptr, DIMLIST(sbox),
+		fdst.dataPtr(), DIMLIST(fbox),
+		cdst.dataPtr(), DIMLIST(cbox),
+		sigmaf.dataPtr(), DIMLIST(sigmafbox),
+		sigmac.dataPtr(), DIMLIST(sigmacbox),
+		DIMLIST(creg),
+		rat[0], rat[1], rat[2],
+		t.getVect(), ga);
+	    }
+	    else
+	    {
 	    FORT_HGERES(rptr, DIMLIST(sbox),
 		sptr, DIMLIST(sbox),
 		fdst.dataPtr(), DIMLIST(fbox),
@@ -541,12 +565,9 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		sigmaf.dataPtr(), DIMLIST(sigmafbox),
 		sigmac.dataPtr(), DIMLIST(sigmacbox),
 		DIMLIST(creg),
-#if (defined HG_TERRAIN)
-		rat[0], rat[1], rat[2],
-#else
 		hx, hy, hz, rat[0], rat[1], rat[2],
-#endif
 		t.getVect(), ga);
+	    }
 	    // fill in the grids on the other sides, if any
 	    const Box& freg = lev_interface[mglev].node_edge(iedge);
 	    for (int i = 1; i < level_interface::N_EDGE_GRIDS; i++) 
@@ -592,6 +613,20 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    Real *const rptr = resid[mglev][igrid].dataPtr();
 	    Real *const sptr = source[lev][igrid].dataPtr();
 	    lev_interface[mglev].geo_array(ga, 0, icor);
+	    if(m_hg_terrain)
+	    {
+	    FORT_HGCRES_TERRAIN(rptr, DIMLIST(sbox),
+		sptr, DIMLIST(sbox),
+		fdst.dataPtr(), DIMLIST(fbox),
+		cdst.dataPtr(), DIMLIST(cbox),
+		sigmaf.dataPtr(), DIMLIST(sigmafbox),
+		sigmac.dataPtr(), DIMLIST(sigmacbox),
+		DIMLIST(creg),
+		D_DECL(rat[0], rat[1], rat[2]),
+		ga);
+	    }
+	    else
+	    {
 	    FORT_HGCRES(rptr, DIMLIST(sbox),
 		sptr, DIMLIST(sbox),
 		fdst.dataPtr(), DIMLIST(fbox),
@@ -599,12 +634,9 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		sigmaf.dataPtr(), DIMLIST(sigmafbox),
 		sigmac.dataPtr(), DIMLIST(sigmacbox),
 		DIMLIST(creg),
-#if (defined HG_TERRAIN)
-		D_DECL(rat[0], rat[1], rat[2]),
-#else
 		D_DECL(hx, hy, hz), D_DECL(rat[0], rat[1], rat[2]),
-#endif
 		ga);
+	    }
 	    // fill in the grids on the other sides, if any
 	    const Box& freg = lev_interface[mglev].corner(icor);
 	    for (int i = 1; i < level_interface::N_CORNER_GRIDS; i++) 

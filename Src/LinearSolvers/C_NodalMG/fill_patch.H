@@ -47,7 +47,7 @@ void sync_borders(MultiFab& r,
 
 void fill_borders(MultiFab& r,
 		  const copy_cache* border_cache,
-		  const level_interface& lev_interface, const amr_boundary_class* bdy, int w);
+		  const level_interface& lev_interface, const amr_boundary_class* bdy, int w, bool hg_terrain = false);
 
 void clear_part_interface(MultiFab& r, const level_interface& lev_interface);
 

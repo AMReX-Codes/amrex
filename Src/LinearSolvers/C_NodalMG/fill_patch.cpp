@@ -450,19 +450,21 @@ static inline void node_dirs(int dir[2], const IntVect& typ)
 // modifications take the form of narrowing certain copies to avoid
 // overwriting good values with bad ones.
 
-static void fill_internal_borders(MultiFab& r, const level_interface& lev_interface, int w)
+static void fill_internal_borders(MultiFab& r, const level_interface& lev_interface, int w, bool hg_terrain)
 {
     w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
     if (type(r) == IntVect::TheNodeVector()) 
     {
-#if ((BL_SPACEDIM == 3) && (defined HG_TERRAIN))
+#if (BL_SPACEDIM == 3)
+	if(hg_terrain)
+	{
 	// attempt to deal with corner-coupling problem with 27-point stencils
 	for (int iedge = 0; iedge < lev_interface.nboxes(1); iedge++) 
 	{
 	    if (lev_interface.geo(1, iedge) == level_interface::ALL)
 		continue;
-	    const int igrid = lev_interface.egrid(iedge, 0);
-	    const int jgrid = lev_interface.egrid(iedge, 3);
+	    int igrid = lev_interface.egrid(iedge, 0);
+	    int jgrid = lev_interface.egrid(iedge, 3);
 	    if (igrid >= 0 && jgrid >= 0) 
 	    {
 		int kgrid = lev_interface.egrid(iedge, 1);
@@ -517,6 +519,7 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 		    }
 		}
 	    }
+	}
 	}
 #endif
 	for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
@@ -732,7 +735,7 @@ void sync_borders(MultiFab& r, const copy_cache* sync_cache, const level_interfa
 void fill_borders(MultiFab& r,
 		  const copy_cache* border_cache,
 		  const level_interface& lev_interface,
-		  const amr_boundary_class* bdy, int w)
+		  const amr_boundary_class* bdy, int w, bool hg_terrain)
 {
     assert(border_cache == 0);
     if (border_cache) 
@@ -741,7 +744,7 @@ void fill_borders(MultiFab& r,
 	border_cache->run();
 	return;
     }
-    fill_internal_borders(r, lev_interface, w);
+    fill_internal_borders(r, lev_interface, w, hg_terrain);
     assert(bdy != 0);
     bdy->fill_borders(r, lev_interface, w);
 }

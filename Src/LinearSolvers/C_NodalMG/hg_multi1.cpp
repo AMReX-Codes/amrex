@@ -868,14 +868,22 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 #else
 	    const Box& sigbox = sigma_node[lto][igrid].box();
 #endif
-	    FORT_HGINTS(work[lto][igrid].dataPtr(), DIMLIST(fbox), DIMLIST(freg),
-#ifdef HG_TERRAIN
+	    if(m_hg_terrain)
+	    {
+	    FORT_HGINTS_NO_SIGMA_NODE(work[lto][igrid].dataPtr(), DIMLIST(fbox), DIMLIST(freg),
 		sigma[lto][igrid].dataPtr(0),
 		sigma[lto][igrid].dataPtr(1),
 #  if (BL_SPACEDIM == 3)
 		sigma[lto][igrid].dataPtr(2),
 #  endif
-#elif	!(defined(HG_CROSS_STENCIL) && BL_SPACEDIM==3)
+		DIMLIST(sigbox),
+		corr[lfrom][igrid].dataPtr(), DIMLIST(cbox), DIMLIST(creg),
+		D_DECL(rat[0], rat[1], rat[2]));
+	    }
+	    else
+	    {
+	    FORT_HGINTS(work[lto][igrid].dataPtr(), DIMLIST(fbox), DIMLIST(freg),
+#if	!(defined(HG_CROSS_STENCIL) && BL_SPACEDIM==3)
 		sigma_nd[0][lto][igrid].dataPtr(),
 		sigma_nd[1][lto][igrid].dataPtr(),
 #  if (BL_SPACEDIM == 3)
@@ -887,6 +895,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 		DIMLIST(sigbox),
 		corr[lfrom][igrid].dataPtr(), DIMLIST(cbox), DIMLIST(creg),
 		D_DECL(rat[0], rat[1], rat[2]));
+	    }
 	}
     }
 }
