@@ -80,7 +80,10 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
     assert(r.boxArray() == s.boxArray());
     assert(r.boxArray() == d.boxArray());
     assert(mglev >= 0);
+
+    HG_TEST_NORM(d);
     fill_borders(d, lev_interface[mglev], mg_boundary, -1, m_hg_terrain);
+    HG_TEST_NORM(d);
     
     if (m_hg_terrain)
     {	
@@ -190,7 +193,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
 	}
 #endif
     }
-
+    HG_TEST_NORM(r);
 }
 
 void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
