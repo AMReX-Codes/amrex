@@ -1,7 +1,7 @@
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 //
-// $Id: Utility.H,v 1.51 2001-10-15 18:17:51 car Exp $
+// $Id: Utility.H,v 1.52 2002-02-06 18:14:46 car Exp $
 //
 #include <winstd.H>
 
@@ -178,17 +178,19 @@ namespace BoxLib
     {
     public:
 	typedef unsigned long seed_type;
-	explicit mt19937(seed_type seed = 4357UL);
+	explicit mt19937 (seed_type seed = 4357UL);
+	mt19937 (seed_type array[], int array_len);
 	void rewind();
 	
-	double d1_value();	// [0,1] random numbers
-	double d_value();	// [0,1) random numbers
-	long l_value();		// [0,2^31-1] random numbers
-	unsigned long u_value(); // [0,2^32-1] random numbers
+	double d1_value ();	// [0,1] random numbers
+	double d_value ();	// [0,1) random numbers
+	long l_value ();	// [0,2^31-1] random numbers
+	unsigned long u_value (); // [0,2^32-1] random numbers
     private:
-	void sgenrand(unsigned long seed);
-	unsigned long igenrand();
-	void reload();
+	void sgenrand (unsigned long seed);
+	void sgenrand (seed_type seed_array[], int len);
+	unsigned long igenrand ();
+	void reload ();
     private:
 	enum { N = 624 };
 	unsigned long init_seed;
