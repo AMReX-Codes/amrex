@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tVisMF.cpp,v 1.11 1997-11-15 00:52:39 lijewski Exp $
+// $Id: tVisMF.cpp,v 1.12 1997-11-18 18:48:13 lijewski Exp $
 //
 
 #include <stdlib.h>
@@ -319,7 +319,7 @@ main (int, char** argv)
 
     Write_N_Read (mf,
                   mf_name,
-                  (How==PerCPU) ? VisMF::OneFilePerCPU : VisMF::OneFilePerCPU);
+                  (How==PerCPU) ? VisMF::OneFilePerCPU : VisMF::OneFilePerFab);
 
     EndParallel();
 }
