@@ -381,7 +381,7 @@ main(int   argc,
   os.close();
 #endif
 
-  EndParallel();
+  ParallelDescriptor::EndParallel();
     
 }
 

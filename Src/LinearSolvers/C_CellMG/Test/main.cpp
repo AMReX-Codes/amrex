@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.2 1998-04-01 00:32:27 car Exp $
+// $Id: main.cpp,v 1.3 1998-04-01 00:34:07 car Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -243,7 +243,7 @@ main (int   argc,
         WriteMultiFab("pltfile",soln, H, bl, container, ratio, bg_val);
     }
 
-    EndParallel();
+    ParallelDescriptor::EndParallel();
     
 } // -->> main fnc
 
