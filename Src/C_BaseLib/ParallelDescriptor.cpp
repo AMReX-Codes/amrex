@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.57 2000-06-01 21:07:52 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.58 2000-06-02 01:04:12 car Exp $
 //
 
 #include <Utility.H>
@@ -709,7 +709,7 @@ FORT_BL_PD_IOPROC(int* ioproc)
 }
 
 void
-FORT_BL_PD_ABORT(int* ioproc)
+FORT_BL_PD_ABORT()
 {
-  *ioproc = ParallelDescriptor::IOProcessorNumber();
+  ParallelDescriptor::Abort();
 }
