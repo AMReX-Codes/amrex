@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.34 1998-09-11 20:04:17 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.35 1999-02-05 18:56:06 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -186,9 +186,7 @@ DistributionMapping::define (int             nprocs,
     {
         if (!GetMap(nprocs, boxes))
         {
-            static const aString TheName("processor_map");
-
-            RunStats stats(TheName);
+            static RunStats stats("processor_map");
 
             stats.start();
 

@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.88 1999-01-22 21:05:07 vince Exp $
+// $Id: FabArray.H,v 1.89 1999-02-05 18:56:06 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -879,6 +879,7 @@ class FabArrayCopyDescriptor
 //
 // Inlines.
 //
+
 template <class T, class FAB>
 inline
 int
@@ -1046,10 +1047,8 @@ FabArray<T,FAB>::ok () const
     {
         if (fabparray.defined(fai.index()))
         {
-            if (fai().box() != ::grow(box(fai.index()), n_grow))
-            {
+            if (fai().box() != ::grow(box(fai.index()),n_grow))
                 isok = 0;
-            }
         }
         else
         {
@@ -1702,29 +1701,29 @@ FabArray<T,FAB>::setVal (T          val,
         Box b = ::grow(fai.validbox(),nghost) & region;
 
         if (b.ok())
-        {
             fai().setVal(val, b, comp, num_comp);
-        }
     }
 }
 
 template <class T, class FAB>
+inline
 FabArrayIterator<T,FAB>::FabArrayIterator (FabArray<T,FAB>& fabarray)
     :
     fabArray(fabarray),
     currentIndex(0)
 {
+#ifdef BL_USE_MPI
     //
     // Increment the currentIndex to start at the first valid index
     // for this ParallelDescriptor::MyProc.
     //
     const int MyProc = ParallelDescriptor::MyProc();
 
-    while (currentIndex < fabArray.length() &&
-           fabArray.DistributionMap()[currentIndex] != MyProc)
+    while (fabArray.DistributionMap()[currentIndex] != MyProc)
     {
         ++currentIndex;
     }
+#endif
 }
 
 template <class T, class FAB>
@@ -1732,9 +1731,7 @@ inline
 FAB&
 FabArrayIterator<T,FAB>::operator() ()
 {
-  const int MyProc = ParallelDescriptor::MyProc();
-
-  assert(fabArray.DistributionMap()[currentIndex] == MyProc);
+  assert(fabArray.DistributionMap()[currentIndex] == ParallelDescriptor::MyProc());
 
   return fabArray[currentIndex];
 }
@@ -1776,9 +1773,7 @@ inline
 const FAB&
 FabArrayIterator<T,FAB>::operator() () const
 {
-  const int MyProc = ParallelDescriptor::MyProc();
-
-  assert(fabArray.DistributionMap()[currentIndex] == MyProc);
+  assert(fabArray.DistributionMap()[currentIndex] == ParallelDescriptor::MyProc());
 
   return fabArray[currentIndex];
 }
@@ -1788,6 +1783,7 @@ inline
 FabArrayIterator<T,FAB>&
 FabArrayIterator<T,FAB>::operator++ ()
 {
+#ifdef BL_USE_MPI
     const int MyProc = ParallelDescriptor::MyProc();
     //
     // Go to the next index on this processor.
@@ -1797,6 +1793,9 @@ FabArrayIterator<T,FAB>::operator++ ()
         ++currentIndex;
     }
     while (fabArray.DistributionMap()[currentIndex] != MyProc);
+#else
+    ++currentIndex;
+#endif
 
     return *this;
 }
@@ -1834,11 +1833,11 @@ FabArrayIterator<T,FAB>::isValid ()
 
 #if defined(BL_USE_MPI) && defined(HG_DEBUG)
     extern bool HG_is_debugging;
-    if ( HG_is_debugging )
+    if (HG_is_debugging)
     {
-	if ( currentIndex < fabArray.length() ) return true;
+	if (currentIndex < fabArray.length()) return true;
 	int rc = MPI_Barrier(MPI_COMM_WORLD);
-	if ( rc != MPI_SUCCESS) ParallelDescriptor::Abort(rc);
+	if (rc != MPI_SUCCESS) ParallelDescriptor::Abort(rc);
 	return false;
     }
 #endif
@@ -1944,22 +1943,24 @@ DependentFabArrayIterator<T,FAB>::operator-> () const
 }
 
 template <class T, class FAB>
+inline
 ConstFabArrayIterator<T,FAB>::ConstFabArrayIterator(const FabArray<T,FAB>& fabarray)
     :
     fabArray(fabarray),
     currentIndex(0)
 {
+#ifdef BL_USE_MPI
     //
-    // increment the currentIndex to start at the first valid index
+    // Increment the currentIndex to start at the first valid index
     // for this ParallelDescriptor::MyProc
     //
     const int MyProc = ParallelDescriptor::MyProc();
 
-    while (currentIndex < fabArray.length() &&
-          fabArray.DistributionMap()[currentIndex] != MyProc)
+    while (fabArray.DistributionMap()[currentIndex] != MyProc)
     {
         ++currentIndex;
     }
+#endif
 }
 
 template <class T, class FAB>
@@ -1987,9 +1988,11 @@ ConstFabArrayIterator<T,FAB>::operator-> () const
 }
 
 template <class T, class FAB>
+inline
 ConstFabArrayIterator<T,FAB>&
 ConstFabArrayIterator<T,FAB>::operator++ ()
 {
+#ifdef BL_USE_MPI
     const int MyProc = ParallelDescriptor::MyProc();
     //
     // Go to the next index on this processor.
@@ -1999,6 +2002,9 @@ ConstFabArrayIterator<T,FAB>::operator++ ()
         ++currentIndex;
     }
     while (fabArray.DistributionMap()[currentIndex] != MyProc);
+#else
+    ++currentIndex;
+#endif
 
     return *this;
 }
@@ -2036,11 +2042,11 @@ ConstFabArrayIterator<T,FAB>::isValid () const
 
 #if defined(BL_USE_MPI) && defined(HG_DEBUG)
     extern bool HG_is_debugging;
-    if ( HG_is_debugging )
+    if (HG_is_debugging)
     {
-	if ( currentIndex < fabArray.length() ) return true;
+	if (currentIndex < fabArray.length()) return true;
 	int rc = MPI_Barrier(MPI_COMM_WORLD);
-	if ( rc != MPI_SUCCESS) ParallelDescriptor::Abort(rc);
+	if (rc != MPI_SUCCESS) ParallelDescriptor::Abort(rc);
 	return false;
     }
 #endif
