@@ -2,7 +2,7 @@
 #define BL_DISTRIBUTIONMAPPING_H
 
 //
-// $Id: DistributionMapping.H,v 1.19 2001-07-19 16:57:31 lijewski Exp $
+// $Id: DistributionMapping.H,v 1.20 2001-07-24 18:12:35 car Exp $
 //
 #include <vector>
 
@@ -107,7 +107,7 @@ class DistributionMapping
     void RoundRobinProcessorMap (int nboxes, int nprocs);
     void KnapSackProcessorMap   (const std::vector<long>& boxes, int nprocs);
 
-  private:
+private:
     //
     // Two ways to create the processor map.
     //

@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.137 2001-07-23 22:30:24 car Exp $
+// $Id: FabArray.H,v 1.138 2001-07-24 18:12:35 car Exp $
 //
 
 #include <cstring>
@@ -26,104 +26,13 @@
 
 #include <Profiler.H>
 
-class FillBoxId
-{
-  public:
-
-    FillBoxId ()
-        :
-        m_fillBoxId(-1),
-        m_fabIndex(-1)
-    {}
-
-    FillBoxId (int        newid,
-               const Box& fillbox)
-        :
-        m_fillBox(fillbox),
-        m_fillBoxId(newid),
-        m_fabIndex(-1)
-    {}
-
-    FillBoxId (const FillBoxId& rhs)
-        :
-        m_fillBox(rhs.m_fillBox),
-        m_fillBoxId(rhs.m_fillBoxId),
-        m_fabIndex(rhs.m_fabIndex)
-    {}
-
-    FillBoxId& operator= (const FillBoxId& rhs)
-    {
-        if (!(this == &rhs))
-        {
-            m_fillBox   = rhs.m_fillBox;
-            m_fillBoxId = rhs.m_fillBoxId;
-            m_fabIndex  = rhs.m_fabIndex;
-        }
-        return *this;
-    }
-
-    ~FillBoxId() {}
-
-    int        Id () const             { return m_fillBoxId;    }
-    int        FabIndex () const       { return m_fabIndex;     }
-    void       FabIndex (int fabindex) { m_fabIndex = fabindex; }
-    const Box& box () const            { return m_fillBox;      }
-
-  private:
-
-    Box m_fillBox;
-    int m_fillBoxId;
-    int m_fabIndex;
-};
-
-//
-// Used to cache some CommData stuff in CollectData().
-//
-
-class CommDataCache
-{
-public:
-
-    CommDataCache ()
-        :
-        m_valid(false)
-    {}
-
-    CommDataCache (const CommDataCache& rhs)
-        :
-        m_commdata(rhs.m_commdata),
-        m_valid(rhs.m_valid)
-    {}
-
-    void operator= (const CommDataCache& rhs)
-    {
-        if (this != &rhs)
-        {
-            m_commdata = rhs.m_commdata;
-            m_valid    = rhs.m_valid;
-        }
-    }
-
-    void operator= (const Array<CommData>& rhs)
-    {
-        m_commdata = rhs;
-        m_valid    = true;
-    }
-
-    bool isValid () const { return m_valid; }
-
-    const Array<CommData>& theCommData () const { return m_commdata; }
-
-private:
-
-    Array<CommData> m_commdata;
-    bool            m_valid;
-};
 
 //
 // A forward declaration.
 //
+template <class FAB> class FabArray;
 template <class FAB> class FabArrayCopyDescriptor;
+template <class FAB> class ConstFabArrayIterator;
 
 /*@ManDoc: An enumumeration that controls whether or not the memory for a FAB
            will actually be allocated on construction of a FabArray.
@@ -441,7 +350,103 @@ private:
     void AllocFabs ();
 };
 
-template <class FAB> class ConstFabArrayIterator;
+//
+// FillBoxID Helper class
+//
+
+class FillBoxId
+{
+  public:
+
+    FillBoxId ()
+        :
+        m_fillBoxId(-1),
+        m_fabIndex(-1)
+    {}
+
+    FillBoxId (int        newid,
+               const Box& fillbox)
+        :
+        m_fillBox(fillbox),
+        m_fillBoxId(newid),
+        m_fabIndex(-1)
+    {}
+
+    FillBoxId (const FillBoxId& rhs)
+        :
+        m_fillBox(rhs.m_fillBox),
+        m_fillBoxId(rhs.m_fillBoxId),
+        m_fabIndex(rhs.m_fabIndex)
+    {}
+
+    FillBoxId& operator= (const FillBoxId& rhs)
+    {
+        if (!(this == &rhs))
+        {
+            m_fillBox   = rhs.m_fillBox;
+            m_fillBoxId = rhs.m_fillBoxId;
+            m_fabIndex  = rhs.m_fabIndex;
+        }
+        return *this;
+    }
+
+    ~FillBoxId() {}
+
+    int        Id () const             { return m_fillBoxId;    }
+    int        FabIndex () const       { return m_fabIndex;     }
+    void       FabIndex (int fabindex) { m_fabIndex = fabindex; }
+    const Box& box () const            { return m_fillBox;      }
+
+private:
+
+    Box m_fillBox;
+    int m_fillBoxId;
+    int m_fabIndex;
+};
+
+//
+// Used to cache some CommData stuff in CollectData().
+//
+
+class CommDataCache
+{
+public:
+
+    CommDataCache ()
+        :
+        m_valid(false)
+    {}
+
+    CommDataCache (const CommDataCache& rhs)
+        :
+        m_commdata(rhs.m_commdata),
+        m_valid(rhs.m_valid)
+    {}
+
+    void operator= (const CommDataCache& rhs)
+    {
+        if (this != &rhs)
+        {
+            m_commdata = rhs.m_commdata;
+            m_valid    = rhs.m_valid;
+        }
+    }
+
+    void operator= (const Array<CommData>& rhs)
+    {
+        m_commdata = rhs;
+        m_valid    = true;
+    }
+
+    bool isValid () const { return m_valid; }
+
+    const Array<CommData>& theCommData () const { return m_commdata; }
+
+private:
+
+    Array<CommData> m_commdata;
+    bool            m_valid;
+};
 
 //
 //@Man:

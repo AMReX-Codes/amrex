@@ -2,7 +2,7 @@
 #define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.25 2001-07-23 19:33:36 car Exp $
+// $Id: FArrayBox.H,v 1.26 2001-07-24 18:12:35 car Exp $
 //
 
 #include <Pointers.H>
@@ -225,6 +225,10 @@ public:
     //
     explicit FArrayBox (std::istream& is);
     //
+    FArrayBox (const FArrayBox&);
+    //
+    FArrayBox& operator= (const FArrayBox&);
+    //
     //@ManDoc:  The destructor.
     //
     ~FArrayBox ();
@@ -378,13 +382,6 @@ protected:
     //
     static bool do_initval;
     static Real initval;
-
-private:
-    //
-    // These are disallowed.
-    //
-    FArrayBox (const FArrayBox&);
-    FArrayBox& operator= (const FArrayBox&);
 };
 
 #endif /*BL_FARRAYBOX_H*/

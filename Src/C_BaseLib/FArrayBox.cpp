@@ -1,5 +1,5 @@
 //
-// $Id: FArrayBox.cpp,v 1.40 2001-07-23 19:33:36 car Exp $
+// $Id: FArrayBox.cpp,v 1.41 2001-07-24 18:12:35 car Exp $
 //
 
 #include <cstdlib>
@@ -148,6 +148,18 @@ FABio* FArrayBox::fabio = new FABio_binary(FPC::NativeRealDescriptor().clone());
 
 FArrayBox::FArrayBox ()
 {
+}
+
+FArrayBox::FArrayBox(const FArrayBox& fab)
+    : BaseFab<Real>(fab)
+{
+}
+
+FArrayBox&
+FArrayBox::operator=(const FArrayBox& fab)
+{
+    BaseFab<Real>::operator=(fab);
+    return *this;
 }
 
 FArrayBox::FArrayBox (const Box& b,
