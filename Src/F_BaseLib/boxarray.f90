@@ -94,23 +94,23 @@ module boxarray_module
      module procedure boxarray_grow_v_f
   end interface
 
-  interface boxarray_boundary
+! interface boxarray_boundary
 !    module procedure boxarray_boundary_m
 !    module procedure boxarray_boundary_n
 !    module procedure boxarray_boundary_n_f
 !    module procedure boxarray_boundary_n_d_f
 !    module procedure boxarray_boundary_v
 !    module procedure boxarray_boundary_v_f
-  end interface
+! end interface
 
-  interface boxarray_box_boundary
+! interface boxarray_box_boundary
 !    module procedure boxarray_box_boundary_m
 !    module procedure boxarray_box_boundary_n
 !    module procedure boxarray_box_boundary_n_f
 !    module procedure boxarray_box_boundary_n_d_f
 !    module procedure boxarray_box_boundary_v
 !    module procedure boxarray_box_boundary_v_f
-  end interface
+! end interface
 
   interface bbox
      module procedure boxarray_bbox
