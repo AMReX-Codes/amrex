@@ -45,43 +45,50 @@ extern "C"
 class task_interpolate_patch : public task
 {
 public:
-    task_interpolate_patch(task_list& tl_, MultiFab& dmf_, int dgrid_, const Box& dbx_, const MultiFab& smf_, const IntVect& rat_, const amr_interpolator_class* interp_, const level_interface& lev_interface_);
-    virtual bool ready();
-    virtual ~task_interpolate_patch();
+    task_interpolate_patch (task_list& tl_, MultiFab& dmf_, int dgrid_, const Box& dbx_, const MultiFab& smf_, const IntVect& rat_, const amr_interpolator_class* interp_, const level_interface& lev_interface_);
+    virtual bool ready ();
+    virtual ~task_interpolate_patch ();
+    virtual bool work_to_do () const;
 private:
-    task::task_proxy tf;
-    MultiFab& dmf;
-    const int dgrid;
-    const Box dbx;
-    const MultiFab& smf;
-    const IntVect rat;
+    task::task_proxy              tf;
+    MultiFab&                     dmf;
+    const int                     dgrid;
+    const Box                     dbx;
+    const MultiFab&               smf;
+    const IntVect                 rat;
     const amr_interpolator_class* interp;
-    const level_interface& lev_interface;
+    const level_interface&        lev_interface;
 };
 
-task_interpolate_patch::task_interpolate_patch(task_list& tl_, MultiFab& dmf_, int dgrid_, const Box& dbx_, const MultiFab& smf_, const IntVect& rat_, const amr_interpolator_class* interp_, const level_interface& lev_interface_)
-    : task(tl_), dmf(dmf_), dgrid(dgrid_), dbx(dbx_), smf(smf_), rat(rat_), interp(interp_), lev_interface(lev_interface_), tf(0)
+task_interpolate_patch::task_interpolate_patch (task_list& tl_, MultiFab& dmf_, int dgrid_, const Box& dbx_, const MultiFab& smf_, const IntVect& rat_, const amr_interpolator_class* interp_, const level_interface& lev_interface_)
+    :
+    task(tl_), dmf(dmf_), dgrid(dgrid_), dbx(dbx_), smf(smf_), rat(rat_), interp(interp_), lev_interface(lev_interface_), tf(0)
 {
     assert(dbx.sameType(dmf.box(dgrid)));
-    tf = m_task_list.add_task(
-	new task_fill_patch( m_task_list, dmf, dgrid, interp->box(dbx, rat), smf, lev_interface, 0, -1, -1)
-	);
-    depend_on( tf );
+    tf = m_task_list.add_task(new task_fill_patch(m_task_list,dmf,dgrid,interp->box(dbx,rat),smf,lev_interface,0,-1,-1));
+    depend_on(tf);
 }
 
-bool task_interpolate_patch::ready()
+bool task_interpolate_patch::ready ()
 {
-    assert(is_started());
-    assert(tf->ready());
-    if ( is_local(dmf, dgrid) )
+    if (is_local(dmf,dgrid))
     {
+        assert(is_started());
+        assert(!tf.null());
+        assert(tf->ready());
 	task_fab* tff = dynamic_cast<task_fab*>(tf.get());
+        assert(tff != 0);
 	interp->fill(dmf[dgrid], dbx, tff->fab(), tff->fab().box(), rat);
     }
     return true;
 }
 
-task_interpolate_patch::~task_interpolate_patch()
+bool task_interpolate_patch::work_to_do () const
+{
+    return is_local(dmf,dgrid) || !tf.null();
+}
+
+task_interpolate_patch::~task_interpolate_patch ()
 {
     delete interp;
 }

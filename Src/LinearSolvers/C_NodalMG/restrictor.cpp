@@ -107,10 +107,11 @@ bool task_restriction_fill::ready()
     assert(tf->ready());
     if ( is_local(m, ind) )
     {
-	task_fab* tff = dynamic_cast<task_fab*>(tf.get());
-	const Box fb = tff->fab().box();
-	const Box pb = m[ind].box();
-	(*ref)(m[ind].dataPtr(), DIMLIST(pb), DIMLIST(cbox), tff->fab().dataPtr(), DIMLIST(fb), D_DECL(rat[0], rat[1], rat[2]), m.nComp(), &integrate, arg1.dataPtr(), arg2.dataPtr());
+        task_fab* tff = dynamic_cast<task_fab*>(tf.get());
+        assert(tff != 0);
+        const Box fb = tff->fab().box();
+        const Box pb = m[ind].box();
+        (*ref)(m[ind].dataPtr(), DIMLIST(pb), DIMLIST(cbox), tff->fab().dataPtr(), DIMLIST(fb), D_DECL(rat[0], rat[1], rat[2]), m.nComp(), &integrate, arg1.dataPtr(), arg2.dataPtr());
     }
     return true;
 }
