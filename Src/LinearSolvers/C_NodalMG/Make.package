@@ -1,20 +1,21 @@
-ifeq ($(LBASE),proj)
+HGPROJ_BASE=LIB
+ifeq ($(EBASE), proj)
+    HGPROJ_BASE=EXE
+endif
 
-CLIB_sources += interface.cpp boundary.cpp interpolator.cpp \
+C$(HGPROJ_BASE)_sources += interface.cpp boundary.cpp interpolator.cpp \
        		restrictor.cpp fill_patch.cpp amr_multi.cpp \
 		hg_multi1.cpp hg_multi2.cpp hg_multi3.cpp \
 		hg_projector.cpp
-CLIB_headers += interface.H boundary.H interpolator.H restrictor.H \
+C$(HGPROJ_BASE)_headers += interface.H boundary.H interpolator.H restrictor.H \
                 fill_patch.H amr_multi.H hg_multi.H hg_projector.H
 
-FLIB_sources += amr_real$(DIM)d.F \
+F$(HGPROJ_BASE)_sources += amr_real$(DIM)d.F \
                 hg_multi$(DIM)d.F hg_proj$(DIM)d.F hg_avg$(DIM)d.F
 ifeq ($(DIM),3)
-FLIB_sources +=	hg_multi$(DIM)d_terrain.F
+F$(HGPROJ_BASE)_sources +=	hg_multi$(DIM)d_terrain.F
 endif
 FLIB_headers +=
-
-endif
 
 ifeq ($(EBASE),proj)
 
