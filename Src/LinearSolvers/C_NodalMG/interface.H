@@ -68,7 +68,9 @@ public:
 	switch(idim) 
 	{
 	case FACEDIM: ret = fgr[i][j]; break;
+#if BL_SPACEDIM == 3
 	case 1      : ret = egr[i][j]; break;
+#endif
 	case 0      : ret = cgr[i][j]; break;
 	}
 	return ret;
