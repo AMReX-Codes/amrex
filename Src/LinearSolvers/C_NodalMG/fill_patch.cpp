@@ -111,7 +111,10 @@ class task_bdy_fill : public task
 public:
     task_bdy_fill(const amr_boundary_class* bdy_, FArrayBox& fab_, const Box& region_, const MultiFab& src_, int grid_, const Box& domain_);
     virtual bool ready();
-    virtual bool is_off_processor() const;
+    virtual bool is_off_processor() const
+    {
+	return false;
+    }
     virtual void init(sequence_number sno, MPI_Comm comm);
 private:
     const amr_boundary_class* bdy;
@@ -395,7 +398,10 @@ public:
     {
 	return true;
     }
-    virtual bool is_off_processor() const;
+    virtual bool is_off_processor() const
+    {
+	return is_remote(m_r1, m_i1) && is_remote(m_r2, m_i2);
+    }
     virtual void init(sequence_number sno, MPI_Comm comm);
 private:
     MultiFab& m_r1;
@@ -576,7 +582,10 @@ public:
 	m_restric.fill(m_dest[m_dgrid], m_box, m_r[m_rgrid], m_rat);
     }
     virtual bool ready();
-    virtual bool is_off_processor() const;
+    virtual bool is_off_processor() const
+    {
+	return is_remote(m_dest, m_dgrid) && is_remote(m_r, m_rgrid);
+    }
     virtual void init(sequence_number sno, MPI_Comm comm);
 private:
     const amr_restrictor_class& m_restric;

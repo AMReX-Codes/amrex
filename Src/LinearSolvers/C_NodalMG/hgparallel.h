@@ -36,7 +36,7 @@ public:
     virtual ~task() {}
     virtual bool ready() = 0;
     virtual void init(sequence_number sno, MPI_Comm comm) = 0;
-    virtual bool is_off_processor() const = 0;
+    virtual bool is_off_processor() const { return false; }
 };
 
 class task_copy : public task
