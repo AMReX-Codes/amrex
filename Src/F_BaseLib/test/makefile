@@ -9,6 +9,7 @@ boxlib_dir=..
 
 f90objects = $(f90objects) $(obj_dir)\main.obj
 f90objects = $(f90objects) $(obj_dir)\t_main.obj
+f90objects = $(f90objects) $(obj_dir)\t_knapsack.obj
 
 main.exe: $(objects)
 	$(FOR) $(FFLAGS) $(LDFLAGS) /out:main.exe $(objects)
