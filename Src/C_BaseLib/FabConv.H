@@ -4,7 +4,7 @@
 #define BL_FABCONV_H
 
 //
-// $Id: FabConv.H,v 1.7 2000-04-24 17:52:35 car Exp $
+// $Id: FabConv.H,v 1.8 2000-05-25 15:39:28 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -156,6 +156,10 @@ public:
     //@ManDoc: The assignment operator.
     //
     RealDescriptor& operator= (const RealDescriptor& rhs);
+    //
+    //@ManDoc: Destructor is virtual incase a derived class has a non-trivial
+    //         destructor.
+    virtual ~RealDescriptor ();
     //
     //@ManDoc: Returns the format array as a `const long*'
     //
