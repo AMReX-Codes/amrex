@@ -809,11 +809,19 @@ end subroutine t_box_read
 
 subroutine t_ml_mf_read
   use fabio_module
+  implicit none
   character(len=128) root
   type(multifab), pointer :: mmf(:)
+  type(layout) :: la
+  integer :: n
   root = 'plt0000'
   allocate(mmf(2))
   call fabio_ml_multifab_read_d(mmf, root, ng = 1)
   call fabio_ml_multifab_write_d(mmf, (/2/), "plogo")
-
+  do n = 1, size(mmf)
+    la = get_layout(mmf(n)) 
+    call destroy(mmf(n))
+    call destroy(la)
+  end do
+  deallocate(mmf)
 end subroutine t_ml_mf_read
