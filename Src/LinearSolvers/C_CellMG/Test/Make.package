@@ -59,12 +59,11 @@ T_headers += BaseFab.H FabArray.H
 MGLIB_BASE=EXE
 C$(MGLIB_BASE)_headers += ABecLaplacian.H BndryData.H BoundCond.H \
                           CGSolver.H InterpBndryData.H LO_BCTYPES.H \
-                          Laplacian.H LinOp.H Mask.H MultiGrid.H \
-                          WriteMultiFab.H
+                          Laplacian.H LinOp.H Mask.H MultiGrid.H
 
 C$(MGLIB_BASE)_sources += ABecLaplacian.cpp BndryData.cpp CGSolver.cpp \
                           InterpBndryData.cpp Laplacian.cpp LinOp.cpp \
-                          Mask.cpp MultiGrid.cpp WriteMultiFab.cpp
+                          Mask.cpp MultiGrid.cpp
 
 
 F$(MGLIB_BASE)_headers += ABec_F.H CG_F.H INTERPBNDRYDATA_F.H \
@@ -76,7 +75,8 @@ F$(MGLIB_BASE)_sources += ABec_$(DIM)D.F ABec_UTIL.F CG_$(DIM)D.F \
 #
 # multigrid test sources
 #
-CEXE_sources += main.cpp
+CEXE_sources += main.cpp WritePlotFile.cpp
+CEXE_headers += WritePlotFile.H
 
 #
 # BSP stuff
