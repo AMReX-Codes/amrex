@@ -2104,15 +2104,13 @@ c-----------------------------------------------------------------------
      & cor, destl0,desth0,destl1,desth1,destl2,desth2,
      & sig, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
      & cen, cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
-     &      regl0,regh0,regl1,regh1,regl2,regh2,
-     & hx, hy, hz)
+     &      regl0,regh0,regl1,regh1,regl2,regh2)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
       integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      double precision hx, hy, hz
       double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       double precision cor(destl0:desth0,destl1:desth1,destl2:desth2)
