@@ -111,7 +111,7 @@ foreach $ifile (@ARGV) {
 			    #       or right angle bracket.
 			    push(@searchlist,($1));
 			}
-		    } elsif ($fortran && /^[ \t]+include\s+'([^']+['])/) {
+		    } elsif ($fortran && /^[ \t]+include\s+'([^']+['])/i) {
 		        if ($usedfiles{ $1 }++ == 0) {
 			   print " ::: inluding ::$1::\n" if $debug;
 			   push(@searchlist,($1));
