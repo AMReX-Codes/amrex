@@ -476,7 +476,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &             -sigmaf(i+m  ,j+n-1,ks,4)
      &             -sigmaf(i+m  ,j+n  ,ks,4))
      &    + idir * 
-     &    + 6.d0 * (sigmaf(i+m-1,j+n-1,ks,5)
+     &      6.d0 * (sigmaf(i+m-1,j+n-1,ks,5)
      &             -sigmaf(i+m-1,j+n  ,ks,5)
      &             +sigmaf(i+m  ,j+n-1,ks,5)
      &             -sigmaf(i+m  ,j+n  ,ks,5))
