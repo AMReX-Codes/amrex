@@ -781,7 +781,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	}
     }
     tl.execute();
-    
+    HG_TEST_NORM(source[lev], "IN interface_divergence");
 #if (BL_SPACEDIM == 3) || (defined HG_TERRAIN)
     
 #if (BL_SPACEDIM == 3)
