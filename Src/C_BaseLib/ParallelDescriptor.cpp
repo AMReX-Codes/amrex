@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.92 2001-10-10 20:12:44 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.93 2001-12-03 22:24:54 lijewski Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -439,7 +439,7 @@ ParallelDescriptor::util::DoAllReduceReal (Real&  r,
     BL_MPI_REQUIRE( MPI_Allreduce(&r,
                                   &recv,
                                   1,
-                                  mpi_data_type(&recv),
+                                  Mpi_typemap<Real>::type(),
                                   op,
                                   Communicator()) );
     r = recv;
@@ -455,7 +455,7 @@ ParallelDescriptor::util::DoReduceReal (Real&  r,
     BL_MPI_REQUIRE( MPI_Reduce(&r,
                                &recv,
                                1,
-                               mpi_data_type(&recv),
+                               Mpi_typemap<Real>::type(),
                                op,
                                cpu,
                                Communicator()) );
@@ -705,7 +705,7 @@ ParallelDescriptor::Gather (Real* sendbuf,
     BL_ASSERT(!(sendbuf == 0));
     BL_ASSERT(!(recvbuf == 0));
 
-    MPI_Datatype typ = mpi_data_type(sendbuf);
+    MPI_Datatype typ = Mpi_typemap<Real>::type(),
 
     BL_MPI_REQUIRE( MPI_Gather(sendbuf,
                                nsend,
