@@ -4,7 +4,7 @@
 #define BL_BOXARRAY_H
 
 //
-// $Id: BoxArray.H,v 1.4 1997-11-18 00:04:47 lijewski Exp $
+// $Id: BoxArray.H,v 1.5 1998-02-04 01:03:20 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -17,7 +17,11 @@
 #include <IndexType.H>
 #include <BoxList.H>
 #include <Array.H>
+#include <Pointers.H>
 
+//
+// Forward declaration.
+//
 class BoxList;
 
 //
@@ -25,9 +29,9 @@ class BoxList;
 //@Memo: An Array of Boxes
 /*@Doc:
 
-  A BoxArray is a collection of Boxes stored in an Array.  It is a concrete
-  class, not a polymorphic one; i.e. you cannot use any of the List
-  member functions with a BoxList.
+  A BoxArray is a collection of Boxes stored in an Array.  It is a
+  reference-counted concrete class, not a polymorphic one; i.e. you
+  cannot use any of the List member functions with a BoxList.
 */
 
 class BoxArray
@@ -60,13 +64,13 @@ public:
     //
     BoxArray (const BoxArray& bs);
     //
-    //@ManDoc: The assignment operator.
-    //
-    BoxArray& operator= (const BoxArray& rhs);
-    //
     //@ManDoc: Construct a BoxArray from a checkpoint file.
     //
     explicit BoxArray (istream& is);
+    //
+    //@ManDoc: The assignment operator.
+    //
+    BoxArray& operator= (const BoxArray& rhs);
     //
     //@ManDoc: The destructor.
     //
@@ -113,13 +117,13 @@ public:
                an internally maintained hash value.  It will make a mistake
                once in 256 million.
     */
-    bool operator== (const BoxArray& obs) const;
+    bool operator== (const BoxArray& rhs) const;
 
     /*@ManDoc: Are the BoxArrays not equal?  This function works by examining
                an internally maintained hash value.  It will make a mistake
                once in 256 million.
     */
-    bool operator != (const BoxArray& obs) const;
+    bool operator!= (const BoxArray& rhs) const;
     //
     //@ManDoc: Forces each Box in BoxArray to have sides <= block\_size.
     //
@@ -258,17 +262,59 @@ protected:
     //
     void rehash ();
     //
-    // Returns a 24 bit number (nearly) unique to this BoxArray.
+    // Helper for ASCII stream output.
     //
-    unsigned long do_hash () const;
+    ostream& print (ostream& os) const;
+
+    class Ref
+    {
+        friend class BoxArray;
+        //
+        // Constructors to match those in BoxArray ....
+        //
+        Ref ();
+
+        Ref (size_t size);
+
+        Ref (const Box* bxvec,
+             int        nbox);
+
+        Ref (const BoxList& bl);
+
+        Ref (istream& is);
+
+        Ref (const Ref& rhs);
+        //
+        // defines()s to match those in BoxArray.
+        //
+        void define (const BoxList& bl);
+
+        void define (const BoxArray& bs);
+
+        void define (istream& is);
+        //
+        // Check for equality.
+        //
+        bool operator== (const Ref& rhs) const;
+        //
+        // Check for inequality.
+        //
+        bool operator!= (const Ref& rhs) const;
+
+        //
+        // The data.
+        //
+        Array<Box>    m_abox;     // The Array of Boxes.
+        unsigned long m_hash_sig; // Pseudo-random 24 bit number.
+    };
     //
-    // The Array of Boxes.
+    // Make `this' unique.
     //
-    Array<Box> abox;
+    void uniqify ();
     //
-    // Pseudo-random 24 bit number.
+    // The data -- a reference-counted pointer to a Ref.
     //
-    unsigned long hash_sig;
+    LnClassPtr<Ref> m_ref;
 };
 
 //
@@ -276,75 +322,54 @@ protected:
 //
 
 inline
-void
-BoxArray::clear ()
-{
-    abox.clear();
-    hash_sig = 0;
-}
-
-inline
-void
-BoxArray::resize (int len)
-{
-    abox.resize(len);
-    hash_sig = do_hash();
-}
-
-inline
 int
 BoxArray::length () const
 {
-    return abox.length();
+    return m_ref->m_abox.length();
 }
 
 inline
 bool
 BoxArray::ready () const
 {
-    return abox.ready();
+    return m_ref->m_abox.ready();
 }
 
 inline
 bool
-BoxArray::operator== (const BoxArray& obs) const
+BoxArray::operator!= (const BoxArray& rhs) const
 {
-    return hash_sig == obs.hash_sig;
+    return !operator==(rhs);
 }
 
 inline
 bool
-BoxArray::operator != (const BoxArray& obs) const
+BoxArray::Ref::operator!= (const BoxArray::Ref& rhs) const
 {
-    return hash_sig != obs.hash_sig;
+    return !operator==(rhs);
 }
 
 inline
 const Box&
 BoxArray::operator[] (int index) const
 {
-    return abox.get(index);
+    return m_ref->m_abox.get(index);
 }
 
 inline
 const Box&
 BoxArray::get (int index) const
 {
-    return abox.get(index);
-}
-
-inline
-void
-BoxArray::rehash ()
-{
-    hash_sig = do_hash();
+    return m_ref->m_abox.get(index);
 }
 
 inline
 void
 BoxArray::reserve (long _truesize)
 {
-    abox.reserve(_truesize);
+    if (!m_ref.unique())
+        uniqify();
+    m_ref->m_abox.reserve(_truesize);
 }
 
 #endif /*BL_BOXARRAY_H*/
