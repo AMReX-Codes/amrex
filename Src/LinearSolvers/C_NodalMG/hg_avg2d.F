@@ -153,7 +153,7 @@ c should be handled by the cavg routine instead:
                   rfac1m = hx / (6.d0 * (r - m * hx))
                   rfac0p = hx / (6.d0 * (r + (m - 1) * hx))
                   rfac1p = hx / (6.d0 * (r + m * hx))
-                  rc(i,j) = src(i,j) + fac *
+                  src(i,j) = src(i,j) + fac *
      &              (rfac0m * rf(i-m-1,jrf) - rfac1m * rf(i-m,jrf) +
      &               rfac0p * rf(i+m-1,jrf) - rfac1p * rf(i+m,jrf))
                end do
