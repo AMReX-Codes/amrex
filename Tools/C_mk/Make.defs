@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.37 2001-08-01 21:51:05 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.38 2001-08-01 22:32:23 car Exp $
 #
 
 #
@@ -189,7 +189,8 @@ ifeq ($(COMP),g++)
     CXXPRFF    := -p
     CXXOPTF    += -O
     CXXDEBF    += -g
-    FULLWARN   := -Wall
+    FULLWARN   := -Wall 
+    FULLWARN   += -Wno-sign-compare
     CXX	       := g++ -ftemplate-depth-25
     # DEFINES    += -DBL_OLD_STL
 #    DEFINES    += -DBL_USE_NEW_HFILES
@@ -200,7 +201,7 @@ ifeq ($(COMP),g++)
     DEFINES += -DBL_GCC_VERSION=$(__gcc_version)
     DEFINES += -DBL_GCC_MAJOR_VERSION=$(__gcc_major_version)
     DEFINES += -DBL_GCC_MINOR_VERSION=$(__gcc_minor_version)
-    ifneq ($(BL_GCC_MAJOR_VERSION),3)
+    ifneq ($(__gcc_major_version),3)
        GNU_STD_INCL = $(PBOXLIB_HOME)/BoxLib/std
     endif
 endif
@@ -316,7 +317,7 @@ ifeq ($(STRICTLY),TRUE)
         CXXFLAGS +=  --diag_suppress 450
     endif
     ifeq ($(COMP),g++)
-        CXXFLAGS += -Wall
+        CXXFLAGS += $(FULLWARN)
     endif
 endif
 
