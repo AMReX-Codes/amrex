@@ -1,0 +1,355 @@
+#!/usr/local/gnu/bin/perl
+# "$Id: strip72,v 1.1 1997-09-15 22:24:10 lijewski Exp $"
+# -------------------------------------------------------------------------
+# This PERL script will act as a filter for FORTRAN code.
+# It will:
+#     (1) expand tabs on non-comment lines
+#     (2) replace multiple blank lines with a single blank line
+#     (3) split lines at or before column 72 and preserve indention
+#     (4) translate CRAY conditional vector merge statements
+#         into equivalent if-then-else statements (if requested).
+#	  This will even work on nested conditions vector merge statements.
+#     (5) translates DUMARR(a) -> a,a_lo,a_hi  to be used in
+#         the summy arguments lists of subroutines, function calls, etc.
+#     (6) translates DECL(typ,name,n1,n2,...nm) into an array
+#         declaration.  For example:
+#             DECL(integer,a,nvar)
+#         is replaced by the lines: (if SDIM = 2)
+#             integer a_lo(2),a_hi(2)
+#             integer a(a_lo(1):a_hi(1),a_lo(2):a_hi(2),nvar)
+#
+# Usage:   strip72 [-c] [-s SDIM] <file_list>
+#             -c  => convert cvmgX to if-then-else statments
+#                    Without -c it will leave cvmgX in code
+#             -s  => use next argument as SPACEDIM, default = 2
+#             reads  from standard input of list of files,
+#             writes to standard output.
+#
+# Author:  Michael Welcome
+#          Lawrence Livermore National Laboratory
+# Date:    8/26/94
+# MODIFY:  8/1/95
+# -------------------------------------------------------------------------
+
+# check command line for -c flag
+$do_cvmgX = 0;
+$debug = 0;
+$SDIM = 2;
+
+# read command line options
+while ($ARGV[0] =~ /^-/) {
+    $_ = shift;
+    if (/^-c/i) {
+	$do_cvmgX = 1;
+    } elsif (/^-d/i) {
+        $debug = 1;
+    } elsif (/^-s/i) {
+        $SDIM = shift
+    } else {
+        die "invalid argument: $_\n";
+    }
+}
+
+$dash_line = "-" x 50 . "\n";
+
+# look ahead loop: read first line and continue until input is exhausted.
+$_ = "\n";
+while ($_) {
+   print $dash_line if $debug;
+
+   # gather all continuation lines of statement
+   # gather all comments in @comment
+   # replace multiple blank lines with single blank line
+   $line = $_;
+   @comments = ();
+   $nskip = 0;
+   while (<>) {
+       # if comment, gather for later printing
+       # and continue searching for continuation lines
+       if (/^c/i) {
+          push(@comments,$_);
+	  next;
+       }
+       # if blank line and no previous blank line, save it in @comments
+       if (/^\s*$/) {
+          next if $nskip > 0;
+          push(@comments,"\n");
+          $nskip++;
+          next;
+       }
+       # skip lines with CPP control characters in first column
+       next if /^\#/;
+
+       # if not a continuation line, drop out of loop
+       last if !/^     \S/;
+
+       # found a continuation line
+       chop($line);
+       chop();
+       # remove continuation statement and leading white space
+       s/^     \S\s*//;
+       # collapse other white space
+       s/\s+/ /g;
+       # append to current line and add newline char
+       $line .= $_ . "\n";
+   }
+   print "DB: AFTER GATHER : $line" if $debug;
+
+   # all continuation lines have been gathered in $line
+
+   # search for all occurances of DUMARR(a) and expand to
+   # "a,a_lo,a_hi"
+   if ($line =~ /^\s+.*DUMARR/) {
+#       while ($line =~ /.*DUMARR\s*\(\s*(\w+)\s*\)/) {
+       while ($line =~ /DUMARR\s*\(\s*(\w+)\s*\)/) {
+	   $args = "$1,$1_lo,$1_hi";
+	   $line = $`.$args.$';
+       }
+   }
+
+   # now expand tabs
+   while ($line =~ /(\t)/) {
+      $_n = index($line,$1);         # locaton of tab
+      $_len = 8 - ($_n % 8);	     # number of spaces to next tab stop
+      substr($line,$_n,1) = " " x $_len;  # replace with spaces
+   }
+
+   # search line for DECL statement and replace with declarations
+   if ($line =~ /^\s+DECL\s*\(([^\)]*)/) {
+       ($typ,$aname,@rest) = split(/,/,$1);
+       $line =~ /^\s*/;
+       $indent = $&;
+       $lines[0] = $indent . "integer $aname"."_lo($SDIM), $aname"."_hi($SDIM)\n";
+       $lines[1] = $indent . "$typ $aname(";
+       foreach $dim (1 .. $SDIM) {
+	   $lines[1] .= "$aname"."_lo(".$dim."):$aname"."_hi(".$dim.")";
+	   $lines[1] .= "," if $dim < $SDIM;
+       }
+       if (@rest > 0) {
+	   $lines[1] .= "," . join(",",@rest);
+       }
+       $lines[1] .= ")\n";
+
+   } else {
+       @lines = ($line);
+   }
+
+   # put line in an array of lines
+
+   # check for conditional vector merge statement
+   if ($do_cvmgX && $line =~ /.*=\s*cvmg[pPmMnNzZtT]\s*\(/o) {
+       # @lines will contain the equivalent if-then-else statement
+       # with proper indention preserved.
+       @lines = &expand_cvmgX($line);
+   }
+
+   # if we got here, the line has been split into
+   # possibly multiple lines by the cvmgX splitter
+   # now output each line so that each has a length < 72
+   foreach $ln (@lines) {
+      if (length($ln) <= 73) {
+         print $ln;
+      } else {
+	 &chop_line($ln);
+      }
+   }
+
+
+   # now that line is out, print comments that where
+   # collected in the forward search for continuation lines.
+   # This preserves the order of comments and code.
+   foreach $ln (@comments) {
+      print $ln;
+   }
+}
+
+# -------------------------------------------------------------------
+# Subroutine expand_cvmgX
+#     input is a string containing cvmgX statement
+#     output is array of strings containing equivalent
+#     if-then-else statements
+# Note, this is a recursive subroutine
+# -------------------------------------------------------------------
+sub expand_cvmgX {
+   print "DB: SUB expand_cvmgX with @_[0]" if $debug;
+
+   # recursive, so need local variables
+   local($_line) = @_[0];
+   local(@args, @out);
+
+   # remove newline char
+   chop($_line);
+
+   # get indention string and strip white_space
+   $_line =~ /^\s*/;
+   $indent = $&;
+   $_line =~ s/\s+//g;
+
+   # statement looks like <lhs>=cvmgX(a,b,c), <rhs> = (a,b,c)
+   # collect LHS and RHS
+   $_line =~ /=cvmg/i;
+   $lhs = $`;
+   $rhs = $';
+   $type = substr($rhs,0,1);
+
+   # strip off type and outer parens
+   substr($rhs,0,2) = "";
+   chop($rhs);
+
+   # collect a, b, c searching for comma, matching parens
+   $len = length($rhs);
+   $chunk = 0;
+   @args = ("","","");
+   $paren = 0;
+   for ($i=0; $i<$len; $i++) {
+      # examine ith character in string
+      $ch = substr($rhs,$i,1);
+      if (($ch eq ",") && ($paren == 0)) {
+         # found comma seperator, start gathering next arg
+         $chunk++;
+	 die "$0 : too many args to cvmg$type\n" if $chunk > 2;
+      } else {
+         # gather char, incr or decr paren count
+         $args[$chunk] .= $ch;
+	 $paren++ if $ch eq "(";
+	 $paren-- if $ch eq ")";
+      }
+   }
+
+   if ($debug) {
+      print "LHS = $lhs, TYPE = $type, RHS = $rhs\n";
+      print "A = $args[0]\n";
+      print "B = $args[1]\n";
+      print "C = $args[2]\n";
+   }
+
+   # make sure conditional does not contain a cvmgX statement
+   if ($args[2] =~ /.*=\s*cvmg[pPmMnNzZtT]\s*\(/) {
+      die "$0 : cvmg$type in conditional: $args[2]\n";
+   }
+
+   # determine type of conditional vector merge statement, build
+   # components of conditional statement
+   $type =~ tr/A-Z/a-z/;
+   if ($type eq "p") {
+      $cmp1 = " .ge. 0.0";
+      $pre2 = "";
+      $cmp2 = " .lt. 0.0";
+   } elsif ($type eq "m") {
+      $cmp1 = " .lt. 0.0";
+      $pre2 = "";
+      $cmp2 = " .ge. 0.0";
+   } elsif ($type eq "n") {
+      $cmp1 = " .ne. 0.0";
+      $pre2 = "";
+      $cmp2 = " .eq. 0.0";
+   } elsif ($type eq "z") {
+      $cmp1 = " .eq. 0.0";
+      $pre2 = "";
+      $cmp2 = " .ne. 0.0";
+   } elsif ($type eq "t") {
+      $cmp1 = "";
+      $pre2 = " .not. (";
+      $cmp2 = ")";
+   } else {
+      die "$0 : cvmg$type not a conditional vector merge\n";
+   }
+
+   # produce output
+   # recursively apply translator if statement contains
+   # another conditional vector merge
+   if ($lhs eq $args[0]) {
+      # single branch if statement
+      $out[0] = $indent . "if (" . $pre2 . $args[2] . $cmp2 . ") then\n";
+      $out[1] = $indent . "  " . $lhs . " = " . $args[1] . "\n";
+      $out[2] = $indent . "endif\n";
+      if ($out[1] =~ /.*=\s*cvmg[pPmMnNzZtT]\s*\(/) {
+         splice(@out,1,1,&expand_cvmgX($out[1]));
+      }
+   } elsif ($lhs eq $args[1]) {
+      # single branch if statement
+      $out[0] = $indent . "if (" . $args[2] . $cmp1 . ") then\n";
+      $out[1] = $indent . "  " . $lhs . " = " . $args[0] . "\n";
+      $out[2] = $indent . "endif\n";
+      if ($out[1] =~ /.*=\s*cvmg[pPmMnNzZtT]\s*\(/) {
+         splice(@out,1,1,&expand_cvmgX($out[1]));
+      }
+   } else {
+      # double branch if statement
+      $out[0] = $indent . "if (" . $args[2] . $cmp1 . ") then\n";
+      $out[1] = $indent . "  " . $lhs . " = " . $args[0] . "\n";
+      $out[2] = $indent . "else\n";
+      $out[3] = $indent . "  " . $lhs . " = " . $args[1] . "\n";
+      $out[4] = $indent . "endif\n";
+      if ($out[3] =~ /.*=\s*cvmg[pPmMnNzZtT]\s*\(/) {
+         splice(@out,3,1,&expand_cvmgX($out[3]));
+      }
+      if ($out[1] =~ /.*=\s*cvmg[pPmMnNzZtT]\s*\(/) {
+         splice(@out,1,1,&expand_cvmgX($out[1]));
+      }
+   }
+
+   return @out;
+}
+
+# -------------------------------------------------------------------
+# Subroutine chop_line
+#     input is a string containing a long line
+#     side effect is to chop the line into shorter continuation
+#     lines and write to standard output.
+# NOTE: preserves indention of input line
+# -------------------------------------------------------------------
+sub chop_line {
+   local($_line) = @_;
+   print "DB: SUB chop_line with line = $_line" if $debug;
+
+   # NOTE: tabs have been expanded at this point
+   chop($_line);
+   $_line =~ s/^.{5}\s*//;    # find possible label and leading white space
+   $indent1 = $&;             # string containing label and white space
+   $indent2 = $&;             # string containing continuation and white space
+   substr($indent2,0,6) = "     %  ";
+   $i_len = length($indent1);    # length of leading white space
+
+   # try stripping multiple white space, see if that solves problem
+   $_line =~ s/\s+/ /g;         # replace multiple spaces with single space
+   if (length($_line) <= 72-$i_len) {
+      print $indent1, $_line, "\n";
+      return 1;
+   }
+
+   # if we got here the line is still too long
+   $mx_len = 72 - $i_len;       # num allowed char after indent
+   $line_no = 0;
+   $no_split_chars = "[a-zA-Z0-9_\.]";
+   while (($_len = length($_line)) > 0) {
+      # find closest word bndry prior to $l_len and split there
+      $pos = $_len;
+      if ($pos >= $mx_len) {
+         $pos = $mx_len-1;
+         while ($pos >= 0 && (substr($_line,$pos,1) =~ /$no_split_chars/o)) {
+            $pos--;
+         }
+      }
+      die "Failed to chop long line.  Try adding spaces!!!\n\n==> $_line\n"
+          if $pos <= 0;
+
+      # make header so that it indents correct number of chars
+      $header = ($line_no == 0 ? $indent1 : $indent2);
+
+      # print portion that will fit on this line
+      print $header , substr($_line,0,$pos+1) , "\n";
+
+      # increment line count and remove portion of line that has
+      # just been printed.
+      $line_no++;
+      substr($_line,0,$pos+1) = "";
+      $mx_len = 70 - $i_len;       # num allowed char after indent
+   }
+
+   if ($line_no > 9) {
+      warn "$0: produced $line_no continuation lines\n";
+   }
+}
+
+

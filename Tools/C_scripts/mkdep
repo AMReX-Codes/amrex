@@ -1,0 +1,155 @@
+#!/usr/bin/perl
+# ------------------------------------------------------------------
+# Perl script to generate a "make"-style dependency list for a
+# C, C++, or FORTRAN source file with CPP include directives.  
+#
+# Usage:  mk_dep -DBG [-I<dir>]* [-X<dir>]* filename ...
+# Notes:  *  -I<path> defines a search path for include files
+#         *  -DBG turn on debug flag
+#         *  -X<path> means disgard entries with this path (NOT IMPLEMENTED)
+#         *   searches current directory only if -I. is in search
+#             path or #include directive uses double quotes rather
+#             than angle brackets.
+#         *   dependency list is sent to standard output
+#         *   follows all #include directives, even those protected
+#             by #if and #ifdef directives.
+#         *   ignores include files not found in search path
+#         *   Includes corresponding .C files for .H files including
+#             template definitions
+#         *   No duplications in dependency list
+#
+# Author:  Michael Welcome
+#          4/26/95
+#          Lawrence Livermore National Laboratory
+# ------------------------------------------------------------------
+
+$debug = 0;
+@incldir = ("");
+
+# search command line for -I and -X options
+while ($ARGV[0] =~ /^-/) {
+    $_ = shift;
+    if (/^-I(.+)/) {
+	die "$1 does not exist\n" if (!-e $1);
+	die "$1 not a directory\n" if (!-d $1);
+	die "cannot read $1\n" if (!-r $1);
+	push(@incldir,("$1/"));
+    } elsif (/^-X(.+)/) {
+	die "Sorry, -X option not implemented\n";
+	push(@excldir,($1));
+    } elsif (/^-DBG/) {
+	$debug = 1;
+    } else {
+	die "invalid argument: $_\n";
+    }
+}
+
+foreach $ifile (@ARGV) {
+
+    print "PARSING FILE: @ARGV\n" if $debug;
+    die "cannot read $ifile\n" if (!(-e $ifile && -r _));
+
+    #define object file
+    # strip path from filename
+    ($ofile = $ARGV[0]) =~ s#.*/##;
+    # change suffix to .o
+    ($ofile = $ifile) =~ s/\.[^.\/]*$/.o/;
+    @searchlist = ("$ifile\"");
+    %usedfiles = ();
+    %deptable = ();
+    $usedfiles{ $ifile } = 1;
+
+    while (@searchlist) {
+        # get next file off search list
+	$file = shift(@searchlist);
+
+        # NOTE: the last char in $file is either a double quote (") or
+        #       a right angle bracket (>).  Strip off this character and
+	#       save it.  If it is a quote, search current directory first.
+	#       If its a right angle bracket, only search directories
+	#       specified with -I options.
+	$incltype = chop $file;
+
+	# NOTE: if the first char in $file is a "/" indicating an absolute
+	#       path, do not search directory list
+	$abspath = ($file =~ /^\// ? 1 : 0);
+
+	foreach $d (@incldir) {
+	    if ($d ne "" && $abspath) {
+		# this is an absolute path, dont search current directory
+		next;
+	    }
+	    if ($d eq "" && $incltype eq ">") {
+		# dont search current directory
+		next;
+	    }
+	    $dep = "$d$file";
+	    print "Will search $d for $file:: $dep\n" if $debug;
+	    if (-e $dep) {
+
+		# file found, build dependency, enter in table
+	        # print "$ofile: $dep\n";
+		$deptable{ $dep } = 1;
+
+		# grep file for includes and, if not seen before, add
+		# to end of search list
+		open(FL,"$dep") || die "cant open $dep\n";
+		while (<FL>) {
+		    if (/^\s*#\s*include\s+["<]\s*([^">]+[">])/) {
+			if ($usedfiles{ $1 }++ == 0) {
+			    print " ::: including ::$1::\n" if $debug;
+			    # this file not searched yet, add to list
+			    # NOTE: last char is either double quote
+			    #       or right angle bracket.
+			    push(@searchlist,($1));
+			}
+		    }
+		}
+		
+		# if this file is a header (.H) and it includes template
+		# declarations, add the corresponcing .C file to the
+		# searchlist.
+		# Assume the .C file is in the same directory as the .H
+		if ($file =~ /\S*\.[Hh]$/) {
+		    $Cfile = $file;
+		    $Cfile =~ s/\.H$/\.C/;
+		    $Cfile =~ s/\.h$/\.c/;
+		    print "Found Header file $dep\n" if $debug;
+		    print " . . Corresponding .C file is: $Cfile\n" if $debug;
+		    # position file pointer to beginning of file
+		    seek(FL,0,0);
+		    # search for template declarations
+		    while (<FL>) {
+			# search for string "template" not in a comment
+			s/\/\/.*//;
+			if (/template/) {
+			    print "$dep contains template\n" if $debug;
+			    print "$_" if $debug;
+			    $inclCfile = $Cfile . $incltype;
+			    if ($usedfiles{ $inclCfile } == 0) {
+				# print " ::: including ::$inclCfile::\n";
+				# this file not searched yet, add to list
+				# NOTE: last char is either double quote
+				#       or right angle bracket.
+				push(@searchlist,($inclCfile));
+			    }
+			    # mark as used file
+			    $usedfiles{ $inclCfile }++;
+			    # stop searching for tempate
+			    last;
+			}
+		    }
+		}
+
+		# since file was found in search path, jump out of loop
+		last;
+	    }
+	}
+	# print "@searchlist\n" id $debug;
+    }
+
+    # now generate dependency list
+    for $dep (keys %deptable) {
+	print "$ofile: $dep\n";
+    }
+}
