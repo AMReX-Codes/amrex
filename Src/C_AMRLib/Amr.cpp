@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.70 1999-02-03 19:29:26 lijewski Exp $
+// $Id: Amr.cpp,v 1.71 1999-02-03 21:55:32 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -443,6 +443,10 @@ void
 Amr::writePlotFile (const aString& root,
                     int            num)
 {
+    static RunStats stats("write_pltfile");
+
+    stats.start();
+
     Real dPlotFileTime0 = ParallelDescriptor::second();
 
     aString pltfile = Concatenate(root, num);
@@ -489,15 +493,8 @@ Amr::writePlotFile (const aString& root,
         old_prec = HeaderFile.precision(15);
     }
 
-    static const aString RunstatString("write_pltfile");
-
     for (int k = 0; k <= finest_level; k++)
-    {
-        RunStats write_pltfile_stats(RunstatString, k);
-        write_pltfile_stats.start();
         amr_level[k].writePlotFile(pltfile, HeaderFile);
-        write_pltfile_stats.end();
-    }
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -525,6 +522,8 @@ Amr::writePlotFile (const aString& root,
              << dPlotFileTime
              << "  seconds." << endl;
     }
+
+    stats.end();
 }
 
 void

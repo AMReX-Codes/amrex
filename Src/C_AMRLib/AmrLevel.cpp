@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.52 1999-01-21 22:03:14 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.53 1999-02-03 21:55:32 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -356,11 +356,6 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
     Initialize(boxGrow,time,state_index,src_comp,ncomp,mapper);
 }
  
-//
-// Used in a couple RunStat calls in FillPatchIterator.
-//
-static const aString RunstatString("fill_patch");
-
 void
 FillPatchIterator::Initialize (int           boxGrow,
                                Real          time,
@@ -369,7 +364,7 @@ FillPatchIterator::Initialize (int           boxGrow,
                                int           ncomp,
                                Interpolater* mapper)
 {
-    RunStats stats(RunstatString, m_amrlevel.Level());
+    static RunStats stats("fill_patch");
 
     stats.start();
 
@@ -584,7 +579,7 @@ FillPatchIterator::isValid ()
     if (!MultiFabIterator::isValid())
         return false;
 
-    RunStats stats(RunstatString, m_amrlevel.Level());
+    static RunStats stats("fill_patch");
 
     stats.start();
 
