@@ -4,7 +4,7 @@
 #define _RUNSTATS_H_ 
 
 //
-// $Id: RunStats.H,v 1.7 1999-07-01 16:36:00 lijewski Exp $
+// $Id: RunStats.H,v 1.8 1999-07-01 19:44:49 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -149,6 +149,8 @@ private:
     static RunStatsData* find (const aString& _name, int _level);
 
     void resize (int level);
+
+    static void ReduceIt (List<RunStatsData>& stats);
 
     static void Print (ostream&, const RunStatsData&, Real, Real);
 

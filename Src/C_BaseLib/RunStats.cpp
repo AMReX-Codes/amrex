@@ -1,13 +1,17 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.18 1999-07-01 16:36:00 lijewski Exp $
+// $Id: RunStats.cpp,v 1.19 1999-07-01 19:44:49 lijewski Exp $
 //
 
 #include <Utility.H>
 #include <Misc.H>
 #include <ParmParse.H>
 #include <RunStats.H>
+
+#ifdef BL_USE_MPI
+#include <ccse-mpi.H>
+#endif
 
 #ifdef BL_USE_NEW_HFILES
 using std::setw;
@@ -156,6 +160,196 @@ RunStats::Print (ostream&            os,
 }
 
 void
+RunStats::ReduceIt (List<RunStatsData>& stats)
+{
+#ifdef BL_USE_MPI
+    //
+    // Pack all the RunStats data into a buffer & send to IoProc.
+    //
+    const int IoProc = ParallelDescriptor::IOProcessorNumber();
+    //
+    // Get an upper bound on size of buffer needed.
+    //
+    int N = 0;
+
+    for (ListIterator<RunStatsData> it(stats); it; ++it)
+        N += stats[it].name.length() + 64;
+
+    ParallelDescriptor::ReduceIntMax(N);
+
+    Array<char> packedbuffer(N);
+
+    char* pbuf = packedbuffer.dataPtr();
+
+    if (!ParallelDescriptor::IOProcessor())
+    {
+        int rc = 0, pos = 0, len = stats.length();
+
+        if ((rc = MPI_Pack(&len,
+                           1,
+                           MPI_INT,
+                           pbuf,
+                           N,
+                           &pos,
+                           MPI_COMM_WORLD)) != MPI_SUCCESS)
+            ParallelDescriptor::Abort(rc);
+
+        for (ListIterator<RunStatsData> it(stats); it; ++it)
+        {
+            int  slen     = it().name.length()+1;
+            int  level    = it().level;
+            Real runtime  = it().run_time;
+            Real runwtime = it().run_wtime;
+
+            if ((rc = MPI_Pack(&slen,
+                               1,
+                               MPI_INT,
+                               pbuf,
+                               N,
+                               &pos,
+                               MPI_COMM_WORLD)) != MPI_SUCCESS)
+                ParallelDescriptor::Abort(rc);
+
+            if ((rc = MPI_Pack(const_cast<char*>(it().name.c_str()),
+                               slen,
+                               MPI_CHAR,
+                               pbuf,
+                               N,
+                               &pos,
+                               MPI_COMM_WORLD)) != MPI_SUCCESS)
+                ParallelDescriptor::Abort(rc);
+
+            if ((rc = MPI_Pack(&level,
+                               1,
+                               MPI_INT,
+                               pbuf,
+                               N,
+                               &pos,
+                               MPI_COMM_WORLD)) != MPI_SUCCESS)
+                ParallelDescriptor::Abort(rc);
+
+            if ((rc = MPI_Pack(&runtime,
+                               1,
+                               mpi_data_type(&runtime),
+                               pbuf,
+                               N,
+                               &pos,
+                               MPI_COMM_WORLD)) != MPI_SUCCESS)
+                ParallelDescriptor::Abort(rc);
+
+            if ((rc = MPI_Pack(&runwtime,
+                               1,
+                               mpi_data_type(&runwtime),
+                               pbuf,
+                               N,
+                               &pos,
+                               MPI_COMM_WORLD)) != MPI_SUCCESS)
+                ParallelDescriptor::Abort(rc);
+
+            BL_ASSERT(pos < N);
+        }
+
+        if ((rc = MPI_Ssend(pbuf,
+                            pos,
+                            MPI_PACKED,
+                            IoProc,
+                            ParallelDescriptor::MyProc(),
+                            MPI_COMM_WORLD)) != MPI_SUCCESS)
+            ParallelDescriptor::Abort(rc);
+    }
+    else
+    {
+        for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
+        {
+            if (i == IoProc) continue;
+
+            MPI_Status status;
+
+            int rc, len, slen, level, pos = 0;
+
+            Real runtime, runwtime;
+
+            if ((rc = MPI_Recv(pbuf,
+                               N,
+                               MPI_PACKED,
+                               i,
+                               i,
+                               MPI_COMM_WORLD,
+                               &status)) != MPI_SUCCESS)
+                ParallelDescriptor::Abort(rc);
+
+            if ((rc = MPI_Unpack(pbuf,
+                                 N,
+                                 &pos,
+                                 &len,
+                                 1,
+                                 MPI_INT,
+                                 MPI_COMM_WORLD)) != MPI_SUCCESS)
+                ParallelDescriptor::Abort(rc);
+
+            for (int i = 0; i < len; i++)
+            {
+                if ((rc = MPI_Unpack(pbuf,
+                                     N,
+                                     &pos,
+                                     &slen,
+                                     1,
+                                     MPI_INT,
+                                     MPI_COMM_WORLD)) != MPI_SUCCESS)
+                    ParallelDescriptor::Abort(rc);
+
+                char* name = new char[slen];
+
+                if ((rc = MPI_Unpack(pbuf,
+                                     N,
+                                     &pos,
+                                     name,
+                                     slen,
+                                     MPI_CHAR,
+                                     MPI_COMM_WORLD)) != MPI_SUCCESS)
+                    ParallelDescriptor::Abort(rc);
+
+                if ((rc = MPI_Unpack(pbuf,
+                                     N,
+                                     &pos,
+                                     &level,
+                                     1,
+                                     MPI_INT,
+                                     MPI_COMM_WORLD)) != MPI_SUCCESS)
+                    ParallelDescriptor::Abort(rc);
+
+                if ((rc = MPI_Unpack(pbuf,
+                                     N,
+                                     &pos,
+                                     &runtime,
+                                     1,
+                                     mpi_data_type(&runtime),
+                                     MPI_COMM_WORLD)) != MPI_SUCCESS)
+                    ParallelDescriptor::Abort(rc);
+
+                if ((rc = MPI_Unpack(pbuf,
+                                     N,
+                                     &pos,
+                                     &runwtime,
+                                     1,
+                                     mpi_data_type(&runwtime),
+                                     MPI_COMM_WORLD)) != MPI_SUCCESS)
+                    ParallelDescriptor::Abort(rc);
+
+                RunStatsData* r = find(name,level);
+
+                r->run_time += runtime;
+
+                r->run_wtime = Max(r->run_wtime, runwtime);
+
+                delete [] name;
+            }
+        }
+    }
+#endif
+}
+
+void
 RunStats::report (ostream& os)
 {
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
@@ -175,11 +369,7 @@ RunStats::report (ostream& os)
     //
     List<RunStatsData> TheTotals = RunStats::TheStats;
 
-    for (ListIterator<RunStatsData> it(TheTotals); it; ++it)
-    {
-        ParallelDescriptor::ReduceRealSum(TheTotals[it].run_time, IOProc);
-        ParallelDescriptor::ReduceRealMax(TheTotals[it].run_wtime,IOProc);
-    }
+    ReduceIt(TheTotals);
 
     RunStats::CollectNumPts();
 
@@ -319,17 +509,11 @@ RunStats::report_values (const Array<aString>& stat_names,
     //
     List<RunStatsData> TheTotals = RunStats::TheStats;
 
-    for (ListIterator<RunStatsData> it(TheTotals); it; ++it)
-    {
-        ParallelDescriptor::ReduceRealSum(TheTotals[it].run_time);
-        ParallelDescriptor::ReduceRealMax(TheTotals[it].run_wtime);
-    }
+    ReduceIt(TheTotals);
 
     tot_cells = 0;
     for (int i = 0; i < RunStats::TheCells.length(); i++)
-    {
         tot_cells += RunStats::TheCells[i];
-    }
 
     for (int i = 0; i < NStats ; i++)
     {
@@ -360,11 +544,7 @@ RunStats::dumpStats (ofstream& os)
     //
     List<RunStatsData> TheTotals = RunStats::TheStats;
 
-    for (ListIterator<RunStatsData> it(TheTotals); it; ++it)
-    {
-        ParallelDescriptor::ReduceRealSum(TheTotals[it].run_time, IOProc);
-        ParallelDescriptor::ReduceRealMax(TheTotals[it].run_wtime,IOProc);
-    }
+    ReduceIt(TheTotals);
 
     RunStats::CollectNumPts();
 
