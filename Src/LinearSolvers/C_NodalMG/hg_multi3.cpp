@@ -263,15 +263,20 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		fill_borders(corr[mglev], corr_bcache[mglev], lev_interface[mglev], mg_boundary, -1);
 	    else
 		is_zero = false;
-	    for (int igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+	    // for (int igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+	    for (MultiFabIterator r_mfi(resid[mglev]); r_mfi.isValid(); ++r_mfi)
 	    {
-		const Box& sbox = resid[mglev][igrid].box();
-		const Box& freg = lev_interface[mglev].part_fine(igrid);
+		DependentMultiFabIterator c_dmfi(r_mfi, corr[mglev]);
+		DependentMultiFabIterator cn_dmfi(r_mfi, cen[mglev]);
+		DependentMultiFabIterator sn_dmfi(r_mfi, sigma_node[mglev]);
+		DependentMultiFabIterator m_dmfi(r_mfi, mask[mglev]);
+		const Box& sbox = r_mfi->box();
+		const Box& freg = lev_interface[mglev].part_fine(r_mfi.index());
 		if (line_solve_dim == -1) 
 		{
 		    // Gauss-Seidel section:
 #ifdef HG_TERRAIN
-		    const Box& fbox = corr[mglev][igrid].box();
+		    const Box& fbox = c_dmfi->box();
 		    const Box& cenbox = cen[mglev][igrid].box();
 		    const Box& sigbox = sigma[mglev][igrid].box();
 		    FORT_HGRLX(corr[mglev][igrid].dataPtr(), DIMLIST(fbox),
@@ -303,15 +308,15 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 			cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
 			DIMLIST(freg));
 		    */
-		    FORT_HGRLXU(corr[mglev][igrid].dataPtr(),
-			resid[mglev][igrid].dataPtr(),
-			sigma_node[mglev][igrid].dataPtr(),
-			cen[mglev][igrid].dataPtr(), DIMLIST(sbox),
-			mask[mglev][igrid].dataPtr(),
+		    FORT_HGRLXU(c_dmfi->dataPtr(),
+			r_mfi->dataPtr(),
+			sn_dmfi->dataPtr(),
+			cn_dmfi->dataPtr(), DIMLIST(sbox),
+			m_dmfi->dataPtr(),
 			DIMLIST(freg));
 #else
-		    const Box& fbox = corr[mglev][igrid].box();
-		    const Box& cenbox = cen[mglev][igrid].box();
+		    const Box& fbox = c_dmfi->box();
+		    const Box& cenbox = cn_dmfi->box();
 		    const Box& sigbox = sigma[mglev][igrid].box();
 		    FORT_HGRLX(corr[mglev][igrid].dataPtr(), DIMLIST(fbox),
 			resid[mglev][igrid].dataPtr(), DIMLIST(sbox),
@@ -339,14 +344,14 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 #elif (defined HG_CONSTANT)
 		    BoxLib::Error("Constant-coefficient line solves not implemented");
 #else
-		    const Box& fbox = corr[mglev][igrid].box();
-		    const Box& cenbox = cen[mglev][igrid].box();
+		    const Box& fbox = c_dmfi->box();
+		    const Box& cenbox = cn_dmfi->box();
 #  ifdef HG_SIGMA_NODE
-		    const Box& sigbox = sigma_node[mglev][igrid].box();
-		    FORT_HGRLXL(corr[mglev][igrid].dataPtr(), DIMLIST(fbox),
-			resid[mglev][igrid].dataPtr(), DIMLIST(sbox),
-			sigma_node[mglev][igrid].dataPtr(), DIMLIST(sigbox),
-			cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
+		    const Box& sigbox = sn_dmfi->box();
+		    FORT_HGRLXL(c_dmfi->dataPtr(), DIMLIST(fbox),
+			r_mfi->dataPtr(), DIMLIST(sbox),
+			sn_dmfi->dataPtr(), DIMLIST(sigbox),
+			cn_dmfi->dataPtr(), DIMLIST(cenbox),
 			DIMLIST(freg), DIMLIST(tdom), line_solve_dim);
 #  else
 		    const Box& sigbox = sigma[mglev][igrid].box();

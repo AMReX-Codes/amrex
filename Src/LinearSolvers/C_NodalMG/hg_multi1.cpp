@@ -438,70 +438,70 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 	sigma_nd[i].set(mglev_max, &sigma[mglev_max]);
     }
     
-//#  ifdef HG_SIGMA_NODE
+    //#  ifdef HG_SIGMA_NODE
     if(m_hg_sigma_node)
     {
-    
-    sigma_node.resize(mglev_max + 1);
-    for (int mglev = 0; mglev <= mglev_max; mglev++) 
-    {
-	BoxArray mesh = mg_mesh[mglev];
-	mesh.convert(IndexType(IntVect::TheNodeVector()));
-	sigma_node.set(mglev, new MultiFab(mesh, BL_SPACEDIM, 1));
-	sigma_node[mglev].setVal(1.e20);
-    }
-    
-    for (int mglev = 0; mglev <= mglev_max; mglev++) 
-    {
-	const Real hx = h[mglev][0];
-	const Real hy = h[mglev][1];
-#    if (BL_SPACEDIM == 3)
-	const Real hz = h[mglev][2];
-#    endif
-	// for (int igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
-	for (MultiFabIterator s_mfi(sigma[mglev]); s_mfi.isValid(); ++s_mfi)
+	
+	sigma_node.resize(mglev_max + 1);
+	for (int mglev = 0; mglev <= mglev_max; mglev++) 
 	{
-	    DependentMultiFabIterator sn_dmfi(s_mfi, sigma_node[mglev]);
-	    DependentMultiFabIterator sn0(s_mfi, sigma_nd[0][mglev]);
-	    DependentMultiFabIterator sn1(s_mfi, sigma_nd[1][mglev]);
-	    DependentMultiFabIterator sn2(s_mfi, sigma_nd[2][mglev]);
-	    const Box& scbox = s_mfi->box();
-	    const Box& snbox = sn_dmfi->box();
-	    const Box& reg = lev_interface[mglev].part_fine(s_mfi.index());
-	    FORT_HGSCON(sn_dmfi->dataPtr(),
-		DIMLIST(snbox),
-		sn0->dataPtr(), sn1->dataPtr(),
-#    if (BL_SPACEDIM == 3)
-		sn2->dataPtr(),
-#    endif
-		DIMLIST(scbox),
-		DIMLIST(reg),
-#    if (BL_SPACEDIM == 2)
-		hx, hy
-#    else
-		hx, hy, hz
-#    endif
-		);
+	    BoxArray mesh = mg_mesh[mglev];
+	    mesh.convert(IndexType(IntVect::TheNodeVector()));
+	    sigma_node.set(mglev, new MultiFab(mesh, BL_SPACEDIM, 1));
+	    sigma_node[mglev].setVal(1.e20);
 	}
 	
-	if (mglev < mglev_max) 
+	for (int mglev = 0; mglev <= mglev_max; mglev++) 
 	{
-	    sigma_nd[0].remove(mglev);
-	    for (int i = 1; i < BL_SPACEDIM; i++) 
+	    const Real hx = h[mglev][0];
+	    const Real hy = h[mglev][1];
+#    if (BL_SPACEDIM == 3)
+	    const Real hz = h[mglev][2];
+#    endif
+	    // for (int igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+	    for (MultiFabIterator s_mfi(sigma[mglev]); s_mfi.isValid(); ++s_mfi)
 	    {
-		delete sigma_nd[i].remove(mglev);
+		DependentMultiFabIterator sn_dmfi(s_mfi, sigma_node[mglev]);
+		DependentMultiFabIterator sn0(s_mfi, sigma_nd[0][mglev]);
+		DependentMultiFabIterator sn1(s_mfi, sigma_nd[1][mglev]);
+		DependentMultiFabIterator sn2(s_mfi, sigma_nd[2][mglev]);
+		const Box& scbox = s_mfi->box();
+		const Box& snbox = sn_dmfi->box();
+		const Box& reg = lev_interface[mglev].part_fine(s_mfi.index());
+		FORT_HGSCON(sn_dmfi->dataPtr(),
+		    DIMLIST(snbox),
+		    sn0->dataPtr(), sn1->dataPtr(),
+#    if (BL_SPACEDIM == 3)
+		    sn2->dataPtr(),
+#    endif
+		    DIMLIST(scbox),
+		    DIMLIST(reg),
+#    if (BL_SPACEDIM == 2)
+		    hx, hy
+#    else
+		    hx, hy, hz
+#    endif
+		    );
 	    }
-	}
-	else 
-	{
-	    for (int i = 0; i < BL_SPACEDIM; i++) 
+	    
+	    if (mglev < mglev_max) 
 	    {
-		sigma_nd[i].remove(mglev);
+		sigma_nd[0].remove(mglev);
+		for (int i = 1; i < BL_SPACEDIM; i++) 
+		{
+		    delete sigma_nd[i].remove(mglev);
+		}
+	    }
+	    else 
+	    {
+		for (int i = 0; i < BL_SPACEDIM; i++) 
+		{
+		    sigma_nd[i].remove(mglev);
+		}
 	    }
 	}
     }
-    }
-//#  endif  /* HG_SIGMA_NODE */
+    //#  endif  /* HG_SIGMA_NODE */
     
 #endif
     

@@ -139,7 +139,7 @@ protected:
     virtual void relax(int mglev, int i1, bool is_zero);
     virtual void cgsolve(int mglev);
     
-    virtual void mg_restrict(int lto, int lfrom);
+    void mg_restrict(int lto, int lfrom);
 private:
     holy_grail_amr_multigrid(const holy_grail_amr_multigrid&);
     void operator=(const holy_grail_amr_multigrid&);
