@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.19 2001-11-01 17:08:41 car Exp $
+// $Id: BLThread.cpp,v 1.20 2001-11-01 18:46:37 car Exp $
 //
 
 #include <winstd.H>
@@ -477,6 +477,7 @@ Thread::exit(void* st)
 int
 Thread::getID()
 {
+    // This works because FunctionThread creates ts_tid values on the worker threads.
     int* a = ts_tid.get();
     if ( a == 0 )
     {
@@ -893,7 +894,7 @@ FunctionThread::Implementation::Implementation(Thread_Function func_,
     thr_package* tp = new thr_package;
     tp->m_func = func_;
     tp->m_arg  = arg_;
-    THREAD_REQUIRE( pthread_create(&m_tid, &a, func_, arg_) );
+    THREAD_REQUIRE( pthread_create(&m_tid, &a, thr_func, static_cast<void*>(tp)) );
 }
 
 FunctionThread::Implementation::~Implementation()
