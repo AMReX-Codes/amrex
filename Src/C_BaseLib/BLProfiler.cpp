@@ -1,5 +1,5 @@
 //
-// $Id: BLProfiler.cpp,v 1.22 2001-10-10 15:44:41 car Exp $
+// $Id: BLProfiler.cpp,v 1.23 2002-01-08 16:30:24 car Exp $
 //
 #include <winstd.H>
 
@@ -641,16 +641,16 @@ namespace
 void
 mma_dump()
 {
-	// MMA dump
-	std::string mma_fname = filename + ".m";
-	if ( ParallelDescriptor::IOProcessor() )
-	{
-	    std::ofstream os(mma_fname.c_str());
-	    os << "{";
-	}
-	for ( int i = 0; i < ParallelDescriptor::NProcs(); ++i )
-	{
-	    if ( i == ParallelDescriptor::MyProc() )
+    // MMA dump
+    std::string mma_fname = filename + ".m";
+    if ( ParallelDescriptor::IOProcessor() )
+    {
+	std::ofstream os(mma_fname.c_str());
+	os << "{";
+    }
+    for ( int i = 0; i < ParallelDescriptor::NProcs(); ++i )
+    {
+	if ( i == ParallelDescriptor::MyProc() )
 	{
 	    std::ofstream os(mma_fname.c_str(), std::ios::app);
 	    std::ios::fmtflags oldFlags = os.flags();
