@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.40 1999-06-23 17:59:40 car Exp $
+// $Id: VisMF.H,v 1.41 2000-03-01 15:43:03 lijewski Exp $
 //
 
 #include <MultiFab.H>
@@ -139,7 +139,7 @@ public:
      */
     static long Write (const MultiFab& mf,
                        const aString&  name,
-                       VisMF::How      how,
+                       VisMF::How      how = OneFilePerCPU,
                        bool            set_ghost = false);
 
     /*@ManDoc: Read a MultiFab from disk written using VisMF::Write().
