@@ -44,7 +44,7 @@ RSC=rc.exe
 # ADD BASE F90 /include:"Release/" /compile_only /nologo /warn:nofileopt
 # ADD F90 /include:"Release/" /compile_only /nologo /stand:f90 /iface:cref /threads /warn:nofileopt
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "." /I "include\3d.v7" /I "..\pBoxLib_2" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "HG_CROSS_STENCIL" /D "WIN32" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_USE_NEW_HFILES" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D for="if(0);else for" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "." /I "..\pBoxLib_2" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "WIN32" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_USE_NEW_HFILES" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D for="if(0);else for" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -196,6 +196,7 @@ SOURCE=.\amr_real2d.F
 !ELSEIF  "$(CFG)" == "hgproj - Win32 Debug"
 
 # PROP Exclude_From_Build 1
+# ADD F90 /check:bounds
 
 !ENDIF 
 
@@ -208,8 +209,8 @@ SOURCE=.\amr_real3d.F
 
 !ELSEIF  "$(CFG)" == "hgproj - Win32 Debug"
 
-# ADD F90 /warn:declarations
-# SUBTRACT F90 /check:bounds /stand:<none>
+# ADD F90 /warn:declarations /check:bounds
+# SUBTRACT F90 /stand:<none>
 
 !ENDIF 
 
@@ -223,6 +224,7 @@ SOURCE=.\hg_avg2d.F
 !ELSEIF  "$(CFG)" == "hgproj - Win32 Debug"
 
 # PROP Exclude_From_Build 1
+# ADD F90 /check:bounds
 
 !ENDIF 
 
@@ -235,8 +237,8 @@ SOURCE=.\hg_avg3d.F
 
 !ELSEIF  "$(CFG)" == "hgproj - Win32 Debug"
 
-# ADD F90 /warn:declarations
-# SUBTRACT F90 /check:bounds /stand:<none>
+# ADD F90 /warn:declarations /check:bounds
+# SUBTRACT F90 /stand:<none>
 
 !ENDIF 
 
@@ -250,6 +252,7 @@ SOURCE=.\hg_multi2d.F
 !ELSEIF  "$(CFG)" == "hgproj - Win32 Debug"
 
 # PROP Exclude_From_Build 1
+# ADD F90 /check:bounds
 
 !ENDIF 
 
@@ -262,8 +265,8 @@ SOURCE=.\hg_multi3d.F
 
 !ELSEIF  "$(CFG)" == "hgproj - Win32 Debug"
 
-# ADD F90 /warn:declarations
-# SUBTRACT F90 /check:bounds /stand:<none>
+# ADD F90 /warn:declarations /check:bounds
+# SUBTRACT F90 /stand:<none>
 
 !ENDIF 
 
@@ -276,6 +279,7 @@ SOURCE=.\hg_multi3d_terrain.F
 
 !ELSEIF  "$(CFG)" == "hgproj - Win32 Debug"
 
+# ADD F90 /check:bounds
 # SUBTRACT F90 /stand:<none>
 
 !ENDIF 
@@ -290,6 +294,7 @@ SOURCE=.\hg_proj2d.F
 !ELSEIF  "$(CFG)" == "hgproj - Win32 Debug"
 
 # PROP Exclude_From_Build 1
+# ADD F90 /check:bounds
 
 !ENDIF 
 
@@ -302,8 +307,8 @@ SOURCE=.\hg_proj3d.F
 
 !ELSEIF  "$(CFG)" == "hgproj - Win32 Debug"
 
-# ADD F90 /warn:declarations
-# SUBTRACT F90 /check:bounds /stand:<none>
+# ADD F90 /warn:declarations /check:bounds
+# SUBTRACT F90 /stand:<none>
 
 !ENDIF 
 
