@@ -1,6 +1,6 @@
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.64 2001-01-26 18:08:14 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.65 2001-03-01 21:17:34 wyc Exp $
 //
 
 #include <Utility.H>
@@ -726,7 +726,11 @@ FORT_BL_PD_COMMUNICATOR(void* vcomm)
 #ifdef BL_USE_MPI
   MPI_Comm* comm = reinterpret_cast<MPI_Comm*>(vcomm);
 #else
+#ifdef BL_NAMESPACE
   __BLNS__::MPI_Comm* comm = reinterpret_cast<__BLNS__::MPI_Comm*>(vcomm);
+#else
+  __BLNS__::MPI_Comm* comm = reinterpret_cast<MPI_Comm*>(vcomm);
+#endif
 #endif
   *comm = __BLNS__::ParallelDescriptor::Communicator();
 }
