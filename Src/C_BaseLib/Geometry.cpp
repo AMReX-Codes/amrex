@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.34 1998-10-15 21:53:02 lijewski Exp $
+// $Id: Geometry.cpp,v 1.35 1998-11-07 00:35:19 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -74,7 +74,6 @@ Geometry::FlushPIRMCache ()
 
 Geometry::PIRMMap&
 Geometry::buildPIRMMap (MultiFab&  mf,
-                        bool       no_ovlp,
                         const FPB& fpb) const
 {
     assert(isAnyPeriodic());
@@ -83,13 +82,11 @@ Geometry::buildPIRMMap (MultiFab&  mf,
     // Don't let cache get too big.
     //
     if (m_FPBCache.size() == MaxFPBCacheSize)
-    {
         m_FPBCache.pop_back();
-    }
     //
     // Add new FPBs to the front of the cache.
     //
-    m_FPBCache.push_front(FPB(mf.boxArray(),Domain(),mf.nGrow(),no_ovlp));
+    m_FPBCache.push_front(fpb);
 
     PIRMMap& pirm = m_FPBCache.front().m_pirm;
 
@@ -102,23 +99,18 @@ Geometry::buildPIRMMap (MultiFab&  mf,
         assert(dest == ::grow(mfi.validbox(), mf.nGrow()));
         assert(dest.ixType().cellCentered() || dest.ixType().nodeCentered());
 
-        if (no_ovlp)
+        if (fpb.m_no_overlap)
         {
             for (int idir = 0; idir < BL_SPACEDIM; idir++)
             {
-                //
-                // Shrink box if the +/- direction is not physical boundary.
-                //
                 if (mfi.validbox().smallEnd(idir) != Domain().smallEnd(idir))
-                {
                     dest.growLo(idir,-mf.nGrow());
-                }
+
                 if (mfi.validbox().bigEnd(idir) != Domain().bigEnd(idir))
-                {
                     dest.growHi(idir,-mf.nGrow());
-                }
             }
         }
+
         bool doit = false;
 
         if (dest.ixType().cellCentered())
@@ -136,16 +128,32 @@ Geometry::buildPIRMMap (MultiFab&  mf,
 
             for (int j = 0; j < grids.length(); j++)
             {
-                periodicShift(dest, grids[j], pshifts);
+                Box src = grids[j];
 
-                for (int iiv = 0; iiv < pshifts.length(); iiv++)
+                if (fpb.m_do_corners)
                 {
-                    Box shbox(grids[j]);
-                    shbox.shift(pshifts[iiv]);
-                    Box srcBox = dest & shbox;
+                    for (int i = 0; i < BL_SPACEDIM; i++)
+                    {
+                        if (!isPeriodic(i) &&
+                            src.smallEnd(i) == Domain().smallEnd(i))
+                            dest.growLo(i,mf.nGrow());
+
+                        if (!isPeriodic(i) && 
+                            src.bigEnd(i) == Domain().bigEnd(i))
+                            dest.growHi(i,mf.nGrow());
+                    }
+                }
+
+                periodicShift(dest, src, pshifts);
+
+                for (int i = 0; i < pshifts.length(); i++)
+                {
+                    Box shiftbox = src;
+                    shiftbox.shift(pshifts[i]);
+                    Box srcBox = dest & shiftbox;
                     assert(srcBox.ok());
                     Box dstBox = srcBox;
-                    dstBox.shift(-pshifts[iiv]);
+                    dstBox.shift(-pshifts[i]);
                     pirm.push_back(PIRec(mfi.index(),j,dstBox,srcBox));
                 }
             }
@@ -159,7 +167,8 @@ void
 Geometry::FillPeriodicBoundary (MultiFab& mf,
                                 int       src_comp,
                                 int       num_comp,
-                                bool      no_ovlp) const
+                                bool      no_overlap,
+                                bool      do_corners) const
 {
     if (!isAnyPeriodic())
         return;
@@ -168,11 +177,14 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
     stats.start();
 
-    MultiFabCopyDescriptor& mfcd = mf.theFPBmfcd(src_comp,num_comp,no_ovlp);
+    MultiFabCopyDescriptor& mfcd = mf.theFPBmfcd(src_comp,
+                                                 num_comp,
+                                                 no_overlap,
+                                                 do_corners);
 
-    const FPB fpb(mf.boxArray(),Domain(),mf.nGrow(),no_ovlp);
+    const FPB fpb(mf.boxArray(),Domain(),mf.nGrow(),no_overlap,do_corners);
 
-    PIRMMap& pirm = getPIRMMap(mf,no_ovlp,fpb);
+    PIRMMap& pirm = getPIRMMap(mf,fpb);
 
     const MultiFabId mfid = 0;
     //

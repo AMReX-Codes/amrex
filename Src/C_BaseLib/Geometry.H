@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.21 1998-09-30 19:29:16 lijewski Exp $
+// $Id: Geometry.H,v 1.22 1998-11-07 00:35:19 lijewski Exp $
 //
 
 #include <CoordSys.H>
@@ -156,14 +156,16 @@ public:
     //@ManDoc: Fill ghost cells with periodic data.
     //
     void FillPeriodicBoundary (MultiFab& mf,
-                               bool      no_ovlp = false) const;
+                               bool      no_overlap,
+                               bool      do_corners) const;
     //
     //@ManDoc: Fill ghost cells with periodic data.
     //
     void FillPeriodicBoundary (MultiFab& mf,
                                int       src_comp,
                                int       num_comp,
-                               bool      no_ovlp = false) const;
+                               bool      no_overlap,
+                               bool      do_corners) const;
     //
     // Src/dest box pairs to copy for periodic.
     //
@@ -220,17 +222,20 @@ protected:
         FPB ()
             :
             m_ngrow(-1),
-            m_noovlp(false) {}
+            m_no_overlap(false),
+            m_do_corners(false) {}
 
         FPB (const BoxArray& ba,
              const Box&      domain,
              int             ngrow,
-             bool            noovlp)
+             bool            no_overlap,
+             bool            do_corners)
             :
             m_ba(ba),
             m_domain(domain),
             m_ngrow(ngrow),
-            m_noovlp(true)
+            m_no_overlap(no_overlap),
+            m_do_corners(do_corners)
         {
             assert(ngrow >= 0);
             assert(domain.ok());
@@ -242,7 +247,8 @@ protected:
         {
             return
                 m_ngrow == rhs.m_ngrow &&
-                m_noovlp == rhs.m_noovlp &&
+                m_no_overlap == rhs.m_no_overlap &&
+                m_do_corners == rhs.m_do_corners &&
                 m_domain == rhs.m_domain &&
                 m_ba == rhs.m_ba;
         }
@@ -251,7 +257,8 @@ protected:
         BoxArray m_ba;
         Box      m_domain;
         int      m_ngrow;
-        bool     m_noovlp;
+        bool     m_no_overlap;
+        bool     m_do_corners;
     };
     //
     // A useful typedef.
@@ -265,11 +272,9 @@ protected:
     // Helper functions for FillPeriodicBoundary(). 
     //
     PIRMMap& getPIRMMap (MultiFab&  mf,
-                         bool       no_ovlp,
                          const FPB& fpb) const;
 
     PIRMMap& buildPIRMMap (MultiFab&  mf,
-                           bool       no_ovlp,
                            const FPB& fpb) const;
     //
     // Static data.
@@ -374,9 +379,11 @@ Geometry::ProbLength (int dir)
 
 inline
 void
-Geometry::FillPeriodicBoundary (MultiFab& mf, bool no_ovlp) const
+Geometry::FillPeriodicBoundary (MultiFab& mf,
+                                bool no_overlap,
+                                bool do_corners) const
 {
-    FillPeriodicBoundary(mf, 0, mf.nComp(), no_ovlp);
+    FillPeriodicBoundary(mf, 0, mf.nComp(), no_overlap, do_corners);
 }
 
 inline
@@ -389,7 +396,6 @@ Geometry::PIRMCacheSize ()
 inline
 Geometry::PIRMMap&
 Geometry::getPIRMMap (MultiFab&  mf,
-                      bool       no_ovlp,
                       const FPB& fpb) const
 {
     assert(isAnyPeriodic());
@@ -408,7 +414,7 @@ Geometry::getPIRMMap (MultiFab&  mf,
         }
     }
 
-    return buildPIRMMap(mf,no_ovlp,fpb);
+    return buildPIRMMap(mf,fpb);
 }
 
 #endif /*_GEOMETRY_H_*/
