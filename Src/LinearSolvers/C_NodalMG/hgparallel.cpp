@@ -627,6 +627,7 @@ task_local_base::task_local_base (task_list&      tl_,
                                   FArrayBox*      fab_,
                                   int             target_proc_id,
                                   const Box&      bx,
+                                  const Box&      region,
                                   const MultiFab& smf_,
                                   int             grid)
     :
@@ -638,6 +639,7 @@ task_local_base::task_local_base (task_list&      tl_,
     m_fab(fab_),
     m_smf(smf_),
     m_bx(bx),
+    m_region(region),
     m_sgrid(grid),
     m_target_proc_id(target_proc_id),
     m_local(false),
@@ -746,8 +748,9 @@ task_local_base::depends_on_q (const task* t1) const
 
     if (const task_local_base* t1tc = dynamic_cast<const task_local_base*>(t1))
     {
-        if (!mfeq(m_smf, t1tc->m_smf))   return false;
-        if (m_bx.intersects(t1tc->m_bx)) return true;
+        if (!(m_fab == t1tc->m_fab)) return false;
+        if (!mfeq(m_smf, t1tc->m_smf)) return false;
+        if (m_region.intersects(t1tc->m_region)) return true;
     }
 
     return false;
@@ -776,7 +779,7 @@ task_copy_local::task_copy_local (task_list&      tl_,
                                   const MultiFab& smf_,
                                   int             grid)
     :
-    task_local_base(tl_,fab_,target_proc_id,bx,smf_,grid)
+    task_local_base(tl_,fab_,target_proc_id,bx,bx,smf_,grid)
 {
     if (work_to_do())
     {
@@ -850,8 +853,7 @@ task_bdy_fill::task_bdy_fill (task_list&          tl_,
                               int                 grid_,
                               const Box&          domain_)
     :
-    task_local_base(tl_,fab_,target_proc_id,Box(),src_,grid_),
-    m_region(region_),
+    task_local_base(tl_,fab_,target_proc_id,Box(),region_,src_,grid_),
     m_domain(domain_),
     m_bdy(bdy_)
 {
@@ -886,14 +888,17 @@ task_bdy_fill::task_bdy_fill (task_list&          tl_,
     }
 }
 
-bool task_bdy_fill::depends_on_q (const task* t) const { return false; }
-
 bool
 task_bdy_fill::ready ()
 {
     BL_ASSERT(is_started());
 
-    if (m_local) return true;
+    if (m_local)
+    {
+        BL_ASSERT(!m_done);
+	m_bdy->fill(*m_fab, m_region, m_smf[m_sgrid], m_domain);
+	return true;
+    }
 
 #ifdef BL_USE_MPI
     int flag, res;
