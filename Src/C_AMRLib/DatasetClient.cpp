@@ -1,6 +1,6 @@
 
 //
-// $Id: DatasetClient.cpp,v 1.19 2004-07-26 22:24:29 vince Exp $
+// $Id: DatasetClient.cpp,v 1.20 2004-07-27 22:51:25 vince Exp $
 //
 
 #include <climits>
@@ -53,7 +53,7 @@ CreateSocket (int& newsocket)
 
     if ((serverhostp = gethostbyname(serverhost)) == (struct hostent *) 0)
     {
-        cerr << "gethostbyname on " << serverhost << " failed" << endl;
+        std::cerr << "gethostbyname on " << serverhost << " failed" << std::endl;
         return false;
     }
     u_long sAddr(serveraddr.sin_addr.s_addr);
@@ -230,13 +230,14 @@ ArrayViewFabFormatLabel (FArrayBox*  fab,
 
     if (N < 1)
     {
-        cerr << "Error in ArrayView: fab nComp < 1: fab->nComp = " << N << endl;
+        std::cerr << "Error in ArrayView: fab nComp < 1: fab->nComp = "
+	          << N << std::endl;
         return false;
     }
     if (!fab->box().ok())
     {
-        cerr << "Error in ArrayView: bad fab box = "
-             << fab->box() << endl;
+        std::cerr << "Error in ArrayView: bad fab box = "
+                  << fab->box() << std::endl;
         return false;
     }
 
@@ -280,15 +281,17 @@ ArrayViewMultiFabElementFormatLabel (MultiFab*   mf,
 {
     if (!mf->ok())
     {
-        cerr << "Error in ArrayViewMultiFabComp: MultiFab is not ok()." << endl;
+        std::cerr << "Error in ArrayViewMultiFabComp: MultiFab is not ok()."
+	          << std::endl;
         return false;
     }
     if (element < 0 || element >= mf->size())
     {
-        cerr << "Error in ArrayViewMultiFabElement:  element index is not" << endl;
-        cerr << "  within range of MultiFab.size()." << endl;
-        cerr << "  MultiFab.size() = " << mf->size() << endl;
-        cerr << "  Requested element = " << element << endl;
+        std::cerr << "Error in ArrayViewMultiFabElement:  element index is not"
+	          << std::endl;
+        std::cerr << "  within range of MultiFab.size()." << std::endl;
+        std::cerr << "  MultiFab.size() = " << mf->size() << std::endl;
+        std::cerr << "  Requested element = " << element << std::endl;
         return false;
     }
 
@@ -343,12 +346,12 @@ ArrayViewRealNVarFormatLabel (Real*       data,
 {
     if (data == 0)
     {
-        cerr << "Error in ArrayView: data pointer == 0" << endl;
+        std::cerr << "Error in ArrayView: data pointer == 0" << std::endl;
         return false;
     }
     if (nvar < 1)
     {
-        cerr << "Error in ArrayView: nComp < 1: nvar = " << nvar << endl;
+        std::cerr << "Error in ArrayView: nComp < 1: nvar = " << nvar << std::endl;
         return false;
     }
 
@@ -444,22 +447,24 @@ ArrayViewRealNVarDimsFormatLabel (Real*       data,
 
     if (data == 0)
     {
-        cerr << "Error in ArrayView: data pointer == 0" << endl;
+        std::cerr << "Error in ArrayView: data pointer == 0" << std::endl;
         return false;
     }
     if (nvar < 1)
     {
-        cerr << "Error in ArrayView: nComp < 1: nvar = " << nvar << endl;
+        std::cerr << "Error in ArrayView: nComp < 1: nvar = " << nvar << std::endl;
         return false;
     }
     if (xlo > xhi)
     {
-        cerr << "Error in ArrayView: xlo > xhi: " << xlo << " > " << xhi << endl;
+        std::cerr << "Error in ArrayView: xlo > xhi: " << xlo << " > "
+	          << xhi << std::endl;
         return false;
     }
     if (ylo > yhi)
     {
-        cerr << "Error in ArrayView: ylo > yhi: " << ylo << " > " << yhi << endl;
+        std::cerr << "Error in ArrayView: ylo > yhi: " << ylo << " > "
+	          << yhi << std::endl;
         return false;
     }
     lodims[0] = xlo;
@@ -551,27 +556,31 @@ ArrayViewRealNVarDimsFormatLabel (Real*       data,
 
     if (data == 0)
     {
-        cerr << "Error in ArrayView:  data pointer == 0" << endl;
+        std::cerr << "Error in ArrayView:  data pointer == 0" << std::endl;
         return false;
     }
     if (nvar < 1)
     {
-        cerr << "Error in ArrayView:  nComp < 1:  nvar = " << nvar << endl;
+        std::cerr << "Error in ArrayView:  nComp < 1:  nvar = "
+	          << nvar << std::endl;
         return false;
     }
     if (xlo > xhi)
     {
-        cerr << "Error in ArrayView:  xlo > xhi:  " << xlo << " > " << xhi << endl;
+        std::cerr << "Error in ArrayView:  xlo > xhi:  " << xlo << " > "
+	          << xhi << std::endl;
         return false;
     }
     if (ylo > yhi)
     {
-        cerr << "Error in ArrayView:  ylo > yhi:  " << ylo << " > " << yhi << endl;
+        std::cerr << "Error in ArrayView:  ylo > yhi:  " << ylo << " > "
+	          << yhi << std::endl;
         return false;
     }
     if (zlo > zhi)
     {
-        cerr << "Error in ArrayView:  zlo > zhi:  " << zlo << " > " << zhi << endl;
+        std::cerr << "Error in ArrayView:  zlo > zhi:  " << zlo << " > "
+	          << zhi << std::endl;
         return false;
     }
     lodims[0] = xlo;
@@ -688,13 +697,14 @@ ArrayViewTagBox (TagBox* tb)
 
     if (N < 1)
     {
-        cerr << "Error in ArrayView: fab nComp < 1: fab->nComp = " << N << endl;
+        std::cerr << "Error in ArrayView: fab nComp < 1: fab->nComp = "
+	          << N << std::endl;
         return false;
     }
     if (!tb->box().ok())
     {
-        cerr << "Error in ArrayView: bad fab box = "
-             << tb->box() << endl;
+        std::cerr << "Error in ArrayView: bad fab box = "
+             << tb->box() << std::endl;
         return false;
     }
     //
@@ -717,11 +727,11 @@ ArrayViewTagBox (TagBox* tb)
         dataArray[d] = debugFab.dataPtr(d);
 
     bool returnValue = ArrayViewRealPtrArrayNVarDims(dataArray,
-                                                     N,
-                                                     debugFab.box().smallEnd().getVect(),
-                                                     debugFab.box().bigEnd().getVect(),
-                                                     "%3.0f",
-                                                     " TagBox ");
+                                           N,
+                                           debugFab.box().smallEnd().getVect(),
+                                           debugFab.box().bigEnd().getVect(),
+                                           "%3.0f",
+                                           " TagBox ");
     delete [] dataArray;
 
     return returnValue;
@@ -734,12 +744,13 @@ ArrayViewTagBoxArray (TagBoxArray* tba)
 
     if (N < 1)
     {
-        cerr << "Error in ArrayView: fab nComp < 1: fab->nComp = " << N << endl;
+        std::cerr << "Error in ArrayView: fab nComp < 1: fab->nComp = "
+	          << N << std::endl;
         return false;
     }
     if (!tba->ok())
     {
-        cerr << "Error in ArrayView: bad TagBoxArray." << endl;
+        std::cerr << "Error in ArrayView: bad TagBoxArray." << std::endl;
         return false;
     }
     //
