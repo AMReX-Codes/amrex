@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.37 1999-04-08 20:52:11 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.38 1999-04-11 23:29:58 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -571,6 +571,7 @@ struct SI
     int           m_ngrow;
 };
 
+inline
 SI::SI ()
     :
     m_scomp(-1),
@@ -578,6 +579,7 @@ SI::SI ()
     m_ngrow(-1)
 {}
 
+inline
 SI::SI (const BoxArray& ba,
         int             scomp,
         int             ncomp,
@@ -593,6 +595,7 @@ SI::SI (const BoxArray& ba,
     assert(ngrow >= 0);
 }
 
+inline
 SI::SI (const SI& rhs)
     :
     m_cache(rhs.m_cache),
@@ -604,8 +607,10 @@ SI::SI (const SI& rhs)
     m_ngrow(rhs.m_ngrow)
 {}
 
+inline
 SI::~SI () {}
 
+inline
 bool
 SI::operator== (const SI& rhs) const
 {

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.32 1999-04-08 20:22:43 lijewski Exp $
+// $Id: FabSet.cpp,v 1.33 1999-04-11 23:31:35 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -88,7 +88,7 @@ struct FSRec
     ~FSRec ();
 
     bool operator== (const FSRec& rhs) const;
-    bool operator!= (const FSRec& rhs) const { return !operator==(rhs); }
+    bool operator!= (const FSRec& rhs) const;
 
     vector<Box>   m_box;
     vector<int>   m_mfidx;
@@ -103,6 +103,7 @@ struct FSRec
     int           m_ncomp;
 };
 
+inline
 FSRec::FSRec ()
     :
     m_ngrow(-1),
@@ -111,6 +112,7 @@ FSRec::FSRec ()
     m_ncomp(-1)
 {}
 
+inline
 FSRec::FSRec (const BoxArray& src,
               const BoxArray& dst,
               int             ngrow,
@@ -131,6 +133,7 @@ FSRec::FSRec (const BoxArray& src,
     assert(ncomp >  0);
 }
 
+inline
 FSRec::FSRec (const FSRec& rhs)
     :
     m_box(rhs.m_box),
@@ -146,18 +149,27 @@ FSRec::FSRec (const FSRec& rhs)
     m_ncomp(rhs.m_ncomp)
 {}
 
+inline
 FSRec::~FSRec () {}
 
+inline
 bool
 FSRec::operator== (const FSRec& rhs) const
 {
     return
-        m_src   == rhs.m_src   &&
-        m_dst   == rhs.m_dst   &&
         m_ngrow == rhs.m_ngrow &&
         m_scomp == rhs.m_scomp &&
         m_dcomp == rhs.m_dcomp &&
-        m_ncomp == rhs.m_ncomp;
+        m_ncomp == rhs.m_ncomp &&
+        m_src   == rhs.m_src   &&
+        m_dst   == rhs.m_dst;
+}
+
+inline
+bool
+FSRec::operator!= (const FSRec& rhs) const
+{
+    return !operator==(rhs);
 }
 
 //

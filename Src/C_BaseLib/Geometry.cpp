@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.45 1999-03-27 01:01:16 lijewski Exp $
+// $Id: Geometry.cpp,v 1.46 1999-04-11 23:31:36 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -16,65 +16,6 @@ RealBox Geometry::prob_domain;
 bool Geometry::is_periodic[BL_SPACEDIM];
 
 Geometry::FPBList Geometry::m_FPBCache;
-
-Geometry::FPB::FPB ()
-    :
-    m_scomp(-1),
-    m_ncomp(-1),
-    m_ngrow(-1),
-    m_no_overlap(false),
-    m_do_corners(false) {}
-
-Geometry::FPB::FPB (const BoxArray& ba,
-                    const Box&      domain,
-                    int             scomp,
-                    int             ncomp,
-                    int             ngrow,
-                    bool            no_overlap,
-                    bool            do_corners)
-    :
-    m_ba(ba),
-    m_domain(domain),
-    m_scomp(scomp),
-    m_ncomp(ncomp),
-    m_ngrow(ngrow),
-    m_no_overlap(no_overlap),
-    m_do_corners(do_corners)
-{
-    assert(scomp >= 0);
-    assert(ncomp >  0);
-    assert(ngrow >= 0);
-    assert(domain.ok());
-}
-
-Geometry::FPB::FPB (const FPB& rhs)
-    :
-    m_cache(rhs.m_cache),
-    m_commdata(rhs.m_commdata),
-    m_pirm(rhs.m_pirm),
-    m_ba(rhs.m_ba),
-    m_domain(rhs.m_domain),
-    m_scomp(rhs.m_scomp),
-    m_ncomp(rhs.m_ncomp),
-    m_ngrow(rhs.m_ngrow),
-    m_no_overlap(rhs.m_no_overlap),
-    m_do_corners(rhs.m_do_corners)
-{}
-
-Geometry::FPB::~FPB () {}
-
-bool
-Geometry::FPB::operator== (const FPB& rhs) const
-{
-    return
-        m_scomp      == rhs.m_scomp      &&
-        m_ncomp      == rhs.m_ncomp      &&
-        m_ngrow      == rhs.m_ngrow      &&
-        m_no_overlap == rhs.m_no_overlap &&
-        m_do_corners == rhs.m_do_corners &&
-        m_domain     == rhs.m_domain     &&
-        m_ba         == rhs.m_ba;
-}
 
 ostream&
 operator<< (ostream&        os,
@@ -121,6 +62,12 @@ operator<< (ostream&                 os,
         os << pirm[i] << '\n';
     }
     return os;
+}
+
+int
+Geometry::PIRMCacheSize ()
+{
+    return m_FPBCache.size();
 }
 
 void
