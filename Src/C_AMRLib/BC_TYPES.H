@@ -65,5 +65,12 @@ enum physicalBndryTypes {Interior,Inflow,Outflow,Symmetry,
 #define EXT_DIR 3
 #define HOEXTRAP 4
 
+#define Interior 0
+#define Inflow 1
+#define Outflow 2
+#define Symmetry 3
+#define SlipWall 4
+#define NoSlipWall 5
+
 #endif
 
