@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: IntVect.cpp,v 1.3 1997-12-17 23:05:20 lijewski Exp $
+// $Id: IntVect.cpp,v 1.4 1998-04-16 20:31:47 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -86,7 +86,7 @@ operator>> (istream& is,
         BoxLib::Error("operator>>(istream&,IntVect&): expected \'(\' or \'<\'");
 
     if (is.fail())
-        BoxLib::Error("operator>>(ostream&,IntVect&) failed");
+        BoxLib::Error("operator>>(istream&,IntVect&) failed");
 
     return is;
 }
