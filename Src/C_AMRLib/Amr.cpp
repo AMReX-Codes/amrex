@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.73 1999-03-11 17:48:39 marc Exp $
+// $Id: Amr.cpp,v 1.74 1999-03-11 17:56:44 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -113,20 +113,20 @@ Amr::Amr ()
     //
     // Set default values.
     //
-    max_level         = -1;
-    record_run_info   = false;
-    record_grid_info  = false;
-    grid_eff          = 0.7;
-    blocking_factor   = 1;
-    last_checkpoint   = 0;
-    last_plotfile     = 0;
-    plot_int          = -1;
-    n_proper          = 1;
+    max_level        = -1;
+    record_run_info  = false;
+    record_grid_info = false;
+    grid_eff         = 0.7;
+    blocking_factor  = 1;
+    last_checkpoint  = 0;
+    last_plotfile    = 0;
+    plot_int         = -1;
+    n_proper         = 1;
 
 #if (BL_SPACEDIM == 2)
-    max_grid_size     = 128;
+    max_grid_size    = 128;
 #else
-    max_grid_size     = 32;
+    max_grid_size    = 32;
 #endif
 
     int i;
@@ -190,12 +190,12 @@ Amr::Amr ()
     //
     for (i = 0; i < nlev; i++)
     {
-        dt_level[i] = 1.e20; // something nonzero
+        dt_level[i]    = 1.e20; // Something nonzero so old & new will differ
         level_steps[i] = 0;
         level_count[i] = 0;
-        regrid_int[i] = 0;
-        n_cycle[i] = 0;
-        dt_min[i] = 0.0;
+        regrid_int[i]  = 0;
+        n_cycle[i]     = 0;
+        dt_min[i]      = 0.0;
         n_error_buf[i] = 1;
     }
     ref_ratio.resize(max_level);
@@ -287,7 +287,7 @@ Amr::Amr ()
           int k = 0;
           for (i = 0; i < max_level; i++)
           {
-              for (int n=0; n<BL_SPACEDIM; n++,k++)
+              for (int n = 0; n < BL_SPACEDIM; n++,k++)
                   ref_ratio[i][n] = ratios_vect[k];
           }
       }
@@ -295,12 +295,14 @@ Amr::Amr ()
       {
           for (i = 0; i < max_level; i++)
           {
-              for (int n=0; n<BL_SPACEDIM; n++)
+              for (int n = 0; n < BL_SPACEDIM; n++)
                   ref_ratio[i][n] = ratios[i];
           }
       }
       else
+      {
           BoxLib::Error("Must input *either* ref_ratio or ref_ratio_vect");
+      }
     }
     //
     // Read computational domain and set geometry.
@@ -332,8 +334,8 @@ Amr::Amr ()
     //
     int ri;
     pp.get("regrid_int",ri);
-    int k;
-    for (k = 0; k <= max_level; k++)
+
+    for (int k = 0; k <= max_level; k++)
         regrid_int[k] = ri;
 }
 
@@ -354,6 +356,7 @@ Amr::~Amr ()
 {
     if (level_steps[0] > last_checkpoint)
         checkPoint();
+
     if (level_steps[0] > last_plotfile)
         writePlotFile();
 
@@ -427,18 +430,6 @@ Amr::okToContinue ()
     return ok;
 }
 
-static
-aString
-Concatenate (const aString& root,
-             int            num)
-{
-    aString result = root;
-    char buf[sizeof(int) + 1];
-    sprintf(buf, "%04d", num);
-    result += buf;
-    return result;
-}
-
 void
 Amr::writePlotFile (const aString& root,
                     int            num)
@@ -449,7 +440,7 @@ Amr::writePlotFile (const aString& root,
 
     Real dPlotFileTime0 = ParallelDescriptor::second();
 
-    aString pltfile = Concatenate(root, num);
+    aString pltfile = Utility::Concatenate(root, num);
 
     if (verbose && ParallelDescriptor::IOProcessor())
     {
@@ -547,7 +538,6 @@ Amr::checkInput ()
         if (MaxRefRatio(i) < 2 || MaxRefRatio(i) > 12)
             BoxLib::Error("checkInput bad ref_ratios");
     }
-
     const Box& domain = geom[0].Domain();
     if (!domain.ok())
         BoxLib::Error("level 0 domain bad or not set");
@@ -565,12 +555,12 @@ Amr::checkInput ()
     //
     for (i = 0; i < max_level; i++)
     {
-      for (int n=0; n<BL_SPACEDIM; n++)
-      {
-        int lratio = blocking_factor*ref_ratio[i][n];
-        if (max_grid_size%lratio != 0)
-            BoxLib::Error("max_grid_size not divisible by blocking_factor*ref_ratio");
-      }
+        for (int n=0; n<BL_SPACEDIM; n++)
+        {
+            int lratio = blocking_factor*ref_ratio[i][n];
+            if (max_grid_size%lratio != 0)
+                BoxLib::Error("max_grid_size not divisible by blocking_factor*ref_ratio");
+        }
     }
     if (!Geometry::ProbDomain().ok())
         BoxLib::Error("checkInput: bad physical problem size");
@@ -621,6 +611,7 @@ Amr::initialInit (Real strt_time, Real stop_time)
                   &probin_file_length,
                   Geometry::ProbLo(),
                   Geometry::ProbHi());
+
     cumtime = strt_time;
     //
     // Define base level grids.
@@ -645,10 +636,10 @@ Amr::initialInit (Real strt_time, Real stop_time)
     {
         for (int lev = 1; lev <= max_level; lev++)
         {
-            dt0 /= Real (ref_ratio[lev-1][0]);
-            dt_level[lev] = dt0;
-            dt_min[lev] = dt_level[lev];
-            n_cycle[lev] = ref_ratio[lev-1][0];
+            dt0           /= Real (ref_ratio[lev-1][0]);
+            dt_level[lev]  = dt0;
+            dt_min[lev]    = dt_level[lev];
+            n_cycle[lev]   = ref_ratio[lev-1][0];
         }
     }
     else
@@ -656,8 +647,8 @@ Amr::initialInit (Real strt_time, Real stop_time)
         for (int lev = 1; lev <= max_level; lev++)
         {
             dt_level[lev] = dt0;
-            dt_min[lev] = dt_level[lev];
-            n_cycle[lev] = 1;
+            dt_min[lev]   = dt_level[lev];
+            n_cycle[lev]  = 1;
         }
     }
     // ----- end multifluid
@@ -772,7 +763,6 @@ Amr::restart (const aString& filename)
 
     for (i = 0; i <= mx_lev; i++) is >> geom[i];
     for (i = 0; i <  mx_lev; i++) is >> ref_ratio[i];
-
     for (i = 0; i <= mx_lev; i++) is >> dt_level[i];
     for (i = 0; i <= mx_lev; i++) is >> n_cycle[i];
     for (i = 0; i <= mx_lev; i++) is >> level_steps[i];
@@ -860,7 +850,7 @@ Amr::checkPoint ()
 
     Real dCheckPointTime0 = ParallelDescriptor::second();
 
-    aString ckfile = Concatenate(check_file_root, level_steps[0]);
+    aString ckfile = Utility::Concatenate(check_file_root, level_steps[0]);
 
     if (verbose && ParallelDescriptor::IOProcessor())
     {
@@ -969,9 +959,11 @@ Amr::timeStep (int  level,
     // Time to regrid?
     //
     int lev_top = Min(finest_level, max_level-1);
+
     for (int i = level; i <= lev_top; i++)
     {
         int old_finest = finest_level;
+
         if (level_count[i] >= regrid_int[i] && amr_level[i].okToRegrid())
         {
             regrid(i,time);
@@ -1039,14 +1031,14 @@ Amr::timeStep (int  level,
     {
         if (sub_cycle)
         {
-            int lev_fine = level+1;
-            int ncycle = n_cycle[lev_fine];
+            const int lev_fine = level+1;
+            const int ncycle   = n_cycle[lev_fine];
             for (int i = 1; i <= ncycle; i++)
                 timeStep(lev_fine,time + (i-1)*dt_level[lev_fine],i,ncycle);
         }
         else
         {
-            int lev_fine = level+1;
+            const int lev_fine = level+1;
             timeStep(lev_fine,time,1,1);
         }
     }
@@ -1111,7 +1103,7 @@ Amr::coarseTimeStep (Real stop_time)
     int plot_test = 0;
     if (plot_per > 0.0)
     {
-      int num_per = int((cumtime+.001*dt_level[0]) / plot_per);
+      const int num_per = int((cumtime+.001*dt_level[0]) / plot_per);
       Real resid = cumtime - num_per * plot_per;
       if (resid < .001*dt_level[0])
           plot_test = 1;
@@ -1131,7 +1123,8 @@ Amr::defBaseLevel (Real strt_time)
     // Check that base domain has even number of zones in all directions.
     //
     const Box& domain = geom[0].Domain();
-    const int* d_len = domain.length().getVect();
+    const int* d_len  = domain.length().getVect();
+
     for (int idir = 0; idir < BL_SPACEDIM; idir++)
     {
         if (d_len[idir]%2 != 0)
@@ -1320,11 +1313,11 @@ Amr::printGridInfo (ostream& os,
 {
     for (int lev = min_lev; lev <= max_lev; lev++)
     {
-        const BoxArray& bs = amr_level[lev].boxArray();
-        int numgrid = bs.length();
-        long ncells = amr_level[lev].countCells();
-        long ntot = geom[lev].Domain().numPts();
-        Real frac = 100.0*(Real(ncells) / Real(ntot));
+        const BoxArray& bs      = amr_level[lev].boxArray();
+        int             numgrid = bs.length();
+        long            ncells  = amr_level[lev].countCells();
+        long            ntot    = geom[lev].Domain().numPts();
+        Real            frac    = 100.0*(Real(ncells) / Real(ntot));
 
         os << "  Level "
            << lev
@@ -1340,11 +1333,12 @@ Amr::printGridInfo (ostream& os,
         for (int k = 0; k < numgrid; k++)
         {
             const Box& b = bs[k];
+
             os << ' ' << lev << ": " << b << "   ";
+
             for (int i = 0; i < BL_SPACEDIM; i++)
-            {
                 os << b.length(i) << ' ';
-            }
+
             os << '\n';
         }
     }
@@ -1376,36 +1370,36 @@ proj_periodic (BoxDomain&      bd,
     D_TERM( niend , =njend , =nkend ) = +1;
 
     int ri,rj,rk;
-    for (ri=nist; ri<=niend; ri++)
+    for (ri = nist; ri <= niend; ri++)
     {
-        if (ri!=0 && !geom.isPeriodic(0))
+        if (ri != 0 && !geom.isPeriodic(0))
             continue;
-        if (ri!=0 && geom.isPeriodic(0))
+        if (ri != 0 && geom.isPeriodic(0))
             blorig.shift(0,ri*domain.length(0));
-        for (rj=njst; rj<=njend; rj++)
+        for (rj = njst; rj <= njend; rj++)
         {
-            if (rj!=0 && !geom.isPeriodic(1))
+            if (rj != 0 && !geom.isPeriodic(1))
                 continue;
-            if (rj!=0 && geom.isPeriodic(1))
+            if (rj != 0 && geom.isPeriodic(1))
                 blorig.shift(1,rj*domain.length(1));
-            for (rk=nkst; rk<=nkend; rk++)
+            for (rk = nkst; rk <= nkend; rk++)
             {
-                if (rk!=0 && !geom.isPeriodic(2))
+                if (rk != 0 && !geom.isPeriodic(2))
                     continue;
-                if (rk!=0 && geom.isPeriodic(2))
+                if (rk != 0 && geom.isPeriodic(2))
                     blorig.shift(2,rk*domain.length(2));
 
                 BoxList tmp(blorig);
                 tmp.intersect(domain);
                 blout.join(tmp);
  
-                if (rk!=0 && geom.isPeriodic(2))
+                if (rk != 0 && geom.isPeriodic(2))
                     blorig.shift(2,-rk*domain.length(2));
             }
-            if (rj!=0 && geom.isPeriodic(1))
+            if (rj != 0 && geom.isPeriodic(1))
                 blorig.shift(1,-rj*domain.length(1));
         }
-        if (ri!=0 && geom.isPeriodic(0))
+        if (ri != 0 && geom.isPeriodic(0))
             blorig.shift(0,-ri*domain.length(0));
     }
     bd.clear();
@@ -1435,15 +1429,15 @@ MaxSizeBox (BoxList&       bx_list,
                 while ((bs%2 == 0) && (nlen%2 == 0))
                 {
                     ratio *= 2;
-                    bs /=2;
-                    nlen /=2;
+                    bs    /=2;
+                    nlen  /=2;
                 }
                 //
                 // Determine number and size of (coarsened) cuts.
                 //
-                int numblk = nlen/bs + (nlen%bs ? 1 : 0);
-                int size   = nlen/numblk;
-                int extra  = nlen%numblk;
+                const int numblk = nlen/bs + (nlen%bs ? 1 : 0);
+                const int size   = nlen/numblk;
+                const int extra  = nlen%numblk;
                 //
                 // Number of cuts = number of blocks - 1.
                 //
@@ -1477,7 +1471,7 @@ Amr::grid_places (int              lbase,
                   Array<BoxArray>& new_grids)
 {
     int i;
-    int  max_crse = Min(finest_level,max_level-1);
+    int max_crse = Min(finest_level,max_level-1);
 
     if (!grids_file.isNull())
     {
@@ -1620,33 +1614,35 @@ Amr::grid_places (int              lbase,
         //      if (levf < new_finest) 
         //          tags.setVal(ba_proj,TagBox::SET);
         // The problem with this code is that it effectively 
-        //  "buffered the buffer cells",  i.e., the grids at level
-        //   levf+1 which were created by buffering with n_error_buf[levf]
-        //   are then coarsened down twice to define tagging at
-        //   level levc, which will then also be buffered.  This can
-        //   create grids which are larger than necessary.
-
-        if (levf < new_finest) {
-
+        // "buffered the buffer cells",  i.e., the grids at level
+        // levf+1 which were created by buffering with n_error_buf[levf]
+        // are then coarsened down twice to define tagging at
+        // level levc, which will then also be buffered.  This can
+        // create grids which are larger than necessary.
+        //
+        if (levf < new_finest)
+        {
             int nerr = n_error_buf[levf];
 
             BoxList bl_tagged;
-            for (int i=0; i< new_grids[levf+1].length(); i++)
-              bl_tagged.add(coarsen(new_grids[levf+1][i],ref_ratio[levf]));
-
-            // This grows the boxes by nerr if they touch the edge of the domain
-            // in preparation for them being shrunk by nerr later - we want the
-            // net effect to be that grids are NOT shrunk away from the edges of the 
-            // domain
-            for (BoxListIterator blt(bl_tagged); blt; ++blt) {
-              for (int idir = 0; idir < BL_SPACEDIM; idir++) {
-                if (blt().smallEnd(idir) == geom[levf].Domain().smallEnd(idir))
-                   bl_tagged[blt].growLo(idir,nerr);
-                if (blt().bigEnd(idir) == geom[levf].Domain().bigEnd(idir))
-                   bl_tagged[blt].growHi(idir,nerr);
-              }
+            for (int i = 0; i < new_grids[levf+1].length(); i++)
+                bl_tagged.add(coarsen(new_grids[levf+1][i],ref_ratio[levf]));
+            //
+            // This grows the boxes by nerr if they touch the edge of the
+            // domain in preparation for them being shrunk by nerr later.
+            // We want the net effect to be that grids are NOT shrunk away
+            // from the edges of the domain.
+            //
+            for (BoxListIterator blt(bl_tagged); blt; ++blt)
+            {
+                for (int idir = 0; idir < BL_SPACEDIM; idir++)
+                {
+                    if (blt().smallEnd(idir) == geom[levf].Domain().smallEnd(idir))
+                        bl_tagged[blt].growLo(idir,nerr);
+                    if (blt().bigEnd(idir) == geom[levf].Domain().bigEnd(idir))
+                        bl_tagged[blt].growHi(idir,nerr);
+                }
             }
-
 
             Box mboxF = Box(bl_tagged.minimalBox()).grow(1);
             BoxList blFcomp = complementIn(mboxF,bl_tagged);
@@ -1667,10 +1663,9 @@ Amr::grid_places (int              lbase,
         //
         int bl_max = 0;
         for (int n=0; n<BL_SPACEDIM; n++)
-          bl_max = Max(bl_max,bf_lev[levc][n]);
+            bl_max = Max(bl_max,bf_lev[levc][n]);
         if (bl_max > 1) 
             tags.coarsen(bf_lev[levc]);
-
         //
         // Map tagged points through periodic boundaries, if any.
         //
@@ -1683,7 +1678,7 @@ Amr::grid_places (int              lbase,
         //
         // Create initial cluster containing all tagged points.
         //
-        long len = 0;
+        long     len = 0;
         IntVect* pts = tags.collate(len);
 
         tags.clear();
@@ -1707,7 +1702,7 @@ Amr::grid_places (int              lbase,
             BoxList new_bx;
             clist.boxList(new_bx);
 
-            int nmerged = new_bx.minimize();
+            new_bx.minimize();
 
             IntVect lratio = ref_ratio[levc]*bf_lev[levc];
 
