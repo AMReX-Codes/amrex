@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.61 2002-09-19 21:02:14 car Exp $
+// $Id: Utility.cpp,v 1.62 2002-10-01 22:38:42 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -334,10 +334,10 @@ BoxLib::is_integer (const char* str)
 
 std::string
 BoxLib::Concatenate (const std::string& root,
-                     int            num)
+                     int                num)
 {
     std::string result = root;
-    char buf[sizeof(int) + 1];
+    char buf[32];
     sprintf(buf, "%04d", num);
     result += buf;
     return result;
