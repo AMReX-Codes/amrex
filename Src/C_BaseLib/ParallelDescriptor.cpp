@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.35 1998-05-27 22:46:11 vince Exp $
+// $Id: ParallelDescriptor.cpp,v 1.36 1998-07-21 15:23:40 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -54,8 +54,13 @@ CommData::CommData (int        face,
 //
 // Definitions of static data members.
 //
+#if !(defined(BL_USE_BSP) || defined(BL_USE_MPI))
+int ParallelDescriptor::m_nProcs = 1;
+int ParallelDescriptor::m_MyId   = 0;
+#else
 int ParallelDescriptor::m_nProcs = -1;
 int ParallelDescriptor::m_MyId   = -1;
+#endif
 
 #if defined(BL_USE_BSP)
 
@@ -403,8 +408,6 @@ ParallelDescriptor::StartParallel (int,
 void
 ParallelDescriptor::EndParallel ()
 {
-    TRACER("ParallelDescriptor::EndParallel()");
-
     assert(m_MyId != -1);
     assert(m_nProcs != -1);
 
@@ -423,8 +426,6 @@ ParallelDescriptor::second ()
 void
 ParallelDescriptor::Barrier ()
 {
-    TRACER("ParallelDescriptor::Barrier()");
-
     int rc = MPI_Barrier(MPI_COMM_WORLD);
 
     if (!(rc == MPI_SUCCESS))
@@ -442,8 +443,6 @@ void ParallelDescriptor::SetMessageHeaderSize (int) {}
 void
 ParallelDescriptor::ReduceBoolAnd (bool& r)
 {
-    TRACER("ParallelDescriptor::ReduceBoolAnd()");
-
     int src = r, recv; // `src' is either 0 or 1.
 
     int rc = MPI_Allreduce(&src, &recv, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -457,8 +456,6 @@ ParallelDescriptor::ReduceBoolAnd (bool& r)
 void
 ParallelDescriptor::ReduceBoolOr  (bool& r)
 {
-    TRACER("ParallelDescriptor::ReduceBoolOr()");
-
     int src = r, recv; // `src' is either 0 or 1.
 
     int rc = MPI_Allreduce(&src, &recv, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -472,8 +469,6 @@ ParallelDescriptor::ReduceBoolOr  (bool& r)
 void
 ParallelDescriptor::ReduceRealMax (Real& r)
 {
-    TRACER("ParallelDescriptor::ReduceRealMax()");
-
     Real recv;
 
     int rc = MPI_Allreduce(&r,
@@ -492,8 +487,6 @@ ParallelDescriptor::ReduceRealMax (Real& r)
 void
 ParallelDescriptor::ReduceRealMin (Real& r)
 {
-    TRACER("ParallelDescriptor::ReduceRealMin()");
-
     Real recv;
 
     int rc = MPI_Allreduce(&r,
@@ -512,8 +505,6 @@ ParallelDescriptor::ReduceRealMin (Real& r)
 void
 ParallelDescriptor::ReduceRealSum (Real& r)
 {
-    TRACER("ParallelDescriptor::ReduceRealSum()");
-
     Real recv;
 
     int rc = MPI_Allreduce(&r,
@@ -532,8 +523,6 @@ ParallelDescriptor::ReduceRealSum (Real& r)
 void
 ParallelDescriptor::ReduceLongAnd (long& r)
 {
-    TRACER("ParallelDescriptor::ReduceLongAnd()");
-
     long recv;
 
     int rc = MPI_Allreduce(&r, &recv, 1, MPI_LONG, MPI_LAND, MPI_COMM_WORLD);
@@ -547,8 +536,6 @@ ParallelDescriptor::ReduceLongAnd (long& r)
 void
 ParallelDescriptor::ReduceLongSum (long& r)
 {
-    TRACER("ParallelDescriptor::ReduceLongSum()");
-
     long recv;
 
     int rc = MPI_Allreduce(&r, &recv, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
@@ -562,8 +549,6 @@ ParallelDescriptor::ReduceLongSum (long& r)
 void
 ParallelDescriptor::ReduceIntSum (int& r)
 {
-    TRACER("ParallelDescriptor::ReduceIntSum()");
-
     int recv;
 
     int rc = MPI_Allreduce(&r, &recv, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -590,8 +575,6 @@ ParallelDescriptor::Gather (Real* sendbuf,
                             Real* recvbuf,
                             int   root)
 {
-    TRACER("ParallelDescriptor::Gather()");
-
     assert(root >= 0);
     assert(nsend > 0);
     assert(!(sendbuf == 0));
