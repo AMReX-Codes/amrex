@@ -5,7 +5,7 @@
 #include "main_F.H"
 
 
-#define TEST_EXT 0
+#define TEST_EXT 1
 #define POWER 3
 #define MUPOWER 3
 

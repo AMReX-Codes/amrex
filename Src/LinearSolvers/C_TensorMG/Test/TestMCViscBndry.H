@@ -16,8 +16,9 @@ public:
         MCInterpBndryData(_grids,3*(1+3),geom) {};
 #endif
 
-    virtual void setBndryConds(const Array<BCRec>& phys_bc,
-                               const Geometry& geom, int ratio);
+    virtual void setBndryConds (const BCRec& phys_bc,
+                                int          ratio,
+                                int          comp=0);
     void setHomogValues();
 };
 

@@ -21,7 +21,9 @@
 #include <ParmParse.H>
 #include <VisMF.H>
 #ifndef NDEBUG
+#ifdef BL_USE_ARRAYVIEW
 #include <ArrayView.H>
+#endif
 #include <TV_TempWrite.H>
 #endif
 
@@ -42,8 +44,6 @@ using std::set_new_handler;
 #include <new.h>
 #endif
 
-const int NPROCS = 1;
-
 #include <main_F.H>
 #include <WritePlotFile.H>
 
@@ -51,8 +51,9 @@ BoxList
 readBoxList(aString file,
 	    BOX&    domain );
 
-main(int   argc,
-     char* argv[])
+int
+main (int   argc,
+      char* argv[])
 {
     //
     // Make sure to catch new failures.
@@ -60,28 +61,28 @@ main(int   argc,
 #ifndef WIN32
     set_new_handler(Utility::OutOfMemory);
 #endif
+
+    ParallelDescriptor::StartParallel(&argc,&argv);
+
+    cout << setprecision(10);
+
+    if(argc < 2) {
+      cerr << "usage:  " << argv[0] << " inputsfile [options]" << '\n';
+      exit(-1);
+    }
+
+    ParmParse pp(argc-2,argv+2,NULL,argv[1]); 
+    //
+    // Initialize random seed after we're running in parallel.
+    //
+    Utility::InitRandom(ParallelDescriptor::MyProc() + 1);
+    
+#ifndef WIN32
+    int sleeptime = 0; pp.query("sleep", sleeptime);
+    sleep(sleeptime);
+#endif
     
     TRACER("mcmg");
-    
-    if(argc < 2)
-    {
-	cerr << "usage:  " << argv[0] << " inputsfile [options]" << '\n';
-	exit(-1);
-    }
-  
-    // Parse command line
-    ParmParse pp(argc-2,argv+2,NULL,argv[1]); 
-    
-    int nprocs = NPROCS; pp.query("nprocs", nprocs);
-#ifndef BL_USE_BSP
-    if (nprocs > 1)
-    {
-	cerr << "Error in main:  multiple processors specified with "
-	     << "code compiled without a parallel library.\n";
-	exit(-1);
-    }
-#endif
-    ParallelDescriptor::StartParallel(nprocs);
     
     int n;
     
@@ -128,7 +129,7 @@ main(int   argc,
 			D_DECL(EXT_DIR,EXT_DIR,EXT_DIR));
 #elif BL_SPACEDIM==3
     Array<BCRec> pbcarray(12);
-#define TEST_EXT 1
+#define TEST_EXT 0
 #if TEST_EXT
     pbcarray[0] = BCRec(EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR);
     pbcarray[1] = BCRec(EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR,EXT_DIR);
@@ -308,6 +309,13 @@ main(int   argc,
     
     REAL tolerance = 1.0e-10; pp.query("tol", tolerance);
     REAL tolerance_abs = 1.0e-10; pp.query("tol_abs", tolerance_abs);
+
+
+    cout << "MCLinOp object:" << endl;
+    cout << lp << endl;
+    
+    cout << "Bndry Data object:" << endl;
+    cout << lp.bndryData() << endl;
     
 #if 0
     bool use_mg_pre = false;
@@ -318,6 +326,11 @@ main(int   argc,
     mg.solve(soln,rhs,tolerance,tolerance_abs);
 #endif
 
+#if 0
+    cout << "MCLinOp object:" << endl;
+    cout << lp << endl;
+#endif
+    
     // Write solution
     writePlotFile("pltfile",soln,geom,refRatio,bgVal);
     
