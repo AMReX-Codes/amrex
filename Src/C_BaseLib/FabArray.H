@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.84 1998-12-01 21:56:23 lijewski Exp $
+// $Id: FabArray.H,v 1.85 1998-12-10 20:57:39 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1833,7 +1833,7 @@ FabArrayIterator<T,FAB>::isValid ()
 {
     assert(currentIndex >= 0);
 
-#ifdef HG_DEBUG
+#if defined(BL_USE_MPI) && defined(HG_DEBUG)
     extern bool HG_is_debugging;
     if ( HG_is_debugging )
     {
@@ -2035,7 +2035,7 @@ ConstFabArrayIterator<T,FAB>::isValid () const
 {
     assert(currentIndex >= 0);
 
-#ifdef HG_DEBUG
+#if defined(BL_USE_MPI) && defined(HG_DEBUG)
     extern bool HG_is_debugging;
     if ( HG_is_debugging )
     {

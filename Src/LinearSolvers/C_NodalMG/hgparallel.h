@@ -12,7 +12,7 @@
 #ifdef BL_USE_MPI
 #include <mpi.h>
 #else
-#error Must define BL_USE_MPI in this file
+//#error Must define BL_USE_MPI in this file
 #endif
 
 inline int processor_number(const MultiFab&r, int igrid)
@@ -34,8 +34,10 @@ struct HG
 {
     static void MPI_init();
     static void MPI_finish();
+#ifdef BL_USE_MPI
     static MPI_Comm mpi_comm;
     static int mpi_tag_ub;
+#endif
 };
 
 #ifdef BL_USE_NEW_HFILES
@@ -183,7 +185,9 @@ public:
     virtual bool startup();
 protected:
     void _do_depend();
+#ifdef BL_USE_MPI
     MPI_Request m_request;
+#endif
     FArrayBox* tmp;
     MultiFab& m_mf;
     const MultiFab& m_smf;
@@ -206,7 +210,9 @@ public:
     virtual bool startup();
 private:
     bool m_local;
+#ifdef BL_USE_MPI
     MPI_Request m_request;
+#endif
     FArrayBox* m_fab;
     const Box m_bx;
     FArrayBox* tmp;
