@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.19 1998-11-21 00:27:43 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.20 1998-11-21 03:12:10 lijewski Exp $
 #
 
 #
@@ -54,7 +54,6 @@ ifeq ($(MACHINE), OSF1)
     WHICHOSF1 := V4
   endif
 endif
-
 #
 # We'd also like to distinguish between SunOS and Solaris.
 #
@@ -74,41 +73,38 @@ ifeq ($(MACHINE), HP-UX)
 endif
 
 ifndef PRECISION
-    PRECISION	= DOUBLE
+    PRECISION = DOUBLE
 endif
 
 ifndef DEBUG
-    DEBUG	= TRUE
+    DEBUG = TRUE
 endif
 
 ifndef PROFILE
-    PROFILE	= FALSE
+    PROFILE = FALSE
 endif
 
 ifndef DIM
-    DIM		= 2
+    DIM = 2
 endif
 
 ifndef COMP
-    COMP	= CC
+    COMP = CC
 endif
-
 #
 # Set some reasonable defaults.
 #
 CXX = CC
 FC  = f77
 CC  = cc
-
 #
 # Defaults for BoxLib style programs.
 #
-ARCH		= IEEE
-FORTLINK  	= UNDERSCORE
-
-FORTPREP  	= perl $(PBOXLIB_HOME)/scripts/strip72 -c
-MKDEP		= perl $(PBOXLIB_HOME)/scripts/mkdep
-INSTALL		= sh   $(PBOXLIB_HOME)/scripts/install-sh -c
+ARCH     = IEEE
+FORTLINK = UNDERSCORE
+FORTPREP = perl $(PBOXLIB_HOME)/scripts/strip72 -c
+MKDEP    = perl $(PBOXLIB_HOME)/scripts/mkdep
+INSTALL  = sh   $(PBOXLIB_HOME)/scripts/install-sh -c
 #
 # SunOS ranlib has a problem if the library is installed 444 :-(
 #
@@ -117,16 +113,15 @@ INSTALL_DATA 	= $(INSTALL) -m 0644
 else
 INSTALL_DATA 	= $(INSTALL) -m 0444
 endif
-
 #
 # We assume that INSTALL_ROOT is either set on the command line,
 # set in the environment, or set by a controlling GNUmakefile.
 # It is where the stuff is to be installed. For the guthamr stuff
-# proper, we set this to GUTHAMR_HOME.  If this isn't set,
+# proper, we set this to PBOXLIB_HOME.  If this isn't set,
 # we set it to where guthamr was installed.
 #
 ifndef INSTALL_ROOT
-    INSTALL_ROOT = $(GUTHAMR_HOME)
+    INSTALL_ROOT = $(PBOXLIB_HOME)
 endif
 
 ifndef INSTALL_PREFIX
@@ -134,12 +129,6 @@ ifndef INSTALL_PREFIX
 endif
 
 RANLIB = true
-
-EXE_OUTPUT_OPTION      = -o $(objEXETempDir)/$*.o
-LIB_OUTPUT_OPTION      = -o $(objTempDir)/$*.o
-FORT_EXE_OUTPUT_OPTION = -o $(objEXETempDir)/$*.o
-FORT_LIB_OUTPUT_OPTION = -o $(objTempDir)/$*.o
-
 #
 # Generic setup for using g++ ...
 #
@@ -149,11 +138,9 @@ ifeq ($(COMP),g++)
     CXXDEBF    += -g
     FULLWARN   := -Wall
     CXX	       := g++ -ftemplate-depth-20
-    # DEFINES    += -DBL_OLD_STL
     DEFINES    += -DBL_USE_NEW_HFILES
     DEFINES    += -DBL_USE_SETBUF
 endif
-
 #
 # Generic setup for using cfront ...
 #
@@ -162,7 +149,6 @@ ifeq ($(COMP),CFRONT)
     ptRepDir	 = $(objTempDir)/ptrepository
     CXXLIBFLAGS += -ptr$(ptRepDir)
 endif
-
 #
 # We can do library closure with KCC 3.x.
 #
@@ -285,20 +271,21 @@ f77TempDir	= f/$(optionsSuffix)
 
 instLib		= $(instLibDir)/lib$(LBASE)$(DIM)d.a
 
+EXE_OUTPUT_OPTION      = mv $*.o $(objEXETempDir)/$*.o
+LIB_OUTPUT_OPTION      = mv $*.o $(objTempDir)/$*.o
+FORT_EXE_OUTPUT_OPTION = mv $*.o $(objEXETempDir)/$*.o
+FORT_LIB_OUTPUT_OPTION = mv $*.o $(objTempDir)/$*.o
+
 #
 # For source code mainipulation
 #
-CSRCALL		= $(CEXE_sources) $(CEXE_headers) \
-		  $(CLIB_sources) $(CLIB_headers) $(T_sources) $(T_headers)
-FSRCALL		= $(FEXE_sources) $(FEXE_headers) $(FLIB_sources) \
-                  $(FLIB_headers)
-cSRCALL		= $(cEXE_sources) $(cEXE_headers) $(cLIB_sources) \
-                  $(cLIB_headers)
-allSources	= $(CSRCALL) $(FSRCALL) $(cSRCALL)
-
+CSRCALL    = $(CEXE_sources) $(CEXE_headers) $(CLIB_sources) $(CLIB_headers) $(T_sources) $(T_headers)
+FSRCALL    = $(FEXE_sources) $(FEXE_headers) $(FLIB_sources) $(FLIB_headers)
+cSRCALL    = $(cEXE_sources) $(cEXE_headers) $(cLIB_sources) $(cLIB_headers)
+allSources = $(CSRCALL) $(FSRCALL) $(cSRCALL)
 
 ifndef CLOSELIB
-    CLOSELIB   := FALSE
+    CLOSELIB := FALSE
 endif
 
 ifdef WARNINGS
