@@ -2,10 +2,9 @@
 #define BL_BOXDOMAIN_H
 
 //
-// $Id: BoxDomain.H,v 1.23 2001-07-26 20:08:43 lijewski Exp $
+// $Id: BoxDomain.H,v 1.24 2001-07-26 20:31:38 car Exp $
 //
 
-#include <cstdlib>
 #include <iosfwd>
 
 #include <IndexType.H>
