@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.50 1998-07-24 01:24:51 lijewski Exp $
+// $Id: Amr.cpp,v 1.51 1998-08-04 16:41:55 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -322,7 +322,7 @@ void
 Amr::setRecordGridInfo (const aString& filename)
 {
     record_grid_info= true;
-    gridlog.open(filename.c_str(),ios::out);
+    gridlog.open(filename.c_str(),ios::out|ios::app);
     if (!gridlog.good())
         Utility::FileOpenFailed(filename);
 }
@@ -331,7 +331,7 @@ void
 Amr::setRecordRunInfo (const aString& filename)
 {
     record_run_info= true;
-    runlog.open(filename.c_str(),ios::out);
+    runlog.open(filename.c_str(),ios::out|ios::app);
     if (!runlog.good())
         Utility::FileOpenFailed(filename);
 }
@@ -339,7 +339,7 @@ Amr::setRecordRunInfo (const aString& filename)
 void
 Amr::setRecordDataInfo (const aString& filename)
 {
-    datalog.open(filename.c_str(),ios::out);
+    datalog.open(filename.c_str(),ios::out|ios::app);
     if (!datalog.good())
         Utility::FileOpenFailed(filename);
 }
@@ -1110,20 +1110,6 @@ Amr::regrid (int  lbase,
 
     if (lbase == 0)
     {
-        if (verbose && ParallelDescriptor::IOProcessor())
-        {
-            cout << "Flushing processor map cache: "
-                 << DistributionMapping::CacheSize()
-                 << " entries\n";
-
-            cout << "Flushing fill boundary cache: "
-                 << MultiFab::SICacheSize()
-                 << " entries\n";
-
-            cout << "Flushing fill periodic boundary cache: "
-                 << Geometry::PIRMCacheSize()
-                 << " entries\n";
-        }
         //
         // Flush grid -> processor map cache, but only when at coarsest level.
         // Likewise with PIRM cache and SI cache.
