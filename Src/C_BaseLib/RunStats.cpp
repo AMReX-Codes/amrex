@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.4 1998-01-08 19:00:00 lijewski Exp $
+// $Id: RunStats.cpp,v 1.5 1998-04-08 21:04:30 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -117,7 +117,7 @@ RunStats::addCells (int  lev,
 //
 // Holds incremental increase to RunStats::DiskBytes on this CPU.
 //
-static double Incremental_Byte_Count;
+static Real Incremental_Byte_Count;
 
 void
 RunStats::addBytes (long count)
@@ -128,7 +128,7 @@ RunStats::addBytes (long count)
 //
 // Holds incremental increase in RunStats::TheNumPts on this CPU.
 //
-static double Incremental_Num_Pts;
+static Real Incremental_Num_Pts;
 
 void
 RunStats::addNumPts (long count)
@@ -462,52 +462,34 @@ RunStats::readStats (ifstream& is,
 void
 RunStats::CollectNumPts ()
 {
-    struct
-    {
-        int    m_cpu; // CPU #
-        double m_pts; // Total numPts() of FABs on that CPU.
-    }
-    msg_hdr;
+    //
+    // Gather the processor specific Incremental_Num_Pts to IOProcessor().
+    //
+    Array<Real> numpts(ParallelDescriptor::NProcs());
 
-    ParallelDescriptor::SetMessageHeaderSize(sizeof(msg_hdr));
-
-    int MyProc = ParallelDescriptor::MyProc();
-
-    if (!ParallelDescriptor::IOProcessor())
-    {
-        msg_hdr.m_cpu = MyProc;
-        msg_hdr.m_pts = Incremental_Num_Pts;
-        ParallelDescriptor::SendData(ParallelDescriptor::IOProcessor(),
-                                     &msg_hdr,
-                                     0,
-                                     0);
-    }
-
-    ParallelDescriptor::Synchronize();
+    ParallelDescriptor::Gather(&Incremental_Num_Pts,
+                               1,
+                               numpts.dataPtr(),
+                               ParallelDescriptor::IOProcessorNumber());
 
     if (ParallelDescriptor::IOProcessor())
     {
         if (ParallelDescriptor::NProcs() > RunStats::TheNumPts.length())
-        {
             //
             // Never decrease the size of RunStats::TheNumPts.
             //
-            RunStats::TheNumPts.resize(ParallelDescriptor::NProcs(),0);
-        }
-        RunStats::TheNumPts[MyProc] += Incremental_Num_Pts;
+            RunStats::TheNumPts.resize(ParallelDescriptor::NProcs(), 0);
 
-        for (int len; ParallelDescriptor::GetMessageHeader(len, &msg_hdr); )
+        for (int i = 0; i < numpts.length(); i++)
         {
-            assert(len == 0);
-            RunStats::TheNumPts[msg_hdr.m_cpu] += msg_hdr.m_pts;
-            ParallelDescriptor::ReceiveData(0, 0);
+            RunStats::TheNumPts[i] += numpts[i];
         }
     }
 
     Incremental_Num_Pts = 0;
 }
 
-ostream &
+ostream&
 operator<< (ostream&            os,
             const RunStatsData& rd)
 {
