@@ -2,7 +2,7 @@
 #define BL_ORDEREDFAB_H
 
 //
-// $Id: OrderedFab.H,v 1.7 2001-07-19 16:57:34 lijewski Exp $
+// $Id: OrderedFab.H,v 1.8 2001-07-19 20:02:46 lijewski Exp $
 //
 
 #include <iostream>
@@ -138,12 +138,10 @@ private:
 //
 
 template <class T>
-inline
 OrderedFab<T>::OrderedFab ()
 {}
 
 template <class T>
-inline
 OrderedFab<T>::OrderedFab (const Box& b,
                            int        n)
     :
@@ -151,7 +149,6 @@ OrderedFab<T>::OrderedFab (const Box& b,
 {}
 
 template <class T>
-inline
 OrderedFab<T>::~OrderedFab ()
 {}
 

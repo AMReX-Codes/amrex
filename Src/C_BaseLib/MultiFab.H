@@ -2,7 +2,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.34 2001-07-19 16:57:33 lijewski Exp $
+// $Id: MultiFab.H,v 1.35 2001-07-19 20:02:46 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -16,33 +16,36 @@ typedef FabArrayId MultiFabId;
 class MultiFabCopyDescriptor;
 
 class MultiFab;
-void linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc, 
-                                 BoxList*                returnUnfilledBoxes,
-                                 Array<FillBoxId>&       returnedFillBoxIds,
-                                 const Box&              subbox,
-                                 const MultiFabId&       faid1,
-                                 const MultiFabId&       faid2,
-                                 Real                    t1,
-                                 Real                    t2,
-                                 Real                    t,
-                                 int                     src_comp,
-                                 int                     dest_comp,
-                                 int                     num_comp,
-                                 bool                    extrap = false);
 
-void linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
-                                  const Array<FillBoxId>& fillBoxIds,
-                                  const MultiFabId&       faid1,
-                                  const MultiFabId&       faid2,
-                                  FArrayBox&              dest,
-                                  Real                    t1,
-                                  Real                    t2,
-                                  Real                    t,
-                                  int                     src_comp,
-                                  int                     dest_comp,
-                                  int                     num_comp,
-                                  bool                    extrap = false);
+namespace BoxLib
+{
+    void linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
+                          BoxList*                returnUnfilledBoxes,
+                          Array<FillBoxId>&       returnedFillBoxIds,
+                          const Box&              subbox,
+                          const MultiFabId&       faid1,
+                          const MultiFabId&       faid2,
+                          Real                    t1,
+                          Real                    t2,
+                          Real                    t,
+                          int                     src_comp,
+                          int                     dest_comp,
+                          int                     num_comp,
+                          bool                    extrap);
 
+    void linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
+                           const Array<FillBoxId>& fillBoxIds,
+                           const MultiFabId&       faid1,
+                           const MultiFabId&       faid2,
+                           FArrayBox&              dest,
+                           Real                    t1,
+                           Real                    t2,
+                           Real                    t,
+                           int                     src_comp,
+                           int                     dest_comp,
+                           int                     num_comp,
+                           bool                    extrap);
+}
 
 //
 //@Man:
@@ -312,33 +315,6 @@ class MultiFab
                 int             strt_comp,
                 int             num_comp,
                 int             nghost);
-
-    friend void linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
-                                 BoxList*                returnUnfilledBoxes,
-                                 Array<FillBoxId>&       returnedFillBoxIds,
-                                 const Box&              subbox,
-                                 const MultiFabId&       faid1,
-                                 const MultiFabId&       faid2,
-                                 Real                    t1,
-                                 Real                    t2,
-                                 Real                    t,
-                                 int                     src_comp,
-                                 int                     dest_comp,
-                                 int                     num_comp,
-                                 bool                    extrap);
-
-    friend void linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
-                                  const Array<FillBoxId>& fillBoxIds,
-                                  const MultiFabId&       faid1,
-                                  const MultiFabId&       faid2,
-                                  FArrayBox&              dest,
-                                  Real                    t1,
-                                  Real                    t2,
-                                  Real                    t,
-                                  int                     src_comp,
-                                  int                     dest_comp,
-                                  int                     num_comp,
-                                  bool                    extrap);
 
     /*@ManDoc: Copy on intersection within MultiFab.  Data is copied from
                valid regions to intersecting regions of definition.  The

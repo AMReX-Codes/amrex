@@ -1,5 +1,5 @@
 //
-// $Id: Box.cpp,v 1.15 2001-07-19 17:51:48 lijewski Exp $
+// $Id: Box.cpp,v 1.16 2001-07-19 20:02:44 lijewski Exp $
 //
 
 #include <climits>
@@ -222,12 +222,12 @@ Box::volumeOK () const
 long
 Box::index (const IntVect& v) const
 {
-    long result = v.vect[0]-smallend.vect[0];
+    long result = v[0]-smallend[0];
 #if   BL_SPACEDIM==2
-    result += length(0)*(v.vect[1]-smallend.vect[1]);
+    result += length(0)*(v[1]-smallend[1]);
 #elif BL_SPACEDIM==3
-    result += length(0)*(v.vect[1]-smallend.vect[1]
-                      +(v.vect[2]-smallend.vect[2])*length(1));
+    result += length(0)*(v[1]-smallend[1]
+                      +(v[2]-smallend[2])*length(1));
 #endif
     return result;
 }

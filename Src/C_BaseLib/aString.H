@@ -2,7 +2,7 @@
 #define BL_ASTRING_H
 
 //
-// $Id: aString.H,v 1.13 2001-07-19 16:57:37 lijewski Exp $
+// $Id: aString.H,v 1.14 2001-07-19 20:02:48 lijewski Exp $
 //
 
 #include <iostream>
@@ -13,6 +13,103 @@
 #include <BLassert.H>
 #include <BoxLib.H>
 #include <Pointers.H>
+
+class aString;
+
+//
+//@ManDoc: Write to an ostream in ASCII format.
+//
+std::ostream& operator<< (std::ostream& os, const aString& str);
+
+/*@ManDoc: Read a whitespace delimited string from an istream.
+               This function discards leading whitespace and then reads
+               in non-whitespace character until the next whitespace
+               character or end-of-file.  Note that there is no limit,
+               on the length of the character that can be read in, except
+               that dictated by the resources of the machine.
+               Note  also that operator>> and operator<< are not completely
+               symmetrical in the case where operator<< writes out a
+               string that contains whitespace.  If you're trying to
+               read in a string that contains whitespace, you might
+               want to use getline() instead.
+    */
+std::istream& operator>> (std::istream& is, aString& str);
+//
+// Catenate.
+//
+aString operator+  (const aString& left, const aString& right);
+//
+// Is left lexically less than right?
+//
+bool operator<  (const aString& left, const aString& right);
+//
+// Is left lexically less than or equal to right?
+//
+bool operator<= (const aString& left, const aString& right);
+//
+// Is left not equal to right?
+//
+bool operator!= (const aString& left, const aString& right);
+//
+// Is left equal to right?
+//
+bool operator== (const aString& left, const aString& right);
+//
+// Is left lexically greater than or equal to right?
+//
+bool operator>= (const aString& left, const aString& right);
+//
+// Is left lexically greater than right?
+//
+bool operator>  (const aString& left, const aString& right);
+//
+// Is left lexically less than right?
+//
+bool operator<  (const aString& left, const char*    right);
+//
+// Is left lexically less than or equal to right?
+//
+bool operator<= (const aString& left, const char*    right);
+//
+// Is left not equal to right?
+//
+bool operator!= (const aString& left, const char*    right);
+//
+// Is left equal to right?
+//
+bool operator== (const aString& left, const char*    right);
+//
+// Is left lexically greater than or equal to right?
+//
+bool operator>= (const aString& left, const char*    right);
+//
+// Is left lexically greater than right?
+//
+bool operator>  (const aString& left, const char*    right);
+//
+// Is left lexically less than right?
+//
+bool operator<  (const char*    left, const aString& right);
+//
+// Is left lexically less than or equal to right?
+//
+bool operator<= (const char*    left, const aString& right);
+//
+// Is left not equal to right?
+//
+bool operator!= (const char*    left, const aString& right);
+//
+// Is left equal to right?
+//
+bool operator== (const char*    left, const aString& right);
+//
+// Is left lexically greater than or equal to right?
+//
+bool operator>= (const char*    left, const aString& right);
+//
+// Is left lexically greater than right?
+//
+bool operator>  (const char*    left, const aString& right);
 
 //
 // Helper class for class aString.
@@ -174,26 +271,6 @@ public:
                returns zero.  It's equivalent to `atol(c\_str())'.
     */
     long toLong () const;
-    //
-    //@ManDoc: Write to an ostream in ASCII format.
-    //
-    friend std::ostream& operator<< (std::ostream&  os,
-                                     const aString& str);
-
-    /*@ManDoc: Read a whitespace delimited string from an istream.
-               This function discards leading whitespace and then reads
-               in non-whitespace character until the next whitespace
-               character or end-of-file.  Note that there is no limit,
-               on the length of the character that can be read in, except
-               that dictated by the resources of the machine.
-               Note  also that operator>> and operator<< are not completely
-               symmetrical in the case where operator<< writes out a
-               string that contains whitespace.  If you're trying to
-               read in a string that contains whitespace, you might
-               want to use getline() instead.
-    */
-    friend std::istream& operator>> (std::istream& is,
-                                     aString&      str);
 
 protected:
     void copyModify ();
@@ -201,101 +278,6 @@ protected:
 private:
     LnClassPtr<StringRep> p;
     int                   len;
-    //
-    // Catenate.
-    //
-    friend aString operator+  (const aString& left,
-                               const aString& right);
-    //
-    // Is left lexically less than right?
-    //
-    friend bool operator<  (const aString& left,
-                            const aString& right);
-    //
-    // Is left lexically less than or equal to right?
-    //
-    friend bool operator<= (const aString& left,
-                            const aString& right);
-    //
-    // Is left not equal to right?
-    //
-    friend bool operator!= (const aString& left,
-                            const aString& right);
-    //
-    // Is left equal to right?
-    //
-    friend bool operator== (const aString& left,
-                            const aString& right);
-    //
-    // Is left lexically greater than or equal to right?
-    //
-    friend bool operator>= (const aString& left,
-                            const aString& right);
-    //
-    // Is left lexically greater than right?
-    //
-    friend bool operator>  (const aString& left,
-                            const aString& right);
-    //
-    // Is left lexically less than right?
-    //
-    friend bool operator<  (const aString& left,
-                            const char*    right);
-    //
-    // Is left lexically less than or equal to right?
-    //
-    friend bool operator<= (const aString& left,
-                            const char*    right);
-    //
-    // Is left not equal to right?
-    //
-    friend bool operator!= (const aString& left,
-                            const char*    right);
-    //
-    // Is left equal to right?
-    //
-    friend bool operator== (const aString& left,
-                            const char*    right);
-    //
-    // Is left lexically greater than or equal to right?
-    //
-    friend bool operator>= (const aString& left,
-                            const char*    right);
-    //
-    // Is left lexically greater than right?
-    //
-    friend bool operator>  (const aString& left,
-                            const char*    right);
-    //
-    // Is left lexically less than right?
-    //
-    friend bool operator<  (const char*    left,
-                            const aString& right);
-    //
-    // Is left lexically less than or equal to right?
-    //
-    friend bool operator<= (const char*    left,
-                            const aString& right);
-    //
-    // Is left not equal to right?
-    //
-    friend bool operator!= (const char*    left,
-                            const aString& right);
-    //
-    // Is left equal to right?
-    //
-    friend bool operator== (const char*    left,
-                            const aString& right);
-    //
-    // Is left lexically greater than or equal to right?
-    //
-    friend bool operator>= (const char*    left,
-                            const aString& right);
-    //
-    // Is left lexically greater than right?
-    //
-    friend bool operator>  (const char*    left,
-                            const aString& right);
 };
 
 #endif /*BL_ASTRING_H*/

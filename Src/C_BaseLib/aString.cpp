@@ -1,5 +1,5 @@
 //
-// $Id: aString.cpp,v 1.12 2001-07-19 16:57:38 lijewski Exp $
+// $Id: aString.cpp,v 1.13 2001-07-19 20:02:48 lijewski Exp $
 //
 
 #include <cctype>
@@ -370,7 +370,7 @@ std::ostream&
 operator<< (std::ostream&  out,
             const aString& str)
 {
-    out.write(str.c_str(), str.len);
+    out.write(str.c_str(), str.length());
     if (out.fail())
         BoxLib::Error("operator<<(ostream&,aString&) failed");
     return out;

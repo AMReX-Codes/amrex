@@ -2,7 +2,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.35 2001-07-19 16:57:37 lijewski Exp $
+// $Id: Utility.H,v 1.36 2001-07-19 20:02:47 lijewski Exp $
 //
 
 #include <iostream>
@@ -26,127 +26,36 @@
   static member functions.
 */
 
-class Utility
+namespace BoxLib
 {
-public:
     /*@ManDoc: Returns the total user and system time used by
                the calling process up to the point of the call.
                If t != 0, it also stores the result in t.
     */
-    static double second (double* t = 0);
+    double second (double* t = 0);
 
     /*@ManDoc: Returns the current time as the number of microseconds
                relative to program startup.  If t != 0, it also
                stores the result in t.
     */
-    static double wsecond (double* t = 0);
+    double wsecond (double* t = 0);
     //
     //@ManDoc: Reset start of Wall Clock Time for wsecond() to NOW.
     //
-    static void ResetWallClockTime ();
+    void ResetWallClockTime ();
     //
     //@ManDoc: Return true if argument is a non-zero length string of digits.
     //
-    static bool is_integer (const char* str);
-
-#ifdef BL_DOES_USE_BSP_NOW
-    //
-    // The `Op' functions aren't documented as they're used only in BSP-specific code.
-    //
-    static void OpBoolAnd (bool& result,
-                           bool& arg1,
-                           bool& arg2,
-                           int*  nbytes)
-    {
-        result = arg1 && arg2;
-    }
-    static void OpBoolOr  (bool& result,
-                           bool& arg1,
-                           bool& arg2,
-                           int*  nbytes)
-    {
-        result = arg1 || arg2;
-    }
-    static void OpRealSum (Real& result,
-                           Real& arg1,
-                           Real& arg2,
-                           int*  nbytes)
-    {
-        result = arg1 + arg2;
-    }
-    static void OpRealMax (Real& result,
-                           Real& arg1,
-                           Real& arg2,
-                           int*  nbytes)
-    {
-        result = (arg1 > arg2 ? arg1 : arg2);
-    }
-    static void OpRealMin (Real& result,
-                           Real& arg1,
-                           Real& arg2,
-                           int*  nbytes)
-    {
-        result = (arg1 < arg2 ? arg1 : arg2);
-    }
-    static void OpIntMin (int& result,
-                          int& arg1,
-                          int& arg2,
-                          int* nbytes)
-    {
-        result = (arg1 < arg2 ? arg1 : arg2);
-    }
-    static void OpIntMax (int& result,
-                          int& arg1,
-                          int& arg2,
-                          int* nbytes)
-    {
-        result = (arg1 > arg2 ? arg1 : arg2);
-    }
-    static void OpIntSum (int& result,
-                          int& arg1,
-                          int& arg2,
-                          int* nbytes)
-    {
-        result = arg1 + arg2;
-    }
-    static void OpLongMin (long& result,
-                           long& arg1,
-                           long& arg2,
-                           int*  nbytes)
-    {
-        result = (arg1 < arg2 ? arg1 : arg2);
-    }
-    static void OpLongMax (long& result,
-                           long& arg1,
-                           long& arg2,
-                           int*  nbytes)
-    {
-        result = (arg1 > arg2 ? arg1 : arg2);
-    }
-    static void OpLongSum (long& result,
-                           long& arg1,
-                           long& arg2,
-                           int*  nbytes)
-    {
-        result = arg1 + arg2;
-    }
-    static void OpLongAnd (long& result,
-                           long& arg1,
-                           long& arg2,
-                           int*  nbytes)
-    {
-        result = arg1 && arg2;
-    }
-#endif
+    bool is_integer (const char* str);
     //
     //@ManDoc: Returns rootNNNN where NNNN == num.
     //
-    static aString Concatenate (const aString& root,
-                                int            num);
+    aString Concatenate (const aString& root,
+                         int            num);
 
 #ifdef WIN32
-    static bool UtilCreateDirectory (const aString& path,
-                                     int            mode);
+    bool UtilCreateDirectory (const aString& path,
+                              int            mode);
 #else
     /*@ManDoc:
       Creates the specified directories.  `path' may be either a full pathname
@@ -166,27 +75,27 @@ public:
       "\\a\\b\\c\\d\\e\\f\\g"  (Note that you must escape the backslash in a
       character string), 
     */
-    static bool UtilCreateDirectory (const aString& path,
-                                     mode_t         mode);
+    bool UtilCreateDirectory (const aString& path,
+                              mode_t         mode);
 #endif
     //
     //@ManDoc: Output a message and abort when couldn't create the directory.
     //
-    static void CreateDirectoryFailed (const aString& dir);
+    void CreateDirectoryFailed (const aString& dir);
     //
     //@ManDoc: Output a message and abort when couldn't open the file.
     //
-    static void FileOpenFailed (const aString& dir);
+    void FileOpenFailed (const aString& dir);
     //
     //@ManDoc: Attempt to unlink the file.  Ignore any errors.
     //
-    static void UnlinkFile (const aString& file);
+    void UnlinkFile (const aString& file);
 
     /*@ManDoc: Aborts after printing message indicating out-of-memory;
                i.e. operator new has failed. This is the "supported"
                set\_new\_handler() function for BoxLib applications.
      */
-    static void OutOfMemory ();
+    void OutOfMemory ();
 
     /*@ManDoc:
       Mersenne Twister pseudo-random number generator.
@@ -205,17 +114,18 @@ public:
       REAL\_T rn
       call blutilrand(rn)
     */
-    static double Random ();
+    double Random ();
 
     /*@ManDoc: Set the seed of the random number generator.
     */
-    static void InitRandom (unsigned long seed);
+    void InitRandom (unsigned long seed);
+
 #ifndef WIN32
     /*@ManDoc: Try to execute a shell command in a subshell.
                User is responsible for calling waitpid() on the pid
 	       returned from this function.
     */
-    static pid_t Execute (const char* cmd);
+    pid_t Execute (const char* cmd);
 #endif
 };
 

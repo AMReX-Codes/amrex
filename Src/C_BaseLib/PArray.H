@@ -2,7 +2,7 @@
 #define BL_PARRAY_H
 
 //
-// $Id: PArray.H,v 1.16 2001-07-19 16:57:34 lijewski Exp $
+// $Id: PArray.H,v 1.17 2001-07-19 20:02:47 lijewski Exp $
 //
 
 #include <iostream>
@@ -180,7 +180,6 @@ PArray<T>::PArray (PArrayPolicy _managed)
 {}
 
 template <class T>
-inline
 bool
 PArray<T>::defined (int i) const
 {
@@ -188,7 +187,6 @@ PArray<T>::defined (int i) const
 }
 
 template <class T>
-inline
 const T&
 PArray<T>::operator[] (int i) const
 {
@@ -197,7 +195,6 @@ PArray<T>::operator[] (int i) const
 }
 
 template <class T>
-inline
 T&
 PArray<T>::operator[] (int i)
 {
@@ -206,7 +203,6 @@ PArray<T>::operator[] (int i)
 }
 
 template <class T>
-inline
 const T&
 PArray<T>::get (int i) const
 {
@@ -215,7 +211,6 @@ PArray<T>::get (int i) const
 }
 
 template <class T>
-inline
 T&
 PArray<T>::get (int i)
 {
@@ -224,7 +219,6 @@ PArray<T>::get (int i)
 }
 
 template <class T>
-inline
 void
 PArray<T>::set (int i,
                 T*  elem)
@@ -234,7 +228,6 @@ PArray<T>::set (int i,
 }
 
 template <class T>
-inline
 int
 PArray<T>::length () const
 {
@@ -242,7 +235,6 @@ PArray<T>::length () const
 }
 
 template <class T>
-inline
 T*
 PArray<T>::remove (int i)
 {
@@ -253,7 +245,6 @@ PArray<T>::remove (int i)
 }
 
 template <class T>
-inline
 bool
 PArray<T>::ready () const
 {
@@ -261,7 +252,6 @@ PArray<T>::ready () const
 }
 
 template <class T>
-inline
 void
 PArray<T>::clear (int n)
 {

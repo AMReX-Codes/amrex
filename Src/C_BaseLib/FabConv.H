@@ -2,7 +2,7 @@
 #define BL_FABCONV_H
 
 //
-// $Id: FabConv.H,v 1.11 2001-07-19 16:57:32 lijewski Exp $
+// $Id: FabConv.H,v 1.12 2001-07-19 20:02:45 lijewski Exp $
 //
 
 #include <iostream>
@@ -65,20 +65,20 @@ public:
     //@ManDoc: The inequality operator.
     //
     bool operator!= (const IntDescriptor& id) const;
-    //
-    //@ManDoc: Write out an IntDescriptor to an ostream in ASCII.
-    //
-    friend std::ostream& operator<< (std::ostream&        os,
-                                     const IntDescriptor& id);
-    //
-    //@ManDoc: Read in an IntDescriptor from an istream.
-    //
-    friend std::istream& operator>> (std::istream&  is,
-                                     IntDescriptor& id);
+
 protected:
     long     numbytes;
     Ordering ord;
 };
+
+//
+//@ManDoc: Write out an IntDescriptor to an ostream in ASCII.
+//
+std::ostream& operator<< (std::ostream& os, const IntDescriptor& id);
+//
+//@ManDoc: Read in an IntDescriptor from an istream.
+//
+std::istream& operator>> (std::istream& is, IntDescriptor& id);
 
 //
 //@Man:
@@ -226,20 +226,19 @@ public:
                                          long                  nitems,
                                          Real*                 in,
                                          const RealDescriptor& od);
-    //
-    //@ManDoc: Write out an RealDescriptor to an ostream in ASCII.
-    //
-    friend std::ostream& operator<< (std::ostream&         os,
-                                     const RealDescriptor& id);
-    //
-    //@ManDoc: Read in a RealDescriptor from an istream.
-    //
-    friend std::istream& operator>> (std::istream&   is,
-                                     RealDescriptor& id);
 protected:
     Array<long> fr;
     Array<int>  ord;
     static bool bAlwaysFixDenormals;
 };
+
+//
+//@ManDoc: Write out an RealDescriptor to an ostream in ASCII.
+//
+std::ostream& operator<< (std::ostream& os, const RealDescriptor& id);
+//
+//@ManDoc: Read in a RealDescriptor from an istream.
+//
+std::istream& operator>> (std::istream& is, RealDescriptor& id);
 
 #endif /*BL_FABCONV_H*/

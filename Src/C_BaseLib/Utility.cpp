@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.44 2001-07-19 16:57:37 lijewski Exp $
+// $Id: Utility.cpp,v 1.45 2001-07-19 20:02:47 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -53,7 +53,7 @@ extern "C" int gettimeofday (struct timeval*, struct timezone*);
 #endif
 
 double
-Utility::second (double* t)
+BoxLib::second (double* t)
 {
     struct tms buffer;
 
@@ -101,7 +101,7 @@ get_initial_wall_clock_time ()
 double BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
 
 double
-Utility::wsecond (double* t)
+BoxLib::wsecond (double* t)
 {
     struct timeval tp;
 
@@ -123,7 +123,7 @@ extern "C" double SECOND();
 extern "C" double RTC();
 
 double
-Utility::second (double* t_)
+BoxLib::second (double* t_)
 {
     double t = SECOND();
     if (t_)
@@ -144,7 +144,7 @@ get_initial_wall_clock_time ()
 double BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
 
 double
-Utility::wsecond (double* t_)
+BoxLib::wsecond (double* t_)
 {
     double t = RTC() - BL_Initial_Wall_Clock_Time;
     if (t_)
@@ -184,7 +184,7 @@ long BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
 // we may be higher overhead.  Think about this one.
 //
 double
-Utility::second (double* t_)
+BoxLib::second (double* t_)
 {
     double t = (_rtc() - BL_Initial_Wall_Clock_Time)/BL_Clock_Rate;
     if (t_)
@@ -193,7 +193,7 @@ Utility::second (double* t_)
 }
 
 double
-Utility::wsecond (double* t_)
+BoxLib::wsecond (double* t_)
 {
     double t = (_rtc() - BL_Initial_Wall_Clock_Time)/BL_Clock_Rate;
     if (t_)
@@ -206,7 +206,7 @@ Utility::wsecond (double* t_)
 #include <time.h>
 
 double
-Utility::second (double* r)
+BoxLib::second (double* r)
 {
     static clock_t start = -1;
 
@@ -236,7 +236,7 @@ get_initial_wall_clock_time ()
 time_t BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
 
 double
-Utility::wsecond (double* r)
+BoxLib::wsecond (double* r)
 {
     time_t finish;
 
@@ -253,7 +253,7 @@ Utility::wsecond (double* r)
 #endif /*!defined(BL_ARCH_CRAY) && !defined(WIN32) && !defined(BL_T3E)*/
 
 void
-Utility::ResetWallClockTime ()
+BoxLib::ResetWallClockTime ()
 {
     BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
 }
@@ -263,7 +263,7 @@ Utility::ResetWallClockTime ()
 //
 
 bool
-Utility::is_integer (const char* str)
+BoxLib::is_integer (const char* str)
 {
     int len = 0;
 
@@ -278,8 +278,8 @@ Utility::is_integer (const char* str)
 }
 
 aString
-Utility::Concatenate (const aString& root,
-                      int            num)
+BoxLib::Concatenate (const aString& root,
+                     int            num)
 {
     aString result = root;
     char buf[sizeof(int) + 1];
@@ -304,11 +304,11 @@ Utility::Concatenate (const aString& root,
 
 bool
 #ifdef WIN32
-Utility::UtilCreateDirectory (const aString& path,
-                              int)
+BoxLib::UtilCreateDirectory (const aString& path,
+                             int)
 #else
-Utility::UtilCreateDirectory (const aString& path,
-                              mode_t         mode)
+BoxLib::UtilCreateDirectory (const aString& path,
+                             mode_t         mode)
 #endif
 {
     if (path.length() == 0 || path == path_sep_str)
@@ -372,7 +372,7 @@ Utility::UtilCreateDirectory (const aString& path,
 }
 
 void
-Utility::CreateDirectoryFailed (const aString& dir)
+BoxLib::CreateDirectoryFailed (const aString& dir)
 {
     aString msg("Couldn't create directory: ");
     msg += dir;
@@ -380,7 +380,7 @@ Utility::CreateDirectoryFailed (const aString& dir)
 }
 
 void
-Utility::FileOpenFailed (const aString& file)
+BoxLib::FileOpenFailed (const aString& file)
 {
     aString msg("Couldn't open file: ");
     msg += file;
@@ -388,13 +388,13 @@ Utility::FileOpenFailed (const aString& file)
 }
 
 void
-Utility::UnlinkFile (const aString& file)
+BoxLib::UnlinkFile (const aString& file)
 {
     unlink(file.c_str());
 }
 
 void
-Utility::OutOfMemory ()
+BoxLib::OutOfMemory ()
 {
 #ifdef BL_T3E
     malloc_stats(0);
@@ -427,7 +427,7 @@ static unsigned long mt[RAND_N];
 static int mti = RAND_N+1;
 
 void
-Utility::InitRandom (unsigned long seed)
+BoxLib::InitRandom (unsigned long seed)
 {
     /*
     ** Setting initial seeds using the generator Line 25 of Table 1 in
@@ -446,7 +446,7 @@ Utility::InitRandom (unsigned long seed)
 }
 
 double
-Utility::Random ()
+BoxLib::Random ()
 {
     static unsigned long mag01[2] = { 0x0, 0x9908b0df };
 
@@ -463,7 +463,7 @@ Utility::Random ()
             /*
             ** Use the default initial seed.
             */
-            Utility::InitRandom(4357);
+            BoxLib::InitRandom(4357);
 
         for (kk = 0; kk < RAND_N-RAND_M; kk++)
         {
@@ -494,7 +494,7 @@ Utility::Random ()
 #undef RAND_M
 
 //
-// Fortran entry point for Utility::Random().
+// Fortran entry point for BoxLib::Random().
 //
 #if defined(BL_FORT_USE_UPPERCASE)
 
@@ -504,7 +504,7 @@ void
 BLUTILRAND (Real* rn)
 {
     BL_ASSERT(rn != 0);
-    *rn = Utility::Random();
+    *rn = BoxLib::Random();
 }
 
 #elif defined(BL_FORT_USE_LOWERCASE)
@@ -514,7 +514,7 @@ void
 blutilrand (Real* rn)
 {
     BL_ASSERT(rn != 0);
-    *rn = Utility::Random();
+    *rn = BoxLib::Random();
 }
 
 #elif defined(BL_FORT_USE_UNDERSCORE)
@@ -524,7 +524,7 @@ void
 blutilrand_ (Real* rn)
 {
     BL_ASSERT(rn != 0);
-    *rn = Utility::Random();
+    *rn = BoxLib::Random();
 }
 #endif 
 
@@ -532,7 +532,7 @@ blutilrand_ (Real* rn)
 extern "C" pid_t fork();
 
 pid_t
-Utility::Execute (const char* cmd)
+BoxLib::Execute (const char* cmd)
 {
 
     pid_t pid = fork();

@@ -1,5 +1,5 @@
 //
-// $Id: Orientation.cpp,v 1.6 2001-07-19 16:57:34 lijewski Exp $
+// $Id: Orientation.cpp,v 1.7 2001-07-19 20:02:47 lijewski Exp $
 //
 
 #include <BoxLib.H>
@@ -200,7 +200,7 @@ std::ostream&
 operator<< (std::ostream&      os,
             const Orientation& o)
 {
-    os << '('<< o.val << ')' ;
+    os << '('<< int(o) << ')' ;
     if (os.fail())
         BoxLib::Error("operator<<(ostream&,Orientation&) failed");
     return os;
@@ -217,15 +217,16 @@ operator>> (std::istream& is,
 {
     char c;
     is >> c;
-    is.putback(c);
+
     if (c == '(')
     {
-        is.ignore(BL_IGNORE_MAX, '(');
         is >> o.val;
         is.ignore(BL_IGNORE_MAX, ')');
     }
     else
+    {
         BoxLib::Error("operator>>(istream&,Orientation&): expected \'(\'");
+    }
 
     if (is.fail())
         BoxLib::Error("operator>>(ostream&,Orientation&) failed");

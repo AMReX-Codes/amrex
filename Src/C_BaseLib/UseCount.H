@@ -2,7 +2,7 @@
 #define BL_USECOUNT_H
 
 //
-// $Id: UseCount.H,v 1.10 2001-07-19 16:57:37 lijewski Exp $
+// $Id: UseCount.H,v 1.11 2001-07-19 20:02:47 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -57,66 +57,5 @@ private:
     //
     void decrement ();
 };
-
-//
-// Inlines.
-//
-
-inline
-UseCount::UseCount ()
-    :
-    cnt(new unsigned int(1))
-{}
-
-inline
-UseCount::UseCount (const UseCount& rhs)
-    :
-    cnt(rhs.cnt)
-{
-    ++*cnt;
-}
-
-inline
-bool
-UseCount::unique () const
-{
-    return *cnt == 1;
-}
-
-inline
-void
-UseCount::decrement ()
-{
-    if (unique())
-    {
-        delete cnt;
-        cnt = 0;
-    }
-    else
-        --*cnt;
-}
-
-inline
-UseCount&
-UseCount::operator= (const UseCount& rhs)
-{
-    ++*rhs.cnt;
-    decrement();
-    cnt = rhs.cnt;
-    return *this;
-}
-
-inline
-UseCount::~UseCount ()
-{
-    decrement();
-}
-
-inline
-int
-UseCount::linkCount () const
-{
-    return *cnt;
-}
 
 #endif /*BL_USECOUNT_H*/
