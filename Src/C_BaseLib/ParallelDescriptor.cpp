@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.98 2003-01-27 17:10:36 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.99 2005-01-04 23:33:22 car Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -820,11 +820,31 @@ ParallelDescriptor::Waitsome (Array<MPI_Request>& reqs,
                               Array<int>&         indx,
                               Array<MPI_Status>&  status)
 {
+#ifdef JEFF_TEST
+    std::vector<MPI_Request> rq;
+    for (int i = 0; i < reqs.size(); i++)
+        if (reqs[i] != MPI_REQUEST_NULL)
+            rq.push_back(reqs[i]);
+    std::vector<MPI_Status> rst(rq.size());
+
+    BL_MPI_REQUIRE( MPI_Waitall(rq.size(), &rq[0], &rst[0]) );
+    completed = rq.size();
+    int c = 0;
+    for ( int i = 0; i < reqs.size(); ++i )
+        if (reqs[i] != MPI_REQUEST_NULL)
+    {
+	reqs[i] = rq[c];
+	status[i] = rst[c];
+	indx[c] = i;
+	c++;
+    }
+#else
     BL_MPI_REQUIRE( MPI_Waitsome(reqs.size(),
                                  reqs.dataPtr(),
                                  &completed,
                                  indx.dataPtr(),
                                  status.dataPtr()));
+#endif
 }
 
 #else /*!BL_USE_MPI*/
