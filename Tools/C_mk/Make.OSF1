@@ -1,58 +1,58 @@
 #
-# $Id: Make.OSF1,v 1.13 1999-04-16 19:19:48 lijewski Exp $
+# $Id: Make.OSF1,v 1.14 1999-05-24 17:51:57 car Exp $
 #
 
 #
 # Version 5.1 will NOT compile BoxLib.
 #
 ifeq ($(COMP),cxx)
-CXX      := cxx -define_templates
-FULLWARN := +pp -fullwarn
-CXXOPTF  += -O2 -tune host -Olimit 2400
-CXXDEBF  += -g
-CXXPRFF  := -p
-override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
-#
-# Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
-#
-DEFINES +=
+  CXX      := cxx -define_templates
+  FULLWARN := +pp -fullwarn
+  CXXOPTF  += -O2 -tune host -Olimit 2400
+  CXXDEBF  += -g
+  CXXPRFF  := -p
+  override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
+  #
+  # Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
+  #
+  DEFINES +=
 endif
 
 ifeq ($(COMP),KCC)
-CXX         := KCC
-ifneq ($(CLOSELIB), TRUE)
-CXXLIBFLAGS := -tused -tlocal
-endif
-CXXPRFF     := -p
-FULLWARN    := --strict_warnings
-CXXOPTF     += -O3 +K3 -g3 -Olimit 2000
-CXXDEBF     += +K0
-ifeq ($(WHICHOSF1),V3)
-override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
-endif
-ifeq ($(WHICHOSF1),V4)
-override XTRALIBS += -lfor -lUfor -lFutil -lots -lm
-endif
-#
-# Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
-#
-override XTRADEFS += -DBL_USE_NEW_HFILES
+  CXX         := KCC
+  ifneq ($(CLOSELIB), TRUE)
+    CXXLIBFLAGS := -tused -tlocal
+  endif
+  CXXPRFF     := -p
+  FULLWARN    := --strict_warnings
+  CXXOPTF     += -O3 +K3 -g3 -Olimit 2000
+  CXXDEBF     += +K0
+  ifeq ($(WHICHOSF1),V3)
+    override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
+  endif
+  ifeq ($(WHICHOSF1),V4)
+    override XTRALIBS += -lfor -lUfor -lFutil -lots -lm
+  endif
+  #
+  # Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
+  #
+  override XTRADEFS += -DBL_USE_NEW_HFILES
 endif
 
 ifeq ($(COMP),g++)
-override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
-#
-# Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
-#
-override XTRADEFS +=
+  override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
+  #
+  # Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
+  #
+  override XTRADEFS +=
 endif
 
 FC = f90
 
 ifeq ($(PRECISION),FLOAT)
-FOPTF += -fast -O -tune host
+  FOPTF += -fast -O -tune host
 else
-FOPTF += -fast -O -tune host
+  FOPTF += -fast -O -tune host
 endif
 
 FDEBF += -g -C -u
