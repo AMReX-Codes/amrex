@@ -1,5 +1,5 @@
 #
-# $Id: Make.rules,v 1.22 2002-06-17 19:40:42 car Exp $
+# $Id: Make.rules,v 1.23 2002-06-18 14:26:24 car Exp $
 #
 $(addprefix $(instIncludeDir)/, $(instSources)): $(instIncludeDir)/% : %
 	@if [ ! -d $(instIncludeDir) ]; then mkdir -p $(instIncludeDir); fi
@@ -104,24 +104,24 @@ $(optionsLib)(%.o): %.F
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
 	$(FORT_CPP) $(CPPFLAGS) -DBL_LANG_FORT $< | $(FORTPREP) > $(f77TempDir)/$*.f
-	$(FC) $(FLIBFLAGS) $(FFLAGS) $(FINCLFLAGS) -c $(f77TempDir)/$*.f $(FORT_LIB_OUTPUT_OPTION)
+	$(FC) $(FLIBFLAGS) $(FFLAGS) $(fincludes) -c $(f77TempDir)/$*.f $(FORT_LIB_OUTPUT_OPTION)
 	$(AR) r $@ $(objTempDir)/$*.o
 
 $(optionsLib)(%.o): %.F90
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
 	$(FORT_CPP) $(CPPFLAGS) -DBL_LANG_FORT $< | $(FORTPREP) > $(f77TempDir)/$*.f90
-	$(FC) $(FLIBFLAGS) $(FFLAGS) $(FINCLFLAGS) -c $(f77TempDir)/$*.f90 $(FORT_LIB_OUTPUT_OPTION)
+	$(FC) $(FLIBFLAGS) $(FFLAGS) $(fincludes) -c $(f77TempDir)/$*.f90 $(FORT_LIB_OUTPUT_OPTION)
 	$(AR) r $@ $(objTempDir)/$*.o
 
 $(optionsLib)(%.o): %.f90
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
-	$(fC) $(fLIBFLAGS) $(fFLAGS) -c $< $(FORT_LIB_OUTPUT_OPTION)
+	$(fC) $(fLIBFLAGS) $(fFLAGS) $(fincludes) -c $< $(FORT_LIB_OUTPUT_OPTION)
 	$(AR) r $@ $(objTempDir)/$*.o
 
 $(optionsLib)(%.o): %.f
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
-	$(fC) $(fLIBFLAGS) $(fFLAGS) -c $< $(FORT_LIB_OUTPUT_OPTION)
+	$(fC) $(fLIBFLAGS) $(fFLAGS) $(fincludes) -c $< $(FORT_LIB_OUTPUT_OPTION)
 	$(AR) r $@ $(objTempDir)/$*.o
 #
 # Rules for objects.
@@ -138,21 +138,21 @@ $(objEXETempDir)/%.o: %.F90
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	$(FORT_CPP) -DBL_LANG_FORT $(CPPFLAGS) $< | $(FORTPREP) > $(f77TempDir)/$*.f90
-	$(FC) $(FFLAGS) $(FINCLFLAGS) -c $(FEXEFLAGS) $(f77TempDir)/$*.f90 $(FORT_EXE_OUTPUT_OPTION)
+	$(FC) $(FFLAGS) $(fincludes) -c $(FEXEFLAGS) $(f77TempDir)/$*.f90 $(FORT_EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.F
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	$(FORT_CPP) -DBL_LANG_FORT $(CPPFLAGS) $< | $(FORTPREP) > $(f77TempDir)/$*.f
-	$(FC) $(FFLAGS) $(FINCLFLAGS) -c $(FEXEFLAGS) $(f77TempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
+	$(FC) $(FFLAGS) $(fincludes) -c $(FEXEFLAGS) $(f77TempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.f90
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	$(fC) $(fFLAGS) -c $(fEXEFLAGS) $< $(FORT_EXE_OUTPUT_OPTION)
+	$(fC) $(fFLAGS) $(fincludes) -c $(fEXEFLAGS) $< $(FORT_EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.f
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	$(fC) $(fFLAGS) -c $(fEXEFLAGS) $< $(FORT_EXE_OUTPUT_OPTION)
+	$(fC) $(fFLAGS) $(fincludes) -c $(fEXEFLAGS) $< $(FORT_EXE_OUTPUT_OPTION)
 #
 # Rules for dependencies in libraries.
 #
@@ -173,14 +173,28 @@ $(depTempDir)/%.d: %.c
 $(depTempDir)/%.d: %.F90
 	@echo Depending $< ...
 	@if [ ! -d $(depTempDir) ]; then mkdir -p $(depTempDir); fi
-	@$(SHELL) -ec '$(MKDEP) -fortran $(includes) $< | \
+	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
 		sed -e '\''s,$*.o,$(optionsLib)(&) $@,'\'' > $@'
 
 $(depTempDir)/%.d: %.F
 	@echo Depending $< ...
 	@if [ ! -d $(depTempDir) ]; then mkdir -p $(depTempDir); fi
-	@$(SHELL) -ec '$(MKDEP) -fortran $(includes) $< | \
+	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
+		sed -e '\''s,^[^:]*\/,,'\'' | \
+		sed -e '\''s,$*.o,$(optionsLib)(&) $@,'\'' > $@'
+
+$(depTempDir)/%.d: %.f90
+	@echo Depending $< ...
+	@if [ ! -d $(depTempDir) ]; then mkdir -p $(depTempDir); fi
+	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
+		sed -e '\''s,^[^:]*\/,,'\'' | \
+		sed -e '\''s,$*.o,$(optionsLib)(&) $@,'\'' > $@'
+
+$(depTempDir)/%.d: %.f
+	@echo Depending $< ...
+	@if [ ! -d $(depTempDir) ]; then mkdir -p $(depTempDir); fi
+	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
 		sed -e '\''s,$*.o,$(optionsLib)(&) $@,'\'' > $@'
 
@@ -201,10 +215,31 @@ $(depEXETempDir)/%.d: %.c
 		sed -e '\''s,^[^:]*\/,,'\'' | \
 		sed -e '\''s,$*.o,$(objEXETempDir)/& $@,'\'' > $@'
 
+$(depEXETempDir)/%.d: %.F90
+	@echo Depending $< ...
+	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
+	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
+		sed -e '\''s,^[^:]*\/,,'\'' | \
+		sed -e '\''s,$*.o,$(objEXETempDir)/& $@,'\'' > $@'
+
 $(depEXETempDir)/%.d: %.F
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
-	@$(SHELL) -ec '$(MKDEP) -fortran $(includes) $< | \
+	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
+		sed -e '\''s,^[^:]*\/,,'\'' | \
+		sed -e '\''s,$*.o,$(objEXETempDir)/& $@,'\'' > $@'
+
+$(depEXETempDir)/%.d: %.f90
+	@echo Depending $< ...
+	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
+	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
+		sed -e '\''s,^[^:]*\/,,'\'' | \
+		sed -e '\''s,$*.o,$(objEXETempDir)/& $@,'\'' > $@'
+
+$(depEXETempDir)/%.d: %.f
+	@echo Depending $< ...
+	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
+	@$(SHELL) -ec '$(MKDEP) -fortran $(fincludes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
 		sed -e '\''s,$*.o,$(objEXETempDir)/& $@,'\'' > $@'
 
@@ -220,6 +255,12 @@ endif
 ifdef F90LIB_sources
 -include $(F90LIB_sources:%.F90=$(depTempDir)/%.d)
 endif
+ifdef fLIB_sources
+-include $(fLIB_sources:%.f=$(depTempDir)/%.d)
+endif
+ifdef f90LIB_sources
+-include $(f90LIB_sources:%.f90=$(depTempDir)/%.d)
+endif
 ifdef cLIB_sources
 -include $(cLIB_sources:%.c=$(depTempDir)/%.d)
 endif
@@ -232,6 +273,12 @@ ifdef FEXE_sources
 endif
 ifdef F90EXE_sources
 -include $(F90EXE_sources:%.F90=$(depEXETempDir)/%.d)
+endif
+ifdef fEXE_sources
+-include $(fEXE_sources:%.f=$(depEXETempDir)/%.d)
+endif
+ifdef f90EXE_sources
+-include $(f90EXE_sources:%.f90=$(depEXETempDir)/%.d)
 endif
 ifdef cEXE_sources
 -include $(cEXE_sources:%.c=$(depEXETempDir)/%.d)
