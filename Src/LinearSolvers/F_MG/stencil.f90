@@ -271,12 +271,15 @@ contains
     real(kind=dp_t), pointer :: upn(:,:,:,:)
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
-    integer i, n
+    integer i, n, nn
+    data nn /21/
     logical :: skwd
 
     call multifab_fill_boundary(uu)
     if ( st%extrap_bc) then
+!      call multifab_print(uu, unit=nn); nn = nn + 1
        call stencil_extrap_bc(st, uu)
+!      call multifab_print(uu, unit=nn); nn = nn + 1
     end if
 
     if ( present(c) ) then
@@ -738,9 +741,9 @@ contains
     call poly_interp_coeff(cc(0:norder(1)-1,2), -HALF, xx(0:norder(1)-1,2))
     do j = 1, nn(2)
        if ( bc_dirichlet(mm( 1,j), 1, -1) ) &
-            ph(0   ,j) = sum(ph(1:norder(1)-1         ,j)*cc(1:norder(1)-1,1))
+            ph(0   ,j) = sum(ph(0:norder(1)-1         ,j)*cc(0:norder(1)-1,1))
        if ( bc_dirichlet(mm(nn(1),j), 1, +1) ) &
-            ph(nn(1)+1,j) = sum(ph(nn(1):nn(1)-(norder(1)-2):-1,j)*cc(1:norder(1)-1,2))
+            ph(nn(1)+1,j) = sum(ph(nn(1)+1:nn(1)-(norder(1)-2):-1,j)*cc(0:norder(1)-1,2))
     end do
 
     xx(0,1) = -xa(2)/dh(2)
@@ -749,9 +752,9 @@ contains
     call poly_interp_coeff(cc(0:norder(2)-1,2), -HALF, xx(0:norder(2)-1,2))
     do i = 1, nn(1)
        if ( bc_dirichlet(mm(i, 1), 2, -1) ) &
-            ph(i   ,0) = sum(ph(i,1:norder(2)-1         )*cc(1:norder(2)-1,1))
+            ph(i   ,0) = sum(ph(i,0:norder(2)-1         )*cc(0:norder(2)-1,1))
        if ( bc_dirichlet(mm(i,nn(2)), 2, +1) ) &
-            ph(i,nn(2)+1) = sum(ph(i,nn(2):nn(2)-(norder(2)-2):-1)*cc(1:norder(2)-1,2))
+            ph(i,nn(2)+1) = sum(ph(i,nn(2)+1:nn(2)-(norder(2)-2):-1)*cc(0:norder(2)-1,2))
     end do
 
     norder = min(nn, max_order+1)
