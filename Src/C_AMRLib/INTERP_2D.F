@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.7 1998-11-03 18:16:37 lijewski Exp $
+c $Id: INTERP_2D.F,v 1.8 1998-12-18 00:40:41 wyc Exp $
 c
 
 #undef  BL_LANG_CC
@@ -715,7 +715,8 @@ c ::: local var
       REAL_T cen, forw, back, slp, sgn
       REAL_T factorn, denom, slope_factor, dummy
       REAL_T fxcen, cxcen, fycen, cycen
-      logical xok, yok, ncbx, ncby
+      logical xok, yok
+      integer ncbx, ncby
 
       ncbx = cslopehi(1)-cslopelo(1)+1
       ncby = cslopehi(2)-cslopelo(2)+1
