@@ -660,8 +660,9 @@ holy_grail_amr_multigrid::cgsolve (int mglev)
     {
 	if ( ++i > HG::cgsolve_maxiter && ParallelDescriptor::IOProcessor() )
 	{
-	    BoxLib::Error( "cgsolve:"
-			   "Conjugate-gradient iteration failed to converge" );
+	    BoxLib::Warning( "cgsolve:"
+			     "Conjugate-gradient iteration failed to converge" );
+	    break;
 	}
 	Real rho_old = rho;
         //
