@@ -231,10 +231,8 @@ void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArr
     lev_min = Lev_min;
     lev_max = Lev_max;
     
-    assert(lev_min >= lev_min_min &&
-	lev_min <= lev_min_max &&
-	lev_max <= lev_max_max);
-    
+    assert(lev_min <= lev_max);
+    assert(lev_min >= lev_min_min && lev_min <= lev_min_max && lev_max <= lev_max_max);
     
     assert(type(Source[lev_min]) == type(Dest[lev_min]));
 #ifndef NDEBUG
