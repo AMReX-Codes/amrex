@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.3 1999-05-24 18:11:46 car Exp $
+# $Id: GNUmakefile,v 1.4 1999-09-29 21:46:08 sstanley Exp $
 #
 PBOXLIB_HOME = ../../
 
@@ -47,6 +47,18 @@ FDEBF += -warn truncated_source
 FDEBF += -warn unused
 endif
 endif
+
+ifeq ($(MACHINE), T3E)
+ifeq ($(WHICHT3E), NERSC)
+INCLUDE_LOCATIONS += /opt/ctl/cvt/3.1.0.0/include/X11
+INCLUDE_LOCATIONS += /opt/ctl/cvt/3.1.0.0/include/Xm
+INCLUDE_LOCATIONS += /opt/ctl/cvt/3.1.0.0/include/X11/Xaw
+LIBRARY_LOCATIONS += /opt/ctl/cvt/ctv/lib
+LIBRARIES += -lSM -lICE -lXt -lX11
+DEFINES += -D_CRAY
+endif
+endif
+
 #
 # For Running 3rd Only
 #
