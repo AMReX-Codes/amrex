@@ -4,7 +4,7 @@
 #define BL_BOXLIST_H
 
 //
-// $Id: BoxList.H,v 1.6 1998-05-04 21:24:55 lijewski Exp $
+// $Id: BoxList.H,v 1.7 1998-12-18 16:47:52 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -84,6 +84,10 @@ public:
     //@ManDoc: Join the BoxList to ourselves.
     //
     void join (const BoxList& blist);
+    //
+    //@ManDoc: Catenate the BoxList to ourselves. Removes entries from blist.
+    //
+    void catenate (BoxList& blist);
     //
     //@ManDoc: Add the Box after where the iterator points.
     //
@@ -381,6 +385,15 @@ BoxList::join (const BoxList& blist)
 {
     assert(ixType() == blist.ixType());
     lbox.join(blist.lbox);
+}
+
+inline
+void
+BoxList::catenate (BoxList& blist)
+{
+    assert(ixType() == blist.ixType());
+    lbox.catenate(blist.lbox);
+    assert(blist.isEmpty());
 }
 
 inline
