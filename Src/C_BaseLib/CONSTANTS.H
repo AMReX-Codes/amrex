@@ -4,7 +4,7 @@
 #define BL_CONSTANTS_H
 
 /*
-** $Id: CONSTANTS.H,v 1.6 1998-08-10 17:03:57 lijewski Exp $
+** $Id: CONSTANTS.H,v 1.7 2000-06-08 20:26:33 sstanley Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -26,9 +26,12 @@
 #define fifteen 15.0
 #define sixteen 16.0
 #define twenty  20.0
+#define seventy 70.0
+#define ninety  90.0
 #define tenth   0.1
 #define eighth  0.125
 #define sixth   0.16666666666667
+#define fifth   0.2
 #define forth   0.25
 #define fourth  0.25
 #define third   0.33333333333333
@@ -56,9 +59,12 @@
 #define fifteen 15.0d0
 #define sixteen 16.0d0
 #define twenty  20.0d0
+#define seventy 70.0d0
+#define ninety  90.0d0
 #define tenth   0.1d0
 #define eighth  0.125d0
 #define sixth   0.16666666666667d0
+#define fifth   0.2d0
 #define forth   0.25d0
 #define fourth  0.25d0
 #define third   0.33333333333333d0
