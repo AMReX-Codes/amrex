@@ -4,7 +4,7 @@
 #define _MCLINOP_H_
 
 //
-// $Id: MCLinOp.H,v 1.4 1999-01-04 21:31:49 lijewski Exp $
+// $Id: MCLinOp.H,v 1.5 1999-02-24 01:56:04 propp Exp $
 //
 
 #include <Assert.H>
@@ -193,7 +193,11 @@ public:
     //@ManDoc: output the operator to an ASCII stream
     //
     friend ostream& operator<< (ostream& os, const MCLinOp&  lp);
-    
+    //
+    //@ManDoc: compute the number of components required in BCRec.
+    //
+    static int bcComponentsNeeded();
+
 protected:
     //
     //@ManDoc: number of components
@@ -216,6 +220,7 @@ protected:
 			  const MultiFab& rhsL,
 			  int             level,
 			  int             phaseflag) = 0;
+
 protected:
     //
     //@ManDoc: build coefficients at coarser level by interpolating "fine" (builds in appropriate node/cell centering)
