@@ -1,6 +1,6 @@
 
 //
-// $Id: Interpolater.cpp,v 1.7 1997-12-13 19:53:07 lijewski Exp $
+// $Id: Interpolater.cpp,v 1.8 1997-12-19 19:08:55 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -215,6 +215,22 @@ CellConservative::CoarseBox(const Box& fine, int ratio)
     return crse;
 }
 
+static
+Array<int>
+GetBCArray (const Array<BCRec>& bcr)
+{
+    Array<int> bc(2*BL_SPACEDIM*bcr.length());
+
+    for (int n = 0; n < bcr.length(); n++)
+    {
+        const int* b_rec = bcr[n].vect();
+        for (int m = 0; m < 2*BL_SPACEDIM; m++)
+            bc[2*BL_SPACEDIM*n + m] = b_rec[m];
+    }
+
+    return bc;
+}
+
 void
 CellConservative::interp (FArrayBox& crse, int crse_comp,
                           FArrayBox& fine, int fine_comp,
@@ -307,6 +323,8 @@ CellConservative::interp (FArrayBox& crse, int crse_comp,
     const int* fshi = fslope_bx.hiVect();
     int slope_flag = (do_limited_slope ? 1 : 0);
 
+    Array<int> bc = GetBCArray(bcr);
+
     FORT_CCINTERP (fdat,ARLIM(flo),ARLIM(fhi),
                    ARLIM(fblo), ARLIM(fbhi),
                    &ncomp,ratio.getVect(),
@@ -314,7 +332,7 @@ CellConservative::interp (FArrayBox& crse, int crse_comp,
                    ARLIM(cblo), ARLIM(cbhi),
                    fslo,fshi,
                    cslope,&c_len,fslope,fstrip,&f_len,foff,
-                   (int*)bcr.dataPtr(), &slope_flag,
+                   bc.dataPtr(), &slope_flag,
                    D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
                    D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()));
 }
@@ -436,6 +454,8 @@ CellConservativeLinear::interp(FArrayBox& crse, int crse_comp,
     Real *voffz = new Real[fvc[2].length()];
 #endif
 
+    Array<int> bc = GetBCArray(bcr);
+
     FORT_LINCCINTERP (fdat,ARLIM(flo),ARLIM(fhi),
                       fblo, fbhi,
                       ARLIM(fvcblo), ARLIM(fvcbhi),
@@ -449,7 +469,7 @@ CellConservativeLinear::interp(FArrayBox& crse, int crse_comp,
                       ARLIM(csblo), ARLIM(csbhi),
                       csblo, csbhi,
                       &ncomp,ratio.getVect(),
-                      (int*)bcr.dataPtr(), &lin_limit,
+                      bc.dataPtr(), &lin_limit,
                       D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
                       D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()),
                       D_DECL(voffx,voffy,voffz)
@@ -582,6 +602,8 @@ CellQuadratic::interp (FArrayBox& crse, int crse_comp,
     const int* fshi = fslope_bx.hiVect();
     int slope_flag = (do_limited_slope ? 1 : 0);
 
+    Array<int> bc = GetBCArray(bcr);
+
     FORT_CQINTERP (fdat,ARLIM(flo),ARLIM(fhi),
                    ARLIM(fblo), ARLIM(fbhi),
                    &ncomp,ratio.getVect(),
@@ -589,7 +611,7 @@ CellQuadratic::interp (FArrayBox& crse, int crse_comp,
                    ARLIM(cblo), ARLIM(cbhi),
                    fslo,fshi,
                    cslope,&c_len,fslope,fstrip,&f_len,foff,
-                   (int*)bcr.dataPtr(), &slope_flag,
+                   bc.dataPtr(), &slope_flag,
                    D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
                    D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr())
                    );
