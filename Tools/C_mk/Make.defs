@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.26 1999-08-26 17:19:58 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.27 1999-09-18 00:50:34 vince Exp $
 #
 
 #
@@ -63,6 +63,27 @@ ifeq ($(MACHINE), SunOS)
             sort | head -1), 5.0)
         MACHINE := Solaris
     endif
+endif
+#
+# Set special flag for escher.nersc.gov
+#
+ifeq ($(MACHINE), IRIX64)
+  ifeq ($(findstring escher, $(UNAMEN)), escher)
+    WHICHIRIX64 := ESCHER
+  else
+    WHICHIRIX64 := GENERICSGI
+  endif
+endif
+
+#
+# Set special flag for the Linux cluster (n2001.lbl.gov)
+#
+ifeq ($(MACHINE), Linux)
+  ifeq ($(findstring n2001, $(UNAMEN)), n2001)
+    WHICHLINUX := PCCLUSTER
+  else
+    WHICHLINUX := GENERICLINUX
+  endif
 endif
 
 ifeq ($(MACHINE), HP-UX)

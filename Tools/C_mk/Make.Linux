@@ -35,3 +35,9 @@ endif
 override XTRALIBS +=   -lm
 
 FDEBF += -g
+
+ifeq ($(WHICHLINUX), PCCLUSTER)
+  LIBRARY_LOCATIONS += /usr/local/pkg/gcc/lib/gcc-lib/i686-pc-linux-gnu/2.95.1
+             #  this should be made into a link to the current version  ^^^^^^
+endif
+
