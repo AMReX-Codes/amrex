@@ -352,8 +352,8 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
 	bc[i][1] = periodic;
     }
 #endif
-    bc[0][0] = refWall;
-    bc[0][1] = refWall;
+    bc[1][0] = refWall;
+    bc[1][1] = refWall;
         
     PArray<MultiFab> u[BL_SPACEDIM];
     PArray<MultiFab> p, rhoinv, rhs;
