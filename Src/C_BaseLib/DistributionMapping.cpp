@@ -21,6 +21,7 @@
 extern "C"
 {
 void METIS_PartGraphKway(int *, int *, int *, int *, int *, int *, int *, int *, int *, int *, int *); 
+void METIS_PartGraphRecursive(int *, int *, int *, int *, int *, int *, int *, int *, int *, int *, int *); 
 }
 #endif
 
@@ -315,10 +316,20 @@ DistributionMapping::MetisProcessorMap (const BoxArray& boxes, int nprocs)
 
     if ( metis_opt != 0 ) wgtflag = 3;
 
-    METIS_PartGraphKway(
+    if ( nparts <= 8 )
+    {
+	METIS_PartGraphRecursive(
 	    &nboxes, &xadj[0], &adjncy[0], &vwgt[0], &adjwgt[0],
 	    &wgtflag, &numflag,  &nparts, options,
 	    &edgecut, &m_procmap[0]);
+    }
+    else
+    {
+	METIS_PartGraphKway(
+	    &nboxes, &xadj[0], &adjncy[0], &vwgt[0], &adjwgt[0],
+	    &wgtflag, &numflag,  &nparts, options,
+	    &edgecut, &m_procmap[0]);
+    }
 
     const int  IOProc   = ParallelDescriptor::IOProcessorNumber();
     Real       stoptime = ParallelDescriptor::second() - strttime;
