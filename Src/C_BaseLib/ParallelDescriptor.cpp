@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.82 2001-07-23 17:55:33 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.83 2001-07-24 18:16:54 lijewski Exp $
 //
 
 #include <cstdio>
@@ -179,7 +179,7 @@ std::ostream&
 operator<< (std::ostream&          os,
             const Array<CommData>& cd)
 {
-    for (int i = 0; i < cd.length(); i++)
+    for (int i = 0; i < cd.size(); i++)
         os << cd[i] << '\n';
     return os;
 }

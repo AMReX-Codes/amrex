@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.62 2001-07-22 23:25:24 car Exp $
+// $Id: MultiFab.cpp,v 1.63 2001-07-24 18:16:54 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -697,7 +697,7 @@ BuildFBsirec (const SI&       si,
     {
         const int i = mfi.index();
 
-        for (int j = 0; j < mf.length(); j++)
+        for (int j = 0; j < mf.size(); j++)
         {
             if (i != j)
             {

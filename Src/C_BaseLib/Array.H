@@ -2,7 +2,7 @@
 #define BL_ARRAY_H
 
 //
-// $Id: Array.H,v 1.24 2001-07-21 17:37:09 car Exp $
+// $Id: Array.H,v 1.25 2001-07-24 18:16:51 lijewski Exp $
 //
 
 #include <cstddef>
@@ -21,7 +21,7 @@ template <class T> class Array;
 
    This class implements an array of objects of the parameterized type
    T.  In contrast with the predefined C++ array type, an `Array<T>'
-   object knows its length, can be dynamically resized, and provides
+   object knows its size, can be dynamically resized, and provides
    automatic bounds checking.  The bounds checking can be turned off by
    specifying the -DNDEBUG flag on the command line when compiling the
    BOXLIB library.  The main reason for defining the ARRAY class is that
@@ -63,33 +63,28 @@ public:
     //
     Array ();
 
-    /*@ManDoc: Constructs an `Array<T>' of length len with the value of each
+    /*@ManDoc: Constructs an `Array<T>' of size len with the value of each
       element defined by the default constructor for `T'.
     */
     explicit Array (size_t len);
 
-    /*@ManDoc: Constructs an `Array<T>' of length len with the value of each
+    /*@ManDoc: Constructs an `Array<T>' of size len with the value of each
                elements given by initialvalue.
     */
-    Array (size_t     len,
+    Array (size_t   len,
            const T& initialvalue);
 
-    /*@ManDoc: Constructs an `Array<T>' of length len in which the K'th
+    /*@ManDoc: Constructs an `Array<T>' of size len in which the K'th
                value is a copy of vec[K].
     */
     Array (const T* vec,
-           size_t     len);
-    //
-    //@ManDoc: Return number of elements in the array.
-    //
-    long length () const;
+           size_t   len);
   
     /*@ManDoc: Returns a reference to the K'th element in this `Array<T>'.
                The element can be modified through this reference.  The
                result can be used as an L-value.
     */
     T& operator[] (size_t i);
-
     //
     //@ManDoc: Same as above, except acts on const Array's.
     //
@@ -116,7 +111,7 @@ public:
     //
     //@ManDoc: Changes the i'th element of this `Array<T>' to elem.
     //
-    void set (size_t     i,
+    void set (size_t   i,
               const T& elem);
     //
     //@ManDoc: This function swaps the i'th and j'th element of the array.
@@ -129,13 +124,6 @@ private:
     //
     Array<T>& operator= (int);
 };
-
-template <class T>
-long
-Array<T>::length () const
-{
-    return size();
-}
 
 template <class T>
 T&
@@ -197,23 +185,20 @@ template <class T>
 Array<T>::Array ()
     :
     std::vector<T>()
-{
-}
+{}
 
 template <class T>
 Array<T>::Array (size_t len)
     :
     std::vector<T>(len)
-{
-}
+{}
 
 template <class T>
 Array<T>::Array (size_t     len,
                  const T& initialValue)
     :
     std::vector<T>(len, initialValue)
-{
-}
+{}
 
 template <class T>
 Array<T>::Array (const T* vec,

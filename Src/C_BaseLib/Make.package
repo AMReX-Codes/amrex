@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.27 2001-07-23 17:55:32 lijewski Exp $
+# $Id: Make.package,v 1.28 2001-07-24 18:16:54 lijewski Exp $
 #
 
 BOXLIB_BASE=EXE
@@ -39,7 +39,7 @@ C$(BOXLIB_BASE)_headers += WorkQueue.H
 #
 # Container classes.
 #
-T_headers += Array.H PArray.H List.H Pointers.H Tuple.H
+T_headers += Array.H PArray.H Pointers.H Tuple.H
 
 #
 # FAB I/O stuff.

@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.138 2001-07-24 18:12:35 car Exp $
+// $Id: FabArray.H,v 1.139 2001-07-24 18:16:53 lijewski Exp $
 //
 
 #include <cstring>
@@ -193,9 +193,9 @@ public:
     */
     virtual Box fabbox (int K) const;
     //
-    //@ManDoc: Returns the length of this FabArray; i.e. the number of FABs.
+    //@ManDoc: Returns the number of FABs in the FabArray..
     //
-    int length () const;
+    size_t size () const;
 
     /*@ManDoc: Returns a constant reference to the FAB associated with the
                Kth element.
@@ -946,10 +946,10 @@ FabArray<FAB>::fabbox (int K) const
 }
 
 template <class FAB>
-int
-FabArray<FAB>::length () const
+size_t
+FabArray<FAB>::size () const
 {
-    return boxarray.length();
+    return boxarray.size();
 }
 
 template <class FAB>
@@ -1062,12 +1062,12 @@ FabArray<FAB>::define (const BoxArray& bxs,
                          int             ngrow,
                          FabAlloc        alloc)
 {
-    BL_ASSERT(boxarray.length() == 0);
+    BL_ASSERT(boxarray.size() == 0);
     n_grow = ngrow;
     n_comp = 0;
     boxarray.define(bxs);
     distributionMap.define(boxarray,ParallelDescriptor::NProcsCFD());
-    fabparray.resize(boxarray.length());
+    fabparray.resize(boxarray.size());
     if (alloc == Fab_allocate)
     {
         n_comp = 1;
@@ -1078,16 +1078,16 @@ FabArray<FAB>::define (const BoxArray& bxs,
 template <class FAB>
 void
 FabArray<FAB>::define (const BoxArray& bxs,
-                         int             nvar,
-                         int             ngrow,
-                         FabAlloc        alloc)
+                       int             nvar,
+                       int             ngrow,
+                       FabAlloc        alloc)
 {
-    BL_ASSERT(boxarray.length() == 0);
+    BL_ASSERT(boxarray.size() == 0);
     n_grow = ngrow;
     n_comp = nvar;
     boxarray.define(bxs);
     distributionMap.define(boxarray,ParallelDescriptor::NProcsCFD());
-    fabparray.resize(bxs.length());
+    fabparray.resize(bxs.size());
     if (alloc == Fab_allocate)
         AllocFabs();
 }
@@ -1100,12 +1100,12 @@ FabArray<FAB>::define (const BoxArray&            bxs,
                        const DistributionMapping& dm,
                        FabAlloc                   alloc)
 {
-    BL_ASSERT(boxarray.length() == 0);
+    BL_ASSERT(boxarray.size() == 0);
     n_grow = ngrow;
     n_comp = nvar;
     boxarray.define(bxs);
     distributionMap = dm;
-    fabparray.resize(bxs.length());
+    fabparray.resize(bxs.size());
     if (alloc == Fab_allocate)
         AllocFabs();
 }
@@ -1134,7 +1134,7 @@ FabArray<FAB>::setFab (int  boxno,
         n_comp = elem->nComp();
 
     BL_ASSERT(n_comp == elem->nComp());
-    BL_ASSERT(boxarray.length() > 0);
+    BL_ASSERT(boxarray.size() > 0);
     BL_ASSERT(elem->box() == BoxLib::grow(boxarray[boxno],n_grow));
     BL_ASSERT(!fabparray.defined(boxno));
     BL_ASSERT(distributionMap[boxno] == ParallelDescriptor::MyProc());
@@ -1203,11 +1203,11 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     FabComTag tag;
 
-    for (int i = 0; i < length(); i++)
+    for (int i = 0; i < size(); i++)
     {
         if (distributionMap[i] == MyProc)
         {
-            for (int ii = 0; ii < src.boxarray.length(); ii++)
+            for (int ii = 0; ii < src.boxarray.size(); ii++)
             {
                 if (src.boxarray[ii].intersects(boxarray[i]))
                 {
@@ -1229,7 +1229,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
         }
         else
         {
-            for (int ii = 0; ii < src.boxarray.length(); ii++)
+            for (int ii = 0; ii < src.boxarray.size(); ii++)
             {
                 if (src.distributionMap[ii] == MyProc)
                 {
@@ -1367,9 +1367,9 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     }
     else
     {
-        for (int i = 0; i < length(); ++i)
+        for (int i = 0; i < size(); ++i)
         {
-            for (int ii = 0; ii < src.boxarray.length(); ++ii)
+            for (int ii = 0; ii < src.boxarray.size(); ++ii)
             {
                 if (src.boxarray[ii].intersects(boxarray[i]))
                 {
@@ -1433,7 +1433,7 @@ FabArray<FAB>::copy (FAB&       dest,
 
     if (ParallelDescriptor::NProcs() == 1)
     {
-        for (int j = 0; j < length(); ++j)
+        for (int j = 0; j < size(); ++j)
         {
             if (boxarray[j].intersects(subbox))
             {
@@ -1449,7 +1449,7 @@ FabArray<FAB>::copy (FAB&       dest,
 #ifdef BL_USE_MPI
     FArrayBox overlapData;
 
-    for (int i = 0; i < length(); i++)
+    for (int i = 0; i < size(); i++)
     {
         if (subbox.intersects(boxarray[i]))
         {
@@ -1636,12 +1636,12 @@ FabArrayIterator<FAB>::isValid ()
     extern bool HG_is_debugging;
     if (HG_is_debugging)
     {
-	if (currentIndex < fabArray.length()) return true;
+	if (currentIndex < fabArray.size()) return true;
 	BL_MPI_REQUIRE( MPI_Barrier(ParallelDescriptor::Communicator()) );
 	return false;
     }
 #endif
-    return currentIndex < fabArray.length();
+    return currentIndex < fabArray.size();
 }
 
 template <class FAB>
@@ -1824,12 +1824,12 @@ ConstFabArrayIterator<FAB>::isValid () const
     extern bool HG_is_debugging;
     if (HG_is_debugging)
     {
-	if (currentIndex < fabArray.length()) return true;
+	if (currentIndex < fabArray.size()) return true;
 	MPI_REQUITE( MPI_Barrier(ParallelDescriptor::Communicator()) );
 	return false;
     }
 #endif
-    return currentIndex < fabArray.length();
+    return currentIndex < fabArray.size();
 }
 
 template <class FAB>
@@ -1923,7 +1923,7 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
 
     FabArray<FAB>* fabArray = fabArrays[fabarrayid.Id()];
 
-    BL_ASSERT(faindex >= 0 && faindex < fabArray->length());
+    BL_ASSERT(faindex >= 0 && faindex < fabArray->size());
 
     Box intersect = destFabBox;
 
@@ -2013,7 +2013,7 @@ FabArrayCopyDescriptor<FAB>::AddBox (FabArrayId fabarrayid,
         unfilledBoxDomain.add(destFabBox);
     }
 
-    for (int i = 0, N = fabArrays[fabarrayid.Id()]->length(); i < N; i++)
+    for (int i = 0, N = fabArrays[fabarrayid.Id()]->size(); i < N; i++)
     {
         AddBoxDoIt(fabarrayid,
                    destFabBox,
@@ -2173,7 +2173,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
     // Set Snds[i] to # of blocks we must send to CPU i ...
     //
 #ifdef NDEBUG
-    if (snd_cache == 0 || snd_cache->length() == 0)
+    if (snd_cache == 0 || snd_cache->size() == 0)
 #endif
     {
         for (int i = 0; i < NProcs; i++)
@@ -2191,7 +2191,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
     if (snd_cache)
     {
-        if (snd_cache->length() > 0)
+        if (snd_cache->size() > 0)
         {
             BL_ASSERT(Snds == *snd_cache);
 
@@ -2269,7 +2269,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
                 BL_ASSERT(Processed == Rcvs[i]);
 
                 BL_MPI_REQUIRE( MPI_Send(senddata.dataPtr(),
-				      senddata.length() * CommData::DIM,
+				      senddata.size() * CommData::DIM,
 				      MPI_INT,
 				      i,
 				      seqno_1,

@@ -2,7 +2,7 @@
 #define BL_BOXLIST_H
 
 //
-// $Id: BoxList.H,v 1.23 2001-07-23 22:30:24 car Exp $
+// $Id: BoxList.H,v 1.24 2001-07-24 18:16:52 lijewski Exp $
 //
 
 #include <iostream>
@@ -22,15 +22,18 @@ namespace BoxLib
     /*@ManDoc: Returns a BoxList defining the complement of BoxList bl
       in Box b.
     */
-    BoxList complementIn(const Box& b, const BoxList& bl);
+    BoxList complementIn (const Box& b, const BoxList& bl);
+
     //
     //@ManDoc: Returns BoxList defining the compliment of b2 in b1in.
     //
     BoxList boxDiff (const Box& b1in, const Box& b2);
+
     /*@ManDoc: Returns a new BoxList in which each Box is refined by the
       given ratio.
     */
     BoxList refine (const BoxList&  bl, int ratio);
+
     /*@ManDoc: Returns a new BoxList in which each Box is coarsened by
       the given ratio.
     */
@@ -68,9 +71,9 @@ std::ostream& operator<< (std::ostream&  os, const BoxList& blist);
 
 class BoxList
 {
-    friend class BoxDomain;
-
 public:
+
+    friend class BoxDomain;
 
     typedef std::list<Box>::iterator       Iterator;
     typedef std::list<Box>::const_iterator ConstIterator;
@@ -103,23 +106,13 @@ public:
     //
     void catenate (BoxList& blist);
     //
-    //@ManDoc: Add the Box after where the iterator points.
-    //
-    //void addAfter (Iterator& bli,
-    //const Box&       bn);
-    //
-    //@ManDoc: Add the Box before where the iterator points.
-    //
-    //void addBefore (Iterator& bli,
-    //const Box&       bn);
-    //
     //@ManDoc: Remove all Boxes from this BoxList.
     //
     void clear ();
     //
     //@ManDoc: The number of Boxes in this BoxList.
     //
-    int length () const;
+    size_t size () const;
 
     Iterator begin ();
     ConstIterator begin () const;
@@ -237,10 +230,9 @@ public:
                number of Boxes merged.
     */
     int minimize ();
-
-    /*@ManDoc: Forces each Box in the BoxList to have sides of 
-               length <= chunk.
-    */
+    //
+    //@ManDoc: Forces each Box in the BoxList to have sides of length <= chunk.
+    //
     BoxList& maxSize (int chunk);
 
     /*@ManDoc: Forces each Box in the BoxList to have dimth side of 
@@ -277,6 +269,7 @@ public:
     //@ManDoc: Applies Box::convert(IndexType) to each Box in the BoxList.
     //
     BoxList& convert (IndexType typ);
+
 protected:
     //
     // The list of Boxes.

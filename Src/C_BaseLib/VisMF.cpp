@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.79 2001-07-23 17:55:34 lijewski Exp $
+// $Id: VisMF.cpp,v 1.80 2001-07-24 18:16:55 lijewski Exp $
 //
 
 #include <cstdio>
@@ -54,7 +54,7 @@ std::ostream&
 operator<< (std::ostream&                  os,
             const Array<VisMF::FabOnDisk>& fa)
 {
-    long i = 0, N = fa.length();
+    long i = 0, N = fa.size();
 
     os << N << '\n';
 
@@ -96,13 +96,13 @@ std::ostream&
 operator<< (std::ostream&               os,
             const Array< Array<Real> >& ar)
 {
-    long i = 0, N = ar.length(), M = (N == 0) ? 0 : ar[0].length();
+    long i = 0, N = ar.size(), M = (N == 0) ? 0 : ar[0].size();
 
     os << N << ',' << M << '\n';
 
     for ( ; i < N; i++)
     {
-        BL_ASSERT(ar[i].length() == M);
+        BL_ASSERT(ar[i].size() == M);
 
         for (long j = 0; j < M; j++)
         {
@@ -204,13 +204,13 @@ operator>> (std::istream&  is,
     hd.m_ba = BoxArray(is);
 
     is >> hd.m_fod;
-    BL_ASSERT(hd.m_ba.length() == hd.m_fod.length());
+    BL_ASSERT(hd.m_ba.size() == hd.m_fod.size());
 
     is >> hd.m_min;
     is >> hd.m_max;
 
-    BL_ASSERT(hd.m_ba.length() == hd.m_min.length());
-    BL_ASSERT(hd.m_ba.length() == hd.m_max.length());
+    BL_ASSERT(hd.m_ba.size() == hd.m_min.size());
+    BL_ASSERT(hd.m_ba.size() == hd.m_max.size());
 
     if (!is.good())
         BoxLib::Error("Read of VisMF::Header failed");
@@ -230,10 +230,10 @@ VisMF::nGrow () const
     return m_hdr.m_ngrow;
 }
 
-int
-VisMF::length () const
+size_t
+VisMF::size () const
 {
-    return m_hdr.m_ba.length();
+    return m_hdr.m_ba.size();
 }
 
 const BoxArray&
@@ -246,7 +246,7 @@ Real
 VisMF::min (int fabIndex,
             int nComp) const
 {
-    BL_ASSERT(0 <= fabIndex && fabIndex < m_hdr.m_ba.length());
+    BL_ASSERT(0 <= fabIndex && fabIndex < m_hdr.m_ba.size());
     BL_ASSERT(0 <= nComp && nComp < m_hdr.m_ncomp);
     return m_hdr.m_min[fabIndex][nComp];
 }
@@ -255,7 +255,7 @@ Real
 VisMF::max (int fabIndex,
             int nComp) const
 {
-    BL_ASSERT(0 <= fabIndex && fabIndex < m_hdr.m_ba.length());
+    BL_ASSERT(0 <= fabIndex && fabIndex < m_hdr.m_ba.size());
     BL_ASSERT(0 <= nComp && nComp < m_hdr.m_ncomp);
     return m_hdr.m_max[fabIndex][nComp];
 }
@@ -294,7 +294,7 @@ VisMF::FileOffset (std::ostream& os)
 }
 
 FArrayBox*
-VisMF::readFAB (int            idx,
+VisMF::readFAB (int                idx,
                 const std::string& mf_name)
 {
     return VisMF::readFAB(idx,mf_name,m_hdr,-1);
@@ -366,10 +366,10 @@ VisMF::DirName (const std::string& filename)
 }
 
 VisMF::FabOnDisk
-VisMF::Write (const FArrayBox& fab,
-              const std::string&   filename,
-              std::ostream&    os,
-              long&            bytes)
+VisMF::Write (const FArrayBox&   fab,
+              const std::string& filename,
+              std::ostream&      os,
+              long&              bytes)
 {
     VisMF::FabOnDisk fab_on_disk(filename, VisMF::FileOffset(os));
 
@@ -403,9 +403,9 @@ VisMF::Header::Header (const MultiFab& mf,
     m_ncomp(mf.nComp()),
     m_ngrow(mf.nGrow()),
     m_ba(mf.boxArray()),
-    m_fod(m_ba.length()),
-    m_min(m_ba.length()),
-    m_max(m_ba.length())
+    m_fod(m_ba.size()),
+    m_min(m_ba.size()),
+    m_max(m_ba.size())
 {
 #ifdef BL_USE_MPI
     //
@@ -479,7 +479,7 @@ VisMF::Header::Header (const MultiFab& mf,
         Array<MPI_Status>    status(NProcs);
         Array< Array<Real> > data(NProcs);
 
-        for (int i = 0, N = procmap.length(); i < N; i++)
+        for (int i = 0, N = procmap.size(); i < N; i++)
             fabs[procmap[i]]++;
 
         fabs[IOProc] = 0;
@@ -516,7 +516,7 @@ VisMF::Header::Header (const MultiFab& mf,
             {
                 int Ncpu = indx[k], offset = 0;
 
-                for (int idx = 0, N = procmap.length(); idx < N; idx++)
+                for (int idx = 0, N = procmap.size(); idx < N; idx++)
                 {
                     if (procmap[idx] == Ncpu)
                     {
@@ -558,7 +558,7 @@ VisMF::Header::Header (const MultiFab& mf,
 
 long
 VisMF::WriteHeader (const std::string& mf_name,
-                    VisMF::Header& hdr)
+                    VisMF::Header&     hdr)
 {
     long bytes = 0;
     //
@@ -575,7 +575,7 @@ VisMF::WriteHeader (const std::string& mf_name,
         std::ofstream MFHdrFile;
 
 #ifdef BL_USE_SETBUF
-        MFHdrFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
+        MFHdrFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 #endif
 
         MFHdrFile.open(MFHdrFileName.c_str(), std::ios::out|std::ios::trunc);
@@ -593,10 +593,10 @@ VisMF::WriteHeader (const std::string& mf_name,
 }
 
 long
-VisMF::Write (const MultiFab& mf,
-              const std::string&  mf_name,
-              VisMF::How      how,
-              bool            set_ghost)
+VisMF::Write (const MultiFab&    mf,
+              const std::string& mf_name,
+              VisMF::How         how,
+              bool               set_ghost)
 {
     BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
 
@@ -645,7 +645,7 @@ VisMF::Write (const MultiFab& mf,
     std::ofstream FabFile;
 
 #ifdef BL_USE_SETBUF
-    FabFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
+    FabFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 #endif
 
     FabFile.open(FullFileName.c_str(), std::ios::out|
@@ -695,7 +695,7 @@ VisMF::Write (const MultiFab& mf,
         Array<MPI_Status>    status(NProcs);
         Array< Array<long> > data(NProcs);
 
-        for (int i = 0, N = procmap.length(); i < N; i++)
+        for (int i = 0, N = procmap.size(); i < N; i++)
             fabs[procmap[i]]++;
 
         fabs[IOProc] = 0;
@@ -732,7 +732,7 @@ VisMF::Write (const MultiFab& mf,
             {
                 int Ncpu = indx[k], offset = 0;
 
-                for (int idx = 0, N = procmap.length(); idx < N; idx++)
+                for (int idx = 0, N = procmap.size(); idx < N; idx++)
                 {
                     if (procmap[idx] == Ncpu)
                     {
@@ -775,7 +775,7 @@ VisMF::VisMF (const std::string& mf_name)
     std::ifstream ifs;
 
 #ifdef BL_USE_SETBUF
-    ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
+    ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 #endif
 
     ifs.open(FullHdrFileName.c_str(), std::ios::in);
@@ -787,11 +787,11 @@ VisMF::VisMF (const std::string& mf_name)
 
     m_pa.resize(m_hdr.m_ncomp);
 
-    for (int nComp = 0; nComp < m_pa.length(); ++nComp)
+    for (int nComp = 0; nComp < m_pa.size(); ++nComp)
     {
-        m_pa[nComp].resize(m_hdr.m_ba.length());
+        m_pa[nComp].resize(m_hdr.m_ba.size());
 
-        for (int ii = 0; ii < m_pa[nComp].length(); ++ii)
+        for (int ii = 0; ii < m_pa[nComp].size(); ++ii)
         {
             m_pa[nComp][ii] = 0;
         }
@@ -800,7 +800,7 @@ VisMF::VisMF (const std::string& mf_name)
 
 FArrayBox*
 VisMF::readFAB (int                  idx,
-                const std::string&       mf_name,
+                const std::string&   mf_name,
                 const VisMF::Header& hdr,
 		int                  ncomp)
 {
@@ -820,7 +820,7 @@ VisMF::readFAB (int                  idx,
     std::ifstream ifs;
 
 #ifdef BL_USE_SETBUF
-    ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
+    ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 #endif
 
     ifs.open(FullFileName.c_str(), std::ios::in|std::ios::binary);
@@ -844,7 +844,7 @@ VisMF::readFAB (int                  idx,
 }
 
 void
-VisMF::Read (MultiFab&      mf,
+VisMF::Read (MultiFab&          mf,
              const std::string& mf_name)
 {
     VisMF::Header hdr;
@@ -858,7 +858,7 @@ VisMF::Read (MultiFab&      mf,
         std::ifstream ifs;
 
 #ifdef BL_USE_SETBUF
-        ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
+        ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 #endif
 
         ifs.open(FullHdrFileName.c_str(), std::ios::in);
@@ -881,7 +881,7 @@ VisMF::Read (MultiFab&      mf,
 void
 VisMF::clear (int fabIndex)
 {
-    for (int ncomp = 0; ncomp < m_pa.length(); ++ncomp)
+    for (int ncomp = 0; ncomp < m_pa.size(); ++ncomp)
     {
         clear(ncomp, fabIndex);
     }
@@ -890,9 +890,9 @@ VisMF::clear (int fabIndex)
 void
 VisMF::clear ()
 {
-    for (int ncomp = 0; ncomp < m_pa.length(); ++ncomp)
+    for (int ncomp = 0; ncomp < m_pa.size(); ++ncomp)
     {
-        for (int fabIndex = 0; fabIndex < m_pa[ncomp].length(); ++fabIndex)
+        for (int fabIndex = 0; fabIndex < m_pa[ncomp].size(); ++fabIndex)
         {
             clear(ncomp, fabIndex);
         }

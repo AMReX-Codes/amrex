@@ -1,5 +1,5 @@
 //
-// $Id: BoxDomain.cpp,v 1.14 2001-07-24 05:12:48 car Exp $
+// $Id: BoxDomain.cpp,v 1.15 2001-07-24 18:16:52 lijewski Exp $
 //
 
 #include <BoxDomain.H>
@@ -160,10 +160,12 @@ BoxDomain::rmBox (const Box& b)
         {
             BoxList tmpbl(BoxLib::boxDiff(*bli,b));
             tmp.splice(tmp.end(), tmpbl.listBox());
-            bli = lbox.erase(bli);
+            lbox.erase(bli++);
         }
         else
+        {
             ++bli;
+        }
     }
     lbox.splice(lbox.end(), tmp);
     return *this;
@@ -184,16 +186,15 @@ BoxDomain::ok () const
         for (ConstIterator bli = begin(); bli != end(); ++bli)
         {
             ConstIterator blii = bli; ++blii;
-            while ( blii != end() )
+            for ( ; blii != end(); ++blii)
             {
-                if ( bli->intersects(*blii) )
+                if (bli->intersects(*blii))
                 {
                     std::cout << "Invalid DOMAIN, boxes overlap" << '\n'
                               << "b1 = " << *bli << '\n'
                               << "b2 = " << *blii << '\n';
                     status = false;
                 }
-                ++blii;
             }
         }
     }

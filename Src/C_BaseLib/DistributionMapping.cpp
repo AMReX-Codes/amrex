@@ -1,5 +1,5 @@
 //
-// $Id: DistributionMapping.cpp,v 1.51 2001-07-23 21:32:38 car Exp $
+// $Id: DistributionMapping.cpp,v 1.52 2001-07-24 18:16:53 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -117,15 +117,15 @@ std::vector< Array<int> > DistributionMapping::m_Cache;
 bool
 DistributionMapping::GetMap (const BoxArray& boxes)
 {
-    const int N = boxes.length();
+    const int N = boxes.size();
 
-    BL_ASSERT(m_procmap.length() == N + 1);
+    BL_ASSERT(m_procmap.size() == N + 1);
     //
     // Search from back to front ...
     //
     for (int i = m_Cache.size() - 1; i >= 0; i--)
     {
-        if (m_Cache[i].length() == N + 1)
+        if (m_Cache[i].size() == N + 1)
         {
             const Array<int>& cached_procmap = m_Cache[i];
 
@@ -149,7 +149,7 @@ DistributionMapping::DistributionMapping ()
 
 DistributionMapping::DistributionMapping (const BoxArray& boxes, int nprocs)
     :
-    m_procmap(boxes.length()+1)
+    m_procmap(boxes.size()+1)
 {
     if (!m_Initialized)
         DistributionMapping::init();
@@ -166,8 +166,8 @@ DistributionMapping::DistributionMapping (const DistributionMapping& d1,
     const Array<int>& pmap_1 = d1.ProcessorMap();
     const Array<int>& pmap_2 = d2.ProcessorMap();
 
-    const int L1 = pmap_1.length() - 1; // Length not including sentinel.
-    const int L2 = pmap_2.length() - 1; // Length not including sentinel.
+    const int L1 = pmap_1.size() - 1; // Length not including sentinel.
+    const int L2 = pmap_2.size() - 1; // Length not including sentinel.
 
     m_procmap.resize(L1+L2+1);
 
@@ -179,14 +179,14 @@ DistributionMapping::DistributionMapping (const DistributionMapping& d1,
     //
     // Set sentinel equal to our processor number.
     //
-    m_procmap[m_procmap.length()-1] = ParallelDescriptor::MyProc();
+    m_procmap[m_procmap.size()-1] = ParallelDescriptor::MyProc();
 }
 
 void
 DistributionMapping::define (const BoxArray& boxes, int nprocs)
 {
-    if (!(m_procmap.length() == boxes.length()+1))
-        m_procmap.resize(boxes.length()+1);
+    if (!(m_procmap.size() == boxes.size()+1))
+        m_procmap.resize(boxes.size()+1);
 
     if (DistributionMapping::m_Strategy == ROUNDROBIN)
     {
@@ -225,13 +225,13 @@ DistributionMapping::AddToCache (const DistributionMapping& dm)
     bool              doit = true;
     const Array<int>& pmap = dm.ProcessorMap();
 
-    if (pmap.length() > 0)
+    if (pmap.size() > 0)
     {
-        BL_ASSERT(pmap[pmap.length()-1] == ParallelDescriptor::MyProc());
+        BL_ASSERT(pmap[pmap.size()-1] == ParallelDescriptor::MyProc());
 
         for (unsigned int i = 0; i < m_Cache.size() && doit; i++)
         {
-            if (pmap.length() == m_Cache[i].length())
+            if (pmap.size() == m_Cache[i].size())
             {
                 BL_ASSERT(pmap == m_Cache[i]);
 
@@ -262,15 +262,15 @@ DistributionMapping::RoundRobinProcessorMap (int nboxes, int nprocs)
 void
 DistributionMapping::RoundRobinProcessorMap (const BoxArray& boxes, int nprocs)
 {
-    BL_ASSERT(boxes.length() > 0);
-    BL_ASSERT(m_procmap.length() == boxes.length()+1);
+    BL_ASSERT(boxes.size() > 0);
+    BL_ASSERT(m_procmap.size() == boxes.size()+1);
 
-    for (int i = 0; i < boxes.length(); i++)
+    for (int i = 0; i < boxes.size(); i++)
         m_procmap[i] = i % nprocs;
     //
     // Set sentinel equal to our processor number.
     //
-    m_procmap[boxes.length()] = ParallelDescriptor::MyProc();
+    m_procmap[boxes.size()] = ParallelDescriptor::MyProc();
 }
 
 #ifdef BL_USE_MPI
@@ -500,17 +500,17 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<long>& pts,
 void
 DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes, int nprocs)
 {
-    BL_ASSERT(boxes.length() > 0);
-    BL_ASSERT(m_procmap.length() == boxes.length()+1);
+    BL_ASSERT(boxes.size() > 0);
+    BL_ASSERT(m_procmap.size() == boxes.size()+1);
 
-    if (boxes.length() <= nprocs || nprocs < 2)
+    if (boxes.size() <= nprocs || nprocs < 2)
     {
         RoundRobinProcessorMap(boxes,nprocs);
     }
     else
     {
 #ifdef BL_USE_MPI
-        std::vector<long> pts(boxes.length());
+        std::vector<long> pts(boxes.size());
 
         for (unsigned int i = 0; i < pts.size(); i++)
             pts[i] = boxes[i].numPts();
@@ -531,7 +531,7 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes, int nprocs)
         //
         // Set sentinel equal to our processor number.
         //
-        m_procmap[boxes.length()] = ParallelDescriptor::MyProc();
+        m_procmap[boxes.size()] = ParallelDescriptor::MyProc();
 #else
         BoxLib::Error("How did this happen?");
 #endif
@@ -552,7 +552,7 @@ DistributionMapping::CacheStats (std::ostream& os)
             os << "\tMap #"
                << i
                << " is of length "
-               << m_Cache[i].length()
+               << m_Cache[i].size()
                << '\n';
         }
         os << '\n';
@@ -567,7 +567,7 @@ operator<< (std::ostream&              os,
     //
     // Do not print the sentinel value.
     //
-    for (int i = 0; i < pmap.ProcessorMap().length() - 1; i++)
+    for (int i = 0; i < pmap.ProcessorMap().size() - 1; i++)
     {
         os << "m_procmap[" << i << "] = " << pmap.ProcessorMap()[i] << '\n';
     }
