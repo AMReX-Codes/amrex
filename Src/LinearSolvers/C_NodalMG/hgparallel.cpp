@@ -19,8 +19,8 @@ void HG::MPI_init()
     if ( first == 0 )
     {
 	first = 1;
-	int flag;
 	int res;
+	// int flag;
 	// res = MPI_Attr_get(MPI_COMM_WORLD, MPI_TAG_UB, &mpi_tag_ub, &flag);
 	// if ( res != 0  )
 	//    ParallelDescriptor::Abort( res );
@@ -266,12 +266,10 @@ bool task_copy::depends_on_q(const task* t1) const
     if ( !eq(m_mf, m_smf) ) return false;
     if ( const task_copy* t1tc = dynamic_cast<const task_copy*>(t1) )
     {
-	const Box& t1_bx = t1tc->m_bx;
-	const Box& t1_sbx = t1tc->m_sbx;
-        if ( m_sbx.intersects(t1_bx)  ) return true;
-	if ( m_bx.intersects(t1_bx)   ) return true;
-        if ( m_sbx.intersects(t1_sbx) ) return true;
-	if ( m_bx.intersects(t1_sbx)  ) return true;
+	if ( m_sgrid == t1tc->m_dgrid && m_sbx.intersects(t1tc->m_bx) ) return true;
+	if ( m_dgrid == t1tc->m_dgrid && m_sbx.intersects(t1tc->m_bx) ) return true;
+	if ( m_sgrid == t1tc->m_sgrid && m_bx.intersects(t1tc->m_sbx) ) return true;
+	if ( m_dgrid == t1tc->m_sgrid && m_bx.intersects(t1tc->m_sbx) ) return true;
     }
     return false;
 }
