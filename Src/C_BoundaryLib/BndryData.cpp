@@ -1,12 +1,16 @@
 
 //
-// $Id: BndryData.cpp,v 1.13 2000-10-02 20:51:15 lijewski Exp $
+// $Id: BndryData.cpp,v 1.14 2001-01-19 22:57:48 marc Exp $
 //
 
 #include <BndryData.H>
 #include <Utility.H>
 #include <LO_BCTYPES.H>
 #include <ParallelDescriptor.H>
+
+// Mask info required for this many cells past grid edge
+//  (here, e.g. ref=4, crse stencil width=3, and let stencil slide 2 past grid edge)
+int BndryData::NTangHalfWidth = 5;
 
 BndryData::BndryData (const BoxArray& _grids,
                       int             _ncomp, 
@@ -144,7 +148,8 @@ BndryData::define (const BoxArray& _grids,
             {
                 if (dir == coord_dir)
                     continue;
-                face_box.grow(dir,1);
+                //face_box.grow(dir,1);
+                face_box.grow(dir,NTangHalfWidth);
             }
             Mask* m = new Mask(face_box);
             m->setVal(outside_domain,0);
