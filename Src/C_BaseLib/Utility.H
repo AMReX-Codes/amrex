@@ -4,7 +4,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.8 1997-11-12 21:57:27 lijewski Exp $
+// $Id: Utility.H,v 1.9 1997-11-17 19:02:03 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -152,8 +152,12 @@ public:
     // will return successfully when all the directories in the pathname
     // exist; i.e. when the full pathname is a valid directory.
     //
+#ifdef WIN32
+    static bool CreateDirectory (const aString& path);
+#else
     static bool CreateDirectory (const aString& path,
                                  mode_t         mode);
+#endif
 };
 
 //

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.5 1997-11-13 15:47:34 lijewski Exp $
+// $Id: Utility.cpp,v 1.6 1997-11-17 19:02:03 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -21,6 +21,10 @@
 #include <Misc.H>
 #include <BoxLib.H>
 #include <Utility.H>
+
+#ifdef WIN32
+#include <direct.h>
+#endif
 
 #if !defined(BL_ARCH_CRAY) && !defined(WIN32)
 //
@@ -185,9 +189,14 @@ Utility::is_integer (const char* str)
 // exist; i.e. when the full pathname is a valid directory.
 //
 
+
 bool
+#ifdef WIN32
+Utility::CreateDirectory (const aString& path)
+#else
 Utility::CreateDirectory (const aString& path,
                           mode_t         mode)
+#endif
 {
     if (path.length() == 0 || path == "/")
         return true;
@@ -197,7 +206,11 @@ Utility::CreateDirectory (const aString& path,
         //
         // No slashes in the path.
         //
+#ifdef WIN32
+	return _mkdir(path.c_str()) < 0 && errno != EACCES ? false : true;
+#else
         return mkdir(path.c_str(),mode) < 0 && errno != EEXIST ? false : true;
+#endif
     }
     else
     {
@@ -222,7 +235,11 @@ Utility::CreateDirectory (const aString& path,
                     break;
                 if ((slash = strchr(slash+1, '/')) != 0)
                     *slash = 0;
+#ifdef WIN32
+		if (_mkdir(dir) < 0 && errno != EACCES )
+#else
                 if (mkdir(dir, mode) < 0 && errno != EEXIST)
+#endif
                     return false;
                 if (slash)
                     *slash = '/';
@@ -236,12 +253,20 @@ Utility::CreateDirectory (const aString& path,
             do
             {
                 *slash = 0;
+#ifdef WIN32
+		if (_mkdir(dir) < 0 && errno != EACCES )
+#else
                 if (mkdir(dir, mode) < 0 && errno != EEXIST)
+#endif
                     return false;
                 *slash = '/';
             } while ((slash = strchr(slash+1, '/')) != 0);
 
+#ifdef WIN32
+	    if (_mkdir(dir) < 0 && errno != EACCES)
+#else
             if (mkdir(dir, mode) < 0 && errno != EEXIST)
+#endif
                 return false;
         }
 
