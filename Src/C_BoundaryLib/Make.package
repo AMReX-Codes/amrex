@@ -1,0 +1,18 @@
+#
+# $Id: Make.package,v 1.1 1998-10-28 17:49:32 lijewski Exp $
+#
+
+BNDRYLIB_BASE=EXE
+ifeq ($(LBASE),bndry)
+    BNDRYLIB_BASE=LIB
+endif
+
+C$(BNDRYLIB_BASE)_sources += FabSet.cpp BndryRegister.cpp \
+                             Geometry.cpp CoordSys.cpp RealBox.cpp
+
+C$(BNDRYLIB_BASE)_headers += FabSet.H BndryRegister.H \
+                             Geometry.H CoordSys.H RealBox.H
+
+F$(BNDRYLIB_BASE)_headers += COORDSYS_F.H
+
+F$(BNDRYLIB_BASE)_sources += COORDSYS_$(DIM)D.F
