@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.3 1997-12-16 15:27:47 car Exp $
+// $Id: RunStats.cpp,v 1.4 1998-01-08 19:00:00 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -70,10 +70,10 @@ RunStats::RunStats (const char* _name,
     if (!RunStats::Initialized)
         RunStats::init();
 
-    gentry = find(_name, -1);
-    entry  = find(_name, _level);
+    gentry = RunStats::find(_name, -1);
+    entry  = RunStats::find(_name, _level);
 
-    entry->is_on  = true;
+    entry->is_on = true;
 }
 
 RunStats::~RunStats () {}
@@ -278,6 +278,82 @@ RunStats::report (ostream& os)
         }
 
         os.precision(old_prec);
+    }
+}
+
+void
+RunStats::report_names (Array<aString>& stat_names)
+{
+    //
+    // Compute the number of distinct statistics.
+    //
+    int nstat = 0;
+    
+    for (ListIterator<RunStatsData> ldi(RunStats::TheStats); ldi; ++ldi)
+    {
+        if (ldi().level == -1)
+            nstat++;
+    }
+    stat_names.resize(nstat);
+    //
+    // Get their names.
+    //
+    int ind = 0;
+
+    for (ListIterator<RunStatsData> ldi(RunStats::TheStats); ldi; ++ldi)
+    {
+        if (ldi().level == -1)
+        {
+            stat_names[ind] = ldi().name;
+            cout << " found statistic = " << stat_names[ind] << '\n';
+            ind++;
+        }
+    }
+    assert(ind == nstat);
+}
+
+void
+RunStats::report_values (const Array<aString>& stat_names,
+                         Array<double>&        stat_time,
+                         Array<double>&        stat_wtime,
+                         double&               tot_run_time,
+                         double&               tot_run_wtime,
+                         long&                 tot_cells)
+{
+    const int NStats = stat_names.length();
+
+    stat_time.resize(NStats);
+    stat_wtime.resize(NStats);
+
+    double rtime  = Utility::second();
+    double rwtime = Utility::wsecond();
+
+    ParallelDescriptor::ReduceRealSum(rtime);
+    ParallelDescriptor::ReduceRealMax(rwtime);
+
+    tot_run_time  = RunStats::TotalCPU + rtime;
+    tot_run_wtime = RunStats::TotalWCT + rwtime;
+    //
+    // Make a copy of the local RunStats::TheStats and reduce it.
+    //
+    List<RunStatsData> TheTotals = RunStats::TheStats;
+
+    for (ListIterator<RunStatsData> it(TheTotals); it; ++it)
+    {
+        ParallelDescriptor::ReduceRealSum(TheTotals[it].run_time);
+        ParallelDescriptor::ReduceRealMax(TheTotals[it].run_wtime);
+    }
+
+    tot_cells = 0;
+    for (int i = 0; i < RunStats::TheCells.length(); i++)
+        tot_cells += RunStats::TheCells[i];
+
+    for (int i = 0; i < NStats ; i++)
+    {
+        RunStatsData* e = RunStats::find(stat_names[i].c_str(), -1);
+        assert(e != 0);
+        stat_time[i]  = e->run_time;
+        stat_wtime[i] = e->run_wtime;
     }
 }
 

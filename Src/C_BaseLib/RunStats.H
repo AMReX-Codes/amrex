@@ -4,7 +4,7 @@
 #define _RUNSTATS_H_ 
 
 //
-// $Id: RunStats.H,v 1.2 1997-12-11 23:25:46 lijewski Exp $
+// $Id: RunStats.H,v 1.3 1998-01-08 18:59:59 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -121,7 +121,21 @@ public:
     // Unformatted read from input stream.
     //
     static void readStats (ifstream &is, bool restart = false);
-
+    //
+    // Report the names of the statistics as an array of aString.
+    //
+    static void report_names (Array<aString>& stat_names);
+    //
+    // Report the values of the statistics as arrays of REALS.
+    //
+    // This assumes `stat_names' is result of previous call to report_names().
+    //
+    static void report_values (const Array<aString>& stat_names,
+                               Array<double>&        stat_time,
+                               Array<double>&        stat_wtime,
+                               double&               tot_run_time,
+                               double&               tot_run_wtime,
+                               long&                 tot_cells);
 private:
     //
     // Init from ParmParse with "RunStats" prefix.
@@ -181,7 +195,7 @@ void
 RunStats::turnOn (const char* s,
                   int         _level)
 {
-    find(s, _level)->is_on = true;
+    RunStats::find(s, _level)->is_on = true;
 }
 
 inline
@@ -191,7 +205,7 @@ RunStats::turnOff (const char* s,
 {
     if (!(_level == -1))
     {
-        find(s, _level)->is_on = false;
+        RunStats::find(s, _level)->is_on = false;
     }
 }
 #endif
