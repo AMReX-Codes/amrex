@@ -1,37 +1,41 @@
 //
-// $Id: aString.cpp,v 1.17 2001-07-20 23:06:18 lijewski Exp $
+// $Id: aString.cpp,v 1.18 2001-07-21 17:37:10 car Exp $
 //
 
+#include <string>
 #include <BLassert.H>
 #include <aString.H>
+using std::string;
 
 aString::aString ()
     :
-    std::string()
+    string()
 {}
 
 aString::aString (const char* str) 
     :
-    std::string(str)
+    string(str)
 {}
 
 aString::aString (const std::string& str) 
     :
-    std::string(str)
+    string(str)
 {}
 
 char
 aString::operator[] (size_type index) const
 {
     BL_ASSERT(index < length());
-    return std::string::operator[](index);
+    const std::string& a= *this;
+    return a[index];
 }
 
 char&
 aString::operator[] (size_type index)
 {
     BL_ASSERT(index < size());
-    return std::string::operator[](index);
+    std::string& a = *this;
+    return a[index];
 }
 
 bool

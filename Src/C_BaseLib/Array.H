@@ -2,7 +2,7 @@
 #define BL_ARRAY_H
 
 //
-// $Id: Array.H,v 1.23 2001-07-20 23:06:17 lijewski Exp $
+// $Id: Array.H,v 1.24 2001-07-21 17:37:09 car Exp $
 //
 
 #include <cstddef>
@@ -88,11 +88,13 @@ public:
                The element can be modified through this reference.  The
                result can be used as an L-value.
     */
-    T& operator[] (size_t K);
+    T& operator[] (size_t i);
+
     //
     //@ManDoc: Same as above, except acts on const Array's.
     //
-    const T& operator[] (size_t K) const;
+    const T& operator[] (size_t i) const;
+
     //
     //@ManDoc: Different syntax for operator[] (long i).
     //
@@ -140,7 +142,8 @@ T&
 Array<T>::operator[] (size_t i)
 {
     BL_ASSERT(i < size());
-    return std::vector<T>::operator[](i);
+    std::vector<T>& a = *this;
+    return a[i];
 }
 
 template <class T>
@@ -148,7 +151,8 @@ const T&
 Array<T>::operator[] (size_t i) const
 {
     BL_ASSERT(i < size());
-    return std::vector<T>::operator[](i);
+    const std::vector<T>& a = *this;
+    return a[i];
 }
 
 template <class T>
@@ -156,7 +160,7 @@ T&
 Array<T>::get (size_t i)
 {
     BL_ASSERT(i < size());
-    return std::vector<T>::operator[](i);
+    return this->operator[](i);
 }
 
 template <class T>
@@ -179,14 +183,14 @@ template <class T>
 T*
 Array<T>::dataPtr ()
 {
-    return &std::vector<T>::operator[](0);
+    return &this->operator[](0);
 }
 
 template <class T>
 const T*
 Array<T>::dataPtr () const
 {
-    return &std::vector<T>::operator[](0);
+    return &this->operator[](0);
 }
 
 template <class T>
@@ -221,7 +225,7 @@ Array<T>::Array (const T* vec,
 
     for (size_t i = 0; i < len; ++i)
     {
-        std::vector<T>::operator[](i) = vec[i];
+        this->operator[](i) = vec[i];
     }
 }
 

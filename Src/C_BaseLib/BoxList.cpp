@@ -1,6 +1,7 @@
 //
-// $Id: BoxList.cpp,v 1.14 2001-07-19 19:02:42 lijewski Exp $
+// $Id: BoxList.cpp,v 1.15 2001-07-21 17:37:10 car Exp $
 //
+#include <winstd.H>
 
 #include <algorithm>
 

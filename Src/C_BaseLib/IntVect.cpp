@@ -1,6 +1,7 @@
 //
-// $Id: IntVect.cpp,v 1.14 2001-07-21 01:17:25 car Exp $
+// $Id: IntVect.cpp,v 1.15 2001-07-21 17:37:10 car Exp $
 //
+#include <winstd.H>
 
 #include <BLassert.H>
 #include <BoxLib.H>
@@ -482,7 +483,6 @@ std::istream&
 operator>> (std::istream& is,
             IntVect&      iv)
 {
-    using BoxLib::expect;
     is >> std::ws;
     char c;
     is >> c;

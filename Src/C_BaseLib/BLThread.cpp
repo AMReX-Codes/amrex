@@ -1,13 +1,16 @@
 //
-// $Id: BLThread.cpp,v 1.6 2001-07-21 00:53:50 car Exp $
+// $Id: BLThread.cpp,v 1.7 2001-07-21 17:37:09 car Exp $
 //
 
+#include <winstd.H>
 #include <BoxLib.H>
 #include <Thread.H>
 
+#ifndef WIN32
 #include <unistd.h>
 #include <sys/resource.h>
 #include <sys/time.h>
+#endif
 
 #include <stdexcept>
 #include <string>
@@ -121,7 +124,8 @@ Thread::self()
 void
 Thread::sleep(const BoxLib::Time& spec_)
 {
-#ifndef BL_USE_NANOSLEEP
+#ifdef WIN32
+#elif !defined( BL_USE_NANOSLEEP )
     unsigned long tosleep = spec_.as_long();
     if ( tosleep > std::numeric_limits<unsigned long>::max()/1000000 )
     {

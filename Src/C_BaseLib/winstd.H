@@ -9,6 +9,7 @@
 #pragma warning(disable:4786)
 #define NOMINMAX
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <cstdlib>
 //#undef max
@@ -48,6 +49,7 @@ using ::exit;
 using ::abort;
 
 using ::strerror;
+using ::sprintf;
 }
 #endif
 
