@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.55 1998-05-28 21:34:29 lijewski Exp $
+// $Id: FabArray.H,v 1.56 1998-06-03 23:10:38 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -316,17 +316,14 @@ public:
                is performed on the region of intersection.  The intersection
                is restricted to the num\_comp components starting at src\_comp
                in the FabArray src, with the destination components in this
-               FabArray starting at dest\_comp.  nghost boundary zones are
-               included in the intersection as well.  This assumes that
+               FabArray starting at dest\_comp. This assumes that
                the source and destination FabArray have identical valid
                regions.
-
     */
     void copy (const FabArray<T,FAB>& src,
                int                    src_comp,
                int                    dest_comp,
-               int                    num_comp,
-               int                    nghost = 0);
+               int                    num_comp);
 
     /*@ManDoc: Copies the values contained in the intersection of the
                valid region of this FabArray with the FAB dest into dest.
@@ -1157,11 +1154,18 @@ void
 FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                        int                    src_comp,
                        int                    dest_comp,
-                       int                    num_comp,
-                       int                    nghost)
+                       int                    num_comp)
 {
-    const int DstNG  = Min(nghost,nGrow());
-    const int SrcNG  = Min(nghost,src.nGrow());
+    if (src.boxarray == boxarray)
+    {
+        for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
+        {
+            DependentFabArrayIterator<T,FAB> dfai(fai, src);
+            fai().copy(dfai(), src_comp, dest_comp, num_comp);
+        }
+        return;
+    }
+
     const int MyProc = ParallelDescriptor::MyProc();
 
     FabComTag tag;
@@ -1178,8 +1182,6 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
 
     for (int i = 0; i < length(); ++i)
     {
-        Box dstbox = ::grow(boxarray[i], DstNG);
-
         if (distributionMap[i] == MyProc)
         {
             for (int ii = 0; ii < src.boxarray.length(); ++ii)
@@ -1189,10 +1191,10 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                     //
                     // Both fabs are local
                     //
-                    Box intersect = ::grow(src.boxarray[ii],SrcNG) & dstbox;
-
-                    if (intersect.ok())
+                    if (src.boxarray[ii].intersects(boxarray[i]))
                     {
+                        Box intersect = src.boxarray[ii] & boxarray[i];
+
                         fabparray[i].copy(src[ii],
                                           intersect,
                                           src_comp,
@@ -1209,14 +1211,12 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
             {
                 if (src.distributionMap[ii] == MyProc)
                 {
-                    Box intersect = ::grow(src.boxarray[ii],SrcNG) & dstbox;
-
-                    if (intersect.ok())
+                    if (src.boxarray[ii].intersects(boxarray[i]))
                     {
                         tag.fromProc = MyProc;
                         tag.toProc   = distributionMap[i];
                         tag.fabIndex = i;
-                        tag.box      = intersect;
+                        tag.box      = src.boxarray[ii] & boxarray[i];
 #ifdef BL_USE_MPI
                         //
                         // Use tag.fineIndex to store index into `src'.
@@ -1421,7 +1421,7 @@ void
 FabArray<T,FAB>::copy (const FabArray<T,FAB>& src)
 {
     assert(nComp() == src.nComp());
-    copy(src, 0, 0, nComp(), 0);
+    copy(src,0,0,nComp());
 }
 
 //
