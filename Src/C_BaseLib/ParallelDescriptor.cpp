@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.33 1998-04-24 17:52:19 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.34 1998-05-04 23:13:13 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -438,6 +438,36 @@ void ParallelDescriptor::ShareVar (const void*, int) {}
 void ParallelDescriptor::UnshareVar (const void*) {}
 
 void ParallelDescriptor::SetMessageHeaderSize (int) {}
+
+void
+ParallelDescriptor::ReduceBoolAnd (bool& r)
+{
+    TRACER("ParallelDescriptor::ReduceBoolAnd()");
+
+    int src = r, recv; // `src' is either 0 or 1.
+
+    int rc = MPI_Allreduce(&src, &recv, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+    if (!(rc == MPI_SUCCESS))
+        ParallelDescriptor::Abort(rc);
+
+    r = (recv == ParallelDescriptor::NProcs()) ? true : false;
+}
+
+void
+ParallelDescriptor::ReduceBoolOr  (bool& r)
+{
+    TRACER("ParallelDescriptor::ReduceBoolOr()");
+
+    int src = r, recv; // `src' is either 0 or 1.
+
+    int rc = MPI_Allreduce(&src, &recv, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+    if (!(rc == MPI_SUCCESS))
+        ParallelDescriptor::Abort(rc);
+
+    r = (recv == 0) ? false : true;
+}
 
 void
 ParallelDescriptor::ReduceRealMax (Real& r)
