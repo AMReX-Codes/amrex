@@ -1,7 +1,7 @@
 subroutine orig_pingpong(sync)
   use mpi
   implicit none
-  logical :: sync
+  integer :: sync
   integer, parameter :: Ntimes=3, Npower=15, Nbase=1024
   integer, parameter :: dp_t = kind(1.0d0)
   integer :: istatus(MPI_STATUS_SIZE)
@@ -19,6 +19,7 @@ subroutine orig_pingpong(sync)
   integer, allocatable, dimension(:) :: nsize
 
   integer :: n,i,k
+  logical :: lrs
 
   ! ****************************************************************
   ICOMM = MPI_COMM_WORLD     ! Use sorter parameter-- this if Fortran.
@@ -34,7 +35,9 @@ subroutine orig_pingpong(sync)
   if( (Ntimes .lt. 3) .or. (Ntimes .gt. 99)   ) stop
   allocate( A(N), B(N) )
 
-  call MPI_Init(ierr)
+  call MPI_Initialized(lrs, ierr)
+
+  if ( .not. lrs) call MPI_Init(ierr)
   call MPI_Comm_size(ICOMM, npes, ierr)
   call MPI_Comm_rank(ICOMM, ipe, ierr)
 
@@ -58,7 +61,8 @@ subroutine orig_pingpong(sync)
      do i = 1,Ntimes            !Loop number of runs.
 
         tc0 = MPI_Wtime()
-        if ( sync ) then
+        select case ( sync )
+        case (0)
            if ( ipe == 0 ) then
               call MPI_send(a,Nw,MPI_DOUBLE_PRECISION,1,1,ICOMM,ierr)
               call MPI_recv(b,Nw,MPI_DOUBLE_PRECISION,1,0,ICOMM,ierr)
@@ -66,7 +70,7 @@ subroutine orig_pingpong(sync)
               call MPI_recv(b,Nw,MPI_DOUBLE_PRECISION,0,1,ICOMM,ierr)
               call MPI_send(a,Nw,MPI_DOUBLE_PRECISION,0,0,ICOMM,ierr)
            end if
-        else
+        case (1)
            if ( ipe .eq. 0 ) then
               call MPI_isend(a,Nw,MPI_DOUBLE_PRECISION,1,1,ICOMM,s1,ierr)
               call MPI_irecv(b,Nw,MPI_DOUBLE_PRECISION,1,0,ICOMM,r1,ierr)
@@ -76,7 +80,27 @@ subroutine orig_pingpong(sync)
            end if
            call MPI_Wait(r1,istatus,ierr)
            call MPI_Wait(s1,istatus,ierr)
-        end if
+        case (2)
+           if ( ipe .eq. 0 ) then
+              call MPI_irecv(b,Nw,MPI_DOUBLE_PRECISION,1,0,ICOMM,r1,ierr)
+              call MPI_send(a,Nw,MPI_DOUBLE_PRECISION,1,1,ICOMM,ierr)
+           else
+              call MPI_irecv(b,Nw,MPI_DOUBLE_PRECISION,0,1,ICOMM,r1,ierr)
+              call MPI_send(a,Nw,MPI_DOUBLE_PRECISION,0,0,ICOMM,ierr)
+           end if
+           call MPI_Wait(r1,istatus,ierr)
+        case (3)
+           if ( ipe .eq. 0 ) then
+              call MPI_isend(a,Nw,MPI_DOUBLE_PRECISION,1,1,ICOMM,s1,ierr)
+              call MPI_recv(b,Nw,MPI_DOUBLE_PRECISION,1,0,ICOMM,ierr)
+           else
+              call MPI_isend(a,Nw,MPI_DOUBLE_PRECISION,0,0,ICOMM,s1,ierr)
+              call MPI_recv(b,Nw,MPI_DOUBLE_PRECISION,0,1,ICOMM,ierr)
+           end if
+           call MPI_Wait(s1,istatus,ierr)
+        case default
+           stop 'what 2'
+        end select
 
         tc1 = MPI_Wtime()
         sec   = (tc1-tc0) - tar
@@ -122,13 +146,13 @@ subroutine orig_pingpong(sync)
      end if
   end do
 
-  call MPI_Finalize(ierr)
+  if ( .not. lrs ) call MPI_Finalize(ierr)
 
 end subroutine orig_pingpong
 subroutine my_pingpong(sync)
   use parallel
   implicit none
-  logical :: sync
+  integer :: sync
   integer, parameter :: Ntimes=3, Npower=15, Nbase=1024
   integer :: istatus(MPI_STATUS_SIZE)
   integer :: ierr, npes, ipe
@@ -145,9 +169,12 @@ subroutine my_pingpong(sync)
   integer, allocatable, dimension(:) :: nsize
 
   integer :: n,i,k
+  logical :: lrs
 
 
   ! ****************************************************************
+
+  lrs = parallel_initialized()
 
   allocate( nsize(0:Npower) )
 
@@ -161,6 +188,7 @@ subroutine my_pingpong(sync)
   allocate( A(N), B(N) )
 
 ! call parallel_initialize()
+  if ( .not. lrs ) call parallel_initialize()
   npes = parallel_nprocs()
   ipe = parallel_myproc()
 
@@ -185,7 +213,8 @@ subroutine my_pingpong(sync)
      do i = 1,Ntimes            ! Loop number of runs.
 
         tc0 = parallel_wtime()
-        if ( sync ) then
+        select case ( sync )
+        case (0)
            if ( ipe == 0 ) then
               call parallel_send_dv(a,Nw,1,1)
               call parallel_recv_dv(b,Nw,1,0)
@@ -193,7 +222,7 @@ subroutine my_pingpong(sync)
               call parallel_recv_dv(b,Nw,0,1)
               call parallel_send_dv(a,Nw,0,0)
            end if
-        else
+        case (1)
            if ( ipe == 0 ) then
               s1 = parallel_isend_dv(a,Nw,1,1)
               r1 = parallel_irecv_dv(b,Nw,1,0)
@@ -204,7 +233,27 @@ subroutine my_pingpong(sync)
 
            call parallel_wait(r1)
            call parallel_wait(s1)
-        end if
+        case (2)
+           if ( ipe == 0 ) then
+              r1 = parallel_irecv_dv(b,Nw,1,0)
+              call parallel_send_dv(a,Nw,1,1)
+           else
+              r1 = parallel_irecv_dv(b,Nw,0,1)
+              call parallel_send_dv(a,Nw,0,0)
+           end if
+           call parallel_wait(r1)
+        case (3)
+           if ( ipe == 0 ) then
+              s1 = parallel_isend_dv(a,Nw,1,1)
+              call parallel_recv_dv(b,Nw,1,0)
+           else
+              s1 = parallel_isend_dv(a,Nw,0,0)
+              call parallel_recv_dv(b,Nw,0,1)
+           end if
+           call parallel_wait(s1)
+        case default
+           stop 'what 2'
+        end select
         tc1 = parallel_wtime()
         sec   = (tc1-tc0) - tar
 
@@ -249,11 +298,12 @@ subroutine my_pingpong(sync)
      end if
   end do
 
-! call parallel_finalize()
+  if ( .not. lrs) call parallel_finalize()
 
 end subroutine my_pingpong
 
 subroutine t_pingpong
-  logical :: sync = .TRUE.
+  integer  :: sync = 3
   call my_pingpong(sync)
+! call orig_pingpong(sync)
 end subroutine t_pingpong

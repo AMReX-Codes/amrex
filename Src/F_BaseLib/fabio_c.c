@@ -1,5 +1,5 @@
 /* 
-   $Id: fabio_c.c,v 1.5 2004-10-05 01:41:46 car Exp $ 
+   $Id: fabio_c.c,v 1.6 2005-01-24 23:54:32 car Exp $ 
    Contains the IO routines for fabio module
 */
 #include <stdlib.h>
@@ -70,7 +70,7 @@ int_2_str(char f[], int n, const int* fi)
 	  f[i] = 0;
 	  break;
 	}
-      f[i] = fi[i];
+      f[i] = (char)fi[i];
     }
   if ( i == n )
     {
@@ -248,7 +248,7 @@ FABIO_READ_SKIP_D(const int* fdp, const int* offsetp, const int* skipp,
       if ( count*sizeof(double) != read(fd, dp, count*sizeof(double)) )
 	{
 	  fprintf(stderr, "FABIO_READ_SKIP_D: failed to read %ld doubles: %s\n", 
-		  count, strerror(errno));
+		  (long)count, strerror(errno));
 	  exit(1);
 	}
       for ( j = 0; j < 8; ++j )
@@ -295,7 +295,7 @@ FABIO_READ_SKIP_D(const int* fdp, const int* offsetp, const int* skipp,
       if ( count*sizeof(float) != read(fd, fp, count*sizeof(float)) )
 	{
 	  fprintf(stderr, "FABIO_READ_SKIP_D: failed to read %ld doubles: %s\n", 
-		  count, strerror(errno));
+		  (long)count, strerror(errno));
 	  exit(1);
 	}
       for ( j = 0; j < 4; ++j )
@@ -388,7 +388,7 @@ FABIO_READ_SKIP_S(const int* fdp, const int* offsetp, const int* skipp,
       if ( count*sizeof(double) != read(fd, dp, count*sizeof(double)) )
 	{
 	  fprintf(stderr, "FABIO_READ_SKIP_S: failed to read %ld doubles: %s\n", 
-		  count, strerror(errno));
+		  (long)count, strerror(errno));
 	  exit(1);
 	}
       for ( j = 0; j < 8; ++j )
@@ -436,7 +436,7 @@ FABIO_READ_SKIP_S(const int* fdp, const int* offsetp, const int* skipp,
       if ( count*sizeof(float) != read(fd, sp, count*sizeof(float)) )
 	{
 	  fprintf(stderr, "FABIO_READ_SKIP_S: failed to read %ld doubles: %s\n", 
-		  count, strerror(errno));
+		  (long)count, strerror(errno));
 	  exit(1);
 	}
       for ( j = 0; j < 4; ++j )
@@ -514,7 +514,7 @@ FABIO_WRITE_RAW_D(const int* fdp, int* offsetp, const double* vp, const int* cou
   if ( ilen != write(fd, dp, ilen) )
     {
       fprintf(stderr, "FABIO_WRITE_RAW_D: failed to write %ld doubles: %s\n", 
-	      nc*count, strerror(errno));
+	      (long)nc*count, strerror(errno));
       exit(1);
     }
   *offsetp = offset;
@@ -567,7 +567,7 @@ FABIO_WRITE_RAW_S(const int* fdp, int* offsetp, const float* vp, const int* coun
   if ( ilen != write(fd, sp, ilen) )
     {
       fprintf(stderr, "FABIO_WRITE_RAW_S: failed to write %ld floats: %s\n", 
-	      nc*count, strerror(errno));
+	      (long)nc*count, strerror(errno));
       exit(1);
     }
   *offsetp = offset;
