@@ -3,6 +3,14 @@
 
 #ifdef BL_USE_ARLIM
 
+#if (BL_SPACEDIM == 1)
+#define DIMS(a) a##_lo, a##_hi
+#define DIMV(a) a##_lo(1):a##_hi(1)
+#define DIM1(a) a##_lo(1):a##_hi(1)
+#define ARG_L1(a) a##_lo(1)
+#define ARG_H1(a) a##_hi(1)
+#endif
+
 #if (BL_SPACEDIM == 2)
 #define DIMS(a) a##_lo, a##_hi
 #define DIMDEC(a) a##_lo(2), a##_hi(2)
@@ -34,6 +42,15 @@
 #endif
 
 #else
+
+#if (BL_SPACEDIM == 1)
+#define DIMS(a) a##_l1, a##_h1
+#define DIMDEC(a) a##_l1, a##_h1
+#define DIMV(a) a##_l1:a##_h1
+#define DIM1(a) a##_l1:a##_h1
+#define ARG_L1(a) a##_l1
+#define ARG_H1(a) a##_h1
+#endif
 
 #if (BL_SPACEDIM == 2)
 #define DIMS(a) a##_l1, a##_l2 , a##_h1, a##_h2
