@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: LinOp.cpp,v 1.17 2000-08-02 16:06:44 car Exp $
+// $Id: LinOp.cpp,v 1.18 2000-08-02 21:03:50 almgren Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -168,7 +168,7 @@ LinOp::apply (MultiFab&      out,
               int            level,
               LinOp::BC_Mode bc_mode)
 {
-    applyBC(in,level,bc_mode);
+    applyBC(in,0,1,level,bc_mode);
     Fapply(out,in,level);
 }
 
@@ -180,7 +180,7 @@ public:
   task_applybc_orientation(const OrientationIter& oitr_,
 			   int level_,
 			   int flagden_, int flagbc_, int maxorder_,
-			   MultiFab& inout_,
+			   MultiFab& inout_, int srccomp_, int numcomp_,
 			   int cdr_,
 			   const Array< Array<BoundCond> >&  b_, const Array<Real>& r_,
 			   const FabSet& fs_,
@@ -196,6 +196,8 @@ private:
   const int flagbc;
   const int maxorder;
   MultiFab& inout;
+  const int src_comp;
+  const int num_comp;
   const int cdr;
   const Array< Array<BoundCond> >& b;
   const Array< Real>& r;
@@ -217,7 +219,7 @@ task_applybc_orientation::task_applybc_orientation(const OrientationIter& oitr_,
 						   int nc_,
 						   const REAL* h_)
   : oitr(oitr_), level(level_), flagden(flagden_), flagbc(flagbc_), maxorder(maxorder_),
-    inout(inout_), cdr(cdr_), b(b_), r(r_), fs(fs_), maskvals(maskvals_), f(f_), nc(nc_), h(h_)
+    inout(inout_), src_comp(srccomp_), num_comp(numcomp_), cdr(cdr_), b(b_), r(r_), fs(fs_), maskvals(maskvals_), f(f_), nc(nc_), h(h_)
 {}
 
 void
@@ -236,7 +238,7 @@ task_applybc_orientation::run()
       int bct       = b[gn][comp];
 
       FORT_APPLYBC(&flagden, &flagbc, &maxorder,
-		   inoutmfi().dataPtr(), 
+		   inoutmfi().dataPtr(src_comp),
 		   ARLIM(inoutmfi().loVect()), ARLIM(inoutmfi().hiVect()),
 		   &cdr, &bct, &bcl,
 		   fsfsi().dataPtr(), 
@@ -297,7 +299,8 @@ void
 task_applybc::run()
 {
   FORT_APPLYBC(&flagden, &flagbc, &maxorder,
-	       inout.dataPtr(), ARLIM(inout.loVect()), ARLIM(inout.hiVect()),
+	       inout.dataPtr(src_comp),
+	       ARLIM(inout.loVect()), ARLIM(inout.hiVect()),
 	       &cdr, &bcl, &bct,
 	       fs.dataPtr(), ARLIM(fs.loVect()), ARLIM(fs.hiVect()),
 	       m.dataPtr(), ARLIM(m.loVect()), ARLIM(m.hiVect()),
@@ -310,6 +313,8 @@ task_applybc::run()
 
 void
 LinOp::applyBC (MultiFab&      inout,
+                int            src_comp,
+                int            num_comp,
                 int            level,
                 LinOp::BC_Mode bc_mode)
 {
@@ -330,7 +335,6 @@ LinOp::applyBC (MultiFab&      inout,
     //
     BL_ASSERT(!(level > 0 && bc_mode == Inhomogeneous_BC));
 
-    int nc      = inout.nComp();    
     int flagden = 1; // Fill in undrrelxr.
     int flagbc  = 1; // Fill boundary data.
 
@@ -339,15 +343,15 @@ LinOp::applyBC (MultiFab&      inout,
     //
     // Only single-component solves supported (verified) by this class.
     //
-    BL_ASSERT(nc == 1);
+    BL_ASSERT(num_comp == 1);
 
-    inout.FillBoundary();
+    inout.FillBoundary(src_comp,num_comp);
 
     prepareForLevel(level);
     //
     // Do periodic fixup.
     //
-    geomarray[level].FillPeriodicBoundary(inout,0,nc);
+    geomarray[level].FillPeriodicBoundary(inout,src_comp,num_comp);
     //
     // Fill boundary cells.
     //
@@ -363,12 +367,12 @@ LinOp::applyBC (MultiFab&      inout,
 #if 1
 	wrkq.add(new task_applybc_orientation(oitr, level,
 					      flagden, flagbc, maxorder,
-					      inout,
+					      inout, src_comp, num_comp,
 					      cdr, b, r,
 					      fs,
 					      maskvals,
 					      f,
-					      nc, h[level]));
+					      num_comp, h[level]));
 #else
         for (MultiFabIterator inoutmfi(inout); inoutmfi.isValid(); ++inoutmfi)
         {
@@ -381,13 +385,13 @@ LinOp::applyBC (MultiFab&      inout,
             int bct       = b[gn][comp];
 
 	    wrkq.add(new task_applybc(flagden, flagbc, maxorder,
-				      inout[gn],
+				      inout[gn], src_comp, num_comp,
 				      cdr, bct, bcl,
 				      fs[gn],
 				      m,
 				      f[gn],
 				      inoutmfi.validbox(),
-				      nc, h[level]));
+				      num_comp, h[level]));
         }
 #endif
 #else
@@ -406,7 +410,7 @@ LinOp::applyBC (MultiFab&      inout,
             int bct       = b[gn][comp];
 
             FORT_APPLYBC(&flagden, &flagbc, &maxorder,
-                         inoutmfi().dataPtr(), 
+                         inoutmfi().dataPtr(src_comp),
                          ARLIM(inoutmfi().loVect()), ARLIM(inoutmfi().hiVect()),
                          &cdr, &bct, &bcl,
                          fsfsi().dataPtr(), 
@@ -416,7 +420,7 @@ LinOp::applyBC (MultiFab&      inout,
                          ffsi().dataPtr(),
                          ARLIM(ffsi().loVect()), ARLIM(ffsi().hiVect()),
                          inoutmfi.validbox().loVect(),
-                         inoutmfi.validbox().hiVect(), &nc, h[level]);
+                         inoutmfi.validbox().hiVect(), &num_comp, h[level]);
         }
 #endif
     }
@@ -465,13 +469,13 @@ LinOp::smooth (MultiFab&       solnL,
     {
         for (int redBlackFlag = 0; redBlackFlag < 2; redBlackFlag++)
         {
-            applyBC(solnL, level, bc_mode);
+            applyBC(solnL, 0, 1, level, bc_mode);
             Fsmooth(solnL, rhsL, level, redBlackFlag);
         }
     }
     else
     {
-        applyBC(solnL, level, bc_mode);
+        applyBC(solnL, 0, 1, level, bc_mode);
         for (int redBlackFlag = 0; redBlackFlag < 2; redBlackFlag++)
             Fsmooth(solnL, rhsL, level, redBlackFlag);
     }

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Laplacian.cpp,v 1.7 1999-05-10 18:54:16 car Exp $
+// $Id: Laplacian.cpp,v 1.8 2000-08-02 21:03:50 almgren Exp $
 //
 
 #include <Laplacian.H>
@@ -13,7 +13,9 @@ Laplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 		     MultiFab& in, const BC_Mode& bc_mode)
 {
     int level = 0;
-    applyBC(in,level,bc_mode);
+    int src_comp = 0;
+    int num_comp = 1;
+    applyBC(in,src_comp,num_comp,level,bc_mode);
     const BoxArray& bxa = gbox[level];
     int nc = in.nComp();
 
