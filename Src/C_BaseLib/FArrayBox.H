@@ -2,7 +2,7 @@
 #define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.19 2001-07-17 23:02:20 lijewski Exp $
+// $Id: FArrayBox.H,v 1.20 2001-07-18 17:31:06 lijewski Exp $
 //
 
 #include <iostream>
@@ -295,8 +295,8 @@ public:
     /*@ManDoc: Print subrange defined by (ilo:ihi) X (jlo:jhi)
                using components (scomp : scomp+ncomp-1).
     */
-    friend void printRange (ostream&          os,
-                            const FArrayBox&  fab,
+
+    friend void printRange (const FArrayBox&  fab,
                             int               ilo,
                             int               ihi,
                             int               jlo,
@@ -307,7 +307,8 @@ public:
     /*@ManDoc: Same as above but print to standard output.
                This is useful for debugging.
     */
-    friend void printRange (const FArrayBox&  fab,
+    friend void printRange (std::ostream&     os,
+                            const FArrayBox&  fab,
                             int               ilo,
                             int               ihi,
                             int               jlo,
