@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.131 2001-07-20 18:18:42 car Exp $
+// $Id: FabArray.H,v 1.132 2001-07-20 19:31:06 car Exp $
 //
 
 #include <climits>
@@ -1269,7 +1269,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
             fab_data[i] = static_cast<value_type*>(The_FAB_Arena->alloc(N*sizeof(value_type)));
 
-            MPI_REQUIRE( MPI_Irecv(fab_data[i],
+            BL_MPI_REQUIRE( MPI_Irecv(fab_data[i],
 				   int(N),
 				   mpi_data_type(fab_data[i]),
 				   i,
@@ -1309,7 +1309,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
             BL_ASSERT(data+N == dptr);
 
-            MPI_REQUIRE( MPI_Send(data,
+            BL_MPI_REQUIRE( MPI_Send(data,
 				  int(N),
 				  mpi_data_type(data),
 				  i,
@@ -1324,7 +1324,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     //
     for (int completed; NWaits > 0; NWaits -= completed)
     {
-        MPI_REQUIRE( MPI_Waitsome(NProcs,
+        BL_MPI_REQUIRE( MPI_Waitsome(NProcs,
 				  reqs.dataPtr(),
 				  &completed,
 				  indx.dataPtr(),
@@ -1459,7 +1459,7 @@ FabArray<FAB>::copy (FAB&       dest,
             if (ParallelDescriptor::MyProc() == distributionMap[i])
                 overlapData.copy(fabparray[i],bx,scomp,bx,0,ncomp);
 
-            MPI_REQUIRE( MPI_Bcast(overlapData.dataPtr(),
+            BL_MPI_REQUIRE( MPI_Bcast(overlapData.dataPtr(),
 				   bx.numPts()*ncomp,
 				   mpi_data_type(overlapData.dataPtr()),
 				   distributionMap[i],
@@ -1636,7 +1636,7 @@ FabArrayIterator<FAB>::isValid ()
     if (HG_is_debugging)
     {
 	if (currentIndex < fabArray.length()) return true;
-	MPI_REQUIRE( MPI_Barrier(ParallelDescriptor::Communicator()) );
+	BL_MPI_REQUIRE( MPI_Barrier(ParallelDescriptor::Communicator()) );
 	return false;
     }
 #endif
@@ -2176,7 +2176,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 #endif
     {
         for (int i = 0; i < NProcs; i++)
-            MPI_REQUIRE( MPI_Gather(&Rcvs[i],
+            BL_MPI_REQUIRE( MPI_Gather(&Rcvs[i],
 				    1,
 				    MPI_INT,
 				    Snds.dataPtr(),
@@ -2221,7 +2221,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
         {
             if (Snds[i] > 0)
             {
-                MPI_REQUIRE( MPI_Irecv(&recv_cd[idx],
+                BL_MPI_REQUIRE( MPI_Irecv(&recv_cd[idx],
 				       Snds[i] * CommData::DIM,
 				       MPI_INT,
 				       i,
@@ -2267,7 +2267,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
                 BL_ASSERT(Processed == Rcvs[i]);
 
-                MPI_REQUIRE( MPI_Send(senddata.dataPtr(),
+                BL_MPI_REQUIRE( MPI_Send(senddata.dataPtr(),
 				      senddata.length() * CommData::DIM,
 				      MPI_INT,
 				      i,
@@ -2283,7 +2283,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
         for (int completed; NWaits > 0; NWaits -= completed)
         {
-            MPI_REQUIRE( MPI_Waitsome(NProcs,
+            BL_MPI_REQUIRE( MPI_Waitsome(NProcs,
 				      req_cd.dataPtr(),
 				      &completed,
 				      indx.dataPtr(),
@@ -2322,7 +2322,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
             fab_data[i] = static_cast<value_type*>(The_FAB_Arena->alloc(N*sizeof(value_type)));
 
-            MPI_REQUIRE( MPI_Irecv(fab_data[i],
+            BL_MPI_REQUIRE( MPI_Irecv(fab_data[i],
 				   int(N),
 				   mpi_data_type(fab_data[i]),
 				   i,
@@ -2383,7 +2383,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
             BL_ASSERT(data+N == dptr);
 
-            MPI_REQUIRE( MPI_Send(data,
+            BL_MPI_REQUIRE( MPI_Send(data,
 				  int(N),
 				  mpi_data_type(data),
 				  i,
@@ -2409,7 +2409,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
     for (int completed; NWaits > 0; NWaits -= completed)
     {
-        MPI_REQUIRE( MPI_Waitsome(NProcs,
+        BL_MPI_REQUIRE( MPI_Waitsome(NProcs,
 				  req_data.dataPtr(),
 				  &completed,
 				  indx.dataPtr(),

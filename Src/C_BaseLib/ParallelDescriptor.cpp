@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.79 2001-07-20 18:18:42 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.80 2001-07-20 19:31:07 car Exp $
 //
 
 #include <cstdio>
@@ -272,14 +272,14 @@ ParallelDescriptor::Message::Message(MPI_Status stat_, MPI_Datatype type_)
 void
 ParallelDescriptor::Message::wait()
 {
-    MPI_REQUIRE( MPI_Wait(&m_req, &m_stat) );
+    BL_MPI_REQUIRE( MPI_Wait(&m_req, &m_stat) );
 }
 
 bool
 ParallelDescriptor::Message::test()
 {
     int flag;
-    MPI_REQUIRE( MPI_Test(&m_req, &flag, &m_stat) );
+    BL_MPI_REQUIRE( MPI_Test(&m_req, &flag, &m_stat) );
     m_finished = flag != 0;
     return m_finished;
 }
@@ -304,7 +304,7 @@ ParallelDescriptor::Message::count() const
     if ( m_type == MPI_DATATYPE_NULL ) BoxLib::Error("Message::count: Bad Type!");
     if ( !m_finished ) BoxLib::Error("Message::count: Not Finished!");
     int cnt;
-    MPI_REQUIRE( MPI_Get_count(&m_stat, m_type, &cnt) );
+    BL_MPI_REQUIRE( MPI_Get_count(&m_stat, m_type, &cnt) );
     return cnt;
 }
 
@@ -348,19 +348,19 @@ ParallelDescriptor::StartParallel (int*    argc,
 
     int sflag;
 
-    MPI_REQUIRE( MPI_Initialized(&sflag) );
+    BL_MPI_REQUIRE( MPI_Initialized(&sflag) );
 
     if (!sflag)
-	MPI_REQUIRE( MPI_Init(argc, argv) );
+	BL_MPI_REQUIRE( MPI_Init(argc, argv) );
     
-    MPI_REQUIRE( MPI_Comm_size(Communicator(), &m_nProcs) );
+    BL_MPI_REQUIRE( MPI_Comm_size(Communicator(), &m_nProcs) );
 
-    MPI_REQUIRE( MPI_Comm_rank(Communicator(), &m_MyId) );
+    BL_MPI_REQUIRE( MPI_Comm_rank(Communicator(), &m_MyId) );
 
     //
     // Wait till all other processes are properly started.
     //
-    MPI_REQUIRE( MPI_Barrier(Communicator()) );
+    BL_MPI_REQUIRE( MPI_Barrier(Communicator()) );
 }
 
 void
@@ -369,7 +369,7 @@ ParallelDescriptor::EndParallel ()
     BL_ASSERT(m_MyId != -1);
     BL_ASSERT(m_nProcs != -1);
 
-    MPI_REQUIRE( MPI_Finalize() );
+    BL_MPI_REQUIRE( MPI_Finalize() );
 }
 
 double
@@ -381,7 +381,7 @@ ParallelDescriptor::second ()
 void
 ParallelDescriptor::Barrier ()
 {
-    MPI_REQUIRE( MPI_Barrier(Communicator()) );
+    BL_MPI_REQUIRE( MPI_Barrier(Communicator()) );
 }
 
 void
@@ -390,7 +390,7 @@ ParallelDescriptor::util::DoAllReduceReal (Real& r,
 {
     Real recv;
 
-    MPI_REQUIRE( MPI_Allreduce(&r,
+    BL_MPI_REQUIRE( MPI_Allreduce(&r,
 			       &recv,
 			       1,
 			       mpi_data_type(&recv),
@@ -407,7 +407,7 @@ ParallelDescriptor::util::DoReduceReal (Real& r,
 {
     Real recv;
 
-    MPI_REQUIRE( MPI_Reduce(&r,
+    BL_MPI_REQUIRE( MPI_Reduce(&r,
 			    &recv,
 			    1,
 			    mpi_data_type(&recv),
@@ -461,7 +461,7 @@ ParallelDescriptor::util::DoAllReduceLong (long& r,
 {
     long recv;
 
-    MPI_REQUIRE( MPI_Allreduce(&r,
+    BL_MPI_REQUIRE( MPI_Allreduce(&r,
                            &recv,
                            1,
                            MPI_LONG,
@@ -477,7 +477,7 @@ ParallelDescriptor::util::DoReduceLong (long& r,
 {
     long recv;
 
-    MPI_REQUIRE( MPI_Reduce(&r,
+    BL_MPI_REQUIRE( MPI_Reduce(&r,
                         &recv,
                         1,
                         MPI_LONG,
@@ -543,7 +543,7 @@ ParallelDescriptor::util::DoAllReduceInt (int& r,
 {
     int recv;
 
-    MPI_REQUIRE( MPI_Allreduce(&r,
+    BL_MPI_REQUIRE( MPI_Allreduce(&r,
 			       &recv,
 			       1,
 			       MPI_INT,
@@ -560,7 +560,7 @@ ParallelDescriptor::util::DoReduceInt (int& r,
 {
     int recv;
 
-    MPI_REQUIRE( MPI_Reduce(&r,
+    BL_MPI_REQUIRE( MPI_Reduce(&r,
                         &recv,
                         1,
                         MPI_INT,
@@ -674,7 +674,7 @@ ParallelDescriptor::Gather (Real* sendbuf,
 
     MPI_Datatype typ = mpi_data_type(sendbuf);
 
-    MPI_REQUIRE( MPI_Gather(sendbuf,
+    BL_MPI_REQUIRE( MPI_Gather(sendbuf,
 			    nsend,
 			    typ,
 			    recvbuf,

@@ -1,6 +1,4 @@
 #include <winstd.H>
-#include <Thread.H>
-#include <ParallelDescriptor.H>
 
 #ifdef __GNUC__
 #include <cstdio>
@@ -18,6 +16,9 @@
 #include <limits>
 
 #include <Profiler.H>
+#include <Thread.H>
+#include <ParallelDescriptor.H>
+#include <ParmParse.H>
 
 struct timer_packet
 {
@@ -112,16 +113,6 @@ public:
 
 bool timer_packet::increasing = true;
 timer_packet::sort_criterion timer_packet::sort_by = timer_packet::sort_self;
-
-#define BL_MPI_REQUIRE(x)						\
-do									\
-{									\
-  if ( int status = (x) )						\
-    {									\
-      BoxLib::Error();							\
-    }									\
-}									\
-while ( false )
 
 #ifdef BL_USE_MPI
 template <> MPI_Datatype ParallelDescriptor::Mpi_typemap<timer_packet>::type()
@@ -546,6 +537,7 @@ Profiler::Initialize(int& argc, char**& argv)
 	return;
     }
     initialized = true;
+    ParmParse pp("profiler");
 }
 
 std::ostream&
