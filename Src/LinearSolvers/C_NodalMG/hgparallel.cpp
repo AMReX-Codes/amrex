@@ -180,7 +180,7 @@ task_copy_local::~task_copy_local()
 
 bool task_copy_local::ready()
 { 
-    BoxLib::Abort( "FIXME task_copy_local::ready" ); /*NOTREACHED*/
+    BoxLib::Abort( "FIXME task_copy_local::ready" );
     return m_local;
 }
 
@@ -325,6 +325,6 @@ task_fab_get::~task_fab_get()
 
 bool task_fab_get::ready()
 {
-    BoxLib::Abort( "FIXME task_fab_get::ready" ); /*NOTREACHED*/
+    BoxLib::Abort( "FIXME task_fab_get::ready" );
     return true;
 }

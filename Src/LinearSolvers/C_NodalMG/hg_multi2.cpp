@@ -68,12 +68,12 @@ public:
     }
     virtual bool ready()
     {
-	BoxLib::Abort( "FIXME task_fceres_2::ready" ); /*NOTREACHED*/
+	BoxLib::Abort( "FIXME task_fceres_2::ready" );
 	return false;
     };
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	BoxLib::Abort( "FIXME task_fceres_2::init" ); /*NOTREACHED*/
+	BoxLib::Abort( "FIXME task_fceres_2::init" );
 	return false;
     }
 private:
@@ -107,12 +107,12 @@ public:
     }
     virtual bool ready()
     {
-	BoxLib::Abort( "FIXME task_fceres_4::ready" ); /*NOTREACHED*/
+	BoxLib::Abort( "FIXME task_fceres_4::ready" );
 	return false;
     };
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	BoxLib::Abort( "FIXME task_fceres_4::init" ); /*NOTREACHED*/
+	BoxLib::Abort( "FIXME task_fceres_4::init" );
 	return false;
     }
 private:
