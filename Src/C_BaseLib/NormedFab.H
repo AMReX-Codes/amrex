@@ -4,7 +4,7 @@
 #define BL_NORMEDFAB_H
 
 //
-// $Id: NormedFab.H,v 1.1 1997-12-14 01:05:53 lijewski Exp $
+// $Id: NormedFab.H,v 1.2 1998-02-18 21:31:14 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -228,6 +228,7 @@ NormedFab<T>::norm (const Box& subbox,
 //
 // Template specialization for Real.
 //
+template<>
 Real
 NormedFab<Real>::norm (const Box& subbox,
                        int        p,

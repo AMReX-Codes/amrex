@@ -4,7 +4,7 @@
 #define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.9 1998-02-05 23:01:34 vince Exp $
+// $Id: FArrayBox.H,v 1.10 1998-02-18 21:31:13 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -399,9 +399,10 @@ public:
     /*@ManDoc: Read FAB from istream.  Format is as it was written out.
 	       This creates a single component FAB with data from
 	       compIndex of the FAB from the istream.
+	       Returns the number of components available in the fab.
     */
     //
-    void readFrom (istream& is, int compIndex);
+    int  readFrom (istream& is, int compIndex);
 
     /*@ManDoc: Skip over the next FAB from the input stream.
                Return the Box defining the domain of the FAB and the

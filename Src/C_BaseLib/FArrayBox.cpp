@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.12 1998-02-06 22:09:13 vince Exp $
+// $Id: FArrayBox.cpp,v 1.13 1998-02-18 21:31:13 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -574,7 +574,7 @@ FArrayBox::readFrom (istream& is)
 }
 
 
-void
+int
 FArrayBox::readFrom (istream& is, int compIndex)
 {
     int nCompAvailable;
@@ -587,6 +587,7 @@ FArrayBox::readFrom (istream& is, int compIndex)
     fabrd->skip(is, *this, remainingComponents);  // skip to the end
 
     delete fabrd;
+    return nCompAvailable;
 }
 
 

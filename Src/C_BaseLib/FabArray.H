@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.25 1998-02-03 19:33:53 lijewski Exp $
+// $Id: FabArray.H,v 1.26 1998-02-18 21:31:13 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -817,7 +817,7 @@ template <class T, class FAB>
 void
 FabArray<T,FAB>::clearUnmanaged ()
 {
-  for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
+  for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
   {
       FAB *fab = fabparray.remove(fai.index());
       delete fab;
@@ -887,7 +887,7 @@ FabArray<T,FAB>::ok () const
     assert(boxarray.ready());
     long isok = 1;
 
-    for (ConstFabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
+    for (ConstFabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
     {
         if (fabparray.defined(fai.index()))
         {
@@ -951,7 +951,7 @@ template <class T, class FAB>
 void
 FabArray<T,FAB>::AllocFabs (int nvar)
 {
-  for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
+  for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
   {
       Box tmp(::grow(fai.validbox(), n_grow));
       FAB *f = new FAB(tmp, nvar);
@@ -1003,7 +1003,7 @@ FabArray<T,FAB>::setBndry(T   val,
 {
     if (n_grow > 0)
     {
-        for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
+        for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
         {
             fai().setComplement(val, fai.validbox(), strt_comp, ncomp);
         }
@@ -1021,7 +1021,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
     if (DistributionMap().ProcessorMap() ==
         farray.DistributionMap().ProcessorMap())
     {
-        for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
+        for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
         {
             fai().copy(farray[fai.index()]);
         }
@@ -1174,7 +1174,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
                                                fabComTag.nComp);
         }
 
-        ParallelDescriptor::Synchronize();  // Do we need this here?
+        //ParallelDescriptor::Synchronize();  // Do we need this here?
   }
 }
 
@@ -1192,7 +1192,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
 
     int myproc = ParallelDescriptor::MyProc();
 
-    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
+    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
     {
         Box b(grow(fai.validbox(), nghost));
         fai().copy(src[fai.index()], b, src_comp, b, dest_comp, num_comp);
@@ -1352,14 +1352,14 @@ FabArray<T,FAB>::copy (FAB&       dest,
         }
     }
 
-    ParallelDescriptor::Synchronize();
+    //ParallelDescriptor::Synchronize();
 }
 
 template <class T, class FAB>
 void
 FabArray<T,FAB>::setVal (T val)
 {
-    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
+    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
     {
         fai().setVal(val);
     }
@@ -1375,7 +1375,7 @@ FabArray<T,FAB>::setVal (T   val,
     assert(nghost >= 0 && nghost <= n_grow);
     assert(comp+num_comp <= n_comp);
     int k;
-    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
+    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
     {
         Box b(::grow(fai.validbox(), nghost));
         for (k = 0; k < num_comp; k++)
@@ -1396,7 +1396,7 @@ FabArray<T,FAB>::setVal (T          val,
     assert(nghost >= 0 && nghost <= n_grow);
     assert(comp+num_comp <= n_comp);
     int k;
-    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
+    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
     {
         Box b(::grow(fai.validbox(), nghost));
         b &= region;
@@ -1444,7 +1444,7 @@ FabArray<T,FAB>::FillBoundary (int start_comp,
     FabArrayId faid = facd.RegisterFabArray(this);
     List<FillBoxId> fillBoxIdList;
 
-    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
+    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
     {
         for (int j = 0; j < length(); j++)
         {
@@ -1473,7 +1473,7 @@ FabArray<T,FAB>::FillBoundary (int start_comp,
 
     ListIterator<FillBoxId> fbidli(fillBoxIdList);
 
-    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
+    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
     {
         for (int j = 0; j < length(); j++)
         {
@@ -2251,7 +2251,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
 
     dataAvailable = true;
 
-    ParallelDescriptor::Synchronize();
+    //ParallelDescriptor::Synchronize();
 
 #ifndef NDEBUG
     ParallelDescriptor::ReduceIntSum(numberOfOutstandingRequestMessages);
@@ -2279,6 +2279,9 @@ FabArrayCopyDescriptor<T,FAB>::FillFab (const FabArrayId& fabarrayid,
     //
     // TODO -- optimize this.
     //
+    //cout << endl;
+    //cout << "+++++++++++++++ fabCopyDescList.length() = " << fabCopyDescList.length() << endl;
+    //cout << endl;
     for (ListIterator<FabCopyDescriptor<FAB>*> fli(fabCopyDescList); fli; ++fli)
     {
         if (fli()->fabArrayId == fabarrayid.Id() && fli()->fillBoxId == fillboxid.Id())
@@ -2323,6 +2326,13 @@ FabArrayCopyDescriptor<T,FAB>::PrintStats ()
          << totalRemoteBytes
          << '\n';
 
+    cout << "----- "
+         << myproc
+         << ":  fabCopyDescList.length() = "
+         << fabCopyDescList.length()
+         << '\n';
+
+    /*
     for (int fa = 0; fa < fabArrays.length(); ++fa)
     {
         cout << "fabArrays["
@@ -2331,6 +2341,7 @@ FabArrayCopyDescriptor<T,FAB>::PrintStats ()
              << fabArrays[fa]->boxArray()
              << '\n';
     }
+    */
 }
 
 #endif /*BL_FABARRAY_H*/

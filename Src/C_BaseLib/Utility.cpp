@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.19 1998-02-12 17:32:10 car Exp $
+// $Id: Utility.cpp,v 1.20 1998-02-18 21:31:15 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -106,6 +106,8 @@ Utility::wsecond (double* t)
 }
 
 #elif defined(BL_ARCH_CRAY)
+
+#include <unistd.h>
 
 extern "C" double SECOND();
 extern "C" double RTC();
