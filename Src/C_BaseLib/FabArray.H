@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.77 1998-10-18 03:48:16 lijewski Exp $
+// $Id: FabArray.H,v 1.78 1998-10-23 01:59:35 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -2211,6 +2211,9 @@ template <class T, class FAB>
 void
 FabArrayCopyDescriptor<T,FAB>::CollectData ()
 {
+    if (ParallelDescriptor::NProcs() == 1)
+        return;
+
 #ifdef BL_USE_MPI
     static RunStats mpi_stat("collect_data");
     static RunStats mpi_recv("mpi_recv");
