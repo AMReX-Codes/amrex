@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.46 1999-07-07 22:48:33 car Exp $
+// $Id: ParallelDescriptor.H,v 1.47 1999-07-26 16:59:42 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -301,7 +301,9 @@ class ParallelDescriptor
                         int   sendcount,
                         Real* recvbuf,
                         int   root);
-
+    //
+    //@ManDoc: Parallel broadcast of nbyte bytes from fromproc to all procs.
+    //
     static void Broadcast (int   fromproc,
                            void* src,
                            void* dest,
