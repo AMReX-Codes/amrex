@@ -1,9 +1,7 @@
 #ifndef _HG_PROJECTOR_H_
 #define _HG_PROJECTOR_H_
 
-#ifndef _HG_MULTI_H_
-#  include "hg_multi.H"
-#endif
+#include "hg_multi.H"
 
 extern PArray<MultiFab> null_amr_real;
 

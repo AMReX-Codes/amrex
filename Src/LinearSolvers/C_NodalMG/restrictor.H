@@ -1,12 +1,8 @@
 #ifndef _RESTRICTOR_H_
 #define _RESTRICTOR_H_
 
-#ifndef _INTERFACE_H_
-#  include "interface.H"
-#endif
-#ifndef _BOUNDARY_H_
-#  include "boundary.H"
-#endif
+#include "interface.H"
+#include "boundary.H"
 
 typedef const class amr_restrictor_class& amr_restrictor;
 
@@ -28,7 +24,10 @@ class amr_restrictor_class {
 	            FArrayBox&, const IntVect&) const
     { BoxLib::Error("amr_restrictor_class::fill---Restriction function not defined."); }
   virtual void interface(FArrayBox&, const Box&, MultiFab&,
-			 const copy_cache*, const level_interface&,
+#ifdef HG_USE_CACHE
+			 const copy_cache*, 
+#endif
+			 const level_interface&,
 			 const amr_boundary_class&, const IntVect&) const { }
 };
 
@@ -79,7 +78,10 @@ class bilinear_restrictor_class : public amr_restrictor_class {
   void fill(FArrayBox& patch, const Box& region,
 	    FArrayBox& fgr, const IntVect& rat) const;
   void interface(FArrayBox& patch, const Box& region,
-	         MultiFab& fine, const copy_cache*,
+	         MultiFab& fine, 
+#ifdef HG_USE_CACHE
+		 const copy_cache*,
+#endif
 		 const level_interface& interface,
 		 const amr_boundary_class& bdy, const IntVect& rat) const;
 };
@@ -92,7 +94,10 @@ class bilinear_restrictor_coarse_class
   bilinear_restrictor_coarse_class(int i)
     : bilinear_restrictor_class(i) { }
   void interface(FArrayBox& patch, const Box& region,
-	         MultiFab& fine, const copy_cache*,
+	         MultiFab& fine, 
+#ifdef HG_USE_CACHE
+		 const copy_cache*,
+#endif
 		 const level_interface& interface,
 		 const amr_boundary_class& bdy, const IntVect& rat) const;
 };

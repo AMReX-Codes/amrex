@@ -1,12 +1,9 @@
 #ifndef _CACHE_H_
 #define _CACHE_H_
 
-#ifndef _INTERFACE_H_
+#ifdef HG_USE_CACHE
 #  include "interface.H"
-#endif
-#ifndef _BOUNDARY_H_
 #  include "boundary.H"
-#endif
 
 #ifdef BL_FORT_USE_UNDERSCORE
 #  define FFCCPY1     fccpy1_
@@ -161,4 +158,5 @@ class unroll_cache {
 #endif
 };
 
+#endif
 #endif

@@ -20,7 +20,9 @@ class amr_multigrid {
   PArray<MultiFab> save;               // lives on middle levels of ml_mesh
   PArray<MultiFab> coarse_source;      // lives on ml_mesh, if it exists
 
+#ifdef HG_USE_CACHE
   Array<copy_cache*> dest_bcache, corr_bcache, work_bcache;
+#endif
 
   static int c_sys;
 
@@ -109,7 +111,9 @@ class amr_multigrid {
   virtual void level_residual(MultiFab& r,
 			      MultiFab& s,
 			      MultiFab& d,
+#ifdef HG_USE_CACHE
 			      copy_cache* dbc,
+#endif
 			      int mglev,
 			      int iclear = 1) = 0;
   virtual void interface_residual(int mglev, int mgc) = 0;

@@ -1,9 +1,7 @@
 #ifndef _INTERFACE_H_
 #define _INTERFACE_H_
 
-#ifndef _AMR_DEFS_H_
-#  include "amr_defs.H"
-#endif
+#include "amr_defs.H"
 
 class amr_boundary_class;
 typedef const amr_boundary_class& amr_boundary;
