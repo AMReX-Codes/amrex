@@ -34,19 +34,17 @@ void
 PrintUsage(int argc, char *argv[])
 {
     cout << "Usage: " << endl;
-    cout << argv[0] << endl;
-    cout << "     mfab0 = MultiFab 0" << endl;
-    cout << "     mfab1 = MultiFab 1" << endl;
-    cout << "     comp0 = Starting component for MultiFab 0" << endl
-         << "             (default is comp0=0)" << endl;
-    cout << "     comp1 = Starting component for MultiFab 1" << endl
-         << "             (default is comp1=0)" << endl;
-    cout << "     ncomp = Number of components" << endl
-         << "             (default is ncomp=mfab0.nComp())" << endl;
-    cout << "   outfile = Name of file to dump result of diff" << endl;
+    cout << argv[0] << " infile0 infile1 [options] \n\tOptions:" << endl;
+    cout << "\t   comp0 = Starting component for MultiFab in infile0" << endl
+         << "\t           (default is comp0=0)" << endl;
+    cout << "\t   comp1 = Starting component for MultiFab in infile1" << endl
+         << "\t           (default is comp1=0)" << endl;
+    cout << "\t   ncomp = Number of components" << endl
+         << "\t           (default is ncomp=mfab0.nComp())" << endl;
+    cout << "\t outfile = Name of file to dump result of diff" << endl;
+    cout << "\t   ngrow = Number of grow cells to include in result" << endl;
+    cout << "\t           (default is ngrow=0)" << endl;
     cout << endl;
-    cout << "Options:" << endl;
-    cout << "     ngrow = Number of grow cells to include in result [0]" << endl;
     exit(0);
 }
 
@@ -66,23 +64,22 @@ int main (int   argc,
 //
 //  Parse the command line
 //
-    if (argc == 1)
+    if (argc < 3)
+        PrintUsage(argc,argv);
+
+    if (argv[1][0] == '-')
+    {
+        cerr << "input file must be first argument\n";
         PrintUsage(argc, argv);
+    }
 
-    ParmParse pp(argc-1,argv+1);
-
+    ParmParse pp(argc-3,argv+3);
+    
     if (pp.contains("help"))
         PrintUsage(argc, argv);
-
-    aString iFile0, iFile1;
-
-    pp.query("mfab0", iFile0);
-    if (iFile0.isNull())
-        BoxLib::Abort("You must specify `mfab0'");
-
-    pp.query("mfab1", iFile1);
-    if (iFile1.isNull())
-        BoxLib::Abort("You must specify `mfab1'");
+    
+    const aString iFile0 = argv[1];
+    const aString iFile1 = argv[2];
 
     int comp0 = 0;
     pp.query("comp0", comp0);

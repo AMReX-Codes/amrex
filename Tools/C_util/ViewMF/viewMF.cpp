@@ -33,8 +33,10 @@ void
 PrintUsage(int argc, char *argv[])
 {
     cout << "Usage: " << endl;
-    cout << argv[0] << endl;
-    cout << "     mfab = MultiFab" << endl;
+    cout << argv[0] << "infile [options] \n\tOptions:" << endl;
+    cout << "\t   -ascii   \t[if set, dump ascii mfab to stdout]" << endl;
+    cout << "\t   ngrow=<#>\t[number of grow cells to include in output]" << endl;
+    cout << endl;
     exit(0);
 }
 
@@ -55,26 +57,46 @@ main (int   argc,
 //
 //  Parse the command line
 //
-    if (argc == 1)
+    if (argc < 2)
+        PrintUsage(argc,argv);
+
+    if (argv[1][0] == '-')
+    {
+        cerr << "input file must be first argument\n";
         PrintUsage(argc, argv);
+    }
 
-    ParmParse pp(argc-1,argv+1);
-
+    ParmParse pp(argc-2,argv+2);
+    
     if (pp.contains("help"))
         PrintUsage(argc, argv);
-
-    aString iFile;
-
-    pp.query("mfab", iFile);
-    if (iFile.isNull())
-        BoxLib::Abort("You must specify `mfab'");
-
-
+    
+    aString iFile = argv[1];
+    
+    bool ascii = false;
+    if (pp.contains("ascii"))
+        ascii = true;
 //
 //  Read multifab
 //
     MultiFab mf;
     readMF(mf,iFile.c_str());
+    
+    int ngrow = mf.nGrow();
+    pp.query("ngrow",ngrow);
+    ngrow = Min(ngrow,mf.nGrow());
+    
+    MultiFab tmp(mf.boxArray(),mf.nComp(),mf.nGrow(),Fab_allocate);
+    MultiFab::Copy(tmp,mf,0,0,mf.nComp(),ngrow);
+    if (ascii)
+    {
+        for (MultiFabIterator mfi(tmp); mfi.isValid(); ++mfi)
+        {
+            cout << "FAB: " << mfi.index() << endl;
+            cout << mfi() << endl;
+        }
+        return true;
+    }
     
     return ArrayViewMultiFab(&mf);
 }
