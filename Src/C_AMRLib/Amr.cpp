@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.79 1999-04-26 20:09:56 lijewski Exp $
+// $Id: Amr.cpp,v 1.80 1999-04-27 18:24:46 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -332,7 +332,7 @@ Amr::Amr ()
     for (i = 0; i < BL_SPACEDIM; i++)
     {
         Real delta = Geometry::ProbLength(i)/(Real)n_cell[i];
-        offset[i] = Geometry::ProbLo(i) + delta*lo[i];
+        offset[i]  = Geometry::ProbLo(i) + delta*lo[i];
     }
     CoordSys::SetOffset(offset);
     //
@@ -449,13 +449,10 @@ Amr::writePlotFile (const aString& root,
     aString pltfile = Utility::Concatenate(root, num);
 
     if (verbose && ParallelDescriptor::IOProcessor())
-    {
         cout << "PLOTFILE: file = " << pltfile << endl;
-    }
+
     if (record_run_info && ParallelDescriptor::IOProcessor())
-    {
         runlog << "PLOTFILE: file = " << pltfile << '\n';
-    }
     //
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
@@ -514,11 +511,7 @@ Amr::writePlotFile (const aString& root,
     ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
 
     if (ParallelDescriptor::IOProcessor())
-    {
-        cout << "Write plotfile time = "
-             << dPlotFileTime
-             << "  seconds." << endl;
-    }
+        cout << "Write plotfile time = " << dPlotFileTime << "  seconds." << endl;
 
     stats.end();
 }
@@ -698,13 +691,10 @@ Amr::restart (const aString& filename)
     int i;
 
     if (verbose && ParallelDescriptor::IOProcessor())
-    {
         cout << "restarting calculation from file: " << filename << endl;
-    }
+
     if (record_run_info && ParallelDescriptor::IOProcessor())
-    {
         runlog << "RESTART from file = " << filename << '\n';
-    }
     //
     // Init problem dependent data.
     //
@@ -728,9 +718,7 @@ Amr::restart (const aString& filename)
     // Start calculation from given restart file.
     //
     if (record_run_info && ParallelDescriptor::IOProcessor())
-    {
         runlog << "RESTART from file = " << filename << '\n';
-    }
     //
     // Open the checkpoint header file for reading.
     //
@@ -861,11 +849,7 @@ Amr::restart (const aString& filename)
     ParallelDescriptor::ReduceRealMax(dRestartTime,IOProc);
 
     if (ParallelDescriptor::IOProcessor())
-    {
-        cout << "Restart time = "
-             << dRestartTime
-             << " seconds." << endl;
-    }
+        cout << "Restart time = " << dRestartTime << " seconds." << endl;
 }
 
 void
@@ -886,13 +870,10 @@ Amr::checkPoint ()
     aString ckfile = Utility::Concatenate(check_file_root, level_steps[0]);
 
     if (verbose && ParallelDescriptor::IOProcessor())
-    {
         cout << "CHECKPOINT: file = " << ckfile << endl;
-    }
+
     if (record_run_info && ParallelDescriptor::IOProcessor())
-    {
         runlog << "CHECKPOINT: file = " << ckfile << '\n';
-    }
     //
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
@@ -998,7 +979,7 @@ Amr::timeStep (int  level,
 
     for (int i = level; i <= lev_top; i++)
     {
-        int old_finest = finest_level;
+        const int old_finest = finest_level;
 
         if (level_count[i] >= regrid_int[i] && amr_level[i].okToRegrid())
         {
@@ -1042,18 +1023,10 @@ Amr::timeStep (int  level,
              << dt_level[level]
              << endl;
     }
-    Real dt_new = amr_level[level].advance(time,
-                                           dt_level[level],
-                                           iteration,
-                                           niter);
-    if (iteration == 1)
-    {
-        dt_min[level] = dt_new;
-    }
-    else
-    {
-        dt_min[level] = Min(dt_min[level],dt_new);
-    }
+    Real dt_new = amr_level[level].advance(time,dt_level[level],iteration,niter);
+
+    dt_min[level] = iteration == 1 ? dt_new : Min(dt_min[level],dt_new);
+
     level_steps[level]++;
     level_count[level]++;
 
@@ -1065,16 +1038,16 @@ Amr::timeStep (int  level,
     //
     if (level < finest_level)
     {
+        const int lev_fine = level+1;
+
         if (sub_cycle)
         {
-            const int lev_fine = level+1;
             const int ncycle   = n_cycle[lev_fine];
             for (int i = 1; i <= ncycle; i++)
                 timeStep(lev_fine,time + (i-1)*dt_level[lev_fine],i,ncycle);
         }
         else
         {
-            const int lev_fine = level+1;
             timeStep(lev_fine,time,1,1);
         }
     }
@@ -1162,19 +1135,15 @@ Amr::defBaseLevel (Real strt_time)
     const int* d_len  = domain.length().getVect();
 
     for (int idir = 0; idir < BL_SPACEDIM; idir++)
-    {
         if (d_len[idir]%2 != 0)
-        {
             BoxLib::Error("defBaseLevel: must have even number of cells");
-        }
-    }
     //
     // Coarsening before we split the grids ensures that
     // each resulting grid will have an even number of
     // cells in each direction.
     //
     BoxArray lev0(1);
-    lev0.set(0, ::coarsen(domain,2));
+    lev0.set(0,::coarsen(domain,2));
     //
     // Now split up into list of grids within max_grid_size limit.
     //
@@ -1205,13 +1174,10 @@ Amr::regrid (int  lbase,
     stats.start();
 
     if (verbose && ParallelDescriptor::IOProcessor())
-    {
         cout << "REGRID: at level lbase = " << lbase << endl;
-    }
+
     if (record_run_info && ParallelDescriptor::IOProcessor())
-    {
         runlog << "REGRID: at level lbase = " << lbase << endl;
-    }
     //
     // Remove old-time grid space at highest level.
     //
@@ -1241,13 +1207,16 @@ Amr::regrid (int  lbase,
 
     if (lbase == 0)
     {
-        //
-        // Flush processor map-dependent caches when at coarsest level.
-        //
-        DistributionMapping::FlushCache();
+        FabSet::FlushCache();
         MultiFab::FlushSICache();
         Geometry::FlushPIRMCache();
-        FabSet::FlushCache();
+        DistributionMapping::FlushCache();
+        //
+        // Since we NEVER regrid level 0 we've got to recache its procmap.
+        // Otherwise we'd have a problem if a higher level had the same
+        // number of grids as does level 0.
+        //
+        MultiFab dummy(amr_level[0].boxArray(),1,0,Fab_noallocate);
     }
     //
     // Define the new grids from level lbase+1 up to new_finest.
@@ -1257,22 +1226,29 @@ Amr::regrid (int  lbase,
         //
         // Construct skeleton of new level.
         //
-        AmrLevel* a = (*levelbld)(*this,lev,geom[lev],new_grid_places[lev],cumtime);
-
-        assert(!(a == 0));
-
+        AmrLevel* a = (*levelbld)(*this,
+                                  lev,
+                                  geom[lev],
+                                  new_grid_places[lev],
+                                  cumtime);
         if (initial)
+        {
             //
             // We're being called on startup from bldFineLevels().
             //
             a->initData();
+        }
         else if (amr_level.defined(lev))
+        {
             //
             // Init with data from old structure then remove old structure.
             //
             a->init(amr_level[lev]);
+        }
         else
+        {
             a->init();
+        }
 
         amr_level.clear(lev);
 
@@ -1292,10 +1268,10 @@ Amr::regrid (int  lbase,
     {
         for (int lev = lbase+1; lev <= finest_level; lev++)
         {
-            int  numgrids = amr_level[lev].numGrids();
-            long ncells   = amr_level[lev].countCells();
-            long ntot     = geom[lev].Domain().numPts();
-            Real frac     = 100.0*(Real(ncells) / Real(ntot));
+            const int  numgrids = amr_level[lev].numGrids();
+            const long ncells   = amr_level[lev].countCells();
+            const long ntot     = geom[lev].Domain().numPts();
+            const Real frac     = 100.0*(Real(ncells) / Real(ntot));
 
             if (verbose)
             {
@@ -1382,8 +1358,8 @@ Amr::printGridInfo (ostream& os,
 }
 
 void
-proj_periodic (BoxDomain&      bd,
-               const Geometry& geom)
+Amr::ProjPeriodic (BoxDomain&      bd,
+                   const Geometry& geom)
 {
     Box domain(geom.Domain());
     //
@@ -1518,20 +1494,17 @@ Amr::grid_places (int              lbase,
     //
     // Construct proper nesting domains.
     //
-    Array<BoxDomain> p_n(max_level);   // proper nesting domain
-    Array<BoxDomain> p_n_comp(max_level);   // complement of proper nesting domain
+    Array<BoxDomain> p_n(max_level);      // Proper nesting domain.
+    Array<BoxDomain> p_n_comp(max_level); // Complement proper nesting domain.
 
     BoxDomain fd1;
     const BoxArray& bbase = amr_level[lbase].boxArray();
     for (i = 0; i < bbase.length(); i++)
-    {
         fd1.add(::coarsen(bbase[i],bf_lev[lbase]));
-    }
-
     p_n_comp[lbase].complementIn(pc_domain[lbase],fd1);
     p_n_comp[lbase].accrete(n_proper);
     Geometry tmp2(pc_domain[lbase]);
-    proj_periodic( p_n_comp[lbase], tmp2 );
+    Amr::ProjPeriodic(p_n_comp[lbase], tmp2);
     p_n_comp[lbase].minimize();
     p_n[lbase].complementIn(pc_domain[lbase],p_n_comp[lbase]);
     p_n[lbase].minimize();
@@ -1541,14 +1514,12 @@ Amr::grid_places (int              lbase,
     {
         BoxList bl;
         for (BoxDomainIterator bdi(p_n_comp[i-1]); bdi; ++bdi)
-        {
-          bl.add(refine(bdi(),rr_lev[i-1]));
-        }
+            bl.add(refine(bdi(),rr_lev[i-1]));
         p_n_comp[i].clear();
         p_n_comp[i].add(bl);
         p_n_comp[i].accrete(n_proper);
         Geometry tmp3(pc_domain[i]);
-        proj_periodic( p_n_comp[i], tmp3 );
+        Amr::ProjPeriodic(p_n_comp[i], tmp3);
         p_n[i].complementIn(pc_domain[i],p_n_comp[i]);
         p_n[i].minimize();
     }
@@ -1731,9 +1702,11 @@ Amr::bldFineLevels (Real strt_time)
         //
         finest_level = new_finest;
 
-        AmrLevel* level = (*levelbld)(*this,new_finest,geom[new_finest],
-                                      grids[new_finest],strt_time);
-        assert(!(level == 0));
+        AmrLevel* level = (*levelbld)(*this,
+                                      new_finest,
+                                      geom[new_finest],
+                                      grids[new_finest],
+                                      strt_time);
 
         amr_level.set(new_finest,level);
 
@@ -1743,12 +1716,10 @@ Amr::bldFineLevels (Real strt_time)
     //
     // Iterate grids to ensure fine grids encompass all interesting gunk.
     //
-    bool grids_the_same;
+    bool grids_the_same = true;
 
     do
     {
-        grids_the_same = true;
-
         for (int i = 0; i <= finest_level; i++)
             grids[i] = amr_level[i].boxArray();
 
