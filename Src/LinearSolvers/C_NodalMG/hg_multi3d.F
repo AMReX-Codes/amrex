@@ -2558,7 +2558,7 @@ c-----------------------------------------------------------------------
      &                        signd(i,j-1,k,2) * cor(i,j-1,k) +
      &                        signd(i,j,k,2)   * cor(i,j+1,k)))
       
-	if (lsd .ne. 2) then
+      if (lsd .ne. 2) then
          print *, "Line solve not implemented in dimension", lsd
           stop
       end if
@@ -2622,7 +2622,7 @@ c back substitution loop:
                end do
             end do
          end do
-      end do                  	
+      end do
       end
 c-----------------------------------------------------------------------
       subroutine hgrlnf(cor,
@@ -3335,7 +3335,7 @@ c-----------------------------------------------------------------------
       double precision hx, alpha, rho
       double precision hxm2, facm, tol, rhoold
       integer it, pcode, k, i, j, MAXITER
-	parameter (MAXITER = 250)
+      parameter (MAXITER = 250)
       hxm2 = 1.d0 / (hx*hx)
 c#ifdef HG_CROSS_STENCIL
       facm = -hxm2

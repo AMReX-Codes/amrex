@@ -386,7 +386,7 @@ c
      &             wf(if-m-1,jf+n,kuf) + wf(if-m-1,jf+n-1,kuf) +
      &             wf(if+m  ,jf+n,kuf) + wf(if+m  ,jf+n-1,kuf) +
      &             wf(if+m-1,jf+n,kuf) + wf(if+m-1,jf+n-1,kuf)))
-	                  end do
+                        end do
                      end do
                   end do
                end if

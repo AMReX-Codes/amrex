@@ -8,7 +8,7 @@ c-----------------------------------------------------------------------
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       double precision rf(fl0:fh0,fl1:fh1,fl2:fh2)
       double precision fac
-	parameter (fac = 0.125d0)
+      parameter (fac = 0.125d0)
       integer i, j, k
       do k = fregl2, fregh2
          do j = fregl1, fregh1
@@ -334,7 +334,7 @@ c each quadrant is two octants and their share of the two central edges
      &                    (rf(irf,jf-n,krf) + rf(irf,jf-n-1,krf) +
      &                     rf(irf,jf+n,krf) + rf(irf,jf+n-1,krf))
                      end do
-	            end do
+                  end do
                else
                   krc = kc + ki - 1
                   irc = ic + ii - 1
