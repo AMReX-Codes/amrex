@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.24 1998-12-01 21:56:39 lijewski Exp $
+// $Id: Geometry.H,v 1.25 1998-12-10 23:24:14 lijewski Exp $
 //
 
 #include <CoordSys.H>
@@ -153,19 +153,29 @@ public:
                         const Box&      src, 
                         Array<IntVect>& out) const;
     //
-    //@ManDoc: Fill ghost cells with periodic data.
+    //@ManDoc: Fill ghost cells of all components with periodic data.
     //
     void FillPeriodicBoundary (MultiFab& mf,
                                bool      no_overlap,
                                bool      do_corners) const;
     //
-    //@ManDoc: Fill ghost cells with periodic data.
+    //@ManDoc: Fill ghost cells of selected components with periodic data.
     //
     void FillPeriodicBoundary (MultiFab& mf,
                                int       src_comp,
                                int       num_comp,
                                bool      no_overlap,
                                bool      do_corners) const;
+    //
+    //@ManDoc: Increment ghost cells of all components with periodic data.
+    //
+    void IncrementPeriodicBoundary (MultiFab& mf) const;
+    //
+    //@ManDoc: Increment ghost cells of selected components with periodic data.
+    //
+    void IncrementPeriodicBoundary (MultiFab& mf,
+                                    int       srccomp,
+                                    int       numcomp) const;
     //
     // Src/dest box pairs to copy for periodic.
     //
@@ -384,6 +394,13 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
                                 bool do_corners) const
 {
     FillPeriodicBoundary(mf, 0, mf.nComp(), no_overlap, do_corners);
+}
+
+inline
+void
+Geometry::IncrementPeriodicBoundary (MultiFab& mf) const
+{
+    IncrementPeriodicBoundary(mf, 0, mf.nComp());
 }
 
 inline
