@@ -2,7 +2,7 @@
 #define _LINOP_H_
 
 //
-// $Id: LinOp.H,v 1.4 1998-06-10 22:19:49 lijewski Exp $
+// $Id: LinOp.H,v 1.5 1998-06-13 15:50:01 lijewski Exp $
 //
 
 #include <Array.H>
@@ -244,14 +244,6 @@ protected:
     // whether stuff intersects on periodic domains
     //
     vector< Geometry > geomarray;
-    //
-    //@ManDoc: Array (on level) of periodic intersection info
-    //
-    vector< Geometry::PIRMMap > m_pirmmap;
-    //
-    //@ManDoc: internal function which constructs pirarray
-    //
-    void preComputePeriodicInfo (int level);
     //
     //@ManDoc: flag (=1 if use harmonic averaged interpolation for coefficients,
     // =0 is arithmetic averaging)
