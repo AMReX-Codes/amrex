@@ -4,7 +4,7 @@
 #define BL_BOXARRAY_H
 
 //
-// $Id: BoxArray.H,v 1.13 1999-08-02 19:22:16 sstanley Exp $
+// $Id: BoxArray.H,v 1.14 1999-09-30 15:55:12 sstanley Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -248,7 +248,7 @@ public:
     friend BoxArray boxComplement (const Box& b1in,
                                    const Box& b2);
     //
-    //@ManDoc: Makes a BoxArray from the complement of Box b in BoxArray ba.
+    //@ManDoc: Makes a BoxArray from the complement of BoxArray ba in Box b.
     //
     friend BoxArray complementIn (const Box&      b,
                                   const BoxArray& ba);
