@@ -297,14 +297,12 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
     
     PArray<MultiFab> u[BL_SPACEDIM];
     PArray<MultiFab> p, rhoinv, rhs;
-    Array< Array<int> > pd;
     
     for (int i = 0; i < BL_SPACEDIM; i++)
 	u[i].resize(m.length());
     p.resize(m.length());
     rhoinv.resize(m.length());
     rhs.resize(m.length());
-    pd.resize(m.length());
     
     for (int ilev = 0; ilev < m.length(); ilev++) 
     {
@@ -335,7 +333,6 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
 	rhs.set(ilev, new MultiFab(nmesh, 1, 1));
 	//rhs.set(ilev, new MultiFab(cmesh, 1, 1));
 	rhs[ilev].setVal(0.0);
-	pd[ilev] = rhs[ilev].DistributionMap().ProcessorMap();
     }
     
     if (hg_terrain)
