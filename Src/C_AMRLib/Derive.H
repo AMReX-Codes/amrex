@@ -4,7 +4,7 @@
 #define _Derive_H_
 
 //
-// $Id: Derive.H,v 1.6 1998-03-23 17:23:58 lijewski Exp $
+// $Id: Derive.H,v 1.7 1998-03-23 20:20:14 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -29,19 +29,6 @@ typedef void (*DeriveFunc)(REAL* data, ARLIM_P(dlo), ARLIM_P(dhi),
 			   const REAL* time, const REAL* dt, 
                            const int* bcrec,
                            const int* level, const int* grid_no) ;
-
-typedef void (*DeriveFuncScr)(REAL* data, ARLIM_P(dlo), ARLIM_P(dhi),
-                              const int* nvar, const REAL* compdat,
-  			      ARLIM_P(compdat_lo), ARLIM_P(compdat_hi),
-			      const int* ncomp,
-			      const int* lo, const int* hi,
-			      const int* domain_lo, const int* domain_hi,
-			      const REAL* delta, const REAL* xlo,
-			      const REAL* time, const REAL* dt, 
-                              const int* bcrec,
-                              REAL* scratch, ARLIM_P(slo), ARLIM_P(shi),
-                              const int* level, const int* grid_no) ;
-
 //
 // Computes quantities derived from state data.
 //
@@ -60,8 +47,6 @@ public:
     IndexType deriveType () const { return der_type; }
 
     DeriveFunc derFunc () const { return func; }
-
-    DeriveFuncScr derFuncScr () const { return func_scr; }
 
     DeriveBoxMap boxMap () const { return bx_map; }
 
@@ -83,24 +68,12 @@ public:
                    int& num_comp) const;
 protected:
     //
-    // Invalid constructor.
-    //
-    DeriveRec();
-    //
     // Constructor.
     //
     DeriveRec (const aString& name,
                IndexType      result_type,
                int            nvar_derive,
                DeriveFunc     der_func,
-               DeriveBoxMap   box_map,
-               IndexType      component_type,
-               Interpolater*  interp = &pc_interp);
-
-    DeriveRec (const aString& name,
-               IndexType      result_type,
-               int            nvar_derive,
-               DeriveFuncScr  der_func_scr,
                DeriveBoxMap   box_map,
                IndexType      component_type,
                Interpolater*  interp = &pc_interp);
@@ -136,10 +109,9 @@ protected:
     //
     int n_derive;
     //
-    // Functions that compute derived quantity from state variables.
+    // Function that computes derived quantity from state variables.
     //
-    DeriveFunc    func;
-    DeriveFuncScr func_scr;
+    DeriveFunc func;
     //
     // Interpolater for mapping crse grid derived data to finer levels.
     //
@@ -179,19 +151,19 @@ class DeriveList
 {
 public:
 
-    DeriveList();
+    DeriveList ();
 
-    ~DeriveList();
+    ~DeriveList ();
 
-    void clear();
+    void clear ();
     //
     // Determines whether quantity identified by <name> is in the registry.
     //
-    bool canDerive(const aString&) const;
+    bool canDerive (const aString& name) const;
     //
     // Accesses to particular record in registry.
     //
-    const DeriveRec* get(const aString &name) const;
+    const DeriveRec* get (const aString& name) const;
     //
     // Adds another entry to the registry.
     //
@@ -202,16 +174,8 @@ public:
               DeriveBoxMap   box_map,
               IndexType      component_type,
               Interpolater*  interp = &pc_interp);
-
-    void add (const aString& name,
-              IndexType      result_type,
-              int            nvar_derive,
-              DeriveFuncScr  der_func_scr,
-              DeriveBoxMap   box_map,
-              IndexType      component_type,
-              Interpolater*  interp = &pc_interp);
     //
-    // Adds another Staterange to the DeriveRec identified by <name>.
+    // Adds another StateRange to the DeriveRec identified by <name>.
     //
     void addComponent (const aString&        name,
                        const DescriptorList& d_list,
@@ -219,7 +183,7 @@ public:
                        int                   start_comp,
                        int                   ncomp);
 
-    List<DeriveRec*>& dlist() { return lst; }
+    List<DeriveRec*>& dlist () { return lst; }
 
 protected:
 
