@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.38 1999-08-03 07:03:37 almgren Exp $
+# $Id: GNUmakefile,v 1.39 1999-08-06 23:10:05 car Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -48,23 +48,28 @@ ifeq ($(LBASE),proj)
 endif
 
 ifeq ($(EBASE),proj)
-  include	$(TOP)/pBoxLib_2/Make.package
+  include $(TOP)/bndrylib/Make.package
+  include $(TOP)/pBoxLib_2/Make.package
 
-  #CXXFLAGS 	  += --strict
-  #CPPFLAGS	  += -D__KAI_STRICT
+  INCLUDE_LOCATIONS += $(TOP)/bndrylib
+  INCLUDE_LOCATIONS += $(TOP)/pBoxLib_2 
 
   ifeq ($(DEBUG),TRUE)
     CPPFLAGS          += -DHG_DEBUG
   endif
+  ifeq ($(COMP),KCC)
+    CXXFLAGS += --strict
+    CXXFLAGS += --display_error_number
+    CXXFLAGS += --diag_suppress 450
+  endif
+
   LIBRARIES         +=
   LIBRARY_LOCATIONS += 
   CEXE_sources      += proj.cpp
 
-  INCLUDE_LOCATIONS += $(TOP)/pBoxLib_2 
-  vpath %.cpp	. $(TOP)/pBoxLib_2
+  vpath %.cpp	. $(TOP)/pBoxLib_2 $(TOP)/bndrylib
   vpath %.H     . $(TOP)/pBoxLib_2 $(TOP)/bndrylib
-  vpath %.h     . $(TOP)/pBoxLib_2
-  vpath %.F	. 
+  vpath %.F	.                  $(TOP)/bndrylib
   all: $(executable)
 endif
 
@@ -96,8 +101,6 @@ ifeq ($(MACHINE),OSF1)
   #
   FDEBF += -u
 endif
-
-CXXFLAGS += --strict --diag_suppress 450
 
 #
 # Lower optimization level for this big file
