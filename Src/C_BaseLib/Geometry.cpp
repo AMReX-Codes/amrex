@@ -1,6 +1,6 @@
 
 //
-// $Id: Geometry.cpp,v 1.53 2000-10-02 20:49:03 lijewski Exp $
+// $Id: Geometry.cpp,v 1.54 2000-12-06 23:13:58 almgren Exp $
 //
 
 #include <Geometry.H>
@@ -86,7 +86,7 @@ Geometry::buildFPB (MultiFab&  mf,
         Box dest = mfi().box();
 
         BL_ASSERT(dest == ::grow(mfi.validbox(), mf.nGrow()));
-        BL_ASSERT(dest.ixType().cellCentered() || dest.ixType().nodeCentered());
+//      BL_ASSERT(dest.ixType().cellCentered() || dest.ixType().nodeCentered());
 
         bool DoIt;
         Box  TheDomain;
@@ -96,10 +96,18 @@ Geometry::buildFPB (MultiFab&  mf,
             TheDomain = Domain();
             DoIt      = !Domain().contains(dest);
         }
-        else
+        else if (dest.ixType().nodeCentered())
         {
             TheDomain = ::surroundingNodes(Domain());
             DoIt      = !::grow(TheDomain,-1).contains(dest);
+        }
+        else 
+        {
+            TheDomain = Domain();
+            for (int n = 0; n < BL_SPACEDIM; n++)
+              if (dest.ixType()[n] == IndexType::NODE)
+                TheDomain.surroundingNodes(n);
+            DoIt      = !TheDomain.contains(dest);
         }
 
         if (DoIt)
