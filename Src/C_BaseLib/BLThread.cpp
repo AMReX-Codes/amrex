@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.13 2001-09-06 22:49:19 lijewski Exp $
+// $Id: BLThread.cpp,v 1.14 2001-09-07 22:03:21 car Exp $
 //
 
 #include <winstd.H>
@@ -1000,7 +1000,7 @@ FunctionThread::detach() const
     // #include <process.h>
     // #define pthread_t HANDLE
     // #define pthread_attr_t DWORD
-    // #define pthread_create(thhandle,attr,thfunc,tharg) \
+    // #define pthread_create(thhandle,attr,thfunc,tharg)
     // ((thhandle=(HANDLE)_beginthreadex(NULL,0,thfunc,tharg,0, NULL))==NULL)
     // #define pthread_join(thread) ((WaitForSingleObject((thread),INFINITE)!=WAIT_OBJECT_0) || !CloseHandle(thread))
     // #define pthread_detach(thread) if(thread!=NULL)CloseHandle(thread)
