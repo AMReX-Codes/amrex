@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.89 2001-09-25 22:45:41 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.90 2001-09-27 17:57:21 lijewski Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -407,9 +407,21 @@ ParallelDescriptor::second ()
 }
 
 void
-ParallelDescriptor::Barrier ()
+ParallelDescriptor::Barrier (MPI_Comm comm)
 {
-    BL_MPI_REQUIRE( MPI_Barrier(Communicator()) );
+    BL_MPI_REQUIRE( MPI_Barrier(comm) );
+}
+
+void
+ParallelDescriptor::Test (MPI_Request& request, int& flag, MPI_Status& status)
+{
+    BL_MPI_REQUIRE( MPI_Test(&request,&flag,&status) );
+}
+
+void
+ParallelDescriptor::Comm_dup (MPI_Comm comm, MPI_Comm& newcomm)
+{
+    BL_MPI_REQUIRE( MPI_Comm_dup(comm, &newcomm) );
 }
 
 void
@@ -911,7 +923,11 @@ void ParallelDescriptor::Abort (int)
 
 const char* ParallelDescriptor::ErrorString (int) { return ""; }
 
-void ParallelDescriptor::Barrier () {}
+void ParallelDescriptor::Barrier (MPI_Comm) {}
+
+void ParallelDescriptor::Test (MPI_Request&, int&, MPI_Status&) {}
+
+void ParallelDescriptor::Comm_dup (MPI_Comm, MPI_Comm&) {}
 
 void ParallelDescriptor::ReduceRealMax (Real&) {}
 void ParallelDescriptor::ReduceRealMin (Real&) {}

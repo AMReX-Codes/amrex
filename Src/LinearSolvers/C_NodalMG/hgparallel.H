@@ -3,12 +3,10 @@
 #define _HGPARALLEL_H_
 
 #include <cstdlib>
+#include <list>
 
 #include <MultiFab.H>
-
-#ifdef BL_USE_MPI
-#include <mpi.h>
-#endif
+#include <ccse-mpi.H>
 
 inline
 int
@@ -38,24 +36,18 @@ struct HG
 {
     static void MPI_init ();
     static void MPI_finish ();
-#ifdef BL_USE_MPI
-    static MPI_Comm mpi_comm;
-#endif
-    static int    max_live_tasks;
-    static int    multigrid_maxiter;
-    static int    cgsolve_maxiter;
-    static double cgsolve_tolfact;
-    static int    pverbose;
-private:
-    static bool   initialized;
-};
 
-#ifdef BL_USE_NEW_HFILES
-#include <list>
-using namespace std;
-#else
-#include <list.h>
-#endif
+    static MPI_Comm mpi_comm;
+    static int      max_live_tasks;
+    static int      multigrid_maxiter;
+    static int      cgsolve_maxiter;
+    static double   cgsolve_tolfact;
+    static int      pverbose;
+
+private:
+
+    static bool initialized;
+};
 
 class task_list;
 
@@ -100,7 +92,9 @@ public:
     void set_sequence_number (sequence_number sno);
 
 protected:
+
     friend class task_proxy;
+
     void _do_depend ();
     void _hint () const;
     //
@@ -334,9 +328,8 @@ public:
     virtual void hint () const;
 
 protected:
-#ifdef BL_USE_MPI
+
   MPI_Request     m_request;
-#endif
   FArrayBox*      m_tmp;
   MultiFab&       m_dmf;
   const int       m_dgrid;
@@ -407,9 +400,7 @@ public:
 
 protected:
 
-#ifdef BL_USE_MPI
     MPI_Request     m_request;
-#endif
     FArrayBox*      m_tmp;
     FArrayBox*      m_fab;
     const MultiFab& m_smf;

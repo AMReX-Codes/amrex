@@ -1,7 +1,6 @@
 #include <winstd.H>
 
 #include <ParmParse.H>
-
 #include <amr_defs.H>
 #include <hgparallel.H>
 #include <boundary.H>
@@ -16,9 +15,7 @@
 #endif
 
 bool HG_is_debugging       = false;
-#ifdef BL_USE_MPI
 MPI_Comm HG::mpi_comm      = MPI_COMM_WORLD;
-#endif
 int HG::max_live_tasks     = 50;
 int HG::multigrid_maxiter  = 100;
 int HG::cgsolve_maxiter    = 250;
@@ -54,19 +51,15 @@ HG::MPI_init ()
 
         initialized = true;
 
-#ifdef BL_USE_MPI
-        int res = MPI_Comm_dup(MPI_COMM_WORLD, &mpi_comm);
-        if (res != 0)
-            ParallelDescriptor::Abort(res);
-#endif
+        ParallelDescriptor::Comm_dup(MPI_COMM_WORLD, mpi_comm);
 
 #ifdef HG_DEBUG
-    std::ostringstream fname;
-    fname << "gu" << ParallelDescriptor::NProcs()
-	  << "_" << ParallelDescriptor::MyProc() << std::ends;
-    debug_out.open(fname.str().c_str(), std::ios::trunc);
-    if ( debug_out.fail() ) BoxLib::Error( "Failed to open debug file" );
-    debug_out << std::setprecision(15);
+        std::ostringstream fname;
+        fname << "gu" << ParallelDescriptor::NProcs()
+              << "_" << ParallelDescriptor::MyProc() << std::ends;
+        debug_out.open(fname.str().c_str(), std::ios::trunc);
+        if ( debug_out.fail() ) BoxLib::Error( "Failed to open debug file" );
+        debug_out << std::setprecision(15);
 #endif
     }
 }
@@ -251,10 +244,8 @@ task_list::print_dependencies (std::ostream& os) const
 void
 task_list::execute (const char* msg)
 {
-#ifdef BL_USE_MPI
     if (HG_is_debugging)
-        MPI_Barrier(HG::mpi_comm);
-#endif
+        ParallelDescriptor::Barrier(HG::mpi_comm);
     //
     // Assign message tag IDs ...
     //
@@ -274,16 +265,14 @@ task_list::execute (const char* msg)
     {
 #ifdef HG_DEBUG
         HG_DEBUG_OUT("Processing List ");
-#ifdef BL_USE_MPI
         HG_DEBUG_OUT(HG::mpi_comm);
-#endif
         HG_DEBUG_OUT(" with " << tasks.size() << " elements " << std::endl);
         print_dependencies(debug_out);
 #endif
     }
 
-    int live_tasks    = 0;
-    long total_sndcnt = 0, total_rcvcnt = 0, maxpacketsize = 0;
+    int live_tasks = 0;
+    long total_snd = 0, total_rcv = 0, maxpacket = 0;
 
 restart:
     while (!tasks.empty())
@@ -313,10 +302,9 @@ restart:
                         continue;
                     }
 
-                    total_sndcnt += sndcnt;
-                    total_rcvcnt += rcvcnt;
-                    maxpacketsize = std::max(maxpacketsize,
-                                             std::max(sndcnt,rcvcnt));
+                    total_snd += sndcnt;
+                    total_rcv += rcvcnt;
+                    maxpacket  = std::max(maxpacket,std::max(sndcnt,rcvcnt));
                     live_tasks++;
                 }
                 if (t->ready())
@@ -337,7 +325,7 @@ restart:
         seq_no[i] = 1;
 
 #ifdef HG_DEBUG
-    if (verbose && maxpacketsize > 0)
+    if (verbose && maxpacket > 0)
     {
         char buf[512];
 
@@ -345,9 +333,9 @@ restart:
                 "CPU(%d) %s: Sent: %ld Rcvd: %ld MaxPkt: %ld",
                 ParallelDescriptor::MyProc(),
                 msg,
-                total_sndcnt,
-                total_rcvcnt,
-                maxpacketsize);
+                total_snd,
+                total_rcv,
+                maxpacket);
 
         std::cout << buf << std::endl;
     }
@@ -371,9 +359,7 @@ task_copy_base::task_copy_base(task_list&      tl_,
 			       const Box&      sb_)
   :
   task(tl_),
-#ifdef BL_USE_MPI
   m_request(MPI_REQUEST_NULL),
-#endif
   m_tmp(0),
   m_dmf(dmf_),
   m_dgrid(dgrid_),
@@ -387,9 +373,6 @@ task_copy_base::task_copy_base(task_list&      tl_,
 task_copy_base::~task_copy_base ()
 {
     delete m_tmp;
-#ifdef BL_USE_MPI
-    BL_ASSERT(m_request == MPI_REQUEST_NULL);
-#endif
 }
 
 bool
@@ -413,7 +396,6 @@ task_copy_base::need_to_communicate (int& with) const
 {
     bool result = false;
 
-#ifdef BL_USE_MPI
     if (!m_local)
     {
         if (is_local(m_dmf, m_dgrid))
@@ -427,7 +409,6 @@ task_copy_base::need_to_communicate (int& with) const
             result = true;
         }
     }
-#endif
 
     return result;
 }
@@ -439,23 +420,20 @@ task_copy_base::startup (long& sndcnt, long& rcvcnt)
 
     bool result = true;
 
-#ifdef BL_USE_MPI
     if (!m_local)
     {
         if (is_local(m_dmf, m_dgrid))
         {
             m_tmp = new FArrayBox(m_sbx, m_smf.nComp());
             rcvcnt = m_tmp->box().numPts()*m_tmp->nComp();
-            int res = MPI_Irecv(m_tmp->dataPtr(),
-                                rcvcnt,
-                                MPI_DOUBLE,
-                                processor_number(m_smf, m_sgrid),
-                                m_sno,
-                                HG::mpi_comm,
-                                &m_request);
+
+            m_request = ParallelDescriptor::Arecv(m_tmp->dataPtr(),
+                                                  rcvcnt,
+                                                  processor_number(m_smf,m_sgrid),
+                                                  m_sno,
+                                                  HG::mpi_comm).req();
             rcvcnt *= sizeof(double);
-            if (res != 0)
-                ParallelDescriptor::Abort(res);
+
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
         else if (is_local(m_smf, m_sgrid))
@@ -463,16 +441,14 @@ task_copy_base::startup (long& sndcnt, long& rcvcnt)
             m_tmp = new FArrayBox(m_sbx, m_smf.nComp());
             m_tmp->copy(m_smf[m_sgrid], m_sbx);
             sndcnt = m_tmp->box().numPts()*m_tmp->nComp();
-            int res = MPI_Isend(m_tmp->dataPtr(),
-                                sndcnt,
-                                MPI_DOUBLE,
-                                processor_number(m_dmf, m_dgrid),
-                                m_sno,
-                                HG::mpi_comm,
-                                &m_request);
+
+            m_request = ParallelDescriptor::Asend(m_tmp->dataPtr(),
+                                                  sndcnt,
+                                                  processor_number(m_dmf,m_dgrid),
+                                                  m_sno,
+                                                  HG::mpi_comm).req();
             sndcnt *= sizeof(double);
-            if (res != 0)
-                ParallelDescriptor::Abort(res);
+
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
         else
@@ -480,7 +456,6 @@ task_copy_base::startup (long& sndcnt, long& rcvcnt)
             result = false;
         }
     }
-#endif
 
     return result;
 }
@@ -583,34 +558,33 @@ task_copy::ready ()
     if (m_local)
     {
         BL_ASSERT(!m_finished);
-        m_dmf[m_dgrid].copy(m_smf[m_sgrid], m_sbx, 0, m_dbx, 0, m_dmf.nComp());
+        m_dmf[m_dgrid].copy(m_smf[m_sgrid],m_sbx,0,m_dbx,0,m_dmf.nComp());
         return true;
     }
 
-#ifdef BL_USE_MPI
-    int flag, res;
+    int flag;
     MPI_Status status;
     BL_ASSERT(m_request != MPI_REQUEST_NULL);
-    if ((res = MPI_Test(&m_request, &flag, &status)) != 0)
-        ParallelDescriptor::Abort(res);
+
+    ParallelDescriptor::Test(m_request, flag, status);
+
     if (flag)
     {
         BL_ASSERT(m_request == MPI_REQUEST_NULL);
         if (is_local(m_dmf, m_dgrid))
         {
-#ifndef NDEBUG
-            int count;
+#if defined(BL_USE_MPI) && !defined(NDEBUG)
+            int count,res;
             BL_ASSERT(status.MPI_SOURCE == processor_number(m_smf, m_sgrid));
             BL_ASSERT(status.MPI_TAG    == m_sno);
             if ((res = MPI_Get_count(&status, MPI_DOUBLE, &count)) != 0)
                 ParallelDescriptor::Abort(res);
             BL_ASSERT(count == m_tmp->box().numPts()*m_tmp->nComp());
 #endif
-            m_dmf[m_dgrid].copy(*m_tmp, m_tmp->box(), 0, m_dbx, 0, m_smf.nComp());
+            m_dmf[m_dgrid].copy(*m_tmp,m_tmp->box(),0,m_dbx,0,m_smf.nComp());
         }
         return true;
     }
-#endif
 
     return false;
 }
@@ -626,9 +600,7 @@ task_local_base::task_local_base (task_list&      tl_,
                                   int             grid)
     :
     task(tl_),
-#ifdef BL_USE_MPI
     m_request(MPI_REQUEST_NULL),
-#endif
     m_tmp(0),
     m_fab(fab_),
     m_smf(smf_),
@@ -649,7 +621,6 @@ task_local_base::need_to_communicate (int& with) const
 {
     bool result = false;
 
-#ifdef BL_USE_MPI
     if (!m_local)
     {
         if (m_fab != 0)
@@ -663,7 +634,6 @@ task_local_base::need_to_communicate (int& with) const
             result = true;
         }
     }
-#endif
 
     return result;
 }
@@ -675,23 +645,20 @@ task_local_base::startup (long& sndcnt, long& rcvcnt)
 
     bool result = true;
 
-#ifdef BL_USE_MPI
     if (!m_local)
     {
         if (m_fab != 0)
         {
             m_tmp = new FArrayBox(m_bx, m_smf.nComp());
             rcvcnt = m_tmp->box().numPts()*m_tmp->nComp();
-            int res = MPI_Irecv(m_tmp->dataPtr(),
-                                rcvcnt,
-                                MPI_DOUBLE,
-                                processor_number(m_smf, m_sgrid),
-                                m_sno,
-                                HG::mpi_comm,
-                                &m_request);
+
+            m_request = ParallelDescriptor::Arecv(m_tmp->dataPtr(),
+                                                  rcvcnt,
+                                                  processor_number(m_smf,m_sgrid),
+                                                  m_sno,
+                                                  HG::mpi_comm).req();
             rcvcnt *= sizeof(double);
-            if (res != 0)
-                ParallelDescriptor::Abort(res);
+
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
         else if (is_local(m_smf, m_sgrid))
@@ -699,16 +666,14 @@ task_local_base::startup (long& sndcnt, long& rcvcnt)
             m_tmp = new FArrayBox(m_bx, m_smf.nComp());
             m_tmp->copy(m_smf[m_sgrid], m_bx);
             sndcnt = m_tmp->box().numPts()*m_tmp->nComp();
-            int res = MPI_Isend(m_tmp->dataPtr(),
-                                sndcnt,
-                                MPI_DOUBLE,
-                                m_target_proc_id,
-                                m_sno,
-                                HG::mpi_comm,
-                                &m_request);
+
+            m_request = ParallelDescriptor::Asend(m_tmp->dataPtr(),
+                                                  sndcnt,
+                                                  m_target_proc_id,
+                                                  m_sno,
+                                                  HG::mpi_comm).req();
             sndcnt *= sizeof(double);
-            if (res != 0)
-                ParallelDescriptor::Abort(res);
+
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
         else
@@ -716,7 +681,6 @@ task_local_base::startup (long& sndcnt, long& rcvcnt)
             result = false;
         }
     }
-#endif
 
     return result;
 }
@@ -795,19 +759,19 @@ task_copy_local::ready ()
         return true;
     }
 
-#ifdef BL_USE_MPI
-    int flag, res;
+    int flag;
     MPI_Status status;
     BL_ASSERT(m_request != MPI_REQUEST_NULL);
-    if ((res = MPI_Test(&m_request, &flag, &status)) != 0)
-        ParallelDescriptor::Abort(res);
+
+    ParallelDescriptor::Test(m_request, flag, status);
+
     if (flag)
     {
         BL_ASSERT(m_request == MPI_REQUEST_NULL);
         if (m_fab)
         {
-#ifndef NDEBUG
-            int count;
+#if defined(BL_USE_MPI) && !defined(NDEBUG)
+            int count,res;
             BL_ASSERT(status.MPI_SOURCE == processor_number(m_smf, m_sgrid));
             BL_ASSERT(status.MPI_TAG    == m_sno);
             if ((res = MPI_Get_count(&status, MPI_DOUBLE, &count)) != 0)
@@ -818,7 +782,6 @@ task_copy_local::ready ()
         }
         return true;
     }
-#endif
 
     return false;
 }
@@ -881,19 +844,19 @@ task_bdy_fill::ready ()
 	return true;
     }
 
-#ifdef BL_USE_MPI
-    int flag, res;
+    int flag;
     MPI_Status status;
     BL_ASSERT(m_request != MPI_REQUEST_NULL);
-    if ((res = MPI_Test(&m_request, &flag, &status)) != 0)
-	ParallelDescriptor::Abort(res);
+
+    ParallelDescriptor::Test(m_request, flag, status);
+
     if (flag)
     {
 	BL_ASSERT(m_request == MPI_REQUEST_NULL);
 	if (m_fab)
 	{
-#ifndef NDEBUG
-	    int count;
+#if defined(BL_USE_MPI) && !defined(NDEBUG)
+	    int count,res;
 	    BL_ASSERT(status.MPI_SOURCE == processor_number(m_smf, m_sgrid));
 	    BL_ASSERT(status.MPI_TAG    == m_sno);
 	    if ((res = MPI_Get_count(&status, MPI_DOUBLE, &count)) != 0)
@@ -904,7 +867,6 @@ task_bdy_fill::ready ()
 	}
 	return true;
     }
-#endif
 
     return false;
 }
