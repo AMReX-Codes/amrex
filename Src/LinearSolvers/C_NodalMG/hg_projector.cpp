@@ -499,7 +499,7 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	const int isRZ = IsRZ();
 	const int imax = mg_domain[mglev].bigEnd(0) + 1;
 	FORT_HGFAVG(sptr, DIMLIST(sbox),
-		    Scp->dataPtr(), DIMLIST(cbox),
+		    Scp->fab().dataPtr(), DIMLIST(cbox),
 		    Sfptr, DIMLIST(fbox), DIMLIST(creg),
 		    D_DECL(rat[0], rat[1], rat[2]),
 		    &idim, &idir, 
