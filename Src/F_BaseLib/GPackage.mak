@@ -60,12 +60,10 @@ ifeq ($(ARCH),Linux)
       f90sources += omp_stubs.f90
     endif
   endif
-  ifeq ($(COMP),Intel8)
+  ifeq ($(COMP),Intel)
     ifndef OMP
       f90sources += omp_stubs.f90
     endif
-  endif
-  ifeq ($(COMP),Intel)
   endif
   ifeq ($(COMP),NAG)
     f90sources += omp_stubs.f90
