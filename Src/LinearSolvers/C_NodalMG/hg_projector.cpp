@@ -439,13 +439,13 @@ task_fecdiv::~task_fecdiv ()
 
 extern "C"
 {
-  typedef void (*FECDIV)(Real*,  intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
+  typedef void (*FECDIV_2)(Real*,  intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
 }
 
 class task_fecdiv_2 : public task_fec_base
 {
 public:
-    task_fecdiv_2 (FECDIV            f_,
+    task_fecdiv_2 (FECDIV_2           f_,
                    task_list&        tl_,
                    MultiFab&         s_,
                    int               igrid_,
@@ -462,7 +462,7 @@ private:
 
     void doit ();
 
-    FECDIV           f;
+    FECDIV_2         f;
     const Box        creg;
     Real             h[BL_SPACEDIM];
     const IntVect    rat;
@@ -470,7 +470,7 @@ private:
     const IntVect    t;
 };
 
-task_fecdiv_2::task_fecdiv_2 (FECDIV            f_,
+task_fecdiv_2::task_fecdiv_2 (FECDIV_2            f_,
                               task_list&        tl_,
                               MultiFab&         s_,
                               int               igrid_,
