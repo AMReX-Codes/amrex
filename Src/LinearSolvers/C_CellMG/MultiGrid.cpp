@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.30 2003-02-07 16:34:12 car Exp $
+// $Id: MultiGrid.cpp,v 1.31 2003-03-12 20:54:59 lijewski Exp $
 // 
 #include <winstd.H>
 
@@ -137,17 +137,17 @@ MultiGrid::MultiGrid (LinOp &_Lp)
     cg_solver    = def_cg_solver;
     numlevels    = numLevels();
     if ( ParallelDescriptor::IOProcessor() && verbose == 1 )
-      {
+    {
 	BoxArray tmp = Lp.boxArray();
 	std::cout << "MultiGrid: numlevels = " << numlevels 
 		  << ": ngrid = " << tmp.size() << ", npts = [";
 	for ( int i = 0; i < numlevels; ++i ) 
-	  {
+        {
 	    if ( i > 0 ) tmp.coarsen(2);
 	    std::cout << tmp.numPts() << " ";
-	  }
+        }
 	std::cout << "]" << std::endl;
-      }
+    }
     if ( ParallelDescriptor::IOProcessor() && verbose > 2 )
     {
 	std::cout << "MultiGrid: " << numlevels
@@ -269,14 +269,14 @@ MultiGrid::solve_ (MultiFab&      _sol,
   // Relax system maxiter times, stop if relative error <= _eps_rel or
   // if absolute err <= _abs_eps
   //
-  int  returnVal = 0;
+  int        returnVal = 0;
   const Real error0    = errorEstimate(level, bc_mode);
-  Real error     = error0;
+  Real       error     = error0;
   if (ParallelDescriptor::IOProcessor() && verbose)
-    {
+  {
       Spacer(std::cout, level);
       std::cout << "MultiGrid: Initial error (error0) = " << error0 << '\n';
-    }
+  }
 
   if (ParallelDescriptor::IOProcessor() && eps_rel < 1.0e-16 && eps_rel > 0)
   {
@@ -291,53 +291,54 @@ MultiGrid::solve_ (MultiFab&      _sol,
   //
   // Note: if eps_rel, eps_abs < 0 then that test is effectively bypassed
   //
-  const Real norm_rhs = norm_inf(*rhs[level]);
-  const Real norm_Lp  = Lp.norm(0, level);
+  const Real norm_rhs    = norm_inf(*rhs[level]);
+  const Real norm_Lp     = Lp.norm(0, level);
   const Real new_error_0 = norm_rhs;
-  Real norm_cor = 0.0;
-  int nit = 1;
+  Real       norm_cor    = 0.0;
+  int        nit         = 1;
   for ( ;
         error > eps_abs &&
             error > eps_rel*(norm_Lp*norm_cor+norm_rhs) &&
             nit <= maxiter;
         ++nit)
-    {
-        relax(*cor[level], *rhs[level], level, eps_rel, eps_abs, bc_mode);
-        norm_cor = norm_inf(*cor[level]);
-        error = errorEstimate(level, bc_mode);
+  {
+      relax(*cor[level], *rhs[level], level, eps_rel, eps_abs, bc_mode);
+      norm_cor = norm_inf(*cor[level]);
+      error = errorEstimate(level, bc_mode);
 	
-        if (ParallelDescriptor::IOProcessor())
-        {
-            if (verbose > 1 )
-            {
-                Spacer(std::cout, level);
-                std::cout << "MultiGrid: Iteration "
-                          << nit
-                          << " error/error0 "
-                          << error/new_error_0 << '\n';
-            }
-        }
-    }
+      if (ParallelDescriptor::IOProcessor())
+      {
+          if (verbose > 1 )
+          {
+              Spacer(std::cout, level);
+              std::cout << "MultiGrid: Iteration "
+                        << nit
+                        << " error/error0 "
+                        << error/new_error_0 << '\n';
+          }
+      }
+  }
 
   if ( ParallelDescriptor::IOProcessor() && verbose )
-    {
+  {
+      const Real rel_error = (error0 != 0) ? error/error0 : 0;
       Spacer(std::cout, level);
       std::cout << "MultiGrid: iterations(" << nit 
-		<< ") rel_error( " << error/error0 << ")" << std::endl;
-    }
+		<< ") rel_error( " << rel_error << ")" << std::endl;
+  }
 
   if ( nit == numiter                               ||
        error <= eps_rel*(norm_Lp*norm_cor+norm_rhs) ||
        error <= eps_abs )
-    {
-        //
-        // Omit ghost update since maybe not initialized in calling routine.
-        // Add to boundary values stored in initialsolution.
-        //
-        _sol.copy(*cor[level]);
-        _sol.plus(*initialsolution,0,_sol.nComp(),0);
-        returnVal = 1;
-    }
+  {
+      //
+      // Omit ghost update since maybe not initialized in calling routine.
+      // Add to boundary values stored in initialsolution.
+      //
+      _sol.copy(*cor[level]);
+      _sol.plus(*initialsolution,0,_sol.nComp(),0);
+      returnVal = 1;
+  }
   //
   // Otherwise, failed to solve satisfactorily
   //
