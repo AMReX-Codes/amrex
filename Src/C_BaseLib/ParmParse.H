@@ -2,7 +2,7 @@
 #define BL_PARMPARSE_H
 
 //
-// $Id: ParmParse.H,v 1.12 2001-07-19 16:57:34 lijewski Exp $
+// $Id: ParmParse.H,v 1.13 2001-07-22 22:11:43 car Exp $
 //
 
 #include <iostream>
@@ -459,13 +459,13 @@ public:
     */
     void getkth (const char* name,
                  int         k,
-                 aString&    ref,
+                 std::string&    ref,
                  int         ival=0);
     //
     //@ManDoc: Same as getkth() but searches for the last occurrence of name.
     //
     void get (const char* name,
-              aString&    ref,
+              std::string&    ref,
               int         ival=0);
 
     /*@ManDoc: Similar to getkth() but returns 0 if there is no kth occurrence
@@ -476,13 +476,13 @@ public:
     */
     int querykth (const char* name,
                   int         k,
-                  aString&    ref,
+                  std::string&   ref,
                   int         ival=0);
     //
     //@ManDoc: Same as querykth() but searches for the last occurrence of name.
     //
     int query (const char* name,
-               aString&    ref,
+               std::string&    ref,
                int         ival=0);
 
     /*@ManDoc: Gets an Array<int> of num\_val values from kth occurrence of

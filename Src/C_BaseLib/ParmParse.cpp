@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.16 2001-07-19 16:57:34 lijewski Exp $
+// $Id: ParmParse.cpp,v 1.17 2001-07-22 22:11:43 car Exp $
 //
 
 #include <iostream>
@@ -183,7 +183,7 @@ ParmParse::query (const char* name,
 void
 ParmParse::getkth (const char* name,
                    int         k,
-                   aString&    ptr,
+                   std::string&    ptr,
                    int         ival)
 {
     getval(name,ppString,&ptr,ival,k);
@@ -191,7 +191,7 @@ ParmParse::getkth (const char* name,
 
 void
 ParmParse::get (const char* name,
-                aString&    ptr,
+                std::string&    ptr,
                 int         ival)
 {
     getval(name,ppString,&ptr,ival,-1);
@@ -200,7 +200,7 @@ ParmParse::get (const char* name,
 int
 ParmParse::querykth (const char* name,
                      int         k,
-                     aString&    ptr,
+                     std::string&    ptr,
                      int         ival)
 {
     return queryval(name,ppString,&ptr,ival,k);
@@ -208,7 +208,7 @@ ParmParse::querykth (const char* name,
 
 int
 ParmParse::query (const char* name,
-                  aString&    ptr,
+                  std::string&    ptr,
                   int         ival)
 {
     return queryval(name,ppString,&ptr,ival,-1);
@@ -742,7 +742,7 @@ ParmParse::queryval (const char*  name,
         break;
     case ppString:
         ok = true;
-        *(aString*)ptr = valname;
+        *(std::string*)ptr = valname;
         break;
     default:
         BoxLib::Abort("ParmParse::queryval invalid type");
