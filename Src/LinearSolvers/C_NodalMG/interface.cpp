@@ -141,8 +141,7 @@ void level_interface::alloc_coarsened(const BoxArray& Im,
     }
 }
 
-void level_interface::alloc(const BoxArray& Im, const Box& Domain,
-			    const amr_boundary_class& bdy)
+void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_boundary_class& bdy)
 {
     if (ok())
 	BoxLib::Error("level_interface::alloc---this object already allocated");
@@ -564,11 +563,10 @@ void level_interface::xfer(List<Box>& bl, int idim)
     flg[idim] = new unsigned[nbx[idim]];
     
     Box btmp;
-    int i = 0;
     //Boxnode *bn;
     //for (bn = bl.first(); bn; bn = bl.next(bn), i++) {
     ListIterator<Box> bn(bl);
-    for ( ; bn; bn++, i++) 
+    for ( int i = 0; bn; bn++, i++) 
     {
 	bx[idim][i] = bn();
 	btmp = grow(bn(), bn().type()).convert(IntVect::TheCellVector());
@@ -602,7 +600,7 @@ void level_interface::xfer(List<Box>& bl, int idim)
 	}
 	else 
 	{
-	    int is_in = dom.contains(tmp);
+	    bool is_in = dom.contains(tmp);
 	    ge[idim][i]  = ( is_in && im.contains(tmp) || !is_in && em.contains(tmp));
 #if (BL_SPACEDIM == 2)
 	    tmp += IntVect(1,0);
@@ -644,7 +642,7 @@ void level_interface::xfer(List<Box>& bl, int idim)
     
     // Sort fine-fine boxes to beginning of list
     int j = nbx[idim];
-    for (i = 0; i < j; i++) 
+    for (int i = 0; i < j; i++) 
     {
 	if (ge[idim][i] != ALL) 
 	{
@@ -673,7 +671,7 @@ void level_interface::xfer(List<Box>& bl, int idim)
     // Sort interior fine-fine boxes to beginning of list
     if (idim == 0) 
     {
-	for (i = 0; i < j; i++) 
+	for (int i = 0; i < j; i++) 
 	{
 	    if (!bx[idim][i].intersects(idomain)) 
 	    {
@@ -692,7 +690,7 @@ void level_interface::xfer(List<Box>& bl, int idim)
     }
     else 
     {
-	for (i = 0; i < j; i++) 
+	for (int i = 0; i < j; i++) 
 	{
 	    btmp = bx[idim][i];
 	    btmp.convert(IntVect::TheNodeVector());
@@ -727,7 +725,7 @@ void level_interface::xfer(List<Box>& bl, int idim)
 	int nin = j;
 	
 	// Sort interior faces according to orientation, x first
-	for (i = 0; i < j; i++) 
+	for (int i = 0; i < j; i++) 
 	{
 	    if (bx[idim][i].type(0) == IndexType::CELL) 
 	    {
@@ -745,7 +743,7 @@ void level_interface::xfer(List<Box>& bl, int idim)
 	}
 #if (BL_SPACEDIM == 3)
 	j = nin;
-	for (i = 0; i < j; i++) 
+	for (int i = 0; i < j; i++) 
 	{
 	    if (bx[idim][i].type(0) == IndexType::CELL) 
 	    {
@@ -768,7 +766,7 @@ void level_interface::xfer(List<Box>& bl, int idim)
 	
 	// Sort exterior faces according to orientation, x first
 	j = nff;
-	for (i = nin; i < j; i++) 
+	for (int i = nin; i < j; i++) 
 	{
 	    if (bx[idim][i].type(0) == IndexType::CELL) 
 	    {
@@ -786,7 +784,7 @@ void level_interface::xfer(List<Box>& bl, int idim)
 	}
 #if (BL_SPACEDIM == 3)
 	j = nff;
-	for (i = nin; i < j; i++) 
+	for (int i = nin; i < j; i++) 
 	{
 	    if (bx[idim][i].type(0) == IndexType::CELL) 
 	    {

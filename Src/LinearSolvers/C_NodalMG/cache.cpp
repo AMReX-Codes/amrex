@@ -1,10 +1,7 @@
-
 #include "cache.H"
 
-#ifdef HG_USE_CACHE
-
 copy_cache::copy_cache(int Nsets, Real *Dptr, Real *Sptr)
-: nsets(Nsets), dptr(Dptr), sptr(Sptr), bdy_cache(0)
+   : nsets(Nsets), dptr(Dptr), sptr(Sptr)
 {
 #if (BL_SPACEDIM == 2)
     dstart = new int[5 * nsets];
@@ -56,8 +53,6 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface, const 
     
     Real *baseptr = r[0].dataPtr();
     dptr = sptr = baseptr;
-    
-    bdy_cache = 0;
     
 #if (BL_SPACEDIM == 2)
     dstart = new int[5 * nsets];
@@ -334,8 +329,6 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface,
     Real *baseptr = r[0].dataPtr();
     dptr = sptr = baseptr;
     
-    bdy_cache = 0;
-    
 #if (BL_SPACEDIM == 2)
     dstart = new int[5 * nsets];
     sstart = dstart + nsets;
@@ -554,5 +547,3 @@ unroll_cache::unroll_cache(MultiFab& r)
 	    r[igrid].box().numPts());
     }
 }
-
-#endif

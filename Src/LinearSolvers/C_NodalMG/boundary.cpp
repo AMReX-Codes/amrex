@@ -215,10 +215,10 @@ void mixed_boundary_class::fill(FArrayBox& patch,
     Box idomain = grow(tdomain, IntVect::TheZeroVector() - type(src));
     Box image = region;
     int refarray[BL_SPACEDIM], negflag = 1;
-    int idir = 0, idim, i;
+    int idir = 0, idim;
     
     int negarray[BL_SPACEDIM-1];
-    for (i = 0; i < BL_SPACEDIM - 1; i++) 
+    for (int i = 0; i < BL_SPACEDIM - 1; i++) 
     {
 	negarray[i] = 1;
     }
@@ -249,7 +249,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 		    }
 		    else 
 		    {
-			for (i = 0; i < BL_SPACEDIM - 1; i++) 
+			for (int i = 0; i < BL_SPACEDIM - 1; i++) 
 			{
 			    negarray[i] = -negarray[i];
 			}
@@ -285,7 +285,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 		    }
 		    else 
 		    {
-			for (i = 0; i < BL_SPACEDIM - 1; i++) 
+			for (int i = 0; i < BL_SPACEDIM - 1; i++) 
 			{
 			    negarray[i] = -negarray[i];
 			}
@@ -338,7 +338,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
     else if (flowdim == -4) 
     {
 	assert(igrid >= 0);
-	for (i = 0; i < BL_SPACEDIM; i++) 
+	for (int i = 0; i < BL_SPACEDIM; i++) 
 	{
 	    FORT_FBREFM(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
 		src[igrid].dataPtr(i), DIMLIST(src[igrid].box()),
@@ -346,7 +346,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 	}
 	for (idim = 0; idim < BL_SPACEDIM - 1; idim++) 
 	{
-	    i = idim + BL_SPACEDIM;
+	    int i = idim + BL_SPACEDIM;
 	    if (negarray[idim] == 1) 
 	    {
 		FORT_FBREFM(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
@@ -368,7 +368,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 	{
 	    if (igrid >= 0) 
 	    {
-		for (i = 0; i < patch.nComp(); i++) 
+		for (int i = 0; i < patch.nComp(); i++) 
 		{
 		    FORT_FBREFM(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
 			src[igrid].dataPtr(i), DIMLIST(src[igrid].box()),
@@ -384,7 +384,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 	{
 	    if (igrid >= 0) 
 	    {
-		for (i = 0; i < patch.nComp(); i++) 
+		for (int i = 0; i < patch.nComp(); i++) 
 		{
 		    FORT_FBNEGM(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
 			src[igrid].dataPtr(i), DIMLIST(src[igrid].box()),
@@ -793,10 +793,9 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
   }
 }
 
-#ifdef HG_USE_CACHE
 void mixed_boundary_class::set_sync_cache(copy_cache* cache,
 					  int nsets, int& iset,
-					  MultiFab& r,
+					  const MultiFab& r,
 					  const level_interface&
 					  lev_interface) const
 {
@@ -805,7 +804,7 @@ void mixed_boundary_class::set_sync_cache(copy_cache* cache,
     if (type(r) != IntVect::TheNodeVector())
 	BoxLib::Error("mixed_boundary_class::set_sync_cache---only NODE-based sync defined");
     
-    Real *const baseptr = cache->dptr;
+    Real *const baseptr = cache->dataPtr();
     
     const Box& domain = lev_interface.domain();
     for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
@@ -904,8 +903,7 @@ void mixed_boundary_class::set_sync_cache(copy_cache* cache,
 		    dstrid1 = 1;
 		    sstrid1 = 1;
 		}
-		cache->set(iset++, dstart, sstart,
-		    dstrid1, dstrid2, sstrid1, sstrid2, nvals1, nvals2);
+		cache->set(iset++, dstart, sstart, dstrid1, dstrid2, sstrid1, sstrid2, nvals1, nvals2);
 #endif
 	    }
 	}
@@ -916,7 +914,7 @@ void mixed_boundary_class::set_sync_cache(copy_cache* cache,
 
 void mixed_boundary_class::set_border_cache(copy_cache* cache,
 					    int nsets, int& iset,
-					    MultiFab& r,
+					    const MultiFab& r,
 					    const level_interface& lev_interface,
 					    int w) const
 {
@@ -927,7 +925,7 @@ void mixed_boundary_class::set_border_cache(copy_cache* cache,
     if (flowdim >= 0 || flowdim == -3)
 	BoxLib::Error("mixed_boundary_class::set_border_cache---negation borders not currently supported");
     
-    Real *const baseptr = cache->dptr;
+    Real *const baseptr = cache->dataPtr();
     
     const Box& domain = lev_interface.domain();
     int igrid, jgrid;
@@ -1007,8 +1005,7 @@ void mixed_boundary_class::set_border_cache(copy_cache* cache,
 			dstrid2 = dstrid1;
 			dstrid1 = 1;
 		    }
-		    cache->set(iset++, dstart, sstart,
-			dstrid1, dstrid2, dstrid1, dstrid2, nvals1, nvals2);
+		    cache->set(iset++, dstart, sstart, dstrid1, dstrid2, dstrid1, dstrid2, nvals1, nvals2);
 #endif
 		}
 		else if (t == periodic) 
@@ -1122,8 +1119,7 @@ void mixed_boundary_class::set_border_cache(copy_cache* cache,
 			dstrid1 = 1;
 			sstrid1 = 1;
 		    }
-		    cache->set(iset++, dstart, sstart,
-			dstrid1, dstrid2, sstrid1, sstrid2, nvals1, nvals2);
+		    cache->set(iset++, dstart, sstart, dstrid1, dstrid2, sstrid1, sstrid2, nvals1, nvals2);
 #endif
 	}
 	else if (t == outflow) 
@@ -1311,8 +1307,7 @@ void mixed_boundary_class::set_border_cache(copy_cache* cache,
 		  dstrid1 = 1;
 		  sstrid1 = 1;
 	      }
-	      cache->set(iset++, dstart, sstart,
-		  dstrid1, dstrid2, sstrid1, sstrid2, nvals1, nvals2);
+	      cache->set(iset++, dstart, sstart, dstrid1, dstrid2, sstrid1, sstrid2, nvals1, nvals2);
 #endif
 	}
 	else if (t == outflow) 
@@ -1329,7 +1324,6 @@ void mixed_boundary_class::set_border_cache(copy_cache* cache,
   if (iset > nsets)
       BoxLib::Error("mixed_boundary_class::set_boundary_cache---too many boundary edges to cache");
 }
-#endif
 
 void amr_boundary_class::boundary_mesh(BoxArray& exterior_mesh,
 				       int *&grid_ref,

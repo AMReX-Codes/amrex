@@ -609,9 +609,7 @@ void interpolate_patch(FArrayBox& patch, const Box& region,
 
 void restrict_patch(FArrayBox& patch, const Box& region,
 		    MultiFab& r, const IntVect& rat,
-#ifdef HG_USE_CACHE
 		    const copy_cache* border_cache,
-#endif
 		    const amr_restrictor_class& restric,
 		    const level_interface& lev_interface,
 		    const amr_boundary_class& bdy)
@@ -638,18 +636,14 @@ void restrict_patch(FArrayBox& patch, const Box& region,
 	// This assertion difficult in BoxLib since r.mesh() is not cc:
 	//assert(r.mesh() == lev_interface.interior_mesh());
 	restric.lev_interface(patch, region, r,
-#ifdef HG_USE_CACHE
 	    border_cache, 
-#endif
 	    lev_interface, bdy, rat);
     }
 }
 
 void restrict_level(MultiFab& dest, int bflag,
 		    MultiFab& r, const IntVect& rat,
-#ifdef HG_USE_CACHE
 		    const copy_cache* border_cache,
-#endif
 		    const amr_restrictor_class& restric,
 		    const level_interface& lev_interface,
 		    const amr_boundary_class& bdy)
@@ -659,56 +653,44 @@ void restrict_level(MultiFab& dest, int bflag,
 	if (bflag) 
 	{
 	    restrict_patch(dest[igrid], r, rat,
-#ifdef HG_USE_CACHE
 		border_cache,
-#endif
 		restric, lev_interface, bdy);
 	}
 	else 
 	{
 	    restrict_patch(dest[igrid], dest.box(igrid), r, rat, 
-#ifdef HG_USE_CACHE
 		border_cache,
-#endif
 		restric, lev_interface, bdy);
 	}
     }
 }
 
 void sync_borders(MultiFab& r,
-#ifdef HG_USE_CACHE
 			 const copy_cache* sync_cache,
-#endif
 			 const level_interface& lev_interface,
 			 const amr_boundary_class& bdy)
 {
-#ifdef HG_USE_CACHE
     if (sync_cache) 
     {
 	// assumes cache built properly---does not check current bdy
 	sync_cache->run();
 	return;
     }
-#endif
     sync_internal_borders(r, lev_interface);
     bdy.sync_borders(r, lev_interface);
 }
 
 void fill_borders(MultiFab& r,
-#ifdef HG_USE_CACHE
 		  const copy_cache* border_cache,
-#endif
 		  const level_interface& lev_interface,
 		  const amr_boundary_class& bdy, int w)
 {
-#ifdef HG_USE_CACHE
     if (border_cache) 
     {
 	// assumes cache built properly---does not check current bdy and w
 	border_cache->run();
 	return;
     }
-#endif
     fill_internal_borders(r, lev_interface, w);
     bdy.fill_borders(r, lev_interface, w);
 }

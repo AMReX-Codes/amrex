@@ -40,9 +40,7 @@ public:
     virtual void mg_restrict_level(int lto, int lfrom);
     
     virtual void level_residual(MultiFab& r, MultiFab& s, MultiFab& d,
-#ifdef HG_USE_CACHE
 	copy_cache* dbc,
-#endif
 	int mglev, bool iclear) = 0;
     virtual void interface_residual(int mglev, int mgc) = 0;
     virtual void relax(int mglev, int i1, int is_zero) = 0;
@@ -63,9 +61,7 @@ protected:
     PArray<MultiFab> save;               // lives on middle levels of ml_mesh
     PArray<MultiFab> coarse_source;      // lives on ml_mesh, if it exists
     
-#ifdef HG_USE_CACHE
     Array<copy_cache*> dest_bcache, corr_bcache, work_bcache;
-#endif
     
 #if BL_SPACEDIM==2
     static int c_sys;

@@ -1,7 +1,6 @@
 #ifndef _CACHE_H_
 #define _CACHE_H_
 
-#ifdef HG_USE_CACHE
 #  include "interface.H"
 #  include "boundary.H"
 
@@ -16,52 +15,24 @@
 extern "C"
 {
 #if (BL_SPACEDIM == 2)
-    void FORT_FFCCPY1(Real*, Real*, const int&, int*, int*, int*, int*, int*);
+    void FORT_FFCCPY1(Real*, const Real*, const int&, int*, int*, int*, int*, int*);
 #else
-    void FORT_FFCCPY2(Real*, Real*, const int&, int*, int*, int*, int*,
-	       int*, int*, int*, int*);
+    void FORT_FFCCPY2(Real*, const Real*, const int&, int*, int*, int*, int*, int*, int*, int*, int*);
 #endif
 }
-
-class boundary_cache 
-{
-public:
-    virtual ~boundary_cache() { }
-    virtual void run() const = 0;
-};
 
 class copy_cache 
 {
 public:
-    // data are public so that users may set up their own calls
-    int nsets;
-    Real *dptr, *sptr;
-    int *dstart, *sstart;
-#if (BL_SPACEDIM == 2)
-    int *dstrid, *sstrid;
-    int *nvals;
-#else
-    int *dstrid1, *dstrid2, *sstrid1, *sstrid2;
-    int *nvals1, *nvals2;
-#endif
-    boundary_cache *bdy_cache;
-    
     copy_cache(int Nsets, Real *Dptr, Real *Sptr);
     
     // sync cache
-    copy_cache(MultiFab& r, const level_interface& lev_interface,
-	const amr_boundary_class& bdy);
+    copy_cache(MultiFab& r, const level_interface& lev_interface, const amr_boundary_class& bdy);
     
     // border cache (only w == 1 case currently supported)
-    copy_cache(MultiFab& r, const level_interface& lev_interface,
-	const amr_boundary_class& bdy, int w);
+    copy_cache(MultiFab& r, const level_interface& lev_interface, const amr_boundary_class& bdy, int w);
     
-    ~copy_cache() 
-    {
-	delete [] dstart;
-	if (bdy_cache) delete bdy_cache;
-    }
-    
+    ~copy_cache(); 
 #if (BL_SPACEDIM == 2)
     void set(int i, int Dstart, int Sstart, int Dstrid, int Sstrid, int Nvals) 
     {
@@ -74,8 +45,7 @@ public:
 	nvals[i]  = Nvals;
     }
 #else
-    void set(int i, int Dstart, int Sstart, int Dstrid1, int Dstrid2,
-	int Sstrid1, int Sstrid2, int Nvals1, int Nvals2) 
+    void set(int i, int Dstart, int Sstart, int Dstrid1, int Dstrid2, int Sstrid1, int Sstrid2, int Nvals1, int Nvals2) 
     {
 	if (i < 0 || i >= nsets)
 	    BoxLib::Error("copy_cache::set---out of range");
@@ -102,32 +72,54 @@ public:
     }
 #endif
     
-    void run() const 
-    {
+    void run() const ;
+
+    const Real* dataPtr() const;
+    Real* dataPtr();
+
+private:
+    // data are public so that users may set up their own calls
+    int nsets;
+    Real *dptr, *sptr;
+    int *dstart, *sstart;
 #if (BL_SPACEDIM == 2)
-	FORT_FFCCPY1(dptr, sptr, nsets, dstart, sstart, dstrid, sstrid, nvals);
+    int *dstrid, *sstrid;
+    int *nvals;
 #else
-	FORT_FFCCPY2(dptr, sptr, nsets, dstart, sstart, dstrid1, dstrid2,
-	    sstrid1, sstrid2, nvals1, nvals2);
+    int *dstrid1, *dstrid2, *sstrid1, *sstrid2;
+    int *nvals1, *nvals2;
 #endif
-	if (bdy_cache) bdy_cache->run();
-    }
 };
+
+inline const Real* copy_cache::dataPtr() const
+{
+    return dptr;
+}
+
+
+inline Real* copy_cache::dataPtr()
+{
+    return dptr;
+}
+
+inline copy_cache::~copy_cache() 
+{
+    delete [] dstart;
+}
+
+
+inline void copy_cache::run() const 
+{
+#if (BL_SPACEDIM == 2)
+    FORT_FFCCPY1(dptr, sptr, nsets, dstart, sstart, dstrid, sstrid, nvals);
+#else
+    FORT_FFCCPY2(dptr, sptr, nsets, dstart, sstart, dstrid1, dstrid2, sstrid1, sstrid2, nvals1, nvals2);
+#endif
+}
 
 class unroll_cache 
 {
 public:
-    // data are public so that users may set up their own calls
-    int nsets;
-    Real *ptr;
-    int *start;
-#if (BL_SPACEDIM == 2)
-    int *strid;
-#else
-    int *strid1, *strid2;
-#endif
-    int *nvals;
-    
     unroll_cache(int Nsets, Real *Ptr)
 	: nsets(Nsets), ptr(Ptr) 
     {
@@ -170,7 +162,19 @@ public:
 	nvals[i]  = Nvals;
     }
 #endif
+private:
+    // data are public so that users may set up their own calls
+    int nsets;
+    Real *ptr;
+    int *start;
+#if (BL_SPACEDIM == 2)
+    int *strid;
+#else
+    int *strid1, *strid2;
+#endif
+    int *nvals;
+    
 };
 
 #endif
-#endif
+

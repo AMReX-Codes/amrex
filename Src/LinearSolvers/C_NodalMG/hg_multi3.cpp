@@ -95,9 +95,7 @@ extern "C"
 void holy_grail_amr_multigrid::level_residual(MultiFab& r,
 					      MultiFab& s,
 					      MultiFab& d,
-#ifdef HG_USE_CACHE
 					      copy_cache* dbc,
-#endif
 					      int mglev,
 					      bool iclear)
 {
@@ -105,9 +103,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
     assert(r.boxArray() == d.boxArray());
     assert(mglev >= 0);
     fill_borders(d,
-#ifdef HG_USE_CACHE
 	dbc, 
-#endif
 	lev_interface[mglev], mg_boundary);
     
 #ifdef HG_TERRAIN
@@ -241,9 +237,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 	    
 	    if (is_zero == 0)
 		fill_borders(corr[mglev], 
-#ifdef HG_USE_CACHE
 		corr_bcache[mglev],
-#endif
 		lev_interface[mglev], mg_boundary);
 	    else
 		is_zero = 0;
@@ -354,9 +348,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 		}
       }
       sync_borders(corr[mglev], 
-#ifdef HG_USE_CACHE
 	  corr_scache[mglev],
-#endif
 	  lev_interface[mglev], mg_boundary);
     }
     else 
@@ -366,7 +358,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 	{
 	    build_line_order(line_solve_dim);
 	}
-	int lev = lev_min, i;
+	int lev = lev_min;
 	while (ml_index[lev] < mglev)
 	    lev++;
 	
@@ -374,15 +366,13 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 	{
 	    if (is_zero == 0)
 		fill_borders(corr[mglev], 
-#ifdef HG_USE_CACHE
 		corr_bcache[mglev],
-#endif
 		lev_interface[mglev], mg_boundary);
 	    else
 		is_zero = 0;
 	    
 	    // Forward solve:
-	    for (i = 0; i < mg_mesh[mglev].length(); i++) 
+	    for (int i = 0; i < mg_mesh[mglev].length(); i++) 
 	    {
 		
 		// Do grids in order along line_solve_dim:
@@ -434,8 +424,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 #endif
 		
 		// Copy work arrays to following grids:
-		ListIterator<int> j(line_after[lev][igrid]);
-		for ( ; j; j++) 
+		for ( ListIterator<int> j(line_after[lev][igrid]); j; j++) 
 		{
 		    Box b = (freg & corr[mglev].box(j()));
 		    internal_copy(corr[mglev], j(), igrid, b);
@@ -444,7 +433,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 	    }
 	    
 	    // Back substitution:
-	    for (i = mg_mesh[mglev].length() - 1; i >= 0; i--) 
+	    for (int i = mg_mesh[mglev].length() - 1; i >= 0; i--) 
 	    {
 		
 		// Do grids in reverse order along line_solve_dim:
@@ -547,9 +536,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 	alpha = inner_product(r, w) / mg_domain[mglev].volume();
 	r.plus(-alpha, 0);
     }
-#ifdef HG_USE_CACHE
-    copy_cache& pbc = *cgw1_bcache;
-#endif
+    copy_cache* pbc = cgw1_bcache;
     
 #if (CGOPT == 2)
     unroll_cache& ruc = *cgw_ucache[0];
@@ -574,16 +561,16 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 	zuc.start, xuc.start,
 	wuc.start, cuc.start,
 	muc.start,
-	pbc.nsets, pbc.dptr,
+	pbc->nsets, pbc->dptr,
 #  if (BL_SPACEDIM == 2)
-	pbc.nvals,
-	pbc.dstart, pbc.sstart,
-	pbc.dstrid, pbc.sstrid,
+	pbc->nvals,
+	pbc->dstart, pbc->sstart,
+	pbc->dstrid, pbc->sstrid,
 #  else
-	pbc.nvals1, pbc.nvals2,
-	pbc.dstart, pbc.sstart,
-	pbc.dstrid1, pbc.dstrid2,
-	pbc.sstrid1, pbc.sstrid2,
+	pbc->nvals1, pbc->nvals2,
+	pbc->dstart, pbc->sstart,
+	pbc->dstrid1, pbc->dstrid2,
+	pbc->sstrid1, pbc->sstrid2,
 #  endif
 	h[0][0], alpha, rho, i, pcode);
 #elif (CGOPT == 1)
@@ -609,9 +596,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 	// safe to set the clear flag to 0 here---bogus values make it
 	// into r but are cleared from z by the mask in c
 	level_residual(w, zero_array, p, 
-#ifdef HG_USE_CACHE
-	    &pbc, 
-#endif
+	    pbc, 
 	    0, false);
 	alpha = 0.0;
 	for (int igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
@@ -666,7 +651,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 	Real rho_old = rho;
 	// safe to set the clear flag to 0 here---bogus values make it
 	// into r but are cleared from z by the mask in c
-	level_residual(w, zero_array, p, &pbc, 0, false);
+	level_residual(w, zero_array, p, pbc, 0, false);
 	alpha = rho / inner_product(p, w);
 	for (int igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
 	{

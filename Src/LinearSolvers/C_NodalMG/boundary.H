@@ -4,9 +4,8 @@
 #include "interface.H"
 #include "RegType.H"
 
-#ifdef HG_USE_CACHE
 class copy_cache;
-#endif
+class unroll_cache;
 
 // This is the base class for all amr_boundaries.  The default function dir
 // should always be acceptable.  The default box and check_against_boundary
@@ -33,11 +32,9 @@ public:
     virtual void sync_borders(MultiFab&, const level_interface&) const { }
     virtual void fill_borders(MultiFab& r, const level_interface& lev_interface, int w = -1) const
     { BoxLib::Error("amr_boundary_class::fill---fill_borders function not defined."); }
-#ifdef HG_USE_CACHE
-    virtual void set_sync_cache(copy_cache*, int, int&, MultiFab&, const level_interface&) const { }
-    virtual void set_border_cache(copy_cache*, int, int&, MultiFab&, const level_interface&, int) const 
+    virtual void set_sync_cache(copy_cache*, int, int&, const MultiFab&, const level_interface&) const { }
+    virtual void set_border_cache(copy_cache*, int, int&, const MultiFab&, const level_interface&, int) const 
     { BoxLib::Error("amr_boundary_class::set_border_cache---boundary condition not defined."); }
-#endif
     virtual void boundary_mesh(BoxArray& exterior_mesh, int *&grid_ref, const BoxArray& interior_mesh, const Box& domain) const;
     virtual void duplicate(List<Box>&, const Box&) const { }
     // virtual int fill_patch_special(FArrayBox&, const Box&, MultiFab&, const Box&, int) const { return 0; }
@@ -173,15 +170,13 @@ public:
     virtual void fill(FArrayBox&, const Box&, const MultiFab&, int, const Box&) const;
     virtual void sync_borders(MultiFab&, const level_interface&) const;
     virtual void fill_borders(MultiFab& r, const level_interface& lev_interface, int w = -1) const;
-#ifdef HG_USE_CACHE
     virtual void set_sync_cache(copy_cache* cache, int nsets, int& iset,
-		      MultiFab& r,
+		      const MultiFab& r,
 		      const level_interface& lev_interface) const;
     virtual void set_border_cache(copy_cache* cache, int nsets, int& iset,
-	MultiFab& r,
+	const MultiFab& r,
 	const level_interface& lev_interface,
 	int w) const;
-#endif
     virtual void duplicate(List<Box>& bl, const Box& domain) const;
     // int fill_patch_special(FArrayBox&, const Box&, MultiFab&, const Box&, int flags) const;
     virtual bool singular() const;

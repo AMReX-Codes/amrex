@@ -269,11 +269,9 @@ void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArr
     work.resize(mglev_max + 1);
     save.resize(lev_max + 1);
     
-#ifdef HG_USE_CACHE
-    dest_bcache.resize(lev_max + 1, (copy_cache*)0);
-    corr_bcache.resize(mglev_max + 1, (copy_cache*)0);
-    work_bcache.resize(mglev_max + 1, (copy_cache*)0);
-#endif
+    dest_bcache.resize(lev_max + 1, 0);
+    corr_bcache.resize(mglev_max + 1, 0);
+    work_bcache.resize(mglev_max + 1, 0);
     
     for (int i = 0; i <= mglev_max; i++) 
     {
@@ -291,11 +289,9 @@ void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArr
 	if (work[i].nGrow() > 0)
 	    work[i].setVal(0.0);
 	
-#ifdef HG_USE_CACHE
 	// if a cache is desired, it should be created by the derived class:
 	corr_bcache.set(i, 0);
 	work_bcache.set(i, 0);
-#endif
     }
     
     for (int i = lev_min + 1; i <= lev_max - 1; i++) 
@@ -303,13 +299,11 @@ void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArr
 	save.set(i, new MultiFab(dest[i].boxArray(), 1, 0));
     }
     
-#ifdef HG_USE_CACHE
     for (int i = lev_min; i <= lev_max; i++) 
     {
 	// if a cache is desired, it should be created by the derived class:
 	dest_bcache.set(i, 0);
     }
-#endif
 }
 
 void amr_multigrid::clear()
@@ -421,18 +415,14 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2, Real tol, Real 
 	{
 	    save[lev].copy(ctmp);
 	    level_residual(wtmp, rtmp, ctmp, 
-#ifdef HG_USE_CACHE
 		corr_bcache[mglev], 
-#endif
 		mglev, false);
 	    rtmp.copy(wtmp);
 	}
 	else 
 	{
 	    level_residual(rtmp, stmp, dtmp, 
-#ifdef HG_USE_CACHE
 		dest_bcache[lev], 
-#endif
 		mglev, false);
 	}
 	interface_residual(mglev, lev);
@@ -451,18 +441,14 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2, Real tol, Real 
 	{
 	    save[lev].plus(ctmp, 0, 1, 0);
 	    level_residual(wtmp, rtmp, ctmp, 
-#ifdef HG_USE_CACHE
 		corr_bcache[mglev], 
-#endif
 		mglev, false);
 	    rtmp.copy(wtmp);
 	}
 	else 
 	{
 	    level_residual(rtmp, stmp, dtmp, 
-#ifdef HG_USE_CACHE
 		dest_bcache[lev], 
-#endif
 		mglev, false);
 	}
 	ctmp.setVal(0.0);
@@ -493,9 +479,7 @@ Real amr_multigrid::ml_residual(int mglev, int lev)
     // kill a feedback loop by which garbage in the border of dest
     // could grow exponentially.
     level_residual(resid[mglev], source[lev], dest[lev], 
-#ifdef HG_USE_CACHE
 	dest_bcache[lev],
-#endif
 	mglev, true);
     if (lev < lev_max) 
     {
@@ -532,9 +516,7 @@ void amr_multigrid::mg_cycle(int mglev, int i1, int i2, int is_zero)
 	{
 	    wtmp.setVal(0.0);
 	    level_residual(wtmp, resid[mglev], ctmp, 
-#ifdef HG_USE_CACHE
 		corr_bcache[mglev], 
-#endif
 		mglev, true);
 	    cout << "  Residual at multigrid level " << mglev << " is "
 		<< mfnorm(wtmp) << endl;
@@ -542,9 +524,7 @@ void amr_multigrid::mg_cycle(int mglev, int i1, int i2, int is_zero)
 	else 
 	{
 	    level_residual(wtmp, resid[mglev], ctmp, 
-#ifdef HG_USE_CACHE
 		corr_bcache[mglev], 
-#endif
 		mglev, false);
 	}
 	
@@ -592,9 +572,7 @@ void amr_multigrid::mg_restrict_level(int lto, int lfrom)
     {
 	restrict_level(resid[lto], 0, 
 	    work[lfrom], rat, 
-#ifdef HG_USE_CACHE
 	    work_bcache[lfrom],
-#endif
 	    cell_average_restrictor_class(0));
     }
     else if (integrate == 0) 
@@ -603,9 +581,7 @@ void amr_multigrid::mg_restrict_level(int lto, int lfrom)
 	{
 	    restrict_level(resid[lto], 0,
 		work[lfrom], rat, 
-#ifdef HG_USE_CACHE
 		work_bcache[lfrom],
-#endif
 		bilinear_restrictor_coarse_class(0),
 		lev_interface[lfrom], mg_boundary);
 	}
@@ -613,9 +589,7 @@ void amr_multigrid::mg_restrict_level(int lto, int lfrom)
 	{
 	    restrict_level(resid[lto], 0,
 		work[lfrom], rat, 
-#ifdef HG_USE_CACHE
 		work_bcache[lfrom],
-#endif
 		bilinear_restrictor_class(0),
 		lev_interface[lfrom], mg_boundary);
 	}
@@ -626,9 +600,7 @@ void amr_multigrid::mg_restrict_level(int lto, int lfrom)
 	{
 	    restrict_level(resid[lto], 0,
 		work[lfrom], rat, 
-#ifdef HG_USE_CACHE
 		work_bcache[lfrom],
-#endif
 		bilinear_restrictor_coarse_class(1),
 		lev_interface[lfrom], mg_boundary);
 	}
@@ -636,9 +608,7 @@ void amr_multigrid::mg_restrict_level(int lto, int lfrom)
 	{
 	    restrict_level(resid[lto], 0,
 		work[lfrom], rat, 
-#ifdef HG_USE_CACHE
 		work_bcache[lfrom],
-#endif
 		bilinear_restrictor_class(1),
 		lev_interface[lfrom], mg_boundary);
 	}

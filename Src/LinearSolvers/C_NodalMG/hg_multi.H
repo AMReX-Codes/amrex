@@ -82,11 +82,9 @@ protected:
     bool source_owned;
     
     // level caches which are not members of amr_multigrid:
-#ifdef HG_USE_CACHE
     Array<copy_cache*> corr_scache;
     Array<unroll_cache*> cgw_ucache;
     copy_cache* cgw1_bcache;
-#endif
     // sync caches:
     
     Box **fres_fbox, **fres_cbox, **fres_sfbox, **fres_scbox, **fres_creg;
@@ -127,9 +125,7 @@ protected:
     virtual void level_residual(MultiFab& r,
 		      MultiFab& s,
 		      MultiFab& d,
-#ifdef HG_USE_CACHE
 		      copy_cache* dbc,
-#endif
 		      int mglev,
 		      bool iclear);
     virtual void relax(int mglev, int i1, int is_zero);

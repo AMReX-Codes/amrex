@@ -361,9 +361,7 @@ void holy_grail_amr_projector::grid_average(PArray<MultiFab>& S)
 	Real hx = h[mglev][0];
 	
 	fill_borders(S[lev],
-#ifdef HG_USE_CACHE
 	    0, 
-#endif
 	    lev_interface[mglev], boundary.scalar());
 	
 	for (int igrid = 0; igrid < ml_mesh[lev].length(); igrid++) 
@@ -400,9 +398,7 @@ void holy_grail_amr_projector::grid_divergence(PArray<MultiFab>* u)
 	for (int i = 0; i < BL_SPACEDIM; i++) 
 	{
 	    fill_borders(u[i][lev], 
-#ifdef HG_USE_CACHE
 		0, 
-#endif
 		lev_interface[mglev], boundary.velocity(i));
 	}
 	
@@ -448,9 +444,7 @@ void holy_grail_amr_projector::sync_right_hand_side(PArray<MultiFab>* u)
 	int mglev1 = ml_index[lev_min+1];
 	restrict_level(source[lev_min], 0, source[lev_min+1],
 	    gen_ratio[lev_min], 
-#ifdef HG_USE_CACHE
 	    0,
-#endif
 	    bilinear_restrictor_coarse_class(0),
 	    lev_interface[mglev1], mg_boundary);
 	work[mglev0].setVal(1.0);
@@ -1253,9 +1247,7 @@ void holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u,
 	{
 	    const IntVect& rat = gen_ratio[lev-1];
 	    restrict_level(dest[lev-1], 0, dest[lev], rat,
-#ifdef HG_USE_CACHE
 		dest_bcache[lev], 
-#endif
 		injection_restrictor_class());
 	    for (int i = 0; i < BL_SPACEDIM; i++) 
 	    {
@@ -1264,9 +1256,7 @@ void holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u,
 #else
 		terrain_velocity_restrictor_class rest(i);
 		restrict_level(u[i][lev-1], 0, u[i][lev], rat, 
-#ifdef HG_USE_CACHE
 		    0,
-#endif
 		    rest);
 #endif
 	    }
@@ -1278,9 +1268,7 @@ void holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u,
 	for (int lev = lev_max; lev > lev_min; lev--) 
 	{
 	    restrict_level(dest[lev-1], 0, dest[lev], gen_ratio[lev-1],
-#ifdef HG_USE_CACHE
 		dest_bcache[lev], 
-#endif
 		injection_restrictor_class());
 	}
     }
