@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.3 1998-04-22 23:39:31 marc Exp $
+// $Id: Geometry.H,v 1.4 1998-04-27 16:31:42 lijewski Exp $
 //
 
 #include <CoordSys.H>
@@ -14,6 +14,8 @@
 #ifdef BL_USE_NEW_HFILES
 #include <list>
 #include <map>
+using std::ostream;
+using std::multimap;
 #else
 #include <list.h>
 #include <map.h>
@@ -124,15 +126,16 @@ public:
 #ifdef __GNUG__
 	operator == (const Geometry::PIR& rhs) const;
 #endif
-	friend std::ostream& operator << (std::ostream&           os,
-					  const Geometry::PIRec&  pir);
+	friend ostream& operator << (ostream&                os,
+                                     const Geometry::PIRec&  pir);
     };
     //
     // Handy typedef and output function
     //
-    typedef std::multimap<int,PIRec> PIRMMap;
-    friend std::ostream& operator << (std::ostream&            os,
-				      const Geometry::PIRMMap& pirm);
+    typedef multimap<int,PIRec> PIRMMap;
+
+    friend ostream& operator << (ostream&                 os,
+                                 const Geometry::PIRMMap& pirm);
     //
     // Compute periodic intersection records for data into each fab on this proc
     //
