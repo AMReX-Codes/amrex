@@ -1,10 +1,11 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.12 1997-11-26 04:22:34 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.13 1997-11-28 00:00:45 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
+#include <List.H>
 #include <ParallelDescriptor.H>
 #include <ParmParse.H>
 #include <RunStats.H>
@@ -59,12 +60,9 @@ DistributionMapping::strategy (DistributionMapping::Strategy how)
     }
 }
 
-DistributionMapping::Strategy
-DistributionMapping::strategy ()
-{
-    return DistributionMapping::m_Strategy;
-}
-
+//
+// We start out uninitialized.
+//
 bool DistributionMapping::m_Initialized = false;
 
 void
@@ -99,9 +97,44 @@ DistributionMapping::init ()
     }
 }
 
+//
+// Our cache of processor maps.
+//
+List< Array<int> > DistributionMapping::m_Cache;
+
+//
+// Holds the current maximum cache size.
+//
+int DistributionMapping::m_MaximumCacheSize = DistributionMapping::MaxSize;
+
+bool
+DistributionMapping::GetMap (int             nprocs,
+                             const BoxArray& boxes,
+                             Array<int>&     procmap)
+{
+    assert(procmap.length() == boxes.length());
+
+    ListIterator< Array<int> > li(DistributionMapping::m_Cache);
+
+    for ( ; li; ++li)
+    {
+        if (li().length() == boxes.length())
+        {
+            const Array<int>& cached_procmap = li();
+
+            for (int i = 0; i < boxes.length(); i++)
+            {
+                procmap[i] = cached_procmap[i];
+            }
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
 DistributionMapping::DistributionMapping ()
-    :
-    m_nprocs(0)
 {
     if (!m_Initialized)
         DistributionMapping::init();
@@ -110,43 +143,62 @@ DistributionMapping::DistributionMapping ()
 DistributionMapping::DistributionMapping (int             nprocs,
                                           const BoxArray& boxes)
     :
-    m_nprocs(nprocs),
-    m_boxarray(boxes),
-    m_proc_map(boxes.length())
+    m_procmap(boxes.length())
 {
     if (!m_Initialized)
         DistributionMapping::init();
 
+    define(nprocs, boxes);
+}
+
+void
+DistributionMapping::define (int             nprocs,
+                             const BoxArray& boxes)
+{
     RunStats stats("processor_map");
 
     stats.start();
-    (this->*m_BuildMap)();
+
+    if (!(m_procmap.length() == boxes.length()))
+    {
+        m_procmap.resize(boxes.length());
+    }
+
+    if (!DistributionMapping::GetMap(nprocs, boxes, m_procmap))
+    {
+        (this->*m_BuildMap)(nprocs, boxes);
+
+        DistributionMapping::m_Cache.prepend(m_procmap);
+
+        if (DistributionMapping::m_Cache.length() > MaxCacheSize())
+        {
+            DistributionMapping::m_Cache.removeLast();
+
+            assert(DistributionMapping::m_Cache.length() == MaxCacheSize());
+        }
+    }
+
     stats.end();
 }
 
 DistributionMapping::~DistributionMapping () {}
 
 void
-DistributionMapping::define (int             nprocs,
-                             const BoxArray& boxes)
+DistributionMapping::FlushCache ()
 {
-    m_nprocs   = nprocs;
-    m_boxarray = boxes;
-    m_proc_map.resize(boxes.length());
-
-    RunStats stats("processor_map");
-
-    stats.start();
-    (this->*m_BuildMap)();
-    stats.end();
+    DistributionMapping::m_Cache.clear();
 }
 
 void
-DistributionMapping::RoundRobinProcessorMap ()
+DistributionMapping::RoundRobinProcessorMap (int             nprocs,
+                                             const BoxArray& boxes)
 {
-    for (int i = 0; i < m_proc_map.length(); i++)
+    assert(nprocs > 0);
+    assert(boxes.length() > 0);
+
+    for (int i = 0; i < boxes.length(); i++)
     {
-        m_proc_map[i] = i % m_nprocs;
+        m_procmap[i] = i % nprocs;
     }
 }
 
@@ -156,22 +208,26 @@ DistributionMapping::RoundRobinProcessorMap ()
 static vector< list<int> > knapsack (const vector<long>&, int);
 
 void
-DistributionMapping::KnapSackProcessorMap ()
+DistributionMapping::KnapSackProcessorMap (int             nprocs,
+                                           const BoxArray& boxes)
 {
-    if (m_boxarray.length() <= m_nprocs || m_nprocs < 2)
+    assert(nprocs > 0);
+    assert(boxes.length() > 0);
+
+    if (boxes.length() <= nprocs || nprocs < 2)
     {
-        RoundRobinProcessorMap();
+        RoundRobinProcessorMap(nprocs, boxes);
     }
     else
     {
-        vector<long> pts(m_boxarray.length());
+        vector<long> pts(boxes.length());
 
         for (int i = 0; i < pts.size(); i++)
         {
-            pts[i] = m_boxarray[i].numPts();
+            pts[i] = boxes[i].numPts();
         }
 
-        vector< list<int> > vec = knapsack(pts, m_nprocs);
+        vector< list<int> > vec = knapsack(pts, nprocs);
 
         list<int>::iterator lit;
 
@@ -179,22 +235,53 @@ DistributionMapping::KnapSackProcessorMap ()
         {
             for (lit = vec[i].begin(); lit != vec[i].end(); ++lit)
             {
-                m_proc_map[*lit] = i;
+                m_procmap[*lit] = i;
             }
         }
     }
 }
 
 void
-DistributionMapping::RandomProcessorMap()
+DistributionMapping::RandomProcessorMap (int             nprocs,
+                                         const BoxArray& boxes)
 {
+    assert(nprocs > 0);
+    assert(boxes.length() > 0);
+
     BoxLib::Error("DistributionMapping::RANDOM not implemented");
 }
 
 void
-DistributionMapping::SizeBalancedProcessorMap()
+DistributionMapping::SizeBalancedProcessorMap (int             nprocs,
+                                               const BoxArray& boxes)
 {
+    assert(nprocs > 0);
+    assert(boxes.length() > 0);
+
     BoxLib::Error("DistributionMapping::SIZEBALANCED not implemented");
+}
+
+void
+DistributionMapping::CacheStats (ostream& os)
+{
+    os << "The DistributionMapping cache contains "
+       << DistributionMapping::m_Cache.length()
+       << " Processor Map(s):\n";
+
+    if (!DistributionMapping::m_Cache.isEmpty())
+    {
+        ListIterator< Array<int> > li(DistributionMapping::m_Cache);
+
+        for (int i = 0; li; ++li, ++i)
+        {
+            os << "\tMap #"
+               << i
+               << " is of length "
+               << li().length()
+               << '\n';
+        }
+        os << '\n';
+    }
 }
 
 ostream&
@@ -205,7 +292,7 @@ operator<< (ostream&                   os,
 
     for (int i = 0; i < pmap.ProcessorMap().length(); i++)
     {
-        os << "m_proc_map[" << i << "] = " << pmap.ProcessorMap()[i] << '\n';
+        os << "m_procmap[" << i << "] = " << pmap.ProcessorMap()[i] << '\n';
     }
 
     os << ')' << '\n';
