@@ -4,8 +4,6 @@
 c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)
 #define dimdecu(a) *
 
-#include <REAL.H>
-
 c Works for CELL- or NODE-based data.
       subroutine fcpy(dest, dims(dest),
      @ dims(reg),

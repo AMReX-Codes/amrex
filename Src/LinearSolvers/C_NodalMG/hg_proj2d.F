@@ -6,8 +6,6 @@ c#include "hg_version.H"
 c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)
 #define dimdecu(a) *
 
-#include <REAL.H>
-
 #ifdef HG_TERRAIN
 
       subroutine hggrad(gpx, gpy, dims(gp),
