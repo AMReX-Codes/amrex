@@ -517,7 +517,7 @@ holy_grail_amr_multigrid::relax (int  mglev,
 		    tl.add_task(new task_copy_link(work[mglev], jgrid, igrid, b, 0));
 		}
 	    }
-	    tl.execute();
+	    tl.execute("holy_grail_amr_multigrid::relax(1)");
             //
 	    // Back substitution:
             //
@@ -542,7 +542,7 @@ holy_grail_amr_multigrid::relax (int  mglev,
 		const Box& wbox = work[mglev][igrid].box();
 		FORT_HGRLNB(corr[mglev][igrid].dataPtr(), DIMLIST(fbox), work[mglev][igrid].dataPtr(), DIMLIST(wbox), DIMLIST(freg), &line_solve_dim, &ipass);
 	    }
-	    tl.execute();
+	    tl.execute("holy_grail_amr_multigrid::relax(2)");
 	}
 #endif
    }
