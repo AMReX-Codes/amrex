@@ -1,7 +1,7 @@
 #ifndef BL_PARALLELDESCRIPTOR_H
 #define BL_PARALLELDESCRIPTOR_H
 //
-// $Id: ParallelDescriptor.H,v 1.75 2002-10-31 18:44:00 car Exp $
+// $Id: ParallelDescriptor.H,v 1.76 2002-12-03 00:02:42 lijewski Exp $
 //
 #include <BLassert.H>
 #include <REAL.H>
@@ -95,10 +95,14 @@ struct CommData
     // The number of components.
     //
     int nComp () const { return m_data[4]; }
+
+    void nComp (int ncomp) { m_data[4] = ncomp; }
     //
     // The src component.
     //
     int srcComp () const { return m_data[5]; }
+
+    void srcComp (int scomp) { m_data[5] = scomp; }
     //
     // The ID of the fab array.
     //
