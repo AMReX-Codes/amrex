@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.75 2002-12-04 23:06:53 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.76 2002-12-20 23:05:39 car Exp $
 //
 #include <winstd.H>
 
@@ -740,8 +740,18 @@ DoIt (Orientation        face,
         //
         // Local data.
         //
-        bndry[face][k].copy(flux, bx, srccomp, bx, destcomp, numcomp);
-        bndry[face][k].mult(mult, bx, destcomp, numcomp);
+      if ( op == FluxRegister::COPY ) 
+	{
+	  bndry[face][k].copy(flux, bx, srccomp, bx, destcomp, numcomp);
+	  bndry[face][k].mult(mult, bx, destcomp, numcomp);    
+	}
+      else
+	{
+	  FArrayBox tmp(bx, numcomp);
+	  tmp.copy(flux, bx, srccomp, bx, 0, numcomp);
+	  tmp.mult(mult);
+	  bndry[face][k].plus(tmp, bx, bx, 0, destcomp, numcomp);
+	}
     }
     else
     {
