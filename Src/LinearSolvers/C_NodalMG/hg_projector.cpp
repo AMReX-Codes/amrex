@@ -1156,7 +1156,6 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 		}
 		cbox = ucp[0]->box();
 	    }
-	    cbox = ucp->box();
 	    Box creg = lev_interface[mglev].box(0, icor);
 	    creg.coarsen(rat);
 	    Real* sptr = source[lev][igrid].dataPtr();
