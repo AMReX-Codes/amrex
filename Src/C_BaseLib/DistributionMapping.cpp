@@ -1,5 +1,5 @@
 //
-// $Id: DistributionMapping.cpp,v 1.66 2003-03-07 16:59:25 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.67 2003-04-09 22:35:24 marc Exp $
 //
 #include <winstd.H>
 
@@ -720,7 +720,7 @@ MinimizeCommCosts (std::vector<int>&        procmap,
     //
     // Build a data structure to maintain the latency count on a per-CPU basis.
     //
-    std::vector<long> percpu(nprocs,0);
+    std::vector<long> percpu(nprocs,0L);
 
     for (int i = 0; i < nbrs.size(); i++)
     {
