@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.34 1998-04-16 18:00:41 lijewski Exp $
+// $Id: FabArray.H,v 1.35 1998-04-16 20:27:03 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1010,138 +1010,116 @@ template <class T, class FAB>
 void
 FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
 {
-    if (DistributionMap().ProcessorMap() ==
-        farray.DistributionMap().ProcessorMap())
+    if (DistributionMap().ProcessorMap() == farray.DistributionMap().ProcessorMap())
     {
         for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
         {
             fai().copy(farray[fai.index()]);
         }
+        return;
     }
-    else
+    //
+    // The index into this array is the same index of the FabArray.
+    // The intersections relative to this FabArray.
+    //
+    Array<BoxArray> boxISectionsRemote(length());
+
+    const int MyProc = ParallelDescriptor::MyProc();
+
+    FabComTag tag;
+    ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
+
+    for (int i = 0; i < length(); ++i)
     {
-        //
-        // The index into these arrays is the same index of the FabArray
-        // these are intersections relative to this FabArray.
-        //
-        Array<BoxArray> boxIntersections(length());
-        Array<BoxArray> boxIntersectionsLocal(length());
-        Array<BoxArray> boxIntersectionsRemote(length());
-        Array<BoxArray> boxNonIntersections(length());
+        int iblocal = 0;
 
-        int myproc = ParallelDescriptor::MyProc();
-
-        FabComTag fabComTag;
-        ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
-
-        int i, ii, iblocal;
-        for (i = 0; i < length(); ++i)
+        if (distributionMap[i] == MyProc)
         {
-            //
-            // Loop over fabparray.
-            //
-            boxIntersections[i]    = intersect(farray.boxarray, boxarray[i]);
-            boxNonIntersections[i] = complementIn(boxarray[i], farray.boxarray);
-
-            iblocal = 0;
-
-            if (distributionMap[i] == myproc)
+            for (int ii = 0; ii < farray.boxarray.length(); ++ii)
             {
-                //
-                // fab[i] is local
-                //
-                for (ii = 0; ii < farray.boxarray.length(); ++ii)
+                if (farray.distributionMap[ii] == MyProc)
                 {
-                    if (farray.distributionMap[ii] == myproc)
+                    //
+                    // Both fabs are local
+                    //
+                    Box intersectBox = farray.boxarray[ii] & boxarray[i];
+
+                    if (intersectBox.ok())
                     {
-                        //
-                        // Both fabs are local
-                        //
-                        Box intersectBox = farray.boxarray[ii] & boxarray[i];
-
-                        if (intersectBox.ok())
-                        {
-                            boxIntersectionsLocal[i].resize(iblocal + 1);
-                            boxIntersectionsLocal[i].set(iblocal, intersectBox);
-                            ++iblocal;
-                            fabparray[i].copy(farray[ii]);  // The local copy.
-                        }
-                    }
-                }
-            }
-            else
-            {
-                //
-                // fab[i] is remote
-                //
-                for (ii = 0; ii < farray.boxarray.length(); ++ii)
-                {
-                    if (farray.distributionMap[ii] == myproc)
-                    {
-                        //
-                        // farray[ii] is local
-                        //
-                        Box intersectBox = farray.boxarray[ii] & boxarray[i];
-
-                        if (intersectBox.ok())
-                        {
-                            boxIntersectionsRemote[i].resize(iblocal + 1);
-                            boxIntersectionsRemote[i].set(iblocal, intersectBox);
-                            //
-                            // Send the data.
-                            // Send the intersection of farray[ii] to fab[i]s processor
-                            //
-                            FAB tempFab(boxIntersectionsRemote[i][iblocal], farray.nComp());
-                            int tempDestComp = 0;
-                            int tempSrcComp  = 0;
-                            Box srcBox(boxIntersectionsRemote[i][iblocal]);
-                            Box destBox(boxIntersectionsRemote[i][iblocal]);
-                            tempFab.copy(farray[ii], srcBox, tempSrcComp,
-                                         destBox, tempDestComp, farray.nComp());
-
-                            fabComTag.fromProc = myproc;
-                            fabComTag.toProc   = distributionMap[i];
-                            fabComTag.fabIndex = i;
-                            fabComTag.destComp = tempDestComp;
-                            fabComTag.nComp    = farray.nComp();
-                            fabComTag.box      = destBox;
-
-                            ParallelDescriptor::SendData(fabComTag.toProc,
-                                                         &fabComTag,
-                                                         tempFab.dataPtr(),
-                                                         fabComTag.box.numPts() *
-                                                         fabComTag.nComp * sizeof(T));
-                            ++iblocal;
-                        }
+                        ++iblocal;
+                        fabparray[i].copy(farray[ii]);  // The local copy.
                     }
                 }
             }
         }
-
-        ParallelDescriptor::Synchronize();
-        //
-        // Now receive data if any was sent.
-        //
-        int dataWaitingSize;
-
-        while (ParallelDescriptor::GetMessageHeader(dataWaitingSize, &fabComTag))
+        else
         {
-            //
-            // Data was sent to this processor.
-            //
-            assert(myproc == fabComTag.toProc);
-            assert(dataWaitingSize == fabComTag.box.numPts()*fabComTag.nComp*sizeof(T));
-            assert(fabComTag.box.ok());
+            for (int ii = 0; ii < farray.boxarray.length(); ++ii)
+            {
+                if (farray.distributionMap[ii] == MyProc)
+                {
+                    Box intersectBox = farray.boxarray[ii] & boxarray[i];
 
-            FAB tempFab(fabComTag.box, fabComTag.nComp);
-            ParallelDescriptor::ReceiveData(tempFab.dataPtr(),
-                                            fabComTag.box.numPts()*fabComTag.nComp * sizeof(T));
+                    if (intersectBox.ok())
+                    {
+                        boxISectionsRemote[i].resize(iblocal + 1);
+                        boxISectionsRemote[i].set(iblocal, intersectBox);
+                        //
+                        // Send the data.
+                        // Send the intersection of
+                        // farray[ii] to fab[i]s processor.
+                        //
+                        FAB tFAB(boxISectionsRemote[i][iblocal],farray.nComp());
 
-            fabparray[fabComTag.fabIndex].copy(tempFab, fabComTag.box, 0,
-                                               fabComTag.box,
-                                               fabComTag.destComp,
-                                               fabComTag.nComp);
+                        Box destBox(boxISectionsRemote[i][iblocal]);
+
+                        tFAB.copy(farray[ii],
+                                  boxISectionsRemote[i][iblocal],  
+                                  0,
+                                  boxISectionsRemote[i][iblocal],
+                                  0,
+                                  farray.nComp());
+
+                        tag.fromProc = MyProc;
+                        tag.toProc   = distributionMap[i];
+                        tag.fabIndex = i;
+                        tag.destComp = 0;
+                        tag.nComp    = farray.nComp();
+                        tag.box      = boxISectionsRemote[i][iblocal];
+
+                        ParallelDescriptor::SendData(tag.toProc,
+                                                     &tag,
+                                                     tFAB.dataPtr(),
+                                                     tag.box.numPts()*tag.nComp*sizeof(T));
+                        ++iblocal;
+                    }
+                }
+            }
         }
+    }
+
+    ParallelDescriptor::Synchronize();
+    //
+    // Now receive data if any was sent.
+    //
+    int dataWaitingSize;
+
+    while (ParallelDescriptor::GetMessageHeader(dataWaitingSize, &tag))
+    {
+        assert(tag.box.ok());
+        assert(MyProc == tag.toProc);
+        assert(dataWaitingSize == tag.box.numPts()*tag.nComp*sizeof(T));
+
+        FAB tFAB(tag.box, tag.nComp);
+
+        ParallelDescriptor::ReceiveData(tFAB.dataPtr(), dataWaitingSize);
+
+        fabparray[tag.fabIndex].copy(tFAB,
+                                     tag.box,
+                                     0,
+                                     tag.box,
+                                     tag.destComp,
+                                     tag.nComp);
     }
 }
 
@@ -1207,7 +1185,8 @@ FabArray<T,FAB>::copy (FAB&       dest,
     assert(dest_comp + num_comp <= dest.nComp());
 
     int i, overlapLength = 0, overlapIndex = 0;
-    int myproc = ParallelDescriptor::MyProc();
+
+    const int MyProc = ParallelDescriptor::MyProc();
 
     for (i = 0; i < length(); i++)
     {
@@ -1259,7 +1238,7 @@ FabArray<T,FAB>::copy (FAB&       dest,
 
         for (i = 0; i < overlapBoxArray.length(); i++)
         {
-            if (myproc == overlapProcessors[i])
+            if (MyProc == overlapProcessors[i])
             {
                 //
                 // Local data.
@@ -1276,11 +1255,11 @@ FabArray<T,FAB>::copy (FAB&       dest,
     {
         for (i = 0; i < overlapBoxArray.length(); i++)
         {
-            bool overlapDataIsLocal = (overlapProcessors[i] == myproc);
+            bool overlapDataIsLocal = (overlapProcessors[i] == MyProc);
 
             for (int np = 0; np < ParallelDescriptor::NProcs(); np++)
             {
-                if (overlapDataIsLocal && myproc != np)
+                if (overlapDataIsLocal && MyProc != np)
                 {
                     //
                     // Broadcast data.
@@ -1301,8 +1280,12 @@ FabArray<T,FAB>::copy (FAB&       dest,
     {
         for (i = 0; i < overlapBoxArray.length(); i++)
         {
-            dest.copy(overlapData[i], overlapBoxArray[i], 0,
-                      overlapBoxArray[i], dest_comp, num_comp);
+            dest.copy(overlapData[i],
+                      overlapBoxArray[i],
+                      0,
+                      overlapBoxArray[i],
+                      dest_comp,
+                      num_comp);
         }
 
         for (i = overlapBoxArray.length() - 1; i >= 0; i--)
@@ -1450,10 +1433,10 @@ FabArrayIterator<T,FAB>::FabArrayIterator(FabArray<T,FAB>& fabarray,
     // Increment the currentIndex to start at the first valid index
     // for this ParallelDescriptor::MyProc.
     //
-    int myproc = ParallelDescriptor::MyProc();
+    const int MyProc = ParallelDescriptor::MyProc();
 
     while (currentIndex < fabArray.length() &&
-          fabArray.DistributionMap().ProcessorMap()[currentIndex] != myproc)
+          fabArray.DistributionMap().ProcessorMap()[currentIndex] != MyProc)
     {
         ++currentIndex;
     }
@@ -1464,9 +1447,9 @@ inline
 FAB&
 FabArrayIterator<T,FAB>::operator() ()
 {
-  int myproc = ParallelDescriptor::MyProc();
+  const int MyProc = ParallelDescriptor::MyProc();
 
-  assert(fabArray.DistributionMap().ProcessorMap()[currentIndex] == myproc);
+  assert(fabArray.DistributionMap().ProcessorMap()[currentIndex] == MyProc);
 
   return fabArray[currentIndex];
 }
@@ -1508,8 +1491,10 @@ inline
 const FAB&
 FabArrayIterator<T,FAB>::operator() () const
 {
-  int myproc = ParallelDescriptor::MyProc();
-  assert(fabArray.DistributionMap().ProcessorMap()[currentIndex] == myproc);
+  const int MyProc = ParallelDescriptor::MyProc();
+
+  assert(fabArray.DistributionMap().ProcessorMap()[currentIndex] == MyProc);
+
   return fabArray[currentIndex];
 }
 
@@ -1517,7 +1502,7 @@ template <class T, class FAB>
 FabArrayIterator<T,FAB>&
 FabArrayIterator<T,FAB>::operator++ ()
 {
-    int myproc = ParallelDescriptor::MyProc();
+    const int MyProc = ParallelDescriptor::MyProc();
     //
     // Go to the next index on this processor.
     //
@@ -1526,7 +1511,7 @@ FabArrayIterator<T,FAB>::operator++ ()
         ++currentIndex;
     }
     while (currentIndex < fabArray.length() &&
-           fabArray.DistributionMap().ProcessorMap()[currentIndex] != myproc);
+           fabArray.DistributionMap().ProcessorMap()[currentIndex] != MyProc);
 
     return *this;
 }
@@ -1675,9 +1660,10 @@ ConstFabArrayIterator<T,FAB>::ConstFabArrayIterator(
     // increment the currentIndex to start at the first valid index
     // for this ParallelDescriptor::MyProc
     //
-    int myproc = ParallelDescriptor::MyProc();
+    const int MyProc = ParallelDescriptor::MyProc();
+
     while (currentIndex < fabArray.length() &&
-          fabArray.DistributionMap()[currentIndex] != myproc)
+          fabArray.DistributionMap()[currentIndex] != MyProc)
     {
         ++currentIndex;
     }
@@ -1711,7 +1697,7 @@ template <class T, class FAB>
 ConstFabArrayIterator<T,FAB>&
 ConstFabArrayIterator<T,FAB>::operator++ ()
 {
-    int myproc = ParallelDescriptor::MyProc();
+    const int MyProc = ParallelDescriptor::MyProc();
     //
     // Go to the next index on this processor.
     //
@@ -1720,7 +1706,7 @@ ConstFabArrayIterator<T,FAB>::operator++ ()
         ++currentIndex;
     }
     while (currentIndex < fabArray.length() &&
-           fabArray.DistributionMap()[currentIndex] != myproc);
+           fabArray.DistributionMap()[currentIndex] != MyProc);
 
     return *this;
 }
@@ -1831,7 +1817,6 @@ FabArrayCopyDescriptor<T,FAB>::FabArrayCopyDescriptor ()
     totalRemoteBytes(0)
 {
     ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
-
     fabArrays.reserve(16);
     fabCopyDescList.reserve(16);
 }
@@ -1841,9 +1826,11 @@ FabArrayId
 FabArrayCopyDescriptor<T,FAB>::RegisterFabArray(FabArray<T,FAB>* fabarray)
 {
     assert(nextFabArrayId == fabArrays.length());
+
     fabArrays.resize(nextFabArrayId + 1);
     fabArrays[nextFabArrayId] = fabarray;
     fabCopyDescList.resize(nextFabArrayId + 1);
+
     return FabArrayId(nextFabArrayId++);
 }
 
@@ -1873,7 +1860,7 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
                                        int               numcomp,
                                        bool              bUseValidBox)
 {
-    int myproc = ParallelDescriptor::MyProc();
+    const int MyProc = ParallelDescriptor::MyProc();
     BoxDomain unfilledBoxDomain(destFabBox.ixType());
     BoxList filledBoxes(destFabBox.ixType());
     unfilledBoxDomain.add(destFabBox);
@@ -1892,13 +1879,13 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
             int remoteProc     = fabArray->DistributionMap().ProcessorMap()[i];
             fcd->fillBoxId     = nextFillBoxId;
             fcd->subBox        = intersectBox;
-            fcd->myProc        = myproc;
+            fcd->myProc        = MyProc;
             fcd->copyFromProc  = remoteProc;
             fcd->copyFromIndex = i;
             fcd->srcComp       = srccomp;
             fcd->destComp      = destcomp;
             fcd->nComp         = numcomp;
-            if (myproc == remoteProc)
+            if (MyProc == remoteProc)
             {
                 //
                 // Data is local.
@@ -1923,7 +1910,7 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
                 fabComTag.fabArrayId        = fabarrayid.Id();
                 fabComTag.fillBoxId         = nextFillBoxId;
                 fabComTag.fabIndex          = i;
-                fabComTag.procThatNeedsData = myproc;
+                fabComTag.procThatNeedsData = MyProc;
                 fabComTag.procThatHasData   = remoteProc;
                 fabComTag.subBox            = intersectBox;
                 fabComTag.srcComp           = srccomp;
@@ -1961,7 +1948,7 @@ FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
                                       int               numcomp,
                                       bool              bUseValidBox)
 {
-    int myproc = ParallelDescriptor::MyProc();
+    const int MyProc = ParallelDescriptor::MyProc();
     BoxDomain unfilledBoxDomain(destFabBox.ixType());
     BoxList filledBoxes(destFabBox.ixType());
     unfilledBoxDomain.add(destFabBox);
@@ -1979,13 +1966,13 @@ FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
         int remoteProc     = fabArray->DistributionMap().ProcessorMap()[i];
         fcd->fillBoxId     = nextFillBoxId;
         fcd->subBox        = intersectBox;
-        fcd->myProc        = myproc;
+        fcd->myProc        = MyProc;
         fcd->copyFromProc  = remoteProc;
         fcd->copyFromIndex = i;
         fcd->srcComp       = srccomp;
         fcd->destComp      = destcomp;
         fcd->nComp         = numcomp;
-        if (myproc == remoteProc)
+        if (MyProc == remoteProc)
         {
             //
             // Data is local.
@@ -2007,7 +1994,7 @@ FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
             fabComTag.fabArrayId        = fabarrayid.Id();
             fabComTag.fillBoxId         = nextFillBoxId;
             fabComTag.fabIndex          = i;
-            fabComTag.procThatNeedsData = myproc;
+            fabComTag.procThatNeedsData = MyProc;
             fabComTag.procThatHasData   = remoteProc;
             fabComTag.subBox            = intersectBox;
             fabComTag.srcComp           = srccomp;
@@ -2057,30 +2044,31 @@ template <class T, class FAB>
 void
 FabArrayCopyDescriptor<T,FAB>::CollectData ()
 {
-    int dataWaitingSize;
-    int myproc = ParallelDescriptor::MyProc();
-    FabComTag fabComTag;
+    const int MyProc = ParallelDescriptor::MyProc();
+
+    FabComTag tag;
     ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
     //
     // Go through the fabComTagList and send all fab requests.
     //
-    if (ParallelDescriptor::NProcs() == 1) assert(fabComTagList.size() == 0);
+    if (ParallelDescriptor::NProcs() == 1)
+        assert(fabComTagList.size() == 0);
 
-    assert(ParallelDescriptor::GetMessageHeader(dataWaitingSize,&fabComTag)==false);
+    int dataWaitingSize;
+    assert(ParallelDescriptor::GetMessageHeader(dataWaitingSize,&tag) == false);
     //
     // There should be no messages waiting.
     //
     int numberOfOutstandingRequestMessages = 0;
     int numberOfOutstandingFabMessages     = 0;
+
     for (int i = 0; i < fabComTagList.size(); i++)
     {
-        assert(fabComTagList[i].procThatNeedsData == myproc);
-        assert(fabComTagList[i].procThatHasData   != myproc);
+        assert(fabComTagList[i].procThatNeedsData == MyProc);
+        assert(fabComTagList[i].procThatHasData   != MyProc);
         assert(fabComTagList[i].subBox.ok());
         ParallelDescriptor::SendData(fabComTagList[i].procThatHasData,
-                                     &fabComTagList[i],
-                                     NULL,
-                                     0);
+                                     &fabComTagList[i], 0, 0);
         ++numberOfOutstandingRequestMessages;
     }
     fabComTagList.erase(fabComTagList.begin(), fabComTagList.end());
@@ -2091,33 +2079,35 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
     //
     if (!dataAvailable)
     {
-        while (ParallelDescriptor::GetMessageHeader(dataWaitingSize, &fabComTag))
+        while (ParallelDescriptor::GetMessageHeader(dataWaitingSize, &tag))
         {
             //
             // Data was sent to this processor.
             //
             assert(dataWaitingSize == 0);
-            assert(fabComTag.procThatHasData == myproc);
-            assert(fabComTag.subBox.ok());
+            assert(tag.procThatHasData == MyProc);
+            assert(tag.subBox.ok());
 
             ParallelDescriptor::ReceiveData(0, 0);  // Advance msg hdr.
             --numberOfOutstandingRequestMessages;
             //
             // Now send the requested data from the fabs on this processor.
             //
-            FAB tempFab(fabComTag.subBox, fabComTag.nComp);
+            FAB tFAB(tag.subBox, tag.nComp);
 
-            tempFab.copy((*fabArrays[fabComTag.fabArrayId])[fabComTag.fabIndex],
-                         fabComTag.subBox, fabComTag.srcComp,
-                         fabComTag.subBox, 0, fabComTag.nComp);
+            tFAB.copy((*fabArrays[tag.fabArrayId])[tag.fabIndex],
+                      tag.subBox,
+                      tag.srcComp,
+                      tag.subBox,
+                      0,
+                      tag.nComp);
             //
             // ^ copy to zero component of temp fab
             //
-            ParallelDescriptor::SendData(fabComTag.procThatNeedsData,
-                                         &fabComTag,
-                                         tempFab.dataPtr(),
-                                         tempFab.box().numPts() *
-                                         tempFab.nComp() * sizeof(T));
+            ParallelDescriptor::SendData(tag.procThatNeedsData,
+                                         &tag,
+                                         tFAB.dataPtr(),
+                                         tFAB.box().numPts()*tFAB.nComp()*sizeof(T));
 
             ++numberOfOutstandingFabMessages;
         }
@@ -2127,49 +2117,45 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
     //
     // Now collect all remote data into local fab data caches.
     //
-    while (ParallelDescriptor::GetMessageHeader(dataWaitingSize, &fabComTag))
+    while (ParallelDescriptor::GetMessageHeader(dataWaitingSize, &tag))
     {
         //
         // Data was sent to this processor.
         //
-        assert(fabComTag.procThatHasData != myproc);
-        assert(fabComTag.subBox.ok());
+        assert(tag.subBox.ok());
+        assert(tag.procThatHasData != MyProc);
         //
         // Check consistency and correct # of received and expected messages.
         //
-        assert(myproc == fabComTag.procThatNeedsData);
+        assert(MyProc == tag.procThatNeedsData);
         //
         // Find the box in the list and move the data.
         //
-        bool matchFound = false;
-	int fid         = fabComTag.fabArrayId;
-	FabCopyDescriptor<FAB>* fcdp;
-
 	pair<FCDMapIter, FCDMapIter> matchRange;
 
-        matchRange = fabCopyDescList[fid].equal_range(fabComTag.fillBoxId);
+        matchRange = fabCopyDescList[tag.fabArrayId].equal_range(tag.fillBoxId);
 
-        for (FCDMapIter fmi = matchRange.first;
-             fmi != matchRange.second && !matchFound;
-	    ++fmi)
+        FCDMapIter fmi = matchRange.first;
+
+        for ( ; fmi != matchRange.second; ++fmi)
         {
-            fcdp = (*fmi).second;
+            FabCopyDescriptor<FAB>* fcdp = (*fmi).second;
 
-            assert(fcdp->fillBoxId == fabComTag.fillBoxId);
+            assert(fcdp->fillBoxId == tag.fillBoxId);
 
-            if (fcdp->subBox == fabComTag.subBox)
+            if (fcdp->subBox == tag.subBox)
             {
                 //
                 // Copy the data.
                 //
                 ParallelDescriptor::ReceiveData(fcdp->localFabSource->dataPtr(),
-                                                fabComTag.subBox.numPts() *
-                                                fabComTag.nComp * sizeof(T));
-                matchFound = true;
+                                                tag.subBox.numPts() *
+                                                tag.nComp * sizeof(T));
                 --numberOfOutstandingFabMessages;
+                break;
             }
         }
-        assert(matchFound == true);
+        assert(!(fmi == matchRange.second));
     }
 
     dataAvailable = true;
@@ -2193,30 +2179,19 @@ FabArrayCopyDescriptor<T,FAB>::FillFab (const FabArrayId& fabarrayid,
     //
     assert(dataAvailable);
 
-    int fid = fabarrayid.Id();
-    FabCopyDescriptor<FAB>* fcdp;
     pair<FCDMapIter, FCDMapIter> matchRange;
 
-    matchRange = fabCopyDescList[fid].equal_range(fillboxid.Id());
+    matchRange = fabCopyDescList[fabarrayid.Id()].equal_range(fillboxid.Id());
 
     for (FCDMapIter fmi = matchRange.first; fmi != matchRange.second; ++fmi)
     {
-	fcdp = (*fmi).second;
+        FabCopyDescriptor<FAB>* fcdp = (*fmi).second;
+
         assert(fcdp->fillBoxId == fillboxid.Id());
 
-        int localSrcComp;
-
-        if (fcdp->fillType == FillLocally)
-        {
-            localSrcComp = fcdp->srcComp;
-        }
-        else
-        {
-            localSrcComp = 0; // Copy from zero component of local temp fab
-        }
         destFab.copy(*fcdp->localFabSource,
                      fcdp->subBox,
-                     localSrcComp,
+                     fcdp->fillType == FillLocally ? fcdp->srcComp : 0,
                      fcdp->subBox,
                      fcdp->destComp,
                      fcdp->nComp);
@@ -2227,20 +2202,20 @@ template <class T, class FAB>
 void
 FabArrayCopyDescriptor<T,FAB>::PrintStats () const
 {
-    int myproc = ParallelDescriptor::MyProc();
+    const int MyProc = ParallelDescriptor::MyProc();
 
     cout << "----- "
-         << myproc
+         << MyProc
          << ":  Parallel stats for FabArrayCopyDescriptor:" << '\n';
 
     cout << "----- "
-         << myproc
+         << MyProc
          << ":  totalRemoteBoxes = "
          << totalRemoteBoxes
          << '\n';
 
     cout << "----- "
-         << myproc
+         << MyProc
          << ":  totalRemoteBytes = "
          << totalRemoteBytes
          << '\n';
