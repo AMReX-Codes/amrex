@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.5 1997-11-24 22:05:10 car Exp $
+// $Id: DistributionMapping.cpp,v 1.6 1997-11-25 14:49:30 car Exp $
 //
 
 #include <DistributionMapping.H>
@@ -153,10 +153,6 @@ public:
     {
 	return lhs.weight() > rhs.weight();
     }
-    friend bool operator >(const WeightedBoxList& lhs, const WeightedBoxList& rhs)
-    {
-	return lhs.weight() > rhs.weight();
-    }
 };
 
 
@@ -196,7 +192,7 @@ knapsack(const vector<long>& pts, int nProcessors)
 	wblqg.push_back(wblq.top()); wblq.pop();
     }
     assert(wblqg.size() == nProcessors);
-    wblqg.sort(greater<WeightedBoxList>());
+    wblqg.sort();
     
     // compute the max weight and the sum of the weights.
     double max_weight = 0;
@@ -252,7 +248,7 @@ top:
 		    list<WeightedBoxList> tmp;
 		    tmp.push_back(wbl_top);
 		    tmp.push_back(wbl_chk);
-		    tmp.sort(greater<WeightedBoxList>());
+		    tmp.sort();
 		    wblqg.merge(tmp);
 		    // for(list<WeightedBoxList>::const_iterator ita = wblqg.begin(); ita != wblqg.end(); ++ita)
 		    //	cout << ita->weight() << endl;
