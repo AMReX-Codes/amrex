@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.34 1998-05-04 23:13:13 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.35 1998-05-27 22:46:11 vince Exp $
 //
 
 #include <Utility.H>
@@ -572,6 +572,16 @@ ParallelDescriptor::ReduceIntSum (int& r)
         ParallelDescriptor::Abort(rc);
 
     r = recv;
+}
+
+void
+ParallelDescriptor::Broadcast (int   fromproc,
+                               void* src,
+                               void* dest,
+                               int   nbytes)
+{
+    assert(src == dest);
+    MPI_Bcast(src, nbytes, MPI_BYTE, fromproc, MPI_COMM_WORLD);
 }
 
 void
