@@ -4,7 +4,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.20 1998-11-04 00:45:16 lijewski Exp $
+// $Id: Amr.H,v 1.21 1998-11-29 00:22:36 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -23,6 +23,7 @@ using std::ofstream;
 #include <PArray.H>
 #include <FArrayBox.H>
 #include <aString.H>
+#include <StationData.H>
 
 class AmrLevel;
 class LevelBld;
@@ -296,7 +297,6 @@ protected:
     Array<int>       regrid_int;      // Interval between regridding.
     Array<int>       n_error_buf;     // Buffer cells around each tagged cell.
     int              blocking_factor; // Blocking factor in grid generation.
-
     Real             grid_eff;        // Grid efficiency.
     int              max_grid_size;   // Maximum allowable grid size.
     int              n_proper;        // # cells required for proper nesting.
@@ -309,6 +309,7 @@ protected:
     Real             plot_per;        // How often plotfile (in units of time)
     aString          plot_file_root;  // Root name of plotfile.
     Array<aString>   plot_vars;       // Vars to dump to plotfile or "ALL".
+    StationData      station;
     int              verbose;
     int              record_grid_info;
     int              record_run_info;

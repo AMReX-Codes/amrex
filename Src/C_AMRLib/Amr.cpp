@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.63 1998-11-24 01:01:14 lijewski Exp $
+// $Id: Amr.cpp,v 1.64 1998-11-29 00:22:37 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -636,24 +636,30 @@ Amr::initialInit (Real strt_time, Real stop_time)
                                   //dt_min,
                                   dt_level,
                                   stop_time);
-
-    // ----- the following was added for multifluid
-    Real dt0 = dt_level[0];
-    dt_min[0] = dt_level[0];
+    //
+    // The following was added for multifluid.
+    //
+    Real dt0   = dt_level[0];
+    dt_min[0]  = dt_level[0];
     n_cycle[0] = 1;
-    if (sub_cycle) {
-      for (int lev = 1; lev <= max_level; lev++) {
-        dt0 /= Real (ref_ratio[lev-1][0]);
-        dt_level[lev] = dt0;
-        dt_min[lev] = dt_level[lev];
-        n_cycle[lev] = ref_ratio[lev-1][0];
-      }
-    } else {
-      for (int lev = 1; lev <= max_level; lev++) {
-        dt_level[lev] = dt0;
-        dt_min[lev] = dt_level[lev];
-        n_cycle[lev] = 1;
-      }
+    if (sub_cycle)
+    {
+        for (int lev = 1; lev <= max_level; lev++)
+        {
+            dt0 /= Real (ref_ratio[lev-1][0]);
+            dt_level[lev] = dt0;
+            dt_min[lev] = dt_level[lev];
+            n_cycle[lev] = ref_ratio[lev-1][0];
+        }
+    }
+    else
+    {
+        for (int lev = 1; lev <= max_level; lev++)
+        {
+            dt_level[lev] = dt0;
+            dt_min[lev] = dt_level[lev];
+            n_cycle[lev] = 1;
+        }
     }
     // ----- end multifluid
 
@@ -683,6 +689,9 @@ Amr::initialInit (Real strt_time, Real stop_time)
         gridlog << "INITIAL GRIDS \n";
         printGridInfo(gridlog,0,finest_level);
     }
+
+    station.init();
+    station.findGrid(amr_level,geom);
 }
 
 void
@@ -818,6 +827,9 @@ Amr::restart (const aString& filename)
     //
     for (lev = 0; lev <= finest_level; lev++)
         amr_level[lev].post_restart();
+
+    station.init();
+    station.findGrid(amr_level,geom);
 
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
@@ -1021,7 +1033,10 @@ Amr::timeStep (int  level,
     }
     level_steps[level]++;
     level_count[level]++;
+
     RunStats::addCells(level,amr_level[level].countCells());
+
+    station.report(time,level,amr_level[level]);
     //
     // Advance grids at higher level.
     //
@@ -1252,6 +1267,8 @@ Amr::regrid (int  lbase,
     {
         amr_level[lev].post_regrid(lbase,new_finest);
     }
+
+    station.findGrid(amr_level,geom);
     //
     // Report creation of new grids.
     //
