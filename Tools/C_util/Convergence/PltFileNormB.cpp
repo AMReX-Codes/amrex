@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DiffSameGrid.cpp,v 1.7 1999-10-20 22:35:37 sstanley Exp $
+// $Id: PltFileNormB.cpp,v 1.1 1999-10-20 22:35:38 sstanley Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -52,20 +52,14 @@ PrintUsage (const char* progName)
     cout << '\n';
     cout << "Usage:" << '\n';
     cout << progName << '\n';
-    cout << "    infile1 = inputFileName1" << '\n';
-    cout << "    infile2 = inputFileName2" << '\n';
-    cout << "    diffile = differenceFileName" << '\n';
-    cout << "              (If not specified no file is written)" << '\n';
-    cout << "       norm = integer norm (Ie. default is 2 for L2 norm)" << '\n';
+    cout << "    infile = inputFileName" << '\n';
+    cout << "      norm = integer norm (Ie. default is 2 for L2 norm)" << '\n';
     cout << "   [-help]" << '\n';
     cout << "   [-verbose]" << '\n';
     cout << '\n';
     exit(1);
 }
 
-bool
-amrDatasHaveSameDerives(const AmrData& amrd1,
-			const AmrData& amrd2);
 int
 main (int   argc,
       char* argv[])
@@ -88,7 +82,7 @@ main (int   argc,
     //
     // Scan the arguments.
     //
-    aString iFile1, iFile2, difFile;
+    aString iFile;
 
     bool verbose = false;
     if (pp.contains("verbose"))
@@ -96,15 +90,9 @@ main (int   argc,
         verbose = true;
         AmrData::SetVerbose(true);
     }
-    pp.query("infile1", iFile1);
-    if (iFile1.isNull())
-        BoxLib::Abort("You must specify `infile1'");
-
-    pp.query("infile2", iFile2);
-    if (iFile2.isNull())
-        BoxLib::Abort("You must specify `infile2'");
-
-    pp.query("diffile", difFile);
+    pp.query("infile", iFile);
+    if (iFile.isNull())
+        BoxLib::Abort("You must specify `infile'");
 
     int norm = 2;
     pp.query("norm", norm);
@@ -112,10 +100,9 @@ main (int   argc,
     DataServices::SetBatchMode();
     FileType fileType(NEWPLT);
     
-    DataServices dataServicesC(iFile1, fileType);
-    DataServices dataServicesF(iFile2, fileType);
+    DataServices dataServicesC(iFile, fileType);
 
-    if (!dataServicesC.AmrDataOk() || !dataServicesF.AmrDataOk())
+    if (!dataServicesC.AmrDataOk())
         BoxLib::Abort("ERROR: Dataservices not OK");
 
 
@@ -123,17 +110,10 @@ main (int   argc,
     // Generate AmrData Objects 
     //
     AmrData& amrDataI = dataServicesC.AmrDataRef();
-    AmrData& amrDataE = dataServicesF.AmrDataRef();
 
     //
     // Initial Tests 
     //
-    if (!amrDatasHaveSameDerives(amrDataI,amrDataE))
-        BoxLib::Abort("ERROR: Plotfiles do not have the same state variables");
-
-    if (amrDataI.FinestLevel() != amrDataE.FinestLevel())
-        BoxLib::Abort("ERROR: Finest level is not the same in the two plotfiles");
-
     int nComp       = amrDataI.NComp();
     int finestLevel = amrDataI.FinestLevel();
     const Array<aString>& derives = amrDataI.PlotVarNames();
@@ -154,28 +134,11 @@ main (int   argc,
     for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
     {
         const BoxArray& baI = amrDataI.boxArray(iLevel);
-        const BoxArray& baE = amrDataE.boxArray(iLevel);
-
-        if (baI.length() != baE.length())
-        {
-            cout << "ERROR: BoxArray lengths are not the same at level " 
-                 << iLevel << endl;
-            ParallelDescriptor::Abort();
-        }
-
-	error[iLevel] = new MultiFab(baI, nComp, 0);
-	error[iLevel]->setVal(GARBAGE);
 
         MultiFab dataI(baI, nComp, 0);
-        MultiFab dataE(baE, nComp, 0);
 
         amrDataI.FillVar(dataI, iLevel, derives, destComps);
-        amrDataE.FillVar(dataE, iLevel, derives, destComps);
 
-        (*error[iLevel]).copy(dataI);
-        (*error[iLevel]).minus(dataE, 0, nComp, 0);
-
-   
         //
         // Output Statistics
         //
@@ -186,7 +149,7 @@ main (int   argc,
         for (int iComp = 0; iComp < nComp; iComp++)
             norms[iComp] = 0.0;
 
-        for (MultiFabIterator mfi(*error[iLevel]); mfi.isValid(); ++mfi)
+        for (MultiFabIterator mfi(dataI); mfi.isValid(); ++mfi)
         {
             for (int iComp = 0; iComp < nComp; iComp++)
             {
@@ -266,31 +229,9 @@ main (int   argc,
     }
 
 
-    if (!difFile.isNull())
-        WritePlotFile(error, amrDataI, difFile, verbose);
-    
-    for (int iLevel = 0; iLevel <= finestLevel; ++iLevel)
-	delete error[iLevel];
-
     //
     // This calls ParallelDescriptor::EndParallel() and exit()
     //
     DataServices::Dispatch(DataServices::ExitRequest, NULL);
-}
-
-
-bool
-amrDatasHaveSameDerives(const AmrData& amrd1,
-			const AmrData& amrd2)
-{
-    const Array<aString>& derives1 = amrd1.PlotVarNames();
-    const Array<aString>& derives2 = amrd2.PlotVarNames();
-    int length = derives1.length();
-    if (length != derives2.length())
-	return false;
-    for (int i=0; i<length; ++i)
-	if (derives1[i] != derives2[i])
-	    return false;
-    return true;
 }
 
