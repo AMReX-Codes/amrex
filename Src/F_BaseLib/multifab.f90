@@ -105,7 +105,7 @@ module multifab_module
 
   interface setval
      module procedure multifab_setval
-    module procedure multifab_setval_bx
+     module procedure multifab_setval_bx
      module procedure multifab_setval_c
      module procedure multifab_setval_bx_c
 
@@ -1191,6 +1191,19 @@ contains
        call setval(mf%fbs(i), i, bx)
     end do
   end subroutine imultifab_debug_fill
+
+  !! MULTIFAB_SET_BOUNDARY_VAL
+  !! BUG: sets ghost cell values of the fabs, but
+  !! will corrupt f/f ghost cell values
+  subroutine multifab_set_border_val(mf, val)
+    type(multifab), intent(inout) :: mf
+    real(kind=dp_t), intent(in), optional :: val
+    real(kind=dp_t) :: tval
+    integer :: i
+    do i = 1, mf%nboxes; if ( multifab_remote(mf, i) ) cycle
+       call fab_set_border_val(mf%fbs(i), val)
+    end do
+  end subroutine multifab_set_border_val
 
   subroutine multifab_fill_boundary(mf, ng, nocomm)
     type(multifab), intent(inout) :: mf
