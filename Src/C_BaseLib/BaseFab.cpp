@@ -57,6 +57,7 @@ BoxLib::The_Arena ()
     return a;
 }
 
+#ifndef WIN32
 template<>
 void
 BaseFab<Real>::performCopy (const BaseFab<Real>& src,
@@ -149,3 +150,4 @@ BaseFab<Real>::performSetVal (Real       val,
                         num);
     }
 }
+#endif

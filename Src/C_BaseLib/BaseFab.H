@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.50 2002-11-07 19:04:01 lijewski Exp $
+// $Id: BaseFab.H,v 1.51 2003-01-23 20:10:01 car Exp $
 //
 #include <winstd.H>
 
@@ -1409,6 +1409,7 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
 #endif
 }
 
+#ifndef WIN32
 //
 // Forward declaration of template specializaton for Real.
 // The definition is found in BaseFab.cpp.
@@ -1421,6 +1422,7 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
                             const Box&           destbox,
                             int                  destcomp,
                             int                  numcomp);
+#endif
 
 template <class T>
 void
@@ -1450,6 +1452,7 @@ BaseFab<T>::performSetVal (T         val,
     }
 }
 
+#ifndef WIN32
 //
 // Forward declaration of template specializaton for Real.
 // Definition is found in BaseFab.cpp.
@@ -1460,6 +1463,7 @@ BaseFab<Real>::performSetVal (Real       val,
                               const Box& bx,
                               int        ns,
                               int        num);
+#endif
 
 template <class T>
 void
