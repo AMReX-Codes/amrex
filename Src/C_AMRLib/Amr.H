@@ -2,7 +2,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.30 2001-08-01 21:50:44 lijewski Exp $
+// $Id: Amr.H,v 1.31 2005-03-30 01:49:01 welcome Exp $
 //
 
 #include <fstream>
@@ -350,6 +350,7 @@ protected:
     std::string      restart_file;
     std::string      probin_file;
     LevelBld*        levelbld;
+    Real             probStartTime;   // wallclock time just before init
     //
     // The static data ...
     //

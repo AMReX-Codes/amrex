@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.137 2003-09-08 21:07:45 lijewski Exp $
+// $Id: Amr.cpp,v 1.138 2005-03-30 01:49:01 welcome Exp $
 //
 #include <winstd.H>
 
@@ -749,7 +749,7 @@ Amr::writePlotFile (const std::string& root,
 
     Real dPlotFileTime1 = ParallelDescriptor::second();
     Real dPlotFileTime  = dPlotFileTime1 - dPlotFileTime0;
-    Real wctime         = ParallelDescriptor::second();
+    Real wctime         = ParallelDescriptor::second() - probStartTime;
 
     ParallelDescriptor::ReduceRealMax(wctime,IOProc);
     ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
@@ -826,6 +826,7 @@ void
 Amr::init (Real strt_time,
            Real stop_time)
 {
+    probStartTime = ParallelDescriptor::second();
     if (!restart_file.empty())
     {
         restart(restart_file);
