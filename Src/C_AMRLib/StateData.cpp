@@ -1,12 +1,11 @@
 
 //
-// $Id: StateData.cpp,v 1.36 2002-10-11 13:28:27 car Exp $
+// $Id: StateData.cpp,v 1.37 2002-10-31 21:56:45 lijewski Exp $
 //
 #include <winstd.H>
 
 #include <algorithm>
 
-#include <Profiler.H>
 #include <RealBox.H>
 #include <StateData.H>
 #include <StateDescriptor.H>
@@ -445,7 +444,6 @@ StateData::linInterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
                             int                     num_comp,
                             bool                    extrap)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::linInterpAddBox()");
     if (desc->timeType() == StateDescriptor::Point)
     {
         if (old_data == 0)
@@ -518,7 +516,6 @@ StateData::linInterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
                              int                      num_comp,
                              bool                     extrap)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::linInterpFillFab()");
     if (desc->timeType() == StateDescriptor::Point)
     {
         if (old_data == 0)

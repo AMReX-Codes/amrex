@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.162 2002-03-13 21:43:58 vince Exp $
+// $Id: FabArray.H,v 1.163 2002-10-31 21:56:33 lijewski Exp $
 //
 #include <cstring>
 #include <limits>
@@ -1167,8 +1167,6 @@ template <class FAB>
 void
 FabArray<FAB>::setVal (value_type val)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::setVal(1)");
-
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
         get(fai).setVal(val);
@@ -1190,8 +1188,6 @@ FabArray<FAB>::setVal (value_type val,
                        int        ncomp,
                        int        nghost)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::setVal(4)");
-
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
     BL_ASSERT(comp+ncomp <= n_comp);
 
@@ -1209,8 +1205,6 @@ FabArray<FAB>::setVal (value_type val,
                        int        ncomp,
                        int        nghost)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::setVal(5)");
-
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
     BL_ASSERT(comp+ncomp <= n_comp);
 
@@ -1228,8 +1222,6 @@ template <class FAB>
 void
 FabArray<FAB>::shift (const IntVect& v)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::shift()");
-
     for(int id(0); id < BL_SPACEDIM; ++id)
     {
       boxarray.shift(id, v[id]);

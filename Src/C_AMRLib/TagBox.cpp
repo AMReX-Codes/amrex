@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.62 2002-10-11 18:20:29 car Exp $
+// $Id: TagBox.cpp,v 1.63 2002-10-31 21:56:45 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -12,7 +12,6 @@
 #include <TagBox.H>
 #include <Geometry.H>
 #include <ParallelDescriptor.H>
-#include <Profiler.H>
 #include <ccse-mpi.H>
 //
 // Number of IntVects that can fit into m_CollateSpace
@@ -59,7 +58,6 @@ TagBox::resize (const Box& b, int ncomp)
 TagBox*
 TagBox::coarsen (const IntVect& ratio)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::coarsen()");
     Box cbx(domain);
     cbx.coarsen(ratio);
     TagBox* crse = new TagBox(cbx);
@@ -214,7 +212,6 @@ void
 TagBox::buffer (int nbuff,
                 int nwid)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::buffer()");
     //
     // Note: this routine assumes cell with TagBox::SET tag are in
     // interior of tagbox (region = grow(domain,-nwid)).
@@ -337,7 +334,6 @@ int
 TagBox::collate (IntVect* ar,
                  int      start) const
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::collate()");
     BL_ASSERT(!(ar == 0));
     BL_ASSERT(start >= 0);
     //
@@ -433,7 +429,6 @@ TagBoxArray::buffer (int nbuf)
 void
 TagBoxArray::mapPeriodic (const Geometry& geom)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::mapPeriodic()");
     if (!geom.isAnyPeriodic()) return;
 
     FabArrayCopyDescriptor<TagBox> facd;
@@ -543,8 +538,6 @@ struct IntVectComp
 IntVect*
 TagBoxArray::collate (long& numtags) const
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::collate()");
-
     numtags = numTags();
 
     if (TagBoxArray::m_CollateCount < numtags)
