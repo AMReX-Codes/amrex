@@ -4,7 +4,7 @@
 #define _ErrorList_H_
 
 //
-// $Id: ErrorList.H,v 1.4 1997-12-02 19:12:17 lijewski Exp $
+// $Id: ErrorList.H,v 1.5 1998-03-23 21:02:56 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -86,22 +86,26 @@ public:
 
     ErrorList () {}
 
-    ~ErrorList ();
-
-    void clear ();
+    ~ErrorList () {}
 
     int length () const { return lst.length(); }
 
     void add (const aString&      name,
               int                 nextra, 
               ErrorRec::ErrorType typ,
-              ErrorRec::ErrorFunc func);
+              ErrorRec::ErrorFunc func)
+    {
+        //
+        // Keep list in order of definition, append().
+        //
+        lst.append(ErrorRec(name, nextra, typ, func));
+    }
 
     const ErrorRec* operator[] (int k) const;
 
 protected:
 
-    List<ErrorRec*> lst;
+    List<ErrorRec> lst;
 };
 
 #endif
