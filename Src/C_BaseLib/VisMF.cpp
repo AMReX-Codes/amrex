@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.24 1997-11-13 21:47:46 lijewski Exp $
+// $Id: VisMF.cpp,v 1.25 1997-11-13 23:55:45 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -428,14 +428,13 @@ VisMF::WriteHeader (const aString& mf_name,
         ofstream MFHdrFile;
 
 #ifdef BL_USE_SETBUF
-        MFHdrFile.setbuf(VisMF::Large_IO_Buffer(), VisMF::IO_Buffer_Size);
+        MFHdrFile.rdbuf()->setbuf(Large_IO_Buffer(), VisMF::IO_Buffer_Size);
 #endif
-
         MFHdrFile.open(MFHdrFileName.c_str(), ios::out|ios::trunc);
 
         if (!MFHdrFile.good())
         {
-            aString msg("Couldn't open file: ");
+            aString msg("VisMF::WriteHeader(): couldn't open file: ");
             msg += MFHdrFileName;
             BoxLib::Error(msg.c_str());
         }
@@ -491,14 +490,13 @@ VisMF::Write (const MultiFab& mf,
         ofstream FabFile;
 
 #ifdef BL_USE_SETBUF
-        FabFile.setbuf(VisMF::Large_IO_Buffer(), VisMF::IO_Buffer_Size);
+        FabFile.rdbuf()->setbuf(Large_IO_Buffer(), VisMF::IO_Buffer_Size);
 #endif
-
         FabFile.open(FabFileName.c_str(), ios::out|ios::trunc);
 
         if (!FabFile.good())
         {
-            aString msg("Couldn't open file: ");
+            aString msg("VisMF::Write(): couldn't open file: ");
             msg += FabFileName;
             BoxLib::Error(msg.c_str());
         }
@@ -532,14 +530,13 @@ VisMF::Write (const MultiFab& mf,
             ofstream FabFile;
 
 #ifdef BL_USE_SETBUF
-            FabFile.setbuf(VisMF::Large_IO_Buffer(), VisMF::IO_Buffer_Size);
+            FabFile.rdbuf()->setbuf(Large_IO_Buffer(), VisMF::IO_Buffer_Size);
 #endif
-
             FabFile.open(FabFileName.c_str(), ios::out|ios::trunc);
 
             if (!FabFile.good())
             {
-                aString msg("Couldn't open file: ");
+                aString msg("VisMF::Write(): couldn't open file: ");
                 msg += FabFileName;
                 BoxLib::Error(msg.c_str());
             }
@@ -595,14 +592,13 @@ VisMF::VisMF (const aString& mf_name)
     ifstream ifs;
 
 #ifdef BL_USE_SETBUF
-    ifs.setbuf(VisMF::Large_IO_Buffer(), VisMF::IO_Buffer_Size);
+    ifs.rdbuf()->setbuf(VisMF::Large_IO_Buffer(), VisMF::IO_Buffer_Size);
 #endif
-
     ifs.open(file.c_str(), ios::in);
 
     if (!ifs.good())
     {
-        aString msg("Couldn't open file: ");
+        aString msg("VisMF::VisMF(): couldn't open file: ");
         msg += file;
         BoxLib::Error(msg.c_str());
     }
@@ -633,14 +629,13 @@ VisMF::readFAB (int i) const
     ifstream ifs;
 
 #ifdef BL_USE_SETBUF
-    ifs.setbuf(VisMF::Large_IO_Buffer(), VisMF::IO_Buffer_Size);
+    ifs.rdbuf()->setbuf(VisMF::Large_IO_Buffer(), VisMF::IO_Buffer_Size);
 #endif
-
     ifs.open(file.c_str(), ios::in);
 
     if (!ifs.good())
     {
-        aString msg("Couldn't open file: ");
+        aString msg("VisMF::readFAB(): couldn't open file: ");
         msg += file;
         BoxLib::Error(msg.c_str());
     }

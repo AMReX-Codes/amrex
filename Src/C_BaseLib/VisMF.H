@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.19 1997-11-13 21:47:46 lijewski Exp $
+// $Id: VisMF.H,v 1.20 1997-11-13 23:55:44 lijewski Exp $
 //
 
 #include <MultiFab.H>
@@ -120,6 +120,22 @@ public:
     static void Write (const MultiFab& mf,
                        const aString&  name,
                        VisMF::How      how);
+    //
+    // We try to do I/O with buffers of this size.
+    //
+    enum { IO_Buffer_Size = 40960 * 32 };
+    //
+    // Returns a static buffer of IO_Buffer_Size for I/O with [io]fstream.
+    //
+    // Only one [io]fstream can use this as a buffer (per cpu) at a time.
+    //
+#ifdef BL_SETBUF_SIGNED_CHAR
+    typedef signed char Setbuf_Char_Type;
+#else
+    typedef char Setbuf_Char_Type;
+#endif
+    static Setbuf_Char_Type* Large_IO_Buffer ();
+
 private:
     //
     // These are disallowed.
@@ -139,21 +155,6 @@ private:
     static aString ToString (long l);
 
     void readFAB (int i) const;
-    //
-    // We try to do I/O with buffers of this size.
-    //
-    enum { IO_Buffer_Size = 40960 * 32 };
-    //
-    // Returns a static buffer of IO_Buffer_Size for I/O with [io]fstream.
-    //
-    // Only one [io]fstream can use this as a buffer (per cpu) at a time.
-    //
-#ifdef BL_SETBUF_SIGNED_CHAR
-    typedef signed char Setbuf_Char_Type;
-#else
-    typedef char Setbuf_Char_Type;
-#endif
-    static Setbuf_Char_Type* Large_IO_Buffer ();
     //
     // The suffix appended to files containing FAB data.
     //
