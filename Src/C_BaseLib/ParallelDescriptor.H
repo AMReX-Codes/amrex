@@ -2,7 +2,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.62 2001-07-22 18:11:02 car Exp $
+// $Id: ParallelDescriptor.H,v 1.63 2001-07-22 18:52:17 car Exp $
 //
 
 #include <BLassert.H>
@@ -361,7 +361,6 @@ namespace ParallelDescriptor
 
     template <class T, class T1> void Gather(T*, size_t n, const T1*, size_t n1, int root);
     template <class T> std::vector<T> Gather(const T&, int root);
-
     void MPI_Error(const char* file, int line, const char* msg, int rc);
 }
 
@@ -524,105 +523,120 @@ ParallelDescriptor::Scatter(const std::vector<T>& t, int root)
     return resl;
 }
 #else
+namespace ParallelDescriptor
+{
+template <class T>
+Message
+Asend(const T* buf, size_t n, int dst_pid, int tag)
+{
+    return Message();
+}
+
+template <class T>
+Message
+Asend(const std::vector<T>& buf, int dst_pid, int tag)
+{
+    return Message();
+}
+
+template <class T>
+Message
+Send(const T* buf, size_t n, int dst_pid, int tag)
+{
+    return Message();
+}
+
+template <class T>
+Message
+Send(const std::vector<T>& buf, int dst_pid, int tag)
+{
+    return Message();
+}
+
+template <class T>
+Message
+Arecv(T* buf, size_t n, int src_pid, int tag)
+{
+    return Message();
+}
+
+template <class T>
+Message
+Arecv(std::vector<T>& buf, int src_pid, int tag)
+{
+    return Message();
+}
+
+template <class T>
+Message
+Recv(T* buf, size_t n, int src_pid, int tag)
+{
+    return Message();
+}
+
+template <class T>
+Message
+Recv(std::vector<T>& buf, int src_pid, int tag)
+{
+    return Message();
+}
+
+template <class Op, class T>
+T
+Reduce(const T& t)
+{
+    return t;
+}
+
+template <class Op, class T>
+std::vector<T>
+Reduce(const std::vector<T>& t)
+{
+    return t;
+}
+
+template <class T>
+void
+Bcast(T* t, size_t n, int root)
+{
+}
+
 template <class T>
 T
-ParallelDescriptor::Scatter(const std::vector<T>& t, int root)
+Bcast(const T& t, int root)
 {
-    return t[0];
+    return t;
+}
+
+template <class T, class T1>
+void
+ParallelDescriptor::Gather(T* t, size_t n, const T1* t1, size_t n1, int root)
+{
 }
 
 template <class T>
 std::vector<T>
-ParallelDescriptor::Gather(const T& t, int root)
+Gather(const T& t, int root)
 {
     std::vector<T> resl(1);
     resl[0] = t;
     return resl;
 }
 
-template <class T>
+template <class T, class T1>
 void
-ParallelDescriptor::Bcast(T* t, size_t n, int root)
+ParallelDescriptor::Scatter(T* t, size_t n, const T1* t1, size_t n1, int root)
 {
 }
 
 template <class T>
 T
-ParallelDescriptor::Bcast(const T& t, int root)
+Scatter(const std::vector<T>& t, int root)
 {
-    return t;
+    return t[0];
 }
 
-template <class T>
-ParallelDescriptor::Message
-ParallelDescriptor::Asend(const T* buf, size_t n, int dst_pid, int tag)
-{
-    return Message();
 }
-
-template <class T>
-ParallelDescriptor::Message
-ParallelDescriptor::Asend(const std::vector<T>& buf, int dst_pid, int tag)
-{
-    return Message();
-}
-
-template <class T>
-ParallelDescriptor::Message
-ParallelDescriptor::Send(const T* buf, size_t n, int dst_pid, int tag)
-{
-    return Message();
-}
-
-template <class T>
-ParallelDescriptor::Message
-ParallelDescriptor::Send(const std::vector<T>& buf, int dst_pid, int tag)
-{
-    return Message();
-}
-
-template <class T>
-ParallelDescriptor::Message
-ParallelDescriptor::Arecv(T* buf, size_t n, int src_pid, int tag)
-{
-    return Message();
-}
-
-template <class T>
-ParallelDescriptor::Message
-ParallelDescriptor::Arecv(std::vector<T>& buf, int src_pid, int tag)
-{
-    return Message();
-}
-
-template <class T>
-ParallelDescriptor::Message
-ParallelDescriptor::Recv(T* buf, size_t n, int src_pid, int tag)
-{
-    return Message();
-}
-
-template <class T>
-ParallelDescriptor::Message
-ParallelDescriptor::Recv(std::vector<T>& buf, int src_pid, int tag)
-{
-    return Message();
-}
-
-template <class Op, class T>
-T
-ParallelDescriptor::Reduce(const T& t)
-{
-    return t;
-}
-
-template <class Op, class T>
-std::vector<T>
-ParallelDescriptor::Reduce(const std::vector<T>& t)
-{
-    return t;
-}
-
 #endif
 
 #endif /*BL_PARALLELDESCRIPTOR_H*/
