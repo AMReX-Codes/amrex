@@ -100,12 +100,12 @@ protected:
     //
     // The data.
     //
-    task_list&       m_task_list;
-    list<task_proxy> dependencies;
-    sequence_number  m_sno;
-    unsigned int     m_cnt;
-    bool             m_finished;
-    bool             m_started;
+    task_list&            m_task_list;
+    std::list<task_proxy> dependencies;
+    sequence_number       m_sno;
+    unsigned int          m_cnt;
+    bool                  m_finished;
+    bool                  m_started;
 
 private:
     //
@@ -232,10 +232,10 @@ public:
     //
     void execute (const char* msg);
 
-    list<task::task_proxy>::const_iterator begin () const;
-    list<task::task_proxy>::iterator begin ();
-    list<task::task_proxy>::const_iterator end () const;
-    list<task::task_proxy>::iterator end ();
+    std::list<task::task_proxy>::const_iterator begin () const;
+    std::list<task::task_proxy>::iterator begin ();
+    std::list<task::task_proxy>::const_iterator end () const;
+    std::list<task::task_proxy>::iterator end ();
 
     bool empty () const;
     int size () const;
@@ -247,7 +247,7 @@ private:
     //
     // The data.
     //
-    list<task::task_proxy>       tasks;
+    std::list<task::task_proxy>  tasks;
     Array<task::sequence_number> seq_no;
     bool                         verbose;
     //
@@ -257,28 +257,28 @@ private:
 };
 
 inline
-list<task::task_proxy>::const_iterator
+std::list<task::task_proxy>::const_iterator
 task_list::begin () const
 {
     return tasks.begin();
 }
 
 inline
-list<task::task_proxy>::iterator
+std::list<task::task_proxy>::iterator
 task_list::begin ()
 {
     return tasks.begin();
 }
 
 inline
-list<task::task_proxy>::const_iterator
+std::list<task::task_proxy>::const_iterator
 task_list::end () const
 {
     return tasks.end();
 }
 
 inline
-list<task::task_proxy>::iterator
+std::list<task::task_proxy>::iterator
 task_list::end ()
 {
     return tasks.end();
