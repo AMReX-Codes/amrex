@@ -301,7 +301,8 @@ amr_multigrid::build_mesh (const Box& fdomain)
 	// will be used below and on the next loop:
 	build_index();
 
-	lev_interface = new level_interface[mg_mesh.length()];
+	const int imgl = mg_mesh.length();
+	lev_interface = new level_interface[imgl];
 
 	for (int mglev = mg_mesh.length() - 1, lev = lev_max + 1;
 	     mglev >= 0; mglev--)

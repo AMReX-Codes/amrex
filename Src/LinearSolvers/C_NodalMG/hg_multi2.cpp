@@ -467,47 +467,47 @@ holy_grail_amr_multigrid::alloc_sync_caches ()
 {
     if (lev_min < lev_max)
     {
-	fres_fbox  = new Box*[lev_max+1];
-	fres_cbox  = new Box*[lev_max+1];
-	fres_creg  = new Box*[lev_max+1];
-	fres_sfbox = new Box*[lev_max+1];
-	fres_scbox = new Box*[lev_max+1];
+	fres_fbox  .resize(lev_max+1);
+	fres_cbox  .resize(lev_max+1);
+	fres_creg  .resize(lev_max+1);
+	fres_sfbox .resize(lev_max+1);
+	fres_scbox .resize(lev_max+1);
 #if (BL_SPACEDIM == 3)
-	eres_fbox  = new Box*[lev_max+1];
-	eres_cbox  = new Box*[lev_max+1];
-	eres_creg  = new Box*[lev_max+1];
-	eres_sfbox = new Box*[lev_max+1];
-	eres_scbox = new Box*[lev_max+1];
+	eres_fbox  .resize(lev_max+1);
+	eres_cbox  .resize(lev_max+1);
+	eres_creg  .resize(lev_max+1);
+	eres_sfbox .resize(lev_max+1);
+	eres_scbox .resize(lev_max+1);
 #endif
-	cres_fbox  = new Box*[lev_max+1];
-	cres_cbox  = new Box*[lev_max+1];
-	cres_creg  = new Box*[lev_max+1];
-	cres_sfbox = new Box*[lev_max+1];
-	cres_scbox = new Box*[lev_max+1];
+	cres_fbox  .resize(lev_max+1);
+	cres_cbox  .resize(lev_max+1);
+	cres_creg  .resize(lev_max+1);
+	cres_sfbox .resize(lev_max+1);
+	cres_scbox .resize(lev_max+1);
     }
 
     // This loop kill gcc 2.95.2 under some situations.
     for (int lev(lev_min + 1); lev <= lev_max; ++lev)
     {
-	fres_sfbox[lev] = new Box[lev_interface[ml_index[lev]].nboxes(level_interface::FACEDIM)];
-	fres_scbox[lev] = new Box[lev_interface[ml_index[lev]].nboxes(level_interface::FACEDIM)];
-	fres_fbox[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(level_interface::FACEDIM)];
-	fres_cbox[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(level_interface::FACEDIM)];
-	fres_creg[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(level_interface::FACEDIM)];
+	fres_sfbox[lev] .resize(lev_interface[ml_index[lev]].nboxes(level_interface::FACEDIM));
+	fres_scbox[lev] .resize(lev_interface[ml_index[lev]].nboxes(level_interface::FACEDIM));
+	fres_fbox[lev]  .resize(lev_interface[ml_index[lev]].nboxes(level_interface::FACEDIM));
+	fres_cbox[lev]  .resize(lev_interface[ml_index[lev]].nboxes(level_interface::FACEDIM));
+	fres_creg[lev]  .resize(lev_interface[ml_index[lev]].nboxes(level_interface::FACEDIM));
 
 #if (BL_SPACEDIM == 3)
-	eres_sfbox[lev] = new Box[lev_interface[ml_index[lev]].nboxes(1)];
-	eres_scbox[lev] = new Box[lev_interface[ml_index[lev]].nboxes(1)];
-	eres_fbox[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(1)];
-	eres_cbox[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(1)];
-	eres_creg[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(1)];
+	eres_sfbox[lev] .resize(lev_interface[ml_index[lev]].nboxes(1));
+	eres_scbox[lev] .resize(lev_interface[ml_index[lev]].nboxes(1));
+	eres_fbox[lev]  .resize(lev_interface[ml_index[lev]].nboxes(1));
+	eres_cbox[lev]  .resize(lev_interface[ml_index[lev]].nboxes(1));
+	eres_creg[lev]  .resize(lev_interface[ml_index[lev]].nboxes(1));
 #endif
 	
-	cres_sfbox[lev] = new Box[lev_interface[ml_index[lev]].nboxes(0)];
-	cres_scbox[lev] = new Box[lev_interface[ml_index[lev]].nboxes(0)];
-	cres_fbox[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(0)];
-	cres_cbox[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(0)];
-	cres_creg[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(0)];
+	cres_sfbox[lev] .resize(lev_interface[ml_index[lev]].nboxes(0));
+	cres_scbox[lev] .resize(lev_interface[ml_index[lev]].nboxes(0));
+	cres_fbox[lev]  .resize(lev_interface[ml_index[lev]].nboxes(0));
+	cres_cbox[lev]  .resize(lev_interface[ml_index[lev]].nboxes(0));
+	cres_creg[lev]  .resize(lev_interface[ml_index[lev]].nboxes(0));
 	
 	build_sync_cache(ml_index[lev], lev);
     }
@@ -518,43 +518,43 @@ holy_grail_amr_multigrid::delete_sync_caches ()
 {
     for (int lev = lev_min + 1; lev <= lev_max; ++lev)
     {
-	delete [] fres_fbox[lev];
-	delete [] fres_cbox[lev];
-	delete [] fres_creg[lev];
-	delete [] fres_sfbox[lev];
-	delete [] fres_scbox[lev];
+	fres_fbox[lev].clear();
+	fres_cbox[lev].clear();
+	fres_creg[lev].clear();
+	fres_sfbox[lev].clear();
+	fres_scbox[lev].clear();
 #if (BL_SPACEDIM == 3)
-	delete [] eres_fbox[lev];
-	delete [] eres_cbox[lev];
-	delete [] eres_creg[lev];
-	delete [] eres_sfbox[lev];
-	delete [] eres_scbox[lev];
+	eres_fbox[lev].clear();
+	eres_cbox[lev].clear();
+	eres_creg[lev].clear();
+	eres_sfbox[lev].clear();
+	eres_scbox[lev].clear();
 #endif
-	delete [] cres_fbox[lev];
-	delete [] cres_cbox[lev];
-	delete [] cres_creg[lev];
-	delete [] cres_sfbox[lev];
-	delete [] cres_scbox[lev];
+	cres_fbox[lev].clear();
+	cres_cbox[lev].clear();
+	cres_creg[lev].clear();
+	cres_sfbox[lev].clear();
+	cres_scbox[lev].clear();
     }
     if (lev_min < lev_max)
     {
-	delete [] fres_fbox;
-	delete [] fres_cbox;
-	delete [] fres_creg;
-	delete [] fres_sfbox;
-	delete [] fres_scbox;
+	fres_fbox.clear();
+	fres_cbox.clear();
+	fres_creg.clear();
+	fres_sfbox.clear();
+	fres_scbox.clear();
 #if (BL_SPACEDIM == 3)
-	delete [] eres_fbox;
-	delete [] eres_cbox;
-	delete [] eres_creg;
-	delete [] eres_sfbox;
-	delete [] eres_scbox;
+	eres_fbox.clear();
+	eres_cbox.clear();
+	eres_creg.clear();
+	eres_sfbox.clear();
+	eres_scbox.clear();
 #endif
-	delete [] cres_fbox;
-	delete [] cres_cbox;
-	delete [] cres_creg;
-	delete [] cres_sfbox;
-	delete [] cres_scbox;
+	cres_fbox.clear();
+	cres_cbox.clear();
+	cres_creg.clear();
+	cres_sfbox.clear();
+	cres_scbox.clear();
     }
 }
 
