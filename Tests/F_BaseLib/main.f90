@@ -7,7 +7,7 @@ program main
 ! call t_pingpong
 ! call t_plotfile
 ! call t_ba
-! call t_cluster
+call t_cluster
 ! call t_mf_fabio
 ! call t_mf
 ! call t_fabio
@@ -20,7 +20,7 @@ program main
 ! call t_boxarray
 ! call t_nodal_mf_fabio
 ! call t_kiss_rn
-  call t_timer
+! call t_timer
 !call t_knap
 
   call boxlib_finalize()

@@ -453,11 +453,6 @@ subroutine t_nodal_mf_fabio
   call destroy(la)
 end subroutine t_nodal_mf_fabio
 
-subroutine t_kiss_rn
-  use bl_kiss_module
-  print *, kiss()
-end subroutine t_kiss_rn
-
 subroutine t_ba
   use boxarray_module
   use list_box_module
