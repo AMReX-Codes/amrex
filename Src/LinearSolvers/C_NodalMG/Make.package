@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.18 2002-09-03 16:34:54 car Exp $
+# $Id: Make.package,v 1.19 2002-09-03 16:42:40 car Exp $
 #
 
 HGPROJ_BASE=EXE
@@ -21,8 +21,8 @@ C$(HGPROJ_BASE)_headers += \
 
 C$(HGPROJ_BASE)_headers += amr_defs.H 
 
-F$(HGPROJ_BASE)_sources += amr_real$(DIM)d.F hg_proj$(DIM)d.F hg_avg$(DIM)d.F
+f$(HGPROJ_BASE)_sources += amr_real$(DIM)d.f hg_proj$(DIM)d.f hg_avg$(DIM)d.f
 
-F$(HGPROJ_BASE)_sources += hg_multi$(DIM)d.F
-F$(HGPROJ_BASE)_sources += hg_multi$(DIM)d_terrain.F
-F$(HGPROJ_BASE)_sources += hg_multi$(DIM)d_full.F
+f$(HGPROJ_BASE)_sources += hg_multi$(DIM)d.f
+f$(HGPROJ_BASE)_sources += hg_multi$(DIM)d_terrain.f
+f$(HGPROJ_BASE)_sources += hg_multi$(DIM)d_full.f

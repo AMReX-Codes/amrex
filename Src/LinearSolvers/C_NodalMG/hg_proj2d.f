@@ -234,21 +234,6 @@ c-----------------------------------------------------------------------
      &                          dest(i,j) - dest(i+1,j))
          end do
       end do
-#if 0
-c     We dont want to use these terms for the five-point stencil.
-      if (irz .eq. 1) then
-         fac = hx / (12.d0 * hy)
-         do j = fregl1, fregh1
-            r = (fregl0 - 0.5d0) * hx
-            do i = fregl0, fregh0
-               r = r + hx
-               gpy(i,j) = gpy(i,j) + (fac / r) *
-     &                               (dest(i+1,j+1) - dest(i+1,j) -
-     &                                dest(i,j+1) + dest(i,j))
-            end do
-         end do
-      end if
-#endif
       end
 c-----------------------------------------------------------------------
       subroutine hgdiv(
@@ -291,28 +276,6 @@ c     This correction is *only* for the cross stencil
          end do
       endif
 
-#if 0
-c     We dont want to use these terms for the five-point stencil.
-      if (irz .eq. 1) then
-         fac = hx / (12.d0 * hy)
-         r1  = (fregl0 - 0.5d0) * hx
-         r1m = 1.d0 / r1
-         do i = fregl0, fregh0
-            r0m = r1m
-            r1  = r1 + hx
-            if (i .lt. imax) then
-               r1m = 1.d0 / r1
-            else
-               r1m = -r0m
-            end if
-            do j = fregl1, fregh1
-               src(i,j) = src(i,j) + fac *
-     &            (r0m * (vf(i-1,j) - vf(i-1,j-1)) +
-     &             r1m * (vf(i,j-1) - vf(i,j)))
-            end do
-         end do
-      end if
-#endif
       end
 c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
@@ -355,19 +318,6 @@ c Note---only generates values at coarse points along edge of fine grid
      &        (hym1 * (vc(iuc,j) - vc(iuc,j-1)) -
      &         hxm1 * idir * (uc(iuc,j) + uc(iuc,j-1)))
          end do
-#if 0
-c  We dont want to use these extra terms for the five-point stencil
-         if (irz .eq. 1) then
-            r = (iuc + 0.5d0) * (hx * ir)
-            rfac = (ir * hx) / (6.d0 * jr * hy * r)
-            do  j = cregl1, cregh1
-               src(i*ir,j*jr) = src(i*ir,j*jr) + fac0 *
-     &           (rfac * idir * (vc(iuc,j) - vc(iuc,j-1)))
-            end do
-            r = (iuf + 0.5d0) * hx
-            rfac = hx / (6.d0 * hy * r)
-         end if
-#endif
          fac0 = fac0 / (ir * jr * jr)
          hxm1 = ir * hxm1
          hym1 = jr * hym1
@@ -382,16 +332,6 @@ c  We dont want to use these extra terms for the five-point stencil
      &            hym1 * (vf(iuf,j-n) - vf(iuf,j-n-1) +
      &                    vf(iuf,j+n) - vf(iuf,j+n-1)))
             end do
-#if 0
-c  We dont want to use these extra terms for the five-point stencil
-            if (irz .eq. 1) then
-               do j = jr*cregl1, jr*cregh1, jr
-                  src(i,j) = src(i,j) - fac1 *
-     &              (rfac * idir * (vf(iuf,j-n) - vf(iuf,j-n-1) +
-     &                              vf(iuf,j+n) - vf(iuf,j+n-1)))
-               end do
-            end if
-#endif
          end do
       else
          j = cregl1
@@ -417,26 +357,6 @@ c  We dont want to use these extra terms for the five-point stencil
      @         hym1 * idir * (vc(i,juc) + vc(i-1,juc))*0.5d0 )
          endif
 
-#if 0
-c  We dont want to use these extra terms for the five-point stencil
-         if (irz .eq. 1 .and. cregh0 .lt. imax) then
-            do i = cregl0, cregh0
-               r = (i + 0.5d0) * (hx * ir)
-               rfac0 = (ir * hx) / (6.d0 * jr * hy * (r - hx * ir))
-               rfac1 = (ir * hx) / (6.d0 * jr * hy * r)
-               src(i*ir,j*jr) = src(i*ir,j*jr) + fac0 *
-     &           (idir * (rfac1 * vc(i,juc) - rfac0 * vc(i-1,juc)))
-            end do
-         else if (irz .eq. 1) then
-c This should only occur with a corner at the outer boundary:
-            i = cregh0
-            r = (i - 0.5d0) * (hx * ir)
-            rfac0 = (ir * hx) / (6.d0 * jr * hy * r)
-            rfac1 = -rfac0
-            src(i*ir,j*jr) = src(i*ir,j*jr) + fac0 *
-     &           (idir * (rfac1 * vc(i,juc) - rfac0 * vc(i-1,juc)))
-         end if
-#endif
          fac0 = fac0 / (ir * ir * jr)
          hxm1 = ir * hxm1
          hym1 = jr * hym1
@@ -459,40 +379,6 @@ c This should only occur with a corner at the outer boundary:
      @              hym1 * idir * (vf(i-m,juf) + vf(i-m-1,juf) +
      @                             vf(i+m,juf) + vf(i+m-1,juf))
             endif
-#if 0
-c  We dont want to use these extra terms for the five-point stencil
-            if (irz .eq. 1 .and. cregh0 .lt. imax) then
-               do i = ir*cregl0, ir*cregh0, ir
-                  r = (i + 0.5d0) * hx
-                  rfac0m = hx / (6.d0 * hy * (r - (m + 1) * hx))
-                  rfac1m = hx / (6.d0 * hy * (r - m * hx))
-                  rfac0p = hx / (6.d0 * hy * (r + (m - 1) * hx))
-                  rfac1p = hx / (6.d0 * hy * (r + m * hx))
-                  src(i,j) = src(i,j) - fac1 *
-     &              (idir * (rfac1m * vf(i-m,juf)
-     &                  - rfac0m * vf(i-m-1,juf) +
-     &                       rfac1p * vf(i+m,juf)
-     &                  - rfac0p * vf(i+m-1,juf)))
-               end do
-            else if (irz .eq. 1) then
-c This should only occur with a corner at the outer boundary:
-               i = ir*cregh0
-               r = (i + 0.5d0) * hx
-               rfac0m = hx / (6.d0 * hy * (r - (m + 1) * hx))
-               if (m .eq. 0) then
-                  rfac1m = -rfac0m
-               else
-                  rfac1m = hx / (6.d0 * hy * (r - m * hx))
-               end if
-               rfac0p = -rfac1m
-               rfac1p = -rfac0m
-               src(i,j) = src(i,j) - fac1 *
-     &              (idir * (rfac1m * vf(i-m,juf)
-     &            - rfac0m * vf(i-m-1,juf) +
-     &                       rfac1p * vf(i+m,juf)
-     &                     - rfac0p * vf(i+m-1,juf)))
-            end if
-#endif
          end do
       end if
       end
