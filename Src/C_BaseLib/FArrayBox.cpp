@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.23 1998-11-13 00:16:14 marc Exp $
+// $Id: FArrayBox.cpp,v 1.24 1999-04-15 23:28:00 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -9,9 +9,6 @@
 #include <iostream>
 #include <iomanip>
 #include <cfloat>
-#ifndef __GNUC__
-#include <limits>
-#endif
 #include <cmath>
 #include <cstring>
 using std::cin;
@@ -168,44 +165,6 @@ FABio::Format FArrayBox::format = FABio::FAB_NATIVE;
 
 FABio* FArrayBox::fabio = new FABio_binary(FPC::NativeRealDescriptor().clone());
 
-FArrayBox::FArrayBox ()
-    :
-    BaseFab<Real>()
-{
-    if (!FArrayBox::Initialized)
-        FArrayBox::init();
-}
-
-FArrayBox::FArrayBox (const Box& b,
-                      int        n)
-    :
-    BaseFab<Real>(b,n)
-{
-    if (!FArrayBox::Initialized)
-        FArrayBox::init();
-    //
-    // For debugging purposes set values to QNAN when possible.
-    //
-#if !defined(NDEBUG) && defined(BL_USE_NEW_HFILES) && !defined(__GNUC__)
-    if (std::numeric_limits<Real>::has_quiet_NaN)
-	setVal(std::numeric_limits<Real>::quiet_NaN());
-#endif
-}
-
-void
-FArrayBox::resize (const Box& b,
-                   int        N)
-{
-    BaseFab<Real>::resize(b,N);
-    //
-    // For debugging purposes set values to QNAN when possible.
-    //
-#if !defined(NDEBUG) && defined(BL_USE_NEW_HFILES) && !defined(__GNUC__)
-    if (std::numeric_limits<Real>::has_quiet_NaN)
-	setVal(std::numeric_limits<Real>::quiet_NaN());
-#endif
-}
-
 void
 FArrayBox::setFormat (FABio::Format fmt)
 {
@@ -282,12 +241,6 @@ FArrayBox::FArrayBox (const PointFab<PointDomain>& pf,
 }
 #endif /*BL_CRAY_BUG_DEFARG*/
 #endif /*BL_USE_POINTLIB*/
-
-//
-// This isn't inlined as it's virtual.
-//
-
-FArrayBox::~FArrayBox () {}
 
 void
 FArrayBox::init ()
@@ -368,24 +321,27 @@ Real
 FArrayBox::norm (const Box& subbox,
                  int        p,
                  int        comp,
-                 int        numcomp) const
+                 int        ncomp) const
 {
-    assert(comp >= 0 && comp+numcomp <= nComp());
     assert(p >= 0);
+    assert(comp >= 0 && comp+ncomp <= nComp());
 
-    Real* tmp = 0;
-    int tmplen = 0;
-    Real nrm = 0;
+    Real  nrm    = 0;
+    Real* tmp    = 0;
+    int   tmplen = 0;
+
     if (p == 0 || p == 1)
-        nrm = NormedFab<Real>::norm(subbox, p, comp, numcomp);
+    {
+        nrm = NormedFab<Real>::norm(subbox,p,comp,ncomp);
+    }
     else if (p == 2)
     {
-        ForAllThisCPencil(Real,subbox,comp,numcomp)
+        ForAllThisCPencil(Real,subbox,comp,ncomp)
         {
             const Real* row = &thisR;
             if (tmp == 0)
             {
-                tmp = new Real[thisLen];
+                tmp    = new Real[thisLen];
                 tmplen = thisLen;
                 for (int i = 0; i < thisLen; i++)
                     tmp[i] = row[i]*row[i];
@@ -404,7 +360,7 @@ FArrayBox::norm (const Box& subbox,
     else
     {
         Real pwr = Real(p);
-        ForAllThisCPencil(Real,subbox,comp,numcomp)
+        ForAllThisCPencil(Real,subbox,comp,ncomp)
         {
             const Real* row = &thisR;
             if (tmp == 0)
@@ -426,7 +382,9 @@ FArrayBox::norm (const Box& subbox,
         Real invpwr = 1.0/pwr;
         nrm = pow(nrm,invpwr);
     }
+
     delete [] tmp;
+
     return nrm;
 }
 
@@ -924,16 +882,16 @@ printRange (ostream&         os,
             const FArrayBox& fab,
             const Box&       reg,
             int              comp,
-            int              numcomp)
+            int              ncomp)
 {
-    if (!reg.ok() || comp < 0 || comp+numcomp > fab.nComp())
+    if (!reg.ok() || comp < 0 || comp+ncomp > fab.nComp())
     {
         os << "printRange(): bad indices:"
            <<  reg
            << ' '
            << comp
            << ' '
-           << numcomp
+           << ncomp
            << '\n';
         return;
     }
@@ -955,10 +913,10 @@ printRange (ostream&         os,
     for (IntVect point = low; point <= hi; reg.next(point))
     {
         os << point;
-        for (int k = comp; k < comp+numcomp; k++)
+        for (int k = comp; k < comp+ncomp; k++)
         {
             os << setw(15) << fab(point,k);
-            if (k < comp+numcomp-1)
+            if (k < comp+ncomp-1)
                 if ((k-comp)%4 == 3)
                     os << "\n\t";
         }
@@ -977,13 +935,13 @@ printRange (ostream&         os,
             int              ilo,
             int              ihi,
             int              comp,
-            int              numcomp)
+            int              ncomp)
 {
     printRange(os,
                fab,
                Box(IntVect(ilo), IntVect(ihi), IntVect(fab.box().type())),
                comp,
-               numcomp);
+               ncomp);
 }
 
 void
@@ -991,9 +949,9 @@ printRange (const FArrayBox& fab,
             int              ilo,
             int              ihi,
             int              comp,
-            int              numcomp)
+            int              ncomp)
 {
-    printRange(cout,fab,ilo,ihi,comp,numcomp);
+    printRange(cout,fab,ilo,ihi,comp,ncomp);
 }
 
 #elif (BL_SPACEDIM==2)
@@ -1006,13 +964,13 @@ printRange (ostream&         os,
             int              jlo,
             int              jhi,
             int              comp,
-            int              numcomp)
+            int              ncomp)
 {
     IntVect low(ilo,jlo);
     IntVect hi(ihi,jhi);
     IntVect typ(fab.box().type());
     Box reg(low,hi,typ);
-    printRange(os,fab,reg,comp,numcomp);
+    printRange(os,fab,reg,comp,ncomp);
 }
 
 void
@@ -1022,9 +980,9 @@ printRange (const FArrayBox& fab,
             int              jlo,
             int              jhi,
             int              comp,
-            int              numcomp)
+            int              ncomp)
 {
-    printRange(cout,fab,ilo,ihi,jlo,jhi,comp,numcomp);
+    printRange(cout,fab,ilo,ihi,jlo,jhi,comp,ncomp);
 }
 
 #elif   (BL_SPACEDIM==3)
@@ -1038,7 +996,7 @@ printRange (ostream&         os,
             int              klo,
             int              khi,
             int              comp,
-            int              numcomp)
+            int              ncomp)
 {
     
     printRange(os,
@@ -1047,7 +1005,7 @@ printRange (ostream&         os,
                    IntVect(ihi,jhi,khi),
                    IntVect(fab.box().type())),
                comp,
-               numcomp);
+               ncomp);
 }
 
 void
@@ -1059,9 +1017,9 @@ printRange (const FArrayBox& fab,
             int              klo,
             int              khi,
             int              comp,
-            int              numcomp)
+            int              ncomp)
 {
-    printRange(cout,fab,ilo,ihi,jlo,jhi,klo,khi,comp,numcomp);
+    printRange(cout,fab,ilo,ihi,jlo,jhi,klo,khi,comp,ncomp);
 }
 #endif
 

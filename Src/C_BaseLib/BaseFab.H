@@ -4,7 +4,7 @@
 #define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.19 1999-04-11 23:31:22 lijewski Exp $
+// $Id: BaseFab.H,v 1.20 1999-04-15 23:27:59 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -73,7 +73,9 @@
   BaseFab is a dimension dependent class, so SPACEDIM must be 
   defined as either 1, 2, or 3 when compiling.
 
-  This class does NOT provide a copy constructor or assignment operator.
+  This is NOT a polymorphic class.
+
+  It does NOT provide a copy constructor or assignment operator.
 */
 
 template <class T>
@@ -106,9 +108,9 @@ public:
 #endif
 #endif
     //
-    //@ManDoc: The (virtual) destructor deletes the array memory.
+    //@ManDoc: The destructor deletes the array memory.
     //
-    virtual ~BaseFab ();
+    ~BaseFab ();
 
     /*@ManDoc: This function resizes a `BaseFab' so it covers the `Box' B
                with N components.  The default action
@@ -352,6 +354,7 @@ protected:
                       const Box&        destbox,
                       int               destcomp,
                       int               numcomp);
+
 #ifdef BL_USE_POINTLIB
 #ifndef BL_CRAY_BUG_DEFARG
     //
@@ -785,11 +788,8 @@ BaseFab<T>::resize (const Box& b,
     }
 }
 
-//
-// This isn't inlined as it's virtual.
-//
-
 template <class T>
+inline
 BaseFab<T>::~BaseFab ()
 {
     assert(!(The_FAB_Arena == 0));
