@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.42 2000-03-22 21:10:11 car Exp $
+# $Id: GNUmakefile,v 1.43 2000-03-23 21:39:06 lijewski Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -59,7 +59,7 @@ ifeq ($(EBASE),proj)
   INCLUDE_LOCATIONS += $(TOP)/pBoxLib_2 
 
   ifeq ($(DEBUG),TRUE)
-    CPPFLAGS += -DHG_DEBUG
+#    CPPFLAGS += -DHG_DEBUG
 #   override XTRALIBS += -lefence
   endif
   ifeq ($(COMP),KCC)
@@ -69,6 +69,10 @@ ifeq ($(EBASE),proj)
   endif
   ifeq ($(COMP),g++)
 #    CXXFLAGS += -Wall
+  endif
+
+  ifeq ($(DEBUG),TRUE)
+#    FFLAGS += -ffortran-bounds-check
   endif
 
   LIBRARIES         +=
@@ -82,7 +86,6 @@ ifeq ($(EBASE),proj)
 endif
 
 #LDFLAGS += -v
-FFLAGS += -ffortran-bounds-check
 
 #
 # For 3rd ...
