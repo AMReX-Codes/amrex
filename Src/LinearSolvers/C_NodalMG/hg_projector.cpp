@@ -494,7 +494,7 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 
 	}
 	Box creg = lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
-	creg.coarsen(rat).grow(t - IntVect::TheUnitVector());
+	creg.coarsen(rat).grow(t - 1);
 	Real* sptr = source[lev][igrid].dataPtr();
 	const Real* Sfptr = S[lev][igrid].dataPtr();
 #if (BL_SPACEDIM == 2)
@@ -554,7 +554,7 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	}
 	task_fab* Sf = new task_fill_patch(fbox, S[lev], lev_interface[mglev], boundary.scalar(), 1, iedge);
 	Box creg = lev_interface[mglev].node_box(1, iedge);
-	creg.coarsen(rat).grow(t - IntVect::TheUnitVector());
+	creg.coarsen(rat).grow(t - 1);
 	Array<int> ga = lev_interface[mglev].geo_array(1, iedge);
 	FORT_HGEAVG(sptr, DIMLIST(sbox),
 		    Scp->fab().dataPtr(), DIMLIST(cbox),
@@ -698,7 +698,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    uptr[i] = u[i][lev][igrid].dataPtr();
 	}
 	Box creg = lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
-	creg.coarsen(rat).grow(t - IntVect::TheUnitVector());
+	creg.coarsen(rat).grow(t - 1);
 	Real* sptr = source[lev][igrid].dataPtr();
 	if (m_hg_terrain)
 	{
@@ -781,7 +781,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    uf[i] = new task_fill_patch(fbox, u[i][lev], lev_interface[mglev], boundary.velocity(i), 1, iedge);
 	}
 	Box creg = lev_interface[mglev].node_box(1, iedge);
-	creg.coarsen(rat).grow(t - IntVect::TheUnitVector());
+	creg.coarsen(rat).grow(t - 1);
 	Array<int> ga = lev_interface[mglev].geo_array(1, iedge);
 	if (m_hg_terrain)
 	{

@@ -84,12 +84,10 @@ task_restriction_fill::ready()
     const Box fb = tf->fab().box();
     (*ref)(m[ind].dataPtr(), DIMLIST(pb), DIMLIST(cbox), tf->fab().dataPtr(), DIMLIST(fb),
 	D_DECL(rat[0], rat[1], rat[2]), m.nComp(), &integrate, arg1.dataPtr(), arg2.dataPtr());
-    //FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fine[igrid].dataPtr(), DIMLIST(fb), 
-    //    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
-    
     return true;
 }
 
+// some restrictor implementations...
 Box cell_average_restrictor_class::box(const Box& fb, const IntVect& rat) const
 {
     Box retbox(fb);
@@ -107,6 +105,7 @@ void cell_average_restrictor_class::fill(FArrayBox& patch,
 	D_DECL(rat[0], rat[1], rat[2]), patch.nComp(), &integrate, 0, 0);
 }
 
+// terrain_velocity_restrictor
 void terrain_velocity_restrictor_class::fill(FArrayBox& patch,
 					     const Box& region,
 					     const FArrayBox& fgr,
@@ -121,6 +120,7 @@ void terrain_velocity_restrictor_class::fill(FArrayBox& patch,
     patch.mult(fac, region);
 }
 
+// injection_restrictor
 Box injection_restrictor_class::box(const Box& fb, const IntVect& rat) const
 {
     Box retbox(fb);
@@ -137,8 +137,7 @@ void injection_restrictor_class::fill(FArrayBox& patch,
 	D_DECL(rat[0], rat[1], rat[2]), patch.nComp(), 0, 0, 0);
 }
 
-
-
+// default_restrictor
 Box default_restrictor::box(const Box& fb, const IntVect& rat) const
 {
     Box retbox(fb);
@@ -160,6 +159,8 @@ void default_restrictor::fill(FArrayBox& patch,
 	injection_restrictor_class().fill(patch, region, fgr, rat);
     }
 }
+
+// bilinear_restrictor
 
 bilinear_restrictor_class::bilinear_restrictor_class(int i, bool hg_terrain) : integrate(i), m_hg_terrain(hg_terrain)
 {
@@ -186,11 +187,13 @@ void bilinear_restrictor_class::fill(FArrayBox& patch,
 	&integrate, 0, 0);
 }
 
-void bilinear_restrictor_class::fill_interface(MultiFab& dest,
-					       MultiFab& fine,
-					       const level_interface& lev_interface,
-					       const amr_boundary_class* bdy,
-					       const IntVect& rat) const
+void bilinear_restrictor_class::fill_interface(
+					       MultiFab& dest, 
+					       MultiFab& fine, 
+					       const level_interface& lev_interface, 
+					       const amr_boundary_class* bdy, 
+					       const IntVect& rat
+					       ) const
 {
     assert(type(dest) == IntVect::TheNodeVector());
     assert(dest.nComp() == fine.nComp() );
@@ -198,10 +201,11 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
     for (int i = 1; i < BL_SPACEDIM; ++i)
 	ratmax = (rat[i] > ratmax) ? rat[i] : ratmax;
     
-    if (fine.nGrow() >= ratmax - 1)
+    if (fine.nGrow() >= ratmax - 1) 
 	fill_borders(fine, lev_interface, bdy, ratmax - 1, m_hg_terrain);
+
     task_list tl;
-    for (int jgrid = 0; jgrid < dest.length(); jgrid++)
+    for ( int jgrid = 0; jgrid < dest.length(); jgrid++ )
     {
 	const Box& region = dest.box(jgrid);
 	// Interface restriction is sufficiently rare and specialized that
@@ -221,13 +225,12 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 	    const IntVect t = lev_interface.box(level_interface::FACEDIM, iface).type();
 	    const unsigned int geo = lev_interface.geo(level_interface::FACEDIM, iface);
 	    cbox.coarsen(rat);
-	    if (region.intersects(cbox)) 
+	    if ( region.intersects(cbox) ) 
 	    {
-		// my argument list stuff
 		// This extends fine face by one coarse cell past coarse face:
 		cbox &= regplus;
 		int idim = lev_interface.fdim(iface);
-		cbox.grow(t - IntVect::TheUnitVector());
+		cbox.grow(t - 1);
 		if (geo == level_interface::ALL) 
 		{ 
 		    // fine grid on both sides
@@ -236,6 +239,7 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 			int igrid = lev_interface.grid(level_interface::FACEDIM, iface, 0);
 			if (igrid < 0)
 			    igrid = lev_interface.grid(level_interface::FACEDIM, iface, 1);
+			// FIXME--want minimal box 
 			const Box& fb = fine[igrid].box();
 			task_fab* tfab = new task_fab_get(fine, igrid, fb);
 			tl.add_task(
@@ -246,10 +250,10 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		    }
 		    else 
 		    {
-			Box fbox = grow(refine(cbox, rat), rat - IntVect::TheUnitVector());
+			Box fbox = grow(refine(cbox, rat), rat - 1);
 			// FArrayBox fgr(fbox, dest[jgrid].nComp());
 			// fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, level_interface::FACEDIM, iface);
-			task_fab* tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, level_interface::FACEDIM, iface);
+			task_fab* tfab = new task_fill_patch(fbox, fine, lev_interface, bdy, level_interface::FACEDIM, iface);
 			tl.add_task(
 			    new task_restriction_fill(&FORT_FANRST2, dest, jgrid, pb, cbox, tfab, rat, integrate)
 			    );
@@ -276,14 +280,14 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		    else 
 		    {
 			// A virtual fine grid is on the other side of the boundary.
-			Box fbox = refine(cbox, rat).grow(rat - IntVect::TheUnitVector());
+			Box fbox = refine(cbox, rat).grow(rat - 1);
 			if (geo & level_interface::LOW)
 			    fbox.growHi(idim, 1 - rat[idim]);
 			else
 			    fbox.growLo(idim, 1 - rat[idim]);
 			// FArrayBox fgr(fbox, dest[jgrid].nComp());
 			// fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, level_interface::FACEDIM, iface);
-			task_fab* tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, level_interface::FACEDIM, iface);
+			task_fab* tfab = new task_fill_patch(fbox, fine, lev_interface, bdy, level_interface::FACEDIM, iface);
 			tl.add_task(
 			    new task_restriction_fill(&FORT_FANFR2, dest, jgrid, pb, cbox, tfab, rat, integrate, idim, idir)
 			    );
@@ -430,7 +434,7 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 	    {
 		// This extends fine edge by one coarse cell past coarse face:
 		cbox &= regplus;
-		cbox.grow(t - IntVect::TheUnitVector());
+		cbox.grow(t - 1);
 		const unsigned int geo = lev_interface.geo(1, iedge);
 		if (geo == level_interface::ALL && fine.nGrow() >= ratmax - 1) 
 		{
@@ -447,10 +451,10 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		}
 		else 
 		{
-		    Box fbox = grow(refine(cbox, rat), rat - IntVect::TheUnitVector());
+		    Box fbox = grow(refine(cbox, rat), rat - 1);
 		    // FArrayBox fgr(fbox, dest[jgrid].nComp());
 		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 1, iedge);
-		    task_fab* tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, 1, iedge);
+		    task_fab* tfab = new task_fill_patch(fbox, fine, lev_interface, bdy, 1, iedge);
 		    if (geo == level_interface::ALL) 
 		    { 
 			// fine grid on all sides
@@ -496,10 +500,10 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		}
 		else 
 		{
-		    Box fbox = grow(refine(cbox, rat), rat - IntVect::TheUnitVector());
+		    Box fbox = grow(refine(cbox, rat), rat - 1);
 		    // FArrayBox fgr(fbox, dest[jgrid].nComp());
 		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
-		    task_fab* tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor);
+		    task_fab* tfab = new task_fill_patch(fbox, fine, lev_interface, bdy, 0, icor);
 		    if (geo == level_interface::ALL) 
 		    { 
 			// fine grid on all sides

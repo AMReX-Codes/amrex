@@ -28,12 +28,6 @@ public:
     virtual bool ready() = 0;
 };
 
-class task_fab : public task
-{
-public:
-    virtual const FArrayBox& fab() = 0;
-};
-
 class task_copy : public task
 {
 public:
@@ -53,13 +47,10 @@ private:
     bool m_ready;
 };
 
-class task_list
+class task_fab : public task
 {
 public:
-    void add_task(task* t);
-    void execute();
-private:
-    list<task*> tasks;
+    virtual const FArrayBox& fab() = 0;
 };
 
 class task_fab_get : public task_fab
@@ -76,6 +67,15 @@ private:
     const Box bx;
 };
 
+class task_list
+{
+public:
+    void add_task(task* t);
+    void execute();
+private:
+    list<task*> tasks;
+};
+
 class level_interface;
 class amr_boundary_class;
 
@@ -83,8 +83,6 @@ class task_fill_patch : public task_fab
 {
 public:
     task_fill_patch(const Box& region_,
-	const MultiFab& r_, const level_interface& lev_interface_, const amr_boundary_class* bdy_, int idim_ = 0, int index_ = 0);
-    task_fill_patch(const Box& region_, int ncomp_, 
 	const MultiFab& r_, const level_interface& lev_interface_, const amr_boundary_class* bdy_, int idim_ = 0, int index_ = 0);
     virtual ~task_fill_patch();
     virtual const FArrayBox& fab();
@@ -103,6 +101,8 @@ private:
     const int index;
     task_list tl;
 };
+
+
 
 
 

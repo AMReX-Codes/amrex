@@ -836,27 +836,27 @@ c NODE-based data only.
       integer i, j, k, l, m, n, nc
       integer r,s
       do nc = 1, ncomp
-            do k = regl2, regh2
-               do j = regl1, regh1
-                  do i = regl0, regh0
-                     dest(i,j,k,nc) = 0.d0
-                  end do
+         do k = regl2, regh2
+            do j = regl1, regh1
+               do i = regl0, regh0
+                  dest(i,j,k,nc) = 0.d0
                end do
             end do
-            fac0 = 1.d0 / (ir*ir * jr*jr * kr*kr)
-            do l = 0, kr-1
-               fac2 = (kr-l) * fac0
-               if (l .eq. 0) fac2 = 0.5d0 * fac2
-               do n = 0, jr-1
-                  fac1 = (jr-n) * fac2
-                  if (n .eq. 0) fac1 = 0.5d0 * fac1
-                  do m = 0, ir-1
-                     fac = (ir-m) * fac1
-                     if (m .eq. 0) fac = 0.5d0 * fac
-                     do k = regl2, regh2
-                        do j = regl1, regh1
-                           do i = regl0, regh0
-                              dest(i,j,k,nc) = dest(i,j,k,nc) +
+         end do
+         fac0 = 1.d0 / (ir*ir * jr*jr * kr*kr)
+         do l = 0, kr-1
+            fac2 = (kr-l) * fac0
+            if (l .eq. 0) fac2 = 0.5d0 * fac2
+            do n = 0, jr-1
+               fac1 = (jr-n) * fac2
+               if (n .eq. 0) fac1 = 0.5d0 * fac1
+               do m = 0, ir-1
+                  fac = (ir-m) * fac1
+                  if (m .eq. 0) fac = 0.5d0 * fac
+                  do k = regl2, regh2
+                     do j = regl1, regh1
+                        do i = regl0, regh0
+                           dest(i,j,k,nc) = dest(i,j,k,nc) +
      &                  fac * (src(i*ir-m,j*jr-n,k*kr-l,nc)+
      &                         src(i*ir-m,j*jr-n,k*kr+l,nc)+
      &                         src(i*ir-m,j*jr+n,k*kr-l,nc)+
@@ -865,20 +865,20 @@ c NODE-based data only.
      &                         src(i*ir+m,j*jr-n,k*kr+l,nc)+
      &                         src(i*ir+m,j*jr+n,k*kr-l,nc)+
      &                         src(i*ir+m,j*jr+n,k*kr+l,nc))
-                           end do
                         end do
                      end do
                   end do
                end do
             end do
-      if (integ .eq. 1) then
-         fac = ir * jr * kr
+         end do
+         if (integ .eq. 1) then
+            fac = ir * jr * kr
             do k = regl2, regh2
                do j = regl1, regh1
                   do i = regl0, regh0
                      dest(i,j,k,nc) = fac * dest(i,j,k,nc)
                   end do
-               end do
+                end do
             end do
          end if
       end do
