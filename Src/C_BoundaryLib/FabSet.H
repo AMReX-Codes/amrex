@@ -4,7 +4,7 @@
 #define _FABSET_H_
 
 //
-// $Id: FabSet.H,v 1.16 1999-03-31 17:04:17 lijewski Exp $
+// $Id: FabSet.H,v 1.17 1999-11-18 21:29:57 sstanley Exp $
 //
 
 #include <FArrayBox.H>
@@ -49,7 +49,8 @@ public:
     //
     FabSet ();
     //
-    //@ManDoc: Construct a FabSet of specified # of components on the grids.
+    //@ManDoc: Construct a FabSet of specified number of components on 
+    //         the grids.
     //
     FabSet (const BoxArray& grids, int ncomp);
     //
