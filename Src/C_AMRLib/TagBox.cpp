@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.47 1998-08-08 17:25:43 lijewski Exp $
+// $Id: TagBox.cpp,v 1.48 1998-08-11 20:33:21 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -552,6 +552,8 @@ TagBoxArray::collate (long& numtags) const
         TagBoxArray::BumpCollateSpace(numtags);
     }
 #ifdef BL_USE_MPI
+    static RunStats mpi_stats("mpi");
+
     const int NGrids = fabparray.length();
 
     Array<int> sharedNTags(NGrids); // Shared numTags per grid.
@@ -564,6 +566,8 @@ TagBoxArray::collate (long& numtags) const
 
     const DistributionMapping& dMap = DistributionMap();
 
+    mpi_stats.start();
+
     for (int i = 0, rc = 0; i < NGrids; ++i)
     {
         if ((rc = MPI_Bcast(&sharedNTags[i],
@@ -573,6 +577,8 @@ TagBoxArray::collate (long& numtags) const
                             MPI_COMM_WORLD)) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
+
+    mpi_stats.end();
 
     startOffset[0] = 0;
     for (int i = 1; i < NGrids; ++i)
@@ -588,7 +594,9 @@ TagBoxArray::collate (long& numtags) const
     }
 
     assert(sizeof(IntVect) == BL_SPACEDIM * sizeof(int));
-    
+
+    mpi_stats.start();
+
     for (int i = 0, rc = 0; i < NGrids; ++i)
     {
         if ((rc = MPI_Bcast(TagBoxArray::m_CollateSpace + startOffset[i],
@@ -598,6 +606,8 @@ TagBoxArray::collate (long& numtags) const
                             MPI_COMM_WORLD)) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
+
+    mpi_stats.end();
 #else
     int start = 0;
 
