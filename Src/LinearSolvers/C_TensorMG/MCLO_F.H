@@ -19,10 +19,7 @@
 #define FORT_RESIDL    mcresid3dgen
 #endif
 
-#endif /*defined(BL_LANG_FORT)*/
-
-
-#if defined(BL_LANG_CC)
+#else
 
 #if (BL_SPACEDIM == 2)
 #if defined(BL_FORT_USE_UPPERCASE)
@@ -112,6 +109,6 @@ extern "C"
 	const int *axis
 	);
 }
-#endif /*defined(BL_LANG_CC)*/
+#endif
 
 #endif /*_MCLO_F_H_*/

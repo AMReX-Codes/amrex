@@ -4,9 +4,7 @@
 #ifdef BL_LANG_FORT
 #    define FORT_AVGDOWN     avgdown
 #    define FORT_CV_AVGDOWN  cvavgdwn
-#endif
-
-#ifdef BL_LANG_CC
+#else
 #  ifdef BL_FORT_USE_UPPERCASE
 #    define FORT_AVGDOWN     AVGDOWN
 #    define FORT_CV_AVGDOWN  CVAVGDWN

@@ -2,7 +2,7 @@
 #define _PROB_AMR_F_H_
 
 /*
-** $Id: PROB_AMR_F.H,v 1.8 2002-04-16 18:06:28 vince Exp $
+** $Id: PROB_AMR_F.H,v 1.9 2002-04-26 22:10:02 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -10,9 +10,7 @@
 #ifdef BL_SYNC_RANTABLES
 #    define FORT_SYNC_RANTABLES    syncrantables
 #endif
-#endif
-
-#ifdef BL_LANG_CC
+#else
 #  ifdef BL_FORT_USE_UPPERCASE
 #    define FORT_PROBINIT    PROBINIT
 #ifdef BL_SYNC_RANTABLES

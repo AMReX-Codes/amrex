@@ -2,7 +2,7 @@
 #define BL_SPACE_H
 
 /*
-** $Id: SPACE.H,v 1.10 2001-08-09 22:41:59 marc Exp $
+** $Id: SPACE.H,v 1.11 2002-04-26 22:10:01 lijewski Exp $
 */
 
 #if defined(BL_SPACEDIM) && !defined(SPACEDIM)
@@ -30,7 +30,7 @@
 #error BL_SPACEDIM must be either 1, 2, or 3
 #endif
 
-#if !defined(BL_LANG_FORT) || defined(BL_LANG_CC)
+#if !defined(BL_LANG_FORT)
 
 
 /*@ManDoc:

@@ -18,9 +18,7 @@
 #    define FORT_BDIDERIVZLO  mcbdiderivzlo
 #    define FORT_BDIDERIVZHI  mcbdiderivzhi
 #  endif
-#endif
-
-#ifdef BL_LANG_CC
+#else
 #  if defined(BL_FORT_USE_UPPERCASE)
 #    define FORT_BDINTERPXLO  MCBDINTRPXLO
 #    define FORT_BDINTERPXHI  MCBDINTRPXHI

@@ -2,7 +2,7 @@
 #define _LP_F_H_
 
 /*
-** $Id: LP_F.H,v 1.6 2001-08-01 21:51:03 lijewski Exp $
+** $Id: LP_F.H,v 1.7 2002-04-26 22:10:02 lijewski Exp $
 */
 
 #include <REAL.H>
@@ -23,9 +23,7 @@
 #define FORT_FLUX      flux3dsim
 #endif
 
-#endif
-
-#if        defined(BL_LANG_CC)
+#else
 
 #if (BL_SPACEDIM == 2)
 #if defined(BL_FORT_USE_UPPERCASE)

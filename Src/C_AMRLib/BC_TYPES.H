@@ -51,7 +51,7 @@ REFLECT_ODD  : F(-n) = -F(n)  true reflection from interior cells
 
 #endif
 
-#ifdef BL_LANG_CC
+#ifndef BL_LANG_FORT
 enum physicalBndryTypes {Interior,Inflow,Outflow,Symmetry,
                          SlipWall,NoSlipWall};
 #endif
