@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.94 1999-03-31 17:03:47 lijewski Exp $
+// $Id: FabArray.H,v 1.95 1999-04-01 22:31:01 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -137,6 +137,16 @@ private:
     Array<CommData> m_commdata;
     bool            m_valid;
 };
+
+inline
+ostream&
+operator<< (ostream&               os,
+            const Array<CommData>& cd)
+{
+    for (int i = 0; i < cd.length(); i++)
+        os << cd[i] << '\n';
+    return os;
+}
 
 //
 // A forward declaration.
@@ -1296,7 +1306,6 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
     //
     mpi_gath.start();
     for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
-    {
         if ((rc = MPI_Gather(&Snds[i],
                              1,
                              MPI_INT,
@@ -1306,7 +1315,6 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                              i,
                              MPI_COMM_WORLD)) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
-    }
     mpi_gath.end();
 
     assert(Rcvs[MyProc] == 0);
@@ -1351,7 +1359,6 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
     //
     // Now send the CommData.
     //
-    MPI_Status      status;
     Array<CommData> senddata;
 
     for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
@@ -1392,21 +1399,11 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                 ParallelDescriptor::Abort(rc);
             mpi_send.end();
         }
-
-        mpi_wait.start();
-        for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
-        {
-            if (Rcvs[i] > 0)
-            {
-                if ((rc = MPI_Wait(&req_cd[i], &status)) != MPI_SUCCESS)
-                    ParallelDescriptor::Abort(rc);
-            }
-        }
-        mpi_wait.end();
     }
     //
     // Post one receive for data being sent by CPU i ...
     //
+    MPI_Status         status;
     Array<T*>          fab_data(ParallelDescriptor::NProcs());
     Array<MPI_Request> req_data(ParallelDescriptor::NProcs());
 
@@ -1416,6 +1413,10 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
     {
         if (Rcvs[i] > 0)
         {
+            mpi_wait.start();
+            if ((rc = MPI_Wait(&req_cd[i], &status)) != MPI_SUCCESS)
+                ParallelDescriptor::Abort(rc);
+            mpi_wait.end();
             //
             // Got to figure out # of Ts to expect from this CPU.
             //
@@ -2410,17 +2411,11 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
     static RunStats mpi_gath("mpi_gather");
     static RunStats mpi_redu("mpi_reduce");
 
-#ifdef NDEBUG
-    const bool debugging = false;
-#else
-    const bool debugging = true;
-#endif
-
     mpi_stat.start();
 
-    const int MyProc = ParallelDescriptor::MyProc();
-
-    Array<int> Snds, Rcvs(ParallelDescriptor::NProcs(),0);
+    const int  MyProc = ParallelDescriptor::MyProc();
+    Array<int> Snds;
+    Array<int> Rcvs(ParallelDescriptor::NProcs(),0);
     //
     // Set Rcvs[i] to # of blocks needed from CPU i
     //
@@ -2438,13 +2433,14 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
     //
     // Set Snds[i] to # of blocks we must send to CPU i ...
     //
-    if (snd_cache == 0 || snd_cache->length() == 0 || debugging)
+#ifdef NDEBUG
+    if (snd_cache == 0 || snd_cache->length() == 0)
+#endif
     {
         Snds.resize(ParallelDescriptor::NProcs(),0);
 
         mpi_gath.start();
         for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
-        {
             if ((rc = MPI_Gather(&Rcvs[i],
                                  1,
                                  MPI_INT,
@@ -2454,7 +2450,6 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
                                  i,
                                  MPI_COMM_WORLD)) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
-        }
         mpi_gath.end();
 
         assert(Snds[MyProc] == 0);
@@ -2464,15 +2459,11 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
     {
         if (snd_cache->length() > 0)
         {
-            if (debugging)
-                assert(Snds == *snd_cache);
-            else
-                Snds = *snd_cache;
+            assert(Snds == *snd_cache);
+            Snds = *snd_cache;
         }
         else
-        {
             *snd_cache = Snds;
-        }
     }
 
     int NumReqs = 0;
@@ -2488,7 +2479,9 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
     //
     int idx = 0;
 
-    if (cd_cache == 0 || !cd_cache->isValid() || debugging)
+#ifdef NDEBUG
+    if (cd_cache == 0 || !cd_cache->isValid())
+#endif
     {
         //
         // Make sure we can treat CommData as a stream of integers.
@@ -2565,13 +2558,9 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
 
         mpi_wait.start();
         for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
-        {
             if (Snds[i] > 0)
-            {
                 if ((rc = MPI_Wait(&reqs_cd[i], &status)) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
-            }
-        }
         mpi_wait.end();
     }
 
@@ -2579,18 +2568,11 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
     {
         if (cd_cache->isValid())
         {
-            if (debugging)
-                assert(recv_cd == cd_cache->theCommData());
-            else
-                recv_cd = cd_cache->theCommData();
+            assert(recv_cd == cd_cache->theCommData());
+            recv_cd = cd_cache->theCommData();
         }
         else
-        {
-            //
-            // Set and validate the cache.
-            //
             *cd_cache = recv_cd;
-        }
     }
     //
     // Post one receive for data being requested by other CPUs.
@@ -2652,28 +2634,28 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
 
             for (int j = 0; j < Snds[i]; j++)
             {
-                int k = idx+j;
+                const CommData& cd = recv_cd[idx+j];
 
-                assert(recv_cd[k].id() == 0);
-                assert(recv_cd[k].fromproc() == i);
+                assert(cd.id() == 0);
+                assert(cd.fromproc() == i);
 
-                fab.resize(recv_cd[k].box(), recv_cd[k].nComp());
+                fab.resize(cd.box(), cd.nComp());
 
                 int count = fab.box().numPts() * fab.nComp();
 
-                fab.copy((*fabArrays[recv_cd[k].fabarrayid()])[recv_cd[k].fabindex()],
+                fab.copy((*fabArrays[cd.fabarrayid()])[cd.fabindex()],
                          fab.box(),
-                         recv_cd[k].srcComp(),
+                         cd.srcComp(),
                          fab.box(),
                          0,
-                         recv_cd[k].nComp());
+                         cd.nComp());
 
                 memcpy(dptr, fab.dataPtr(), count*sizeof(T));
 
                 dptr += count;
             }
 
-            assert(data + N == dptr);
+            assert(data+N == dptr);
             //
             // Use MPI_Ssend() to try and force the system not to buffer.
             //
