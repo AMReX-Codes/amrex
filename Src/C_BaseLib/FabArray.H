@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.107 2000-08-04 18:00:58 lijewski Exp $
+// $Id: FabArray.H,v 1.108 2000-08-04 18:06:22 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -2366,6 +2366,9 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
     dataAvailable = true;
 
     if (ParallelDescriptor::NProcs() == 1) return;
+#ifdef BL3_PROFILING
+    BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::CollectData()");
+#endif
 
 #ifdef BL_USE_MPI
     static RunStats mpi_stat("collect_data");
