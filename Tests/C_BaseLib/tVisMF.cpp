@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tVisMF.cpp,v 1.6 1997-11-11 20:29:56 lijewski Exp $
+// $Id: tVisMF.cpp,v 1.7 1997-11-11 21:38:37 lijewski Exp $
 //
 
 #include <stdlib.h>
@@ -264,6 +264,10 @@ main (int, char** argv)
     {
         mf[mfi.index()].setVal(mfi.index()+1);
     }
+    //
+    // Set cells in ghost region to zero.
+    //
+    mf.setBndry(0);
 
     static const aString mf_name = "Spam-n-Eggs";
 
