@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.41 1998-02-12 22:16:24 vince Exp $
+// $Id: VisMF.cpp,v 1.42 1998-04-08 23:29:16 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -327,23 +327,13 @@ VisMF::Header::Header (const MultiFab& mf,
     m_min(m_ba.length()),
     m_max(m_ba.length())
 {
-    //
-    // Structure we use to pass min/max data to the IOProcessor.
-    //
-    // The variable length part of the message is 2*m_ncomp array of Reals.
-    // The first part being the min values and the second the max values.
-    //
-    struct
-    {
-        int m_index; // Index of the FAB.
-    }
-    msg_hdr;
-
-    ParallelDescriptor::SetMessageHeaderSize(sizeof(msg_hdr));
+    ParallelDescriptor::SetMessageHeaderSize(sizeof(int));
     //
     // Note that m_min and m_max are only calculated on CPU owning the fab.
     // We pass this data back to IOProcessor() so it sees the whole Header.
     //
+    Array<Real> min_n_max(2 * m_ncomp);
+
     for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
     {
         int idx = mfi.index();
@@ -351,59 +341,43 @@ VisMF::Header::Header (const MultiFab& mf,
         m_min[idx].resize(m_ncomp);
         m_max[idx].resize(m_ncomp);
 
-        const Box& valid_box = m_ba[idx];
-
-        const FArrayBox& fab = mfi();
-
-        assert(fab.box().contains(valid_box));
+        assert(mfi().box().contains(m_ba[idx]));
 
         for (long j = 0; j < m_ncomp; j++)
         {
-            m_min[idx][j] = fab.min(valid_box,j);
-            m_max[idx][j] = fab.max(valid_box,j);
+            m_min[idx][j] = mfi().min(m_ba[idx],j);
+            m_max[idx][j] = mfi().max(m_ba[idx],j);
         }
 
         if (!ParallelDescriptor::IOProcessor())
         {
-            msg_hdr.m_index = idx;
-
-            Real* min_n_max = new Real[2 * m_ncomp];
-
             for (int i = 0; i < m_ncomp; i++)
             {
-                min_n_max[i]           = m_min[idx][i];
-                min_n_max[m_ncomp + i] = m_max[idx][i];
+                min_n_max[i]         = m_min[idx][i];
+                min_n_max[m_ncomp+i] = m_max[idx][i];
             }
-
             ParallelDescriptor::SendData(ParallelDescriptor::IOProcessor(),
-                                         &msg_hdr,
-                                         min_n_max,
+                                         &idx,
+                                         min_n_max.dataPtr(),
                                          2 * sizeof(Real) * m_ncomp);
-
-            delete [] min_n_max;
         }
     }
 
-    for (int len; ParallelDescriptor::GetMessageHeader(len, &msg_hdr); )
+    for (int len, idx; ParallelDescriptor::GetMessageHeader(len, &idx); )
     {
         assert(ParallelDescriptor::IOProcessor());
         assert(len == 2 * sizeof(Real) * m_ncomp);
 
-        m_min[msg_hdr.m_index].resize(m_ncomp);
-        m_max[msg_hdr.m_index].resize(m_ncomp);
+        m_min[idx].resize(m_ncomp);
+        m_max[idx].resize(m_ncomp);
 
-        Real* min_n_max = new Real[2 * m_ncomp];
-
-        ParallelDescriptor::ReceiveData(min_n_max, len);
+        ParallelDescriptor::ReceiveData(min_n_max.dataPtr(), len);
 
         for (int i = 0; i < m_ncomp; i++)
         {
-            m_min[msg_hdr.m_index][i] = min_n_max[i];
-            m_max[msg_hdr.m_index][i] = min_n_max[m_ncomp + i];
-
+            m_min[idx][i] = min_n_max[i];
+            m_max[idx][i] = min_n_max[m_ncomp+i];
         }
-
-        delete [] min_n_max;
     }
 }
 
