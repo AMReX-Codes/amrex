@@ -29,6 +29,7 @@ f90sources += cluster.f90
 f90sources += interp.f90
 f90sources += bc.f90
 f90sources += bndry_reg.f90
+f90sources += flux_reg.f90
 
 f90sources += list_box.f90
 f90sources += sort_box.f90
