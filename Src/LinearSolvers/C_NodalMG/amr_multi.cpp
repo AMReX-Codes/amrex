@@ -541,14 +541,16 @@ void amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 	for (int i = 0; i < target.length(); i++) 
 	{
 	    assert( target[i].box() == target.box(i) );
-	    interpolate_patch(target[i], target[i].box(), corr[lfrom], rat, bilinear_interpolator_class(), lev_interface[lfrom], 0);
+	    interpolate_patch(target[i], target[i].box(), 
+		corr[lfrom], rat, bilinear_interpolator_class(), lev_interface[lfrom], 0);
 	}
     }
     else 
     {
 	for (int i = 0; i < target.length(); i++) 
 	{
-	    interpolate_patch(target[i], target.box(i), corr[lfrom], rat, bilinear_interpolator_class(), lev_interface[lfrom], 0);
+	    interpolate_patch(target[i], target.box(i), 
+		corr[lfrom], rat, bilinear_interpolator_class(), lev_interface[lfrom], 0);
 	}
     }
 }

@@ -657,14 +657,14 @@ void interpolate_level(MultiFab& target,
 	for (int i = 0; i < target.length(); i++) 
 	{
 	    assert( target[i].box() == target.box(i) );
-	    interpolate_patch(target[i], target[i].box(), r, rat, interp, lev_interface, 0);
+	    interpolate_patch(target[i], target[i].box(), r, rat, interp, lev_interface, bdy);
 	}
     }
     else 
     {
 	for (int i = 0; i < target.length(); i++) 
 	{
-	    interpolate_patch(target[i], target.box(i), r, rat, interp, lev_interface, 0);
+	    interpolate_patch(target[i], target.box(i), r, rat, interp, lev_interface, bdy);
 	}
     }
 }

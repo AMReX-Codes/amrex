@@ -60,7 +60,8 @@ public:
 	const amr_fluid_boundary_class& Boundary, bool use_cache = false, int Pcode = 2)
 	: amr_multigrid(Mesh, Gen_ratio, Lev_min_min, Lev_min_max, Lev_max_max,
 	Boundary.pressure(), Pcode),
-	boundary(Boundary), smoother_mode(2), line_solve_dim(-1), m_use_cache(use_cache)
+	boundary(Boundary), smoother_mode(2), line_solve_dim(-1), m_use_cache(use_cache),
+	m_hg_constant(false), m_hg_terrain(false), m_hg_sigma_node(true)
     {
 	build_mesh(fdomain);
     }
@@ -78,6 +79,9 @@ protected:
 	Real H[], int Lev_min, int Lev_max, bool use_cache);
     void clear();
     
+    bool m_hg_constant;	// false
+    bool m_hg_terrain; // false
+    bool m_hg_sigma_node; // true
     bool m_use_cache;
     int smoother_mode;
     int line_solve_dim;
@@ -136,6 +140,9 @@ protected:
     virtual void cgsolve(int mglev);
     
     virtual void mg_restrict(int lto, int lfrom);
+private:
+    holy_grail_amr_multigrid(const holy_grail_amr_multigrid&);
+    void operator=(const holy_grail_amr_multigrid&);
     
 };
 

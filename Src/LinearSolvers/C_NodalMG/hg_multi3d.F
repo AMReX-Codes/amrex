@@ -1958,19 +1958,22 @@ cdir$ ivdep
      &                            signd(i+1,j,k,2) + signd(i+1,j+1,k,2))
       end if
       if (ir .eq. 2 .and. kr .eq. 2) then
-         do 60 kc = bbl2, bbh2-1
-            do 60 jc = bbl1, bbh1
+         do kc = bbl2, bbh2-1
+            do jc = bbl1, bbh1
 cdir$ ivdep
-               do 60 ic = bbl0, bbh0-1
+               do ic = bbl0, bbh0-1
                   i = ir * ic
                   j = jr * jc
                   k = kr * kc
- 60            dest(i+1,j,k+1) = (signd(i,j,k+1,1)   * dest(i,j,k+1) +
+               dest(i+1,j,k+1) = (signd(i,j,k+1,1)   * dest(i,j,k+1) +
      &                            signd(i+1,j,k+1,1) * dest(i+2,j,k+1) +
      &                            signd(i+1,j,k,3)   * dest(i+1,j,k) +
      &                           signd(i+1,j,k+1,3) * dest(i+1,j,k+2)) /
      &                          (signd(i,j,k+1,1) + signd(i+1,j,k+1,1) +
      &                            signd(i+1,j,k,3) + signd(i+1,j,k+1,3))
+               end do
+            end do
+         end do
       end if
       if (jr .eq. 2 .and. kr .eq. 2) then
          do 70 kc = bbl2, bbh2-1
@@ -1988,14 +1991,14 @@ cdir$ ivdep
      &                            signd(i,j+1,k,3) + signd(i,j+1,k+1,3))
       end if
       if (ir .eq. 2 .and. jr .eq. 2 .and. kr .eq. 2) then
-         do 80 kc = bbl2, bbh2-1
-            do 80 jc = bbl1, bbh1-1
+         do kc = bbl2, bbh2-1
+            do jc = bbl1, bbh1-1
 cdir$ ivdep
-               do 80 ic = bbl0, bbh0-1
+               do ic = bbl0, bbh0-1
                   i = ir * ic
                   j = jr * jc
                   k = kr * kc
- 80            dest(i+1,j+1,k+1) = 
+                  dest(i+1,j+1,k+1) = 
      &                (signd(i,j+1,k+1,1)   * dest(i,j+1,k+1) +
      &                 signd(i+1,j+1,k+1,1) * dest(i+2,j+1,k+1) +
      &                 signd(i+1,j,k+1,2)   * dest(i+1,j,k+1) +
@@ -2005,6 +2008,9 @@ cdir$ ivdep
      &                 (signd(i,j+1,k+1,1) + signd(i+1,j+1,k+1,1) +
      &                  signd(i+1,j,k+1,2) + signd(i+1,j+1,k+1,2) +
      &                  signd(i+1,j+1,k,3) + signd(i+1,j+1,k+1,3))
+               end do
+            end do
+         end do
       end if
       end
 c-----------------------------------------------------------------------
@@ -2026,9 +2032,9 @@ c CELL-based data only.
       real*8 srcz(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       integer i, j, k, i2, j2, k2
       if (ir .eq. 2 .and. jr .eq. 2 .and. kr .eq. 2) then
-         do 10 k = regl2, regh2
-            do 10 j = regl1, regh1
-               do 10 i = regl0, regh0
+         do k = regl2, regh2
+            do j = regl1, regh1
+               do i = regl0, regh0
                   i2 = 2 * i
                   j2 = 2 * j
                   k2 = 2 * k
@@ -2056,11 +2062,13 @@ c CELL-based data only.
      &                                            srcz(i2,j2+1,k2+1) +
      &                                            srcz(i2+1,j2,k2+1) +
      &                                            srcz(i2+1,j2+1,k2+1)))
- 10               continue
+               end do
+            end do
+         end do
       else if (ir .eq. 2 .and. jr .eq. 2) then
-         do 20 k = regl2, regh2
-            do 20 j = regl1, regh1
-               do 20 i = regl0, regh0
+         do k = regl2, regh2
+            do j = regl1, regh1
+               do i = regl0, regh0
                   i2 = 2 * i
                   j2 = 2 * j
                   destx(i,j,k) = 1.d0 / (1.d0 / (srcx(i2,j2,k) +
@@ -2075,11 +2083,13 @@ c CELL-based data only.
      &                                     srcz(i2,j2+1,k) +
      &                                     srcz(i2+1,j2,k) +
      &                                     srcz(i2+1,j2+1,k))
- 20               continue
+               end do
+            end do
+         end do
       else if (ir .eq. 2 .and. kr .eq. 2) then
-         do 30 k = regl2, regh2
-            do 30 j = regl1, regh1
-               do 30 i = regl0, regh0
+         do k = regl2, regh2
+            do j = regl1, regh1
+               do i = regl0, regh0
                   i2 = 2 * i
                   k2 = 2 * k
                   destx(i,j,k) = 1.d0 / (1.d0 / (srcx(i2,j,k2) +
@@ -2094,11 +2104,13 @@ c CELL-based data only.
      &                                           srcz(i2+1,j,k2)) +
      &                                   1.d0 / (srcz(i2,j,k2+1) +
      &                                           srcz(i2+1,j,k2+1)))
- 30               continue
+               end do
+            end do
+         end do
       else if (jr .eq. 2 .and. kr .eq. 2) then
-         do 40 k = regl2, regh2
-            do 40 j = regl1, regh1
-               do 40 i = regl0, regh0
+         do k = regl2, regh2
+            do j = regl1, regh1
+               do i = regl0, regh0
                   j2 = 2 * j
                   k2 = 2 * k
                   destx(i,j,k) = 0.25d0 * (srcx(i,j2,k2) +
@@ -2113,11 +2125,13 @@ c CELL-based data only.
      &                                           srcz(i,j2+1,k2)) +
      &                                   1.d0 / (srcz(i,j2,k2+1) +
      &                                           srcz(i,j2+1,k2+1)))
- 40               continue
+               end do
+            end do
+         end do
       else if (ir .eq. 2) then
-         do 50 k = regl2, regh2
-            do 50 j = regl1, regh1
-               do 50 i = regl0, regh0
+         do k = regl2, regh2
+            do j = regl1, regh1
+               do i = regl0, regh0
                   i2 = 2 * i
                   destx(i,j,k) = 2.d0 / (1.d0 / srcx(i2,j,k) +
      &                                   1.d0 / srcx(i2+1,j,k))
@@ -2125,11 +2139,13 @@ c CELL-based data only.
      &                                    srcy(i2+1,j,k))
                   destz(i,j,k) = 0.5d0 * (srcz(i2,j,k) +
      &                                    srcz(i2+1,j,k))
- 50               continue
+               end do
+            end do
+         end do
       else if (jr .eq. 2) then
-         do 60 k = regl2, regh2
-            do 60 j = regl1, regh1
-               do 60 i = regl0, regh0
+         do k = regl2, regh2
+            do j = regl1, regh1
+               do i = regl0, regh0
                   j2 = 2 * j
                   destx(i,j,k) = 0.5d0 * (srcx(i,j2,k) +
      &                                    srcx(i,j2+1,k))
@@ -2137,11 +2153,13 @@ c CELL-based data only.
      &                                   1.d0 / srcy(i,j2+1,k))
                   destz(i,j,k) = 0.5d0 * (srcz(i,j2,k) +
      &                                    srcz(i,j2+1,k))
- 60               continue
+               end do
+            end do
+         end do
       else if (kr .eq. 2) then
-         do 70 k = regl2, regh2
-            do 70 j = regl1, regh1
-               do 70 i = regl0, regh0
+         do k = regl2, regh2
+            do j = regl1, regh1
+               do i = regl0, regh0
                   k2 = 2 * k
                   destx(i,j,k) = 0.5d0 * (srcx(i,j,k2) +
      &                                    srcx(i,j,k2+1))
@@ -2149,7 +2167,9 @@ c CELL-based data only.
      &                                    srcy(i,j,k2+1))
                   destz(i,j,k) = 2.d0 / (1.d0 / srcz(i,j,k2) +
      &                                   1.d0 / srcz(i,j,k2+1))
- 70               continue
+               end do
+            end do
+         end do
       end if
       end
 c-----------------------------------------------------------------------
@@ -2172,36 +2192,12 @@ c NODE(EDGE)-based data only.
       print *, "Warning:  Don't use this routine.  Not modified for "
       print *, "          IntVect refinement ratios"
       stop
-      do 10 k = regl2, regh2
-         do 10 j = regl1, regh1
-            do 10 i = regl0, regh0
+      do k = regl2, regh2
+         do j = regl1, regh1
+            do i = regl0, regh0
                i2 = 2 * i
                j2 = 2 * j
                k2 = 2 * k
-c               destx(i,j,k) = 0.5d0 / (1.d0 / srcx(i2,j2,k2) +
-c     &                                 1.d0 / srcx(i2+1,j2,k2)) +
-c     &                        0.5d0 / (1.d0 / srcx(i2,j2,k2+1) +
-c     &                                 1.d0 / srcx(i2+1,j2,k2+1)) +
-c     &                        0.5d0 / (1.d0 / srcx(i2,j2+1,k2) +
-c     &                                 1.d0 / srcx(i2+1,j2+1,k2)) +
-c     &                        0.5d0 / (1.d0 / srcx(i2,j2+1,k2+1) +
-c     &                                 1.d0 / srcx(i2+1,j2+1,k2+1))
-c               desty(i,j,k) = 0.5d0 / (1.d0 / srcy(i2,j2,k2) +
-c     &                                 1.d0 / srcy(i2,j2+1,k2)) +
-c     &                        0.5d0 / (1.d0 / srcy(i2,j2,k2+1) +
-c     &                                 1.d0 / srcy(i2,j2+1,k2+1)) +
-c     &                        0.5d0 / (1.d0 / srcy(i2+1,j2,k2) +
-c     &                                 1.d0 / srcy(i2+1,j2+1,k2)) +
-c     &                        0.5d0 / (1.d0 / srcy(i2+1,j2,k2+1) +
-c     &                                 1.d0 / srcy(i2+1,j2+1,k2+1))
-c               destz(i,j,k) = 0.5d0 / (1.d0 / srcz(i2,j2,k2) +
-c     &                                 1.d0 / srcz(i2,j2,k2+1)) +
-c     &                        0.5d0 / (1.d0 / srcz(i2+1,j2,k2) +
-c     &                                 1.d0 / srcz(i2+1,j2,k2+1)) +
-c     &                        0.5d0 / (1.d0 / srcz(i2,j2+1,k2) +
-c     &                                 1.d0 / srcz(i2,j2+1,k2+1)) +
-c     &                        0.5d0 / (1.d0 / srcz(i2+1,j2+1,k2) +
-c     &                                 1.d0 / srcz(i2+1,j2+1,k2+1))
                destx(i,j,k) = 0.5d0 / (1.d0 / (srcx(i2,j2,k2) +
      &                                         srcx(i2,j2,k2+1) +
      &                                         srcx(i2,j2+1,k2) +
@@ -2226,7 +2222,9 @@ c     &                                 1.d0 / srcz(i2+1,j2+1,k2+1))
      &                                         srcz(i2,j2+1,k2+1) +
      &                                         srcz(i2+1,j2,k2+1) +
      &                                         srcz(i2+1,j2+1,k2+1)))
- 10         continue
+            end do
+         end do
+      end do
       end
 c-----------------------------------------------------------------------
       subroutine hgrlxu_cd(cor,
@@ -2252,17 +2250,19 @@ c-----------------------------------------------------------------------
       jdiff = resh0 - resl0 + 1
       kdiff = (resh1 - resl1 + 1) * jdiff
 cdir$ ivdep
-      do 10 i = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
+      do i = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
      &          (regl0 - resl0) + 1,
      &          (regh2 - resl2) * kdiff + (regh1 - resl1) * jdiff +
      &          (regh0 - resl0) + 1, 2
- 10      cor(i) = cor(i) + mask(i) * ((AVG() - res(i)) * cen - cor(i))
+         cor(i) = cor(i) + mask(i) * ((AVG() - res(i)) * cen - cor(i))
+      end do
 cdir$ ivdep
-      do 20 i = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
+      do i = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
      &          (regl0 - resl0) + 2,
      &          (regh2 - resl2) * kdiff + (regh1 - resl1) * jdiff +
      &          (regh0 - resl0) + 1, 2
- 20      cor(i) = cor(i) + mask(i) * ((AVG() - res(i)) * cen - cor(i))
+         cor(i) = cor(i) + mask(i) * ((AVG() - res(i)) * cen - cor(i))
+      end do
       end
 c-----------------------------------------------------------------------
       subroutine hgres_cd(res,
@@ -2281,14 +2281,17 @@ c-----------------------------------------------------------------------
       fac = hxm2
       if (regh2 - regl2 .gt. regh1 - regl1 .and.
      &    regh2 - regl2 .gt. regh0 - regl0) then
-         do 10 j = regl1, regh1
-            do 10 i = regl0, regh0
-               do 10 k = regl2, regh2
- 10               res(i,j,k) = src(i,j,k) - fac *
+         do j = regl1, regh1
+            do i = regl0, regh0
+               do k = regl2, regh2
+                  res(i,j,k) = src(i,j,k) - fac *
      &           (dest(i-1,j,k) + dest(i+1,j,k) +
      &            dest(i,j-1,k) + dest(i,j+1,k) +
      &            dest(i,j,k-1) + dest(i,j,k+1) -
      &            6.d0 * dest(i,j,k))
+               end do
+            end do
+         end do
       else if (regh1 - regl1 .gt. regh0 - regl0) then
          do 20 k = regl2, regh2
             do 20 i = regl0, regh0
@@ -2326,15 +2329,16 @@ c-----------------------------------------------------------------------
       fac = hxm2
       jdiff = resh0 - resl0 + 1
       kdiff = (resh1 - resl1 + 1) * jdiff
-      do 10 i = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
+      do i = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
      &          (regl0 - resl0) + 1,
      &          (regh2 - resl2) * kdiff + (regh1 - resl1) * jdiff +
      &          (regh0 - resl0) + 1
- 10      res(i) = src(i) - fac *
+         res(i) = src(i) - fac *
      &     (dest(i-1) + dest(i+1) +
      &      dest(i-jdiff) + dest(i+jdiff) +
      &      dest(i-kdiff) + dest(i+kdiff) -
      &      6.d0 * dest(i))
+      end do
       end
 
 
@@ -2350,12 +2354,15 @@ c-----------------------------------------------------------------------
       real*8 cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       real*8 signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
       integer i, j, k
-      do 10 k = regl2, regh2
-         do 10 j = regl1, regh1
-            do 10 i = regl0, regh0
- 10            cen(i,j,k) = 1.d0 / (signd(i-1,j,k,1) + signd(i,j,k,1) +
+      do k = regl2, regh2
+         do j = regl1, regh1
+            do i = regl0, regh0
+               cen(i,j,k) = 1.d0 / (signd(i-1,j,k,1) + signd(i,j,k,1) +
      &                              signd(i,j-1,k,2) + signd(i,j,k,2) +
      &                              signd(i,j,k-1,3) + signd(i,j,k,3))
+            end do
+         end do
+      end do
       end
 c-----------------------------------------------------------------------
 c sig here contains three different directions all stored on "nodes"
@@ -2383,17 +2390,21 @@ c sig here contains three different directions all stored on "nodes"
       ly    = (resh2 - resl2 + 1) * kdiff
       lz    = 2 * ly
 cdir$ ivdep
-      do 10 i = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
+      do i = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
      &          (regl0 - resl0) + 1,
      &          (regh2 - resl2) * kdiff + (regh1 - resl1) * jdiff +
      &          (regh0 - resl0) + 1, 2
- 10   cor(i) = cor(i) + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
+         cor(i) = cor(i) 
+     &      + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
+      end do
 cdir$ ivdep
-      do 20 i = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
+      do i = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
      &          (regl0 - resl0) + 2,
      &          (regh2 - resl2) * kdiff + (regh1 - resl1) * jdiff +
      &          (regh0 - resl0) + 1, 2
- 20   cor(i) = cor(i) + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
+         cor(i) = cor(i) 
+     &      + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
+      end do
       end
 c-----------------------------------------------------------------------
       subroutine hgrlx(cor,
@@ -2424,41 +2435,50 @@ c-----------------------------------------------------------------------
      &         signd(i,j,k,3)   * cor(i,j,k+1))
       if (regh2 - regl2 .gt. regh1 - regl1 .and.
      &    regh2 - regl2 .gt. regh0 - regl0) then
-         do 10 ipass = 0, 1
+         do ipass = 0, 1
             ipar0 = ipass
-            do 10 j = regl1, regh1
+            do j = regl1, regh1
                ipar0 = 1 - ipar0
                ipar = ipar0
-               do 10 i = regl0, regh0
+               do i = regl0, regh0
                   ipar = 1 - ipar
 cdir$ ivdep
-                  do 10 k = regl2 + ipar, regh2, 2
+                  do k = regl2 + ipar, regh2, 2
                      cor(i,j,k) = (avg() - res(i,j,k)) * cen(i,j,k)
- 10                  continue
+                  end do
+               end do
+            end do
+         end do
       else if (regh1 - regl1 .gt. regh0 - regl0) then
-         do 20 ipass = 0, 1
+         do ipass = 0, 1
             ipar0 = ipass
-            do 20 k = regl2, regh2
+            do k = regl2, regh2
                ipar0 = 1 - ipar0
                ipar = ipar0
-               do 20 i = regl0, regh0
+               do i = regl0, regh0
                   ipar = 1 - ipar
 cdir$ ivdep
-                  do 20 j = regl1 + ipar, regh1, 2
+                  do j = regl1 + ipar, regh1, 2
                      cor(i,j,k) = (avg() - res(i,j,k)) * cen(i,j,k)
- 20                  continue
+                  end do
+               end do
+            end do
+         end do
       else
-         do 30 ipass = 0, 1
+         do ipass = 0, 1
             ipar0 = ipass
-            do 30 k = regl2, regh2
+            do k = regl2, regh2
                ipar0 = 1 - ipar0
                ipar = ipar0
-               do 30 j = regl1, regh1
+               do j = regl1, regh1
                   ipar = 1 - ipar
 cdir$ ivdep
-                  do 30 i = regl0 + ipar, regh0, 2
+                  do i = regl0 + ipar, regh0, 2
                      cor(i,j,k) = (avg() - res(i,j,k)) * cen(i,j,k)
- 30                  continue
+                  end do
+               end do
+            end do
+         end do
       end if
       end
 c-----------------------------------------------------------------------
@@ -2502,69 +2522,72 @@ c-----------------------------------------------------------------------
      &                        signd(i,j,k,1)   * cor(i+1,j,k) +
      &                        signd(i,j-1,k,2) * cor(i,j-1,k) +
      &                        signd(i,j,k,2)   * cor(i,j+1,k)))
-
-      if (lsd .eq. 2) then
-         do 20 ipass = 1, 0, -1
-         ipar = ipass
-         do 20 i = regl0, regh0
-         ipar = 1 - ipar
-         do 20 j = regl1 + ipar, regh1, 2
-            k = regl2
-            betm = -cen(i,j,k)
-            if (betm .eq. 0.d0) then
-c dirichlet bdy:
-               cor(i,j,k) = 0.d0
-               wrk(1) = 0.d0
-            else if (regl2 .eq. doml2) then
-c neumann bdy:
-               cor(i,j,k) = RHSL2() * betm
-               aj = signd(i,j,k,3)
-               wrk(1) = 2.d0 * aj * betm
-            else
-c interface to grid at same level:
-               aj = signd(i,j,k-1,3)
-               cor(i,j,k) = (RHSL2() - aj * cor(i,j,k-1)) * betm
-               aj = signd(i,j,k,3)
-               wrk(1) = aj * betm
-            end if
-c forward solve loop:
-            do 10 k = regl2 + 1, regh2 - 1
-               kw = k - regl2
-               if (cen(i,j,k) .eq. 0.d0) then
-                  betm = 0.d0
-               else
-                  betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(kw))
-               end if
-               cor(i,j,k) = (RHSL2() - aj * cor(i,j,k-1)) * betm
-               aj = signd(i,j,k,3)
-               wrk(kw + 1) = aj * betm
- 10            continue
-            k = regh2
-            kw = k - regl2
-            if (cen(i,j,k) .eq. 0.d0) then
-c dirichlet bdy:
-               cor(i,j,k) = 0.d0
-            else if (regh2 .eq. domh2) then
-c neumann bdy:
-               aj = 2.d0 * aj
-               betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(kw))
-               cor(i,j,k) = (RHSL2() - aj * cor(i,j,k-1)) * betm
-            else if (kw .gt. 0) then
-c interface to grid at same level:
-               betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(kw))
-               cor(i,j,k) = RHSL2() - aj * cor(i,j,k-1)
-               aj = signd(i,j,k,3)
-               cor(i,j,k) = (cor(i,j,k) - aj * cor(i,j,k+1)) * betm
-            end if
-c back substitution loop:
-            do 20 k = regh2 - 1, regl2, -1
-               kw = k - regl2
-               cor(i,j,k) = cor(i,j,k) - wrk(kw + 1) * cor(i,j,k+1)
- 20            continue
-      else
+      
+	if (lsd .ne. 2) then
          print *, "Line solve not implemented in dimension", lsd
           stop
       end if
+
+      do ipass = 1, 0, -1
+         ipar = ipass
+         do i = regl0, regh0
+            ipar = 1 - ipar
+            do j = regl1 + ipar, regh1, 2
+               k = regl2
+               betm = -cen(i,j,k)
+               if (betm .eq. 0.d0) then
+c dirichlet bdy:
+                  cor(i,j,k) = 0.d0
+                  wrk(1) = 0.d0
+               else if (regl2 .eq. doml2) then
+c neumann bdy:
+                  cor(i,j,k) = RHSL2() * betm
+                  aj = signd(i,j,k,3)
+                  wrk(1) = 2.d0 * aj * betm
+               else
+c interface to grid at same level:
+                  aj = signd(i,j,k-1,3)
+                  cor(i,j,k) = (RHSL2() - aj * cor(i,j,k-1)) * betm
+                  aj = signd(i,j,k,3)
+                  wrk(1) = aj * betm
+               end if
+c forward solve loop:
+               do k = regl2 + 1, regh2 - 1
+                  kw = k - regl2
+                  if (cen(i,j,k) .eq. 0.d0) then
+                     betm = 0.d0
+                  else
+                     betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(kw))
+                  end if
+                  cor(i,j,k) = (RHSL2() - aj * cor(i,j,k-1)) * betm
+                  aj = signd(i,j,k,3)
+                  wrk(kw + 1) = aj * betm
+               end do
+               k = regh2
+               kw = k - regl2
+               if (cen(i,j,k) .eq. 0.d0) then
+c dirichlet bdy:
+                  cor(i,j,k) = 0.d0
+               else if (regh2 .eq. domh2) then
+c neumann bdy:
+                  aj = 2.d0 * aj
+                  betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(kw))
+                  cor(i,j,k) = (RHSL2() - aj * cor(i,j,k-1)) * betm
+               else if (kw .gt. 0) then
+c interface to grid at same level:
+                  betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(kw))
+                  cor(i,j,k) = RHSL2() - aj * cor(i,j,k-1)
+                  aj = signd(i,j,k,3)
+                  cor(i,j,k) = (cor(i,j,k) - aj * cor(i,j,k+1)) * betm
+               end if
+c back substitution loop:
+               do k = regh2 - 1, regl2, -1
+                  kw = k - regl2
+                  cor(i,j,k) = cor(i,j,k) - wrk(kw + 1) * cor(i,j,k+1)
+               end do
+            end do
+         end do
+      end do                  	
       end
 c-----------------------------------------------------------------------
       subroutine hgrlnf(cor,
@@ -2859,17 +2882,18 @@ c-----------------------------------------------------------------------
       kdiff = (resh1 - resl1 + 1) * jdiff
       ly    = (resh2 - resl2 + 1) * kdiff
       lz    = 2 * ly
-      do 10 i = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
+      do i = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
      &          (regl0 - resl0) + 1,
      &          (regh2 - resl2) * kdiff + (regh1 - resl1) * jdiff +
      &          (regh0 - resl0) + 1
- 10      res(i) = mask(i) * (src(i) -
+         res(i) = mask(i) * (src(i) -
      &     (signd(i-1)        * (dest(i-1) - dest(i)) +
      &      signd(i)          * (dest(i+1) - dest(i)) +
      &      signd(i+ly-jdiff) * (dest(i-jdiff) - dest(i)) +
      &      signd(i+ly)       * (dest(i+jdiff) - dest(i)) +
      &      signd(i+lz-kdiff) * (dest(i-kdiff) - dest(i)) +
      &      signd(i+lz)       * (dest(i+kdiff) - dest(i))))
+      end do
       end
 c-----------------------------------------------------------------------
       subroutine hgscon(signd,
@@ -2891,21 +2915,33 @@ c-----------------------------------------------------------------------
       facx = 0.25d0 / (hx*hx)
       facy = 0.25d0 / (hy*hy)
       facz = 0.25d0 / (hz*hz)
-      do 10 k = regl2, regh2
-         do 10 j = regl1, regh1
-            do 10 i = regl0-1, regh0
- 10           signd(i,j,k,1) = facx * (sigx(i,j-1,k-1) + sigx(i,j-1,k) +
-     &                                  sigx(i,j,k-1)   + sigx(i,j,k))
-      do 20 k = regl2, regh2
-         do 20 j = regl1-1, regh1
-            do 20 i = regl0, regh0
- 20           signd(i,j,k,2) = facy * (sigy(i-1,j,k-1) + sigy(i-1,j,k) +
-     &                                  sigy(i,j,k-1)   + sigy(i,j,k))
-      do 30 k = regl2-1, regh2
-         do 30 j = regl1, regh1
-            do 30 i = regl0, regh0
- 30           signd(i,j,k,3) = facz * (sigz(i-1,j-1,k) + sigz(i-1,j,k) +
-     &                                  sigz(i,j-1,k)   + sigz(i,j,k))
+      do k = regl2, regh2
+         do j = regl1, regh1
+            do i = regl0-1, regh0
+               signd(i,j,k,1) = facx * 
+     &               (sigx(i,j-1,k-1) + sigx(i,j-1,k) +
+     &                sigx(i,j,k-1)   + sigx(i,j,k))
+            end do
+         end do
+      end do
+      do k = regl2, regh2
+         do j = regl1-1, regh1
+            do i = regl0, regh0
+               signd(i,j,k,2) = facy * 
+     &               (sigy(i-1,j,k-1) + sigy(i-1,j,k) +
+     &                sigy(i,j,k-1)   + sigy(i,j,k))
+            end do
+         end do
+      end do
+      do k = regl2-1, regh2
+         do j = regl1, regh1
+            do i = regl0, regh0
+               signd(i,j,k,3) = facz * 
+     &               (sigz(i-1,j-1,k) + sigz(i-1,j,k) +
+     &                sigz(i,j-1,k)   + sigz(i,j,k))
+            end do
+         end do
+      end do
       end
 c-----------------------------------------------------------------------
       subroutine hgcen_no_sigma_node(cen,
@@ -2927,10 +2963,10 @@ c-----------------------------------------------------------------------
       hxm2 = 1.d0 / (hx*hx)
       hym2 = 1.d0 / (hy*hy)
       hzm2 = 1.d0 / (hz*hz)
-      do 10 k = regl2, regh2
-         do 10 j = regl1, regh1
-            do 10 i = regl0, regh0
- 10            cen(i,j,k) = 4.d0 /
+      do k = regl2, regh2
+         do j = regl1, regh1
+            do i = regl0, regh0
+               cen(i,j,k) = 4.d0 /
      &                   (hxm2 * (sigx(i-1,j-1,k-1) + sigx(i-1,j-1,k) +
      &                              sigx(i-1,j,k-1)   + sigx(i-1,j,k) +
      &                              sigx(i,j-1,k-1)   + sigx(i,j-1,k) +
@@ -2943,6 +2979,9 @@ c-----------------------------------------------------------------------
      &                              sigz(i-1,j,k-1)   + sigz(i-1,j,k) +
      &                              sigz(i,j-1,k-1)   + sigz(i,j-1,k) +
      &                              sigz(i,j,k-1)     + sigz(i,j,k)))
+            end do
+         end do
+      end do
       end
 c-----------------------------------------------------------------------
       subroutine hgrlx_no_sigma_node(cor,

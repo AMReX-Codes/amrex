@@ -231,6 +231,15 @@ SOURCE=.\hg_multi3d.F
 # Begin Source File
 
 SOURCE=.\hg_multi3d_terrain.F
+
+!IF  "$(CFG)" == "hgproj - Win32 Release"
+
+!ELSEIF  "$(CFG)" == "hgproj - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+
+!ENDIF 
+
 # End Source File
 # Begin Source File
 
