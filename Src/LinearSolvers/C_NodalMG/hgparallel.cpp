@@ -35,16 +35,16 @@ bool task_copy::init(sequence_number sno, MPI_Comm comm)
     }
     else if ( is_local(m_mf, m_dgrid) )
     {
-	tmp = new FArrayBox(m_bx, m_mf.nComp());
-	int res = MPI_Irecv(tmp->dataPtr(), m_bx.numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), sno, comm, &m_request);
+	tmp = new FArrayBox(s_bx, m_mf.nComp());
+	int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), sno, comm, &m_request);
 	if ( res != 0 )
 	    BoxLib::Error("Failed MPI_Irecv");
     }
     else if ( is_local(m_smf, m_sgrid) ) 
     {
 	tmp = new FArrayBox(s_bx, m_mf.nComp());
-	tmp->copy(m_smf[m_sgrid]);
-	int res = MPI_Isend(tmp->dataPtr(), s_bx.numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_mf,  m_dgrid), sno, comm, &m_request);
+	tmp->copy(m_smf[m_sgrid], s_bx);
+	int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_mf,  m_dgrid), sno, comm, &m_request);
 	if ( res != 0 )
 	    BoxLib::Error("Failed MPI_Isend");
     }
@@ -59,18 +59,15 @@ bool task_copy::init(sequence_number sno, MPI_Comm comm)
     return true;
 }
 
-void
-task_copy::hint() const
+void task_copy::hint() const
 {
-    if ( ParallelDescriptor::IOProcessor() )
-    {
-	debug_out << "task_copy : ";
-	debug_out << m_local << " ";
-	debug_out <<  m_bx << " ";
-	debug_out << m_dgrid << " ";
-	debug_out << m_sgrid << " ";
-	debug_out << endl;
-    }
+    debug_out << "task_copy : ";
+    debug_out << m_local << " ";
+    debug_out << m_bx << " ";
+    debug_out << m_dgrid << " ";
+    debug_out << s_bx << " ";
+    debug_out << m_sgrid << " ";
+    debug_out << endl;
 }
 
 bool task_copy::ready()

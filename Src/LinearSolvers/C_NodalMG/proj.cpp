@@ -29,24 +29,18 @@ int main(int argc, char **argv)
     set_new_handler(Utility::OutOfMemory);
 #endif
     ParallelDescriptor::StartParallel(1, &argc, &argv);
-
-    if ( ParallelDescriptor::IOProcessor() )
-    {
-	std::ostringstream fname;
-	fname << "gu" << ParallelDescriptor::NProcs() << std::ends;
-	debug_out.open(fname.str().c_str(), ios::trunc);
-	if ( debug_out.fail() )
-	    BoxLib::Error("Failed to open debug file");
-	debug_out << std::setprecision(15);
-    }
+    
+    std::ostringstream fname;
+    fname << "gu" << ParallelDescriptor::NProcs() << "_" << ParallelDescriptor::MyProc() << std::ends;
+    debug_out.open(fname.str().c_str(), ios::trunc);
+    if ( debug_out.fail() )
+	BoxLib::Error("Failed to open debug file");
+    debug_out << std::setprecision(15);
     
     for (int i = 1; i < argc; ++i)
 	driver(argv[i]);
-
-    if ( ParallelDescriptor::IOProcessor() )
-    {
-	debug_out.close();
-    }
+    
+    debug_out.close();
     ParallelDescriptor::EndParallel();
     return 0;
 }
@@ -62,7 +56,7 @@ driver(const char *filename)
     grid.open(filename, ios::in);
     if ( grid.fail() )
     {
-	BoxLib::Warning("Failed to a open file");
+	BoxLib::Warning("Failed to open grid file");
 	return;
     }
     amr_multigrid::mesh_read(m, ratio, domain, grid);
