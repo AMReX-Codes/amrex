@@ -1,8 +1,9 @@
 
 //
-// $Id: StateData.cpp,v 1.1 1997-11-18 19:30:29 lijewski Exp $
+// $Id: StateData.cpp,v 1.2 1997-11-23 18:18:50 lijewski Exp $
 //
 
+#include <RunStats.H>
 #include <StateData.H>
 #include <ParallelDescriptor.H>
 
@@ -513,12 +514,12 @@ StateData::checkPoint (const aString& name,
     }
 
     assert(new_data);
-    VisMF::Write(*new_data, mf_name_new, how);
+    RunStats::addBytes(VisMF::Write(*new_data, mf_name_new, how));
 
     if (dump_old)
     {
         assert(old_data);
-        VisMF::Write(*old_data, mf_name_old, how);
+        RunStats::addBytes(VisMF::Write(*old_data, mf_name_old, how));
     }
 }
 

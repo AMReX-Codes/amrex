@@ -1,6 +1,6 @@
 
 //
-// $Id: RunStats.cpp,v 1.7 1997-11-23 00:10:56 lijewski Exp $
+// $Id: RunStats.cpp,v 1.8 1997-11-23 18:18:50 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -17,6 +17,8 @@ using std::setprecision;
 double RunStats::TotalCPU;
 
 double RunStats::TotalWCT;
+
+double RunStats::DiskBytes;
 
 Array<long> RunStats::TheCells;
 
@@ -36,6 +38,31 @@ RunStats::RunStats (const char* _name,
 RunStats::~RunStats () {}
 
 void
+RunStats::start ()
+{
+    if (gentry->is_on && entry->is_on)
+    {
+        time  = -Utility::second();
+        wtime = -ParallelDescriptor::second();
+    }
+}
+
+void
+RunStats::end ()
+{
+    if (gentry->is_on && entry->is_on)
+    {
+        time  += Utility::second();
+        wtime += ParallelDescriptor::second();
+
+        entry->run_time   += time;
+        entry->run_wtime  += wtime;
+        gentry->run_time  += time;
+        gentry->run_wtime += wtime;
+    }
+}
+
+void
 RunStats::addCells (int  lev,
                     long count)
 {
@@ -45,6 +72,17 @@ RunStats::addCells (int  lev,
 	TheCells[lev] = 0;
     }
     TheCells[lev] += count;
+}
+
+//
+// Holds incremental increase to RunStats::DiskBytes between report() & dump().
+//
+static double Incremental_Byte_Count;
+
+void
+RunStats::addBytes (long count)
+{
+    Incremental_Byte_Count += count;
 }
 
 RunStatsData *
@@ -118,6 +156,10 @@ RunStats::report (ostream& os)
     ParallelDescriptor::ReduceRealSum(rtime);
     ParallelDescriptor::ReduceRealMax(rwtime);
 
+    ParallelDescriptor::ReduceRealSum(Incremental_Byte_Count);
+    RunStats::DiskBytes += Incremental_Byte_Count;
+    Incremental_Byte_Count = 0;
+
     double tot_run_time  = RunStats::TotalCPU + rtime;
     double tot_run_wtime = RunStats::TotalWCT + rwtime;
     //
@@ -138,12 +180,13 @@ RunStats::report (ostream& os)
         {
 	    os << "Number of cells advanced at level "
                << i
-               << " = "
+               << ": "
 	       << TheCells[i]
                << '\n';
 	    tot_cells += TheCells[i];
 	}
-	os << "Total cells advanced = " << tot_cells << '\n';
+	os << "\nTotal cells advanced: " << tot_cells << '\n';
+	os << "\nTotal bytes written to disk: " << RunStats::DiskBytes << '\n';
 
 	int maxlev = 0;
         ListIterator<RunStatsData> it(TheTotals);
@@ -157,7 +200,7 @@ RunStats::report (ostream& os)
 
 	for (int lev = 0; lev <= maxlev; ++lev)
         {
-	    os << "\nTimings for level " << lev << ":\n\n";
+	    os << "\nTimings for level " << lev << " ...\n\n";
 	    it.rewind();
 	    for ( ; it; ++it)
             {
@@ -174,7 +217,7 @@ RunStats::report (ostream& os)
 		}
 	    }
 	}
-        os << "\nTotals for all levels:\n\n";
+        os << "\nTotals for all levels ...\n\n";
 
 	it.rewind();
 
@@ -187,12 +230,12 @@ RunStats::report (ostream& os)
 	}
         os << setprecision(8);
         os << '\n'
-           << "Total CPU time        = " << tot_run_time  << '\n'
-           << "Total Wall Clock time = " << tot_run_wtime << '\n';
+           << "Total CPU time        : " << tot_run_time  << '\n'
+           << "Total Wall Clock time : " << tot_run_wtime << '\n';
 
         if (ParallelDescriptor::NProcs() > 1 && tot_run_wtime)
         {
-            os << "The Parallel speedup  = "
+            os << "\nThe Parallel speedup  : "
                << tot_run_time/tot_run_wtime
                << '\n';
         }
@@ -207,6 +250,10 @@ RunStats::dumpStats (ofstream& os)
 
     ParallelDescriptor::ReduceRealSum(rtime);
     ParallelDescriptor::ReduceRealMax(rwtime);
+
+    ParallelDescriptor::ReduceRealSum(Incremental_Byte_Count);
+    RunStats::DiskBytes += Incremental_Byte_Count;
+    Incremental_Byte_Count = 0;
     //
     // Make a copy of the local RunStats::TheStats and sum the run_time's.
     //
@@ -222,7 +269,8 @@ RunStats::dumpStats (ofstream& os)
 	os << "(ListRunStats "
            << TheTotals.length()            << '\n'
            << (RunStats::TotalCPU + rtime)  << '\n'
-           << (RunStats::TotalWCT + rwtime) << '\n';
+           << (RunStats::TotalWCT + rwtime) << '\n'
+           << RunStats::DiskBytes           << '\n';
 
 	for (ListIterator<RunStatsData> it(TheTotals); it; ++it)
         {
@@ -253,6 +301,7 @@ RunStats::readStats (ifstream& is,
     is >> n;
     is >> RunStats::TotalCPU;
     is >> RunStats::TotalWCT;
+    is >> RunStats::DiskBytes;
     while (n--)
     {
 	RunStatsData rd;

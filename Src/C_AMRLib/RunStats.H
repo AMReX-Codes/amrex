@@ -2,7 +2,7 @@
 #define _RUNSTATS_H_ 
 
 //
-// $Id: RunStats.H,v 1.4 1997-11-23 00:10:55 lijewski Exp $
+// $Id: RunStats.H,v 1.5 1997-11-23 18:18:50 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -99,6 +99,10 @@ public:
     static void turnOn (const char * s, int level = -1);
     static void turnOff (const char * s, int level = -1);
     //
+    // Record I/O bytes written to disk.
+    //
+    static void addBytes (long count);
+    //
     // Init from ParmParse with "RunStats" prefix.
     //
     static void init ();
@@ -133,10 +137,11 @@ private:
     //
     // Static data.
     //
-    static double             TotalCPU; // Total CPU time
-    static double             TotalWCT; // Total Wall Clock time
-    static Array<long>        TheCells; // Cells advanced per level
-    static List<RunStatsData> TheStats; // List of RunStatsData
+    static double             TotalCPU;  // Total CPU time
+    static double             TotalWCT;  // Total Wall Clock time
+    static double             DiskBytes; // Bytes written to disk.
+    static Array<long>        TheCells;  // Cells advanced per level
+    static List<RunStatsData> TheStats;  // List of RunStatsData
 };
 
 //
@@ -175,33 +180,4 @@ RunStats::turnOff (const char* s,
 	find(s, _level)->is_on = false;
     }
 }
-
-inline
-void
-RunStats::start ()
-{
-    if (gentry->is_on && entry->is_on)
-    {
-        time  = -Utility::second();
-        wtime = -ParallelDescriptor::second();
-    }
-}
-
-inline
-void
-RunStats::end ()
-{
-    if (gentry->is_on && entry->is_on)
-    {
-        time  += Utility::second();
-        wtime += ParallelDescriptor::second();
-
-        entry->run_time   += time;
-        entry->run_wtime  += wtime;
-        gentry->run_time  += time;
-        gentry->run_wtime += wtime;
-    }
-}
-
 #endif
-
