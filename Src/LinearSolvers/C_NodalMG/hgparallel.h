@@ -253,7 +253,7 @@ protected:
     }
     const FArrayBox& task_fab_result(int n)
     {
-	if ( n < 0 || n >= tfvect.size() ) throw( "bad_arg" );
+	assert ( n >= 0 && n < tfvect.size() );
 	return tfvect[n]->fab();
     }
 private:
