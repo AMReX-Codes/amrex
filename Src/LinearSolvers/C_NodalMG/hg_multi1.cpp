@@ -186,12 +186,13 @@ void holy_grail_sigma_restrictor_class::fill(FArrayBox& patch,
 	    D_DECL( fgr.dataPtr(0), fgr.dataPtr(1), fgr.dataPtr(2)),
 	    DIMLIST(fgr.box()),
 	    D_DECL(rat[0], rat[1], rat[2]));
+	const int integ = 0;
 	FORT_FACRST1(patch.dataPtr(BL_SPACEDIM),
 	    DIMLIST(patch.box()),
 	    DIMLIST(region),
 	    fgr.dataPtr(BL_SPACEDIM),
 	    DIMLIST(fgr.box()),
-	    D_DECL(rat[0], rat[1], rat[2]), 0);
+	    D_DECL(rat[0], rat[1], rat[2]), &integ);
 	
 #  if (BL_SPACEDIM == 2)
 	patch.mult((Real) rat[1] / rat[0], region, 0, 1);
@@ -203,7 +204,7 @@ void holy_grail_sigma_restrictor_class::fill(FArrayBox& patch,
 	    DIMLIST(region),
 	    fgr.dataPtr(BL_SPACEDIM+1),
 	    DIMLIST(fgr.box()),
-	    D_DECL(rat[0], rat[1], rat[2]), 0);
+	    D_DECL(rat[0], rat[1], rat[2]), &integ);
 	patch.mult((Real) rat[1] * rat[2] / rat[0], region, 0, 1);
 	patch.mult((Real) rat[0] * rat[2] / rat[1], region, 1, 1);
 	patch.mult((Real) rat[0] * rat[1] / rat[2], region, 2, 1);
@@ -403,8 +404,8 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 		{
 		    DependentMultiFabIterator sn_dmfi(s_mfi, sigma_node[mglev]);
 		    DependentMultiFabIterator D_DECL(sn0(s_mfi, sigma_nd[0][mglev]),
-						     sn1(s_mfi, sigma_nd[1][mglev]),
-						     sn2(s_mfi, sigma_nd[2][mglev]));
+			sn1(s_mfi, sigma_nd[1][mglev]),
+			sn2(s_mfi, sigma_nd[2][mglev]));
 		    const Box& scbox = s_mfi->box();
 		    const Box& snbox = sn_dmfi->box();
 		    const Box& reg = lev_interface[mglev].part_fine(s_mfi.index());
@@ -435,8 +436,8 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 	    }
 #  endif
 	}
-    
-}
+	
+    }
     
     cen.resize(mglev_max + 1);
     for (int mglev = 0; mglev <= mglev_max; mglev++) 
@@ -445,72 +446,72 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 	MultiFab& ctmp = cen[mglev];
 	ctmp.setVal(0.0);
 	
-    if (m_hg_terrain)
-    {
-	
-	for (MultiFabIterator c_mfi(ctmp); c_mfi.isValid(); ++c_mfi)
+	if (m_hg_terrain)
 	{
-	    DependentMultiFabIterator s_dmfi(c_mfi, sigma[mglev]);
-	    const Box& cenbox = c_mfi->box();
-	    const Box& reg = lev_interface[mglev].part_fine(c_mfi.index());
-	    const Box& sigbox = s_dmfi->box();
-	    FORT_HGCEN_TERRAIN(c_mfi->dataPtr(), DIMLIST(cenbox), s_dmfi->dataPtr(), DIMLIST(sigbox), DIMLIST(reg));
+	    
+	    for (MultiFabIterator c_mfi(ctmp); c_mfi.isValid(); ++c_mfi)
+	    {
+		DependentMultiFabIterator s_dmfi(c_mfi, sigma[mglev]);
+		const Box& cenbox = c_mfi->box();
+		const Box& reg = lev_interface[mglev].part_fine(c_mfi.index());
+		const Box& sigbox = s_dmfi->box();
+		FORT_HGCEN_TERRAIN(c_mfi->dataPtr(), DIMLIST(cenbox), s_dmfi->dataPtr(), DIMLIST(sigbox), DIMLIST(reg));
+	    }
 	}
-    }
-    else if (m_hg_full_stencil)
-    {
+	else if (m_hg_full_stencil)
+	{
 #if BL_SPACEDIM != 3
-	const Real hxyz[BL_SPACEDIM] = { D_DECL( h[mglev][0], h[mglev][1], h[mglev][2] ) };
-	for (MultiFabIterator c_mfi(cen[mglev]); c_mfi.isValid(); ++c_mfi)
-	{
-	    const Box& cenbox = c_mfi->box();
-	    const Box& reg = lev_interface[mglev].part_fine(c_mfi.index());
-	    DependentMultiFabIterator D_DECL(sn0(c_mfi, sigma_nd[0][mglev]),
-					     sn1(c_mfi, sigma_nd[1][mglev]),
-					     sn2(c_mfi, sigma_nd[2][mglev]));
-	    const Box& sigbox = sn0->box();
-#if (BL_SPACEDIM == 2)
-	    const int imax = mg_domain[mglev].bigEnd(0) + 1;
-	    const int isRZ = IsRZ();
-	    FORT_HGCEN_FULL(c_mfi->dataPtr(), DIMLIST(cenbox),
-			    D_DECL(sn0->dataPtr(), sn1->dataPtr(), sn2->dataPtr()), DIMLIST(sigbox),
-			    DIMLIST(reg),
-			    D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]), &isRZ, &imax);
-#else
-	    FORT_HGCEN_NO_SIGMA_NODE(c_mfi->dataPtr(), DIMLIST(cenbox),
-				     D_DECL(sn0->dataPtr(), sn1->dataPtr(),sn2->dataPtr()),DIMLIST(sigbox),
-				     DIMLIST(reg),
-				     D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]));
-#endif
-	}
-#endif
-    }
-    else
-    {
-	for (MultiFabIterator c_mfi(cen[mglev]); c_mfi.isValid(); ++c_mfi)
-	{
-	    const Box& cenbox = c_mfi->box();
-	    const Box& reg = lev_interface[mglev].part_fine(c_mfi.index());
-#if BL_SPACEDIM == 2
 	    const Real hxyz[BL_SPACEDIM] = { D_DECL( h[mglev][0], h[mglev][1], h[mglev][2] ) };
-	    DependentMultiFabIterator D_DECL(sn0(c_mfi, sigma_nd[0][mglev]),
-					     sn1(c_mfi, sigma_nd[1][mglev]),
-					     sn2(c_mfi, sigma_nd[2][mglev]));
-	    const Box& sigbox = sn0->box();
-	    FORT_HGCEN_NO_SIGMA_NODE(c_mfi->dataPtr(), DIMLIST(cenbox),
-				     D_DECL(sn0->dataPtr(),sn1->dataPtr(),sn2->dataPtr()),DIMLIST(sigbox),
-				     DIMLIST(reg),
-				     D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]));	    
+	    for (MultiFabIterator c_mfi(cen[mglev]); c_mfi.isValid(); ++c_mfi)
+	    {
+		const Box& cenbox = c_mfi->box();
+		const Box& reg = lev_interface[mglev].part_fine(c_mfi.index());
+		DependentMultiFabIterator D_DECL(sn0(c_mfi, sigma_nd[0][mglev]),
+		    sn1(c_mfi, sigma_nd[1][mglev]),
+		    sn2(c_mfi, sigma_nd[2][mglev]));
+		const Box& sigbox = sn0->box();
+#if (BL_SPACEDIM == 2)
+		const int imax = mg_domain[mglev].bigEnd(0) + 1;
+		const int isRZ = IsRZ();
+		FORT_HGCEN_FULL(c_mfi->dataPtr(), DIMLIST(cenbox),
+		    D_DECL(sn0->dataPtr(), sn1->dataPtr(), sn2->dataPtr()), DIMLIST(sigbox),
+		    DIMLIST(reg),
+		    D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]), &isRZ, &imax);
 #else
-	    DependentMultiFabIterator sn_dmfi(c_mfi, sigma_node[mglev]);
-	    const Box& sigbox = sn_dmfi->box();
-	    FORT_HGCEN(c_mfi->dataPtr(), DIMLIST(cenbox),
-		       sn_dmfi->dataPtr(), DIMLIST(sigbox),
-		       DIMLIST(reg));
+		FORT_HGCEN_NO_SIGMA_NODE(c_mfi->dataPtr(), DIMLIST(cenbox),
+		    D_DECL(sn0->dataPtr(), sn1->dataPtr(),sn2->dataPtr()),DIMLIST(sigbox),
+		    DIMLIST(reg),
+		    D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]));
+#endif
+	    }
 #endif
 	}
-    }	
-    clear_part_interface(ctmp, lev_interface[mglev]);
+	else
+	{
+	    for (MultiFabIterator c_mfi(cen[mglev]); c_mfi.isValid(); ++c_mfi)
+	    {
+		const Box& cenbox = c_mfi->box();
+		const Box& reg = lev_interface[mglev].part_fine(c_mfi.index());
+#if BL_SPACEDIM == 2
+		const Real hxyz[BL_SPACEDIM] = { D_DECL( h[mglev][0], h[mglev][1], h[mglev][2] ) };
+		DependentMultiFabIterator D_DECL(sn0(c_mfi, sigma_nd[0][mglev]),
+		    sn1(c_mfi, sigma_nd[1][mglev]),
+		    sn2(c_mfi, sigma_nd[2][mglev]));
+		const Box& sigbox = sn0->box();
+		FORT_HGCEN_NO_SIGMA_NODE(c_mfi->dataPtr(), DIMLIST(cenbox),
+		    D_DECL(sn0->dataPtr(),sn1->dataPtr(),sn2->dataPtr()),DIMLIST(sigbox),
+		    DIMLIST(reg),
+		    D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]));	    
+#else
+		DependentMultiFabIterator sn_dmfi(c_mfi, sigma_node[mglev]);
+		const Box& sigbox = sn_dmfi->box();
+		FORT_HGCEN(c_mfi->dataPtr(), DIMLIST(cenbox),
+		    sn_dmfi->dataPtr(), DIMLIST(sigbox),
+		    DIMLIST(reg));
+#endif
+	    }
+	}	
+	clear_part_interface(ctmp, lev_interface[mglev]);
     }
     
     if (m_hg_cross_stencil)

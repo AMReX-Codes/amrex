@@ -26,7 +26,7 @@
 
 extern "C" 
 {
-    void FORT_FACRST1(Real*, intS, intS, const Real*, intS, intRS, const int&);
+    void FORT_FACRST1(Real*, intS, intS, const Real*, intS, intRS, const int*);
     void FORT_FANRST1(Real*, intS, intS, const Real*, intS, intRS);
     void FORT_FANRST2(Real*, intS, intS, const Real*, intS, intRS, const int&);
     void FORT_FANFR2(Real*, intS, intS, const Real*, intS, intRS, const int&, const int&, const int&);
@@ -53,7 +53,7 @@ void cell_average_restrictor_class::fill(FArrayBox& patch,
     {
 	FORT_FACRST1(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
 	    fgr.dataPtr(i), DIMLIST(fgr.box()),
-	    D_DECL(rat[0], rat[1], rat[2]), integrate);
+	    D_DECL(rat[0], rat[1], rat[2]), &integrate);
     }
 }
 
@@ -64,9 +64,10 @@ void terrain_velocity_restrictor_class::fill(FArrayBox& patch,
 {
     assert(patch.box().cellCentered());
     assert(patch.nComp() == 1);
+    const int integ = 1;
     FORT_FACRST1(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region),
 	fgr.dataPtr(), DIMLIST(fgr.box()),
-	D_DECL(rat[0], rat[1], rat[2]), 1);
+	D_DECL(rat[0], rat[1], rat[2]), &integ);
     Real fac = 1.0 / rat[integrate];
     patch.mult(fac, region);
 }
