@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.87 1999-06-08 00:57:37 marc Exp $
+// $Id: Amr.cpp,v 1.88 1999-07-16 18:23:49 sstanley Exp $
 //
 
 #include <TagBox.H>
@@ -555,7 +555,7 @@ Amr::writePlotFile (const aString& root,
         if (!HeaderFile.good())
             Utility::FileOpenFailed(HeaderFileName);
 
-        old_prec = HeaderFile.precision(15);
+        old_prec = HeaderFile.precision(30);
     }
 
     for (int k = 0; k <= finest_level; k++)
@@ -976,7 +976,7 @@ Amr::checkPoint ()
         if (!HeaderFile.good())
             Utility::FileOpenFailed(HeaderFileName);
 
-        old_prec = HeaderFile.precision(15);
+        old_prec = HeaderFile.precision(30);
 
         HeaderFile << CheckPointVersion << '\n'
                    << BL_SPACEDIM       << '\n'

@@ -275,7 +275,7 @@ writePlotFile (const char*     name,
         if (!HeaderFile.good())
             Utility::FileOpenFailed(HeaderFileName);
 
-        old_prec = HeaderFile.precision(15);
+        old_prec = HeaderFile.precision(30);
     }
 
     int finest_level = 1;

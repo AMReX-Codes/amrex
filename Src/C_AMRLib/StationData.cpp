@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StationData.cpp,v 1.10 1999-05-10 18:54:09 car Exp $
+// $Id: StationData.cpp,v 1.11 1999-07-16 18:23:49 sstanley Exp $
 //
 #ifdef BL_USE_NEW_HFILES
 #include <cstdio>
@@ -108,7 +108,7 @@ StationData::init ()
 
         m_ofile.open(buf, ios::out|ios::app);
 
-        m_ofile.precision(15);
+        m_ofile.precision(30);
 
         BL_ASSERT(!m_ofile.bad());
         //
