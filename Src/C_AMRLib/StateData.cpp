@@ -1,9 +1,8 @@
 
 //
-// $Id: StateData.cpp,v 1.30 2000-11-17 18:01:09 lijewski Exp $
+// $Id: StateData.cpp,v 1.31 2001-05-09 22:30:59 lijewski Exp $
 //
 
-#include <RunStats.H>
 #include <StateData.H>
 #include <ParallelDescriptor.H>
 
@@ -476,16 +475,13 @@ StateData::checkPoint (const aString& name,
     }
     BL_ASSERT(new_data);
     aString mf_fullpath_new = fullpathname; mf_fullpath_new += NewSuffix;
-    long bytesWritten;
-    bytesWritten = VisMF::Write(*new_data,mf_fullpath_new,how);
-    RunStats::addBytes(bytesWritten);
+    VisMF::Write(*new_data,mf_fullpath_new,how);
 
     if (dump_old)
     {
         BL_ASSERT(old_data);
         aString mf_fullpath_old = fullpathname; mf_fullpath_old += OldSuffix;
-        bytesWritten = VisMF::Write(*old_data,mf_fullpath_old,how);
-        RunStats::addBytes(bytesWritten);
+        VisMF::Write(*old_data,mf_fullpath_old,how);
     }
 }
 

@@ -1,6 +1,6 @@
 
 //
-// $Id: SlabStat.cpp,v 1.10 2000-10-02 20:48:43 lijewski Exp $
+// $Id: SlabStat.cpp,v 1.11 2001-05-09 22:30:59 lijewski Exp $
 //
 
 #include <AmrLevel.H>
@@ -269,7 +269,7 @@ SlabStatList::checkPoint (PArray<AmrLevel>& amrLevels,
 
     for (ListIterator<SlabStatRec*> li(m_list); li; ++li)
     {
-        RunStats::addBytes(VisMF::Write(li()->mf(),path+li()->name()));
+        VisMF::Write(li()->mf(),path+li()->name());
 
         li()->m_interval = 0;
 
