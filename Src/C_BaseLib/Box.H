@@ -4,7 +4,7 @@
 #define BL_BOX_H
 
 //
-// $Id: Box.H,v 1.3 1997-09-18 20:12:44 lijewski Exp $
+// $Id: Box.H,v 1.4 1997-10-21 21:55:53 vince Exp $
 //
 
 #ifdef NODEV
@@ -269,7 +269,7 @@ public:
     Box& shift (int dir,
                 int nzones);
     //
-    //@ManDoc: Equivalent to b.shift(0,iv[0]).shiftHalf(1,iv[1]) ....
+    //@ManDoc: Equivalent to b.shift(0,iv[0]).shift(1,iv[1]) ....
     //
     Box& shift (const IntVect& iv);
  
