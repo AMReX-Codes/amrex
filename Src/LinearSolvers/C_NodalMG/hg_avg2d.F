@@ -14,7 +14,14 @@ c-----------------------------------------------------------------------
       double precision fac, r1, r0m, r1m
       integer i, j
       integer idense
-      fac = 0.25d0
+
+c     Need to modify the weighting of the RHS for the dense stencil
+      if (idense .eq. 1) then
+        fac = 0.25d0 * hx
+      else
+        fac = 0.25d0
+      endif
+
       do j = fregl1, fregh1
          do i = fregl0, fregh0
 c     We want only this modification for the cross stencil
@@ -27,36 +34,25 @@ c     We want only this modification for the cross stencil
          end do
       end do
 
-      if ( idense .eq. 1 ) then
+      if ( idense .eq. 1 .and. irz .eq. 1) then
 c     We dont want these extra terms for the cross stencil
-         if (irz .eq. 1) then
-            fac = hx / 24.d0
-            r1  = (fregl0 - 0.5d0) * hx
-            r1m = 1.d0 / r1
-            do i = fregl0, fregh0
-               r0m = r1m
-               r1  = r1 + hx
-               if (i .lt. imax) then
-                  r1m = 1.d0 / r1
-               else
-                  r1m = -r0m
-               end if
-               do j = fregl1, fregh1
-                  src(i,j) = src(i,j) + fac *
-     &                 (r0m * (rf(i-1,j) + rf(i-1,j-1)) -
-     &                 r1m * (rf(i,j-1) + rf(i,j)))
-               end do
+         fac = hx / 24.d0 * hx
+         r1  = (fregl0 - 0.5d0) * hx
+         r1m = 1.d0 / r1
+         do i = fregl0, fregh0
+            r0m = r1m
+            r1  = r1 + hx
+            if (i .lt. imax) then
+               r1m = 1.d0 / r1
+            else
+               r1m = -r0m
+            end if
+            do j = fregl1, fregh1
+               src(i,j) = src(i,j) + fac *
+     &              (r0m * (rf(i-1,j) + rf(i-1,j-1)) -
+     &              r1m * (rf(i,j-1) + rf(i,j)))
             end do
-         end if
-      end if
-
-c     Need to modify the weighting of the RHS for the dense stencil
-      if ( idense .eq. 1 ) then
-        do j = fregl1, fregh1
-        do i = fregl0, fregh0
-          src(i,j) = src(i,j) * hx
-        enddo
-        enddo
+         end do
       end if
 
       end
@@ -83,6 +79,8 @@ c Note---only generates values at coarse points along edge of fine grid
       integer i, j, irc, jrc, irf, jrf, m, n
       integer idense
 
+c     Need to modify the weighting of the RHS for the dense stencil
+
       if (idim .eq. 0) then
          i = cregl0
          if (idir .eq. 1) then
@@ -93,6 +91,7 @@ c Note---only generates values at coarse points along edge of fine grid
             irf = i * ir - 1
          end if
          fac0 = 0.5d0 * ir / (ir+1)
+         if ( idense .eq. 1 ) fac0 = fac0 * hx
          do j = cregl1, cregh1
           src(i*ir,j*jr) = src(i*ir,j*jr) + fac0 *
      &         (rc(irc,j) + rc(irc,j-1))
@@ -111,6 +110,7 @@ c     We dont want these extra terms for the cross stencil
          end if
          end if
          fac0 = fac0 / (ir * jr * jr)
+         if ( idense .eq. 1 ) fac0 = fac0 * hx
          i = i * ir
          do n = 0, jr-1
             fac = (jr-n) * fac0
@@ -131,13 +131,6 @@ c     We dont want these extra terms for the cross stencil
             end if
             end if
          end do
-c        Need to modify the weighting of the RHS for the dense stencil
-         if ( idense .eq. 1 ) then
-           i = cregl0 * ir
-           do j = jr*cregl1,jr*cregh1,jr
-             src(i,j) = src(i,j) * hx
-           enddo
-         end if
       else if (idim .eq. 1) then
          j = cregl1
          if (idir .eq. 1) then
@@ -148,6 +141,7 @@ c        Need to modify the weighting of the RHS for the dense stencil
             jrf = j * jr - 1
          end if
          fac0 = 0.5d0 * jr / (jr+1)
+         if ( idense .eq. 1 ) fac0 = fac0 * hx
          do i = cregl0, cregh0
             src(i*ir,j*jr) = src(i*ir,j*jr) + fac0 *
      &        (rc(i,jrc) + rc(i-1,jrc))
@@ -180,6 +174,7 @@ c should be handled by the cavg routine instead:
          end if
          end if
          fac0 = fac0 / (ir * ir * jr)
+         if ( idense .eq. 1 ) fac0 = fac0 * hx
          j = j * jr
          do m = 0, ir-1
             fac = (ir-m) * fac0
@@ -228,13 +223,6 @@ c should be handled by the cavg routine instead:
             end if
             end if
          end do
-c        Need to modify the weighting of the RHS for the dense stencil
-         if ( idense .eq. 1 ) then
-           j = cregl1 * jr
-           do i = ir*cregl0,ir*cregh0,ir
-             src(i,j) = src(i,j) * hx
-           enddo
-         end if
       end if
       end
 c-----------------------------------------------------------------------
@@ -372,9 +360,9 @@ c     We dont want these extra terms for the cross stencil
          end do
       end do
 c weighting
-      src(if,jf) = src(if,jf) + sum / center
+
 c     Need to modify the weighting of the RHS for the dense stencil
-      if ( idense .eq. 1 ) then
-         src(if,jf) = src(if,jf) * hx
-      end if
+      if ( idense .eq. 1 ) sum = sum * hx
+
+      src(if,jf) = src(if,jf) + sum / center
       end
