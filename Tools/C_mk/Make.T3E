@@ -2,8 +2,11 @@
 CPP = cpp
 
 ifeq ($(COMP),CFRONT)
-CXX	          := OCC
-override XTRADEFS += -DBL_BUG_DEFARG -DBL_USE_SETBUF 
+CXX := OCC
+#
+# Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
+#
+override XTRADEFS += -DBL_USE_SETBUF 
 override XTRADEFS += -DBL_SETBUF_SIGNED_CHAR -DBL_COALESCE_FABS
 OUTPUT_OPTION	   =  ; mv $*.o $@
 endif
@@ -12,6 +15,9 @@ ifeq ($(COMP),CC)
 CXX     := CC -h instantiate=local
 CXXOPTF += -O2 -h new_for_init
 CXXDEBF += -g -h new_for_init
+#
+# Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
+#
 override XTRADEFS += -DBL_USE_SETBUF -DBL_SETBUF_SIGNED_CHAR
 override XTRADEFS += -DBL_COALESCE_FABS
 endif
@@ -20,13 +26,15 @@ ifeq ($(COMP),KCC)
 CXX     := KCC
 CXXOPTF += +K2
 CXXDEBF += +K0
-override XTRADEFS += -DBL_USE_SETBUF -DBL_SETBUF_SIGNED_CHAR
-override XTRADEFS += -DBL_COALESCE_FABS
+#
+# Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
+#
+override XTRADEFS += -DBL_SETBUF_SIGNED_CHAR -DBL_COALESCE_FABS
 endif
 
 ifeq ($(PROFILE), TRUE)
 #
-# the following are for apprentice
+# The following are for apprentice
 # apprentice is broken on the T3E -- vince
 #
 #CXXPRFF	 += -happrentice
@@ -41,7 +49,6 @@ endif
 ifeq ($(COMP),KCC)
 XTRALIBS += --backend -lpat --backend pat.cld
 endif
-
 endif
 
 FC     = f90 -N 80 -e I
