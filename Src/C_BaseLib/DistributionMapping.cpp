@@ -314,7 +314,7 @@ DistributionMapping::MetisProcessorMap (const BoxArray& boxes, int nprocs)
 	    &edgecut, &m_procmap[0]);
 
     const int  IOProc   = ParallelDescriptor::IOProcessorNumber();
-    const Real stoptime = ParallelDescriptor::second() - strttime;
+    Real       stoptime = ParallelDescriptor::second() - strttime;
 
     if (verbose)
     {
