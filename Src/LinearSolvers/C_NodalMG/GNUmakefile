@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.50 2002-09-03 16:34:54 car Exp $
+# $Id: GNUmakefile,v 1.51 2002-09-04 15:29:53 car Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -10,14 +10,14 @@ DEBUG     = FALSE
 DEBUG     = TRUE
 PROFILE   = TRUE
 PROFILE   = FALSE
-DIM       = 2
 DIM       = 3
+DIM       = 2
 COMP      = cxx
 COMP      = KCC
 COMP	  = g++
 FCOMP	  = g77
-USE_MPI   = FALSE
 USE_MPI   = TRUE
+USE_MPI   = FALSE
 NAMESPACE = TRUE
 NAMESPACE = FALSE
 
@@ -120,7 +120,7 @@ endif
 #
 # Lower optimization level for this big file
 #
-o/3d.OSF1.KCC/hg_multi3d_terrain.o: hg_multi3d_terrain.F
+o/3d.OSF1.KCC/hg_multi3d_terrain.o: hg_multi3d_terrain.f
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	$(CPP) -DBL_LANG_FORT $(CPPFLAGS) $< | $(FORTPREP) > f/3d.OSF1.KCC/hg_multi3d_terrain.f
