@@ -1,4 +1,4 @@
-// $Id: MCLinOp.cpp,v 1.5 1998-11-17 19:11:10 lijewski Exp $
+// $Id: MCLinOp.cpp,v 1.6 1998-11-17 19:15:39 lijewski Exp $
 
 // differences from LinOp: den has nc components, bct has nc components
 
@@ -20,10 +20,12 @@ int MCLinOp::def_harmavg = 0;
 int MCLinOp::def_verbose = 0;
 int MCLinOp::def_maxorder = 2;
 
+#ifndef NDEBUG
   // MCLinOp::applyBC fills MCLinOp_grow ghost cells with data expected in MCLinOp::apply
   //  therefore, the incoming MultiFab to MCLinOp::applyBC better have this many ghost
   //  allocated
 const int MCLinOp_grow = 1;
+#endif
 
 void
 MCLinOp::initialize ()
