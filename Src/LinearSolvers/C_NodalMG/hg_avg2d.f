@@ -186,10 +186,10 @@ c should be handled by the cavg routine instead:
             end do
 
             if (irz .eq. 1 .and. m .eq. 0 .and.
-     @          cregl0 .le. 0 .and. cregh0 .ge. 0) then
+     &          cregl0 .le. 0 .and. cregh0 .ge. 0) then
                i = 0
                src(i*ir,j*jr) = src(i*ir,j*jr) - fac *
-     @              (rf(i-m-1,jrf) + rf(i+m-1,jrf))
+     &              (rf(i-m-1,jrf) + rf(i+m-1,jrf))
             endif
             if ( idense .eq. 1 ) then
 c     We dont want these extra terms for the cross stencil

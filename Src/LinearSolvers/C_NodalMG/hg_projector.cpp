@@ -1,4 +1,3 @@
-
 #include "hg_projector.H"
 
 #if defined( BL_FORT_USE_UNDERSCORE )
@@ -1152,6 +1151,8 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
                    use_u, H, tol, Lev_min, Lev_max, scale);
 }
 
+extern "C"    bool writeMF (const MultiFab* mf, const char*     file);
+
 void
 holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
                                           PArray<MultiFab>& p,
@@ -1168,6 +1169,20 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
                                           int               Lev_max,
                                           Real              scale)
 {
+    if (false) 
+    {
+	std::cout << "Lev_min = " << Lev_min << std::endl;
+	std::cout << "Lev_max = " << Lev_max << std::endl;
+	for ( int i = Lev_min; i <= Lev_max; ++i )
+	{
+	    if ( u->defined(i) ) 
+	    {
+		writeMF(&(*u)[0], "u[0]");
+	    }
+	    writeMF(&rhs[0], "rhs[0]");
+	    writeMF(&Sigma[0], "Sigma[0]");
+	}
+    }
     Box crse_domain(crse_geom.Domain());
 
     if (Lev_min < 0)
