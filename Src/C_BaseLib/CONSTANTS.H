@@ -4,12 +4,12 @@
 #define BL_CONSTANTS_H
 
 /*
-** $Id: CONSTANTS.H,v 1.3 1997-09-18 18:03:33 car Exp $
+** $Id: CONSTANTS.H,v 1.4 1997-12-01 20:49:58 vince Exp $
 */
 
 #ifdef BL_LANG_FORT
 
-#ifdef BL_USE_FLOAT
+#if defined(BL_USE_FLOAT) || defined(BL_T3E)
 #define bigreal 1.0e+30
 #define zero    0.0
 #define one     1.0
@@ -38,7 +38,7 @@
 
 #endif /*BL_USE_FLOAT*/
 
-#ifdef BL_USE_DOUBLE
+#if defined(BL_USE_DOUBLE) && ! defined(BL_T3E)
 
 #define bigreal 1.0d+30
 #define zero    0.0d0
