@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.70 2001-10-23 17:01:20 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.71 2001-10-23 17:31:02 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -971,65 +971,68 @@ FluxRegister::CrseInitFinish ()
             BoxLib::The_Arena()->free(data);
         }
     }
-    //
-    // Now receive and unpack FAB data.
-    //
-    FArrayBox fab;
 
-    NWaits = 0;
-    for (int i = 0; i < NProcs; i++)
-        if (req_data[i] != MPI_REQUEST_NULL)
-            NWaits++;
-
-    for (int completed; NWaits > 0; NWaits -= completed)
     {
-        ParallelDescriptor::Waitsome(req_data, completed, indx, status);
+        //
+        // Now receive and unpack FAB data.
+        //
+        FArrayBox fab;
 
-        for (int k = 0; k < completed; k++)
+        NWaits = 0;
+        for (int i = 0; i < NProcs; i++)
+            if (req_data[i] != MPI_REQUEST_NULL)
+                NWaits++;
+
+        for (int completed; NWaits > 0; NWaits -= completed)
         {
-            const int Ncpu = indx[k];
+            ParallelDescriptor::Waitsome(req_data, completed, indx, status);
 
-            idx = 0;
-            for (int j = 0; j < Ncpu; j++)
-                idx += Rcvs[j];
-
-            int Processed = 0;
-
-            Real* dptr = fab_data[Ncpu];
-
-            BL_ASSERT(!(dptr == 0));
-
-            for (int j = 0; j < Rcvs[Ncpu]; j++)
+            for (int k = 0; k < completed; k++)
             {
-                const CommData& cd = recvdata[idx+j];
-                fab.resize(cd.box(),cd.nComp());
-                int N = fab.box().numPts() * fab.nComp();
-                BL_ASSERT(N < INT_MAX);
-                memcpy(fab.dataPtr(), dptr, N * sizeof(Real));
-                bndry[cd.face()][cd.fabindex()].copy(fab,
-                                                     fab.box(),
-                                                     0,
-                                                     fab.box(),
-                                                     cd.srcComp(),
-                                                     cd.nComp());
-                dptr += N;
-                Processed++;
+                const int Ncpu = indx[k];
+
+                idx = 0;
+                for (int j = 0; j < Ncpu; j++)
+                    idx += Rcvs[j];
+
+                int Processed = 0;
+
+                Real* dptr = fab_data[Ncpu];
+
+                BL_ASSERT(!(dptr == 0));
+
+                for (int j = 0; j < Rcvs[Ncpu]; j++)
+                {
+                    const CommData& cd = recvdata[idx+j];
+                    fab.resize(cd.box(),cd.nComp());
+                    int N = fab.box().numPts() * fab.nComp();
+                    BL_ASSERT(N < INT_MAX);
+                    memcpy(fab.dataPtr(), dptr, N * sizeof(Real));
+                    bndry[cd.face()][cd.fabindex()].copy(fab,
+                                                         fab.box(),
+                                                         0,
+                                                         fab.box(),
+                                                         cd.srcComp(),
+                                                         cd.nComp());
+                    dptr += N;
+                    Processed++;
+                }
+
+                BL_ASSERT(Processed == Rcvs[Ncpu]);
+
+                BoxLib::The_Arena()->free(fab_data[Ncpu]);
             }
-
-            BL_ASSERT(Processed == Rcvs[Ncpu]);
-
-            BoxLib::The_Arena()->free(fab_data[Ncpu]);
         }
+        //
+        // Null out vectors.
+        //
+        CIFabs.erase(CIFabs.begin(), CIFabs.end());
+        CITags.erase(CITags.begin(), CITags.end());
+        //
+        // Zero out CIMsgs.
+        //
+        for (int i = 0; i < NProcs; i++) CIMsgs[i] = 0;
     }
-    //
-    // Null out vectors.
-    //
-    CIFabs.erase(CIFabs.begin(), CIFabs.end());
-    CITags.erase(CITags.begin(), CITags.end());
-    //
-    // Zero out CIMsgs.
-    //
-    for (int i = 0; i < NProcs; i++) CIMsgs[i] = 0;
 
     BoxLib::ResetArena(oldarena);
 }
