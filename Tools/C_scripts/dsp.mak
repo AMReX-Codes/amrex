@@ -1,5 +1,5 @@
 #!/bin/sh
-USAGE="Usage: $myName [-p project] [-v prversion] [-d spacedim] [-o outfile] [-O <0, 1>] [-f namefile] filenames"
+USAGE="Usage: $myName [-p project] [-v prversion] [-d spacedim] [-o outfile] [-O <0, 1>] [-f namefile] [-S] filenames"
 
 myName=$0
 PROJ=IAMRAll
@@ -7,6 +7,7 @@ DIM=2
 OFILE=$PROJ.dsp
 OLEVEL=0           # 0 - DEBUG, 1 - Release
 VERSION=0
+SERIAL=0
 NFILE=
 
 #
@@ -17,7 +18,7 @@ then
         echo $USAGE
         exit
 fi
-set -- `getopt p:d:o:O:f:v: $*`
+set -- `getopt p:d:o:O:f:v:S $*`
 if [ $? != 0 ]
   then
     echo $USAGE 
@@ -32,22 +33,26 @@ do
   -O) shift;OLEVEL=$1;shift;;
   -f) shift;NFILE=$1;shift;;
   -v) shift;VERSION=$1;shift;;
+  -S) shift;SERIAL=1;;
   --) shift;break;;
   esac
 done
 
 files=$*
 
+vN=5
+if [ ${VERSION} = v9 ]
+  then
+    vN=9
+fi
+CPROJVERS='/D "BL_PRVERSION='${VERSION}\"
+FPROJVERS='/DBL_PRVERSION='${vN}
 CPROJDEF=
-CPROJVERS=
 FPROJDEF=
-FPROJVERS=
-if [ ${VERSION} != 0 ]
+if [ ${SERIAL} = 1 ]
  then
    CPROJDEF='/D "BL_USE_HGPROJ_SERIAL"'
-   CPROJVERS='/D "BL_PRVERSION='${VERSION}\"
    FPROJDEF='/DBL_USE_HGPROJ_SERIAL'
-   FPROJVERS='/DBL_PRVERSION='${VERSION}
 fi
 
 if [ -n $NFILE ]
