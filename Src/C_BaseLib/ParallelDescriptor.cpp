@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.16 1998-03-25 20:54:32 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.17 1998-03-25 20:59:54 car Exp $
 //
 #include <Utility.H>
 #include <ParallelDescriptor.H>
@@ -124,13 +124,6 @@ void ParallelDescriptor::ReceiveData (void* data,
 void
 ParallelDescriptor::Synchronize ()
 {
-    bsp_sync();
-}
-
-void
-ParallelDescriptor::Synchronize (const char* msg)
-{
-    cout << "----- " << bsp_pid() << " :  about to sync:  " << msg << endl;
     bsp_sync();
 }
 
@@ -361,10 +354,6 @@ void ParallelDescriptor::Abort (const char* str)
 int ParallelDescriptor::MyProc () { return 0; }
 int ParallelDescriptor::NProcs () { return 1; }
 void ParallelDescriptor::Synchronize () {}
-void ParallelDescriptor::Synchronize (const char* msg)
-{
-    cout << "----- " << 0 << " :  about to sync:  " << msg << endl;
-}
 bool ParallelDescriptor::IOProcessor () { return true; }
 int  ParallelDescriptor::IOProcessorNumber () { return 0; }
 
