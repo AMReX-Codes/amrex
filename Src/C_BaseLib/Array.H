@@ -2,7 +2,7 @@
 #define BL_ARRAY_H
 
 //
-// $Id: Array.H,v 1.20 2001-07-20 01:45:48 car Exp $
+// $Id: Array.H,v 1.21 2001-07-20 16:54:07 lijewski Exp $
 //
 
 #include <cstddef>
@@ -54,7 +54,8 @@ template <class T> class Array;
 
 template <class T>
 class Array
-    : public std::vector<T>
+    :
+    public std::vector<T>
 {
 public:
     //
@@ -160,7 +161,7 @@ template <class T>
 T&
 Array<T>::operator[] (size_t i)
 {
-    BL_ASSERT(i >= 0 && i < size());
+    BL_ASSERT(i < size());
     return std::vector<T>::operator[](i);
 }
 
@@ -168,7 +169,7 @@ template <class T>
 const T&
 Array<T>::operator[] (size_t i) const
 {
-    BL_ASSERT(i >= 0 && i < size());
+    BL_ASSERT(i < size());
     return std::vector<T>::operator[](i);
 }
 
@@ -176,7 +177,7 @@ template <class T>
 T&
 Array<T>::get (size_t i)
 {
-    BL_ASSERT(i >= 0 && i < size());
+    BL_ASSERT(i < size());
     return std::vector<T>::operator[](i);
 }
 
@@ -184,7 +185,7 @@ template <class T>
 const T&
 Array<T>::get (size_t i) const
 {
-    BL_ASSERT(i >= 0 && i < size());
+    BL_ASSERT(i < size());
     return std::vector<T>::operator[](i);
 }
 
@@ -212,29 +213,32 @@ Array<T>::dataPtr () const
 
 template <class T>
 Array<T>::Array ()
-    : std::vector<T>()
+    :
+    std::vector<T>()
 {
 }
 
 template <class T>
 Array<T>::Array (size_t len)
-    : std::vector<T>(len)
+    :
+    std::vector<T>(len)
 {
 }
 
 template <class T>
 Array<T>::Array (size_t     len,
                  const T& initialValue)
-    : std::vector<T>(len, initialValue)
+    :
+    std::vector<T>(len, initialValue)
 {
 }
 
 template <class T>
 Array<T>::Array (const T* vec,
                  size_t     len)
-    : std::vector<T>(len)
+    :
+    std::vector<T>(len)
 {
-    BL_ASSERT(len >= 0);
     BL_ASSERT(len == 0 || vec != 0);
 
     for (size_t i = 0; i < len; ++i)

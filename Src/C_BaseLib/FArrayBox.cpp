@@ -1,5 +1,5 @@
 //
-// $Id: FArrayBox.cpp,v 1.34 2001-07-19 16:57:32 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.35 2001-07-20 16:54:08 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -435,7 +435,7 @@ FArrayBox::norm (const Box& subbox,
 
     if (p == 0 || p == 1)
     {
-        nrm = NormedFab<Real>::norm(subbox,p,comp,ncomp);
+        nrm = BaseFab<Real>::norm(subbox,p,comp,ncomp);
     }
     else if (p == 2)
     {
