@@ -1,6 +1,8 @@
 //
-// $Id: AmrLevel.cpp,v 1.77 2001-08-01 21:50:44 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.78 2001-08-09 22:41:59 marc Exp $
 //
+#include <winstd.H>
+
 #include <cstdio>
 #include <cstring>
 #include <strstream>

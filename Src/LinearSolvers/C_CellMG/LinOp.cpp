@@ -1,7 +1,8 @@
 
 //
-// $Id: LinOp.cpp,v 1.27 2001-08-01 21:51:04 lijewski Exp $
+// $Id: LinOp.cpp,v 1.28 2001-08-09 22:42:00 marc Exp $
 //
+#include <winstd.H>
 
 #include <cstdlib>
 

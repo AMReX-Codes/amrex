@@ -19,7 +19,7 @@ then
         echo $USAGE
         exit
 fi
-set -- `getopt p:t:d:o:O:f:v:S $*`
+#set -- `getopt p:t:d:o:O:f:v:S $*`
 if [ $? != 0 ]
   then
     echo $USAGE 
@@ -305,27 +305,27 @@ for file in $FEXE_sources
 
 SOURCE=$ffile
 
-!IF  "$(CFG)" == "$PROJ - Win32 Release"
+!IF  "\$(CFG)" == "$PROJ - Win32 Release"
 
 # PROP Ignore_Default_Tool 1
 # Begin Custom Build
 InputPath=$ffile
 InputName=$ifile
 
-"$(IntDir)\\$(InputName).FOR" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /m /ansi /nologo $fdirlist /DBL_LANG_FORT  /DBL_SPACEDIM=${DIM} /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DBL_USE_CHEM ${FPROJDEF} ${FPROJVERS} $(InputPath) | perl ${TOP}\scripts\strip72 -c > $(IntDir)\\$(InputName).FOR
+"\$(IntDir)\\\$(InputName).FOR" : \$(SOURCE) "\$(INTDIR)" "\$(OUTDIR)"
+	fpp /m /ansi /nologo $fdirlist /DBL_LANG_FORT  /DBL_SPACEDIM=${DIM} /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DBL_USE_CHEM ${FPROJDEF} ${FPROJVERS} \$(InputPath) | perl ${TOP}\scripts\strip72 -c > \$(IntDir)\\\$(InputName).FOR
 
 # End Custom Build
 
-!ELSEIF  "$(CFG)" == "$PROJ - Win32 Debug"
+!ELSEIF  "\$(CFG)" == "$PROJ - Win32 Debug"
 
 # PROP Ignore_Default_Tool 1
 # Begin Custom Build
 InputPath=$ffile
 InputName=$ifile
 
-"$(IntDir)\\$(InputName).FOR" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /m /ansi /nologo $fdirlist /DBL_LANG_FORT  /DBL_SPACEDIM=${DIM} /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DBL_USE_CHEM ${FPROJDEF} ${FPROJVERS} $(InputPath) | perl ${TOP}\scripts\strip72 -c > $(IntDir)\\$(InputName).FOR
+"\$(IntDir)\\\$(InputName).FOR" : \$(SOURCE) "\$(INTDIR)" "\$(OUTDIR)"
+	fpp /m /ansi /nologo $fdirlist /DBL_LANG_FORT  /DBL_SPACEDIM=${DIM} /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DBL_USE_CHEM ${FPROJDEF} ${FPROJVERS} \$(InputPath) | perl ${TOP}\scripts\strip72 -c > \$(IntDir)\\\$(InputName).FOR
 
 # End Custom Build
 

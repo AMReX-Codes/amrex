@@ -2,7 +2,7 @@
 #define BL_SPACE_H
 
 /*
-** $Id: SPACE.H,v 1.9 2001-07-20 17:01:45 car Exp $
+** $Id: SPACE.H,v 1.10 2001-08-09 22:41:59 marc Exp $
 */
 
 #if defined(BL_SPACEDIM) && !defined(SPACEDIM)
@@ -31,6 +31,7 @@
 #endif
 
 #if !defined(BL_LANG_FORT) || defined(BL_LANG_CC)
+
 
 /*@ManDoc:
   The SpaceDim C++ integer constant specifies the dimension of the

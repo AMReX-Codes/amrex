@@ -1,6 +1,7 @@
 //
-// $Id: Amr.cpp,v 1.122 2001-08-02 16:04:11 car Exp $
+// $Id: Amr.cpp,v 1.123 2001-08-09 22:41:59 marc Exp $
 //
+#include <winstd.H>
 
 #include <algorithm>
 #include <cstdio>

@@ -1,7 +1,8 @@
 
 //
-// $Id: Laplacian.cpp,v 1.12 2001-08-01 21:51:03 lijewski Exp $
+// $Id: Laplacian.cpp,v 1.13 2001-08-09 22:42:00 marc Exp $
 //
+#include <winstd.H>
 
 #include <Laplacian.H>
 
