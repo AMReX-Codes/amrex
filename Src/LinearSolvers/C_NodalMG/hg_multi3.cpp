@@ -2,43 +2,43 @@
 #include "hg_multi.H"
 
 #ifdef BL_FORT_USE_UNDERSCORE
-#define   FORT_HGRES      hgres_
-#define   FORT_HGRES_TERRAIN      hgres_terrain_
-#define   FORT_HGRES_FULL_STENCIL      hgres_full_stencil_
-#define   FORT_HGRESU     hgresu_
-#define   FORT_HGRLX      hgrlx_
-#define   FORT_HGRLX_TERRAIN      hgrlx_terrain_
-#define   FORT_HGRLX_FULL_STENCIL      hgrlx_full_stencil_
-#define   FORT_HGRLXU     hgrlxu_
-#define   FORT_HGRLXL     hgrlxl_
-#define   FORT_HGRLXL_FULL_STENCIL     hgrlxl_full_stencil_
-#define   FORT_HGRLNF     hgrlnf_
-#define   FORT_HGRLNF_TERRAIN     hgrlnf_terrain_
-#define   FORT_HGRLNF_FULL_STENCIL     hgrlnf_full_stencil_
-#define   FORT_HGRLNB     hgrlnb_
-#define   FORT_HGCG       hgcg_
-#define   FORT_HGCG1      hgcg1_
-#define   FORT_HGCG2      hgcg2_
-#define   FORT_HGIP       hgip_
+#define   FORT_HGRES		hgres_
+#define   FORT_HGRES_TERRAIN	hgres_terrain_
+#define   FORT_HGRES_FULL	hgres_full_
+#define   FORT_HGRESU		hgresu_
+#define   FORT_HGRLX		hgrlx_
+#define   FORT_HGRLX_TERRAIN	hgrlx_terrain_
+#define   FORT_HGRLX_FULL	hgrlx_full_
+#define   FORT_HGRLXU		hgrlxu_
+#define   FORT_HGRLXL		hgrlxl_
+#define   FORT_HGRLXL_FULL	hgrlxl_full_
+#define   FORT_HGRLNF		hgrlnf_
+#define   FORT_HGRLNF_TERRAIN	hgrlnf_terrain_
+#define   FORT_HGRLNF_FULL	hgrlnf_full_
+#define   FORT_HGRLNB		hgrlnb_
+#define   FORT_HGCG		hgcg_
+#define   FORT_HGCG1		hgcg1_
+#define   FORT_HGCG2		hgcg2_
+#define   FORT_HGIP		hgip_
 #else
-#define   FORT_HGRES      HGRES
-#define   FORT_HGRES_TERRAIN      HGRES_TERRAIN
-#define   FORT_HGRES_FULL_STENCIL      HGRES_FULL_STENCIL
-#define   FORT_HGRESU     HGRESU
-#define   FORT_HGRLX      HGRLX
-#define   FORT_HGRLX_TERRAIN      HGRLX_TERRAIN
-#define   FORT_HGRLX_FULL_STENCIL      HGRLX_FULL_STENCIL
-#define   FORT_HGRLXU     HGRLXU
-#define   FORT_HGRLXL     HGRLXL
-#define   FORT_HGRLXL_FULL_STENCIL     HGRLXL_FULL_STENCIL
-#define   FORT_HGRLNF     HGRLNF
-#define   FORT_HGRLNF_TERRAIN     HGRLNF_TERRAIN
-#define   FORT_HGRLNF_FULL_STENCIL     HGRLNF_FULL_STENCIL
-#define   FORT_HGRLNB     HGRLNB
-#define   FORT_HGCG       HGCG
-#define   FORT_HGCG1      HGCG1
-#define   FORT_HGCG2      HGCG2
-#define   FORT_HGIP       HGIP
+#define   FORT_HGRES		HGRES
+#define   FORT_HGRES_TERRAIN    HGRES_TERRAIN
+#define   FORT_HGRES_FULL	HGRES_FULL
+#define   FORT_HGRESU		HGRESU
+#define   FORT_HGRLX		HGRLX
+#define   FORT_HGRLX_TERRAIN    HGRLX_TERRAIN
+#define   FORT_HGRLX_FULL	HGRLX_FULL
+#define   FORT_HGRLXU		HGRLXU
+#define   FORT_HGRLXL		HGRLXL
+#define   FORT_HGRLXL_FULL	HGRLXL_FULL
+#define   FORT_HGRLNF		HGRLNF
+#define   FORT_HGRLNF_TERRAIN   HGRLNF_TERRAIN
+#define   FORT_HGRLNF_FULL	HGRLNF_FULL
+#define   FORT_HGRLNB		HGRLNB
+#define   FORT_HGCG		HGCG
+#define   FORT_HGCG1		HGCG1
+#define   FORT_HGCG2		HGCG2
+#define   FORT_HGIP		HGIP
 #endif
 
 extern "C" 
@@ -47,30 +47,30 @@ extern "C"
 #if (BL_SPACEDIM == 1)
 #error not relevant
 #else
-    void FORT_HGRES_TERRAIN(Real*, intS, const Real*, intS, const Real*, intS, Real*, intS, Real*, intS, intS);
-    void FORT_HGRLX_TERRAIN(Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS);
-    void FORT_HGRLNF_TERRAIN(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intS, const int*, const int*);
+    void FORT_HGRES_TERRAIN (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS);
+    void FORT_HGRLX_TERRAIN (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS);
+    void FORT_HGRLNF_TERRAIN(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, intS, const int*, const int*);
 #if (BL_SPACEDIM==3)
-    void FORT_HGRESU(Real*, intS, const Real*, const Real*, const Real*, Real*, intS);
-    void FORT_HGRLX(Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS);
-    void FORT_HGRLXU(Real*, Real*, Real*, Real*, intS, Real*, intS);
-    void FORT_HGRLXL(Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intS, const int*);
-    void FORT_HGRLNF(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intS, const int*, const int*);
+    void FORT_HGRESU        (Real*, intS, const Real*, const Real*, const Real*, const Real*, intS);
+    void FORT_HGRLX         (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS);
+    void FORT_HGRLXU        (Real*, const Real*, const Real*, const Real*, intS, Real*, intS);
+    void FORT_HGRLXL        (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, intS, const int*);
+    void FORT_HGRLNF        (Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intS, const int*, const int*);
 #else
-    void FORT_HGRES(Real*, intS, const Real*, intS, const Real*, intS, CRealPS, intS, intS, CRealPS);
-    void FORT_HGRES_FULL_STENCIL(Real*, intS, const Real*, intS, const Real*, intS, CRealPS, intS, intS, CRealPS, const int*, const int*);
-    void FORT_HGRLX             (Real*, intS, const Real*, intS, CRealPS, intS, const Real*, intS, intS, CRealPS, const int*, const int*);
-    void FORT_HGRLX_FULL_STENCIL(Real*, intS, const Real*, intS, CRealPS, intS, const Real*, intS, intS, CRealPS, const int*, const int*);
-    void FORT_HGRLXL(Real*, intS, Real*, intS, RealPS, intS, Real*, intS, intS, intS, CRealPS, const int*, const int*, const int*);
-    void FORT_HGRLXL_FULL_STENCIL(Real*, intS, Real*, intS, RealPS, intS, Real*, intS, intS, intS, CRealPS, const int*, const int*, const int*);
-    void FORT_HGRLNF(Real*, intS, Real*, intS, Real*, intS, RealPS, intS, Real*, intS, intS, intS, CRealPS, const int*, const int*, const int*, const int*);
-    void FORT_HGRLNF_FULL_STENCIL(Real*, intS, Real*, intS, Real*, intS, CRealPS, intS, Real*, intS, intS, intS, CRealPS, const int*, const int*, const int*, const int*);
+    void FORT_HGRES         (Real*, intS, const Real*, intS, const Real*, intS, CRealPS, intS, intS, CRealPS);
+    void FORT_HGRES_FULL    (Real*, intS, const Real*, intS, const Real*, intS, CRealPS, intS, intS, CRealPS, const int*, const int*);
+    void FORT_HGRLX         (Real*, intS, const Real*, intS, CRealPS, intS, const Real*, intS, intS, CRealPS, const int*, const int*);
+    void FORT_HGRLX_FULL    (Real*, intS, const Real*, intS, CRealPS, intS, const Real*, intS, intS, CRealPS, const int*, const int*);
+    void FORT_HGRLXL        (Real*, intS, const Real*, intS, CRealPS, intS, Real*, intS, intS, intS, CRealPS, const int*, const int*, const int*);
+    void FORT_HGRLXL_FULL   (Real*, intS, const Real*, intS, CRealPS, intS, Real*, intS, intS, intS, CRealPS, const int*, const int*, const int*);
+    void FORT_HGRLNF        (Real*, intS, const Real*, intS, const Real*, intS, CRealPS, intS, Real*, intS, intS, intS, CRealPS, const int*, const int*, const int*, const int*);
+    void FORT_HGRLNF_FULL   (Real*, intS, const Real*, intS, const Real*, intS, CRealPS, intS, Real*, intS, intS, intS, CRealPS, const int*, const int*, const int*, const int*);
 #endif
-    void FORT_HGRLNB(Real*, intS, Real*, intS, intS, const int*, const int*);
+    void FORT_HGRLNB        (Real*, intS, Real*, intS, intS, const int*, const int*);
     
-    void FORT_HGCG1(Real*, Real*, Real*, Real*, Real*, Real*, Real*, intS, const Real&, Real&);
-    void FORT_HGCG2(Real*, Real*, intS, const Real&);
-    void FORT_HGIP(Real*, Real*, Real*, intS, Real&);
+    void FORT_HGCG1         (Real*, const Real*, Real*, Real*, const Real*, const Real*, const Real*, intS, const Real&, Real&);
+    void FORT_HGCG2         (Real*, const Real*, intS, const Real&);
+    void FORT_HGIP          (const Real*, const Real*, const Real*, intS, Real&);
 
 #endif
 }
@@ -166,7 +166,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
 #if	(BL_SPACEDIM==2)
 	    const int isRZ = IsRZ();
 	    const int imax = mg_domain[mglev].bigEnd(0) + 1;
-	    FORT_HGRES_FULL_STENCIL(r_mfi->dataPtr(), DIMLIST(rbox),
+	    FORT_HGRES_FULL(r_mfi->dataPtr(), DIMLIST(rbox),
 				    s_dmfi->dataPtr(), DIMLIST(sbox),
 				    d_dmfi->dataPtr(), DIMLIST(dbox),
 				    D_DECL(s0_dmfi->dataPtr(),
@@ -174,7 +174,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
 					   s2_dmfi->dataPtr()), DIMLIST(sigbox),
 				    DIMLIST(freg), D_DECL(&hx, &hy, &hz), &isRZ, &imax);
 #else
-	    FORT_HGRES_FULL_STENCIL(r_mfi->dataPtr(), DIMLIST(rbox),
+	    FORT_HGRES_FULL(r_mfi->dataPtr(), DIMLIST(rbox),
 				    s_dmfi->dataPtr(), DIMLIST(sbox),
 				    d_dmfi->dataPtr(), DIMLIST(dbox),
 				    D_DECL(s0_dmfi->dataPtr(),
@@ -266,7 +266,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 #if (BL_SPACEDIM==2)
 			const int isRZ = IsRZ();
 			const int imax = mg_domain[mglev].bigEnd(0) + 1;
-			FORT_HGRLX_FULL_STENCIL(cn_dmfi->dataPtr(), DIMLIST(fbox),
+			FORT_HGRLX_FULL(cn_dmfi->dataPtr(), DIMLIST(fbox),
 						r_mfi->dataPtr(), DIMLIST(sbox),
 						D_DECL(s0_dmfi->dataPtr(),
 						       s1_dmfi->dataPtr(),
@@ -333,7 +333,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 #if (BL_SPACEDIM==2)
 			const int isRZ = IsRZ();
 			const int imax = mg_domain[mglev].bigEnd(0) + 1;
-			FORT_HGRLXL_FULL_STENCIL(c_dmfi->dataPtr(), DIMLIST(fbox),
+			FORT_HGRLXL_FULL(c_dmfi->dataPtr(), DIMLIST(fbox),
 						 r_mfi->dataPtr(), DIMLIST(sbox),
 						 D_DECL(s0_dmfi->dataPtr(),
 							s1_dmfi->dataPtr(),
@@ -434,7 +434,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 #if BL_SPACEDIM==2
 		    const int isRZ = IsRZ();
 		    const int imax = mg_domain[mglev].bigEnd(0) + 1;
-		    FORT_HGRLNF_FULL_STENCIL(corr[mglev][igrid].dataPtr(), DIMLIST(fbox),
+		    FORT_HGRLNF_FULL(corr[mglev][igrid].dataPtr(), DIMLIST(fbox),
 					     resid[mglev][igrid].dataPtr(), DIMLIST(sbox),
 					     work[mglev][igrid].dataPtr(), DIMLIST(wbox),
 					     D_DECL(sigma_nd[0][mglev][igrid].dataPtr(),

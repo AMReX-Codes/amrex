@@ -197,7 +197,6 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
     
     if (fine.nGrow() >= ratmax - 1)
 	fill_borders(fine, lev_interface, bdy, ratmax - 1, m_hg_terrain);
-    // PARALLEL
     task_list tl;
     for (int jgrid = 0; jgrid < dest.length(); jgrid++)
     {
