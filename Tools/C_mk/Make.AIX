@@ -47,7 +47,7 @@ else
   fDEBF += -g -qdpc
 endif
 
-ifeq($(AIXLARGEMEM),TRUE)
+ifeq ($(AIXLARGEMEM),TRUE)
   CXXOPTF += -q64
   CXXDEBF += -q64
   FOPTF   += -q64
