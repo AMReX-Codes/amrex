@@ -136,7 +136,7 @@ void amr_multigrid::build_mesh(const Box& fdomain)
 void amr_multigrid::build_index()
 {
   ml_index.resize(lev_max + 1);
-  for (int i = 0, lev = lev_min; i < mg_mesh.length(); i++) {
+  for (int i = 0, lev = lev_min; lev <= lev_max; i++) {
     if (mg_mesh[i] == ml_mesh[lev]) {
       ml_index[lev] = i;
       lev++;
