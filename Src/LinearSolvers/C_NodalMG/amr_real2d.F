@@ -1,8 +1,9 @@
 c-----------------------------------------------------------------------
 c Works for NODE-based data.
-      subroutine fcpy2(da, dal0, dah0, dal1, dah1,
-     & db,  dbl0, dbh0, dbl1, dbh1,
-     & regl0, regh0, regl1, regh1, w, ncomp)
+      subroutine fcpy2(
+     & da,    dal0, dah0, dal1, dah1,
+     & db,    dbl0, dbh0, dbl1, dbh1,
+     &        regl0, regh0, regl1, regh1, w, ncomp)
       integer dal0, dah0, dal1, dah1
       integer dbl0, dbh0, dbl1, dbh1
       integer regl0, regh0, regl1, regh1
@@ -21,9 +22,11 @@ c Works for NODE-based data.
       end
 c-----------------------------------------------------------------------
 c Works for CELL-based data.
-      subroutine iprodc(v0, v0l0, v0h0, v0l1, v0h1,
-     & v1, v1l0, v1h0, v1l1, v1h1,
-     & regl0, regh0, regl1, regh1, sum)
+      subroutine iprodc(
+     & v0,    v0l0, v0h0, v0l1, v0h1,
+     & v1,    v1l0, v1h0, v1l1, v1h1,
+     &        regl0, regh0, regl1, regh1, 
+     & sum)
       integer v0l0, v0h0, v0l1, v0h1
       integer v1l0, v1h0, v1l1, v1h1
       integer regl0, regh0, regl1, regh1
@@ -39,9 +42,11 @@ c Works for CELL-based data.
       end
 c-----------------------------------------------------------------------
 c Works for NODE-based data.
-      subroutine iprodn(v0, v0l0, v0h0, v0l1, v0h1,
-     & v1, v1l0, v1h0, v1l1, v1h1,
-     & regl0, regh0, regl1, regh1, sum)
+      subroutine iprodn(
+     & v0,    v0l0, v0h0, v0l1, v0h1,
+     & v1,    v1l0, v1h0, v1l1, v1h1,
+     &        regl0, regh0, regl1, regh1, 
+     & sum)
       integer v0l0, v0h0, v0l1, v0h1
       integer v1l0, v1h0, v1l1, v1h1
       integer regl0, regh0, regl1, regh1
@@ -70,10 +75,12 @@ c Works for NODE-based data.
       end
 c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
-      subroutine bref(dest, destl0, desth0, destl1, desth1,
-     & regl0, regh0, regl1, regh1,
-     & src,  srcl0, srch0, srcl1, srch1,
-     & bbl0, bbh0, bbl1, bbh1, idir, ncomp)
+      subroutine bref(
+     & dest,  destl0, desth0, destl1, desth1,
+     &        regl0, regh0, regl1, regh1,
+     & src,   srcl0, srch0, srcl1, srch1,
+     &        bbl0, bbh0, bbl1, bbh1, 
+     & idir, ncomp)
       integer ncomp
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
@@ -101,10 +108,11 @@ c Works for CELL- or NODE-based data.
       end
 c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
-      subroutine brefm(dest, destl0, desth0, destl1, desth1,
-     & regl0, regh0, regl1, regh1,
-     & src,  srcl0, srch0, srcl1, srch1,
-     & bbl0, bbh0, bbl1, bbh1, ra, ncomp)
+      subroutine brefm(
+     & dest,  destl0, desth0, destl1, desth1,
+     &        regl0, regh0, regl1, regh1,
+     & src,   srcl0, srch0, srcl1, srch1,
+     & bbl0,  bbh0, bbl1, bbh1, ra, ncomp)
       integer ncomp
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
@@ -140,10 +148,11 @@ c Works for CELL- or NODE-based data.
       end
 c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
-      subroutine bneg(dest, destl0, desth0, destl1, desth1,
-     & regl0, regh0, regl1, regh1,
-     & src,  srcl0, srch0, srcl1, srch1,
-     & bbl0, bbh0, bbl1, bbh1, idir, ncomp)
+      subroutine bneg(
+     & dest,  destl0, desth0, destl1, desth1,
+     &        regl0, regh0, regl1, regh1,
+     & src,   srcl0, srch0, srcl1, srch1,
+     &        bbl0, bbh0, bbl1, bbh1, idir, ncomp)
       integer ncomp
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
@@ -171,10 +180,11 @@ c Works for CELL- or NODE-based data.
       end
 c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
-      subroutine bnegm(dest, destl0, desth0, destl1, desth1,
-     & regl0, regh0, regl1, regh1,
-     & src,  srcl0, srch0, srcl1, srch1,
-     & bbl0, bbh0, bbl1, bbh1, ra, ncomp)
+      subroutine bnegm(
+     & dest,  destl0, desth0, destl1, desth1,
+     &        regl0, regh0, regl1, regh1,
+     & src,   srcl0, srch0, srcl1, srch1,
+     &        bbl0, bbh0, bbl1, bbh1, ra, ncomp)
       integer ncomp
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
@@ -211,10 +221,11 @@ c Works for CELL-based velocity data.
 c This routine assumes that the inflow face velocity data has not yet
 c been altered.  Running fill_borders should call this routine on every
 c inflow face, so that binfil can be run for subsequent fills
-      subroutine binflo(dest, destl0, desth0, destl1, desth1,
-     & regl0, regh0, regl1, regh1,
-     & src,  srcl0, srch0, srcl1, srch1,
-     & bbl0, bbh0, bbl1, bbh1,
+      subroutine binflo(
+     & dest,  destl0, desth0, destl1, desth1,
+     &        regl0, regh0, regl1, regh1,
+     & src,   srcl0, srch0, srcl1, srch1,
+     &        bbl0, bbh0, bbl1, bbh1,
      & idir, ncomp)
       integer ncomp
       integer destl0, desth0, destl1, desth1
@@ -259,10 +270,11 @@ c This routine is called when the inflow face velocity data has already
 c been altered by a call to fill_borders.  The box bb must have been
 c extended to one cell past the boundary by the boundary::box routine.
 
-      subroutine binfil(dest, destl0, desth0, destl1, desth1,
-     & regl0, regh0, regl1, regh1,
-     & src,  srcl0, srch0, srcl1, srch1,
-     & bbl0, bbh0, bbl1, bbh1,
+      subroutine binfil(
+     & dest,  destl0, desth0, destl1, desth1,
+     &        regl0, regh0, regl1, regh1,
+     & src,   srcl0, srch0, srcl1, srch1,
+     &        bbl0, bbh0, bbl1, bbh1,
      & idir, ncomp)
       integer ncomp
       integer destl0, desth0, destl1, desth1
@@ -305,10 +317,12 @@ c-----------------------------------------------------------------------
 c     Interpolation...
 c-----------------------------------------------------------------------
 c CELL-based data only.
-      subroutine acint2(dest, destl0, desth0, destl1, desth1,
-     & regl0, regh0, regl1, regh1,
-     & src,  srcl0, srch0, srcl1, srch1,
-     & bbl0, bbh0, bbl1, bbh1, ir, jr, ncomp)
+      subroutine acint2(
+     & dest,  destl0, desth0, destl1, desth1,
+     &        regl0, regh0, regl1, regh1,
+     & src,   srcl0, srch0, srcl1, srch1,
+     &        bbl0, bbh0, bbl1, bbh1, 
+     & ir, jr, ncomp)
       integer ncomp
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
@@ -333,10 +347,12 @@ c CELL-based data only.
       end
 c-----------------------------------------------------------------------
 c NODE-based data only.
-      subroutine anint2(dest, destl0, desth0, destl1, desth1,
-     & regl0, regh0, regl1, regh1,
-     & src,  srcl0, srch0, srcl1, srch1,
-     & bbl0, bbh0, bbl1, bbh1, ir, jr, ncomp)
+      subroutine anint2(
+     & dest,  destl0, desth0, destl1, desth1,
+     &        regl0, regh0, regl1, regh1,
+     & src,   srcl0, srch0, srcl1, srch1,
+     &        bbl0, bbh0, bbl1, bbh1, 
+     & ir, jr, ncomp)
       integer ncomp
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
@@ -377,9 +393,10 @@ c-----------------------------------------------------------------------
 c     Restrictions....
 c-----------------------------------------------------------------------
 c CELL-based data only.
-      subroutine acrst1(dest, destl0, desth0, destl1, desth1,
-     & regl0, regh0, regl1, regh1,
-     & src,  srcl0, srch0, srcl1, srch1,
+      subroutine acrst1(
+     & dest,  destl0, desth0, destl1, desth1,
+     &        regl0, regh0, regl1, regh1,
+     & src,   srcl0, srch0, srcl1, srch1,
      & ir, jr, integ)
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
@@ -406,9 +423,10 @@ c CELL-based data only.
       end
 c-----------------------------------------------------------------------
 c NODE-based data only.
-      subroutine anrst1(dest, destl0, desth0, destl1, desth1,
-     & regl0, regh0, regl1, regh1,
-     & src,  srcl0, srch0, srcl1, srch1,
+      subroutine anrst1(
+     & dest,  destl0, desth0, destl1, desth1,
+     &        regl0, regh0, regl1, regh1,
+     & src,   srcl0, srch0, srcl1, srch1,
      & ir, jr)
       integer destl0, desth0, destl1, desth1
       integer regl0, regh0, regl1, regh1
@@ -427,9 +445,10 @@ c-----------------------------------------------------------------------
 c NODE-based data only.
 c Fills coarse region defined by reg, which must be smaller than
 c fine region by at least one coarse cell on all sides.
-      subroutine anrst2(dest, destl0, desth0, destl1, desth1,
-     & regl0, regh0, regl1, regh1,
-     & src,  srcl0, srch0, srcl1, srch1,
+      subroutine anrst2(
+     & dest,  destl0, desth0, destl1, desth1,
+     &        regl0, regh0, regl1, regh1,
+     & src,   srcl0, srch0, srcl1, srch1,
      & ir, jr, ncomp, integ)
       integer ncomp
       integer destl0, desth0, destl1, desth1
@@ -469,9 +488,10 @@ c fine region by at least one coarse cell on all sides.
 c-----------------------------------------------------------------------
 c NODE-based data only.
 c Fills coarse region defined by reg.
-      subroutine anfr2(dest, destl0, desth0, destl1, desth1,
-     & regl0, regh0, regl1, regh1,
-     & src,  srcl0, srch0, srcl1, srch1,
+      subroutine anfr2(
+     & dest,  destl0, desth0, destl1, desth1,
+     &        regl0, regh0, regl1, regh1,
+     & src,   srcl0, srch0, srcl1, srch1,
      & ir, jr, idim, idir, ncomp, integ)
       integer ncomp
       integer destl0, desth0, destl1, desth1
@@ -528,9 +548,10 @@ c Fills coarse region defined by reg.
 c-----------------------------------------------------------------------
 c NODE-based data only.
 c Fills coarse point defined by reg.
-      subroutine anor2(dest, destl0, desth0, destl1, desth1,
-     & regl0, regh0, regl1, regh1,
-     & src,  srcl0, srch0, srcl1, srch1,
+      subroutine anor2(
+     & dest,  destl0, desth0, destl1, desth1,
+     &        regl0, regh0, regl1, regh1,
+     & src,   srcl0, srch0, srcl1, srch1,
      & ir, jr, idir0, idir1, ncomp, integ)
       integer ncomp
       integer destl0, desth0, destl1, desth1
@@ -562,9 +583,10 @@ c Fills coarse point defined by reg.
 c-----------------------------------------------------------------------
 c NODE-based data only.
 c Fills coarse point defined by reg.
-      subroutine anir2(dest, destl0, desth0, destl1, desth1,
-     & regl0, regh0, regl1, regh1,
-     & src,  srcl0, srch0, srcl1, srch1,
+      subroutine anir2(
+     & dest,  destl0, desth0, destl1, desth1,
+     &        regl0, regh0, regl1, regh1,
+     & src,   srcl0, srch0, srcl1, srch1,
      & ir, jr, idir0, idir1, ncomp, integ)
       integer ncomp
       integer destl0, desth0, destl1, desth1
@@ -604,9 +626,10 @@ c Fills coarse point defined by reg.
 c-----------------------------------------------------------------------
 c NODE-based data only.
 c Fills coarse point defined by reg.
-      subroutine andr2(dest, destl0, desth0, destl1, desth1,
-     & regl0, regh0, regl1, regh1,
-     & src,  srcl0, srch0, srcl1, srch1,
+      subroutine andr2(
+     & dest,  destl0, desth0, destl1, desth1,
+     &        regl0, regh0, regl1, regh1,
+     & src,   srcl0, srch0, srcl1, srch1,
      & ir, jr, idir1, ncomp, integ)
       integer ncomp
       integer destl0, desth0, destl1, desth1
