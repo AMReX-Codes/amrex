@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Tracer.cpp,v 1.3 1997-12-11 23:25:47 lijewski Exp $
+// $Id: Tracer.cpp,v 1.4 1998-04-20 22:16:38 lijewski Exp $
 //
 // Definition of Tracer member functions.
 //
@@ -58,6 +58,8 @@ Tracer::Tracer (const char* function)
             fputs(SPACES, stdout);
         }
         printf("%s: entered %s\n", m_program, m_func);
+
+        fflush(stdout);
     }
 }
 
@@ -70,6 +72,8 @@ Tracer::~Tracer ()
             fputs(SPACES, stdout);
         }
         printf("%s: exited  %s\n", m_program, m_func);
+
+        fflush(stdout);
     }
 
     if (--m_count == 0)
