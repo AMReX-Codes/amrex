@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.64 2001-07-24 22:42:13 car Exp $
+// $Id: MultiFab.cpp,v 1.65 2001-07-25 04:45:56 car Exp $
 //
 #include <winstd.H>
 
@@ -28,16 +28,14 @@ MultiFab::Copy (MultiFab&       dst,
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
-    for (MultiFabIterator mfi(dst); mfi.isValid(); ++mfi)
+    for (MFIter mfi(dst); mfi.isValid(); ++mfi)
     {
-        DependentMultiFabIterator dmfi(mfi,src);
-
-        BL_ASSERT(mfi.validbox() == dmfi.validbox());
+        BL_ASSERT(src[mfi].box() == dst[mfi].box());
 
         Box bx = BoxLib::grow(mfi.validbox(),nghost);
 
         if (bx.ok())
-            mfi().copy(dmfi(), bx, srccomp, bx, dstcomp, numcomp);
+            dst[mfi].copy(src[mfi], bx, srccomp, bx, dstcomp, numcomp);
     }
 }
 
@@ -122,18 +120,18 @@ MultiFab::probe (std::ostream& os,
     Real  dat[20];
     int prec = os.precision(14);
 
-    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
         if (mfi.validbox().contains(pt))
         {
-            mfi().getVal(dat,pt);
+            at(mfi).getVal(dat,pt);
 
             os << "point "
                << pt
                << " in box "
                << mfi.validbox()
                << " data = ";
-            for (int i = 0, N = mfi().nComp(); i < N; i++)
+            for (int i = 0, N = nComp(); i < N; i++)
                 os << ' ' << std::setw(20) << dat[i];
             os << '\n';
         }
@@ -152,9 +150,9 @@ MultiFab::min (int comp,
 
     Real mn = std::numeric_limits<Real>::max();
 
-    for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        mn = std::min(mn,mfi().min(BoxLib::grow(mfi.validbox(),nghost),comp));
+        mn = std::min(mn,at(mfi).min(BoxLib::grow(mfi.validbox(),nghost),comp));
     }
 
     ParallelDescriptor::ReduceRealMin(mn);
@@ -171,12 +169,12 @@ MultiFab::min (const Box& region,
 
     Real mn = std::numeric_limits<Real>::max();
 
-    for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    for ( MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
         Box b = BoxLib::grow(mfi.validbox(),nghost) & region;
 
         if (b.ok())
-            mn = std::min(mn,mfi().min(b,comp));
+            mn = std::min(mn,at(mfi).min(b,comp));
     }
 
     ParallelDescriptor::ReduceRealMin(mn);
@@ -192,9 +190,9 @@ MultiFab::max (int comp,
 
     Real mn = -std::numeric_limits<Real>::max();
 
-    for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    for ( MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        mn = std::max(mn,mfi().max(BoxLib::grow(mfi.validbox(),nghost),comp));
+        mn = std::max(mn,at(mfi).max(BoxLib::grow(mfi.validbox(),nghost),comp));
     }
 
     ParallelDescriptor::ReduceRealMax(mn);
@@ -211,12 +209,12 @@ MultiFab::max (const Box& region,
 
     Real mn = -std::numeric_limits<Real>::max();
 
-    for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
         Box b = BoxLib::grow(mfi.validbox(),nghost) & region;
 
         if (b.ok())
-            mn = std::max(mn,mfi().max(b,comp));
+            mn = std::max(mn,at(mfi).max(b,comp));
     }
 
     ParallelDescriptor::ReduceRealMax(mn);
@@ -238,13 +236,11 @@ MultiFab::minus (const MultiFab& mf,
     BL_ASSERT(lst_comp < n_comp && lst_comp < mf.n_comp);
     BL_ASSERT(nghost <= n_grow && nghost <= mf.n_grow);
 
-    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        DependentMultiFabIterator dmfi(mfi, mf);
-
         Box bx = BoxLib::grow(mfi.validbox(),nghost);
 
-        mfi().minus(dmfi(), bx, strt_comp, strt_comp, num_comp);
+        at(mfi).minus(mf[mfi], bx, strt_comp, strt_comp, num_comp);
     }
 }
 
@@ -257,9 +253,9 @@ MultiFab::plus (Real val,
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
     BL_ASSERT(comp+num_comp <= n_comp);
 
-    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        mfi().plus(val,BoxLib::grow(mfi.validbox(),nghost),comp,num_comp);
+        at(mfi).plus(val,BoxLib::grow(mfi.validbox(),nghost),comp,num_comp);
     }
 }
 
@@ -273,12 +269,12 @@ MultiFab::plus (Real       val,
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
     BL_ASSERT(comp+num_comp <= n_comp);
 
-    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
         Box b = BoxLib::grow(mfi.validbox(),nghost) & region;
 
         if (b.ok())
-            mfi().plus(val,b,comp,num_comp);
+            at(mfi).plus(val,b,comp,num_comp);
     }
 }
 
@@ -296,13 +292,11 @@ MultiFab::plus (const MultiFab& mf,
     BL_ASSERT(lst_comp < n_comp && lst_comp < mf.n_comp);
     BL_ASSERT(nghost <= n_grow && nghost <= mf.n_grow);
 
-    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        DependentMultiFabIterator dmfi(mfi, mf);
-
         Box bx = BoxLib::grow(mfi.validbox(),nghost);
 
-        mfi().plus(dmfi(), bx, strt_comp, strt_comp, num_comp);
+        at(mfi).plus(mf[mfi], bx, strt_comp, strt_comp, num_comp);
     }
 }
 
@@ -315,9 +309,9 @@ MultiFab::mult (Real val,
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
     BL_ASSERT(comp+num_comp <= n_comp);
 
-    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        mfi().mult(val, BoxLib::grow(mfi.validbox(),nghost),comp,num_comp);
+        at(mfi).mult(val, BoxLib::grow(mfi.validbox(),nghost),comp,num_comp);
     }
 }
 
@@ -331,12 +325,12 @@ MultiFab::mult (Real       val,
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
     BL_ASSERT(comp+num_comp <= n_comp);
 
-    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
         Box b = BoxLib::grow(mfi.validbox(),nghost) & region;
 
         if (b.ok())
-            mfi().mult(val, b, comp, num_comp);
+            at(mfi).mult(val, b, comp, num_comp);
     }
 }
 
@@ -349,9 +343,9 @@ MultiFab::invert (Real numerator,
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
     BL_ASSERT(comp+num_comp <= n_comp);
 
-    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        mfi().invert(numerator, BoxLib::grow(mfi.validbox(),nghost),comp,num_comp);
+        at(mfi).invert(numerator, BoxLib::grow(mfi.validbox(),nghost),comp,num_comp);
     }
 }
 
@@ -365,12 +359,12 @@ MultiFab::invert (Real       numerator,
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
     BL_ASSERT(comp+num_comp <= n_comp);
 
-    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
         Box b = BoxLib::grow(mfi.validbox(),nghost) & region;
 
         if (b.ok())
-            mfi().invert(numerator,b,comp,num_comp);
+            at(mfi).invert(numerator,b,comp,num_comp);
     }
 }
 
@@ -382,9 +376,9 @@ MultiFab::negate (int comp,
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
     BL_ASSERT(comp+num_comp <= n_comp);
 
-    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
-        mfi().negate(BoxLib::grow(mfi.validbox(),nghost),comp,num_comp);
+        at(mfi).negate(BoxLib::grow(mfi.validbox(),nghost),comp,num_comp);
     }
 }
 
@@ -397,12 +391,12 @@ MultiFab::negate (const Box& region,
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
     BL_ASSERT(comp+num_comp <= n_comp);
 
-    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
         Box b = BoxLib::grow(mfi.validbox(),nghost) & region;
 
         if (b.ok())
-            mfi().negate(b,comp,num_comp);
+            at(mfi).negate(b,comp,num_comp);
     }
 }
 
@@ -688,7 +682,7 @@ BuildFBsirec (const SI&       si,
 
     cache.resize(ParallelDescriptor::NProcs(),0);
 
-    for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
         const int i = mfi.index();
 
@@ -696,9 +690,9 @@ BuildFBsirec (const SI&       si,
         {
             if (i != j)
             {
-                if (ba[j].intersects(mfi().box()))
+                if (ba[j].intersects(mf[mfi].box()))
                 {
-                    Box bx = ba[j] & mfi().box();
+                    Box bx = ba[j] & mf[mfi].box();
 
                     sirec.push_back(SIRec(i,j,bx));
 
