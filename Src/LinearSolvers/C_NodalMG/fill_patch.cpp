@@ -4,22 +4,15 @@
 #ifdef BL_FORT_USE_UNDERSCORE
 #define FORT_FIPRODC   iprodc_
 #define FORT_FIPRODN   iprodn_
-#define FORT_FFCPY2    fcpy2_
 #else
 #define FORT_FIPRODC   IPRODC
 #define FORT_FIPRODN   IPRODN
-#define FORT_FFCPY2    FCPY2
 #endif
 
 extern "C"
 {
     void FORT_FIPRODC(const Real*, intS, const Real*, intS, intS, Real*);
     void FORT_FIPRODN(const Real*, intS, const Real*, intS, intS, Real*);
-#if (BL_SPACEDIM == 2)
-    void FORT_FFCPY2(Real*, intS, Real*, intS, intS, const int*, const int&);
-#else
-    void FORT_FFCPY2(Real*, intS, Real*, intS, intS, const int*, const int*, const int&);
-#endif
 }
 
 Real inner_product(const MultiFab& r, const MultiFab& s)
@@ -61,37 +54,149 @@ Real inner_product(const MultiFab& r, const MultiFab& s)
     return sum;
 }
 
+// TASK_COPY_LOCAL
+
+class task_copy_local : public task
+{
+public:
+    task_copy_local(FArrayBox* fab_, const Box& bx, const MultiFab& mf_, int grid_);
+    virtual ~task_copy_local();
+    virtual bool ready();
+    virtual bool init(sequence_number sno, MPI_Comm comm);
+private:
+    void startup();
+private:
+    bool m_local;
+    MPI_Request m_request;
+    FArrayBox* m_fab;
+    const Box m_bx;
+    FArrayBox* tmp;
+    const MultiFab& m_smf;
+    const int m_sgrid;
+};
+
+task_copy_local::task_copy_local(FArrayBox* fab_, const Box& bx, const MultiFab& smf_, int grid)
+    : m_fab(fab_), m_smf(smf_), m_sgrid(grid), m_bx(bx), tmp(0)
+{
+    m_fab->copy(m_smf[m_sgrid]);
+}
+
+task_copy_local::~task_copy_local()
+{
+    delete tmp;
+}
+
+bool task_copy_local::init(sequence_number sno, MPI_Comm comm)
+{
+    task::init( sno, comm);
+    assert ( m_fab->nComp() == m_smf.nComp() );
+    if ( m_fab != 0 || is_local(m_smf, m_sgrid) ) return true;
+    return false;
+}
+
+void task_copy_local::startup()
+{
+    if ( m_fab !=0 && is_local(m_smf, m_sgrid) )
+    {
+	m_local = true;
+    }
+    else if ( m_fab != 0 )
+    {
+	tmp = new FArrayBox(m_bx, m_smf.nComp());
+	int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, m_comm, &m_request);
+	if ( res != 0 )
+	    ParallelDescriptor::Abort(res);
+	assert( m_request != MPI_REQUEST_NULL );
+    }
+    else if ( m_fab == 0 && is_local(m_smf, m_sgrid) ) 
+    {
+	tmp = new FArrayBox(m_bx, m_smf.nComp());
+	// before I can post the receive, I have to ensure that there are no dependent zones in the
+	// grid
+	tmp->copy(m_smf[m_sgrid], m_bx);
+	HG_DEBUG_OUT( "<< Norm(S) of tmp "  << m_sno << " " << tmp->norm(m_bx, 2) << endl );
+	HG_DEBUG_OUT( "<<<Box(S) of tmp "   << m_sno << " " << tmp->box() << endl );
+	// printRange(debug_out, *tmp, m_sbx, 0, tmp->nComp());
+	int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(), m_sno, m_comm, &m_request);
+	if ( res != 0 )
+	    ParallelDescriptor::Abort(res);
+	assert( m_request != MPI_REQUEST_NULL );
+    }
+    else
+    {
+	throw( "task_copy_local::ready(): Can't Happen" );
+	// neither fab lives on local processor
+    }
+    m_started = true;
+}
+
+bool task_copy_local::ready()
+{
+    if ( ! depend_ready() ) return false;
+    if ( ! m_started ) startup();
+    if ( m_local )
+    {
+	m_fab->copy(*tmp, m_bx);
+	return true;
+    }
+    int flag;
+    MPI_Status status;
+    assert ( m_request != MPI_REQUEST_NULL );
+    int res = MPI_Test(&m_request, &flag, &status);
+    if ( res != 0 )
+	ParallelDescriptor::Abort( res );
+    if ( flag )
+    {
+	assert ( m_request == MPI_REQUEST_NULL );
+	if ( m_fab )
+	{
+	    int count;
+	    assert( status.MPI_SOURCE == processor_number(m_smf, m_sgrid) );
+	    assert( status.MPI_TAG    == m_sno );
+	    int res = MPI_Get_count(&status, MPI_DOUBLE, &count);
+	    if ( res != 0 )
+		ParallelDescriptor::Abort( res );
+	    assert(count == tmp->box().numPts()*tmp->nComp());
+	    m_fab->copy(*tmp, m_bx);
+	}
+    }
+    return false;
+}
+
 // TASK_BDY_FILL
 class task_bdy_fill : public task
 {
 public:
-    task_bdy_fill(const amr_boundary_class* bdy_, FArrayBox& fab_, const Box& region_, const MultiFab& src_, int grid_, const Box& domain_);
+    task_bdy_fill(const amr_boundary_class* bdy_, FArrayBox* fab_, const Box& region_, const MultiFab& src_, int grid_, const Box& domain_);
     virtual bool ready();
-    virtual bool init(sequence_number sno, MPI_Comm comm)
-    {
-	throw( "task_bdy_fill::init(): FIXME" ); /*NOTREACHED*/
-	return false;
-    }
+    virtual bool init(sequence_number sno, MPI_Comm comm);
 private:
-    const amr_boundary_class* bdy;
-    FArrayBox& fab;
-    const Box region;
-    const MultiFab& src;
-    const int grid;
-    const Box& domain;
+    const amr_boundary_class* m_bdy;
+    FArrayBox* m_fab;
+    const Box m_region;
+    const MultiFab& m_src;
+    const int m_grid;
+    const Box& m_domain;
 };
 
-task_bdy_fill::task_bdy_fill(const amr_boundary_class* bdy_, FArrayBox& fab_, const Box& region_, const MultiFab& src_, int grid_, const Box& domain_)
-    : bdy(bdy_), fab(fab_), region(region_), src(src_), grid(grid_), domain(domain_)
+task_bdy_fill::task_bdy_fill(const amr_boundary_class* bdy_, FArrayBox* fab_, const Box& region_, const MultiFab& src_, int grid_, const Box& domain_)
+    : m_bdy(bdy_), m_fab(fab_), m_region(region_), m_src(src_), m_grid(grid_), m_domain(domain_)
 {
-    assert(bdy != 0);
+    assert(m_bdy != 0);
 }
 
 bool task_bdy_fill::ready()
 {
     throw( "task_bdy_fill::ready(): FIXME" ); /*NOTREACHED*/
-    bdy->fill(fab, region, src[grid], domain);
+    m_bdy->fill(*m_fab, m_region, m_src[m_grid], m_domain);
     return true;
+}
+
+bool task_bdy_fill::init(sequence_number sno, MPI_Comm comm)
+{
+    task::init( sno, comm);
+    if ( m_fab != 0 || is_local(m_src, m_grid) ) return true;
+    return false;
 }
 
 // TASK_FILL_PATCH
@@ -105,19 +210,16 @@ task_fill_patch::task_fill_patch(const MultiFab& t_, int tt_, const Box& region_
 bool task_fill_patch::init(sequence_number sno, MPI_Comm comm)
 {
     task_fab::init(sno, comm);
-    throw( "task_fill_patch::init(): FIXME" ) ; /*NOTREACHED*/
-    return true;
+    fill_patch();
+    return !tl.empty();
 }
 
 task_fill_patch::~task_fill_patch()
 {
-    throw( "task_fill_patch::~task_fill_patch(): FIXME" ); /*NOTREACHED*/
 }
 
 bool task_fill_patch::ready()
 {
-    throw( "task_fill_patch::ready(): FIXME" ); /*NOTREACHED*/
-    fill_patch();
     tl.execute();
     return true;
 }
@@ -129,7 +231,7 @@ bool task_fill_patch::fill_patch_blindly()
 	Box tb = grow(r[igrid].box(), -r.nGrow());
 	if (tb.contains(region)) 
 	{
-	    tl.add_task(new task_copy_local(*target, r, igrid, region));
+	    tl.add_task(new task_copy_local(target, region, r, igrid));
 	    // target->copy(r[igrid], region);
 	    return true;
 	}
@@ -140,7 +242,7 @@ bool task_fill_patch::fill_patch_blindly()
 	if (tb.intersects(region)) 
 	{
 	    tb &= region;
-	    tl.add_task(new task_copy_local(*target, r, igrid, tb));
+	    tl.add_task(new task_copy_local(target, tb, r, igrid));
 	    // target->copy(r[igrid], tb);
 	}
     }
@@ -159,14 +261,14 @@ bool task_fill_patch::fill_exterior_patch_blindly()
 	    tb.convert(type(r));
 	    if (tb.contains(region)) 
 	    {
-		tl.add_task(new task_bdy_fill(bdy, *target, region, r, jgrid, lev_interface.domain()));
+		tl.add_task(new task_bdy_fill(bdy, target, region, r, jgrid, lev_interface.domain()));
 		// bdy->fill(*target, region, r[jgrid], lev_interface.domain());
 		return true;
 	    }
 	    if (tb.intersects(region)) 
 	    {
 		tb &= region;
-		tl.add_task(new task_bdy_fill(bdy, *target, tb, r, jgrid, lev_interface.domain()));
+		tl.add_task(new task_bdy_fill(bdy, target, tb, r, jgrid, lev_interface.domain()));
 		//bdy->fill(*target, tb, r[jgrid], lev_interface.domain());
 	    }
 	}
@@ -229,7 +331,7 @@ void task_fill_patch::fill_patch()
 			{
 			    Box tb = r.box(igrid);
 			    tb &= region;
-			    tl.add_task(new task_copy_local(*target, r, igrid, tb));
+			    tl.add_task(new task_copy_local(target, tb, r, igrid));
 			}
 			else 
 			{
@@ -238,7 +340,7 @@ void task_fill_patch::fill_patch()
 			    tb.convert(type(r));
 			    tb &= region;
 			    tl.add_task(
-				new task_bdy_fill(bdy, *target, tb, r, lev_interface.direct_exterior_ref(igrid), lev_interface.domain())
+				new task_bdy_fill(bdy, target, tb, r, lev_interface.direct_exterior_ref(igrid), lev_interface.domain())
 				);
 			    // bdy->fill(*target, tb, r[lev_interface.direct_exterior_ref(igrid)], lev_interface.domain());
 			}

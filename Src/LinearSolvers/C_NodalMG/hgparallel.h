@@ -15,6 +15,11 @@
 #error Must define BL_USE_MPI in this file
 #endif
 
+inline int processor_number()
+{
+    return ParallelDescriptor::MyProc();
+}
+
 inline int processor_number(const MultiFab&r, int igrid)
 {
     return r.DistributionMap()[igrid];
@@ -79,10 +84,13 @@ protected:
 class task_list
 {
 public:
-    task_list(MPI_Comm comm = MPI_COMM_WORLD);
+    explicit task_list( MPI_Comm comm = MPI_COMM_WORLD );
     ~task_list();
     void add_task(task* t);
     void execute();
+    bool execute_till_block();
+    const MPI_Comm& mpi_comm() const { return comm; }
+    bool empty() const { return tasks.empty(); }
 private:
     list< task** > tasks;
     MPI_Comm comm;
@@ -114,32 +122,6 @@ protected:
     bool m_local;
 };
 
-class task_copy_local : public task
-{
-public:
-    task_copy_local(FArrayBox& fab_, const MultiFab& mf_, int grid_, const Box& bx);
-    virtual ~task_copy_local();
-    virtual bool ready();
-    virtual bool init(sequence_number sno, MPI_Comm comm)
-    {
-	throw( "task_copy_local::init(): FIXME" ); /*NOTREACHED*/
-	return false;
-    }
-    virtual bool depends_on_q(const task* t) const;
-private:
-    void startup();
-    MPI_Request m_request;
-    FArrayBox& m_fab;
-    const MultiFab& m_smf;
-    const int m_sgrid;
-    const Box m_bx;
-    const Box m_sbx;
-    bool m_local;
-};
-
-class level_interface;
-class amr_boundary_class;
-
 class task_fab : public task
 {
 public:
@@ -157,6 +139,9 @@ protected:
     FArrayBox* target;
     bool local_target;
 };
+
+class level_interface;
+class amr_boundary_class;
 
 class task_fill_patch : public task_fab
 {

@@ -13,6 +13,95 @@ bool task::depend_ready()
     return true;
 }
 
+// TASK_LIST
+
+bool task_list::def_verbose = true;
+
+task_list::task_list(MPI_Comm comm_)
+    : seq_no(0), verbose(def_verbose)
+{
+    int res = MPI_Comm_dup(comm_, &comm);
+    if ( res != 0 )
+	ParallelDescriptor::Abort( res );
+}
+
+task_list::~task_list()
+{
+    seq_no = 0;
+    int res = MPI_Comm_free(&comm);
+    if ( res != 0 )
+	ParallelDescriptor::Abort( res );
+}
+
+void task_list::execute()
+{
+    list< task** > dead_tasks;
+    while ( !tasks.empty() )
+    {
+	task** t = tasks.front();
+	tasks.pop_front();
+	if ( verbose ) 
+	    (*t)->hint();
+	if ( (*t)->ready() )
+	{
+	    delete *t;
+	    *t = 0;
+	    dead_tasks.push_back(t);
+	}
+	else
+	{
+	    tasks.push_back(t);
+	}
+    }
+    while ( !dead_tasks.empty() )
+    {
+	delete dead_tasks.front();
+	dead_tasks.pop_front();
+    }
+}
+
+bool task_list::execute_no_block()
+{
+    list< task** > dead_tasks;
+    list< task** > live_tasks;
+    list< task** >::iterator tli = tasks.begin();
+    while ( tli != tasks.end() )
+    {
+	task** t = tli();
+
+    }
+    while ( !dead_tasks.empty() )
+    {
+	dead_tasks.pop_front();
+    }
+    return tasks.empty();
+}
+
+void task_list::add_task(task* t)
+{
+    seq_no++;
+    if ( ! t->init(seq_no, comm) )
+    {
+	delete t;
+    }
+    else
+    {
+	task** tp = new task*( t );
+	// loop here over existing tasks, see if the depend on this one,
+	// if so, add them to the dependency
+	list< task**>::const_iterator cit = tasks.begin();
+	while ( cit != tasks.end() )
+	{
+	    if ( t->depends_on_q( **cit ) )
+	    {
+		t->depend_on(**cit);
+	    }
+	    cit++;
+	}
+	tasks.push_back( tp );
+    }
+}
+
 // TASK_COPY
 task_copy::task_copy(MultiFab& mf, int dgrid, const MultiFab& smf, int sgrid, const Box& bx)
     : m_mf(mf), m_dgrid(dgrid), m_smf(smf), m_sgrid(sgrid), m_bx(bx), m_sbx(bx), m_local(false), tmp(0), m_request(MPI_REQUEST_NULL)
@@ -164,151 +253,6 @@ void task_copy::hint() const
 	endl );	// to flush
 }
 
-
-// TASK_COPY_LOCAL
-
-task_copy_local::task_copy_local(FArrayBox& fab_, const MultiFab& smf_, int grid, const Box& bx)
-    : m_fab(fab_), m_smf(smf_), m_sgrid(grid), m_bx(bx)
-{
-    m_local = true;
-    m_fab.copy(m_smf[m_sgrid]);
-}
-
-task_copy_local::~task_copy_local()
-{
-}
-
-bool task_copy_local::ready()
-{ 
-    throw( "task_copy_local::ready(): FIXME" ); /*NOTREACHED*/
-    return m_local;
-}
-
-bool task_copy_local::depends_on_q(const task* t1) const
-{
-    if ( const task_copy_local* t1tc = dynamic_cast<const task_copy_local*>(t1) )
-    {
-	const Box& t1_bx = t1tc->m_bx;
-	if ( m_bx.intersects(t1_bx) ) return true;
-    }
-    else
-    {
-	throw( "task_copy_local::depends_on_q(): Can't Happen" );
-    }
-    return false;
-}
-
-void task_copy_local::startup()
-{
-    if ( is_local(m_smf, m_sgrid) )
-    {
-	m_local = true;
-    }
-#if 0
-    else if ( is_local(m_mf, m_dgrid) )
-    {
-	tmp = new FArrayBox(m_sbx, m_smf.nComp());
-	int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, m_comm, &m_request);
-	if ( res != 0 )
-	    ParallelDescriptor::Abort(res);
-	assert( m_request != MPI_REQUEST_NULL );
-    }
-    else if ( is_local(m_smf, m_sgrid) ) 
-    {
-	tmp = new FArrayBox(m_sbx, m_smf.nComp());
-	// before I can post the receive, I have to ensure that there are no dependent zones in the
-	// grid
-	tmp->copy(m_smf[m_sgrid], m_sbx);
-	HG_DEBUG_OUT( "<< Norm(S) of tmp " << m_sno << " " << tmp->norm(m_sbx, 2) << endl );
-	HG_DEBUG_OUT( "<<<Box(S) of tmp "   << m_sno << " " << tmp->box() << endl );
-	// printRange(debug_out, *tmp, m_sbx, 0, tmp->nComp());
-	int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_mf,  m_dgrid), m_sno, m_comm, &m_request);
-	if ( res != 0 )
-	    ParallelDescriptor::Abort(res);
-	assert( m_request != MPI_REQUEST_NULL );
-    }
-#endif
-    else
-    {
-	throw( "task_copy::ready(): Can't Happen" );
-	// neither fab lives on local processor
-    }
-    m_started = true;
-}
-
-// TASK_LIST
-
-bool task_list::def_verbose = true;
-
-task_list::task_list(MPI_Comm comm_)
-    : seq_no(0), verbose(def_verbose)
-{
-    int res = MPI_Comm_dup(comm_, &comm);
-    if ( res != 0 )
-	ParallelDescriptor::Abort( res );
-}
-
-task_list::~task_list()
-{
-    seq_no = 0;
-    int res = MPI_Comm_free(&comm);
-    if ( res != 0 )
-	ParallelDescriptor::Abort( res );
-}
-
-void task_list::execute()
-{
-    list< task** > dead_tasks;
-    while ( !tasks.empty() )
-    {
-	task** t = tasks.front();
-	tasks.pop_front();
-	if ( verbose )
-	    (*t)->hint();
-	if ( (*t)->ready() )
-	{
-	    delete *t;
-	    *t = 0;
-	    dead_tasks.push_back(t);
-	}
-	else
-	{
-	    tasks.push_back(t);
-	}
-    }
-    while ( !dead_tasks.empty() )
-    {
-	delete dead_tasks.front();
-	dead_tasks.pop_front();
-    }
-}
-
-void task_list::add_task(task* t)
-{
-    seq_no++;
-    if ( ! t->init(seq_no, comm) )
-    {
-	delete t;
-    }
-    else
-    {
-	task** tp = new task*( t );
-	// loop here over existing tasks, see if the depend on this one,
-	// if so, add them to the dependency
-	list< task**>::const_iterator cit = tasks.begin();
-	while ( cit != tasks.end() )
-	{
-	    if ( t->depends_on_q( **cit ) )
-	    {
-		t->depend_on(**cit);
-		// do something
-	    }
-	    cit++;
-	}
-	tasks.push_back( tp );
-    }
-}
-
 // TASK_FAB
 
 const FArrayBox& task_fab::fab()
@@ -318,6 +262,7 @@ const FArrayBox& task_fab::fab()
 
 bool task_fab::init(sequence_number sno, MPI_Comm comm)
 {
+    task::init(sno, comm);
     if ( local_target )
     {
 	target = new FArrayBox(region, ncomp);

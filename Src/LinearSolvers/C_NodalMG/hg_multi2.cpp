@@ -541,7 +541,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		    }
 		}
 		tl.add_task(
-		    new task_fceres_4(&FORT_HGFRES_FULL, tll, freg, resid[mglev], source[mglev], igrid, fdst, cdst, sigmaf, sigmac, creg, h[mglev], rat, idim, idir, isRZ, imax)
+		    new task_fceres_?(&FORT_HGFRES_FULL, tll, freg, resid[mglev], source[mglev], igrid, fdst, cdst, sigmaf, sigmac, creg, h[mglev], rat, idim, idir, isRZ, imax)
 		    );
 	    }
 	    else if (geo == level_interface::LL || geo == level_interface::HL || geo == level_interface::LH || geo == level_interface::HH) 
@@ -559,7 +559,9 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		const Box& fbox = dest[lev][igrid].box();
 		const int isRZ = IsRZ();
 		//FIXME!!! might be a broken calling sequence.
-		tl.add_task(new task_fceres_2(&FORT_HGORES, resid[mglev], source[lev], dest[lev], igrid, cdst, sigmaf, sigmac, creg, h[mglev], rat, idir0, idir1, isRZ, 0)
+		tl.add_task(
+		    new task_fceres_?(&FORT_HGORES, resid[mglev], source[lev], dest[lev], igrid, cdst, sigmaf, sigmac, creg, h[mglev], rat, idir0, idir1, isRZ, 0)
+		    );
 	    }
 	    else if (geo == (level_interface::LL | level_interface::HH) || geo == (level_interface::LH | level_interface::HL)) 
 	    {
@@ -587,7 +589,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		    }
 		}
 		tl.add_task(
-		    new task_fceres_4(&FORT_HGDRES, tll, freg, resid[mglev], source[mglev], igrid, fdst, cdst, sigmaf, sigmac, creg, h[mglev], rat, jdir,0, isRZ, 0)
+		    new task_fceres_?(&FORT_HGDRES, tll, freg, resid[mglev], source[mglev], igrid, fdst, cdst, sigmaf, sigmac, creg, h[mglev], rat, jdir,0, isRZ, 0)
 		    );
 	    }
 	    else 
@@ -619,7 +621,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		    }
 		}
 		tl.add_task(
-		    new task_fceres_4(&FORT_HGIRES, tll, freg, resid[mglev], source[mglev], igrid, fdst, cdst, sigmaf, sigmac, creg, h[mglev], rat, idir0, idir1, isRZ, 0)
+		    new task_fceres_?(&FORT_HGIRES, tll, freg, resid[mglev], source[mglev], igrid, fdst, cdst, sigmaf, sigmac, creg, h[mglev], rat, idir0, idir1, isRZ, 0)
 		    );
 	    }
         }

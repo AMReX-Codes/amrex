@@ -159,9 +159,10 @@ public:
     }
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
+	bool result = false;
 	for(int i = 0; i < BL_SPACEDIM; ++i)
 	{
-	    ucp[i]->init(sno, comm);
+	    bool tresult = ucp[i]->init(sno, comm);
 	}
 	throw( "task_fecdiv::init(): FIXME" ); /*NOTREACHED*/
 	return false;
