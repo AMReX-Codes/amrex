@@ -1,0 +1,10 @@
+geometry.coord_sys = 0        # 0 => cart, 1 => RZ
+geometry.prob_lo   = 0 0
+geometry.prob_hi   = 1 1
+cg.v = 2
+cg.maxiter = 500
+mg.v = 2
+mg.usecg = 0
+cg.maxiter = 500
+boxes = grids/gr2D
+-geometry.period_1
