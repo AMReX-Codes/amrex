@@ -4,13 +4,22 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.26 1998-02-18 21:31:13 vince Exp $
+// $Id: FabArray.H,v 1.27 1998-02-20 18:30:47 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
 #include <climits>
+#include <map>
+#include <utility>
 #else
 #include <limits.h>
+#ifdef BL_T3E
+#include <pair.h>
+#include <multimap.h>
+#else
+#include <utility.h>
+#include <map.h>
+#endif
 #endif
 
 #include <Assert.H>
@@ -612,7 +621,6 @@ struct FabCopyDescriptor
         myProc(-1),
         copyFromProc(-1),
         copyFromIndex(-1),
-        fabArrayId(-1),
         fillBoxId(-1),
         srcComp(-1),
         destComp(-1),
@@ -631,7 +639,6 @@ struct FabCopyDescriptor
     int      myProc;
     int      copyFromProc;
     int      copyFromIndex;
-    int      fabArrayId;
     int      fillBoxId;
     int      srcComp;
     int      destComp;
@@ -651,6 +658,11 @@ struct FabCopyDescriptor
 template <class T, class FAB>
 class FabArrayCopyDescriptor
 {
+  typedef multimap<int, FabCopyDescriptor<FAB>*> FCDMap;
+  typedef FCDMap::value_type      FCDMapValueType;
+  typedef FCDMap::iterator        FCDMapIter;
+  typedef FCDMap::const_iterator  FCDMapConstIter;
+
   public:
 
     FabArrayCopyDescriptor (bool cacheremotedata);
@@ -693,11 +705,13 @@ class FabArrayCopyDescriptor
 
     bool DataAvailable () const      { return dataAvailable; }
 
+    void clear ();
+
   protected:
 
     Array<FabArray<T,FAB>*>       fabArrays;
     Array<BoxList>                unfilledBoxes;     // for each fabArray
-    List<FabCopyDescriptor<FAB>*> fabCopyDescList;
+    Array<FCDMap> fabCopyDescList;  // [fabArrayId]
     List<FabComTag>               fabComTagList;
     int                           nextFabArrayId;
     int                           nextFillBoxId;
@@ -1907,6 +1921,7 @@ FabArrayCopyDescriptor<T,FAB>::FabArrayCopyDescriptor (bool cacheremotedata)
     ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
 
     fabArrays.reserve(16);
+    fabCopyDescList.reserve(16);
     fabComTagList.clear();
 }
 
@@ -1917,6 +1932,7 @@ FabArrayCopyDescriptor<T,FAB>::RegisterFabArray(FabArray<T,FAB>* fabarray)
     assert(nextFabArrayId == fabArrays.length());
     fabArrays.resize(nextFabArrayId + 1);
     fabArrays[nextFabArrayId] = fabarray;
+    fabCopyDescList.resize(nextFabArrayId + 1);
     return FabArrayId(nextFabArrayId++);
 }
 
@@ -1969,7 +1985,6 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
             filledBoxes.add(intersectBox);
             int remoteProc = fabArray->DistributionMap().ProcessorMap()[i];
             FabCopyDescriptor<FAB> *fcd = new FabCopyDescriptor<FAB>;
-            fcd->fabArrayId = fabarrayid.Id();
             fcd->fillBoxId  = nextFillBoxId;
             fcd->subBox = intersectBox;
             fcd->myProc = myproc;
@@ -2014,10 +2029,12 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
                     fabComTagList.append(fabComTag);
                 }
                 totalRemoteBoxes++;
-                totalRemoteBytes += intersectBox.numPts() * fabArray->nComp() * sizeof(T);
+                totalRemoteBytes += intersectBox.numPts() *
+				    fabArray->nComp() * sizeof(T);
             }
 
-            fabCopyDescList.append(fcd);
+            fabCopyDescList[fabarrayid.Id()].insert(
+                      FCDMapValueType(fcd->fillBoxId, fcd));
             unfilledBoxDomain.rmBox(intersectBox);
         }
     }
@@ -2061,7 +2078,6 @@ FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
         filledBoxes.add(intersectBox);
         int remoteProc = fabArray->DistributionMap().ProcessorMap()[i];
         FabCopyDescriptor<FAB> *fcd = new FabCopyDescriptor<FAB>;
-        fcd->fabArrayId = fabarrayid.Id();
         fcd->fillBoxId  = nextFillBoxId;
         fcd->subBox = intersectBox;
         fcd->myProc = myproc;
@@ -2107,7 +2123,8 @@ FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
             totalRemoteBytes += intersectBox.numPts() * fabArray->nComp() * sizeof(T);
         }
 
-        fabCopyDescList.append(fcd);
+        fabCopyDescList[fabarrayid.Id()].insert(
+                      FCDMapValueType(fcd->fillBoxId, fcd));
         unfilledBoxDomain.rmBox(intersectBox);
     }
     returnedUnfilledBoxes.clear();
@@ -2119,9 +2136,20 @@ FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
 template <class T, class FAB>
 FabArrayCopyDescriptor<T,FAB>::~FabArrayCopyDescriptor()
 {
-   for (ListIterator<FabCopyDescriptor<FAB>*> fli(fabCopyDescList); fli; ++fli)
-   { 
-       delete fli();
+   clear();
+}
+
+template <class T, class FAB>
+void
+FabArrayCopyDescriptor<T,FAB>::clear()
+{
+   for(int i = 0; i < fabCopyDescList.length(); ++i) {
+     for(FCDMapIter fmi = fabCopyDescList[i].begin();
+         fmi != fabCopyDescList[i].end();
+	 ++fmi)
+     { 
+       delete (*fmi).second;
+     }
    }
 }
 
@@ -2173,8 +2201,6 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
             assert(dataWaitingSize == 0);
             assert(fabComTag.procThatHasData == myproc);
             assert(fabComTag.subBox.ok());
-            //assert(fabArrays[fabComTag.fabArrayId]->
-                   //fabbox(fabComTag.fabIndex).contains(fabComTag.subBox));
 
             ParallelDescriptor::ReceiveData(0, 0);  // Advance msg hdr.
             --numberOfOutstandingRequestMessages;
@@ -2225,18 +2251,22 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
         // Find the box in the list and move the data.
         //
         bool matchFound = false;
-        for (ListIterator<FabCopyDescriptor<FAB> *> fli(fabCopyDescList);
-            fli && ! matchFound;
-            ++fli)
+	int fid(fabComTag.fabArrayId);
+	FabCopyDescriptor<FAB> *fcdp;
+	pair<FCDMapIter, FCDMapIter> matchRange =
+			 fabCopyDescList[fid].equal_range(fabComTag.fillBoxId);
+        for(FCDMapIter fmi = matchRange.first;
+            fmi != matchRange.second && ( ! matchFound);
+	    ++fmi)
         {
-            if (fli()->subBox == fabComTag.subBox &&
-                fabComTag.fabArrayId == fli()->fabArrayId &&
-                fabComTag.fillBoxId == fli()->fillBoxId)
+            fcdp =  (*fmi).second;
+            assert(fcdp->fillBoxId == fabComTag.fillBoxId);
+            if (fcdp->subBox == fabComTag.subBox)
             {
                 //
                 // copy the data
                 //
-                ParallelDescriptor::ReceiveData(fli()->localFabSource->dataPtr(),
+                ParallelDescriptor::ReceiveData(fcdp->localFabSource->dataPtr(),
                                                 fabComTag.subBox.numPts() *
                                                 fabComTag.nComp * sizeof(T));
                 matchFound = true;
@@ -2270,37 +2300,33 @@ FabArrayCopyDescriptor<T,FAB>::FillFab (const FabArrayId& fabarrayid,
     //
     // At this point, all remote data should be in local caches.
     //
-    if (!dataAvailable)
+    if ( ! dataAvailable)
     {
         cerr << "Error in FabArrayCopyDescriptor<T,FAB>::FillFab:  ";
         cerr << "data not available" << endl;
         BoxLib::Error("FillFab:  data not available");
     }
-    //
-    // TODO -- optimize this.
-    //
-    //cout << endl;
-    //cout << "+++++++++++++++ fabCopyDescList.length() = " << fabCopyDescList.length() << endl;
-    //cout << endl;
-    for (ListIterator<FabCopyDescriptor<FAB>*> fli(fabCopyDescList); fli; ++fli)
-    {
-        if (fli()->fabArrayId == fabarrayid.Id() && fli()->fillBoxId == fillboxid.Id())
+    int fid(fabarrayid.Id());
+    FabCopyDescriptor<FAB> *fcdp;
+    pair<FCDMapIter, FCDMapIter> matchRange =
+		 fabCopyDescList[fid].equal_range(fillboxid.Id());
+    for(FCDMapIter fmi = matchRange.first; fmi != matchRange.second; ++fmi) {
+	fcdp = (*fmi).second;
+        assert(fcdp->fillBoxId == fillboxid.Id());
+        int localSrcComp;
+        if (fcdp->fillType == FillLocally)
         {
-            int localSrcComp;
-            if (fli()->fillType == FillLocally)
-            {
-                localSrcComp = fli()->srcComp;
-            }
-            else
-            {
-                //
-                // FillRemotely
-                //
-                localSrcComp = 0; // Copy from zero component of local temp fab
-            }
-            destFab.copy(*(fli()->localFabSource), fli()->subBox, localSrcComp,
-                         fli()->subBox, fli()->destComp, fli()->nComp);
+            localSrcComp = fcdp->srcComp;
         }
+        else
+        {
+            //
+            // FillRemotely
+            //
+            localSrcComp = 0; // Copy from zero component of local temp fab
+        }
+        destFab.copy(*(fcdp->localFabSource), fcdp->subBox, localSrcComp,
+                     fcdp->subBox, fcdp->destComp, fcdp->nComp);
     }
 }
 
@@ -2326,13 +2352,6 @@ FabArrayCopyDescriptor<T,FAB>::PrintStats ()
          << totalRemoteBytes
          << '\n';
 
-    cout << "----- "
-         << myproc
-         << ":  fabCopyDescList.length() = "
-         << fabCopyDescList.length()
-         << '\n';
-
-    /*
     for (int fa = 0; fa < fabArrays.length(); ++fa)
     {
         cout << "fabArrays["
@@ -2341,7 +2360,6 @@ FabArrayCopyDescriptor<T,FAB>::PrintStats ()
              << fabArrays[fa]->boxArray()
              << '\n';
     }
-    */
 }
 
 #endif /*BL_FABARRAY_H*/
