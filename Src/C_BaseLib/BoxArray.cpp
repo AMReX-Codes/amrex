@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.28 2001-07-31 22:43:17 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.29 2001-08-01 20:24:21 lijewski Exp $
 //
 #include <iostream>
 
@@ -35,11 +35,6 @@ BoxArray::Ref::Ref (std::istream& is)
 {
     define(is);
 }
-
-BoxArray::BoxArray (std::istream& is)
-    :
-    m_ref(new BoxArray::Ref(is))
-{}
 
 BoxArray::BoxArray (const BoxArray& rhs)
     :
@@ -117,7 +112,7 @@ BoxArray::set (int        i,
 #define BL_IGNORE_MAX 100000
 
 void
-BoxArray::define (std::istream& is)
+BoxArray::readFrom (std::istream& is)
 {
     BL_ASSERT(size() == 0);
     if (!m_ref.unique())

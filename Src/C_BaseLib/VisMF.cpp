@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.83 2001-07-31 17:56:27 lijewski Exp $
+// $Id: VisMF.cpp,v 1.84 2001-08-01 20:24:22 lijewski Exp $
 //
 #include <cstdio>
 #include <fstream>
@@ -200,7 +200,7 @@ operator>> (std::istream&  is,
     is >> hd.m_ngrow;
     BL_ASSERT(hd.m_ngrow >= 0);
 
-    hd.m_ba = BoxArray(is);
+    hd.m_ba.readFrom(is);
 
     is >> hd.m_fod;
     BL_ASSERT(hd.m_ba.size() == hd.m_fod.size());
