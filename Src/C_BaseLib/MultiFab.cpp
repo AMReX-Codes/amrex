@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.10 1998-03-24 20:18:51 car Exp $
+// $Id: MultiFab.cpp,v 1.11 1998-03-30 18:03:01 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -12,7 +12,6 @@ using std::cout;
 using std::cerr;
 using std::endl;
 using std::setw;
-using std::streampos;
 #else
 #include <iostream.h>
 #include <iomanip.h>
@@ -42,8 +41,7 @@ ostream &
 operator<< (ostream&        os,
             const MultiFab& mf)
 {
-    cerr << "Error:  MultiFab operator<< not implemented for parallel\n";
-    BoxLib::Error("MultiFab operator<<");
+    BoxLib::Error("MultiFab operator<<(): not implemented");
 
     os << "(MultiFab "
        << mf.length() <<  ' '
@@ -58,142 +56,30 @@ operator<< (ostream&        os,
     return os;
 }
 
-ostream &
-MultiFab::writeOn (ostream& os) const
-{
-    assert(boxarray.ready());
-
-    if (ParallelDescriptor::IOProcessor())
-    {
-        os << n_comp << '\n';
-        os << n_grow << '\n';
-        boxarray.writeOn(os);
-        os << 0 <<  '\n';
-    }
-
-    streampos filePosition;
-    ParallelDescriptor::ShareVar(&filePosition, sizeof(streampos));
-    ParallelDescriptor::Synchronize();
-
-    int myproc = ParallelDescriptor::MyProc();
-    int fabProc;
-    for (int i = 0; i < length(); ++i)
-    {
-        fabProc = distributionMap[i];
-        if (fabProc == myproc)
-        {
-            fabparray[i].writeOn(os);
-            filePosition = os.tellp();
-        }
-        ParallelDescriptor::Broadcast(fabProc, &filePosition, &filePosition, sizeof(filePosition));
-        os.seekp(filePosition);
-    }
-
-    ParallelDescriptor::Synchronize();
-    ParallelDescriptor::UnshareVar(&filePosition);
-    //
-    // No need to check os here as itll be done in FArrayBox::writeOn().
-    //
-    return os;
-}
-
-istream &
-MultiFab::readFrom (istream& is)
-{
-    assert(!boxarray.ready());
-
-    is >> n_comp;
-    while (is.get() != '\n')
-        ;
-
-    is >> n_grow;
-    while (is.get() != '\n')
-        ;
-
-    boxarray.define(is);
-    distributionMap.define(ParallelDescriptor::NProcs(), boxarray);
-
-    int has_ba;
-    is >> has_ba;
-    if (has_ba)
-    {
-        int cw;
-        is >> cw;
-        //
-        // Do not do anything with BoxAssoc.
-        //
-    }
-    while (is.get() != '\n')
-        ;
-
-    int nbox = boxarray.length();
-    fabparray.resize(nbox);
-
-/*
-    original code:
-
-    for (int i = 0; i < nbox; i++)
-    {
-        FArrayBox* tmp = new FArrayBox;
-        tmp->readFrom(is);
-        fabparray.set(i,tmp);
-    }
-*/
-
-    streampos filePosition;
-    ParallelDescriptor::ShareVar(&filePosition, sizeof(streampos));
-    ParallelDescriptor::Synchronize();
-
-    int myproc = ParallelDescriptor::MyProc();
-    int fabProc;
-    for (int i = 0; i < nbox; i++)
-    {
-        fabProc = distributionMap[i];
-        if (fabProc == myproc)
-        {
-            FArrayBox* tmp = new FArrayBox;
-
-            tmp->readFrom(is);
-            fabparray.set(i,tmp);
-            filePosition = is.tellg();
-        }
-        ParallelDescriptor::Broadcast(fabProc, &filePosition, &filePosition, sizeof(filePosition));
-        is.seekg(filePosition);
-    }
-
-    ParallelDescriptor::Synchronize();
-    ParallelDescriptor::UnshareVar(&filePosition);
-
-    if (is.fail())
-        BoxLib::Error("MultiFab::readFrom(istream&) failed");
-
-    return is;
-}
-
 void
 MultiFab::probe (ostream& os,
                  IntVect& pt)
 {
     Real  dat[20];
     int prec = os.precision(14);
+
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
         if (mfi.validbox().contains(pt))
         {
-            int nv = mfi().nComp();
-
-            assert(nv <= 20);
-
             mfi().getVal(dat,pt);
-            os << "point " << pt << " in box " << mfi.validbox()
+
+            os << "point "
+               << pt
+               << " in box "
+               << mfi.validbox()
                << " data = ";
-            for (int i = 0; i < nv; i++)
-                os << "  " << setw(20) << dat[i];
+            for (int i = 0, N = mfi().nComp(); i < N; i++)
+                os << ' ' << setw(20) << dat[i];
             os << '\n';
         }
     }
     os.precision(prec);
-    os.flush();
 
     if (os.fail())
         BoxLib::Error("MultiFab::probe(ostream&,IntVect&) failed");
@@ -629,11 +515,6 @@ linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
     }
     else
     {
-        //assert(f1.boxArray() == boxarray2);
-        //assert(f1.n_comp == f2.n_comp);
-        //assert(src_comp + num_comp <= f1.n_comp);
-        //assert(dest_comp + num_comp <= dest.nComp());
-
         returnedFillBoxIds.resize(2);
         BoxList tempUnfilledBoxes(subbox.ixType());
         returnedFillBoxIds[0] = fabCopyDesc.AddBox(faid1, subbox,
@@ -642,8 +523,10 @@ linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
         returnedFillBoxIds[1] = fabCopyDesc.AddBox(faid2, subbox,
                                        tempUnfilledBoxes,
                                        src_comp, dest_comp, num_comp);
-        // note:  the boxarrays for faid1 and faid2 should be the
-        //        same so only use returnUnfilledBoxes from one AddBox here
+        //
+        // The boxarrays for faid1 and faid2 should be the
+        // same so only use returnUnfilledBoxes from one AddBox here.
+        //
     }
 }
 

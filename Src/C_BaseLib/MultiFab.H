@@ -4,7 +4,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.7 1997-12-11 23:25:44 lijewski Exp $
+// $Id: MultiFab.H,v 1.8 1998-03-30 18:03:00 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -59,34 +59,10 @@ class MultiFab
               FabAlloc        mem_mode = Fab_allocate);
 
 public:
-
-    /*@ManDoc: Constructs a MultiFab by reading it from the input stream strm.
-               This is useful when restarting a calculation from a checkpoint
-               file.  See the `writeOn' and `readFrom' member functions below.
-    */
-    explicit MultiFab (istream& strm);
     //
     //@ManDoc: The (virtual) destructor.
     //
     virtual ~MultiFab();
-
-    /*@ManDoc: This function writes the state of the MultiFab to the given
-               output stream strm.  The MultiFab can be read in from a disk
-               file at a later time using either the `readFrom' function or the
-               last constructor defined above.  It writes informational data
-               as a header in ASCII then calls the FArrayBox::writeOn function
-               for each element of the MultiFab.  It returns a reference to
-               the ostream strm to allow for operation chaining.
-    */
-    ostream& writeOn (ostream& strm) const;
-
-    /*@ManDoc: This is just the opposite of `writeOn' defined above.  It
-               assumes the MultiFab is empty and constructs the BoxArray and
-               FArrayBoxes by reading them from the input stream strm.  It
-               returns a reference to the istream strm to allow for
-               operation chaining.
-    */
-    istream& readFrom (istream& strm);
 
     /*@ManDoc: This writes out the entire contents of a MultiFab, one line for
                each cell of data, in an ASCII format.  It is included mainly
@@ -518,15 +494,6 @@ MultiFab::MultiFab (const BoxArray& bxs,
     :
     FabArray<Real,FArrayBox>(bxs,ncomp,ngrow,alloc)
 {}
-
-inline
-MultiFab::MultiFab (istream& is)
-    :
-    FabArray<Real,FArrayBox>()
-{
-    readFrom(is);
-}
-
 
 inline
 void
