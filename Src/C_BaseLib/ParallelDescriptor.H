@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.10 1997-12-11 23:25:45 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.11 1998-01-08 23:06:04 vince Exp $
 //
 
 #include <Assert.H>
@@ -94,6 +94,7 @@ public:
 
     // bool
     static void ReduceBoolAnd (bool& rvar) {}
+    static void ReduceBoolOr  (bool& rvar) {}
     // Real
     static void ReduceRealSum (Real& rvar) {}
     static void ReduceRealMax (Real& rvar) {}
@@ -145,7 +146,7 @@ public:
     static void ReceiveData (void* data,
                              int   datasizeinbytes) {}
 
-    template<class T> static void Broadcast (int toproc,
+    template<class T> static void Broadcast (int fromproc,
                                              T*  src,
                                              T*  dest) {}
 };
@@ -175,6 +176,7 @@ class ParallelDescriptor
 
     // bool
     static void ReduceBoolAnd (bool& rvar);
+    static void ReduceBoolOr  (bool& rvar);
     // Real
     static void ReduceRealSum (Real& rvar);
     static void ReduceRealMax (Real& rvar);
@@ -248,11 +250,11 @@ class ParallelDescriptor
     {
         bsp_move(data, datasizeinbytes);
     }
-    template<class T> static void Broadcast (int toproc,
+    template<class T> static void Broadcast (int fromproc,
                                              T*  src,
                                              T*  dest)
     {
-        bsp_bcast(toproc, (void *) src, (void *) dest, sizeof(T));
+        bsp_bcast(fromproc, (void *) src, (void *) dest, sizeof(T));
     }
 
   private:

@@ -4,7 +4,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.17 1997-12-17 18:09:34 lijewski Exp $
+// $Id: Utility.H,v 1.18 1998-01-08 23:06:04 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -72,6 +72,13 @@ public:
                            int*  nbytes)
     {
         result = arg1 && arg2;
+    }
+    static void OpBoolOr  (bool& result,
+                           bool& arg1,
+                           bool& arg2,
+                           int*  nbytes)
+    {
+        result = arg1 || arg2;
     }
     static void OpRealSum (Real& result,
                            Real& arg1,
