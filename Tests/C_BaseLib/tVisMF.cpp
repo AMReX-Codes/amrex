@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tVisMF.cpp,v 1.15 1998-04-01 00:29:49 car Exp $
+// $Id: tVisMF.cpp,v 1.16 1998-04-01 17:01:59 car Exp $
 //
 
 #include <stdlib.h>
@@ -15,7 +15,7 @@
 
 #ifdef BL_USE_BSP
 //
-// $Id: tVisMF.cpp,v 1.15 1998-04-01 00:29:49 car Exp $
+// $Id: tVisMF.cpp,v 1.16 1998-04-01 17:01:59 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -362,7 +362,7 @@ main (int, char** argv)
 
     parse_args(argv);
 
-    ParallelDescriptor::StartParallel(nProcs);
+    ParallelDescriptor::StartParallel(nProcs, &argc, &argv);
 
     BoxArray ba(nBoxs);
 
