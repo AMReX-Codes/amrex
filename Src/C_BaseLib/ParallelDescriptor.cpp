@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.87 2001-09-19 17:03:58 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.88 2001-09-24 19:10:10 lijewski Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -239,8 +239,6 @@ namespace ParallelDescriptor
     }
 }
 
-static const std::string REDUCE("mpi_reduce");
-
 void
 ParallelDescriptor::Abort ()
 {
@@ -415,12 +413,11 @@ ParallelDescriptor::util::DoAllReduceReal (Real&  r,
     Real recv;
 
     BL_MPI_REQUIRE( MPI_Allreduce(&r,
-			       &recv,
-			       1,
-			       mpi_data_type(&recv),
-			       op,
-			       Communicator()) );
-
+                                  &recv,
+                                  1,
+                                  mpi_data_type(&recv),
+                                  op,
+                                  Communicator()) );
     r = recv;
 }
 
@@ -432,12 +429,12 @@ ParallelDescriptor::util::DoReduceReal (Real&  r,
     Real recv;
 
     BL_MPI_REQUIRE( MPI_Reduce(&r,
-			    &recv,
-			    1,
-			    mpi_data_type(&recv),
-			    op,
-			    cpu,
-			    Communicator()) );
+                               &recv,
+                               1,
+                               mpi_data_type(&recv),
+                               op,
+                               cpu,
+                               Communicator()) );
 
     if (ParallelDescriptor::MyProc() == cpu)
         r = recv;
@@ -486,11 +483,11 @@ ParallelDescriptor::util::DoAllReduceLong (long&  r,
     long recv;
 
     BL_MPI_REQUIRE( MPI_Allreduce(&r,
-                           &recv,
-                           1,
-                           MPI_LONG,
-                           op,
-			       Communicator()) );
+                                  &recv,
+                                  1,
+                                  MPI_LONG,
+                                  op,
+                                  Communicator()) );
     r = recv;
 }
 
@@ -502,12 +499,12 @@ ParallelDescriptor::util::DoReduceLong (long&  r,
     long recv;
 
     BL_MPI_REQUIRE( MPI_Reduce(&r,
-                        &recv,
-                        1,
-                        MPI_LONG,
-                        op,
-                        cpu,
-                        Communicator()));
+                               &recv,
+                               1,
+                               MPI_LONG,
+                               op,
+                               cpu,
+                               Communicator()));
 
     if (ParallelDescriptor::MyProc() == cpu)
         r = recv;
@@ -568,12 +565,11 @@ ParallelDescriptor::util::DoAllReduceInt (int&   r,
     int recv;
 
     BL_MPI_REQUIRE( MPI_Allreduce(&r,
-			       &recv,
-			       1,
-			       MPI_INT,
-			       op,
-			       Communicator()));
-
+                                  &recv,
+                                  1,
+                                  MPI_INT,
+                                  op,
+                                  Communicator()));
     r = recv;
 }
 
@@ -585,12 +581,12 @@ ParallelDescriptor::util::DoReduceInt (int&   r,
     int recv;
 
     BL_MPI_REQUIRE( MPI_Reduce(&r,
-                        &recv,
-                        1,
-                        MPI_INT,
-                        op,
-                        cpu,
-                        Communicator()));
+                               &recv,
+                               1,
+                               MPI_INT,
+                               op,
+                               cpu,
+                               Communicator()));
 
     if (ParallelDescriptor::MyProc() == cpu)
         r = recv;
@@ -675,17 +671,6 @@ ParallelDescriptor::ReduceBoolOr (bool& r, int cpu)
 }
 
 void
-ParallelDescriptor::Broadcast (int   fromproc,
-                               void* src,
-                               void* dest,
-                               int   nbytes)
-{
-    BL_ASSERT(src == dest);
-
-    MPI_Bcast(src, nbytes, MPI_BYTE, fromproc, Communicator());
-}
-
-void
 ParallelDescriptor::Gather (Real* sendbuf,
                             int   nsend,
                             Real* recvbuf,
@@ -699,13 +684,13 @@ ParallelDescriptor::Gather (Real* sendbuf,
     MPI_Datatype typ = mpi_data_type(sendbuf);
 
     BL_MPI_REQUIRE( MPI_Gather(sendbuf,
-			    nsend,
-			    typ,
-			    recvbuf,
-			    nsend,
-			    typ,
-			    root,
-			    Communicator()));
+                               nsend,
+                               typ,
+                               recvbuf,
+                               nsend,
+                               typ,
+                               root,
+                               Communicator()));
 }
 
 MPI_Op
@@ -933,8 +918,6 @@ void ParallelDescriptor::ReduceBoolOr  (bool&) {}
 
 void ParallelDescriptor::ReduceBoolAnd (bool&,int) {}
 void ParallelDescriptor::ReduceBoolOr  (bool&,int) {}
-
-void ParallelDescriptor::Broadcast (int,void*,void*,int) {}
 //
 // Here so we don't need to include <Utility.H> in <ParallelDescriptor.H>.
 //

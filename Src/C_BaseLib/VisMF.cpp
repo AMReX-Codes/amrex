@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.86 2001-09-21 21:38:21 lijewski Exp $
+// $Id: VisMF.cpp,v 1.87 2001-09-24 19:10:10 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -469,11 +469,11 @@ VisMF::Header::Header (const MultiFab& mf,
             BL_ASSERT(offset == 2*m_ncomp*nFabs);
 
             BL_MPI_REQUIRE( MPI_Send(senddata.dataPtr(),
-				  2*m_ncomp*nFabs,
-				  mpi_data_type(senddata.dataPtr()),
-				  IOProc,
-				  SeqNo,
-				  ParallelDescriptor::Communicator()) );
+                                     2*m_ncomp*nFabs,
+                                     mpi_data_type(senddata.dataPtr()),
+                                     IOProc,
+                                     SeqNo,
+                                     ParallelDescriptor::Communicator()) );
 
             BL_ASSERT(offset == 2*m_ncomp*nFabs);
         }
@@ -504,22 +504,22 @@ VisMF::Header::Header (const MultiFab& mf,
                 data[i].resize(2*m_ncomp*fabs[i]);
 
                 BL_MPI_REQUIRE( MPI_Irecv(data[i].dataPtr(),
-				       2*m_ncomp*fabs[i],
-				       mpi_data_type(data[i].dataPtr()),
-				       i,
-				       SeqNo,
-				       ParallelDescriptor::Communicator(),
-				       &reqs[i]) );
+                                          2*m_ncomp*fabs[i],
+                                          mpi_data_type(data[i].dataPtr()),
+                                          i,
+                                          SeqNo,
+                                          ParallelDescriptor::Communicator(),
+                                          &reqs[i]) );
             }
         }
 
         for (int completed; NWaits > 0; NWaits -= completed)
         {
             BL_MPI_REQUIRE( MPI_Waitsome(NProcs,
-				      reqs.dataPtr(),
-				      &completed,
-				      indx.dataPtr(),
-				      status.dataPtr()) );
+                                         reqs.dataPtr(),
+                                         &completed,
+                                         indx.dataPtr(),
+                                         status.dataPtr()) );
 
             for (int k = 0; k < completed; k++)
             {
@@ -682,11 +682,11 @@ VisMF::Write (const MultiFab&    mf,
                 senddata[idx++] = hdr.m_fod[mfi.index()].m_head;
 
             BL_MPI_REQUIRE( MPI_Send(senddata.dataPtr(),
-				  nFabs,
-				  MPI_LONG,
-				  IOProc,
-				  SeqNo,
-				  ParallelDescriptor::Communicator()));
+                                     nFabs,
+                                     MPI_LONG,
+                                     IOProc,
+                                     SeqNo,
+                                     ParallelDescriptor::Communicator()));
         }
 
         BL_ASSERT(idx == nFabs);
@@ -717,22 +717,22 @@ VisMF::Write (const MultiFab&    mf,
                 data[i].resize(fabs[i]);
 
                 BL_MPI_REQUIRE( MPI_Irecv(data[i].dataPtr(),
-				       fabs[i],
-				       MPI_LONG,
-				       i,
-				       SeqNo,
-				       ParallelDescriptor::Communicator(),
-				       &reqs[i]));
+                                          fabs[i],
+                                          MPI_LONG,
+                                          i,
+                                          SeqNo,
+                                          ParallelDescriptor::Communicator(),
+                                          &reqs[i]));
             }
         }
 
         for (int completed; NWaits > 0; NWaits -= completed)
         {
             BL_MPI_REQUIRE( MPI_Waitsome(NProcs,
-				      reqs.dataPtr(),
-				      &completed,
-				      indx.dataPtr(),
-				      status.dataPtr()));
+                                         reqs.dataPtr(),
+                                         &completed,
+                                         indx.dataPtr(),
+                                         status.dataPtr()));
 
             for (int k = 0; k < completed; k++)
             {
