@@ -268,7 +268,7 @@ contains
     real(kind=dp_t), intent(in), optional :: time
     real(kind=dp_t), intent(in), optional :: dx(:)
     character(len=FABIO_MAX_VAR_NAME), intent(in), optional :: names(:)
-    integer :: i, j
+    integer :: i, j, k
     character(len=128) :: header, sd_name
     integer :: nc, un, nl, dm
     real(kind=dp_t), allocatable :: plo(:), phi(:), ldx(:)
@@ -364,8 +364,9 @@ contains
           do j = 1, nboxes(mfs(i))
              plo =  lwb(get_box(mfs(i),j))    
              phi = (upb(get_box(mfs(i),j))+1)
-             write(unit=un, fmt='(3es30.20e3)') plo*ldx
-             write(unit=un, fmt='(3es30.20e3)') phi*ldx
+             do k = 1, dm
+                write(unit=un, fmt='(2es30.20e3)') plo(k)*ldx(k), phi(k)*ldx(k)
+             end do
           end do
           write(unit=un, fmt='("Level_",i2.2,"/Cell")') i-1
        end do
