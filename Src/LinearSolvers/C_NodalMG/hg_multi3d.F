@@ -340,7 +340,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
      & sigmaf, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
      & sigmac, scl0,sch0,scl1,sch1,scl2,sch2,
      &         regl0,regh0,regl1,regh1,regl2,regh2,
-     & hx, hy, hz, ir, jr, kr, ivect, ga)
+     & hx, hy, hz, ir, jr, kr, ga, ivect)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2

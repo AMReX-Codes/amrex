@@ -140,7 +140,7 @@ public:
 		const Box& sigmaf_fab_box = sigmaf_fab.box();
 		const FArrayBox& sigmac_fab = task_fab_result(3);
 		const Box& sigmac_fab_box = sigmac_fab.box();
-		(*f)(r_fab.dataPtr(), DIMLIST(r_fab_box), s_fab.dataPtr(), DIMLIST(s_fab_box), ff_fab.dataPtr(), DIMLIST(ff_fab_box), cc_fab.dataPtr(), DIMLIST(cc_fab_box), sigmaf_fab.dataPtr(), DIMLIST(sigmaf_fab_box), sigmac_fab.dataPtr(), DIMLIST(sigmac_fab_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), t.dataPtr(), ga.dataPtr());
+		(*f)(r_fab.dataPtr(), DIMLIST(r_fab_box), s_fab.dataPtr(), DIMLIST(s_fab_box), ff_fab.dataPtr(), DIMLIST(ff_fab_box), cc_fab.dataPtr(), DIMLIST(cc_fab_box), sigmaf_fab.dataPtr(), DIMLIST(sigmaf_fab_box), sigmac_fab.dataPtr(), DIMLIST(sigmac_fab_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), t.dataPtr());
 	    }
 	    return true;
 	}
