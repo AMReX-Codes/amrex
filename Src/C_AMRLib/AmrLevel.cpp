@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.15 1997-12-12 23:23:42 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.16 1997-12-17 23:04:53 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -22,6 +22,7 @@
 #include <Derive.H>
 #include <BoxDomain.H>
 #include <ParallelDescriptor.H>
+#include <Utility.H>
 
 DescriptorList AmrLevel::desc_lst;
 DeriveList     AmrLevel::derive_lst;
