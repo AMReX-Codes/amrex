@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.95 1999-04-01 22:31:01 lijewski Exp $
+// $Id: FabArray.H,v 1.96 1999-04-11 23:30:47 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -792,10 +792,9 @@ class FabArrayId
     int fabArrayId;
 };
 
-
 //
 // This enum and the FabCopyDescriptor class should really be nested
-// in FabArrayCopyDescriptor  (not done for portability reasons).
+// in FabArrayCopyDescriptor (not done for portability reasons).
 //
 
 enum FillType { FillLocally, FillRemotely, Unfillable };
@@ -803,28 +802,11 @@ enum FillType { FillLocally, FillRemotely, Unfillable };
 template <class FAB>
 struct FabCopyDescriptor
 {
-    FabCopyDescriptor()
-        :
-        localFabSource(0),
-        myProc(-1),
-        copyFromProc(-1),
-        copyFromIndex(-1),
-        fillBoxId(-1),
-        srcComp(-1),
-        destComp(-1),
-        nComp(-1),
-        fillType(Unfillable),
-        cacheDataAllocated(false)
-    {}
+    FabCopyDescriptor ();
 
-    ~FabCopyDescriptor()
-    {
-        if (cacheDataAllocated)
-            delete localFabSource;
-    }
+    ~FabCopyDescriptor ();
 
-    FAB*     localFabSource;  // Either a local fab from this fabarray or a
-                              // temp local fab with data from a remote copy.
+    FAB*     localFabSource;
     Box      subBox;
     int      myProc;
     int      copyFromProc;
@@ -835,7 +817,36 @@ struct FabCopyDescriptor
     int      nComp;
     FillType fillType;
     bool     cacheDataAllocated;
+
+private:
+    //
+    // Disallowed.
+    //
+    FabCopyDescriptor (const FabCopyDescriptor&);
+    FabCopyDescriptor& operator= (const FabCopyDescriptor&);
 };
+
+template <class FAB>
+FabCopyDescriptor<FAB>::FabCopyDescriptor ()
+    :
+    localFabSource(0),
+    myProc(-1),
+    copyFromProc(-1),
+    copyFromIndex(-1),
+    fillBoxId(-1),
+    srcComp(-1),
+    destComp(-1),
+    nComp(-1),
+    fillType(Unfillable),
+    cacheDataAllocated(false)
+{}
+
+template <class FAB>
+FabCopyDescriptor<FAB>::~FabCopyDescriptor ()
+{
+    if (cacheDataAllocated)
+        delete localFabSource;
+}
 
 //
 // This class orchestrates filling a destination fab of size destFabBox
@@ -1205,9 +1216,9 @@ FabArray<T,FAB>::setBndry (T   val,
 template <class T, class FAB>
 void
 FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
-                       int                    src_comp,
-                       int                    dest_comp,
-                       int                    num_comp)
+                       int                    scomp,
+                       int                    dcomp,
+                       int                    ncomp)
 {
     if (src.boxarray == boxarray)
     {
@@ -1219,9 +1230,10 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
             {
                 Box isect = fai.validbox() & dfai.validbox();
 
-                fai().copy(dfai(),isect,src_comp,isect,dest_comp,num_comp);
+                fai().copy(dfai(),isect,scomp,isect,dcomp,ncomp);
             }
         }
+
         return;
     }
 
@@ -1251,10 +1263,10 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
 
                         fabparray[i].copy(src[ii],
                                           intersect,
-                                          src_comp,
+                                          scomp,
                                           intersect,
-                                          dest_comp,
-                                          num_comp);
+                                          dcomp,
+                                          ncomp);
                     }
                 }
             }
@@ -1423,10 +1435,9 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
             size_t N = 0;
 
             for (int j = 0; j < Rcvs[i]; j++)
-                N += rcv_cd[idx+j].box().numPts() * num_comp;
+                N += rcv_cd[idx+j].box().numPts() * ncomp;
 
             assert(N < INT_MAX);
-            assert(!(The_FAB_Arena == 0));
 
             fab_data[i] = static_cast<T*>(The_FAB_Arena->alloc(N*sizeof(T)));
 
@@ -1459,10 +1470,9 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
 
             for (int j = 0; j < SndTags.size(); j++)
                 if (SndTags[j].toProc == i)
-                    N += SndTags[j].box.numPts() * num_comp;
+                    N += SndTags[j].box.numPts() * ncomp;
 
             assert(N < INT_MAX);
-            assert(!(The_FAB_Arena == 0));
 
             T* data = static_cast<T*>(The_FAB_Arena->alloc(N*sizeof(T)));
             T* dptr = data;
@@ -1471,18 +1481,18 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
             {
                 if (SndTags[j].toProc == i)
                 {
-                    fab.resize(SndTags[j].box, num_comp);
+                    fab.resize(SndTags[j].box, ncomp);
 
                     assert(src.distributionMap[SndTags[j].fineIndex] == MyProc);
 
                     fab.copy(src[SndTags[j].fineIndex],
                              SndTags[j].box,
-                             src_comp,
+                             scomp,
                              SndTags[j].box,
                              0,
-                             num_comp);
+                             ncomp);
 
-                    int count = SndTags[j].box.numPts() * num_comp;
+                    int count = SndTags[j].box.numPts() * ncomp;
 
                     memcpy(dptr, fab.dataPtr(), count*sizeof(T));
 
@@ -1503,8 +1513,6 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                                 MPI_COMM_WORLD)) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
             mpi_send.end();
-
-            assert(!(The_FAB_Arena == 0));
 
             The_FAB_Arena->free(data);
         }
@@ -1533,7 +1541,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
             {
                 const CommData& cd = rcv_cd[idx+j];
 
-                fab.resize(cd.box(), num_comp);
+                fab.resize(cd.box(), ncomp);
 
                 int N = fab.box().numPts() * fab.nComp();
 
@@ -1545,15 +1553,14 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                                               fab.box(),
                                               0,
                                               fab.box(),
-                                              dest_comp,
-                                              num_comp);
+                                              dcomp,
+                                              ncomp);
                 dptr += N;
 
                 Processed++;
             }
 
             assert(Processed == Rcvs[i]);
-            assert(!(The_FAB_Arena == 0));
 
             The_FAB_Arena->free(fab_data[i]);
 
@@ -1602,105 +1609,77 @@ template <class T, class FAB>
 inline
 void
 FabArray<T,FAB>::copy (FAB& dest,
-                       int  src_comp,
-                       int  dest_comp,
-                       int  num_comp) const
+                       int  scomp,
+                       int  dcomp,
+                       int  ncomp) const
 {
-    copy(dest, dest.box(), src_comp, dest_comp, num_comp);
+    copy(dest, dest.box(), scomp, dcomp, ncomp);
 }
 
 template <class T, class FAB>
 void
 FabArray<T,FAB>::copy (FAB&       dest,
                        const Box& subbox,
-                       int        src_comp,
-                       int        dest_comp,
-                       int        num_comp) const
+                       int        scomp,
+                       int        dcomp,
+                       int        ncomp) const
 {
-    assert(dest_comp + num_comp <= dest.nComp());
+    assert(dcomp + ncomp <= dest.nComp());
 
-#ifdef BL_USE_MPI
-    static RunStats mpi_bcast("mpi_broadcast");
-
-    const int MyProc = ParallelDescriptor::MyProc();
-
-    int overlapLength = 0, overlapIndex = 0;
-
-    for (int i = 0; i < length(); i++)
-        if (subbox.intersects(boxarray[i]))
-            overlapLength++;
-
-    BoxArray    overlapBA(overlapLength);
-    Array<int>  overlapProc(overlapLength);
-    Array<int>  overlapFAIdx(overlapLength);
-    PArray<FAB> overlapData(overlapLength,PArrayManage);
-
-    if (overlapLength > 0)
+    if (ParallelDescriptor::NProcs() == 1)
     {
-        for (int i = 0; i < length(); i++)
+        for (int j = 0; j < length(); ++j)
         {
-            if (subbox.intersects(boxarray[i]))
+            if (boxarray[j].intersects(subbox))
             {
-                overlapBA.set(overlapIndex, subbox & boxarray[i]);
-                overlapProc[overlapIndex] = distributionMap[i];
-                overlapFAIdx[overlapIndex++]  = i;
+                Box destbox = boxarray[j] & subbox;
+
+                dest.copy(fabparray[j],destbox,scomp,destbox,dcomp,ncomp);
             }
         }
-    }
-    for (int i = 0; i < overlapLength; i++)
-    {
-        overlapData.set(i, new FAB(overlapBA[i], num_comp));
 
-        if (MyProc == overlapProc[i])
+        return;
+    }
+
+#ifdef BL_USE_MPI
+    static RunStats stats("mpi_broadcast");
+
+    vector<Box>  overlapBA;
+    vector<int>  overlapProc;
+    vector<FAB*> overlapData;
+
+    for (int i = 0; i < length(); i++)
+    {
+        if (subbox.intersects(boxarray[i]))
         {
-            overlapData[i].copy(fabparray[overlapFAIdx[i]],
-                                src_comp,
-                                0,
-                                num_comp);
+            Box bx = subbox & boxarray[i];
+
+            overlapBA.push_back(bx);
+            overlapProc.push_back(distributionMap[i]);
+            overlapData.push_back(new FAB(bx,ncomp));
+
+            if (ParallelDescriptor::MyProc() == distributionMap[i])
+                overlapData.back()->copy(fabparray[i],bx,scomp,bx,0,ncomp);
         }
     }
 
-    mpi_bcast.start();
-    for (int i = 0, rc; i < overlapLength; i++)
+    stats.start();
+    for (int i = 0, rc; i < overlapData.size(); i++)
     {
-        if ((rc = MPI_Bcast(overlapData[i].dataPtr(),
-                            overlapData[i].box().numPts()*num_comp,
-                            mpi_data_type(overlapData[i].dataPtr()),
+        if ((rc = MPI_Bcast(overlapData[i]->dataPtr(),
+                            overlapBA[i].numPts()*ncomp,
+                            mpi_data_type(overlapData[i]->dataPtr()),
                             overlapProc[i],
                             MPI_COMM_WORLD)) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
-    mpi_bcast.end();
+    stats.end();
 
-    for (int i = 0; i < overlapLength; i++)
-    {
-        dest.copy(overlapData[i],
-                  overlapBA[i],
-                  0,
-                  overlapBA[i],
-                  dest_comp,
-                  num_comp);
-    }
-#else
-    for (int j = 0; j < length(); ++j)
-    {
-        //
-        // Test all distributed objects.
-        //
-        if (boxarray[j].intersects(subbox))
-        {
-            //
-            // Restrict copy to domain of validity of source.
-            //
-            Box destbox = boxarray[j] & subbox;
-            dest.copy(fabparray[j],
-                      destbox,
-                      src_comp,
-                      destbox,
-                      dest_comp,
-                      num_comp);
-        }
-    }
+    for (int i = 0; i < overlapData.size(); i++)
+        dest.copy(*overlapData[i],overlapBA[i],0,overlapBA[i],dcomp,ncomp);
+
+    for (int i = 0; i < overlapData.size(); i++)
+        delete overlapData[i];
 #endif /*BL_USE_MPI*/
 }
 
@@ -1718,15 +1697,15 @@ template <class T, class FAB>
 void
 FabArray<T,FAB>::setVal (T   val,
                          int comp,
-                         int num_comp,
+                         int ncomp,
                          int nghost)
 {
     assert(nghost >= 0 && nghost <= n_grow);
-    assert(comp+num_comp <= n_comp);
+    assert(comp+ncomp <= n_comp);
 
     for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
-        fai().setVal(val, ::grow(fai.validbox(), nghost), comp, num_comp);
+        fai().setVal(val, ::grow(fai.validbox(),nghost), comp, ncomp);
     }
 }
 
@@ -1735,18 +1714,18 @@ void
 FabArray<T,FAB>::setVal (T          val,
                          const Box& region,
                          int        comp,
-                         int        num_comp,
+                         int        ncomp,
                          int        nghost)
 {
     assert(nghost >= 0 && nghost <= n_grow);
-    assert(comp+num_comp <= n_comp);
+    assert(comp+ncomp <= n_comp);
 
     for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
         Box b = ::grow(fai.validbox(),nghost) & region;
 
         if (b.ok())
-            fai().setVal(val, b, comp, num_comp);
+            fai().setVal(val, b, comp, ncomp);
     }
 }
 
@@ -2231,7 +2210,7 @@ FabArrayCopyDescriptor<T,FAB>::AddBoxDoIt (FabArrayId fabarrayid,
             // Data is local.
             //
             fcd->fillType       = FillLocally;
-            fcd->localFabSource = &((*fabArray)[faindex]);
+            fcd->localFabSource = &(*fabArray)[faindex];
         }
         else
         {
@@ -2594,7 +2573,6 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
                     N += fabComTagList[j].box.numPts()*fabComTagList[j].nComp;
 
             assert(N < INT_MAX);
-            assert(!(The_FAB_Arena == 0));
 
             fab_data[i] = static_cast<T*>(The_FAB_Arena->alloc(N*sizeof(T)));
 
@@ -2627,7 +2605,6 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
                 N += recv_cd[idx+j].box().numPts() * recv_cd[idx+j].nComp();
 
             assert(N < INT_MAX);
-            assert(!(The_FAB_Arena == 0));
 
             T* data = static_cast<T*>(The_FAB_Arena->alloc(N*sizeof(T)));
             T* dptr = data;
@@ -2668,8 +2645,6 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
                                 MPI_COMM_WORLD)) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
             mpi_send.end();
-
-            assert(!(The_FAB_Arena == 0));
 
             The_FAB_Arena->free(data);
 
@@ -2732,7 +2707,6 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
             }
 
             assert(Processed == Rcvs[i]);
-            assert(!(The_FAB_Arena == 0));
 
             The_FAB_Arena->free(fab_data[i]);
 
@@ -2752,19 +2726,17 @@ FabArrayCopyDescriptor<T,FAB>::FillFab (FabArrayId       faid,
 {
     assert(dataAvailable);
 
-    FCDMapIter fmi = fabCopyDescList[faid.Id()].lower_bound(fillboxid.Id());
+    pair<FCDMapIter,FCDMapIter> match = fabCopyDescList[faid.Id()].equal_range(fillboxid.Id());
 
-    FCDMapIter end = fabCopyDescList[faid.Id()].upper_bound(fillboxid.Id());
-
-    for ( ; fmi != end; ++fmi)
+    for (FCDMapIter fmi = match.first; fmi != match.second; ++fmi)
     {
         FabCopyDescriptor<FAB>* fcdp = (*fmi).second;
 
         assert(fcdp->fillBoxId == fillboxid.Id());
 
-        destFab.copy(*(fcdp->localFabSource),
+        destFab.copy(*fcdp->localFabSource,
                      fcdp->subBox,
-                     (fcdp->fillType == FillLocally) ? fcdp->srcComp : 0,
+                     fcdp->fillType == FillLocally ? fcdp->srcComp : 0,
                      fcdp->subBox,
                      fcdp->destComp,
                      fcdp->nComp);
@@ -2790,9 +2762,9 @@ FabArrayCopyDescriptor<T,FAB>::FillFab (FabArrayId       faid,
 
     assert(fcdp->subBox.sameSize(destBox));
 
-    destFab.copy(*(fcdp->localFabSource),
+    destFab.copy(*fcdp->localFabSource,
                  fcdp->subBox,
-                 (fcdp->fillType == FillLocally) ? fcdp->srcComp : 0,
+                 fcdp->fillType == FillLocally ? fcdp->srcComp : 0,
                  destBox,
                  fcdp->destComp,
                  fcdp->nComp);
