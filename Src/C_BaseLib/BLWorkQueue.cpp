@@ -1,5 +1,5 @@
 //
-// $Id: BLWorkQueue.cpp,v 1.8 2001-09-19 02:36:47 car Exp $
+// $Id: BLWorkQueue.cpp,v 1.9 2001-10-03 19:53:51 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -41,7 +41,7 @@ WorkQueue::Initialize ()
     pp.query("maxthreads", maxthreads);
     pp.query("verbose", verbose);
 
-    if (ParallelDescriptor::IOProcessor())
+    if (verbose && ParallelDescriptor::IOProcessor())
     {
         std::cout << "workqueue.maxthreads = " << maxthreads << std::endl;
     }
