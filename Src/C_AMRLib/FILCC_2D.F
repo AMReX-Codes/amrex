@@ -1,6 +1,3 @@
-#undef  BL_LANG_CC
-#define BL_LANG_FORT
-
 #include "REAL.H"
 #include "CONSTANTS.H"
 #include "BC_TYPES.H"
@@ -68,11 +65,11 @@ c     ::::: first fill sides
             if (ilo+2 .le. ie) then 
 	     do j = ARG_L2(q), ARG_H2(q)
 		q(ilo-1,j) = (fifteen*q(ilo,j) - ten*q(ilo+1,j) + 
-     $                        three*q(ilo+2,j))/eight 
+     $                        three*q(ilo+2,j)) * eighth
 	     enddo 
             else 
 	     do j = ARG_L2(q), ARG_H2(q)
-	       q(ilo-1,j) = two*q(ilo,j) - q(ilo+1,j) 
+	       q(ilo-1,j) = half*(three*q(ilo,j) - q(ilo+1,j))
 	     enddo
             endif
 	 elseif (bc(1,1) .eq. REFLECT_EVEN) then
@@ -108,11 +105,11 @@ c     ::::: first fill sides
             if (ihi-2 .ge. is) then
 	     do j = ARG_L2(q), ARG_H2(q)
 	       q(ihi+1,j) = (fifteen*q(ihi,j) - ten*q(ihi-1,j) + 
-     $                        three*q(ihi-2,j))/eight
+     $                        three*q(ihi-2,j)) * eighth
              enddo
             else
 	     do j = ARG_L2(q), ARG_H2(q)
-	       q(ihi+1,j) = two*q(ihi,j) - q(ihi-1,j) 
+	       q(ihi+1,j) = half*(three*q(ihi,j) - q(ihi-1,j))
              enddo
             endif
 	 elseif (bc(1,2) .eq. REFLECT_EVEN) then
@@ -148,11 +145,11 @@ c     ::::: first fill sides
             if (jlo+2 .le. je) then
  	     do i = ARG_L1(q), ARG_H1(q)
                q(i,jlo-1) = (fifteen*q(i,jlo) - ten*q(i,jlo+1) + 
-     $                        three*q(i,jlo+2))/eight
+     $                        three*q(i,jlo+2)) * eighth
              enddo
             else
  	     do i = ARG_L1(q), ARG_H1(q)
-               q(i,jlo-1) = two*q(i,jlo) - q(i,jlo+1)
+               q(i,jlo-1) = half*(three*q(i,jlo) - q(i,jlo+1))
              enddo
             endif
 	 elseif (bc(2,1) .eq. REFLECT_EVEN) then
@@ -188,11 +185,11 @@ c     ::::: first fill sides
             if (jhi-2 .ge. js) then
  	    do i = ARG_L1(q), ARG_H1(q)
                q(i,jhi+1) = (fifteen*q(i,jhi) - ten*q(i,jhi-1) + 
-     $                         three*q(i,jhi-2))/eight
+     $                         three*q(i,jhi-2)) * eighth
              enddo
             else
  	     do i = ARG_L1(q), ARG_H1(q)
-               q(i,jhi+1) = two*q(i,jhi) - q(i,jhi-1)
+               q(i,jhi+1) = half*(three*q(i,jhi) - q(i,jhi-1))
              enddo
             endif
 	 elseif (bc(2,2) .eq. REFLECT_EVEN) then
@@ -212,30 +209,84 @@ c     ::::: first fill sides
 
       if ((nlft .gt. 0 .and. bc(1,1) .eq. HOEXTRAP) .and.
      $    (nbot .gt. 0 .and. bc(2,1) .eq. HOEXTRAP) ) then
-        q(ilo-1,jlo-1) = half /eight * (
-     $    (fifteen*q(ilo-1,jlo) - ten*q(ilo-1,jlo+1) + three*q(ilo-1,jlo+2)) +
-     $    (fifteen*q(ilo,jlo-1) - ten*q(ilo+1,jlo-1) + three*q(ilo+2,jlo-1)) )
+      
+        if (jlo+2 .le. je) then 
+          q(ilo-1,jlo-1) = half * eighth * 
+     $    (fifteen*q(ilo-1,jlo) - ten*q(ilo-1,jlo+1) + three*q(ilo-1,jlo+2))
+        else
+          q(ilo-1,jlo-1) = half * half * 
+     $    (three*q(ilo-1,jlo) - q(ilo-1,jlo+1))
+        endif
+
+        if (ilo+2 .le. ie) then 
+          q(ilo-1,jlo-1) =  q(ilo-1,jlo-1) + half * eighth * 
+     $    (fifteen*q(ilo,jlo-1) - ten*q(ilo+1,jlo-1) + three*q(ilo+2,jlo-1)) 
+        else
+          q(ilo-1,jlo-1) =  q(ilo-1,jlo-1) + half * half * 
+     $    (three*q(ilo,jlo-1) - q(ilo+1,jlo-1))
+        endif
+
+
       endif
 
       if ((nlft .gt. 0 .and. bc(1,1) .eq. HOEXTRAP) .and.
      $    (ntop .gt. 0 .and. bc(2,2) .eq. HOEXTRAP) ) then
-        q(ilo-1,jhi+1) = half / eight * (
-     $    (fifteen*q(ilo-1,jhi) - ten*q(ilo-1,jhi-1) + three*q(ilo-1,jhi-2)) +
-     $    (fifteen*q(ilo,jhi+1) - ten*q(ilo+1,jhi+1) + three*q(ilo+2,jhi+1)) )
+
+        if (jhi-2 .ge. js) then 
+          q(ilo-1,jhi+1) = half * eighth * 
+     $    (fifteen*q(ilo-1,jhi) - ten*q(ilo-1,jhi-1) + three*q(ilo-1,jhi-2))
+        else
+          q(ilo-1,jhi+1) = half * half * 
+     $    (three*q(ilo-1,jhi) - q(ilo-1,jhi-1))
+        endif
+
+        if (ilo+2 .le. ie) then 
+          q(ilo-1,jhi+1) = q(ilo-1,jhi+1) + half * eighth * 
+     $    (fifteen*q(ilo,jhi+1) - ten*q(ilo+1,jhi+1) + three*q(ilo+2,jhi+1))
+        else
+          q(ilo-1,jhi+1) = q(ilo-1,jhi+1) + half * half * 
+     $    (three*q(ilo,jhi+1) - q(ilo+1,jhi+1))
+        endif
       endif
 
       if ((nrgt .gt. 0 .and. bc(1,2) .eq. HOEXTRAP) .and.
      $    (nbot .gt. 0 .and. bc(2,1) .eq. HOEXTRAP) ) then
-        q(ihi+1,jlo-1) = half / eight * (
-     $    (fifteen*q(ihi+1,jlo) - ten*q(ihi+1,jlo+1) + three*q(ihi+1,jlo+2)) +
-     $    (fifteen*q(ihi,jlo-1) - ten*q(ihi-1,jlo-1) + three*q(ihi-2,jlo-1)) )
+        if (jlo+2 .le. je) then 
+          q(ihi+1,jlo-1) = half * eighth * 
+     $    (fifteen*q(ihi+1,jlo) - ten*q(ihi+1,jlo+1) + three*q(ihi+1,jlo+2))
+        else
+          q(ihi+1,jlo-1) = half * half * 
+     $    (three*q(ihi+1,jlo) - q(ihi+1,jlo+1))
+        endif
+
+        if (ihi-2 .ge. is) then 
+          q(ihi+1,jlo-1) = q(ihi+1,jlo-1) + half * eighth * 
+     $    (fifteen*q(ihi,jlo-1) - ten*q(ihi-1,jlo-1) + three*q(ihi-2,jlo-1))
+        else
+          q(ihi+1,jlo-1) = q(ihi+1,jlo-1) + half * half * 
+     $    (three*q(ihi,jlo-1) - q(ihi-1,jlo-1))
+        endif
       endif
 
       if ((nrgt .gt. 0 .and. bc(1,2) .eq. HOEXTRAP) .and.
      $    (ntop .gt. 0 .and. bc(2,2) .eq. HOEXTRAP) ) then
-        q(ihi+1,jhi+1) = half / eight * (
-     $    (fifteen*q(ihi+1,jhi) - ten*q(ihi+1,jhi-1) + three*q(ihi+1,jhi-2)) +
-     $    (fifteen*q(ihi,jhi+1) - ten*q(ihi-1,jhi+1) + three*q(ihi-2,jhi+1)) )
+
+        if (jhi-2 .ge. js) then 
+          q(ihi+1,jhi+1) = half * eighth * 
+     $    (fifteen*q(ihi+1,jhi) - ten*q(ihi+1,jhi-1) + three*q(ihi+1,jhi-2))
+        else
+          q(ihi+1,jhi+1) = half * half * 
+     $    (three*q(ihi+1,jhi) - q(ihi+1,jhi-1))
+        endif
+
+        if (ihi-2 .ge. is) then 
+          q(ihi+1,jhi+1) = q(ihi+1,jhi+1) + half * eighth * 
+     $    (fifteen*q(ihi,jhi+1) - ten*q(ihi-1,jhi+1) + three*q(ihi-2,jhi+1))
+        else
+          q(ihi+1,jhi+1) = q(ihi+1,jhi+1) + half * half * 
+     $    (three*q(ihi,jhi+1) - q(ihi-1,jhi+1))
+        endif
+
       endif
 
       return

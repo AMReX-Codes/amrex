@@ -1,6 +1,3 @@
-#undef  BL_LANG_CC
-#define BL_LANG_FORT
-
 #include "REAL.H"
 #include "CONSTANTS.H"
 #include "FLUXREG_F.H"
@@ -226,11 +223,11 @@ c        ::::: flux normal to X direction
          ic = ARG_L1(reg)
          i = ic*ratiox
          if (ARG_L1(reg) .ne. ARG_H1(reg)) then
-            write(6,*) "FORT_FRFINEADD: bad register direction"
+            write(6,*) "FORT_FRFAADD: bad register direction"
             stop
          endif
          if (i .lt. ARG_L1(flx) .or. i .gt. ARG_H1(flx)) then
-            write(6,*) "FORT_FRFINEADD: index outside flux range"
+            write(6,*) "FORT_FRFAADD: index outside flux range"
             stop
          endif
          do n = 1, numcomp
@@ -246,11 +243,11 @@ c        ::::: flux normal to Y direction
          jc = ARG_L2(reg)
          j = jc*ratioy
          if (ARG_L2(reg) .ne. ARG_H2(reg)) then
-            write(6,*) "FORT_FRFINEADD: bad register direction"
+            write(6,*) "FORT_FRFAADD: bad register direction"
             stop
          endif
          if (j .lt. ARG_L2(flx) .or. j .gt. ARG_H2(flx)) then
-            write(6,*) "FORT_FRFINEADD: index outside flux range"
+            write(6,*) "FORT_FRFAADD: index outside flux range"
             stop
          endif
          do n = 1, numcomp
