@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: InterpBndryData.cpp,v 1.5 1998-07-29 19:09:53 lijewski Exp $
+// $Id: InterpBndryData.cpp,v 1.6 1999-01-04 18:11:15 marc Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -85,7 +85,8 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
     assert(grids == mf.boxArray());
 
     IntVect ref_ratio = IntVect::TheUnitVector();
-    setBndryConds(bc, ref_ratio);
+    for (int n=bnd_start; n<bnd_start+num_comp; ++n)
+	setBndryConds(bc, ref_ratio, n);
 
     for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
     {
@@ -109,7 +110,7 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
     }
     //
     // Now copy boundary values stored in ghost cells of fine
-    // into bndry.  This only does something for physical boundaries,
+    // into bndry.  This does nothing at physical boundaries,
     // we don't need to make it periodic aware.
     //
     for (OrientationIter fi; fi; ++fi)
@@ -226,7 +227,7 @@ InterpBndryData::setBndryValues (BndryRegister& crse,
     delete derives;
     //
     // Now copy boundary values stored in ghost cells of fine
-    // into bndry.  This only does something for physical boundaries,
+    // into bndry.  This does nothing for physical boundaries,
     // we don't need to make it periodic aware.
     //
     for (OrientationIter face; face; ++face)
