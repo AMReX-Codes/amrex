@@ -4,7 +4,7 @@
 #define BL_DISTRIBUTIONMAPPING_H
 
 //
-// $Id: DistributionMapping.H,v 1.8 1998-05-04 21:24:56 lijewski Exp $
+// $Id: DistributionMapping.H,v 1.9 1998-06-13 15:49:43 lijewski Exp $
 //
 
 #include <BoxLib.H>
@@ -80,6 +80,10 @@ class DistributionMapping
                before new MultiFabs are alloced.
     */
     static void FlushCache ();
+    //
+    //@ManDoc: The size of the caceh.
+    //
+    static int CacheSize ();
     //
     //@ManDoc: Output some simple cache statistics.
     //
@@ -163,6 +167,13 @@ DistributionMapping::Strategy
 DistributionMapping::strategy ()
 {
     return DistributionMapping::m_Strategy;
+}
+
+inline
+int
+DistributionMapping::CacheSize ()
+{
+    return m_Cache.length();
 }
 
 #endif /*BL_DISTRIBUTIONMAPPING_H*/
