@@ -1,7 +1,7 @@
 #ifndef _AmrLevel_H_
 #define _AmrLevel_H_ 
 //
-// $Id: AmrLevel.H,v 1.54 2003-03-07 17:39:39 lijewski Exp $
+// $Id: AmrLevel.H,v 1.55 2003-10-15 18:01:33 marc Exp $
 //
 #include <REAL.H>
 #include <Box.H>
@@ -42,7 +42,12 @@ public:
     //
     //@ManDoc: What time are we at?
     //
-    enum TimeLevel { AmrOldTime, AmrHalfTime, AmrNewTime, AmrOtherTime };
+    enum TimeLevel { AmrOldTime,
+                     AmrHalfTime,
+                     AmrNewTime,
+                     Amr1QtrTime,
+                     Amr3QtrTime,
+                     AmrOtherTime };
     //
     //@ManDoc: The destructor.
     //

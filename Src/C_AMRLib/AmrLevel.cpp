@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.94 2003-03-07 17:39:39 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.95 2003-10-15 18:01:33 marc Exp $
 //
 #include <winstd.H>
 
@@ -1538,6 +1538,8 @@ AmrLevel::which_time (int  indx,
     const Real oldtime = state[indx].prevTime();
     const Real newtime = state[indx].curTime();
     const Real haftime = .5 * (oldtime + newtime);
+    const Real qtime = oldtime + 0.25*(newtime-oldtime);
+    const Real tqtime = oldtime + 0.75*(newtime-oldtime);
     const Real epsilon = 0.001 * (newtime - oldtime);
 
     BL_ASSERT(time >= oldtime-epsilon && time <= newtime+epsilon);
@@ -1553,6 +1555,14 @@ AmrLevel::which_time (int  indx,
     else if (time >= haftime-epsilon && time <= haftime+epsilon)
     {
         return AmrHalfTime;
+    }
+    else if (time >= qtime-epsilon && time <= qtime+epsilon)
+    {
+        return Amr1QtrTime;
+    }
+    else if (time >= tqtime-epsilon && time <= tqtime+epsilon)
+    {
+        return Amr3QtrTime;
     }
     return AmrOtherTime;
 }
