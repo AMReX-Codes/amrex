@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.47 2000-06-01 22:59:47 car Exp $
+# $Id: GNUmakefile,v 1.48 2001-03-28 19:37:17 car Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -19,8 +19,6 @@ USE_MPI   = FALSE
 USE_MPI   = TRUE
 NAMESPACE = TRUE
 NAMESPACE = FALSE
-
-WM_LINUX_FPU_EXTENSIONS_HOME=/usr/local
 
 #
 # To build the executable: EBASE=proj LBASE=
