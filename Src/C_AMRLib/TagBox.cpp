@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.17 1998-04-02 00:13:03 lijewski Exp $
+// $Id: TagBox.cpp,v 1.18 1998-04-07 20:13:48 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -438,72 +438,76 @@ void
 TagBoxArray::mergeUnique ()
 {
     FabArrayCopyDescriptor<TagType,TagBox> facd;
+
     FabArrayId faid = facd.RegisterFabArray(this);
-    int nOverlap = 0;
-    int myproc = ParallelDescriptor::MyProc();
+
+    int nOverlap = 0, myproc = ParallelDescriptor::MyProc();
+
     List<TagBoxMergeDesc> tbmdList;
-    List<FabComTag> tbmdClearList;
-    //
-    // Don't use FabArrayIterator here.
-    //
-    BoxList unfilledBoxes;  // Returned by AddBox, not used.
+
+    BoxList notUsed; // Required in call to AddBox().
+
+    TagBoxMergeDesc tbmd;
+
     for (int idest = 0; idest < fabparray.length(); ++idest)
     {
         bool destLocal = (distributionMap[idest] == myproc);
+
         for (int isrc = idest + 1; isrc < fabparray.length(); ++isrc)
         {
-            Box ovlp(boxarray[idest]);
-            ovlp &= boxarray[isrc];
+            Box ovlp = boxarray[idest] & boxarray[isrc];
+
             if (ovlp.ok())
             {
-                TagBoxMergeDesc tbmd;
-                tbmd.destLocal      = destLocal;
+                tbmd.overlapBox     = ovlp;
                 tbmd.mergeIndexSrc  = isrc;
                 tbmd.mergeIndexDest = idest;
-                tbmd.nOverlap       = nOverlap;
-                tbmd.overlapBox     = ovlp;
+                tbmd.nOverlap       = nOverlap++;
+                tbmd.destLocal      = destLocal;
+
                 if (destLocal)
-                {
-                    tbmd.fillBoxId = facd.AddBox(faid,ovlp,unfilledBoxes,isrc,0,0,1);
-                }
+                    tbmd.fillBoxId = facd.AddBox(faid,ovlp,notUsed,isrc,0,0,1);
+
                 tbmdList.append(tbmd);
-                ++nOverlap;
+
+                if (destLocal)
+                    tbmd.fillBoxId = FillBoxId(); // Clear out for later reuse.
             }
         }
     }
-    //cout << "_in TagBoxArray::mergeUnique:  CopyDescriptor stats:" << endl;
-    //facd.PrintStats();
 
     facd.CollectData();
+
+    FabComTag       tbmdClear;
+    List<FabComTag> tbmdClearList;
 
     int listIndex = 0;
     for (ListIterator<TagBoxMergeDesc> tbmdli(tbmdList); tbmdli; ++tbmdli)
     {
-        const TagBoxMergeDesc& tbmd = tbmdli();
-        if (tbmd.destLocal)
+        const TagBoxMergeDesc& desc = tbmdli();
+
+        if (desc.destLocal)
         {
-            TagBox& dest = fabparray[tbmd.mergeIndexDest];
-            TagBox src(tbmd.overlapBox, 1);
-            facd.FillFab(faid, tbmd.fillBoxId, src);
-            for (ListIterator<TagBoxMergeDesc> tbmdliprev(tbmdList);
-                 tbmdliprev && tbmdliprev().nOverlap <= listIndex;
-                 ++tbmdliprev)
+            TagBox src(desc.overlapBox);
+
+            facd.FillFab(faid, desc.fillBoxId, src);
+
+            ListIterator<TagBoxMergeDesc> it(tbmdList);
+
+            for ( ; it && it().nOverlap <= listIndex; ++it)
             {
-                Box ovlpBox(src.box());
-                ovlpBox &= tbmdliprev().overlapBox;
-                if (ovlpBox.ok() && tbmdliprev().mergeIndexSrc == tbmd.mergeIndexSrc)
+                Box ovlpBox = src.box() & it().overlapBox;
+
+                if (ovlpBox.ok() && it().mergeIndexSrc == desc.mergeIndexSrc)
                 {
-                    if (tbmdliprev().nOverlap < listIndex)
-                    {
+                    if (it().nOverlap < listIndex)
                         src.setVal(TagBox::CLEAR, ovlpBox, 0);
-                    }
-                    FabComTag tbmdClear;
-                    tbmdClear.fabIndex = tbmd.mergeIndexSrc;
-                    tbmdClear.ovlpBox = tbmd.overlapBox;
+                    tbmdClear.fabIndex = desc.mergeIndexSrc;
+                    tbmdClear.ovlpBox  = desc.overlapBox;
                     tbmdClearList.append(tbmdClear);
                 }
             }
-            dest.merge(src);
+            fabparray[desc.mergeIndexDest].merge(src);
         }
         ++listIndex;
     }
@@ -512,12 +516,9 @@ TagBoxArray::mergeUnique ()
     //
     ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
 
-    ListIterator<FabComTag> tbmdsendli(tbmdClearList);
-
-    for ( ; tbmdsendli; ++tbmdsendli)
+    for (ListIterator<FabComTag> it(tbmdClearList); it; ++it)
     {
-        ParallelDescriptor::SendData(distributionMap[tbmdsendli().fabIndex],
-                                     &tbmdsendli(), 0, 0);
+        ParallelDescriptor::SendData(distributionMap[it().fabIndex],&it(),0,0);
     }
 
     ParallelDescriptor::Synchronize();  // To guarantee messages are sent.
@@ -525,19 +526,13 @@ TagBoxArray::mergeUnique ()
     // Now clear the overlaps in the TagBoxArray.
     //
     int dataWaitingSize;
-    FabComTag tbmdClear;
     while (ParallelDescriptor::GetMessageHeader(dataWaitingSize, &tbmdClear))
     {
-        //
-        // Data was sent to this processor.
-        //
-        if (!(distributionMap[tbmdClear.fabIndex] == myproc))
-            BoxLib::Error("tbmdClear.fabIndex is not local");
+       assert(distributionMap[tbmdClear.fabIndex] == myproc);
 
-        TagBox& src = fabparray[tbmdClear.fabIndex];
-        src.setVal(TagBox::CLEAR, tbmdClear.ovlpBox, 0);
+       fabparray[tbmdClear.fabIndex].setVal(TagBox::CLEAR,tbmdClear.ovlpBox,0);
 
-        ParallelDescriptor::ReceiveData(0, 0);  // To advance message header.
+       ParallelDescriptor::ReceiveData(0, 0);  // To advance message header.
     }
     ParallelDescriptor::Synchronize();
 }
