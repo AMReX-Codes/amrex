@@ -391,12 +391,14 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	}
 	else if (m_hg_full_stencil)
 	{
+#if defined(HG_FULL_STENCIL)
 #if BL_SPACEDIM == 2
 	    const int isRZ = IsRZ();
 	    const int imax = mg_domain[mglevc].bigEnd(0) + 1;
 	    tl.add_task(
 		new task_fceres_?(&FORT_HGFRES_FULL, resid[mglev], source[lev], dest[lev], sigma[mglev], igrid, cdst, sigmac, creg, h[mglev], rat, idim, idir, isRZ, imax)
 		);
+#endif
 #endif
 	}
 	else
@@ -522,6 +524,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
     }
     else if (m_hg_full_stencil)
     {
+#if defined(HG_FULL_STENCIL)
 #if BL_SPACEDIM == 2
 	task_list tl;
 	for (int icor = 0; icor < lev_interface[mglev].nboxes(0); icor++) 
@@ -651,6 +654,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    }
         }
 	tl.execute();
+#endif
 #endif
     }
 }

@@ -506,6 +506,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 	}
 	else if (m_hg_full_stencil)
 	{
+#if defined(HG_FULL_STENCIL)
 #if BL_SPACEDIM != 3
 	    const Real hxyz[BL_SPACEDIM] = { D_DECL( h[mglev][0], h[mglev][1], h[mglev][2] ) };
 	    for (MultiFabIterator c_mfi(cen[mglev]); c_mfi.isValid(); ++c_mfi)
@@ -530,6 +531,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 		    D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]));
 #endif
 	    }
+#endif
 #endif
 	}
 	else
@@ -602,6 +604,7 @@ void holy_grail_amr_multigrid::clear()
     }
     else if (m_hg_full_stencil)
     {
+#if defined(HG_FULL_STENCIL)
 	
 	delete sigma.remove(mglev_max);
 	for (int i = 0; i < BL_SPACEDIM; i++) 
@@ -616,6 +619,7 @@ void holy_grail_amr_multigrid::clear()
 		delete sigma_nd[i].remove(mglev);
 	    }
 	}
+#endif
     }
     else
     {
@@ -828,6 +832,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 	    }
 	    else if (m_hg_full_stencil)
 	    {
+#if defined(HG_FULL_STENCIL)
 		Real* sigptr[BL_SPACEDIM] = { D_DECL(0,0,0) };
 		for (int i = 0; i < BL_SPACEDIM; i++) 
 		{
@@ -840,14 +845,15 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 		assert(is_remote(sigma_nd[0][ltmp], igrid) || sigbox == sigma[ltmp][igrid].box());
 		// const Box& sigbox = sigma[ltmp][igrid].box();
 		hgi = new holy_grail_interpolator_class_not_cross(sigptr, sigbox);
+#endif
 	    }
 	    else
 	    {
 #if BL_SPACEDIM != 3
 		Real* sigptr[BL_SPACEDIM] = { D_DECL(0,0,0) };
-		if ( is_local(sigma_nd[ltmp], igrid) )
+		for (int i = 0; i < BL_SPACEDIM; i++) 
 		{
-		    for (int i = 0; i < BL_SPACEDIM; i++) 
+		    if ( is_local(sigma_nd[i][ltmp], igrid) )
 		    {
 			sigptr[i] = sigma_nd[i][ltmp][igrid].dataPtr();
 		    }
@@ -903,6 +909,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 	    }
 	    else if (m_hg_full_stencil)
 	    {
+#if defined(HG_FULL_STENCIL)
 #if (BL_SPACEDIM != 3)
 		DependentMultiFabIterator D_DECL(s0_dmfi(w_mfi, sigma_nd[0][lto]),
 						 s1_dmfi(w_mfi, sigma_nd[1][lto]),
@@ -913,6 +920,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 		    DIMLIST(sigbox),
 		    c_dmfi->dataPtr(), DIMLIST(cbox), DIMLIST(creg),
 		    D_DECL(rat[0], rat[1], rat[2]));
+#endif
 #endif
 	    }
 	    else
