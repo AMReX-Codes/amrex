@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CGSolver.cpp,v 1.5 1998-07-29 19:09:52 lijewski Exp $
+// $Id: CGSolver.cpp,v 1.6 1998-12-08 18:25:44 wyc Exp $
 //
 
 // Conjugate gradient support
@@ -15,6 +15,7 @@
 int CGSolver::initialized = 0;
 int CGSolver::def_maxiter = 40;
 int CGSolver::def_verbose = 0;
+double CGSolver::def_unstable_criterion = 10.;
 
 void
 CGSolver::initialize ()
@@ -24,6 +25,7 @@ CGSolver::initialize ()
     pp.query("maxiter", def_maxiter);
     pp.query("verbose", def_verbose);
     pp.query("v", def_verbose);
+    pp.query("unstable_criterion",def_unstable_criterion);
 
     if (ParallelDescriptor::IOProcessor() && def_verbose)
     {
@@ -40,7 +42,8 @@ CGSolver::CGSolver (LinOp& _Lp,
     Lp(_Lp),
     mg_precond(0),
     lev(_lev),
-    use_mg_precond(_use_mg_precond)
+    use_mg_precond(_use_mg_precond),
+    isExpert(false)
 {
     if (!initialized)
         initialize();
@@ -108,7 +111,7 @@ CGSolver::norm (const MultiFab& res)
     return restot;
 }
 
-void
+int
 CGSolver::solve (MultiFab&       sol,
                  const MultiFab& rhs,
                  Real            eps_rel,
@@ -178,6 +181,8 @@ CGSolver::solve (MultiFab&       sol,
 
     Real rnorm  = norm(*r);
     Real rnorm0 = rnorm;
+    Real minrnorm = rnorm;
+    int ret = 0; // will return this value if all goes well
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
@@ -259,7 +264,14 @@ CGSolver::solve (MultiFab&       sol,
         //
         // alpha = rho_k-1/p^tw
         //
-        Real alpha = rho/pw;
+	Real alpha;
+	if( pw != 0. ){
+	  alpha = rho/pw;
+	}
+	else {
+	  ret = 1;
+	  break;
+	}
         
         if (ParallelDescriptor::IOProcessor() && verbose > 2)
         {
@@ -285,6 +297,13 @@ CGSolver::solve (MultiFab&       sol,
         rhoold = rho;
         update(sol, alpha, *r, *p, *w);
         rnorm = norm(*r);
+	if( rnorm > def_unstable_criterion*minrnorm ){
+	  ret = 1;
+	  break;
+	}
+	else if( rnorm < minrnorm ){
+	  minrnorm = rnorm;
+	}
 
         if (ParallelDescriptor::IOProcessor())
         {
@@ -302,7 +321,10 @@ CGSolver::solve (MultiFab&       sol,
         }
     }
     
-    if (rnorm > eps_rel*rnorm0 && rnorm > eps_abs)
+    if( ret != 0 && isExpert == false ){
+      BoxLib::Error("CGSolver:: apparent accuracy problem; try expert setting or change unstable_criterion");
+    }
+    if ( ret==0 && rnorm > eps_rel*rnorm0 && rnorm > eps_abs)
     {
         BoxLib::Error("CGSolver:: failed to converge!");
     }
@@ -312,14 +334,17 @@ CGSolver::solve (MultiFab&       sol,
     // operate only in valid regions; do explicitly.  Add to boundary
     // values stored in initialsolution.
     //
-    srccomp=0; ncomp=1; nghost=0;
-    sol.plus(*s,srccomp,ncomp,nghost);
+    if( ret == 0 ){
+      srccomp=0; ncomp=1; nghost=0;
+      sol.plus(*s,srccomp,ncomp,nghost);
+    }
 
     delete s;
     delete r;
     delete w;
     delete p;
     delete z;
+    return ret;
 }
 
 void
