@@ -1,7 +1,7 @@
 
 FORT_CPP = /usr/ccs/lib/cpp
 
-LDFLAGS += -bmaxdata:0x40000000
+LDFLAGS += -bmaxdata:0x80000000
 
 ifeq ($(COMP),CC)
   CXX     := CC -h instantiate=local
@@ -53,8 +53,10 @@ fDEBF += -g -qdpc
 endif
 
 ifeq ($(USE_THREADS),TRUE)
-FOPTF += -qnosave -qthreaded
-fOPTF += -qnosave -qthreaded
+FOPTF   += -qnosave -qthreaded
+fOPTF   += -qnosave -qthreaded
+CXXOPTF +=
+CXXDEBF +=
 endif
 
 COPTF += -O2
