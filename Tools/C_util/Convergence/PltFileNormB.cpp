@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: PltFileNormB.cpp,v 1.1 1999-10-20 22:35:38 sstanley Exp $
+// $Id: PltFileNormB.cpp,v 1.2 2000-06-01 21:22:31 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -178,7 +178,7 @@ main (int   argc,
                 {
                     MPI_Status stat;
                     int rc = MPI_Recv(tmp.dataPtr(), nComp, datatype, 
-                                      MPI_ANY_SOURCE, proc, MPI_COMM_WORLD, 
+                                      MPI_ANY_SOURCE, proc, ParallelDescriptor::Communicator(), 
                                       &stat);
 
                     if (rc != MPI_SUCCESS)
@@ -200,7 +200,7 @@ main (int   argc,
             int rc = MPI_Send(norms.dataPtr(), nComp, datatype, 
                               ParallelDescriptor::IOProcessorNumber(),
                               ParallelDescriptor::MyProc(),
-                              MPI_COMM_WORLD);
+                              ParallelDescriptor::Communicator());
 
             if (rc != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
