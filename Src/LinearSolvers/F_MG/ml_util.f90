@@ -95,10 +95,51 @@ contains
     end do
   end subroutine ml_fill_fluxes_c
 
-  subroutine ml_fine_contrib(ss, flux, uu, res, mm, ratio, crse_domain, side)
+  subroutine ml_fill_fine_fluxes(ss, flux, uu, mm, face, dim)
     type(multifab), intent(inout) :: flux
     type(multifab), intent(in) :: ss
     type(multifab), intent(inout) :: uu
+    type(imultifab), intent(in) :: mm
+    integer :: face, dim
+    integer :: i, n
+    real(kind=dp_t), pointer :: fp(:,:,:,:)
+    real(kind=dp_t), pointer :: up(:,:,:,:)
+    real(kind=dp_t), pointer :: sp(:,:,:,:)
+    integer        , pointer :: mp(:,:,:,:)
+    integer :: ng, nc
+
+    nc = uu%nc
+    ng = uu%ng
+
+    if ( uu%nc /= flux%nc ) then
+       call bl_error("ML_FILL_FINE_FLUXES: uu%nc /= flux%nc")
+    end if
+
+    call multifab_fill_boundary(uu)
+    do i = 1, flux%nboxes
+       if ( multifab_remote(flux, i) ) cycle
+       fp => dataptr(flux, i)
+       up => dataptr(uu, i)
+       sp => dataptr(ss, i)
+       mp => dataptr(mm, i)
+       do n = 1, uu%nc
+          select case(ss%dim)
+          case (1)
+             call stencil_fine_flux_1d(sp(:,1,1,:), fp(:,1,1,n), up(:,1,1,n), &
+                  mp(:,1,1,1), ng, face, dim)
+          case (2)
+             call stencil_fine_flux_2d(sp(:,:,1,:), fp(:,:,1,n), up(:,:,1,n), &
+                  mp(:,:,1,1), ng, face, dim)
+          case (3)
+             call stencil_fine_flux_3d(sp(:,:,:,:), fp(:,:,:,n), up(:,:,:,n), &
+                  mp(:,:,:,1), ng, face, dim)
+          end select
+       end do
+    end do
+  end subroutine ml_fill_fine_fluxes
+
+  subroutine ml_fine_contrib(flux, res, mm, ratio, crse_domain, side)
+    type(multifab), intent(inout) :: flux
     type(multifab), intent(inout) :: res
     type(imultifab), intent(in) :: mm
     type(box) :: crse_domain
@@ -113,42 +154,33 @@ contains
     real(kind=dp_t), pointer :: rp(:,:,:,:)
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
-    integer :: nc, ng
+    integer :: nc
 
-    nc = uu%nc
-    ng = uu%ng
+    nc = res%nc
 
-    if ( uu%nc /= flux%nc ) then
-       call bl_error("ML_FILL_FLUXES: uu%nc /= flux%nc")
+    if ( res%nc /= flux%nc ) then
+       call bl_error("ML_FILL_FLUXES: res%nc /= flux%nc")
     end if
 
     lo_dom = lwb(crse_domain)
     hi_dom = upb(crse_domain)
-    if ( nodal_q(uu) ) hi_dom = hi_dom + 1
+    if ( nodal_q(res) ) hi_dom = hi_dom + 1
     dir = iabs(side)
 
-    call multifab_fill_boundary(uu)
     do i = 1, flux%nboxes
        if ( multifab_remote(flux, i) ) cycle
        fbox   = get_ibox(flux,i)
        lof = lwb(fbox)
        fp => dataptr(flux, i)
-       up => dataptr(uu, i)
        rp => dataptr(res, i)
-       sp => dataptr(ss, i)
        mp => dataptr(mm, i)
        do n = 1, nc
           if (lof(dir) /= lo_dom(dir) .and. lof(dir) /= hi_dom(dir)) then
              select case(flux%dim)
-             case (1)
-                call fine_edge_resid_1d(sp(:,1,1,:), fp(:,1,1,n), up(:,1,1,n), &
-                     rp(:,1,1,1), mp(:,1,1,1), ng, ratio, side)
              case (2)
-                call fine_edge_resid_2d(sp(:,:,1,:), fp(:,:,1,n), up(:,:,1,n), &
-                     rp(:,:,1,1), mp(:,:,1,1), ng, ratio, side, lof)
+                call fine_edge_resid_2d(fp(:,:,1,n), rp(:,:,1,1), mp(:,:,1,1), ratio, side, lof)
              case (3)
-                call fine_edge_resid_3d(sp(:,:,:,:), fp(:,:,:,n), up(:,:,:,n), &
-                     rp(:,:,:,1), mp(:,:,:,1), ng, ratio, side, lof)
+                call fine_edge_resid_3d(fp(:,:,:,n), rp(:,:,:,1), mp(:,:,:,1), ratio, side, lof)
              end select
           end if
        end do
