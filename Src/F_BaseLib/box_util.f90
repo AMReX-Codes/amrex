@@ -2,7 +2,7 @@ module box_util_module
 
   use box_module
   use boxarray_module
-  use mboxarray_module
+  use ml_boxarray_module
 
   implicit none
 
@@ -73,18 +73,18 @@ contains
 
   subroutine read_a_mglib_grid(mba, str)
     use bl_IO_module
-    type(mboxarray), intent(out) :: mba
+    type(ml_boxarray), intent(out) :: mba
     character(len=*), intent(in) :: str
 
     call build(mba, 1)
     call read_a_mglib_grid_ba(mba%bas(1), mba%pd(1), str)
-    call mboxarray_alloc_rr(mba, mba%bas(1)%dim)
+    call ml_boxarray_alloc_rr(mba, mba%bas(1)%dim)
 
   end subroutine read_a_mglib_grid
 
   subroutine read_a_hgproj_grid(mba, str, max_lev_of_mba)
     use bl_IO_module
-    type(mboxarray), intent(out) :: mba
+    type(ml_boxarray), intent(out) :: mba
     character(len=*), intent(in) :: str
     integer, optional, intent(in) :: max_lev_of_mba
     integer :: un, n, nl
@@ -101,7 +101,7 @@ contains
     do i = 1, nl
        call box_read(bx1, un)
        if ( i == 1 ) then
-          call mboxarray_alloc_rr(mba, bx1%dim)
+          call ml_boxarray_alloc_rr(mba, bx1%dim)
           if (nl > 1) mba%rr = 2
        end if
        mba%pd(i) = bx1
@@ -128,9 +128,9 @@ contains
   !! Goto   4: until number of levels is complete
   !! I/O errors will make this routine fail, as well as allocation
   !! errors, no checks are done.
-  subroutine mboxarray_read_boxes(mba, str)
+  subroutine ml_boxarray_read_boxes(mba, str)
     use bl_IO_module
-    type(mboxarray), intent(out) :: mba
+    type(ml_boxarray), intent(out) :: mba
     character(len=*), intent(in) :: str
     integer :: nl, nr, dm, un
     integer, allocatable :: rr(:)
@@ -163,7 +163,7 @@ contains
        mba%pd(i) = refine(mba%pd(i-1), mba%rr(i-1,:))
     end do
     close(unit=un)
-  end subroutine mboxarray_read_boxes
+  end subroutine ml_boxarray_read_boxes
 
   subroutine build_random_boxarray(ba, pd, nb, mn, mx, bf)
     use mt19937_module

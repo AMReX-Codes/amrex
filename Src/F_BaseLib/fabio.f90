@@ -8,7 +8,7 @@ module fabio_module
   use bl_types
   use fab_module
   use multifab_module
-  use mboxarray_module
+  use ml_boxarray_module
   use parallel
 
   implicit none
@@ -673,7 +673,7 @@ contains
   subroutine fabio_ml_boxarray_read(mba, root)
     use bl_stream_module
     use bl_IO_module
-    type(mboxarray), intent(out) :: mba
+    type(ml_boxarray), intent(out) :: mba
     character(len=*), intent(in) :: root
     integer :: lun
     type(bl_stream) :: strm, strm1
