@@ -214,5 +214,52 @@ private:
     task_linked_task t;
 };
 
+template <class X> class counted_ptr
+{
+public:
+    explicit counted_ptr(X* p = 0) : itsPtr(p), itsCount(0)
+    {
+	if (p) itsCount = new unsigned int(1);
+    }
+    counted_ptr(const counted_ptr& r)   {acquire(r);}
+    ~counted_ptr()                      {release();}
+    counted_ptr& operator=(const counted_ptr& r)
+    {
+	if (this != &r) 
+	{
+	    release();
+	    acquire(r);
+	}
+	return *this;
+    }
+    X& operator*() const                {return *itsPtr;}
+    X* operator->() const               {return itsPtr;}
+    X* get() const                      {return itsPtr;}
+    bool unique() const                 {return (itsCount ? *itsCount == 1 : true);}
+private:
+    X*          itsPtr;
+    unsigned int*   itsCount;
+    void acquire(const counted_ptr& r)
+    {
+	itsPtr = r.itsPtr;
+	itsCount = r.itsCount;
+	if (itsCount) ++*itsCount;
+    }
+    void release()
+    {
+	if (itsCount) 
+	{
+	    if (--*itsCount == 0) 
+	    {
+		delete itsCount;
+		delete itsPtr;
+	    }
+	    itsCount = 0;
+	    itsPtr = 0;
+	}
+    }
+};
+
+
 #endif
 
