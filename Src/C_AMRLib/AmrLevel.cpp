@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.34 1998-06-30 04:33:56 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.35 1998-06-30 15:11:21 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1030,32 +1030,35 @@ FillPatchIterator::isValid (bool bDoSync)
                             m_ncomp);
     }
 #ifndef NDEBUG
-    //
-    // Now for some testing ...
-    // 
-    tempCoarseDestFab.resize(m_fab.box(), m_fab.nComp());
-
-    m_amrlevel.SerialFillPatch(tempCoarseDestFab,
-                               m_dcomp,
-                               m_time,
-                               m_stateindex,
-                               m_scomp,
-                               m_ncomp,
-                               m_map[0]);
-
-    tempCoarseDestFab -= m_fab;
-
-    Real n0 = tempCoarseDestFab.norm(0,0,m_ncomp);
-    Real n1 = tempCoarseDestFab.norm(1,0,m_ncomp);
-    Real n2 = tempCoarseDestFab.norm(2,0,m_ncomp);
-
-    const Real EPS = .000001;
-
-    if (n0 > EPS || n1 > EPS || n2 > EPS)
+    if (ParallelDescriptor::NProcs() == 1)
     {
-        cout << "*****Norm(0): " << n0
-             << ", Norm(1): "    << n1
-             << ", Norm(2): "    << n2 << endl;
+        //
+        // Now for some testing ...
+        // 
+        tempCoarseDestFab.resize(m_fab.box(), m_fab.nComp());
+
+        m_amrlevel.SerialFillPatch(tempCoarseDestFab,
+                                   m_dcomp,
+                                   m_time,
+                                   m_stateindex,
+                                   m_scomp,
+                                   m_ncomp,
+                                   m_map[0]);
+
+        tempCoarseDestFab -= m_fab;
+
+        Real n0 = tempCoarseDestFab.norm(0,0,m_ncomp);
+        Real n1 = tempCoarseDestFab.norm(1,0,m_ncomp);
+        Real n2 = tempCoarseDestFab.norm(2,0,m_ncomp);
+
+        const Real EPS = .000001;
+
+        if (n0 > EPS || n1 > EPS || n2 > EPS)
+        {
+            cout << "*****Norm(0): " << n0
+                 << ", Norm(1): "    << n1
+                 << ", Norm(2): "    << n2 << endl;
+        }
     }
 #endif
     stats.end();
