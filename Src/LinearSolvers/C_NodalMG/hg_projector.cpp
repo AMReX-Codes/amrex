@@ -56,7 +56,7 @@ extern "C"
 #if (BL_SPACEDIM == 2)
     void FORT_HGGRAD(RealPS, intS, Real*, intS, intS, CRealPS, const int*);
     void FORT_HGDIV(Real*, intS, RealPS, intS, intS, CRealPS, const int*, const int*);
-    void FORT_HGFDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, CRealPS, intRS, int*, int*, const int*, const int*);
+    void FORT_HGFDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, CRealPS, intRS, const int*, const int*, const int*, const int*);
     void FORT_HGODIV(Real*, intS, Real*, Real*, intS, Real*, Real*, intS, intS, Real*, Real*, intRS, int*, int*, const int*);
     void FORT_HGIDIV(Real*, intS, Real*, Real*, intS, Real*, Real*, intS, intS, Real*, Real*, intRS, int*, int*, const int*);
     void FORT_HGDDIV(Real*, intS, Real*, Real*, intS, Real*, Real*, intS, intS, Real*, Real*, intRS, int*, const int*);
