@@ -283,7 +283,7 @@ c-----------------------------------------------------------------------
          do i = regl0, regh0
             tmp = (signd(i-1,j,1) + signd(i,j,1) 
      &           + signd(i,j-1,2) + signd(i,j,2))
-            if ( tmp .eq. 0.0 ) then
+            if ( tmp .eq. 0.0D0 ) then
                cen(i,j) = 0.0D0
             else
                cen(i,j) = 1.0D0 / tmp
@@ -293,7 +293,7 @@ c-----------------------------------------------------------------------
             i = 0
             tmp = (signd(i-1,j,1) + signd(i,j,1)
      &           + 0.5d0*(signd(i,j-1,2) + signd(i,j,2)))
-            if ( tmp .eq. 0.0 ) then
+            if ( tmp .eq. 0.0D0 ) then
                cen(i,j) = 0.0D0
             else
                cen(i,j) = 1.0D0 / tmp 

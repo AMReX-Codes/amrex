@@ -1731,7 +1731,7 @@ c-----------------------------------------------------------------------
                tmp = (signd(i-1,j,k,1) + signd(i,j,k,1) 
      &              + signd(i,j-1,k,2) + signd(i,j,k,2)
      &              + signd(i,j,k-1,3) + signd(i,j,k,3))
-               if ( tmp .eq. 0.0 ) then
+               if ( tmp .eq. 0.0D0 ) then
                   cen(i,j,k) = 0.0D0
                else
                   cen(i,j,k) = 1.0D0 / tmp
