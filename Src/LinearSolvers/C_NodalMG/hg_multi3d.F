@@ -1,6 +1,3 @@
-#include <REAL.H>
-#include <CONSTANTS.H>
-
 c-----------------------------------------------------------------------
 c Note---assumes fdst linearly interpolated from cdst along face
       subroutine hgfres(
@@ -19,15 +16,15 @@ c Note---assumes fdst linearly interpolated from cdst along face
       integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
       integer scl0,sch0,scl1,sch1,scl2,sch2
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      REAL_T res(resl0:resh0,resl1:resh1,resl2:resh2)
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      REAL_T fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
-      REAL_T cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
-      REAL_T sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
-      REAL_T sigmac(scl0:sch0,scl1:sch1,scl2:sch2)
-      REAL_T hx, hy, hz
+      double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
+      double precision cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
+      double precision sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
+      double precision sigmac(scl0:sch0,scl1:sch1,scl2:sch2)
+      double precision hx, hy, hz
       integer ir, jr, kr, idim, idir
-      REAL_T hxm2, hym2, hzm2, fac0, fac1, fac2, tmp
+      double precision hxm2, hym2, hzm2, fac0, fac1, fac2, tmp
       integer i, j, k, is, js, ks, l, m, n
       if (idim .eq. 0) then
          i = regl0
@@ -36,10 +33,10 @@ c Note---assumes fdst linearly interpolated from cdst along face
          else
             is = i
          end if
-         fac0 = half * ir / (ir + one)
-         hxm2 = one / (ir * ir * hx * hx)
-         hym2 = one / (jr * jr * hy * hy)
-         hzm2 = one / (kr * kr * hz * hz)
+         fac0 = 0.5D0 * ir / (ir + 1.0D0)
+         hxm2 = 1.0D0 / (ir * ir * hx * hx)
+         hym2 = 1.0D0 / (jr * jr * hy * hy)
+         hzm2 = 1.0D0 / (kr * kr * hz * hz)
          do k = regl2, regh2
             do j = regl1, regh1
                res(i*ir,j*jr,k*kr) =
@@ -72,10 +69,10 @@ c Note---assumes fdst linearly interpolated from cdst along face
          end if
          do l = 0, kr-1
             fac2 = (kr-l) * fac0
-            if (l .eq. 0) fac2 = half * fac2
+            if (l .eq. 0) fac2 = 0.5D0 * fac2
             do n = 0, jr-1
                fac1 = (jr-n) * fac2
-               if (n .eq. 0) fac1 = half * fac1
+               if (n .eq. 0) fac1 = 0.5D0 * fac1
                do k = kr*regl2, kr*regh2, kr
                   do j = jr*regl1, jr*regh1, jr
                      tmp = hxm2 *
@@ -136,10 +133,10 @@ c Note---assumes fdst linearly interpolated from cdst along face
          else
             js = j
          end if
-         fac0 = half * jr / (jr + one)
-         hxm2 = one / (ir * ir * hx * hx)
-         hym2 = one / (jr * jr * hy * hy)
-         hzm2 = one / (kr * kr * hz * hz)
+         fac0 = 0.5D0 * jr / (jr + 1.0D0)
+         hxm2 = 1.0D0 / (ir * ir * hx * hx)
+         hym2 = 1.0D0 / (jr * jr * hy * hy)
+         hzm2 = 1.0D0 / (kr * kr * hz * hz)
          do k = regl2, regh2
             do i = regl0, regh0
                res(i*ir,j*jr,k*kr) =
@@ -172,10 +169,10 @@ c Note---assumes fdst linearly interpolated from cdst along face
          end if
          do l = 0, kr-1
             fac2 = (kr-l) * fac0
-            if (l .eq. 0) fac2 = half * fac2
+            if (l .eq. 0) fac2 = 0.5D0 * fac2
             do m = 0, ir-1
                fac1 = (ir-m) * fac2
-               if (m .eq. 0) fac1 = half * fac1
+               if (m .eq. 0) fac1 = 0.5D0 * fac1
                do k = kr*regl2, kr*regh2, kr
                   do i = ir*regl0, ir*regh0, ir
                      tmp = hxm2 *
@@ -236,10 +233,10 @@ c Note---assumes fdst linearly interpolated from cdst along face
          else
             ks = k
          end if
-         fac0 = half * kr / (kr + one)
-         hxm2 = one / (ir * ir * hx * hx)
-         hym2 = one / (jr * jr * hy * hy)
-         hzm2 = one / (kr * kr * hz * hz)
+         fac0 = 0.5D0 * kr / (kr + 1.0D0)
+         hxm2 = 1.0D0 / (ir * ir * hx * hx)
+         hym2 = 1.0D0 / (jr * jr * hy * hy)
+         hzm2 = 1.0D0 / (kr * kr * hz * hz)
          do j = regl1, regh1
             do i = regl0, regh0
                res(i*ir,j*jr,k*kr) =
@@ -272,10 +269,10 @@ c Note---assumes fdst linearly interpolated from cdst along face
          end if
          do n = 0, jr-1
             fac2 = (jr-n) * fac0
-            if (n .eq. 0) fac2 = half * fac2
+            if (n .eq. 0) fac2 = 0.5D0 * fac2
             do m = 0, ir-1
                fac1 = (ir-m) * fac2
-               if (m .eq. 0) fac1 = half * fac1
+               if (m .eq. 0) fac1 = 0.5D0 * fac1
                do j = jr*regl1, jr*regh1, jr
                   do i = ir*regl0, ir*regh0, ir
                      tmp = hxm2 *
@@ -351,22 +348,22 @@ c Note---assumes fdst linearly interpolated from cdst along face
       integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
       integer scl0,sch0,scl1,sch1,scl2,sch2
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      REAL_T res(resl0:resh0,resl1:resh1,resl2:resh2)
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      REAL_T fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
-      REAL_T cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
-      REAL_T sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
-      REAL_T sigmac(scl0:sch0,scl1:sch1,scl2:sch2)
-      REAL_T hx, hy, hz
+      double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
+      double precision cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
+      double precision sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
+      double precision sigmac(scl0:sch0,scl1:sch1,scl2:sch2)
+      double precision hx, hy, hz
       integer ir, jr, kr, ivect(0:2), ga(0:1,0:1,0:1)
-      REAL_T r3, hxm2, hym2, hzm2, hxm2c, hym2c, hzm2c
-      REAL_T center, cfac, ffac, fac0, fac1, fac, tmp
+      double precision r3, hxm2, hym2, hzm2, hxm2c, hym2c, hzm2c
+      double precision center, cfac, ffac, fac0, fac1, fac, tmp
       integer ic, jc, kc, if, jf, kf, ii, ji, ki, idir, jdir, kdir
       integer l, m, n
       r3 = ir * jr * kr
-      hxm2c = one / (ir * ir * hx * hx)
-      hym2c = one / (jr * jr * hy * hy)
-      hzm2c = one / (kr * kr * hz * hz)
+      hxm2c = 1.0D0 / (ir * ir * hx * hx)
+      hym2c = 1.0D0 / (jr * jr * hy * hy)
+      hzm2c = 1.0D0 / (kr * kr * hz * hz)
       hxm2 = ir * ir * hxm2c
       hym2 = jr * jr * hym2c
       hzm2 = kr * kr * hzm2c
@@ -376,14 +373,14 @@ c Note---assumes fdst linearly interpolated from cdst along face
       if = ic * ir
       jf = jc * jr
       kf = kc * kr
-      center = zero
+      center = 0.0D0
       if (ivect(0) .eq. 0) then
          do if = ir*regl0, ir*regh0, ir
-            res(if,jf,kf) = zero
+            res(if,jf,kf) = 0.0D0
          end do
 c quadrants
 c each quadrant is two octants and their share of the two central edges
-         fac0 = one / ir
+         fac0 = 1.0D0 / ir
          ffac = ir
          cfac = r3
          do ki = 0, 1
@@ -394,7 +391,7 @@ c each quadrant is two octants and their share of the two central edges
                   center = center + ffac
                   do m = 0, ir-1
                      fac = (ir-m) * fac0
-                     if (m .eq. 0) fac = half * fac
+                     if (m .eq. 0) fac = 0.5D0 * fac
                      do if = ir*regl0, ir*regh0, ir
                         tmp = hxm2 *
      &                    (sigmaf(if-m-1,jf+ji-1,kf+ki-1) *
@@ -445,14 +442,14 @@ c each face is two faces and two sides of an edge
             do ji = 0, 1
                jdir = 2 * ji - 1
                if (ga(0,ji,ki) - ga(0,ji,1-ki) .eq. 1) then
-                  fac0 = one / (ir * jr)
+                  fac0 = 1.0D0 / (ir * jr)
                   ffac = ir * (jr - 1)
                   center = center + ffac
                   do n = jdir, jdir*(jr-1), jdir
                      fac1 = (jr-abs(n)) * fac0
                      do m = 0, ir-1
                         fac = (ir-m) * fac1
-                        if (m .eq. 0) fac = half * fac
+                        if (m .eq. 0) fac = 0.5D0 * fac
                         do if = ir*regl0, ir*regh0, ir
                            tmp = hxm2 *
      &       ((sigmaf(if-m-1,jf+n-1,kf+ki-1) 
@@ -497,14 +494,14 @@ c each face is two faces and two sides of an edge
                   end do
                end if
                if (ga(0,ji,ki) - ga(0,1-ji,ki) .eq. 1) then
-                  fac0 = one / (ir * kr)
+                  fac0 = 1.0D0 / (ir * kr)
                   ffac = ir * (kr - 1)
                   center = center + ffac
                   do l = kdir, kdir*(kr-1), kdir
                      fac1 = (kr-abs(l)) * fac0
                      do m = 0, ir-1
                         fac = (ir-m) * fac1
-                        if (m .eq. 0) fac = half * fac
+                        if (m .eq. 0) fac = 0.5D0 * fac
                         do if = ir*regl0, ir*regh0, ir
                            tmp = hxm2 *
      &       ((sigmaf(if-m-1,jf+ji-1,kf+l-1) 
@@ -556,11 +553,11 @@ c weighting
          end do
       else if (ivect(1) .eq. 0) then
          do jf = jr*regl1, jr*regh1, jr
-            res(if,jf,kf) = zero
+            res(if,jf,kf) = 0.0D0
          end do
 c quadrants
 c each quadrant is two octants and their share of the two central edges
-         fac0 = one / jr
+         fac0 = 1.0D0 / jr
          ffac = jr
          cfac = r3
          do ki = 0, 1
@@ -571,7 +568,7 @@ c each quadrant is two octants and their share of the two central edges
                   center = center + ffac
                   do  n = 0, jr-1
                      fac = (jr-n) * fac0
-                     if (n .eq. 0) fac = half * fac
+                     if (n .eq. 0) fac = 0.5D0 * fac
                      do  jf = jr*regl1, jr*regh1, jr
                         tmp = hxm2 *
      &                    ((sigmaf(if+ii-1,jf-n-1,kf+ki-1) +
@@ -622,12 +619,12 @@ c each face is two faces and two sides of an edge
             do ii = 0, 1
                idir = 2 * ii - 1
                if (ga(ii,0,ki) - ga(ii,0,1-ki) .eq. 1) then
-                  fac0 = one / (ir * jr)
+                  fac0 = 1.0D0 / (ir * jr)
                   ffac = jr * (ir - 1)
                   center = center + ffac
                   do n = 0, jr-1
                      fac1 = (jr-n) * fac0
-                     if (n .eq. 0) fac1 = half * fac1
+                     if (n .eq. 0) fac1 = 0.5D0 * fac1
                      do m = idir, idir*(ir-1), idir
                         fac = (ir-abs(m)) * fac1
                         do jf = jr*regl1, jr*regh1, jr
@@ -674,14 +671,14 @@ c each face is two faces and two sides of an edge
                   end do
                end if
                if (ga(ii,0,ki) - ga(1-ii,0,ki) .eq. 1) then
-                  fac0 = one / (jr * kr)
+                  fac0 = 1.0D0 / (jr * kr)
                   ffac = jr * (kr - 1)
                   center = center + ffac
                   do l = kdir, kdir*(kr-1), kdir
                      fac1 = (kr-abs(l)) * fac0
                      do n = 0, jr-1
                         fac = (jr-n) * fac1
-                        if (n .eq. 0) fac = half * fac
+                        if (n .eq. 0) fac = 0.5D0 * fac
                         do jf = jr*regl1, jr*regh1, jr
                            tmp = hxm2 *
      &       ((sigmaf(if+ii-1,jf-n-1,kf+l-1) 
@@ -733,11 +730,11 @@ c weighting
          end do
       else
          do kf = kr*regl2, kr*regh2, kr
-            res(if,jf,kf) = zero
+            res(if,jf,kf) = 0.0D0
          end do
 c quadrants
 c each quadrant is two octants and their share of the two central edges
-         fac0 = one / kr
+         fac0 = 1.0D0 / kr
          ffac = kr
          cfac = r3
          do ji = 0, 1
@@ -748,7 +745,7 @@ c each quadrant is two octants and their share of the two central edges
                   center = center + ffac
                   do l = 0, kr-1
                      fac = (kr-l) * fac0
-                     if (l .eq. 0) fac = half * fac
+                     if (l .eq. 0) fac = 0.5D0 * fac
                      do kf = kr*regl2, kr*regh2, kr
                         tmp = hxm2 *
      &                    ((sigmaf(if+ii-1,jf+ji-1,kf-l-1) +
@@ -799,12 +796,12 @@ c each face is two faces and two sides of an edge
             do ii = 0, 1
                idir = 2 * ii - 1
                if (ga(ii,ji,0) - ga(ii,1-ji,0) .eq. 1) then
-                  fac0 = one / (ir * kr)
+                  fac0 = 1.0D0 / (ir * kr)
                   ffac = kr * (ir - 1)
                   center = center + ffac
                   do  l = 0, kr-1
                      fac1 = (kr-l) * fac0
-                     if (l .eq. 0) fac1 = half * fac1
+                     if (l .eq. 0) fac1 = 0.5D0 * fac1
                      do m = idir, idir*(ir-1), idir
                         fac = (ir-abs(m)) * fac1
                         do kf = kr*regl2, kr*regh2, kr
@@ -851,12 +848,12 @@ c each face is two faces and two sides of an edge
                   end do
                end if
                if (ga(ii,ji,0) - ga(1-ii,ji,0) .eq. 1) then
-                  fac0 = one / (jr * kr)
+                  fac0 = 1.0D0 / (jr * kr)
                   ffac = kr * (jr - 1)
                   center = center + ffac
                   do l = 0, kr-1
                      fac1 = (kr-l) * fac0
-                     if (l .eq. 0) fac1 = half * fac1
+                     if (l .eq. 0) fac1 = 0.5D0 * fac1
                      do n = jdir, jdir*(jr-1), jdir
                         fac = (jr-abs(n)) * fac1
                         do kf = kr*regl2, kr*regh2, kr
@@ -928,22 +925,22 @@ c Note---assumes fdst linearly interpolated from cdst along face
       integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
       integer scl0,sch0,scl1,sch1,scl2,sch2
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      REAL_T res(resl0:resh0,resl1:resh1,resl2:resh2)
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      REAL_T fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
-      REAL_T cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
-      REAL_T sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
-      REAL_T sigmac(scl0:sch0,scl1:sch1,scl2:sch2)
-      REAL_T hx, hy, hz
+      double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
+      double precision cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
+      double precision sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
+      double precision sigmac(scl0:sch0,scl1:sch1,scl2:sch2)
+      double precision hx, hy, hz
       integer ir, jr, kr, ga(0:1,0:1,0:1), idd
-      REAL_T r3, hxm2, hym2, hzm2, hxm2c, hym2c, hzm2c
-      REAL_T sum, center, cfac, ffac, fac1, fac2, fac
+      double precision r3, hxm2, hym2, hzm2, hxm2c, hym2c, hzm2c
+      double precision sum, center, cfac, ffac, fac1, fac2, fac
       integer ic, jc, kc, if, jf, kf, ii, ji, ki, idir, jdir, kdir
       integer l, m, n
       r3 = ir * jr * kr
-      hxm2c = one / (ir * ir * hx * hx)
-      hym2c = one / (jr * jr * hy * hy)
-      hzm2c = one / (kr * kr * hz * hz)
+      hxm2c = 1.0D0 / (ir * ir * hx * hx)
+      hym2c = 1.0D0 / (jr * jr * hy * hy)
+      hzm2c = 1.0D0 / (kr * kr * hz * hz)
       hxm2 = ir * ir * hxm2c
       hym2 = jr * jr * hym2c
       hzm2 = kr * kr * hzm2c
@@ -953,12 +950,12 @@ c Note---assumes fdst linearly interpolated from cdst along face
       if = ic * ir
       jf = jc * jr
       kf = kc * kr
-      sum = zero
-      center = zero
+      sum = 0.0D0
+      center = 0.0D0
 c octants
-      fac = one
-      ffac = half
-      cfac = half * r3
+      fac = 1.0D0
+      ffac = 0.5D0
+      cfac = 0.5D0 * r3
       do ki = 0, 1
          kdir = 2 * ki - 1
          do ji = 0, 1
@@ -989,8 +986,8 @@ c faces
             do ii = 0, 1
                idir = 2 * ii - 1
                if (ga(ii,ji,ki) - ga(ii,ji,1-ki) .eq. 1) then
-                  fac2 = one / (ir * jr)
-                  ffac = half * (ir-1) * (jr-1)
+                  fac2 = 1.0D0 / (ir * jr)
+                  ffac = 0.5D0 * (ir-1) * (jr-1)
                   center = center + ffac
                   do n = jdir, jdir*(jr-1), jdir
                      fac1 = (jr-abs(n)) * fac2
@@ -1021,8 +1018,8 @@ c faces
                   end do
                end if
                if (ga(ii,ji,ki) - ga(ii,1-ji,ki) .eq. 1) then
-                  fac2 = one / (ir * kr)
-                  ffac = half * (ir-1) * (kr-1)
+                  fac2 = 1.0D0 / (ir * kr)
+                  ffac = 0.5D0 * (ir-1) * (kr-1)
                   center = center + ffac
                   do l = kdir, kdir*(kr-1), kdir
                      fac1 = (kr-abs(l)) * fac2
@@ -1053,8 +1050,8 @@ c faces
                   end do
                end if
                if (ga(ii,ji,ki) - ga(1-ii,ji,ki) .eq. 1) then
-                  fac2 = one / (jr * kr)
-                  ffac = half * (jr-1) * (kr-1)
+                  fac2 = 1.0D0 / (jr * kr)
+                  ffac = 0.5D0 * (jr-1) * (kr-1)
                   center = center + ffac
                   do l = kdir, kdir*(kr-1), kdir
                      fac1 = (kr-abs(l)) * fac2
@@ -1097,8 +1094,8 @@ c edges
                if (ga(ii,ji,ki) -
      &             min(ga(ii,ji,1-ki), ga(ii,1-ji,ki), ga(ii,1-ji,1-ki))
      &             .eq. 1) then
-                  fac1 = one / ir
-                  ffac = half * (ir-1)
+                  fac1 = 1.0D0 / ir
+                  ffac = 0.5D0 * (ir-1)
                   center = center + ffac
                   do m = idir, idir*(ir-1), idir
                      fac = (ir-abs(m)) * fac1
@@ -1121,8 +1118,8 @@ c edges
                if (ga(ii,ji,ki) -
      &             min(ga(ii,ji,1-ki), ga(1-ii,ji,ki), ga(1-ii,ji,1-ki))
      &             .eq. 1) then
-                  fac1 = one / jr
-                  ffac = half * (jr-1)
+                  fac1 = 1.0D0 / jr
+                  ffac = 0.5D0 * (jr-1)
                   center = center + ffac
                   do n = jdir, jdir*(jr-1), jdir
                      fac = (jr-abs(n)) * fac1
@@ -1145,8 +1142,8 @@ c edges
                if (ga(ii,ji,ki) -
      &             min(ga(ii,1-ji,ki), ga(1-ii,ji,ki), ga(1-ii,1-ji,ki))
      &             .eq. 1) then
-                  fac1 = one / kr
-                  ffac = half * (kr-1)
+                  fac1 = 1.0D0 / kr
+                  ffac = 0.5D0 * (kr-1)
                   center = center + ffac
                   do l = kdir, kdir*(kr-1), kdir
                      fac = (kr-abs(l)) * fac1
@@ -1188,11 +1185,11 @@ c NODE-based data, factor of 2 only.
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer bbl0,bbh0,bbl1,bbh1,bbl2,bbh2
       integer ir, jr, kr
-      REAL_T dest(destl0:desth0,destl1:desth1,destl2:desth2)
-      REAL_T sigx(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
-      REAL_T sigy(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
-      REAL_T sigz(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
+      double precision sigx(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
+      double precision sigy(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
+      double precision sigz(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       integer i, j, k, ic, jc, kc
       do kc = bbl2, bbh2
          do jc = bbl1, bbh1
@@ -1419,9 +1416,9 @@ c NODE-based data, factor of 2 only.
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer bbl0,bbh0,bbl1,bbh1,bbl2,bbh2
       integer ir, jr, kr
-      REAL_T dest(destl0:desth0,destl1:desth1,destl2:desth2)
-      REAL_T signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
+      double precision signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       integer i, j, k, ic, jc, kc
       do kc = bbl2, bbh2
          do jc = bbl1, bbh1
@@ -1562,12 +1559,12 @@ c CELL-based data only.
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer ir, jr, kr
-      REAL_T destx(destl0:desth0,destl1:desth1,destl2:desth2)
-      REAL_T desty(destl0:desth0,destl1:desth1,destl2:desth2)
-      REAL_T destz(destl0:desth0,destl1:desth1,destl2:desth2)
-      REAL_T srcx(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      REAL_T srcy(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      REAL_T srcz(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision destx(destl0:desth0,destl1:desth1,destl2:desth2)
+      double precision desty(destl0:desth0,destl1:desth1,destl2:desth2)
+      double precision destz(destl0:desth0,destl1:desth1,destl2:desth2)
+      double precision srcx(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision srcy(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision srcz(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       integer i, j, k, i2, j2, k2
       if (ir .ne. 2 .and. jr .ne. 2 .and. kr .ne. 2) then
           stop "this can't happen"
@@ -1579,27 +1576,27 @@ c CELL-based data only.
                   i2 = 2 * i
                   j2 = 2 * j
                   k2 = 2 * k
-                  destx(i,j,k) = half / (one / (srcx(i2,j2,k2) +
+                  destx(i,j,k) = 0.5D0 / (1.0D0 / (srcx(i2,j2,k2) +
      &                                            srcx(i2,j2,k2+1) +
      &                                            srcx(i2,j2+1,k2) +
      &                                            srcx(i2,j2+1,k2+1)) +
-     &                                    one / (srcx(i2+1,j2,k2) +
+     &                                    1.0D0 / (srcx(i2+1,j2,k2) +
      &                                            srcx(i2+1,j2,k2+1) +
      &                                            srcx(i2+1,j2+1,k2) +
      &                                            srcx(i2+1,j2+1,k2+1)))
-                  desty(i,j,k) = half / (one / (srcy(i2,j2,k2) +
+                  desty(i,j,k) = 0.5D0 / (1.0D0 / (srcy(i2,j2,k2) +
      &                                            srcy(i2,j2,k2+1) +
      &                                            srcy(i2+1,j2,k2) +
      &                                            srcy(i2+1,j2,k2+1)) +
-     &                                    one / (srcy(i2,j2+1,k2) +
+     &                                    1.0D0 / (srcy(i2,j2+1,k2) +
      &                                            srcy(i2,j2+1,k2+1) +
      &                                            srcy(i2+1,j2+1,k2) +
      &                                            srcy(i2+1,j2+1,k2+1)))
-                  destz(i,j,k) = half / (one / (srcz(i2,j2,k2) +
+                  destz(i,j,k) = 0.5D0 / (1.0D0 / (srcz(i2,j2,k2) +
      &                                            srcz(i2,j2+1,k2) +
      &                                            srcz(i2+1,j2,k2) +
      &                                            srcz(i2+1,j2+1,k2)) +
-     &                                    one / (srcz(i2,j2,k2+1) +
+     &                                    1.0D0 / (srcz(i2,j2,k2+1) +
      &                                            srcz(i2,j2+1,k2+1) +
      &                                            srcz(i2+1,j2,k2+1) +
      &                                            srcz(i2+1,j2+1,k2+1)))
@@ -1612,15 +1609,15 @@ c CELL-based data only.
                do i = regl0, regh0
                   i2 = 2 * i
                   j2 = 2 * j
-                  destx(i,j,k) = one / (one / (srcx(i2,j2,k) +
+                  destx(i,j,k) = 1.0D0 / (1.0D0 / (srcx(i2,j2,k) +
      &                                           srcx(i2,j2+1,k)) +
-     &                                   one / (srcx(i2+1,j2,k) +
+     &                                   1.0D0 / (srcx(i2+1,j2,k) +
      &                                           srcx(i2+1,j2+1,k)))
-                  desty(i,j,k) = one / (one / (srcy(i2,j2,k) +
+                  desty(i,j,k) = 1.0D0 / (1.0D0 / (srcy(i2,j2,k) +
      &                                           srcy(i2+1,j2,k)) +
-     &                                   one / (srcy(i2,j2+1,k) +
+     &                                   1.0D0 / (srcy(i2,j2+1,k) +
      &                                           srcy(i2+1,j2+1,k)))
-                  destz(i,j,k) = fourth * (srcz(i2,j2,k) +
+                  destz(i,j,k) = 0.25D0 * (srcz(i2,j2,k) +
      &                                     srcz(i2,j2+1,k) +
      &                                     srcz(i2+1,j2,k) +
      &                                     srcz(i2+1,j2+1,k))
@@ -1633,17 +1630,17 @@ c CELL-based data only.
                do i = regl0, regh0
                   i2 = 2 * i
                   k2 = 2 * k
-                  destx(i,j,k) = one / (one / (srcx(i2,j,k2) +
+                  destx(i,j,k) = 1.0D0 / (1.0D0 / (srcx(i2,j,k2) +
      &                                           srcx(i2,j,k2+1)) +
-     &                                   one / (srcx(i2+1,j,k2) +
+     &                                   1.0D0 / (srcx(i2+1,j,k2) +
      &                                           srcx(i2+1,j,k2+1)))
-                  desty(i,j,k) = fourth * (srcy(i2,j,k2) +
+                  desty(i,j,k) = 0.25D0 * (srcy(i2,j,k2) +
      &                                     srcy(i2,j,k2+1) +
      &                                     srcy(i2+1,j,k2) +
      &                                     srcy(i2+1,j,k2+1))
-                  destz(i,j,k) = one / (one / (srcz(i2,j,k2) +
+                  destz(i,j,k) = 1.0D0 / (1.0D0 / (srcz(i2,j,k2) +
      &                                           srcz(i2+1,j,k2)) +
-     &                                   one / (srcz(i2,j,k2+1) +
+     &                                   1.0D0 / (srcz(i2,j,k2+1) +
      &                                           srcz(i2+1,j,k2+1)))
                end do
             end do
@@ -1654,17 +1651,17 @@ c CELL-based data only.
                do i = regl0, regh0
                   j2 = 2 * j
                   k2 = 2 * k
-                  destx(i,j,k) = fourth * (srcx(i,j2,k2) +
+                  destx(i,j,k) = 0.25D0 * (srcx(i,j2,k2) +
      &                                     srcx(i,j2,k2+1) +
      &                                     srcx(i,j2+1,k2) +
      &                                     srcx(i,j2+1,k2+1))
-                  desty(i,j,k) = one / (one / (srcy(i,j2,k2) +
+                  desty(i,j,k) = 1.0D0 / (1.0D0 / (srcy(i,j2,k2) +
      &                                           srcy(i,j2,k2+1)) +
-     &                                   one / (srcy(i,j2+1,k2) +
+     &                                   1.0D0 / (srcy(i,j2+1,k2) +
      &                                           srcy(i,j2+1,k2+1)))
-                  destz(i,j,k) = one / (one / (srcz(i,j2,k2) +
+                  destz(i,j,k) = 1.0D0 / (1.0D0 / (srcz(i,j2,k2) +
      &                                           srcz(i,j2+1,k2)) +
-     &                                   one / (srcz(i,j2,k2+1) +
+     &                                   1.0D0 / (srcz(i,j2,k2+1) +
      &                                           srcz(i,j2+1,k2+1)))
                end do
             end do
@@ -1674,11 +1671,11 @@ c CELL-based data only.
             do j = regl1, regh1
                do i = regl0, regh0
                   i2 = 2 * i
-                  destx(i,j,k) = two / (one / srcx(i2,j,k) +
-     &                                   one / srcx(i2+1,j,k))
-                  desty(i,j,k) = half * (srcy(i2,j,k) +
+                  destx(i,j,k) = 2.0D0 / (1.0D0 / srcx(i2,j,k) +
+     &                                   1.0D0 / srcx(i2+1,j,k))
+                  desty(i,j,k) = 0.5D0 * (srcy(i2,j,k) +
      &                                    srcy(i2+1,j,k))
-                  destz(i,j,k) = half * (srcz(i2,j,k) +
+                  destz(i,j,k) = 0.5D0 * (srcz(i2,j,k) +
      &                                    srcz(i2+1,j,k))
                end do
             end do
@@ -1688,11 +1685,11 @@ c CELL-based data only.
             do j = regl1, regh1
                do i = regl0, regh0
                   j2 = 2 * j
-                  destx(i,j,k) = half * (srcx(i,j2,k) +
+                  destx(i,j,k) = 0.5D0 * (srcx(i,j2,k) +
      &                                    srcx(i,j2+1,k))
-                  desty(i,j,k) = two / (one / srcy(i,j2,k) +
-     &                                   one / srcy(i,j2+1,k))
-                  destz(i,j,k) = half * (srcz(i,j2,k) +
+                  desty(i,j,k) = 2.0D0 / (1.0D0 / srcy(i,j2,k) +
+     &                                   1.0D0 / srcy(i,j2+1,k))
+                  destz(i,j,k) = 0.5D0 * (srcz(i,j2,k) +
      &                                    srcz(i,j2+1,k))
                end do
             end do
@@ -1702,12 +1699,12 @@ c CELL-based data only.
             do j = regl1, regh1
                do i = regl0, regh0
                   k2 = 2 * k
-                  destx(i,j,k) = half * (srcx(i,j,k2) +
+                  destx(i,j,k) = 0.5D0 * (srcx(i,j,k2) +
      &                                    srcx(i,j,k2+1))
-                  desty(i,j,k) = half * (srcy(i,j,k2) +
+                  desty(i,j,k) = 0.5D0 * (srcy(i,j,k2) +
      &                                    srcy(i,j,k2+1))
-                  destz(i,j,k) = two / (one / srcz(i,j,k2) +
-     &                                   one / srcz(i,j,k2+1))
+                  destz(i,j,k) = 2.0D0 / (1.0D0 / srcz(i,j,k2) +
+     &                                   1.0D0 / srcz(i,j,k2+1))
                end do
             end do
          end do
@@ -1722,13 +1719,13 @@ c-----------------------------------------------------------------------
       integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
       integer snl0,snh0,snl1,snh1,snl2,snh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      REAL_T cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
-      REAL_T signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
+      double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
+      double precision signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
       integer i, j, k
       do k = regl2, regh2
          do j = regl1, regh1
             do i = regl0, regh0
-               cen(i,j,k) = one / (signd(i-1,j,k,1) + signd(i,j,k,1) +
+               cen(i,j,k) = 1.0D0 / (signd(i-1,j,k,1) + signd(i,j,k,1) +
      &                              signd(i,j-1,k,2) + signd(i,j,k,2) +
      &                              signd(i,j,k-1,3) + signd(i,j,k,3))
             end do
@@ -1744,12 +1741,12 @@ c sig here contains three different directions all stored on "nodes"
      &     regl0,regh0,regl1,regh1,regl2,regh2)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      REAL_T cor(*)
-      REAL_T res(*)
-      REAL_T sig(*)
-      REAL_T cen(*)
-      REAL_T mask(*)
-      REAL_T AVG
+      double precision cor(*)
+      double precision res(*)
+      double precision sig(*)
+      double precision cen(*)
+      double precision mask(*)
+      double precision AVG
       integer i, jdiff, kdiff, ly, lz
       AVG() = (sig(i-1)        * cor(i-1) +
      &         sig(i)          * cor(i+1) +
@@ -1790,12 +1787,12 @@ c-----------------------------------------------------------------------
       integer snl0,snh0,snl1,snh1,snl2,snh2
       integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      REAL_T cor(corl0:corh0,corl1:corh1,corl2:corh2)
-      REAL_T res(resl0:resh0,resl1:resh1,resl2:resh2)
-      REAL_T signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
-      REAL_T cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
+      double precision cor(corl0:corh0,corl1:corh1,corl2:corh2)
+      double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
+      double precision signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
+      double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       integer i, j, k, ipar0, ipar, ipass
-      REAL_T AVG
+      double precision AVG
       AVG() = (signd(i-1,j,k,1) * cor(i-1,j,k) +
      &         signd(i,j,k,1)   * cor(i+1,j,k) +
      &         signd(i,j-1,k,2) * cor(i,j-1,k) +
@@ -1832,14 +1829,14 @@ c-----------------------------------------------------------------------
       integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer doml0,domh0,doml1,domh1,doml2,domh2
-      REAL_T cor(corl0:corh0,corl1:corh1,corl2:corh2)
-      REAL_T res(resl0:resh0,resl1:resh1,resl2:resh2)
-      REAL_T signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
-      REAL_T cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
-      REAL_T wrk(256)
+      double precision cor(corl0:corh0,corl1:corh1,corl2:corh2)
+      double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
+      double precision signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
+      double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
+      double precision wrk(256)
       integer lsd
-      REAL_T betm, aj
-      REAL_T RHSL2
+      double precision betm, aj
+      double precision RHSL2
       integer i, j, k, kw, ipass, ipar
 
       RHSL2() = (res(i,j,k) - (signd(i-1,j,k,1) * cor(i-1,j,k) +
@@ -1859,15 +1856,15 @@ c-----------------------------------------------------------------------
             do j = regl1 + ipar, regh1, 2
                k = regl2
                betm = -cen(i,j,k)
-               if (betm .eq. zero) then
+               if (betm .eq. 0.0D0) then
 c dirichlet bdy:
-                  cor(i,j,k) = zero
-                  wrk(1) = zero
+                  cor(i,j,k) = 0.0D0
+                  wrk(1) = 0.0D0
                else if (regl2 .eq. doml2) then
 c neumann bdy:
                   cor(i,j,k) = RHSL2() * betm
                   aj = signd(i,j,k,3)
-                  wrk(1) = two * aj * betm
+                  wrk(1) = 2.0D0 * aj * betm
                else
 c interface to grid at same level:
                   aj = signd(i,j,k-1,3)
@@ -1878,10 +1875,10 @@ c interface to grid at same level:
 c forward solve loop:
                do k = regl2 + 1, regh2 - 1
                   kw = k - regl2
-                  if (cen(i,j,k) .eq. zero) then
-                     betm = zero
+                  if (cen(i,j,k) .eq. 0.0D0) then
+                     betm = 0.0D0
                   else
-                     betm = one / (-one / cen(i,j,k) - aj * wrk(kw))
+                     betm = 1.0D0 / (-1.0D0 / cen(i,j,k) - aj * wrk(kw))
                   end if
                   cor(i,j,k) = (RHSL2() - aj * cor(i,j,k-1)) * betm
                   aj = signd(i,j,k,3)
@@ -1889,17 +1886,17 @@ c forward solve loop:
                end do
                k = regh2
                kw = k - regl2
-               if (cen(i,j,k) .eq. zero) then
+               if (cen(i,j,k) .eq. 0.0D0) then
 c dirichlet bdy:
-                  cor(i,j,k) = zero
+                  cor(i,j,k) = 0.0D0
                else if (regh2 .eq. domh2) then
 c neumann bdy:
-                  aj = two * aj
-                  betm = one / (-one / cen(i,j,k) - aj * wrk(kw))
+                  aj = 2.0D0 * aj
+                  betm = 1.0D0 / (-1.0D0 / cen(i,j,k) - aj * wrk(kw))
                   cor(i,j,k) = (RHSL2() - aj * cor(i,j,k-1)) * betm
                else if (kw .gt. 0) then
 c interface to grid at same level:
-                  betm = one / (-one / cen(i,j,k) - aj * wrk(kw))
+                  betm = 1.0D0 / (-1.0D0 / cen(i,j,k) - aj * wrk(kw))
                   cor(i,j,k) = RHSL2() - aj * cor(i,j,k-1)
                   aj = signd(i,j,k,3)
                   cor(i,j,k) = (cor(i,j,k) - aj * cor(i,j,k+1)) * betm
@@ -1930,14 +1927,14 @@ c-----------------------------------------------------------------------
       integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer doml0,domh0,doml1,domh1,doml2,domh2
-      REAL_T cor(corl0:corh0,corl1:corh1,corl2:corh2)
-      REAL_T res(resl0:resh0,resl1:resh1,resl2:resh2)
-      REAL_T wrk(wrkl0:wrkh0,wrkl1:wrkh1,wrkl2:wrkh2)
-      REAL_T signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
-      REAL_T cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
+      double precision cor(corl0:corh0,corl1:corh1,corl2:corh2)
+      double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
+      double precision wrk(wrkl0:wrkh0,wrkl1:wrkh1,wrkl2:wrkh2)
+      double precision signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
+      double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       integer lsd, ipass
-      REAL_T betm, aj
-      REAL_T rhsl0, rhsl1, rhsl2
+      double precision betm, aj
+      double precision rhsl0, rhsl1, rhsl2
       integer i, j, k, ioff, ipar
       RHSL0() = (res(i,j,k) - (signd(i,j-1,k,2) * cor(i,j-1,k) + 
      &                        signd(i,j,k,2)   * cor(i,j+1,k) + 
@@ -1965,15 +1962,15 @@ c-----------------------------------------------------------------------
          do k = regl2, regh2
             ipar = 1 - ipar
             do j = regl1 + ipar, regh1, 2
-               if (cen(i,j,k) .eq. zero) then
+               if (cen(i,j,k) .eq. 0.0D0) then
 c dirichlet bdy:
-                  wrk(i,j,k) = zero
+                  wrk(i,j,k) = 0.0D0
                else if (regl0 .eq. doml0) then
 c neumann bdy:
                   betm = -cen(i,j,k)
                   cor(i,j,k) = RHSL0() * betm
                   aj = signd(i,j,k,1)
-                  wrk(i,j,k) = two * aj * betm
+                  wrk(i,j,k) = 2.0D0 * aj * betm
                end if
             end do
          end do
@@ -1984,11 +1981,11 @@ c forward solve loop:
                ipar = 1 - ipar
                do j = regl1 + ipar, regh1, 2
                   aj = signd(i-1,j,k,1)
-                  if (cen(i,j,k) .eq. zero) then
-                     betm = zero
+                  if (cen(i,j,k) .eq. 0.0D0) then
+                     betm = 0.0D0
                   else
-                     betm = one 
-     &                    / (-one / cen(i,j,k) - aj * wrk(i-1,j,k))
+                     betm = 1.0D0 
+     &                    / (-1.0D0 / cen(i,j,k) - aj * wrk(i-1,j,k))
                   end if
                   cor(i,j,k) = (RHSL0() - aj * cor(i-1,j,k)) * betm
                   aj = signd(i,j,k,1)
@@ -2001,17 +1998,17 @@ c forward solve loop:
          do k = regl2, regh2
             ipar = 1 - ipar
             do j = regl1 + ipar, regh1, 2
-               if (cen(i,j,k) .eq. zero) then
+               if (cen(i,j,k) .eq. 0.0D0) then
 c dirichlet bdy:
                else if (regh0 .eq. domh0) then
 c neumann bdy:
-                  aj = two * signd(i-1,j,k,1)
-                  betm = one / (-one / cen(i,j,k) - aj * wrk(i-1,j,k))
+                  aj = 2.0D0 * signd(i-1,j,k,1)
+                betm = 1.0D0 / (-1.0D0 / cen(i,j,k) - aj * wrk(i-1,j,k))
                   cor(i,j,k) = (RHSL0() - aj * cor(i-1,j,k)) * betm
                else if (i .gt. regl0) then
 c interface to grid at same level:
                   aj = signd(i-1,j,k,1)
-                  betm = one / (-one / cen(i,j,k) - aj * wrk(i-1,j,k))
+                betm = 1.0D0 / (-1.0D0 / cen(i,j,k) - aj * wrk(i-1,j,k))
                   cor(i,j,k) = (RHSL0() - aj * cor(i-1,j,k)) * betm
                   aj = signd(i,j,k,1)
                   wrk(i,j,k) = aj * betm
@@ -2029,15 +2026,15 @@ c interface to grid at same level:
          do  k = regl2, regh2
             ipar = 1 - ipar
             do i = regl0 + ipar, regh0, 2
-               if (cen(i,j,k) .eq. zero) then
+               if (cen(i,j,k) .eq. 0.0D0) then
 c dirichlet bdy:
-                  wrk(i,j,k) = zero
+                  wrk(i,j,k) = 0.0D0
                else if (regl1 .eq. doml1) then
 c neumann bdy:
                   betm = -cen(i,j,k)
                   cor(i,j,k) = RHSL1() * betm
                   aj = signd(i,j,k,2)
-                  wrk(i,j,k) = two * aj * betm
+                  wrk(i,j,k) = 2.0D0 * aj * betm
                end if
             end do
          end do
@@ -2048,11 +2045,11 @@ c forward solve loop:
                ipar = 1 - ipar
                do i = regl0 + ipar, regh0, 2
                   aj = signd(i,j-1,k,2)
-                  if (cen(i,j,k) .eq. zero) then
-                     betm = zero
+                  if (cen(i,j,k) .eq. 0.0D0) then
+                     betm = 0.0D0
                   else
-                     betm = one 
-     &                    / (-one / cen(i,j,k) - aj * wrk(i,j-1,k))
+                     betm = 1.0D0 
+     &                    / (-1.0D0 / cen(i,j,k) - aj * wrk(i,j-1,k))
                   end if
                   cor(i,j,k) = (RHSL1() - aj * cor(i,j-1,k)) * betm
                   aj = signd(i,j,k,2)
@@ -2065,17 +2062,17 @@ c forward solve loop:
          do k = regl2, regh2
             ipar = 1 - ipar
             do i = regl0 + ipar, regh0, 2
-               if (cen(i,j,k) .eq. zero) then
+               if (cen(i,j,k) .eq. 0.0D0) then
 c dirichlet bdy:
                else if (regh1 .eq. domh1) then
 c neumann bdy:
-                  aj = two * signd(i,j-1,k,2)
-                  betm = one / (-one / cen(i,j,k) - aj * wrk(i,j-1,k))
+                  aj = 2.0D0 * signd(i,j-1,k,2)
+                betm = 1.0D0 / (-1.0D0 / cen(i,j,k) - aj * wrk(i,j-1,k))
                   cor(i,j,k) = (RHSL1() - aj * cor(i,j-1,k)) * betm
                else if (j .gt. regl1) then
 c interface to grid at same level:
                   aj = signd(i,j-1,k,2)
-                  betm = one / (-one / cen(i,j,k) - aj * wrk(i,j-1,k))
+                betm = 1.0D0 / (-1.0D0 / cen(i,j,k) - aj * wrk(i,j-1,k))
                   cor(i,j,k) = (RHSL1() - aj * cor(i,j-1,k)) * betm
                   aj = signd(i,j,k,2)
                   wrk(i,j,k) = aj * betm
@@ -2093,15 +2090,15 @@ c interface to grid at same level:
          do j = regl1, regh1
             ipar = 1 - ipar
             do i = regl0 + ipar, regh0, 2
-               if (cen(i,j,k) .eq. zero) then
+               if (cen(i,j,k) .eq. 0.0D0) then
 c dirichlet bdy:
-                  wrk(i,j,k) = zero
+                  wrk(i,j,k) = 0.0D0
                else if (regl2 .eq. doml2) then
 c neumann bdy:
                   betm = -cen(i,j,k)
                   cor(i,j,k) = RHSL2() * betm
                   aj = signd(i,j,k,3)
-                  wrk(i,j,k) = two * aj * betm
+                  wrk(i,j,k) = 2.0D0 * aj * betm
                end if
             end do
          end do
@@ -2112,11 +2109,11 @@ c forward solve loop:
                ipar = 1 - ipar
                do i = regl0 + ipar, regh0, 2
                   aj = signd(i,j,k-1,3)
-                  if (cen(i,j,k) .eq. zero) then
-                     betm = zero
+                  if (cen(i,j,k) .eq. 0.0D0) then
+                     betm = 0.0D0
                   else
-                     betm = one 
-     &                    / (-one / cen(i,j,k) - aj * wrk(i,j,k-1))
+                     betm = 1.0D0 
+     &                    / (-1.0D0 / cen(i,j,k) - aj * wrk(i,j,k-1))
                   end if
                   cor(i,j,k) = (RHSL2() - aj * cor(i,j,k-1)) * betm
                   aj = signd(i,j,k,3)
@@ -2129,17 +2126,17 @@ c forward solve loop:
          do j = regl1, regh1
             ipar = 1 - ipar
             do i = regl0 + ipar, regh0, 2
-               if (cen(i,j,k) .eq. zero) then
+               if (cen(i,j,k) .eq. 0.0D0) then
 c dirichlet bdy:
                else if (regh2 .eq. domh2) then
 c neumann bdy:
-                  aj = two * signd(i,j,k-1,3)
-                  betm = one / (-one / cen(i,j,k) - aj * wrk(i,j,k-1))
+                  aj = 2.0D0 * signd(i,j,k-1,3)
+                betm = 1.0D0 / (-1.0D0 / cen(i,j,k) - aj * wrk(i,j,k-1))
                   cor(i,j,k) = (RHSL2() - aj * cor(i,j,k-1)) * betm
                else if (k .gt. regl2) then
 c interface to grid at same level:
                   aj = signd(i,j,k-1,3)
-                  betm = one / (-one / cen(i,j,k) - aj * wrk(i,j,k-1))
+                betm = 1.0D0 / (-1.0D0 / cen(i,j,k) - aj * wrk(i,j,k-1))
                   cor(i,j,k) = (RHSL2() - aj * cor(i,j,k-1)) * betm
                   aj = signd(i,j,k,3)
                   wrk(i,j,k) = aj * betm
@@ -2160,10 +2157,10 @@ c-----------------------------------------------------------------------
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer snl0,snh0,snl1,snh1,snl2,snh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      REAL_T res(resl0:resh0,resl1:resh1,resl2:resh2)
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      REAL_T dest(destl0:desth0,destl1:desth1,destl2:desth2)
-      REAL_T signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
+      double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
+      double precision signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
       integer i, j, k
       do k = regl2, regh2
          do j = regl1, regh1
@@ -2186,11 +2183,11 @@ c-----------------------------------------------------------------------
      &      regl0,regh0,regl1,regh1,regl2,regh2)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      REAL_T res(*)
-      REAL_T src(*)
-      REAL_T dest(*)
-      REAL_T signd(*)
-      REAL_T mask(*)
+      double precision res(*)
+      double precision src(*)
+      double precision dest(*)
+      double precision signd(*)
+      double precision mask(*)
       integer i, jdiff, kdiff, ly, lz
       jdiff = resh0 - resl0 + 1
       kdiff = (resh1 - resl1 + 1) * jdiff
@@ -2219,16 +2216,16 @@ c-----------------------------------------------------------------------
       integer snl0,snh0,snl1,snh1,snl2,snh2
       integer scl0,sch0,scl1,sch1,scl2,sch2
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      REAL_T signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
-      REAL_T sigx(scl0:sch0,scl1:sch1,scl2:sch2)
-      REAL_T sigy(scl0:sch0,scl1:sch1,scl2:sch2)
-      REAL_T sigz(scl0:sch0,scl1:sch1,scl2:sch2)
-      REAL_T hx, hy, hz
-      REAL_T facx, facy, facz
+      double precision signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
+      double precision sigx(scl0:sch0,scl1:sch1,scl2:sch2)
+      double precision sigy(scl0:sch0,scl1:sch1,scl2:sch2)
+      double precision sigz(scl0:sch0,scl1:sch1,scl2:sch2)
+      double precision hx, hy, hz
+      double precision facx, facy, facz
       integer i, j, k
-      facx = fourth / (hx*hx)
-      facy = fourth / (hy*hy)
-      facz = fourth / (hz*hz)
+      facx = 0.25D0 / (hx*hx)
+      facy = 0.25D0 / (hy*hy)
+      facz = 0.25D0 / (hz*hz)
       do k = regl2, regh2
          do j = regl1, regh1
             do i = regl0-1, regh0
@@ -2267,20 +2264,20 @@ c-----------------------------------------------------------------------
       integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
       integer sbl0,sbh0,sbl1,sbh1,sbl2,sbh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      REAL_T cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
-      REAL_T sigx(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
-      REAL_T sigy(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
-      REAL_T sigz(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
-      REAL_T hx, hy, hz
-      REAL_T hxm2, hym2, hzm2
+      double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
+      double precision sigx(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
+      double precision sigy(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
+      double precision sigz(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2)
+      double precision hx, hy, hz
+      double precision hxm2, hym2, hzm2
       integer k, j, i
-      hxm2 = one / (hx*hx)
-      hym2 = one / (hy*hy)
-      hzm2 = one / (hz*hz)
+      hxm2 = 1.0D0 / (hx*hx)
+      hym2 = 1.0D0 / (hy*hy)
+      hzm2 = 1.0D0 / (hz*hz)
       do k = regl2, regh2
          do j = regl1, regh1
             do i = regl0, regh0
-               cen(i,j,k) = four /
+               cen(i,j,k) = 4.0D0 /
      &                   (hxm2 * (sigx(i-1,j-1,k-1) + sigx(i-1,j-1,k) +
      &                              sigx(i-1,j,k-1)   + sigx(i-1,j,k) +
      &                              sigx(i,j-1,k-1)   + sigx(i,j-1,k) +
@@ -2311,16 +2308,16 @@ c-----------------------------------------------------------------------
       integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
       integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      REAL_T cor(corl0:corh0,corl1:corh1,corl2:corh2)
-      REAL_T res(resl0:resh0,resl1:resh1,resl2:resh2)
-      REAL_T sigx(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
-      REAL_T sigy(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
-      REAL_T sigz(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
-      REAL_T cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
-      REAL_T hx, hy, hz, hxm2, hym2, hzm2
-      REAL_T AVG
+      double precision cor(corl0:corh0,corl1:corh1,corl2:corh2)
+      double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
+      double precision sigx(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
+      double precision sigy(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
+      double precision sigz(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
+      double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
+      double precision hx, hy, hz, hxm2, hym2, hzm2
+      double precision AVG
       integer i, j, k, ipass, ipar, ipar0
-      AVG() = fourth * (hxm2 *
+      AVG() = 0.25D0 * (hxm2 *
      &          ((sigx(i-1,j-1,k-1) + sigx(i-1,j-1,k) +
      &            sigx(i-1,j,k-1)   + sigx(i-1,j,k)) * cor(i-1,j,k) +
      &           (sigx(i,j-1,k-1)   + sigx(i,j-1,k) +
@@ -2335,9 +2332,9 @@ c-----------------------------------------------------------------------
      &            sigz(i,j-1,k-1)   + sigz(i,j,k-1)) * cor(i,j,k-1) +
      &           (sigz(i-1,j-1,k)   + sigz(i-1,j,k) +
      &            sigz(i,j-1,k)     + sigz(i,j,k)) * cor(i,j,k+1)))
-      hxm2 = one / (hx*hx)
-      hym2 = one / (hy*hy)
-      hzm2 = one / (hz*hz)
+      hxm2 = 1.0D0 / (hx*hx)
+      hym2 = 1.0D0 / (hy*hy)
+      hzm2 = 1.0D0 / (hz*hz)
       do ipass = 0, 1
          ipar0 = ipass
          do k = regl2, regh2
@@ -2367,21 +2364,21 @@ c-----------------------------------------------------------------------
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      REAL_T res(resl0:resh0,resl1:resh1,resl2:resh2)
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      REAL_T dest(destl0:desth0,destl1:desth1,destl2:desth2)
-      REAL_T sigx(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
-      REAL_T sigy(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
-      REAL_T sigz(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
-      REAL_T hx, hy, hz, hxm2, hym2, hzm2
+      double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
+      double precision sigx(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
+      double precision sigy(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
+      double precision sigz(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
+      double precision hx, hy, hz, hxm2, hym2, hzm2
       integer i, j, k
-      hxm2 = one / (hx*hx)
-      hym2 = one / (hy*hy)
-      hzm2 = one / (hz*hz)
+      hxm2 = 1.0D0 / (hx*hx)
+      hym2 = 1.0D0 / (hy*hy)
+      hzm2 = 1.0D0 / (hz*hz)
          do k = regl2, regh2
             do j = regl1, regh1
                do i = regl0, regh0
-                  res(i,j,k) = src(i,j,k) - fourth *        (hxm2 *
+                  res(i,j,k) = src(i,j,k) - 0.25D0 *        (hxm2 *
      &              ((sigx(i-1,j-1,k-1) + sigx(i-1,j-1,k) +
      &                sigx(i-1,j,k-1)   + sigx(i-1,j,k)) *
      &                (dest(i-1,j,k) - dest(i,j,k)) +
@@ -2413,8 +2410,8 @@ c-----------------------------------------------------------------------
       integer corl0,corh0,corl1,corh1,corl2,corh2
       integer wrkl0,wrkh0,wrkl1,wrkh1,wrkl2,wrkh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      REAL_T cor(corl0:corh0,corl1:corh1,corl2:corh2)
-      REAL_T wrk(wrkl0:wrkh0,wrkl1:wrkh1,wrkl2:wrkh2)
+      double precision cor(corl0:corh0,corl1:corh1,corl2:corh2)
+      double precision wrk(wrkl0:wrkh0,wrkl1:wrkh1,wrkl2:wrkh2)
       integer lsd, ipass
       integer ioff, ipar, i, j, k
       if (lsd .eq. 0) then
@@ -2476,10 +2473,10 @@ c Works for NODE-based data.
      &     regl0,regh0,regl1,regh1,regl2,regh2,
      & sum)
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      REAL_T v0(*)
-      REAL_T v1(*)
-      REAL_T mask(*)
-      REAL_T sum
+      double precision v0(*)
+      double precision v1(*)
+      double precision mask(*)
+      double precision sum
       integer i, jdiff, kdiff
       jdiff = regh0 - regl0 + 1
       kdiff = (regh1 - regl1 + 1) * jdiff
@@ -2493,14 +2490,14 @@ c-----------------------------------------------------------------------
      &     regl0,regh0,regl1,regh1,regl2,regh2,
      & alpha, rho)
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      REAL_T r(*)
-      REAL_T p(*)
-      REAL_T z(*)
-      REAL_T x(*)
-      REAL_T w(*)
-      REAL_T c(*)
-      REAL_T mask(*)
-      REAL_T alpha, rho
+      double precision r(*)
+      double precision p(*)
+      double precision z(*)
+      double precision x(*)
+      double precision w(*)
+      double precision c(*)
+      double precision mask(*)
+      double precision alpha, rho
       integer i, jdiff, kdiff
       jdiff = regh0 - regl0 + 1
       kdiff = (regh1 - regl1 + 1) * jdiff
@@ -2517,9 +2514,9 @@ c-----------------------------------------------------------------------
      &     regl0,regh0,regl1,regh1,regl2,regh2,
      & alpha)
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      REAL_T p(*)
-      REAL_T z(*)
-      REAL_T alpha
+      double precision p(*)
+      double precision z(*)
+      double precision alpha
       integer i, jdiff, kdiff
       jdiff = regh0 - regl0 + 1
       kdiff = (regh1 - regl1 + 1) * jdiff
@@ -2535,29 +2532,29 @@ c-----------------------------------------------------------------------
      & nsets, edge, nvals1, nvals2, dstart, sstart,
      & dstrd1, dstrd2, sstrd1, sstrd2,
      & hx, alpha, rho, it, pcode)
-      REAL_T r(0:*), p(0:*), z(0:*)
-      REAL_T x(0:*), w(0:*), c(0:*), mask(0:*)
+      double precision r(0:*), p(0:*), z(0:*)
+      double precision x(0:*), w(0:*), c(0:*), mask(0:*)
       integer ngrids
       integer strid1(ngrids), strid2(ngrids), nvals(ngrids)
       integer rs(ngrids), ps(ngrids), zs(ngrids)
       integer xs(ngrids), ws(ngrids), cs(ngrids), ms(ngrids)
-      REAL_T edge(0:*)
+      double precision edge(0:*)
       integer nsets
       integer nvals1(nsets), nvals2(nsets)
       integer dstart(nsets), sstart(nsets)
       integer dstrd1(nsets), dstrd2(nsets)
       integer sstrd1(nsets), sstrd2(nsets)
-      REAL_T hx, alpha, rho
-      REAL_T hxm2, facm, tol, rhoold
+      double precision hx, alpha, rho
+      double precision hxm2, facm, tol, rhoold
       integer it, pcode, k, i, j, MAXITER
       parameter (MAXITER = 250)
-      hxm2 = one / (hx*hx)
+      hxm2 = 1.0D0 / (hx*hx)
 cifdef HG_CROSS_STENCIL
       facm = -hxm2
 celse
 c      facm = -hxm2 / three
 cendif
-      rho = zero
+      rho = 0.0D0
       do k = 1, ngrids
 c must do this loop over entire array to initialize borders of p
          do i = 0, nvals(k) - 1
@@ -2567,14 +2564,14 @@ c must do this loop over entire array to initialize borders of p
          end do
       end do
       tol = rho / 1000
-      if (tol .le. zero) return
+      if (tol .le. 0.0D0) return
  100  continue
       it = it + 1
       if (it .gt. MAXITER) then
          STOP "FORTRAN hgcg---conjugate-gradient iteration failed"
       end if
       rhoold = rho
-      alpha = zero
+      alpha = 0.0D0
       do k = 1, nsets
          do j = 0, nvals2(k) - 1
             do i = 0, nvals1(k) - 1
@@ -2591,7 +2588,7 @@ cifdef HG_CROSS_STENCIL
      &        (p(ps(k)+i-1) + p(ps(k)+i+1) +
      &         p(ps(k)+i-strid1(k)) + p(ps(k)+i+strid1(k)) +
      &         p(ps(k)+i-strid2(k)) + p(ps(k)+i+strid2(k)) -
-     &         six * p(ps(k)+i))
+     &         6.0D0 * p(ps(k)+i))
 celse
 c            print *, "FORTRAN hgcg---full box stencils not implemented"
 cendif
@@ -2599,7 +2596,7 @@ cendif
          end do
       end do
       alpha = rho / alpha
-      rho = zero
+      rho = 0.0D0
       do k = 1, ngrids
          do i = strid1(k) + strid2(k) + 1,
      &              nvals(k) - strid1(k) - strid2(k) - 2

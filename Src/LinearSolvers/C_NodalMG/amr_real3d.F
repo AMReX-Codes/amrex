@@ -1,6 +1,3 @@
-#include <REAL.H>
-#include <CONSTANTS.H>
-
 c-----------------------------------------------------------------------
 c Works for CELL-based data.
       subroutine iprodc(
@@ -11,9 +8,9 @@ c Works for CELL-based data.
       integer v0l0,v0h0,v0l1,v0h1,v0l2,v0h2
       integer v1l0,v1h0,v1l1,v1h1,v1l2,v1h2
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      REAL_T v0(v0l0:v0h0,v0l1:v0h1,v0l2:v0h2)
-      REAL_T v1(v1l0:v1h0,v1l1:v1h1,v1l2:v1h2)
-      REAL_T sum
+      double precision v0(v0l0:v0h0,v0l1:v0h1,v0l2:v0h2)
+      double precision v1(v1l0:v1h0,v1l1:v1h1,v1l2:v1h2)
+      double precision sum
       integer i, j, k
       do k = regl2, regh2
          do j = regl1, regh1
@@ -33,11 +30,11 @@ c Works for CELL- or NODE-based data.
       integer v0l0,v0h0,v0l1,v0h1,v0l2,v0h2
       integer v1l0,v1h0,v1l1,v1h1,v1l2,v1h2
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      REAL_T v0(v0l0:v0h0,v0l1:v0h1,v0l2:v0h2)
-      REAL_T v1(v1l0:v1h0,v1l1:v1h1,v1l2:v1h2)
-      REAL_T sum
+      double precision v0(v0l0:v0h0,v0l1:v0h1,v0l2:v0h2)
+      double precision v1(v1l0:v1h0,v1l1:v1h1,v1l2:v1h2)
+      double precision sum
       integer i, j, k
-      sum = sum + eighth *
+      sum = sum + 0.1250D0 *
      &            (v0(regl0,regl1,regl2) * v1(regl0,regl1,regl2) +
      &             v0(regl0,regl1,regh2) * v1(regl0,regl1,regh2) +
      &             v0(regl0,regh1,regl2) * v1(regl0,regh1,regl2) +
@@ -47,21 +44,21 @@ c Works for CELL- or NODE-based data.
      &             v0(regh0,regh1,regl2) * v1(regh0,regh1,regl2) +
      &             v0(regh0,regh1,regh2) * v1(regh0,regh1,regh2))
       do i = regl0 + 1, regh0 - 1
-         sum = sum + fourth *
+         sum = sum + 0.25D0 *
      &               (v0(i,regl1,regl2) * v1(i,regl1,regl2) +
      &                v0(i,regl1,regh2) * v1(i,regl1,regh2) +
      &                v0(i,regh1,regl2) * v1(i,regh1,regl2) +
      &                v0(i,regh1,regh2) * v1(i,regh1,regh2))
       end do
       do j = regl1 + 1, regh1 - 1
-          sum = sum + fourth *
+          sum = sum + 0.25D0 *
      &               (v0(regl0,j,regl2) * v1(regl0,j,regl2) +
      &                v0(regl0,j,regh2) * v1(regl0,j,regh2) +
      &                v0(regh0,j,regl2) * v1(regh0,j,regl2) +
      &                v0(regh0,j,regh2) * v1(regh0,j,regh2))
       end do
       do k = regl2 + 1, regh2 - 1
-          sum = sum + fourth *
+          sum = sum + 0.25D0 *
      &               (v0(regl0,regl1,k) * v1(regl0,regl1,k) +
      &                v0(regl0,regh1,k) * v1(regl0,regh1,k) +
      &                v0(regh0,regl1,k) * v1(regh0,regl1,k) +
@@ -69,21 +66,21 @@ c Works for CELL- or NODE-based data.
       end do
       do j = regl1 + 1, regh1 - 1
          do i = regl0 + 1, regh0 - 1
-             sum = sum + half *
+             sum = sum + 0.5D0 *
      &                  (v0(i,j,regl2) * v1(i,j,regl2) +
      &                   v0(i,j,regh2) * v1(i,j,regh2))
          end do
       end do
       do k = regl2 + 1, regh2 - 1
          do i = regl0 + 1, regh0 - 1
-            sum = sum + half *
+            sum = sum + 0.5D0 *
      &                  (v0(i,regl1,k) * v1(i,regl1,k) +
      &                   v0(i,regh1,k) * v1(i,regh1,k))
          end do
       end do
       do k = regl2 + 1, regh2 - 1
          do j = regl1 + 1, regh1 - 1
-             sum = sum + half *
+             sum = sum + 0.5D0 *
      &                  (v0(regl0,j,k) * v1(regl0,j,k) +
      &                   v0(regh0,j,k) * v1(regh0,j,k))
          end do
@@ -111,9 +108,9 @@ c Works for CELL- or NODE-based data.
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer bbl0,bbh0,bbl1,bbh1,bbl2,bbh2
       integer idir, ncomp
-      REAL_T dest(destl0:desth0,destl1:desth1,destl2:desth2,
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
      &   ncomp)
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       integer i, j, k, nc
       do nc = 1, ncomp
       if (idir .eq. 0) then
@@ -157,9 +154,9 @@ c Works for CELL- or NODE-based data.
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer bbl0,bbh0,bbl1,bbh1,bbl2,bbh2
       integer ra(0:2)
-      REAL_T dest(destl0:desth0,destl1:desth1,destl2:desth2,
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
      &   ncomp)
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       integer i, j, k, nc
       do nc = 1, ncomp
       if (ra(0) .eq. 0 .and. ra(1) .eq. 0 .and. ra(2) .eq. 0) then
@@ -250,9 +247,9 @@ c Works for CELL- or NODE-based data.
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer bbl0,bbh0,bbl1,bbh1,bbl2,bbh2
       integer idir,ncomp
-      REAL_T dest(destl0:desth0,destl1:desth1,destl2:desth2,
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
      &   ncomp)
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       integer i, j, k, nc
       do nc = 1, ncomp
       if (idir .eq. 0) then
@@ -296,9 +293,9 @@ c Works for CELL- or NODE-based data.
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer bbl0,bbh0,bbl1,bbh1,bbl2,bbh2
       integer ra(0:2)
-      REAL_T dest(destl0:desth0,destl1:desth1,destl2:desth2, 
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2, 
      &   ncomp)
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       integer i, j, k, nc
       do nc = 1, ncomp
       if (ra(0) .eq. 0 .and. ra(1) .eq. 0 .and. ra(2) .eq. 0) then
@@ -393,9 +390,9 @@ c inflow face, so that binfil can be run for subsequent fills
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer bbl0,bbh0,bbl1,bbh1,bbl2,bbh2
       integer idir
-      REAL_T dest(destl0:desth0,destl1:desth1,destl2:desth2,
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
      &   ncomp)
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       integer i, j, k, nc
       do nc = 1, ncomp
       if (idir .eq. 0) then
@@ -403,7 +400,7 @@ c inflow face, so that binfil can be run for subsequent fills
             do i = regl0, regh0
                do k = regl2, regh2
                   do j = regl1, regh1
-                     dest(i,j,k,nc) = two * dest(regh0,j,k,nc) -
+                     dest(i,j,k,nc) = 2.0D0 * dest(regh0,j,k,nc) -
      &                             src(bbh0-(i-regl0),j,k,nc)
                   end do
                end do
@@ -412,7 +409,7 @@ c inflow face, so that binfil can be run for subsequent fills
             do i = regh0, regl0, -1
                do k = regl2, regh2
                   do j = regl1, regh1
-                     dest(i,j,k,nc) = two * dest(regh0,j,k, nc) -
+                     dest(i,j,k,nc) = 2.0D0 * dest(regh0,j,k, nc) -
      &                             src(bbh0-(i-regl0),j,k, nc)
                   end do
                end do
@@ -423,7 +420,7 @@ c inflow face, so that binfil can be run for subsequent fills
             do j = regl1, regh1
                do k = regl2, regh2
                   do i = regl0, regh0
-                     dest(i,j,k,nc) = two * dest(i,regh1,k,nc) -
+                     dest(i,j,k,nc) = 2.0D0 * dest(i,regh1,k,nc) -
      &                             src(i,bbh1-(j-regl1),k,nc)
                   end do
                end do
@@ -432,7 +429,7 @@ c inflow face, so that binfil can be run for subsequent fills
             do j = regh1, regl1, -1
                do k = regl2, regh2
                   do i = regl0, regh0
-                     dest(i,j,k,nc) = two * dest(i,regh1,k,nc) -
+                     dest(i,j,k,nc) = 2.0D0 * dest(i,regh1,k,nc) -
      &                             src(i,bbh1-(j-regl1),k,nc)
                   end do
                end do
@@ -443,7 +440,7 @@ c inflow face, so that binfil can be run for subsequent fills
             do k = regl2, regh2
                do j = regl1, regh1
                   do i = regl0, regh0
-                     dest(i,j,k,nc) = two * dest(i,j,regh2,nc) -
+                     dest(i,j,k,nc) = 2.0D0 * dest(i,j,regh2,nc) -
      &                             src(i,j,bbh2-(k-regl2),nc)
                   end do
                end do
@@ -452,7 +449,7 @@ c inflow face, so that binfil can be run for subsequent fills
             do k = regh2, regl2, -1
                do j = regl1, regh1
                   do i = regl0, regh0
-                     dest(i,j,k,nc) = two * dest(i,j,regh2,nc) -
+                     dest(i,j,k,nc) = 2.0D0 * dest(i,j,regh2,nc) -
      &                             src(i,j,bbh2-(k-regl2),nc)
                   end do
                end do
@@ -477,9 +474,9 @@ c been altered by a call to fill_borders.
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer bbl0,bbh0,bbl1,bbh1,bbl2,bbh2
       integer idir
-      REAL_T dest(destl0:desth0,destl1:desth1,destl2:desth2,
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
      &   ncomp)
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       integer i, j, k, nc
       do nc = 1, ncomp
       if (idir .eq. 0) then
@@ -567,10 +564,10 @@ c CELL-based data only.
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer bbl0,bbh0,bbl1,bbh1,bbl2,bbh2
       integer ir, jr, kr
-      REAL_T dest(destl0:desth0,destl1:desth1,destl2:desth2,
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
      &    ncomp)
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
-      REAL_T xoff, yoff, zoff, sx, sy, sz
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
+      double precision xoff, yoff, zoff, sx, sy, sz
       integer ic, jc, kc, i, j, k, nc
       do nc = 1, ncomp
       do k = regl2, regh2
@@ -606,10 +603,10 @@ c NODE-based data only.
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer bbl0,bbh0,bbl1,bbh1,bbl2,bbh2
       integer ir, jr, kr
-      REAL_T dest(destl0:desth0,destl1:desth1,destl2:desth2,
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
      &   ncomp)
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
-      REAL_T p, q
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
+      double precision p, q
       integer ic, jc, kc, j, k, m, nc
       do nc = 1, ncomp
       do kc = bbl2, bbh2
@@ -621,7 +618,7 @@ c NODE-based data only.
       end do
          do m = 1, kr-1
             q = dble(m)/kr
-            p = one - q
+            p = 1.0D0 - q
             do kc = bbl2, bbh2-1
                do jc = bbl1, bbh1
                   do ic = bbl0, bbh0
@@ -633,7 +630,7 @@ c NODE-based data only.
          end do
          do m = 1, jr-1
             q = dble(m)/jr
-            p = one - q
+            p = 1.0D0 - q
             do jc = bbl1, bbh1-1
                do ic = bbl0, bbh0
 cdir$ ivdep
@@ -647,7 +644,7 @@ cdir$ ivdep
          end do
             do  m = 1, ir-1
                q = dble(m)/ir
-               p = one - q
+               p = 1.0D0 - q
                do ic = bbl0, bbh0-1
                   do k = regl2, regh2
 cdir$ ivdep
@@ -675,16 +672,16 @@ c CELL-based data only.
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer ir, jr, kr, integ, i1, i2
-      REAL_T dest(destl0:desth0,destl1:desth1,destl2:desth2,
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
      &   ncomp)
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
-      REAL_T fac
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
+      double precision fac
       integer i, j, k, l, m, n,nc
       do nc = 1, ncomp
       do k = regl2, regh2
          do j = regl1, regh1
             do i = regl0, regh0
-               dest(i,j,k,nc) = zero
+               dest(i,j,k,nc) = 0.0D0
             end do
          end do
       end do
@@ -703,7 +700,7 @@ c CELL-based data only.
          end do
       end do
       if (integ .eq. 0) then
-         fac = one / (ir*jr*kr)
+         fac = 1.0D0 / (ir*jr*kr)
          do k = regl2, regh2
             do j = regl1, regh1
                do i = regl0, regh0
@@ -727,9 +724,9 @@ c NODE-based data only.
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer ir, jr, kr
       integer nc
-      REAL_T dest(destl0:desth0,destl1:desth1,destl2:desth2,
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
      &   ncomp)
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       integer i, j, k, i1, i2
       do nc = 1, ncomp
       do k = regl2, regh2
@@ -753,29 +750,29 @@ c NODE-based data only.
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer ir, jr, kr, integ, i1, i2
-      REAL_T dest(destl0:desth0,destl1:desth1,destl2:desth2,
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
      &   ncomp)
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
-      REAL_T fac0, fac1, fac2, fac
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
+      double precision fac0, fac1, fac2, fac
       integer i, j, k, l, m, n, nc
       do nc = 1, ncomp
          do k = regl2, regh2
             do j = regl1, regh1
                do i = regl0, regh0
-                  dest(i,j,k,nc) = zero
+                  dest(i,j,k,nc) = 0.0D0
                end do
             end do
          end do
-         fac0 = one / (ir*ir * jr*jr * kr*kr)
+         fac0 = 1.0D0 / (ir*ir * jr*jr * kr*kr)
          do l = 0, kr-1
             fac2 = (kr-l) * fac0
-            if (l .eq. 0) fac2 = half * fac2
+            if (l .eq. 0) fac2 = 0.5D0 * fac2
             do n = 0, jr-1
                fac1 = (jr-n) * fac2
-               if (n .eq. 0) fac1 = half * fac1
+               if (n .eq. 0) fac1 = 0.5D0 * fac1
                do m = 0, ir-1
                   fac = (ir-m) * fac1
-                  if (m .eq. 0) fac = half * fac
+                  if (m .eq. 0) fac = 0.5D0 * fac
                   do k = regl2, regh2
                      do j = regl1, regh1
                         do i = regl0, regh0
@@ -820,18 +817,18 @@ c Handles coarse-fine face, with orientation determined by idim and idir
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer ir, jr, kr, idim, idir, integ
       integer ncomp
-      REAL_T dest(destl0:desth0,destl1:desth1,destl2:desth2,
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
      &   ncomp)
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
-      REAL_T fac0, fac1, fac2, fac
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
+      double precision fac0, fac1, fac2, fac
       integer i, j, k, l, m, n, nc
       if (idim .eq. 0) then
          if (integ .eq. 0) then
-            fac = (half + half / ir)
-            fac0 = one / (ir*ir * jr*jr * kr*kr)
+            fac = (0.5D0 + 0.5D0 / ir)
+            fac0 = 1.0D0 / (ir*ir * jr*jr * kr*kr)
          else
-            fac = one
-            fac0 = one / (ir * jr * kr)
+            fac = 1.0D0
+            fac0 = 1.0D0 / (ir * jr * kr)
          end if
          i = regl0
          do nc = 1, ncomp
@@ -844,10 +841,10 @@ c Handles coarse-fine face, with orientation determined by idim and idir
          do nc = 1, ncomp
          do l = 0, kr-1
             fac2 = (kr-l) * fac0
-            if (l .eq. 0) fac2 = half * fac2
+            if (l .eq. 0) fac2 = 0.5D0 * fac2
             do n = 0, jr-1
                fac1 = (jr-n) * fac2
-               if (n .eq. 0) fac1 = half * fac1
+               if (n .eq. 0) fac1 = 0.5D0 * fac1
                do m = idir, idir*(ir-1), idir
                   fac = (ir-abs(m)) * fac1
                   do k = regl2, regh2
@@ -865,11 +862,11 @@ c Handles coarse-fine face, with orientation determined by idim and idir
          end do
       else if (idim .eq. 1) then
          if (integ .eq. 0) then
-            fac = (half + half / jr)
-            fac0 = one / (ir*ir * jr*jr * kr*kr)
+            fac = (0.5D0 + 0.5D0 / jr)
+            fac0 = 1.0D0 / (ir*ir * jr*jr * kr*kr)
          else
-            fac = one
-            fac0 = one / (ir * jr * kr)
+            fac = 1.0D0
+            fac0 = 1.0D0 / (ir * jr * kr)
          end if
          j = regl1
          do nc = 1, ncomp
@@ -879,16 +876,16 @@ c Handles coarse-fine face, with orientation determined by idim and idir
             end do
          end do
          end do
-         fac0 = one / (ir*ir * jr*jr * kr*kr)
+         fac0 = 1.0D0 / (ir*ir * jr*jr * kr*kr)
          do nc = 1, ncomp
          do l = 0, kr-1
             fac2 = (kr-l) * fac0
-            if (l .eq. 0) fac2 = half * fac2
+            if (l .eq. 0) fac2 = 0.5D0 * fac2
             do n = idir, idir*(jr-1), idir
                fac1 = (jr-abs(n)) * fac2
                do m = 0, ir-1
                   fac = (ir-m) * fac1
-                  if (m .eq. 0) fac = half * fac
+                  if (m .eq. 0) fac = 0.5D0 * fac
                   do k = regl2, regh2
                      do i = regl0, regh0
                         dest(i,j,k,nc) = dest(i,j,k,nc) +
@@ -904,11 +901,11 @@ c Handles coarse-fine face, with orientation determined by idim and idir
          end do
       else
          if (integ .eq. 0) then
-            fac = (half + half / kr)
-            fac0 = one / (ir*ir * jr*jr * kr*kr)
+            fac = (0.5D0 + 0.5D0 / kr)
+            fac0 = 1.0D0 / (ir*ir * jr*jr * kr*kr)
          else
-            fac = one
-            fac0 = one / (ir * jr * kr)
+            fac = 1.0D0
+            fac0 = 1.0D0 / (ir * jr * kr)
          end if
          k = regl2
          do nc = 1, ncomp
@@ -918,16 +915,16 @@ c Handles coarse-fine face, with orientation determined by idim and idir
             end do
          end do
          end do
-         fac0 = one / (ir*ir * jr*jr * kr*kr)
+         fac0 = 1.0D0 / (ir*ir * jr*jr * kr*kr)
          do nc = 1, ncomp
          do l = idir, idir*(kr-1), idir
             fac2 = (kr-abs(l)) * fac0
             do n = 0, jr-1
                fac1 = (jr-n) * fac2
-               if (n .eq. 0) fac1 = half * fac1
+               if (n .eq. 0) fac1 = 0.5D0 * fac1
                do m = 0, ir-1
                   fac = (ir-m) * fac1
-                  if (m .eq. 0) fac = half * fac
+                  if (m .eq. 0) fac = 0.5D0 * fac
                   do j = regl1, regh1
                      do i = regl0, regh0
                         dest(i,j,k,nc) = dest(i,j,k,nc) +
@@ -957,10 +954,10 @@ c Handles any edge geometry except all-coarse or all-fine.
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer ir, jr, kr, ivect(0:2), ga(0:1,0:1,0:1), integ
-      REAL_T dest(destl0:desth0,destl1:desth1,destl2:desth2,
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
      &   ncomp)
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2,ncomp)
-      REAL_T cube, center, cfac, fac0, fac1, fac2, fac
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2,ncomp)
+      double precision cube, center, cfac, fac0, fac1, fac2, fac
       integer i, j, k, ii, ji, ki, idir, jdir, kdir, l, m, n, nc
       cube = ir * jr * kr
       if (ivect(0) .eq. 0) then
@@ -968,16 +965,16 @@ c Handles any edge geometry except all-coarse or all-fine.
          k = regl2
          do nc = 1, ncomp
          do i = regl0, regh0
-            dest(i,j,k,nc) = zero
+            dest(i,j,k,nc) = 0.0D0
          end do
 c center gets center plus two edges
          if (integ .eq. 0) then
             center = ir / cube
-            fac0 = one / (cube**2)
-            cfac = fourth * cube * fac0 * ir * (jr-1) * (kr-1)
+            fac0 = 1.0D0 / (cube**2)
+            cfac = 0.25D0 * cube * fac0 * ir * (jr-1) * (kr-1)
          else
-            center = one
-            fac0 = one / cube
+            center = 1.0D0
+            fac0 = 1.0D0 / cube
          end if
 c quadrants
 c each quadrant is two octants and a face
@@ -992,7 +989,7 @@ c each quadrant is two octants and a face
                         fac1 = (jr-abs(n)) * fac2
                         do m = 0, ir-1
                            fac = (ir-m) * fac1
-                           if (m .eq. 0) fac = half * fac
+                           if (m .eq. 0) fac = 0.5D0 * fac
                            do i = regl0, regh0
                               dest(i,j,k,nc) = dest(i,j,k,nc) +
      &                          fac * (src(i*ir-m,j*jr+n,k*kr+l,nc) +
@@ -1009,7 +1006,7 @@ c each quadrant is two octants and a face
 c faces
 c each face is two faces and an edge
          fac2 = kr * fac0
-         cfac = half * cube * fac0 * ir * (jr-1)
+         cfac = 0.5D0 * cube * fac0 * ir * (jr-1)
          do ji = 0, 1
             jdir = 2 * ji - 1
             if (ga(0,ji,0) + ga(0,ji,1) .eq. 2) then
@@ -1017,7 +1014,7 @@ c each face is two faces and an edge
                   fac1 = (jr-abs(n)) * fac2
                   do m = 0, ir-1
                      fac = (ir-m) * fac1
-                     if (m .eq. 0) fac = half * fac
+                     if (m .eq. 0) fac = 0.5D0 * fac
                      do i = regl0, regh0
                         dest(i,j,k,nc) = dest(i,j,k,nc) +
      &                    fac * (src(i*ir-m,j*jr+n,k*kr,nc) +
@@ -1030,7 +1027,7 @@ c each face is two faces and an edge
             end if
          end do
          fac2 = jr * fac0
-         cfac = half * cube * fac0 * ir * (kr-1)
+         cfac = 0.5D0 * cube * fac0 * ir * (kr-1)
          do ki = 0, 1
             kdir = 2 * ki - 1
             if (ga(0,0,ki) + ga(0,1,ki) .eq. 2) then
@@ -1038,7 +1035,7 @@ c each face is two faces and an edge
                   fac1 = (kr-abs(l)) * fac2
                   do m = 0, ir-1
                      fac = (ir-m) * fac1
-                     if (m .eq. 0) fac = half * fac
+                     if (m .eq. 0) fac = 0.5D0 * fac
                      do i = regl0, regh0
                         dest(i,j,k,nc) = dest(i,j,k,nc) +
      &                    fac * (src(i*ir-m,j*jr,k*kr+l,nc) +
@@ -1061,16 +1058,16 @@ c center
          k = regl2
          do nc = 1, ncomp
          do  j = regl1, regh1
-            dest(i,j,k,nc) = zero
+            dest(i,j,k,nc) = 0.0D0
          end do
 c center gets center plus two edges
          if (integ .eq. 0) then
             center = jr / cube
-            fac0 = one / (cube**2)
-            cfac = fourth * cube * fac0 * jr * (ir-1) * (kr-1)
+            fac0 = 1.0D0 / (cube**2)
+            cfac = 0.25D0 * cube * fac0 * jr * (ir-1) * (kr-1)
          else
-            center = one
-            fac0 = one / cube
+            center = 1.0D0
+            fac0 = 1.0D0 / cube
          end if
 c quadrants
 c each quadrant is two octants and a face
@@ -1083,7 +1080,7 @@ c each quadrant is two octants and a face
                      fac2 = (kr-abs(l)) * fac0
                      do n = 0, jr-1
                         fac1 = (jr-n) * fac2
-                        if (n .eq. 0) fac1 = half * fac1
+                        if (n .eq. 0) fac1 = 0.5D0 * fac1
                         do m = idir, idir*(ir-1), idir
                            fac = (ir-abs(m)) * fac1
                            do j = regl1, regh1
@@ -1102,13 +1099,13 @@ c each quadrant is two octants and a face
 c faces
 c each face is two faces and an edge
          fac2 = kr * fac0
-         cfac = half * cube * fac0 * jr * (ir-1)
+         cfac = 0.5D0 * cube * fac0 * jr * (ir-1)
          do ii = 0, 1
             idir = 2 * ii - 1
             if (ga(ii,0,0) + ga(ii,0,1) .eq. 2) then
                do n = 0, jr-1
                   fac1 = (jr-n) * fac2
-                  if (n .eq. 0) fac1 = half * fac1
+                  if (n .eq. 0) fac1 = 0.5D0 * fac1
                   do m = idir, idir*(ir-1), idir
                      fac = (ir-abs(m)) * fac1
                      do j = regl1, regh1
@@ -1123,7 +1120,7 @@ c each face is two faces and an edge
             end if
          end do
          fac2 = ir * fac0
-         cfac = half * cube * fac0 * jr * (kr-1)
+         cfac = 0.5D0 * cube * fac0 * jr * (kr-1)
          do ki = 0, 1
             kdir = 2 * ki - 1
             if (ga(0,0,ki) + ga(1,0,ki) .eq. 2) then
@@ -1131,7 +1128,7 @@ c each face is two faces and an edge
                   fac1 = (kr-abs(l)) * fac2
                   do n = 0, jr-1
                      fac = (jr-n) * fac1
-                     if (n .eq. 0) fac = half * fac
+                     if (n .eq. 0) fac = 0.5D0 * fac
                      do j = regl1, regh1
                         dest(i,j,k,nc) = dest(i,j,k,nc) +
      &                    fac * (src(i*ir,j*jr-n,k*kr+l,nc) +
@@ -1154,16 +1151,16 @@ c center
          j = regl1
          do nc = 1, ncomp
          do k = regl2, regh2
-            dest(i,j,k,nc) = zero
+            dest(i,j,k,nc) = 0.0D0
          end do
 c center gets center plus two edges
          if (integ .eq. 0) then
             center = kr / cube
-            fac0 = one / (cube**2)
-            cfac = fourth * cube * fac0 * kr * (ir-1) * (jr-1)
+            fac0 = 1.0D0 / (cube**2)
+            cfac = 0.25D0 * cube * fac0 * kr * (ir-1) * (jr-1)
          else
-            center = one
-            fac0 = one / cube
+            center = 1.0D0
+            fac0 = 1.0D0 / cube
          end if
 c quadrants
 c each quadrant is two octants and a face
@@ -1174,7 +1171,7 @@ c each quadrant is two octants and a face
                if (ga(ii,ji,0) .eq. 1) then
                   do l = 0, kr-1
                      fac2 = (kr-l) * fac0
-                     if (l .eq. 0) fac2 = half * fac2
+                     if (l .eq. 0) fac2 = 0.5D0 * fac2
                      do n = jdir, jdir*(jr-1), jdir
                         fac1 = (jr-abs(n)) * fac2
                         do m = idir, idir*(ir-1), idir
@@ -1195,13 +1192,13 @@ c each quadrant is two octants and a face
 c faces
 c each face is two faces and an edge
          fac2 = jr * fac0
-         cfac = half * cube * fac0 * kr * (ir-1)
+         cfac = 0.5D0 * cube * fac0 * kr * (ir-1)
          do ii = 0, 1
             idir = 2 * ii - 1
             if (ga(ii,0,0) + ga(ii,1,0) .eq. 2) then
                do l = 0, kr-1
                   fac1 = (kr-l) * fac2
-                  if (l .eq. 0) fac1 = half * fac1
+                  if (l .eq. 0) fac1 = 0.5D0 * fac1
                   do m = idir, idir*(ir-1), idir
                      fac = (ir-abs(m)) * fac1
                      do k = regl2, regh2
@@ -1216,13 +1213,13 @@ c each face is two faces and an edge
             end if
          end do
          fac2 = ir * fac0
-         cfac = half * cube * fac0 * kr * (jr-1)
+         cfac = 0.5D0 * cube * fac0 * kr * (jr-1)
          do ji = 0, 1
             jdir = 2 * ji - 1
             if (ga(0,ji,0) + ga(1,ji,0) .eq. 2) then
                do l = 0, kr-1
                   fac1 = (kr-l) * fac2
-                  if (l .eq. 0) fac1 = half * fac1
+                  if (l .eq. 0) fac1 = 0.5D0 * fac1
                   do n = jdir, jdir*(jr-1), jdir
                      fac = (jr-abs(n)) * fac1
                      do k = regl2, regh2
@@ -1258,24 +1255,24 @@ c Handles any corner geometry except all-coarse.
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer ir, jr, kr, ga(0:1,0:1,0:1), integ
-      REAL_T dest(destl0:desth0,destl1:desth1,destl2:desth2,
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
      &   ncomp)
-      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
-      REAL_T cube, center, cfac, fac0, fac1, fac2, fac
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
+      double precision cube, center, cfac, fac0, fac1, fac2, fac
       integer i, j, k, ii, ji, ki, idir, jdir, kdir, l, m, n,nc, i2
       i = regl0
       j = regl1
       k = regl2
       do nc = 1, ncomp
-      dest(i,j,k,nc) = zero
+      dest(i,j,k,nc) = 0.0D0
       cube = ir * jr * kr
       if (integ .eq. 0) then
-         center = one / cube
-         fac0 = one / (cube**2)
-         cfac = eighth * cube * fac0 * (ir-1) * (jr-1) * (kr-1)
+         center = 1.0D0 / cube
+         fac0 = 1.0D0 / (cube**2)
+         cfac = 0.1250D0 * cube * fac0 * (ir-1) * (jr-1) * (kr-1)
       else
-         center = one
-         fac0 = one / cube
+         center = 1.0D0
+         fac0 = 1.0D0 / cube
       end if
 c octants
       do ki = 0, 1
@@ -1304,7 +1301,7 @@ c octants
       end do
 c faces
       fac2 = kr * fac0
-      cfac = fourth * cube * fac0 * (ir-1) * (jr-1)
+      cfac = 0.25D0 * cube * fac0 * (ir-1) * (jr-1)
       do ji = 0, 1
          jdir = 2 * ji - 1
          do ii = 0, 1
@@ -1324,7 +1321,7 @@ c faces
          end do
       end do
       fac2 = jr * fac0
-      cfac = fourth * cube * fac0 * (ir-1) * (kr-1)
+      cfac = 0.25D0 * cube * fac0 * (ir-1) * (kr-1)
       do ki = 0, 1
          kdir = 2 * ki - 1
          do ii = 0, 1
@@ -1344,7 +1341,7 @@ c faces
          end do
       end do
       fac2 = ir * fac0
-      cfac = fourth * cube * fac0 * (jr-1) * (kr-1)
+      cfac = 0.25D0 * cube * fac0 * (jr-1) * (kr-1)
       do ki = 0, 1
          kdir = 2 * ki - 1
          do ji = 0, 1
@@ -1365,7 +1362,7 @@ c faces
       end do
 c edges
       fac1 = jr * kr * fac0
-      cfac = half * cube * fac0 * (ir-1)
+      cfac = 0.5D0 * cube * fac0 * (ir-1)
       do ii = 0, 1
          idir = 2 * ii - 1
          if (ga(ii,0,0) + ga(ii,0,1) +
@@ -1380,7 +1377,7 @@ c edges
          end if
       end do
       fac1 = ir * kr * fac0
-      cfac = half * cube * fac0 * (jr-1)
+      cfac = 0.5D0 * cube * fac0 * (jr-1)
       do ji = 0, 1
          jdir = 2 * ji - 1
          if (ga(0,ji,0) + ga(0,ji,1) +
@@ -1395,7 +1392,7 @@ c edges
          end if
       end do
       fac1 = ir * jr * fac0
-      cfac = half * cube * fac0 * (kr-1)
+      cfac = 0.5D0 * cube * fac0 * (kr-1)
       do ki = 0, 1
          kdir = 2 * ki - 1
          if (ga(0,0,ki) + ga(0,1,ki) +
