@@ -1,7 +1,12 @@
 #ifndef _RegType_H_
-#define _RegType_H_  "@(#)RegType.H	1.1\t10/2/92"
+#define _RegType_H_
 
-enum RegType { interior, exterior, periodic, refWall, inflow,
-		outflow, REG_TYPE_SIZE};
+// $Id: RegType.H,v 1.2 1998-01-27 00:14:52 car Exp $
+
+enum RegType 
+{
+    interior, exterior, periodic, refWall, inflow,
+		outflow, REG_TYPE_SIZE
+};
 
 #endif

@@ -6,18 +6,19 @@
 #  include "boundary.H"
 
 #ifdef BL_FORT_USE_UNDERSCORE
-#  define FFCCPY1     fccpy1_
-#  define FFCCPY2     fccpy2_
+#  define FORT_FFCCPY1     fccpy1_
+#  define FORT_FFCCPY2     fccpy2_
 #else
-#  define FFCCPY1     FCCPY1
-#  define FFCCPY2     FCCPY2
+#  define FORT_FFCCPY1     FCCPY1
+#  define FORT_FFCCPY2     FCCPY2
 #endif
 
-extern "C" {
+extern "C"
+{
 #if (BL_SPACEDIM == 2)
-  void FFCCPY1(Real*, Real*, const int&, int*, int*, int*, int*, int*);
+  void FORT_FFCCPY1(Real*, Real*, const int&, int*, int*, int*, int*, int*);
 #else
-  void FFCCPY2(Real*, Real*, const int&, int*, int*, int*, int*,
+  void FORT_FFCCPY2(Real*, Real*, const int&, int*, int*, int*, int*,
 	       int*, int*, int*, int*);
 #endif
 }
@@ -96,9 +97,9 @@ class copy_cache {
 
   void run() const {
 #if (BL_SPACEDIM == 2)
-    FFCCPY1(dptr, sptr, nsets, dstart, sstart, dstrid, sstrid, nvals);
+    FORT_FFCCPY1(dptr, sptr, nsets, dstart, sstart, dstrid, sstrid, nvals);
 #else
-    FFCCPY2(dptr, sptr, nsets, dstart, sstart, dstrid1, dstrid2,
+    FORT_FFCCPY2(dptr, sptr, nsets, dstart, sstart, dstrid1, dstrid2,
 	    sstrid1, sstrid2, nvals1, nvals2);
 #endif
     if (bdy_cache) bdy_cache->run();

@@ -2,6 +2,7 @@
 #define _BOUNDARY_H_
 
 #include "interface.H"
+#include "RegType.H"
 
 #ifdef HG_USE_CACHE
 class copy_cache;
@@ -65,7 +66,6 @@ class amr_boundary_class {
 
 inline int amr_boundary_class::dir(const Box& region, const Box& domain) const
 {
-#if 1
   for ( int i = 0; i < BL_SPACEDIM; ++i )
   {
       if ( region.bigEnd(i) < domain.smallEnd(i) )
@@ -82,41 +82,6 @@ inline int amr_boundary_class::dir(const Box& region, const Box& domain) const
   }
   BoxLib::Error("amr_boundary_class::dir---boundary box not outside domain.");
   return 0;
-
-#else
-  int retval = 0;
-  if      (region.bigEnd(0) < domain.smallEnd(0))
-    retval = -1;
-  else if (region.smallEnd(0) > domain.bigEnd(0))
-    retval = 1;
-  else if (region.bigEnd(1) < domain.smallEnd(1))
-    retval = -2;
-  else if (region.smallEnd(1) > domain.bigEnd(1))
-    retval = 2;
-#if (BL_SPACEDIM == 3)
-  else if (region.bigEnd(2) < domain.smallEnd(2))
-    retval = -3;
-  else if (region.smallEnd(2) > domain.bigEnd(2))
-    retval = 3;
-#endif
-  else if (region.bigEnd(0) == domain.smallEnd(0))
-    retval = -1;
-  else if (region.smallEnd(0) == domain.bigEnd(0))
-    retval = 1;
-  else if (region.bigEnd(1) == domain.smallEnd(1))
-    retval = -2;
-  else if (region.smallEnd(1) == domain.bigEnd(1))
-    retval = 2;
-#if (BL_SPACEDIM == 3)
-  else if (region.bigEnd(2) == domain.smallEnd(2))
-    retval = -3;
-  else if (region.smallEnd(2) == domain.bigEnd(2))
-    retval = 3;
-#endif
-  else
-    BoxLib::Error("amr_boundary_class::dir---boundary box not outside domain.");
-  return retval;
-#endif
 }
 
 class reflection_boundary_class : public amr_boundary_class {
@@ -168,11 +133,6 @@ class periodic_boundary_class : public amr_boundary_class {
 };
 
 const amr_boundary_class error_boundary;
-//const reflection_boundary_class reflection_boundary;
-//const negation_boundary_class negation_boundary;
-//const periodic_boundary_class periodic_boundary;
-
-#include "RegType.H"
 
 // This is the base class for physical boundary conditions of the
 // types used in the AMR code.  Members return appropriate

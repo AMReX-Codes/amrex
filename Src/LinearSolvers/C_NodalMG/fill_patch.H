@@ -8,41 +8,24 @@
 #include "restrictor.H"
 
 #ifdef BL_FORT_USE_UNDERSCORE
-#  define FFCPY     fcpy_
+#  define FORT_FFCPY     fcpy_
 #else
-#  define FFCPY     FCPY
+#  define FORT_FFCPY     FCPY
 #endif
 
-extern "C" {
-  void FFCPY(Real*, intS, intS, const Real*, intS, const int&);
+extern "C" 
+{
+  void FORT_FFCPY(Real*, intS, intS, const Real*, intS, const int&);
 }
 
-/*
-class alias_fab {
- protected:
-  FArrayBox* ptr;
-  int owned;
- public:
-  
-  ~alias_fab() {
-    if (owned) delete ptr;
-  }
-  FArrayBox& operator FArrayBox() {
-    return *ptr;
-  }
-
- private:
-  
-};
-*/
-
-inline void internal_copy(MultiFab& r,
-			  int destgrid, int srcgrid, const Box& b) {
+inline void 
+internal_copy(MultiFab& r, int destgrid, int srcgrid, const Box& b) 
+{
   Real *const dptr = r[destgrid].dataPtr();
   Real *const sptr = r[srcgrid].dataPtr();
   const Box& dbx = r[destgrid].box();
   const Box& sbx = r[srcgrid].box();
-  FFCPY(dptr, dimlist(dbx), dimlist(b), sptr, dimlist(sbx), r.nComp());
+  FORT_FFCPY(dptr, DIMLIST(dbx), DIMLIST(b), sptr, DIMLIST(sbx), r.nComp());
 }
 
 Real inner_product(const MultiFab& r, const MultiFab& s);

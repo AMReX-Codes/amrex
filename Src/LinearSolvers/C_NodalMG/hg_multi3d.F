@@ -1,14 +1,14 @@
 
 
-#define dims(a) a l0,a h0,a l1,a h1,a l2,a h2
-#define dimdec(a) a l0:a h0,a l1:a h1,a l2:a h2
-c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)*(a h2-a l2+1)
+#define dims(a) a##l0,a##h0,a##l1,a##h1,a##l2,a##h2
+#define dimdec(a) a##l0:a##h0,a##l1:a##h1,a##l2:a##h2
+c#define dimdecu(a) (a##h0-a##l0+1)*(a##h1-a##l1+1)*(a##h2-a##l2+1)
 #define dimdecu(a) *
 
 #ifndef HG_CONSTANT
 
 #  ifndef HG_TERRAIN
-#    define SIGMA_NODE
+#    define HG_SIGMA_NODE
 #  endif
 
 #ifdef HG_TERRAIN 
@@ -3377,7 +3377,7 @@ c weighting
 
 #ifndef HG_CONSTANT
 
-#  ifndef SIGMA_NODE
+#  ifndef HG_SIGMA_NODE
 
 c NODE-based data, factor of 2 only.
       subroutine hgints(dest,
@@ -3712,7 +3712,7 @@ cdir$ ivdep
 
 #  endif
 
-#  ifndef SIGMA_NODE_ALL
+#  ifndef HG_SIGMA_NODE_ALL
 
 c CELL-based data only.
       subroutine hgsrst(destx, desty, destz,
@@ -4061,7 +4061,7 @@ cdir$ ivdep
 
 c seven-point variable stencils
 
-#ifdef SIGMA_NODE
+#ifdef HG_SIGMA_NODE
 
       subroutine hgcen(cen,
      @ dims(cen),

@@ -3,7 +3,8 @@
 
 #include "fill_patch.H"
 
-class amr_multigrid {
+class amr_multigrid 
+{
  protected:
   const int lev_min_min, lev_min_max, lev_max_max;
   int lev_min, lev_max, mglev_max;
@@ -28,7 +29,8 @@ class amr_multigrid {
 
   void build_index();
 
-  int get_amr_level(int mglev) {
+  int get_amr_level(int mglev) const 
+  {
     for (int i = lev_min; i <= lev_max; i++) {
       if (ml_index[i] == mglev)
 	return i;
@@ -75,21 +77,19 @@ class amr_multigrid {
 
   virtual ~amr_multigrid();
 
+#if BL_SPACEDIM==2
   static void SetRZ()
   {
     c_sys = 1;
-    if (BL_SPACEDIM != 2) {
-      cerr << "error in amr_multigrid::SetRZ---only in 2D" << endl;
-      exit(1);
-    }
   }
   static void SetCartesian()
     { c_sys = 0; }
 
-  static int IsRZ()
-    { return c_sys; }
-  static int IsCartesian()
-    { return !c_sys; }
+  static bool IsRZ()
+    { return c_sys == 1; }
+  static bool IsCartesian()
+    { return c_sys == 0; }
+#endif
 
   static void mesh_read(Array<BoxArray>& m, Array<IntVect>& r,
 			Array<Box>& d, istream& is);

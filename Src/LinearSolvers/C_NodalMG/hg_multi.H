@@ -7,11 +7,11 @@
 
 #ifndef HG_TERRAIN
 #  if (BL_SPACEDIM == 3)
-#    define SIGMA_NODE
+#    define HG_SIGMA_NODE
 #  endif
 #endif
 
-#  ifndef SIGMA_NODE
+#  ifndef HG_SIGMA_NODE
 
 class holy_grail_interpolator : public bilinear_interpolator {
  protected:

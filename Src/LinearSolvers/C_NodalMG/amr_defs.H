@@ -2,7 +2,7 @@
 #define _AMR_DEFS_H_
 
 //
-// $Id: amr_defs.H,v 1.7 1998-01-22 23:25:31 car Exp $
+// $Id: amr_defs.H,v 1.8 1998-01-27 00:14:50 car Exp $
 //
 
 #include <MultiFab.H>
@@ -10,21 +10,21 @@
 #if (BL_SPACEDIM == 1)
 #  define intRS const int&
 #  define intS  const int&, const int&
-#  define dimlist(a) a.smallEnd(0), a.bigEnd(0)
+#  define DIMLIST(a) a.smallEnd(0), a.bigEnd(0)
 #  define RealRS const Real&
 #  define RealPS Real*
 #  define CRealPS const Real*
 #elif (BL_SPACEDIM == 2)
 #  define intRS const int&, const int&
 #  define intS  const int&, const int&, const int&, const int&
-#  define dimlist(a) a.smallEnd(0), a.bigEnd(0), a.smallEnd(1), a.bigEnd(1)
+#  define DIMLIST(a) a.smallEnd(0), a.bigEnd(0), a.smallEnd(1), a.bigEnd(1)
 #  define RealRS const Real&, const Real&
 #  define RealPS Real*, Real*
 #  define CRealPS const Real*, const Real*
 #elif (BL_SPACEDIM == 3)
 #  define intRS const int&, const int&, const int&
 #  define intS  const int&, const int&, const int&, const int&, const int&, const int&
-#  define dimlist(a) a.smallEnd(0), a.bigEnd(0), a.smallEnd(1), a.bigEnd(1), a.smallEnd(2), a.bigEnd(2)
+#  define DIMLIST(a) a.smallEnd(0), a.bigEnd(0), a.smallEnd(1), a.bigEnd(1), a.smallEnd(2), a.bigEnd(2)
 #  define RealRS const Real&, const Real&, const Real&
 #  define RealPS Real*, Real*, Real*
 #  define CRealPS const Real*, const Real*, const Real*
@@ -32,37 +32,42 @@
 
 // index type helper functions:
 
-inline IntVect type(const FArrayBox& f) {
+inline IntVect type(const FArrayBox& f) 
+{
   return f.box().type();
 }
 
-inline IndexType::CellIndex type(const FArrayBox& f, int idir) {
+inline IndexType::CellIndex type(const FArrayBox& f, int idir) 
+{
   return f.box().type(idir);
 }
 
-inline IntVect type(const FabArray<Real,FArrayBox>& r) {
+inline IntVect type(const FabArray<Real,FArrayBox>& r) 
+{
   assert(r.length() > 0 && r.boxArray().ok());
   return r.box(0).type();
 }
 
-inline IndexType::CellIndex type(const FabArray<Real,FArrayBox>& r, int idir) {
+inline IndexType::CellIndex type(const FabArray<Real,FArrayBox>& r, int idir) 
+{
   assert(r.length() > 0 && r.boxArray().ok());
   return r.box(0).type(idir);
 }
 
 // norm helper functions:
 
-inline Real mfnorm(MultiFab& mf) {
-  Real r = 0;
-  // int i;
-  // for (i = 0; i < mf.length(); i++) {
-  for ( ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi ) 
-  {
-    Real s = cmfi->norm(0);
-    r = (r > s) ? r : s;
-  }
-  ParallelDescriptor::ReduceRealMax(r);
-  return r;
+inline Real mfnorm(const MultiFab& mf) 
+{
+    Real r = 0;
+    // int i;
+    // for (i = 0; i < mf.length(); i++) {
+    for ( ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi ) 
+    {
+	Real s = cmfi->norm(0);
+	r = (r > s) ? r : s;
+    }
+    ParallelDescriptor::ReduceRealMax(r);
+    return r;
 }
 
 #endif
