@@ -53,15 +53,7 @@ public:
     {
 	assert(dbx.sameType(dmf[dgrid].box()));
 	const Box cb = interp.box(dbx, rat);
-	const int jgrid = find_patch(cb, smf);
-	if (jgrid == -1) 
-	{
-	    tf = new task_fill_patch( cb, smf, lev_interface, 0, -1, -1);
-	}
-	else 
-	{
-	    tf = new task_fab_get( smf, jgrid );
-	}
+	tf = new task_fill_patch( cb, smf, lev_interface, 0, -1, -1);
     }
     virtual bool ready()
     {
@@ -809,7 +801,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 	    amr_interpolator_class* hgi;
 	    if (m_hg_terrain)
 	    {
-		Real *sigptr[BL_SPACEDIM];
+		Real* sigptr[BL_SPACEDIM];
 		for (int i = 0; i < BL_SPACEDIM; i++) 
 		{
 		    sigptr[i] = sigma[ltmp][igrid].dataPtr(i);
@@ -819,7 +811,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 	    }
 	    else if (m_hg_full_stencil)
 	    {
-		Real *sigptr[BL_SPACEDIM];
+		Real* sigptr[BL_SPACEDIM];
 		for (int i = 0; i < BL_SPACEDIM; i++) 
 		{
 		    sigptr[i] = sigma_nd[i][ltmp][igrid].dataPtr();
@@ -830,7 +822,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 	    else
 	    {
 #if BL_SPACEDIM != 3
-		Real *sigptr[BL_SPACEDIM];
+		Real* sigptr[BL_SPACEDIM];
 		for (int i = 0; i < BL_SPACEDIM; i++) 
 		{
 		    sigptr[i] = sigma_nd[i][ltmp][igrid].dataPtr();
@@ -838,7 +830,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 		const Box& sigbox = sigma_nd[0][ltmp][igrid].box();
 		hgi = new holy_grail_interpolator_class_not_cross(sigptr, sigbox);
 #else
-		Real *sigptr = sigma_node[ltmp][igrid].dataPtr();
+		Real* sigptr = sigma_node[ltmp][igrid].dataPtr();
 		const Box& sigbox = sigma_node[ltmp][igrid].box();
 		hgi = new holy_grail_interpolator_class(sigptr, sigbox);
 #endif
