@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.28 1998-12-11 21:55:41 car Exp $
+// $Id: Utility.cpp,v 1.29 1999-03-11 17:56:58 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -265,20 +265,27 @@ Utility::ResetWallClockTime ()
 bool
 Utility::is_integer (const char* str)
 {
-    if (str == 0)
+    int len = 0;
+
+    if (str == 0 || (len = strlen(str)) == 0)
         return false;
 
-    int len = strlen(str);
+    for (int i = 0; i < len; i++)
+        if (!isdigit(str[i]))
+            return false;
 
-    if (len == 0)
-        return false;
-    else
-    {
-        for (int i = 0; i < len; i++)
-            if (!isdigit(str[i]))
-                return false;
-        return true;
-    }
+    return true;
+}
+
+aString
+Utility::Concatenate (const aString& root,
+                      int            num)
+{
+    aString result = root;
+    char buf[sizeof(int) + 1];
+    sprintf(buf, "%04d", num);
+    result += buf;
+    return result;
 }
 
 //
