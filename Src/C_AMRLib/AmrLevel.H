@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.35 1999-08-18 21:53:01 lijewski Exp $
+// $Id: AmrLevel.H,v 1.36 1999-08-20 21:54:22 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -425,7 +425,9 @@ class FillPatchIterator
 
     bool isValid ();
 
-    const Box& UngrownBox() const { return validbox(); }
+    FabArrayIterator<Real,FArrayBox>& operator++ ();
+
+    const Box& UngrownBox () const { return validbox(); }
 
   private:
     //
@@ -434,8 +436,6 @@ class FillPatchIterator
     FillPatchIterator ();
     FillPatchIterator (const FillPatchIterator& rhs);
     FillPatchIterator& operator= (const FillPatchIterator& rhs);
-
-  private:
     //
     // The data.
     //

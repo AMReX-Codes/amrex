@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.60 1999-08-18 21:53:01 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.61 1999-08-20 21:54:22 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1041,6 +1041,16 @@ FillPatchIteratorHelper::isValid ()
     return true;
 }
 
+FabArrayIterator<Real,FArrayBox>&
+FillPatchIterator::operator++ ()
+{
+    MultiFabIterator::operator++();
+
+    for (int i = 0; i < m_fph.length(); i++) ++m_fph[i];
+
+    return *this;
+}
+
 bool
 FillPatchIterator::isValid ()
 {
@@ -1069,6 +1079,7 @@ FillPatchIterator::isValid ()
         const int NComp = m_fph[i]().nComp();
 
         BL_ASSERT(NComp == m_range[i].second);
+        BL_ASSERT(m_fab.box() == m_fph[i]().box());
 
         m_fab.copy(m_fph[i](),0,DComp,NComp);
 
