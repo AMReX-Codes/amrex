@@ -536,8 +536,8 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 
   while (tol > 0.0) {
     i++;
-    if (i > 250)
-      BoxLib::Error("holy_grail_amr_multigrid::cgsolve---conjugate-gradient iteration failed");
+    if (i > 250 && pcode >= 2)
+      cout << "Conjugate-gradient iteration failed to converge" << endl;
     Real rho_old = rho;
     // safe to set the clear flag to 0 here---bogus values make it
     // into r but are cleared from z by the mask in c
@@ -560,7 +560,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
     }
     if (pcode >= 3)
       cout << i << " " << rho << endl;
-    if (rho <= tol)
+    if (rho <= tol || i > 250)
       break;
     alpha = rho / rho_old;
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
@@ -584,8 +584,8 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 
   while (tol > 0.0) {
     i++;
-    if (i > 250)
-      BoxLib::Error("holy_grail_amr_multigrid::cgsolve---conjugate-gradient iteration failed");
+    if (i > 250 && pcode >= 2)
+      cout << "Conjugate-gradient iteration failed to converge" << endl;
     Real rho_old = rho;
     // safe to set the clear flag to 0 here---bogus values make it
     // into r but are cleared from z by the mask in c
@@ -606,7 +606,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
     rho = inner_product(z, r);
     if (pcode >= 3)
       cout << i << " " << rho << endl;
-    if (rho <= tol)
+    if (rho <= tol || i > 250)
       break;
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
       p[igrid].mult(rho / rho_old);

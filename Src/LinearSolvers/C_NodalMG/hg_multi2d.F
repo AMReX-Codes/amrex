@@ -2625,7 +2625,6 @@ c must do this loop over entire array to initialize borders of p
       it = it + 1
       if (it .gt. 250) then
          print *, "FORTRAN hgcg---conjugate-gradient iteration failed"
-         stop
       endif
       rhoold = rho
       alpha = 0.d0
@@ -2661,7 +2660,7 @@ c must do this loop over entire array to initialize borders of p
       if (pcode .ge. 3) then
          print *, it, rho
       endif
-      if (rho .le. tol) then
+      if (rho .le. tol .or. it .gt. 250) then
          return
       endif
       alpha = rho / rhoold

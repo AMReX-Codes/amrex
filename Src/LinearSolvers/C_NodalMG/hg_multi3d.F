@@ -2518,7 +2518,6 @@ c back substitution loop:
             ioff = ipass
          endif
          k = regl2
-         aj = 0.d0
          ipar = ioff
          do 10 j = regl1, regh1
             ipar = 1 - ipar
@@ -2540,10 +2539,10 @@ c forward solve loop:
             do 20 j = regl1, regh1
                ipar = 1 - ipar
                do 20 i = regl0 + ipar, regh0, 2
+                  aj = signd(i,j,k-1,3)
                   if (cen(i,j,k) .eq. 0.d0) then
                      betm = 0.d0
                   else
-                     aj = signd(i,j,k-1,3)
                      betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(i,j,k-1))
                   endif
                   cor(i,j,k) = (RHSL - aj * cor(i,j,k-1)) * betm
@@ -3079,7 +3078,6 @@ c must do this loop over entire array to initialize borders of p
       it = it + 1
       if (it .gt. 250) then
          print *, "FORTRAN hgcg---conjugate-gradient iteration failed"
-         stop
       endif
       rhoold = rho
       alpha = 0.d0
@@ -3113,7 +3111,7 @@ c must do this loop over entire array to initialize borders of p
       if (pcode .ge. 3) then
          print *, it, rho
       endif
-      if (rho .le. tol) then
+      if (rho .le. tol .or. it .gt. 250) then
          return
       endif
       alpha = rho / rhoold
