@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.30 2000-04-24 17:52:34 car Exp $
+// $Id: FArrayBox.cpp,v 1.31 2000-05-25 15:40:19 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -968,7 +968,6 @@ printRange (ostream&         os,
 
     IntVect low = reg.smallEnd();
     IntVect hi  = reg.bigEnd();
-    IntVect point;
 
     int old_prec = os.precision(8);
     for (IntVect point = low; point <= hi; reg.next(point))
