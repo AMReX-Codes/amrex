@@ -618,7 +618,7 @@ void holy_grail_amr_multigrid::clear()
 #  else
   mglev = mglev_max;
   delete sigma.remove(mglev);
-  for (i = 0; i < BL_SPACEDIM; i++) {
+  for (int i = 0; i < BL_SPACEDIM; i++) {
     sigma_nd[i].remove(mglev);
   }
   for (mglev = 0; mglev < mglev_max; mglev++) {
