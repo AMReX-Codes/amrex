@@ -4,7 +4,7 @@
 #define _BCREC_H_ 
 
 //
-// $Id: BCRec.H,v 1.6 1998-05-06 17:50:45 lijewski Exp $
+// $Id: BCRec.H,v 1.7 1999-04-13 15:28:33 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -22,13 +22,6 @@
 class BCRec
 {
 public:
-
-#ifdef __GNUG__
-    //
-    // Here only to work around GNU bug.
-    //
-    bool operator== (const BCRec& rhs) const { return true; }
-#endif 
     //
     //@ManDoc: The default constructor -- sets to invalid boundary types.
     //

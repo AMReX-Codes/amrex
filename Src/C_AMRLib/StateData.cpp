@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateData.cpp,v 1.23 1998-11-03 18:16:39 lijewski Exp $
+// $Id: StateData.cpp,v 1.24 1999-04-13 15:28:33 lijewski Exp $
 //
 
 #include <RunStats.H>
@@ -16,17 +16,6 @@ const Real INVALID_TIME = -1.0e100;
 
 const int MFNEWDATA = 0;
 const int MFOLDDATA = 1;
-
-#ifdef __GNUG__
-StateData::StateData(const StateData&)
-{
-    BoxLib::Error("Don't call this function!");
-}
-StateData& StateData::operator= (const StateData&)
-{
-    BoxLib::Error("Don't call this function!");
-}
-#endif
 
 StateData::StateData () 
 {

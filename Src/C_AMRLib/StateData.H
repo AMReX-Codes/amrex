@@ -4,7 +4,7 @@
 #define _StateData_H_ 
 
 //
-// $Id: StateData.H,v 1.13 1998-11-23 22:39:26 lijewski Exp $
+// $Id: StateData.H,v 1.14 1999-04-13 15:28:33 lijewski Exp $
 //
 
 #include <Box.H>
@@ -27,14 +27,7 @@ extern void readBoxArray(BoxArray& ba, istream& is, bool bReadSpecial);
 
 class StateData
 {
-
 public:
-
-#ifdef __GNUG__
-    bool operator== (const StateData& rhs) const { return true; }
-    StateData(const StateData& rhs);
-    StateData& operator= (const StateData& rhs);
-#endif
     //
     //@ManDoc: The default constructor.
     //

@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.30 1999-04-13 00:08:05 marc Exp $
+// $Id: Geometry.H,v 1.31 1999-04-13 15:28:19 lijewski Exp $
 //
 
 #include <CoordSys.H>
@@ -34,13 +34,6 @@ class Geometry
     public CoordSys
 {
 public:
-
-#ifdef __GNUG__
-    //
-    // Hack to work around g++ bug :-(
-    //
-    bool operator== (const Geometry& rhs) const { return true; }
-#endif 
     //
     //@ManDoc: Nice ASCII output.
     //
