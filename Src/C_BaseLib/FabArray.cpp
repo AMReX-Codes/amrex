@@ -1,8 +1,7 @@
 #include <FabArray.H>
 
 FabArrayBase::FabArrayBase()
-{
-}
+{}
 
 FabArrayBase::FabArrayBase(const BoxArray& bxs, int nvar, int ngrow)
     :
@@ -10,8 +9,7 @@ FabArrayBase::FabArrayBase(const BoxArray& bxs, int nvar, int ngrow)
     distributionMap(boxarray, ParallelDescriptor::NProcsCFD()),
     n_grow(ngrow),
     n_comp(nvar)
-{
-}
+{}
 
 FabArrayBase::FabArrayBase(const BoxArray& bxs, int nvar, int ngrow, const DistributionMapping& map)
     :
@@ -19,12 +17,10 @@ FabArrayBase::FabArrayBase(const BoxArray& bxs, int nvar, int ngrow, const Distr
     distributionMap(map),
     n_grow(ngrow),
     n_comp(nvar)
-{
-}
+{}
 
 FabArrayBase::~FabArrayBase()
-{
-}
+{}
 
 int
 FabArrayBase::nGrow () const
@@ -234,8 +230,7 @@ CommDataCache::theCommData () const
 FabArrayId::FabArrayId  (int newid)
     :
     fabArrayId(newid)
-{
-}
+{}
 
 int
 FabArrayId::Id () const
