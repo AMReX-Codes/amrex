@@ -104,12 +104,15 @@ void default_restrictor::fill(FArrayBox& patch,
 			      const FArrayBox& fgr,
 			      const IntVect& rat) const
 {
+    assert(patch.box().cellCentered() || patch.box().type() == IntVect::TheNodeVector());
     if (patch.box().cellCentered())
+    {
 	cell_average_restrictor_class(0).fill(patch, region, fgr, rat);
+    }
     else if (patch.box().type() == IntVect::TheNodeVector())
+    {
 	injection_restrictor_class().fill(patch, region, fgr, rat);
-    else
-	BoxLib::Error("default_restrictor::fill---No default restriction defined for mixed data");
+    }
 }
 
 bilinear_restrictor_class::bilinear_restrictor_class(int i, bool hg_terrain) : integrate(i), m_hg_terrain(hg_terrain)
