@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.36 1997-12-04 20:11:02 lijewski Exp $
+// $Id: VisMF.cpp,v 1.37 1997-12-05 00:08:58 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -13,6 +13,10 @@ using std::ofstream;
 #else
 #include <stdio.h>
 #include <fstream.h>
+#endif
+
+#ifndef BL_USE_SETBUF
+#define setbuf pubsetbuf
 #endif
 
 #include <VisMF.H>

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.17 1997-12-04 22:57:08 lijewski Exp $
+// $Id: Amr.cpp,v 1.18 1997-12-05 00:07:31 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -27,6 +27,10 @@ using std::ifstream;
 using std::ios;
 #else
 #include <stdio.h>
+#endif
+
+#ifndef BL_USE_SETBUF
+#define setbuf pubsetbuf
 #endif
 
 AmrLevel&
