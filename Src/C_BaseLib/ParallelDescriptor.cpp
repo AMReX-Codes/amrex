@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.13 1998-03-25 19:03:06 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.14 1998-03-25 19:17:47 car Exp $
 //
 #include <Utility.H>
 #include <ParallelDescriptor.H>
@@ -293,6 +293,18 @@ bool ParallelDescriptor::IOProcessor()
 int ParallelDescriptor::IOProcessorNumber()
 {
     return ioProcessor;
+}
+
+double ParallelDescriptor::second()
+{
+    return MPI_Wtime();
+}
+
+void ParallelDescriptor::ReduceRealMin(Real& r)
+{
+    Real recv;
+    MPI_Allreduce(&r, &recv, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+    r = recv;
 }
 
 #else
