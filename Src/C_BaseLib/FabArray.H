@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.48 1998-05-21 16:48:39 lijewski Exp $
+// $Id: FabArray.H,v 1.49 1998-05-22 22:03:14 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1660,6 +1660,8 @@ FabArray<T,FAB>::FillBoundary (int start_comp,
 
     facd.CollectData();
 
+    FArrayBox overlapFab;
+
     vector<FillBoxId>::const_iterator fbidli = fillBoxIdList.begin();
 
     for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
@@ -1680,7 +1682,7 @@ FabArray<T,FAB>::FillBoundary (int start_comp,
                 FillBoxId fbid = *fbidli++;
 
                 assert(destbox == fbid.box());
-                FArrayBox overlapFab(fbid.box(), fai().nComp());
+                overlapFab.resize(fbid.box(), fai().nComp());
                 facd.FillFab(faid, fbid, overlapFab);
 
                 fai().copy(overlapFab, overlapFab.box(), start_comp,
