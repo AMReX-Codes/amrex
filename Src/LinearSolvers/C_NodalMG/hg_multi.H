@@ -124,23 +124,18 @@ protected:
     Box** fres_sfbox;
     Box** fres_scbox;
     Box** fres_creg;
-    PArray<FArrayBox>* fres_sc;
 #if (BL_SPACEDIM == 3)
     Box** eres_fbox;
     Box** eres_cbox;
     Box** eres_sfbox;
     Box** eres_scbox;
     Box** eres_creg;
-    PArray<FArrayBox>* eres_sf;
-    PArray<FArrayBox>* eres_sc;
 #endif
     Box** cres_fbox;
     Box** cres_cbox;
     Box** cres_sfbox;
     Box** cres_scbox;
     Box** cres_creg;
-    PArray<FArrayBox>* cres_sf;
-    PArray<FArrayBox>* cres_sc;
     
     // orderings for full-level line solves:
     

@@ -1,4 +1,3 @@
-
 #include "restrictor.H"
 #include "fill_patch.H"
 
@@ -28,7 +27,7 @@ extern "C"
 {
     void FORT_FACRST1(Real*, intS, intS, const Real*, intS, intRS, const int&, const int*, const int*, const int*);
     void FORT_FANRST1(Real*, intS, intS, const Real*, intS, intRS, const int&, const int*, const int*, const int*);
-
+    
     // used in the parallel loops, most of these routines have bogus elements
     // in their calling sequences.
     void FORT_FANRST2(Real*, intS, intS, const Real*, intS, intRS, const int&, const int*, const int*, const int*);
@@ -85,9 +84,9 @@ task_restriction_fill::ready()
     const Box fb = tf->fab().box();
     (*ref)(m[ind].dataPtr(), DIMLIST(pb), DIMLIST(cbox), tf->fab().dataPtr(), DIMLIST(fb),
 	D_DECL(rat[0], rat[1], rat[2]), m.nComp(), &integrate, arg1.dataPtr(), arg2.dataPtr());
-			//FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fine[igrid].dataPtr(), DIMLIST(fb), 
-			//    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
-
+    //FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fine[igrid].dataPtr(), DIMLIST(fb), 
+    //    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
+    
     return true;
 }
 
@@ -179,15 +178,19 @@ void bilinear_restrictor_class::fill(FArrayBox& patch,
 				     const IntVect& rat) const
 {
     assert(patch.box().type() == IntVect::TheNodeVector());
-    FORT_FANRST2(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), fgr.dataPtr(), DIMLIST(fgr.box()),
-	D_DECL(rat[0], rat[1], rat[2]), patch.nComp(), &integrate, 0, 0);
+    FORT_FANRST2(
+	patch.dataPtr(), DIMLIST(patch.box()), 
+	DIMLIST(region), 
+	fgr.dataPtr(), DIMLIST(fgr.box()),
+	D_DECL(rat[0], rat[1], rat[2]), patch.nComp(), 
+	&integrate, 0, 0);
 }
 
 void bilinear_restrictor_class::fill_interface(MultiFab& dest,
-						      MultiFab& fine,
-						      const level_interface& lev_interface,
-						      const amr_boundary_class* bdy,
-						      const IntVect& rat) const
+					       MultiFab& fine,
+					       const level_interface& lev_interface,
+					       const amr_boundary_class* bdy,
+					       const IntVect& rat) const
 {
     assert(type(dest) == IntVect::TheNodeVector());
     assert(dest.nComp() == fine.nComp() );
@@ -409,7 +412,7 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 			new task_restriction_fill(&FORT_FANIR2, dest, jgrid, pb, cbox, tfab, rat, integrate, idir0, idir1)
 			);
 		    // FORT_FANIR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
-		   //	D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, &idir0, &idir1);
+		    //	D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, &idir0, &idir1);
 		}
 	    }
 	}
@@ -489,7 +492,7 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 			new task_restriction_fill(&FORT_FANRST2, dest, jgrid, pb, cbox, tfab, rat, integrate)
 			);
 		    //FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fine[igrid].dataPtr(), DIMLIST(fb),
-			// D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
+		    // D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
 		}
 		else 
 		{
