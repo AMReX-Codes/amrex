@@ -1,5 +1,5 @@
 //
-// $Id: DistributionMapping.cpp,v 1.62 2002-12-10 20:31:14 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.63 2003-02-26 18:07:08 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -17,6 +17,8 @@
 #include <queue>
 #include <algorithm>
 #include <numeric>
+
+static int verbose = 0;
 //
 // Everyone uses the same Strategy -- defaults to KNAPSACK.
 //
@@ -85,6 +87,8 @@ DistributionMapping::Initialize ()
     DistributionMapping::m_Initialized = true;
         
     ParmParse pp("DistributionMapping");
+
+    pp.query("verbose", verbose);
 
     std::string theStrategy;
 
@@ -434,6 +438,13 @@ top:
             }
         }
     }
+
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "Knapsack: Volumetric Efficiency = "
+                  << sum_weight/(nprocs*max_weight)
+                  << '\n';
+    }
     //
     // Here I am "load-balanced".
     //
@@ -452,7 +463,7 @@ top:
     return result;
 }
 
-static bool verbose = false;
+
 
 //static
 //int
@@ -475,7 +486,7 @@ SwapAndTest (const std::map< int,std::vector<int>,std::greater<int> >& samesize,
          it != samesize.end();
          ++it)
     {
-        if (verbose)
+        if (verbose > 1 && ParallelDescriptor::IOProcessor())
             std::cout << "Trying to swap boxes of size: " << it->first << "\n";
 
         for (std::vector<int>::const_iterator lit1 = it->second.begin();
@@ -560,7 +571,7 @@ SwapAndTest (const std::map< int,std::vector<int>,std::greater<int> >& samesize,
 
 //                    Hvy = HeaviestCPU(percpu);
 
-                    if (verbose)
+                    if (verbose > 2 && ParallelDescriptor::IOProcessor())
                         std::cout << "Swapping " << *lit1 << " & " << *lit2 << "\n";
                 }
                 else
@@ -639,7 +650,7 @@ MinimizeCommCosts (std::vector<int>&        procmap,
         }
     }
 
-    if (verbose)
+    if (verbose > 1 && ParallelDescriptor::IOProcessor())
     {
         std::cout << "The neighbors list:\n";
 
@@ -667,7 +678,7 @@ MinimizeCommCosts (std::vector<int>&        procmap,
         samesize[pts[i]].push_back(i);
     }
 
-    if (verbose)
+    if (verbose > 1 && ParallelDescriptor::IOProcessor())
     {
         std::cout << "Boxes sorted via numPts():\n";
 
@@ -702,7 +713,7 @@ MinimizeCommCosts (std::vector<int>&        procmap,
         }
     }
 
-    if (verbose)
+    if (verbose > 1 && ParallelDescriptor::IOProcessor())
     {
         long cnt = 0;
 
@@ -721,7 +732,9 @@ MinimizeCommCosts (std::vector<int>&        procmap,
             std::cout << "CPU: " << i << '\t' << percpu[i] << '\n';
         }
 
-        std::cout << "Efficiency: " << double(mn)/double(mx) << "\n";
+        std::cout << "Knapsack: initial communication efficiency: "
+                  << double(mn)/double(mx)
+                  << '\n';
     }
     //
     // Now need to swap boxes of equal size & see if global minimum decreases.
@@ -738,7 +751,7 @@ MinimizeCommCosts (std::vector<int>&        procmap,
     }
     while (swapped);
 
-    if (verbose)
+    if (verbose > 1 && ParallelDescriptor::IOProcessor())
     {
         long cnt = 0;
 
@@ -757,7 +770,9 @@ MinimizeCommCosts (std::vector<int>&        procmap,
             std::cout << "CPU " << i << ":\t" << percpu[i] << '\n';
         }
 
-        std::cout << "Efficiency: " << double(mn)/double(mx) << "\n";
+        std::cout << "Knapsack: final communication efficiency: "
+                  << double(mn)/double(mx)
+                  << '\n';
     }
 }
 
