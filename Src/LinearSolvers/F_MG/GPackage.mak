@@ -1,5 +1,4 @@
 f90sources += itsol.f90
-f90sources += mg_bc.f90
 f90sources += mg_cpp.f90
 f90sources += mg.f90
 f90sources += mg_smoother.f90
