@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiGrid.cpp,v 1.14 2000-06-09 21:25:51 sstanley Exp $
+// $Id: MultiGrid.cpp,v 1.15 2000-07-17 16:58:03 sstanley Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -31,6 +31,7 @@ Real MultiGrid::def_rtol_b      = 0.01;
 Real MultiGrid::def_atol_b      = -1.0;
 int MultiGrid::def_nu_b         = 0;
 int MultiGrid::def_numLevelsMAX = 1024;
+int MultiGrid::def_smooth_on_cg_unstable = 0;
 
 void
 MultiGrid::initialize ()
@@ -51,6 +52,7 @@ MultiGrid::initialize ()
     pp.query("bot_atol", def_atol_b);
     pp.query("nu_b", def_nu_b);
     pp.query("numLevelsMAX", def_numLevelsMAX);
+    pp.query("smooth_on_cg_unstable", def_smooth_on_cg_unstable);
 
     if (ParallelDescriptor::IOProcessor() && def_verbose)
     {
@@ -65,6 +67,7 @@ MultiGrid::initialize ()
         cout << "   def_atol_b =       " << def_atol_b       << '\n';
         cout << "   def_nu_b =         " << def_nu_b         << '\n';
         cout << "   def_numLevelsMAX = " << def_numLevelsMAX << '\n';
+        cout << "   def_smooth_on_cg_unstable = " << def_smooth_on_cg_unstable << '\n';
     }
 }
 
@@ -88,6 +91,7 @@ MultiGrid::MultiGrid (LinOp &_Lp)
     atol_b       = def_atol_b;
     nu_b         = def_nu_b;
     numLevelsMAX = def_numLevelsMAX;
+    smooth_on_cg_unstable = def_smooth_on_cg_unstable;
     numlevels    = numLevels();
     if (ParallelDescriptor::IOProcessor() && verbose > 2)
     {
@@ -368,7 +372,7 @@ MultiGrid::relax (MultiFab&      solL,
     }
     else
     {
-        coarsestSmooth(solL, rhsL, level, eps_rel, eps_abs, bc_mode);
+        coarsestSmooth(solL, rhsL, level, eps_rel, eps_abs, bc_mode, usecg);
     }
 }
 
@@ -378,10 +382,11 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
                            int            level,
                            Real           eps_rel,
                            Real           eps_abs,
-                           LinOp::BC_Mode bc_mode)
+                           LinOp::BC_Mode bc_mode,
+                           int            local_usecg)
 {
     prepareForLevel(level);
-    if (usecg == 0)
+    if (local_usecg == 0)
     {
         Real error0;
         if (verbose)
@@ -415,14 +420,31 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
         int ret = cg.solve(solL, rhsL, rtol_b, atol_b, bc_mode);
 	if (ret != 0)
         {
-            //
-            // cg failure probably indicates loss of precision accident.
-            // setting solL to 0 should be ok.
-            //
-            solL.setVal(0);
-            if (ParallelDescriptor::IOProcessor() && def_verbose)
+            if (smooth_on_cg_unstable)
             {
-                cout << "MultiGrid::coarsestSmooth(): setting coarse corr to zero" << endl;
+                //
+                // If the CG solver returns a nonzero value indicating 
+                // the problem is unstable.  Assume this is not an accuracy 
+                // issue and pound on it with the smoother.
+                //
+                if (ParallelDescriptor::IOProcessor() && def_verbose)
+                {
+                    cout << "MultiGrid::coarsestSmooth(): CGSolver returns nonzero.  Smoothing...." << endl;
+                }
+
+                coarsestSmooth(solL, rhsL, level, eps_rel, eps_abs, bc_mode, 0);
+            }
+            else
+            {
+                //
+                // cg failure probably indicates loss of precision accident.
+                // setting solL to 0 should be ok.
+                //
+                solL.setVal(0);
+                if (ParallelDescriptor::IOProcessor() && def_verbose)
+                {
+                    cout << "MultiGrid::coarsestSmooth(): setting coarse corr to zero" << endl;
+                }
             }
 	}
         for (int i = 0; i < nu_b; i++)
