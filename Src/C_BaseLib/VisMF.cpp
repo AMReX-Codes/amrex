@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.6 1997-11-10 03:37:30 lijewski Exp $
+// $Id: VisMF.cpp,v 1.7 1997-11-10 03:55:47 lijewski Exp $
 //
 
 #include <VisMF.H>
@@ -166,6 +166,7 @@ operator<< (ostream&             os,
     os << hd.m_vers     << '\n';
     os << int(hd.m_how) << '\n';
     os << hd.m_ncomp    << '\n';
+    os << hd.m_ngrow    << '\n';
     os << hd.m_ba       << '\n';
     os << hd.m_fod      << '\n';
     os << hd.m_min      << '\n';
@@ -200,6 +201,10 @@ operator>> (istream&       is,
 
     is >> hd.m_ncomp;
     assert(hd.m_ncomp >= 0);
+    GetTheChar(is, '\n');
+
+    is >> hd.m_ngrow;
+    assert(hd.m_ngrow >= 0);
     GetTheChar(is, '\n');
 
     hd.m_ba.define(is);
@@ -242,27 +247,21 @@ VisMF::Header::Header (const MultiFab& mf,
     m_vers(VisMF::Header::Version),
     m_how(how),
     m_ncomp(mf.nComp()),
+    m_ngrow(mf.nGrow()),
     m_ba(mf.boxArray()),
     m_fod(m_ba.length()),
     m_min(m_ba.length()),
     m_max(m_ba.length())
 {
-    for (int i = 0, N = m_min.length(); i < N; i++)
+    for (long i = 0, N = m_min.length(); i < N; i++)
     {
         m_min[i].resize(m_ncomp);
         m_max[i].resize(m_ncomp);
 
-        const Box& subbox = m_ba[i];
-
-        const FArrayBox& fab = mf[i];
-
-        for (int j = 0; j < m_ncomp; j++)
+        for (long j = 0; j < m_ncomp; j++)
         {
-            //
-            // TODO -- is using the subbox here correct?
-            //
-            m_min[i][j] = fab.min(subbox,j);
-            m_max[i][j] = fab.max(subbox,j);
+            m_min[i][j] = mf[i].min(j);
+            m_max[i][j] = mf[i].max(j);
         }
     }
 }
@@ -293,7 +292,7 @@ VisMF::WriteOneFilePerCPU (const MultiFab& mf,
     {
         ofstream fab_file(fab_file_name.c_str());
 
-        for (int i = 0, N = mf.length(); i < N; i++)
+        for (long i = 0, N = mf.length(); i < N; i++)
         {
             hdr.m_fod[i] = VisMF::Write(mf[i], fab_file_name, fab_file);
         }
