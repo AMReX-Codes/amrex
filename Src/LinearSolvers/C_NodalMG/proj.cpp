@@ -30,10 +30,6 @@ using namespace std;
 #include <unistd.h>
 #endif
 
-#ifdef HG_DEBUG
-std::ofstream debug_out;
-#endif
-
 // bool HG_is_debugging = false;
 
 void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain);
@@ -67,20 +63,7 @@ main(int argc, char **argv)
 
     HG_is_debugging = true;
     HG_is_debugging = false;
-#ifdef HG_DEBUG
-#ifdef __GNUC__
-    char buf[1024];
-    sprintf(buf, "guf%d_%d", ParallelDescriptor::NProcs(), ParallelDescriptor::MyProc());
-    debug_out.open(buf);
-#else
-    std::ostringstream fname;
-    fname << "gu" << ParallelDescriptor::NProcs()
-	  << "_" << ParallelDescriptor::MyProc() << std::ends;
-    debug_out.open(fname.str().c_str(), ios::trunc);
-#endif
-    if ( debug_out.fail() ) BoxLib::Error( "Failed to open debug file" );
-    debug_out << std::setprecision(15);
-#endif
+
     {
 	int i = ParallelDescriptor::MyProc();
 	int j = ParallelDescriptor::NProcs();
@@ -149,9 +132,6 @@ main(int argc, char **argv)
 	driver(filename.c_str());
     }
 
-#ifdef HG_DEBUG
-    debug_out.close();
-#endif
     RunStats::report(cout);
 
     if (CArena* arena = dynamic_cast<CArena*>(The_FAB_Arena))
