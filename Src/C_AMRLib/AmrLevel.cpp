@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.91 2002-11-26 22:38:59 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.92 2003-02-07 17:42:26 car Exp $
 //
 #include <winstd.H>
 
@@ -661,10 +661,8 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
 
                 if (l != m_amrlevel.level)
                 {
-                    Box& cbox = crse_boxes.back();
-
-                    cbox = m_map->CoarseBox(FineBoxes[i],fine_ratio);
-
+		    Box cbox = m_map->CoarseBox(FineBoxes[i],fine_ratio);
+		    crse_boxes.back() = cbox;
                     if (is_periodic && !thePDomain.contains(cbox))
                     {
                         theGeom.periodicShift(thePDomain,cbox,pshifts);
