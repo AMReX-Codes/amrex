@@ -1,5 +1,5 @@
 #
-# $Id: Make.OSF1,v 1.25 2002-03-27 23:49:07 lijewski Exp $
+# $Id: Make.OSF1,v 1.26 2002-03-28 21:00:12 lijewski Exp $
 #
 
 #
@@ -31,8 +31,7 @@ endif
 ifeq ($(COMP),cxx)
   CXX      := cxx
   FULLWARN := +pp -fullwarn
-#  CXXOPTF  += -O3 -fast -Olimit 2400 -no_exceptions -model ansi
-  CXXOPTF  += -O3 -arch host -Olimit 2400 -no_exceptions -model ansi
+  CXXOPTF  += -O3 -arch host -Olimit 2400 -no_exceptions
   CPPFLAGS += -D__USE_STD_IOSTREAM
   CXXDEBF  += -g
   CXXPRFF  := -p
@@ -54,7 +53,7 @@ ifeq ($(COMP),KCC)
   endif
   CXXPRFF     := -p
   FULLWARN    := --strict_warnings
-  CXXOPTF     += -O3 +K3 -g3 -Olimit 2000 --no_exceptions
+  CXXOPTF     += -O3 +K3 -g3 -arch host -Olimit 2400 --no_exceptions
   CXXDEBF     += +K0
   ifeq ($(WHICHOSF1),V3)
     override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
