@@ -2,7 +2,7 @@
 #define BL_PARMPARSE_H
 
 //
-// $Id: ParmParse.H,v 1.13 2001-07-22 22:11:43 car Exp $
+// $Id: ParmParse.H,v 1.14 2001-07-22 23:25:24 car Exp $
 //
 
 #include <iostream>
@@ -170,10 +170,6 @@
 // -----------------------  END COMMENTS ---------------------------
 // -----------------------------------------------------------------
 
-//
-// Forward reference to private class.
-//
-class PP_entry;
 
 //@Man:
 //@Memo: Parse Parameters From Command Line and Input Files
@@ -250,7 +246,6 @@ class PP_entry;
 
 class ParmParse
 {
-    friend class PP_entry;
 public:
 
     /*@ManDoc: Construct an initial ParmParse object from the argc and argv
@@ -301,7 +296,7 @@ public:
     //
     //@ManDoc: Write the contents of the table in ASCII to the ostream.
     //
-    void dumpTable (std::ostream& os);
+    static void dumpTable (std::ostream& os);
 
     /*@ManDoc: Get the ival'th value of kth occurrence of the requested name.
                If successful, the value is converted to a bool and stored
@@ -640,139 +635,12 @@ public:
                   Array<aString>& ref,
                   int             start_ix,
                   int             num_val);
-    //
-    // This should be protected, but cfront-derived compilers complain :-(
-    //
-    enum PPType
-    {
-        ppDefn,
-        ppOption,
-	ppBool,
-        ppInt,
-        ppFloat,
-        ppDouble,
-        ppString,
-        ppEQ_sign,
-        ppEOF
-    };
-protected:
-
-    //
-    // Table of entries common to all objects.
-    //
-    static List<PP_entry*> table;
-    //
-    // Command line arguments.
-    //
-    static int    xargc;
-    static char** xargv;
-    //
-    // Keep track of number of ParmParse objects out there.
-    //
-    static int num_obj;
-    //
-    // Parses string and builds table.
-    //
-    void bldTable (const char*      str,
-                   int              lenstr,
-                   List<PP_entry*>& tab);
-    //
-    // Add defn to table, check for file inclusion.
-    //
-    void addDefn (aString&         def,
-                  List<aString>&   val,
-                  List<PP_entry*>& tab);
-    //
-    // Reads file into string then parses it with call to bldTable.
-    //
-    void read_file (const char*      fname,
-                    List<PP_entry*>& tab);
-    //
-    // Lexical analyser called by bldTable.
-    //
-    PPType getToken (const char*,
-                     int&,
-                     int,
-                     char*);
-    //
-    // Reclaims memory used in table.
-    //
-    void rmTable ();
+private:
     //
     // Prefix used in keyword search.
     //
     aString thePrefix;
-    //
-    // Used by constructor to build table.
-    //
-    void ppinit (const char* parfile);
-    //
-    // Find n'th occurence of name in table.
-    //
-    const PP_entry* ppindex (int         n,
-                             const char* name) const;
-    //
-    // Get ival_th value of k_th occurence of given name.
-    // If k_th occurence does not exist or ival_th value does
-    // not exist or if ival_type does not match with type, an
-    // error message is reported and the program halts.
-    // If successful, value is stored in ptr.
-    // same as above but searches for last occurence of name.
-    //
-    void  getval (const char* name,
-                  const PPType type,
-                  void*        ptr,
-                  int          ival,
-                  int          k=-1);
-    //
-    // Get an array of values.
-    //
-    void getarr (const char*  name,
-                 const PPType type,
-                 void*        ptr,
-                 int          start_ix,
-                 int          num_val,
-                 int          k=-1);
-    int queryval (const char*  name,
-                  const PPType type,
-                  void*        ptr,
-                  int          ival,
-                  int          k=-1);
-    int queryarr (const char*  name,
-                  const PPType type,
-                  void*        ptr,
-                  int          start_ix,
-                  int          num_val,
-                  int          k=-1);
 
-    bool isBoolean (const aString& str,
-		  bool& val);
-
-    bool isInteger (const aString& str,
-                    int&           val);
-    bool isDouble (const aString& str,
-                  double&        val);
-};
-
-class PP_entry
-{
-private:
-    friend class ParmParse;
-
-    PP_entry() : queried(false) {}
-
-    PP_entry (aString&          name,
-              ParmParse::PPType typ,
-              List<aString>&    vals);
-
-    ~PP_entry() {}
-
-    Array<aString>    val;
-    aString           defname;
-    ParmParse::PPType deftype;
-    bool              queried;
-
-    void dump (std::ostream& os) const;
 };
 
 #endif /*BL_PARMPARSE_H*/

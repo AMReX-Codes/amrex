@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.61 2001-07-22 19:38:17 car Exp $
+// $Id: MultiFab.cpp,v 1.62 2001-07-22 23:25:24 car Exp $
 //
 #include <winstd.H>
 
@@ -504,9 +504,9 @@ BoxLib::linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
         BL_ASSERT(dest_comp + num_comp <= dest.nComp());
 
         FArrayBox dest1(dest.box(), dest.nComp());
-        dest1.setVal(1.e30);
+        dest1.setVal(Real(1.e30)); // FIXME - Whats a better value?
         FArrayBox dest2(dest.box(), dest.nComp());
-        dest2.setVal(1.e30);
+        dest2.setVal(Real(1.e30)); // FIXME - Whats a better value?
         fabCopyDesc.FillFab(faid1, fillBoxIds[0], dest1);
         fabCopyDesc.FillFab(faid2, fillBoxIds[1], dest2);
         dest.linInterp(dest1,

@@ -1,5 +1,5 @@
 //
-// $Id: BLProfiler.cpp,v 1.12 2001-07-22 22:12:22 car Exp $
+// $Id: BLProfiler.cpp,v 1.13 2001-07-22 23:25:24 car Exp $
 //
 
 #include <winstd.H>
@@ -117,6 +117,7 @@ public:
 
 bool timer_packet::increasing = true;
 timer_packet::sort_criterion timer_packet::sort_by = timer_packet::sort_self;
+
 
 #ifdef BL_USE_MPI
 template <> MPI_Datatype ParallelDescriptor::Mpi_typemap<timer_packet>::type()
@@ -365,7 +366,22 @@ void show_time_count(std::ostream&, int wd, double acc, int cnt);
 void show_time(std::ostream& os, double time, int scale = 1000);
 void show_count(std::ostream& os, int count);
 void aggregate_field_title(std::ostream& os);
+
 }
+
+std::ostream&
+operator<<(std::ostream& os, const timer_packet& tp)
+{
+    show_count(os, tp.count); os << ' ';
+    show_time(os, tp.time); os << ' ';
+    show_time(os, tp.self); os << ' ';
+    show_time(os, tp.max_time); os << ' ';
+    show_time(os, tp.min_time); os << ' ';
+    show_time(os, tp.avg_time); os << ' ';
+    show_name_field(os, 0, tp.name);
+    return os;
+}
+
 
 struct ttn_packet
 {
@@ -420,18 +436,11 @@ ThreadTimerNode::print(std::ostream& os, const std::string& str, int level)
 	ttn.var_time = it->second->var_time;
 	ttns.push_back(ttn);
     }
-#if 0
-    for ( const_iterator it = begin(); it != end(); ++it )
-    {
-	it->second->print(os, it->first, level+1);
-    }
-#else
     std::sort(ttns.begin(), ttns.end(), ttn_packet::by_self());
     for ( std::vector<ttn_packet>::const_iterator it = ttns.begin(); it != ttns.end(); ++it )
     {
 	it->ttn->print(os, it->name, level+1);
     }
-#endif
 }
 
 void
@@ -496,12 +505,19 @@ grovel(const ThreadTimerNode* nodes, const std::string& str, timer_packet& t)
     }
 }
 
+bool Profiler::profiling = true;
+int Profiler::Tag::next_itag = 0;
+
+namespace
+{
 ThreadSpecificData<int> tt_i;
 Mutex tt_mutex;
 std::vector<ThreadTimerTree*> tt_data;
 
-bool Profiler::profiling = true;
-int Profiler::Tag::next_itag = 0;
+std::string filename("bl_prof");
+bool mma = false;
+bool initialized = false;
+}
 
 Profiler::Tag::Tag(const std::string& tag_)
     : tag(tag_)
@@ -526,38 +542,9 @@ Profiler::Tag::name() const
     return tag;
 }
 
-bool Profiler::initialized = false;
-
-namespace
-{
-std::string filename("bl_prof");
-bool mma = false;
-}
-
 void
 Profiler::Initialize(int& argc, char**& argv)
 {
-    if ( initialized )
-    {
-	return;
-    }
-    initialized = true;
-    ParmParse pp("profiler");
-    pp.query("mma", mma);
-    pp.query("filename", filename);
-}
-
-std::ostream&
-operator<<(std::ostream& os, const timer_packet& tp)
-{
-    show_count(os, tp.count); os << ' ';
-    show_time(os, tp.time); os << ' ';
-    show_time(os, tp.self); os << ' ';
-    show_time(os, tp.max_time); os << ' ';
-    show_time(os, tp.min_time); os << ' ';
-    show_time(os, tp.avg_time); os << ' ';
-    show_name_field(os, 0, tp.name);
-    return os;
 }
 
 std::string

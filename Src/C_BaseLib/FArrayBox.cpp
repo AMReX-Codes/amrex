@@ -1,5 +1,5 @@
 //
-// $Id: FArrayBox.cpp,v 1.36 2001-07-22 19:38:16 car Exp $
+// $Id: FArrayBox.cpp,v 1.37 2001-07-22 23:25:24 car Exp $
 //
 
 #include <cstdlib>
@@ -796,7 +796,7 @@ FABio_8bit::write (std::ostream&    os,
 {
     BL_ASSERT(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= f.nComp());
 
-    const Real eps = 1.0e-8;
+    const Real eps = Real(1.0e-8); // FIXME - whats a better value?
     const long siz = f.box().numPts();
 
     unsigned char* c = new unsigned char[siz];
