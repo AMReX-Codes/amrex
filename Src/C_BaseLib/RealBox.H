@@ -4,7 +4,7 @@
 #define _RealBox_H_ 
 
 //
-// $Id: RealBox.H,v 1.5 1998-05-06 22:36:18 lijewski Exp $
+// $Id: RealBox.H,v 1.6 1998-05-20 00:10:45 marc Exp $
 //
 
 #include <Array.H>
@@ -121,11 +121,11 @@ public:
     //
     //@ManDoc: Is the specified point contained in the RealBox?
     //
-    bool contains (const Real* point);
+    bool contains (const Real* point) const;
     //
     //@ManDoc: Is the specified RealBox contained in this RealBox?
     //
-    bool contains (const RealBox& bx);
+    bool contains (const RealBox& bx) const;
 
 protected:
     //
@@ -293,7 +293,7 @@ RealBox::setHi (int  indx,
 
 inline
 bool
-RealBox::contains (const RealBox& rb)
+RealBox::contains (const RealBox& rb) const
 {
     return contains(rb.xlo) && contains(rb.xhi);
 }
