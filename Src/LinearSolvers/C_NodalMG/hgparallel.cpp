@@ -197,7 +197,7 @@ void task_list::execute()
 		}
 	    }
 	    assert(t->is_started());
-	    if ( t->depend_ready() && t->ready() )
+	    if ( /* t->depend_ready() && */ t->ready() )
 	    {
 		t.set_finished();
 		continue;
