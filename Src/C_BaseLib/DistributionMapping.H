@@ -4,7 +4,7 @@
 #define BL_DISTRIBUTIONMAPPING_H
 
 //
-// $Id: DistributionMapping.H,v 1.10 1998-06-13 21:00:35 lijewski Exp $
+// $Id: DistributionMapping.H,v 1.11 1998-07-08 16:36:12 lijewski Exp $
 //
 #ifdef BL_USE_NEW_HFILES
 #include <vector>
@@ -94,6 +94,14 @@ class DistributionMapping
     //@ManDoc: Output some simple cache statistics.
     //
     static void CacheStats (ostream& os);
+    //
+    //@ManDoc: Are the distributions equal?
+    //
+    bool operator== (const DistributionMapping& rhs) const;
+    //
+    //@ManDoc: Are the distributions different?
+    //
+    bool operator!= (const DistributionMapping& rhs) const;
 
   private:
     //
@@ -111,19 +119,14 @@ class DistributionMapping
     //
     static void init ();
     //
-    // Local data -- our processor map.
-    //
-    Array<int> m_procmap;
-    //
     // Our cache of processor maps.
     //
     static vector< Array<int> > m_Cache;
     //
     // Look for a cached processor map.
     //
-    static bool GetMap (int             nprocs,
-                        const BoxArray& boxes,
-                        Array<int>&     procmap);
+    bool GetMap (int             nprocs,
+                 const BoxArray& boxes);
     //
     // A useful typedef.
     //
@@ -141,6 +144,15 @@ class DistributionMapping
     // Have we initialized from ParmParse yet?
     //
     static bool m_Initialized;
+    //
+    // Local data -- our processor map.
+    //
+    // The length is always equal to boxes.length()+1 where `boxes' is
+    // the BoxArray on which the distribution is based.  It is also true
+    // that m_procmap[boxes.length()] == ParallelDescriptor::MyProc().
+    // This latter acts as a sentinel in some FabArray loops.
+    //
+    Array<int> m_procmap;
 };
 
 //

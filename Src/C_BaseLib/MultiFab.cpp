@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.21 1998-06-16 18:01:14 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.22 1998-07-08 16:36:13 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -580,7 +580,7 @@ MultiFab::FillBoundary (int src_comp,
     {
         int fabindex = FillBoxIds[i].FabIndex();
 
-        assert(ProcessorMap()[fabindex] == MyProc);
+        assert(DistributionMap()[fabindex] == MyProc);
         //
         // Directly fill the FAB.
         //

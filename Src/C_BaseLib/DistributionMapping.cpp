@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.24 1998-06-13 21:00:35 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.25 1998-07-08 16:36:12 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -67,6 +67,18 @@ DistributionMapping::strategy (DistributionMapping::Strategy how)
 //
 bool DistributionMapping::m_Initialized = false;
 
+bool
+DistributionMapping::operator== (const DistributionMapping& rhs) const
+{
+    return m_procmap == rhs.m_procmap;
+}
+
+bool
+DistributionMapping::operator!= (const DistributionMapping& rhs) const
+{
+    return !operator==(rhs);
+}
+
 void
 DistributionMapping::init ()
 {
@@ -81,9 +93,13 @@ DistributionMapping::init ()
         DistributionMapping::Strategy how = ROUNDROBIN;
 
         if (theStrategy == "ROUNDROBIN")
+        {
             how = ROUNDROBIN;
+        }
         else if (theStrategy == "KNAPSACK")
+        {
             how = KNAPSACK;
+        }
         else
         {
             aString msg("Unknown strategy: ");
@@ -102,23 +118,26 @@ vector< Array<int> > DistributionMapping::m_Cache;
 
 bool
 DistributionMapping::GetMap (int             nprocs,
-                             const BoxArray& boxes,
-                             Array<int>&     procmap)
+                             const BoxArray& boxes)
 {
-    assert(procmap.length() == boxes.length());
+    const int N = boxes.length();
+
+    assert(m_procmap.length() == N+1);
     //
     // Search from back to front ...
     //
     for (int i = m_Cache.size() - 1; i >= 0; i--)
     {
-        if (m_Cache[i].length() == boxes.length())
+        if (m_Cache[i].length() == N+1)
         {
             const Array<int>& cached_procmap = m_Cache[i];
 
-            for (int i = 0; i < boxes.length(); i++)
+            for (int i = 0; i <= N; i++)
             {
-                procmap[i] = cached_procmap[i];
+                m_procmap[i] = cached_procmap[i];
             }
+
+            assert(m_procmap[N] == ParallelDescriptor::MyProc());
 
             return true;
         }
@@ -130,16 +149,20 @@ DistributionMapping::GetMap (int             nprocs,
 DistributionMapping::DistributionMapping ()
 {
     if (!m_Initialized)
+    {
         DistributionMapping::init();
+    }
 }
 
 DistributionMapping::DistributionMapping (int             nprocs,
                                           const BoxArray& boxes)
     :
-    m_procmap(boxes.length())
+    m_procmap(boxes.length()+1)
 {
     if (!m_Initialized)
+    {
         DistributionMapping::init();
+    }
 
     define(nprocs, boxes);
 }
@@ -152,9 +175,9 @@ DistributionMapping::define (int             nprocs,
 
     stats.start();
 
-    if (!(m_procmap.length() == boxes.length()))
+    if (!(m_procmap.length() == boxes.length()+1))
     {
-        m_procmap.resize(boxes.length());
+        m_procmap.resize(boxes.length()+1);
     }
 
     if (DistributionMapping::m_Strategy == DistributionMapping::ROUNDROBIN)
@@ -166,7 +189,7 @@ DistributionMapping::define (int             nprocs,
     }
     else
     {
-        if (!DistributionMapping::GetMap(nprocs, boxes, m_procmap))
+        if (!GetMap(nprocs, boxes))
         {
             (this->*m_BuildMap)(nprocs, boxes);
             //
@@ -193,11 +216,16 @@ DistributionMapping::RoundRobinProcessorMap (int             nprocs,
 {
     assert(nprocs > 0);
     assert(boxes.length() > 0);
+    assert(m_procmap.length() == boxes.length()+1);
 
     for (int i = 0; i < boxes.length(); i++)
     {
         m_procmap[i] = i % nprocs;
     }
+    //
+    // Set sentinel equal to our processor number.
+    //
+    m_procmap[boxes.length()] = ParallelDescriptor::MyProc();
 }
 
 //
@@ -211,6 +239,7 @@ DistributionMapping::KnapSackProcessorMap (int             nprocs,
 {
     assert(nprocs > 0);
     assert(boxes.length() > 0);
+    assert(m_procmap.length() == boxes.length()+1);
 
     if (boxes.length() <= nprocs || nprocs < 2)
     {
@@ -239,6 +268,10 @@ DistributionMapping::KnapSackProcessorMap (int             nprocs,
                 m_procmap[*lit] = i;
             }
         }
+        //
+        // Set sentinel equal to our processor number.
+        //
+        m_procmap[boxes.length()] = ParallelDescriptor::MyProc();
     }
 }
 
