@@ -122,7 +122,7 @@ public:
     virtual bool ready();
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	throw( "task_copy_local::init(): FIXME" );
+	throw( "task_copy_local::init(): FIXME" ); /*NOTREACHED*/
 	return false;
     }
     virtual bool depends_on_q(const task* t) const;

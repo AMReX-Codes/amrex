@@ -67,12 +67,12 @@ public:
     }
     virtual bool ready()
     {
-	throw( "task_fceres_2::ready(): FIXME" );
+	throw( "task_fceres_2::ready(): FIXME" ); /*NOTREACHED*/
 	return false;
     };
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	throw( "task_fceres_2::init(): FIXME" );
+	throw( "task_fceres_2::init(): FIXME" ); /*NOTREACHED*/
 	return false;
     }
 private:
@@ -105,12 +105,12 @@ public:
     }
     virtual bool ready()
     {
-	throw( "task_fceres_4::ready(): FIXME" );
+	throw( "task_fceres_4::ready(): FIXME" ); /*NOTREACHED*/
 	return false;
     }
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	throw( "task_fceres_4::init(): FIXME" );
+	throw( "task_fceres_4::init(): FIXME" ); /*NOTREACHED*/
 	return false;
     }
 private:
