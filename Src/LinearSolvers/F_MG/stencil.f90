@@ -619,26 +619,18 @@ contains
     logical, intent(in) :: cross
     integer i, j, nn(2)
     integer :: norder(2)
-    real(dp_t), allocatable, save :: xx(:,:), xc(:)
-    real(dp_t), allocatable, save :: cc(:,:)
-    integer, save :: saved_max_order = -1
+    real(dp_t) :: xx(0:max_order, 2)
+    real(dp_t) :: cc(0:max_order, 3)
+    real(dp_t) :: xc(1:max_order+1)
 
     nn = ubound(mm)
-
     if ( max_order < 1 ) then
        call bl_error("EXTRAP_2D: max_order < 1: ", max_order)
     end if
 
-    if ( .not. allocated(xx) .or. max_order >= saved_max_order ) then
-       if ( allocated(xx) ) deallocate(xx, cc, xc)
-       saved_max_order = max_order + 1
-       allocate(xx(0:saved_max_order-1,2))
-       allocate(cc(0:saved_max_order-1,3))
-       allocate(xc(1:saved_max_order))
-       xx(:,1) = (/ Huge(xx), (i+HALF, i=0, saved_max_order-2) /)
-       xx(:,2) = (/ Huge(xx), (i+HALF, i=0, saved_max_order-2) /)
-       xc(:)   = (/           (i+HALF, i=0, saved_max_order-1) /)
-    end if
+    xx(:,1) = (/ Huge(xx), (i+HALF, i=0, max_order-1) /)
+    xx(:,2) = (/ Huge(xx), (i+HALF, i=0, max_order-1) /)
+    xc(:)   = (/           (i+HALF, i=0, max_order  ) /)
 
     norder = min(nn, max_order)
 
@@ -708,9 +700,9 @@ contains
     logical, intent(in) :: cross
     integer i, j, k, nn(3)
     integer :: norder(3)
-    real(dp_t), allocatable, save :: xx(:,:), xc(:)
-    real(dp_t), allocatable, save :: cc(:,:)
-    integer, save :: saved_max_order = -1
+    real(dp_t) :: xx(0:max_order,2)
+    real(dp_t) :: cc(0:max_order,3)
+    real(dp_t) :: xc(1:max_order+1)
 
     nn = ubound(mm)
 
@@ -718,16 +710,9 @@ contains
        call bl_error("EXTRAP_3D: max_order < 1: ", max_order)
     end if
 
-    if ( .not. allocated(xx) .or. max_order >= saved_max_order ) then
-       if ( allocated(xx) ) deallocate(xx, cc, xc)
-       saved_max_order = max_order + 1
-       allocate(xx(0:saved_max_order-1,2))
-       allocate(cc(0:saved_max_order-1,3))
-       allocate(xc(1:saved_max_order))
-       xx(:,1) = (/ Huge(xx), (i+HALF, i=0, saved_max_order-2) /)
-       xx(:,2) = (/ Huge(xx), (i+HALF, i=0, saved_max_order-2) /)
-       xc(:)   = (/           (i+HALF, i=0, saved_max_order-1) /)
-    end if
+    xx(:,1) = (/ Huge(xx), (i+HALF, i=0, max_order-1) /)
+    xx(:,2) = (/ Huge(xx), (i+HALF, i=0, max_order-1) /)
+    xc(:)   = (/           (i+HALF, i=0, max_order  ) /)
 
     norder = min(nn, max_order)
 
