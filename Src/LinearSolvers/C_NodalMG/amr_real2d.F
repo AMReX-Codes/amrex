@@ -387,13 +387,6 @@ c NODE-based data only.
                end do
             end do
          end do
-         do ic = bbl0, bbh0-1
-cdir$ ivdep
-            do j = regl1, regh1
-               dest(2*ic+1,j,nc) = 0.5d0 * (dest(2*ic,j,nc) +
-     &                                   dest(2*ic+2,j,nc))
-            end do
-         end do
          do m = 1, ir-1
             q = dble(m)/ir
             p = 1.0d0 - q
