@@ -268,12 +268,10 @@ contains
                   + ss(i,j,7) * uu(i  ,j+1) &
                   + ss(i,j,8) * uu(i+1,j+1)
              uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
-             !         write(6,1000) i,j,uu(i,j),ff(i,j),1./ss(i,j,0)
           end if
        end do
     end do
     !$OMP END PARALLEL DO
-    ! 1000 format('NEW U ',i2,1x,i2,1x,f14.9,1x,f14.9,1x,f14.9)
 
   end subroutine nodal_smoother_2d
 
@@ -318,14 +316,11 @@ contains
                      + ss(i,j,k,25) * uu(i  ,j  ,k-1) + ss(i,j,k,26) * uu(i  ,j  ,k+1)
 
                 uu(i,j,k) = uu(i,j,k) + omega/ss(i,j,k,0)*(ff(i,j,k) - dd)
-                !         write(6,1000) i,j,k,uu(i,j,k),ff(i,j,k),1./ss(i,j,k,0)
              end if
           end do
        end do
        !    print *,' '
     end do
-
-    ! 1000 format('NEW U ',i2,1x,i2,1x,i2,1x,f14.9,1x,f14.9,1x,f14.9)
 
   end subroutine nodal_smoother_3d
 
