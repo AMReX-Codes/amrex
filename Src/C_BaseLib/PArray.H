@@ -1,7 +1,7 @@
 #ifndef BL_PARRAY_H
 #define BL_PARRAY_H
 //
-// $Id: PArray.H,v 1.23 2001-07-31 22:43:19 lijewski Exp $
+// $Id: PArray.H,v 1.24 2002-11-12 20:49:35 lijewski Exp $
 //
 #include <Array.H>
 
@@ -169,6 +169,8 @@ template <class T>
 PArray<T>::PArray (const PArray<T>& c)
 {
     BL_ASSERT(c.size()==0);
+
+    managed = c.managed;
 }
 
 template <class T>
