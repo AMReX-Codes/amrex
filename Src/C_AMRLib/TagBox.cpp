@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.20 1998-04-14 16:51:39 lijewski Exp $
+// $Id: TagBox.cpp,v 1.21 1998-04-14 20:24:03 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -17,16 +17,71 @@ extern void inspectFAB (FArrayBox& unfab, int n);
 
 #include <mpi.h>
 //
-// Data structure used by mergeUnique().
+// Data structure used by mergeUnique() to communicate a `int' and a `Box'.
 //
 struct MUData
 {
-    int m_idx;
-    Box m_box;
+    //
+    // We encapsulate a `int' and a `Box' as an `int[3*BL_SPACEDIM+1]'.
+    //
+    int m_data[3*BL_SPACEDIM+1];
 
-    MUData () : m_idx(0) {}
+    MUData ();
+    MUData (int idx, const Box& box);
+    //
+    // The number of integers.
+    //
+    int length () const { return 3*BL_SPACEDIM+1; }
+    //
+    // Pointer to the data.
+    //
+    int* dataPtr() { return &m_data[0]; }
+    //
+    // Pointer to the data.
+    //
+    const int* dataPtr() const { return &m_data[0]; }
+    //
+    // The contained index.
+    //
+    int idx () const { return m_data[0]; }
+    //
+    // The contained box.
+    //
+    Box box () const
+    {
+        return Box(IntVect(&m_data[1]),
+                   IntVect(&m_data[1+BL_SPACEDIM]),
+                   IntVect(&m_data[1+2*BL_SPACEDIM]));
+    }
 };
-#endif
+
+MUData::MUData ()
+{
+    for (int i = 0; i < length(); i++)
+        m_data[i] = 0;
+}
+
+MUData::MUData (int        idx,
+                const Box& box)
+{
+    m_data[0] = idx;
+
+    const IntVect& sm = box.smallEnd();
+
+    for (int i = 0; i < BL_SPACEDIM; i++)
+        m_data[1+i] = sm[i];
+
+    const IntVect& bg = box.bigEnd();
+
+    for (int i = 0; i < BL_SPACEDIM; i++)
+        m_data[1+BL_SPACEDIM+i] = bg[i];
+
+    IntVect typ = box.type();
+
+    for (int i = 0; i < BL_SPACEDIM; i++)
+        m_data[1+2*BL_SPACEDIM+i] = typ[i];
+}
+#endif /*BL_USE_MPI*/
 
 //
 // Number of IntVects that can fit into m_CollateSpace
@@ -534,7 +589,9 @@ TagBoxArray::mergeUnique ()
         msgs[distributionMap[it().fabIndex]]++;
     }
 
-    for (int i = 0, rc = 0; i < msgs.length(); i++)
+    int rc;
+
+    for (int i = 0; i < msgs.length(); i++)
     {
         if ((rc = MPI_Reduce(&msgs[i],
                              &rdct[i],
@@ -552,14 +609,12 @@ TagBoxArray::mergeUnique ()
     Array<MPI_Request> reqs(nRecv);
     Array<MPI_Status>  stat(nRecv);
     Array<MUData>      recv(nRecv);
-    //
-    // TODO -- do NOT use MPI_BYTE !!!
-    //
-    for (int i = 0, rc = 0; i < nRecv; i++)
+
+    for (int i = 0; i < nRecv; i++)
     {
-        if ((rc = MPI_Irecv(&recv[i],
-                            sizeof(MUData),
-                            MPI_BYTE,
+        if ((rc = MPI_Irecv(recv[i].dataPtr(),
+                            recv[i].length(),
+                            MPI_INT,
                             MPI_ANY_SOURCE,
                             531,
                             MPI_COMM_WORLD,
@@ -567,17 +622,13 @@ TagBoxArray::mergeUnique ()
             ParallelDescriptor::Abort(rc);
     }
 
-    int    rc;
-    MUData senddata;
-
     for (ListIterator<FabComTag> it(tbmdClearList); it; ++it)
     {
-        senddata.m_idx = it().fabIndex;
-        senddata.m_box = it().ovlpBox;
+        MUData senddata(it().fabIndex, it().ovlpBox);
 
-        if ((rc = MPI_Send(&senddata,
-                           sizeof(MUData),
-                           MPI_BYTE,
+        if ((rc = MPI_Send(senddata.dataPtr(),
+                           senddata.length(),
+                           MPI_INT,
                            distributionMap[it().fabIndex],
                            531,
                            MPI_COMM_WORLD)) != MPI_SUCCESS)
@@ -588,12 +639,14 @@ TagBoxArray::mergeUnique ()
                           reqs.dataPtr(),
                           stat.dataPtr())) != MPI_SUCCESS)
         ParallelDescriptor::Abort(rc);
-
+    //
+    // Now clear the overlaps in the TagBoxArray.
+    //
     for (int i = 0; i < nRecv; i++)
     {
-        assert(distributionMap[recv[i].m_idx] == MyProc);
+        assert(distributionMap[recv[i].idx()] == MyProc);
 
-        fabparray[recv[i].m_idx].setVal(TagBox::CLEAR, recv[i].m_box, 0);
+        fabparray[recv[i].idx()].setVal(TagBox::CLEAR, recv[i].box(), 0);
     }
 #else
     ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
@@ -615,7 +668,7 @@ TagBoxArray::mergeUnique ()
 
        ParallelDescriptor::ReceiveData(0, 0);  // To advance message header.
     }
-#endif
+#endif /*BL_USE_MPI*/
 }
 
 void
