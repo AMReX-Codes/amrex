@@ -579,7 +579,7 @@ private:
 bool
 task_restric_fill::ready()
 {
-    abort();
+    // abort();
     if ( m_local )
     {
 	m_restric.fill(m_mf[m_dgrid], m_bx, m_smf[m_sgrid], m_rat);
