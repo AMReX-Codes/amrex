@@ -394,6 +394,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 #if (BL_SPACEDIM == 2)
   //proj.SetRZ();
 #endif
+  proj.line_solve_dim = 1;
 
   if (m.length() == 1) {
     t1 = clock();

@@ -114,7 +114,7 @@ class holy_grail_amr_multigrid : public amr_multigrid {
 			   amr_fluid_boundary Boundary, int Pcode = 2)
     : amr_multigrid(Mesh, Gen_ratio, Lev_min_min, Lev_min_max, Lev_max_max,
 		    Boundary.pressure(), Pcode),
-      boundary(Boundary)
+      boundary(Boundary), line_solve_dim(-1)
   {
     build_mesh(fdomain);
   }
@@ -124,6 +124,8 @@ class holy_grail_amr_multigrid : public amr_multigrid {
 	     PArray<MultiFab>& Sigma, Real H[],
 	     int Lev_min, int Lev_max);
   void clear();
+
+  int line_solve_dim;
 };
 
 #endif

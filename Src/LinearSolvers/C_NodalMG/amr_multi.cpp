@@ -281,7 +281,7 @@ void amr_multigrid::clear()
 void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2,
 			  int linesolvdim)
 {
-  assert(linesolvdim == -1); // line solves not yet supported
+  assert(linesolvdim == -1); // line solves not supported through this arg
 
   if (lev_max > lev_min)
     sync_interfaces();
