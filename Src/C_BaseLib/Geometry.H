@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.29 1999-04-11 23:31:35 lijewski Exp $
+// $Id: Geometry.H,v 1.30 1999-04-13 00:08:05 marc Exp $
 //
 
 #include <CoordSys.H>
@@ -56,7 +56,7 @@ public:
     //
     //@ManDoc: Constructor taking the rectangular domain.
     //
-    Geometry (const Box& dom);
+    explicit Geometry (const Box& dom);
     //
     //@ManDoc: The copy constructor.
     //
