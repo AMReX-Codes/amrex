@@ -4,7 +4,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.24 1999-02-10 21:09:58 lijewski Exp $
+// $Id: Utility.H,v 1.25 1999-03-11 17:56:58 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -144,6 +144,11 @@ public:
     {
         result = arg1 && arg2;
     }
+    //
+    //@ManDoc: Returns rootNNNN where NNNN == num.
+    //
+    static aString Concatenate (const aString& root,
+                                int            num);
 
 #ifdef WIN32
     static bool UtilCreateDirectory (const aString& path,
