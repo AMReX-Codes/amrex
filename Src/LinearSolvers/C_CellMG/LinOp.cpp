@@ -1,5 +1,5 @@
 //
-// $Id: LinOp.cpp,v 1.2 1998-04-15 21:25:59 marc Exp $
+// $Id: LinOp.cpp,v 1.3 1998-06-10 22:19:50 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -21,17 +21,21 @@ int LinOp::def_verbose = 0;
 int LinOp::def_maxorder = 2;
 
 #ifndef NDEBUG
-// LinOp::applyBC fills LinOp_grow ghost cells with data expected in LinOp::apply
-//  therefore, the incoming MultiFab to LinOp::applyBC better have this many ghost
-//  allocated
+//
+// LinOp::applyBC fills LinOp_grow ghost cells with data expected in
+// LinOp::apply therefore, the incoming MultiFab to LinOp::applyBC better
+// have this many ghost allocated.
+//
 const int LinOp_grow = 1;
 #endif
 
+//
 // LinOp::preComputePeriodicInfo precomputes some intersection information
 // assuming that Periodic_BC_grow cells are important enough to be included in
 // the fix-up after the MultiFab::FillBoundary() call in LinOp::applyBC.  Since
-// LinOp::applyBC is presently the only member requiring ghostcells, Periodic_BC_grow
-// is set to its maximum requirement.
+// LinOp::applyBC is presently the only member requiring ghostcells,
+// Periodic_BC_grow is set to its maximum requirement.
+//
 const int Periodic_BC_grow = 1;
 
 void
@@ -50,10 +54,11 @@ LinOp::initialize ()
 
 LinOp::LinOp (const BndryData& _bgb,
 	      const Real       _h)
-    : bgb(_bgb)
+    :
+    bgb(_bgb)
 {
-    REAL __h[BL_SPACEDIM];
-    for(int i = 0; i < BL_SPACEDIM; i++)
+    Real __h[BL_SPACEDIM];
+    for (int i = 0; i < BL_SPACEDIM; i++)
     {
         __h[i] = _h;
     }
@@ -62,19 +67,19 @@ LinOp::LinOp (const BndryData& _bgb,
 
 LinOp::LinOp (const BndryData& _bgb,
 	      const Real*      _h)
-    : bgb(_bgb)
+    :
+    bgb(_bgb)
 {
     initConstruct(_h);
 }
 
 LinOp::~LinOp ()
 {
-    int i;
-    for(i=0; i < maskvals.length(); ++i)
+    for (int i = 0; i < maskvals.length(); ++i)
     {
-        for(int j=0; j < maskvals[i].length(); ++j)
+        for (int j = 0; j < maskvals[i].length(); ++j)
 	{
-            for(int k = 0; k < maskvals[i][j].length(); ++k)
+            for (int k = 0; k < maskvals[i][j].length(); ++k)
 	    {
                 delete maskvals[i][j][k];
             }
@@ -84,7 +89,8 @@ LinOp::~LinOp ()
 
 LinOp::LinOp (const LinOp& _lp,
 	      int          level)
-    : bgb(_lp.bgb)
+    :
+    bgb(_lp.bgb)
 {
     harmavg = _lp.harmavg;
     verbose = _lp.verbose;
@@ -92,8 +98,8 @@ LinOp::LinOp (const LinOp& _lp,
     gbox[0] = _lp.boxArray(level);
     geomarray.resize(1);
     geomarray[0] = bgb.getGeom();
-    pirmmapArray.resize(1);
-    pirmmapArray[0] = _lp.pirmmapArray[level];
+    m_pirmmap.resize(1);
+    m_pirmmap[0] = _lp.m_pirmmap[level];
     h.resize(1);
     assert(_lp.numLevels() > level);
     h[0] = _lp.h[level];
@@ -104,20 +110,21 @@ LinOp::LinOp (const LinOp& _lp,
 void
 LinOp::initConstruct (const Real* _h)
 {
-    if(!initialized)
+    if (!initialized)
         initialize();
+
     harmavg = def_harmavg;
     verbose = def_verbose;
     gbox.resize(1);
-    int level = 0;
+    const int level = 0;
     gbox[level] = bgb.boxes();
     geomarray.resize(1);
     geomarray[level] = bgb.getGeom();
     preComputePeriodicInfo(level);
     h.resize(1);
     maxorder = def_maxorder;
-    int i;
-    for(i = 0; i < BL_SPACEDIM; i++)
+
+    for (int i = 0; i < BL_SPACEDIM; i++)
     {
         h[level][i] = _h[i];
     }
@@ -125,19 +132,21 @@ LinOp::initConstruct (const Real* _h)
     undrrelxr[level] = new BndryRegister(gbox[level], 1, 0, 0, 1);
     maskvals.resize(1);
     maskvals[level].resize(gbox[level].length());
-    // For each orientation, build NULL masks, then use distributed allocation
-    for(i = 0; i < gbox[level].length(); i++)
+    //
+    // For each orientation, build NULL masks, then use distributed allocation.
+    //
+    for (int i = 0; i < gbox[level].length(); i++)
     {
-	maskvals[level][i].resize(2*BL_SPACEDIM, (Mask*)0);
+	maskvals[level][i].resize(2*BL_SPACEDIM, 0);
     }
-    int myproc = ParallelDescriptor::MyProc();
-    for (OrientationIter oitr; oitr; oitr++)
+    const int MyProc = ParallelDescriptor::MyProc();
+    for (OrientationIter oitr; oitr; ++oitr)
     {
 	Orientation face = oitr();
 	const FabSet& bndry = bgb[face];
-	for(i = 0; i < gbox[level].length(); i++)
+	for (int i = 0; i < gbox[level].length(); i++)
 	{
-	    if (bndry.DistributionMap()[i] == myproc)
+	    if (bndry.DistributionMap()[i] == MyProc)
 	    {
 		const PArray<Mask>& pam = bgb.bndryMasks(face);
 		assert(maskvals[level][i][face] == 0);
@@ -163,48 +172,64 @@ LinOp::applyBC (MultiFab&      inout,
 	        int            level,
 	        LinOp::BC_Mode bc_mode)
 {
-    // The inout MultiFab must have at least LinOp_grow ghost cells for applyBC
-    assert( inout.nGrow() >= LinOp_grow);
-    
+    //
+    // The inout MultiFab needs at least LinOp_grow ghost cells for applyBC.
+    //
+    assert(inout.nGrow() >= LinOp_grow);
+    //
     // The inout MultiFab must have at least Periodic_BC_grow cells for the
-    // algorithms taking care of periodic boundary conditions
-    assert( inout.nGrow() >= LinOp_grow);
-    
-    // No coarsened boundary values, cannot apply inhomog at lev>0
-    assert( !(level>0 && bc_mode == Inhomogeneous_BC) );
-    
-    int flagden = 1; // fill in undrrelxr
-    int flagbc  = 1; // fill boundary data
-    if (bc_mode == LinOp::Homogeneous_BC) flagbc = 0; // nodata if homog
-    int nc = inout.nComp();
-    // Only single-component solves supported (verified) by this class
+    // algorithms taking care of periodic boundary conditions.
+    //
+    assert(inout.nGrow() >= LinOp_grow);
+    //
+    // No coarsened boundary values, cannot apply inhomog at lev>0.
+    //
+    assert(!(level > 0 && bc_mode == Inhomogeneous_BC));
+
+    int nc      = inout.nComp();    
+    int flagden = 1; // Fill in undrrelxr.
+    int flagbc  = 1; // Fill boundary data.
+
+    if (bc_mode == LinOp::Homogeneous_BC)
+        flagbc = 0; // No data if homog.
+    //
+    // Only single-component solves supported (verified) by this class.
+    //
     assert(nc == 1);
 
     inout.FillBoundary();
-    prepareForLevel(level);
-    
-    // do periodic fixup
-    geomarray[level].FillPeriodicFabArray(inout, pirmmapArray[level], 0, nc);
 
-    // Fill boundary cells
-    OrientationIter oitr;
-    while( oitr )
+    prepareForLevel(level);
+    //
+    // Do periodic fixup.
+    //
+    geomarray[level].FillPeriodicFabArray(inout, m_pirmmap[level], 0, nc);
+    //
+    // Fill boundary cells.
+    //
+    for (OrientationIter oitr; oitr; ++oitr)
     {
-        const Array< Array< BoundCond > >& b = bgb.bndryConds(oitr());
-        const Array<Real> &r = bgb.bndryLocs(oitr());
-        FabSet &f = (*undrrelxr[level])[oitr()];
-        int cdr(oitr());
-        const FabSet& fs = bgb.bndryValues(oitr());
-	int comp = 0;
-        for(MultiFabIterator inoutmfi(inout); inoutmfi.isValid(false); ++inoutmfi)
+        const Array< Array<BoundCond> >& b = bgb.bndryConds(oitr());
+        const Array<Real>& r               = bgb.bndryLocs(oitr());
+        FabSet& f                          = (*undrrelxr[level])[oitr()];
+        int cdr                            = oitr();
+        const FabSet& fs                   = bgb.bndryValues(oitr());
+	const int comp                     = 0;
+
+        for (MultiFabIterator inoutmfi(inout); inoutmfi.isValid(false);
+             ++inoutmfi)
 	{
 	    DependentFabSetIterator ffsi(inoutmfi, f);
 	    DependentFabSetIterator fsfsi(inoutmfi, fs);
-            int gn = inoutmfi.index();
+
+            const int gn = inoutmfi.index();
+
             assert(gbox[level][inoutmfi.index()] == inoutmfi.validbox());
+
             const Mask& m = *maskvals[level][gn][oitr()];
-            Real bcl(r[gn]);
-            int bct(b[gn][comp]);
+            Real bcl      = r[gn];
+            int bct       = b[gn][comp];
+
             FORT_APPLYBC(
                 &flagden, &flagbc, &maxorder,
                 inoutmfi().dataPtr(), 
@@ -217,7 +242,6 @@ LinOp::applyBC (MultiFab&      inout,
                 inoutmfi.validbox().loVect(), inoutmfi.validbox().hiVect(),
                 &nc, h[level]);
         }
-        oitr++;
     }
 }
     
@@ -229,12 +253,15 @@ LinOp::residual (MultiFab&       residL,
 		 LinOp::BC_Mode  bc_mode)
 {
     apply(residL, solnL, level, bc_mode);
-    for(MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(false); ++solnLmfi)
+
+    for (MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(false); ++solnLmfi)
     {
 	DependentMultiFabIterator residLmfi(solnLmfi, residL);
 	DependentMultiFabIterator rhsLmfi(solnLmfi, rhsL);
         int nc = residL.nComp();
-	// Only single-component solves supported (verified) by this class
+        //
+	// Only single-component solves supported (verified) by this class.
+        //
 	assert(nc == 1);
         assert(gbox[level][solnLmfi.index()] == solnLmfi.validbox());
         FORT_RESIDL(
@@ -244,8 +271,7 @@ LinOp::residual (MultiFab&       residL,
             ARLIM(rhsLmfi().loVect()), ARLIM(rhsLmfi().hiVect()),
             residLmfi().dataPtr(), 
             ARLIM(residLmfi().loVect()), ARLIM(residLmfi().hiVect()),
-            solnLmfi.validbox().loVect(), solnLmfi.validbox().hiVect(), &nc
-            );
+            solnLmfi.validbox().loVect(), solnLmfi.validbox().hiVect(), &nc);
     }
 }
 
@@ -267,11 +293,11 @@ LinOp::norm (const MultiFab& in,
 	     int             level) const
 {
     Real norm = 0.0;
-    for(ConstMultiFabIterator inmfi(in); inmfi.isValid(false); ++inmfi)
+    for (ConstMultiFabIterator inmfi(in); inmfi.isValid(false); ++inmfi)
     {
-        int gn = inmfi.index();
+        int gn     = inmfi.index();
         Real tnorm = inmfi().norm(gbox[level][gn]);
-        norm += tnorm*tnorm;
+        norm      += tnorm*tnorm;
     }
     ParallelDescriptor::ReduceRealSum(norm);
     return norm;
@@ -280,99 +306,110 @@ LinOp::norm (const MultiFab& in,
 void
 LinOp::preComputePeriodicInfo (int level)
 {
-    assert(geomarray.length() > level);
-    assert(gbox.length() > level);
-    
-    pirmmapArray.resize(level+1);
-    pirmmapArray[level] =
-	geomarray[level].computePIRMMapForMultiFab(gbox[level],
-						   Periodic_BC_grow);
+    assert(geomarray.size() > level);
+    assert(gbox.size() > level);
+    assert(m_pirmmap.size() == level);
+
+    m_pirmmap.resize(level+1);
+    m_pirmmap[level] = geomarray[level].computePIRMMapForMultiFab(gbox[level],
+                                                                  Periodic_BC_grow);
 }
 
 void
 LinOp::prepareForLevel (int level)
 {
-    if(level == 0)
+    if (level == 0)
         return;
     LinOp::prepareForLevel(level-1);
-    if(h.length() > level)
+    if (h.size() > level)
         return;
-
+    //
     // Assume from here down that this is a new level one coarser than existing
-    assert(h.length() == level);
+    //
+    assert(h.size() == level);
     h.resize(level+1);
     int i;
-    for(i = 0; i < BL_SPACEDIM; ++i) {
+    for (i = 0; i < BL_SPACEDIM; ++i)
+    {
         h[level][i] = h[level-1][i]*2.0;
     }
     geomarray.resize(level+1);
-    Box curdomain = Box( geomarray[level-1].Domain() ).coarsen(2);
-    geomarray[level].define( curdomain );
-
-    // Add a box to the new coarser level (assign removes old BoxArray)
+    geomarray[level].define(::coarsen(geomarray[level-1].Domain(),2));
+    const Box& curdomain = geomarray[level].Domain();
+    //
+    // Add a box to the new coarser level (assign removes old BoxArray).
+    //
     gbox.resize(level+1);
-    gbox[level] = BoxArray(gbox[level-1]).coarsen(2);
-
-    // Add a set of periodic intersections to the new coarser level
-    assert(pirmmapArray.length() == level);
-    pirmmapArray.resize(level+1);
+    gbox[level] = gbox[level-1];
+    gbox[level].coarsen(2);
+    //
+    // Add a set of periodic intersections to the new coarser level.
+    //
     preComputePeriodicInfo(level);
-    
-    // Add the BndryRegister of relax values to the new coarser level
-    assert(undrrelxr.length() == level);
+    //
+    // Add the BndryRegister of relax values to the new coarser level.
+    //
+    assert(undrrelxr.size() == level);
     undrrelxr.resize(level+1);
     undrrelxr[level] = new BndryRegister(gbox[level], 1, 0, 0, 1);
-    
+    //
     // Add an Array of Array of maskvals to the new coarser level
     // For each orientation, build NULL masks, then use distributed allocation
     // Initial masks for coarse levels, ignore outside_domain possibility since
-    // we always solve homogeneous equation on coarse levels
-    assert(maskvals.length() == level);
+    // we always solve homogeneous equation on coarse levels.
+    //
+    assert(maskvals.size() == level);
     maskvals.resize(level+1);
     maskvals[level].resize(gbox[level].length());
-    for(i = 0; i < gbox[level].length(); i++)
+
+    for (i = 0; i < gbox[level].length(); i++)
     {
 	maskvals[level][i].resize(2*BL_SPACEDIM, (Mask*)0);
     }
-    int myproc = ParallelDescriptor::MyProc();
-    for (OrientationIter oitr; oitr; oitr++)
+    Array<IntVect> pshifts(27);
+    const int MyProc = ParallelDescriptor::MyProc();
+
+    for (OrientationIter oitr; oitr; ++oitr)
     {
 	Orientation face = oitr();
-
-	// Use bgb's distribution map for masks
+        //
+	// Use bgb's distribution map for masks.
+        //
 	const FabSet& bndry = bgb[face];
-        for (ConstFabSetIterator bndryfsi(bgb[face]); bndryfsi.isValid(false); ++bndryfsi)
+
+        for (ConstFabSetIterator bndryfsi(bgb[face]); bndryfsi.isValid(false);
+             ++bndryfsi)
 	{
 	    int gn = bndryfsi.index();
-	    Box bx_k = adjCell(gbox[level][gn], face, 1);
+	    Box bx_k = ::adjCell(gbox[level][gn], face, 1);
 	    assert(maskvals[level][gn][face] == 0);
 	    maskvals[level][gn][face] = new Mask(bx_k, 1);
-	    Mask &curmask = *(maskvals[level][gn][face]);
+	    Mask& curmask = *(maskvals[level][gn][face]);
 	    curmask.setVal(BndryData::not_covered);
-	    for(int gno = 0; gno < gbox[level].length(); ++gno) {
+	    for (int gno = 0; gno < gbox[level].length(); ++gno)
+            {
 		Box btmp = gbox[level][gno] & bx_k;
 		if (gno != gn  &&  btmp.ok())
 		    curmask.setVal(BndryData::covered, btmp,0);
 	    }
-	    
-	    // now take care of periodic wraparounds
+	    //
+	    // Now take care of periodic wraparounds.
+            //
 	    Geometry& curgeom = geomarray[level];
-	    if( curgeom.isAnyPeriodic() && !curdomain.contains(bx_k)  )
+
+	    if (curgeom.isAnyPeriodic() && !curdomain.contains(bx_k))
 	    {
-		Array<IntVect> pshifts(27);
 		curgeom.periodicShift(curdomain, bx_k, pshifts);
-		for( int iiv=0; iiv<pshifts.length(); iiv++ )
+
+		for (int iiv = 0; iiv < pshifts.length(); iiv++)
 		{
-		    IntVect iv = pshifts[iiv];
-		    curmask.shift(iv);
-		    for(int gno=0; gno<gbox[level].length(); ++gno)
+		    curmask.shift(pshifts[iiv]);
+		    for (int gno = 0; gno < gbox[level].length(); ++gno)
 		    {
-			BOX btmp = gbox[level][gno];
-			btmp &= curmask.box();
+                        Box btmp = gbox[level][gno] & curmask.box();
 			curmask.setVal(BndryData::covered, btmp,0);
 		    }
-		    
-		    curmask.shift(-iv);
+		    curmask.shift(-pshifts[iiv]);
 		}
 	    }
 	}
@@ -385,8 +422,9 @@ LinOp::makeCoefficients (MultiFab&       cs,
 			 int             level)
 {
     int nc = 1;
-    
-    // Determine index type of incoming MultiFab
+    //
+    // Determine index type of incoming MultiFab.
+    //
     const IndexType iType(fn.boxArray()[0].ixType());
     const IndexType cType(D_DECL(IndexType::CELL, IndexType::CELL, IndexType::CELL));
     const IndexType xType(D_DECL(IndexType::NODE, IndexType::CELL, IndexType::CELL));
@@ -398,38 +436,38 @@ LinOp::makeCoefficients (MultiFab&       cs,
     if (iType == cType)
     {
 	cdir = -1;
-	
-    } else if (iType == xType) {
-	
+    }
+    else if (iType == xType)
+    {
 	cdir = 0;
-	
-    } else if (iType == yType) {
-
+    }
+    else if (iType == yType)
+    {
 	cdir = 1;
-	
 #if (BL_SPACEDIM == 3)
-    } else if (iType == zType) {
-
+    }
+    else if (iType == zType)
+    {
 	cdir = 2;
 #endif	
-    } else {
-
-	BoxLib::Error("LinOp::makeCoeffients: Bad index type");
-	cdir = -1;
     }
-    
+    else
+    {
+	BoxLib::Error("LinOp::makeCoeffients: Bad index type");
+    }
     BoxArray d(gbox[level]);
-    if(cdir >= 0)
+    if (cdir >= 0)
         d.surroundingNodes(cdir);
-
-    // Only single-component solves supported (verified) by this class
+    //
+    // Only single-component solves supported (verified) by this class.
+    //
     int nComp=1;
     int nGrow=0;
     cs.define(d, nComp, nGrow, Fab_allocate);
     cs.setVal(0.0);
 
     const BoxArray& grids = gbox[level];
-    for(MultiFabIterator csmfi(cs); csmfi.isValid(false); ++csmfi)
+    for (MultiFabIterator csmfi(cs); csmfi.isValid(false); ++csmfi)
     {
 	DependentMultiFabIterator fnmfi(csmfi, fn);
         switch(cdir)
@@ -479,12 +517,12 @@ operator << (std::ostream& os,
     {
 	os << "LinOp" << endl;
 	os << "Grids: " << endl;
-	for (int level = 0; level < lp.h.length(); ++level)
+	for (int level = 0; level < lp.h.size(); ++level)
 	{
 	    os << " level = " << level << ": " << lp.gbox[level] << endl;
 	}
 	os << "Grid Spacing: " << endl;
-	for (int level = 0; level < lp.h.length(); ++level)
+	for (int level = 0; level < lp.h.size(); ++level)
 	{
 	    os << " level = " << level << ", dx = ";
 	    for (int d =0; d < BL_SPACEDIM; ++d)
@@ -498,7 +536,7 @@ operator << (std::ostream& os,
 	os << "Max Order: " << lp.maxorder << endl;
     }
 
-    bool PIRMs = lp.pirmmapArray[0].size() != 0;
+    bool PIRMs = lp.m_pirmmap[0].size() != 0;
     if (ParallelDescriptor::IOProcessor())
     {
 	os << "Periodic Intersection Boxes:";
@@ -508,7 +546,7 @@ operator << (std::ostream& os,
     }
     if (PIRMs)
     {
-	for (int level = 0; level < lp.h.length(); ++level)
+	for (int level = 0; level < lp.h.size(); ++level)
 	{
 	    if (ParallelDescriptor::IOProcessor())
 		os << "level = " << level << endl;
@@ -518,7 +556,7 @@ operator << (std::ostream& os,
 		if (nproc == ParallelDescriptor::MyProc())
 		{
 		    os << "Processor " << nproc << endl;
-		    os << lp.pirmmapArray[level] << endl;
+		    os << lp.m_pirmmap[level] << endl;
 		}
 		ParallelDescriptor::Synchronize();
 	    }
@@ -529,7 +567,7 @@ operator << (std::ostream& os,
     {
 	os << "Masks:" << endl;
     }
-    for (int level = 0; level < lp.h.length(); ++level)
+    for (int level = 0; level < lp.h.size(); ++level)
     {
 	if (ParallelDescriptor::IOProcessor())
 	    os << "level = " << level << endl;
