@@ -1,8 +1,6 @@
 
 FORT_CPP = /usr/ccs/lib/cpp
 
-LDFLAGS += -bmaxdata:0x80000000
-
 ifeq ($(COMP),CC)
   CXX     := CC -h instantiate=local
   CXXOPTF += -O2 -h new_for_init
@@ -38,15 +36,27 @@ FC = xlf
 fC = $(FC)
 
 ifeq ($(PRECISION),FLOAT)
-FOPTF += -O3 -qarch=auto -qtune=auto
-FDEBF += -g
-fOPTF += -O3 -qarch=auto -qtune=auto
-fDEBF += -g
+  FOPTF += -O3 -qarch=auto -qtune=auto
+  FDEBF += -g
+  fOPTF += -O3 -qarch=auto -qtune=auto
+  fDEBF += -g
 else
-FOPTF += -O3 -qarch=auto -qtune=auto
-FDEBF += -g -qdpc
-fOPTF += -O3 -qarch=auto -qtune=auto
-fDEBF += -g -qdpc
+  FOPTF += -O3 -qarch=auto -qtune=auto
+  FDEBF += -g -qdpc
+  fOPTF += -O3 -qarch=auto -qtune=auto
+  fDEBF += -g -qdpc
+endif
+
+ifeq($(AIXLARGEMEM),TRUE)
+  CXXOPTF += -q64
+  CXXDEBF += -q64
+  FOPTF   += -q64
+  FDEBF   += -q64
+  fOPTF   += -q64
+  fDEBF   += -q64
+  LDFLAGS += -bmaxdata:0xF0000000
+else
+  LDFLAGS += -bmaxdata:0x80000000
 endif
 
 ifeq ($(USE_THREADS),TRUE)
