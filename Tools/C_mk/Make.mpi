@@ -11,7 +11,9 @@ ifeq ($(MACHINE), AIX)
 endif
 
 ifeq ($(MACHINE), Linux)
-  MPI_HOME=$(HOME)/amr/mpich
+  ifndef MPI_HOME
+      MPI_HOME=/usr/local/mpich
+  endif
   BL_MPI_LIBS += -lmpich
   LIBRARY_LOCATIONS += $(MPI_HOME)/build/LINUX/ch_p4/lib
 endif
