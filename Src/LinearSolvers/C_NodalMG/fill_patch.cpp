@@ -80,8 +80,7 @@ int find_patch(const Box& region, const MultiFab& r)
 }
 */
 
-bool
-task_fill_patch::fill_patch_blindly()
+bool task_fill_patch::fill_patch_blindly()
 {
     for (int igrid = 0; igrid < r.length(); igrid++) 
     {
@@ -214,7 +213,7 @@ void task_fill_patch::fill_patch()
 			{
 			    Box tb = r.box(igrid);
 			    tb &= region;
-			    target->copy(r[igrid], tb);
+			    tl.add_task(new task_copy(target, r, igrid, tb));
 			}
 			else 
 			{
