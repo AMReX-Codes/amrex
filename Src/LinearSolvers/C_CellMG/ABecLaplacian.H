@@ -4,7 +4,7 @@
 #define _ABecLAPLACIAN_H_
 
 //
-// $Id: ABecLaplacian.H,v 1.7 1999-05-10 18:54:16 car Exp $
+// $Id: ABecLaplacian.H,v 1.8 2000-08-24 20:28:28 car Exp $
 //
 
 #include <Tuple.H>
@@ -147,7 +147,9 @@ public:
     //@ManDoc: set flags so that b coeffs at lev and coarser require recalculation
     //
     void invalidate_b_to_level (int lev);
-    
+
+    virtual Real norm (int nm = 0, int level = 0);
+  
 protected:
     //
     //@ManDoc: initialize a full set (a,b) of coefficients on the box array

@@ -1,5 +1,5 @@
 c
-c $Id: ABec_2D.F,v 1.6 2000-06-22 22:52:28 car Exp $
+c $Id: ABec_2D.F,v 1.7 2000-08-24 20:28:28 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -342,6 +342,50 @@ c
       end do
       end
 
+c-----------------------------------------------------------------------
+c
+c     Fill in a matrix x vector operator here
+c
+      subroutine FORT_NORMA(
+     &     res,
+     $     alpha, beta,
+     $     a, DIMS(a),
+     $     bX,DIMS(bX),
+     $     bY,DIMS(bY),
+     $     lo,hi,nc,
+     $     h
+     $     )
+      REAL_T res
+      REAL_T alpha, beta
+      integer lo(BL_SPACEDIM), hi(BL_SPACEDIM), nc
+      integer DIMDEC(a)
+      integer DIMDEC(bX)
+      integer DIMDEC(bY)
+      REAL_T  a(DIMV(a))
+      REAL_T bX(DIMV(bX))
+      REAL_T bY(DIMV(bY))
+      REAL_T h(BL_SPACEDIM)
+c
+      integer i,j,n
+      REAL_T uxx,uyy,dhx,dhy
+c
+      dhx = beta/h(1)**2
+      dhy = beta/h(2)**2
+c
+      res = 0.0
+      do n = 1, nc
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               res = max(res, 
+     &              + abs( alpha*a(i,j) 
+     &                   + dhx * (bX(i+1,j) + bX(i,j)) 
+     &                   + dhy * (bY(i,j+1) + bY(i,j)))
+     $              + abs(-dhx*bX(i+1,j)) + abs(-dhx*bX(i,j))
+     &              + abs(-dhy*bY(i,j+1)) + abs(-dhy*bY(i,j)))
+            end do
+         end do
+      end do
+      end
 c-----------------------------------------------------------------------
 c
 c     Fill in fluxes

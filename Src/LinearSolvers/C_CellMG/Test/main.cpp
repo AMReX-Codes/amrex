@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.14 2000-08-24 16:02:47 car Exp $
+// $Id: main.cpp,v 1.15 2000-08-24 20:28:29 car Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -196,6 +196,7 @@ main (int   argc, char* argv[])
     {
       // Build Laplacian operator, solver, then solve 
       Laplacian lp(bd, H[0]);
+      cout << "Norm = " << lp.norm() << endl;
       if ( mg )
 	{
 	  MultiGrid mg(lp);
@@ -332,6 +333,7 @@ main (int   argc, char* argv[])
 	  ABecLaplacian lp(bd, H);
 	  lp.setScalars(alpha, beta);
 	  lp.setCoefficients(acoefs, bcoefs);
+	  cout << "Norm = " << lp.norm() << endl;
 
 	  if ( mg )
 	    {

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiGrid.cpp,v 1.18 2000-08-24 16:02:47 car Exp $
+// $Id: MultiGrid.cpp,v 1.19 2000-08-24 20:28:29 car Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -58,7 +58,7 @@ MultiGrid::initialize ()
     pp.query("nu_b", def_nu_b);
     pp.query("numLevelsMAX", def_numLevelsMAX);
     pp.query("smooth_on_cg_unstable", def_smooth_on_cg_unstable);
-    int ii;
+    int ii = 0;
     pp.query("cg_solver", ii );
     switch (ii)
       {

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CGSolver.cpp,v 1.13 2000-08-24 16:02:46 car Exp $
+// $Id: CGSolver.cpp,v 1.14 2000-08-24 20:28:28 car Exp $
 //
 
 // Conjugate gradient support
@@ -43,7 +43,7 @@ CGSolver::initialize ()
     pp.query("maxiter", def_maxiter);
     pp.query("v", def_verbose);
     pp.query("unstable_criterion",def_unstable_criterion);
-    int ii;
+    int ii = 0;
     pp.query("cg_solver", ii);
     switch (ii)
       {

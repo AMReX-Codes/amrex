@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ABecLaplacian.cpp,v 1.10 2000-08-02 21:03:50 almgren Exp $
+// $Id: ABecLaplacian.cpp,v 1.11 2000-08-24 20:28:28 car Exp $
 //
 
 #include <ABecLaplacian.H>
@@ -44,6 +44,52 @@ ABecLaplacian::ABecLaplacian (const BndryData& _bd,
 ABecLaplacian::~ABecLaplacian ()
 {
     clearToLevel(-1);
+}
+
+Real
+ABecLaplacian::norm(int nm, int level)
+{
+  BL_ASSERT(nm == 0);
+  const MultiFab& a   = aCoefficients(level);
+  const MultiFab& bX  = bCoefficients(0,level);
+  const MultiFab& bY  = bCoefficients(1,level);
+#if (BL_SPACEDIM == 3)
+  const MultiFab& bZ  = bCoefficients(2,level);
+#endif
+  const int nc = a.nComp();
+  Real res = 0.0;
+  for (ConstMultiFabIterator amfi(a); amfi.isValid(); ++amfi)
+    {
+      ConstDependentMultiFabIterator bXmfi(amfi, bX);
+      ConstDependentMultiFabIterator bYmfi(amfi, bY);
+#if (BL_SPACEDIM==3)
+      ConstDependentMultiFabIterator bZmfi(amfi, bZ);
+#endif
+
+      Real tres;
+#if (BL_SPACEDIM==2)
+      FORT_NORMA(&tres,
+		 &alpha, &beta,
+		 amfi().dataPtr(),  ARLIM(amfi().loVect()), ARLIM(amfi().hiVect()),
+		 bXmfi().dataPtr(), ARLIM(bXmfi().loVect()), ARLIM(bXmfi().hiVect()),
+		 bYmfi().dataPtr(), ARLIM(bYmfi().loVect()), ARLIM(bYmfi().hiVect()),
+		 amfi.validbox().loVect(), amfi.validbox().hiVect(), &nc,
+		 h[level]);
+#elif (BL_SPACEDIM==3)
+
+      FORT_NORMA(&tres,
+		 &alpha, &beta,
+		 amfi().dataPtr(),  ARLIM(amfi().loVect()), ARLIM(amfi().hiVect()),
+		 bXmfi().dataPtr(), ARLIM(bXmfi().loVect()), ARLIM(bXmfi().hiVect()),
+		 bYmfi().dataPtr(), ARLIM(bYmfi().loVect()), ARLIM(bYmfi().hiVect()),
+		 bZmfi().dataPtr(), ARLIM(bZmfi().loVect()), ARLIM(bZmfi().hiVect()),
+		 amfi.validbox().loVect(), amfi.validbox().hiVect(), &nc,
+		 h[level]);
+#endif
+      res = Max(res, tres);
+    }
+  ParallelDescriptor::ReduceRealMax(res);
+  return res;
 }
 
 void
