@@ -30,6 +30,8 @@ else
 CPPFLAGS += -DHG_CROSS_STENCIL
 endif
 
+CPPFLAGS += -DHG_USE_CACHE
+
 
 GUTHAMR_HOME = ..
 TOP = $(GUTHAMR_HOME)
@@ -44,7 +46,6 @@ include ./Make.package
 instLibDir = ./lib/$(machineSuffix)
 
 ifeq ($(LBASE),proj)
-  INCLUDE_LOCATIONS += ./include/$(DIM)d.$(PRVERSION)
   optionsSuffix      = $(DIM)d.$(PRVERSION).$(machineSuffix)
   instLib            = $(instLibDir)/lib$(LBASE)$(DIM)d.$(PRVERSION).a
   ifeq ($(COMP),KCC)
@@ -54,7 +55,6 @@ ifeq ($(LBASE),proj)
 endif
 
 ifeq ($(EBASE),proj)
-  INCLUDE_LOCATIONS += ./include/$(DIM)d.$(PRVERSION)
   optionsSuffix      = $(DIM)d.$(PRVERSION).$(machineSuffix)
   LIBRARIES         += -lproj$(optionsSuffix)
   all: $(executable)
