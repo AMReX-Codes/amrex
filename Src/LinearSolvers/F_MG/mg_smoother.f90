@@ -78,8 +78,8 @@ contains
 
     hi = ubound(uu)-ng
 
-    !$OMP PARALLEL DO PRIVATE(j,i,ioff,dd)
     if ( lskwd ) then
+    !$OMP PARALLEL DO PRIVATE(j,i,ioff,dd)
        do j = lo(2),hi(2)
           ioff = 0; if ( mod(lo(1) + j, 2) /= n ) ioff = 1
           do i = lo(1) + ioff, hi(1), 2
@@ -120,8 +120,8 @@ contains
                   uu(i,j) = uu(i,j) + omega/ss(i,j,0)*(ff(i,j) - dd)
           end do
        end do
-    end if
     !$OMP END PARALLEL DO
+    end if
 
   end subroutine gs_rb_smoother_2d
 
@@ -184,6 +184,7 @@ contains
              end do
           end do
        end do
+       !$OMP END PARALLEL DO
     else
        !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,dd)
        do k = lo(3), hi(3)
@@ -200,8 +201,8 @@ contains
              end do
           end do
        end do
+       !$OMP END PARALLEL DO
     end if
-    !$OMP END PARALLEL DO
 
   end subroutine gs_rb_smoother_3d
 
@@ -394,7 +395,7 @@ contains
 
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
-    !$OMP END PARALLEL DO
+    !$OMP PARALLEL DO PRIVATE(k,j,i,dd)
     do k = 1, size(ff,dim=3)
        do j = 1, size(ff,dim=2)
           do i = 1, size(ff,dim=1)
@@ -484,7 +485,7 @@ subroutine gs_lex_dense_smoother_1d(omega, ss, uu, ff, mm, ng, skwd)
 
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
 
-    !$OMP END PARALLEL DO
+    !$OMP PARALLEL DO PRIVATE(k,j,i,dd)
     do k = 1, size(ff,dim=3)
        do j = 1, size(ff,dim=2)
           do i = 1, size(ff,dim=1)

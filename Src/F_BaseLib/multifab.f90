@@ -2815,7 +2815,7 @@ contains
     integer :: i
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
-    !$OMP PARALLEL DO PRIVATE(i,ap)
+    !$OMP PARALLEL DO PRIVATE(i,ap,bp)
     do i = 1, a%nboxes
        if ( multifab_remote(a,i) ) cycle
        if ( lall ) then
