@@ -1,22 +1,36 @@
-!IF	DEFINED(DEPENDS) || ! EXIST(f90.depends)
-f90.depends: $(f90sources) $(fsources)
-	-mkdir $(mdir)
-	perl $(MODDEP) --odir $(obj_dir) --objext obj $(f90sources) $(fsources) > f90.depends
-	nmake main.exe
-!ENDIF
+$(tdir)\f90.depends: $(f90sources) $(fsources) "$(tdir)"
+	perl $(MODDEP) --odir $(obj_dir) $(f90sources) $(fsources) > $(tdir)\f90.depends
 
-$(obj_dir):
-	@mkdir $(obj_dir)
+$(tdir)\c.depends: $(csources) "$(tdir)"
+	perl $(MKDEP) --odir $(obj_dir) $(csources) > $(tdir)\c.depends
+
+"$(tdir)":
+	if not exist "$(tdir)\" mkdir "$(tdir)"
+
+"$(obj_dir)": "$(tdir)"
+	if not exist "$(obj_dir)\" mkdir "$(obj_dir)"
+
+.f{$(obj_dir)}.obj:
+	@if not exist "$(obj_dir)\" mkdir "$(obj_dir)"
+	$(FOR) /c $(FFLAGS) /object:$(obj_dir)\ $<
+
+.f90{$(obj_dir)}.obj:
+	@if not exist "$(obj_dir)\" mkdir "$(obj_dir)"
+	$(FOR) /c $(FFLAGS) /object:$(obj_dir)\ $<
+
+.c{$(obj_dir)}.obj:
+	@if not exist "$(obj_dir)\" mkdir "$(obj_dir)"
+	$(CC) /c $(CFLAGS) /Fo$(obj_dir)\ $<
 
 clean:
-	-del /q main.exe
-	-del /q $(obj_dir)\*.mod $(obj_dir)\*.obj
-	-del /q $(obj_dir)\*.pdb
-	-del /q f90.depends
-	-rd /s/q fmod fnmod_ndebug
+	-del /q main.exe main.pdb df60.pdb
+	-rd /s/q $(tdir)
 
-!IF	!DEFINED(DEPENDS) && EXIST(f90.depends)
-!INCLUDE f90.depends
+depend:	$(tdir)\f90.depends $(tdir)\c.depends
+
+!IF	EXIST($(tdir)\f90.depends)
+!INCLUDE $(tdir)\f90.depends
 !ENDIF
-
-
+!IF	EXIST($(tdir)\c.depends)
+!INCLUDE $(tdir)\c.depends
+!ENDIF

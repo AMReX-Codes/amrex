@@ -50,6 +50,7 @@ my $usage = "usage: $0 [--odir dir] [--I ldir]\n";
 GetOptions(
     "help"	=> \$opt_help,
     "debug"	=> \$debug,
+    "objext"	=> \$obj_ext,
     "odir=s"	=> \$odir,
     "I=s@"	=> \@incdirs) or die $usage;
 

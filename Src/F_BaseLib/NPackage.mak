@@ -119,10 +119,13 @@ csources = $(csources) $(boxlib_dir)\f2kgetcl.c
 cobjects = $(cobjects) $(obj_dir)\f2kgetcl.obj
 
 {$(boxlib_dir)}.f{$(obj_dir)}.obj:
+	@if not exist "$(obj_dir)\" mkdir "$(obj_dir)"
 	$(FOR) /c $(FFLAGS) $< /object:$(obj_dir)
 
 {$(boxlib_dir)}.f90{$(obj_dir)}.obj:
+	@if not exist "$(obj_dir)\" mkdir "$(obj_dir)"
 	$(FOR) /c $(FFLAGS) $< /object:$(obj_dir)
 
-{$(boxlib_dir)}.c{$(obj_dir)}.obj::
+{$(boxlib_dir)}.c{$(obj_dir)}.obj:
+	@if not exist "$(obj_dir)\" mkdir "$(obj_dir)"
 	$(CC) /c $(CFLAGS) /Fo$(obj_dir)/ $<
