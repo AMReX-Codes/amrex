@@ -29,14 +29,14 @@ FC = xlf
 fC = $(FC)
 
 ifeq ($(PRECISION),FLOAT)
-  FOPTF += -O3 -qarch=auto -qtune=auto -qsuppress=1500-036
+  FOPTF += -O2 -qarch=auto -qtune=auto -qsuppress=1500-036
   FDEBF += -g
-  fOPTF += -O3 -qarch=auto -qtune=auto -qsuppress=1500-036
+  fOPTF += -O2 -qarch=auto -qtune=auto -qsuppress=1500-036
   fDEBF += -g
 else
-  FOPTF += -qdpc -O3 -qarch=auto -qtune=auto -qsuppress=1500-036
+  FOPTF += -qdpc -O2 -qarch=auto -qtune=auto -qsuppress=1500-036
   FDEBF += -qdpc -g
-  fOPTF += -qdpc -O3 -qarch=auto -qtune=auto -qsuppress=1500-036
+  fOPTF += -qdpc -O2 -qarch=auto -qtune=auto -qsuppress=1500-036
   fDEBF += -qdpc -g
 endif
 
