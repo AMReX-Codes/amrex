@@ -29,44 +29,28 @@ using std::set_new_handler;
 //
 Real
 MFNorm (const MultiFab& mfab, 
-        const BoxArray& normBoxes, 
         const int       exponent,
         const int       srcComp,
-        const int       numComp)
+        const int       numComp,
+        const int       numGrow)
 {
-    // 
-    // Check that the FabBoxes actually contain the normBoxes
-    //
-    BoxArray fabBoxes = mfab.boxArray();
-    fabBoxes.grow(mfab.nGrow());
-    assert (fabBoxes.contains(normBoxes));
-    
+    assert (numGrow <= mfab.nGrow());
+    BoxArray boxes = mfab.boxArray();
+    boxes.grow(numGrow);
     //
     // Get a copy of the multifab
     //
-    MultiFab mftmp(normBoxes, numComp, 0);
-
-    for (MultiFabIterator mftmpmfi(mftmp); mftmpmfi.isValid(); ++mftmpmfi)
-    {
-        DependentMultiFabIterator srcMfi(mftmpmfi, mfab);
-
-        const Box& cpBox = normBoxes[mftmpmfi.index()];
-        mftmpmfi().copy(srcMfi(), cpBox, srcComp, cpBox, 0, numComp);
-    }
-
-
+    MultiFab mftmp(mfab.boxArray(), numComp, 0);
+    MultiFab::Copy(mftmp,mfab,srcComp,0,numComp,numGrow);
     //
-    // Actually Calculate the Norms
+    // Calculate the Norms
     //
     Real myNorm = 0;
     if ( exponent == 0 )
     {
         for ( MultiFabIterator mftmpmfi(mftmp); mftmpmfi.isValid(); ++mftmpmfi)
         {
-            const Box& cpBox = normBoxes[mftmpmfi.index()];
-
-            mftmpmfi().abs(cpBox, 0, numComp);
- 
+            mftmpmfi().abs(boxes[mftmpmfi.index()], 0, numComp);
             myNorm = Max(myNorm, mftmpmfi().norm(0, 0, numComp));
         }
 	ParallelDescriptor::ReduceRealMax(myNorm);
@@ -75,9 +59,7 @@ MFNorm (const MultiFab& mfab,
     {
         for ( MultiFabIterator mftmpmfi(mftmp); mftmpmfi.isValid(); ++mftmpmfi)
         {
-            const Box& cpBox = normBoxes[mftmpmfi.index()];
-
-            mftmpmfi().abs(cpBox, 0, numComp);
+            mftmpmfi().abs(boxes[mftmpmfi.index()], 0, numComp);
 
             myNorm += mftmpmfi().norm(1, 0, numComp);
         }
@@ -87,9 +69,7 @@ MFNorm (const MultiFab& mfab,
     {
         for ( MultiFabIterator mftmpmfi(mftmp); mftmpmfi.isValid(); ++mftmpmfi)
         {
-            const Box& cpBox = normBoxes[mftmpmfi.index()];
-
-            mftmpmfi().abs(cpBox, 0, numComp);
+            mftmpmfi().abs(boxes[mftmpmfi.index()], 0, numComp);
 
             myNorm += pow(mftmpmfi().norm(2, 0, numComp), 2);
         }
