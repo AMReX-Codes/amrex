@@ -152,6 +152,10 @@ SOURCE=.\boundary.H
 # End Source File
 # Begin Source File
 
+SOURCE=.\counted_ptr.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\fill_patch.H
 # End Source File
 # Begin Source File
