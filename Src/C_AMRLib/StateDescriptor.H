@@ -1,7 +1,7 @@
 #ifndef _StateDescriptor_H_
 #define _StateDescriptor_H_ 
 //
-// $Id: StateDescriptor.H,v 1.20 2003-01-22 22:39:44 lijewski Exp $
+// $Id: StateDescriptor.H,v 1.21 2003-02-06 18:14:29 lijewski Exp $
 //
 #include <utility>
 #include <vector>
@@ -57,6 +57,10 @@ public:
         //
         BndryFunc (BndryFuncDefault inFunc);
         //
+        // Another Constructor.
+        //
+        BndryFunc (BndryFuncDefault inFunc,BndryFuncDefault gFunc);
+        //
         // Return a ptr to a clone of this object.
         // It is the responsibility of the caller to delete the result.
         //
@@ -66,16 +70,23 @@ public:
         //
         virtual ~BndryFunc ();
         //
-        // Fill boundary cells.
+        // Fill boundary cells using "regular" function.
         //
         virtual void operator () (Real* data, const int* lo, const int* hi,
                                   const int* dom_lo, const int* dom_hi,
                                   const Real* dx, const Real* grd_lo,
                                   const Real* time, const int* bc) const;
-
+        //
+        // Fill boundary cells using "group" function.
+        //
+        virtual void operator () (Real* data, const int* lo, const int* hi,
+                                  const int* dom_lo, const int* dom_hi,
+                                  const Real* dx, const Real* grd_lo,
+                                  const Real* time, const int* bc, bool) const;
     private:
 
         BndryFuncDefault  m_func;
+        BndryFuncDefault  m_gfunc;
     };
     //
     //@ManDoc: The default constructor.
