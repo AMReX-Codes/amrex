@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.92 2002-04-17 22:22:19 vince Exp $
+// $Id: VisMF.cpp,v 1.93 2004-03-31 23:18:22 car Exp $
 //
 
 #include <winstd.H>
@@ -128,9 +128,12 @@ operator>> (std::istream&         is,
 
     is >> N >> ch >> M;
 
-    BL_ASSERT(N >= 0);
-    BL_ASSERT(ch == ',');
-    BL_ASSERT(M >= 0);
+    if ( N < 0 ) 
+      BoxLib::Error("Expected a positive integer, N, got something else");
+    if ( M < 0 ) 
+      BoxLib::Error("Expected a positive integer, M, got something else");
+    if ( ch != ',' ) 
+      BoxLib::Error("Expected a ',' got something else");
 
     ar.resize(N);
     
@@ -141,7 +144,8 @@ operator>> (std::istream&         is,
         for (long j = 0; j < M; j++)
         {
             is >> ar[i][j] >> ch;
-            BL_ASSERT(ch == ',');
+	    if ( ch != ',' ) 
+	      BoxLib::Error("Expected a ',' got something else");
         }
     }
 
