@@ -13,7 +13,7 @@ override XTRADEFS += -DBL_COALESCE_FABS -DBL_OLD_STL
 endif
 
 ifeq ($(COMP),KCC)
-CXX     := KCC --no_exceptions
+CXX     := KCC --no_exceptions --no_restrict
 CXXOPTF += +K3 --backend '-h nomessage=191:1135:7212,aggress,inline1,pipeline2,scalar2'
 CXXDEBF += +K0
 #
