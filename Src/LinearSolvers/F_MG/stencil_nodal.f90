@@ -41,9 +41,6 @@ contains
 !   Do this just to set everything in the mask to zero.
     call setval(mask,BC_INT)
 
-!   print *,'STENCIL FILL : DH_LOCAL ',dh_local(:)
-!   print *,'STENCIL FILL : DH       ',dh(:)
-
     do i = 1, ss%nboxes
        if ( multifab_remote(ss,i) ) cycle
 
@@ -119,8 +116,11 @@ contains
     integer :: i, j, ib, jb, ilo, jlo, ii, nx, ny
     real (kind = dp_t) :: fx, fy
 
-    fx = HALF*THIRD/dh(1)**2
-    fy = HALF*THIRD/dh(2)**2
+!   fx = HALF*THIRD/dh(1)**2
+!   fy = HALF*THIRD/dh(2)**2
+
+    fx = HALF*THIRD
+    fy = HALF*THIRD
 
     nx = size(ss,dim=1)
     ny = size(ss,dim=2)
@@ -623,8 +623,7 @@ contains
 
   end subroutine stencil_apply_3d_nodal
 
-  subroutine fine_edge_resid_1d(ss, dd, uu, res, mm, ng, ratio, side)
-    integer, intent(in) :: ng
+  subroutine fine_edge_resid_1d(ss, dd, uu, res, mm, ratio, side)
     real (kind = dp_t), intent(in)  ::  ss(0:,0:)
     real (kind = dp_t), intent(out) ::  dd(:)
     real (kind = dp_t), intent(in)  ::  uu(-1:)
@@ -649,12 +648,9 @@ contains
 
   end subroutine fine_edge_resid_1d
 
-  subroutine fine_edge_resid_2d(ss, dd, uu, res, mm, ng, ratio, side, lod)
-    integer, intent(in) :: ng
-    integer, intent(in) :: lod(2)
-    real (kind = dp_t), intent(in   ) ::  ss(0:,0:,0:)
+  subroutine fine_edge_resid_2d(dd, res, mm, ratio, side, lod)
+    integer           , intent(in   ) :: lod(2)
     real (kind = dp_t), intent(  out) ::  dd(lod(1):,lod(2):)
-    real (kind = dp_t), intent(inout) ::  uu(-1:,-1:)
     real (kind = dp_t), intent(inout) :: res(-1:,-1:)
     integer           , intent(in   ) ::  mm(0:,0:)
     integer, intent(in) :: ratio(:), side
@@ -665,8 +661,8 @@ contains
     integer :: ileft,irght,jbot,jtop
     real (kind = dp_t) :: fac, fac0, fac1
 
-    nx = size(ss,dim=1)-1
-    ny = size(ss,dim=2)-1
+    nx = size(mm,dim=1)-1
+    ny = size(mm,dim=2)-1
 
     nxc = size(dd,dim=1)
     nyc = size(dd,dim=2)
@@ -877,12 +873,9 @@ contains
 
   end subroutine fine_edge_resid_2d
 
-  subroutine fine_edge_resid_3d(ss, dd, uu, res, mm, ng, ratio, side, lod)
-    integer, intent(in) :: ng
+  subroutine fine_edge_resid_3d(dd, res, mm, ratio, side, lod)
     integer, intent(in) :: lod(:)
-    real (kind = dp_t), intent(in   ) ::  ss(0:,0:,0:,0:)
     real (kind = dp_t), intent(  out) ::  dd(lod(1):,lod(2):,lod(3):)
-    real (kind = dp_t), intent(in   ) ::  uu(-1:,-1:,-1:)
     real (kind = dp_t), intent(inout) :: res(-1:,-1:,-1:)
     integer           , intent(in   ) ::  mm(0:,0:,0:)
     integer, intent(in) :: ratio(:),side
@@ -894,9 +887,9 @@ contains
     real (kind = dp_t) :: fac, fac0, fac1, fac2
     real (kind = dp_t) :: corner_fac
 
-    nx = size(ss,dim=1)-1
-    ny = size(ss,dim=2)-1
-    nz = size(ss,dim=3)-1
+    nx = size(mm,dim=1)-1
+    ny = size(mm,dim=2)-1
+    nz = size(mm,dim=3)-1
 
     nxc = size(dd,dim=1)
     nyc = size(dd,dim=2)

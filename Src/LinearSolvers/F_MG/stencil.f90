@@ -1098,8 +1098,8 @@ print *, 'cc2 = ', cc(:,2)
 
     if ( nx > 1 ) bchi = BC_INT
     imaxo = maxo
-    !   if ( nx <= 2 ) imaxo = 1
     if ( nx == 1 ) imaxo = 1
+    if ( nx == 2 ) imaxo = 2
 
     select case ( bclo ) 
     case ( BC_INT )
@@ -1947,7 +1947,7 @@ print *, 'cc2 = ', cc(:,2)
     integer           , intent(in)  :: mm(:,:)
     logical, intent(in), optional :: skwd
     integer, intent(in) :: ratio, face, dim
-    integer nx,ny,nxc,nyc
+    integer nx,ny
     integer i,j,ic,jc
     real (kind = dp_t) :: fac
     integer, parameter :: XBC = 5, YBC = 6
@@ -1957,9 +1957,6 @@ print *, 'cc2 = ', cc(:,2)
 
     nx = size(ss,dim=1)
     ny = size(ss,dim=2)
-
-    nxc = size(flux,dim=1)
-    nyc = size(flux,dim=2)
 
     !   Note that one factor of ratio is the tangential averaging, while the
     !     other is the normal factor
@@ -2142,7 +2139,7 @@ print *, 'cc2 = ', cc(:,2)
     integer           , intent(in)  :: mm(:,:,:)
     logical, intent(in), optional :: skwd
     integer, intent(in) :: ratio, face, dim
-    integer nx, ny, nz, nxc, nyc, nzc
+    integer nx, ny, nz
     integer i,j,k,ic,jc,kc
     integer, parameter :: XBC = 7, YBC = 8, ZBC = 9
     real (kind = dp_t) :: fac
@@ -2153,10 +2150,6 @@ print *, 'cc2 = ', cc(:,2)
     nx = size(ss,dim=1)
     ny = size(ss,dim=2)
     nz = size(ss,dim=3)
-
-    nxc = size(flux,dim=1)
-    nyc = size(flux,dim=2)
-    nzc = size(flux,dim=3)
 
     ! Note that two factors of ratio is from the tangential averaging, while the
     ! other is the normal factor
@@ -2487,5 +2480,323 @@ print *, 'N = ', N
     end function Horner
 
   end subroutine t_polyInterpCoeffTest
+
+  subroutine stencil_fine_flux_1d(ss, flux, uu, mm, ng, face, dim, skwd)
+    integer, intent(in) :: ng
+    real (kind = dp_t), intent(in)  :: ss(:,0:)
+    real (kind = dp_t), intent(out) :: flux(:)
+    real (kind = dp_t), intent(in)  :: uu(1-ng:)
+    integer           , intent(in)  :: mm(:)
+    logical, intent(in), optional :: skwd
+    integer, intent(in) :: face, dim
+    integer nx
+    integer i
+    integer, parameter :: XBC = 3
+
+    real (kind = dp_t) :: fac
+
+    logical :: lskwd
+
+    lskwd = .true. ; if ( present(skwd) ) lskwd = skwd
+
+    nx = size(ss,dim=1)
+
+    if ( dim == 1 ) then
+       if ( face == -1 ) then
+!         Lo i face
+          i = 1
+          if (bc_dirichlet(mm(1),1,-1)) then
+             flux(1) = ss(i,1)*(uu(i+1)-uu(i)) + ss(i,2)*(uu(i-1)-uu(i)) &
+                  - ss(i+1,2)*(uu(i+1)-uu(i))
+             if (bc_skewed(mm(i),1,+1)) then
+                flux(1) =  flux(1) + ss(i,XBC)*uu(i+2)
+             end if
+          else 
+             flux(1) = ss(i,2)*(uu(i-1)-uu(i))
+          end if
+       else if ( face == 1 ) then
+
+!         Hi i face
+          i = nx
+          if (bc_dirichlet(mm(i),1,+1)) then
+             flux(1) = ss(i,1)*(uu(i+1)-uu(i)) + ss(i,2)*(uu(i-1)-uu(i)) &
+                  - ss(i-1,1)*(uu(i-1)-uu(i))
+             if (bc_skewed(mm(i),1,-1)) then
+                flux(1) =  flux(1) + ss(i,XBC)*uu(i-2)
+             end if
+          else 
+             flux(1) = ss(i,1)*(uu(i+1)-uu(i))
+          end if
+       end if
+    end if
+
+  end subroutine stencil_fine_flux_1d
+
+  subroutine stencil_fine_flux_2d(ss, flux, uu, mm, ng, face, dim, skwd)
+    integer, intent(in) :: ng
+    real (kind = dp_t), intent(in ) :: uu(1-ng:,1-ng:)
+    real (kind = dp_t), intent(out) :: flux(:,:)
+    real (kind = dp_t), intent(in ) :: ss(:,:,0:)
+    integer           , intent(in)  :: mm(:,:)
+    logical, intent(in), optional :: skwd
+    integer, intent(in) :: face, dim
+    integer nx,ny
+    integer i,j
+    real (kind = dp_t) :: fac
+    integer, parameter :: XBC = 5, YBC = 6
+    logical :: lskwd
+
+    lskwd = .true. ; if ( present(skwd) ) lskwd = skwd
+
+    nx = size(ss,dim=1)
+    ny = size(ss,dim=2)
+
+!   Lo i face
+    if ( dim == 1 ) then
+       if (face == -1) then
+
+          i = 1
+          flux(1,:) = ZERO
+          do j = 1,ny
+             if (bc_dirichlet(mm(i,j),1,-1)) then
+                flux(1,j) = &
+                       ss(i,j,1)*(uu(i+1,j)-uu(i,j)) &
+                     + ss(i,j,2)*(uu(i-1,j)-uu(i,j)) - ss(i+1,j,2)*(uu(i+1,j)-uu(i,j))
+                if (bc_skewed(mm(i,j),1,+1)) &
+                     flux(1,j) = flux(1,j) + ss(i,j,XBC)*(uu(i+2,j)-uu(i,j)) 
+             else if (bc_neumann(mm(i,j),1,-1)) then
+                flux(1,j) = ss(i,j,2)*uu(i-1,j)
+             else   
+                flux(1,j) = ss(i,j,2)*(uu(i-1,j)-uu(i,j))
+             end if
+          end do
+
+!      Hi i face
+       else if (face == 1) then
+
+          i = nx
+          flux(1,:) = ZERO
+          do j = 1,ny
+             if (bc_dirichlet(mm(i,j),1,+1)) then
+                flux(1,j) = &
+                       ss(i,j,1)*(uu(i+1,j)-uu(i,j)) &
+                     + ss(i,j,2)*(uu(i-1,j)-uu(i,j)) - ss(i-1,j,1)*(uu(i-1,j)-uu(i,j))
+                if (bc_skewed(mm(i,j),1,-1)) &
+                     flux(1,j) = flux(1,j) + ss(i,j,XBC)*(uu(i-2,j)-uu(i,j))
+             else if (bc_neumann(mm(i,j),1,+1)) then
+                flux(1,j) = ss(i,j,1)*uu(i+1,j)
+             else 
+                flux(1,j) = ss(i,j,1)*(uu(i+1,j)-uu(i,j))
+             end if
+          end do
+
+       end if
+
+!   Lo j face
+    else if ( dim == 2 ) then
+       if (face == -1) then
+
+          j = 1
+          flux(:,1) = ZERO
+          do i = 1,nx
+             if (bc_dirichlet(mm(i,j),2,-1)) then
+                flux(i,1) = &
+                       ss(i,j,3)*(uu(i,j+1)-uu(i,j)) &
+                     + ss(i,j,4)*(uu(i,j-1)-uu(i,j)) - ss(i,j+1,4)*(uu(i,j+1)-uu(i,j))
+                if (bc_skewed(mm(i,j),2,+1)) &
+                     flux(i,1) =  flux(i,1) + ss(i,j,YBC)*(uu(i,j+2)-uu(i,j))
+             else if (bc_neumann(mm(i,j),2,-1)) then
+                flux(i,1) = ss(i,j,4)*uu(i,j-1)
+             else 
+                flux(i,1) = ss(i,j,4)*(uu(i,j-1)-uu(i,j))
+             end if
+          end do
+
+
+!      Hi j face
+       else if (face == 1) then
+
+          j = ny
+          flux(:,1) = ZERO
+          do i = 1,nx
+             if (bc_dirichlet(mm(i,j),2,+1)) then
+                flux(i,1) = &
+                       ss(i,j,3)*(uu(i,j+1)-uu(i,j)) &
+                     + ss(i,j,4)*(uu(i,j-1)-uu(i,j)) - ss(i,j-1,3)*(uu(i,j-1)-uu(i,j))
+                if (bc_skewed(mm(i,j),2,-1)) &
+                     flux(i,1) = flux(i,1) + ss(i,j,YBC)*(uu(i,j-2)-uu(i,j))
+             else if (bc_neumann(mm(i,j),2,+1)) then
+                flux(i,1) = ss(i,j,3)*uu(i,j+1)
+             else
+                flux(i,1) = ss(i,j,3)*(uu(i,j+1)-uu(i,j))
+             end if
+          end do
+
+       end if
+    end if
+
+  end subroutine stencil_fine_flux_2d
+
+  subroutine stencil_fine_flux_3d(ss, flux, uu, mm, ng, face, dim, skwd)
+    integer, intent(in) :: ng
+    real (kind = dp_t), intent(in ) :: uu(1-ng:,1-ng:,1-ng:)
+    real (kind = dp_t), intent(out) :: flux(:,:,:)
+    real (kind = dp_t), intent(in ) :: ss(:,:,:,0:)
+    integer           , intent(in)  :: mm(:,:,:)
+    logical, intent(in), optional :: skwd
+    integer, intent(in) :: face, dim
+    integer nx, ny, nz
+    integer i,j,k
+    integer, parameter :: XBC = 7, YBC = 8, ZBC = 9
+    logical :: lskwd
+
+    lskwd = .true. ; if ( present(skwd) ) lskwd = skwd
+
+    nx = size(ss,dim=1)
+    ny = size(ss,dim=2)
+    nz = size(ss,dim=3)
+
+    if ( dim ==  1 ) then
+       !   Lo i face
+       if (face == -1) then
+
+          i = 1
+          flux(1,:,:) = ZERO
+          do k = 1,nz
+             do j = 1,ny
+                if (bc_dirichlet(mm(i,j,k),1,-1)) then
+                   flux(1,j,k) =  &
+                          ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
+                        + ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
+                        - ss(i+1,j,k,2)*(uu(i+1,j,k)-uu(i,j,k))
+                   if (bc_skewed(mm(i,j,k),1,+1)) &
+                        flux(1,j,k) =  flux(1,j,k) + ss(i,j,k,XBC)*(uu(i+2,j,k)-uu(i,j,k))
+                else if (bc_neumann(mm(i,j,k),1,-1)) then
+                   flux(1,j,k) = ss(i,j,k,2)*uu(i-1,j,k)
+                else 
+                   flux(1,j,k) = ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k))
+                end if
+             end do
+          end do
+
+       !   Hi i face
+       else if (face ==  1) then
+
+          i = nx
+          flux(1,:,:) = ZERO
+          do k = 1,nz
+             do j = 1,ny
+                if (bc_dirichlet(mm(i,j,k),1,+1)) then
+                   flux(1,j,k) = &
+                          ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
+                        + ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
+                        - ss(i-1,j,k,1)*(uu(i-1,j,k)-uu(i,j,k))
+                   if (bc_skewed(mm(i,j,k),1,-1)) &
+                        flux(1,j,k) =  flux(1,j,k) + ss(i,j,k,XBC)*(uu(i-2,j,k)-uu(i,j,k))
+                else if (bc_neumann(mm(i,j,k),1,+1)) then
+                   flux(1,j,k) = ss(i,j,k,1)*uu(i+1,j,k)
+                else 
+                   flux(1,j,k) = ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k))
+                end if
+             end do
+          end do
+       end if
+
+    else if ( dim == 2 ) then
+
+       !   Lo j face
+       if (face == -1) then
+          j = 1
+          flux(:,1,:) = ZERO
+          do k = 1,nz
+             do i = 1,nx
+                if (bc_dirichlet(mm(i,j,k),2,-1)) then
+                   flux(i,1,k) = &
+                          ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
+                        + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
+                        - ss(i,j+1,k,4)*(uu(i,j+1,k)-uu(i,j,k))
+                   if (bc_skewed(mm(i,j,k),2,+1)) &
+                        flux(i,1,k) =  flux(i,1,k) + ss(i,j,k,YBC)*(uu(i,j+2,k)-uu(i,j,k))
+                else if (bc_neumann(mm(i,j,k),2,-1)) then
+                   flux(i,1,k) = ss(i,j,k,4)*uu(i,j-1,k)
+                else 
+                   flux(i,1,k) = ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k))
+                end if
+             end do
+          end do
+
+       !   Hi j face
+       else if (face ==  1) then
+
+          j = ny
+          flux(:,1,:) = ZERO
+          do k = 1,nz
+             do i = 1,nx
+                if (bc_dirichlet(mm(i,j,k),2,+1)) then
+                   flux(i,1,k) =  &
+                          ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
+                        + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
+                        - ss(i,j-1,k,3)*(uu(i,j-1,k)-uu(i,j,k))
+                   if (bc_skewed(mm(i,j,k),2,-1)) &
+                        flux(i,1,k) =  flux(i,1,k) + ss(i,j,k,YBC)*(uu(i,j-2,k)-uu(i,j,k))
+                else if (bc_neumann(mm(i,j,k),2,+1)) then
+                   flux(i,1,k) = ss(i,j,k,3)*uu(i,j+1,k)
+                else
+                   flux(i,1,k) = ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k))
+                end if
+             end do
+          end do
+       end if
+
+    else if ( dim == 3 ) then
+
+       !   Lo k face
+       if (face == -1) then
+
+          k = 1
+          flux(:,:,1) = ZERO
+          do j = 1,ny
+             do i = 1,nx
+                if (bc_dirichlet(mm(i,j,k),3,-1)) then
+                   flux(i,j,1) =  &
+                          ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) &
+                        + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k)) &
+                        - ss(i,j,k+1,6)*(uu(i,j,k+1)-uu(i,j,k))
+                   if (bc_skewed(mm(i,j,k),3,+1)) &
+                        flux(i,j,1) =  flux(i,j,1) + ss(i,j,k,ZBC)*(uu(i,j,k+2)-uu(i,j,k)) 
+                else if (bc_neumann(mm(i,j,k),3,-1)) then
+                   flux(i,j,1) = ss(i,j,k,6)*uu(i,j,k-1)
+                else 
+                   flux(i,j,1) = ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k))
+                end if
+             end do
+          end do
+
+       !   Hi k face
+       else if (face ==  1) then
+
+          k = nz
+          flux(:,:,1) = ZERO
+          do j = 1,ny
+             do i = 1,nx
+                if (bc_dirichlet(mm(i,j,k),3,+1)) then
+                   flux(i,j,1) =  &
+                          ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) &
+                        + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k)) &
+                        - ss(i,j,k-1,5)*(uu(i,j,k-1)-uu(i,j,k))
+                   if (bc_skewed(mm(i,j,k),3,-1)) &
+                        flux(i,j,1) =  flux(i,j,1) + ss(i,j,k,ZBC)*(uu(i,j,k-2)-uu(i,j,k))
+                else if (bc_neumann(mm(i,j,k),3,+1)) then
+                   flux(i,j,1) = ss(i,j,k,5)*uu(i,j,k+1)
+                else
+                   flux(i,j,1) = ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k))
+                end if
+             end do
+          end do
+
+       end if
+    end if
+
+  end subroutine stencil_fine_flux_3d
 
 end module stencil_module
