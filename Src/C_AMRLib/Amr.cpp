@@ -1,6 +1,6 @@
 
 //
-// $Id: Amr.cpp,v 1.4 1997-11-21 03:50:10 lijewski Exp $
+// $Id: Amr.cpp,v 1.5 1997-11-22 00:44:23 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -26,6 +26,8 @@ using std::ios;
 #include <stdio.h>
 #endif
 
+double Amr::BytesWrittenToDisk;
+
 AmrLevel&
 Amr::getLevel (int lev)
 {
@@ -37,7 +39,6 @@ Amr::getAmrLevels ()
 {
     return amr_level;
 }
-
 
 long
 Amr::cellCount (int lev)
@@ -458,6 +459,10 @@ Amr::writePlotFile (const aString& root,
 	amr_level[k].writePlotFile(pltfile, HeaderFile);
         write_pltfile_stats.end();
     }
+    //
+    // Accumulate # of bytes written to header file.
+    //
+    Amr::BytesWrittenToDisk += VisMF::FileOffset(HeaderFile);
 
     HeaderFile.precision(old_prec);
 
@@ -506,6 +511,10 @@ Amr::writePlotFile (const aString& root,
         amr_level[k].writePlotFile(os);
         write_pltfile_stats.end();
     }
+    //
+    // Accumulate total # of bytes
+    //
+    Amr::BytesWrittenToDisk += VisMF::FileOffset(os);
 }
 #endif /*BL_PARALLEL_IO*/
 
@@ -839,6 +848,10 @@ Amr::checkPoint ()
     }
 
     RunStats::dumpStats(HeaderFile);
+    //
+    // Accumulate # of bytes written to header file.
+    //
+    Amr::BytesWrittenToDisk += VisMF::FileOffset(HeaderFile);
 
     HeaderFile.precision(old_prec);
 
@@ -906,6 +919,10 @@ Amr::checkPoint ()
     }
 
     RunStats::dumpStats(os);
+    //
+    // Accumulate # of bytes written to header file.
+    //
+    Amr::BytesWrittenToDisk += VisMF::FileOffset(os);
 
     os.precision(old_prec);
 
@@ -1674,3 +1691,62 @@ extern "C" void refineBoxList (BoxList& bx_list, IntVect& lratio)
     bx_list.clear();
     bx_list = bl;
 }
+
+void
+Amr::PrintIOStats (ostream& os)
+{
+    struct
+    {
+        int    m_cpu; // CPU #
+        double m_byt; // VisMF::TheBytesWrittenToDisk() for that CPU.
+    }
+    msg_hdr;
+
+    ParallelDescriptor::SetMessageHeaderSize(sizeof(msg_hdr));
+
+    if (!ParallelDescriptor::IOProcessor())
+    {
+        msg_hdr.m_cpu = ParallelDescriptor::MyProc();
+        msg_hdr.m_byt = VisMF::TheBytesWrittenToDisk();
+        ParallelDescriptor::SendData(ParallelDescriptor::IOProcessor(),
+                                     &msg_hdr,
+                                     0,
+                                     0);
+    }
+
+    ParallelDescriptor::Synchronize();
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        Array<double> totals(ParallelDescriptor::NProcs());
+
+        totals[ParallelDescriptor::MyProc()] =
+            VisMF::TheBytesWrittenToDisk() + Amr::BytesWrittenToDisk;
+
+        double total = totals[ParallelDescriptor::MyProc()];
+
+        for (int len; ParallelDescriptor::GetMessageHeader(len, &msg_hdr); )
+        {
+            assert(len == 0);
+            total += msg_hdr.m_byt;
+            totals[msg_hdr.m_cpu] = msg_hdr.m_byt;
+            ParallelDescriptor::ReceiveData(0, 0);
+        }
+
+        if (total > 0)
+        {
+            int old_prec = os.precision(15);
+            for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
+            {
+                os << "Bytes written to disk on CPU #"
+                   << i
+                   << ":\t"
+                   << totals[i]
+                   << '\n';
+            }
+            os << "\nTotal bytes written to disk:\t" << total << "\n\n";
+            os.precision(old_prec);
+        }
+    }
+}
+

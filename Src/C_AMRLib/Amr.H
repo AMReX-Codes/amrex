@@ -2,7 +2,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.1 1997-11-18 19:30:19 lijewski Exp $
+// $Id: Amr.H,v 1.2 1997-11-22 00:44:22 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -169,6 +169,10 @@ public:
     FARRAYBOX* derive(const BOX& b, const aString& name, REAL time, int lev);
 
     void writePlotFile();
+    //
+    // Print out some Amr-wide I/O statistics.
+    //
+    static void PrintIOStats (ostream& os);
 
 protected:
 
@@ -323,6 +327,12 @@ protected:
     LevelBld* levelbld;
 
 private:
+    //
+    // We accumulate # bytes written to disk in pltfile & chkfile headers.
+    // VisMF::TheBytesWrittenToDisk() accumulates the actual MF byte count.
+    //
+    static double BytesWrittenToDisk;
+
     Amr(const Amr&);
     Amr& operator=(const Amr&);
 };
