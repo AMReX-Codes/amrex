@@ -42,9 +42,13 @@ XTRALIBS += --backend -lpat --backend pat.cld
 endif
 endif
 
-FC     = f90 -N 80 -M 1110
+FC     = f90 -N 72 -M 1110
 FOPTF += -O,aggress,pipeline2,vector3,split0 -apad 
 FDEBF += -g
+
+fC     = $(FC)
+fOPTF += -O,aggress,pipeline2,vector3,split0 -apad 
+fDEBF += -g
 
 COPTF += -O2
 CDEBF += -g

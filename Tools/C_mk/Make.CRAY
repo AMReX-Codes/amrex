@@ -23,9 +23,13 @@ override XTRADEFS += -DBL_USE_NEW_HFILES
 override XTRADEFS += -DBL_SETBUF_SIGNED_CHAR -DBL_COALESCE_FABS
 endif
 
-FC     = f90 -N 80 -e I
+FC     = f90 -N 72 -e I
 FOPTF += -O,aggress,vector3
 FDEBF += -g
+
+fC     = $(FC)
+fOPTF += -O,aggress,vector3
+fDEBF += -g
 
 COPTF += -O2
 CDEBF += -g

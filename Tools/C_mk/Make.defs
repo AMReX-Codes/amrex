@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.32 2000-06-01 23:10:36 car Exp $
+# Make.defs $Id: Make.defs,v 1.33 2000-06-20 23:29:00 marc Exp $
 #
 
 #
@@ -250,11 +250,13 @@ include $(PBOXLIB_HOME)/mk/Make.$(MACHINE)
 
 ifeq ($(DEBUG),TRUE)
     FFLAGS	+= $(FDEBF)
+    fFLAGS	+= $(fDEBF)
     CXXFLAGS	+= $(CXXDEBF)
     CFLAGS	+= $(CDEBF)
     DebugSuffix := .DEBUG
 else
     FFLAGS	+= $(FOPTF)
+    fFLAGS	+= $(fOPTF)
     CXXFLAGS	+= $(CXXOPTF)
     CFLAGS	+= $(COPTF)
     CPPFLAGS	+= -DNDEBUG
@@ -263,6 +265,7 @@ endif
 
 ifeq ($(PROFILE),TRUE)
     FFLAGS	+= $(FPRFF)
+    fFLAGS	+= $(fPRFF)
     CXXFLAGS	+= $(CXXPRFF)
     CFLAGS	+= $(CXXPRFF)
     ProfSuffix	:= .PROF

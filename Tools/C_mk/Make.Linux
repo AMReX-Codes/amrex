@@ -10,32 +10,38 @@ endif
 
 CPP    := gcc -E -x c++
 FC  := g77 -fno-second-underscore
+fC  := $(FC)
 
 ifeq ($(FCOMP),Fujitsu)
   FC  := frt
+  fC  := $(FC)
   FDEBF += -H aesu
   FOPTF += -K fast
+  fDEBF += -H aesu
+  fOPTF += -K fast
   LIBRARY_LOCATIONS += /usr/FFC/lib
   override XTRALIBS += -lfj9f6 -lfj9i6 -lfj9e6
 else
 ifeq ($(FCOMP),Absoft)
-  FC  := f77 -f -B108
+  #FC  := f77 -f -B108
   FC  := f90 -B108 -YEXT_NAMES=LCS
+  fC  := $(FC)
   LIBRARY_LOCATIONS += /usr/absoft/lib
   override XTRALIBS += -lfio -lf77math
   #override FORTLINK := LOWERCASE
 else
   FOPTF += -O
+  fOPTF += -O
   #DEFINES += -DBL_FORT_USE_UNDERSCORE
   #override XTRALIBS +=  -lf2c
   override XTRALIBS += -lg2c
-  FOPTF += -O
 endif
 endif
 
 override XTRALIBS +=   -lm
 
 FDEBF += -g
+fDEBF += -g
 
 ifeq ($(WHICHLINUX), PCCLUSTER)
   LIBRARY_LOCATIONS += /usr/local/pkg/gcc/lib/gcc-lib/i686-pc-linux-gnu/2.95.1
@@ -45,10 +51,13 @@ endif
 ifeq ($(WHICHLINUX), ALPHACLUSTER)
   FC  := fort -assume nounderscore
 #  FC  := fort
+  fC  := $(FC)
   override FORTLINK := LOWERCASE
   #FOPTF += -O5 -fast -transform_loops -speculate all -automatic
   FOPTF = -O5 -fast
   FOPTF = -O2
+  fOPTF = -O5 -fast
+  fOPTF = -O2
   LIBRARY_LOCATIONS += /usr/local/pkg/gcc-2.95.1-generic/lib/gcc-lib/alpha-redhat-linux/2.95.1
              #  this should be made into a link to the current version  ^^^^^^
   LIBRARIES += -lfor
