@@ -421,6 +421,7 @@ static inline void node_dirs(int dir[2], const IntVect& typ)
 }
 #endif
 
+#if 0
 inline Box w_shift(const Box& bx, const Box& bo, int b, int w)
 {
     Box res = bx;
@@ -442,7 +443,7 @@ inline Box w_shift(const Box& bx, const Box& bo, int b, int w)
     assert ( i < BL_SPACEDIM );
     return res;
 }
-
+#endif
 // The sequencing used in fill_internal_borders, fcpy2 and set_border_cache
 // (narrow x, medium y, wide z) is necessary to avoid overwrite problems
 // like those seen in the sync routines.  Boundary copies are all wide

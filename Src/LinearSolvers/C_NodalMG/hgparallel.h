@@ -37,8 +37,8 @@ struct HG
 #ifdef BL_USE_MPI
     static MPI_Comm mpi_comm;
     static int mpi_tag_ub;
-    static int max_live_tasks;
 #endif
+    static int max_live_tasks;
     static int multigrid_maxiter;
     static int cgsolve_maxiter;
     static double cgsolve_tolfact;
@@ -143,6 +143,7 @@ public:
     void print_dependencies(ostream& os) const;
     sequence_number get_sequence_number() const;
 protected:
+    void _do_depend();
     void _hint() const;
     const sequence_number m_sno;
     list< task_proxy > dependencies;
@@ -190,7 +191,6 @@ public:
     virtual void hint() const;
     virtual bool startup();
 protected:
-    void _do_depend();
 #ifdef BL_USE_MPI
     MPI_Request m_request;
 #endif
@@ -214,6 +214,7 @@ public:
     virtual bool ready();
     virtual void hint() const;
     virtual bool startup();
+    virtual bool depends_on_q(const task* t1) const;
 private:
     bool m_local;
 #ifdef BL_USE_MPI
