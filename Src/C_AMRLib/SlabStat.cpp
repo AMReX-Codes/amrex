@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: SlabStat.cpp,v 1.3 2000-03-01 20:19:03 lijewski Exp $
+// $Id: SlabStat.cpp,v 1.4 2000-03-01 21:58:51 lijewski Exp $
 //
 
 #include <AmrLevel.H>
@@ -110,12 +110,19 @@ SlabStatList::checkPoint (const aString& ckdir)
         if (!HeaderFile.good())
             Utility::FileOpenFailed(HeaderFileName);
 
+        int prec = HeaderFile.precision(30);
+
         HeaderFile << m_list.length() << '\n';
 
         for (ListIterator<SlabStatRec*> li(m_list); li; ++li)
             HeaderFile << li()->name() << '\n';
 
         HeaderFile << m_list.firstElement()->interval() << '\n';
+
+        HeaderFile.precision(prec);
+
+        if (!HeaderFile.good())
+            BoxLib::Error("SlabStat::checkPoint() failed");
     }
     //
     // Write out the SlabStat MultiFabs.
