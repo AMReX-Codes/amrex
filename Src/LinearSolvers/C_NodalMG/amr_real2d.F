@@ -10,10 +10,13 @@ c Works for CELL- or NODE-based data.
       double precision dest(destl0:desth0,destl1:desth1, ncomp)
       double precision src(srcl0:srch0,srcl1:srch1, ncomp)
       integer i, j, k
-         do 20 k = 1, ncomp
-            do 20 j = regl1, regh1
-               do 20 i = regl0, regh0
- 20               dest(i,j,k) = src(i,j,k)
+      do k = 1, ncomp
+         do j = regl1, regh1
+            do i = regl0, regh0
+               dest(i,j,k) = src(i,j,k)
+            end do
+         end do
+      end do
       end
 c-----------------------------------------------------------------------
 c Unrolled copy---works for CELL- or NODE-based data.
@@ -26,8 +29,9 @@ c Unrolled copy---works for CELL- or NODE-based data.
       integer ncomp
       integer nvals, i
       nvals = (regh0-regl0+1) * (regh1-regl1+1) * ncomp
-      do 10 i = 1, nvals
- 10      dest(i) = src(i)
+      do i = 1, nvals
+         dest(i) = src(i)
+      end do
       end
 c-----------------------------------------------------------------------
 c Works for NODE-based data.
@@ -41,11 +45,14 @@ c Works for NODE-based data.
       double precision da(dal0:dah0,dal1:dah1, ncomp)
       double precision db(dbl0:dbh0,dbl1:dbh1, ncomp)
       integer i, j, k
-         do 20 k = 1, ncomp
-            do 20 j = 1, w
-               do 20 i = regl0 - w, regh0 + w
-                  da(i,regl1+j,k) = db(i,regl1+j,k)
- 20               db(i,regl1-j,k) = da(i,regl1-j,k)
+      do k = 1, ncomp
+         do j = 1, w
+            do i = regl0 - w, regh0 + w
+               da(i,regl1+j,k) = db(i,regl1+j,k)
+               db(i,regl1-j,k) = da(i,regl1-j,k)
+            end do
+         end do
+      end do
       end
 c-----------------------------------------------------------------------
       subroutine fccpy1(dest, src, nsets, dstart, sstart,
@@ -55,10 +62,12 @@ c-----------------------------------------------------------------------
       integer dstart(nsets), sstart(nsets)
       integer dstrid(nsets), sstrid(nsets), nvals(nsets)
       integer i, k
-      do 10 k = 1, nsets
-         do 10 i = 0, nvals(k) - 1
- 10         dest(dstart(k) + i * dstrid(k)) =
+      do k = 1, nsets
+         do i = 0, nvals(k) - 1
+            dest(dstart(k) + i * dstrid(k)) =
      &       src(sstart(k) + i * sstrid(k))
+         end do
+      end do
       end
 c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
@@ -77,8 +86,9 @@ c Works for CELL- or NODE-based data.
       jdif = regh1 - regl1
       if (jdif .gt. idif) then
          k = jdif - mod(jdif, bufsiz)
-         do 10 j = 0, min(bufsiz - 1, jdif)
- 10         buf(j) = 0.d0
+         do j = 0, min(bufsiz - 1, jdif)
+            buf(j) = 0.d0
+         end do
          do 20 i = regl0, regh0
             do 20 jj = 0, k, bufsiz
                do 20 j = 0, min(bufsiz - 1, jdif - jj)
@@ -96,31 +106,6 @@ c Works for CELL- or NODE-based data.
          do 60 i = 0, min(bufsiz - 1, idif)
  60         retval = max(retval, buf(i))
       end if
-      end
-c-----------------------------------------------------------------------
-c Works for CELL- or NODE-based data.
-      subroutine fassnu(v, x,
-     & regl0, regh0, regl1, regh1,
-     & ncomp)
-      integer regl0, regh0, regl1, regh1
-      double precision v(*)
-      double precision x
-      integer ncomp
-      integer nvals, i
-      nvals = (regh0-regl0+1) * (regh1-regl1+1) * ncomp
-      do 10 i = 1, nvals
- 10      v(i) = x
-      end
-
-c Works for CELL- or NODE-based data.
-      subroutine fplusu(v0, v1,
-     & regl0, regh0, regl1, regh1)
-      integer regl0, regh0, regl1, regh1
-      double precision v0(*)
-      double precision v1(*)
-      integer i
-      do 10 i = 1, (regh0 - regl0 + 1) * (regh1 - regl1 + 1)
- 10      v0(i) = v0(i) + v1(i)
       end
 c-----------------------------------------------------------------------
 c Works for CELL-based data.
