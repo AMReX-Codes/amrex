@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.72 2004-06-15 19:24:16 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.73 2004-07-22 17:33:12 car Exp $
 #
 
 #
@@ -41,7 +41,9 @@ ifeq ($(findstring yukon, $(UNAMEN)), yukon)
 endif
 endif
 endif
-
+ifeq ($(findstring crayx1, $(UNAMEM)), crayx1)
+    MACHINE := CRAYX1
+endif
 UNAMES := $(shell uname -s)
 ifeq ($(findstring SUPER-UX, $(UNAMES)), SUPER-UX)
     # We use this name so we can define a CPP macro, BL_SUPERUX
