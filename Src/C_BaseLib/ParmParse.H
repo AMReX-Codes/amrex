@@ -1,12 +1,13 @@
 #ifndef BL_PARMPARSE_H
 #define BL_PARMPARSE_H
 //
-// $Id: ParmParse.H,v 1.23 2001-08-06 19:39:59 car Exp $
+// $Id: ParmParse.H,v 1.24 2001-08-11 20:45:55 car Exp $
 //
 #include <stack>
 #include <string>
 #include <iosfwd>
 #include <vector>
+#include <list>
 
 //
 // ParmParse class implements a simple database for the storage and
@@ -237,6 +238,7 @@ class ParmParse
 {
 public:
     class Frame;
+    class Record;
 
     enum { LAST = -1, FIRST = 0, ALL = -1 };
 
@@ -263,12 +265,16 @@ public:
     /*@ManDoc: Returns the number of times the given name (prepended with
                prefix) appears in the table.
     */
-    int countname (const char* name) const;
-
-    /*@ManDoc: Returns the number of times the given name (prepended with
-               prefix) appears in the table.
-    */
     int countname (const std::string& name) const;
+
+    /** Returns the number of records of the given name (prepended with prefix) appears
+	in the table
+    */
+    int countRecords (const std::string& name) const;
+
+    /// Returns the nth record of the given name, or zero if none found.
+    Record getRecord (const std::string& name, int n = LAST) const;
+
     //
     //@ManDoc: Write the contents of the table in ASCII to the ostream.
     //
@@ -780,8 +786,13 @@ public:
     */
     static void Finalize();
 
+    /* publicly needed helpers */
+    struct PP_entry;
+    typedef std::list<PP_entry> Table;
 private:
     friend class Frame;
+    friend class Record;
+    explicit ParmParse (const Table& tbl);
     /// Set/Get the prefix.
     std::string getPrefix() const;
     std::string setPrefix(const std::string& str);
@@ -791,7 +802,8 @@ private:
     //
     // Prefix used in keyword search.
     //
-    std::stack<std::string> pstack;
+    std::stack<std::string> m_pstack;
+    const Table& m_table;
 };
 
 class ParmParse::Frame
@@ -805,6 +817,16 @@ public:
 private:
     ParmParse& m_pp;
     int m_np;
+};
+
+class ParmParse::Record
+{
+public:
+    const ParmParse* operator->() const;
+private:
+    friend class ParmParse;
+    explicit Record (const ParmParse& pp);
+    ParmParse m_pp;
 };
 
 #endif /*BL_PARMPARSE_H*/
