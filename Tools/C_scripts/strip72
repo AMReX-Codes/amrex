@@ -1,5 +1,5 @@
 #!/usr/local/gnu/bin/perl
-# "$Id: strip72,v 1.1 1997-09-15 22:24:10 lijewski Exp $"
+# "$Id: strip72,v 1.2 1997-09-18 23:34:18 lijewski Exp $"
 # -------------------------------------------------------------------------
 # This PERL script will act as a filter for FORTRAN code.
 # It will:
@@ -347,7 +347,7 @@ sub chop_line {
       $mx_len = 70 - $i_len;       # num allowed char after indent
    }
 
-   if ($line_no > 9) {
+   if ($line_no > 19) {
       warn "$0: produced $line_no continuation lines\n";
    }
 }
