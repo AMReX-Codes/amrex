@@ -583,7 +583,9 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
     while (tol > 0.0) 
     {
 	if (++i > 250 && pcode >= 2  && ParallelDescriptor::IOProcessor())
-	    cout << "Conjugate-gradient iteration failed to converge" << endl;
+	{
+	    BoxLib::Error("Conjugate-gradient iteration failed to converge");
+	}
 	Real rho_old = rho;
 	// safe to set the clear flag to 0 here---bogus values make it
 	// into r but are cleared from z by the mask in c

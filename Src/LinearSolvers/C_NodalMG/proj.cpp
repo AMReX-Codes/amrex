@@ -16,19 +16,6 @@ using namespace std;
 #include <fstream.h>
 #endif
 
-#if (BL_SPACEDIM == 2)
-/*
-Real fct(const IntVect& it, const IntVect& t, int sig, int)
-{
-Real x, y;
-real_coords(it, t, sig, x, y);
-//return 1.0 + x;
-return 1.0 + y*y*(1-y)*(1-y);
-//return 1.0 + x*x*(2-x)*(2-x);
-}
-*/
-#endif
-
 void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain);
 
 void driver(const char* filename);
@@ -78,7 +65,6 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m,
 	u[0][ilev].setVal(0.0);
 	u[1][ilev].setVal(0.0);
     }
-    //u[0].initialize(fct);
     if (m.length() == 1) 
     {
 	for (int igrid = 0; igrid < m[0].length(); igrid++) 
@@ -135,7 +121,6 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m,
     //u[1][1][0](IntVect(30,31)) = -1.0;
     for (int ilev = 0; ilev < p.length(); ilev++)
 	p[ilev].setVal(0.0);
-    //p.initialize(fct);
 #else
     for (int ilev = 0; ilev < m.length(); ilev++) 
     {
@@ -272,14 +257,14 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
 #if (BL_SPACEDIM == 2)
     //bc[0][0] = inflow;
     //bc[0][1] = outflow;
-    //bc[0][0] = periodic;
-    //bc[0][1] = periodic;
-    bc[0][0] = refWall;
-    bc[0][1] = refWall;
-    //bc[1][0] = periodic;
-    //bc[1][1] = periodic;
-    bc[1][0] = refWall;
-    bc[1][1] = refWall;
+    bc[0][0] = periodic;
+    bc[0][1] = periodic;
+    //bc[0][0] = refWall;
+    //bc[0][1] = refWall;
+    bc[1][0] = periodic;
+    bc[1][1] = periodic;
+    //bc[1][0] = refWall;
+    //bc[1][1] = refWall;
     //bc[1][0] = inflow;
     //bc[1][1] = outflow;
 #else
@@ -473,7 +458,7 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
     inviscid_fluid_boundary_class afb(bc);
     holy_grail_amr_projector proj(m, ratio, domain[m.length() - 1], 0, m.length() - 1, m.length() - 1, afb, false, true, false, pcode);
 #if (BL_SPACEDIM == 2)
-    if (!hg_terrain)
+    if (false && !hg_terrain)
     {
 	rz_adj(u, rhs, rhoinv, m, domain);
 	proj.SetRZ();
