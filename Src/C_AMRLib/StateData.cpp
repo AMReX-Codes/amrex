@@ -1,6 +1,6 @@
 
 //
-// $Id: StateData.cpp,v 1.38 2002-11-09 02:15:52 lijewski Exp $
+// $Id: StateData.cpp,v 1.39 2003-01-22 22:39:44 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -416,13 +416,42 @@ StateData::FillBoundary (FArrayBox&     dest,
     {
         xlo[i] = problo[i] + dx[i]*(dlo[i]-plo[i]);
     }
-    for (int i = 0; i < num_comp; i++)
+    for (int i = 0; i < num_comp; )
     {
         const int dc  = dest_comp+i;
         const int sc  = src_comp+i;
         Real*     dat = dest.dataPtr(dc);
-        BoxLib::setBC(bx,domain,desc->getBC(sc),bcr);
-        desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcr.vect());
+
+        if (desc->master(sc))
+        {
+            int groupsize = desc->groupsize(sc);
+
+            BL_ASSERT(groupsize != 0);
+
+            int* bcrs = new int[2*BL_SPACEDIM*groupsize];
+            int* bci  = bcrs;
+
+            for (int j = 0; j < groupsize; j++)
+            {
+                BoxLib::setBC(bx,domain,desc->getBC(sc+j),bcr);
+                const int* bc = bcr.vect();
+                for (int k = 0; k < 2*BL_SPACEDIM; k++)
+                {
+                    bci[k] = bc[k];
+                }
+                bci += 2*BL_SPACEDIM;
+            }
+
+            desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcrs);
+
+            i += groupsize;
+        }
+        else
+        {
+            BoxLib::setBC(bx,domain,desc->getBC(sc),bcr);
+            desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcr.vect());
+            i++;
+        }
     }
 }
 

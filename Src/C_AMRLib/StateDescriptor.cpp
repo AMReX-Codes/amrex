@@ -1,5 +1,5 @@
 //
-// $Id: StateDescriptor.cpp,v 1.16 2001-08-09 16:20:37 marc Exp $
+// $Id: StateDescriptor.cpp,v 1.17 2003-01-22 22:39:44 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -13,11 +13,13 @@
 
 StateDescriptor::BndryFunc::BndryFunc ()
     :
-    m_func(0) {}
+    m_func(0)
+{}
 
 StateDescriptor::BndryFunc::BndryFunc (BndryFuncDefault inFunc)
     :
-    m_func(inFunc) {}
+    m_func(inFunc)
+{}
 
 StateDescriptor::BndryFunc*
 StateDescriptor::BndryFunc::clone () const
@@ -28,8 +30,7 @@ StateDescriptor::BndryFunc::clone () const
 StateDescriptor::BndryFunc::~BndryFunc () {}
 
 void
-StateDescriptor::BndryFunc::operator () (Real* data, const int* lo,
-                                         const int* hi,
+StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
                                          const int* dom_lo, const int* dom_hi,
                                          const Real* dx, const Real* grd_lo,
                                          const Real* time, const int* bc) const
@@ -75,8 +76,23 @@ DescriptorList::setComponent (int                               indx,
                               int                               max_map_start_comp,
                               int                               min_map_end_comp)
 {
-    desc[indx].setComponent(comp,nm,bc,func,interp,max_map_start_comp,
-                            min_map_end_comp);
+    desc[indx].setComponent(comp,nm,bc,func,interp,max_map_start_comp,min_map_end_comp);
+}
+
+void
+DescriptorList::setComponent (int                               indx,
+                              int                               comp,
+                              const Array<std::string>&         nm,
+                              const Array<BCRec>&               bc,
+                              const StateDescriptor::BndryFunc& func,
+                              Interpolater*                     interp)
+{
+    for (int i = 0; i < nm.size(); i++)
+    {
+        const bool master = (i == 0) ? true : false;
+
+        desc[indx].setComponent(comp+i,nm[i],bc[i],func,interp,master,nm.size());
+    }
 }
 
 const StateDescriptor&
@@ -96,8 +112,7 @@ DescriptorList::addDescriptor (int                         indx,
 {
     if (indx >= desc.size())
         desc.resize(indx+1);
-    desc.set(indx,
-             new StateDescriptor(typ,ttyp,indx,nextra,num_comp,interp,extrap));
+    desc.set(indx,new StateDescriptor(typ,ttyp,indx,nextra,num_comp,interp,extrap));
 }  
 
 StateDescriptor::StateDescriptor ()
@@ -134,6 +149,8 @@ StateDescriptor::StateDescriptor (IndexType                   btyp,
     bc.resize(num_comp);
     bc_func.resize(num_comp);
     mapper_comp.resize(num_comp);
+    m_master.resize(num_comp);
+    m_groupsize.resize(num_comp);
     max_map_start_comp.resize(num_comp);
     min_map_end_comp.resize(num_comp);
 }
@@ -250,6 +267,8 @@ StateDescriptor::define (IndexType                   btyp,
     bc.resize(num_comp);
     bc_func.resize(num_comp);
     mapper_comp.resize(num_comp);
+    m_master.resize(num_comp);
+    m_groupsize.resize(num_comp);
     max_map_start_comp.resize(num_comp);
     min_map_end_comp.resize(num_comp);
 }
@@ -268,6 +287,8 @@ StateDescriptor::setComponent (int                               comp,
     bc_func.set(comp,func.clone());
     bc[comp]          = bcr;
     mapper_comp[comp] = interp;
+    m_master[comp]    = false;
+    m_groupsize[comp] = 0;
 
     if (max_map_start_comp_>=0 && min_map_end_comp_>=0)
     {
@@ -282,6 +303,22 @@ StateDescriptor::setComponent (int                               comp,
         max_map_start_comp[comp] = comp;
         min_map_end_comp[comp]   = comp;
     }
+}
+
+
+void
+StateDescriptor::setComponent (int                               comp,
+                               const std::string&                nm,
+                               const BCRec&                      bcr,
+                               const StateDescriptor::BndryFunc& func,
+                               Interpolater*                     interp,
+                               bool                              master,
+                               int                               groupsize)
+{
+    setComponent(comp,nm,bcr,func,interp,-1,-1);
+
+    m_master[comp]    = master;
+    m_groupsize[comp] = groupsize;
 }
 
 void
