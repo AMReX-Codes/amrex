@@ -59,6 +59,11 @@ using ::size_t;
 }
 #endif
 
+#if defined( BL_CRAYX1 )
+#include <climits>
+#include <cmath>
+#endif
+
 #if defined( BL_SUPERUX)
 namespace std
 {
