@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.31 1998-05-22 22:08:41 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.32 1998-06-09 23:04:48 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -22,6 +22,7 @@
 #include <Derive.H>
 #include <BoxDomain.H>
 #include <ParallelDescriptor.H>
+#include <RunStats.H>
 #include <Utility.H>
 
 DescriptorList AmrLevel::desc_lst;
@@ -327,6 +328,8 @@ FillPatchIterator::Initialize (int           boxGrow,
                                int           ncomp,
                                Interpolater* mapper)
 {
+    RunStats fill_patch_stats("fill_patch", amrLevel.Level());
+    fill_patch_stats.start();
     //
     // This function sets up and performs the communication pattern for
     // filling fabs of size levelData[i].box().grow(boxGrow) from amrlevel's
@@ -340,9 +343,9 @@ FillPatchIterator::Initialize (int           boxGrow,
     nComp      = ncomp;
     interpTime = time;
 
-    int myproc = ParallelDescriptor::MyProc();
+    const int MyProc = ParallelDescriptor::MyProc();
     int currentLevel;
-    PArray<AmrLevel> &amrLevels = amrLevel.parent->getAmrLevels();
+    PArray<AmrLevel>& amrLevels = amrLevel.parent->getAmrLevels();
     cumulativeRefRatios.resize(amrLevel.level + 1);
     map.resize(amrLevel.level + 1);
 
@@ -370,7 +373,7 @@ FillPatchIterator::Initialize (int           boxGrow,
     savedFineBox.resize(levelData.boxArray().length());
     for (int iLocal = 0; iLocal < localMFBoxes.length(); ++iLocal)
     {
-        if (levelData.DistributionMap().ProcessorMap()[iLocal] == myproc)
+        if (levelData.DistributionMap().ProcessorMap()[iLocal] == MyProc)
         {
             //
             // Local.
@@ -390,7 +393,7 @@ FillPatchIterator::Initialize (int           boxGrow,
     //
     for (int ibox = 0; ibox < localMFBoxes.length(); ++ibox)
     {
-        if (levelData.DistributionMap().ProcessorMap()[ibox] != myproc)
+        if (levelData.DistributionMap().ProcessorMap()[ibox] != MyProc)
             continue;  // Not local.
 
         unfilledBoxesOnThisLevel.clear();
@@ -516,6 +519,8 @@ FillPatchIterator::Initialize (int           boxGrow,
     multiFabCopyDesc.CollectData();
 
     bIsInitialized = true;
+
+    fill_patch_stats.end();
 }
 
 bool
@@ -535,8 +540,12 @@ FillPatchIterator::isValid (bool bDoSync)
         //
         return false; // (if bDoSync == true)
 
-    int myproc = ParallelDescriptor::MyProc();
-    PArray<AmrLevel> &amrLevels = amrLevel.parent->getAmrLevels();
+    RunStats fill_patch_stats("fill_patch", amrLevel.Level());
+    fill_patch_stats.start();
+
+    const int MyProc = ParallelDescriptor::MyProc();
+
+    PArray<AmrLevel>& amrLevels = amrLevel.parent->getAmrLevels();
 
     Box destBox(validbox());
     destBox.grow(growSize);
@@ -661,14 +670,20 @@ FillPatchIterator::isValid (bool bDoSync)
     // Do non-periodic BCs on the finest level.
     //
     StateData& currentState = amrLevel.state[stateIndex];
-    const Box& p_domain = amrLevel.state[stateIndex].getDomain();
+    const Box& p_domain     = amrLevel.state[stateIndex].getDomain();
     if (!p_domain.contains(destBox))
     {
-        const Real* dx = amrLevel.geom.CellSize();
+        const Real* dx                = amrLevel.geom.CellSize();
         const RealBox& realProbDomain = amrLevel.geom.ProbDomain();
-        currentState.FillBoundary(currentFillPatchedFab, interpTime, dx,
-                                  realProbDomain, destComp, srcComp, nComp);
+        currentState.FillBoundary(currentFillPatchedFab,
+                                  interpTime,
+                                  dx,
+                                  realProbDomain,
+                                  destComp,
+                                  srcComp,
+                                  nComp);
     }
+    fill_patch_stats.end();
 
     return true;
 }
@@ -700,7 +715,7 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
     // state data, possibly interpolating between the new and old data
     // the fill is done from this level and, if necessary, coarser levels.
     //
-    int myproc = ParallelDescriptor::MyProc();
+    const int MyProc = ParallelDescriptor::MyProc();
     int currentLevel;
     PArray<AmrLevel> &amrLevels = amrLevel.parent->getAmrLevels();
     map.resize(amrLevel.level + 1);
@@ -721,7 +736,7 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
     savedFineBox.resize(levelData.boxArray().length());
     for (int iLocal = 0; iLocal < localMFBoxes.length(); ++iLocal)
     {
-        if (levelData.DistributionMap().ProcessorMap()[iLocal] == myproc)
+        if (levelData.DistributionMap().ProcessorMap()[iLocal] == MyProc)
         {
             //
             // Local.
@@ -740,7 +755,7 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
     //
     for (int ibox = 0; ibox < localMFBoxes.length(); ++ibox)
     {
-        if (levelData.DistributionMap().ProcessorMap()[ibox] != myproc)
+        if (levelData.DistributionMap().ProcessorMap()[ibox] != MyProc)
             continue;  // Not local.
 
         unfilledBoxOnThisLevel = localMFBoxes[ibox] &
@@ -816,8 +831,9 @@ FillPatchIterator::isValid (bool bDoSync)
         //
         return false; // (if bDoSync == true)
 
-    int myproc = ParallelDescriptor::MyProc();
-    PArray<AmrLevel> &amrLevels = amrLevel.parent->getAmrLevels();
+    const int MyProc = ParallelDescriptor::MyProc();
+
+    PArray<AmrLevel>& amrLevels = amrLevel.parent->getAmrLevels();
 
     Box destBox(box());
     destBox.grow(growSize);
