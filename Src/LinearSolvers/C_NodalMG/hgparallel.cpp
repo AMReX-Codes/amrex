@@ -79,13 +79,11 @@ void task_copy::hint() const
     {
     	debug_out << "R";
     }
-    debug_out << " ";
-    debug_out << "0x" << hex << m_sno << dec << " ";
-    debug_out << m_bx << " ";
-    debug_out << m_dgrid << " ";
-    debug_out << s_bx << " ";
-    debug_out << m_sgrid << " ";
-    debug_out << endl;
+    debug_out << ' ';
+    debug_out << m_sno << ' ';
+    debug_out << m_bx  << ' ' << m_dgrid << ' ';
+    debug_out << s_bx  << ' ' << m_sgrid << ' ';
+    debug_out << '\n';
 }
 
 bool task_copy::ready()
