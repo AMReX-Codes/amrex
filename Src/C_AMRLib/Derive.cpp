@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Derive.cpp,v 1.9 1998-03-23 21:03:18 lijewski Exp $
+// $Id: Derive.cpp,v 1.10 1998-03-27 00:06:39 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -17,7 +17,6 @@ DeriveRec::DeriveRec (const aString& name,
                       int            nvar_derive,
                       DeriveFunc     der_func,
                       DeriveBoxMap   box_map,
-                      IndexType      component_type,
                       Interpolater*  interp)
     :
     derive_name(name),
@@ -25,7 +24,6 @@ DeriveRec::DeriveRec (const aString& name,
     n_derive(nvar_derive),
     func(der_func),
     mapper(interp),
-    rng_type(component_type),
     bx_map(box_map),
     n_state(0),
     nsr(0),
@@ -54,8 +52,6 @@ DeriveRec::addRange (const DescriptorList& d_list,
                      int                   num_comp) 
 {
     const StateDescriptor& d = d_list[state_indx];
-
-    assert(d.getType() == rng_type);
 
     StateRange* r = new StateRange;
 

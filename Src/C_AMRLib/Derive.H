@@ -4,7 +4,7 @@
 #define _Derive_H_
 
 //
-// $Id: Derive.H,v 1.8 1998-03-23 21:03:17 lijewski Exp $
+// $Id: Derive.H,v 1.9 1998-03-27 00:06:39 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -54,8 +54,6 @@ public:
 
     Interpolater* interp () const { return mapper; }
 
-    IndexType rangeType () const { return rng_type; }
-
     int numDerive () const { return n_derive; }
 
     int numRange () const { return nsr; }
@@ -77,7 +75,6 @@ protected:
                int            nvar_derive,
                DeriveFunc     der_func,
                DeriveBoxMap   box_map,
-               IndexType      component_type,
                Interpolater*  interp = &pc_interp);
 
     void addRange (const DescriptorList& d_list,
@@ -116,10 +113,6 @@ protected:
     // Interpolater for mapping crse grid derived data to finer levels.
     //
     Interpolater* mapper;
-    //
-    // Type of constituent quantities.
-    //
-    IndexType rng_type;
     //
     // Box mapper that specifies constituent region given derived region.
     //
@@ -170,7 +163,6 @@ public:
               int            nvar_derive,
               DeriveFunc     der_func,
               DeriveBoxMap   box_map,
-              IndexType      component_type,
               Interpolater*  interp = &pc_interp)
     {
         lst.add(DeriveRec(name,
@@ -178,7 +170,6 @@ public:
                           nvar_derive,
                           der_func,
                           box_map,
-                          component_type,
                           interp));
     }
     //
