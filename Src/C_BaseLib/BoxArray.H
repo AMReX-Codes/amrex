@@ -1,7 +1,7 @@
 #ifndef BL_BOXARRAY_H
 #define BL_BOXARRAY_H
 //
-// $Id: BoxArray.H,v 1.29 2001-08-01 20:24:21 lijewski Exp $
+// $Id: BoxArray.H,v 1.30 2001-08-06 19:40:27 car Exp $
 //
 #include <cstddef>
 
@@ -54,6 +54,10 @@ public:
     //@ManDoc: Construct an empty BoxArray.
     //
     BoxArray ();
+    //
+    /// Make a boxarray out of a single box
+    //
+    BoxArray (const Box& bx);
     //
     //@ManDoc: Construct a BoxArray of the specified size.
     //

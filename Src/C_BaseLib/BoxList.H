@@ -1,7 +1,7 @@
 #ifndef BL_BOXLIST_H
 #define BL_BOXLIST_H
 //
-// $Id: BoxList.H,v 1.29 2001-08-02 16:01:43 car Exp $
+// $Id: BoxList.H,v 1.30 2001-08-06 19:40:27 car Exp $
 //
 #include <iosfwd>
 #include <list>
@@ -79,6 +79,10 @@ public:
     //@ManDoc: Construct an empty BoxList with IndexType::TheCellType().
     //
     BoxList ();
+    //
+    /// Make a boxList consisting of a single Box
+    //
+    BoxList (const Box& bx);
     //
     //@ManDoc: Construct an empty BoxList with IndexType btyp
     //

@@ -1,5 +1,5 @@
 //
-// $Id: BoxList.cpp,v 1.25 2001-08-02 16:01:43 car Exp $
+// $Id: BoxList.cpp,v 1.26 2001-08-06 19:40:27 car Exp $
 //
 #include <winstd.H>
 
@@ -100,6 +100,12 @@ BoxList::BoxList ()
     lbox(),
     btype(IndexType::TheCellType())
 {}
+
+BoxList::BoxList (const Box& bx)
+    : btype(bx.ixType())
+{
+    push_back(bx);
+}
 
 BoxList::BoxList (IndexType _btype)
     :
