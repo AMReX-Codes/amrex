@@ -1,6 +1,6 @@
 
 //
-// $Id: FabConv.cpp,v 1.10 2000-10-02 20:52:35 lijewski Exp $
+// $Id: FabConv.cpp,v 1.11 2001-04-24 19:42:19 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -546,7 +546,7 @@ PD_fconvert (void*       out,
     expn_max  = (1L << outfor[1]) - 1L;
 
     size_t number = size_t(nitems);
-    BL_ASSERT(number == nitems);
+    BL_ASSERT(int(number) == nitems);
     memset(out, 0, number*outbytes);
 
     lout = (char*)out;
@@ -992,7 +992,7 @@ PD_convert (void*                 out,
     if (od == id && boffs == 0)
     {
         size_t n = size_t(nitems);
-        BL_ASSERT(n == nitems);
+        BL_ASSERT(int(n) == nitems);
         memcpy(out, in, n*od.numBytes());
     }
     else if (od.formatarray() == id.formatarray() && boffs == 0 && !onescmp)

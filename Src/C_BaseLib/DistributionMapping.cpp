@@ -1,5 +1,5 @@
 //
-// $Id: DistributionMapping.cpp,v 1.46 2001-04-19 22:25:27 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.47 2001-04-24 19:42:19 car Exp $
 //
 
 #include <DistributionMapping.H>
@@ -228,7 +228,7 @@ DistributionMapping::AddToCache (const DistributionMapping& dm)
     {
         BL_ASSERT(pmap[pmap.length()-1] == ParallelDescriptor::MyProc());
 
-        for (int i = 0; i < m_Cache.size() && doit; i++)
+        for (unsigned int i = 0; i < m_Cache.size() && doit; i++)
         {
             if (pmap.length() == m_Cache[i].length())
             {
@@ -334,7 +334,7 @@ knapsack (const vector<long>& pts, int nprocs)
 
     vector<WeightedBox> lb;
     lb.reserve(pts.size());
-    for (int i = 0; i < pts.size(); ++i)
+    for (unsigned int i = 0; i < pts.size(); ++i)
     {
         lb.push_back(WeightedBox(i, pts[i]));
     }
@@ -349,22 +349,22 @@ knapsack (const vector<long>& pts, int nprocs)
     {
         wblq.push(WeightedBoxList());
     }
-    BL_ASSERT(wblq.size() == nprocs);
-    for (int i = 0; i < pts.size(); ++i)
+    BL_ASSERT(int(wblq.size()) == nprocs);
+    for (unsigned int i = 0; i < pts.size(); ++i)
     {
         WeightedBoxList wbl = wblq.top();
         wblq.pop();
         wbl.push_back(lb[i]);
         wblq.push(wbl);
     }
-    BL_ASSERT(wblq.size() == nprocs);
+    BL_ASSERT(int(wblq.size()) == nprocs);
     list<WeightedBoxList> wblqg;
     while (!wblq.empty())
     {
         wblqg.push_back(wblq.top());
         wblq.pop();
     }
-    BL_ASSERT(wblqg.size() == nprocs);
+    BL_ASSERT(int(wblqg.size()) == nprocs);
     wblqg.sort();
     //
     // Compute the max weight and the sum of the weights.
@@ -465,7 +465,7 @@ DistributionMapping::KnapSackProcessorMap (const vector<long>& pts, int nprocs)
     BL_ASSERT(pts.size() > 0);
     m_procmap.resize(pts.size()+1);
 
-    if (pts.size() <= nprocs || nprocs < 2)
+    if (int(pts.size()) <= nprocs || nprocs < 2)
     {
         RoundRobinProcessorMap(pts.size(),nprocs);
     }
@@ -474,11 +474,11 @@ DistributionMapping::KnapSackProcessorMap (const vector<long>& pts, int nprocs)
 #ifdef BL_USE_MPI
         vector< list<int> > vec = knapsack(pts,nprocs);
 
-        BL_ASSERT(vec.size() == nprocs);
+        BL_ASSERT(int(vec.size()) == nprocs);
 
         list<int>::iterator lit;
 
-        for (int i = 0; i < vec.size(); i++)
+        for (unsigned int i = 0; i < vec.size(); i++)
         {
             for (lit = vec[i].begin(); lit != vec[i].end(); ++lit)
             {
@@ -510,16 +510,16 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes, int nprocs)
 #ifdef BL_USE_MPI
         vector<long> pts(boxes.length());
 
-        for (int i = 0; i < pts.size(); i++)
+        for (unsigned int i = 0; i < pts.size(); i++)
             pts[i] = boxes[i].numPts();
 
         vector< list<int> > vec = knapsack(pts,nprocs);
 
-        BL_ASSERT(vec.size() == nprocs);
+        BL_ASSERT(int(vec.size()) == nprocs);
 
         list<int>::iterator lit;
 
-        for (int i = 0; i < vec.size(); i++)
+        for (unsigned int i = 0; i < vec.size(); i++)
         {
             for (lit = vec[i].begin(); lit != vec[i].end(); ++lit)
             {
@@ -545,7 +545,7 @@ DistributionMapping::CacheStats (ostream& os)
 
     if (!DistributionMapping::m_Cache.empty())
     {
-        for (int i = 0; i < m_Cache.size(); i++)
+        for (unsigned int i = 0; i < m_Cache.size(); i++)
         {
             os << "\tMap #"
                << i

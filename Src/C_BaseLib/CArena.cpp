@@ -1,6 +1,6 @@
 
 //
-// $Id: CArena.cpp,v 1.21 2000-10-02 20:52:34 lijewski Exp $
+// $Id: CArena.cpp,v 1.22 2001-04-24 19:42:19 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -78,7 +78,7 @@ CArena::CArena (size_t hunk_size)
 
 CArena::~CArena ()
 {
-    for (int i = 0; i < m_alloc.size(); i++)
+    for (unsigned int i = 0; i < m_alloc.size(); i++)
         ::operator delete(m_alloc[i]);
 }
 

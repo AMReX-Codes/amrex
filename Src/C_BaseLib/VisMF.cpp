@@ -1,6 +1,6 @@
 
 //
-// $Id: VisMF.cpp,v 1.72 2001-04-19 22:25:27 lijewski Exp $
+// $Id: VisMF.cpp,v 1.73 2001-04-24 19:42:20 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -339,7 +339,6 @@ VisMF::Header::Header (const MultiFab& mf,
     // We pass this data back to IOProcessor() so it sees the whole Header.
     //
     const int SeqNo  = ParallelDescriptor::SeqNum();
-    const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
