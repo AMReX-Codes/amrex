@@ -5,7 +5,7 @@
 task_copy::task_copy(MultiFab& mf, int dgrid, const MultiFab& smf, int sgrid, const Box& bx)
 : m_mf(mf), m_dgrid(dgrid), m_smf(smf), m_sgrid(sgrid), m_bx(bx), s_bx(bx), m_local(false)
 #ifdef BL_USE_MPI
-, tmp(0)
+, tmp(0), m_request(MPI_REQUEST_NULL)
 #endif
 {
 }
@@ -13,7 +13,7 @@ task_copy::task_copy(MultiFab& mf, int dgrid, const MultiFab& smf, int sgrid, co
 task_copy::task_copy(MultiFab& mf, int dgrid, const Box& db, const MultiFab& smf, int sgrid, const Box& sb)
 : m_mf(mf), m_bx(db), m_dgrid(dgrid), m_smf(smf), s_bx(sb), m_sgrid(sgrid), m_local(false)
 #ifdef BL_USE_MPI
-, tmp(0)
+, tmp(0), m_request(MPI_REQUEST_NULL)
 #endif
 {
 }
@@ -23,11 +23,14 @@ task_copy::~task_copy()
 {
 #ifdef BL_USE_MPI
     delete tmp;
+    assert( m_request == MPI_REQUEST_NULL);
 #endif
 }
 
 bool task_copy::init(sequence_number sno, MPI_Comm comm)
 {
+    m_sno = sno;
+    assert( s_bx.numPts() == m_bx.numPts() );
 #ifdef BL_USE_MPI
     if ( is_local(m_mf, m_dgrid) && is_local(m_smf, m_sgrid) )
     {
@@ -35,18 +38,20 @@ bool task_copy::init(sequence_number sno, MPI_Comm comm)
     }
     else if ( is_local(m_mf, m_dgrid) )
     {
-	tmp = new FArrayBox(s_bx, m_mf.nComp());
-	int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), sno, comm, &m_request);
+	tmp = new FArrayBox(m_bx, m_mf.nComp());
+	int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, comm, &m_request);
 	if ( res != 0 )
 	    BoxLib::Error("Failed MPI_Irecv");
+	assert( m_request != MPI_REQUEST_NULL );
     }
     else if ( is_local(m_smf, m_sgrid) ) 
     {
 	tmp = new FArrayBox(s_bx, m_mf.nComp());
 	tmp->copy(m_smf[m_sgrid], s_bx);
-	int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_mf,  m_dgrid), sno, comm, &m_request);
+	int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_mf,  m_dgrid), m_sno, comm, &m_request);
 	if ( res != 0 )
 	    BoxLib::Error("Failed MPI_Isend");
+	assert( m_request != MPI_REQUEST_NULL );
     }
     else
     {
@@ -62,7 +67,20 @@ bool task_copy::init(sequence_number sno, MPI_Comm comm)
 void task_copy::hint() const
 {
     debug_out << "task_copy : ";
-    debug_out << m_local << " ";
+    if ( m_local )
+    {
+	debug_out << "L";
+    }
+    else if ( is_local(m_smf, m_sgrid) )
+    {
+	debug_out << "S";
+    }
+    else
+    {
+    	debug_out << "R";
+    }
+    debug_out << " ";
+    debug_out << "0x" << hex << m_sno << dec << " ";
     debug_out << m_bx << " ";
     debug_out << m_dgrid << " ";
     debug_out << s_bx << " ";
@@ -86,7 +104,12 @@ bool task_copy::ready()
     if ( flag )
     {
 	if ( is_local(m_mf, m_dgrid) )
-	    m_mf[m_dgrid].copy(*tmp, s_bx, 0, m_bx, 0, m_mf.nComp());
+	{
+	    int count;
+	    MPI_Get_count(&status, MPI_DOUBLE, &count);
+	    assert(count == tmp->box().numPts()*tmp->nComp());
+	    m_mf[m_dgrid].copy(*tmp, m_bx, 0, m_bx, 0, m_mf.nComp());
+	}
 	return true;
     }
     return false;
