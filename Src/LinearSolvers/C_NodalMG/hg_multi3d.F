@@ -1566,6 +1566,9 @@ c CELL-based data only.
       double precision srcy(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       double precision srcz(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       integer i, j, k, i2, j2, k2
+      if (ir .ne. 2 .and. jr .ne. 2 .and. kr .ne. 2) then
+          stop "this can't happen"
+      endif
       if (ir .eq. 2 .and. jr .eq. 2 .and. kr .eq. 2) then
          do k = regl2, regh2
             do j = regl1, regh1

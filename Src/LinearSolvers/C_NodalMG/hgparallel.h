@@ -218,72 +218,20 @@ private:
 class task_fec_base : public task
 {
 public:
-    task_fec_base(const list<int>& tll_, const Box& freg_, MultiFab& s_, int igrid_)
-	: tll(tll_), freg(freg_), s(s_), igrid(igrid_)
-    {
-    }
-    task_fec_base( MultiFab& s_, int igrid_)
-	: s(s_), igrid(igrid_)
-    {
-    }
-    virtual ~task_fec_base()
-    {
-	for( vector<task_fab*>::iterator tfi = tfvect.begin(); tfi != tfvect.end(); ++tfi)
-	{
-	    delete *tfi;
-	}
-    }
+    task_fec_base(const list<int>& tll_, const Box& freg_, MultiFab& s_, int igrid_);
+    task_fec_base( MultiFab& s_, int igrid_);
+    virtual ~task_fec_base();
 	
-    virtual bool init(sequence_number sno, MPI_Comm comm)
-    {
-	task::init(sno, comm);
-	bool result = is_local(s, igrid);
-	for(vector<task_fab*>::iterator tli = tfvect.begin(); tli != tfvect.end(); ++tli)
-	{
-	    bool tresult = (*tli)->init(sno, comm);
-	    result = tresult ||  result;
-	}
-	for ( list<int>::const_iterator tli = tll.begin(); tli != tll.end(); /*NOTHING*/ )
-	{
-	    bool tresult = is_local(s, *tli++);
-	    result = result || tresult;
-	}
-        return result;
-    }
-    virtual bool ready()
-    {
-	bool result = true;
-	for(vector<task_fab*>::iterator tfi = tfvect.begin(); tfi != tfvect.end(); ++tfi)
-	{
-	    bool tresult = (*tfi)->ready();
-	    result = tresult && result;
-	}
-	return result;
-    }
+    virtual bool init(sequence_number sno, MPI_Comm comm);
+    virtual bool ready();
     virtual bool recommit(list<task*>* tl);
 protected:
-    void push_back(task_fab* tf)
-    {
-	tfvect.push_back(tf);
-    }
-    bool is_local_target() const
-    {
-	return is_local(s, igrid);
-    }
-    FArrayBox& target_fab()
-    {
-	assert ( is_local_target() );
-	return s[igrid];
-    }
-    int grid_number() const
-    {
-	return igrid;
-    }
-    const FArrayBox& task_fab_result(int n)
-    {
-	assert ( n >= 0 && n < tfvect.size() );
-	return tfvect[n]->fab();
-    }
+    void push_back(task_fab* tf);
+    bool is_local_target() const;
+    FArrayBox& target_fab();
+    int grid_number() const;
+    const FArrayBox& task_fab_result(int n);
+    void clean_up();
 private:
     const list<int> tll;
     const Box freg;
