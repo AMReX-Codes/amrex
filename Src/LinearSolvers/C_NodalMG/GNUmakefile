@@ -8,6 +8,10 @@ COMP      = cxx
 COMP      = KCC
 
 
+USE_MPI=FALSE
+USE_MPI=TRUE
+
+
 EBASE=proj
 LBASE=
 
@@ -43,6 +47,16 @@ ifeq ($(MACHINE),Linux)
   LIBRARIES += $(LINUXLIBS)
 endif
 
+
+ifeq ($(USE_MPI), TRUE)
+DEFINES += -DBL_USE_MPI
+MPI_HOME = /usr/local/mpi
+INCLUDE_LOCATIONS += $(MPI_HOME)/include
+LIBRARY_LOCATIONS += $(MPI_HOME)/lib/alpha/ch_p4
+LIBRARIES += -lmpi
+endif
+
+
 #3RD = 1
 ifdef 3RD
 # FOR RUNNING 3RD ONLY
@@ -60,6 +74,5 @@ o/3d.OSF1.KCC/hg_multi3d_terrain.o: hg_multi3d_terrain.F
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	$(CPP) -DBL_LANG_FORT $(CPPFLAGS) $< | $(FORTPREP) > f/3d.OSF1.KCC/hg_multi3d_terrain.f
 	$(COMPILE.f) $(FEXEFLAGS) -O f/3d.OSF1.KCC/hg_multi3d_terrain.f $(FORT_OUTPUT_OPTION)
-
 
 include $(TOP)/mk/Make.rules

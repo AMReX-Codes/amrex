@@ -276,21 +276,20 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 			igrid = lev_interface.grid(0, icor, itmp);
 		    const Box& fb = fine[igrid].box();
 		    ref = &FORT_FANRST2;
-		    tfab = new task_get_fab(fine, igrid, fb);
+		    tfab = new task_fab_get(fine, igrid, fb);
 		    // FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fine[igrid].dataPtr(), DIMLIST(fb),
 		    //	D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
 		}
 		else if (geo == level_interface::ALL) 
 		{
 		    // fine grid on all sides
-		    const Box ff = refine(grow(cbox, 1), rat);
+		    const Box fb = refine(grow(cbox, 1), rat);
 		    // FArrayBox fgr(refine(grow(cbox, 1), rat), dest[jgrid].nComp());
 		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
-		    const Box& fb = fgr.box();
-		    tfab = new task_fill_patch(ff, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor);
+		    tfab = new task_fill_patch(fb, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor);
 		    ref = &FORT_FANRST2;
-		    FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fb),
-			D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
+		    // FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fb),
+		    //	D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
 		}
 		else if (geo == level_interface::XL || geo == level_interface::XH || geo == level_interface::YL || geo == level_interface::YH) 
 		{
@@ -363,8 +362,9 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		    const int idir1 = ((geo & level_interface::YL) == level_interface::YL) ? -1 : 1;
 		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
 		    tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor);
-		    FORT_FANIR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
-			D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, &idir0, &idir1);
+		    ref = &FORT_FANIR2;
+		    // FORT_FANIR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
+		   //	D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, &idir0, &idir1);
 		}
 		tl.add_task(new taskasdfasdfas);
 	    }

@@ -577,7 +577,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		const FArrayBox& sigmaf = cres_sf[lev][icor];
 		const FArrayBox& sigmac = cres_sc[lev][icor];
 		const Box& creg = cres_creg[lev][icor];
-		task_fab* cdst = newe task_fill_patch(cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure());
+		task_fab* cdst = new task_fill_patch(cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure());
 		Real* rptr = resid[mglev][igrid].dataPtr();
 		Real* sptr = source[lev][igrid].dataPtr();
 		const Box& fbox = dest[lev][igrid].box();
