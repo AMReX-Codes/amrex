@@ -33,7 +33,7 @@ void
 PrintUsage(int argc, char *argv[])
 {
     cout << "Usage: " << endl;
-    cout << argv[0] << "infile [options] \n\tOptions:" << endl;
+    cout << argv[0] << " infile [options] \n\tOptions:" << endl;
     cout << "\t   -ascii   \t[if set, dump ascii mfab to stdout]" << endl;
     cout << "\t   ngrow=<#>\t[number of grow cells to include in output]" << endl;
     cout << endl;
@@ -86,7 +86,7 @@ main (int   argc,
     pp.query("ngrow",ngrow);
     ngrow = Min(ngrow,mf.nGrow());
     
-    MultiFab tmp(mf.boxArray(),mf.nComp(),mf.nGrow(),Fab_allocate);
+    MultiFab tmp(mf.boxArray(),mf.nComp(),ngrow,Fab_allocate);
     MultiFab::Copy(tmp,mf,0,0,mf.nComp(),ngrow);
     if (ascii)
     {
@@ -98,5 +98,5 @@ main (int   argc,
         return true;
     }
     
-    return ArrayViewMultiFab(&mf);
+    return ArrayViewMultiFab(&tmp);
 }
