@@ -1,5 +1,5 @@
 //
-// $Id: Geometry.cpp,v 1.58 2001-08-15 19:23:55 lijewski Exp $
+// $Id: Geometry.cpp,v 1.59 2001-08-15 21:51:55 almgren Exp $
 //
 #include <winstd.H>
 
@@ -495,7 +495,7 @@ Geometry::Setup ()
     BL_ASSERT(prob_lo.size() == BL_SPACEDIM);
     prob_domain.setLo(prob_lo);
     prob_domain.setHi(prob_hi);
-    spherical_origin_fix = 0.;
+    spherical_origin_fix = 0;
     pp.query("spherical_origin_fix",spherical_origin_fix);
     //
     // Now get periodicity info.
