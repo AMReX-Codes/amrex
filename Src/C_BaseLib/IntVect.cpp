@@ -1,16 +1,11 @@
 //
-// $Id: IntVect.cpp,v 1.9 2001-07-18 23:07:07 lijewski Exp $
+// $Id: IntVect.cpp,v 1.10 2001-07-19 16:51:23 car Exp $
 //
 
 #include <BLassert.H>
 #include <BoxLib.H>
 #include <IntVect.H>
 #include <IndexType.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 const IntVect&
 IntVect::TheUnitVector ()
@@ -163,11 +158,11 @@ IntVect::lexGT (const IntVect& s) const
 #define LGT1 ((vect[0] == s[0]) && (vect[1] > s[1]))
 #define LGT2 ((vect[1] == s[1]) && (vect[2] > s[2]))
 #if   BL_SPACEDIM == 1
-   return LGT0;
+    return LGT0;
 #elif BL_SPACEDIM == 2
-   return LGT0 || LGT1;
+    return LGT0 || LGT1;
 #elif BL_SPACEDIM == 3
-   return LGT0 || (vect[0] == s[0] && ((vect[1] > s[1] || LGT2)));
+    return LGT0 || (vect[0] == s[0] && ((vect[1] > s[1] || LGT2)));
 #endif
 #undef LGT0
 #undef LGT1
@@ -348,57 +343,57 @@ IntVect::diagShift (int s)
 }
 
 IntVect
-operator+ (int            s,
-           const IntVect& p)
+BoxLib::operator+ (int            s,
+		   const IntVect& p)
 {
     return IntVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
 }
 
 IntVect
-operator- (int            s,
-           const IntVect& p)
+BoxLib::operator- (int            s,
+		   const IntVect& p)
 {
     return IntVect(D_DECL(s - p[0], s - p[1], s - p[2]));
 }
 
 IntVect
-operator* (int            s,
-           const IntVect& p)
+BoxLib::operator* (int            s,
+		   const IntVect& p)
 {
     return IntVect(D_DECL(s * p[0], s * p[1], s * p[2]));
 }
 
 IntVect
-scale (const IntVect& p,
-       int            s)
+BoxLib::scale (const IntVect& p,
+	       int            s)
 {
     return IntVect(D_DECL(s * p[0], s * p[1], s * p[2]));
 }
 
 IntVect
-diagShift (const IntVect &p, int s)
+BoxLib::diagShift (const IntVect &p, int s)
 {
     return IntVect(D_DECL(p[0] + s, p[1] + s, p[2] + s));
 }
 
 IntVect
-min (const IntVect& p1,
-     const IntVect& p2)
+BoxLib::min (const IntVect& p1,
+	     const IntVect& p2)
 {
     IntVect p(p1);
     return p.min(p2);
 }
 
 IntVect
-max (const IntVect& p1,
-     const IntVect& p2)
+BoxLib::max (const IntVect& p1,
+	     const IntVect& p2)
 {
     IntVect p(p1);
     return p.max(p2);
 }
 
 IntVect
-BASISV (int dir)
+BoxLib::BASISV (int dir)
 {
     BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM);
     IntVect tmp;
@@ -407,9 +402,9 @@ BASISV (int dir)
 }
 
 IntVect
-reflect (const IntVect& a,
-         int            ref_ix,
-         int            idir)
+BoxLib::reflect (const IntVect& a,
+		 int            ref_ix,
+		 int            idir)
 {
     BL_ASSERT(idir >= 0 && idir < BL_SPACEDIM);
     IntVect b(a);
@@ -418,8 +413,8 @@ reflect (const IntVect& a,
 }
 
 IntVect
-coarsen (const IntVect& p,
-         int            s)
+BoxLib::coarsen (const IntVect& p,
+		 int            s)
 {
     BL_ASSERT(s > 0);
     return IntVect(
@@ -429,16 +424,16 @@ coarsen (const IntVect& p,
 }
 
 IntVect
-coarsen (const IntVect& p1,
-         const IntVect& p2)
+BoxLib::coarsen (const IntVect& p1,
+		 const IntVect& p2)
 {
     BL_ASSERT(p2 > IntVect::TheZeroVector());
     return IntVect(
         D_DECL(
-        (p1.vect[0]<0)?-abs(p1.vect[0]+1)/p2.vect[0]-1:p1.vect[0]/p2.vect[0],
-        (p1.vect[1]<0)?-abs(p1.vect[1]+1)/p2.vect[1]-1:p1.vect[1]/p2.vect[1],
-        (p1.vect[2]<0)?-abs(p1.vect[2]+1)/p2.vect[2]-1:p1.vect[2]/p2.vect[2])
-    );
+	    (p1.vect[0]<0)?-abs(p1.vect[0]+1)/p2.vect[0]-1:p1.vect[0]/p2.vect[0],
+	    (p1.vect[1]<0)?-abs(p1.vect[1]+1)/p2.vect[1]-1:p1.vect[1]/p2.vect[1],
+	    (p1.vect[2]<0)?-abs(p1.vect[2]+1)/p2.vect[2]-1:p1.vect[2]/p2.vect[2])
+	);
 }
 
 IntVect&
@@ -468,8 +463,8 @@ IntVect::coarsen (const IntVect& p)
 //
 
 std::ostream&
-operator<< (std::ostream&  os,
-            const IntVect& p)
+BoxLib::operator<< (std::ostream&  os,
+		    const IntVect& p)
 {
     os << D_TERM( '(' << p[0] , <<
                   ',' << p[1] , <<
@@ -485,8 +480,8 @@ operator<< (std::ostream&  os,
 #define BL_IGNORE_MAX 100000
 
 std::istream&
-operator>> (std::istream& is,
-            IntVect&      p)
+BoxLib::operator>> (std::istream& is,
+		    IntVect&      p)
 {
     is >> std::ws;
     char c;
@@ -520,8 +515,4 @@ IntVect::printOn (std::ostream& os) const
 {
     os << "IntVect: " << *this << '\n';
 }
-
-#ifdef BL_NAMESPACE
-}
-#endif
 

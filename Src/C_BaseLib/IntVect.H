@@ -2,7 +2,7 @@
 #define BL_INTVECT_H
 
 //
-// $Id: IntVect.H,v 1.14 2001-07-18 23:07:07 lijewski Exp $
+// $Id: IntVect.H,v 1.15 2001-07-19 16:51:22 car Exp $
 //
 
 #include <algorithm>
@@ -12,11 +12,6 @@
 #include <SPACE.H>
 #include <Array.H>
 #include <BLassert.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 //
 //@Man:
@@ -29,6 +24,86 @@ namespace BL_NAMESPACE
   C++ array.  In addition, the basic arithmetic operators have been overloaded
   to implement scaling and translation operations.
 */
+
+class IntVect;
+namespace BoxLib
+{
+//
+//@ManDoc: Returns p + s.
+//
+IntVect operator+ (int            s,
+		   const IntVect& p);
+//
+//@ManDoc: Returns -p + s.
+//
+IntVect operator- (int            s,
+		   const IntVect& p);
+//
+//@ManDoc: Returns p * s.
+//
+IntVect operator* (int            s,
+		   const IntVect& p);
+/*@ManDoc: Returns a basis vector in the given coordinate direction;
+               eg.  IntVect3d BASISV(1) == (0,1,0).  Note that the coordinate
+               directions are zero based.
+*/
+IntVect BASISV (int dir);
+
+/*@ManDoc: Returns the IntVect that is the component-wise minimum of two
+               argument IntVects.
+*/
+IntVect min (const IntVect& p1,
+	     const IntVect& p2);
+
+/*@ManDoc: Returns the IntVect that is the component-wise minimum of two
+               argument IntVects.
+*/
+IntVect max (const IntVect& p1,
+	     const IntVect& p2);
+
+/*@ManDoc: Returns a IntVect obtained by multiplying each of the
+               components of this IntVect by s.
+*/
+IntVect scale (const IntVect& p,
+	       int            s);
+
+/*@ManDoc: Returns an IntVect that is the reflection of input in the
+               plane which passes through ref\_ix and normal to the
+               coordinate direction idir.
+*/
+IntVect reflect(const IntVect& a,
+		int            ref_ix,
+		int            idir);
+
+/*@ManDoc: Returns IntVect obtained by adding s to each of the
+               components of this IntVect.
+*/
+IntVect diagShift (const IntVect& p,
+		   int            s);
+
+/*@ManDoc: Returns an IntVect that is the component-wise integer
+               projection of p by s.
+*/
+IntVect coarsen (const IntVect& p,
+		 int            s);
+
+/*@ManDoc: Returns an IntVect which is the component-wise integer
+               projection of IntVect p1 by IntVect p2.
+*/
+IntVect coarsen (const IntVect& p1,
+		 const IntVect& p2);
+//
+//@ManDoc: Print the IntVect to given output stream in ASCII.
+//
+std::ostream& operator<< (std::ostream&  os,
+			  const IntVect& iv);
+//
+//@ManDoc: Read next IntVect from given input stream.
+//
+std::istream& operator>> (std::istream& os,
+			  IntVect&      iv);
+}
+	
 
 class IntVect
 {
@@ -172,11 +247,6 @@ public:
     //
     IntVect operator+ (int s) const;
     //
-    //@ManDoc: Returns p + s.
-    //
-    friend IntVect operator+ (int            s,
-                              const IntVect& p);
-    //
     //@ManDoc: Returns component-wise difference of IntVect and argument.
     //
     IntVect operator- (const IntVect& p) const;
@@ -185,11 +255,6 @@ public:
     //
     IntVect operator- (int s) const;
     //
-    //@ManDoc: Returns -p + s.
-    //
-    friend IntVect operator- (int            s,
-                              const IntVect& p);
-    //
     //@ManDoc: Returns component-wise product of IntVect and argument.
     //
     IntVect operator* (const IntVect& p) const;
@@ -197,11 +262,6 @@ public:
     //@ManDoc: Returns component-wise product of IntVect and s.
     //
     IntVect operator* (int s) const;
-    //
-    //@ManDoc: Returns p * s.
-    //
-    friend IntVect operator* (int            s,
-                              const IntVect& p);
     //
     //@ManDoc: Returns component-wise division of IntVect by argument.
     //
@@ -284,66 +344,6 @@ public:
       */
     static const IntVect& TheCellVector ();
 
-    /*@ManDoc: Returns a basis vector in the given coordinate direction;
-               eg.  IntVect3d BASISV(1) == (0,1,0).  Note that the coordinate
-               directions are zero based.
-    */
-    friend IntVect BASISV (int dir);
-
-    /*@ManDoc: Returns the IntVect that is the component-wise minimum of two
-               argument IntVects.
-    */
-    friend IntVect min (const IntVect& p1,
-                        const IntVect& p2);
-
-    /*@ManDoc: Returns the IntVect that is the component-wise minimum of two
-               argument IntVects.
-    */
-    friend IntVect max (const IntVect& p1,
-                        const IntVect& p2);
-
-    /*@ManDoc: Returns a IntVect obtained by multiplying each of the
-               components of this IntVect by s.
-    */
-    friend IntVect scale (const IntVect& p,
-                          int            s);
-
-    /*@ManDoc: Returns an IntVect that is the reflection of input in the
-               plane which passes through ref\_ix and normal to the
-               coordinate direction idir.
-    */
-    friend IntVect reflect(const IntVect& a,
-                           int            ref_ix,
-                           int            idir);
-
-    /*@ManDoc: Returns IntVect obtained by adding s to each of the
-               components of this IntVect.
-    */
-    friend IntVect diagShift (const IntVect& p,
-                              int            s);
-
-    /*@ManDoc: Returns an IntVect that is the component-wise integer
-               projection of p by s.
-    */
-    friend IntVect coarsen (const IntVect& p,
-                            int            s);
-
-    /*@ManDoc: Returns an IntVect which is the component-wise integer
-               projection of IntVect p1 by IntVect p2.
-    */
-    friend IntVect coarsen (const IntVect& p1,
-                            const IntVect& p2);
-    //
-    //@ManDoc: Print the IntVect to given output stream in ASCII.
-    //
-    friend std::ostream& operator<< (std::ostream&  os,
-                                     const IntVect& iv);
-    //
-    //@ManDoc: Read next IntVect from given input stream.
-    //
-    friend std::istream& operator>> (std::istream& os,
-                                     IntVect&      iv);
-
 protected:
     //
     // Box is a friend of ours.
@@ -353,12 +353,6 @@ protected:
     int vect[BL_SPACEDIM];
 };
 
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*BL_INTVECT_H*/
 
