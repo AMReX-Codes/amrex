@@ -1,6 +1,6 @@
 
 //
-// $Id: RunStats.cpp,v 1.2 1997-11-19 00:01:26 lijewski Exp $
+// $Id: RunStats.cpp,v 1.3 1997-11-19 04:42:27 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -16,8 +16,11 @@ using std::setprecision;
 #endif
 
 List<RunStatsData> RunStats::ld;
+
 double RunStats::total_run_time;
+
 double RunStats::total_run_wtime;
+
 Array<long> RunStats::cells;
 
 RunStats::RunStats (const char* _name,
@@ -55,10 +58,8 @@ RunStats::find (aString _name,
 {
     
     for (ListIterator<RunStatsData> ldi(ld); ldi; ++ldi)
-    {
 	if (ldi().level == _level && ldi().name == _name)
 	    return &ld[ldi];
-    }
     ld.append(RunStatsData(_name, _level));
     return &ld.lastElement();
 }
@@ -67,8 +68,7 @@ void
 RunStats::turnOn (const char* s,
                   int         _level)
 {
-    RunStatsData *e = find(s, _level);
-    e->is_on = true;
+    find(s, _level)->is_on = true;
 }
 
 void
@@ -77,8 +77,7 @@ RunStats::turnOff (const char* s,
 {
     if (!(_level == -1))
     {
-	RunStatsData *e = find(s, _level);
-	e->is_on = false;
+	find(s, _level)->is_on = false;
     }
 }
 
@@ -90,11 +89,12 @@ RunStats::init ()
     if (pp.contains("statvar"))
     {
 	int n = pp.countval("statvar");
-        int i; 
-	for (i = 0; i < n; i++)
+
+        aString nm;
+
+	for (int i = 0; i < n; i++)
         {
-	    aString nm;
-	    pp.get("statvar",nm,i);
+	    pp.get("statvar", nm, i);
 	    turnOn(nm.c_str());
 	}
     }
@@ -161,7 +161,7 @@ RunStats::report (ostream& os)
     ParallelDescriptor::ReduceRealSum(rtime);
     ParallelDescriptor::ReduceRealMax(rwtime);
 
-    double tot_run_time  = total_run_time + rtime;
+    double tot_run_time  = total_run_time  + rtime;
     double tot_run_wtime = total_run_wtime + rwtime;
 
     double inv_t_r_time  = tot_run_time == 0.0  ? 0.0 : 1.0/tot_run_time;
@@ -304,7 +304,7 @@ RunStats::readStats (ifstream& is)
 }
 
 void
-RunStats::start()
+RunStats::start ()
 {
     if (gentry->is_on && entry->is_on)
     {
@@ -315,7 +315,7 @@ RunStats::start()
 }
 
 void
-RunStats::pause()
+RunStats::pause ()
 {
     if (gentry->is_on && entry->is_on)
     {
@@ -326,7 +326,7 @@ RunStats::pause()
 }
 
 void
-RunStats::resume()
+RunStats::resume ()
 {
     if (gentry->is_on && entry->is_on)
     {
