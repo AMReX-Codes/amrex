@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.22 1997-11-15 00:52:38 lijewski Exp $
+// $Id: VisMF.H,v 1.23 1997-11-17 21:09:30 lijewski Exp $
 //
 
 #include <MultiFab.H>
@@ -158,8 +158,6 @@ private:
 
     static void WriteHeader (const aString& mf_name,
                              VisMF::Header& hdr);
-
-    static aString ToString (long l);
 
     static FArrayBox* readFAB (int i, const Header& hdr);
     //

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.28 1997-11-15 00:52:39 lijewski Exp $
+// $Id: VisMF.cpp,v 1.29 1997-11-17 21:09:30 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -21,17 +21,7 @@ const aString VisMF::FabFileSuffix("_D_");
 
 const aString VisMF::MultiFabHdrFileSuffix("_H");
 
-const aString VisMF::FabOnDisk::Prefix("FOD:");
-
-inline
-void
-GetTheChar (istream& is,
-            char     ch)
-{
-    char c;
-    is.get(c);
-    assert(c == ch);
-}
+const aString VisMF::FabOnDisk::Prefix("FabOnDisk:");
 
 ostream&
 operator<< (ostream&                os,
@@ -53,12 +43,7 @@ operator>> (istream&          is,
     is >> str;
     assert(str == VisMF::FabOnDisk::Prefix);
 
-    GetTheChar(is, ' ');
-
     is >> fod.m_name;
-
-    GetTheChar(is, ' ');
-
     is >> fod.m_head;
 
     if (!is.good())
@@ -100,7 +85,6 @@ operator>> (istream&                 is,
     for ( ; i < N; i++)
     {
         is >> fa[i];
-        GetTheChar(is, '\n');
     }
 
     if (!is.good())
@@ -149,8 +133,6 @@ operator>> (istream&              is,
     assert(ch == ',');
     assert(M >= 0);
 
-    GetTheChar(is, '\n');
-
     ar.resize(N);
     
     for ( ; i < N; i++)
@@ -162,8 +144,6 @@ operator>> (istream&              is,
             is >> ar[i][j] >> ch;
             assert(ch == ',');
         }
-
-        GetTheChar(is, '\n');
     }
 
     if (!is.good())
@@ -179,7 +159,7 @@ operator<< (ostream&             os,
     //
     // Up the precision for the Reals in m_min and m_max.
     //
-    int old_prec = os.precision(14);
+    int old_prec = os.precision(15);
 
     os << hd.m_vers     << '\n';
     os << int(hd.m_how) << '\n';
@@ -206,7 +186,6 @@ operator>> (istream&       is,
 {
     is >> hd.m_vers;
     assert(hd.m_vers == VisMF::Header::Version);
-    GetTheChar(is, '\n');
 
     int how;
     is >> how;
@@ -219,28 +198,20 @@ operator>> (istream&       is,
     default:
         BoxLib::Error("Bad case in switch");
     }
-    GetTheChar(is, '\n');
 
     is >> hd.m_ncomp;
     assert(hd.m_ncomp >= 0);
-    GetTheChar(is, '\n');
 
     is >> hd.m_ngrow;
     assert(hd.m_ngrow >= 0);
-    GetTheChar(is, '\n');
 
     hd.m_ba = BoxArray(is);
-    GetTheChar(is, '\n');
 
     is >> hd.m_fod;
     assert(hd.m_ba.length() == hd.m_fod.length());
-    GetTheChar(is, '\n');
 
     is >> hd.m_min;
-    GetTheChar(is, '\n');
-
     is >> hd.m_max;
-    GetTheChar(is, '\n');
 
     assert(hd.m_ba.length() == hd.m_min.length());
     assert(hd.m_ba.length() == hd.m_max.length());
@@ -257,14 +228,14 @@ VisMF::Write (const FArrayBox& fab,
               ostream&         os)
 {
 #ifdef __KCC
-    VisMF::FabOnDisk fod(filename, os.tellp().offset());
+    VisMF::FabOnDisk fab_on_disk(filename, os.tellp().offset());
 #else
-    VisMF::FabOnDisk fod(filename, os.tellp());
+    VisMF::FabOnDisk fab_on_disk(filename, os.tellp());
 #endif
 
     fab.writeOn(os);
 
-    return fod;
+    return fab_on_disk;
 }
 
 //
@@ -412,20 +383,6 @@ VisMF::WriteHeader (const aString& mf_name,
     }
 }
 
-//
-// Returns the long as an aString of at least four digits.
-//
-
-aString
-VisMF::ToString (long l)
-{
-    char buf[32];
-
-    sprintf(buf, "%04ld", l);
-
-    return aString(buf);
-}
-
 void
 VisMF::Write (const MultiFab& mf,
               const aString&  mf_name,
@@ -447,6 +404,8 @@ VisMF::Write (const MultiFab& mf,
     int msg_hdr_size = sizeof(msg_hdr);
     PD::SetMessageHeaderSize(msg_hdr_size);
 
+    char buf[sizeof(int) + 1];
+
     switch (how)
     {
     case OneFilePerCPU:
@@ -454,7 +413,8 @@ VisMF::Write (const MultiFab& mf,
         aString FabFileName = mf_name;
 
         FabFileName += VisMF::FabFileSuffix;
-        FabFileName += VisMF::ToString(PD::MyProc());
+        sprintf(buf, "%04ld", PD::MyProc());
+        FabFileName += buf;
 
 #ifdef BL_USE_SETBUF
         VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
@@ -497,7 +457,8 @@ VisMF::Write (const MultiFab& mf,
             aString FabFileName = mf_name;
 
             FabFileName += VisMF::FabFileSuffix;
-            FabFileName += VisMF::ToString(mfi.index());
+            sprintf(buf, "%04ld", mfi.index());
+            FabFileName += buf;
 
 #ifdef BL_USE_SETBUF
             VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
