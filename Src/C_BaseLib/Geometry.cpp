@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.26 1998-06-18 04:12:42 lijewski Exp $
+// $Id: Geometry.cpp,v 1.27 1998-06-21 18:02:39 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -79,9 +79,7 @@ Geometry::buildPIRMMap (MultiFab&  mf,
 {
     assert(isAnyPeriodic());
     assert(MaxFPBCacheSize > 0);
-    //
-    // TODO -- assert that we can't find a matching FPB !!
-    //
+
     if (m_FPBCache.size() == MaxFPBCacheSize)
     {
         m_FPBCache.pop_back();
@@ -93,34 +91,27 @@ Geometry::buildPIRMMap (MultiFab&  mf,
 
     PIRMMap& pirm = m_FPBCache.front().m_pirm;
 
-    assert(pirm.size() == 0);
-
     Array<IntVect> pshifts(27);
-    //
-    // Do only those I own.
-    //
+
     for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
     {
         Box dest = mfi().box();
 
         assert(dest == ::grow(mfi.validbox(), mf.nGrow()));
-
         assert(dest.ixType().cellCentered() || dest.ixType().nodeCentered());
 
         if (no_ovlp)
         {
-            const Box& validbox = mfi.validbox();
-
             for (int idir = 0; idir < BL_SPACEDIM; idir++)
             {
                 //
                 // Shrink box if the +/- direction is not physical boundary.
                 //
-                if (validbox.smallEnd(idir) != Domain().smallEnd(idir))
+                if (mfi.validbox().smallEnd(idir) != Domain().smallEnd(idir))
                 {
                     dest.growLo(idir,-mf.nGrow());
                 }
-                if (validbox.bigEnd(idir) != Domain().bigEnd(idir))
+                if (mfi.validbox().bigEnd(idir) != Domain().bigEnd(idir))
                 {
                     dest.growHi(idir,-mf.nGrow());
                 }
@@ -151,12 +142,8 @@ Geometry::buildPIRMMap (MultiFab&  mf,
                     shbox.shift(pshifts[iiv]);
                     Box srcBox = dest & shbox;
                     assert(srcBox.ok());
-                    //
-                    // OK, we got an intersection.
-                    //
                     Box dstBox = srcBox;
                     dstBox.shift(-pshifts[iiv]);
-
                     pirm.push_back(PIRec(mfi.index(),j,dstBox,srcBox));
                 }
             }
@@ -164,13 +151,15 @@ Geometry::buildPIRMMap (MultiFab&  mf,
     }
     //
     // We now need to populate the m_pirm member of the just-added FPB.
-    //
     // Since all we're trying to do is get the FillBoxId returned from
     // AddBox() correctly we'll use arbitrary src_comp and num_comp;
+    // We use a `static' MultiFabCopyDescriptor to cut down on memory
+    // allocation/deallocation; it's only really needed to collect the
+    // FillBoxIds from AddBox() and insert them into the `m_pirm' member.
     //
-    MultiFabCopyDescriptor mfcd;
+    static MultiFabCopyDescriptor dummy_mfcd;
 
-    MultiFabId mfid = mfcd.RegisterMultiFab(&mf);
+    MultiFabId mfid = dummy_mfcd.RegisterMultiFab(&mf);
 
     assert(mfid == MultiFabId(0));
 
@@ -179,16 +168,20 @@ Geometry::buildPIRMMap (MultiFab&  mf,
         const int src_comp = 0;
         const int num_comp = 1;
 
-        pirm[i].fbid = mfcd.AddBox(mfid,
-                                   pirm[i].srcBox,
-                                   0,
-                                   pirm[i].srcId,
-                                   src_comp,
-                                   src_comp,
-                                   num_comp);
+        pirm[i].fbid = dummy_mfcd.AddBox(mfid,
+                                         pirm[i].srcBox,
+                                         0,
+                                         pirm[i].srcId,
+                                         src_comp,
+                                         src_comp,
+                                         num_comp);
 
         assert(pirm[i].fbid.box() == pirm[i].srcBox);
     }
+    //
+    // Don't forget to set `dummyy_mfcd' back to its pristine state.
+    //
+    dummy_mfcd.clear();
 
     return pirm;
 }
@@ -208,21 +201,19 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
     const FPB fpb(mf.boxArray(),Domain(),mf.nGrow(),no_ovlp);
 
-    bool buildit = false;
+    bool build_mfcd = false;
 
     MultiFabCopyDescriptor& mfcd = mf.theFPBmfcd(src_comp,
                                                  num_comp,
                                                  no_ovlp,
-                                                 buildit);
-    MultiFabId mfid = 0;
-
+                                                 build_mfcd);
     PIRMMap& pirm = getPIRMMap(mf,no_ovlp,fpb);
 
-    if (buildit)
+    if (build_mfcd)
     {
         FillBoxId fbid;
 
-        mfid = mfcd.RegisterMultiFab(&mf);
+        MultiFabId mfid = mfcd.RegisterMultiFab(&mf);
 
         assert(mfid == MultiFabId(0));
 
@@ -243,12 +234,10 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
         }
     }
 
-    //
-    // Gather/scatter distributed data to (local) internal buffers.
-    //
     mfcd.CollectData();
 
-    const int MyProc = ParallelDescriptor::MyProc();
+    const MultiFabId MFID = 0;
+    const int MyProc      = ParallelDescriptor::MyProc();
 
     for (int i = 0; i < pirm.size(); i++)
     {
@@ -256,7 +245,7 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
         assert(pirm[i].fbid.box() == pirm[i].srcBox);
 
-        mfcd.FillFab(mfid,pirm[i].fbid,mf[pirm[i].mfid],pirm[i].dstBox);
+        mfcd.FillFab(MFID,pirm[i].fbid,mf[pirm[i].mfid],pirm[i].dstBox);
     }
 
     stats.end();
