@@ -1,5 +1,5 @@
 #
-# $Id: Make.OSF1,v 1.20 2001-08-01 21:51:04 lijewski Exp $
+# $Id: Make.OSF1,v 1.21 2001-10-22 21:12:45 lijewski Exp $
 #
 
 #
@@ -73,6 +73,13 @@ else
   FDEBF += -g -u -fpconstant
   fOPTF += -fast -O -tune host -fpconstant
   fDEBF += -g -fpconstant
+endif
+
+ifeq ($(USE_THREADS),TRUE)
+  FOPTF += -automatic -reentrancy threaded
+  FDEBF += -automatic -reentrancy threaded
+  fOPTF += -automatic -reentrancy threaded
+  fDEBF += -automatic -reentrancy threaded
 endif
 
 FPRFF +=

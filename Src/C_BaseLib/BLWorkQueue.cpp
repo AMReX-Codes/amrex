@@ -1,5 +1,5 @@
 //
-// $Id: BLWorkQueue.cpp,v 1.10 2001-10-20 22:45:32 car Exp $
+// $Id: BLWorkQueue.cpp,v 1.11 2001-10-22 21:12:45 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -19,6 +19,7 @@ namespace
 Mutex print_mutex;
 WorkQueue* bl_wrkq = 0;
 int verbose = 0;
+int stacksize = 0;
 }
 
 namespace BoxLib
@@ -40,10 +41,12 @@ WorkQueue::Initialize ()
 
     pp.query("maxthreads", maxthreads);
     pp.query("verbose", verbose);
+    pp.query("stacksize", stacksize);
 
     if (verbose && ParallelDescriptor::IOProcessor())
     {
         std::cout << "workqueue.maxthreads = " << maxthreads << std::endl;
+        std::cout << "workqueue.stacksize = " << stacksize << std::endl;
     }
 
     bl_wrkq = new WorkQueue(maxthreads);
@@ -210,7 +213,7 @@ WorkQueue::add(task* item)
     else if ( numthreads < maxthreads )
     {
 	DPRINTF("Creating new worker");
-	FunctionThread ft(WorkQueue_server, this, FunctionThread::Detached);
+	FunctionThread ft(WorkQueue_server,this,FunctionThread::Detached,stacksize);
 	numthreads++;
     }
 }

@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.16 2001-10-20 22:45:32 car Exp $
+// $Id: BLThread.cpp,v 1.17 2001-10-22 21:12:45 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -787,7 +787,8 @@ ThreadSpecificData<void>::get() const
 class FunctionThread::Implementation
 {
 public:
-    Implementation (Thread_Function func_, void* arg_, DetachState st_);
+    Implementation (Thread_Function func_, void* arg_, DetachState st_,
+                    int stacksize);
     ~Implementation ();
     void* join() const;
     void detach() const;
@@ -823,7 +824,8 @@ FunctionThread::Implementation::detach() const
 class FunctionThread::Implementation
 {
 public:
-    Implementation (Thread_Function func_, void* arg_, DetachState st_);
+    Implementation (Thread_Function func_, void* arg_, DetachState st_,
+                    int stacksize);
     ~Implementation ();
     void* join() const;
     void detach() const;
@@ -832,12 +834,21 @@ private:
     pthread_t m_tid;
 };
 
-FunctionThread::Implementation::Implementation(Thread_Function func_, void* arg_, DetachState st_)
+FunctionThread::Implementation::Implementation(Thread_Function func_,
+                                               void* arg_,
+                                               DetachState st_,
+                                               int stacksize)
     : m_jod(false)
 {
     BL_PROFILE( BL_PROFILE_THIS_NAME() + "::FunctionThread()" );
     pthread_attr_t a;
     THREAD_REQUIRE( pthread_attr_init(&a));
+
+    if (stacksize > PTHREAD_STACK_MIN)
+    {
+        THREAD_REQUIRE(pthread_attr_setstacksize(&a,stacksize));
+    }
+
     int dstate;
     switch ( st_ )
     {
@@ -884,9 +895,12 @@ FunctionThread::Implementation::detach() const
 }
 #endif
 
-FunctionThread::FunctionThread(Thread_Function func_, void* arg_, DetachState st)
+FunctionThread::FunctionThread(Thread_Function func_,
+                               void* arg_,
+                               DetachState st,
+                               int stacksize)
 {
-    m_impl = new Implementation(func_, arg_, st);
+    m_impl = new Implementation(func_, arg_, st, stacksize);
 }
 
 FunctionThread::~FunctionThread()
