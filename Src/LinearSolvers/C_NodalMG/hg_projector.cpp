@@ -629,7 +629,6 @@ holy_grail_amr_projector::project (PArray<MultiFab>* u,
                                    MultiFab*         Sync_resid_crse,
                                    MultiFab*         Sync_resid_fine,
                                    const Geometry&   crse_geom,
-                                   bool              is_sync,
                                    Real              H[],
                                    Real              tol,
                                    int               Lev_min,
@@ -639,6 +638,9 @@ holy_grail_amr_projector::project (PArray<MultiFab>* u,
     static RunStats hg_proj("hg_project");
 
     Box crse_domain(crse_geom.Domain());
+
+    PArray<MultiFab> rhs_local_crse(Lev_max+1,PArrayManage);
+    PArray<MultiFab> rhs_local_fine(Lev_max+1,PArrayManage);
 
     hg_proj.start();
     if (Lev_min < 0)
@@ -757,14 +759,14 @@ holy_grail_amr_projector::project (PArray<MultiFab>* u,
     //
      if (Sync_resid_fine != 0) 
      {
-       fill_sync_reg(u_local_fine,p,null_amr_real,Sigma_local,
-                     Sync_resid_fine,crse_geom,is_sync,h,Lev_min,1);
+       fill_sync_reg(u_local_fine,p,rhs_local_fine,Sigma_local,
+                     Sync_resid_fine,crse_geom,h,Lev_min,1);
      }
 
      if (Sync_resid_crse != 0) 
      {
-       fill_sync_reg(u_local_crse,p,null_amr_real,Sigma_local,
-                     Sync_resid_crse,crse_geom,is_sync,h,Lev_min,0);
+       fill_sync_reg(u_local_crse,p,rhs_local_crse,Sigma_local,
+                     Sync_resid_crse,crse_geom,h,Lev_min,0);
      }
 
     hg_proj.end();
@@ -777,7 +779,6 @@ holy_grail_amr_projector::fill_sync_reg (PArray<MultiFab>* u_local,
                                          PArray<MultiFab>& Sigma_local,
                                          MultiFab*         Sync_resid,
                                          const Geometry&   crse_geom,
-                                         bool              is_sync,
                                          Real              H[],
                                          int               Lev_min,
                                          int               is_fine)
@@ -808,7 +809,7 @@ holy_grail_amr_projector::fill_sync_reg (PArray<MultiFab>* u_local,
             }
           }
 
-        if (!is_sync && rhs_local.length() > 0)
+        if (rhs_local.defined(Lev_min)) 
           for (MultiFabIterator mfi(rhs_local[Lev_min]); mfi.isValid(); ++mfi)
             for (int fine = 0; fine < fine_grids.length(); fine++) 
             {
@@ -857,7 +858,7 @@ holy_grail_amr_projector::fill_sync_reg (PArray<MultiFab>* u_local,
       if (is_fine == 0) 
       {
         crse_geom.FillPeriodicBoundary(Sigma_local[Lev_min],0,1,false,true);
-        if (rhs_local.length() > 0) 
+        if (rhs_local.defined(Lev_min) > 0) 
           crse_geom.FillPeriodicBoundary(rhs_local[Lev_min],0,1,false,true);
         for (int n = 0; n < BL_SPACEDIM; n++) 
           crse_geom.FillPeriodicBoundary(u_local[n][Lev_min],0,1,false,true);
@@ -866,7 +867,7 @@ holy_grail_amr_projector::fill_sync_reg (PArray<MultiFab>* u_local,
       alloc(p, null_amr_real, null_amr_real, 
             Sigma_local, H, Lev_min, Lev_min, for_sync_reg);
 
-      if (!is_sync && rhs_local.length() > 0) 
+      if (rhs_local.defined(Lev_min)) 
       {
 	    if (type(rhs_local[Lev_min]) == IntVect::TheNodeVector()) 
 	    {
@@ -941,7 +942,6 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
                                           MultiFab*         Sync_resid_crse,
                                           MultiFab*         Sync_resid_fine,
                                           const Geometry&   crse_geom,
-                                          bool              is_sync,
                                           bool              use_u,
                                           Real              H[],
                                           Real              tol,
@@ -1101,7 +1101,7 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
     }
 
     // We copy rhs *after* the adjustment has been done for singularity
-    if ( Sync_resid_crse != 0 && !is_sync )
+    if ( Sync_resid_crse != 0 && rhs.length() > 0)
     {
       int level = Lev_min;
       rhs_local_crse.set(level,new MultiFab(rhs[level].boxArray(),1,1));
@@ -1116,7 +1116,7 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
     }
 
     // We copy rhs *after* the adjustment has been done for singularity
-    if ( Sync_resid_fine != 0 && !is_sync )
+    if ( Sync_resid_fine != 0 && rhs.length() > 0)
     {
       int level = Lev_min;
       rhs_local_fine.set(level,new MultiFab(rhs[level].boxArray(),1,1));
@@ -1159,13 +1159,13 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
     if (Sync_resid_fine != 0) 
     {
       fill_sync_reg(u_local_fine,p,rhs_local_fine,Sigma_local,
-                    Sync_resid_fine,crse_geom,is_sync,h,Lev_min,1);
+                    Sync_resid_fine,crse_geom,h,Lev_min,1);
     }
 
     if (Sync_resid_crse != 0) 
     {
       fill_sync_reg(u_local_crse,p,rhs_local_crse,Sigma_local,
-                    Sync_resid_crse,crse_geom,is_sync,h,Lev_min,0);
+                    Sync_resid_crse,crse_geom,h,Lev_min,0);
     }
 
     hg_man_proj.end();
