@@ -220,7 +220,5 @@ private:
     task_linked_task t;
 };
 
-
-
 #endif
 
