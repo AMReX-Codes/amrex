@@ -1,5 +1,5 @@
 //
-// $Id: FabSet.cpp,v 1.42 2002-12-07 16:09:16 lijewski Exp $
+// $Id: FabSet.cpp,v 1.43 2002-12-11 17:05:25 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -297,8 +297,6 @@ TheFSRec (const MultiFab& src,
             //
             // Adjust the ncomp & scomp in CommData.
             //
-            BL_ASSERT((*it).m_commdata.isValid());
-
             Array<CommData>& cd = (*it).m_commdata.theCommData();
 
             for (int i = 0; i < cd.size(); i++)

@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.69 2002-12-03 18:03:27 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.70 2002-12-11 17:02:16 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -687,8 +687,6 @@ TheFBsirec (int             scomp,
             //
             // Adjust the ncomp & scomp in CommData.
             //
-            BL_ASSERT((*it).m_commdata.isValid());
-
             Array<CommData>& cd = (*it).m_commdata.theCommData();
 
             for (int i = 0; i < cd.size(); i++)
