@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.10 2000-06-01 20:59:38 car Exp $
+// $Id: main.cpp,v 1.11 2000-06-05 18:39:31 car Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -164,6 +164,7 @@ main (int   argc, char* argv[])
   bool cg = false; pp.query("cg", cg);
   bool use_mg_pre=false; pp.query("mg_pre",use_mg_pre);
   bool new_bc=false; pp.query("new_bc",new_bc);
+  bool dump_norm=true; pp.query("dump_norm", dump_norm);
   bool dump_Lp=false; pp.query("dump_Lp",dump_Lp);
   bool dump_Mf=false; pp.query("dump_Mf", dump_Mf);
   bool dump_VisMF=false; pp.query("dump_VisMF", dump_VisMF);
@@ -252,7 +253,7 @@ main (int   argc, char* argv[])
 #ifdef MG_USE_HYPRE
 	  ParmParse pp("hy");
 	  int solver_flag = 0; pp.query("solver", solver_flag);
-	  bool inhom = false; pp.query("inhom", inhom);
+	  bool inhom = true; pp.query("inhom", inhom);
 	  HypreABec hp(bs, bd, H, solver_flag, false);
 	  hp.setScalars(alpha, beta);
 	  hp.setCoefficients(acoefs, bcoefs);
@@ -316,8 +317,15 @@ main (int   argc, char* argv[])
     } // -->> solve D^2(soln)=rhs   or   (alpha*a - beta*D.(b.G))soln=rhs
 
   // Write solution, and rhs
-  cout << "solution norm = " << mfnorm_2_valid(soln)
-       << "/" << mfnorm_0_valid(soln) << endl;
+  if ( dump_norm )
+  {
+    double d1 = mfnorm_2_valid(soln);
+    double d2 = mfnorm_0_valid(soln);
+    if ( ParallelDescriptor::IOProcessor() )
+      {
+	cout << "solution norm = " << d1 << "/" << d2 << endl;
+      }
+  }
   if ( dump_Mf )
     {
       MultiFab temp(bs, 2, Nghost, Fab_allocate);
