@@ -4,13 +4,18 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.10 1998-03-30 18:59:27 lijewski Exp $
+// $Id: MultiFab.H,v 1.11 1998-04-01 00:27:32 marc Exp $
 //
 
 #include <Assert.H>
 
 #include <FArrayBox.H>
 #include <FabArray.H>
+
+typedef FabArrayId MultiFabId;
+
+class MultiFabCopyDescriptor;
+
 //
 //@Man:
 //@Memo: A Collection of FArrayBoxes
@@ -27,10 +32,6 @@
 
   This class does NOT provide a copy constructor or assignment operator.
 */
-
-typedef FabArrayId MultiFabId;
-
-class MultiFabCopyDescriptor;
 
 class MultiFab
     :
