@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.17 1999-06-16 22:13:03 lijewski Exp $
+// $Id: RunStats.cpp,v 1.18 1999-07-01 16:36:00 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -37,7 +37,8 @@ RunStats::init ()
         for (int i = 0, n = pp.countval("statvar"); i < n; i++)
         {
             pp.get("statvar", nm, i);
-            turnOn(nm);
+
+            RunStats::find(nm,-1)->is_on = true;
         }
     }
 }
@@ -67,8 +68,8 @@ RunStats::RunStats (const aString& _name,
     if (!RunStats::Initialized)
         RunStats::init();
 
-    gentry = RunStats::find(_name, -1);
-    entry  = RunStats::find(_name, _level);
+    gentry = RunStats::find(_name,-1);
+    entry  = RunStats::find(_name,_level);
 
     entry->is_on = true;
 
@@ -80,7 +81,7 @@ RunStats::~RunStats () {}
 void
 RunStats::start ()
 {
-    if (gentry->is_on && entry->is_on)
+    if (isOn())
     {
         time  = -Utility::second();
         wtime = -Utility::wsecond();
@@ -90,7 +91,7 @@ RunStats::start ()
 void
 RunStats::end ()
 {
-    if (gentry->is_on && entry->is_on)
+    if (isOn())
     {
         time              += Utility::second();
         wtime             += Utility::wsecond();
@@ -402,7 +403,6 @@ void
 RunStats::readStats (ifstream& is,
                      bool      restart)
 {
-    RunStats::TheStats.clear();
     is.ignore(BL_IGNORE_MAX,'(');
     aString s;
     is >> s;
@@ -420,6 +420,7 @@ RunStats::readStats (ifstream& is,
     {
         RunStatsData rd;
         is >> rd;
+
         if (restart && ParallelDescriptor::NProcs() > 1)
         {
             //
@@ -428,17 +429,20 @@ RunStats::readStats (ifstream& is,
             //
             rd.run_time /= ParallelDescriptor::NProcs();
         }
-        RunStats::TheStats.append(rd);
+
+        RunStatsData* d = find(rd.name,rd.level);
+
+        d->run_time  += rd.run_time;
+        d->run_wtime += rd.run_wtime;
     }
     long nlen;
     is >> nlen;
     RunStats::TheNumPts.resize(nlen);
-    int i;
-    for (i = 0; i < nlen; i++)
+    for (int i = 0; i < nlen; i++)
         is >> RunStats::TheNumPts[i];
     is >> nlen;
     RunStats::TheCells.resize(nlen);
-    for (i = 0; i < nlen; i++)
+    for (int i = 0; i < nlen; i++)
         is >> RunStats::TheCells[i];
     is.ignore(BL_IGNORE_MAX,')');
 }

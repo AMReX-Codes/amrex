@@ -4,7 +4,7 @@
 #define _RUNSTATS_H_ 
 
 //
-// $Id: RunStats.H,v 1.6 1999-02-03 19:29:57 lijewski Exp $
+// $Id: RunStats.H,v 1.7 1999-07-01 16:36:00 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -26,21 +26,13 @@ using std::ofstream;
 #include <Array.H>
 #include <ParallelDescriptor.H>
 
-//
-// Forward declaration.
-//
-
 class RunStatsData
 {
     friend class RunStats;
-    friend ostream& operator<< (ostream &, const RunStatsData&);
-    friend istream& operator>> (istream &, RunStatsData&);
+    friend ostream& operator<< (ostream&, const RunStatsData&);
+    friend istream& operator>> (istream&, RunStatsData&);
+
 private:
-    aString name;
-    Real    run_time;
-    Real    run_wtime;
-    int     level;
-    int     is_on;
 
     RunStatsData ()
         :
@@ -49,14 +41,7 @@ private:
         level(0),
         is_on(0)
     {}
-    bool operator== (const RunStatsData &s1) const
-    {
-        return (name == s1.name) && (level == s1.level);
-    }
-    bool operator!= (const RunStatsData &s1) const
-    {
-        return (name != s1.name) || (level != s1.level);
-    }
+
     RunStatsData (const aString& _name, int _level) 
         :
         name(_name),
@@ -65,6 +50,13 @@ private:
         level(_level),
         is_on(0)
     {}
+
+    aString name;
+    Real    run_time;
+    Real    run_wtime;
+    int     level;
+    int     is_on;
+
 };
 
 //
@@ -148,14 +140,6 @@ public:
                                long&                 tot_cells);
 private:
     //
-    // Turn on recording of this stat.
-    //
-    static void turnOn (const aString& s, int level = -1);
-    //
-    // Turn off recording of this stat.
-    //
-    static void turnOff (const aString& s, int level = -1);
-    //
     // Init from ParmParse with "RunStats" prefix.
     //
     static void init ();
@@ -208,22 +192,4 @@ RunStats::getCells (int lev)
     return TheCells[lev];
 }
 
-inline
-void
-RunStats::turnOn (const aString& s,
-                  int            _level)
-{
-    RunStats::find(s, _level)->is_on = true;
-}
-
-inline
-void
-RunStats::turnOff (const aString& s,
-                   int            _level)
-{
-    if (!(_level == -1))
-    {
-        RunStats::find(s, _level)->is_on = false;
-    }
-}
 #endif /*_RUNSTATS_H_*/
