@@ -1,7 +1,5 @@
-#ifndef HG_CONSTANT
-
 #ifndef HG_TERRAIN
-#    define HG_SIGMA_NODE
+#define HG_SIGMA_NODE
 #endif
 
 
@@ -367,30 +365,50 @@ c Note---assumes fdst linearly interpolated from cdst along face
                do 60 j = jr*regl1, jr*regh1, jr
                   do 60 i = ir*regl0, ir*regh0, ir
 
-            tmp = sigmaf(i+m-1,j+n-1,ks,1) * MXXF(i+m,j+n,k,i+m-1,j+n-1,k+idir)
-     @           +sigmaf(i+m-1,j+n  ,ks,1) * MXXF(i+m,j+n,k,i+m-1,j+n+1,k+idir)
-     @           +sigmaf(i+m  ,j+n-1,ks,1) * MXXF(i+m,j+n,k,i+m+1,j+n-1,k+idir)
-     @           +sigmaf(i+m  ,j+n  ,ks,1) * MXXF(i+m,j+n,k,i+m+1,j+n+1,k+idir)
+            tmp = sigmaf(i+m-1,j+n-1,ks,1) 
+     &		* MXXF(i+m,j+n,k,i+m-1,j+n-1,k+idir)
+     @           +sigmaf(i+m-1,j+n  ,ks,1) 
+     &		* MXXF(i+m,j+n,k,i+m-1,j+n+1,k+idir)
+     @           +sigmaf(i+m  ,j+n-1,ks,1) 
+     &		* MXXF(i+m,j+n,k,i+m+1,j+n-1,k+idir)
+     @           +sigmaf(i+m  ,j+n  ,ks,1) 
+     &		* MXXF(i+m,j+n,k,i+m+1,j+n+1,k+idir)
             tmp = tmp
-     @           +sigmaf(i+m-1,j+n-1,ks,2) * MYYF(i+m,j+n,k,i+m-1,j+n-1,k+idir)
-     @           +sigmaf(i+m-1,j+n  ,ks,2) * MYYF(i+m,j+n,k,i+m-1,j+n+1,k+idir)
-     @           +sigmaf(i+m  ,j+n-1,ks,2) * MYYF(i+m,j+n,k,i+m+1,j+n-1,k+idir)
-     @           +sigmaf(i+m  ,j+n  ,ks,2) * MYYF(i+m,j+n,k,i+m+1,j+n+1,k+idir)
+     @           +sigmaf(i+m-1,j+n-1,ks,2) 
+     &		* MYYF(i+m,j+n,k,i+m-1,j+n-1,k+idir)
+     @           +sigmaf(i+m-1,j+n  ,ks,2) 
+     &		* MYYF(i+m,j+n,k,i+m-1,j+n+1,k+idir)
+     @           +sigmaf(i+m  ,j+n-1,ks,2) 
+     &		* MYYF(i+m,j+n,k,i+m+1,j+n-1,k+idir)
+     @           +sigmaf(i+m  ,j+n  ,ks,2) 
+     &		* MYYF(i+m,j+n,k,i+m+1,j+n+1,k+idir)
             tmp = tmp
-     @           +sigmaf(i+m-1,j+n-1,ks,3) * MZZF(i+m,j+n,k,i+m-1,j+n-1,k+idir)
-     @           +sigmaf(i+m-1,j+n  ,ks,3) * MZZF(i+m,j+n,k,i+m-1,j+n+1,k+idir)
-     @           +sigmaf(i+m  ,j+n-1,ks,3) * MZZF(i+m,j+n,k,i+m+1,j+n-1,k+idir)
-     @           +sigmaf(i+m  ,j+n  ,ks,3) * MZZF(i+m,j+n,k,i+m+1,j+n+1,k+idir)
+     @           +sigmaf(i+m-1,j+n-1,ks,3) 
+     &		* MZZF(i+m,j+n,k,i+m-1,j+n-1,k+idir)
+     @           +sigmaf(i+m-1,j+n  ,ks,3) 
+     &		* MZZF(i+m,j+n,k,i+m-1,j+n+1,k+idir)
+     @           +sigmaf(i+m  ,j+n-1,ks,3) 
+     &		* MZZF(i+m,j+n,k,i+m+1,j+n-1,k+idir)
+     @           +sigmaf(i+m  ,j+n  ,ks,3) 
+     &		* MZZF(i+m,j+n,k,i+m+1,j+n+1,k+idir)
             tmp = tmp + idir * (
-     @            sigmaf(i+m-1,j+n-1,ks,4) * MXZF(i+m,j+n,k,i+m-1,j+n-1,k+idir)
-     @           +sigmaf(i+m-1,j+n  ,ks,4) * MXZF(i+m,j+n,k,i+m-1,j+n+1,k+idir)
-     @           -sigmaf(i+m  ,j+n-1,ks,4) * MXZF(i+m,j+n,k,i+m+1,j+n-1,k+idir)
-     @           -sigmaf(i+m  ,j+n  ,ks,4) * MXZF(i+m,j+n,k,i+m+1,j+n+1,k+idir))
+     @            sigmaf(i+m-1,j+n-1,ks,4) 
+     &		* MXZF(i+m,j+n,k,i+m-1,j+n-1,k+idir)
+     @           +sigmaf(i+m-1,j+n  ,ks,4) 
+     &		* MXZF(i+m,j+n,k,i+m-1,j+n+1,k+idir)
+     @           -sigmaf(i+m  ,j+n-1,ks,4) 
+     &		* MXZF(i+m,j+n,k,i+m+1,j+n-1,k+idir)
+     @           -sigmaf(i+m  ,j+n  ,ks,4) 
+     &		* MXZF(i+m,j+n,k,i+m+1,j+n+1,k+idir))
             tmp = tmp + idir * (
-     @            sigmaf(i+m-1,j+n-1,ks,5) * MYZF(i+m,j+n,k,i+m-1,j+n-1,k+idir)
-     @           -sigmaf(i+m-1,j+n  ,ks,5) * MYZF(i+m,j+n,k,i+m-1,j+n+1,k+idir)
-     @           +sigmaf(i+m  ,j+n-1,ks,5) * MYZF(i+m,j+n,k,i+m+1,j+n-1,k+idir)
-     @           -sigmaf(i+m  ,j+n  ,ks,5) * MYZF(i+m,j+n,k,i+m+1,j+n+1,k+idir))
+     @            sigmaf(i+m-1,j+n-1,ks,5) 
+     &		* MYZF(i+m,j+n,k,i+m-1,j+n-1,k+idir)
+     @           -sigmaf(i+m-1,j+n  ,ks,5) 
+     &		* MYZF(i+m,j+n,k,i+m-1,j+n+1,k+idir)
+     @           +sigmaf(i+m  ,j+n-1,ks,5) 
+     &		* MYZF(i+m,j+n,k,i+m+1,j+n-1,k+idir)
+     @           -sigmaf(i+m  ,j+n  ,ks,5) 
+     &		* MYZF(i+m,j+n,k,i+m+1,j+n+1,k+idir))
 
          cen =
      @      4.d0 * (sigmaf(i+m-1,j+n-1,ks,1)
@@ -2798,10 +2816,10 @@ c end of variable density non-terrain version
 
 
 c constant density versions:
-#else
+
 
 c Note---assumes fdst linearly interpolated from cdst along face
-      subroutine hgfres(res, resl0,resh0,resl1,resh1,resl2,resh2,
+      subroutine hgfres_cd(res, resl0,resh0,resl1,resh1,resl2,resh2,
      @ src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
      @ fdst, fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
      @ cdst, cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
@@ -2930,7 +2948,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
       end
 
 c Note---assumes fdst linearly interpolated from cdst along face
-      subroutine hgeres(res, resl0,resh0,resl1,resh1,resl2,resh2,
+      subroutine hgeres_cd(res, resl0,resh0,resl1,resh1,resl2,resh2,
      @ src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
      @ fdst, fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
      @ cdst, cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
@@ -3218,7 +3236,7 @@ c weighting
       end
 
 c Note---assumes fdst linearly interpolated from cdst along face
-      subroutine hgcres(res, resl0,resh0,resl1,resh1,resl2,resh2,
+      subroutine hgcres_cd(res, resl0,resh0,resl1,resh1,resl2,resh2,
      @ src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
      @ fdst, fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2,
      @ cdst, cdstl0,cdsth0,cdstl1,cdsth1,cdstl2,cdsth2,
@@ -3366,14 +3384,9 @@ c weighting
       res(if,jf,kf) = src(if,jf,kf) - sum / center
       end
 
-#endif
-
-#ifndef HG_CONSTANT
-
-#  ifndef HG_SIGMA_NODE
 
 c NODE-based data, factor of 2 only.
-      subroutine hgints(dest,
+      subroutine hgints_no_sigma_node(dest,
      @ destl0,desth0,destl1,desth1,destl2,desth2,
      @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ sigx, sigy, sigz,
@@ -3580,7 +3593,6 @@ cdir$ ivdep
       end if
       end
 
-#  else
 
 c NODE-based data, factor of 2 only.
       subroutine hgints(dest,
@@ -3703,12 +3715,8 @@ cdir$ ivdep
       end if
       end
 
-#endif
-
-#  ifndef HG_SIGMA_NODE_ALL
-
 c CELL-based data only.
-      subroutine hgsrst(destx, desty, destz,
+      subroutine hgsrst_no_sigma_node(destx, desty, destz,
      @ destl0,desth0,destl1,desth1,destl2,desth2,
      @ regl0,regh0,regl1,regh1,regl2,regh2,
      @ srcx, srcy, srcz,
@@ -3852,7 +3860,6 @@ c CELL-based data only.
       end if
       end
 
-#  else
 
 c NODE(EDGE)-based data only.
       subroutine hgsrst(destx, desty, destz,
@@ -3929,19 +3936,10 @@ c     @                                 1.d0 / srcz(i2+1,j2+1,k2+1))
  10         continue
       end
 
-#endif
-
-#endif
-
 #ifdef HG_CROSS_STENCIL
 
-#ifdef HG_CONSTANT
 
-#define AVG fac * (cor(i-1) + cor(i+1) + \
-                   cor(i-jdiff) + cor(i+jdiff) + \
-                   cor(i-kdiff) + cor(i+kdiff))
-
-      subroutine hgrlxu(cor,
+      subroutine hgrlxu_cd(cor,
      @ res,
      @ resl0,resh0,resl1,resh1,resl2,resh2,
      @ mask,
@@ -3954,11 +3952,9 @@ c     @                                 1.d0 / srcz(i2+1,j2+1,k2+1))
       real*8 res(*)
       real*8 mask(*)
       real*8 hx
-#if 0
       avg() = fac * (cor(i-1) + cor(i+1) +
      @               cor(i-jdiff) + cor(i+jdiff) +
      @               cor(i-kdiff) + cor(i+kdiff))
-#endif
       hxm2 = 1.d0 / (hx*hx)
       fac = hxm2
       cen = 1.d0 / (6.d0 * hxm2)
@@ -3969,16 +3965,16 @@ cdir$ ivdep
      @          (regl0 - resl0) + 1,
      @          (regh2 - resl2) * kdiff + (regh1 - resl1) * jdiff +
      @          (regh0 - resl0) + 1, 2
- 10      cor(i) = cor(i) + mask(i) * ((AVG - res(i)) * cen - cor(i))
+ 10      cor(i) = cor(i) + mask(i) * ((AVG() - res(i)) * cen - cor(i))
 cdir$ ivdep
       do 20 i = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
      @          (regl0 - resl0) + 2,
      @          (regh2 - resl2) * kdiff + (regh1 - resl1) * jdiff +
      @          (regh0 - resl0) + 1, 2
- 20      cor(i) = cor(i) + mask(i) * ((AVG - res(i)) * cen - cor(i))
+ 20      cor(i) = cor(i) + mask(i) * ((AVG() - res(i)) * cen - cor(i))
       end
 
-      subroutine hgres(res,
+      subroutine hgres_cd(res,
      @ resl0,resh0,resl1,resh1,resl2,resh2,
      @ src, dest,
      @ regl0,regh0,regl1,regh1,regl2,regh2,
@@ -4023,7 +4019,7 @@ cdir$ ivdep
       end if
       end
 
-      subroutine hgresu(res,
+      subroutine hgresu_cd(res,
      @ resl0,resh0,resl1,resh1,resl2,resh2,
      @ src, dest,
      @ regl0,regh0,regl1,regh1,regl2,regh2,
@@ -4050,11 +4046,9 @@ cdir$ ivdep
      @      6.d0 * dest(i))
       end
 
-#else
 
 c seven-point variable stencils
 
-#ifdef HG_SIGMA_NODE
 
       subroutine hgcen(cen,
      @ cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
@@ -4075,13 +4069,6 @@ c seven-point variable stencils
      @                              signd(i,j,k-1,3) + signd(i,j,k,3))
       end
 
-#define AVGU (sig(i-1)        * cor(i-1) + \
-              sig(i)          * cor(i+1) + \
-              sig(i+ly-jdiff) * cor(i-jdiff) + \
-              sig(i+ly)       * cor(i+jdiff) + \
-              sig(i+lz-kdiff) * cor(i-kdiff) + \
-              sig(i+lz)       * cor(i+kdiff))
-
 c sig here contains three different directions all stored on "nodes"
       subroutine hgrlxu(cor, res, sig, cen,
      @ resl0,resh0,resl1,resh1,resl2,resh2,
@@ -4095,14 +4082,12 @@ c sig here contains three different directions all stored on "nodes"
       real*8 cen(*)
       real*8 mask(*)
       integer i, jdiff, kdiff, ly, lz
-#if 0
       avg() = (sig(i-1)        * cor(i-1) +
      @         sig(i)          * cor(i+1) +
      @         sig(i+ly-jdiff) * cor(i-jdiff) +
      @         sig(i+ly)       * cor(i+jdiff) +
      @         sig(i+lz-kdiff) * cor(i-kdiff) +
      @         sig(i+lz)       * cor(i+kdiff))
-#endif
       jdiff =  resh0 - resl0 + 1
       kdiff = (resh1 - resl1 + 1) * jdiff
       ly    = (resh2 - resl2 + 1) * kdiff
@@ -4112,21 +4097,14 @@ cdir$ ivdep
      @          (regl0 - resl0) + 1,
      @          (regh2 - resl2) * kdiff + (regh1 - resl1) * jdiff +
      @          (regh0 - resl0) + 1, 2
- 10   cor(i) = cor(i) + mask(i) * ((AVGU - res(i)) * cen(i) - cor(i))
+ 10   cor(i) = cor(i) + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
 cdir$ ivdep
       do 20 i = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
      @          (regl0 - resl0) + 2,
      @          (regh2 - resl2) * kdiff + (regh1 - resl1) * jdiff +
      @          (regh0 - resl0) + 1, 2
- 20   cor(i) = cor(i) + mask(i) * ((AVGU - res(i)) * cen(i) - cor(i))
+ 20   cor(i) = cor(i) + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
       end
-
-#define AVG (signd(i-1,j,k,1) * cor(i-1,j,k) + \
-             signd(i,j,k,1)   * cor(i+1,j,k) + \
-             signd(i,j-1,k,2) * cor(i,j-1,k) + \
-             signd(i,j,k,2)   * cor(i,j+1,k) + \
-             signd(i,j,k-1,3) * cor(i,j,k-1) + \
-             signd(i,j,k,3)   * cor(i,j,k+1))
 
       subroutine hgrlx(cor,
      @ corl0,corh0,corl1,corh1,corl2,corh2,
@@ -4147,14 +4125,12 @@ cdir$ ivdep
       real*8 signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
       real*8 cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       integer i, j, k, ipar0, ipar, ipass
-#if 0
       avg() = (signd(i-1,j,k,1) * cor(i-1,j,k) +
      @         signd(i,j,k,1)   * cor(i+1,j,k) +
      @         signd(i,j-1,k,2) * cor(i,j-1,k) +
      @         signd(i,j,k,2)   * cor(i,j+1,k) +
      @         signd(i,j,k-1,3) * cor(i,j,k-1) +
      @         signd(i,j,k,3)   * cor(i,j,k+1))
-#endif
       if (regh2 - regl2 .gt. regh1 - regl1 .and.
      @    regh2 - regl2 .gt. regh0 - regl0) then
          do 10 ipass = 0, 1
@@ -4166,7 +4142,7 @@ cdir$ ivdep
                   ipar = 1 - ipar
 cdir$ ivdep
                   do 10 k = regl2 + ipar, regh2, 2
-                     cor(i,j,k) = (AVG - res(i,j,k)) * cen(i,j,k)
+                     cor(i,j,k) = (avg() - res(i,j,k)) * cen(i,j,k)
  10                  continue
       else if (regh1 - regl1 .gt. regh0 - regl0) then
          do 20 ipass = 0, 1
@@ -4178,7 +4154,7 @@ cdir$ ivdep
                   ipar = 1 - ipar
 cdir$ ivdep
                   do 20 j = regl1 + ipar, regh1, 2
-                     cor(i,j,k) = (AVG - res(i,j,k)) * cen(i,j,k)
+                     cor(i,j,k) = (avg() - res(i,j,k)) * cen(i,j,k)
  20                  continue
       else
          do 30 ipass = 0, 1
@@ -4190,7 +4166,7 @@ cdir$ ivdep
                   ipar = 1 - ipar
 cdir$ ivdep
                   do 30 i = regl0 + ipar, regh0, 2
-                     cor(i,j,k) = (AVG - res(i,j,k)) * cen(i,j,k)
+                     cor(i,j,k) = (avg() - res(i,j,k)) * cen(i,j,k)
  30                  continue
       end if
       end
@@ -4620,9 +4596,8 @@ c interface to grid at same level:
      @                                  sigz(i,j-1,k)   + sigz(i,j,k))
       end
 
-#else
 
-      subroutine hgcen(cen,
+      subroutine hgcen_no_sigma_node(cen,
      @ cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
      @ sigx, sigy, sigz,
      @ sbl0,sbh0,sbl1,sbh1,sbl2,sbh2,
@@ -4658,23 +4633,7 @@ c interface to grid at same level:
      @                              sigz(i,j,k-1)     + sigz(i,j,k)))
       end
 
-#define AVG 0.25d0 * (hxm2 * \
-               ((sigx(i-1,j-1,k-1) + sigx(i-1,j-1,k) + \
-                 sigx(i-1,j,k-1)   + sigx(i-1,j,k)) * cor(i-1,j,k) + \
-                (sigx(i,j-1,k-1)   + sigx(i,j-1,k) + \
-                 sigx(i,j,k-1)     + sigx(i,j,k)) * cor(i+1,j,k)) + \
-                      hym2 * \
-               ((sigy(i-1,j-1,k-1) + sigy(i-1,j-1,k) + \
-                 sigy(i,j-1,k-1)   + sigy(i,j-1,k)) * cor(i,j-1,k) + \
-                (sigy(i-1,j,k-1)   + sigy(i-1,j,k) + \
-                 sigy(i,j,k-1)     + sigy(i,j,k)) * cor(i,j+1,k)) + \
-                      hzm2 * \
-               ((sigz(i-1,j-1,k-1) + sigz(i-1,j,k-1) + \
-                 sigz(i,j-1,k-1)   + sigz(i,j,k-1)) * cor(i,j,k-1) + \
-                (sigz(i-1,j-1,k)   + sigz(i-1,j,k) + \
-                 sigz(i,j-1,k)     + sigz(i,j,k)) * cor(i,j,k+1)))
-
-      subroutine hgrlx(cor,
+      subroutine hgrlx_no_sigma_node(cor,
      @ corl0,corh0,corl1,corh1,corl2,corh2,
      @ res,
      @ resl0,resh0,resl1,resh1,resl2,resh2,
@@ -4697,7 +4656,6 @@ c interface to grid at same level:
       real*8 sigz(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
       real*8 cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       real*8 hx, hy, hz
-#if 0
       avg() = 0.25d0 * (hxm2 *
      @          ((sigx(i-1,j-1,k-1) + sigx(i-1,j-1,k) +
      @            sigx(i-1,j,k-1)   + sigx(i-1,j,k)) * cor(i-1,j,k) +
@@ -4713,7 +4671,6 @@ c interface to grid at same level:
      @            sigz(i,j-1,k-1)   + sigz(i,j,k-1)) * cor(i,j,k-1) +
      @           (sigz(i-1,j-1,k)   + sigz(i-1,j,k) +
      @            sigz(i,j-1,k)     + sigz(i,j,k)) * cor(i,j,k+1)))
-#endif
       hxm2 = 1.d0 / (hx*hx)
       hym2 = 1.d0 / (hy*hy)
       hzm2 = 1.d0 / (hz*hz)
@@ -4728,7 +4685,7 @@ c interface to grid at same level:
                   ipar = 1 - ipar
 cdir$ ivdep
                   do 10 k = regl2 + ipar, regh2, 2
-                     cor(i,j,k) = (AVG - res(i,j,k)) * cen(i,j,k)
+                     cor(i,j,k) = (AVG() - res(i,j,k)) * cen(i,j,k)
  10                  continue
       else if (regh1 - regl1 .gt. regh0 - regl0) then
          do 20 ipass = 0, 1
@@ -4740,7 +4697,7 @@ cdir$ ivdep
                   ipar = 1 - ipar
 cdir$ ivdep
                   do 20 j = regl1 + ipar, regh1, 2
-                     cor(i,j,k) = (AVG - res(i,j,k)) * cen(i,j,k)
+                     cor(i,j,k) = (AVG() - res(i,j,k)) * cen(i,j,k)
  20                  continue
       else
          do 30 ipass = 0, 1
@@ -4752,12 +4709,12 @@ cdir$ ivdep
                   ipar = 1 - ipar
 cdir$ ivdep
                   do 30 i = regl0 + ipar, regh0, 2
-                     cor(i,j,k) = (AVG - res(i,j,k)) * cen(i,j,k)
+                     cor(i,j,k) = (AVG() - res(i,j,k)) * cen(i,j,k)
  30                  continue
       end if
       end
 
-      subroutine hgres(res,
+      subroutine hgres_no_sigma_node(res,
      @ resl0,resh0,resl1,resh1,resl2,resh2,
      @ src,
      @ srcl0,srch0,srcl1,srch1,srcl2,srch2,
@@ -4856,15 +4813,11 @@ cdir$ ivdep
       end if
       end
 
-#endif
-
-#endif
-
 #elif (defined HG_TERRAIN)
 
 c twenty-seven-point terrain stencils
 
-      subroutine hgcen(cen, cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
+      subroutine hgcen_terrain(cen, cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
      @ sig, sbl0,sbh0,sbl1,sbh1,sbl2,sbh2,
      @ regl0,regh0,regl1,regh1,regl2,regh2)
       integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
@@ -4920,7 +4873,7 @@ c twenty-seven-point terrain stencils
 #define MYZ(ii,jj,kk) (6.d0 *  cor(i,jj,kk)  + \
                        3.d0 * (cor(ii,jj,kk) - cor(ii,j,k)))
 
-      subroutine hgrlx(cor, corl0,corh0,corl1,corh1,corl2,corh2,
+      subroutine hgrlx_terrain(cor, corl0,corh0,corl1,corh1,corl2,corh2,
      @ res, resl0,resh0,resl1,resh1,resl2,resh2,
      @ sig, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
      @ cen, cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
@@ -5105,7 +5058,7 @@ cdir$ ivdep
 
 c cor substituted for dest to use same macro:
 
-      subroutine hgres(res, resl0,resh0,resl1,resh1,resl2,resh2,
+      subroutine hgres_terrain(res, resl0,resh0,resl1,resh1,resl2,resh2,
      @ src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
      @ cor, destl0,desth0,destl1,desth1,destl2,desth2,
      @ sig, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
@@ -5303,7 +5256,7 @@ c cor substituted for dest to use same macro:
       end if
       end
 
-      subroutine hgrlnf(cor,
+      subroutine hgrlnf_terrain(cor,
      @ corl0,corh0,corl1,corh1,corl2,corh2,
      @ res, resl0,resh0,resl1,resh1,resl2,resh2,
      @ wrk, wrkl0,wrkh0,wrkl1,wrkh1,wrkl2,wrkh2,
@@ -5450,8 +5403,7 @@ c Works for NODE-based data.
  10      p(i) = alpha * p(i) + z(i)
       end
 
-#endif
-#if (CGOPT == 2)
+#elif (CGOPT == 2)
 
       subroutine hgcg(r, p, z, x, w, c, mask,
      @ ngrids, strid1, strid2, nvals,

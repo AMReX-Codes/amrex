@@ -87,10 +87,10 @@ public:
 	return ts;
     }
 protected:
-    const amr_boundary_class *v[BL_SPACEDIM];
-    const amr_boundary_class *s;
-    const amr_boundary_class *p;
-    const amr_boundary_class *ts;
+    amr_boundary_class *v[BL_SPACEDIM];
+    amr_boundary_class *s;
+    amr_boundary_class *p;
+    amr_boundary_class *ts;
 };
 
 // This is the object returned by the inviscid_fluid_boundary_class class.
