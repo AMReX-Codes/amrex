@@ -1,5 +1,5 @@
 #
-# $Id: Make.OSF1,v 1.4 1997-12-12 16:10:14 lijewski Exp $
+# $Id: Make.OSF1,v 1.5 1998-04-30 15:51:19 lijewski Exp $
 #
 
 #
@@ -11,7 +11,6 @@ FULLWARN := +pp -fullwarn
 CXXOPTF  += -O2 -tune ev5 -Olimit 2400
 CXXDEBF  += -g
 CXXPRFF  := -p
-override XTRADEFS += -DBL_AUTO_INSTANTIATE
 override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
 endif
 
