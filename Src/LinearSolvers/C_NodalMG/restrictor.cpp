@@ -242,9 +242,7 @@ void bilinear_restrictor_class::lev_interface(FArrayBox& patch,
     }
     else 
     {
-	fill_borders(fine, 
-	    border_cache, 
-	    lev_interface, bdy, ratmax - 1);
+	fill_borders(fine, border_cache, lev_interface, bdy, ratmax - 1);
 	for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
 	{
 	    if (lev_interface.fgeo(iface) == level_interface::ALL && lev_interface.fflag(iface) == 0) 
@@ -350,9 +348,7 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 #endif
     
     if (fine.nGrow() >= ratmax - 1)
-	fill_borders(fine, 
-	border_cache, 
-	lev_interface, bdy, ratmax - 1);
+	fill_borders(fine, border_cache, lev_interface, bdy, ratmax - 1);
     
     for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
     {

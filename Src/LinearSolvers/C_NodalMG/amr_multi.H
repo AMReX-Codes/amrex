@@ -32,16 +32,16 @@ public:
     static void mesh_write(const Array<BoxArray>& m, const Array<Box>& d, ostream& os);
     static void mesh_write(const Array<BoxArray>& m, const Array<IntVect>& r, Box fd, ostream& os);
     
-    virtual void solve(Real reltol, Real abstol = 0.0, int i1=2, int i2=2, int linesolvdim = -1);
-    virtual Real ml_cycle(int lev, int mglev, int i1=2, int i2=2, Real tol = -1.0, Real res_norm_fine = 0.0);
-    virtual void mg_cycle(int mglev, int i1=2, int i2=2, int is_zero=0);
+    virtual void solve(Real reltol, Real abstol = 0.0, int i1 = 2, int i2 = 2, int linesolvdim = -1);
+    virtual Real ml_cycle(int lev, int mglev, int i1 = 2, int i2 = 2, Real tol = -1.0, Real res_norm_fine = 0.0);
+    virtual void mg_cycle(int mglev, int i1 = 2, int i2 = 2, bool is_zero = false);
     virtual Real ml_residual(int mglev, int lev);
     virtual void mg_interpolate_level(int lto, int lfrom);
     virtual void mg_restrict_level(int lto, int lfrom);
     
     virtual void level_residual(MultiFab& r, MultiFab& s, MultiFab& d, copy_cache* dbc, int mglev, bool iclear) = 0;
     virtual void interface_residual(int mglev, int mgc) = 0;
-    virtual void relax(int mglev, int i1, int is_zero) = 0;
+    virtual void relax(int mglev, int i1, bool is_zero) = 0;
     virtual void cgsolve(int mglev) = 0;
 protected:
     const int lev_min_min, lev_min_max, lev_max_max;

@@ -123,7 +123,7 @@ protected:
     virtual void mg_restrict_level(int lto, int lfrom);
     virtual void interface_residual(int mglev, int lev);
     virtual void level_residual(MultiFab& r, MultiFab& s, MultiFab& d, copy_cache* dbc, int mglev, bool iclear);
-    virtual void relax(int mglev, int i1, int is_zero);
+    virtual void relax(int mglev, int i1, bool is_zero);
     virtual void cgsolve(int mglev);
     
     virtual void mg_restrict(int lto, int lfrom);

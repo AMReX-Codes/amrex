@@ -360,9 +360,7 @@ void holy_grail_amr_projector::grid_average(PArray<MultiFab>& S)
 	int mglev = ml_index[lev];
 	Real hx = h[mglev][0];
 	
-	fill_borders(S[lev],
-	    0, 
-	    lev_interface[mglev], boundary.scalar());
+	fill_borders(S[lev], 0, lev_interface[mglev], boundary.scalar());
 	
 	for (int igrid = 0; igrid < ml_mesh[lev].length(); igrid++) 
 	{
@@ -397,9 +395,7 @@ void holy_grail_amr_projector::grid_divergence(PArray<MultiFab>* u)
 	
 	for (int i = 0; i < BL_SPACEDIM; i++) 
 	{
-	    fill_borders(u[i][lev], 
-		0, 
-		lev_interface[mglev], boundary.velocity(i));
+	    fill_borders(u[i][lev], 0, lev_interface[mglev], boundary.velocity(i));
 	}
 	
 	for (int igrid = 0; igrid < ml_mesh[lev].length(); igrid++) 

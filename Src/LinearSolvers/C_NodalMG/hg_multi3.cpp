@@ -97,9 +97,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
     assert(r.boxArray() == s.boxArray());
     assert(r.boxArray() == d.boxArray());
     assert(mglev >= 0);
-    fill_borders(d,
-	dbc, 
-	lev_interface[mglev], mg_boundary);
+    fill_borders(d, dbc, lev_interface[mglev], mg_boundary);
     
 #ifdef HG_TERRAIN
     
@@ -213,7 +211,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
 #endif /* HG_SIGMA_NODE */
 }
 
-void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
+void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 {
     Real hx = h[mglev][0];
     Real hy = h[mglev][1];
@@ -230,12 +228,10 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 	if (smoother_mode == 0 || smoother_mode == 1 || line_solve_dim == -1) 
 	{
 	    
-	    if (is_zero == 0)
-		fill_borders(corr[mglev], 
-		corr_bcache[mglev],
-		lev_interface[mglev], mg_boundary);
+	    if ( is_zero == false )
+		fill_borders(corr[mglev], corr_bcache[mglev], lev_interface[mglev], mg_boundary);
 	    else
-		is_zero = 0;
+		is_zero = false;
 	    for (int igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
 	    {
 		const Box& sbox = resid[mglev][igrid].box();
@@ -359,12 +355,10 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 	
 	for (int ipass = 0; ipass <= 1; ipass++) 
 	{
-	    if (is_zero == 0)
-		fill_borders(corr[mglev], 
-		corr_bcache[mglev],
-		lev_interface[mglev], mg_boundary);
+	    if (is_zero == false)
+		fill_borders(corr[mglev], corr_bcache[mglev], lev_interface[mglev], mg_boundary);
 	    else
-		is_zero = 0;
+		is_zero = false;
 	    
 	    // Forward solve:
 	    for (int i = 0; i < mg_mesh[mglev].length(); i++) 

@@ -52,48 +52,6 @@ c Unrolled copy---works for CELL- or NODE-based data.
  10      dest(i) = src(i)
       end
 
-#if 0
-c Old version, failed at certain coarse-fine corners in 3D.
-c Works for NODE-based data.
-      subroutine fcpy2(da,
-     @ dims(da),
-     @ db,  dims(db),
-     @ dims(reg), w, ncomp)
-      implicit real*8(a-h,o-z), integer(i-n)
-      integer dims(da)
-      integer dims(db)
-      integer dims(reg)
-      real*8 da(dimdec(da), ncomp)
-      real*8 db(dimdec(db), ncomp)
-      integer w, ncomp
-      if (regl0 .eq. regh0) then
-         do 10 ic = 1, ncomp
-            do 10 i = 1, w
-               do 10 k = regl2, regh2
-                  do 10 j = regl1, regh1
-c               do 10 k = regl2 - w, regh2 + w
-c                  do 10 j = regl1 - w, regh1 + w
-                     da(regl0+i,j,k,ic) = db(regl0+i,j,k,ic)
- 10                  db(regl0-i,j,k,ic) = da(regl0-i,j,k,ic)
-      else if (regl1 .eq. regh1) then
-         do 20 ic = 1, ncomp
-            do 20 j = 1, w
-               do 20 k = regl2, regh2
-c               do 20 k = regl2 - w, regh2 + w
-                  do 20 i = regl0 - w, regh0 + w
-                     da(i,regl1+j,k,ic) = db(i,regl1+j,k,ic)
- 20                  db(i,regl1-j,k,ic) = da(i,regl1-j,k,ic)
-      else
-         do 30 ic = 1, ncomp
-            do 30 k = 1, w
-               do 30 j = regl1 - w, regh1 + w
-                  do 30 i = regl0 - w, regh0 + w
-                     da(i,j,regl2+k,ic) = db(i,j,regl2+k,ic)
- 30                  db(i,j,regl2-k,ic) = da(i,j,regl2-k,ic)
-      endif
-      end
-#endif
-
 c Works for NODE-based data.
       subroutine fcpy2(da,
      @ dims(da),
