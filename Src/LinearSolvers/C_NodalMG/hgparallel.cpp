@@ -14,23 +14,32 @@
 bool HG_is_debugging = false;
 #ifdef BL_USE_MPI
 MPI_Comm HG::mpi_comm = MPI_COMM_WORLD;
-int HG::mpi_tag_ub;
 #endif
 int HG::max_live_tasks = 50;
 int HG::multigrid_maxiter = 100;
 int HG::cgsolve_maxiter = 250;
+int HG::pverbose = 0;
 bool HG::initialized = false;
 double HG::cgsolve_tolfact = 1.0e-3;
 
 void HG::MPI_init()
 {
-    if ( !initialized == 0 )
+    if ( !initialized )
     {
 	ParmParse pp("HG");
 	pp.query("cgsolve_maxiter", cgsolve_maxiter);
 	pp.query("multigrid_maxiter", multigrid_maxiter);
 	pp.query("cgsolve_tolfact", cgsolve_tolfact);
 	pp.query("max_live_tasks", max_live_tasks);
+	pp.query("pverbose", pverbose);
+	if ( ParallelDescriptor::IOProcessor() )
+	{
+	    cout << "HG.cgsolve_maxiter = " << cgsolve_maxiter << endl;
+	    cout << "HG.multigrid_maxiter = " << multigrid_maxiter << endl;
+	    cout << "HG.cgsolve_tolfact = " << cgsolve_tolfact << endl;
+	    cout << "HG.max_live_tasks = " << max_live_tasks << endl;
+	    cout << "HG.pverbose = " << pverbose << endl;
+	}
 	initialized = true;
 #ifdef BL_USE_MPI
 	int res;
@@ -146,10 +155,8 @@ bool task::ready()
 // The list...
 // TASK_LIST
 
-bool task_list::def_verbose = false;
-
 task_list::task_list()
-    : seq_no(1), seq_delta(1), verbose(def_verbose)
+    : seq_no(1), seq_delta(1), verbose(HG::pverbose)
 {
 }
 
