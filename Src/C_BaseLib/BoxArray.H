@@ -1,7 +1,7 @@
 #ifndef BL_BOXARRAY_H
 #define BL_BOXARRAY_H
 //
-// $Id: BoxArray.H,v 1.28 2001-07-31 22:43:17 lijewski Exp $
+// $Id: BoxArray.H,v 1.29 2001-08-01 20:24:21 lijewski Exp $
 //
 #include <cstddef>
 
@@ -72,10 +72,6 @@ public:
     //
     BoxArray (const BoxArray& bs);
     //
-    //@ManDoc: Construct a BoxArray from a checkpoint file.
-    //
-    explicit BoxArray (std::istream& is);
-    //
     //@ManDoc: The assignment operator.
     //
     BoxArray& operator= (const BoxArray& rhs);
@@ -93,13 +89,6 @@ public:
                It is an error if the BoxArray has already been initialized.
     */
     void define (const BoxArray& bs);
-
-    /*@ManDoc: Initialize the BoxArray from the supplied istream.
-               It is an error if the BoxArray has already been initialized.
-               Note that the BoxArray in the istream must have been written
-               using writeOn().
-    */
-    void define (std::istream& is);
     //
     //@ManDoc: Remove all Boxes from the BoxArray.
     //
@@ -114,6 +103,13 @@ public:
     int size () const;
 
     long numPts() const;
+
+    /*@ManDoc: Initialize the BoxArray from the supplied istream.
+               It is an error if the BoxArray has already been initialized.
+               Note that the BoxArray in the istream must have been written
+               using writeOn().
+    */
+    void readFrom (std::istream& is);
     //
     //@ManDoc: Output this BoxArray to a checkpoint file.
     //

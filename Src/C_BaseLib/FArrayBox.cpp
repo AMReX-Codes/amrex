@@ -1,5 +1,5 @@
 //
-// $Id: FArrayBox.cpp,v 1.42 2001-07-31 17:56:26 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.43 2001-08-01 20:24:22 lijewski Exp $
 //
 #include <cstdlib>
 #include <iostream>
@@ -649,11 +649,6 @@ FABio::read_header (std::istream& is,
         BoxLib::Error("FABio::read_header() failed");
 
     return fio;
-}
-
-FArrayBox::FArrayBox (std::istream& ifile)
-{
-    readFrom(ifile);
 }
 
 void

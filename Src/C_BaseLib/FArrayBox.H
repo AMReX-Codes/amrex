@@ -2,7 +2,7 @@
 #define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.27 2001-07-31 17:56:26 lijewski Exp $
+// $Id: FArrayBox.H,v 1.28 2001-08-01 20:24:22 lijewski Exp $
 //
 
 #include <Pointers.H>
@@ -220,10 +220,6 @@ public:
     */
     explicit FArrayBox (const Box& b,
                         int        ncomp=1);
-    //
-    //@ManDoc: Constructs FAB by reading it from istream.
-    //
-    explicit FArrayBox (std::istream& is);
     //
     FArrayBox (const FArrayBox&);
     //
