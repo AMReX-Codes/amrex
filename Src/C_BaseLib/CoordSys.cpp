@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CoordSys.cpp,v 1.6 1998-02-17 23:02:16 car Exp $
+// $Id: CoordSys.cpp,v 1.7 1998-05-06 22:36:15 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -19,53 +19,20 @@
 const double RZFACTOR = 2*M_PI;
 #endif
 
-CoordSys::CoordType CoordSys::c_sys = CoordSys::undef;
-
-Real CoordSys::offset[BL_SPACEDIM];
-
+//
+// A handy macro.
+//
 #define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
 const int* fablo = (fab).loVect();           \
 const int* fabhi = (fab).hiVect();           \
 Real* fabdat = (fab).dataPtr();
 
-IntVect
-CoordSys::CellIndex (const Real* point) const
-{
-    assert(ok);
-    assert(point != 0);
-    IntVect ix;
-    for (int k = 0; k < BL_SPACEDIM; k++)
-    {
-        ix[k] = (int) ((point[k]-offset[k])/dx[k]);
-    }
-    return ix;
-}
+//
+// The definition of static data members.
+//
+CoordSys::CoordType CoordSys::c_sys = CoordSys::undef;
 
-IntVect
-CoordSys::LowerIndex (const Real* point) const
-{
-    assert(ok);
-    assert(point != 0);
-    IntVect ix;
-    for (int k = 0; k < BL_SPACEDIM; k++)
-    {
-        ix[k] = (int) ((point[k]-offset[k])/dx[k]);
-    }
-    return ix;
-}
-
-IntVect
-CoordSys::UpperIndex(const Real* point) const
-{
-    assert(ok);
-    assert(point != 0);
-    IntVect ix;
-    for (int k = 0; k < BL_SPACEDIM; k++)
-    {
-        ix[k] = (int) ((point[k]-offset[k])/dx[k]);
-    }
-    return ix;
-}
+Real CoordSys::offset[BL_SPACEDIM];
 
 FArrayBox*
 CoordSys::GetVolume (const Box& region) const 
@@ -88,15 +55,6 @@ CoordSys::GetVolume (FArrayBox& vol,
 }
 
 #if (BL_SPACEDIM == 2)
-FArrayBox*
-CoordSys::GetDLogA (const Box& region,
-                    int        dir) const
-{
-    FArrayBox* dloga = new FArrayBox();
-    GetDLogA(*dloga,region,dir);
-    return dloga;
-}
-
 void
 CoordSys::GetDLogA (FArrayBox& dloga,
                     const Box& region,
@@ -108,6 +66,15 @@ CoordSys::GetDLogA (FArrayBox& dloga,
     DEF_LIMITS(dloga,dloga_dat,dlo,dhi);
     int coord = (int) c_sys;
     FORT_SETDLOGA(dloga_dat,ARLIM(dlo),ARLIM(dhi),offset,dx,&dir,&coord);
+}
+
+FArrayBox*
+CoordSys::GetDLogA (const Box& region,
+                    int        dir) const
+{
+    FArrayBox* dloga = new FArrayBox();
+    GetDLogA(*dloga,region,dir);
+    return dloga;
 }
 #endif /*BL_SPACEDIM == 2*/
 
@@ -144,9 +111,9 @@ CoordSys::GetEdgeLoc (Array<Real>& loc,
     assert(region.cellCentered());
     const int* lo = region.loVect();
     const int* hi = region.hiVect();
-    int len = hi[dir] - lo[dir] + 2;
+    int len       = hi[dir] - lo[dir] + 2;
+    Real off      = offset[dir] + dx[dir]*lo[dir];
     loc.resize(len);
-    Real off = offset[dir] + dx[dir]*lo[dir];
     for (int i = 0; i < len; i++)
     {
         loc[i] = off + dx[dir]*i;
@@ -162,9 +129,9 @@ CoordSys::GetCellLoc (Array<Real>& loc,
     assert(region.cellCentered());
     const int* lo = region.loVect();
     const int* hi = region.hiVect();
-    int len = hi[dir] - lo[dir] + 1;
-    loc.resize(len);
+    int len       = hi[dir] - lo[dir] + 1;
     Real off = offset[dir] + dx[dir]*(0.5 + (Real)lo[dir]);
+    loc.resize(len);
     for (int i = 0; i < len; i++)
     {
         loc[i] = off + dx[dir]*i;

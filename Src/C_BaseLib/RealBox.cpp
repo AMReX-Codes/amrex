@@ -1,13 +1,16 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RealBox.cpp,v 1.4 1997-12-17 23:04:33 lijewski Exp $
+// $Id: RealBox.cpp,v 1.5 1998-05-06 22:36:19 lijewski Exp $
 //
 
 #include <aString.H>
 #include <Misc.H>
 #include <RealBox.H>
 
+//
+// The definition of lone static data member.
+//
 Real RealBox::eps = 1.0e-6;
 
 RealBox::RealBox (const Box&  bx,

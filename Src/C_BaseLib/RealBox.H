@@ -4,74 +4,128 @@
 #define _RealBox_H_ 
 
 //
-// $Id: RealBox.H,v 1.4 1997-12-11 23:27:00 lijewski Exp $
+// $Id: RealBox.H,v 1.5 1998-05-06 22:36:18 lijewski Exp $
 //
 
 #include <Array.H>
 #include <REAL.H>
 #include <Box.H>
 
-// rules:
-//  ok if and only if (volume > 0)
-//  is zero volume intersection valid?
 //
+//@Man:
+//@Memo: A Real Box
+/*@Doc:
+
+  A Box with real dimensions.  A RealBox is OK iff volume > 0.
+*/
 
 class RealBox
 {
 public:
 
 #ifdef __GNUG__
-     bool operator== (const RealBox& rhs) const { return true; }
+    //
+    // This is a hack to work around a g++ bug :-(
+    //
+    bool operator== (const RealBox& rhs) const { return true; }
 #endif 
-
+    //
+    //@ManDoc: Nice ASCII output.
+    //
     friend ostream& operator<< (ostream&, const RealBox& );
+    //
+    //@ManDoc: Nice ASCII input.
+    //
     friend istream& operator>> (istream&, RealBox& );
     //
-    // Construct invalid region.
+    //@ManDoc: The default constructor.  Builds invalid RealBox.
     //
     RealBox ();
     //
-    // Construct region given diagional points.
+    //@ManDoc: Construct region given diagonal points.
     //
     RealBox (const Real* lo,
              const Real* hi);
-    //
-    // Construct region given index box, cell spacing
-    // and physical location of index (0,0,0).
-    //
+
+    /*@ManDoc: Construct region given index box, cell spacing
+               and physical location of index (0,0,0).
+    */
     RealBox (const Box&  bx,
              const Real* dx,
              const Real* base);
     //
-    // Explicit dimension specific constructors.
+    //@ManDoc: Explicit dimension specific constructors.
     //
     RealBox (D_DECL(Real x0, Real y0, Real z0),
              D_DECL(Real x1, Real y1, Real z1));
-
+    //
+    //@ManDoc: Set epsilon used by contains() function when comparing floating point numbers.
+    //
     static void setEpsilon (Real epsilon);
+    //
+    //@ManDoc: Returns epsilon.
+    //
     static Real epsilon ();
-
+    //
+    //@ManDoc: Returns lo side.
+    //
     const Real* lo () const;
+    //
+    //@ManDoc: Returns hide side.
+    //
     const Real* hi () const;
-
+    //
+    //@ManDoc: Returns length in each direction.
+    //
     const Real* length () const;
-
+    //
+    //@ManDoc: Returns length in specified direction.
+    //
     Real lo (int dir) const;
+    //
+    //@ManDoc: Returns hi side in specified direction.
+    //
     Real hi (int dir) const;
-
+    //
+    //@ManDoc: Returns length in specified direction.
+    //
     Real length (int dir) const;
-
+    //
+    //@ManDoc: Sets lo side.
+    //
     void setLo (const Real* lo);
+    //
+    //@ManDoc: Sets lo side.
+    //
     void setLo (const Array<Real>& lo);
-    void setLo (int indx, Real lo);
-
+    //
+    //@ManDoc: Sets lo side in specified direction.
+    //
+    void setLo (int dir, Real lo);
+    //
+    //@ManDoc: Sets hi side.
+    //
     void setHi (const Real* hi);
+    //
+    //@ManDoc: Sets hi side.
+    //
     void setHi (const Array<Real>& hi);
-    void setHi (int indx, Real hi);
-
+    //
+    //@ManDoc: Sets hi side in specified direction.
+    //
+    void setHi (int dir, Real hi);
+    //
+    //@ManDoc: Is the RealBox OK; i.e. does it have positive volume?
+    //
     bool ok () const;
+    //
+    //@ManDoc: Is the specified point contained in the RealBox?
+    //
     bool contains (const Real* point);
-    bool contains (const RealBox &bx);
+    //
+    //@ManDoc: Is the specified RealBox contained in this RealBox?
+    //
+    bool contains (const RealBox& bx);
 
 protected:
     //
@@ -84,7 +138,9 @@ protected:
     Real xlo[BL_SPACEDIM];
     Real xhi[BL_SPACEDIM];
     Real len[BL_SPACEDIM];
-
+    //
+    // Static data.
+    //
     static Real eps;
 };
 
@@ -256,4 +312,4 @@ RealBox::ok () const
    ;
 }
 
-#endif
+#endif /*_RealBox_H_*/
