@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.27 2001-11-19 19:10:49 car Exp $
+// $Id: BLThread.cpp,v 1.28 2001-11-21 19:50:44 car Exp $
 //
 
 #include <winstd.H>
@@ -95,11 +95,17 @@ while ( false )
 class Mutex::Implementation
 {
 public:
+    Implementation();
+    ~Implementation();
     void lock();
     void unlock();
     bool trylock();
 protected:
+#if 0
     HANDLE m_mutex;
+#else
+    CRITICAL_SECTION m_mutex;
+#endif
 };
 
 class ConditionVariable::Implementation
@@ -552,21 +558,52 @@ Thread::setCancelState(CancelState state)
 
 #ifdef WIN32
 
+Mutex::Implementation::Implementation()
+{
+#if 0
+    m_mutex = CreateMutex(NULL,FALSE,NULL);
+#else
+    InitializeCriticalSection(&m_mutex);
+#endif
+}
+
+Mutex::Implementation::~Implementation()
+{
+#if 0
+    CloseHandle(m_mutex);
+#else
+    DeleteCriticalSection(&m_mutex);
+#endif
+}
+
 void
 Mutex::Implementation::lock ()
 {
-    WaitForSingleObject(m_mutex, INFINITE);
+#if 0
+    DWORD result = WaitForSingleObject(m_mutex, INFINITE);
+    if ( result != WAIT_OBJECT_0 ) 
+    {
+	BoxLib::Error("Mutex::Implementation::lock(): failed");
+    }
+#else
+    EnterCriticalSection(&m_mutex);
+#endif
 }
 
 void
 Mutex::Implementation::unlock ()
 {
+#if 0
     ReleaseMutex(m_mutex);
+#else
+    LeaveCriticalSection(&m_mutex);
+#endif
 }
 
 bool
 Mutex::Implementation::trylock ()
 {
+#if 0
     DWORD result = WaitForSingleObject(m_mutex, 0);
     switch ( result )
     {
@@ -574,6 +611,9 @@ Mutex::Implementation::trylock ()
     case WAIT_ABANDONED: return false;
     }
     return true;
+#else
+    return TryEnterCriticalSection(&m_mutex) != 0;
+#endif
 }
 
 #else
@@ -646,12 +686,16 @@ Mutex::unlock()
 ConditionVariable::Implementation::Implementation()
 {
     m_wc = 0;
+    InitializeCriticalSection(&m_wcl);
     m_events[SIGNAL] = CreateEvent(NULL, FALSE, FALSE, NULL);
     m_events[BROADCAST] = CreateEvent(NULL, TRUE, FALSE, NULL);
 }
 
 ConditionVariable::Implementation::~Implementation()
 {
+    CloseHandle(m_events[SIGNAL]);
+    CloseHandle(m_events[BROADCAST]);
+    DeleteCriticalSection(&m_wcl);
 }
 
 void
