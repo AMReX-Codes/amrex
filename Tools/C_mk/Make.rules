@@ -1,5 +1,5 @@
 #
-# $Id: Make.rules,v 1.20 2002-04-08 17:25:05 car Exp $
+# $Id: Make.rules,v 1.21 2002-04-26 22:24:43 car Exp $
 #
 $(addprefix $(instIncludeDir)/, $(instSources)): $(instIncludeDir)/% : %
 	@if [ ! -d $(instIncludeDir) ]; then mkdir -p $(instIncludeDir); fi
@@ -32,7 +32,7 @@ ifeq ($(LBASE),box)
 	$(RM) -r ./tmp
 	mkdir ./tmp
 	-cp -p $(addprefix $(objTempDir)/, $(objForLibs)) $(LibsToCloseAgainst) ./tmp
-	-$(CXX) -ptv -pts $(CXXLIBFLAGS) -DBL_LANG_CC -DBL_SPACEDIM=$(DIM) $(CPPFLAGS) $(CXXFLAGS) ./tmp/*.o
+	-$(CXX) -ptv -pts $(CXXLIBFLAGS) -DBL_SPACEDIM=$(DIM) $(CPPFLAGS) $(CXXFLAGS) ./tmp/*.o
 	n=1; for i in $(ptRepDir)/*.o; do cp $$i ./tmp/$${n}.o; n=`expr $$n + 1`; done
 	$(RM) $(optionsLib)
 	ar crv $(optionsLib) ./tmp/*.o
@@ -57,7 +57,7 @@ endif
 # On KCC we close all libraries.
 #
 ifeq ($(COMP), KCC)
-	$(CXX) $(CXXLIBFLAGS) $(CXXFLAGS) $(CPPFLAGS) -DBL_LANG_CC -o $(optionsLib) $(addprefix $(objTempDir)/, $(objForLibs)) $(LibsToCloseAgainst)
+	$(CXX) $(CXXLIBFLAGS) $(CXXFLAGS) $(CPPFLAGS) -o $(optionsLib) $(addprefix $(objTempDir)/, $(objForLibs)) $(LibsToCloseAgainst)
 endif
 endif
 	$(RANLIB) $@
@@ -92,7 +92,7 @@ endif
 #
 $(optionsLib)(%.o): %.cpp
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
-	$(CXX) $(CXXLIBFLAGS) $(CXXFLAGS) $(CPPFLAGS) -DBL_LANG_CC -c $< $(LIB_OUTPUT_OPTION)
+	$(CXX) $(CXXLIBFLAGS) $(CXXFLAGS) $(CPPFLAGS) -c $< $(LIB_OUTPUT_OPTION)
 	$(AR) r $@ $(objTempDir)/$*.o
 
 $(optionsLib)(%.o): %.c
@@ -128,7 +128,7 @@ $(optionsLib)(%.o): %.f
 #
 $(objEXETempDir)/%.o: %.cpp
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $(CXXEXEFLAGS) -DBL_LANG_CC $< $(EXE_OUTPUT_OPTION)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $(CXXEXEFLAGS) $< $(EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.c
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
