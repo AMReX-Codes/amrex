@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.96 1999-04-11 23:30:47 lijewski Exp $
+// $Id: FabArray.H,v 1.97 1999-04-13 00:09:14 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1220,18 +1220,19 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                        int                    dcomp,
                        int                    ncomp)
 {
-    if (src.boxarray == boxarray)
+    if (boxarray == src.boxarray)
     {
+        assert(distributionMap == src.distributionMap);
+
         for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
         {
-            DependentFabArrayIterator<T,FAB> dfai(fai, src);
+            DependentFabArrayIterator<T,FAB> dfai(fai,src);
 
-            if (fai.validbox().intersects(dfai.validbox()))
-            {
-                Box isect = fai.validbox() & dfai.validbox();
+            assert(fai.validbox() == dfai.validbox());
 
-                fai().copy(dfai(),isect,scomp,isect,dcomp,ncomp);
-            }
+            const Box& bx = fai.validbox();
+
+            fai().copy(dfai(),bx,scomp,bx,dcomp,ncomp);
         }
 
         return;
