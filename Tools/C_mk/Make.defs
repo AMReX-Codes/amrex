@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.17 1998-11-21 00:15:40 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.18 1998-11-21 00:24:14 lijewski Exp $
 #
 
 #
@@ -135,10 +135,10 @@ endif
 
 RANLIB = true
 
-EXE_OUTPUT_OPTION      = -o $@
-LIB_OUTPUT_OPTION      = -o $@
-FORT_EXE_OUTPUT_OPTION = -o $@
-FORT_LIB_OUTPUT_OPTION = -o $@
+EXE_OUTPUT_OPTION      = -o $(objEXETempDir)/$@
+LIB_OUTPUT_OPTION      = -o $(objTempDir)/$*.o
+FORT_EXE_OUTPUT_OPTION = -o $(objEXETempDir)/$@
+FORT_LIB_OUTPUT_OPTION = -o $(objTempDir)/$*.o
 
 #
 # Generic setup for using g++ ...
