@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.7 1998-11-24 01:00:54 lijewski Exp $
+// $Id: RunStats.cpp,v 1.8 1998-12-11 19:21:26 car Exp $
 //
 
 #include <Utility.H>
@@ -152,11 +152,11 @@ RunStats::Print (ostream&            os,
        << " time:  "
        << data.run_time
        << "  ("
-       << 100*(data.run_time/tot_run_time)
+       << (tot_run_time?100*(data.run_time/tot_run_time):-1)
        << "%)  "
        << data.run_wtime
        << "  ("
-       << 100*(data.run_wtime/tot_run_wtime) << ")%\n";
+       << (tot_run_wtime?(100*(data.run_wtime/tot_run_wtime)):-1) << ")%\n";
 
     os.precision(old_prec);
 }
@@ -171,8 +171,6 @@ RunStats::report (ostream& os)
 
     ParallelDescriptor::ReduceRealSum(rtime,IOProc);
     ParallelDescriptor::ReduceRealMax(rwtime,IOProc);
-
-    assert(rwtime > 0);
 
     ParallelDescriptor::ReduceRealSum(Incremental_Byte_Count,IOProc);
 
