@@ -31,7 +31,9 @@ level_interface::~level_interface()
 	delete [] fdm;
 	for (int i = 0; i < BL_SPACEDIM; i++) 
 	{
-	    delete [] ge[i]; delete [] ax[i]; delete [] flg[i];
+	    delete [] ge[i];
+	    delete [] ax[i];
+	    delete [] flg[i];
 	}
 #if (BL_SPACEDIM == 3)
 	delete [] fgr;
@@ -49,8 +51,8 @@ void level_interface::copy(const level_interface& src)
     status = 0;
 
     dom = src.dom;
-    im = src.im;
-    em = src.em;
+    im  = src.im;
+    em  = src.em;
     grid_ref = src.grid_ref;
     fdm = src.fdm;
     for (int i = 0; i < BL_SPACEDIM; i++) 
@@ -83,7 +85,7 @@ void level_interface::alloc_coarsened(const BoxArray& Im,
     status = 1;
     
     dom = coarsen(src.dom, rat);
-    im = Im;
+    im  = Im;
     
     grid_ref = src.grid_ref;
     fdm = src.fdm;
@@ -128,7 +130,7 @@ void level_interface::alloc_coarsened(const BoxArray& Im,
     int idim = FACEDIM;
     for (int iface = 0; iface < nbx[idim]; iface++) 
     {
-	if (ge[idim][iface] == ALL && !flg[idim][iface] ) 
+	if ( ge[idim][iface] == ALL && !flg[idim][iface] ) 
 	{
 	    int igrid;
 	    if ((igrid = fgr[iface][0]) >= 0) 
@@ -155,7 +157,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     int idim;
     
     dom = Domain;
-    im = Im;
+    im  = Im;
     assert( bdy != 0 );
     bdy->boundary_mesh(em, grid_ref, im, dom);
     
@@ -246,7 +248,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
 	for (int i = 0; i < N_FACE_GRIDS; i++) 
 	{
 	    fgr[iface][i] = -1;
-	    if (ge[idim][iface] & imask) 
+	    if ( ge[idim][iface] & imask ) 
 	    {
 		if (dom.contains(b)) 
 		{
@@ -300,7 +302,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
 	for (int i = 0; i < N_EDGE_GRIDS; i++) 
 	{
 	    egr[iedge][i] = -1;
-	    if (ge[idim][iedge] & imask) 
+	    if ( ge[idim][iedge] & imask ) 
 	    {
 		if (dom.contains(b)) 
 		{
@@ -356,7 +358,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
 	for (int i = 0; i < N_CORNER_GRIDS; i++) 
 	{
 	    cgr[icor][i] = -1;
-	    if (ge[idim][icor] & imask) 
+	    if ( ge[idim][icor] & imask ) 
 	    {
 		if (dom.contains(b)) 
 		{
@@ -420,7 +422,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     idim = FACEDIM;
     for (int iface = 0; iface < nbx[idim]; iface++) 
     {
-	if (ge[idim][iface] == ALL && !flg[idim][iface] ) 
+	if ( ge[idim][iface] == ALL && !flg[idim][iface] ) 
 	{
 	    int igrid;
 	    if ((igrid = fgr[iface][0]) >= 0) 
@@ -440,7 +442,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     for (int iface = 0; iface < nbx[idim]; iface++) 
     {
 	ax[idim][iface] = -1;
-	if (ge[idim][iface] != ALL) 
+	if ( ge[idim][iface] != ALL ) 
 	{
 	    for (int i = 0; i < 2; i++) 
 	    {
@@ -459,7 +461,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     for (int iedge = 0; iedge < nbx[1]; iedge++) 
     {
 	ax[1][iedge] = -1;
-	if (ge[1][iedge] != ALL) 
+	if ( ge[1][iedge] != ALL ) 
 	{
 	    for (int i = 0; i < N_EDGE_GRIDS && ax[1][iedge] == -1; i++) 
 	    {
@@ -488,7 +490,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     for (int icor = 0; icor < nbx[0]; icor++) 
     {
 	ax[0][icor] = -1;
-	if (ge[0][icor] != ALL) 
+	if ( ge[0][icor] != ALL ) 
 	{
 	    for (int i = 0; i < N_CORNER_GRIDS && ax[0][icor] == -1; i++) 
 	    {
@@ -525,7 +527,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
 
 void level_interface::add(List<Box>& bl, Box b, int startgrid)
 {
-    IntVect t = b.type();
+    const IntVect t = b.type();
     for (int igrid = startgrid; igrid < im.length() + em.length(); igrid++) 
     {
 	Box ibox;
@@ -575,7 +577,7 @@ void level_interface::xfer(List<Box>& bl, int idim)
     for ( int i = 0; bn; bn++, i++) 
     {
 	bx[idim][i] = bn();
-	Box btmp = grow(bn(), bn().type()).convert(IntVect::TheCellVector());
+	const Box btmp = grow(bn(), bn().type()).convert(IntVect::TheCellVector());
 	IntVect tmp = btmp.smallEnd();
 	if (dom.contains(btmp)) 
 	{
@@ -813,7 +815,7 @@ void level_interface::xfer(List<Box>& bl, int idim)
     }
 }
 
-void level_interface::geo_array(int ga[], int idim, int i) const
+void level_interface::geo_array(int idim, int ga[], int i) const
 {
     unsigned int gtmp = geo(idim, i);
     for (int k = 0; k < N_CORNER_GRIDS; k++) 

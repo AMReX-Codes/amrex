@@ -443,19 +443,19 @@ void mixed_boundary_class::sync_borders(MultiFab& r, const level_interface& lev_
 {
     assert(type(r) == IntVect::TheNodeVector());
     
-    for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
+    for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
     {
-	if (lev_interface.fgeo(iface) != level_interface::ALL)
+	if (lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL)
 	    break;
-	int igrid = lev_interface.fgrid(iface, 0);
+	int igrid = lev_interface.grid(level_interface::FACEDIM, iface, 0);
 	if (igrid < 0) 
 	{
 	    int idim = lev_interface.fdim(iface);
 	    if (ptr->bc[idim][0] == periodic) 
 	    {
-		int jgrid = lev_interface.fgrid(iface, 1);
+		int jgrid = lev_interface.grid(level_interface::FACEDIM, iface, 1);
 		igrid = lev_interface.exterior_ref(igrid);
-		const Box& b = lev_interface.node_face(iface);
+		const Box& b = lev_interface.node_box(level_interface::FACEDIM, iface);
 		Box bb = b;
 		bb.shift(idim, lev_interface.domain().length(idim));
 		r[jgrid].copy(r[igrid], bb, 0, b, 0, r.nComp());
@@ -469,15 +469,15 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
     w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
     assert( w == 1 || w == 0 );
     const Box& domain = lev_interface.domain();
-    for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
+    for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
     {
-	if (lev_interface.fgeo(iface) != level_interface::ALL)
+	if (lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL)
 	    break;
-	const int igrid = lev_interface.fgrid(iface, 0);
-	const int jgrid = lev_interface.fgrid(iface, 1);
+	const int igrid = lev_interface.grid(level_interface::FACEDIM, iface, 0);
+	const int jgrid = lev_interface.grid(level_interface::FACEDIM, iface, 1);
 	if (igrid < 0 || jgrid < 0) 
 	{
-	    Box b = lev_interface.face(iface);
+	    Box b = lev_interface.box(level_interface::FACEDIM, iface);
 	    const int idim = lev_interface.fdim(iface);
 	    const int a = (type(r,idim) == IndexType::NODE);
 	    // need to do on x borders too in case y border is an interior face

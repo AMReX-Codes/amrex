@@ -157,13 +157,13 @@ void bilinear_restrictor_class::lev_interface(FArrayBox& patch,
     
     if (fine.nGrow() < ratmax - 1) 
     {
-	for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
+	for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
 	{
-	    if (lev_interface.fgeo(iface) == level_interface::ALL && !lev_interface.fflag(iface) ) 
+	    if (lev_interface.geo(level_interface::FACEDIM, iface) == level_interface::ALL && !lev_interface.flag(level_interface::FACEDIM, iface) ) 
 	    {
 		// fine grid on both sides
-		Box cbox = lev_interface.node_face(iface);
-		IntVect t = lev_interface.face(iface).type();
+		Box cbox = lev_interface.node_box(level_interface::FACEDIM, iface);
+		IntVect t = lev_interface.box(level_interface::FACEDIM, iface).type();
 		cbox.coarsen(rat);
 		if (region.intersects(cbox)) 
 		{
@@ -184,13 +184,13 @@ void bilinear_restrictor_class::lev_interface(FArrayBox& patch,
 	    }
 	}
 #if (BL_SPACEDIM == 3)
-	for (int iedge = 0; iedge < lev_interface.nedges(); iedge++) 
+	for (int iedge = 0; iedge < lev_interface.nboxes(1); iedge++) 
 	{
 	    if (lev_interface.geo(1, iedge) == level_interface::ALL && !lev_interface.flag(1, iedge) ) 
 	    {
 		// fine grid on all sides
-		Box cbox = lev_interface.node_edge(iedge);
-		IntVect t = lev_interface.edge(iedge).type();
+		Box cbox = lev_interface.node_box(1, iedge);
+		IntVect t = lev_interface.box(1, iedge).type();
 		cbox.coarsen(rat);
 		if (region.intersects(cbox)) 
 		{
@@ -211,12 +211,12 @@ void bilinear_restrictor_class::lev_interface(FArrayBox& patch,
 	    }
 	}
 #endif
-	for (int icor = 0; icor < lev_interface.ncorners(); icor++) 
+	for (int icor = 0; icor < lev_interface.nboxes(0); icor++) 
 	{
 	    if (lev_interface.geo(0, icor) == level_interface::ALL && !lev_interface.flag(0, icor) ) 
 	    {
 		// fine grid on all sides
-		Box cbox = lev_interface.corner(icor);
+		Box cbox = lev_interface.box(0, icor);
 		cbox.coarsen(rat);
 		if (region.intersects(cbox)) 
 		{
@@ -236,13 +236,13 @@ void bilinear_restrictor_class::lev_interface(FArrayBox& patch,
     else 
     {
 	fill_borders(fine, lev_interface, bdy, ratmax - 1, m_hg_terrain);
-	for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
+	for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
 	{
-	    if (lev_interface.fgeo(iface) == level_interface::ALL && !lev_interface.fflag(iface) ) 
+	    if (lev_interface.geo(level_interface::FACEDIM, iface) == level_interface::ALL && !lev_interface.flag(level_interface::FACEDIM, iface) ) 
 	    {
 		// fine grid on both sides
-		Box cbox = lev_interface.node_face(iface);
-		IntVect t = lev_interface.face(iface).type();
+		Box cbox = lev_interface.node_box(level_interface::FACEDIM, iface);
+		IntVect t = lev_interface.box(level_interface::FACEDIM, iface).type();
 		cbox.coarsen(rat);
 		if (region.intersects(cbox)) 
 		{
@@ -250,9 +250,9 @@ void bilinear_restrictor_class::lev_interface(FArrayBox& patch,
 		    cbox &= regplus;
 		    // Note:  Uses numerical values of index types:
 		    cbox.grow(t - IntVect::TheUnitVector());
-		    int igrid = lev_interface.fgrid(iface, 0);
+		    int igrid = lev_interface.grid(level_interface::FACEDIM, iface, 0);
 		    if (igrid < 0)
-			igrid = lev_interface.fgrid(iface, 1);
+			igrid = lev_interface.grid(level_interface::FACEDIM, iface, 1);
 		    const Box& fb = fine[igrid].box();
 		    for (int i = 0; i < patch.nComp(); i++) 
 		    {
@@ -265,13 +265,13 @@ void bilinear_restrictor_class::lev_interface(FArrayBox& patch,
 	    }
 	}
 #if (BL_SPACEDIM == 3)
-	for (int iedge = 0; iedge < lev_interface.nedges(); iedge++) 
+	for (int iedge = 0; iedge < lev_interface.nboxes(1); iedge++) 
 	{
 	    if (lev_interface.geo(1, iedge) == level_interface::ALL && !lev_interface.flag(1, iedge) ) 
 	    {
 		// fine grid on both sides
-		Box cbox = lev_interface.node_edge(iedge);
-		IntVect t = lev_interface.edge(iedge).type();
+		Box cbox = lev_interface.node_box(1, iedge);
+		IntVect t = lev_interface.box(1, iedge).type();
 		cbox.coarsen(rat);
 		if (region.intersects(cbox)) 
 		{
@@ -279,9 +279,9 @@ void bilinear_restrictor_class::lev_interface(FArrayBox& patch,
 		    cbox &= regplus;
 		    // Note:  Uses numerical values of index types:
 		    cbox.grow(t - IntVect::TheUnitVector());
-		    int igrid = lev_interface.egrid(iedge, 0);
+		    int igrid = lev_interface.grid(1, iedge, 0);
 		    for (int itmp = 1; igrid < 0; itmp++)
-			igrid = lev_interface.egrid(iedge, itmp);
+			igrid = lev_interface.grid(1, iedge, itmp);
 		    const Box& fb = fine[igrid].box();
 		    for (int i = 0; i < patch.nComp(); i++) 
 		    {
@@ -294,18 +294,18 @@ void bilinear_restrictor_class::lev_interface(FArrayBox& patch,
 	    }
 	}
 #endif
-	for (int icor = 0; icor < lev_interface.ncorners(); icor++) 
+	for (int icor = 0; icor < lev_interface.nboxes(0); icor++) 
 	{
 	    if (lev_interface.geo(0, icor) == level_interface::ALL && !lev_interface.flag(0, icor) ) 
 	    {
 		// fine grid on all sides
-		Box cbox = lev_interface.corner(icor);
+		Box cbox = lev_interface.box(0, icor);
 		cbox.coarsen(rat);
 		if (region.intersects(cbox)) 
 		{
-		    int igrid = lev_interface.cgrid(icor, 0);
+		    int igrid = lev_interface.grid(0, icor, 0);
 		    for (int itmp = 1; igrid < 0; itmp++)
-			igrid = lev_interface.cgrid(icor, itmp);
+			igrid = lev_interface.grid(0, icor, itmp);
 		    const Box& fb = fine[igrid].box();
 		    for (int i = 0; i < patch.nComp(); i++) 
 		    {
@@ -340,13 +340,13 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
     if (fine.nGrow() >= ratmax - 1)
 	fill_borders(fine, lev_interface, bdy, ratmax - 1, m_hg_terrain);
     
-    for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
+    for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
     {
-	if ( lev_interface.fflag(iface) )
+	if ( lev_interface.flag(level_interface::FACEDIM, iface) )
 	    continue;
-	Box cbox = lev_interface.node_face(iface);
-	IntVect t = lev_interface.face(iface).type();
-	const unsigned int geo = lev_interface.fgeo(iface);
+	Box cbox = lev_interface.node_box(level_interface::FACEDIM, iface);
+	IntVect t = lev_interface.box(level_interface::FACEDIM, iface).type();
+	const unsigned int geo = lev_interface.geo(level_interface::FACEDIM, iface);
 	cbox.coarsen(rat);
 	if (region.intersects(cbox)) 
 	{
@@ -359,9 +359,9 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 		// fine grid on both sides
 		if (fine.nGrow() >= ratmax - 1) 
 		{
-		    int igrid = lev_interface.fgrid(iface, 0);
+		    int igrid = lev_interface.grid(level_interface::FACEDIM, iface, 0);
 		    if (igrid < 0)
-			igrid = lev_interface.fgrid(iface, 1);
+			igrid = lev_interface.grid(level_interface::FACEDIM, iface, 1);
 		    const Box& fb = fine[igrid].box();
 		    for (int i = 0; i < patch.nComp(); i++) 
 		    {
@@ -387,8 +387,8 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 	    else 
 	    { // fine grid on just one side
 		int idir = (geo & level_interface::LOW) ? -1 : 1;
-		int igrid = (idir < 0) ? lev_interface.fgrid(iface, 0) :
-		lev_interface.fgrid(iface, 1) ;
+		int igrid = (idir < 0) ? lev_interface.grid(level_interface::FACEDIM, iface, 0) :
+		lev_interface.grid(level_interface::FACEDIM, iface, 1) ;
 		if (igrid >= 0) 
 		{
 		    // Usual case, a fine grid extends all along the face.
@@ -423,11 +423,11 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
     
 #if (BL_SPACEDIM == 2)
     
-    for (int icor = 0; icor < lev_interface.ncorners(); icor++) 
+    for (int icor = 0; icor < lev_interface.nboxes(0); icor++) 
     {
 	if ( lev_interface.flag(0, icor) )
 	    continue;
-	Box cbox = lev_interface.corner(icor);
+	Box cbox = lev_interface.box(0, icor);
 	cbox.coarsen(rat);
 	if (region.intersects(cbox)) 
 	{
@@ -435,9 +435,9 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 	    if (geo == level_interface::ALL && fine.nGrow() >= ratmax - 1) 
 	    { 
 		// fine grid on all sides
-		int igrid = lev_interface.cgrid(icor, 0);
+		int igrid = lev_interface.grid(0, icor, 0);
 		for (int itmp = 1; igrid < 0; itmp++)
-		    igrid = lev_interface.cgrid(icor, itmp);
+		    igrid = lev_interface.grid(0, icor, itmp);
 		const Box& fb = fine[igrid].box();
 		for (int i = 0; i < patch.nComp(); i++) 
 		{
@@ -549,12 +549,12 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
   
   int ga[level_interface::N_CORNER_GRIDS];
   
-  for (int iedge = 0; iedge < lev_interface.nedges(); iedge++) 
+  for (int iedge = 0; iedge < lev_interface.nboxes(1); iedge++) 
   {
       if ( lev_interface.flag(1, iedge) )
 	  continue;
-      Box cbox = lev_interface.node_edge(iedge);
-      IntVect t = lev_interface.edge(iedge).type();
+      Box cbox = lev_interface.node_box(1, iedge);
+      IntVect t = lev_interface.box(1, iedge).type();
       cbox.coarsen(rat);
       if (region.intersects(cbox)) 
       {
@@ -564,9 +564,9 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 	  const unsigned int geo = lev_interface.geo(1, iedge);
 	  if (geo == level_interface::ALL && fine.nGrow() >= ratmax - 1) 
 	  {
-	      int igrid = lev_interface.egrid(iedge, 0);
+	      int igrid = lev_interface.grid(1, iedge, 0);
 	      for (int itmp = 1; igrid < 0; itmp++)
-		  igrid = lev_interface.egrid(iedge, itmp);
+		  igrid = lev_interface.grid(1, iedge, itmp);
 	      const Box& fb = fine[igrid].box();
 	      for (int i = 0; i < patch.nComp(); i++) 
 	      {
@@ -593,7 +593,7 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 	      }
 	      else 
 	      {
-		  lev_interface.geo_array(ga, 1, iedge);
+		  lev_interface.geo_array(1, ga, iedge);
 		  for (int i = 0; i < patch.nComp(); i++) 
 		  {
 		      FORT_FANER2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox),
@@ -605,20 +605,20 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
       }
   }
   
-  for (int icor = 0; icor < lev_interface.ncorners(); icor++) 
+  for (int icor = 0; icor < lev_interface.nboxes(0); icor++) 
   {
       if ( lev_interface.flag(0, icor) )
 	  continue;
-      Box cbox = lev_interface.corner(icor);
+      Box cbox = lev_interface.box(0, icor);
       cbox.coarsen(rat);
       if (region.intersects(cbox)) 
       {
 	  const unsigned int geo = lev_interface.geo(0, icor);
 	  if (geo == level_interface::ALL && fine.nGrow() >= ratmax - 1) 
 	  {
-	      int igrid = lev_interface.cgrid(icor, 0);
+	      int igrid = lev_interface.grid(0, icor, 0);
 	      for (int itmp = 1; igrid < 0; itmp++)
-		  igrid = lev_interface.cgrid(icor, itmp);
+		  igrid = lev_interface.grid(0, icor, itmp);
 	      const Box& fb = fine[igrid].box();
 	      for (int i = 0; i < patch.nComp(); i++) 
 	      {
@@ -645,7 +645,7 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 	      }
 	      else 
 	      {
-		  lev_interface.geo_array(ga, 0, icor);
+		  lev_interface.geo_array(0, ga, icor);
 		  for (int i = 0; i < patch.nComp(); i++) 
 		  {
 		      FORT_FANCR2(patch.dataPtr(i), DIMLIST(pb), DIMLIST(cbox),
