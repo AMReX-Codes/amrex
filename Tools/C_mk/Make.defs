@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.38 2001-08-01 22:32:23 car Exp $
+# Make.defs $Id: Make.defs,v 1.39 2001-09-17 22:03:03 lijewski Exp $
 #
 
 #
@@ -299,6 +299,9 @@ endif
 ifeq ($(USE_THREADS),TRUE)
     DEFINES += -DBL_THREADS
     ifeq ($(COMP),KCC)
+        CXXFLAGS+=--thread_safe
+    endif
+    ifeq ($(COMP),mpKCC)
         CXXFLAGS+=--thread_safe
     endif
     ifeq ($(COMP),g++)
