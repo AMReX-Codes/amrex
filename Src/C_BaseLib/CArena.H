@@ -4,6 +4,9 @@
 #define BL_CARENA
 
 #ifdef BL_USE_NEW_HFILES
+#ifdef WIN32
+#pragma warning (disable : 4786)
+#endif
 #include <cstddef>
 #include <iostream>
 #include <set>

@@ -43,9 +43,8 @@ void driver(const char* filename);
 void carena_test()
 {
     CArena carena(100000);
-    void* p = carena.alloc(100, &p);
+    void* p = carena.alloc(100);
     carena.free(p);
-    carena.compact();
 }
 
 int main(int argc, char **argv)
