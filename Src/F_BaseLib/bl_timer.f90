@@ -18,6 +18,7 @@ module bl_timer_module
      real(kind=dp_t) :: cum_time = zero
      integer(kind=ll_t) :: cnt = 0_ll_t
      logical :: running = .FALSE.
+     logical :: wall = .TRUE.
   end type timer
 
   interface
@@ -43,23 +44,29 @@ module bl_timer_module
  
 contains
 
-  function timer_construct(str) result(r)
+  subroutine timer_build(tm, str, wall)
+    type(timer), intent(out) :: tm
     character(len=*), intent(in) :: str
-    type(timer) :: r
-    r%name = str
-    r%time = zero
-    r%strt = zero
-    r%cum_time = zero
-    r%cnt = 0_ll_t
-    r%running = .FALSE.
-  end function timer_construct
+    logical, intent(in), optional :: wall
+    tm%name = str
+    tm%time = zero
+    tm%strt = zero
+    tm%cum_time = zero
+    tm%cnt = 0_ll_t
+    tm%running = .FALSE.
+    if ( present(wall) ) tm%wall = wall
+  end subroutine timer_build
 
   subroutine timer_start(tm)
     type(timer), intent(inout) :: tm
 
     if ( tm%running ) &
          call bl_error("TIMER_START: should not be be running before start")
-    call wall_second(tm%strt)
+    if ( tm%wall ) then
+       call wall_second(tm%strt)
+    else
+       call cpu_time(tm%strt)
+    end if
     tm%running = .TRUE.
     tm%time = zero
   end subroutine timer_start
@@ -69,7 +76,11 @@ contains
 
     if ( .not. tm%running ) &
          call bl_error("TIMER_STOP: should be running before stop")
-    call wall_second(tm%time)
+    if ( tm%wall ) then
+       call wall_second(tm%time)
+    else
+       call cpu_time(tm%time)
+    end if
     tm%time = tm%time-tm%strt
     tm%strt = zero
     tm%running = .FALSE.
@@ -144,5 +155,49 @@ contains
     call wall_second_tick(r)
     r = r*MIL_SEC
   end function timer_tick
+
+  function MY_CPU_SECOND_TICK() result(r)
+    real(kind=dp_t) :: r
+    real(kind=dp_t), save ::  tickval = -1
+    real(kind=dp_t) :: t1, t2
+    integer :: cnt, icnt
+    if ( tickval < 0 ) then
+       tickval = Huge(tickval)
+       do icnt = 1, 1000
+          call cpu_time(t1)
+          do cnt = 1, 1000
+             call cpu_time(t2)
+             if (t2 > t1) then
+                tickval = min(tickval,t2 - t1)
+                exit
+             end if
+          end do
+       end do
+       tickval = MIL_SEC*tickval
+    end if
+    r = tickval
+  end function MY_CPU_SECOND_TICK
+
+  function MY_WALL_SECOND_TICK() result(r)
+    real(kind=dp_t) :: r
+    real(kind=dp_t), save ::  tickval = -1
+    real(kind=dp_t) :: t1, t2
+    integer :: cnt, icnt
+    if ( tickval < 0 ) then
+       tickval = Huge(tickval)
+       do icnt = 1, 1000
+          call wall_second(t1)
+          do cnt = 1, 1000
+             call wall_second(t2)
+             if (t2 > t1) then
+                tickval = min(tickval,t2 - t1)
+                exit
+             end if
+          end do
+       end do
+       tickval = tickval*MIL_SEC
+    end if
+    r = tickval
+  end function MY_WALL_SECOND_TICK
 
 end module bl_timer_module

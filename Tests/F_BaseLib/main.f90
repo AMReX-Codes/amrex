@@ -20,7 +20,8 @@ program main
 ! call t_boxarray
 ! call t_nodal_mf_fabio
 ! call t_kiss_rn
-call t_knap
+  call t_timer
+!call t_knap
 
   call boxlib_finalize()
 
