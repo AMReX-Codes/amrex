@@ -1,0 +1,2 @@
+
+FORT_CPP := cpp -E -traditional
