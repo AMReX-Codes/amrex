@@ -1,80 +1,80 @@
-module mboxarray_module
+module ml_boxarray_module
 
   use boxarray_module
 
   implicit none
 
-  type mboxarray
+  type ml_boxarray
      integer :: dim = 0
      integer :: nlevel = 0
      integer, pointer :: rr(:,:) => Null()
      type(boxarray), pointer :: bas(:) => Null()
      type(box), pointer :: pd(:) => Null()
-  end type mboxarray
+  end type ml_boxarray
 
   interface destroy
-     module procedure mboxarray_destroy
+     module procedure ml_boxarray_destroy
   end interface
 
   interface copy
-     module procedure mboxarray_copy
+     module procedure ml_boxarray_copy
   end interface
 
   interface build
-     module procedure mboxarray_build_ba
-     module procedure mboxarray_build_n
+     module procedure ml_boxarray_build_ba
+     module procedure ml_boxarray_build_n
   end interface
 
   interface print
-     module procedure mboxarray_print
+     module procedure ml_boxarray_print
   end interface
 
-  interface mboxarray_maxsize
-     module procedure mboxarray_maxsize_i
-     module procedure mboxarray_maxsize_v
+  interface ml_boxarray_maxsize
+     module procedure ml_boxarray_maxsize_i
+     module procedure ml_boxarray_maxsize_v
   end interface
 
   interface get_box
-     module procedure mboxarray_get_box
+     module procedure ml_boxarray_get_box
   end interface
 
   interface get_nlevel
-     module procedure mboxarray_get_nlevel
+     module procedure ml_boxarray_get_nlevel
   end interface
 
   interface get_boxarray
-     module procedure mboxarray_get_boxarray
+     module procedure ml_boxarray_get_boxarray
   end interface
 
-  type(mem_stats), private, save :: mboxarray_ms
+  type(mem_stats), private, save :: ml_boxarray_ms
 
 contains
 
-  function mboxarray_dim(mba) result(r)
+  function ml_boxarray_dim(mba) result(r)
     integer :: r
-    type(mboxarray), intent(in) :: mba
+    type(ml_boxarray), intent(in) :: mba
     r = mba%dim
-  end function mboxarray_dim
+  end function ml_boxarray_dim
 
-  function mboxarray_get_nlevel(mba) result(r)
+  function ml_boxarray_get_nlevel(mba) result(r)
     integer :: r
-    type(mboxarray), intent(in) :: mba
+    type(ml_boxarray), intent(in) :: mba
     r = mba%nlevel
-  end function mboxarray_get_nlevel
+  end function ml_boxarray_get_nlevel
 
-  subroutine mboxarray_set_mem_stats(ms)
+  subroutine ml_boxarray_set_mem_stats(ms)
     type(mem_stats), intent(in) :: ms
-    mboxarray_ms = ms
-  end subroutine mboxarray_set_mem_stats
+    ml_boxarray_ms = ms
+  end subroutine ml_boxarray_set_mem_stats
 
-  function mboxarray_mem_stats() result(r)
+  function ml_boxarray_mem_stats() result(r)
     type(mem_stats) :: r
-    r = mboxarray_ms
-  end function mboxarray_mem_stats
+    r = ml_boxarray_ms
+  end function ml_boxarray_mem_stats
 
-  subroutine mboxarray_copy(mba, mbai)
-    type(mboxarray), intent(out) :: mba
-    type(mboxarray), intent(in)  :: mbai
+  subroutine ml_boxarray_copy(mba, mbai)
+    type(ml_boxarray), intent(out) :: mba
+    type(ml_boxarray), intent(in)  :: mbai
     integer :: i
     call build(mba, mbai%nlevel, mbai%dim)
     mba%pd = mbai%pd
@@ -82,35 +82,35 @@ contains
     do i = 1, mba%nlevel
        call copy(mba%bas(i), mbai%bas(i))
     end do
-  end subroutine mboxarray_copy
+  end subroutine ml_boxarray_copy
 
-  subroutine mboxarray_build_n(mba, nlevel, dim)
-    type(mboxarray), intent(out) :: mba
+  subroutine ml_boxarray_build_n(mba, nlevel, dim)
+    type(ml_boxarray), intent(out) :: mba
     integer, intent(in) :: nlevel
     integer, intent(in), optional :: dim
     mba%nlevel = nlevel
     allocate(mba%bas(nlevel), mba%pd(nlevel))
     if ( present(dim) ) then
-       call mboxarray_alloc_rr(mba, dim)
+       call ml_boxarray_alloc_rr(mba, dim)
     end if
-    call mem_stats_alloc(mboxarray_ms)
-  end subroutine mboxarray_build_n
+    call mem_stats_alloc(ml_boxarray_ms)
+  end subroutine ml_boxarray_build_n
 
-  subroutine mboxarray_alloc_rr(mba, dim)
-    type(mboxarray), intent(inout) :: mba
+  subroutine ml_boxarray_alloc_rr(mba, dim)
+    type(ml_boxarray), intent(inout) :: mba
     integer, intent(in) :: dim
     if ( .not. associated(mba%bas) ) then
-       call bl_error("MBOXARRAY_ALLOC_RR: not allocated bas")
+       call bl_error("ML_BOXARRAY_ALLOC_RR: not allocated bas")
     end if
     if ( associated(mba%rr) ) then
-       call bl_error("MBOXARRAY_ALLOC_RR: rr already allocated")
+       call bl_error("ML_BOXARRAY_ALLOC_RR: rr already allocated")
     end if
     mba%dim = dim
     allocate(mba%rr(mba%nlevel-1,mba%dim))
-  end subroutine mboxarray_alloc_rr
+  end subroutine ml_boxarray_alloc_rr
 
-  subroutine mboxarray_build_ba(mba, ba, pd)
-    type(mboxarray), intent(out) :: mba
+  subroutine ml_boxarray_build_ba(mba, ba, pd)
+    type(ml_boxarray), intent(out) :: mba
     type(boxarray), intent(in) :: ba
     type(box), intent(in), optional :: pd
 
@@ -123,11 +123,11 @@ contains
     else
        mba%pd(1) = boxarray_bbox(ba)
     end if
-    call mem_stats_alloc(mboxarray_ms)
-  end subroutine mboxarray_build_ba
+    call mem_stats_alloc(ml_boxarray_ms)
+  end subroutine ml_boxarray_build_ba
 
-  subroutine mboxarray_destroy(mba)
-    type(mboxarray), intent(inout) :: mba
+  subroutine ml_boxarray_destroy(mba)
+    type(ml_boxarray), intent(inout) :: mba
     integer i
     if ( associated(mba%bas) ) then
        do i = 1, mba%nlevel
@@ -135,78 +135,78 @@ contains
        end do
        deallocate(mba%bas, mba%pd)
        deallocate(mba%rr)
-       call mem_stats_dealloc(mboxarray_ms)
+       call mem_stats_dealloc(ml_boxarray_ms)
     end if
-  end subroutine mboxarray_destroy
+  end subroutine ml_boxarray_destroy
 
-  function mboxarray_get_boxarray(mba, n) result(r)
+  function ml_boxarray_get_boxarray(mba, n) result(r)
     type(boxarray) :: r
-    type(mboxarray), intent(in) :: mba
+    type(ml_boxarray), intent(in) :: mba
     integer, intent(in) :: n
     r = mba%bas(n)
-  end function mboxarray_get_boxarray
+  end function ml_boxarray_get_boxarray
 
-  function mboxarray_get_box(mba, n, i) result(r)
+  function ml_boxarray_get_box(mba, n, i) result(r)
     type(box) :: r
-    type(mboxarray), intent(in) :: mba
+    type(ml_boxarray), intent(in) :: mba
     integer, intent(in) :: n, i
     r = get_box(mba%bas(n),i)
-  end function mboxarray_get_box
+  end function ml_boxarray_get_box
 
-  function mboxarray_get_pd(mba, n) result(r)
+  function ml_boxarray_get_pd(mba, n) result(r)
     type(box) :: r
-    type(mboxarray), intent(in) :: mba
+    type(ml_boxarray), intent(in) :: mba
     integer, intent(in) :: n
     r = mba%pd(n)
-  end function mboxarray_get_pd
+  end function ml_boxarray_get_pd
 
-  function mboxarray_refrat_n_d(mba, n, dim) result(r)
-    type(mboxarray), intent(in) :: mba
+  function ml_boxarray_refrat_n_d(mba, n, dim) result(r)
+    type(ml_boxarray), intent(in) :: mba
     integer, intent(in) :: n
     integer, intent(in) :: dim
     integer :: r
     if ( n < 1 .or. n >= mba%nlevel) &
-         call bl_error("MBOXARRAY_REFRAT_N: out of bounds: ", n)
+         call bl_error("ML_BOXARRAY_REFRAT_N: out of bounds: ", n)
     if ( dim < 1 .or. dim > mba%dim) &
-         call bl_error("MBOXARRAY_REFRAT_N_D: dim out of bounds: ", dim)
+         call bl_error("ML_BOXARRAY_REFRAT_N_D: dim out of bounds: ", dim)
     r = mba%rr(n,dim)
-  end function mboxarray_refrat_n_d
+  end function ml_boxarray_refrat_n_d
 
-  function mboxarray_refrat_n(mba, n) result(r)
-    type(mboxarray), intent(in) :: mba
+  function ml_boxarray_refrat_n(mba, n) result(r)
+    type(ml_boxarray), intent(in) :: mba
     integer, intent(in) :: n
     integer :: r(mba%dim)
     if ( n < 1 .or. n >= mba%nlevel) &
-         call bl_error("MBOXARRAY_REFRAT_N: out of bounds: ", n)
+         call bl_error("ML_BOXARRAY_REFRAT_N: out of bounds: ", n)
     r = mba%rr(n,:)
-  end function mboxarray_refrat_n
+  end function ml_boxarray_refrat_n
 
-  function mboxarray_refrat(mba) result(r)
-    type(mboxarray), intent(in) :: mba
+  function ml_boxarray_refrat(mba) result(r)
+    type(ml_boxarray), intent(in) :: mba
     integer :: r(mba%nlevel-1,mba%dim)
     r = mba%rr
-  end function mboxarray_refrat
+  end function ml_boxarray_refrat
 
-  subroutine mboxarray_maxsize_i(mba, chunk)
-    type(mboxarray), intent(inout) :: mba
+  subroutine ml_boxarray_maxsize_i(mba, chunk)
+    type(ml_boxarray), intent(inout) :: mba
     integer, intent(in) :: chunk
     integer :: i
     do i = 1, mba%nlevel
        call boxarray_maxsize(mba%bas(i), chunk)
     end do
-  end subroutine mboxarray_maxsize_i
-  subroutine mboxarray_maxsize_v(mba, chunk)
-    type(mboxarray), intent(inout) :: mba
+  end subroutine ml_boxarray_maxsize_i
+  subroutine ml_boxarray_maxsize_v(mba, chunk)
+    type(ml_boxarray), intent(inout) :: mba
     integer, intent(in) :: chunk(:)
     integer :: i
     do i = 1, mba%nlevel
        call boxarray_maxsize(mba%bas(i), chunk)
     end do
-  end subroutine mboxarray_maxsize_v
+  end subroutine ml_boxarray_maxsize_v
 
-  function mboxarray_clean(mba) result(r)
+  function ml_boxarray_clean(mba) result(r)
     logical :: r
-    type(mboxarray), intent(in) :: mba
+    type(ml_boxarray), intent(in) :: mba
     integer i
     do i = 1, mba%nlevel
        if ( .not. boxarray_clean(mba%bas(i)%bxs) ) then
@@ -215,11 +215,11 @@ contains
        end if
     end do
     r = .true.
-  end function mboxarray_clean
+  end function ml_boxarray_clean
 
-  function mboxarray_properly_nested_new(mba, nproper) result(r)
+  function ml_boxarray_properly_nested_new(mba, nproper) result(r)
     logical :: r
-    type(mboxarray), intent(in) :: mba
+    type(ml_boxarray), intent(in) :: mba
     integer, intent(in), optional :: nproper
     type(boxarray) :: ba
     integer :: i, lnp
@@ -236,11 +236,11 @@ contains
        call boxarray_destroy(ba)
     end do
     r = .true.
-  end function mboxarray_properly_nested_new
+  end function ml_boxarray_properly_nested_new
 
-  function mboxarray_properly_nested(mba, ng) result(r)
+  function ml_boxarray_properly_nested(mba, ng) result(r)
     logical :: r
-    type(mboxarray), intent(in) :: mba
+    type(ml_boxarray), intent(in) :: mba
     integer, intent(in), optional :: ng
     type(boxarray) :: ba
     integer :: i, lng
@@ -258,11 +258,11 @@ contains
        call boxarray_destroy(ba)
     end do
     r = .true.
-  end function mboxarray_properly_nested
+  end function ml_boxarray_properly_nested
 
-  subroutine mboxarray_print(mba, str, unit, skip)
+  subroutine ml_boxarray_print(mba, str, unit, skip)
     use bl_IO_module
-    type(mboxarray), intent(in) :: mba
+    type(ml_boxarray), intent(in) :: mba
     character (len=*), intent(in), optional :: str
     integer, intent(in), optional :: unit
     integer, intent(in), optional :: skip
@@ -270,7 +270,7 @@ contains
     integer :: un
     un = unit_stdout(unit)
     call unit_skip(un, skip)
-    write(unit=un, fmt = '("MBOXARRAY")', advance = 'no')
+    write(unit=un, fmt = '("ML_BOXARRAY")', advance = 'no')
     if ( present(str) ) then
        write(unit=un, fmt='(": ",A)') str
     else
@@ -286,7 +286,7 @@ contains
        call print(mba%pd(i), unit=un)
        call print(mba%bas(i), skip = unit_get_skip(skip) + 2)
     end do
-  end subroutine mboxarray_print
+  end subroutine ml_boxarray_print
 
-end module mboxarray_module
+end module ml_boxarray_module
 

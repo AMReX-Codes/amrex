@@ -142,15 +142,15 @@ subroutine t_boxassoc
 end subroutine t_boxassoc
 
 subroutine t_box_conn
-  use mboxarray_module
+  use ml_boxarray_module
   use box_util_module
   implicit none
-  type(mboxarray) :: mba
+  type(ml_boxarray) :: mba
   integer :: i
   integer :: ml
   real(kind=dp_t) :: d
 
-  call mboxarray_read_boxes(mba, "../../data/grids/3D_4_level_96x96x96")
+  call ml_boxarray_read_boxes(mba, "../../data/grids/3D_4_level_96x96x96")
 
   call box_conn(mba%bas(4))
 
@@ -595,11 +595,11 @@ end subroutine t_box_mod
 subroutine t_domain
   use f2kcli
   use bl_IO_module
-  use mboxarray_module
+  use ml_boxarray_module
   use box_util_module
   use mt19937_module
   implicit none
-  type(mboxarray) :: mba
+  type(ml_boxarray) :: mba
   character(len=128) :: test_set
   logical :: test_set_mglib
   logical :: test_set_hgproj
@@ -752,7 +752,7 @@ subroutine t_domain
      call build(mba, ba, pd)
      call destroy(ba)
   else if ( test_set /= '' ) then
-     call mboxarray_read_boxes(mba, test_set)
+     call ml_boxarray_read_boxes(mba, test_set)
   else
      call box_build_2(pd, (/(0,i=1,dm)/), pd_xyz(1:dm)-1)
      call build(ba, pd)
@@ -807,8 +807,8 @@ subroutine t_domain
   call destroy(mba)
   call destroy(ba)
 
-  call print(boxarray_mem_stats(),  " boxarray")
-  call print(mboxarray_mem_stats(), "mboxarray")
+  call print(boxarray_mem_stats(),    "   boxarray")
+  call print(ml_boxarray_mem_stats(), "ml_boxarray")
 
 end subroutine t_domain
 
