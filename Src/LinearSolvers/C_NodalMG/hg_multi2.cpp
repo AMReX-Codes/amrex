@@ -241,7 +241,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 	fres_sc[lev].set(iface, new FArrayBox(sigmacbox, ncomp));
 	fill_patch(fres_sc[lev][iface], fres_sc[lev][iface].box(), sigma[mglevc], lev_interface[mglevc], bndry);
 	fres_dc[lev].set(iface, new FArrayBox(cbox));
-	IntVect t = lev_interface[mglev].box(level_interface::FACEDIM, iface).type();
+	const IntVect t = lev_interface[mglev].box(level_interface::FACEDIM, iface).type();
 	creg = lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
 	creg.coarsen(rat).grow(t - IntVect::TheUnitVector());
     }
@@ -267,7 +267,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 	Box& fbox = eres_fbox[lev][iedge];
 	Box& cbox = eres_cbox[lev][iedge];
 	Box& creg = eres_creg[lev][iedge];
-	IntVect t = lev_interface[mglev].box(1, iedge).type();
+	const IntVect t = lev_interface[mglev].box(1, iedge).type();
 	cbox = lev_interface[mglev].node_box(1, iedge);
 	cbox.coarsen(rat).grow(t);
 	fbox = refine(cbox, rat);
@@ -381,7 +381,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	}
 	else if (m_hg_full_stencil)
 	{
-#if BL_SPACEDIM != 3
+#if BL_SPACEDIM == 2
 	    const int isRZ = IsRZ();
 	    const int imax = mg_domain[mglevc].bigEnd(0) + 1;
 	    FORT_HGFRES_FULL_STENCIL(rptr, DIMLIST(sbox),
@@ -440,7 +440,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		const FArrayBox& sigmaf = eres_sf[lev][iedge];
 		const FArrayBox& sigmac = eres_sc[lev][iedge];
 		const Box& creg = eres_creg[lev][iedge];
-		IntVect t = lev_interface[mglev].box(1, iedge).type();
+		const IntVect t = lev_interface[mglev].box(1, iedge).type();
 		FArrayBox& fdst = eres_df[lev][iedge];
 		fill_patch(fdst, fdst.box(), dest[lev], lev_interface[mglev], boundary.pressure(), 1, iedge);
 		FArrayBox& cdst = eres_dc[lev][iedge];
@@ -552,7 +552,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
     }
     else if (m_hg_full_stencil)
     {
-#if BL_SPACEDIM != 3
+#if BL_SPACEDIM == 2
 	// PARALLEL
 	for (int icor = 0; icor < lev_interface[mglev].nboxes(0); icor++) 
 	{

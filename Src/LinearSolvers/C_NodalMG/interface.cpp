@@ -209,7 +209,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     
     for (int iedge = 0; iedge < nbx[1]; iedge++) 
     {
-	IntVect t = bx[1][iedge].type();
+	const IntVect t = bx[1][iedge].type();
 	for (int i = 0; i < BL_SPACEDIM; i++) 
 	{
 	    if (t[i] == IndexType::NODE)
@@ -227,7 +227,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     fdm = new int[nbx[FACEDIM]];
     for (int iface = 0; iface < nbx[FACEDIM]; iface++) 
     {
-	IntVect t = bx[FACEDIM][iface].type();
+	const IntVect t = bx[FACEDIM][iface].type();
 	fdm[iface] = -1;
 	for (int i = 0; i < BL_SPACEDIM; i++) 
 	{
@@ -295,7 +295,7 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     for (int iedge = 0; iedge < nbx[idim]; iedge++) 
     {
 	Box b = bx[idim][iedge];
-	IntVect t = b.type();
+	const IntVect t = b.type();
 	int id = 0;
 	if (t[id] == IndexType::CELL)
 	    id++;

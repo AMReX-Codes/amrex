@@ -55,21 +55,21 @@ extern "C"
     
 #if (BL_SPACEDIM == 2)
     void FORT_HGGRAD(RealPS, intS, Real*, intS, intS, CRealPS, const int*);
-    void FORT_HGDIV(Real*, intS, RealPS, intS, intS, CRealPS, const int*, const int*);
+    void FORT_HGDIV (Real*, intS, RealPS, intS, intS, CRealPS, const int*, const int*);
     void FORT_HGFDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, CRealPS, intRS, const int*, const int*, const int*, const int*);
-    void FORT_HGODIV(Real*, intS, Real*, Real*, intS, Real*, Real*, intS, intS, Real*, Real*, intRS, const int*, const int*, const int*);
-    void FORT_HGIDIV(Real*, intS, Real*, Real*, intS, Real*, Real*, intS, intS, Real*, Real*, intRS, int*, int*, const int*);
-    void FORT_HGDDIV(Real*, intS, Real*, Real*, intS, Real*, Real*, intS, intS, Real*, Real*, intRS, int*, const int*);
-    void FORT_HGAVG(Real*, intS, const Real*, intS, intS, const Real*, const int*, const int*);
+    void FORT_HGODIV(Real*, intS, RealPS, intS, RealPS, intS, intS, CRealPS, intRS, const int*, const int*, const int*);
+    void FORT_HGIDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, CRealPS, intRS, int*, int*, const int*);
+    void FORT_HGDDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, CRealPS, intRS, int*, const int*);
+    void FORT_HGAVG (Real*, intS, const Real*, intS, intS, const Real*, const int*, const int*);
     void FORT_HGFAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*, const Real*, const int*, const int*);
     void FORT_HGCAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const Real*, const int*, const int*);
 #elif (BL_SPACEDIM == 3)
     void FORT_HGGRAD(RealPS, intS, Real*, intS, intS, CRealPS);
-    void FORT_HGDIV(Real*, intS, RealPS, intS, intS, CRealPS);
+    void FORT_HGDIV (Real*, intS, RealPS, intS, intS, CRealPS);
     void FORT_HGFDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, CRealPS, intRS, const int*, const int*);
     void FORT_HGEDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, CRealPS, intRS, const int*, const int*);
     void FORT_HGCDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, CRealPS, intRS, const int*);
-    void FORT_HGAVG(Real*, intS, const Real*, intS, intS);
+    void FORT_HGAVG (Real*, intS, const Real*, intS, intS);
     void FORT_HGFAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*);
     void FORT_HGEAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*);
     void FORT_HGCAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*);
@@ -473,7 +473,7 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	const Box& sbox = source[lev][igrid].box();
 	const Box& fbox = S[lev][igrid].box();
 	Box cbox = lev_interface[mglev].box(level_interface::FACEDIM, iface);
-	IntVect t = cbox.type();
+	const IntVect t = cbox.type();
 	if (idir > 0)
 	    cbox.growLo(idim, rat[idim]);
 	else
@@ -536,7 +536,7 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	const Box& sbox = source[lev][igrid].box();
 	Real* sptr = source[lev][igrid].dataPtr();
 	Box cbox = lev_interface[mglev].box(1, iedge);
-	IntVect t = cbox.type();
+	const IntVect t = cbox.type();
 	cbox.coarsen(rat).grow(t).convert(IntVect::TheCellVector());
 	Box fbox = cbox;
 	fbox.refine(rat);
@@ -673,7 +673,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	const Box& sbox = source[lev][igrid].box();
 	const Box& fbox = u[0][lev][igrid].box();
 	Box cbox = lev_interface[mglev].box(level_interface::FACEDIM, iface);
-	IntVect t = cbox.type();
+	const IntVect t = cbox.type();
 	if (idir > 0)
 	    cbox.growLo(idim, rat[idim]);
 	else
@@ -770,7 +770,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	const Box& sbox = source[lev][igrid].box();
 	Real* sptr = source[lev][igrid].dataPtr();
 	Box cbox = lev_interface[mglev].box(1, iedge);
-	IntVect t = cbox.type();
+	const IntVect t = cbox.type();
 	cbox.coarsen(rat).grow(t).convert(IntVect::TheCellVector());
 	Box fbox = cbox;
 	fbox.refine(rat);

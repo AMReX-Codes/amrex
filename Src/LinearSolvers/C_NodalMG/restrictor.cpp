@@ -163,7 +163,7 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		{
 		    // fine grid on both sides
 		    Box cbox = lev_interface.node_box(level_interface::FACEDIM, iface);
-		    IntVect t = lev_interface.box(level_interface::FACEDIM, iface).type();
+		    const IntVect t = lev_interface.box(level_interface::FACEDIM, iface).type();
 		    cbox.coarsen(rat);
 		    if (region.intersects(cbox)) 
 		    {
@@ -187,7 +187,7 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		{
 		    // fine grid on all sides
 		    Box cbox = lev_interface.node_box(1, iedge);
-		    IntVect t = lev_interface.box(1, iedge).type();
+		    const IntVect t = lev_interface.box(1, iedge).type();
 		    cbox.coarsen(rat);
 		    if (region.intersects(cbox)) 
 		    {
@@ -233,7 +233,7 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		{
 		    // fine grid on both sides
 		    Box cbox = lev_interface.node_box(level_interface::FACEDIM, iface);
-		    IntVect t = lev_interface.box(level_interface::FACEDIM, iface).type();
+		    const IntVect t = lev_interface.box(level_interface::FACEDIM, iface).type();
 		    cbox.coarsen(rat);
 		    if (region.intersects(cbox)) 
 		    {
@@ -258,7 +258,7 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		{
 		    // fine grid on both sides
 		    Box cbox = lev_interface.node_box(1, iedge);
-		    IntVect t = lev_interface.box(1, iedge).type();
+		    const IntVect t = lev_interface.box(1, iedge).type();
 		    cbox.coarsen(rat);
 		    if (region.intersects(cbox)) 
 		    {
@@ -331,7 +331,7 @@ void bilinear_restrictor_coarse_class::fill_interface(MultiFab& dest,
 	    if ( lev_interface.flag(level_interface::FACEDIM, iface) )
 		continue;
 	    Box cbox = lev_interface.node_box(level_interface::FACEDIM, iface);
-	    IntVect t = lev_interface.box(level_interface::FACEDIM, iface).type();
+	    const IntVect t = lev_interface.box(level_interface::FACEDIM, iface).type();
 	    const unsigned int geo = lev_interface.geo(level_interface::FACEDIM, iface);
 	    cbox.coarsen(rat);
 	    if (region.intersects(cbox)) 
@@ -499,7 +499,7 @@ void bilinear_restrictor_coarse_class::fill_interface(MultiFab& dest,
 	    if ( lev_interface.flag(1, iedge) )
 		continue;
 	    Box cbox = lev_interface.node_box(1, iedge);
-	    IntVect t = lev_interface.box(1, iedge).type();
+	    const IntVect t = lev_interface.box(1, iedge).type();
 	    cbox.coarsen(rat);
 	    if (region.intersects(cbox)) 
 	    {
