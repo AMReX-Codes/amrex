@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.33 2002-04-07 17:00:44 car Exp $
+// $Id: BLThread.cpp,v 1.34 2002-04-08 20:46:46 car Exp $
 //
 
 #include <winstd.H>
@@ -477,16 +477,17 @@ Thread::setCancelState(CancelState cs)
     return cs;
 }
 
-int
+unsigned long
 Thread::max_threads()
 {
     return 32;		// No real limit.
 }
 #else
 
-int
+unsigned long
 Thread::max_threads()
 {
+    BL_ASSERT( PTHREAD_THREADS_MAX >= 0 );
 #ifdef PTHREAD_THREADS_MAX
     return PTHREAD_THREADS_MAX;
 #else

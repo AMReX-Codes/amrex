@@ -2,7 +2,7 @@
 #define _BL_THREAD_H_
 
 //
-// $Id: Thread.H,v 1.17 2001-11-01 23:52:50 car Exp $
+// $Id: Thread.H,v 1.18 2002-04-08 20:46:46 car Exp $
 //
 
 //#include <cstdio>
@@ -500,7 +500,7 @@ ThreadSpecificData<T>::tsd_destroy(void* v)
 namespace Thread
 {
     void sleep (const BoxLib::Time& tspec);
-    int max_threads ();
+    unsigned long max_threads ();
     void exit (void* status = 0);
     void yield ();
     int getID ();
