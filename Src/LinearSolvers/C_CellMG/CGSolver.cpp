@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CGSolver.cpp,v 1.16 2000-08-25 17:50:25 car Exp $
+// $Id: CGSolver.cpp,v 1.17 2000-08-25 19:23:28 car Exp $
 //
 
 // Conjugate gradient support
@@ -603,7 +603,8 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
       Real rho = dotxy(rh, r);
       if ( rho == 0 ) 
 	{
-	  BoxLib::Error("CGSolver_bicgstab fails");
+	  ret = 1;
+	  break;
 	}
       if ( nit == 1 )
         {
@@ -633,7 +634,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
 	}
       else
 	{
-	  ret = 1;
+	  ret = 2;
 	  break;
 	}
 
@@ -674,7 +675,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
 	}
       else
 	{
-	  ret = 2;
+	  ret = 3;
 	  break;
 	}
       sxay(sol, sol, alpha, ph);
@@ -687,7 +688,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
 	}
       if ( omega == 0 )
 	{
-	  ret = 3;
+	  ret = 4;
 	  break;
 	}
       if (ParallelDescriptor::IOProcessor())
@@ -775,10 +776,13 @@ CGSolver::solve_cg (MultiFab&       sol,
       cout << "CGsolver_cg: Initial error (error0) =  " << rnorm0 << '\n';
     }
 
+  const Real Lp_norm = Lp.norm(0, lev);
+  const Real rh_norm =   rnorm0;
+
   int ret = 0;			// will return this value if all goes well
   Real rho_1;
   int nit = 1;
-  for (; nit <= maxiter && rnorm > eps_rel*rnorm0 && rnorm > eps_abs; ++nit)
+  for (; nit <= maxiter; ++nit)
     {
       if (use_mg_precond)
         {
@@ -824,6 +828,18 @@ CGSolver::solve_cg (MultiFab&       sol,
       sxay(sol, sol, alpha, p);
       sxay(  r,   r,-alpha, q);
       rnorm = norm(r);
+#if 0
+      if ( rnorm < eps_rel*(Lp_norm*norm(sol) + rh_norm) || rnorm < eps_abs )
+	{
+	  break;
+	}
+#else
+      if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs )
+	{
+	  break;
+	}
+#endif
+      
       if( rnorm > def_unstable_criterion*minrnorm )
 	{
 	  ret = 2;
@@ -867,10 +883,17 @@ CGSolver::solve_cg (MultiFab&       sol,
     {
       BoxLib::Error("CGSolver_cg:: apparent accuracy problem; try expert setting or change unstable_criterion");
     }
+#if 0
+  if ( ret == 0 && rnorm > eps_rel*(Lp_norm*norm(sol) + rh_norm) && rnorm > eps_abs )
+    {
+      BoxLib::Error("CGSolver_cg:: failed to converge!");
+    }
+#else
   if ( ret == 0 &&  rnorm > eps_rel*rnorm0 && rnorm > eps_abs )
     {
       BoxLib::Error("CGSolver_cg:: failed to converge!");
     }
+#endif
   if ( ret == 0 )
     {
       sol.plus(sorig, 0, 1, 0);
