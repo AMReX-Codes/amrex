@@ -20,6 +20,7 @@ INCLUDE_LOCATIONS += ../pBoxLib_2
 include $(TOP)/mk/Make.defs
 
 CPPFLAGS += -DBL_USE_NEW_HFILES
+FOPTF += -fast -O -tune ev5
 
 include ./Make.package
 include ../pBoxLib_2/Make.package

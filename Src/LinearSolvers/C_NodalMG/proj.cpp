@@ -104,7 +104,7 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m,
 	//u[0][1][0](IntVect(20,90)) = 1.0;
 	//u[0][1][0](IntVect(50,50)) = 1.0;
 	//u[0][1][0](IntVect(22,12)) = 1.0;
-	if (hg_terrain)
+	if (!hg_terrain)
 	    u[0][0][0](IntVect(12,12)) = 3.0;
 	else
 	    u[0][0][0](IntVect(12,12)) = 3.0 * ratio[0][0];
