@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.135 2003-04-03 18:44:31 car Exp $
+// $Id: Amr.cpp,v 1.136 2003-06-24 17:18:21 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1630,8 +1630,8 @@ Amr::printGridInfo (std::ostream& os,
         const BoxArray& bs      = amr_level[lev].boxArray();
         int             numgrid = bs.size();
         long            ncells  = amr_level[lev].countCells();
-        long            ntot    = geom[lev].Domain().numPts();
-        Real            frac    = 100.0*(Real(ncells) / Real(ntot));
+        double          ntot    = geom[lev].Domain().d_numPts();
+        Real            frac    = 100.0*(Real(ncells) / ntot);
 
         os << "  Level "
            << lev

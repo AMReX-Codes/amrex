@@ -1,5 +1,5 @@
 //
-// $Id: Cluster.cpp,v 1.18 2001-08-09 16:20:37 marc Exp $
+// $Id: Cluster.cpp,v 1.19 2003-06-24 17:18:22 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -47,7 +47,7 @@ Real
 Cluster::eff () const
 {
     BL_ASSERT(ok());
-    return ((Real) numTag())/((Real) m_bx.numPts());
+    return numTag()/m_bx.d_numPts();
 }
 
 //

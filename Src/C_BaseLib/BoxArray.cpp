@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.33 2002-03-11 21:53:57 car Exp $
+// $Id: BoxArray.cpp,v 1.34 2003-06-24 17:18:21 lijewski Exp $
 //
 #include <iostream>
 
@@ -431,6 +431,17 @@ BoxArray::numPts () const
     {
       result += m_ref->m_abox.get(i).numPts();
     }
+  return result;
+}
+
+double
+BoxArray::d_numPts () const
+{
+  double result = 0;
+  for ( int i = 0; i < size(); ++i )
+  {
+      result += m_ref->m_abox.get(i).d_numPts();
+  }
   return result;
 }
 

@@ -1,5 +1,5 @@
 //
-// $Id: Box.cpp,v 1.23 2002-02-25 20:59:43 car Exp $
+// $Id: Box.cpp,v 1.24 2003-06-24 17:18:21 lijewski Exp $
 //
 #include <iostream>
 #include <limits>
@@ -380,6 +380,14 @@ Box::numPts () const
     if (!numPtsOK(result))
         BoxLib::Error("Arithmetic overflow in Box::numPts()");
     return result;
+}
+
+double
+Box::d_numPts () const
+{
+    BL_ASSERT(ok());
+
+    return D_TERM(double(length(0)), *double(length(1)), *double(length(2)));
 }
 
 bool

@@ -1483,7 +1483,7 @@ holy_grail_amr_projector::sparse_node_source_adjustment (PArray<MultiFab>& spars
     }
     if (adjust != 0.0)
     {
-	adjust /= mg_domain[ml_index[lev_min]].numPts();
+	adjust /= mg_domain[ml_index[lev_min]].d_numPts();
 
 	if (pcode >= 2  && ParallelDescriptor::IOProcessor())
 	{
@@ -1594,7 +1594,7 @@ holy_grail_amr_projector::grid_average (PArray<MultiFab>& S,
 	    adjust += S[lev_min][S_mfi].sum(S_mfi.validbox(), 0);
 	}
 	ParallelDescriptor::ReduceRealSum(adjust);
-	adjust /= mg_domain[ml_index[lev_min]].numPts();
+	adjust /= mg_domain[ml_index[lev_min]].d_numPts();
 
 	if (pcode >= 2  && ParallelDescriptor::IOProcessor())
 	{

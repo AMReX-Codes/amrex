@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.32 2003-03-12 21:03:32 lijewski Exp $
+// $Id: MultiGrid.cpp,v 1.33 2003-06-24 17:18:22 lijewski Exp $
 // 
 #include <winstd.H>
 
@@ -144,7 +144,7 @@ MultiGrid::MultiGrid (LinOp &_Lp)
 	for ( int i = 0; i < numlevels; ++i ) 
         {
 	    if ( i > 0 ) tmp.coarsen(2);
-	    std::cout << tmp.numPts() << " ";
+	    std::cout << tmp.d_numPts() << " ";
         }
 	std::cout << "]" << std::endl;
     }
