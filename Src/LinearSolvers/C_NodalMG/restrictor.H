@@ -63,19 +63,10 @@ public:
     bilinear_restrictor_class(int i, bool hg_terrain);
     virtual Box box(const Box& fb, const IntVect& rat) const;
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
-    virtual void fill_interface(MultiFab&, MultiFab&, const level_interface&, const amr_boundary_class*, const IntVect&) const = 0;
+    virtual void fill_interface(MultiFab&, MultiFab&, const level_interface&, const amr_boundary_class*, const IntVect&) const;
 protected:
     int integrate;
     bool m_hg_terrain;
-};
-
-// Restricts all interfaces, uses data at coarse points
-// along coarse-fine interfaces.
-class bilinear_restrictor_coarse_class : public bilinear_restrictor_class 
-{
-public:
-    bilinear_restrictor_coarse_class(int i, bool hg_terrain) : bilinear_restrictor_class(i, hg_terrain) { }
-    virtual void fill_interface(MultiFab&, MultiFab&, const level_interface&, const amr_boundary_class*, const IntVect&) const;
 };
 
 #endif
