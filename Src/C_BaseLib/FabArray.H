@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.20 1997-11-21 03:50:35 lijewski Exp $
+// $Id: FabArray.H,v 1.21 1997-11-23 00:12:08 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -397,50 +397,55 @@ template <class T, class FAB>
 void
 FabArray<T,FAB>::PrintStats (ostream& os)
 {
-    typedef ParallelDescriptor PD;  // Local typedef for typing efficiency.
-
     struct
     {
         int    m_cpu; // CPU #
-        double m_vol; // Volume of FABs on that CPU.
+        double m_vol; // Total numPts() of FABs on that CPU.
     }
     msg_hdr;
 
-    PD::SetMessageHeaderSize(sizeof(msg_hdr));
+    ParallelDescriptor::SetMessageHeaderSize(sizeof(msg_hdr));
 
-    if (!PD::IOProcessor())
+    if (!ParallelDescriptor::IOProcessor())
     {
-        msg_hdr.m_cpu = PD::MyProc();
+        msg_hdr.m_cpu = ParallelDescriptor::MyProc();
         msg_hdr.m_vol = m_numpts;
-        PD::SendData(PD::IOProcessor(), &msg_hdr, 0, 0);
+        ParallelDescriptor::SendData(ParallelDescriptor::IOProcessor(),
+                                     &msg_hdr,
+                                     0,
+                                     0);
     }
 
-    PD::Synchronize();
+    ParallelDescriptor::Synchronize();
 
-    if (PD::IOProcessor())
+    if (ParallelDescriptor::IOProcessor())
     {
         double total;
-        Array<double> volume(PD::NProcs());
-        volume[PD::MyProc()] = total = m_numpts;
+        Array<double> volume(ParallelDescriptor::NProcs());
+        total = m_numpts;
+        volume[ParallelDescriptor::MyProc()] = m_numpts;
 
-        for (int len; PD::GetMessageHeader(len, &msg_hdr); )
+        for (int len; ParallelDescriptor::GetMessageHeader(len, &msg_hdr); )
         {
             assert(len == 0);
-            volume[msg_hdr.m_cpu] = msg_hdr.m_vol;
             total += msg_hdr.m_vol;
-            PD::ReceiveData(0, 0);
+            volume[msg_hdr.m_cpu] = msg_hdr.m_vol;
+            ParallelDescriptor::ReceiveData(0, 0);
         }
 
         if (total > 0)
         {
             os << '\n';
-            for (int i = 0; i < PD::NProcs(); i++)
+            for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
             {
-                os << "Percentage of FABs allocated on CPU #"
-                   << i
-                   << ":\t"
-                   << 100.0*volume[i]/total
-                   << '\n';
+                if (volume[i])
+                {
+                    os << "Percentage of FABs allocated on CPU #"
+                       << i
+                       << ":\t"
+                       << 100.0*volume[i]/total
+                       << '\n';
+                }
             }
             os << '\n';
         }
