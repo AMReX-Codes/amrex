@@ -1,0 +1,27 @@
+boxes = grids/gr.3_mac_tst
+geometry.coord_sys = 0
+geometry.prob_lo   =  0.0   0.0   0.0
+geometry.prob_hi   =  0.16  0.8    .16
+
+use_cg_solve = 0
+Density      = 3
+dt           = 0.0001543470841
+mac_tol      = 1e-12
+mac_abs_tol  = 1e-14
+rhs_scale    = 12957.80877
+
+dump_norm = true
+
+mg.numLevelsMAX=1
+mg.v                    = 4
+mg.usecg   = 0
+mg.nu_0    = 1
+mg.nu_1    = 4
+mg.nu_2    = 4
+mg.nu_f    = 40
+mg.maxiter = 100
+
+cg.maxiter = 40              # default 40
+cg.unstable_criterion = 10.  # default 10.
+cg.v                    = 4
+
