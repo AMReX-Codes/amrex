@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.9 1998-05-17 00:57:24 lijewski Exp $
+// $Id: Geometry.cpp,v 1.10 1998-05-19 17:10:52 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -94,6 +94,8 @@ Geometry:: computePIRMMapForMultiFab(const BoxArray& grids,
     //
     // Do only those I own.
     //
+    Array<IntVect> pshifts(27);
+
     for (ConstMultiFabIterator mfmfi(mf); mfmfi.isValid(); ++mfmfi)
     {
 	Box dest = ::grow(mfmfi.validbox(), nGrow);
@@ -102,7 +104,6 @@ Geometry:: computePIRMMapForMultiFab(const BoxArray& grids,
 	{
 	    for (int j = 0; j < len; j++)
 	    {
-		Array<IntVect> pshifts(27);
 		periodicShift(dest, grids[j], pshifts);
 		for (int iiv = 0; iiv < pshifts.length(); iiv++)
 		{
