@@ -584,9 +584,9 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
         else if (for_fill_sync_reg == 1)
         {
 	    // FIXME, not terrain sigma?
-	    fill_borders(sigma[mglev_max], lev_interface[mglev_max],
-			 boundary.terrain_sigma(),
-			 -1, is_dense(m_stencil));
+  	    fill_sync_reg_borders(sigma[mglev_max], lev_interface[mglev_max],
+  			          boundary.terrain_sigma(), 
+          			 -1, is_dense(m_stencil));
         }
     }
     else
@@ -716,8 +716,9 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
         }
         else if (for_fill_sync_reg == 1)
         {
-	    boundary.scalar()->fill_borders(sigma[mglev_max],
-					    lev_interface[mglev_max], -1);
+  	    boundary.scalar()->fill_sync_reg_borders(sigma[mglev_max],
+  					             lev_interface[mglev_max],
+                                                     -1);
         }
 
 	for (int i = 0; i < BL_SPACEDIM; i++)

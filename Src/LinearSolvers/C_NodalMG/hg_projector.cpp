@@ -1016,25 +1016,13 @@ holy_grail_amr_projector::fill_sync_reg (PArray<MultiFab>* u_local,
 	}
     }
 
-    //    Note: We have to do explicit fills here for Sync_resid_crse
-    //            because the boundary::fill_borders won't fill for grids
-    //            touching diagonally at a periodic interface.
-    //          For Sync_resid_fine we use a different paradigm, whereby
-    //            *no* boundary cells are filled except velocity at inflow.
-    if ( is_coarse )
-    {
-        crse_geom.FillPeriodicBoundary(Sigma_local[Lev_min], 0, 1, false, true);
-        if (rhs_local.defined(Lev_min) > 0)
-	{
-	    crse_geom.FillPeriodicBoundary(rhs_local[Lev_min], 0, 1, false, true);
-	}
-        for (int n = 0; n < BL_SPACEDIM; n++)
-	{
-	    crse_geom.FillPeriodicBoundary(u_local[n][Lev_min], 0, 1, false, true);
-	}
-    }
+// NOTE: We used to do periodic fills here in order to fill ghost cells
+//       outside periodic boundaries.  Instead, we now do copying of
+//       Sync_resid_crse across periodic boundaries in the 
+//       SyncRegiser::CrseInit routine.
 
-    alloc_hg_multi(p, null_amr_real, null_amr_real, Sigma_local, H, Lev_min, Lev_min, for_fill_sync_reg);
+    alloc_hg_multi(p, null_amr_real, null_amr_real, Sigma_local, H, 
+                   Lev_min, Lev_min, for_fill_sync_reg);
 
     if (rhs_local.defined(Lev_min))
     {
@@ -1051,11 +1039,6 @@ holy_grail_amr_projector::fill_sync_reg (PArray<MultiFab>* u_local,
     else
     {
 	right_hand_side(u_local, null_amr_real, for_fill_sync_reg);
-    }
-
-    if ( is_coarse )
-    {
-	crse_geom.FillPeriodicBoundary(dest[Lev_min], 0, 1, false, false);
     }
 
     const int mglev = ml_index[Lev_min];
@@ -1548,7 +1531,9 @@ holy_grail_amr_projector::grid_average (PArray<MultiFab>& S,
         }
 	else if (for_fill_sync_reg == 1)
 	{
-	    boundary.scalar()->fill_borders(S[lev], lev_interface[mglev], -1);
+         // This is the same as a fill_borders call  except that it
+         //   doesn't fill periodic boundaries
+  	    boundary.scalar()->fill_sync_reg_borders(S[lev],lev_interface[mglev],-1);
         }
 
 	for (MultiFabIterator s_mfi(src[lev]); s_mfi.isValid(); ++s_mfi)
@@ -1603,8 +1588,10 @@ holy_grail_amr_projector::grid_divergence (PArray<MultiFab>* u,
             }
 	    else if (for_fill_sync_reg == 1)
 	    {
-		boundary.velocity(i)->fill_borders(u[i][lev],
-						   lev_interface[mglev], -1);
+            //  This is the same as a fill_borders call  except that it
+            //    doesn't fill periodic boundaries
+  		boundary.velocity(i)->fill_sync_reg_borders(u[i][lev], 
+  						   lev_interface[mglev],-1);
             }
 	    HG_TEST_NORM( u[i][lev], "grid_divergence");
 	}

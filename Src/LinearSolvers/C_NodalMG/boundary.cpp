@@ -964,6 +964,352 @@ mixed_boundary::fill_borders (MultiFab&              r,
     tl.execute("mixed_boundary::fill_borders");
 }
 
+void
+mixed_boundary::fill_sync_reg_borders (MultiFab&              r,
+			               const level_interface& lev_interface,
+          			       int                    w) const
+{
+//  This is the same as the fill_borders routine except that it
+//    doesn't fill outside periodic boundaries
+
+    w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
+
+    BL_ASSERT(w == 1 || w == 0);
+
+    const Box& domain = lev_interface.domain();
+
+    task_list tl;
+    // we are looping over only the fine-fine faces
+    for (int iface = 0;
+	 iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
+    {
+	if (lev_interface.geo(level_interface::FACEDIM, iface)
+	    != level_interface::ALL)
+	    break;
+
+        Box c = lev_interface.box(level_interface::FACEDIM, iface);
+
+	const int igrid =
+	    lev_interface.grid(level_interface::FACEDIM, iface, 0);
+	const int jgrid =
+	    lev_interface.grid(level_interface::FACEDIM, iface, 1);
+
+	if (igrid < 0 || jgrid < 0) 
+	{
+	    Box b = lev_interface.box(level_interface::FACEDIM, iface);
+	    const int idim = lev_interface.fdim(iface);
+	    const int a = (type(r,idim) == IndexType::NODE);
+            //
+	    // Need to do on x borders too in case y border is an interior face
+            //
+	    for (int i = 0; i < BL_SPACEDIM; i++) 
+	    {
+	        if (i != idim) 
+	        {
+		  if (domain.smallEnd(i) == b.smallEnd(i)) b.growLo(i, w);
+		  if (domain.bigEnd(i)   == b.bigEnd(i)  ) b.growHi(i, w);
+
+	        }
+	    }
+	    if (igrid < 0) 
+	    {
+		b.shift(idim, -a).growLo(idim, w-a).convert(type(r));
+		const RegType t = ptr->bc[idim][0];
+		Box bb = b;
+		if (flowdim == -4 && (t == refWall || t == inflow)) 
+		{
+                    //
+		    // Terrain sigma
+                    //
+		    if (is_remote(r, jgrid)) continue;
+		    bb.shift(
+			idim,
+			2 * domain.smallEnd(idim) - 1 + a
+			- b.bigEnd(idim) - b.smallEnd(idim));
+		    const Box& rbox = r[jgrid].box();
+		    for (int i = 0; i < r.nComp(); i++) 
+		    {
+			Real* rptr = r[jgrid].dataPtr(i);
+			if ((i == idim + BL_SPACEDIM)
+			    || (i >= BL_SPACEDIM && idim == BL_SPACEDIM - 1)) 
+			{
+			    FORT_FBNEG(rptr, DIMLIST(rbox),
+				       DIMLIST(b),
+				       rptr, DIMLIST(rbox),
+				       DIMLIST(bb), &idim, 1);
+			}
+			else 
+			{
+			    FORT_FBREF(rptr, DIMLIST(rbox),
+				       DIMLIST(b),
+				       rptr, DIMLIST(rbox),
+				       DIMLIST(bb), &idim, 1);
+			}
+		    }
+		}
+		else if (t == refWall) 
+		{
+		    if ( is_remote(r, jgrid) ) continue;
+		    bb.shift(
+			idim,
+			(2 * domain.smallEnd(idim) - 1 + a
+			 - b.bigEnd(idim) - b.smallEnd(idim)));
+		    const Box& rbox = r[jgrid].box();
+		    if (idim == flowdim || flowdim == -3) 
+		    {
+			FORT_FBNEG(r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, r.nComp());
+		    }
+		    else 
+		    {
+			FORT_FBREF(r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, r.nComp());
+		    }
+		}
+		else if (t == periodic) 
+		{
+#if 0
+		    int isrc = lev_interface.exterior_ref(igrid);
+		    bb.shift(idim, domain.length(idim));
+		    //r[jgrid].copy(r[isrc], bb, 0, b, 0, r.nComp());
+		    tl.add_task(new task_copy(tl, r, jgrid, b, r, isrc, bb));
+#endif
+		}
+		else if (t == inflow) 
+		{
+		    if ( is_remote(r, jgrid) ) continue;
+		    bb.shift(
+			idim,
+			(2 * domain.smallEnd(idim) - 1 + a
+			 - b.bigEnd(idim) - b.smallEnd(idim)));
+		    const Box& rbox = r[jgrid].box();
+		    if (flowdim == -2) 
+		    {
+			FORT_FBREF(r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, r.nComp());
+		    }
+		    else if (flowdim == -1) 
+		    {
+                        //
+			//BoxLib::Error("mixed_boundary::Don't know how to do inflow density");
+			// Inflow density---just reflect interior for now
+                        //
+			FORT_FBREF(r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, r.nComp());
+		    }
+		    else if (flowdim == -3) 
+		    {
+			FORT_FBNEG(r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, 1);
+		    }
+		    else if (idim == flowdim) 
+		    {
+                        //
+			// For this to work, fill_borders must be called exactly
+			// once for each level of this variable.
+                        //
+			FORT_FBINFLO(r[jgrid].dataPtr(), DIMLIST(rbox),
+				     DIMLIST(b),
+				     r[jgrid].dataPtr(), DIMLIST(rbox),
+				     DIMLIST(bb), &idim, 1);
+		    }
+		    else if (flowdim >= 0) 
+		    {
+                        //
+			// transverse velocity components
+			//r[jgrid].assign(0.0, b);
+			// we now believe this looks like a refWall to transverse comps
+                        //
+			FORT_FBREF(r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, 1);
+		    }
+		}
+		else if (t == outflow) 
+		{
+                    //
+		    // Do nothing if NODE-based, reflect if CELL-based.
+                    //
+		    if (is_remote(r, jgrid))
+                        continue;
+		    if (type(r,idim) == IndexType::CELL) 
+		    {
+			bb.shift(
+			    idim,
+			    (2 * domain.smallEnd(idim) - 1 + a
+			     - b.bigEnd(idim) - b.smallEnd(idim)));
+			const Box& rbox = r[jgrid].box();
+			FORT_FBREF(r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[jgrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, r.nComp());
+		    }
+		}
+	    }
+	    else if (jgrid < 0) 
+	    {
+		b.shift(idim, a).growHi(idim, w-a).convert(type(r));
+		const RegType t = ptr->bc[idim][1];
+		Box bb = b;
+		if (flowdim == -4 && (t == refWall || t == inflow)) 
+		{
+		    if (is_remote(r, igrid))
+                        continue;
+                    //
+		    // Terrain sigma
+                    //
+		    bb.shift(
+			idim,
+			(2 * domain.bigEnd(idim) + 1 + a
+			 - b.bigEnd(idim) - b.smallEnd(idim)));
+		    const Box& rbox = r[igrid].box();
+		    for (int i = 0; i < r.nComp(); i++) 
+		    {
+			Real* rptr = r[igrid].dataPtr(i);
+			if ((i == idim + BL_SPACEDIM)
+			    || (i >= BL_SPACEDIM && idim == BL_SPACEDIM - 1)) 
+			{
+			    FORT_FBNEG(rptr, DIMLIST(rbox),
+				       DIMLIST(b),
+				       rptr, DIMLIST(rbox),
+				       DIMLIST(bb), &idim, 1);
+			}
+			else 
+			{
+			    FORT_FBREF(rptr, DIMLIST(rbox),
+				       DIMLIST(b),
+				       rptr, DIMLIST(rbox),
+				       DIMLIST(bb), &idim, 1);
+			}
+		    }
+		}
+		else if (t == refWall) 
+		{
+		    if (is_remote(r, igrid))
+                        continue;
+		    bb.shift(
+			idim,
+			(2 * domain.bigEnd(idim) + 1 + a
+			 - b.bigEnd(idim) - b.smallEnd(idim)));
+		    const Box& rbox = r[igrid].box();
+		    if (idim == flowdim || flowdim == -3) 
+		    {
+			FORT_FBNEG(r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, r.nComp());
+		    }
+		    else 
+		    {
+			FORT_FBREF(r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, r.nComp());
+		    }
+		}
+		else if (t == periodic) 
+		{
+#if 0
+		    int isrc = lev_interface.exterior_ref(jgrid);
+		    bb.shift(idim, -domain.length(idim));
+		    //r[igrid].copy(r[isrc], bb, 0, b, 0, r.nComp());
+		    tl.add_task(new task_copy(tl, r, igrid, b, r, isrc, bb));
+#endif
+		}
+		else if (t == inflow) 
+		{
+		    if (is_remote(r, igrid)) continue;
+		    bb.shift(
+			idim,
+			(2 * domain.bigEnd(idim) + 1 + a
+			 - b.bigEnd(idim) - b.smallEnd(idim)));
+		    const Box& rbox = r[igrid].box();
+		    if (flowdim == -2) 
+		    {
+			FORT_FBREF(r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[igrid].dataPtr(),
+				   DIMLIST(rbox), DIMLIST(bb), &idim, 1);
+		    }
+		    else if (flowdim == -1) 
+		    {
+                        //
+			//BoxLib::Error("mixed_boundary::Don't know how to do inflow density");
+			// Inflow density---just reflect interior for now
+                        //
+			FORT_FBREF(r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, r.nComp());
+		    }
+		    else if (flowdim == -3) 
+		    {
+			FORT_FBNEG(r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, r.nComp());
+		    }
+		    else if (idim == flowdim) 
+		    {
+                        //
+			// For this to work, fill_borders must be called exactly
+			// once for each level of this variable.
+                        //
+			FORT_FBINFLO(r[igrid].dataPtr(), DIMLIST(rbox),
+				     DIMLIST(b),
+				     r[igrid].dataPtr(), DIMLIST(rbox),
+				     DIMLIST(bb), &idim, 1);
+		    }
+		    else if (flowdim >= 0) 
+		    {
+                        //
+			// transverse velocity components
+			//r[igrid].assign(0.0, rbox);
+			// we now believe this looks like a refWall to transverse comps
+                        //
+			FORT_FBREF(r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, 1);
+		    }
+		}
+		else if (t == outflow) 
+		{
+		    if (is_remote(r, igrid))
+                        continue;
+                    //
+		    // Do nothing if NODE-based, reflect if CELL-based.
+                    //
+		    if (type(r,idim) == IndexType::CELL) 
+		    {
+			bb.shift(
+			    idim,
+			    (2 * domain.bigEnd(idim) + 1 + a
+			     - b.bigEnd(idim) - b.smallEnd(idim)));
+			const Box& rbox = r[igrid].box();
+			FORT_FBREF(r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(b),
+				   r[igrid].dataPtr(), DIMLIST(rbox),
+				   DIMLIST(bb), &idim, r.nComp());
+		    }
+		}
+	    }
+        }
+    }
+    tl.execute("mixed_boundary::fill_sync_reg_borders");
+}
+
 
 void
 mixed_boundary::check_against_boundary_ (BoxList&   bl,
