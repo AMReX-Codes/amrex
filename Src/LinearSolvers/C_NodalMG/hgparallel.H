@@ -147,6 +147,13 @@ task::task_proxy::operator= (const task_proxy& r)
 }
 
 inline
+bool
+task::task_proxy::null () const
+{
+    return m_t == 0;
+}
+
+inline
 task*
 task::task_proxy::operator-> () const
 {
@@ -184,13 +191,6 @@ task::task_proxy::is_finished () const
 {
     BL_ASSERT(!null());
     return m_t->m_finished;
-}
-
-inline
-bool
-task::task_proxy::null () const
-{
-    return m_t == 0;
 }
 
 inline
