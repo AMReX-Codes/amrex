@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StationData.H,v 1.3 1998-11-28 21:58:43 lijewski Exp $
+// $Id: StationData.H,v 1.4 1998-11-29 00:21:41 lijewski Exp $
 //
 
 #ifndef _StationData_H_
@@ -11,18 +11,28 @@
 #include <iostream>
 #include <fstream>
 using std::ios;
-else
+#else
 #include <iostream.h>
 #include <fstream.h>
 #endif
 
-#include "Amr.H"
-#include "Array.H"
-#include "REAL.H"
-#include "aString.H"
+#include <Amr.H>
+#include <Array.H>
+#include <REAL.H>
+#include <StateData.H>
+#include <Utility.H>
+#include <aString.H>
+
+//
+// Forward declaration.
+//
+class AmrLevel;
 
 struct StationRec
 {
+    //
+    // A constructor just to keep 3rd quiet.
+    //
     StationRec()
     {
         D_TERM(pos[0],=pos[1],=pos[2]) = -1;
@@ -46,12 +56,6 @@ public:
 
     ~StationData ();
     //
-    // Open appropriately-named station file.
-    //
-    //  "rootname_CPU_NNNN_timestep"
-    //
-    void openFile (int timestep);
-    //
     // Init from ParmParse.
     //
     // ParmParse variables:
@@ -62,19 +66,29 @@ public:
     //   StationData.coord    -- ditto ...
     //   StationData.rootname -- root name of output files.
     //
+    // Default rootname is: "stn"
+    //
     void init ();
     //
     // Collect data for all station points at level and write to station file.
     //
-    void report (Real time,
-                 int  level) const;
+    void report (Real            time,
+                 int             level,
+                 const AmrLevel& amrlevel);
     //
     // Locate finest level grid for each station point.
     //
     void findGrid (const PArray<AmrLevel>& levels,
                    const Array<Geometry>&  geoms);
-
 private:
+    //
+    // Open appropriately-named station file.
+    //
+    //  "rootname_CPU_NNNN"
+    //
+    // Default rootname is: "stn"
+    //
+    void openFile ();
     //
     // Writes out map of StationIDs to Real coordinates to "Station.List".
     //
