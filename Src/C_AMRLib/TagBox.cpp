@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.9 1997-12-11 23:27:54 lijewski Exp $
+// $Id: TagBox.cpp,v 1.10 1998-01-23 17:51:31 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -759,36 +759,26 @@ TagBoxArray::colate () const
     // Need a 1d array for contiguous parallel copies.
     //
     const long len = numTags();
-    int* tmpPts = new int[len * BL_SPACEDIM];
-    const size_t ivSize = BL_SPACEDIM * sizeof(int);
-    //
-    // Copy the local IntVects into the shared array.
-    //
-    Array<IntVect>* ar = new Array<IntVect>(len);
 
-    int *ivDest, *ivDestBase;
-    const int *ivSrc;
+    Array<IntVect>* ar = new Array<IntVect>(len);
 
     for (ConstFabArrayIterator<TagType,TagBox> fai(*this); fai.isValid();++fai)
     {
-        int start = fai().colate(*ar, startOffset[fai.index()]);
-        ivDestBase = tmpPts + (startOffset[fai.index()] * BL_SPACEDIM);
-        for (int iPnt = 0; iPnt < sharedNTags[fai.index()]; ++iPnt)
-        {
-            ivDest = ivDestBase + (iPnt * BL_SPACEDIM);
-            ivSrc  = ((*ar)[startOffset[fai.index()] + iPnt]).getVect();
-            memcpy(ivDest, ivSrc, ivSize);
-        }
+        fai().colate(*ar, startOffset[fai.index()]);
     }
+
+    IntVect* tmpPts = ar->dataPtr();
+    const size_t ivSize = BL_SPACEDIM * sizeof(int);
     //
     // Now copy the the local IntVects to all other processors.
     //
     ParallelDescriptor::ShareVar(tmpPts, len * ivSize);
     ParallelDescriptor::Synchronize();  // For ShareVar.
-
+    
     for (ConstFabArrayIterator<TagType,TagBox> fai(*this); fai.isValid();++fai)
     {
-        ivDestBase = tmpPts + (startOffset[fai.index()] * BL_SPACEDIM);
+        IntVect* ivDestBase = tmpPts + startOffset[fai.index()];
+
         for (int iProc = 0; iProc < nProcs; ++iProc)
         {
             if (iProc != myproc)
@@ -807,17 +797,8 @@ TagBoxArray::colate () const
     ParallelDescriptor::Synchronize();  // Need this sync after the put.
     ParallelDescriptor::UnshareVar(tmpPts);
 
-    for (int iPnt = 0; iPnt < len; ++iPnt)
-    {
-        for (int iiv = 0; iiv < BL_SPACEDIM; ++iiv)
-        {
-            ((*ar)[iPnt])[iiv] = tmpPts[(iPnt * BL_SPACEDIM) + iiv];
-        }
-    }
-
     delete [] startOffset;
     delete [] sharedNTags;
-    delete [] tmpPts;
 
     return ar;
 }
