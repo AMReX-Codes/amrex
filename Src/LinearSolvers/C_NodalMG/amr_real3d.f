@@ -846,6 +846,7 @@ c Handles coarse-fine face, with orientation determined by idim and idir
             end do
          end do
          end do
+         fac0 = 1.0D0 / (ir*ir * jr*jr * kr*kr)
          do nc = 1, ncomp
          do l = 0, kr-1
             fac2 = (kr-l) * fac0
