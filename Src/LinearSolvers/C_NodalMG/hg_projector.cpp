@@ -143,7 +143,6 @@ public:
 		const FArrayBox& Sc_fab = task_fab_result(1);
 		const Box& Sc_fab_box = Sc_fab.box();
 		(*f)(sfab.dataPtr(), DIMLIST(sfab_box), Sf_fab.dataPtr(), DIMLIST(Sf_fab_box), Sc_fab.dataPtr(), DIMLIST(Sc_fab_box), DIMLIST(creg), D_DECL( rat[0], rat[1], rat[2]), t.getVect(), ga.dataPtr());
-		throw( "task_faecavg_2::ready(): FIXME" ); /*NOTREACHED*/
 	    }
 	    return true;
 	}
