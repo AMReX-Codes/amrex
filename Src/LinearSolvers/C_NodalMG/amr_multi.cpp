@@ -232,8 +232,7 @@ void amr_multigrid::make_coarser_level(BoxArray& mesh, Box& domain, int& flev, I
     }
 }
 
-void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArray<MultiFab>& Coarse_source,
-			  int Lev_min, int Lev_max)
+void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArray<MultiFab>& Coarse_source, int Lev_min, int Lev_max)
 {
     lev_min = Lev_min;
     lev_max = Lev_max;
