@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.64 2002-11-26 22:38:59 lijewski Exp $
+// $Id: TagBox.cpp,v 1.65 2003-02-28 22:42:15 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -13,31 +13,6 @@
 #include <Geometry.H>
 #include <ParallelDescriptor.H>
 #include <ccse-mpi.H>
-//
-// Number of IntVects that can fit into m_CollateSpace
-//
-long TagBoxArray::m_CollateCount = TagBoxArray::ChunkSize;
-
-//
-// Static space used by collate().
-//
-IntVect* TagBoxArray::m_CollateSpace = new IntVect[TagBoxArray::ChunkSize];
-
-void
-TagBoxArray::BumpCollateSpace (long numtags)
-{
-    BL_ASSERT(TagBoxArray::m_CollateCount < numtags);
-
-    do
-    {
-        TagBoxArray::m_CollateCount += TagBoxArray::ChunkSize;
-    }
-    while (TagBoxArray::m_CollateCount < numtags);
-
-    delete [] TagBoxArray::m_CollateSpace;
-
-    TagBoxArray::m_CollateSpace = new IntVect[TagBoxArray::m_CollateCount];
-}
 
 TagBox::TagBox () {}
 
@@ -540,9 +515,10 @@ IntVect*
 TagBoxArray::collate (long& numtags) const
 {
     numtags = numTags();
-
-    if (TagBoxArray::m_CollateCount < numtags)
-        TagBoxArray::BumpCollateSpace(numtags);
+    //
+    // The caller of collate() is responsible for delete[]ing this space.
+    //
+    IntVect* TheCollateSpace = new IntVect[numtags];
 
     const int NGrids = fabparray.size();
 
@@ -557,21 +533,21 @@ TagBoxArray::collate (long& numtags) const
 
     for (int i = 0; i < NGrids; ++i)
     {
-         ParallelDescriptor::Bcast(&sharedNTags[i], 1, dMap[i]);
+         ParallelDescriptor::Bcast(&sharedNTags[i],1,dMap[i]);
     }
 
     startOffset[0] = 0;
 
     for (int i = 1; i < NGrids; ++i)
     {
-        startOffset[i] = startOffset[i-1] + sharedNTags[i-1];
+        startOffset[i] = startOffset[i-1]+sharedNTags[i-1];
     }
     //
     // Communicate all local points so all procs have the same global set.
     //
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
-        get(fai).collate(TagBoxArray::m_CollateSpace, startOffset[fai.index()]);
+        get(fai).collate(TheCollateSpace,startOffset[fai.index()]);
     }
     //
     // Make sure can pass IntVect as array of ints.
@@ -580,27 +556,26 @@ TagBoxArray::collate (long& numtags) const
 
     for (int i = 0; i < NGrids; ++i)
     {
-        int* iptr =
-            reinterpret_cast<int*>(TagBoxArray::m_CollateSpace+startOffset[i]);
+        int* iptr = reinterpret_cast<int*>(TheCollateSpace+startOffset[i]);
 
         ParallelDescriptor::Bcast(iptr,
-                                  sharedNTags[i] * BL_SPACEDIM,
+                                  sharedNTags[i]*BL_SPACEDIM,
                                   dMap[i]);
     }
     //
     // Remove duplicate IntVects.
     //
-    std::sort(m_CollateSpace, m_CollateSpace+numtags, IntVectComp());
+    std::sort(TheCollateSpace, TheCollateSpace+numtags, IntVectComp());
 
-    IntVect* end = std::unique(m_CollateSpace,m_CollateSpace+numtags);
+    IntVect* end = std::unique(TheCollateSpace,TheCollateSpace+numtags);
 
-    ptrdiff_t duplicates = (m_CollateSpace+numtags) - end;
+    ptrdiff_t duplicates = (TheCollateSpace+numtags) - end;
 
     BL_ASSERT(duplicates >= 0);
 
     numtags -= duplicates;
 
-    return m_CollateSpace;
+    return TheCollateSpace;
 }
 
 void

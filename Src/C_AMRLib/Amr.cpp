@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.133 2002-10-09 13:59:04 car Exp $
+// $Id: Amr.cpp,v 1.134 2003-02-28 22:42:15 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -2029,6 +2029,10 @@ Amr::grid_places (int              lbase,
             }
             new_grids[levf].define(new_bx);
         }
+        //
+        // Don't forget to get rid of space used for collate()ing.
+        //
+        delete [] pts;
     }
 }
 
