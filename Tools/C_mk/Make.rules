@@ -1,5 +1,5 @@
 #
-# $Id: Make.rules,v 1.8 1998-11-21 19:02:54 lijewski Exp $
+# $Id: Make.rules,v 1.9 1998-11-21 19:34:19 lijewski Exp $
 #
 $(addprefix $(instIncludeDir)/, $(instSources)): $(instIncludeDir)/% : %
 	@if [ ! -d $(instIncludeDir) ]; then mkdir -p $(instIncludeDir); fi
@@ -16,7 +16,7 @@ clean:
 	$(RM) $(optionsLib) $(objTempDir)/*.o $(f77TempDir)/*.f $(objEXETempDir)/*.o
 ifeq ($(CLOSELIB),TRUE)
 	$(RM) *.o *.ii $(ptRepDir)/*.o
-	$(RM) $(optionsLib) $(objTempDir)/KCC_files
+	$(RM) $(optionsLib) $(objTempDir)/KCC_files $(objTempDir)/ti_files
 endif
 	$(RM) $(EBASE)$(optionsSuffix).ex *.pure
 #
