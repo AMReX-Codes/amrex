@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.45 1998-07-29 19:09:08 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.46 1998-08-11 20:33:20 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -790,6 +790,8 @@ FluxRegister::CrseInitFinish ()
     const int NProcs = ParallelDescriptor::NProcs();
     const int MyProc = ParallelDescriptor::MyProc();
 
+    static RunStats mpi_stats("mpi");
+
     assert(CITags.size() == CIFabs.size());
 
     if (CIMsgs.length() == 0)
@@ -800,6 +802,8 @@ FluxRegister::CrseInitFinish ()
     int rc;
 
     Array<int> nrcv(NProcs, 0);
+
+    mpi_stats.start();
 
     for (int i = 0; i < NProcs; i++)
     {
@@ -813,6 +817,8 @@ FluxRegister::CrseInitFinish ()
             ParallelDescriptor::Abort(rc);
     }
 
+    mpi_stats.end();
+
     const int NumRecv = nrcv[MyProc];
 
     Array<MPI_Request> reqs(NumRecv);
@@ -823,6 +829,8 @@ FluxRegister::CrseInitFinish ()
     // First receive/send the box information.
     // I'll receive the NumRecv boxes in any order.
     //
+    mpi_stats.start();
+
     for (int i = 0; i < NumRecv; i++)
     {
         if ((rc = MPI_Irecv(recv[i].dataPtr(),
@@ -867,13 +875,19 @@ FluxRegister::CrseInitFinish ()
     if ((rc = MPI_Waitall(NumRecv,
                           reqs.dataPtr(),
                           stat.dataPtr())) != MPI_SUCCESS)
+    {
         ParallelDescriptor::Abort(rc);
+    }
+
+    mpi_stats.end();
     //
     // Now the FAB data itself.
     //
     for (int i = 0; i < NumRecv; i++)
     {
         fabs.set(i, new FArrayBox(recv[i].box(), recv[i].nComp()));
+
+        mpi_stats.start();
 
         if ((rc = MPI_Irecv(fabs[i].dataPtr(),
                             fabs[i].box().numPts() * recv[i].nComp(),
@@ -883,7 +897,11 @@ FluxRegister::CrseInitFinish ()
                             MPI_COMM_WORLD,
                             &reqs[i])) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
+
+        mpi_stats.end();
     }
+
+    mpi_stats.start();
 
     for (int i = 0; i < CITags.size(); i++)
     {
@@ -918,6 +936,8 @@ FluxRegister::CrseInitFinish ()
                           reqs.dataPtr(),
                           stat.dataPtr())) != MPI_SUCCESS)
         ParallelDescriptor::Abort(rc);
+
+    mpi_stats.end();
 
     for (int i = 0; i < NumRecv; i++)
     {
