@@ -1,10 +1,11 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.36 1999-03-31 17:03:48 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.37 1999-04-08 20:52:11 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
+#include <cfloat>
 #include <iostream>
 #include <iomanip>
 #include <list>
@@ -15,6 +16,7 @@ using std::cerr;
 using std::endl;
 using std::setw;
 #else
+#include <float.h>
 #include <iostream.h>
 #include <iomanip.h>
 #include <list.h>
@@ -24,16 +26,6 @@ using std::setw;
 #include <Misc.H>
 #include <MultiFab.H>
 #include <ParallelDescriptor.H>
-
-#if defined(BL_ARCH_IEEE)
-#ifdef BL_USE_DOUBLE
-    const Real INFINITY = 1.0e100;
-#elif  BL_USE_FLOAT
-    const Real INFINITY = 1.0e35;
-#endif
-#elif defined(BL_ARCH_CRAY)
-    const Real INFINITY = 1.0e100;
-#endif
 
 void
 MultiFab::Copy (MultiFab&       dst,
@@ -55,9 +47,7 @@ MultiFab::Copy (MultiFab&       dst,
         Box bx = ::grow(mfi.validbox(),nghost);
 
         if (bx.ok())
-        {
             mfi().copy(dmfi(), bx, srccomp, bx, dstcomp, numcomp);
-        }
     }
 }
 
@@ -131,12 +121,15 @@ MultiFab::min (int comp,
 {
     assert(nghost >= 0 && nghost <= n_grow);
 
-    Real mn = INFINITY;
+#ifdef BL_USE_DOUBLE
+    Real mn = FLT_MAX;
+#elif  BL_USE_FLOAT
+    Real mn = DBL_MAX;
+#endif
 
     for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
-        Box b(grow(mfi.validbox(), nghost));
-        mn = Min(mn, mfi().min(b, comp));
+        mn = Min(mn,mfi().min(::grow(mfi.validbox(),nghost),comp));
     }
 
     ParallelDescriptor::ReduceRealMin(mn);
@@ -151,16 +144,18 @@ MultiFab::min (const Box& region,
 {
     assert(nghost >= 0 && nghost <= n_grow);
 
-    Real mn = INFINITY;
+#ifdef BL_USE_DOUBLE
+    Real mn = FLT_MAX;
+#elif  BL_USE_FLOAT
+    Real mn = DBL_MAX;
+#endif
 
     for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
         Box b = ::grow(mfi.validbox(),nghost) & region;
 
         if (b.ok())
-        {
-            mn = Min(mn, mfi().min(b, comp));
-        }
+            mn = Min(mn,mfi().min(b,comp));
     }
 
     ParallelDescriptor::ReduceRealMin(mn);
@@ -174,12 +169,15 @@ MultiFab::max (int comp,
 {
     assert(nghost >= 0 && nghost <= n_grow);
 
-    Real mn = -INFINITY;
+#ifdef BL_USE_DOUBLE
+    Real mn = FLT_MIN;
+#elif  BL_USE_FLOAT
+    Real mn = DBL_MIN;
+#endif
 
     for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
-        Box b(grow(mfi.validbox(), nghost));
-        mn = Max(mn, mfi().max(b, comp));
+        mn = Max(mn,mfi().max(::grow(mfi.validbox(),nghost),comp));
     }
 
     ParallelDescriptor::ReduceRealMax(mn);
@@ -194,23 +192,18 @@ MultiFab::max (const Box& region,
 {
     assert(nghost >= 0 && nghost <= n_grow);
 
-    Real mn = -INFINITY;
+#ifdef BL_USE_DOUBLE
+    Real mn = FLT_MIN;
+#elif  BL_USE_FLOAT
+    Real mn = DBL_MIN;
+#endif
 
-    int first = true;
     for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
         Box b = ::grow(mfi.validbox(),nghost) & region;
 
         if (b.ok())
-        {
-            Real mg = mfi().max(b,comp);
-            if (first)
-            {
-                mn    = mg;
-                first = false;
-            }
-            mn = Max(mn,mg);
-        }
+            mn = Max(mn,mfi().max(b,comp));
     }
 
     ParallelDescriptor::ReduceRealMax(mn);
@@ -235,8 +228,9 @@ MultiFab::minus (const MultiFab& mf,
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
         DependentMultiFabIterator dmfi(mfi, mf);
-        Box bx(mfi.validbox());
-        bx.grow(nghost);
+
+        Box bx = ::grow(mfi.validbox(),nghost);
+
         mfi().minus(dmfi(), bx, strt_comp, strt_comp, num_comp);
     }
 }
@@ -252,8 +246,7 @@ MultiFab::plus (Real val,
 
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
-        Box b(grow(mfi.validbox(), nghost));
-        mfi().plus(val, b, comp, num_comp);
+        mfi().plus(val,::grow(mfi.validbox(),nghost),comp,num_comp);
     }
 }
 
@@ -272,9 +265,7 @@ MultiFab::plus (Real       val,
         Box b = ::grow(mfi.validbox(),nghost) & region;
 
         if (b.ok())
-        {
-            mfi().plus(val, b, comp, num_comp);
-        }
+            mfi().plus(val,b,comp,num_comp);
     }
 }
 
@@ -295,8 +286,9 @@ MultiFab::plus (const MultiFab& mf,
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
         DependentMultiFabIterator dmfi(mfi, mf);
-        Box bx(mfi.validbox());
-        bx.grow(nghost);
+
+        Box bx = ::grow(mfi.validbox(),nghost);
+
         mfi().plus(dmfi(), bx, strt_comp, strt_comp, num_comp);
     }
 }
@@ -312,8 +304,7 @@ MultiFab::mult (Real val,
 
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
-        Box b(grow(mfi.validbox(), nghost));
-        mfi().mult(val, b, comp, num_comp);
+        mfi().mult(val,::grow(mfi.validbox(),nghost),comp,num_comp);
     }
 }
 
@@ -332,9 +323,7 @@ MultiFab::mult (Real       val,
         Box b = ::grow(mfi.validbox(),nghost) & region;
 
         if (b.ok())
-        {
             mfi().mult(val, b, comp, num_comp);
-        }
     }
 }
 
@@ -349,8 +338,7 @@ MultiFab::invert (Real numerator,
 
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
-        Box b(grow(mfi.validbox(), nghost));
-        mfi().invert(numerator, b, comp, num_comp);
+        mfi().invert(numerator,::grow(mfi.validbox(),nghost),comp,num_comp);
     }
 }
 
@@ -369,9 +357,7 @@ MultiFab::invert (Real       numerator,
         Box b = ::grow(mfi.validbox(),nghost) & region;
 
         if (b.ok())
-        {
-            mfi().invert(numerator, b, comp, num_comp);
-        }
+            mfi().invert(numerator,b,comp,num_comp);
     }
 }
 
@@ -385,8 +371,7 @@ MultiFab::negate (int comp,
 
     for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
     {
-        Box b(grow(mfi.validbox(), nghost));
-        mfi().negate(b, comp, num_comp);
+        mfi().negate(::grow(mfi.validbox(),nghost),comp,num_comp);
     }
 }
 
@@ -404,9 +389,7 @@ MultiFab::negate (const Box& region,
         Box b = ::grow(mfi.validbox(),nghost) & region;
 
         if (b.ok())
-        {
-            mfi().negate(b, comp, num_comp);
-        }
+            mfi().negate(b,comp,num_comp);
     }
 }
 
