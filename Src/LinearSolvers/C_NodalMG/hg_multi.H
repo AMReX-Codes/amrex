@@ -9,8 +9,10 @@
 
 #ifndef CONSTANT
 
-#if (BL_SPACEDIM == 3)
-#  define SIGMA_NODE
+#ifndef TERRAIN
+#  if (BL_SPACEDIM == 3)
+#    define SIGMA_NODE
+#  endif
 #endif
 
 #  ifndef SIGMA_NODE

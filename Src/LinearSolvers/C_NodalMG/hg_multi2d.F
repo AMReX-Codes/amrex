@@ -2022,51 +2022,49 @@ cdir$ ivdep
 c nine-point terrain stencils
 
       subroutine hgcen(cen, dims(cen),
-     @ sigx, sigy, sigxy, dims(sb),
+     @ sig, dims(sb),
      @ dims(reg))
       integer dims(cen)
       integer dims(sb)
       integer dims(reg)
       real*8 cen(dimdec(cen))
-      real*8 sigx(dimdec(sb))
-      real*8 sigy(dimdec(sb))
-      real*8 sigxy(dimdec(sb))
+      real*8 sig(dimdec(sb), 3)
       integer i, j
       do 10 j = regl1, regh1
          do 10 i = regl0, regh0
- 10         cen(i,j) = 6.d0 / (2.d0 * (sigx(i-1,j-1) + sigx(i-1,j) +
-     @                                 sigx(i,j-1) + sigx(i,j) +
-     @                                 sigy(i-1,j-1) + sigy(i-1,j) +
-     @                                 sigy(i,j-1) + sigy(i,j)) +
-     @                         3.d0 * (sigxy(i-1,j) - sigxy(i-1,j-1) +
-     @                                 sigxy(i,j-1) - sigxy(i,j)))
+ 10         cen(i,j) = 6.d0 / (2.d0 * (sig(i-1,j-1,1) + sig(i-1,j,1) +
+     @                                 sig(i,j-1,1) + sig(i,j,1) +
+     @                                 sig(i-1,j-1,2) + sig(i-1,j,2) +
+     @                                 sig(i,j-1,2) + sig(i,j,2)) +
+     @                         3.d0 * (sig(i-1,j,3) - sig(i-1,j-1,3) +
+     @                                 sig(i,j-1,3) - sig(i,j,3)))
       end
 
 #define AVG fac * ( \
-                sigx(i-1,j-1) * \
+                sig(i-1,j-1,1) * \
                  (cor(i-1,j-1) - cor(i,j-1) + 2.d0 * cor(i-1,j)) + \
-                sigx(i-1,j) * \
+                sig(i-1,j,1) * \
                  (cor(i-1,j+1) - cor(i,j+1) + 2.d0 * cor(i-1,j)) + \
-                sigx(i,j-1) * \
+                sig(i,j-1,1) * \
                  (cor(i+1,j-1) - cor(i,j-1) + 2.d0 * cor(i+1,j)) + \
-                sigx(i,j) * \
+                sig(i,j,1) * \
                  (cor(i+1,j+1) - cor(i,j+1) + 2.d0 * cor(i+1,j)) + \
-                sigy(i-1,j-1) * \
+                sig(i-1,j-1,2) * \
                  (cor(i-1,j-1) - cor(i-1,j) + 2.d0 * cor(i,j-1)) + \
-                sigy(i-1,j) * \
+                sig(i-1,j,2) * \
                  (cor(i-1,j+1) - cor(i-1,j) + 2.d0 * cor(i,j+1)) + \
-                sigy(i,j-1) * \
+                sig(i,j-1,2) * \
                  (cor(i+1,j-1) - cor(i+1,j) + 2.d0 * cor(i,j-1)) + \
-                sigy(i,j) * \
+                sig(i,j,2) * \
                  (cor(i+1,j+1) - cor(i+1,j) + 2.d0 * cor(i,j+1)) - \
-                3.d0 * (sigxy(i-1,j-1) * cor(i-1,j-1) - \
-                        sigxy(i-1,j)   * cor(i-1,j+1) - \
-                        sigxy(i,j-1)   * cor(i+1,j-1) + \
-                        sigxy(i,j)     * cor(i+1,j+1)))
+                3.d0 * (sig(i-1,j-1,3) * cor(i-1,j-1) - \
+                        sig(i-1,j,3)   * cor(i-1,j+1) - \
+                        sig(i,j-1,3)   * cor(i+1,j-1) + \
+                        sig(i,j,3)     * cor(i+1,j+1)))
 
       subroutine hgrlx(cor, dims(cor),
      @ res, dims(res),
-     @ sigx, sigy, sigxy, dims(sf),
+     @ sig, dims(sf),
      @ cen, dims(cen),
      @ dims(reg))
       integer dims(cor)
@@ -2076,9 +2074,7 @@ c nine-point terrain stencils
       integer dims(reg)
       real*8 cor(dimdec(cor))
       real*8 res(dimdec(res))
-      real*8 sigx(dimdec(sf))
-      real*8 sigy(dimdec(sf))
-      real*8 sigxy(dimdec(sf))
+      real*8 sig(dimdec(sf), 3)
       real*8 cen(dimdec(cen))
       real*8 fac
       integer i, j
@@ -2436,7 +2432,7 @@ c interface to grid at same level:
       subroutine hgres(res, dims(res),
      @ src,  dims(src),
      @ dest, dims(dest),
-     @ sigx, sigy, sigxy, dims(sf),
+     @ sig, dims(sf),
      @ dims(reg))
       integer dims(res)
       integer dims(src)
@@ -2446,9 +2442,7 @@ c interface to grid at same level:
       real*8 res(dimdec(res))
       real*8 src(dimdec(src))
       real*8 dest(dimdec(dest))
-      real*8 sigx(dimdec(sf))
-      real*8 sigy(dimdec(sf))
-      real*8 sigxy(dimdec(sf))
+      real*8 sig(dimdec(sf), 3)
       real*8 fac, tmp
       integer i, j
       fac = 1.d0 / 6.d0
@@ -2456,77 +2450,77 @@ c interface to grid at same level:
          do 10 i = regl0, regh0
             do 10 j = regl1, regh1
                tmp =
-     @           (sigx(i-1,j-1) *
+     @           (sig(i-1,j-1,1) *
      @             (dest(i-1,j-1) - dest(i,j-1) +
      @              2.d0 * (dest(i-1,j) - dest(i,j))) +
-     @            sigx(i-1,j) *
+     @            sig(i-1,j,1) *
      @             (dest(i-1,j+1) - dest(i,j+1) +
      @              2.d0 * (dest(i-1,j) - dest(i,j))) +
-     @            sigx(i,j-1) *
+     @            sig(i,j-1,1) *
      @             (dest(i+1,j-1) - dest(i,j-1) +
      @              2.d0 * (dest(i+1,j) - dest(i,j))) +
-     @            sigx(i,j) *
+     @            sig(i,j,1) *
      @             (dest(i+1,j+1) - dest(i,j+1) +
      @              2.d0 * (dest(i+1,j) - dest(i,j))))
                tmp = src(i,j) - fac * (tmp +
-     @           (sigy(i-1,j-1) *
+     @           (sig(i-1,j-1,2) *
      @             (dest(i-1,j-1) - dest(i-1,j) +
      @              2.d0 * (dest(i,j-1) - dest(i,j))) +
-     @            sigy(i-1,j) *
+     @            sig(i-1,j,2) *
      @             (dest(i-1,j+1) - dest(i-1,j) +
      @              2.d0 * (dest(i,j+1) - dest(i,j))) +
-     @            sigy(i,j-1) *
+     @            sig(i,j-1,2) *
      @             (dest(i+1,j-1) - dest(i+1,j) +
      @              2.d0 * (dest(i,j-1) - dest(i,j))) +
-     @            sigy(i,j) *
+     @            sig(i,j,2) *
      @             (dest(i+1,j+1) - dest(i+1,j) +
      @              2.d0 * (dest(i,j+1) - dest(i,j)))))
  10            res(i,j) = tmp + 0.5d0 *
-     @           (sigxy(i-1,j-1) *
+     @           (sig(i-1,j-1,3) *
      @             (dest(i-1,j-1) - dest(i,j)) -
-     @            sigxy(i-1,j) *
+     @            sig(i-1,j,3) *
      @             (dest(i-1,j+1) - dest(i,j)) -
-     @            sigxy(i,j-1) *
+     @            sig(i,j-1,3) *
      @             (dest(i+1,j-1) - dest(i,j)) +
-     @            sigxy(i,j) *
+     @            sig(i,j,3) *
      @             (dest(i+1,j+1) - dest(i,j)))
       else
          do 20 j = regl1, regh1
             do 20 i = regl0, regh0
                tmp =
-     @           (sigx(i-1,j-1) *
+     @           (sig(i-1,j-1,1) *
      @             (dest(i-1,j-1) - dest(i,j-1) +
      @              2.d0 * (dest(i-1,j) - dest(i,j))) +
-     @            sigx(i-1,j) *
+     @            sig(i-1,j,1) *
      @             (dest(i-1,j+1) - dest(i,j+1) +
      @              2.d0 * (dest(i-1,j) - dest(i,j))) +
-     @            sigx(i,j-1) *
+     @            sig(i,j-1,1) *
      @             (dest(i+1,j-1) - dest(i,j-1) +
      @              2.d0 * (dest(i+1,j) - dest(i,j))) +
-     @            sigx(i,j) *
+     @            sig(i,j,1) *
      @             (dest(i+1,j+1) - dest(i,j+1) +
      @              2.d0 * (dest(i+1,j) - dest(i,j))))
                tmp = src(i,j) - fac * (tmp +
-     @           (sigy(i-1,j-1) *
+     @           (sig(i-1,j-1,2) *
      @             (dest(i-1,j-1) - dest(i-1,j) +
      @              2.d0 * (dest(i,j-1) - dest(i,j))) +
-     @            sigy(i-1,j) *
+     @            sig(i-1,j,2) *
      @             (dest(i-1,j+1) - dest(i-1,j) +
      @              2.d0 * (dest(i,j+1) - dest(i,j))) +
-     @            sigy(i,j-1) *
+     @            sig(i,j-1,2) *
      @             (dest(i+1,j-1) - dest(i+1,j) +
      @              2.d0 * (dest(i,j-1) - dest(i,j))) +
-     @            sigy(i,j) *
+     @            sig(i,j,2) *
      @             (dest(i+1,j+1) - dest(i+1,j) +
      @              2.d0 * (dest(i,j+1) - dest(i,j)))))
  20            res(i,j) = tmp + 0.5d0 *
-     @           (sigxy(i-1,j-1) *
+     @           (sig(i-1,j-1,3) *
      @             (dest(i-1,j-1) - dest(i,j)) -
-     @            sigxy(i-1,j) *
+     @            sig(i-1,j,3) *
      @             (dest(i-1,j+1) - dest(i,j)) -
-     @            sigxy(i,j-1) *
+     @            sig(i,j-1,3) *
      @             (dest(i+1,j-1) - dest(i,j)) +
-     @            sigxy(i,j) *
+     @            sig(i,j,3) *
      @             (dest(i+1,j+1) - dest(i,j)))
       endif
       end

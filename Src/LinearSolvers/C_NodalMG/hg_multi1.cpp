@@ -6,6 +6,7 @@
 #  define   FORT_HGSCON     hgscon_
 #  define   FORT_HGCEN      hgcen_
 #  define   FORT_HGINTS     hgints_
+#  define   FACRST1         acrst1_
 #  define   FANRST2         anrst2_
 #  define   FANINT2         anint2_
 #else
@@ -13,6 +14,7 @@
 #  define   FORT_HGSCON     HGSCON
 #  define   FORT_HGCEN      HGCEN
 #  define   FORT_HGINTS     HGINTS
+#  define   FACRST1         ACRST1
 #  define   FANRST2         ANRST2
 #  define   FANINT2         ANINT2
 #endif
@@ -22,7 +24,12 @@ extern "C" {
 #if (BL_SPACEDIM == 1)
   ERROR, not relevant
 #elif (BL_SPACEDIM == 2 || BL_SPACEDIM == 3)
-#  ifndef CONSTANT
+#  ifdef TERRAIN
+  void FACRST1(Real*, intS, intS, Real*, intS, intRS);
+  void FORT_HGSRST(RealPS, intS, intS, RealPS, intS, intRS);
+  void FORT_HGCEN(Real*, intS, Real*, intS, intS);
+  void FORT_HGINTS(Real*, intS, intS, RealPS, intS, Real*, intS, intS, intRS);
+#  elif (! defined CONSTANT)
   void FORT_HGSRST(RealPS, intS, intS, RealPS, intS, intRS);
 #    ifndef SIGMA_NODE
   void FORT_HGCEN(Real*, intS, RealPS, intS, intS, RealRS,
@@ -177,6 +184,10 @@ void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
     }
     singular = (singular == mg_domain[0].numPts());
   }
+
+#ifdef TERRAIN
+  integrate = 1;
+#endif
 }
 
 #ifndef CONSTANT
@@ -191,34 +202,66 @@ void holy_grail_sigma_restrictor_class::fill(Fab& patch,
 	 rat[0] == 2 && rat[1] == 1 ||
 	 rat[0] == 1 && rat[1] == 2);
 
+#ifdef TERRAIN
+    FORT_HGSRST(patch.dataPtr(0), patch.dataPtr(1),
+#  if (BL_SPACEDIM == 3)
+		patch.dataPtr(2),
+#  endif
+		dimlist(patch.box()),
+		dimlist(region),
+		fgr.dataPtr(0), fgr.dataPtr(1),
+#  if (BL_SPACEDIM == 3)
+		fgr.dataPtr(2),
+#  endif
+		dimlist(fgr.box()),
+		D_DECL(rat[0], rat[1], rat[2]));
+    FACRST1(patch.dataPtr(BL_SPACEDIM),
+		dimlist(patch.box()),
+		dimlist(region),
+		fgr.dataPtr(BL_SPACEDIM),
+		dimlist(fgr.box()),
+		D_DECL(rat[0], rat[1], rat[2]));
+#  if (BL_SPACEDIM == 3)
+    FACRST1(patch.dataPtr(BL_SPACEDIM+1),
+		dimlist(patch.box()),
+		dimlist(region),
+		fgr.dataPtr(BL_SPACEDIM+1),
+		dimlist(fgr.box()),
+		D_DECL(rat[0], rat[1], rat[2]));
+#  endif
+
+#else
+
   if (fgr.nVar() == 1) {
     FORT_HGSRST(patch.dataPtr(0), patch.dataPtr(1),
-#if (BL_SPACEDIM == 3)
+#  if (BL_SPACEDIM == 3)
 		patch.dataPtr(2),
-#endif
+#  endif
 		dimlist(patch.box()),
 		dimlist(region),
 		fgr.dataPtr(), fgr.dataPtr(),
-#if (BL_SPACEDIM == 3)
+#  if (BL_SPACEDIM == 3)
 		fgr.dataPtr(),
-#endif
+#  endif
 		dimlist(fgr.box()),
 		D_DECL(rat[0], rat[1], rat[2]));
   }
   else {
     FORT_HGSRST(patch.dataPtr(0), patch.dataPtr(1),
-#if (BL_SPACEDIM == 3)
+#  if (BL_SPACEDIM == 3)
 		patch.dataPtr(2),
-#endif
+#  endif
 		dimlist(patch.box()),
 		dimlist(region),
 		fgr.dataPtr(0), fgr.dataPtr(1),
-#if (BL_SPACEDIM == 3)
+#  if (BL_SPACEDIM == 3)
 		fgr.dataPtr(2),
-#endif
+#  endif
 		dimlist(fgr.box()),
 		D_DECL(rat[0], rat[1], rat[2]));
   }
+
+#endif
 }
 
 #endif
@@ -226,6 +269,42 @@ void holy_grail_sigma_restrictor_class::fill(Fab& patch,
 void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 {
   int mglev, igrid;
+
+#ifdef TERRAIN
+
+  // For terrain stencils we have as many sigma arrays passed as
+  // arguments and used at the interface as we build for internal
+  // multigrid purposes.  This simplifies handling as we do not
+  // need to maintain separate arrays for different purposes.
+
+  int lev;
+  int ncomp = 2 * BL_SPACEDIM - 1;
+
+  sigma.resize(mglev_max+1);
+
+  for (mglev = 0; mglev <= mglev_max; mglev++) {
+    sigma.set(mglev, new MultiFab(mg_mesh[mglev], ncomp, 1));
+    MultiFab& target = sigma[mglev];
+    target.setVal(1.e20);
+    if ((lev = get_amr_level(mglev)) >= 0) {
+      MultiFab& s_in = Sigma[lev];
+      for (igrid = 0; igrid < target.length(); igrid++) {
+	target[igrid].copy(s_in[igrid], s_in.box(igrid), 0,
+			   target.box(igrid), 0, ncomp);
+      }
+    }
+  }
+
+  for (mglev = mglev_max; mglev > 0; mglev--) {
+    IntVect rat = mg_domain[mglev].length() / mg_domain[mglev-1].length();
+    restrict_level(sigma[mglev-1], sigma[mglev], rat, 0,
+		   holy_grail_sigma_restrictor);
+  }
+  for (mglev = 0; mglev <= mglev_max; mglev++) {
+    fill_borders(sigma[mglev], 0, interface[mglev], boundary.scalar());
+  }
+
+#elif (! defined CONSTANT)
 
   // Intended functionality:  sigma_split exists only at coarser levels,
   // since only after coarsening is sigma different in different directions.
@@ -236,8 +315,6 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 
   // sigma_split replaced by sigma_nd in more recent version, used
   // only as a local variable here
-
-#ifndef CONSTANT
 
   int lev, i;
   PArray<MultiFab> sigma_split;
@@ -370,7 +447,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
       }
     }
   }
-#  endif
+#  endif  // SIGMA_NODE
 
 #endif
 
@@ -383,7 +460,19 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
     MultiFab& ctmp = cen[mglev];
     ctmp.setVal(0.0);
 
-#ifdef CONSTANT
+#ifdef TERRAIN
+
+    for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
+      const Box& cenbox = ctmp[igrid].box();
+      const Box& reg = interface[mglev].part_fine(igrid);
+      const Box& sigbox = sigma[mglev][igrid].box();
+      FORT_HGCEN(ctmp[igrid].dataPtr(), dimlist(cenbox),
+		 sigma[mglev][igrid].dataPtr(),
+                 dimlist(sigbox),
+		 dimlist(reg));
+    }
+
+#elif (defined CONSTANT)
 
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
       ctmp[igrid].setVal(1.0, interface[mglev].part_fine(igrid), 0);
@@ -480,7 +569,16 @@ void holy_grail_amr_multigrid::clear()
   delete cgwork.remove(7);
 
 #ifndef CONSTANT
-#  ifndef SIGMA_NODE
+#  ifdef TERRAIN
+  for (mglev = 0; mglev <= mglev_max; mglev++) {
+    delete sigma.remove(mglev);
+  }
+#  elif (defined SIGMA_NODE)
+  for (mglev = 0; mglev <= mglev_max; mglev++) {
+    delete sigma.remove(mglev);
+    delete sigma_node.remove(mglev);
+  }
+#  else
   mglev = mglev_max;
   delete sigma.remove(mglev);
   for (i = 0; i < BL_SPACEDIM; i++) {
@@ -491,11 +589,6 @@ void holy_grail_amr_multigrid::clear()
     for (i = 0; i < BL_SPACEDIM; i++) {
       delete sigma_nd[i].remove(mglev);
     }
-  }
-#  else
-  for (mglev = 0; mglev <= mglev_max; mglev++) {
-    delete sigma.remove(mglev);
-    delete sigma_node.remove(mglev);
   }
 #  endif
 #endif
@@ -685,7 +778,13 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
     MultiFab& target = work[ltmp];
     IntVect rat = mg_domain[ltmp].length() / mg_domain[lfrom].length();
     for (int igrid = 0; igrid < target.length(); igrid++) {
-#ifndef SIGMA_NODE
+#ifdef TERRAIN
+      Real *sigptr[BL_SPACEDIM];
+      for (int i = 0; i < BL_SPACEDIM; i++) {
+	sigptr[i] = sigma[ltmp][igrid].dataPtr(i);
+      }
+      const Box& sigbox = sigma[ltmp][igrid].box();
+#elif (! defined SIGMA_NODE)
       Real *sigptr[BL_SPACEDIM];
       for (int i = 0; i < BL_SPACEDIM; i++) {
 	sigptr[i] = sigma_nd[i][ltmp][igrid].dataPtr();
@@ -741,7 +840,13 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
       const Box& sigbox = sigma_node[lto][igrid].box();
 #endif
       FORT_HGINTS(work[lto][igrid].dataPtr(), dimlist(fbox), dimlist(freg),
-#ifndef SIGMA_NODE
+#ifdef TERRAIN
+		  sigma[lto][igrid].dataPtr(0),
+		  sigma[lto][igrid].dataPtr(1),
+#  if (BL_SPACEDIM == 3)
+		  sigma[lto][igrid].dataPtr(2),
+#  endif
+#elif (! defined SIGMA_NODE)
 		  sigma_nd[0][lto][igrid].dataPtr(),
 		  sigma_nd[1][lto][igrid].dataPtr(),
 #  if (BL_SPACEDIM == 3)

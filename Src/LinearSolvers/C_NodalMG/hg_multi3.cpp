@@ -47,7 +47,10 @@ extern "C" {
   void FORT_HGRLX(Real*, Real*, intS, Real*, intS, Real&);
 #    endif
 #  else
-#    ifdef SIGMA_NODE
+#    ifdef TERRAIN
+  void FORT_HGRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS);
+  void FORT_HGRLX(Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS);
+#    elif (defined SIGMA_NODE)
   void FORT_HGRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS);
   void FORT_HGRESU(Real*, intS, Real*, Real*, Real*, Real*, intS);
   void FORT_HGRLX(Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS);
@@ -110,7 +113,26 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
 
   fill_borders(d, dbc, interface[mglev], mg_boundary);
 
-#ifdef SIGMA_NODE
+#ifdef TERRAIN
+
+  for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
+    const Box& rbox = r[igrid].box();
+    const Box& sbox = s[igrid].box();
+    const Box& dbox = d[igrid].box();
+    const Box& sigbox = sigma[mglev][igrid].box();
+    const Box& freg = interface[mglev].part_fine(igrid);
+    FORT_HGRES(r[igrid].dataPtr(), dimlist(rbox),
+               s[igrid].dataPtr(), dimlist(sbox),
+               d[igrid].dataPtr(), dimlist(dbox),
+               sigma[mglev][igrid].dataPtr(), dimlist(sigbox),
+               dimlist(freg));
+  }
+
+  if (iclear) {
+    clear_part_interface(r, interface[mglev]);
+  }
+
+#elif (defined SIGMA_NODE)
 
   for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
     const Box& rbox = r[igrid].box();
@@ -223,7 +245,16 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 	const Box& freg = interface[mglev].part_fine(igrid);
 	if (line_solve_dim == -1) {
 	  // Gauss-Seidel section:
-#ifdef CONSTANT
+#ifdef TERRAIN
+	  const Box& fbox = corr[mglev][igrid].box();
+	  const Box& cenbox = cen[mglev][igrid].box();
+	  const Box& sigbox = sigma[mglev][igrid].box();
+	  FORT_HGRLX(corr[mglev][igrid].dataPtr(), dimlist(fbox),
+		     resid[mglev][igrid].dataPtr(), dimlist(sbox),
+		     sigma[mglev][igrid].dataPtr(), dimlist(sigbox),
+		     cen[mglev][igrid].dataPtr(), dimlist(cenbox),
+		     dimlist(freg));
+#elif (defined CONSTANT)
 #  ifdef CROSS_STENCIL
 	  FORT_HGRLXU(corr[mglev][igrid].dataPtr(),
 		      resid[mglev][igrid].dataPtr(), dimlist(sbox),
@@ -277,7 +308,9 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 	}
 	else {
 	  // Grid-by-grid line solve section:
-#ifdef CONSTANT
+#ifdef TERRAIN
+	  BoxLib::Error("Terrain line solves not implemented");
+#elif (defined CONSTANT)
 	  BoxLib::Error("Constant-coefficient line solves not implemented");
 #else
 	  const Box& fbox = corr[mglev][igrid].box();
@@ -336,7 +369,9 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 	  int igrid = line_order[lev][i];
 	  const Box& sbox = resid[mglev][igrid].box();
 	  const Box& freg = corr[mglev].box(igrid);
-#ifdef CONSTANT
+#ifdef TERRAIN
+	  BoxLib::Error("Terrain line solves not implemented");
+#elif (defined CONSTANT)
 	  BoxLib::Error("Constant-coefficient line solves not implemented");
 #else
 	  const Box& fbox = corr[mglev][igrid].box();

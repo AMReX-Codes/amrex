@@ -648,7 +648,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
     }
   }
 
-#else
+#elif (BL_SPACEDIM == 2)
 
   for (int icor = 0; icor < interface[mglev].ncorners(); icor++) {
     // find a fine grid touching this corner
