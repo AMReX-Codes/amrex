@@ -4,7 +4,7 @@
 #define _PARRAY_H_
 
 //
-// $Id: PArray.H,v 1.1 1997-09-12 18:00:14 lijewski Exp $
+// $Id: PArray.H,v 1.2 1997-09-16 22:28:15 lijewski Exp $
 //
 
 #include <Array.H>
@@ -61,7 +61,7 @@ public:
                management policy is not to delete the underlying objects
                upon destruction.
     */
-    inline PArray (PArrayPolicy _managed = PArrayNoManage);
+    PArray (PArrayPolicy _managed = PArrayNoManage);
 
     /*@ManDoc: Constructs a PArray<T> of length len of null pointers.  
                The default memory management policy is not to delete the
@@ -79,42 +79,42 @@ public:
     //
     //@ManDoc: Returns true if the i'th element is not the null pointer.
     //
-    inline bool defined (int i) const;
+    bool defined (int i) const;
 
     /*@ManDoc: Returns a constant reference to the object pointed to by the
                i'th element in this PArray<T>.  Performs bounds checking
                when the library is compiled in debug mode.
     */
-    inline const T& operator[] (int i) const;
+    const T& operator[] (int i) const;
 
     /*@ManDoc: Returns a reference to the object pointed to by the
                i'th element in this PArray<T>.  Performs bounds checking
                when the library is compiled in debug mode.
     */
-    inline T& operator[] (int i);
+    T& operator[] (int i);
 
     /*@ManDoc: Returns a constant reference to the object pointed to by the
                i'th element in the PArray.  It is an error if the i'th element
                is the null pointer.
     */
-    inline const T& get (int i) const;
+    const T& get (int i) const;
 
     /*@ManDoc: Returns a reference to the object pointed to by the i'th
                element in the PArray.  It is an error if the i'th element
                is the null pointer.
     */
-    inline T& get (int i);
+    T& get (int i);
 
     /*@ManDoc: Defines the i'th element of this PArray<T> to the pointer
                value elem.  It is an error if the i'th element previously
                had a value.
     */
-    inline void set (int i,
-                     T*  elem);
+    void set (int i,
+              T*  elem);
     //
     //@ManDoc: Returns the length of the PArray<T>.
     //
-    inline int length () const;
+    int length () const;
 
     /*@ManDoc: This function sets each pointer in this PArray<T> to null.
                If the memory management policy was set to Manage
@@ -145,11 +145,11 @@ public:
                pointer to the calling function.  Nulls out the pointer
                in the PArray<T>.
     */
-    inline T* remove (int i);
+    T* remove (int i);
     //
     //@ManDoc: Returns true if the array is not empty.
     //
-    inline bool ready () const;
+    bool ready () const;
 
 protected:
     //

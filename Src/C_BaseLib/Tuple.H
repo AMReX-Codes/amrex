@@ -4,7 +4,7 @@
 #define _TUPLE_H_
 
 //
-// $Id: Tuple.H,v 1.1 1997-09-12 18:00:16 lijewski Exp $
+// $Id: Tuple.H,v 1.2 1997-09-16 22:28:15 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -31,7 +31,7 @@ public:
                objects in the Tuple.  For builtin (intrinsic) types,
                the values in the Tuple will be garbage.
     */
-    inline Tuple ();
+    Tuple ();
 
     /*@ManDoc: Constructs a Tuple, initializing the elements in the Tuple
                with the corresponding elements in the vector v.  This assumes
@@ -53,19 +53,19 @@ public:
                counting from zero.  Performs range checking when the library
                is compiled in debug mode.
     */
-    inline T& operator[] (int i);
+    T& operator[] (int i);
  
     /*@ManDoc: Returns a constant reference to the i'th element in the Tuple,
                counting from zero.  Performs range checking when the library
                is compiled in debug mode.
     */
-    inline const T& operator[] (int i) const;
+    const T& operator[] (int i) const;
  
     /*@ManDoc: Returns the address of the underlying vector of T
                representation.  This should ONLY be used when interfacing
                to Fortran as it breaks the encapsulation of the class.
     */
-    inline operator const T* () const;
+    operator const T* () const;
 
 protected:
     //

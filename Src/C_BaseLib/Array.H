@@ -4,7 +4,7 @@
 #define _ARRAY_H_
 
 //
-// $Id: Array.H,v 1.2 1997-09-16 19:18:11 lijewski Exp $
+// $Id: Array.H,v 1.3 1997-09-16 22:28:14 lijewski Exp $
 //
 
 #include <iostream.h>
@@ -61,7 +61,7 @@ public:
     //
     //@ManDoc: Constructs an `Array<T>' with no elements
     //
-    inline Array ();
+    Array ();
 
     /*@ManDoc: Constructs an `Array<T>' of length len with the value of each
       element defined by the default constructor for `T'.
@@ -102,16 +102,16 @@ public:
     //
     //@ManDoc: Deletes the `Array<T>' and all objects it contains.
     //
-    inline ~Array ();
+    ~Array ();
 
     /*@ManDoc: Destructs each element in this `Array<T>'.  The resulting array
                has length zero.
     */
-    inline void clear ();
+    void clear ();
     //
     //@ManDoc: Returns true if this `Array<T>' is not empty.
     //
-    inline bool ready  () const;
+    bool ready  () const;
  
     /*@ManDoc: Reserve space for future expansion of memory.  You still must
                `resize' to address the memory.
@@ -149,44 +149,44 @@ public:
     //
     //@ManDoc: Return number of elements in the array.
     //
-    inline long length () const;
+    long length () const;
  
     /*@ManDoc: Return the maximum number of elements the array can hold
                without doing a `resize'.
     */
-    inline long trueSize () const;
+    long trueSize () const;
  
     /*@ManDoc: Returns a reference to the K'th element in this `Array<T>'.
                The element can be modified through this reference.  The
                result can be used as an L-value.
     */
-    inline T& operator[] (long K);
+    T& operator[] (long K);
     //
     //@ManDoc: Same as above, except acts on const Array's.
     //
-    inline const T& operator[] (long K) const;
+    const T& operator[] (long K) const;
     //
     //@ManDoc: Different syntax for operator[] (long i).
     //
-    inline T& get (long i);
+    T& get (long i);
     //
     //@ManDoc: Different syntax for const operator[] (long i).
     //
-    inline const T& get (long i) const;
+    const T& get (long i) const;
  
     /*@ManDoc: Returns pointer to vector of data.  This function breaks object
                encapsulation and should only be used for interfacing to
                Fortran subroutines.
     */
-    inline T* dataPtr ();
+    T* dataPtr ();
     //
     //@ManDoc: Same as above for constant arrays.
     //
-    inline const T* dataPtr () const;
+    const T* dataPtr () const;
     //
     //@ManDoc: Changes the i'th element of this `Array<T>' to elem.
     //
-    inline void set (long     i,
+    void set (long     i,
                      const T& elem)
     {
         //
@@ -199,8 +199,8 @@ public:
     //
     //@ManDoc: This function swaps the i'th and j'th element of the array.
     //
-    inline void swap (long i,
-                      long j);
+    void swap (long i,
+               long j);
     //
     //@ManDoc: Test for equality.
     //
@@ -208,7 +208,7 @@ public:
     //
     //@ManDoc: Test for inequality.
     //
-    inline bool operator!= (const Array<T>& rhs) const;
+    bool operator!= (const Array<T>& rhs) const;
 
 protected:
     //

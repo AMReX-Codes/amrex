@@ -4,7 +4,7 @@
 #define _BASEFAB_H_
 
 //
-// $Id: BaseFab.H,v 1.5 1997-09-16 19:18:12 lijewski Exp $
+// $Id: BaseFab.H,v 1.6 1997-09-16 22:28:14 lijewski Exp $
 //
 #include <stdlib.h>
 
@@ -122,30 +122,30 @@ public:
     /*@ManDoc: The function returns the `BaseFab' to the invalid state.  (See
                comments for constructors above.)  The memory is freed.
     */
-    inline void clear ();
+    void clear ();
     //
     //@ManDoc: Returns the number of components.
     //
-    inline int nComp () const;
+    int nComp () const;
     //
     //@ManDoc: Returns the domain (box) where the array is defined.
     //
-    inline const Box& box () const;
+    const Box& box () const;
 
     /*@ManDoc: Returns a pointer to an array of SPACEDIM integers
                giving the length of the domain in each direction.
     */
-    inline const int* length () const;
+    const int* length () const;
 
     /*@ManDoc: Returns the lower corner of the domain.  See
                class `Box' for analogue.
     */
-    inline const IntVect& smallEnd () const;
+    const IntVect& smallEnd () const;
  
     /*@ManDoc:  Returns the upper corner of the domain.  See
                 class `Box' for analogue.
     */
-    inline const IntVect& bigEnd () const;
+    const IntVect& bigEnd () const;
 
     /*@ManDoc: Returns the lower corner of the domain.  Instead of
                returning them in the form of INTVECT's, as in smallEnd and
@@ -153,7 +153,7 @@ public:
                constant integers.  This is useful when interfacing to
                Fortran subroutines.
     */
-    inline const int* loVect () const;
+    const int* loVect () const;
  
     /*@ManDoc: Returns the upper corner of the domain.  Instead of
                returning them in the form of INTVECT's, as in smallEnd and
@@ -161,17 +161,17 @@ public:
                constant integers.  This is useful when interfacing to
                Fortran subroutines.
     */
-    inline const int* hiVect () const;
+    const int* hiVect () const;
  
     /*@ManDoc: Returns true if the domain of fab is totally contained within
                the domain of this `BaseFab'.
     */
-    inline bool contains (const BaseFab<T>& fab) const;
+    bool contains (const BaseFab<T>& fab) const;
  
     /*@ManDoc: Returns true if bx is totally contained
                within the domain of this `BaseFab'.
     */
-    inline bool contains (const Box& bx) const;
+    bool contains (const Box& bx) const;
  
     /*@ManDoc: Returns a pointer to an object of type T that is the
                value of the Nth component associated with the cell at the
@@ -181,73 +181,73 @@ public:
                order, with the component index coming last.   In other words,
                `dataPtr' returns a pointer to all the Nth components.
     */
-    inline T* dataPtr (int N = 0);
+    T* dataPtr (int N = 0);
     //
     //@ManDoc: Same as above except works on const FAB's.
     //
-    inline const T* dataPtr (int N = 0) const;
+    const T* dataPtr (int N = 0) const;
 
     /*@ManDoc: Returns a reference to the Nth component value
                defined at position p in the domain.  This operator may be
                inefficient if the C++ compiler is unable to optimize the
                C++ code.
     */
-    inline T& operator() (const IntVect& p,
-                          int            N);
+    T& operator() (const IntVect& p,
+                   int            N);
     //
     //@ManDoc: Same as above, except returns component 0.
     //
-    inline T& operator() (const IntVect& p);
+    T& operator() (const IntVect& p);
     //
     //@ManDoc: Same as above except works on const FAB's.
     //
-    inline const T& operator() (const IntVect& p,
-                                int            N) const;
+     const T& operator() (const IntVect& p,
+                          int            N) const;
     //
     //@ManDoc: Same as above, except returns component 0.
     //
-    inline const T& operator() (const IntVect& p) const;
+    const T& operator() (const IntVect& p) const;
 
     /*@ManDoc: This function puts numcomp component values, starting at
                component N, from position pos in the domain into array data,
                that must be allocated by the user.
     */
-    inline void getVal (T*             data,
-                        const IntVect& pos,
-                        int            N,
-                        int            numcomp) const;
+    void getVal (T*             data,
+                 const IntVect& pos,
+                 int            N,
+                 int            numcomp) const;
 
     /*@ManDoc: Same as above, except that starts at component 0 and
                copies ALL comps.
     */
-    inline void getVal (T*             data,
-                        const IntVect& pos) const;
+    void getVal (T*             data,
+                 const IntVect& pos) const;
 
     /*@ManDoc: The setVal functions set subregions in the `BaseFab' to a
                constant value.  This most general form specifies the sub-box,
                the starting component number, and the number of components
                to be set.
     */
-    inline void setVal (T          x,
-                        const Box& bx,
-                        int        nstart,
-                        int        ncomp);
+    void setVal (T          x,
+                 const Box& bx,
+                 int        nstart,
+                 int        ncomp);
 
     /*@ManDoc: Same as above, except the number of modified components is one.
                N is the component to be modified.
     */
-    inline void setVal (T          x,
-                        const Box& bx,
-                        int        N);
+    void setVal (T          x,
+                 const Box& bx,
+                 int        N);
     //
     //@ManDoc: Same as above, except the subbox defaults to the entire domain.
     //
-    inline void setVal (T   x,
-                        int N);
+    void setVal (T   x,
+                 int N);
     //
     //@ManDoc: Same as above, except ALL components are set.
     //
-    inline void setVal (T x);
+    void setVal (T x);
 
     /*@ManDoc: This function is analogous to the fourth form of
                setVal above, except that instead of setting values on the
@@ -275,12 +275,12 @@ public:
 	       UNDEFINED if the src and dest are the same and the srcbox and
 	       destbox overlap.
     */
-    inline BaseFab<T>& copy (const BaseFab<T>& src,
-                             const Box&        srcbox,
-                             int               srccomp,
-                             const Box&        destbox,
-                             int               destcomp,
-                             int               numcomp);
+    BaseFab<T>& copy (const BaseFab<T>& src,
+                      const Box&        srcbox,
+                      int               srccomp,
+                      const Box&        destbox,
+                      int               destcomp,
+                      int               numcomp);
 
     /*@ManDoc: As above, except the destination `Box' and the source `Box'
                are taken to be the entire domain of the destination.   A copy
@@ -288,10 +288,10 @@ public:
                copy is made by the function `performCopy' of this
                class.
     */
-    inline BaseFab<T>& copy (const BaseFab<T>& src,
-                             int               srccomp,
-                             int               destcomp,
-                             int               numcomp = 1);
+    BaseFab<T>& copy (const BaseFab<T>& src,
+                      int               srccomp,
+                      int               destcomp,
+                      int               numcomp = 1);
 
     /*@ManDoc: As above, except that the destination `Box' is specified,
                but the source `Box' is taken to the equal to the source
@@ -299,47 +299,47 @@ public:
                copied.  Note that the actual copy is made by the
                function `performCopy' of this class.
     */
-    inline BaseFab<T>& copy (const BaseFab<T>& src,
-                             const Box&        destbox);
+    BaseFab<T>& copy (const BaseFab<T>& src,
+                      const Box&        destbox);
 
     /*@ManDoc: As above, except that the destbox defaults to the entire domain
                of the destination BaseFab, and all components are copied.
                Note that the actual copy is made by the function
                `performCopy' of this class.
     */
-    inline BaseFab<T>& copy (const BaseFab<T>& src);
+    BaseFab<T>& copy (const BaseFab<T>& src);
 
     /*@ManDoc: Perform shifts upon the domain of the `BaseFab'. They are
                completely analogous to the corresponding `Box' functions.
                There is no effect upon the array memory.
     */
-    inline BaseFab<T>& shift (const IntVect& v);
+    BaseFab<T>& shift (const IntVect& v);
 
     /*@ManDoc: Perform shifts upon the domain of the `BaseFab'.  They are
                completely analogous to the corresponding `Box' functions.
                There is no effect upon the array memory.
     */
-    inline BaseFab<T>& shift (int idir,
-                              int n_cell);
+    BaseFab<T>& shift (int idir,
+                       int n_cell);
 
     /*@ManDoc: Perform shifts upon the domain of the `BaseFab'.  They are
                completely analogous to the corresponding `Box' functions.
                There is no effect upon the array memory.
     */
-    inline BaseFab<T>& shiftHalf (int dir,
-                                  int num_halfs);
+    BaseFab<T>& shiftHalf (int dir,
+                           int num_halfs);
 
     /*@ManDoc: Perform shifts upon the domain of the `BaseFab'. They are
                completely analogous to the corresponding `Box' functions.
                There is no effect upon the array memory.
     */
-    inline BaseFab<T>& shiftHalf (const IntVect& num_halfs);
+    BaseFab<T>& shiftHalf (const IntVect& num_halfs);
 
 protected:
     //
     // Allocates memory for the `BaseFab<T>'.
     //
-    inline void define ();
+     void define ();
     //
     // The function called by BaseFab copy operations.
     //

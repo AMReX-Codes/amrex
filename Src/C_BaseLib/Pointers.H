@@ -4,7 +4,7 @@
 #define _POINTERS_H_
 
 //
-// $Id: Pointers.H,v 1.1 1997-09-12 18:00:15 lijewski Exp $
+// $Id: Pointers.H,v 1.2 1997-09-16 22:28:15 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -36,15 +36,15 @@ public:
     //
     //@ManDoc: The default constructor.  The wrapped pointer is null.
     //
-    inline CpPtr ();
+    CpPtr ();
     //
     //@ManDoc: Construct a CpPtr<T> setting the wrapped pointer to rhs.
     //
-    inline CpPtr (T* rhs);
+    CpPtr (T* rhs);
     //
     //@ManDoc: The destructor.  Deletes the wrapped pointer.
     //
-    inline ~CpPtr ();
+    ~CpPtr ();
 
     /*@ManDoc: The copy constructor.  If the pointer wrapped by rhs is null,
                the wrapped pointer is null here as well.  Otherwise,
@@ -54,12 +54,12 @@ public:
                constructor.  T must also be a concrete type, not a abstract
                type.
     */
-    inline CpPtr (const CpPtr<T>& rhs);
+    CpPtr (const CpPtr<T>& rhs);
 
     /*@ManDoc: Sets the wrapped pointer to rhs.  Deletes the previously
                wrapped pointer.
     */
-    inline CpPtr<T>& operator= (T* rhs);
+    CpPtr<T>& operator= (T* rhs);
 
     /*@ManDoc: The copy assignment operator.  If the pointer wrapped by rhs
                is null, the wrapped pointer is null here as well.  Otherwise,
@@ -69,30 +69,30 @@ public:
                constructor.  T must also be a concrete type, not a abstract
                type.
     */
-    inline CpPtr<T>& operator= (const CpPtr<T>& rhs);
+    CpPtr<T>& operator= (const CpPtr<T>& rhs);
 
     /*@ManDoc: Returns a reference to the value pointed to by the wrapped
                pointer; i.e. dereferencing this CpPtr<T>, returns the
                dereferenced wrapped pointer.  It is an error if the wrapped
                pointer is null.
     */
-    inline T& operator* () const;
+    T& operator* () const;
     //
     //@ManDoc: Returns true if the wrapped pointer null.
     //
-    inline bool isNull () const;
+    bool isNull () const;
     //
     //@ManDoc: Sets the wrapped pointer to null and returns the previous value.
     //
-    inline T* release ();
+    T* release ();
     //
     //@ManDoc: Are the two pointers (not the values to which they point) equal?
     //
-    inline bool operator== (const CpPtr<T>& rhs) const;
+    bool operator== (const CpPtr<T>& rhs) const;
     //
     //@ManDoc: Are the two pointers not equal?
     //
-    inline bool operator!= (const CpPtr<T>& rhs) const;
+    bool operator!= (const CpPtr<T>& rhs) const;
 
 protected:
     T* ptr;
@@ -118,11 +118,11 @@ public:
     //
     //@ManDoc: The default constructor.  The wrapped pointer is null.
     //
-    inline CpClassPtr ();
+    CpClassPtr ();
     //
     //@ManDoc: Construct a CpPtr<T> setting the wrapped pointer to rhs.
     //
-    inline CpClassPtr (T* rhs);
+    CpClassPtr (T* rhs);
 
     /*@ManDoc: The copy constructor.  If the pointer wrapped by rhs is null,
                the wrapped pointer is null here as well.  Otherwise,
@@ -132,12 +132,12 @@ public:
                constructor.  T must also be a concrete type, not a abstract
                type.
     */
-    inline CpClassPtr (const CpClassPtr<T>& rhs);
+    CpClassPtr (const CpClassPtr<T>& rhs);
 
     /*@ManDoc: Sets the wrapped pointer to rhs.  Deletes the previously
                wrapped pointer.
     */
-    inline CpClassPtr<T>& operator= (T* rhs);
+    CpClassPtr<T>& operator= (T* rhs);
 
     /*@ManDoc: The copy assignment operator.  If the pointer wrapped by rhs
                is null, the wrapped pointer is null here as well.  Otherwise,
@@ -147,11 +147,11 @@ public:
                constructor.  T must also be a concrete type, not a abstract
                type.
     */
-    inline CpClassPtr<T>& operator= (const CpClassPtr<T>& rhs);
+    CpClassPtr<T>& operator= (const CpClassPtr<T>& rhs);
     //
     //@ManDoc: Applies operator-> to the wrapped pointer.
     //
-    inline T* operator-> () const;
+    T* operator-> () const;
 };
 
 //
@@ -174,18 +174,18 @@ public:
     //
     //@ManDoc: The default constructor.  The wrapped pointer is null.
     //
-    inline LnPtr ();
+    LnPtr ();
     //
     //@ManDoc: Construct a LnPtr<T> setting the wrapped pointer to rhs.
     //
-    inline LnPtr (T* rhs);
+    LnPtr (T* rhs);
 
     /*@ManDoc: The copy assignment operator.  The contained pointer is set
                to the one wrapped by rhs.  The reference count is decremented
                on this object and the reference count is incremented for
                the newly wrapped pointer.
     */
-    inline LnPtr<T>& operator= (const LnPtr<T>& rhs);
+    LnPtr<T>& operator= (const LnPtr<T>& rhs);
 
     /*@ManDoc: Sets the wrapped pointer to rhs.  Decrements the count
                on the previously wrapped pointer and deletes it if there
@@ -206,34 +206,34 @@ public:
     /*@ManDoc: The destructor -- decrements the reference count and deletes
                the wrapped pointer if there is only one reference.
     */
-    inline ~LnPtr ();
+    ~LnPtr ();
     //
     //@ManDoc: Returns true if only one reference to the wrapped pointer.
     //
-    inline bool unique () const;
+    bool unique () const;
     //
     //@ManDoc: Returns the number of references to the wrapped pointer.
     //
-    inline int linkCount () const;
+    int linkCount () const;
 
     /*@ManDoc: Returns a reference to the value pointed to by the wrapped
                pointer; i.e. dereferencing this LnPtr<T>, returns the
                dereferenced wrapped pointer.  It is an error if the wrapped
                pointer is null.
     */
-    inline T& operator* () const;
+    T& operator* () const;
     //
     //@ManDoc: Returns true if the wrapped pointer is null.
     //
-    inline bool isNull () const;
+    bool isNull () const;
     //
     //@ManDoc: Are the two pointers (not the values to which they point) equal?
     //
-    inline bool operator== (const LnPtr<T>& rhs) const;
+    bool operator== (const LnPtr<T>& rhs) const;
     //
     //@ManDoc: Are the two pointers not equal?
     //
-    inline bool operator!= (const LnPtr<T>& rhs) const;
+     bool operator!= (const LnPtr<T>& rhs) const;
 
 protected:
     T*       ptr;
@@ -261,28 +261,28 @@ public:
     //
     //@ManDoc: The default constructor.  The wrapped pointer is null.
     //
-    inline LnClassPtr ();
+    LnClassPtr ();
     //
     //@ManDoc: Construct a LnPtr<T> setting the wrapped pointer to rhs.
     //
-    inline LnClassPtr (T* rhs);
+    LnClassPtr (T* rhs);
 
     /*@ManDoc: The copy assignment operator.  The contained pointer is set
                to the one wrapped by rhs.  The reference count is decremented
                on this object and the reference count is incremented for
                the newly wrapped pointer.
     */
-    inline LnClassPtr<T>& operator= (const LnClassPtr<T>& rhs);
+    LnClassPtr<T>& operator= (const LnClassPtr<T>& rhs);
 
     /*@ManDoc: Sets the wrapped pointer to rhs.  Decrements the count
                on the previously wrapped pointer and deletes it if there
                was only one reference.
     */
-    inline LnClassPtr<T>& operator= (T* rhs);
+    LnClassPtr<T>& operator= (T* rhs);
     //
     //@ManDoc: Applies operator-> to the wrapped pointer.
     //
-    inline T* operator->() const;
+    T* operator->() const;
 };
 
 //
