@@ -36,7 +36,7 @@ contains
 
     fac = one/real(product(ir),kind=dp_t)
 
-    do i = lo(1),hi(1)
+    do i = lo(1), hi(1)
        cc(i) = zero
        do l = 0, ir(1)-1
           cc(i) = cc(i) + ff(ir(1)*i+l)
@@ -58,16 +58,16 @@ contains
 
     fac = one/real(product(ir),kind=dp_t)
 
-    do j = lo(2),hi(2)
-    do i = lo(1),hi(1)
-      cc(i,j) = zero
-      do m = 0, ir(2)-1
-         do l = 0, ir(1)-1
-             cc(i,j) = cc(i,j) + ff(ir(1)*i+l,ir(2)*j+m)
+    do j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          cc(i,j) = zero
+          do m = 0, ir(2)-1
+             do l = 0, ir(1)-1
+                cc(i,j) = cc(i,j) + ff(ir(1)*i+l,ir(2)*j+m)
+             end do
           end do
-      end do
-      cc(i,j) = cc(i,j)*fac
-    end do
+          cc(i,j) = cc(i,j)*fac
+       end do
     end do
 
   end subroutine cc_restriction_2d
@@ -85,19 +85,19 @@ contains
     fac = one/real(product(ir),kind=dp_t)
 
     do k = lo(3),hi(3)
-    do j = lo(2),hi(2)
-    do i = lo(1),hi(1)
-      cc(i,j,k) = zero
-      do n = 0, ir(3)-1
-        do m = 0, ir(2)-1
-          do l = 0, ir(1)-1
-            cc(i,j,k) = cc(i,j,k) + ff(ir(1)*i+l,ir(2)*j+m,ir(3)*k+n)
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+             cc(i,j,k) = zero
+             do n = 0, ir(3)-1
+                do m = 0, ir(2)-1
+                   do l = 0, ir(1)-1
+                      cc(i,j,k) = cc(i,j,k) + ff(ir(1)*i+l,ir(2)*j+m,ir(3)*k+n)
+                   end do
+                end do
+             end do
+             cc(i,j,k) = cc(i,j,k)*fac
           end do
-        end do
-      end do
-      cc(i,j,k) = cc(i,j,k)*fac
-    end do
-    end do
+       end do
     end do
 
   end subroutine cc_restriction_3d
