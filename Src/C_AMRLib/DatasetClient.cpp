@@ -1,7 +1,9 @@
+//BL_COPYRIGHT_NOTICE
+
 // -------------------------------------------------------------------
-//  DatasetClient.C
+// $Id: DatasetClient.cpp,v 1.12 1998-09-29 20:08:27 lijewski Exp $
 // -------------------------------------------------------------------
-// #define _OSF_SOURCE
+//
 
 #ifdef BL_USE_NEW_HFILES
 #include <climits>
