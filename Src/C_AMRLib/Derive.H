@@ -4,7 +4,7 @@
 #define _Derive_H_
 
 //
-// $Id: Derive.H,v 1.12 1998-05-11 17:06:24 lijewski Exp $
+// $Id: Derive.H,v 1.13 1999-08-16 18:21:53 propp Exp $
 //
 
 #include <REAL.H>
@@ -61,6 +61,10 @@ public:
     //
     const aString& name () const { return derive_name; }
     //
+    //@ManDoc: The names of components
+    //
+    const aString& variableName (int comp) const;
+    //
     //@ManDoc: The IndexType of the derived type.
     //
     IndexType deriveType () const { return der_type; }
@@ -111,6 +115,18 @@ protected:
                DeriveFunc     der_func,
                DeriveBoxMap   box_map,
                Interpolater*  interp = &pc_interp);
+    //
+    // Constructor.
+    //
+    DeriveRec (const aString& name,
+               IndexType      result_type,
+               int            nvar_derive,
+	       Array<aString>& var_names,
+               DeriveFunc     der_func,
+               DeriveBoxMap   box_map,
+               Interpolater*  interp = &pc_interp);
+
+    
 
     void addRange (const DescriptorList& d_list,
                    int                   state_indx,
@@ -132,6 +148,10 @@ protected:
     // Name of derived quantity.
     //
     aString derive_name;
+    //    
+    // Names of derived variables
+    //
+    Array<aString> variable_names;  
     //
     // Type of derived quantity.
     //
@@ -214,6 +234,28 @@ public:
                           box_map,
                           interp));
     }
+
+    //
+    //@ManDoc: Adds another entry to the registry.
+    //
+    void add (const aString&          name,
+              IndexType               result_type,
+              int                     nvar_derive,
+	      Array<aString>&         var_names,
+              DeriveFunc              der_func,
+              DeriveRec::DeriveBoxMap box_map,
+              Interpolater*           interp = &pc_interp)
+    {
+        lst.add(DeriveRec(name,
+                          result_type,
+                          nvar_derive,
+			  var_names,
+                          der_func,
+                          box_map,
+                          interp));
+    }
+
+
     //
     //@ManDoc: Adds another StateRange to the DeriveRec identified by <name>.
     //
@@ -223,6 +265,7 @@ public:
                        int                   start_comp,
                        int                   ncomp);
 
+ 
     List<DeriveRec>& dlist () { return lst; }
 
 protected:
