@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.17 1998-06-15 20:06:33 lijewski Exp $
+// $Id: Geometry.H,v 1.18 1998-06-15 23:55:13 lijewski Exp $
 //
 
 #include <CoordSys.H>
@@ -237,9 +237,10 @@ protected:
 
         bool operator== (const FPB& rhs) const
         {
-            return m_ba == rhs.m_ba &&
+            return
                 m_ngrow == rhs.m_ngrow &&
-                m_noovlp == rhs.m_noovlp;
+                m_noovlp == rhs.m_noovlp &&
+                m_ba == rhs.m_ba;
         }
 
         PIRMMap  m_pirm;

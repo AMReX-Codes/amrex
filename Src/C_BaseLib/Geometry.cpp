@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.23 1998-06-15 20:06:34 lijewski Exp $
+// $Id: Geometry.cpp,v 1.24 1998-06-15 23:55:13 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -15,7 +15,7 @@ RealBox Geometry::prob_domain;
 
 bool Geometry::is_periodic[BL_SPACEDIM];
 
-const int MaxFPBCacheSize = 25;
+const int MaxFPBCacheSize = 10;
 
 Geometry::FPBList Geometry::m_FPBCache;
 
@@ -87,11 +87,8 @@ Geometry::buildPIRMMap (const BoxArray& grids,
     // Add new FPBs to the front of the cache.
     //
     m_FPBCache.push_front(FPB(grids,nGrow,no_ovlp));
-    //
-    // We'll populate a temporary PIRMMap and then assign to `m_pirm'.
-    // The cached PIRMMap will be optimally sized by the assignment statement.
-    //
-    PIRMMap tmp_pirm;
+
+    PIRMMap& pirm = m_FPBCache.front().m_pirm;
     //
     // Make a junk multifab for its iterator.  Don't allocate any mem for it.
     //
@@ -155,15 +152,13 @@ Geometry::buildPIRMMap (const BoxArray& grids,
                     Box dstBox = srcBox;
                     dstBox.shift(-pshifts[iiv]);
 
-                    tmp_pirm.push_back(PIRec(mfi.index(),j,dstBox,srcBox));
+                    pirm.push_back(PIRec(mfi.index(),j,dstBox,srcBox));
                 }
             }
         }
     }
 
-    m_FPBCache.front().m_pirm = tmp_pirm;
-
-    return m_FPBCache.front().m_pirm;
+    return pirm;
 }
 
 MultiFabCopyDescriptor&
