@@ -493,7 +493,7 @@ c Note---only generates values at coarse points along edge of fine grid
      & rc,  cl0,ch0,cl1,ch1,cl2,ch2,
      & rf,  fl0,fh0,fl1,fh1,fl2,fh2,
      &      cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
-     & ir, jr, kr, ga)
+     & ir, jr, kr, ga, idd)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
@@ -501,7 +501,7 @@ c Note---only generates values at coarse points along edge of fine grid
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       double precision rc(cl0:ch0,cl1:ch1,cl2:ch2)
       double precision rf(fl0:fh0,fl1:fh1,fl2:fh2)
-      integer ir, jr, kr, ga(0:1,0:1,0:1)
+      integer ir, jr, kr, ga(0:1,0:1,0:1), idd
       double precision rm3, sum, center, cfac, ffac, fac0, fac1, fac
       integer ic, jc, kc, if, jf, kf, ii, ji, ki
       integer irc, irf, jrc, jrf, krc, krf, idir, jdir, kdir, l, m, n
