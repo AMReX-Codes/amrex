@@ -3,6 +3,7 @@ Debug
 Debug3D
 Release
 Release3D
+hglib___
 *.ncb *.opt *.plg
 grdlog
 chk[0-9][0-9][0-9][0-9]
