@@ -1,5 +1,5 @@
 #
-# $Id: Make.OSF1,v 1.27 2002-05-23 18:21:10 vince Exp $
+# $Id: Make.OSF1,v 1.28 2004-09-13 19:02:23 vince Exp $
 #
 
 #
@@ -32,6 +32,7 @@ ifeq ($(COMP),cxx)
   CXX      := cxx
   FULLWARN := +pp -fullwarn
   CXXOPTF  += -O3 -arch host -Olimit 2400 -no_exceptions
+  CXXFLAGS += -fptm n -denorm -ieee -fprm c -underflow_to_zero -fast
   CPPFLAGS += -D__USE_STD_IOSTREAM
   CXXDEBF  += -g
   CXXPRFF  := -p
