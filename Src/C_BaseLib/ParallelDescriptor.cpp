@@ -1,10 +1,11 @@
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.62 2000-10-02 20:52:37 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.63 2001-01-25 23:52:37 lijewski Exp $
 //
 
 #include <Utility.H>
 #include <ParallelDescriptor.H>
+#include <ParmParse.H>
 
 //
 // Definition of non-inline members of CommData.
@@ -112,9 +113,10 @@ namespace BL_NAMESPACE
 #endif
 static const aString REDUCE("mpi_reduce");
 
-int ParallelDescriptor::m_nProcs = -1;
-int ParallelDescriptor::m_MyId   = -1;
-MPI_Comm ParallelDescriptor::m_comm   = MPI_COMM_WORLD;
+int ParallelDescriptor::m_nProcs    = -1;
+int ParallelDescriptor::m_nProcsCFD = -1;
+int ParallelDescriptor::m_MyId      = -1;
+MPI_Comm ParallelDescriptor::m_comm = MPI_COMM_WORLD;
 
 void
 ParallelDescriptor::Abort ()
@@ -148,23 +150,41 @@ const char* ParallelDescriptor::ErrorString (int errorcode)
 }
 
 void
+ParallelDescriptor::SetNProcsCFD ()
+{
+    BL_ASSERT(m_nProcs != -1);
+    BL_ASSERT(m_nProcsCFD == -1);
+
+    m_nProcsCFD = m_nProcs;
+
+    ParmParse pp("ParallelDescriptor");
+
+    if (pp.query("nProcsCFD",m_nProcsCFD))
+    {
+        if (!(m_nProcsCFD > 0 && m_nProcsCFD <= m_nProcs))
+            m_nProcsCFD = m_nProcs;
+
+        if (ParallelDescriptor::IOProcessor())
+            cout << "--> Running job with NProcsCFD = " << m_nProcsCFD << endl;
+    }
+}
+
+void
 ParallelDescriptor::StartParallel (int*    argc,
                                    char*** argv)
 {
     BL_ASSERT(m_MyId == -1);
     BL_ASSERT(m_nProcs == -1);
+    BL_ASSERT(m_nProcsCFD == -1);
 
-    int rc;
-    int sflag;
-    if ( int rc = MPI_Initialized(&sflag) )
-      {
+    int rc, sflag;
+
+    if (rc = MPI_Initialized(&sflag))
 	ParallelDescriptor::Abort(rc);
-      }
-    if ( !sflag )
-      {
+
+    if (!sflag)
 	if ((rc = MPI_Init(argc, argv)) != MPI_SUCCESS)
-	  ParallelDescriptor::Abort(rc);
-      }
+            ParallelDescriptor::Abort(rc);
     
     if ((rc = MPI_Comm_size(Communicator(), &m_nProcs)) != MPI_SUCCESS)
         ParallelDescriptor::Abort(rc);
@@ -172,7 +192,7 @@ ParallelDescriptor::StartParallel (int*    argc,
     if ((rc = MPI_Comm_rank(Communicator(), &m_MyId)) != MPI_SUCCESS)
         ParallelDescriptor::Abort(rc);
     //
-    // Now wait till all other processes are properly started.
+    // Wait till all other processes are properly started.
     //
     if ((rc = MPI_Barrier(Communicator())) != MPI_SUCCESS)
         ParallelDescriptor::Abort(rc);

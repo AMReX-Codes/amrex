@@ -3,7 +3,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.112 2000-10-31 21:11:21 lijewski Exp $
+// $Id: FabArray.H,v 1.113 2001-01-25 23:52:36 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -287,11 +287,11 @@ public:
                  int             ngrow,
                  FabAlloc        mem_mode);
 
-    void define (const BoxArray& bxs,
-                 int             nvar,
-                 int             ngrow,
+    void define (const BoxArray&            bxs,
+                 int                        nvar,
+                 int                        ngrow,
 		 const DistributionMapping& dm,
-                 FabAlloc        mem_mode);
+                 FabAlloc                   mem_mode);
 
     /*@ManDoc: Returns true if the FabArray is well-defined.  That is,
                if FABs are allocated for each Box in the BoxArray and the
@@ -1119,7 +1119,7 @@ FabArray<T,FAB>::define (const BoxArray& bxs,
     n_grow = ngrow;
     n_comp = 0;
     boxarray.define(bxs);
-    distributionMap.define(boxarray);
+    distributionMap.define(boxarray,ParallelDescriptor::NProcsCFD());
     fabparray.resize(boxarray.length());
     if (alloc == Fab_allocate)
     {
@@ -1139,7 +1139,7 @@ FabArray<T,FAB>::define (const BoxArray& bxs,
     n_grow = ngrow;
     n_comp = nvar;
     boxarray.define(bxs);
-    distributionMap.define(boxarray);
+    distributionMap.define(boxarray,ParallelDescriptor::NProcsCFD());
     fabparray.resize(bxs.length());
     if (alloc == Fab_allocate)
         AllocFabs();
@@ -1147,11 +1147,11 @@ FabArray<T,FAB>::define (const BoxArray& bxs,
 
 template <class T, class FAB>
 void
-FabArray<T,FAB>::define (const BoxArray& bxs,
-                         int             nvar,
-                         int             ngrow,
+FabArray<T,FAB>::define (const BoxArray&            bxs,
+                         int                        nvar,
+                         int                        ngrow,
 			 const DistributionMapping& dm,
-                         FabAlloc        alloc)
+                         FabAlloc                   alloc)
 {
     BL_ASSERT(!boxarray.ready());
     n_grow = ngrow;
