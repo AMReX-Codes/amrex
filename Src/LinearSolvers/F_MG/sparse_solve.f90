@@ -173,14 +173,14 @@ contains
        case(2)
           ny = box_extent_d(ibx,2)
           numpts = numpts +    nx*ny
-          num_aa = num_aa + ns*nx*ny - 2*nx - 2*ny
-          num_bdy_pts = num_bdy_pts + 2*nx + 2*ny
+          num_aa = num_aa + ns*nx*ny - 2*(nx+ny)
+          num_bdy_pts = num_bdy_pts  + 2*(nx+ny)
        case(3)
           ny = box_extent_d(ibx,2)
           nz = box_extent_d(ibx,3)
           numpts = numpts +    nx*ny*nz
-          num_aa = num_aa + ns*nx*ny*nz - 2*nx*ny - 2*ny*nz - 2*nx*nz
-          num_bdy_pts = num_bdy_pts + 2*nx*ny + 2*ny*nz + 2*nx*nz
+          num_aa = num_aa + ns*nx*ny*nz - 2*(nx*ny + ny*nz + nx*nz)
+          num_bdy_pts = num_bdy_pts     + 2*(nx*ny + ny*nz + nx*nz)
        end select
 
        !      Add back in any fine-fine edges
