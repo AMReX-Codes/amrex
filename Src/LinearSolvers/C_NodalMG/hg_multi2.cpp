@@ -54,12 +54,14 @@ private:
     OFDIRES func;
 };
 
-class task_fceres_2 : public task
+class task_fceres_2 : public task_fec_base
 {
 public:
     task_fceres_2(FCERES f_, MultiFab& r_, const MultiFab& s_, const MultiFab& d_, const MultiFab& sg_, int igrid_, task_fab* c_, task_fab* sc_, const Box& creg_, const Real h_[BL_SPACEDIM], const IntVect& rat_, int idim_, int idir_)
-	: func(f_), r(r_), s(s_), d(d_), igrid(igrid_), c(c_), sg(sg_), sc(sc_), creg(creg_), rat(rat_), idim(idim_), idir(idir_)
+	: task_fec_base(r_, igrid_), func(f_), s(s_), d(d_), sg(sg_), creg(creg_), rat(rat_), idim(idim_), idir(idir_)
     {
+	push_back(c_);
+	push_back(sc_);
 	for(int i = 0; i < BL_SPACEDIM; ++i)
 	{
 	    h[i] = h_[i];
@@ -67,24 +69,21 @@ public:
     }
     virtual bool ready()
     {
-	if ( ! c->ready() ) return false;
-	throw( "task_fceres_2::ready(): FIXME" ); /*NOTREACHED*/
+	if ( task_fec_base::ready() )
+	{
+	    if ( is_local_target() )
+	    {
+		throw( "task_fceres_2::ready(): FIXME" ); /*NOTREACHED*/
+	    }
+	    return true;
+	}
 	return false;
     };
-    virtual bool init(sequence_number sno, MPI_Comm comm)
-    {
-	throw( "task_fceres_2::init(): FIXME" ); /*NOTREACHED*/
-	return false;
-    }
 private:
     FCERES func;
-    MultiFab& r;
     const MultiFab& s;
     const MultiFab& d;
     const MultiFab& sg;
-    const int igrid;
-    task_fab* c;
-    task_fab* sc;
     const Box creg;
     Real h[BL_SPACEDIM];
     const IntVect rat;
@@ -92,12 +91,16 @@ private:
     int idir;
 };
 
-class task_fceres_4 : public task
+class task_fceres_4 : public task_fec_base
 {
 public:
     task_fceres_4(FCERES f_, const list<int> tll_, const Box& freg_, MultiFab& r_, const MultiFab& s_, int igrid_, task_fab* c_, task_fab* sc_, task_fab* sigmaf_, task_fab* sigmac_, const Box& creg_, const Real h_[BL_SPACEDIM], const IntVect& rat_, const Array<int>& ga_, const IntVect& t_ = IntVect())
-	: func(f_), tll(tll_), freg(freg_), r(r_), s(s_), igrid(igrid_), c(c_), sc(sc_), sigmaf(sigmaf_), sigmac(sigmac_), creg(creg_), rat(rat_), ga(ga_), t(BL_SPACEDIM)
+	: task_fec_base(tll_, freg_, r_, igrid_), func(f_), s(s_), creg(creg_), rat(rat_), ga(ga_), t(BL_SPACEDIM)
     {
+	push_back(c_);
+	push_back(sc_);
+	push_back(sigmaf_);
+	push_back(sigmac_);
 	for(int i = 0; i < BL_SPACEDIM; ++i)
 	{
 	    h[i] = h_[i];
@@ -106,25 +109,19 @@ public:
     }
     virtual bool ready()
     {
-	throw( "task_fceres_4::ready(): FIXME" ); /*NOTREACHED*/
-	return false;
-    }
-    virtual bool init(sequence_number sno, MPI_Comm comm)
-    {
-	throw( "task_fceres_4::init(): FIXME" ); /*NOTREACHED*/
+	if ( task_fec_base::ready() )
+	{
+	    if ( is_local_target() )
+	    {
+		throw( "task_fceres_4::ready(): FIXME" ); /*NOTREACHED*/
+	    }
+	    return true;
+	}
 	return false;
     }
 private:
     FCERES func;
-    list<int> tll;
-    const Box freg;
-    MultiFab& r;
     const MultiFab& s;
-    const int igrid;
-    task_fab* c;
-    task_fab* sc;
-    task_fab* sigmaf;
-    task_fab* sigmac;
     const Box creg;
     Real h[BL_SPACEDIM];
     const IntVect rat;
