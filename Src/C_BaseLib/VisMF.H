@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.23 1997-11-17 21:09:30 lijewski Exp $
+// $Id: VisMF.H,v 1.24 1997-11-22 00:44:44 lijewski Exp $
 //
 
 #include <MultiFab.H>
@@ -142,6 +142,14 @@ public:
     // A simple character buffer for setbuf() usage.
     //
     typedef Array<Setbuf_Char_Type> IO_Buffer;
+    //
+    // The # of bytes written to disk in VisMF routines.
+    //
+    static double TheBytesWrittenToDisk ();
+    //
+    // The file offset of the passed ostream.
+    //
+    static long FileOffset (ostream& os);
 
 private:
     //
@@ -168,6 +176,10 @@ private:
     // The suffix appended to files containing MultiFabs.
     //
     static const aString MultiFabHdrFileSuffix;
+    //
+    // Accumulates the # of bytes written to disk in VisMF routines.
+    //
+    static double BytesWrittenToDisk;
     //
     // The VisMF header as read from disk.
     //
@@ -267,6 +279,18 @@ VisMF::operator[] (int i) const
         m_pa.set(i, VisMF::readFAB(i, m_hdr));
     }
     return m_pa[i];
+}
+
+inline
+long
+VisMF::FileOffset (ostream& os)
+{
+    return
+#ifdef __KCC
+    os.tellp().offset();
+#else
+    os.tellp();
+#endif
 }
 
 #endif /*BL_VISMF_H*/

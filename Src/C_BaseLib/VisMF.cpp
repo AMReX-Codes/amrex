@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.31 1997-11-20 17:05:10 lijewski Exp $
+// $Id: VisMF.cpp,v 1.32 1997-11-22 00:44:44 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -24,6 +24,14 @@ const aString VisMF::FabFileSuffix("_D_");
 const aString VisMF::MultiFabHdrFileSuffix("_H");
 
 const aString VisMF::FabOnDisk::Prefix("FabOnDisk:");
+
+double VisMF::BytesWrittenToDisk;
+
+double
+VisMF::TheBytesWrittenToDisk ()
+{
+    return VisMF::BytesWrittenToDisk;
+}
 
 ostream&
 operator<< (ostream&                os,
@@ -229,14 +237,14 @@ VisMF::Write (const FArrayBox& fab,
               const aString&   filename,
               ostream&         os)
 {
-#ifdef __KCC
-    VisMF::FabOnDisk fab_on_disk(filename, os.tellp().offset());
-#else
-    VisMF::FabOnDisk fab_on_disk(filename, os.tellp());
-#endif
+    VisMF::FabOnDisk fab_on_disk(filename, VisMF::FileOffset(os));
 
     fab.writeOn(os);
-
+    //
+    // Add in the number of bytes in the FAB including the FAB header.
+    //
+    VisMF::BytesWrittenToDisk += (VisMF::FileOffset(os) - fab_on_disk.m_head);
+    
     return fab_on_disk;
 }
 
@@ -381,6 +389,10 @@ VisMF::WriteHeader (const aString& mf_name,
         }
 
         MFHdrFile << hdr;
+        //
+        // Add in the number of bytes written out in the Header.
+        //
+        VisMF::BytesWrittenToDisk += VisMF::FileOffset(MFHdrFile);
     }
 }
 
