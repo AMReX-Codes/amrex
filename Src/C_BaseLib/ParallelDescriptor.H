@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.5 1997-11-11 21:04:53 vince Exp $
+// $Id: ParallelDescriptor.H,v 1.6 1997-11-13 01:05:12 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -168,7 +168,7 @@ class ParallelDescriptor
     }
     static bool IOProcessor () { return (bsp_pid() == ioProcessor); }
     static int  IOProcessorNumber () { return (ioProcessor); }
-    static void Abort (char *msg, ...)  { bsp_abort(msg); }
+    static void Abort (const char* msg)  { bsp_abort((char*)msg); }
     static double second ()  { return bsp_time(); }
 
     // reduction operations
