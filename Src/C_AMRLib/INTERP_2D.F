@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.3 1997-12-12 22:43:15 lijewski Exp $
+c $Id: INTERP_2D.F,v 1.4 1998-01-16 23:14:23 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -212,16 +212,14 @@ c ::: first fill a strip that will fit
           do 230 ly = 0, lratioy-1 
             jfn = jc*lratioy + ly
             jfc = jfn + hraty
-            if (jfc .lt. ARG_L2(fb)  .or.  jfc .gt. ARG_H2(fb)) then
-              continue
-            endif
-            y = denomy*(two*lratioy + one)
-            do lx = 0, lratiox-1
-              do ic = ARG_L1(cb), ARG_H1(cb)-1
-                i = ic*lratiox + lx
-                x = denomx*(two*lratiox + one)
-                strip(i) = crse(ic,jc,n) + x*sl(ic,SLX) + y*sl(ic,SLY) 
-     $                   + x*y*sl(ic,SLXY)
+            if (jfc .ge. ARG_L2(fb)  .and.  jfc .le. ARG_H2(fb)) then
+             y = denomy*(two*ly + one)
+             do lx = 0, lratiox-1
+               do ic = ARG_L1(cb), ARG_H1(cb)-1
+                 i = ic*lratiox + lx
+                 x = denomx*(two*lx + one)
+                 strip(i) = crse(ic,jc,n) + x*sl(ic,SLX) + y*sl(ic,SLY) 
+     $                    + x*y*sl(ic,SLXY)
 	      enddo
 	    enddo
 

@@ -1,6 +1,6 @@
 
 //
-// $Id: Interpolater.cpp,v 1.8 1997-12-19 19:08:55 lijewski Exp $
+// $Id: Interpolater.cpp,v 1.9 1998-01-16 23:14:24 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -124,17 +124,19 @@ CellBilinear::CoarseBox (const Box& fine, int ratio)
 Box
 CellBilinear::CoarseBox (const Box& fine, const IntVect & ratio)
 {
-    Box crse(::coarsen(fine,ratio));
     const int* lo = fine.loVect();
     const int* hi = fine.hiVect();
+
+    Box crse(::coarsen(fine,ratio));
+    const int* clo = crse.loVect();
+    const int* chi = crse.hiVect();
+
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
         int iratio = ratio[i];
         int hrat = iratio/2;
-        if (lo[i]%iratio < hrat)
-            crse.growLo(i,1);
-        if (hi[i]%iratio >= hrat)
-            crse.growHi(i,1);
+        if (lo[i] <  clo[i]*ratio[i] + hrat) crse.growLo(i,1);
+        if (hi[i] >= chi[i]*ratio[i] + hrat) crse.growHi(i,1);
     }
     return crse;
 }
