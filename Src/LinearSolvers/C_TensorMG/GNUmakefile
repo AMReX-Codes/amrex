@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.3 1998-12-02 00:09:07 lijewski Exp $
+# $Id: GNUmakefile,v 1.4 1999-01-04 18:26:32 marc Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -40,6 +40,9 @@ endif
 ifeq ($(KCC_VERSION),3.3)
 CXXFLAGS += --one_instantiation_per_object
 endif
+
+all: $(optionsLib)
+
 #
 # Libraries to close against.
 #
@@ -48,6 +51,9 @@ LibsToCloseAgainst := $(TOP)/lib/$(machineSuffix)/libmg$(DIM)d.a
 LibsToCloseAgainst += $(TOP)/lib/$(machineSuffix)/libamr$(DIM)d.a
 LibsToCloseAgainst += $(TOP)/lib/$(machineSuffix)/libbndry$(DIM)d.a
 LibsToCloseAgainst += $(TOP)/lib/$(machineSuffix)/libbox$(DIM)d.a
+
+$(optionsLib): $(LibsToCloseAgainst)
+
 endif
 
 ifeq ($(USE_NETCDF),TRUE)
@@ -65,7 +71,4 @@ LDFLAGS += -non_shared -v
 endif
 
 FOPTF = -fast
-
-all: $(optionsLib)
-
 include $(TOP)/mk/Make.rules
