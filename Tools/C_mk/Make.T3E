@@ -34,7 +34,7 @@ XTRALIBS += -lapp
 endif
 
 FC     = f90 -N 80 -e I
-FOPTF += -O2
+FOPTF += -O,aggress,pipeline2,vector3,split0 -apad
 FDEBF += -g
 FPRFF += -eA
 
