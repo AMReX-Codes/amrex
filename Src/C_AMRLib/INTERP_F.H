@@ -2,7 +2,7 @@
 #define _INTERP_NAMES_H
 
 /*
-** $Id: INTERP_F.H,v 1.12 2002-09-28 19:03:07 lijewski Exp $
+** $Id: INTERP_F.H,v 1.13 2002-10-07 20:44:37 almgren Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -77,7 +77,8 @@ extern "C"
                         Real* voff,
                         const int* bc, const int* lim_slope,
                         D_DECL(const Real* fvcx,const Real* fvcy, const Real* fvcz),
-                        D_DECL(const Real* cvcx,const Real* cvcy, const Real* cvcz));
+                        D_DECL(const Real* cvcx,const Real* cvcy, const Real* cvcz),
+                        Real* cmax, Real* cmin, Real* alpha);
 
     void FORT_CCINTERP2 (Real* fine, const int* flo, const int* fhi,
                          ARLIM_P(fblo), ARLIM_P(fbhi),

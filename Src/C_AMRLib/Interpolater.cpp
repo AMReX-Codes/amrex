@@ -1,5 +1,5 @@
 //
-// $Id: Interpolater.cpp,v 1.25 2002-09-28 19:03:35 lijewski Exp $
+// $Id: Interpolater.cpp,v 1.26 2002-10-07 20:44:37 almgren Exp $
 //
 #include <winstd.H>
 
@@ -263,6 +263,12 @@ CellConservative::interp (const FArrayBox& crse,
 
     Array<Real> cslope(BL_SPACEDIM*c_len);
 
+//  Introduce these arrays to hold the coarse maxs and mins and the
+//    correction factor alpha.
+    Real  cmax[c_len];
+    Real  cmin[c_len];
+    Real alpha[c_len];
+
     int loslp = cslope_bx.index(crse_bx.smallEnd());
     int hislp = cslope_bx.index(crse_bx.bigEnd());
 
@@ -321,7 +327,8 @@ CellConservative::interp (const FArrayBox& crse,
                    cslope.dataPtr(),&c_len,fslope,fstrip,&f_len,foff,
                    bc.dataPtr(), &slope_flag,
                    D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
-                   D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()));
+                   D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()),
+                   cmax,cmin,alpha);
 }
 
 CellConservativeLinear::CellConservativeLinear (bool do_linear_limiting_)

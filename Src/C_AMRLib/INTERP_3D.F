@@ -1,5 +1,5 @@
-c
-c $Id: INTERP_3D.F,v 1.13 2002-10-01 23:56:07 marc Exp $
+C
+c $Id: INTERP_3D.F,v 1.14 2002-10-07 20:44:37 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -269,7 +269,7 @@ c ::: fblo,fbhi    =>  (const)  subregion of fine grid to get values
 c ::: nvar         =>  (const)  number of variables in state vector
 c ::: lratio(3)    =>  (const)  refinement ratio between levels
 c ::: 
-c ::: crse         =>  (const)  coarse grid data widended by 1 zone
+c ::: crse         =>  (const)  coarse grid data widened by 1 zone
 c ::: and unrolled
 c ::: clo,chi      =>  (const)  one dimensional limits of crse grid
 c ::: cslo,cshi    =>  (const)  coarse grid index limits where
@@ -282,7 +282,7 @@ c :::				refinement of (cslo,cshi) and
 c :::				contains but may not be identical
 c :::				to (fblo,fbhi).
 c ::: cslope       =>  (modify) temp array coarse grid slopes
-c ::: clen         =>  (const)  length of coarse gtid slopes
+c ::: clen         =>  (const)  length of coarse grid slopes
 c ::: fslope       =>  (modify) temp array for fine grid slope
 c ::: flen         =>  (const)  length of fine grid slope array
 c ::: fdat         =>  (const)  temp array for fine grid data
@@ -322,7 +322,7 @@ c ::: has filled at level 0.
 c ::: The "cslope" and "crse" arrays are this size.
 c ::: 
 c ::: In order to unroll the slope calculation we make these arrays look
-c ::: like 1-D arrays.  The mapping from 2-D to 1-D is as fillows:
+c ::: like 1-D arrays.  The mapping from 2-D to 1-D is as follows:
 c ::: 
 c ::: The point (cb_l1,cb_l2) -> 1
 c ::: The point (cslo(1),cslo(2)) -> clo = 1 - 1 - ncsx = -6
@@ -376,7 +376,8 @@ c ::: --------------------------------------------------------------
      $                          chi, DIMS(cb),
      $		                fslo, fshi, cslope, clen, fslope, fdat,
      $                          flen, voff, bc, limslope,
-     $                          fvcx, fvcy, fvcz, cvcx, cvcy, cvcz)
+     $                          fvcx, fvcy, fvcz, cvcx, cvcy, cvcz,
+     $                          cmax, cmin, alpha)
 
       integer DIMDEC(fine)
       integer DIMDEC(fb)
@@ -388,6 +389,9 @@ c ::: --------------------------------------------------------------
       REAL_T fine(DIMV(fine),nvar)
       REAL_T crse(clo:chi, nvar)
       REAL_T cslope(clo:chi, 3)
+      REAL_T cmax(clo:chi)
+      REAL_T cmin(clo:chi)
+      REAL_T alpha(clo:chi)
       REAL_T fslope(flen, 3)
       REAL_T fdat(flen)
       REAL_T voff(flen)
@@ -422,6 +426,7 @@ c     :::::: helpful statement functions
       integer sloc
       integer strd
       REAL_T  slplft, slprgt
+      REAL_T  corr_fact
       sloc(i,j,k) = clo+i-cslo(1)+ncsx*(j-cslo(2)+ncsy*(k-cslo(3)))
 
       slplft(i,strd,n) =  -sixteen/fifteen*crse(i-strd,n)
@@ -464,6 +469,21 @@ c     :::::: helpful statement functions
       end do
 
       do 100 n = 1, nvar 
+
+          do i = 1,clen
+            cmax(i) = crse(i,n)
+            cmin(i) = crse(i,n)
+            alpha(i) = 1.d0
+            do koff = -kst,kst,kst
+            do joff = -jst,jst,jst
+            do ioff = -ist,ist,ist
+              cmax(i) = max(cmax(i),crse(i+ioff+joff+koff))
+              cmin(i) = min(cmin(i),crse(i+ioff+joff+koff))
+              alpha(i) = 1.d0
+            end do
+            end do
+            end do
+          end do
 
 c ::: ::::: compute slopes in x direction
           if (limslope .ne. 0) then
@@ -660,7 +680,7 @@ c :::           ::::: strip out fine grid slope vectors
                    end do
                 end do
 
-c :::           ::::: interpolate to fine grid
+c               Limit slopes so as to not introduce new maxs or mins.
                 jj = lratioy*jc
                 jlo = max(jj,fb_l2) - jj
                 jhi = min(jj+lratioy-1,fb_h2) - jj
@@ -683,6 +703,58 @@ c :::           ::::: interpolate to fine grid
      $                        voff(fn)*fslope(fn,1)+
      $                        yoff*fslope(fn,2)+
      $                        zoff*fslope(fn,3)
+
+                         ic = IX_PROJ(i,lratiox)
+                         icc = sloc(ic,jc,kc)
+                         if (fine(i,j,k,n) .gt. cmax(icc)) then
+                           corr_fact = (cmax(icc) - fdat(fn)) / 
+     $                        ( voff(fn)*fslope(fn,1)
+     $                         +yoff    *fslope(fn,2)
+     $                         +zoff    *fslope(fn,3) )
+                           alpha(icc) = min(alpha(icc),corr_fact)
+                         endif
+                         if (fine(i,j,k,n) .lt. cmin(icc)) then
+                           corr_fact = 
+     $                        (cmin(icc) - fdat(fn)) / 
+     $                        ( voff(fn)*fslope(fn,1)
+     $                         +yoff    *fslope(fn,2)
+     $                         +zoff    *fslope(fn,3) )
+                           alpha(icc) = min(alpha(icc),corr_fact)
+                         endif
+                         if (alpha(icc) .lt. 0.d0) then
+                           print *,'OOPS - ALPHA SHOULD BE POSITIVE IN CCINTERP '
+                           print *,'ICC = ',icc
+                           stop
+                         endif
+                       end do
+                   end do
+                end do
+
+c :::           ::::: Now interpolate to fine grid for real.
+                jj = lratioy*jc
+                jlo = max(jj,fb_l2) - jj
+                jhi = min(jj+lratioy-1,fb_h2) - jj
+                kk = lratioz*kc
+                klo = max(kk,fb_l3) - kk
+                khi = min(kk+lratioz-1,fb_h3) - kk
+                do koff = klo, khi
+                   k = lratioz*kc + koff
+                   fcen = half*(fvcz(k) +fvcz(k+1))
+                   ccen = half*(cvcz(kc)+cvcz(kc+1))
+                   zoff = (fcen-ccen)/(cvcz(kc+1)-cvcz(kc))
+                   do joff = jlo, jhi
+                      j = lratioy*jc + joff
+                      fcen = half*(fvcy(j) +fvcy(j+1))
+                      ccen = half*(cvcy(jc)+cvcy(jc+1))
+                      yoff = (fcen-ccen)/(cvcy(jc+1)-cvcy(jc))
+                      do i = fb_l1, fb_h1
+                         fn = i-fslo(1)+1
+                         ic = IX_PROJ(i,lratiox)
+                         icc = sloc(ic,jc,kc)
+                         fine(i,j,k,n) = fdat(fn) + alpha(icc) * (
+     $                        voff(fn)*fslope(fn,1)+
+     $                        yoff*fslope(fn,2)+
+     $                        zoff*fslope(fn,3) )
                       end do
                    end do
                 end do
