@@ -19,12 +19,12 @@
 
 extern "C" 
 {
-    void FORT_FBREF(Real*, intS, intS, const Real*, intS, intS, const int&);
+    void FORT_FBREF(Real*, intS, intS, const Real*, intS, intS, const int*);
     void FORT_FBREFM(Real*, intS, intS, const Real*, intS, intS, const int*);
-    void FORT_FBNEG(Real*, intS, intS, const Real*, intS, intS, const int&);
+    void FORT_FBNEG(Real*, intS, intS, const Real*, intS, intS, const int*);
     void FORT_FBNEGM(Real*, intS, intS, const Real*, intS, intS, const int*);
-    void FORT_FBINFLO(Real*, intS, intS, const Real*, intS, intS, const int&);
-    void FORT_FBINFIL(Real*, intS, intS, const Real*, intS, intS, const int&);
+    void FORT_FBINFLO(Real*, intS, intS, const Real*, intS, intS, const int*);
+    void FORT_FBINFIL(Real*, intS, intS, const Real*, intS, intS, const int*);
 }
 
 Box amr_boundary_class::box(const Box& region, const Box& domain, int idir) const
@@ -358,7 +358,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 	    for (int i = 0; i < patch.nComp(); i++) 
 	    {
 		FORT_FBNEG(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
-		    bgr.dataPtr(i), DIMLIST(bgr.box()), DIMLIST(bb), idim);
+		    bgr.dataPtr(i), DIMLIST(bgr.box()), DIMLIST(bb), &idim);
 	    }
 	}
 	else 
@@ -366,7 +366,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 	    for (int i = 0; i < patch.nComp(); i++) 
 	    {
 		FORT_FBREF(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
-		    bgr.dataPtr(i), DIMLIST(bgr.box()), DIMLIST(bb), idim);
+		    bgr.dataPtr(i), DIMLIST(bgr.box()), DIMLIST(bb), &idim);
 	    }
 	}
     }
@@ -381,7 +381,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 	    for (int i = 0; i < patch.nComp(); i++) 
 	    {
 		FORT_FBREF(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
-		    bgr.dataPtr(i), DIMLIST(bgr.box()), DIMLIST(bb), idim);
+		    bgr.dataPtr(i), DIMLIST(bgr.box()), DIMLIST(bb), &idim);
 	    }
 	}
 	else if (flowdim == -1) 
@@ -391,7 +391,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 	    for (int i = 0; i < patch.nComp(); i++) 
 	    {
 		FORT_FBREF(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
-		    bgr.dataPtr(i), DIMLIST(bgr.box()), DIMLIST(bb), idim);
+		    bgr.dataPtr(i), DIMLIST(bgr.box()), DIMLIST(bb), &idim);
 	    }
 	}
 	else if (flowdim == -3) 
@@ -399,7 +399,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 	    for (int i = 0; i < patch.nComp(); i++) 
 	    {
 		FORT_FBNEG(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
-		    bgr.dataPtr(i), DIMLIST(bgr.box()), DIMLIST(bb), idim);
+		    bgr.dataPtr(i), DIMLIST(bgr.box()), DIMLIST(bb), &idim);
 	    }
 	}
 	else if (idim == flowdim) 
@@ -407,7 +407,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 	    // For this to work, fill_borders must already have been called
 	    // to initialize values in the first ghost cell outside the domain.
 	    FORT_FBINFIL(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region),
-		bgr.dataPtr(), DIMLIST(bgr.box()), DIMLIST(bb), idim);
+		bgr.dataPtr(), DIMLIST(bgr.box()), DIMLIST(bb), &idim);
 	}
 	else if (flowdim >= 0) 
 	{
@@ -417,7 +417,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 	    for (int i = 0; i < patch.nComp(); i++) 
 	    {
 		FORT_FBREF(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
-		    bgr.dataPtr(i), DIMLIST(bgr.box()), DIMLIST(bb), idim);
+		    bgr.dataPtr(i), DIMLIST(bgr.box()), DIMLIST(bb), &idim);
 	    }
 	}
     }
@@ -429,7 +429,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 	    for (int i = 0; i < patch.nComp(); i++) 
 	    {
 		FORT_FBREF(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
-		    bgr.dataPtr(i), DIMLIST(bgr.box()), DIMLIST(bb), idim);
+		    bgr.dataPtr(i), DIMLIST(bgr.box()), DIMLIST(bb), &idim);
 	    }
 	}
     }
@@ -506,11 +506,11 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 			Real* rptr = r[jgrid].dataPtr(i);
 			if ((i == idim + BL_SPACEDIM) || (i >= BL_SPACEDIM && idim == BL_SPACEDIM - 1)) 
 			{
-			    FORT_FBNEG(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), idim);
+			    FORT_FBNEG(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), &idim);
 			}
 			else 
 			{
-			    FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), idim);
+			    FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), &idim);
 			}
 		    }
 		}
@@ -523,7 +523,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 			for (int i = 0; i < r.nComp(); i++) 
 			{
 			    Real* rptr = r[jgrid].dataPtr(i);
-			    FORT_FBNEG(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), idim);
+			    FORT_FBNEG(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), &idim);
 			}
 		    }
 		    else 
@@ -531,7 +531,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 			for (int i = 0; i < r.nComp(); i++) 
 			{
 			    Real* rptr = r[jgrid].dataPtr(i);
-			    FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), idim);
+			    FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), &idim);
 			}
 		    }
 		}
@@ -548,7 +548,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		    if (flowdim == -2) 
 		    {
 			Real* rptr = r[jgrid].dataPtr();
-			FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), idim);
+			FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), &idim);
 		    }
 		    else if (flowdim == -1) 
 		    {
@@ -557,20 +557,20 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 			for (int i = 0; i < r.nComp(); i++) 
 			{
 			    Real* rptr = r[jgrid].dataPtr(i);
-			    FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), idim);
+			    FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), &idim);
 			}
 		    }
 		    else if (flowdim == -3) 
 		    {
 			Real* rptr = r[jgrid].dataPtr();
-			FORT_FBNEG(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), idim);
+			FORT_FBNEG(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), &idim);
 		    }
 		    else if (idim == flowdim) 
 		    {
 			Real* rptr = r[jgrid].dataPtr();
 			// For this to work, fill_borders must be called exactly
 			// once for each level of this variable.
-			FORT_FBINFLO(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), idim);
+			FORT_FBINFLO(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), &idim);
 		    }
 		    else if (flowdim >= 0) 
 		    {
@@ -578,7 +578,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 			//r[jgrid].assign(0.0, b);
 			// we now believe this looks like a refWall to transverse comps
 			Real* rptr = r[jgrid].dataPtr();
-			FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), idim);
+			FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), &idim);
 		    }
 		}
 		else if (t == outflow) 
@@ -591,7 +591,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 			for (int i = 0; i < r.nComp(); i++) 
 			{
 			    Real* rptr = r[jgrid].dataPtr(i);
-			    FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), idim);
+			    FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), &idim);
 			}
 		    }
 		}
@@ -621,11 +621,11 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		  Real* rptr = r[igrid].dataPtr(i);
 		  if ((i == idim + BL_SPACEDIM) || (i >= BL_SPACEDIM && idim == BL_SPACEDIM - 1)) 
 		  {
-		      FORT_FBNEG(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), idim);
+		      FORT_FBNEG(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), &idim);
 		  }
 		  else 
 		  {
-		      FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), idim);
+		      FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), &idim);
 		  }
 	      }
 	  }
@@ -638,7 +638,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		  for (int i = 0; i < r.nComp(); i++) 
 		  {
 		      Real* rptr = r[igrid].dataPtr(i);
-		      FORT_FBNEG(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), idim);
+		      FORT_FBNEG(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), &idim);
 		  }
 	      }
 	      else 
@@ -646,7 +646,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		  for (int i = 0; i < r.nComp(); i++) 
 		  {
 		      Real* rptr = r[igrid].dataPtr(i);
-		      FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), idim);
+		      FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), &idim);
 		  }
 	      }
 	  }
@@ -663,7 +663,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 	      if (flowdim == -2) 
 	      {
 		  Real* rptr = r[igrid].dataPtr();
-		  FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), idim);
+		  FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), &idim);
 	      }
 	      else if (flowdim == -1) 
 	      {
@@ -672,20 +672,20 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		  for (int i = 0; i < r.nComp(); i++) 
 		  {
 		      Real* rptr = r[igrid].dataPtr(i);
-		      FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), idim);
+		      FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), &idim);
 		  }
 	      }
 	      else if (flowdim == -3) 
 	      {
 		  Real* rptr = r[igrid].dataPtr();
-		  FORT_FBNEG(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), idim);
+		  FORT_FBNEG(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), &idim);
 	      }
 	      else if (idim == flowdim) 
 	      {
 		  Real* rptr = r[igrid].dataPtr();
 		  // For this to work, fill_borders must be called exactly
 		  // once for each level of this variable.
-		  FORT_FBINFLO(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), idim);
+		  FORT_FBINFLO(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), &idim);
 	      }
 	      else if (flowdim >= 0) 
 	      {
@@ -693,7 +693,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		  //r[igrid].assign(0.0, rbox);
 		  // we now believe this looks like a refWall to transverse comps
 		  Real* rptr = r[igrid].dataPtr();
-		  FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), idim);
+		  FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), &idim);
 	      }
 	  }
 	  else if (t == outflow) 
@@ -706,7 +706,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		  for (int i = 0; i < r.nComp(); i++) 
 		  {
 		      Real* rptr = r[igrid].dataPtr(i);
-		      FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), idim);
+		      FORT_FBREF(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), &idim);
 		  }
 	      }
 	  }

@@ -2,7 +2,7 @@
 #define _AMR_DEFS_H_
 
 //
-// $Id: amr_defs.H,v 1.10 1998-03-13 20:50:30 car Exp $
+// $Id: amr_defs.H,v 1.11 1998-04-16 22:50:12 car Exp $
 //
 
 #include <MultiFab.H>
@@ -11,21 +11,18 @@
 #  define intRS const int&
 #  define intS  const int&, const int&
 #  define DIMLIST(a) a.smallEnd(0), a.bigEnd(0)
-#  define RealRS const Real&
 #  define RealPS Real*
 #  define CRealPS const Real*
 #elif (BL_SPACEDIM == 2)
 #  define intRS const int&, const int&
 #  define intS  const int&, const int&, const int&, const int&
 #  define DIMLIST(a) a.smallEnd(0), a.bigEnd(0), a.smallEnd(1), a.bigEnd(1)
-#  define RealRS const Real&, const Real&
 #  define RealPS Real*, Real*
 #  define CRealPS const Real*, const Real*
 #elif (BL_SPACEDIM == 3)
 #  define intRS const int&, const int&, const int&
 #  define intS  const int&, const int&, const int&, const int&, const int&, const int&
 #  define DIMLIST(a) a.smallEnd(0), a.bigEnd(0), a.smallEnd(1), a.bigEnd(1), a.smallEnd(2), a.bigEnd(2)
-#  define RealRS const Real&, const Real&, const Real&
 #  define RealPS Real*, Real*, Real*
 #  define CRealPS const Real*, const Real*, const Real*
 #endif

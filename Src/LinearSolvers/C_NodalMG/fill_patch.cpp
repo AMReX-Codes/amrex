@@ -15,13 +15,13 @@
 
 extern "C"
 {
-    void FORT_FIPRODC(const Real*, intS, const Real*, intS, intS, Real&);
-    void FORT_FIPRODN(const Real*, intS, const Real*, intS, intS, Real&);
+    void FORT_FIPRODC(const Real*, intS, const Real*, intS, intS, Real*);
+    void FORT_FIPRODN(const Real*, intS, const Real*, intS, intS, Real*);
     void FORT_FFCPY(Real*, intS, intS, const Real*, intS, const int&);
 #if (BL_SPACEDIM == 2)
-    void FORT_FFCPY2(Real*, intS, const Real*, intS, intS, const int&, const int&);
+    void FORT_FFCPY2(Real*, intS, const Real*, intS, intS, const int*, const int&);
 #else
-    void FORT_FFCPY2(Real*, intS, const Real*, intS, intS, const int&, const int&, const int&);
+    void FORT_FFCPY2(Real*, intS, const Real*, intS, intS, const int*, const int*, const int&);
 #endif
 }
 
@@ -53,7 +53,7 @@ Real inner_product(const MultiFab& r, const MultiFab& s)
 	    const Box& rbox = rcmfi->box();
 	    const Box& sbox = scmfi->box();
 	    const Box& reg  = rcmfi.validbox();
-	    FORT_FIPRODC(rcmfi->dataPtr(), DIMLIST(rbox), scmfi->dataPtr(), DIMLIST(sbox), DIMLIST(reg), sum);
+	    FORT_FIPRODC(rcmfi->dataPtr(), DIMLIST(rbox), scmfi->dataPtr(), DIMLIST(sbox), DIMLIST(reg), &sum);
 	}
     }
     else if (type(r) == IntVect::TheNodeVector()) 
@@ -65,7 +65,7 @@ Real inner_product(const MultiFab& r, const MultiFab& s)
 	    const Box& rbox = rcmfi->box();
 	    const Box& sbox = scmfi->box();
 	    const Box& reg  = rcmfi.validbox();
-	    FORT_FIPRODN(rcmfi->dataPtr(), DIMLIST(rbox), scmfi->dataPtr(), DIMLIST(sbox), DIMLIST(reg), sum);
+	    FORT_FIPRODN(rcmfi->dataPtr(), DIMLIST(rbox), scmfi->dataPtr(), DIMLIST(sbox), DIMLIST(reg), &sum);
 	}
     }
     else 
@@ -534,10 +534,10 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 	    const Box& boxa = r[igrid].box();
 	    const Box& boxb = r[jgrid].box();
 #  if (BL_SPACEDIM == 2)
-	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(b), w, r.nComp());
+	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(b), &w, r.nComp());
 #  else
 	    const int ibord = r.nGrow();
-	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(b), w, ibord, r.nComp());
+	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(b), &w, &ibord, r.nComp());
 #  endif
 	}
     }
