@@ -1749,18 +1749,19 @@ c edges
  120     continue
       fac1 = ir * jr * fac0
       cfac = 0.5d0 * cube * fac0 * (kr-1)
-      do 140 ki = 0, 1
+      do ki = 0, 1
          kdir = 2 * ki - 1
          if (ga(0,0,ki) + ga(0,1,ki) +
      &       ga(1,0,ki) + ga(1,1,ki) .eq. 4) then
-            do 130 l = kdir, kdir*(kr-1), kdir
+            do l = kdir, kdir*(kr-1), kdir
                fac = (kr-abs(l)) * fac1
- 130           dest(i,j,k) = dest(i,j,k) +
+               dest(i,j,k) = dest(i,j,k) +
      &           fac * src(i*ir,j*jr,k*kr+l)
+	      end do
          else if (integ .eq. 0) then
             center = center + cfac
          end if
- 140     continue
+      end do
 c center
       dest(i,j,k) = dest(i,j,k) +
      &  center * src(i*ir,j*jr,k*kr)
