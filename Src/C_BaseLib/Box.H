@@ -1,7 +1,7 @@
 #ifndef BL_BOX_H
 #define BL_BOX_H
 //
-// $Id: Box.H,v 1.23 2001-07-31 22:43:17 lijewski Exp $
+// $Id: Box.H,v 1.24 2001-08-16 17:57:43 lijewski Exp $
 //
 #ifdef NODEV
 #undef NODEV
@@ -188,14 +188,6 @@ public:
     Box (const IntVect&   small,
          const IntVect&   big,
          const IndexType& t);
-    //
-    //@ManDoc: The copy constructor.
-    //
-    Box (const Box& b);
-    //
-    //@ManDoc: The assignment operator.
-    //
-    Box& operator= (const Box& b);
     //
     //@ManDoc: Get the smallend of the box.
     //
@@ -408,15 +400,6 @@ public:
                other type mappings make no change.
     */
     Box& convert (const IntVect& typ);
-
-    /*@ManDoc: Convert the Box from the current type into the
-               argument type.  This may change the Box coordinates.
-               type CELL -> NODE : increase coordinate by one on high end
-               type NODE -> CELL : reduce coordinate by one on high end
-               other type mappings make no change.
-    */
-    Box& convert (int                  dir,
-                  IndexType::CellIndex typ);
     //
     //@ManDoc: Convert to NODE type in all directions.
     //

@@ -1,5 +1,5 @@
 //
-// $Id: Box.cpp,v 1.21 2001-07-31 22:43:17 lijewski Exp $
+// $Id: Box.cpp,v 1.22 2001-08-16 17:57:43 lijewski Exp $
 //
 #include <iostream>
 #include <limits>
@@ -14,13 +14,6 @@ Box::TheUnitBox ()
     static const Box Unit(IntVect::TheZeroVector(), IntVect::TheUnitVector());
     return Unit;
 }
-
-Box::Box (const Box& b)
-    :
-    smallend(b.smallend),
-    bigend(b.bigend),
-    btype(b.btype)
-{}
 
 Box::Box ()
     :
@@ -63,15 +56,6 @@ Box::Box (const IntVect& small,
     btype(typ)
 {
     BL_ASSERT(typ >= IntVect::TheZeroVector() && typ <= IntVect::TheUnitVector());
-}
-
-Box&
-Box::operator= (const Box& b)
-{
-    smallend = b.smallend;
-    bigend   = b.bigend;
-    btype    = b.btype;
-    return *this;
 }
 
 bool
@@ -162,6 +146,28 @@ Box::convert (const IntVect& typ)
 }
 
 Box&
+Box::convert (IndexType t)
+{
+   for (int dir = 0; dir < BL_SPACEDIM; dir++)
+   {
+      unsigned int typ = t[dir];
+      unsigned int bitval = btype[dir];
+      int off = typ - bitval;
+      bigend.shift(dir,off);
+      btype.setType(dir, (IndexType::CellIndex) typ);
+   }
+   return *this;
+}
+
+Box
+BoxLib::surroundingNodes (const Box& b,
+                          int        dir)
+{
+    Box bx(b);
+    return bx.surroundingNodes(dir);
+}
+
+Box&
 Box::surroundingNodes (int dir)
 {
     if (!(btype[dir]))
@@ -173,6 +179,31 @@ Box::surroundingNodes (int dir)
         btype.set(dir);
     }
     return *this;
+}
+
+Box
+BoxLib::surroundingNodes (const Box& b)
+{
+    Box bx(b);
+    return bx.surroundingNodes();
+}
+
+Box&
+Box::surroundingNodes ()
+{
+    for (int i = 0; i < BL_SPACEDIM; ++i)
+        if ((btype[i] == 0))
+            bigend.shift(i,1);
+    btype.setall();
+    return *this;
+}
+
+Box
+BoxLib::enclosedCells (const Box& b,
+                       int        dir)
+{
+    Box bx(b);
+    return bx.enclosedCells(dir);
 }
 
 Box&
@@ -190,33 +221,20 @@ Box::enclosedCells (int dir)
 }
 
 Box
-BoxLib::surroundingNodes (const Box& b,
-                          int        dir)
-{
-    Box bx(b);
-    return bx.surroundingNodes(dir);
-}
-
-Box
-BoxLib::surroundingNodes (const Box& b)
-{
-    Box bx(b);
-    return bx.surroundingNodes();
-}
-
-Box
-BoxLib::enclosedCells (const Box& b,
-                       int        dir)
-{
-    Box bx(b);
-    return bx.enclosedCells(dir);
-}
-
-Box
 BoxLib::enclosedCells (const Box& b)
 {
     Box bx(b);
     return bx.enclosedCells();
+}
+
+Box&
+Box::enclosedCells ()
+{
+    for (int i = 0 ; i < BL_SPACEDIM; ++i)
+        if (btype[i])
+            bigend.shift(i,-1);
+    btype.clear();
+    return *this;
 }
 
 Box&
@@ -228,13 +246,10 @@ Box::operator+= (const IntVect& v)
 }
 
 Box
-Box::operator+  (const IntVect& v) const
+Box::operator+ (const IntVect& v) const
 {
-    IntVect small(smallend);
-    IntVect big(bigend);
-    small += v;
-    big   += v;
-    return Box(small,big,btype);
+    Box result = *this;
+    return result += v;
 }
 
 Box&
@@ -248,11 +263,8 @@ Box::operator-= (const IntVect& v)
 Box
 Box::operator-  (const IntVect& v) const
 {
-    IntVect small = smallend;
-    IntVect big = bigend;
-    small -= v;
-    big   -= v;
-    return Box(small,big,btype);
+    Box result = *this;
+    return result -= v;
 }
 
 Box&
@@ -267,9 +279,8 @@ Box
 BoxLib::grow (const Box& b,
               int        i)
 {
-    IntVect small = diagShift(b.smallEnd(),-i);
-    IntVect big   = diagShift(b.bigEnd(),i);
-    return Box(small,big,b.ixType());
+    Box result = b;
+    return result.grow(i);
 }
 
 Box&
@@ -284,9 +295,8 @@ Box
 BoxLib::grow (const Box&     b,
               const IntVect& v)
 {
-    IntVect small = b.smallEnd() - v;
-    IntVect big   = b.bigEnd()   + v;
-    return Box(small,big,b.ixType());
+    Box result = b;
+    return result.grow(v);
 }
 
 Box&
@@ -295,6 +305,18 @@ Box::grow (int idir,
 {
     smallend.shift(idir, -n_cell);
     bigend.shift(idir, n_cell);
+    return *this;
+}
+
+Box&
+Box::grow (const Orientation& face,
+           int                n_cell)
+{
+    int idir = face.coordDir();
+    if (face.isLow())
+        smallend.shift(idir, -n_cell);
+    else
+        bigend.shift(idir,n_cell);
     return *this;
 }
 
@@ -314,24 +336,11 @@ Box::growHi (int idir,
     return *this;
 }
 
-Box&
-Box::grow (const Orientation& face,
-           int                n_cell)
-{
-    int idir = face.coordDir();
-    if (face.isLow())
-        smallend.shift(idir, -n_cell);
-    else
-        bigend.shift(idir,n_cell);
-    return *this;
-}
-
 Box
 Box::operator& (const Box& rhs) const
 {
-    Box lhs(*this);
-    lhs &= rhs;
-    return lhs;
+    Box lhs = *this;
+    return lhs &= rhs;
 }
 
 bool
@@ -420,10 +429,10 @@ Box::shiftHalf (int dir,
 {
     int nbit = (nzones<0 ? -nzones : nzones)%2;
     int nshift = nzones/2;
-    unsigned int bit_dir = btype[dir];
     //
     // Toggle btyp bit if nzones is odd.
     //
+    unsigned int bit_dir = btype[dir];
     if (nbit)
         btype.flip(dir);
     if (nzones < 0)
@@ -435,24 +444,22 @@ Box::shiftHalf (int dir,
     return *this;
 }
 
-//
-// Boolean functions.
-//
+Box&
+Box::shiftHalf (const IntVect& nz)
+{
+   for (int dir = 0; dir < BL_SPACEDIM; dir++)
+   {
+       shiftHalf(dir,nz[dir]);
+   }
+   return *this;
+}
 
 bool
 Box::intersects (const Box& b) const
 {
-    BL_ASSERT(sameType(b));
-    IntVect low(smallend);
-    IntVect hi(bigend);
-    low.max(b.smallend);
-    hi.min(b.bigend);
-    return low <= hi;
+    Box isect = *this & b;
+    return isect.ok();
 }
-
-//
-// Intersection functions.
-//
 
 Box&
 Box::operator&= (const Box& b)
@@ -462,30 +469,6 @@ Box::operator&= (const Box& b)
     bigend.min(b.bigend);
     return *this;
 }
-
-Box&
-Box::surroundingNodes ()
-{
-    for (int i = 0; i < BL_SPACEDIM; ++i)
-        if ((btype[i] == 0))
-            bigend.shift(i,1);
-    btype.setall();
-    return *this;
-}
-
-Box&
-Box::enclosedCells ()
-{
-    for (int i = 0 ; i < BL_SPACEDIM; ++i)
-        if (btype[i])
-            bigend.shift(i,-1);
-    btype.clear();
-    return *this;
-}
-
-//
-// Next:step through the rectangle with unit increment.
-//
 
 void
 Box::next (IntVect& p) const
@@ -560,6 +543,14 @@ Box::next (IntVect&   p,
 #endif
 }
 
+Box
+BoxLib::refine (const Box& b,
+                int        refinement_ratio)
+{
+    Box result = b;
+    return result.refine(refinement_ratio);
+}
+
 Box&
 Box::refine (int refinement_ratio)
 {
@@ -570,6 +561,14 @@ Box::refine (int refinement_ratio)
     bigend.scale(refinement_ratio);
     bigend -= shft;
     return *this;
+}
+
+Box
+BoxLib::refine (const Box&     b,
+                const IntVect& refinement_ratio)
+{
+    Box result = b;
+    return result.refine(refinement_ratio);
 }
 
 Box&
@@ -592,11 +591,8 @@ Box::refine (const IntVect& refinement_ratio)
 int
 Box::longside () const
 {
-    int maxlen = length(0);
-    for (int i = 1; i < BL_SPACEDIM; i++)
-        if (length(i) > maxlen)
-            maxlen = length(i);
-    return maxlen;
+    int ignore = 0;
+    return longside(ignore);
 }
 
 int
@@ -618,11 +614,8 @@ Box::longside (int& dir) const
 int
 Box::shortside () const
 {
-    int minlen = length(0);
-    for (int i = 1; i < BL_SPACEDIM; i++)
-        if (length(i) < minlen)
-            minlen = length(i);
-    return minlen;
+    int ignore = 0;
+    return shortside(ignore);
 }
 
 int
@@ -682,99 +675,44 @@ Box::chop (int dir,
     return Box(sm,bg,btype);
 }
 
-//
-// Shift by half increments.
-//
-
-Box&
-Box::shiftHalf (const IntVect& nz)
-{
-   for (int dir = 0; dir < BL_SPACEDIM; dir++)
-   {
-       int nzones = nz[dir];
-       int nbit = (nzones<0 ? -nzones : nzones)%2;
-       int nshift = nzones/2;
-       unsigned int bit_dir = btype[dir];
-       //
-       // Toggle btype bit if nzones is odd.
-       //
-       if (nbit)
-           btype.flip(dir);
-       if (nzones < 0)
-           nshift -= (bit_dir ? nbit : 0);
-       else
-           nshift += (bit_dir ? 0 : nbit);
-       smallend.shift(dir,nshift);
-       bigend.shift(dir,nshift);
-   }
-   return *this;
-}
-
-Box&
-Box::convert (int                  dir,
-              IndexType::CellIndex typ)
-{
-   unsigned int bitval = btype[dir];
-   int off = typ - bitval;
-   bigend.shift(dir,off);
-   //
-   // Set dir'th bit to typ.
-   //
-   btype.setType(dir,typ);
-   return *this;
-}
-
-Box&
-Box::convert (IndexType t)
-{
-   for (int dir = 0; dir < BL_SPACEDIM; dir++)
-   {
-      unsigned int typ = t[dir];
-      unsigned int bitval = btype[dir];
-      int off = typ - bitval;
-      bigend.shift(dir,off);
-      btype.setType(dir, (IndexType::CellIndex) typ);
-   }
-   return *this;
-}
-
-//
-// Refinement functions.
-//
-
 Box
-BoxLib::refine (const Box& b,
-                int        refinement_ratio)
+BoxLib::coarsen (const Box& b,
+                 int        refinement_ratio)
 {
-    IntVect small(b.smallEnd());
-    small.scale(refinement_ratio);
-    IntVect big(b.bigEnd());
-    IntVect shft(IntVect::TheUnitVector());
-    shft -= b.ixType().ixType();
-    big += shft;        // Large end is not just multiply.
-    big.scale(refinement_ratio);
-    big -= shft;
-    return Box(small,big,b.ixType());
+    Box result = b;
+    return result.coarsen(refinement_ratio);
 }
 
+Box&
+Box::coarsen (int refinement_ratio)
+{
+    smallend.coarsen(refinement_ratio);
+    if (btype.any())
+    {
+        IntVect off(IntVect::TheZeroVector());
+        for (int dir = 0; dir < BL_SPACEDIM; dir++)
+        {
+            if (btype[dir])
+                if (bigend[dir]%refinement_ratio)
+                    off.setVal(dir,1);
+        }
+        bigend.coarsen(refinement_ratio);
+        bigend += off;
+    }
+    else
+    {
+        bigend.coarsen(refinement_ratio);
+    }
+
+    return *this;
+}
 Box
-BoxLib::refine (const Box&     b,
-                const IntVect& refinement_ratio)
+BoxLib::coarsen (const Box&     b,
+                 const IntVect& refinement_ratio)
 {
-    IntVect small(b.smallEnd());
-    small *= refinement_ratio;
-    IntVect big(b.bigEnd());
-    IntVect shft(IntVect::TheUnitVector());
-    shft -= b.ixType().ixType();
-    big += shft;
-    big *= refinement_ratio;
-    big -= shft;
-    return Box(small,big,b.ixType());
+    Box result = b;
+    return result.coarsen(refinement_ratio);
 }
-
-//
-// Coarsening.
-//
 
 Box&
 Box::coarsen (const IntVect& refinement_ratio)
@@ -803,82 +741,6 @@ Box::coarsen (const IntVect& refinement_ratio)
     }
 
     return *this;
-}
-
-Box
-BoxLib::coarsen (const Box& b,
-                 int        refinement_ratio)
-{
-    IntVect small(b.smallEnd());
-    small.coarsen(refinement_ratio);
-    IntVect big(b.bigEnd());
-
-    if (b.ixType().any())
-    {
-        IntVect off(IntVect::TheZeroVector());
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        {
-            if (b.ixType()[dir])
-                if (big[dir]%refinement_ratio)
-                    off.setVal(dir,1);
-        }
-        big.coarsen(refinement_ratio);
-        big += off;
-    }
-    else
-        big.coarsen(refinement_ratio);
-
-    return Box(small,big,b.ixType());
-}
-
-Box&
-Box::coarsen (int refinement_ratio)
-{
-    smallend.coarsen(refinement_ratio);
-    if (btype.any())
-    {
-        IntVect off(IntVect::TheZeroVector());
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        {
-            if (btype[dir])
-                if (bigend[dir]%refinement_ratio)
-                    off.setVal(dir,1);
-        }
-        bigend.coarsen(refinement_ratio);
-        bigend += off;
-    }
-    else
-    {
-        bigend.coarsen(refinement_ratio);
-    }
-
-    return *this;
-}
-
-Box
-BoxLib::coarsen (const Box&     b,
-                 const IntVect& refinement_ratio)
-{
-    IntVect small(b.smallEnd());
-    small.coarsen(refinement_ratio);
-    IntVect big(b.bigEnd());
-
-    if (b.ixType().any())
-    {
-        IntVect off(IntVect::TheZeroVector());
-        for (int dir = 0; dir < BL_SPACEDIM; dir++)
-        {
-            if (b.ixType()[dir])
-                if (big[dir]%refinement_ratio[dir])
-                    off.setVal(dir,1);
-        }
-        big.coarsen(refinement_ratio);
-        big += off;
-    }
-    else
-        big.coarsen(refinement_ratio);
-
-    return Box(small,big,b.ixType());
 }
 
 //
@@ -941,9 +803,13 @@ operator>> (std::istream& is,
     return is;
 }
 
-//
-// Give smallest Box containing both Boxes.
-//
+Box
+BoxLib::minBox (const Box& b,
+                const Box& o)
+{
+    Box result = b;
+    return result.minBox(o);
+}
 
 Box&
 Box::minBox (const Box &b)
@@ -954,23 +820,6 @@ Box::minBox (const Box &b)
     bigend.max(b.bigend);
     return *this;
 }
-
-Box
-BoxLib::minBox (const Box& b,
-                const Box& o)
-{
-    BL_ASSERT(b.ok() && o.ok());
-    BL_ASSERT(o.sameType(b));
-    IntVect small = b.smallEnd();
-    IntVect big   = b.bigEnd();
-    small.min(o.smallEnd());
-    big.max(o.bigEnd());
-    return Box(small,big,b.ixType());
-}
-
-//
-// Translation functions acting on relative vectors.
-//
 
 Box
 BoxLib::bdryLo (const Box& b,
