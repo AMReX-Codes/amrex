@@ -11,10 +11,7 @@ gr.19s2
 gr.19s2.4
 gr.19s4
 gr.19s4.1
-gr.19s8
 gr1mike.thin
-gr1rick
-gr1rick2
 gr2
 gr2.0
 gr2.1
@@ -22,8 +19,6 @@ gr.292.11
 gr.292.25
 gr2a2
 gr2a4
-gr2a8
-gr2ann
 gr2ann.l0
 gr2ann.l1
 gr2ann.l2
@@ -53,19 +48,28 @@ gr2r1
 gr2r2
 gr2r3
 gr3a
-gr3ann
 gr3ann2
 gr3b
 gr3c
-gr3mike
 gr3mike.3
-gr3rick
-gr3rick2
-gr3.rz
 gr4
-gr4level
 gr.7
 gr.8
 gr.8a
 gr.ann.1
 gr.sstanley.1
+
+
+FAILED
+
+gr.19s8  -- amr_multigrid::solve:multigrid iteration failed 
+gr1rick  -- cgsolve:Conjugate-gradient iteration failed to converge
+gr1rick2 -- cgsolve:Conjugate-gradient iteration failed to converge
+gr2a8    -- domain.contains(p)' failed, file "../BoxLib/BaseFab.H", line 937
+gr2ann   -- amr_multigrid::solve:multigrid iteration failed
+gr3ann   -- ???
+gr3mike  -- amr_multigrid::solve:multigrid iteration failed
+gr3rick  -- ???
+gr3rick2 -- domain.contains(p)' failed, file "../BoxLib/BaseFab.H", line 937
+gr3.rz   -- ???
+gr4level -- ???
