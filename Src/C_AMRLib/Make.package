@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.9 2000-04-21 16:26:15 sstanley Exp $
+# $Id: Make.package,v 1.10 2000-05-03 03:36:40 propp Exp $
 #
 
 AMRLIB_BASE=EXE
@@ -17,7 +17,7 @@ C$(AMRLIB_BASE)_headers += Amr.H AmrLevel.H BCRec.H BC_TYPES.H \
                 LevelBld.H Interpolater.H SlabStat.H StateData.H \
                 StateDescriptor.H StationData.H TagBox.H PROB_AMR_F.H 
 
-F$(AMRLIB_BASE)_headers += FLUXREG_F.H INTERP_F.H MAKESLICE_F.H
+F$(AMRLIB_BASE)_headers += FLUXREG_F.H INTERP_F.H MAKESLICE_F.H SLABSTAT_F.H
 
 F$(AMRLIB_BASE)_sources += FILCC_$(DIM)D.F FLUXREG_$(DIM)D.F INTERP_$(DIM)D.F \
                            SLABSTAT_$(DIM)D.F ARRAYLIM_$(DIM)D.F
