@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.39 1998-04-17 22:22:06 lijewski Exp $
+// $Id: FabArray.H,v 1.40 1998-04-19 03:46:05 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1342,117 +1342,95 @@ FabArray<T,FAB>::copy (FAB&       dest,
 {
     assert(dest_comp + num_comp <= dest.nComp());
 
-    int i, overlapLength = 0, overlapIndex = 0;
-
     const int MyProc = ParallelDescriptor::MyProc();
 
-    for (i = 0; i < length(); i++)
-    {
-        if (subbox.intersects(boxarray[i]))
-        {
-            overlapLength++;
-        }
-    }
+    int overlapLength = 0, overlapIndex = 0;
 
-    BoxArray overlapBoxArray;  // Make a boxarray of overlaps.
-    Array<int> overlapProcessors;
-    Array<int> overlapFAIndex;
-    PArray<FAB> overlapData(PArrayManage);
+    for (int i = 0; i < length(); i++)
+        if (subbox.intersects(boxarray[i]))
+            overlapLength++;
+
+    BoxArray    overlapBA(overlapLength);
+    Array<int>  overlapProc(overlapLength);
+    Array<int>  overlapFAIdx(overlapLength);
+    PArray<FAB> overlapData(overlapLength,PArrayManage);
 
     if (overlapLength > 0)
     {
-        overlapBoxArray.resize(overlapLength);  // Make a boxarray of overlaps.
-        overlapProcessors.resize(overlapLength);
-        overlapFAIndex.resize(overlapLength);
-        for (i = 0; i < length(); i++)
+        for (int i = 0; i < length(); i++)
         {
             Box overlapBox = subbox & boxarray[i];
 
             if (overlapBox.ok())
             {
-                overlapBoxArray.set(overlapIndex, overlapBox);
-                overlapProcessors[overlapIndex] = distributionMap[i];
-                overlapFAIndex[overlapIndex++] = i;
-            }
-        }
-        //
-        // Cannot use a FabArray because they are distributed.
-        //
-        overlapData.resize(overlapBoxArray.length());
-        for (int tfi = 0; tfi < overlapData.length(); tfi++)
-        {
-            Box tfibox(::grow(overlapBoxArray[tfi], 0));
-            overlapData.set(tfi, new FAB(tfibox, num_comp));
-        }
-
-        for (i = 0; i < overlapBoxArray.length(); i++)
-        {
-            //
-            // Register for sharing.
-            //
-            ParallelDescriptor::ShareVar(overlapData[i].dataPtr(),
-                                         overlapBoxArray[i].numPts()*overlapData[i].nComp() * sizeof(T));
-        }
-
-        for (i = 0; i < overlapBoxArray.length(); i++)
-        {
-            if (MyProc == overlapProcessors[i])
-            {
-                //
-                // Local data.
-                //
-                overlapData[i].copy(fabparray[overlapFAIndex[i]],
-                                    src_comp, 0, num_comp);
+                overlapBA.set(overlapIndex, overlapBox);
+                overlapProc[overlapIndex] = distributionMap[i];
+                overlapFAIdx[overlapIndex++]  = i;
             }
         }
     }
+    for (int i = 0; i < overlapLength; i++)
+    {
+        overlapData.set(i, new FAB(overlapBA[i], num_comp));
 
+        ParallelDescriptor::ShareVar(overlapData[i].dataPtr(),
+                                     overlapBA[i].numPts()*num_comp*sizeof(T));
+        if (MyProc == overlapProc[i])
+        {
+            overlapData[i].copy(fabparray[overlapFAIdx[i]],
+                                src_comp,
+                                0,
+                                num_comp);
+        }
+    }
     ParallelDescriptor::Synchronize();  // for ShareVar
 
-    if (overlapLength > 0)
+    for (int i = 0; i < overlapLength; i++)
     {
-        for (i = 0; i < overlapBoxArray.length(); i++)
-        {
-            bool overlapDataIsLocal = (overlapProcessors[i] == MyProc);
+#ifdef BL_USE_MPI
+        int rc = MPI_Bcast(overlapData[i].dataPtr(),
+                           overlapData[i].box().numPts()*num_comp,
+                           mpi_data_type(overlapData[i].dataPtr()),
+                           overlapProc[i],
+                           MPI_COMM_WORLD);
+        if (!(rc == MPI_SUCCESS))
+            ParallelDescriptor::Abort(rc);
+#else
+        bool overlapDataIsLocal = (overlapProc[i] == MyProc);
 
-            for (int np = 0; np < ParallelDescriptor::NProcs(); np++)
+        for (int np = 0; np < ParallelDescriptor::NProcs(); np++)
+        {
+            if (overlapDataIsLocal && MyProc != np)
             {
-                if (overlapDataIsLocal && MyProc != np)
-                {
-                    //
-                    // Broadcast data.
-                    //
-                    ParallelDescriptor::WriteData(np,
-                                                  overlapData[i].dataPtr(),
-                                                  overlapData[i].dataPtr(),
-                                                  0,
-                                                  overlapData[i].box().numPts() * overlapData[i].nComp() * sizeof(T));
-                }
+                //
+                // Broadcast data.
+                //
+                ParallelDescriptor::WriteData(np,
+                                              overlapData[i].dataPtr(),
+                                              overlapData[i].dataPtr(),
+                                              0,
+                                              overlapData[i].box().numPts() * overlapData[i].nComp() * sizeof(T));
             }
         }
+#endif /*BL_USE_MPI*/
     }
-
     ParallelDescriptor::Synchronize();  // Make sure data has arrived.
 
-    if (overlapLength > 0)
+    for (int i = 0; i < overlapLength; i++)
     {
-        for (i = 0; i < overlapBoxArray.length(); i++)
-        {
-            dest.copy(overlapData[i],
-                      overlapBoxArray[i],
-                      0,
-                      overlapBoxArray[i],
-                      dest_comp,
-                      num_comp);
-        }
-
-        for (i = overlapBoxArray.length() - 1; i >= 0; i--)
-        {
-            //
-            // In reverse order.
-            //
-            ParallelDescriptor::UnshareVar(overlapData[i].dataPtr());
-        }
+        dest.copy(overlapData[i],
+                  overlapBA[i],
+                  0,
+                  overlapBA[i],
+                  dest_comp,
+                  num_comp);
+    }
+    for (int i = overlapBA.length() - 1; i >= 0; i--)
+    {
+        //
+        // In reverse order.
+        //
+        ParallelDescriptor::UnshareVar(overlapData[i].dataPtr());
     }
 }
 
