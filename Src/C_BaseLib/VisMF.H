@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.13 1997-11-10 22:14:47 lijewski Exp $
+// $Id: VisMF.H,v 1.14 1997-11-10 22:41:21 lijewski Exp $
 //
 
 #include <MultiFab.H>
@@ -143,8 +143,6 @@ private:
                              VisMF::Header& hdr);
 
     static aString ToString (int i);
-
-    static aString TheCpuNumber ();
 
     void readFAB (int i) const;
     //

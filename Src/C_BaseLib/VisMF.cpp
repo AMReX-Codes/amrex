@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.13 1997-11-10 22:14:47 lijewski Exp $
+// $Id: VisMF.cpp,v 1.14 1997-11-10 22:41:21 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -294,46 +294,38 @@ VisMF::Header::Header (const MultiFab& mf,
     }
 }
 
-aString
-VisMF::TheCpuNumber ()
-{
-    //
-    // TODO -- make this work in parallel.
-    //
-    return aString("0000");
-}
-
 void
 VisMF::WriteHeader (const aString& mf_name,
                     VisMF::Header& hdr)
 {
     //
-    // TODO -- make this work in parallel!!!
-    //
     // When running in parallel only one processor should do this I/O.
     //
-    aString MFHdrFileName = mf_name;
+    if (ParallelDescriptor::IOProcessor())
+    {
+        //
+        // TODO -- all headers must be passed to IOProcessor for reduction.
+        //
+        aString MFHdrFileName = mf_name;
 
-    MFHdrFileName += VisMF::MultiFabHdrFileSuffix;
+        MFHdrFileName += VisMF::MultiFabHdrFileSuffix;
 
-    ofstream MFHdrFile(MFHdrFileName.c_str());
+        ofstream MFHdrFile(MFHdrFileName.c_str());
 
-    MFHdrFile << hdr;
+        MFHdrFile << hdr;
+    }
 }
 
 void
 VisMF::WriteOneFilePerCPU (const MultiFab& mf,
                            const aString&  mf_name)
 {
-    //
-    // TODO -- make this work in Parallel!!!
-    //
     VisMF::Header hdr(mf, VisMF::OneFilePerCPU);
 
     aString FabFileName = mf_name;
 
     FabFileName += VisMF::FabFileSuffix;
-    FabFileName += VisMF::TheCpuNumber();
+    FabFileName += VisMF::ToString(ParallelDescriptor::NProcs());
 
     {
         ofstream FabFile(FabFileName.c_str());
@@ -345,9 +337,9 @@ VisMF::WriteOneFilePerCPU (const MultiFab& mf,
             BoxLib::Error(msg.c_str());
         }
 
-        for (long i = 0, N = mf.length(); i < N; i++)
+        for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
         {
-            hdr.m_fod[i] = VisMF::Write(mf[i], FabFileName, FabFile);
+            hdr.m_fod[mfi.index()] = VisMF::Write(mfi(), FabFileName, FabFile);
         }
     }
 
@@ -372,17 +364,14 @@ void
 VisMF::WriteOneFilePerFab (const MultiFab& mf,
                            const aString&  mf_name)
 {
-    //
-    // TODO -- make this work in Parallel!!!
-    //
     VisMF::Header hdr(mf, VisMF::OneFilePerFab);
 
-    for (long i = 0, N = mf.length(); i < N; i++)
+    for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
     {
         aString FabFileName = mf_name;
 
         FabFileName += VisMF::FabFileSuffix;
-        FabFileName += VisMF::ToString(i);
+        FabFileName += VisMF::ToString(mfi.index());
 
         ofstream FabFile(FabFileName.c_str());
 
@@ -393,7 +382,7 @@ VisMF::WriteOneFilePerFab (const MultiFab& mf,
             BoxLib::Error(msg.c_str());
         }
 
-        hdr.m_fod[i] = VisMF::Write(mf[i], FabFileName, FabFile);
+        hdr.m_fod[mfi.index()] = VisMF::Write(mfi(), FabFileName, FabFile);
     }
 
     VisMF::WriteHeader(mf_name, hdr);
