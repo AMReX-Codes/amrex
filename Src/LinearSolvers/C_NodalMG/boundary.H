@@ -24,7 +24,7 @@ public:
     void boundary_mesh(BoxArray& exterior_mesh, int*& grid_ref, const BoxArray& interior_mesh, const Box& domain) const;
 
     virtual Box box(const Box&, const Box&, int) const = 0;
-    virtual void fill(FArrayBox&, const Box&, const FArrayBox&, int, const Box&) const = 0;
+    virtual void fill(FArrayBox&, const Box&, const FArrayBox&, const Box&) const = 0;
     virtual void sync_borders(MultiFab&, const level_interface&) const = 0;
     virtual void fill_borders(MultiFab& r, const level_interface& lev_interface, int w) const = 0;
     virtual void duplicate(List<Box>&, const Box&) const = 0;
@@ -107,7 +107,7 @@ public:
     
     virtual Box box(const Box&, const Box&, int) const;
     // virtual void fill(FArrayBox&, const Box&, const MultiFab&, int, const Box&) const;
-    virtual void fill(FArrayBox&, const Box&, const FArrayBox&, int, const Box&) const;
+    virtual void fill(FArrayBox&, const Box&, const FArrayBox&, const Box&) const;
     virtual void sync_borders(MultiFab&, const level_interface&) const;
     virtual void fill_borders(MultiFab& r, const level_interface& lev_interface, int w) const;
     virtual void duplicate(List<Box>& bl, const Box& domain) const;

@@ -83,8 +83,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
     fill_borders(d, lev_interface[mglev], mg_boundary, -1, m_hg_terrain);
     
     if (m_hg_terrain)
-    {
-	
+    {	
 	for (MultiFabIterator r_mfi(r); r_mfi.isValid(); ++r_mfi)
 	{
 	    DependentMultiFabIterator s_dmfi(r_mfi, s);
