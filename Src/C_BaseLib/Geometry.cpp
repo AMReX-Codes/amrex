@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.13 1998-05-22 21:46:29 lijewski Exp $
+// $Id: Geometry.cpp,v 1.14 1998-05-26 22:58:17 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -177,32 +177,27 @@ Geometry::FillPeriodicFabArray (FabArray<Real,FArrayBox>& fa,
     // all data is "fillable" from the valid region of "fa".
     //
     FabArrayCopyDescriptor<Real,FArrayBox> facd;
+
     FabArrayId faid = facd.RegisterFabArray(&fa);
     
     typedef PIRMMap::iterator PIRMMapIt;
-
-    BoxList unfilledBoxes((*pirm.begin()).second.srcBox.ixType());
     //
     // Register boxes in copy decriptor.
-    // Should be no unfilled boxes when finished.
     //
     for (PIRMMapIt p_it = pirm.begin(); p_it != pirm.end(); ++p_it)
     {
 	(*p_it).second.fbid = facd.AddBox(faid,
                                           (*p_it).second.srcBox,
-                                          &unfilledBoxes,
+                                          0,
                                           (*p_it).second.srcId,
                                           sComp,
-                                          0,
+                                          sComp,
                                           nComp);
     }
-    assert(unfilledBoxes.length() == 0);
     //
     // Gather/scatter distributed data to (local) internal buffers.
     //
     facd.CollectData();
-
-    FArrayBox overlapFab;
     //
     // Loop over my receiving fabs, copy periodic regions from buffered data.
     //
@@ -210,7 +205,7 @@ Geometry::FillPeriodicFabArray (FabArray<Real,FArrayBox>& fa,
     {
         pair<PIRMMapIt,PIRMMapIt> range = pirm.equal_range(fai.index());
         //
-	// For each PIRec on this fab box...
+	// For each PIRec on this fab box ...
         //
 	for (PIRMMapIt p_it = range.first; p_it != range.second; ++p_it)
 	{
@@ -218,17 +213,7 @@ Geometry::FillPeriodicFabArray (FabArray<Real,FArrayBox>& fa,
 
 	    assert(fbid.box() == (*p_it).second.srcBox);
 
-	    overlapFab.resize(fbid.box(), nComp);
-            //
-	    // Fill fab with buffered data, copy into destination.
-            //
-	    facd.FillFab(faid, fbid, overlapFab);
-	    fai().copy(overlapFab,
-                       overlapFab.box(),
-                       0,
-		       (*p_it).second.dstBox,
-                       sComp,
-                       nComp);
+	    facd.FillFab(faid, fbid, fai(), (*p_it).second.dstBox);
         }
     }
 }
