@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.88 2002-11-09 02:15:52 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.89 2002-11-13 05:04:58 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -911,19 +911,18 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     BL_ASSERT(fab.box() == m_ba[idx]);
     BL_ASSERT(fab.nComp() >= dcomp + m_ncomp);
 
-    Array<IntVect> pshifts(27);
-
-    Array<BCRec> bcr(m_ncomp);
-
+    Array<IntVect>             pshifts(27);
+    Array<BCRec>               bcr(m_ncomp);
     Array< PArray<FArrayBox> > cfab(m_amrlevel.level+1);
+    const bool                 extrap    = AmrLevel::desc_lst[m_index].extrap();
+    PArray<AmrLevel>&          amrLevels = m_amrlevel.parent->getAmrLevels();
 
-    const bool extrap = AmrLevel::desc_lst[m_index].extrap();
-
-    PArray<AmrLevel>& amrLevels = m_amrlevel.parent->getAmrLevels();
+#ifndef NDEBUG
     //
     // Set to special value we'll later check to ensure we've filled the FAB.
     //
     fab.setVal(2.e200,fab.box(),dcomp,m_ncomp);
+#endif
     //
     // Build all coarse fabs from which we'll interpolate and
     // fill them with coarse data as best we can.
@@ -946,8 +945,9 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             //
             CrseFabs.set(i, new FArrayBox(cbox,m_ncomp));
 
+#ifndef NDEBUG
             CrseFabs[i].setVal(3.e200);
-
+#endif
             TheState.linInterpFillFab(m_mfcd,
                                       m_mfid[l],
                                       m_fbid[idx][l][i],
@@ -1007,14 +1007,17 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
         // Set non-periodic BCs in coarse data -- what we interpolate with.
         // This MUST come after the periodic fill mumbo-jumbo.
         //
+	const Real*    theCellSize   = TheGeom.CellSize();
+	const RealBox& theProbDomain = TheGeom.ProbDomain();
+
         for (int i = 0; i < CrseFabs.size(); i++)
         {
             if (!ThePDomain.contains(CrseFabs[i].box()))
             {
                 TheState.FillBoundary(CrseFabs[i],
                                       m_time,
-                                      TheGeom.CellSize(),
-                                      TheGeom.ProbDomain(),
+                                      theCellSize,
+                                      theProbDomain,
                                       0,
                                       m_scomp,
                                       m_ncomp);
@@ -1028,18 +1031,17 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
         if (m_FixUpCorners)
         {
             for (int i = 0; i < CrseFabs.size(); i++)
-            {
                 FixUpPhysCorners(CrseFabs[i],TheState,TheGeom,m_time,m_scomp,0,m_ncomp);
-            }
         }
         //
         // Interpolate up to next level.
         //
-        const IntVect&     fine_ratio    = amrLevels[l].fine_ratio;
-        const Array<Box>&  FineBoxes     = m_finebox[idx][l];
-        StateData&         fState        = amrLevels[l+1].state[m_index];
-        const Box&         fDomain       = fState.getDomain();
-        PArray<FArrayBox>& FinerCrseFabs = cfab[l+1];
+        const IntVect&      fine_ratio    = amrLevels[l].fine_ratio;
+        const Array<Box>&   FineBoxes     = m_finebox[idx][l];
+        StateData&          fState        = amrLevels[l+1].state[m_index];
+        const Box&          fDomain       = fState.getDomain();
+        PArray<FArrayBox>&  FinerCrseFabs = cfab[l+1];
+        const Array<BCRec>& theBCs        = AmrLevel::desc_lst[m_index].getBCs();
 
         FArrayBox finefab, crsefab;
 
@@ -1054,9 +1056,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             // Fill crsefab from m_crsebox via copy on intersect.
             //
             for (int j = 0; j < CrseFabs.size(); j++)
-            {
                 crsefab.copy(CrseFabs[j]);
-            }
             //
             // Get boundary conditions for the fine patch.
             //
@@ -1065,7 +1065,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
                           m_scomp,
                           0,
                           m_ncomp,
-                          AmrLevel::desc_lst[m_index].getBCs(),
+                          theBCs,
                           bcr);
             //
             // Overwrite boundary cells with preferred data (use grid index < 0
@@ -1099,9 +1099,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
             // Copy intersect finefab into next level m_crseboxes.
             //
             for (int j = 0; j < FinerCrseFabs.size(); j++)
-            {
                 FinerCrseFabs[j].copy(finefab);
-            }
         }
         //
         // No longer need coarse data at this level.
@@ -1120,29 +1118,29 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     //
     for (int i = 0; i < FinestCrseFabs.size(); i++)
     {
-        fab.copy(FinestCrseFabs[i],0,dcomp,m_ncomp);
+        const Box& bx = FinestCrseFabs[i].box();
+
+        fab.copy(FinestCrseFabs[i],bx,0,bx,dcomp,m_ncomp);
     }
 
     if (FineGeom.isAnyPeriodic() && !FineDomain.contains(fab.box()))
     {
         FineGeom.periodicShift(FineDomain,fab.box(),pshifts);
 
-        for (int iiv = 0; iiv < pshifts.size(); iiv++)
+        for (int i = 0; i < FinestCrseFabs.size(); i++)
         {
-            fab.shift(pshifts[iiv]);
-
-            for (int i = 0; i < FinestCrseFabs.size(); i++)
+            for (int iiv = 0; iiv < pshifts.size(); iiv++)
             {
+                fab.shift(pshifts[iiv]);
+
                 Box src_dst = FinestCrseFabs[i].box() & fab.box();
                 src_dst    &= FineDomain;
 
                 if (src_dst.ok())
-                {
                     fab.copy(FinestCrseFabs[i],src_dst,0,src_dst,dcomp,m_ncomp);
-                }
-            }
 
-            fab.shift(-pshifts[iiv]);
+                fab.shift(-pshifts[iiv]);
+            }
         }
     }
     //
@@ -1179,7 +1177,6 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     //
     // The final FAB had better be completely filled with "good" data.
     //
-    BL_ASSERT(fab.norm(0,dcomp,m_ncomp) < 2.e200);
 }
 
 bool
