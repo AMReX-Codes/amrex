@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.39 1998-11-18 20:31:56 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.40 1998-11-24 01:00:54 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -192,49 +192,97 @@ class ParallelDescriptor
     //
     static void ReduceBoolAnd (bool& rvar);
     //
+    //@ManDoc: And-wise boolean reduction to specified cpu.
+    //
+    static void ReduceBoolAnd (bool& rvar, int cpu);
+    //
     //@ManDoc: Or-wise boolean reduction.
     //
     static void ReduceBoolOr  (bool& rvar);
+    //
+    //@ManDoc: Or-wise boolean reduction to specified cpu.
+    //
+    static void ReduceBoolOr  (bool& rvar, int cpu);
     //
     //@ManDoc: Real sum reduction.
     //
     static void ReduceRealSum (Real& rvar);
     //
+    //@ManDoc: Real sum reduction to specified cpu.
+    //
+    static void ReduceRealSum (Real& rvar, int cpu);
+    //
     //@ManDoc: Real max reduction.
     //
     static void ReduceRealMax (Real& rvar);
+    //
+    //@ManDoc: Real max reduction to specified cpu.
+    //
+    static void ReduceRealMax (Real& rvar, int cpu);
     //
     //@ManDoc: Real min reduction.
     //
     static void ReduceRealMin (Real& rvar);
     //
+    //@ManDoc: Real min reduction to specified cpu.
+    //
+    static void ReduceRealMin (Real& rvar, int cpu);
+    //
     //@ManDoc: Integer sum reduction.
     //
     static void ReduceIntSum (int& rvar);
+    //
+    //@ManDoc: Integer sum reduction to specified cpu.
+    //
+    static void ReduceIntSum (int& rvar, int cpu);
     //
     //@ManDoc: Integer max reduction.
     //
     static void ReduceIntMax (int& rvar);
     //
+    //@ManDoc: Integer max reduction to specified cpu.
+    //
+    static void ReduceIntMax (int& rvar, int cpu);
+    //
     //@ManDoc: Integer min reduction.
     //
     static void ReduceIntMin (int& rvar);
+    //
+    //@ManDoc: Integer min reduction to specified cpu.
+    //
+    static void ReduceIntMin (int& rvar, int cpu);
     //
     //@ManDoc: Long sum reduction.
     //
     static void ReduceLongSum (long& rvar);
     //
+    //@ManDoc: Long sum reduction to specified cpu.
+    //
+    static void ReduceLongSum (long& rvar, int cpu);
+    //
     //@ManDoc: Long max reduction.
     //
     static void ReduceLongMax (long& rvar);
+    //
+    //@ManDoc: Long max reduction to specified cpu.
+    //
+    static void ReduceLongMax (long& rvar, int cpu);
     //
     //@ManDoc: Long min reduction.
     //
     static void ReduceLongMin (long& rvar);
     //
+    //@ManDoc: Long min reduction to specified cpu.
+    //
+    static void ReduceLongMin (long& rvar, int cpu);
+    //
     //@ManDoc: Long and-wise reduction.
     //
     static void ReduceLongAnd (long& rvar);
+    //
+    //@ManDoc: Long and-wise reduction to specified cpu.
+    //
+    static void ReduceLongAnd (long& rvar, int cpu);
     //
     //@ManDoc: Parallel gather.
     //
@@ -248,6 +296,15 @@ class ParallelDescriptor
                            void* dest,
                            int   nbytes);
   private:
+    //
+    // Reduce helper functons.
+    //
+    static void DoAllReduceReal (Real& r, int op);
+    static void DoAllReduceLong (long& r, int op);
+    static void DoAllReduceInt (int& r, int op);
+    static void DoReduceReal (Real& r, int op, int cpu);
+    static void DoReduceLong (long& r, int op, int cpu);
+    static void DoReduceInt (int& r, int op, int cpu);
     //
     // My processor ID.
     //

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.6 1998-07-24 01:25:38 lijewski Exp $
+// $Id: RunStats.cpp,v 1.7 1998-11-24 01:00:54 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -164,35 +164,39 @@ RunStats::Print (ostream&            os,
 void
 RunStats::report (ostream& os)
 {
+    const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
     double rtime  = Utility::second();
     double rwtime = Utility::wsecond();
 
-    ParallelDescriptor::ReduceRealSum(rtime);
-    ParallelDescriptor::ReduceRealMax(rwtime);
+    ParallelDescriptor::ReduceRealSum(rtime,IOProc);
+    ParallelDescriptor::ReduceRealMax(rwtime,IOProc);
 
     assert(rwtime > 0);
 
-    ParallelDescriptor::ReduceRealSum(Incremental_Byte_Count);
-    RunStats::DiskBytes += Incremental_Byte_Count;
-    Incremental_Byte_Count = 0;
+    ParallelDescriptor::ReduceRealSum(Incremental_Byte_Count,IOProc);
 
-    double tot_run_time  = RunStats::TotalCPU + rtime;
-    double tot_run_wtime = RunStats::TotalWCT + rwtime;
+    RunStats::DiskBytes += Incremental_Byte_Count;
+
+    Incremental_Byte_Count = 0;
     //
-    // Make a copy of the local RunStats::TheStats and reduce it.
+    // Make a copy of the local RunStats::TheStats and reduce it to IOProc.
     //
     List<RunStatsData> TheTotals = RunStats::TheStats;
 
     for (ListIterator<RunStatsData> it(TheTotals); it; ++it)
     {
-        ParallelDescriptor::ReduceRealSum(TheTotals[it].run_time);
-        ParallelDescriptor::ReduceRealMax(TheTotals[it].run_wtime);
+        ParallelDescriptor::ReduceRealSum(TheTotals[it].run_time,IOProc);
+        ParallelDescriptor::ReduceRealMax(TheTotals[it].run_wtime,IOProc);
     }
 
     RunStats::CollectNumPts();
 
     if (ParallelDescriptor::IOProcessor())
     {
+        double tot_run_time  = RunStats::TotalCPU + rtime;
+        double tot_run_wtime = RunStats::TotalWCT + rwtime;
+
         os.setf(ios::showpoint);
 
         int old_prec = os.precision(15);
@@ -363,23 +367,28 @@ RunStats::report_values (const Array<aString>& stat_names,
 void
 RunStats::dumpStats (ofstream& os)
 {
+    const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
     double rtime  = Utility::second();
     double rwtime = Utility::wsecond();
 
-    ParallelDescriptor::ReduceRealSum(rtime);
-    ParallelDescriptor::ReduceRealMax(rwtime);
+    ParallelDescriptor::ReduceRealSum(rtime,IOProc);
+    ParallelDescriptor::ReduceRealMax(rwtime,IOProc);
 
-    ParallelDescriptor::ReduceRealSum(Incremental_Byte_Count);
+    ParallelDescriptor::ReduceRealSum(Incremental_Byte_Count,IOProc);
+
     RunStats::DiskBytes += Incremental_Byte_Count;
+
     Incremental_Byte_Count = 0;
     //
-    // Make a copy of the local RunStats::TheStats and sum the run_time's.
+    // Make a copy of the local RunStats::TheStats and reduce to IOProc.
     //
     List<RunStatsData> TheTotals = RunStats::TheStats;
 
     for (ListIterator<RunStatsData> it(TheTotals); it; ++it)
     {
-        ParallelDescriptor::ReduceRealSum(TheTotals[it].run_time);
+        ParallelDescriptor::ReduceRealSum(TheTotals[it].run_time,IOProc);
+        ParallelDescriptor::ReduceRealSum(TheTotals[it].run_wtime,IOProc);
     }
 
     RunStats::CollectNumPts();
@@ -496,12 +505,12 @@ ostream&
 operator<< (ostream&            os,
             const RunStatsData& rd)
 {
-        os << "(RunStatsData "
-           << rd.name      << ' '
-           << rd.level     << ' '
-           << rd.is_on     << ' '
-           << rd.run_time  << ' '
-           << rd.run_wtime << ")\n";
+    os << "(RunStatsData "
+       << rd.name      << ' '
+       << rd.level     << ' '
+       << rd.is_on     << ' '
+       << rd.run_time  << ' '
+       << rd.run_wtime << ")\n";
     return os;
 }
 
@@ -509,20 +518,20 @@ istream &
 operator>> (istream&      is,
             RunStatsData& rd)
 {
-        is.ignore(BL_IGNORE_MAX, '(');
-        aString s;
-        is >> s;
-        if (s != "RunStatsData")
-        {
-            cerr << "unexpected token " << s << '\n';
-            BoxLib::Abort();
-        }
-        is >> rd.name;
-        is >> rd.level;
-        is >> rd.is_on;
-        is >> rd.run_time;
-        is >> rd.run_wtime;
-        is.ignore(BL_IGNORE_MAX,')');
+    is.ignore(BL_IGNORE_MAX, '(');
+    aString s;
+    is >> s;
+    if (s != "RunStatsData")
+    {
+        cerr << "unexpected token " << s << '\n';
+        BoxLib::Abort();
+    }
+    is >> rd.name;
+    is >> rd.level;
+    is >> rd.is_on;
+    is >> rd.run_time;
+    is >> rd.run_wtime;
+    is.ignore(BL_IGNORE_MAX,')');
     return is;
 }
 
@@ -530,12 +539,12 @@ ostream&
 operator<< (ostream&        os,
             const RunStats& r)
 {
-        os << "(RunStats "
-           << r.name
-           << " level "
-           << r.level
-           << (r.isOn() ? "" : "in")
-           << "active)"
-           << '\n';
+    os << "(RunStats "
+       << r.name
+       << " level "
+       << r.level
+       << (r.isOn() ? "" : "in")
+       << "active)"
+       << '\n';
     return os;
 }
