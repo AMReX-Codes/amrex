@@ -78,10 +78,10 @@ endif
 $(tdir)/c.depends:  $(csources)
 	@if [ ! -d $(tdir) ]; then mkdir -p $(tdir); fi
 ifdef MKVERBOSE
-	perl $(MKDEP) $(c_includes) --odir$(odir) $^ > $(tdir)/c.depends 
+	perl $(MKDEP) $(c_includes) --odir $(odir) $^ > $(tdir)/c.depends 
 else
 	@echo "Building c dependency File ..."
-	@perl $(MKDEP) $(c_includes) --odir$(odir) $^ > $(tdir)/c.depends 
+	@perl $(MKDEP) $(c_includes) --odir $(odir) $^ > $(tdir)/c.depends 
 endif
 
 -include $(tdir)/f90.depends
