@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.64 2000-02-28 23:26:37 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.65 2000-03-01 20:19:02 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1255,6 +1255,90 @@ AmrLevel::derive (const aString& name,
     }
 
     return mf;
+}
+
+void
+AmrLevel::derive (const aString& name,
+                  Real           time,
+                  MultiFab&      mf,
+                  int            dcomp)
+{
+    BL_ASSERT(dcomp < mf.nComp());
+
+    const int ngrow = mf.nGrow();
+
+    int index, scomp, ncomp;
+
+    if (isStateVariable(name,index,scomp))
+    {
+        FillPatchIterator fpi(*this,mf,ngrow,time,index,scomp,1);
+
+        for ( ; fpi.isValid(); ++fpi)
+        {
+            BL_ASSERT(mf[fpi.index()].box() == fpi().box());
+
+            mf[fpi.index()].copy(fpi(),0,dcomp,1);
+        }
+    }
+    else if (const DeriveRec* rec = derive_lst.get(name))
+    {
+        rec->getRange(0,index,scomp,ncomp);
+
+        BoxArray srcBA(mf.boxArray());
+        BoxArray dstBA(mf.boxArray());
+
+        srcBA.convert(rec->boxMap());
+        dstBA.convert(rec->deriveType());
+
+        MultiFab srcMF(srcBA,rec->numState(),ngrow);
+
+        for (int k = 0, dc = 0; k < rec->numRange(); k++, dc += ncomp)
+        {
+            rec->getRange(k,index,scomp,ncomp);
+
+            FillPatchIterator fpi(*this,srcMF,ngrow,time,index,scomp,ncomp);
+
+            for ( ; fpi.isValid(); ++fpi)
+            {
+                BL_ASSERT(srcMF[fpi.index()].box() == fpi().box());
+
+                srcMF[fpi.index()].copy(fpi(),0,dc,ncomp);
+            }
+        }
+
+        for (MultiFabIterator mfi(srcMF); mfi.isValid(); ++mfi)
+        {
+            int         idx     = mfi.index();
+            Real*       ddat    = mf[idx].dataPtr(dcomp);
+            const int*  dlo     = mf[idx].loVect();
+            const int*  dhi     = mf[idx].hiVect();
+            int         n_der   = rec->numDerive();
+            Real*       cdat    = mfi().dataPtr();
+            const int*  clo     = mfi().loVect();
+            const int*  chi     = mfi().hiVect();
+            int         n_state = rec->numState();
+            const int*  dom_lo  = state[index].getDomain().loVect();
+            const int*  dom_hi  = state[index].getDomain().hiVect();
+            const Real* dx      = geom.CellSize();
+            const int*  bcr     = rec->getBC();
+            const Real* xlo     = grid_loc[idx].lo();
+            Real        dt      = parent->dtLevel(level);
+
+            rec->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
+                           cdat,ARLIM(clo),ARLIM(chi),&n_state,
+                           dlo,dhi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
+                           &level,&idx);
+        }
+    }
+    else
+    {
+        //
+        // If we got here, cannot derive given name.
+        //
+        aString msg("AmrLevel::derive(MultiFab*): unknown variable: ");
+        msg += name;
+        BoxLib::Error(msg.c_str());
+    }
 }
 
 Array<int>

@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.40 2000-02-28 23:26:36 lijewski Exp $
+// $Id: AmrLevel.H,v 1.41 2000-03-01 20:19:02 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -268,6 +268,14 @@ public:
     MultiFab* derive (const aString& name,
                       Real           time,
                       int            ngrow);
+
+    /*@ManDoc: This version of derive() fills the dcomp'th component of mf
+               with the derived quantity.
+    */
+    void derive (const aString& name,
+                 Real           time,
+                 MultiFab&      mf,
+                 int            dcomp);
     //
     //@ManDoc: State data object.
     //
