@@ -1,6 +1,6 @@
 
 //
-// $Id: BndryData.cpp,v 1.17 2002-11-26 22:47:22 lijewski Exp $
+// $Id: BndryData.cpp,v 1.18 2005-01-05 22:20:05 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -73,12 +73,12 @@ BndryData::BndryData (const BndryData& src)
 BndryData&
 BndryData::operator= (const BndryData& src)
 {
-    BndryRegister::operator=(src);
-
-    clear_masks();
-
-    init(src);
-
+    if (this != &src)
+    {
+        BndryRegister::operator=(src);
+        clear_masks();
+        init(src);
+    }
     return *this;
 }
 
