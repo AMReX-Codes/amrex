@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.1 1998-11-17 19:11:09 lijewski Exp $
+# $Id: GNUmakefile,v 1.2 1998-11-18 20:34:50 lijewski Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -29,7 +29,6 @@ include $(TOP)/mk/Make.defs ./Make.package
 INCLUDE_LOCATIONS += $(TOP)/include
 
 ifeq ($(USE_MPI), TRUE)
-DEFINES += -DBL_USE_MPI
 LIBRARIES += -lmpi
 ifeq ($(MACHINE), OSF1)
 INCLUDE_LOCATIONS += /usr/local/mpi/include
