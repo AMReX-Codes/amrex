@@ -2,7 +2,7 @@
 #define _BL_WORKQUEUE_H_
 
 //
-// $Id: WorkQueue.H,v 1.4 2001-08-21 22:16:26 car Exp $
+// $Id: WorkQueue.H,v 1.5 2001-11-16 18:19:33 car Exp $
 //
 
 #include <Thread.H>
@@ -27,7 +27,7 @@ public:
     static void Initialize ();
     static void Finalize ();
 protected:
-    ConditionVariable cv;
+    mutable ConditionVariable cv;
     Gate gate;
     std::queue<task*> wrkq;
     bool quit;
