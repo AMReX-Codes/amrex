@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.35 1998-05-28 21:32:03 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.36 1998-06-11 21:24:25 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -552,8 +552,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     vector<FillBoxId> fillBoxId_mflx, fillBoxId_area;
 
     for (FabSetIterator mfi_bndry_lo(bndry[face_lo]);
-         mfi_bndry_lo.isValid(false);
-         ++mfi_bndry_lo)
+         mfi_bndry_lo.isValid(false); ++mfi_bndry_lo)
     {
         DependentFabSetIterator mfi_bndry_hi(mfi_bndry_lo, bndry[face_hi]);
 
@@ -570,6 +569,11 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                                                      srccomp,
                                                      0,
                                                      numcomp));
+                //
+                // Here we'll save the index into the FabSet.
+                //
+                fillBoxId_mflx.back().FabIndex(mfi_bndry_lo.index());
+
                 fillBoxId_area.push_back(mfcd.AddBox(mfid_area,
                                                      lobox,
                                                      0,
@@ -577,6 +581,10 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                                                      0,
                                                      0,
                                                      1));
+                //
+                // Here we'll save the direction.
+                //
+                fillBoxId_area.back().FabIndex(Orientation::low);
             }
             if (mfi_bndry_hi.fabbox().intersects(mflx.boxArray()[k]))
             {
@@ -589,6 +597,11 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                                                      srccomp,
                                                      0,
                                                      numcomp));
+                //
+                // Here we'll save the index into the FabSet.
+                //
+                fillBoxId_mflx.back().FabIndex(mfi_bndry_hi.index());
+
                 fillBoxId_area.push_back(mfcd.AddBox(mfid_area,
                                                      hibox,
                                                      0,
@@ -596,84 +609,57 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                                                      0,
                                                      0,
                                                      1));
+                //
+                // Here we'll save the direction.
+                //
+                fillBoxId_area.back().FabIndex(Orientation::high);
             }
         }
     }
 
     mfcd.CollectData();
 
+    assert(fillBoxId_mflx.size() == fillBoxId_area.size());
+
+    const int MyProc = ParallelDescriptor::MyProc();
+
     FArrayBox mflx_fab, area_fab;
 
-    vector<FillBoxId>::const_iterator fbidli_mflx = fillBoxId_mflx.begin();
-    vector<FillBoxId>::const_iterator fbidli_area = fillBoxId_area.begin();
-
-    for (FabSetIterator mfi_bndry_lo(bndry[face_lo]);
-         mfi_bndry_lo.isValid(false);
-         ++mfi_bndry_lo)
+    for (int i = 0; i < fillBoxId_mflx.size(); i++)
     {
-        DependentFabSetIterator mfi_bndry_hi(mfi_bndry_lo, bndry[face_hi]);
+        const FillBoxId& fbid_mflx = fillBoxId_mflx[i];
+        const FillBoxId& fbid_area = fillBoxId_area[i];
+        assert(fbid_mflx.box() == fbid_area.box());
 
-        for (int k = 0; k < mflx.boxArray().length(); k++)
-        {
-            if (mfi_bndry_lo.fabbox().intersects(mflx.boxArray()[k]))
-            {
-                Box lobox = mfi_bndry_lo.fabbox() & mflx.boxArray()[k];
-                assert(!(fbidli_mflx == fillBoxId_mflx.end()));
-                const FillBoxId& fbid_mflx = *fbidli_mflx++;
-                mflx_fab.resize(fbid_mflx.box(), numcomp);
-                mfcd.FillFab(mfid_mflx,  fbid_mflx, mflx_fab);
+        Orientation the_face(dir,Orientation::Side(fbid_area.FabIndex()));
+        assert(the_face == face_lo || the_face == face_hi);
 
-                assert(!(fbidli_area == fillBoxId_area.end()));
-                const FillBoxId& fbid_area = *fbidli_area++;
-                area_fab.resize(fbid_area.box(), 1);
-                mfcd.FillFab(mfid_area,  fbid_area, area_fab);
+        mflx_fab.resize(fbid_mflx.box(), numcomp);
+        mfcd.FillFab(mfid_mflx, fbid_mflx, mflx_fab);
+        area_fab.resize(fbid_mflx.box(), 1);
+        mfcd.FillFab(mfid_area, fbid_area, area_fab);
 
-                const int*  flo      = mflx_fab.box().loVect();
-                const int*  fhi      = mflx_fab.box().hiVect();
-                const Real* flx_dat  = mflx_fab.dataPtr();
-                const int*  alo      = area_fab.box().loVect();
-                const int*  ahi      = area_fab.box().hiVect();
-                const Real* area_dat = area_fab.dataPtr();
-                const int*  rlo      = mfi_bndry_lo().loVect();
-                const int*  rhi      = mfi_bndry_lo().hiVect();
-                Real*       lodat    = mfi_bndry_lo().dataPtr(destcomp);
-                const int*  lo       = lobox.loVect();
-                const int*  hi       = lobox.hiVect();
-                FORT_FRCAINIT(lodat,ARLIM(rlo),ARLIM(rhi),
-                              flx_dat,ARLIM(flo),ARLIM(fhi),
-                              area_dat,ARLIM(alo),ARLIM(ahi),
-                              lo,hi,&numcomp,&dir,&mult);
-            }
-            if (mfi_bndry_hi.fabbox().intersects(mflx.boxArray()[k]))
-            {
-                Box hibox = mfi_bndry_hi.fabbox() & mflx.boxArray()[k];
-                assert(!(fbidli_mflx == fillBoxId_mflx.end()));
-                const FillBoxId& fbid_mflx = *fbidli_mflx++;
-                mflx_fab.resize(fbid_mflx.box(), numcomp);
-                mfcd.FillFab(mfid_mflx,  fbid_mflx, mflx_fab);
+        FabSet& fabset = bndry[the_face];
+        int fabindex   = fbid_mflx.FabIndex();
 
-                assert(!(fbidli_area == fillBoxId_area.end()));
-                const FillBoxId& fbid_area = *fbidli_area++;
-                area_fab.resize(fbid_area.box(), 1);
-                mfcd.FillFab(mfid_area,  fbid_area, area_fab);
+        assert(fabset.DistributionMap().ProcessorMap()[fabindex] == MyProc);
 
-                const int*  flo      = mflx_fab.box().loVect();
-                const int*  fhi      = mflx_fab.box().hiVect();
-                const Real* flx_dat  = mflx_fab.dataPtr();
-                const int*  alo      = area_fab.box().loVect();
-                const int*  ahi      = area_fab.box().hiVect();
-                const Real* area_dat = area_fab.dataPtr();
-                const int*  rlo      = mfi_bndry_hi().loVect();
-                const int*  rhi      = mfi_bndry_hi().hiVect();
-                Real*       hidat    = mfi_bndry_hi().dataPtr(destcomp);
-                const int*  lo       = hibox.loVect();
-                const int*  hi       = hibox.hiVect();
-                FORT_FRCAINIT(hidat,ARLIM(rlo),ARLIM(rhi),
-                              flx_dat,ARLIM(flo),ARLIM(fhi),
-                              area_dat,ARLIM(alo),ARLIM(ahi),
-                              lo,hi,&numcomp,&dir,&mult);
-            }
-        }
+        FArrayBox&  fab      = fabset[fabindex];
+        const int*  flo      = mflx_fab.box().loVect();
+        const int*  fhi      = mflx_fab.box().hiVect();
+        const Real* flx_dat  = mflx_fab.dataPtr();
+        const int*  alo      = area_fab.box().loVect();
+        const int*  ahi      = area_fab.box().hiVect();
+        const Real* area_dat = area_fab.dataPtr();
+        const int*  rlo      = fab.loVect();
+        const int*  rhi      = fab.hiVect();
+        Real*       lodat    = fab.dataPtr(destcomp);
+        const int*  lo       = fbid_mflx.box().loVect();
+        const int*  hi       = fbid_mflx.box().hiVect();
+        FORT_FRCAINIT(lodat,ARLIM(rlo),ARLIM(rhi),
+                      flx_dat,ARLIM(flo),ARLIM(fhi),
+                      area_dat,ARLIM(alo),ARLIM(ahi),
+                      lo,hi,&numcomp,&dir,&mult);
     }
 }
 
