@@ -1,4 +1,5 @@
 t
 *.ncb *.opt *.plg
 conn
+knapsack.out
 Debug Release

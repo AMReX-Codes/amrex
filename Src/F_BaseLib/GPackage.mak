@@ -6,7 +6,6 @@ f90sources += mt19937ar.f90
 f90sources += bl_constants.f90
 f90sources += bl_error.f90  
 f90sources += bl_IO.f90
-f90sources += bl_kiss.f90
 f90sources += bl_mem_stat.f90
 f90sources += bl_parmparse.f90
 f90sources += bl_space.f90  

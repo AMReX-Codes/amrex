@@ -19,9 +19,6 @@ f90objects = $(f90objects) $(obj_dir)\bl_error.obj
 f90sources = $(f90sources) $(boxlib_dir)\bl_IO.f90
 f90objects = $(f90objects) $(obj_dir)\bl_IO.obj
 
-f90sources = $(f90sources) $(boxlib_dir)\bl_kiss.f90
-f90objects = $(f90objects) $(obj_dir)\bl_kiss.obj
-
 f90sources = $(f90sources) $(boxlib_dir)\bl_mem_stat.f90
 f90objects = $(f90objects) $(obj_dir)\bl_mem_stat.obj
 
