@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.108 2000-06-12 23:43:03 almgren Exp $
+// $Id: Amr.cpp,v 1.109 2000-06-15 16:57:41 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -1506,6 +1506,19 @@ Amr::regrid (int  lbase,
                 << endl;
 
         printGridInfo(gridlog,start,finest_level);
+    }
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
+        if (lbase == 0)
+            cout << "STEP = " << level_steps[0] << ' ';
+
+        cout << "TIME = "
+             << time
+             << " : REGRID  with lbase = "
+             << lbase
+             << endl;
+
+        printGridInfo(cout,start,finest_level);
     }
 
     stats.end();
