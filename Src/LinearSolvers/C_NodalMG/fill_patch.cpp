@@ -223,7 +223,7 @@ bool fill_patch(FArrayBox& patch, const Box& region,
 	gridnum[0] = -1;
 	for (int i = 0; i < lev_interface.ngrids(idim); i++) 
 	{
-	    int igrid = lev_interface.grid(idim, index,i);
+	    int igrid = lev_interface.grid(idim, index, i);
 	    if (igrid != -1) 
 	    {
 		for (int j = 0; gridnum[j] != igrid; j++) 
