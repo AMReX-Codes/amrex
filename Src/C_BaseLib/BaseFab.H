@@ -4,7 +4,7 @@
 #define _BASEFAB_H_
 
 //
-// $Id: BaseFab.H,v 1.2 1997-09-15 23:33:20 lijewski Exp $
+// $Id: BaseFab.H,v 1.3 1997-09-16 03:30:36 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -127,34 +127,11 @@ public:
     //
     inline const Box& box () const;
 
-    /*@ManDoc:  Returns the domain of the PARENT `BaseFab'.  If this
-                is not an alias `BaseFab', this is identical to the
-                function "box".
-    */
-    inline const Box& pBox () const;
-
     /*@ManDoc: Returns a pointer to an array of SPACEDIM integers
                giving the length of the domain in each direction.
     */
     inline const int* length () const;
 
-    /*@ManDoc: Returns a pointer to an array of SPACEDIM integers
-               giving the length of the parent's domain in each direction.
-               If this is not an alias `BaseFab', this is identical to the
-               function "length"
-    */
-    inline const int* pLength () const;
-
-    /*@ManDoc:  Returns true if the domain of the
-                `BaseFab' is the same as the domain of the parent `BaseFab',
-                and if the number of components is the same as the number
-                of components of the parent `BaseFab'.  If the
-                `BaseFab' object does not have a parent, this returns true
-                (the `BaseFab' is its own parent).  Note that this does
-                not unequivocally imply that a FAB is NOT aliased.
-    */
-    inline bool isFilled () const;
- 
     /*@ManDoc: Returns the lower corner of the domain.  See
                class `Box' for analogue.
     */
@@ -180,16 +157,6 @@ public:
                Fortran subroutines.
     */
     inline const int* hiVect () const;
- 
-    /*@ManDoc: This is analogous to loVect, except that
-               it reports on the parent's domain.
-    */
-    inline const int* pLoVect () const;
- 
-    /*@ManDoc: Thisis analogous to hiVect, except that
-               it reports on the parent's domain.
-    */
-    inline const int* pHiVect () const;
  
     /*@ManDoc: Returns true if the domain of fab is totally contained within
                the domain of this `BaseFab'.
@@ -407,15 +374,13 @@ private:
     //
     BaseFab<T>& operator= (const BaseFab<T>&);
     BaseFab (const BaseFab<T>&);
+
 protected:
+
     Box  domain;   // My index space.
-    Box  pdomain;  // Index space of a parent (may be same as domain).
     int  nvar;     // Number components.
-    int  noffset;  // Offset to apply to dptr component.
-    int  pnvar;    // Number of components in parent.
     long numpts;   // Cached number of points in FAB.
-    long pnumpts;  // Cached number of points in parent.
-    DPtr<T> dptr;  // Data pointer, a `smart' pointer.
+    T*   dptr;     // The data pointer.
 };
 
 //
@@ -440,34 +405,10 @@ BaseFab<T>::box () const
 
 template <class T>
 inline
-const Box&
-BaseFab<T>::pBox () const
-{
-    return pdomain;
-}
-
-template <class T>
-inline
 const int*
 BaseFab<T>::length () const
 {
     return domain.length();
-}
-
-template <class T>
-inline
-const int*
-BaseFab<T>::pLength () const
-{
-    return pdomain.length();
-}
-
-template <class T>
-inline
-bool
-BaseFab<T>::isFilled () const
-{
-    return domain == pdomain && nvar == pnvar;
 }
 
 template <class T>
@@ -504,22 +445,6 @@ BaseFab<T>::hiVect () const
 
 template <class T>
 inline
-const int*
-BaseFab<T>::pLoVect () const
-{
-    return pdomain.loVect();
-}
-
-template <class T>
-inline
-const int*
-BaseFab<T>::pHiVect () const
-{
-    return pdomain.hiVect();
-}
-
-template <class T>
-inline
 bool
 BaseFab<T>::contains (const BaseFab<T>& fab) const
 {
@@ -539,7 +464,8 @@ inline
 T*
 BaseFab<T>::dataPtr (int n)
 {
-    return &dptr[(n+noffset)*pnumpts];
+    assert(!(dptr == 0));
+    return &dptr[n*numpts];
 }
 
 template <class T>
@@ -547,7 +473,8 @@ inline
 const T*
 BaseFab<T>::dataPtr (int n) const
 {
-    return &dptr[(n+noffset)*pnumpts];
+    assert(!(dptr == 0));
+    return &dptr[n*numpts];
 }
 
 template <class T>
@@ -556,7 +483,8 @@ T&
 BaseFab<T>::operator() (const IntVect& p,
                         int            n)
 {
-    return dptr[pdomain.index(p)+(n+noffset)*pnumpts];
+    assert(!(dptr == 0));
+    return dptr[domain.index(p)+n*numpts];
 }
 
 template <class T>
@@ -564,7 +492,8 @@ inline
 T&
 BaseFab<T>::operator() (const IntVect& p)
 {
-    return dptr[pdomain.index(p)+(noffset)*pnumpts];
+    assert(!(dptr == 0));
+    return dptr[domain.index(p)];
 }
 
 template <class T>
@@ -573,7 +502,8 @@ const T&
 BaseFab<T>::operator() (const IntVect& p,
                         int            n) const
 {
-    return dptr[pdomain.index(p)+(n+noffset)*pnumpts];
+    assert(!(dptr == 0));
+    return dptr[domain.index(p)+n*numpts];
 }
 
 template <class T>
@@ -581,7 +511,8 @@ inline
 const T&
 BaseFab<T>::operator() (const IntVect& p) const
 {
-    return dptr[pdomain.index(p)+(noffset)*pnumpts];
+    assert(!(dptr == 0));
+    return dptr[domain.index(p)];
 }
 
 template <class T>
@@ -600,7 +531,6 @@ BaseFab<T>&
 BaseFab<T>::shift (const IntVect& v)
 {
     domain  += v;
-    pdomain += v;
     return *this;
 }
 
@@ -611,7 +541,6 @@ BaseFab<T>::shift (int idir,
                    int n_cell)
 {
     domain.shift(idir,n_cell);
-    pdomain.shift(idir,n_cell);
     return *this;
 }
 
@@ -621,7 +550,6 @@ BaseFab<T> &
 BaseFab<T>::shiftHalf (const IntVect& v)
 {
     domain.shiftHalf(v);
-    pdomain.shiftHalf(v);
     return *this;
 }
 
@@ -632,7 +560,6 @@ BaseFab<T>::shiftHalf (int idir,
                        int n_cell)
 {
     domain.shiftHalf(idir,n_cell);
-    pdomain.shiftHalf(idir,n_cell);
     return *this;
 }
 
@@ -687,23 +614,22 @@ BaseFab<T>::setVal (T          x,
 
 template <class T>
 BaseFab<T>::BaseFab ()
-    : domain(Box()),
-      pdomain(Box()),
-      nvar(0),
-      noffset(0),
-      pnvar(0),
-      numpts(0)
-{ }
+    :
+    domain(Box()),
+    nvar(0),
+    numpts(0),
+    dptr(0)
+{}
 
 template <class T>
 BaseFab<T>::BaseFab (const Box& bx,
                      int        n)
-    : domain(bx),
-      pdomain(bx)
+    :
+    domain(bx),
+    nvar(n),
+    numpts(bx.numPts()),
+    dptr(0)
 {
-    pnvar   = nvar = n;
-    pnumpts = numpts = bx.numPts();
-    noffset = 0;
     define();
 }
 
@@ -712,11 +638,12 @@ BaseFab<T>::BaseFab (const Box& bx,
 template <class T>
 BaseFab<T>::BaseFab (const PointBaseFab<PointDomain,T>& pbf,
                      T                                  val)
+    :
+    domain(pbf.minimalBox()),
+    nvar(pbf.nComp()),
+    numpts(domain.numPts()),
+    dptr(0)
 {
-    pdomain = domain = pbf.minimalBox();
-    pnvar   = nvar = pbf.nComp();
-    noffset = 0;
-    pnumpts = numpts = domain.numPts();
     resize(domain, nvar);
     setVal(val);
     PointForAllCX(PointDomain,T,pbf)
@@ -734,12 +661,10 @@ BaseFab<T>::define ()
     assert(nvar > 0);
     assert(numpts > 0);
 
-    if (!dptr.ok())
+    if (dptr == 0)
     {
-        AliasedDPtr<T>* ptr = new AliasedDPtr<T>(nvar*numpts);
-        if (ptr == 0)
+        if ((dptr = new T[nvar*numpts]) == 0)
             BoxLib::OutOfMemory(__FILE__, __LINE__);
-        dptr.setDPtr(ptr);
     }
 }
 
@@ -749,37 +674,68 @@ BaseFab<T>::define ()
 
 template <class T>
 BaseFab<T>::~BaseFab ()
-{}
+{
+    delete [] dptr;
+}
 
 template <class T>
 void
 BaseFab<T>::resize (const Box& b,
                     int        n)
 {
-    pnvar    = nvar   = n;
-    pdomain  = domain = b;
-    pnumpts  = numpts = domain.numPts();
-    int size = nvar*numpts;
-    if (!dptr.ok())
+    long old_size = nvar*numpts;
+
+    nvar   = n;
+    domain = b;
+    numpts = domain.numPts();
+
+    if (dptr == 0)
+    {
         define();
+    }
     else
-        dptr->resize(size);
+    {
+        long new_size = nvar*numpts;
+
+        if (new_size > old_size)
+        {
+            T* ndptr = new T[new_size];
+
+            if (ndptr == 0)
+                BoxLib::OutOfMemory(__FILE__, __LINE__);
+
+            long i = 0;
+
+            for ( ; i < old_size; i++)
+            {
+                ndptr[i] = dptr[i];
+            }
+
+            delete [] dptr;
+
+            dptr = ndptr;
+        }
+    }
 }
 
 template <class T>
 void
 BaseFab<T>::clear ()
 {
-    if (dptr.ok())
-        dptr->clear();
+    if (!(dptr == 0))
+        delete [] dptr;
+    dptr   = 0;
     domain = Box();
     nvar   = 0;
     numpts = 0;
 }
 
-// performCopy has been rewritten here so we can insert pragma's which
+//
+// performCopy() has been rewritten here so we can insert pragma's which
 // will enhance vectorization on the Cray's.  The downside is that the
 // code is greatly expanded and rather incompreshensible.
+//
+
 template <class T>
 void
 BaseFab<T>::performCopy (const BaseFab<T>& src,
@@ -798,126 +754,124 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
 #if (BL_SPACEDIM == 1)
 {                                                                       
     assert((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp());
-    assert((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp());                
-    Box _subbox_ = box();                                            
-    _subbox_ &= destbox;                                                  
-    assert(srcbox.sameSize(_subbox_));                                 
-    if(_subbox_.ok()) {                                           
-        const int *_th_plo = pLoVect();                          
-        const int *_th_plen = pLength();                        
-        const int *_x_plo = (src).pLoVect();                     
-        const int *_x_plen = (src).pLength();                   
-        const int *_subbox_lo = _subbox_.loVect();           
-        const int *_subbox_len = _subbox_.length();         
-        const int *_bx_lo = (srcbox).loVect();                 
-        const int *_bx_len = (srcbox).length();               
-        T* _th_p = dataPtr(destcomp);                          
-        const T* _x_p  = (src).dataPtr(srccomp);              
-        for(int _n = 0; _n < (numcomp); ++_n) {             
-            int nR = _n + destcomp; nR += 0;                
-            int nxR = _n + srccomp; nxR += 0;    
-            T *_th_pp = _th_p                       
-                + ((_subbox_lo[0] - _th_plo[0])    
-                   + _n * _th_plen[0]);           
-            const T *_x_pp = _x_p                
-                + ((_bx_lo[0] - _x_plo[0])      
-                   + _n * _x_plen[0]);         
+    assert((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp());
+    Box _subbox_ = box(); 
+    _subbox_ &= destbox; 
+    assert(srcbox.sameSize(_subbox_)); 
+    if (_subbox_.ok()) 
+    { 
+        const int *_th_plo = loVect(); 
+        const int *_th_plen = length(); 
+        const int *_x_plo = (src).loVect(); 
+        const int *_x_plen = (src).length(); 
+        const int *_subbox_lo = _subbox_.loVect(); 
+        const int *_subbox_len = _subbox_.length(); 
+        const int *_bx_lo = (srcbox).loVect(); 
+        const int *_bx_len = (srcbox).length(); 
+        T* _th_p = dataPtr(destcomp); 
+        const T* _x_p  = (src).dataPtr(srccomp); 
+        for (int _n = 0; _n < (numcomp); ++_n)
+        { 
+            T *_th_pp = _th_p + ((_subbox_lo[0]-_th_plo[0])+_n*_th_plen[0]); 
+            const T *_x_pp = _x_p + ((_bx_lo[0]-_x_plo[0])+_n*_x_plen[0]);
 #ifdef BL_ARCH_CRAY
-#     pragma _CRI ivdep
+#pragma _CRI ivdep
 #endif
-            for(int _i = 0; _i < _subbox_len[0]; ++_i, ++_th_pp) {      
-                int iR = _i + _subbox_lo[0]; iR += 0;                  
-                int ixR = _i + _bx_lo[0]; ixR += 0;           
+            for (int _i = 0; _i < _subbox_len[0]; ++_i, ++_th_pp)
+            { 
+                int iR = _i + _subbox_lo[0]; iR += 0; 
+                int ixR = _i + _bx_lo[0]; ixR += 0; 
                 T &thisR = * _th_pp; const T & srcR = _x_pp[_i];
 #elif (BL_SPACEDIM == 2)
 {                                                                       
-    assert((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp());                       
-    assert((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp());                
-    Box _subbox_ = box();                                            
-    _subbox_ &= destbox;                                                  
-    assert(srcbox.sameSize(_subbox_));                                 
-    if(_subbox_.ok()) {                                           
-        const int *_th_plo = pLoVect();                          
-        const int *_th_plen = pLength();                        
-        const int *_x_plo = (src).pLoVect();                     
-        const int *_x_plen = (src).pLength();                   
-        const int *_subbox_lo = _subbox_.loVect();           
-        const int *_subbox_len = _subbox_.length();         
-        const int *_bx_lo = (srcbox).loVect();                 
-        const int *_bx_len = (srcbox).length();               
-        T* _th_p = dataPtr(destcomp);                          
-        const T* _x_p  = (src).dataPtr(srccomp);              
-        for(int _n = 0; _n < (numcomp); ++_n) {             
-            int nR = _n + destcomp; nR += 0;                
-            int nxR = _n + srccomp; nxR += 0;    
-            for(int _j = 0; _j < _subbox_len[1]; ++_j) {                
-                const int jR = _j + _subbox_lo[1];                     
-                const int jxR = _j + _bx_lo[1];                   
-                T *_th_pp = _th_p                                    
-                    + ((_subbox_lo[0] - _th_plo[0])                 
-                       + _th_plen[0]*(                             
-                           (jR - _th_plo[1])                      
-                           + _n * _th_plen[1]));                 
-                const T *_x_pp = _x_p                           
-                    + ((_bx_lo[0] - _x_plo[0])                 
-                       + _x_plen[0]*(                         
-                           (jxR - _x_plo[1])             
-                           + _n * _x_plen[1]));             
+    assert((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp()); 
+    assert((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp()); 
+    Box _subbox_ = box(); 
+    _subbox_ &= destbox; 
+    assert(srcbox.sameSize(_subbox_)); 
+    if (_subbox_.ok())
+    { 
+        const int *_th_plo = loVect(); 
+        const int *_th_plen = length(); 
+        const int *_x_plo = (src).loVect(); 
+        const int *_x_plen = (src).length(); 
+        const int *_subbox_lo = _subbox_.loVect(); 
+        const int *_subbox_len = _subbox_.length(); 
+        const int *_bx_lo = (srcbox).loVect(); 
+        const int *_bx_len = (srcbox).length(); 
+        T* _th_p = dataPtr(destcomp); 
+        const T* _x_p  = (src).dataPtr(srccomp); 
+        for (int _n = 0; _n < (numcomp); ++_n)
+        { 
+            int nR = _n + destcomp; nR += 0; 
+            int nxR = _n + srccomp; nxR += 0; 
+            for(int _j = 0; _j < _subbox_len[1]; ++_j)
+            { 
+                const int jR = _j + _subbox_lo[1]; 
+                const int jxR = _j + _bx_lo[1]; 
+                T *_th_pp = _th_p + ((_subbox_lo[0] - _th_plo[0]) 
+                                     + _th_plen[0]*((jR - _th_plo[1]) 
+                                                    + _n * _th_plen[1])); 
+                const T *_x_pp = _x_p + ((_bx_lo[0] - _x_plo[0]) 
+                                         + _x_plen[0]*((jxR - _x_plo[1]) 
+                                                       + _n * _x_plen[1])); 
 #ifdef BL_ARCH_CRAY
 #     pragma _CRI ivdep
 #endif
-                for(int _i = 0; _i < _subbox_len[0]; ++_i, ++_th_pp) {  
-                    int iR = _i + _subbox_lo[0]; iR += 0;              
-                    int ixR = _i + _bx_lo[0]; ixR += 0; 
-                    T &thisR = * _th_pp; const T & srcR = _x_pp[_i];
+                for (int _i = 0; _i < _subbox_len[0]; ++_i, ++_th_pp)
+                {  
+//                    int iR = _i + _subbox_lo[0]; iR += 0; 
+//                    int ixR = _i + _bx_lo[0]; ixR += 0; 
+                    T &thisR = * _th_pp; const T & srcR = _x_pp[_i]; 
 #elif (BL_SPACEDIM == 3)
 { 
-    assert((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp());                        
-    assert((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp());                 
-    Box _subbox_(box());                                              
-    _subbox_ &= destbox;                                                   
-    assert((srcbox).sameSize(_subbox_));                                
-    if(_subbox_.ok()) {                                            
-        const int *_th_plo = pLoVect();                           
-        const int *_th_plen = pLength();                         
-        const int *_x_plo = (src).pLoVect();                      
-        const int *_x_plen = (src).pLength();                    
-        const int *_subbox_lo = _subbox_.loVect();            
-        const int *_subbox_len = _subbox_.length();          
-        const int *_bx_lo = (srcbox).loVect();                  
-        const int *_bx_len = (srcbox).length();                
-        T* _th_p = dataPtr(destcomp);                           
-        const T* _x_p  = (src).dataPtr(srccomp);               
-        for(int _n = 0; _n < (numcomp); ++_n) {              
-            int nR = _n + destcomp; nR += 0;                 
-            int nxR = _n + srccomp; nxR += 0;     
-            for(int _k = 0; _k < _subbox_len[2]; ++_k) {              
-                const int kR = _k + _subbox_lo[2];                   
-                const int kxR = _k + _bx_lo[2];                 
-                for(int _j = 0; _j < _subbox_len[1]; ++_j) {       
-                    const int jR = _j + _subbox_lo[1];            
-                    const int jxR = _j + _bx_lo[1];         
-                    T *_th_pp = _th_p                          
-                        + ((_subbox_lo[0] - _th_plo[0])       
-                           + _th_plen[0]*(                   
-                               (jR - _th_plo[1])            
-                               + _th_plen[1]*(             
-                                   (kR - _th_plo[2])      
-                                   + _n * _th_plen[2])));
-                    const T *_x_pp = _x_p               
-                        + ((_bx_lo[0] - _x_plo[0])     
-                           + _x_plen[0]*(             
-                               (jxR - _x_plo[1]) 
-                               + _x_plen[1]*(       
-                                   (kxR - _x_plo[2])               
-                                   + _n * _x_plen[2])));              
+    assert((destcomp) >= 0 && (destcomp) + (numcomp) <= nComp()); 
+    assert((srccomp) >= 0 && (srccomp) + (numcomp) <= (src).nComp()); 
+    Box _subbox_(box()); 
+    _subbox_ &= destbox; 
+    assert((srcbox).sameSize(_subbox_)); 
+    if (_subbox_.ok())
+    { 
+        const int *_th_plo = loVect(); 
+        const int *_th_plen = length(); 
+        const int *_x_plo = (src).loVect(); 
+        const int *_x_plen = (src).length(); 
+        const int *_subbox_lo = _subbox_.loVect(); 
+        const int *_subbox_len = _subbox_.length(); 
+        const int *_bx_lo = (srcbox).loVect(); 
+        const int *_bx_len = (srcbox).length(); 
+        T* _th_p = dataPtr(destcomp); 
+        const T* _x_p  = (src).dataPtr(srccomp); 
+        for (int _n = 0; _n < (numcomp); ++_n)
+        { 
+//            int nR = _n + destcomp; nR += 0; 
+//            int nxR = _n + srccomp; nxR += 0; 
+            for (int _k = 0; _k < _subbox_len[2]; ++_k)
+            { 
+                const int kR = _k + _subbox_lo[2]; 
+                const int kxR = _k + _bx_lo[2]; 
+                for(int _j = 0; _j < _subbox_len[1]; ++_j)
+                { 
+                    const int jR = _j + _subbox_lo[1]; 
+                    const int jxR = _j + _bx_lo[1]; 
+                    T *_th_pp = _th_p + ((_subbox_lo[0] - _th_plo[0]) 
+                                         + _th_plen[0]*((jR - _th_plo[1]) 
+                                                        + _th_plen[1]*(
+                                                            (kR - _th_plo[2]) 
+                                                        + _n * _th_plen[2]))); 
+                    const T *_x_pp = _x_p + ((_bx_lo[0] - _x_plo[0]) 
+                                             + _x_plen[0]*((jxR - _x_plo[1]) 
+                                                           + _x_plen[1]*( 
+                                                            (kxR - _x_plo[2])
+                                                         + _n * _x_plen[2])));
 #ifdef BL_ARCH_CRAY
 #     pragma _CRI ivdep
 #endif
-                    for(int _i = 0; _i < _subbox_len[0]; ++_i, ++_th_pp) {
-                        int iR = _i + _subbox_lo[0]; iR += 0;          
-                        int ixR = _i + _bx_lo[0]; ixR += 0;   
-                        T &thisR = * _th_pp; const T & srcR = _x_pp[_i];
+                    for (int _i = 0; _i < _subbox_len[0]; ++_i, ++_th_pp)
+                    {
+//                        int iR = _i + _subbox_lo[0]; iR += 0; 
+//                        int ixR = _i + _bx_lo[0]; ixR += 0; 
+                        T &thisR = * _th_pp; const T & srcR = _x_pp[_i]; 
 #endif
     {
         thisR = srcR;
@@ -1030,12 +984,14 @@ BaseFab<T>::getVal  (T*             data,
                      int            n,
                      int            numcomp) const
 {
-    int loc      = domain.index(pos);
-    int size     = domain.numPts();
-    const T* ptr = dptr;
+    const int loc      = domain.index(pos);
+    const long size    = domain.numPts();
+
+    assert(!(dptr == 0));
     assert(n >= 0 && n + numcomp <= nvar);
+
     for (int k = 0; k < numcomp; k++)
-        data[k] = ptr[loc+(n+k)*size];
+        data[k] = dptr[loc+(n+k)*size];
 }
 
 template <class T>

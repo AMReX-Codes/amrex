@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.2 1997-09-15 23:33:21 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.3 1997-09-16 03:30:36 lijewski Exp $
 //
 
 #include <stdlib.h>
@@ -588,103 +588,32 @@ FABio_8bit::write (ostream&         os,
 {
     assert(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= f.nComp());
 
-    const Box& bx  = f.box();
-    const Box& pbx = f.pBox();
     const Real eps = 1.0e-8;
-    const long siz = bx.numPts();
+    const long siz = f.box().numPts();
 
-    if (bx == pbx)
+    unsigned char* c = new unsigned char[siz];
+
+    if (c == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
+
+    for (int k = 0; k < num_comp; k++)
     {
-        unsigned char* c = new unsigned char[siz];
-        if (c == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
-        for (int k = 0; k < num_comp; k++)
+        const Real mn   = f.min(k+comp);
+        const Real mx   = f.max(k+comp);
+        const Real* dat = f.dataPtr(k+comp);
+        Real rng = Abs(mx-mn);
+        rng = (rng < eps) ? 0.0 : 255.0/(mx-mn);
+        for (long i = 0; i < siz; i++)
         {
-            const Real mn   = f.min(k+comp);
-            const Real mx   = f.max(k+comp);
-            const Real* dat = f.dataPtr(k+comp);
-            Real rng = Abs(mx-mn);
-            rng = (rng < eps) ? 0.0 : 255.0/(mx-mn);
-            for (long i = 0; i < siz; i++)
-            {
-                Real v = rng*(dat[i]-mn);
-                int iv = (int) v;
-                c[i]   = (unsigned char) iv;
-            }
-            os << mn << "  " << mx << '\n' << siz << '\n';
-            os.write((char*)c,siz);
+            Real v = rng*(dat[i]-mn);
+            int iv = (int) v;
+            c[i]   = (unsigned char) iv;
         }
-        delete [] c;
+        os << mn << "  " << mx << '\n' << siz << '\n';
+        os.write((char*)c,siz);
     }
-    else
-    {
-        const int *lo = bx.loVect(), *plo = pbx.loVect();
-        const int *hi = bx.hiVect(), *phi = pbx.hiVect();
 
-        long off0 = lo[0] - plo[0], len0 = hi[0] - lo[0] + 1;
-
-#if (BL_SPACEDIM==2 || BL_SPACEDIM==3)
-        long plen0 = phi[0] - plo[0] + 1;
-        long off1  = lo[1] - plo[1];
-        long len1  = hi[1] - lo[1] + 1;
-#endif
-
-#if BL_SPACEDIM==3
-        long off2  = lo[2] - plo[2];
-        long plen1 = phi[1] - plo[1] + 1;
-        long len2  = hi[2] - lo[2] + 1;
-#endif
-        unsigned char* c = new unsigned char[len0];
-        if (c == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
-        for (int N = 0; N < num_comp; N++)
-        {
-            const Real mn = f.min(N+comp);
-            const Real mx = f.max(N+comp);
-            Real rng = Abs(mx-mn);
-            rng = (rng < eps) ? 0.0 : 255.0/(mx-mn);
-            os << mn << "  " << mx << '\n' << siz << '\n';
-#if BL_SPACEDIM == 1
-            const Real* data = f.dataPtr(N+comp) + off0;
-            for (long i = 0; i < len0; i++)
-            {
-                Real v = rng*(data[i]-mn);
-                int iv = (int) v;
-                c[i]   = (unsigned char) iv;
-            }
-            os.write((char*)c, len0);
-#elif BL_SPACEDIM == 2
-            for (long j = 0; j < len1; j++)
-            {
-                const Real* data = f.dataPtr(N+comp)+off0+plen0*(j+off1);
-                for (long i = 0; i < len0; i++)
-                {
-                    Real v = rng*(data[i]-mn);
-                    int iv = (int) v;
-                    c[i]   = (unsigned char) iv;
-                }
-                os.write((char*)c, len0);
-            }
-#else
-            for (long k = 0; k < len2; ++k)
-            {
-                for (long j = 0; j < len1; ++j)
-                {
-                    const Real* data = f.dataPtr(N+comp) + off0 +
-                                       plen0*(j+off1+plen1*(k+off2));
-                    for (long i = 0; i < len0; i++)
-                    {
-                        Real v = rng*(data[i]-mn);
-                        int iv = (int) v;
-                        c[i]   = (unsigned char) iv;
-                    }
-                    os.write((char*)c, len0);
-                }
-            }
-#endif
-        }
-        delete [] c;
-    }
+    delete [] c;
 
     if (os.fail())
         BoxLib::Error("FABio_8bit::write() failed");
@@ -694,8 +623,7 @@ void
 FABio_8bit::read (istream&   is,
                   FArrayBox& f) const
 {
-    const Box& bx    = f.box();
-    long siz         = bx.numPts();
+    long siz         = f.box().numPts();
     unsigned char* c = new unsigned char[siz];
     if (c == 0)
         BoxLib::OutOfMemory(__FILE__, __LINE__);
@@ -784,65 +712,10 @@ FABio_binary::write (ostream&         os,
 {
     assert(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= f.nComp());
 
-    const Box& bx  = f.box();
-    const Box& pbx = f.pBox();
-
-    if (bx == pbx)
-    {
-        const long base_siz  = bx.numPts();
-        const Real* comp_ptr = f.dataPtr(comp);
-        const long siz       = base_siz*num_comp;
-        RealDescriptor::convertFromNativeFormat(os, siz, comp_ptr, *rd);
-    }
-    else
-    {
-        const int *lo = bx.loVect(), *plo = pbx.loVect();
-        const int *hi = bx.hiVect(), *phi = pbx.hiVect();
-
-        long off0 = lo[0] - plo[0], len0 = hi[0] - lo[0] + 1;
-
-#if (BL_SPACEDIM==2 || BL_SPACEDIM==3)
-        long plen0 = phi[0] - plo[0] + 1;
-        long off1  = lo[1] - plo[1];
-        long len1  = hi[1] - lo[1] + 1;
-#endif
-
-#if BL_SPACEDIM==3
-        long off2  = lo[2] - plo[2];
-        long plen1 = phi[1] - plo[1] + 1;
-        long len2  = hi[2] - lo[2] + 1;
-#endif
-
-#if BL_SPACEDIM == 1
-        for (int N = 0; N < num_comp; N++)
-        {
-            const Real* data = f.dataPtr(N+comp) + off0;
-            RealDescriptor::convertFromNativeFormat(os, len0, data, *rd);
-        }
-#elif BL_SPACEDIM == 2
-        for (int N = 0; N < num_comp; N++)
-        {
-            for (long j = 0; j < len1; j++)
-            {
-                const Real* data = f.dataPtr(N+comp)+off0+plen0*(j+off1);
-                RealDescriptor::convertFromNativeFormat(os, len0, data, *rd);
-            }
-        }
-#else
-        for (int N = 0; N < num_comp; N++)
-        {
-            for (long k = 0; k < len2; ++k)
-            {
-                for (long j = 0; j < len1; ++j)
-                {
-                    const Real* data = f.dataPtr(N+comp) + off0 +
-                                       plen0*(j+off1+plen1*(k+off2));
-                    RealDescriptor::convertFromNativeFormat(os,len0,data,*rd);
-                }
-            }
-        }
-#endif
-    }
+    const long base_siz  = f.box().numPts();
+    const Real* comp_ptr = f.dataPtr(comp);
+    const long siz       = base_siz*num_comp;
+    RealDescriptor::convertFromNativeFormat(os, siz, comp_ptr, *rd);
 
     if (os.fail())
         BoxLib::Error("FABio_binary::write() failed");
