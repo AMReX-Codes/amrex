@@ -1,6 +1,7 @@
 
 #include "restrictor.H"
 #include "fill_patch.H"
+#include <Profiler.H>
 
 #if defined( BL_FORT_USE_UNDERSCORE )
 #define FORT_FACRST1  acrst1_
@@ -399,6 +400,8 @@ bilinear_restrictor::fill_interface (MultiFab&                 dest,
 				     const amr_boundary* bdy,
 				     const IntVect&            rat) const
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::fill_interface()");
+
     BL_ASSERT(type(dest) == IntVect::TheNodeVector());
     BL_ASSERT(dest.nComp() == fine.nComp());
 
