@@ -369,8 +369,44 @@ protected:
     bool            m_done;
 };
 
+class task_local_base
+    :
+    public task
+{
+public:
+
+    task_local_base (task_list&      tl_,
+                     FArrayBox*      fab_,
+                     int             target_proc_id,
+                     const Box&      bx,
+                     const MultiFab& mf_,
+                     int             grid_);
+
+    virtual ~task_local_base ();
+    virtual bool startup (long&, long&);
+    virtual bool depends_on_q (const task* t1) const;
+    virtual bool work_to_do () const;
+    virtual bool need_to_communicate (int& with) const;
+    virtual void hint () const;
+
+protected:
+
+#ifdef BL_USE_MPI
+    MPI_Request     m_request;
+#endif
+    FArrayBox*      tmp;
+    FArrayBox*      m_fab;
+    const MultiFab& m_smf;
+    Box             m_bx;
+    const int       m_sgrid;
+    const int       m_target_proc_id;
+    bool            m_local;
+    bool            m_done;
+};
+
 class task_copy_local
-    : public task
+    :
+    public task_local_base
 {
 public:
 
@@ -381,33 +417,43 @@ public:
                      const MultiFab& mf_,
                      int             grid_);
 
-    virtual ~task_copy_local ();
     virtual bool ready ();
-    virtual void hint () const;
-    virtual bool startup (long&,long&);
-    virtual bool depends_on_q (const task* t1) const;
-    virtual bool work_to_do () const;
-    virtual bool need_to_communicate (int& with) const;
 
-private:
-    //
-    // The data.
-    //
-    FArrayBox*      tmp;
-    FArrayBox*      m_fab;
-    const MultiFab& m_smf;
-    const Box       m_bx;
-    const int       m_sgrid;
-    const int       m_target_proc_id;
-#ifdef BL_USE_MPI
-    MPI_Request     m_request;
-#endif
-    bool            m_local;
-    bool            m_done;
+};
+
+//
+// A forward declaration.
+//
+class amr_boundary;
+
+class task_bdy_fill
+    :
+    public task_local_base
+{
+public:
+
+    task_bdy_fill (task_list&                tl_,
+                   const amr_boundary* bdy_,
+                   FArrayBox*                fab_,
+                   int                       target_proc_id,
+                   const Box&                region_,
+                   const MultiFab&           smf_,
+                   int                       grid_,
+                   const Box&                domain_);
+
+    virtual bool ready ();
+    virtual bool depends_on_q (const task* t) const;
+
+protected:
+
+    const Box           m_region;
+    const Box&          m_domain;
+    const amr_boundary* m_bdy;
 };
 
 class task_fab
-    : public task
+    :
+    public task
 {
 public:
 

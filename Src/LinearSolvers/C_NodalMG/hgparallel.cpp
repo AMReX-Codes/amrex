@@ -1,9 +1,11 @@
 //BL_COPYRIGHT_NOTICE
 
-#include "amr_defs.H"
-#include "hgparallel.H"
-
 #include <ParmParse.H>
+
+#include <amr_defs.H>
+#include <hgparallel.H>
+#include <boundary.H>
+
 
 #ifdef HG_DEBUG
 #ifdef BL_USE_NEW_HFILES
@@ -621,7 +623,7 @@ task_copy::hint () const
     HG_DEBUG_OUT(")" << endl);
 }
 
-task_copy_local::task_copy_local (task_list&      tl_,
+task_local_base::task_local_base (task_list&      tl_,
                                   FArrayBox*      fab_,
                                   int             target_proc_id,
                                   const Box&      bx,
@@ -629,52 +631,33 @@ task_copy_local::task_copy_local (task_list&      tl_,
                                   int             grid)
     :
     task(tl_),
+#ifdef BL_USE_MPI
+    m_request(MPI_REQUEST_NULL),
+#endif
     tmp(0),
     m_fab(fab_),
     m_smf(smf_),
     m_bx(bx),
     m_sgrid(grid),
     m_target_proc_id(target_proc_id),
-#ifdef BL_USE_MPI
-    m_request(MPI_REQUEST_NULL),
-#endif
     m_local(false),
     m_done(false)
 {
-    if (work_to_do())
-    {
-        _do_depend();
-
-        if (m_fab != 0 && is_local(m_smf, m_sgrid))
-        {
-            m_local = true;
-
-            if (dependencies.empty())
-            {
-                m_fab->copy(m_smf[m_sgrid], m_bx);
-                //
-                // Flip the work_to_do() bit.
-                //
-                m_done = true;
-            }
-        }
-    }
 }
 
-task_copy_local::~task_copy_local ()
+task_local_base::~task_local_base ()
 {
-    // HG_DEBUG_OUT("task_copy_local::~task_copy_local(): delete tmp" << endl);
     delete tmp;
 }
 
 bool
-task_copy_local::work_to_do () const
+task_local_base::work_to_do () const
 {
     return (m_fab != 0 || is_local(m_smf, m_sgrid)) && !m_done;
 }
 
 bool
-task_copy_local::need_to_communicate (int& with) const
+task_local_base::need_to_communicate (int& with) const
 {
     bool result = false;
 
@@ -698,7 +681,7 @@ task_copy_local::need_to_communicate (int& with) const
 }
 
 bool
-task_copy_local::startup (long& sndcnt, long& rcvcnt)
+task_local_base::startup (long& sndcnt, long& rcvcnt)
 {
     m_started = true;
 
@@ -757,6 +740,65 @@ task_copy_local::startup (long& sndcnt, long& rcvcnt)
 }
 
 bool
+task_local_base::depends_on_q (const task* t1) const
+{
+    if (!work_to_do()) return false;
+
+    if (const task_local_base* t1tc = dynamic_cast<const task_local_base*>(t1))
+    {
+        if (!mfeq(m_smf, t1tc->m_smf))   return false;
+        if (m_bx.intersects(t1tc->m_bx)) return true;
+    }
+
+    return false;
+}
+
+void
+task_local_base::hint () const
+{
+    task::_hint();
+    if (m_fab !=0 && is_local(m_smf, m_sgrid))
+        HG_DEBUG_OUT("L");
+    else if (m_fab != 0)
+        HG_DEBUG_OUT("R");
+    else if (is_local(m_smf, m_sgrid))
+        HG_DEBUG_OUT("S");
+    else
+        HG_DEBUG_OUT("?");
+    HG_DEBUG_OUT(m_bx <<  ' ' <<  m_sgrid << ' ');
+    HG_DEBUG_OUT(")" << endl);
+}
+
+task_copy_local::task_copy_local (task_list&      tl_,
+                                  FArrayBox*      fab_,
+                                  int             target_proc_id,
+                                  const Box&      bx,
+                                  const MultiFab& smf_,
+                                  int             grid)
+    :
+    task_local_base(tl_,fab_,target_proc_id,bx,smf_,grid)
+{
+    if (work_to_do())
+    {
+        _do_depend();
+
+        if (m_fab != 0 && is_local(m_smf, m_sgrid))
+        {
+            m_local = true;
+
+            if (dependencies.empty())
+            {
+                m_fab->copy(m_smf[m_sgrid], m_bx);
+                //
+                // Flip the work_to_do() bit.
+                //
+                m_done = true;
+            }
+        }
+    }
+}
+
+bool
 task_copy_local::ready ()
 {
     BL_ASSERT(is_started());
@@ -799,33 +841,87 @@ task_copy_local::ready ()
     return false;
 }
 
-void
-task_copy_local::hint () const
+task_bdy_fill::task_bdy_fill (task_list&          tl_,
+                              const amr_boundary* bdy_,
+                              FArrayBox*          fab_,
+                              int                 target_proc_id,
+                              const Box&          region_,
+                              const MultiFab&     src_,
+                              int                 grid_,
+                              const Box&          domain_)
+    :
+    task_local_base(tl_,fab_,target_proc_id,Box(),src_,grid_),
+    m_region(region_),
+    m_domain(domain_),
+    m_bdy(bdy_)
 {
-    task::_hint();
-    if (m_fab !=0 && is_local(m_smf, m_sgrid))
-        HG_DEBUG_OUT("L");
-    else if (m_fab != 0)
-        HG_DEBUG_OUT("R");
-    else if (is_local(m_smf, m_sgrid))
-        HG_DEBUG_OUT("S");
-    else
-        HG_DEBUG_OUT("?");
-    HG_DEBUG_OUT(m_bx <<  ' ' <<  m_sgrid << ' ');
-    HG_DEBUG_OUT(")" << endl);
+    BL_ASSERT(m_bdy != 0);
+
+    Box tmpb = m_bdy->anImage(m_region,m_smf.boxArray()[m_sgrid],m_domain);
+
+    m_bx = tmpb;
+    //
+    // This is a GROSS hack FIXME:  the growth should probably be set
+    // by the refinement between the coarse/fine domains.
+    //
+    m_bx = ::grow(tmpb, 4);
+
+    if (work_to_do())
+    {
+        _do_depend();
+
+        if (m_fab != 0 && is_local(m_smf, m_sgrid))
+        {
+            m_local = true;
+
+            if (dependencies.empty())
+            {
+                m_bdy->fill(*m_fab, m_region, m_smf[m_sgrid], m_domain);
+                //
+                // Flip the work_to_do() bit.
+                //
+                m_done = true;
+            }
+        }
+    }
 }
 
-bool
-task_copy_local::depends_on_q (const task* t1) const
-{
-    if (!work_to_do()) return false;
+bool task_bdy_fill::depends_on_q (const task* t) const { return false; }
 
-    if (const task_copy_local* t1tc = dynamic_cast<const task_copy_local*>(t1))
+bool
+task_bdy_fill::ready ()
+{
+    BL_ASSERT(is_started());
+
+    if (m_local) return true;
+
+#ifdef BL_USE_MPI
+    int flag, res;
+    MPI_Status status;
+    BL_ASSERT(m_request != MPI_REQUEST_NULL);
+    static RunStats test_stats("hg_test");
+    test_stats.start();
+    if ((res = MPI_Test(&m_request, &flag, &status)) != 0)
+	ParallelDescriptor::Abort(res);
+    test_stats.end();
+    if (flag)
     {
-        if (!mfeq(m_smf, t1tc->m_smf)) return false;
-//        if (m_sgrid == t1tc->m_sgrid && m_bx.intersects(t1tc->m_bx)) return true;
-        if (m_bx.intersects(t1tc->m_bx)) return true;
+	BL_ASSERT(m_request == MPI_REQUEST_NULL);
+	if (m_fab)
+	{
+#ifndef NDEBUG
+	    int count;
+	    BL_ASSERT(status.MPI_SOURCE == processor_number(m_smf, m_sgrid));
+	    BL_ASSERT(status.MPI_TAG    == m_sno);
+	    if ((res = MPI_Get_count(&status, MPI_DOUBLE, &count)) != 0)
+		ParallelDescriptor::Abort(res);
+	    BL_ASSERT(count == tmp->box().numPts()*tmp->nComp());
+#endif
+	    m_bdy->fill(*m_fab, m_region, *tmp, m_domain);
+	}
+	return true;
     }
+#endif
 
     return false;
 }
