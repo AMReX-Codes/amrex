@@ -1,3 +1,6 @@
+#include <REAL.H>
+#include <CONSTANTS.H>
+
 c-----------------------------------------------------------------------
       subroutine hgavg(
      & src, srcl0, srch0, srcl1, srch1, srcl2, srch2,
@@ -6,10 +9,10 @@ c-----------------------------------------------------------------------
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer fregl0,fregh0,fregl1,fregh1,fregl2,fregh2
-      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      double precision rf(fl0:fh0,fl1:fh1,fl2:fh2)
-      double precision fac
-      parameter (fac = 0.125d0)
+      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      REAL_T rf(fl0:fh0,fl1:fh1,fl2:fh2)
+      REAL_T fac
+      parameter (fac = eighth)
       integer i, j, k
       do k = fregl2, fregh2
          do j = fregl1, fregh1
@@ -35,11 +38,11 @@ c Note---only generates values at coarse points along edge of fine grid
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
-      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      double precision rc(cl0:ch0,cl1:ch1,cl2:ch2)
-      double precision rf(fl0:fh0,fl1:fh1,fl2:fh2)
+      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      REAL_T rc(cl0:ch0,cl1:ch1,cl2:ch2)
+      REAL_T rf(fl0:fh0,fl1:fh1,fl2:fh2)
       integer ir, jr, kr, idim, idir
-      double precision fac0, fac1, fac
+      REAL_T fac0, fac1, fac
       integer i, j, k, irc, irf, jrc, jrf, krc, krf, l, m, n
       if (idim .eq. 0) then
          i = cregl0
@@ -50,7 +53,7 @@ c Note---only generates values at coarse points along edge of fine grid
             irc = i
             irf = i * ir - 1
          end if
-         fac0 = 0.25d0 * ir / (ir+1)
+         fac0 = fourth * ir / (ir+1)
          do k = cregl2, cregh2
             do j = cregl1, cregh1
                src(i*ir,j*jr,k*kr) =
@@ -63,10 +66,10 @@ c Note---only generates values at coarse points along edge of fine grid
          i = i * ir
          do l = 0, kr-1
             fac1 = (kr-l) * fac0
-            if (l .eq. 0) fac1 = 0.5d0 * fac1
+            if (l .eq. 0) fac1 = half * fac1
             do n = 0, jr-1
                fac = (jr-n) * fac1
-               if (n .eq. 0) fac = 0.5d0 * fac
+               if (n .eq. 0) fac = half * fac
                do k = kr*cregl2, kr*cregh2, kr
                   do j = jr*cregl1, jr*cregh1, jr
                      src(i,j,k) = src(i,j,k) + fac *
@@ -91,7 +94,7 @@ c Note---only generates values at coarse points along edge of fine grid
             jrc = j
             jrf = j * jr - 1
          end if
-         fac0 = 0.25d0 * jr / (jr+1)
+         fac0 = fourth * jr / (jr+1)
          do k = cregl2, cregh2
             do i = cregl0, cregh0
                src(i*ir,j*jr,k*kr) =
@@ -104,10 +107,10 @@ c Note---only generates values at coarse points along edge of fine grid
          j = j * jr
          do l = 0, kr-1
             fac1 = (kr-l) * fac0
-            if (l .eq. 0) fac1 = 0.5d0 * fac1
+            if (l .eq. 0) fac1 = half * fac1
             do m = 0, ir-1
                fac = (ir-m) * fac1
-               if (m .eq. 0) fac = 0.5d0 * fac
+               if (m .eq. 0) fac = half * fac
                do k = kr*cregl2, kr*cregh2, kr
                   do i = ir*cregl0, ir*cregh0, ir
                      src(i,j,k) = src(i,j,k) + fac *
@@ -132,7 +135,7 @@ c Note---only generates values at coarse points along edge of fine grid
             krc = k
             krf = k * kr - 1
          end if
-         fac0 = 0.25d0 * kr / (kr+1)
+         fac0 = fourth * kr / (kr+1)
          do j = cregl1, cregh1
             do i = cregl0, cregh0
                src(i*ir,j*jr,k*kr) =
@@ -145,10 +148,10 @@ c Note---only generates values at coarse points along edge of fine grid
          k = k * kr
          do n = 0, jr-1
             fac1 = (jr-n) * fac0
-            if (n .eq. 0) fac1 = 0.5d0 * fac1
+            if (n .eq. 0) fac1 = half * fac1
             do m = 0, ir-1
                fac = (ir-m) * fac1
-               if (m .eq. 0) fac = 0.5d0 * fac
+               if (m .eq. 0) fac = half * fac
                do j = jr*cregl1, jr*cregh1, jr
                   do i = ir*cregl0, ir*cregh0, ir
                      src(i,j,k) = src(i,j,k) + fac *
@@ -178,26 +181,26 @@ c Note---only generates values at coarse points along edge of fine grid
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
-      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      double precision rc(cl0:ch0,cl1:ch1,cl2:ch2)
-      double precision rf(fl0:fh0,fl1:fh1,fl2:fh2)
+      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      REAL_T rc(cl0:ch0,cl1:ch1,cl2:ch2)
+      REAL_T rf(fl0:fh0,fl1:fh1,fl2:fh2)
       integer ir, jr, kr, ivect(0:2), ga(0:1,0:1,0:1)
-      double precision rm3, center, cfac, ffac, fac0, fac1, fac
+      REAL_T rm3, center, cfac, ffac, fac0, fac1, fac
       integer ic, jc, kc, if, jf, kf, ii, ji, ki
       integer irc, irf, jrc, jrf, krc, krf, idir, jdir, kdir, l, m, n
-      rm3 = 1.d0 / (ir * jr * kr)
+      rm3 = one / (ir * jr * kr)
       ic = cregl0
       jc = cregl1
       kc = cregl2
       if = ic * ir
       jf = jc * jr
       kf = kc * kr
-      center = 0.d0
+      center = zero
       if (ivect(0) .eq. 0) then
 c quadrants
 c each quadrant is two octants and their share of the two central edges
-         ffac = 2.d0 * ir * rm3
-         cfac = 2.d0
+         ffac = two * ir * rm3
+         cfac = two
          do ki = 0, 1
             do ji = 0, 1
                if (ga(0,ji,ki) .eq. 1) then
@@ -210,16 +213,16 @@ c each quadrant is two octants and their share of the two central edges
          do ki = 0, 1
             do ji = 0, 1
                if (ga(0,ji,ki) - ga(0,ji,1-ki) .eq. 1) then
-                  ffac = 2.d0 * ir * (jr - 1) * rm3
+                  ffac = two * ir * (jr - 1) * rm3
                   center = center + ffac
                end if
                if (ga(0,ji,ki) - ga(0,1-ji,ki) .eq. 1) then
-                  ffac = 2.d0 * ir * (kr - 1) * rm3
+                  ffac = two * ir * (kr - 1) * rm3
                   center = center + ffac
                end if
             end do
          end do
-         center = 1.d0 / center
+         center = one / center
          fac1 = center * rm3 / ir
          do ki = 0, 1
             do ji = 0, 1
@@ -228,7 +231,7 @@ c each quadrant is two octants and their share of the two central edges
                   jrf = jf + ji - 1
                   do m = 0, ir-1
                      fac = (ir-m) * fac1
-                     if (m .eq. 0) fac = 0.5d0 * fac
+                     if (m .eq. 0) fac = half * fac
                      do if = ir*cregl0, ir*cregh0, ir
                         src(if,jf,kf) = src(if,jf,kf) + fac *
      &                    (rf(if-m,jrf,krf) + rf(if-m-1,jrf,krf) +
@@ -259,7 +262,7 @@ c each face is two faces and two sides of an edge
                      fac1 = (jr-abs(n)) * fac0
                      do m = 0, ir-1
                         fac = (ir-m) * fac1
-                        if (m .eq. 0) fac = 0.5d0 * fac
+                        if (m .eq. 0) fac = half * fac
                         do if = ir*cregl0, ir*cregh0, ir
                            src(if,jf,kf) = src(if,jf,kf) + fac *
      &                    (rf(if-m,jf+n,krf) + rf(if-m-1,jf+n,krf) +
@@ -277,7 +280,7 @@ c each face is two faces and two sides of an edge
                      fac1 = (kr-abs(l)) * fac0
                      do m = 0, ir-1
                         fac = (ir-m) * fac1
-                        if (m .eq. 0) fac = 0.5d0 * fac
+                        if (m .eq. 0) fac = half * fac
                         do if = ir*cregl0, ir*cregh0, ir
                            src(if,jf,kf) = src(if,jf,kf) + fac *
      &                    (rf(if-m,jrf,kf+l) + rf(if-m-1,jrf,kf+l) +
@@ -293,8 +296,8 @@ c each face is two faces and two sides of an edge
       else if (ivect(1) .eq. 0) then
 c quadrants
 c each quadrant is two octants and their share of the two central edges
-         ffac = 2.d0 * jr * rm3
-         cfac = 2.d0
+         ffac = two * jr * rm3
+         cfac = two
          do ki = 0, 1
             do ii = 0, 1
                if (ga(ii,0,ki) .eq. 1) then
@@ -307,16 +310,16 @@ c each quadrant is two octants and their share of the two central edges
          do ki = 0, 1
             do ii = 0, 1
                if (ga(ii,0,ki) - ga(ii,0,1-ki) .eq. 1) then
-                  ffac = 2.d0 * jr * (ir - 1) * rm3
+                  ffac = two * jr * (ir - 1) * rm3
                   center = center + ffac
                end if
                if (ga(ii,0,ki) - ga(1-ii,0,ki) .eq. 1) then
-                  ffac = 2.d0 * jr * (kr - 1) * rm3
+                  ffac = two * jr * (kr - 1) * rm3
                   center = center + ffac
                end if
             end do
          end do
-         center = 1.d0 / center
+         center = one / center
          fac1 = center * rm3 / jr
          do ki = 0, 1
             do ii = 0, 1
@@ -325,7 +328,7 @@ c each quadrant is two octants and their share of the two central edges
                   irf = if + ii - 1
                   do n = 0, jr-1
                      fac = (jr-n) * fac1
-                     if (n .eq. 0) fac = 0.5d0 * fac
+                     if (n .eq. 0) fac = half * fac
                      do jf = jr*cregl1, jr*cregh1, jr
                         src(if,jf,kf) = src(if,jf,kf) + fac *
      &                    (rf(irf,jf-n,krf) + rf(irf,jf-n-1,krf) +
@@ -354,7 +357,7 @@ c each face is two faces and two sides of an edge
                   fac0 = center * rm3 / (ir * jr)
                   do  n = 0, jr-1
                      fac1 = (jr-n) * fac0
-                     if (n .eq. 0) fac1 = 0.5d0 * fac1
+                     if (n .eq. 0) fac1 = half * fac1
                      do m = idir, idir*(ir-1), idir
                         fac = (ir-abs(m)) * fac1
                         do jf = jr*cregl1, jr*cregh1, jr
@@ -374,7 +377,7 @@ c each face is two faces and two sides of an edge
                      fac1 = (kr-abs(l)) * fac0
                      do n = 0, jr-1
                         fac = (jr-n) * fac1
-                        if (n .eq. 0) fac = 0.5d0 * fac
+                        if (n .eq. 0) fac = half * fac
                         do jf = jr*cregl1, jr*cregh1, jr
                            src(if,jf,kf) = src(if,jf,kf) + fac *
      &                  (rf(irf,jf-n,kf+l) + rf(irf,jf-n-1,kf+l) +
@@ -390,8 +393,8 @@ c each face is two faces and two sides of an edge
       else
 c quadrants
 c each quadrant is two octants and their share of the two central edges
-         ffac = 2.d0 * kr * rm3
-         cfac = 2.d0
+         ffac = two * kr * rm3
+         cfac = two
          do ji = 0, 1
             do ii = 0, 1
                if (ga(ii,ji,0) .eq. 1) then
@@ -404,16 +407,16 @@ c each quadrant is two octants and their share of the two central edges
          do ji = 0, 1
             do ii = 0, 1
                if (ga(ii,ji,0) - ga(ii,1-ji,0) .eq. 1) then
-                  ffac = 2.d0 * kr * (ir - 1) * rm3
+                  ffac = two * kr * (ir - 1) * rm3
                   center = center + ffac
                end if
                if (ga(ii,ji,0) - ga(1-ii,ji,0) .eq. 1) then
-                  ffac = 2.d0 * kr * (jr - 1) * rm3
+                  ffac = two * kr * (jr - 1) * rm3
                   center = center + ffac
                end if
             end do
          end do
-         center = 1.d0 / center
+         center = one / center
          fac1 = center * rm3 / kr
          do ji = 0, 1
             do ii = 0, 1
@@ -422,7 +425,7 @@ c each quadrant is two octants and their share of the two central edges
                   irf = if + ii - 1
                   do l = 0, kr-1
                      fac = (kr-l) * fac1
-                     if (l .eq. 0) fac = 0.5d0 * fac
+                     if (l .eq. 0) fac = half * fac
                      do kf = kr*cregl2, kr*cregh2, kr
                         src(if,jf,kf) = src(if,jf,kf) + fac *
      &                    (rf(irf,jrf,kf-l) + rf(irf,jrf,kf-l-1) +
@@ -451,7 +454,7 @@ c each face is two faces and two sides of an edge
                   fac0 = center * rm3 / (ir * kr)
                   do l = 0, kr-1
                      fac1 = (kr-l) * fac0
-                     if (l .eq. 0) fac1 = 0.5d0 * fac1
+                     if (l .eq. 0) fac1 = half * fac1
                      do m = idir, idir*(ir-1), idir
                         fac = (ir-abs(m)) * fac1
                         do kf = kr*cregl2, kr*cregh2, kr
@@ -469,7 +472,7 @@ c each face is two faces and two sides of an edge
                   fac0 = center * rm3 / (jr * kr)
                   do l = 0, kr-1
                      fac1 = (kr-l) * fac0
-                     if (l .eq. 0) fac1 = 0.5d0 * fac1
+                     if (l .eq. 0) fac1 = half * fac1
                      do n = jdir, jdir*(jr-1), jdir
                         fac = (jr-abs(n)) * fac1
                         do kf = kr*cregl2, kr*cregh2, kr
@@ -498,26 +501,26 @@ c Note---only generates values at coarse points along edge of fine grid
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
-      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      double precision rc(cl0:ch0,cl1:ch1,cl2:ch2)
-      double precision rf(fl0:fh0,fl1:fh1,fl2:fh2)
+      REAL_T src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      REAL_T rc(cl0:ch0,cl1:ch1,cl2:ch2)
+      REAL_T rf(fl0:fh0,fl1:fh1,fl2:fh2)
       integer ir, jr, kr, ga(0:1,0:1,0:1), idd
-      double precision rm3, sum, center, cfac, ffac, fac0, fac1, fac
+      REAL_T rm3, sum, center, cfac, ffac, fac0, fac1, fac
       integer ic, jc, kc, if, jf, kf, ii, ji, ki
       integer irc, irf, jrc, jrf, krc, krf, idir, jdir, kdir, l, m, n
-      rm3 = 1.d0 / (ir * jr * kr)
+      rm3 = one / (ir * jr * kr)
       ic = cregl0
       jc = cregl1
       kc = cregl2
       if = ic * ir
       jf = jc * jr
       kf = kc * kr
-      sum = 0.d0
-      center = 0.d0
+      sum = zero
+      center = zero
 c octants
       fac = rm3
       ffac = rm3
-      cfac = 1.d0
+      cfac = one
       do ki = 0, 1
          krf = kf + ki - 1
          krc = kc + ki - 1
