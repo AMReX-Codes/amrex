@@ -104,17 +104,17 @@ int main (int   argc,
     {
        if (dir == 0)
         {
-            edge0Small = IntVect(D_DECL( 0,  0,-1));
-            edge0Big   = IntVect(D_DECL( 0,119,49));
-            edge1Small = IntVect(D_DECL(72,  0,-1));
-            edge1Big   = IntVect(D_DECL(72,119,49));
+            edge0Small = IntVect(D_DECL( 0,  0, 0));
+            edge0Big   = IntVect(D_DECL( 0,120,48));
+            edge1Small = IntVect(D_DECL(72,  0, 0));
+            edge1Big   = IntVect(D_DECL(72,120,48));
         }
        else if (dir == 2)
         {
-            edge0Small = IntVect(D_DECL(-1,  0, 0));
-            edge0Big   = IntVect(D_DECL(72,119, 0));
-            edge1Small = IntVect(D_DECL(-1,  0,48));
-            edge1Big   = IntVect(D_DECL(72,119,48));
+            edge0Small = IntVect(D_DECL( 0,  0, 0));
+            edge0Big   = IntVect(D_DECL(72,120, 0));
+            edge1Small = IntVect(D_DECL( 0,  0,48));
+            edge1Big   = IntVect(D_DECL(72,120,48));
         }
     }
     else if (lvl == 1)
@@ -129,15 +129,9 @@ int main (int   argc,
        else if (dir == 2)
         {
             edge0Small = IntVect(D_DECL( 4,232,  0));
-            edge0Big   = IntVect(D_DECL(31,243,  0));
+            edge0Big   = IntVect(D_DECL(32,248,  0));
             edge1Small = IntVect(D_DECL( 4,232,192));
-            edge1Big   = IntVect(D_DECL(31,243,192));
-/*
-            edge0Small = IntVect(D_DECL( -1,  0,  0));
-            edge0Big   = IntVect(D_DECL(288,479,  0));
-            edge1Small = IntVect(D_DECL( -1,  0,192));
-            edge1Big   = IntVect(D_DECL(288,479,192));
-*/
+            edge1Big   = IntVect(D_DECL(32,248,192));
         }
     }
 
