@@ -686,7 +686,7 @@ contains
 
     shfts = 0
 
-    call periodic_shift(dmn,b,nodal,pmask,ng,shft,bxs,cnt)
+    call box_periodic_shift(dmn,b,nodal,pmask,ng,shft,bxs,cnt)
 
     if (cnt > 0) then
        allocate(bv(tba%nboxes+cnt))
@@ -710,7 +710,7 @@ contains
 
     integer i, j, ii, pv, rpv, spv
     integer shft(2*3**lap%dim,lap%dim)
-    type(box) :: abx, bx, dbx
+    type(box) :: abx, bx
     type(boxarray) :: bxa, bxai
     integer :: lcnt, lcnt_r, li_r, cnt_r, cnt_s, i_r, i_s, pcnt_r, pcnt_s, pi_r, pi_s
     type(layout) :: la
@@ -786,19 +786,17 @@ contains
           do ii = 1, bxai%nboxes
              abx = intersection(box_nodalize(get_box(bxa, j), nodal), bxai%bxs(ii))
              if ( .not. empty(abx) ) then
-                dbx = abx
-                if (.not. all(shft(ii,:) == 0)) dbx = shift(abx,-shft(ii,:))
                 if ( local(la,i) .and. local(la, j) ) then
                       bxasc%l_con%cpy(li_r)%nd  = i
                       bxasc%l_con%cpy(li_r)%ns  = j
                       bxasc%l_con%cpy(li_r)%sbx = abx
-                      bxasc%l_con%cpy(li_r)%dbx = dbx
+                      bxasc%l_con%cpy(li_r)%dbx = shift(abx,-shft(ii,:))
                       li_r                      = li_r + 1
                    else if ( local(la,j) ) then
                       bxasc%r_con%snd(i_s)%nd  = i
                       bxasc%r_con%snd(i_s)%ns  = j
                       bxasc%r_con%snd(i_s)%sbx = abx
-                      bxasc%r_con%snd(i_s)%dbx = dbx
+                      bxasc%r_con%snd(i_s)%dbx = shift(abx,-shft(ii,:))
                       bxasc%r_con%snd(i_s)%pr  = get_proc(la, i)
                       bxasc%r_con%snd(i_s)%s1  = volume(abx)
                       i_s                      = i_s + 1
@@ -806,7 +804,7 @@ contains
                       bxasc%r_con%rcv(i_r)%nd  = i
                       bxasc%r_con%rcv(i_r)%ns  = j
                       bxasc%r_con%rcv(i_r)%sbx = abx
-                      bxasc%r_con%rcv(i_r)%dbx = dbx
+                      bxasc%r_con%rcv(i_r)%dbx = shift(abx,-shft(ii,:))
                       bxasc%r_con%rcv(i_r)%pr  = get_proc(la, j)
                       sh                       = 1
                       sh(1:bxasc%dim)          = extent(abx)
