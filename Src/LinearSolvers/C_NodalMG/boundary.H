@@ -44,6 +44,12 @@ public:
                                const level_interface& lev_interface,
                                int w) const = 0;
 
+    //  This is the same as the fill_borders routine except that it
+    //    doesn't fill outside periodic boundaries
+    virtual void fill_sync_reg_borders (MultiFab& r,
+                                        const level_interface& lev_interface,
+                                        int w) const = 0;
+
     virtual void duplicate (List<Box>&,
                             const Box&) const = 0;
 
@@ -137,6 +143,12 @@ public:
     virtual void fill_borders (MultiFab&              r,
                                const level_interface& lev_interface,
                                int                    w) const;
+
+    //  This is the same as the fill_borders routine except that it
+    //    doesn't fill outside periodic boundaries
+    virtual void fill_sync_reg_borders (MultiFab&              r,
+                                        const level_interface& lev_interface,
+                                        int                    w) const;
 
     virtual void duplicate (List<Box>& bl,
                             const Box& domain) const;
