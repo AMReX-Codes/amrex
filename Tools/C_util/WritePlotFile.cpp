@@ -142,7 +142,7 @@ writePlotFile (const aString&  dir,
     //
     // Force other processors to wait till directory is built.
     //
-    ParallelDescriptor::Synchronize();
+    ParallelDescriptor::Barrier();
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -251,7 +251,7 @@ writePlotFile (const char*     name,
     //
     // Force other processors to wait till directory is built.
     //
-    ParallelDescriptor::Synchronize();
+    ParallelDescriptor::Barrier();
 
     aString HeaderFileName = pltfile + "/Header";
 
