@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.16 1997-12-14 23:34:59 lijewski Exp $
+// $Id: Utility.cpp,v 1.17 1997-12-15 17:00:54 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -401,10 +401,10 @@ main ()
 //
 #ifdef BL_FORT_USE_UPPERCASE
 
-extern "C" void UTILRAND (Real* rn);
+extern "C" void BLUTILRAND (Real* rn);
 
 void
-UTILRAND (Real* rn)
+BLUTILRAND (Real* rn)
 {
     assert(rn != 0);
     *rn = Utility::Random();
@@ -412,10 +412,10 @@ UTILRAND (Real* rn)
 
 #else
 
-extern "C" void utilrand_ (Real* rn);
+extern "C" void blutilrand_ (Real* rn);
 
 void
-utilrand_ (Real* rn)
+blutilrand_ (Real* rn)
 {
     assert(rn != 0);
     *rn = Utility::Random();

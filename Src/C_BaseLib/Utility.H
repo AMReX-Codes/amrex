@@ -4,7 +4,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.15 1997-12-14 23:34:59 lijewski Exp $
+// $Id: Utility.H,v 1.16 1997-12-15 17:00:52 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -191,7 +191,7 @@ public:
     // There is also an entry point for Fortran callable as:
     //
     //    REAL_T rn
-    //    call utilrand(rn)
+    //    call blutilrand(rn)
     //
     static double Random ();
     //
