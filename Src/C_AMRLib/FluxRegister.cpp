@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.44 1998-07-27 21:33:36 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.45 1998-07-29 19:09:08 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -9,7 +9,6 @@
 #include <FLUXREG_F.H>
 #include <ParallelDescriptor.H>
 #include <RunStats.H>
-#include <Tracer.H>
 
 #ifdef BL_USE_NEW_HFILES
 #include <vector>
@@ -80,7 +79,7 @@ FluxRegister::SumReg (int comp) const
         Orientation hi_face(dir,Orientation::high);
         const FabSet& lofabs = bndry[lo_face];
         const FabSet& hifabs = bndry[hi_face];
-        for (ConstFabSetIterator fsi(lofabs); fsi.isValid(false); ++fsi)
+        for (ConstFabSetIterator fsi(lofabs); fsi.isValid(); ++fsi)
         {
             ConstDependentFabSetIterator dfsi(fsi, hifabs);
             sum += fsi().sum(comp);
@@ -176,7 +175,7 @@ FluxRegister::Reflux (MultiFab&       S,
     vector<RF>        RFs;
     Array<IntVect>    pshifts(27);
 
-    for (MultiFabIterator mfi(S); mfi.isValid(false); ++mfi)
+    for (MultiFabIterator mfi(S); mfi.isValid(); ++mfi)
     {
         DependentMultiFabIterator mfi_volume(mfi, volume);
 
@@ -394,7 +393,7 @@ FluxRegister::Reflux (MultiFab&       S,
     vector<RF>        RFs;
     Array<IntVect>    pshifts(27);
 
-    for (MultiFabIterator mfi(S); mfi.isValid(false); ++mfi)
+    for (MultiFabIterator mfi(S); mfi.isValid(); ++mfi)
     {
         //
         // Find flux register that intersects with this grid.
@@ -564,7 +563,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     vector<FillBoxId> fillBoxId_mflx, fillBoxId_area;
 
     for (FabSetIterator mfi_bndry_lo(bndry[face_lo]);
-         mfi_bndry_lo.isValid(false); ++mfi_bndry_lo)
+         mfi_bndry_lo.isValid(); ++mfi_bndry_lo)
     {
         DependentFabSetIterator mfi_bndry_hi(mfi_bndry_lo, bndry[face_hi]);
 
@@ -738,17 +737,7 @@ DoIt (Orientation        face,
         CIFabs.push_back(fabCom);
 
         CIMsgs[dMap[k]]++;
-#else
-        FArrayBox fabCom(bx, numcomp);
-
-        fabCom.copy(flux, bx, srccomp, bx, 0, numcomp);
-        fabCom.mult(mult, bx, 0, numcomp);
-
-        ParallelDescriptor::SendData(dMap[k],
-                                     &tag,
-                                     fabCom.dataPtr(),
-                                     bx.numPts() * numcomp * sizeof(Real));
-#endif /*BL_USE_MPI*/
+#endif
     }
 }
 
@@ -761,8 +750,6 @@ FluxRegister::CrseInit (const FArrayBox& flux,
                         int              numcomp,
                         Real             mult)
 {
-    TRACER("FluxRegister::CrseInit()");
-
     assert(flux.box().contains(subbox));
     assert(srccomp  >= 0 && srccomp+numcomp  <= flux.nComp());
     assert(destcomp >= 0 && destcomp+numcomp <= ncomp);
@@ -960,31 +947,6 @@ FluxRegister::CrseInitFinish ()
     {
         CIMsgs[i] = 0;
     }
-#else
-    FabComTag tag;
-
-    ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
-
-    int dataWaitingSize;
-    while (ParallelDescriptor::GetMessageHeader(dataWaitingSize, &tag))
-    {
-        long t_long = tag.box.numPts() * tag.nComp * sizeof(Real);
-
-        assert(t_long < INT_MAX);
-        assert(dataWaitingSize == int(t_long));
-        assert(tag.box.ok());
-
-        FArrayBox tempFab(tag.box, tag.nComp);
-
-        ParallelDescriptor::ReceiveData(tempFab.dataPtr(), int(t_long));
-
-        bndry[tag.face][tag.fabIndex].copy(tempFab,
-                                           tag.box,
-                                           0,
-                                           tag.box,
-                                           tag.destComp,
-                                           tag.nComp);
-    }
 #endif /*BL_USE_MPI*/
 }
 
@@ -996,7 +958,7 @@ FluxRegister::FineAdd (const MultiFab& mflx,
                        int             numcomp,
                        Real            mult)
 {
-    for (ConstMultiFabIterator mflxmfi(mflx); mflxmfi.isValid(false); ++mflxmfi)
+    for (ConstMultiFabIterator mflxmfi(mflx); mflxmfi.isValid(); ++mflxmfi)
     {
         FineAdd(mflxmfi(),dir,mflxmfi.index(),srccomp,destcomp,numcomp,mult);
     }
@@ -1011,11 +973,17 @@ FluxRegister::FineAdd (const MultiFab& mflx,
                        int             numcomp,
                        Real            mult)
 {
-    for (ConstMultiFabIterator mflxmfi(mflx); mflxmfi.isValid(false); ++mflxmfi)
+    for (ConstMultiFabIterator mflxmfi(mflx); mflxmfi.isValid(); ++mflxmfi)
     {
         ConstDependentMultiFabIterator areamfi(mflxmfi, area);
-        FineAdd(mflxmfi(),areamfi(),dir,mflxmfi.index(),
-                srccomp,destcomp,numcomp,mult);
+        FineAdd(mflxmfi(),
+                areamfi(),
+                dir,
+                mflxmfi.index(),
+                srccomp,
+                destcomp,
+                numcomp,
+                mult);
     }
 }
 

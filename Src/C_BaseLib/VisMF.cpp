@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.53 1998-07-27 21:33:08 lijewski Exp $
+// $Id: VisMF.cpp,v 1.54 1998-07-29 19:10:34 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -331,7 +331,6 @@ VisMF::Header::Header (const MultiFab& mf,
     m_min(m_ba.length()),
     m_max(m_ba.length())
 {
-    ParallelDescriptor::SetMessageHeaderSize(sizeof(int));
     //
     // Note that m_min and m_max are only calculated on CPU owning the fab.
     // We pass this data back to IOProcessor() so it sees the whole Header.
@@ -374,14 +373,10 @@ VisMF::Header::Header (const MultiFab& mf,
                                MPI_COMM_WORLD);
             if (!(rc == MPI_SUCCESS))
                 ParallelDescriptor::Abort(rc);
-#else
-            ParallelDescriptor::SendData(IoProc,
-                                         &idx,
-                                         min_n_max.dataPtr(),
-                                         2 * sizeof(Real) * m_ncomp);
-#endif
+#endif /*BL_USE_MPI*/
         }
     }
+
 #ifdef BL_USE_MPI
     if (ParallelDescriptor::IOProcessor())
     {
@@ -416,23 +411,7 @@ VisMF::Header::Header (const MultiFab& mf,
             }
         }
     }
-#else
-    for (int len, idx; ParallelDescriptor::GetMessageHeader(len, &idx); )
-    {
-        assert(len == 2 * sizeof(Real) * m_ncomp);
-
-        m_min[idx].resize(m_ncomp);
-        m_max[idx].resize(m_ncomp);
-
-        ParallelDescriptor::ReceiveData(min_n_max.dataPtr(), len);
-
-        for (int i = 0; i < m_ncomp; i++)
-        {
-            m_min[idx][i] = min_n_max[i];
-            m_max[idx][i] = min_n_max[m_ncomp+i];
-        }
-    }
-#endif
+#endif /*BL_USE_MPI*/
 }
 
 long
@@ -478,7 +457,13 @@ VisMF::Write (const MultiFab& mf,
 
     const int IoProc = ParallelDescriptor::IOProcessorNumber();
 
-    long bytes = 0;
+    long bytes  = 0;
+
+    VisMF::Header hdr(mf, VisMF::OneFilePerCPU);
+
+    char buf[sizeof(int) + 1];
+
+#ifdef BL_USE_MPI
     //
     // Structure we use to pass FabOnDisk data to the IOProcessor.
     // The variable length part of the message is the name of the on-disk FAB.
@@ -490,18 +475,9 @@ VisMF::Write (const MultiFab& mf,
     }
     msg_hdr;
 
-    VisMF::Header hdr(mf, VisMF::OneFilePerCPU);
-
-    ParallelDescriptor::SetMessageHeaderSize(sizeof(msg_hdr));
-
-    char buf[sizeof(int) + 1];
-
-#ifdef BL_USE_MPI
-    const int NPBUF = 512;
-
+    const int   NPBUF = 512;
     Array<char> packedbuffer(NPBUF);
-
-    char* pbuf = packedbuffer.dataPtr();
+    char*       pbuf = packedbuffer.dataPtr();
 #endif
 
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
@@ -533,9 +509,9 @@ VisMF::Write (const MultiFab& mf,
 
             if (!ParallelDescriptor::IOProcessor())
             {
+#ifdef BL_USE_MPI
                 msg_hdr.m_index = mfi.index();
                 msg_hdr.m_head  = hdr.m_fod[mfi.index()].m_head;
-#ifdef BL_USE_MPI
                 //
                 // Pack FAB offset, length of FAB name, and name into buffer.
                 //
@@ -580,15 +556,7 @@ VisMF::Write (const MultiFab& mf,
                                     mfi.index(),
                                     MPI_COMM_WORLD)) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
-#else
-                ParallelDescriptor::SendData(IoProc,
-                                             &msg_hdr,
-                                             TheBaseName.c_str(),
-                                             //
-                                             // Include NULL in MSG.
-                                             //
-                                             TheBaseName.length()+1);
-#endif
+#endif /*BL_USE_MPI*/
             }
         }
         if (VisMF::FileOffset(FabFile) <= 0)
@@ -622,9 +590,9 @@ VisMF::Write (const MultiFab& mf,
 
             if (!ParallelDescriptor::IOProcessor())
             {
+#ifdef BL_USE_MPI
                 msg_hdr.m_head  = 0;
                 msg_hdr.m_index = mfi.index();
-#ifdef BL_USE_MPI
                 //
                 // Pack FAB offset, length of name, and name into buffer.
                 //
@@ -669,15 +637,7 @@ VisMF::Write (const MultiFab& mf,
                                     mfi.index(),
                                     MPI_COMM_WORLD)) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
-#else
-                ParallelDescriptor::SendData(IoProc,
-                                             &msg_hdr,
-                                             TheBaseName.c_str(),
-                                             //
-                                             // Include NULL in MSG.
-                                             //
-                                             TheBaseName.length()+1);
-#endif
+#endif /*BL_USE_MPI*/
             }
         }
     }
@@ -748,21 +708,7 @@ VisMF::Write (const MultiFab& mf,
             }
         }
     }
-#else
-    for (int len; ParallelDescriptor::GetMessageHeader(len, &msg_hdr); )
-    {
-        assert(ParallelDescriptor::IOProcessor());
-
-        char* fab_name = new char[len];
-
-        ParallelDescriptor::ReceiveData(fab_name, len);
-
-        hdr.m_fod[msg_hdr.m_index].m_head = msg_hdr.m_head;
-        hdr.m_fod[msg_hdr.m_index].m_name = fab_name;
-
-        delete [] fab_name;
-    }
-#endif
+#endif /*BL_USE_MPI*/
 
     bytes += VisMF::WriteHeader(mf_name, hdr);
 
@@ -891,11 +837,11 @@ VisMF::clear (int fabIndex)
 void
 VisMF::clear ()
 {
-  for (int ncomp = 0; ncomp < m_pa.length(); ++ncomp)
-  {
-      for (int fabIndex = 0; fabIndex < m_pa[ncomp].length(); ++fabIndex)
-      {
-          clear(ncomp, fabIndex);
-      }
-  }
+    for (int ncomp = 0; ncomp < m_pa.length(); ++ncomp)
+    {
+        for (int fabIndex = 0; fabIndex < m_pa[ncomp].length(); ++fabIndex)
+        {
+            clear(ncomp, fabIndex);
+        }
+    }
 }

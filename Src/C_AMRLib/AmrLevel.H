@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.21 1998-07-09 18:27:33 lijewski Exp $
+// $Id: AmrLevel.H,v 1.22 1998-07-29 19:09:05 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -365,7 +365,7 @@ class FillPatchIterator
 
     FArrayBox& operator() ()  { return m_fab; }
 
-    bool isValid (bool bDoSync = true);
+    bool isValid ();
 
     const Box& UngrownBox() const { return validbox(); }
 

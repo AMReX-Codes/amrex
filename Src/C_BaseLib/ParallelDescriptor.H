@@ -4,14 +4,13 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.33 1998-07-27 21:33:07 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.34 1998-07-29 19:10:32 lijewski Exp $
 //
 
 #include <Assert.H>
 #include <Boolean.H>
 #include <REAL.H>
 #include <Box.H>
-#include <ccse-mpi.H>
 
 //
 // Used for collecting information used in communicating FABs.
@@ -236,46 +235,6 @@ class ParallelDescriptor
                         int   sendcount,
                         Real* recvbuf,
                         int   root);
-    //
-    // None of the following are documented as they're BSP-specific.
-    //
-    static void Synchronize ();
-
-    static void ShareVar (const void* var, int bytes);
-
-    static void UnshareVar (const void* var);
-
-    static void WriteData (int         procnum,
-                           const void* src,
-                           void*       dest,
-                           int         offset,
-                           int         bytes);
-
-    static void ReadData (int         procnum,
-                          const void* src,
-                          int         offset,
-                          void*       dest,
-                          int         bytes);
-
-    static void SetMessageHeaderSize (int messageHeaderSize);
-
-    static bool GetMessageHeader (int&  dataSize,
-                                  void* messageHeader);
-
-    static bool MessageQueueEmpty ();
-
-    static void SendData (int         toproc,
-                          const void* messageHeader,
-                          const void* data,
-                          int         datasizeinbytes);
-
-    static void ReceiveData (void* data,
-                             int   datasizeinbytes);
-
-    static void Broadcast (int   fromproc,
-                           void* src,
-                           void* dest,
-                           int   nbytes);
   private:
     //
     // My processor ID.
