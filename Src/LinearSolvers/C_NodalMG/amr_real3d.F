@@ -160,14 +160,14 @@ c Works for CELL- or NODE-based data.
       integer i, j, k, nc
       do nc = 1, ncomp
       if (ra(0) .eq. 0 .and. ra(1) .eq. 0 .and. ra(2) .eq. 0) then
-            do k = regl2, regh2
-               do j = regl1, regh1
-                  do i = regl0, regh0
-                     dest(i,j,k,nc) = src(bbl0+(i-regl0),
-     &                                bbl1+(j-regl1), bbl2+(k-regl2),nc)
-                  end do
+         do k = regl2, regh2
+            do j = regl1, regh1
+               do i = regl0, regh0
+                  dest(i,j,k,nc) = src(bbl0+(i-regl0),
+     &                              bbl1+(j-regl1), bbl2+(k-regl2),nc)
                end do
             end do
+         end do
       else if (ra(0) .eq. 0 .and. ra(1) .eq. 0 .and. ra(2) .eq. 1) then
          do k = regl2, regh2
             do j = regl1, regh1

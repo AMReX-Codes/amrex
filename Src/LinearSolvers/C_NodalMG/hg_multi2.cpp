@@ -482,7 +482,7 @@ holy_grail_amr_multigrid::alloc_sync_caches ()
     
     for (int lev = lev_min + 1; lev <= lev_max; lev++) 
     {
-	int mglev = ml_index[lev];
+	const int mglev = ml_index[lev];
 	fres_fbox[lev]  =
 	    new Box[lev_interface[mglev].nboxes(level_interface::FACEDIM)];
 	fres_cbox[lev]  =

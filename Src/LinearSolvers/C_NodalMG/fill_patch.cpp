@@ -130,20 +130,30 @@ task_bdy_fill::task_bdy_fill (task_list&                tl_,
     {
 	m_local = true;
 
+	HG_DEBUG_OUT("LOCAL:");
 	m_bdy->fill(*m_fab, m_region, m_smf[m_sgrid], m_domain);
     }
 
-    m_bx = m_bdy->anImage(m_region,m_smf.boxArray()[m_sgrid],m_domain);
+    Box tmpb = m_bdy->anImage(m_region,m_smf.boxArray()[m_sgrid],m_domain);
 
-    if (!m_smf.fabbox(m_sgrid).contains(m_bx))
-    {
-	HG_DEBUG_OUT("???" << m_bx << m_smf.fabbox(m_sgrid) << endl);
+    m_bx = tmpb;
+    // m_bx = ::grow(tmpb,3) & m_smf.fabbox(m_sgrid);
+    // m_bx = ::grow(tmpb,3);
+    // m_bx = m_smf.fabbox(m_sgrid);
+
+    // This is a GROSS hack FIXME:  the growth should probably be set by the refinement
+    // between the coarse/fine domains.
+    m_bx = ::grow(tmpb, 4);
+
+//    if (!m_smf.fabbox(m_sgrid).contains(m_bx))
+//    {
+//	HG_DEBUG_OUT("???" << m_bx << m_smf.fabbox(m_sgrid) << endl);
         //
         // No work to do -- skip bad code in mixed_boundary::fill().
         //
 	// FIXME : Fixes periodic in parallel
         // m_local = true;
-    }
+//   }
 }
 
 task_bdy_fill::~task_bdy_fill ()
@@ -269,6 +279,7 @@ task_bdy_fill::ready ()
 		ParallelDescriptor::Abort(res);
 	    BL_ASSERT(count == tmp->box().numPts()*tmp->nComp());
 #endif
+	    HG_DEBUG_OUT("REMOTE:");
 	    m_bdy->fill(*m_fab, m_region, *tmp, m_domain);
 	}
 	return true;
@@ -433,9 +444,6 @@ task_fill_patch::fill_patch ()
     }
     else
     {
-        //
-	// FIXME!!!
-        //
         const BoxArray& r_ba = r.boxArray();
 	Array<int> gridnum(lev_interface.ngrids(idim)+1);
 	gridnum[0] = -1;
