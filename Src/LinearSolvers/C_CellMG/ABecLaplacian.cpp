@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ABecLaplacian.cpp,v 1.9 2000-08-02 16:06:44 car Exp $
+// $Id: ABecLaplacian.cpp,v 1.10 2000-08-02 21:03:50 almgren Exp $
 //
 
 #include <ABecLaplacian.H>
@@ -166,7 +166,9 @@ ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflu
 			 MultiFab& in, const BC_Mode& bc_mode)
 {
     int level = 0;
-    applyBC(in,level,bc_mode);
+    int src_comp = 0;
+    int num_comp = 1;
+    applyBC(in,src_comp,num_comp,level,bc_mode);
     const BoxArray& bxa = gbox[level];
     const MultiFab& a   = aCoefficients(level);
     const MultiFab& bX  = bCoefficients(0,level);

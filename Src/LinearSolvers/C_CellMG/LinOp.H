@@ -4,7 +4,7 @@
 #define _LINOP_H_
 
 //
-// $Id: LinOp.H,v 1.10 1999-12-01 16:17:10 lijewski Exp $
+// $Id: LinOp.H,v 1.11 2000-08-02 21:03:50 almgren Exp $
 //
 
 #include <Array.H>
@@ -120,6 +120,8 @@ public:
     //@ManDoc: fills level boundary cells using BC\_mode flag, int. BC data if reqd
     //
     void applyBC (MultiFab&      inout,
+                  int            src_comp,
+                  int            num_comp,
                   int            level = 0,
                   LinOp::BC_Mode bc_mode = LinOp::Inhomogeneous_BC);
     //
