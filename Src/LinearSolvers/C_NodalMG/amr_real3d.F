@@ -162,7 +162,7 @@ c Works for NODE-based data.
       subroutine fccpy2(dest, src, nsets, dstart, sstart,
      @                  dstrd1, dstrd2, sstrd1, sstrd2,
      @                  nvals1, nvals2)
-      real*8 dest(*), src(*)
+      real*8 dest(0:*), src(0:*)
       integer nsets
       integer dstart(nsets), sstart(nsets)
       integer dstrd1(nsets), dstrd2(nsets)
