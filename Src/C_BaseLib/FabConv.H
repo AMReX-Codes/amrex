@@ -4,7 +4,7 @@
 #define BL_FABCONV_H
 
 //
-// $Id: FabConv.H,v 1.6 2000-04-04 00:20:13 vince Exp $
+// $Id: FabConv.H,v 1.7 2000-04-24 17:52:35 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -22,6 +22,11 @@ using std::istream;
 #include <Array.H>
 #include <BLassert.H>
 #include <REAL.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 //
 //@Man:
@@ -380,5 +385,12 @@ RealDescriptor::SetFixDenormals()
 {
     bAlwaysFixDenormals = true;
 }
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_FABCONV_H*/

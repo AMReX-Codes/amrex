@@ -4,7 +4,7 @@
 #define BL_PARRAY_H
 
 //
-// $Id: PArray.H,v 1.12 1999-05-10 18:54:22 car Exp $
+// $Id: PArray.H,v 1.13 2000-04-24 17:52:36 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -26,6 +26,11 @@ using std::endl;
          manages the pointed to objects, as well as the pointer itself.
          Valid values are PArrayNoManage and PArrayManage.
 */
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 enum PArrayPolicy
 {
@@ -352,5 +357,12 @@ PArray<T>::resize (int          newlen,
         managed = newmanagedpolicy;
     }
 }
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_PARRAY_H*/

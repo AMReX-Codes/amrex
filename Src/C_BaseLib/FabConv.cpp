@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabConv.cpp,v 1.7 2000-04-04 00:20:13 vince Exp $
+// $Id: FabConv.cpp,v 1.8 2000-04-24 17:52:35 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -25,6 +25,11 @@ using std::cerr;
 #include <FPC.H>
 #include <Misc.H>
 #include <REAL.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 //
 // Declarations of Cray-specific FP format to IEEE routines.
@@ -1306,3 +1311,8 @@ RealDescriptor::convertFromNativeFormat (ostream&              os,
 
     delete [] bufr;
 }
+
+#ifdef BL_NAMESPACE
+}
+#endif
+

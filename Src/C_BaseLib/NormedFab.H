@@ -4,7 +4,7 @@
 #define BL_NORMEDFAB_H
 
 //
-// $Id: NormedFab.H,v 1.6 1999-05-10 18:54:22 car Exp $
+// $Id: NormedFab.H,v 1.7 2000-04-24 17:52:36 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -23,6 +23,11 @@ using std::endl;
 #include <Looping.H>
 #include <BaseFab.H>
 #include <REAL.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 //
 //@Man:
@@ -307,6 +312,13 @@ NormedFab<Real>::norm (const Box& subbox,
 
     return nrm;
 }
+#endif
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
 #endif
 
 #endif /*BL_NORMEDFAB_H*/

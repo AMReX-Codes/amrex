@@ -4,7 +4,7 @@
 #define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.16 1999-05-10 18:54:20 car Exp $
+// $Id: FArrayBox.H,v 1.17 2000-04-24 17:52:34 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -33,6 +33,10 @@ using std::endl;
 #endif /*BL_CRAY_BUG_DEFARG*/
 #endif /*BL_USE_POINTLIB*/
 
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 class FArrayBox;
 
 //
@@ -600,5 +604,12 @@ FArrayBox::skipFAB (istream& is)
 }
 
 inline FArrayBox::~FArrayBox () {}
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_FARRAYBOX_H*/

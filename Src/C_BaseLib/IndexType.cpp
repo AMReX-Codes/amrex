@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: IndexType.cpp,v 1.6 1999-05-10 18:54:21 car Exp $
+// $Id: IndexType.cpp,v 1.7 2000-04-24 17:52:35 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -16,6 +16,11 @@ using std::cerr;
 #endif
 
 #include <IndexType.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 IndexType
 IndexType::TheCellType ()
@@ -77,4 +82,8 @@ operator>> (istream&   is,
 }
 
 
+
+#ifdef BL_NAMESPACE
+}
+#endif
 

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParmParse.cpp,v 1.8 1999-05-07 15:36:57 lijewski Exp $
+// $Id: ParmParse.cpp,v 1.9 2000-04-24 17:52:37 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -25,6 +25,11 @@ using std::cerr;
 
 #include <BoxLib.H>
 #include <ParmParse.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 int             ParmParse::xargc   = 0;
 int             ParmParse::num_obj = 0;
@@ -906,3 +911,7 @@ PP_entry::dump (ostream& os) const
     if (os.fail())
         BoxLib::Error("PP_entry::dump(ostream&) failed");
 }
+
+#ifdef BL_NAMESPACE
+}
+#endif

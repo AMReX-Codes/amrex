@@ -4,7 +4,7 @@
 #define BL_BOXDOMAIN_H
 
 //
-// $Id: BoxDomain.H,v 1.10 1999-08-02 19:22:16 sstanley Exp $
+// $Id: BoxDomain.H,v 1.11 2000-04-24 17:52:33 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -24,6 +24,11 @@ using std::endl;
 #include <IntVect.H>
 #include <BoxList.H>
 
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 //
 // Forward declaration of our BoxDomain iterator class.
@@ -415,5 +420,12 @@ BoxDomain::operator!= (const BoxDomain& rhs) const
 {
     return !BoxList::operator==(rhs);
 }
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_BOXDOMAIN_H*/

@@ -4,13 +4,18 @@
 #define BL_ARENA
 
 //
-// $Id: Arena.H,v 1.6 1999-06-28 20:37:04 car Exp $
+// $Id: Arena.H,v 1.7 2000-04-24 17:52:32 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
 #include <cstddef>
 #else
 #include <stddef.h>
+#endif
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
 #endif
 
 //
@@ -26,6 +31,7 @@
 class Arena
 {
 public:
+    virtual ~Arena ();
     /*@ManDoc: Allocate a dynamic memory arena of size sz.
                A pointer to this memory should be returned.
     */
@@ -61,6 +67,10 @@ protected:
 //
 
 inline
+Arena::~Arena ()
+{}
+
+inline
 size_t
 Arena::align (size_t s)
 {
@@ -68,5 +78,13 @@ Arena::align (size_t s)
     x -= x%sizeof(Word);
     return x;
 }
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
+
 
 #endif /*BL_ARENA*/

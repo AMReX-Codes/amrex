@@ -4,7 +4,7 @@
 #define BL_INTVECT_H
 
 //
-// $Id: IntVect.H,v 1.10 1999-05-10 18:54:21 car Exp $
+// $Id: IntVect.H,v 1.11 2000-04-24 17:52:35 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -26,6 +26,11 @@ using std::ws;
 #include <Misc.H>
 #include <Array.H>
 #include <BLassert.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 //
 //@Man:
@@ -853,6 +858,13 @@ IntVect::coarsen (const IntVect& p)
     }
     return *this;
 }
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_INTVECT_H*/
 

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: aString.cpp,v 1.7 1999-08-23 21:19:58 lijewski Exp $
+// $Id: aString.cpp,v 1.8 2000-04-24 17:52:38 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -12,6 +12,11 @@
 
 #include <BLassert.H>
 #include <aString.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 void
 StringRep::resize (int n)
@@ -266,3 +271,8 @@ aString::tokenize (const aString& separators) const
 
     return tokens;
 }
+
+#ifdef BL_NAMESPACE
+}
+#endif
+

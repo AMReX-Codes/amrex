@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.64 1999-07-01 19:44:04 lijewski Exp $
+// $Id: VisMF.cpp,v 1.65 2000-04-24 17:52:38 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -27,6 +27,11 @@ using std::ofstream;
 #include <Utility.H>
 #include <VisMF.H>
 #include <Tracer.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 const aString VisMF::FabFileSuffix("_D_");
 const aString VisMF::MultiFabHdrFileSuffix("_H");
@@ -796,3 +801,8 @@ VisMF::clear ()
         }
     }
 }
+
+#ifdef BL_NAMESPACE
+}
+#endif
+

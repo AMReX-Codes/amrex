@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.20 1999-07-21 21:02:40 lijewski Exp $
+// $Id: RunStats.cpp,v 1.21 2000-04-24 17:52:37 car Exp $
 //
 
 #include <Utility.H>
@@ -17,6 +17,11 @@
 using std::setw;
 using std::ios;
 using std::setprecision;
+#endif
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
 #endif
 
 Real               RunStats::TotalCPU;
@@ -702,3 +707,7 @@ operator<< (ostream&        os,
        << '\n';
     return os;
 }
+
+#ifdef BL_NAMESPACE
+}
+#endif

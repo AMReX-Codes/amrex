@@ -4,7 +4,7 @@
 #define BL_LOOPING_H
 
 //
-// $Id: Looping.H,v 1.9 2000-01-06 18:26:40 lijewski Exp $
+// $Id: Looping.H,v 1.10 2000-04-24 17:52:36 car Exp $
 //
 
 #if (BL_SPACEDIM == 1)
@@ -341,7 +341,7 @@
         const int *_subbox_lo = _subbox_.loVect();                      \
         const int *_subbox_len = _subbox_.length().getVect();           \
         const int *_bx_lo = (bx).loVect();                              \
-        const int *_bx_len = (bx).length().getVect();                   \
+        /* const int *_bx_len = (bx).length().getVect();  */                 \
         T* _th_p = dataPtr(ns);                                         \
         const T* _x_p  = (x).dataPtr(nss);                              \
         for(int _n = 0; _n < (nc); ++_n) {                              \
@@ -402,7 +402,7 @@
         const int *_subbox_lo = _subbox_.loVect();                      \
         const int *_subbox_len = _subbox_.length().getVect();           \
         const int *_bx_lo = (bx).loVect();                              \
-        const int *_bx_len = (bx).length().getVect();                   \
+        /* const int *_bx_len = (bx).length().getVect(); */                  \
         const int *_by_lo = (by).loVect();                              \
         const int *_by_len = (by).length().getVect();                   \
         T* _th_p = dataPtr(ns);                                         \
@@ -659,7 +659,7 @@
         const int *_subbox_lo = _subbox_.loVect();                      \
         const int *_subbox_len = _subbox_.length().getVect();           \
         const int *_bx_lo = (bx).loVect();                              \
-        const int *_bx_len = (bx).length().getVect();                   \
+        /* const int *_bx_len = (bx).length().getVect();  */                 \
         T* _th_p = dataPtr(ns);                                         \
         const T* _x_p  = (x).dataPtr(nss);                              \
         for(int _n = 0; _n < (nc); ++_n) {                              \
@@ -702,7 +702,7 @@
         const int *_subbox_lo = _subbox_.loVect();                      \
         const int *_subbox_len = _subbox_.length().getVect();           \
         const int *_bx_lo = (bx).loVect();                              \
-        const int *_bx_len = (bx).length().getVect();                   \
+        /* const int *_bx_len = (bx).length().getVect(); */                  \
         const int *_by_lo = (by).loVect();                              \
         const int *_by_len = (by).length().getVect();                   \
         T* _th_p = dataPtr(ns);                                         \
@@ -1009,7 +1009,7 @@
         const int *_subbox_lo = _subbox_.loVect();                      \
         const int *_subbox_len = _subbox_.length().getVect();           \
         const int *_bx_lo = (bx).loVect();                              \
-        const int *_bx_len = (bx).length().getVect();                   \
+        /* const int *_bx_len = (bx).length().getVect();  */                 \
         T* _th_p = dataPtr(ns);                                         \
         const T* _x_p  = (x).dataPtr(nss);                              \
         for(int _n = 0; _n < (nc); ++_n) {                              \
@@ -1059,7 +1059,7 @@
         const int *_subbox_lo = _subbox_.loVect();                      \
         const int *_subbox_len = _subbox_.length().getVect();           \
         const int *_bx_lo = (bx).loVect();                              \
-        const int *_bx_len = (bx).length().getVect();                   \
+        /* const int *_bx_len = (bx).length().getVect();  */                 \
         const int *_by_lo = (by).loVect();                              \
         const int *_by_len = (by).length().getVect();                   \
         T* _th_p = dataPtr(ns);                                         \

@@ -4,7 +4,7 @@
 #define BL_BOX_H
 
 //
-// $Id: Box.H,v 1.15 1999-08-02 19:22:16 sstanley Exp $
+// $Id: Box.H,v 1.16 2000-04-24 17:52:32 car Exp $
 //
 
 #ifdef NODEV
@@ -27,6 +27,11 @@ using std::ws;
 #include <IndexType.H>
 #include <Orientation.H>
 #include <SPACE.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 //
 // Forward declaration.
@@ -1171,5 +1176,12 @@ Box::operator& (const Box& rhs) const
     Box lhs(*this);
     return lhs &= rhs;
 }
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_BOX_H*/

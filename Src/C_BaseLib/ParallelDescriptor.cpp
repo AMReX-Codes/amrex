@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.55 1999-07-07 22:48:33 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.56 2000-04-24 17:52:37 car Exp $
 //
 
 #include <Utility.H>
@@ -10,6 +10,11 @@
 //
 // Definition of non-inline members of CommData.
 //
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 CommData::CommData ()
 {
@@ -93,11 +98,19 @@ operator<< (ostream&        os,
     return os;
 }
 
+#ifdef BL_NAMESPACE
+}
+#endif
+
 #ifdef BL_USE_MPI
 
 #include <ccse-mpi.H>
 #include <RunStats.H>
 
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 static const aString REDUCE("mpi_reduce");
 
 int ParallelDescriptor::m_nProcs = -1;
@@ -554,7 +567,16 @@ ParallelDescriptor::Gather (Real* sendbuf,
         ParallelDescriptor::Abort(rc);
 }
 
+#ifdef BL_NAMESPACE
+}
+#endif
+
 #else
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 int ParallelDescriptor::m_nProcs = 1;
 int ParallelDescriptor::m_MyId   = 0;
@@ -623,5 +645,10 @@ ParallelDescriptor::second ()
 {
     return Utility::second();
 }
+
+
+#ifdef BL_NAMESPACE
+}
+#endif
 
 #endif

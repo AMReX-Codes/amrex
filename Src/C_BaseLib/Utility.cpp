@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.39 2000-04-12 16:14:23 sstanley Exp $
+// $Id: Utility.cpp,v 1.40 2000-04-24 17:52:38 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -59,6 +59,11 @@ const char* path_sep_str = "/";
 //
 #if defined(__GNUG__) && defined(__sun) && defined(BL_SunOS)
 extern "C" int gettimeofday (struct timeval*, struct timezone*);
+#endif
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
 #endif
 
 double
@@ -554,5 +559,9 @@ Utility::Execute (const char* cmd)
     }
 
     return pid;
+}
+#endif
+
+#ifdef BL_NAMESPACE
 }
 #endif

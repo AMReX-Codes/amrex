@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: IntVect.cpp,v 1.5 1999-05-10 17:18:46 car Exp $
+// $Id: IntVect.cpp,v 1.6 2000-04-24 17:52:35 car Exp $
 //
 
 #include <BLassert.H>
@@ -9,6 +9,11 @@
 #include <Misc.H>
 #include <IntVect.H>
 #include <IndexType.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 const IntVect&
 IntVect::TheUnitVector ()
@@ -102,3 +107,8 @@ IntVect::dumpOn (ostream& os) const
 {
     os << "IntVect(" << BoxLib::version << ")= " << *this << '\n';
 }
+
+#ifdef BL_NAMESPACE
+}
+#endif
+

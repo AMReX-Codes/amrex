@@ -4,7 +4,7 @@
 #define BL_PARMPARSE_H
 
 //
-// $Id: ParmParse.H,v 1.6 1999-05-07 15:36:56 lijewski Exp $
+// $Id: ParmParse.H,v 1.7 2000-04-24 17:52:37 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -24,6 +24,11 @@ using std::endl;
 #include <aString.H>
 #include <List.H>
 #include <Array.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 // -----------------------------------------------------------------
 // ----------------------- COMMENTS -------------------------------
@@ -1146,5 +1151,12 @@ ParmParse::countname (const aString& name)
 {
     return countname(name.c_str());
 }
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_PARMPARSE_H*/

@@ -1,5 +1,5 @@
 /*
-** $Id: SPECIALIZE_F.H,v 1.3 1999-08-25 18:05:27 propp Exp $
+** $Id: SPECIALIZE_F.H,v 1.4 2000-04-24 17:52:38 car Exp $
 */
 
 #ifndef SPECIALIZE_H
@@ -29,6 +29,8 @@
 #define FORT_FASTSETVAL     fastsetval_
 #endif
 
+BL_BEGIN_NAMESPACE
+
 extern "C"
 {
     void FORT_FASTCOPY (Real* dest,
@@ -49,5 +51,7 @@ extern "C"
                           const int&  ncomp);
 };
 #endif /*BL_LANG_CC*/
+
+BL_END_NAMESPACE
 
 #endif /*SPECIALIZE_H*/

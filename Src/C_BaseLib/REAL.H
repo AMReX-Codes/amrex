@@ -4,7 +4,7 @@
 #define BL_REAL_H
 
 /*
-** $Id: REAL.H,v 1.3 1997-09-18 18:03:34 car Exp $
+** $Id: REAL.H,v 1.4 2000-04-24 17:52:37 car Exp $
 */
 
 #if defined(BL_ARCH_CRAY)
@@ -19,6 +19,11 @@
 #  undef BL_USE_FLOAT
 #  define BL_USE_FLOAT 1
 #  if !defined(BL_LANG_FORT)
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 /*@ManDoc:
   REAL is a typedef specifying the precision of the floating-point

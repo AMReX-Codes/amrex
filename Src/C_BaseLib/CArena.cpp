@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CArena.cpp,v 1.19 1999-07-21 21:06:08 lijewski Exp $
+// $Id: CArena.cpp,v 1.20 2000-04-24 17:52:34 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -28,16 +28,42 @@ using std::pair;
 #endif
 
 #include <CArena.H>
+
+
 //
 // Only really use the coalescing FAB arena if BL_COALESCE_FABS.
 //
 #ifdef BL_COALESCE_FABS
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
+
 static CArena The_Static_FAB_CArena;
 Arena* The_FAB_Arena = &The_Static_FAB_CArena;
+#ifdef BL_NAMESPACE
+}
+#endif
+
 #else
 #include <BArena.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
+
 static BArena The_Static_FAB_BArena;
 Arena* The_FAB_Arena = &The_Static_FAB_BArena;
+#ifdef BL_NAMESPACE
+}
+#endif
+
+#endif
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
 #endif
 
 CArena::CArena (size_t hunk_size)
@@ -260,4 +286,8 @@ CArena::realloc (void*  ptr,
         return ptr;
     }
 }
+
+#ifdef BL_NAMESPACE
+}
+#endif
 

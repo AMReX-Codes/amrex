@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Box.cpp,v 1.9 1999-07-15 17:07:04 lijewski Exp $
+// $Id: Box.cpp,v 1.10 2000-04-24 17:52:33 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -14,6 +14,11 @@
 #include <BoxLib.H>
 #include <Misc.H>
 #include <Box.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 const Box&
 Box::TheUnitBox ()
@@ -816,3 +821,8 @@ adjCell (const Box&         b,
     typ.unset(dir);
     return Box(low,hi,typ);
 }
+
+#ifdef BL_NAMESPACE
+}
+#endif
+

@@ -4,7 +4,7 @@
 #define BL_DISTRIBUTIONMAPPING_H
 
 //
-// $Id: DistributionMapping.H,v 1.12 2000-02-28 23:27:00 lijewski Exp $
+// $Id: DistributionMapping.H,v 1.13 2000-04-24 17:52:34 car Exp $
 //
 #ifdef BL_USE_NEW_HFILES
 #include <vector>
@@ -17,6 +17,11 @@ using std::vector;
 #include <Array.H>
 #include <Box.H>
 #include <BoxArray.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 //
 //@Man:
@@ -197,5 +202,12 @@ DistributionMapping::CacheSize ()
 {
     return m_Cache.size();
 }
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_DISTRIBUTIONMAPPING_H*/

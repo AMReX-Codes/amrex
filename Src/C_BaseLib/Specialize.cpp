@@ -1,5 +1,5 @@
 //
-// $Id: Specialize.cpp,v 1.3 1999-05-10 18:54:23 car Exp $
+// $Id: Specialize.cpp,v 1.4 2000-04-24 17:52:38 car Exp $
 //
 
 #ifdef BL_USE_SPECIALIZE
@@ -9,6 +9,8 @@
 // Explicit <Real> specializations for performCopy() and performSetVal().
 //
 #include <SPECIALIZE_F.H>
+
+BL_BEGIN_NAMESPACE
 
 #ifdef BL_SPECIALIZE_SYNTAX
 template <>
@@ -90,3 +92,5 @@ BaseFab<Real>::performSetVal (Real       val,
                     num);
 }
 #endif /*BL_USE_SPECIALIZE*/
+
+BL_END_NAMESPACE

@@ -1,11 +1,16 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxList.cpp,v 1.5 1999-04-26 20:09:11 lijewski Exp $
+// $Id: BoxList.cpp,v 1.6 2000-04-24 17:52:33 car Exp $
 //
 
 #include <Misc.H>
 #include <BoxList.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 BoxList::BoxList ()
     : lbox(), btype(IndexType::TheCellType())
@@ -520,4 +525,8 @@ BoxList::operator== (const BoxList& rhs) const
     return rc;
 }
 
+
+#ifdef BL_NAMESPACE
+}
+#endif
 

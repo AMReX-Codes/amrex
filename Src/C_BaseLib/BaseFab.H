@@ -4,7 +4,7 @@
 #define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.23 1999-05-10 18:54:19 car Exp $
+// $Id: BaseFab.H,v 1.24 2000-04-24 17:52:32 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -29,6 +29,11 @@
 
 #ifdef BL_USE_POINTLIB
 #include <PointLooping.H>
+#endif
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
 #endif
 
 //
@@ -874,7 +879,7 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
         const int *_subbox_lo = _subbox_.loVect(); 
         const int *_subbox_len = _subbox_.length().getVect(); 
         const int *_bx_lo = (srcbox).loVect(); 
-        const int *_bx_len = (srcbox).length().getVect(); 
+        // const int *_bx_len = (srcbox).length().getVect(); 
         T* _th_p = dataPtr(destcomp); 
         const T* _x_p  = (src).dataPtr(srccomp); 
         for (int _n = 0; _n < (numcomp); ++_n)
@@ -905,7 +910,7 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
         const int *_subbox_lo = _subbox_.loVect(); 
         const int *_subbox_len = _subbox_.length().getVect(); 
         const int *_bx_lo = (srcbox).loVect(); 
-        const int *_bx_len = (srcbox).length().getVect(); 
+        // const int *_bx_len = (srcbox).length().getVect(); 
         T* _th_p = dataPtr(destcomp); 
         const T* _x_p  = (src).dataPtr(srccomp); 
         for (int _n = 0; _n < (numcomp); ++_n)
@@ -944,7 +949,7 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
         const int *_subbox_lo = _subbox_.loVect(); 
         const int *_subbox_len = _subbox_.length().getVect(); 
         const int *_bx_lo = (srcbox).loVect(); 
-        const int *_bx_len = (srcbox).length().getVect(); 
+        // const int *_bx_len = (srcbox).length().getVect(); 
         T* _th_p = dataPtr(destcomp); 
         const T* _x_p  = (src).dataPtr(srccomp); 
         for (int _n = 0; _n < (numcomp); ++_n)
@@ -1055,5 +1060,12 @@ BaseFab<T>::setComplement (T          x,
     for (BoxListIterator bli(b_lst); bli; ++bli)
         performSetVal(x,bli(),ns,num);
 }
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_BASEFAB_H*/

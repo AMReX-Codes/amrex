@@ -4,11 +4,16 @@
 #define BL_LIST_H
 
 //
-// $Id: List.H,v 1.9 1999-05-10 18:54:21 car Exp $
+// $Id: List.H,v 1.10 2000-04-24 17:52:36 car Exp $
 //
 
 #include <BLassert.H>
 #include <BoxLib.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 template <class T> class ListLink;
 template <class T> class ListIterator;
@@ -887,5 +892,12 @@ List<T>::remove (ListLink<T>* ln)
     delete ln;
     ln = 0;
 }
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_LIST_H*/

@@ -3,6 +3,10 @@ Debug
 Debug3D
 Release
 Release3D
+BoxLib.tex
+BoxLib.log
+BoxLib.aux
+BoxLib.pdf
 *.ncb *.opt *.plg
 grdlog
 ti_files

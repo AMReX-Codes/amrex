@@ -4,7 +4,7 @@
 #define BL_BOXLIST_H
 
 //
-// $Id: BoxList.H,v 1.14 1999-12-01 16:16:45 lijewski Exp $
+// $Id: BoxList.H,v 1.15 2000-04-24 17:52:33 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -23,6 +23,10 @@ using std::endl;
 #include <BoxArray.H>
 #include <List.H>
 
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 //
 // Forward declaration.
 //
@@ -451,7 +455,11 @@ inline
 bool
 BoxList::contains (const Box& b) const
 {
+#ifndef BL_NAMESPACE
     BoxList bnew = ::complementIn(b,*this);
+#else
+    BoxList bnew = BL_NAMESPACE::complementIn(b,*this);
+#endif
     return bnew.isEmpty();
 }
 
@@ -552,5 +560,12 @@ BoxList::operator!= (const BoxList& rhs) const
 {
     return !operator==(rhs);
 }
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_BOXLIST_H*/

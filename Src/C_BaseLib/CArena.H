@@ -24,6 +24,11 @@ using std::vector;
 #include <Arena.H>
 #include <Array.H>
 
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
+
 //
 //@Man:
 //@Memo: A Concrete Class for Dynamic Memory Management
@@ -48,7 +53,7 @@ public:
     //
     //@ManDoc: The destructor.
     //
-    ~CArena ();
+    virtual ~CArena ();
     //
     //@ManDoc: Allocate some memory.
     //
@@ -194,5 +199,12 @@ private:
 // The Arena used by BaseFab code.
 //
 extern Arena* The_FAB_Arena;
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_CARENA*/
