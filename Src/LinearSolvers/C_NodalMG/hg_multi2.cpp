@@ -37,6 +37,13 @@ extern "C" {
 		   Real*, intS, Real*, intS, intS, RealRS, intRS,
 #    endif
 		   const int*);
+#  elif (defined TERRAIN)
+  void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
+		   Real*, intS, Real*, intS, intS, intRS,
+		   int&, int&);
+  void FORT_HGCRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
+		   Real*, intS, Real*, intS, intS, intRS,
+		   const int*);
 #  else
   void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
 #    ifdef CONSTANT
@@ -286,6 +293,12 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
   const IntVect& rat = gen_ratio[lev-1];
   int mglevc = ml_index[lev-1];
 
+#ifdef TERRAIN
+  int ncomp = 2 * BL_SPACEDIM - 1;
+#else
+  int ncomp = 1;
+#endif
+
   for (int iface = 0; iface < interface[mglev].nfaces(); iface++) {
     // find a fine grid touching this face
     igrid = interface[mglev].fgrid(iface, 0);
@@ -322,7 +335,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
       sigmacbox = fres_sc[lev][iface].box();
     }
     else {
-      fres_sc[lev].set(iface, new Fab(sigmacbox));
+      fres_sc[lev].set(iface, new Fab(sigmacbox, ncomp));
       fill_patch(fres_sc[lev][iface], sigma[mglevc],
 		 interface[mglevc], boundary.scalar());
     }
@@ -370,7 +383,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     Box& sigmacbox = eres_scbox[lev][iedge];
     sigmafbox = fbox;
     sigmafbox.convert(cellvect);
-    eres_sf[lev].set(iedge, new Fab(sigmafbox));
+    eres_sf[lev].set(iedge, new Fab(sigmafbox, ncomp));
     fill_patch(eres_sf[lev][iedge], sigma[mglev], interface[mglev],
 	       boundary.scalar(), 0, 1, iedge);
     sigmacbox = cbox;
@@ -380,7 +393,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
       sigmacbox = eres_sc[lev][iedge].box();
     }
     else {
-      eres_sc[lev].set(iedge, new Fab(sigmacbox));
+      eres_sc[lev].set(iedge, new Fab(sigmacbox, ncomp));
       fill_patch(eres_sc[lev][iedge], sigma[mglevc],
 		 interface[mglevc], boundary.scalar());
     }
@@ -427,7 +440,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     Box& sigmacbox = cres_scbox[lev][icor];
     sigmafbox = fbox;
     sigmafbox.convert(cellvect);
-    cres_sf[lev].set(icor, new Fab(sigmafbox));
+    cres_sf[lev].set(icor, new Fab(sigmafbox, ncomp));
     fill_patch(cres_sf[lev][icor], sigma[mglev], interface[mglev],
 	       boundary.scalar(), 0, 0, icor);
     sigmacbox = cbox;
@@ -437,7 +450,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
       sigmacbox = cres_sc[lev][icor].box();
     }
     else {
-      cres_sc[lev].set(icor, new Fab(sigmacbox));
+      cres_sc[lev].set(icor, new Fab(sigmacbox, ncomp));
       fill_patch(cres_sc[lev][icor], sigma[mglevc],
 		 interface[mglevc], boundary.scalar());
     }
@@ -511,6 +524,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 #ifdef CONSTANT
 		hx,
 		rat[0], idim, idir
+#elif (defined TERRAIN)
+		rat[0], rat[1], idim, idir
 #elif (BL_SPACEDIM == 2)
 		hx, hy,
 #  ifdef CROSS_STENCIL
@@ -526,7 +541,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		);
   }
 
-#ifdef CROSS_STENCIL
+#if (defined CROSS_STENCIL) || (defined TERRAIN)
 
   int ga[N_CORNER_GRIDS];
 
@@ -632,10 +647,10 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		  dimlist(creg),
 #ifdef CONSTANT
                   hx, rat[0],
-#elif (BL_SPACEDIM == 2)
-		  hx, hy, rat[0], rat[1],
+#elif (defined TERRAIN)
+		  D_DECL(rat[0], rat[1], rat[2]),
 #else
-		  hx, hy, hz, rat[0], rat[1], rat[2],
+		  D_DECL(hx, hy, hz), D_DECL(rat[0], rat[1], rat[2]),
 #endif
 		  ga);
       // fill in the grids on the other sides, if any
@@ -648,7 +663,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
     }
   }
 
-#elif (BL_SPACEDIM == 2)
+#else // 2d 9-point stencils:
 
   for (int icor = 0; icor < interface[mglev].ncorners(); icor++) {
     // find a fine grid touching this corner

@@ -505,11 +505,11 @@ c CELL-based data only.
       subroutine acrst1(dest, dims(dest),
      @ dims(reg),
      @ src,  dims(src),
-     @ ir, jr)
+     @ ir, jr, integ)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
-      integer ir, jr
+      integer ir, jr, integ
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
       real*8 fac
@@ -522,10 +522,12 @@ c CELL-based data only.
             do 20 j = regl1, regh1
                do 20 i = regl0, regh0
  20               dest(i,j) = dest(i,j) + src(i*ir+m,j*jr+n)
-      fac = 1.d0 / (ir*jr)
-      do 30 j = regl1, regh1
-         do 30 i = regl0, regh0
- 30         dest(i,j) = dest(i,j) * fac
+      if (integ .eq. 0) then
+         fac = 1.d0 / (ir*jr)
+         do 30 j = regl1, regh1
+            do 30 i = regl0, regh0
+ 30            dest(i,j) = dest(i,j) * fac
+      endif
       end
 
 c NODE-based data only.

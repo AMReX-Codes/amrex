@@ -25,7 +25,7 @@ extern "C" {
   ERROR, not relevant
 #elif (BL_SPACEDIM == 2 || BL_SPACEDIM == 3)
 #  ifdef TERRAIN
-  void FACRST1(Real*, intS, intS, Real*, intS, intRS);
+  void FACRST1(Real*, intS, intS, Real*, intS, intRS, const int&);
   void FORT_HGSRST(RealPS, intS, intS, RealPS, intS, intRS);
   void FORT_HGCEN(Real*, intS, Real*, intS, intS);
   void FORT_HGINTS(Real*, intS, intS, RealPS, intS, Real*, intS, intS, intRS);
@@ -85,7 +85,7 @@ void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
     }
   }
 
-  corr_scache.resize(mglev_max + 1, 0);
+  corr_scache.resize(mglev_max + 1, (copy_cache*) 0);
 
   for (lev = lev_min; lev <= lev_max; lev++) {
     mglev = ml_index[lev];
@@ -220,14 +220,14 @@ void holy_grail_sigma_restrictor_class::fill(Fab& patch,
 		dimlist(region),
 		fgr.dataPtr(BL_SPACEDIM),
 		dimlist(fgr.box()),
-		D_DECL(rat[0], rat[1], rat[2]));
+		D_DECL(rat[0], rat[1], rat[2]), 0);
 #  if (BL_SPACEDIM == 3)
     FACRST1(patch.dataPtr(BL_SPACEDIM+1),
 		dimlist(patch.box()),
 		dimlist(region),
 		fgr.dataPtr(BL_SPACEDIM+1),
 		dimlist(fgr.box()),
-		D_DECL(rat[0], rat[1], rat[2]));
+		D_DECL(rat[0], rat[1], rat[2]), 0);
 #  endif
 
 #else
@@ -301,7 +301,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 		   holy_grail_sigma_restrictor);
   }
   for (mglev = 0; mglev <= mglev_max; mglev++) {
-    fill_borders(sigma[mglev], 0, interface[mglev], boundary.scalar());
+    fill_borders(sigma[mglev], 0, interface[mglev], boundary.terrain_sigma());
   }
 
 #elif (! defined CONSTANT)

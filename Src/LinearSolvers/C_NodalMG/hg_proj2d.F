@@ -6,6 +6,184 @@
 c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)
 #define dimdecu(a) *
 
+#ifdef TERRAIN
+
+      subroutine hggrad(gpx, gpy, dims(gp),
+     @ dest, dims(dest),
+     @ dims(freg))
+      integer dims(gp)
+      integer dims(dest)
+      integer dims(freg)
+      real*8 gpx(dimdec(gp))
+      real*8 gpy(dimdec(gp))
+      real*8 dest(dimdec(dest))
+      integer i, j
+      do 10 j = fregl1, fregh1
+         do 10 i = fregl0, fregh0
+            gpx(i,j) = 0.5d0 * (dest(i+1,j) + dest(i+1,j+1) -
+     @                          dest(i,j) - dest(i,j+1))
+ 10         gpy(i,j) = 0.5d0 * (dest(i,j+1) + dest(i+1,j+1) -
+     @                          dest(i,j) - dest(i+1,j))
+      end
+
+      subroutine hgdiv(src, dims(src),
+     @ uf, vf, dims(f),
+     @ dims(freg))
+      integer dims(src)
+      integer dims(f)
+      integer dims(freg)
+      real*8 src(dimdec(src))
+      real*8 uf(dimdec(f))
+      real*8 vf(dimdec(f))
+      real*8 fac
+      integer i, j
+      fac = 0.5d0
+      do 10 j = fregl1, fregh1
+         do 10 i = fregl0, fregh0
+ 10         src(i,j) = fac *
+     @        (uf(i,j-1) - uf(i-1,j-1) +
+     @         uf(i,j)   - uf(i-1,j) +
+     @         vf(i-1,j) - vf(i-1,j-1) +
+     @         vf(i,j)   - vf(i,j-1))
+      end
+
+c Note---only generates values at coarse points along edge of fine grid
+      subroutine hgfdiv(src, dims(src),
+     @ uc, vc, dims(c),
+     @ uf, vf, dims(f),
+     @ dims(creg),
+     @ ir, jr, idim, idir)
+      integer dims(src)
+      integer dims(c)
+      integer dims(f)
+      integer dims(creg)
+      real*8 src(dimdec(src))
+      real*8 uc(dimdec(c))
+      real*8 vc(dimdec(c))
+      real*8 uf(dimdec(f))
+      real*8 vf(dimdec(f))
+      integer ir, jr, idim, idir
+      real*8 fac0, fac1
+      integer i, j, iuf, juf, iuc, juc, m, n
+      if (idim .eq. 0) then
+         i = cregl0
+         if (idir .eq. 1) then
+            iuc = i - 1
+            iuf = i * ir
+         else
+            iuc = i
+            iuf = i * ir - 1
+         endif
+         fac0 = 0.5d0
+         do 10 j = cregl1, cregh1
+ 10         src(i*ir,j*jr) = fac0 *
+     @        ((vc(iuc,j) - vc(iuc,j-1)) -
+     @         idir * (uc(iuc,j) + uc(iuc,j-1)))
+         fac0 = fac0 / jr
+         i = i * ir
+         do 30 n = 0, jr-1
+            fac1 = (jr-n) * fac0
+            if (n .eq. 0) fac1 = 0.5d0 * fac1
+            do 30 j = jr*cregl1, jr*cregh1, jr
+ 30            src(i,j) = src(i,j) + fac1 *
+     @           (idir * (uf(iuf,j-n) + uf(iuf,j-n-1) +
+     @                    uf(iuf,j+n) + uf(iuf,j+n-1)) +
+     @                   (vf(iuf,j-n) - vf(iuf,j-n-1) +
+     @                    vf(iuf,j+n) - vf(iuf,j+n-1)))
+      else
+         j = cregl1
+         if (idir .eq. 1) then
+            juc = j - 1
+            juf = j * jr
+         else
+            juc = j
+            juf = j * jr - 1
+         endif
+         fac0 = 0.5d0
+         do 60 i = cregl0, cregh0
+ 60         src(i*ir,j*jr) = fac0 *
+     @        ((uc(i,juc) - uc(i-1,juc)) -
+     @         idir * (vc(i,juc) + vc(i-1,juc)))
+         fac0 = fac0 / ir
+         j = j * jr
+         do 80 m = 0, ir-1
+            fac1 = (ir-m) * fac0
+            if (m .eq. 0) fac1 = 0.5d0 * fac1
+            do 80 i = ir*cregl0, ir*cregh0, ir
+ 80            src(i,j) = src(i,j) + fac1 *
+     @           ((uf(i-m,juf) - uf(i-m-1,juf) +
+     @             uf(i+m,juf) - uf(i+m-1,juf)) +
+     @            idir * (vf(i-m,juf) + vf(i-m-1,juf) +
+     @                    vf(i+m,juf) + vf(i+m-1,juf)))
+      endif
+      end
+
+c Note---only generates values at coarse points along edge of fine grid
+      subroutine hgcdiv(src, dims(src),
+     @ uc, vc, dims(c),
+     @ uf, vf, dims(f),
+     @ dims(creg),
+     @ ir, jr, ga)
+      integer dims(src)
+      integer dims(c)
+      integer dims(f)
+      integer dims(creg)
+      real*8 src(dimdec(src))
+      real*8 uc(dimdec(c))
+      real*8 vc(dimdec(c))
+      real*8 uf(dimdec(f))
+      real*8 vf(dimdec(f))
+      integer ir, jr, ga(0:1,0:1)
+      real*8 sum, fac, fac1
+      integer ic, jc, if, jf, ii, ji, idir, jdir, m, n
+      ic = cregl0
+      jc = cregl1
+      if = ic * ir
+      jf = jc * jr
+      sum = 0.d0
+c quadrants
+      do 10 ji = 0, 1
+         jdir = 2 * ji - 1
+         do 10 ii = 0, 1
+            idir = 2 * ii - 1
+            if (ga(ii,ji) .eq. 1) then
+               sum = sum + idir * uf(if+ii-1,jf+ji-1)
+     @                   + jdir * vf(if+ii-1,jf+ji-1)
+            else
+               sum = sum + idir * uc(ic+ii-1,jc+ji-1)
+     @                   + jdir * vc(ic+ii-1,jc+ji-1)
+            endif
+ 10         continue
+c edges
+      do 40 ji = 0, 1
+         jdir = 2 * ji - 1
+         do 40 ii = 0, 1
+            idir = 2 * ii - 1
+            if (ga(ii,ji) - ga(ii,1-ji) .eq. 1) then
+               fac1 = 1.d0 / ir
+               do 20 m = idir, idir*(ir-1), idir
+                  fac = (ir-abs(m)) * fac1
+ 20               sum = sum + fac * (       (uf(if+m,  jf+ji-1) -
+     @                                       uf(if+m-1,jf+ji-1)) +
+     @                               jdir * (vf(if+m,  jf+ji-1) +
+     @                                       vf(if+m-1,jf+ji-1)))
+            endif
+            if (ga(ii,ji) - ga(1-ii,ji) .eq. 1) then
+               fac1 = 1.d0 / jr
+               do 30 n = jdir, jdir*(jr-1), jdir
+                  fac = (jr-abs(n)) * fac1
+ 30               sum = sum + fac * (idir * (uf(if+ii-1,jf+n) +
+     @                                       uf(if+ii-1,jf+n-1)) +
+     @                                      (vf(if+ii-1,jf+n) -
+     @                                       vf(if+ii-1,jf+n-1)))
+            endif
+ 40         continue
+c weighting
+      src(if,jf) = 0.5d0 * sum
+      end
+
+#else
+
       subroutine hggrad(gpx, gpy, dims(gp),
      @ dest, dims(dest),
      @ dims(freg),
@@ -511,3 +689,5 @@ c Note---only generates values at coarse points along edge of fine grid
          endif
  20      continue
       end
+
+#endif

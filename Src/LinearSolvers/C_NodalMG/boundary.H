@@ -165,6 +165,7 @@ class amr_fluid_boundary_class {
   const amr_boundary_class *v[BL_SPACEDIM];
   const amr_boundary_class *s;
   const amr_boundary_class *p;
+  const amr_boundary_class *ts;
  public:
   amr_fluid_boundary_class();
   virtual ~amr_fluid_boundary_class() { }
@@ -178,6 +179,9 @@ class amr_fluid_boundary_class {
   virtual amr_boundary pressure() const {
     return *p;
   }
+  virtual amr_boundary terrain_sigma() const {
+    return *ts;
+  }
 };
 
 typedef const amr_fluid_boundary_class& amr_fluid_boundary;
@@ -189,6 +193,7 @@ typedef const amr_fluid_boundary_class& amr_fluid_boundary;
 // flowdim = -1 indicates an advected scalar
 // flowdim = -2 indicates a pressure
 // flowdim = -3 indicates a streamfunction
+// flowdim = -4 indicates the terrain sigma (all components)
 
 class inviscid_fluid_boundary;
 

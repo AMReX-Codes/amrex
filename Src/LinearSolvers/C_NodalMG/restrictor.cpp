@@ -25,7 +25,7 @@
 #endif
 
 extern "C" {
-  void FACRST1(Real*, intS, intS, Real*, intS, intRS);
+  void FACRST1(Real*, intS, intS, Real*, intS, intRS, const int&);
   void FANRST1(Real*, intS, intS, Real*, intS, intRS);
   void FANRST2(Real*, intS, intS, Real*, intS, intRS, const int&);
   void FANFR2(Real*, intS, intS, Real*, intS,
@@ -51,15 +51,26 @@ void cell_average_restrictor_class::fill(Fab& patch,
 					 Fab& fgr,
 					 const IntVect& rat) const
 {
-  if (patch.box().cellCentered()) {
-    for (int i = 0; i < patch.nVar(); i++) {
-      FACRST1(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
-	      fgr.dataPtr(i), dimlist(fgr.box()),
-	      D_DECL(rat[0], rat[1], rat[2]));
-    }
+  assert(patch.box().cellCentered());
+  for (int i = 0; i < patch.nVar(); i++) {
+    FACRST1(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
+	    fgr.dataPtr(i), dimlist(fgr.box()),
+	    D_DECL(rat[0], rat[1], rat[2]), integrate);
   }
-  else
-    BoxLib::Error("cell_average_restrictor_class::fill---Average restriction only defined for CELL-based data");
+}
+
+void terrain_velocity_restrictor_class::fill(Fab& patch,
+					     const Box& region,
+					     Fab& fgr,
+					     const IntVect& rat) const
+{
+  assert(patch.box().cellCentered());
+  assert(patch.nVar() == 1);
+  FACRST1(patch.dataPtr(), dimlist(patch.box()), dimlist(region),
+	  fgr.dataPtr(), dimlist(fgr.box()),
+	  D_DECL(rat[0], rat[1], rat[2]), 1);
+  Real fac = 1.0 / rat[integrate];
+  patch.mult(fac, region);
 }
 
 Box injection_restrictor_class::box(const Box& fb, const IntVect& rat) const

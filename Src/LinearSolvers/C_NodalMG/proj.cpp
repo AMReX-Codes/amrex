@@ -63,7 +63,8 @@ main(int argc, char **argv)
 #endif
 }
 
-void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m)
+void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m,
+	  const Array<IntVect>& ratio)
 {
   int ilev;
 #if (BL_SPACEDIM == 2)
@@ -88,7 +89,11 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m)
     //u[0][1][0](IntVect(20,90)) = 1.0;
     //u[0][1][0](IntVect(50,50)) = 1.0;
     //u[0][1][0](IntVect(22,12)) = 1.0;
+#ifndef TERRAIN
     u[0][0][0](IntVect(12,12)) = 3.0;
+#else
+    u[0][0][0](IntVect(12,12)) = 3.0 * ratio[0][0];
+#endif
 /*
     if (m[0].domain().length(0) == 32)
       u[0][1][0](IntVect(30,30)) = 1.0;
@@ -217,6 +222,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
   Real h[BL_SPACEDIM];
   for (i = 0; i < BL_SPACEDIM; i++)
     h[i] = 1;
+  //h[BL_SPACEDIM-1] = 0.1;
 
   RegType bc[BL_SPACEDIM][2];
 
@@ -271,19 +277,24 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     nmesh.convert(nodevect);
     for (i = 0; i < BL_SPACEDIM; i++)
       u[i].set(ilev, new MultiFab(cmesh, 1, 1));
-    rhoinv.set(ilev, new MultiFab(cmesh, 1, 0));
     p.set(ilev, new MultiFab(nmesh, 1, 1));
+#ifndef TERRAIN
+    rhoinv.set(ilev, new MultiFab(cmesh, 1, 0));
     rhoinv[ilev].setVal(1.0);
+#else
+    rhoinv.set(ilev, new MultiFab(cmesh, 3, 0));
+    rhoinv[ilev].setVal(1.0);
+    rhoinv[ilev].setVal(0.0, 2, 1);
+#endif
     //rhs.set(ilev, new MultiFab(nmesh, 1, 1));
     rhs.set(ilev, new MultiFab(cmesh, 1, 1));
     rhs[ilev].setVal(0.0);
   }
 
-  init(u, p, m);
+  init(u, p, m, ratio);
 
 #if (BL_SPACEDIM == 2)
   //hb93_test1(u, m);
-  //rz_adj(u, rhs, rhoinv, m, domain);
   //rhs[1][0](Iv(16,51)) = 100.0;
   //rhs[1][0](Iv(16,50)) = 100.0;
   //rhs[1][0](Iv(47,20)) = 100.0;
@@ -394,16 +405,18 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
   i = m.length() - 1;
   holy_grail_amr_projector proj(m, ratio, domain[i], 0, i, i, afb, pcode);
 #if (BL_SPACEDIM == 2)
+  //rz_adj(u, rhs, rhoinv, m, domain);
   //proj.SetRZ();
 #endif
   //proj.smoother_mode  = 1;
-  proj.line_solve_dim = BL_SPACEDIM - 1;
+  //proj.line_solve_dim = BL_SPACEDIM - 1;
+  //proj.line_solve_dim = 0;
 
   if (m.length() == 1) {
     t1 = clock();
     proj.project(u, p, null_amr_real, rhoinv, h, tol);
     for (i = 1; i < nrep; i++) {
-      init(u, p, m);
+      init(u, p, m, ratio);
       proj.project(u, p, null_amr_real, rhoinv, h, tol);
     }
     t2 = clock();
@@ -432,7 +445,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     //proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 1);
     proj.manual_project(u, p, rhs, null_amr_real, rhoinv, 1, h, tol, 0, 1);
     for (i = 1; i < nrep; i++) {
-      init(u, p, m);
+      init(u, p, m, ratio);
       proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 1);
     }
     t2 = clock();

@@ -33,9 +33,20 @@ class amr_restrictor_class {
 };
 
 class cell_average_restrictor_class : public amr_restrictor_class {
+ protected:
+  int integrate;
  public:
-  cell_average_restrictor_class() { }
+  cell_average_restrictor_class(int i) { integrate = i; }
   Box box(const Box& fb, const IntVect& rat) const;
+  void fill(Fab& patch, const Box& region,
+	    Fab& fgr, const IntVect& rat) const;
+};
+
+class terrain_velocity_restrictor_class
+  : public cell_average_restrictor_class {
+ public:
+  terrain_velocity_restrictor_class(int i)
+    : cell_average_restrictor_class(i) { }
   void fill(Fab& patch, const Box& region,
 	    Fab& fgr, const IntVect& rat) const;
 };
@@ -87,7 +98,8 @@ class bilinear_restrictor_coarse_class
 };
 
 const amr_restrictor_class error_restrictor;
-const cell_average_restrictor_class cell_average_restrictor;
+const cell_average_restrictor_class cell_average_restrictor(0);
+const cell_average_restrictor_class cell_integrator(1);
 const injection_restrictor_class injection_restrictor;
 const default_restrictor_class default_restrictor;
 const bilinear_restrictor_class bilinear_restrictor(0);

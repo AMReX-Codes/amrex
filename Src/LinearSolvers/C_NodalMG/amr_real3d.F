@@ -880,11 +880,11 @@ c CELL-based data only.
      @ dims(dest),
      @ dims(reg),
      @ src,  dims(src),
-     @ ir, jr, kr)
+     @ ir, jr, kr, integ)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
-      integer ir, jr, kr
+      integer ir, jr, kr, integ
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
       real*8 fac
@@ -901,11 +901,13 @@ c CELL-based data only.
                      do 20 i = regl0, regh0
  20                     dest(i,j,k) = dest(i,j,k) +
      @                    src(i*ir+m, j*jr+n, k*kr+l)
-      fac = 1.d0 / (ir*jr*kr)
-      do 30 k = regl2, regh2
-         do 30 j = regl1, regh1
-            do 30 i = regl0, regh0
- 30            dest(i,j,k) = dest(i,j,k) * fac
+      if (integ .eq. 0) then
+         fac = 1.d0 / (ir*jr*kr)
+         do 30 k = regl2, regh2
+            do 30 j = regl1, regh1
+               do 30 i = regl0, regh0
+ 30               dest(i,j,k) = dest(i,j,k) * fac
+      endif
       end
 
 c NODE-based data only.

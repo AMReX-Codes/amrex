@@ -46,7 +46,7 @@ class holy_grail_interpolator_class : public bilinear_interpolator_class {
 class holy_grail_sigma_restrictor_class :
         public cell_average_restrictor_class {
  public:
-  holy_grail_sigma_restrictor_class() { }
+  holy_grail_sigma_restrictor_class() : cell_average_restrictor_class(0) { }
   void fill(Fab& patch, const Box& region,
 	    Fab& fgr, const IntVect& rat) const;
 };
