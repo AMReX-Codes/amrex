@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateData.cpp,v 1.20 1998-09-14 23:28:13 lijewski Exp $
+// $Id: StateData.cpp,v 1.21 1998-09-15 00:11:06 lijewski Exp $
 //
 
 #include <RunStats.H>
@@ -468,19 +468,15 @@ StateData::checkPoint (const aString& name,
             os << 1 << '\n' << mf_name_new << '\n';
         }
     }
-    //
-    // The VisMF::Write calls set the ghost cells to (min+max)/2 where
-    // min & max are over the valid region of each FAB in the MultiFab.
-    //
     assert(new_data);
     aString mf_fullpath_new = fullpathname; mf_fullpath_new += NewSuffix;
-    RunStats::addBytes(VisMF::Write(*new_data,mf_fullpath_new,how,true));
+    RunStats::addBytes(VisMF::Write(*new_data,mf_fullpath_new,how));
 
     if (dump_old)
     {
         assert(old_data);
         aString mf_fullpath_old = fullpathname; mf_fullpath_old += OldSuffix;
-        RunStats::addBytes(VisMF::Write(*old_data,mf_fullpath_old,how,true));
+        RunStats::addBytes(VisMF::Write(*old_data,mf_fullpath_old,how));
     }
 }
 
