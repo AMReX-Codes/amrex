@@ -31,6 +31,7 @@ bool task_copy::init(sequence_number sno, MPI_Comm comm)
 {
     m_sno = sno;
     assert( s_bx.numPts() == m_bx.numPts() );
+    debug_out << "task_copy::init " << m_mf.nComp() << ' ' << m_smf.nComp() << endl;
 #ifdef BL_USE_MPI
     if ( is_local(m_mf, m_dgrid) && is_local(m_smf, m_sgrid) )
     {
@@ -38,7 +39,7 @@ bool task_copy::init(sequence_number sno, MPI_Comm comm)
     }
     else if ( is_local(m_mf, m_dgrid) )
     {
-	tmp = new FArrayBox(m_bx, m_mf.nComp());
+	tmp = new FArrayBox(s_bx, m_mf.nComp());
 	int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, comm, &m_request);
 	if ( res != 0 )
 	    BoxLib::Error("Failed MPI_Irecv");
@@ -83,7 +84,7 @@ void task_copy::hint() const
     debug_out << m_sno << ' ';
     debug_out << m_bx  << ' ' << m_dgrid << ' ';
     debug_out << s_bx  << ' ' << m_sgrid << ' ';
-    debug_out << '\n';
+    debug_out << endl;	// to flush
 }
 
 bool task_copy::ready()
@@ -96,17 +97,21 @@ bool task_copy::ready()
 #ifdef BL_USE_MPI
     int flag;
     MPI_Status status;
+    assert( m_request != MPI_REQUEST_NULL );
     int res = MPI_Test(&m_request, &flag, &status);
     if ( res != 0 )
 	BoxLib::Error("Failed MPI_Test");
     if ( flag )
     {
+	assert ( m_request == MPI_REQUEST_NULL );
 	if ( is_local(m_mf, m_dgrid) )
 	{
 	    int count;
+	    assert( status.MPI_SOURCE == processor_number(m_smf, m_sgrid) );
+	    assert( status.MPI_TAG    == m_sno );
 	    MPI_Get_count(&status, MPI_DOUBLE, &count);
 	    assert(count == tmp->box().numPts()*tmp->nComp());
-	    m_mf[m_dgrid].copy(*tmp, m_bx, 0, m_bx, 0, m_mf.nComp());
+	    m_mf[m_dgrid].copy(*tmp, s_bx, 0, m_bx, 0, m_mf.nComp());
 	}
 	return true;
     }

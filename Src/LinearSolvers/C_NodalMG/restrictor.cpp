@@ -138,6 +138,7 @@ void injection_restrictor_class::fill(FArrayBox& patch,
 				      const IntVect& rat) const
 {
     assert(patch.box().type() == IntVect::TheNodeVector());
+    assert(patch.nComp() == fgr.nComp());
     FORT_FANRST1(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), fgr.dataPtr(), DIMLIST(fgr.box()),
 	D_DECL(rat[0], rat[1], rat[2]), patch.nComp(), 0, 0, 0);
 }
@@ -155,6 +156,7 @@ void default_restrictor::fill(FArrayBox& patch,
 			      const IntVect& rat) const
 {
     assert(patch.box().cellCentered() || patch.box().type() == IntVect::TheNodeVector());
+    assert(patch.nComp() == fgr.nComp());
     if (patch.box().cellCentered())
     {
 	cell_average_restrictor_class(0).fill(patch, region, fgr, rat);
@@ -184,6 +186,7 @@ void bilinear_restrictor_class::fill(FArrayBox& patch,
 				     const IntVect& rat) const
 {
     assert(patch.box().type() == IntVect::TheNodeVector());
+    assert(patch.nComp() == fgr.nComp());
     FORT_FANRST2(
 	patch.dataPtr(), DIMLIST(patch.box()), 
 	DIMLIST(region), 
