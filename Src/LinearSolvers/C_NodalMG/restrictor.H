@@ -61,7 +61,7 @@ public:
 class bilinear_restrictor_class : public amr_restrictor_class 
 {
 public:
-    explicit bilinear_restrictor_class(int i, bool hg_terrain) : integrate(i), m_hg_terrain(hg_terrain) { }
+    explicit bilinear_restrictor_class(int i, bool hg_terrain);
     virtual Box box(const Box& fb, const IntVect& rat) const;
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
     virtual void lev_interface(FArrayBox& patch, const Box& region, MultiFab& fine, 
