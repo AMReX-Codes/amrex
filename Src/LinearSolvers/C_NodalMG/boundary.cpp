@@ -182,27 +182,24 @@ mixed_boundary_class::fill (FArrayBox&       patch,
 {
     Box tdomain = domain;
     tdomain.convert(type(src));
-    Box idomain = grow(tdomain, IntVect::TheZeroVector() - type(src));
-    Box image = region;
-    int refarray[BL_SPACEDIM];
-    int negflag = 1;
+    Box idomain = ::grow(tdomain, IntVect::TheZeroVector() - type(src));
+    Box image   = region;
+    int refarray[BL_SPACEDIM] = {0};
+    bool negflag = true;
     int idir = 0;
-    
-    int negarray[BL_SPACEDIM-1];
+    bool negarray[BL_SPACEDIM-1];
+
     for (int i = 0; i < BL_SPACEDIM - 1; i++) 
-    {
-	negarray[i] = 1;
-    }
+	negarray[i] = true;
     
     for (int idim = 0; idim < BL_SPACEDIM; idim++) 
     {
-	refarray[idim] = 0;
 	if (region.bigEnd(idim) < idomain.smallEnd(idim)) 
 	{
 	    const RegType t = ptr->bc[idim][0];
+
 	    if (t == inflow && idim == flowdim) 
 	    {
-		refarray[idim] = 0;
 		idir = -1 - idim;
 	    }
 	    else if (t == refWall || t == inflow || t == outflow) 
@@ -210,34 +207,29 @@ mixed_boundary_class::fill (FArrayBox&       patch,
 		refarray[idim] = 1;
 		image.shift(idim, tdomain.smallEnd(idim) + idomain.smallEnd(idim) - 1 - region.bigEnd(idim) - region.smallEnd(idim));
 		if (flowdim == -3 || t == refWall && idim == flowdim)
-		    negflag = -negflag;
+		    negflag = !negflag;
 		if (flowdim == -4) 
 		{
 		    if (idim < BL_SPACEDIM - 1) 
-		    {
-			negarray[idim] = -negarray[idim];
-		    }
+			negarray[idim] = !negarray[idim];
 		    else 
 		    {
 			for (int i = 0; i < BL_SPACEDIM - 1; i++) 
-			{
-			    negarray[i] = -negarray[i];
-			}
+			    negarray[i] = !negarray[i];
 		    }
 		}
 	    }
 	    else if (t == periodic) 
 	    {
-		refarray[idim] = 0;
 		image.shift(idim, domain.length(idim));
 	    }
 	}
 	else if (region.smallEnd(idim) > idomain.bigEnd(idim)) 
 	{
 	    const RegType t = ptr->bc[idim][1];
+
 	    if (t == inflow && idim == flowdim) 
 	    {
-		refarray[idim] = 0;
 		idir = 1 + idim;
 	    }
 	    if (t == refWall || t == inflow || t == outflow) 
@@ -245,25 +237,20 @@ mixed_boundary_class::fill (FArrayBox&       patch,
 		refarray[idim] = 1;
 		image.shift(idim, tdomain.bigEnd(idim) + idomain.bigEnd(idim) + 1 - region.bigEnd(idim) - region.smallEnd(idim));
 		if (flowdim == -3 || t == refWall && idim == flowdim)
-		    negflag = -negflag;
+		    negflag = !negflag;
 		if (flowdim == -4) 
 		{
 		    if (idim < BL_SPACEDIM - 1) 
-		    {
-			negarray[idim] = -negarray[idim];
-		    }
+			negarray[idim] = !negarray[idim];
 		    else 
 		    {
 			for (int i = 0; i < BL_SPACEDIM - 1; i++) 
-			{
-			    negarray[i] = -negarray[i];
-			}
+			    negarray[i] = !negarray[i];
 		    }
 		}
 	    }
 	    else if (t == periodic) 
 	    {
-		refarray[idim] = 0;
 		image.shift(idim, -domain.length(idim));
 	    }
 	}
@@ -275,13 +262,12 @@ mixed_boundary_class::fill (FArrayBox&       patch,
 	// Normal-component inflow section, assume patch.nComp() == 1
         //
 	Box bb = box(image, domain, idir);
+
 	if (image == region) 
-	{
             //
 	    // Only bdy involved, can fill directly from interior
             //
 	    fill(patch, region, src, bb, domain, idir);
-	}
 	else 
 	{
             //
@@ -289,13 +275,19 @@ mixed_boundary_class::fill (FArrayBox&       patch,
             //
 	    FArrayBox gb(image);
 	    fill(gb, image, src, bb, domain, idir);
-	    if (negflag == 1) 
+	    if (negflag) 
 	    {
-		FORT_FBREFM(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), gb.dataPtr(), DIMLIST(image), DIMLIST(image), refarray, 1);
+		FORT_FBREFM(patch.dataPtr(), DIMLIST(patch.box()),
+                            DIMLIST(region),
+                            gb.dataPtr(), DIMLIST(image), DIMLIST(image),
+                            refarray, 1);
 	    }
-	    else if (negflag == -1) 
+	    else
 	    {
-		FORT_FBNEGM(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), gb.dataPtr(), DIMLIST(image), DIMLIST(image), refarray, 1);
+		FORT_FBNEGM(patch.dataPtr(), DIMLIST(patch.box()),
+                            DIMLIST(region),
+                            gb.dataPtr(), DIMLIST(image), DIMLIST(image),
+                            refarray, 1);
 	    }
 	}
     }
@@ -303,18 +295,28 @@ mixed_boundary_class::fill (FArrayBox&       patch,
     {
 	for (int i = 0; i < BL_SPACEDIM; i++) 
 	{
-	    FORT_FBREFM(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region), src.dataPtr(i), DIMLIST(src.box()), DIMLIST(image), refarray, 1);
+	    FORT_FBREFM(patch.dataPtr(i), DIMLIST(patch.box()),
+                        DIMLIST(region),
+                        src.dataPtr(i), DIMLIST(src.box()), DIMLIST(image),
+                        refarray, 1);
 	}
 	for (int idim = 0; idim < BL_SPACEDIM - 1; idim++) 
 	{
-	    int i = idim + BL_SPACEDIM;
-	    if (negarray[idim] == 1) 
+	    const int i = idim + BL_SPACEDIM;
+
+	    if (negarray[idim]) 
 	    {
-		FORT_FBREFM(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region), src.dataPtr(i), DIMLIST(src.box()), DIMLIST(image), refarray, 1);
+		FORT_FBREFM(patch.dataPtr(i), DIMLIST(patch.box()),
+                            DIMLIST(region),
+                            src.dataPtr(i), DIMLIST(src.box()), DIMLIST(image),
+                            refarray, 1);
 	    }
-	    else if (negarray[idim] == -1) 
+	    else
 	    {
-		FORT_FBNEGM(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region), src.dataPtr(i), DIMLIST(src.box()), DIMLIST(image), refarray, 1);
+		FORT_FBNEGM(patch.dataPtr(i), DIMLIST(patch.box()),
+                            DIMLIST(region),
+                            src.dataPtr(i), DIMLIST(src.box()), DIMLIST(image),
+                            refarray, 1);
 	    }
 	}
     }
@@ -323,15 +325,23 @@ mixed_boundary_class::fill (FArrayBox&       patch,
         //
 	// All cases other than normal-component inflow.
         //
-      assert( src.box().contains(image));
-	if (negflag == 1) 
-	{
-	    FORT_FBREFM(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), src.dataPtr(), DIMLIST(src.box()), DIMLIST(image), refarray, patch.nComp());
-	}
-	else if (negflag == -1) 
-	{
-	    FORT_FBNEGM(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), src.dataPtr(), DIMLIST(src.box()), DIMLIST(image), refarray, patch.nComp());
-	}
+        if (src.box().contains(image))  // FIXME!!!
+        {
+            if (negflag) 
+            {
+                FORT_FBREFM(patch.dataPtr(), DIMLIST(patch.box()),
+                            DIMLIST(region),
+                            src.dataPtr(), DIMLIST(src.box()), DIMLIST(image),
+                            refarray, patch.nComp());
+            }
+            else
+            {
+                FORT_FBNEGM(patch.dataPtr(), DIMLIST(patch.box()),
+                            DIMLIST(region),
+                            src.dataPtr(), DIMLIST(src.box()), DIMLIST(image),
+                            refarray, patch.nComp());
+            }
+        }
     }
 }
 
@@ -465,8 +475,10 @@ mixed_boundary_class::fill_borders (MultiFab&              r,
     {
 	if (lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL) // FIXME????
 	    break;
+
 	const int igrid = lev_interface.grid(level_interface::FACEDIM, iface, 0);
 	const int jgrid = lev_interface.grid(level_interface::FACEDIM, iface, 1);
+
 	if (igrid < 0 || jgrid < 0) 
 	{
 	    Box b = lev_interface.box(level_interface::FACEDIM, iface);
