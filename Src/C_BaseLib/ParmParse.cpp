@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.22 2001-07-23 17:55:33 lijewski Exp $
+// $Id: ParmParse.cpp,v 1.23 2001-07-23 18:15:21 lijewski Exp $
 //
 
 #include <iostream>
@@ -358,7 +358,7 @@ ppfound (const char*    keyword,
     //
     // Return true if key==keyword || key == prefix.keyword.
     //
-    if (!prefix.isNull())
+    if (!prefix.empty())
     {
         std::string tmp(prefix);
         tmp += '.';
