@@ -11,6 +11,50 @@ module ml_restriction_module
 
 contains
 
+  subroutine ml_cc_restriction(crse, fine, ir)
+    type(multifab), intent(inout) :: fine
+    type(multifab), intent(inout) :: crse
+    integer, intent(in) :: ir(:)
+
+    ! Local variables
+    integer :: dm
+    integer :: lo (fine%dim), hi (fine%dim)
+    integer :: loc(fine%dim)
+    integer :: lof(fine%dim)
+    integer :: i, j, n
+    type(box) :: fbox, cbox
+    real(kind=dp_t), pointer :: fp(:,:,:,:)
+    real(kind=dp_t), pointer :: cp(:,:,:,:)
+
+    dm = crse%dim
+    do j = 1, crse%nboxes
+       cbox = get_ibox(crse,j)
+       loc = lwb(cbox) - crse%ng
+       do i = 1, fine%nboxes
+          fbox = get_ibox(fine,i)
+          lof(:) = lwb(fbox) - fine%ng 
+          fbox = box_coarsen_v(fbox,ir)
+          if (box_intersects(fbox,cbox)) then
+             lo(:) = lwb(box_intersection(cbox,fbox))
+             hi(:) = upb(box_intersection(cbox,fbox))
+             fp      => dataptr(fine   ,i)
+             cp      => dataptr(crse   ,j)
+             do n = 1, 1
+                select case (dm)
+                case (1)
+                   call cc_restriction(cp(:,1,1,n), loc, fp(:,1,1,n), lof, lo, hi, ir)
+                case (2)
+                   call cc_restriction(cp(:,:,1,n), loc, fp(:,:,1,n), lof, lo, hi, ir)
+                case (3)
+                   call cc_restriction(cp(:,:,:,n), loc, fp(:,:,:,n), lof, lo, hi, ir)
+                end select
+             end do
+          end if
+       end do
+    end do
+
+  end subroutine ml_cc_restriction
+
  subroutine ml_restriction(crse, fine, mm_fine, mm_crse, face_type, ir, inject)
   type(multifab), intent(inout) :: fine
   type(multifab), intent(inout) :: crse
