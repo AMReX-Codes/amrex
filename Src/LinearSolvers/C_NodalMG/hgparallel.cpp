@@ -10,8 +10,10 @@
 #endif
 
 bool HG_is_debugging = false;
+#ifdef BL_USE_MPI
 MPI_Comm HG::mpi_comm = MPI_COMM_WORLD;
 int HG::mpi_tag_ub;
+#endif
 
 void HG::MPI_init()
 {
@@ -19,6 +21,7 @@ void HG::MPI_init()
     if ( first == 0 )
     {
 	first = 1;
+#ifdef BL_USE_MPI
 	int res;
 	// int flag;
 	// res = MPI_Attr_get(MPI_COMM_WORLD, MPI_TAG_UB, &mpi_tag_ub, &flag);
@@ -27,6 +30,7 @@ void HG::MPI_init()
 	res = MPI_Comm_dup(MPI_COMM_WORLD, &mpi_comm);
 	if ( res != 0 )
 	    ParallelDescriptor::Abort( res );
+#endif
     }
 }
 
@@ -169,12 +173,18 @@ void task_list::print_dependencies(ostream& os) const
 
 void task_list::execute()
 {
+#ifdef BL_USE_MPI
     if ( HG_is_debugging ) MPI_Barrier(HG::mpi_comm);
+#endif
     int l_progress = tasks.size() * 3;
     if ( verbose )
     {
 #ifdef HG_DEBUG
-	HG_DEBUG_OUT("Processing List " << HG::mpi_comm << " with " << tasks.size() << " elements " << endl);
+	HG_DEBUG_OUT("Processing List ");
+#ifdef BL_USE_MPI
+	HG_DEBUG_OUT( HG::mpi_comm );
+#endif
+	HG_DEBUG_OUT(" with " << tasks.size() << " elements " << endl);
 	print_dependencies(debug_out);
 #endif
     }
@@ -244,13 +254,19 @@ list<task::task_proxy>::iterator task_list::end()
 
 // TASK_COPY
 task_copy::task_copy(task_list& tl_, MultiFab& mf, int dgrid, const MultiFab& smf, int sgrid, const Box& bx)
-    : task(tl_), m_mf(mf), m_dgrid(dgrid), m_smf(smf), m_sgrid(sgrid), m_bx(bx), m_sbx(bx), m_local(false), tmp(0), m_request(MPI_REQUEST_NULL)
+    : task(tl_), m_mf(mf), m_dgrid(dgrid), m_smf(smf), m_sgrid(sgrid), m_bx(bx), m_sbx(bx), m_local(false), tmp(0)
+#ifdef BL_USE_MPI
+    , m_request(MPI_REQUEST_NULL)
+#endif
 {
     _do_depend();
 }
 
 task_copy::task_copy(task_list& tl_, MultiFab& mf, int dgrid, const Box& db, const MultiFab& smf, int sgrid, const Box& sb)
-    : task(tl_), m_mf(mf), m_bx(db), m_dgrid(dgrid), m_smf(smf), m_sbx(sb), m_sgrid(sgrid), m_local(false), tmp(0), m_request(MPI_REQUEST_NULL)
+    : task(tl_), m_mf(mf), m_bx(db), m_dgrid(dgrid), m_smf(smf), m_sbx(sb), m_sgrid(sgrid), m_local(false), tmp(0)
+#ifdef BL_USE_MPI
+    , m_request(MPI_REQUEST_NULL)
+#endif
 {
     _do_depend();
 }
@@ -289,7 +305,9 @@ void task_copy::_do_depend()
 task_copy::~task_copy()
 {
     delete tmp;
+#ifdef BL_USE_MPI
     assert( m_request == MPI_REQUEST_NULL);
+#endif
 }
 
 bool task_copy::startup()
@@ -300,6 +318,7 @@ bool task_copy::startup()
     {
 	m_local = true;
     }
+#ifdef BL_USE_MPI
     else if ( is_local(m_mf, m_dgrid) )
     {
 	tmp = new FArrayBox(m_sbx, m_smf.nComp());
@@ -321,6 +340,7 @@ bool task_copy::startup()
     {
 	result = false;
     }
+#endif
     return result;
 }
 
@@ -332,6 +352,7 @@ bool task_copy::ready()
 	m_mf[m_dgrid].copy(m_smf[m_sgrid], m_sbx, 0, m_bx, 0, m_mf.nComp());
 	return true;
     }
+#ifdef BL_USE_MPI
     int flag;
     MPI_Status status;
     assert( m_request != MPI_REQUEST_NULL );
@@ -354,6 +375,7 @@ bool task_copy::ready()
 	}
 	return true;
     }
+#endif
     return false;
 }
 
@@ -418,6 +440,7 @@ bool task_copy_local::startup()
     {
 	m_local = true;
     }
+#ifdef BL_USE_MPI
     else if ( m_fab != 0 )
     {
 	tmp = new FArrayBox(m_bx, m_smf.nComp());
@@ -439,6 +462,7 @@ bool task_copy_local::startup()
     {
 	result = false;
     }
+#endif
     return result;
 }
 
@@ -450,6 +474,7 @@ bool task_copy_local::ready()
 	m_fab->copy(m_smf[m_sgrid], m_bx);
 	return true;
     }
+#ifdef BL_USE_MPI
     int flag;
     MPI_Status status;
     assert ( m_request != MPI_REQUEST_NULL );
@@ -472,6 +497,7 @@ bool task_copy_local::ready()
 	}
 	return true;
     }
+#endif
     return false;
 }
 

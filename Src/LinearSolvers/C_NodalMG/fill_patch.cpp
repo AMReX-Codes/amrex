@@ -73,7 +73,9 @@ private:
     const Box& m_domain;
     FArrayBox* tmp;
     bool m_local;
+#ifdef BL_USE_MPI
     MPI_Request m_request;
+#endif
     int m_target_proc_id;
 };
 
@@ -99,6 +101,7 @@ bool task_bdy_fill::startup()
     {
 	m_local = true;
     }
+#ifdef BL_USE_MPI
     else if ( m_fab != 0 )
     {
 	tmp = new FArrayBox(m_bx, m_smf.nComp());
@@ -120,6 +123,7 @@ bool task_bdy_fill::startup()
     {
 	result = false;
     }
+#endif
     return result;
 }
 
@@ -131,6 +135,7 @@ bool task_bdy_fill::ready()
 	m_bdy->fill(*m_fab, m_region, m_smf[m_sgrid], m_domain);
 	return true;
     }
+#ifdef BL_USE_MPI
     int flag;
     MPI_Status status;
     assert ( m_request != MPI_REQUEST_NULL );
@@ -153,6 +158,7 @@ bool task_bdy_fill::ready()
 	}
 	return true;
     }
+#endif
     return false;
 }
 
@@ -638,7 +644,9 @@ public:
     virtual void hint() const;
     virtual bool startup();
 private:
+#ifdef BL_USE_MPI
     MPI_Request m_request;
+#endif
     const amr_restrictor_class& m_restric;
     const IntVect m_rat;
     FArrayBox* m_tmp;
@@ -684,6 +692,7 @@ bool task_restric_fill::startup()
     {
 	m_local = true;
     }
+#ifdef BL_USE_MPI
     else if ( is_local(m_d, m_dgrid) )
     {
 	const Box rbx = m_restric.rebox(m_box, m_rat);
@@ -707,6 +716,7 @@ bool task_restric_fill::startup()
     {
 	result = false;
     }
+#endif
     return result;
 }
 
@@ -719,6 +729,7 @@ bool task_restric_fill::ready()
 	m_restric.fill(m_d[m_dgrid], m_box, m_r[m_rgrid], m_rat);
 	return true;
     }
+#ifdef BL_USE_MPI
     int flag;
     MPI_Status status;
     int res = MPI_Test(&m_request, &flag, &status);
@@ -732,6 +743,7 @@ bool task_restric_fill::ready()
 	}
 	return true;
     }
+#endif
     return false;
 }
 
