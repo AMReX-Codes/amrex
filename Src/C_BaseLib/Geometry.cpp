@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.50 1999-07-14 23:06:15 lijewski Exp $
+// $Id: Geometry.cpp,v 1.51 1999-09-30 14:55:53 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -166,29 +166,26 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
     stats.start();
 
-    MultiFabCopyDescriptor& mfcd = mf.theFPBmfcd(scomp,ncomp,noovlp,corners);
+    MultiFabCopyDescriptor mfcd;
 
     FPB TheFPB(mf.boxArray(),Domain(),scomp,ncomp,mf.nGrow(),noovlp,corners);
 
-    const MultiFabId mfid = 0;
+    const MultiFabId mfid = mfcd.RegisterMultiFab(&mf);
     FPB&             fpb  = getFPB(mf,TheFPB);
     PIRMMap&         pirm = fpb.m_pirm;
     //
-    // Add boxes we need to collect if we haven't already done so.
+    // Add boxes we need to collect.
     //
-    if (mfcd.nFabComTags() == 0)
+    for (int i = 0; i < pirm.size(); i++)
     {
-        for (int i = 0; i < pirm.size(); i++)
-        {
-            pirm[i].fbid = mfcd.AddBox(mfid,
-                                       pirm[i].srcBox,
-                                       0,
-                                       pirm[i].srcId,
-                                       scomp,
-                                       scomp,
-                                       ncomp,
-                                       !corners);
-        }
+        pirm[i].fbid = mfcd.AddBox(mfid,
+                                   pirm[i].srcBox,
+                                   0,
+                                   pirm[i].srcId,
+                                   scomp,
+                                   scomp,
+                                   ncomp,
+                                   !corners);
     }
 
     mfcd.CollectData(&fpb.m_cache,&fpb.m_commdata);
