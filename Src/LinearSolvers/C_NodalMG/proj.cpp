@@ -351,7 +351,8 @@ void rz_adj(PArray<MultiFab> u[], PArray<MultiFab>& rhs,
 void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 {
     // Note:  For terrain problems, h is ignored.
-    
+  Geometry crse_geom(domain[0]);
+  
     Real h[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++)
 	h[i] = 1;
@@ -566,11 +567,15 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
     if (m.length() == 1) 
     {
 	t1 = Utility::second();
-	proj.project(u, p, null_amr_real, rhoinv, h, tol);
+	proj.project(u, p, null_amr_real, rhoinv,
+		     0, 0, crse_geom, false,
+		     h, tol);
 	for (int i = 1; i < nrep; i++) 
 	{
 	    init(u, p, m, ratio);
-	    proj.project(u, p, null_amr_real, rhoinv, h, tol);
+	    proj.project(u, p, null_amr_real, rhoinv,
+			 0, 0, crse_geom, false,
+			 h, tol);
 	}
 	t2 = Utility::second();
 	if ( ParallelDescriptor::IOProcessor() )
@@ -596,12 +601,16 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
 	for (int i = 0; i < p.length(); i++)
 	    p[i].setVal(0.0);
 	t1 = Utility::second();
-	proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 1);
+	proj.project(u, p, null_amr_real, rhoinv,
+		     0, 0, crse_geom, false,
+		     h, tol, 0, 1);
 	//proj.manual_project(u, p, rhs, null_amr_real, rhoinv, 1, h, tol, 0, 1);
 	for (int i = 1; i < nrep; i++) 
 	{
 	    init(u, p, m, ratio);
-	    proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 1);
+	    proj.project(u, p, null_amr_real, rhoinv,
+			 0, 0, crse_geom, false,
+			 h, tol, 0, 1);
 	}
 	t2 = Utility::second();
 	if ( ParallelDescriptor::IOProcessor() )
@@ -627,19 +636,28 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
         double t00, t01, t10, t11, t20, t21;
         init(u, p, m, ratio);
 	t00 = Utility::second();
-	proj.project(u, p, null_amr_real, rhoinv, h, tol, 2, 2);
+	proj.project(u, p, null_amr_real, rhoinv,
+		     0, 0, crse_geom, false,
+		     h, tol,
+		     2, 2);
 	t01 = Utility::second();
 	for (int i = 0; i < p.length(); i++)
 	    p[i].setVal(0.0);
         init(u, p, m, ratio);
 	t10 = Utility::second();
-	proj.project(u, p, null_amr_real, rhoinv, h, tol, 1, 2);
+	proj.project(u, p, null_amr_real, rhoinv,
+		     0, 0, crse_geom, false,
+		     h, tol,
+		     1, 2);
 	t11 = Utility::second();
 	for (int i = 0; i < p.length(); i++)
 	    p[i].setVal(0.0);
         init(u, p, m, ratio);
 	t20 = Utility::second();
-	proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 2);
+	proj.project(u, p, null_amr_real, rhoinv,
+		     0, 0, crse_geom, false,
+		     h, tol,
+		     0, 2);
 	t21 = Utility::second();
 	if ( ParallelDescriptor::IOProcessor() )
 	{
@@ -652,7 +670,10 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
     else 
     {
 	proj.make_it_so();
-	proj.manual_project(u, p, null_amr_real, rhs, rhoinv, true, h, tol, 0, 3);
+	proj.manual_project(u, p, null_amr_real, rhs, rhoinv,
+			    0, 0, crse_geom, false,
+			    true,
+			    h, tol, 0, 3);
 	t1 = Utility::second();
 	cout << "First time is " << t1 - t0 << endl;
     }
