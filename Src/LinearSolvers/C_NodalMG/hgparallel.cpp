@@ -267,8 +267,11 @@ bool task_copy::depends_on_q(const task* t1) const
     if ( const task_copy* t1tc = dynamic_cast<const task_copy*>(t1) )
     {
 	const Box& t1_bx = t1tc->m_bx;
-	// if ( m_sbx.intersects(t1_bx) ) return true;
-	if (  m_bx.intersects(t1_bx) ) return true;
+	const Box& t1_sbx = t1tc->m_sbx;
+        if ( m_sbx.intersects(t1_bx)  ) return true;
+	if ( m_bx.intersects(t1_bx)   ) return true;
+        if ( m_sbx.intersects(t1_sbx) ) return true;
+	if ( m_bx.intersects(t1_sbx)  ) return true;
     }
     return false;
 }
