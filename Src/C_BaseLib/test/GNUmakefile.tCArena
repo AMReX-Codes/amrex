@@ -1,0 +1,60 @@
+#
+# $Id: GNUmakefile.tCArena,v 1.1 1998-02-08 18:19:48 lijewski Exp $
+#
+
+#
+# Set these to the appropriate place.
+#
+GUTHAMR_HOME = ..
+COMP         = KCC
+DIM          = 2
+PRECISION    = DOUBLE
+DEBUG        = TRUE
+USE_BSP      = FALSE
+
+include $(GUTHAMR_HOME)/mk/Make.defs
+
+#
+# What is the type of the BSP device?
+#
+ifeq ($(USE_BSP),TRUE)
+BSP_DEVICE = SHMEM_SYSV
+endif
+
+#LIBRARIES += -lbox$(optionsSuffix)
+
+#
+# BSP parallel locations
+#
+ifeq ($(USE_BSP),TRUE)
+DEFINES += -DBL_USE_BSP
+BSP_HOME = /usr/people/vince/Parallel/BSP/BSP
+INCLUDE_LOCATIONS += $(BSP_HOME)/include
+LIBRARY_LOCATIONS += $(BSP_HOME)/lib/OSF1
+LIBRARY_LOCATIONS += $(BSP_HOME)/lib/OSF1/$(BSP_DEVICE)
+LIBRARIES += -lbspcore_O0 -lbsplevel1_O0
+#LIBRARIES += -lbspcore_O2 -lbsplevel1_O0
+#
+# exception library (for newest bsplib)
+#
+LIBRARY_LOCATIONS += /usr/ccs/lib/cmplrs/cc
+LIBRARIES += -lexc
+endif
+
+#
+# Base name of each of the executables we want to build.
+# I'm assuming that each of these is a stand-alone program,
+# that simply needs to link against BoxLib.
+#
+EBASE = tCArena
+
+CEXE_sources += tCArena.cpp CArena.cpp Utility.cpp BoxLib.cpp
+CEXE_sources += aString.cpp Box.cpp IntVect.cpp
+
+include $(GUTHAMR_HOME)/mk/Make.defs
+
+all: $(executable)
+
+include $(GUTHAMR_HOME)/mk/Make.rules
+
+
