@@ -1,6 +1,6 @@
 
 //
-// $Id: StateData.cpp,v 1.29 2000-10-02 20:48:43 lijewski Exp $
+// $Id: StateData.cpp,v 1.30 2000-11-17 18:01:09 lijewski Exp $
 //
 
 #include <RunStats.H>
@@ -256,30 +256,7 @@ StateData::FillBoundary (const Real*    dx,
    
     for ( ; mfi.isValid(); ++mfi)
     {
-        FArrayBox* dest = &(mfi());
-        const Box& bx   = dest->box();
-
-        if (!domain.contains(bx))
-        {
-            const int* dlo = bx.loVect();
-            const int* dhi = bx.hiVect();
-            const int* plo = domain.loVect();
-            const int* phi = domain.hiVect();
-            Real xlo[BL_SPACEDIM];
-            BCRec bcr;
-            const Real* problo = prob_domain.lo();
-            for (int i = 0; i < BL_SPACEDIM; i++)
-            {
-                xlo[i] = problo[i] + dx[i]*(dlo[i]-plo[i]);
-            }
-            for (int i = 0; i < num_comp; i++)
-            {
-                int sc = src_comp+i;
-                setBC(bx,domain,desc->getBC(sc),bcr);
-                desc->bndryFill(sc)(dest->dataPtr(sc),dlo,dhi,
-                                    plo,phi,dx,xlo,&cur_time,bcr.vect());
-            }                                  
-        }
+        FillBoundary(mfi(),cur_time,dx,prob_domain,src_comp,src_comp,num_comp);
     }
 }
 
@@ -292,34 +269,31 @@ StateData::FillBoundary (FArrayBox&     dest,
                          int            src_comp,
                          int            num_comp)
 {
-    Box dbox(dest.box());
-    BL_ASSERT(dbox.ixType() == desc->getType());
+    BL_ASSERT(dest.box().ixType() == desc->getType());
    
-    if (domain.contains(dbox))
-        return;
+    if (domain.contains(dest.box())) return;
 
-    dbox &= domain;
     const Box& bx  = dest.box();
     const int* dlo = dest.loVect();
     const int* dhi = dest.hiVect();
     const int* plo = domain.loVect();
     const int* phi = domain.hiVect();
+
     Real xlo[BL_SPACEDIM];
     BCRec bcr;
     const Real* problo = prob_domain.lo();
-    int i;
-    for (i = 0; i < BL_SPACEDIM; i++)
+
+    for (int i = 0; i < BL_SPACEDIM; i++)
     {
         xlo[i] = problo[i] + dx[i]*(dlo[i]-plo[i]);
     }
-    for (i = 0; i < num_comp; i++)
+    for (int i = 0; i < num_comp; i++)
     {
-        int dc = dest_comp+i;
-        int sc = src_comp+i;
-        Real* dat = dest.dataPtr(dc);
+        const int dc  = dest_comp+i;
+        const int sc  = src_comp+i;
+        Real*     dat = dest.dataPtr(dc);
         setBC(bx,domain,desc->getBC(sc),bcr);
-        desc->bndryFill(sc)(dat,dlo,dhi,
-                            plo,phi,dx,xlo,&time,bcr.vect());
+        desc->bndryFill(sc)(dat,dlo,dhi,plo,phi,dx,xlo,&time,bcr.vect());
     }
 }
 
