@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.10 2001-08-23 21:44:32 car Exp $
+// $Id: BLThread.cpp,v 1.11 2001-08-23 21:58:04 car Exp $
 //
 
 #include <winstd.H>
@@ -455,6 +455,8 @@ Thread::max_threads()
 #endif
 }
 
+#if 0
+// FIXME
 void
 Thread::run(DetachState instate)
 {
@@ -473,6 +475,7 @@ Thread::run(const Attr& attr)
     THREAD_REQUIRE( pthread_create(&m_tid, &(attr.m_attr), reinterpret_cast<thr_vpvp>(_doit), this) );
     m_status = Running;
 }
+#endif
 
 void
 Thread::detach()
@@ -653,6 +656,7 @@ Thread::Attr::set_detachstate(Thread::DetachState ll)
     return result;
 }
 
+#if 0
 #ifdef _POSIX_THREAD_PRIORITY_SCHEDULING
 Thread::Attr::SchedPolicy
 Thread::Attr::get_schedpolicy() const
@@ -769,7 +773,7 @@ Thread::Attr::set_schedparam(const sched_param& schedparam)
     THREAD_REQUIRE( pthread_attr_setschedparam(&m_attr, &schedparam) );
     return l;
 }
-
+#endif
 #endif
 
 
@@ -794,7 +798,7 @@ Mutex::Implementation::Implementation()
     THREAD_REQUIRE( pthread_mutex_init(&m_mutex, 0) );
 }
 
-Mutex::Implementation::~Implemetation()
+Mutex::Implementation::~Implementation()
 {
     THREAD_REQUIRE( pthread_mutex_destroy(&m_mutex) );
 }
@@ -872,6 +876,7 @@ Mutex::theMutex()
 #endif
 
 
+#if 0
 //
 // Mutex Atrributes
 //
@@ -897,6 +902,7 @@ Mutex::Attr::attribute()
 {
     return m_attr;
 }
+#endif
 
 
 //
@@ -1020,6 +1026,7 @@ ConditionVariable::theCV()
 }
 #endif
 
+#if 0
 //
 // ConditionVariable Attributes
 //
@@ -1082,6 +1089,7 @@ ConditionVariable::Attr::set_pshared(ProcessShared v)
     THREAD_REQUIRE( pthread_condattr_setpshared(&m_attr, ll) );
     return result;
 }
+#endif
 #endif
 
 
