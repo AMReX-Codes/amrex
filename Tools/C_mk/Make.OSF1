@@ -1,5 +1,5 @@
 #
-# $Id: Make.OSF1,v 1.9 1998-07-06 20:44:47 lijewski Exp $
+# $Id: Make.OSF1,v 1.10 1998-08-08 17:25:24 lijewski Exp $
 #
 
 #
@@ -36,7 +36,7 @@ endif
 #
 # Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
 #
-DEFINES += 
+override XTRADEFS += -DBL_USE_NEW_HFILES
 endif
 
 ifeq ($(COMP),g++)
@@ -44,7 +44,7 @@ override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
 #
 # Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
 #
-DEFINES += 
+override XTRADEFS +=
 endif
 
 FC = f90
@@ -57,9 +57,6 @@ endif
 
 FDEBF += -g
 FPRFF +=
-
-BSP_DEVICE = SHMEM_SYSV
-BSP_MACHINE = OSF1
 
 CPP    = /usr/bin/cpp
 PURIFY =

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.32 1998-07-29 19:26:39 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.33 1998-08-08 17:26:02 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -22,15 +22,12 @@ using namespace std;
 #include <iostream.h>
 #include <stdlib.h>
 #include <vector.h>
-#if (defined(BL_T3E) && !defined(__KCC)) || defined(__GNUC__) || defined(BL_CRAY)
-#include <stack.h>
-#else
-#include <queue.h>
-#endif
 #include <list.h>
-#if (defined(BL_T3E) && !defined(__KCC)) || defined(__GNUC__) || defined(BL_CRAY)
+#if defined(BL_OLD_STL)
+#include <stack.h>
 #include <algo.h>
 #else
+#include <queue.h>
 #include <algorithm.h>
 #endif
 #endif /*BL_USE_NEW_HFILES*/

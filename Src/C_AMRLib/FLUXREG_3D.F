@@ -1,5 +1,5 @@
 c
-c $Id: FLUXREG_3D.F,v 1.6 1998-03-31 00:23:59 lijewski Exp $
+c $Id: FLUXREG_3D.F,v 1.7 1998-08-08 17:25:42 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -12,12 +12,12 @@ c
 #include "FLUXREG_F.H"
 #include "ArrayLim.H"
 
-#if defined(BL_USE_FLOAT) || defined(BL_T3E)
+#if defined(BL_USE_FLOAT) || defined(BL_T3E) || defined(BL_CRAY)
 #define  BL_USE_FLOAT_CONST
 #define  onetominuseight 1.0e-8
 #endif
 
-#if defined(BL_USE_DOUBLE) && !defined(BL_T3E)
+#if defined(BL_USE_DOUBLE) && !defined(BL_T3E) || defined(BL_CRAY)
 #define  BL_USE_DOUBLE_CONST
 #define  onetominuseight 1.0d-8
 #endif

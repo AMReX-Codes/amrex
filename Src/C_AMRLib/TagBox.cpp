@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.46 1998-07-29 19:09:11 lijewski Exp $
+// $Id: TagBox.cpp,v 1.47 1998-08-08 17:25:43 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -16,10 +16,10 @@ using std::sort;
 using std::vector;
 using std::unique;
 #else
-#if !defined(BL_T3E)
-#include <algorithm.h>
-#else
+#ifdef BL_OLD_STL
 #include <algo.h>
+#else
+#include <algorithm.h>
 #endif
 #include <vector.h>
 #endif
