@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.14 1997-11-28 17:27:37 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.15 1997-11-28 18:30:25 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -102,11 +102,6 @@ DistributionMapping::init ()
 //
 List< Array<int> > DistributionMapping::m_Cache;
 
-//
-// Holds the current maximum cache size.
-//
-int DistributionMapping::m_MaximumCacheSize = DistributionMapping::MaxSize;
-
 bool
 DistributionMapping::GetMap (int             nprocs,
                              const BoxArray& boxes,
@@ -180,18 +175,6 @@ DistributionMapping::define (int             nprocs,
             // We always prepend new processor maps.
             //
             DistributionMapping::m_Cache.prepend(m_procmap);
-
-            if (DistributionMapping::m_Cache.length() > MaxCacheSize())
-            {
-                do
-                {
-                    //
-                    // And remove old ones from the end.
-                    //
-                    DistributionMapping::m_Cache.removeLast();
-                }
-                while (DistributionMapping::m_Cache.length() > MaxCacheSize());
-            }
         }
     }
 

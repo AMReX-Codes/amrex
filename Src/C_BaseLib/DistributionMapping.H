@@ -4,7 +4,7 @@
 #define BL_DISTRIBUTIONMAPPING_H
 
 //
-// $Id: DistributionMapping.H,v 1.6 1997-11-28 00:00:45 lijewski Exp $
+// $Id: DistributionMapping.H,v 1.7 1997-11-28 18:30:25 lijewski Exp $
 //
 
 #include <BoxLib.H>
@@ -41,23 +41,15 @@ class DistributionMapping
     //
     // Flush the cache of processor maps.
     //
+    // The processor map cache is only flushed manually.
+    //
+    // Only call this after a regridding before new MultiFabs are alloced.
+    //
     static void FlushCache ();
     //
     // Output some simple cache statistics.
     //
     static void CacheStats (ostream& os);
-    //
-    // Set the maximum # of processor maps to cache.
-    //
-    static void MaxCacheSize (int n);
-    //
-    // The maximum # of processor maps to cache.
-    //
-    static int MaxCacheSize ();
-    //
-    // The default maximum cache size.
-    //
-    enum { MaxSize = 10 };
 
   private:
     //
@@ -109,10 +101,6 @@ class DistributionMapping
     // Have we initialized from ParmParse yet?
     //
     static bool m_Initialized;
-    //
-    // Holds the current maximum cache size.
-    //
-    static int m_MaximumCacheSize;
 };
 
 //
@@ -145,22 +133,6 @@ DistributionMapping::Strategy
 DistributionMapping::strategy ()
 {
     return DistributionMapping::m_Strategy;
-}
-
-inline
-void
-DistributionMapping::MaxCacheSize (int n)
-{
-    assert(n > 0);
-
-    DistributionMapping::m_MaximumCacheSize = n;
-}
-
-inline
-int
-DistributionMapping::MaxCacheSize ()
-{
-    return DistributionMapping::m_MaximumCacheSize;
 }
 
 #endif /*BL_DISTRIBUTIONMAPPING_H*/
