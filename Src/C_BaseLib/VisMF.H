@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.17 1997-11-12 00:16:56 lijewski Exp $
+// $Id: VisMF.H,v 1.18 1997-11-12 04:12:24 lijewski Exp $
 //
 
 #include <MultiFab.H>
@@ -139,10 +139,8 @@ private:
     static aString ToString (long l);
 
     void readFAB (int i) const;
-
-#ifdef BL_T3E
     //
-    // We do I/O with buffers of this size.
+    // We try to do I/O with buffers of this size.
     //
     enum { IO_Buffer_Size = 40960 * 32 };
     //
@@ -151,7 +149,6 @@ private:
     // Only one [io]fstream can use this as a buffer (per cpu) at a time.
     //
     static signed char* Large_IO_Buffer ();
-#endif
     //
     // The suffix appended to files containing FAB data.
     //

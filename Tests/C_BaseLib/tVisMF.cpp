@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tVisMF.cpp,v 1.8 1997-11-11 22:18:59 lijewski Exp $
+// $Id: tVisMF.cpp,v 1.9 1997-11-12 04:12:25 lijewski Exp $
 //
 
 #include <stdlib.h>
@@ -267,15 +267,6 @@ main (int, char** argv)
     mf.setBndry(0);
 
     static const aString mf_name = "Spam-n-Eggs";
-
-    aString cmd("/bin/rm -f ");
-
-    cmd += mf_name;
-    cmd += "*";
-    //
-    // Clean out gunk from any previous runs.
-    //
-    system(cmd.c_str());
 
     if (How == PerCPU)
     {
