@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.41 1998-06-20 03:20:02 lijewski Exp $
+// $Id: TagBox.cpp,v 1.42 1998-06-21 17:56:23 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -485,6 +485,8 @@ TagBoxArray::mergeUnique ()
                                                  0,
                                                  0,
                                                  1);
+
+                    assert(tbmd.fillBoxId.box() == tbmd.overlapBox);
                 }
                 tbmdList.push_back(tbmd);
             }

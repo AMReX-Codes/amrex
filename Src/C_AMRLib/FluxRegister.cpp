@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.39 1998-06-13 21:07:34 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.40 1998-06-21 17:56:23 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -555,8 +555,8 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
     MultiFabCopyDescriptor mfcd;
 
-    MultiFabId mfid_mflx = mfcd.RegisterFabArray((MultiFab*) &mflx);
-    MultiFabId mfid_area = mfcd.RegisterFabArray((MultiFab*) &area);
+    MultiFabId mfid_mflx = mfcd.RegisterFabArray(const_cast<MultiFab*>(&mflx));
+    MultiFabId mfid_area = mfcd.RegisterFabArray(const_cast<MultiFab*>(&area));
 
     vector<FillBoxId> fillBoxId_mflx, fillBoxId_area;
 
@@ -578,6 +578,8 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                                                      srccomp,
                                                      0,
                                                      numcomp));
+
+                assert(fillBoxId_mflx.back().box() == lobox);
                 //
                 // Here we'll save the index into the FabSet.
                 //
@@ -590,6 +592,8 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                                                      0,
                                                      0,
                                                      1));
+
+                assert(fillBoxId_area.back().box() == lobox);
                 //
                 // Here we'll save the direction.
                 //
@@ -606,6 +610,8 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                                                      srccomp,
                                                      0,
                                                      numcomp));
+
+                assert(fillBoxId_mflx.back().box() == hibox);
                 //
                 // Here we'll save the index into the FabSet.
                 //
@@ -618,6 +624,8 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                                                      0,
                                                      0,
                                                      1));
+
+                assert(fillBoxId_area.back().box() == hibox);
                 //
                 // Here we'll save the direction.
                 //
