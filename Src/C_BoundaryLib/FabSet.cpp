@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.11 1998-05-22 22:30:28 lijewski Exp $
+// $Id: FabSet.cpp,v 1.12 1998-05-22 23:31:31 lijewski Exp $
 //
 
 #include <FabSet.H>
@@ -105,7 +105,7 @@ FabSet::copyFrom (const MultiFab& src,
             if (ovlp.ok())
             {
                 fillBoxIdList.push_back(fscd.AddBox(srcmfid,
-                                                    src.fabbox(s),
+                                                    ovlp,
                                                     0,
                                                     src_comp,
                                                     dest_comp,
@@ -133,6 +133,7 @@ FabSet::copyFrom (const MultiFab& src,
             {
                 assert(!(fbidli == fillBoxIdList.end()));
                 FillBoxId fbid = *fbidli++;
+                assert(fbid.box() == ovlp);
                 sfabTemp.resize(fbid.box(), num_comp);
                 fscd.FillFab(srcmfid, fbid, sfabTemp);
                 dfab.copy(sfabTemp, ovlp, 0, ovlp, dest_comp, num_comp);
@@ -286,14 +287,14 @@ FabSet::linComb (Real            a,
             if (ovlp.ok())
             {
                 fillBoxIdList_mfa.push_back(mfcd.AddBox(mfid_mfa,
-                                                        mfa.fabbox(grd),
+                                                        ovlp,
                                                         0,
                                                         0,
                                                         0,
                                                         num_comp,
                                                         false));
                 fillBoxIdList_mfb.push_back(mfcd.AddBox(mfid_mfb,
-                                                        mfb.fabbox(grd),
+                                                        ovlp,
                                                         0,
                                                         0,
                                                         0,
@@ -323,11 +324,13 @@ FabSet::linComb (Real            a,
             {
                 assert(!(fbidli_mfa == fillBoxIdList_mfa.end()));
                 FillBoxId fbid_mfa = *fbidli_mfa++;
+                assert(fbid_mfa.box() == ovlp);
                 a_fab.resize(fbid_mfa.box(), num_comp);
                 mfcd.FillFab(mfid_mfa, fbid_mfa, a_fab);
 
                 assert(!(fbidli_mfb == fillBoxIdList_mfb.end()));
                 FillBoxId fbid_mfb = *fbidli_mfb++;
+                assert(fbid_mfb.box() == ovlp);
                 b_fab.resize(fbid_mfb.box(), num_comp);
                 mfcd.FillFab(mfid_mfb, fbid_mfb, b_fab);
 
