@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.27 1998-07-29 19:10:30 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.28 1998-09-30 17:05:55 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -600,8 +600,7 @@ MultiFab::SICacheSize ()
 static
 vector<SIRec>&
 BuildFBsirec (const SI&       si,
-              const MultiFab& mf,
-              bool            doit)
+              const MultiFab& mf)
 {
     assert(si.m_ncomp > 0);
     assert(si.m_scomp >= 0);
@@ -643,40 +642,12 @@ BuildFBsirec (const SI&       si,
         }
     }
 
-    if (doit)
-    {
-        //
-        // This is the case where we've already got a valid MFCD but where the
-        // cached SIRecs used to build it has been flushed from our cache.
-        //
-        // We now need to populate the m_fbid members of the just-added
-        // SIRecs.  We use a `static' MultiFabCopyDescriptor to cut down
-        // on memory allocation/deallocation.
-        //
-        static MultiFabCopyDescriptor mfcd;
-
-        MultiFabId mfid = mfcd.RegisterMultiFab(const_cast<MultiFab*>(&mf));
-
-        assert(mfid == MultiFabId(0));
-
-        for (int i = 0; i < sirec.size(); i++)
-        {
-            sirec[i].m_fbid = mfcd.AddBox(mfid,
-                                          sirec[i].m_bx,
-                                          0,
-                                          sirec[i].m_j,
-                                          si.m_scomp,
-                                          si.m_scomp,
-                                          si.m_ncomp);
-        }
-        //
-        // Don't forget to set `mfcd' back to its pristine state.
-        //
-        mfcd.clear();
-    }
-
     return sirec;
 }
+
+//
+// Returns cached self-intersection records for MultiFab or builds them.
+//
 
 inline
 vector<SIRec>&
@@ -684,8 +655,7 @@ TheFBsirec (int             scomp,
             int             ncomp,
             int             ngrow,
             const BoxArray& ba,
-            const MultiFab& mf,
-            bool            building_mfcd)
+            const MultiFab& mf)
 {
     assert(ncomp > 0);
     assert(scomp >= 0);
@@ -701,51 +671,7 @@ TheFBsirec (int             scomp,
         }
     }
 
-    return BuildFBsirec(si,mf,!building_mfcd);
-}
-
-void
-MultiFab::buildFBmfcd (int src_comp,
-                       int num_comp)
-{
-    assert(num_comp > 0);
-    assert(src_comp >= 0);
-
-    m_FB_scomp = src_comp;
-    m_FB_ncomp = num_comp;
-
-    if (m_FB_mfcd == 0)
-    {
-        m_FB_mfcd = new MultiFabCopyDescriptor;
-    }
-    else
-    {
-        m_FB_mfcd->clear();
-    }
-
-    MultiFabId mfid = m_FB_mfcd->RegisterMultiFab(this);
-
-    assert(mfid == MultiFabId(0));
-
-    vector<SIRec>& sirec = TheFBsirec(src_comp,
-                                      num_comp,
-                                      nGrow(),
-                                      boxArray(),
-                                      *this,
-                                      true);
-    //
-    // Add boxes we need to collect.
-    //
-    for (int i = 0; i < sirec.size(); i++)
-    {
-        sirec[i].m_fbid = m_FB_mfcd->AddBox(mfid,
-                                            sirec[i].m_bx,
-                                            0,
-                                            sirec[i].m_j,
-                                            src_comp,
-                                            src_comp,
-                                            num_comp);
-    }
+    return BuildFBsirec(si,mf);
 }
 
 void
@@ -758,18 +684,31 @@ MultiFab::FillBoundary (int src_comp,
 
     MultiFabCopyDescriptor& mfcd = theFBmfcd(src_comp,num_comp);
 
-    mfcd.CollectData();
-
     const int MyProc = ParallelDescriptor::MyProc();
 
     const MultiFabId TheFBMultiFabId = 0;
 
-    const vector<SIRec>& sirec = TheFBsirec(m_FB_scomp,
-                                            m_FB_ncomp,
-                                            nGrow(),
-                                            boxArray(),
-                                            *this,
-                                            false);
+    vector<SIRec>& sirec = TheFBsirec(m_FB_scomp,
+                                      m_FB_ncomp,
+                                      nGrow(),
+                                      boxArray(),
+                                      *this);
+    //
+    // Add boxes we need to collect.
+    //
+    for (int i = 0; i < sirec.size(); i++)
+    {
+        sirec[i].m_fbid = m_FB_mfcd->AddBox(TheFBMultiFabId,
+                                            sirec[i].m_bx,
+                                            0,
+                                            sirec[i].m_j,
+                                            src_comp,
+                                            src_comp,
+                                            num_comp);
+    }
+
+    mfcd.CollectData();
+
     for (int i = 0; i < sirec.size(); i++)
     {
         int fabindex = sirec[i].m_i;
