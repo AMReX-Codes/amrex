@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxLib.cpp,v 1.8 1998-10-08 18:19:42 car Exp $
+// $Id: BoxLib.cpp,v 1.9 1998-10-08 20:23:57 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -73,17 +73,22 @@ write_to_stderr_without_buffering (const char* str)
     }
 }
 
-static void write_lib_id()
+static void write_lib_id(const char* msg)
 {
     fflush(0);
     const char* const boxlib = "BoxLib::";
     fwrite(boxlib, strlen(boxlib), 1, stderr);
+    if ( msg ) 
+    {
+	fwrite(msg, strlen(msg), 1, stderr);
+	fwrite("::", 2, 1, stderr);
+    }
 }
 
 void
 BoxLib::Error (const char* msg)
 {
-    write_lib_id();
+    write_lib_id("Error");
     write_to_stderr_without_buffering(msg);
     ParallelDescriptor::Abort();
 }
@@ -91,7 +96,7 @@ BoxLib::Error (const char* msg)
 void
 BoxLib::Abort (const char* msg)
 {
-    write_lib_id();
+    write_lib_id("Abort");
     write_to_stderr_without_buffering(msg);
     ParallelDescriptor::Abort();
 }
