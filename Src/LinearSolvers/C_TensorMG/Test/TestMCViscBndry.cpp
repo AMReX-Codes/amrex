@@ -39,7 +39,7 @@ void MCViscBndry::setBndryConds(const Array<BCRec>& bcarray,
 	      if (p_bc == EXT_DIR ) {
 		bctag = LO_DIRICHLET;
 		bloc[i] = 0.0; // on face, distance to face = 0
-	      } else if (p_bc == EXTRAP || p_bc == HOEXTRAP || 
+	      } else if (p_bc == FOEXTRAP || p_bc == HOEXTRAP || 
 			 p_bc == REFLECT_EVEN) {
 		bctag = LO_NEUMANN;
 		bloc[i] = 0.0; // on face, distance to face = 0
