@@ -3,7 +3,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.111 2000-10-19 18:04:17 lijewski Exp $
+// $Id: FabArray.H,v 1.112 2000-10-31 21:11:21 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1623,7 +1623,7 @@ FabArray<T,FAB>::copy (FAB&       dest,
                        int        ncomp) const
 {
 #ifdef BL3_PROFILING
-  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::copy(Fab&, ...)");
+    BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::copy(Fab&, ...)");
 #endif
     BL_ASSERT(dcomp + ncomp <= dest.nComp());
 
@@ -1645,9 +1645,7 @@ FabArray<T,FAB>::copy (FAB&       dest,
 #ifdef BL_USE_MPI
     static RunStats stats("mpi_broadcast");
 
-    vector<Box>  overlapBA;
-    vector<int>  overlapProc;
-    vector<FAB*> overlapData;
+    FArrayBox overlapData;
 
     for (int i = 0; i < length(); i++)
     {
@@ -1655,32 +1653,25 @@ FabArray<T,FAB>::copy (FAB&       dest,
         {
             Box bx = subbox & boxarray[i];
 
-            overlapBA.push_back(bx);
-            overlapProc.push_back(distributionMap[i]);
-            overlapData.push_back(new FAB(bx,ncomp));
+            overlapData.resize(bx,ncomp);
 
             if (ParallelDescriptor::MyProc() == distributionMap[i])
-                overlapData.back()->copy(fabparray[i],bx,scomp,bx,0,ncomp);
+                overlapData.copy(fabparray[i],bx,scomp,bx,0,ncomp);
+
+            stats.start();
+            int rc = MPI_Bcast(overlapData.dataPtr(),
+                               bx.numPts()*ncomp,
+                               mpi_data_type(overlapData.dataPtr()),
+                               distributionMap[i],
+                               ParallelDescriptor::Communicator());
+
+            if (rc != MPI_SUCCESS)
+                ParallelDescriptor::Abort(rc);
+            stats.end();
+
+            dest.copy(overlapData,bx,0,bx,dcomp,ncomp);
         }
     }
-
-    stats.start();
-    for (int i = 0, rc; i < overlapData.size(); i++)
-    {
-        if ((rc = MPI_Bcast(overlapData[i]->dataPtr(),
-                            overlapBA[i].numPts()*ncomp,
-                            mpi_data_type(overlapData[i]->dataPtr()),
-                            overlapProc[i],
-                            ParallelDescriptor::Communicator())) != MPI_SUCCESS)
-            ParallelDescriptor::Abort(rc);
-    }
-    stats.end();
-
-    for (int i = 0; i < overlapData.size(); i++)
-        dest.copy(*overlapData[i],overlapBA[i],0,overlapBA[i],dcomp,ncomp);
-
-    for (int i = 0; i < overlapData.size(); i++)
-        delete overlapData[i];
 #endif /*BL_USE_MPI*/
 }
 
