@@ -4,7 +4,7 @@
 #define BL_ARENA
 
 //
-// $Id: Arena.H,v 1.3 1997-09-18 20:12:42 lijewski Exp $
+// $Id: Arena.H,v 1.4 1998-02-08 17:52:07 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -27,18 +27,21 @@ class Arena
 {
 public:
 
+    typedef void (*FP) ();
+
     union Word
     {
         void*  p;
         double d;
         long   l;
+        FP     f;
     };
 
     /*@ManDoc: A pure virtual function for allocating a dynamic memory arena
                of size sz.  A pointer to this memory should be returned.
                Also the *pt is set to the returned pointer if pt != 0;
     */
-    virtual void *alloc (size_t sz, void** pt = 0) = 0;
+    virtual void* alloc (size_t sz, void** pt = 0) = 0;
 
     /*@ManDoc: A pure virtual function for deleting the arena pointed
                to by pt.
@@ -47,8 +50,8 @@ public:
 
     /*@ManDoc: Given a minimum required arena size of sz bytes, this returns
                the next largest arena size that will hold an integral number
-               of objects of the largest of the three types void*, long
-               and double.
+               of objects of the largest of the types void*, long,
+               double and function pointer.
     */
     static size_t align (size_t sz);
 };
@@ -61,7 +64,7 @@ inline
 size_t
 Arena::align (size_t s)
 {
-    int x = s + sizeof(Word) - 1;
+    size_t x = s + sizeof(Word) - 1;
     x -= x%sizeof(Word);
     return x;
 }
