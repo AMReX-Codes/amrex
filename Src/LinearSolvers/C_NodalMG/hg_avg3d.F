@@ -5,9 +5,9 @@ c-----------------------------------------------------------------------
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer fregl0,fregh0,fregl1,fregh1,fregl2,fregh2
-      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      real*8 rf(fl0:fh0,fl1:fh1,fl2:fh2)
-      real*8 fac
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision rf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision fac
 	parameter (fac = 0.125d0)
       integer i, j, k
       do k = fregl2, fregh2
@@ -36,11 +36,11 @@ c Note---only generates values at coarse points along edge of fine grid
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
-      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      real*8 rc(cl0:ch0,cl1:ch1,cl2:ch2)
-      real*8 rf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision rc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision rf(fl0:fh0,fl1:fh1,fl2:fh2)
       integer ir, jr, kr, idim, idir
-      real*8 fac0, fac1, fac
+      double precision fac0, fac1, fac
       integer i, j, k, irc, irf, jrc, jrf, krc, krf, l, m, n
       if (idim .eq. 0) then
          i = cregl0
@@ -181,11 +181,11 @@ c Note---only generates values at coarse points along edge of fine grid
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
-      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      real*8 rc(cl0:ch0,cl1:ch1,cl2:ch2)
-      real*8 rf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision rc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision rf(fl0:fh0,fl1:fh1,fl2:fh2)
       integer ir, jr, kr, ivect(0:2), ga(0:1,0:1,0:1)
-      real*8 rm3, center, cfac, ffac, fac0, fac1, fac
+      double precision rm3, center, cfac, ffac, fac0, fac1, fac
       integer ic, jc, kc, if, jf, kf, ii, ji, ki
       integer irc, irf, jrc, jrf, krc, krf, idir, jdir, kdir, l, m, n
       rm3 = 1.d0 / (ir * jr * kr)
@@ -503,11 +503,11 @@ c Note---only generates values at coarse points along edge of fine grid
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
-      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      real*8 rc(cl0:ch0,cl1:ch1,cl2:ch2)
-      real*8 rf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision rc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision rf(fl0:fh0,fl1:fh1,fl2:fh2)
       integer ir, jr, kr, ga(0:1,0:1,0:1)
-      real*8 rm3, sum, center, cfac, ffac, fac0, fac1, fac
+      double precision rm3, sum, center, cfac, ffac, fac0, fac1, fac
       integer ic, jc, kc, if, jf, kf, ii, ji, ki
       integer irc, irf, jrc, jrf, krc, krf, idir, jdir, kdir, l, m, n
       rm3 = 1.d0 / (ir * jr * kr)

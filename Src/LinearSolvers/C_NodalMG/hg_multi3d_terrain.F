@@ -18,17 +18,17 @@ c Note---assumes fdst linearly interpolated from cdst along face
       integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
       integer scl0,sch0,scl1,sch1,scl2,sch2
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
-      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      real*8 fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
-      real*8 cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
-      real*8 sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2, 5)
-      real*8 sigmac(scl0:sch0,scl1:sch1,scl2:sch2, 5)
+      double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
+      double precision cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
+      double precision sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2, 5)
+      double precision sigmac(scl0:sch0,scl1:sch1,scl2:sch2, 5)
       integer ir, jr, kr, idim, idir
-      real*8 fac00, fac0, fac1, fac2, tmp, cen
+      double precision fac00, fac0, fac1, fac2, tmp, cen
       integer i, j, k, is, js, ks, l, m, n
-      real*8 MXXC, MYYC, MZZC, MXZC, MYZC
-      real*8 MXXF, MYYF, MZZF, MXZF, MYZF
+      double precision MXXC, MYYC, MZZC, MXZC, MYZC
+      double precision MXXF, MYYF, MZZF, MXZF, MYZF
 
       MXXC(ii,jj,kk) = (4.d0 *  cdst(ii,j,k)   + 
      &                   2.d0 * (cdst(ii,jj,k)  - cdst(i,jj,k) + 
@@ -496,18 +496,18 @@ c Note---assumes fdst linearly interpolated from cdst along face
       integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
       integer scl0,sch0,scl1,sch1,scl2,sch2
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
-      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      real*8 fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
-      real*8 cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
-      real*8 sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2,5)
-      real*8 sigmac(scl0:sch0,scl1:sch1,scl2:sch2,5)
+      double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
+      double precision cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
+      double precision sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2,5)
+      double precision sigmac(scl0:sch0,scl1:sch1,scl2:sch2,5)
       integer ir, jr, kr, ivect(0:2), ga(0:1,0:1,0:1)
-      real*8 fac00, fac0, fac1, fac, tmp, cen
+      double precision fac00, fac0, fac1, fac, tmp, cen
       integer ic, jc, kc, if, jf, kf, ii, ji, ki, idir, jdir, kdir
       integer l, m, n
-      real*8 MXXC, MYYC, MZZC, MXZC, MYZC
-      real*8 MXXF, MYYF, MZZF, MXZF, MYZF
+      double precision MXXC, MYYC, MZZC, MXZC, MYZC
+      double precision MXXF, MYYF, MZZF, MXZF, MYZF
       MXXC(ii,jj,kk) = (4.d0 *  cdst(ii,jc,kc) + 
      &                   2.d0 * (cdst(ii,jj,kc) - cdst(ic,jj,kc) + 
      &                           cdst(ii,jc,kk) - cdst(ic,jc,kk)) +
@@ -1400,18 +1400,18 @@ c Note---assumes fdst linearly interpolated from cdst along face
       integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
       integer scl0,sch0,scl1,sch1,scl2,sch2
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
-      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      real*8 fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
-      real*8 cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
-      real*8 sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2,5)
-      real*8 sigmac(scl0:sch0,scl1:sch1,scl2:sch2,5)
+      double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
+      double precision cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
+      double precision sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2,5)
+      double precision sigmac(scl0:sch0,scl1:sch1,scl2:sch2,5)
       integer ir, jr, kr, ga(0:1,0:1,0:1)
-      real*8 cen, sum, fac00, fac0, fac1, fac2, fac
+      double precision cen, sum, fac00, fac0, fac1, fac2, fac
       integer ic, jc, kc, if, jf, kf, ii, ji, ki, idir, jdir, kdir
       integer l, m, n
-      real*8 MXXC, MYYC, MZZC, MXZC, MYZC
-      real*8 MXXF, MYYF, MZZF, MXZF, MYZF
+      double precision MXXC, MYYC, MZZC, MXZC, MYZC
+      double precision MXXF, MYYF, MZZF, MXZF, MYZF
       MXXC(ii,jj,kk) = (4.d0 *  cdst(ii,jc,kc) + 
      &                   2.d0 * (cdst(ii,jj,kc) - cdst(ic,jj,kc) + 
      &                           cdst(ii,jc,kk) - cdst(ic,jc,kk)) +
@@ -1939,8 +1939,8 @@ c-----------------------------------------------------------------------
       integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
       integer sbl0,sbh0,sbl1,sbh1,sbl2,sbh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      real*8 cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
-      real*8 sig(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2, 5)
+      double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
+      double precision sig(sbl0:sbh0,sbl1:sbh1,sbl2:sbh2, 5)
       integer i, j, k
       do 10 k = regl2, regh2
          do 10 j = regl1, regh1
@@ -1978,13 +1978,13 @@ c-----------------------------------------------------------------------
       integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
       integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      real*8 cor(corl0:corh0,corl1:corh1,corl2:corh2)
-      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
-      real*8 sig(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2, 5)
-      real*8 cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
-      real*8 fac, tmp
+      double precision cor(corl0:corh0,corl1:corh1,corl2:corh2)
+      double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
+      double precision sig(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2, 5)
+      double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
+      double precision fac, tmp
       integer i, j, k
-      real*8 MXX, MYY, MZZ, MXZ, MYZ
+      double precision MXX, MYY, MZZ, MXZ, MYZ
       MXX(ii,jj,kk) = (4.d0 *  cor(ii,j,k)   + 
      &                  2.d0 * (cor(ii,jj,k)  - cor(i,jj,k) + 
      &                          cor(ii,j,kk)  - cor(i,j,kk)) + 
@@ -2186,14 +2186,14 @@ c-----------------------------------------------------------------------
       integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
       integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
-      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
-      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      real*8 cor(destl0:desth0,destl1:desth1,destl2:desth2)
-      real*8 sig(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2, 5)
-      real*8 cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
-      real*8 fac, tmp
+      double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision cor(destl0:desth0,destl1:desth1,destl2:desth2)
+      double precision sig(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2, 5)
+      double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
+      double precision fac, tmp
       integer i, j, k
-      real*8 MXX, MYY, MZZ, MXZ, MYZ
+      double precision MXX, MYY, MZZ, MXZ, MYZ
       MXX(ii,jj,kk) = (4.d0 *  cor(ii,j,k)   + 
      &                  2.d0 * (cor(ii,jj,k)  - cor(i,jj,k) + 
      &                          cor(ii,j,kk)  - cor(i,j,kk)) + 
@@ -2409,12 +2409,12 @@ c-----------------------------------------------------------------------
       integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer doml0,domh0,doml1,domh1,doml2,domh2
-      real*8 cor(corl0:corh0,corl1:corh1,corl2:corh2)
-      real*8 res(resl0:resh0,resl1:resh1,resl2:resh2)
-      real*8 wrk(wrkl0:wrkh0,wrkl1:wrkh1,wrkl2:wrkh2)
-      real*8 signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
-      real*8 cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
+      double precision cor(corl0:corh0,corl1:corh1,corl2:corh2)
+      double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
+      double precision wrk(wrkl0:wrkh0,wrkl1:wrkh1,wrkl2:wrkh2)
+      double precision signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
+      double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       integer lsd, ipass
-      real*8 betm, aj
+      double precision betm, aj
       integer i, j, k, ioff, ipar
       end

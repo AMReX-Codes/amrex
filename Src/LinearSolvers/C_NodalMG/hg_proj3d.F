@@ -6,10 +6,10 @@
       integer gpl0,gph0,gpl1,gph1,gpl2,gph2
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer fregl0,fregh0,fregl1,fregh1,fregl2,fregh2
-      real*8 gpx(gpl0:gph0,gpl1:gph1,gpl2:gph2)
-      real*8 gpy(gpl0:gph0,gpl1:gph1,gpl2:gph2)
-      real*8 gpz(gpl0:gph0,gpl1:gph1,gpl2:gph2)
-      real*8 dest(destl0:desth0,destl1:desth1,destl2:desth2)
+      double precision gpx(gpl0:gph0,gpl1:gph1,gpl2:gph2)
+      double precision gpy(gpl0:gph0,gpl1:gph1,gpl2:gph2)
+      double precision gpz(gpl0:gph0,gpl1:gph1,gpl2:gph2)
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
       integer i, j, k
       do k = fregl2, fregh2
           do j = fregl1, fregh1
@@ -42,11 +42,11 @@
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer fregl0,fregh0,fregl1,fregh1,fregl2,fregh2
-      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      real*8 uf(fl0:fh0,fl1:fh1,fl2:fh2)
-      real*8 vf(fl0:fh0,fl1:fh1,fl2:fh2)
-      real*8 wf(fl0:fh0,fl1:fh1,fl2:fh2)
-      real*8 fac
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision uf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision vf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision wf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision fac
       integer i, j, k
       fac = 0.25d0
       do k = fregl2, fregh2
@@ -83,15 +83,15 @@ c Note---only generates values at coarse points along edge of fine grid
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
-      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      real*8 uc(cl0:ch0,cl1:ch1,cl2:ch2)
-      real*8 vc(cl0:ch0,cl1:ch1,cl2:ch2)
-      real*8 wc(cl0:ch0,cl1:ch1,cl2:ch2)
-      real*8 uf(fl0:fh0,fl1:fh1,fl2:fh2)
-      real*8 vf(fl0:fh0,fl1:fh1,fl2:fh2)
-      real*8 wf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision uc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision vc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision wc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision uf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision vf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision wf(fl0:fh0,fl1:fh1,fl2:fh2)
       integer ir, jr, kr, idim, idir
-      real*8 fac0, fac1, fac, tmp
+      double precision fac0, fac1, fac, tmp
       integer i, j, k, iuc, iuf, juc, juf, kuc, kuf, l, m, n
       if (idim .eq. 0) then
          i = cregl0
@@ -295,15 +295,15 @@ c Note---only generates values at coarse points along edge of fine grid
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
-      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      real*8 uc(cl0:ch0,cl1:ch1,cl2:ch2)
-      real*8 vc(cl0:ch0,cl1:ch1,cl2:ch2)
-      real*8 wc(cl0:ch0,cl1:ch1,cl2:ch2)
-      real*8 uf(fl0:fh0,fl1:fh1,fl2:fh2)
-      real*8 vf(fl0:fh0,fl1:fh1,fl2:fh2)
-      real*8 wf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision uc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision vc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision wc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision uf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision vf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision wf(fl0:fh0,fl1:fh1,fl2:fh2)
       integer ir, jr, kr, ivect(0:2), ga(0:1,0:1,0:1)
-      real*8 fac0, fac1, fac
+      double precision fac0, fac1, fac
       integer ic, jc, kc, if, jf, kf, iuc, iuf, juc, juf, kuc, kuf
       integer ii, ji, ki, idir, jdir, kdir, l, m, n
       ic = cregl0
@@ -643,15 +643,15 @@ c Note---only generates values at coarse points along edge of fine grid
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
-      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      real*8 uc(cl0:ch0,cl1:ch1,cl2:ch2)
-      real*8 vc(cl0:ch0,cl1:ch1,cl2:ch2)
-      real*8 wc(cl0:ch0,cl1:ch1,cl2:ch2)
-      real*8 uf(fl0:fh0,fl1:fh1,fl2:fh2)
-      real*8 vf(fl0:fh0,fl1:fh1,fl2:fh2)
-      real*8 wf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision uc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision vc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision wc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision uf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision vf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision wf(fl0:fh0,fl1:fh1,fl2:fh2)
       integer ir, jr, kr, ga(0:1,0:1,0:1)
-      real*8 sum, fac0, fac1, fac
+      double precision sum, fac0, fac1, fac
       integer ic, jc, kc, if, jf, kf, iuc, iuf, juc, juf, kuc, kuf
       integer ii, ji, ki, idir, jdir, kdir, l, m, n
       ic = cregl0
@@ -808,12 +808,12 @@ c weighting
       integer gpl0,gph0,gpl1,gph1,gpl2,gph2
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer fregl0,fregh0,fregl1,fregh1,fregl2,fregh2
-      real*8 gpx(gpl0:gph0,gpl1:gph1,gpl2:gph2)
-      real*8 gpy(gpl0:gph0,gpl1:gph1,gpl2:gph2)
-      real*8 gpz(gpl0:gph0,gpl1:gph1,gpl2:gph2)
-      real*8 dest(destl0:desth0,destl1:desth1,destl2:desth2)
-      real*8 hx, hy, hz
-      real*8 hxm1h, hym1h, hzm1h
+      double precision gpx(gpl0:gph0,gpl1:gph1,gpl2:gph2)
+      double precision gpy(gpl0:gph0,gpl1:gph1,gpl2:gph2)
+      double precision gpz(gpl0:gph0,gpl1:gph1,gpl2:gph2)
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
+      double precision hx, hy, hz
+      double precision hxm1h, hym1h, hzm1h
       integer i, j, k
       hxm1h = 0.25d0 / hx
       hym1h = 0.25d0 / hy
@@ -844,12 +844,12 @@ c weighting
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer fregl0,fregh0,fregl1,fregh1,fregl2,fregh2
-      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      real*8 uf(fl0:fh0,fl1:fh1,fl2:fh2)
-      real*8 vf(fl0:fh0,fl1:fh1,fl2:fh2)
-      real*8 wf(fl0:fh0,fl1:fh1,fl2:fh2)
-      real*8 hx, hy, hz
-      real*8 hxm1, hym1, hzm1, fac
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision uf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision vf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision wf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision hx, hy, hz
+      double precision hxm1, hym1, hzm1, fac
       integer i, j, k
       hxm1 = 1.d0 / hx
       hym1 = 1.d0 / hy
@@ -886,16 +886,16 @@ c Note---only generates values at coarse points along edge of fine grid
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
-      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      real*8 uc(cl0:ch0,cl1:ch1,cl2:ch2)
-      real*8 vc(cl0:ch0,cl1:ch1,cl2:ch2)
-      real*8 wc(cl0:ch0,cl1:ch1,cl2:ch2)
-      real*8 uf(fl0:fh0,fl1:fh1,fl2:fh2)
-      real*8 vf(fl0:fh0,fl1:fh1,fl2:fh2)
-      real*8 wf(fl0:fh0,fl1:fh1,fl2:fh2)
-      real*8 hx, hy, hz
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision uc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision vc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision wc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision uf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision vf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision wf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision hx, hy, hz
       integer ir, jr, kr, idim, idir
-      real*8 hxm1, hym1, hzm1, fac0, fac1, fac, tmp
+      double precision hxm1, hym1, hzm1, fac0, fac1, fac, tmp
       integer i, j, k, iuc, iuf, juc, juf, kuc, kuf, l, m, n
       if (idim .eq. 0) then
          i = cregl0
@@ -1099,17 +1099,17 @@ c Note---only generates values at coarse points along edge of fine grid
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
-      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      real*8 uc(cl0:ch0,cl1:ch1,cl2:ch2)
-      real*8 vc(cl0:ch0,cl1:ch1,cl2:ch2)
-      real*8 wc(cl0:ch0,cl1:ch1,cl2:ch2)
-      real*8 uf(fl0:fh0,fl1:fh1,fl2:fh2)
-      real*8 vf(fl0:fh0,fl1:fh1,fl2:fh2)
-      real*8 wf(fl0:fh0,fl1:fh1,fl2:fh2)
-      real*8 hx, hy, hz
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision uc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision vc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision wc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision uf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision vf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision wf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision hx, hy, hz
       integer ir, jr, kr, ivect(0:2), ga(0:1,0:1,0:1)
-      real*8 r3, hxm1, hym1, hzm1, hxm1c, hym1c, hzm1c
-      real*8 center, cfac, ffac, fac0, fac1, fac
+      double precision r3, hxm1, hym1, hzm1, hxm1c, hym1c, hzm1c
+      double precision center, cfac, ffac, fac0, fac1, fac
       integer ic, jc, kc, if, jf, kf, iuc, iuf, juc, juf, kuc, kuf
       integer ii, ji, ki, idir, jdir, kdir, l, m, n
       r3 = ir * jr * kr
@@ -1466,17 +1466,17 @@ c Note---only generates values at coarse points along edge of fine grid
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
-      real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      real*8 uc(cl0:ch0,cl1:ch1,cl2:ch2)
-      real*8 vc(cl0:ch0,cl1:ch1,cl2:ch2)
-      real*8 wc(cl0:ch0,cl1:ch1,cl2:ch2)
-      real*8 uf(fl0:fh0,fl1:fh1,fl2:fh2)
-      real*8 vf(fl0:fh0,fl1:fh1,fl2:fh2)
-      real*8 wf(fl0:fh0,fl1:fh1,fl2:fh2)
-      real*8 hx, hy, hz
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision uc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision vc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision wc(cl0:ch0,cl1:ch1,cl2:ch2)
+      double precision uf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision vf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision wf(fl0:fh0,fl1:fh1,fl2:fh2)
+      double precision hx, hy, hz
       integer ir, jr, kr, ga(0:1,0:1,0:1)
-      real*8 r3, hxm1, hym1, hzm1, hxm1c, hym1c, hzm1c
-      real*8 sum, center, cfac, ffac, fac0, fac1, fac
+      double precision r3, hxm1, hym1, hzm1, hxm1c, hym1c, hzm1c
+      double precision sum, center, cfac, ffac, fac0, fac1, fac
       integer ic, jc, kc, if, jf, kf, iuc, iuf, juc, juf, kuc, kuf
       integer ii, ji, ki, idir, jdir, kdir, l, m, n
       r3 = ir * jr * kr
