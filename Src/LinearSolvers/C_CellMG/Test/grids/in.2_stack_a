@@ -1,0 +1,4 @@
+boxes = grids/gr.2_stack_a
+geometry.coord_sys = 0
+geometry.prob_lo   =  0.0   0.0
+geometry.prob_hi   = 16.0  48.0

@@ -1,0 +1,4 @@
+boxes = grids/gr.2_small_b
+geometry.coord_sys = 0
+geometry.prob_lo   =  0.0   0.0
+geometry.prob_hi   =  8.0  16.0

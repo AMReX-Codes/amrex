@@ -1,0 +1,4 @@
+boxes = grids/gr.3_2boxes_a
+geometry.coord_sys = 0
+geometry.prob_lo   =  0.0   0.0   0.0
+geometry.prob_hi   =  8.0   8.0  16.0
