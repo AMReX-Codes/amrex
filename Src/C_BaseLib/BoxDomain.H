@@ -1,7 +1,7 @@
 #ifndef BL_BOXDOMAIN_H
 #define BL_BOXDOMAIN_H
 //
-// $Id: BoxDomain.H,v 1.26 2001-08-06 19:40:27 car Exp $
+// $Id: BoxDomain.H,v 1.27 2002-03-26 20:04:06 lijewski Exp $
 //
 #include <iosfwd>
 
@@ -72,7 +72,7 @@ class BoxDomain
 {
 public:
 
-    using BoxList::const_iterator;
+    typedef BoxList::const_iterator const_iterator;
     //
     //@ManDoc: Construct an empty BoxDomain of IndexType::TheCellType().
     //
