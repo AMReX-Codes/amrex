@@ -45,19 +45,15 @@ extern "C"
 class task_interpolate_patch : public task
 {
 public:
-    task_interpolate_patch(MultiFab& dmf_, int dgrid_, const Box& dbx_,
-	const MultiFab& smf_, const IntVect& rat_,
-	const amr_interpolator_class& interp_, const level_interface& lev_interface_)
-	: dmf(dmf_), dgrid(dgrid_), dbx(dbx_),
-	smf(smf_), rat(rat_), interp(interp_), lev_interface(lev_interface_)
+    task_interpolate_patch(MultiFab& dmf_, int dgrid_, const Box& dbx_, const MultiFab& smf_, const IntVect& rat_, const amr_interpolator_class& interp_, const level_interface& lev_interface_)
+	: dmf(dmf_), dgrid(dgrid_), dbx(dbx_), smf(smf_), rat(rat_), interp(interp_), lev_interface(lev_interface_)
     {
 	assert(dbx.sameType(dmf[dgrid].box()));
 	const Box cb = interp.box(dbx, rat);
-	tf = new task_fill_patch( cb, smf, lev_interface, 0, -1, -1);
+	tf = new task_fill_patch( dmf, dgrid, cb, smf, lev_interface, 0, -1, -1);
     }
     virtual bool ready()
     {
-	BoxLib::Abort( "FIXME task_interpolate_patch::ready" );
 	if ( tf->ready() )
 	{
 	    interp.fill(dmf[dgrid], dbx, tf->fab(), tf->fab().box(), rat);
@@ -728,7 +724,7 @@ void holy_grail_amr_multigrid::sync_periodic_interfaces()
 		continue;
 	    if ( idomain.intersects(nbox) ) continue;
 	    tl.add_task(
-		new task_interpolate_patch(target ,igrid, nbox, dest[lev-1], rat, bilinear_interpolator_class(), lev_interface[mgc])
+		new task_interpolate_patch(target, igrid, nbox, dest[lev-1], rat, bilinear_interpolator_class(), lev_interface[mgc])
 	    );
 	}
 	tl.execute();
@@ -838,7 +834,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 	    }
 	    // BUG --  must keep a clone of the interpolator
 	    tl.add_task(
-		new task_interpolate_patch(target ,igrid, target.box(igrid), corr[lfrom], rat, *hgi, lev_interface[lfrom])
+		new task_interpolate_patch(target, igrid, target.box(igrid), corr[lfrom], rat, *hgi, lev_interface[lfrom])
 		);
 	    delete hgi;
 	}

@@ -300,7 +300,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		    // Grid-by-grid line solve section:
 		    if(m_hg_terrain) 
 		    {
-			BoxLib::Abort( "relax: Terrain line solves not implemented" );
+			throw( "holy_grail_amr_multigrid::relax(): Terrain line solves not implemented" );
 		    }
 		    const Box& fbox = c_dmfi->box();
 		    const Box& cenbox = cn_dmfi->box();
@@ -371,7 +371,8 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
     }
     else 
     {
-	BoxLib::Abort( "relax: Line Solves aren't parallelized" );
+#if 0
+	throw( "holy_grail_amr_multigrid::relax(): Line Solves aren't parallelized" );
 	// Full-level line solve section:
 	if (line_order.length() == 0) 
 	{
@@ -470,9 +471,10 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		// Copy work arrays to following grids:
 		for (ListIterator<int> j(line_after[lev][igrid]); j; j++) 
 		{
-		    const Box b = (freg & corr[mglev].box(j()));
-		    tl.add_task(new task_copy_link(corr[mglev], j(), igrid, b, 0));
-		    tl.add_task(new task_copy_link(work[mglev], j(), igrid, b, 0));
+		    const int jgrid = j();
+		    const Box b = (freg & corr[mglev].box(jgrid));
+		    tl.add_task(new task_copy_link(corr[mglev], jgrid, igrid, b, 0));
+		    tl.add_task(new task_copy_link(work[mglev], jgrid, igrid, b, 0));
 		}
 	    }
 	    tl.execute();
@@ -487,19 +489,19 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		// Copy solution array from following grids:
 		for (ListIterator<int> j(line_after[lev][igrid]); j; j++) 
 		{
-		    const Box b = (freg & corr[mglev].box(j()));
-		    tl.add_task(new task_copy_link(corr[mglev], igrid, j(), b, 0));
+		    const int jgrid = j();
+		    const Box b = (freg & corr[mglev].box(jgrid));
+		    tl.add_task(new task_copy_link(corr[mglev], igrid, jgrid, b, 0));
 		}
 		
 		const Box& fbox = corr[mglev][igrid].box();
 		const Box& wbox = work[mglev][igrid].box();
-		FORT_HGRLNB(corr[mglev][igrid].dataPtr(), DIMLIST(fbox),
-		    work[mglev][igrid].dataPtr(), DIMLIST(wbox),
-		    DIMLIST(freg), &line_solve_dim, &ipass);
+		FORT_HGRLNB(corr[mglev][igrid].dataPtr(), DIMLIST(fbox), work[mglev][igrid].dataPtr(), DIMLIST(wbox), DIMLIST(freg), &line_solve_dim, &ipass);
 	    }
 	    tl.execute();
 	}
-    }
+#endif
+   }
   }
 }
 

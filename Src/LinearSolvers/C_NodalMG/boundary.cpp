@@ -292,7 +292,7 @@ void mixed_boundary_class::fill(FArrayBox& patch, const Box& region, const FArra
     if (flowdim == -4 && (t == refWall || t == inflow)) 
     {
 	// terrain sigma
-	BoxLib::Abort( "mixed_boundary_class::fill---terrain undefined" );
+	throw( "mixed_boundary_class::fill(): terrain undefined" );
     }
     else if (t == refWall) 
     {
@@ -349,7 +349,7 @@ void mixed_boundary_class::fill(FArrayBox& patch, const Box& region, const FArra
     }
     else 
     {
-    	BoxLib::Abort( "mixed_boundary_class::fill---boundary type not supported" );
+    	throw( "mixed_boundary_class::fill(): boundary type not supported" );
     }
 }
 
@@ -637,7 +637,7 @@ void mixed_boundary_class::check_against_boundary(BoxList& bl, List<int>& il, co
 	    }
 	    else 
 	    {
-		BoxLib::Abort( "mixed_boundary_class::check_against_boundary()  Boundary type not supported" );
+		throw( "mixed_boundary_class::check_against_boundary():  Boundary type not supported" );
 	    }
 	}
 	if (b.bigEnd(i) == d.bigEnd(i)) 
@@ -668,7 +668,7 @@ void mixed_boundary_class::check_against_boundary(BoxList& bl, List<int>& il, co
 	    }
 	    else 
 	    {
-		BoxLib::Abort( "mixed_boundary_class::check_against_boundary()  Boundary type not supported" );
+		throw( "mixed_boundary_class::check_against_boundary():  Boundary type not supported" );
 	    }
 	}
     }
@@ -735,7 +735,7 @@ inviscid_fluid_boundary_class::inviscid_fluid_boundary_class(RegType Bc[BL_SPACE
 	bc[i][1] = Bc[i][1];
 	if ((bc[i][0] == periodic || bc[i][1] == periodic) && bc[i][1] != bc[i][0])
 	{
-	    BoxLib::Abort( "inviscid_fluid_boundary_class::ctor---periodic bc's don't match" );
+	    throw( "inviscid_fluid_boundary_class::inviscid_fluid_boundary(): periodic bc's don't match" );
 	}
 	v[i] = new mixed_boundary_class(this, i);
     }
