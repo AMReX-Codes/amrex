@@ -555,9 +555,33 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 	    if (igrid < 0 || jgrid < 0 || lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL)
 		break;
 	    const Box& b = lev_interface.node_box(level_interface::FACEDIM, iface);
-	    // tl.add_task(new task_copy_2(r, igrid, r, jgrid, b, w));
-	    tl.add_task(new task_copy(r, igrid, r, jgrid, w_shift(b, r.box(igrid), r.nGrow(),  w)));
-	    tl.add_task(new task_copy(r, jgrid, r, igrid, w_shift(b, r.box(jgrid), r.nGrow(), -w)));
+            const int idim = lev_interface.fdim(iface);
+            Box bj = lev_interface.node_box(level_interface::FACEDIM, iface);
+      Box bi = lev_interface.node_box(level_interface::FACEDIM, iface);
+      for (int i = 0; i < idim; i++)
+      {
+        if (r.box(jgrid).smallEnd(i) == bj.smallEnd(i))
+          bj.growLo(i, w);
+        if (r.box(jgrid).bigEnd(i) == bj.bigEnd(i))
+          bj.growHi(i, w);
+        if (r.box(igrid).smallEnd(i) == bi.smallEnd(i))
+          bi.growLo(i, w);
+        if (r.box(igrid).bigEnd(i) == bi.bigEnd(i))
+          bi.growHi(i, w);
+      }
+      bj.shift(idim, -1).growLo(idim, w-1);
+      bi.shift(idim,  1).growHi(idim, w-1);
+#if 1
+            tl.add_task(new task_copy( r, jgrid, r, igrid, bj));
+            tl.add_task(new task_copy( r, igrid, r, jgrid, bi));
+#else
+            tl.add_task(new task_copy( r, jgrid, r, igrid, w_shift(b,
+r.box(jgrid), r.nGrow(), -w)));
+            tl.add_task(new task_copy( r, igrid, r, jgrid, w_shift(b,
+r.box(igrid), r.nGrow(),  w)));
+#endif
+
+
 	}
     }
     else if (type(r) == IntVect::TheCellVector()) 
