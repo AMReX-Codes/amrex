@@ -4,7 +4,7 @@
 #define _StateData_H_ 
 
 //
-// $Id: StateData.H,v 1.12 1998-10-07 21:18:20 vince Exp $
+// $Id: StateData.H,v 1.13 1998-11-23 22:39:26 lijewski Exp $
 //
 
 #include <Box.H>
@@ -180,9 +180,17 @@ public:
     //
     MultiFab& newData () { return *new_data; }
     //
+    //@ManDoc: Returns the new data.
+    //
+    const MultiFab& newData () const { return *new_data; }
+    //
     //@ManDoc: Returns the old data.
     //
     MultiFab& oldData () { return *old_data; }
+    //
+    //@ManDoc: Returns the old data.
+    //
+    const MultiFab& oldData () const { return *old_data; }
     //
     //@ManDoc: Returns the FAB of new data at grid index `i'.
     //
