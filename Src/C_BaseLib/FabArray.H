@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.42 1998-04-22 21:02:48 lijewski Exp $
+// $Id: FabArray.H,v 1.43 1998-04-23 16:38:00 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1172,15 +1172,13 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
                           0, // Not Used.
                           0, // Not Used.
                           sTags[i].box);
-        //
-        // Use MPI_Send() as we don't care whether or not this is buffered.
-        //
-        if ((rc = MPI_Send(senddata.dataPtr(),
-                           senddata.length(),
-                           MPI_INT,
-                           sTags[i].toProc,
-                           139,
-                           MPI_COMM_WORLD)) != MPI_SUCCESS)
+
+        if ((rc = MPI_Ssend(senddata.dataPtr(),
+                            senddata.length(),
+                            MPI_INT,
+                            sTags[i].toProc,
+                            139,
+                            MPI_COMM_WORLD)) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
 
@@ -2261,12 +2259,12 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
         //
         // Use MPI_Send() as we don't care whether or not this is buffered.
         //
-        if ((rc = MPI_Send(senddata.dataPtr(),
-                           senddata.length(),
-                           MPI_INT,
-                           fabComTagList[i].procThatHasData,
-                           471,
-                           MPI_COMM_WORLD)) != MPI_SUCCESS)
+        if ((rc = MPI_Ssend(senddata.dataPtr(),
+                            senddata.length(),
+                            MPI_INT,
+                            fabComTagList[i].procThatHasData,
+                            471,
+                            MPI_COMM_WORLD)) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
 
