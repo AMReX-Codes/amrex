@@ -1,7 +1,7 @@
 #ifndef _AmrLevel_H_
 #define _AmrLevel_H_ 
 //
-// $Id: AmrLevel.H,v 1.52 2002-03-27 17:10:20 lijewski Exp $
+// $Id: AmrLevel.H,v 1.53 2002-06-17 17:01:27 car Exp $
 //
 #include <REAL.H>
 #include <Box.H>
@@ -78,7 +78,7 @@ public:
     //
     //@ManDoc: Is name a state variable?
     //
-    static int isStateVariable (const std::string& name,
+    static bool isStateVariable (const std::string& name,
                                 int&               state_indx,
                                 int&               ncomp);
 
