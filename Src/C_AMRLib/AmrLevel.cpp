@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.30 1998-05-18 17:52:20 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.31 1998-05-22 22:08:41 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -544,6 +544,9 @@ FillPatchIterator::isValid (bool bDoSync)
     currentFillPatchedFab.resize(destBox, nComp);
     currentFillPatchedFab.setVal(1.e30);
 
+    FArrayBox tempCoarseDestFab;
+    FArrayBox tempCurrentFillPatchedFab;
+
     int currentLevel;
     for (currentLevel = 0; currentLevel <= amrLevel.level; ++currentLevel)
     {
@@ -556,7 +559,7 @@ FillPatchIterator::isValid (bool bDoSync)
             ++currentBox)
         {
             Box tempCoarseBox(fillBoxId[currentIndex][currentLevel][currentBox][0].box());
-            FArrayBox tempCoarseDestFab(tempCoarseBox, nComp);
+            tempCoarseDestFab.resize(tempCoarseBox, nComp);
             tempCoarseDestFab.setVal(1.e30);
             currentState.linInterpFillFab(multiFabCopyDesc,
                                           stateDataMFId[currentLevel],
@@ -573,7 +576,6 @@ FillPatchIterator::isValid (bool bDoSync)
             BoxArray fboxes(filledBoxes);
             FArrayBox* copyFromThisFab;
             const BoxArray* copyFromTheseBoxes;
-            FArrayBox tempCurrentFillPatchedFab;
 
             if (intersectDestBox.ok())
             {
@@ -824,7 +826,9 @@ FillPatchIterator::isValid (bool bDoSync)
     currentFillPatchedFab.setVal(1.e30);
 
     FArrayBox tempCoarseDestFab, tempFineDestFab;
-    FArrayBox *coarseDestFabPtr = 0, *fineDestFabPtr = 0;
+
+    FArrayBox* coarseDestFabPtr = 0, *fineDestFabPtr = 0;
+
     int currentLevel;
     int coarsestFillLevel = amrLevel.level;
     for (currentLevel = 0; currentLevel < amrLevel.level; ++currentLevel)
