@@ -1076,7 +1076,7 @@ holy_grail_amr_projector::interface_average (PArray<MultiFab>& S, int lev)
 	tl.add_task(new task_fecavg(&FORT_HGFAVG, tl, source[lev], S[lev], igrid, Scp, creg, rat, idim, idir));
 #endif
     }
-    tl.execute();
+    tl.execute("holy_grail_amr_projector::interface_average(1)");
 #if (BL_SPACEDIM == 3)
     for (int iedge = 0; iedge < lev_interface[mglev].nboxes(1); iedge++) 
     {
@@ -1123,7 +1123,7 @@ holy_grail_amr_projector::interface_average (PArray<MultiFab>& S, int lev)
 	    }
 	}
     }
-    tl.execute();
+    tl.execute("holy_grail_amr_projector::interface_average(2)");
 #endif
     for (int icor = 0; icor < lev_interface[mglev].nboxes(0); icor++) 
     {
@@ -1178,7 +1178,7 @@ holy_grail_amr_projector::interface_average (PArray<MultiFab>& S, int lev)
 	    }
 	}
     }
-    tl.execute();
+    tl.execute("holy_grail_amr_projector::interface_average(3)");
 }
 
 void
@@ -1242,7 +1242,7 @@ holy_grail_amr_projector::interface_divergence (PArray<MultiFab>* u,
 #endif
 	}
     }
-    tl.execute();
+    tl.execute("holy_grail_amr_projector::interface_divergence(1)");
 
     HG_TEST_NORM(source[lev], "interface_divergence,a");
     
@@ -1306,7 +1306,7 @@ holy_grail_amr_projector::interface_divergence (PArray<MultiFab>* u,
 	    }
 	}
     }
-    tl.execute();    
+    tl.execute("holy_grail_amr_projector::interface_divergence(2)");    
     HG_TEST_NORM(source[lev], "interface_divergence,a1");
 #endif
     for (int icor = 0; icor < lev_interface[mglev].nboxes(0); icor++) 
@@ -1371,7 +1371,7 @@ holy_grail_amr_projector::interface_divergence (PArray<MultiFab>* u,
 	    }
 	}
     }
-    tl.execute();
+    tl.execute("holy_grail_amr_projector::interface_divergence(3)");
     HG_TEST_NORM(source[lev], "interface_divergence,a2");
 }
 

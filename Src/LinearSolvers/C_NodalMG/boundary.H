@@ -55,6 +55,10 @@ public:
 
     virtual bool singular () const  = 0;
 
+    virtual Box image (const Box& region,
+                       const Box& srcbox,
+                       const Box& domain) const = 0;
+
 protected:
 
     virtual void fill (FArrayBox&,
@@ -149,6 +153,10 @@ public:
                             const Box& domain) const;
 
     virtual bool singular () const;
+
+    virtual Box image (const Box& region,
+                       const Box& srcbox,
+                       const Box& domain) const;
 
 protected:
 

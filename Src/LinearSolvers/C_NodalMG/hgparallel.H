@@ -135,7 +135,7 @@ public:
     explicit task (task_list& task_list_);
     virtual ~task ();
     virtual bool ready ();
-    virtual bool startup ();
+    virtual bool startup (long& sdncnt, long& rcvcnt);
     bool is_started () const { return m_started; }
     virtual bool depends_on_q (const task* t1) const;
     virtual bool work_to_do () const;
@@ -179,7 +179,7 @@ public:
     //
     // Executes once through the task list, return true if any elements left.
     //
-    void execute ();
+    void execute (const char* msg);
 
     list<task::task_proxy>::const_iterator begin () const { return tasks.begin(); }
     list<task::task_proxy>::iterator begin () { return tasks.begin(); }
@@ -242,7 +242,7 @@ public:
     virtual bool ready ();
     virtual bool depends_on_q (const task* t) const;
     virtual void hint () const;
-    virtual bool startup ();
+    virtual bool startup (long&,long&);
     virtual bool work_to_do () const;
     virtual bool need_to_communicate (int& with) const;
 
@@ -282,7 +282,7 @@ public:
     virtual ~task_copy_local ();
     virtual bool ready ();
     virtual void hint () const;
-    virtual bool startup ();
+    virtual bool startup (long&,long&);
     virtual bool depends_on_q (const task* t1) const;
     virtual bool work_to_do () const;
     virtual bool need_to_communicate (int& with) const;

@@ -782,7 +782,8 @@ holy_grail_amr_multigrid::interface_residual (int mglev,
 #endif
 	}
     }
-    tl.execute();
+    tl.execute("holy_grail_amr_multigrid::interface_residual(1)");
+
     if (m_stencil == cross || m_stencil==terrain)
     {
 #if (BL_SPACEDIM == 3)
@@ -839,7 +840,7 @@ holy_grail_amr_multigrid::interface_residual (int mglev,
 		}
 	    }
 	}
-	tl.execute();
+	tl.execute("holy_grail_amr_multigrid::interface_residual(2)");
 #endif
 	for (int icor = 0; icor < lev_interface[mglev].nboxes(0); icor++) 
 	{
@@ -897,7 +898,7 @@ holy_grail_amr_multigrid::interface_residual (int mglev,
 		}
 	    }
 	}
-	tl.execute();
+	tl.execute("holy_grail_amr_multigrid::interface_residual(3)");
     }
     else if (m_stencil == full)
     {
@@ -1040,7 +1041,7 @@ holy_grail_amr_multigrid::interface_residual (int mglev,
 		tl.add_task(new task_fceres_?(&FORT_HGIRES,tll,freg,resid[mglev],source[mglev],igrid,fdst,cdst,sigmaf,sigmac,creg,h[mglev],rat,idir0,idir1,isRZ,0));
 	    }
         }
-	tl.execute();
+	tl.execute("holy_grail_amr_multigrid::interface_residual(4)");
 #endif
 #endif
     }

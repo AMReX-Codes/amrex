@@ -752,7 +752,8 @@ holy_grail_amr_multigrid::can_coarsen (const BoxArray& mesh,
     return retval != 0;
 }
 
-void holy_grail_amr_multigrid::sync_interfaces ()
+void
+holy_grail_amr_multigrid::sync_interfaces ()
 {
     for (int lev = lev_min+1; lev <= lev_max; lev++) 
     {
@@ -778,7 +779,7 @@ void holy_grail_amr_multigrid::sync_interfaces ()
 		continue;
 	    tl.add_task(new task_interpolate_patch(tl,target,igrid,nbox,dest[lev-1],rat,new bilinear_interpolator_class(),lev_interface[mgc]));
 	}
-	tl.execute();
+	tl.execute("holy_grail_amr_multigrid::sync_interfaces");
     }
 }
 
@@ -813,7 +814,7 @@ holy_grail_amr_multigrid::sync_periodic_interfaces ()
                 continue;
 	    tl.add_task(new task_interpolate_patch(tl,target,igrid,nbox,dest[lev-1],rat,new bilinear_interpolator_class(),lev_interface[mgc]));
 	}
-	tl.execute();
+	tl.execute("holy_grail_amr_multigrid::sync_periodic_interfaces");
     }
 }
 
@@ -960,7 +961,7 @@ holy_grail_amr_multigrid::mg_interpolate_level (int lto,
 	    }
 	    tl.add_task(new task_interpolate_patch(tl,target,igrid,target.box(igrid),corr[lfrom],rat,hgi,lev_interface[lfrom]));
 	}
-	tl.execute();
+	tl.execute("holy_grail_amr_multigrid::mg_interpolate_level");
 	if (lto > ltmp) 
 	{
 	    corr[ltmp].copy(target);
