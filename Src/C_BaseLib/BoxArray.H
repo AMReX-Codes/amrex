@@ -3,7 +3,7 @@
 #define BL_BOXARRAY_H
 
 //
-// $Id: BoxArray.H,v 1.17 2000-10-02 20:52:33 lijewski Exp $
+// $Id: BoxArray.H,v 1.18 2000-11-12 17:26:12 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -113,6 +113,10 @@ public:
     //@ManDoc: Returns the number of elements in the BoxArray.
     //
     int length () const;
+  //
+  //
+  //
+  long numPts() const;
     //
     //@ManDoc: Returns true if the BoxArray is not empty.
     //
