@@ -14,7 +14,7 @@ typedef int pthread_t;
 #endif
 
 #include <stdexcept>
-#include <BoxLib/Profiler.H>
+#include <Profiler.H>
 
 
 //
@@ -29,7 +29,7 @@ typedef int pthread_t;
 // thread executing the work() routine is running.
 // Most of this was written by Mike Lijewski <mjlijewski@lbl.gov>
 
-namespace BoxLib3
+namespace BoxLib
 {
 extern "C"
 {
@@ -73,7 +73,7 @@ template <> class ThreadSpecificData<void>;
 // If we want to trylock it we must use a TryLock object.
 //
 
-class BoxLib3::Mutex
+class BoxLib::Mutex
 {
 public:
     class Attr;
@@ -123,7 +123,7 @@ private:
 //   }
 //
 
-namespace BoxLib3
+namespace BoxLib
 {
 template <class M = Mutex>
 class Lock
@@ -140,14 +140,14 @@ private:
 }
 
 template <class M>
-BoxLib3::Lock<M>::Lock (M& mutex)
+BoxLib::Lock<M>::Lock (M& mutex)
     : m_mutex(mutex)
 {
     m_mutex.lock();
 }
 
 template <class M>
-BoxLib3::Lock<M>::~Lock()
+BoxLib::Lock<M>::~Lock()
 {
     m_mutex.unlock();
 }
@@ -186,7 +186,7 @@ BoxLib3::Lock<M>::~Lock()
 //   }
 //
 
-namespace BoxLib3
+namespace BoxLib
 {
 template <class M = Mutex>
 class TryLock
@@ -206,13 +206,13 @@ private:
 
 
 template <class M>
-BoxLib3::TryLock<M>::TryLock(M& mutex)
+BoxLib::TryLock<M>::TryLock(M& mutex)
     : m_mutex(mutex), m_locked(mutex.trylock())
 {
 }
 
 template <class M>
-BoxLib3::TryLock<M>::~TryLock()
+BoxLib::TryLock<M>::~TryLock()
 {
     if ( m_locked )
     {
@@ -222,7 +222,7 @@ BoxLib3::TryLock<M>::~TryLock()
 
 template <class M>
 bool
-BoxLib3::TryLock<M>::locked() const
+BoxLib::TryLock<M>::locked() const
 {
     return m_locked;
 }
@@ -232,7 +232,7 @@ BoxLib3::TryLock<M>::locked() const
 // ConditionVariable
 //
 
-class BoxLib3::ConditionVariable
+class BoxLib::ConditionVariable
     : public Mutex
 {
 public:
@@ -258,7 +258,7 @@ private:
 // Barrier
 //
 
-class BoxLib3::Barrier
+class BoxLib::Barrier
     : protected ConditionVariable
 {
 public:
@@ -278,7 +278,7 @@ private:
 // Semaphore
 //
 
-class BoxLib3::Semaphore
+class BoxLib::Semaphore
     : protected ConditionVariable
 {
 public:
@@ -293,7 +293,7 @@ private:
 };
 
 template <>
-class BoxLib3::Lock<BoxLib3::Semaphore>
+class BoxLib::Lock<BoxLib::Semaphore>
 {
 public:
     explicit Lock(Semaphore& sem_);
@@ -307,7 +307,7 @@ private:
 // SemaphoreB
 //
 
-class BoxLib3::SemaphoreB
+class BoxLib::SemaphoreB
     : protected ConditionVariable
 {
 public:
@@ -327,7 +327,7 @@ private:
 //Single Barrier
 //
 
-class BoxLib3::SingleBarrier
+class BoxLib::SingleBarrier
     : protected ConditionVariable
 {
 public:
@@ -348,7 +348,7 @@ private:
 //Recursive Mutex
 //
 
-class BoxLib3::RecursiveMutex
+class BoxLib::RecursiveMutex
     : protected ConditionVariable
 {
 public:
@@ -370,7 +370,7 @@ private:
 // Gate
 //
 
-class BoxLib3::Gate
+class BoxLib::Gate
     : protected ConditionVariable
 {
 public:
@@ -390,7 +390,7 @@ private:
 // RWLock
 //
 
-class BoxLib3::RWLock
+class BoxLib::RWLock
 {
 public:
     RWLock();
@@ -416,7 +416,7 @@ private:
 //SafeVariable
 //
 
-namespace BoxLib3
+namespace BoxLib
 {
 template <class T, class M = Mutex>
 class SafeVariable
@@ -435,7 +435,7 @@ private:
 
 template <class T, class M>
 void
-BoxLib3::SafeVariable<T,M>::set(const T& n)
+BoxLib::SafeVariable<T,M>::set(const T& n)
 {
     m.lock();
     val = n;
@@ -444,7 +444,7 @@ BoxLib3::SafeVariable<T,M>::set(const T& n)
 
 template < class T, class M>
 const T
-BoxLib3::SafeVariable<T,M>::get() const
+BoxLib::SafeVariable<T,M>::get() const
 {
     m.lock();
     const T tval = val;
@@ -453,15 +453,15 @@ BoxLib3::SafeVariable<T,M>::get() const
 }
 
 template <class T, class M>
-BoxLib3::SafeVariable<T,M>&
-BoxLib3::SafeVariable<T,M>::operator=(const T& n)
+BoxLib::SafeVariable<T,M>&
+BoxLib::SafeVariable<T,M>::operator=(const T& n)
 {
     set(n);
     return *this;
 }
 
 template <class T, class M>
-BoxLib3::SafeVariable<T,M>::operator const T() const
+BoxLib::SafeVariable<T,M>::operator const T() const
 {
     return get();
 }
@@ -472,7 +472,7 @@ BoxLib3::SafeVariable<T,M>::operator const T() const
 //
 
 template <>
-class BoxLib3::ThreadSpecificData<void>
+class BoxLib::ThreadSpecificData<void>
 {
 public:
     explicit ThreadSpecificData(void (*dst)(void*) = 0);
@@ -487,7 +487,7 @@ private:
 #endif
 };
 
-namespace BoxLib3
+namespace BoxLib
 {
 template <class T>
 class ThreadSpecificData
@@ -511,70 +511,70 @@ private:
 }
 
 template <class T>
-BoxLib3::ThreadSpecificData<T>::ThreadSpecificData(const T* p)
+BoxLib::ThreadSpecificData<T>::ThreadSpecificData(const T* p)
     : ThreadSpecificData<void>(tsd_destroy)
 {
     if ( p ) set(p);
 }
 
 template <class T>
-BoxLib3::ThreadSpecificData<T>::ThreadSpecificData(const T* p, void (*dst)(void*))
+BoxLib::ThreadSpecificData<T>::ThreadSpecificData(const T* p, void (*dst)(void*))
     : ThreadSpecificData<void>(dst)
 {
     if ( p ) set(p);
 }
 
 template <class T>
-BoxLib3::ThreadSpecificData<T>::~ThreadSpecificData()
+BoxLib::ThreadSpecificData<T>::~ThreadSpecificData()
 {
     reset();
 }
 
 template <class T>
 T*
-BoxLib3::ThreadSpecificData<T>::set(const T* v)
+BoxLib::ThreadSpecificData<T>::set(const T* v)
 {
     return static_cast<T*>(ThreadSpecificData<void>::set(static_cast<const void*>(v)));
 }
 
 template <class T>
 T*
-BoxLib3::ThreadSpecificData<T>::get() const
+BoxLib::ThreadSpecificData<T>::get() const
 {
     return static_cast<T*>(ThreadSpecificData<void>::get());
 }
 
 template <class T>
 T*
-BoxLib3::ThreadSpecificData<T>::operator->()
+BoxLib::ThreadSpecificData<T>::operator->()
 {
     return get();
 }
 
 template <class T>
 T&
-BoxLib3::ThreadSpecificData<T>::operator*()
+BoxLib::ThreadSpecificData<T>::operator*()
 {
     return *get();
 }
 
 template <class T>
 T*
-BoxLib3::ThreadSpecificData<T>::release()
+BoxLib::ThreadSpecificData<T>::release()
 {
     return set(0);
 }
 
 template <class T>
 void
-BoxLib3::ThreadSpecificData<T>::reset(const T* p)
+BoxLib::ThreadSpecificData<T>::reset(const T* p)
 {
     delete set(p);
 }
 
 template <class T>
 void
-BoxLib3::ThreadSpecificData<T>::tsd_destroy(void* v)
+BoxLib::ThreadSpecificData<T>::tsd_destroy(void* v)
 {
     delete static_cast<T*>(v);
 }
@@ -583,7 +583,7 @@ BoxLib3::ThreadSpecificData<T>::tsd_destroy(void* v)
 // Thread
 //
 
-class BoxLib3::Thread
+class BoxLib::Thread
 {
 public:
     class thread_error;
@@ -717,7 +717,7 @@ private:
 };
 
 #if 0
-class BoxLib3::ThreadBase
+class BoxLib::ThreadBase
 {
 protected:
     pthread_t m_tid;
@@ -737,7 +737,7 @@ private:
 };
 #endif
 
-class BoxLib3::Thread::thread_error
+class BoxLib::Thread::thread_error
     : public std::runtime_error
 {
 public:
@@ -746,7 +746,7 @@ public:
 
 
 
-class BoxLib3::FunctionThread
+class BoxLib::FunctionThread
 {
 public:
     FunctionThread(Thread_Function func_, void* arg_ = 0, Thread::DetachState = Thread::Joinable);
@@ -765,7 +765,7 @@ do									\
 {									\
   if ( int status = (x) )						\
     {									\
-      throw BoxLib3::Thread::thread_error(__FILE__, __LINE__, #x, status); \
+      throw BoxLib::Thread::thread_error(__FILE__, __LINE__, #x, status); \
     }									\
 }									\
 while ( false )
@@ -775,7 +775,7 @@ while ( false )
 // Thread Attribute
 //
 
-class BoxLib3::Thread::Attr
+class BoxLib::Thread::Attr
 {
     friend class Thread;
 public:
@@ -820,7 +820,7 @@ private:
 
 inline
 pthread_attr_t
-BoxLib3::Thread::Attr::theAttribute() const
+BoxLib::Thread::Attr::theAttribute() const
 {
     return m_attr;
 }
@@ -828,7 +828,7 @@ BoxLib3::Thread::Attr::theAttribute() const
 // Mutex Attributes
 //
 
-class BoxLib3::Mutex::Attr
+class BoxLib::Mutex::Attr
 {
     friend class Mutex;
 public:
@@ -851,7 +851,7 @@ private:
 // ConditionVariable Attributes
 //
 
-class BoxLib3::ConditionVariable::Attr
+class BoxLib::ConditionVariable::Attr
 {
     friend class ConditionVariable;
 public:
@@ -890,7 +890,7 @@ private:
 // Thread Attribute
 //
 
-class BoxLib3::Thread::Attr
+class BoxLib::Thread::Attr
 {
     friend class Thread;
 public:
@@ -908,7 +908,7 @@ private:
 // Mutex Attributes
 //
 
-class BoxLib3::Mutex::Attr
+class BoxLib::Mutex::Attr
 {
     friend class Mutex;
 public:
@@ -923,7 +923,7 @@ private:
 // ConditionVariable Attributes
 //
 
-class BoxLib3::ConditionVariable::Attr
+class BoxLib::ConditionVariable::Attr
 {
     friend class ConditionVariable;
 public:
@@ -935,25 +935,25 @@ private:
 
 
 // Thread
-inline BoxLib3::Thread::~Thread() {}
-inline int BoxLib3::Thread::max_threads() { return 1;}
-inline void BoxLib3::Thread::yield() {}
-inline void BoxLib3::Thread::testcancel() {}
-inline void* BoxLib3::Thread::join() const { return 0;}
+inline BoxLib::Thread::~Thread() {}
+inline int BoxLib::Thread::max_threads() { return 1;}
+inline void BoxLib::Thread::yield() {}
+inline void BoxLib::Thread::testcancel() {}
+inline void* BoxLib::Thread::join() const { return 0;}
 
 // Mutex
-inline BoxLib3::Mutex::Mutex() {}
-inline BoxLib3::Mutex::~Mutex() {}
-inline void BoxLib3::Mutex::lock() {}
-inline void BoxLib3::Mutex::unlock() {}
+inline BoxLib::Mutex::Mutex() {}
+inline BoxLib::Mutex::~Mutex() {}
+inline void BoxLib::Mutex::lock() {}
+inline void BoxLib::Mutex::unlock() {}
 
 // ConditionVariable
-inline BoxLib3::ConditionVariable::ConditionVariable() {}
-inline BoxLib3::ConditionVariable::~ConditionVariable() {}
-inline void BoxLib3::ConditionVariable::broadcast() {}
-inline void BoxLib3::ConditionVariable::signal() {}
-inline void BoxLib3::ConditionVariable::wait() {}
-inline void BoxLib3::ConditionVariable::wait(BoxLib3::Mutex&) {}
+inline BoxLib::ConditionVariable::ConditionVariable() {}
+inline BoxLib::ConditionVariable::~ConditionVariable() {}
+inline void BoxLib::ConditionVariable::broadcast() {}
+inline void BoxLib::ConditionVariable::signal() {}
+inline void BoxLib::ConditionVariable::wait() {}
+inline void BoxLib::ConditionVariable::wait(BoxLib::Mutex&) {}
 
 #endif
 

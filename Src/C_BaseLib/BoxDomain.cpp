@@ -1,5 +1,5 @@
 //
-// $Id: BoxDomain.cpp,v 1.8 2001-07-19 16:57:31 lijewski Exp $
+// $Id: BoxDomain.cpp,v 1.9 2001-07-19 17:23:41 car Exp $
 //
 
 #include <BoxDomain.H>
@@ -37,9 +37,9 @@ BoxDomain::intersect (const Box& b)
 }
 
 void
-intersect (BoxDomain&       dest,
-           const BoxDomain& fin,
-           const Box&       b)
+BoxLib::intersect (BoxDomain&       dest,
+		   const BoxDomain& fin,
+		   const Box&       b)
 {
    dest = fin;
    dest.intersect(b);
@@ -54,27 +54,27 @@ BoxDomain::refine (int ratio)
 }
 
 void
-refine (BoxDomain&       dest,
-        const BoxDomain& fin,
-        int              ratio)
+BoxLib::refine (BoxDomain&       dest,
+		const BoxDomain& fin,
+		int              ratio)
 {
     dest = fin;
     dest.refine(ratio);
 }
 
 void
-accrete (BoxDomain&       dest,
-         const BoxDomain& fin,
-         int              sz)
+BoxLib::accrete (BoxDomain&       dest,
+		 const BoxDomain& fin,
+		 int              sz)
 {
     dest = fin;
     dest.accrete(sz);
 }
 
 void
-coarsen (BoxDomain&       dest,
-         const BoxDomain& fin,
-         int              ratio)
+BoxLib::coarsen (BoxDomain&       dest,
+		 const BoxDomain& fin,
+		 int              ratio)
 {
     dest = fin;
     dest.coarsen(ratio);
@@ -90,8 +90,8 @@ BoxDomain::complementIn (const Box&       b,
 }
 
 BoxDomain
-complementIn (const Box&       b,
-              const BoxDomain& bl)
+BoxLib::complementIn (const Box&       b,
+		      const BoxDomain& bl)
 {
     BoxDomain result;
     result.complementIn(b,bl);

@@ -2,7 +2,7 @@
 #define BL_INTVECT_H
 
 //
-// $Id: IntVect.H,v 1.16 2001-07-19 16:57:33 lijewski Exp $
+// $Id: IntVect.H,v 1.17 2001-07-19 17:27:04 car Exp $
 //
 
 #include <algorithm>
@@ -28,81 +28,68 @@
 class IntVect;
 namespace BoxLib
 {
+    /*@ManDoc: Returns a basis vector in the given coordinate direction;
+      eg.  IntVect3d BASISV(1) == (0,1,0).  Note that the coordinate
+      directions are zero based.
+    */
+    IntVect BASISV (int dir);
+
+    /*@ManDoc: Returns the IntVect that is the component-wise minimum of two
+               argument IntVects.
+    */
+    IntVect min (const IntVect& p1, const IntVect& p2);
+
+    /*@ManDoc: Returns the IntVect that is the component-wise minimum of two
+      argument IntVects.
+    */
+    IntVect max (const IntVect& p1, const IntVect& p2);
+
+    /*@ManDoc: Returns a IntVect obtained by multiplying each of the
+      components of this IntVect by s.
+    */
+    IntVect scale (const IntVect& p, int s);
+
+    /*@ManDoc: Returns an IntVect that is the reflection of input in the
+      plane which passes through ref\_ix and normal to the
+      coordinate direction idir.
+    */
+    IntVect reflect(const IntVect& a, int ref_ix, int idir);
+
+    /*@ManDoc: Returns IntVect obtained by adding s to each of the
+      components of this IntVect.
+    */
+    IntVect diagShift (const IntVect& p, int s);
+
+    /*@ManDoc: Returns an IntVect that is the component-wise integer
+      projection of p by s.
+    */
+    IntVect coarsen (const IntVect& p, int s);
+
+    /*@ManDoc: Returns an IntVect which is the component-wise integer
+      projection of IntVect p1 by IntVect p2.
+    */
+    IntVect coarsen (const IntVect& p1, const IntVect& p2);
+}
 //
 //@ManDoc: Returns p + s.
 //
-IntVect operator+ (int            s,
-		   const IntVect& p);
+IntVect operator+ (int s, const IntVect& p);
 //
 //@ManDoc: Returns -p + s.
 //
-IntVect operator- (int            s,
-		   const IntVect& p);
+IntVect operator- (int s, const IntVect& p);
 //
 //@ManDoc: Returns p * s.
 //
-IntVect operator* (int            s,
-		   const IntVect& p);
-/*@ManDoc: Returns a basis vector in the given coordinate direction;
-               eg.  IntVect3d BASISV(1) == (0,1,0).  Note that the coordinate
-               directions are zero based.
-*/
-IntVect BASISV (int dir);
-
-/*@ManDoc: Returns the IntVect that is the component-wise minimum of two
-               argument IntVects.
-*/
-IntVect min (const IntVect& p1,
-	     const IntVect& p2);
-
-/*@ManDoc: Returns the IntVect that is the component-wise minimum of two
-               argument IntVects.
-*/
-IntVect max (const IntVect& p1,
-	     const IntVect& p2);
-
-/*@ManDoc: Returns a IntVect obtained by multiplying each of the
-               components of this IntVect by s.
-*/
-IntVect scale (const IntVect& p,
-	       int            s);
-
-/*@ManDoc: Returns an IntVect that is the reflection of input in the
-               plane which passes through ref\_ix and normal to the
-               coordinate direction idir.
-*/
-IntVect reflect(const IntVect& a,
-		int            ref_ix,
-		int            idir);
-
-/*@ManDoc: Returns IntVect obtained by adding s to each of the
-               components of this IntVect.
-*/
-IntVect diagShift (const IntVect& p,
-		   int            s);
-
-/*@ManDoc: Returns an IntVect that is the component-wise integer
-               projection of p by s.
-*/
-IntVect coarsen (const IntVect& p,
-		 int            s);
-
-/*@ManDoc: Returns an IntVect which is the component-wise integer
-               projection of IntVect p1 by IntVect p2.
-*/
-IntVect coarsen (const IntVect& p1,
-		 const IntVect& p2);
+IntVect operator* (int s, const IntVect& p);
 //
 //@ManDoc: Print the IntVect to given output stream in ASCII.
 //
-std::ostream& operator<< (std::ostream&  os,
-			  const IntVect& iv);
+std::ostream& operator<< (std::ostream&  os, const IntVect& iv);
 //
 //@ManDoc: Read next IntVect from given input stream.
 //
-std::istream& operator>> (std::istream& os,
-			  IntVect&      iv);
-}
+std::istream& operator>> (std::istream& os, IntVect& iv);
 	
 
 class IntVect

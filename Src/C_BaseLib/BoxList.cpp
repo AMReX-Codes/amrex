@@ -1,5 +1,5 @@
 //
-// $Id: BoxList.cpp,v 1.11 2001-07-19 16:57:31 lijewski Exp $
+// $Id: BoxList.cpp,v 1.13 2001-07-19 17:23:41 car Exp $
 //
 
 #include <algorithm>
@@ -127,15 +127,15 @@ BoxList::remove (BoxListIterator& bli)
 }
 
 BoxList
-intersect (const BoxList& bl,
-           const Box&     b)
+BoxLib::intersect (const BoxList& bl,
+		   const Box&     b)
 {
     BoxList newbl(bl);
     return newbl.intersect(b);
 }
 
 BoxList
-intersect (const BoxList& bl,
+BoxLib::intersect (const BoxList& bl,
            const BoxList& br)
 {
     BoxList newbl(bl);
@@ -143,15 +143,15 @@ intersect (const BoxList& bl,
 }
 
 BoxList
-refine (const BoxList& bl,
-        int            ratio)
+BoxLib::refine (const BoxList& bl,
+		int            ratio)
 {
     BoxList nbl(bl);
     return nbl.refine(ratio);
 }
 
 BoxList
-coarsen (const BoxList& bl,
+BoxLib::coarsen (const BoxList& bl,
          int            ratio)
 {
     BoxList nbl(bl);
@@ -314,7 +314,7 @@ BoxList::intersect (const BoxList& b)
 }
 
 BoxList
-complementIn (const Box&     b,
+BoxLib::complementIn (const Box&     b,
               const BoxList& bl)
 {
     BoxList newb(b.ixType());
@@ -434,8 +434,8 @@ BoxList::shiftHalf (const IntVect& iv)
 //
 
 BoxList
-boxDiff (const Box& b1in,
-         const Box& b2)
+BoxLib::boxDiff (const Box& b1in,
+		 const Box& b2)
 {
    Box b1(b1in);
    BoxList b_list(b1.ixType());

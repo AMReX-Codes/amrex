@@ -16,7 +16,7 @@
 #include <stack>
 #include <limits>
 
-#include <BoxLib/Profiler.H>
+#include <Profiler.H>
 
 struct timer_packet
 {
@@ -112,8 +112,18 @@ public:
 bool timer_packet::increasing = true;
 timer_packet::sort_criterion timer_packet::sort_by = timer_packet::sort_self;
 
-#ifdef BL3_USE_MPI
-template <> MPI_Datatype BoxLib2::Parallel::Mpi_typemap<timer_packet>::type()
+#define BL_MPI_REQUIRE(x)						\
+do									\
+{									\
+  if ( int status = (x) )						\
+    {									\
+      BoxLib::Error();							\
+    }									\
+}									\
+while ( false )
+
+#ifdef BL_USE_MPI
+template <> MPI_Datatype mpi_data_type(timer_packet*)
 {
     static MPI_Datatype mine(MPI_DATATYPE_NULL);
     if ( mine == MPI_DATATYPE_NULL )
@@ -128,15 +138,15 @@ template <> MPI_Datatype BoxLib2::Parallel::Mpi_typemap<timer_packet>::type()
 	int blocklens[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1};
 	MPI_Aint disp[9];
 	int n = 0;
-	MPI_REQUIRE( MPI_Address(&tp[0],          &disp[n++]) );
-	MPI_REQUIRE( MPI_Address(&tp[0].count,    &disp[n++]) );
-	MPI_REQUIRE( MPI_Address(&tp[0].time,     &disp[n++]) );
-	MPI_REQUIRE( MPI_Address(&tp[0].self,     &disp[n++]) );
-	MPI_REQUIRE( MPI_Address(&tp[0].avg_time, &disp[n++]) );
-	MPI_REQUIRE( MPI_Address(&tp[0].var_time, &disp[n++]) );
-	MPI_REQUIRE( MPI_Address(&tp[0].max_time, &disp[n++]) );
-	MPI_REQUIRE( MPI_Address(&tp[0].min_time, &disp[n++]) );
-	MPI_REQUIRE( MPI_Address(&tp[1],          &disp[n++]) );
+	BL_MPI_REQUIRE( MPI_Address(&tp[0],          &disp[n++]) );
+	BL_MPI_REQUIRE( MPI_Address(&tp[0].count,    &disp[n++]) );
+	BL_MPI_REQUIRE( MPI_Address(&tp[0].time,     &disp[n++]) );
+	BL_MPI_REQUIRE( MPI_Address(&tp[0].self,     &disp[n++]) );
+	BL_MPI_REQUIRE( MPI_Address(&tp[0].avg_time, &disp[n++]) );
+	BL_MPI_REQUIRE( MPI_Address(&tp[0].var_time, &disp[n++]) );
+	BL_MPI_REQUIRE( MPI_Address(&tp[0].max_time, &disp[n++]) );
+	BL_MPI_REQUIRE( MPI_Address(&tp[0].min_time, &disp[n++]) );
+	BL_MPI_REQUIRE( MPI_Address(&tp[1],          &disp[n++]) );
 	for ( int i = n-1; i >= 0; i-- )
 	{
 	    disp[i] -= disp[0];
@@ -144,13 +154,13 @@ template <> MPI_Datatype BoxLib2::Parallel::Mpi_typemap<timer_packet>::type()
 	assert( n == sizeof(types)/sizeof(MPI_Datatype) );
 	assert( n == sizeof(disp)/sizeof(MPI_Aint) );
 	assert( n == sizeof(blocklens)/sizeof(int) );
-	MPI_REQUIRE( MPI_Type_struct(n, blocklens, disp, types, &mine) );
-	MPI_REQUIRE( MPI_Type_commit( &mine ) );
+	BL_MPI_REQUIRE( MPI_Type_struct(n, blocklens, disp, types, &mine) );
+	BL_MPI_REQUIRE( MPI_Type_commit( &mine ) );
     }
     return mine;
 }
 #endif
-namespace BoxLib2
+namespace BoxLib
 {
 namespace
 {
@@ -498,10 +508,10 @@ Mutex tt_mutex;
 std::vector<ThreadTimerTree*> tt_data;
 }
 
-bool BoxLib2::Profiler::profiling = true;
-int BoxLib2::Profiler::Tag::next_itag = 0;
+bool BoxLib::Profiler::profiling = true;
+int BoxLib::Profiler::Tag::next_itag = 0;
 
-BoxLib2::Profiler::Tag::Tag(const std::string& tag_)
+BoxLib::Profiler::Tag::Tag(const std::string& tag_)
     : tag(tag_)
 {
     if ( is_profiling() )
@@ -519,12 +529,12 @@ BoxLib2::Profiler::Tag::Tag(const std::string& tag_)
 
 
 const std::string&
-BoxLib2::Profiler::Tag::name() const
+BoxLib::Profiler::Tag::name() const
 {
     return tag;
 }
 
-bool BoxLib2::Profiler::initialized = false;
+bool BoxLib::Profiler::initialized = false;
 
 namespace
 {
@@ -532,7 +542,7 @@ std::string filename("bl3_prof");
 }
 
 void
-BoxLib2::Profiler::Initialize(int& argc, char**& argv)
+BoxLib::Profiler::Initialize(int& argc, char**& argv)
 {
     if ( initialized )
     {
@@ -544,18 +554,18 @@ BoxLib2::Profiler::Initialize(int& argc, char**& argv)
 std::ostream&
 operator<<(std::ostream& os, const timer_packet& tp)
 {
-    BoxLib2::show_count(os, tp.count); os << ' ';
-    BoxLib2::show_time(os, tp.time); os << ' ';
-    BoxLib2::show_time(os, tp.self); os << ' ';
-    BoxLib2::show_time(os, tp.max_time); os << ' ';
-    BoxLib2::show_time(os, tp.min_time); os << ' ';
-    BoxLib2::show_time(os, tp.avg_time); os << ' ';
-    BoxLib2::show_name_field(os, 0, tp.name);
+    BoxLib::show_count(os, tp.count); os << ' ';
+    BoxLib::show_time(os, tp.time); os << ' ';
+    BoxLib::show_time(os, tp.self); os << ' ';
+    BoxLib::show_time(os, tp.max_time); os << ' ';
+    BoxLib::show_time(os, tp.min_time); os << ' ';
+    BoxLib::show_time(os, tp.avg_time); os << ' ';
+    BoxLib::show_name_field(os, 0, tp.name);
     return os;
 }
 
 std::string
-BoxLib2::Profiler::clean_name(const std::string& str)
+BoxLib::Profiler::clean_name(const std::string& str)
 {
 #ifdef __GNUC__
     std::string result;
@@ -578,19 +588,19 @@ BoxLib2::Profiler::clean_name(const std::string& str)
 }
 
 void
-BoxLib2::Profiler::Finalize()
+BoxLib::Profiler::Finalize()
 {
     // Try to measure overhead:
     for ( int i = 0; i < 100; ++i )
     {
-	BL_PROFILE("BoxLib2::Profiler::Finalize():load");
+	BL_PROFILE("BoxLib::Profiler::Finalize():load");
     }
     if ( profiling ) off();
 
     glean();
 }
 
-BoxLib2::Profiler::Profiler(const Tag& tag_, bool hold)
+BoxLib::Profiler::Profiler(const Tag& tag_, bool hold)
     : tag(tag_), started(false)
 {
     int* a = tt_i.get();
@@ -607,13 +617,13 @@ BoxLib2::Profiler::Profiler(const Tag& tag_, bool hold)
     }
 }
 
-BoxLib2::Profiler::~Profiler()
+BoxLib::Profiler::~Profiler()
 {
     if ( started ) stop();
 }
 
 void
-BoxLib2::Profiler::start()
+BoxLib::Profiler::start()
 {
     assert( !started );
     if ( profiling ) tt_data[*tt_i.get()]->push(tag.name())->start();
@@ -621,7 +631,7 @@ BoxLib2::Profiler::start()
 }
 
 void
-BoxLib2::Profiler::stop()
+BoxLib::Profiler::stop()
 {
     assert( started );
     if ( profiling ) tt_data[*tt_i.get()]->pop()->stop();
@@ -629,7 +639,7 @@ BoxLib2::Profiler::stop()
 }
 
 void
-BoxLib2::Profiler::glean()
+BoxLib::Profiler::glean()
 {
     // for all threads on this processor build a cumulative timer structure using grovel.
     std::vector<timer_packet> tps;
@@ -844,28 +854,28 @@ BoxLib2::Profiler::glean()
 }
 
 bool
-BoxLib2::Profiler::is_profiling()
+BoxLib::Profiler::is_profiling()
 {
     Lock<Mutex> lock(profiling_mutex);
     return profiling;
 }
 
 void
-BoxLib2::Profiler::on()
+BoxLib::Profiler::on()
 {
     Lock<Mutex> lock(profiling_mutex);
     profiling = true;
 }
 
 void
-BoxLib2::Profiler::off()
+BoxLib::Profiler::off()
 {
     Lock<Mutex> lock(profiling_mutex);
     profiling = false;
 }
 
 
-namespace BoxLib2
+namespace BoxLib
 {
 namespace
 {

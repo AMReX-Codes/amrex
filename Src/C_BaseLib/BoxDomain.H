@@ -2,7 +2,7 @@
 #define BL_BOXDOMAIN_H
 
 //
-// $Id: BoxDomain.H,v 1.14 2001-07-19 16:57:31 lijewski Exp $
+// $Id: BoxDomain.H,v 1.15 2001-07-19 17:23:41 car Exp $
 //
 
 #include <cstdlib>
@@ -19,8 +19,41 @@
 class BoxDomainIterator;
 
 class BoxDomain;
-BoxDomain complementIn (const Box& b, const BoxDomain& bl);
-void coarsen (BoxDomain& dest, const BoxDomain& fin, int ratio);
+
+namespace BoxLib
+{
+    //
+    //@ManDoc: Returns the complement of BoxDomain bl in Box b.
+    //
+    BoxDomain complementIn (const Box& b, const BoxDomain& bl);
+    /*@ManDoc: Coarsen all Boxes in the domain by the refinement ratio.
+               The result is placed into a new BoxDomain.
+    */
+    void coarsen (BoxDomain& dest, const BoxDomain& fin, int ratio);
+    /*@ManDoc: Refine all Boxes in the domain by the refinement ratio
+               and return the result in dest.
+    */
+    void refine (BoxDomain&       dest,
+                        const BoxDomain& fin,
+                        int              ratio);
+    /*@ManDoc: Compute the intersection of BoxDomain fin with Box b
+               and place the result into BoxDomain dest. 
+    */
+    void intersect (BoxDomain&       dest,
+                           const BoxDomain& fin,
+                           const Box&       b);
+    /*@ManDoc: Grow each Box in BoxDomain fin by size sz and place
+               the result into BoxDomain dest.
+    */
+    void accrete (BoxDomain&       dest,
+                         const BoxDomain& fin,
+                         int              sz = 1);
+}
+
+//
+//@ManDoc: Output a BoxDomain to an ostream is ASCII format.
+//
+std::ostream& operator<< (std::ostream& os, const BoxDomain& bd);
 
 //
 //@Man:
@@ -45,11 +78,6 @@ class BoxDomain
     friend class BoxDomainIterator;
 
 public:
-    //
-    //@ManDoc: Output a BoxDomain to an ostream is ASCII format.
-    //
-    friend std::ostream& operator<< (std::ostream&    os,
-                                     const BoxDomain& bd);
     //
     //@ManDoc: Construct an empty BoxDomain of IndexType::TheCellType().
     //
@@ -169,55 +197,26 @@ public:
     //
     BoxDomain& refine (int ratio);
 
-    /*@ManDoc: Refine all Boxes in the domain by the refinement ratio
-               and return the result in dest.
-    */
-    friend void refine (BoxDomain&       dest,
-                        const BoxDomain& fin,
-                        int              ratio);
     //
     //@ManDoc: Coarsen all Boxes in the domain by the refinement ratio.
     //
     BoxDomain& coarsen (int ratio);
 
-    /*@ManDoc: Coarsen all Boxes in the domain by the refinement ratio.
-               The result is placed into a new BoxDomain.
-    */
-    friend void coarsen (BoxDomain&       dest,
-                         const BoxDomain& fin,
-                         int              ratio);
     //
     //@ManDoc: Intersect this BoxDomain with Box b.
     //
     BoxDomain& intersect (const Box& b);
 
-    /*@ManDoc: Compute the intersection of BoxDomain fin with Box b
-               and place the result into BoxDomain dest. 
-    */
-    friend void intersect (BoxDomain&       dest,
-                           const BoxDomain& fin,
-                           const Box&       b);
     //
     //@ManDoc: Grow each Box by size sz.
     //
     BoxDomain& accrete (int sz);
 
-    /*@ManDoc: Grow each Box in BoxDomain fin by size sz and place
-               the result into BoxDomain dest.
-    */
-    friend void accrete (BoxDomain&       dest,
-                         const BoxDomain& fin,
-                         int              sz = 1);
     //
     //@ManDoc: Creates the complement of BoxDomain bl in Box b.
     //
     BoxDomain& complementIn (const Box&       b,
                              const BoxDomain& bl);
-    //
-    //@ManDoc: Returns the complement of BoxDomain bl in Box b.
-    //
-    friend BoxDomain complementIn (const Box&       b,
-                                   const BoxDomain& bl);
 };
 
 //
