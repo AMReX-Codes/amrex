@@ -1,7 +1,7 @@
 #ifndef _AmrLevel_H_
 #define _AmrLevel_H_ 
 //
-// $Id: AmrLevel.H,v 1.55 2003-10-15 18:01:33 marc Exp $
+// $Id: AmrLevel.H,v 1.56 2005-01-10 22:05:20 car Exp $
 //
 #include <REAL.H>
 #include <Box.H>
