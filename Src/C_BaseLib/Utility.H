@@ -1,12 +1,12 @@
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 //
-// $Id: Utility.H,v 1.49 2001-07-26 20:50:06 car Exp $
+// $Id: Utility.H,v 1.50 2001-08-01 18:14:13 lijewski Exp $
 //
+#include <winstd.H>
+
 #include <iostream>
 #include <string>
-
-#include <winstd.H>
 
 #ifndef WIN32
 #include <sys/types.h>

@@ -1,11 +1,12 @@
 //
-// $Id: CArena.cpp,v 1.26 2001-07-26 20:08:44 lijewski Exp $
+// $Id: CArena.cpp,v 1.27 2001-08-01 18:14:13 lijewski Exp $
 //
+#include <winstd.H>
+
 #include <utility>
 #include <cstring>
 
 #include <CArena.H>
-#include <winstd.H>
 //
 // Only really use the coalescing FAB arena if BL_COALESCE_FABS.
 //

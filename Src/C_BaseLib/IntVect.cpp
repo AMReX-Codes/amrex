@@ -1,11 +1,12 @@
 //
-// $Id: IntVect.cpp,v 1.18 2001-07-31 22:43:18 lijewski Exp $
+// $Id: IntVect.cpp,v 1.19 2001-08-01 18:14:13 lijewski Exp $
 //
+#include <winstd.H>
+
 #include <algorithm>
 #include <cstdlib>
 #include <iostream>
 
-#include <winstd.H>
 #include <BLassert.H>
 #include <BoxLib.H>
 #include <IntVect.H>
