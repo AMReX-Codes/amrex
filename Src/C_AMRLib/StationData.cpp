@@ -1,5 +1,5 @@
 //
-// $Id: StationData.cpp,v 1.15 2001-08-09 22:42:00 marc Exp $
+// $Id: StationData.cpp,v 1.16 2004-09-03 23:59:19 vince Exp $
 //
 #include <winstd.H>
 
@@ -276,6 +276,7 @@ StationData::findGrid (const PArray<AmrLevel>& levels,
 
     for (int level = levels.size()-1; level >= 0; level--)
     {
+      if(levels.defined(level)) {  // for capfinestlevel
         const Array<RealBox>& boxes = levels[level].gridLocations();
 
         MultiFab mf(levels[level].boxArray(),1,0,Fab_noallocate);
@@ -299,5 +300,6 @@ StationData::findGrid (const PArray<AmrLevel>& levels,
                 }
             }
         }
+      }
     }
 }
