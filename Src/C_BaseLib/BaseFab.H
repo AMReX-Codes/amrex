@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.53 2004-07-21 23:50:01 car Exp $
+// $Id: BaseFab.H,v 1.54 2004-07-28 19:52:18 welcome Exp $
 //
 #include <winstd.H>
 
@@ -1545,8 +1545,11 @@ BaseFab<T>::norm (const Box& subbox,
             }
             else
             {
-                for (int i = 0; i < thisLen; i++)
-                    tmp[i] = std::max(tmp[i],std::abs(row[i]));
+                for (int i = 0; i < thisLen; i++) {
+		    // MLW: explicit cast to Real for SX6
+		    Real rw = std::abs(row[i]);
+                    tmp[i] = std::max(tmp[i],rw);
+		}
             }
         } EndForPencil
         nrm = tmp[0];

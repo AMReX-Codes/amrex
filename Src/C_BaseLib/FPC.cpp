@@ -1,5 +1,5 @@
 //
-// $Id: FPC.cpp,v 1.10 2004-07-22 17:31:33 car Exp $
+// $Id: FPC.cpp,v 1.11 2004-07-28 19:52:18 welcome Exp $
 //
 
 #include <FPC.H>
@@ -44,6 +44,7 @@ FPC::NativeLongDescriptor ()
 #if defined(__sgi) || \
     defined(__sun) || \
     defined(_AIX)  || \
+    defined(_SX)   || \
     defined(__crayx1) || \
     defined(_CRAYT3E)  || \
     defined(__hpux)
@@ -72,6 +73,7 @@ FPC::NativeRealDescriptor ()
 #if defined(__sgi) || \
     defined(__sun) || \
     defined(_AIX)  || \
+    defined(_SX)   || \
     defined(powerpc) || \
     defined(_CRAYT3E)  || \
     defined(__crayx1) || \
@@ -117,7 +119,8 @@ FPC::Ieee64NormalRealDescriptor ()
 #if !(defined(__alpha)  || \
       defined(_CRAY1)   || \
       defined(_CRAYT3E) || \
-    defined(__crayx1) || \
+      defined(_SX)      || \
+      defined(__crayx1) || \
       defined(__sgi)    || \
       defined(__sun)    || \
       defined(__i486__) || \
