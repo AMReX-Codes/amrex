@@ -867,7 +867,7 @@ void search()
 void visit(int k) //DFS
 {
     val[k] = ++id;
-    for (std::list<int>::iterator li = adj[k].begin(); li != adj[k].end(); ++li)
+    for (list<int>::iterator li = adj[k].begin(); li != adj[k].end(); ++li)
     {
 	if (val[*li] == unseen) visit(*li);
     }

@@ -559,7 +559,7 @@ template <class T>
 void
 task_list<T>::execute()
 {
-    for ( std::list<T>::iterator li = tasks.begin(); li != tasks.end(); ++li)
+    for ( list<T>::iterator li = tasks.begin(); li != tasks.end(); ++li)
     {
 	li->execute();
     }
