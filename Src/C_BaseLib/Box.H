@@ -4,7 +4,7 @@
 #define BL_BOX_H
 
 //
-// $Id: Box.H,v 1.7 1997-11-18 00:04:46 lijewski Exp $
+// $Id: Box.H,v 1.8 1997-12-19 22:21:39 lijewski Exp $
 //
 
 #ifdef NODEV
@@ -976,6 +976,40 @@ Box::enclosedCells (int dir)
 }
 
 inline
+Box
+surroundingNodes (const Box& b,
+                  int        dir)
+{
+    Box bx(b);
+    return bx.surroundingNodes(dir);
+}
+
+inline
+Box
+surroundingNodes (const Box& b)
+{
+    Box bx(b);
+    return bx.surroundingNodes();
+}
+
+inline
+Box
+enclosedCells (const Box& b,
+               int        dir)
+{
+    Box bx(b);
+    return bx.enclosedCells(dir);
+}
+
+inline
+Box
+enclosedCells (const Box& b)
+{
+    Box bx(b);
+    return bx.enclosedCells();
+}
+
+inline
 Box&
 Box::operator+= (const IntVect& v)
 {
@@ -1098,6 +1132,14 @@ Box::grow (const Orientation& face,
         bigend.shift(idir,n_cell);
     computeBoxLen();
     return *this;
+}
+
+inline
+Box
+Box::operator& (const Box& rhs) const
+{
+    Box lhs(*this);
+    return lhs &= rhs;
 }
 
 #endif /*BL_BOX_H*/

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Box.cpp,v 1.5 1997-12-17 23:05:18 lijewski Exp $
+// $Id: Box.cpp,v 1.6 1997-12-19 22:21:39 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -740,73 +740,8 @@ minBox (const Box& b,
 }
 
 //
-// Intersection.
-//
-
-Box
-Box::operator& (const Box& b) const
-{
-    assert(sameType(b));
-    IntVect low(smallend);
-    IntVect hi(bigend);
-    low.max(b.smallend);
-    hi.min(b.bigend);
-    return Box(low,hi,btype);
-}
-
-//
 // Translation functions acting on relative vectors.
 //
-
-Box
-surroundingNodes (const Box& b,
-                  int        dir)
-{
-    assert(!(b.btype[dir]));
-    IntVect hi(b.bigend);
-    hi.shift(dir,1);
-    //
-    // Set dir'th bit to 1 = IndexType::NODE.
-    //
-    IndexType typ(b.btype);
-    typ.setType(dir,IndexType::NODE);
-    return Box(b.smallend,hi,typ);
-}
-
-Box
-surroundingNodes (const Box& b)
-{
-   IntVect hi(b.bigend);
-   for (int i = 0; i < BL_SPACEDIM; ++i)
-       if ((b.btype[i]) == 0)
-           hi.shift(i,1);
-   return Box(b.smallend,hi,IntVect::TheUnitVector());
-}
-
-Box
-enclosedCells (const Box& b,
-               int        dir)
-{
-    assert(b.btype[dir]);
-    IntVect hi(b.bigend);
-    hi.shift(dir,-1);
-    //
-    // Set dir'th bit to 0 = IndexType::CELL.
-    //
-    IndexType typ(b.btype);
-    typ.setType(dir,IndexType::CELL);
-    return Box(b.smallend,hi,typ);
-}
-
-Box
-enclosedCells (const Box& b)
-{
-   IntVect hi(b.bigend);
-   for (int i = 0; i< BL_SPACEDIM; i++)
-       if (b.btype[i])
-           hi.shift(i,-1);
-   return Box(b.smallend,hi,IntVect::TheZeroVector());
-}
 
 Box
 bdryLo (const Box& b,
