@@ -1,6 +1,6 @@
 
 //
-// $Id: DivVis.cpp,v 1.8 2000-10-02 20:53:39 lijewski Exp $
+// $Id: DivVis.cpp,v 1.9 2000-11-02 23:07:27 lijewski Exp $
 //
 
 #include <DivVis.H>
@@ -20,11 +20,7 @@ DivVis::numberComponents ()
 int
 DivVis::numberPhases ()
 {
-#if BL_SPACEDIM==2
-    return 4;
-#else
-    return 8;
-#endif
+    return BL_SPACEDIM==2 ? 4 : 8;
 }
 
 DivVis::DivVis (const BndryData& _bd,
@@ -36,9 +32,7 @@ DivVis::DivVis (const BndryData& _bd,
 {
     Real __h[BL_SPACEDIM];
 
-    D_TERM(__h[0] = _h;,
-           __h[1] = _h;,
-           __h[2] = _h;);
+    D_TERM(__h[0]=_h;, __h[1]=_h;, __h[2]=_h;);
 
     initConstruct(__h);
 }
@@ -179,7 +173,7 @@ DivVis::initCoefficients (const BoxArray &_ba)
 	BL_ASSERT(geomarray[level].IsCartesian());
 #endif
 
-    acoefs[level] = new MultiFab(_ba, nComp, nGrow, Fab_allocate);
+    acoefs[level] = new MultiFab(_ba, nComp, nGrow);
     acoefs[level]->setVal(a_def);
     a_valid.resize(1);
     a_valid[level] = true;
@@ -188,7 +182,7 @@ DivVis::initCoefficients (const BoxArray &_ba)
     {
 	BoxArray edge_boxes(_ba);
 	edge_boxes.surroundingNodes(i);
-	bcoefs[level][i] = new MultiFab(edge_boxes, 1, nGrow, Fab_allocate);
+	bcoefs[level][i] = new MultiFab(edge_boxes, 1, nGrow);
 	bcoefs[level][i]->setVal(b_def);
     }
     b_valid.resize(1);
@@ -283,22 +277,22 @@ DivVis::Fsmooth (MultiFab&       solnL,
     oitr++;
 #endif
     const MultiFab& a  = aCoefficients(level);
-    const MultiFab& bX = bCoefficients(0,level);
-    const MultiFab& bY = bCoefficients(1,level);
-#if BL_SPACEDIM>2
-    const MultiFab  &bZ = bCoefficients(2,level);
-#endif
+
+    D_TERM(const MultiFab& bX = bCoefficients(0,level);,
+           const MultiFab& bY = bCoefficients(1,level);,
+           const MultiFab& bZ = bCoefficients(2,level););
+
     int nc = solnL.nComp();
 
     for (MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
     {
 	DependentMultiFabIterator rhsLmfi(solnLmfi, rhsL);
 	DependentMultiFabIterator amfi(solnLmfi,  a);
-	DependentMultiFabIterator bXmfi(solnLmfi, bX);
-	DependentMultiFabIterator bYmfi(solnLmfi, bY);
-#if BL_SPACEDIM > 2
-	DependentMultiFabIterator bZmfi(solnLmfi, bZ);
-#endif    
+
+	D_TERM(DependentMultiFabIterator bXmfi(solnLmfi,bX);,
+               DependentMultiFabIterator bYmfi(solnLmfi,bY);,
+               DependentMultiFabIterator bZmfi(solnLmfi,bZ););
+
 	DependentFabSetIterator fwfsi(solnLmfi,  fw);
 	DependentFabSetIterator tdwfsi(solnLmfi, tdw);
 	DependentFabSetIterator fsfsi(solnLmfi,  fs);
@@ -319,16 +313,13 @@ DivVis::Fsmooth (MultiFab&       solnL,
 	oitr.rewind();
         const int gn = solnLmfi.index();
 
-	const Mask& mw = *maskvals[level][gn][oitr()]; oitr++;
-	const Mask& ms = *maskvals[level][gn][oitr()]; oitr++;
-#if BL_SPACEDIM>2
-	const Mask& mb = *maskvals[level][gn][oitr()]; oitr++;
-#endif
-	const Mask& me = *maskvals[level][gn][oitr()]; oitr++;
-	const Mask& mn = *maskvals[level][gn][oitr()]; oitr++;
-#if BL_SPACEDIM>2
-	const Mask& mt = *maskvals[level][gn][oitr()]; oitr++;
-#endif
+	D_TERM(const Mask& mw = *maskvals[level][gn][oitr()]; oitr++;,
+               const Mask& ms = *maskvals[level][gn][oitr()]; oitr++;,
+               const Mask& mb = *maskvals[level][gn][oitr()]; oitr++;);
+
+	D_TERM(const Mask& me = *maskvals[level][gn][oitr()]; oitr++;,
+               const Mask& mn = *maskvals[level][gn][oitr()]; oitr++;,
+               const Mask& mt = *maskvals[level][gn][oitr()]; oitr++;);
 
 	FORT_GSRB(
 	    solnLmfi().dataPtr(), 
@@ -392,11 +383,9 @@ DivVis::Fsmooth (MultiFab&       solnL,
 }
 
 void 
-DivVis::compFlux (MultiFab& xflux, 
-		  MultiFab& yflux, 
-#if BL_SPACEDIM>2
-		  MultiFab& zflux, 
-#endif
+DivVis::compFlux (D_DECL(MultiFab& xflux, 
+                         MultiFab& yflux, 
+                         MultiFab& zflux), 
 		  MultiFab& x)
 {
     const int level   = 0;
@@ -404,22 +393,21 @@ DivVis::compFlux (MultiFab& xflux,
     applyBC(x,level,bc_mode);
     
     const MultiFab& a  = aCoefficients(level);
-    const MultiFab& bX = bCoefficients(0,level);
-    const MultiFab& bY = bCoefficients(1,level);
-#if BL_SPACEDIM>2
-    const MultiFab& bZ = bCoefficients(2,level);
-#endif
+
+    D_TERM(const MultiFab& bX = bCoefficients(0,level);,
+           const MultiFab& bY = bCoefficients(1,level);,
+           const MultiFab& bZ = bCoefficients(2,level););
+
     OrientationIter oitr;
-    const FabSet& tdw = (*tangderiv[level])[oitr()]; oitr++;
-    const FabSet& tds = (*tangderiv[level])[oitr()]; oitr++;
-#if BL_SPACEDIM>2
-    const FabSet& tdb = (*tangderiv[level])[oitr()]; oitr++;
-#endif
-    const FabSet& tde = (*tangderiv[level])[oitr()]; oitr++;
-    const FabSet& tdn = (*tangderiv[level])[oitr()]; oitr++;
-#if BL_SPACEDIM>2
-    const FabSet& tdt = (*tangderiv[level])[oitr()]; oitr++;
-#endif
+
+    D_TERM(const FabSet& tdw = (*tangderiv[level])[oitr()]; oitr++;,
+           const FabSet& tds = (*tangderiv[level])[oitr()]; oitr++;,
+           const FabSet& tdb = (*tangderiv[level])[oitr()]; oitr++;);
+
+    D_TERM(const FabSet& tde = (*tangderiv[level])[oitr()]; oitr++;,
+           const FabSet& tdn = (*tangderiv[level])[oitr()]; oitr++;,
+           const FabSet& tdt = (*tangderiv[level])[oitr()]; oitr++;);
+
     const int nc = x.nComp();
 
     BL_ASSERT(nc == BL_SPACEDIM);
@@ -429,37 +417,34 @@ DivVis::compFlux (MultiFab& xflux,
     for (MultiFabIterator xmfi(x); xmfi.isValid(); ++xmfi)
     {
 	DependentMultiFabIterator amfi(xmfi,  a);
-	DependentMultiFabIterator bXmfi(xmfi, bX);
-	DependentMultiFabIterator xfluxmfi(xmfi, xflux);
-	DependentMultiFabIterator bYmfi(xmfi, bY);
-	DependentMultiFabIterator yfluxmfi(xmfi, yflux);
-#if BL_SPACEDIM > 2
-	DependentMultiFabIterator bZmfi(xmfi, bZ);
-	DependentMultiFabIterator zfluxmfi(xmfi, zflux);
-#endif    
-	DependentFabSetIterator tdwfsi(xmfi, tdw);
-	DependentFabSetIterator tdsfsi(xmfi, tds);
-#if BL_SPACEDIM > 2
-	DependentFabSetIterator tdbfsi(xmfi, tdb);
-#endif
-	DependentFabSetIterator tdefsi(xmfi, tde);
-	DependentFabSetIterator tdnfsi(xmfi, tdn);
-#if BL_SPACEDIM > 2
-	DependentFabSetIterator tdtfsi(xmfi, tdt);
-#endif
+
+	D_TERM(DependentMultiFabIterator bXmfi(xmfi,bX);,
+               DependentMultiFabIterator bYmfi(xmfi,bY);,
+               DependentMultiFabIterator bZmfi(xmfi,bZ););
+
+	D_TERM(DependentMultiFabIterator xfluxmfi(xmfi,xflux);,
+               DependentMultiFabIterator yfluxmfi(xmfi,yflux);,
+               DependentMultiFabIterator zfluxmfi(xmfi,zflux););
+
+	D_TERM(DependentFabSetIterator tdwfsi(xmfi,tdw);,
+               DependentFabSetIterator tdsfsi(xmfi,tds);,
+               DependentFabSetIterator tdbfsi(xmfi,tdb););
+
+	D_TERM(DependentFabSetIterator tdefsi(xmfi,tde);,
+               DependentFabSetIterator tdnfsi(xmfi,tdn);,
+               DependentFabSetIterator tdtfsi(xmfi,tdt););
 
 	oitr.rewind();
         const int gn = xmfi.index();
-	const Mask& mw = *maskvals[level][gn][oitr()]; oitr++;
-	const Mask& ms = *maskvals[level][gn][oitr()]; oitr++;
-#if BL_SPACEDIM>2
-	const Mask& mb = *maskvals[level][gn][oitr()]; oitr++;
-#endif
-	const Mask& me = *maskvals[level][gn][oitr()]; oitr++;
-	const Mask& mn = *maskvals[level][gn][oitr()]; oitr++;
-#if BL_SPACEDIM>2
-	const Mask& mt = *maskvals[level][gn][oitr()]; oitr++;
-#endif
+
+	D_TERM(const Mask& mw = *maskvals[level][gn][oitr()]; oitr++;,
+               const Mask& ms = *maskvals[level][gn][oitr()]; oitr++;,
+               const Mask& mb = *maskvals[level][gn][oitr()]; oitr++;);
+
+	D_TERM(const Mask& me = *maskvals[level][gn][oitr()]; oitr++;,
+	       const Mask& mn = *maskvals[level][gn][oitr()]; oitr++;,
+               const Mask& mt = *maskvals[level][gn][oitr()]; oitr++;);
+
 	FORT_DVFLUX(
 	    xmfi().dataPtr(), 
 	    ARLIM(xmfi().loVect()), ARLIM(xmfi().hiVect()),
@@ -520,23 +505,22 @@ DivVis::Fapply (MultiFab&       y,
                 const MultiFab& x,
                 int             level)
 {
-    const MultiFab& a  = aCoefficients(level);
-    const MultiFab& bX = bCoefficients(0,level);
-    const MultiFab& bY = bCoefficients(1,level);
-#if BL_SPACEDIM>2
-    const MultiFab& bZ = bCoefficients(2,level);
-#endif
+    const MultiFab& a = aCoefficients(level);
+
+    D_TERM(const MultiFab& bX = bCoefficients(0,level);,
+           const MultiFab& bY = bCoefficients(1,level);,
+           const MultiFab& bZ = bCoefficients(2,level););
+
     OrientationIter oitr;
-    const FabSet& tdw = (*tangderiv[level])[oitr()]; oitr++;
-    const FabSet& tds = (*tangderiv[level])[oitr()]; oitr++;
-#if BL_SPACEDIM>2
-    const FabSet& tdb = (*tangderiv[level])[oitr()]; oitr++;
-#endif
-    const FabSet& tde = (*tangderiv[level])[oitr()]; oitr++;
-    const FabSet& tdn = (*tangderiv[level])[oitr()]; oitr++;
-#if BL_SPACEDIM>2
-    const FabSet& tdt = (*tangderiv[level])[oitr()]; oitr++;
-#endif
+
+    D_TERM(const FabSet& tdw = (*tangderiv[level])[oitr()]; oitr++;,
+           const FabSet& tds = (*tangderiv[level])[oitr()]; oitr++;,
+           const FabSet& tdb = (*tangderiv[level])[oitr()]; oitr++;);
+
+    D_TERM(const FabSet& tde = (*tangderiv[level])[oitr()]; oitr++;,
+           const FabSet& tdn = (*tangderiv[level])[oitr()]; oitr++;,
+           const FabSet& tdt = (*tangderiv[level])[oitr()]; oitr++;);
+
     const int nc = y.nComp();
     //
     // HACK: Cast away const for compatibility with BoxLib constructors.
@@ -545,35 +529,30 @@ DivVis::Fapply (MultiFab&       y,
     {
         DependentMultiFabIterator ymfi(xmfi,  y);
         DependentMultiFabIterator amfi(xmfi,  a);
-        DependentMultiFabIterator bXmfi(xmfi, bX);
-        DependentMultiFabIterator bYmfi(xmfi, bY);
-#if BL_SPACEDIM > 2
-        DependentMultiFabIterator bZmfi(xmfi, bZ);
-#endif
+
+        D_TERM(DependentMultiFabIterator bXmfi(xmfi, bX);,
+               DependentMultiFabIterator bYmfi(xmfi, bY);,
+               DependentMultiFabIterator bZmfi(xmfi, bZ););
 	
-        DependentFabSetIterator tdwfsi(xmfi, tdw);
-        DependentFabSetIterator tdsfsi(xmfi, tds);
-#if BL_SPACEDIM > 2
-        DependentFabSetIterator tdbfsi(xmfi, tdb);
-#endif
-        DependentFabSetIterator tdefsi(xmfi, tde);
-        DependentFabSetIterator tdnfsi(xmfi, tdn);
-#if BL_SPACEDIM > 2
-        DependentFabSetIterator tdtfsi(xmfi, tdt);
-#endif
+        D_TERM(DependentFabSetIterator tdwfsi(xmfi, tdw);,
+               DependentFabSetIterator tdsfsi(xmfi, tds);,
+               DependentFabSetIterator tdbfsi(xmfi, tdb););
+
+        D_TERM(DependentFabSetIterator tdefsi(xmfi, tde);,
+               DependentFabSetIterator tdnfsi(xmfi, tdn);,
+               DependentFabSetIterator tdtfsi(xmfi, tdt););
 
         oitr.rewind();
         const int gn = xmfi.index();
-	const Mask& mw = *maskvals[level][gn][oitr()]; oitr++;
-	const Mask& ms = *maskvals[level][gn][oitr()]; oitr++;
-#if BL_SPACEDIM>2
-	const Mask& mb = *maskvals[level][gn][oitr()]; oitr++;
-#endif
-	const Mask& me = *maskvals[level][gn][oitr()]; oitr++;
-	const Mask& mn = *maskvals[level][gn][oitr()]; oitr++;
-#if BL_SPACEDIM>2
-	const Mask& mt = *maskvals[level][gn][oitr()]; oitr++;
-#endif
+
+	D_TERM(const Mask& mw = *maskvals[level][gn][oitr()]; oitr++;,
+               const Mask& ms = *maskvals[level][gn][oitr()]; oitr++;,
+               const Mask& mb = *maskvals[level][gn][oitr()]; oitr++;);
+
+	D_TERM(const Mask& me = *maskvals[level][gn][oitr()]; oitr++;,
+               const Mask& mn = *maskvals[level][gn][oitr()]; oitr++;,
+               const Mask& mt = *maskvals[level][gn][oitr()]; oitr++;);
+
 	FORT_DVAPPLY(
 	    xmfi().dataPtr(), 
             ARLIM(xmfi().loVect()), ARLIM(xmfi().hiVect()),
@@ -619,7 +598,6 @@ DivVis::Fapply (MultiFab&       y,
 	    ARLIM(tdbfsi().loVect()),ARLIM(tdbfsi().hiVect()),
 #endif
             xmfi.validbox().loVect(), xmfi.validbox().hiVect(),
-	    h[level]
-	    );
+	    h[level]);
     }
 }
