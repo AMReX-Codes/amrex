@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.4 1997-11-26 18:27:46 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.5 1997-11-26 19:18:47 lijewski Exp $
 //
 
 // #define ADVANCE_DEBUG 1
@@ -1672,7 +1672,7 @@ AmrLevel::getBCArray(int State_Type, int gridno, int strt_comp, int num_comp)
 
 #include <stdio.h>
 void
-AmrLevel::probe(ostream &os, INTVECT iv, int rad, Real time,
+AmrLevel::probe(ostream &os, IntVect iv, int rad, Real time,
 		int state_indx, int src_comp, int num_comp)
 {
     Box bx(iv,iv);
@@ -1684,9 +1684,9 @@ AmrLevel::probe(ostream &os, INTVECT iv, int rad, Real time,
     const StateDescriptor &desc = desc_lst[state_indx];
     desc.dumpNames(os,src_comp,num_comp);
     os << '\n';
-    INTVECT lo = bx.smallEnd();
-    INTVECT hi = bx.bigEnd();
-    INTVECT point;
+    IntVect lo = bx.smallEnd();
+    IntVect hi = bx.bigEnd();
+    IntVect point;
     char buf[80];
     for (point=lo; point <= hi; bx.next(point))
     {

@@ -4,7 +4,7 @@
 #define _Derive_H_
 
 //
-// $Id: Derive.H,v 1.2 1997-11-24 18:52:29 lijewski Exp $
+// $Id: Derive.H,v 1.3 1997-11-26 19:18:48 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -18,18 +18,18 @@
 // ------------------------------------------------------------------
 // --------------------  DERIVED VARIABLES --------------------------
 
-typedef BOX (*DeriveBoxMap)(const BOX&);
+typedef Box (*DeriveBoxMap)(const Box&);
 
 /*  Function called by DeriveRec to compute derived quantity.
 */
-typedef void (*DeriveFunc)(REAL* data, ARLIM_P(dlo), ARLIM_P(dhi),
-                           const int* nvar, const REAL* compdat,
+typedef void (*DeriveFunc)(Real* data, ARLIM_P(dlo), ARLIM_P(dhi),
+                           const int* nvar, const Real* compdat,
 			   ARLIM_P(compdat_lo), ARLIM_P(compdat_hi),
 			   const int* ncomp,
 			   const int* lo, const int* hi,
 			   const int* domain_lo, const int* domain_hi,
-			   const REAL* delta, const REAL* xlo,
-			   const REAL* time, const int* bcrec,
+			   const Real* delta, const Real* xlo,
+			   const Real* time, const int* bcrec,
                            const int* level, const int* grid_no) ;
 
 /// Computes quantities derived from state data

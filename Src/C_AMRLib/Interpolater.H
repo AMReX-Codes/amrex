@@ -4,7 +4,7 @@
 #define _INTERPOLATER_H_ 
 
 //
-// $Id: Interpolater.H,v 1.2 1997-11-24 18:52:30 lijewski Exp $
+// $Id: Interpolater.H,v 1.3 1997-11-26 19:18:50 lijewski Exp $
 //
 
 #define _NodeBilinear_H_      "%W%  %G%"
@@ -25,12 +25,12 @@ class Interpolater {
 public:
     Interpolater() {};
     virtual ~Interpolater();
-    virtual BOX  CoarseBox(const BOX& fine, int ratio) = 0;
-    virtual BOX  CoarseBox(const BOX& fine, const IntVect& ratio) = 0;
-    virtual void interp(FARRAYBOX& crse, int crse_comp,
-                        FARRAYBOX& fine, int fine_comp,
+    virtual Box  CoarseBox(const Box& fine, int ratio) = 0;
+    virtual Box  CoarseBox(const Box& fine, const IntVect& ratio) = 0;
+    virtual void interp(FArrayBox& crse, int crse_comp,
+                        FArrayBox& fine, int fine_comp,
                         int ncomp,
-                        const BOX& fine_region, const IntVect & ratio,
+                        const Box& fine_region, const IntVect & ratio,
                         const Geometry& crse_geom,
                         const Geometry& fine_geom,
                         Array<BCRec> &bcr) = 0;
@@ -41,21 +41,21 @@ public:
 // ------------------------------------------------------------
 class NodeBilinear : public Interpolater {
 private:
-    REAL *strip;       // temp space passed to FORTRAN
+    Real *strip;       // temp space passed to FORTRAN
     int   strip_len;
-    REAL *slope;
+    Real *slope;
     int   slope_len;
 public:
     NodeBilinear();
     virtual ~NodeBilinear();
-    virtual BOX CoarseBox(const BOX& fine, int ratio)
+    virtual Box CoarseBox(const Box& fine, int ratio)
     { return ::coarsen(fine,ratio); }
-    virtual BOX CoarseBox(const BOX& fine, const IntVect& ratio)
+    virtual Box CoarseBox(const Box& fine, const IntVect& ratio)
     { return ::coarsen(fine,ratio); }
-    virtual void interp(FARRAYBOX& crse, int crse_comp,
-                        FARRAYBOX& fine, int fine_comp,
+    virtual void interp(FArrayBox& crse, int crse_comp,
+                        FArrayBox& fine, int fine_comp,
                         int ncomp,
-                        const BOX& fine_region, const IntVect & ratio,
+                        const Box& fine_region, const IntVect & ratio,
                         const Geometry& crse_geom,
                         const Geometry& fine_geom,
                         Array<BCRec> &bcr);
@@ -67,19 +67,19 @@ public:
 // ------------------------------------------------------------
 class CellBilinear : public Interpolater {
 private:
-    REAL *strip;       // temp space passed to FORTRAN
+    Real *strip;       // temp space passed to FORTRAN
     int   strip_len;
-    REAL *slope;
+    Real *slope;
     int   slope_len;
 public:
     CellBilinear();
     virtual ~CellBilinear();
-    virtual BOX CoarseBox(const BOX& fine, int ratio);
-    virtual BOX CoarseBox(const BOX& fine, const IntVect& ratio);
-    virtual void interp(FARRAYBOX& crse, int crse_comp,
-                        FARRAYBOX& fine, int fine_comp,
+    virtual Box CoarseBox(const Box& fine, int ratio);
+    virtual Box CoarseBox(const Box& fine, const IntVect& ratio);
+    virtual void interp(FArrayBox& crse, int crse_comp,
+                        FArrayBox& fine, int fine_comp,
                         int ncomp,
-                        const BOX& fine_region, const IntVect & ratio,
+                        const Box& fine_region, const IntVect & ratio,
                         const Geometry& crse_geom,
                         const Geometry& fine_geom,
                         Array<BCRec> &bcr);
@@ -92,19 +92,19 @@ public:
 class CellConservative : public Interpolater {
 private:
     int do_limited_slope;
-    REAL *strip;       // temp space passed to FORTRAN
+    Real *strip;       // temp space passed to FORTRAN
     int   strip_len;
-    REAL *cslope;
+    Real *cslope;
     int   slope_len;
 public:
     CellConservative(int limit=1);
     virtual ~CellConservative();
-    virtual BOX CoarseBox(const BOX& fine, int ratio);
-    virtual BOX CoarseBox(const BOX& fine, const IntVect& ratio);
-    virtual void interp(FARRAYBOX& crse, int crse_comp,
-                        FARRAYBOX& fine, int fine_comp,
+    virtual Box CoarseBox(const Box& fine, int ratio);
+    virtual Box CoarseBox(const Box& fine, const IntVect& ratio);
+    virtual void interp(FArrayBox& crse, int crse_comp,
+                        FArrayBox& fine, int fine_comp,
                         int ncomp,
-                        const BOX& fine_region, const IntVect & ratio,
+                        const Box& fine_region, const IntVect & ratio,
                         const Geometry& crse_geom,
                         const Geometry& fine_geom,
                         Array<BCRec> &bcr);
@@ -116,19 +116,19 @@ public:
 // -------------------------------------------------------------------
 class PCInterp : public Interpolater {
 private:
-    REAL *strip;       // temp space passed to FORTRAN
+    Real *strip;       // temp space passed to FORTRAN
     int   strip_len;
 public:
     PCInterp();
     virtual ~PCInterp();
-    virtual BOX CoarseBox(const BOX& fine, int ratio)
+    virtual Box CoarseBox(const Box& fine, int ratio)
     { return ::coarsen(fine,ratio); }
-    virtual BOX CoarseBox(const BOX& fine, const IntVect& ratio)
+    virtual Box CoarseBox(const Box& fine, const IntVect& ratio)
     { return ::coarsen(fine,ratio); }
-    virtual void interp(FARRAYBOX& crse, int crse_comp,
-                        FARRAYBOX& fine, int fine_comp,
+    virtual void interp(FArrayBox& crse, int crse_comp,
+                        FArrayBox& fine, int fine_comp,
                         int ncomp,
-                        const BOX& fine_region, const IntVect & ratio,
+                        const Box& fine_region, const IntVect & ratio,
                         const Geometry& crse_geom,
                         const Geometry& fine_geom,
                         Array<BCRec> &bcr);

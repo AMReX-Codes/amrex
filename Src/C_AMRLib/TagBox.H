@@ -4,7 +4,7 @@
 #define _TagBox_H_
 
 //
-// $Id: TagBox.H,v 1.2 1997-11-24 18:52:33 lijewski Exp $
+// $Id: TagBox.H,v 1.3 1997-11-26 19:18:52 lijewski Exp $
 //
 
 #include <IntVect.H>
@@ -22,15 +22,15 @@
 #endif
 
 #if (BL_SPACEDIM==1)
-#define TAGBOX	TagBox1d
+#define TagBox	TagBox1d
 #elif (BL_SPACEDIM==2)
-#define TAGBOX	TagBox2d
+#define TagBox	TagBox2d
 #elif (BL_SPACEDIM==3)
-#define TAGBOX	TagBox3d
+#define TagBox	TagBox3d
 #endif
 
 
-class TAGBOX
+class TagBox
     : public BaseFab<int>
 {
   public:
@@ -38,20 +38,20 @@ class TAGBOX
 
       // administrative
       // construct an invalid FAB with no memory
-    TAGBOX();
+    TagBox();
 
-    TAGBOX(const BOX &bx, int n = 1);
+    TagBox(const Box &bx, int n = 1);
 
       // destructor
-    virtual ~TAGBOX();
+    virtual ~TagBox();
     
-    void resize(const BOX& b) {BaseFab<int>::resize(b,1);}
+    void resize(const Box& b) {BaseFab<int>::resize(b,1);}
 
-    int& operator()(const INTVECT& p)
+    int& operator()(const IntVect& p)
     {
 	return dptr[domain.index(p)];
     }
-    const int& operator()(const INTVECT& p) const
+    const int& operator()(const IntVect& p) const
     {
 	return dptr[domain.index(p)];
     }
@@ -59,7 +59,7 @@ class TAGBOX
       // construct and return a new tagbox in which the
       // coarsened cell is tagged of any of the corresponding
       // fine cells are tagged
-    TAGBOX* coarsen(const IntVect & ratio);
+    TagBox* coarsen(const IntVect & ratio);
 
       // mark neighbors of every tagged cell a distance nbuff away
       // only search interior for initial tagged points where nwid
@@ -68,31 +68,31 @@ class TAGBOX
 
       // tag cells on intersect with src if corresponding src cell
       // is tagged.
-    void merge(const TAGBOX& src);
+    void merge(const TagBox& src);
 
-      // add location of every tagged cell to INTVECT array,
+      // add location of every tagged cell to IntVect array,
       // starting at given location
-    int colate(Array<INTVECT> &ar, int start) const;
+    int colate(Array<IntVect> &ar, int start) const;
 
 #if 0
     void setVal(TagVal val) { BaseFab<int>::setVal(val,0); }
-    void setVal(TagVal val, const BOX& bx) {
+    void setVal(TagVal val, const Box& bx) {
 	BaseFab<int>::setVal(val,bx,0);
     }
 #endif
 
-    int numTags(const BOX& bx) const;
+    int numTags(const Box& bx) const;
     int numTags() const;
   private:
-    TAGBOX(const TAGBOX &);
-    TAGBOX& operator = (const TAGBOX&);
+    TagBox(const TagBox &);
+    TagBox& operator = (const TagBox&);
 };
 
 
-class TagBoxArray : public FabArray<int, TAGBOX>
+class TagBoxArray : public FabArray<int, TagBox>
 {
 //protected:
-    //PArray<TAGBOX> tb;
+    //PArray<TagBox> tb;
     int border;  // not to be confused with FabArray::n_grow which defines
 		 // the invalid regions of the fabs in the FabArray
 public:
@@ -115,20 +115,20 @@ public:
   // cells which were outside domain are set to CLEAR
     void mapPeriodic( const Geometry& geom );
 
-    void setVal(BoxDomain& bd, TAGBOX::TagVal val);
-    void setVal(BoxArray& ba, TAGBOX::TagVal val);
+    void setVal(BoxDomain& bd, TagBox::TagVal val);
+    void setVal(BoxArray& ba, TagBox::TagVal val);
     void coarsen(const IntVect & ratio);
     //int length() const { return tb.length(); }
-    //TAGBOX& operator[](int i) {
+    //TagBox& operator[](int i) {
 	//return tb[i];
     //}
-    //const TAGBOX& operator[](int i) const {
+    //const TagBox& operator[](int i) const {
 	//return tb[i];
     //}
 
     int numTags() const;
 
-    Array<INTVECT>* colate() const;
+    Array<IntVect>* colate() const;
 private:
     TagBoxArray();
     TagBoxArray(const TagBoxArray &);

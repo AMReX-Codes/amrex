@@ -4,7 +4,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.5 1997-11-26 18:27:45 lijewski Exp $
+// $Id: Amr.H,v 1.6 1997-11-26 19:18:46 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -52,7 +52,7 @@ public:
 
 /// undocumented hacks
 ///
-    void setDtLevel(const Array<REAL>& dt_lev);
+    void setDtLevel(const Array<Real>& dt_lev);
 ///
     void setNCycle(const Array<int>& mss);
 
@@ -71,13 +71,13 @@ public:
     int  finestLevel() const;
 
 //  physical time
-    REAL cumTime() const;
+    Real cumTime() const;
 
 //  time step at specified level
-    REAL dtLevel(int level) const;
+    Real dtLevel(int level) const;
 
 //  array of time steps at all levels
-    const Array<REAL>& dtLevel() const;
+    const Array<Real>& dtLevel() const;
 
 //  geometry object
     const Geometry& Geom(int level) const;
@@ -106,7 +106,7 @@ public:
     }
 
 //  time between checkpoint files
-    REAL  checkPer() const {
+    Real  checkPer() const {
        return check_per;
     }
 
@@ -116,7 +116,7 @@ public:
     }
 
 //  time between plot files
-    REAL  plotPer() const {
+    Real  plotPer() const {
        return plot_per;
     }
 
@@ -124,7 +124,7 @@ public:
     int  nErrorBuf(int lev) const;
 
 //  minimum allowable grid efficiency
-    REAL gridEff() const;
+    Real gridEff() const;
 
 //  blocking factor in grid generation
     int  blockingFactor() const;
@@ -157,15 +157,15 @@ public:
     virtual int okToContinue();
 ///
 //  do a complete integration cycle
-    void  coarseTimeStep(REAL stop_time);
+    void  coarseTimeStep(Real stop_time);
 
 //  retrieve derived data
-    PArray<FARRAYBOX>* derive(const aString& name, REAL time, int lev);
+    PArray<FArrayBox>* derive(const aString& name, Real time, int lev);
 
 /*   Alternate form.  Note: the user is responsible for deleting this pointer
      when done with it
 */
-    FARRAYBOX* derive(const BOX& b, const aString& name, REAL time, int lev);
+    FArrayBox* derive(const Box& b, const aString& name, Real time, int lev);
 
     void writePlotFile();
 
@@ -189,20 +189,20 @@ protected:
     void restart(const aString& filename);
 
 //  define and initialize coarsest level
-    void defBaseLevel(REAL start_time);
+    void defBaseLevel(Real start_time);
 
 //  define and initialize refined levels
-    void bldFineLevels(REAL start_time);
+    void bldFineLevels(Real start_time);
 
 //  rebuild grid hierarchy finer than lbase
-    void regrid(int lbase, REAL time);
+    void regrid(int lbase, Real time);
 
 //  define new grid locations (called from regrid) and put into new_grids
-    void grid_places(int lbase, REAL time, int& new_finest,
+    void grid_places(int lbase, Real time, int& new_finest,
                      Array<BoxArray>& new_grids);
 
 //  do a single timestep on level L
-    void timeStep(int level, REAL dt, int iter, int ncycle);
+    void timeStep(int level, Real dt, int iter, int ncycle);
 // 
     void printGridInfo(ostream& os, int min_lev, int max_lev);
 
@@ -232,10 +232,10 @@ protected:
     Array<Geometry>  geom;
 
 // physical time variable
-    REAL cumtime;
+    Real cumtime;
 
 //  timestep at this level
-    Array<REAL> dt_level;
+    Array<Real> dt_level;
 
 //  number of time steps at this level
     Array<int>  level_steps;
@@ -244,7 +244,7 @@ protected:
 ///
     Array<int>  n_cycle;
 ///
-    Array<REAL> dt_min;
+    Array<Real> dt_min;
 
 //  is domain periodic in any index direction?
     bool isPeriodic[BL_SPACEDIM];
@@ -261,7 +261,7 @@ protected:
     int blocking_factor;
 
 //  grid efficiency
-    REAL grid_eff;
+    Real grid_eff;
 
 //  maximum allowable grid size
     int max_grid_size;
@@ -278,7 +278,7 @@ protected:
      int      check_int;
 
 //   how often to checkpoint (measured in units of time)
-     REAL     check_per;
+     Real     check_per;
 
 //   root name of checkpoint file
      aString  check_file_root;
@@ -292,7 +292,7 @@ protected:
      int      plot_int;
 
 //   how often to write plotfile (measured in units of time)
-     REAL      plot_per;
+     Real      plot_per;
 
 //   root name of plotfile
      aString  plot_file_root;
@@ -373,14 +373,14 @@ Amr::refRatio () const
 }
 
 inline
-REAL
+Real
 Amr::dtLevel (int level) const
 {
     return dt_level[level];
 }
 
 inline
-const Array<REAL>&
+const Array<Real>&
 Amr::dtLevel () const
 {
     return dt_level;
@@ -401,7 +401,7 @@ Amr::levelSteps (int i) const
 }
 
 inline
-REAL
+Real
 Amr::cumTime () const
 {
     return cumtime;
@@ -422,7 +422,7 @@ Amr::nErrorBuf (int lev) const
 }
 
 inline
-REAL
+Real
 Amr::gridEff () const
 {
     return grid_eff;

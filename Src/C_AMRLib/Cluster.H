@@ -4,7 +4,7 @@
 #define _Cluster_H_ 
 
 //
-// $Id: Cluster.H,v 1.2 1997-11-24 18:52:28 lijewski Exp $
+// $Id: Cluster.H,v 1.3 1997-11-26 19:18:48 lijewski Exp $
 //
 
 #include <IntVect.H>
@@ -37,8 +37,8 @@ The array is defined to exist for a set of points inside a box.
 */
 
 protected:
-    BOX bx;
-    Array<INTVECT> *ar;
+    Box bx;
+    Array<IntVect> *ar;
 
 public:
 /// administrative functions
@@ -46,22 +46,22 @@ public:
 /// construct invalid Cluster
     CLUSTER() : ar(0) {}
 
-//  construct a cluster from an array of INTVECTS
+//  construct a cluster from an array of IntVectS
 //  NOTE: Cluster object takes over memory management of array
-    CLUSTER(Array<INTVECT> *a);
+    CLUSTER(Array<IntVect> *a);
 
 //  construct new cluster by removing all points from c
 //  that lie in box b.  Cluster c is modified and may become invalid.
-    CLUSTER(CLUSTER &c,const BOX& b);
+    CLUSTER(CLUSTER &c,const Box& b);
 
 //  destructor
     ~CLUSTER();
 
 //  return minimal box containing all tagged points
-    const BOX& box() const {return bx;}
+    const Box& box() const {return bx;}
 
 //  return ith tagged point in cluster
-    INTVECT operator[](int i) {
+    IntVect operator[](int i) {
 	assert(ar != 0);
 	return (*ar)[i];
     }
@@ -72,8 +72,8 @@ public:
 //  returns number of tagged points in cluster
     int numTag() const {return ar->length();}
 
-//  return number of tagged points in intersection of cluster and BOX b.
-    int numTag(const BOX& b);
+//  return number of tagged points in intersection of cluster and Box b.
+    int numTag(const Box& b);
 
 /*  This operation splits a cluster into two pieces by selecting
     a cutting plane with certain optimal characteristics then
@@ -95,9 +95,9 @@ public:
     void distribute(ClusterList &clst, const BoxDomain &bd);
 
 //  compute ratio of tagged to total number og points in cluster
-    REAL eff() const {
+    Real eff() const {
 	assert( ok() );
-	return ((REAL) numTag())/((REAL) bx.numPts());
+	return ((Real) numTag())/((Real) bx.numPts());
     }
 
 protected:
@@ -123,7 +123,7 @@ public:
     ClusterList() : lst() {};
 
 //  constructor
-    ClusterList(Array<INTVECT> *pts);
+    ClusterList(Array<IntVect> *pts);
 
 //  destructor
     ~ClusterList();
@@ -147,7 +147,7 @@ public:
     void boxList(BoxList &blst);
 
 //  chop all clusters in list that have poor efficiency
-    void chop(REAL eff);
+    void chop(Real eff);
 
 //  intersect clusters with BoxDomain to insure cluster
 //  boxes are interior to domain

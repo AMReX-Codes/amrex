@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.11 1997-11-26 18:27:45 lijewski Exp $
+// $Id: Amr.cpp,v 1.12 1997-11-26 19:18:46 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -57,18 +57,18 @@ Amr::boxArray (int lev) const
     return amr_level[lev].boxArray();
 }
 
-PArray<FARRAYBOX>*
+PArray<FArrayBox>*
 Amr::derive (const aString& name,
-             REAL           time,
+             Real           time,
              int            lev)
 {
     return amr_level[lev].derive(name,time);
 }
 
-FARRAYBOX*
-Amr::derive (const BOX&     b,
+FArrayBox*
+Amr::derive (const Box&     b,
              const aString& name,
-             REAL           time,
+             Real           time,
              int            lev)
 {
     return amr_level[lev].derive(b,name,time);
@@ -265,9 +265,9 @@ Amr::Amr ()
     Array<int> n_cell(BL_SPACEDIM);
     pp.getarr("n_cell",n_cell,0,BL_SPACEDIM);
     assert(n_cell.length() == BL_SPACEDIM);
-    INTVECT lo(IntVect::TheZeroVector()), hi(n_cell);
+    IntVect lo(IntVect::TheZeroVector()), hi(n_cell);
     hi -= IntVect::TheUnitVector();
-    BOX index_domain(lo,hi);
+    Box index_domain(lo,hi);
     for (i = 0; i <= max_level; i++)
     {
 	geom[i].define(index_domain);
@@ -276,10 +276,10 @@ Amr::Amr ()
     //
     // Now define offset for CoordSys.
     //
-    REAL offset[BL_SPACEDIM];
+    Real offset[BL_SPACEDIM];
     for (i = 0; i < BL_SPACEDIM; i++)
     {
-	REAL delta = Geometry::ProbLength(i)/(REAL)n_cell[i];
+	Real delta = Geometry::ProbLength(i)/(Real)n_cell[i];
 	offset[i] = Geometry::ProbLo(i) + delta*lo[i];
     }
     CoordSys::SetOffset(offset);
@@ -331,7 +331,7 @@ Amr::setRecordRunInfo (const aString& filename)
 }
 
 void
-Amr::setDtLevel (const Array<REAL>& dt_lev)
+Amr::setDtLevel (const Array<Real>& dt_lev)
 {
     int i;
     for (i = 0; i <= finest_level; i++)
@@ -512,7 +512,7 @@ Amr::checkInput ()
 	    BoxLib::Error("checkInput bad ref_ratios");
     }
 
-    const BOX& domain = geom[0].Domain();
+    const Box& domain = geom[0].Domain();
     if (!domain.ok())
 	BoxLib::Error("level 0 domain bad or not set");
     //
@@ -566,7 +566,7 @@ Amr::initialInit ()
     //
     // Init problem dependent data.
     //
-    REAL strt_time = 0;
+    Real strt_time = 0;
     int  init = true;
 
     FORT_PROBINIT (&init);
@@ -884,7 +884,7 @@ Amr::checkPoint ()
 
 void
 Amr::timeStep (int  level,
-               REAL time,
+               Real time,
                int  iteration,
                int  niter)
 {
@@ -913,7 +913,7 @@ Amr::timeStep (int  level,
                 {
                     if (sub_cycle)
                     {
-                        dt_level[k] = dt_level[k-1]/REAL(MaxRefRatio(k-1));
+                        dt_level[k] = dt_level[k-1]/Real(MaxRefRatio(k-1));
                         n_cycle[k] = MaxRefRatio(k-1);
                     }
                     else
@@ -933,7 +933,7 @@ Amr::timeStep (int  level,
 	cout << "ADVANCE grids at level " << level
 	     << " with dt = " << dt_level[level] << '\n';
     }
-    REAL dt_new = amr_level[level].advance(time,
+    Real dt_new = amr_level[level].advance(time,
                                            dt_level[level],
 					   iteration,
                                            niter);
@@ -971,7 +971,7 @@ Amr::timeStep (int  level,
 }
 
 void
-Amr::coarseTimeStep (REAL stop_time)
+Amr::coarseTimeStep (Real stop_time)
 {
     //
     // Compute new dt.
@@ -1005,7 +1005,7 @@ Amr::coarseTimeStep (REAL stop_time)
     if (check_per > 0.0)
     {
       int num_per = (cumtime+.001*dt_level[0]) / check_per;
-      REAL resid = cumtime - num_per * check_per;
+      Real resid = cumtime - num_per * check_per;
       if (resid < .001*dt_level[0])
           check_test = 1;
     }
@@ -1021,7 +1021,7 @@ Amr::coarseTimeStep (REAL stop_time)
     if (plot_per > 0.0)
     {
       int num_per = (cumtime+.001*dt_level[0]) / plot_per;
-      REAL resid = cumtime - num_per * plot_per;
+      Real resid = cumtime - num_per * plot_per;
       if (resid < .001*dt_level[0])
           plot_test = 1;
     }
@@ -1036,12 +1036,12 @@ Amr::coarseTimeStep (REAL stop_time)
 }
 
 void
-Amr::defBaseLevel (REAL strt_time)
+Amr::defBaseLevel (Real strt_time)
 {
     //
     // Check that base domain has even number of zones in all directions.
     //
-    const BOX& domain = geom[0].Domain();
+    const Box& domain = geom[0].Domain();
     const int* d_len = domain.length().getVect();
     int idir;
     for (idir = 0; idir < BL_SPACEDIM; idir++)
@@ -1080,7 +1080,7 @@ Amr::defBaseLevel (REAL strt_time)
 
 void
 Amr::regrid (int  lbase,
-             REAL time)
+             Real time)
 {
     int       new_finest;
 
@@ -1210,7 +1210,7 @@ Amr::printGridInfo (ostream& os,
         int k;
 	for (k = 0; k < numgrid; k++)
         {
-	    const BOX &b = bs[k];
+	    const Box &b = bs[k];
 	    os << ' ' << lev << ": " << b << ' ';
             int i;
 	    for (i = 0; i < BL_SPACEDIM; i++)
@@ -1286,7 +1286,7 @@ proj_periodic (BoxDomain&      bd,
 
 void
 Amr::grid_places (int          lbase, //  => finest that level doesn't change
-                  REAL             time,
+                  Real             time,
                   int&             new_finest, // <=> new finest level
                   Array<BoxArray>& new_grids)  // <=> new grid structure
 {
@@ -1316,7 +1316,7 @@ Amr::grid_places (int          lbase, //  => finest that level doesn't change
 	    STRIP;
 	    for (i = 0; i < ngrid; i++)
             {
-		BOX bx;
+		Box bx;
 		is >> bx;
 		STRIP;
 		if (lev > lbase)
@@ -1341,7 +1341,7 @@ Amr::grid_places (int          lbase, //  => finest that level doesn't change
     //
     Array<IntVect> bf_lev(max_level);    // blocking factor at each level
     Array<IntVect> rr_lev(max_level);
-    Array<BOX> pc_domain(max_level); // prob domain coarsened by blocking_factor
+    Array<Box> pc_domain(max_level); // prob domain coarsened by blocking_factor
     for (i = lbase; i <= max_crse; i++)
     {
         for( int n=0; n<BL_SPACEDIM; n++ )
@@ -1364,7 +1364,7 @@ Amr::grid_places (int          lbase, //  => finest that level doesn't change
     const BoxArray &bbase = amr_level[lbase].boxArray();
     for (i = 0; i < bbase.length(); i++)
     {
-	BOX tmp(::coarsen(bbase[i],bf_lev[lbase]));
+	Box tmp(::coarsen(bbase[i],bf_lev[lbase]));
 	fd1.add(tmp);
     }
 
@@ -1435,14 +1435,14 @@ Amr::grid_places (int          lbase, //  => finest that level doesn't change
 	}
 
 	TagBoxArray tags(old_grids,n_error_buf[levc]+ngrow);
-	amr_level[levc].errorEst(tags,TAGBOX::CLEAR,TAGBOX::SET,time);
+	amr_level[levc].errorEst(tags,TagBox::CLEAR,TagBox::SET,time);
         //
         // If new grids have been constructed above this level, project
         // those grids down and tag cells on intersections to ensure
         // proper nesting.
         //
 	if (levf < new_finest)
-	    tags.setVal(ba_proj,TAGBOX::SET);
+	    tags.setVal(ba_proj,TagBox::SET);
         //
         // Buffer error cells.
         //
@@ -1467,11 +1467,11 @@ Amr::grid_places (int          lbase, //  => finest that level doesn't change
         //
         // Remove cells outside proper nesting domain for this level.
         //
-	tags.setVal(p_n_comp[levc],TAGBOX::CLEAR);
+	tags.setVal(p_n_comp[levc],TagBox::CLEAR);
         //
         // Create initial cluster containing all tagged points.
         //
-	Array<INTVECT> *pts = tags.colate();
+	Array<IntVect> *pts = tags.colate();
 
 	tags.clear();
 
@@ -1530,7 +1530,7 @@ Amr::grid_places (int          lbase, //  => finest that level doesn't change
 }
 
 void
-Amr::bldFineLevels (REAL strt_time)
+Amr::bldFineLevels (Real strt_time)
 {
     finest_level = 0;
     int more_levels = true;

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Cluster.cpp,v 1.2 1997-11-24 18:52:29 lijewski Exp $
+// $Id: Cluster.cpp,v 1.3 1997-11-26 19:18:48 lijewski Exp $
 //
 
 #include <Cluster.H>
@@ -11,7 +11,7 @@ enum CutStatus{ hole_cut=0, steep_cut, bisect_cut, invalid_cut };
 static int findCut(const int *hist, int lo, int hi, CutStatus &status);
 
 // ------------------------------------------------------------
-CLUSTER::CLUSTER(Array<INTVECT> *a) 
+CLUSTER::CLUSTER(Array<IntVect> *a) 
     : ar(a)
 {
     minBox();
@@ -26,7 +26,7 @@ CLUSTER::~CLUSTER()
 // ------------------------------------------------------------
 // construct new cluster by removing all points from c
 // that lie in box b.  
-CLUSTER::CLUSTER(CLUSTER &c,const BOX& b) 
+CLUSTER::CLUSTER(CLUSTER &c,const Box& b) 
     : ar(0)
 {
     assert( b.ok() );
@@ -35,7 +35,7 @@ CLUSTER::CLUSTER(CLUSTER &c,const BOX& b)
 	bx = c.bx;
 	ar = c.ar;
 	c.ar = 0;
-	c.bx = BOX();
+	c.bx = Box();
 	return;
     }
     int len = c.ar->length();
@@ -53,20 +53,20 @@ CLUSTER::CLUSTER(CLUSTER &c,const BOX& b)
     }
     if (nlen == 0) {
 	ar = 0;
-	bx = BOX();
+	bx = Box();
     } else if (nlen == len) {
 	bx = c.bx;
 	ar = c.ar;
 	c.ar = 0;
-	c.bx = BOX();
+	c.bx = Box();
     } else {
-	ar = new Array<INTVECT>(nlen);
-	Array<INTVECT> *car = new Array<INTVECT>(len-nlen);
+	ar = new Array<IntVect>(nlen);
+	Array<IntVect> *car = new Array<IntVect>(len-nlen);
 	int i1 = 0;
 	int i2 = 0;
         int i;
 	for (i = 0; i < len; i++) {
-	    const INTVECT &p = (c.ar->get(i));
+	    const IntVect &p = (c.ar->get(i));
 	    if (owns[i] == 1) {
 		ar->set(i1++,p);
 	    } else {
@@ -105,12 +105,12 @@ CLUSTER::distribute(ClusterList &clst, const BoxDomain &bd)
 
 // ------------------------------------------------------------
 int
-CLUSTER::numTag(const BOX& b)
+CLUSTER::numTag(const Box& b)
 {
     int cnt = 0;
     int i;
     for (i = 0; i < ar->length(); i++) {
-	const INTVECT &p = (*ar)[i];
+	const IntVect &p = (*ar)[i];
 	if (b.contains(p)) cnt++;
     }
     return cnt;
@@ -122,18 +122,18 @@ CLUSTER::minBox()
 {
     int len = ar->length();
     if (len == 0) {
-	bx = BOX();
+	bx = Box();
 	return;
     }
-    INTVECT lo = (*ar)[0];
-    INTVECT hi(lo);
+    IntVect lo = (*ar)[0];
+    IntVect hi(lo);
     int i;
     for (i = 1; i < len; i++) {
-	const INTVECT &p = (*ar)[i];
+	const IntVect &p = (*ar)[i];
 	lo.min(p);
 	hi.max(p);
     }
-    bx = BOX(lo,hi);
+    bx = Box(lo,hi);
 }
 
 // ------------------------------------------------------------
@@ -204,12 +204,12 @@ CLUSTER::chop()
     for (i = 0; i < BL_SPACEDIM; i++) delete hist[i];
 
       // split intvect list
-    Array<INTVECT> *alo = new Array<INTVECT>(nlo);
-    Array<INTVECT> *ahi = new Array<INTVECT>(nhi);
+    Array<IntVect> *alo = new Array<IntVect>(nlo);
+    Array<IntVect> *ahi = new Array<IntVect>(nhi);
     int ilo = 0;
     int ihi = 0;
     for (i = 0; i < npts; i++) {
-	const INTVECT &p = (*ar)[i];
+	const IntVect &p = (*ar)[i];
 	if (p[dir] < cut[dir]) {
 	    alo->set(ilo++,p);
 	} else {
@@ -291,7 +291,7 @@ findCut(const int *hist, int lo, int hi, CutStatus &status)
 // ------------------------------------------------------------------
 // ClusterList member functions
 // ------------------------------------------------------------------
-ClusterList::ClusterList(Array<INTVECT> *pts)
+ClusterList::ClusterList(Array<IntVect> *pts)
 {
     CLUSTER *c = new CLUSTER(pts);
     lst.append(c);
@@ -361,7 +361,7 @@ ClusterList::boxList(BoxList &blst)
 
 // ------------------------------------------------------------------
 void
-ClusterList::chop(REAL eff)
+ClusterList::chop(Real eff)
 {
     ListIterator<CLUSTER*> cli(lst);
     while (cli) {
@@ -382,7 +382,7 @@ ClusterList::intersect(const BoxDomain& dom)
     ListIterator<CLUSTER*> cli(lst);
     while (cli) {
 	CLUSTER* c = cli();
-	const BOX& cbox = c->box();
+	const Box& cbox = c->box();
 	if (dom.contains(cbox)) {
 	    ++cli;
 	} else {

@@ -27,54 +27,54 @@
 #include <ArrayLim.H>
 
   extern "C" {
-     void FORT_NBINTERP (const REAL* crse, ARLIM_P(clo), ARLIM_P(chi),
+     void FORT_NBINTERP (const Real* crse, ARLIM_P(clo), ARLIM_P(chi),
                          ARLIM_P(cblo), ARLIM_P(cbhi),
-                         REAL* fine, ARLIM_P(flo), ARLIM_P(fhi),
+                         Real* fine, ARLIM_P(flo), ARLIM_P(fhi),
                          ARLIM_P(fblo), ARLIM_P(fbhi),
 			 const int* lratio, const int* nvar,
-			 REAL* slope, const int* num_slope,
-			 REAL* strip, const int* strip_lo, const int* strip_hi);
+			 Real* slope, const int* num_slope,
+			 Real* strip, const int* strip_lo, const int* strip_hi);
       
-     void FORT_CBINTERP (const REAL* crse, ARLIM_P(clo), ARLIM_P(chi),
+     void FORT_CBINTERP (const Real* crse, ARLIM_P(clo), ARLIM_P(chi),
                          ARLIM_P(cblo), ARLIM_P(cbhi),
-                         REAL* fine, ARLIM_P(flo), ARLIM_P(fhi),
+                         Real* fine, ARLIM_P(flo), ARLIM_P(fhi),
                          ARLIM_P(fblo), ARLIM_P(fbhi),
 			 const int* lratio, const int* nvar,
-			 REAL* slope, const int* num_slope,
-			 REAL* strip, const int* strip_lo, const int* strip_hi);
+			 Real* slope, const int* num_slope,
+			 Real* strip, const int* strip_lo, const int* strip_hi);
 
-     void FORT_CCINTERP (REAL* fine, ARLIM_P(flo), ARLIM_P(fhi),
+     void FORT_CCINTERP (Real* fine, ARLIM_P(flo), ARLIM_P(fhi),
                          ARLIM_P(fblo), ARLIM_P(fbhi),
 			 const int* nvar, const int* lratio,
-			 const REAL* crse, const int* clo, const int* chi,
+			 const Real* crse, const int* clo, const int* chi,
                          ARLIM_P(cblo), ARLIM_P(cbhi),
      		         const int* fslo, const int* fshi,
-			 REAL* cslope, const int* clen,
-			 REAL* fslope, REAL* fdat, const int* flen,
-			 REAL* voff,
+			 Real* cslope, const int* clen,
+			 Real* fslope, Real* fdat, const int* flen,
+			 Real* voff,
 			 const int* bc, const int* lim_slope,
-		 D_DECL(const REAL* fvcx,const REAL* fvcy, const REAL* fvcz),
-		 D_DECL(const REAL* cvcx,const REAL* cvcy, const REAL* cvcz));
+		 D_DECL(const Real* fvcx,const Real* fvcy, const Real* fvcz),
+		 D_DECL(const Real* cvcx,const Real* cvcy, const Real* cvcz));
 
-     void FORT_CCINTERP2 (REAL* fine, const int* flo, const int* fhi,
+     void FORT_CCINTERP2 (Real* fine, const int* flo, const int* fhi,
                           ARLIM_P(fblo), ARLIM_P(fbhi),
 			  const int* nvar, const int* lratio,
-			  const REAL* crse, const int* clo, const int* chi,
+			  const Real* crse, const int* clo, const int* chi,
                           ARLIM_P(cblo), ARLIM_P(cbhi),
      		          const int* fslo, const int* fshi,
-			  REAL* cslope, const int* clen,
-			  REAL* fslope, REAL* fdat, const int* flen,
-			  REAL* voff,
+			  Real* cslope, const int* clen,
+			  Real* fslope, Real* fdat, const int* flen,
+			  Real* voff,
 			  const int* bc, const int* lim_slope,
-		  D_DECL(const REAL* fvcx,const REAL* fvcy, const REAL* fvcz),
-		  D_DECL(const REAL* cvcx,const REAL* cvcy, const REAL* cvcz));
+		  D_DECL(const Real* fvcx,const Real* fvcy, const Real* fvcz),
+		  D_DECL(const Real* cvcx,const Real* cvcy, const Real* cvcz));
 
-     void FORT_PCINTERP (const REAL* crse, ARLIM_P(clo), ARLIM_P(chi),
+     void FORT_PCINTERP (const Real* crse, ARLIM_P(clo), ARLIM_P(chi),
                          const int* cblo, const int* cbhi,
-			 REAL*  fine, ARLIM_P(flo), ARLIM_P(fhi),
+			 Real*  fine, ARLIM_P(flo), ARLIM_P(fhi),
 			 const int* fblo, const int* fbhi,
 			 const int* longdir, const int* ratio,
-			 const int* nvar, REAL* strip,
+			 const int* nvar, Real* strip,
 			 const int* strip_lo, const int* strip_hi);
   };
 #endif

@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.3 1997-11-26 18:27:45 lijewski Exp $
+// $Id: AmrLevel.H,v 1.4 1997-11-26 19:18:46 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -262,7 +262,7 @@ protected:
     void finishConstructor();    
 
 //  pointwise state data
-    void probe(ostream &os, INTVECT iv, int radius, Real time,
+    void probe(ostream &os, IntVect iv, int radius, Real time,
 	       int state_indx, int src_comp, int num_comp);
 
 private:

@@ -23,13 +23,13 @@
 
   extern "C" {
 #if (BL_SPACEDIM==3)
-    void FORT_MAKESLICE(const REAL* data1,const int* dlo1,const int* dhi1,
-     REAL* data2,const int* dlo2,const int* dhi2,REAL* data_min,
-     REAL* data_max,REAL* slice_val,int* slice,const REAL* dx);
+    void FORT_MAKESLICE(const Real* data1,const int* dlo1,const int* dhi1,
+     Real* data2,const int* dlo2,const int* dhi2,Real* data_min,
+     Real* data_max,Real* slice_val,int* slice,const Real* dx);
 
     void FORT_MAKEMASKSLICE(const int* data1,const int* dlo1,const int* dhi1,
-     int* data2,const int* dlo2,const int* dhi2,REAL* data_min,
-     REAL* data_max,REAL* slice_val,int* slice,const REAL* dx);
+     int* data2,const int* dlo2,const int* dhi2,Real* data_min,
+     Real* data_max,Real* slice_val,int* slice,const Real* dx);
 #endif
   };
 #endif

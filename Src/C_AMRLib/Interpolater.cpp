@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Interpolater.cpp,v 1.2 1997-11-24 18:52:31 lijewski Exp $
+// $Id: Interpolater.cpp,v 1.3 1997-11-26 19:18:50 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -45,16 +45,16 @@ NodeBilinear::~NodeBilinear()
 
 // ------------------------------------------------------------
 void
-NodeBilinear::interp(FARRAYBOX& crse, int crse_comp,
-		     FARRAYBOX& fine, int fine_comp,
+NodeBilinear::interp(FArrayBox& crse, int crse_comp,
+		     FArrayBox& fine, int fine_comp,
 		     int ncomp,
-		     const BOX& fine_region, const IntVect & ratio,
+		     const Box& fine_region, const IntVect & ratio,
                      const Geometry& /* crse_geom */,
                      const Geometry& /* fine_geom */,
 		     Array<BCRec>& /*bcr*/)
 {
       // set up to call FORTRAN
-    BOX cbox(crse.box());
+    Box cbox(crse.box());
     const int* clo = cbox.loVect();
     const int* chi = cbox.hiVect();
     const int* flo = fine.loVect();
@@ -67,7 +67,7 @@ NodeBilinear::interp(FARRAYBOX& crse, int crse_comp,
     if (slope_len < slp_len) {
 	delete slope;
 	slope_len = slp_len;
-	slope = new REAL[slope_len];
+	slope = new Real[slope_len];
     }
     int strp_len = len0*ratio[0];
     for( int n=1; n<BL_SPACEDIM; n++ ) {
@@ -76,13 +76,13 @@ NodeBilinear::interp(FARRAYBOX& crse, int crse_comp,
     if (strip_len < strp_len) {
 	delete strip;
 	strip_len = strp_len;
-	strip = new REAL[strip_len];
+	strip = new Real[strip_len];
     }
     int strip_lo = ratio[0] * clo[0];
     int strip_hi = ratio[0] * chi[0];
 
-    const REAL* cdat = crse.dataPtr(crse_comp);
-    REAL*       fdat = fine.dataPtr(fine_comp);
+    const Real* cdat = crse.dataPtr(crse_comp);
+    Real*       fdat = fine.dataPtr(fine_comp);
     FORT_NBINTERP (cdat,ARLIM(clo),ARLIM(chi),ARLIM(clo),ARLIM(chi),
                    fdat,ARLIM(flo),ARLIM(fhi),ARLIM(lo),ARLIM(hi),
 		   ratio.getVect(),&ncomp,
@@ -106,17 +106,17 @@ CellBilinear::~CellBilinear()
 }
 
 // ------------------------------------------------------------
-BOX
-CellBilinear::CoarseBox(const BOX& fine, int ratio)
+Box
+CellBilinear::CoarseBox(const Box& fine, int ratio)
 {
     return CoarseBox(fine, ratio*IntVect::TheUnitVector());
 }
 
 // ------------------------------------------------------------
-BOX
-CellBilinear::CoarseBox(const BOX& fine, const IntVect & ratio)
+Box
+CellBilinear::CoarseBox(const Box& fine, const IntVect & ratio)
 {
-    BOX crse(::coarsen(fine,ratio));
+    Box crse(::coarsen(fine,ratio));
     const int* lo = fine.loVect();
     const int* hi = fine.hiVect();
     int i;
@@ -131,10 +131,10 @@ CellBilinear::CoarseBox(const BOX& fine, const IntVect & ratio)
 
 // ------------------------------------------------------------
 void
-CellBilinear::interp(FARRAYBOX& crse, int crse_comp,
-		     FARRAYBOX& fine, int fine_comp,
+CellBilinear::interp(FArrayBox& crse, int crse_comp,
+		     FArrayBox& fine, int fine_comp,
 		     int ncomp,
-		     const BOX& fine_region, const IntVect & ratio,
+		     const Box& fine_region, const IntVect & ratio,
                      const Geometry& /* crse_geom */,
                      const Geometry& /* fine_geom */,
 		     Array<BCRec>& /*bcr*/)
@@ -142,7 +142,7 @@ CellBilinear::interp(FARRAYBOX& crse, int crse_comp,
     BoxLib::Error("interp: not implemented");
 
       // set up to call FORTRAN
-    BOX cbox(crse.box());
+    Box cbox(crse.box());
     const int* clo = cbox.loVect();
     const int* chi = cbox.hiVect();
     const int* flo = fine.loVect();
@@ -155,19 +155,19 @@ CellBilinear::interp(FARRAYBOX& crse, int crse_comp,
     if (slope_len < slp_len) {
 	delete slope;
 	slope_len = slp_len;
-	slope = new REAL[slope_len];
+	slope = new Real[slope_len];
     }
     int strp_len = len0*ratio[0];
     if (strip_len < strp_len) {
 	delete strip;
 	strip_len = strp_len;
-	strip = new REAL[strip_len];
+	strip = new Real[strip_len];
     }
     int strip_lo = ratio[0] * clo[0];
     int strip_hi = ratio[0] * chi[0];
 
-    const REAL* cdat = crse.dataPtr(crse_comp);
-    REAL*       fdat = fine.dataPtr(fine_comp);
+    const Real* cdat = crse.dataPtr(crse_comp);
+    Real*       fdat = fine.dataPtr(fine_comp);
     FORT_CBINTERP (cdat,ARLIM(clo),ARLIM(chi),ARLIM(clo),ARLIM(chi),
 		   fdat,ARLIM(flo),ARLIM(fhi),ARLIM(lo),ARLIM(hi),
 		   ratio.getVect(),&ncomp,
@@ -192,46 +192,46 @@ CellConservative::~CellConservative()
 }
 
 // ------------------------------------------------------------
-BOX
-CellConservative::CoarseBox(const BOX& fine, const IntVect& ratio)
+Box
+CellConservative::CoarseBox(const Box& fine, const IntVect& ratio)
 {
-    BOX crse(::coarsen(fine,ratio));
+    Box crse(::coarsen(fine,ratio));
     crse.grow(1);
     return crse;
 }
 
 // ------------------------------------------------------------
-BOX
-CellConservative::CoarseBox(const BOX& fine, int ratio)
+Box
+CellConservative::CoarseBox(const Box& fine, int ratio)
 {
-    BOX crse(::coarsen(fine,ratio));
+    Box crse(::coarsen(fine,ratio));
     crse.grow(1);
     return crse;
 }
 
 // ------------------------------------------------------------
 void
-CellConservative::interp(FARRAYBOX& crse, int crse_comp,
-			 FARRAYBOX& fine, int fine_comp,
+CellConservative::interp(FArrayBox& crse, int crse_comp,
+			 FArrayBox& fine, int fine_comp,
 			 int ncomp,
-			 const BOX& fine_region, const IntVect & ratio,
+			 const Box& fine_region, const IntVect & ratio,
 			 const Geometry& crse_geom,
 			 const Geometry& fine_geom,
 			 Array<BCRec>& bcr)
 {
 
     assert( bcr.length() >= ncomp );
-    const BOX& domain = fine_geom.Domain();
+    const Box& domain = fine_geom.Domain();
     if (!domain.contains(fine_region)) {
 	BoxLib::Error("interp:fine_region not in domain");
     }
 
     // make box which is intersection of fine_region and domain of fine
-    BOX target_fine_region = fine_region & fine.box();
+    Box target_fine_region = fine_region & fine.box();
 
-    BOX crse_bx(::coarsen(target_fine_region,ratio));
-    BOX fslope_bx(::refine(crse_bx,ratio));
-    BOX cslope_bx(crse_bx);
+    Box crse_bx(::coarsen(target_fine_region,ratio));
+    Box fslope_bx(::refine(crse_bx,ratio));
+    Box cslope_bx(crse_bx);
     cslope_bx.grow(1);
     if (! crse.box().contains(cslope_bx) ) {
 	BoxLib::Error("CellConservative: crse databox size mismatch");
@@ -244,7 +244,7 @@ CellConservative::interp(FARRAYBOX& crse, int crse_comp,
     if (slope_len < BL_SPACEDIM*c_len) {
 	slope_len = BL_SPACEDIM*c_len;
 	delete cslope;
-	cslope = new REAL[slope_len];
+	cslope = new Real[slope_len];
     }
     int loslp    = cslope_bx.index(crse_bx.smallEnd());
     int hislp    = cslope_bx.index(crse_bx.bigEnd());
@@ -261,23 +261,23 @@ CellConservative::interp(FARRAYBOX& crse, int crse_comp,
     if (strip_len < (BL_SPACEDIM+2)*f_len) {
 	strip_len = (BL_SPACEDIM+2)*f_len;
 	delete strip;
-	strip = new REAL[strip_len];
+	strip = new Real[strip_len];
     }
-    REAL *fstrip = strip;
-    REAL *foff = fstrip + f_len;
-    REAL *fslope = foff + f_len;
+    Real *fstrip = strip;
+    Real *foff = fstrip + f_len;
+    Real *fslope = foff + f_len;
 
       // get coarse in fine edge centered volume coordinates
-    Array<REAL> fvc[BL_SPACEDIM];
-    Array<REAL> cvc[BL_SPACEDIM];
+    Array<Real> fvc[BL_SPACEDIM];
+    Array<Real> cvc[BL_SPACEDIM];
     for (dir = 0; dir < BL_SPACEDIM; dir++) {
         fine_geom.GetEdgeVolCoord(fvc[dir],target_fine_region,dir);
         crse_geom.GetEdgeVolCoord(cvc[dir],crse_bx,dir);
     }
 
       // alloc tmp space for slope calc and to allow for vectorization
-    REAL* fdat      = fine.dataPtr(fine_comp);
-    const REAL* cdat= crse.dataPtr(crse_comp);
+    Real* fdat      = fine.dataPtr(fine_comp);
+    const Real* cdat= crse.dataPtr(crse_comp);
     const int* flo  = fine.loVect();
     const int* fhi  = fine.hiVect();
     const int* fblo = target_fine_region.loVect();
@@ -334,23 +334,23 @@ PCInterp::~PCInterp()
 
 // ------------------------------------------------------------
 void
-PCInterp::interp(FARRAYBOX& crse, int crse_comp,
-		 FARRAYBOX& fine, int fine_comp,
+PCInterp::interp(FArrayBox& crse, int crse_comp,
+		 FArrayBox& fine, int fine_comp,
 		 int ncomp,
-		 const BOX& fine_region, const IntVect & ratio,
+		 const Box& fine_region, const IntVect & ratio,
                  const Geometry& /* crse_geom */,
                  const Geometry& /* fine_geom */,
 		 Array<BCRec>& /* bcr */)
 {
       // set up to call FORTRAN
-    BOX cbox(crse.box());
+    Box cbox(crse.box());
     const int* clo = cbox.loVect();
     const int* chi = cbox.hiVect();
     const int* flo = fine.loVect();
     const int* fhi = fine.hiVect();
     const int* fblo = fine_region.loVect();
     const int* fbhi = fine_region.hiVect();
-    BOX cregion(::coarsen(fine_region,ratio));
+    Box cregion(::coarsen(fine_region,ratio));
     const int* cblo = cregion.loVect();
     const int* cbhi = cregion.hiVect();
     int long_dir;
@@ -359,15 +359,15 @@ PCInterp::interp(FARRAYBOX& crse, int crse_comp,
     if (strip_len < s_len) {
 	delete strip;
 	strip_len = s_len;
-	strip = new REAL[strip_len];
+	strip = new Real[strip_len];
     }
     int strip_lo = ratio[long_dir] * cblo[long_dir];
     int strip_hi = ratio[long_dir] * (cbhi[long_dir]+1) - 1;
 
       // convert long_dir to FORTRAN (1 based) index
     long_dir++;
-    const REAL* cdat = crse.dataPtr(crse_comp);
-    REAL*       fdat = fine.dataPtr(fine_comp);
+    const Real* cdat = crse.dataPtr(crse_comp);
+    Real*       fdat = fine.dataPtr(fine_comp);
     FORT_PCINTERP (cdat,ARLIM(clo),ARLIM(chi),cblo,cbhi,
 		   fdat,ARLIM(flo),ARLIM(fhi),fblo,fbhi,
 		   &long_dir,ratio.getVect(),&ncomp,strip,&strip_lo,&strip_hi);

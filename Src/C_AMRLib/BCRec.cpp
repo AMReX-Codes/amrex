@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BCRec.cpp,v 1.2 1997-11-24 18:52:28 lijewski Exp $
+// $Id: BCRec.cpp,v 1.3 1997-11-26 19:18:47 lijewski Exp $
 //
 
 #include <BCRec.H>
@@ -25,7 +25,7 @@ BCRec::BCRec(const int* lo, const int* hi)
 }
 
 // -------------------------------------------------------------
-BCRec::BCRec(const BOX& bx, const BOX& domain, const BCRec &bc_domain) 
+BCRec::BCRec(const Box& bx, const Box& domain, const BCRec &bc_domain) 
 {
    const int* bxlo = bx.loVect();
    const int* bxhi = bx.hiVect();
@@ -42,7 +42,7 @@ BCRec::BCRec(const BOX& bx, const BOX& domain, const BCRec &bc_domain)
 
 // -------------------------------------------------------------
 void
-setBC(const BOX& bx, const BOX& domain, int src_comp, int dest_comp,
+setBC(const Box& bx, const Box& domain, int src_comp, int dest_comp,
       int ncomp, const Array<BCRec> &bc_dom, Array<BCRec> &bcr)
 {
    const int* bxlo = bx.loVect();
@@ -65,7 +65,7 @@ setBC(const BOX& bx, const BOX& domain, int src_comp, int dest_comp,
 
 // -------------------------------------------------------------
 void
-setBC(const BOX& bx, const BOX& domain, 
+setBC(const Box& bx, const Box& domain, 
       const BCRec &bc_dom, BCRec &bcr)
 {
     const int* bxlo = bx.loVect();

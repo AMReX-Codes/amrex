@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.3 1997-11-24 18:52:33 lijewski Exp $
+// $Id: TagBox.cpp,v 1.4 1997-11-26 19:18:52 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -12,8 +12,8 @@
 //FabFunctorRegistry<int> BaseFab<int>::ffRegistry;
 
 extern  void inspectTAGArray( const TagBoxArray& tba );
-extern  void inspectTAG( const TAGBOX& tb, int n);
-extern  void inspectFAB( FARRAYBOX& unfab, int n );
+extern  void inspectTAG( const TagBox& tb, int n);
+extern  void inspectFAB( FArrayBox& unfab, int n );
 
 struct TagBoxMergeDesc {
   bool destLocal;
@@ -24,28 +24,28 @@ struct TagBoxMergeDesc {
   FillBoxId fillBoxId;
 };
 
-TAGBOX::TAGBOX() {
+TagBox::TagBox() {
 }
 
-TAGBOX::TAGBOX(const BOX &bx, int n)
+TagBox::TagBox(const Box &bx, int n)
        : BaseFab<int>(bx,n)
 {
   setVal(CLEAR);
 }
 
-TAGBOX::~TAGBOX() {
+TagBox::~TagBox() {
 }
 
 
 
-TAGBOX*
-TAGBOX::coarsen(const IntVect & ratio)
+TagBox*
+TagBox::coarsen(const IntVect & ratio)
 {
-   BOX cbx(domain);
+   Box cbx(domain);
    cbx.coarsen(ratio);
-   TAGBOX* crse = new TAGBOX(cbx);
-   const BOX& cbox = crse->box();
-   BOX b1(::refine(cbox,ratio));
+   TagBox* crse = new TagBox(cbx);
+   const Box& cbox = crse->box();
+   Box b1(::refine(cbox,ratio));
 
    const int* flo = domain.loVect();
    const int* fhi = domain.hiVect();
@@ -65,7 +65,7 @@ TAGBOX::coarsen(const IntVect & ratio)
    int *t = new int[longlen];
    assert(t);
    int i;
-   for (i = 0; i < longlen; i++) t[i] = TAGBOX::CLEAR;
+   for (i = 0; i < longlen; i++) t[i] = TagBox::CLEAR;
 
    int klo,khi,jlo,jhi,ilo,ihi;
    jlo = jhi = klo = khi = 0;
@@ -183,11 +183,11 @@ TAGBOX::coarsen(const IntVect & ratio)
 }
 
 void 
-TAGBOX::buffer(int nbuff, int nwid)
+TagBox::buffer(int nbuff, int nwid)
 {
    // note: this routine assumes cell with SET tag are in
    // interior of tagbox (region = grow(domain,-nwid))
-   BOX inside(domain);
+   Box inside(domain);
    inside.grow(-nwid);
    const int* inlo = inside.loVect();
    const int* inhi = inside.hiVect();
@@ -234,10 +234,10 @@ TAGBOX::buffer(int nbuff, int nwid)
 }
 
 void 
-TAGBOX::merge(const TAGBOX& src)
+TagBox::merge(const TagBox& src)
 {
    // compute intersections
-   BOX bx(domain);
+   Box bx(domain);
    bx &= src.domain;
    if (bx.ok()) {
       const int* dlo = domain.loVect();
@@ -274,7 +274,7 @@ TAGBOX::merge(const TAGBOX& src)
 }
 
 int 
-TAGBOX::numTags() const
+TagBox::numTags() const
 {
    int nt = 0;
    long t_long = domain.numPts();
@@ -290,9 +290,9 @@ TAGBOX::numTags() const
 
 
 int
-TAGBOX::numTags(const Box &b) const
+TagBox::numTags(const Box &b) const
 {
-   TAGBOX tempTagBox(b,1);
+   TagBox tempTagBox(b,1);
    tempTagBox.copy(*this);
 
    int nt = 0;
@@ -309,9 +309,9 @@ TAGBOX::numTags(const Box &b) const
 
 
 int 
-TAGBOX::colate(Array<INTVECT> &ar, int start) const
+TagBox::colate(Array<IntVect> &ar, int start) const
 {
-   // starting at given offset of array ar, enter location (INTVECT) of
+   // starting at given offset of array ar, enter location (IntVect) of
    // each tagged cell in tagbox
    int count = 0;
    const int* len = domain.length().getVect();
@@ -328,7 +328,7 @@ TAGBOX::colate(Array<INTVECT> &ar, int start) const
    for (i = 0; i < ni; i++) {
       const int *dn = d + D_TERM(i, +j*len[0], +k*len[0]*len[1]);
       if (*dn !=CLEAR) {
-        ar[start++] = INTVECT( D_DECL(lo[0]+i,lo[1]+j,lo[2]+k) );
+        ar[start++] = IntVect( D_DECL(lo[0]+i,lo[1]+j,lo[2]+k) );
 	count++;
       }
       
@@ -347,9 +347,9 @@ TagBoxArray::TagBoxArray(const BoxArray &ba, int _ngrow,
    // parallel loop
    int i;
    for (i = 0; i < fabparray.length(); i++) {
-      BOX bx(ba[i]);
+      Box bx(ba[i]);
       bx.grow(ngrow);
-      fabparray.set(i,new TAGBOX(bx,1));
+      fabparray.set(i,new TagBox(bx,1));
    } 
 }
 */
@@ -357,13 +357,13 @@ TagBoxArray::TagBoxArray(const BoxArray &ba, int _ngrow,
 /*
 // cant do this because it defines an invalid region in the fabarray
 TagBoxArray::TagBoxArray(const BoxArray &ba, int _ngrow)
-            : FabArray<int, TAGBOX>(ba, 1, _ngrow)
+            : FabArray<int, TagBox>(ba, 1, _ngrow)
 {
 }
 */
 
 TagBoxArray::TagBoxArray(const BoxArray &ba, int _ngrow)
-            : FabArray<int, TAGBOX>(),
+            : FabArray<int, TagBox>(),
               border(_ngrow)
 {
   BoxArray grownBoxArray(ba);
@@ -386,7 +386,7 @@ TagBoxArray::buffer(int nbuf)
     }
     assert( nbuf <= border );
     //for(int i = 0; i < fabparray.length(); i++) {
-    for(FabArrayIterator<int, TAGBOX> fai(*this); fai.isValid(); ++fai) {
+    for(FabArrayIterator<int, TagBox> fai(*this); fai.isValid(); ++fai) {
        fai().buffer(nbuf,border);
     } 
 }
@@ -399,20 +399,20 @@ TagBoxArray::mergeUnique()
 /*
    // original code vvvvvvvvvvvvvvvvvvvvvvvvvvv
    for(int i = 0; i < fabparray.length(); ++i) {
-      TAGBOX &dest = fabparray[i];
+      TagBox &dest = fabparray[i];
       for(int j = i+1; j < fabparray.length(); j++) {
-         TAGBOX& src = fabparray[j];
+         TagBox& src = fabparray[j];
          Box ovlp(dest.box());
 	 ovlp &= src.box();
 	 if (ovlp.ok()) {
 	    dest.merge(src);
-	    src.setVal(TAGBOX::CLEAR,ovlp,0);
+	    src.setVal(TagBox::CLEAR,ovlp,0);
 	 }
       }
    }
 */
 
-   FabArrayCopyDescriptor<int, TAGBOX> facd(true);
+   FabArrayCopyDescriptor<int, TagBox> facd(true);
    FabArrayId faid = facd.RegisterFabArray(this);
    int nOverlap = 0;
    int myproc = ParallelDescriptor::MyProc();
@@ -449,8 +449,8 @@ TagBoxArray::mergeUnique()
    for(ListIterator<TagBoxMergeDesc> tbmdli(tbmdList); tbmdli; ++tbmdli) {
      const TagBoxMergeDesc &tbmd = tbmdli();
      if(tbmd.destLocal) {
-       TAGBOX &dest = fabparray[tbmd.mergeIndexDest];
-       TAGBOX src(tbmd.overlapBox, 1);
+       TagBox &dest = fabparray[tbmd.mergeIndexDest];
+       TagBox src(tbmd.overlapBox, 1);
        facd.FillFab(faid, tbmd.fillBoxId, src);
        for(ListIterator<TagBoxMergeDesc> tbmdliprev(tbmdList);
            tbmdliprev && tbmdliprev().nOverlap <= listIndex;
@@ -460,7 +460,7 @@ TagBoxArray::mergeUnique()
          ovlpBox &= tbmdliprev().overlapBox;
          if(ovlpBox.ok() && tbmdliprev().mergeIndexSrc == tbmd.mergeIndexSrc) {
            if(tbmdliprev().nOverlap < listIndex) {
-             src.setVal(TAGBOX::CLEAR, ovlpBox, 0);
+             src.setVal(TagBox::CLEAR, ovlpBox, 0);
            }
            FabComTag tbmdClear;
            tbmdClear.fabIndex = tbmd.mergeIndexSrc;
@@ -503,8 +503,8 @@ TagBoxArray::mergeUnique()
        if (!srcLocal)
            BoxLib::Error("tbmdClear.fabIndex is not local");
 
-       TAGBOX &src = fabparray[tbmdClear.fabIndex];
-       src.setVal(TAGBOX::CLEAR, tbmdClear.ovlpBox, 0);
+       TagBox &src = fabparray[tbmdClear.fabIndex];
+       src.setVal(TagBox::CLEAR, tbmdClear.ovlpBox, 0);
 
        ParallelDescriptor::ReceiveData(0, 0);  // To advance message header.
    }
@@ -518,10 +518,10 @@ TagBoxArray::mapPeriodic( const Geometry& geom)
 {
 /*  // vvvvvvvvvvvvvvvoriginal code vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
   Box domain(geom.Domain());
-  TAGBOX tagtmp;
+  TagBox tagtmp;
   //for( int i=0; i<fabparray.length(); i++ ){
-  for(FabArrayIterator<int, TAGBOX> fai(*this); fai.isValid(); ++fai) {
-    TAGBOX &src = fai();
+  for(FabArrayIterator<int, TagBox> fai(*this); fai.isValid(); ++fai) {
+    TagBox &src = fai();
     if( ! domain.contains( src.box() ) ){
       // src is candidate for periodic mapping
       Array<IntVect> pshifts(27);
@@ -534,7 +534,7 @@ TagBoxArray::mapPeriodic( const Geometry& geom)
 		shiftbox.shift(2,iv[2]); )
 	// possible periodic remapping, try each tagbox
 	for( int j=0; j<fabparray.length(); j++ ){
-	  TAGBOX& dest = fabparray[j];
+	  TagBox& dest = fabparray[j];
 	  Box intbox = dest.box() & shiftbox;
 	  if( intbox.ok() ){
 	    // ok, got a hit.  But be careful if is same TagBox
@@ -561,21 +561,21 @@ TagBoxArray::mapPeriodic( const Geometry& geom)
   }
 */
 
-  FabArrayCopyDescriptor<int, TAGBOX> facd(true);
+  FabArrayCopyDescriptor<int, TagBox> facd(true);
   FabArrayId faid = facd.RegisterFabArray(this);
   int myproc = ParallelDescriptor::MyProc();
   List<FillBoxId> fillBoxIdList;
   FillBoxId tempFillBoxId;
 
   Box domain(geom.Domain());
-  TAGBOX tagtmp;
+  TagBox tagtmp;
   int srcComp  = 0;
   int destComp = 0;
   int nComp    = n_comp;
   // this logic needs to be turned inside out to use a FabArrayIterator
-  //for(FabArrayIterator<int, TAGBOX> fai(*this); fai.isValid(); ++fai) {
+  //for(FabArrayIterator<int, TagBox> fai(*this); fai.isValid(); ++fai) {
   for(int i = 0; i < fabparray.length(); i++) {
-    //TAGBOX &src = fai();
+    //TagBox &src = fai();
     if( ! domain.contains( boxarray[i] ) ) {
       // src is candidate for periodic mapping
       Array<IntVect> pshifts(27);
@@ -591,7 +591,7 @@ TagBoxArray::mapPeriodic( const Geometry& geom)
           if(distributionMap[j] == myproc) {  // local dest fab
             // (possibly) communicate src
 
-            TAGBOX& dest = fabparray[j];
+            TagBox& dest = fabparray[j];
             Box intbox = dest.box() & shiftbox;
             if(intbox.ok()) {
               BoxList unfilledBoxes(intbox.ixType());
@@ -631,9 +631,9 @@ TagBoxArray::mapPeriodic( const Geometry& geom)
 
     int iFillBox = 0;
   // this logic needs to be turned inside out to use a FabArrayIterator
-  //for(FabArrayIterator<int, TAGBOX> fai(*this); fai.isValid(); ++fai) {
+  //for(FabArrayIterator<int, TagBox> fai(*this); fai.isValid(); ++fai) {
   for(int i = 0; i < fabparray.length(); i++) {
-    //TAGBOX &src = fai();
+    //TagBox &src = fai();
     if( ! domain.contains( boxarray[i] ) ) {
       // src is candidate for periodic mapping
       Array<IntVect> pshifts(27);
@@ -647,7 +647,7 @@ TagBoxArray::mapPeriodic( const Geometry& geom)
         // possible periodic remapping, try each tagbox
         for( int j=0; j<fabparray.length(); j++ ) {
           if(distributionMap[j] == myproc) {  // local dest fab
-            TAGBOX& dest = fabparray[j];
+            TagBox& dest = fabparray[j];
             Box intbox = dest.box() & shiftbox;
             if(intbox.ok()) {
               // ok, got a hit.  But be careful if is same TagBox
@@ -655,7 +655,7 @@ TagBoxArray::mapPeriodic( const Geometry& geom)
               if(i != j) {
                 FillBoxId fillboxid = fillBoxId[iFillBox];
                 ++iFillBox;
-                TAGBOX src(fillboxid.box(), n_comp);
+                TagBox src(fillboxid.box(), n_comp);
                 facd.FillFab(faid, fillboxid, src);
 
                 src.shift(iv);
@@ -665,7 +665,7 @@ TagBoxArray::mapPeriodic( const Geometry& geom)
                 // is same tagbox, must be careful
                 FillBoxId fillboxid = fillBoxId[iFillBox];
                 ++iFillBox;
-                TAGBOX src(fillboxid.box(), n_comp);  // this is on shintbox
+                TagBox src(fillboxid.box(), n_comp);  // this is on shintbox
                 facd.FillFab(faid, fillboxid, src);
 
                 tagtmp.resize(intbox);
@@ -691,7 +691,7 @@ int
 TagBoxArray::numTags() const 
 {
    int ntag = 0;
-   for(ConstFabArrayIterator<int, TAGBOX> fai(*this); fai.isValid(); ++fai) {
+   for(ConstFabArrayIterator<int, TagBox> fai(*this); fai.isValid(); ++fai) {
       ntag += fai().numTags();
    } 
    ParallelDescriptor::ReduceIntSum(ntag);
@@ -699,7 +699,7 @@ TagBoxArray::numTags() const
 }
 
 // ------------------------------------------------------------------------
-Array<INTVECT>* 
+Array<IntVect>* 
 TagBoxArray::colate() const
 {
    int myproc = ParallelDescriptor::MyProc();
@@ -711,8 +711,8 @@ TagBoxArray::colate() const
    }
 
    int len = numTags();
-   Array<INTVECT> *ar = new Array<INTVECT>(len);
-   for(ConstFabArrayIterator<int, TAGBOX> fai(*this); fai.isValid(); ++fai) {
+   Array<IntVect> *ar = new Array<IntVect>(len);
+   for(ConstFabArrayIterator<int, TagBox> fai(*this); fai.isValid(); ++fai) {
       sharedNTags[fai.index()] = fai().numTags();
    }
 
@@ -748,11 +748,11 @@ TagBoxArray::colate() const
         // copy the local IntVects into the shared array
         int *ivDest, *ivDestBase;
         const int *ivSrc;
-   //for(ConstFabArrayIterator<int, TAGBOX> fai(*this); fai.isValid(); ++fai) {
+   //for(ConstFabArrayIterator<int, TagBox> fai(*this); fai.isValid(); ++fai) {
       //int start = fai().colate(*ar, startOffset[fai.index()]);
    //}
 
-   for(ConstFabArrayIterator<int, TAGBOX> fai(*this); fai.isValid(); ++fai) {
+   for(ConstFabArrayIterator<int, TagBox> fai(*this); fai.isValid(); ++fai) {
       int start = fai().colate(*ar, startOffset[fai.index()]);
       ivDestBase = tmpPts + (startOffset[fai.index()] * BL_SPACEDIM);
       for(iPnt = 0; iPnt < sharedNTags[fai.index()]; ++iPnt) {
@@ -767,7 +767,7 @@ TagBoxArray::colate() const
         ParallelDescriptor::ShareVar(tmpPts, len * ivSize);
         ParallelDescriptor::Synchronize();  // for ShareVar
 
-   for(ConstFabArrayIterator<int, TAGBOX> fai(*this); fai.isValid(); ++fai) {
+   for(ConstFabArrayIterator<int, TagBox> fai(*this); fai.isValid(); ++fai) {
         ivDestBase = tmpPts + (startOffset[fai.index()] * BL_SPACEDIM);
         for(iProc = 0; iProc < nProcs; ++iProc) {
           if(iProc != myproc) {
@@ -796,9 +796,9 @@ TagBoxArray::colate() const
 }  // end colate()
 
 void
-TagBoxArray::setVal(BoxDomain &bd, TAGBOX::TagVal val)
+TagBoxArray::setVal(BoxDomain &bd, TagBox::TagVal val)
 {
-   for(FabArrayIterator<int, TAGBOX> fai(*this); fai.isValid(); ++fai) {
+   for(FabArrayIterator<int, TagBox> fai(*this); fai.isValid(); ++fai) {
       BoxDomainIterator bdi(bd);
       while(bdi) {
          Box bx(fai.validbox());
@@ -812,9 +812,9 @@ TagBoxArray::setVal(BoxDomain &bd, TAGBOX::TagVal val)
 }
 
 void
-TagBoxArray::setVal(BoxArray& ba, TAGBOX::TagVal val)
+TagBoxArray::setVal(BoxArray& ba, TagBox::TagVal val)
 {
-   for(FabArrayIterator<int, TAGBOX> fai(*this); fai.isValid(); ++fai) {
+   for(FabArrayIterator<int, TagBox> fai(*this); fai.isValid(); ++fai) {
       for(int j = 0; j < ba.length(); j++) {
          Box bx(fai.validbox());
 	 bx &= ba[j];
@@ -828,9 +828,9 @@ TagBoxArray::setVal(BoxArray& ba, TAGBOX::TagVal val)
 void 
 TagBoxArray::coarsen(const IntVect & ratio)
 {
-    for(FabArrayIterator<int, TAGBOX> fai(*this); fai.isValid(); ++fai) {
-       TAGBOX *tfine = fabparray.remove(fai.index());
-       TAGBOX *tcrse = tfine->coarsen(ratio);
+    for(FabArrayIterator<int, TagBox> fai(*this); fai.isValid(); ++fai) {
+       TagBox *tfine = fabparray.remove(fai.index());
+       TagBox *tcrse = tfine->coarsen(ratio);
        fabparray.set(fai.index(),tcrse);
        delete tfine;
     } 

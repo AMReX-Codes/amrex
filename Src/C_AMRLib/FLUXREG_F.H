@@ -35,47 +35,47 @@
 extern "C"
 {
 
-    void FORT_FRCRSEINIT (REAL* reg,       ARLIM_P(rlo), ARLIM_P(rhi),
-                          const REAL* flx, ARLIM_P(flo), ARLIM_P(fhi),
+    void FORT_FRCRSEINIT (Real* reg,       ARLIM_P(rlo), ARLIM_P(rhi),
+                          const Real* flx, ARLIM_P(flo), ARLIM_P(fhi),
                           const int* lo, const int* hi,
                           const int* numcomp, const int* dir,
-                          const REAL* mult);
+                          const Real* mult);
 
-    void FORT_FRCAINIT (REAL* reg,        ARLIM_P(rlo), ARLIM_P(rhi),
-                        const REAL* flx,  ARLIM_P(flo), ARLIM_P(fhi),
-                        const REAL* area, ARLIM_P(alo), ARLIM_P(ahi),
+    void FORT_FRCAINIT (Real* reg,        ARLIM_P(rlo), ARLIM_P(rhi),
+                        const Real* flx,  ARLIM_P(flo), ARLIM_P(fhi),
+                        const Real* area, ARLIM_P(alo), ARLIM_P(ahi),
                         const int* lo, const int* hi,
                         const int* numcomp, const int* dir,
-                        const REAL* mult);
+                        const Real* mult);
 
-    void FORT_FRFINEADD (REAL* reg,       ARLIM_P(rlo), ARLIM_P(rhi),
-                         const REAL* flx, ARLIM_P(flo), ARLIM_P(fhi),
+    void FORT_FRFINEADD (Real* reg,       ARLIM_P(rlo), ARLIM_P(rhi),
+                         const Real* flx, ARLIM_P(flo), ARLIM_P(fhi),
                          const int* numcomp, const int* dir,
-                         const int* ratio, const REAL* mult);
+                         const int* ratio, const Real* mult);
 
-    void FORT_FRFAADD (REAL* reg,        ARLIM_P(rlo), ARLIM_P(rhi),
-                       const REAL* flx,  ARLIM_P(flo), ARLIM_P(fhi),
-                       const REAL* area, ARLIM_P(alo), ARLIM_P(ahi),
+    void FORT_FRFAADD (Real* reg,        ARLIM_P(rlo), ARLIM_P(rhi),
+                       const Real* flx,  ARLIM_P(flo), ARLIM_P(fhi),
+                       const Real* area, ARLIM_P(alo), ARLIM_P(ahi),
                        const int* numcomp, const int* dir,
-                       const int* ratio, const REAL* mult);
+                       const int* ratio, const Real* mult);
 
-    void FORT_FRREFLUX (REAL* s,         ARLIM_P(slo), ARLIM_P(shi),
-			const REAL* vol, ARLIM_P(vlo), ARLIM_P(vhi),
-			const REAL* reg, ARLIM_P(rlo), ARLIM_P(rhi),
+    void FORT_FRREFLUX (Real* s,         ARLIM_P(slo), ARLIM_P(shi),
+			const Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
+			const Real* reg, ARLIM_P(rlo), ARLIM_P(rhi),
 			const int* lo, const int* hi,
-			const int* numcomp, const REAL* mult);
+			const int* numcomp, const Real* mult);
 
-    void FORT_FRCVREFLUX (REAL* s, ARLIM_P(slo), ARLIM_P(shi),
-			  const REAL* dx,
-			  const REAL* reg, ARLIM_P(rlo), ARLIM_P(rhi),
+    void FORT_FRCVREFLUX (Real* s, ARLIM_P(slo), ARLIM_P(shi),
+			  const Real* dx,
+			  const Real* reg, ARLIM_P(rlo), ARLIM_P(rhi),
 			  const int* lo, const int* hi,
-			  const int* numcomp, const REAL* mult);
+			  const int* numcomp, const Real* mult);
 
-    void FORT_SCALADDTO (REAL * flx,         ARLIM_P(flo), ARLIM_P(fhi),
-                         const REAL * area,  ARLIM_P(alo), ARLIM_P(ahi),
-                         REAL * reg,         ARLIM_P(rlo), ARLIM_P(rhi),
+    void FORT_SCALADDTO (Real * flx,         ARLIM_P(flo), ARLIM_P(fhi),
+                         const Real * area,  ARLIM_P(alo), ARLIM_P(ahi),
+                         Real * reg,         ARLIM_P(rlo), ARLIM_P(rhi),
                          const int * lo, const int * hi,
-                         const int * numcomp, const REAL * mult);
+                         const int * numcomp, const Real * mult);
 
 };
 #endif
