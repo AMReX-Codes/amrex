@@ -50,4 +50,9 @@ COPTF += -O2
 CDEBF += -g
 CPRFF +=
 
+EXE_OUTPUT_OPTION       = ; mv $*.o $(objEXETempDir)/$*.o
+LIB_OUTPUT_OPTION       = ; mv $*.o $(objTempDir)/$*.o
+FORT_EXE_OUTPUT_OPTION	= ; mv $*.o $(objEXETempDir)/$*.o
+FORT_LIB_OUTPUT_OPTION	= ; mv $*.o $(objTempDir)/$*.o
+
 FORTLINK = UPPERCASE
