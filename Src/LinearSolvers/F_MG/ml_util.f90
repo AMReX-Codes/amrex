@@ -5,11 +5,6 @@ module ml_util_module
 
   implicit none
 
-  private
-
-  public :: ml_fill_fluxes
-  public :: ml_fine_contrib
-
 contains
 
   subroutine ml_fill_fluxes(mgt, ss, flux, uu, mm, ratio, face, dim)

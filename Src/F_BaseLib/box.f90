@@ -1002,7 +1002,7 @@ contains
     call build(strm, unit_stdin(unit))
     c = bl_stream_peek_chr(strm)
     if ( c == 'b' ) then
-       call read_box
+       call read_box()
     else if ( c == '(' ) then
        call read_a_legacy_box()
     else 

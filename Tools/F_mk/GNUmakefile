@@ -564,6 +564,17 @@ else
 endif
 endif
 
+ifeq ($(COMP),g95)
+$(odir)/dsygv.o: dsygv.f
+	@if [ ! -d $(odir) ]; then mkdir -p $(odir); fi
+	@if [ ! -d $(mdir) ]; then mkdir -p $(mdir); fi
+ifdef NDEBUG
+	$(FC)    -c -o $(odir)/dsygv.o dsygv.f
+else
+	$(FC) -g -c -o $(odir)/dsygv.o dsygv.f
+endif
+endif
+
 ifdef MPI
 $(odir)/mpi.o: mpi.f
 	@if [ ! -d $(odir) ]; then mkdir -p $(odir); fi

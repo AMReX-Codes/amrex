@@ -1,4 +1,4 @@
-!! Conveniet definitions of numerical constants.  This should not
+!! Convenient definitions of numerical constants.  This should not
 !! be considered an exhaustive list of such constants.
 module bl_constants_module
 
@@ -31,6 +31,7 @@ module bl_constants_module
   real(kind = dp_t), parameter :: TWO3RD = TWO/THREE
 
   !! Pi
-  real(kind = dp_t), parameter :: M_PI   = 3.1415926535897932385_dp_t
+  real(kind = dp_t), parameter :: M_PI   = &
+       3.141592653589793238462643383279502884197_dp_t
 
 end module
