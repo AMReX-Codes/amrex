@@ -1,5 +1,5 @@
 //
-// $Id: DistributionMapping.cpp,v 1.63 2003-02-26 18:07:08 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.64 2003-03-06 22:34:56 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -322,6 +322,8 @@ std::vector< std::list<int> >
 knapsack (const std::vector<long>& pts, int nprocs)
 {
     BL_PROFILE("knapsack()");
+
+    const Real strttime = ParallelDescriptor::second();
     //
     // Sort balls by size largest first.
     //
@@ -459,6 +461,14 @@ top:
         }
         ++cit;
     }
+
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      stoptime = ParallelDescriptor::second() - strttime;
+
+    ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+
+    if (ParallelDescriptor::IOProcessor())
+        std::cout << "knapsack() time: " << stoptime << std::endl;
 
     return result;
 }
@@ -606,6 +616,8 @@ MinimizeCommCosts (std::vector<int>&        procmap,
     BL_ASSERT(procmap.size() >= ba.size());
 
     if (nprocs < 2) return;
+
+    const Real strttime = ParallelDescriptor::second();
     //
     // Build a data structure that'll tell us who are our neighbors.
     //
@@ -774,6 +786,14 @@ MinimizeCommCosts (std::vector<int>&        procmap,
                   << double(mn)/double(mx)
                   << '\n';
     }
+
+    const int IOProc   = ParallelDescriptor::IOProcessorNumber();
+    Real      stoptime = ParallelDescriptor::second() - strttime;
+
+    ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+
+    if (ParallelDescriptor::IOProcessor())
+        std::cout << "MinimizeCommCosts() time: " << stoptime << std::endl;
 }
 
 void
