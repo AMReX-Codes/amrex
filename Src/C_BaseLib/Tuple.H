@@ -2,7 +2,7 @@
 #define BL_TUPLE_H
 
 //
-// $Id: Tuple.H,v 1.14 2004-01-07 21:18:19 car Exp $
+// $Id: Tuple.H,v 1.15 2004-02-19 18:17:54 car Exp $
 //
 
 #include <cstdlib>
@@ -76,7 +76,12 @@ protected:
 template <class T, std::size_t N>
 inline
 Tuple<T,N>::Tuple()
-{}
+{
+    for ( std::size_t i = 0; i < N; ++i )
+    {
+        vect[i] = T();
+    }
+}
 
 template <class T, std::size_t N>
 inline
