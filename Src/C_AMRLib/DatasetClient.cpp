@@ -61,7 +61,8 @@ bool CreateSocket(int &newsocket) {
     cerr << "gethostbyname on " << serverhost << " failed" << endl;
     return false;
   }
-  bcopy(serverhostp->h_addr, (char *)&(serveraddr.sin_addr.s_addr),
+  u_long sAddr(serveraddr.sin_addr.s_addr);
+  bcopy(serverhostp->h_addr, (char *) &sAddr,
         serverhostp->h_length);
   serveraddr.sin_port = htons(GETUID_SERVER_PORT);
 
