@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.23 1998-11-24 19:22:57 lijewski Exp $
+// $Id: Geometry.H,v 1.24 1998-12-01 21:56:39 lijewski Exp $
 //
 
 #include <CoordSys.H>
@@ -253,13 +253,12 @@ protected:
                 m_ba == rhs.m_ba;
         }
 
-        Array<int> m_cache;  // Snds cached for CollectData().
-        PIRMMap    m_pirm;
-        BoxArray   m_ba;
-        Box        m_domain;
-        int        m_ngrow;
-        bool       m_no_overlap;
-        bool       m_do_corners;
+        PIRMMap  m_pirm;
+        BoxArray m_ba;
+        Box      m_domain;
+        int      m_ngrow;
+        bool     m_no_overlap;
+        bool     m_do_corners;
     };
     //
     // A useful typedef.
@@ -272,11 +271,11 @@ protected:
     //
     // Helper functions for FillPeriodicBoundary(). 
     //
-    FPB& getPIRMMap (MultiFab&  mf,
-                     const FPB& fpb) const;
+    PIRMMap& getPIRMMap (MultiFab&  mf,
+                         const FPB& fpb) const;
 
-    FPB& buildPIRMMap (MultiFab&  mf,
-                       const FPB& fpb) const;
+    PIRMMap& buildPIRMMap (MultiFab&  mf,
+                           const FPB& fpb) const;
     //
     // Static data.
     //
@@ -395,7 +394,7 @@ Geometry::PIRMCacheSize ()
 }
 
 inline
-Geometry::FPB&
+Geometry::PIRMMap&
 Geometry::getPIRMMap (MultiFab&  mf,
                       const FPB& fpb) const
 {
@@ -411,7 +410,7 @@ Geometry::getPIRMMap (MultiFab&  mf,
     {
         if (*it == fpb)
         {
-            return *it;
+            return (*it).m_pirm;
         }
     }
 

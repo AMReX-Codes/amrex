@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.36 1998-11-24 19:22:57 lijewski Exp $
+// $Id: Geometry.cpp,v 1.37 1998-12-01 21:56:39 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -72,7 +72,7 @@ Geometry::FlushPIRMCache ()
     m_FPBCache.clear();
 }
 
-Geometry::FPB&
+Geometry::PIRMMap&
 Geometry::buildPIRMMap (MultiFab&  mf,
                         const FPB& fpb) const
 {
@@ -160,7 +160,7 @@ Geometry::buildPIRMMap (MultiFab&  mf,
         }
     }
 
-    return m_FPBCache.front();
+    return pirm;
 }
 
 void
@@ -184,9 +184,7 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
     const FPB fpb(mf.boxArray(),Domain(),mf.nGrow(),no_overlap,do_corners);
 
-    FPB& the_fpb = getPIRMMap(mf,fpb);
-
-    PIRMMap& pirm = the_fpb.m_pirm;
+    PIRMMap& pirm = getPIRMMap(mf,fpb);
 
     const MultiFabId mfid = 0;
     //
@@ -206,7 +204,7 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
         }
     }
 
-    mfcd.CollectData(&the_fpb.m_cache);
+    mfcd.CollectData();
 
     const int MyProc = ParallelDescriptor::MyProc();
 
