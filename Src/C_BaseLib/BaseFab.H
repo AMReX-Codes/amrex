@@ -2,7 +2,7 @@
 #define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.28 2001-07-17 23:02:18 lijewski Exp $
+// $Id: BaseFab.H,v 1.29 2001-07-19 16:57:30 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -13,11 +13,6 @@
 #include <CArena.H>
 #include <Looping.H>
 #include <PArray.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 //
 //@Man:
@@ -973,12 +968,5 @@ BaseFab<T>::setComplement (T          x,
     for (BoxListIterator bli(b_lst); bli; ++bli)
         performSetVal(x,bli(),ns,num);
 }
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*BL_BASEFAB_H*/

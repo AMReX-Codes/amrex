@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.43 2001-07-17 23:02:28 lijewski Exp $
+// $Id: Utility.cpp,v 1.44 2001-07-19 16:57:37 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -50,11 +50,6 @@ const char* path_sep_str = "/";
 //
 #if defined(__GNUG__) && defined(__sun) && defined(BL_SunOS)
 extern "C" int gettimeofday (struct timeval*, struct timezone*);
-#endif
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
 #endif
 
 double
@@ -550,9 +545,5 @@ Utility::Execute (const char* cmd)
     }
 
     return pid;
-}
-#endif
-
-#ifdef BL_NAMESPACE
 }
 #endif

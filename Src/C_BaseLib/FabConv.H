@@ -2,7 +2,7 @@
 #define BL_FABCONV_H
 
 //
-// $Id: FabConv.H,v 1.10 2001-07-17 23:02:21 lijewski Exp $
+// $Id: FabConv.H,v 1.11 2001-07-19 16:57:32 lijewski Exp $
 //
 
 #include <iostream>
@@ -10,11 +10,6 @@
 #include <Array.H>
 #include <BLassert.H>
 #include <REAL.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 //
 //@Man:
@@ -246,12 +241,5 @@ protected:
     Array<int>  ord;
     static bool bAlwaysFixDenormals;
 };
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*BL_FABCONV_H*/

@@ -1,15 +1,10 @@
 //
-// $Id: BoxList.cpp,v 1.10 2001-07-17 23:02:20 lijewski Exp $
+// $Id: BoxList.cpp,v 1.11 2001-07-19 16:57:31 lijewski Exp $
 //
 
 #include <algorithm>
 
 #include <BoxList.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 BoxList::~BoxList()
 {}
@@ -90,11 +85,8 @@ BoxList::isNotEmpty () const
 bool
 BoxList::contains (const Box& b) const
 {
-#ifndef BL_NAMESPACE
     BoxList bnew = ::complementIn(b,*this);
-#else
-    BoxList bnew = BL_NAMESPACE::complementIn(b,*this);
-#endif
+
     return bnew.isEmpty();
 }
 
@@ -725,9 +717,3 @@ BoxList::operator== (const BoxList& rhs) const
     }
     return rc;
 }
-
-
-#ifdef BL_NAMESPACE
-}
-#endif
-

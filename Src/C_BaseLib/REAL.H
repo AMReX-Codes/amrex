@@ -2,7 +2,7 @@
 #define BL_REAL_H
 
 /*
- * $Id: REAL.H,v 1.7 2001-07-17 23:14:38 car Exp $
+ * $Id: REAL.H,v 1.8 2001-07-19 16:57:36 lijewski Exp $
  */
 
 #ifdef BL_USE_FLOAT
@@ -31,11 +31,6 @@
 
 #if !defined(BL_LANG_FORT)
 
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
-
 /*@ManDoc: 
   Real is a typedef specifying the precision of the floating-point
   calculations in C++ code.  It will be either `float' or `double'
@@ -52,10 +47,6 @@ namespace BL_NAMESPACE
     typedef float Real;
 #else
     typedef double Real;
-#endif
-
-#ifdef BL_NAMESPACE
-}
 #endif
 
 #else

@@ -2,7 +2,7 @@
 #define BL_BOXDOMAIN_H
 
 //
-// $Id: BoxDomain.H,v 1.13 2001-07-17 23:02:19 lijewski Exp $
+// $Id: BoxDomain.H,v 1.14 2001-07-19 16:57:31 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -12,12 +12,6 @@
 #include <Box.H>
 #include <IntVect.H>
 #include <BoxList.H>
-
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 //
 // Forward declaration of our BoxDomain iterator class.
@@ -252,12 +246,5 @@ public:
         :
         ListIterator<Box>(bl.lbox) {}
 };
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*BL_BOXDOMAIN_H*/

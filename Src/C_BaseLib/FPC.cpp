@@ -1,14 +1,8 @@
 //
-// $Id: FPC.cpp,v 1.5 2001-07-17 23:02:21 lijewski Exp $
+// $Id: FPC.cpp,v 1.6 2001-07-19 16:57:32 lijewski Exp $
 //
 
 #include <FPC.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
-
 //
 // FP orders.
 //
@@ -129,9 +123,5 @@ FPC::Ieee64NormalRealDescriptor ()
       defined(_MSC_VER) || \
       defined(_AIX))
 #error We do not yet support FAB I/O on this machine
-#endif
-
-#ifdef BL_NAMESPACE
-}
 #endif
 

@@ -2,18 +2,13 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.54 2001-07-17 23:14:13 car Exp $
+// $Id: ParallelDescriptor.H,v 1.55 2001-07-19 16:57:34 lijewski Exp $
 //
 
 #include <BLassert.H>
 #include <REAL.H>
 #include <Box.H>
 #include <ccse-mpi.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 //
 // Used for collecting information used in communicating FABs.
@@ -357,12 +352,5 @@ class ParallelDescriptor
 
     enum { ioProcessor = 0 };
 };
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*BL_PARALLELDESCRIPTOR_H*/

@@ -2,7 +2,7 @@
 #define BL_ORDEREDFAB_H
 
 //
-// $Id: OrderedFab.H,v 1.6 2001-07-17 23:02:25 lijewski Exp $
+// $Id: OrderedFab.H,v 1.7 2001-07-19 16:57:34 lijewski Exp $
 //
 
 #include <iostream>
@@ -10,11 +10,6 @@
 
 #include <BaseFab.H>
 #include <Looping.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 //
 //@Man:
@@ -500,12 +495,5 @@ OrderedFab<T>::maskGE(BaseFab<int>& mask,
 
     return cnt;
 }
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*BL_ORDEREDFAB_H*/

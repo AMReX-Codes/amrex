@@ -2,7 +2,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.45 2001-07-17 23:02:29 lijewski Exp $
+// $Id: VisMF.H,v 1.46 2001-07-19 16:57:37 lijewski Exp $
 //
 
 #include <MultiFab.H>
@@ -14,11 +14,6 @@
 
   Wrapper class for reading/writing MultiFabs to disk in various "smart" ways.
 */
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 class VisMF
 {
@@ -261,12 +256,5 @@ std::ostream& operator<< (std::ostream& os, const VisMF::Header& hd);
 // Read a VisMF::Header from an istream.
 //
 std::istream& operator>> (std::istream& is, VisMF::Header& hd);
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*BL_VISMF_H*/

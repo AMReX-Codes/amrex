@@ -1,16 +1,11 @@
 //
-// $Id: IndexType.cpp,v 1.9 2001-07-17 23:02:22 lijewski Exp $
+// $Id: IndexType.cpp,v 1.10 2001-07-19 16:57:33 lijewski Exp $
 //
 
 #include <iostream>
 #include <iomanip>
 
 #include <IndexType.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 int
 IndexType::mask (int k)
@@ -197,10 +192,3 @@ operator>> (std::istream& is,
 
     return is;
 }
-
-
-
-#ifdef BL_NAMESPACE
-}
-#endif
-

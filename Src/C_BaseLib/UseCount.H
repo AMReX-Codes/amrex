@@ -2,16 +2,11 @@
 #define BL_USECOUNT_H
 
 //
-// $Id: UseCount.H,v 1.9 2001-07-17 23:02:28 lijewski Exp $
+// $Id: UseCount.H,v 1.10 2001-07-19 16:57:37 lijewski Exp $
 //
 
 #include <BLassert.H>
 #include <BoxLib.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 //
 //@Man:
@@ -123,12 +118,5 @@ UseCount::linkCount () const
 {
     return *cnt;
 }
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*BL_USECOUNT_H*/

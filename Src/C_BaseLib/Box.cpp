@@ -1,5 +1,5 @@
 //
-// $Id: Box.cpp,v 1.13 2001-07-18 23:07:06 lijewski Exp $
+// $Id: Box.cpp,v 1.14 2001-07-19 16:57:30 lijewski Exp $
 //
 
 #include <climits>
@@ -7,11 +7,6 @@
 #include <BLassert.H>
 #include <BoxLib.H>
 #include <Box.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 const Box&
 Box::TheUnitBox ()
@@ -343,30 +338,30 @@ Box::enclosedCells (int dir)
 }
 
 Box
-surroundingNodes (const Box& b,
-                  int        dir)
+BoxLib::surroundingNodes (const Box& b,
+                          int        dir)
 {
     Box bx(b);
     return bx.surroundingNodes(dir);
 }
 
 Box
-surroundingNodes (const Box& b)
+BoxLib::surroundingNodes (const Box& b)
 {
     Box bx(b);
     return bx.surroundingNodes();
 }
 
 Box
-enclosedCells (const Box& b,
-               int        dir)
+BoxLib::enclosedCells (const Box& b,
+                       int        dir)
 {
     Box bx(b);
     return bx.enclosedCells(dir);
 }
 
 Box
-enclosedCells (const Box& b)
+BoxLib::enclosedCells (const Box& b)
 {
     Box bx(b);
     return bx.enclosedCells();
@@ -417,8 +412,8 @@ Box::grow (int i)
 }
 
 Box
-grow (const Box& b,
-      int        i)
+BoxLib::grow (const Box& b,
+              int        i)
 {
     IntVect small = diagShift(b.smallend,-i);
     IntVect big   = diagShift(b.bigend,i);
@@ -434,8 +429,8 @@ Box::grow (const IntVect& v)
 }
 
 Box
-grow (const Box&     b,
-      const IntVect& v)
+BoxLib::grow (const Box&     b,
+              const IntVect& v)
 {
     IntVect small = b.smallend - v;
     IntVect big   = b.bigend   + v;
@@ -895,8 +890,8 @@ Box::convert (IndexType t)
 //
 
 Box
-refine (const Box& b,
-        int        refinement_ratio)
+BoxLib::refine (const Box& b,
+                int        refinement_ratio)
 {
     IntVect small(b.smallend);
     small.scale(refinement_ratio);
@@ -910,8 +905,8 @@ refine (const Box& b,
 }
 
 Box
-refine (const Box&     b,
-        const IntVect& refinement_ratio)
+BoxLib::refine (const Box&     b,
+                const IntVect& refinement_ratio)
 {
     IntVect small(b.smallend);
     small *= refinement_ratio;
@@ -958,8 +953,8 @@ Box::coarsen (const IntVect& refinement_ratio)
 }
 
 Box
-coarsen (const Box& b,
-         int  refinement_ratio)
+BoxLib::coarsen (const Box& b,
+                 int        refinement_ratio)
 {
     IntVect small(b.smallend);
     small.coarsen(refinement_ratio);
@@ -1008,8 +1003,8 @@ Box::coarsen (int refinement_ratio)
 }
 
 Box
-coarsen (const Box&     b,
-         const IntVect& refinement_ratio)
+BoxLib::coarsen (const Box&     b,
+                 const IntVect& refinement_ratio)
 {
     IntVect small(b.smallend);
     small.coarsen(refinement_ratio);
@@ -1038,8 +1033,8 @@ coarsen (const Box&     b,
 //
 
 std::ostream&
-operator<< (std::ostream& os,
-            const Box&    b)
+BoxLib::operator<< (std::ostream& os,
+                    const Box&    b)
 {
     os << '('
        << b.smallend << ' '
@@ -1059,8 +1054,8 @@ operator<< (std::ostream& os,
 #define BL_IGNORE_MAX 100000
 
 std::istream&
-operator>> (std::istream& is,
-            Box&          b)
+BoxLib::operator>> (std::istream& is,
+                    Box&          b)
 {
     is >> std::ws;
     char c;
@@ -1110,8 +1105,8 @@ Box::minBox (const Box &b)
 }
 
 Box
-minBox (const Box& b,
-        const Box& o)
+BoxLib::minBox (const Box& b,
+                const Box& o)
 {
     BL_ASSERT(b.ok() && o.ok());
     BL_ASSERT(o.sameType(b));
@@ -1127,9 +1122,9 @@ minBox (const Box& b,
 //
 
 Box
-bdryLo (const Box& b,
-        int        dir,
-        int        len)
+BoxLib::bdryLo (const Box& b,
+                int        dir,
+                int        len)
 {
     IntVect low(b.smallend);
     IntVect hi(b.bigend);
@@ -1144,9 +1139,9 @@ bdryLo (const Box& b,
 }
 
 Box
-bdryHi (const Box& b,
-        int        dir,
-        int        len)
+BoxLib::bdryHi (const Box& b,
+                int        dir,
+                int        len)
 {
     IntVect low(b.smallend);
     IntVect hi(b.bigend);
@@ -1163,9 +1158,9 @@ bdryHi (const Box& b,
 }
 
 Box
-bdryNode (const Box&         b,
-          const Orientation& face,
-          int                len)
+BoxLib::bdryNode (const Box&         b,
+                  const Orientation& face,
+                  int                len)
 {
     int dir = face.coordDir();
     IntVect low(b.smallend);
@@ -1191,9 +1186,9 @@ bdryNode (const Box&         b,
 }
 
 Box
-adjCellLo (const Box& b,
-           int        dir,
-           int        len)
+BoxLib::adjCellLo (const Box& b,
+                   int        dir,
+                   int        len)
 {
     BL_ASSERT(len > 0);
     IntVect low(b.smallend);
@@ -1210,9 +1205,9 @@ adjCellLo (const Box& b,
 }
 
 Box
-adjCellHi (const Box& b,
-           int        dir,
-           int        len)
+BoxLib::adjCellHi (const Box& b,
+                   int        dir,
+                   int        len)
 {
     BL_ASSERT(len > 0);
     IntVect low(b.smallend);
@@ -1230,9 +1225,9 @@ adjCellHi (const Box& b,
 }
 
 Box
-adjCell (const Box&         b,
-         const Orientation& face,
-         int                len)
+BoxLib::adjCell (const Box&         b,
+                 const Orientation& face,
+                 int                len)
 {
     BL_ASSERT(len > 0);
     IntVect low(b.smallend);
@@ -1258,8 +1253,3 @@ adjCell (const Box&         b,
     typ.unset(dir);
     return Box(low,hi,typ);
 }
-
-#ifdef BL_NAMESPACE
-}
-#endif
-

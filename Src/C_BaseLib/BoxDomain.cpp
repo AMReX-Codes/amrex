@@ -1,13 +1,8 @@
 //
-// $Id: BoxDomain.cpp,v 1.7 2001-07-17 23:02:19 lijewski Exp $
+// $Id: BoxDomain.cpp,v 1.8 2001-07-19 16:57:31 lijewski Exp $
 //
 
 #include <BoxDomain.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 const Box&
 BoxDomain::operator[] (const BoxDomainIterator& bli) const
@@ -291,8 +286,4 @@ operator<< (std::ostream&    os,
         BoxLib::Error("operator<<(ostream&,BoxDomain&) failed");
     return os;
 }
-
-#ifdef BL_NAMESPACE
-}
-#endif
 

@@ -2,7 +2,7 @@
 #define _RUNSTATS_H_ 
 
 //
-// $Id: RunStats.H,v 1.12 2001-07-17 23:14:13 car Exp $
+// $Id: RunStats.H,v 1.13 2001-07-19 16:57:36 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -14,11 +14,6 @@
 #include <List.H>
 #include <Array.H>
 #include <ParallelDescriptor.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 class RunStatsData
 {
@@ -169,12 +164,5 @@ private:
     static List<RunStatsData> TheStats;    // List of RunStatsData.
     static bool               Initialized; // init()'s been called?
 };
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*_RUNSTATS_H_*/

@@ -2,7 +2,7 @@
 #define BL_NORMEDFAB_H
 
 //
-// $Id: NormedFab.H,v 1.10 2001-07-18 20:40:29 car Exp $
+// $Id: NormedFab.H,v 1.11 2001-07-19 16:57:33 lijewski Exp $
 //
 
 #include <algorithm>
@@ -13,11 +13,6 @@
 #include <Looping.H>
 #include <BaseFab.H>
 #include <REAL.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 //
 //@Man:
@@ -302,13 +297,6 @@ NormedFab<Real>::norm (const Box& subbox,
 
     return nrm;
 }
-#endif
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
 #endif
 
 #endif /*BL_NORMEDFAB_H*/

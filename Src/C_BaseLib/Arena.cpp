@@ -1,14 +1,9 @@
 //
-// $Id: Arena.cpp,v 1.1 2001-07-19 15:26:47 lijewski Exp $
+// $Id: Arena.cpp,v 1.2 2001-07-19 16:57:30 lijewski Exp $
 //
 
 #include <Arena.H>
 #include <BoxLib.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 Arena::~Arena () {}
 
@@ -19,8 +14,3 @@ Arena::align (size_t s)
     x -= x%sizeof(Word);
     return x;
 }
-
-#ifdef BL_NAMESPACE
-}
-#endif
-

@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.123 2001-07-18 23:07:06 lijewski Exp $
+// $Id: FabArray.H,v 1.124 2001-07-19 16:57:32 lijewski Exp $
 //
 
 #include <climits>
@@ -26,11 +26,6 @@
 #include <ccse-mpi.H>
 
 #include <Profiler.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 class FillBoxId
 {
@@ -956,11 +951,7 @@ FabArray<T,FAB>::fabbox (int K) const
     //
     // Do not use fabparray[K] because it may not be valid in parallel.
     //
-#ifndef BL_NAMESPACE
     return ::grow(boxarray[K], n_grow);
-#else
-    return BL_NAMESPACE::grow(boxarray[K], n_grow);
-#endif
 }
 
 template <class T, class FAB>
@@ -1069,13 +1060,8 @@ FabArray<T,FAB>::ok () const
     {
         if (fabparray.defined(fai.index()))
         {
-#ifndef BL_NAMESPACE
             if (fai().box() != ::grow(box(fai.index()),n_grow))
                 isok = 0;
-#else
-            if (fai().box() != BL_NAMESPACE::grow(box(fai.index()),n_grow))
-                isok = 0;
-#endif
         }
         else
         {
@@ -1148,11 +1134,8 @@ FabArray<T,FAB>::AllocFabs ()
 {
     for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
-#ifndef BL_NAMESPACE
         Box tmp = ::grow(fai.validbox(), n_grow);
-#else
-        Box tmp = BL_NAMESPACE::grow(fai.validbox(), n_grow);
-#endif
+
         fabparray.set(fai.index(), new FAB(tmp, n_comp));
     }
 }
@@ -1171,11 +1154,7 @@ FabArray<T,FAB>::setFab (int  boxno,
 
     BL_ASSERT(n_comp == elem->nComp());
     BL_ASSERT(boxarray.ready());
-#ifndef BL_NAMESPACE
     BL_ASSERT(elem->box() == ::grow(boxarray[boxno],n_grow));
-#else
-    BL_ASSERT(elem->box() == BL_NAMESPACE::grow(boxarray[boxno],n_grow));
-#endif
     BL_ASSERT(!fabparray.defined(boxno));
     BL_ASSERT(distributionMap[boxno] == ParallelDescriptor::MyProc());
 
@@ -1545,11 +1524,7 @@ FabArray<T,FAB>::setVal (T   val,
 
     for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
-#ifndef BL_NAMESPACE
         fai().setVal(val,::grow(fai.validbox(),nghost), comp, ncomp);
-#else
-        fai().setVal(val, BL_NAMESPACE::grow(fai.validbox(),nghost), comp, ncomp);
-#endif
     }
 }
 
@@ -1566,11 +1541,7 @@ FabArray<T,FAB>::setVal (T          val,
 
     for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
-#ifndef BL_NAMESPACE
         Box b = ::grow(fai.validbox(),nghost) & region;
-#else
-        Box b = BL_NAMESPACE::grow(fai.validbox(),nghost) & region;
-#endif
 
         if (b.ok())
             fai().setVal(val, b, comp, ncomp);
@@ -2645,12 +2616,5 @@ FabArrayCopyDescriptor<T,FAB>::PrintStats () const
              << '\n';
     }
 }
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*BL_FABARRAY_H*/

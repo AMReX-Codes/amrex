@@ -1,14 +1,9 @@
 //
-// $Id: Orientation.cpp,v 1.5 2001-07-17 23:02:26 lijewski Exp $
+// $Id: Orientation.cpp,v 1.6 2001-07-19 16:57:34 lijewski Exp $
 //
 
 #include <BoxLib.H>
 #include <Orientation.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 Orientation::Orientation (int _val)
     : val(_val)
@@ -237,8 +232,4 @@ operator>> (std::istream& is,
 
     return is;
 }
-
-#ifdef BL_NAMESPACE
-}
-#endif
 

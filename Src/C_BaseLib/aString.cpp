@@ -1,16 +1,11 @@
 //
-// $Id: aString.cpp,v 1.11 2001-07-17 23:02:30 lijewski Exp $
+// $Id: aString.cpp,v 1.12 2001-07-19 16:57:38 lijewski Exp $
 //
 
 #include <cctype>
 
 #include <BLassert.H>
 #include <aString.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 StringRep::StringRep (int _len)
 {
@@ -454,8 +449,4 @@ aString::tokenize (const aString& separators) const
 
     return tokens;
 }
-
-#ifdef BL_NAMESPACE
-}
-#endif
 

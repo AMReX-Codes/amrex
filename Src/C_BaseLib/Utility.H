@@ -2,7 +2,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.34 2001-07-17 23:02:28 lijewski Exp $
+// $Id: Utility.H,v 1.35 2001-07-19 16:57:37 lijewski Exp $
 //
 
 #include <iostream>
@@ -14,11 +14,6 @@
 
 #include <aString.H>
 #include <REAL.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 //
 //@Man:
@@ -307,13 +302,5 @@ public:
   istream::ignore() was passed INT\_MAX.
 */
 #define BL_IGNORE_MAX 100000
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
-
 
 #endif /*BL_UTILITY_H*/

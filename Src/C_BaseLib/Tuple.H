@@ -2,17 +2,12 @@
 #define BL_TUPLE_H
 
 //
-// $Id: Tuple.H,v 1.10 2001-07-17 23:02:28 lijewski Exp $
+// $Id: Tuple.H,v 1.11 2001-07-19 16:57:37 lijewski Exp $
 //
 
 #include <cstdlib>
 
 #include <BLassert.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 //
 //@Man:
@@ -136,12 +131,5 @@ Tuple<T,N>::operator= (const Tuple<T,N>& rhs)
         vect[i] = rhs.vect[i];
     return *this;
 }
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*BL_TUPLE_H*/

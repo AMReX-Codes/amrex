@@ -2,7 +2,7 @@
 #define BL_ASTRING_H
 
 //
-// $Id: aString.H,v 1.12 2001-07-17 23:02:30 lijewski Exp $
+// $Id: aString.H,v 1.13 2001-07-19 16:57:37 lijewski Exp $
 //
 
 #include <iostream>
@@ -13,11 +13,6 @@
 #include <BLassert.H>
 #include <BoxLib.H>
 #include <Pointers.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 //
 // Helper class for class aString.
@@ -302,12 +297,5 @@ private:
     friend bool operator>  (const char*    left,
                             const aString& right);
 };
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*BL_ASTRING_H*/

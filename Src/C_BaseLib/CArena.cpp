@@ -1,5 +1,5 @@
 //
-// $Id: CArena.cpp,v 1.23 2001-07-17 23:02:20 lijewski Exp $
+// $Id: CArena.cpp,v 1.24 2001-07-19 16:57:31 lijewski Exp $
 //
 
 #include <iostream>
@@ -14,36 +14,17 @@
 // Only really use the coalescing FAB arena if BL_COALESCE_FABS.
 //
 #ifdef BL_COALESCE_FABS
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 static CArena The_Static_FAB_CArena;
 Arena* The_FAB_Arena = &The_Static_FAB_CArena;
-#ifdef BL_NAMESPACE
-}
-#endif
 
 #else
-#include <BArena.H>
 
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
+#include <BArena.H>
 
 static BArena The_Static_FAB_BArena;
 Arena* The_FAB_Arena = &The_Static_FAB_BArena;
-#ifdef BL_NAMESPACE
-}
-#endif
 
-#endif
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
 #endif
 
 CArena::CArena (size_t hunk_size)
@@ -266,8 +247,3 @@ CArena::realloc (void*  ptr,
         return ptr;
     }
 }
-
-#ifdef BL_NAMESPACE
-}
-#endif
-

@@ -2,7 +2,7 @@
 #define BL_PARMPARSE_H
 
 //
-// $Id: ParmParse.H,v 1.11 2001-07-17 23:02:26 lijewski Exp $
+// $Id: ParmParse.H,v 1.12 2001-07-19 16:57:34 lijewski Exp $
 //
 
 #include <iostream>
@@ -12,12 +12,6 @@
 #include <aString.H>
 #include <List.H>
 #include <Array.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
-
 //
 // ParmParse class implements a simple database for the storage and
 // retrieval of command-line and input-file arguments.  The entries are
@@ -780,12 +774,5 @@ private:
 
     void dump (std::ostream& os) const;
 };
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*BL_PARMPARSE_H*/

@@ -2,7 +2,7 @@
 #define BL_PARRAY_H
 
 //
-// $Id: PArray.H,v 1.15 2001-07-17 23:02:26 lijewski Exp $
+// $Id: PArray.H,v 1.16 2001-07-19 16:57:34 lijewski Exp $
 //
 
 #include <iostream>
@@ -16,11 +16,6 @@
          manages the pointed to objects, as well as the pointer itself.
          Valid values are PArrayNoManage and PArrayManage.
 */
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 enum PArrayPolicy
 {
@@ -347,12 +342,5 @@ PArray<T>::resize (int          newlen,
         managed = newmanagedpolicy;
     }
 }
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*BL_PARRAY_H*/

@@ -2,18 +2,13 @@
 #define BL_ORIENTATION_H
 
 //
-// $Id: Orientation.H,v 1.11 2001-07-17 23:02:26 lijewski Exp $
+// $Id: Orientation.H,v 1.12 2001-07-19 16:57:34 lijewski Exp $
 //
 
 #include <iostream>
 
 #include <BLassert.H>
 #include <SPACE.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 class OrientationIter;
 
@@ -199,12 +194,5 @@ protected:
     //
     bool ok () const;
 };
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*BL_ORIENTATION_H*/

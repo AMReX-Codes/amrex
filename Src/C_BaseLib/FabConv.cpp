@@ -1,5 +1,5 @@
 //
-// $Id: FabConv.cpp,v 1.12 2001-07-17 23:02:21 lijewski Exp $
+// $Id: FabConv.cpp,v 1.13 2001-07-19 16:57:33 lijewski Exp $
 //
 
 #include <iostream>
@@ -12,12 +12,6 @@
 #include <FArrayBox.H>
 #include <FPC.H>
 #include <REAL.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
-
 //
 // Declarations of Cray-specific FP format to IEEE routines.
 //
@@ -1409,8 +1403,4 @@ RealDescriptor::convertFromNativeFormat (std::ostream&         os,
 
     delete [] bufr;
 }
-
-#ifdef BL_NAMESPACE
-}
-#endif
 

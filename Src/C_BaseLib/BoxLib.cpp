@@ -1,5 +1,5 @@
 //
-// $Id: BoxLib.cpp,v 1.15 2001-07-18 23:07:06 lijewski Exp $
+// $Id: BoxLib.cpp,v 1.16 2001-07-19 16:57:31 lijewski Exp $
 //
 
 #include <cstdio>
@@ -10,11 +10,6 @@
 #include <BoxLib.H>
 #include <BLVERSION.H>
 #include <ParallelDescriptor.H>
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 #define bl_str(s)  # s
 #define bl_xstr(s) bl_str(s)
@@ -139,7 +134,3 @@ BoxLib::OutOfMemory (const char* file,
 {
     BoxLib::Assert("operator new", file, line);
 }
-
-#ifdef BL_NAMESPACE
-}
-#endif

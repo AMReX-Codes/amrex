@@ -2,7 +2,7 @@
 #define BL_BARENA_H
 
 //
-// $Id: BArena.H,v 1.8 2001-07-17 23:02:18 lijewski Exp $
+// $Id: BArena.H,v 1.9 2001-07-19 16:57:30 lijewski Exp $
 //
 
 #include <Arena.H>
@@ -16,11 +16,6 @@
 
   Makes calls to ::operator new() and ::operator delete().
 */
-
-#ifdef BL_NAMESPACE
-namespace BL_NAMESPACE
-{
-#endif
 
 class BArena
     :
@@ -37,12 +32,5 @@ public:
     //
     virtual void free (void* pt);
 };
-
-#ifdef BL_NAMESPACE
-}
-#ifndef BL_NO_USING_DIRECTIVE
-using namespace BL_NAMESPACE;
-#endif
-#endif
 
 #endif /*BL_BARENA_H*/
