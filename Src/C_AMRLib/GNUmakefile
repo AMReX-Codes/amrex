@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.5 1998-12-02 00:04:53 lijewski Exp $
+# $Id: GNUmakefile,v 1.6 1999-01-04 18:27:14 marc Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -35,16 +35,19 @@ endif
 ifeq ($(KCC_VERSION),3.3)
 CXXFLAGS += --one_instantiation_per_object
 endif
+
+all: $(optionsLib)
+
 #
 # Libraries to close against.
 #
 ifeq ($(COMP), KCC)
 LibsToCloseAgainst := $(TOP)/lib/$(machineSuffix)/libbndry$(DIM)d.a
 LibsToCloseAgainst += $(TOP)/lib/$(machineSuffix)/libbox$(DIM)d.a
+
+$(optionsLib): $(LibsToCloseAgainst)
+
 endif
-
-all: $(optionsLib)
-
 include $(TOP)/mk/Make.rules
 #
 # Temp stuff for doing html docs.
