@@ -368,13 +368,13 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2)
     }
     if (pcode >= 1 && ParallelDescriptor::IOProcessor())
     {
-	cout << "Source norm is " << norm << endl;
+	cout << "HG: Source norm is " << norm << endl;
     }
     
     Real err = ml_cycle(lev_max, mglev_max, i1, i2, abstol, 0.0);
     if (pcode >= 2 && ParallelDescriptor::IOProcessor())
     {
-	cout << "Err from ml_cycle is " << err << endl;
+	cout << "HG: Err from ml_cycle is " << err << endl;
     }
     
     norm = (err > norm) ? err : norm;
@@ -387,7 +387,7 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2)
 	err = ml_cycle(lev_max, mglev_max, i1, i2, tol, 0.0);
 	if ( pcode >= 2 && ParallelDescriptor::IOProcessor())
 	{
-	    cout << "Err from " << it + 1 << "th ml_cycle is " << err << endl;
+	    cout << "HG: Err from " << it + 1 << "th ml_cycle is " << err << endl;
 	}
 	if (++it > HG::multigrid_maxiter)
 	{
@@ -396,7 +396,7 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2)
     }
     if (pcode >= 1 && ParallelDescriptor::IOProcessor())
     {
-	cout << it << " cycles required" << endl;
+	cout << "HG: " << it << " cycles required" << endl;
     }
     
     //This final restriction not needed unless you want coarse and fine
@@ -422,7 +422,7 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2, Real tol, Real 
     
     if (pcode >= 2  && ParallelDescriptor::IOProcessor())
     {
-	cout << "Residual at level " << lev << " is " << res_norm << endl;
+	cout << "HG: Residual at level " << lev << " is " << res_norm << endl;
     }
     
     res_norm = (res_norm_fine > res_norm) ? res_norm_fine : res_norm;
@@ -535,7 +535,7 @@ void amr_multigrid::mg_cycle(int mglev, int i1, int i2)
 	    double nm = mfnorm(wtmp);
 	    if ( ParallelDescriptor::IOProcessor() )
 	    {
-		cout << "  Residual at multigrid level " << mglev << " is " << nm << endl;
+		cout << "HG: Residual at multigrid level " << mglev << " is " << nm << endl;
 	    }
 	}
 	else 
