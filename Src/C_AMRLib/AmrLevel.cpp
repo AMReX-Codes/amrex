@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.26 1998-03-30 17:28:57 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.27 1998-04-01 18:21:51 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -176,7 +176,7 @@ AmrLevel::checkPoint (const aString& dir,
     //
     // Force other processors to wait till directory is built.
     //
-    ParallelDescriptor::Synchronize();
+    ParallelDescriptor::Barrier();
 
     if (ParallelDescriptor::IOProcessor())
     {

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.32 1998-03-27 23:53:20 lijewski Exp $
+// $Id: Amr.cpp,v 1.33 1998-04-01 18:21:50 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -415,7 +415,7 @@ Amr::writePlotFile (const aString& root,
     //
     // Force other processors to wait till directory is built.
     //
-    ParallelDescriptor::Synchronize();
+    ParallelDescriptor::Barrier();
 
     aString HeaderFileName = pltfile + "/Header";
 
@@ -746,7 +746,7 @@ Amr::checkPoint ()
     //
     // Force other processors to wait till directory is built.
     //
-    ParallelDescriptor::Synchronize();
+    ParallelDescriptor::Barrier();
 
     aString HeaderFileName = ckfile + "/Header";
 
