@@ -1,12 +1,12 @@
 
 //
-// $Id: tFAC.cpp,v 1.4 2000-10-02 20:52:40 lijewski Exp $
+// $Id: tFAC.cpp,v 1.5 2001-07-22 18:25:48 car Exp $
 //
 // A simple program to test FabArray<T>::copy() in parallel.
 //
 
 #if !(BL_SPACEDIM==2)
-#error "This code assumes BL_SPACEDIM==2
+#error "This code assumes BL_SPACEDIM==2"
 #endif
 
 #include <MultiFab.H>
@@ -14,8 +14,7 @@
 int
 main (int argc, char** argv)
 {
-    int nProcs = 1;
-    ParallelDescriptor::StartParallel(nProcs, &argc, &argv);
+    BoxLib::Initialize(argc, argv);
 
     BL_ASSERT(ParallelDescriptor::NProcs() == 2);
 
@@ -56,5 +55,5 @@ main (int argc, char** argv)
         cout << mf_1[0] << endl;
     }
 
-    ParallelDescriptor::EndParallel();
+    BoxLib::Finalize();
 }

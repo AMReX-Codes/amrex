@@ -1,6 +1,6 @@
 
 //
-// $Id: tFB.cpp,v 1.6 2000-10-02 20:52:40 lijewski Exp $
+// $Id: tFB.cpp,v 1.7 2001-07-22 18:25:48 car Exp $
 //
 // A test program for FillBoundary().
 //
@@ -86,10 +86,9 @@ int
 main (int argc, char** argv)
 {
 #ifndef WIN32
-    set_new_handler(Utility::OutOfMemory);
+    set_new_handler(BoxLib::OutOfMemory);
 #endif
-
-    ParallelDescriptor::StartParallel(&argc,&argv);
+    BoxLib::Initialize(argc, argv);
 
     BoxList bl;
 
@@ -105,7 +104,7 @@ main (int argc, char** argv)
 
     DoIt(junk); DoIt(junky); DoIt(junk); DoIt(junky);
 
-    ParallelDescriptor::EndParallel();
+    BoxLib::Finalize();
 
     return 0;
 }

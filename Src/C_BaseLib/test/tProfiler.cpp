@@ -35,8 +35,6 @@ thread_timing()
 int
 main(int argc, char** argv)
 {
-    BL_PROFILE_TIMER(pmain, "main()");
-    BL_PROFILE_START(pmain);
     BoxLib::Initialize(argc, argv);
 
     BL_PROFILE("BoxLib3::testing::profiler_main()");
@@ -45,6 +43,6 @@ main(int argc, char** argv)
     wt.stop();
     //  std::cout << "Wall timer reports = " << wt << std::endl;
     thread_timing();
-    BL_PROFILE_STOP(pmain);
+
     BoxLib::Finalize();
 }

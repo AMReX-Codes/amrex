@@ -114,8 +114,6 @@ WorkQueue_routine(void*)
 int
 main(int argc, char** argv)
 {
-    BL_PROFILE_TIMER(pmain, "main()");
-    BL_PROFILE_START(pmain);
     BoxLib::Initialize(argc, argv);
 
     workq.max_threads(4);
@@ -139,6 +137,5 @@ main(int argc, char** argv)
 	delete engine;
     }
     std::printf("%d engine threads processed %d calls\n", count, calls);
-    BL_PROFILE_STOP(pmain);
     BoxLib::Finalize();
 }
