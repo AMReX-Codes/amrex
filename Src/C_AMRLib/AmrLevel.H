@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.16 1998-05-13 23:15:04 almgren Exp $
+// $Id: AmrLevel.H,v 1.17 1998-06-27 21:34:42 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -363,9 +363,9 @@ class FillPatchIterator
 
     ~FillPatchIterator ();
 
-    const FArrayBox& operator() () const { return currentFillPatchedFab; }
+    const FArrayBox& operator() () const { return m_fab; }
 
-    FArrayBox& operator() ()  { return currentFillPatchedFab; }
+    FArrayBox& operator() ()  { return m_fab; }
 
     bool isValid (bool bDoSync = true);
 
@@ -380,25 +380,26 @@ class FillPatchIterator
     FillPatchIterator& operator= (const FillPatchIterator& rhs);
 
   private:
-    AmrLevel& amrLevel;
-    MultiFab& levelData;
-    MultiFabCopyDescriptor multiFabCopyDesc;
-    Array< Array<MultiFabId> > stateDataMFId;   // [level][oldnew]
-    Array<IntVect> cumulativeRefRatios;         // [level]
-    Array<Interpolater*> map;                   // [level]
-    Array< Array< Array< Array<FillBoxId> > > > fillBoxId;
-                                // [grid][level][fillablesubbox][oldnew]
-    Array< Array< Array<Box> > > savedFineBox;  // [grid][level][fillablesubbox]
-
-    BoxArray localMFBoxes;
-    int  growSize;
-    int  stateIndex;
-    int  srcComp;
-    int  destComp;
-    int  nComp;
-    Real interpTime;
-    FArrayBox currentFillPatchedFab;
-    bool bIsInitialized;
+    //
+    // The data.
+    //
+    AmrLevel&                    m_amrlevel;
+    MultiFab&                    m_leveldata;
+    MultiFabCopyDescriptor       m_mfcd;
+    Array<Array<MultiFabId> >    m_mfid;     // [level][oldnew]
+    Array<IntVect>               m_ratio;    // [level]
+    Array<Interpolater*>         m_map;      // [level]
+    Array<Array<Array<Box> > >   m_finebox;  // [grid][level][fillablesubbox]
+    Array<Array<Array<Array<FillBoxId> > > > m_fbid;// [grid][level][fillablesubbox][oldnew]
+    BoxArray                     m_ba;
+    FArrayBox                    m_fab;
+    Real                         m_time;
+    int                          m_growsize;
+    int                          m_stateindex;
+    int                          m_scomp;
+    int                          m_dcomp;
+    int                          m_ncomp;
+    bool                         m_init;
 };
 
 #endif /*_AmrLevel_H_*/
