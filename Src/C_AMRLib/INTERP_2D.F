@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.13 2002-10-07 20:28:10 lijewski Exp $
+c $Id: INTERP_2D.F,v 1.14 2002-10-07 20:44:37 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -372,7 +372,8 @@ c :::
      $                          cb_l1, cb_l2, cb_h1, cb_h2,
      $		                fslo, fshi, cslope, clen, fslope, fdat,
      $                          flen, voff, bc, limslope,
-     $                          fvcx, fvcy, cvcx, cvcy)
+     $                          fvcx, fvcy, cvcx, cvcy, 
+     $                          cmax, cmin, alpha)
 
       integer DIMDEC(fine)
       integer fslo(2), fshi(2)
@@ -384,6 +385,9 @@ c :::
       REAL_T fine(DIMV(fine),nvar)
       REAL_T crse(clo:chi, nvar)
       REAL_T cslope(clo:chi, 2)
+      REAL_T cmax(clo:chi)
+      REAL_T cmin(clo:chi)
+      REAL_T alpha(clo:chi)
       REAL_T fslope(flen, 2)
       REAL_T fdat(flen)
       REAL_T voff(flen)
@@ -400,15 +404,25 @@ c ::: local var
       integer i, ic, ioff
       integer j, jc, joff
       integer ist, jst
+      integer cslo(2),cshi(2)
       REAL_T cen, forw, back, slp, sgn
       REAL_T fcen, ccen
       REAL_T xoff, yoff
+      REAL_T corr_fact
       integer ncbx, ncby
       integer ncsx, ncsy
       integer islo, jslo
       integer icc, istart, iend
       logical xok, yok
 
+c ::: helpful statement function
+      integer sloc
+      sloc(i,j) = clo+i-cslo(1) + ncsx*(j-cslo(2))
+
+      cslo(1) = cb_l1-1
+      cslo(2) = cb_l2-1
+      cshi(1) = cb_h1+1
+      cshi(2) = cb_h2+1
       ncbx = cb_h1-cb_l1+1
       ncby = cb_h2-cb_l2+1
       xok = (ncbx .ge. 2)
@@ -436,6 +450,18 @@ c ::: ::::: added to prevent underflow for small crse values
       end do
 
       do 290 n = 1, nvar 
+
+          do i = 1,clen
+            cmax(i) = crse(i,n)
+            cmin(i) = crse(i,n)
+            alpha(i) = 1.d0
+            do joff = -jst,jst,jst
+            do ioff = -ist,ist,ist
+              cmax(i) = max(cmax(i),crse(i+ioff+joff,n))
+              cmin(i) = min(cmin(i),crse(i+ioff+joff,n))
+            end do
+            end do
+          end do
 
 c ::: ::::: compute slopes in x direction
          if (limslope .ne. 0) then
@@ -569,6 +595,43 @@ c           ::::: strip out a fine grid slope vector
 380            continue
 370         continue
 
+c           Limit slopes so as to not introduce new maxs or mins.
+            do 385 joff = 0, lratioy-1 
+               j = lratioy*jc + joff
+               if ((j.lt.fb_l2).or.(j.gt.fb_h2)) goto 385
+               fcen = half*(fvcy(j)+fvcy(j+1))
+               ccen = half*(cvcy(jc)+cvcy(jc+1))
+               yoff = (fcen-ccen)/(cvcy(jc+1)-cvcy(jc))
+
+               do 387 i = fb_l1, fb_h1 
+                  fn = i-fslo(1)+1
+                  fine(i,j,n) = fdat(fn) + voff(fn)*fslope(fn,1)
+     &                                   + yoff    *fslope(fn,2)
+                  ic = IX_PROJ(i,lratiox)
+                  icc = sloc(ic,jc)
+                  if (fine(i,j,n) .gt. cmax(icc)) then
+                    corr_fact = (cmax(icc) - fdat(fn)) / 
+     $                 ( voff(fn)*fslope(fn,1)
+     $                  +yoff    *fslope(fn,2) )
+                    alpha(icc) = min(alpha(icc),corr_fact)
+                  endif
+                  if (fine(i,j,n) .lt. cmin(icc)) then
+                    corr_fact = 
+     $                 (cmin(icc) - fdat(fn)) / 
+     $                 ( voff(fn)*fslope(fn,1)
+     $                  +yoff    *fslope(fn,2) )
+                    alpha(icc) = min(alpha(icc),corr_fact)
+                  endif
+                  if (alpha(icc) .lt. 0.d0) then
+                    print *,'OOPS - ALPHA SHOULD BE POSITIVE IN CCINTERP '
+                    print *,'ICC = ',icc
+                    stop
+                  endif
+
+387            continue
+385         continue
+
+c           Now interpolate to fine grid for real.
             do 390 joff = 0, lratioy-1 
                j = lratioy*jc + joff
                if ((j.lt.fb_l2).or.(j.gt.fb_h2)) goto 390
@@ -578,8 +641,11 @@ c           ::::: strip out a fine grid slope vector
 
                do 400 i = fb_l1, fb_h1 
                   fn = i-fslo(1)+1
-                  fine(i,j,n) = fdat(fn) + voff(fn)*fslope(fn,1)
-     &                                   +     yoff*fslope(fn,2)
+                  ic = IX_PROJ(i,lratiox)
+                  icc = sloc(ic,jc)
+                  fine(i,j,n) = fdat(fn) + alpha(icc) * 
+     &                   ( voff(fn)*fslope(fn,1)
+     &                    +yoff    *fslope(fn,2) )
 400            continue
 390         continue
 360      continue
