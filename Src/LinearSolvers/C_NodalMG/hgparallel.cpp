@@ -323,7 +323,7 @@ task_copy_local::~task_copy_local()
 bool task_copy_local::init(sequence_number sno, MPI_Comm comm)
 {
     task::init( sno, comm);
-    assert ( m_fab->nComp() == m_smf.nComp() );
+    assert ( m_fab ==0 || m_fab->nComp() == m_smf.nComp() );
     if ( m_fab != 0 || is_local(m_smf, m_sgrid) ) return true;
     return false;
 }
