@@ -252,14 +252,14 @@ c inflow face, so that binfil can be run for subsequent fills
             do i = regl0, regh0
                do j = regl1, regh1
                   dest(i,j,nc) = 2.d0 * dest(regh0,j,nc) 
-     &			- src(bbh0-(i-regl0),j,nc)
+     &            - src(bbh0-(i-regl0),j,nc)
                end do
             end do
          else
             do i = regh0, regl0, -1
                do j = regl1, regh1
                   dest(i,j,nc) = 2.d0 * dest(regl0,j,nc) 
-     &			- src(bbh0-(i-regl0),j,nc)
+     &            - src(bbh0-(i-regl0),j,nc)
                end do
             end do
          end if
@@ -268,14 +268,14 @@ c inflow face, so that binfil can be run for subsequent fills
             do j = regl1, regh1
                do i = regl0, regh0
                   dest(i,j,nc) = 2.d0 * dest(i,regh1,nc) 
-     &			- src(i,bbh1-(j-regl1),nc)
+     &            - src(i,bbh1-(j-regl1),nc)
                end do
             end do
          else
             do j = regh1, regl1, -1
                do i = regl0, regh0
                   dest(i,j,nc) = 2.d0 * dest(i,regl1,nc) 
-     &			- src(i,bbh1-(j-regl1),nc)
+     &            - src(i,bbh1-(j-regl1),nc)
                end do
             end do
          end if
@@ -355,7 +355,7 @@ c CELL-based data only.
       integer srcl0, srch0, srcl1, srch1
       integer bbl0, bbh0, bbl1, bbh1
       integer ir, jr
-	integer i1, i2, integ
+      integer i1, i2, integ
       double precision dest(destl0:desth0,destl1:desth1,ncomp)
       double precision src(srcl0:srch0,srcl1:srch1,ncomp)
       double precision xoff, yoff, sx, sy
@@ -388,7 +388,7 @@ c NODE-based data only.
       integer srcl0, srch0, srcl1, srch1
       integer bbl0, bbh0, bbl1, bbh1
       integer ir, jr,nc
-	integer i1, i2, integ
+      integer i1, i2, integ
       double precision dest(destl0:desth0,destl1:desth1, ncomp)
       double precision src(srcl0:srch0,srcl1:srch1, ncomp)
       double precision p, q
@@ -442,12 +442,12 @@ c CELL-based data only.
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
       integer ir, jr, ncomp, integ
-	integer i1, i2
+      integer i1, i2
       double precision dest(destl0:desth0,destl1:desth1, ncomp)
       double precision src(srcl0:srch0,srcl1:srch1, ncomp)
       double precision fac
       integer i, j, m, n, nc
-	do nc = 1, ncomp
+      do nc = 1, ncomp
          do j = regl1, regh1
             do i = regl0, regh0
                dest(i,j,nc) = 0.d0
@@ -470,7 +470,7 @@ c CELL-based data only.
                end do
             end do
          end if
-	end do
+      end do
       end
 c-----------------------------------------------------------------------
 c NODE-based data only.
@@ -483,17 +483,17 @@ c NODE-based data only.
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
       integer ir, jr, ncomp
-	integer i1, i2, integ
+      integer i1, i2, integ
       double precision dest(destl0:desth0,destl1:desth1, ncomp)
       double precision src(srcl0:srch0,srcl1:srch1, ncomp)
       integer i, j,nc
-	do nc = 1, ncomp
+      do nc = 1, ncomp
          do j = regl1, regh1
             do i = regl0, regh0
                dest(i,j,nc) = src(i*ir,j*jr,nc)
             end do
          end do
-	end do
+      end do
       end
 c-----------------------------------------------------------------------
 c NODE-based data only.
@@ -584,8 +584,8 @@ c Fills coarse region defined by reg.
                   fac = (ir-abs(m)) * fac1
                   do j = regl1, regh1
                      dest(i,j,nc) = dest(i,j,nc) +
-     &			 fac * (src(i*ir+m,j*jr-n,nc)+
-     &                              src(i*ir+m,j*jr+n,nc))
+     &                  fac * (src(i*ir+m,j*jr-n,nc)+
+     &                         src(i*ir+m,j*jr+n,nc))
                   end do
                end do
             end do
@@ -608,8 +608,8 @@ c Fills coarse region defined by reg.
                   if (m .eq. 0) fac = 0.5d0 * fac
                   do  i = regl0, regh0
                      dest(i,j,nc) = dest(i,j,nc)
-     &		+ fac * (src(i*ir-m,j*jr+n,nc)
-     &                        +src(i*ir+m,j*jr+n,nc))
+     &            + fac * (src(i*ir-m,j*jr+n,nc)
+     &                    +src(i*ir+m,j*jr+n,nc))
                   end do
                end do
             end do
