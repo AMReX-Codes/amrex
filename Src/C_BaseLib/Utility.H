@@ -4,7 +4,7 @@
 #define BL_UTILITY_H
 
 /*
-** $Id: Utility.H,v 1.5 1997-09-18 20:13:01 lijewski Exp $
+** $Id: Utility.H,v 1.6 1997-09-19 18:04:35 vince Exp $
 */
 
 #ifdef BL_USE_NEW_HFILES
@@ -49,6 +49,7 @@ public:
     //@ManDoc: Return true if argument is a non-zero length string of digits.
     //
     static bool is_integer (const char* str);
+
     //
     // These should be templates like the following.
     // problems with void * cast to bsp.
@@ -129,6 +130,13 @@ public:
                            int*  nbytes)
     {
         result = arg1 + arg2;
+    }
+    static void OpLongAnd (long& result,
+			   long& arg1,
+			   long& arg2,
+			   int* nbytes)
+    {
+        result = arg1 && arg2;
     }
 };
 

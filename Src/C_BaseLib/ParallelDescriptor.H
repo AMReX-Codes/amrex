@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.2 1997-09-15 19:40:06 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.3 1997-09-19 18:04:35 vince Exp $
 //
 
 #include <Assert.H>
@@ -107,6 +107,7 @@ public:
     static void ReduceLongSum (long& rvar) {}
     static void ReduceLongMax (long& rvar) {}
     static void ReduceLongMin (long& rvar) {}
+    static void ReduceLongAnd (long& rvar) {}
 
     // data transfer functions
     static void ShareVar (const void* var,
@@ -182,6 +183,7 @@ class ParallelDescriptor
     static void ReduceLongSum (long& rvar);
     static void ReduceLongMax (long& rvar);
     static void ReduceLongMin (long& rvar);
+    static void ReduceLongAnd (long& rvar);
 
     // data transfer functions
     static void ShareVar (const void* var,

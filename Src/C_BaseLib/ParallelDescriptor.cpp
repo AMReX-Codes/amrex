@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.2 1997-09-15 19:40:06 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.3 1997-09-19 18:04:35 vince Exp $
 //
 
 #ifdef BL_USE_BSP
@@ -116,6 +116,16 @@ ParallelDescriptor::ReduceLongMin (long &rvar)
     ParallelDescriptor::ShareVar(&rvar, sizeof(long));
     ParallelDescriptor::Synchronize();
     bsp_fold((void (*)(void *, void *, void *, int *)) Utility::OpLongMin,
+              &rvar, &rvar, sizeof(long));
+    ParallelDescriptor::UnshareVar(&rvar);
+}
+
+void
+ParallelDescriptor::ReduceLongAnd(long &rvar)
+{
+    ParallelDescriptor::ShareVar(&rvar, sizeof(long));
+    ParallelDescriptor::Synchronize();
+    bsp_fold((void (*)(void *, void *, void *, int *)) Utility::OpLongAnd,
               &rvar, &rvar, sizeof(long));
     ParallelDescriptor::UnshareVar(&rvar);
 }

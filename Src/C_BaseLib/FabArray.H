@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.9 1997-09-18 22:09:24 lijewski Exp $
+// $Id: FabArray.H,v 1.10 1997-09-19 18:04:34 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -933,7 +933,7 @@ bool
 FabArray<T,FAB>::ok () const
 {
     assert(boxarray.ready());
-    bool isok = true;
+    long isok = 1;
 
     for (ConstFabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
     {
@@ -942,16 +942,16 @@ FabArray<T,FAB>::ok () const
             const FAB& f = fai();
             if (f.box() != ::grow(box(fai.index()), n_grow))
             {
-                isok = false;
+                isok = 0;
             }
         }
         else
         {
-            isok = false;
+            isok = 0;
         }
     }
 
-    ParallelDescriptor::ReduceBoolAnd(isok);
+    ParallelDescriptor::ReduceLongAnd(isok);
     return isok;
 }
 
