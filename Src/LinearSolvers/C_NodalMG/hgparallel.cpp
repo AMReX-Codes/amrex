@@ -27,7 +27,6 @@ task_copy::~task_copy()
 
 bool task_copy::init(sequence_number sno, MPI_Comm comm)
 {
-    cout << "seq_number( " << sno << " ), MPI_Comm( " << comm << ")\n";
 #ifdef BL_USE_MPI
     if ( is_local(m_mf, m_dgrid) && is_local(m_smf, m_sgrid) )
     {
@@ -44,7 +43,9 @@ bool task_copy::init(sequence_number sno, MPI_Comm comm)
     {
 	tmp = new FArrayBox(s_bx, m_mf.nComp());
 	tmp->copy(m_smf[m_sgrid]);
-	MPI_Isend(tmp->dataPtr(), s_bx.numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_mf,  m_dgrid), sno, comm, &m_request);
+	int res = MPI_Isend(tmp->dataPtr(), s_bx.numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_mf,  m_dgrid), sno, comm, &m_request);
+	if ( res != 0 )
+	    BoxLib::Error("Failed MPI_Isend");
     }
     else
     {
@@ -68,7 +69,9 @@ bool task_copy::ready()
 #ifdef BL_USE_MPI
     int flag;
     MPI_Status status;
-    MPI_Test(&m_request, &flag, &status);
+    int res = MPI_Test(&m_request, &flag, &status);
+    if ( res != 0 )
+	BoxLib::Error("Failed MPI_Test");
     if ( flag )
     {
 	if ( is_local(m_mf, m_dgrid) )

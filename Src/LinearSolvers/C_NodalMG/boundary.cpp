@@ -410,7 +410,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 	    const int idim = lev_interface.fdim(iface);
 	    const int a = (type(r,idim) == IndexType::NODE);
 	    // need to do on x borders too in case y border is an interior face
-	    if (igrid < 0) 
+	    if ( igrid < 0 ) 
 	    {
 		for (int i = 0; i < BL_SPACEDIM; i++) 
 		{
@@ -428,6 +428,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		if (flowdim == -4 && (t == refWall || t == inflow)) 
 		{
 		    // terrain sigma
+		    if ( is_remote(r, jgrid) ) continue;
 		    bb.shift(idim, 2 * domain.smallEnd(idim) - 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
 		    const Box& rbox = r[jgrid].box();
 		    for (int i = 0; i < r.nComp(); i++) 
@@ -445,6 +446,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		}
 		else if (t == refWall) 
 		{
+		    if ( is_remote(r, jgrid) ) continue;
 		    bb.shift(idim, 2 * domain.smallEnd(idim) - 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
 		    const Box& rbox = r[jgrid].box();
 		    if (idim == flowdim || flowdim == -3) 
@@ -465,6 +467,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		}
 		else if (t == inflow) 
 		{
+		    if ( is_remote(r, jgrid) ) continue;
 		    bb.shift(idim, 2 * domain.smallEnd(idim) - 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
 		    const Box& rbox = r[jgrid].box();
 		    if (flowdim == -2) 
@@ -498,6 +501,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		else if (t == outflow) 
 		{
 		    // Do nothing if NODE-based, reflect if CELL-based 
+		    if ( is_remote(r, jgrid) ) continue;
 		    if (type(r,idim) == IndexType::CELL) 
 		    {
 			bb.shift(idim, 2 * domain.smallEnd(idim) - 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
@@ -523,6 +527,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		Box bb = b;
 		if (flowdim == -4 && (t == refWall || t == inflow)) 
 		{
+		    if ( is_remote(r, igrid) ) continue;
 		    // terrain sigma
 		    bb.shift(idim, 2 * domain.bigEnd(idim) + 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
 		    const Box& rbox = r[igrid].box();
@@ -541,6 +546,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		}
 		else if (t == refWall) 
 		{
+		    if ( is_remote(r, igrid) ) continue;
 		    bb.shift(idim, 2 * domain.bigEnd(idim) + 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
 		    const Box& rbox = r[igrid].box();
 		    if (idim == flowdim || flowdim == -3) 
@@ -561,6 +567,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		}
 		else if (t == inflow) 
 		{
+		    if ( is_remote(r, igrid) ) continue;
 		    bb.shift(idim, 2 * domain.bigEnd(idim) + 1 + a - b.bigEnd(idim) - b.smallEnd(idim));
 		    const Box& rbox = r[igrid].box();
 		    if (flowdim == -2) 
@@ -593,6 +600,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		}
 		else if (t == outflow) 
 		{
+		    if ( is_remote(r, igrid) ) continue;
 		    // Do nothing if NODE-based, reflect if CELL-based 
 		    if (type(r,idim) == IndexType::CELL) 
 		    {
@@ -602,9 +610,9 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		    }
 		}
 	    }
+        }
     }
-  }
-  tl.execute();
+    tl.execute();
 }
 
 
