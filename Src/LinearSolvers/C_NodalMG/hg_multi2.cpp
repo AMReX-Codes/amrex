@@ -351,10 +351,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	// fine grid on just one side
 	const int idim = lev_interface[mglev].fdim(iface);
 	const int idir = (geo & level_interface::LOW) ? -1 : 1;
-	const Box& sbox = source[lev][igrid].box();
 	const Box& fbox = fres_fbox[lev][iface];
 	const Box& cbox = fres_cbox[lev][iface];
-	const Box& sigmafbox = fres_sfbox[lev][iface];
 	const Box& sigmacbox = fres_scbox[lev][iface];
 	task_fab* sigmac = new task_fill_patch(sigmacbox, sigma[mglev], lev_interface[mglevc], bndry);
 	const Box& creg = fres_creg[lev][iface];
@@ -404,7 +402,6 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    // reject fine-fine interfaces and those without an interior fine grid
 	    if (geo != level_interface::ALL && igrid >= 0 && !lev_interface[mglev].flag(1, iedge) ) 
 	    {
-		const Box& sbox = source[lev][igrid].box();
 		const Box& fbox = eres_fbox[lev][iedge];
 		const Box& cbox = eres_cbox[lev][iedge];
 		const Box& sigmafbox = eres_sfbox[lev][iedge];
@@ -454,7 +451,6 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    // reject fine-fine interfaces and those without an interior fine grid
 	    if (geo != level_interface::ALL && igrid >= 0 && !lev_interface[mglev].flag(0, icor) ) 
 	    {
-		const Box& sbox = source[lev][igrid].box();
 		const Box& fbox = cres_fbox[lev][icor];
 		const Box& cbox = cres_cbox[lev][icor];
 		const Box& sigmafbox = cres_sfbox[lev][icor];
@@ -464,8 +460,6 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		const Box& creg = cres_creg[lev][icor];
 		task_fab* fdst = new task_fill_patch(fbox, dest[lev], lev_interface[mglev], boundary.pressure(), 0, icor);
 		task_fab* cdst = new task_fill_patch(cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure());
-		Real * rptr = resid[mglev][igrid].dataPtr();
-		const Real * sptr = source[lev][igrid].dataPtr();
 		Array<int> ga = lev_interface[mglev].geo_array(0, icor);
 		if (m_hg_terrain)
 		{
@@ -515,7 +509,6 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		// fine grid on two adjacent sides
 		const int idim = (geo == level_interface::XL || geo == level_interface::XH) ? 0 : 1;
 		const int idir = (geo & level_interface::LL) ? -1 : 1;
-		const Box& sbox = source[lev][igrid].box();
 		const Box& fbox = cres_fbox[lev][icor];
 		const Box& cbox = cres_cbox[lev][icor];
 		const Box& sigmafbox = cres_sfbox[lev][icor];
@@ -525,20 +518,10 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		const Box& creg = cres_creg[lev][icor];
 		task_fab* fdst = new task_fill_patch(fbox, dest[lev], lev_interface[mglev], boundary.pressure(), 0, icor);
 		task_fab* cdst = new task_fill_patch(cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure(), 0, -1);
-		Real* rptr = resid[mglev][igrid].dataPtr();
-		const Real* sptr = source[lev][igrid].dataPtr();
 		const int isRZ = IsRZ();
 		const int imax = mg_domain[mglevc].bigEnd(0) + 1;
-		FORT_HGFRES_FULL(rptr, DIMLIST(sbox),
-		    sptr, DIMLIST(sbox),
-		    fdst->fab().dataPtr(), DIMLIST(fbox),
-		    cdst->fab().dataPtr(), DIMLIST(cbox),
-		    sigmaf.dataPtr(), DIMLIST(sigmafbox),
-		    sigmac.dataPtr(), DIMLIST(sigmacbox),
-		    DIMLIST(creg),
-		    D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]),
-		    &idim, &idir, 
-		    &isRZ, &imax
+		tl.add_task(
+		    new task_fceres_4(&FORT_HGFRES_FULL, resid[mglev], source[mglev], igrid, fdst, cdst, sigmaf, sigmac, creg, h[mglev], rat, idim, idir, isRZ, imax)
 		    );
 		// fill in the grids on the other sides, if any
 		const Box& freg = lev_interface[mglev].box(0, icor);
@@ -554,7 +537,6 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		// outside corner
 		const int idir0 = (geo & level_interface::XL) ? -1 : 1;
 		const int idir1 = (geo & level_interface::YL) ? -1 : 1;
-		const Box& sbox = source[lev][igrid].box();
 		const Box& cbox = cres_cbox[lev][icor];
 		const Box& sigmafbox = cres_sfbox[lev][icor];
 		const Box& sigmacbox = cres_scbox[lev][icor];
@@ -562,28 +544,15 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		task_fab* sigmac = new task_fill_patch(sigmacbox, sigma[mglevc], lev_interface[mglevc], bndry);
 		const Box& creg = cres_creg[lev][icor];
 		task_fab* cdst = new task_fill_patch(cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure());
-		Real* rptr = resid[mglev][igrid].dataPtr();
-		Real* sptr = source[lev][igrid].dataPtr();
 		const Box& fbox = dest[lev][igrid].box();
-		Real* dptr = dest[lev][igrid].dataPtr();
 		const int isRZ = IsRZ();
-		FORT_HGORES(rptr, DIMLIST(sbox),
-		    sptr, DIMLIST(sbox),
-		    dptr, DIMLIST(fbox),
-		    cdst->fab().dataPtr(), DIMLIST(cbox),
-		    sigmaf.dataPtr(), DIMLIST(sigmafbox),
-		    sigmac.dataPtr(), DIMLIST(sigmacbox),
-		    DIMLIST(creg),
-		    D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), 
-		    &idir0, &idir1, 
-		    &isRZ, 0
-		    );
+		//FIXME!!! might be a broken calling sequence.
+		tl.add_task(new task_fceres_2(&FORT_HGORES, resid[mglev], source[lev], dest[lev], igrid, cdst, sigmaf, sigmac, creg, h[mglev], rat, idir0, idir1, isRZ, 0)
 	    }
 	    else if (geo == (level_interface::LL | level_interface::HH) || geo == (level_interface::LH | level_interface::HL)) 
 	    {
 		// diagonal corner
 		const int jdir = (geo == (level_interface::LL | level_interface::HH)) ? 1 : -1;
-		const Box& sbox = source[lev][igrid].box();
 		const Box& fbox = cres_fbox[lev][icor];
 		const Box& cbox = cres_cbox[lev][icor];
 		const Box& sigmafbox = cres_sfbox[lev][icor];
@@ -593,19 +562,9 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		const Box& creg = cres_creg[lev][icor];
 		task_fab* fdst = new task_fill_patch(fbox, dest[lev], lev_interface[mglev], boundary.pressure(), 0, icor);
 		task_fab* cdst = new task_fill_patch(cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure(), 0, -1);
-		Real* rptr = resid[mglev][igrid].dataPtr();
-		const Real* sptr = source[lev][igrid].dataPtr();
 		const int isRZ = IsRZ();
-		FORT_HGDRES(rptr, DIMLIST(sbox),
-		    sptr, DIMLIST(sbox),
-		    fdst->fab().dataPtr(), DIMLIST(fbox),
-		    cdst->fab().dataPtr(), DIMLIST(cbox),
-		    sigmaf.dataPtr(), DIMLIST(sigmafbox),
-		    sigmac.dataPtr(), DIMLIST(sigmacbox),
-		    DIMLIST(creg),
-		    D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), 
-		    &jdir, 0,
-		    &isRZ, 0
+		tl.add_task(
+		    new task_fceres_4(&FORT_HGDRES, resid[mglev], source[mglev], igrid, fdst, cdst, sigmaf, sigmac, creg, h[mglev], rat, jdir,0, isRZ, 0)
 		    );
 		// fill in the grids on the other sides, if any
 		const Box& freg = lev_interface[mglev].box(0, icor);
@@ -621,7 +580,6 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		// inside corner
 		const int idir0 = ((geo & level_interface::XL) == level_interface::XL) ? -1 : 1;
 		const int idir1 = ((geo & level_interface::YL) == level_interface::YL) ? -1 : 1;
-		const Box& sbox = source[lev][igrid].box();
 		const Box& fbox = cres_fbox[lev][icor];
 		const Box& cbox = cres_cbox[lev][icor];
 		const Box& sigmafbox = cres_sfbox[lev][icor];
@@ -631,19 +589,9 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		const Box& creg = cres_creg[lev][icor];
 		task_fab* fdst = new task_fill_patch(fbox, dest[lev], lev_interface[mglev], boundary.pressure(), 0, icor);
 		task_fab* cdst = new task_fill_patch(cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure(), 0, -1);
-		Real* rptr = resid[mglev][igrid].dataPtr();
-		const Real* sptr = source[lev][igrid].dataPtr();
 		const int isRZ = IsRZ();
-		FORT_HGIRES(rptr, DIMLIST(sbox),
-		    sptr, DIMLIST(sbox),
-		    fdst->fab().dataPtr(), DIMLIST(fbox),
-		    cdst->fab().dataPtr(), DIMLIST(cbox),
-		    sigmaf.dataPtr(), DIMLIST(sigmafbox),
-		    sigmac.dataPtr(), DIMLIST(sigmacbox),
-		    DIMLIST(creg),
-		    D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), 
-		    &idir0, &idir1, 
-		    &isRZ, 0
+		tl.add_task(
+		    new task_fceres_4(&FORT_HGIRES, resid[mglev], source[mglev], igrid, fdst, cdst, sigmaf, sigmac, creg, h[mglev], rat, idir0, idir1, isRZ, 0)
 		    );
 		// fill in the grids on the other sides, if any
 		const Box& freg = lev_interface[mglev].box(0, icor);
