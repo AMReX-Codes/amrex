@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.28 1998-02-20 23:00:56 car Exp $
+// $Id: FabArray.H,v 1.29 1998-04-01 18:22:27 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1155,8 +1155,12 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
             //
             if (myproc != fabComTag.toProc)
             {
-                cerr << "Error:  _in FabArray::copy(FabArray):  myproc!=fabComTag.toProc : "
-                     << myproc << " != " << fabComTag.toProc << '\n';
+                cerr << "FabArray::copy(FabArray): "
+                     << "myproc != fabComTag.toProc : "
+                     << myproc
+                     << " != "
+                     << fabComTag.toProc
+                     << '\n';
                 BoxLib::Error("Bad fabComTag.toProc");
             }
 
@@ -1168,15 +1172,21 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
 
             if (dataWaitingSize != shouldReceiveBytes)
             {
-                cerr << "Error:  _in FabArray::copy(FabArray):  "
-                     << "dataWaitingSize != shouldReceiveBytes:  = "
-                     << dataWaitingSize << " != " << shouldReceiveBytes << '\n';
+                cerr << "FabArray::copy(FabArray): "
+                     << "dataWaitingSize != shouldReceiveBytes: = "
+                     << dataWaitingSize
+                     << " != "
+                     << shouldReceiveBytes
+                     << '\n';
                 BoxLib::Error("Bad receive nbytes");
             }
             if (!fabComTag.box.ok())
             {
-                cerr << "Error:  _in FabArray::copy(FabArray):  bad fabComTag.box" << endl;
-                cerr << "fabComTag.box = " << fabComTag.box << '\n';
+                cerr << "FabArray::copy(FabArray): "
+                     << "bad fabComTag.box\n"
+                     << "fabComTag.box(): "
+                     << fabComTag.box
+                     << '\n';
                 BoxLib::Error("Bad receive nbytes");
             }
 
@@ -1189,9 +1199,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
                                                fabComTag.destComp,
                                                fabComTag.nComp);
         }
-
-        //ParallelDescriptor::Synchronize();  // Do we need this here?
-  }
+    }
 }
 
 template <class T, class FAB>
@@ -1321,7 +1329,7 @@ FabArray<T,FAB>::copy (FAB&       dest,
                                     src_comp, overlapDestComp, num_comp);
             }
         }
-    }  // end if(overlapLength > 0)
+    }
 
     ParallelDescriptor::Synchronize();  // for ShareVar
 
@@ -1367,8 +1375,6 @@ FabArray<T,FAB>::copy (FAB&       dest,
             ParallelDescriptor::UnshareVar(overlapData[i].dataPtr());
         }
     }
-
-    //ParallelDescriptor::Synchronize();
 }
 
 template <class T, class FAB>
@@ -1641,14 +1647,14 @@ inline
 bool
 FabArrayIterator<T,FAB>::isValid (bool bDoSync)
 {
-  bool valid = (currentIndex >= 0 && currentIndex < fabArray.length());
+    bool valid = (currentIndex >= 0 && currentIndex < fabArray.length());
 
-  if (!valid && bDoSync)
-  {
-      ParallelDescriptor::Synchronize();
-  }
+    if (!valid && bDoSync)
+    {
+        ParallelDescriptor::Synchronize();
+    }
 
-  return valid;
+    return valid;
 }
 
 template <class T, class FAB>
@@ -1914,9 +1920,9 @@ FabArrayCopyDescriptor<T,FAB>::FabArrayCopyDescriptor (bool cacheremotedata)
 {
     if (cacheRemoteData == false)
     {
-        cerr << "Error in FabArrayCopyDescriptor(bool):  "
-             << "uncached remote data not implemented." << '\n';
-        BoxLib::Error("Exiting.");
+        cerr << "FabArrayCopyDescriptor(bool): "
+             << "uncached remote data not implemented.\n";
+        BoxLib::Error();
     }
 
     FabComTag fabComTag;
@@ -2244,10 +2250,12 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
         //
         if (myproc != fabComTag.procThatNeedsData)
         {
-            cerr << "myproc = " << myproc << endl;
-            cerr << "fabComTag.procThatNeedsData = "
-                 << fabComTag.procThatNeedsData << '\n';
-            BoxLib::Error("FillFab:  bad procThatNeedsData");
+            cerr << "myproc = "
+                 << myproc
+                 << "\nfabComTag.procThatNeedsData = "
+                 << fabComTag.procThatNeedsData
+                 << '\n';
+            BoxLib::Error("FillFab: bad procThatNeedsData");
         }
         //
         // Find the box in the list and move the data.
@@ -2283,8 +2291,6 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
 
     dataAvailable = true;
 
-    //ParallelDescriptor::Synchronize();
-
 #ifndef NDEBUG
     ParallelDescriptor::ReduceIntSum(numberOfOutstandingRequestMessages);
     assert(numberOfOutstandingRequestMessages == 0);
@@ -2302,11 +2308,11 @@ FabArrayCopyDescriptor<T,FAB>::FillFab (const FabArrayId& fabarrayid,
     //
     // At this point, all remote data should be in local caches.
     //
-    if ( ! dataAvailable)
+    if (!dataAvailable)
     {
-        cerr << "Error in FabArrayCopyDescriptor<T,FAB>::FillFab:  ";
-        cerr << "data not available" << endl;
-        BoxLib::Error("FillFab:  data not available");
+        cerr << "Error in FabArrayCopyDescriptor<T,FAB>::FillFab: "
+             << "data not available\n";
+        BoxLib::Error("FillFab: data not available");
     }
     int fid(fabarrayid.Id());
     FabCopyDescriptor<FAB> *fcdp;
