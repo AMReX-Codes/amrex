@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.60 2001-09-24 19:10:03 lijewski Exp $
+// $Id: TagBox.cpp,v 1.61 2002-10-09 13:59:04 car Exp $
 //
 #include <winstd.H>
 
@@ -59,6 +59,7 @@ TagBox::resize (const Box& b, int ncomp)
 TagBox*
 TagBox::coarsen (const IntVect& ratio)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::coarsen()");
     Box cbx(domain);
     cbx.coarsen(ratio);
     TagBox* crse = new TagBox(cbx);
@@ -213,6 +214,7 @@ void
 TagBox::buffer (int nbuff,
                 int nwid)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::coarsen()");
     //
     // Note: this routine assumes cell with TagBox::SET tag are in
     // interior of tagbox (region = grow(domain,-nwid)).
@@ -335,6 +337,7 @@ int
 TagBox::collate (IntVect* ar,
                  int      start) const
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::coarsen()");
     BL_ASSERT(!(ar == 0));
     BL_ASSERT(start >= 0);
     //
@@ -430,6 +433,7 @@ TagBoxArray::buffer (int nbuf)
 void
 TagBoxArray::mapPeriodic (const Geometry& geom)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::coarsen()");
     if (!geom.isAnyPeriodic()) return;
 
     FabArrayCopyDescriptor<TagBox> facd;

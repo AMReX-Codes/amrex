@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.132 2002-08-21 20:12:40 car Exp $
+// $Id: Amr.cpp,v 1.133 2002-10-09 13:59:04 car Exp $
 //
 #include <winstd.H>
 
@@ -252,6 +252,7 @@ Amr::Amr ()
     :
     amr_level(PArrayManage)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::Amr()");
     //
     // Setup Geometry from ParmParse file.
     // May be needed for variableSetup or even getLevelBld.
@@ -842,6 +843,7 @@ void
 Amr::initialInit (Real strt_time,
                   Real stop_time)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::initialInit()");
     checkInput();
     //
     // Generate internal values from user-supplied values.
@@ -1661,6 +1663,7 @@ void
 Amr::ProjPeriodic (BoxDomain&      bd,
                    const Geometry& geom)
 {
+    BL_PROFILE("Amr::ProjPeriodic()");
     Box domain(geom.Domain());
     //
     // blout will initially contain all of bd, periodic translates
@@ -1724,6 +1727,7 @@ Amr::grid_places (int              lbase,
                   int&             new_finest,
                   Array<BoxArray>& new_grids)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::grid_places()");
     int i, max_crse = std::min(finest_level,max_level-1);
 
     if (lbase == 0)
@@ -2031,6 +2035,7 @@ Amr::grid_places (int              lbase,
 void
 Amr::bldFineLevels (Real strt_time)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::bldFineLevels()");
     finest_level = 0;
 
     Array<BoxArray> grids(max_level+1);

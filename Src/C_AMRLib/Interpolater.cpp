@@ -1,11 +1,12 @@
 //
-// $Id: Interpolater.cpp,v 1.26 2002-10-07 20:44:37 almgren Exp $
+// $Id: Interpolater.cpp,v 1.27 2002-10-09 13:59:04 car Exp $
 //
 #include <winstd.H>
 
 #include <cmath>
 #include <climits>
 
+#include <Profiler.H>
 #include <FArrayBox.H>
 #include <Geometry.H>
 #include <Interpolater.H>
@@ -85,6 +86,8 @@ NodeBilinear::interp (const FArrayBox& crse,
                       const Geometry& /* fine_geom */,
                       Array<BCRec>&   /*bcr*/)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::interp()");
+
     //
     // Set up to call FORTRAN.
     //
@@ -154,6 +157,7 @@ CellBilinear::interp (const FArrayBox& crse,
                       const Geometry&  /* fine_geom */,
                       Array<BCRec>&    /*bcr*/)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::interp()");
     BoxLib::Error("interp: not implemented");
     //
     // Set up to call FORTRAN.
@@ -243,6 +247,7 @@ CellConservative::interp (const FArrayBox& crse,
                           const Geometry&  fine_geom,
                           Array<BCRec>&    bcr)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::interp()");
     BL_ASSERT(bcr.size() >= ncomp);
     BL_ASSERT(fine_geom.Domain().contains(fine_region));
     //
@@ -369,6 +374,7 @@ CellConservativeLinear::interp (const FArrayBox& crse,
                                 const Geometry&  fine_geom,
                                 Array<BCRec>& bcr)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::interp()");
     BL_ASSERT(bcr.size() >= ncomp);
     BL_ASSERT(fine_geom.Domain().contains(fine_region));
     //
@@ -511,6 +517,7 @@ CellQuadratic::interp (const FArrayBox& crse,
                        const Geometry&  fine_geom,
                        Array<BCRec>&    bcr)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::interp()");
     BL_ASSERT(bcr.size() >= ncomp);
     BL_ASSERT(fine_geom.Domain().contains(fine_region));
     //
@@ -627,6 +634,7 @@ PCInterp::interp (const FArrayBox& crse,
                   const Geometry&  /*fine_geom*/,
                   Array<BCRec>&    /*bcr*/)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::interp()");
     //
     // Set up to call FORTRAN.
     //
@@ -698,6 +706,7 @@ CellConservativeProtected::interp (const FArrayBox& crse,
                                    const Geometry&  fine_geom,
                                    Array<BCRec>& bcr)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::interp()");
     BL_ASSERT(bcr.size() >= ncomp);
     BL_ASSERT(fine_geom.Domain().contains(fine_region));
     //
