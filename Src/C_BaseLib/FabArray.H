@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.8 1997-09-18 20:12:47 lijewski Exp $
+// $Id: FabArray.H,v 1.9 1997-09-18 22:09:24 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -389,7 +389,7 @@ class FabArrayIterator
     // 
     //
     FabArrayIterator(FabArray<T,FAB>& fabarray,
-                     const int        nghost = 0);
+                     int              nghost = 0);
     //
     //
     //
@@ -495,7 +495,7 @@ class ConstFabArrayIterator
     //
     //
     ConstFabArrayIterator(const FabArray<T,FAB>& fabarray,
-                          const int              nghost = 0);
+                          int                    nghost = 0);
     //
     //
     //
@@ -1571,7 +1571,7 @@ FabArray<T,FAB>::FillBoundary (int start_comp,
 
 template <class T, class FAB>
 FabArrayIterator<T,FAB>::FabArrayIterator(FabArray<T,FAB>& fabarray,
-                                          const int        nghost)
+                                          int              nghost)
     :
     fabArray(fabarray),
     nGhost(nghost),
@@ -1726,8 +1726,8 @@ DependentFabArrayIterator<T,FAB>::operator() () const
 
 template <class T, class FAB>
 ConstFabArrayIterator<T,FAB>::ConstFabArrayIterator(
-    const FabArray<T,FAB> &fabarray,
-    const int nghost)
+    const FabArray<T,FAB>& fabarray,
+    int                    nghost)
     :
     fabArray(fabarray),
     nGhost(nghost),

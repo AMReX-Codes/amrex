@@ -4,7 +4,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.4 1997-09-17 22:51:18 lijewski Exp $
+// $Id: MultiFab.H,v 1.5 1997-09-18 22:09:25 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -398,7 +398,7 @@ class MultiFabIterator
   public:
 
     MultiFabIterator (MultiFab& multifab,
-                      const int nghost = 0)
+                      int       nghost = 0)
         :
         FabArrayIterator<Real, FArrayBox>(multifab, nghost) {}
 
@@ -443,7 +443,7 @@ class ConstMultiFabIterator
   public:
 
     ConstMultiFabIterator (const MultiFab& multifab,
-                           const int       nghost = 0)
+                           int             nghost = 0)
         :
         ConstFabArrayIterator<Real,FArrayBox>(multifab, nghost) {}
 
