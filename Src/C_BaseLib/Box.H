@@ -4,7 +4,7 @@
 #define BL_BOX_H
 
 //
-// $Id: Box.H,v 1.5 1997-11-10 21:36:17 car Exp $
+// $Id: Box.H,v 1.6 1997-11-11 21:04:52 vince Exp $
 //
 
 #ifdef NODEV
@@ -52,8 +52,7 @@ class Box
 public:
 
     /*@ManDoc: The default constructor.  For safety, the constructed Box is  
-               invalid  and may be tested for validity with ok() or
-               isValid().
+               invalid  and may be tested for validity with ok().
     */
     Box ();
     //
@@ -146,10 +145,6 @@ public:
     //@ManDoc: Checks if it is a proper box (including a valid type).
     //
     bool isEmpty () const;
-    //
-    //@ManDoc: Checks if it is a proper Box (including a valid type).
-    //
-    bool isValid () const;
     //
     //@ManDoc: Checks if it is a proper Box (including a valid type).
     //
@@ -781,13 +776,6 @@ Box::ok () const
                           && (len[1] == (bigend[1]-smallend[1]+1)),
                           && (len[2] == (bigend[2]-smallend[2]+1)));
     return (bigend >= smallend) && len_ok && typ_ok;
-}
-
-inline
-bool
-Box::isValid () const
-{
-    return ok();
 }
 
 inline

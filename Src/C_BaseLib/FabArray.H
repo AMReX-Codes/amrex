@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.14 1997-11-11 19:20:05 lijewski Exp $
+// $Id: FabArray.H,v 1.15 1997-11-11 21:04:52 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -420,7 +420,7 @@ class FabArrayIterator
     //
     //
     //
-    bool isValid ();
+    bool isValid (bool bDoSync = true);
     //
     //
     //
@@ -538,7 +538,7 @@ class ConstFabArrayIterator
     //
     //
     //
-    bool isValid () const;
+    bool isValid (bool bDoSync = true) const;
     //
     //
     //
@@ -1714,10 +1714,10 @@ FabArrayIterator<T,FAB>::fabbox () const
 template <class T, class FAB>
 inline
 bool
-FabArrayIterator<T,FAB>::isValid ()
+FabArrayIterator<T,FAB>::isValid (bool bDoSync)
 {
   bool valid = (currentIndex >= 0 && currentIndex < fabArray.length());
-  if (!valid)
+  if ( ( ! valid) && bDoSync)
   {
       ParallelDescriptor::Synchronize();
   }
@@ -1906,10 +1906,10 @@ ConstFabArrayIterator<T,FAB>::fabbox() const
 template <class T, class FAB>
 inline
 bool
-ConstFabArrayIterator<T,FAB>::isValid () const
+ConstFabArrayIterator<T,FAB>::isValid (bool bDoSync) const
 {
     bool valid = (currentIndex >= 0 && currentIndex < fabArray.length());
-    if (!valid)
+    if ( ( !valid) && bDoSync)
     {
         ParallelDescriptor::Synchronize();
     }
@@ -2055,7 +2055,7 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
         } else {  // use fabbox
           intersectBox &= fabArray->fabbox(i);
         }
-        if (intersectBox.isValid())
+        if (intersectBox.ok())
         {
             filledBoxes.add(intersectBox);
             int remoteProc = fabArray->DistributionMap().ProcessorMap()[i];
@@ -2152,7 +2152,7 @@ FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
     } else {  // use fabbox
       intersectBox &= fabArray->fabbox(i);
     }
-    if (intersectBox.isValid())
+    if (intersectBox.ok())
     {
         filledBoxes.add(intersectBox);
         int remoteProc = fabArray->DistributionMap().ProcessorMap()[i];
@@ -2247,6 +2247,11 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
     {
         assert(fabComTagList.length() == 0);
     }
+    assert(ParallelDescriptor::GetMessageHeader(dataWaitingSize,&fabComTag)==false);
+    // there should be no messages waiting
+
+    int numberOfOutstandingRequestMessages = 0;
+    int numberOfOutstandingFabMessages = 0;
     for (ListIterator<FabComTag> fctli(fabComTagList); fctli; ++fctli)
     {
         assert(fctli().procThatNeedsData == myproc);
@@ -2256,6 +2261,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
                                      &fctli(),
                                      NULL,
                                      0);
+        ++numberOfOutstandingRequestMessages;
     }
     fabComTagList.clear();
 
@@ -2277,6 +2283,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
                    //fabbox(fabComTag.fabIndex).contains(fabComTag.subBox));
 
             ParallelDescriptor::ReceiveData(nullptr, 0);  // Advance msg hdr.
+            --numberOfOutstandingRequestMessages;
             //
             // Now send the requested data from the fabs on this processor.
             //
@@ -2295,6 +2302,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
                                          tempFab.box().numPts() *
                                          tempFab.nComp() * sizeof(T));
 
+	    ++numberOfOutstandingFabMessages;
         }
     }
 
@@ -2315,7 +2323,8 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
         if (myproc != fabComTag.procThatNeedsData)
         {
             cerr << "myproc = " << myproc << endl;
-            cerr << "fabComTag.procThatNeedsData = " << fabComTag.procThatNeedsData << endl;
+            cerr << "fabComTag.procThatNeedsData = "
+		 << fabComTag.procThatNeedsData << endl;
             ParallelDescriptor::Abort("FillFab:  bad procThatNeedsData");
         }
         //
@@ -2334,8 +2343,10 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
                 // copy the data
                 //
                 ParallelDescriptor::ReceiveData(fli()->localFabSource->dataPtr(),
-                                                fabComTag.subBox.numPts() * fabComTag.nComp * sizeof(T));
+                                                fabComTag.subBox.numPts() *
+						fabComTag.nComp * sizeof(T));
                 matchFound = true;
+		--numberOfOutstandingFabMessages;
             }
         }
         if (matchFound == false)
@@ -2347,7 +2358,14 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
     dataAvailable = true;
 
     ParallelDescriptor::Synchronize();
-}
+
+#ifndef NDEBUG
+    ParallelDescriptor::ReduceIntSum(numberOfOutstandingRequestMessages);
+    assert(numberOfOutstandingRequestMessages == 0);
+    ParallelDescriptor::ReduceIntSum(numberOfOutstandingFabMessages);
+    assert(numberOfOutstandingFabMessages == 0);
+#endif
+}  // end CollectData(...)
 
 template <class T, class FAB>
 void

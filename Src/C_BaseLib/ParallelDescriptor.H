@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.4 1997-11-11 19:20:06 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.5 1997-11-11 21:04:53 vince Exp $
 //
 
 #include <Assert.H>
@@ -133,6 +133,11 @@ public:
         return false;  // no messages waiting
     } 
 
+    static bool MessageQueueEmpty ()
+    {
+        return true;  // no messages waiting
+    } 
+
     static void SendData (int         toproc,
                           const void* messageHeader,
                           const void* data,
@@ -191,10 +196,12 @@ class ParallelDescriptor
     {
         bsp_pushregister(var, bytes);
     }
+
     static void UnshareVar (const void* var)
     {
         bsp_popregister(var);
     }
+
     static void WriteData (int         procnum,
                            const void* src,
                            void*       dest,
@@ -203,6 +210,7 @@ class ParallelDescriptor
     {
         bsp_put(procnum, src, dest, offset, bytes);
     }
+
     static void ReadData (int         procnum,
                           const void* src,
                           int         offset,
@@ -211,10 +219,12 @@ class ParallelDescriptor
     {
         bsp_get(procnum, src, offset, dest, bytes);
     }
+
     static void SetMessageHeaderSize (int& messageHeaderSize)
     {
         bsp_set_tag_size(&messageHeaderSize);
     } 
+
     static bool GetMessageHeader (int& dataSize,
                                   void* messageHeader)
     {
@@ -224,6 +234,9 @@ class ParallelDescriptor
             ? false  // By bsp definition
             : true;  // A message is waiting
     } 
+
+    static bool MessageQueueEmpty ();
+
     static void SendData (int         toproc,
                           const void* messageHeader,
                           const void* data,

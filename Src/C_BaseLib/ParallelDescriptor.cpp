@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.3 1997-09-19 18:04:35 vince Exp $
+// $Id: ParallelDescriptor.cpp,v 1.4 1997-11-11 21:04:53 vince Exp $
 //
 
 #ifdef BL_USE_BSP
@@ -128,6 +128,17 @@ ParallelDescriptor::ReduceLongAnd(long &rvar)
     bsp_fold((void (*)(void *, void *, void *, int *)) Utility::OpLongAnd,
               &rvar, &rvar, sizeof(long));
     ParallelDescriptor::UnshareVar(&rvar);
+}
+
+
+bool
+ParallelDescriptor::MessageQueueEmpty()
+{
+  int dataWaitingSize;
+  FabComTag fabComTag;
+  int tagSize = sizeof(FabComTag);
+  ParallelDescriptor::SetMessageHeaderSize(tagSize);
+  return (ParallelDescriptor::GetMessageHeader(dataWaitingSize,&fabComTag));
 }
 
 #endif

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.2 1997-09-18 20:13:01 lijewski Exp $
+// $Id: Utility.cpp,v 1.3 1997-11-11 21:04:54 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -29,6 +29,7 @@
 #include <sys/times.h>
 #include <sys/time.h>
 #include <sys/param.h>
+#include <unistd.h>
 
 //
 // This doesn't seem to be defined on SunOS when using g++.
