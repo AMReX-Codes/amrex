@@ -1649,7 +1649,7 @@ c neumann bdy:
                aj = 2.d0 * aj
                betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(jw))
                cor(i,j) = (RHSL - aj * cor(i,j-1)) * betm
-            else
+            else if (jw .gt. 0) then
 c interface to grid at same level:
                betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(jw))
                cor(i,j) = RHSL - aj * cor(i,j-1)
@@ -2092,7 +2092,7 @@ c neumann bdy:
                   aj = 2.d0 * aj
                   betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(jw))
                   cor(i,j) = (RHSL - aj * cor(i,j-1)) * betm
-               else
+               else if (jw .gt. 0) then
 c interface to grid at same level:
                   betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(jw))
                   cor(i,j) = RHSL - aj * cor(i,j-1)
