@@ -158,8 +158,6 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     
     status = 3;
     
-    int idim;
-    
     dom = Domain;
     im  = Im;
     assert( bdy != 0 );
@@ -182,8 +180,8 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     
     assert(bdy != 0);
     bdy->duplicate(bl, dom);
-    
     xfer(bl, FACEDIM);
+    bl.clear();
     
 #if (BL_SPACEDIM == 3)
     
@@ -205,8 +203,8 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     
     assert(bdy != 0);
     bdy->duplicate(bl, dom);
-    
     xfer(bl, 1);
+    bl.clear();
 #endif
     
     // Add corners:
@@ -224,23 +222,30 @@ void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_bou
     }
     
     bdy->duplicate(bl, dom);
-    
+    assert(bdy != 0);
     xfer(bl, 0);
+    bl.clear();
     
     // initialize face direction array
     fdm = new int[nbx[FACEDIM]];
     for (int iface = 0; iface < nbx[FACEDIM]; iface++) 
     {
 	IntVect t = bx[FACEDIM][iface].type();
+	fdm[iface] = -1;
 	for (int i = 0; i < BL_SPACEDIM; i++) 
 	{
 	    if (t[i] == IndexType::NODE)
+	    {
+		// one and only one face will be designated as a the direction
+		assert(fdm[iface] == -1);
 		fdm[iface] = i;
+	    }
 	}
+	assert(fdm[iface] >= 0 && fdm[iface] < BL_SPACEDIM);
     }
     
     // initialize face grid array
-    idim = FACEDIM;
+    int idim = FACEDIM;
     fgr = new int[nbx[idim]][N_FACE_GRIDS];
     for (int iface = 0; iface < nbx[idim]; iface++) 
     {
@@ -568,15 +573,13 @@ void level_interface::add(List<Box>& bl, Box b, int startgrid)
     ins(bl, b);
 }
 
-void level_interface::xfer(List<Box>& bl, int idim)
+void level_interface::xfer(const List<Box>& bl, int idim)
 {
     nbx[idim] = bl.length();
     bx[idim]  = new Box[nbx[idim]];
     ge[idim]  = new unsigned int[nbx[idim]];
     flg[idim] = new bool[nbx[idim]];
     
-    //Boxnode *bn;
-    //for (bn = bl.first(); bn; bn = bl.next(bn), i++) {
     ListIterator<Box> bn(bl);
     for ( int i = 0; bn; bn++, i++) 
     {
@@ -650,8 +653,6 @@ void level_interface::xfer(List<Box>& bl, int idim)
 	}
     }
     
-    bl.clear();
-    
     // Sort fine-fine boxes to beginning of list
     int j = nbx[idim];
     for (int i = 0; i < j; i++) 
@@ -677,7 +678,8 @@ void level_interface::xfer(List<Box>& bl, int idim)
     idomain.convert(IntVect::TheNodeVector()).grow(-1);
     
     j = -1;
-    while (++j < nbx[idim] && ge[idim][j] == ALL);
+    while (++j < nbx[idim] && ge[idim][j] == ALL)
+	/* nothing*/;
     int nff = j;
     
     // Sort interior fine-fine boxes to beginning of list
