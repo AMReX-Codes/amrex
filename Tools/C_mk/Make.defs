@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.78 2004-10-11 21:17:13 car Exp $
+# Make.defs $Id: Make.defs,v 1.79 2005-01-26 00:20:31 car Exp $
 #
 
 #
@@ -243,7 +243,7 @@ endif
 ifeq ($(FCOMP),gfortran)
     FC := gfortran -fno-second-underscore
     fC := gfortran -fno-second-underscore
-#   override XTRALIBS += /tmp/g95/lib/gcc-lib/i686-pc-linux-gnu/3.5-tree-ssa/libf95.a
+#   override XTRALIBS += /g95_install/lib/gcc-lib/i686-pc-linux-gnu/3.5-tree-ssa/libf95.a
     FOPTF +=
     fOPTF +=
     FDEBF += -g
@@ -252,7 +252,8 @@ endif
 ifeq ($(FCOMP),g95)
     FC := g95 -fno-second-underscore
     fC := g95 -fno-second-underscore
-    override XTRALIBS += /tmp/g95/lib/gcc-lib/i686-pc-linux-gnu/3.5.0/libf95.a
+    _f95_lib:=$(shell g95 -print-file-name=libf95.a)
+    override XTRALIBS += $(_f95_lib)
     FOPTF += -O -g
     fOPTF += -O -g
     FDEBF += -g
