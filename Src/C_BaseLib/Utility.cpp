@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.27 1998-12-11 21:54:25 car Exp $
+// $Id: Utility.cpp,v 1.28 1998-12-11 21:55:41 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -156,6 +156,7 @@ Utility::wsecond (double* t_)
 
 //#include <intrinsics.h>
 #include <unistd.h>
+extern "C" long _rtc();
 
 static double BL_Clock_Rate;
 extern "C"
