@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tFB.cpp,v 1.2 1999-03-12 02:55:43 lijewski Exp $
+// $Id: tFB.cpp,v 1.3 1999-03-12 03:27:07 lijewski Exp $
 //
 // A test program for FillBoundary().
 //
@@ -11,7 +11,6 @@
 
 #ifdef BL_USE_NEW_HFILES
 #include <new>
-using std::setprecision;
 #ifndef WIN32
 using std::set_new_handler;
 #endif
@@ -69,7 +68,7 @@ DoIt (MultiFab& mf)
         DumpFirstFab(mf);
     }
     //
-    // Do loop filling both components.
+    // Do loop filling all components.
     //
     for (int i = 0; i < 10; i++)
     {
@@ -95,24 +94,18 @@ main (int argc, char** argv)
 
     BoxList bl;
 
-    Box bx(IntVect::TheZeroVector(),IntVect::TheUnitVector());
+    Box bx1(IntVect::TheZeroVector(),IntVect::TheUnitVector());
+    Box bx2 = bx1;
+    bx2.shift(0,2);
 
-    bl.append(bx);
-
-    bx.shift(0,2);
-
-    bl.append(bx);
+    bl.append(bx1); bl.append(bx2);
 
     BoxArray ba(bl);
     
-    MultiFab junk(ba,2,1);
+    MultiFab junk(ba,2,1), junky(ba,2,1);
 
-    DoIt(junk);
+    DoIt(junk); DoIt(junky); DoIt(junk); DoIt(junky);
 
-    MultiFab junky(ba,2,1);
-
-    DoIt(junky);
-    
     ParallelDescriptor::EndParallel();
 
     return 0;
