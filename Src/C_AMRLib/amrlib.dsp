@@ -42,7 +42,7 @@ F90=df.exe
 # ADD BASE F90 /include:"Release/" /compile_only /nologo /warn:nofileopt
 # ADD F90 /include:"Release/" /compile_only /nologo /warn:declarations /iface:cref /warn:nofileopt
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "." /I "..\bndrylib" /I "..\pBoxLib_2" /D "NDEBUG" /D "_WINDOWS" /D "WIN32" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_USE_NEW_HFILES" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /D "BL_LANG_CC" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "." /I "..\bndrylib" /I "..\pBoxLib_2" /D "NDEBUG" /D "_WINDOWS" /D "WIN32" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_USE_NEW_HFILES" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D "BL_PARALLEL_IO" /D for="if(0);else for" /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -66,7 +66,7 @@ LIB32=link.exe -lib
 # ADD F90 /include:"Debug/" /compile_only /nologo /warn:declarations /debug:full /optimize:0 /iface:cref /warn:nofileopt
 # SUBTRACT F90 /dbglibs
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /Z7 /Od /I "." /I "..\bndrylib" /I "..\pBoxLib_2" /D "_DEBUG" /D "_WINDOWS" /D "WIN32" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_USE_NEW_HFILES" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /D "BL_LANG_CC" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /Z7 /Od /I "." /I "..\bndrylib" /I "..\pBoxLib_2" /D "_DEBUG" /D "_WINDOWS" /D "WIN32" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_USE_NEW_HFILES" /D BL_SPACEDIM=3 /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D "BL_PARALLEL_IO" /D for="if(0);else for" /FR /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -241,142 +241,18 @@ SOURCE=.\MAKESLICE_3D.for
 # Begin Source File
 
 SOURCE=.\FILCC_3D.F
-
-!IF  "$(CFG)" == "amrlib - Win32 Release"
-
-# PROP Ignore_Default_Tool 1
-# Begin Custom Build
-InputPath=.\FILCC_3D.F
-InputName=FILCC_3D
-
-"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\pBoxLib_2 /DBL_LANG_FORT /DBL_SPACEDIM=3\
-   /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl ..\scripts\strip72 -c\
-   > $(InputName).for
-
-# End Custom Build
-
-!ELSEIF  "$(CFG)" == "amrlib - Win32 Debug"
-
-# PROP Ignore_Default_Tool 1
-# Begin Custom Build
-InputPath=.\FILCC_3D.F
-InputName=FILCC_3D
-
-"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-   /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-   ..\scripts\strip72 -c > $(InputName).for
-
-# End Custom Build
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
 SOURCE=.\FLUXREG_3D.F
-
-!IF  "$(CFG)" == "amrlib - Win32 Release"
-
-# PROP Ignore_Default_Tool 1
-# Begin Custom Build
-InputPath=.\FLUXREG_3D.F
-InputName=FLUXREG_3D
-
-"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\pBoxLib_2 /DBL_LANG_FORT /DBL_SPACEDIM=3\
-   /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl ..\scripts\strip72 -c\
-   > $(InputName).for
-
-# End Custom Build
-
-!ELSEIF  "$(CFG)" == "amrlib - Win32 Debug"
-
-# PROP Ignore_Default_Tool 1
-# Begin Custom Build
-InputPath=.\FLUXREG_3D.F
-InputName=FLUXREG_3D
-
-"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-   /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-   ..\scripts\strip72 -c > $(InputName).for
-
-# End Custom Build
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
 SOURCE=.\INTERP_3D.F
-
-!IF  "$(CFG)" == "amrlib - Win32 Release"
-
-# PROP Ignore_Default_Tool 1
-# Begin Custom Build
-InputPath=.\INTERP_3D.F
-InputName=INTERP_3D
-
-"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\pBoxLib_2 /DBL_LANG_FORT /DBL_SPACEDIM=3\
-   /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl ..\scripts\strip72 -c\
-   > $(InputName).for
-
-# End Custom Build
-
-!ELSEIF  "$(CFG)" == "amrlib - Win32 Debug"
-
-# PROP Ignore_Default_Tool 1
-# Begin Custom Build
-InputPath=.\INTERP_3D.F
-InputName=INTERP_3D
-
-"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-   /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-   ..\scripts\strip72 -c > $(InputName).for
-
-# End Custom Build
-
-!ENDIF 
-
 # End Source File
 # Begin Source File
 
 SOURCE=.\MAKESLICE_3D.F
-
-!IF  "$(CFG)" == "amrlib - Win32 Release"
-
-# PROP Ignore_Default_Tool 1
-# Begin Custom Build
-InputPath=.\MAKESLICE_3D.F
-InputName=MAKESLICE_3D
-
-"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\pBoxLib_2 /DBL_LANG_FORT /DBL_SPACEDIM=3\
-   /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl ..\scripts\strip72 -c\
-   > $(InputName).for
-
-# End Custom Build
-
-!ELSEIF  "$(CFG)" == "amrlib - Win32 Debug"
-
-# PROP Ignore_Default_Tool 1
-# Begin Custom Build
-InputPath=.\MAKESLICE_3D.F
-InputName=MAKESLICE_3D
-
-"$(InputName).for" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
-	fpp /ansi /nologo /S. /S..\amrlib /S..\bndrylib /S..\pBoxLib_2 /DBL_LANG_FORT\
-   /DBL_SPACEDIM=3 /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH $(InputName).F | perl\
-   ..\scripts\strip72 -c > $(InputName).for
-
-# End Custom Build
-
-!ENDIF 
-
 # End Source File
 # End Group
 # End Group
