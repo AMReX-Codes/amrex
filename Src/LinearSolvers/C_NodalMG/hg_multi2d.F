@@ -1541,7 +1541,7 @@ c back substitution loop:
                cor(i,j) = cor(i,j) - wrk(jw + 1) * cor(i,j+1)
  20            continue
       else
-         STOP "Line solve not implemented in dimension", lsd
+         STOP "Line solve implemented in Dimension 1"
       end if
       end
 c-----------------------------------------------------------------------
@@ -2377,9 +2377,8 @@ c update neumann bdys:
 		stop
          end if
       else
-         print *, "Line solve not implemented for rz:"
-         print *, "   Using Gauss-Seidel instead."
-	    stop
+         STOP "Line solve not implemented for rz: Using Gauss-Seidel 
+     &  instead."
          facrz = hx * hym2 / 12.d0
          if (regh1 - regl1 .gt. regh0 - regl0) then
             do 40 i = regl0, regh0

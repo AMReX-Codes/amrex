@@ -2574,7 +2574,7 @@ c must do this loop over entire array to initialize borders of p
  100  continue
       it = it + 1
       if (it .gt. MAXITER) then
-         print *, "FORTRAN hgcg---conjugate-gradient iteration failed"
+         STOP "FORTRAN hgcg---conjugate-gradient iteration failed"
       end if
       rhoold = rho
       alpha = 0.d0
