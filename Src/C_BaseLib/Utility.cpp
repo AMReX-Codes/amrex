@@ -1,16 +1,17 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.1 1997-09-12 18:00:17 lijewski Exp $
+// $Id: Utility.cpp,v 1.2 1997-09-18 20:13:01 lijewski Exp $
 //
 
+#ifdef BL_USE_NEW_HFILES
+#include <cstdlib>
+#include <cstring>
+#include <cctype>
+#else
 #include <stdlib.h>
-#include <iostream.h>
 #include <string.h>
-#include <fstream.h>
 #include <ctype.h>
-#ifndef	WIN32
-#include <unistd.h>
 #endif
 
 #include <REAL.H>

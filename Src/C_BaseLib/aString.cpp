@@ -1,10 +1,14 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: aString.cpp,v 1.1 1997-09-12 18:00:18 lijewski Exp $
+// $Id: aString.cpp,v 1.2 1997-09-18 20:13:01 lijewski Exp $
 //
 
+#ifdef BL_USE_NEW_HFILES
+#include <cctype>
+#else
 #include <ctype.h>
+#endif
 
 #include <Assert.H>
 #include <aString.H>

@@ -1,19 +1,29 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.3 1997-09-16 03:30:36 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.4 1997-09-18 20:12:47 lijewski Exp $
 //
 
+#ifdef BL_USE_NEW_HFILES
+#include <cstdlib>
+#include <iostream>
+#include <iomanip>
+#include <cmath>
+#include <cstring>
+using std::cin;
+using std::cout;
+using std::cerr;
+using std::endl;
+using std::setw;
+using std::setprecision;
+using std::ios;
+#else
 #include <stdlib.h>
 #include <iostream.h>
 #include <iomanip.h>
-
-#if defined(BL_Solaris) && defined(__PHOTON)
-#undef __P
-#endif
-
 #include <math.h>
 #include <string.h>
+#endif
 
 #include <Misc.H>
 #include <FArrayBox.H>

@@ -4,10 +4,21 @@
 #define BL_ORIENTATION_H
 
 //
-// $Id: Orientation.H,v 1.2 1997-09-17 22:51:19 lijewski Exp $
+// $Id: Orientation.H,v 1.3 1997-09-18 20:12:56 lijewski Exp $
 //
 
+#ifdef BL_USE_NEW_HFILES
+#include <iostream>
+using std::cin;
+using std::cout;
+using std::cerr;
+using std::endl;
+using std::ostream;
+using std::istream;
+#else
 #include <iostream.h>
+#endif
+
 #include <Assert.H>
 #include <Boolean.H>
 #include <SPACE.H>

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxLib.cpp,v 1.1 1997-09-12 18:00:05 lijewski Exp $
+// $Id: BoxLib.cpp,v 1.2 1997-09-18 20:12:45 lijewski Exp $
 //
 
 #ifdef _MSC_VER
@@ -9,10 +9,16 @@
 #else
 #include <strstream.h>
 #endif
+
+#ifdef BL_USE_NEW_HFILES
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#else
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <unistd.h>
+#endif
 
 #include <BoxLib.H>
 #include <BLVERSION.H>

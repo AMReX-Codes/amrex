@@ -4,9 +4,14 @@
 #define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.7 1997-09-17 22:22:49 lijewski Exp $
+// $Id: BaseFab.H,v 1.8 1997-09-18 20:12:43 lijewski Exp $
 //
+
+#ifdef BL_USE_NEW_HFILES
+#include <cstdlib>
+#else
 #include <stdlib.h>
+#endif
 
 #include <Assert.H>
 #include <Boolean.H>

@@ -4,11 +4,20 @@
 #define BL_BOXDOMAIN_H
 
 //
-// $Id: BoxDomain.H,v 1.2 1997-09-17 22:51:14 lijewski Exp $
+// $Id: BoxDomain.H,v 1.3 1997-09-18 20:12:45 lijewski Exp $
 //
 
+#ifdef BL_USE_NEW_HFILES
+#include <cstdlib>
+#include <iostream>
+using std::cin;
+using std::cout;
+using std::cerr;
+using std::endl;
+#else
 #include <stdlib.h>
 #include <iostream.h>
+#endif
 
 #include <Boolean.H>
 #include <IndexType.H>

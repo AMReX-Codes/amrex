@@ -1,11 +1,22 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.3 1997-09-17 17:46:31 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.4 1997-09-18 20:12:50 lijewski Exp $
 //
 
+#ifdef BL_USE_NEW_HFILES
+#include <iostream>
+#include <iomanip>
+using std::cin;
+using std::cout;
+using std::cerr;
+using std::endl;
+using std::setw;
+using std::streampos;
+#else
 #include <iostream.h>
 #include <iomanip.h>
+#endif
 
 #include <Assert.H>
 #include <Misc.H>

@@ -4,14 +4,23 @@
 #define BL_BOX_H
 
 //
-// $Id: Box.H,v 1.2 1997-09-17 22:51:13 lijewski Exp $
+// $Id: Box.H,v 1.3 1997-09-18 20:12:44 lijewski Exp $
 //
 
 #ifdef NODEV
 #undef NODEV
 #endif
 
+#ifdef BL_USE_NEW_HFILES
+#include <iostream>
+using std::cin;
+using std::cout;
+using std::cerr;
+using std::endl;
+using std::ws;
+#else
 #include <iostream.h>
+#endif
 
 #include <Boolean.H>
 #include <IntVect.H>

@@ -4,10 +4,15 @@
 #define BL_INDEXTYPE_H
 
 //
-// $Id: IndexType.H,v 1.2 1997-09-17 22:51:16 lijewski Exp $
+// $Id: IndexType.H,v 1.3 1997-09-18 20:12:48 lijewski Exp $
 //
 
+#ifdef BL_USE_NEW_HFILES
+#include <iostream>
+using std::flush;
+#else
 #include <iostream.h>
+#endif
 
 #include <Boolean.H>
 #include <Misc.H>

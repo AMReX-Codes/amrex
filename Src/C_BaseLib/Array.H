@@ -1,13 +1,21 @@
 //BL_COPYRIGHT_NOTICE
 
-#ifndef BL_ARRAY
-#define BL_ARRAY
+#ifndef BL_ARRAY_H
+#define BL_ARRAY_H
 
 //
-// $Id: Array.H,v 1.4 1997-09-17 22:51:11 lijewski Exp $
+// $Id: Array.H,v 1.5 1997-09-18 20:12:43 lijewski Exp $
 //
 
+#ifdef BL_USE_NEW_HFILES
+#include <iostream>
+using std::cin;
+using std::cout;
+using std::cerr;
+using std::endl;
+#else
 #include <iostream.h>
+#endif
 
 #include <Boolean.H>
 #include <Assert.H>
@@ -528,4 +536,4 @@ Array<T>::operator== (const Array<T>& rhs) const
     return rc;
 }
 
-#endif /*BL_ARRAY*/
+#endif /*BL_ARRAY_H*/

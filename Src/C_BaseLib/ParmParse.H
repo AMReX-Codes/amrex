@@ -4,12 +4,23 @@
 #define BL_PARMPARSE_H
 
 //
-// $Id: ParmParse.H,v 1.2 1997-09-17 22:51:20 lijewski Exp $
+// $Id: ParmParse.H,v 1.3 1997-09-18 20:12:57 lijewski Exp $
 //
 
-#include <stdlib.h>
+#ifdef BL_USE_NEW_HFILES
+#include <iostream>
+#include <iomanip>
+#include <cstdlib>
+using std::cin;
+using std::cout;
+using std::cerr;
+using std::endl;
+#else
 #include <iostream.h>
 #include <iomanip.h>
+#include <stdlib.h>
+#endif
+
 #include <Boolean.H>
 #include <aString.H>
 #include <List.H>

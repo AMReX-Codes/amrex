@@ -4,9 +4,20 @@
 #define BL_FABCONV_H
 
 //
-// $Id: FabConv.H,v 1.2 1997-09-17 22:51:16 lijewski Exp $
+// $Id: FabConv.H,v 1.3 1997-09-18 20:12:47 lijewski Exp $
 //
+
+#ifdef BL_USE_NEW_HFILES
+#include <iostream>
+using std::cin;
+using std::cout;
+using std::cerr;
+using std::endl;
+using std::ostream;
+using std::istream;
+#else
 #include <iostream.h>
+#endif
 
 #include <Array.H>
 #include <Assert.H>

@@ -4,8 +4,8 @@
 #define BL_SPACE_F_H
 
 /*
-/* $Id: SPACE_F.H,v 1.3 1997-09-18 18:03:34 car Exp $
-/*
+** $Id: SPACE_F.H,v 1.4 1997-09-18 20:12:58 lijewski Exp $
+*/
 
 #include <SPACE.H>
 

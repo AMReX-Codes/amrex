@@ -1,13 +1,24 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabConv.cpp,v 1.1 1997-09-12 18:00:08 lijewski Exp $
+// $Id: FabConv.cpp,v 1.2 1997-09-18 20:12:48 lijewski Exp $
 //
 
+#ifdef BL_USE_NEW_HFILES
+#include <iostream>
+#include <cstdlib>
+#include <climits>
+#include <cstring>
+using std::cin;
+using std::cout;
+using std::cerr;
+using std::endl;
+#else
 #include <iostream.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <string.h>
+#endif
 
 #include <BoxLib.H>
 #include <FabConv.H>

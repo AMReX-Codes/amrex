@@ -4,10 +4,18 @@
 #define BL_UTILITY_H
 
 /*
- $Id: Utility.H,v 1.4 1997-09-18 18:18:01 car Exp $
+** $Id: Utility.H,v 1.5 1997-09-18 20:13:01 lijewski Exp $
 */
 
+#ifdef BL_USE_NEW_HFILES
+#include <iostream>
+using std::cin;
+using std::cout;
+using std::cerr;
+using std::endl;
+#else
 #include <iostream.h>
+#endif
 
 #include <Boolean.H>
 #include <REAL.H>
@@ -41,52 +49,87 @@ public:
     //@ManDoc: Return true if argument is a non-zero length string of digits.
     //
     static bool is_integer (const char* str);
-
-// these should be templates like the following.  problems with void * cast to bsp.
-    template<class T> static void OpMin(T &result, T &arg1, T &arg2, int *nbytes) {
-      result = (arg1 < arg2 ? arg1 : arg2);
+    //
+    // These should be templates like the following.
+    // problems with void * cast to bsp.
+    //
+    template<class T> static void OpMin (T&   result,
+                                         T&   arg1,
+                                         T&   arg2,
+                                         int* nbytes)
+    {
+        result = (arg1 < arg2 ? arg1 : arg2);
     }
-
-    static void OpBoolAnd(bool &result, bool &arg1, bool &arg2, int *nbytes) {
-      result = arg1 && arg2;
+    static void OpBoolAnd (bool& result,
+                           bool& arg1,
+                           bool& arg2,
+                           int*  nbytes)
+    {
+        result = arg1 && arg2;
     }
-
-    static void OpRealSum(Real &result, Real &arg1, Real &arg2, int *nbytes) {
-      result = arg1 + arg2;
+    static void OpRealSum (Real& result,
+                           Real& arg1,
+                           Real& arg2,
+                           int*  nbytes)
+    {
+        result = arg1 + arg2;
     }
-
-    static void OpRealMax(Real &result, Real &arg1, Real &arg2, int *nbytes) {
-      result = (arg1 > arg2 ? arg1 : arg2);
+    static void OpRealMax (Real& result,
+                           Real& arg1,
+                           Real& arg2,
+                           int*  nbytes)
+    {
+        result = (arg1 > arg2 ? arg1 : arg2);
     }
-
-    static void OpRealMin(Real &result, Real &arg1, Real &arg2, int *nbytes) {
-      result = (arg1 < arg2 ? arg1 : arg2);
+    static void OpRealMin (Real& result,
+                           Real& arg1,
+                           Real& arg2,
+                           int*  nbytes)
+    {
+        result = (arg1 < arg2 ? arg1 : arg2);
     }
-
-    static void OpIntMin(int &result, int &arg1, int &arg2, int *nbytes) {
-      result = (arg1 < arg2 ? arg1 : arg2);
+    static void OpIntMin (int& result,
+                          int& arg1,
+                          int& arg2,
+                          int* nbytes)
+    {
+        result = (arg1 < arg2 ? arg1 : arg2);
     }
-
-    static void OpIntMax(int &result, int &arg1, int &arg2, int *nbytes) {
-      result = (arg1 > arg2 ? arg1 : arg2);
+    static void OpIntMax (int& result,
+                          int& arg1,
+                          int& arg2,
+                          int* nbytes)
+    {
+        result = (arg1 > arg2 ? arg1 : arg2);
     }
-
-    static void OpIntSum(int &result, int &arg1, int &arg2, int *nbytes) {
-      result = arg1 + arg2;
+    static void OpIntSum (int& result,
+                          int& arg1,
+                          int& arg2,
+                          int* nbytes)
+    {
+        result = arg1 + arg2;
     }
-
-    static void OpLongMin(long &result, long &arg1, long &arg2, int *nbytes) {
-      result = (arg1 < arg2 ? arg1 : arg2);
+    static void OpLongMin (long& result,
+                           long& arg1,
+                           long& arg2,
+                           int*  nbytes)
+    {
+        result = (arg1 < arg2 ? arg1 : arg2);
     }
-
-    static void OpLongMax(long &result, long &arg1, long &arg2, int *nbytes) {
-      result = (arg1 > arg2 ? arg1 : arg2);
+    static void OpLongMax (long& result,
+                           long& arg1,
+                           long& arg2,
+                           int*  nbytes)
+    {
+        result = (arg1 > arg2 ? arg1 : arg2);
     }
-
-    static void OpLongSum(long &result, long &arg1, long &arg2, int *nbytes) {
-      result = arg1 + arg2;
+    static void OpLongSum (long& result,
+                           long& arg1,
+                           long& arg2,
+                           int*  nbytes)
+    {
+        result = arg1 + arg2;
     }
-
 };
 
 //

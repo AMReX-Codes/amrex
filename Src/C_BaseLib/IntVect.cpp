@@ -1,10 +1,8 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: IntVect.cpp,v 1.1 1997-09-12 18:00:09 lijewski Exp $
+// $Id: IntVect.cpp,v 1.2 1997-09-18 20:12:49 lijewski Exp $
 //
-
-#include <stdlib.h>
 
 #include <Assert.H>
 #include <BoxLib.H>

@@ -4,11 +4,18 @@
 #define BL_BOXLIST_H
 
 //
-// $Id: BoxList.H,v 1.2 1997-09-17 22:51:14 lijewski Exp $
+// $Id: BoxList.H,v 1.3 1997-09-18 20:12:46 lijewski Exp $
 //
 
+#ifdef BL_USE_NEW_HFILES
+#include <iostream>
+using std::cin;
+using std::cout;
+using std::cerr;
+using std::endl;
+#else
 #include <iostream.h>
-
+#endif
 
 #include <Boolean.H>
 #include <IntVect.H>

@@ -4,11 +4,22 @@
 #define BL_ASTRING_H
 
 //
-// $Id: aString.H,v 1.2 1997-09-17 22:51:23 lijewski Exp $
+// $Id: aString.H,v 1.3 1997-09-18 20:13:01 lijewski Exp $
 //
 
+#ifdef BL_USE_NEW_HFILES
+#include <iostream>
+#include <cstring>
+using std::cin;
+using std::cout;
+using std::cerr;
+using std::endl;
+using std::ostream;
+using std::istream;
+#else
 #include <iostream.h>
 #include <string.h>
+#endif
 
 #include <Assert.H>
 #include <BoxLib.H>

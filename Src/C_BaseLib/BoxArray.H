@@ -4,10 +4,14 @@
 #define BL_BOXARRAY_H
 
 //
-// $Id: BoxArray.H,v 1.2 1997-09-17 22:51:13 lijewski Exp $
+// $Id: BoxArray.H,v 1.3 1997-09-18 20:12:45 lijewski Exp $
 //
 
+#ifdef BL_USE_NEW_HFILES
+#include <cstddef>
+#else
 #include <stddef.h>
+#endif
 
 #include <Boolean.H>
 #include <IndexType.H>

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParmParse.cpp,v 1.1 1997-09-12 18:00:14 lijewski Exp $
+// $Id: ParmParse.cpp,v 1.2 1997-09-18 20:12:57 lijewski Exp $
 //
 
 #ifdef	_MSC_VER
@@ -9,13 +9,26 @@
 #else
 #include <strstream.h>
 #endif
+
+#ifdef BL_USE_NEW_HFILES
+#include <iostream>
+#include <cstddef>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#include <cctype>
+using std::cin;
+using std::cout;
+using std::cerr;
+using std::endl;
+#else
 #include <iostream.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-//#include <unistd.h>
+#endif
 
 #include <BoxLib.H>
 #include <ParmParse.H>

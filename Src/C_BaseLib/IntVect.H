@@ -4,14 +4,25 @@
 #define BL_INTVECT_H
 
 //
-// $Id: IntVect.H,v 1.2 1997-09-17 22:51:17 lijewski Exp $
+// $Id: IntVect.H,v 1.3 1997-09-18 20:12:49 lijewski Exp $
 //
 
-#include <SPACE.H>
-
+#ifdef BL_USE_NEW_HFILES
+#include <iostream>
+#include <cstdlib>
+using std::cin;
+using std::cout;
+using std::cerr;
+using std::endl;
+using std::ostream;
+using std::istream;
+using std::ws;
+#else
 #include <iostream.h>
 #include <stdlib.h>
+#endif
 
+#include <SPACE.H>
 #include <Boolean.H>
 #include <Misc.H>
 #include <Array.H>

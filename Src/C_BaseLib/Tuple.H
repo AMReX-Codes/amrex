@@ -4,11 +4,16 @@
 #define BL_TUPLE_H
 
 //
-// $Id: Tuple.H,v 1.3 1997-09-17 22:51:22 lijewski Exp $
+// $Id: Tuple.H,v 1.4 1997-09-18 20:13:00 lijewski Exp $
 //
 
-#include <Assert.H>
+#ifdef BL_USE_NEW_HFILES
+#include <cstdlib>
+#else
 #include <stdlib.h>
+#endif
+
+#include <Assert.H>
 
 //
 //@Man:

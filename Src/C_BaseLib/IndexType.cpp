@@ -1,11 +1,20 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: IndexType.cpp,v 1.1 1997-09-12 18:00:09 lijewski Exp $
+// $Id: IndexType.cpp,v 1.2 1997-09-18 20:12:49 lijewski Exp $
 //
 
+#ifdef BL_USE_NEW_HFILES
+#include <iostream>
+#include <iomanip>
+using std::cin;
+using std::cout;
+using std::cerr;
+using std::endl;
+#else
 #include <iostream.h>
 #include <iomanip.h>
+#endif
 
 #include <IndexType.H>
 #include <Utility.H>

@@ -4,10 +4,14 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.7 1997-09-17 22:51:16 lijewski Exp $
+// $Id: FabArray.H,v 1.8 1997-09-18 20:12:47 lijewski Exp $
 //
 
+#ifdef BL_USE_NEW_HFILES
+#include <climits>
+#else
 #include <limits.h>
+#endif
 
 #include <Assert.H>
 #include <aString.H>

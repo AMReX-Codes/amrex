@@ -1,18 +1,23 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Tracer.cpp,v 1.1 1997-09-12 18:00:16 lijewski Exp $
+// $Id: Tracer.cpp,v 1.2 1997-09-18 20:12:58 lijewski Exp $
 //
 // Definition of Tracer member functions.
 //
 
+#ifdef BL_USE_NEW_HFILES
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#else
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#endif
 
-#include "BoxLib.H"
-
-#include "Tracer.H"
+#include <BoxLib.H>
+#include <Tracer.H>
 
 const char* Tracer::m_program = 0;
 

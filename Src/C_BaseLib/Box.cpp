@@ -1,10 +1,14 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Box.cpp,v 1.1 1997-09-12 18:00:03 lijewski Exp $
+// $Id: Box.cpp,v 1.2 1997-09-18 20:12:44 lijewski Exp $
 //
 
+#ifdef BL_USE_NEW_HFILES
+#include <climits>
+#else
 #include <limits.h>
+#endif
 
 #include <Assert.H>
 #include <BoxLib.H>

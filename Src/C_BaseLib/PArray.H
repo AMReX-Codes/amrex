@@ -4,8 +4,18 @@
 #define BL_PARRAY_H
 
 //
-// $Id: PArray.H,v 1.3 1997-09-17 22:51:19 lijewski Exp $
+// $Id: PArray.H,v 1.4 1997-09-18 20:12:56 lijewski Exp $
 //
+
+#ifdef BL_USE_NEW_HFILES
+#include <iostream>
+using std::cin;
+using std::cout;
+using std::cerr;
+using std::endl;
+#else
+#include <iostream.h>
+#endif
 
 #include <Array.H>
 #include <Boolean.H>
@@ -176,8 +186,9 @@ private:
 template <class T>
 inline
 PArray<T>::PArray (PArrayPolicy _managed)
-    : vp(),
-      managed(_managed)
+    :
+    vp(),
+    managed(_managed)
 {}
 
 template <class T>
@@ -277,14 +288,13 @@ PArray<T>::ready () const
     return vp.ready();
 }
 
-
-#include <iostream.h>
-
 template <class T>
+inline
 PArray<T>::PArray (int    len,
                    PArrayPolicy _managed)
-    : vp(len),
-      managed(_managed)
+    :
+    vp(len),
+    managed(_managed)
 {
     for (int i = 0; i < length(); i++)
         vp[i] = 0;
@@ -296,19 +306,22 @@ PArray<T>::clear ()
 {
     if (managed)
     {
-        for (int i = 0; i < length(); ++i) {
-	  if(vp[i] == 0) {
+        for (int i = 0; i < length(); ++i)
+        {
+	  if (vp[i] == 0)
+          {
 	    //cerr << "Error in PArray<T>::clear vp[" << i << "] = 0 (fix parallel)"
 		 //<< endl;
-	  } else {
-            delete ((T*)(vp[i]));
+	  }
+          else
+          {
+              delete ((T*)(vp[i]));
 	  }
 	}
     }
     for (int i = 0; i < length(); ++i)
         vp[i] = 0;
 }
-
 
 template <class T>
 PArray<T>::~PArray ()
@@ -320,7 +333,7 @@ template <class T>
 void
 PArray<T>::resize (int newlen)
 {
-    void **ovp = vp.ready() ? &vp[0] : 0;
+    void **ovp = vp.ready() ? & vp[0] : 0;
     int onelem = vp.length();
     vp.resize(newlen);
     for (int i = onelem; i < newlen; ++i)
@@ -329,12 +342,15 @@ PArray<T>::resize (int newlen)
     {
         for (int i = newlen; i < onelem; i++)
         {
-	  if(ovp[i] == 0) {
+	  if (ovp[i] == 0)
+          {
 	    //cerr << "Error in PArray<T>::clear ovp[" << i << "] = 0 (fix parallel)"
 		 //<< endl;
-	  } else {
-            delete ((T*)(ovp[i]));
-            ovp[i]  = 0;
+	  }
+          else
+          {
+              delete ((T*)(ovp[i]));
+              ovp[i]  = 0;
 	  }
         }
     }
@@ -344,12 +360,16 @@ template <class T>
 void
 PArray<T>::clear (int n)
 {
-    if (managed) {
-	  if(vp[n] == 0) {
+    if (managed)
+    {
+	  if(vp[n] == 0)
+          {
 	    //cerr << "Error in PArray<T>::clear vp[" << n << "] = 0 (fix parallel)"
 		 //<< endl;
-	  } else {
-            delete ((T*)(vp[n]));
+	  }
+          else
+          {
+              delete ((T*)(vp[n]));
 	  }
     }
     vp[n] = 0;

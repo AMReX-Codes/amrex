@@ -4,10 +4,14 @@
 #define BL_ARENA
 
 //
-// $Id: Arena.H,v 1.2 1997-09-17 22:51:11 lijewski Exp $
+// $Id: Arena.H,v 1.3 1997-09-18 20:12:42 lijewski Exp $
 //
 
+#ifdef BL_USE_NEW_HFILES
+#include <cstddef>
+#else
 #include <stddef.h>
+#endif
 
 //
 //@Man:
