@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.42 2000-03-24 22:10:01 lijewski Exp $
+// $Id: AmrLevel.H,v 1.43 2000-05-30 20:24:54 almgren Exp $
 //
 
 #include <REAL.H>
@@ -233,6 +233,16 @@ public:
     //@ManDoc: Interpolate from coarse level to the valid area in dest.
     //
     void FillCoarsePatch (MultiFab& dest,
+                          int       dcomp,
+                          Real      time,
+                          int       state_idx,
+                          int       scomp,
+                          int       ncomp);
+    //
+    //@ManDoc: Interpolate from coarse level to the entire area 
+    //         (valid region plus ghost cells) in dest for PRESSURE only.
+    //
+    void FillCoarsePress (MultiFab& dest,
                           int       dcomp,
                           Real      time,
                           int       state_idx,

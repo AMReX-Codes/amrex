@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.67 2000-04-21 22:31:04 sstanley Exp $
+// $Id: AmrLevel.cpp,v 1.68 2000-05-30 20:24:55 almgren Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1148,6 +1148,75 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
             DependentMultiFabIterator mfi(fpi,mf);
 
             const Box& dbox = mf_BA[fpi.index()];
+
+            setBC(dbox,pdomain,SComp,0,NComp,desc.getBCs(),bcr);
+
+            mapper->interp(fpi(),
+                           0,
+                           mfi(),
+                           DComp,
+                           NComp,
+                           dbox,
+                           crse_ratio,
+                           clev.geom,
+                           geom,
+                           bcr);
+        }
+
+        DComp += NComp;
+    }
+}
+
+void
+AmrLevel::FillCoarsePress (MultiFab& mf,
+                           int       dcomp,
+                           Real      time,
+                           int       index,
+                           int       scomp,
+                           int       ncomp)
+{
+    //
+    // Must fill this region on crse level and interpolate.
+    //
+    BL_ASSERT(level != 0);
+    BL_ASSERT(ncomp <= (mf.nComp()-dcomp));
+
+    Array<BCRec>            bcr(ncomp);
+    int                     DComp   = dcomp;
+    const StateDescriptor&  desc    = desc_lst[index];
+    const Box&              pdomain = state[index].getDomain();
+    const BoxArray&         mf_BA   = mf.boxArray();
+    AmrLevel&               clev    = parent->getLevel(level-1);
+    vector< pair<int,int> > ranges  = desc.sameInterps(scomp,ncomp);
+
+    BL_ASSERT(mf_BA[0].ixType() == IndexType::TheNodeType());
+
+    BL_ASSERT(desc.inRange(scomp, ncomp));
+
+    for (int i = 0; i < ranges.size(); i++)
+    {
+        const int     SComp  = ranges[i].first;
+        const int     NComp  = ranges[i].second;
+        Interpolater* mapper = desc.interp(SComp);
+
+        BoxArray crseBA(mf_BA.length());
+        
+        for (int j = 0; j < crseBA.length(); ++j)
+        {
+            BL_ASSERT(mf_BA[j].ixType() == desc.getType());
+
+            crseBA.set(j,mapper->CoarseBox(mf[j].box(),crse_ratio));
+        }
+
+        MultiFab crseMF(crseBA,NComp,0,Fab_noallocate);
+
+        FillPatchIterator fpi(clev,crseMF,0,time,index,SComp,NComp);
+
+        for ( ; fpi.isValid(); ++fpi)
+        {
+            DependentMultiFabIterator mfi(fpi,mf);
+
+            const Box& dbox = mf[fpi.index()].box();
 
             setBC(dbox,pdomain,SComp,0,NComp,desc.getBCs(),bcr);
 
