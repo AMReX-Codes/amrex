@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.38 1998-07-29 20:04:36 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.39 1998-08-11 20:33:40 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -53,6 +53,9 @@ CommData::CommData (int        face,
 #ifdef BL_USE_MPI
 
 #include <ccse-mpi.H>
+#include <RunStats.H>
+
+static const aString MPI_Stats("mpi");
 
 int ParallelDescriptor::m_nProcs = -1;
 int ParallelDescriptor::m_MyId   = -1;
@@ -122,7 +125,13 @@ ParallelDescriptor::second ()
 void
 ParallelDescriptor::Barrier ()
 {
+    static RunStats mpi_stats(MPI_Stats);
+
+    mpi_stats.start();
+
     int rc = MPI_Barrier(MPI_COMM_WORLD);
+
+    mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
@@ -133,12 +142,18 @@ ParallelDescriptor::ReduceBoolAnd (bool& r)
 {
     int src = r, recv; // `src' is either 0 or 1.
 
+    static RunStats mpi_stats(MPI_Stats);
+
+    mpi_stats.start();
+
     int rc = MPI_Allreduce(&src,
                            &recv,
                            1,
                            MPI_INT,
                            MPI_SUM,
                            MPI_COMM_WORLD);
+
+    mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
@@ -151,12 +166,17 @@ ParallelDescriptor::ReduceBoolOr  (bool& r)
 {
     int src = r, recv; // `src' is either 0 or 1.
 
+    static RunStats mpi_stats(MPI_Stats);
+
+    mpi_stats.start();
+
     int rc = MPI_Allreduce(&src,
                            &recv,
                            1,
                            MPI_INT,
                            MPI_SUM,
                            MPI_COMM_WORLD);
+    mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
@@ -169,12 +189,17 @@ ParallelDescriptor::ReduceRealMax (Real& r)
 {
     Real recv;
 
+    static RunStats mpi_stats(MPI_Stats);
+
+    mpi_stats.start();
+
     int rc = MPI_Allreduce(&r,
                            &recv,
                            1,
                            mpi_data_type(&recv),
                            MPI_MAX,
                            MPI_COMM_WORLD);
+    mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
@@ -187,12 +212,17 @@ ParallelDescriptor::ReduceRealMin (Real& r)
 {
     Real recv;
 
+    static RunStats mpi_stats(MPI_Stats);
+
+    mpi_stats.start();
+
     int rc = MPI_Allreduce(&r,
                            &recv,
                            1,
                            mpi_data_type(&recv),
                            MPI_MIN,
                            MPI_COMM_WORLD);
+    mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
@@ -205,12 +235,17 @@ ParallelDescriptor::ReduceRealSum (Real& r)
 {
     Real recv;
 
+    static RunStats mpi_stats(MPI_Stats);
+
+    mpi_stats.start();
+
     int rc = MPI_Allreduce(&r,
                            &recv,
                            1,
                            mpi_data_type(&recv),
                            MPI_SUM,
                            MPI_COMM_WORLD);
+    mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
@@ -223,12 +258,17 @@ ParallelDescriptor::ReduceLongAnd (long& r)
 {
     long recv;
 
+    static RunStats mpi_stats(MPI_Stats);
+
+    mpi_stats.start();
+
     int rc = MPI_Allreduce(&r,
                            &recv,
                            1,
                            MPI_LONG,
                            MPI_LAND,
                            MPI_COMM_WORLD);
+    mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
@@ -241,12 +281,18 @@ ParallelDescriptor::ReduceLongSum (long& r)
 {
     long recv;
 
+    static RunStats mpi_stats(MPI_Stats);
+
+    mpi_stats.start();
+
     int rc = MPI_Allreduce(&r,
                            &recv,
                            1,
                            MPI_LONG,
                            MPI_SUM,
                            MPI_COMM_WORLD);
+
+    mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
@@ -259,12 +305,18 @@ ParallelDescriptor::ReduceIntSum (int& r)
 {
     int recv;
 
+    static RunStats mpi_stats(MPI_Stats);
+
+    mpi_stats.start();
+
     int rc = MPI_Allreduce(&r,
                            &recv,
                            1,
                            MPI_INT,
                            MPI_SUM,
                            MPI_COMM_WORLD);
+
+    mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
@@ -279,7 +331,14 @@ ParallelDescriptor::Broadcast (int   fromproc,
                                int   nbytes)
 {
     assert(src == dest);
+
+    static RunStats mpi_stats(MPI_Stats);
+
+    mpi_stats.start();
+
     MPI_Bcast(src, nbytes, MPI_BYTE, fromproc, MPI_COMM_WORLD);
+
+    mpi_stats.end();
 }
 
 void
@@ -295,6 +354,10 @@ ParallelDescriptor::Gather (Real* sendbuf,
 
     MPI_Datatype typ = mpi_data_type(sendbuf);
 
+    static RunStats mpi_stats(MPI_Stats);
+
+    mpi_stats.start();
+
     int rc = MPI_Gather(sendbuf,
                         nsend,
                         typ,
@@ -303,6 +366,7 @@ ParallelDescriptor::Gather (Real* sendbuf,
                         typ,
                         root,
                         MPI_COMM_WORLD);
+    mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
