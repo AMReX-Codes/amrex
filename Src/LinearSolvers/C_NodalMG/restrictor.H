@@ -27,12 +27,12 @@ public:
 
 class cell_average_restrictor_class : public amr_restrictor_class 
 {
-protected:
-    int integrate;
 public:
     cell_average_restrictor_class(int i) { integrate = i; }
     virtual Box box(const Box& fb, const IntVect& rat) const;
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
+protected:
+    int integrate;
 };
 
 class terrain_velocity_restrictor_class : public cell_average_restrictor_class 
@@ -63,8 +63,6 @@ public:
 // Does nothing at coarse-fine interfaces.
 class bilinear_restrictor_class : public amr_restrictor_class 
 {
-protected:
-    int integrate;
 public:
     bilinear_restrictor_class(int i) { integrate = i; }
     virtual Box box(const Box& fb, const IntVect& rat) const;
@@ -74,6 +72,8 @@ public:
 	const copy_cache*,
 #endif
 	const level_interface& lev_interface, const amr_boundary_class& bdy, const IntVect& rat) const;
+protected:
+    int integrate;
 };
 
 // Restricts all interfaces, uses data at coarse points

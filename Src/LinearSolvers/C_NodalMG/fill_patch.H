@@ -18,8 +18,7 @@ extern "C"
     void FORT_FFCPY(Real*, intS, intS, const Real*, intS, const int&);
 }
 
-inline void 
-internal_copy(MultiFab& r, int destgrid, int srcgrid, const Box& b) 
+inline void internal_copy(MultiFab& r, int destgrid, int srcgrid, const Box& b) 
 {
     Real *const dptr = r[destgrid].dataPtr();
     Real *const sptr = r[srcgrid].dataPtr();
@@ -47,17 +46,16 @@ Real inner_product(const MultiFab& r, const MultiFab& s);
 int find_patch(const Box& region, const MultiFab& r, int flags = 0);
 
 bool fill_patch(FArrayBox& patch, const Box& region,
-	       const MultiFab& r,
-	       const level_interface& lev_interface,
-	       const amr_boundary_class& bdy = error_boundary,
-	       int flags = 0, int idim = -1, int index = -1);
+		const MultiFab& r,
+		const level_interface& lev_interface,
+		const amr_boundary_class& bdy = error_boundary,
+		int flags = 0, int idim = -1, int index = -1);
 
-inline bool 
-fill_patch(FArrayBox& patch,
-	   const MultiFab& r,
-	   const level_interface& lev_interface,
-	   const amr_boundary_class& bdy = error_boundary,
-	   int flags = 0, int idim = -1, int index = -1)
+inline bool fill_patch(FArrayBox& patch,
+		       const MultiFab& r,
+		       const level_interface& lev_interface,
+		       const amr_boundary_class& bdy = error_boundary,
+		       int flags = 0, int idim = -1, int index = -1)
 {
     return fill_patch(patch, patch.box(), r, lev_interface, bdy, flags, idim, index);
 }
@@ -87,12 +85,11 @@ void interpolate_patch(FArrayBox& patch, const Box& region,
 		       const amr_interpolator_class& interp = bilinear_interpolator_class(),
 		       const level_interface& lev_interface = null_level_interface,
 		       const amr_boundary_class& bdy = error_boundary);
-inline
-void interpolate_patch(FArrayBox& patch,
-		       const MultiFab& r, const IntVect& rat,
-		       const amr_interpolator_class& interp = bilinear_interpolator_class(),
-		       const level_interface& lev_interface = null_level_interface,
-		       const amr_boundary_class& bdy = error_boundary)
+inline void interpolate_patch(FArrayBox& patch,
+			      const MultiFab& r, const IntVect& rat,
+			      const amr_interpolator_class& interp = bilinear_interpolator_class(),
+			      const level_interface& lev_interface = null_level_interface,
+			      const amr_boundary_class& bdy = error_boundary)
 {
     interpolate_patch(patch, patch.box(), r, rat, interp, lev_interface, bdy);
 }
@@ -106,15 +103,14 @@ void restrict_patch(FArrayBox& patch, const Box& region,
 		    const level_interface& lev_interface = null_level_interface,
 		    const amr_boundary_class& bdy = error_boundary);
 
-inline void 
-restrict_patch(FArrayBox& patch,
-	       MultiFab& r, const IntVect& rat,
+inline void  restrict_patch(FArrayBox& patch,
+			    MultiFab& r, const IntVect& rat,
 #ifdef HG_USE_CACHE
-	       const copy_cache* border_cache = 0,
+			    const copy_cache* border_cache = 0,
 #endif
-	       const amr_restrictor_class& restric = default_restrictor(),
-	       const level_interface& lev_interface = null_level_interface,
-	       const amr_boundary_class& bdy = error_boundary)
+			    const amr_restrictor_class& restric = default_restrictor(),
+			    const level_interface& lev_interface = null_level_interface,
+			    const amr_boundary_class& bdy = error_boundary)
 {
     restrict_patch(patch, patch.box(), r, rat, 
 #ifdef HG_USE_CACHE

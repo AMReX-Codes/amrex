@@ -5,6 +5,48 @@
 
 class amr_multigrid 
 {
+public:
+    
+    amr_multigrid(const Array<BoxArray>& Mesh, const Array<IntVect>& Gen_ratio,
+	int Lev_min_min, int Lev_min_max, int Lev_max_max,
+	const amr_boundary_class& Boundary, int Pcode) :
+    ml_mesh(Mesh), gen_ratio(Gen_ratio),
+	lev_min_min(Lev_min_min), lev_min_max(Lev_min_max),
+	lev_max_max(Lev_max_max), mg_boundary(Boundary), pcode(Pcode),
+	integrate(0)
+    {
+    }
+    
+    virtual ~amr_multigrid();
+    
+#if BL_SPACEDIM==2
+    static void SetRZ()		{ c_sys = 1; }
+    static void SetCartesian()	{ c_sys = 0; }
+    
+    static int IsRZ()		{ return c_sys == 1; }
+    static int IsCartesian()	{ return c_sys == 0; }
+#endif
+    
+    static void mesh_read(Array<BoxArray>& m, Array<IntVect>& r, Array<Box>& d, istream& is);
+    
+    static void mesh_write(const Array<BoxArray>& m, const Array<Box>& d, ostream& os);
+    static void mesh_write(const Array<BoxArray>& m, const Array<IntVect>& r, Box fd, ostream& os);
+    
+    virtual void solve(Real reltol, Real abstol = 0.0, int i1=2, int i2=2, int linesolvdim = -1);
+    virtual Real ml_cycle(int lev, int mglev, int i1=2, int i2=2, Real tol = -1.0, Real res_norm_fine = 0.0);
+    virtual void mg_cycle(int mglev, int i1=2, int i2=2, int is_zero=0);
+    virtual Real ml_residual(int mglev, int lev);
+    virtual void mg_interpolate_level(int lto, int lfrom);
+    virtual void mg_restrict_level(int lto, int lfrom);
+    
+    virtual void level_residual(MultiFab& r, MultiFab& s, MultiFab& d,
+#ifdef HG_USE_CACHE
+	copy_cache* dbc,
+#endif
+	int mglev, bool iclear) = 0;
+    virtual void interface_residual(int mglev, int mgc) = 0;
+    virtual void relax(int mglev, int i1, int is_zero) = 0;
+    virtual void cgsolve(int mglev) = 0;
 protected:
     const int lev_min_min, lev_min_max, lev_max_max;
     int lev_min, lev_max, mglev_max;
@@ -45,7 +87,7 @@ protected:
     void build_mesh(const Box& fdomain);
     virtual int build_down(const BoxArray& l_mesh, const Box& l_domain, int flev, IntVect rat, int nlev);
     virtual void make_coarser_level(BoxArray& mesh, Box& domain, int& flev, IntVect& rat);
-    virtual int can_coarsen(const BoxArray& mesh, const Box& domain) const = 0;
+    virtual bool can_coarsen(const BoxArray& mesh, const Box& domain) const = 0;
     
     // Before using the multigrid, a derived class must call build_mesh()
     // followed by alloc(), or their equivalents.  The intended use is
@@ -61,54 +103,6 @@ protected:
     
     int pcode;
     int integrate;
-public:
-    
-    amr_multigrid(const Array<BoxArray>& Mesh, const Array<IntVect>& Gen_ratio,
-	int Lev_min_min, int Lev_min_max, int Lev_max_max,
-	const amr_boundary_class& Boundary, int Pcode) :
-    ml_mesh(Mesh), gen_ratio(Gen_ratio),
-	lev_min_min(Lev_min_min), lev_min_max(Lev_min_max),
-	lev_max_max(Lev_max_max), mg_boundary(Boundary), pcode(Pcode),
-	integrate(0)
-    {
-    }
-    
-    virtual ~amr_multigrid();
-    
-#if BL_SPACEDIM==2
-    static void SetRZ()
-    {
-	c_sys = 1;
-    }
-    static void SetCartesian()
-    { c_sys = 0; }
-    
-    static int IsRZ()
-    { return c_sys == 1; }
-    static int IsCartesian()
-    { return c_sys == 0; }
-#endif
-    
-    static void mesh_read(Array<BoxArray>& m, Array<IntVect>& r, Array<Box>& d, istream& is);
-    
-    static void mesh_write(Array<BoxArray>& m, Array<Box>& d, ostream& os);
-    static void mesh_write(Array<BoxArray>& m, Array<IntVect>& r, Box fd, ostream& os);
-    
-    virtual void solve(Real reltol, Real abstol = 0.0, int i1=2, int i2=2, int linesolvdim = -1);
-    virtual Real ml_cycle(int lev, int mglev, int i1=2, int i2=2, Real tol = -1.0, Real res_norm_fine = 0.0);
-    virtual void mg_cycle(int mglev, int i1=2, int i2=2, int is_zero=0);
-    virtual Real ml_residual(int mglev, int lev);
-    virtual void mg_interpolate_level(int lto, int lfrom);
-    virtual void mg_restrict_level(int lto, int lfrom);
-    
-    virtual void level_residual(MultiFab& r, MultiFab& s, MultiFab& d,
-#ifdef HG_USE_CACHE
-	copy_cache* dbc,
-#endif
-	int mglev, bool iclear) = 0;
-    virtual void interface_residual(int mglev, int mgc) = 0;
-    virtual void relax(int mglev, int i1, int is_zero) = 0;
-    virtual void cgsolve(int mglev) = 0;
 };
 
 #endif

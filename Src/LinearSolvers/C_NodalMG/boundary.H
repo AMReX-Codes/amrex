@@ -20,10 +20,6 @@ class copy_cache;
 
 class amr_boundary_class 
 {
-protected:
-    virtual void check_against_boundary(BoxList& bl, List<int>& il,
-	const Box& b, int ib,
-	const Box& d, int dim1) const;
 public:
     amr_boundary_class() { }
     virtual ~amr_boundary_class() { }
@@ -50,6 +46,10 @@ public:
 	BoxLib::Error("amr_boundary_class::singular---boundary condition not defined.");
 	return false;
     }
+protected:
+    virtual void check_against_boundary(BoxList& bl, List<int>& il,
+	const Box& b, int ib,
+	const Box& d, int dim1) const;
 };
 
 inline int amr_boundary_class::dir(const Box& region, const Box& domain) const
@@ -66,7 +66,7 @@ inline int amr_boundary_class::dir(const Box& region, const Box& domain) const
 	if ( region.bigEnd(i) == domain.smallEnd(i) )
 	    return -(i+1);
 	if ( region.smallEnd(i) == domain.bigEnd(i) )
-	    return (i+1);
+	    return +(i+1);
     }
     BoxLib::Error("amr_boundary_class::dir---boundary box not outside domain.");
     return 0;
@@ -96,10 +96,6 @@ public:
 
 class periodic_boundary_class : public amr_boundary_class 
 {
-protected:
-    void check_against_boundary(BoxList& bl, List<int>& il,
-	const Box& b, int ib,
-	const Box& d, int dim1) const;
 public:
     periodic_boundary_class() { }
     virtual bool defined() const { return true; }
@@ -109,6 +105,10 @@ public:
     { BoxLib::Error("periodic_boundary_class::fill---lev_interface version not defined"); }
     virtual void duplicate(List<Box>& bl, const Box& domain) const;
     virtual bool singular() const { return true; }
+protected:
+    void check_against_boundary(BoxList& bl, List<int>& il,
+	const Box& b, int ib,
+	const Box& d, int dim1) const;
 };
 
 const amr_boundary_class error_boundary;
@@ -121,11 +121,6 @@ const amr_boundary_class error_boundary;
 
 class amr_fluid_boundary_class 
 {
-protected:
-    const amr_boundary_class *v[BL_SPACEDIM];
-    const amr_boundary_class *s;
-    const amr_boundary_class *p;
-    const amr_boundary_class *ts;
 public:
     amr_fluid_boundary_class();
     virtual ~amr_fluid_boundary_class() { }
@@ -146,6 +141,11 @@ public:
     {
 	return *ts;
     }
+protected:
+    const amr_boundary_class *v[BL_SPACEDIM];
+    const amr_boundary_class *s;
+    const amr_boundary_class *p;
+    const amr_boundary_class *ts;
 };
 
 // This is the object returned by the inviscid_fluid_boundary_class class.
@@ -161,12 +161,6 @@ class inviscid_fluid_boundary_class;
 
 class mixed_boundary_class : public amr_boundary_class 
 {
-protected:
-    inviscid_fluid_boundary_class *ptr;
-    int flowdim;
-    void check_against_boundary(BoxList& bl, List<int>& il,
-	const Box& b, int ib,
-	const Box& d, int dim1) const;
 public:
     mixed_boundary_class(inviscid_fluid_boundary_class *Ptr, int idim) 
     {
@@ -175,10 +169,8 @@ public:
     
     virtual bool defined() const { return true; }
     virtual Box box(const Box&, const Box&, int) const;
-    virtual void fill(FArrayBox&, const Box&,
-	const FArrayBox&, const Box&, const Box&, int) const;
-    virtual void fill(FArrayBox&, const Box&,
-	const MultiFab&, int, const Box&) const;
+    virtual void fill(FArrayBox&, const Box&, const FArrayBox&, const Box&, const Box&, int) const;
+    virtual void fill(FArrayBox&, const Box&, const MultiFab&, int, const Box&) const;
     virtual void sync_borders(MultiFab&, const level_interface&) const;
     virtual void fill_borders(MultiFab& r, const level_interface& lev_interface, int w = -1) const;
 #ifdef HG_USE_CACHE
@@ -193,6 +185,12 @@ public:
     virtual void duplicate(List<Box>& bl, const Box& domain) const;
     // int fill_patch_special(FArrayBox&, const Box&, MultiFab&, const Box&, int flags) const;
     virtual bool singular() const;
+protected:
+    inviscid_fluid_boundary_class *ptr;
+    int flowdim;
+    void check_against_boundary(BoxList& bl, List<int>& il,
+	const Box& b, int ib,
+	const Box& d, int dim1) const;
 };
 
 // This is a simple boundary condition with slip walls.
@@ -203,11 +201,11 @@ public:
 class inviscid_fluid_boundary_class : public amr_fluid_boundary_class 
 {
     friend mixed_boundary_class;
-protected:
-    RegType bc[BL_SPACEDIM][2];
 public:
     inviscid_fluid_boundary_class(RegType Bc[BL_SPACEDIM][2]);
     ~inviscid_fluid_boundary_class();
+protected:
+    RegType bc[BL_SPACEDIM][2];
 };
 
 #endif

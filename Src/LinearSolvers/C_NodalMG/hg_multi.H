@@ -15,26 +15,26 @@
 
 class holy_grail_interpolator_class : public bilinear_interpolator_class 
 {
-protected:
-    Real **sigptr;
-    const Box& sigbox;
 public:
     holy_grail_interpolator_class(Real **Sigptr, const Box& Sigbox)
 	: sigptr(Sigptr), sigbox(Sigbox) { }
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& cgr, const Box& cb, const IntVect& rat) const;
+protected:
+    Real **sigptr;
+    const Box& sigbox;
 };
 
 #  else
 
 class holy_grail_interpolator_class : public bilinear_interpolator_class 
 {
-protected:
-    Real *sigptr;
-    const Box& sigbox;
 public:
     holy_grail_interpolator_class(Real *Sigptr, const Box& Sigbox)
 	: sigptr(Sigptr), sigbox(Sigbox) { }
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& cgr, const Box& cb, const IntVect&) const;
+protected:
+    Real *sigptr;
+    const Box& sigbox;
 };
 
 #  endif
@@ -52,6 +52,25 @@ public:
 
 class holy_grail_amr_multigrid : public amr_multigrid 
 {
+public:
+    
+    holy_grail_amr_multigrid(const Array<BoxArray>& Mesh, const Array<IntVect>& Gen_ratio,
+	const Box& fdomain,
+	int Lev_min_min, int Lev_min_max, int Lev_max_max,
+	const amr_fluid_boundary_class& Boundary, int Pcode = 2)
+	: amr_multigrid(Mesh, Gen_ratio, Lev_min_min, Lev_min_max, Lev_max_max,
+	Boundary.pressure(), Pcode),
+	boundary(Boundary), smoother_mode(2), line_solve_dim(-1)
+    {
+	build_mesh(fdomain);
+    }
+    
+    void alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma, 
+	Real H[], int Lev_min, int Lev_max);
+    void clear();
+    
+    int smoother_mode;
+    int line_solve_dim;
 protected:
     const amr_fluid_boundary_class& boundary;
     PArray<MultiFab> sigma, sigma_nd[BL_SPACEDIM], sigma_node, cen;
@@ -96,7 +115,7 @@ protected:
     void build_sync_cache(int mglev, int lev);
     
     // all these inherited in some form from amr_multigrid
-    virtual int can_coarsen(const BoxArray& mesh, const Box& domain) const;
+    virtual bool can_coarsen(const BoxArray& mesh, const Box& domain) const;
     virtual void sync_interfaces();
     
     // special case for periodic cleanup at the end:
@@ -118,25 +137,6 @@ protected:
     
     virtual void mg_restrict(int lto, int lfrom);
     
-public:
-    
-    holy_grail_amr_multigrid(const Array<BoxArray>& Mesh, const Array<IntVect>& Gen_ratio,
-	const Box& fdomain,
-	int Lev_min_min, int Lev_min_max, int Lev_max_max,
-	const amr_fluid_boundary_class& Boundary, int Pcode = 2)
-	: amr_multigrid(Mesh, Gen_ratio, Lev_min_min, Lev_min_max, Lev_max_max,
-	Boundary.pressure(), Pcode),
-	boundary(Boundary), smoother_mode(2), line_solve_dim(-1)
-    {
-	build_mesh(fdomain);
-    }
-    
-    void alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma, 
-	Real H[], int Lev_min, int Lev_max);
-    void clear();
-    
-    int smoother_mode;
-    int line_solve_dim;
 };
 
 #endif
