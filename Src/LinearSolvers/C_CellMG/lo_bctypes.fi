@@ -1,0 +1,12 @@
+c-----------------------------------------------------------------------
+c     Should reflect the same contents as LO_BCTYPES.H
+c     $Id: lo_bctypes.fi,v 1.1 2002-11-08 18:34:42 car Exp $
+c
+      integer LO_DIRICHLET
+      integer LO_NEUMANN
+      integer LO_REFLECT_ODD
+      parameter (
+     &     LO_DIRICHLET   = 101,
+     &     LO_NEUMANN     = 102,
+     &     LO_REFLECT_ODD = 103
+     &     )
