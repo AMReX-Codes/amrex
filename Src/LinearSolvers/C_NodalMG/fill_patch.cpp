@@ -278,7 +278,6 @@ bool task_bdy_fill::ready()
 task_fill_patch::task_fill_patch(const MultiFab& t_, int tt_, const Box& region_, const MultiFab& r_, const level_interface& lev_interface_, const amr_boundary_class* bdy_, int idim_, int index_)
     : r(r_), lev_interface(lev_interface_), bdy(bdy_), idim(idim_), index(index_), task_fab(t_, tt_, region_, r_.nComp())
 {
-    assert(bdy != 0);
 }
 
 bool task_fill_patch::init(sequence_number sno, MPI_Comm comm)

@@ -20,12 +20,17 @@ bool task::depend_ready()
     return dependencies.empty();
 }
 
+bool task::recommit(list<task*>*)
+{
+    return false;
+}
+
 // TASK_LIST
 
 bool task_list::def_verbose = true;
 
 task_list::task_list(MPI_Comm comm_)
-    : seq_no(0), verbose(def_verbose)
+    : seq_no(0), seq_delta(10), verbose(def_verbose)
 {
     int res = MPI_Comm_dup(comm_, &comm);
     if ( res != 0 )
@@ -38,6 +43,36 @@ task_list::~task_list()
     int res = MPI_Comm_free(&comm);
     if ( res != 0 )
 	ParallelDescriptor::Abort( res );
+}
+
+void task_list::add_task(task* t)
+{
+    seq_no += seq_delta;
+    add_task(t, seq_no);
+}
+
+void task_list::add_task(task* t, task::sequence_number seq_no_)
+{
+    if ( ! t->init(seq_no_, comm) )
+    {
+	delete t;
+    }
+    else
+    {
+	task** tp = new task*( t );
+	// loop here over existing tasks, see if the depend on this one,
+	// if so, add them to the dependency
+	list< task**>::const_iterator cit = tasks.begin();
+	while ( cit != tasks.end() )
+	{
+	    if ( t->depends_on_q( **cit ) )
+	    {
+		t->depend_on(**cit);
+	    }
+	    cit++;
+	}
+	tasks.push_back( tp );
+    }
 }
 
 void task_list::execute()
@@ -53,6 +88,14 @@ void task_list::execute()
 	    (*t)->hint();
 	if ( (*t)->ready() )
 	{
+	    list<task*> tl;
+	    if ( (*t)->recommit(&tl) )
+	    {
+		for(list<task*>::iterator tli = tl.begin(); tli != tl.end(); ++tli)
+		{
+		    add_task(*tli, (*tli)->get_sequence_number() + 1);
+		}
+	    }
 	    delete *t;
 	    *t = 0;
 	    dead_tasks.push_back(t);
@@ -79,6 +122,14 @@ bool task_list::execute_no_block()
 	    (*t)->hint();
 	if ( (*t)->ready() )
 	{
+	    list<task*> tl;
+	    if ( (*t)->recommit(&tl) )
+	    {
+		for(list<task*>::iterator tli = tl.begin(); tli != tl.end(); ++tli)
+		{
+		    add_task(*tli, (*tli)->get_sequence_number() + 1);
+		}
+	    }
 	    delete *t;
 	    *t = 0;
 	    list< task** >::iterator tmp = tli++;
@@ -92,37 +143,17 @@ bool task_list::execute_no_block()
     return tasks.empty();
 }
 
-void task_list::add_task(task* t)
-{
-    seq_no++;
-    if ( ! t->init(seq_no, comm) )
-    {
-	delete t;
-    }
-    else
-    {
-	task** tp = new task*( t );
-	// loop here over existing tasks, see if the depend on this one,
-	// if so, add them to the dependency
-	list< task**>::const_iterator cit = tasks.begin();
-	while ( cit != tasks.end() )
-	{
-	    if ( t->depends_on_q( **cit ) )
-	    {
-		t->depend_on(**cit);
-	    }
-	    cit++;
-	}
-	tasks.push_back( tp );
-    }
-}
-
 // TASK_COPY
 task_copy::task_copy(MultiFab& mf, int dgrid, const MultiFab& smf, int sgrid, const Box& bx)
     : m_mf(mf), m_dgrid(dgrid), m_smf(smf), m_sgrid(sgrid), m_bx(bx), m_sbx(bx), m_local(false), tmp(0), m_request(MPI_REQUEST_NULL)
 {
 }
 
+task_copy::task_copy(MultiFab& mf, int dgrid, const Box& db, const MultiFab& smf, int sgrid, const Box& sb)
+    : m_mf(mf), m_bx(db), m_dgrid(dgrid), m_smf(smf), m_sbx(sb), m_sgrid(sgrid), m_local(false), tmp(0), m_request(MPI_REQUEST_NULL)
+{
+}
+			// r[jgrid].copy(r[igrid], bb, 0, b, 0, r.nComp());
 static bool eq(const MultiFab& a, const MultiFab& b)
 {
     return &a == &b;
@@ -144,11 +175,6 @@ bool task_copy::depends_on_q(const task* t1) const
     return false;
 }
 
-task_copy::task_copy(MultiFab& mf, int dgrid, const Box& db, const MultiFab& smf, int sgrid, const Box& sb)
-    : m_mf(mf), m_bx(db), m_dgrid(dgrid), m_smf(smf), m_sbx(sb), m_sgrid(sgrid), m_local(false), tmp(0), m_request(MPI_REQUEST_NULL)
-{
-}
-			// r[jgrid].copy(r[igrid], bb, 0, b, 0, r.nComp());
 
 task_copy::~task_copy()
 {
@@ -308,4 +334,17 @@ bool task_fab_get::ready()
 {
     throw( "task_fab_get::ready(): FIXME" ); /*NOTREACHED*/
     return true;
+}
+
+// task_fec_base
+
+bool task_fec_base::recommit(list<task*>* tl)
+{
+    for(list<int>::const_iterator tlli = tll.begin(); tlli != tll.end(); ++tlli)
+    {
+	tl->push_back(
+	    new task_copy(s, *tlli, s, igrid, freg)
+	    );
+    }
+    return false;
 }

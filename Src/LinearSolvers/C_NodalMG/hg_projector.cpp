@@ -228,7 +228,6 @@ public:
 		const Real* uc[BL_SPACEDIM] = { D_DECL( task_fab_result(0).dataPtr(), task_fab_result(2).dataPtr(), task_fab_result(4).dataPtr() ) };
 		const Box& uc_box = task_fab_result(0).box();
 		(*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(up[0], up[1], up[2]), DIMLIST(up_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), t.getVect());
-		throw( "task_fecdiv_2::ready(): FIXME" );
 	    }
 	    return true;
 	}
