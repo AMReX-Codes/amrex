@@ -2,7 +2,7 @@
 #define _INTERPBNDRYDATA_H_
 
 //
-// $Id: InterpBndryData.H,v 1.1 1998-03-24 07:06:10 almgren Exp $
+// $Id: InterpBndryData.H,v 1.2 1998-03-26 17:51:33 almgren Exp $
 //
 
 #include <BoxArray.H>
@@ -52,11 +52,9 @@ public:
     InterpBndryData(const BoxArray& _grids, int _ncomp, const Geometry& geom);
 //@ManDoc: interpret user BCs to those expected by LinOp: takes integer ratio and
 // is a wrapper to the IntVect version
-    void setBndryConds(const BCRec& phys_bc,
-                       const Geometry& geom, int ratio);
+    void setBndryConds(const BCRec& phys_bc, int ratio);
 //@ManDoc: interpret user BCs to those expected by LinOp: takes IntVect ratio
-    virtual void setBndryConds(const BCRec& phys_bc,
-                               const Geometry& geom, IntVect& ratio) = 0;
+    virtual void setBndryConds(const BCRec& phys_bc, IntVect& ratio) = 0;
 //@ManDoc: set bndry values at coarse level (non interpolation performed)
     void setBndryValues(const MultiFab& mf, int mf_start,
                         int bnd_start, int num_comp,
