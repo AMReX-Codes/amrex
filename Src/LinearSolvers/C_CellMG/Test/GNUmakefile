@@ -1,14 +1,14 @@
 PRECISION = DOUBLE
-PROFILE = FALSE
 PROFILE = TRUE
+PROFILE = FALSE
 DEBUG	= FALSE
 DEBUG	= TRUE
 DIM	= 2
 DIM	= 3
 COMP = g++
 COMP = KCC
-USE_MPI=TRUE
 USE_MPI=FALSE
+USE_MPI=TRUE
 USE_THREADS=TRUE
 USE_THREADS=FALSE
 NAMESPACE=FALSE
@@ -18,6 +18,9 @@ USE_ARRAYVIEW = FALSE
 
 USE_HYPRE=TRUE
 USE_HYPRE=FALSE
+
+USE_BL3 = FALSE
+USE_BL3 = TRUE
 
 PBOXLIB_HOME := ../..
 
@@ -50,9 +53,6 @@ ifeq ($(USE_HYPRE),TRUE)
   include $(HYPRE_DIR)/HypreABec/Make.package
 endif
 
-ifeq ($(USE_THREADS),TRUE)
-  DEFINES += -DBL3_PTHREADS
-endif
 
 include Make.package
 include $(PBOXLIB_HOME)/bndrylib/Make.package
@@ -83,9 +83,19 @@ CEXE_headers += AmrData.H
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/pAmrvis
 vpathdir += $(PBOXLIB_HOME)/pAmrvis
 
-ifeq ($(USE_THREADS),TRUE)
-  CEXE_headers += WorkQueue.H Threads.H
-  CEXE_sources += BL3WorkQueue.cpp BL3Thread.cpp BL3Utility.cpp BL3Error.cpp
+ifeq ($(USE_BL3),TRUE)
+  CPPFLAGS += -DBL3_PROFILING
+  ifeq ($(USE_MPI),TRUE)
+    CPPFLAGS += -DBL3_USE_MPI
+    CEXE_sources += BL3Mpi.cpp 
+  endif
+  ifeq ($(USE_THREADS),TRUE)
+    DEFINES += -DBL3_PTHREADS
+  endif
+  CEXE_headers += WorkQueue.H Threads.H Timer.H
+  CEXE_sources += BL3WorkQueue.cpp BL3Thread.cpp BL3Utility.cpp 
+  CEXE_sources += BL3Error.cpp BL3Profiler.cpp 
+  CEXE_sources += BL3Parallel.cpp
   INCLUDE_LOCATIONS += $(PBOXLIB_HOME)
   vpathdir += $(PBOXLIB_HOME)/BoxLib3
 endif
