@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _ABecLAPLACIAN_H_
 #define _ABecLAPLACIAN_H_
 
 //
-// $Id: ABecLaplacian.H,v 1.8 2000-08-24 20:28:28 car Exp $
+// $Id: ABecLaplacian.H,v 1.9 2000-10-02 20:51:15 lijewski Exp $
 //
 
 #include <Tuple.H>

@@ -1,10 +1,9 @@
-/* BL_COPYRIGHT_NOTICE */
 
 #ifndef BL_SPACE_H
 #define BL_SPACE_H
 
 /*
-** $Id: SPACE.H,v 1.4 2000-04-24 18:00:52 car Exp $
+** $Id: SPACE.H,v 1.5 2000-10-02 20:52:38 lijewski Exp $
 */
 
 #if defined(BL_SPACEDIM) && !defined(SPACEDIM)

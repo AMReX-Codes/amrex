@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BndryData.cpp,v 1.12 2000-07-15 00:11:01 sstanley Exp $
+// $Id: BndryData.cpp,v 1.13 2000-10-02 20:51:15 lijewski Exp $
 //
 
 #include <BndryData.H>

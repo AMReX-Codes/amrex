@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tVisMF.cpp,v 1.19 1999-05-10 18:54:24 car Exp $
+// $Id: tVisMF.cpp,v 1.20 2000-10-02 20:52:40 lijewski Exp $
 //
 
 #include <stdlib.h>

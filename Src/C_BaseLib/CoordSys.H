@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _COORDSYS_H_
 #define _COORDSYS_H_ 
 
 //
-// $Id: CoordSys.H,v 1.8 2000-04-21 16:23:32 car Exp $
+// $Id: CoordSys.H,v 1.9 2000-10-02 20:49:03 lijewski Exp $
 //
 
 #include <FArrayBox.H>

@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_LOOPING_H
 #define BL_LOOPING_H
 
 //
-// $Id: Looping.H,v 1.11 2000-05-25 15:40:03 car Exp $
+// $Id: Looping.H,v 1.12 2000-10-02 20:52:36 lijewski Exp $
 //
 
 #if (BL_SPACEDIM == 1)

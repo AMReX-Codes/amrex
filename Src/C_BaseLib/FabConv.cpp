@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabConv.cpp,v 1.9 2000-05-25 15:39:28 car Exp $
+// $Id: FabConv.cpp,v 1.10 2000-10-02 20:52:35 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

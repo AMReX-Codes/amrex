@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Tracer.cpp,v 1.6 2000-04-24 17:52:38 car Exp $
+// $Id: Tracer.cpp,v 1.7 2000-10-02 20:52:38 lijewski Exp $
 //
 // Definition of Tracer member functions.
 //

@@ -1,9 +1,8 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _MASK_H_
 #define _MASK_H_
 //
-// $Id: Mask.H,v 1.3 1998-07-07 17:25:15 lijewski Exp $
+// $Id: Mask.H,v 1.4 2000-10-02 20:51:16 lijewski Exp $
 //
 
 #include <BaseFab.H>

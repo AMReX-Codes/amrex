@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Tracer.H,v 1.4 2000-04-24 17:52:38 car Exp $
+// $Id: Tracer.H,v 1.5 2000-10-02 20:52:38 lijewski Exp $
 //
 
 #ifndef BL_TRACER_H

@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: InterpBndryData.cpp,v 1.10 1999-06-28 20:37:04 car Exp $
+// $Id: InterpBndryData.cpp,v 1.11 2000-10-02 20:51:16 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

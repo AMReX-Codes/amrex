@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _TagBox_H_
 #define _TagBox_H_
 
 //
-// $Id: TagBox.H,v 1.15 1999-07-27 17:34:59 marc Exp $
+// $Id: TagBox.H,v 1.16 2000-10-02 20:48:44 lijewski Exp $
 //
 
 #include <IntVect.H>

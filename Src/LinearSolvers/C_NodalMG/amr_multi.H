@@ -1,4 +1,3 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _AMR_MULTI_H_
 #define _AMR_MULTI_H_

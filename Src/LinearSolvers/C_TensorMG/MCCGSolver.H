@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _MCCGSOLVER_H_
 #define _MCCGSOLVER_H_
 
 //
-// $Id: MCCGSolver.H,v 1.5 1999-02-10 21:10:00 lijewski Exp $
+// $Id: MCCGSolver.H,v 1.6 2000-10-02 20:53:39 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

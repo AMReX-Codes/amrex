@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_BLASSERT_H
 #define BL_BLASSERT_H
 
 //
-// $Id: BLassert.H,v 1.3 2000-01-06 18:26:40 lijewski Exp $
+// $Id: BLassert.H,v 1.4 2000-10-02 20:52:32 lijewski Exp $
 //
 
 #include <BoxLib.H>

@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _LINOP_H_
 #define _LINOP_H_
 
 //
-// $Id: LinOp.H,v 1.13 2000-08-24 20:28:29 car Exp $
+// $Id: LinOp.H,v 1.14 2000-10-02 20:51:16 lijewski Exp $
 //
 
 #include <Array.H>

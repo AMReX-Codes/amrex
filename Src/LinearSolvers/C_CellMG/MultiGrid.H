@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _MULTIGRID_H_
 #define _MULTIGRID_H_
 
 //
-// $Id: MultiGrid.H,v 1.9 2000-08-30 19:19:13 car Exp $
+// $Id: MultiGrid.H,v 1.10 2000-10-02 20:51:17 lijewski Exp $
 //
 
 #include <Array.H>

@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_INDEXTYPE_H
 #define BL_INDEXTYPE_H
 
 //
-// $Id: IndexType.H,v 1.7 2000-04-24 17:52:35 car Exp $
+// $Id: IndexType.H,v 1.8 2000-10-02 20:52:35 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

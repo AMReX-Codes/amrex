@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RealBox.cpp,v 1.6 1998-05-20 00:10:45 marc Exp $
+// $Id: RealBox.cpp,v 1.7 2000-10-02 20:49:03 lijewski Exp $
 //
 
 #include <aString.H>

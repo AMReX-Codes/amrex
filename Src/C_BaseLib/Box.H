@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_BOX_H
 #define BL_BOX_H
 
 //
-// $Id: Box.H,v 1.16 2000-04-24 17:52:32 car Exp $
+// $Id: Box.H,v 1.17 2000-10-02 20:52:32 lijewski Exp $
 //
 
 #ifdef NODEV

@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StationData.cpp,v 1.11 1999-07-16 18:23:49 sstanley Exp $
+// $Id: StationData.cpp,v 1.12 2000-10-02 20:48:44 lijewski Exp $
 //
 #ifdef BL_USE_NEW_HFILES
 #include <cstdio>

@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_ARRAY_H
 #define BL_ARRAY_H
 
 //
-// $Id: Array.H,v 1.15 2000-04-24 17:52:32 car Exp $
+// $Id: Array.H,v 1.16 2000-10-02 20:52:32 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

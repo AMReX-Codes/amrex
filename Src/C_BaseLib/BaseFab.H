@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.24 2000-04-24 17:52:32 car Exp $
+// $Id: BaseFab.H,v 1.25 2000-10-02 20:52:32 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

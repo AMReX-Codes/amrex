@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_FARRAYBOX_H
 #define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.17 2000-04-24 17:52:34 car Exp $
+// $Id: FArrayBox.H,v 1.18 2000-10-02 20:52:34 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

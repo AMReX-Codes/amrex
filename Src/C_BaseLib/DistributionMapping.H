@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_DISTRIBUTIONMAPPING_H
 #define BL_DISTRIBUTIONMAPPING_H
 
 //
-// $Id: DistributionMapping.H,v 1.14 2000-08-15 19:24:29 car Exp $
+// $Id: DistributionMapping.H,v 1.15 2000-10-02 20:52:34 lijewski Exp $
 //
 #ifdef BL_USE_NEW_HFILES
 #include <vector>

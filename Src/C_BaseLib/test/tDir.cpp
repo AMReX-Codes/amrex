@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tDir.cpp,v 1.2 1998-10-07 21:18:28 vince Exp $
+// $Id: tDir.cpp,v 1.3 2000-10-02 20:52:40 lijewski Exp $
 //
 
 #include <Utility.H>

@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.115 2000-09-14 19:44:06 almgren Exp $
+// $Id: Amr.cpp,v 1.116 2000-10-02 20:48:40 lijewski Exp $
 //
 
 #include <TagBox.H>

@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ABecLaplacian.cpp,v 1.11 2000-08-24 20:28:28 car Exp $
+// $Id: ABecLaplacian.cpp,v 1.12 2000-10-02 20:51:15 lijewski Exp $
 //
 
 #include <ABecLaplacian.H>

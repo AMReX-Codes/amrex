@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _SlabStat_H_
 #define _SlabStat_H_
 
 //
-// $Id: SlabStat.H,v 1.7 2000-07-11 21:03:55 sstanley Exp $
+// $Id: SlabStat.H,v 1.8 2000-10-02 20:48:42 lijewski Exp $
 //
 
 #include <ArrayLim.H>

@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.109 2000-08-15 19:24:29 car Exp $
+// $Id: FabArray.H,v 1.110 2000-10-02 20:52:35 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

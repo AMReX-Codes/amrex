@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CoordSys.cpp,v 1.12 1999-05-25 23:09:02 marc Exp $
+// $Id: CoordSys.cpp,v 1.13 2000-10-02 20:49:03 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

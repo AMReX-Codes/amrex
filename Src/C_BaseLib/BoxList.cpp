@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxList.cpp,v 1.8 2000-06-22 16:07:32 lijewski Exp $
+// $Id: BoxList.cpp,v 1.9 2000-10-02 20:52:34 lijewski Exp $
 //
 
 #include <Misc.H>

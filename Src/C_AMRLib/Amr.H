@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _Amr_H_
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.28 2000-09-14 19:44:06 almgren Exp $
+// $Id: Amr.H,v 1.29 2000-10-02 20:48:40 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

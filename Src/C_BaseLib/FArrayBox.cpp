@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.31 2000-05-25 15:40:19 car Exp $
+// $Id: FArrayBox.cpp,v 1.32 2000-10-02 20:52:34 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

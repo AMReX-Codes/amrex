@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Laplacian.cpp,v 1.9 2000-08-24 20:28:29 car Exp $
+// $Id: Laplacian.cpp,v 1.10 2000-10-02 20:51:16 lijewski Exp $
 //
 
 #include <Laplacian.H>

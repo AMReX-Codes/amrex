@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Orientation.cpp,v 1.3 2000-04-24 17:52:36 car Exp $
+// $Id: Orientation.cpp,v 1.4 2000-10-02 20:52:37 lijewski Exp $
 //
 
 #include <BoxLib.H>

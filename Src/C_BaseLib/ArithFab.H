@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_ARITHFAB_H
 #define BL_ARITHFAB_H
 
 //
-// $Id: ArithFab.H,v 1.4 2000-04-24 17:52:32 car Exp $
+// $Id: ArithFab.H,v 1.5 2000-10-02 20:52:31 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _BOUNDCOND_H_
 #define _BOUNDCOND_H_
 
 //
-// $Id: BoundCond.H,v 1.7 2000-03-27 16:26:13 lijewski Exp $
+// $Id: BoundCond.H,v 1.8 2000-10-02 20:51:15 lijewski Exp $
 //
 
 #include <BLassert.H>

@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CGSolver.cpp,v 1.20 2000-09-13 20:09:12 lijewski Exp $
+// $Id: CGSolver.cpp,v 1.21 2000-10-02 20:51:16 lijewski Exp $
 //
 
 // Conjugate gradient support

@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Derive.cpp,v 1.13 1999-08-16 18:21:54 propp Exp $
+// $Id: Derive.cpp,v 1.14 2000-10-02 20:48:41 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

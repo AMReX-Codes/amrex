@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _RUNSTATS_H_
 #define _RUNSTATS_H_ 
 
 //
-// $Id: RunStats.H,v 1.9 2000-04-24 17:52:37 car Exp $
+// $Id: RunStats.H,v 1.10 2000-10-02 20:52:38 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

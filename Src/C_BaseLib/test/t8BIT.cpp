@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: t8BIT.cpp,v 1.1 1998-09-25 17:57:14 lijewski Exp $
+// $Id: t8BIT.cpp,v 1.2 2000-10-02 20:52:40 lijewski Exp $
 //
 // A simple program to read in a MultiFab and write out in 8BIT format.
 //

@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _FABSET_H_
 #define _FABSET_H_
 
 //
-// $Id: FabSet.H,v 1.17 1999-11-18 21:29:57 sstanley Exp $
+// $Id: FabSet.H,v 1.18 2000-10-02 20:49:03 lijewski Exp $
 //
 
 #include <FArrayBox.H>

@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.49 2000-09-26 18:18:57 car Exp $
+// $Id: MultiFab.cpp,v 1.50 2000-10-02 20:52:36 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

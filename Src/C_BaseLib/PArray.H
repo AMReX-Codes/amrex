@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_PARRAY_H
 #define BL_PARRAY_H
 
 //
-// $Id: PArray.H,v 1.13 2000-04-24 17:52:36 car Exp $
+// $Id: PArray.H,v 1.14 2000-10-02 20:52:37 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

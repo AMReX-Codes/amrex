@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.61 2000-08-02 16:00:54 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.62 2000-10-02 20:52:37 lijewski Exp $
 //
 
 #include <Utility.H>

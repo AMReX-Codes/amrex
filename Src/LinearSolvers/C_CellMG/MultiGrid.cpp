@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiGrid.cpp,v 1.22 2000-09-13 20:09:12 lijewski Exp $
+// $Id: MultiGrid.cpp,v 1.23 2000-10-02 20:51:17 lijewski Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES

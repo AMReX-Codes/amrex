@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BndryRegister.cpp,v 1.11 1999-05-10 18:54:09 car Exp $
+// $Id: BndryRegister.cpp,v 1.12 2000-10-02 20:49:02 lijewski Exp $
 //
 
 #include <BndryRegister.H>

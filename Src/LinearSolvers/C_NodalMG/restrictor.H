@@ -1,4 +1,3 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _RESTRICTOR_H_
 #define _RESTRICTOR_H_

@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: IntVect.cpp,v 1.6 2000-04-24 17:52:35 car Exp $
+// $Id: IntVect.cpp,v 1.7 2000-10-02 20:52:36 lijewski Exp $
 //
 
 #include <BLassert.H>

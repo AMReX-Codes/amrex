@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tFAC.cpp,v 1.3 1999-05-10 18:54:24 car Exp $
+// $Id: tFAC.cpp,v 1.4 2000-10-02 20:52:40 lijewski Exp $
 //
 // A simple program to test FabArray<T>::copy() in parallel.
 //

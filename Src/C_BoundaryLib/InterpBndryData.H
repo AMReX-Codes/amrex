@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _INTERPBNDRYDATA_H_
 #define _INTERPBNDRYDATA_H_
 
 //
-// $Id: InterpBndryData.H,v 1.7 2000-03-27 16:26:13 lijewski Exp $
+// $Id: InterpBndryData.H,v 1.8 2000-10-02 20:51:16 lijewski Exp $
 //
 
 #include <BoxArray.H>

@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _StateData_H_
 #define _StateData_H_ 
 
 //
-// $Id: StateData.H,v 1.17 2000-05-30 21:10:47 almgren Exp $
+// $Id: StateData.H,v 1.18 2000-10-02 20:48:43 lijewski Exp $
 //
 
 #include <Box.H>

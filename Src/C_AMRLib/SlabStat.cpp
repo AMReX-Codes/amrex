@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: SlabStat.cpp,v 1.9 2000-07-11 21:03:56 sstanley Exp $
+// $Id: SlabStat.cpp,v 1.10 2000-10-02 20:48:43 lijewski Exp $
 //
 
 #include <AmrLevel.H>

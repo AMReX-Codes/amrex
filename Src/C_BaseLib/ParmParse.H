@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_PARMPARSE_H
 #define BL_PARMPARSE_H
 
 //
-// $Id: ParmParse.H,v 1.8 2000-06-01 15:39:16 car Exp $
+// $Id: ParmParse.H,v 1.9 2000-10-02 20:52:37 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MCCGSolver.cpp,v 1.9 1999-08-06 21:48:35 propp Exp $
+// $Id: MCCGSolver.cpp,v 1.10 2000-10-02 20:53:39 lijewski Exp $
 //
 
 #include <ParmParse.H>

@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.52 2000-06-05 22:37:37 lijewski Exp $
+// $Id: Geometry.cpp,v 1.53 2000-10-02 20:49:03 lijewski Exp $
 //
 
 #include <Geometry.H>

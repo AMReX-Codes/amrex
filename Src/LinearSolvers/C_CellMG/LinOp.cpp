@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: LinOp.cpp,v 1.22 2000-08-24 22:45:46 car Exp $
+// $Id: LinOp.cpp,v 1.23 2000-10-02 20:51:16 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

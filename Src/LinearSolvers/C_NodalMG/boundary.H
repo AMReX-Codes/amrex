@@ -1,4 +1,3 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef _BOUNDARY_H_
 #define _BOUNDARY_H_

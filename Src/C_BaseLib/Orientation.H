@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_ORIENTATION_H
 #define BL_ORIENTATION_H
 
 //
-// $Id: Orientation.H,v 1.9 2000-04-24 17:52:36 car Exp $
+// $Id: Orientation.H,v 1.10 2000-10-02 20:52:37 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

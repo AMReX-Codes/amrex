@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Cluster.cpp,v 1.14 1999-05-10 18:54:07 car Exp $
+// $Id: Cluster.cpp,v 1.15 2000-10-02 20:48:41 lijewski Exp $
 //
 
 #include <Cluster.H>

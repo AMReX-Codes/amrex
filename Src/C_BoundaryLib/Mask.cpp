@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Mask.cpp,v 1.4 1999-05-10 18:54:16 car Exp $
+// $Id: Mask.cpp,v 1.5 2000-10-02 20:51:17 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

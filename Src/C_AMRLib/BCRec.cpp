@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BCRec.cpp,v 1.7 1999-05-10 18:54:07 car Exp $
+// $Id: BCRec.cpp,v 1.8 2000-10-02 20:48:41 lijewski Exp $
 //
 
 #include <BCRec.H>

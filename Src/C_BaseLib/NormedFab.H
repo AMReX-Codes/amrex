@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_NORMEDFAB_H
 #define BL_NORMEDFAB_H
 
 //
-// $Id: NormedFab.H,v 1.7 2000-04-24 17:52:36 car Exp $
+// $Id: NormedFab.H,v 1.8 2000-10-02 20:52:36 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

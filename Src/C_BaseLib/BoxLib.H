@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_BOXLIB_H
 #define BL_BOXLIB_H
 
 //
-// $Id: BoxLib.H,v 1.7 2000-05-02 17:17:41 car Exp $
+// $Id: BoxLib.H,v 1.8 2000-10-02 20:52:33 lijewski Exp $
 //
 
 //

@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_MISC_H
 #define BL_MISC_H
 
 //
-// $Id: Misc.H,v 1.3 2000-04-24 17:52:36 car Exp $
+// $Id: Misc.H,v 1.4 2000-10-02 20:52:36 lijewski Exp $
 //
 
 #include <SPACE.H>

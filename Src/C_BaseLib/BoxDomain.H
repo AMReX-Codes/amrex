@@ -1,10 +1,9 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifndef BL_BOXDOMAIN_H
 #define BL_BOXDOMAIN_H
 
 //
-// $Id: BoxDomain.H,v 1.11 2000-04-24 17:52:33 car Exp $
+// $Id: BoxDomain.H,v 1.12 2000-10-02 20:52:33 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
