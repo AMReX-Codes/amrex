@@ -310,8 +310,9 @@ public:
               int             ncomp_);
 
     virtual ~task_fab ();
-    virtual const FArrayBox& fab ();
     virtual bool work_to_do () const;
+
+    const FArrayBox& fab () { assert(target != 0); return *target; }
 
 protected:
 
