@@ -238,6 +238,11 @@ subroutine ml_interface_c(res, cr, flux, cf, crse, ss, crse_domain, face, dim)
     real (kind = dp_t) :: crse_flux
 
     !   Hi i side
+print *, 'dim = ', dim, 'face = ', face
+print *, 'cc = ', cc(:,7)
+print *, 'res = ',res(:,7)
+print *, 'size(fine_flux) ', size(fine_flux)
+print *, 'fine_flux = ', fine_flux
     if ( dim == 1 ) then
        if (face == 1) then
           i = lo(1)
@@ -270,6 +275,7 @@ subroutine ml_interface_c(res, cr, flux, cf, crse, ss, crse_domain, face, dim)
           end do
        end if
     end if
+print *, 'res=', res(:,7)
   end subroutine ml_interface_2d
 
   subroutine ml_interface_3d(res, lor, fine_flux, lof, cc, loc, &
