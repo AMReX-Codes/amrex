@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.27 1998-06-21 18:02:39 lijewski Exp $
+// $Id: Geometry.cpp,v 1.28 1998-07-07 20:04:56 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -15,7 +15,7 @@ RealBox Geometry::prob_domain;
 
 bool Geometry::is_periodic[BL_SPACEDIM];
 
-const int MaxFPBCacheSize = 10;
+static int MaxFPBCacheSize = 10;  // Also settable as geometry.fpb_cache_size
 
 Geometry::FPBList Geometry::m_FPBCache;
 
@@ -163,11 +163,11 @@ Geometry::buildPIRMMap (MultiFab&  mf,
 
     assert(mfid == MultiFabId(0));
 
+    const int src_comp = 0;
+    const int num_comp = 1;
+
     for (int i = 0; i < pirm.size(); i++)
     {
-        const int src_comp = 0;
-        const int num_comp = 1;
-
         pirm[i].fbid = dummy_mfcd.AddBox(mfid,
                                          pirm[i].srcBox,
                                          0,
@@ -179,7 +179,7 @@ Geometry::buildPIRMMap (MultiFab&  mf,
         assert(pirm[i].fbid.box() == pirm[i].srcBox);
     }
     //
-    // Don't forget to set `dummyy_mfcd' back to its pristine state.
+    // Don't forget to set `dummy_mfcd' back to its pristine state.
     //
     dummy_mfcd.clear();
 
@@ -271,7 +271,7 @@ Geometry::define (const Box& dom)
     if (c_sys == undef)
         Setup();
     domain = dom;
-    ok = true;
+    ok     = true;
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
         dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
@@ -287,6 +287,12 @@ Geometry::Setup ()
     pp.get("coord_sys",coord);
     SetCoord( (CoordType) coord );
 
+    if (pp.contains("fpb_cache_size"))
+    {
+        pp.get("fpb_cache_size",MaxFPBCacheSize);
+        assert(MaxFPBCacheSize > 0);
+    }
+
     Array<Real> prob_lo(BL_SPACEDIM);
     pp.getarr("prob_lo",prob_lo,0,BL_SPACEDIM);
     assert(prob_lo.length() == BL_SPACEDIM);
@@ -298,7 +304,7 @@ Geometry::Setup ()
     //
     // Now get periodicity info.
     //
-    D_EXPR( is_periodic[0]=0, is_periodic[1]=0, is_periodic[2]=0);
+    D_EXPR(is_periodic[0]=0, is_periodic[1]=0, is_periodic[2]=0);
     if (pp.contains("period_0"))
     {
         is_periodic[0] = 1;
@@ -325,7 +331,7 @@ Geometry::GetVolume (MultiFab&       vol,
     vol.define(grds,1,ngrow,Fab_noallocate);
     for (MultiFabIterator mfi(vol); mfi.isValid(); ++mfi)
     {
-        Box gbx(grow(grds[mfi.index()],ngrow));
+        Box gbx = ::grow(grds[mfi.index()],ngrow);
         vol.setFab(mfi.index(),CoordSys::GetVolume(gbx));
     }
 }
@@ -340,7 +346,7 @@ Geometry::GetDLogA (MultiFab&       dloga,
     dloga.define(grds,1,ngrow,Fab_noallocate);
     for (MultiFabIterator mfi(dloga); mfi.isValid(); ++mfi)
     {
-        Box gbx(grow(grds[mfi.index()],ngrow));
+        Box gbx = ::grow(grds[mfi.index()],ngrow);
         dloga.setFab(mfi.index(),CoordSys::GetDLogA(gbx,dir));
     }
 }
@@ -357,7 +363,7 @@ Geometry::GetFaceArea (MultiFab&       area,
     area.define(edge_boxes,1,ngrow,Fab_noallocate);
     for (MultiFabIterator mfi(area); mfi.isValid(); ++mfi)
     {
-        Box gbx(grow(grds[mfi.index()],ngrow));
+        Box gbx = ::grow(grds[mfi.index()],ngrow);
         area.setFab(mfi.index(),CoordSys::GetFaceArea(gbx,dir));
     }
 }
