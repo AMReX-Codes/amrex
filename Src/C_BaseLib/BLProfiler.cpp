@@ -1,3 +1,7 @@
+//
+// $Id: BLProfiler.cpp,v 1.6 2001-07-20 19:45:42 car Exp $
+//
+
 #include <winstd.H>
 
 #ifdef __GNUC__

@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.1 2001-07-20 19:37:36 car Exp $
+# $Id: GNUmakefile,v 1.2 2001-07-20 19:44:24 car Exp $
 #
 
 #
@@ -15,8 +15,6 @@ USE_MPI      = FALSE
 PBOXLIB_HOME = ../..
 include $(PBOXLIB_HOME)/mk/Make.defs
 
-MPI_HOME =
-
 #
 # Base name of each of the executables we want to build.
 # I'm assuming that each of these is a stand-alone program,
@@ -25,14 +23,18 @@ MPI_HOME =
 #_progs = tVisMF tDir t8BIT tFB tFAC
 _progs = tProfiler
 
+INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/BoxLib
+ifeq ($(COMP),g++)
+  INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/BoxLib/std
+endif
+VPATH = $(PBOXLIB_HOME)/BoxLib
+include $(PBOXLIB_HOME)/BoxLib/Make.package
+
 all: $(addsuffix $(optionsSuffix).ex, $(_progs))
 
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/BoxLib
-VPATH = $(PBOXLIB_HOME)/BoxLib
-
 $(addsuffix $(optionsSuffix).ex, $(_progs)) \
-   : %$(optionsSuffix).ex : %.cpp
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $< $(libraries)
+   : %$(optionsSuffix).ex : %.cpp $(objForExecs)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $< $(objForExecs) $(libraries)
 	$(RM) $@.o
 
 #
@@ -46,5 +48,8 @@ runtests : $(addsuffix $(optionsSuffix).ex, $(_progs))
           $(addsuffix $(optionsSuffix).ex, $(_progs))); do \
           echo "====> Testing $$f ..."; echo; ./$$f; echo; \
         done
+
+clean::
+	$(RM) bl3_prof bl3_prof.m
 
 include $(PBOXLIB_HOME)/mk/Make.rules
