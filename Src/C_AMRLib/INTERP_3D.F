@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.24 2002-12-07 05:57:09 almgren Exp $
+c $Id: INTERP_3D.F,v 1.25 2002-12-07 16:25:26 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -2428,7 +2428,8 @@ c                remaining positiveness from the states to help the negative sta
                      i = lratiox*ic + ioff
                      j = lratioy*jc + joff
                      k = lratioz*kc + koff
-                     print *,'FINE OLD NEW ',ioff,joff,koff,orig_fine(ioff,joff,koff),     $                                          fine(i,j,k,n), fine_state(i,j,k,n)
+                     print *,'FINE OLD NEW ',ioff,joff,koff,orig_fine(ioff,joff,koff),
+     $                                          fine(i,j,k,n), fine_state(i,j,k,n)
                   enddo
                   enddo
                   enddo
