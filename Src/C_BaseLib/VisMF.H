@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.25 1997-11-22 01:11:09 lijewski Exp $
+// $Id: VisMF.H,v 1.26 1997-11-22 17:52:06 lijewski Exp $
 //
 
 #include <MultiFab.H>
@@ -150,10 +150,6 @@ public:
     // The file offset of the passed ostream.
     //
     static long FileOffset (ostream& os);
-    //
-    // Prints out nice message when open of the file fails.
-    //
-    static void FileOpenFailed (const aString& file);
 
 private:
     //

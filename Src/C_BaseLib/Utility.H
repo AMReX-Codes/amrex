@@ -4,7 +4,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.11 1997-11-18 18:22:24 lijewski Exp $
+// $Id: Utility.H,v 1.12 1997-11-22 17:52:06 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -163,6 +163,18 @@ public:
     static bool CreateDirectory (const aString& path,
                                  mode_t         mode);
 #endif
+    //
+    // Output a message and abort when couldn't create the directory.
+    //
+    static void CreateDirectoryFailed (const aString& dir);
+    //
+    // Output a message and abort when couldn't open the file.
+    //
+    static void FileOpenFailed (const aString& dir);
+    //
+    // Attempt to unlink the file.  Ignore any errors.
+    //
+    static void UnlinkFile (const aString& file);
 };
 
 //

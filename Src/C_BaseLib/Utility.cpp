@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.8 1997-11-18 18:22:24 lijewski Exp $
+// $Id: Utility.cpp,v 1.9 1997-11-22 17:52:06 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -276,4 +276,26 @@ Utility::CreateDirectory (const aString& path,
 
         return true;
     }
+}
+
+void
+Utility::CreateDirectoryFailed (const aString& dir)
+{
+    aString msg("Couldn't create directory: ");
+    msg += dir;
+    BoxLib::Error(msg.c_str());
+}
+
+void
+Utility::FileOpenFailed (const aString& file)
+{
+    aString msg("Couldn't open file: ");
+    msg += file;
+    BoxLib::Error(msg.c_str());
+}
+
+void
+Utility::UnlinkFile (const aString& file)
+{
+    unlink(file.c_str());
 }

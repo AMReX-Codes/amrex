@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.33 1997-11-22 01:11:09 lijewski Exp $
+// $Id: VisMF.cpp,v 1.34 1997-11-22 17:52:07 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -17,8 +17,6 @@ using std::ofstream;
 
 #include <VisMF.H>
 
-typedef ParallelDescriptor PD;  // A local typedef for typing ease :-)
-
 const aString VisMF::FabFileSuffix("_D_");
 
 const aString VisMF::MultiFabHdrFileSuffix("_H");
@@ -31,14 +29,6 @@ double
 VisMF::TheBytesWrittenToDisk ()
 {
     return VisMF::BytesWrittenToDisk;
-}
-
-void
-VisMF::FileOpenFailed (const aString& file)
-{
-    aString msg("Couldn't open file: ");
-    msg += file;
-    BoxLib::Error(msg.c_str());
 }
 
 ostream&
@@ -266,7 +256,7 @@ VisMF::Header::Header ()
 {}
 
 //
-// The more-or-less complete header only exists at PD::IOProcessor().
+// The more-or-less complete header only exists at IOProcessor().
 //
 
 VisMF::Header::Header (const MultiFab& mf,
@@ -293,7 +283,7 @@ VisMF::Header::Header (const MultiFab& mf,
     }
     msg_hdr;
 
-    PD::SetMessageHeaderSize(sizeof(msg_hdr));
+    ParallelDescriptor::SetMessageHeaderSize(sizeof(msg_hdr));
     //
     // Note that m_min and m_max are only calculated on CPU owning the fab.
     // We pass this data back to IOProcessor() so it sees the whole Header.
@@ -317,7 +307,7 @@ VisMF::Header::Header (const MultiFab& mf,
             m_max[idx][j] = fab.max(valid_box,j);
         }
 
-        if (!PD::IOProcessor())
+        if (!ParallelDescriptor::IOProcessor())
         {
             msg_hdr.m_index = idx;
 
@@ -331,19 +321,18 @@ VisMF::Header::Header (const MultiFab& mf,
                 min_n_max[m_ncomp + i] = m_max[idx][i];
             }
 
-            PD::SendData(PD::IOProcessor(),
-                         &msg_hdr,
-                         min_n_max,
-                         2 * sizeof(Real) * m_ncomp);
+            ParallelDescriptor::SendData(ParallelDescriptor::IOProcessor(),
+                                         &msg_hdr,
+                                         min_n_max,
+                                         2 * sizeof(Real) * m_ncomp);
 
             delete [] min_n_max;
         }
     }
 
-    for (int len; PD::GetMessageHeader(len, &msg_hdr); )
+    for (int len; ParallelDescriptor::GetMessageHeader(len, &msg_hdr); )
     {
-        assert(PD::IOProcessor());
-
+        assert(ParallelDescriptor::IOProcessor());
         assert(len == 2 * sizeof(Real) * m_ncomp);
 
         m_min[msg_hdr.m_index].resize(m_ncomp);
@@ -353,7 +342,7 @@ VisMF::Header::Header (const MultiFab& mf,
         if (min_n_max == 0)
             BoxLib::OutOfMemory(__FILE__, __LINE__);
 
-        PD::ReceiveData(min_n_max, len);
+        ParallelDescriptor::ReceiveData(min_n_max, len);
 
         for (int i = 0; i < m_ncomp; i++)
         {
@@ -373,7 +362,7 @@ VisMF::WriteHeader (const aString& mf_name,
     //
     // When running in parallel only one processor should do this I/O.
     //
-    if (PD::IOProcessor())
+    if (ParallelDescriptor::IOProcessor())
     {
         aString MFHdrFileName = mf_name;
 
@@ -389,7 +378,8 @@ VisMF::WriteHeader (const aString& mf_name,
 #endif
         MFHdrFile.open(MFHdrFileName.c_str(), ios::out|ios::trunc);
 
-        if (!MFHdrFile.good()) VisMF::FileOpenFailed(MFHdrFileName);
+        if (!MFHdrFile.good())
+            Utility::FileOpenFailed(MFHdrFileName);
 
         MFHdrFile << hdr;
         //
@@ -417,7 +407,7 @@ VisMF::Write (const MultiFab& mf,
 
     VisMF::Header hdr(mf, VisMF::OneFilePerCPU);
 
-    PD::SetMessageHeaderSize(sizeof(msg_hdr));
+    ParallelDescriptor::SetMessageHeaderSize(sizeof(msg_hdr));
 
     char buf[sizeof(int) + 1];
 
@@ -432,7 +422,7 @@ VisMF::Write (const MultiFab& mf,
         aString FabFileName = mf_name;
 
         FabFileName += VisMF::FabFileSuffix;
-        sprintf(buf, "%04ld", PD::MyProc());
+        sprintf(buf, "%04ld", ParallelDescriptor::MyProc());
         FabFileName += buf;
 
         ofstream FabFile;
@@ -442,26 +432,29 @@ VisMF::Write (const MultiFab& mf,
 #endif
         FabFile.open(FabFileName.c_str(), ios::out|ios::trunc);
 
-        if (!FabFile.good()) VisMF::FileOpenFailed(FabFileName);
+        if (!FabFile.good())
+            Utility::FileOpenFailed(FabFileName);
 
         for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
         {
             hdr.m_fod[mfi.index()] = VisMF::Write(mfi(), FabFileName, FabFile);
 
-            if (!PD::IOProcessor())
+            if (!ParallelDescriptor::IOProcessor())
             {
                 msg_hdr.m_index = mfi.index();
                 msg_hdr.m_head  = hdr.m_fod[mfi.index()].m_head;
 
-                PD::SendData(PD::IOProcessor(),
-                             &msg_hdr,
-                             FabFileName.c_str(),
-                             FabFileName.length()+1); // Include NULL in MSG.
+                ParallelDescriptor::SendData(ParallelDescriptor::IOProcessor(),
+                                             &msg_hdr,
+                                             FabFileName.c_str(),
+                                             //
+                                             // Include NULL in MSG.
+                                             //
+                                             FabFileName.length()+1);
             }
         }
-        //
-        // TODO -- if offset is NULL unlink file !!
-        //
+        if (VisMF::FileOffset(FabFile) <= 0)
+            Utility::UnlinkFile(FabFileName);
     }
     break;
     case OneFilePerFab:
@@ -481,21 +474,25 @@ VisMF::Write (const MultiFab& mf,
 #endif
             FabFile.open(FabFileName.c_str(), ios::out|ios::trunc);
 
-            if (!FabFile.good()) VisMF::FileOpenFailed(FabFileName);
+            if (!FabFile.good())
+                Utility::FileOpenFailed(FabFileName);
 
             hdr.m_fod[mfi.index()] = VisMF::Write(mfi(), FabFileName, FabFile);
 
             assert(hdr.m_fod[mfi.index()].m_head == 0);
 
-            if (!PD::IOProcessor())
+            if (!ParallelDescriptor::IOProcessor())
             {
                 msg_hdr.m_head  = 0;
                 msg_hdr.m_index = mfi.index();
 
-                PD::SendData(PD::IOProcessor(),
-                             &msg_hdr,
-                             FabFileName.c_str(),
-                             FabFileName.length()+1); // Include NULL in MSG.
+                ParallelDescriptor::SendData(ParallelDescriptor::IOProcessor(),
+                                             &msg_hdr,
+                                             FabFileName.c_str(),
+                                             //
+                                             // Include NULL in MSG.
+                                             //
+                                             FabFileName.length()+1);
             }
         }
     }
@@ -504,15 +501,15 @@ VisMF::Write (const MultiFab& mf,
         BoxLib::Error("Bad case in switch");
     }
 
-    for (int len; PD::GetMessageHeader(len, &msg_hdr); )
+    for (int len; ParallelDescriptor::GetMessageHeader(len, &msg_hdr); )
     {
-        assert(PD::IOProcessor());
+        assert(ParallelDescriptor::IOProcessor());
 
         char* fab_name = new char[len];
         if (fab_name == 0)
             BoxLib::OutOfMemory(__FILE__, __LINE__);
 
-        PD::ReceiveData(fab_name, len);
+        ParallelDescriptor::ReceiveData(fab_name, len);
 
         hdr.m_fod[msg_hdr.m_index].m_head = msg_hdr.m_head;
         hdr.m_fod[msg_hdr.m_index].m_name = fab_name;
@@ -541,7 +538,8 @@ VisMF::VisMF (const aString& mf_name)
 #endif
     ifs.open(file.c_str(), ios::in);
 
-    if (!ifs.good()) VisMF::FileOpenFailed(file);
+    if (!ifs.good())
+        Utility::FileOpenFailed(file);
 
     ifs >> m_hdr;
 
@@ -575,7 +573,8 @@ VisMF::readFAB (int                  i,
 #endif
     ifs.open(file.c_str(), ios::in);
 
-    if (!ifs.good()) VisMF::FileOpenFailed(file);
+    if (!ifs.good())
+        Utility::FileOpenFailed(file);
 
     if (hdr.m_fod[i].m_head)
     {
@@ -608,7 +607,8 @@ VisMF::Read (MultiFab&      mf,
 #endif
         ifs.open(file.c_str(), ios::in);
 
-        if (!ifs.good()) VisMF::FileOpenFailed(file);
+        if (!ifs.good())
+            Utility::FileOpenFailed(file);
 
         ifs >> hdr;
     }
