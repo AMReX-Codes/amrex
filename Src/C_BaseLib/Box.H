@@ -2,7 +2,7 @@
 #define BL_BOX_H
 
 //
-// $Id: Box.H,v 1.18 2001-07-17 23:02:18 lijewski Exp $
+// $Id: Box.H,v 1.19 2001-07-18 23:07:06 lijewski Exp $
 //
 
 #ifdef NODEV
@@ -602,11 +602,6 @@ public:
     //
     friend std::istream& operator>> (std::istream& os,
                                      Box&          bx);
-
-    /*@ManDoc: Gives more detail than printOn.
-               Useful for exiting due to an error.
-    */
-    void dumpOn (std::ostream& strm = std::cerr) const;
 
     /*@ManDoc: This static member function returns a constant reference to 
                an object of type Box representing the unit box in

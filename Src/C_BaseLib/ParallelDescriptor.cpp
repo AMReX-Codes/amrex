@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.72 2001-07-18 19:37:20 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.73 2001-07-18 23:07:07 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -148,7 +148,6 @@ operator<< (std::ostream&   os,
 #ifdef BL_USE_MPI
 
 #include <ccse-mpi.H>
-#include <RunStats.H>
 
 #ifdef BL_NAMESPACE
 namespace BL_NAMESPACE
@@ -264,13 +263,7 @@ ParallelDescriptor::second ()
 void
 ParallelDescriptor::Barrier ()
 {
-    static RunStats mpi_stats("mpi_barrier");
-
-    mpi_stats.start();
-
     int rc = MPI_Barrier(Communicator());
-
-    mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
@@ -282,17 +275,12 @@ ParallelDescriptor::DoAllReduceReal (Real& r,
 {
     Real recv;
 
-    static RunStats mpi_stats(REDUCE);
-
-    mpi_stats.start();
-
     int rc = MPI_Allreduce(&r,
                            &recv,
                            1,
                            mpi_data_type(&recv),
                            op,
                            Communicator());
-    mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
@@ -307,10 +295,6 @@ ParallelDescriptor::DoReduceReal (Real& r,
 {
     Real recv;
 
-    static RunStats mpi_stats(REDUCE);
-
-    mpi_stats.start();
-
     int rc = MPI_Reduce(&r,
                         &recv,
                         1,
@@ -318,7 +302,6 @@ ParallelDescriptor::DoReduceReal (Real& r,
                         op,
                         cpu,
                         Communicator());
-    mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
@@ -369,17 +352,12 @@ ParallelDescriptor::DoAllReduceLong (long& r,
 {
     long recv;
 
-    static RunStats mpi_stats(REDUCE);
-
-    mpi_stats.start();
-
     int rc = MPI_Allreduce(&r,
                            &recv,
                            1,
                            MPI_LONG,
                            op,
                            Communicator());
-    mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
@@ -394,10 +372,6 @@ ParallelDescriptor::DoReduceLong (long& r,
 {
     long recv;
 
-    static RunStats mpi_stats(REDUCE);
-
-    mpi_stats.start();
-
     int rc = MPI_Reduce(&r,
                         &recv,
                         1,
@@ -405,7 +379,6 @@ ParallelDescriptor::DoReduceLong (long& r,
                         op,
                         cpu,
                         Communicator());
-    mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
@@ -468,17 +441,12 @@ ParallelDescriptor::DoAllReduceInt (int& r,
 {
     int recv;
 
-    static RunStats mpi_stats(REDUCE);
-
-    mpi_stats.start();
-
     int rc = MPI_Allreduce(&r,
                            &recv,
                            1,
                            MPI_INT,
                            op,
                            Communicator());
-    mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
@@ -493,10 +461,6 @@ ParallelDescriptor::DoReduceInt (int& r,
 {
     int recv;
 
-    static RunStats mpi_stats(REDUCE);
-
-    mpi_stats.start();
-
     int rc = MPI_Reduce(&r,
                         &recv,
                         1,
@@ -504,7 +468,6 @@ ParallelDescriptor::DoReduceInt (int& r,
                         op,
                         cpu,
                         Communicator());
-    mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
@@ -599,13 +562,7 @@ ParallelDescriptor::Broadcast (int   fromproc,
 {
     BL_ASSERT(src == dest);
 
-    static RunStats mpi_stats("mpi_broadcast");
-
-    mpi_stats.start();
-
     MPI_Bcast(src, nbytes, MPI_BYTE, fromproc, Communicator());
-
-    mpi_stats.end();
 }
 
 void
@@ -621,10 +578,6 @@ ParallelDescriptor::Gather (Real* sendbuf,
 
     MPI_Datatype typ = mpi_data_type(sendbuf);
 
-    static RunStats mpi_stats("mpi_gather");
-
-    mpi_stats.start();
-
     int rc = MPI_Gather(sendbuf,
                         nsend,
                         typ,
@@ -633,7 +586,6 @@ ParallelDescriptor::Gather (Real* sendbuf,
                         typ,
                         root,
                         Communicator());
-    mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);

@@ -1,5 +1,5 @@
 //
-// $Id: BoxLib.cpp,v 1.14 2001-07-17 23:02:19 lijewski Exp $
+// $Id: BoxLib.cpp,v 1.15 2001-07-18 23:07:06 lijewski Exp $
 //
 
 #include <cstdio>
@@ -16,18 +16,15 @@ namespace BL_NAMESPACE
 {
 #endif
 
-//
-// The definition of our NULL string used as default argument.
-//
-const char* BoxLib::nullString = "";
-
 #define bl_str(s)  # s
 #define bl_xstr(s) bl_str(s)
 
 //
 // The definition of our version string.
+//    
+// Takes the form:  boxlib version 2.0 built Jun 25 1996 at 14:52:36
 //
-const char * const BoxLib::version =
+const char * const version =
 
 "boxlib version "
 bl_xstr(BL_VERSION_MAJOR)
@@ -40,7 +37,6 @@ __TIME__;
 
 #undef bl_str
 #undef bl_xstr
-
 
 //
 // This is used by BoxLib::Error(), BoxLib::Abort(), and BoxLib::Assert()
@@ -68,7 +64,15 @@ write_to_stderr_without_buffering (const char* str)
     }
 }
 
-static void write_lib_id(const char* msg)
+void
+BL_this_is_a_dummy_routine_to_force_version_into_executable ()
+{
+    write_to_stderr_without_buffering(version);    
+}
+
+static
+void
+write_lib_id(const char* msg)
 {
     fflush(0);
     const char* const boxlib = "BoxLib::";

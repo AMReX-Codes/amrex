@@ -1,5 +1,5 @@
 //
-// $Id: IntVect.cpp,v 1.8 2001-07-17 23:02:24 lijewski Exp $
+// $Id: IntVect.cpp,v 1.9 2001-07-18 23:07:07 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -519,12 +519,6 @@ void
 IntVect::printOn (std::ostream& os) const
 {
     os << "IntVect: " << *this << '\n';
-}
-
-void
-IntVect::dumpOn (std::ostream& os) const
-{
-    os << "IntVect(" << BoxLib::version << ")= " << *this << '\n';
 }
 
 #ifdef BL_NAMESPACE
