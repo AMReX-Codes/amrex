@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.58 1998-06-09 21:41:39 lijewski Exp $
+// $Id: FabArray.H,v 1.59 1998-06-10 19:20:00 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -852,15 +852,14 @@ class FabArrayCopyDescriptor
                      BoxDomain&        unfilledBoxDomain,
                      BoxList&          filledBoxes);
 
-    Array<FabArray<T,FAB>*> fabArrays;
-    Array<BoxList>          unfilledBoxes;     // for each fabArray
-    Array<FCDMap>           fabCopyDescList;   // [fabArrayId]
-    vector<FabComTag>       fabComTagList;
-    long                    totalRemoteBytes;
-    int                     totalRemoteBoxes;
-    int                     nextFabArrayId;
-    int                     nextFillBoxId;
-    bool                    dataAvailable;
+    vector<FabArray<T,FAB>*> fabArrays;
+    vector<FCDMap>           fabCopyDescList;
+    vector<FabComTag>        fabComTagList;
+    long                     totalRemoteBytes;
+    int                      totalRemoteBoxes;
+    int                      nextFabArrayId;
+    int                      nextFillBoxId;
+    bool                     dataAvailable;
 
   private:
     //
@@ -2089,19 +2088,19 @@ FabArrayCopyDescriptor<T,FAB>::FabArrayCopyDescriptor ()
     totalRemoteBytes(0)
 {
     ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
-    fabArrays.reserve(16);
-    fabCopyDescList.reserve(16);
 }
 
 template <class T, class FAB>
 FabArrayId
 FabArrayCopyDescriptor<T,FAB>::RegisterFabArray(FabArray<T,FAB>* fabarray)
 {
-    assert(nextFabArrayId == fabArrays.length());
+    assert(nextFabArrayId == fabArrays.size());
 
-    fabArrays.resize(nextFabArrayId + 1);
-    fabArrays[nextFabArrayId] = fabarray;
-    fabCopyDescList.resize(nextFabArrayId + 1);
+    fabArrays.push_back(fabarray);
+    //
+    // TODO -- optimize this push_back.
+    //
+    fabCopyDescList.push_back(FCDMap());
 
     return FabArrayId(nextFabArrayId++);
 }
@@ -2305,7 +2304,7 @@ template <class T, class FAB>
 void
 FabArrayCopyDescriptor<T,FAB>::clear ()
 {
-   for (int i = 0; i < fabCopyDescList.length(); ++i)
+   for (int i = 0; i < fabCopyDescList.size(); ++i)
    {
        FCDMapIter fmi = fabCopyDescList[i].begin();
 
@@ -2674,7 +2673,7 @@ FabArrayCopyDescriptor<T,FAB>::PrintStats () const
          << totalRemoteBytes
          << '\n';
 
-    for (int fa = 0; fa < fabArrays.length(); ++fa)
+    for (int fa = 0; fa < fabArrays.size(); ++fa)
     {
         cout << "fabArrays["
              << fa
