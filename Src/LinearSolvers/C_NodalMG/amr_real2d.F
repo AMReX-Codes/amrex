@@ -136,13 +136,17 @@ c Works for CELL- or NODE-based data.
             end do
          end do
       else if (ra(0) .eq. 1 .and. ra(1) .eq. 0) then
-         do 30 i = regl0, regh0
-            do 30 j = regl1, regh1
- 30            dest(i,j,nc) = src(bbh0-(i-regl0),bbl1+(j-regl1),nc)
+         do i = regl0, regh0
+            do j = regl1, regh1
+               dest(i,j,nc) = src(bbh0-(i-regl0),bbl1+(j-regl1),nc)
+            end do
+         end do
       else
-         do 40 j = regl1, regh1
-            do 40 i = regl0, regh0
- 40            dest(i,j,nc) = src(bbh0-(i-regl0),bbh1-(j-regl1),nc)
+         do j = regl1, regh1
+            do i = regl0, regh0
+               dest(i,j,nc) = src(bbh0-(i-regl0),bbh1-(j-regl1),nc)
+            end do
+         end do
       end if
       end do
       end
@@ -202,17 +206,23 @@ c Works for CELL- or NODE-based data.
             end do
          end do
       else if (ra(0) .eq. 0 .and. ra(1) .eq. 1) then
-         do 20 j = regl1, regh1
-            do 20 i = regl0, regh0
- 20            dest(i,j,nc) = -src(bbl0+(i-regl0),bbh1-(j-regl1),nc)
+         do j = regl1, regh1
+            do i = regl0, regh0
+               dest(i,j,nc) = -src(bbl0+(i-regl0),bbh1-(j-regl1),nc)
+            end do
+         end do
       else if (ra(0) .eq. 1 .and. ra(1) .eq. 0) then
-         do 30 i = regl0, regh0
-            do 30 j = regl1, regh1
- 30            dest(i,j,nc) = -src(bbh0-(i-regl0),bbl1+(j-regl1),nc)
+         do i = regl0, regh0
+            do j = regl1, regh1
+               dest(i,j,nc) = -src(bbh0-(i-regl0),bbl1+(j-regl1),nc)
+            end do
+         end do
       else
-         do 40 i = regl0, regh0
-            do 40 j = regl1, regh1
- 40            dest(i,j,nc) = -src(bbh0-(i-regl0),bbh1-(j-regl1),nc)
+         do i = regl0, regh0
+            do j = regl1, regh1
+               dest(i,j,nc) = -src(bbh0-(i-regl0),bbh1-(j-regl1),nc)
+            end do
+         end do
       end if
       end do
       end
@@ -239,27 +249,35 @@ c inflow face, so that binfil can be run for subsequent fills
       do nc = 1, ncomp
       if (idir .eq. 0) then
          if (regl0 .lt. bbh0) then
-            do 10 i = regl0, regh0
-               do 10 j = regl1, regh1
- 10               dest(i,j,nc) = 2.d0 * dest(regh0,j,nc) 
+            do i = regl0, regh0
+               do j = regl1, regh1
+                  dest(i,j,nc) = 2.d0 * dest(regh0,j,nc) 
      &			- src(bbh0-(i-regl0),j,nc)
+               end do
+            end do
          else
-            do 20 i = regh0, regl0, -1
-               do 20 j = regl1, regh1
- 20               dest(i,j,nc) = 2.d0 * dest(regl0,j,nc) 
+            do i = regh0, regl0, -1
+               do j = regl1, regh1
+                  dest(i,j,nc) = 2.d0 * dest(regl0,j,nc) 
      &			- src(bbh0-(i-regl0),j,nc)
+               end do
+            end do
          end if
       else
          if (regl1 .lt. bbh1) then
-            do 30 j = regl1, regh1
-               do 30 i = regl0, regh0
- 30               dest(i,j,nc) = 2.d0 * dest(i,regh1,nc) 
+            do j = regl1, regh1
+               do i = regl0, regh0
+                  dest(i,j,nc) = 2.d0 * dest(i,regh1,nc) 
      &			- src(i,bbh1-(j-regl1),nc)
+               end do
+            end do
          else
-            do 40 j = regh1, regl1, -1
-               do 40 i = regl0, regh0
- 40               dest(i,j,nc) = 2.d0 * dest(i,regl1,nc) 
+            do j = regh1, regl1, -1
+               do i = regl0, regh0
+                  dest(i,j,nc) = 2.d0 * dest(i,regl1,nc) 
      &			- src(i,bbh1-(j-regl1),nc)
+               end do
+            end do
          end if
       end if
       end do
