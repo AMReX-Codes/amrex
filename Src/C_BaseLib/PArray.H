@@ -4,7 +4,7 @@
 #define BL_PARRAY_H
 
 //
-// $Id: PArray.H,v 1.8 1998-02-05 23:01:35 vince Exp $
+// $Id: PArray.H,v 1.9 1998-05-04 21:24:59 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -61,11 +61,6 @@ template <class T>
 class PArray
 {
 public:
-    //
-    // The following two constructors are inlined here because g++ has
-    // a problem with defining the first as an inline function
-    // after the class declaration and the second in the relevant .C file.
-    //
 
     /*@ManDoc: Constructs a PArray<T> with no elements.  The default memory
                management policy is not to delete the underlying objects
@@ -77,7 +72,7 @@ public:
                The default memory management policy is not to delete the
                underlying objects upon destruction.
     */
-    explicit PArray (int    len,
+    explicit PArray (int          len,
                      PArrayPolicy _managed = PArrayNoManage);
 
     /*@ManDoc: The destructor.  If the memory management policy was
@@ -154,11 +149,12 @@ public:
     /*@ManDoc: This function does a resize and changes the PArrayPolicy.
 	       (Especially for arrays of PArray where the user wants
 	       the default policy to be managed--the default constructor
-	       makes the default unmanaged).
-	       Note:  if the new managed policy is different from the old
-		      one, none of the elements of the original are retained.
+	       makes the default unmanaged).  If the new managed policy is
+               different from the old one, none of the elements of the
+               original are retained.
     */
-    void resize (int newsize, PArrayPolicy newmanagedpolicy);
+    void resize (int          newsize,
+                 PArrayPolicy newmanagedpolicy);
 
     /*@ManDoc: Removes the i'th element from the PArray and returns the
                pointer to the calling function.  Nulls out the pointer
@@ -188,15 +184,9 @@ private:
     PArray<T> operator= (const PArray<T>&);
 };
 
-//
-// Inlines.
-//
-
 template <class T>
-inline
 PArray<T>::PArray (PArrayPolicy _managed)
     :
-    vp(),
     managed(_managed)
 {}
 
@@ -283,7 +273,16 @@ PArray<T>::ready () const
 
 template <class T>
 inline
-PArray<T>::PArray (int    len,
+void
+PArray<T>::clear (int n)
+{
+    if (managed)
+        delete ((T*)(vp[n]));
+    vp[n] = 0;
+}
+
+template <class T>
+PArray<T>::PArray (int          len,
                    PArrayPolicy _managed)
     :
     vp(len),
@@ -301,8 +300,7 @@ PArray<T>::clear ()
     {
         for (int i = 0; i < length(); ++i)
         {
-          if (!(vp[i] == 0))
-              delete ((T*)(vp[i]));
+            delete ((T*)(vp[i]));
         }
     }
     for (int i = 0; i < length(); ++i)
@@ -320,19 +318,20 @@ void
 PArray<T>::resize (int newlen)
 {
     void** ovp = vp.ready() ? &vp[0] : 0;
-    int onelem = vp.length();
+
+    int oldlen = vp.length();
+
     vp.resize(newlen);
-    for (int i = onelem; i < newlen; ++i)
+
+    for (int i = oldlen; i < newlen; ++i)
         vp[i] = 0;
+
     if (managed)
     {
-        for (int i = newlen; i < onelem; i++)
+        for (int i = newlen; i < oldlen; i++)
         {
-          if (!(ovp[i] == 0))
-          {
-              delete ((T*)(ovp[i]));
-              ovp[i]  = 0;
-          }
+            delete ((T*)(ovp[i]));
+            ovp[i]  = 0;
         }
     }
 }
@@ -340,24 +339,19 @@ PArray<T>::resize (int newlen)
 
 template <class T>
 void
-PArray<T>::resize (int newlen, PArrayPolicy newmanagedpolicy)
+PArray<T>::resize (int          newlen,
+                   PArrayPolicy newmanagedpolicy)
 {
-  if(newmanagedpolicy == managed) {
-    resize(newlen);
-  } else {
-    clear();
-    resize(newlen);
-    managed = newmanagedpolicy;
-  }
-}
-
-template <class T>
-void
-PArray<T>::clear (int n)
-{
-    if (managed && vp[n] != 0)
-        delete ((T*)(vp[n]));
-    vp[n] = 0;
+    if (newmanagedpolicy == managed)
+    {
+        resize(newlen);
+    }
+    else
+    {
+        clear();
+        resize(newlen);
+        managed = newmanagedpolicy;
+    }
 }
 
 #endif /*BL_PARRAY_H*/

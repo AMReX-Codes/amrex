@@ -4,7 +4,7 @@
 #define BL_ORDEREDFAB_H
 
 //
-// $Id: OrderedFab.H,v 1.1 1997-12-14 01:05:54 lijewski Exp $
+// $Id: OrderedFab.H,v 1.2 1998-05-04 21:24:59 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -150,14 +150,16 @@ private:
 template <class T>
 inline
 OrderedFab<T>::OrderedFab ()
-    : BaseFab<T>()
+    :
+    BaseFab<T>()
 {}
 
 template <class T>
 inline
 OrderedFab<T>::OrderedFab (const Box& b,
                            int        n)
-    : BaseFab<T>(b,n)
+    :
+    BaseFab<T>(b,n)
 {}
 
 //

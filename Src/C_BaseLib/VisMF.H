@@ -4,41 +4,43 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.31 1998-02-12 22:37:13 wyc Exp $
+// $Id: VisMF.H,v 1.32 1998-05-04 21:25:02 lijewski Exp $
 //
 
 #include <MultiFab.H>
 
 //
-// A smart wrapper class for reading/writing MultiFabs to disk.
-//
+//@Man:
+//@Memo: File I/O for MultiFabs.
+/*@Doc:
+
+  Wrapper class for reading/writing MultiFabs to disk in various "smart" ways.
+*/
 
 class VisMF
 {
 public:
     //
-    // How we write out MultiFabs.
+    //@ManDoc: How we write out MultiFabs.
     //
     enum How { OneFilePerCPU, OneFilePerFab };
-    //
-    // Construct by reading in the on-disk VisMF of the specified name.
-    //
-    // The MF on-disk is read lazily.
-    //
-    // The name here is the name of the MF not the name of the on-disk file.
-    //
+
+    /*@ManDoc: Construct by reading in the on-disk VisMF of the specified name.
+               The MF on-disk is read lazily. The name here is the name of
+               the MF not the name of the on-disk file.
+    */
     explicit VisMF (const aString& mf_name);
     //
-    // A structure containing info regarding an on-disk FAB.
+    //@ManDoc: A structure containing info regarding an on-disk FAB.
     //
     struct FabOnDisk
     {
         //
-        // The default constructor -- null out all fields.
+        //@ManDoc: The default constructor -- null out all fields.
         //
         FabOnDisk () {}
         //
-        // Constructor that sets the two values.
+        //@ManDoc: Constructor that sets the two values.
         //
         FabOnDisk (const aString& name, long offset)
             :
@@ -54,7 +56,7 @@ public:
         static const aString Prefix;
     };
     //
-    // An on-disk MultiFab contains this info in a header file.
+    //@ManDoc: An on-disk MultiFab contains this info in a header file.
     //
     struct Header
     {
@@ -63,11 +65,11 @@ public:
         //
         enum { Version = 1 };
         //
-        // The default constructor -- does nothing.
+        //@ManDoc: The default constructor.
         //
         Header ();
         //
-        // Construct from a MultiFab -- fills in all but m_fod member.
+        //@ManDoc: Construct from a MultiFab.
         //
         Header (const MultiFab& mf, How how);
         //
@@ -83,65 +85,64 @@ public:
         Array< Array<Real> > m_max;   // The max()s of each component of FABs.
     };
     //
-    // The number of components in the on-disk MultiFab.
+    //@ManDoc: The number of components in the on-disk MultiFab.
     //
     int nComp () const;
     //
-    // The grow factor of the on-disk MultiFab.
+    //@ManDoc: The grow factor of the on-disk MultiFab.
     //
     int nGrow () const;
     //
-    // The # of FABs in the VisMF.
-    //
-    // Equal to the # of Boxes in the BoxArray.
+    //@ManDoc: # of FABs in the VisMF. Equal to # of Boxes in the BoxArray.
     //
     int length () const;
     //
-    // The BoxArray of the on-disk MultiFab.
+    //@ManDoc: The BoxArray of the on-disk MultiFab.
     //
     const BoxArray& boxArray () const;
     //
-    // The min of the FAB (in valid region) at specified index and component.
+    //@ManDoc: The min of the FAB (in valid region) at specified index and component.
     //
     Real min (int fabIndex, int nComp) const;
     //
-    // The max of the FAB (in valid region) at specified index and component.
+    //@ManDoc: The max of the FAB (in valid region) at specified index and component.
     //
     Real max (int fabIndex, int nComp) const;
+
+    /*@ManDoc: The FAB at the specified index and component.
+               Reads it from disk if necessary.
+               This reads only the specified component.
+    */
+    const FArrayBox& GetFab (int fabIndex,
+                             int compIndex) const;
     //
-    // The FAB at the specified index and component.
-    //
-    // Reads it from disk if necessary.
-    // This reads only the specified component.
-    //
-    const FArrayBox& GetFab (int fabIndex, int compIndex) const;
-    //
-    // Delete's the FAB at the specified index and component.
+    //@ManDoc: Delete()s the FAB at the specified index and component.
     //
     void clear (int fabIndex, int compIndex);
     //
-    // Delete's the FAB at the specified index (all components).
+    //@ManDoc: Delete()s the FAB at the specified index (all components).
     //
     void clear (int fabIndex);
     //
-    // Delete's all the FABs.
+    //@ManDoc: Delete()s all the FABs.
     //
     void clear ();
-    //
-    // Write a MultiFab to disk in a "smart" way.
-    // Returns the total # of bytes written (on this processor).
-    //
+
+    /*@ManDoc: Write a MultiFab to disk in a "smart" way.
+               Returns the total number of bytes written on this processor.
+     */
     static long Write (const MultiFab& mf,
                        const aString&  name,
                        VisMF::How      how);
-    //
-    // Read a MultiFab from disk written using VisMF::Write().
-    // The MultiFab `mf' must have been defined using the default constructor.
-    //
+
+    /*@ManDoc: Read a MultiFab from disk written using VisMF::Write().
+               The MultiFab `mf' must have been defined using the default
+               constructor.
+    */
     static void Read (MultiFab&      mf,
                       const aString& name);
     //
-    // We try to do I/O with buffers of this size.
+    //@ManDoc: We try to do I/O with buffers of this size.
     //
     enum { IO_Buffer_Size = 40960 * 32 };
     //
@@ -153,19 +154,23 @@ public:
     typedef char Setbuf_Char_Type;
 #endif
     //
-    // A simple character buffer for setbuf() usage.
+    //@ManDoc: A simple character buffer for setbuf() usage.
     //
     typedef Array<Setbuf_Char_Type> IO_Buffer;
     //
-    // The file offset of the passed ostream.
+    //@ManDoc: The file offset of the passed ostream.
     //
     static long FileOffset (ostream& os);
-
-    // Read the entire fab (all components).
-    FArrayBox *readFAB (int fabIndex, const aString &mfName);
-
-    // Read the specified fab component.
-    FArrayBox *readFAB (int fabIndex, int compIndex);
+    //
+    //@ManDoc: Read the entire fab (all components).
+    //
+    FArrayBox *readFAB (int            fabIndex,
+                        const aString& mfName);
+    //
+    //@ManDoc: Read the specified fab component.
+    //
+    FArrayBox *readFAB (int fabIndex,
+                        int compIndex);
 
 private:
     //

@@ -4,7 +4,7 @@
 #define BL_DISTRIBUTIONMAPPING_H
 
 //
-// $Id: DistributionMapping.H,v 1.7 1997-11-28 18:30:25 lijewski Exp $
+// $Id: DistributionMapping.H,v 1.8 1998-05-04 21:24:56 lijewski Exp $
 //
 
 #include <BoxLib.H>
@@ -12,53 +12,85 @@
 #include <Box.H>
 #include <BoxArray.H>
 
+//
+//@Man:
+//@Memo: Calculates the distribution of FABs to processors.
+/*@Doc:
+
+  This class calculates the distribution of FABs to processors in a
+  FabArray in a multi-processor environment.  By distribution is meant what
+  CPU in the multi-processor environment owns what FAB.  Only the BoxArray
+  on which the FabArray is built is used in determining the distribution.
+  The two types of distributions supported are round-robin and knapsack.  In
+  the round-robin distribution FAB `i' is owned by CPU `i%N' where N is total
+  number of CPUs.  In the knapsack distribution the FABs are partitioned
+  across CPUs such that the total volume of the Boxes in the underlying
+  BoxArray are as equal across CPUs as is possible.
+*/
+
 class DistributionMapping
 {
   public:
-
-    enum Strategy { ROUNDROBIN, RANDOM, SIZEBALANCED, KNAPSACK };
-
+    //
+    //@ManDoc: The distribution strategy: ROUNDROBIN or KNAPSACK.
+    //
+    enum Strategy { ROUNDROBIN, KNAPSACK };
+    //
+    //@ManDoc: The default constructor.
+    //
     DistributionMapping ();
+    //
+    //@ManDoc: Build mapping on nprocs out of BoxArray.
+    //
     DistributionMapping (int             nprocs,
                          const BoxArray& boxes);
-
+    //
+    //@ManDoc: The destructor.
+    //
     ~DistributionMapping ();
 
+    /*@ManDoc: Build mapping on nprocs out of BoxArray.  You need to
+               call this if you built your DistributionMapping with
+               the default constructor.
+    */
     void define (int             nprocs,
                  const BoxArray& boxes);
 
+    /*@ManDoc: Returns a constant reference to the mapping of boxes in the
+               underlying BoxArray to the CPU that holds the FAB on that Box.
+               ProcessorMap()[i] is an integer in the interval [0, NCPU) where
+               NCPU is the number of CPUs being used.
+    */
     const Array<int>& ProcessorMap () const;
-
+    //
+    //@ManDoc: Equivalent to ProcessorMap()[index].
+    //
     int operator[] (int index) const;
     //
-    // Set distribution strategy.
+    //@ManDoc: Set distribution strategy.
     //
     static void strategy (Strategy how);
     //
-    // Returns the distribution strategy.
+    //@ManDoc: Returns the distribution strategy.
     //
     static Strategy strategy ();
-    //
-    // Flush the cache of processor maps.
-    //
-    // The processor map cache is only flushed manually.
-    //
-    // Only call this after a regridding before new MultiFabs are alloced.
-    //
+
+    /*@ManDoc: Flush the cache of processor maps.  The processor map cache
+               is only flushed manually.  Only call this after a regridding
+               before new MultiFabs are alloced.
+    */
     static void FlushCache ();
     //
-    // Output some simple cache statistics.
+    //@ManDoc: Output some simple cache statistics.
     //
     static void CacheStats (ostream& os);
 
   private:
     //
-    // Four ways to create the processor map.
+    // Two ways to create the processor map.
     //
     void RoundRobinProcessorMap   (int nprocs, const BoxArray& boxes);
     void KnapSackProcessorMap     (int nprocs, const BoxArray& boxes);
-    void RandomProcessorMap       (int nprocs, const BoxArray& boxes);
-    void SizeBalancedProcessorMap (int nprocs, const BoxArray& boxes);
     //
     // Initializes distribution strategy from ParmParse.
     //
@@ -66,8 +98,6 @@ class DistributionMapping
     //
     //   DistributionMapping.strategy = ROUNDROBIN
     //   DistributionMapping.strategy = KNAPSACK
-    //   DistributionMapping.strategy = RANDOM
-    //   DistributionMapping.strategy = SIZEBALANCED
     //
     static void init ();
     //

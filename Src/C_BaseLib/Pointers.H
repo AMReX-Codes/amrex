@@ -4,7 +4,7 @@
 #define BL_POINTERS_H
 
 //
-// $Id: Pointers.H,v 1.5 1997-12-11 23:25:46 lijewski Exp $
+// $Id: Pointers.H,v 1.6 1998-05-04 21:25:00 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -286,60 +286,6 @@ public:
 };
 
 //
-// This stuff is commented out for now.  If someone really uses it,
-// we'll uncomment it, as well as document it.
-//
-
-#if 0
-
-//
-// Object Factory Pointers
-//
-
-template<class T>
-class VcClassPtr
-{
-public:
-    VcClassPtr()
-        : ptr(0) {}
-    explicit VcClassPtr(T* rhs)
-        : ptr(rhs) {}
-    ~VcClassPtr()
-    {
-        delete ptr;
-    }
-    VcClassPtr (const VcClassPtr<T>&);
-    VcClassPtr (const T& Class)
-        : ptr(Class.clone()) {}
-    VcClassPtr<T>& operator= (T*);
-    VcClassPtr<T>& operator= (const VcClassPtr<T>&);
-    T& operator*() const
-    {
-        return *ptr;
-    }
-    bool isNull() const
-    {
-        return ptr == 0;
-    }
-    T* release ();
-    T* operator->() const
-    {
-        return ptr;
-    }
-    bool operator== (const VcClassPtr<T>& rhs ) const
-    {
-        return ptr == rhs.ptr;
-    }
-    bool operator!= (const VcClassPtr<T>& rhs ) const
-    {
-        return ptr != rhs.ptr;
-    }
-protected:
-    T* ptr;
-};
-#endif /*#if 0*/
-
-//
 // Inlines.
 //
 
@@ -598,48 +544,5 @@ LnClassPtr<T>::operator->() const
 {
     return ptr;
 }
-
-
-#if 0
-//
-// This stuff is commented out for now.  If someone really uses it,
-// we'll uncomment it as well as document it.
-//
-
-template<class T>
-VcClassPtr<T>::VcClassPtr (const VcClassPtr<T>& _a)
-    :  ptr(_a.isNull() ?  0 : _a.ptr->clone())
-{}
-
-template<class T>
-VcClassPtr<T>&
-VcClassPtr<T>::operator= (T* _ptr)
-{
-    delete ptr;
-    ptr = _ptr;
-    return *this;
-}
-
-template<class T>
-VcClassPtr<T>&
-VcClassPtr<T>::operator= (const VcClassPtr<T>& _r)
-{
-    if (ptr != _r.ptr)
-    {
-        delete ptr;
-        ptr = _r.isNull() ? 0 : _r.ptr->clone();
-    }
-    return *this;
-}
-
-template<class T>
-T*
-VcClassPtr<T>::release()
-{
-    T* old = ptr;
-    ptr = 0;
-    return old;
-}
-#endif
 
 #endif /*BL_POINTERS_H*/

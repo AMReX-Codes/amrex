@@ -4,7 +4,7 @@
 #define BL_BOXLIST_H
 
 //
-// $Id: BoxList.H,v 1.5 1997-11-18 00:04:49 lijewski Exp $
+// $Id: BoxList.H,v 1.6 1998-05-04 21:24:55 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -259,26 +259,26 @@ public:
     //
     //@ManDoc: Returns a BoxList defining the intersection of bl with b.
     //
-    friend inline BoxList intersect (const BoxList& bl,
-                                     const Box&     b);
+    friend BoxList intersect (const BoxList& bl,
+                              const Box&     b);
 
     /*@ManDoc: Returns a new BoxList in which each Box is refined by the
                given ratio.
     */
-    friend inline BoxList refine (const BoxList&  bl,
-                                  int             ratio);
+    friend BoxList refine (const BoxList&  bl,
+                           int             ratio);
 
     /*@ManDoc: Returns a new BoxList in which each Box is coarsened by
                the given ratio.
     */
-    friend inline BoxList coarsen (const BoxList& bl,
-                                   int            ratio);
+    friend BoxList coarsen (const BoxList& bl,
+                            int            ratio);
 
     /*@ManDoc: Returns a new BoxList in which each Box is grown by the
                given size.
     */
-    friend inline BoxList accrete (const BoxList& bl,
-                                   int            sz);
+    friend BoxList accrete (const BoxList& bl,
+                            int            sz);
     //
     //@ManDoc: Returns BoxList defining the compliment of b2 in b1in.
     //
@@ -325,14 +325,16 @@ private:
 */
 
 class BoxListIterator
-    : public ListIterator<Box>
+    :
+    public ListIterator<Box>
 {
 public:
     //
     //@ManDoc: Construct a BoxListIterator on the supplied BoxList.
     //
     BoxListIterator (const BoxList& bl)
-        : ListIterator<Box>(bl.lbox) {}
+        :
+        ListIterator<Box>(bl.lbox) {}
 };
 
 //

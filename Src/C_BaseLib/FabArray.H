@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.46 1998-05-01 17:12:32 lijewski Exp $
+// $Id: FabArray.H,v 1.47 1998-05-04 21:24:57 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -194,7 +194,7 @@ public:
     */
     virtual const Box& box (int K) const;
 
-    /*@ManDoc: Returns the Kth Fabs Box in the FabArray.
+    /*@ManDoc: Returns the Kth FABs Box in the FabArray.
                That is, the region the Kth fab is actually defined on.
     */
     virtual Box fabbox (int K) const;
@@ -211,8 +211,7 @@ public:
     //@ManDoc: Returns a reference to the FAB associated with the Kth element.
     //
     FAB& operator[] (int K);
-
-public:
+    //
     //@ManDoc: Returns number of variables associated with each point (nvar).
     //
     int nComp () const;
@@ -221,7 +220,6 @@ public:
     //
     void setFab (int  K,
                  FAB* elem);
-public:
 
     /*@ManDoc: Removes the Kth FAB from the FabArray and returns it to the
                caller.  It leaves the Kth element undefined.  It is the
@@ -362,7 +360,9 @@ public:
                int        src_comp,
                int        dest_comp,
                int        num_comp) const;
-
+    //
+    //@ManDoc: Returns constant reference to associated DistributionMapping.
+    //
     const DistributionMapping& DistributionMap () const
     {
         return distributionMap;
@@ -390,40 +390,72 @@ private:
 
 template <class T, class FAB> class ConstFabArrayIterator;
 
+//
+//@Man:
+//@Memo: An iterator over the FABs in a FabArray.
+/*@Doc:
+
+  This class encapsulates an iterator over the FABs in a FabArray such that
+  each CPU in a Single Program Multiple Data (SPMD) parallel program accesses
+  only those FABs in the FabArray that are actually owned by that CPU.
+*/
+
 template <class T, class FAB>
 class FabArrayIterator
 {
   public:
-
-    FabArrayIterator(FabArray<T,FAB>& fabarray,
-                     int              nghost = 0);
-
-    const FAB& operator() () const;
-
+    //
+    //@ManDoc: Construct a FabArrayIterator.
+    //
+    FabArrayIterator(FabArray<T,FAB>& fabarray);
+    //
+    //@ManDoc: Returns a reference to the FAB at which we currently point.
+    //
     FAB& operator() ();
-
+    //
+    //@ManDoc: Returns a constant reference to the FAB at which we currently point.
+    //
+    const FAB& operator() () const;
+    //
+    //@ManDoc: Returns a reference to the FAB at which we currently point.
+    //
     FAB& operator* ();
+    //
+    //@ManDoc: Returns a constant reference to the FAB at which we currently point.
+    //
     const FAB& operator* () const;
-
+    //
+    //@ManDoc: Returns a pointer to the FAB at which we currently point.
+    //
     FAB* operator-> ();
+    //
+    //@ManDoc: Returns a constant pointer to the FAB at which we currently point.
+    //
     const FAB* operator-> () const;
-
+    //
+    //@ManDoc: Returns the Box at the current index in the underlying BoxArray.
+    //
     const Box& validbox () const;
-
+    //
+    //@ManDoc: Returns the Box of the FAB at which we currently point.
+    //
     const Box& fabbox () const;
-
+    //
+    //@ManDoc: Increments iterator to the next FAB in the FabArray that we own.
+    //
     FabArrayIterator<T,FAB>& operator++ ();
-
+    //
+    //@ManDoc: Is the iterator valid i.e. is it associated with a FAB?
+    //
     bool isValid (bool bDoSync = true);
-
+    //
+    //@ManDoc: The index into the underlying BoxArray of the current FAB.
+    //
     int index () const;
-
-    int NGhost() const;
 
   protected:
 
     FabArray<T,FAB>& fabArray;
-    int              nGhost;
     int              currentIndex;
 
   private:
@@ -435,31 +467,67 @@ class FabArrayIterator
     FabArrayIterator<T,FAB>& operator= (const FabArrayIterator<T,FAB>&);
 };
 
+//
+//@Man:
+//@Memo: An iterator over a dependent FabArray.
+/*@Doc:
+
+  This class is used to iterator over a FabArray (the dependent FabArray) that
+  is defined over a BoxArray that is the same as (or sufficiently similar to)
+  one for which we already have a FabArrayIterator.  This allows us to iterate
+  over a FabArray and access the associated FAB(s) in one or more dependent
+  FabArrays.
+*/
+
 template <class T, class FAB>
 class DependentFabArrayIterator
 {
   public:
-
+    //
+    //@ManDoc: Constructor over a mutable dependent FabArray.
+    //
     DependentFabArrayIterator(FabArrayIterator<T,FAB>& controllerfaiter,
                               FabArray<T,FAB>&         dependentfabarray);
-
+    //
+    //@ManDoc: Constructor over an immutable dependent FabArray.
+    //
     DependentFabArrayIterator(FabArrayIterator<T,FAB>& controllerfaiter,
                               const FabArray<T,FAB>&   dependentfabarray);
-
-    const FAB& operator() () const;
-
+    //
+    //@ManDoc: Returns a reference to the FAB at which we currently point.
+    //
     FAB& operator() ();
-
+    //
+    //@ManDoc: Returns constant reference to the FAB at which we currently point.
+    //
+    const FAB& operator() () const;
+    //
+    //@ManDoc: Returns a reference to the FAB at which we currently point.
+    //
     FAB& operator* ();
+    //
+    //@ManDoc: Returns constant reference to FAB at which we currently point.
+    //
     const FAB& operator* () const;
-
+    //
+    //@ManDoc: Returns a pointer to the FAB at which we currently point.
+    //
     FAB* operator-> ();
+    //
+    //@ManDoc: Returns a constant pointer to the FAB at which we currently point.
+    //
     const FAB* operator-> () const;
-
+    //
+    //@ManDoc: Returns the Box at the current index in the underlying BoxArray.
+    //
     const Box& validbox () const;
-
+    //
+    //@ManDoc: Returns the Box of the FAB at which we currently point.
+    //
     const Box& fabbox () const;
-
+    //
+    //@ManDoc: The index into the underlying BoxArray of the current FAB.
+    //
     int index () const;
 
   protected:
@@ -476,35 +544,61 @@ class DependentFabArrayIterator
     DependentFabArrayIterator<T,FAB>& operator=(const DependentFabArrayIterator<T,FAB> &);
 };
 
+//
+//@Man:
+//@Memo: A constant iterator over the FABs in a FabArray.
+/*@Doc:
+
+  This class encapsulates an iterator over the FABs in a FabArray such that
+  each CPU in a Single Program Multiple Data (SPMD) parallel program accesses
+  only those FABs in the FabArray that are actually owned by that CPU.  It is
+  a constant iterator; you can access the FABs but you cannot change them.
+*/
+
 template <class T, class FAB>
 class ConstFabArrayIterator
 {
   public:
-
-    ConstFabArrayIterator(const FabArray<T,FAB>& fabarray,
-                          int                    nghost = 0);
-
+    //
+    //@ManDoc: Construct a ConstFabArrayIterator.
+    //
+    ConstFabArrayIterator (const FabArray<T,FAB>& fabarray);
+    //
+    //@ManDoc: Returns a constant reference to the FAB at which we currently point.
+    //
     const FAB& operator() () const;
-
-    const Box& validbox () const;
-
-    const FAB& operator* () const;
+    //
+    //@ManDoc: Returns a constant reference to the FAB at which we currently point.
+    //
     const FAB* operator-> () const;
-
+    //
+    //@ManDoc: Returns a constant pointer to the FAB at which we currently point.
+    //
+    const FAB& operator* () const;
+    //
+    //@ManDoc: Returns the Box at the current index in the underlying BoxArray.
+    //
+    const Box& validbox () const;
+    //
+    //@ManDoc: Returns the Box of the FAB at which we currently point.
+    //
     const Box& fabbox () const;
-
+    //
+    //@ManDoc: Increments iterator to the next FAB in the FabArray that we own.
+    //
     ConstFabArrayIterator<T,FAB>& operator++ ();
-
-    int index () const;
-
+    //
+    //@ManDoc: Is the iterator valid i.e. is it associated with a FAB?
+    //
     bool isValid (bool bDoSync = true) const;
-
-    int NGhost () const;
+    //
+    //@ManDoc: The index into the underlying BoxArray of the current FAB.
+    //
+    int index () const;
 
   protected:
 
     const FabArray<T,FAB>& fabArray;
-    int                    nGhost;
     int                    currentIndex;
 
   private:
@@ -516,23 +610,50 @@ class ConstFabArrayIterator
     ConstFabArrayIterator<T,FAB>& operator= (const ConstFabArrayIterator<T,FAB> &);
 };
 
+//
+//@Man:
+//@Memo: A constant iterator over a dependent FabArray.
+/*@Doc:
+
+  This class is used to iterator over a FabArray (the dependent FabArray) that
+  is defined over a BoxArray that is the same as (or sufficiently similar to)
+  one for which we already have a ConstFabArrayIterator.  This allows us to
+  iterate over a constant FabArray and access the associated FAB(s) in one or
+  more dependent FabArrays.
+*/
+
 template <class T, class FAB>
 class ConstDependentFabArrayIterator
 {
   public:
-
+    //
+    //@ManDoc: The constructor.
+    //
     ConstDependentFabArrayIterator(ConstFabArrayIterator<T,FAB>& cfai,
                                    const FabArray<T,FAB>&        fa);
-
+    //
+    //@ManDoc: Returns constant reference to the FAB at which we currently point.
+    //
     const FAB& operator() () const;
-
+    //
+    //@ManDoc: Returns constant reference to the FAB at which we currently point.
+    //
     const FAB& operator* () const;
+    //
+    //@ManDoc: Returns a constant pointer to the FAB at which we currently point.
+    //
     const FAB* operator-> () const;
-
+    //
+    //@ManDoc: Returns the Box at the current index in the underlying BoxArray.
+    //
     const Box& validbox () const;
-
+    //
+    //@ManDoc: Returns the Box of the FAB at which we currently point.
+    //
     const Box& fabbox () const;
-
+    //
+    //@ManDoc: The index into the underlying BoxArray of the current FAB.
+    //
     int index () const;
 
   protected:
@@ -746,6 +867,7 @@ FabArray<T,FAB>::boxArray () const
 }
 
 template <class T, class FAB>
+inline
 const Box&
 FabArray<T,FAB>::box (int K) const
 {
@@ -753,6 +875,7 @@ FabArray<T,FAB>::box (int K) const
 }
 
 template <class T, class FAB>
+inline
 Box
 FabArray<T,FAB>::fabbox (int K) const
 {
@@ -1560,11 +1683,9 @@ FabArray<T,FAB>::FillBoundary (int start_comp,
 }
 
 template <class T, class FAB>
-FabArrayIterator<T,FAB>::FabArrayIterator(FabArray<T,FAB>& fabarray,
-                                          int              nghost)
+FabArrayIterator<T,FAB>::FabArrayIterator(FabArray<T,FAB>& fabarray)
     :
     fabArray(fabarray),
-    nGhost(nghost),
     currentIndex(0)
 {
     //
@@ -1786,12 +1907,9 @@ DependentFabArrayIterator<T,FAB>::operator-> () const
 }
 
 template <class T, class FAB>
-ConstFabArrayIterator<T,FAB>::ConstFabArrayIterator(
-    const FabArray<T,FAB>& fabarray,
-    int                    nghost)
+ConstFabArrayIterator<T,FAB>::ConstFabArrayIterator(const FabArray<T,FAB>& fabarray)
     :
     fabArray(fabarray),
-    nGhost(nghost),
     currentIndex(0)
 {
     //

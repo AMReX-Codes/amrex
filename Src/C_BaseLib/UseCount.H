@@ -4,7 +4,7 @@
 #define BL_USECOUNT_H
 
 //
-// $Id: UseCount.H,v 1.3 1997-12-11 23:25:47 lijewski Exp $
+// $Id: UseCount.H,v 1.4 1998-05-04 21:25:01 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -67,12 +67,14 @@ private:
 
 inline
 UseCount::UseCount ()
-    : cnt(new unsigned int(1))
+    :
+    cnt(new unsigned int(1))
 {}
 
 inline
 UseCount::UseCount (const UseCount& rhs)
-    : cnt(rhs.cnt)
+    :
+    cnt(rhs.cnt)
 {
     ++*cnt;
 }
