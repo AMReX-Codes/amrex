@@ -4,7 +4,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.15 1998-05-14 22:08:50 almgren Exp $
+// $Id: Amr.H,v 1.16 1998-09-15 22:31:40 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -132,6 +132,20 @@ public:
     //@ManDoc: Time between plot files.
     //
     Real plotPer() const;
+
+    /*@ManDoc: The names of state or derived variables to output in the
+               plotfile.  They can be set using the amr.plot_vars variable
+               in a ParmParse inputs file.  If no variables are specified
+               in the inputs file this defaults to a single-element array
+               containing the string "ALL".
+    */
+    const Array<aString>& plotVars () const;
+
+    /*@ManDoc: Is the string the name of a variable in plot_vars?
+               Also returns true if plot_vars.length() == 1 &&
+               plot_vars[0] == "ALL".
+    */
+    bool isPlotVar (const aString& name) const;
     //
     //@ManDoc: Number of buffer cells in error estimator.
     //
@@ -285,6 +299,7 @@ protected:
     int              plot_int;        // How often plotfile (# of time steps)
     Real             plot_per;        // How often plotfile (in units of time)
     aString          plot_file_root;  // Root name of plotfile.
+    Array<aString>   plot_vars;       // Vars to dump to plotfile or "ALL".
     int              verbose;
     int              record_grid_info;
     int              record_run_info;
@@ -334,6 +349,13 @@ Real
 Amr::plotPer () const
 {
     return plot_per;
+}
+
+inline
+const Array<aString>&
+Amr::plotVars () const
+{
+    return plot_vars;
 }
 
 inline
