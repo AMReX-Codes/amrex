@@ -120,9 +120,9 @@ module mt19937_module
   ! Period parameters
   integer( kind = wi ), parameter :: n = 624_wi
   integer( kind = wi ), parameter :: m = 397_wi
-  integer( kind = wi ), parameter :: hbs = bit_size( n ) / 2_wi
-  integer( kind = wi ), parameter :: qbs = hbs / 2_wi
-  integer( kind = wi ), parameter :: tbs = 3_wi * qbs
+  integer, parameter :: hbs = bit_size( n ) / 2
+  integer, parameter :: qbs = hbs / 2
+  integer, parameter :: tbs = 3 * qbs
 
   type, public :: mt19937
      integer( kind = wi ) :: mt(n)
@@ -256,7 +256,7 @@ contains
        tp = ieor( mt%mt(i-1), ishft( mt%mt(i-1), -30 ) )
        tp = uimlt( tp, mult_b )
        mt%mt(i) = ieor( mt%mt(i), tp )
-       mt%mt(i) = uisub( mt%mt(i), i-1 ) ! non linear
+       mt%mt(i) = uisub( mt%mt(i), i-1_wi ) ! non linear
        mt%mt(i) = ibits( mt%mt(i), 0, 32 ) ! for WORDSIZE > 32 machines
        i = i + 1_wi
        if ( i > n ) then
@@ -362,7 +362,7 @@ contains
   function mt_genrand_bit(mt) result(l)
     type(mt19937), intent(inout) :: mt
     logical :: l
-    l = mod(mt_genrand_int32(mt),2) == 0
+    l = mod(mt_genrand_int32(mt),2_wi) == 0
   end function mt_genrand_bit
 
   ! generates a random number on [0,1]-real-interval
@@ -459,7 +459,7 @@ contains
     integer, intent(out), optional :: size
     integer, intent(in), optional :: put(:)
     integer, intent(out), optional :: get(:)
-    integer :: seed_d
+    integer(kind=wi) :: seed_d
     data seed_d /z'5489'/
     if ( .not. present(size) .and. .not. present(put) &
          .and. .not. present(get) ) then
@@ -1121,7 +1121,7 @@ contains
   function mt_validate()
     logical :: mt_validate
     integer i
-    integer init(4), ia
+    integer(kind=wi) :: init(4), ia
     data init /Z'123', Z'234', Z'345', Z'456'/
     type(mt19937) :: mt
 
