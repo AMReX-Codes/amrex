@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.74 1999-03-11 17:56:44 lijewski Exp $
+// $Id: Amr.cpp,v 1.75 1999-03-18 17:05:35 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -37,6 +37,11 @@ using std::ios;
 #ifdef BL_USE_SETBUF
 #define pubsetbuf setbuf
 #endif
+
+//
+// I now want to add a version string to the checkpoint file.
+//
+static const aString CheckPointVersion = "CheckPointVersion_1.0";
 
 void
 Amr::setDtMin (const Array<REAL>& dt_min_in)
@@ -746,24 +751,51 @@ Amr::restart (const aString& filename)
     //
     // Read global data.
     //
-    int spdim;
-    is >> spdim;
+    // Attempt to differentiate between old and new CheckPointFiles.
+    //
+    int     spdim;
+    bool    new_checkpoint_format = false;
+    aString first_line;
+
+    first_line.getline(is);
+
+    if (first_line == CheckPointVersion)
+    {
+        new_checkpoint_format = true;
+        is >> spdim;
+    }
+    else
+    {
+        spdim = first_line.toInteger();
+    }
+
     if (spdim != BL_SPACEDIM)
     {
-        cerr << "restart: bad spacedim = " << spdim << '\n';
+        cerr << "Amr::restart(): bad spacedim = " << spdim << '\n';
         BoxLib::Abort();
     }
+
     is >> cumtime;
     int mx_lev;
     is >> mx_lev;
     if (max_level < mx_lev)
-        BoxLib::Error("restart: different max_level");
+        BoxLib::Error("Amr::restart(): different max_level");
 
     is >> finest_level;
 
     for (i = 0; i <= mx_lev; i++) is >> geom[i];
     for (i = 0; i <  mx_lev; i++) is >> ref_ratio[i];
     for (i = 0; i <= mx_lev; i++) is >> dt_level[i];
+
+    if (new_checkpoint_format)
+    {
+        for (i = 0; i <= mx_lev; i++) is >> dt_min[i];
+    }
+    else
+    {
+        for (i = 0; i <= mx_lev; i++) dt_min[i] = dt_level[i];
+    }
+
     for (i = 0; i <= mx_lev; i++) is >> n_cycle[i];
     for (i = 0; i <= mx_lev; i++) is >> level_steps[i];
     for (i = 0; i <= mx_lev; i++) is >> level_count[i];
@@ -893,20 +925,23 @@ Amr::checkPoint ()
 
         old_prec = HeaderFile.precision(15);
 
-        HeaderFile << BL_SPACEDIM  << '\n'
-                   << cumtime      << '\n'
-                   << max_level    << '\n'
-                   << finest_level << '\n';
+        HeaderFile << CheckPointVersion << '\n'
+                   << BL_SPACEDIM       << '\n'
+                   << cumtime           << '\n'
+                   << max_level         << '\n'
+                   << finest_level      << '\n';
         //
         // Write out problem domain.
         //
-        for (i = 0; i <= max_level; i++) HeaderFile << geom[i] << ' ';
+        for (i = 0; i <= max_level; i++) HeaderFile << geom[i]        << ' ';
         HeaderFile << '\n';
-        for (i = 0; i < max_level; i++) HeaderFile << ref_ratio[i] << ' ';
+        for (i = 0; i < max_level; i++)  HeaderFile << ref_ratio[i]   << ' ';
         HeaderFile << '\n';
-        for (i = 0; i <= max_level; i++) HeaderFile << dt_level[i] << ' ';
+        for (i = 0; i <= max_level; i++) HeaderFile << dt_level[i]    << ' ';
         HeaderFile << '\n';
-        for (i = 0; i <= max_level; i++) HeaderFile << n_cycle[i] << ' ';
+        for (i = 0; i <= max_level; i++) HeaderFile << dt_min[i]      << ' ';
+        HeaderFile << '\n';
+        for (i = 0; i <= max_level; i++) HeaderFile << n_cycle[i]     << ' ';
         HeaderFile << '\n';
         for (i = 0; i <= max_level; i++) HeaderFile << level_steps[i] << ' ';
         HeaderFile << '\n';
