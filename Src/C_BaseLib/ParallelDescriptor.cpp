@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.90 2001-09-27 17:57:21 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.91 2001-09-27 21:54:13 lijewski Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -404,6 +404,12 @@ double
 ParallelDescriptor::second ()
 {
     return MPI_Wtime();
+}
+
+void
+ParallelDescriptor::Barrier ()
+{
+    BL_MPI_REQUIRE( MPI_Barrier(ParallelDescriptor::Communicator()) );
 }
 
 void
@@ -923,6 +929,7 @@ void ParallelDescriptor::Abort (int)
 
 const char* ParallelDescriptor::ErrorString (int) { return ""; }
 
+void ParallelDescriptor::Barrier () {}
 void ParallelDescriptor::Barrier (MPI_Comm) {}
 
 void ParallelDescriptor::Test (MPI_Request&, int&, MPI_Status&) {}
