@@ -37,7 +37,7 @@ void task::_hint() const
 void task::hint() const
 {
     task::_hint();
-    HG_DEBUG_OUT(")");
+    HG_DEBUG_OUT(")" << endl);
 }
 
 // TASK_LIST
@@ -305,7 +305,7 @@ void task_copy::hint() const
 	m_bx  << ' ' << m_dgrid << ' ' <<
 	m_sbx  << ' ' << m_sgrid << ' '
 	);
-    HG_DEBUG_OUT( ")" );
+    HG_DEBUG_OUT( ")" << endl );
 }
 
 
@@ -332,7 +332,7 @@ void task_copy_local::hint() const
 {
     task::_hint();
     if ( m_local ) HG_DEBUG_OUT( "L" );
-    HG_DEBUG_OUT( "L" );
+    HG_DEBUG_OUT( ")" << endl );
 }
 
 void task_copy_local::startup()
