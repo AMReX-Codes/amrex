@@ -380,15 +380,13 @@ c-----------------------------------------------------------------------
      & dest,  destl0, desth0, destl1, desth1,
      & sig,   sfl0, sfh0, sfl1, sfh1,
      & cen,   cenl0, cenh0, cenl1, cenh1,
-     &        regl0, regh0, regl1, regh1,
-     & hx, hy)
+     &        regl0, regh0, regl1, regh1)
       integer resl0, resh0, resl1, resh1
       integer srcl0, srch0, srcl1, srch1
       integer destl0, desth0, destl1, desth1
       integer sfl0, sfh0, sfl1, sfh1
       integer cenl0, cenh0, cenl1, cenh1
       integer regl0, regh0, regl1, regh1
-      double precision hx, hy
       double precision res(resl0:resh0,resl1:resh1)
       double precision src(srcl0:srch0,srcl1:srch1)
       double precision dest(destl0:desth0,destl1:desth1)
