@@ -35,13 +35,14 @@ thePlotFileType ()
 }
 
 void
-writePlotFile (const std::string&  dir,
-	       std::ostream&        os,
-	       int             level,
-	       const MultiFab& mf,
-	       const Geometry& geom,
-	       const IntVect&  refRatio,
-	       Real            bgVal)
+writePlotFile (const std::string&        dir,
+	       std::ostream&             os,
+	       int                       level,
+	       const MultiFab&           mf,
+	       const Geometry&           geom,
+	       const IntVect&            refRatio,
+	       Real                      bgVal,
+               const Array<std::string>& names)
 {
     //
     // Faked data
@@ -99,7 +100,9 @@ writePlotFile (const std::string&  dir,
     const int Coord = 0;
     BoxArray tba = BoxArray(&tmpb,1);
     MultiFab level0_dat(tba,mf.nComp(),mf.nGrow(),Fab_allocate);
-    level0_dat.setVal(bgVal);
+    for (int j=0; j<mf.nComp(); ++j)
+        level0_dat.setVal(0.5*(mf.min(j)+mf.max(j)),j,1);
+    //level0_dat.setVal(bgVal);
     
     int i, n;
     //
@@ -144,9 +147,16 @@ writePlotFile (const std::string&  dir,
 	    os << n_var << '\n';
 	    for (n = 0; n < NUM_STATE; n++)
 	    {
-		char buff[64];
-		sprintf(buff, "state_%d", n);
-		os << buff << '\n';
+                if (names.size()==0)
+                {
+                    char buff[64];
+                    sprintf(buff, "state_%d", n);
+                    os << buff << '\n';
+                }
+                else
+                {
+                    os << names[n] << '\n';
+                }
 	    }
 	    // dimensionality
 	    os << BL_SPACEDIM << '\n';
@@ -218,11 +228,12 @@ writePlotFile (const std::string&  dir,
 }
 
 void
-writePlotFile (const char*     name,
-	       const MultiFab& mf,
-	       const Geometry& geom,
-	       const IntVect&  refRatio,
-	       Real            bgVal)
+writePlotFile (const char*               name,
+	       const MultiFab&           mf,
+	       const Geometry&           geom,
+	       const IntVect&            refRatio,
+	       Real                      bgVal,
+               const Array<std::string>& names)
 {
 
     double dPlotFileTime0(ParallelDescriptor::second());
@@ -266,7 +277,7 @@ writePlotFile (const char*     name,
     int finest_level = 1;
     for (int k = 0; k <= finest_level; k++)
     {
-        writePlotFile(pltfile, HeaderFile, k, mf, geom, refRatio, bgVal);
+        writePlotFile(pltfile, HeaderFile, k, mf, geom, refRatio, bgVal, names);
     }
 
     if (ParallelDescriptor::IOProcessor())
@@ -288,7 +299,7 @@ writePlotFile (const char*     name,
 
 void WritePlotFile(const Array<MultiFab*> mfa,
 		   AmrData&               amrdToMimic,
-		   const std::string&         oFile,
+		   const std::string&     oFile,
 		   bool                   verbose)
 {
     const Array<std::string>& derives = amrdToMimic.PlotVarNames();
