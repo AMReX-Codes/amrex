@@ -1,11 +1,11 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.13 1997-12-11 23:27:47 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.14 1997-12-12 00:17:15 car Exp $
 //
 
-#ifdef        _MSC_VER
-#include <strstrea.h>
+#ifdef BL_USE_NEW_HFILES
+#include <strstream>
 #else
 #include <strstream.h>
 #endif
