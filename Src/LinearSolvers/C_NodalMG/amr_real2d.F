@@ -1,26 +1,4 @@
 c-----------------------------------------------------------------------
-c Works for NODE-based data.
-      subroutine fcpy2(
-     & da,    dal0, dah0, dal1, dah1,
-     & db,    dbl0, dbh0, dbl1, dbh1,
-     &        regl0, regh0, regl1, regh1, w, ncomp)
-      integer dal0, dah0, dal1, dah1
-      integer dbl0, dbh0, dbl1, dbh1
-      integer regl0, regh0, regl1, regh1
-      integer w, ncomp
-      double precision da(dal0:dah0,dal1:dah1, ncomp)
-      double precision db(dbl0:dbh0,dbl1:dbh1, ncomp)
-      integer i, j, k
-      do k = 1, ncomp
-         do j = 1, w
-            do i = regl0 - w, regh0 + w
-               da(i,regl1+j,k) = db(i,regl1+j,k)
-               db(i,regl1-j,k) = da(i,regl1-j,k)
-            end do
-         end do
-      end do
-      end
-c-----------------------------------------------------------------------
 c Works for CELL-based data.
       subroutine iprodc(
      & v0,    v0l0, v0h0, v0l1, v0h1,
