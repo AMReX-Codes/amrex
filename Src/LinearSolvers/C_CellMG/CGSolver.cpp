@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.27 2002-03-27 17:54:34 lijewski Exp $
+// $Id: CGSolver.cpp,v 1.28 2002-07-24 21:18:16 car Exp $
 //
 #include <winstd.H>
 
@@ -565,6 +565,10 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
     int ret = 0;			// will return this value if all goes well
     Real rho_1 = 0, alpha = 0, omega = 0;
     int nit = 1;
+    if ( rnorm < eps_rel*(Lp_norm*norm_inf(sol)+ rh_norm ) || rnorm < eps_abs )
+    {
+        return 0;
+    }
     for (; nit <= maxiter; ++nit)
     {
         Real rho = dotxy(rh, r);
