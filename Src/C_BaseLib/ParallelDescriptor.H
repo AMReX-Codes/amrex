@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.29 1998-04-24 17:10:37 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.30 1998-04-24 17:52:19 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -233,8 +233,51 @@ class ParallelDescriptor
                         Real* recvbuf,
                         int   root);
   private:
+    //
+    // My processor ID.
+    //
+    static int m_MyId;
+    //
+    // The number of processors.
+    //
+    static int m_nProcs;
 
     enum { ioProcessor = 0 };
 };
+
+//
+// Inlines.
+//
+
+inline
+int
+ParallelDescriptor::MyProc ()
+{
+    assert(m_MyId != -1);
+    return m_MyId;
+}
+
+inline
+int
+ParallelDescriptor::NProcs ()
+{
+    assert(m_nProcs != -1);
+    return m_nProcs;
+}
+
+inline
+bool
+ParallelDescriptor::IOProcessor ()
+{
+    assert(m_MyId != -1);
+    return m_MyId == ioProcessor;
+}
+
+inline
+int
+ParallelDescriptor::IOProcessorNumber ()
+{
+    return ioProcessor;
+}
 
 #endif /*BL_PARALLELDESCRIPTOR_H*/
