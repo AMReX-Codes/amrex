@@ -1,10 +1,10 @@
 ifeq ($(LBASE),proj)
 
-CLIB_sources += cache.cpp interface.cpp boundary.cpp interpolator.cpp \
+CLIB_sources += interface.cpp boundary.cpp interpolator.cpp \
        		restrictor.cpp fill_patch.cpp amr_multi.cpp \
 		hg_multi1.cpp hg_multi2.cpp hg_multi3.cpp \
 		hg_projector.cpp
-CLIB_headers += cache.H interface.H boundary.H interpolator.H restrictor.H \
+CLIB_headers += interface.H boundary.H interpolator.H restrictor.H \
                 fill_patch.H amr_multi.H hg_multi.H hg_projector.H
 
 FLIB_sources += amr_real$(DIM)d.F \

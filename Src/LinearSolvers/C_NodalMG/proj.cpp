@@ -1,3 +1,4 @@
+#include <new.h>
 #include "hg_projector.H"
 
 #include <Utility.H>
