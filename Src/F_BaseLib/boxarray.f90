@@ -904,11 +904,9 @@ contains
 
     function simp() result(cnt)
       integer :: cnt
-      integer :: joincnt
-      integer, dimension(dm) :: lo, hi, alo, ahi, blo, bhi
       type(list_box_node), pointer :: ba, bb
       type(box) :: bx
-      logical match, canjoin, t
+      logical match, t
       integer :: i
 
       if ( size(bxl) == 0 ) return
