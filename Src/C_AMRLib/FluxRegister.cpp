@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.28 1998-05-18 17:52:20 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.29 1998-05-22 21:45:47 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -234,6 +234,8 @@ FluxRegister::Reflux (MultiFab&       S,
 
     fscd.CollectData();
 
+    FArrayBox reg;
+
     int overlapId = 0;
 
     for (MultiFabIterator mfi(S); mfi.isValid(false); ++mfi)
@@ -275,7 +277,7 @@ FluxRegister::Reflux (MultiFab&       S,
                     if (ovlp.ok())
                     {
                         FillBoxId fbid = fillBoxId[overlapId];
-                        FArrayBox reg(fbid.box(), num_comp);
+                        reg.resize(fbid.box(), num_comp);
                         fscd.FillFab(fsid[fi()], fbid, reg);
                         const Real* reg_dat = reg.dataPtr(reg_comp);
                         const int* rlo      = fine_face.loVect();
@@ -335,7 +337,7 @@ FluxRegister::Reflux (MultiFab&       S,
                         {
                             FillBoxId fbid = fillBoxId[overlapId];
                             assert(bndry[fi()].box(k) == fbid.box());
-                            FArrayBox reg(fbid.box(), num_comp);
+                            reg.resize(fbid.box(), num_comp);
                             fscd.FillFab(fsid[fi()], fbid, reg);
                             const Real* reg_dat = reg.dataPtr(reg_comp);
                             const int* rlo      = fine_face.loVect();
@@ -455,6 +457,8 @@ FluxRegister::Reflux (MultiFab&       S,
 
     fscd.CollectData();
 
+    FArrayBox reg;
+
     int overlapId = 0;
 
     for (MultiFabIterator mfi(S); mfi.isValid(false); ++mfi)
@@ -489,7 +493,7 @@ FluxRegister::Reflux (MultiFab&       S,
                         const int* slo  = sfab.loVect();
                         const int* shi  = sfab.hiVect();
                         FillBoxId fbid  = fillBoxId[overlapId];
-                        FArrayBox reg(fbid.box(), num_comp);
+                        reg.resize(fbid.box(), num_comp);
                         fscd.FillFab(fsid[fi()], fbid, reg);
 			const Real* reg_dat = reg.dataPtr(reg_comp);
 			const int* rlo      = fine_face.loVect();
@@ -537,7 +541,7 @@ FluxRegister::Reflux (MultiFab&       S,
                             const int* shi  = sfab.hiVect();
                             FillBoxId fbid  = fillBoxId[overlapId];
                             assert(bndry[fi()].box(k) == fbid.box());
-                            FArrayBox reg(fbid.box(), num_comp);
+                            reg.resize(fbid.box(), num_comp);
                             fscd.FillFab(fsid[fi()], fbid, reg);
                             const Real* reg_dat = reg.dataPtr(reg_comp);
                             const int* rlo      = fine_face.loVect();
@@ -629,6 +633,9 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
     mfcd.CollectData();
 
+    FArrayBox mflx_fab;
+    FArrayBox area_fab;
+
     vector<FillBoxId>::const_iterator fbidli_mflx = fillBoxId_mflx.begin();
     vector<FillBoxId>::const_iterator fbidli_area = fillBoxId_area.begin();
 
@@ -646,12 +653,12 @@ FluxRegister::CrseInit (const MultiFab& mflx,
             {
                 assert(!(fbidli_mflx == fillBoxId_mflx.end()));
                 FillBoxId fbid_mflx = *fbidli_mflx++;
-                FArrayBox mflx_fab(fbid_mflx.box(), mflx.nComp());
+                mflx_fab.resize(fbid_mflx.box(), mflx.nComp());
                 mfcd.FillFab(mfid_mflx,  fbid_mflx, mflx_fab);
 
                 assert(!(fbidli_area == fillBoxId_area.end()));
                 FillBoxId fbid_area = *fbidli_area++;
-                FArrayBox area_fab(fbid_area.box(), area.nComp());
+                area_fab.resize(fbid_area.box(), area.nComp());
                 mfcd.FillFab(mfid_area,  fbid_area, area_fab);
 
                 const Box&  flxbox   = mflx_fab.box();
@@ -679,12 +686,12 @@ FluxRegister::CrseInit (const MultiFab& mflx,
             {
                 assert(!(fbidli_mflx == fillBoxId_mflx.end()));
                 FillBoxId fbid_mflx = *fbidli_mflx++;
-                FArrayBox mflx_fab(fbid_mflx.box(), mflx.nComp());
+                mflx_fab.resize(fbid_mflx.box(), mflx.nComp());
                 mfcd.FillFab(mfid_mflx,  fbid_mflx, mflx_fab);
 
                 assert(!(fbidli_area == fillBoxId_area.end()));
                 FillBoxId fbid_area = *fbidli_area++;
-                FArrayBox area_fab(fbid_area.box(), area.nComp());
+                area_fab.resize(fbid_area.box(), area.nComp());
                 mfcd.FillFab(mfid_area,  fbid_area, area_fab);
 
                 const Box&  flxbox   = mflx_fab.box();
