@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.20 1998-03-24 18:28:29 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.21 1998-03-24 19:08:41 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -542,9 +542,6 @@ FillPatchIterator::Initialize (int           boxGrow,
         }
     }
 
-  //cout << "_in FillPatchIterator::Init():  CopyDescriptor stats: " << endl;
-  //multiFabCopyDesc.PrintStats();
-
     multiFabCopyDesc.CollectData();
 
     bIsInitialized = true;
@@ -775,7 +772,6 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
         if (levelData.DistributionMap().ProcessorMap()[ibox] != myproc)
             continue;  // Not local.
 
-        //cout << "dest.box() = " << localMFBoxes[ibox] << '\n';
         unfilledBoxOnThisLevel = localMFBoxes[ibox] &
             amrLevels[amrLevel.level].state[stateIndex].getDomain();
         assert(unfilledBoxOnThisLevel.ok());
@@ -784,7 +780,6 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
         for (currentLevel = amrLevel.level; currentLevel >= 0 && needsFilling;
             --currentLevel)
         {
-            //cout << '\n' << "currentLevel = " << currentLevel << '\n';
             int refRatio = amrLevels[amrLevel.level].crse_ratio;
             refRatio = 2;
 
@@ -807,11 +802,7 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
             {
                 tempCoarseBox = map[currentLevel]->CoarseBox(unfilledBoxOnThisLevel,
                                                              refRatio);
-                //cout << "currentLevel = " << currentLevel << '\n';
-                //cout << "mapped->CoarseBox = " << tempCoarseBox << "  from box " << unfilledBoxOnThi
-                //sLevel << '\n';
             }
-            //cout << "about to linInterp with tempCoarseBox = " << tempCoarseBox << '\n';
 
             currentState.linInterpAddBox(multiFabCopyDesc,
                                          stateDataMFId[currentLevel],
@@ -820,17 +811,12 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
                                          tempCoarseBox,
                                          interpTime, srcComp, destComp, nComp);
 
-            //cout << "      fillBoxId.box[]  = " << fillBoxId[ibox][currentLevel][currentBLI][0].
-            //box()  << '\n';
-
             unfillableBoxesOnThisLevel.intersect(currentPDomain);
             unfilledBoxOnThisLevel = unfillableBoxesOnThisLevel.minimalBox();
             unfilledBoxOnThisLevel &= currentPDomain;
 
             if (unfilledBoxOnThisLevel.ok())
             {
-                //cout << "unfilled box on level " << currentLevel << " = " << unfilledBoxOnThisLevel
-                     //<< '\n';
             }
             else
             {
@@ -880,7 +866,6 @@ FillPatchIterator::isValid (bool bDoSync)
             break;
         }
     }
-    //cout << "coarsestFillLevel = " << coarsestFillLevel << '\n';
     assert(coarsestFillLevel >= 0 && coarsestFillLevel <= amrLevel.level);
 
     for (currentLevel = coarsestFillLevel; currentLevel < amrLevel.level;
@@ -890,7 +875,6 @@ FillPatchIterator::isValid (bool bDoSync)
             continue;
 
         assert(fillBoxId[currentIndex][currentLevel].length() == 1);
-        //cout << "currentLevel     = " << currentLevel     << '\n';
 
         int ivRefRatio = 2;
         int currentBox = 0;
@@ -900,7 +884,6 @@ FillPatchIterator::isValid (bool bDoSync)
         if (currentLevel == coarsestFillLevel)
         {
             assert(tempCoarseBox.ok());
-            //cout << "Resizing coarse fab to " << tempCoarseBox << '\n';
             tempCoarseDestFab.resize(tempCoarseBox, nComp);
             tempCoarseDestFab.setVal(1.e30);
             coarseDestFabPtr = &tempCoarseDestFab;
@@ -912,7 +895,6 @@ FillPatchIterator::isValid (bool bDoSync)
         }
         assert(coarseDestFabPtr != 0);
 
-        //cout << "linInterp on coarse.box() = " << coarseDestFabPtr->box() << '\n';
         currentState.linInterpFillFab(multiFabCopyDesc,
                                       stateDataMFId[currentLevel],
                                       fillBoxId[currentIndex][currentLevel][currentBox],
@@ -922,8 +904,6 @@ FillPatchIterator::isValid (bool bDoSync)
         const Real *dx = amrLevels[currentLevel].geom.CellSize();
         const RealBox &realProbDomain = amrLevels[currentLevel].geom.ProbDomain();
 
-        //cout << "FillBoundary on coarse.box() = " << coarseDestFabPtr->box()
-             //<< "  outside boundary " << realProbDomain << '\n';
         currentState.FillBoundary(*coarseDestFabPtr, interpTime, dx,
                                   realProbDomain, destComp, srcComp, nComp);
 
@@ -958,14 +938,6 @@ FillPatchIterator::isValid (bool bDoSync)
             fineDestFabPtr = &tempFineDestFab;
         }
 
-        //cout << "map->interp coarse.box() = " << coarseDestFabPtr->box()
-             //<< " to finer box = " << fineDestFabPtr->box()
-             //<< " on int_region = " << intersectDestBox << '\n';
-        //cout << "crse0_geom = " << amrLevels[currentLevel].geom << '\n';
-        //cout << "crse_geom  = " << amrLevels[currentLevel + 1].geom  << '\n';
-        //for(int ibc=0; ibc < nComp; ++ibc) {
-            //cout << "bc_crse[" << ibc << "] = " << bcCoarse[ibc] << '\n';
-        //}
         map[currentLevel]->interp(*coarseDestFabPtr, 0, *fineDestFabPtr,
                                   destComp, nComp, intersectDestBox,
                                   ivRefRatio,
@@ -976,8 +948,6 @@ FillPatchIterator::isValid (bool bDoSync)
 
     currentLevel = amrLevel.level;
     int currentBox = 0;
-    //cout << "linInterp on currentFillPatched.box() = "
-         //<< currentFillPatchedFab.box() << '\n';
     StateData &currentState = amrLevel.state[stateIndex];
     currentState.linInterpFillFab(multiFabCopyDesc,
                                   stateDataMFId[currentLevel],
@@ -993,12 +963,8 @@ FillPatchIterator::isValid (bool bDoSync)
         const Real *dx = amrLevel.geom.CellSize();
         const RealBox &realProbDomain = amrLevel.geom.ProbDomain();
 
-        //cout << "FillBoundary on dest.box() = "
-             //<< currentFillPatchedFab.box() << " outside boundary "
-             //<< realProbDomain << '\n';
         currentState.FillBoundary(currentFillPatchedFab, interpTime, dx,
-                                  realProbDomain,
-                                  destComp, srcComp, nComp);
+                                  realProbDomain, destComp, srcComp, nComp);
     }
 
     return true;
@@ -1017,9 +983,9 @@ AmrLevel::FillPatch (FArrayBox&    dest,
                      int           ncomp,
                      Interpolater* mapper)
 {
-cout << '\n';
-cout << "_in old FillPatch" << '\n';
-cout << "dest.box() = " << dest.box() << '\n';
+//cout << '\n';
+//cout << "_in old FillPatch" << '\n';
+//cout << "dest.box() = " << dest.box() << '\n';
     dest.setVal(1.e30);
     const Box& dbox = dest.box();
     Box truncdbox(dbox);
@@ -1068,13 +1034,13 @@ cout << "dest.box() = " << dest.box() << '\n';
       Box int_region = unfilled_region & dbox;
       if (int_region.ok())
       {
-cout << "unfilled box on level " << level << " = " << int_region << '\n';
+//cout << "unfilled box on level " << level << " = " << int_region << '\n';
         //
         // Coarsen unfilled region and widen if necessary.
         //
         Box crse_reg(map->CoarseBox(int_region,crse_ratio));
-cout << "mapped->CoarseBox = " << crse_reg << '\n';
-cout << "Resizing crse fab to " << crse_reg << '\n';
+//cout << "mapped->CoarseBox = " << crse_reg << '\n';
+//cout << "Resizing crse fab to " << crse_reg << '\n';
         crse.resize(crse_reg,ncomp);         // alloc patch for crse level
         crse.setVal(1.e30);
         Box crse_dbox(crse.box());
@@ -1112,14 +1078,14 @@ cout << "Resizing crse fab to " << crse_reg << '\n';
           Box crse_int_region = crse_unfilled_region & crse_dbox;
           if (crse_int_region.ok())
           {
-cout << "unfilled box on level " << level-1 << " = " << crse_int_region << '\n';
+//cout << "unfilled box on level " << level-1 << " = " << crse_int_region << '\n';
             //
             // Coarsen unfilled region and widen if necessary.
             //
             int crse0_ratio = 2;  // for testing
             Box crse0_reg(map->CoarseBox(crse_int_region,crse0_ratio));
-cout << "mapped->CoarseBox = " << crse0_reg << '\n';
-cout << "Resizing crse0 fab to " << crse0_reg << '\n';
+//cout << "mapped->CoarseBox = " << crse0_reg << '\n';
+//cout << "Resizing crse0 fab to " << crse0_reg << '\n';
             crse0.resize(crse0_reg,ncomp);         // alloc patch for crse0 level
 
             crse0.setVal(1.e30);
@@ -1132,14 +1098,14 @@ cout << "Resizing crse0 fab to " << crse0_reg << '\n';
 
             if (!crse0_inside)
                 crse0_truncdbox &= crse0_p_domain;
-cout << "linInterp on crse0.box() = " << crse0.box() << '\n';
+//cout << "linInterp on crse0.box() = " << crse0.box() << '\n';
             crse0_lev.state[stateIndex].linInterp(crse0,crse0.box(),time,
                                                  src_comp,0,ncomp);
             if (!crse0_inside)
             {
               const Real* crse0_dx = crse0_geom.CellSize();
-cout << "FillBoundary on crse0.box() = " << crse0.box() << "  outside boundary " <<
-crse0_prob_domain << '\n';
+//cout << "FillBoundary on crse0.box() = " << crse0.box() << "  outside boundary " <<
+//crse0_prob_domain << '\n';
               crse0_lev.state[stateIndex].FillBoundary(crse0, time, crse0_dx,
                                       crse0_prob_domain, 0, src_comp, ncomp);
             }
@@ -1149,19 +1115,19 @@ crse0_prob_domain << '\n';
             //
             // Interpolate up to fine patch.
             //
-cout << "map->interp crse0.box() = " << crse0.box() << " to crse.box() = " << crse.b
-ox() << " on crse_int_region = " << crse_int_region << '\n';
-cout << "crse0_geom = " << crse0_geom << '\n';
-cout << "crse_geom  = " << crse_geom  << '\n';
-for (int ibc=0; ibc < ncomp; ++ibc) {
-  cout << "bc_crse[" << ibc << "] = " << bc_crse[ibc] << '\n';
-}
+//cout << "map->interp crse0.box() = " << crse0.box() << " to crse.box() = " << crse.b
+//ox() << " on crse_int_region = " << crse_int_region << '\n';
+//cout << "crse0_geom = " << crse0_geom << '\n';
+//cout << "crse_geom  = " << crse_geom  << '\n';
+//for (int ibc=0; ibc < ncomp; ++ibc) {
+//  cout << "bc_crse[" << ibc << "] = " << bc_crse[ibc] << '\n';
+//}
             map->interp(crse0,0,crse,dest_comp,ncomp,crse_int_region,
                         crse_ratio,crse0_geom,geom,bc_crse);
           }
         }
 
-cout << "linInterp on crse.box() = " << crse.box() << '\n';
+//cout << "linInterp on crse.box() = " << crse.box() << '\n';
         crse_lev.state[stateIndex].linInterp(crse,crse.box(),time,
                                              src_comp,dest_comp,ncomp);
         if (!inside)
@@ -1170,8 +1136,8 @@ cout << "linInterp on crse.box() = " << crse.box() << '\n';
             // Do non-periodic BC's on this level.
             //
           const Real* crse_dx = crse_geom.CellSize();
-cout << "FillBoundary on crse.box() = " << crse.box() << "  outside boundary " << cr
-se_prob_domain << '\n';
+//cout << "FillBoundary on crse.box() = " << crse.box() << "  outside boundary " << cr
+//se_prob_domain << '\n';
           crse_lev.state[stateIndex].FillBoundary(crse,time,crse_dx,
                                                   crse_prob_domain,
                                                   dest_comp,src_comp,ncomp);
@@ -1181,13 +1147,13 @@ se_prob_domain << '\n';
         //
         // Interpolate up to fine patch.
         //
-cout << "map->interp crse.box() = " << crse.box() << " to dest.box() = " << dest.box
-() << " on int_region = " << int_region << '\n';
-cout << "crse_geom  = " << crse_geom  << '\n';
-cout << "geom       = " << geom       << '\n';
-for(int ibc=0; ibc < ncomp; ++ibc) {
-  cout << "bc_crse[" << ibc << "] = " << bc_crse[ibc] << '\n';
-}
+//cout << "map->interp crse.box() = " << crse.box() << " to dest.box() = " << dest.box
+//() << " on int_region = " << int_region << '\n';
+//cout << "crse_geom  = " << crse_geom  << '\n';
+//cout << "geom       = " << geom       << '\n';
+//for(int ibc=0; ibc < ncomp; ++ibc) {
+//  cout << "bc_crse[" << ibc << "] = " << bc_crse[ibc] << '\n';
+//}
         map->interp(crse,0,dest,dest_comp,ncomp,int_region,
                     crse_ratio,crse_geom,geom,bc_crse);
       }
@@ -1201,13 +1167,13 @@ for(int ibc=0; ibc < ncomp; ++ibc) {
       // Do non-periodic BC's on this level.
       //
     const Real* dx = geom.CellSize();
-cout << "FillBoundary on dest.box() = " << dest.box() << "  outside boundary " << pr
-ob_domain << '\n';
+//cout << "FillBoundary on dest.box() = " << dest.box() << "  outside boundary " << pr
+//ob_domain << '\n';
     state[stateIndex].FillBoundary(dest,time,dx,prob_domain,
                                    dest_comp,src_comp,ncomp);
   }
-cout << "_out old FillPatch" << '\n';
-cout << '\n';
+//cout << "_out old FillPatch" << '\n';
+//cout << '\n';
 }
 #endif /*USEUNRAVELEDFILLPATCH==1*/
 
@@ -1224,12 +1190,12 @@ AmrLevel::FillPatch (FArrayBox&    dest,
                      int           ncomp,
                      Interpolater* mapper)
 {
-cout << '\n';
-cout << "]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]] _in old FillPatch" << '\n';
-cout << "currentLevel     = " << this->Level() << '\n';
+//cout << '\n';
+//cout << "]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]] _in old FillPatch" << '\n';
+//cout << "currentLevel     = " << this->Level() << '\n';
     dest.setVal(1.e30);
     const Box& dbox = dest.box();
-cout << "box to FillPatch = " << dest.box() << '\n';
+//cout << "box to FillPatch = " << dest.box() << '\n';
     Box truncdbox(dbox);
     int nv = dest.nComp();
     int ndesc = desc_lst.length();
@@ -1294,10 +1260,10 @@ cout << "box to FillPatch = " << dest.box() << '\n';
           setBC(int_region,p_domain,src_comp,0,ncomp,
                 desc.getBCs(),bc_crse);
 
-cout << "]]----------- about to map->interp:" << '\n';
-cout << "]]----------- crse.box()       = " << crse.box() << '\n';
-cout << "]]----------- dest.box()       = " << dest.box() << '\n';
-cout << "]]----------- intersectDestBox = " << int_region << '\n';
+//cout << "]]----------- about to map->interp:" << '\n';
+//cout << "]]----------- crse.box()       = " << crse.box() << '\n';
+//cout << "]]----------- dest.box()       = " << dest.box() << '\n';
+//cout << "]]----------- intersectDestBox = " << int_region << '\n';
         //
         // Interpolate up to fine patch.
         //
@@ -1306,8 +1272,8 @@ cout << "]]----------- intersectDestBox = " << int_region << '\n';
       }
     }
 
-cout << "]]=========== about to linInterp:" << '\n';
-cout << "]]=========== tempCoarseDestFab.box() = " << dest.box() << '\n';
+//cout << "]]=========== about to linInterp:" << '\n';
+//cout << "]]=========== tempCoarseDestFab.box() = " << dest.box() << '\n';
     //
     // Copy from data on this level.
     //
@@ -1321,8 +1287,8 @@ cout << "]]=========== tempCoarseDestFab.box() = " << dest.box() << '\n';
         state[state_indx].FillBoundary(dest,time,dx,prob_domain,
                                    dest_comp,src_comp,ncomp);
     }
-cout << "]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]] _out old FillPatch" << '\n';
-cout << '\n';
+//cout << "]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]] _out old FillPatch" << '\n';
+//cout << '\n';
 }
 #endif /*USEUNRAVELEDFILLPATCH==0*/
 
