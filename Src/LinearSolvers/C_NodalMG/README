@@ -1,0 +1,20 @@
+
+Created 10/30/95 Louis Howell
+
+This aliaslib distribution is configured to build on skink.  The makefiles
+you are most likely to want to modify are Make.inc.skink and Make.version.
+Make.inc.skink (or similar files for other machines) specifies search
+paths and compiler options for the local machine.  Make.version specifies
+the name of the machine include file, the spatial dimension, and the
+discretization stencil.  The libraries are stored in subdirectories under
+2d and 3d, so versions with different stencil choices or compiler options
+can coexist.
+
+I have added my graphics libraries as a subdirectory called graphtools.
+To link the test programs you will either need to do a make in that
+directory or, on skink, use /d/sa/nazgul/lib/libgraph.a.  Then set
+LIBGRAPH appropriately in Make.inc.skink.
+
+Include files Make.inc.rho and Make.inc.nersc are also provided.  You
+will probably have to modify these to get paths right, but at least
+they have compiler flags that work reasonably well.
