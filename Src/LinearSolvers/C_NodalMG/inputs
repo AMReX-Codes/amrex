@@ -5,4 +5,21 @@ tol=2.0e-10
 geometry.coord_sys=0
 geometry.prob_lo=0 0 0
 geometry.prob_hi=1 1 1
+#
+# Can be cross, terrain or full.
+#
 stencil=cross
+#
+# Here's where you can set the boundary conditions.
+#
+# Can be periodic, refWall, inflow or outflow.
+#
+# bcall sets them all the the specified type.
+#
+#bcall=refWall
+#bc00=periodic
+#bc01=periodic
+#bc10=periodic
+#bc11=periodic
+#bc20=periodic
+#bc21=periodic
