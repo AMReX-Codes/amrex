@@ -127,7 +127,7 @@ class task_fab : public task
 {
 public:
     task_fab(const MultiFab&t_, int tt_, const Box& region_, int ncomp_)
-	: local_target(is_local(t_, tt_)), region(region_), ncomp(ncomp_), target(0) {}
+	: m_local_target(is_local(t_, tt_)), region(region_), ncomp(ncomp_), target(0) {}
     virtual ~task_fab()
     {
 	delete target;
@@ -138,7 +138,7 @@ protected:
     const Box region;
     const int ncomp;
     FArrayBox* target;
-    bool local_target;
+    bool m_local_target;
 };
 
 class level_interface;
@@ -175,6 +175,84 @@ private:
     const MultiFab& s;
     const int sgrid;
     const Box bx;
+};
+
+class task_fec_base : public task
+{
+public:
+    task_fec_base(const list<int>& tll_, const Box& freg_, MultiFab& s_, int igrid_)
+	: tll(tll_), freg(freg_), s(s_), igrid(igrid_)
+    {
+    }
+    task_fec_base( MultiFab& s_, int igrid_)
+	: s(s_), igrid(igrid_)
+    {
+    }
+    virtual ~task_fec_base()
+    {
+	for( vector<task_fab*>::iterator tfi = tfvect.begin(); tfi != tfvect.end(); ++tfi)
+	{
+	    delete *tfi;
+	}
+    }
+	
+    virtual bool init(sequence_number sno, MPI_Comm comm)
+    {
+	task::init(sno, comm);
+	bool result = is_local(s, igrid);
+	for(int i = 0; i < BL_SPACEDIM; ++i)
+	{
+	    bool tresult = tfvect[i]->init(sno, comm);
+	    result = tresult ||  result;
+	}
+	list<int>::const_iterator tli = tll.begin();
+	while ( tli != tll.end() )
+	{
+	    bool tresult = is_local(s, *tli++);
+	    result = result || tresult;
+	}
+        return result;
+    }
+    virtual bool ready()
+    {
+	bool result = false;
+	for(vector<task_fab*>::iterator tfi = tfvect.begin(); tfi != tfvect.end(); ++tfi)
+	{
+	    bool tresult = (*tfi)->ready();
+	    result = tresult || result;
+	}
+	if ( !result ) return false;
+	return true;
+    }
+protected:
+    void push_back(task_fab* tf)
+    {
+	tfvect.push_back(tf);
+    }
+    bool is_local_target() const
+    {
+	return is_local(s, igrid);
+    }
+    FArrayBox& target_fab()
+    {
+	assert ( is_local_target() );
+	return s[igrid];
+    }
+    int grid_number() const
+    {
+	return igrid;
+    }
+    const FArrayBox& task_fab_result(int n)
+    {
+	assert(n>=0 && n < tfvect.size());
+	return tfvect[n]->fab();
+    }
+private:
+    const list<int> tll;
+    const Box freg;
+    MultiFab& s;
+    int igrid;
+    vector<task_fab*> tfvect;
 };
 
 #endif

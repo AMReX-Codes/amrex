@@ -82,117 +82,108 @@ typedef void (*FECFUNC)(Real*, intS, const Real*, intS, const Real*, intS, intS,
 typedef void (*FECFUNC)(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*);
 #endif
 
-class task_fecavg : public task
+
+class task_fecavg : public task_fec_base
 {
 public:
     task_fecavg(FECFUNC f_, MultiFab& s_, const MultiFab& S_, int igrid_, task_fab* tf_, const Box& creg_, const IntVect& rat_, int idim_, int idir_)
-	: f(f_), s(s_), S(S_), igrid(igrid_), tf(tf_), creg(creg_), rat(rat_), idim(idim_), idir(idir_) {}
+	: task_fec_base(s_, igrid_), f(f_), S(S_), creg(creg_), rat(rat_), idim(idim_), idir(idir_)
+    {
+	push_back(tf_);
+    }
     virtual bool ready()
     {
-	throw( "task_fecavg::ready(): FIXME" ); /*NOTREACHED*/
-	return false;
-    }
-    virtual bool init(sequence_number sno, MPI_Comm comm)
-    {
-	throw( "task_fecavg::init(): FIXME" ); /*NOTREACHED*/
+	if ( task_fec_base::ready() )
+	{
+	    if ( is_local_target() )
+	    {
+		const int igrid = grid_number();
+		FArrayBox& sfab = target_fab();
+		const Box& sfab_box = sfab.box();
+		const FArrayBox& cfab = task_fab_result(0);
+		const Box& cfab_box = cfab.box();
+		const FArrayBox& Sfab = S[igrid];
+		const Box& Sfab_box = Sfab.box();
+		(*f)(sfab.dataPtr(), DIMLIST(sfab_box), cfab.dataPtr(), DIMLIST(cfab_box), Sfab.dataPtr(), DIMLIST(Sfab_box), DIMLIST(creg), rat.getVect(), &idim, &idir);
+	    }
+	    return true;
+	}
 	return false;
     }
 private:
     FECFUNC f;
-    MultiFab& s;
     const MultiFab& S;
-    const int igrid;
-    task_fab* tf;
     const Box creg;
     const IntVect rat;
     const int idim;
     const int idir;
 };
 
-class task_fecavg_2 : public task
+
+class task_fecavg_2 : public task_fec_base
 {
 public:
     task_fecavg_2(FECFUNC f_, const list<int>& tll_, const Box& freg_, MultiFab& s_, int igrid_, task_fab* Sfp_, task_fab* Scp_, const Box& creg_, const IntVect& rat_, const Array<int>& ga_, const IntVect& t_ = IntVect())
-	: f(f_), s(s_), igrid(igrid_), Sfp(Sfp_), Scp(Scp_), creg(creg_), rat(rat_), t(t_), ga(ga_) {}
+	: task_fec_base(tll_, freg_, s_, igrid_), f(f_), creg(creg_), rat(rat_), t(t_), ga(ga_) 
+    {
+	push_back(Sfp_);
+	push_back(Scp_);
+    }
     virtual bool ready()
     {
-	throw( "task_faecavg_2::ready(): FIXME" ); /*NOTREACHED*/
-	return false;
-    }
-    virtual bool init(sequence_number sno, MPI_Comm comm)
-    {
-	throw( "task_fecavg_2::init(): FIXME" ); /*NOTREACHED*/
+	if ( task_fec_base::ready() )
+	{
+	    if ( is_local_target() )
+	    {
+		throw( "task_faecavg_2::ready(): FIXME" ); /*NOTREACHED*/
+	    }
+	    return true;
+	}
 	return false;
     }
 private:
     FECFUNC f;
-    const list<int> tll;
-    const Box freg;
-    MultiFab& s;
-    const int igrid;
-    task_fab* Scp;
-    task_fab* Sfp;
     const Box creg;
     const IntVect rat;
     const IntVect t;
     const Array<int> ga;
 };
 
-class task_fecdiv : public task
+class task_fecdiv : public task_fec_base
 {
     typedef void (*FECDIV)(Real*,  intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
 public:
     task_fecdiv(FECDIV f_, MultiFab& s_, MultiFab* upt_[], int igrid_, task_fab* ucp_[], const Box& creg_, const Real* h_, const IntVect& rat_, int idim_, int idir_)
-	: f(f_), s(s_), igrid(igrid_), creg(creg_), rat(rat_), idim(idim_), idir(idir_)
+	: task_fec_base(s_, igrid_), f(f_), creg(creg_), rat(rat_), idim(idim_), idir(idir_)
     {
 	for(int i = 0; i  < BL_SPACEDIM; ++i)
 	{
 	    upt[i] = upt_[i];
-	    ucp[i] = ucp_[i];
+	    push_back(ucp_[i]);
 	    h[i] = h_[i];
 	}
     }
     virtual bool ready()
     {
-	bool result = false;
-	for(int i = 0; i < BL_SPACEDIM; ++i)
+	if ( task_fec_base::ready() )
 	{
-	    bool tresult = ucp[i]->ready();
-	    result = tresult || result;
-	}
-	if ( !result ) return false;
-	if ( is_local(s, igrid) )
-	{
-	    Real* sp = s[igrid].dataPtr();
-	    const Real* up[BL_SPACEDIM] = { D_DECL( upt[0]->operator[](igrid).dataPtr(), upt[1]->operator[](igrid).dataPtr(), upt[2]->operator[](igrid).dataPtr() ) };
-	    const Box& sbox = s[igrid].box();
-	    const Box& fbox = upt[0]->operator[](igrid).box();
-	    throw( "task_fecdiv::ready(): FIXME" ); /*NOTREACHED*/
-	    // (*f)(s[igrid].dataPtr(), DIMLIST(s[igrid].box()));
-	    for(int i = 0 ; i < BL_SPACEDIM; ++i)
+	    if ( is_local_target() )
 	    {
-		delete ucp[i];
+		const int igrid = grid_number();
+		Real* sp = target_fab().dataPtr();
+		const Real* up[BL_SPACEDIM] = { D_DECL( upt[0]->operator[](igrid).dataPtr(), upt[1]->operator[](igrid).dataPtr(), upt[2]->operator[](igrid).dataPtr() ) };
+		const Box& sbox = target_fab().box();
+		const Box& fbox = upt[0]->operator[](igrid).box();
+		throw( "task_fecdiv::ready(): FIXME" ); /*NOTREACHED*/
+		// (*f)(s[igrid].dataPtr(), DIMLIST(s[igrid].box()));
 	    }
+	    return true;
 	}
-	return true;
-    }
-    virtual bool init(sequence_number sno, MPI_Comm comm)
-    {
-	task::init(sno, comm);
-	bool result = is_local(s, igrid);
-	for(int i = 0; i < BL_SPACEDIM; ++i)
-	{
-	    bool tresult = ucp[i]->init(sno, comm);
-	    result = tresult ||  result;
-	}
-	return result;
+	return false;
     }
 private:
     FECDIV f;
-    MultiFab& s;
     MultiFab* upt[BL_SPACEDIM];
-    const int igrid;
-    task_fab* ucp[BL_SPACEDIM];
     const Box creg;
     Real h[BL_SPACEDIM];
     const IntVect rat;
@@ -200,63 +191,34 @@ private:
     const int idir;
 };
 
-class task_fecdiv_2 : public task
+class task_fecdiv_2 : public task_fec_base
 {
     typedef void (*FECDIV)(Real*,  intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
 public:
     task_fecdiv_2(FECDIV f_, const list<int>& tll_, const Box& freg_, MultiFab& s_, int igrid_, task_fab* ufp_[], task_fab* ucp_[], const Box& creg_, const Real* h_, const IntVect& rat_, const Array<int>& ga_, const IntVect& t_ = IntVect())
-	: f(f_), s(s_), igrid(igrid_), creg(creg_), rat(rat_), ga(ga_), t(t_)
+	: task_fec_base(tll_, freg_, s_, igrid_), f(f_), creg(creg_), rat(rat_), ga(ga_), t(t_)
     {
 	for(int i = 0; i  < BL_SPACEDIM; ++i)
 	{
-	    ucp[i] = ucp_[i];
-	    ufp[i] = ufp_[i];
+	    push_back(ucp_[i]);
+	    push_back(ufp_[i]);
 	    h[i]   = h_[i];
 	}
     }
-    virtual bool init(sequence_number sno, MPI_Comm comm)
-    {
-	task::init(sno, comm);
-	bool result = is_local(s, igrid);
-	for(int i = 0; i < BL_SPACEDIM; ++i)
-	{
-	    bool tresult = ufp[i]->init(sno, comm);
-	    result = result || tresult;
-	}
-	list<int>::const_iterator tli = tll.begin();
-	while ( tli != tll.end() )
-	{
-	    bool tresult = is_local(s, *tli++);
-	    result = result || tresult;
-	}
-        return result;
-    }
     virtual bool ready()
     {
-	bool result = false;
-	for(int i = 0; i < BL_SPACEDIM; ++i)
+	if ( task_fec_base::ready() )
 	{
-	    bool tresult = ucp[i]->ready();
-	    result = tresult || result;
-	}
-	if ( !result ) return false;
-	if ( is_local(s, igrid) )
-	{
-	    for(int i = 0; i < BL_SPACEDIM; ++i)
+	    if ( is_local_target() )
 	    {
-		delete ucp[i];
+		throw( "task_fecdiv_2::ready(): FIXME" );
 	    }
+	    return true;
 	}
-	return true;
+	return false;
     }
 private:
     FECDIV f;
-    const list<int> tll;
-    const Box freg;
-    MultiFab& s;
-    const int igrid;
-    task_fab* ufp[BL_SPACEDIM];
-    task_fab* ucp[BL_SPACEDIM];
     const Box creg;
     Real h[BL_SPACEDIM];
     const IntVect rat;
@@ -738,7 +700,7 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	const Real hx = h[mglev][0];
 	const int isRZ = IsRZ();
 	const int imax = mg_domain[mglev].bigEnd(0) + 1;
-	tl.add_task(new task_fecavg_2(&FORT_HGCAVG, tll, freg, source[lev], igrid, Sfp, Scp, creg, rat, ga, IntVect(0), hx, isRz, imax));
+	tl.add_task(new task_fecavg_?(&FORT_HGCAVG, tll, freg, source[lev], igrid, Sfp, Scp, creg, rat, ga, IntVect(0), hx, isRz, imax));
 #else
 	tl.add_task(new task_fecavg_2(&FORT_HGCAVG, tll, freg, source[lev], igrid, Sfp, Scp, creg, rat, ga));
 #endif

@@ -278,7 +278,7 @@ const FArrayBox& task_fab::fab()
 bool task_fab::init(sequence_number sno, MPI_Comm comm)
 {
     task::init(sno, comm);
-    if ( local_target )
+    if ( m_local_target )
     {
 	target = new FArrayBox(region, ncomp);
     }
