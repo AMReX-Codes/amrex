@@ -1,25 +1,16 @@
 FORT_CPP = cpp
 
 ifeq ($(COMP),CC)
-CXX     := CC
-CXX += -h conform
-#CXX     := CC -h instantiate=local
-#CXXOPTF += -O2 -h new_for_init
-#CXXDEBF += -g -h new_for_init
-#
-# Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
-#
-#override XTRADEFS += -DBL_USE_SETBUF -DBL_SETBUF_SIGNED_CHAR
-#override XTRADEFS += -DBL_COALESCE_FABS -DBL_OLD_STL
+  CXX     := CC
+  CXX += -h conform
+  CXXOPTF += -O
+  CXXDEBF += -g
 endif
 
 FC     = ftn
+FDEBF += -g
+fDEBF += -g
 
 fC     = $(FC)
-
-#EXE_OUTPUT_OPTION       = ; mv $*.o $(objEXETempDir)/$*.o
-#LIB_OUTPUT_OPTION       = ; mv $*.o $(objTempDir)/$*.o
-#FORT_EXE_OUTPUT_OPTION	= ; mv $*.o $(objEXETempDir)/$*.o
-#FORT_LIB_OUTPUT_OPTION	= ; mv $*.o $(objTempDir)/$*.o
 
 FORTLINK = UPPERCASE
