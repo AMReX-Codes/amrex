@@ -1,11 +1,12 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.19 1998-06-11 17:23:10 lijewski Exp $
+// $Id: FabSet.cpp,v 1.20 1998-06-13 21:00:09 lijewski Exp $
 //
 
 #include <FabSet.H>
 #include <Looping.H>
+#include <RunStats.H>
 
 FabSet::FabSet () {}
 
@@ -250,6 +251,10 @@ FabSet::linComb (Real            a,
                  int             num_comp,
                  int             n_ghost)
 {
+    RunStats stats("fabset_lincomb");
+
+    stats.start();
+
     const BoxArray& bxa = mfa.boxArray();
     const BoxArray& bxb = mfb.boxArray();
 
@@ -259,10 +264,10 @@ FabSet::linComb (Real            a,
 
     MultiFabCopyDescriptor mfcd;
 
-    MultiFabId mfid_mfa = mfcd.RegisterFabArray((MultiFab*) &mfa);
-    MultiFabId mfid_mfb = mfcd.RegisterFabArray((MultiFab*) &mfb);
+    MultiFabId mfid_mfa = mfcd.RegisterFabArray(const_cast<MultiFab*>(&mfa));
+    MultiFabId mfid_mfb = mfcd.RegisterFabArray(const_cast<MultiFab*>(&mfb));
 
-    vector<FillBoxId> fillBoxIdList_mfa, fillBoxIdList_mfb;
+    vector<FillBoxId> fillBoxIDs_mfa, fillBoxIDs_mfb;
 
     for (FabSetIterator fsi(*this); fsi.isValid(false); ++fsi)
     {
@@ -272,7 +277,7 @@ FabSet::linComb (Real            a,
 
             if (ovlp.ok())
             {
-                fillBoxIdList_mfa.push_back(mfcd.AddBox(mfid_mfa,
+                fillBoxIDs_mfa.push_back(mfcd.AddBox(mfid_mfa,
                                                         ovlp,
                                                         0,
                                                         grd,
@@ -280,7 +285,12 @@ FabSet::linComb (Real            a,
                                                         0,
                                                         num_comp,
                                                         false));
-                fillBoxIdList_mfb.push_back(mfcd.AddBox(mfid_mfb,
+                //
+                // Also save the index of the FAB in the FabSet.
+                //
+                fillBoxIDs_mfa.back().FabIndex(fsi.index());
+
+                fillBoxIDs_mfb.push_back(mfcd.AddBox(mfid_mfb,
                                                         ovlp,
                                                         0,
                                                         grd,
@@ -296,43 +306,40 @@ FabSet::linComb (Real            a,
 
     FArrayBox a_fab, b_fab;
 
-    vector<FillBoxId>::const_iterator fbidli_mfa = fillBoxIdList_mfa.begin();
-    vector<FillBoxId>::const_iterator fbidli_mfb = fillBoxIdList_mfb.begin();
+    const int MyProc = ParallelDescriptor::MyProc();
 
-    for (FabSetIterator fsi(*this); fsi.isValid(false); ++fsi)
+    assert(fillBoxIDs_mfa.size() ==fillBoxIDs_mfb.size());
+
+    for (int i = 0; i < fillBoxIDs_mfa.size(); i++)
     {
-        for (int grd = 0; grd < bxa.length(); grd++)
-        {
-            Box ovlp = fsi().box() & ::grow(bxa[grd],n_ghost);
+        const FillBoxId& fbid_mfa = fillBoxIDs_mfa[i];
+        a_fab.resize(fbid_mfa.box(), num_comp);
+        mfcd.FillFab(mfid_mfa, fbid_mfa, a_fab);
 
-            if (ovlp.ok())
-            {
-                assert(!(fbidli_mfa == fillBoxIdList_mfa.end()));
-                const FillBoxId& fbid_mfa = *fbidli_mfa++;
-                assert(fbid_mfa.box() == ovlp);
-                a_fab.resize(fbid_mfa.box(), num_comp);
-                mfcd.FillFab(mfid_mfa, fbid_mfa, a_fab);
+        const FillBoxId& fbid_mfb = fillBoxIDs_mfb[i];
+        b_fab.resize(fbid_mfb.box(), num_comp);
+        mfcd.FillFab(mfid_mfb, fbid_mfb, b_fab);
 
-                assert(!(fbidli_mfb == fillBoxIdList_mfb.end()));
-                const FillBoxId& fbid_mfb = *fbidli_mfb++;
-                assert(fbid_mfb.box() == ovlp);
-                b_fab.resize(fbid_mfb.box(), num_comp);
-                mfcd.FillFab(mfid_mfb, fbid_mfb, b_fab);
+        int fabindex = fbid_mfa.FabIndex();
 
-                fsi().linComb(a_fab,
-                              ovlp,
-                              0,
-                              b_fab,
-                              ovlp,
-                              0,
-                              a,
-                              b,
-                              ovlp,
-                              dest_comp,
-                              num_comp);
-            }
-        }
+        assert(ProcessorMap()[fabindex] == MyProc);
+
+        const Box& ovlp = fbid_mfa.box();
+
+        (*this)[fabindex].linComb(a_fab,
+                                  ovlp,
+                                  0,
+                                  b_fab,
+                                  ovlp,
+                                  0,
+                                  a,
+                                  b,
+                                  ovlp,
+                                  dest_comp,
+                                  num_comp);
     }
+
+    stats.end();
 
     return *this;
 }

@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.14 1998-06-13 17:28:30 lijewski Exp $
+// $Id: Geometry.H,v 1.15 1998-06-13 21:00:09 lijewski Exp $
 //
 
 #include <CoordSys.H>
@@ -12,13 +12,10 @@
 #include <MultiFab.H>
 
 #ifdef BL_USE_NEW_HFILES
-#include <list>
 #include <map>
 using std::ostream;
 using std::multimap;
-using std::list;
 #else
-#include <list.h>
 #include <map.h>
 #endif
 
@@ -280,9 +277,9 @@ protected:
     //
     // Static data.
     //
-    static bool      is_periodic[BL_SPACEDIM]; // 0 means not periodic
-    static RealBox   prob_domain;
-    static list<FPB> m_Cache;
+    static bool        is_periodic[BL_SPACEDIM]; // 0 means not periodic
+    static RealBox     prob_domain;
+    static vector<FPB> m_Cache;
     //
     // Non-static data.
     //

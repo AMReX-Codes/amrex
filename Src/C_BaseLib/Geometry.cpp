@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.19 1998-06-13 17:28:30 lijewski Exp $
+// $Id: Geometry.cpp,v 1.20 1998-06-13 21:00:09 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -15,7 +15,7 @@ RealBox Geometry::prob_domain;
 
 bool Geometry::is_periodic[BL_SPACEDIM];
 
-list<Geometry::FPB> Geometry::m_Cache;
+vector<Geometry::FPB> Geometry::m_Cache;
 
 ostream&
 operator<< (ostream&        os,
@@ -82,9 +82,9 @@ Geometry::FPB::operator== (const FPB& rhs) const
 void
 Geometry::FlushPIRMCache ()
 {
-    for (list<FPB>::iterator it = m_Cache.begin(); it != m_Cache.end(); ++it)
+    for (int i = 0; i < m_Cache.size(); i++)
     {
-        delete (*it).m_pirm;
+        delete m_Cache[i].m_pirm;
     }
     m_Cache.clear();
 }
@@ -96,11 +96,11 @@ Geometry::buildPIRMMap (const BoxArray& grids,
 {
     assert(isAnyPeriodic());
     //
-    // Add new FPBs to the front of the cache.
+    // Add new FPBs to the back of the cache.
     //
-    m_Cache.push_front(FPB(new PIRMMap,grids,nGrow,no_ovlp));
+    m_Cache.push_back(FPB(new PIRMMap,grids,nGrow,no_ovlp));
 
-    PIRMMap& pirm = *m_Cache.front().m_pirm;
+    PIRMMap& pirm = *m_Cache.back().m_pirm;
 
     const int len = grids.length();
     //
@@ -183,24 +183,20 @@ Geometry::getPIRMMap (const BoxArray& grids,
     //
     // Have we already made one with appropriate characteristics?
     //
-    FPB fpb(grids,nGrow,no_ovlp);
+    const FPB fpb(grids,nGrow,no_ovlp);
+    //
+    // Search from the back to the front ...
+    //
+    int i = m_Cache.size() - 1;
 
-    list<FPB>::iterator find_it = m_Cache.begin();
-
-    for ( ; find_it != m_Cache.end(); ++find_it)
+    for ( ; i >= 0; i--)
     {
-        if (*find_it == fpb)
-            break;
+        if (m_Cache[i] == fpb)
+            return *m_Cache[i].m_pirm;
     }
 
-    if (!(find_it == m_Cache.end()))
-    {
-        return *(*find_it).m_pirm;
-    }
-    else
-    {
-        return buildPIRMMap(grids,nGrow,no_ovlp);
-    }
+    return buildPIRMMap(grids,nGrow,no_ovlp);
+
 }
 
 void
