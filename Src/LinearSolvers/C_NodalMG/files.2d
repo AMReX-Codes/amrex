@@ -1,3 +1,6 @@
+
+THESE WORK FOR ALL REFWALL OR PERIODIC IN X
+
 gr0
 gr0a
 gr0b
@@ -11,6 +14,7 @@ gr.19s2
 gr.19s2.4
 gr.19s4
 gr.19s4.1
+gr1rick2
 gr1mike.thin
 gr2
 gr2.0
@@ -48,10 +52,12 @@ gr2r1
 gr2r2
 gr2r3
 gr3a
+gr3ann
 gr3ann2
 gr3b
 gr3c
 gr3mike.3
+gr3rick
 gr4
 gr.7
 gr.8
@@ -59,17 +65,10 @@ gr.8a
 gr.ann.1
 gr.sstanley.1
 
+THESE HAVE GRIDS INCOMPATIBLE WITH PERIODIC IN X
 
-FAILED
+gr2ann       WORKS FOR REFWALL, NOT VALID GRIDS FOR PERIODIC
+gr3mike      WORKS FOR REFWALL, NOT VALID GRIDS FOR PERIODIC
+gr3.rz       WORKS FOR REFWALL, NOT VALID GRIDS FOR PERIODIC
+gr4level     WORKS FOR REFWALL, NOT VALID GRIDS FOR PERIODIC IN X
 
-gr.19s8  -- amr_multigrid::solve:multigrid iteration failed 
-gr1rick  -- cgsolve:Conjugate-gradient iteration failed to converge
-gr1rick2 -- cgsolve:Conjugate-gradient iteration failed to converge
-gr2a8    -- domain.contains(p)' failed, file "../BoxLib/BaseFab.H", line 937
-gr2ann   -- amr_multigrid::solve:multigrid iteration failed
-gr3ann   -- ???
-gr3mike  -- amr_multigrid::solve:multigrid iteration failed
-gr3rick  -- ???
-gr3rick2 -- domain.contains(p)' failed, file "../BoxLib/BaseFab.H", line 937
-gr3.rz   -- ???
-gr4level -- ???
