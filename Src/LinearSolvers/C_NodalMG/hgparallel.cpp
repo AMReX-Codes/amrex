@@ -82,6 +82,7 @@ void task::print_dependencies(ostream& os) const
 
 bool task::depend_ready()
 {
+    if ( dependencies.empty() ) return true;
     for ( list<task_proxy>::iterator lit = dependencies.begin(); lit != dependencies.end(); )
     {
 	task_proxy t = *lit;
