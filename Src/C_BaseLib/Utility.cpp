@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.24 1998-10-07 21:18:28 vince Exp $
+// $Id: Utility.cpp,v 1.25 1998-11-20 21:58:24 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -31,7 +31,7 @@ const char* path_sep_str = "\\";
 const char* path_sep_str = "/";
 #endif
 
-#if !defined(BL_ARCH_CRAY) && !defined(WIN32)
+#if !defined(BL_ARCH_CRAY) && !defined(WIN32) && !defined(T3E)
 
 #include <sys/types.h>
 #include <sys/times.h>
@@ -152,6 +152,51 @@ Utility::wsecond (double* t_)
     return t;
 }
 
+#elif defined(BL_T3E)
+
+#include <intrinsics.h>
+#include <unistd.h>
+
+static double BL_Clock_Rate;
+
+extern "C" long IRTC_RATE();
+
+static
+long
+get_initial_wall_clock_time ()
+{
+    BL_Clock_Rate = IRTC_RATE();
+    return _rtc();
+}
+
+//
+// Attempt to guarantee wsecond() gets initialized on program startup.
+//
+long BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
+
+//
+// NOTE: this is returning wall clock time, instead of cpu time.  But on
+// the T3E, there is no difference (currently).  If we call second() instead,
+// we may be higher overhead.  Think about this one.
+//
+double
+Utility::second (double* t_)
+{
+    double t = (_rtc() - BL_Initial_Wall_Clock_Time)/BL_Clock_Rate;
+    if (t_)
+        *t_ = t;
+    return t;
+}
+
+double
+Utility::wsecond (double* t_)
+{
+    double t = (_rtc() - BL_Initial_Wall_Clock_Time)/BL_Clock_Rate;
+    if (t_)
+        *t_ = t;
+    return t;
+}
+
 #else
 
 #include <time.h>
@@ -201,7 +246,7 @@ Utility::wsecond (double* r)
     return rr;
 }
 
-#endif /*!defined(BL_ARCH_CRAY)*/
+#endif /*!defined(BL_ARCH_CRAY) && !defined(WIN32) && !defined(T3E)*/
 
 void
 Utility::ResetWallClockTime ()
