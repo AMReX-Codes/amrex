@@ -10,14 +10,30 @@ endif
 
 ifeq ($(COMP),xlC)
   CXX     := xlC
-  CXXOPTF += -Q -O3 -qrtti=all
-  CXXDEBF += -Q -g
+  CXXOPTF += -qsuppress=1500-036:1500-029:1501-201:1500-010
+  CXXOPTF += -Q -O3 -qrtti=all -qarch=auto -qtune=auto
+ifeq ($(USE_THREADS),TRUE)
+  CXXOPTF += -qthreaded
+  CXXDEBF += -qthreaded
+else
+  CXXOPTF += -qnothreaded
+  CXXDEBF += -qnothreaded
+endif
+  CXXDEBF += -g
 endif
 
 ifeq ($(COMP),mpCC)
   CXX     := mpCC
-  CXXOPTF += -Q -O3 -qrtti=all
-  CXXDEBF += -Q -g
+  CXXOPTF += -qsuppress=1500-036:1500-029:1501-201:1500-010
+  CXXOPTF += -Q -O3 -qrtti=all -qarch=auto -qtune=auto
+ifeq ($(USE_THREADS),TRUE)
+  CXXOPTF += -qthreaded
+  CXXDEBF += -qthreaded
+else
+  CXXOPTF += -qnothreaded
+  CXXDEBF += -qnothreaded
+endif
+  CXXDEBF += -g
 endif
 
 ifeq ($(COMP),KCC)
@@ -38,7 +54,7 @@ ifeq ($(COMP),mpKCC)
   CXXDEBF += +K0 --no_exceptions
 endif
 
-ifeq ($(PROFILE), TRUE)
+ifeq ($(PROFILE),TRUE)
   #CXXPRFF  +=
   #XTRALIBS +=
   #FPRFF    +=
@@ -48,14 +64,14 @@ FC = xlf
 fC = $(FC)
 
 ifeq ($(PRECISION),FLOAT)
-  FOPTF += -O3 -qarch=auto -qtune=auto
+  FOPTF += -O3 -qarch=auto -qtune=auto -qsuppress=1500-036:1501-510
   FDEBF += -g
-  fOPTF += -O3 -qarch=auto -qtune=auto
+  fOPTF += -O3 -qarch=auto -qtune=auto -qsuppress=1500-036:1501-510
   fDEBF += -g
 else
-  FOPTF += -O3 -qarch=auto -qtune=auto
+  FOPTF += -O3 -qarch=auto -qtune=auto -qsuppress=1500-036:1501-510
   FDEBF += -g -qdpc
-  fOPTF += -O3 -qarch=auto -qtune=auto
+  fOPTF += -O3 -qarch=auto -qtune=auto -qsuppress=1500-036:1501-510
   fDEBF += -g -qdpc
 endif
 
@@ -82,7 +98,6 @@ COPTF += -O2
 CDEBF += -g
 CPRFF +=
 
-#XTRALIBS += libmiranda.a -lm -lxlf90
 XTRALIBS += -lm -lxlf90
 
 #DEFINES += -D_POSIX_SOURCE
