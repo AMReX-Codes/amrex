@@ -858,6 +858,8 @@ holy_grail_amr_projector::fill_sync_reg (PArray<MultiFab>* u_local,
 //    Note: we have to do explicit fills here because the boundary::fill_borders
 //          wont fill for grids touching diagonally at a periodic interface.
       crse_geom.FillPeriodicBoundary(Sigma_local[Lev_min],0,1,false,true);
+      if (rhs_local.length() > 0) 
+        crse_geom.FillPeriodicBoundary(rhs_local[Lev_min],0,1,false,true);
       for (int n = 0; n < BL_SPACEDIM; n++) 
         crse_geom.FillPeriodicBoundary(u_local[n][Lev_min],0,1,false,true);
         
