@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.38 2000-04-03 23:11:40 marc Exp $
+// $Id: Utility.cpp,v 1.39 2000-04-12 16:14:23 sstanley Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
