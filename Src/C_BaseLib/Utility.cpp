@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.7 1997-11-17 19:05:31 car Exp $
+// $Id: Utility.cpp,v 1.8 1997-11-18 18:22:24 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -16,6 +16,7 @@
 
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <errno.h>
 
 #include <REAL.H>
 #include <Misc.H>

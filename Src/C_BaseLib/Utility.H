@@ -4,7 +4,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.10 1997-11-17 19:05:31 car Exp $
+// $Id: Utility.H,v 1.11 1997-11-18 18:22:24 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -15,6 +15,10 @@ using std::cerr;
 using std::endl;
 #else
 #include <iostream.h>
+#endif
+
+#ifndef WIN32
+#include <sys/types.h>
 #endif
 
 #include <aString.H>
