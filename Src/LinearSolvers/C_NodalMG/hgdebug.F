@@ -6,14 +6,14 @@ c-----------------------------------------------------------------------
       dbunit = procno+10
       dbnorm = .FALSE.
       dbmat  = .FALSE.
-#if   defined(HG_DEBUG)
-      dbon   = .TRUE.
-#else
+#if   !defined(HG_DEBUG)
       dbon   = .FALSE.
-#endif
+#else
+      dbon   = .TRUE.
       write(unit=hgdump,fmt='(a,i3.3,''_'',i3.3)')
      &     'fgu', numpc, procno
       open(unit=dbunit, file=hgdump, status='replace')
+#endif
       end
 c-----------------------------------------------------------------------
       subroutine hgdebugon
