@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CArena.cpp,v 1.14 1999-01-12 19:00:18 lijewski Exp $
+// $Id: CArena.cpp,v 1.15 1999-02-03 21:48:51 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -28,8 +28,6 @@ using std::pair;
 #endif
 
 #include <CArena.H>
-#include <RunStats.H>
-
 //
 // Only really use the coalescing FAB arena if BL_COALESCE_FABS.
 //
@@ -64,10 +62,6 @@ CArena::~CArena ()
 void*
 CArena::alloc (size_t nbytes)
 {
-    static RunStats stats("carena");
-
-    stats.start();
-
     nbytes = Arena::align(nbytes == 0 ? 1 : nbytes);
     //
     // Find node in freelist at lowest memory address that'll satisfy request.
@@ -131,8 +125,6 @@ CArena::alloc (size_t nbytes)
 
     assert(!(vp == 0));
 
-    stats.end();
-
     return vp;
 }
 
@@ -144,10 +136,6 @@ CArena::free (void* vp)
         // Allow calls with NULL as allowed by C++ delete.
         //
         return;
-
-    static RunStats stats("carena");
-
-    stats.start();
     //
     // `vp' had better be in the busy list.
     //
@@ -216,8 +204,6 @@ CArena::free (void* vp)
         node->size((*free_it).size() + (*hi_it).size());
         m_freelist.erase(hi_it);
     }
-
-    stats.end();
 }
 
 void*
