@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.21 1998-06-13 21:12:28 lijewski Exp $
+// $Id: FabSet.cpp,v 1.22 1998-06-18 23:45:52 lijewski Exp $
 //
 
 #include <FabSet.H>
@@ -121,8 +121,10 @@ FabSet::copyFrom (const MultiFab& src,
                                                     dest_comp,
                                                     num_comp,
                                                     false));
+
+                assert(fillBoxIdList.back().box() == ovlp);
                 //
-                // Also save the index of our FAB needed filling.
+                // Also save the index of our FAB needing filling.
                 //
                 fillBoxIdList.back().FabIndex(fsi.index());
             }
