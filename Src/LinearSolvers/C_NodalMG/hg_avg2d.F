@@ -16,11 +16,18 @@ c-----------------------------------------------------------------------
       fac = 0.25d0
       do j = fregl1, fregh1
          do i = fregl0, fregh0
-            src(i,j) = src(i,j) + fac * (rf(i-1,j-1) + rf(i-1,j) +
-     &                                   rf(i,j-1)   + rf(i,j))
+c           We *only* want this modification for the cross stencil
+            if (irz .eq. 1 .and. i .eq. 0) then
+              src(i,j) = src(i,j) + fac * (rf(i,j-1) + rf(i,j))
+            else
+              src(i,j) = src(i,j) + fac * (rf(i-1,j-1) + rf(i-1,j) +
+     &                                     rf(i,j-1)   + rf(i,j))
+            endif
          end do
       end do
+
 #if 0
+c     We dont want these extra terms for the cross stencil
       if (irz .eq. 1) then
          fac = hx / 24.d0
          r1  = (fregl0 - 0.5d0) * hx
@@ -62,6 +69,7 @@ c Note---only generates values at coarse points along edge of fine grid
       double precision fac0, fac, r, rfac, rfac0, rfac1
       double precision rfac0m, rfac1m, rfac0p, rfac1p
       integer i, j, irc, jrc, irf, jrf, m, n
+
       if (idim .eq. 0) then
          i = cregl0
          if (idir .eq. 1) then
@@ -203,6 +211,7 @@ c Note---only generates values at coarse points along edge of fine grid
       jc = cregl1
       if = ic * ir
       jf = jc * jr
+
       sum = 0.d0
       center = 0.d0
 c quadrants
