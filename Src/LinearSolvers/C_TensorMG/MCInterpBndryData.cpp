@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MCInterpBndryData.cpp,v 1.7 1999-02-24 01:56:04 propp Exp $
+// $Id: MCInterpBndryData.cpp,v 1.8 1999-04-08 17:50:40 marc Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -107,14 +107,14 @@ MCInterpBndryData::setBndryValues(const MultiFab&     mf,
         for (OrientationIter fi; fi; ++fi)
         {
             Orientation face(fi());
-	    int dir = face.coordDir();
+	    const int dir = face.coordDir();
             //
 	    // Physical bndry, copy from grid.
             //
-            if (bx[face] == geom.Domain()[face])
+            if (bx[face]==geom.Domain()[face]  && !geom.isPeriodic(dir))
 	    {
                 //
-		// Load up hfine with perpindicular h's
+		// Load up hfine with perpendicular h's
                 //
 		Real hfine[BL_SPACEDIM];
 		int kdir = 0;
@@ -138,15 +138,6 @@ MCInterpBndryData::setBndryValues(const MultiFab&     mf,
             }
         }
     }
-    //
-    // Now copy boundary values stored in ghost cells of fine
-    // into bndry.  This only does something for physical boundaries,
-    // we don't need to make it periodic aware.
-    //
-    for (OrientationIter fi; fi; ++fi)
-    {
-	bndry[fi()].copyFrom(mf,0,mf_start,bnd_start,num_comp);
-    }
 }
 
 //
@@ -155,7 +146,6 @@ MCInterpBndryData::setBndryValues(const MultiFab&     mf,
 // (2) set actual bndry value by:
 //     (A) Interpolate from crse bndryRegister at crse/fine interface
 //     (B) Copy from ghost region of MultiFab at physical bndry
-//     (C) Copy from valid region of MultiFab at fine/fine interface
 //
 void
 MCInterpBndryData::setBndryValues (const BndryRegister& crse,
@@ -270,13 +260,4 @@ MCInterpBndryData::setBndryValues (const BndryRegister& crse,
 	}
     }
     delete derives;
-    //
-    // Now copy boundary values stored in ghost cells of fine
-    // into bndry.  This only does something for physical boundaries,
-    // we don't need to make it periodic aware.
-    //
-    for (OrientationIter face; face; ++face)
-    {
-	bndry[face()].copyFrom(fine,0,f_start,bnd_start,num_comp);
-    }
 }
