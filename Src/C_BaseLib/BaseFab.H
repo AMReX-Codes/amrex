@@ -4,13 +4,12 @@
 #define _BASEFAB_H_
 
 //
-// $Id: BaseFab.H,v 1.3 1997-09-16 03:30:36 lijewski Exp $
+// $Id: BaseFab.H,v 1.4 1997-09-16 16:05:00 lijewski Exp $
 //
 
 #include <Assert.H>
 #include <Boolean.H>
 #include <Box.H>
-#include <DPtr.H>
 #include <PArray.H>
 
 #ifdef BL_USE_POINTLIB
@@ -102,8 +101,7 @@ public:
     virtual ~BaseFab ();
 
     /*@ManDoc: This function resizes a `BaseFab' so it covers the `Box' B
-               with N components.  The precise resize action is dependent
-               on your implementation of class DPtr, but the default action
+               with N components.  The default action
                is that under resizing, the memory allocated for the `BaseFab'
                only grows and never shrinks.  This function is particularly
                useful when a `BaseFab' is used as a temporary space which
@@ -602,11 +600,8 @@ BaseFab<T>::setVal (T          x,
 }
 
 #include <stdlib.h>
-#include <Assert.H>
-#include <Box.H>
 #include <BoxList.H>
 #include <Looping.H>
-#include <AliasedDPtr.H>
 
 #ifdef BL_USE_POINTLIB
 #include <PointLooping.H>

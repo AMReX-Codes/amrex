@@ -4,7 +4,7 @@
 #define _BARENA_H_
 
 //
-// $Id: BArena.H,v 1.1 1997-09-12 18:00:01 lijewski Exp $
+// $Id: BArena.H,v 1.2 1997-09-16 16:05:00 lijewski Exp $
 //
 
 #include <Arena.H>
@@ -14,8 +14,7 @@
 //@Memo: A Concrete Class for Dynamic Memory Management
 /*@Doc:
 
-  This is the simplest dynamic memory management class derived from
-  Arena.  It is used to manage the memory for class SimpleDPtr.
+  This is the simplest dynamic memory management class derived from Arena.
 */
 
 class BArena

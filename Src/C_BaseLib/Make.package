@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.3 1997-09-15 19:45:24 lijewski Exp $
+# $Id: Make.package,v 1.4 1997-09-16 16:05:00 lijewski Exp $
 #
 
 BOXLIB_BASE=EXE
@@ -21,11 +21,6 @@ C$(BOXLIB_BASE)_headers += BArena.H Arena.H UseCount.H Misc.H
 
 C$(BOXLIB_BASE)_sources += DistributionMapping.cpp ParallelDescriptor.cpp
 C$(BOXLIB_BASE)_headers += DistributionMapping.H ParallelDescriptor.H
-
-#
-# Allocation classes.
-#
-T_headers += SimpleDPtr.H AliasedDPtr.H DPtr.H
 
 #
 # Container classes.
