@@ -1,6 +1,6 @@
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.68 2001-04-24 19:42:19 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.69 2001-04-25 22:54:09 car Exp $
 //
 
 #include <Utility.H>
@@ -684,6 +684,10 @@ ParallelDescriptor::second ()
 
 #endif
 
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 //
 // This function is the same whether or not we're using MPI.
 //
@@ -701,6 +705,10 @@ ParallelDescriptor::SeqNum ()
 
     return result;
 }
+
+#ifdef BL_NAMESPACE
+}
+#endif
 
 #if  defined(BL_FORT_USE_UPPERCASE)
 #define FORT_BL_PD_BARRIER 	BL_PD_BARRIER
