@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.70 2000-06-01 21:28:57 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.71 2000-07-11 20:47:48 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1428,4 +1428,23 @@ AmrLevel::setPlotVariables()
     {
       parent->clearDerivePlotVarList();
     }
+}
+
+AmrLevel::TimeLevel
+AmrLevel::which_time (int  state_indx,
+                      Real time) const
+{
+    const Real old_time = state[state_indx].prevTime();
+    const Real new_time = state[state_indx].curTime();
+    const Real eps      = 0.001*(new_time - old_time);
+    
+    if (time >= old_time-eps && time <= old_time+eps)
+    {
+        return AmrOldTime;
+    }
+    else if (time >= new_time-eps && time <= new_time+eps)
+    {
+        return AmrNewTime;
+    }
+    return AmrOtherTime;
 }

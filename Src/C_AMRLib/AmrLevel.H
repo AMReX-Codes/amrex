@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.45 2000-06-12 23:43:04 almgren Exp $
+// $Id: AmrLevel.H,v 1.46 2000-07-11 20:47:48 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -42,6 +42,10 @@ class AmrLevel
   friend class FillPatchIteratorHelper;
 
 public:
+    //
+    //@ManDoc: What time are we at?
+    //
+    enum TimeLevel { AmrOldTime, AmrNewTime, AmrOtherTime };
     //
     //@ManDoc: The destructor.
     //
@@ -363,6 +367,8 @@ public:
     // 
     virtual void setPlotVariables ();
 
+    TimeLevel which_time (int  state_indx,
+                          Real time) const;
 protected:
     //
     // The constructors -- for derived classes.
