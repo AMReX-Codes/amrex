@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.49 1998-11-20 19:09:51 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.50 1998-11-24 01:00:54 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -166,54 +166,8 @@ ParallelDescriptor::Barrier ()
 }
 
 void
-ParallelDescriptor::ReduceBoolAnd (bool& r)
-{
-    int src = r, recv; // `src' is either 0 or 1.
-
-    static RunStats mpi_stats(REDUCE);
-
-    mpi_stats.start();
-
-    int rc = MPI_Allreduce(&src,
-                           &recv,
-                           1,
-                           MPI_INT,
-                           MPI_SUM,
-                           MPI_COMM_WORLD);
-
-    mpi_stats.end();
-
-    if (!(rc == MPI_SUCCESS))
-        ParallelDescriptor::Abort(rc);
-
-    r = (recv == ParallelDescriptor::NProcs()) ? true : false;
-}
-
-void
-ParallelDescriptor::ReduceBoolOr  (bool& r)
-{
-    int src = r, recv; // `src' is either 0 or 1.
-
-    static RunStats mpi_stats(REDUCE);
-
-    mpi_stats.start();
-
-    int rc = MPI_Allreduce(&src,
-                           &recv,
-                           1,
-                           MPI_INT,
-                           MPI_SUM,
-                           MPI_COMM_WORLD);
-    mpi_stats.end();
-
-    if (!(rc == MPI_SUCCESS))
-        ParallelDescriptor::Abort(rc);
-
-    r = (recv == 0) ? false : true;
-}
-
-void
-ParallelDescriptor::ReduceRealMax (Real& r)
+ParallelDescriptor::DoAllReduceReal (Real& r,
+                                     int   op)
 {
     Real recv;
 
@@ -225,7 +179,7 @@ ParallelDescriptor::ReduceRealMax (Real& r)
                            &recv,
                            1,
                            mpi_data_type(&recv),
-                           MPI_MAX,
+                           op,
                            MPI_COMM_WORLD);
     mpi_stats.end();
 
@@ -236,7 +190,9 @@ ParallelDescriptor::ReduceRealMax (Real& r)
 }
 
 void
-ParallelDescriptor::ReduceRealMin (Real& r)
+ParallelDescriptor::DoReduceReal (Real& r,
+                                  int   op,
+                                  int   cpu)
 {
     Real recv;
 
@@ -244,24 +200,63 @@ ParallelDescriptor::ReduceRealMin (Real& r)
 
     mpi_stats.start();
 
-    int rc = MPI_Allreduce(&r,
-                           &recv,
-                           1,
-                           mpi_data_type(&recv),
-                           MPI_MIN,
-                           MPI_COMM_WORLD);
+    int rc = MPI_Reduce(&r,
+                        &recv,
+                        1,
+                        mpi_data_type(&recv),
+                        op,
+                        cpu,
+                        MPI_COMM_WORLD);
     mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
 
-    r = recv;
+    if (ParallelDescriptor::MyProc() == cpu)
+        r = recv;
+}
+
+void
+ParallelDescriptor::ReduceRealMax (Real& r)
+{
+    DoAllReduceReal(r,MPI_MAX);
+}
+
+void
+ParallelDescriptor::ReduceRealMin (Real& r)
+{
+    DoAllReduceReal(r,MPI_MIN);
 }
 
 void
 ParallelDescriptor::ReduceRealSum (Real& r)
 {
-    Real recv;
+    DoAllReduceReal(r,MPI_SUM);
+}
+
+void
+ParallelDescriptor::ReduceRealMax (Real& r, int cpu)
+{
+    DoReduceReal(r,MPI_MAX,cpu);
+}
+
+void
+ParallelDescriptor::ReduceRealMin (Real& r, int cpu)
+{
+    DoReduceReal(r,MPI_MIN,cpu);
+}
+
+void
+ParallelDescriptor::ReduceRealSum (Real& r, int cpu)
+{
+    DoReduceReal(r,MPI_SUM,cpu);
+}
+
+void
+ParallelDescriptor::DoAllReduceLong (long& r,
+                                     int   op)
+{
+    long recv;
 
     static RunStats mpi_stats(REDUCE);
 
@@ -270,66 +265,95 @@ ParallelDescriptor::ReduceRealSum (Real& r)
     int rc = MPI_Allreduce(&r,
                            &recv,
                            1,
-                           mpi_data_type(&recv),
-                           MPI_SUM,
+                           MPI_LONG,
+                           op,
                            MPI_COMM_WORLD);
     mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
-
+    
     r = recv;
+}
+
+void
+ParallelDescriptor::DoReduceLong (long& r,
+                                  int   op,
+                                  int   cpu)
+{
+    long recv;
+
+    static RunStats mpi_stats(REDUCE);
+
+    mpi_stats.start();
+
+    int rc = MPI_Reduce(&r,
+                        &recv,
+                        1,
+                        MPI_LONG,
+                        op,
+                        cpu,
+                        MPI_COMM_WORLD);
+    mpi_stats.end();
+
+    if (!(rc == MPI_SUCCESS))
+        ParallelDescriptor::Abort(rc);
+
+    if (ParallelDescriptor::MyProc() == cpu)
+        r = recv;
 }
 
 void
 ParallelDescriptor::ReduceLongAnd (long& r)
 {
-    long recv;
-
-    static RunStats mpi_stats(REDUCE);
-
-    mpi_stats.start();
-
-    int rc = MPI_Allreduce(&r,
-                           &recv,
-                           1,
-                           MPI_LONG,
-                           MPI_LAND,
-                           MPI_COMM_WORLD);
-    mpi_stats.end();
-
-    if (!(rc == MPI_SUCCESS))
-        ParallelDescriptor::Abort(rc);
-
-    r = recv;
+    DoAllReduceLong(r,MPI_LAND);
 }
 
 void
 ParallelDescriptor::ReduceLongSum (long& r)
 {
-    long recv;
-
-    static RunStats mpi_stats(REDUCE);
-
-    mpi_stats.start();
-
-    int rc = MPI_Allreduce(&r,
-                           &recv,
-                           1,
-                           MPI_LONG,
-                           MPI_SUM,
-                           MPI_COMM_WORLD);
-
-    mpi_stats.end();
-
-    if (!(rc == MPI_SUCCESS))
-        ParallelDescriptor::Abort(rc);
-
-    r = recv;
+    DoAllReduceLong(r,MPI_SUM);
 }
 
 void
-ParallelDescriptor::ReduceIntSum (int& r)
+ParallelDescriptor::ReduceLongMax (long& r)
+{
+    DoAllReduceLong(r,MPI_MAX);
+}
+
+void
+ParallelDescriptor::ReduceLongMin (long& r)
+{
+    DoAllReduceLong(r,MPI_MIN);
+}
+
+void
+ParallelDescriptor::ReduceLongAnd (long& r, int cpu)
+{
+    DoReduceLong(r,MPI_LAND,cpu);
+}
+
+void
+ParallelDescriptor::ReduceLongSum (long& r, int cpu)
+{
+    DoReduceLong(r,MPI_SUM,cpu);
+}
+
+void
+ParallelDescriptor::ReduceLongMax (long& r, int cpu)
+{
+    DoReduceLong(r,MPI_MAX,cpu);
+}
+
+void
+ParallelDescriptor::ReduceLongMin (long& r, int cpu)
+{
+    DoReduceLong(r,MPI_MIN,cpu);
+}
+
+void
+ParallelDescriptor::DoAllReduceInt (int& r,
+                                    int  op)
 {
     int recv;
 
@@ -341,15 +365,119 @@ ParallelDescriptor::ReduceIntSum (int& r)
                            &recv,
                            1,
                            MPI_INT,
-                           MPI_SUM,
+                           op,
                            MPI_COMM_WORLD);
+    mpi_stats.end();
 
+    if (!(rc == MPI_SUCCESS))
+        ParallelDescriptor::Abort(rc);
+    
+    r = recv;
+}
+
+void
+ParallelDescriptor::DoReduceInt (int& r,
+                                 int  op,
+                                 int  cpu)
+{
+    int recv;
+
+    static RunStats mpi_stats(REDUCE);
+
+    mpi_stats.start();
+
+    int rc = MPI_Reduce(&r,
+                        &recv,
+                        1,
+                        MPI_INT,
+                        op,
+                        cpu,
+                        MPI_COMM_WORLD);
     mpi_stats.end();
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
 
-    r = recv;
+    if (ParallelDescriptor::MyProc() == cpu)
+        r = recv;
+}
+
+void
+ParallelDescriptor::ReduceIntSum (int& r)
+{
+    DoAllReduceInt(r,MPI_SUM);
+}
+
+void
+ParallelDescriptor::ReduceIntMax (int& r)
+{
+    DoAllReduceInt(r,MPI_MAX);
+}
+
+void
+ParallelDescriptor::ReduceIntMin (int& r)
+{
+    DoAllReduceInt(r,MPI_MIN);
+}
+
+void
+ParallelDescriptor::ReduceIntSum (int& r, int cpu)
+{
+    DoReduceInt(r,MPI_SUM,cpu);
+}
+
+void
+ParallelDescriptor::ReduceIntMax (int& r, int cpu)
+{
+    DoReduceInt(r,MPI_MAX,cpu);
+}
+
+void
+ParallelDescriptor::ReduceIntMin (int& r, int cpu)
+{
+    DoReduceInt(r,MPI_MIN,cpu);
+}
+
+void
+ParallelDescriptor::ReduceBoolAnd (bool& r)
+{
+    int src = r; // `src' is either 0 or 1.
+
+    DoAllReduceInt(src,MPI_SUM);
+
+    r = (src == ParallelDescriptor::NProcs()) ? true : false;
+}
+
+void
+ParallelDescriptor::ReduceBoolOr (bool& r)
+{
+    int src = r; // `src' is either 0 or 1.
+
+    DoAllReduceInt(src,MPI_SUM);
+
+    r = (src == 0) ? false : true;
+}
+
+void
+ParallelDescriptor::ReduceBoolAnd (bool& r, int cpu)
+{
+    int src = r; // `src' is either 0 or 1.
+
+    DoReduceInt(src,MPI_SUM,cpu);
+
+    if (ParallelDescriptor::MyProc() == cpu)
+        r = (src == ParallelDescriptor::NProcs()) ? true : false;
+}
+
+void
+ParallelDescriptor::ReduceBoolOr (bool& r, int cpu)
+{
+    int src = r; // `src' is either 0 or 1.
+
+    DoReduceInt(src,MPI_SUM,cpu);
+
+    if (ParallelDescriptor::MyProc() == cpu)
+        r = (src == 0) ? false : true;
 }
 
 void
@@ -428,26 +556,39 @@ void ParallelDescriptor::Abort (int) { ::abort(); }
 const char* ParallelDescriptor::ErrorString (int) { return ""; }
 void ParallelDescriptor::Barrier () {}
 
-void ParallelDescriptor::ReduceBoolAnd (bool& rvar) {}
-void ParallelDescriptor::ReduceBoolOr  (bool& rvar) {}
+void ParallelDescriptor::ReduceRealMax (Real&) {}
+void ParallelDescriptor::ReduceRealMin (Real&) {}
+void ParallelDescriptor::ReduceRealSum (Real&) {}
 
-void ParallelDescriptor::ReduceRealSum (Real& rvar) {}
-void ParallelDescriptor::ReduceRealMax (Real& rvar) {}
-void ParallelDescriptor::ReduceRealMin (Real& rvar) {}
+void ParallelDescriptor::ReduceRealMax (Real&,int) {}
+void ParallelDescriptor::ReduceRealMin (Real&,int) {}
+void ParallelDescriptor::ReduceRealSum (Real&,int) {}
 
-void ParallelDescriptor::ReduceIntSum (int& rvar) {}
-void ParallelDescriptor::ReduceIntMax (int& rvar) {}
-void ParallelDescriptor::ReduceIntMin (int& rvar) {}
+void ParallelDescriptor::ReduceLongAnd (long&) {}
+void ParallelDescriptor::ReduceLongSum (long&) {}
+void ParallelDescriptor::ReduceLongMax (long&) {}
+void ParallelDescriptor::ReduceLongMin (long&) {}
 
-void ParallelDescriptor::ReduceLongSum (long& rvar) {}
-void ParallelDescriptor::ReduceLongMax (long& rvar) {}
-void ParallelDescriptor::ReduceLongMin (long& rvar) {}
-void ParallelDescriptor::ReduceLongAnd (long& rvar) {}
+void ParallelDescriptor::ReduceLongAnd (long&,int) {}
+void ParallelDescriptor::ReduceLongSum (long&,int) {}
+void ParallelDescriptor::ReduceLongMax (long&,int) {}
+void ParallelDescriptor::ReduceLongMin (long&,int) {}
 
-void ParallelDescriptor::Broadcast (int    fromproc,
-                                    void*  src,
-                                    void*  dest,
-                                    int    nbytes) {}
+void ParallelDescriptor::ReduceIntSum (int&) {}
+void ParallelDescriptor::ReduceIntMax (int&) {}
+void ParallelDescriptor::ReduceIntMin (int&) {}
+
+void ParallelDescriptor::ReduceIntSum (int&,int) {}
+void ParallelDescriptor::ReduceIntMax (int&,int) {}
+void ParallelDescriptor::ReduceIntMin (int&,int) {}
+
+void ParallelDescriptor::ReduceBoolAnd (bool&) {}
+void ParallelDescriptor::ReduceBoolOr  (bool&) {}
+
+void ParallelDescriptor::ReduceBoolAnd (bool&,int) {}
+void ParallelDescriptor::ReduceBoolOr  (bool&,int) {}
+
+void ParallelDescriptor::Broadcast (int,void*,void*,int) {}
 //
 // Here so we don't need to include <Utility.H> in <ParallelDescriptor.H>.
 //
