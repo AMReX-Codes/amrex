@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.31 1998-05-04 21:25:00 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.32 1998-06-16 20:53:49 car Exp $
 //
 
 #include <Assert.H>
@@ -127,6 +127,8 @@ struct CommData
 
 #ifdef BL_USE_MPI
 #include <mpi.h>
+#undef min
+#undef max
 //
 // Template function to return MPI_Datatype depending on argument type.
 //

@@ -410,10 +410,12 @@ void holy_grail_amr_projector::grid_divergence(PArray<MultiFab>* u)
 		const int isRZ = IsRZ();
 		const int imax = mg_domain[mglev].bigEnd(0) + 1;
 		FORT_HGDIV(sptr, DIMLIST(sbox), D_DECL(u0ptr, u1ptr, u2ptr), DIMLIST(fbox),
-			   DIMLIST(freg), D_DECL(&hx, &hy, &hz), &isRZ, &imax);
+			   DIMLIST(freg), D_DECL(&hx, &hy, &hz), 
+			   &isRZ, &imax);
 #else
 		FORT_HGDIV(sptr, DIMLIST(sbox), D_DECL(u0ptr, u1ptr, u2ptr), DIMLIST(fbox),
-			   DIMLIST(freg), D_DECL(&hx, &hy, &hz), 0, 0);
+			   DIMLIST(freg), D_DECL(&hx, &hy, &hz), 
+			   0, 0);
 #endif
 	    }
 	}
@@ -503,13 +505,15 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	FORT_HGFAVG(sptr, DIMLIST(sbox),
 		    Scp->dataPtr(), DIMLIST(cbox),
 		    Sfptr, DIMLIST(fbox), DIMLIST(creg),
-		    D_DECL(rat[0], rat[1], rat[2]), &idim, &idir,
+		    D_DECL(rat[0], rat[1], rat[2]),
+		    &idim, &idir, 
 		    &hx, &isRZ, &imax);
 #else
 	FORT_HGFAVG(sptr, DIMLIST(sbox),
 		    Scp->dataPtr(), DIMLIST(cbox),
 		    Sfptr, DIMLIST(fbox), DIMLIST(creg),
-		    D_DECL(rat[0], rat[1], rat[2]), &idim, &idir);
+		    D_DECL(rat[0], rat[1], rat[2]), 
+		    &idim, &idir);
 #endif
 	if (jgrid < 0) 
 	{
@@ -561,7 +565,8 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	FORT_HGEAVG(sptr, DIMLIST(sbox),
 		    Scp->dataPtr(), DIMLIST(cbox),
 		    Sf->dataPtr(), DIMLIST(fbox),
-		    DIMLIST(creg), D_DECL(rat[0], rat[1], rat[2]), t.getVect(), ga.dataPtr());
+		    DIMLIST(creg), D_DECL(rat[0], rat[1], rat[2]), 
+		    t.getVect(), ga.dataPtr());
 	delete Sf;
 	if (jgrid < 0) 
 	{
@@ -624,13 +629,15 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	FORT_HGCAVG(sptr, DIMLIST(sbox),
 		    Scp->dataPtr(), DIMLIST(cbox),
 		    Sf->dataPtr(), DIMLIST(fbox),
-		    DIMLIST(creg), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(),
+		    DIMLIST(creg), D_DECL(rat[0], rat[1], rat[2]),
+		    ga.dataPtr(),
 		    &hx, &isRZ, &imax);
 #else
 	FORT_HGCAVG(sptr, DIMLIST(sbox),
 		    Scp->dataPtr(), DIMLIST(cbox),
 		    Sf->dataPtr(), DIMLIST(fbox),
-		    DIMLIST(creg), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), 0);
+		    DIMLIST(creg), D_DECL(rat[0], rat[1], rat[2]), 
+		    ga.dataPtr(), 0);
 #endif
 	delete Sf;
 	if (jgrid < 0) 
@@ -723,13 +730,14 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    FORT_HGFDIV(sptr, DIMLIST(sbox),
 			D_DECL(ucp[0]->dataPtr(), ucp[1]->dataPtr(), ucp[2]->dataPtr()), DIMLIST(cbox),
 			D_DECL(uptr[0], uptr[1], uptr[2]), DIMLIST(fbox), DIMLIST(creg),
-			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir,
-			&isRZ, &imax);
+			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), 
+			&idim, &idir, &isRZ, &imax);
 #else
 	    FORT_HGFDIV(sptr, DIMLIST(sbox),
 			D_DECL(ucp[0]->dataPtr(), ucp[1]->dataPtr(), ucp[2]->dataPtr()), DIMLIST(cbox),
 			D_DECL(uptr[0], uptr[1], uptr[2]), DIMLIST(fbox), DIMLIST(creg),
-			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir, 0, 0);
+			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), 
+			&idim, &idir, 0, 0);
 #endif
 	}
 	if (jgrid < 0) 
@@ -883,14 +891,16 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    FORT_HGCDIV_TERRAIN(sptr, DIMLIST(sbox),
 				D_DECL(ucp[0]->dataPtr(), ucp[1]->dataPtr(), ucp[2]->dataPtr()), DIMLIST(cbox),
 				D_DECL(uf[0]->dataPtr(), uf[1]->dataPtr(), uf[2]->dataPtr()), DIMLIST(fbox), DIMLIST(creg),
-				D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), 0);
+				D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), 
+				ga.dataPtr(), 0);
 	}
 	else
 	{
 	    FORT_HGCDIV(sptr, DIMLIST(sbox),
 			D_DECL(ucp[0]->dataPtr(), ucp[1]->dataPtr(), ucp[2]->dataPtr()), DIMLIST(cbox),
 			D_DECL(uf[0]->dataPtr(), uf[1]->dataPtr(), uf[2]->dataPtr()), DIMLIST(fbox), DIMLIST(creg),
-			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), 0);
+			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), 
+			ga.dataPtr(), 0);
 	}
 	for(int i = 0; i < BL_SPACEDIM; ++i)
 	{
@@ -978,8 +988,8 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 			D_DECL(ucp[0]->dataPtr(), ucp[1]->dataPtr(), ucp[2]->dataPtr()), DIMLIST(cbox),
 			D_DECL(uf[0]->dataPtr(), uf[1]->dataPtr(), uf[2]->dataPtr()), DIMLIST(fbox),
 			DIMLIST(creg), 
-			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir,
-			&isRZ, &imax);
+			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), 
+			&idim, &idir, &isRZ, &imax);
 	    for(int i = 0; i < BL_SPACEDIM; ++i)
 	    {
 		delete uf[i];
