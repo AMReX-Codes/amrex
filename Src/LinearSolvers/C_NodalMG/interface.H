@@ -46,7 +46,7 @@ public:
     
     Array<int> geo_array(int idim, int i) const;
 
-    int grid(int idim, int i, int j)   const;
+    int grid(int idim, int i, int j)  const;
 
     int fdim(int i)                   const { return fdm[i]; }
 

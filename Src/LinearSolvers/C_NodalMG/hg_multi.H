@@ -34,9 +34,6 @@ private:
     bool m_hg_terrain;
 };
 
-//const holy_grail_sigma_restrictor_class holy_grail_sigma_restrictor_class;
-
-
 class holy_grail_amr_multigrid : public amr_multigrid 
 {
 public:
