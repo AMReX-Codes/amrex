@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.31 1998-04-07 15:53:04 lijewski Exp $
+// $Id: FabArray.H,v 1.32 1998-04-07 22:24:44 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -965,22 +965,15 @@ FabArray<T,FAB>::setFab (int  boxno,
     // Must check it is of the proper size.
     //
     if (n_comp == 0)
-    {
         n_comp = elem->nComp();
-    }
+
     assert(n_comp == elem->nComp());
     assert(boxarray.ready());
     assert(elem->box() == ::grow(boxarray[boxno],n_grow));
     assert(!fabparray.defined(boxno));
+    assert(distributionMap.ProcessorMap()[boxno]==ParallelDescriptor::MyProc());
 
-    if (distributionMap.ProcessorMap()[boxno] == ParallelDescriptor::MyProc())
-    {
-        fabparray.set(boxno,elem);
-    }
-    else
-    {
-        BoxLib::Error("FabArray<T,FAB>::setFab(): trying to setFab remotely");
-    }
+    fabparray.set(boxno,elem);
 }
 
 template <class T, class FAB>
@@ -1042,25 +1035,26 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
         for (i = 0; i < length(); ++i)
         {
             //
-            // loop over fabparray.
+            // Loop over fabparray.
             //
             boxIntersections[i]    = intersect(farray.boxarray, boxarray[i]);
             boxNonIntersections[i] = complementIn(boxarray[i], farray.boxarray);
+
+            iblocal = 0;
 
             if (distributionMap[i] == myproc)
             {
                 //
                 // fab[i] is local
                 //
-                iblocal = 0;
                 for (ii = 0; ii < farray.boxarray.length(); ++ii)
                 {
                     if (farray.distributionMap[ii] == myproc)
                     {
                         //
-                        // both fabs are local
+                        // Both fabs are local
                         //
-                        Box intersectBox(farray.boxarray[ii] & boxarray[i]);
+                        Box intersectBox = farray.boxarray[ii] & boxarray[i];
 
                         if (intersectBox.ok())
                         {
@@ -1077,8 +1071,6 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
                 //
                 // fab[i] is remote
                 //
-                iblocal = 0;
-
                 for (ii = 0; ii < farray.boxarray.length(); ++ii)
                 {
                     if (farray.distributionMap[ii] == myproc)
@@ -1086,15 +1078,15 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
                         //
                         // farray[ii] is local
                         //
-                        Box intersectBox(farray.boxarray[ii] & boxarray[i]);
+                        Box intersectBox = farray.boxarray[ii] & boxarray[i];
 
                         if (intersectBox.ok())
                         {
                             boxIntersectionsRemote[i].resize(iblocal + 1);
                             boxIntersectionsRemote[i].set(iblocal, intersectBox);
                             //
-                            // send the data
-                            // send the intersection of farray[ii] to fab[i]s processor
+                            // Send the data.
+                            // Send the intersection of farray[ii] to fab[i]s processor
                             //
                             FAB tempFab(boxIntersectionsRemote[i][iblocal], farray.nComp());
                             int tempDestComp = 0;
@@ -1118,7 +1110,6 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
                                                          fabComTag.nComp * sizeof(T));
                             ++iblocal;
                         }
-
                     }
                 }
             }
@@ -1135,46 +1126,13 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
             //
             // Data was sent to this processor.
             //
-            if (myproc != fabComTag.toProc)
-            {
-                cerr << "FabArray::copy(FabArray): "
-                     << "myproc != fabComTag.toProc : "
-                     << myproc
-                     << " != "
-                     << fabComTag.toProc
-                     << '\n';
-                BoxLib::Error("Bad fabComTag.toProc");
-            }
-
-            long tmp_long = fabComTag.box.numPts()*fabComTag.nComp*sizeof(T);
-
-            assert(tmp_long < INT_MAX);
- 
-            int shouldReceiveBytes = int(tmp_long);
-
-            if (dataWaitingSize != shouldReceiveBytes)
-            {
-                cerr << "FabArray::copy(FabArray): "
-                     << "dataWaitingSize != shouldReceiveBytes: = "
-                     << dataWaitingSize
-                     << " != "
-                     << shouldReceiveBytes
-                     << '\n';
-                BoxLib::Error("Bad receive nbytes");
-            }
-            if (!fabComTag.box.ok())
-            {
-                cerr << "FabArray::copy(FabArray): "
-                     << "bad fabComTag.box\n"
-                     << "fabComTag.box(): "
-                     << fabComTag.box
-                     << '\n';
-                BoxLib::Error("Bad receive nbytes");
-            }
+            assert(myproc == fabComTag.toProc);
+            assert(dataWaitingSize == fabComTag.box.numPts()*fabComTag.nComp*sizeof(T));
+            assert(fabComTag.box.ok());
 
             FAB tempFab(fabComTag.box, fabComTag.nComp);
             ParallelDescriptor::ReceiveData(tempFab.dataPtr(),
-                                            fabComTag.box.numPts() * fabComTag.nComp * sizeof(T));
+                                            fabComTag.box.numPts()*fabComTag.nComp * sizeof(T));
 
             fabparray[fabComTag.fabIndex].copy(tempFab, fabComTag.box, 0,
                                                fabComTag.box,
@@ -1269,12 +1227,12 @@ FabArray<T,FAB>::copy (FAB&       dest,
         for (i = 0; i < length(); i++)
         {
             Box overlapBox = subbox & boxarray[i];
+
             if (overlapBox.ok())
             {
                 overlapBoxArray.set(overlapIndex, overlapBox);
                 overlapProcessors[overlapIndex] = distributionMap[i];
-                overlapFAIndex[overlapIndex] = i;
-                overlapIndex++;
+                overlapFAIndex[overlapIndex++] = i;
             }
         }
         //
@@ -1397,8 +1355,8 @@ FabArray<T,FAB>::setVal (T          val,
 
     for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
     {
-        Box b(::grow(fai.validbox(), nghost));
-        b &= region;
+        Box b = ::grow(fai.validbox(), nghost) & region;
+
         if (b.ok())
         {
             for (int k = 0; k < num_comp; k++)
@@ -1423,8 +1381,14 @@ FabArray<T,FAB>::FillBoundary (int start_comp,
                                int num_comp)
 {
     FabArrayCopyDescriptor<T,FAB> facd;
+
     FabArrayId faid = facd.RegisterFabArray(this);
+
     List<FillBoxId> fillBoxIdList;
+
+    FillBoxId fbid;
+
+    BoxList notUsed;  // Required in AddBox() call.
 
     for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
     {
@@ -1436,14 +1400,11 @@ FabArray<T,FAB>::FillBoundary (int start_comp,
                 //
                 continue;
 
-            Box destbox(boxarray[j]);
-            destbox &= fai().box();
+            Box destbox = boxarray[j] & fai().box();
+
             if (destbox.ok())
             {
-                IndexType boxType(destbox.ixType());
-                BoxList unfilledBoxes(boxType);  // Unused here.
-                FillBoxId fbid;
-                fbid = facd.AddBox(faid, destbox, unfilledBoxes,
+                fbid = facd.AddBox(faid, destbox, notUsed,
                                    start_comp, start_comp, num_comp);
                 fillBoxIdList.append(fbid);
             }
@@ -1464,8 +1425,8 @@ FabArray<T,FAB>::FillBoundary (int start_comp,
                 //
                 continue;
 
-            Box destbox(boxarray[j]);
-            destbox &= fai().box();
+            Box destbox = boxarray[j] & fai().box();
+
             if (destbox.ok())
             {
                 assert(fbidli);
@@ -2185,29 +2146,26 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
         //
         // Check consistency and correct # of received and expected messages.
         //
-        if (myproc != fabComTag.procThatNeedsData)
-        {
-            cerr << "myproc = "
-                 << myproc
-                 << "\nfabComTag.procThatNeedsData = "
-                 << fabComTag.procThatNeedsData
-                 << '\n';
-            BoxLib::Error("FillFab: bad procThatNeedsData");
-        }
+        assert(myproc == fabComTag.procThatNeedsData);
         //
         // Find the box in the list and move the data.
         //
         bool matchFound = false;
 	int fid         = fabComTag.fabArrayId;
 	FabCopyDescriptor<FAB>* fcdp;
-	pair<FCDMapIter, FCDMapIter> matchRange =
-			 fabCopyDescList[fid].equal_range(fabComTag.fillBoxId);
+
+	pair<FCDMapIter, FCDMapIter> matchRange;
+
+        matchRange = fabCopyDescList[fid].equal_range(fabComTag.fillBoxId);
+
         for (FCDMapIter fmi = matchRange.first;
              fmi != matchRange.second && !matchFound;
 	    ++fmi)
         {
             fcdp = (*fmi).second;
+
             assert(fcdp->fillBoxId == fabComTag.fillBoxId);
+
             if (fcdp->subBox == fabComTag.subBox)
             {
                 //
@@ -2220,10 +2178,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
                 --numberOfOutstandingFabMessages;
             }
         }
-        if (matchFound == false)
-        {
-            BoxLib::Error("FillFab: match not found");
-        }
+        assert(matchFound == true);
     }
 
     dataAvailable = true;
@@ -2245,16 +2200,14 @@ FabArrayCopyDescriptor<T,FAB>::FillFab (const FabArrayId& fabarrayid,
     //
     // At this point, all remote data should be in local caches.
     //
-    if (!dataAvailable)
-    {
-        cerr << "Error in FabArrayCopyDescriptor<T,FAB>::FillFab: "
-             << "data not available\n";
-        BoxLib::Error("FillFab: data not available");
-    }
+    assert(dataAvailable);
+
     int fid = fabarrayid.Id();
     FabCopyDescriptor<FAB>* fcdp;
-    pair<FCDMapIter, FCDMapIter> matchRange =
-		 fabCopyDescList[fid].equal_range(fillboxid.Id());
+    pair<FCDMapIter, FCDMapIter> matchRange;
+
+    matchRange = fabCopyDescList[fid].equal_range(fillboxid.Id());
+
     for (FCDMapIter fmi = matchRange.first; fmi != matchRange.second; ++fmi)
     {
 	fcdp = (*fmi).second;
