@@ -22,8 +22,16 @@ CXXDEBF += +K0
 endif
 
 ifeq ($(PROFILE), TRUE)
-CXXPRFF	 += -happrentice
-XTRALIBS += -lapp
+#
+# the following are for apprentice
+# apprentice is broken on the T3E -- vince
+#
+#CXXPRFF	 += -happrentice
+#XTRALIBS += -lapp
+#
+# the following is for pat
+#
+XTRALIBS += -lpat pat.cld
 endif
 
 FC     = f90 -N 80 -e I
