@@ -113,9 +113,12 @@ public:
     virtual bool ready();
     virtual bool is_off_processor() const
     {
-	return false;
+	abort(); return false;
     }
-    virtual void init(sequence_number sno, MPI_Comm comm);
+    virtual void init(sequence_number sno, MPI_Comm comm)
+    {
+	abort();
+    }
 private:
     const amr_boundary_class* bdy;
     FArrayBox& fab;
@@ -402,7 +405,10 @@ public:
     {
 	return is_remote(m_r1, m_i1) && is_remote(m_r2, m_i2);
     }
-    virtual void init(sequence_number sno, MPI_Comm comm);
+    virtual void init(sequence_number sno, MPI_Comm comm)
+    {
+	abort();
+    }
 private:
     MultiFab& m_r1;
     const int m_i1;
@@ -586,7 +592,10 @@ public:
     {
 	return is_remote(m_dest, m_dgrid) && is_remote(m_r, m_rgrid);
     }
-    virtual void init(sequence_number sno, MPI_Comm comm);
+    virtual void init(sequence_number sno, MPI_Comm comm)
+    {
+	abort();
+    }
 private:
     const amr_restrictor_class& m_restric;
     MultiFab& m_dest;
