@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.10 1997-12-19 18:43:51 lijewski Exp $
+// $Id: AmrLevel.H,v 1.11 1998-02-26 22:07:57 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -77,9 +77,9 @@ public:
     //
     // Is name a state variable?
     //
-    int isStateVariable (const aString& name,
-                         int&           state_indx,
-                         int&           n_comp);
+    static int isStateVariable (const aString& name,
+                                int&           state_indx,
+                                int&           n_comp);
     //
     // Compute the initial time step.
     //
