@@ -58,8 +58,8 @@ extern "C"
 #    else
     void FORT_HGRES(Real*, intS, const Real*, intS, const Real*, intS, CRealPS, intS, intS, CRealPS, const int&, const int&);
     void FORT_HGRES_FULL_STENCIL(Real*, intS, const Real*, intS, const Real*, intS, CRealPS, intS, intS, CRealPS, const int&, const int&);
-    void FORT_HGRLX(Real*, intS, const Real*, intS, CRealPS, intS, const Real*, intS, intS, CRealPS, const int&, const int&);
-    void FORT_HGRLX_FULL_STENCIL(Real*, intS, const Real*, intS, CRealPS, intS, const Real*, intS, intS, CRealPS, const int&, const int&);
+    void FORT_HGRLX             (Real*, intS, const Real*, intS, CRealPS, intS, const Real*, intS, intS, CRealPS, const int&, const int&);
+    void FORT_HGRLX_FULL_STENCIL(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, const int&, const int&);
     void FORT_HGRLXL(Real*, intS, Real*, intS, RealPS, intS, Real*, intS, intS, intS, RealRS, const int&, const int&, const int&);
     void FORT_HGRLXL_FULL_STENCIL(Real*, intS, Real*, intS, RealPS, intS, Real*, intS, intS, intS, RealRS, const int&, const int&, const int&);
     void FORT_HGRLNF(Real*, intS, Real*, intS, Real*, intS, RealPS, intS, Real*, intS, intS, intS, RealRS, const int&, const int&, const int&, const int&);
