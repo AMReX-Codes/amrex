@@ -669,13 +669,13 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 	    sigma_node.resize(mglev_max + 1);
 	    for (int mglev = 0; mglev <= mglev_max; mglev++) 
 	    {
-                if (for_sync_reg == 0 || mglev == mglev_max) 
-                {
+	      //if (for_sync_reg == 0 || mglev == mglev_max) 
+	      //                {
 		    BoxArray mesh = mg_mesh[mglev];
 		    mesh.convert(IndexType(IntVect::TheNodeVector()));
 		    sigma_node.set(mglev, new MultiFab(mesh, BL_SPACEDIM, 1));
 		    sigma_node[mglev].setVal(1.e20);
-	        }
+		    //	        }
 	    }
 	    
 	    for (int mglev = 0; mglev <= mglev_max; mglev++) 
@@ -684,8 +684,8 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 		{
 		    HG_TEST_NORM(sigma_nd[i][mglev], "build_sigma pre hgscon");
 		}
-		if (for_sync_reg == 0 || mglev == mglev_max) 
-		{
+		//		if (for_sync_reg == 0 || mglev == mglev_max) 
+		//		{
 		    const Real hxyz[BL_SPACEDIM] = { D_DECL(h[mglev][0],
 							    h[mglev][1],
 							    h[mglev][2]) };
@@ -728,14 +728,14 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 			    sigma_nd[i].remove(mglev);
 			}
 		    }
-		}
+		    // }
 		HG_TEST_NORM(sigma_node[mglev], "build_sigma hgscon");
 	    }
 	}
     }
     
-    //    if (for_sync_reg == 0)
-    //    {
+    if (for_sync_reg == 0)
+    {
 	cen.resize(mglev_max + 1);
 	for (int mglev = 0; mglev <= mglev_max; mglev++) 
 	{
@@ -789,7 +789,7 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 	    HG_TEST_NORM(ctmp, "buildsigma");
 	    clear_part_interface(ctmp, lev_interface[mglev]);
 	}
-	//    }
+    }
     
     if (m_stencil == cross)
     {
