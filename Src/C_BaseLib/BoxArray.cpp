@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.31 2001-08-06 19:40:27 car Exp $
+// $Id: BoxArray.cpp,v 1.32 2001-08-21 19:01:51 lijewski Exp $
 //
 #include <iostream>
 
@@ -22,8 +22,10 @@ BoxArray::BoxArray ()
 {}
 
 BoxArray::BoxArray (const Box& bx)
-    : m_ref(new BoxArray::Ref(&bx, 1))
+    :
+    m_ref(new BoxArray::Ref(1))
 {
+    m_ref->m_abox[0] = bx;
 }
 
 BoxArray::Ref::Ref (const BoxList& bl)
@@ -56,17 +58,14 @@ BoxArray::BoxArray (size_t size)
     m_ref(new BoxArray::Ref(size))
 {}
 
-BoxArray::Ref::Ref (const Box* bxvec,
-                    int        nbox)
-    :
-    m_abox(bxvec,nbox)
-{}
-
 BoxArray::BoxArray (const Box* bxvec,
                     int        nbox)
     :
-    m_ref(new BoxArray::Ref(bxvec, nbox))
-{}
+    m_ref(new BoxArray::Ref(nbox))
+{
+    for (int i = 0; i < nbox; i++)
+        m_ref->m_abox[i] = *bxvec++;
+}
 
 BoxArray::Ref::Ref (const Ref& rhs)
     :

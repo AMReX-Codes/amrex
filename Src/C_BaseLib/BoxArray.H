@@ -1,7 +1,7 @@
 #ifndef BL_BOXARRAY_H
 #define BL_BOXARRAY_H
 //
-// $Id: BoxArray.H,v 1.30 2001-08-06 19:40:27 car Exp $
+// $Id: BoxArray.H,v 1.31 2001-08-21 19:01:51 lijewski Exp $
 //
 #include <cstddef>
 
@@ -258,9 +258,6 @@ protected:
         Ref ();
 
         Ref (size_t size);
-
-        Ref (const Box* bxvec,
-             int        nbox);
 
         Ref (const BoxList& bl);
 
