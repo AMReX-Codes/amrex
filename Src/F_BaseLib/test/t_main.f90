@@ -249,58 +249,83 @@ subroutine t_mf
   use fabio_module
   implicit none
   integer, parameter :: dm = 2
+!  integer, parameter :: dm = 3
   type (box) :: bx, pd
   type (box), dimension(4) :: bxs
-  type (boxarray):: ba
+  type (boxarray):: ba,cba
   type (layout) :: la
   type (multifab) :: mf
   type (boxassoc) :: bxasc
-  logical :: pmask(2)
+ logical :: pmask(2),nodal(2)
+!  logical :: pmask(3),nodal(3)
   integer :: ms
   integer :: sz
   integer :: i
 
+  type(box) :: thebxs(27)
+  integer   :: cnt,shft(27,dm)
+
   sz = 8
   ms = 4
 
-!  pmask = .true.
+!pmask = (/.false.,.true./)
 pmask = .false.
-  if ( dm > 1 ) pmask(2) = .false.
+pmask = .true.
+pmask = (/.true.,.false./)
+nodal = .false.
 
-  if ( .false. ) then
-     if ( .false. ) then
-        bx = refine(unit_box(dim=2),2)
-        bxs(1) = bx
-        bxs(2) = shift(bx,2,dim=1)
-        bxs(3) = shift(bx,2,dim=2)
-        bxs(4) = shift(bx,2)
-        call build(ba, bxs)
-     else
-        call build(ba, make_box((/(0,i=1,dm)/), (/(sz-1,i=1,dm)/)))
-        call boxarray_maxsize(ba, ms)
-     end if
-     pd = bbox(ba)
-  else
-     bxs(1) = make_box((/160, 48/), (/215,71/))
-     bxs(2) = make_box((/152, 72/), (/231,103/))
-     call build(ba, bxs(1:2))
-     pd = make_box((/0,0/), (/511,255/))
-  end if
+!pmask = (/.false.,.false.,.true./)
+!pmask = (/.true.,.false.,.true./)
+
+!   bxs(1) = make_box((/0,0,0/), (/0,0,0/))
+!   bxs(2) = make_box((/152, 72/), (/231,103/))
+
+!    bxs(1) = make_box((/0,0/), (/1,1/))
+!    bxs(2) = make_box((/0,2/), (/1,3/))
+!    bxs(3) = make_box((/2,0/), (/3,1/))
+!    bxs(4) = make_box((/2,2/), (/3,3/))
+
+!    bxs(1) = make_box((/0,0,0/), (/3,3,3/))
+!    bxs(1) = make_box((/0,0,0/), (/3,3,3/))
+
+!    bxs(1) = make_box((/0,0/), (/0,0/))
+!    bxs(2) = make_box((/1,0/), (/1,0/))
+!    bxs(3) = make_box((/2,0/), (/2,0/))
+!    bxs(4) = make_box((/3,0/), (/3,0/))
+
+    bxs(1) = make_box((/0,0/), (/7,7/))
+    bxs(2) = make_box((/8,8/), (/15,15/))
+
+!    bxs(1) = make_box((/0,0/), (/3,3/))
+
+   call build(ba, bxs(1:2))
+
+!   pd = make_box((/0,0/), (/511,255/))
+!   pd = make_box((/0,0/), (/7,7/))
+!   pd = make_box((/0,0,0/), (/3,3,3/))
+!   pd = make_box((/0,0/), (/0,0/))
+!   pd = make_box((/0,0/), (/3,0/))
+!   pd = make_box((/0,0/), (/1,1/))
+   pd = make_box((/0,0/), (/15,15/))
+
+!call multifab_set_behavior(fb_fancy = .false.)
+
   call parallel_barrier()
-  call boxarray_print(ba, "BOXARRAY")
+!  call boxarray_print(ba, "ba")
   call build(la, ba, pd = pd, pmask = pmask)
   call parallel_barrier()
-  bxasc = layout_boxassoc(la, 1)
-  call parallel_barrier()
-  call boxassoc_print(bxasc, "BOXASSOC")
 
-  call multifab_build(mf, la, nc = 1, ng = 1)
+  call multifab_build(mf, la, nc = 1, ng = 1, nodal = nodal)
+
   call multifab_debug_fill(mf, loc = .true.)
   call parallel_barrier()
-call print(mf, "before")
-  call multifab_fill_boundary(mf)
+  call print(mf, "before")
+
+!  call multifab_internal_sync(mf)
+
+  call multifab_fill_boundary(mf, cross = .false.)
   call parallel_barrier()
-call print(mf, "after")
+  call print(mf, "after")
   call destroy(mf)
   call destroy(la)
   call destroy(ba)
