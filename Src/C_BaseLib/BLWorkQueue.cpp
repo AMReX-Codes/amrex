@@ -1,5 +1,5 @@
 //
-// $Id: BLWorkQueue.cpp,v 1.9 2001-10-03 19:53:51 lijewski Exp $
+// $Id: BLWorkQueue.cpp,v 1.10 2001-10-20 22:45:32 car Exp $
 //
 
 #include <winstd.H>
@@ -55,31 +55,17 @@ WorkQueue::Finalize ()
     delete bl_wrkq;
 }
 
-#ifdef BL_THREADS
 #define DPRINTF(arg)							\
 do									\
 {									\
     if ( verbose > 2 )							\
     {									\
 	Lock<Mutex> lock(print_mutex);					\
-	std::cout << "tid(" << Thread::getID() << "): "		\
+	std::cout << "tid(" << Thread::getID() << "): "			\
 		  << arg << std::endl;					\
     }									\
 }									\
 while (false)
-#else
-#define DPRINTF(arg)							\
-do									\
-{									\
-    if ( verbose > 2 )							\
-    {									\
-	Lock<Mutex> lock(print_mutex);					\
-	std::cout << "tid(" << 0 << "): "				\
-		  << arg << std::endl;					\
-    }									\
-}									\
-while (false)
-#endif
 
 WorkQueue::WorkQueue(int maxthreads_)
     : quit(false), eof(false), maxthreads(maxthreads_), numthreads(0), idlethreads(0), tasks(0)
