@@ -19,6 +19,10 @@ using namespace std;
 #include <new.h>
 #endif
 
+#ifndef WIN32
+#include <unistd.h>
+#endif
+
 #ifdef HG_DEBUG
 std::ofstream debug_out;
 #endif
@@ -36,6 +40,7 @@ int main(int argc, char **argv)
 #endif
     ParallelDescriptor::StartParallel(&argc, &argv);
     HG_is_debugging = true;   
+    HG_is_debugging = false;   
 #ifdef HG_DEBUG
 #ifdef __GNUC__
     debug_out.open("guf", ios::trunc);
@@ -47,6 +52,12 @@ int main(int argc, char **argv)
     if ( debug_out.fail() ) BoxLib::Error( "Failed to open debug file" );
     debug_out << std::setprecision(15);
 #endif
+    HG::MPI_init();
+#ifndef WIN32
+    cout << "going to sleep for 1 seconds, debug pid = " << ::getpid() << endl;
+    ::sleep(1);
+#endif
+    cout << setprecision(15);
 
     for (int i = 1; i < argc; ++i)
 	driver(argv[i]);
@@ -54,6 +65,7 @@ int main(int argc, char **argv)
 #ifdef HG_DEBUG
     debug_out.close();
 #endif
+    HG::MPI_finish();
     ParallelDescriptor::EndParallel();
     return 0;
 }
@@ -80,8 +92,7 @@ bool hg_terrain = false;
 bool hg_cross_stencil = true;
 bool hg_full_stencil = false;
 
-void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m,
-	  const Array<IntVect>& ratio)
+void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m, const Array<IntVect>& ratio)
 {
 #if (BL_SPACEDIM == 2)
     for (int ilev = 0; ilev < m.length(); ilev++) 
@@ -531,8 +542,6 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
     {
 	//proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 0);
 	//proj.project(u, p, null_amr_real, rhoinv, h, tol, 1, 1);
-	t1 = Utility::second();
-	cout << "First time is " << t1 - t0 << endl;
 	for (int i = 0; i < p.length(); i++)
 	    p[i].setVal(0.0);
 	t1 = Utility::second();
@@ -544,8 +553,12 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
 	    proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 1);
 	}
 	t2 = Utility::second();
-	cout << "Second time is " << t2 - t1 << endl;
-	cout << "Sync speed was " << double(t2 - t1) / (nrep * sum) << endl;
+	if ( ParallelDescriptor::IOProcessor() )
+	{
+	    cout << "First time is " << t1 - t0 << endl;
+	    cout << "Second time is " << t2 - t1 << endl;
+	    cout << "Sync speed was " << double(t2 - t1) / (nrep * sum) << endl;
+	}
 	/*
 	for (i = m[1][0].smallEnd(1); i <= m[1][0].bigEnd(1)+1; i++) 
 	{
@@ -565,22 +578,25 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
 	t00 = Utility::second();
 	proj.project(u, p, null_amr_real, rhoinv, h, tol, 2, 2);
 	t01 = Utility::second();
-	cout << "First time is " << t01 - t00 << endl;
 	for (int i = 0; i < p.length(); i++)
 	    p[i].setVal(0.0);
         init(u, p, m, ratio);
 	t10 = Utility::second();
 	proj.project(u, p, null_amr_real, rhoinv, h, tol, 1, 2);
 	t11 = Utility::second();
-	cout << "Second time is " << t11 - t10 << endl;
 	for (int i = 0; i < p.length(); i++)
 	    p[i].setVal(0.0);
         init(u, p, m, ratio);
 	t20 = Utility::second();
 	proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 2);
 	t21 = Utility::second();
-	cout << "Third time is " << t21 - t20 << endl;
-	cout << "Total time (counting inits) was  " << t21 - t00 << endl;
+	if ( ParallelDescriptor::IOProcessor() )
+	{
+	    cout << "First time is " << t01 - t00 << endl;
+	    cout << "Second time is " << t11 - t10 << endl;
+	    cout << "Third time is " << t21 - t20 << endl;
+	    cout << "Total time (counting inits) was  " << t21 - t00 << endl;
+	}
     }
     else 
     {
