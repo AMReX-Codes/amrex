@@ -302,6 +302,10 @@ SOURCE=.\CArena.H
 # End Source File
 # Begin Source File
 
+SOURCE=".\ccse-mpi.H"
+# End Source File
+# Begin Source File
+
 SOURCE=.\Constants.h
 # End Source File
 # Begin Source File
