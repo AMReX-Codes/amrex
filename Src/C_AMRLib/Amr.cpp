@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.52 1998-09-14 21:49:56 lijewski Exp $
+// $Id: Amr.cpp,v 1.53 1998-09-15 22:31:40 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -122,7 +122,8 @@ Amr::Amr ()
 #endif
 
     int i;
-    for (i = 0; i < BL_SPACEDIM; i++) isPeriodic[i] = false;
+    for (i = 0; i < BL_SPACEDIM; i++)
+        isPeriodic[i] = false;
 
     ParmParse pp("amr");
     //
@@ -132,7 +133,8 @@ Amr::Amr ()
     pp.query("v",verbose);
 
     sub_cycle = true;
-    if (pp.contains("nosub")) sub_cycle = false;
+    if (pp.contains("nosub"))
+        sub_cycle = false;
 
     pp.query("regrid_file",grids_file);
     if (pp.contains("run_log"))
@@ -204,9 +206,13 @@ Amr::Amr ()
     int got_check_per = pp.query("check_per",check_per);
 
     if (got_check_int == 1 && got_check_per == 1)
+    {
         BoxLib::Error("Must only specify amr.check_int OR amr.check_per");
-    else if (got_check_per == 1)
+    }
+    else if (got_check_per == 1 && ParallelDescriptor::IOProcessor())
+    {
         BoxLib::Warning("Specifying amr.check_per will change the time step");
+    }
 
     plot_file_root = "plt";
     pp.query("plot_file",plot_file_root);
@@ -218,9 +224,31 @@ Amr::Amr ()
     int got_plot_per = pp.query("plot_per",plot_per);
 
     if (got_plot_int == 1 && got_plot_per == 1)
+    {
         BoxLib::Error("Must only specify amr.plot_int OR amr.plot_per");
-    else if (got_plot_per == 1)
+    }
+    else if (got_plot_per == 1 && ParallelDescriptor::IOProcessor())
+    {
         BoxLib::Warning("Specifying amr.plot_per will change the time step");
+    }
+
+    if (pp.contains("plot_vars"))
+    {
+        aString nm;
+
+        plot_vars.resize(pp.countval("plot_vars"));
+
+        for (i = 0; i < plot_vars.length(); i++)
+        {
+            pp.get("plot_vars", nm, i);
+            plot_vars[i] = nm;
+        }
+    }
+    else
+    {
+        plot_vars.resize(1);
+        plot_vars[0] = "ALL";
+    }
 
     pp.query("max_grid_size",max_grid_size);
     pp.query("n_proper",n_proper);
@@ -242,23 +270,24 @@ Amr::Amr ()
 
       int got_int = pp.queryarr("ref_ratio",ratios,0,max_level);
    
-      if (got_int == 1 && got_vect == 1)
+      if (got_int == 1 && got_vect == 1 && ParallelDescriptor::IOProcessor())
+      {
           BoxLib::Warning("Only input *either* ref_ratio or ref_ratio_vect");
+      }
       else if (got_vect == 1)
       {
           int k = 0;
-          for( i = 0; i < max_level; i++ )
+          for (i = 0; i < max_level; i++)
           {
-              for( int n=0; n<BL_SPACEDIM; n++,k++ )
+              for (int n=0; n<BL_SPACEDIM; n++,k++)
                   ref_ratio[i][n] = ratios_vect[k];
           }
-
       }
       else if (got_int == 1)
       {
-          for( i = 0; i < max_level; i++ )
+          for (i = 0; i < max_level; i++)
           {
-              for( int n=0; n<BL_SPACEDIM; n++)
+              for (int n=0; n<BL_SPACEDIM; n++)
                   ref_ratio[i][n] = ratios[i];
           }
       }
@@ -277,7 +306,8 @@ Amr::Amr ()
     for (i = 0; i <= max_level; i++)
     {
         geom[i].define(index_domain);
-        if (i < max_level) index_domain.refine(ref_ratio[i]);
+        if (i < max_level)
+            index_domain.refine(ref_ratio[i]);
     }
     //
     // Now define offset for CoordSys.
@@ -295,7 +325,8 @@ Amr::Amr ()
     int ri;
     pp.get("regrid_int",ri);
     int k;
-    for (k = 0; k <= max_level; k++) regrid_int[k] = ri;
+    for (k = 0; k <= max_level; k++)
+        regrid_int[k] = ri;
     if (!sub_cycle)
     {
         //
@@ -310,10 +341,25 @@ Amr::Amr ()
     }
 }
 
+bool
+Amr::isPlotVar (const aString& name) const
+{
+    if (plot_vars.length() == 1 && plot_vars[0] == "ALL")
+        return true;
+
+    for (int i = 0; i < plot_vars.length(); i++)
+        if (plot_vars[i] == name)
+            return true;
+
+    return false;
+}
+
 Amr::~Amr ()
 {
-    if (level_steps[0] > last_checkpoint) checkPoint();
-    if (level_steps[0] > last_plotfile) writePlotFile();
+    if (level_steps[0] > last_checkpoint)
+        checkPoint();
+    if (level_steps[0] > last_plotfile)
+        writePlotFile();
 
     levelbld->variableCleanUp();
 }
