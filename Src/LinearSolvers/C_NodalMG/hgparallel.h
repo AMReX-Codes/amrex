@@ -1,6 +1,12 @@
 #ifndef _HGPARALLEL_H_
 #define _HGPARALLEL_H_
 
+#ifdef BL_USE_NEW_HFILES
+#include <cstdlib>
+#else
+#include <stdlib.h>
+#endif
+
 #include <MultiFab.H>
 
 #ifdef BL_USE_MPI
@@ -69,8 +75,14 @@ public:
     task_copy_local(FArrayBox& fab_, const MultiFab& mf_, int grid_, const Box& bx);
     virtual ~task_copy_local();
     virtual bool ready();
-    virtual bool is_off_processor() const;
-    virtual void init(sequence_number sno, MPI_Comm comm);
+    virtual bool is_off_processor() const
+    {
+	abort(); return false;
+    }
+    virtual void init(sequence_number sno, MPI_Comm comm)
+    {
+	abort();
+    }
 private:
     FArrayBox& m_fab;
     const MultiFab& m_smf;
@@ -84,8 +96,8 @@ class task_fab : public task
 {
 public:
     virtual const FArrayBox& fab() = 0;
-    virtual bool is_off_processor() const;
-    virtual void init(sequence_number sno, MPI_Comm comm);
+    virtual bool is_off_processor() const = 0;
+    virtual void init(sequence_number sno, MPI_Comm comm) = 0;
 };
 
 class task_fab_get : public task_fab
@@ -96,8 +108,14 @@ public:
     virtual ~task_fab_get();
     virtual const FArrayBox& fab();
     virtual bool ready();
-    virtual bool is_off_processor() const;
-    virtual void init(sequence_number sno, MPI_Comm comm);
+    virtual bool is_off_processor() const
+    {
+	abort(); return false;
+    }
+    virtual void init(sequence_number sno, MPI_Comm comm)
+    {
+	abort();
+    }
 private:
     const MultiFab& r;
     const int grid;
@@ -128,7 +146,10 @@ public:
     virtual ~task_fill_patch();
     virtual const FArrayBox& fab();
     virtual bool ready();
-    virtual bool is_off_processor() const;
+    virtual bool is_off_processor() const
+    {
+	abort(); return false;
+    }
     virtual void init(sequence_number sno, MPI_Comm comm);
 private:
     bool fill_patch_blindly();
@@ -171,9 +192,14 @@ public:
 	}
 	return false;
     }
-    virtual bool is_off_processor() const;
-    virtual void init(sequence_number sno, MPI_Comm comm);
-
+    virtual bool is_off_processor() const
+    {
+	abort(); return false;
+    }
+    virtual void init(sequence_number sno, MPI_Comm comm)
+    {
+	abort();
+    }
 private:
     MultiFab& m;
     const int igrid;
