@@ -19,10 +19,10 @@
 
 extern "C" 
 {
-    void FORT_FBREF(Real*, intS, intS, const Real*, intS, intS, const int*);
-    void FORT_FBREFM(Real*, intS, intS, const Real*, intS, intS, const int*);
-    void FORT_FBNEG(Real*, intS, intS, const Real*, intS, intS, const int*);
-    void FORT_FBNEGM(Real*, intS, intS, const Real*, intS, intS, const int*);
+    void FORT_FBREF  (Real*, intS, intS, const Real*, intS, intS, const int*);
+    void FORT_FBREFM (Real*, intS, intS, const Real*, intS, intS, const int*);
+    void FORT_FBNEG  (Real*, intS, intS, const Real*, intS, intS, const int*);
+    void FORT_FBNEGM (Real*, intS, intS, const Real*, intS, intS, const int*);
     void FORT_FBINFLO(Real*, intS, intS, const Real*, intS, intS, const int*);
     void FORT_FBINFIL(Real*, intS, intS, const Real*, intS, intS, const int*);
 }

@@ -17,7 +17,7 @@ extern "C"
 {
     void FORT_FIPRODC(const Real*, intS, const Real*, intS, intS, Real*);
     void FORT_FIPRODN(const Real*, intS, const Real*, intS, intS, Real*);
-    void FORT_FFCPY(Real*, intS, intS, const Real*, intS, const int&);
+    void FORT_FFCPY (Real*, intS, intS, const Real*, intS, const int&);
 #if (BL_SPACEDIM == 2)
     void FORT_FFCPY2(Real*, intS, const Real*, intS, intS, const int*, const int&);
 #else
