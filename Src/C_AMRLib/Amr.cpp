@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.101 1999-11-03 16:33:26 propp Exp $
+// $Id: Amr.cpp,v 1.102 1999-11-11 21:26:08 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -61,13 +61,9 @@ static int regrid_on_restart = 0;
 
 static int plotfile_on_restart = 0;
 //
-// Tar up and then remove checkpoint and plot files?
+// Tar up and then remove checkpoint and plot files -- defaults to false?
 //
-#if defined(BL_T3E)
-static int tar_and_rm_files = 1;
-#else
 static int tar_and_rm_files = 0;
-#endif
 //
 // The pid's of the last `tar_and_rm_files' commands for chk and plt files.
 //
