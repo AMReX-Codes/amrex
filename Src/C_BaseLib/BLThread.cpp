@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.7 2001-07-21 17:37:09 car Exp $
+// $Id: BLThread.cpp,v 1.8 2001-07-22 18:11:02 car Exp $
 //
 
 #include <winstd.H>
@@ -38,11 +38,13 @@ namespace
 	static char buf[DIM];
 	if ( status )
 	{
-	    std::sprintf(buf, "File %s, line %d, %s: %s", file, line, call, std::strerror(status));
+	    std::sprintf(buf, "BoxLib Thread Error: File %s, line %d, %s: %s",
+			 file, line, call, std::strerror(status));
 	}
 	else
 	{
-	    std::sprintf(buf, "File %s, line %d, %s", file, line, call);
+	    std::sprintf(buf, "BoxLib Thread Error: File %s, line %d, %s",
+			 file, line, call);
 	}
 	buf[DIM-1] = '\0';		// Just to be safe.
 	return buf;

@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.48 2001-07-21 01:17:26 car Exp $
+// $Id: Utility.cpp,v 1.49 2001-07-22 18:11:03 car Exp $
 //
 
 #include <cstdlib>
@@ -403,132 +403,6 @@ BoxLib::OutOfMemory ()
     BoxLib::Error("Sorry, out of memory, bye ...");
 }
 
-/*
-** Mersenne Twister pseudo-random number generator.
-**
-** Generates one pseudorandom real number (double) which is
-** uniformly distributed on [0,1]-interval for each call.
-**
-** Uses any 32-bit integer except for 0 for a seed (with 4357 as the default).
-**
-** Has a period of 2**19937.
-**
-** Coded by Takuji Nishimura, considering the suggestions by
-** Topher Cooper and Marc Rieffel in July-Aug. 1997.
-**
-** Mersenne Twister Home Page: http://www.math.keio.ac.jp/matumoto/emt.html
-**
-** Copyright (C) 1997 Makoto Matsumoto and Takuji Nishimura.
-*/
-
-#define RAND_N 624
-#define RAND_M 397
-
-static unsigned long mt[RAND_N];
-static int mti = RAND_N+1;
-
-void
-BoxLib::InitRandom (unsigned long seed)
-{
-    /*
-    ** Setting initial seeds using the generator Line 25 of Table 1 in
-    ** KNUTH 1981, The Art of Computer Programming Vol. 2 (2nd Ed.), pp102.
-    */
-    int i;
-
-    for (i = 0; i < RAND_N; i++)
-    {
-         mt[i] = seed & 0xffff0000;
-         seed = 69069 * seed + 1;
-         mt[i] |= (seed & 0xffff0000) >> 16;
-         seed = 69069 * seed + 1;
-    }
-    mti = RAND_N;
-}
-
-double
-BoxLib::Random ()
-{
-    static unsigned long mag01[2] = { 0x0, 0x9908b0df };
-
-    unsigned long y;
-
-    if (mti >= RAND_N)
-    {
-        /*
-        ** Generate RAND_N words at one time.
-        */
-        int kk;
-
-        if (mti == RAND_N+1)
-            /*
-            ** Use the default initial seed.
-            */
-            BoxLib::InitRandom(4357);
-
-        for (kk = 0; kk < RAND_N-RAND_M; kk++)
-        {
-            y = (mt[kk]&0x80000000)|(mt[kk+1]&0x7fffffff);
-            mt[kk] = mt[kk+RAND_M] ^ (y >> 1) ^ mag01[y & 0x1];
-        }
-        for ( ; kk < RAND_N-1; kk++)
-        {
-            y = (mt[kk]&0x80000000)|(mt[kk+1]&0x7fffffff);
-            mt[kk] = mt[kk+(RAND_M-RAND_N)] ^ (y >> 1) ^ mag01[y & 0x1];
-        }
-        y = (mt[RAND_N-1]&0x80000000)|(mt[0]&0x7fffffff);
-        mt[RAND_N-1] = mt[RAND_M-1] ^ (y >> 1) ^ mag01[y & 0x1];
-
-        mti = 0;
-    }
-  
-    y = mt[mti++];
-    y ^= (y >> 11);
-    y ^= (y << 7) & 0x9d2c5680;
-    y ^= (y << 15) & 0xefc60000;
-    y ^= (y >> 18);
-
-    return ( (double)y / (unsigned long)0xffffffff );
-}
-
-#undef RAND_N
-#undef RAND_M
-
-//
-// Fortran entry point for BoxLib::Random().
-//
-#if defined(BL_FORT_USE_UPPERCASE)
-
-extern "C" void BLUTILRAND (Real* rn);
-
-void
-BLUTILRAND (Real* rn)
-{
-    BL_ASSERT(rn != 0);
-    *rn = BoxLib::Random();
-}
-
-#elif defined(BL_FORT_USE_LOWERCASE)
-extern "C" void blutilrand (Real* rn);
-
-void
-blutilrand (Real* rn)
-{
-    BL_ASSERT(rn != 0);
-    *rn = BoxLib::Random();
-}
-
-#elif defined(BL_FORT_USE_UNDERSCORE)
-extern "C" void blutilrand_ (Real* rn);
-
-void
-blutilrand_ (Real* rn)
-{
-    BL_ASSERT(rn != 0);
-    *rn = BoxLib::Random();
-}
-#endif 
-
 #ifndef WIN32
 extern "C" pid_t fork();
 
@@ -548,6 +422,11 @@ BoxLib::Execute (const char* cmd)
     return pid;
 }
 #endif
+
+
+//
+// Encapsulates Time
+//
 
 namespace
 {
@@ -621,33 +500,37 @@ BoxLib::Time::get_time()
     return Time(BoxLib::wsecond());
 }
 
-// A C-program for MT19937: Real number version
-//   genrand() generates one pseudorandom real number (double)
-// which is uniformly distributed on [0,1]-interval, for each
-// call. sgenrand(seed) set initial values to the working area
-// of 624 words. Before genrand(), sgenrand(seed) must be
-// called once. (seed is any 32-bit integer except for 0).
-// Integer generator is obtained by modifying two lines.
-//   Coded by Takuji Nishimura, considering the suggestions by
-// Topher Cooper and Marc Rieffel in July-Aug. 1997.
+
+//
+// BoxLib Interface to Mersenne Twistor
+//
 
-// This library is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Library General Public
-// License as published by the Free Software Foundation; either
-// version 2 of the License, or (at your option) any later
-// version.
-// This library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-// See the GNU Library General Public License for more details.
-// You should have received a copy of the GNU Library General
-// Public License along with this library; if not, write to the
-// Free Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
-// 02111-1307  USA
+/* A C-program for MT19937: Real number version (1999/10/28)    */
+/*   genrand() generates one pseudorandom real number (double)  */
+/* which is uniformly distributed on [0,1]-interval, for each   */
+/* call. sgenrand(seed) sets initial values to the working area */
+/* of 624 words. Before genrand(), sgenrand(seed) must be       */
+/* called once. (seed is any 32-bit integer.)                   */
+/* Integer generator is obtained by modifying two lines.        */
+/*   Coded by Takuji Nishimura, considering the suggestions by  */
+/* Topher Cooper and Marc Rieffel in July-Aug. 1997.            */
 
-// Copyright (C) 1997 Makoto Matsumoto and Takuji Nishimura.
-// When you use this, send an email to: matumoto@math.keio.ac.jp
-// with an appropriate reference to your work.
+/* This library is free software under the Artistic license:       */
+/* see the file COPYING distributed together with this code.       */
+/* For the verification of the code, its output sequence file      */
+/* mt19937-1.out is attached (2001/4/2)                           */
+
+/* Copyright (C) 1997, 1999 Makoto Matsumoto and Takuji Nishimura. */
+/* Any feedback is very welcome. For any question, comments,       */
+/* see http://www.math.keio.ac.jp/matumoto/emt.html or email       */
+/* matumoto@math.keio.ac.jp                                        */
+
+/* REFERENCE                                                       */
+/* M. Matsumoto and T. Nishimura,                                  */
+/* "Mersenne Twister: A 623-Dimensionally Equidistributed Uniform  */
+/* Pseudo-Random Number Generator",                                */
+/* ACM Transactions on Modeling and Computer Simulation,           */
+/* Vol. 8, No. 1, January 1998, pp 3--30.                          */
 
 namespace
 {
@@ -756,6 +639,49 @@ BoxLib::mt19937::u_value()
 {
     return igenrand();
 }
+
+namespace
+{
+    BoxLib::mt19937 the_generator;
+}
+
+void
+BoxLib::InitRandom (unsigned long seed)
+{
+    the_generator = mt19937(seed);
+}
+
+double
+BoxLib::Random ()
+{
+    return the_generator.d_value();
+}
+
+//
+// Fortran entry point for BoxLib::Random().
+//
+
+#if defined(BL_FORT_USE_UPPERCASE)
+#define FORT_BLUTILRAND BLUTILRAND
+#elif defined(BL_FORT_USE_LOWERCASE)
+#define FORT_BLUTILRAND blutilrand
+#else defined(BL_FORT_USE_UNDERSCORE)
+#define FORT_BLUTILRAND blutilrand_
+#endif
+
+extern "C" void FORT_BLUTILRAND (Real* rn);
+
+void
+FORT_BLUTILRAND (Real* rn)
+{
+    BL_ASSERT(rn != 0);
+    *rn = BoxLib::Random();
+}
+
+
+//
+// Sugar for parsing IO
+//
 
 std::istream&
 BoxLib::operator>>(std::istream& is, const expect& exp)

@@ -2,7 +2,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.41 2001-07-21 17:37:10 car Exp $
+// $Id: Utility.H,v 1.42 2001-07-22 18:11:02 car Exp $
 //
 
 #include <iostream>
@@ -203,7 +203,7 @@ namespace BoxLib
 	void reload();
     private:
 	enum { N = 624 };
-	const unsigned long init_seed;
+	unsigned long init_seed;
 	unsigned long mt[N];	// the array for the state vector
 	int mti;		// mti==N+1 means mt[N] is not initialized
     };

@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.80 2001-07-20 19:31:07 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.81 2001-07-22 18:11:02 car Exp $
 //
 
 #include <cstdio>
@@ -200,12 +200,13 @@ namespace
 	static char buf[DIM];
 	if ( status )
 	{
-	    std::sprintf(buf, "File %s, line %d, %s: %s",
+	    std::sprintf(buf, "BoxLib MPI Error: File %s, line %d, %s: %s",
 			 file, line, call, ParallelDescriptor::ErrorString(status));
 	}
 	else
 	{
-	    std::sprintf(buf, "File %s, line %d, %s", file, line, call);
+	    std::sprintf(buf, "BoxLib MPI Error: File %s, line %d, %s",
+			 file, line, call);
 	}
 	buf[DIM-1] = '\0';		// Just to be safe.
 	return buf;
