@@ -1042,7 +1042,7 @@ contains
     write(unit=un, fmt = '("boxlist[ ", i10, ", {")') size(bl)
     bn => begin(bl)
     do while ( associated(bn) )
-       call print(value(bn), unit=unit)
+       call print(value(bn), unit=unit, legacy = legacy)
        bn => next(bn)
     end do
   end subroutine boxlist_print

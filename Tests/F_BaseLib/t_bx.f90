@@ -4,7 +4,7 @@ subroutine t_bx
   type(box) :: bx
   bx = allbox(2)
   print *, bx
-  bx = grow(bx, 2)
+  bx = allbox_grc(bx, grow = 2)
   print *, bx
 contains
   function allbox_grc(bx, grow, refine, coarsen) result(r)

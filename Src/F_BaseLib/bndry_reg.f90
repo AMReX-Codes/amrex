@@ -151,11 +151,10 @@ contains
     integer, intent(in) :: cb, cm
     integer, intent(in), optional :: nc
     logical, intent(in), optional :: all
-    integer :: i, f, lnc
-    lnc = 1; if ( present(nc) ) lnc = nc
+    integer :: i, f
     do i = 1, br%dim
        do f = 0, 1
-          call copy(br%bmf(i,f), cb, mf, cm, all=all)
+          call copy(br%bmf(i,f), cb, mf, cm, nc = nc, all=all)
        end do
     end do
   end subroutine bndry_reg_copy_c
