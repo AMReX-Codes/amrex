@@ -4,7 +4,7 @@
 #define BL_LOOPING_H
 
 //
-// $Id: Looping.H,v 1.8 1999-05-10 18:54:21 car Exp $
+// $Id: Looping.H,v 1.9 2000-01-06 18:26:40 lijewski Exp $
 //
 
 #if (BL_SPACEDIM == 1)
@@ -30,7 +30,6 @@
     template <class T>
     void BaseFab<T>::performSetVal(const T val, const Box bx, int ns, int nc)
     {
-       BL_ASSERT(domain.contains(bx));
        ForAllThisPencil(T,bx,ns,nc)
        {
           T* dog = \&thisR;
@@ -190,7 +189,6 @@
     void
     BaseFab<T>::performSetVal (const T val, const Box bx, int ns, int num)
     {
-      BL_ASSERT(domain.contains(bx));
       ForAllThisBNN(T,bx,ns,num)
       {
         thisR = val;

@@ -4,7 +4,7 @@
 #define BL_ORIENTATION_H
 
 //
-// $Id: Orientation.H,v 1.7 1999-05-10 18:54:22 car Exp $
+// $Id: Orientation.H,v 1.8 2000-01-06 18:26:40 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -88,7 +88,7 @@ public:
     bool operator>= (const Orientation& o) const;
 
     /*@ManDoc: This conversion operator maps an orientation into a
-               unique integer in the range [0 .. 2*BL_SPACEDIM-1]
+               unique integer in the range [0 .. 2*BL\_SPACEDIM-1]
                according to the above ordering.
     */
     operator int () const;
