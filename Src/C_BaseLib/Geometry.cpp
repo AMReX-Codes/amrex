@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.24 1998-06-15 23:55:13 lijewski Exp $
+// $Id: Geometry.cpp,v 1.25 1998-06-16 18:02:04 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -168,20 +168,19 @@ Geometry::theFPBmfcd (MultiFab& mf,
                       bool      no_ovlp,
                       PIRMMap&  pirm) const
 {
-    MultiFabCopyDescriptor* mfcd = mf.getFPBmfcd(src_comp,num_comp,no_ovlp);
+    bool buildit;
 
-    if (!(mfcd == 0))
+    MultiFabCopyDescriptor& mfcd = mf.theFPBmfcd(src_comp,num_comp,
+                                                 no_ovlp,buildit);
+
+    if (buildit == false)
     {
-        return *mfcd;
+        return mfcd;
     }
-
-    mfcd = new MultiFabCopyDescriptor;
-
-    mf.setFPBmfcd(src_comp,num_comp,no_ovlp,mfcd);
     //
     // Fill intersection list.
     //
-    MultiFabId mfid = mfcd->RegisterMultiFab(&mf);
+    MultiFabId mfid = mfcd.RegisterMultiFab(&mf);
 
     assert(mfid == MultiFabId(0));
     //
@@ -189,16 +188,16 @@ Geometry::theFPBmfcd (MultiFab& mf,
     //
     for (int i = 0; i < pirm.size(); i++)
     {
-        pirm[i].fbid = mfcd->AddBox(mfid,
-                                    pirm[i].srcBox,
-                                    0,
-                                    pirm[i].srcId,
-                                    src_comp,
-                                    src_comp,
-                                    num_comp);
+        pirm[i].fbid = mfcd.AddBox(mfid,
+                                   pirm[i].srcBox,
+                                   0,
+                                   pirm[i].srcId,
+                                   src_comp,
+                                   src_comp,
+                                   num_comp);
     }
 
-    return *mfcd;
+    return mfcd;
 }
 
 void
