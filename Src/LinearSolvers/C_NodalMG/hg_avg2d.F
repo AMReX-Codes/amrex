@@ -84,6 +84,8 @@ c Note---only generates values at coarse points along edge of fine grid
           src(i*ir,j*jr) = src(i*ir,j*jr) + fac0 *
      &         (rc(irc,j) + rc(irc,j-1))
          end do
+#if 0
+c     We dont want these extra terms for the cross stencil
          if (irz .eq. 1) then
             r = (irc + 0.5d0) * (hx * ir)
             rfac = (hx * ir) / (6.d0 * r)
@@ -94,6 +96,7 @@ c Note---only generates values at coarse points along edge of fine grid
             r = (irf + 0.5d0) * hx
             rfac = hx / (6.d0 * r)
          end if
+#endif
          fac0 = fac0 / (ir * jr * jr)
          i = i * ir
          do n = 0, jr-1
@@ -104,6 +107,8 @@ c Note---only generates values at coarse points along edge of fine grid
      &           (rf(irf,j-n) + rf(irf,j-n-1) +
      &            rf(irf,j+n) + rf(irf,j+n-1))
             end do
+#if 0
+c     We dont want these extra terms for the cross stencil
             if (irz .eq. 1) then
                do j = jr*cregl1, jr*cregh1, jr
                   src(i,j) = src(i,j) - fac *
@@ -111,6 +116,7 @@ c Note---only generates values at coarse points along edge of fine grid
      &                              rf(irf,j+n) + rf(irf,j+n-1)))
                end do
             end if
+#endif
          end do
       else if (idim .eq. 1) then
          j = cregl1
@@ -126,6 +132,14 @@ c Note---only generates values at coarse points along edge of fine grid
             src(i*ir,j*jr) = src(i*ir,j*jr) + fac0 *
      &        (rc(i,jrc) + rc(i-1,jrc))
          end do
+
+         if (irz .eq. 1 .and. cregl0 .le. 0 .and. cregh0 .ge. 0) then
+            i = 0
+            src(i*ir,j*jr) = src(i*ir,j*jr) - fac0 * rc(i-1,jrc)
+         endif
+
+#if 0
+c     We dont want these extra terms for the cross stencil
          if (irz .eq. 1 .and. cregh0 .lt. imax) then
             do i = cregl0, cregh0
                r = (i + 0.5d0) * (hx * ir)
@@ -144,6 +158,7 @@ c should be handled by the cavg routine instead:
             src(i*ir,j*jr) = src(i*ir,j*jr) + fac0 *
      &           (rfac0 * rc(i-1,jrc) - rfac1 * rc(i,jrc))
          end if
+#endif
          fac0 = fac0 / (ir * ir * jr)
          j = j * jr
          do m = 0, ir-1
@@ -154,6 +169,15 @@ c should be handled by the cavg routine instead:
      &           (rf(i-m,jrf) + rf(i-m-1,jrf) +
      &            rf(i+m,jrf) + rf(i+m-1,jrf))
             end do
+
+            if (irz .eq. 1 .and. m .eq. 0 .and.
+     @          cregl0 .le. 0 .and. cregh0 .ge. 0) then
+               i = 0
+               src(i*ir,j*jr) = src(i*ir,j*jr) - fac *
+     @              (rf(i-m-1,jrf) + rf(i+m-1,jrf))
+            endif
+#if 0
+c     We dont want these extra terms for the cross stencil
             if (irz .eq. 1 .and. cregh0 .lt. imax) then
                do i = ir*cregl0, ir*cregh0, ir
                   r = (i + 0.5d0) * hx
@@ -182,6 +206,7 @@ c should be handled by the cavg routine instead:
      &              (rfac0m * rf(i-m-1,jrf) - rfac1m * rf(i-m,jrf) +
      &               rfac0p * rf(i+m-1,jrf) - rfac1p * rf(i+m,jrf))
             end if
+#endif
          end do
       end if
       end
@@ -226,6 +251,8 @@ c quadrants
                irf = if + ii - 1
                center = center + ffac
                sum = sum + fac * rf(irf,jrf)
+#if 0
+c     We dont want these extra terms for the cross stencil
                if (irz .eq. 1) then
                   idir = 2 * ii - 1
                   r = (irf + 0.5d0) * hx
@@ -236,10 +263,13 @@ c quadrants
                   end if
                   sum = sum - fac * rfac * idir * rf(irf,jrf)
                end if
+#endif
             else
                irc = ic + ii - 1
                center = center + cfac
                sum = sum + rc(irc,jrc)
+#if 0
+c     We dont want these extra terms for the cross stencil
                if (irz .eq. 1) then
                   idir = 2 * ii - 1
                   r = (irc + 0.5d0) * (hx * ir)
@@ -250,9 +280,17 @@ c quadrants
                   end if
                   sum = sum - rfac * idir * rc(irc,jrc)
                end if
+#endif
             end if
          end do
       end do
+
+c     We *only* want this modification for the 5-point stencil:
+c      here we halve the average at the r=0 axis.
+      if (irz .eq. 1 .and. ic .eq. 0) then
+         sum = sum * 0.5d0
+      endif
+
 c edges
       do ji = 0, 1
          jdir = 2 * ji - 1
@@ -267,6 +305,8 @@ c edges
                do m = idir, idir*(ir-1), idir
                   fac = (ir-abs(m)) * fac1
                   sum = sum + fac * (rf(if+m,jrf) + rf(if+m-1,jrf))
+#if 0
+c     We dont want these extra terms for the cross stencil
                   if (irz .eq. 1) then
                      r = (if + 0.5d0) * hx
                      if (irf .lt. (ir * imax)) then
@@ -279,6 +319,7 @@ c edges
                      sum = sum + fac *
      &                 (rfac0 * rf(if+m-1,jrf) - rfac1 * rf(if+m,jrf))
                   end if
+#endif
                end do
             end if
             if (ga(ii,ji) - ga(1-ii,ji) .eq. 1) then
@@ -288,12 +329,15 @@ c edges
                do n = jdir, jdir*(jr-1), jdir
                   fac = (jr-abs(n)) * fac1
                   sum = sum + fac * (rf(irf,jf+n) + rf(irf,jf+n-1))
+#if 0
+c     We dont want these extra terms for the cross stencil
                   if (irz .eq. 1) then
                      r = (irf + 0.5d0) * hx
                      rfac = hx / (6.d0 * r)
                      sum = sum - fac *
      &                 (rfac * idir * (rf(irf,jf+n) + rf(irf,jf+n-1)))
                   end if
+#endif
                end do
             end if
          end do

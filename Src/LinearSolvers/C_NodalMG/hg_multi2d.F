@@ -159,7 +159,7 @@ c Note---assumes fdst linearly interpolated from cdst along edges
      & sigmaf, sfl0, sfh0, sfl1, sfh1,
      & sigmac, scl0, sch0, scl1, sch1,
      &        regl0, regh0, regl1, regh1,
-     & hx, hy, ir, jr, ga, idd)
+     & hx, hy, ir, jr, ga, irz)
       integer resl0, resh0, resl1, resh1
       integer srcl0, srch0, srcl1, srch1
       integer fdstl0, fdsth0, fdstl1, fdsth1
@@ -174,7 +174,7 @@ c Note---assumes fdst linearly interpolated from cdst along edges
       double precision sigmaf(sfl0:sfh0,sfl1:sfh1)
       double precision sigmac(scl0:sch0,scl1:sch1)
       double precision hx, hy
-      integer ir, jr, ga(0:1,0:1), idd
+      integer ir, jr, ga(0:1,0:1), irz
       double precision hxm2, hym2, hxm2c, hym2c, sum, center, 
      &   ffac, cfac, fac, fac1
       integer ic, jc, if, jf, ii, ji, idir, jdir, m, n
@@ -201,11 +201,19 @@ c quadrants
                sum = sum + sigmaf(if+ii-1,jf+ji-1) *
      &           (hxm2 * (fdst(if+idir,jf) - fdst(if,jf)) +
      &            hym2 * (fdst(if,jf+jdir) - fdst(if,jf)))
+               if (irz .eq. 1 .and. ic .eq. 0) then
+                 sum = sum - sigmaf(if+ii-1,jf+ji-1) * 0.5d0 *
+     @             (hym2 * (fdst(if,jf+jdir) - fdst(if,jf)))
+               endif
             else
                center = center + cfac
                sum = sum + ir * jr * sigmac(ic+ii-1,jc+ji-1) *
      &           (hxm2c * (cdst(ic+idir,jc) - cdst(ic,jc)) +
      &            hym2c * (cdst(ic,jc+jdir) - cdst(ic,jc)))
+               if (irz .eq. 1 .and. ic .eq. 0) then
+                 sum = sum - ir * jr * sigmac(ic+ii-1,jc+ji-1) * 0.5d0 *
+     @             (hym2c * (cdst(ic,jc+jdir) - cdst(ic,jc)))
+               endif
             end if
          end do
       end do
