@@ -2,6 +2,7 @@ FORT_CPP = /usr/lib/acpp
 
 ifeq ($(WHICHIRIX64), ESCHER)
   XTRALIBS +=  /usr/lib64/libfortran.so
+  CXXFLAGS += -mabi=64 -mips4
 endif
 ifeq ($(WHICHIRIX64), MAHLER)
   XTRALIBS +=  /usr/lib32/libfortran.so
