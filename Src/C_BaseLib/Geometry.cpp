@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.21 1998-06-14 06:10:40 lijewski Exp $
+// $Id: Geometry.cpp,v 1.22 1998-06-14 22:05:38 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -15,9 +15,9 @@ RealBox Geometry::prob_domain;
 
 bool Geometry::is_periodic[BL_SPACEDIM];
 
-const int MaxCacheSize = 20;
+const int MaxCacheSize = 50;
 
-list<Geometry::FPB> Geometry::m_Cache(MaxCacheSize);
+list<Geometry::FPB> Geometry::m_Cache;
 
 ostream&
 operator<< (ostream&        os,
@@ -143,9 +143,13 @@ Geometry::buildPIRMMap (const BoxArray& grids,
                 // Shrink box if the +/- direction is not physical boundary.
                 //
                 if (validbox.smallEnd(idir) != Domain().smallEnd(idir))
+                {
                     dest.growLo(idir,-nGrow);
+                }
                 if (validbox.bigEnd(idir) != Domain().bigEnd(idir))
+                {
                     dest.growHi(idir,-nGrow);
+                }
             }
         }
 
@@ -240,14 +244,12 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
                                                  src_comp,
                                                  num_comp,
                                                  no_ovlp);
-
-    const MultiFabId mfid = MultiFabId(0);
     //
     // Gather/scatter distributed data to (local) internal buffers.
     //
     mfcd.CollectData();
 
-    const MultiFabId TheFPBMultiFabId = 0;
+    const MultiFabId TheFPBMultiFabId(0);
 
     typedef PIRMMap::iterator PIRMMapIt;
     //
