@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.24 1997-12-12 23:23:40 lijewski Exp $
+// $Id: Amr.cpp,v 1.25 1997-12-16 16:44:54 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -421,16 +421,19 @@ Amr::writePlotFile (const aString& root,
 #ifdef BL_USE_SETBUF
     HeaderFile.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
-    int old_prec = HeaderFile.precision(15);
-    //
-    // Only the IOProcessor() writes to the header file.
-    //
+    int old_prec;
+
     if (ParallelDescriptor::IOProcessor())
     {
+        //
+        // Only the IOProcessor() writes to the header file.
+        //
         HeaderFile.open(HeaderFileName.c_str(), ios::out|ios::trunc);
 
         if (!HeaderFile.good())
             Utility::FileOpenFailed(HeaderFileName);
+
+        old_prec = HeaderFile.precision(15);
     }
 
     for (int k = 0; k <= finest_level; k++)
@@ -440,15 +443,19 @@ Amr::writePlotFile (const aString& root,
         amr_level[k].writePlotFile(pltfile, HeaderFile);
         write_pltfile_stats.end();
     }
-    //
-    // Accumulate # of bytes written to header file.
-    //
-    RunStats::addBytes(VisMF::FileOffset(HeaderFile));
 
-    HeaderFile.precision(old_prec);
+    if (ParallelDescriptor::IOProcessor())
+    {
+        //
+        // Accumulate # of bytes written to header file.
+        //
+        RunStats::addBytes(VisMF::FileOffset(HeaderFile));
 
-    if (!HeaderFile.good())
-        BoxLib::Error("Amr::writePlotFile() failed");
+        HeaderFile.precision(old_prec);
+
+        if (!HeaderFile.good())
+            BoxLib::Error("Amr::writePlotFile() failed");
+    }
 }
 
 #else
@@ -467,7 +474,6 @@ Amr::writePlotFile (const aString& root,
     {
         runlog << "PLOTFILE: file = " << pltfile << '\n';
     }
-
 #ifdef BL_USE_SETBUF
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 #endif
@@ -624,7 +630,11 @@ Amr::restart (const aString& filename)
 
     if (trace && ParallelDescriptor::IOProcessor())
     {
-        cout << "restarting calculation from file " << filename << endl;
+        cout << "restarting calculation from file: " << filename << endl;
+    }
+    if (record_run_info && ParallelDescriptor::IOProcessor())
+    {
+        runlog << "RESTART from file = " << filename << '\n';
     }
     //
     // Init problem dependent data.
@@ -771,16 +781,19 @@ Amr::checkPoint ()
 #ifdef BL_USE_SETBUF
     HeaderFile.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
-    int old_prec = HeaderFile.precision(15), i;
-    //
-    // Only the IOProcessor() writes to the header file.
-    //
+    int old_prec, i;
+
     if (ParallelDescriptor::IOProcessor())
     {
+        //
+        // Only the IOProcessor() writes to the header file.
+        //
         HeaderFile.open(HeaderFileName.c_str(), ios::out|ios::trunc);
 
         if (!HeaderFile.good())
             Utility::FileOpenFailed(HeaderFileName);
+
+        old_prec = HeaderFile.precision(15);
 
         HeaderFile << BL_SPACEDIM  << '\n'
                    << cumtime      << '\n'
@@ -812,15 +825,19 @@ Amr::checkPoint ()
     }
 
     RunStats::dumpStats(HeaderFile);
-    //
-    // Accumulate # of bytes written to header file.
-    //
-    RunStats::addBytes(VisMF::FileOffset(HeaderFile));
 
-    HeaderFile.precision(old_prec);
+    if (ParallelDescriptor::IOProcessor())
+    {
+        //
+        // Accumulate # of bytes written to header file.
+        //
+        RunStats::addBytes(VisMF::FileOffset(HeaderFile));
 
-    if (!HeaderFile.good())
-        BoxLib::Error("Amr::checkpoint() failed");
+        HeaderFile.precision(old_prec);
+
+        if (!HeaderFile.good())
+            BoxLib::Error("Amr::checkpoint() failed");
+    }
 }
 
 #else
