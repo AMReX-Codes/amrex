@@ -98,7 +98,6 @@ contains
   subroutine unit_skip(unit, skip)
     integer, intent(in) :: unit
     integer, intent(in), optional :: skip
-    integer :: i
     if ( .not. present(skip) ) return
     write(unit=unit, fmt='(A)', advance = 'NO') repeat(' ', skip)
   end subroutine unit_skip
