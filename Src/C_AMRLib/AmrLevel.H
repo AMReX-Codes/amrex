@@ -1,7 +1,7 @@
 #ifndef _AmrLevel_H_
 #define _AmrLevel_H_ 
 //
-// $Id: AmrLevel.H,v 1.51 2001-10-30 22:03:42 lijewski Exp $
+// $Id: AmrLevel.H,v 1.52 2002-03-27 17:10:20 lijewski Exp $
 //
 #include <REAL.H>
 #include <Box.H>
@@ -442,7 +442,7 @@ class FillPatchIteratorHelper
 {
 public:
 
-    friend FillPatchIterator;
+    friend class FillPatchIterator;
 
     FillPatchIteratorHelper (AmrLevel& amrlevel,
                              MultiFab& leveldata);
