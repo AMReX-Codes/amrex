@@ -303,7 +303,7 @@ c-----------------------------------------------------------------------
       end
 c five-point variable stencils
 c-----------------------------------------------------------------------
-      subroutine hgrlx(
+      subroutine hgrlxaaaa(
      & cor,   corl0, corh0, corl1, corh1,
      & res,   resl0, resh0, resl1, resh1,
      & sigx, sigy,
@@ -379,7 +379,7 @@ cdir$ ivdep
       end if
       end
 c-----------------------------------------------------------------------
-      subroutine hgres(
+      subroutine hgresaaaa(
      & res,   resl0, resh0, resl1, resh1,
      & src,   srcl0, srch0, srcl1, srch1,
      & dest,  destl0, desth0, destl1, desth1,
@@ -1561,27 +1561,28 @@ c-----------------------------------------------------------------------
       iend   = (regh1 - resl1) * jdiff + (regh0 - resl0)
 
       do j = regl1, regh1
-	  do i = regl0, regh0
-	  res(i,j) = (src(i,j) - (
+          do i = regl0, regh0
+          res(i,j) = (src(i,j) - (
      &    + signd(i-1,j,1)*(dest(i-1,j)-dest(i,j))
      &    + signd(i,j,1)  *(dest(i+1,j)-dest(i,j))
      &    + signd(i,j-1,2)*(dest(i,j-1)-dest(i,j))
      &    + signd(i,j,2)  *(dest(i,j+1)-dest(i,j))
      &    )
      &    )
-	end do
-	end do
-c      do i = istart+1, iend+1
-c         jlocal = i / jdiff + resl1
-c         ilocal = resl0 + (i-jlocal*jdiff-resl1)
-c         res(i) = mask(i) * (src(i) -
-c     &     (signd(i-1)        * (dest(i-1) - dest(i)) +
-c     &      signd(i)          * (dest(i+1) - dest(i)) +
-c     &      signd(i+ly-jdiff) * (dest(i-jdiff) - dest(i)) +
-c     &      signd(i+ly)       * (dest(i+jdiff) - dest(i))))
-c      end do
+        end do
+        end do
 
-      if ( irz .eq. 1 ) stop 'not yet'
+      if (irz .eq. 1 .and. regl0 .eq. 0) then
+        do j = regl1, regh1
+        do i = regl0, regh0
+           res(i,j) = (src(i,j) -
+     &       (signd(i-1,j,1) * (dest(i-1,j) - dest(i,j)) +
+     &        signd(i,j,1)   * (dest(i+1,j) - dest(i,j)) +
+     &        signd(i,j-1,2) * (dest(i,j-1) - dest(i,j)) * 0.5d0 +
+     &        signd(i,j,2)   * (dest(i,j+1) - dest(i,j)) * 0.5d0 ))
+        end do
+        end do
+      endif
       end
 c-----------------------------------------------------------------------
       subroutine hgscon(
@@ -1698,6 +1699,10 @@ c sig here contains three different directions all stored on "nodes"
       integer irz
       integer istart, iend
       integer i, j, jdiff, ly, ipar
+      AVGREDGE() = (sig(i-1,j,1) * cor(i-1,j) +
+     &              sig(i,j,1)   * cor(i+1,j) +
+     &              sig(i,j-1,2) * cor(i,j-1) * 0.5d0 +
+     &              sig(i,j,2)   * cor(i,j+1) * 0.5d0 )
       AVG() = (sig(i-1,j,1)        * cor(i-1,j) +
      &         sig(i,j,1)          * cor(i+1,j) +
      &         sig(i,j-1,2)        * cor(i,j-1) +
@@ -1706,24 +1711,48 @@ c sig here contains three different directions all stored on "nodes"
       ly    = (resh1 - resl1 + 1) * jdiff
       istart = (regl1 - resl1) * jdiff + (regl0 - resl0)
       iend   = (regh1 - resl1) * jdiff + (regh0 - resl0)
+      if (irz .eq. 0 .or. regl0 .gt. 0) then
+        ipar = 1
+        do j = regl1, regh1
+          ipar = 1 - ipar
+          do i = regl0 + ipar, regh0, 2
+            cor(i,j) = (AVG()-res(i,j))*cen(i,j)
+          end do
+        end do
+        ipar = 0
+        do j = regl1, regh1
+          ipar = 1 - ipar
+          do i = regl0+ipar, regh0, 2
+            cor(i,j) = (AVG()-res(i,j))*cen(i,j)
+          end do
+        end do
+      else
+c     Now irz = 1 and regl0 = 0, so we are touching the r=0 edge
+        ipar = 1
+        do j = regl1, regh1
+          ipar = 1 - ipar
+          do i = regl0 + ipar, regh0, 2
+            if (i .eq. 0) then
+              cor(i,j) = (AVGREDGE() - res(i,j)) * cen(i,j)
+            else
+              cor(i,j) = (AVG() - res(i,j)) * cen(i,j)
+            endif
+          end do
+        end do
 cdir$ ivdep
-      ipar = 1
-      do j = regl1, regh1
-	  ipar = 1 - ipar
-	  do i = regl0 + ipar, regh0, 2
-	    cor(i,j) = (AVG()-res(i,j))*cen(i,j)
-	end do
-	end do
-	ipar = 0
-      do j = regl1, regh1
-	  ipar = 1 - ipar
-	  do i = regl0+ipar, regh0, 2
-	    cor(i,j) = (AVG()-res(i,j))*cen(i,j)
-	end do
-	end do
-
+        ipar = 0
+        do j = regl1, regh1
+          ipar = 1 - ipar
+          do i = regl0 + ipar, regh0, 2
+            if ( i .eq. 0) then
+              cor(i,j) = (AVGREDGE() - res(i,j)) * cen(i,j)
+            else
+              cor(i,j) = (AVG() - res(i,j)) * cen(i,j)
+            endif
+          end do
+        end do
+      endif
       end
-
 c 9-point stencil versions:
 
 
