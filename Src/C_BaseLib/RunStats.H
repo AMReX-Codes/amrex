@@ -4,7 +4,7 @@
 #define _RUNSTATS_H_ 
 
 //
-// $Id: RunStats.H,v 1.5 1998-07-24 01:25:37 lijewski Exp $
+// $Id: RunStats.H,v 1.6 1999-02-03 19:29:57 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -37,8 +37,8 @@ class RunStatsData
     friend istream& operator>> (istream &, RunStatsData&);
 private:
     aString name;
-    double  run_time;
-    double  run_wtime;
+    Real    run_time;
+    Real    run_wtime;
     int     level;
     int     is_on;
 
@@ -111,7 +111,6 @@ public:
     //@ManDoc: Return number of cells advanced at given level.
     //
     static long getCells (int level);
-
     //
     //@ManDoc: Record I/O bytes written to disk.
     //
@@ -142,10 +141,10 @@ public:
                report\_names().
     */
     static void report_values (const Array<aString>& stat_names,
-                               Array<double>&        stat_time,
-                               Array<double>&        stat_wtime,
-                               double&               tot_run_time,
-                               double&               tot_run_wtime,
+                               Array<Real>&          stat_time,
+                               Array<Real>&          stat_wtime,
+                               Real&                 tot_run_time,
+                               Real&                 tot_run_wtime,
                                long&                 tot_cells);
 private:
     //
@@ -167,7 +166,7 @@ private:
 
     void resize (int level);
 
-    static void Print (ostream&, const RunStatsData&, double, double);
+    static void Print (ostream&, const RunStatsData&, Real, Real);
 
     static void CollectNumPts ();
     //
@@ -176,17 +175,17 @@ private:
     RunStatsData* entry;
     RunStatsData* gentry;
     aString       name;
+    Real          time;
+    Real          wtime;
     int           level;
-    double        time;
-    double        wtime;
     //
     // Static data.
     //
-    static double             TotalCPU;    // Total CPU time.
-    static double             TotalWCT;    // Total Wall Clock time.
-    static double             DiskBytes;   // Total bytes written to disk.
+    static Real               TotalCPU;    // Total CPU time.
+    static Real               TotalWCT;    // Total Wall Clock time.
+    static Real               DiskBytes;   // Total bytes written to disk.
     static Array<long>        TheCells;    // Total cells advanced per level.
-    static Array<double>      TheNumPts;   // Total numPts() per CPU.
+    static Array<Real>        TheNumPts;   // Total numPts() per CPU.
     static List<RunStatsData> TheStats;    // List of RunStatsData.
     static bool               Initialized; // init()'s been called?
 };
