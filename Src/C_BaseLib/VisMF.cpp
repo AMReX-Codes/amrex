@@ -1,6 +1,6 @@
 
 //
-// $Id: VisMF.cpp,v 1.70 2001-04-02 16:48:31 lijewski Exp $
+// $Id: VisMF.cpp,v 1.71 2001-04-06 20:04:52 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -533,10 +533,10 @@ VisMF::Write (const MultiFab& mf,
 
 #ifdef BL_USE_MPI
     const int SeqNo  = ParallelDescriptor::SeqNum();
-    const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 #endif
+    const int MyProc = ParallelDescriptor::MyProc();
 
     long bytes = 0;
 
