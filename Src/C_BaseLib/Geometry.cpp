@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.37 1998-12-01 21:56:39 lijewski Exp $
+// $Id: Geometry.cpp,v 1.38 1998-12-09 20:21:30 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -78,14 +78,10 @@ Geometry::buildPIRMMap (MultiFab&  mf,
 {
     assert(isAnyPeriodic());
     assert(MaxFPBCacheSize > 0);
-    //
-    // Don't let cache get too big.
-    //
+
     if (m_FPBCache.size() == MaxFPBCacheSize)
         m_FPBCache.pop_back();
-    //
-    // Add new FPBs to the front of the cache.
-    //
+
     m_FPBCache.push_front(fpb);
 
     PIRMMap& pirm = m_FPBCache.front().m_pirm;
@@ -111,16 +107,9 @@ Geometry::buildPIRMMap (MultiFab&  mf,
             }
         }
 
-        bool doit = false;
-
-        if (dest.ixType().cellCentered())
-        {
-            doit = !Domain().contains(dest);
-        }
-        else
-        {
-            doit = !::grow(::surroundingNodes(Domain()),-1).contains(dest);
-        }
+        bool doit = dest.ixType().cellCentered() ?
+            !Domain().contains(dest) :
+            !::grow(::surroundingNodes(Domain()),-1).contains(dest);
 
         if (doit)
         {
@@ -128,7 +117,7 @@ Geometry::buildPIRMMap (MultiFab&  mf,
 
             for (int j = 0; j < grids.length(); j++)
             {
-                Box src = grids[j];
+                Box src = grids[j] & Domain();
 
                 if (fpb.m_do_corners)
                 {
@@ -138,7 +127,7 @@ Geometry::buildPIRMMap (MultiFab&  mf,
                             src.smallEnd(i) == Domain().smallEnd(i))
                             dest.growLo(i,mf.nGrow());
 
-                        if (!isPeriodic(i) && 
+                        if (!isPeriodic(i) &&
                             src.bigEnd(i) == Domain().bigEnd(i))
                             dest.growHi(i,mf.nGrow());
                     }
@@ -150,11 +139,11 @@ Geometry::buildPIRMMap (MultiFab&  mf,
                 {
                     Box shiftbox = src;
                     shiftbox.shift(pshifts[i]);
-                    Box srcBox = dest & shiftbox;
-                    assert(srcBox.ok());
-                    Box dstBox = srcBox;
-                    dstBox.shift(-pshifts[i]);
-                    pirm.push_back(PIRec(mfi.index(),j,dstBox,srcBox));
+                    Box src_box = dest & shiftbox;
+                    assert(src_box.ok());
+                    Box dst_box = src_box;
+                    dst_box.shift(-pshifts[i]);
+                    pirm.push_back(PIRec(mfi.index(),j,dst_box,src_box));
                 }
             }
         }
