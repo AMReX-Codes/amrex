@@ -256,7 +256,7 @@ void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source,
 
   for (i = 0; i <= mglev_max; i++) {
     BoxArray mesh = mg_mesh[i];
-    mesh.convert(type(source[lev_min]));
+    mesh.convert(IndexType(type(source[lev_min])));
     resid.set(i, new MultiFab(mesh, 1, source[lev_min].nGrow()));
     corr.set(i, new MultiFab(mesh, 1, dest[lev_min].nGrow()));
     if (type(dest[lev_min]) == cellvect)

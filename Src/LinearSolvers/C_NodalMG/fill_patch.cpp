@@ -27,8 +27,8 @@ extern "C" {
 Real inner_product(MultiFab& r, MultiFab& s)
 {
   assert(r.ok() && s.ok());
-  assert(r.nVar() == 1);
-  assert(s.nVar() == 1);
+  assert(r.nComp() == 1);
+  assert(s.nComp() == 1);
   assert(type(r) == type(s));
 
   int igrid;
@@ -168,7 +168,7 @@ grid_real get_patch(const Box& region,
   if (border() == 0 || (flags & 2)) {
     for (igrid = 0; igrid < mesh().ngrids(); igrid++) {
       if (box(igrid).contains(region)) {
-	if (ncomp == fgrid(igrid).nVar())
+	if (ncomp == fgrid(igrid).nComp())
 	  return fgrid(igrid);
 	else
 	  return grid(igrid);
@@ -179,7 +179,7 @@ grid_real get_patch(const Box& region,
     for (igrid = 0; igrid < mesh().ngrids(); igrid++) {
       Box tb = grow(box(igrid), -border());
       if (tb.contains(region)) {
-	if (ncomp == fgrid(igrid).nVar())
+	if (ncomp == fgrid(igrid).nComp())
 	  return fgrid(igrid);
 	else
 	  return grid(igrid);
@@ -187,7 +187,7 @@ grid_real get_patch(const Box& region,
     }
   }
 
-  grid_real retgr(region, nVar());
+  grid_real retgr(region, nComp());
   fill_patch(retgr, region, interface, bdy, flags);
   return retgr;
 }
@@ -207,7 +207,7 @@ int get_patch(Fab& patch, const Box& region,
   if (border() == 0 || (flags & 2)) {
     for (igrid = 0; igrid < mesh().ngrids(); igrid++) {
       if (box(igrid).contains(region)) {
-	if (ncomp == fgrid(igrid).nVar())
+	if (ncomp == fgrid(igrid).nComp())
 	  patch.alias(fgrid(igrid));
 	else
 	  patch.alias(grid(igrid));
@@ -219,7 +219,7 @@ int get_patch(Fab& patch, const Box& region,
     for (igrid = 0; igrid < mesh().ngrids(); igrid++) {
       Box tb = grow(box(igrid), -border());
       if (tb.contains(region)) {
-	if (ncomp == fgrid(igrid).nVar())
+	if (ncomp == fgrid(igrid).nComp())
 	  patch.alias(fgrid(igrid));
 	else
 	  patch.alias(grid(igrid));
@@ -228,7 +228,7 @@ int get_patch(Fab& patch, const Box& region,
     }
   }
 
-  patch.alloc(region, nVar());
+  patch.alloc(region, nComp());
   return fill_patch(patch, region, interface, bdy, flags);
 }
 */
@@ -261,14 +261,14 @@ int fill_patch_blindly(Fab& patch,
   if (r.nGrow() == 0 || (flags & 2)) {
     for (igrid = 0; igrid < r.length(); igrid++) {
       if (r[igrid].box().contains(region)) {
-	patch.copy(r[igrid], region, 0, region, 0, patch.nVar());
+	patch.copy(r[igrid], region, 0, region, 0, patch.nComp());
 	return 1;
       }
     }
     for (igrid = 0; igrid < r.length(); igrid++) {
       if (r[igrid].box().intersects(region)) {
 	Box tb = region & r[igrid].box();
-	patch.copy(r[igrid], tb, 0, tb, 0, patch.nVar());
+	patch.copy(r[igrid], tb, 0, tb, 0, patch.nComp());
       }
     }
   }
@@ -276,7 +276,7 @@ int fill_patch_blindly(Fab& patch,
     for (igrid = 0; igrid < r.length(); igrid++) {
       Box tb = grow(r[igrid].box(), -r.nGrow());
       if (tb.contains(region)) {
-	patch.copy(r[igrid], region, 0, region, 0, patch.nVar());
+	patch.copy(r[igrid], region, 0, region, 0, patch.nComp());
 	return 1;
       }
     }
@@ -284,7 +284,7 @@ int fill_patch_blindly(Fab& patch,
       Box tb = grow(r[igrid].box(), -r.nGrow());
       if (tb.intersects(region)) {
 	tb &= region;
-	patch.copy(r[igrid], tb, 0, tb, 0, patch.nVar());
+	patch.copy(r[igrid], tb, 0, tb, 0, patch.nComp());
       }
     }
   }
@@ -331,9 +331,9 @@ int fill_patch(Fab& patch, const Box& region,
     return 1;
 
   if (flags & 4)
-    patch.setVal(0.0, region, 0, patch.nVar());
+    patch.setVal(0.0, region, 0, patch.nComp());
 
-  assert(patch.nVar() == r.nVar());
+  assert(patch.nComp() == r.nComp());
   assert(type(patch) == type(r));
   assert(interface.ok());
 
@@ -381,7 +381,7 @@ int fill_patch(Fab& patch, const Box& region,
 		const Box& rbox = r[igrid].box();
                 FFCPY(patch.dataPtr(), dimlist(patch.box()),
                       dimlist(tb),
-                      r[igrid].dataPtr(), dimlist(rbox), patch.nVar());
+                      r[igrid].dataPtr(), dimlist(rbox), patch.nComp());
 	      }
 	      else {
 		igrid = -2 - igrid;
@@ -415,7 +415,7 @@ int fill_patch(Fab& patch, const Box& region,
 		const Box& rbox = r[igrid].box();
                 FFCPY(patch.dataPtr(), dimlist(patch.box()),
                       dimlist(tb),
-                      r[igrid].dataPtr(), dimlist(rbox), patch.nVar());
+                      r[igrid].dataPtr(), dimlist(rbox), patch.nComp());
 	      }
 	      else {
 		igrid = -2 - igrid;
@@ -449,7 +449,7 @@ int fill_patch(Fab& patch, const Box& region,
 		const Box& rbox = r[igrid].box();
                 FFCPY(patch.dataPtr(), dimlist(patch.box()),
                       dimlist(tb),
-                      r[igrid].dataPtr(), dimlist(rbox), patch.nVar());
+                      r[igrid].dataPtr(), dimlist(rbox), patch.nComp());
 	      }
 	      else {
 		igrid = -2 - igrid;
@@ -498,7 +498,7 @@ int fill_patch(Fab& patch,
   if (flags & 4)
     patch.assign(0.0, region);
 
-  chkcomp(patch.nVar());
+  chkcomp(patch.nComp());
   if (!region.sameType(patch.box()))
     BoxLib::Error("fill_patch---incompatible patch");
 
@@ -710,11 +710,11 @@ void fill_internal_borders(MultiFab& r, const level_interface& interface,
       const Box& boxb = r[jgrid].box();
 #  if (BL_SPACEDIM == 2)
       FFCPY2(ptra, dimlist(boxa), ptrb, dimlist(boxb),
-	     dimlist(b), w, r.nVar());
+	     dimlist(b), w, r.nComp());
 #  else
       const int ibord = r.nGrow();
       FFCPY2(ptra, dimlist(boxa), ptrb, dimlist(boxb),
-	     dimlist(b), w, ibord, r.nVar());
+	     dimlist(b), w, ibord, r.nComp());
 #  endif
 #else
       const int idim = interface.fdim(iface);
@@ -814,7 +814,7 @@ void fill_internal_borders(MultiFab& r, const level_interface& interface,
 
 void clear_part_interface(MultiFab& r, const level_interface& interface)
 {
-  if (r.nVar() != 1)
+  if (r.nComp() != 1)
     BoxLib::Error("clear_part_interface---only single components currently supported");
 
   DECLARE_GEOMETRY_TYPES;
@@ -845,7 +845,7 @@ void interpolate_patch(Fab& patch, const Box& region,
   Box cb = interp.box(region, rat);
   int igrid = find_patch(cb, r);
   if (igrid == -1) {
-    Fab cgr(cb, r.nVar());
+    Fab cgr(cb, r.nComp());
     fill_patch(cgr, cb, r, interface, bdy);
     interp.fill(patch, region, cgr, cb, rat);
   }

@@ -155,7 +155,7 @@ void reflection_boundary_class::fill(Fab& patch,
 				     int idir) const
 {
   const int idim = abs(idir) - 1;
-  for (int i = 0; i < patch.nVar(); i++) {
+  for (int i = 0; i < patch.nComp(); i++) {
     FBREF(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
 	  bgr.dataPtr(i), dimlist(bgr.box()), dimlist(bb), idim);
   }
@@ -169,7 +169,7 @@ void negation_boundary_class::fill(Fab& patch,
 				   int idir) const
 {
   const int idim = abs(idir) - 1;
-  for (int i = 0; i < patch.nVar(); i++) {
+  for (int i = 0; i < patch.nComp(); i++) {
     FBNEG(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
 	  bgr.dataPtr(i), dimlist(bgr.box()), dimlist(bb), idim);
   }
@@ -182,7 +182,7 @@ void periodic_boundary_class::fill(Fab& patch,
 				   const Box& /*domain*/,
 				   int /*idir*/) const
 {
-  patch.copy(bgr, bb, 0, region, 0, patch.nVar());
+  patch.copy(bgr, bb, 0, region, 0, patch.nComp());
 }
 
 // Reflects on all outflow cases (which aren't called anyway).
@@ -267,7 +267,7 @@ void mixed_boundary_class::fill(Fab& patch,
   }
 
   if (idir != 0) {
-    // normal-component inflow section, assume patch.nVar() == 1
+    // normal-component inflow section, assume patch.nComp() == 1
     if (igrid >= 0) {
       Box bb = box(image, domain, idir);
       if (image == region) {
@@ -319,7 +319,7 @@ void mixed_boundary_class::fill(Fab& patch,
     // all cases other than normal-component inflow
     if (negflag == 1) {
       if (igrid >= 0) {
-	for (i = 0; i < patch.nVar(); i++) {
+	for (i = 0; i < patch.nComp(); i++) {
 	  FBREFM(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
 		 src[igrid].dataPtr(i), dimlist(src[igrid].box()),
 		 dimlist(image), refarray);
@@ -331,7 +331,7 @@ void mixed_boundary_class::fill(Fab& patch,
     }
     else if (negflag == -1) {
       if (igrid >= 0) {
-	for (i = 0; i < patch.nVar(); i++) {
+	for (i = 0; i < patch.nComp(); i++) {
 	  FBNEGM(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
 		 src[igrid].dataPtr(i), dimlist(src[igrid].box()),
 		 dimlist(image), refarray);
@@ -360,24 +360,24 @@ void mixed_boundary_class::fill(Fab& patch,
   }
   else if (t == refWall) {
     if (idim == flowdim || flowdim == -3) {
-      for (int i = 0; i < patch.nVar(); i++) {
+      for (int i = 0; i < patch.nComp(); i++) {
 	FBNEG(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
 	      bgr.dataPtr(i), dimlist(bgr.box()), dimlist(bb), idim);
       }
     }
     else {
-      for (int i = 0; i < patch.nVar(); i++) {
+      for (int i = 0; i < patch.nComp(); i++) {
 	FBREF(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
 	      bgr.dataPtr(i), dimlist(bgr.box()), dimlist(bb), idim);
       }
     }
   }
   else if (t == periodic) {
-    patch.copy(bgr, bb, 0, region, 0, patch.nVar());
+    patch.copy(bgr, bb, 0, region, 0, patch.nComp());
   }
   else if (t == inflow) {
     if (flowdim == -2) {
-      for (int i = 0; i < patch.nVar(); i++) {
+      for (int i = 0; i < patch.nComp(); i++) {
 	FBREF(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
 	      bgr.dataPtr(i), dimlist(bgr.box()), dimlist(bb), idim);
       }
@@ -385,13 +385,13 @@ void mixed_boundary_class::fill(Fab& patch,
     else if (flowdim == -1) {
       //BoxLib::Error("mixed_boundary_class::Don't know how to do inflow density");
       // Inflow density---just reflect interior for now
-      for (int i = 0; i < patch.nVar(); i++) {
+      for (int i = 0; i < patch.nComp(); i++) {
 	FBREF(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
 	      bgr.dataPtr(i), dimlist(bgr.box()), dimlist(bb), idim);
       }
     }
     else if (flowdim == -3) {
-      for (int i = 0; i < patch.nVar(); i++) {
+      for (int i = 0; i < patch.nComp(); i++) {
 	FBNEG(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
 	      bgr.dataPtr(i), dimlist(bgr.box()), dimlist(bb), idim);
       }
@@ -406,7 +406,7 @@ void mixed_boundary_class::fill(Fab& patch,
       // transverse velocity components
       //patch.assign(0.0, region);
       // we now believe this looks like a refWall to transverse components
-      for (int i = 0; i < patch.nVar(); i++) {
+      for (int i = 0; i < patch.nComp(); i++) {
 	FBREF(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
 	      bgr.dataPtr(i), dimlist(bgr.box()), dimlist(bb), idim);
       }
@@ -415,7 +415,7 @@ void mixed_boundary_class::fill(Fab& patch,
   else if (t == outflow) {
     // Do nothing if NODE-based, reflect if CELL-based 
     if (type(patch,idim) == BOX_CELL) {
-      for (int i = 0; i < patch.nVar(); i++) {
+      for (int i = 0; i < patch.nComp(); i++) {
 	FBREF(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
 	      bgr.dataPtr(i), dimlist(bgr.box()), dimlist(bb), idim);
       }
@@ -512,7 +512,7 @@ void mixed_boundary_class::sync_borders(MultiFab& r,
 	const Box& b = interface.node_face(iface);
 	Box bb = b;
 	bb.shift(idim, interface.domain().length(idim));
-	r[jgrid].copy(r[igrid], bb, 0, b, 0, r.nVar());
+	r[jgrid].copy(r[igrid], bb, 0, b, 0, r.nComp());
       }
     }
   }
@@ -560,7 +560,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r,
 	  bb.shift(idim, 2 * domain.smallEnd(idim) - 1 + a -
 		   b.bigEnd(idim) - b.smallEnd(idim));
 	  const Box& rbox = r[jgrid].box();
-	  for (int i = 0; i < r.nVar(); i++) {
+	  for (int i = 0; i < r.nComp(); i++) {
 	    Real *const rptr = r[jgrid].dataPtr(i);
 	    if ((i == idim + BL_SPACEDIM) ||
 		(i >= BL_SPACEDIM && idim == BL_SPACEDIM - 1)) {
@@ -578,14 +578,14 @@ void mixed_boundary_class::fill_borders(MultiFab& r,
 		   b.bigEnd(idim) - b.smallEnd(idim));
 	  const Box& rbox = r[jgrid].box();
 	  if (idim == flowdim || flowdim == -3) {
-	    for (int i = 0; i < r.nVar(); i++) {
+	    for (int i = 0; i < r.nComp(); i++) {
 	      Real *const rptr = r[jgrid].dataPtr(i);
 	      FBNEG(rptr, dimlist(rbox), dimlist(b),
 		    rptr, dimlist(rbox), dimlist(bb), idim);
 	    }
 	  }
 	  else {
-	    for (int i = 0; i < r.nVar(); i++) {
+	    for (int i = 0; i < r.nComp(); i++) {
 	      Real *const rptr = r[jgrid].dataPtr(i);
 	      FBREF(rptr, dimlist(rbox), dimlist(b),
 		    rptr, dimlist(rbox), dimlist(bb), idim);
@@ -595,7 +595,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r,
 	else if (t == periodic) {
 	  int isrc = interface.exterior_ref(igrid);
 	  bb.shift(idim, domain.length(idim));
-	  r[jgrid].copy(r[isrc], bb, 0, b, 0, r.nVar());
+	  r[jgrid].copy(r[isrc], bb, 0, b, 0, r.nComp());
 	}
 	else if (t == inflow) {
 	  bb.shift(idim, 2 * domain.smallEnd(idim) - 1 + a -
@@ -609,7 +609,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r,
 	  else if (flowdim == -1) {
 	    //BoxLib::Error("mixed_boundary_class::Don't know how to do inflow density");
 	    // Inflow density---just reflect interior for now
-	    for (int i = 0; i < r.nVar(); i++) {
+	    for (int i = 0; i < r.nComp(); i++) {
 	      Real *const rptr = r[jgrid].dataPtr(i);
 	      FBREF(rptr, dimlist(rbox), dimlist(b),
 		    rptr, dimlist(rbox), dimlist(bb), idim);
@@ -642,7 +642,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r,
 	    bb.shift(idim, 2 * domain.smallEnd(idim) - 1 + a -
 		     b.bigEnd(idim) - b.smallEnd(idim));
 	    const Box& rbox = r[jgrid].box();
-	    for (int i = 0; i < r.nVar(); i++) {
+	    for (int i = 0; i < r.nComp(); i++) {
 	      Real *const rptr = r[jgrid].dataPtr(i);
 	      FBREF(rptr, dimlist(rbox), dimlist(b),
 		    rptr, dimlist(rbox), dimlist(bb), idim);
@@ -667,7 +667,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r,
 	  bb.shift(idim, 2 * domain.bigEnd(idim) + 1 + a -
 		   b.bigEnd(idim) - b.smallEnd(idim));
 	  const Box& rbox = r[igrid].box();
-	  for (int i = 0; i < r.nVar(); i++) {
+	  for (int i = 0; i < r.nComp(); i++) {
 	    Real *const rptr = r[igrid].dataPtr(i);
 	    if ((i == idim + BL_SPACEDIM) ||
 		(i >= BL_SPACEDIM && idim == BL_SPACEDIM - 1)) {
@@ -685,14 +685,14 @@ void mixed_boundary_class::fill_borders(MultiFab& r,
 		   b.bigEnd(idim) - b.smallEnd(idim));
 	  const Box& rbox = r[igrid].box();
 	  if (idim == flowdim || flowdim == -3) {
-	    for (int i = 0; i < r.nVar(); i++) {
+	    for (int i = 0; i < r.nComp(); i++) {
 	      Real *const rptr = r[igrid].dataPtr(i);
 	      FBNEG(rptr, dimlist(rbox), dimlist(b),
 		    rptr, dimlist(rbox), dimlist(bb), idim);
 	    }
 	  }
 	  else {
-	    for (int i = 0; i < r.nVar(); i++) {
+	    for (int i = 0; i < r.nComp(); i++) {
 	      Real *const rptr = r[igrid].dataPtr(i);
 	      FBREF(rptr, dimlist(rbox), dimlist(b),
 		    rptr, dimlist(rbox), dimlist(bb), idim);
@@ -702,7 +702,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r,
 	else if (t == periodic) {
 	  int isrc = interface.exterior_ref(jgrid);
 	  bb.shift(idim, -domain.length(idim));
-	  r[igrid].copy(r[isrc], bb, 0, b, 0, r.nVar());
+	  r[igrid].copy(r[isrc], bb, 0, b, 0, r.nComp());
 	}
 	else if (t == inflow) {
 	  bb.shift(idim, 2 * domain.bigEnd(idim) + 1 + a -
@@ -716,7 +716,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r,
 	  else if (flowdim == -1) {
 	    //BoxLib::Error("mixed_boundary_class::Don't know how to do inflow density");
 	    // Inflow density---just reflect interior for now
-	    for (int i = 0; i < r.nVar(); i++) {
+	    for (int i = 0; i < r.nComp(); i++) {
 	      Real *const rptr = r[igrid].dataPtr(i);
 	      FBREF(rptr, dimlist(rbox), dimlist(b),
 		    rptr, dimlist(rbox), dimlist(bb), idim);
@@ -749,7 +749,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r,
 	    bb.shift(idim, 2 * domain.bigEnd(idim) + 1 + a -
 		     b.bigEnd(idim) - b.smallEnd(idim));
 	    const Box& rbox = r[igrid].box();
-	    for (int i = 0; i < r.nVar(); i++) {
+	    for (int i = 0; i < r.nComp(); i++) {
 	      Real *const rptr = r[igrid].dataPtr(i);
 	      FBREF(rptr, dimlist(rbox), dimlist(b),
 		    rptr, dimlist(rbox), dimlist(bb), idim);
@@ -767,7 +767,7 @@ void mixed_boundary_class::set_sync_cache(copy_cache* cache,
 					  const level_interface&
 					  interface) const
 {
-  if (r.nVar() != 1)
+  if (r.nComp() != 1)
     BoxLib::Error("mixed_boundary_class::set_sync_cache---only single components currently supported");
   if (type(r) != nodevect)
     BoxLib::Error("mixed_boundary_class::set_sync_cache---only NODE-based sync defined");
@@ -881,7 +881,7 @@ void mixed_boundary_class::set_border_cache(copy_cache* cache,
 					    const level_interface& interface,
 					    int w) const
 {
-  if (r.nVar() != 1)
+  if (r.nComp() != 1)
     BoxLib::Error("mixed_boundary_class::set_border_cache---only single components currently supported");
   if (w != 1 || type(r) != nodevect)
     BoxLib::Error("mixed_boundary_class::set_border_cache---only width 1 borders currently supported");
@@ -1462,7 +1462,7 @@ int mixed_boundary_class::fill_patch_special(Fab& patch,
       }
       if (bdir != 0) {
 	Box bb = box(region, domain, bdir);
-	Fab gb(bb, patch.nVar());
+	Fab gb(bb, patch.nComp());
 	idim = i + 1;
 	int retval = 0;
 	// to reenable fill_patch_special, provide a substitute for

@@ -1,5 +1,7 @@
+#include <new>
+using std::set_new_handler;
 
-#ifndef UNICOS
+#if	!defined( UNICOS ) && 0
 #  define USE_GRAPHICS
 #endif
 
@@ -28,6 +30,8 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain);
 
 main(int argc, char **argv)
 {
+  set_new_handler(Utility::OutOfMemory);
+  StartParallel(1);
 #ifdef USE_GRAPHICS
   gopen(5);
   black();
@@ -61,6 +65,7 @@ main(int argc, char **argv)
 #ifdef USE_GRAPHICS
   gclose();
 #endif
+  EndParallel();
 }
 
 void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m,
@@ -297,7 +302,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
   for (ilev = 0; ilev < m.length(); ilev++) {
     BoxArray& cmesh = m[ilev];
     BoxArray nmesh = cmesh;
-    nmesh.convert(nodevect);
+    nmesh.convert(IndexType(nodevect));
     for (i = 0; i < BL_SPACEDIM; i++)
       u[i].set(ilev, new MultiFab(cmesh, 1, 1));
     p.set(ilev, new MultiFab(nmesh, 1, 1));

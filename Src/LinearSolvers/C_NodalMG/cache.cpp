@@ -34,7 +34,7 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
 		       amr_boundary bdy)
 {
   assert(r.length() > 0);
-  assert(r.nVar() == 1);
+  assert(r.nComp() == 1);
   assert(type(r) == nodevect);
 
   DECLARE_GEOMETRY_TYPES;
@@ -293,7 +293,7 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
 		       amr_boundary bdy, int w)
 {
   assert(r.length() > 0);
-  assert(r.nVar() == 1);
+  assert(r.nComp() == 1);
   assert(type(r) == nodevect);
 
   w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;

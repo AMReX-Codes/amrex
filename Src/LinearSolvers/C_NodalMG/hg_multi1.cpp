@@ -242,7 +242,7 @@ void holy_grail_sigma_restrictor_class::fill(Fab& patch,
 
 #else
 
-  if (fgr.nVar() == 1) {
+  if (fgr.nComp() == 1) {
     FORT_HGSRST(patch.dataPtr(0), patch.dataPtr(1),
 #  if (BL_SPACEDIM == 3)
 		patch.dataPtr(2),
@@ -413,7 +413,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
   sigma_node.resize(mglev_max + 1);
   for (mglev = 0; mglev <= mglev_max; mglev++) {
     BoxArray mesh = mg_mesh[mglev];
-    mesh.convert(nodevect);
+    mesh.convert(IndexType(nodevect));
     sigma_node.set(mglev, new MultiFab(mesh, BL_SPACEDIM, 1));
     sigma_node[mglev].setVal(1.e20);
   }

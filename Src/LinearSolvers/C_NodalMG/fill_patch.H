@@ -52,7 +52,7 @@ inline void internal_copy(MultiFab& r,
   Real *const sptr = r[srcgrid].dataPtr();
   const Box& dbx = r[destgrid].box();
   const Box& sbx = r[srcgrid].box();
-  FFCPY(dptr, dimlist(dbx), dimlist(b), sptr, dimlist(sbx), r.nVar());
+  FFCPY(dptr, dimlist(dbx), dimlist(b), sptr, dimlist(sbx), r.nComp());
 }
 
 Real inner_product(MultiFab& r, MultiFab& s);

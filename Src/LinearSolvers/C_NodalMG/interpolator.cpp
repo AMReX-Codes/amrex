@@ -36,7 +36,7 @@ void bilinear_interpolator_class::fill(Fab& patch,
 				       const IntVect& rat) const
 {
   if (patch.box().cellCentered()) {
-    for (int i = 0; i < patch.nVar(); i++) {
+    for (int i = 0; i < patch.nComp(); i++) {
       FACINT2(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
 	      cgr.dataPtr(i), dimlist(cgr.box()), dimlist(cb),
 	      D_DECL(rat[0], rat[1], rat[2]));
@@ -45,15 +45,15 @@ void bilinear_interpolator_class::fill(Fab& patch,
   else if (patch.box().type() == nodevect) {
     Box eregion = refine(cb, rat);
     if (eregion == region) {
-      for (int i = 0; i < patch.nVar(); i++) {
+      for (int i = 0; i < patch.nComp(); i++) {
 	FANINT2(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
 		cgr.dataPtr(i), dimlist(cgr.box()), dimlist(cb),
 		D_DECL(rat[0], rat[1], rat[2]));
       }
     }
     else {
-      Fab epatch(eregion, patch.nVar());
-      for (int i = 0; i < patch.nVar(); i++) {
+      Fab epatch(eregion, patch.nComp());
+      for (int i = 0; i < patch.nComp(); i++) {
 	FANINT2(epatch.dataPtr(i), dimlist(epatch.box()), dimlist(eregion),
 		cgr.dataPtr(i), dimlist(cgr.box()), dimlist(cb),
 		D_DECL(rat[0], rat[1], rat[2]));
