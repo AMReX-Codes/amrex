@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Interpolater.cpp,v 1.11 1998-05-06 17:50:49 lijewski Exp $
+// $Id: Interpolater.cpp,v 1.12 1998-06-30 04:08:16 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -245,13 +245,16 @@ GetBCArray (const Array<BCRec>& bcr)
 }
 
 void
-CellConservative::interp (const FArrayBox& crse, int crse_comp,
-                          FArrayBox& fine, int fine_comp,
-                          int ncomp,
-                          const Box& fine_region, const IntVect & ratio,
-                          const Geometry& crse_geom,
-                          const Geometry& fine_geom,
-                          Array<BCRec>& bcr)
+CellConservative::interp (const FArrayBox& crse,
+                          int              crse_comp,
+                          FArrayBox&       fine,
+                          int              fine_comp,
+                          int              ncomp,
+                          const Box&       fine_region,
+                          const IntVect &  ratio,
+                          const Geometry&  crse_geom,
+                          const Geometry&  fine_geom,
+                          Array<BCRec>&    bcr)
 {
     assert(bcr.length() >= ncomp);
     assert(fine_geom.Domain().contains(fine_region));
@@ -259,10 +262,9 @@ CellConservative::interp (const FArrayBox& crse, int crse_comp,
     // Make box which is intersection of fine_region and domain of fine.
     //
     Box target_fine_region = fine_region & fine.box();
-
-    Box crse_bx(::coarsen(target_fine_region,ratio));
-    Box fslope_bx(::refine(crse_bx,ratio));
-    Box cslope_bx(crse_bx);
+    Box crse_bx            = ::coarsen(target_fine_region,ratio);
+    Box fslope_bx          = ::refine(crse_bx,ratio);
+    Box cslope_bx          = crse_bx;
     cslope_bx.grow(1);
     assert(crse.box().contains(cslope_bx));
     //
@@ -277,6 +279,7 @@ CellConservative::interp (const FArrayBox& crse, int crse_comp,
         delete [] cslope;
         cslope = new Real[slope_len];
     }
+
     int loslp = cslope_bx.index(crse_bx.smallEnd());
     int hislp = cslope_bx.index(crse_bx.bigEnd());
 
@@ -297,6 +300,7 @@ CellConservative::interp (const FArrayBox& crse, int crse_comp,
         delete [] strip;
         strip = new Real[strip_len];
     }
+
     Real* fstrip = strip;
     Real* foff   = fstrip + f_len;
     Real* fslope = foff + f_len;
