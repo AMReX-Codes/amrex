@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.68 1998-07-27 21:14:16 lijewski Exp $
+// $Id: FabArray.H,v 1.69 1998-07-27 21:33:06 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -42,10 +42,7 @@ using std::vector;
 #include <ParallelDescriptor.H>
 #include <RunStats.H>
 #include <Tracer.H>
-
-#ifdef BL_USE_MPI
-#include <mpi.h>
-#endif
+#include <ccse-mpi.H>
 
 class FillBoxId
 {
