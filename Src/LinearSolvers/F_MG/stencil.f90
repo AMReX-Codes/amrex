@@ -260,6 +260,59 @@ contains
     call saxpy(rr, ff, -ONE, rr)
   end subroutine stencil_defect_st
 
+  subroutine stencil_apply_st_c(st, rr, cr, uu, cu)
+    type(stencil), intent(in) :: st
+    type(multifab), intent(inout) :: rr
+    type(multifab), intent(inout) :: uu
+    integer, intent(in) :: cr, cu
+    real(kind=dp_t), pointer :: rp(:,:,:,:)
+    real(kind=dp_t), pointer :: up(:,:,:,:)
+    real(kind=dp_t), pointer :: upn(:,:,:,:)
+    real(kind=dp_t), pointer :: sp(:,:,:,:)
+    integer        , pointer :: mp(:,:,:,:)
+    integer i
+    !   integer :: nn = 21
+    logical :: skwd
+
+    call multifab_fill_boundary(uu)
+    if ( st%extrap_bc) then
+       !      call multifab_print(uu, unit=nn); nn = nn + 1
+       call stencil_extrap_bc(st, uu)
+       !      call multifab_print(uu, unit=nn); nn = nn + 1
+    end if
+
+    do i = 1, rr%nboxes; if ( multifab_remote(rr, i) ) cycle
+       rp => dataptr(rr, i, get_ibox(rr,i), cr)
+       up => dataptr(uu, i, cu)
+       upn => dataptr(uu, i, get_ibox(uu,i), cu)
+       sp => dataptr(st%ss, i)
+       mp => dataptr(st%mm, i)
+       select case ( st%type )
+       case (ST_DIAG)
+          rp = sp*upn
+       case (ST_CROSS)
+          skwd = st%skewed(i)
+          select case( st%dim )
+          case (1)
+             call stencil_apply_1d(sp(:,1,1,:), rp(:,1,1,1), up(:,1,1,1), mp(:,1,1,1), uu%ng, skwd)
+          case (2)
+             call stencil_apply_2d(sp(:,:,1,:), rp(:,:,1,1), up(:,:,1,1), mp(:,:,1,1), uu%ng, skwd)
+          case (3)
+             call stencil_apply_3d(sp(:,:,:,:), rp(:,:,:,1), up(:,:,:,1), mp(:,:,:,1), uu%ng, skwd)
+          end select
+       case (ST_DENSE)
+          select case( st%dim )
+          case (1)
+             call stencil_dense_apply_1d(sp(:,1,1,:), rp(:,1,1,1), up(:,1,1,1), mp(:,1,1,1), uu%ng)
+          case (2)
+             call stencil_dense_apply_2d(sp(:,:,1,:), rp(:,:,1,1), up(:,:,1,1), mp(:,:,1,1), uu%ng)
+          case (3)
+             call stencil_dense_apply_3d(sp(:,:,:,:), rp(:,:,:,1), up(:,:,:,1), mp(:,:,:,1), uu%ng)
+          end select
+       end select
+    end do
+  end subroutine stencil_apply_st_c
+
   subroutine stencil_apply_st(st, rr, uu, c, mask)
     type(stencil), intent(in) :: st
     type(multifab), intent(inout) :: rr
