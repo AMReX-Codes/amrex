@@ -16,6 +16,11 @@ ifeq ($(MACHINE), Linux)
     LIBRARY_LOCATIONS += $(MPI_HOME)/lib/LINUX/ch_p4
     INCLUDE_LOCATIONS += $(MPI_HOME)/lib/LINUX/ch_p4
   endif
+  ifeq ($(WHICHLINUX), ALPHACLUSTER)
+    MPI_HOME=/usr/local/pkg/mpich
+    LIBRARY_LOCATIONS += $(MPI_HOME)/build/LINUX/ch_p4/lib
+    INCLUDE_LOCATIONS += $(MPI_HOME)/build/LINUX/ch_p4/include
+  endif
   ifndef MPI_HOME
       MPI_HOME=/usr/local/mpich
   endif

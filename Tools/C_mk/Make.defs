@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.27 1999-09-18 00:50:34 vince Exp $
+# Make.defs $Id: Make.defs,v 1.28 1999-10-15 23:44:30 vince Exp $
 #
 
 #
@@ -79,10 +79,12 @@ endif
 # Set special flag for the Linux cluster (n2001.lbl.gov)
 #
 ifeq ($(MACHINE), Linux)
+  WHICHLINUX := GENERICLINUX
   ifeq ($(findstring n2001, $(UNAMEN)), n2001)
     WHICHLINUX := PCCLUSTER
-  else
-    WHICHLINUX := GENERICLINUX
+  endif
+  ifeq ($(findstring xfe1, $(UNAMEN)), xfe1)
+    WHICHLINUX := ALPHACLUSTER
   endif
 endif
 
