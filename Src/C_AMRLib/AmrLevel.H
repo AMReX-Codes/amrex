@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.30 1999-05-07 20:39:40 marc Exp $
+// $Id: AmrLevel.H,v 1.31 1999-07-12 16:42:11 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -437,7 +437,10 @@ class FillPatchIterator
     Array<Array<Array<Array<FillBoxId> > > > m_fbid;// [grid][level][fillablesubbox][oldnew]
     BoxArray                     m_ba;
     Array<IntVect>               m_pshifts;
+    Array<BCRec>                 m_bcr;
     FArrayBox                    m_fab;
+    FArrayBox                    m_finefab;  // a temporary
+    FArrayBox                    m_crsefab;  // a temporary
     Real                         m_time;
     int                          m_growsize;
     int                          m_stateindex;
