@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.53 2002-06-04 17:42:37 car Exp $
+# Make.defs $Id: Make.defs,v 1.54 2002-06-18 14:26:24 car Exp $
 #
 
 #
@@ -425,6 +425,7 @@ DEFINES += -DBL_ARCH_CRAY
 endif
 
 includes	= $(addprefix -I, $(INCLUDE_LOCATIONS))
+fincludes	= $(includes)
 
 CPPFLAGS	+= $(DEFINES) $(includes)
 
