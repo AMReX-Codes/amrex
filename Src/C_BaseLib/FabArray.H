@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.121 2001-07-18 19:37:19 lijewski Exp $
+// $Id: FabArray.H,v 1.122 2001-07-18 22:21:15 car Exp $
 //
 
 #include <climits>
@@ -26,9 +26,7 @@
 #include <RunStats.H>
 #include <ccse-mpi.H>
 
-#ifdef BL3_PROFILING
-#include <BoxLib3/Profiler.H>
-#endif
+#include <BoxLib/Profiler.H>
 
 #ifdef BL_NAMESPACE
 namespace BL_NAMESPACE
@@ -1216,9 +1214,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                        int                    dcomp,
                        int                    ncomp)
 {
-#ifdef BL3_PROFILING
-  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::copy()");
-#endif
+  BL_PROFILE(BL_PROFILE_THIS_NAME() + "::copy()");
 
 #ifdef BL_USE_MPI
 
@@ -1487,9 +1483,7 @@ FabArray<T,FAB>::copy (FAB&       dest,
                        int        dcomp,
                        int        ncomp) const
 {
-#ifdef BL3_PROFILING
-    BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::copy(Fab&, ...)");
-#endif
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::copy(Fab&, ...)");
     BL_ASSERT(dcomp + ncomp <= dest.nComp());
 
     if (ParallelDescriptor::NProcs() == 1)
@@ -2244,9 +2238,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
 
     if (NProcs == 1) return;
 
-#ifdef BL3_PROFILING
-    BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::CollectData()");
-#endif
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::CollectData()");
 
 #ifdef BL_USE_MPI
     const int MyProc = ParallelDescriptor::MyProc();
