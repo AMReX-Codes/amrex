@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.3 1997-09-19 18:04:35 vince Exp $
+// $Id: ParallelDescriptor.H,v 1.4 1997-11-11 19:20:06 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -133,10 +133,10 @@ public:
         return false;  // no messages waiting
     } 
 
-    static void SendData (int              toproc,
-                          const FabComTag& messageHeader,
-                          const void*      data,
-                          int              datasizeinbytes) {}
+    static void SendData (int         toproc,
+                          const void* messageHeader,
+                          const void* data,
+                          int         datasizeinbytes) {}
 
     static void ReceiveData (void* data,
                              int   datasizeinbytes) {}
@@ -224,12 +224,12 @@ class ParallelDescriptor
             ? false  // By bsp definition
             : true;  // A message is waiting
     } 
-    static void SendData (int              toproc,
-                          const FabComTag& messageHeader,
-                          const void*      data,
-                          int              datasizeinbytes)
+    static void SendData (int         toproc,
+                          const void* messageHeader,
+                          const void* data,
+                          int         datasizeinbytes)
     {
-        bsp_send(toproc, &messageHeader, data, datasizeinbytes);
+        bsp_send(toproc, messageHeader, data, datasizeinbytes);
     }
     static void ReceiveData (void* data,
                              int   datasizeinbytes)

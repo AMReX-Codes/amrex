@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.13 1997-10-21 21:55:53 vince Exp $
+// $Id: FabArray.H,v 1.14 1997-11-11 19:20:05 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1187,7 +1187,8 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
                             fabComTag.nComp    = farray.nComp();
                             fabComTag.box      = destBox;
 
-                            ParallelDescriptor::SendData(fabComTag.toProc, fabComTag,
+                            ParallelDescriptor::SendData(fabComTag.toProc,
+                                                         &fabComTag,
                                                          tempFab.dataPtr(),
                                                          fabComTag.box.numPts() *
                                                          fabComTag.nComp * sizeof(T));
@@ -2251,7 +2252,10 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
         assert(fctli().procThatNeedsData == myproc);
         assert(fctli().procThatHasData   != myproc);
         assert(fctli().subBox.ok());
-        ParallelDescriptor::SendData(fctli().procThatHasData, fctli(), NULL, 0);
+        ParallelDescriptor::SendData(fctli().procThatHasData,
+                                     &fctli(),
+                                     NULL,
+                                     0);
     }
     fabComTagList.clear();
 
@@ -2285,7 +2289,8 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
             //
             // ^ copy to zero component of temp fab
             //
-            ParallelDescriptor::SendData(fabComTag.procThatNeedsData, fabComTag,
+            ParallelDescriptor::SendData(fabComTag.procThatNeedsData,
+                                         &fabComTag,
                                          tempFab.dataPtr(),
                                          tempFab.box().numPts() *
                                          tempFab.nComp() * sizeof(T));

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.15 1997-11-11 01:18:16 lijewski Exp $
+// $Id: VisMF.cpp,v 1.16 1997-11-11 19:20:07 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -269,6 +269,10 @@ VisMF::Header::Header ()
     m_vers(0)
 {}
 
+//
+// The more-or-less complete header only exists at PD::IOProcessor().
+//
+
 VisMF::Header::Header (const MultiFab& mf,
                        VisMF::How      how)
     :
@@ -281,18 +285,89 @@ VisMF::Header::Header (const MultiFab& mf,
     m_min(m_ba.length()),
     m_max(m_ba.length())
 {
-    for (long i = 0, N = m_min.length(); i < N; i++)
+    //
+    // Structure we use to pass min/max data to the IOProcessor.
+    //
+    // The variable length part of the message is 2*m_ncomp array of Reals.
+    // The first part being the min values and the second the max values.
+    //
+    struct
     {
-        m_min[i].resize(m_ncomp);
-        m_max[i].resize(m_ncomp);
+        int m_index; // Index of the FAB.
+    }
+    msg_hdr;
 
-        const Box& valid_box = m_ba[i];
+    int msg_hdr_size = sizeof(msg_hdr);
+    PD::SetMessageHeaderSize(msg_hdr_size);
+    //
+    // Note that m_min and m_max are only calculated on CPU owning the fab.
+    // We pass this data back to IOProcessor() so it sees the whole Header.
+    //
+    for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+    {
+        int idx = mfi.index();
+
+        m_min[idx].resize(m_ncomp);
+        m_max[idx].resize(m_ncomp);
+
+        const Box& valid_box = m_ba[idx];
+
+        const FArrayBox& fab = mfi();
+
+        assert(fab.box().contains(valid_box));
 
         for (long j = 0; j < m_ncomp; j++)
         {
-            m_min[i][j] = mf[i].min(valid_box,j);
-            m_max[i][j] = mf[i].max(valid_box,j);
+            m_min[idx][j] = fab.min(valid_box,j);
+            m_max[idx][j] = fab.max(valid_box,j);
         }
+
+        if (!PD::IOProcessor())
+        {
+            msg_hdr.m_index = idx;
+
+            Real* min_n_max = new Real[2 * m_ncomp];
+            if (min_n_max == 0)
+                BoxLib::OutOfMemory(__FILE__, __LINE__);
+
+            for (int i = 0; i < m_ncomp; i++)
+            {
+                min_n_max[i]           = m_min[idx][i];
+                min_n_max[m_ncomp + i] = m_max[idx][i];
+            }
+
+            PD::SendData(PD::IOProcessor(),
+                         &msg_hdr,
+                         min_n_max,
+                         2 * sizeof(Real) * m_ncomp);
+
+            delete [] min_n_max;
+        }
+    }
+
+    for (int len; PD::GetMessageHeader(len, &msg_hdr); )
+    {
+        assert(PD::IOProcessor());
+
+        assert(len == 2 * sizeof(Real) * m_ncomp);
+
+        m_min[msg_hdr.m_index].resize(m_ncomp);
+        m_max[msg_hdr.m_index].resize(m_ncomp);
+
+        Real* min_n_max = new Real[2 * m_ncomp];
+        if (min_n_max == 0)
+            BoxLib::OutOfMemory(__FILE__, __LINE__);
+
+        PD::ReceiveData(min_n_max, len);
+
+        for (int i = 0; i < m_ncomp; i++)
+        {
+            m_min[msg_hdr.m_index][i] = min_n_max[i];
+            m_max[msg_hdr.m_index][i] = min_n_max[m_ncomp + i];
+
+        }
+
+        delete [] min_n_max;
     }
 }
 
@@ -305,9 +380,6 @@ VisMF::WriteHeader (const aString& mf_name,
     //
     if (PD::IOProcessor())
     {
-        //
-        // TODO -- all headers must be passed to IOProcessor for reduction.
-        //
         aString MFHdrFileName = mf_name;
 
         MFHdrFileName += VisMF::MultiFabHdrFileSuffix;
@@ -336,26 +408,30 @@ void
 VisMF::WriteOneFilePerCPU (const MultiFab& mf,
                            const aString&  mf_name)
 {
+    //
+    // Structure we use to pass FabOnDisk data to the IOProcessor.
+    //
+    // The variable length part of the message is name of the on-disk FAB.
+    //
+    struct
+    {
+        int  m_index;    // Index of the FAB.
+        long m_head;     // Offset of the FAB in the file.
+    }
+    msg_hdr;
+
     VisMF::Header hdr(mf, VisMF::OneFilePerCPU);
 
     aString FabFileName = mf_name;
 
     FabFileName += VisMF::FabFileSuffix;
-    FabFileName += VisMF::ToString(PD::NProcs());
+    FabFileName += VisMF::ToString(PD::MyProc());
 
     {
         ofstream FabFile(FabFileName.c_str());
 
-        if (!FabFile.good())
-        {
-            aString msg("Couldn't open file: ");
-            msg += FabFileName;
-            BoxLib::Error(msg.c_str());
-        }
-
-        FabComTag MsgHdr;
-        int MsgHdrSize = sizeof(FabComTag);
-        PD::SetMessageHeaderSize(MsgHdrSize);
+        int msg_hdr_size = sizeof(msg_hdr);
+        PD::SetMessageHeaderSize(msg_hdr_size);
 
         for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
         {
@@ -363,41 +439,33 @@ VisMF::WriteOneFilePerCPU (const MultiFab& mf,
 
             if (!PD::IOProcessor())
             {
-                MsgHdr.fabIndex = mfi.index();
-                //
-                // Marshall the variable length data into an ASCII string.
-                //
-                aString data = VisMF::ToString(hdr.m_fod[mfi.index()].m_head);
-                data += '\n';
-                data += hdr.m_fod[mfi.index()].m_name;
+                msg_hdr.m_index = mfi.index();
+                msg_hdr.m_head  = hdr.m_fod[mfi.index()].m_head;
                 PD::SendData(PD::IOProcessor(),
-                             MsgHdr,
-                             data.c_str(),
-                             data.length()+1);
+                             &msg_hdr,
+                             FabFileName.c_str(),
+                             FabFileName.length()+1); // Include NULL in MSG.
             }
         }
         //
-        // Destruct FabFile -- close the open file before open another :-)
+        // Destruct FabFile -- close the open file before opening Header :-)
         //
     }
 
-    for (int data_length; PD::GetMessageHeader(data_length, &MsgHdr); )
+    for (int len; PD::GetMessageHeader(len, &msg_hdr); )
     {
-        assert(PD::MyProc() == PD::IOProcessor());
+        assert(PD::IOProcessor());
 
-        char* data = new char[data_length];
-        if (data == 0)
+        char* fab_name = new char[len];
+        if (fab_name == 0)
             BoxLib::OutOfMemory(__FILE__, __LINE__);
 
-        PD::ReceiveData(data, data_length);
-        //
-        // Unmarshall the data from an ASCII string.
-        //
-        char* str_ptr;
-        hdr.m_fod[MsgHdr.fabIndex].m_head = strtol(data, &str_ptr, 10);
-        assert(*str_ptr == '\n');
-        hdr.m_fod[MsgHdr.fabIndex].m_name = ++str_ptr;
-        delete [] data;
+        PD::ReceiveData(fab_name, len);
+
+        hdr.m_fod[msg_hdr.m_index].m_head = msg_hdr.m_head;
+        hdr.m_fod[msg_hdr.m_index].m_name = fab_name;
+
+        delete [] fab_name;
     }
 
     VisMF::WriteHeader(mf_name, hdr);
@@ -417,13 +485,6 @@ VisMF::WriteOneFilePerFab (const MultiFab& mf,
         FabFileName += VisMF::ToString(mfi.index());
 
         ofstream FabFile(FabFileName.c_str());
-
-        if (!FabFile.good())
-        {
-            aString msg("Couldn't open file: ");
-            msg += FabFileName;
-            BoxLib::Error(msg.c_str());
-        }
 
         hdr.m_fod[mfi.index()] = VisMF::Write(mfi(), FabFileName, FabFile);
     }

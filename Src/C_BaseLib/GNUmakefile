@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.2 1997-09-15 20:45:43 lijewski Exp $
+# $Id: GNUmakefile,v 1.3 1997-11-11 19:20:06 lijewski Exp $
 #
 
 #
@@ -32,7 +32,29 @@ COMP = KCC
 #
 LBASE = box
 
+#
+# Should we use BSP?
+#
+USE_BSP = TRUE
+
 include ../mk/Make.defs Make.package
+
+#
+# BSP parallel locations
+#
+ifeq ($(USE_BSP),TRUE)
+DEFINES += -DBL_USE_BSP
+BSP_HOME = /usr/people/vince/Parallel/BSP/BSP
+INCLUDE_LOCATIONS += $(BSP_HOME)/include
+LIBRARY_LOCATIONS += $(BSP_HOME)/lib/OSF1
+LIBRARY_LOCATIONS += $(BSP_HOME)/lib/OSF1/$(BSP_DEVICE)
+LIBRARIES += -lbspcore_O2 -lbsplevel1_O0
+#
+# exception library (for newest bsplib)
+#
+LIBRARY_LOCATIONS += /usr/ccs/lib/cmplrs/cc
+LIBRARIES += -lexc
+endif
 
 all: $(optionsLib)
 
