@@ -4,7 +4,7 @@
 #define _ErrorList_H_
 
 //
-// $Id: ErrorList.H,v 1.5 1998-03-23 21:02:56 lijewski Exp $
+// $Id: ErrorList.H,v 1.6 1998-04-07 15:52:23 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -12,6 +12,20 @@
 #include <aString.H>
 #include <ArrayLim.H>
 
+//
+// Function called by ErrorRec to do tagging of cells for refinement.
+//
+extern "C"
+{
+typedef void (*ErrorFunc)(int* tag, ARLIM_P(tlo), ARLIM_P(thi),
+                          const int* tagval, const int* clearval,
+                          Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
+                          const int* lo, const int * hi, const int* nvar,
+                          const int* domain_lo, const int* domain_hi,
+                          const Real* dx, const Real* xlo,
+                          const Real* prob_lo, const Real* time,
+                          const int* level);
+}
 
 //
 // ErrorRec is designed to tag cells for regridding based on the state
@@ -26,17 +40,6 @@ public:
     // Error types.
     //
     enum ErrorType { Richardson=0, Special };
-    //
-    // Function called by ErrorRec to do tagging of cells for refinement.
-    //
-    typedef void (*ErrorFunc)(int* tag, ARLIM_P(tlo), ARLIM_P(thi),
-                              const int* tagval, const int* clearval,
-                              Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
-                              const int* lo, const int * hi, const int* nvar,
-                              const int* domain_lo, const int* domain_hi,
-                              const Real* dx, const Real* xlo,
-                              const Real* prob_lo, const Real* time,
-                              const int* level);
 
     ErrorRec (const aString& nm,
               int            ng,
@@ -93,7 +96,7 @@ public:
     void add (const aString&      name,
               int                 nextra, 
               ErrorRec::ErrorType typ,
-              ErrorRec::ErrorFunc func)
+              ErrorFunc           func)
     {
         //
         // Keep list in order of definition, append().

@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.30 1998-04-02 00:14:07 lijewski Exp $
+// $Id: FabArray.H,v 1.31 1998-04-07 15:53:04 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -650,9 +650,9 @@ template <class T, class FAB>
 class FabArrayCopyDescriptor
 {
   typedef multimap<int, FabCopyDescriptor<FAB>*> FCDMap;
-  typedef FCDMap::value_type                     FCDMapValueType;
-  typedef FCDMap::iterator                       FCDMapIter;
-  typedef FCDMap::const_iterator                 FCDMapConstIter;
+  typedef typename FCDMap::value_type            FCDMapValueType;
+  typedef typename FCDMap::iterator              FCDMapIter;
+  typedef typename FCDMap::const_iterator        FCDMapConstIter;
 
   public:
 

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.20 1998-02-18 21:31:12 vince Exp $
+// $Id: DistributionMapping.cpp,v 1.21 1998-04-07 15:53:03 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -323,15 +323,12 @@ public:
     WeightedBox (int b, int w) : m_boxid(b), m_weight(w) {}
     long weight () const { return m_weight; }
     int  boxid ()  const { return m_boxid;  }
-};
 
-inline
-bool
-operator< (const WeightedBox& lhs,
-           const WeightedBox& rhs)
-{
-    return lhs.weight()  > rhs.weight();
-}
+    bool operator< (const WeightedBox& rhs) const
+    {
+        return weight() > rhs.weight();
+    }
+};
 
 class WeightedBoxList
 {
@@ -357,15 +354,12 @@ public:
     list<WeightedBox>::iterator begin ()             { return m_lb.begin(); }
     list<WeightedBox>::const_iterator end () const   { return m_lb.end();   }
     list<WeightedBox>::iterator end ()               { return m_lb.end();   }
-};
 
-inline
-bool
-operator< (const WeightedBoxList& lhs,
-           const WeightedBoxList& rhs)
-{
-    return lhs.weight() > rhs.weight();
-}
+    bool operator< (const WeightedBoxList& rhs) const
+    {
+        return weight() > rhs.weight();
+    }
+};
 
 static
 vector< list<int> >
