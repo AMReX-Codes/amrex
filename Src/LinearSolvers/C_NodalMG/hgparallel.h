@@ -42,6 +42,7 @@ public:
     virtual ~task() {}
     virtual bool ready() = 0;
     virtual bool init(sequence_number sno, MPI_Comm comm) = 0;
+    virtual void hint() const { };
 };
 
 class task_copy : public task
@@ -52,6 +53,7 @@ public:
     virtual ~task_copy();
     virtual bool ready();
     virtual bool init(sequence_number sno, MPI_Comm comm);
+    virtual void hint() const;
 protected:
 #ifdef BL_USE_MPI
     MPI_Request m_request;
@@ -122,6 +124,8 @@ private:
     list<task*> tasks;
     MPI_Comm comm;
     task::sequence_number seq_no;
+    bool verbosity;
+    static bool def_verbosity;
 };
 
 class level_interface;
