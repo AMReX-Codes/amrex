@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.84 2002-08-21 20:12:40 car Exp $
+// $Id: AmrLevel.cpp,v 1.85 2002-10-09 13:59:04 car Exp $
 //
 #include <winstd.H>
 
@@ -906,6 +906,8 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
                                int        dcomp,
                                int        idx)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::fill(FArrayBox&...)");
+
     BL_ASSERT(fab.box() == m_ba[idx]);
     BL_ASSERT(fab.nComp() >= dcomp + m_ncomp);
 
