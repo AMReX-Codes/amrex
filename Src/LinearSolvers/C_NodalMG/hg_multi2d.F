@@ -1485,61 +1485,63 @@ c-----------------------------------------------------------------------
       hxm2 = 1.d0 / (hx*hx)
       hym2 = 1.d0 / (hy*hy)
       if (lsd .eq. 1) then
-         do 20 ipass = 0, 1
-         do 20 i = regl0 + ipass, regh0, 2
-            j = regl1
-            betm = -cen(i,j)
-            if (betm .eq. 0.d0) then
+         do ipass = 0, 1
+            do i = regl0 + ipass, regh0, 2
+               j = regl1
+               betm = -cen(i,j)
+               if (betm .eq. 0.d0) then
 c dirichlet bdy:
-               cor(i,j) = 0.d0
-               aj = 0.d0
-               wrk(1) = 0.d0
-            else if (regl1 .eq. doml1) then
+                  cor(i,j) = 0.d0
+                  aj = 0.d0
+                  wrk(1) = 0.d0
+               else if (regl1 .eq. doml1) then
 c neumann bdy:
-               cor(i,j) = RHSL1()* betm
-               aj = 0.5d0 * hym2 * (sigy(i-1,j) + sigy(i,j))
-               wrk(1) = 2.d0 * aj * betm
-            else
+                  cor(i,j) = RHSL1()* betm
+                  aj = 0.5d0 * hym2 * (sigy(i-1,j) + sigy(i,j))
+                  wrk(1) = 2.d0 * aj * betm
+               else
 c interface to grid at same level:
-               aj = 0.5d0 * hym2 * (sigy(i-1,j-1) + sigy(i,j-1))
-               cor(i,j) = (RHSL1() - aj * cor(i,j-1)) * betm
-               aj = 0.5d0 * hym2 * (sigy(i-1,j) + sigy(i,j))
-               wrk(1) = aj * betm
-            end if
+                  aj = 0.5d0 * hym2 * (sigy(i-1,j-1) + sigy(i,j-1))
+                  cor(i,j) = (RHSL1() - aj * cor(i,j-1)) * betm
+                  aj = 0.5d0 * hym2 * (sigy(i-1,j) + sigy(i,j))
+                  wrk(1) = aj * betm
+               end if
 c forward solve loop:
-            do 10 j = regl1 + 1, regh1 - 1
+               do j = regl1 + 1, regh1 - 1
+                  jw = j - regl1
+                  if (cen(i,j) .eq. 0.d0) then
+                     betm = 0.d0
+                  else
+                     betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(jw))
+                  end if
+                  cor(i,j) = (RHSL1() - aj * cor(i,j-1)) * betm
+                  aj = 0.5d0 * hym2 * (sigy(i-1,j) + sigy(i,j))
+                  wrk(jw + 1) = aj * betm
+               end do
+               j = regh1
                jw = j - regl1
                if (cen(i,j) .eq. 0.d0) then
-                  betm = 0.d0
-               else
-                  betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(jw))
-               end if
-               cor(i,j) = (RHSL1() - aj * cor(i,j-1)) * betm
-               aj = 0.5d0 * hym2 * (sigy(i-1,j) + sigy(i,j))
-               wrk(jw + 1) = aj * betm
- 10            continue
-            j = regh1
-            jw = j - regl1
-            if (cen(i,j) .eq. 0.d0) then
 c dirichlet bdy:
-               cor(i,j) = 0.d0
-            else if (regh1 .eq. domh1) then
+                  cor(i,j) = 0.d0
+               else if (regh1 .eq. domh1) then
 c neumann bdy:
-               aj = 2.d0 * aj
-               betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(jw))
-               cor(i,j) = (RHSL1() - aj * cor(i,j-1)) * betm
-            else if (jw .gt. 0) then
+                  aj = 2.d0 * aj
+                  betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(jw))
+                  cor(i,j) = (RHSL1() - aj * cor(i,j-1)) * betm
+               else if (jw .gt. 0) then
 c interface to grid at same level:
-               betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(jw))
-               cor(i,j) = RHSL1() - aj * cor(i,j-1)
-               aj = 0.5d0 * hym2 * (sigy(i-1,j) + sigy(i,j))
-               cor(i,j) = (cor(i,j) - aj * cor(i,j+1)) * betm
-            end if
+                  betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(jw))
+                  cor(i,j) = RHSL1() - aj * cor(i,j-1)
+                  aj = 0.5d0 * hym2 * (sigy(i-1,j) + sigy(i,j))
+                  cor(i,j) = (cor(i,j) - aj * cor(i,j+1)) * betm
+               end if
 c back substitution loop:
-            do 20 j = regh1 - 1, regl1, -1
-               jw = j - regl1
-               cor(i,j) = cor(i,j) - wrk(jw + 1) * cor(i,j+1)
- 20            continue
+               do j = regh1 - 1, regl1, -1
+                  jw = j - regl1
+                  cor(i,j) = cor(i,j) - wrk(jw + 1) * cor(i,j+1)
+               end do
+	      end do
+         end do
       else
          STOP "Line solve implemented in Dimension 1"
       end if
@@ -1588,7 +1590,7 @@ c-----------------------------------------------------------------------
             ioff = 1 - ipass
          end if
          i = regl0
-         do 10 j = regl1 + ioff, regh1, 2
+         do j = regl1 + ioff, regh1, 2
             aj = 0.5d0 * hxm2 * (sigx(i,j-1) + sigx(i,j))
             if (cen(i,j) .eq. 0.d0) then
 c dirichlet bdy:
@@ -1600,10 +1602,10 @@ c neumann bdy:
                wrk(i,j) = 2.d0 * aj * betm
             end if
             wrk(i+1,j) = aj
- 10         continue
+         end do
 c forward solve loop:
-         do 20 i = regl0 + 1, regh0 - 1
-            do 20 j = regl1 + ioff, regh1, 2
+         do i = regl0 + 1, regh0 - 1
+            do j = regl1 + ioff, regh1, 2
                aj = wrk(i,j)
                if (cen(i,j) .eq. 0.d0) then
                   betm = 0.d0
@@ -1613,9 +1615,11 @@ c forward solve loop:
                cor(i,j) = (RHSL0() - aj * cor(i-1,j)) * betm
                aj = 0.5d0 * hxm2 * (sigx(i,j-1) + sigx(i,j))
                wrk(i+1,j) = aj
- 20            wrk(i,j) = aj * betm
+               wrk(i,j) = aj * betm
+            end do
+         end do
          i = regh0
-         do 30 j = regl1 + ioff, regh1, 2
+         do j = regl1 + ioff, regh1, 2
             if (cen(i,j) .eq. 0.d0) then
 c dirichlet bdy:
             else if (regh0 .eq. domh0) then
@@ -1631,7 +1635,7 @@ c interface to grid at same level:
                aj = 0.5d0 * hxm2 * (sigx(i,j-1) + sigx(i,j))
                wrk(i,j) = aj * betm
             end if
- 30         continue
+         end do
       else
          if (mod(regl0,2) .eq. 0) then
             ioff = ipass
@@ -1639,7 +1643,7 @@ c interface to grid at same level:
             ioff = 1 - ipass
          end if
          j = regl1
-         do 110 i = regl0 + ioff, regh0, 2
+         do i = regl0 + ioff, regh0, 2
             aj = 0.5d0 * hym2 * (sigy(i-1,j) + sigy(i,j))
             if (cen(i,j) .eq. 0.d0) then
 c dirichlet bdy:
@@ -1651,10 +1655,10 @@ c neumann bdy:
                wrk(i,j) = 2.d0 * aj * betm
             end if
             wrk(i,j+1) = aj
- 110        continue
+         end do
 c forward solve loop:
-         do 120 j = regl1 + 1, regh1 - 1
-            do 120 i = regl0 + ioff, regh0, 2
+         do j = regl1 + 1, regh1 - 1
+            do i = regl0 + ioff, regh0, 2
                aj = wrk(i,j)
                if (cen(i,j) .eq. 0.d0) then
                   betm = 0.d0
@@ -1664,9 +1668,11 @@ c forward solve loop:
                cor(i,j) = (RHSL1() - aj * cor(i,j-1)) * betm
                aj = 0.5d0 * hym2 * (sigy(i-1,j) + sigy(i,j))
                wrk(i,j+1) = aj
- 120           wrk(i,j) = aj * betm
+               wrk(i,j) = aj * betm
+            end do
+         end do
          j = regh1
-         do 130 i = regl0 + ioff, regh0, 2
+         do i = regl0 + ioff, regh0, 2
             if (cen(i,j) .eq. 0.d0) then
 c dirichlet bdy:
             else if (regh1 .eq. domh1) then
@@ -1682,7 +1688,7 @@ c interface to grid at same level:
                aj = 0.5d0 * hym2 * (sigy(i-1,j) + sigy(i,j))
                wrk(i,j) = aj * betm
             end if
- 130        continue
+         end do
       end if
       end
 c-----------------------------------------------------------------------
@@ -1918,7 +1924,7 @@ c-----------------------------------------------------------------------
             ioff = 1 - ipass
          end if
          i = regl0
-         do 10 j = regl1 + ioff, regh1, 2
+         do j = regl1 + ioff, regh1, 2
             aj = fac *
      &        (2.d0 * (sig(i,j-1,1) + sig(i,j,1)) -
      &         (sig(i,j-1,2) + sig(i,j,2)))
@@ -1932,10 +1938,10 @@ c neumann bdy:
                wrk(i,j) = 2.d0 * aj * betm
             end if
             wrk(i+1,j) = aj
- 10         continue
+         end do
 c forward solve loop:
-         do 20 i = regl0 + 1, regh0 - 1
-            do 20 j = regl1 + ioff, regh1, 2
+         do i = regl0 + 1, regh0 - 1
+            do j = regl1 + ioff, regh1, 2
                aj = wrk(i,j)
                if (cen(i,j) .eq. 0.d0) then
                   betm = 0.d0
@@ -1947,9 +1953,11 @@ c forward solve loop:
      &           (2.d0 * (sig(i,j-1,1) + sig(i,j,1)) -
      &            (sig(i,j-1,2) + sig(i,j,2)))
                wrk(i+1,j) = aj
- 20            wrk(i,j) = aj * betm
+               wrk(i,j) = aj * betm
+            end do
+         end do
          i = regh0
-         do 30 j = regl1 + ioff, regh1, 2
+         do j = regl1 + ioff, regh1, 2
             if (cen(i,j) .eq. 0.d0) then
 c dirichlet bdy:
             else if (regh0 .eq. domh0) then
@@ -1967,7 +1975,7 @@ c interface to grid at same level:
      &            (sig(i,j-1,2) + sig(i,j,2)))
                wrk(i,j) = aj * betm
             end if
- 30         continue
+         end do
       else
          if (mod(regl0,2) .eq. 0) then
             ioff = ipass
@@ -1975,7 +1983,7 @@ c interface to grid at same level:
             ioff = 1 - ipass
          end if
          j = regl1
-         do 110 i = regl0 + ioff, regh0, 2
+         do i = regl0 + ioff, regh0, 2
             aj = fac *
      &        (2.d0 * (sig(i-1,j,2) + sig(i,j,2)) -
      &         (sig(i-1,j,1) + sig(i,j,1)))
@@ -1989,10 +1997,10 @@ c neumann bdy:
                wrk(i,j) = 2.d0 * aj * betm
             end if
             wrk(i,j+1) = aj
- 110        continue
+         end do
 c forward solve loop:
-         do 120 j = regl1 + 1, regh1 - 1
-            do 120 i = regl0 + ioff, regh0, 2
+         do j = regl1 + 1, regh1 - 1
+            do i = regl0 + ioff, regh0, 2
                aj = wrk(i,j)
                if (cen(i,j) .eq. 0.d0) then
                   betm = 0.d0
@@ -2004,9 +2012,11 @@ c forward solve loop:
      &           (2.d0 * (sig(i-1,j,2) + sig(i,j,2)) -
      &            (sig(i-1,j,1) + sig(i,j,1)))
                wrk(i,j+1) = aj
- 120           wrk(i,j) = aj * betm
+               wrk(i,j) = aj * betm 
+            end do
+         end do
          j = regh1
-         do 130 i = regl0 + ioff, regh0, 2
+         do i = regl0 + ioff, regh0, 2
             if (cen(i,j) .eq. 0.d0) then
 c dirichlet bdy:
             else if (regh1 .eq. domh1) then
@@ -2024,7 +2034,7 @@ c interface to grid at same level:
      &            (sig(i-1,j,1) + sig(i,j,1)))
                wrk(i,j) = aj * betm
             end if
- 130        continue
+         end do
       end if
       end
 c-----------------------------------------------------------------------
@@ -2051,8 +2061,8 @@ c-----------------------------------------------------------------------
       double precision fac, tmp
       integer i, j
       fac = 1.d0 / 6.d0
-         do 20 j = regl1, regh1
-            do 20 i = regl0, regh0
+      do j = regl1, regh1
+         do i = regl0, regh0
                tmp =
      &           (sig(i-1,j-1,1) *
      &             (dest(i-1,j-1) - dest(i,j-1) +
@@ -2079,7 +2089,7 @@ c-----------------------------------------------------------------------
      &            sig(i,j,2) *
      &             (dest(i+1,j+1) - dest(i+1,j) +
      &              2.d0 * (dest(i,j+1) - dest(i,j)))))
- 20            res(i,j) = tmp + 0.5d0 *
+               res(i,j) = tmp + 0.5d0 *
      &           (sig(i-1,j-1,3) *
      &             (dest(i-1,j-1) - dest(i,j)) -
      &            sig(i-1,j,3) *
@@ -2088,6 +2098,8 @@ c-----------------------------------------------------------------------
      &             (dest(i+1,j-1) - dest(i,j)) +
      &            sig(i,j,3) *
      &             (dest(i+1,j+1) - dest(i,j)))
+         end do
+      end do
       end
 c-----------------------------------------------------------------------
 c nine-point variable stencils
@@ -2300,8 +2312,8 @@ c-----------------------------------------------------------------------
       fac = 1.d0 / 6.d0
       if (irz .eq. 0) then
          if (lsd .eq. 1) then
-            do 30 ipass = 0, 1
-            do 30 i = regl0 + ipass, regh0, 2
+            do ipass = 0, 1
+            do i = regl0 + ipass, regh0, 2
                j = regl1
                betm = -cen(i,j)
                if (betm .eq. 0.d0) then
@@ -2327,7 +2339,7 @@ c interface to grid at same level:
                   wrk(1) = aj * betm
                end if
 c forward solve loop:
-               do 10 j = regl1 + 1, regh1 - 1
+               do j = regl1 + 1, regh1 - 1
                   jw = j - regl1
                   if (cen(i,j) .eq. 0.d0) then
                      betm = 0.d0
@@ -2339,7 +2351,7 @@ c forward solve loop:
      &              (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
      &               hxm2 * (sigx(i-1,j) + sigx(i,j)))
                   wrk(jw + 1) = aj * betm
- 10               continue
+               end do
                j = regh1
                jw = j - regl1
                if (cen(i,j) .eq. 0.d0) then
@@ -2360,10 +2372,10 @@ c interface to grid at same level:
                   cor(i,j) = (cor(i,j) - aj * cor(i,j+1)) * betm
                end if
 c back substitution loop:
-               do 20 j = regh1 - 1, regl1, -1
+               do j = regh1 - 1, regl1, -1
                   jw = j - regl1
                   cor(i,j) = cor(i,j) - wrk(jw + 1) * cor(i,j+1)
- 20               continue
+               end do
 c update neumann bdys:
                if (regl1 .eq. doml1) then
                   cor(i,regl1-1) = cor(i,regl1+1)
@@ -2371,7 +2383,8 @@ c update neumann bdys:
                if (regh1 .eq. domh1) then
                   cor(i,regh1+1) = cor(i,regh1-1)
                end if
- 30            continue
+            end do
+	      end do
          else
             print *, "Line solve not implemented in dimension", lsd
 		stop
@@ -2381,7 +2394,7 @@ c update neumann bdys:
      &  instead."
          facrz = hx * hym2 / 12.d0
          if (regh1 - regl1 .gt. regh0 - regl0) then
-            do 40 i = regl0, regh0
+            do i = regl0, regh0
                r1 = (i + 0.5d0) * hx
                r0 = r1 - hx
                if (i .eq. imax) then
@@ -2390,18 +2403,20 @@ c update neumann bdys:
 cdir$ ivdep
                do 40 j = regl1, regh1
                   cor(i,j) = (AVGRZ() - res(i,j)) * cen(i,j)
- 40               continue
+               end do
+            end do
          else
-            do 50 j = regl1, regh1
+            do j = regl1, regh1
 cdir$ ivdep
-               do 50 i = regl0, regh0
+               do i = regl0, regh0
                   r1 = (i + 0.5d0) * hx
                   r0 = r1 - hx
                   if (i .eq. imax) then
                      r1 = -r0
                   end if
                   cor(i,j) = (AVGRZ() - res(i,j)) * cen(i,j)
- 50               continue
+               end do
+            end do
          end if
       end if
       end
@@ -2508,7 +2523,7 @@ c-----------------------------------------------------------------------
                ioff = 1 - ipass
             end if
             i = regl0
-            do 10 j = regl1 + ioff, regh1, 2
+            do j = regl1 + ioff, regh1, 2
                aj = fac *
      &           (hxm2 * 2.d0 * (sigx(i,j-1) + sigx(i,j)) -
      &            hym2 * (sigy(i,j-1) + sigy(i,j)))
@@ -2522,10 +2537,10 @@ c neumann bdy:
                   wrk(i,j) = 2.d0 * aj * betm
                end if
                wrk(i+1,j) = aj
- 10            continue
+            end do
 c forward solve loop:
-            do 20 i = regl0 + 1, regh0 - 1
-               do 20 j = regl1 + ioff, regh1, 2
+            do i = regl0 + 1, regh0 - 1
+               do j = regl1 + ioff, regh1, 2
                   aj = wrk(i,j)
                   if (cen(i,j) .eq. 0.d0) then
                      betm = 0.d0
@@ -2537,9 +2552,11 @@ c forward solve loop:
      &              (hxm2 * 2.d0 * (sigx(i,j-1) + sigx(i,j)) -
      &               hym2 * (sigy(i,j-1) + sigy(i,j)))
                   wrk(i+1,j) = aj
- 20               wrk(i,j) = aj * betm
+                  wrk(i,j) = aj * betm
+               end do
+            end do
             i = regh0
-            do 30 j = regl1 + ioff, regh1, 2
+            do j = regl1 + ioff, regh1, 2
                if (cen(i,j) .eq. 0.d0) then
 c dirichlet bdy:
                else if (regh0 .eq. domh0) then
@@ -2557,7 +2574,7 @@ c interface to grid at same level:
      &               hym2 * (sigy(i,j-1) + sigy(i,j)))
                   wrk(i,j) = aj * betm
                end if
- 30            continue
+            end do
          else
             if (mod(regl0,2) .eq. 0) then
                ioff = ipass
@@ -2565,7 +2582,7 @@ c interface to grid at same level:
                ioff = 1 - ipass
             end if
             j = regl1
-            do 110 i = regl0 + ioff, regh0, 2
+            do i = regl0 + ioff, regh0, 2
                aj = fac *
      &           (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
      &            hxm2 * (sigx(i-1,j) + sigx(i,j)))
@@ -2579,10 +2596,10 @@ c neumann bdy:
                   wrk(i,j) = 2.d0 * aj * betm
                end if
                wrk(i,j+1) = aj
- 110           continue
+            end do
 c forward solve loop:
-            do 120 j = regl1 + 1, regh1 - 1
-               do 120 i = regl0 + ioff, regh0, 2
+            do j = regl1 + 1, regh1 - 1
+               do i = regl0 + ioff, regh0, 2
                   aj = wrk(i,j)
                   if (cen(i,j) .eq. 0.d0) then
                      betm = 0.d0
@@ -2594,9 +2611,11 @@ c forward solve loop:
      &              (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
      &               hxm2 * (sigx(i-1,j) + sigx(i,j)))
                   wrk(i,j+1) = aj
- 120              wrk(i,j) = aj * betm
+                  wrk(i,j) = aj * betm
+               end do
+            end do
             j = regh1
-            do 130 i = regl0 + ioff, regh0, 2
+            do i = regl0 + ioff, regh0, 2
                if (cen(i,j) .eq. 0.d0) then
 c dirichlet bdy:
                else if (regh1 .eq. domh1) then
@@ -2614,7 +2633,7 @@ c interface to grid at same level:
      &               hxm2 * (sigx(i-1,j) + sigx(i,j)))
                   wrk(i,j) = aj * betm
                end if
- 130           continue
+            end do
          end if
       else
          facrz = hx * hym2 / 12.d0
@@ -2627,7 +2646,7 @@ c interface to grid at same level:
             i = regl0
             r1 = (i + 0.5d0) * hx
             r0 = r1 - hx
-            do 210 j = regl1 + ioff, regh1, 2
+            do j = regl1 + ioff, regh1, 2
                aj = fac *
      &           (hxm2 * 2.d0 * (sigx(i,j-1) + sigx(i,j)) -
      &            hym2 * (sigy(i,j-1) + sigy(i,j)))
@@ -2641,12 +2660,12 @@ c neumann bdy:
                   wrk(i,j) = 2.d0 * aj * betm
                end if
                wrk(i+1,j) = aj
- 210           continue
+            end do
 c forward solve loop:
-            do 220 i = regl0 + 1, regh0 - 1
+            do i = regl0 + 1, regh0 - 1
                r1 = (i + 0.5d0) * hx
                r0 = r1 - hx
-               do 220 j = regl1 + ioff, regh1, 2
+               do j = regl1 + ioff, regh1, 2
                   aj = wrk(i,j)
                   if (cen(i,j) .eq. 0.d0) then
                      betm = 0.d0
@@ -2658,14 +2677,16 @@ c forward solve loop:
      &              (hxm2 * 2.d0 * (sigx(i,j-1) + sigx(i,j)) -
      &               hym2 * (sigy(i,j-1) + sigy(i,j)))
                   wrk(i+1,j) = aj
- 220              wrk(i,j) = aj * betm
+                  wrk(i,j) = aj * betm
+               end do
+            end do
             i = regh0
             r1 = (i + 0.5d0) * hx
             r0 = r1 - hx
             if (i .eq. imax) then
                r1 = -r0
             end if
-            do 230 j = regl1 + ioff, regh1, 2
+            do j = regl1 + ioff, regh1, 2
                if (cen(i,j) .eq. 0.d0) then
 c dirichlet bdy:
                else if (regh0 .eq. domh0) then
@@ -2683,7 +2704,7 @@ c interface to grid at same level:
      &               hym2 * (sigy(i,j-1) + sigy(i,j)))
                   wrk(i,j) = aj * betm
                end if
- 230           continue
+            end do
          else
             if (mod(regl0,2) .eq. 0) then
                ioff = ipass
@@ -2691,7 +2712,7 @@ c interface to grid at same level:
                ioff = 1 - ipass
             end if
             j = regl1
-            do 310 i = regl0 + ioff, regh0, 2
+            do i = regl0 + ioff, regh0, 2
                r1 = (i + 0.5d0) * hx
                r0 = r1 - hx
                if (i .eq. imax) then
@@ -2711,10 +2732,10 @@ c neumann bdy:
                   wrk(i,j) = 2.d0 * aj * betm
                end if
                wrk(i,j+1) = aj
- 310           continue
+            end do
 c forward solve loop:
-            do 320 j = regl1 + 1, regh1 - 1
-               do 320 i = regl0 + ioff, regh0, 2
+            do j = regl1 + 1, regh1 - 1
+               do i = regl0 + ioff, regh0, 2
                   r1 = (i + 0.5d0) * hx
                   r0 = r1 - hx
                   if (i .eq. imax) then
@@ -2732,9 +2753,11 @@ c forward solve loop:
      &                    hxm2 * (sigx(i-1,j) + sigx(i,j))) +
      &                 facrz * (sigy(i-1,j) / r0 - sigy(i,j) / r1)
                   wrk(i,j+1) = aj
- 320              wrk(i,j) = aj * betm
+                  wrk(i,j) = aj * betm
+               end do
+            end do
             j = regh1
-            do 330 i = regl0 + ioff, regh0, 2
+            do i = regl0 + ioff, regh0, 2
                if (cen(i,j) .eq. 0.d0) then
 c dirichlet bdy:
                else if (regh1 .eq. domh1) then
@@ -2758,7 +2781,7 @@ c interface to grid at same level:
      &                 facrz * (sigy(i-1,j) / r0 - sigy(i,j) / r1)
                   wrk(i,j) = aj * betm
                end if
- 330           continue
+            end do
          end if
       end if
       end
