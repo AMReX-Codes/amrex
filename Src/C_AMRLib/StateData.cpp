@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateData.cpp,v 1.7 1997-11-26 20:41:44 lijewski Exp $
+// $Id: StateData.cpp,v 1.8 1997-12-02 21:30:56 lijewski Exp $
 //
 
 #include <RunStats.H>
@@ -18,19 +18,17 @@ const int MFNEWDATA = 0;
 const int MFOLDDATA = 1;
 
 #ifdef __GNUG__
-    StateData::StateData(const StateData&)
+StateData::StateData(const StateData&)
 {
     BoxLib::Error("Don't call this function!");
 }
-    StateData& StateData::operator= (const StateData&)
+StateData& StateData::operator= (const StateData&)
 {
     BoxLib::Error("Don't call this function!");
 }
 #endif
 
 StateData::StateData () 
-    :
-    bc()
 {
    desc = 0;
    new_data = old_data = 0;
@@ -82,8 +80,10 @@ StateData::define (const Box&             p_domain,
 	old_time.stop  = time;
     }
     int ncomp = desc->nComp();
+
     if ((new_data = new MultiFab(grids,ncomp,desc->nExtra(),Fab_allocate)) == 0)
         BoxLib::OutOfMemory(__FILE__, __LINE__);
+
     old_data = 0;
     buildBC();
 }
@@ -161,7 +161,9 @@ StateData::~StateData()
 }
 
 void
-StateData::setTimeLevel (Real time, Real dt_old, Real dt_new)
+StateData::setTimeLevel (Real time,
+                         Real dt_old,
+                         Real dt_new)
 {
     if (desc->timeType() == StateDescriptor::Point)
     {
@@ -200,8 +202,8 @@ StateData::allocOldData ()
     if (old_data == 0)
     {
 	old_data = new MultiFab(grids,desc->nComp(),desc->nExtra(),Fab_allocate);
-    if (old_data == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
+        if (old_data == 0)
+            BoxLib::OutOfMemory(__FILE__, __LINE__);
     }
 }
 
@@ -227,24 +229,28 @@ StateData::FillBoundary (const Real*    dx,
                          int            num_comp,
                          int            do_new)
 {
-    BoxLib::Warning("StateData::FillBoundary(): check for parallel");
     Real cur_time;
     if (desc->timeType() == StateDescriptor::Point)
     {
 	cur_time = new_time.start;
-	if (!do_new) cur_time = old_time.start;
+	if (!do_new)
+            cur_time = old_time.start;
     }
     else
     {
 	cur_time = 0.5*(new_time.start + new_time.stop);
-	if (!do_new) cur_time = 0.5*(old_time.start + old_time.stop);
+	if (!do_new)
+            cur_time = 0.5*(old_time.start + old_time.stop);
     }
+
+    MultiFabIterator new_datamfi(*new_data);
    
-    int g;
-    for (g = 0; g < grids.length(); g++)
+    for ( ; new_datamfi.isValid(); ++new_datamfi)
     {
-	FArrayBox* dest = &((*new_data)[g]);
-	if (!do_new) dest = &((*old_data)[g]);
+	DependentMultiFabIterator old_datamfi(new_datamfi, *old_data);
+	FArrayBox* dest = &(new_datamfi());
+	if (!do_new)
+            dest = &(old_datamfi());
 	const Box& bx = dest->box();
 	if (!domain.contains(bx))
         {
@@ -266,8 +272,7 @@ StateData::FillBoundary (const Real*    dx,
 		Real* dat = dest->dataPtr(sc);
 		setBC(bx,domain,desc->getBC(sc),bcr);
                 desc->bndryFill(sc)(dat,ARLIM(dlo),ARLIM(dhi),
-                                    plo,phi,dx,xlo,
-				    &cur_time,bcr.vect());
+                                    plo,phi,dx,xlo, &cur_time,bcr.vect());
 	    }	                          
 	}
     }
@@ -352,7 +357,7 @@ StateData::linInterp (FArrayBox& dest,
       }
       else
       {
-         BoxLib::Error("StateData::linInterp: cannot interp");
+         BoxLib::Error("StateData::linInterp(): cannot interp");
       }
    }
 }
@@ -426,7 +431,7 @@ StateData::linInterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
       }
       else
       {
-         BoxLib::Error("StateData::linInterp: cannot interp");
+         BoxLib::Error("StateData::linInterp(): cannot interp");
       }
    }
 }
@@ -473,7 +478,7 @@ StateData::linInterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
       }
       else
       {
-         BoxLib::Error("StateData::linInterp: cannot interp");
+         BoxLib::Error("StateData::linInterp(): cannot interp");
       }
    }
 }
