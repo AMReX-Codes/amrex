@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.24 2001-07-24 18:16:52 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.25 2001-07-24 22:04:47 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -175,7 +175,7 @@ BoxArray::Ref::define (const BoxList& bl)
     BL_ASSERT(m_abox.size() == 0);
     m_abox.resize(bl.size());
     int count = 0;
-    for (BoxList::ConstIterator bli = bl.begin(); bli != bl.end(); ++bli)
+    for (BoxList::const_iterator bli = bl.begin(); bli != bl.end(); ++bli)
         m_abox.get(count++) = *bli;
 }
 
@@ -459,7 +459,7 @@ BoxArray::maxSize (int block_size)
     blst.maxSize(block_size);
     clear();
     m_ref->m_abox.resize(blst.size());
-    BoxList::Iterator bli = blst.begin();
+    BoxList::iterator bli = blst.begin();
     for (int i = 0; bli != blst.end(); ++bli)
         set(i++, *bli);
     return *this;
