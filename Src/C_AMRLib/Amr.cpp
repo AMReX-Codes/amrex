@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.93 1999-09-16 23:12:41 lijewski Exp $
+// $Id: Amr.cpp,v 1.94 1999-09-17 21:45:06 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -45,11 +45,14 @@ using std::ios;
 List<aString> Amr::state_plot_vars;
 List<aString> Amr::derive_plot_vars;
 bool          Amr::first_plotfile = true;
-
 //
 // I now want to add a version string to the checkpoint file.
 //
 static const aString CheckPointVersion = "CheckPointVersion_1.0";
+//
+// Force immediate full (level 0) regrid() on restart?
+//
+static int regrid_on_restart = 0;
 
 void
 Amr::setDtMin (const Array<REAL>& dt_min_in)
@@ -111,8 +114,8 @@ Amr::Amr ()
     amr_level(PArrayManage)
 {
     //
-    // Setup Geometry from ParmParse file.  May be needed for variableSetup or
-    // even getLevelBld.
+    // Setup Geometry from ParmParse file.
+    // May be needed for variableSetup or even getLevelBld.
     //
     Geometry::Setup();
     //
@@ -147,6 +150,8 @@ Amr::Amr ()
     //
     verbose = 0;
     pp.query("v",verbose);
+
+    pp.query("regrid_on_restart",regrid_on_restart);
 
     sub_cycle = true;
     if (pp.contains("nosub"))
@@ -252,21 +257,21 @@ Amr::Amr ()
     pp.query("n_proper",n_proper);
     pp.query("blocking_factor",blocking_factor);
     pp.query("grid_eff",grid_eff);
-
     pp.queryarr("n_error_buf",n_error_buf,0,max_level);
     //
     // Read in the refinement ratio IntVects as integer BL_SPACEDIM-tuples.
     //
     if (max_level > 0)
     {
-      int nratios_vect = max_level*BL_SPACEDIM;
+      const int nratios_vect = max_level*BL_SPACEDIM;
+
       Array<int> ratios_vect(nratios_vect);
 
       int got_vect = pp.queryarr("ref_ratio_vect",ratios_vect,0,nratios_vect);
 
       Array<int> ratios(max_level);
 
-      int got_int = pp.queryarr("ref_ratio",ratios,0,max_level);
+      const int got_int = pp.queryarr("ref_ratio",ratios,0,max_level);
    
       if (got_int == 1 && got_vect == 1 && ParallelDescriptor::IOProcessor())
       {
@@ -315,8 +320,8 @@ Amr::Amr ()
     Real offset[BL_SPACEDIM];
     for (i = 0; i < BL_SPACEDIM; i++)
     {
-        Real delta = Geometry::ProbLength(i)/(Real)n_cell[i];
-        offset[i]  = Geometry::ProbLo(i) + delta*lo[i];
+        const Real delta = Geometry::ProbLength(i)/(Real)n_cell[i];
+        offset[i]        = Geometry::ProbLo(i) + delta*lo[i];
     }
     CoordSys::SetOffset(offset);
     //
@@ -332,97 +337,97 @@ Amr::Amr ()
 bool
 Amr::isStatePlotVar (const aString& name)
 {
-  for (ListIterator<aString> li(state_plot_vars); li; ++li)
-    if (li() == name)
-      return true;
+    for (ListIterator<aString> li(state_plot_vars); li; ++li)
+        if (li() == name)
+            return true;
   
-  return false;
+    return false;
 }
 
 void
 Amr::fillStatePlotVarList()
 {
-  state_plot_vars.clear();
-  const DescriptorList& desc_lst = AmrLevel::get_desc_lst();
-  for (int typ = 0; typ < desc_lst.length(); typ++)
-    for (int comp = 0; comp < desc_lst[typ].nComp();comp++)
-      if (desc_lst[typ].getType() == IndexType::TheCellType())
-	state_plot_vars.append(desc_lst[typ].name(comp));
+    state_plot_vars.clear();
+    const DescriptorList& desc_lst = AmrLevel::get_desc_lst();
+    for (int typ = 0; typ < desc_lst.length(); typ++)
+        for (int comp = 0; comp < desc_lst[typ].nComp();comp++)
+            if (desc_lst[typ].getType() == IndexType::TheCellType())
+                state_plot_vars.append(desc_lst[typ].name(comp));
 }
 
 void
 Amr::clearStatePlotVarList()
 {
-  state_plot_vars.clear();
+    state_plot_vars.clear();
 }
 
 void
 Amr::addStatePlotVar (const aString& name)
 {
-  if (state_plot_vars.isEmpty())
+    if (state_plot_vars.isEmpty())
     {
-      state_plot_vars.append(name);
+        state_plot_vars.append(name);
     }
-  else 
+    else 
     {
-      if (isDerivePlotVar(name) == false)
-	state_plot_vars.append(name);
+        if (isDerivePlotVar(name) == false)
+            state_plot_vars.append(name);
     }
 }
 
 void
 Amr::deleteStatePlotVar (const aString& name)
 {
-  if (state_plot_vars.isNotEmpty())
-    state_plot_vars.remove(name);
+    if (state_plot_vars.isNotEmpty())
+        state_plot_vars.remove(name);
 }
 
 bool
 Amr::isDerivePlotVar (const aString& name)
 {
-  for (ListIterator<aString> li(derive_plot_vars); li; ++li)
-    if (li() == name)
-      return true;
+    for (ListIterator<aString> li(derive_plot_vars); li; ++li)
+        if (li() == name)
+            return true;
   
-  return false;
+    return false;
 }
 
 void 
 Amr::fillDerivePlotVarList()
 {
-  derive_plot_vars.clear();
-  DeriveList& derive_lst = AmrLevel::get_derive_lst();
-  List<DeriveRec>& dlist = derive_lst.dlist();
-  for (ListIterator<DeriveRec> it(dlist); it; ++it)
-    if (it().deriveType() == IndexType::TheCellType())
-      derive_plot_vars.append(it().name());
+    derive_plot_vars.clear();
+    DeriveList& derive_lst = AmrLevel::get_derive_lst();
+    List<DeriveRec>& dlist = derive_lst.dlist();
+    for (ListIterator<DeriveRec> it(dlist); it; ++it)
+        if (it().deriveType() == IndexType::TheCellType())
+            derive_plot_vars.append(it().name());
 }
 
 void
 Amr::clearDerivePlotVarList()
 {
-  derive_plot_vars.clear();
+    derive_plot_vars.clear();
 }
 
 void
 Amr::addDerivePlotVar (const aString& name)
 {
-  if (derive_plot_vars.isEmpty())
+    if (derive_plot_vars.isEmpty())
     {
-      derive_plot_vars.append(name);
+        derive_plot_vars.append(name);
     }
-  else 
+    else 
     {
-      if (isDerivePlotVar(name) == false)
-	derive_plot_vars.append(name);
+        if (isDerivePlotVar(name) == false)
+            derive_plot_vars.append(name);
     }
 }
 
 void
 Amr::deleteDerivePlotVar (const aString& name)
 {
-  if (derive_plot_vars.isNotEmpty())
-    derive_plot_vars.remove(name);
+    if (derive_plot_vars.isNotEmpty())
+        derive_plot_vars.remove(name);
 }
 
 Amr::~Amr ()
@@ -507,10 +512,10 @@ void
 Amr::writePlotFile (const aString& root,
                     int            num)
 {
-  if (first_plotfile) 
+    if (first_plotfile) 
     {
-      first_plotfile = false;
-      amr_level[0].setPlotVariables();
+        first_plotfile = false;
+        amr_level[0].setPlotVariables();
     }
 
     static RunStats stats("write_pltfile");
@@ -598,7 +603,8 @@ Amr::checkInput ()
     // Check that multigrid factor is a power of 2.
     //
     int k = blocking_factor;
-    while ( k > 0 && (k%2 == 0) ) k = k/2;
+    while ( k > 0 && (k%2 == 0) )
+        k = k/2;
     if (k != 1)
         BoxLib::Error("Amr::checkInputs: multiGrid factor not a power of 2");
     //
@@ -636,12 +642,14 @@ Amr::checkInput ()
     }
     if (!Geometry::ProbDomain().ok())
         BoxLib::Error("checkInput: bad physical problem size");
+
     if (regrid_int[0] <= 0)
         BoxLib::Error("checkinput: regrid_int not defined");
 }
 
 void
-Amr::init (Real strt_time, Real stop_time)
+Amr::init (Real strt_time,
+           Real stop_time)
 {
     if (!restart_file.isNull())
     {
@@ -657,7 +665,8 @@ Amr::init (Real strt_time, Real stop_time)
 }
 
 void
-Amr::initialInit (Real strt_time, Real stop_time)
+Amr::initialInit (Real strt_time,
+                  Real stop_time)
 {
     checkInput();
     //
@@ -689,13 +698,13 @@ Amr::initialInit (Real strt_time, Real stop_time)
     // Define base level grids.
     //
     defBaseLevel(strt_time);
-
     //
     // Compute dt and set time levels of all grid data.
     //
-    amr_level[0].computeInitialDt(finest_level,sub_cycle,
-                                  n_cycle,ref_ratio,
-                                  //dt_min,
+    amr_level[0].computeInitialDt(finest_level,
+                                  sub_cycle,
+                                  n_cycle,
+                                  ref_ratio,
                                   dt_level,
                                   stop_time);
     //
@@ -704,26 +713,16 @@ Amr::initialInit (Real strt_time, Real stop_time)
     Real dt0   = dt_level[0];
     dt_min[0]  = dt_level[0];
     n_cycle[0] = 1;
-    if (sub_cycle)
+
+    for (int lev = 1; lev <= max_level; lev++)
     {
-        for (int lev = 1; lev <= max_level; lev++)
-        {
-            dt0           /= Real (ref_ratio[lev-1][0]);
-            dt_level[lev]  = dt0;
-            dt_min[lev]    = dt_level[lev];
-            n_cycle[lev]   = ref_ratio[lev-1][0];
-        }
+        const int fact = sub_cycle ? ref_ratio[lev-1][0] : 1;
+
+        dt0           /= Real(fact);
+        dt_level[lev]  = dt0;
+        dt_min[lev]    = dt_level[lev];
+        n_cycle[lev]   = fact;
     }
-    else
-    {
-        for (int lev = 1; lev <= max_level; lev++)
-        {
-            dt_level[lev] = dt0;
-            dt_min[lev]   = dt_level[lev];
-            n_cycle[lev]  = 1;
-        }
-    }
-    // ----- end multifluid
 
     if (max_level > 0)
         bldFineLevels(strt_time);
@@ -733,7 +732,6 @@ Amr::initialInit (Real strt_time, Real stop_time)
 
     for (int lev = 0; lev <= finest_level; lev++)
         amr_level[lev].post_regrid(0,finest_level);
-
     //
     // Perform any special post_initialization operations.
     //
@@ -744,6 +742,12 @@ Amr::initialInit (Real strt_time, Real stop_time)
     {
         level_count[lev] = 0;
         level_steps[lev] = 0;
+    }
+
+    if (verbose && ParallelDescriptor::IOProcessor())
+    {
+        cout << "INITIAL GRIDS \n";
+        printGridInfo(cout,0,finest_level);
     }
 
     if (record_grid_info && ParallelDescriptor::IOProcessor())
@@ -868,21 +872,12 @@ Amr::restart (const aString& filename)
     {
         for (i = mx_lev+1; i <= max_level; i++)
         {
-            int rat = MaxRefRatio(i-1);
-            dt_level[i] = dt_level[i-1]/Real(rat);
-            //
-            // NEED SUB_CYCLE.
-            //
-            if (sub_cycle)
-            {
-                n_cycle[i] = rat;
-                level_steps[i] = rat*level_steps[i-1];
-            }
-            else
-            {
-                n_cycle[i] = 1;
-                level_steps[i] = level_steps[i-1];
-            }
+            const int rat  = MaxRefRatio(i-1);
+            const int mult = sub_cycle ? rat : 1;
+
+            dt_level[i]    = dt_level[i-1]/Real(rat);
+            n_cycle[i]     = mult;
+            level_steps[i] = mult*level_steps[i-1];
             level_count[i] = 0;
         }
         if (!sub_cycle)
@@ -891,6 +886,10 @@ Amr::restart (const aString& filename)
                 dt_level[i] = dt_level[max_level];
         }
     }
+
+    if (regrid_on_restart)
+        level_count[0] = regrid_int[0];
+
     checkInput();
     //
     // Read levels.
@@ -1034,9 +1033,7 @@ Amr::checkPoint ()
     ParallelDescriptor::ReduceRealMax(dCheckPointTime,IOProc);
 
     if (ParallelDescriptor::IOProcessor())
-    {
         cout << "checkPoint() time = " << dCheckPointTime << " secs." << endl;
-    }
 }
 
 void
@@ -1057,8 +1054,8 @@ Amr::timeStep (int  level,
         if (level_count[i] >= regrid_int[i] && amr_level[i].okToRegrid())
         {
             regrid(i,time);
-            int k;
-            for (k = i; k <= finest_level; k++)
+
+            for (int k = i; k <= finest_level; k++)
                 level_count[k] = 0;
 
             if (old_finest < finest_level)
@@ -1067,18 +1064,11 @@ Amr::timeStep (int  level,
                 // The new levels will not have valid time steps
                 // and iteration counts.
                 //
-                for (k = old_finest+1; k <= finest_level; k++)
+                for (int k = old_finest+1; k <= finest_level; k++)
                 {
-                    if (sub_cycle)
-                    {
-                        dt_level[k] = dt_level[k-1]/Real(MaxRefRatio(k-1));
-                        n_cycle[k] = MaxRefRatio(k-1);
-                    }
-                    else
-                    {
-                        dt_level[k] = dt_level[k-1] ;
-                        n_cycle[k] = 1 ;
-                    }
+                    const int fact = sub_cycle ? MaxRefRatio(k-1) : 1;
+                    dt_level[k]    = dt_level[k-1]/Real(fact);
+                    n_cycle[k]     = fact;
                 }
             }
         }
@@ -1115,9 +1105,10 @@ Amr::timeStep (int  level,
 
         if (sub_cycle)
         {
-            const int ncycle   = n_cycle[lev_fine];
+            const int ncycle = n_cycle[lev_fine];
+
             for (int i = 1; i <= ncycle; i++)
-                timeStep(lev_fine,time + (i-1)*dt_level[lev_fine],i,ncycle);
+                timeStep(lev_fine,time+(i-1)*dt_level[lev_fine],i,ncycle);
         }
         else
         {
@@ -1135,11 +1126,13 @@ Amr::coarseTimeStep (Real stop_time)
     // Compute new dt.
     //
     if (level_steps[0] > 0)
-    {
-        amr_level[0].computeNewDt(finest_level,sub_cycle,n_cycle,ref_ratio,
-                                  dt_min,dt_level,stop_time);
-    }
-
+        amr_level[0].computeNewDt(finest_level,
+                                  sub_cycle,
+                                  n_cycle,
+                                  ref_ratio,
+                                  dt_min,
+                                  dt_level,
+                                  stop_time);
     timeStep(0,cumtime,1,1);
     cumtime += dt_level[0];
 
@@ -1170,10 +1163,10 @@ Amr::coarseTimeStep (Real stop_time)
     int check_test = 0;
     if (check_per > 0.0)
     {
-      int num_per = int((cumtime+.001*dt_level[0]) / check_per);
-      Real resid = cumtime - num_per * check_per;
-      if (resid < .001*dt_level[0])
-          check_test = 1;
+        const int num_per = int((cumtime+.001*dt_level[0]) / check_per);
+        const Real resid  = cumtime - num_per * check_per;
+
+        if (resid < .001*dt_level[0]) check_test = 1;
     }
 
     if ((check_int > 0 && level_steps[0] % check_int == 0) || check_test == 1)
@@ -1185,10 +1178,10 @@ Amr::coarseTimeStep (Real stop_time)
     int plot_test = 0;
     if (plot_per > 0.0)
     {
-      const int num_per = int((cumtime+.001*dt_level[0]) / plot_per);
-      Real resid = cumtime - num_per * plot_per;
-      if (resid < .001*dt_level[0])
-          plot_test = 1;
+        const int num_per = int((cumtime+.001*dt_level[0]) / plot_per);
+        const Real resid  = cumtime - num_per * plot_per;
+
+        if (resid < .001*dt_level[0]) plot_test = 1;
     }
 
     if ((plot_int > 0 && level_steps[0] % plot_int == 0) || plot_test == 1)
@@ -1265,10 +1258,8 @@ Amr::regrid (int  lbase,
     if (lbase <= Min(finest_level,max_level-1))
       grid_places(lbase,time,new_finest, new_grid_places);
 
-    bool regrid_level_zero = false;
-
-    if (lbase == 0 && new_grid_places[0] != amr_level[0].boxArray())
-        regrid_level_zero = true;
+    bool regrid_level_zero =
+        lbase == 0 && new_grid_places[0] != amr_level[0].boxArray();
 
     const int start = regrid_level_zero ? 0 : lbase+1;
     //
@@ -1777,23 +1768,27 @@ Amr::grid_places (int              lbase,
             new_grids[levf].define(new_bx);
         }
     }
-    //
-    // Recalculate level 0 BoxArray in case max_grid_size has changed.
-    // This is done exactly as in defBaseLev().
-    //
-    BoxArray lev0(1);
 
-    lev0.set(0,::coarsen(geom[0].Domain(),2));
-    //
-    // Now split up into list of grids within max_grid_size limit.
-    //
-    lev0.maxSize(max_grid_size/2);
-    //
-    // Now refine these boxes back to level 0.
-    //
-    lev0.refine(2);
+    if (lbase == 0)
+    {
+        //
+        // Recalculate level 0 BoxArray in case max_grid_size has changed.
+        // This is done exactly as in defBaseLev().
+        //
+        BoxArray lev0(1);
 
-    new_grids[0] = lev0;
+        lev0.set(0,::coarsen(geom[0].Domain(),2));
+        //
+        // Now split up into list of grids within max_grid_size limit.
+        //
+        lev0.maxSize(max_grid_size/2);
+        //
+        // Now refine these boxes back to level 0.
+        //
+        lev0.refine(2);
+
+        new_grids[0] = lev0;
+    }
 }
 
 void
@@ -1811,8 +1806,7 @@ Amr::bldFineLevels (Real strt_time)
 
         grid_places(finest_level,strt_time,new_finest,grids);
 
-        if (new_finest <= finest_level)
-            break;
+        if (new_finest <= finest_level) break;
         //
         // Create a new level and link with others.
         //
