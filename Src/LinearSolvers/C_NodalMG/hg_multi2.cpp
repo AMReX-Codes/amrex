@@ -140,7 +140,6 @@ public:
 		const FArrayBox& sigmac_fab = task_fab_result(3);
 		const Box& sigmac_fab_box = sigmac_fab.box();
 		(*f)(r_fab.dataPtr(), DIMLIST(r_fab_box), s_fab.dataPtr(), DIMLIST(s_fab_box), sc_fab.dataPtr(), DIMLIST(sc_fab_box), c_fab.dataPtr(), DIMLIST(c_fab_box), sigmaf_fab.dataPtr(), DIMLIST(sigmaf_fab_box), sigmac_fab.dataPtr(), DIMLIST(sigmac_fab_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), t.dataPtr());
-		throw( "task_fceres_4::ready(): FIXME" ); /*NOTREACHED*/
 	    }
 	    return true;
 	}

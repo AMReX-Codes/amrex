@@ -61,32 +61,37 @@ struct task_restriction_fill : public task
     {
     }
     virtual bool ready();
-    virtual bool init(sequence_number sno, MPI_Comm comm)
-    {
-	throw( "task_restriction_fill::init(): FIXME" ); /*NOTREACHED*/
-	return false;
-    }
+    virtual bool init(sequence_number sno, MPI_Comm comm);
 private:
+    const RESTFUN ref;
     task_fab* tf;
     MultiFab& m;
     int ind;
     const Box cbox;
     const IntVect rat;
-    const RESTFUN ref;
     const int integrate;
     Array<int> arg1;
     Array<int> arg2;
 };
 
+bool task_restriction_fill::init(sequence_number sno, MPI_Comm comm)
+{
+    bool result = is_local( m, ind );
+    bool tresult = tf->init(sno, comm);
+    return result || tresult;
+}
+
 bool task_restriction_fill::ready()
 {
-    throw( "task_restriction_fill::ready(): FIXME" ); /*NOTREACHED*/
-    tf->ready();
-    const Box fb = tf->fab().box();
-    const Box pb = m[ind].box();
-    (*ref)(m[ind].dataPtr(), DIMLIST(pb), DIMLIST(cbox), tf->fab().dataPtr(), DIMLIST(fb),
-	D_DECL(rat[0], rat[1], rat[2]), m.nComp(), &integrate, arg1.dataPtr(), arg2.dataPtr());
-    return true;
+    if ( tf->ready() )
+    {
+	const Box fb = tf->fab().box();
+	const Box pb = m[ind].box();
+	(*ref)(m[ind].dataPtr(), DIMLIST(pb), DIMLIST(cbox), tf->fab().dataPtr(), DIMLIST(fb), D_DECL(rat[0], rat[1], rat[2]), m.nComp(), &integrate, arg1.dataPtr(), arg2.dataPtr());
+	delete tf;
+	return true;
+    }
+    return false;
 }
 
 // some restrictor implementations...
