@@ -1,5 +1,5 @@
 #
-# $Id: Make.rules,v 1.4 1998-11-20 23:18:03 lijewski Exp $
+# $Id: Make.rules,v 1.5 1998-11-21 00:15:40 lijewski Exp $
 #
 # Rule for closing a library.  Unless we're using KCC, we only close boxlib.
 #
@@ -17,7 +17,7 @@ ifeq ($(LBASE),box)
 	$(RM) -r ./tmp
 endif
 endif
-ifeq ($(SUNPRO), TRUE)
+ifeq ($(SUNPRO),TRUE)
 ifeq ($(LBASE),box)
 	$(RM) -r ./tmp
 	mkdir ./tmp
@@ -46,7 +46,7 @@ install: $(instLib) $(addprefix $(instIncludeDir)/, $(instSources))
 
 clean:
 	$(RM) $(optionsLib) $(objTempDir)/*.o $(f77TempDir)/*.f $(objEXETempDir)/*.o
-ifeq ($(CLOSELIB), TRUE)
+ifeq ($(CLOSELIB),TRUE)
 	$(RM) *.o *.ii $(ptRepDir)/*.o
 	$(RM) $(optionsLib) $(objTempDir)/KCC_files
 endif
@@ -92,47 +92,47 @@ endif
 #
 $(optionsLib)(%.o): %.cpp
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
-	$(CXX) $(CXXLIBFLAGS) $(CXXFLAGS) $(CPPFLAGS) -DBL_LANG_CC -c $< $(OUTPUT_OPTION)
+	$(CXX) $(CXXLIBFLAGS) $(CXXFLAGS) $(CPPFLAGS) -DBL_LANG_CC -c $< $(LIB_OUTPUT_OPTION)
 	$(AR) r $@ $(objTempDir)/$*.o
 
 $(optionsLib)(%.o): %.c
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
-	$(CC) $(CLIBFLAGS) $(CFLAGS) $(CPPFLAGS) -DBL_LANG_C -c $< $(OUTPUT_OPTION)
+	$(CC) $(CLIBFLAGS) $(CFLAGS) $(CPPFLAGS) -DBL_LANG_C -c $< $(LIB_OUTPUT_OPTION)
 	$(AR) r $@ $(objTempDir)/$*.o
 
 $(optionsLib)(%.o): %.F
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	$(CPP) $(CPPFLAGS) -DBL_LANG_FORT $< | $(FORTPREP) > $(f77TempDir)/$*.f
-	$(FC) $(FLIBFLAGS) $(FFLAGS) -c $(f77TempDir)/$*.f $(FORT_OUTPUT_OPTION)
+	$(FC) $(FLIBFLAGS) $(FFLAGS) -c $(f77TempDir)/$*.f $(FORT_LIB_OUTPUT_OPTION)
 	$(AR) r $@ $(objTempDir)/$*.o
 
 $(optionsLib)(%.o): %.f90
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	$(CPP) $(CPPFLAGS) -DBL_LANG_FORT $< | $(FORTPREP) > $(f77TempDir)/$*.f
-	$(FC) $(FLIBFLAGS) $(FFLAGS) -c $(f77TempDir)/$*.f $(FORT_OUTPUT_OPTION)
+	$(FC) $(FLIBFLAGS) $(FFLAGS) -c $(f77TempDir)/$*.f $(FORT_LIB_OUTPUT_OPTION)
 	$(AR) r $@ $(objTempDir)/$*.o
 #
 # Rules for objects.
 #
 $(objEXETempDir)/%.o: %.cpp
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	$(COMPILE.C) $(CXXEXEFLAGS) -DBL_LANG_CC $< $(OUTPUT_OPTION)
+	$(COMPILE.C) $(CXXEXEFLAGS) -DBL_LANG_CC $< $(EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.c
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
-	$(COMPILE.c) $(CEXEFLAGS) -DBL_LANG_C $< $(OUTPUT_OPTION)
+	$(COMPILE.c) $(CEXEFLAGS) -DBL_LANG_C $< $(EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.F
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	$(CPP) -DBL_LANG_FORT $(CPPFLAGS) $< | $(FORTPREP) > $(f77TempDir)/$*.f
-	$(COMPILE.f) $(FEXEFLAGS) $(f77TempDir)/$*.f $(FORT_OUTPUT_OPTION)
+	$(COMPILE.f) $(FEXEFLAGS) $(f77TempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.f90
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	$(CPP) -DBL_LANG_FORT $(CPPFLAGS) $< | $(FORTPREP) > $(f77TempDir)/$*.f
-	$(COMPILE.f) $(FEXEFLAGS) $(f77TempDir)/$*.f $(FORT_OUTPUT_OPTION)
+	$(COMPILE.f) $(FEXEFLAGS) $(f77TempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
 #
 # Rules for dependencies in libraries.
 #
