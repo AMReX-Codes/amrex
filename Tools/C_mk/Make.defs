@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.56 2002-09-09 22:30:33 marc Exp $
+# Make.defs $Id: Make.defs,v 1.57 2002-09-13 14:00:47 car Exp $
 #
 
 #
@@ -342,6 +342,13 @@ else
     CFLAGS	+= $(COPTF)
     CPPFLAGS	+= -DNDEBUG
     DebugSuffix :=
+endif
+
+ifeq ($(GPROF),TRUE)
+   FFLAGS += -pg
+   CXXFLAGS += -pg
+   fFLAGS += -pg
+   CFLAGS += -pg
 endif
 
 ifeq ($(PROFILE),TRUE)
