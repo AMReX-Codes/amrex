@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.161 2001-11-01 17:57:30 lijewski Exp $
+// $Id: FabArray.H,v 1.162 2002-03-13 21:43:58 vince Exp $
 //
 #include <cstring>
 #include <limits>
@@ -375,6 +375,10 @@ public:
                int        src_comp,
                int        dest_comp,
                int        num_comp) const;
+
+    /*@ManDoc: Perform shifts on the FabArray.
+    */
+    void shift (const IntVect& v);
 
 protected:
 
@@ -1218,6 +1222,24 @@ FabArray<FAB>::setVal (value_type val,
             get(fai).setVal(val, b, comp, ncomp);
     }
 }
+
+
+template <class FAB>
+void
+FabArray<FAB>::shift (const IntVect& v)
+{
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::shift()");
+
+    for(int id(0); id < BL_SPACEDIM; ++id)
+    {
+      boxarray.shift(id, v[id]);
+    }
+    for (MFIter fai(*this); fai.isValid(); ++fai)
+    {
+        get(fai).shift(v);
+    }
+}
+
 
 template <class FAB>
 FabArrayCopyDescriptor<FAB>::FabArrayCopyDescriptor ()
