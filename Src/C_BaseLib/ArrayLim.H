@@ -2,7 +2,7 @@
 #define BL_ARRAYLIM_H
 
 /*
-** $Id: ArrayLim.H,v 1.9 2001-07-17 23:02:18 lijewski Exp $
+** $Id: ArrayLim.H,v 1.10 2002-06-04 16:48:48 car Exp $
 */
 
 #if !defined(BL_LANG_FORT)
@@ -97,6 +97,7 @@
 #define DIM1(a) a##_l1:a##_h1
 #define ARG_L1(a) a##_l1
 #define ARG_H1(a) a##_h1
+#define DIMARG(a) a##(1)
 #endif
 
 #if (BL_SPACEDIM == 2)
@@ -109,6 +110,7 @@
 #define ARG_L2(a) a##_l2
 #define ARG_H1(a) a##_h1
 #define ARG_H2(a) a##_h2
+#define DIMARG(a) a##(1),a##(2)
 #endif
 
 #if (BL_SPACEDIM == 3)
@@ -127,6 +129,7 @@
 #define ARG_H1(a) a##_h1
 #define ARG_H2(a) a##_h2
 #define ARG_H3(a) a##_h3
+#define DIMARG(a) a##(1),a##(2),a##(3)
 #endif
 
 #else
@@ -138,6 +141,7 @@
 #define DIM1(a) a/**/_l1:a/**/_h1
 #define ARG_L1(a) a/**/_l1
 #define ARG_H1(a) a/**/_h1
+#define DIMARG(a) a/**/(1)
 #endif
 
 #if (BL_SPACEDIM == 2)
@@ -150,6 +154,7 @@
 #define ARG_L2(a) a/**/_l2
 #define ARG_H1(a) a/**/_h1
 #define ARG_H2(a) a/**/_h2
+#define DIMARG(a) a/**/(1),a/**/(2)
 #endif
 
 #if (BL_SPACEDIM == 3)
@@ -168,6 +173,7 @@
 #define ARG_H1(a) a/**/_h1
 #define ARG_H2(a) a/**/_h2
 #define ARG_H3(a) a/**/_h3
+#define DIMARG(a) a/**/(1),a/**/(2),a/**/(3)
 #endif
 
 #endif /*__STDC__==1*/

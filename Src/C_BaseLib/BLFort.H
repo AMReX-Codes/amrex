@@ -2,6 +2,7 @@
 #define _BL_BLFORT_H_ 
 
 #include <ArrayLim.H>
+#include <REAL.H>
 
 #ifndef BL_LANG_FORT
 
