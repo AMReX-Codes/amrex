@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.14 2002-10-07 20:44:37 almgren Exp $
+c $Id: INTERP_2D.F,v 1.15 2002-10-11 18:23:00 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -1430,7 +1430,7 @@ c :::
       REAL_T cvcx(cb_l1:cb_h1+1)
       REAL_T cvcy(cb_l2:cb_h2+1)
 
-      REAL_T alpha, sumN, sumP, crseTot, negVal
+      REAL_T alpha, sumN, sumP, crseTot, negVal, posVal
       REAL_T sum_fine_new
       REAL_T fvol,cvol
       integer redo_me
@@ -1537,17 +1537,33 @@ c                the remaining positive proportionally.
                    enddo
                    enddo
 
-                   alpha = (crseTot - abs(sumN)) / sumP
+                   if (sumP > 0.d0) then
 
-                   do joff = 0, lratioy-1
-                   do ioff = 0, lratiox-1
-                      i = lratiox*ic + ioff
-                      j = lratioy*jc + joff
-                      if (fine_state(i,j,n) .gt. 0.d0) then
-                        fine(i,j,n) = alpha * fine_state(i,j,n)
-                      endif
-                   enddo
-                   enddo
+                     alpha = (crseTot - abs(sumN)) / sumP
+
+                     do joff = 0, lratioy-1
+                     do ioff = 0, lratiox-1
+                        i = lratiox*ic + ioff
+                        j = lratioy*jc + joff
+                        if (fine_state(i,j,n) .gt. 0.d0) then
+                          fine(i,j,n) = alpha * fine_state(i,j,n)
+                        endif
+                     enddo
+                     enddo
+
+                   else
+
+                     posVal = (crseTot - abs(sumN)) / float(lratiox*lratioy)
+
+                     do joff = 0, lratioy-1
+                     do ioff = 0, lratiox-1
+                        i = lratiox*ic + ioff
+                        j = lratioy*jc + joff
+                        fine(i,j,n) = fine(i,j,n) + posVal
+                     enddo
+                     enddo
+
+                   endif
             
                  endif
 
