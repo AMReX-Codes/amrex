@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.3 1997-11-11 19:20:06 lijewski Exp $
+# $Id: GNUmakefile,v 1.4 1997-11-24 22:05:11 car Exp $
 #
 
 #
@@ -36,6 +36,7 @@ LBASE = box
 # Should we use BSP?
 #
 USE_BSP = TRUE
+USE_BSP = FALSE
 
 include ../mk/Make.defs Make.package
 
