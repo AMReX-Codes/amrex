@@ -66,7 +66,8 @@ struct task_restriction_fill : public task
     virtual bool ready();
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	throw "FIXME task_restriction_fill::init"; return false;
+	throw "FIXME task_restriction_fill::init"; /*NOTREACHED*/
+	return false;
     }
 private:
     task_fab* tf;
@@ -82,7 +83,7 @@ private:
 
 bool task_restriction_fill::ready()
 {
-    throw "FIXME task_restriction_fill::ready";
+    throw "FIXME task_restriction_fill::ready"; /*NOTREACHED*/
     tf->ready();
     const Box fb = tf->fab().box();
     const Box pb = m[ind].box();

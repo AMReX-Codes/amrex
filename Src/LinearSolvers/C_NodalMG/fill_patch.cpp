@@ -113,7 +113,8 @@ public:
     virtual bool ready();
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	throw "FIXME task_bdy_fill::init"; return false;
+	throw "FIXME task_bdy_fill::init"; /*NOTREACHED*/
+	return false;
     }
 private:
     const amr_boundary_class* bdy;
@@ -131,7 +132,8 @@ task_bdy_fill::task_bdy_fill(const amr_boundary_class* bdy_, FArrayBox& fab_, co
 
 bool task_bdy_fill::ready()
 {
-    throw "FIXME task_bdy_fill::ready"; bdy->fill(fab, region, src[grid], domain);
+    throw "FIXME task_bdy_fill::ready"; /*NOTREACHED*/
+    bdy->fill(fab, region, src[grid], domain);
     return true;
 }
 
@@ -249,25 +251,29 @@ task_fill_patch::task_fill_patch(const Box& region_,
 
 bool task_fill_patch::init(sequence_number, MPI_Comm comm)
 {
-    throw "FIXME task_fill_patch::init" ; target = new FArrayBox(region, r.nComp());
+    throw "FIXME task_fill_patch::init" ; /*NOTREACHED*/
+    target = new FArrayBox(region, r.nComp());
     return true;
 }
 
 task_fill_patch::~task_fill_patch()
 {
-    throw "FIXME task_fill_patch::~task_fill_patch"; delete target;
+    throw "FIXME task_fill_patch::~task_fill_patch"; /*NOTREACHED*/
+    delete target;
 }
 
 bool task_fill_patch::ready()
 {
-    throw "FIXME task_fill_patch::ready"; fill_patch();
+    throw "FIXME task_fill_patch::ready"; /*NOTREACHED*/
+    fill_patch();
     tl.execute();
     return true;
 }
 
 const FArrayBox& task_fill_patch::fab()
 {
-    throw "FIXME task_fill_patch::fab"; ready();
+    throw "FIXME task_fill_patch::fab"; /*NOTREACHED*/
+    ready();
     return *target;
 }
 

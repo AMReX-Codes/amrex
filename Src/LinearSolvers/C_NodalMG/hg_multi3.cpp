@@ -368,7 +368,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
     }
     else 
     {
-	throw "relax: Line Solves aren't parallelized";
+	throw "relax: Line Solves aren't parallelized"; /*NOTREACHED*/
 	// Full-level line solve section:
 	if (line_order.length() == 0) 
 	{
