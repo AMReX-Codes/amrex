@@ -291,6 +291,7 @@ restart:
     for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
         seq_no[i] = 1;
 
+#ifdef HG_DEBUG
     if (verbose && maxpacketsize > 0)
     {
         char buf[512];
@@ -305,6 +306,7 @@ restart:
 
         cout << buf << endl;
     }
+#endif
 }
 
 void
