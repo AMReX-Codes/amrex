@@ -2,7 +2,7 @@
 #define BL_REAL_H
 
 /*
- * $Id: REAL.H,v 1.11 2001-08-16 17:57:43 lijewski Exp $
+ * $Id: REAL.H,v 1.12 2002-05-23 22:22:49 car Exp $
  */
 
 #ifdef BL_USE_FLOAT
@@ -65,7 +65,11 @@
 */
 
 #ifdef BL_USE_FLOAT
+#ifdef BL_FORT_STRICT_REAL_T
+#    define REAL_T REAL
+#else
 #    define REAL_T real*4
+#endif
 #if __STDC__==1
 #        define BL_REAL(a) a##E0
 #        define BL_REAL_E(a,b) a##E##b
@@ -74,7 +78,11 @@
 #        define BL_REAL_E(a,b) a/**/E/**/b
 #endif
 #else
+#ifdef BL_FORT_STRICT_REAL_T
+#    define REAL_T DOUBLE PRECISION
+#else
 #    define REAL_T real*8
+#endif
 #if __STDC__==1
 #        define BL_REAL(a) a##D0
 #        define BL_REAL_E(a,b) a##D##b
