@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.20 1998-11-13 16:03:07 car Exp $
+# $Id: GNUmakefile,v 1.21 1998-11-13 16:03:51 car Exp $
 #
 PRECISION = DOUBLE
 DEBUG     = FALSE
@@ -15,8 +15,8 @@ USE_MPI   = TRUE
 #
 # To build the executable: EBASE=proj LBASE=
 #
-EBASE = 
 EBASE = proj
+EBASE = 
 
 ifneq ($(EBASE),proj)
 override EBASE = 
