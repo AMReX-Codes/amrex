@@ -29,8 +29,6 @@ module bl_mem_stat_module
   end interface
 
 contains
-!!345678901234567890123456789012345678901234567890123456789012345678901234567890
-!!       1         2         3         4         5         6         7         8
 
   subroutine mem_stats_print(ms, str, unit, advance, total)
     use bl_IO_module

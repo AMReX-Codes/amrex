@@ -1,3 +1,5 @@
+!! Conveniet definitions of numerical constants.  This should not
+!! be considered an exhaustive list of such constants.
 module bl_constants_module
 
   use bl_types
@@ -22,12 +24,13 @@ module bl_constants_module
   real(kind = dp_t), parameter :: SIXTEEN= 16.0_dp_t
 
   real(kind = dp_t), parameter :: HALF   = 0.5_dp_t
-  real(kind = dp_t), parameter :: THIRD  = 0.3333333333333333333_dp_t
+  real(kind = dp_t), parameter :: THIRD  = ONE/THREE
   real(kind = dp_t), parameter :: FOURTH = 0.25_dp_t
   real(kind = dp_t), parameter :: EIGHTH = 0.125_dp_t
   real(kind = dp_t), parameter :: TENTH  = 0.10_dp_t
   real(kind = dp_t), parameter :: TWO3RD = TWO/THREE
 
+  !! Pi
   real(kind = dp_t), parameter :: M_PI   = 3.1415926535897932385_dp_t
 
 end module

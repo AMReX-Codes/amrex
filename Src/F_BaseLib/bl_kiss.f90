@@ -3,7 +3,8 @@ module  bl_kiss_module
   ! The  KISS (Keep It Simple Stupid) random number generator. Combines:
   ! (1) The congruential generator x(n)=69069*x(n-1)+1327217885, period 2^32.
   ! (2) A 3-shift shift-register generator, period 2^32-1,
-  ! (3) Two 16-bit multiply-with-carry generators, period 597273182964842497 > 2^59
+  ! (3) Two 16-bit multiply-with-carry generators, 
+  !     period 597273182964842497 > 2^59
   !  Overall period > 2^123;  Default seeds x,y,z,w.
   !  Set your own seeds with statement i=kisset(ix,iy,iz,iw).
 

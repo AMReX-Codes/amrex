@@ -1,3 +1,7 @@
+!! Uniform method of printing error/warning messages.  Error messages
+!! print a message to the default output unit and then call the PARALLEL_ABORT
+!! to the process (or set of processes if parallel)
+
 module bl_error_module
 
   use bl_types
@@ -5,6 +9,9 @@ module bl_error_module
 
   implicit none
 
+  !! Print an error message consisting of text followed by an optional
+  !! scalar variable of type character(len=*), integer, or real; the
+  !! process terminates.
   interface bl_error
      module procedure bl_error0
      module procedure bl_error1_c
@@ -13,6 +20,8 @@ module bl_error_module
      module procedure bl_error1_s
   end interface
 
+  !! Print an warning message consisting of text followed by an optional
+  !! scalar variable of type character(len=*), integer, or real.
   interface bl_warn
      module procedure bl_warn0
      module procedure bl_warn1_c
@@ -88,6 +97,8 @@ contains
     write(*,fmt=*) "BOXLIB WARN: ", str, val
   end subroutine bl_warn1_s
 
+  !! If COND is true, nothing; if COND is false, call BL_ERROR_C, which
+  !! terminates the process
   subroutine bl_assert(cond, str)
     logical, intent(in) :: cond
     character(len=*), intent(in) :: str
