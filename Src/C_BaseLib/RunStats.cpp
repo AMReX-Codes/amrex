@@ -1,6 +1,6 @@
 
 //
-// $Id: RunStats.cpp,v 1.23 2000-10-02 20:52:38 lijewski Exp $
+// $Id: RunStats.cpp,v 1.24 2001-05-09 22:42:22 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -386,56 +386,14 @@ RunStats::report (ostream& os)
 
         int old_prec = os.precision(15);
 
-        long tot_cells = 0;
-        for (int i = 0; i < RunStats::TheCells.length(); i++)
-        {
-            os << "Number of cells advanced at level "
-               << i
-               << ": "
-               << RunStats::TheCells[i]
-               << '\n';
-            tot_cells += RunStats::TheCells[i];
-        }
-        os << "\nTotal cells advanced: " << tot_cells << '\n';
-        os << "\nTotal bytes written to disk: " << RunStats::DiskBytes << '\n';
-
-        Real tot_num_pts = 0;
-
-        for (int i = 0; i < RunStats::TheNumPts.length(); i++)
-            tot_num_pts += RunStats::TheNumPts[i];
-
-        if (tot_num_pts > 0)
-        {
-            os << '\n';
-            for (int i = 0; i < RunStats::TheNumPts.length(); i++)
-            {
-                if (RunStats::TheNumPts[i])
-                {
-                    os << "Percentage of FABs allocated on CPU #"
-                       << i
-                       << ":\t"
-                       << 100*RunStats::TheNumPts[i]/tot_num_pts
-                       << '\n';
-                }
-            }
-        }
-
         int maxlev = 0;
         ListIterator<RunStatsData> it(TheTotals);
         for ( ; it; ++it)
             maxlev = Max(maxlev, it().level);
 
-        for (int lev = 0; lev <= maxlev; ++lev)
-        {
-            os << "\nTimings for level " << lev << " ...\n\n";
-            it.rewind();
-            for ( ; it; ++it)
-                if (it().level == lev && it().is_on)
-                    Print(os,it(),tot_run_time,tot_run_wtime);
-        }
-        os << "\nTotals for all levels ...\n\n";
-
         it.rewind();
+
+        os << '\n';
 
         for ( ; it; ++it)
             if (it().level == -1 && it().is_on )
@@ -443,7 +401,7 @@ RunStats::report (ostream& os)
 
         os << '\n'
            << "Total CPU time        : " << tot_run_time  << '\n'
-           << "Total Wall Clock time : " << tot_run_wtime << '\n';
+           << "Total Wall Clock time : " << tot_run_wtime << '\n' << '\n';
 
         if (ParallelDescriptor::NProcs() > 1 && tot_run_wtime)
         {
