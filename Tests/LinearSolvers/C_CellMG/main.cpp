@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.16 2000-08-30 19:19:13 car Exp $
+// $Id: main.cpp,v 1.17 2000-12-11 18:45:53 car Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -138,7 +138,7 @@ main (int   argc, char* argv[])
   for ( int n=0; n<BL_SPACEDIM; n++ )
     {
       H[n] = ( geom.ProbHi(n) - geom.ProbLo(n) )/container.length(n);
-    } // -->> over dimension
+    }
     
   // Allocate/initialize solution and right-hand-side, reset
   //  rhs=1 at each box center
@@ -154,7 +154,7 @@ main (int   argc, char* argv[])
       rhsmfi().operator()(ivmid,0) = 1;
       ivmid += IntVect::TheUnitVector();
       rhsmfi().operator()(ivmid,0) = -1;
-    } // -->> over boxes in domain
+    }
 
   // Initialize boundary data, set boundary condition flags and locations:
   // (phys boundaries set to dirichlet on cell walls)
@@ -171,8 +171,8 @@ main (int   argc, char* argv[])
 	  bd.setBoundCond(Orientation(n, Orientation::high),i,comp,LO_DIRICHLET);
 	  bd.setValue(Orientation(n, Orientation::low) ,i,1.0);
 	  bd.setValue(Orientation(n, Orientation::high),i,1.0);
-	} // -->> over boxes in domain
-    } // -->> over dimension
+	}
+    }
 
   // Choose operator (Laplacian or ABecLaplacian), get tolerance, numiter
   bool ABec=false           ; pp.query("ABec",ABec);
@@ -208,13 +208,13 @@ main (int   argc, char* argv[])
 	    {
 	      for ( MultiFabIterator mfi(rhs); mfi.isValid(); ++mfi )
 		{
-		  int i = mfi.index();  //   ^^^ using rhs to get mfi.index() yes, this is a hack
+		  int i = mfi.index(); //   ^^^ using rhs to get mfi.index() yes, this is a hack
 		  for (int n=0; n<BL_SPACEDIM; ++n)
 		    {
 		      bd.setValue(Orientation(n, Orientation::low) ,i,2.0);
 		      bd.setValue(Orientation(n, Orientation::high),i,2.0);
-                    } // -->> over dimensions
-                } // -->> over boxes in domain
+                    }
+                }
 	      lp.bndryData(bd);
 	      mg.solve(soln, rhs, tolerance, tolerance_abs);
             }
@@ -234,8 +234,8 @@ main (int   argc, char* argv[])
 		    {
 		      bd.setValue(Orientation(n, Orientation::low) ,i,4.0);
 		      bd.setValue(Orientation(n, Orientation::high),i,4.0);
-                    } // -->> over dimensions
-                } // -->> over boxes in domain
+                    }
+                }
 	      lp.bndryData(bd);
 	      res  = cg.solve(soln, rhs, tolerance, tolerance_abs);
 	      cout << "CG (new_bc) Result = " << res << endl;
@@ -256,8 +256,8 @@ main (int   argc, char* argv[])
 		    {
 		      bd.setValue(Orientation(n, Orientation::low) ,i,4.0);
 		      bd.setValue(Orientation(n, Orientation::high),i,4.0);
-                    } // -->> over dimensions
-                } // -->> over boxes in domain
+                    }
+                }
 	      lp.bndryData(bd);
 	      res = cg.solve(soln, rhs, tolerance, tolerance_abs);
 	      cout << "BiCGStab (new_bc) Result = " << res << endl;
@@ -278,8 +278,8 @@ main (int   argc, char* argv[])
 		    {
 		      bd.setValue(Orientation(n, Orientation::low) ,i,4.0);
 		      bd.setValue(Orientation(n, Orientation::high),i,4.0);
-                    } // -->> over dimensions
-                } // -->> over boxes in domain
+                    } 
+                } 
 	      lp.bndryData(bd);
 	      res = cg.solve(soln, rhs, tolerance, tolerance_abs);
 	      cout << "aCG (new_bc) Result = " << res << endl;
@@ -316,8 +316,8 @@ main (int   argc, char* argv[])
 	  bcoefs[n].define(bsC.surroundingNodes(n), Ncomp,
 			   Nghost, Fab_allocate);
 	  bcoefs[n].setVal(b[n]);
-	} // -->> over dimension
-        
+	} 
+
       // Build operator, set coeffs, build solver, solve
       if ( Hypre )
 	{
@@ -356,8 +356,8 @@ main (int   argc, char* argv[])
 			{
 			  bd.setValue(Orientation(n, Orientation::low) ,i,2.0);
 			  bd.setValue(Orientation(n, Orientation::high),i,2.0);
-			} // -->> over dimensions
-		    } // -->> over boxes in domain
+			} 
+		    }
 		  lp.bndryData(bd);
 		  mg.solve(soln, rhs, tolerance, tolerance_abs);
 		}
@@ -375,8 +375,8 @@ main (int   argc, char* argv[])
 			{
 			  bd.setValue(Orientation(n, Orientation::low) ,i,4.0);
 			  bd.setValue(Orientation(n, Orientation::high),i,4.0);
-			} // -->> over dimensions
-		    } // -->> over boxes in domain
+			}
+		    }
 		  lp.bndryData(bd);
 		  cg.solve(soln, rhs, tolerance, tolerance_abs);
 		}
@@ -394,8 +394,8 @@ main (int   argc, char* argv[])
 			{
 			  bd.setValue(Orientation(n, Orientation::low) ,i,4.0);
 			  bd.setValue(Orientation(n, Orientation::high),i,4.0);
-			} // -->> over dimensions
-		    } // -->> over boxes in domain
+			}
+		    }
 		  lp.bndryData(bd);
 		  cg.solve(soln, rhs, tolerance, tolerance_abs);
 		}
@@ -413,8 +413,8 @@ main (int   argc, char* argv[])
 			{
 			  bd.setValue(Orientation(n, Orientation::low) ,i,4.0);
 			  bd.setValue(Orientation(n, Orientation::high),i,4.0);
-			} // -->> over dimensions
-		    } // -->> over boxes in domain
+			}
+		    }
 		  lp.bndryData(bd);
 		  cg.solve(soln, rhs, tolerance, tolerance_abs);
 		}
@@ -457,7 +457,7 @@ main (int   argc, char* argv[])
       for ( MultiFabIterator mfi(soln); mfi.isValid(); ++mfi )
 	{
 	  cout << *mfi << endl;
-	} // -->> over boxes in domain
+	}
     }
 
 #ifdef BL3_PROFILING
@@ -465,7 +465,7 @@ main (int   argc, char* argv[])
   BoxLib3::Profiler::Finalize();
 #endif
   ParallelDescriptor::EndParallel();
-} // -->> main fnc
+}
 
 BoxList
 readBoxList(const aString file, BOX& domain)
