@@ -1,7 +1,7 @@
 #ifndef _GEOMETRY_H_
 #define _GEOMETRY_H_
 //
-// $Id: Geometry.H,v 1.39 2001-08-15 19:23:55 lijewski Exp $
+// $Id: Geometry.H,v 1.40 2002-04-27 07:07:41 marc Exp $
 //
 #include <iosfwd>
 #include <list>
@@ -35,7 +35,8 @@ public:
     //
     //@ManDoc: Constructor taking the rectangular domain.
     //
-    explicit Geometry (const Box& dom);
+    //explicit Geometry (const Box& dom);
+    Geometry (const Box& dom, const RealBox* rb = 0, int coord = -1);
     //
     //@ManDoc: The copy constructor.
     //
@@ -47,11 +48,11 @@ public:
     //
     //@ManDoc: Read static values from ParmParse database.
     //
-    static void Setup ();
+    static void Setup (const RealBox* rb = 0, int coord = -1);
     //
     //@ManDoc: Set the rectangular domain after using default constructor.
     //
-    void define (const Box& dom);
+    void define (const Box& dom, const RealBox* rb = 0, int coord = -1);
     //
     //@ManDoc: Returns the problem domain.
     //
