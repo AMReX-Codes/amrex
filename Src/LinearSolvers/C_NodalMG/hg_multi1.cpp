@@ -24,12 +24,12 @@ extern "C" {
 #if (BL_SPACEDIM == 1)
   ERROR, not relevant
 #elif (BL_SPACEDIM == 2 || BL_SPACEDIM == 3)
-#  ifdef TERRAIN
+#  ifdef HG_TERRAIN
   void FACRST1(Real*, intS, intS, Real*, intS, intRS, const int&);
   void FORT_HGSRST(RealPS, intS, intS, RealPS, intS, intRS);
   void FORT_HGCEN(Real*, intS, Real*, intS, intS);
   void FORT_HGINTS(Real*, intS, intS, RealPS, intS, Real*, intS, intS, intRS);
-#  elif (! defined CONSTANT)
+#  elif (! defined HG_CONSTANT)
   void FORT_HGSRST(RealPS, intS, intS, RealPS, intS, intRS);
 #    ifndef SIGMA_NODE
   void FORT_HGCEN(Real*, intS, RealPS, intS, intS, RealRS,
@@ -76,7 +76,7 @@ void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
   h = new Real[mglev_max + 1][BL_SPACEDIM];
   for (i = 0; i < BL_SPACEDIM; i++) {
     h[mglev_max][i] = H[i];
-#ifdef CONSTANT
+#ifdef HG_CONSTANT
     assert(H[i] == H[0]);
 #endif
     for (mglev = mglev_max - 1; mglev >= 0; mglev--) {
@@ -133,7 +133,7 @@ void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
   }
 
   for (int igrid = 0; igrid < mg_mesh[0].length(); igrid++) {
-    Fab& gtmp = cgwork[7][igrid];
+    FArrayBox& gtmp = cgwork[7][igrid];
     const Box& valid = cgwork[7].box(igrid);
     gtmp.setVal(0.0);
     gtmp.setVal(1.0, valid, 0);
@@ -185,16 +185,16 @@ void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
     singular = (singular == mg_domain[0].numPts());
   }
 
-#ifdef TERRAIN
+#ifdef HG_TERRAIN
   integrate = 1;
 #endif
 }
 
-#ifndef CONSTANT
+#ifndef HG_CONSTANT
 
-void holy_grail_sigma_restrictor_class::fill(Fab& patch,
+void holy_grail_sigma_restrictor_class::fill(FArrayBox& patch,
 					     const Box& region,
-					     Fab& fgr,
+					     FArrayBox& fgr,
 					     const IntVect& rat) const
 {
   assert(patch.box().cellCentered());
@@ -202,7 +202,7 @@ void holy_grail_sigma_restrictor_class::fill(Fab& patch,
 	 rat[0] == 2 && rat[1] == 1 ||
 	 rat[0] == 1 && rat[1] == 2);
 
-#ifdef TERRAIN
+#ifdef HG_TERRAIN
     FORT_HGSRST(patch.dataPtr(0), patch.dataPtr(1),
 #  if (BL_SPACEDIM == 3)
 		patch.dataPtr(2),
@@ -280,7 +280,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 {
   int mglev, igrid;
 
-#ifdef TERRAIN
+#ifdef HG_TERRAIN
 
   // For terrain stencils we have as many sigma arrays passed as
   // arguments and used at the interface as we build for internal
@@ -314,7 +314,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
     fill_borders(sigma[mglev], 0, interface[mglev], boundary.terrain_sigma());
   }
 
-#elif (! defined CONSTANT)
+#elif (! defined HG_CONSTANT)
 
   // Intended functionality:  sigma_split exists only at coarser levels,
   // since only after coarsening is sigma different in different directions.
@@ -413,7 +413,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
   sigma_node.resize(mglev_max + 1);
   for (mglev = 0; mglev <= mglev_max; mglev++) {
     BoxArray mesh = mg_mesh[mglev];
-    mesh.convert(IndexType(nodevect));
+    mesh.convert(IndexType(IntVect::TheNodeVector()));
     sigma_node.set(mglev, new MultiFab(mesh, BL_SPACEDIM, 1));
     sigma_node[mglev].setVal(1.e20);
   }
@@ -461,8 +461,6 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 
 #endif
 
-  DECLARE_GEOMETRY_TYPES;
-
   cen.resize(mglev_max + 1);
   for (mglev = 0; mglev <= mglev_max; mglev++) {
     cen.set(mglev, new MultiFab(corr[mglev].boxArray(), 1,
@@ -470,7 +468,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
     MultiFab& ctmp = cen[mglev];
     ctmp.setVal(0.0);
 
-#ifdef TERRAIN
+#ifdef HG_TERRAIN
 
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
       const Box& cenbox = ctmp[igrid].box();
@@ -482,7 +480,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 		 dimlist(reg));
     }
 
-#elif (defined CONSTANT)
+#elif (defined HG_CONSTANT)
 
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
       ctmp[igrid].setVal(1.0, interface[mglev].part_fine(igrid), 0);
@@ -531,7 +529,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
     clear_part_interface(ctmp, interface[mglev]);
   }
 
-#ifdef CONSTANT
+#ifdef HG_CONSTANT
   mask.resize(mglev_max + 1);
   for (mglev = 0; mglev <= mglev_max; mglev++) {
     mask.set(mglev, &cen[mglev]);
@@ -578,8 +576,8 @@ void holy_grail_amr_multigrid::clear()
   delete cgwork.remove(6);
   delete cgwork.remove(7);
 
-#ifndef CONSTANT
-#  ifdef TERRAIN
+#ifndef HG_CONSTANT
+#  ifdef HG_TERRAIN
   for (mglev = 0; mglev <= mglev_max; mglev++) {
     delete sigma.remove(mglev);
   }
@@ -605,7 +603,7 @@ void holy_grail_amr_multigrid::clear()
 
   for (mglev = 0; mglev <= mglev_max; mglev++) {
     delete cen.remove(mglev);
-#ifdef CONSTANT
+#ifdef HG_CONSTANT
     mask.remove(mglev);
 #endif
 #ifdef SIGMA_NODE
@@ -657,8 +655,6 @@ int holy_grail_amr_multigrid::can_coarsen(const BoxArray& mesh,
 
 void holy_grail_amr_multigrid::sync_interfaces()
 {
-  DECLARE_GEOMETRY_TYPES;
-
   for (int lev = lev_min+1; lev <= lev_max; lev++) {
     int mglev = ml_index[lev];
     int mgc = ml_index[lev-1];
@@ -671,7 +667,7 @@ void holy_grail_amr_multigrid::sync_interfaces()
 	igrid = interface[mglev].fgrid(iface, 1);
       unsigned geo = interface[mglev].fgeo(iface);
       // reject fine-fine interfaces and those without an interior fine grid
-      if (geo == ALL || igrid < 0 || interface[mglev].fflag(iface) == 1)
+      if (geo == level_interface::ALL || igrid < 0 || interface[mglev].fflag(iface) == 1)
 	continue;
       interpolate_patch(target[igrid], interface[mglev].node_face(iface),
 			dest[lev-1], rat,
@@ -682,8 +678,6 @@ void holy_grail_amr_multigrid::sync_interfaces()
 
 void holy_grail_amr_multigrid::sync_periodic_interfaces()
 {
-  DECLARE_GEOMETRY_TYPES;
-
   for (int lev = lev_min+1; lev <= lev_max; lev++) {
     int mglev = ml_index[lev];
     int mgc = ml_index[lev-1];
@@ -699,7 +693,7 @@ void holy_grail_amr_multigrid::sync_periodic_interfaces()
       unsigned geo = interface[mglev].fgeo(iface);
       // use only exterior coarse-fine faces with an interior fine grid
       const Box& nbox = interface[mglev].node_face(iface);
-      if (geo == ALL || igrid < 0 || interface[mglev].fflag(iface) == 1 ||
+      if (geo == level_interface::ALL || igrid < 0 || interface[mglev].fflag(iface) == 1 ||
 	  idomain.intersects(nbox))
 	continue;
       interpolate_patch(target[igrid], nbox, dest[lev-1], rat,
@@ -745,11 +739,11 @@ void holy_grail_amr_multigrid::mg_restrict(int lto, int lfrom)
   clear_part_interface(resid[lto], interface[lto]);
 }
 
-#ifndef CONSTANT
+#ifndef HG_CONSTANT
 
-void holy_grail_interpolator_class::fill(Fab& patch,
+void holy_grail_interpolator_class::fill(FArrayBox& patch,
 					 const Box& region,
-					 Fab& cgr,
+					 FArrayBox& cgr,
 					 const Box& cb,
 					 const IntVect& rat) const
 {
@@ -779,7 +773,7 @@ void holy_grail_interpolator_class::fill(Fab& patch,
 void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 {
   if (get_amr_level(lfrom) >= 0) {
-#ifdef CONSTANT
+#ifdef HG_CONSTANT
     // multilevel interpolation, use general form
     amr_multigrid::mg_interpolate_level(lto, lfrom);
 #else
@@ -788,7 +782,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
     MultiFab& target = work[ltmp];
     IntVect rat = mg_domain[ltmp].length() / mg_domain[lfrom].length();
     for (int igrid = 0; igrid < target.length(); igrid++) {
-#ifdef TERRAIN
+#ifdef HG_TERRAIN
       Real *sigptr[BL_SPACEDIM];
       for (int i = 0; i < BL_SPACEDIM; i++) {
 	sigptr[i] = sigma[ltmp][igrid].dataPtr(i);
@@ -839,7 +833,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
       const Box& freg = work[lto].box(igrid);
       const Box& cbox = corr[lfrom][igrid].box();
       const Box& creg = corr[lfrom].box(igrid);
-#ifdef CONSTANT
+#ifdef HG_CONSTANT
       FANINT2(work[lto][igrid].dataPtr(), dimlist(fbox), dimlist(freg),
 	      corr[lfrom][igrid].dataPtr(), dimlist(cbox), dimlist(creg),
 	      D_DECL(rat[0], rat[1], rat[2]));
@@ -850,7 +844,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
       const Box& sigbox = sigma_node[lto][igrid].box();
 #endif
       FORT_HGINTS(work[lto][igrid].dataPtr(), dimlist(fbox), dimlist(freg),
-#ifdef TERRAIN
+#ifdef HG_TERRAIN
 		  sigma[lto][igrid].dataPtr(0),
 		  sigma[lto][igrid].dataPtr(1),
 #  if (BL_SPACEDIM == 3)

@@ -34,7 +34,7 @@ Real inner_product(MultiFab& r, MultiFab& s)
   int igrid;
   Real sum = 0.0;
 
-  if (type(r) == cellvect) {
+  if (type(r) == IntVect::TheCellVector()) {
     for (igrid = 0; igrid < r.length(); igrid++) {
       const Box& rbox = r[igrid].box();
       const Box& sbox = s[igrid].box();
@@ -44,7 +44,7 @@ Real inner_product(MultiFab& r, MultiFab& s)
 	      dimlist(reg), sum);
     }
   }
-  else if (type(r) == nodevect) {
+  else if (type(r) == IntVect::TheNodeVector()) {
     for (igrid = 0; igrid < r.length(); igrid++) {
       const Box& rbox = r[igrid].box();
       const Box& sbox = s[igrid].box();
@@ -86,7 +86,7 @@ static Box box_chop(Box& dest, const Box& source)
 {
   int i;
   for (i = BL_SPACEDIM - 1; i >= 0; i--) {
-    if (dest.type(i) == BOX_CELL) {
+    if (dest.type(i) == IndexType::CELL) {
       if (dest.smallEnd(i) <= source.bigEnd(i) &&
 	  source.bigEnd(i) < dest.bigEnd(i)) {
 	return dest.chop(i,source.bigEnd(i)+1);
@@ -192,7 +192,7 @@ grid_real get_patch(const Box& region,
   return retgr;
 }
 
-int get_patch(Fab& patch, const Box& region,
+int get_patch(FArrayBox& patch, const Box& region,
 	      const level_interface& interface,
 	      amr_boundary bdy, int flags)
 {
@@ -252,7 +252,7 @@ int find_patch(const Box& region, MultiFab& r, int flags)
   return -1;
 }
 
-int fill_patch_blindly(Fab& patch,
+int fill_patch_blindly(FArrayBox& patch,
 		       const Box& region,
 		       MultiFab& r,
 		       int flags)
@@ -291,7 +291,7 @@ int fill_patch_blindly(Fab& patch,
   return 0;
 }
 
-int fill_exterior_patch_blindly(Fab& patch,
+int fill_exterior_patch_blindly(FArrayBox& patch,
 				const Box& region,
 				MultiFab& r,
 				const level_interface& interface,
@@ -321,7 +321,7 @@ int fill_exterior_patch_blindly(Fab& patch,
   return 0;
 }
 
-int fill_patch(Fab& patch, const Box& region,
+int fill_patch(FArrayBox& patch, const Box& region,
 	       MultiFab& r,
 	       const level_interface& interface,
 	       amr_boundary bdy, int flags,
@@ -339,7 +339,7 @@ int fill_patch(Fab& patch, const Box& region,
 
   Box tdomain = interface.domain();
   tdomain.convert(type(patch));
-  Box idomain = grow(tdomain, zerovect - type(r));
+  Box idomain = grow(tdomain, IntVect::TheZeroVector() - type(r));
 
   if ((flags & 1) == 0) {
     if (idim == -1 || (flags & 2)) {
@@ -366,9 +366,9 @@ int fill_patch(Fab& patch, const Box& region,
       }
     }
     else if (idim == 0) {
-      int gridnum[N_CORNER_GRIDS+1];
+      int gridnum[level_interface::N_CORNER_GRIDS+1];
       gridnum[0] = -1;
-      for (int i = 0; i < N_CORNER_GRIDS; i++) {
+      for (int i = 0; i < level_interface::N_CORNER_GRIDS; i++) {
 	int igrid = interface.cgrid(index,i);
 	if (igrid != -1) {
 	  for (int j = 0; gridnum[j] != igrid; j++) {
@@ -400,9 +400,9 @@ int fill_patch(Fab& patch, const Box& region,
     }
 #if (BL_SPACEDIM == 3)
     else if (idim == 1) {
-      int gridnum[N_EDGE_GRIDS+1];
+      int gridnum[level_interface::N_EDGE_GRIDS+1];
       gridnum[0] = -1;
-      for (int i = 0; i < N_EDGE_GRIDS; i++) {
+      for (int i = 0; i < level_interface::N_EDGE_GRIDS; i++) {
 	int igrid = interface.egrid(index,i);
 	if (igrid != -1) {
 	  for (int j = 0; gridnum[j] != igrid; j++) {
@@ -433,10 +433,10 @@ int fill_patch(Fab& patch, const Box& region,
       }
     }
 #endif
-    else if (idim == FACEDIM) {
-      int gridnum[N_FACE_GRIDS+1];
+    else if (idim == level_interface::FACEDIM) {
+      int gridnum[level_interface::N_FACE_GRIDS+1];
       gridnum[0] = -1;
-      for (int i = 0; i < N_FACE_GRIDS; i++) {
+      for (int i = 0; i < level_interface::N_FACE_GRIDS; i++) {
 	int igrid = interface.fgrid(index,i);
 	if (igrid != -1) {
 	  for (int j = 0; gridnum[j] != igrid; j++) {
@@ -474,7 +474,7 @@ int fill_patch(Fab& patch, const Box& region,
 }
 
 /*
-int fill_patch(Fab& patch,
+int fill_patch(FArrayBox& patch,
 	       const Box& region, const Box& active,
 	       amr_boundary bdy, int flags,
 	       int igrid)
@@ -502,7 +502,7 @@ int fill_patch(Fab& patch,
   if (!region.sameType(patch.box()))
     BoxLib::Error("fill_patch---incompatible patch");
 
-  Box idomain = grow(tdomain(), zerovect - type());
+  Box idomain = grow(tdomain(), IntVect::TheZeroVector - type());
 
   if (igrid < 0 && (flags & 1) == 0 && idomain.contains(region)) {
     fill_patch_blindly(patch, region, flags);
@@ -581,7 +581,7 @@ int fill_patch(Fab& patch,
       bdy.fill(patch, side2, patch, bb, mesh().domain(), bdir);
     }
     else {
-      Fab gb;
+      FArrayBox gb;
       ret1 = get_patch(gb, bb, null_level_interface, bdy, (flags | 5));
       bdy.fill(patch, side2, gb, bb, mesh().domain(), bdir);
     }
@@ -593,7 +593,7 @@ int fill_patch(Fab& patch,
       if (flags & 1) {
 	// redo outside to get return value right
 	bb = bdy.box(side2, mesh().domain(), bdir);
-	Fab gb;
+	FArrayBox gb;
 	ret1 = get_patch(gb, bb, null_level_interface, bdy, (flags | 5));
 	bdy.fill(patch, side2, gb, bb, mesh().domain(), bdir);
       }
@@ -610,15 +610,13 @@ int fill_patch(Fab& patch,
 
 void sync_internal_borders(MultiFab& r, const level_interface& interface)
 {
-  DECLARE_GEOMETRY_TYPES;
-
   int igrid, jgrid;
-  if (type(r) == nodevect) {
+  if (type(r) == IntVect::TheNodeVector()) {
     for (int iface = 0; iface < interface.nfaces(); iface++) {
       igrid = interface.fgrid(iface, 0);
       jgrid = interface.fgrid(iface, 1);
       // only do interior faces with fine grid on both sides
-      if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != ALL)
+      if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != level_interface::ALL)
 	break;
       internal_copy(r, jgrid, igrid, interface.node_face(iface));
     }
@@ -627,7 +625,7 @@ void sync_internal_borders(MultiFab& r, const level_interface& interface)
       igrid = interface.cgrid(icor, 0);
       jgrid = interface.cgrid(icor, 3);
       // only do interior corners with fine grid on all sides
-      if (igrid < 0 || jgrid < 0 || interface.cgeo(icor) != ALL)
+      if (igrid < 0 || jgrid < 0 || interface.cgeo(icor) != level_interface::ALL)
 	break;
       if (jgrid == interface.cgrid(icor, 1))
 	internal_copy(r, jgrid, igrid, interface.corner(icor));
@@ -637,7 +635,7 @@ void sync_internal_borders(MultiFab& r, const level_interface& interface)
       igrid = interface.egrid(iedge, 0);
       jgrid = interface.egrid(iedge, 3);
       // only do interior edges with fine grid on all sides
-      if (igrid < 0 || jgrid < 0 || interface.egeo(iedge) != ALL)
+      if (igrid < 0 || jgrid < 0 || interface.egeo(iedge) != level_interface::ALL)
 	break;
       if (jgrid == interface.egrid(iedge, 1))
 	internal_copy(r, jgrid, igrid, interface.node_edge(iedge));
@@ -646,7 +644,7 @@ void sync_internal_borders(MultiFab& r, const level_interface& interface)
       igrid = interface.cgrid(icor, 0);
       jgrid = interface.cgrid(icor, 7);
       // only do interior corners with fine grid on all sides
-      if (igrid < 0 || jgrid < 0 || interface.cgeo(icor) != ALL)
+      if (igrid < 0 || jgrid < 0 || interface.cgeo(icor) != level_interface::ALL)
 	break;
       if (interface.cgrid(icor, 3) == interface.cgrid(icor, 1)) {
 	if (jgrid != interface.cgrid(icor, 3)) {
@@ -692,15 +690,13 @@ void sync_internal_borders(MultiFab& r, const level_interface& interface)
 void fill_internal_borders(MultiFab& r, const level_interface& interface,
 			   int w)
 {
-  DECLARE_GEOMETRY_TYPES;
-
   w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
   int igrid, jgrid;
-  if (type(r) == nodevect) {
+  if (type(r) == IntVect::TheNodeVector()) {
     for (int iface = 0; iface < interface.nfaces(); iface++) {
       igrid = interface.fgrid(iface, 0);
       jgrid = interface.fgrid(iface, 1);
-      if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != ALL)
+      if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != level_interface::ALL)
 	break;
 #if 1
       const Box& b = interface.node_face(iface);
@@ -737,18 +733,18 @@ void fill_internal_borders(MultiFab& r, const level_interface& interface,
 #endif
     }
   }
-  else if (type(r) == cellvect) {
+  else if (type(r) == IntVect::TheCellVector()) {
     for (int iface = 0; iface < interface.nfaces(); iface++) {
       igrid = interface.fgrid(iface, 0);
       jgrid = interface.fgrid(iface, 1);
-      if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != ALL)
+      if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != level_interface::ALL)
 	break;
       const int idim = interface.fdim(iface);
 #if (BL_SPACEDIM == 2)
       Box b = interface.face(iface);
       if (idim == 1)
         b.grow(0, w);
-      b.growLo(idim, w).convert(cellvect);
+      b.growLo(idim, w).convert(IntVect::TheCellVector());
       internal_copy(r, jgrid, igrid, b);
       internal_copy(r, igrid, jgrid, b.shift(idim, w));
 #else
@@ -764,8 +760,8 @@ void fill_internal_borders(MultiFab& r, const level_interface& interface,
 	if (r.box(igrid).bigEnd(i) == bi.bigEnd(i))
 	  bi.growHi(i, w);
       }
-      bj.growLo(idim, w).convert(cellvect);
-      bi.growHi(idim, w).convert(cellvect);
+      bj.growLo(idim, w).convert(IntVect::TheCellVector());
+      bi.growHi(idim, w).convert(IntVect::TheCellVector());
       internal_copy(r, jgrid, igrid, bj);
       internal_copy(r, igrid, jgrid, bi);
 #endif
@@ -775,10 +771,10 @@ void fill_internal_borders(MultiFab& r, const level_interface& interface,
     for (int iface = 0; iface < interface.nfaces(); iface++) {
       igrid = interface.fgrid(iface, 0);
       jgrid = interface.fgrid(iface, 1);
-      if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != ALL)
+      if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != level_interface::ALL)
 	break;
       const int idim = interface.fdim(iface);
-      const int a = (type(r, idim) == BOX_NODE);
+      const int a = (type(r, idim) == IndexType::NODE);
 #if (BL_SPACEDIM == 2)
       Box b = interface.face(iface);
       if (idim == 1)
@@ -817,10 +813,8 @@ void clear_part_interface(MultiFab& r, const level_interface& interface)
   if (r.nComp() != 1)
     BoxLib::Error("clear_part_interface---only single components currently supported");
 
-  DECLARE_GEOMETRY_TYPES;
-
   int igrid;
-  if (type(r) == nodevect) {
+  if (type(r) == IntVect::TheNodeVector()) {
     for (int i = 0; i < BL_SPACEDIM; i++) {
       for (int ibox = 0; ibox < interface.nboxes(i); ibox++) {
 	// coarse-fine face contained in part_fine grid, or orphan edge/corner
@@ -834,7 +828,7 @@ void clear_part_interface(MultiFab& r, const level_interface& interface)
   }
 }
 
-void interpolate_patch(Fab& patch, const Box& region,
+void interpolate_patch(FArrayBox& patch, const Box& region,
 		       MultiFab& r, const IntVect& rat,
 		       amr_interpolator interp,
 		       const level_interface& interface,
@@ -845,7 +839,7 @@ void interpolate_patch(Fab& patch, const Box& region,
   Box cb = interp.box(region, rat);
   int igrid = find_patch(cb, r);
   if (igrid == -1) {
-    Fab cgr(cb, r.nComp());
+    FArrayBox cgr(cb, r.nComp());
     fill_patch(cgr, cb, r, interface, bdy);
     interp.fill(patch, region, cgr, cb, rat);
   }
@@ -854,7 +848,7 @@ void interpolate_patch(Fab& patch, const Box& region,
   }
 }
 
-void restrict_patch(Fab& patch, const Box& region,
+void restrict_patch(FArrayBox& patch, const Box& region,
 		    MultiFab& r, const IntVect& rat,
 		    const copy_cache* border_cache,
 		    amr_restrictor restric,

@@ -60,7 +60,7 @@ inline void default_contour_color(int i, int n)
 
 // Plot a single contour for the specified value:
 
-void contour(const Fab& r, Box subbox, const IntVect& ratio, Real value,
+void contour(const FArrayBox& r, Box subbox, const IntVect& ratio, Real value,
 	     int cflag = 1, const Box& domain = null_Box,
 	     void (*set_contour_color)(int,int) = default_contour_color,
 	     const BoxArray& mask = null_level_mesh,
@@ -78,7 +78,7 @@ void contour(PArray<MultiFab>& r, const Array<IntVect>& gen_ratio, Real value,
 
 // Plot nval contours at the values specified by value[0...nval-1]:
 
-void contour(const Fab& r, Box subbox, const IntVect& ratio,
+void contour(const FArrayBox& r, Box subbox, const IntVect& ratio,
 	     int nval, Real value[],
 	     int cflag = 1, const Box& domain = null_Box,
 	     void (*set_contour_color)(int,int) = default_contour_color,
@@ -104,7 +104,7 @@ void contour(PArray<MultiFab>& r, const Array<IntVect>& gen_ratio,
 //             If a == b then alternate points from the pattern
 //             of 2*nval+1 values from rmin to rmax will be used.
 
-void contour(const Fab& r, Box subbox, const IntVect& ratio,
+void contour(const FArrayBox& r, Box subbox, const IntVect& ratio,
 	     int nval, int flag = 0,
 	     Real a = 0.0, Real b = 0.0, Real p = 1.0,
 	     int cflag = 1, const Box& domain = null_Box,
@@ -138,19 +138,19 @@ void fit_slice(Box b, int idim, const IntVect& ratio = unitvect,
 
 void plot_slice(Box b, int idim, const IntVect& ratio = unitvect);
 
-void slice(const Fab& r, Box subbox, const IntVect& ratio,
+void slice(const FArrayBox& r, Box subbox, const IntVect& ratio,
            int idim, int islice,
            Real value,
            int cflag = 1, const Box& domain = null_Box,
            void (*set_contour_color)(int,int) = default_contour_color);
 
-void slice(const Fab& r, Box subbox, const IntVect& ratio,
+void slice(const FArrayBox& r, Box subbox, const IntVect& ratio,
            int idim, int islice,
            int nval, Real value[],
            int cflag = 1, const Box& domain = null_Box,
            void (*set_contour_color)(int,int) = default_contour_color);
 
-void slice(const Fab& r, Box subbox, const IntVect& ratio,
+void slice(const FArrayBox& r, Box subbox, const IntVect& ratio,
            int idim, int islice,
            int nval, int flag = 0,
            Real a = 0.0, Real b = 0.0, Real p = 1.0,

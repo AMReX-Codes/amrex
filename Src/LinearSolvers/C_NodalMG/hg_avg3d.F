@@ -1,10 +1,12 @@
 
-#include "hg_version.H"
+c#include "hg_version.H"
 
 #define dims(a) a l0,a h0,a l1,a h1,a l2,a h2
 #define dimdec(a) a l0:a h0,a l1:a h1,a l2:a h2
 c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)*(a h2-a l2+1)
 #define dimdecu(a) *
+
+#include <REAL.H>
 
       subroutine hgavg(src,
      @ dims(src),

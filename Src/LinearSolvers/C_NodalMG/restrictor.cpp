@@ -46,9 +46,9 @@ Box cell_average_restrictor_class::box(const Box& fb, const IntVect& rat) const
   return retbox.coarsen(rat);
 }
 
-void cell_average_restrictor_class::fill(Fab& patch,
+void cell_average_restrictor_class::fill(FArrayBox& patch,
 					 const Box& region,
-					 Fab& fgr,
+					 FArrayBox& fgr,
 					 const IntVect& rat) const
 {
   assert(patch.box().cellCentered());
@@ -59,9 +59,9 @@ void cell_average_restrictor_class::fill(Fab& patch,
   }
 }
 
-void terrain_velocity_restrictor_class::fill(Fab& patch,
+void terrain_velocity_restrictor_class::fill(FArrayBox& patch,
 					     const Box& region,
-					     Fab& fgr,
+					     FArrayBox& fgr,
 					     const IntVect& rat) const
 {
   assert(patch.box().cellCentered());
@@ -79,12 +79,12 @@ Box injection_restrictor_class::box(const Box& fb, const IntVect& rat) const
   return retbox.coarsen(rat);
 }
 
-void injection_restrictor_class::fill(Fab& patch,
+void injection_restrictor_class::fill(FArrayBox& patch,
 				      const Box& region,
-				      Fab& fgr,
+				      FArrayBox& fgr,
 				      const IntVect& rat) const
 {
-  if (patch.box().type() == nodevect) {
+  if (patch.box().type() == IntVect::TheNodeVector()) {
     for (int i = 0; i < patch.nComp(); i++) {
       FANRST1(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
 	      fgr.dataPtr(i), dimlist(fgr.box()),
@@ -101,14 +101,14 @@ Box default_restrictor_class::box(const Box& fb, const IntVect& rat) const
   return retbox.coarsen(rat);
 }
 
-void default_restrictor_class::fill(Fab& patch,
+void default_restrictor_class::fill(FArrayBox& patch,
 				    const Box& region,
-				    Fab& fgr,
+				    FArrayBox& fgr,
 				    const IntVect& rat) const
 {
   if (patch.box().cellCentered())
     cell_average_restrictor.fill(patch, region, fgr, rat);
-  else if (patch.box().type() == nodevect)
+  else if (patch.box().type() == IntVect::TheNodeVector())
     injection_restrictor.fill(patch, region, fgr, rat);
   else
     BoxLib::Error("default_restrictor_class::fill---No default restriction defined for mixed data");
@@ -120,12 +120,12 @@ Box bilinear_restrictor_class::box(const Box& fb, const IntVect& rat) const
   return retbox.coarsen(rat).grow(-1);
 }
 
-void bilinear_restrictor_class::fill(Fab& patch,
+void bilinear_restrictor_class::fill(FArrayBox& patch,
 				     const Box& region,
-				     Fab& fgr,
+				     FArrayBox& fgr,
 				     const IntVect& rat) const
 {
-  if (patch.box().type() == nodevect) {
+  if (patch.box().type() == IntVect::TheNodeVector()) {
     for (int i = 0; i < patch.nComp(); i++) {
       FANRST2(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
 	      fgr.dataPtr(i), dimlist(fgr.box()),
@@ -136,7 +136,7 @@ void bilinear_restrictor_class::fill(Fab& patch,
     BoxLib::Error("bilinear_restrictor_coarse_class::fill---Bilinear restriction only defined for NODE-based data");
 }
 
-void bilinear_restrictor_class::interface(Fab& patch,
+void bilinear_restrictor_class::interface(FArrayBox& patch,
 					  const Box& region,
 					  MultiFab& fine,
 					  const copy_cache* border_cache,
@@ -144,10 +144,8 @@ void bilinear_restrictor_class::interface(Fab& patch,
 					  amr_boundary bdy,
 					  const IntVect& rat) const
 {
-  if (patch.box().type() != nodevect)
+  if (patch.box().type() != IntVect::TheNodeVector())
     BoxLib::Error("bilinear_restrictor_coarse_class::interface---bilinear restriction only defined for NODE-based data");
-
-  DECLARE_GEOMETRY_TYPES;
 
   Box regplus = grow(region,1);
   const Box& pb = patch.box();
@@ -160,7 +158,7 @@ void bilinear_restrictor_class::interface(Fab& patch,
 
   if (fine.nGrow() < ratmax - 1) {
     for (int iface = 0; iface < interface.nfaces(); iface++) {
-      if (interface.fgeo(iface) == ALL && interface.fflag(iface) == 0) {
+      if (interface.fgeo(iface) == level_interface::ALL && interface.fflag(iface) == 0) {
 	// fine grid on both sides
 	Box cbox = interface.node_face(iface);
 	IntVect t = interface.face(iface).type();
@@ -169,9 +167,9 @@ void bilinear_restrictor_class::interface(Fab& patch,
 	  // This extends fine face by one coarse cell past coarse face:
 	  cbox &= regplus;
 	  // Note:  Uses numerical values of index types:
-	  cbox.grow(t - unitvect);
-	  Fab fgr(grow(refine(cbox, rat), rat - unitvect), patch.nComp());
-	  fill_patch(fgr, fine, interface, bdy, 0, FACEDIM, iface);
+	  cbox.grow(t - IntVect::TheUnitVector());
+	  FArrayBox fgr(grow(refine(cbox, rat), rat - IntVect::TheUnitVector()), patch.nComp());
+	  fill_patch(fgr, fine, interface, bdy, 0, level_interface::FACEDIM, iface);
 	  const Box& fb = fgr.box();
 	  for (int i = 0; i < patch.nComp(); i++) {
 	    FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
@@ -183,7 +181,7 @@ void bilinear_restrictor_class::interface(Fab& patch,
     }
 #if (BL_SPACEDIM == 3)
     for (int iedge = 0; iedge < interface.nedges(); iedge++) {
-      if (interface.egeo(iedge) == ALL && interface.eflag(iedge) == 0) {
+      if (interface.egeo(iedge) == level_interface::ALL && interface.eflag(iedge) == 0) {
 	// fine grid on all sides
 	Box cbox = interface.node_edge(iedge);
 	IntVect t = interface.edge(iedge).type();
@@ -192,8 +190,8 @@ void bilinear_restrictor_class::interface(Fab& patch,
 	  // This extends fine edge by one coarse cell past coarse edge:
 	  cbox &= regplus;
 	  // Note:  Uses numerical values of index types:
-	  cbox.grow(t - unitvect);
-	  Fab fgr(grow(refine(cbox, rat), rat - unitvect), patch.nComp());
+	  cbox.grow(t - IntVect::TheUnitVector());
+	  FArrayBox fgr(grow(refine(cbox, rat), rat - IntVect::TheUnitVector()), patch.nComp());
 	  fill_patch(fgr, fine, interface, bdy, 0, 1, iedge);
 	  const Box& fb = fgr.box();
 	  for (int i = 0; i < patch.nComp(); i++) {
@@ -206,12 +204,12 @@ void bilinear_restrictor_class::interface(Fab& patch,
     }
 #endif
     for (int icor = 0; icor < interface.ncorners(); icor++) {
-      if (interface.cgeo(icor) == ALL && interface.cflag(icor) == 0) {
+      if (interface.cgeo(icor) == level_interface::ALL && interface.cflag(icor) == 0) {
 	// fine grid on all sides
 	Box cbox = interface.corner(icor);
 	cbox.coarsen(rat);
 	if (region.intersects(cbox)) {
-	  Fab fgr(grow(refine(cbox, rat), rat - unitvect), patch.nComp());
+	  FArrayBox fgr(grow(refine(cbox, rat), rat - IntVect::TheUnitVector()), patch.nComp());
 	  fill_patch(fgr, fine, interface, bdy, 0, 0, icor);
 	  const Box& fb = fgr.box();
 	  for (int i = 0; i < patch.nComp(); i++) {
@@ -226,7 +224,7 @@ void bilinear_restrictor_class::interface(Fab& patch,
   else {
     fill_borders(fine, border_cache, interface, bdy, ratmax - 1);
     for (int iface = 0; iface < interface.nfaces(); iface++) {
-      if (interface.fgeo(iface) == ALL && interface.fflag(iface) == 0) {
+      if (interface.fgeo(iface) == level_interface::ALL && interface.fflag(iface) == 0) {
 	// fine grid on both sides
 	Box cbox = interface.node_face(iface);
 	IntVect t = interface.face(iface).type();
@@ -235,7 +233,7 @@ void bilinear_restrictor_class::interface(Fab& patch,
 	  // This extends fine face by one coarse cell past coarse face:
 	  cbox &= regplus;
 	  // Note:  Uses numerical values of index types:
-	  cbox.grow(t - unitvect);
+	  cbox.grow(t - IntVect::TheUnitVector());
 	  int igrid = interface.fgrid(iface, 0);
 	  if (igrid < 0)
 	    igrid = interface.fgrid(iface, 1);
@@ -251,7 +249,7 @@ void bilinear_restrictor_class::interface(Fab& patch,
     }
 #if (BL_SPACEDIM == 3)
     for (int iedge = 0; iedge < interface.nedges(); iedge++) {
-      if (interface.egeo(iedge) == ALL && interface.eflag(iedge) == 0) {
+      if (interface.egeo(iedge) == level_interface::ALL && interface.eflag(iedge) == 0) {
 	// fine grid on both sides
 	Box cbox = interface.node_edge(iedge);
 	IntVect t = interface.edge(iedge).type();
@@ -260,7 +258,7 @@ void bilinear_restrictor_class::interface(Fab& patch,
 	  // This extends fine edge by one coarse cell past coarse edge:
 	  cbox &= regplus;
 	  // Note:  Uses numerical values of index types:
-	  cbox.grow(t - unitvect);
+	  cbox.grow(t - IntVect::TheUnitVector());
 	  int igrid = interface.egrid(iedge, 0);
 	  for (int itmp = 1; igrid < 0; itmp++)
 	    igrid = interface.egrid(iedge, itmp);
@@ -276,7 +274,7 @@ void bilinear_restrictor_class::interface(Fab& patch,
     }
 #endif
     for (int icor = 0; icor < interface.ncorners(); icor++) {
-      if (interface.cgeo(icor) == ALL && interface.cflag(icor) == 0) {
+      if (interface.cgeo(icor) == level_interface::ALL && interface.cflag(icor) == 0) {
 	// fine grid on all sides
 	Box cbox = interface.corner(icor);
 	cbox.coarsen(rat);
@@ -297,7 +295,7 @@ void bilinear_restrictor_class::interface(Fab& patch,
   }
 }
 
-void bilinear_restrictor_coarse_class::interface(Fab& patch,
+void bilinear_restrictor_coarse_class::interface(FArrayBox& patch,
 						 const Box& region,
 						 MultiFab& fine,
 						 const copy_cache*
@@ -307,10 +305,8 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 						 amr_boundary bdy,
 						 const IntVect& rat) const
 {
-  if (patch.box().type() != nodevect)
+  if (patch.box().type() != IntVect::TheNodeVector())
     BoxLib::Error("bilinear_restrictor_coarse_class::interface---bilinear restriction only defined for NODE-based data");
-
-  DECLARE_GEOMETRY_TYPES;
 
   Box regplus = grow(region,1);
   const Box& pb = patch.box();
@@ -335,8 +331,8 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
       // This extends fine face by one coarse cell past coarse face:
       cbox &= regplus;
       int idim = interface.fdim(iface);
-      cbox.grow(t - unitvect);
-      if (geo == ALL) { // fine grid on both sides
+      cbox.grow(t - IntVect::TheUnitVector());
+      if (geo == level_interface::ALL) { // fine grid on both sides
 	if (fine.nGrow() >= ratmax - 1) {
 	  int igrid = interface.fgrid(iface, 0);
 	  if (igrid < 0)
@@ -350,9 +346,9 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	  }
 	}
 	else {
-	  Box fbox = grow(refine(cbox, rat), rat - unitvect);
-	  Fab fgr(fbox, patch.nComp());
-	  fill_patch(fgr, fine, interface, bdy, 0, FACEDIM, iface);
+	  Box fbox = grow(refine(cbox, rat), rat - IntVect::TheUnitVector());
+	  FArrayBox fgr(fbox, patch.nComp());
+	  fill_patch(fgr, fine, interface, bdy, 0, level_interface::FACEDIM, iface);
 	  for (int i = 0; i < patch.nComp(); i++) {
 	    FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		    fgr.dataPtr(i), dimlist(fbox),
@@ -361,7 +357,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	}
       }
       else { // fine grid on just one side
-	int idir = (geo & LOW) ? -1 : 1;
+	int idir = (geo & level_interface::LOW) ? -1 : 1;
 	int igrid = (idir < 0) ? interface.fgrid(iface, 0) :
 	                         interface.fgrid(iface, 1) ;
 	if (igrid >= 0) {
@@ -375,13 +371,13 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	}
 	else {
 	  // A virtual fine grid is on the other side of the boundary.
-	  Box fbox = refine(cbox, rat).grow(rat - unitvect);
-	  if (geo & LOW)
+	  Box fbox = refine(cbox, rat).grow(rat - IntVect::TheUnitVector());
+	  if (geo & level_interface::LOW)
 	    fbox.growHi(idim, 1 - rat[idim]);
 	  else
 	    fbox.growLo(idim, 1 - rat[idim]);
-	  Fab fgr(fbox, patch.nComp());
-	  fill_patch(fgr, fine, interface, bdy, 0, FACEDIM, iface);
+	  FArrayBox fgr(fbox, patch.nComp());
+	  fill_patch(fgr, fine, interface, bdy, 0, level_interface::FACEDIM, iface);
 	  for (int i = 0; i < patch.nComp(); i++) {
 	    FANFR2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		   fgr.dataPtr(i), dimlist(fbox),
@@ -401,7 +397,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
     cbox.coarsen(rat);
     if (region.intersects(cbox)) {
       unsigned geo = interface.cgeo(icor);
-      if (geo == ALL && fine.nGrow() >= ratmax - 1) { // fine grid on all sides
+      if (geo == level_interface::ALL && fine.nGrow() >= ratmax - 1) { // fine grid on all sides
 	int igrid = interface.cgrid(icor, 0);
 	for (int itmp = 1; igrid < 0; itmp++)
 	  igrid = interface.cgrid(icor, itmp);
@@ -413,8 +409,8 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 		  D_DECL(rat[0], rat[1], rat[2]), integrate);
 	}
       }
-      else if (geo == ALL) { // fine grid on all sides
-	Fab fgr(refine(grow(cbox, 1), rat), patch.nComp());
+      else if (geo == level_interface::ALL) { // fine grid on all sides
+	FArrayBox fgr(refine(grow(cbox, 1), rat), patch.nComp());
 	fill_patch(fgr, fine, interface, bdy, 0, 0, icor);
 	const Box& fb = fgr.box();
 	for (int i = 0; i < patch.nComp(); i++) {
@@ -432,7 +428,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	  fbox.growLo(idim, rat[idim]);
 	else
 	  fbox.growHi(idim, rat[idim]);
-	Fab fgr(fbox, patch.nComp());
+	FArrayBox fgr(fbox, patch.nComp());
 	fill_patch(fgr, fine, interface, bdy, 0, 0, icor);
 	for (int i = 0; i < patch.nComp(); i++) {
 	  FANFR2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
@@ -460,7 +456,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	  fbox.growHi(1, rat[1]);
 	  idir1 = 1;
 	}
-	Fab fgr(fbox, patch.nComp());
+	FArrayBox fgr(fbox, patch.nComp());
 	fill_patch(fgr, fine, interface, bdy, 0, 0, icor);
 	for (int i = 0; i < patch.nComp(); i++) {
 	  FANOR2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
@@ -471,7 +467,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
       else if (geo == (LL | HH) || geo == (LH | HL)) {
 	// diagonal corner
 	Box fbox = refine(cbox, rat).grow(rat);
-	Fab fgr(fbox, patch.nComp());
+	FArrayBox fgr(fbox, patch.nComp());
 	int idir1 = (geo == (LL | HH)) ? 1 : -1;
 	fill_patch(fgr, fine, interface, bdy, 0, 0, icor);
 	for (int i = 0; i < patch.nComp(); i++) {
@@ -483,7 +479,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
       else {
 	// inside corner
 	Box fbox = refine(cbox, rat).grow(rat);
-	Fab fgr(fbox, patch.nComp());
+	FArrayBox fgr(fbox, patch.nComp());
 	int idir0 = ((geo & XL) == XL) ? -1 : 1;
 	int idir1 = ((geo & YL) == YL) ? -1 : 1;
 	fill_patch(fgr, fine, interface, bdy, 0, 0, icor);
@@ -498,7 +494,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 
 #elif (BL_SPACEDIM == 3)
 
-  int ga[N_CORNER_GRIDS];
+  int ga[level_interface::N_CORNER_GRIDS];
 
   for (int iedge = 0; iedge < interface.nedges(); iedge++) {
     if (interface.eflag(iedge) == 1)
@@ -509,9 +505,9 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
     if (region.intersects(cbox)) {
       // This extends fine edge by one coarse cell past coarse face:
       cbox &= regplus;
-      cbox.grow(t - unitvect);
+      cbox.grow(t - IntVect::TheUnitVector());
       unsigned geo = interface.egeo(iedge);
-      if (geo == ALL && fine.nGrow() >= ratmax - 1) {
+      if (geo == level_interface::ALL && fine.nGrow() >= ratmax - 1) {
 	int igrid = interface.egrid(iedge, 0);
 	for (int itmp = 1; igrid < 0; itmp++)
 	  igrid = interface.egrid(iedge, itmp);
@@ -524,10 +520,10 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	}
       }
       else {
-	Box fbox = grow(refine(cbox, rat), rat - unitvect);
-	Fab fgr(fbox, patch.nComp());
+	Box fbox = grow(refine(cbox, rat), rat - IntVect::TheUnitVector());
+	FArrayBox fgr(fbox, patch.nComp());
 	fill_patch(fgr, fine, interface, bdy, 0, 1, iedge);
-	if (geo == ALL) { // fine grid on all sides
+	if (geo == level_interface::ALL) { // fine grid on all sides
 	  for (int i = 0; i < patch.nComp(); i++) {
 	    FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		    fgr.dataPtr(i), dimlist(fbox),
@@ -553,7 +549,7 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
     cbox.coarsen(rat);
     if (region.intersects(cbox)) {
       unsigned geo = interface.cgeo(icor);
-      if (geo == ALL && fine.nGrow() >= ratmax - 1) {
+      if (geo == level_interface::ALL && fine.nGrow() >= ratmax - 1) {
 	int igrid = interface.cgrid(icor, 0);
 	for (int itmp = 1; igrid < 0; itmp++)
 	  igrid = interface.cgrid(icor, itmp);
@@ -566,10 +562,10 @@ void bilinear_restrictor_coarse_class::interface(Fab& patch,
 	}
       }
       else {
-	Box fbox = grow(refine(cbox, rat), rat - unitvect);
-	Fab fgr(fbox, patch.nComp());
+	Box fbox = grow(refine(cbox, rat), rat - IntVect::TheUnitVector());
+	FArrayBox fgr(fbox, patch.nComp());
 	fill_patch(fgr, fine, interface, bdy, 0, 0, icor);
-	if (geo == ALL) { // fine grid on all sides
+	if (geo == level_interface::ALL) { // fine grid on all sides
 	  for (int i = 0; i < patch.nComp(); i++) {
 	    FANRST2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
 		    fgr.dataPtr(i), dimlist(fbox),

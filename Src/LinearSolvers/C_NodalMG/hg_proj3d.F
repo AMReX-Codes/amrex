@@ -1,5 +1,5 @@
 
-#include "hg_version.H"
+c#include "hg_version.H"
 
 #define dims(a) a l0,a h0,a l1,a h1,a l2,a h2
 #define dimdec(a) a l0:a h0,a l1:a h1,a l2:a h2

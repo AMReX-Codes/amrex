@@ -33,7 +33,7 @@ Box amr_boundary_class::box(const Box& region, const Box& domain,
   const int idim = abs(idir) - 1;
   Box retbox(region);
   if (idir < 0) {
-    if (region.type(idim) == BOX_CELL)
+    if (region.type(idim) == IndexType::CELL)
       retbox.shift(idim, 2 * domain.smallEnd(idim) - 1 -
 		   region.bigEnd(idim) - region.smallEnd(idim));
     else
@@ -41,7 +41,7 @@ Box amr_boundary_class::box(const Box& region, const Box& domain,
 		   region.bigEnd(idim) - region.smallEnd(idim));
   }
   else if (idir > 0) {
-    if (region.type(idim) == BOX_CELL)
+    if (region.type(idim) == IndexType::CELL)
       retbox.shift(idim, 2 * domain.bigEnd(idim) + 1 -
 		   region.bigEnd(idim) - region.smallEnd(idim));
     else
@@ -79,7 +79,7 @@ Box mixed_boundary_class::box(const Box& region, const Box& domain,
       (t == inflow && idim != flowdim)) {
     // all these cases use a reflected box
     if (idir < 0) {
-      if (region.type(idim) == BOX_CELL)
+      if (region.type(idim) == IndexType::CELL)
 	retbox.shift(idim, 2 * domain.smallEnd(idim) - 1 -
 		     region.bigEnd(idim) - region.smallEnd(idim));
       else
@@ -87,7 +87,7 @@ Box mixed_boundary_class::box(const Box& region, const Box& domain,
 		     region.bigEnd(idim) - region.smallEnd(idim));
     }
     else if (idir > 0) {
-      if (region.type(idim) == BOX_CELL)
+      if (region.type(idim) == IndexType::CELL)
 	retbox.shift(idim, 2 * domain.bigEnd(idim) + 1 -
 		     region.bigEnd(idim) - region.smallEnd(idim));
       else
@@ -106,7 +106,7 @@ Box mixed_boundary_class::box(const Box& region, const Box& domain,
     // It's a kludge, hopefully temporary, so fill_patch does not
     // test to see if this is the case.
     if (idir < 0) {
-      if (region.type(idim) == BOX_CELL) {
+      if (region.type(idim) == IndexType::CELL) {
 	retbox.shift(idim, 2 * domain.smallEnd(idim) - 1 -
 		     region.bigEnd(idim) - region.smallEnd(idim));
 	retbox.setSmall(idim, domain.smallEnd(idim) - 1);
@@ -118,7 +118,7 @@ Box mixed_boundary_class::box(const Box& region, const Box& domain,
       }
     }
     else if (idir > 0) {
-      if (region.type(idim) == BOX_CELL) {
+      if (region.type(idim) == IndexType::CELL) {
 	retbox.shift(idim, 2 * domain.bigEnd(idim) + 1 -
 		     region.bigEnd(idim) - region.smallEnd(idim));
 	retbox.setBig(idim, domain.bigEnd(idim) + 1);
@@ -147,9 +147,9 @@ Box mixed_boundary_class::box(const Box& region, const Box& domain,
   return retbox;
 }
 
-void reflection_boundary_class::fill(Fab& patch,
+void reflection_boundary_class::fill(FArrayBox& patch,
 				     const Box& region,
-				     Fab& bgr,
+				     FArrayBox& bgr,
 				     const Box& bb,
 				     const Box& /*domain*/,
 				     int idir) const
@@ -161,9 +161,9 @@ void reflection_boundary_class::fill(Fab& patch,
   }
 }
 
-void negation_boundary_class::fill(Fab& patch,
+void negation_boundary_class::fill(FArrayBox& patch,
 				   const Box& region,
-				   Fab& bgr,
+				   FArrayBox& bgr,
 				   const Box& bb,
 				   const Box& /*domain*/,
 				   int idir) const
@@ -175,9 +175,9 @@ void negation_boundary_class::fill(Fab& patch,
   }
 }
 
-void periodic_boundary_class::fill(Fab& patch,
+void periodic_boundary_class::fill(FArrayBox& patch,
 				   const Box& region,
-				   Fab& bgr,
+				   FArrayBox& bgr,
 				   const Box& bb,
 				   const Box& /*domain*/,
 				   int /*idir*/) const
@@ -189,14 +189,14 @@ void periodic_boundary_class::fill(Fab& patch,
 // On velocity inflow, uses box function which extends interior
 // box just past edge of domain.
 
-void mixed_boundary_class::fill(Fab& patch,
+void mixed_boundary_class::fill(FArrayBox& patch,
 				const Box& region,
 				MultiFab& src,
 				int igrid, const Box& domain) const
 {
   Box tdomain = domain;
   tdomain.convert(type(src));
-  Box idomain = grow(tdomain, zerovect - type(src));
+  Box idomain = grow(tdomain, IntVect::TheZeroVector() - type(src));
   Box image = region;
   int refarray[BL_SPACEDIM], negflag = 1;
   int idir = 0, idim, i;
@@ -276,7 +276,7 @@ void mixed_boundary_class::fill(Fab& patch,
       }
       else {
         // multiple bdys, fill intermediate patch
-        Fab gb(image);
+        FArrayBox gb(image);
         fill(gb, image, src[igrid], bb, domain, idir);
         if (negflag == 1) {
           FBREFM(patch.dataPtr(), dimlist(patch.box()), dimlist(region),
@@ -344,9 +344,9 @@ void mixed_boundary_class::fill(Fab& patch,
   }
 }
 
-void mixed_boundary_class::fill(Fab& patch,
+void mixed_boundary_class::fill(FArrayBox& patch,
 				const Box& region,
-				Fab& bgr,
+				FArrayBox& bgr,
 				const Box& bb,
 				const Box& domain,
 				int idir) const
@@ -414,7 +414,7 @@ void mixed_boundary_class::fill(Fab& patch,
   }
   else if (t == outflow) {
     // Do nothing if NODE-based, reflect if CELL-based 
-    if (type(patch,idim) == BOX_CELL) {
+    if (type(patch,idim) == IndexType::CELL) {
       for (int i = 0; i < patch.nComp(); i++) {
 	FBREF(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
 	      bgr.dataPtr(i), dimlist(bgr.box()), dimlist(bb), idim);
@@ -430,20 +430,18 @@ void amr_boundary_class::fill_borders(MultiFab& r,
 				      const level_interface& interface,
 				      int w) const
 {
-  DECLARE_GEOMETRY_TYPES;
-
   w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
   int igrid, jgrid;
   const Box& domain = interface.domain();
   BoxLib::Error("amr_boundary_class::fill_borders---old function not used for some time, check source code carefully before using.");
   for (int iface = 0; iface < interface.nfaces(); iface++) {
-    if (interface.fgeo(iface) == ALL) {
+    if (interface.fgeo(iface) == level_interface::ALL) {
       igrid = interface.fgrid(iface, 0);
       jgrid = interface.fgrid(iface, 1);
       if (igrid < 0 || jgrid < 0) {
 	Box b = interface.face(iface);
 	int idim = interface.fdim(iface);
-	int a = (type(r,idim) == BOX_NODE);
+	int a = (type(r,idim) == IndexType::NODE);
 	// need to do on x borders too in case y border is an interior face
 #if (BL_SPACEDIM == 2)
 	b.grow(1 - idim, w);
@@ -494,14 +492,12 @@ void amr_boundary_class::fill_borders(MultiFab& r,
 void mixed_boundary_class::sync_borders(MultiFab& r,
 					const level_interface& interface) const
 {
-  if (type(r) != nodevect) {
+  if (type(r) != IntVect::TheNodeVector()) {
     BoxLib::Error("mixed_boundary_class::sync_borders---only NODE-based sync defined");
   }
 
-  DECLARE_GEOMETRY_TYPES;
-
   for (int iface = 0; iface < interface.nfaces(); iface++) {
-    if (interface.fgeo(iface) != ALL)
+    if (interface.fgeo(iface) != level_interface::ALL)
       break;
     int igrid = interface.fgrid(iface, 0);
     if (igrid < 0) {
@@ -522,20 +518,18 @@ void mixed_boundary_class::fill_borders(MultiFab& r,
 					const level_interface& interface,
 					int w) const
 {
-  DECLARE_GEOMETRY_TYPES;
-
   w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
   const Box& domain = interface.domain();
   int igrid, jgrid;
   for (int iface = 0; iface < interface.nfaces(); iface++) {
-    if (interface.fgeo(iface) != ALL)
+    if (interface.fgeo(iface) != level_interface::ALL)
       break;
     igrid = interface.fgrid(iface, 0);
     jgrid = interface.fgrid(iface, 1);
     if (igrid < 0 || jgrid < 0) {
       Box b = interface.face(iface);
       int idim = interface.fdim(iface);
-      int a = (type(r,idim) == BOX_NODE);
+      int a = (type(r,idim) == IndexType::NODE);
       // need to do on x borders too in case y border is an interior face
 #if (BL_SPACEDIM == 2)
       //b.grow(1 - idim, w); // replaced by grow stmts below?
@@ -638,7 +632,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r,
 	}
 	else if (t == outflow) {
 	  // Do nothing if NODE-based, reflect if CELL-based 
-	  if (type(r,idim) == BOX_CELL) {
+	  if (type(r,idim) == IndexType::CELL) {
 	    bb.shift(idim, 2 * domain.smallEnd(idim) - 1 + a -
 		     b.bigEnd(idim) - b.smallEnd(idim));
 	    const Box& rbox = r[jgrid].box();
@@ -745,7 +739,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r,
 	}
 	else if (t == outflow) {
 	  // Do nothing if NODE-based, reflect if CELL-based 
-	  if (type(r,idim) == BOX_CELL) {
+	  if (type(r,idim) == IndexType::CELL) {
 	    bb.shift(idim, 2 * domain.bigEnd(idim) + 1 + a -
 		     b.bigEnd(idim) - b.smallEnd(idim));
 	    const Box& rbox = r[igrid].box();
@@ -769,16 +763,14 @@ void mixed_boundary_class::set_sync_cache(copy_cache* cache,
 {
   if (r.nComp() != 1)
     BoxLib::Error("mixed_boundary_class::set_sync_cache---only single components currently supported");
-  if (type(r) != nodevect)
+  if (type(r) != IntVect::TheNodeVector())
     BoxLib::Error("mixed_boundary_class::set_sync_cache---only NODE-based sync defined");
-
-  DECLARE_GEOMETRY_TYPES;
 
   Real *const baseptr = cache->dptr;
 
   const Box& domain = interface.domain();
   for (int iface = 0; iface < interface.nfaces(); iface++) {
-    if (interface.fgeo(iface) != ALL)
+    if (interface.fgeo(iface) != level_interface::ALL)
       break;
     int igrid = interface.fgrid(iface, 0);
     if (igrid < 0) {
@@ -883,19 +875,17 @@ void mixed_boundary_class::set_border_cache(copy_cache* cache,
 {
   if (r.nComp() != 1)
     BoxLib::Error("mixed_boundary_class::set_border_cache---only single components currently supported");
-  if (w != 1 || type(r) != nodevect)
+  if (w != 1 || type(r) != IntVect::TheNodeVector())
     BoxLib::Error("mixed_boundary_class::set_border_cache---only width 1 borders currently supported");
   if (flowdim >= 0 || flowdim == -3)
     BoxLib::Error("mixed_boundary_class::set_border_cache---negation borders not currently supported");
-
-  DECLARE_GEOMETRY_TYPES;
 
   Real *const baseptr = cache->dptr;
 
   const Box& domain = interface.domain();
   int igrid, jgrid;
   for (int iface = 0; iface < interface.nfaces(); iface++) {
-    if (interface.fgeo(iface) != ALL)
+    if (interface.fgeo(iface) != level_interface::ALL)
       break;
     igrid = interface.fgrid(iface, 0);
     jgrid = interface.fgrid(iface, 1);
@@ -1398,7 +1388,7 @@ void periodic_boundary_class::duplicate(List<Box>& bl,
   for (int i = 0; i < BL_SPACEDIM; i++) {
     ListIterator<Box> bn(bl.last());
     for ( ; bn; bn--) {
-      if (bn().type(i) == BOX_NODE) {
+      if (bn().type(i) == IndexType::NODE) {
 	if (bn().smallEnd(i) == domain.smallEnd(i)) {
 	  Box btmp = bn();
 	  btmp.shift(i, domain.length(i));
@@ -1421,7 +1411,7 @@ void mixed_boundary_class::duplicate(List<Box>& bl,
     if (ptr->bc[i][0] == periodic) {
       ListIterator<Box> bn(bl.last());
       for ( ; bn; bn--) {
-	if (bn().type(i) == BOX_NODE) {
+	if (bn().type(i) == IndexType::NODE) {
 	  if (bn().smallEnd(i) == domain.smallEnd(i)) {
 	    Box btmp = bn();
 	    btmp.shift(i, domain.length(i));
@@ -1438,7 +1428,7 @@ void mixed_boundary_class::duplicate(List<Box>& bl,
   }
 }
 
-int mixed_boundary_class::fill_patch_special(Fab& patch,
+int mixed_boundary_class::fill_patch_special(FArrayBox& patch,
 					     const Box& region,
 					     MultiFab& r,
 					     const Box& domain,
@@ -1462,7 +1452,7 @@ int mixed_boundary_class::fill_patch_special(Fab& patch,
       }
       if (bdir != 0) {
 	Box bb = box(region, domain, bdir);
-	Fab gb(bb, patch.nComp());
+	FArrayBox gb(bb, patch.nComp());
 	idim = i + 1;
 	int retval = 0;
 	// to reenable fill_patch_special, provide a substitute for

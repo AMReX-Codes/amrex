@@ -20,7 +20,7 @@ Box bilinear_interpolator_class::box(const Box& region,
   if (region.cellCentered()) {
     return grow(coarsen(region, rat), 1);
   }
-  else if (region.type() == nodevect) {
+  else if (region.type() == IntVect::TheNodeVector()) {
     return coarsen(region, rat);
   }
   else {
@@ -29,9 +29,9 @@ Box bilinear_interpolator_class::box(const Box& region,
   }
 }
 
-void bilinear_interpolator_class::fill(Fab& patch,
+void bilinear_interpolator_class::fill(FArrayBox& patch,
 				       const Box& region,
-				       Fab& cgr,
+				       FArrayBox& cgr,
 				       const Box& cb,
 				       const IntVect& rat) const
 {
@@ -42,7 +42,7 @@ void bilinear_interpolator_class::fill(Fab& patch,
 	      D_DECL(rat[0], rat[1], rat[2]));
     }
   }
-  else if (patch.box().type() == nodevect) {
+  else if (patch.box().type() == IntVect::TheNodeVector()) {
     Box eregion = refine(cb, rat);
     if (eregion == region) {
       for (int i = 0; i < patch.nComp(); i++) {
@@ -52,7 +52,7 @@ void bilinear_interpolator_class::fill(Fab& patch,
       }
     }
     else {
-      Fab epatch(eregion, patch.nComp());
+      FArrayBox epatch(eregion, patch.nComp());
       for (int i = 0; i < patch.nComp(); i++) {
 	FANINT2(epatch.dataPtr(i), dimlist(epatch.box()), dimlist(eregion),
 		cgr.dataPtr(i), dimlist(cgr.box()), dimlist(cb),

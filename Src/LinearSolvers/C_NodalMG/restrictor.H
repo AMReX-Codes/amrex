@@ -24,10 +24,10 @@ class amr_restrictor_class {
   virtual Box box(const Box&, const IntVect&) const
     { BoxLib::Error("amr_restrictor_class::box---Restriction function not defined.");
       return Box(); }
-  virtual void fill(Fab&, const Box&,
-	            Fab&, const IntVect&) const
+  virtual void fill(FArrayBox&, const Box&,
+	            FArrayBox&, const IntVect&) const
     { BoxLib::Error("amr_restrictor_class::fill---Restriction function not defined."); }
-  virtual void interface(Fab&, const Box&, MultiFab&,
+  virtual void interface(FArrayBox&, const Box&, MultiFab&,
 			 const copy_cache*, const level_interface&,
 			 const amr_boundary_class&, const IntVect&) const { }
 };
@@ -38,8 +38,8 @@ class cell_average_restrictor_class : public amr_restrictor_class {
  public:
   cell_average_restrictor_class(int i) { integrate = i; }
   Box box(const Box& fb, const IntVect& rat) const;
-  void fill(Fab& patch, const Box& region,
-	    Fab& fgr, const IntVect& rat) const;
+  void fill(FArrayBox& patch, const Box& region,
+	    FArrayBox& fgr, const IntVect& rat) const;
 };
 
 class terrain_velocity_restrictor_class
@@ -47,24 +47,24 @@ class terrain_velocity_restrictor_class
  public:
   terrain_velocity_restrictor_class(int i)
     : cell_average_restrictor_class(i) { }
-  void fill(Fab& patch, const Box& region,
-	    Fab& fgr, const IntVect& rat) const;
+  void fill(FArrayBox& patch, const Box& region,
+	    FArrayBox& fgr, const IntVect& rat) const;
 };
 
 class injection_restrictor_class : public amr_restrictor_class {
  public:
   injection_restrictor_class() { }
   Box box(const Box& fb, const IntVect& rat) const;
-  void fill(Fab& patch, const Box& region,
-	    Fab& fgr, const IntVect& rat) const;
+  void fill(FArrayBox& patch, const Box& region,
+	    FArrayBox& fgr, const IntVect& rat) const;
 };
 
 class default_restrictor_class : public amr_restrictor_class {
  public:
   default_restrictor_class() { }
   Box box(const Box& fb, const IntVect& rat) const;
-  void fill(Fab& patch, const Box& region,
-	    Fab& fgr, const IntVect& rat) const;
+  void fill(FArrayBox& patch, const Box& region,
+	    FArrayBox& fgr, const IntVect& rat) const;
 };
 
 // Vanilla bilinear (full-weighting) restrictor class.
@@ -76,9 +76,9 @@ class bilinear_restrictor_class : public amr_restrictor_class {
  public:
   bilinear_restrictor_class(int i) { integrate = i; }
   Box box(const Box& fb, const IntVect& rat) const;
-  void fill(Fab& patch, const Box& region,
-	    Fab& fgr, const IntVect& rat) const;
-  void interface(Fab& patch, const Box& region,
+  void fill(FArrayBox& patch, const Box& region,
+	    FArrayBox& fgr, const IntVect& rat) const;
+  void interface(FArrayBox& patch, const Box& region,
 	         MultiFab& fine, const copy_cache*,
 		 const level_interface& interface,
 		 const amr_boundary_class& bdy, const IntVect& rat) const;
@@ -91,7 +91,7 @@ class bilinear_restrictor_coarse_class
  public:
   bilinear_restrictor_coarse_class(int i)
     : bilinear_restrictor_class(i) { }
-  void interface(Fab& patch, const Box& region,
+  void interface(FArrayBox& patch, const Box& region,
 	         MultiFab& fine, const copy_cache*,
 		 const level_interface& interface,
 		 const amr_boundary_class& bdy, const IntVect& rat) const;

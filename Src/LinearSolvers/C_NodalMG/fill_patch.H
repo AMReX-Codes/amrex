@@ -30,14 +30,14 @@ extern "C" {
 /*
 class alias_fab {
  protected:
-  Fab* ptr;
+  FArrayBox* ptr;
   int owned;
  public:
   
   ~alias_fab() {
     if (owned) delete ptr;
   }
-  Fab& operator Fab() {
+  FArrayBox& operator FArrayBox() {
     return *ptr;
   }
 
@@ -89,13 +89,13 @@ const level_real&
 
 int find_patch(const Box& region, MultiFab& r, int flags = 0);
 
-int fill_patch(Fab& patch, const Box& region,
+int fill_patch(FArrayBox& patch, const Box& region,
 	       MultiFab& r,
 	       const level_interface& interface,
 	       amr_boundary bdy = error_boundary,
 	       int flags = 0, int idim = -1, int index = -1);
 
-inline int fill_patch(Fab& patch,
+inline int fill_patch(FArrayBox& patch,
 		      MultiFab& r,
 		      const level_interface& interface,
 		      amr_boundary bdy = error_boundary,
@@ -108,15 +108,15 @@ inline int fill_patch(Fab& patch,
 /*
   // fill_patch returns 1 if successful, 0 if not
   // if (flags & 1) is 0, it may return 1 even if patch is not filled
-  int fill_patch(Fab& patch, const Box& region,
+  int fill_patch(FArrayBox& patch, const Box& region,
 		 const Box& active,
 		 amr_boundary bdy = error_boundary,
 		 int flags = 0, int igrid = -1);
-  int fill_patch(Fab& patch, const Box& region,
+  int fill_patch(FArrayBox& patch, const Box& region,
 		 amr_boundary bdy = error_boundary,
 		 int flags = 0, int igrid = -1)
     { return fill_patch(patch, region, region, bdy, flags, igrid); }
-  int fill_patch(Fab& patch,
+  int fill_patch(FArrayBox& patch,
 		 amr_boundary bdy = error_boundary,
 		 int flags = 0, int igrid = -1)
     { return fill_patch(patch, patch.box(), bdy, flags, igrid); }
@@ -124,13 +124,13 @@ inline int fill_patch(Fab& patch,
 
   // fills region of patch wherever it intersects interior grids
   // does not check to see if all of patch is filled, ignores boundaries
-int fill_patch_blindly(Fab& patch, const Box& region,
+int fill_patch_blindly(FArrayBox& patch, const Box& region,
 		       MultiFab& r,
 		       int flags = 0);
 
   // fills region of patch wherever it intersects interior grids
   // does not check to see if all of patch is filled, ignores boundaries
-int fill_exterior_patch_blindly(Fab& patch, const Box& region,
+int fill_exterior_patch_blindly(FArrayBox& patch, const Box& region,
 				MultiFab& r,
 				const level_interface& interface,
 				amr_boundary bdy,
@@ -178,13 +178,13 @@ inline void fill_borders(MultiFab& r,
 
 void clear_part_interface(MultiFab& r, const level_interface& interface);
 
-void interpolate_patch(Fab& patch, const Box& region,
+void interpolate_patch(FArrayBox& patch, const Box& region,
 		       MultiFab& r, const IntVect& rat,
 		       amr_interpolator interp = bilinear_interpolator,
 		       const level_interface& interface = null_level_interface,
 		       amr_boundary bdy = error_boundary);
 inline
-void interpolate_patch(Fab& patch,
+void interpolate_patch(FArrayBox& patch,
 		       MultiFab& r, const IntVect& rat,
 		       amr_interpolator interp = bilinear_interpolator,
 		       const level_interface& interface = null_level_interface,
@@ -193,14 +193,14 @@ void interpolate_patch(Fab& patch,
   interpolate_patch(patch, patch.box(), r, rat, interp, interface, bdy);
 }
 
-void restrict_patch(Fab& patch, const Box& region,
+void restrict_patch(FArrayBox& patch, const Box& region,
 		    MultiFab& r, const IntVect& rat,
 		    const copy_cache* border_cache = 0,
 		    amr_restrictor restric = default_restrictor,
 		    const level_interface& interface = null_level_interface,
 		    amr_boundary bdy = error_boundary);
 inline
-void restrict_patch(Fab& patch,
+void restrict_patch(FArrayBox& patch,
 		    MultiFab& r, const IntVect& rat,
 		    const copy_cache* border_cache = 0,
 		    amr_restrictor restric = default_restrictor,

@@ -30,10 +30,10 @@ class amr_boundary_class {
   int dir(const Box&, const Box&) const;
   virtual int defined() const { return 0; }
   virtual Box box(const Box&, const Box&, int) const;
-  virtual void fill(Fab&, const Box&,
-		    Fab&, const Box&, const Box&, int) const
+  virtual void fill(FArrayBox&, const Box&,
+		    FArrayBox&, const Box&, const Box&, int) const
     { BoxLib::Error("amr_boundary_class::fill---boundary fill function not defined."); }
-  virtual void fill(Fab&, const Box&,
+  virtual void fill(FArrayBox&, const Box&,
 		    MultiFab&, int, const Box&) const
     { BoxLib::Error("amr_boundary_class::fill---boundary fill function not defined."); }
   virtual void sync_borders(MultiFab&,
@@ -53,7 +53,7 @@ class amr_boundary_class {
 			     const BoxArray& interior_mesh,
 			     const Box& domain) const;
   virtual void duplicate(List<Box>&, const Box&) const { }
-  virtual int fill_patch_special(Fab&, const Box&,
+  virtual int fill_patch_special(FArrayBox&, const Box&,
 				 MultiFab&, const Box&, int) const {
     return 0;
   }
@@ -103,9 +103,9 @@ class reflection_boundary_class : public amr_boundary_class {
  public:
   reflection_boundary_class() { }
   int defined() const { return 1; }
-  void fill(Fab&, const Box&,
-	    Fab&, const Box&, const Box&, int) const;
-  void fill(Fab&, const Box&,
+  void fill(FArrayBox&, const Box&,
+	    FArrayBox&, const Box&, const Box&, int) const;
+  void fill(FArrayBox&, const Box&,
 	    MultiFab&, int, const Box&) const
     { BoxLib::Error("reflection_boundary_class::fill---interface version not defined"); }
   int singular() const {
@@ -117,9 +117,9 @@ class negation_boundary_class : public amr_boundary_class {
  public:
   negation_boundary_class() { }
   int defined() const { return 1; }
-  void fill(Fab&, const Box&,
-	    Fab&, const Box&, const Box&, int) const;
-  void fill(Fab&, const Box&,
+  void fill(FArrayBox&, const Box&,
+	    FArrayBox&, const Box&, const Box&, int) const;
+  void fill(FArrayBox&, const Box&,
 	    MultiFab&, int, const Box&) const
     { BoxLib::Error("negation_boundary_class::fill---interface version not defined"); }
   int singular() const {
@@ -136,9 +136,9 @@ class periodic_boundary_class : public amr_boundary_class {
   periodic_boundary_class() { }
   int defined() const { return 1; }
   Box box(const Box&, const Box&, int) const;
-  void fill(Fab&, const Box&,
-	    Fab&, const Box&, const Box&, int) const;
-  void fill(Fab&, const Box&,
+  void fill(FArrayBox&, const Box&,
+	    FArrayBox&, const Box&, const Box&, int) const;
+  void fill(FArrayBox&, const Box&,
 	    MultiFab&, int, const Box&) const
     { BoxLib::Error("periodic_boundary_class::fill---interface version not defined"); }
   void duplicate(List<Box>& bl, const Box& domain) const;
@@ -211,9 +211,9 @@ class mixed_boundary_class : public amr_boundary_class {
 
   int defined() const { return 1; }
   Box box(const Box&, const Box&, int) const;
-  void fill(Fab&, const Box&,
-	    Fab&, const Box&, const Box&, int) const;
-  void fill(Fab&, const Box&,
+  void fill(FArrayBox&, const Box&,
+	    FArrayBox&, const Box&, const Box&, int) const;
+  void fill(FArrayBox&, const Box&,
 	    MultiFab&, int, const Box&) const;
   void sync_borders(MultiFab&,
 		    const level_interface&) const;
@@ -228,7 +228,7 @@ class mixed_boundary_class : public amr_boundary_class {
 			const level_interface& interface,
 			int w) const;
   void duplicate(List<Box>& bl, const Box& domain) const;
-  int fill_patch_special(Fab&, const Box&,
+  int fill_patch_special(FArrayBox&, const Box&,
 			 MultiFab&, const Box&, int flags) const;
   int singular() const;
 };

@@ -13,11 +13,12 @@ using std::set_new_handler;
 
 #include "hg_projector.H"
 
+#include <Utility.H>
+
 #ifdef BL_USE_NEW_HFILES
 #include <iostream>
 #include <iomanip>
 #include <fstream>
-#include <ctime>
 using std::fstream;
 using std::ios;
 using std::setprecision;
@@ -25,7 +26,6 @@ using std::setprecision;
 #include <iostream.h>
 #include <iomanip.h>
 #include <fstream.h>
-#include <time.h>
 #endif
 
 //void malloc_info();
@@ -100,21 +100,21 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m,
   //u[0].initialize(fct);
   if (m.length() == 1) {
     for (int igrid = 0; igrid < m[0].length(); igrid++) {
-      u[0][0][igrid](m[0][igrid].smallEnd() + Iv(2,2)) = 3.0;
-      //u[0][0][igrid](m[0][igrid].smallEnd() + Iv(3,3)) = 1.0;
-      //u[1][0][igrid](m[0][igrid].smallEnd() + Iv(3,3)) = 1.0;
-      //u[0][0][igrid](m[0][igrid].smallEnd() + Iv(20,2)) = 3.0;
-      //u[1][0][igrid](m[0][igrid].smallEnd() + Iv(2,2)) = 3.0;
+      u[0][0][igrid](m[0][igrid].smallEnd() + IntVect(2,2)) = 3.0;
+      //u[0][0][igrid](m[0][igrid].smallEnd() + IntVect(3,3)) = 1.0;
+      //u[1][0][igrid](m[0][igrid].smallEnd() + IntVect(3,3)) = 1.0;
+      //u[0][0][igrid](m[0][igrid].smallEnd() + IntVect(20,2)) = 3.0;
+      //u[1][0][igrid](m[0][igrid].smallEnd() + IntVect(2,2)) = 3.0;
     }
   }
   else if (m.length() == 2) {
     for (int igrid = 0; igrid < m[1].length(); igrid++) {
-      u[0][1][igrid](m[1][igrid].smallEnd() + Iv(2,2)) = 3.0;
+      u[0][1][igrid](m[1][igrid].smallEnd() + IntVect(2,2)) = 3.0;
     }
     //u[0][1][0](IntVect(20,90)) = 1.0;
     //u[0][1][0](IntVect(50,50)) = 1.0;
     //u[0][1][0](IntVect(22,12)) = 1.0;
-#ifndef TERRAIN
+#ifndef HG_TERRAIN
     u[0][0][0](IntVect(12,12)) = 3.0;
 #else
     u[0][0][0](IntVect(12,12)) = 3.0 * ratio[0][0];
@@ -137,7 +137,7 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m,
 	u[1][ilev][igrid].setVal(0.0, m[ilev][igrid], 0);
       }
     }
-    u[0][2][0](m[2][0].smallEnd() + Iv(10,10)) = 3.0;
+    u[0][2][0](m[2][0].smallEnd() + IntVect(10,10)) = 3.0;
     // for gr2ann
     //u[0][2][0](IntVect(20,20)) = 1.0;
     //u[0][2][0](IntVect(20,20)) = 0.0;
@@ -160,8 +160,8 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m,
     int ioff = 2;
     for (int igrid = 0; igrid < m[0].length(); igrid++) {
       // Used for timings3_94:
-      //u[0][0][igrid](m[0][igrid].smallEnd() + Iv(2,2,2)) = 3.0;
-      u[0][0][igrid](m[0][igrid].smallEnd() + Iv(ioff,ioff,ioff)) = 3.0;
+      //u[0][0][igrid](m[0][igrid].smallEnd() + IntVect(2,2,2)) = 3.0;
+      u[0][0][igrid](m[0][igrid].smallEnd() + IntVect(ioff,ioff,ioff)) = 3.0;
     }
   }
   else if (m.length() == 2) {
@@ -170,15 +170,15 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m,
     int ioff = 2;
     for (int igrid = 0; igrid < m[1].length(); igrid++) {
       // Used for timings3_94:
-      //u[0][1][igrid](m[1][igrid].smallEnd() + Iv(2,2,2)) = 3.0;
-      u[0][1][igrid](m[1][igrid].smallEnd() + Iv(ioff,ioff,ioff)) = 3.0;
+      //u[0][1][igrid](m[1][igrid].smallEnd() + IntVect(2,2,2)) = 3.0;
+      u[0][1][igrid](m[1][igrid].smallEnd() + IntVect(ioff,ioff,ioff)) = 3.0;
     }
     u[0][0][0](IntVect(1,1,1)) = 3.0;
   }
   else if (m.length() == 3) {
     int ioff = 2;
     for (int igrid = 0; igrid < m[2].length(); igrid++) {
-      u[0][2][igrid](m[2][igrid].smallEnd() + Iv(ioff,ioff,ioff)) = 3.0;
+      u[0][2][igrid](m[2][igrid].smallEnd() + IntVect(ioff,ioff,ioff)) = 3.0;
     }
   }
   for (ilev = 0; ilev < m.length(); ilev++) {
@@ -201,11 +201,11 @@ void hb93_test1(PArray<MultiFab> u[], const Array<BoxArray>& m,
 	     j <= m[ilev][igrid].bigEnd(1); j++) {
           double x = (i + 0.5) * h;
           double y = (j + 0.5) * h;
-          u[0][ilev][igrid](Iv(i,j)) = -0.5*(1.0-cos(2*pi*x))*sin(2*pi*y);
-          u[1][ilev][igrid](Iv(i,j)) =  0.5*(1.0-cos(2*pi*y))*sin(2*pi*x);
-          //u[0][ilev][igrid](Iv(i,j)) =  0.2*(x+1)*sin(pi*x)*
+          u[0][ilev][igrid](IntVect(i,j)) = -0.5*(1.0-cos(2*pi*x))*sin(2*pi*y);
+          u[1][ilev][igrid](IntVect(i,j)) =  0.5*(1.0-cos(2*pi*y))*sin(2*pi*x);
+          //u[0][ilev][igrid](IntVect(i,j)) =  0.2*(x+1)*sin(pi*x)*
 	  //  (pi*(y+1)*cos(pi*y)+sin(pi*y));
-          //u[1][ilev][igrid](Iv(i,j)) = -0.2*(y+1)*sin(pi*y)*
+          //u[1][ilev][igrid](IntVect(i,j)) = -0.2*(y+1)*sin(pi*y)*
 	  //  (pi*(x+1)*cos(pi*x)+sin(pi*x));
         }
       }
@@ -225,8 +225,8 @@ void linear_test(PArray<MultiFab> u[], const Array<BoxArray>& m,
 	     j <= m[ilev][igrid].bigEnd(1); j++) {
           double x = (i + 0.5) * h;
           double y = (j + 0.5) * h;
-          u[0][ilev][igrid](Iv(i,j)) = 0.0;
-          u[1][ilev][igrid](Iv(i,j)) = x;
+          u[0][ilev][igrid](IntVect(i,j)) = 0.0;
+          u[1][ilev][igrid](IntVect(i,j)) = x;
         }
       }
     }
@@ -248,11 +248,11 @@ void rz_adj(PArray<MultiFab> u[], PArray<MultiFab>& rhs,
           double x = (i + 0.5) * h;
           double y = (j + 0.5) * h;
 	  double x0 = i * h, x1 = x0 + h;
-          //u[0][ilev][igrid](Iv(i,j)) = 0.0;
-          u[1][ilev][igrid](Iv(i,j)) *= x;
-          //u[1][ilev][igrid](Iv(i,j)) = x;
+          //u[0][ilev][igrid](IntVect(i,j)) = 0.0;
+          u[1][ilev][igrid](IntVect(i,j)) *= x;
+          //u[1][ilev][igrid](IntVect(i,j)) = x;
 	  if (j >= m[ilev][igrid].smallEnd(1))
-	    rhoinv[ilev][igrid](Iv(i,j)) *= x;
+	    rhoinv[ilev][igrid](IntVect(i,j)) *= x;
         }
       }
     }
@@ -322,11 +322,11 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
   for (ilev = 0; ilev < m.length(); ilev++) {
     BoxArray& cmesh = m[ilev];
     BoxArray nmesh = cmesh;
-    nmesh.convert(IndexType(nodevect));
+    nmesh.convert(IndexType(IntVect::TheNodeVector()));
     for (i = 0; i < BL_SPACEDIM; i++)
       u[i].set(ilev, new MultiFab(cmesh, 1, 1));
     p.set(ilev, new MultiFab(nmesh, 1, 1));
-#ifdef TERRAIN
+#ifdef HG_TERRAIN
 #  if (BL_SPACEDIM == 2)
     rhoinv.set(ilev, new MultiFab(cmesh, 3, 0));
     rhoinv[ilev].setVal(1.0);
@@ -346,7 +346,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     rhs[ilev].setVal(0.0);
   }
 
-#ifdef TERRAIN
+#ifdef HG_TERRAIN
   // Adjust sigmas using refinement ratio information.
   // Assume spacing on level 0 already incorporated into values assigned above.
   // (h is ignored.)
@@ -372,15 +372,15 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 #if (BL_SPACEDIM == 2)
   //hb93_test1(u, m);
   //linear_test(u, m, domain);
-  //rhs[1][0](Iv(16,51)) = 100.0;
-  //rhs[1][0](Iv(16,50)) = 100.0;
-  //rhs[0][0](Iv(24,32)) = 100.0;
-  //rhs[1][0](Iv(30,40)) = -100.0;
-  //rhs[0][0](Iv(4,13)) = 100.0;
-  //rhs[0][0](Iv(20,90)) = 100.0;
+  //rhs[1][0](IntVect(16,51)) = 100.0;
+  //rhs[1][0](IntVect(16,50)) = 100.0;
+  //rhs[0][0](IntVect(24,32)) = 100.0;
+  //rhs[1][0](IntVect(30,40)) = -100.0;
+  //rhs[0][0](IntVect(4,13)) = 100.0;
+  //rhs[0][0](IntVect(20,90)) = 100.0;
 #else
-  //rhs[1][0](Iv(16,20,40)) = 100.0;
-  //rhs[1][0](Iv(16,20,21)) = 100.0;
+  //rhs[1][0](IntVect(16,20,40)) = 100.0;
+  //rhs[1][0](IntVect(16,20,21)) = 100.0;
 #endif
 
 /*
@@ -402,7 +402,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
   Box bb(0,0,5,5);
   //Box bb(0,0,6,7);
 #else
-  Box bb(Iv(0,0,0),Iv(8,8,8));
+  Box bb(IntVect(0,0,0),IntVect(8,8,8));
 #endif
   for (ilev = 0; ilev < m.length(); ilev++) {
     Box b = refine(bb, m[ilev].sig()/16);
@@ -444,7 +444,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 #ifdef USE_GRAPHICS
   fit(domain[0]);
   plot(m, ratio);
-#  ifndef CONSTANT
+#  ifndef HG_CONSTANT
   //contour(rhoinv, ratio, ncont);
 #  endif
 #endif
@@ -461,7 +461,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
   }
   cout << "\nTotal cells:  " << sum << endl;
 
-  clock_t t0, t1, t2, t3;
+  double t0, t1, t2, t3;
 
 #ifdef UNICOS
   //int pcode = 1, nrep = 8;
@@ -477,12 +477,12 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
   Real tol = 2.e-10;
   //Real tol = 5.e-9;
 #endif
-  t0 = clock();
+  t0 = Utility::second();
   inviscid_fluid_boundary afb(bc);
   i = m.length() - 1;
   holy_grail_amr_projector proj(m, ratio, domain[i], 0, i, i, afb, pcode);
 #if (BL_SPACEDIM == 2)
-#  ifndef TERRAIN
+#  ifndef HG_TERRAIN
   rz_adj(u, rhs, rhoinv, m, domain);
   proj.SetRZ();
 #  endif
@@ -492,13 +492,13 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
   proj.line_solve_dim = -1;
 
   if (m.length() == 1) {
-    t1 = clock();
+    t1 = Utility::second();
     proj.project(u, p, null_amr_real, rhoinv, h, tol);
     for (i = 1; i < nrep; i++) {
       init(u, p, m, ratio);
       proj.project(u, p, null_amr_real, rhoinv, h, tol);
     }
-    t2 = clock();
+    t2 = Utility::second();
     cout << "Init time was " << t1 - t0 << endl;
     cout << "Proj time was " << t2 - t1 << endl;
     cout << "Speed was " << double(t2 - t1) / (nrep * sum) << endl;
@@ -516,50 +516,50 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
   else if (m.length() == 2) {
     //proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 0);
     //proj.project(u, p, null_amr_real, rhoinv, h, tol, 1, 1);
-    t1 = clock();
+    t1 = Utility::second();
     cout << "First time is " << t1 - t0 << endl;
     for (i = 0; i < p.length(); i++)
       p[i].setVal(0.0);
-    t1 = clock();
+    t1 = Utility::second();
     proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 1);
     //proj.manual_project(u, p, rhs, null_amr_real, rhoinv, 1, h, tol, 0, 1);
     for (i = 1; i < nrep; i++) {
       init(u, p, m, ratio);
       proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 1);
     }
-    t2 = clock();
+    t2 = Utility::second();
     cout << "Second time is " << t2 - t1 << endl;
     cout << "Sync speed was " << double(t2 - t1) / (nrep * sum) << endl;
 /*
     for (i = m[1][0].smallEnd(1); i <= m[1][0].bigEnd(1)+1; i++) {
-      cout << p[1][0](Iv(0, i)) << endl;
+      cout << p[1][0](IntVect(0, i)) << endl;
     }
     proj.project(u, p, null_amr_real, rhoinv, h, tol, 1, 1);
     for (i = m[1][0].smallEnd(1); i <= m[1][0].bigEnd(1)+1; i++) {
-      cout << p[1][0](Iv(0, i)) << endl;
+      cout << p[1][0](IntVect(0, i)) << endl;
     }
 */
   }
   else if (m.length() == 3) {
     proj.project(u, p, null_amr_real, rhoinv, h, tol, 2, 2);
-    t1 = clock();
+    t1 = Utility::second();
     cout << "First time is " << t1 - t0 << endl;
     for (i = 0; i < p.length(); i++)
       p[i].setVal(0.0);
     proj.project(u, p, null_amr_real, rhoinv, h, tol, 1, 2);
-    t2 = clock();
+    t2 = Utility::second();
     cout << "Second time is " << t2 - t1 << endl;
     for (i = 0; i < p.length(); i++)
       p[i].setVal(0.0);
     proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 2);
-    t3 = clock();
+    t3 = Utility::second();
     cout << "Third time is " << t3 - t2 << endl;
     cout << "Total time was  " << t3 - t0 << endl;
   }
   else {
     proj.make_it_so();
     proj.manual_project(u, p, null_amr_real, rhs, rhoinv, 1, h, tol, 0, 3);
-    t1 = clock();
+    t1 = Utility::second();
     cout << "First time is " << t1 - t0 << endl;
   }
 #ifdef USE_GRAPHICS
@@ -580,7 +580,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
       p[i].setVal(0.0);
     holy_grail_amr_projector proj(m, 0, m.length() - 1, afb, pcode);
     proj.project(u, p, null_amr_real, rhoinv, h, 1.e-14);
-    t2 = clock();
+    t2 = Utility::second();
     cout << "Second time is " << t2 - t1 << endl;
     cout << "Total time was  " << t2 - t0 << endl;
   }

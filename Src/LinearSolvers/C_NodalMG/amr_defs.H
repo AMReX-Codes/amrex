@@ -6,17 +6,6 @@
 
 #undef SPACEDIM
 
-typedef IntVect   Iv;
-typedef FArrayBox Fab;
-
-#define BOX_NODE IndexType::NODE
-#define BOX_CELL IndexType::CELL
-
-#define zerovect   IntVect::TheZeroVector()
-#define unitvect   IntVect::TheUnitVector()
-#define nodevect   IntVect::TheNodeVector()
-#define cellvect   IntVect::TheCellVector()
-
 #if (BL_SPACEDIM == 1)
 #  define intRS const int&
 #  define intS  const int&, const int&
@@ -31,30 +20,28 @@ typedef FArrayBox Fab;
 #  define RealPS Real*, Real*
 #elif (BL_SPACEDIM == 3)
 #  define intRS const int&, const int&, const int&
-#  define intS  const int&, const int&, const int&, const int&, \
-                const int&, const int&
-#  define dimlist(a) a.smallEnd(0), a.bigEnd(0), a.smallEnd(1), a.bigEnd(1), \
-                     a.smallEnd(2), a.bigEnd(2)
+#  define intS  const int&, const int&, const int&, const int&, const int&, const int&
+#  define dimlist(a) a.smallEnd(0), a.bigEnd(0), a.smallEnd(1), a.bigEnd(1), a.smallEnd(2), a.bigEnd(2)
 #  define RealRS const Real&, const Real&, const Real&
 #  define RealPS Real*, Real*, Real*
 #endif
 
 // index type helper functions:
 
-inline IntVect type(const Fab& f) {
+inline IntVect type(const FArrayBox& f) {
   return f.box().type();
 }
 
-inline IndexType::CellIndex type(const Fab& f, int idir) {
+inline IndexType::CellIndex type(const FArrayBox& f, int idir) {
   return f.box().type(idir);
 }
 
-inline IntVect type(const FabArray<Real,Fab>& r) {
+inline IntVect type(const FabArray<Real,FArrayBox>& r) {
   assert(r.length() > 0 && r.boxArray().ok());
   return r.box(0).type();
 }
 
-inline IndexType::CellIndex type(const FabArray<Real,Fab>& r, int idir) {
+inline IndexType::CellIndex type(const FabArray<Real,FArrayBox>& r, int idir) {
   assert(r.length() > 0 && r.boxArray().ok());
   return r.box(0).type(idir);
 }

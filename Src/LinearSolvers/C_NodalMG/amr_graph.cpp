@@ -374,7 +374,7 @@ static int mask_box(Box& side1, Box& side2,
   return retval;
 }
 
-void contour(const Fab& r, Box subbox, const IntVect& ratio,
+void contour(const FArrayBox& r, Box subbox, const IntVect& ratio,
 	     Real value, int cflag, const Box& domain,
 	     void (*set_contour_color)(int,int),
 	     const BoxArray& mask, const IntVect& mrat)
@@ -481,7 +481,7 @@ void contour(PArray<MultiFab>& r, const Array<IntVect>& gen_ratio, Real value,
   contour(r[i], ratio, value, 0, null_Box, set_contour_color);
 }
 
-void contour(const Fab& r, Box subbox, const IntVect& ratio,
+void contour(const FArrayBox& r, Box subbox, const IntVect& ratio,
 	     int nval, Real value[], int cflag, const Box& domain,
 	     void (*set_contour_color)(int,int),
 	     const BoxArray& mask, const IntVect& mrat)
@@ -570,7 +570,7 @@ void contour(PArray<MultiFab>& r, const Array<IntVect>& gen_ratio,
   contour(r[i], ratio, nval, value, 0, null_Box, set_contour_color);
 }
 
-void contour(const Fab& r, Box subbox, const IntVect& ratio,
+void contour(const FArrayBox& r, Box subbox, const IntVect& ratio,
 	     int nval, int flag,
 	     Real a, Real b, Real p,
 	     int cflag, const Box& domain,
@@ -707,7 +707,7 @@ void plot_slice(Box b, int idim, const IntVect& ratio)
     mkbox(x0, x1, y0, y1);
 }
 
-void slice(const Fab& r, Box subbox, const IntVect& ratio,
+void slice(const FArrayBox& r, Box subbox, const IntVect& ratio,
 	   int idim, int islice,
 	   Real value, int cflag, const Box& domain,
 	   void (*set_contour_color)(int,int))
@@ -797,7 +797,7 @@ void slice(const Fab& r, Box subbox, const IntVect& ratio,
   gflush(1);
 }
 
-void slice(const Fab& r, Box subbox, const IntVect& ratio,
+void slice(const FArrayBox& r, Box subbox, const IntVect& ratio,
            int idim, int islice,
 	   int nval, Real value[], int cflag, const Box& domain,
 	   void (*set_contour_color)(int,int))
@@ -895,7 +895,7 @@ void slice(const Fab& r, Box subbox, const IntVect& ratio,
   gflush(1);
 }
 
-void slice(const Fab& r, Box subbox, const IntVect& ratio,
+void slice(const FArrayBox& r, Box subbox, const IntVect& ratio,
            int idim, int islice,
 	   int nval, int flag,
 	   Real a, Real b, Real p,

@@ -35,16 +35,14 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
 {
   assert(r.length() > 0);
   assert(r.nComp() == 1);
-  assert(type(r) == nodevect);
-
-  DECLARE_GEOMETRY_TYPES;
+  assert(type(r) == IntVect::TheNodeVector());
 
   int igrid, jgrid, iface, icor, i;
 
   nsets = 0;
   for (i = 0; i < BL_SPACEDIM; i++) {
     for (igrid = 0; igrid < interface.nboxes(i); igrid++) {
-      if (interface.geo(i, igrid) != ALL)
+      if (interface.geo(i, igrid) != level_interface::ALL)
 	break;
       nsets++;
     }
@@ -86,7 +84,7 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
   for (iface = 0; iface < interface.nfaces(); iface++) {
     igrid = interface.fgrid(iface, 0);
     jgrid = interface.fgrid(iface, 1);
-    if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != ALL)
+    if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != level_interface::ALL)
       break;
     const Box& b = interface.node_face(iface);
 #if (BL_SPACEDIM == 2)
@@ -150,7 +148,7 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
     igrid = interface.cgrid(icor, 0);
     jgrid = interface.cgrid(icor, 3);
     // only do interior corners with fine grid on all sides
-    if (igrid < 0 || jgrid < 0 || interface.cgeo(icor) != ALL)
+    if (igrid < 0 || jgrid < 0 || interface.cgeo(icor) != level_interface::ALL)
       break;
     if (jgrid == interface.cgrid(icor, 1)) {
       const Box& b = interface.corner(icor);
@@ -172,7 +170,7 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
     igrid = interface.egrid(iedge, 0);
     jgrid = interface.egrid(iedge, 3);
     // only do interior edges with fine grid on all sides
-    if (igrid < 0 || jgrid < 0 || interface.egeo(iedge) != ALL)
+    if (igrid < 0 || jgrid < 0 || interface.egeo(iedge) != level_interface::ALL)
       break;
     if (jgrid == interface.egrid(iedge, 1)) {
       const Box& b = interface.node_edge(iedge);
@@ -208,7 +206,7 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
     igrid = interface.cgrid(icor, 0);
     jgrid = interface.cgrid(icor, 7);
     // only do interior corners with fine grid on all sides
-    if (igrid < 0 || jgrid < 0 || interface.cgeo(icor) != ALL)
+    if (igrid < 0 || jgrid < 0 || interface.cgeo(icor) != level_interface::ALL)
       break;
     if (interface.cgrid(icor, 3) == interface.cgrid(icor, 1)) {
       if (jgrid != interface.cgrid(icor, 3)) {
@@ -294,19 +292,17 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
 {
   assert(r.length() > 0);
   assert(r.nComp() == 1);
-  assert(type(r) == nodevect);
+  assert(type(r) == IntVect::TheNodeVector());
 
   w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
 
   assert(w == 1);
 
-  DECLARE_GEOMETRY_TYPES;
-
   int igrid, jgrid, iface;
 
   nsets = 0;
   for (iface = 0; iface < interface.nfaces(); iface++) {
-    if (interface.fgeo(iface) != ALL)
+    if (interface.fgeo(iface) != level_interface::ALL)
       break;
     if (interface.fgrid(iface, 0) >= 0)
       nsets++;
@@ -346,7 +342,7 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& interface,
   for (iface = 0; iface < interface.nfaces(); iface++) {
     igrid = interface.fgrid(iface, 0);
     jgrid = interface.fgrid(iface, 1);
-    if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != ALL)
+    if (igrid < 0 || jgrid < 0 || interface.fgeo(iface) != level_interface::ALL)
       break;
     const Box& b = interface.node_face(iface);
 #if (BL_SPACEDIM == 2)
