@@ -504,19 +504,22 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
 	    proj.project(u, p, null_amr_real, rhoinv, h, tol);
 	}
 	t2 = Utility::second();
-	cout << "Init time was " << t1 - t0 << endl;
-	cout << "Proj time was " << t2 - t1 << endl;
-	cout << "Speed was " << double(t2 - t1) / (nrep * sum) << endl;
-	cout << setprecision(16);
-	cout << "umin = " << u[0][0].min(0)
-	    << ", umax = " << u[0][0].max(0) << endl;
-	cout << "vmin = " << u[1][0].min(0)
-	    << ", vmax = " << u[1][0].max(0) << endl;
+	if ( ParallelDescriptor::IOProcessor() )
+	{
+	    cout << "Init time was " << t1 - t0 << endl;
+	    cout << "Proj time was " << t2 - t1 << endl;
+	    cout << "Speed was " << double(t2 - t1) / (nrep * sum) << endl;
+	    cout << setprecision(16);
+	    cout << "umin = " << u[0][0].min(0)
+		<< ", umax = " << u[0][0].max(0) << endl;
+	    cout << "vmin = " << u[1][0].min(0)
+		<< ", vmax = " << u[1][0].max(0) << endl;
 #if (BL_SPACEDIM == 3)
-	cout << "wmin = " << u[2][0].min(0)
-	    << ", wmax = " << u[2][0].max(0) << endl;
+	    cout << "wmin = " << u[2][0].min(0)
+		<< ", wmax = " << u[2][0].max(0) << endl;
 #endif
-	cout << setprecision(6);
+	    cout << setprecision(6);
+	}
     }
     else if (m.length() == 2) 
     {
