@@ -151,6 +151,7 @@ contains
     jlo = bx%lo(2)
     print *,'BX  ',bx%lo(1:2), bx%hi(1:2)
     print *,'PD  ',pd%lo(1:2),pd%hi(1:2)
+    print *,'PDV  ',pdv%bxs(1)%lo(1:2),pdv%bxs(1)%hi(1:2)
 
     do jb = -1, 1
          do ib = -1, 1
@@ -221,11 +222,11 @@ contains
     end if
     if (face_type(2,1) .eq. BC_NEU) then
        sg( 0,0) = sg( 0,1)
-       sg(ny,0) = sg(nx,1)
+       sg(nx,0) = sg(nx,1)
     end if
     if (face_type(2,2) .eq. BC_NEU) then
        sg( 0,ny) = sg( 0,ny-1)
-       sg(ny,ny) = sg(nx,ny-1)
+       sg(nx,ny) = sg(nx,ny-1)
     end if
 
     do j = 1,ny
