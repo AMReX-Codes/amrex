@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.45 2002-03-14 01:48:58 vince Exp $
+# Make.defs $Id: Make.defs,v 1.46 2002-03-14 23:56:07 car Exp $
 #
 
 #
@@ -185,9 +185,9 @@ ifeq ($(COMP),g++)
     FULLWARN   := -Wall 
     FULLWARN   += -Wno-sign-compare
     CXX	       := g++ -ftemplate-depth-25
-    __gcc_version := $(shell gcc --version)
-    __gcc_major_version := $(shell gcc --version | sed -e 's;\..*;;')
-    __gcc_minor_version := $(shell gcc --version | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
+    __gcc_version := $(shell $(CXX) --version)
+    __gcc_major_version := $(shell $(CXX) --version | sed -e 's;\..*;;')
+    __gcc_minor_version := $(shell $(CXX) --version | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
     DEFINES += -DBL_GCC_VERSION=$(__gcc_version)
     DEFINES += -DBL_GCC_MAJOR_VERSION=$(__gcc_major_version)
     DEFINES += -DBL_GCC_MINOR_VERSION=$(__gcc_minor_version)
@@ -219,7 +219,7 @@ ifeq ($(findstring KCC, $(COMP)),KCC)
 		echo 'int i;' > _X.cpp;				\
 		KCC -c -v _X.cpp 2>&1 1>/dev/null  | fgrep 'KAI C';	\
 		/bin/rm -f _X.cpp _X.o)
-DEFINES += -D__kcc_version=$(__kcc_version)
+DEFINES += -D__kcc_version='$(__kcc_version)'
 ifeq ($(findstring KAI C++ 3.1, $(__kcc_version)), KAI C++ 3.1)
     KCC_VERSION:=3.1
     KCC_MAJOR_VERSION:=3
