@@ -2695,29 +2695,47 @@ contains
     end if
   end subroutine multifab_saxpy_3_c
 
-  function multifab_norm_l1_c(mf, comp, nc, all) result(r)
+  function multifab_norm_l1_c(mf, comp, nc, mask, all) result(r)
     real(dp_t) :: r
     logical, intent(in), optional :: all
     integer, intent(in) :: comp
     integer, intent(in), optional :: nc
     type(multifab), intent(in) :: mf
+    logical, pointer :: lp(:,:,:,:)
+    type(lmultifab), intent(in), optional :: mask
     real(dp_t), pointer :: mp(:,:,:,:)
     integer :: i
     real(dp_t) :: r1
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
-    !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
-    do i = 1, mf%nboxes
-       if ( multifab_remote(mf,i) ) cycle
-       if ( lall ) then
-          mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
-       else
-          mp => dataptr(mf, i, get_ibox(mf, i), comp, nc)
-       end if
-       r1 = r1 + sum(abs(mp))
-    end do
-    !$OMP END PARALLEL DO
+    if ( present(mask) ) then
+       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
+       do i = 1, mf%nboxes
+          if ( multifab_remote(mf,i) ) cycle
+          if ( lall ) then
+             mp => dataptr(mf, i, get_pbox(mf, i))
+             lp => dataptr(mask, i, get_pbox(mask, i))
+          else
+             mp => dataptr(mf, i, get_ibox(mf, i))
+             lp => dataptr(mask, i, get_ibox(mask, i))
+          end if
+          r1 = r1 + sum(abs(mp), mask = lp)
+       end do
+       !$OMP END PARALLEL DO
+    else
+       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
+       do i = 1, mf%nboxes
+          if ( multifab_remote(mf,i) ) cycle
+          if ( lall ) then
+             mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
+          else
+             mp => dataptr(mf, i, get_ibox(mf, i), comp, nc)
+          end if
+          r1 = r1 + sum(abs(mp))
+       end do
+       !$OMP END PARALLEL DO
+    end if
     call parallel_reduce(r, r1, MPI_SUM)
   end function multifab_norm_l1_c
   function multifab_norm_l1(mf, all) result(r)
@@ -2831,29 +2849,47 @@ contains
     r = sqrt(r)
   end function multifab_norm_l2
 
-  function multifab_norm_inf_c(mf, comp, nc, all) result(r)
+  function multifab_norm_inf_c(mf, comp, nc, mask, all) result(r)
     real(dp_t) :: r
     logical, intent(in), optional :: all
     integer, intent(in) :: comp
     integer, intent(in), optional :: nc
+    type(lmultifab), intent(in), optional :: mask
     type(multifab), intent(in) :: mf
+    logical, pointer :: lp(:,:,:,:)
     real(dp_t), pointer :: mp(:,:,:,:)
     integer :: i
     real(dp_t) :: r1
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
-    !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(MAX:r1)
-    do i = 1, mf%nboxes
-       if ( multifab_remote(mf,i) ) cycle
-       if ( lall ) then
-          mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
-       else
-          mp => dataptr(mf, i, get_ibox(mf, i), comp, nc)
-       end if
-       r1 = max(r1, maxval(abs(mp)))
-    end do
-    !$OMP END PARALLEL DO
+    if ( present(mask) ) then
+       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(MAX:r1)
+       do i = 1, mf%nboxes
+          if ( multifab_remote(mf,i) ) cycle
+          if ( lall ) then
+             mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
+             lp => dataptr(mask, i, get_pbox(mask, i))
+          else
+             mp => dataptr(mf, i, get_ibox(mf, i), comp, nc)
+             lp => dataptr(mask, i, get_ibox(mask, i))
+          end if
+          r1 = max(r1, maxval(abs(mp), mask = lp))
+       end do
+       !$OMP END PARALLEL DO
+    else
+       !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(MAX:r1)
+       do i = 1, mf%nboxes
+          if ( multifab_remote(mf,i) ) cycle
+          if ( lall ) then
+             mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
+          else
+             mp => dataptr(mf, i, get_ibox(mf, i), comp, nc)
+          end if
+          r1 = max(r1, maxval(abs(mp)))
+       end do
+       !$OMP END PARALLEL DO
+    end if
     call parallel_reduce(r, r1, MPI_MAX)
   end function multifab_norm_inf_c
   function multifab_norm_inf(mf, mask, all) result(r)
