@@ -1,0 +1,323 @@
+/* 
+   $Id: fabio_c.c,v 1.1 2004-05-24 21:50:06 car Exp $ 
+   Contains the IO routines for fabio module
+*/
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <errno.h>
+#if !defined(WIN32)
+#include <unistd.h>
+#else
+#include <io.h>
+typedef int mode_t;
+#endif
+
+#ifndef WIN32
+#define FILE_MODE  (            S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
+#define DIR_MODE   (FILE_MODE | S_IXUSR |           S_IXGRP | S_IXOTH)
+#define O_BINARY   0
+#else
+#define FILE_MODE (-1)
+#define DIR_MODE  (-1)
+#endif
+
+#if defined(BL_FORT_USE_UNDERSCORE)
+#define FABIO_OPEN_STR fabio_open_str_
+#define FABIO_MKDIR_STR fabio_mkdir_str_
+#define FABIO_READ fabio_read_
+#define FABIO_WRITE_RAW fabio_write_raw_
+#define FABIO_READ_SKIP fabio_read_skip_
+#define FABIO_CLOSE fabio_close_
+#elif defined(BL_FORT_USE_DBL_UNDERSCORE)
+#define FABIO_OPEN_STR fabio_open_str__
+#define FABIO_MKDIR_STR fabio_mkdir_str__
+#define FABIO_READ fabio_read__
+#define FABIO_WRITE_RAW fabio_write_raw__
+#define FABIO_READ_SKIP fabio_read_skip__
+#define FABIO_CLOSE fabio_close__
+#elif defined(BL_FORT_USE_LOWERCASE)
+#define FABIO_OPEN_STR fabio_open_str
+#define FABIO_MKDIR_STR fabio_mkdir_str
+#define FABIO_READ fabio_read
+#define FABIO_WRITE_RAW fabio_write_raw
+#define FABIO_READ_SKIP fabio_read_skip
+#define FABIO_CLOSE fabio_close
+#endif
+
+static
+void
+int_2_str(char f[], int n, const int* fi)
+{
+  int i;
+  for ( i = 0; i < n; ++i )
+    {
+      if ( fi[i] < 0 ) 
+	{
+	  f[i] = 0;
+	  break;
+	}
+      f[i] = fi[i];
+    }
+  if ( i == n )
+    {
+      fprintf(stderr, "name to long, probably not terminated ifilename\n");
+      exit(1);
+    }
+}
+
+void
+FABIO_OPEN_STR(int* fdp, const int* ifilename, const int* flagp)
+{
+  int lflag;
+  int lmode;
+  char filename[128];
+
+  int_2_str(filename, sizeof(filename), ifilename);
+  switch ( *flagp ) 
+    {
+    case 0: 
+      lflag = O_RDONLY; 
+      break;
+    case 1: 
+      lflag = O_WRONLY | O_CREAT | O_TRUNC | O_BINARY; 
+      lmode = FILE_MODE;
+      break;
+    case 2: 
+      lflag = O_RDWR;
+      break;
+    default:
+      fprintf(stderr, "FABIO_OPEN_STR: invalid flag, %d, must be <=0<=2", *flagp);
+      exit(1);
+    }
+  *fdp = open(filename, lflag, lmode);
+  if ( *fdp == -1 )
+    {
+      fprintf(stderr, "FABIO_OPEN_STR: failed to open \"%s\": %s\n",
+	      filename, strerror(errno));
+      exit(1);
+    }
+}
+
+/* FAB ((8, (64 11 52 0 1 12 0 1023)),(8, (1 2 3 4 5 6 7 8)))((0,0) (63,63) (0,0)) 27 */
+
+#if defined(BL_AIX)
+static const int norder_d[8] = { 1, 2, 3, 4, 5, 6, 7, 8};
+static const char* str_norder_d = "1 2 3 4 5 6 7 8";
+static const int norder_f[4] = { 1, 2, 3, 4};
+#else
+static const int norder_d[8] = { 8, 7, 6, 5, 4, 3, 2, 1};
+static const char* str_norder_d = "8 7 6 5 4 3 2 1";
+static const int norder_f[4] = { 4, 3, 2, 1 };
+#endif
+
+void
+FABIO_READ_SKIP(const int* fdp, const int* offsetp, const int* skipp, 
+		double dp[], const int* countp)
+{
+  int fd = *fdp;
+  unsigned char* cdp;
+  char c;
+  size_t count = *countp;
+  off_t offset = *offsetp;
+  off_t skip = *skipp;
+  int i,j;
+  char buffer[1024];
+  int bcount, border[8];
+  char bstr[1024];
+  int swap_bytes = 0;
+  
+  if ( lseek(fd, offset, SEEK_SET) < 0 )
+    {
+      fprintf(stderr, "FABIO_READ_SKIP: failed to seek to %ld: %s\n", 
+	      offset, strerror(errno));
+      exit(1);
+    }
+  for (i=0;;i++)
+    {
+      if ( read(fd, &c, 1) != 1 )
+	{
+	  fprintf(stderr, "FABIO_READ_SKIP: failed to read a char: %s\n",
+		  strerror(errno));
+	  exit(1);
+	}
+      if ( c == '\n' ) break;
+      if ( i == sizeof(buffer) )
+	{
+	  fprintf(stderr, "FABIO_READ_SKIP: failed FAB header\n");
+	  exit(1);
+	}
+      buffer[i] = c;
+    }
+  buffer[i] = 0;
+  /* no we must sscanf this vector */
+  i = sscanf(buffer,
+	     "FAB ((8, (64 11 52 0 1 12 0 1023)),(%d, (%[^)])))",
+	     &bcount,
+	     bstr);
+  if ( i != 2 )
+    {
+      fprintf(stderr, "FABIO_READ_SKIP: failed to parse FAB header\n"
+	      "Architecture difference for floating point format\n");
+      exit(1);
+    }
+  i = sscanf(bstr, "%d %d %d %d %d %d %d %d",
+	     border + 0, border + 1, border + 2, border + 3,
+	     border + 4, border + 5, border + 6, border + 7
+	     );
+  if ( i != 8 )
+    {
+      fprintf(stderr, "FABIO_READ_SKIP: failed to parse FAB border\n"
+	      "Not double precision data\n");
+      exit(1);
+    }
+  /* printf("i = %d, bcount = %d, nc = %d\n", i, bcount, nc); */
+  /* should be positioned to read the doubles */
+  if ( skip && lseek(fd, skip*sizeof(double), SEEK_CUR) < 0 )
+    {
+      fprintf(stderr, "FABIO_READ_SKIP: failed to seek to comp %ld: %s\n", 
+	      offset, strerror(errno));
+      exit(1);
+    }
+  if ( count*sizeof(double) != read(fd, dp, count*sizeof(double)) )
+    {
+      fprintf(stderr, "FABIO_READ_SKIP: failed to read %ld doubles: %s\n", 
+	      count, strerror(errno));
+      exit(1);
+    }
+  for ( j = 0; j < 8; ++j )
+    {
+      if (border[j] != norder_d[j] )
+	{
+	  swap_bytes = 1;
+	  break;
+	}
+    }
+  if ( swap_bytes )
+    {
+      cdp = (unsigned char*)dp;
+      for ( i = 0; i < count; i++ )
+	{
+	  unsigned char t[8];
+	  for ( j = 0; j < 8; j++ )
+	    {
+	      t[j] = cdp[border[j]-1];
+	    }
+	  for ( j = 0; j < 8; j++ )
+	    {
+	      cdp[j] = t[norder_d[j]-1];
+	    }
+	  cdp += 8;
+	}
+    }
+}
+
+void
+FABIO_WRITE_RAW(const int* fdp, int* offsetp, const double dp[], const int* countp, 
+		const int* dmp, const int lo[], const int hi[], const int nd[], const int* ncp)
+{
+  int fd = *fdp;
+  int dm = *dmp;
+  int nc = *ncp;
+  size_t count = *countp;
+  off_t offset;
+  char buffer[1024];
+  int ilen;
+
+  offset = lseek(fd, 0, SEEK_CUR);
+  sprintf(buffer, "FAB ((8, (64 11 52 0 1 12 0 1023)),(8, (%s)))", str_norder_d);
+  ilen = strlen(buffer);
+  if ( ilen != write(fd, buffer, ilen) )
+    {
+      fprintf(stderr, "FABIO_WRITE_RAW: failed to write %d bytes: %s\n", 
+	      ilen, strerror(errno));
+      exit(1);
+    }
+  switch ( dm ) 
+    {
+    case 1:
+      sprintf(buffer,"((%d) (%d) (%d)) %d\n", 
+	      lo[0], hi[0], nd[0], nc);
+      break;
+    case 2:
+      sprintf(buffer,"((%d,%d) (%d,%d) (%d,%d)) %d\n", 
+	      lo[0], lo[1], hi[0], hi[1], nd[0], nd[1], nc);
+      break;
+    case 3:
+      sprintf(buffer,"((%d,%d,%d) (%d,%d,%d) (%d,%d,%d)) %d\n", 
+	      lo[0], lo[1], lo[2], hi[0], hi[1], hi[2], nd[0], nd[1], nd[2], nc);
+      break;
+    default:
+      fprintf(stderr, "FABIO_WRITE_RAW: strange dimension = %d\n", dm);
+      exit(1);
+    }
+  write(fd, buffer, strlen(buffer));
+  
+  ilen = nc*count*sizeof(double);
+  if ( ilen != write(fd, dp, ilen) )
+    {
+      fprintf(stderr, "FABIO_WRITE_RAW: failed to write %ld doubles: %s\n", 
+	      nc*count, strerror(errno));
+      exit(1);
+    }
+  *offsetp = offset;
+}
+
+
+void
+FABIO_READ(const int* fdp, const int* offsetp, double dp[], const int* countp)
+{
+  int skip = 0;
+  FABIO_READ_SKIP(fdp, offsetp, &skip, dp, countp);
+}
+
+void
+FABIO_CLOSE(const int* fdp)
+{
+  int fd = *fdp;
+  if ( close(fd) < 0 )
+    {
+      fprintf(stderr, "FABIO_CLOSE: failed to close %d: %s\n", 
+	      fd, strerror(errno));
+      exit(1);
+    }
+}
+
+#if defined(WIN32)
+#include <direct.h>
+#define mkdir(a,b) _mkdir((a))
+static const char* path_sep_str = "\\";
+#else
+static const char* path_sep_str = "/";
+#endif
+
+void
+FABIO_MKDIR_STR(const int* idirname, int* statp)
+{
+  mode_t mode = DIR_MODE;
+  int st = *statp;
+  char dirname[128];
+
+  int_2_str(dirname, sizeof(dirname), idirname);
+
+  *statp = 0;
+  /* we allow the mkdir on an existing directory */
+  if ( mkdir(dirname, mode) <0 && errno != EEXIST ) 
+    {
+      if ( st )
+	{
+	  *statp = 1;
+	  return;
+	}
+      else
+	{
+	  fprintf(stderr, "FABIO_MKDIR_STR: mkdir(%s,%d): %s\n", 
+		  dirname, mode, strerror(errno));
+	  exit(1);
+	}
+    }
+}
+
