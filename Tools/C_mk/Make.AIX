@@ -25,7 +25,8 @@ endif
 
 ifeq ($(COMP),mpKCC)
   CXX     := mpKCC
-  CXXOPTF += +K2 --no_exceptions --backend '-qmaxmem=8192'
+#  CXXOPTF += +K2 --no_exceptions --backend '-qmaxmem=8192'
+  CXXOPTF += +K2 --no_exceptions --backend '-qmaxmem=-1'
   CXXDEBF += +K0 --no_exceptions
   override XTRADEFS += -DBL_USE_NEW_HFILES -DBL_COALESCE_FABS
 endif
