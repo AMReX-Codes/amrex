@@ -1,5 +1,11 @@
 # Make for Linux
 
+ifeq ($(COMP),PathScale)
+  CXX = pathCC
+  CC  = pathcc
+  CXXOPTF += -O3 -OPT:Olimit=20000
+  CXXDEBF += -O0 -OPT:Olimit=0
+else
 ifeq ($(COMP),KCC)
   CXX      = KCC
   CXXOPTF += -O1 +K1
@@ -13,10 +19,22 @@ ifeq ($(COMP),PGI)
 else
 endif
 endif
+endif
 
 FORT_CPP := gcc -E -traditional
 FORT_CPP := cpp -E -traditional
 
+ifeq ($(FCOMP),PathScale)
+  FC = pathf90 -fixedform -nog77mangle
+  fC = pathf90 -fixedform -nog77mangle
+  FDEBF += -O0 -g
+  fDEBF += -O0 -g
+  CXXDEBF += -O0 -g
+  CXXOPTF += -O3
+  FORT_CPP := cpp -traditional
+  override XTRALIBS += -lfortran -lF77 -lffio -lmv
+  LDFLAGS += -static
+else
 ifeq ($(FCOMP),Lahey)
   FC    := lf95 --ml cdecl
   fC    := $(FC)
@@ -67,6 +85,7 @@ ifeq ($(FCOMP),f77)
   FDEBF += -Wimplicit
   fDEBF += -Wimplicit
   fDEBF +=   -ffortran-bounds-check
+endif
 endif
 endif
 endif
