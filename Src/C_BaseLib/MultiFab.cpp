@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.41 1999-05-10 18:54:22 car Exp $
+// $Id: MultiFab.cpp,v 1.42 1999-05-10 20:44:50 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -171,9 +171,9 @@ MultiFab::max (int comp,
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
 #ifdef BL_USE_DOUBLE
-    Real mn = FLT_MIN;
+    Real mn = -FLT_MAX;
 #elif  BL_USE_FLOAT
-    Real mn = DBL_MIN;
+    Real mn = -DBL_MAX;
 #endif
 
     for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
@@ -194,9 +194,9 @@ MultiFab::max (const Box& region,
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
 
 #ifdef BL_USE_DOUBLE
-    Real mn = FLT_MIN;
+    Real mn = -FLT_MAX;
 #elif  BL_USE_FLOAT
-    Real mn = DBL_MIN;
+    Real mn = -DBL_MAX;
 #endif
 
     for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
