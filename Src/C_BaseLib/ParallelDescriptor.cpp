@@ -1,6 +1,6 @@
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.63 2001-01-25 23:52:37 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.64 2001-01-26 18:08:14 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -605,8 +605,9 @@ namespace BL_NAMESPACE
 {
 #endif
 
-int ParallelDescriptor::m_nProcs = 1;
-int ParallelDescriptor::m_MyId   = 0;
+int ParallelDescriptor::m_nProcs    = 1;
+int ParallelDescriptor::m_nProcsCFD = 1;
+int ParallelDescriptor::m_MyId      = 0;
 MPI_Comm ParallelDescriptor::m_comm = 0;
 
 void
@@ -623,6 +624,8 @@ ParallelDescriptor::Gather (Real* sendbuf,
     for (int i = 0; i < nsend; ++i)
         recvbuf[i] = sendbuf[i];
 }
+
+void ParallelDescriptor::SetNProcsCFD () {}
 
 void ParallelDescriptor::StartParallel (int*, char***) {}
 void ParallelDescriptor::EndParallel () {}
