@@ -30,22 +30,19 @@ extern "C"
     
 #if (BL_SPACEDIM == 1)
 #error not relevant
-#elif (BL_SPACEDIM == 2)
-    void FORT_HGFRES_TERRAIN(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*);
-    void FORT_HGCRES_TERRAIN(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*);
+#endif
+    void FORT_HGFRES_TERRAIN(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
+    void FORT_HGFRES        (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
+    void FORT_HGCRES_TERRAIN(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
+    void FORT_HGCRES        (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
+#if (BL_SPACEDIM == 2)
     void FORT_HGIRES(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int *, const int *, const int* );
     void FORT_HGDRES(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int *, const int* );
-    void FORT_HGCRES(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*);
-    void FORT_HGFRES(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
     void FORT_HGFRES_FULL_STENCIL(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*, const int*, const int*);
     void FORT_HGORES(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int *, const int *, const int* );
 #elif (BL_SPACEDIM == 3)
-    void FORT_HGFRES_TERRAIN(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*);
-    void FORT_HGERES_TERRAIN(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*);
-    void FORT_HGCRES_TERRAIN(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*);
-    void FORT_HGFRES(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
-    void FORT_HGERES(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
-    void FORT_HGCRES(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*);
+    void FORT_HGERES_TERRAIN(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
+    void FORT_HGERES        (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
 #endif
 }
 
@@ -376,7 +373,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		sigmafptr, DIMLIST(sigmafbox),
 		sigmac.dataPtr(), DIMLIST(sigmacbox),
 		DIMLIST(creg),
-		D_DECL(rat[0], rat[1], rat[2]), &idim, &idir
+		D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir
 		);
 	}
 	else if (m_hg_full_stencil)
@@ -391,8 +388,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		sigmafptr, DIMLIST(sigmafbox),
 		sigmac.dataPtr(), DIMLIST(sigmacbox),
 		DIMLIST(creg),
-		&hx, &hy,
-		rat[0], rat[1], &idim, &idir,
+		D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir,
 		&isRZ, &imax
 		);
 #endif
@@ -406,8 +402,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		sigmafptr, DIMLIST(sigmafbox),
 		sigmac.dataPtr(), DIMLIST(sigmacbox),
 		DIMLIST(creg),
-		D_DECL(&hx, &hy, &hz),
-		D_DECL(rat[0], rat[1], rat[2]), &idim, &idir
+		D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir
 		);
 	}
     }
@@ -457,7 +452,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 			sigmaf.dataPtr(), DIMLIST(sigmafbox),
 			sigmac.dataPtr(), DIMLIST(sigmacbox),
 			DIMLIST(creg),
-			rat[0], rat[1], rat[2],
+			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]),
 			t.getVect(), ga.dataPtr());
 		}
 		else
@@ -469,7 +464,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 			sigmaf.dataPtr(), DIMLIST(sigmafbox),
 			sigmac.dataPtr(), DIMLIST(sigmacbox),
 			DIMLIST(creg),
-			&hx, &hy, &hz, rat[0], rat[1], rat[2],
+			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]),
 			t.getVect(), ga.dataPtr());
 		}
 		// fill in the grids on the other sides, if any
@@ -524,8 +519,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 			sigmaf.dataPtr(), DIMLIST(sigmafbox),
 			sigmac.dataPtr(), DIMLIST(sigmacbox),
 			DIMLIST(creg),
-			D_DECL(rat[0], rat[1], rat[2]),
-			ga.dataPtr());
+			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]),
+			ga.dataPtr(), 0);
 		}
 		else
 		{
@@ -537,7 +532,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 			sigmac.dataPtr(), DIMLIST(sigmacbox),
 			DIMLIST(creg),
 			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]),
-			ga.dataPtr());
+			ga.dataPtr(), 0);
 		}
 		// fill in the grids on the other sides, if any
 		const Box& freg = lev_interface[mglev].box(0, icor);
@@ -596,8 +591,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		    sigmaf.dataPtr(), DIMLIST(sigmafbox),
 		    sigmac.dataPtr(), DIMLIST(sigmacbox),
 		    DIMLIST(creg),
-		    &hx, &hy,
-		    rat[0], rat[1], &idim, &idir,
+		    D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir,
 		    &isRZ, &imax
 		    );
 		// fill in the grids on the other sides, if any
@@ -635,8 +629,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		    sigmaf.dataPtr(), DIMLIST(sigmafbox),
 		    sigmac.dataPtr(), DIMLIST(sigmacbox),
 		    DIMLIST(creg),
-		    &hx, &hy,
-		    rat[0], rat[1], &idir0, &idir1, &isRZ
+		    D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &idir0, &idir1, &isRZ
 		    );
 	    }
 	    else if (geo == (level_interface::LL | level_interface::HH) || geo == (level_interface::LH | level_interface::HL)) 
@@ -665,8 +658,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		    sigmaf.dataPtr(), DIMLIST(sigmafbox),
 		    sigmac.dataPtr(), DIMLIST(sigmacbox),
 		    DIMLIST(creg),
-		    &hx, &hy,
-		    rat[0], rat[1], &jdir, &isRZ
+		    D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &jdir, &isRZ
 		    );
 		// fill in the grids on the other sides, if any
 		const Box& freg = lev_interface[mglev].box(0, icor);
@@ -704,8 +696,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		    sigmaf.dataPtr(), DIMLIST(sigmafbox),
 		    sigmac.dataPtr(), DIMLIST(sigmacbox),
 		    DIMLIST(creg),
-		    &hx, &hy,
-		    rat[0], rat[1], &idir0, &idir1, &isRZ
+		    D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &idir0, &idir1, &isRZ
 		    );
 		// fill in the grids on the other sides, if any
 		const Box& freg = lev_interface[mglev].box(0, icor);

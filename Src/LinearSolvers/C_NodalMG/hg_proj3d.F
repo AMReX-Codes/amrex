@@ -3,10 +3,12 @@ c-----------------------------------------------------------------------
      & gpx, gpy, gpz,
      &       gpl0,gph0,gpl1,gph1,gpl2,gph2,
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
-     &       fregl0,fregh0,fregl1,fregh1,fregl2,fregh2)
+     &       fregl0,fregh0,fregl1,fregh1,fregl2,fregh2,
+     & hx, hy, hz)
       integer gpl0,gph0,gpl1,gph1,gpl2,gph2
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer fregl0,fregh0,fregl1,fregh1,fregl2,fregh2
+	double precision hx, hy, hz
       double precision gpx(gpl0:gph0,gpl1:gph1,gpl2:gph2)
       double precision gpy(gpl0:gph0,gpl1:gph1,gpl2:gph2)
       double precision gpz(gpl0:gph0,gpl1:gph1,gpl2:gph2)
@@ -39,10 +41,12 @@ c-----------------------------------------------------------------------
      & src, srcl0,srch0,srcl1,srch1,srcl2,srch2,
      & uf, vf, wf,
      &      fl0,fh0,fl1,fh1,fl2,fh2,
-     &      fregl0,fregh0,fregl1,fregh1,fregl2,fregh2)
+     &      fregl0,fregh0,fregl1,fregh1,fregl2,fregh2,
+     & hx, hy, hz)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer fregl0,fregh0,fregl1,fregh1,fregl2,fregh2
+	double precision hx, hy, hz
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       double precision uf(fl0:fh0,fl1:fh1,fl2:fh2)
       double precision vf(fl0:fh0,fl1:fh1,fl2:fh2)
@@ -79,11 +83,12 @@ c Note---only generates values at coarse points along edge of fine grid
      & uf, vf, wf,
      &      fl0,fh0,fl1,fh1,fl2,fh2,
      &      cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
-     & ir, jr, kr, idim, idir)
+     & hx, hy, hz, ir, jr, kr, idim, idir)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
+      double precision hx, hy, hz
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       double precision uc(cl0:ch0,cl1:ch1,cl2:ch2)
       double precision vc(cl0:ch0,cl1:ch1,cl2:ch2)
@@ -291,11 +296,12 @@ c Note---only generates values at coarse points along edge of fine grid
      & uf, vf, wf,
      &     fl0,fh0,fl1,fh1,fl2,fh2,
      &     cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
-     & ir, jr, kr, ivect, ga)
+     & hx, hy, hz, ir, jr, kr, ivect, ga)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
+      double precision hx, hy, hz
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       double precision uc(cl0:ch0,cl1:ch1,cl2:ch2)
       double precision vc(cl0:ch0,cl1:ch1,cl2:ch2)
@@ -662,11 +668,12 @@ c Note---only generates values at coarse points along edge of fine grid
      & uf, vf, wf,
      &      fl0,fh0,fl1,fh1,fl2,fh2,
      &      cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
-     & ir, jr, kr, ga)
+     & hx, hy, hz, ir, jr, kr, ga)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
       integer cregl0,cregh0,cregl1,cregh1,cregl2,cregh2
+      double precision hx, hy, hz
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       double precision uc(cl0:ch0,cl1:ch1,cl2:ch2)
       double precision vc(cl0:ch0,cl1:ch1,cl2:ch2)

@@ -45,34 +45,32 @@ extern "C"
 #if (BL_SPACEDIM == 1)
 #error not relevant
 #elif (BL_SPACEDIM == 2 || BL_SPACEDIM == 3)
-    void FORT_HGGRAD_TERRAIN(RealPS, intS, Real*, intS, intS);
-    void FORT_HGDIV_TERRAIN(Real*, intS, RealPS, intS, intS);
-    void FORT_HGFDIV_TERRAIN(Real*, intS, RealPS, intS, RealPS, intS, intS, intRS, const int*, const int*);
+    void FORT_HGGRAD_TERRAIN(RealPS, intS, const Real*, intS, intS, CRealPS);
+    void FORT_HGDIV_TERRAIN (Real*,  intS, CRealPS, intS, intS, CRealPS);
+    void FORT_HGFDIV_TERRAIN(Real*,  intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
 #if (BL_SPACEDIM == 3)
-    void FORT_HGEDIV_TERRAIN(Real*, intS, RealPS, intS, RealPS, intS, intS, intRS, const int*, const int*);
+    void FORT_HGEDIV_TERRAIN(Real*,  intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
 #endif
-    void FORT_HGCDIV_TERRAIN(Real*, intS, RealPS, intS, RealPS, intS, intS, intRS, const int*);
+    void FORT_HGCDIV_TERRAIN(Real*,  intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
     
+    void FORT_HGGRAD(RealPS, intS, const Real*, intS, intS, CRealPS, const int*);
+    void FORT_HGDIV (Real*, intS, CRealPS, intS, intS, CRealPS, const int*, const int*);
+    void FORT_HGFDIV(Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*, const int*, const int*);
 #if (BL_SPACEDIM == 2)
-    void FORT_HGGRAD(RealPS, intS, Real*, intS, intS, CRealPS, const int*);
-    void FORT_HGDIV (Real*, intS, RealPS, intS, intS, CRealPS, const int*, const int*);
-    void FORT_HGFDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, CRealPS, intRS, const int*, const int*, const int*, const int*);
-    void FORT_HGODIV(Real*, intS, RealPS, intS, RealPS, intS, intS, CRealPS, intRS, const int*, const int*, const int*);
-    void FORT_HGIDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, CRealPS, intRS, int*, int*, const int*);
-    void FORT_HGDDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, CRealPS, intRS, int*, const int*);
+    void FORT_HGODIV(Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*, const int*);
+    void FORT_HGIDIV(Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*, const int*);
+    void FORT_HGDDIV(Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
+
     void FORT_HGAVG (Real*, intS, const Real*, intS, intS, const Real*, const int*, const int*);
     void FORT_HGFAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*, const Real*, const int*, const int*);
     void FORT_HGCAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const Real*, const int*, const int*);
 #elif (BL_SPACEDIM == 3)
-    void FORT_HGGRAD(RealPS, intS, Real*, intS, intS, CRealPS);
-    void FORT_HGDIV (Real*, intS, RealPS, intS, intS, CRealPS);
-    void FORT_HGFDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, CRealPS, intRS, const int*, const int*);
-    void FORT_HGEDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, CRealPS, intRS, const int*, const int*);
-    void FORT_HGCDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, CRealPS, intRS, const int*);
+    void FORT_HGEDIV(Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
+    void FORT_HGCDIV(Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
     void FORT_HGAVG (Real*, intS, const Real*, intS, intS);
     void FORT_HGFAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*);
     void FORT_HGEAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*);
-    void FORT_HGCAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*);
+    void FORT_HGCAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*);
 #endif
 #endif
 }
@@ -404,7 +402,7 @@ void holy_grail_amr_projector::grid_divergence(PArray<MultiFab>* u)
 	    if (m_hg_terrain)
 	    {
 		FORT_HGDIV_TERRAIN(sptr, DIMLIST(sbox), D_DECL(u0ptr, u1ptr, u2ptr), DIMLIST(fbox),
-				   DIMLIST(freg));
+				   DIMLIST(freg), D_DECL(&hx, &hy, &hz));
 	    }
 	    else
 	    {
@@ -415,7 +413,7 @@ void holy_grail_amr_projector::grid_divergence(PArray<MultiFab>* u)
 			   DIMLIST(freg), D_DECL(&hx, &hy, &hz), &isRZ, &imax);
 #else
 		FORT_HGDIV(sptr, DIMLIST(sbox), D_DECL(u0ptr, u1ptr, u2ptr), DIMLIST(fbox),
-			   DIMLIST(freg), D_DECL(&hx, &hy, &hz));
+			   DIMLIST(freg), D_DECL(&hx, &hy, &hz), 0, 0);
 #endif
 	    }
 	}
@@ -628,7 +626,7 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	FORT_HGCAVG(sptr, DIMLIST(sbox),
 		    Scp->dataPtr(), DIMLIST(cbox),
 		    Sf.dataPtr(), DIMLIST(fbox),
-		    DIMLIST(creg), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr());
+		    DIMLIST(creg), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), 0);
 #endif
 	if (jgrid < 0) 
 	{
@@ -718,7 +716,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    FORT_HGFDIV_TERRAIN(sptr, DIMLIST(sbox),
 				D_DECL(ucp->dataPtr(), vcp->dataPtr(), wcp->dataPtr()), DIMLIST(cbox),
 				D_DECL(u0ptr, u1ptr, u2ptr), DIMLIST(fbox), DIMLIST(creg),
-				D_DECL(rat[0], rat[1], rat[2]), &idim, &idir);
+				D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir);
 	}
 	else
 	{
@@ -734,7 +732,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    FORT_HGFDIV(sptr, DIMLIST(sbox),
 			D_DECL(ucp->dataPtr(), vcp->dataPtr(), wcp->dataPtr()), DIMLIST(cbox),
 			D_DECL(u0ptr, u1ptr, u2ptr), DIMLIST(fbox), DIMLIST(creg),
-			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir);
+			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir, 0, 0);
 #endif
 	}
 	if (jgrid < 0) 
@@ -809,7 +807,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 				D_DECL(ucp->dataPtr(), vcp->dataPtr(), wcp->dataPtr()), DIMLIST(cbox),
 				D_DECL(uf.dataPtr(), vf.dataPtr(), wf.dataPtr()), DIMLIST(fbox),
 				DIMLIST(creg),
-				D_DECL(rat[0], rat[1], rat[2]),
+				D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]),
 				t.getVect(), ga.dataPtr());
 	}
 	else
@@ -902,14 +900,14 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    FORT_HGCDIV_TERRAIN(sptr, DIMLIST(sbox),
 				D_DECL(ucp->dataPtr(), vcp->dataPtr(), wcp->dataPtr()), DIMLIST(cbox),
 				D_DECL(uf.dataPtr(), vf.dataPtr(), wf.dataPtr()), DIMLIST(fbox), DIMLIST(creg),
-				D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr());
+				D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), 0);
 	}
 	else
 	{
 	    FORT_HGCDIV(sptr, DIMLIST(sbox),
 			D_DECL(ucp->dataPtr(), vcp->dataPtr(), wcp->dataPtr()), DIMLIST(cbox),
 			D_DECL(uf.dataPtr(), vf.dataPtr(), wf.dataPtr()), DIMLIST(fbox), DIMLIST(creg),
-			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr());
+			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), 0);
 	}
 	if (jgrid < 0) 
 	{
@@ -991,8 +989,8 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    FORT_HGFDIV(sptr, DIMLIST(sbox),
 			D_DECL(ucp->dataPtr(), vcp->dataPtr(), wcp->dataPtr()), DIMLIST(cbox),
 			D_DECL(uf.dataPtr(), vf.dataPtr(), wf.dataPtr()), DIMLIST(fbox),
-			DIMLIST(creg), D_DECL(&hx, &hy, &hz),
-			D_DECL(rat[0], rat[1], rat[2]), &idim, &idir,
+			DIMLIST(creg), 
+			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir,
 			&isRZ, &imax);
 	    if (jgrid < 0) 
 	    {
@@ -1085,7 +1083,8 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    FORT_HGDDIV(sptr, DIMLIST(sbox),
 			D_DECL(ucp->dataPtr(), vcp->dataPtr(), wcp->dataPtr()), DIMLIST(cbox),
 			D_DECL(uf.dataPtr(), vf.dataPtr(), wf.dataPtr()), DIMLIST(fbox),
-			DIMLIST(creg), D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]),
+			DIMLIST(creg),
+			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]),
 			&jdir, &isRZ);
 	    if (jgrid < 0) 
 	    {
@@ -1167,7 +1166,8 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    FORT_HGIDIV(sptr, DIMLIST(sbox),
 			D_DECL(ucp->dataPtr(), vcp->dataPtr(), wcp->dataPtr()), DIMLIST(cbox),
 			D_DECL(uf.dataPtr(), vf.dataPtr(), wf.dataPtr()), DIMLIST(fbox),
-			DIMLIST(creg), D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]),
+			DIMLIST(creg), 
+			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]),
 			&idir0, &idir1, &isRZ);
 	    if (jgrid < 0) 
 	    {
@@ -1209,7 +1209,7 @@ void holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u, const P
 		{
 		    FORT_HGGRAD_TERRAIN(D_DECL(gp[0].dataPtr(), gp[1].dataPtr(), gp[2].dataPtr()), DIMLIST(gbox),
 					d_mfi->dataPtr(), DIMLIST(dbox),
-					DIMLIST(gbox));
+					DIMLIST(gbox), D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]));
 		}
 		else
 		{
@@ -1221,7 +1221,7 @@ void holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u, const P
 #else
 		    FORT_HGGRAD(D_DECL(gp[0].dataPtr(), gp[1].dataPtr(), gp[2].dataPtr()), DIMLIST(gbox),
 				d_mfi->dataPtr(), DIMLIST(dbox),
-				DIMLIST(gbox), D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]));
+				DIMLIST(gbox), D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]), 0);
 #endif
 		}		
 		if (!m_hg_terrain)
