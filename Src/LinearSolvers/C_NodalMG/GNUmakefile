@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.16 1998-10-29 17:33:53 lijewski Exp $
+# $Id: GNUmakefile,v 1.17 1998-11-02 18:35:55 lijewski Exp $
 #
 PRECISION = DOUBLE
 DEBUG     = FALSE
@@ -32,8 +32,6 @@ INSTALL_ROOT = $(PBOXLIB_HOME)
 
 include $(TOP)/mk/Make.defs ./Make.package
 
-CPPFLAGS += -DHG_DEBUG
-
 ifeq ($(LBASE),proj)
 ifeq ($(KCC_VERSION),3.3)
 CXXFLAGS += --one_instantiation_per_object
@@ -50,6 +48,7 @@ all: $(optionsLib)
 endif
 
 ifeq ($(EBASE),proj)
+CPPFLAGS          += -DHG_DEBUG
 LIBRARIES         += -lproj$(optionsSuffix) -lbox$(DIM)d
 LIBRARY_LOCATIONS += . $(TOP)/lib/$(machineSuffix)
 all: $(executable)
