@@ -1,5 +1,5 @@
 //
-// $Id: RunStats.cpp,v 1.26 2001-07-17 23:14:13 car Exp $
+// $Id: RunStats.cpp,v 1.27 2001-07-18 17:33:04 car Exp $
 //
 
 #include <algorithm>
@@ -350,7 +350,7 @@ RunStats::ReduceIt (List<RunStatsData>& stats)
 
                 r->run_time += runtime;
 
-                r->run_wtime = Max(r->run_wtime, runwtime);
+                r->run_wtime = std::max(r->run_wtime, runwtime);
 
                 delete [] name;
             }
