@@ -1,0 +1,68 @@
+
+CPP = /usr/ccs/lib/cpp
+
+ifeq ($(COMP),CFRONT)
+CXX	          := OCC
+override XTRADEFS += -DBL_BUG_DEFARG -DBL_USE_SETBUF 
+override XTRADEFS += -DBL_SETBUF_SIGNED_CHAR -DBL_COALESCE_FABS
+OUTPUT_OPTION	   =  ; mv $*.o $@
+endif
+
+ifeq ($(COMP),CC)
+CXX     := CC -h instantiate=local
+CXXOPTF += -O2 -h new_for_init
+CXXDEBF += -g -h new_for_init
+override XTRADEFS += -DBL_USE_SETBUF -DBL_SETBUF_SIGNED_CHAR
+override XTRADEFS += -DBL_COALESCE_FABS
+endif
+
+ifeq ($(COMP),KCC)
+CXX     := KCC
+CXXOPTF += +K2
+CXXDEBF += +K0
+#override XTRADEFS += -DBL_USE_SETBUF -DBL_SETBUF_SIGNED_CHAR
+override XTRADEFS += -DBL_COALESCE_FABS
+endif
+
+ifeq ($(COMP),newKCC)
+CXX     := newKCC
+CXXOPTF += +K2
+CXXDEBF += +K0
+#override XTRADEFS += -DBL_USE_SETBUF -DBL_SETBUF_SIGNED_CHAR
+override XTRADEFS += -DBL_COALESCE_FABS
+endif
+
+ifeq ($(COMP),mpKCC)
+#CXX     := mpKCC
+CXX     := newmpKCC
+CXXOPTF += +K2
+CXXDEBF += +K0
+#override XTRADEFS += -DBL_USE_SETBUF -DBL_SETBUF_SIGNED_CHAR
+override XTRADEFS += -DBL_COALESCE_FABS
+endif
+
+ifeq ($(PROFILE), TRUE)
+#CXXPRFF  +=
+#XTRALIBS +=
+#FPRFF    +=
+endif
+
+#FC     = xlf -N 80 -e I
+FC     = xlf
+#FOPTF += -O4 -qmaxmem=30000 -qhot -qtune=auto
+FOPTF += -O4 -qhot -qtune=auto
+FDEBF += -g
+
+COPTF += -O2
+CDEBF += -g
+CPRFF +=
+
+XTRALIBS += -lm -lxlf90
+
+DEFINES += -D_POSIX_SOURCE
+
+OUTPUT_OPTION	= -o $@
+
+FORTPREP	= perl $(PBOXLIB_HOME)/scripts/strip72 -c
+FORT_OUTPUT_OPTION	= ; mv $*.o $(objTempDir)/$*.o
+#FORTLINK	= UPPERCASE
