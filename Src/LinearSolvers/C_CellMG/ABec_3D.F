@@ -1,5 +1,5 @@
 c
-c $Id: ABec_3D.F,v 1.1 1998-03-24 07:06:50 almgren Exp $
+c $Id: ABec_3D.F,v 1.2 1998-12-14 20:23:47 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -187,7 +187,7 @@ c
       integer i,j, k, n
       REAL_T de, dhx, dhy, dhz
 c
-      rho = 0.0d0
+      rho = 0.0
       dhx = beta/h(1)**2
       dhy = beta/h(2)**2
       dhz = beta/h(3)**2

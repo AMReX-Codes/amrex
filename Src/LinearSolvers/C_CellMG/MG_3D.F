@@ -1,5 +1,5 @@
 c
-c $Id: MG_3D.F,v 1.1 1998-03-24 07:07:39 almgren Exp $
+c $Id: MG_3D.F,v 1.2 1998-12-14 20:23:47 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -7,6 +7,7 @@ c
 #endif
 
 #include <REAL.H>
+#include <CONSTANTS.H>
 #include "MG_F.H"
 #include "ArrayLim.H"
 
@@ -29,7 +30,7 @@ c
       integer k, k2, k2p1
       integer n
       REAL_T denom
-      parameter(denom=1.0d0/8.0d0)
+      parameter(denom=eighth)
 c
       do n = 1, nc
          do k = lo(3), hi(3)

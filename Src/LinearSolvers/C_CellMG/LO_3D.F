@@ -1,5 +1,5 @@
 c
-c $Id: LO_3D.F,v 1.1 1998-03-24 07:07:18 almgren Exp $
+c $Id: LO_3D.F,v 1.2 1998-12-14 20:23:47 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -7,6 +7,7 @@ c
 #endif
 
 #include <REAL.H>
+#include <CONSTANTS.H>
 #include "LO_BCTYPES.H"
 #include "LO_F.H"
 #include "ArrayLim.H"
@@ -62,7 +63,7 @@ c
       REAL_T c(DIMV(c),nc)
 c
       REAL_T  factor
-      parameter(factor=4.0d0)
+      parameter(factor=four)
 
       integer n
       integer i
@@ -142,7 +143,7 @@ c
       integer j
       integer k
       REAL_T factor
-      parameter(factor = 0.25d0)
+      parameter(factor = fourth)
 c     
       if ( cdir .eq. 0 ) then
          do n = 1, nc
@@ -215,7 +216,7 @@ c
       integer k
       integer n
       REAL_T factor
-      parameter(factor=0.125d0)
+      parameter(factor=eighth)
 c
       do n = 1, nc
          do k = lo(3), hi(3)
