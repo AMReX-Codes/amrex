@@ -957,8 +957,8 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    {
 		ucp = new FArrayBox(cbox);
 		vcp = new FArrayBox(cbox);
-		fill_patch(*ucp, u[0][lev-1], lev_interface[mgc], boundary.velocity(0));
-		fill_patch(*vcp, u[1][lev-1], lev_interface[mgc], boundary.velocity(1));
+		fill_patch(*ucp, u[0][lev-1], lev_interface[mgc], boundary.velocity(0), 0);
+		fill_patch(*vcp, u[1][lev-1], lev_interface[mgc], boundary.velocity(1), 0);
 	    }
 	    else 
 	    {
@@ -1009,8 +1009,8 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    {
 		ucp = new FArrayBox(cbox);
 		vcp = new FArrayBox(cbox);
-		fill_patch(*ucp, u[0][lev-1], lev_interface[mgc], boundary.velocity(0));
-		fill_patch(*vcp, u[1][lev-1], lev_interface[mgc], boundary.velocity(1));
+		fill_patch(*ucp, u[0][lev-1], lev_interface[mgc], boundary.velocity(0), 0);
+		fill_patch(*vcp, u[1][lev-1], lev_interface[mgc], boundary.velocity(1), 0);
 	    }
 	    else 
 	    {
@@ -1049,8 +1049,8 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    {
 		ucp = new FArrayBox(cbox);
 		vcp = new FArrayBox(cbox);
-		fill_patch(*ucp, u[0][lev-1], lev_interface[mgc], boundary.velocity(0));
-		fill_patch(*vcp, u[1][lev-1], lev_interface[mgc], boundary.velocity(1));
+		fill_patch(*ucp, u[0][lev-1], lev_interface[mgc], boundary.velocity(0), 0);
+		fill_patch(*vcp, u[1][lev-1], lev_interface[mgc], boundary.velocity(1), 0);
 	    }
 	    else 
 	    {
@@ -1133,8 +1133,8 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    {
 		ucp = new FArrayBox(cbox);
 		vcp = new FArrayBox(cbox);
-		fill_patch(*ucp, u[0][lev-1], lev_interface[mgc], boundary.velocity(0));
-		fill_patch(*vcp, u[1][lev-1], lev_interface[mgc], boundary.velocity(1));
+		fill_patch(*ucp, u[0][lev-1], lev_interface[mgc], boundary.velocity(0), 0);
+		fill_patch(*vcp, u[1][lev-1], lev_interface[mgc], boundary.velocity(1), 0);
 	    }
 	    else 
 	    {

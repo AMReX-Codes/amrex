@@ -784,7 +784,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    FArrayBox& cdst = cres_dc[lev][icor];
 	    if (cres_flag[lev][icor] == 0) 
 	    {
-		fill_patch(cdst, dest[lev-1], lev_interface[mglevc], boundary.pressure());
+		fill_patch(cdst, dest[lev-1], lev_interface[mglevc], boundary.pressure(), 0);
 	    }
 	    Real *const rptr = resid[mglev][igrid].dataPtr();
 	    Real *const sptr = source[lev][igrid].dataPtr();
