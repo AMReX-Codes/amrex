@@ -1,7 +1,7 @@
 #ifndef BL_PARALLELDESCRIPTOR_H
 #define BL_PARALLELDESCRIPTOR_H
 //
-// $Id: ParallelDescriptor.H,v 1.70 2001-09-25 22:45:40 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.71 2001-09-27 17:57:21 lijewski Exp $
 //
 #include <BLassert.H>
 #include <REAL.H>
@@ -177,9 +177,21 @@ namespace ParallelDescriptor
     //
     int NProcsCFD ();
     //
+    //@ManDoc: BoxLib's Parallel Communicator, probably MPI_COMM_WORLD
+    //
+    MPI_Comm Communicator ();
+    //
     //@ManDoc: 
     //
-    void Barrier ();
+    void Barrier (MPI_Comm comm = ParallelDescriptor::Communicator());
+    //
+    //@ManDoc: 
+    //
+    void Test (MPI_Request& request, int& flag, MPI_Status& status);
+    //
+    //@ManDoc: 
+    //
+    void Comm_dup (MPI_Comm comm, MPI_Comm& newcomm);
     //
     //@ManDoc: Is this CPU the I/O Processor?
     //
@@ -308,18 +320,14 @@ namespace ParallelDescriptor
                  Real* recvbuf,
                  int   root);
     //
-    //@ManDoc: BoxLib's Parallel Communicator, probably MPI_COMM_WORLD
-    //
-    MPI_Comm Communicator ();
-    //
     //@ManDoc: Returns sequential message sequence numbers in range 1000-9000.
     //
     int SeqNum ();
 
-    template <class T> Message Asend(const T*, size_t n, int pid, int tag);
+    template <class T> Message Asend(const T*, size_t n, int pid, int tag, MPI_Comm comm = ParallelDescriptor::Communicator());
     template <class T> Message Asend(const std::vector<T>& buf, int pid, int tag);
 
-    template <class T> Message Arecv(T*, size_t n, int pid, int tag);
+    template <class T> Message Arecv(T*, size_t n, int pid, int tag, MPI_Comm comm = ParallelDescriptor::Communicator());
     template <class T> Message Arecv(std::vector<T>& buf, int pid, int tag);
 
     template <class T> Message Send(const T* buf, size_t n, int dst_pid, int tag);
@@ -358,7 +366,8 @@ ParallelDescriptor::Message
 ParallelDescriptor::Asend (const T* buf,
                            size_t   n,
                            int      dst_pid,
-                           int      tag)
+                           int      tag,
+                           MPI_Comm comm)
 {
     MPI_Request req;
     BL_MPI_REQUIRE( MPI_Isend(const_cast<T*>(buf),
@@ -366,7 +375,7 @@ ParallelDescriptor::Asend (const T* buf,
                               Mpi_typemap<T>::type(),
                               dst_pid,
                               tag,
-                              Communicator(),
+                              comm,
                               &req) );
     return Message(req, Mpi_typemap<T>::type());
 }
@@ -421,10 +430,11 @@ ParallelDescriptor::Send (const std::vector<T>& buf,
 
 template <class T>
 ParallelDescriptor::Message
-ParallelDescriptor::Arecv (T*     buf,
-                           size_t n,
-                           int    src_pid,
-                           int    tag)
+ParallelDescriptor::Arecv (T*       buf,
+                           size_t   n,
+                           int      src_pid,
+                           int      tag,
+                           MPI_Comm comm)
 {
     MPI_Request req;
     BL_MPI_REQUIRE( MPI_Irecv(buf,
@@ -432,7 +442,7 @@ ParallelDescriptor::Arecv (T*     buf,
                               Mpi_typemap<T>::type(),
                               src_pid,
                               tag,
-                              Communicator(),
+                              comm,
                               &req) );
     return Message(req, Mpi_typemap<T>::type());
 }
@@ -575,7 +585,7 @@ namespace ParallelDescriptor
 {
 template <class T>
 Message
-Asend(const T* buf, size_t n, int dst_pid, int tag)
+Asend(const T* buf, size_t n, int dst_pid, int tag, MPI_Comm comm)
 {
     return Message();
 }
@@ -603,7 +613,7 @@ Send(const std::vector<T>& buf, int dst_pid, int tag)
 
 template <class T>
 Message
-Arecv(T* buf, size_t n, int src_pid, int tag)
+Arecv(T* buf, size_t n, int src_pid, int tag, MPI_Comm comm)
 {
     return Message();
 }

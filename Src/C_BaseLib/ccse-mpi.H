@@ -2,7 +2,7 @@
 #define BL_CCSE_MPP
 
 //
-// $Id: ccse-mpi.H,v 1.11 2001-09-25 22:45:41 lijewski Exp $
+// $Id: ccse-mpi.H,v 1.12 2001-09-27 17:57:21 lijewski Exp $
 //
 
 //
@@ -75,6 +75,7 @@ typedef int MPI_Datatype;
 struct MPI_Status {};
 typedef int MPI_Request;
 const int MPI_REQUEST_NULL = 0;
+const int MPI_COMM_WORLD   = 0;
 
 #endif /*BL_USE_MPI*/
 

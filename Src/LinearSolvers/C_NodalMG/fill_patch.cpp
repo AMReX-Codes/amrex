@@ -716,9 +716,7 @@ private:
     //
     // The data.
     //
-#ifdef BL_USE_MPI
     MPI_Request           m_request;
-#endif
     const amr_restrictor& m_restric;
     FArrayBox*            m_tmp;
     MultiFab&             m_d;
@@ -774,7 +772,6 @@ task_restric_fill::need_to_communicate (int& with) const
 {
     bool result = false;
 
-#ifdef BL_USE_MPI
     if (!m_local)
     {
         if (is_local(m_d, m_dgrid))
@@ -788,7 +785,6 @@ task_restric_fill::need_to_communicate (int& with) const
             result = true;
         }
     }
-#endif
 
     return result;
 }
@@ -800,23 +796,20 @@ task_restric_fill::startup (long& sndcnt, long& rcvcnt)
 
     bool result = true;
 
-#ifdef BL_USE_MPI
     if (!m_local)
     {
         if (is_local(m_d, m_dgrid))
         {
             m_tmp = new FArrayBox(m_box, m_d.nComp());
             rcvcnt = m_tmp->box().numPts()*m_tmp->nComp();
-            int res = MPI_Irecv(m_tmp->dataPtr(),
-                                rcvcnt,
-                                MPI_DOUBLE,
-                                processor_number(m_r, m_rgrid),
-                                m_sno,
-                                HG::mpi_comm,
-                                &m_request);
+
+            m_request = ParallelDescriptor::Arecv(m_tmp->dataPtr(),
+                                                  rcvcnt,
+                                                  processor_number(m_r,m_rgrid),
+                                                  m_sno,
+                                                  HG::mpi_comm).req();
             rcvcnt *= sizeof(double);
-            if (res != 0)
-                ParallelDescriptor::Abort(res);
+
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
         else if (is_local(m_r, m_rgrid))
@@ -824,16 +817,14 @@ task_restric_fill::startup (long& sndcnt, long& rcvcnt)
             m_tmp = new FArrayBox(m_box, m_d.nComp());
 	    m_restric.fill(*m_tmp, m_box, m_r[m_rgrid], m_rat);
             sndcnt = m_tmp->box().numPts()*m_tmp->nComp();
-            int res = MPI_Isend(m_tmp->dataPtr(),
-                                sndcnt,
-                                MPI_DOUBLE,
-                                processor_number(m_d, m_dgrid),
-                                m_sno,
-                                HG::mpi_comm,
-                                &m_request);
+
+            m_request = ParallelDescriptor::Asend(m_tmp->dataPtr(),
+                                                  sndcnt,
+                                                  processor_number(m_d, m_dgrid),
+                                                  m_sno,
+                                                  HG::mpi_comm).req();
             sndcnt *= sizeof(double);
-            if (res != 0)
-                ParallelDescriptor::Abort(res);
+
             BL_ASSERT(m_request != MPI_REQUEST_NULL);
         }
         else
@@ -841,7 +832,6 @@ task_restric_fill::startup (long& sndcnt, long& rcvcnt)
             result = false;
         }
     }
-#endif
 
     return result;
 }
@@ -853,11 +843,11 @@ task_restric_fill::ready ()
 
     if (m_local) return true;
 
-#ifdef BL_USE_MPI
-    int flag, res;
+    int flag;
     MPI_Status status;
-    if ((res = MPI_Test(&m_request, &flag, &status)) != 0)
-	ParallelDescriptor::Abort(res);
+
+    ParallelDescriptor::Test(m_request, flag, status);
+
     if (flag)
     {
 	if (is_local(m_d, m_dgrid))
@@ -866,7 +856,6 @@ task_restric_fill::ready ()
 	}
 	return true;
     }
-#endif
 
     return false;
 }
