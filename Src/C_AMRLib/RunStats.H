@@ -2,7 +2,7 @@
 #define _RUNSTATS_H_ 
 
 //
-// $Id: RunStats.H,v 1.5 1997-11-23 18:18:50 lijewski Exp $
+// $Id: RunStats.H,v 1.6 1997-11-23 21:42:31 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -103,6 +103,10 @@ public:
     //
     static void addBytes (long count);
     //
+    // Record 
+    //
+    static void addNumPts (long count);
+    //
     // Init from ParmParse with "RunStats" prefix.
     //
     static void init ();
@@ -125,6 +129,8 @@ private:
     void resize (int level);
 
     static void Print (ostream&, const RunStatsData&, double, double);
+
+    static void CollectNumPts ();
     //
     // Local data.
     //
@@ -137,11 +143,12 @@ private:
     //
     // Static data.
     //
-    static double             TotalCPU;  // Total CPU time
-    static double             TotalWCT;  // Total Wall Clock time
-    static double             DiskBytes; // Bytes written to disk.
-    static Array<long>        TheCells;  // Cells advanced per level
-    static List<RunStatsData> TheStats;  // List of RunStatsData
+    static double             TotalCPU;  // Total CPU time.
+    static double             TotalWCT;  // Total Wall Clock time.
+    static double             DiskBytes; // Total bytes written to disk.
+    static Array<long>        TheCells;  // Total cells advanced per level.
+    static Array<double>      TheNumPts; // Total numPts() per CPU.
+    static List<RunStatsData> TheStats;  // List of RunStatsData.
 };
 
 //
