@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.55 1998-09-23 20:19:38 lijewski Exp $
+// $Id: Amr.cpp,v 1.56 1998-09-23 22:00:10 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -1691,12 +1691,12 @@ Amr::bldFineLevels (Real strt_time)
     {
         grids_the_same = true;
 
-        for (int i = 0; i <= max_level; i++)
+        for (int i = 0; i <= finest_level; i++)
             grids[i] = amr_level[i].boxArray();
 
         regrid(0,strt_time,true);
 
-        for (int i = 0; i <= max_level && grids_the_same; i++)
+        for (int i = 0; i <= finest_level && grids_the_same; i++)
             if (!(grids[i] == amr_level[i].boxArray()))
                 grids_the_same = false;
     }
