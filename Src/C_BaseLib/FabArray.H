@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.64 1998-06-15 15:13:25 lijewski Exp $
+// $Id: FabArray.H,v 1.65 1998-06-16 18:00:46 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -810,40 +810,40 @@ class FabArrayCopyDescriptor
 
     FabArrayId RegisterFabArray(FabArray<T,FAB> *fabarray);
 
-    FillBoxId AddBox (const FabArrayId& fabarrayid,
-                      const Box&        destFabBox,
-                      BoxList*          unfilledBoxes,
-                      bool              bUseValidBox = true);
+    FillBoxId AddBox (FabArrayId fabarrayid,
+                      const Box& destFabBox,
+                      BoxList*   unfilledBoxes,
+                      bool       bUseValidBox = true);
 
-    FillBoxId AddBox (const FabArrayId& fabarrayid,
-                      const Box&        destFabBox,
-                      BoxList*          unfilledBoxes,
-                      int               srccomp,
-                      int               destcomp,
-                      int               numcomp,
-                      bool              bUseValidBox = true);
+    FillBoxId AddBox (FabArrayId fabarrayid,
+                      const Box& destFabBox,
+                      BoxList*   unfilledBoxes,
+                      int        srccomp,
+                      int        destcomp,
+                      int        numcomp,
+                      bool       bUseValidBox = true);
     //
     // Add a box but only from FabArray[fabarrayindex].
     //
-    FillBoxId AddBox (const FabArrayId& fabarrayid,
-                      const Box&        destFabBox,
-                      BoxList*          unfilledBoxes,
-                      int               fabarrayindex,
-                      int               srccomp,
-                      int               destcomp,
-                      int               numcomp,
-                      bool              bUseValidBox = true);
+    FillBoxId AddBox (FabArrayId fabarrayid,
+                      const Box& destFabBox,
+                      BoxList*   unfilledBoxes,
+                      int        fabarrayindex,
+                      int        srccomp,
+                      int        destcomp,
+                      int        numcomp,
+                      bool       bUseValidBox = true);
 
     void CollectData ();
 
-    void FillFab (const FabArrayId& fabarrayid,
-                  const FillBoxId&  fillboxid,
-                  FAB&              destFab);
+    void FillFab (FabArrayId       fabarrayid,
+                  const FillBoxId& fillboxid,
+                  FAB&             destFab);
 
-    void FillFab (const FabArrayId& fabarrayid,
-                  const FillBoxId&  fillboxid,
-                  FAB&              destFab,
-                  const Box&        destBox);
+    void FillFab (FabArrayId       fabarrayid,
+                  const FillBoxId& fillboxid,
+                  FAB&             destFab,
+                  const Box&       destBox);
 
     void PrintStats () const;
 
@@ -861,23 +861,22 @@ class FabArrayCopyDescriptor
     //
     // Helper function for AddBox() routines.
     //
-    void AddBoxDoIt (const FabArrayId& fabarrayid,
-                     const Box&        destFabBox,
-                     BoxList*          returnedUnfilledBoxes,
-                     int               faindex,
-                     int               srccomp,
-                     int               destcomp,
-                     int               numcomp,
-                     bool              bUseValidBox,
-                     BoxDomain&        unfilledBoxDomain,
-                     BoxList&          filledBoxes);
+    void AddBoxDoIt (FabArrayId fabarrayid,
+                     const Box& destFabBox,
+                     BoxList*   returnedUnfilledBoxes,
+                     int        faindex,
+                     int        srccomp,
+                     int        destcomp,
+                     int        numcomp,
+                     bool       bUseValidBox,
+                     BoxDomain& unfilledBoxDomain,
+                     BoxList&   filledBoxes);
 
     vector<FabArray<T,FAB>*> fabArrays;
     vector<FCDMap>           fabCopyDescList;
     vector<FabComTag>        fabComTagList;
     long                     totalRemoteBytes;
     int                      totalRemoteBoxes;
-    int                      nextFabArrayId;
     int                      nextFillBoxId;
     bool                     dataAvailable;
 
@@ -2045,7 +2044,6 @@ ConstDependentFabArrayIterator<T,FAB>::operator-> () const
 template <class T, class FAB>
 FabArrayCopyDescriptor<T,FAB>::FabArrayCopyDescriptor ()
     :
-    nextFabArrayId(0),
     nextFillBoxId(0),
     dataAvailable(false),
     totalRemoteBoxes(0),
@@ -2058,28 +2056,27 @@ template <class T, class FAB>
 FabArrayId
 FabArrayCopyDescriptor<T,FAB>::RegisterFabArray(FabArray<T,FAB>* fabarray)
 {
-    assert(nextFabArrayId == fabArrays.size());
-    assert(nextFabArrayId == fabCopyDescList.size());
+    assert(fabArrays.size() == fabCopyDescList.size());
 
-    fabArrays.push_back(fabarray);
+    fabArrays.push_back(fabarray);  /* Bump size() by one */
 
-    fabCopyDescList.resize(nextFabArrayId + 1, FCDMap());
+    fabCopyDescList.resize(fabArrays.size(), FCDMap());
 
-    return FabArrayId(nextFabArrayId++);
+    return FabArrayId(fabArrays.size() - 1);
 }
 
 template <class T, class FAB>
 void
-FabArrayCopyDescriptor<T,FAB>::AddBoxDoIt (const FabArrayId& fabarrayid,
-                                           const Box&        destFabBox,
-                                           BoxList*          returnedUnfilledBoxes,
-                                           int               faindex,
-                                           int               srccomp,
-                                           int               destcomp,
-                                           int               numcomp,
-                                           bool              bUseValidBox,
-                                           BoxDomain&        unfilledBoxDomain,
-                                           BoxList&          filledBoxes)
+FabArrayCopyDescriptor<T,FAB>::AddBoxDoIt (FabArrayId fabarrayid,
+                                           const Box& destFabBox,
+                                           BoxList*   returnedUnfilledBoxes,
+                                           int        faindex,
+                                           int        srccomp,
+                                           int        destcomp,
+                                           int        numcomp,
+                                           bool       bUseValidBox,
+                                           BoxDomain& unfilledBoxDomain,
+                                           BoxList&   filledBoxes)
 {
     const int MyProc = ParallelDescriptor::MyProc();
 
@@ -2162,13 +2159,13 @@ FabArrayCopyDescriptor<T,FAB>::AddBoxDoIt (const FabArrayId& fabarrayid,
 
 template <class T, class FAB>
 FillBoxId
-FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
-                                       const Box&        destFabBox,
-                                       BoxList*          returnedUnfilledBoxes,
-                                       int               srccomp,
-                                       int               destcomp,
-                                       int               numcomp,
-                                       bool              bUseValidBox)
+FabArrayCopyDescriptor<T,FAB>::AddBox (FabArrayId fabarrayid,
+                                       const Box& destFabBox,
+                                       BoxList*   returnedUnfilledBoxes,
+                                       int        srccomp,
+                                       int        destcomp,
+                                       int        numcomp,
+                                       bool       bUseValidBox)
 {
     BoxDomain unfilledBoxDomain(destFabBox.ixType());
     BoxList   filledBoxes(destFabBox.ixType());
@@ -2203,14 +2200,14 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
 
 template <class T, class FAB>
 FillBoxId
-FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
-                                       const Box&        destFabBox,
-                                       BoxList*          returnedUnfilledBoxes,
-                                       int               fabarrayindex,
-                                       int               srccomp,
-                                       int               destcomp,
-                                       int               numcomp,
-                                       bool              bUseValidBox)
+FabArrayCopyDescriptor<T,FAB>::AddBox (FabArrayId fabarrayid,
+                                       const Box& destFabBox,
+                                       BoxList*   returnedUnfilledBoxes,
+                                       int        fabarrayindex,
+                                       int        srccomp,
+                                       int        destcomp,
+                                       int        numcomp,
+                                       bool       bUseValidBox)
 {
     BoxDomain unfilledBoxDomain(destFabBox.ixType());
     BoxList   filledBoxes(destFabBox.ixType());
@@ -2243,10 +2240,10 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
 template <class T, class FAB>
 inline
 FillBoxId
-FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
-                                       const Box&        destFabBox,
-                                       BoxList*          returnedUnfilledBoxes,
-                                       bool              bUseValidBox)
+FabArrayCopyDescriptor<T,FAB>::AddBox (FabArrayId fabarrayid,
+                                       const Box& destFabBox,
+                                       BoxList*   returnedUnfilledBoxes,
+                                       bool       bUseValidBox)
 {
     return AddBox(fabarrayid,
                   destFabBox,
@@ -2276,6 +2273,15 @@ FabArrayCopyDescriptor<T,FAB>::clear ()
            delete (*fmi).second;
        }
    }
+
+   fabArrays.clear();
+   fabCopyDescList.clear();
+   fabComTagList.clear();
+
+   totalRemoteBytes = 0;
+   totalRemoteBoxes = 0;
+   nextFillBoxId    = 0;
+   dataAvailable    = false;
 }
 
 template <class T, class FAB>
@@ -2560,9 +2566,9 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
 
 template <class T, class FAB>
 void
-FabArrayCopyDescriptor<T,FAB>::FillFab (const FabArrayId& faid,
-                                        const FillBoxId&  fillboxid,
-                                        FAB&              destFab)
+FabArrayCopyDescriptor<T,FAB>::FillFab (FabArrayId       faid,
+                                        const FillBoxId& fillboxid,
+                                        FAB&             destFab)
 {
     assert(dataAvailable);
 
@@ -2587,10 +2593,10 @@ FabArrayCopyDescriptor<T,FAB>::FillFab (const FabArrayId& faid,
 
 template <class T, class FAB>
 void
-FabArrayCopyDescriptor<T,FAB>::FillFab (const FabArrayId& faid,
-                                        const FillBoxId&  fillboxid,
-                                        FAB&              destFab,
-                                        const Box&        destBox)
+FabArrayCopyDescriptor<T,FAB>::FillFab (FabArrayId       faid,
+                                        const FillBoxId& fillboxid,
+                                        FAB&             destFab,
+                                        const Box&       destBox)
 {
     assert(dataAvailable);
 
