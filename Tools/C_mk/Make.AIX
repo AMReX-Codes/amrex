@@ -4,13 +4,13 @@ FORT_CPP = /usr/ccs/lib/cpp
 ifeq ($(COMP),xlC)
   CXX     := xlC
   CXXOPTF += -O2 -qrtti=all -qsuppress=1500-029 -qmaxmem=-1
-  CXXDEBF += -g
+  CXXDEBF += -g -qrtti=all
 endif
 
 ifeq ($(COMP),mpCC)
   CXX     := mpCC
   CXXOPTF += -O2 -qrtti=all -qsuppress=1500-029 -qmaxmem=-1
-  CXXDEBF += -g
+  CXXDEBF += -g -qrtti=all
 endif
 
 ifeq ($(COMP),KCC)
