@@ -1,5 +1,5 @@
 //
-// $Id: aString.cpp,v 1.15 2001-07-20 17:01:45 car Exp $
+// $Id: aString.cpp,v 1.16 2001-07-20 17:28:16 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -29,14 +29,14 @@ aString::length() const
 char
 aString::operator[] (size_type index) const
 {
-    BL_ASSERT(index >=0 && index < length());
+    BL_ASSERT(index < length());
     return std::string::operator[](index);
 }
 
 char&
 aString::operator[] (size_type index)
 {
-    BL_ASSERT(index >= 0 && index < size());
+    BL_ASSERT(index < size());
     return std::string::operator[](index);
 }
 
