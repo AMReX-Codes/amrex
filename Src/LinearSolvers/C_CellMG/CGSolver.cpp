@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.30 2002-10-31 21:56:55 lijewski Exp $
+// $Id: CGSolver.cpp,v 1.31 2003-02-07 16:34:12 car Exp $
 //
 #include <winstd.H>
 
@@ -563,8 +563,16 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
     int ret = 0;			// will return this value if all goes well
     Real rho_1 = 0, alpha = 0, omega = 0;
     int nit = 1;
-    if ( rnorm < eps_rel*(Lp_norm*sol_norm + rh_norm ) || rnorm < eps_abs )
+    if ( rnorm == 0.0 || rnorm < eps_rel*(Lp_norm*sol_norm + rh_norm ) || rnorm < eps_abs )
     {
+      if (verbose > 0 && ParallelDescriptor::IOProcessor())
+	{
+	  Spacer(std::cout, lev);
+	  std::cout << "CGSolver_bicgstab: niter = 0,"
+		    << ", rnorm = " << rnorm 
+		    << ", eps_rel*(Lp_norm*sol_norm + rh_norm )" <<  eps_rel*(Lp_norm*sol_norm + rh_norm ) 
+		    << ", eps_abs = " << eps_abs << std::endl;
+	}
         return 0;
     }
     for (; nit <= maxiter; ++nit)
@@ -773,6 +781,18 @@ CGSolver::solve_cg (MultiFab&       sol,
     int ret = 0;			// will return this value if all goes well
     Real rho_1 = 0;
     int nit = 1;
+    if ( rnorm == 0.0 || rnorm < eps_rel*(Lp_norm*sol_norm + rh_norm ) || rnorm < eps_abs )
+    {
+      if (verbose > 0 && ParallelDescriptor::IOProcessor())
+	{
+	  Spacer(std::cout, lev);
+	  std::cout << "CGSolver_cg: niter = 0,"
+		    << ", rnorm = " << rnorm 
+		    << ", eps_rel*(Lp_norm*sol_norm + rh_norm )" <<  eps_rel*(Lp_norm*sol_norm + rh_norm ) 
+		    << ", eps_abs = " << eps_abs << std::endl;
+	}
+        return 0;
+    }
     for (; nit <= maxiter; ++nit)
     {
         if (use_mg_precond)

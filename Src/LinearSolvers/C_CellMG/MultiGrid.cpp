@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.29 2001-08-21 22:15:41 car Exp $
+// $Id: MultiGrid.cpp,v 1.30 2003-02-07 16:34:12 car Exp $
 // 
 #include <winstd.H>
 
@@ -136,7 +136,19 @@ MultiGrid::MultiGrid (LinOp &_Lp)
     smooth_on_cg_unstable = def_smooth_on_cg_unstable;
     cg_solver    = def_cg_solver;
     numlevels    = numLevels();
-    if (ParallelDescriptor::IOProcessor() && verbose > 2)
+    if ( ParallelDescriptor::IOProcessor() && verbose == 1 )
+      {
+	BoxArray tmp = Lp.boxArray();
+	std::cout << "MultiGrid: numlevels = " << numlevels 
+		  << ": ngrid = " << tmp.size() << ", npts = [";
+	for ( int i = 0; i < numlevels; ++i ) 
+	  {
+	    if ( i > 0 ) tmp.coarsen(2);
+	    std::cout << tmp.numPts() << " ";
+	  }
+	std::cout << "]" << std::endl;
+      }
+    if ( ParallelDescriptor::IOProcessor() && verbose > 2 )
     {
 	std::cout << "MultiGrid: " << numlevels
 	     << " multigrid levels created for this solve" << '\n';
@@ -305,6 +317,13 @@ MultiGrid::solve_ (MultiFab&      _sol,
                           << error/new_error_0 << '\n';
             }
         }
+    }
+
+  if ( ParallelDescriptor::IOProcessor() && verbose )
+    {
+      Spacer(std::cout, level);
+      std::cout << "MultiGrid: iterations(" << nit 
+		<< ") rel_error( " << error/error0 << ")" << std::endl;
     }
 
   if ( nit == numiter                               ||
