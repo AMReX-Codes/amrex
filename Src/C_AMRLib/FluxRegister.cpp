@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.41 1998-07-08 16:33:36 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.42 1998-07-24 01:24:53 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -21,6 +21,11 @@ using std::vector;
 #ifdef BL_USE_MPI
 #include <mpi.h>
 #endif
+
+//
+// Used in a couple RunStats calls in reflux.
+//
+static const aString RunstatString("reflux");
 
 FluxRegister::FluxRegister ()
 {
@@ -156,7 +161,7 @@ FluxRegister::Reflux (MultiFab&       S,
                       int             num_comp, 
                       const Geometry& geom)
 {
-    RunStats stats("reflux");
+    RunStats stats(RunstatString);
 
     stats.start();
 
@@ -372,7 +377,7 @@ FluxRegister::Reflux (MultiFab&       S,
                       int             num_comp, 
                       const Geometry& geom)
 {
-    RunStats stats("reflux");
+    RunStats stats(RunstatString);
 
     stats.start();
 

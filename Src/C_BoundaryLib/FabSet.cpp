@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.24 1998-07-08 16:33:56 lijewski Exp $
+// $Id: FabSet.cpp,v 1.25 1998-07-24 01:26:23 lijewski Exp $
 //
 
 #include <FabSet.H>
@@ -93,7 +93,9 @@ FabSet::copyFrom (const MultiFab& src,
                   int             dest_comp,
                   int             num_comp)
 {
-    RunStats stats("fabset_copyfrom");
+    static const aString RunstatString("fabset_copyfrom");
+
+    RunStats stats(RunstatString);
 
     stats.start();
 
@@ -158,7 +160,9 @@ FabSet::plusFrom (const MultiFab& src,
                   int             dest_comp,
                   int             num_comp)
 {
-    RunStats stats("fabset_plusfrom");
+    static const aString RunstatString("fabset_plusfrom");
+
+    RunStats stats(RunstatString);
 
     stats.start();
 
@@ -267,7 +271,9 @@ FabSet::linComb (Real            a,
                  int             num_comp,
                  int             n_ghost)
 {
-    RunStats stats("fabset_lincomb");
+    static const aString RunstatString("fabset_lincomb");
+
+    RunStats stats(RunstatString);
 
     stats.start();
 
