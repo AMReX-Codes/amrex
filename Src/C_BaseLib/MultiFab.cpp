@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.57 2001-07-19 19:02:43 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.58 2001-07-19 20:02:46 lijewski Exp $
 //
 
 #include <algorithm>
@@ -426,19 +426,19 @@ MultiFab::negate (const Box& region,
 }
 
 void
-linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
-                 BoxList*                returnUnfilledBoxes,
-                 Array<FillBoxId>&       returnedFillBoxIds,
-                 const Box&              subbox,
-                 const MultiFabId&       faid1,
-                 const MultiFabId&       faid2,
-                 Real                    t1,
-                 Real                    t2,
-                 Real                    t,
-                 int                     src_comp,
-                 int                     dest_comp,
-                 int                     num_comp,
-                 bool                    extrap)
+BoxLib::linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
+                         BoxList*                returnUnfilledBoxes,
+                         Array<FillBoxId>&       returnedFillBoxIds,
+                         const Box&              subbox,
+                         const MultiFabId&       faid1,
+                         const MultiFabId&       faid2,
+                         Real                    t1,
+                         Real                    t2,
+                         Real                    t,
+                         int                     src_comp,
+                         int                     dest_comp,
+                         int                     num_comp,
+                         bool                    extrap)
 {
     const Real teps = (t2-t1)/1000.0;
 
@@ -488,18 +488,18 @@ linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
 }
 
 void
-linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
-                  const Array<FillBoxId>& fillBoxIds,
-                  const MultiFabId&       faid1,
-                  const MultiFabId&       faid2,
-                  FArrayBox&              dest,
-                  Real                    t1,
-                  Real                    t2,
-                  Real                    t,
-                  int                     src_comp,   // these comps need to be removed
-                  int                     dest_comp,  // from this routine
-                  int                     num_comp,
-                  bool                    extrap)
+BoxLib::linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
+                          const Array<FillBoxId>& fillBoxIds,
+                          const MultiFabId&       faid1,
+                          const MultiFabId&       faid2,
+                          FArrayBox&              dest,
+                          Real                    t1,
+                          Real                    t2,
+                          Real                    t,
+                          int                     src_comp,   // these comps need to be removed
+                          int                     dest_comp,  // from this routine
+                          int                     num_comp,
+                          bool                    extrap)
 {
     const Real teps = (t2-t1)/1000.0;
 

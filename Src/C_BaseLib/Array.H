@@ -2,7 +2,7 @@
 #define BL_ARRAY_H
 
 //
-// $Id: Array.H,v 1.18 2001-07-19 16:57:30 lijewski Exp $
+// $Id: Array.H,v 1.19 2001-07-19 20:02:43 lijewski Exp $
 //
 
 #include <iostream>
@@ -213,7 +213,6 @@ private:
 //
 
 template <class T>
-inline
 bool
 Array<T>::ready () const
 {
@@ -221,7 +220,6 @@ Array<T>::ready () const
 }
 
 template <class T>
-inline
 long
 Array<T>::length () const
 {
@@ -229,7 +227,6 @@ Array<T>::length () const
 }
 
 template <class T>
-inline
 long
 Array<T>::trueSize () const
 {
@@ -237,7 +234,6 @@ Array<T>::trueSize () const
 }
 
 template <class T>
-inline
 T&
 Array<T>::operator[] (long i)
 {
@@ -247,7 +243,6 @@ Array<T>::operator[] (long i)
 }
 
 template <class T>
-inline
 const T&
 Array<T>::operator[] (long i) const
 {
@@ -257,7 +252,6 @@ Array<T>::operator[] (long i) const
 }
 
 template <class T>
-inline
 T&
 Array<T>::get (long i)
 {
@@ -267,7 +261,6 @@ Array<T>::get (long i)
 }
 
 template <class T>
-inline
 const T&
 Array<T>::get (long i) const
 {
@@ -277,7 +270,6 @@ Array<T>::get (long i) const
 }
 
 template <class T>
-inline
 void
 Array<T>::set (long     i,
                const T& elem)
@@ -288,7 +280,6 @@ Array<T>::set (long     i,
 }
 
 template <class T>
-inline
 T*
 Array<T>::dataPtr ()
 {
@@ -296,7 +287,6 @@ Array<T>::dataPtr ()
 }
 
 template <class T>
-inline
 const T*
 Array<T>::dataPtr () const
 {
@@ -304,7 +294,6 @@ Array<T>::dataPtr () const
 }
 
 template <class T>
-inline
 void
 Array<T>::swap (long i,
                 long j)
@@ -317,7 +306,6 @@ Array<T>::swap (long i,
 }
 
 template <class T>
-inline
 Array<T>::Array ()
 {
     nelem    = 0;
@@ -326,7 +314,6 @@ Array<T>::Array ()
 }
 
 template <class T>
-inline
 Array<T>::Array (long len)
 {
     BL_ASSERT(len >= 0);
@@ -336,7 +323,6 @@ Array<T>::Array (long len)
 }
 
 template <class T>
-inline
 void
 Array<T>::clear ()
 {
@@ -347,23 +333,17 @@ Array<T>::clear ()
 }
 
 template <class T>
-inline
 Array<T>::~Array ()
 {
     delete [] vp;
 }
 
 template <class T>
-inline
 bool
 Array<T>::operator!= (const Array<T>& rhs) const
 {
     return !(operator==(rhs));
 }
-
-//
-// Non-inlined stuff.
-//
 
 template <class T>
 Array<T>::Array (long     len,

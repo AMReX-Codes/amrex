@@ -1,5 +1,5 @@
 //
-// $Id: FabConv.cpp,v 1.13 2001-07-19 16:57:33 lijewski Exp $
+// $Id: FabConv.cpp,v 1.14 2001-07-19 20:02:45 lijewski Exp $
 //
 
 #include <iostream>
@@ -987,9 +987,9 @@ operator<< (std::ostream&         os,
             const RealDescriptor& id)
 {
     os << "(";
-    putarray(os, id.fr);
+    putarray(os, id.formatarray());
     os << ',';
-    putarray(os, id.ord);
+    putarray(os, id.orderarray());
     os << ")";
     if (os.fail())
         BoxLib::Error("operator<<(ostream&,RealDescriptor&) failed");
@@ -1004,14 +1004,17 @@ operator>> (std::istream&   is,
     is >> c;
     if (c != '(')
         BoxLib::Error("operator>>(istream&,RealDescriptor&): expected a \'(\'");
-    getarray(is, rd.fr);
+    Array<long> fmt;
+    getarray(is, fmt);
     is >> c;
     if (c != ',')
         BoxLib::Error("operator>>(istream&,RealDescriptor&): expected a \',\'");
-    getarray(is, rd.ord);
+    Array<int> ord;
+    getarray(is, ord);
     is >> c;
     if (c != ')')
         BoxLib::Error("operator>>(istream&,RealDescriptor&): expected a \')\'");
+    rd = RealDescriptor(fmt.dataPtr(),ord.dataPtr(),ord.length());
     return is;
 }
 

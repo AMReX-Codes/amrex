@@ -2,7 +2,7 @@
 #define BL_LIST_H
 
 //
-// $Id: List.H,v 1.13 2001-07-19 16:57:33 lijewski Exp $
+// $Id: List.H,v 1.14 2001-07-19 20:02:45 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -361,7 +361,6 @@ protected:
 //
 
 template <class T>
-inline
 ListIterator<T>::ListIterator (const List<T>& _list,
                                ListLink<T>*   _p)
     :
@@ -370,7 +369,6 @@ ListIterator<T>::ListIterator (const List<T>& _list,
 {}
 
 template <class T>
-inline
 ListIterator<T>::ListIterator (const List<T>& aList)
     :
     list(aList)
@@ -379,7 +377,6 @@ ListIterator<T>::ListIterator (const List<T>& aList)
 }
 
 template <class T>
-inline
 ListIterator<T>::ListIterator (const ListIterator<T>& li)
     :
     list(li.list),
@@ -387,7 +384,6 @@ ListIterator<T>::ListIterator (const ListIterator<T>& li)
 {}
 
 template <class T>
-inline
 void
 ListIterator<T>::rewind ()
 {
@@ -395,7 +391,6 @@ ListIterator<T>::rewind ()
 }
 
 template <class T>
-inline
 const T&
 ListIterator<T>::operator() () const
 {
@@ -404,7 +399,6 @@ ListIterator<T>::operator() () const
 }
 
 template <class T>
-inline
 const T&
 ListIterator<T>::operator* () const
 {
@@ -413,14 +407,12 @@ ListIterator<T>::operator* () const
 }
 
 template <class T>
-inline
 ListIterator<T>::operator void* ()
 {
     return p != 0 ? this : 0;
 }
 
 template <class T>
-inline
 bool
 ListIterator<T>::operator! () const
 {
@@ -428,7 +420,6 @@ ListIterator<T>::operator! () const
 }
 
 template <class T>
-inline
 const T&
 ListIterator<T>::value () const
 {
@@ -437,7 +428,6 @@ ListIterator<T>::value () const
 }
 
 template <class T>
-inline
 ListIterator<T>&
 ListIterator<T>::operator++ ()
 {
@@ -447,7 +437,6 @@ ListIterator<T>::operator++ ()
 }
 
 template <class T>
-inline
 ListIterator<T>&
 ListIterator<T>::operator-- ()
 {
@@ -457,7 +446,6 @@ ListIterator<T>::operator-- ()
 }
 
 template <class T>
-inline
 ListIterator<T>
 ListIterator<T>::operator++ (int)
 {
@@ -467,7 +455,6 @@ ListIterator<T>::operator++ (int)
 }
 
 template <class T>
-inline
 ListIterator<T>
 ListIterator<T>::operator-- (int)
 {
@@ -477,7 +464,6 @@ ListIterator<T>::operator-- (int)
 }
 
 template <class T>
-inline
 bool
 ListIterator<T>::operator== (const ListIterator<T>& _li) const
 {
@@ -485,7 +471,6 @@ ListIterator<T>::operator== (const ListIterator<T>& _li) const
 }
 
 template <class T>
-inline
 bool
 ListIterator<T>::operator!= (const ListIterator<T>& _li) const
 {
@@ -497,7 +482,6 @@ ListIterator<T>::operator!= (const ListIterator<T>& _li) const
 //
 
 template <class T>
-inline
 List<T>::List ()
     :
     head(0),
@@ -505,14 +489,12 @@ List<T>::List ()
 {}
 
 template <class T>
-inline
 List<T>::~List ()
 {
     clear();
 }
 
 template <class T>
-inline
 void
 List<T>::prepend (const T& value)
 {
@@ -520,7 +502,6 @@ List<T>::prepend (const T& value)
 }
 
 template <class T>
-inline
 void
 List<T>::append (const T& value)
 {
@@ -528,7 +509,6 @@ List<T>::append (const T& value)
 }
 
 template <class T>
-inline
 T&
 List<T>::firstElement () const
 {
@@ -537,7 +517,6 @@ List<T>::firstElement () const
 }
 
 template <class T>
-inline
 T&
 List<T>::lastElement () const
 {
@@ -546,7 +525,6 @@ List<T>::lastElement () const
 }
 
 template <class T>
-inline
 bool
 List<T>::isEmpty () const
 {
@@ -554,7 +532,6 @@ List<T>::isEmpty () const
 }
 
 template <class T>
-inline
 bool
 List<T>::isNotEmpty () const
 {
@@ -562,7 +539,6 @@ List<T>::isNotEmpty () const
 }
 
 template <class T>
-inline
 void
 List<T>::removeFirst ()
 {
@@ -570,7 +546,6 @@ List<T>::removeFirst ()
 }
 
 template <class T>
-inline
 void
 List<T>::removeLast ()
 {
@@ -578,7 +553,6 @@ List<T>::removeLast ()
 }
 
 template <class T>
-inline
 const T&
 List<T>::operator[] (const ListIterator<T>& li) const
 {
@@ -587,7 +561,6 @@ List<T>::operator[] (const ListIterator<T>& li) const
 }
 
 template <class T>
-inline
 T&
 List<T>::operator[] (const ListIterator<T>& li)
 {
@@ -596,7 +569,6 @@ List<T>::operator[] (const ListIterator<T>& li)
 }
 
 template <class T>
-inline
 void
 List<T>::replace (ListIterator<T>& li,
                   const T&         _val)
@@ -606,7 +578,6 @@ List<T>::replace (ListIterator<T>& li,
 }
 
 template <class T>
-inline
 void
 List<T>::addAfter (ListIterator<T>& lit,
                    const T&         val)
@@ -615,7 +586,6 @@ List<T>::addAfter (ListIterator<T>& lit,
 }
 
 template <class T>
-inline
 void
 List<T>::addBefore (ListIterator<T>& lit,
                     const T&         val)
@@ -624,7 +594,6 @@ List<T>::addBefore (ListIterator<T>& lit,
 }
 
 template <class T>
-inline
 ListIterator<T>
 List<T>::first () const
 {
@@ -632,7 +601,6 @@ List<T>::first () const
 }
 
 template <class T>
-inline
 ListIterator<T>
 List<T>::last () const
 {
@@ -655,10 +623,6 @@ List<T>::List (const List<T>& source)
         for (ListIterator<T> li(source); li; ++li)
             append(li());
 }
-
-//
-// This isn't inlined as it's declared virtual.
-//
 
 template <class T>
 void

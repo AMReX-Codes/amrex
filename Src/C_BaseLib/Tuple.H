@@ -2,7 +2,7 @@
 #define BL_TUPLE_H
 
 //
-// $Id: Tuple.H,v 1.11 2001-07-19 16:57:37 lijewski Exp $
+// $Id: Tuple.H,v 1.12 2001-07-19 20:02:47 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -78,12 +78,10 @@ protected:
 //
 
 template <class T, size_t N>
-inline
 Tuple<T,N>::Tuple()
 {}
 
 template <class T, size_t N>
-inline
 T&
 Tuple<T,N>::operator[] (int i)
 {
@@ -92,7 +90,6 @@ Tuple<T,N>::operator[] (int i)
 }
 
 template <class T, size_t N>
-inline
 const T&
 Tuple<T,N>::operator[] (int i) const
 {
@@ -101,12 +98,10 @@ Tuple<T,N>::operator[] (int i) const
 }
 
 template <class T, size_t N>
-inline
 Tuple<T,N>::operator const T* () const
 {
     return &vect[0];
 }
-
 
 template <class T, size_t N>
 Tuple<T,N>::Tuple (const T* v)

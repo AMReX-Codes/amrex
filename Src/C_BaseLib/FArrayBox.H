@@ -2,7 +2,7 @@
 #define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.21 2001-07-19 16:57:32 lijewski Exp $
+// $Id: FArrayBox.H,v 1.22 2001-07-19 20:02:44 lijewski Exp $
 //
 
 #include <iostream>
@@ -258,6 +258,7 @@ public:
                int        p     = 2,
                int        scomp = 0,
                int        ncomp = 1) const;
+#if 0
     //
     //@ManDoc: Print subrange of FAB in formatted form to output stream.
     //
@@ -339,6 +340,8 @@ public:
                             int               khi,
                             int               scomp,
                             int               ncomp = 1);
+#endif /*printRange()*/
+
 #endif
     //
     //@ManDoc: Write FABs in ASCII form.

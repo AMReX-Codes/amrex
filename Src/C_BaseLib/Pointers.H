@@ -2,7 +2,7 @@
 #define BL_POINTERS_H
 
 //
-// $Id: Pointers.H,v 1.13 2001-07-19 16:57:36 lijewski Exp $
+// $Id: Pointers.H,v 1.14 2001-07-19 20:02:47 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -188,17 +188,7 @@ public:
                on the previously wrapped pointer and deletes it if there
                was only one reference.
     */
-    LnPtr<T>& operator= (T* rhs)
-    {
-        //
-        // This is inlined here as OCC won't have it any other way :-(
-        //
-        if (unique())
-            delete ptr;
-        ptr = rhs;
-        ucnt = UseCount();
-        return *this;
-    }
+    LnPtr<T>& operator= (T* rhs);
 
     /*@ManDoc: The destructor -- decrements the reference count and deletes
                the wrapped pointer if there is only one reference.
@@ -287,26 +277,22 @@ public:
 //
 
 template <class T>
-inline
 CpPtr<T>::CpPtr ()
     : ptr(0)
 {}
 
 template <class T>
-inline
 CpPtr<T>::CpPtr(T* rhs)
     : ptr(rhs)
 {}
 
 template <class T>
-inline
 CpPtr<T>::~CpPtr()
 {
     delete ptr;
 }
 
 template <class T>
-inline
 bool
 CpPtr<T>::isNull () const
 {
@@ -314,14 +300,12 @@ CpPtr<T>::isNull () const
 }
 
 template <class T>
-inline
 CpPtr<T>::CpPtr (const CpPtr<T>& rhs)
 {
     ptr = rhs.isNull() ?  0 : new T(*rhs.ptr);
 }
 
 template <class T>
-inline
 CpPtr<T>&
 CpPtr<T>::operator= (const CpPtr<T>& rhs)
 {
@@ -334,7 +318,6 @@ CpPtr<T>::operator= (const CpPtr<T>& rhs)
 }
 
 template <class T>
-inline
 CpPtr<T>&
 CpPtr<T>::operator= (T* rhs)
 {
@@ -344,7 +327,6 @@ CpPtr<T>::operator= (T* rhs)
 }
 
 template <class T>
-inline
 T&
 CpPtr<T>::operator* () const
 {
@@ -353,7 +335,6 @@ CpPtr<T>::operator* () const
 }
 
 template <class T>
-inline
 T*
 CpPtr<T>::release ()
 {
@@ -363,7 +344,6 @@ CpPtr<T>::release ()
 }
 
 template <class T>
-inline
 bool
 CpPtr<T>::operator== (const CpPtr<T>& rhs) const
 {
@@ -371,7 +351,6 @@ CpPtr<T>::operator== (const CpPtr<T>& rhs) const
 }
 
 template <class T>
-inline
 bool
 CpPtr<T>::operator!= (const CpPtr<T>& rhs) const
 {
@@ -379,24 +358,20 @@ CpPtr<T>::operator!= (const CpPtr<T>& rhs) const
 }
 
 template <class T>
-inline
 CpClassPtr<T>::CpClassPtr ()
     : CpPtr<T>()
 {}
 
 template <class T>
-inline
 CpClassPtr<T>::CpClassPtr (T* rhs)
     : CpPtr<T>(rhs)
 {}
 
 template <class T>
-inline
 CpClassPtr<T>::CpClassPtr (const CpClassPtr<T>& rhs)
     : CpPtr<T>(rhs) {}
 
 template <class T>
-inline
 CpClassPtr<T>&
 CpClassPtr<T>::operator= (T* rhs)
 {
@@ -405,7 +380,6 @@ CpClassPtr<T>::operator= (T* rhs)
 }
 
 template <class T>
-inline
 CpClassPtr<T>&
 CpClassPtr<T>::operator= (const CpClassPtr<T>& rhs)
 {
@@ -414,7 +388,6 @@ CpClassPtr<T>::operator= (const CpClassPtr<T>& rhs)
 }
 
 template <class T>
-inline
 T*
 CpClassPtr<T>::operator-> () const
 {
@@ -422,19 +395,27 @@ CpClassPtr<T>::operator-> () const
 }
 
 template <class T>
-inline
 LnPtr<T>::LnPtr ()
     : ptr(0)
 {}
 
 template <class T>
-inline
 LnPtr<T>::LnPtr(T* rhs)
     : ptr(rhs)
 {}
 
 template <class T>
-inline
+LnPtr<T>&
+LnPtr<T>::operator= (T* rhs)
+{
+    if (unique())
+        delete ptr;
+    ptr = rhs;
+    ucnt = UseCount();
+    return *this;
+}
+
+template <class T>
 bool
 LnPtr<T>::unique () const
 { 
@@ -442,7 +423,6 @@ LnPtr<T>::unique () const
 }
 
 template <class T>
-inline
 LnPtr<T>::~LnPtr ()
 { 
     if (ucnt.unique())
@@ -450,7 +430,6 @@ LnPtr<T>::~LnPtr ()
 }
 
 template <class T>
-inline
 LnPtr<T>&
 LnPtr<T>::operator= (const LnPtr<T>& rhs)
 {
@@ -465,7 +444,6 @@ LnPtr<T>::operator= (const LnPtr<T>& rhs)
 }
 
 template <class T>
-inline
 int
 LnPtr<T>::linkCount () const
 { 
@@ -473,7 +451,6 @@ LnPtr<T>::linkCount () const
 }
 
 template <class T>
-inline
 T&
 LnPtr<T>::operator* () const
 {
@@ -482,7 +459,6 @@ LnPtr<T>::operator* () const
 }
 
 template <class T>
-inline
 bool
 LnPtr<T>::isNull () const
 {
@@ -490,7 +466,6 @@ LnPtr<T>::isNull () const
 }
 
 template <class T>
-inline
 bool
 LnPtr<T>::operator== (const LnPtr<T>& rhs) const
 {
@@ -498,7 +473,6 @@ LnPtr<T>::operator== (const LnPtr<T>& rhs) const
 }
 
 template <class T>
-inline
 bool
 LnPtr<T>::operator!= (const LnPtr<T>& rhs) const
 {
@@ -506,18 +480,15 @@ LnPtr<T>::operator!= (const LnPtr<T>& rhs) const
 }
 
 template <class T>
-inline
 LnClassPtr<T>::LnClassPtr ()
 {}
 
 template <class T>
-inline
 LnClassPtr<T>::LnClassPtr (T* rhs)
     : LnPtr<T>(rhs)
 {}
 
 template <class T>
-inline
 LnClassPtr<T>&
 LnClassPtr<T>::operator= (const LnClassPtr<T>& rhs)
 {
@@ -526,7 +497,6 @@ LnClassPtr<T>::operator= (const LnClassPtr<T>& rhs)
 }
 
 template <class T>
-inline
 LnClassPtr<T>&
 LnClassPtr<T>::operator= (T* rhs)
 {
@@ -535,7 +505,6 @@ LnClassPtr<T>::operator= (T* rhs)
 }
 
 template <class T>
-inline
 T*
 LnClassPtr<T>::operator->() const
 {

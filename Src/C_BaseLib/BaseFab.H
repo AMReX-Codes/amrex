@@ -2,7 +2,7 @@
 #define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.30 2001-07-19 19:02:42 lijewski Exp $
+// $Id: BaseFab.H,v 1.31 2001-07-19 20:02:44 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -363,7 +363,6 @@ protected:
 //
 
 template <class T>
-inline
 int
 BaseFab<T>::nComp () const
 {
@@ -371,7 +370,6 @@ BaseFab<T>::nComp () const
 }
 
 template <class T>
-inline
 const Box&
 BaseFab<T>::box () const
 {
@@ -379,7 +377,6 @@ BaseFab<T>::box () const
 }
 
 template <class T>
-inline
 const int*
 BaseFab<T>::length () const
 {
@@ -387,7 +384,6 @@ BaseFab<T>::length () const
 }
 
 template <class T>
-inline
 const IntVect&
 BaseFab<T>::smallEnd () const
 {
@@ -395,7 +391,6 @@ BaseFab<T>::smallEnd () const
 }
 
 template <class T>
-inline
 const IntVect&
 BaseFab<T>::bigEnd () const
 {
@@ -403,7 +398,6 @@ BaseFab<T>::bigEnd () const
 }
 
 template <class T>
-inline
 const int*
 BaseFab<T>::loVect () const
 {
@@ -411,7 +405,6 @@ BaseFab<T>::loVect () const
 }
 
 template <class T>
-inline
 const int*
 BaseFab<T>::hiVect () const
 {
@@ -419,7 +412,6 @@ BaseFab<T>::hiVect () const
 }
 
 template <class T>
-inline
 bool
 BaseFab<T>::contains (const BaseFab<T>& fab) const
 {
@@ -427,7 +419,6 @@ BaseFab<T>::contains (const BaseFab<T>& fab) const
 }
 
 template <class T>
-inline
 bool
 BaseFab<T>::contains (const Box& bx) const
 {
@@ -435,7 +426,6 @@ BaseFab<T>::contains (const Box& bx) const
 }
 
 template <class T>
-inline
 T*
 BaseFab<T>::dataPtr (int n)
 {
@@ -444,7 +434,6 @@ BaseFab<T>::dataPtr (int n)
 }
 
 template <class T>
-inline
 const T*
 BaseFab<T>::dataPtr (int n) const
 {
@@ -453,7 +442,6 @@ BaseFab<T>::dataPtr (int n) const
 }
 
 template <class T>
-inline
 bool
 BaseFab<T>::isAllocated () const
 {
@@ -461,7 +449,6 @@ BaseFab<T>::isAllocated () const
 }
 
 template <class T>
-inline
 T&
 BaseFab<T>::operator() (const IntVect& p,
                         int            n)
@@ -475,7 +462,6 @@ BaseFab<T>::operator() (const IntVect& p,
 }
 
 template <class T>
-inline
 T&
 BaseFab<T>::operator() (const IntVect& p)
 {
@@ -486,7 +472,6 @@ BaseFab<T>::operator() (const IntVect& p)
 }
 
 template <class T>
-inline
 const T&
 BaseFab<T>::operator() (const IntVect& p,
                         int            n) const
@@ -500,7 +485,6 @@ BaseFab<T>::operator() (const IntVect& p,
 }
 
 template <class T>
-inline
 const T&
 BaseFab<T>::operator() (const IntVect& p) const
 {
@@ -511,7 +495,6 @@ BaseFab<T>::operator() (const IntVect& p) const
 }
 
 template <class T>
-inline
 void
 BaseFab<T>::getVal  (T*             data,
                      const IntVect& pos,
@@ -529,7 +512,6 @@ BaseFab<T>::getVal  (T*             data,
 }
 
 template <class T>
-inline
 void
 BaseFab<T>::getVal (T*             data,
                     const IntVect& pos) const
@@ -538,7 +520,6 @@ BaseFab<T>::getVal (T*             data,
 }
 
 template <class T>
-inline
 BaseFab<T>&
 BaseFab<T>::shift (const IntVect& v)
 {
@@ -547,7 +528,6 @@ BaseFab<T>::shift (const IntVect& v)
 }
 
 template <class T>
-inline
 BaseFab<T>&
 BaseFab<T>::shift (int idir,
                    int n_cell)
@@ -557,7 +537,6 @@ BaseFab<T>::shift (int idir,
 }
 
 template <class T>
-inline
 BaseFab<T> &
 BaseFab<T>::shiftHalf (const IntVect& v)
 {
@@ -566,7 +545,6 @@ BaseFab<T>::shiftHalf (const IntVect& v)
 }
 
 template <class T>
-inline
 BaseFab<T> &
 BaseFab<T>::shiftHalf (int idir,
                        int n_cell)
@@ -576,7 +554,6 @@ BaseFab<T>::shiftHalf (int idir,
 }
 
 template <class T>
-inline
 void
 BaseFab<T>::setVal (T val)
 {
@@ -584,7 +561,6 @@ BaseFab<T>::setVal (T val)
 }
 
 template <class T>
-inline
 void
 BaseFab<T>::setVal (T          x,
                     const Box& bx,
@@ -594,7 +570,6 @@ BaseFab<T>::setVal (T          x,
 }
 
 template <class T>
-inline
 void
 BaseFab<T>::setVal (T   x,
                     int n)
@@ -603,7 +578,6 @@ BaseFab<T>::setVal (T   x,
 }
 
 template <class T>
-inline
 void
 BaseFab<T>::setVal (T          x,
                     const Box& b,
@@ -614,7 +588,6 @@ BaseFab<T>::setVal (T          x,
 }
 
 template <class T>
-inline
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src,
                   const Box&        srcbox,
@@ -633,7 +606,6 @@ BaseFab<T>::copy (const BaseFab<T>& src,
 }
 
 template <class T>
-inline
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src)
 {
@@ -647,7 +619,6 @@ BaseFab<T>::copy (const BaseFab<T>& src)
 }
 
 template <class T>
-inline
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src,
                   const Box&        destbox)
@@ -662,7 +633,6 @@ BaseFab<T>::copy (const BaseFab<T>& src,
 }
 
 template <class T>
-inline
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src,
                   int               srccomp,
@@ -717,7 +687,6 @@ BaseFab<T>::undefine ()
 }
 
 template <class T>
-inline
 BaseFab<T>::BaseFab ()
     :
     domain(Box()),
@@ -728,7 +697,6 @@ BaseFab<T>::BaseFab ()
 {}
 
 template <class T>
-inline
 BaseFab<T>::BaseFab (const Box& bx,
                      int        n)
     :
@@ -762,14 +730,12 @@ BaseFab<T>::resize (const Box& b,
 }
 
 template <class T>
-inline
 BaseFab<T>::~BaseFab ()
 {
     undefine();
 }
 
 template <class T>
-inline
 void
 BaseFab<T>::clear ()
 {

@@ -2,7 +2,7 @@
 #define BL_INTVECT_H
 
 //
-// $Id: IntVect.H,v 1.17 2001-07-19 17:27:04 car Exp $
+// $Id: IntVect.H,v 1.18 2001-07-19 20:02:45 lijewski Exp $
 //
 
 #include <algorithm>
@@ -332,10 +332,6 @@ public:
     static const IntVect& TheCellVector ();
 
 protected:
-    //
-    // Box is a friend of ours.
-    //
-    friend class Box;
 
     int vect[BL_SPACEDIM];
 };

@@ -2,7 +2,7 @@
 #define BL_NORMEDFAB_H
 
 //
-// $Id: NormedFab.H,v 1.11 2001-07-19 16:57:33 lijewski Exp $
+// $Id: NormedFab.H,v 1.12 2001-07-19 20:02:46 lijewski Exp $
 //
 
 #include <algorithm>
@@ -86,12 +86,10 @@ private:
 };
 
 template <class T>
-inline
 NormedFab<T>::NormedFab ()
 {}
 
 template <class T>
-inline
 NormedFab<T>::NormedFab (const Box& b,
                          int        n)
     :
@@ -99,7 +97,6 @@ NormedFab<T>::NormedFab (const Box& b,
 {}
 
 template <class T>
-inline
 NormedFab<T>::~NormedFab()
 {}
 
@@ -137,7 +134,6 @@ NormedFab<T>::abs (const Box& subbox,
 }
 
 template <class T>
-inline
 Real
 NormedFab<T>::norm (int p,
                     int comp,

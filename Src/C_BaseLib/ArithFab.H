@@ -2,7 +2,7 @@
 #define BL_ARITHFAB_H
 
 //
-// $Id: ArithFab.H,v 1.7 2001-07-19 16:57:30 lijewski Exp $
+// $Id: ArithFab.H,v 1.8 2001-07-19 20:02:43 lijewski Exp $
 //
 
 #include <iostream>
@@ -391,7 +391,6 @@ private:
 //
 
 template <class T>
-inline
 ArithFab<T>&
 ArithFab<T>::plus (T r)
 {
@@ -399,7 +398,6 @@ ArithFab<T>::plus (T r)
 }
 
 template <class T>
-inline
 ArithFab<T>&
 ArithFab<T>::plus (const ArithFab<T>& x)
 {
@@ -407,7 +405,6 @@ ArithFab<T>::plus (const ArithFab<T>& x)
 }
 
 template <class T>
-inline
 ArithFab<T>&
 ArithFab<T>::operator-= (T r)
 {
@@ -415,7 +412,6 @@ ArithFab<T>::operator-= (T r)
 }
 
 template <class T>
-inline
 ArithFab<T>&
 ArithFab<T>::minus (const ArithFab<T>& x)
 {
@@ -424,7 +420,6 @@ ArithFab<T>::minus (const ArithFab<T>& x)
 
 
 template <class T>
-inline
 ArithFab<T>&
 ArithFab<T>::mult (T r)
 {
@@ -432,7 +427,6 @@ ArithFab<T>::mult (T r)
 }
 
 template <class T>
-inline
 ArithFab<T>&
 ArithFab<T>::mult (const ArithFab<T>& x)
 {
@@ -440,7 +434,6 @@ ArithFab<T>::mult (const ArithFab<T>& x)
 }
 
 template <class T>
-inline
 ArithFab<T>&
 ArithFab<T>::divide (T r)
 {
@@ -448,7 +441,6 @@ ArithFab<T>::divide (T r)
 }
 
 template <class T>
-inline
 ArithFab<T>&
 ArithFab<T>::divide (const ArithFab<T>& x)
 {
@@ -456,12 +448,10 @@ ArithFab<T>::divide (const ArithFab<T>& x)
 }
 
 template <class T>
-inline
 ArithFab<T>::ArithFab ()
 {}
 
 template <class T>
-inline
 ArithFab<T>::ArithFab (const Box &b,
                        int        n)
     :
@@ -469,7 +459,6 @@ ArithFab<T>::ArithFab (const Box &b,
 {}
 
 template <class T>
-inline
 ArithFab<T>::~ArithFab ()
 {}
 

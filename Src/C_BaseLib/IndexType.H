@@ -2,7 +2,7 @@
 #define BL_INDEXTYPE_H
 
 //
-// $Id: IndexType.H,v 1.10 2001-07-19 16:57:33 lijewski Exp $
+// $Id: IndexType.H,v 1.11 2001-07-19 20:02:45 lijewski Exp $
 //
 
 #include <iostream>
@@ -129,16 +129,7 @@ public:
                IndexType::NODE.
       */
     static IndexType TheNodeType ();
-    //
-    //@ManDoc: Write an IndexType to an ostream in ASCII.
-    //
-    friend std::ostream& operator<< (std::ostream&    os,
-                                     const IndexType& itype);
-    //
-    //@ManDoc: Read an IndexType from an istream.
-    //
-    friend std::istream& operator>> (std::istream& is,
-                                     IndexType&    itype);
+
 private:
     //
     // Returns 1<<k.
@@ -149,5 +140,14 @@ private:
     //
     unsigned int itype;
 };
+
+//
+//@ManDoc: Write an IndexType to an ostream in ASCII.
+//
+std::ostream& operator<< (std::ostream& os, const IndexType& itype);
+//
+//@ManDoc: Read an IndexType from an istream.
+//
+std::istream& operator>> (std::istream& is, IndexType& itype);
 
 #endif /*BL_INDEXTYPE_H*/

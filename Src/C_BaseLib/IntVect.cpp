@@ -1,5 +1,5 @@
 //
-// $Id: IntVect.cpp,v 1.11 2001-07-19 19:02:43 lijewski Exp $
+// $Id: IntVect.cpp,v 1.12 2001-07-19 20:02:45 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -484,7 +484,7 @@ operator>> (std::istream& is,
     is >> std::ws;
     char c;
     is >> c;
-    is.putback(c);
+
     if (c == '(')
     {
         D_EXPR(is.ignore(BL_IGNORE_MAX, '(') >> p[0],
@@ -492,15 +492,10 @@ operator>> (std::istream& is,
                is.ignore(BL_IGNORE_MAX, ',') >> p[2]);
         is.ignore(BL_IGNORE_MAX, ')');
     }
-    else if (c == '<')
-    {
-        D_EXPR(is.ignore(BL_IGNORE_MAX, '<') >> p[0],
-               is.ignore(BL_IGNORE_MAX, ',') >> p[1],
-               is.ignore(BL_IGNORE_MAX, ',') >> p[2]);
-        is.ignore(BL_IGNORE_MAX, '>');
-    }
     else
-        BoxLib::Error("operator>>(istream&,IntVect&): expected \'(\' or \'<\'");
+    {
+        BoxLib::Error("operator>>(istream&,IntVect&): expected \'(\'");
+    }
 
     if (is.fail())
         BoxLib::Error("operator>>(istream&,IntVect&) failed");

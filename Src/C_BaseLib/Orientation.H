@@ -2,7 +2,7 @@
 #define BL_ORIENTATION_H
 
 //
-// $Id: Orientation.H,v 1.12 2001-07-19 16:57:34 lijewski Exp $
+// $Id: Orientation.H,v 1.13 2001-07-19 20:02:46 lijewski Exp $
 //
 
 #include <iostream>
@@ -28,6 +28,7 @@ class OrientationIter;
 class Orientation
 {
 public:
+
     friend class OrientationIter;
     //
     //@ManDoc: In each dimension a face is either low or high.
@@ -101,15 +102,10 @@ public:
     //
     bool isHigh () const;
     //
-    //@ManDoc: Write to an ostream in ASCII format.
-    //
-    friend std::ostream& operator<< (std::ostream&      os,
-                                     const Orientation& o);
-    //
     //@ManDoc: Read from an istream.
     //
-    friend std::istream& operator>> (std::istream& os,
-                                     Orientation&  o);
+    friend std::istream& operator>> (std::istream& os, Orientation& o);
+
 protected:
     //
     // Used internally.
@@ -119,6 +115,11 @@ protected:
 private:
     int val;
 };
+
+//
+//@ManDoc: Write to an ostream in ASCII format.
+//
+std::ostream& operator<< (std::ostream& os, const Orientation& o);
 
 //
 //@Man:

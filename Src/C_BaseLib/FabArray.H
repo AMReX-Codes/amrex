@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.126 2001-07-19 19:02:42 lijewski Exp $
+// $Id: FabArray.H,v 1.127 2001-07-19 20:02:44 lijewski Exp $
 //
 
 #include <climits>
@@ -121,7 +121,6 @@ private:
     bool            m_valid;
 };
 
-inline
 std::ostream&
 operator<< (std::ostream&          os,
             const Array<CommData>& cd)
@@ -920,7 +919,6 @@ class FabArrayCopyDescriptor
 //
 
 template <class T, class FAB>
-inline
 int
 FabArray<T,FAB>::nGrow () const
 {
@@ -928,7 +926,6 @@ FabArray<T,FAB>::nGrow () const
 }
 
 template <class T, class FAB>
-inline
 const BoxArray&
 FabArray<T,FAB>::boxArray () const
 {
@@ -936,7 +933,6 @@ FabArray<T,FAB>::boxArray () const
 }
 
 template <class T, class FAB>
-inline
 const Box&
 FabArray<T,FAB>::box (int K) const
 {
@@ -944,7 +940,6 @@ FabArray<T,FAB>::box (int K) const
 }
 
 template <class T, class FAB>
-inline
 Box
 FabArray<T,FAB>::fabbox (int K) const
 {
@@ -955,7 +950,6 @@ FabArray<T,FAB>::fabbox (int K) const
 }
 
 template <class T, class FAB>
-inline
 int
 FabArray<T,FAB>::length () const
 {
@@ -963,7 +957,6 @@ FabArray<T,FAB>::length () const
 }
 
 template <class T, class FAB>
-inline
 const FAB&
 FabArray<T,FAB>::operator[] (int K) const
 {
@@ -971,7 +964,6 @@ FabArray<T,FAB>::operator[] (int K) const
 }
 
 template <class T, class FAB>
-inline
 FAB&
 FabArray<T,FAB>::operator[] (int K)
 {
@@ -979,7 +971,6 @@ FabArray<T,FAB>::operator[] (int K)
 }
 
 template <class T, class FAB>
-inline
 int
 FabArray<T,FAB>::nComp () const
 {
@@ -987,7 +978,6 @@ FabArray<T,FAB>::nComp () const
 }
 
 template <class T, class FAB>
-inline
 void
 FabArray<T,FAB>::clear ()
 {
@@ -995,7 +985,6 @@ FabArray<T,FAB>::clear ()
 }
 
 template <class T, class FAB>
-inline
 void
 FabArray<T,FAB>::setVal (T   val,
                          int nghost)
@@ -1004,7 +993,6 @@ FabArray<T,FAB>::setVal (T   val,
 }
 
 template <class T, class FAB>
-inline
 void
 FabArray<T,FAB>::setVal (T          val,
                          const Box& region,
@@ -1141,7 +1129,6 @@ FabArray<T,FAB>::AllocFabs ()
 }
 
 template <class T, class FAB>
-inline
 void
 FabArray<T,FAB>::setFab (int  boxno,
                          FAB* elem)
@@ -1162,7 +1149,6 @@ FabArray<T,FAB>::setFab (int  boxno,
 }
 
 template <class T, class FAB>
-inline
 void
 FabArray<T,FAB>::setBndry (T val)
 {
@@ -1407,7 +1393,6 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
 }
 
 template <class T, class FAB>
-inline
 void
 FabArray<T,FAB>::copy (const FabArray<T,FAB>& src)
 {
@@ -1419,7 +1404,6 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src)
 //
 
 template <class T, class FAB>
-inline
 void
 FabArray<T,FAB>::copy (FAB& dest) const
 {
@@ -1427,7 +1411,6 @@ FabArray<T,FAB>::copy (FAB& dest) const
 }
 
 template <class T, class FAB>
-inline
 void
 FabArray<T,FAB>::copy (FAB&       dest,
                        const Box& subbox) const
@@ -1436,7 +1419,6 @@ FabArray<T,FAB>::copy (FAB&       dest,
 }
 
 template <class T, class FAB>
-inline
 void
 FabArray<T,FAB>::copy (FAB& dest,
                        int  scomp,
@@ -1549,7 +1531,6 @@ FabArray<T,FAB>::setVal (T          val,
 }
 
 template <class T, class FAB>
-inline
 FabArrayIterator<T,FAB>::FabArrayIterator (FabArray<T,FAB>& fabarray)
     :
     fabArray(fabarray),
@@ -1570,7 +1551,6 @@ FabArrayIterator<T,FAB>::FabArrayIterator (FabArray<T,FAB>& fabarray)
 }
 
 template <class T, class FAB>
-inline
 FAB&
 FabArrayIterator<T,FAB>::operator() ()
 {
@@ -1580,7 +1560,6 @@ FabArrayIterator<T,FAB>::operator() ()
 }
 
 template <class T, class FAB>
-inline
 FAB&
 FabArrayIterator<T,FAB>::operator* ()
 {
@@ -1588,7 +1567,6 @@ FabArrayIterator<T,FAB>::operator* ()
 }
 
 template <class T, class FAB>
-inline
 const FAB&
 FabArrayIterator<T,FAB>::operator* () const
 {
@@ -1596,7 +1574,6 @@ FabArrayIterator<T,FAB>::operator* () const
 }
 
 template <class T, class FAB>
-inline
 FAB*
 FabArrayIterator<T,FAB>::operator-> ()
 {
@@ -1604,7 +1581,6 @@ FabArrayIterator<T,FAB>::operator-> ()
 }
 
 template <class T, class FAB>
-inline
 const FAB*
 FabArrayIterator<T,FAB>::operator-> () const
 {
@@ -1612,7 +1588,6 @@ FabArrayIterator<T,FAB>::operator-> () const
 }
 
 template <class T, class FAB>
-inline
 const FAB&
 FabArrayIterator<T,FAB>::operator() () const
 {
@@ -1622,7 +1597,6 @@ FabArrayIterator<T,FAB>::operator() () const
 }
 
 template <class T, class FAB>
-inline
 FabArrayIterator<T,FAB>&
 FabArrayIterator<T,FAB>::operator++ ()
 {
@@ -1644,7 +1618,6 @@ FabArrayIterator<T,FAB>::operator++ ()
 }
 
 template <class T, class FAB>
-inline
 int
 FabArrayIterator<T,FAB>::index () const
 {
@@ -1652,7 +1625,6 @@ FabArrayIterator<T,FAB>::index () const
 }
 
 template <class T, class FAB>
-inline
 const Box&
 FabArrayIterator<T,FAB>::validbox () const
 {
@@ -1660,7 +1632,6 @@ FabArrayIterator<T,FAB>::validbox () const
 }
 
 template <class T, class FAB>
-inline
 const Box&
 FabArrayIterator<T,FAB>::fabbox () const
 {
@@ -1668,7 +1639,6 @@ FabArrayIterator<T,FAB>::fabbox () const
 }
 
 template <class T, class FAB>
-inline
 bool
 FabArrayIterator<T,FAB>::isValid ()
 {
@@ -1688,7 +1658,6 @@ FabArrayIterator<T,FAB>::isValid ()
 }
 
 template <class T, class FAB>
-inline
 DependentFabArrayIterator<T,FAB>::DependentFabArrayIterator(
     FabArrayIterator<T,FAB>& controllerfaiter,
     FabArray<T,FAB>&         dependentfabarray)
@@ -1701,7 +1670,6 @@ DependentFabArrayIterator<T,FAB>::DependentFabArrayIterator(
 }
 
 template <class T, class FAB>
-inline
 DependentFabArrayIterator<T,FAB>::DependentFabArrayIterator(
     FabArrayIterator<T,FAB>& controllerfaiter,
     const FabArray<T,FAB>&   dependentfabarray)
@@ -1714,7 +1682,6 @@ DependentFabArrayIterator<T,FAB>::DependentFabArrayIterator(
 }
 
 template <class T, class FAB>
-inline
 int
 DependentFabArrayIterator<T,FAB>::index () const
 {
@@ -1722,7 +1689,6 @@ DependentFabArrayIterator<T,FAB>::index () const
 }
 
 template <class T, class FAB>
-inline
 const Box&
 DependentFabArrayIterator<T,FAB>::validbox() const
 {
@@ -1730,7 +1696,6 @@ DependentFabArrayIterator<T,FAB>::validbox() const
 }
 
 template <class T, class FAB>
-inline
 const Box&
 DependentFabArrayIterator<T,FAB>::fabbox() const
 {
@@ -1738,7 +1703,6 @@ DependentFabArrayIterator<T,FAB>::fabbox() const
 }
 
 template <class T, class FAB>
-inline
 FAB&
 DependentFabArrayIterator<T,FAB>::operator() ()
 {
@@ -1746,7 +1710,6 @@ DependentFabArrayIterator<T,FAB>::operator() ()
 }
 
 template <class T, class FAB>
-inline
 const FAB&
 DependentFabArrayIterator<T,FAB>::operator() () const
 {
@@ -1754,7 +1717,6 @@ DependentFabArrayIterator<T,FAB>::operator() () const
 }
 
 template <class T, class FAB>
-inline
 FAB&
 DependentFabArrayIterator<T,FAB>::operator* ()
 {
@@ -1762,7 +1724,6 @@ DependentFabArrayIterator<T,FAB>::operator* ()
 }
 
 template <class T, class FAB>
-inline
 const FAB&
 DependentFabArrayIterator<T,FAB>::operator* () const
 {
@@ -1770,7 +1731,6 @@ DependentFabArrayIterator<T,FAB>::operator* () const
 }
 
 template <class T, class FAB>
-inline
 FAB*
 DependentFabArrayIterator<T,FAB>::operator-> ()
 {
@@ -1778,7 +1738,6 @@ DependentFabArrayIterator<T,FAB>::operator-> ()
 }
 
 template <class T, class FAB>
-inline
 const FAB*
 DependentFabArrayIterator<T,FAB>::operator-> () const
 {
@@ -1786,7 +1745,6 @@ DependentFabArrayIterator<T,FAB>::operator-> () const
 }
 
 template <class T, class FAB>
-inline
 ConstFabArrayIterator<T,FAB>::ConstFabArrayIterator(const FabArray<T,FAB>& fabarray)
     :
     fabArray(fabarray),
@@ -1807,7 +1765,6 @@ ConstFabArrayIterator<T,FAB>::ConstFabArrayIterator(const FabArray<T,FAB>& fabar
 }
 
 template <class T, class FAB>
-inline
 const FAB&
 ConstFabArrayIterator<T,FAB>::operator() () const
 {
@@ -1815,7 +1772,6 @@ ConstFabArrayIterator<T,FAB>::operator() () const
 }
 
 template <class T, class FAB>
-inline
 const FAB&
 ConstFabArrayIterator<T,FAB>::operator* () const
 {
@@ -1823,7 +1779,6 @@ ConstFabArrayIterator<T,FAB>::operator* () const
 }
 
 template <class T, class FAB>
-inline
 const FAB*
 ConstFabArrayIterator<T,FAB>::operator-> () const
 {
@@ -1831,7 +1786,6 @@ ConstFabArrayIterator<T,FAB>::operator-> () const
 }
 
 template <class T, class FAB>
-inline
 ConstFabArrayIterator<T,FAB>&
 ConstFabArrayIterator<T,FAB>::operator++ ()
 {
@@ -1853,7 +1807,6 @@ ConstFabArrayIterator<T,FAB>::operator++ ()
 }
 
 template <class T, class FAB>
-inline
 int
 ConstFabArrayIterator<T,FAB>::index () const
 {
@@ -1861,7 +1814,6 @@ ConstFabArrayIterator<T,FAB>::index () const
 }
 
 template <class T, class FAB>
-inline
 const Box&
 ConstFabArrayIterator<T,FAB>::validbox () const
 {
@@ -1869,7 +1821,6 @@ ConstFabArrayIterator<T,FAB>::validbox () const
 }
 
 template <class T, class FAB>
-inline
 const Box&
 ConstFabArrayIterator<T,FAB>::fabbox() const
 {
@@ -1877,7 +1828,6 @@ ConstFabArrayIterator<T,FAB>::fabbox() const
 }
 
 template <class T, class FAB>
-inline
 bool
 ConstFabArrayIterator<T,FAB>::isValid () const
 {
@@ -1897,7 +1847,6 @@ ConstFabArrayIterator<T,FAB>::isValid () const
 }
 
 template <class T, class FAB>
-inline
 ConstDependentFabArrayIterator<T,FAB>::ConstDependentFabArrayIterator(
     ConstFabArrayIterator<T,FAB>& controllerfaiter,
     const FabArray<T,FAB>&        dependentfabarray)
@@ -1910,7 +1859,6 @@ ConstDependentFabArrayIterator<T,FAB>::ConstDependentFabArrayIterator(
 }
 
 template <class T, class FAB>
-inline
 int
 ConstDependentFabArrayIterator<T,FAB>::index () const
 {
@@ -1918,7 +1866,6 @@ ConstDependentFabArrayIterator<T,FAB>::index () const
 }
 
 template <class T, class FAB>
-inline
 const Box&
 ConstDependentFabArrayIterator<T,FAB>::validbox () const
 {
@@ -1926,7 +1873,6 @@ ConstDependentFabArrayIterator<T,FAB>::validbox () const
 }
 
 template <class T, class FAB>
-inline
 const Box&
 ConstDependentFabArrayIterator<T,FAB>::fabbox() const
 {
@@ -1934,7 +1880,6 @@ ConstDependentFabArrayIterator<T,FAB>::fabbox() const
 }
 
 template <class T, class FAB>
-inline
 const FAB&
 ConstDependentFabArrayIterator<T,FAB>::operator()() const
 {
@@ -1942,7 +1887,6 @@ ConstDependentFabArrayIterator<T,FAB>::operator()() const
 }
 
 template <class T, class FAB>
-inline
 const FAB&
 ConstDependentFabArrayIterator<T,FAB>::operator* () const
 {
@@ -1950,7 +1894,6 @@ ConstDependentFabArrayIterator<T,FAB>::operator* () const
 }
 
 template <class T, class FAB>
-inline
 const FAB*
 ConstDependentFabArrayIterator<T,FAB>::operator-> () const
 {
@@ -2147,7 +2090,6 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (FabArrayId fabarrayid,
 }
 
 template <class T, class FAB>
-inline
 FillBoxId
 FabArrayCopyDescriptor<T,FAB>::AddBox (FabArrayId fabarrayid,
                                        const Box& destFabBox,
