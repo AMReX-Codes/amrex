@@ -8,12 +8,7 @@
 #include <iomanip>
 #include <fstream>
 #include <new>
-using std::fstream;
-using std::ios;
-using std::setprecision;
-#ifndef WIN32
-using std::set_new_handler;
-#endif
+using namespace std;
 
 #else
 #include <iostream.h>

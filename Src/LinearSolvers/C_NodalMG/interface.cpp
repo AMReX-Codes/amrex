@@ -835,11 +835,7 @@ Array<int> level_interface::geo_array(int idim, int i) const
 #include <vector>
 #include <list>
 #include <map>
-using std::vector;
-using std::map;
-using std::list;
-using std::cout;
-using std::endl;
+using namespace std;
 #else
 #include <vector.h>
 #include <list.h>
