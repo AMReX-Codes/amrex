@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.4 1998-04-22 23:39:32 marc Exp $
+// $Id: Geometry.cpp,v 1.5 1998-04-27 16:31:43 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -15,16 +15,21 @@ RealBox Geometry::prob_domain;
 
 bool Geometry::is_periodic[BL_SPACEDIM];
 
-std::ostream&
-operator << (std::ostream&          os,
+ostream&
+operator << (ostream&               os,
 	     const Geometry::PIRec& pir)
 {
-    os << "  From (Box " << pir.srcId << ") " << pir.srcBox << " to " << pir.dstBox;
+    os << "  From (Box "
+       << pir.srcId
+       << ") "
+       << pir.srcBox
+       << " to "
+       << pir.dstBox;
     return os;
 }
 
-std::ostream&
-operator << (std::ostream&            os,
+ostream&
+operator << (ostream&                 os,
 	     const Geometry::PIRMMap& pirm)
 {
     if (pirm.size() > 0)
@@ -142,7 +147,7 @@ Geometry::FillPeriodicFabArray (FabArray<Real,FArrayBox>& fa,
     // Loop over my receiving fabs, copy periodic regions from buffered data
     for (FabArrayIterator<Real,FArrayBox> fai(fa); fai.isValid(false); ++fai)
     {
-        std::pair<PIRMMapIt,PIRMMapIt> range = pirm.equal_range(fai.index());
+        pair<PIRMMapIt,PIRMMapIt> range = pirm.equal_range(fai.index());
 
 	// For each PIRec on this fab box...
 	for (PIRMMapIt p_it = range.first; p_it != range.second; ++p_it)
