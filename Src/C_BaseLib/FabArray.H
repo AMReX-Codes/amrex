@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.56 1998-06-03 23:10:38 lijewski Exp $
+// $Id: FabArray.H,v 1.57 1998-06-04 00:16:32 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1161,7 +1161,18 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
         for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
         {
             DependentFabArrayIterator<T,FAB> dfai(fai, src);
-            fai().copy(dfai(), src_comp, dest_comp, num_comp);
+
+            Box intersect = fai.validbox() & dfai.validbox();
+
+            if (intersect.ok())
+            {
+                fai().copy(dfai(),
+                           intersect,
+                           src_comp,
+                           intersect,
+                           dest_comp,
+                           num_comp);
+            }
         }
         return;
     }
