@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StationData.H,v 1.5 1998-11-29 01:33:53 lijewski Exp $
+// $Id: StationData.H,v 1.6 1998-11-30 02:12:35 lijewski Exp $
 //
 
 #ifndef _StationData_H_
@@ -60,13 +60,12 @@ public:
     //
     // ParmParse variables:
     //
-    //   StationData.vars     -- Array of names of StateData components
+    //   StationData.vars     -- Names of StateData components to output
     //   StationData.coord    -- BL_SPACEDIM array of Reals
     //   StationData.coord    -- the next one
     //   StationData.coord    -- ditto ...
-    //   StationData.rootname -- root name of output files.
     //
-    // Default rootname is: "Stations/stn"
+    // Data files have the form: "Station/stn_CPU_NNNN"
     //
     void init ();
     //
@@ -81,25 +80,12 @@ public:
     void findGrid (const PArray<AmrLevel>& levels,
                    const Array<Geometry>&  geoms);
 private:
-    //
-    // Open appropriately-named station file.
-    //
-    //  "rootname_CPU_NNNN"
-    //
-    // Default rootname is: "Stations/stn"
-    //
-    void openFile ();
-    //
-    // Writes out map of StationIDs to Real coordinates to "Station.List".
-    //
-    void listStations () const;
 
     Array<StationRec> m_stn;   // Array of stations.
     Array<aString>    m_vars;  // Names of StateData components to output.
     Array<int>        m_typ;   // The state_index corresponding to m_vars.
     Array<int>        m_ncomp; // The component of the state_index for m_typ.
     ofstream          m_ofile; // Output stream.
-    aString           m_name;  // Root name of station file.
 };
 
 #endif /*_StationData_H_*/
