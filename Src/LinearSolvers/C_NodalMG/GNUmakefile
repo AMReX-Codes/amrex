@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.40 1999-09-14 18:26:56 car Exp $
+# $Id: GNUmakefile,v 1.41 2000-03-16 23:11:32 car Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -9,13 +9,15 @@ PRECISION = DOUBLE
 DEBUG     = FALSE
 DEBUG     = TRUE
 PROFILE   = FALSE
-DIM       = 3
 DIM       = 2
+DIM       = 3
 COMP      = cxx
-COMP      = KCC
 COMP	  = g++
+COMP      = KCC
 USE_MPI   = FALSE
 USE_MPI   = TRUE
+NAMESPACE = TRUE
+NAMESPACE = FALSE
 
 #
 # To build the executable: EBASE=proj LBASE=
@@ -34,6 +36,8 @@ INSTALL_ROOT = $(PBOXLIB_HOME)
 
 include $(TOP)/mk/Make.defs
 include ./Make.package
+
+CPPFLAGS += -DBL_NOT_USING_NAMESPACE
 
 ifeq ($(LBASE),proj)
   ifeq ($(KCC_VERSION),3.3)
@@ -55,7 +59,7 @@ ifeq ($(EBASE),proj)
   INCLUDE_LOCATIONS += $(TOP)/pBoxLib_2 
 
   ifeq ($(DEBUG),TRUE)
-    CPPFLAGS          += -DHG_DEBUG
+    # CPPFLAGS          += -DHG_DEBUG
   endif
   ifeq ($(COMP),KCC)
     CXXFLAGS += --strict
@@ -72,8 +76,6 @@ ifeq ($(EBASE),proj)
   vpath %.F	.                  $(TOP)/bndrylib
   all: $(executable)
 endif
-
-include $(TOP)/mk/Make.rules
 
 #LDFLAGS += -v
 
@@ -114,3 +116,8 @@ o/3d.OSF1.KCC/hg_multi3d_terrain.o: hg_multi3d_terrain.F
 libs:
 	cd $(TOP)/pBoxLib_2; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
 
+clean::
+	$(RM) gu*_*
+	$(RM) fgu*_*
+
+include $(TOP)/mk/Make.rules

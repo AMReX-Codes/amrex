@@ -1,31 +1,4 @@
 c-----------------------------------------------------------------------
-c Debuging tool
-      subroutine print_sum(
-     & res,    resl0,resl1,resl2,resh0,resh1,resh2,
-     &         regl0, regl1, regl2, regh0, regh1, regh2)
-      integer resl0,resh0,resl1,resh1,resl2,resh2
-      integer regl0,regh0,regl1,regh1,regl2,regh2
-      double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
-      double precision sum1, sum2
-      sum1 = 0.0d0
-      do k = regl2, regh2
-         do j = regl1, regh1
-            do i = regl0, regh0
-               sum1 = sum1 + res(i,j,k)
-            end do
-         end do
-      end do
-      sum2 = 0.0d0
-      do k = resl2, resh2
-         do j = resl1, resh1
-            do i = resl0, resh0
-               sum2 = sum2 + res(i,j,k)
-            end do
-         end do
-      end do
-      print *, 'sum1 = ', sum1, 'sum2 = ', sum2
-      end
-c-----------------------------------------------------------------------
 c Works for CELL-based data.
       subroutine iprodc(
      & v0, v0l0,v0h0,v0l1,v0h1,v0l2,v0h2,
@@ -421,6 +394,9 @@ c inflow face, so that binfil can be run for subsequent fills
      &   ncomp)
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       integer i, j, k, nc
+c      call hgdebugmat('out dest in',
+c    &     dest, destl0,destl1,destl2, desth0, desth1, desth2,
+c    &     regl0,regl1,regl2,regh0, regh1,regh2, ncomp)
       do nc = 1, ncomp
       if (idir .eq. 0) then
          if (regl0 .lt. bbh0) then
@@ -484,6 +460,9 @@ c inflow face, so that binfil can be run for subsequent fills
          end if
       end if
       end do
+c     call hgdebugmat('out dest out',
+c    &     dest, destl0,destl1,destl2, desth0, desth1, desth2,
+c    &     regl0,regl1,regl2,regh0, regh1,regh2, ncomp)
       end
 c-----------------------------------------------------------------------
 c Works for CELL-based velocity data.
@@ -505,6 +484,12 @@ c been altered by a call to fill_borders.
      &   ncomp)
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       integer i, j, k, nc
+c     call hgdebugmat('in dest in',
+c    &     dest, destl0,destl1,destl2, desth0, desth1, desth2,
+c    &     regl0,regl1,regl2,regh0, regh1,regh2,ncomp)
+c     call hgdebugmat('in src in',
+c    &     src, srcl0,srcl1,srcl2, srch0, srch1, srch2,
+c    &     bbl0,bbl1,bbl2,bbh0, bbh1,bbh2,ncomp)
       do nc = 1, ncomp
       if (idir .eq. 0) then
          if (regl0 .lt. bbh0) then
@@ -574,6 +559,9 @@ c been altered by a call to fill_borders.
          end if
       end if
       end do
+c     call hgdebugmat('in dest out',
+c    &     dest, destl0,destl1,destl2, desth0, desth1, desth2,
+c    &     regl0,regl1,regl2,regh0, regh1,regh2, ncomp)
       end
 c-----------------------------------------------------------------------
 c     Interpolation routines

@@ -55,6 +55,8 @@ inline IndexType::CellIndex type (const FabArray<Real,FArrayBox>& r, int idir)
     return r.box(0).type(idir);
 }
 
+#include "hgdebug_F.H"
+
 #ifdef HG_DEBUG
 void hg_debug_norm_2 (const MultiFab& d, const char* str1, const char* str2);
 

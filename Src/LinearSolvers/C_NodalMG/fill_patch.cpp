@@ -133,13 +133,17 @@ task_bdy_fill::task_bdy_fill (task_list&                tl_,
 	m_bdy->fill(*m_fab, m_region, m_smf[m_sgrid], m_domain);
     }
 
-    m_bx = m_bdy->image(m_region,m_smf.boxArray()[m_sgrid],m_domain);
+    m_bx = m_bdy->anImage(m_region,m_smf.boxArray()[m_sgrid],m_domain);
 
     if (!m_smf.fabbox(m_sgrid).contains(m_bx))
+    {
+	HG_DEBUG_OUT("???" << m_bx << m_smf.fabbox(m_sgrid) << endl);
         //
         // No work to do -- skip bad code in mixed_boundary::fill().
         //
-        m_local = true;
+	// FIXME : Fixes periodic in parallel
+        // m_local = true;
+    }
 }
 
 task_bdy_fill::~task_bdy_fill ()
