@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.9 1998-08-20 17:40:10 car Exp $
+# $Id: GNUmakefile,v 1.10 1998-08-21 17:58:33 car Exp $
 #
 
 #
@@ -34,36 +34,13 @@ COMP = KCC
 LBASE = box
 
 #
-# Should we use BSP?
-#
-USE_BSP = TRUE
-USE_BSP = FALSE
-
-#
 # Should we use MPI?
 #
-USE_MPI = TRUE
 USE_MPI = FALSE
+USE_MPI = TRUE
 
 PBOXLIB_HOME = ..
 include ../mk/Make.defs Make.package
-
-#
-# BSP parallel locations
-#
-ifeq ($(USE_BSP),TRUE)
-DEFINES += -DBL_USE_BSP
-BSP_HOME = /usr/people/vince/Parallel/BSP/BSP
-INCLUDE_LOCATIONS += $(BSP_HOME)/include
-LIBRARY_LOCATIONS += $(BSP_HOME)/lib/OSF1
-LIBRARY_LOCATIONS += $(BSP_HOME)/lib/OSF1/$(BSP_DEVICE)
-LIBRARIES += -lbspcore_O2 -lbsplevel1_O0
-#
-# exception library (for newest bsplib)
-#
-LIBRARY_LOCATIONS += /usr/ccs/lib/cmplrs/cc
-LIBRARIES += -lexc
-endif
 
 ifeq ($(USE_MPI),TRUE)
 DEFINES += -DBL_USE_MPI
