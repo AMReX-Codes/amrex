@@ -108,7 +108,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
 	    clear_part_interface(r, lev_interface[mglev]);
 	}
     }
-    else if (m_hg_cross_stencil)
+    else if (m_hg_cross_stencil && BL_SPACEDIM==3)
     {
 	for (MultiFabIterator r_mfi(r); r_mfi.isValid(); ++r_mfi)
 	{
@@ -121,7 +121,6 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
 	    FORT_HGRESU(r_mfi->dataPtr(), DIMLIST(rbox),
 		s_dmfi->dataPtr(), d_dmfi->dataPtr(), sn_dmfi->dataPtr(), m_dmfi->dataPtr(), DIMLIST(freg));
 	}
-	
     }
     else
     {
@@ -282,7 +281,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 			    DIMLIST(sigbox),
 			    cn_dmfi->dataPtr(), DIMLIST(cenbox),
 			    DIMLIST(freg), DIMLIST(tdom),
-			    hx, hy,
+			    &hx, &hy,
 			    IsRZ(), mg_domain[mglev].bigEnd(0), line_solve_dim);
 #else
                         const Box& sigbox = sn_dmfi->box();
@@ -306,7 +305,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 			    s0_dmfi->dataPtr(),
 			    s1_dmfi->dataPtr(), DIMLIST(sigbox),
 			    cn_dmfi->dataPtr(), DIMLIST(cenbox),
-			    DIMLIST(freg), DIMLIST(tdom), hx, hy,
+			    DIMLIST(freg), DIMLIST(tdom), &hx, &hy,
 			    IsRZ(), mg_domain[mglev].bigEnd(0) + 1, line_solve_dim
 			    );
 #else
@@ -316,7 +315,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 			    s1_dmfi->dataPtr(),
 			    s2_dmfi->dataPtr(), DIMLIST(sigbox),
 			    cn_dmfi->dataPtr(), DIMLIST(cenbox),
-			    DIMLIST(freg), DIMLIST(tdom), hx, hy, hz
+			    DIMLIST(freg), DIMLIST(tdom), &hx, &hy, &hz
 			    );
 #endif
 #  endif
@@ -387,7 +386,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 			sigma_nd[0][mglev][igrid].dataPtr(),
 			sigma_nd[1][mglev][igrid].dataPtr(), DIMLIST(sigbox),
 			cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
-			DIMLIST(freg), DIMLIST(tdom), hx, hy,
+			DIMLIST(freg), DIMLIST(tdom), &hx, &hy,
 			IsRZ(), mg_domain[mglev].bigEnd(0) + 1,
 			line_solve_dim, ipass
 			);
@@ -399,7 +398,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 			sigma_nd[1][mglev][igrid].dataPtr(),
 			sigma_nd[2][mglev][igrid].dataPtr(), DIMLIST(sigbox),
 			cen[mglev][igrid].dataPtr(), DIMLIST(cenbox),
-			DIMLIST(freg), DIMLIST(tdom), hx, hy, hz
+			DIMLIST(freg), DIMLIST(tdom), &hx, &hy, &hz
 			);
 #endif
 #  endif
