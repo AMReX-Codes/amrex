@@ -1,5 +1,5 @@
 //
-// $Id: Interpolater.cpp,v 1.24 2002-09-27 19:20:00 almgren Exp $
+// $Id: Interpolater.cpp,v 1.25 2002-09-28 19:03:35 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -841,6 +841,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
         crse_geom.GetEdgeVolCoord(cvc[dir],crse_bx,dir);
     }
 
+#if (BL_SPACEDIM == 2)
     const int* cvcblo = crse_bx.loVect();
     const int* fvcblo = target_fine_region.loVect();
 
@@ -852,6 +853,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
         cvcbhi[dir] = cvcblo[dir] + cvc[dir].size() - 1;
         fvcbhi[dir] = fvcblo[dir] + fvc[dir].size() - 1;
     }
+#endif
 
     Real* fdat       = fine.dataPtr(fine_comp);
     Real* state_dat  = fine_state.dataPtr(state_comp);
