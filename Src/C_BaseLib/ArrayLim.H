@@ -3,7 +3,7 @@
 #define BL_ARRAYLIM_H
 
 /*
-** $Id: ArrayLim.H,v 1.7 2001-02-14 17:57:57 lijewski Exp $
+** $Id: ArrayLim.H,v 1.8 2001-02-14 19:05:44 lijewski Exp $
 */
 
 #if !defined(BL_LANG_FORT)
@@ -13,6 +13,8 @@
 */
 
 #ifdef BL_USE_ARLIM
+
+#error "BL_USE_ARLIM is deprecated"
 
 #define ARLIM_P(x)  const int*
 #define ARLIM(x)  x
