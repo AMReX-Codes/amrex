@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: SlabStat.cpp,v 1.2 2000-03-01 15:43:35 lijewski Exp $
+// $Id: SlabStat.cpp,v 1.3 2000-03-01 20:19:03 lijewski Exp $
 //
 
 #include <AmrLevel.H>
@@ -23,19 +23,10 @@ SlabStatRec::SlabStatRec (const aString&  name,
     m_boxes(boxes),
     m_func(func),
     m_mf(m_boxes,m_ncomp,0),
+    m_tmp_mf(m_boxes,m_vars.length(),m_ngrow),
     m_interval(0)
 {
     m_mf.setVal(0);
-    //
-    // Build m_tmp_mf without using ghost cells.
-    // This'll facilitate using it in Parallel MF routines.
-    //
-    BoxArray ba(boxes.length());
-        
-    for (int j = 0; j < boxes.length(); ++j)
-        ba.set(j,::grow(boxes[j],ngrow));
-
-    m_tmp_mf.define(ba,m_vars.length(),0,Fab_allocate);
 }
 
 SlabStatRec::~SlabStatRec () {}
@@ -57,45 +48,16 @@ SlabStatList::update (AmrLevel& amrlevel,
     {
         if (li()->level() == amrlevel.Level())
         {
-            const int L = li()->level();
-            MultiFab& M = li()->tmp_mf();
-            const int N = M.nGrow();
-
             li()->m_interval += dt;
-            //
-            // Build MultiFab with no ghost cells paralleling the AmrLevel.
-            //
-            BoxArray ba(amrlevel.boxArray().length());
 
-            for (int j = 0; j < ba.length(); ++j)
-                ba.set(j,::grow(amrlevel.boxArray()[j],N));
-
-            MultiFab tmpMF(ba,1,0);
-
-            for (int i = 0; i < M.nComp(); i++)
+            for (int i = 0; i < li()->tmp_mf().nComp(); i++)
             {
-                MultiFab* mf = amrlevel.derive(li()->vars()[i],time+dt,N);
-                //
-                // Fill tmpMF from *mf.  They have the same distribution.
-                //
-                BL_ASSERT(ba.length() == mf->boxArray().length());
-
-                for (MultiFabIterator mfi(*mf); mfi.isValid(); ++mfi)
-                    tmpMF[mfi.index()].copy((*mf)[mfi.index()],0,0,1);
-
-                delete mf;
-                //
-                // Parallel MultiFab -> MultiFab copy.
-                // This'll do what we want since neither has ghost cells.
-                //
-                M.copy(tmpMF,0,i,1);
+                amrlevel.derive(li()->vars()[i],time+dt,li()->tmp_mf(),i);
             }
-            //
-            // Finally compute the statistics.
-            //
+
             for (MultiFabIterator dmfi(li()->mf()); dmfi.isValid(); ++dmfi)
             {
-                DependentMultiFabIterator smfi(dmfi,M);
+                DependentMultiFabIterator smfi(dmfi,li()->tmp_mf());
 
                 const int nsrc = smfi().nComp();
                 const int ndst = dmfi().nComp();
@@ -161,5 +123,11 @@ SlabStatList::checkPoint (const aString& ckdir)
     const aString path = statdir + "/";
 
     for (ListIterator<SlabStatRec*> li(m_list); li; ++li)
+    {
         RunStats::addBytes(VisMF::Write(li()->mf(),path+li()->name()));
+
+        li()->m_interval = 0;
+
+        li()->mf().setVal(0);
+    }
 }
