@@ -51,6 +51,7 @@
       INTEGER            , SAVE :: LENARG
       CHARACTER(LEN=2000), SAVE :: ARGSTR
       LOGICAL            , SAVE :: GETCMD = .TRUE.
+      INTEGER IERR, IL
 !
 ! The following INTEGER/EXTERNAL declarations of IARGC should not
 ! really be necessary. However, at least one compiler (PGI) comments
@@ -68,7 +69,7 @@
           IF (NARG > 0) THEN
               IPOS = 1
               DO IARG = 1,NARG
-                CALL PXFGETARG(IARG,ARGSTR(IPOS:))
+                CALL PXFGETARG(IARG,ARGSTR(IPOS:),IL,IERR)
                 LENARG = LEN_TRIM(ARGSTR)
                 IPOS   = LENARG + 2
                 IF (IPOS > LEN(ARGSTR)) EXIT
@@ -165,6 +166,7 @@
 !  of 1000 characters should cover virtually all situations.
 !
       CHARACTER(LEN=1000) :: TMPVAL
+      INTEGER     IERR, IL
 !
 ! The following INTEGER/EXTERNAL declarations of IARGC should not
 ! really be necessary. However, at least one compiler (PGI) comments
@@ -191,7 +193,7 @@
 !
 ! Get the argument if VALUE is present
 !
-      IF (PRESENT(VALUE)) CALL PXFGETARG(NUMBER,VALUE)
+      IF (PRESENT(VALUE)) CALL PXFGETARG(NUMBER,VALUE,IL,IERR)
 !
 ! The LENGTH option is fairly pointless under Unix.
 ! Trailing spaces can only be specified using quotes.
@@ -204,7 +206,7 @@
           IF (PRESENT(VALUE)) THEN
               LENGTH = LEN_TRIM(VALUE)
           ELSE
-              CALL PXFGETARG(NUMBER,TMPVAL)
+              CALL PXFGETARG(NUMBER,TMPVAL,IL,IERR)
               LENGTH = LEN_TRIM(TMPVAL)
           END IF
       END IF
@@ -223,19 +225,19 @@
       INTEGER, INTENT(OUT), OPTIONAL :: STATUS
 !
       CHARACTER(LEN=2048) :: TMPVAL
-      INTEGER :: LL
+      INTEGER :: LL, IL, IERR
 
       LL = LEN_TRIM(NAME)
       IF ( PRESENT(TRIM_NAME) ) THEN
         IF ( .NOT. TRIM_NAME ) LL = LEN(NAME)
       END IF
 
-      CALL PXFGETENV(NAME(1:LL), TMPVAL)
-
-      IF ( LEN_TRIM(TMPVAL) .EQ. 0 ) THEN
-        IF ( PRESENT(STATUS) ) STATUS = 1
-        IF ( PRESENT(LENGTH) ) LENGTH = 0
-        IF ( PRESENT(VALUE)  ) VALUE  = ' '
+      CALL PXFGETENV(NAME(1:LL), LL, TMPVAL, IL, IERR)
+      IF ( IERR /= 0 ) THEN
+         IF ( PRESENT(STATUS) ) STATUS = 1
+         IF ( PRESENT(STATUS) ) STATUS = 1
+         IF ( PRESENT(LENGTH) ) LENGTH = 0
+         IF ( PRESENT(VALUE)  ) VALUE  = ' '
       ELSE
         IF ( PRESENT(VALUE)  ) VALUE  = TMPVAL
         IF ( PRESENT(LENGTH) ) LENGTH = LEN_TRIM(TMPVAL)
