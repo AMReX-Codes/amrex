@@ -1,7 +1,7 @@
 module stencil_module
 
   use bl_types
-  use mg_bc_module
+  use bc_module
   use multifab_module
 
   implicit none
@@ -1959,7 +1959,7 @@ contains
     !     other is the normal factor
     fac = ONE/real(ratio*ratio, kind=dp_t)
 
-    !   Lo i face
+!   Lo i face
     if ( dim == 1 ) then
        if (face == -1) then
 
@@ -1979,7 +1979,7 @@ contains
           end do
           flux(1,:) = fac * flux(1,:)
 
-          !   Hi i face
+!      Hi i face
        else if (face == 1) then
 
           i = nx
@@ -2000,8 +2000,8 @@ contains
           flux(1,:) = fac * flux(1,:)
 
        end if
-       !   Lo j face
 
+!   Lo j face
     else if ( dim == 2 ) then
        if (face == -1) then
 
@@ -2022,7 +2022,7 @@ contains
           flux(:,1) = fac * flux(:,1)
 
 
-          !   Hi j face
+!      Hi j face
        else if (face == 1) then
 
           j = ny
