@@ -1,6 +1,7 @@
+//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.10 1997-11-24 18:40:53 lijewski Exp $
+// $Id: RunStats.cpp,v 1.11 1997-11-24 18:52:32 lijewski Exp $
 //
 
 #include <Utility.H>

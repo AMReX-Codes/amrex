@@ -1,8 +1,10 @@
+//BL_COPYRIGHT_NOTICE
+
 #ifndef _ErrorList_H_
 #define _ErrorList_H_
 
 //
-// $Id: ErrorList.H,v 1.1 1997-11-18 19:30:23 lijewski Exp $
+// $Id: ErrorList.H,v 1.2 1997-11-24 18:52:29 lijewski Exp $
 //
 
 #include <REAL.H>

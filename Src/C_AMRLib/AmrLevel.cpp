@@ -1,6 +1,7 @@
+//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.2 1997-11-22 17:51:31 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.3 1997-11-24 18:52:27 lijewski Exp $
 //
 
 // #define ADVANCE_DEBUG 1

@@ -1,8 +1,10 @@
+//BL_COPYRIGHT_NOTICE
+
 #ifndef _AmrLevel_H_
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.1 1997-11-18 19:30:20 lijewski Exp $
+// $Id: AmrLevel.H,v 1.2 1997-11-24 18:52:27 lijewski Exp $
 //
 
 #include <REAL.H>

@@ -1,8 +1,10 @@
+//BL_COPYRIGHT_NOTICE
+
 #ifndef _INTERPOLATER_H_
 #define _INTERPOLATER_H_ 
 
 //
-// $Id: Interpolater.H,v 1.1 1997-11-18 19:30:27 lijewski Exp $
+// $Id: Interpolater.H,v 1.2 1997-11-24 18:52:30 lijewski Exp $
 //
 
 #define _NodeBilinear_H_      "%W%  %G%"

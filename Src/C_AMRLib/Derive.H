@@ -1,8 +1,10 @@
+//BL_COPYRIGHT_NOTICE
+
 #ifndef _Derive_H_
 #define _Derive_H_
 
 //
-// $Id: Derive.H,v 1.1 1997-11-18 19:30:22 lijewski Exp $
+// $Id: Derive.H,v 1.2 1997-11-24 18:52:29 lijewski Exp $
 //
 
 #include <REAL.H>

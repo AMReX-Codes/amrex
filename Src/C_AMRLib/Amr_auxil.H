@@ -1,3 +1,4 @@
+//BL_COPYRIGHT_NOTICE
 
 extern "C" void maxSizeBox(BoxList& bx_list, IntVect& ratio);
 

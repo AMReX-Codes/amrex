@@ -1,8 +1,10 @@
+//BL_COPYRIGHT_NOTICE
+
 #ifndef _BCREC_H_
 #define _BCREC_H_ 
 
 //
-// $Id: BCRec.H,v 1.1 1997-11-18 19:30:21 lijewski Exp $
+// $Id: BCRec.H,v 1.2 1997-11-24 18:52:28 lijewski Exp $
 //
 
 #include <Misc.H>

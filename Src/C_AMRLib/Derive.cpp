@@ -1,6 +1,7 @@
+//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Derive.cpp,v 1.1 1997-11-18 19:30:23 lijewski Exp $
+// $Id: Derive.cpp,v 1.2 1997-11-24 18:52:29 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

@@ -1,6 +1,7 @@
+//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.2 1997-11-20 00:49:43 lijewski Exp $
+// $Id: TagBox.cpp,v 1.3 1997-11-24 18:52:33 lijewski Exp $
 //
 
 #include <TagBox.H>

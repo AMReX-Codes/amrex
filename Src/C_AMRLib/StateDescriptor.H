@@ -1,8 +1,10 @@
+//BL_COPYRIGHT_NOTICE
+
 #ifndef _StateDescriptor_H_
 #define _StateDescriptor_H_ 
 
 //
-// $Id: StateDescriptor.H,v 1.1 1997-11-18 19:30:29 lijewski Exp $
+// $Id: StateDescriptor.H,v 1.2 1997-11-24 18:52:32 lijewski Exp $
 //
 
 #include <Array.H>
