@@ -52,12 +52,14 @@ public:
     virtual bool init(sequence_number sno, MPI_Comm comm);
 private:
     task* tf;
+    const MultiFab& s;
+    const int sgrid;
+    const Box bx;
 };
 
 task_fab_get::task_fab_get(const MultiFab& d_, int dgrid_, const Box& bx_, const MultiFab& s_, int sgrid_) 
-    : task_fab(d_, dgrid_, bx_, s_.nComp())
+    : task_fab(d_, dgrid_, bx_, s_.nComp()), s(s_), sgrid(sgrid_), bx(bx_)
 {
-    tf = new task_copy_local(target, bx_, s_, sgrid_);
 }
 
 task_fab_get::~task_fab_get()
@@ -67,6 +69,7 @@ task_fab_get::~task_fab_get()
 bool task_fab_get::init(sequence_number sno, MPI_Comm comm)
 {
     task_fab::init(sno, comm);
+    tf = new task_copy_local(target, bx, s, sgrid);
     bool result = m_local_target;
     bool tresult = tf->init(sno, comm);
     return result || tresult;
@@ -508,4 +511,4 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest, MultiFab& fine, c
 #endif
     }
     tl.execute();
-tt}
+}

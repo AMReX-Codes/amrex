@@ -362,8 +362,12 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2)
     while (err > tol) 
     {
 	err = ml_cycle(lev_max, mglev_max, i1, i2, tol, 0.0);
-	if (++it > 100)
+	HG_DEBUG_OUT("err = " << err << endl);
+	if (++it > 10)
+	{
+	    exit(0); /*NOTREACHED*/
 	    BoxLib::Error( "amr_multigrid::solve---multigrid iteration failed" );
+	}
     }
     if (pcode >= 1 && ParallelDescriptor::IOProcessor())
     {
