@@ -2,7 +2,7 @@
 #define _BL_THREAD_H_
 
 //
-// $Id: Thread.H,v 1.14 2001-10-18 17:55:31 lijewski Exp $
+// $Id: Thread.H,v 1.15 2001-10-20 22:45:32 car Exp $
 //
 
 //#include <cstdio>
@@ -491,13 +491,14 @@ ThreadSpecificData<T>::tsd_destroy(void* v)
 
 namespace Thread
 {
-    void sleep(const BoxLib::Time& tspec);
-    int max_threads();
-    void exit(void* status = 0);
-    void yield();
-    int getID();
+    void sleep (const BoxLib::Time& tspec);
+    int max_threads ();
+    void exit (void* status = 0);
+    void yield ();
+    int getID ();
+    bool baseThread ();
     enum CancelState { Enable, Disable };
-    CancelState setCancelState(CancelState state);
+    CancelState setCancelState (CancelState state);
 }
 
 
@@ -530,6 +531,7 @@ namespace Thread
 {
 inline int max_threads() { return 1;}
 inline int getID () { return 0; }
+inline bool baseThread () { return true; }
 }
 
 // Mutex
