@@ -43,18 +43,6 @@ public:
                into largest possible chunk.
     */
     virtual void free (void* ap);
-
-    /*@ManDoc: Mirror the C calloc() function.  Returns zero'd memory of
-               size nmemb*size.  This is here so that we can implement
-               malloc(3) and family.  User's shouldn't use this function.
-    */
-    void* calloc (size_t nmemb, size_t size);
-
-    /*@ManDoc: Mirror the C realloc() function.  This is here so that we can
-               implement malloc(3) and family.  User's shouldn't use this
-               function.
-    */
-    void* realloc (void* ptr, size_t size);
     //
     //@ManDoc: The current amount of heap space used by the CArena object.
     //
