@@ -46,12 +46,12 @@ class copy_cache {
   copy_cache(int Nsets, Real *Dptr, Real *Sptr);
 
   // sync cache
-  copy_cache(MultiFab& r, const level_interface& interface,
-	     amr_boundary bdy);
+  copy_cache(MultiFab& r, const level_interface& lev_interface,
+	     const amr_boundary_class& bdy);
 
   // border cache (only w == 1 case currently supported)
-  copy_cache(MultiFab& r, const level_interface& interface,
-	     amr_boundary bdy, int w);
+  copy_cache(MultiFab& r, const level_interface& lev_interface,
+	     const amr_boundary_class& bdy, int w);
 
   ~copy_cache() {
     delete [] dstart;

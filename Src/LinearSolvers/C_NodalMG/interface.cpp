@@ -65,7 +65,7 @@ void level_interface::copy(const level_interface& src)
 }
 
 void level_interface::alloc_coarsened(const BoxArray& Im,
-				      amr_boundary /*bdy*/,
+				      const amr_boundary_class& /*bdy*/,
 				      const level_interface& src,
 				      const IntVect& rat)
 {
@@ -129,7 +129,7 @@ void level_interface::alloc_coarsened(const BoxArray& Im,
 }
 
 void level_interface::alloc(const BoxArray& Im, const Box& Domain,
-			    amr_boundary bdy)
+			    const amr_boundary_class& bdy)
 {
   if (ok())
     BoxLib::Error("level_interface::alloc---this object already allocated");

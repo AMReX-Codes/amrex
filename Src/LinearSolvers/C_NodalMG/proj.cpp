@@ -447,7 +447,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
   //Real tol = 5.e-9;
 #endif
   t0 = Utility::second();
-  inviscid_fluid_boundary afb(bc);
+  inviscid_fluid_boundary_class afb(bc);
   i = m.length() - 1;
   holy_grail_amr_projector proj(m, ratio, domain[i], 0, i, i, afb, pcode);
 #if (BL_SPACEDIM == 2)

@@ -39,10 +39,11 @@ class holy_grail_interpolator : public bilinear_interpolator {
 
 #  endif
 
-class holy_grail_sigma_restrictor_class :
-        public cell_average_restrictor_class {
+class holy_grail_sigma_restrictor:
+        public cell_average_restrictor_class 
+{
  public:
-  holy_grail_sigma_restrictor_class() : cell_average_restrictor_class(0) { }
+  holy_grail_sigma_restrictor() : cell_average_restrictor_class(0) { }
   void fill(FArrayBox& patch, const Box& region,
 	    const FArrayBox& fgr, const IntVect& rat) const;
 };
@@ -53,7 +54,7 @@ class holy_grail_sigma_restrictor_class :
 
 class holy_grail_amr_multigrid : public amr_multigrid {
  protected:
-  amr_fluid_boundary boundary;
+  const amr_fluid_boundary_class& boundary;
   PArray<MultiFab> sigma, sigma_nd[BL_SPACEDIM], sigma_node, cen;
   Real (*h)[BL_SPACEDIM];
 
@@ -122,7 +123,7 @@ class holy_grail_amr_multigrid : public amr_multigrid {
   holy_grail_amr_multigrid(Array<BoxArray>& Mesh, Array<IntVect>& Gen_ratio,
 			   const Box& fdomain,
 			   int Lev_min_min, int Lev_min_max, int Lev_max_max,
-			   amr_fluid_boundary Boundary, int Pcode = 2)
+			   const amr_fluid_boundary_class& Boundary, int Pcode = 2)
     : amr_multigrid(Mesh, Gen_ratio, Lev_min_min, Lev_min_max, Lev_max_max,
 		    Boundary.pressure(), Pcode),
       boundary(Boundary), smoother_mode(2), line_solve_dim(-1)

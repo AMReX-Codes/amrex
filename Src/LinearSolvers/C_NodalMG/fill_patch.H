@@ -65,12 +65,12 @@ const level_real&
 
 /*
   grid_real get_patch(const Box& region,
-		      const level_interface& interface,
-		      amr_boundary bdy = error_boundary,
+		      const level_interface& lev_interface,
+		      const amr_boundary_class& bdy = error_boundary,
 		      int flags = 0);
   int get_patch(grid_real& patch, const Box& region,
-		const level_interface& interface,
-		amr_boundary bdy = error_boundary,
+		const level_interface& lev_interface,
+		const amr_boundary_class& bdy = error_boundary,
 		int flags = 0);
 */
 
@@ -81,17 +81,17 @@ int find_patch(const Box& region, const MultiFab& r, int flags = 0);
 
 int fill_patch(FArrayBox& patch, const Box& region,
 	       const MultiFab& r,
-	       const level_interface& interface,
-	       amr_boundary bdy = error_boundary,
+	       const level_interface& lev_interface,
+	       const amr_boundary_class& bdy = error_boundary,
 	       int flags = 0, int idim = -1, int index = -1);
 
 inline int fill_patch(FArrayBox& patch,
 		      const MultiFab& r,
-		      const level_interface& interface,
-		      amr_boundary bdy = error_boundary,
+		      const level_interface& lev_interface,
+		      const amr_boundary_class& bdy = error_boundary,
 		      int flags = 0, int idim = -1, int index = -1)
 {
-  return fill_patch(patch, patch.box(), r, interface, bdy,
+  return fill_patch(patch, patch.box(), r, lev_interface, bdy,
 		    flags, idim, index);
 }
 
@@ -100,14 +100,14 @@ inline int fill_patch(FArrayBox& patch,
   // if (flags & 1) is 0, it may return 1 even if patch is not filled
   int fill_patch(FArrayBox& patch, const Box& region,
 		 const Box& active,
-		 amr_boundary bdy = error_boundary,
+		 const amr_boundary_class& bdy = error_boundary,
 		 int flags = 0, int igrid = -1);
   int fill_patch(FArrayBox& patch, const Box& region,
-		 amr_boundary bdy = error_boundary,
+		 const amr_boundary_class& bdy = error_boundary,
 		 int flags = 0, int igrid = -1)
     { return fill_patch(patch, region, region, bdy, flags, igrid); }
   int fill_patch(FArrayBox& patch,
-		 amr_boundary bdy = error_boundary,
+		 const amr_boundary_class& bdy = error_boundary,
 		 int flags = 0, int igrid = -1)
     { return fill_patch(patch, patch.box(), bdy, flags, igrid); }
 */
@@ -122,8 +122,8 @@ int fill_patch_blindly(FArrayBox& patch, const Box& region,
   // does not check to see if all of patch is filled, ignores boundaries
 int fill_exterior_patch_blindly(FArrayBox& patch, const Box& region,
 				MultiFab& r,
-				const level_interface& interface,
-				amr_boundary bdy,
+				const level_interface& lev_interface,
+				const amr_boundary_class& bdy,
 				int flags = 0);
 
   // Fills all ghost cells that can be obtained from other grids or
@@ -131,16 +131,16 @@ int fill_exterior_patch_blindly(FArrayBox& patch, const Box& region,
   // inclusive, it will be used as the width of the regions to be
   // filled---otherwise, the full width will be used.
 
-void sync_internal_borders(MultiFab& r, const level_interface& interface);
-void fill_internal_borders(MultiFab& r, const level_interface& interface,
+void sync_internal_borders(MultiFab& r, const level_interface& lev_interface);
+void fill_internal_borders(MultiFab& r, const level_interface& lev_interface,
 			   int w = -1);
 
 inline void sync_borders(MultiFab& r,
 #ifdef HG_USE_CACHE
 			 const copy_cache* sync_cache,
 #endif
-			 const level_interface& interface,
-			 amr_boundary bdy = error_boundary)
+			 const level_interface& lev_interface,
+			 const amr_boundary_class& bdy = error_boundary)
 {
 #ifdef HG_USE_CACHE
   if (sync_cache) {
@@ -149,16 +149,16 @@ inline void sync_borders(MultiFab& r,
     return;
   }
 #endif
-    sync_internal_borders(r, interface);
-    bdy.sync_borders(r, interface);
+    sync_internal_borders(r, lev_interface);
+    bdy.sync_borders(r, lev_interface);
 }
 
 inline void fill_borders(MultiFab& r,
 #ifdef HG_USE_CACHE
 			 const copy_cache* border_cache,
 #endif
-			 const level_interface& interface,
-			 amr_boundary bdy = error_boundary,
+			 const level_interface& lev_interface,
+			 const amr_boundary_class& bdy = error_boundary,
 			 int w = -1)
 {
 #ifdef HG_USE_CACHE
@@ -168,25 +168,25 @@ inline void fill_borders(MultiFab& r,
     return;
   }
 #endif
-    fill_internal_borders(r, interface, w);
-    bdy.fill_borders(r, interface, w);
+    fill_internal_borders(r, lev_interface, w);
+    bdy.fill_borders(r, lev_interface, w);
 }
 
-void clear_part_interface(MultiFab& r, const level_interface& interface);
+void clear_part_interface(MultiFab& r, const level_interface& lev_interface);
 
 void interpolate_patch(FArrayBox& patch, const Box& region,
 		       MultiFab& r, const IntVect& rat,
 		       const amr_interpolator& interp = bilinear_interpolator(),
-		       const level_interface& interface = null_level_interface,
-		       amr_boundary bdy = error_boundary);
+		       const level_interface& lev_interface = null_level_interface,
+		       const amr_boundary_class& bdy = error_boundary);
 inline
 void interpolate_patch(FArrayBox& patch,
 		       MultiFab& r, const IntVect& rat,
 		       const amr_interpolator& interp = bilinear_interpolator(),
-		       const level_interface& interface = null_level_interface,
-		       amr_boundary bdy = error_boundary)
+		       const level_interface& lev_interface = null_level_interface,
+		       const amr_boundary_class& bdy = error_boundary)
 {
-  interpolate_patch(patch, patch.box(), r, rat, interp, interface, bdy);
+  interpolate_patch(patch, patch.box(), r, rat, interp, lev_interface, bdy);
 }
 
 void restrict_patch(FArrayBox& patch, const Box& region,
@@ -194,24 +194,24 @@ void restrict_patch(FArrayBox& patch, const Box& region,
 #ifdef HG_USE_CACHE
 		    const copy_cache* border_cache = 0,
 #endif
-		    amr_restrictor restric = default_restrictor_class(),
-		    const level_interface& interface = null_level_interface,
-		    amr_boundary bdy = error_boundary);
+		    const amr_restrictor_class& restric = default_restrictor(),
+		    const level_interface& lev_interface = null_level_interface,
+		    const amr_boundary_class& bdy = error_boundary);
 inline
 void restrict_patch(FArrayBox& patch,
 		    MultiFab& r, const IntVect& rat,
 #ifdef HG_USE_CACHE
 		    const copy_cache* border_cache = 0,
 #endif
-		    amr_restrictor restric = default_restrictor_class(),
-		    const level_interface& interface = null_level_interface,
-		    amr_boundary bdy = error_boundary)
+		    const amr_restrictor_class& restric = default_restrictor(),
+		    const level_interface& lev_interface = null_level_interface,
+		    const amr_boundary_class& bdy = error_boundary)
 {
   restrict_patch(patch, patch.box(), r, rat, 
 #ifdef HG_USE_CACHE
       border_cache,
 #endif
-		 restric, interface, bdy);
+		 restric, lev_interface, bdy);
 }
 
 void restrict_level(MultiFab& dest, int bflag,
@@ -219,24 +219,24 @@ void restrict_level(MultiFab& dest, int bflag,
 #ifdef HG_USE_CACHE
 		    const copy_cache* border_cache = 0,
 #endif
-		    amr_restrictor restric = default_restrictor_class(),
-		    const level_interface& interface = null_level_interface,
-		    amr_boundary bdy = error_boundary);
+		    const amr_restrictor_class& restric = default_restrictor(),
+		    const level_interface& lev_interface = null_level_interface,
+		    const amr_boundary_class& bdy = error_boundary);
 inline
 void restrict_level(MultiFab& dest,
 		    MultiFab& r, const IntVect& rat,
 #ifdef HG_USE_CACHE
 		    const copy_cache* border_cache = 0,
 #endif
-		    amr_restrictor restric = default_restrictor_class(),
-		    const level_interface& interface = null_level_interface,
-		    amr_boundary bdy = error_boundary)
+		    const amr_restrictor_class& restric = default_restrictor(),
+		    const level_interface& lev_interface = null_level_interface,
+		    const amr_boundary_class& bdy = error_boundary)
 {
   restrict_level(dest, 0, r, rat, 
 #ifdef HG_USE_CACHE
       border_cache, 
 #endif
-      restric, interface, bdy);
+      restric, lev_interface, bdy);
 }
 
 #endif

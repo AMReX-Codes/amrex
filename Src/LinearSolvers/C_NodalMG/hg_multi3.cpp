@@ -121,7 +121,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
 #ifdef HG_USE_CACHE
       dbc, 
 #endif
-      interface[mglev], mg_boundary);
+      lev_interface[mglev], mg_boundary);
 
 #ifdef HG_TERRAIN
 
@@ -131,7 +131,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
     const Box& dbox = d[igrid].box();
     const Box& cenbox = cen[mglev][igrid].box();
     const Box& sigbox = sigma[mglev][igrid].box();
-    const Box& freg = interface[mglev].part_fine(igrid);
+    const Box& freg = lev_interface[mglev].part_fine(igrid);
     FORT_HGRES(r[igrid].dataPtr(), dimlist(rbox),
                s[igrid].dataPtr(), dimlist(sbox),
                d[igrid].dataPtr(), dimlist(dbox),
@@ -141,14 +141,14 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
   }
 
   if (iclear) {
-    clear_part_interface(r, interface[mglev]);
+    clear_part_interface(r, lev_interface[mglev]);
   }
 
 #elif (defined SIGMA_NODE)
 
   for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
     const Box& rbox = r[igrid].box();
-    const Box& freg = interface[mglev].part_fine(igrid);
+    const Box& freg = lev_interface[mglev].part_fine(igrid);
     FORT_HGRESU(r[igrid].dataPtr(), dimlist(rbox),
                 s[igrid].dataPtr(),
                 d[igrid].dataPtr(),
@@ -170,7 +170,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
   if (!iclear) {
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
       const Box& rbox = r[igrid].box();
-      const Box& freg = interface[mglev].part_fine(igrid);
+      const Box& freg = lev_interface[mglev].part_fine(igrid);
       FORT_HGRESU(r[igrid].dataPtr(), dimlist(rbox),
 		  s[igrid].dataPtr(), d[igrid].dataPtr(),
 		  dimlist(freg), hx);
@@ -179,12 +179,12 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
   else {
     for (igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
       const Box& rbox = r[igrid].box();
-      const Box& freg = interface[mglev].part_fine(igrid);
+      const Box& freg = lev_interface[mglev].part_fine(igrid);
       FORT_HGRES(r[igrid].dataPtr(), dimlist(rbox),
 		 s[igrid].dataPtr(), d[igrid].dataPtr(),
 		 dimlist(freg), hx);
     }
-    clear_part_interface(r, interface[mglev]);
+    clear_part_interface(r, lev_interface[mglev]);
   }
 
 #  else
@@ -193,7 +193,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
     const Box& rbox = r[igrid].box();
     const Box& sbox = s[igrid].box();
     const Box& dbox = d[igrid].box();
-    const Box& freg = interface[mglev].part_fine(igrid);
+    const Box& freg = lev_interface[mglev].part_fine(igrid);
 #    ifndef SIGMA_NODE
     // this branch is the only one that can be reached here
     const Box& sigbox = sigma[mglev][igrid].box();
@@ -223,7 +223,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
   }
 
   if (iclear) {
-    clear_part_interface(r, interface[mglev]);
+    clear_part_interface(r, lev_interface[mglev]);
   }
 
 #  endif // HG_CONSTANT
@@ -250,12 +250,12 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 #ifdef HG_USE_CACHE
 	corr_bcache[mglev],
 #endif
-		     interface[mglev], mg_boundary);
+		     lev_interface[mglev], mg_boundary);
       else
 	is_zero = 0;
       for (int igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) {
 	const Box& sbox = resid[mglev][igrid].box();
-	const Box& freg = interface[mglev].part_fine(igrid);
+	const Box& freg = lev_interface[mglev].part_fine(igrid);
 	if (line_solve_dim == -1) {
 	  // Gauss-Seidel section:
 #ifdef HG_TERRAIN
@@ -360,7 +360,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 #ifdef HG_USE_CACHE
 	  corr_scache[mglev],
 #endif
-		   interface[mglev], mg_boundary);
+		   lev_interface[mglev], mg_boundary);
     }
     else {
       // Full-level line solve section:
@@ -377,7 +377,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 #ifdef HG_USE_CACHE
 	  corr_bcache[mglev],
 #endif
-		       interface[mglev], mg_boundary);
+		       lev_interface[mglev], mg_boundary);
 	else
 	  is_zero = 0;
 

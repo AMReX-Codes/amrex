@@ -98,7 +98,7 @@ void amr_multigrid::build_mesh(const Box& fdomain)
     mg_domain_array.set(lev_min, mg_domain);
     mg_mesh_array.set(lev_min, mg_mesh);
 
-    // initialize interface
+    // initialize lev_interface
 
     int mglev_common = mg_mesh.length(), ldiff;
     if (lev_min > lev_min_min) {
@@ -121,7 +121,7 @@ void amr_multigrid::build_mesh(const Box& fdomain)
     // will be used below and on the next loop:
     build_index();
 
-    interface = new level_interface[mg_mesh.length()];
+    lev_interface = new level_interface[mg_mesh.length()];
 
     for (int mglev = mg_mesh.length() - 1, lev = lev_max + 1;
 	 mglev >= 0; mglev--) {
@@ -129,22 +129,22 @@ void amr_multigrid::build_mesh(const Box& fdomain)
 	lev--;
       if (mglev >= mglev_common) {
 	i = mglev + ldiff;
-	interface[mglev].copy(interface_array[lev_min - 1 - lev_min_min][i]);
+	lev_interface[mglev].copy(interface_array[lev_min - 1 - lev_min_min][i]);
       }
       else {
 	if (mglev == ml_index[lev]) {
-	  interface[mglev].alloc(mg_mesh[mglev], mg_domain[mglev],
+	  lev_interface[mglev].alloc(mg_mesh[mglev], mg_domain[mglev],
 				 mg_boundary);
 	}
 	else {
 	  IntVect rat =
 	    mg_domain[mglev+1].length() / mg_domain[mglev].length();
-	  interface[mglev].alloc_coarsened(mg_mesh[mglev], mg_boundary,
-					   interface[mglev + 1], rat);
+	  lev_interface[mglev].alloc_coarsened(mg_mesh[mglev], mg_boundary,
+					   lev_interface[mglev + 1], rat);
 	}
       }
     }
-    interface_array[lev_min - lev_min_min] = interface;
+    interface_array[lev_min - lev_min_min] = lev_interface;
   }
 }
 
@@ -243,7 +243,7 @@ void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source,
 
   mg_domain = mg_domain_array[lev_min];
   mg_mesh = mg_mesh_array[lev_min];
-  interface = interface_array[lev_min - lev_min_min];
+  lev_interface = interface_array[lev_min - lev_min_min];
 
   build_index();
 
@@ -528,7 +528,7 @@ void amr_multigrid::mg_cycle(int mglev, int i1, int i2, int is_zero)
   relax(mglev, i2, 0);
 }
 
-// Should include interface points
+// Should include lev_interface points
 void amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 {
   MultiFab& target = work[lto];
@@ -536,13 +536,13 @@ void amr_multigrid::mg_interpolate_level(int lto, int lfrom)
   if (target.nGrow() == 0) {
     for (int i = 0; i < target.length(); i++) {
       interpolate_patch(target[i], corr[lfrom], rat,
-			bilinear_interpolator(), interface[lfrom]);
+			bilinear_interpolator(), lev_interface[lfrom]);
     }
   }
   else {
     for (int i = 0; i < target.length(); i++) {
       interpolate_patch(target[i], target.box(i), corr[lfrom], rat,
-			bilinear_interpolator(), interface[lfrom]);
+			bilinear_interpolator(), lev_interface[lfrom]);
     }
   }
 }
@@ -556,7 +556,7 @@ void amr_multigrid::mg_restrict_level(int lto, int lfrom)
 #ifdef HG_USE_CACHE
 	work_bcache[lfrom],
 #endif
-		   cell_average_restrictor);
+		   cell_average_restrictor_class(0));
   }
   else if (integrate == 0) {
     if (get_amr_level(lto) >= 0) {
@@ -565,8 +565,8 @@ void amr_multigrid::mg_restrict_level(int lto, int lfrom)
 #ifdef HG_USE_CACHE
 	  work_bcache[lfrom],
 #endif
-		     bilinear_restrictor_coarse,
-		     interface[lfrom], mg_boundary);
+		     bilinear_restrictor_coarse_class(0),
+		     lev_interface[lfrom], mg_boundary);
     }
     else {
       restrict_level(resid[lto], 0,
@@ -574,8 +574,8 @@ void amr_multigrid::mg_restrict_level(int lto, int lfrom)
 #ifdef HG_USE_CACHE
 	  work_bcache[lfrom],
 #endif
-		     bilinear_restrictor,
-		     interface[lfrom], mg_boundary);
+		     bilinear_restrictor_class(0),
+		     lev_interface[lfrom], mg_boundary);
     }
   }
   else {
@@ -585,8 +585,8 @@ void amr_multigrid::mg_restrict_level(int lto, int lfrom)
 #ifdef HG_USE_CACHE
 	  work_bcache[lfrom],
 #endif
-		     bilinear_integrator_coarse,
-		     interface[lfrom], mg_boundary);
+		     bilinear_restrictor_coarse_class(1),
+		     lev_interface[lfrom], mg_boundary);
     }
     else {
       restrict_level(resid[lto], 0,
@@ -594,8 +594,8 @@ void amr_multigrid::mg_restrict_level(int lto, int lfrom)
 #ifdef HG_USE_CACHE
 	  work_bcache[lfrom],
 #endif
-		     bilinear_integrator,
-		     interface[lfrom], mg_boundary);
+		     bilinear_restrictor_class(1),
+		     lev_interface[lfrom], mg_boundary);
     }
   }
 }

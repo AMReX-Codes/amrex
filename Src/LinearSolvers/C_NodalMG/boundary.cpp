@@ -427,20 +427,20 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 }
 
 void amr_boundary_class::fill_borders(MultiFab& r,
-				      const level_interface& interface,
+				      const level_interface& lev_interface,
 				      int w) const
 {
   w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
   int igrid, jgrid;
-  const Box& domain = interface.domain();
+  const Box& domain = lev_interface.domain();
   BoxLib::Error("amr_boundary_class::fill_borders---old function not used for some time, check source code carefully before using.");
-  for (int iface = 0; iface < interface.nfaces(); iface++) {
-    if (interface.fgeo(iface) == level_interface::ALL) {
-      igrid = interface.fgrid(iface, 0);
-      jgrid = interface.fgrid(iface, 1);
+  for (int iface = 0; iface < lev_interface.nfaces(); iface++) {
+    if (lev_interface.fgeo(iface) == level_interface::ALL) {
+      igrid = lev_interface.fgrid(iface, 0);
+      jgrid = lev_interface.fgrid(iface, 1);
       if (igrid < 0 || jgrid < 0) {
-	Box b = interface.face(iface);
-	int idim = interface.fdim(iface);
+	Box b = lev_interface.face(iface);
+	int idim = lev_interface.fdim(iface);
 	int a = (type(r,idim) == IndexType::NODE);
 	// need to do on x borders too in case y border is an interior face
 #if (BL_SPACEDIM == 2)
@@ -454,9 +454,9 @@ void amr_boundary_class::fill_borders(MultiFab& r,
 	if (igrid < 0) {
 	  for (int i = 0; i < BL_SPACEDIM; i++) {
 	    if (i != idim) {
-	      if (interface.interior_mesh()[jgrid].smallEnd(i) ==b.smallEnd(i))
+	      if (lev_interface.interior_mesh()[jgrid].smallEnd(i) ==b.smallEnd(i))
 		b.growLo(i, w);
-	      if (interface.interior_mesh()[jgrid].bigEnd(i) == b.bigEnd(i))
+	      if (lev_interface.interior_mesh()[jgrid].bigEnd(i) == b.bigEnd(i))
 		b.growHi(i, w);
 	    }
 	  }
@@ -464,14 +464,14 @@ void amr_boundary_class::fill_borders(MultiFab& r,
 	  bdir = -(idim+1);
 	  bb = box(b, domain, bdir);
 	  idest = jgrid;
-	  isrc = interface.exterior_ref(igrid);
+	  isrc = lev_interface.exterior_ref(igrid);
 	}
 	else if (jgrid < 0) {
 	  for (int i = 0; i < BL_SPACEDIM; i++) {
 	    if (i != idim) {
-	      if (interface.interior_mesh()[igrid].smallEnd(i) ==b.smallEnd(i))
+	      if (lev_interface.interior_mesh()[igrid].smallEnd(i) ==b.smallEnd(i))
 		b.growLo(i, w);
-	      if (interface.interior_mesh()[igrid].bigEnd(i) == b.bigEnd(i))
+	      if (lev_interface.interior_mesh()[igrid].bigEnd(i) == b.bigEnd(i))
 		b.growHi(i, w);
 	    }
 	  }
@@ -479,7 +479,7 @@ void amr_boundary_class::fill_borders(MultiFab& r,
 	  bdir = (idim+1);
 	  bb = box(b, domain, bdir);
 	  idest = igrid;
-	  isrc = interface.exterior_ref(jgrid);
+	  isrc = lev_interface.exterior_ref(jgrid);
 	}
 	if (isrc < 0)
 	  isrc = idest;
@@ -490,24 +490,24 @@ void amr_boundary_class::fill_borders(MultiFab& r,
 }
 
 void mixed_boundary_class::sync_borders(MultiFab& r,
-					const level_interface& interface) const
+					const level_interface& lev_interface) const
 {
   if (type(r) != IntVect::TheNodeVector()) {
     BoxLib::Error("mixed_boundary_class::sync_borders---only NODE-based sync defined");
   }
 
-  for (int iface = 0; iface < interface.nfaces(); iface++) {
-    if (interface.fgeo(iface) != level_interface::ALL)
+  for (int iface = 0; iface < lev_interface.nfaces(); iface++) {
+    if (lev_interface.fgeo(iface) != level_interface::ALL)
       break;
-    int igrid = interface.fgrid(iface, 0);
+    int igrid = lev_interface.fgrid(iface, 0);
     if (igrid < 0) {
-      int idim = interface.fdim(iface);
+      int idim = lev_interface.fdim(iface);
       if (ptr->bc[idim][0] == periodic) {
-	int jgrid = interface.fgrid(iface, 1);
-	igrid = interface.exterior_ref(igrid);
-	const Box& b = interface.node_face(iface);
+	int jgrid = lev_interface.fgrid(iface, 1);
+	igrid = lev_interface.exterior_ref(igrid);
+	const Box& b = lev_interface.node_face(iface);
 	Box bb = b;
-	bb.shift(idim, interface.domain().length(idim));
+	bb.shift(idim, lev_interface.domain().length(idim));
 	r[jgrid].copy(r[igrid], bb, 0, b, 0, r.nComp());
       }
     }
@@ -515,20 +515,20 @@ void mixed_boundary_class::sync_borders(MultiFab& r,
 }
 
 void mixed_boundary_class::fill_borders(MultiFab& r,
-					const level_interface& interface,
+					const level_interface& lev_interface,
 					int w) const
 {
   w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
-  const Box& domain = interface.domain();
+  const Box& domain = lev_interface.domain();
   int igrid, jgrid;
-  for (int iface = 0; iface < interface.nfaces(); iface++) {
-    if (interface.fgeo(iface) != level_interface::ALL)
+  for (int iface = 0; iface < lev_interface.nfaces(); iface++) {
+    if (lev_interface.fgeo(iface) != level_interface::ALL)
       break;
-    igrid = interface.fgrid(iface, 0);
-    jgrid = interface.fgrid(iface, 1);
+    igrid = lev_interface.fgrid(iface, 0);
+    jgrid = lev_interface.fgrid(iface, 1);
     if (igrid < 0 || jgrid < 0) {
-      Box b = interface.face(iface);
-      int idim = interface.fdim(iface);
+      Box b = lev_interface.face(iface);
+      int idim = lev_interface.fdim(iface);
       int a = (type(r,idim) == IndexType::NODE);
       // need to do on x borders too in case y border is an interior face
 #if (BL_SPACEDIM == 2)
@@ -540,9 +540,9 @@ void mixed_boundary_class::fill_borders(MultiFab& r,
       if (igrid < 0) {
 	for (int i = 0; i < BL_SPACEDIM; i++) {
 	  if (i != idim) {
-	    if (interface.interior_mesh()[jgrid].smallEnd(i) == b.smallEnd(i))
+	    if (lev_interface.interior_mesh()[jgrid].smallEnd(i) == b.smallEnd(i))
 	      b.growLo(i, w);
-	    if (interface.interior_mesh()[jgrid].bigEnd(i) == b.bigEnd(i))
+	    if (lev_interface.interior_mesh()[jgrid].bigEnd(i) == b.bigEnd(i))
 	      b.growHi(i, w);
 	  }
 	}
@@ -587,7 +587,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r,
 	  }
 	}
 	else if (t == periodic) {
-	  int isrc = interface.exterior_ref(igrid);
+	  int isrc = lev_interface.exterior_ref(igrid);
 	  bb.shift(idim, domain.length(idim));
 	  r[jgrid].copy(r[isrc], bb, 0, b, 0, r.nComp());
 	}
@@ -647,9 +647,9 @@ void mixed_boundary_class::fill_borders(MultiFab& r,
       else if (jgrid < 0) {
 	for (int i = 0; i < BL_SPACEDIM; i++) {
 	  if (i != idim) {
-	    if (interface.interior_mesh()[igrid].smallEnd(i) == b.smallEnd(i))
+	    if (lev_interface.interior_mesh()[igrid].smallEnd(i) == b.smallEnd(i))
 	      b.growLo(i, w);
-	    if (interface.interior_mesh()[igrid].bigEnd(i) == b.bigEnd(i))
+	    if (lev_interface.interior_mesh()[igrid].bigEnd(i) == b.bigEnd(i))
 	      b.growHi(i, w);
 	  }
 	}
@@ -694,7 +694,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r,
 	  }
 	}
 	else if (t == periodic) {
-	  int isrc = interface.exterior_ref(jgrid);
+	  int isrc = lev_interface.exterior_ref(jgrid);
 	  bb.shift(idim, -domain.length(idim));
 	  r[igrid].copy(r[isrc], bb, 0, b, 0, r.nComp());
 	}
@@ -760,7 +760,7 @@ void mixed_boundary_class::set_sync_cache(copy_cache* cache,
 					  int nsets, int& iset,
 					  MultiFab& r,
 					  const level_interface&
-					  interface) const
+					  lev_interface) const
 {
   if (r.nComp() != 1)
     BoxLib::Error("mixed_boundary_class::set_sync_cache---only single components currently supported");
@@ -769,17 +769,17 @@ void mixed_boundary_class::set_sync_cache(copy_cache* cache,
 
   Real *const baseptr = cache->dptr;
 
-  const Box& domain = interface.domain();
-  for (int iface = 0; iface < interface.nfaces(); iface++) {
-    if (interface.fgeo(iface) != level_interface::ALL)
+  const Box& domain = lev_interface.domain();
+  for (int iface = 0; iface < lev_interface.nfaces(); iface++) {
+    if (lev_interface.fgeo(iface) != level_interface::ALL)
       break;
-    int igrid = interface.fgrid(iface, 0);
+    int igrid = lev_interface.fgrid(iface, 0);
     if (igrid < 0) {
-      int idim = interface.fdim(iface);
+      int idim = lev_interface.fdim(iface);
       if (ptr->bc[idim][0] == periodic) {
-	int jgrid = interface.fgrid(iface, 1);
-	igrid = interface.exterior_ref(igrid);
-	const Box& b = interface.node_face(iface);
+	int jgrid = lev_interface.fgrid(iface, 1);
+	igrid = lev_interface.exterior_ref(igrid);
+	const Box& b = lev_interface.node_face(iface);
 #if (BL_SPACEDIM == 2)
 	int dstart, sstart, dstrid, sstrid, nvals;
 	dstrid = r[jgrid].box().length(0);
@@ -871,7 +871,7 @@ void mixed_boundary_class::set_sync_cache(copy_cache* cache,
 void mixed_boundary_class::set_border_cache(copy_cache* cache,
 					    int nsets, int& iset,
 					    MultiFab& r,
-					    const level_interface& interface,
+					    const level_interface& lev_interface,
 					    int w) const
 {
   if (r.nComp() != 1)
@@ -883,16 +883,16 @@ void mixed_boundary_class::set_border_cache(copy_cache* cache,
 
   Real *const baseptr = cache->dptr;
 
-  const Box& domain = interface.domain();
+  const Box& domain = lev_interface.domain();
   int igrid, jgrid;
-  for (int iface = 0; iface < interface.nfaces(); iface++) {
-    if (interface.fgeo(iface) != level_interface::ALL)
+  for (int iface = 0; iface < lev_interface.nfaces(); iface++) {
+    if (lev_interface.fgeo(iface) != level_interface::ALL)
       break;
-    igrid = interface.fgrid(iface, 0);
-    jgrid = interface.fgrid(iface, 1);
+    igrid = lev_interface.fgrid(iface, 0);
+    jgrid = lev_interface.fgrid(iface, 1);
     if (igrid < 0 || jgrid < 0) {
-      const Box& b = interface.node_face(iface);
-      int idim = interface.fdim(iface);
+      const Box& b = lev_interface.node_face(iface);
+      int idim = lev_interface.fdim(iface);
 #if (BL_SPACEDIM == 2)
       int dstart, sstart, dstrid, sstrid, nvals;
 #else
@@ -957,7 +957,7 @@ void mixed_boundary_class::set_border_cache(copy_cache* cache,
 #endif
 	}
 	else if (t == periodic) {
-	  igrid = interface.exterior_ref(igrid);
+	  igrid = lev_interface.exterior_ref(igrid);
 #if (BL_SPACEDIM == 2)
 	  dstrid = r[jgrid].box().length(0);
 	  sstrid = r[igrid].box().length(0);
@@ -1077,7 +1077,7 @@ void mixed_boundary_class::set_border_cache(copy_cache* cache,
 	if (t == refWall || t == inflow) {
 #if (BL_SPACEDIM == 2)
 	  dstrid = r[igrid].box().length(0);
-	  if (interface.fdim(iface) == 0) {
+	  if (lev_interface.fdim(iface) == 0) {
 	    nvals = b.length(1) + 2 * w;
 	    dstart = r[igrid].dataPtr() - baseptr +
 	      b.smallEnd(0) + 1 - r[igrid].box().smallEnd(0) +
@@ -1131,11 +1131,11 @@ void mixed_boundary_class::set_border_cache(copy_cache* cache,
 #endif
 	}
 	else if (t == periodic) {
-	  jgrid = interface.exterior_ref(jgrid);
+	  jgrid = lev_interface.exterior_ref(jgrid);
 #if (BL_SPACEDIM == 2)
 	  dstrid = r[igrid].box().length(0);
 	  sstrid = r[jgrid].box().length(0);
-	  if (interface.fdim(iface) == 0) {
+	  if (lev_interface.fdim(iface) == 0) {
 	    nvals = b.length(1) + 2 * w;
 	    dstart = r[igrid].dataPtr() - baseptr +
 	      b.smallEnd(0) + 1 - r[igrid].box().smallEnd(0) +
@@ -1496,14 +1496,14 @@ amr_fluid_boundary_class::amr_fluid_boundary_class()
   ts = &error_boundary;
 }
 
-inviscid_fluid_boundary::inviscid_fluid_boundary(RegType Bc[BL_SPACEDIM][2])
+inviscid_fluid_boundary_class::inviscid_fluid_boundary_class(RegType Bc[BL_SPACEDIM][2])
 {
   for (int i = 0; i < BL_SPACEDIM; i++) {
     bc[i][0] = Bc[i][0];
     bc[i][1] = Bc[i][1];
     if ((bc[i][0] == periodic || bc[i][1] == periodic) &&
 	bc[i][1] != bc[i][0])
-      BoxLib::Error("inviscid_fluid_boundary::ctor---periodic bc's don't match");
+      BoxLib::Error("inviscid_fluid_boundary_class::ctor---periodic bc's don't match");
     v[i] = new mixed_boundary_class(this, i);
   }
   s = new mixed_boundary_class(this, -1);
@@ -1511,7 +1511,7 @@ inviscid_fluid_boundary::inviscid_fluid_boundary(RegType Bc[BL_SPACEDIM][2])
   ts = new mixed_boundary_class(this, -4);
 }
 
-inviscid_fluid_boundary::~inviscid_fluid_boundary()
+inviscid_fluid_boundary_class::~inviscid_fluid_boundary_class()
 {
   for (int i = 0; i < BL_SPACEDIM; i++) {
     delete (mixed_boundary_class*) v[i];

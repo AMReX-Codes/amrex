@@ -7,8 +7,6 @@
 class copy_cache;
 #endif
 
-typedef const class amr_boundary_class& amr_boundary;
-
 // This is the base class for all amr_boundaries.  The default function dir
 // should always be acceptable.  The default box and check_against_boundary
 // functions are appropriate for wall-type boundaries.  The default
@@ -39,7 +37,7 @@ class amr_boundary_class {
   virtual void sync_borders(MultiFab&,
 			    const level_interface&) const { }
   virtual void fill_borders(MultiFab& r,
-			    const level_interface& interface,
+			    const level_interface& lev_interface,
 			    int w = -1) const;
 #ifdef HG_USE_CACHE
   virtual void set_sync_cache(copy_cache*, int, int&,
@@ -129,7 +127,7 @@ class reflection_boundary_class : public amr_boundary_class {
 	    const FArrayBox&, const Box&, const Box&, int) const;
   void fill(FArrayBox&, const Box&,
 	    const MultiFab&, int, const Box&) const
-    { BoxLib::Error("reflection_boundary_class::fill---interface version not defined"); }
+    { BoxLib::Error("reflection_boundary_class::fill---lev_interface version not defined"); }
   int singular() const {
     return 1;
   }
@@ -143,7 +141,7 @@ class negation_boundary_class : public amr_boundary_class {
 	    const FArrayBox&, const Box&, const Box&, int) const;
   void fill(FArrayBox&, const Box&,
 	    const MultiFab&, int, const Box&) const
-    { BoxLib::Error("negation_boundary_class::fill---interface version not defined"); }
+    { BoxLib::Error("negation_boundary_class::fill---lev_interface version not defined"); }
   int singular() const {
     return 0;
   }
@@ -162,7 +160,7 @@ class periodic_boundary_class : public amr_boundary_class {
 	    const FArrayBox&, const Box&, const Box&, int) const;
   void fill(FArrayBox&, const Box&,
 	    const MultiFab&, int, const Box&) const
-    { BoxLib::Error("periodic_boundary_class::fill---interface version not defined"); }
+    { BoxLib::Error("periodic_boundary_class::fill---lev_interface version not defined"); }
   void duplicate(List<Box>& bl, const Box& domain) const;
   int singular() const {
     return 1;
@@ -170,9 +168,9 @@ class periodic_boundary_class : public amr_boundary_class {
 };
 
 const amr_boundary_class error_boundary;
-const reflection_boundary_class reflection_boundary;
-const negation_boundary_class negation_boundary;
-const periodic_boundary_class periodic_boundary;
+//const reflection_boundary_class reflection_boundary;
+//const negation_boundary_class negation_boundary;
+//const periodic_boundary_class periodic_boundary;
 
 #include "RegType.H"
 
@@ -192,23 +190,21 @@ class amr_fluid_boundary_class {
   amr_fluid_boundary_class();
   virtual ~amr_fluid_boundary_class() { }
 
-  virtual amr_boundary velocity(int i) const {
+  virtual const amr_boundary_class& velocity(int i) const {
     return *v[i];
   }
-  virtual amr_boundary scalar() const {
+  virtual const amr_boundary_class& scalar() const {
     return *s;
   }
-  virtual amr_boundary pressure() const {
+  virtual const amr_boundary_class& pressure() const {
     return *p;
   }
-  virtual amr_boundary terrain_sigma() const {
+  virtual const amr_boundary_class& terrain_sigma() const {
     return *ts;
   }
 };
 
-typedef const amr_fluid_boundary_class& amr_fluid_boundary;
-
-// This is the object returned by the inviscid_fluid_boundary class.
+// This is the object returned by the inviscid_fluid_boundary_class class.
 // It chooses among periodic, reflection and negation boundary behavior
 // based on the boundary types accessed through the pointer and the
 // flow direction flowdim.
@@ -217,17 +213,17 @@ typedef const amr_fluid_boundary_class& amr_fluid_boundary;
 // flowdim = -3 indicates a streamfunction
 // flowdim = -4 indicates the terrain sigma (all components)
 
-class inviscid_fluid_boundary;
+class inviscid_fluid_boundary_class;
 
 class mixed_boundary_class : public amr_boundary_class {
  protected:
-  inviscid_fluid_boundary *ptr;
+  inviscid_fluid_boundary_class *ptr;
   int flowdim;
   void check_against_boundary(BoxList& bl, List<int>& il,
 			      const Box& b, int ib,
 			      const Box& d, int dim1) const;
  public:
-  mixed_boundary_class(inviscid_fluid_boundary *Ptr, int idim) {
+  mixed_boundary_class(inviscid_fluid_boundary_class *Ptr, int idim) {
     ptr = Ptr; flowdim = idim;
   }
 
@@ -240,15 +236,15 @@ class mixed_boundary_class : public amr_boundary_class {
   void sync_borders(MultiFab&,
 		    const level_interface&) const;
   void fill_borders(MultiFab& r,
-		    const level_interface& interface,
+		    const level_interface& lev_interface,
 		    int w = -1) const;
 #ifdef HG_USE_CACHE
   void set_sync_cache(copy_cache* cache, int nsets, int& iset,
 		      MultiFab& r,
-		      const level_interface& interface) const;
+		      const level_interface& lev_interface) const;
   void set_border_cache(copy_cache* cache, int nsets, int& iset,
 			MultiFab& r,
-			const level_interface& interface,
+			const level_interface& lev_interface,
 			int w) const;
 #endif
   void duplicate(List<Box>& bl, const Box& domain) const;
@@ -262,13 +258,13 @@ class mixed_boundary_class : public amr_boundary_class {
 // the domain.  Currently only periodic and refWall type
 // boundaries are supported.
 
-class inviscid_fluid_boundary : public amr_fluid_boundary_class {
+class inviscid_fluid_boundary_class : public amr_fluid_boundary_class {
   friend mixed_boundary_class;
  protected:
   RegType bc[BL_SPACEDIM][2];
  public:
-  inviscid_fluid_boundary(RegType Bc[BL_SPACEDIM][2]);
-  ~inviscid_fluid_boundary();
+  inviscid_fluid_boundary_class(RegType Bc[BL_SPACEDIM][2]);
+  ~inviscid_fluid_boundary_class();
 };
 
 #endif

@@ -13,8 +13,8 @@ class amr_multigrid {
   Array<BoxArray> ml_mesh, mg_mesh;
   Array< Array<Box> > mg_domain_array;
   Array< Array<BoxArray> > mg_mesh_array;
-  amr_boundary mg_boundary;
-  level_interface *interface, **interface_array;
+  const amr_boundary_class& mg_boundary;
+  level_interface *lev_interface, **interface_array;
   PArray<MultiFab> source, dest;       // live on active levels of ml_mesh
   PArray<MultiFab> resid, corr, work;  // live on mg_mesh
   PArray<MultiFab> save;               // lives on middle levels of ml_mesh
@@ -50,7 +50,7 @@ class amr_multigrid {
   // alloc(), which actually creates large data objects, and clear(),
   // which deletes them, be called when the solver is actually being used.
   // These are made non-virtual so that a derived class can define a more
-  // complicated interface.
+  // complicated lev_interface.
   void alloc(PArray<MultiFab>& Dest,
 	     PArray<MultiFab>& Source,
 	     PArray<MultiFab>& Coarse_source,
@@ -65,7 +65,7 @@ class amr_multigrid {
 
   amr_multigrid(Array<BoxArray>& Mesh, Array<IntVect>& Gen_ratio,
 		int Lev_min_min, int Lev_min_max, int Lev_max_max,
-		amr_boundary Boundary, int Pcode) :
+		const amr_boundary_class& Boundary, int Pcode) :
     ml_mesh(Mesh), gen_ratio(Gen_ratio),
     lev_min_min(Lev_min_min), lev_min_max(Lev_min_max),
     lev_max_max(Lev_max_max), mg_boundary(Boundary), pcode(Pcode),

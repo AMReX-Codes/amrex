@@ -4,8 +4,6 @@
 #include "interface.H"
 #include "boundary.H"
 
-typedef const class amr_restrictor_class& amr_restrictor;
-
 // This is the base class for all amr_restrictors.  The basic functions
 // box and fill work in the interiors of patches:  Give box the fine
 // grid dimensions and it will tell you what coarse patch you can fill
@@ -22,7 +20,7 @@ class amr_restrictor_class {
   virtual void fill(FArrayBox&, const Box&,
 	            const FArrayBox&, const IntVect&) const = 0;
     // { BoxLib::Error("amr_restrictor_class::fill---Restriction function not defined."); }
-  virtual void interface(FArrayBox&, const Box&, MultiFab&,
+  virtual void lev_interface(FArrayBox&, const Box&, MultiFab&,
 #ifdef HG_USE_CACHE
 			 const copy_cache*, 
 #endif
@@ -57,9 +55,9 @@ class injection_restrictor_class : public amr_restrictor_class {
 	    const FArrayBox& fgr, const IntVect& rat) const;
 };
 
-class default_restrictor_class : public amr_restrictor_class {
+class default_restrictor : public amr_restrictor_class {
  public:
-  default_restrictor_class() { }
+  default_restrictor() { }
   Box box(const Box& fb, const IntVect& rat) const;
   void fill(FArrayBox& patch, const Box& region,
 	    const FArrayBox& fgr, const IntVect& rat) const;
@@ -76,12 +74,12 @@ class bilinear_restrictor_class : public amr_restrictor_class {
   Box box(const Box& fb, const IntVect& rat) const;
   virtual void fill(FArrayBox& patch, const Box& region,
 	    const FArrayBox& fgr, const IntVect& rat) const;
-  virtual void interface(FArrayBox& patch, const Box& region,
+  virtual void lev_interface(FArrayBox& patch, const Box& region,
 	         MultiFab& fine, 
 #ifdef HG_USE_CACHE
 		 const copy_cache*,
 #endif
-		 const level_interface& interface,
+		 const level_interface& lev_interface,
 		 const amr_boundary_class& bdy, const IntVect& rat) const;
 };
 
@@ -92,23 +90,13 @@ class bilinear_restrictor_coarse_class
  public:
   bilinear_restrictor_coarse_class(int i)
     : bilinear_restrictor_class(i) { }
-  virtual void interface(FArrayBox& patch, const Box& region,
+  virtual void lev_interface(FArrayBox& patch, const Box& region,
 	         MultiFab& fine, 
 #ifdef HG_USE_CACHE
 		 const copy_cache*,
 #endif
-		 const level_interface& interface,
+		 const level_interface& lev_interface,
 		 const amr_boundary_class& bdy, const IntVect& rat) const;
 };
-
-//const amr_restrictor_class error_restrictor;
-const cell_average_restrictor_class cell_average_restrictor(0);
-const cell_average_restrictor_class cell_integrator(1);
-const injection_restrictor_class injection_restrictor;
-//const default_restrictor_class default_restrictor;
-const bilinear_restrictor_class bilinear_restrictor(0);
-const bilinear_restrictor_coarse_class bilinear_restrictor_coarse(0);
-const bilinear_restrictor_class bilinear_integrator(1);
-const bilinear_restrictor_coarse_class bilinear_integrator_coarse(1);
 
 #endif
