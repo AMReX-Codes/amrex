@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.8 1997-12-03 21:09:55 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.9 1997-12-04 20:58:50 lijewski Exp $
 //
 
 #ifdef	_MSC_VER
@@ -88,7 +88,13 @@ AmrLevel::restart (Amr&     papa,
 
     state.resize(ndesc);
     for (int i = 0; i < ndesc; i++)
+    {
+#ifdef BL_PARALLEL_IO
+        state[i].restart(is, desc_lst[i], papa.theRestartFile());
+#else
         state[i].restart(is, desc_lst[i]);
+#endif
+    }
 
     finishConstructor();
 }
@@ -153,14 +159,21 @@ AmrLevel::checkPoint (const aString& dir,
     int ndesc = desc_lst.length(), i;
     //
     // Build directory to hold the MultiFabs in the StateData at this level.
+    // The directory is relative the the directory containing the Header file.
     //
-    aString PathName = dir;
     char buf[64];
-    sprintf(buf, "/Level_%d", level);
-    PathName += buf;
+    sprintf(buf, "Level_%d", level);
+    aString Level = buf;
+    //
+    // Now for the full pathname of that directory.
+    //
+    aString FullPath = dir;
+    if (FullPath != "" && FullPath[FullPath.length()-1] != '/')
+        FullPath += '/';
+    FullPath += Level;
 
-    if (!Utility::CreateDirectory(PathName, 0755))
-        Utility::CreateDirectoryFailed(PathName);
+    if (!Utility::CreateDirectory(FullPath, 0755))
+        Utility::CreateDirectoryFailed(FullPath);
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -174,12 +187,18 @@ AmrLevel::checkPoint (const aString& dir,
     for (i = 0; i < ndesc; i++)
     {
         //
-        // Build the full relative pathname of the StateData.
+        // Now build the full relative pathname of the StateData.
+        // The name is relative to the Header file containing this name.
+        // It's the name that gets written into the Header.
         //
-        aString name = PathName;
+        // There is only one MultiFab written out at each level in HyperCLaw.
+        //
+        aString PathNameInHeader = Level;
         sprintf(buf, "/SD_%d", i);
-        name += buf;
-	state[i].checkPoint(name, os, how);
+        PathNameInHeader += buf;
+        aString FullPathName = FullPath;
+        FullPathName += buf;
+	state[i].checkPoint(PathNameInHeader, FullPathName, os, how);
     }
 }
 
@@ -279,16 +298,23 @@ AmrLevel::setPhysBoundaryValues (int  state_indx,
     else
 	BoxLib::Error("setPhysBndryValues: invalid time");
 
-    state[state_indx].FillBoundary(geom.CellSize(),
-                                   geom.ProbDomain(),
-                                   comp,
-                                   ncomp,
-                                   do_new);
+    state[state_indx].FillBoundary(geom.CellSize(),geom.ProbDomain(),comp,
+                                   ncomp, do_new);
 }
+
+FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
+                                      MultiFab& leveldata)
+    :
+    MultiFabIterator(leveldata),
+    amrLevel(amrlevel),
+    levelData(leveldata),
+    multiFabCopyDesc(true),
+    bIsInitialized(false)
+{}
 
 #if (NEWFPMINBOX == 0)
 FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
-                                      MultiFab&     levelData,
+                                      MultiFab&     leveldata,
                                       int           boxGrow,
                                       int           dest_comp,
                                       Real          time,
@@ -297,15 +323,29 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
                                       int           ncomp,
                                       Interpolater* mapper)
     :
-    MultiFabIterator(levelData),
+    MultiFabIterator(leveldata),
     amrLevel(amrlevel),
+    levelData(leveldata),
     growSize(boxGrow),
     stateIndex(state_index),
     srcComp(src_comp),
     destComp(dest_comp),
     nComp(ncomp),
     interpTime(time),
-    multiFabCopyDesc(true)
+    multiFabCopyDesc(true),
+    bIsInitialized(false)
+{
+    Initialize(boxGrow, dest_comp, time, state_index, src_comp, ncomp, mapper);
+}
+
+void
+FillPatchIterator::Initialize (int           boxGrow,
+                               int           dest_comp,
+                               Real          time,
+                               int           state_index,
+                               int           src_comp,
+                               int           ncomp,
+                               Interpolater* mapper)
 {
     //
     // This function sets up and performs the communication pattern for
@@ -313,6 +353,13 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
     // state data, possibly interpolating between the new and old data
     // the fill is done from this level and, if necessary, coarser levels.
     //
+    growSize   = boxGrow;
+    stateIndex = state_index;
+    srcComp    = src_comp;
+    destComp   = dest_comp;
+    nComp      = ncomp;
+    interpTime = time;
+
     int myproc = ParallelDescriptor::MyProc();
     int currentLevel;
     PArray<AmrLevel> &amrLevels = amrLevel.parent->getAmrLevels();
@@ -329,12 +376,12 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
     stateDataMFId.resize(amrLevel.level + 1);
     for (currentLevel = 0; currentLevel <= amrLevel.level; ++currentLevel)
     {
-        StateData &currentState = amrLevels[currentLevel].state[stateIndex];
+        StateData& currentState = amrLevels[currentLevel].state[stateIndex];
         const StateDescriptor& currentDesc =
             amrLevels[currentLevel].desc_lst[stateIndex];
         currentState.RegisterData(multiFabCopyDesc, stateDataMFId[currentLevel]);
         map[currentLevel] = mapper;
-        if (map[currentLevel] == NULL)
+        if (map[currentLevel] == 0)
             map[currentLevel] = currentDesc.interp();
     }
 
@@ -355,7 +402,9 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
     }
     localMFBoxes.grow(growSize);  // These are the ones we want to fillpatch.
 
-    BoxList unfilledBoxesOnThisLevel, unfillableBoxesOnThisLevel;
+    IndexType boxType(levelData.boxArray()[0].ixType());
+    BoxList unfilledBoxesOnThisLevel(boxType);
+    BoxList unfillableBoxesOnThisLevel(boxType);
     //
     // Do this for all local (grown) fab boxes.
     //
@@ -365,6 +414,8 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
             continue;  // Not local.
 
         unfilledBoxesOnThisLevel.clear();
+        assert(unfilledBoxesOnThisLevel.ixType() == boxType);
+        assert(unfilledBoxesOnThisLevel.ixType() == localMFBoxes[ibox].ixType());
         unfilledBoxesOnThisLevel.add(localMFBoxes[ibox]);
         //
         // Find the boxes that can be filled on each level--these are all
@@ -376,30 +427,29 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
         {
             unfillableBoxesOnThisLevel.clear();
 
-            StateData &currentState   = amrLevels[currentLevel].state[stateIndex];
-            const Box &currentPDomain = currentState.getDomain();
+            StateData& currentState   = amrLevels[currentLevel].state[stateIndex];
+            const Box& currentPDomain = currentState.getDomain();
 
+// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv periodic
             bool is_periodic = amrLevels[currentLevel].geom.isAnyPeriodic();
 
             if (is_periodic)
             {
-                BoxList tempUnfilledBoxes;
-                BoxListIterator pbli(unfilledBoxesOnThisLevel);
-                for ( ; pbli; ++pbli)
-                {
+                BoxList tempUnfilledBoxes(boxType);
+                for (BoxListIterator pbli(unfilledBoxesOnThisLevel); pbli; ++pbli) {
                     assert(pbli().ok());
-                    Box dbox(pbli());
+                    const Box& dbox = pbli();
                     if (!currentPDomain.contains(dbox))
                     {
                         Array<IntVect> pshifts(27);
                         amrLevels[currentLevel].geom.periodicShift(currentPDomain,dbox,pshifts);
-                        for (int iiv = 0; iiv < pshifts.length(); iiv++ )
+                        for (int iiv = 0; iiv < pshifts.length(); iiv++)
                         {
-                            IntVect iv = pshifts[iiv];
+                            const IntVect& iv = pshifts[iiv];
                             Box shbox(dbox);
-                            D_TERM( shbox.shift(0,iv[0]);,
-                                    shbox.shift(1,iv[1]);,
-                                    shbox.shift(2,iv[2]); )
+                            D_TERM(shbox.shift(0,iv[0]);,
+                                   shbox.shift(1,iv[1]);,
+                                   shbox.shift(2,iv[2]);)
                             shbox &= currentPDomain;
                             if (shbox.ok())
                                 tempUnfilledBoxes.add(shbox);
@@ -408,6 +458,7 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
                 }
                 unfilledBoxesOnThisLevel.join(tempUnfilledBoxes);
             }
+// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ end periodic
 
             fillBoxId[ibox][currentLevel].resize(unfilledBoxesOnThisLevel.length());
             savedFineBox[ibox][currentLevel].resize(unfilledBoxesOnThisLevel.length());
@@ -421,7 +472,6 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
                 if (fineTruncDestBox.ok())
                 {
                     fineTruncDestBox.refine(cumulativeRefRatios[currentLevel]);
-
                     Box tempCoarseBox;
                     if (currentLevel == amrLevel.level)
                     {
@@ -439,7 +489,7 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
                         assert(localMFBoxes[ibox].intersects(fineTruncDestBox));
                     }
 
-                    BoxList tempUnfillableBoxes;
+                    BoxList tempUnfillableBoxes(boxType);
                     currentState.linInterpAddBox(multiFabCopyDesc,
                                                  stateDataMFId[currentLevel],
                                                  tempUnfillableBoxes,
@@ -465,8 +515,9 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
                 Box coarseLocalMFBox(localMFBoxes[ibox]);
                 coarseLocalMFBox.coarsen(cumulativeRefRatios[currentLevel]);
                 if (!is_periodic)
+                {
                     unfilledBoxesOnThisLevel.intersect(coarseLocalMFBox);
-
+                }
                 unfilledBoxesOnThisLevel.coarsen(amrLevels[currentLevel].crse_ratio);
 
                 if (currentLevel == 0)
@@ -484,11 +535,14 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
     }
 
     multiFabCopyDesc.CollectData();
+
+    bIsInitialized = true;
 }
 
 bool
 FillPatchIterator::isValid (bool bDoSync)
 {
+    assert(bIsInitialized);
     //
     // If the currentIndex is valid,
     // this function will fill the currentFillPatchedFab from state
@@ -513,20 +567,17 @@ FillPatchIterator::isValid (bool bDoSync)
     int currentLevel;
     for (currentLevel = 0; currentLevel <= amrLevel.level; ++currentLevel)
     {
-        int is_periodic = amrLevels[currentLevel].geom.isAnyPeriodic();
-        StateData &currentState = amrLevels[currentLevel].state[stateIndex];
-        const Box &currentPDomain = currentState.getDomain();
+        bool is_periodic = amrLevels[currentLevel].geom.isAnyPeriodic();
+        StateData& currentState = amrLevels[currentLevel].state[stateIndex];
+        const Box& currentPDomain = currentState.getDomain();
 
         for (int currentBox = 0;
             currentBox < fillBoxId[currentIndex][currentLevel].length();
             ++currentBox)
         {
             Box tempCoarseBox(fillBoxId[currentIndex][currentLevel][currentBox][0].box());
-
             FArrayBox tempCoarseDestFab(tempCoarseBox, nComp);
-
             tempCoarseDestFab.setVal(1.e30);
-
             currentState.linInterpFillFab(multiFabCopyDesc,
                                           stateDataMFId[currentLevel],
                                           fillBoxId[currentIndex][currentLevel][currentBox],
@@ -537,11 +588,11 @@ FillPatchIterator::isValid (bool bDoSync)
             if (!is_periodic)
                 intersectDestBox &= currentFillPatchedFab.box();
 
-            const BoxArray &filledBoxes =
+            const BoxArray& filledBoxes =
                 fillBoxId[currentIndex][currentLevel][currentBox][0].FilledBoxes();
             BoxArray fboxes(filledBoxes);
-            FArrayBox *copyFromThisFab;
-            const BoxArray  *copyFromTheseBoxes;
+            FArrayBox* copyFromThisFab;
+            const BoxArray* copyFromTheseBoxes;
             FArrayBox tempCurrentFillPatchedFab;
 
             if (intersectDestBox.ok())
@@ -555,7 +606,6 @@ FillPatchIterator::isValid (bool bDoSync)
                     const StateDescriptor &desc = amrLevels[currentLevel].desc_lst[stateIndex];
                     setBC(intersectDestBox, currentPDomain, srcComp, 0, nComp,
                           desc.getBCs(), bcCoarse);
-
                     fboxes.refine(cumulativeRefRatios[currentLevel]);
                     //
                     // Interpolate up to fine patch.
@@ -569,7 +619,6 @@ FillPatchIterator::isValid (bool bDoSync)
                                               bcCoarse);
                     copyFromThisFab = &tempCurrentFillPatchedFab;
                     copyFromTheseBoxes = &fboxes;
-
                 }
                 else
                 {
@@ -598,7 +647,7 @@ FillPatchIterator::isValid (bool bDoSync)
                     if (!inside)
                     {
                         Array<IntVect> pshifts(27);
-                        Box dbox(currentFillPatchedFab.box());
+                        const Box& dbox = currentFillPatchedFab.box();
                         amrLevels[amrLevel.level].geom.periodicShift(finePDomain, dbox, pshifts);
                         for (int iiv = 0; iiv < pshifts.length(); iiv++)
                         {
@@ -625,12 +674,12 @@ FillPatchIterator::isValid (bool bDoSync)
     //
     // Do non-periodic BCs on the finest level.
     //
-    StateData &currentState = amrLevel.state[stateIndex];
-    const Box &p_domain = amrLevel.state[stateIndex].getDomain();
+    StateData& currentState = amrLevel.state[stateIndex];
+    const Box& p_domain = amrLevel.state[stateIndex].getDomain();
     if (!p_domain.contains(destBox))
     {
-        const Real *dx = amrLevel.geom.CellSize();
-        const RealBox &realProbDomain = amrLevel.geom.ProbDomain();
+        const Real* dx = amrLevel.geom.CellSize();
+        const RealBox& realProbDomain = amrLevel.geom.ProbDomain();
         currentState.FillBoundary(currentFillPatchedFab, interpTime, dx,
                                   realProbDomain, destComp, srcComp, nComp);
     }
@@ -679,7 +728,7 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
             amrLevels[currentLevel].desc_lst[stateIndex];
         currentState.RegisterData(multiFabCopyDesc, stateDataMFId[currentLevel]);
         map[currentLevel] = mapper;
-        if (map[currentLevel] == NULL)
+        if (map[currentLevel] == 0)
             map[currentLevel] = currentDesc.interp();
     }
 
@@ -780,6 +829,7 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
 bool
 FillPatchIterator::isValid (bool bDoSync)
 {
+    assert(bIsInitialized);
     //
     // if the currentIndex is valid,
     // this function will fill the currentFillPatchedFab from state
@@ -803,7 +853,7 @@ FillPatchIterator::isValid (bool bDoSync)
     currentFillPatchedFab.setVal(1.e30);
 
     FArrayBox tempCoarseDestFab, tempFineDestFab;
-    FArrayBox *coarseDestFabPtr = NULL, *fineDestFabPtr = NULL;
+    FArrayBox *coarseDestFabPtr = 0, *fineDestFabPtr = 0;
     int currentLevel;
     int coarsestFillLevel = amrLevel.level;
     for (currentLevel = 0; currentLevel < amrLevel.level; ++currentLevel)
@@ -841,10 +891,10 @@ FillPatchIterator::isValid (bool bDoSync)
         }
         else
         {
-            assert(fineDestFabPtr != NULL);
+            assert(fineDestFabPtr != 0);
             coarseDestFabPtr = fineDestFabPtr;
         }
-        assert(coarseDestFabPtr != NULL);
+        assert(coarseDestFabPtr != 0);
 
         cout << "linInterp on coarse.box() = " << coarseDestFabPtr->box() << '\n';
         currentState.linInterpFillFab(multiFabCopyDesc,
@@ -955,11 +1005,11 @@ cout << '\n';
 cout << "_in old FillPatch" << '\n';
 cout << "dest.box() = " << dest.box() << '\n';
     dest.setVal(1.e30);
-    Box dbox(dest.box());
+    const Box& dbox = dest.box();
     Box truncdbox(dbox);
-    const StateDescriptor &desc = desc_lst[stateIndex];
-    const RealBox &prob_domain = geom.ProbDomain();
-    const Box &p_domain = state[stateIndex].getDomain();
+    const StateDescriptor& desc = desc_lst[stateIndex];
+    const RealBox& prob_domain = geom.ProbDomain();
+    const Box& p_domain = state[stateIndex].getDomain();
 
     bool inside = p_domain.contains(dbox); // Does grid intersect boundary.
     if (!inside )
@@ -989,7 +1039,7 @@ cout << "dest.box() = " << dest.box() << '\n';
       //
       // Must fill on this region on crse level and interpolate.
       //
-      assert( level != 0 );
+      assert(level != 0);
 
       Interpolater *map = mapper;
       if (map == 0)
@@ -1098,7 +1148,6 @@ for (int ibc=0; ibc < ncomp; ++ibc) {
 cout << "linInterp on crse.box() = " << crse.box() << '\n';
         crse_lev.state[stateIndex].linInterp(crse,crse.box(),time,
                                              src_comp,dest_comp,ncomp);
-
         if (!inside)
         {
             //
@@ -1163,12 +1212,12 @@ cout << '\n';
 cout << "]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]] _in old FillPatch" << '\n';
 cout << "currentLevel     = " << this->Level() << '\n';
     dest.setVal(1.e30);
-    Box dbox(dest.box());
+    const Box& dbox = dest.box();
 cout << "box to FillPatch = " << dest.box() << '\n';
     Box truncdbox(dbox);
     int nv = dest.nComp();
     int ndesc = desc_lst.length();
-    const StateDescriptor &desc = desc_lst[state_indx];
+    const StateDescriptor& desc = desc_lst[state_indx];
     const RealBox& prob_domain = geom.ProbDomain();
     const Box& p_domain = state[state_indx].getDomain();
 
@@ -1276,13 +1325,13 @@ AmrLevel::FillCoarsePatch (FArrayBox&   dest,
     if (level == 0)
 	BoxLib::Error("crsePatch: called at level 0");
 
-    Box dbox(dest.box());
+    Box dbox = dest.box();
 
     int nv = dest.nComp();
     int ndesc = desc_lst.length();
 
     assert((0<=state_indx) && (state_indx<ndesc));
-    const StateDescriptor &desc = desc_lst[state_indx];
+    const StateDescriptor& desc = desc_lst[state_indx];
 
     assert(dbox.ixType() == desc.getType());
     assert(desc.inRange(src_comp, ncomp));
@@ -1292,15 +1341,11 @@ AmrLevel::FillCoarsePatch (FArrayBox&   dest,
 
     const Box& p_domain = state[state_indx].getDomain();
     //
-    // Does grid intersect domain exterior?
-    //
-    bool inside = p_domain.contains(dbox);
-    //
     // Intersect with problem domain at this level.
     //
     dbox &= p_domain;
 
-    Interpolater *map = mapper;
+    Interpolater* map = mapper;
     if (map == 0)
         map = desc.interp();
     //
@@ -1328,11 +1373,89 @@ AmrLevel::FillCoarsePatch (FArrayBox&   dest,
     map->interp(crse,0,dest,dest_comp,ncomp,dbox,
 		crse_ratio,crse_geom,geom,bc_crse);
 
-    if (!inside)
+    if (!p_domain.contains(dbox))
     {
 	const Real* dx = geom.CellSize();
 	state[state_indx].FillBoundary(dest,time,dx,prob_domain,
 				   dest_comp,src_comp,ncomp);
+    }
+}
+
+void
+AmrLevel::FillCoarsePatch (MultiFab&     mfdest,
+                           int           dest_comp,
+                           Real          time,
+                           int           state_indx,
+                           int           src_comp,
+                           int           ncomp,
+                           Interpolater* mapper)
+{
+    //
+    // Must fill this region on crse level and interpolate.
+    //
+    assert(level != 0);
+    assert(ncomp <= (mfdest.nComp() - dest_comp));
+    assert((0 <= state_indx) && (state_indx < desc_lst.length()));
+
+    const StateDescriptor& desc = desc_lst[state_indx];
+    assert(desc.inRange(src_comp, ncomp));
+    Interpolater* map = mapper;
+    if (map == 0)
+        map = desc.interp();
+
+    const RealBox& prob_domain = geom.ProbDomain();
+    const Box& p_domain = state[state_indx].getDomain();
+    AmrLevel& crse_lev = parent->getLevel(level-1);
+    //
+    // Build a properly coarsened boxarray.
+    //
+    BoxArray mfdestBoxArray(mfdest.boxArray());
+    BoxArray crse_regBoxArray(mfdestBoxArray.length());
+    for (int ibox = 0; ibox < mfdestBoxArray.length(); ++ibox)
+    {
+        Box dbox(mfdest.fabbox(ibox));
+        assert(dbox.ixType() == desc.getType());
+        dbox &= p_domain;
+        //
+        // Coarsen unfilled region and widen by interpolater stencil width.
+        //
+        Box crse_reg(map->CoarseBox(dbox,crse_ratio));
+        crse_regBoxArray.set(ibox, crse_reg);
+    }
+
+    int boxGrow = 0;
+    MultiFab mf_crse_reg(crse_regBoxArray, ncomp, boxGrow);
+
+    for (FillPatchIterator fpi(crse_lev, mf_crse_reg, boxGrow, dest_comp,
+                               time, state_indx, src_comp, ncomp, mapper);
+         fpi.isValid();
+         ++fpi)
+    {
+        DependentMultiFabIterator mfdest_mfi(fpi, mfdest);
+        assert(mfdest_mfi.fabbox() == mfdest_mfi().box());
+        Box dbox(mfdest_mfi().box());
+        dbox &= p_domain;
+
+        FArrayBox& crse = fpi();
+        FArrayBox& dest = mfdest_mfi();
+        //
+        // Get bndry conditions for this patch.
+        //
+        Array<BCRec> bc_crse(ncomp);
+        setBC(dbox,p_domain,src_comp,0,ncomp,desc.getBCs(),bc_crse);
+        //
+        // Interpolate up to fine patch.
+        //
+        const Geometry& crse_geom = crse_lev.geom;
+        map->interp(crse,0,dest,dest_comp,ncomp,dbox,
+                    crse_ratio,crse_geom,geom,bc_crse);
+
+        if (!p_domain.contains(dbox)) 
+        {
+            const Real *dx = geom.CellSize();
+            state[state_indx].FillBoundary(dest,time,dx,prob_domain,
+                                           dest_comp,src_comp,ncomp);
+        }
     }
 }
 
@@ -1344,7 +1467,7 @@ AmrLevel::derive (const aString& name,
 
     if (isStateVariable(name,state_indx,src_comp))
     {
-	const StateDescriptor &desc = desc_lst[state_indx];
+	const StateDescriptor& desc = desc_lst[state_indx];
 	int nc = desc.nComp();
 	const BoxArray& grds = state[state_indx].boxArray();
 	PArray<FArrayBox> *df = new PArray<FArrayBox>(grids.length(),PArrayManage);
@@ -1352,7 +1475,7 @@ AmrLevel::derive (const aString& name,
             BoxLib::OutOfMemory(__FILE__, __LINE__);
 	for (int i = 0; i < grds.length(); i++)
         {
-	    FArrayBox *dest = new FArrayBox(grds[i],1);
+	    FArrayBox* dest = new FArrayBox(grds[i],1);
             if (dest == 0)
                 BoxLib::OutOfMemory(__FILE__, __LINE__);
 	    state[state_indx].linInterp(*dest,grds[i],time,src_comp,0,1);
@@ -1471,7 +1594,8 @@ AmrLevel::derive (const Box&     b,
     }
 
     const DeriveRec* d;
-    if (d = derive_lst.get(name)) {
+    if (d = derive_lst.get(name))
+    {
 	FArrayBox *dest = new FArrayBox(b,d->numDerive());
         if (dest == 0)
             BoxLib::OutOfMemory(__FILE__, __LINE__);

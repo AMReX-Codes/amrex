@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.6 1997-12-03 21:09:54 lijewski Exp $
+// $Id: AmrLevel.H,v 1.7 1997-12-04 20:58:49 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -42,25 +42,6 @@ public:
 
 #ifdef BL_PARALLEL_IO
     //
-    // Write current state to checkpoint file.
-    //
-    virtual void checkPoint (const aString& dir,
-                             ostream&       os,
-                             VisMF::How     how = VisMF::OneFilePerCPU);
-#else
-    //
-    // Write current state to checkpoint file.
-    //
-    virtual void checkPoint (ostream& os);
-#endif
-    //
-    // Restart from a checkpoint file.
-    //
-    virtual void restart (Amr&     papa,
-                          istream& is);
-
-#ifdef BL_PARALLEL_IO
-    //
     // A string written as the first item in writePlotFile() at level zero.
     // This MUST be defined by each derived class.
     // It is so we can distinguish between different types of plot files.
@@ -72,12 +53,27 @@ public:
     virtual void writePlotFile (const aString& dir,
                                 ostream&       os,
                                 VisMF::How     how = VisMF::OneFilePerCPU) = 0;
+    //
+    // Write current state to checkpoint file.
+    //
+    virtual void checkPoint (const aString& dir,
+                             ostream&       os,
+                             VisMF::How     how = VisMF::OneFilePerCPU);
 #else
     //
     // Write plot file.
     //
     virtual void writePlotFile (ostream &os) = 0;
+    //
+    // Write current state to checkpoint file.
+    //
+    virtual void checkPoint (ostream& os);
 #endif
+    //
+    // Restart from a checkpoint file.
+    //
+    virtual void restart (Amr&     papa,
+                          istream& is);
     //
     // Is name a state variable?
     //
@@ -224,6 +220,14 @@ public:
                           int           src_comp,
                           int           ncomp,
                           Interpolater* mapper = 0);
+
+    void FillCoarsePatch (MultiFab&     dest,
+                          int           dest_comp,
+                          Real          time,
+                          int           state_indx,
+                          int           src_comp,
+                          int           ncomp,
+                          Interpolater* mapper = 0);
     //
     // Function to set physical boundary conditions.
     //
@@ -347,6 +351,10 @@ class FillPatchIterator
   public:
 
     enum FillType { FillLocally, FillRemotely, FillFromBoundary, Unfillable };
+    //
+    // Constructors.
+    //
+    FillPatchIterator(AmrLevel &amrlevel, MultiFab &leveldata);
 
     FillPatchIterator(AmrLevel &amrlevel,
                       MultiFab &leveldata,
@@ -355,30 +363,37 @@ class FillPatchIterator
                       int state_indx, int src_comp, int ncomp,
                       Interpolater* mapper = 0);
 
+    void Initialize (int           boxGrow,
+                     int           dest_comp,
+                     Real          time,
+                     int           state_indx,
+                     int           src_comp,
+                     int           ncomp,
+                     Interpolater* mapper = 0);
+
     ~FillPatchIterator();
-    const FArrayBox &operator()() const { return currentFillPatchedFab; }
-    FArrayBox &operator()()  { return currentFillPatchedFab; }
-    //inline FabArrayIterator &operator++();
-    bool isValid(bool bDoSync = true);
 
-    const Box &UngrownBox() const { return validbox(); }
+    const FArrayBox& operator()() const { return currentFillPatchedFab; }
 
-  private:
-    // no, no, no
-    FillPatchIterator();
-    FillPatchIterator(const FillPatchIterator &);
-    FillPatchIterator &operator=(const FillPatchIterator &);
+    FArrayBox& operator()()  { return currentFillPatchedFab; }
+
+    bool isValid (bool bDoSync = true);
+
+    const Box& UngrownBox() const { return validbox(); }
 
   private:
-    struct FabCopyMap {
-      int fabIndex;
-      Box commBox;
-    };
+    //
+    // Disallowed.
+    //
+    FillPatchIterator ();
+    FillPatchIterator (const FillPatchIterator& rhs);
+    FillPatchIterator& operator= (const FillPatchIterator& rhs);
 
-    AmrLevel &amrLevel;
+  private:
+    AmrLevel& amrLevel;
+    MultiFab& levelData;
     MultiFabCopyDescriptor multiFabCopyDesc;
     Array< Array<MultiFabId> > stateDataMFId;   // [level][oldnew]
-    //Array<int> cumulativeRefRatios;             // [level]
     Array<IntVect> cumulativeRefRatios;             // [level]
     Array<Interpolater *> map;                  // [level]
     Array< Array< Array< Array<FillBoxId> > > > fillBoxId;
@@ -393,6 +408,7 @@ class FillPatchIterator
     int  nComp;
     Real interpTime;
     FArrayBox currentFillPatchedFab;
+    bool bIsInitialized;
 };
 
 #endif

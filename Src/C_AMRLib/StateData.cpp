@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateData.cpp,v 1.8 1997-12-02 21:30:56 lijewski Exp $
+// $Id: StateData.cpp,v 1.9 1997-12-04 20:58:50 lijewski Exp $
 //
 
 #include <RunStats.H>
@@ -88,6 +88,62 @@ StateData::define (const Box&             p_domain,
     buildBC();
 }
 
+#ifdef BL_PARALLEL_IO
+void
+StateData::restart (istream&               is,
+                    const StateDescriptor& d,
+                    const aString&         chkfile)
+{
+    desc = &d;
+
+    is >> domain;
+    grids.define(is);
+
+    is >> old_time.start;
+    is >> old_time.stop;
+    is >> new_time.start;
+    is >> new_time.stop;
+
+    int nsets;
+    is >> nsets;
+
+    old_data = 0;
+
+    if ((new_data = new MultiFab) == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
+    aString mf_name;
+    is >> mf_name;
+    //
+    // Note that mf_name is relative to the Header file.
+    // We need to prepend the name of the chkfile directory.
+    //
+    aString FullPathName = chkfile;
+    if (chkfile.length() > 0 && chkfile[chkfile.length()-1] != '/')
+        FullPathName += '/';
+    FullPathName += mf_name;
+    VisMF::Read(*new_data, FullPathName);
+
+    if (nsets == 2)
+    {
+	if ((old_data = new MultiFab) == 0)
+            BoxLib::OutOfMemory(__FILE__, __LINE__);
+        is >> mf_name;
+        //
+        // Note that mf_name is relative to the Header file.
+        // We need to prepend the name of the chkfile directory.
+        //
+        FullPathName = chkfile;
+        if (chkfile.length() > 0 && chkfile[chkfile.length()-1] != '/')
+            FullPathName += '/';
+        FullPathName += mf_name;
+        VisMF::Read(*old_data, FullPathName);
+    }
+
+    buildBC();
+}
+
+#else
+
 void
 StateData::restart (istream&               is,
                     const StateDescriptor& d)
@@ -105,23 +161,6 @@ StateData::restart (istream&               is,
     int nsets;
     is >> nsets;
 
-#ifdef BL_PARALLEL_IO
-    old_data = 0;
-
-    if ((new_data = new MultiFab) == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
-    aString mf_name;
-    is >> mf_name;
-    VisMF::Read(*new_data, mf_name);
-
-    if (nsets == 2)
-    {
-	if ((old_data = new MultiFab) == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
-        is >> mf_name;
-        VisMF::Read(*old_data, mf_name);
-    }
-#else
     if ((new_data = new MultiFab(is)) == 0)
         BoxLib::OutOfMemory(__FILE__, __LINE__);
 
@@ -129,10 +168,10 @@ StateData::restart (istream&               is,
 
     if (nsets == 2 && (old_data = new MultiFab(is)) == 0)
         BoxLib::OutOfMemory(__FILE__, __LINE__);
-#endif
 
     buildBC();
 }
+#endif /*BL_PARALLEL_IO*/
 
 void
 StateData::buildBC ()
@@ -486,6 +525,7 @@ StateData::linInterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
 #ifdef BL_PARALLEL_IO
 void
 StateData::checkPoint (const aString& name,
+                       const aString& fullpathname,
                        ostream&       os,
                        VisMF::How     how,
                        bool           dump_old)
@@ -498,14 +538,18 @@ StateData::checkPoint (const aString& name,
 	dump_old = false;
     }
 
-    aString mf_name_old = name; mf_name_old += OldSuffix;
-
-    aString mf_name_new = name; mf_name_new += NewSuffix;
-
     if (ParallelDescriptor::IOProcessor())
     {
+        //
+        // The relative name gets written to the Header file.
+        //
+        aString mf_name_old = name; mf_name_old += OldSuffix;
+        aString mf_name_new = name; mf_name_new += NewSuffix;
+
         os << domain << '\n';
+
         grids.writeOn(os);
+
         os << old_time.start << '\n'
            << old_time.stop  << '\n'
            << new_time.start << '\n'
@@ -522,12 +566,14 @@ StateData::checkPoint (const aString& name,
     }
 
     assert(new_data);
-    RunStats::addBytes(VisMF::Write(*new_data, mf_name_new, how));
+    aString mf_fullpath_new = fullpathname; mf_fullpath_new += NewSuffix;
+    RunStats::addBytes(VisMF::Write(*new_data, mf_fullpath_new, how));
 
     if (dump_old)
     {
         assert(old_data);
-        RunStats::addBytes(VisMF::Write(*old_data, mf_name_old, how));
+        aString mf_fullpath_old = fullpathname; mf_fullpath_old += OldSuffix;
+        RunStats::addBytes(VisMF::Write(*old_data, mf_fullpath_old, how));
     }
 }
 

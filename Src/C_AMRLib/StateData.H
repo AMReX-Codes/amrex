@@ -4,7 +4,7 @@
 #define _StateData_H_ 
 
 //
-// $Id: StateData.H,v 1.4 1997-11-26 19:18:51 lijewski Exp $
+// $Id: StateData.H,v 1.5 1997-12-04 20:58:50 lijewski Exp $
 //
 
 #include <Box.H>
@@ -76,9 +76,6 @@ public:
                 const StateDescriptor &d, 
                 Real cur_time, Real dt);
 //
-    void restart(istream& is, const StateDescriptor& d);
-
-//
     void buildBC();
 //
     void allocOldData();
@@ -125,13 +122,21 @@ public:
                    int src_comp, int num_comp = 1, int do_new=1);
 
 #ifdef BL_PARALLEL_IO
-    void checkPoint (const aString& basename,
+    void checkPoint (const aString& name,
+                     const aString& fullpathname,
                      ostream&       os,
                      VisMF::How     how,
                      bool           dump_old = true);
+
+    void restart (istream&               is,
+                  const StateDescriptor& d,
+                  const aString&         restart_file);
 #else
     void checkPoint (ostream& os,
                      bool     dump_old = true);
+
+    void restart (istream&               is,
+                  const StateDescriptor& d);
 #endif
 
 /// access functions

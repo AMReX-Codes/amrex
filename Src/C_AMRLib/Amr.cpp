@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.15 1997-12-03 23:26:11 lijewski Exp $
+// $Id: Amr.cpp,v 1.16 1997-12-04 20:58:49 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -79,19 +79,15 @@ Amr::derive (const Box&     b,
 int
 Amr::MaxRefRatio (int level) const
 {
-    int maxval=0;
-    for (int n=0; n<BL_SPACEDIM; n++) 
+    int maxval = 0;
+    for (int n = 0; n<BL_SPACEDIM; n++) 
         maxval = Max(maxval,ref_ratio[level][n]);
     return maxval;
 }
 
 Amr::Amr ()
     :
-    amr_level(PArrayManage),
-    grids_file(),
-    check_file_root(),
-    restart_file(),
-    plot_file_root()
+    amr_level(PArrayManage)
 {
     //
     // Setup Geometry from ParmParse file.  May be needed for variableSetup or
@@ -156,11 +152,11 @@ Amr::Amr ()
     //
     // Restart or run from scratch?
     //
-    pp.query("restart",restart_file);
+    pp.query("restart", restart_file);
     //
     // Read max_level and alloc memory for container objects.
     //
-    pp.get("max_level",max_level);
+    pp.get("max_level", max_level);
     int nlev     = max_level+1;
     geom.resize(nlev);
     dt_level.resize(nlev);
@@ -335,16 +331,14 @@ Amr::setRecordRunInfo (const aString& filename)
 void
 Amr::setDtLevel (const Array<Real>& dt_lev)
 {
-    int i;
-    for (i = 0; i <= finest_level; i++)
+    for (int i = 0; i <= finest_level; i++)
 	dt_level[i] = dt_lev[i];
 }
 
 void
 Amr::setNCycle (const Array<int>& ns)
 {
-    int i;
-    for (i = 0; i <= finest_level; i++)
+    for (int i = 0; i <= finest_level; i++)
 	n_cycle[i] = ns[i];
 }
 
@@ -352,8 +346,7 @@ long
 Amr::cellCount ()
 {
     long cnt = 0;
-    int i;
-    for (i = 0; i <= finest_level; i++)
+    for (int i = 0; i <= finest_level; i++)
 	cnt += amr_level[i].countCells();
     return cnt;
 }
@@ -362,8 +355,7 @@ int
 Amr::numGrids ()
 {
     int cnt = 0;
-    int i;
-    for (i = 0; i <= finest_level; i++)
+    for (int i = 0; i <= finest_level; i++)
 	cnt += amr_level[i].numGrids();
     return cnt;
 }
@@ -372,8 +364,7 @@ int
 Amr::okToContinue ()
 {
     int ok = true;
-    int i;
-    for (i = 0; ok && (i <= finest_level); i++)
+    for (int i = 0; ok && (i <= finest_level); i++)
 	ok = ok && amr_level[i].okToContinue();
     return ok;
 }
@@ -547,13 +538,14 @@ Amr::checkInput ()
 void
 Amr::init ()
 {
-    if (restart_file != "")
+    if (restart_file.length() > 0)
 	restart(restart_file);
     else
     {
 	initialInit();
 	checkPoint();
-	if (plot_int > 0) writePlotFile();
+	if (plot_int > 0)
+            writePlotFile();
     }
 }
 
@@ -894,8 +886,7 @@ Amr::timeStep (int  level,
     // Time to regrid?
     //
     int lev_top = Min(finest_level, max_level-1);
-    int i;
-    for (i = level; i <= lev_top; i++)
+    for (int i = level; i <= lev_top; i++)
     {
 	if (level_count[i] >= regrid_int[i])
         {
@@ -932,12 +923,15 @@ Amr::timeStep (int  level,
     //
     if (trace && ParallelDescriptor::IOProcessor())
     {
-	cout << "ADVANCE grids at level " << level
-	     << " with dt = " << dt_level[level] << '\n';
+	cout << "ADVANCE grids at level "
+             << level
+	     << " with dt = "
+             << dt_level[level]
+             << '\n';
     }
     Real dt_new = amr_level[level].advance(time,
                                            dt_level[level],
-					   iteration,
+                                           iteration,
                                            niter);
     if (iteration == 1)
     {
@@ -959,7 +953,7 @@ Amr::timeStep (int  level,
         {
 	    int lev_fine = level+1;
 	    int ncycle = n_cycle[lev_fine];
-	    for (i = 1; i <= ncycle; i++)
+	    for (int i = 1; i <= ncycle; i++)
 		timeStep(lev_fine,time + (i-1)*dt_level[lev_fine],i,ncycle);
 	}
         else
@@ -980,8 +974,7 @@ Amr::coarseTimeStep (Real stop_time)
     //
     if (level_steps[0] > 0)
     {
-	amr_level[0].computeNewDt(finest_level,sub_cycle,
-				  n_cycle,ref_ratio,
+	amr_level[0].computeNewDt(finest_level,sub_cycle,n_cycle,ref_ratio,
 				  dt_min,dt_level,stop_time);
     }
 
@@ -992,15 +985,23 @@ Amr::coarseTimeStep (Real stop_time)
 
     if (!silent && ParallelDescriptor::IOProcessor())
     {
-        cout << '\n';
-	cout << "STEP = " << level_steps[0] << " TIME = "
-	     << cumtime << " DT = " << dt_level[0] << '\n';
-        cout << '\n';
+	cout << "\nSTEP = "
+             << level_steps[0]
+             << " TIME = "
+	     << cumtime
+             << " DT = "
+             << dt_level[0]
+             << "\n\n";
     }
     if (record_run_info && ParallelDescriptor::IOProcessor())
     {
-	runlog << "STEP = " << level_steps[0] << " TIME = "
-	       << cumtime << " DT = " << dt_level[0] << '\n';
+	runlog << "STEP = "
+               << level_steps[0]
+               << " TIME = "
+	       << cumtime
+               << " DT = "
+               << dt_level[0]
+               << '\n';
     }
 
     int check_test = 0;
@@ -1012,8 +1013,7 @@ Amr::coarseTimeStep (Real stop_time)
           check_test = 1;
     }
 
-    if ((check_int > 0 && level_steps[0] % check_int == 0) || 
-        (check_test == 1))
+    if ((check_int > 0 && level_steps[0] % check_int == 0) || check_test == 1)
     {
 	last_checkpoint = level_steps[0];
 	checkPoint();
@@ -1028,13 +1028,11 @@ Amr::coarseTimeStep (Real stop_time)
           plot_test = 1;
     }
 
-    if ((plot_int > 0 && level_steps[0] % plot_int == 0) || 
-        (plot_test == 1))
+    if ((plot_int > 0 && level_steps[0] % plot_int == 0) || plot_test == 1)
     {
 	last_plotfile = level_steps[0];
 	writePlotFile();
     }
-
 }
 
 void
@@ -1045,8 +1043,7 @@ Amr::defBaseLevel (Real strt_time)
     //
     const Box& domain = geom[0].Domain();
     const int* d_len = domain.length().getVect();
-    int idir;
-    for (idir = 0; idir < BL_SPACEDIM; idir++)
+    for (int idir = 0; idir < BL_SPACEDIM; idir++)
     {
 	if (d_len[idir]%2 != 0)
         {
@@ -1084,7 +1081,7 @@ void
 Amr::regrid (int  lbase,
              Real time)
 {
-    int       new_finest;
+    int new_finest;
 
     if (!silent && ParallelDescriptor::IOProcessor())
     {
@@ -1171,23 +1168,35 @@ Amr::regrid (int  lbase,
 	    Real frac = 100.0*(Real(ncells) / Real(ntot));
 	    if (!silent)
             {
-	      if (ParallelDescriptor::IOProcessor())
-              {
-		cout   << "   level " << lev << ": "
-		       << numgrids << " grids, "
-		       << ncells << " cells  = " << frac
-		       << " % of domain" << '\n';
-	      }
+                if (ParallelDescriptor::IOProcessor())
+                {
+                    cout << "   level "
+                         << lev
+                         << ": "
+                         << numgrids
+                         << " grids, "
+                         << ncells
+                         << " cells  = "
+                         << frac
+                         << " % of domain"
+                         << '\n';
+                }
 	    }
 	    if (record_run_info)
             {
-	      if (ParallelDescriptor::IOProcessor())
-              {
-		runlog << "   level " << lev << ": "
-		       << numgrids << " grids, "
-		       << ncells << " cells  = " << frac
-		       << " % of domain" << '\n';
-	      }
+                if (ParallelDescriptor::IOProcessor())
+                {
+                    runlog << "   level "
+                           << lev
+                           << ": "
+                           << numgrids
+                           << " grids, "
+                           << ncells
+                           << " cells  = "
+                           << frac
+                           << " % of domain"
+                           << '\n';
+                }
 	    }
 	}
     }
@@ -1203,23 +1212,30 @@ void
 Amr::printGridInfo (ostream& os,
                     int      min_lev,
                     int      max_lev) {
-    int lev;
-    for (lev = min_lev; lev <= max_lev; lev++)
+    for (int lev = min_lev; lev <= max_lev; lev++)
     {
 	const BoxArray& bs = amr_level[lev].boxArray();
 	int numgrid = bs.length();
 	long ncells = amr_level[lev].countCells();
 	long ntot = geom[lev].Domain().numPts();
 	Real frac = 100.0*(Real(ncells) / Real(ntot));
-	os << "  Level " << lev << ' ' << numgrid << " grids  "
-	   << ncells << " cells  " << frac << " % of domain" << '\n';
-        int k;
-	for (k = 0; k < numgrid; k++)
+
+	os << "  Level "
+           << lev
+           << ' '
+           << numgrid
+           << " grids  "
+	   << ncells
+           << " cells  "
+           << frac
+           << " % of domain"
+           << '\n';
+
+	for (int k = 0; k < numgrid; k++)
         {
-	    const Box &b = bs[k];
+	    const Box& b = bs[k];
 	    os << ' ' << lev << ": " << b << ' ';
-            int i;
-	    for (i = 0; i < BL_SPACEDIM; i++)
+	    for (int i = 0; i < BL_SPACEDIM; i++)
 		os << b.length(i) << ' ';
 	    os << '\n';
 	}
@@ -1231,63 +1247,62 @@ void
 proj_periodic (BoxDomain&      bd,
                const Geometry& geom)
 {
-  Box domain( geom.Domain() );
-  //
-  // blout will initially contain all of bd, periodic translates
-  // will be added to it.
-  //
-  BoxList blout;  
-  BoxDomainIterator bdi(bd);
-  for ( ; bdi; ++bdi)
-      blout.add(bdi());
-  blout.intersect(domain);
-  //
-  // blorig will be the original bd intersected with domain.
-  //
-  BoxList blorig(blout);
+    Box domain( geom.Domain() );
+    //
+    // blout will initially contain all of bd, periodic translates
+    // will be added to it.
+    //
+    BoxList blout;  
+    for (BoxDomainIterator bdi(bd); bdi; ++bdi)
+        blout.add(bdi());
+    blout.intersect(domain);
+    //
+    // blorig will be the original bd intersected with domain.
+    //
+    BoxList blorig(blout);
 
-  int nist,njst,nkst;
-  int niend,njend,nkend;
-  nist = njst = nkst = 0;
-  niend = njend = nkend = 0;
-  D_TERM( nist , =njst , =nkst ) = -1;
-  D_TERM( niend , =njend , =nkend ) = +1;
+    int nist,njst,nkst;
+    int niend,njend,nkend;
+    nist = njst = nkst = 0;
+    niend = njend = nkend = 0;
+    D_TERM( nist , =njst , =nkst ) = -1;
+    D_TERM( niend , =njend , =nkend ) = +1;
 
-  int ri,rj,rk;
-  for (ri=nist; ri<=niend; ri++)
-  {
-    if (ri!=0 && !geom.isPeriodic(0))
-        continue;
-    if (ri!=0 && geom.isPeriodic(0))
-        blorig.shift(0,ri*domain.length(0));
-    for (rj=njst; rj<=njend; rj++)
+    int ri,rj,rk;
+    for (ri=nist; ri<=niend; ri++)
     {
-      if (rj!=0 && !geom.isPeriodic(1))
-          continue;
-      if (rj!=0 && geom.isPeriodic(1))
-          blorig.shift(1,rj*domain.length(1));
-      for (rk=nkst; rk<=nkend; rk++)
-      {
-	if (rk!=0 && !geom.isPeriodic(2))
+        if (ri!=0 && !geom.isPeriodic(0))
             continue;
-	if (rk!=0 && geom.isPeriodic(2))
-            blorig.shift(2,rk*domain.length(2));
+        if (ri!=0 && geom.isPeriodic(0))
+            blorig.shift(0,ri*domain.length(0));
+        for (rj=njst; rj<=njend; rj++)
+        {
+            if (rj!=0 && !geom.isPeriodic(1))
+                continue;
+            if (rj!=0 && geom.isPeriodic(1))
+                blorig.shift(1,rj*domain.length(1));
+            for (rk=nkst; rk<=nkend; rk++)
+            {
+                if (rk!=0 && !geom.isPeriodic(2))
+                    continue;
+                if (rk!=0 && geom.isPeriodic(2))
+                    blorig.shift(2,rk*domain.length(2));
 
-	BoxList tmp(blorig);
-	tmp.intersect(domain);
-	blout.join(tmp);
+                BoxList tmp(blorig);
+                tmp.intersect(domain);
+                blout.join(tmp);
  
-	if (rk!=0 && geom.isPeriodic(2))
-            blorig.shift(2,-rk*domain.length(2));
-      }
-      if (rj!=0 && geom.isPeriodic(1))
-          blorig.shift(1,-rj*domain.length(1));
+                if (rk!=0 && geom.isPeriodic(2))
+                    blorig.shift(2,-rk*domain.length(2));
+            }
+            if (rj!=0 && geom.isPeriodic(1))
+                blorig.shift(1,-rj*domain.length(1));
+        }
+        if (ri!=0 && geom.isPeriodic(0))
+            blorig.shift(0,-ri*domain.length(0));
     }
-    if (ri!=0 && geom.isPeriodic(0))
-        blorig.shift(0,-ri*domain.length(0));
-  }
-  bd.clear();
-  bd.add(blout);
+    bd.clear();
+    bd.add(blout);
 }
 
 void
@@ -1299,7 +1314,7 @@ Amr::grid_places (int          lbase, //  => finest that level doesn't change
     int i;
     int  max_crse = Min(finest_level,max_level-1);
 
-    if (grids_file != "")
+    if (grids_file.length() > 0)
     {
 #define STRIP while( is.get() != '\n' )
 
@@ -1314,8 +1329,7 @@ Amr::grid_places (int          lbase, //  => finest that level doesn't change
 	STRIP;
 	new_finest = Min(new_finest,in_finest);
 	int ngrid;
-        int lev;
-	for (lev = 1; lev <= new_finest; lev++)
+	for (int lev = 1; lev <= new_finest; lev++)
         {
 	    BoxList bl;
 	    is >> ngrid;
@@ -1330,13 +1344,17 @@ Amr::grid_places (int          lbase, //  => finest that level doesn't change
 		    bx.refine(ref_ratio[lev-1]);
 		    if (bx.longside() > max_grid_size)
                     {
-			cout << "Grid " << bx << " too large" << '\n';
+			cout << "Grid "
+                             << bx
+                             << " too large"
+                             << '\n';
                         BoxLib::Error();
 		    }
 		    bl.append(bx);
 		}
 	    }
-	    if (lev > lbase) new_grids[lev].define(bl);
+	    if (lev > lbase)
+                new_grids[lev].define(bl);
 	}
 	is.close();
 	return;
@@ -1367,7 +1385,7 @@ Amr::grid_places (int          lbase, //  => finest that level doesn't change
     Array<BoxDomain> p_n_comp(max_level);   // complement of proper nesting domain
 
     BoxDomain fd1;
-    const BoxArray &bbase = amr_level[lbase].boxArray();
+    const BoxArray& bbase = amr_level[lbase].boxArray();
     for (i = 0; i < bbase.length(); i++)
     {
 	Box tmp(::coarsen(bbase[i],bf_lev[lbase]));
@@ -1385,26 +1403,13 @@ Amr::grid_places (int          lbase, //  => finest that level doesn't change
 
     for (i = lbase+1; i <= max_crse;  i++)
     {
-      /* The following boxlist "iterate and add" loop replaces the 
-	 original two lines
-
-	p_n_comp[i] = p_n_comp[i-1];
-	p_n_comp[i].refine(rr_lev[i-1]);
-
-	which should be restored after a refine(IntVect) member function
-	is added to the BoxDomain class
-	*/
-
         BoxList bl;
-	BoxDomainIterator bdi(p_n_comp[i-1]);
-	while (bdi)
+	for (BoxDomainIterator bdi(p_n_comp[i-1]); bdi; ++bdi)
         {
 	  bl.add(refine(bdi(),rr_lev[i-1]));
-	  bdi++;
 	}
 	p_n_comp[i].clear();
 	p_n_comp[i].add(bl);
-
 	p_n_comp[i].accrete(n_proper);
 	Geometry tmp3(pc_domain[i]);
 	proj_periodic( p_n_comp[i], tmp3 );
@@ -1415,8 +1420,7 @@ Amr::grid_places (int          lbase, //  => finest that level doesn't change
     // Now generate grids from finest level down.
     //
     new_finest = lbase;
-    int levc;
-    for (levc = max_crse; levc >= lbase; levc--)
+    for (int levc = max_crse; levc >= lbase; levc--)
     {
 	int levf = levc+1;
         //
@@ -1526,9 +1530,11 @@ Amr::grid_places (int          lbase, //  => finest that level doesn't change
 
 	    if (!new_bx.isDisjoint())
             {
-		cout << "WARNING: new grids at level "<<levf
-		     << " not disjoint" << '\n';
-		cout << new_bx << '\n';
+		cout << "WARNING: new grids at level "
+                     << levf
+		     << " not disjoint:\n"
+                     << new_bx
+                     << '\n';
 	    }
 	    new_grids[levf].define(new_bx);
 	}
@@ -1635,11 +1641,9 @@ extern "C" void maxSizeBox (BoxList& bx_list, IntVect& block_size)
 extern "C" void refineBoxList (BoxList& bx_list, IntVect& lratio)
 {
     BoxList bl;
-    BoxListIterator bli(bx_list);
-    while (bli)
+    for (BoxListIterator bli(bx_list); bli; ++bli)
     {
       bl.add(refine(bli(),lratio));
-      bli++;
     }
     bx_list.clear();
     bx_list = bl;
