@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.41 2002-03-22 23:29:24 car Exp $
+// $Id: ParmParse.cpp,v 1.42 2002-03-26 20:47:02 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -630,8 +630,9 @@ bldTable (const char*&           str,
     }
 }
 
+namespace
+{
 template <class T>
-static
 bool
 squeryval (const ParmParse::Table& table,
 	   const std::string& name,
@@ -693,7 +694,6 @@ squeryval (const ParmParse::Table& table,
 }
 
 template <class T>
-static
 void
 sgetval (const ParmParse::Table& table,
 	 const std::string& name,
@@ -721,7 +721,6 @@ sgetval (const ParmParse::Table& table,
 }
 
 template <class T>
-static
 bool
 squeryarr (const ParmParse::Table& table,
 	   const std::string& name,
@@ -797,7 +796,6 @@ squeryarr (const ParmParse::Table& table,
 }
 
 template <class T>
-static
 void
 sgetarr (const ParmParse::Table& table,
 	 const std::string&  name,
@@ -820,6 +818,7 @@ sgetarr (const ParmParse::Table& table,
         ParmParse::dumpTable(std::cerr);
         BoxLib::Abort();
     }
+}
 }
 
 //
