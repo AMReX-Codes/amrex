@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DiffFab.cpp,v 1.4 1999-05-10 18:54:27 car Exp $
+// $Id: DiffFab.cpp,v 1.5 2000-10-02 21:08:53 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

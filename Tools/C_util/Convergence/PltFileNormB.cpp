@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: PltFileNormB.cpp,v 1.2 2000-06-01 21:22:31 car Exp $
+// $Id: PltFileNormB.cpp,v 1.3 2000-10-02 21:08:55 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

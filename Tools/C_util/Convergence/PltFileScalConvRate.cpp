@@ -1,4 +1,3 @@
-//BL_COPYRIGHT_NOTICE
 
 #ifdef BL_USE_NEW_HFILES
 #include <new>
