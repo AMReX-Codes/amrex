@@ -1,5 +1,5 @@
 #
-# $Id: Make.rules,v 1.21 2002-04-26 22:24:43 car Exp $
+# $Id: Make.rules,v 1.22 2002-06-17 19:40:42 car Exp $
 #
 $(addprefix $(instIncludeDir)/, $(instSources)): $(instIncludeDir)/% : %
 	@if [ ! -d $(instIncludeDir) ]; then mkdir -p $(instIncludeDir); fi
@@ -104,14 +104,14 @@ $(optionsLib)(%.o): %.F
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
 	$(FORT_CPP) $(CPPFLAGS) -DBL_LANG_FORT $< | $(FORTPREP) > $(f77TempDir)/$*.f
-	$(FC) $(FLIBFLAGS) $(FFLAGS) -c $(f77TempDir)/$*.f $(FORT_LIB_OUTPUT_OPTION)
+	$(FC) $(FLIBFLAGS) $(FFLAGS) $(FINCLFLAGS) -c $(f77TempDir)/$*.f $(FORT_LIB_OUTPUT_OPTION)
 	$(AR) r $@ $(objTempDir)/$*.o
 
 $(optionsLib)(%.o): %.F90
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
 	$(FORT_CPP) $(CPPFLAGS) -DBL_LANG_FORT $< | $(FORTPREP) > $(f77TempDir)/$*.f90
-	$(FC) $(FLIBFLAGS) $(FFLAGS) -c $(f77TempDir)/$*.f90 $(FORT_LIB_OUTPUT_OPTION)
+	$(FC) $(FLIBFLAGS) $(FFLAGS) $(FINCLFLAGS) -c $(f77TempDir)/$*.f90 $(FORT_LIB_OUTPUT_OPTION)
 	$(AR) r $@ $(objTempDir)/$*.o
 
 $(optionsLib)(%.o): %.f90
@@ -138,13 +138,13 @@ $(objEXETempDir)/%.o: %.F90
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	$(FORT_CPP) -DBL_LANG_FORT $(CPPFLAGS) $< | $(FORTPREP) > $(f77TempDir)/$*.f90
-	$(FC) $(FFLAGS) -c $(FEXEFLAGS) $(f77TempDir)/$*.f90 $(FORT_EXE_OUTPUT_OPTION)
+	$(FC) $(FFLAGS) $(FINCLFLAGS) -c $(FEXEFLAGS) $(f77TempDir)/$*.f90 $(FORT_EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.F
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	$(FORT_CPP) -DBL_LANG_FORT $(CPPFLAGS) $< | $(FORTPREP) > $(f77TempDir)/$*.f
-	$(FC) $(FFLAGS) -c $(FEXEFLAGS) $(f77TempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
+	$(FC) $(FFLAGS) $(FINCLFLAGS) -c $(FEXEFLAGS) $(f77TempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
 
 $(objEXETempDir)/%.o: %.f90
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
@@ -173,14 +173,14 @@ $(depTempDir)/%.d: %.c
 $(depTempDir)/%.d: %.F90
 	@echo Depending $< ...
 	@if [ ! -d $(depTempDir) ]; then mkdir -p $(depTempDir); fi
-	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
+	@$(SHELL) -ec '$(MKDEP) -fortran $(includes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
 		sed -e '\''s,$*.o,$(optionsLib)(&) $@,'\'' > $@'
 
 $(depTempDir)/%.d: %.F
 	@echo Depending $< ...
 	@if [ ! -d $(depTempDir) ]; then mkdir -p $(depTempDir); fi
-	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
+	@$(SHELL) -ec '$(MKDEP) -fortran $(includes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
 		sed -e '\''s,$*.o,$(optionsLib)(&) $@,'\'' > $@'
 
@@ -204,7 +204,7 @@ $(depEXETempDir)/%.d: %.c
 $(depEXETempDir)/%.d: %.F
 	@echo Depending $< ...
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
-	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
+	@$(SHELL) -ec '$(MKDEP) -fortran $(includes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
 		sed -e '\''s,$*.o,$(objEXETempDir)/& $@,'\'' > $@'
 

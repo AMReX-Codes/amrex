@@ -49,13 +49,13 @@ ifeq ($(FCOMP),Intel)
   FC   := ifc
   FDEBF += -g
 # FDEBF += -CB
-  FDEBF += -CU
+# FDEBF += -CU
   FOPTF += -g
   FOPTF += -O3
   fC   := $(FC)
   fDEBF += -g
 # fDEBF += -CB
-  fDEBF += -CU
+# fDEBF += -CU
   fDEBF += -w
   fOPTF += -g
   fOPTF += -O3
@@ -80,7 +80,8 @@ else
 # LIBRARY_LOCATIONS += /usr/lib/gcc-lib/i386-redhat-linux/2.96
   override XTRALIBS += -lg2c
   FDEBF +=   -ffortran-bounds-check 
-# FDEBF += -Wimplicit
+  FDEBF += -Wimplicit
+  fDEBF += -Wimplicit
   fDEBF +=   -ffortran-bounds-check
 endif
 endif
