@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.68 2001-08-02 16:01:44 car Exp $
+// $Id: MultiFab.cpp,v 1.69 2002-12-03 18:03:27 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -532,8 +532,6 @@ struct SI
     SI ();
 
     SI (const BoxArray& ba,
-        int             scomp,
-        int             ncomp,
         int             ngrow);
 
     SI (const SI& rhs);
@@ -543,36 +541,26 @@ struct SI
     bool operator== (const SI& rhs) const;
     bool operator!= (const SI& rhs) const;
 
-    Array<int>    m_cache;    // Snds cached for CollectData().
-    CommDataCache m_commdata; // Yet another cache for CollectData().
+    Array<int>         m_cache;    // Snds cached for CollectData().
+    CommDataCache      m_commdata; // Yet another cache for CollectData().
     std::vector<SIRec> m_sirec;
-    BoxArray      m_ba;
-    int           m_scomp;
-    int           m_ncomp;
-    int           m_ngrow;
+    BoxArray           m_ba;
+    int                m_ngrow;
 };
 
 inline
 SI::SI ()
     :
-    m_scomp(-1),
-    m_ncomp(-1),
     m_ngrow(-1)
 {}
 
 inline
 SI::SI (const BoxArray& ba,
-        int             scomp,
-        int             ncomp,
         int             ngrow)
     :
     m_ba(ba),
-    m_scomp(scomp),
-    m_ncomp(ncomp),
     m_ngrow(ngrow)
 {
-    BL_ASSERT(ncomp >  0);
-    BL_ASSERT(scomp >= 0);
     BL_ASSERT(ngrow >= 0);
 }
 
@@ -583,8 +571,6 @@ SI::SI (const SI& rhs)
     m_commdata(rhs.m_commdata),
     m_sirec(rhs.m_sirec),
     m_ba(rhs.m_ba),
-    m_scomp(rhs.m_scomp),
-    m_ncomp(rhs.m_ncomp),
     m_ngrow(rhs.m_ngrow)
 {}
 
@@ -595,11 +581,7 @@ inline
 bool
 SI::operator== (const SI& rhs) const
 {
-    return
-        m_scomp == rhs.m_scomp &&
-        m_ncomp == rhs.m_ncomp &&
-        m_ngrow == rhs.m_ngrow &&
-        m_ba    == rhs.m_ba;
+    return m_ngrow == rhs.m_ngrow && m_ba == rhs.m_ba;
 }
 
 inline
@@ -636,8 +618,6 @@ SI&
 BuildFBsirec (const SI&       si,
               const MultiFab& mf)
 {
-    BL_ASSERT(si.m_ncomp >  0);
-    BL_ASSERT(si.m_scomp >= 0);
     BL_ASSERT(si.m_ngrow >= 0);
     BL_ASSERT(mf.nGrow() == si.m_ngrow);
     BL_ASSERT(mf.boxArray() == si.m_ba);
@@ -689,7 +669,7 @@ BuildFBsirec (const SI&       si,
 // Returns cached self-intersection records for MultiFab or builds them.
 //
 
-inline
+static
 SI&
 TheFBsirec (int             scomp,
             int             ncomp,
@@ -698,11 +678,28 @@ TheFBsirec (int             scomp,
     BL_ASSERT(ncomp >  0);
     BL_ASSERT(scomp >= 0);
 
-    const SI si(mf.boxArray(), scomp, ncomp, mf.nGrow());
+    const SI si(mf.boxArray(), mf.nGrow());
     
     for (SIList::iterator it = SICache.begin(); it != SICache.end(); ++it)
+    {
         if (*it == si)
+        {
+            //
+            // Adjust the ncomp & scomp in CommData.
+            //
+            BL_ASSERT((*it).m_commdata.isValid());
+
+            Array<CommData>& cd = (*it).m_commdata.theCommData();
+
+            for (int i = 0; i < cd.size(); i++)
+            {
+                cd[i].nComp(ncomp);
+                cd[i].srcComp(scomp);
+            }
+
             return *it;
+        }
+    }
 
     return BuildFBsirec(si,mf);
 }
