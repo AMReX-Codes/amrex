@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: InterpBndryData.cpp,v 1.6 1999-01-04 18:11:15 marc Exp $
+// $Id: InterpBndryData.cpp,v 1.7 1999-04-08 17:49:12 marc Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -98,7 +98,7 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
         {
             Orientation face(fi());
 
-            if (bx[face] == geom.Domain()[face])
+            if (bx[face]==geom.Domain()[face] && !geom.isPeriodic(face.coordDir()))
             {
                 //
                 // Physical bndry, copy from grid.
@@ -108,15 +108,6 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
             }
         }
     }
-    //
-    // Now copy boundary values stored in ghost cells of fine
-    // into bndry.  This does nothing at physical boundaries,
-    // we don't need to make it periodic aware.
-    //
-    for (OrientationIter fi; fi; ++fi)
-    {
-        bndry[fi()].copyFrom(mf,0,mf_start,bnd_start,num_comp);
-    }
 }
 
 //
@@ -125,7 +116,6 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
 // (2) set actual bndry value by:
 //     (A) Interpolate from crse bndryRegister at crse/fine interface
 //     (B) Copy from ghost region of MultiFab at physical bndry
-//     (C) Copy from valid region of MultiFab at fine/fine interface
 //
 
 void
@@ -225,13 +215,4 @@ InterpBndryData::setBndryValues (BndryRegister& crse,
         }
     }
     delete derives;
-    //
-    // Now copy boundary values stored in ghost cells of fine
-    // into bndry.  This does nothing for physical boundaries,
-    // we don't need to make it periodic aware.
-    //
-    for (OrientationIter face; face; ++face)
-    {
-        bndry[face()].copyFrom(fine,0,f_start,bnd_start,num_comp);
-    }
 }
