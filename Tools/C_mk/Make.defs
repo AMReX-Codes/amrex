@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.25 1999-06-23 17:59:40 car Exp $
+# Make.defs $Id: Make.defs,v 1.26 1999-08-26 17:19:58 lijewski Exp $
 #
 
 #
@@ -160,7 +160,7 @@ endif
 #
 # We can do library closure with KCC 3.x.
 #
-ifeq ($(COMP),KCC)
+ifeq ($(findstring KCC, $(COMP)),KCC)
     __kcc_version := $(shell					\
 		echo 'int i;' > _X.cpp;				\
 		KCC -c -v _X.cpp 2>&1 1>/dev/null  | fgrep KAI;	\
