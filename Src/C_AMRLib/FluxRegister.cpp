@@ -1,13 +1,14 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.38 1998-06-12 16:25:18 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.39 1998-06-13 21:07:34 lijewski Exp $
 //
 
 #include <FluxRegister.H>
 #include <Geometry.H>
 #include <FLUXREG_F.H>
 #include <ParallelDescriptor.H>
+#include <RunStats.H>
 #include <Tracer.H>
 
 #ifdef BL_USE_NEW_HFILES
@@ -155,6 +156,10 @@ FluxRegister::Reflux (MultiFab&       S,
                       int             num_comp, 
                       const Geometry& geom)
 {
+    RunStats stats("reflux");
+
+    stats.start();
+
     FabSetCopyDescriptor fscd;
 
     FabSetId fsid[2*BL_SPACEDIM];
@@ -355,6 +360,8 @@ FluxRegister::Reflux (MultiFab&       S,
             cheatvol->shift(-iv);
         }
     }
+
+    stats.end();
 }
 
 void
@@ -365,6 +372,10 @@ FluxRegister::Reflux (MultiFab&       S,
                       int             num_comp, 
                       const Geometry& geom)
 {
+    RunStats stats("reflux");
+
+    stats.start();
+
     const Real* dx = geom.CellSize();
 
     FabSetCopyDescriptor fscd;
@@ -523,6 +534,8 @@ FluxRegister::Reflux (MultiFab&       S,
             fab_S.shift(-iv);
         }
     }
+
+    stats.end();
 }
 
 void
