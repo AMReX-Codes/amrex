@@ -41,12 +41,10 @@ RSC=rc.exe
 # PROP Output_Dir "Release"
 # PROP Intermediate_Dir "Release"
 # PROP Target_Dir ""
-# ADD BASE F90 /compile_only /include:"Release/" /nologo /warn:nofileopt
-# ADD F90 /compile_only /define:BL_SPACEDIM=2 /define:"BL_LANG_FORT" /fpp /iface:cref /include:"Release/" /libs:dll /nologo /stand:f90 /threads /warn:nofileopt
-# SUBTRACT F90 /nodefine
-# ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GR /GX /O2 /I "." /I "..\BoxLib" /D "_WINDOWS" /D "BL_LANG_CC" /D "NDEBUG" /D for="if(0);else for" /D "WIN32" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /YX /FD /c
-# SUBTRACT CPP /Fr
+# ADD BASE F90 /compile_only /nologo /warn:nofileopt
+# ADD F90 /compile_only /iface:cref /libs:dll /nologo /threads /warn:nofileopt
+# ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /YX /FD /D "_LIB /D " _MBCS" /c
+# ADD CPP /nologo /MD /W3 /GR /GX /O2 /I "." /I "..\BoxLib" /D "WIN32" /D "NDEBUG" /D "_LIB" /D "_MBCS" /D "BL_LANG_CC" /D for="if(0);else for" /D BL_SPACEDIM=2 /D "BL_FORT_USE_UPPERCASE" /YX /FD /c
 # ADD BASE RSC /l 0x409
 # ADD RSC /l 0x409
 BSC32=bscmake.exe
@@ -68,11 +66,11 @@ LIB32=link.exe -lib
 # PROP Output_Dir "Debug"
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
-# ADD BASE F90 /compile_only /debug:full /include:"Debug/" /nologo /warn:nofileopt
-# ADD F90 /browser /check:bounds /compile_only /dbglibs /debug:full /define:BL_SPACEDIM=2 /define:"BL_LANG_FORT" /extend_source:132 /fpe:0 /include:"Debug/" /libs:dll /nologo /stand:f90 /threads /warn:argument_checking /warn:declarations /warn:nofileopt
-# SUBTRACT F90 /fpp
-# ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /MDd /W3 /Gm /GR /GX /ZI /Od /I "." /I "..\BoxLib" /D "HG_DEBUG" /D "_WINDOWS" /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D for="if(0);else for" /D "_DEBUG" /D "WIN32" /D BL_SPACEDIM=2 /FR /YX /FD /c
+# ADD BASE F90 /compile_only /debug:full /nologo /warn:nofileopt
+# ADD F90 /browser /check:bounds /compile_only /dbglibs /debug:full /iface:cref /libs:dll /nologo /threads /warn:argument_checking /warn:declarations /warn:nofileopt
+# SUBTRACT F90 /traceback
+# ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_LIB" /D "_MBCS" /YX /FD /c
+# ADD CPP /nologo /MDd /W3 /Gm /GR /GX /ZI /Od /I "." /I "..\BoxLib" /D "WIN32" /D "_DEBUG" /D "_LIB" /D "_MBCS" /D "BL_FORT_USE_UPPERCASE" /D "BL_LANG_CC" /D for="if(0);else for" /D BL_SPACEDIM=2 /FR /YX /FD /c
 # ADD BASE RSC /l 0x409
 # ADD RSC /l 0x409
 BSC32=bscmake.exe
