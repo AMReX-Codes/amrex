@@ -1,5 +1,5 @@
 #
-# $Id: Make.OSF1,v 1.5 1998-04-30 15:51:19 lijewski Exp $
+# $Id: Make.OSF1,v 1.6 1998-05-14 22:06:03 lijewski Exp $
 #
 
 #
@@ -33,9 +33,9 @@ endif
 FC = f90
 
 ifeq ($(PRECISION),FLOAT)
-FOPTF += -fast -O5 -tune ev5
+FOPTF += -fast -O -tune ev5
 else
-FOPTF += -fast -O5 -tune ev5
+FOPTF += -fast -O -tune ev5
 endif
 
 FDEBF += -g
