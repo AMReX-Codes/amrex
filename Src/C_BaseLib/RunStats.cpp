@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.21 2000-04-24 17:52:37 car Exp $
+// $Id: RunStats.cpp,v 1.22 2000-06-01 21:07:52 car Exp $
 //
 
 #include <Utility.H>
@@ -196,7 +196,7 @@ RunStats::ReduceIt (List<RunStatsData>& stats)
                            pbuf,
                            N,
                            &pos,
-                           MPI_COMM_WORLD)) != MPI_SUCCESS)
+                           ParallelDescriptor::Communicator())) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
 
         for (ListIterator<RunStatsData> it(stats); it; ++it)
@@ -212,7 +212,7 @@ RunStats::ReduceIt (List<RunStatsData>& stats)
                                pbuf,
                                N,
                                &pos,
-                               MPI_COMM_WORLD)) != MPI_SUCCESS)
+                               ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
 
             if ((rc = MPI_Pack(const_cast<char*>(it().name.c_str()),
@@ -221,7 +221,7 @@ RunStats::ReduceIt (List<RunStatsData>& stats)
                                pbuf,
                                N,
                                &pos,
-                               MPI_COMM_WORLD)) != MPI_SUCCESS)
+                               ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
 
             if ((rc = MPI_Pack(&level,
@@ -230,7 +230,7 @@ RunStats::ReduceIt (List<RunStatsData>& stats)
                                pbuf,
                                N,
                                &pos,
-                               MPI_COMM_WORLD)) != MPI_SUCCESS)
+                               ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
 
             if ((rc = MPI_Pack(&runtime,
@@ -239,7 +239,7 @@ RunStats::ReduceIt (List<RunStatsData>& stats)
                                pbuf,
                                N,
                                &pos,
-                               MPI_COMM_WORLD)) != MPI_SUCCESS)
+                               ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
 
             if ((rc = MPI_Pack(&runwtime,
@@ -248,7 +248,7 @@ RunStats::ReduceIt (List<RunStatsData>& stats)
                                pbuf,
                                N,
                                &pos,
-                               MPI_COMM_WORLD)) != MPI_SUCCESS)
+                               ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
 
             BL_ASSERT(pos < N);
@@ -259,7 +259,7 @@ RunStats::ReduceIt (List<RunStatsData>& stats)
                             MPI_PACKED,
                             IoProc,
                             ParallelDescriptor::MyProc(),
-                            MPI_COMM_WORLD)) != MPI_SUCCESS)
+                            ParallelDescriptor::Communicator())) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
     else
@@ -279,7 +279,7 @@ RunStats::ReduceIt (List<RunStatsData>& stats)
                                MPI_PACKED,
                                i,
                                i,
-                               MPI_COMM_WORLD,
+                               ParallelDescriptor::Communicator(),
                                &status)) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
 
@@ -289,7 +289,7 @@ RunStats::ReduceIt (List<RunStatsData>& stats)
                                  &len,
                                  1,
                                  MPI_INT,
-                                 MPI_COMM_WORLD)) != MPI_SUCCESS)
+                                 ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
 
             for (int i = 0; i < len; i++)
@@ -300,7 +300,7 @@ RunStats::ReduceIt (List<RunStatsData>& stats)
                                      &slen,
                                      1,
                                      MPI_INT,
-                                     MPI_COMM_WORLD)) != MPI_SUCCESS)
+                                     ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
 
                 char* name = new char[slen];
@@ -311,7 +311,7 @@ RunStats::ReduceIt (List<RunStatsData>& stats)
                                      name,
                                      slen,
                                      MPI_CHAR,
-                                     MPI_COMM_WORLD)) != MPI_SUCCESS)
+                                     ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
 
                 if ((rc = MPI_Unpack(pbuf,
@@ -320,7 +320,7 @@ RunStats::ReduceIt (List<RunStatsData>& stats)
                                      &level,
                                      1,
                                      MPI_INT,
-                                     MPI_COMM_WORLD)) != MPI_SUCCESS)
+                                     ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
 
                 if ((rc = MPI_Unpack(pbuf,
@@ -329,7 +329,7 @@ RunStats::ReduceIt (List<RunStatsData>& stats)
                                      &runtime,
                                      1,
                                      mpi_data_type(&runtime),
-                                     MPI_COMM_WORLD)) != MPI_SUCCESS)
+                                     ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
 
                 if ((rc = MPI_Unpack(pbuf,
@@ -338,7 +338,7 @@ RunStats::ReduceIt (List<RunStatsData>& stats)
                                      &runwtime,
                                      1,
                                      mpi_data_type(&runwtime),
-                                     MPI_COMM_WORLD)) != MPI_SUCCESS)
+                                     ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
 
                 RunStatsData* r = find(name,level);
