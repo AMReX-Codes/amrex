@@ -4,12 +4,19 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.18 1998-06-15 20:06:16 lijewski Exp $
+// $Id: MultiFab.H,v 1.19 1998-06-15 23:54:24 lijewski Exp $
 //
 
 #include <Assert.H>
 #include <FArrayBox.H>
 #include <FabArray.H>
+
+#ifdef BL_USE_NEW_HFILES
+#include <list>
+using std::list;
+#else
+#include <list.h>
+#endif
 
 typedef FabArrayId MultiFabId;
 
@@ -337,7 +344,90 @@ class MultiFab
                      int                     num_comp,
                      bool                    no_ovlp,
                      MultiFabCopyDescriptor* mfcd);
+    //
+    //@ManDoc: Flush the cache of SI information.
+    //
+    static void FlushSICache ();
+    //
+    //@ManDoc: The size of the SI cache.
+    //
+    static int SICacheSize ();
+
 private:
+    //
+    // Holds single grid intersection record.
+    //
+    struct SIRec
+    {
+	SIRec ()
+            :
+            m_i(-1),
+            m_j(-1) {}
+
+	SIRec (int        i,
+               int        j,
+               const Box& bx)
+	    :
+            m_i(i),
+            m_j(j),
+            m_bx(bx)
+        {
+            assert(i >= 0);
+            assert(j >= 0);
+        }
+
+        int       m_i;
+	int       m_j;
+	Box       m_bx;
+	FillBoxId m_fbid;
+    };
+    //
+    // Used in caching self-intersection info for FillBoundary().
+    //
+    struct SI
+    {
+        SI ()
+            :
+            m_scomp(-1),
+            m_ncomp(-1),
+            m_ngrow(-1) {}
+
+        SI (const BoxArray& ba,
+            int             scomp,
+            int             ncomp,
+            int             ngrow)
+            :
+            m_ba(ba),
+            m_scomp(scomp),
+            m_ncomp(ncomp),
+            m_ngrow(ngrow)
+        {
+            assert(ncomp > 0);
+            assert(scomp >= 0);
+            assert(ngrow >= 0);
+        }
+
+        ~SI () {}
+
+        bool operator== (const SI& rhs) const
+        {
+            return
+                m_scomp == rhs.m_scomp &&
+                m_ncomp == rhs.m_ncomp &&
+                m_ngrow == rhs.m_ngrow &&
+                m_ba == rhs.m_ba;
+        }
+
+        vector<SIRec> m_sirec;
+        BoxArray      m_ba;
+        int           m_scomp;
+        int           m_ncomp;
+        int           m_ngrow;
+    };
+    //
+    // A useful typedef.
+    //
+    typedef list<SI> SIList;
     //
     // These are disabled.
     //
@@ -346,7 +436,9 @@ private:
     //
     // FillBoundary() Helper functions.
     //
-    vector<FillBoxId>& theFBfbid () const;
+    vector<SIRec>& theFBsirec () const;
+
+    vector<SIRec>& buildFBsirec (const SI& si) const;
 
     void buildFBmfcd (int src_comp,
                       int num_comp);
@@ -357,13 +449,16 @@ private:
     // Some additional cached data.
     //
     MultiFabCopyDescriptor* m_FB_mfcd;    /* Hack for FillBoundary */
-    vector<FillBoxId>*      m_FB_fbid;    /* Hack for FillBoundary */
     int                     m_FB_scomp;   /* Hack for FillBoundary */
     int                     m_FB_ncomp;   /* Hack for FillBoundary */
     MultiFabCopyDescriptor* m_FPB_mfcd;   /* Hack for FillPeriodicBoundary */
     int                     m_FPB_scomp;  /* Hack for FillPeriodicBoundary */
     int                     m_FPB_ncomp;  /* Hack for FillPeriodicBoundary */
     bool                    m_FPB_noovlp; /* Hack for FillPeriodicBoundary */
+    //
+    // Cache of grid self-intersection info used by FillBoundary().
+    //
+    static SIList m_SICache;
 };
 
 class ConstMultiFabIterator;
@@ -534,15 +629,6 @@ class MultiFabCopyDescriptor
 //
 
 inline
-vector<FillBoxId>&
-MultiFab::theFBfbid () const
-{
-    assert(m_FB_fbid != 0);
-
-    return *m_FB_fbid;
-}
-
-inline
 MultiFabCopyDescriptor&
 MultiFab::theFBmfcd (int src_comp,
                      int num_comp)
@@ -602,6 +688,36 @@ MultiFab::setFPBmfcd (int                     src_comp,
     m_FPB_scomp  = src_comp;
     m_FPB_ncomp  = num_comp;
     m_FPB_noovlp = no_ovlp;
+}
+
+inline
+int
+MultiFab::SICacheSize ()
+{
+    return m_SICache.size();
+}
+
+inline
+vector<MultiFab::SIRec>&
+MultiFab::theFBsirec () const
+{
+    //
+    // We assume `m_FB_scomp' & `m_FB_ncomp' have already been set.
+    //
+    assert(m_FB_ncomp > 0);
+    assert(m_FB_scomp >= 0);
+
+    const SI si(boxArray(), m_FB_scomp, m_FB_ncomp, nGrow());
+    
+    for (SIList::iterator it = m_SICache.begin(); it != m_SICache.end(); ++it)
+    {
+        if (*it == si)
+        {
+            return (*it).m_sirec;
+        }
+    }
+
+    return buildFBsirec(si);
 }
 
 inline

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.19 1998-06-15 20:06:16 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.20 1998-06-15 23:54:25 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -35,7 +35,6 @@ using std::setw;
 MultiFab::MultiFab ()
     :
     m_FB_mfcd(0),
-    m_FB_fbid(0),
     m_FB_scomp(-1),
     m_FB_ncomp(-1),
     m_FPB_mfcd(0),
@@ -51,7 +50,6 @@ MultiFab::MultiFab (const BoxArray& bxs,
     :
     FabArray<Real,FArrayBox>(bxs,ncomp,ngrow,alloc),
     m_FB_mfcd(0),
-    m_FB_fbid(0),
     m_FB_scomp(-1),
     m_FB_ncomp(-1),
     m_FPB_mfcd(0),
@@ -66,7 +64,6 @@ MultiFab::MultiFab (const BoxArray& bxs,
 MultiFab::~MultiFab ()
 {
     delete m_FB_mfcd;
-    delete m_FB_fbid;
     delete m_FPB_mfcd;
 }
 
@@ -497,29 +494,49 @@ linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
     }
 }
 
+//
+// Cache of SI info.
+//
+MultiFab::SIList MultiFab::m_SICache;
+
+//
+// Maximum size of the cache.
+//
+int const MaxSICacheSize = 10;
+
 void
-MultiFab::buildFBmfcd (int src_comp,
-                       int num_comp)
+MultiFab::FlushSICache ()
 {
-    assert(src_comp >= 0);
-    assert(num_comp > 0);
+    m_SICache.clear();
+}
 
-    m_FB_scomp = src_comp;
-    m_FB_ncomp = num_comp;
+vector<MultiFab::SIRec>&
+MultiFab::buildFBsirec (const SI& si) const
+{
+    //
+    // We assume `m_FB_scomp' & `m_FB_ncomp' have already been set.
+    //
+    assert(m_FB_ncomp > 0);
+    assert(m_FB_scomp >= 0);
+    assert(nGrow() == si.m_ngrow);
+    assert(boxArray() == si.m_ba);
+    assert(m_FB_ncomp == si.m_ncomp);
+    assert(m_FB_scomp == si.m_scomp);
+    //
+    // Got to build one.
+    //
+    if (m_SICache.size() == MaxSICacheSize)
+    {
+        m_SICache.pop_back();
+    }
+    //
+    // Insert new ones at beginning of list.
+    //
+    m_SICache.push_front(si);
 
-    delete m_FB_mfcd;
+    vector<SIRec>& sirec = m_SICache.front().m_sirec;
 
-    m_FB_mfcd = new MultiFabCopyDescriptor;
-
-    MultiFabId mfid = m_FB_mfcd->RegisterMultiFab(this);
-
-    assert(mfid == MultiFabId(0));
-
-    delete m_FB_fbid;
-
-    m_FB_fbid = new vector<FillBoxId>;
-
-    for (MultiFabIterator mfi(*this); mfi.isValid(false); ++mfi)
+    for (ConstMultiFabIterator mfi(*this); mfi.isValid(false); ++mfi)
     {
         for (int j = 0; j < length(); j++)
         {
@@ -533,17 +550,45 @@ MultiFab::buildFBmfcd (int src_comp,
             {
                 Box bx = boxarray[j] & mfi().box();
 
-                m_FB_fbid->push_back(m_FB_mfcd->AddBox(mfid,
-                                                       bx,
-                                                       0,
-                                                       j,
-                                                       src_comp,
-                                                       src_comp,
-                                                       num_comp));
-
-                m_FB_fbid->back().FabIndex(mfi.index());
+                sirec.push_back(SIRec(mfi.index(),j,bx));
             }
         }
+    }    
+
+    return sirec;
+}
+
+void
+MultiFab::buildFBmfcd (int src_comp,
+                       int num_comp)
+{
+    assert(num_comp > 0);
+    assert(src_comp >= 0);
+
+    m_FB_scomp = src_comp;
+    m_FB_ncomp = num_comp;
+
+    delete m_FB_mfcd;
+
+    m_FB_mfcd = new MultiFabCopyDescriptor;
+
+    MultiFabId mfid = m_FB_mfcd->RegisterMultiFab(this);
+
+    assert(mfid == MultiFabId(0));
+
+    vector<SIRec>& sirec = theFBsirec();
+    //
+    // Add boxes we need to collect.
+    //
+    for (int i = 0; i < sirec.size(); i++)
+    {
+        sirec[i].m_fbid = m_FB_mfcd->AddBox(mfid,
+                                            sirec[i].m_bx,
+                                            0,
+                                            sirec[i].m_j,
+                                            m_FB_scomp,
+                                            m_FB_scomp,
+                                            m_FB_ncomp);
     }
 }
 
@@ -551,13 +596,11 @@ void
 MultiFab::FillBoundary (int src_comp,
                         int num_comp)
 {
-    RunStats fill_boundary_stats("fill_boundary");
+    RunStats stats("fill_boundary");
 
-    fill_boundary_stats.start();
+    stats.start();
 
     MultiFabCopyDescriptor& mfcd = theFBmfcd(src_comp,num_comp);
-
-    const vector<FillBoxId>& fillBoxIDs = theFBfbid();
 
     mfcd.CollectData();
 
@@ -565,16 +608,18 @@ MultiFab::FillBoundary (int src_comp,
 
     const MultiFabId TheFBMultiFabId = 0;
 
-    for (int i = 0; i < fillBoxIDs.size(); i++)
+    const vector<SIRec>& sirec = theFBsirec();
+
+    for (int i = 0; i < sirec.size(); i++)
     {
-        int fabindex = fillBoxIDs[i].FabIndex();
+        int fabindex = sirec[i].m_i;
 
         assert(ProcessorMap()[fabindex] == MyProc);
         //
         // Directly fill the FAB.
         //
-        mfcd.FillFab(TheFBMultiFabId, fillBoxIDs[i], (*this)[fabindex]);
+        mfcd.FillFab(TheFBMultiFabId, sirec[i].m_fbid, (*this)[fabindex]);
     }
 
-    fill_boundary_stats.end();
+    stats.end();
 }
