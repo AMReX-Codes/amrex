@@ -3,7 +3,7 @@
 #define _LINOP_H_
 
 //
-// $Id: LinOp.H,v 1.14 2000-10-02 20:51:16 lijewski Exp $
+// $Id: LinOp.H,v 1.15 2001-08-01 21:51:04 lijewski Exp $
 //
 
 #include <Array.H>
@@ -182,8 +182,7 @@ public:
     //
     //@ManDoc: Output operator internal to an ASCII stream
     //
-    friend ostream& operator<< (ostream&     os,
-                                const LinOp& lp);
+    friend std::ostream& operator<< (std::ostream& os, const LinOp& lp);
     
 protected:
     //
@@ -223,16 +222,16 @@ protected:
     //
     //@ManDoc: Array (on level) of Tuples (on dimension) of grid spacings
     //
-    vector< Tuple< Real, BL_SPACEDIM > > h;
+    std::vector< Tuple< Real, BL_SPACEDIM > > h;
     //
     //@ManDoc: Array (on level) of BoxArray's of LinOp's domain
     //
-    vector< BoxArray > gbox;
+    std::vector< BoxArray > gbox;
     //
     //@ManDoc: Array (on level) of pointers to BndryRegisters along each grid
     //  for scratch data required to modify internal stencil on boundary
     //
-    vector< CpClassPtr<BndryRegister> > undrrelxr;
+    std::vector< CpClassPtr<BndryRegister> > undrrelxr;
     //
     //@ManDoc: Array (on level) of Arrays (on grid) of Arrays (on orientation)
     // of pointers to Masks for whether boundary Fabs are covered,
@@ -249,7 +248,7 @@ protected:
     //@ManDoc: Array (on level) of geometry objects.  Needed for determining
     // whether stuff intersects on periodic domains
     //
-    vector< Geometry > geomarray;
+    std::vector< Geometry > geomarray;
     //
     //@ManDoc: flag (=1 if use harmonic averaged interpolation for coefficients,
     // =0 is arithmetic averaging)
@@ -323,7 +322,7 @@ inline
 int
 LinOp::numGrids () const
 {
-    return gbox[0].length();
+    return gbox[0].size();
 }
 
 inline

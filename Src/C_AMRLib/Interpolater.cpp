@@ -1,16 +1,11 @@
-
 //
-// $Id: Interpolater.cpp,v 1.19 2000-11-17 18:00:55 lijewski Exp $
+// $Id: Interpolater.cpp,v 1.20 2001-08-01 21:50:46 lijewski Exp $
 //
-
-#ifdef BL_USE_NEW_HFILES
 #include <cmath>
 #include <climits>
-#else
-#include <math.h>
-#include <limits.h>
-#endif
 
+#include <FArrayBox.H>
+#include <Geometry.H>
 #include <Interpolater.H>
 #include <INTERP_F.H>
 
@@ -45,7 +40,7 @@ Box
 NodeBilinear::CoarseBox (const Box& fine,
                          int        ratio)
 {
-    Box b = ::coarsen(fine,ratio);
+    Box b = BoxLib::coarsen(fine,ratio);
 
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
@@ -65,7 +60,7 @@ Box
 NodeBilinear::CoarseBox (const Box&     fine,
                          const IntVect& ratio)
 {
-    Box b = ::coarsen(fine,ratio);
+    Box b = BoxLib::coarsen(fine,ratio);
 
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
@@ -148,7 +143,7 @@ CellBilinear::CoarseBox (const Box&     fine,
     const int* lo = fine.loVect();
     const int* hi = fine.hiVect();
 
-    Box crse(::coarsen(fine,ratio));
+    Box crse(BoxLib::coarsen(fine,ratio));
     const int* clo = crse.loVect();
     const int* chi = crse.hiVect();
 
@@ -165,13 +160,16 @@ CellBilinear::CoarseBox (const Box&     fine,
 }
 
 void
-CellBilinear::interp (const FArrayBox& crse, int crse_comp,
-                      FArrayBox& fine, int fine_comp,
-                      int ncomp,
-                      const Box& fine_region, const IntVect & ratio,
-                      const Geometry& /* crse_geom */,
-                      const Geometry& /* fine_geom */,
-                      Array<BCRec>& /*bcr*/)
+CellBilinear::interp (const FArrayBox& crse,
+                      int              crse_comp,
+                      FArrayBox&       fine,
+                      int              fine_comp,
+                      int              ncomp,
+                      const Box&       fine_region,
+                      const IntVect &  ratio,
+                      const Geometry&  /* crse_geom */,
+                      const Geometry&  /* fine_geom */,
+                      Array<BCRec>&    /*bcr*/)
 {
     BoxLib::Error("interp: not implemented");
     //
@@ -229,7 +227,7 @@ Box
 CellConservative::CoarseBox (const Box&     fine,
                              const IntVect& ratio)
 {
-    Box crse = ::coarsen(fine,ratio);
+    Box crse = BoxLib::coarsen(fine,ratio);
     crse.grow(1);
     return crse;
 }
@@ -238,7 +236,7 @@ Box
 CellConservative::CoarseBox (const Box& fine,
                              int        ratio)
 {
-    Box crse = ::coarsen(fine,ratio);
+    Box crse = BoxLib::coarsen(fine,ratio);
     crse.grow(1);
     return crse;
 }
@@ -247,9 +245,9 @@ static
 Array<int>
 GetBCArray (const Array<BCRec>& bcr)
 {
-    Array<int> bc(2*BL_SPACEDIM*bcr.length());
+    Array<int> bc(2*BL_SPACEDIM*bcr.size());
 
-    for (int n = 0; n < bcr.length(); n++)
+    for (int n = 0; n < bcr.size(); n++)
     {
         const int* b_rec = bcr[n].vect();
 
@@ -274,14 +272,14 @@ CellConservative::interp (const FArrayBox& crse,
                           const Geometry&  fine_geom,
                           Array<BCRec>&    bcr)
 {
-    BL_ASSERT(bcr.length() >= ncomp);
+    BL_ASSERT(bcr.size() >= ncomp);
     BL_ASSERT(fine_geom.Domain().contains(fine_region));
     //
     // Make box which is intersection of fine_region and domain of fine.
     //
     Box target_fine_region = fine_region & fine.box();
-    Box crse_bx            = ::coarsen(target_fine_region,ratio);
-    Box fslope_bx          = ::refine(crse_bx,ratio);
+    Box crse_bx            = BoxLib::coarsen(target_fine_region,ratio);
+    Box fslope_bx          = BoxLib::refine(crse_bx,ratio);
     Box cslope_bx          = crse_bx;
     cslope_bx.grow(1);
     BL_ASSERT(crse.box().contains(cslope_bx));
@@ -375,7 +373,7 @@ Box
 CellConservativeLinear::CoarseBox (const Box&     fine,
                                    const IntVect& ratio)
 {
-    Box crse = ::coarsen(fine,ratio);
+    Box crse = BoxLib::coarsen(fine,ratio);
     crse.grow(1);
     return crse;
 }
@@ -384,21 +382,24 @@ Box
 CellConservativeLinear::CoarseBox (const Box& fine,
                                    int        ratio)
 {
-    Box crse(::coarsen(fine,ratio));
+    Box crse(BoxLib::coarsen(fine,ratio));
     crse.grow(1);
     return crse;
 }
 
 void
-CellConservativeLinear::interp (const FArrayBox& crse, int crse_comp,
-                         FArrayBox& fine, int fine_comp,
-                         int ncomp,
-                         const Box& fine_region, const IntVect & ratio,
-                         const Geometry& crse_geom,
-                         const Geometry& fine_geom,
-                         Array<BCRec>& bcr)
+CellConservativeLinear::interp (const FArrayBox& crse,
+                                int              crse_comp,
+                                FArrayBox&       fine,
+                                int              fine_comp,
+                                int              ncomp,
+                                const Box&       fine_region,
+                                const IntVect&   ratio,
+                                const Geometry&  crse_geom,
+                                const Geometry&  fine_geom,
+                                Array<BCRec>& bcr)
 {
-    BL_ASSERT(bcr.length() >= ncomp);
+    BL_ASSERT(bcr.size() >= ncomp);
     BL_ASSERT(fine_geom.Domain().contains(fine_region));
     //
     // Make box which is intersection of fine_region and domain of fine.
@@ -467,13 +468,13 @@ CellConservativeLinear::interp (const FArrayBox& crse, int crse_comp,
 
     for (dir=0; dir<BL_SPACEDIM; dir++)
     {
-        cvcbhi[dir] = cvcblo[dir] + cvc[dir].length() - 1;
-        fvcbhi[dir] = fvcblo[dir] + fvc[dir].length() - 1;
+        cvcbhi[dir] = cvcblo[dir] + cvc[dir].size() - 1;
+        fvcbhi[dir] = fvcblo[dir] + fvc[dir].size() - 1;
     }
 
-    D_TERM(Real* voffx = new Real[fvc[0].length()];,
-           Real* voffy = new Real[fvc[1].length()];,
-           Real* voffz = new Real[fvc[2].length()];);
+    D_TERM(Real* voffx = new Real[fvc[0].size()];,
+           Real* voffy = new Real[fvc[1].size()];,
+           Real* voffz = new Real[fvc[2].size()];);
 
     Array<int> bc     = GetBCArray(bcr);
     const int* ratioV = ratio.getVect();
@@ -516,7 +517,7 @@ Box
 CellQuadratic::CoarseBox (const Box&     fine,
                           const IntVect& ratio)
 {
-    Box crse = ::coarsen(fine,ratio);
+    Box crse = BoxLib::coarsen(fine,ratio);
     crse.grow(1);
     return crse;
 }
@@ -525,29 +526,32 @@ Box
 CellQuadratic::CoarseBox (const Box& fine,
                           int        ratio)
 {
-    Box crse = ::coarsen(fine,ratio);
+    Box crse = BoxLib::coarsen(fine,ratio);
     crse.grow(1);
     return crse;
 }
 
 void
-CellQuadratic::interp (const FArrayBox& crse, int crse_comp,
-                       FArrayBox& fine, int fine_comp,
-                       int ncomp,
-                       const Box& fine_region, const IntVect & ratio,
-                       const Geometry& crse_geom,
-                       const Geometry& fine_geom,
-                       Array<BCRec>& bcr)
+CellQuadratic::interp (const FArrayBox& crse,
+                       int              crse_comp,
+                       FArrayBox&       fine,
+                       int              fine_comp,
+                       int              ncomp,
+                       const Box&       fine_region,
+                       const IntVect&   ratio,
+                       const Geometry&  crse_geom,
+                       const Geometry&  fine_geom,
+                       Array<BCRec>&    bcr)
 {
-    BL_ASSERT(bcr.length() >= ncomp);
+    BL_ASSERT(bcr.size() >= ncomp);
     BL_ASSERT(fine_geom.Domain().contains(fine_region));
     //
     // Make box which is intersection of fine_region and domain of fine.
     //
     Box target_fine_region = fine_region & fine.box();
 
-    Box crse_bx(::coarsen(target_fine_region,ratio));
-    Box fslope_bx(::refine(crse_bx,ratio));
+    Box crse_bx(BoxLib::coarsen(target_fine_region,ratio));
+    Box fslope_bx(BoxLib::refine(crse_bx,ratio));
     Box cslope_bx(crse_bx);
     cslope_bx.grow(1);
     BL_ASSERT(crse.box().contains(cslope_bx));
@@ -644,24 +648,27 @@ Box
 PCInterp::CoarseBox (const Box& fine,
                      int        ratio)
 {
-    return ::coarsen(fine,ratio);
+    return BoxLib::coarsen(fine,ratio);
 }
 
 Box
 PCInterp::CoarseBox (const Box&     fine,
                      const IntVect& ratio)
 {
-    return ::coarsen(fine,ratio);
+    return BoxLib::coarsen(fine,ratio);
 }
 
 void
-PCInterp::interp (const FArrayBox& crse, int crse_comp,
-                  FArrayBox& fine, int fine_comp,
-                  int ncomp,
-                  const Box& fine_region, const IntVect & ratio,
-                  const Geometry& /* crse_geom */,
-                  const Geometry& /* fine_geom */,
-                  Array<BCRec>& /* bcr */)
+PCInterp::interp (const FArrayBox& crse,
+                  int              crse_comp,
+                  FArrayBox&       fine,
+                  int              fine_comp,
+                  int              ncomp,
+                  const Box&       fine_region,
+                  const IntVect&   ratio,
+                  const Geometry&  /*crse_geom*/,
+                  const Geometry&  /*fine_geom*/,
+                  Array<BCRec>&    /*bcr*/)
 {
     //
     // Set up to call FORTRAN.
@@ -673,7 +680,7 @@ PCInterp::interp (const FArrayBox& crse, int crse_comp,
     const int* fblo = fine_region.loVect();
     const int* fbhi = fine_region.hiVect();
 
-    Box cregion(::coarsen(fine_region,ratio));
+    Box cregion(BoxLib::coarsen(fine_region,ratio));
 
     const int* cblo = cregion.loVect();
     const int* cbhi = cregion.hiVect();
@@ -702,4 +709,3 @@ PCInterp::interp (const FArrayBox& crse, int crse_comp,
                    &long_dir,D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
                    &ncomp,strip,&strip_lo,&strip_hi);
 }
-

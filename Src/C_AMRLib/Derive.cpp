@@ -1,17 +1,13 @@
-
 //
-// $Id: Derive.cpp,v 1.14 2000-10-02 20:48:41 lijewski Exp $
+// $Id: Derive.cpp,v 1.15 2001-08-01 21:50:45 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <cstring>
-#else
-#include <string.h>
-#endif
 
 #include <Derive.H>
+#include <StateDescriptor.H>
 
-DeriveRec::DeriveRec (const aString& name,
+DeriveRec::DeriveRec (const std::string& name,
                       IndexType      result_type,
                       int            nvar_derive,
                       DeriveFunc     der_func,
@@ -31,10 +27,10 @@ DeriveRec::DeriveRec (const aString& name,
     bcr(0)
 {}
 
-DeriveRec::DeriveRec (const aString& name,
+DeriveRec::DeriveRec (const std::string& name,
                       IndexType      result_type,
                       int            nvar_derive,
-		      Array<aString>& var_names,
+		      Array<std::string>& var_names,
                       DeriveFunc     der_func,
                       DeriveBoxMap   box_map,
                       Interpolater*  interp)
@@ -52,7 +48,7 @@ DeriveRec::DeriveRec (const aString& name,
     bcr(0)
 {}
 
-DeriveRec::~DeriveRec() 
+DeriveRec::~DeriveRec () 
 {
    delete [] bcr;
    func     = 0;
@@ -64,6 +60,60 @@ DeriveRec::~DeriveRec()
        rng = rng->next;
        delete r;
    }
+}
+
+const std::string&
+DeriveRec::name () const
+{
+    return derive_name;
+}
+
+IndexType
+DeriveRec::deriveType () const
+{
+    return der_type;
+}
+
+DeriveFunc
+DeriveRec::derFunc () const
+{
+    return func;
+}
+
+DeriveRec::DeriveBoxMap
+DeriveRec::boxMap () const
+{
+    return bx_map;
+}
+
+Interpolater*
+DeriveRec::interp () const
+{
+    return mapper;
+}
+
+int
+DeriveRec::numDerive () const
+{
+    return n_derive;
+}
+
+int
+DeriveRec::numRange () const
+{
+    return nsr;
+}
+
+int
+DeriveRec::numState () const
+{
+    return n_state;
+}
+
+const int*
+DeriveRec::getBC () const
+{
+    return bcr;
 }
 
 void
@@ -141,52 +191,89 @@ DeriveRec::buildBC (const DescriptorList& d_list)
 }
 
 const
-aString&
+std::string&
 DeriveRec::variableName(int comp) const
 {
-  if (comp < variable_names.length()) 
+  if (comp < variable_names.size()) 
      return variable_names[comp];
 
   return derive_name;
 }
 
-bool
-DeriveList::canDerive (const aString& name) const 
+DeriveList::DeriveList () {}
+
+void
+DeriveList::add (const std::string&      name,
+                 IndexType               result_type,
+                 int                     nvar_der,
+                 DeriveFunc              der_func,
+                 DeriveRec::DeriveBoxMap bx_map,
+                 Interpolater*           interp)
 {
-    for (ListIterator<DeriveRec> li(lst); li; ++li)
+    lst.push_back(DeriveRec(name,result_type,nvar_der,der_func,bx_map,interp));
+}
+
+void
+DeriveList::add (const std::string&      name,
+                 IndexType               res_typ,
+                 int                     nvar_der,
+                 Array<std::string>&     vars,
+                 DeriveFunc              der_func,
+                 DeriveRec::DeriveBoxMap bx_map,
+                 Interpolater*           interp)
+{
+    lst.push_back(DeriveRec(name,res_typ,nvar_der,vars,der_func,bx_map,interp));
+}
+
+std::list<DeriveRec>&
+DeriveList::dlist ()
+{
+    return lst;
+}
+
+bool
+DeriveList::canDerive (const std::string& name) const 
+{
+    for (std::list<DeriveRec>::const_iterator li = lst.begin();
+         li != lst.end();
+         ++li)
     {
-        if (li().derive_name == name)
+        if (li->derive_name == name)
             return true;
     }
     return false;
 }
 
 const DeriveRec*
-DeriveList::get (const aString& name) const
+DeriveList::get (const std::string& name) const
 {
-    for (ListIterator<DeriveRec> li(lst); li; ++li)
+    for (std::list<DeriveRec>::const_iterator li = lst.begin();
+         li != lst.end();
+         ++li)
     {
-        if (li().derive_name == name)
-            return &li();
+        if (li->derive_name == name)
+            return &(*li);
     }
     return 0;
 }
 
 void
-DeriveList::addComponent (const aString&        name,
+DeriveList::addComponent (const std::string&    name,
                           const DescriptorList& d_list, 
                           int                   state_indx,
                           int                   s_comp,
                           int                   n_comp)
 {
-    ListIterator<DeriveRec> li(lst);
+    std::list<DeriveRec>::iterator li = lst.begin();
 
-    for ( ; li; ++li)
+    for ( ; li != lst.end(); ++li)
     {
-        if (li().derive_name == name)
+        if (li->derive_name == name)
             break;
     }
-    BL_ASSERT (li != 0);
-    lst[li].addRange(d_list, state_indx, s_comp, n_comp);
+
+    BL_ASSERT (li != lst.end());
+
+    li->addRange(d_list, state_indx, s_comp, n_comp);
 }
 

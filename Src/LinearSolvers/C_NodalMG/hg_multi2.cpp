@@ -639,7 +639,7 @@ holy_grail_amr_multigrid::build_sync_cache (int mglev,
 	const IntVect t = lev_interface[mglev].box(1, iedge).type();
 	cbox = lev_interface[mglev].node_box(1, iedge);
 	cbox.coarsen(rat).grow(t);
-	fbox = ::refine(cbox, rat);
+	fbox = BoxLib::refine(cbox, rat);
 	Box& sigmafbox = eres_sfbox[lev][iedge];
 	Box& sigmacbox = eres_scbox[lev][iedge];
 	sigmafbox = fbox;

@@ -3,14 +3,10 @@
 #define _CGSOLVER_H_
 
 //
-// $Id: CGSolver.H,v 1.9 2000-10-02 20:51:15 lijewski Exp $
+// $Id: CGSolver.H,v 1.10 2001-08-01 21:51:03 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <cmath>
-#else
-#include <math.h>
-#endif
 
 #include <Array.H>
 #include <Pointers.H>

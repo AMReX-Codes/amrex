@@ -2,7 +2,7 @@
 #define _COORDSYS_F_H_
 
 /*
-** $Id: COORDSYS_F.H,v 1.6 1999-04-05 17:39:21 car Exp $
+** $Id: COORDSYS_F.H,v 1.7 2001-08-01 21:50:49 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -40,10 +40,10 @@ extern "C"
                        const Real* offset,
                        const Real* dx, const int* coord);
 
-     void FORT_SETVOLPT (REAL* vol, ARLIM_P(vollo), ARLIM_P(volhi),
-                        REAL* rolo, ARLIM_P(rolo), ARLIM_P(rohi),
-                        REAL* rilo, ARLIM_P(rilo), ARLIM_P(rihi),
-                       const REAL* dx, const int* coord);
+     void FORT_SETVOLPT (Real* vol, ARLIM_P(vollo), ARLIM_P(volhi),
+                        Real* rolo, ARLIM_P(rolo), ARLIM_P(rohi),
+                        Real* rilo, ARLIM_P(rilo), ARLIM_P(rihi),
+                       const Real* dx, const int* coord);
 
 #if (BL_SPACEDIM == 2)
      void FORT_SETDLOGA (Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),

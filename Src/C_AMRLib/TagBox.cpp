@@ -1,34 +1,17 @@
 
 //
-// $Id: TagBox.cpp,v 1.57 2001-05-09 22:30:59 lijewski Exp $
+// $Id: TagBox.cpp,v 1.58 2001-08-01 21:50:47 lijewski Exp $
 //
+#include <algorithm>
+#include <cstdlib>
+#include <vector>
+#include <cmath>
 
 #include <TagBox.H>
-#include <Misc.H>
 #include <Geometry.H>
 #include <ParallelDescriptor.H>
-
-#ifdef BL_USE_NEW_HFILES
-#include <algorithm>
-#include <vector>
-using std::sort;
-using std::vector;
-using std::unique;
-#else
-#ifdef BL_OLD_STL
-#include <algo.h>
-#else
-#include <algorithm.h>
-#endif
-#include <vector.h>
-#endif
-
+#include <Profiler.H>
 #include <ccse-mpi.H>
-
-#ifdef BL3_PROFILING
-#include <BoxLib3/Profiler.H>
-#endif
-
 //
 // Number of IntVects that can fit into m_CollateSpace
 //
@@ -65,7 +48,11 @@ TagBox::TagBox (const Box& bx,
     setVal(TagBox::CLEAR);
 }
 
-TagBox::~TagBox () {}
+void
+TagBox::resize (const Box& b, int ncomp)
+{
+    BaseFab<TagType>::resize(b,ncomp);
+}
 
 TagBox*
 TagBox::coarsen (const IntVect& ratio)
@@ -74,7 +61,7 @@ TagBox::coarsen (const IntVect& ratio)
     cbx.coarsen(ratio);
     TagBox* crse = new TagBox(cbx);
     const Box& cbox = crse->box();
-    Box b1(::refine(cbox,ratio));
+    Box b1(BoxLib::refine(cbox,ratio));
 
     const int* flo  = domain.loVect();
     const int* fhi  = domain.hiVect();
@@ -103,7 +90,7 @@ TagBox::coarsen (const IntVect& ratio)
            jlo=flo[1]; jhi=fhi[1]; ,
            klo=flo[2]; khi=fhi[2];)
 
-#define IXPROJ(i,r) (((i)+(r)*Abs(i))/(r) - Abs(i))
+#define IXPROJ(i,r) (((i)+(r)*std::abs(i))/(r) - std::abs(i))
 #define IOFF(j,k,lo,len) D_TERM(0, +(j-lo[1])*len[0], +(k-lo[2])*len[0]*len[1])
 #define JOFF(i,k,lo,len) D_TERM(i-lo[0], +0, +(k-lo[2])*len[0]*len[1])
 #define KOFF(i,j,lo,len) D_TERM(i-lo[0], +(j-lo[1])*len[0], +0)
@@ -140,7 +127,7 @@ TagBox::coarsen (const IntVect& ratio)
                   for (int ic = 0; ic < clen[0]; ic++)
                   {
                       int i = ic*ratiox + off;
-                      c[ic] = Max(c[ic],t[i]);
+                      c[ic] = std::max(c[ic],t[i]);
                   }
               }
           }
@@ -170,7 +157,7 @@ TagBox::coarsen (const IntVect& ratio)
                   for (int jcnt = 0; jcnt < clen[1]; jcnt++)
                   {
                       int j = jcnt*dummy_ratio + off;
-                      c[jc] = Max(c[jc],t[j]);
+                      c[jc] = std::max(c[jc],t[j]);
                       jc += strd;
                   }
               }
@@ -201,7 +188,7 @@ TagBox::coarsen (const IntVect& ratio)
                    for (int kcnt = 0; kcnt < clen[2]; kcnt++)
                    {
                        int k = kcnt*dummy_ratio + off;
-                       c[kc] = Max(c[kc],t[k]);
+                       c[kc] = std::max(c[kc],t[k]);
                        kc += strd;
                    }
                }
@@ -385,7 +372,7 @@ TagBox::tags () const
     const TagType* cptr = dataPtr();
     int*           iptr = ar.dataPtr();
 
-    for (int i = 0; i < ar.length(); i++, cptr++, iptr++)
+    for (int i = 0; i < ar.size(); i++, cptr++, iptr++)
     {
         if (*cptr)
             *iptr = *cptr;
@@ -397,12 +384,12 @@ TagBox::tags () const
 void
 TagBox::tags (const Array<int>& ar)
 {
-    BL_ASSERT(ar.length() == domain.numPts());
+    BL_ASSERT(ar.size() == domain.numPts());
 
     TagType*   cptr = dataPtr();
     const int* iptr = ar.dataPtr();
 
-    for (int i = 0; i < ar.length(); i++, cptr++, iptr++)
+    for (int i = 0; i < ar.size(); i++, cptr++, iptr++)
     {
         if (*iptr)
             *cptr = *iptr;
@@ -419,7 +406,11 @@ TagBoxArray::TagBoxArray (const BoxArray& ba,
     define(grownBoxArray, 1, 0, Fab_allocate);
 }
 
-TagBoxArray::~TagBoxArray () {}
+int
+TagBoxArray::borderSize () const
+{
+    return m_border;
+}
 
 void 
 TagBoxArray::buffer (int nbuf)
@@ -427,9 +418,9 @@ TagBoxArray::buffer (int nbuf)
     if (!(nbuf == 0))
     {
         BL_ASSERT(nbuf <= m_border);
-        for (FabArrayIterator<TagType,TagBox> fai(*this); fai.isValid(); ++fai)
+        for (MFIter fai(*this); fai.isValid(); ++fai)
         {
-            fai().buffer(nbuf, m_border);
+            get(fai).buffer(nbuf, m_border);
         } 
     }
 }
@@ -437,31 +428,31 @@ TagBoxArray::buffer (int nbuf)
 void
 TagBoxArray::mapPeriodic (const Geometry& geom)
 {
-    if (!geom.isAnyPeriodic())
-        return;
+    if (!geom.isAnyPeriodic()) return;
 
-    FabArrayCopyDescriptor<TagType,TagBox> facd;
+    FabArrayCopyDescriptor<TagBox> facd;
 
     FabArrayId        faid   = facd.RegisterFabArray(this);
     const int         MyProc = ParallelDescriptor::MyProc();
     const Box&        domain = geom.Domain();
     Array<IntVect>    pshifts(27);
-    vector<FillBoxId> fillBoxId;
-    vector<IntVect>   shifts;
 
-    for (int i = 0; i < boxarray.length(); i++)
+    std::vector<FillBoxId> fillBoxId;
+    std::vector<IntVect>   shifts;
+
+    for (int i = 0; i < boxarray.size(); i++)
     {
         if (!domain.contains(boxarray[i]))
         {
             geom.periodicShift(domain, boxarray[i], pshifts);
 
-            for (int iiv = 0; iiv < pshifts.length(); iiv++)
+            for (int iiv = 0; iiv < pshifts.size(); iiv++)
             {
                 Box shiftbox(boxarray[i]);
 
                 shiftbox.shift(pshifts[iiv]);
 
-                for (int j = 0; j < boxarray.length(); j++)
+                for (int j = 0; j < boxarray.size(); j++)
                 {
                     if (distributionMap[j] == MyProc)
                     {
@@ -520,11 +511,9 @@ TagBoxArray::numTags () const
 {
    long ntag = 0;
 
-   ConstFabArrayIterator<TagType,TagBox> fai(*this);
-
-   for ( ; fai.isValid(); ++fai)
+   for (MFIter fai(*this); fai.isValid(); ++fai)
    {
-      ntag += fai().numTags();
+      ntag += get(fai).numTags();
    }
 
    ParallelDescriptor::ReduceLongSum(ntag);
@@ -548,9 +537,7 @@ struct IntVectComp
 IntVect*
 TagBoxArray::collate (long& numtags) const
 {
-#ifdef BL3_PROFILING
-  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::collate()");
-#endif
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::collate()");
 
     numtags = numTags();
 
@@ -558,20 +545,17 @@ TagBoxArray::collate (long& numtags) const
         TagBoxArray::BumpCollateSpace(numtags);
 
 #ifdef BL_USE_MPI
-    static RunStats mpi_bcast("mpi_broadcast");
-
-    const int NGrids = fabparray.length();
+    const int NGrids = fabparray.size();
 
     Array<int> sharedNTags(NGrids); // Shared numTags per grid.
     Array<int> startOffset(NGrids); // Start locations per grid.
 
-    for (ConstFabArrayIterator<TagType,TagBox> fai(*this); fai.isValid();++fai)
+    for (MFIter fai(*this); fai.isValid();++fai)
     {
-        sharedNTags[fai.index()] = fai().numTags();
+        sharedNTags[fai.index()] = get(fai).numTags();
     }
     const DistributionMapping& dMap = DistributionMap();
 
-    mpi_bcast.start();
     for (int i = 0, rc = 0; i < NGrids; ++i)
     {
         if ((rc = MPI_Bcast(&sharedNTags[i],
@@ -581,7 +565,6 @@ TagBoxArray::collate (long& numtags) const
                             ParallelDescriptor::Communicator())) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
-    mpi_bcast.end();
 
     startOffset[0] = 0;
     for (int i = 1; i < NGrids; ++i)
@@ -591,16 +574,15 @@ TagBoxArray::collate (long& numtags) const
     //
     // Communicate all local points so all procs have the same global set.
     //
-    for (ConstFabArrayIterator<TagType,TagBox> fai(*this); fai.isValid();++fai)
+    for (MFIter fai(*this); fai.isValid();++fai)
     {
-        fai().collate(TagBoxArray::m_CollateSpace, startOffset[fai.index()]);
+        get(fai).collate(TagBoxArray::m_CollateSpace, startOffset[fai.index()]);
     }
     //
     // Make sure can pass IntVect as array of ints.
     //
     BL_ASSERT(sizeof(IntVect) == BL_SPACEDIM * sizeof(int));
 
-    mpi_bcast.start();
     for (int i = 0, rc = 0; i < NGrids; ++i)
     {
         if ((rc = MPI_Bcast(TagBoxArray::m_CollateSpace + startOffset[i],
@@ -610,21 +592,20 @@ TagBoxArray::collate (long& numtags) const
                             ParallelDescriptor::Communicator())) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
-    mpi_bcast.end();
 #else
     int start = 0;
 
-    for (ConstFabArrayIterator<TagType,TagBox> fai(*this); fai.isValid();++fai)
+    for (MFIter fai(*this); fai.isValid();++fai)
     {
-        start += fai().collate(TagBoxArray::m_CollateSpace,start);
+        start += get(fai).collate(TagBoxArray::m_CollateSpace,start);
     }
 #endif /*BL_USE_MPI*/
     //
     // Remove duplicate IntVects.
     //
-    sort(m_CollateSpace, m_CollateSpace+numtags, IntVectComp());
+    std::sort(m_CollateSpace, m_CollateSpace+numtags, IntVectComp());
 
-    IntVect* end = unique(m_CollateSpace,m_CollateSpace+numtags);
+    IntVect* end = std::unique(m_CollateSpace,m_CollateSpace+numtags);
 
     ptrdiff_t duplicates = (m_CollateSpace+numtags) - end;
 
@@ -639,13 +620,17 @@ void
 TagBoxArray::setVal (const BoxDomain& bd,
                      TagBox::TagVal   val)
 {
-    for (FabArrayIterator<TagType,TagBox> fai(*this); fai.isValid(); ++fai)
+    for (MFIter fai(*this); fai.isValid(); ++fai)
     {
-        for (BoxDomainIterator bdi(bd); bdi; ++bdi)
+        for (BoxDomain::const_iterator bdi = bd.begin();
+             bdi != bd.end();
+             ++bdi)
         {
-            if (fai.validbox().intersects(bdi()))
+            if (fai.validbox().intersects(*bdi))
             {
-                fai().setVal(val,fai.validbox() & bdi(),0);
+                Box isect = *bdi & fai.validbox();
+
+                get(fai).setVal(val,isect,0);
             }
         }
     }
@@ -655,13 +640,15 @@ void
 TagBoxArray::setVal (const BoxArray& ba,
                      TagBox::TagVal  val)
 {
-    for (FabArrayIterator<TagType,TagBox> fai(*this); fai.isValid(); ++fai)
+    for (MFIter fai(*this); fai.isValid(); ++fai)
     {
-        for (int j = 0; j < ba.length(); j++)
+        for (int j = 0; j < ba.size(); j++)
         {
             if (fai.validbox().intersects(ba[j]))
             {
-                fai().setVal(val,fai.validbox() & ba[j],0);
+                Box isect = fai.validbox() & ba[j];
+
+                get(fai).setVal(val,isect,0);
             }
         }
     } 
@@ -670,7 +657,7 @@ TagBoxArray::setVal (const BoxArray& ba,
 void
 TagBoxArray::coarsen (const IntVect & ratio)
 {
-    for (FabArrayIterator<TagType,TagBox> fai(*this); fai.isValid(); ++fai)
+    for (MFIter fai(*this); fai.isValid(); ++fai)
     {
         TagBox* tfine = fabparray.remove(fai.index());
         TagBox* tcrse = tfine->coarsen(ratio);

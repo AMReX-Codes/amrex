@@ -1,6 +1,6 @@
 
 //
-// $Id: BndryData.cpp,v 1.14 2001-01-19 22:57:48 marc Exp $
+// $Id: BndryData.cpp,v 1.15 2001-08-01 21:51:03 lijewski Exp $
 //
 
 #include <BndryData.H>
@@ -31,7 +31,7 @@ BndryData::init (const BndryData& src)
     //
     // Redefine grids and bndry array.
     //
-    const int ngrd  = grids.length();
+    const int ngrd  = grids.size();
     const int ncomp = src.nComp();
 
     for (OrientationIter fi; fi; ++fi)
@@ -50,7 +50,7 @@ BndryData::init (const BndryData& src)
         bcloc[face].resize(ngrd);
         masks[face].resize(ngrd);
 
-        for (ConstFabSetIterator bfsi(bndry[face]); bfsi.isValid(); ++bfsi)
+        for (FabSetIter bfsi(bndry[face]); bfsi.isValid(); ++bfsi)
         {
             const int grd        = bfsi.index();
             bcloc[face][grd]     = src.bcloc[face][grd];
@@ -96,7 +96,7 @@ BndryData::clear_masks ()
     {
         const Orientation face = oitr();
 
-        for (int k = 0; k < masks[face].length(); k++)
+        for (int k = 0; k < masks[face].size(); k++)
         {
             if (masks[face].defined(k))
             {
@@ -115,7 +115,7 @@ BndryData::define (const BoxArray& _grids,
 
     BndryRegister::setBoxes(_grids);
 
-    const int ngrd = grids.length();
+    const int ngrd = grids.size();
 
     BL_ASSERT(ngrd > 0);
 
@@ -138,9 +138,9 @@ BndryData::define (const BoxArray& _grids,
         //
         // Alloc mask and set to quad_interp value.
         //
-        for (ConstFabSetIterator bfsi(bndry[face]); bfsi.isValid(); ++bfsi)
+        for (FabSetIter bfsi(bndry[face]); bfsi.isValid(); ++bfsi)
         {
-            Box face_box = ::adjCell(grids[bfsi.index()], face, 1);
+            Box face_box = BoxLib::adjCell(grids[bfsi.index()], face, 1);
             //
             // Extend box in directions orthogonal to face normal.
             //
@@ -148,7 +148,6 @@ BndryData::define (const BoxArray& _grids,
             {
                 if (dir == coord_dir)
                     continue;
-                //face_box.grow(dir,1);
                 face_box.grow(dir,NTangHalfWidth);
             }
             Mask* m = new Mask(face_box);
@@ -162,7 +161,7 @@ BndryData::define (const BoxArray& _grids,
             {
                 geom.periodicShift(geom.Domain(), face_box, pshifts);
 
-                for (int iiv = 0; iiv < pshifts.length(); iiv++)
+                for (int iiv = 0; iiv < pshifts.size(); iiv++)
                 {
                     m->shift(pshifts[iiv]);
                     Box target = geom.Domain() & m->box();
@@ -189,7 +188,7 @@ BndryData::define (const BoxArray& _grids,
             {
                 geom.periodicShift(geom.Domain(), face_box, pshifts);
 
-                for (int iiv = 0; iiv < pshifts.length(); iiv++)
+                for (int iiv = 0; iiv < pshifts.size(); iiv++)
                 {
                     m->shift(pshifts[iiv]);
                     for (int g = 0; g < ngrd; g++)
@@ -207,16 +206,16 @@ BndryData::define (const BoxArray& _grids,
     }
 }
 
-ostream&
-operator<< (ostream&         os,
+std::ostream&
+operator<< (std::ostream&    os,
             const BndryData& bd)
 {
     if (ParallelDescriptor::NProcs() != 1)
 	BoxLib::Abort("BndryData::operator<<(): not implemented in parallel");
 
     const BoxArray& grds  = bd.boxes();
-    const int       ngrds = grds.length();
-    const int       ncomp = bd.bcond[0][0].length();
+    const int       ngrds = grds.size();
+    const int       ncomp = bd.bcond[0][0].size();
 
     os << "[BndryData with " << ngrds << " grids and " << ncomp << " comps:\n";
 
@@ -235,26 +234,26 @@ operator<< (ostream&         os,
             os << bd.masks[f][grd];
             os << bd.bndry[f][grd];
         }
-        os << "--------------------------------------------------" << endl;
+        os << "------------------------------------------------" << std::endl;
     }
 
     return os;
 }
 
 void 
-BndryData::writeOn (ostream& os) const
+BndryData::writeOn (std::ostream& os) const
 {
-    int ngrds = grids.length();
-    int ncomp = bcond[0][0].length();
+    int ngrds = grids.size();
+    int ncomp = bcond[0][0].size();
 
-    os << ngrds << " " << ncomp << endl;
+    os << ngrds << " " << ncomp << std::endl;
 
     for (int grd = 0; grd < ngrds; grd++)
     {
-        os << grids[grd] << endl;
+        os << grids[grd] << std::endl;
     }
 
-    os << geom << endl;
+    os << geom << std::endl;
 
     for (int grd = 0; grd < ngrds; grd++)
     {
@@ -264,9 +263,9 @@ BndryData::writeOn (ostream& os) const
 
             for (int cmp = 0; cmp < ncomp; cmp++)
                 os << bcond[f][grd][cmp] << " ";
-            os << endl;
+            os << std::endl;
 
-            os << bcloc[f][grd] << endl;
+            os << bcloc[f][grd] << std::endl;
         }
     }
 
@@ -283,7 +282,7 @@ BndryData::writeOn (ostream& os) const
 }
 
 void 
-BndryData::readFrom(istream& is)
+BndryData::readFrom (std::istream& is)
 {
     int tmpNgrids, tmpNcomp;
     is >> tmpNgrids >> tmpNcomp;

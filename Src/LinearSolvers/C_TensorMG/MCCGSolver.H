@@ -3,14 +3,10 @@
 #define _MCCGSOLVER_H_
 
 //
-// $Id: MCCGSolver.H,v 1.6 2000-10-02 20:53:39 lijewski Exp $
+// $Id: MCCGSolver.H,v 1.7 2001-08-01 21:51:07 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <cmath>
-#else
-#include <math.h>
-#endif
 
 #include <Array.H>
 #include <Pointers.H>

@@ -1,7 +1,8 @@
 #ifndef _WritePlotFile_H_
 #define _WritePlotFile_H_
 
-#include "aString.H"
+#include <string>
+
 #include "MultiFab.H"
 #include "Geometry.H"
 #include "AmrData.H"
@@ -19,7 +20,7 @@ writePlotFile (const char*     name,
 void
 WritePlotFile(const Array<MultiFab*> mfa,
 	      AmrData&               amrdToMimic,
-	      const aString&         oFile,
+	      const std::string&         oFile,
 	      bool                   verbose);
 
 

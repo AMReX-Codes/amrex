@@ -41,17 +41,17 @@ type (const FArrayBox& f, int idir)
 
 inline
 IntVect
-type (const FabArray<Real,FArrayBox>& r)
+type (const FabArray<FArrayBox>& r)
 {
-    BL_ASSERT(r.length() > 0 && r.boxArray().ok());
+    BL_ASSERT(r.size() > 0 && r.boxArray().ok());
     return r.box(0).type();
 }
 
 inline
 IndexType::CellIndex
-type (const FabArray<Real,FArrayBox>& r, int idir)
+type (const FabArray<FArrayBox>& r, int idir)
 {
-    BL_ASSERT(r.length() > 0 && r.boxArray().ok());
+    BL_ASSERT(r.size() > 0 && r.boxArray().ok());
     return r.box(0).type(idir);
 }
 

@@ -1,22 +1,17 @@
+//
+// $Id: Cluster.cpp,v 1.16 2001-08-01 21:50:45 lijewski Exp $
+//
 
-//
-// $Id: Cluster.cpp,v 1.15 2000-10-02 20:48:41 lijewski Exp $
-//
+#include <algorithm>
 
 #include <Cluster.H>
-
-#ifdef BL_USE_NEW_HFILES
-#include <algorithm>
-using std::partition;
-#else
-#ifdef BL_OLD_STL
-#include <algo.h>
-#else
-#include <algorithm.h>
-#endif
-#endif
+#include <BoxDomain.H>
 
 enum CutStatus { HoleCut=0, SteepCut, BisectCut, InvalidCut };
+
+Cluster::Cluster ()
+    :
+    m_ar(0) {}
 
 Cluster::Cluster (IntVect* a, long len)
     :
@@ -24,6 +19,33 @@ Cluster::Cluster (IntVect* a, long len)
     m_len(len)
 {
     minBox();
+}
+
+Cluster::~Cluster () {}
+
+const Box&
+Cluster::box () const
+{
+    return m_bx;
+}
+
+bool
+Cluster::ok () const
+{
+    return m_ar != 0 && m_len > 0;
+}
+
+long
+Cluster::numTag () const
+{
+    return m_len;
+}
+
+Real
+Cluster::eff () const
+{
+    BL_ASSERT(ok());
+    return ((Real) numTag())/((Real) m_bx.numPts());
 }
 
 //
@@ -62,7 +84,7 @@ Cluster::Cluster (Cluster&   c,
     }
     else
     {
-        IntVect* prt_it = partition(c.m_ar, c.m_ar+c.m_len, InBox(b));
+        IntVect* prt_it = std::partition(c.m_ar, c.m_ar+c.m_len, InBox(b));
 
         if (prt_it == c.m_ar)
         {
@@ -105,9 +127,11 @@ Cluster::distribute (ClusterList&     clst,
     BL_ASSERT(bd.ok());
     BL_ASSERT(clst.length() == 0);
    
-    for (BoxDomainIterator bdi(bd); bdi && ok(); ++bdi)
+    for (BoxDomain::const_iterator bdi = bd.begin();
+         bdi != bd.end() && ok();
+         ++bdi)
     {
-        Cluster* c = new Cluster(*this, bdi());
+        Cluster* c = new Cluster(*this, *bdi);
 
         if (c->ok())
             clst.append(c);
@@ -305,7 +329,7 @@ Cluster::chop ()
     {
         if (status[n] == mincut)
         {
-            int mincutlen = Min(cut[n]-lo[n],hi[n]-cut[n]);
+            int mincutlen = std::min(cut[n]-lo[n],hi[n]-cut[n]);
             if (mincutlen > minlen)
             {
                 dir = n;
@@ -326,7 +350,7 @@ Cluster::chop ()
     for (int i = 0; i < BL_SPACEDIM; i++)
         delete [] hist[i];
 
-    IntVect* prt_it = partition(m_ar, m_ar+m_len, Cut(cut,dir));
+    IntVect* prt_it = std::partition(m_ar, m_ar+m_len, Cut(cut,dir));
 
     BL_ASSERT((prt_it-m_ar) == nlo);
     BL_ASSERT(((m_ar+m_len)-prt_it) == nhi);
@@ -337,41 +361,80 @@ Cluster::chop ()
     return new Cluster(prt_it, nhi);
 }
 
+ClusterList::ClusterList ()
+    :
+    lst()
+{}
+
+ClusterList::ClusterList (IntVect* pts,
+                          long     len)
+{
+    lst.push_back(new Cluster(pts,len));
+}
+
 ClusterList::~ClusterList ()
 {
-    for (ListIterator<Cluster*> cli(lst); cli; ++cli)
+    for (std::list<Cluster*>::iterator cli = lst.begin();
+         cli != lst.end();
+         ++cli)
     {
-        delete cli();
+        delete *cli;
     }
+}
+
+int
+ClusterList::length () const
+{
+    return lst.size();
+}
+
+void
+ClusterList::append (Cluster* c)
+{
+    lst.push_back(c);
 }
 
 BoxArray
 ClusterList::boxArray () const
 {
-    long len = lst.length();
-    BoxArray ba(len);
-    ListIterator<Cluster*> cli(lst);
-    for (int i = 0; i < len; i++)
-        ba.set(i,(*cli++)->box());
+    BoxArray ba(lst.size());
+
+    int i = 0;
+
+    for (std::list<Cluster*>::const_iterator cli = lst.begin();
+         cli != lst.end();
+         ++cli, ++i)
+    {
+        ba.set(i,(*cli)->box());
+    }
+
     return ba;   
 }
 
 void
-ClusterList::boxArray (BoxArray &ba) const
+ClusterList::boxArray (BoxArray& ba) const
 {
     ba.clear();
-    long len = lst.length();
-    ba.resize(len);
-    ListIterator<Cluster*> cli(lst);
-    for (int i = 0; i < len; i++)
-        ba.set(i,(*cli++)->box());
+
+    ba.resize(lst.size());
+
+    int i = 0;
+
+    for (std::list<Cluster*>::const_iterator cli = lst.begin();
+         cli != lst.end();
+         ++cli, ++i)
+    {
+        ba.set(i,(*cli)->box());
+    }
 }
 
 BoxList
 ClusterList::boxList() const
 {
     BoxList blst;
-    for (ListIterator<Cluster*> cli(lst); cli; ++cli)
+    for (std::list<Cluster*>::const_iterator cli = lst.begin();
+         cli != lst.end();
+         ++cli)
     {
         blst.append((*cli)->box());
     }
@@ -382,7 +445,9 @@ void
 ClusterList::boxList (BoxList& blst) const
 {
     blst.clear();
-    for (ListIterator<Cluster*> cli(lst); cli; ++cli)
+    for (std::list<Cluster*>::const_iterator cli = lst.begin();
+         cli != lst.end();
+         ++cli)
     {
         blst.append((*cli)->box());
     }
@@ -391,11 +456,12 @@ ClusterList::boxList (BoxList& blst) const
 void
 ClusterList::chop (Real eff)
 {
-    for (ListIterator<Cluster*> cli(lst); cli; )
+    for (std::list<Cluster*>::iterator cli = lst.begin();
+         cli != lst.end(); )
     {
-        if (cli()->eff() < eff)
+        if ((*cli)->eff() < eff)
         {
-            lst.append(cli()->chop());
+            lst.push_back((*cli)->chop());
         }
         else
         {
@@ -407,9 +473,9 @@ ClusterList::chop (Real eff)
 void
 ClusterList::intersect (const BoxDomain& dom)
 {
-    for (ListIterator<Cluster*> cli(lst); cli; )
+    for (std::list<Cluster*>::iterator cli = lst.begin(); cli != lst.end(); )
     {
-        Cluster* c = cli();
+        Cluster* c = *cli;
 
         if (dom.contains(c->box()))
         {
@@ -419,19 +485,20 @@ ClusterList::intersect (const BoxDomain& dom)
         {
             BoxDomain bxdom;
 
-            ::intersect(bxdom, dom, c->box());
+            BoxLib::intersect(bxdom, dom, c->box());
 
-            if (bxdom.length() > 0)
+            if (bxdom.size() > 0)
             {
                 ClusterList clst;
                 c->distribute(clst,bxdom);
-                lst.catenate(clst.lst);
+                lst.splice(lst.end(),clst.lst);
             }
             //
             // Must explicitly delete c.
             //
             delete c;
-            lst.remove(cli);
+
+            lst.erase(cli++);
         }
     }
 }

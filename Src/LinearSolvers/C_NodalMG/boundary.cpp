@@ -1,3 +1,4 @@
+#include <algorithm>
 
 #include "boundary.H"
 
@@ -69,22 +70,22 @@ amr_boundary::boundary_mesh (BoxArray&       exterior_mesh,
 			     const Box&      domain) const
 {
     BoxList bl;
-    List<int> il;
+    std::list<int> il;
     const Box& d = domain;
-    for (int igrid = 0; igrid < interior_mesh.length(); igrid++)
+    for (int igrid = 0; igrid < interior_mesh.size(); igrid++)
     {
 	check_against_boundary_(bl, il, interior_mesh[igrid], igrid, d, 0);
     }
     exterior_mesh.define(bl);
     bl.clear();
 
-    BL_ASSERT(il.length() == exterior_mesh.length());
+    BL_ASSERT(il.size() == exterior_mesh.size());
 
-    grid_ref = new int[exterior_mesh.length()];
-    ListIterator<int> in(il);
-    for (int igrid = 0; in; in++, igrid++)
+    grid_ref = new int[exterior_mesh.size()];
+    std::list<int>::iterator in = il.begin();
+    for (int igrid = 0; in != il.end(); ++in, ++igrid)
     {
-	grid_ref[igrid] = in();
+	grid_ref[igrid] = *in;
     }
     il.clear();
 }
@@ -180,7 +181,7 @@ mixed_boundary::box_ (const Box& image,
     {
 	BoxLib::Error( "mixed_boundary::box---boundary type not supported");
     }
-    HG_DEBUG_OUT("==>retbox(" << retbox << ")" << endl);
+    HG_DEBUG_OUT("==>retbox(" << retbox << ")" << std::endl);
     return retbox;
 }
 
@@ -195,7 +196,7 @@ mixed_boundary::anImage (const Box& region,
 		 << "domain(" << domain << ") ");
     Box tdomain = domain;
     tdomain.convert(srcbox.type());
-    Box idomain = ::grow(tdomain, IntVect::TheZeroVector()-srcbox.type());
+    Box idomain = BoxLib::grow(tdomain, IntVect::TheZeroVector()-srcbox.type());
     Box image   = region;
 
     for (int idim = 0; idim < BL_SPACEDIM; idim++)
@@ -242,7 +243,7 @@ mixed_boundary::anImage (const Box& region,
 
     BL_ASSERT(image.type() == srcbox.type());
 
-    HG_DEBUG_OUT("==>image(" << image << ")" << endl);
+    HG_DEBUG_OUT("==>image(" << image << ")" << std::endl);
     return image;
 }
 
@@ -263,10 +264,10 @@ mixed_boundary::fill (FArrayBox&       patch,
 		 << "region(" << region << ") "
 		 << "src.box(" << src.box() << ") "
 		 << "domain(" << domain << ") "
-		 <<  endl);
+		 <<  std::endl);
     Box tdomain = domain;
     tdomain.convert(type(src));
-    Box idomain = ::grow(tdomain, IntVect::TheZeroVector()-type(src));
+    Box idomain = BoxLib::grow(tdomain, IntVect::TheZeroVector()-type(src));
     Box img     = anImage(region, src.box(), domain);
     int idir    = 0;
     int refarray[BL_SPACEDIM] = {0};
@@ -351,7 +352,7 @@ mixed_boundary::fill (FArrayBox&       patch,
 		 << " reg = " << region
 		 << " img = " << img
 		 << " src.box = " << src.box()
-		 << endl );
+		 << std::endl );
 
     if (idir != 0)
     {
@@ -365,7 +366,7 @@ mixed_boundary::fill (FArrayBox&       patch,
             //
 	    // Only bdy involved, can fill directly from interior
             //
-	    HG_DEBUG_OUT("IMG==REGION" << img << region << endl);
+	    HG_DEBUG_OUT("IMG==REGION" << img << region << std::endl);
 	    fill_(patch, region, src, bb, domain, idir);
         }
 	else
@@ -375,7 +376,7 @@ mixed_boundary::fill (FArrayBox&       patch,
             //
 	    FArrayBox gb(img);
 	    fill_(gb, img, src, bb, domain, idir);
-	    HG_DEBUG_OUT("IMG!=REGION negflag" << negflag << img << region << endl);
+	    HG_DEBUG_OUT("IMG!=REGION negflag" << negflag << img << region << std::endl);
 	    if (negflag)
 	    {
 		FORT_FBREFM(patch.dataPtr(), DIMLIST(patch.box()),
@@ -524,7 +525,7 @@ mixed_boundary::fill_ (FArrayBox&       patch,
 			 << "region(" << region << ") "
 			 << "bgr.box(" << bgr.box() << ") "
 			 << "bb(" << bb << ") "
-			 << endl);
+			 << std::endl);
 	    FORT_FBINFIL(patch.dataPtr(), DIMLIST(patch.box()),
 			 DIMLIST(region),
 			 bgr.dataPtr(), DIMLIST(bgr.box()),
@@ -1354,12 +1355,12 @@ mixed_boundary::fill_sync_reg_borders (MultiFab&              r,
 
 
 void
-mixed_boundary::check_against_boundary_ (BoxList&   bl,
-					 List<int>& il,
-					 const Box& b,
-					 int        ib,
-					 const Box& d,
-					 int        dim1) const
+mixed_boundary::check_against_boundary_ (BoxList&        bl,
+					 std::list<int>& il,
+					 const Box&      b,
+					 int             ib,
+					 const Box&      d,
+					 int             dim1) const
 {
     for (int i = dim1; i < BL_SPACEDIM; i++)
     {
@@ -1370,7 +1371,7 @@ mixed_boundary::check_against_boundary_ (BoxList&   bl,
 		Box bn = b;
 		bn.shift(i, -b.length(i));
 		bl.append(bn);
-		il.append(ib);
+		il.push_back(ib);
 		check_against_boundary_(bl, il, bn, ib, d, i+1);
 	    }
 	    else if (ptr->bc[i][0] == periodic)
@@ -1378,7 +1379,7 @@ mixed_boundary::check_against_boundary_ (BoxList&   bl,
 		Box bn = b;
 		bn.shift(i, d.length(i));
 		bl.append(bn);
-		il.append(ib);
+		il.push_back(ib);
 		check_against_boundary_(bl, il, bn, ib, d, i+1);
 	    }
 	    else if (ptr->bc[i][0] == outflow)
@@ -1386,7 +1387,7 @@ mixed_boundary::check_against_boundary_ (BoxList&   bl,
 		Box bn = b;
 		bn.shift(i, -b.length(i));
 		bl.append(bn);
-		il.append(-2);
+		il.push_back(-2);
 		check_against_boundary_(bl, il, bn, -1, d, i+1);
 	    }
 	    else
@@ -1402,7 +1403,7 @@ mixed_boundary::check_against_boundary_ (BoxList&   bl,
 		Box bn = b;
 		bn.shift(i, b.length(i));
 		bl.append(bn);
-		il.append(ib);
+		il.push_back(ib);
 		check_against_boundary_(bl, il, bn, ib, d, i+1);
 	    }
 	    else if (ptr->bc[i][1] == periodic)
@@ -1410,7 +1411,7 @@ mixed_boundary::check_against_boundary_ (BoxList&   bl,
 		Box bn = b;
 		bn.shift(i, -d.length(i));
 		bl.append(bn);
-		il.append(ib);
+		il.push_back(ib);
 		check_against_boundary_(bl, il, bn, ib, d, i+1);
 	    }
 	    else if (ptr->bc[i][1] == outflow)
@@ -1418,7 +1419,7 @@ mixed_boundary::check_against_boundary_ (BoxList&   bl,
 		Box bn = b;
 		bn.shift(i, b.length(i));
 		bl.append(bn);
-		il.append(-2);
+		il.push_back(-2);
 		check_against_boundary_(bl, il, bn, -1, d, i+1);
 	    }
 	    else
@@ -1431,33 +1432,35 @@ mixed_boundary::check_against_boundary_ (BoxList&   bl,
 }
 
 void
-mixed_boundary::duplicate (List<Box>& bl,
-			   const Box& domain) const
+mixed_boundary::duplicate (std::list<Box>& bl,
+			   const Box&      domain) const
 {
     for (int i = 0; i < BL_SPACEDIM; i++)
     {
 	if (ptr->bc[i][0] == periodic)
 	{
-	    for ( ListIterator<Box> bn(bl.last()); bn; bn--)
+	    for (std::list<Box>::reverse_iterator bn = bl.rbegin();
+                 bn != bl.rend();
+                 ++bn)
 	    {
-		if (bn().type(i) == IndexType::NODE)
+		if (bn->type(i) == IndexType::NODE)
 		{
-		    if (bn().smallEnd(i) == domain.smallEnd(i))
+		    if (bn->smallEnd(i) == domain.smallEnd(i))
 		    {
-			Box btmp = bn();
+			Box btmp = *bn;
 			btmp.shift(i, domain.length(i));
-			if (!bl.includes(btmp))
+                        if (std::find(bl.begin(),bl.end(),btmp) == bl.end())
 			{
-			    bl.append(btmp);
+			    bl.push_back(btmp);
 			}
 		    }
-		    else if (bn().bigEnd(i) - 1 == domain.bigEnd(i))
+		    else if (bn->bigEnd(i) - 1 == domain.bigEnd(i))
 		    {
-			Box btmp = bn();
+			Box btmp = *bn;
 			btmp.shift(i, -domain.length(i));
-			if (!bl.includes(btmp))
+                        if (std::find(bl.begin(),bl.end(),btmp) == bl.end())
 			{
-			    bl.append(btmp);
+			    bl.push_back(btmp);
 			}
 		    }
 		}

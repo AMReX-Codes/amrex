@@ -3,7 +3,7 @@
 #define _MULTIGRID_H_
 
 //
-// $Id: MultiGrid.H,v 1.10 2000-10-02 20:51:17 lijewski Exp $
+// $Id: MultiGrid.H,v 1.11 2001-08-01 21:51:04 lijewski Exp $
 //
 
 #include <Array.H>
@@ -13,6 +13,8 @@
 #include <BndryData.H>
 #include <LinOp.H>
 #include <CGSolver.H>
+
+#include <algorithm>
 
 //@Man:
 /*@Memo:
@@ -598,7 +600,7 @@ MultiGrid::getNumLevels (int _numlevels)
 {
     BL_ASSERT(_numlevels >= 0);
     int oldnumlevels = numlevels;
-    numlevels = Min(_numlevels, numLevels());
+    numlevels = std::min(_numlevels, numLevels());
     return oldnumlevels;
 }
 

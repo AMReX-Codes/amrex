@@ -2,11 +2,7 @@
 #ifndef _HGPARALLEL_H_
 #define _HGPARALLEL_H_
 
-#ifdef BL_USE_NEW_HFILES
 #include <cstdlib>
-#else
-#include <stdlib.h>
-#endif
 
 #include <MultiFab.H>
 
@@ -99,7 +95,7 @@ public:
     void depend_on (const task_proxy& t1);
     bool depend_ready ();
     virtual void hint () const;
-    void print_dependencies (ostream& os) const;
+    void print_dependencies (std::ostream& os) const;
     sequence_number get_sequence_number () const;
     void set_sequence_number (sequence_number sno);
 
@@ -251,7 +247,7 @@ public:
     int size () const;
 
     task::sequence_number get_then_advance (int proc);
-    void print_dependencies (ostream& os) const;
+    void print_dependencies (std::ostream& os) const;
 
 private:
     //
@@ -566,7 +562,7 @@ protected:
     //
     // The data.
     //
-    vector<task::task_proxy> tfvect;
+    std::vector<task::task_proxy> tfvect;
     MultiFab&                s;
     const int                igrid;
 };

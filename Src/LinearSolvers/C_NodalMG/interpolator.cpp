@@ -30,11 +30,11 @@ bilinear_interpolator::box (const Box&     region,
 {
     if (region.cellCentered())
     {
-	return ::grow(coarsen(region, rat), 1);
+	return BoxLib::grow(BoxLib::coarsen(region, rat), 1);
     }
     else if (region.type() == IntVect::TheNodeVector())
     {
-	return ::coarsen(region, rat);
+	return BoxLib::coarsen(region, rat);
     }
     else
     {
@@ -61,7 +61,7 @@ bilinear_interpolator::fill (FArrayBox&       patch,
     }
     else if (patch.box().type() == IntVect::TheNodeVector())
     {
-        Box eregion = ::refine(cb, rat);
+        Box eregion = BoxLib::refine(cb, rat);
 
 	if (eregion == region)
 	{

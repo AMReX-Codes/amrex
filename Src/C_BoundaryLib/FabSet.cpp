@@ -1,17 +1,29 @@
-
 //
-// $Id: FabSet.cpp,v 1.38 2001-04-19 22:24:32 lijewski Exp $
+// $Id: FabSet.cpp,v 1.39 2001-08-01 21:50:50 lijewski Exp $
 //
-
-#ifdef BL_USE_NEW_HFILES
 #include <list>
-using std::list;
-#else
-#include <list.h>
-#endif
 
 #include <FabSet.H>
-#include <Looping.H>
+#include <ParallelDescriptor.H>
+
+FabSetIter::FabSetIter (const FabSet& fabset)
+    :
+    MFIter(fabset)
+{}
+
+FabSetIter::~FabSetIter () {}
+
+FabSetCopyDescriptor::FabSetCopyDescriptor ()
+    :
+    MultiFabCopyDescriptor() {}
+
+FabSetCopyDescriptor::~FabSetCopyDescriptor () {}
+
+FabSetId
+FabSetCopyDescriptor::RegisterFabSet (FabSet* fabset)
+{
+    return RegisterMultiFab(fabset);
+}
 
 FabSet::FabSet () {}
 
@@ -22,12 +34,118 @@ FabSet::FabSet (const BoxArray& grids, int ncomp)
     MultiFab(grids,ncomp,0,Fab_allocate)
 {}
 
+void
+FabSet::define (const BoxArray& grids, int ncomp)
+{
+    MultiFab* tmp = this;
+
+    tmp->define(grids, ncomp, 0, Fab_allocate);
+}
+
+const FabSet&
+FabSet::copyTo (FArrayBox& dest) const
+{
+    copy(dest);
+    return *this;
+}
+
+const FabSet&
+FabSet::copyTo (FArrayBox& dest,
+                int        src_comp,
+                int        dest_comp,
+                int        num_comp) const
+{
+    copy(dest,src_comp,dest_comp,num_comp);
+    return *this;
+}
+
+const FabSet&
+FabSet::copyTo (FArrayBox& dest,
+                const Box& subbox,
+                int        src_comp,
+                int        dest_comp,
+                int        num_comp) const
+{
+    copy(dest,subbox,src_comp,dest_comp,num_comp);
+    return *this;
+}
+
+void
+FabSet::copyTo (MultiFab& dest) const
+{
+    dest.copy(*this);
+}
+
+FabSet&
+FabSet::copyFrom (const FabSet& src)
+{
+    copy(src);
+    return *this;
+}
+
+FabSet&
+FabSet::copyFrom (const FabSet& src,
+                  int           src_comp,
+                  int           dest_comp,
+                  int           num_comp)
+{
+    copy(src,src_comp,dest_comp,num_comp);
+    return *this;
+}
+
+//
+// The following are different from MultiFab only in the return value
+//
+
+FabSet&
+FabSet::plus (Real v,
+              int  comp,
+              int  num_comp)
+{
+    MultiFab* tmp = this;
+    tmp->plus(v, comp, num_comp);
+    return *this;
+}
+
+FabSet&
+FabSet::plus (Real       v,
+              const Box& subreg,
+              int        comp,
+              int        num_comp)
+{
+    MultiFab* tmp = this;
+    tmp->plus(v, subreg, comp, num_comp);
+    return *this;
+}
+
+FabSet&
+FabSet::mult (Real v,
+              int  comp,
+              int  num_comp)
+{
+    MultiFab* tmp = this;
+    tmp->mult(v, comp, num_comp);
+    return *this;
+}
+
+FabSet&
+FabSet::mult (Real       v,
+              const Box& subreg,
+              int        comp,
+              int        num_comp)
+{
+    MultiFab* tmp = this;
+    tmp->mult(v, subreg, comp, num_comp);
+    return *this;
+}
+
+
 FabSet&
 FabSet::copyFrom (const FArrayBox& src)
 {
-    for (FabSetIterator fsi(*this); fsi.isValid(); ++fsi)
+    for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
-        fsi().copy(src);
+        get(fsi).copy(src);
     }
     return *this;
 }
@@ -38,9 +156,9 @@ FabSet::copyFrom (const FArrayBox& src,
                   int              dest_comp,
                   int              num_comp)
 {
-    for (FabSetIterator fsi(*this); fsi.isValid(); ++fsi)
+    for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
-        fsi().copy(src,src_comp,dest_comp,num_comp);
+        get(fsi).copy(src,src_comp,dest_comp,num_comp);
     }
     return *this;
 }
@@ -54,13 +172,13 @@ FabSet::copyFrom (const FArrayBox& src,
 {
     BL_ASSERT(src.box().contains(subbox));
 
-    for (FabSetIterator fsi(*this); fsi.isValid(); ++fsi)
+    for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
-        if (subbox.intersects(fsi().box()))
+        if (subbox.intersects(get(fsi).box()))
         {
-            Box dbox = fsi().box() & subbox;
+            Box dbox = get(fsi).box() & subbox;
 
-            fsi().copy(src,dbox,src_comp,dbox,dest_comp,num_comp);
+            get(fsi).copy(src,dbox,src_comp,dbox,dest_comp,num_comp);
         }
     }
     return *this;
@@ -88,17 +206,17 @@ struct FSRec
     bool operator== (const FSRec& rhs) const;
     bool operator!= (const FSRec& rhs) const;
 
-    vector<Box>   m_box;
-    vector<int>   m_mfidx;
-    vector<int>   m_fsidx;
-    Array<int>    m_snds;
-    CommDataCache m_commdata;
-    BoxArray      m_src;
-    BoxArray      m_dst;
-    int           m_ngrow;
-    int           m_scomp;
-    int           m_dcomp;
-    int           m_ncomp;
+    std::vector<Box> m_box;
+    std::vector<int> m_mfidx;
+    std::vector<int> m_fsidx;
+    Array<int>       m_snds;
+    CommDataCache    m_commdata;
+    BoxArray         m_src;
+    BoxArray         m_dst;
+    int              m_ngrow;
+    int              m_scomp;
+    int              m_dcomp;
+    int              m_ncomp;
 };
 
 inline
@@ -173,7 +291,7 @@ FSRec::operator!= (const FSRec& rhs) const
 //
 // A useful typedef.
 //
-typedef list<FSRec> FSRecList;
+typedef std::list<FSRec> FSRecList;
 
 //
 // Cache of FSRec info.
@@ -210,11 +328,11 @@ TheFSRec (const MultiFab& src,
     //
     // Calculate and cache intersection info.
     //
-    for (ConstFabSetIterator fsi(dst); fsi.isValid(); ++fsi)
+    for (FabSetIter fsi(dst); fsi.isValid(); ++fsi)
     {
-        for (int i = 0; i < src.length(); i++)
+        for (int i = 0; i < src.size(); i++)
         {
-            Box ovlp = fsi().box() & ::grow(src.boxArray()[i],ngrow);
+            Box ovlp = dst[fsi].box() & BoxLib::grow(src.boxArray()[i],ngrow);
 
             if (ovlp.ok())
             {
@@ -246,9 +364,10 @@ FabSet::DoIt (const MultiFab& src,
     BL_ASSERT((scomp+ncomp) <= src.nComp());
     BL_ASSERT(how == FabSet::COPYFROM || how == FabSet::PLUSFROM);
 
-    FArrayBox            tmp;
-    FabSetCopyDescriptor fscd;
-    vector<FillBoxId>    fbids;
+    FArrayBox              tmp;
+    FabSetCopyDescriptor   fscd;
+    std::vector<FillBoxId> fbids;
+
     const int            MyProc = ParallelDescriptor::MyProc();
     FSRec&               fsrec  = TheFSRec(src,*this,ngrow,scomp,dcomp,ncomp);
     MultiFabId           mfid   = fscd.RegisterFabArray(const_cast<MultiFab*>(&src));
@@ -331,25 +450,23 @@ FabSet::linComb (Real          a,
                  int           dcomp,
                  int           ncomp)
 {
-    BL_ASSERT(length() == src.length());
+    BL_ASSERT(size() == src.size());
 
-    for (FabSetIterator fsi(*this); fsi.isValid(); ++fsi)
+    for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
-        DependentFabSetIterator dfsi(fsi, src);
-
-        BL_ASSERT(fsi().box() == dfsi().box());
+        BL_ASSERT(get(fsi).box() == src[fsi].box());
         //
         // WARNING: same fab used as src and dest here.
         //
-        fsi().linComb(fsi(),
-                      fsi().box(),
+        get(fsi).linComb(get(fsi),
+                      get(fsi).box(),
                       dcomp,
-                      dfsi(),
-                      dfsi().box(),
+                      src[fsi],
+                      src[fsi].box(),
                       scomp,
                       a,
                       b,
-                      fsi().box(),
+                      get(fsi).box(),
                       dcomp,
                       ncomp);
     }
@@ -380,13 +497,13 @@ FabSet::linComb (Real            a,
     MultiFabId mfid_mfa = mfcd.RegisterFabArray(const_cast<MultiFab*>(&mfa));
     MultiFabId mfid_mfb = mfcd.RegisterFabArray(const_cast<MultiFab*>(&mfb));
 
-    vector<FillBoxId> fbids_mfa, fbids_mfb;
+    std::vector<FillBoxId> fbids_mfa, fbids_mfb;
 
-    for (FabSetIterator fsi(*this); fsi.isValid(); ++fsi)
+    for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
-        for (int grd = 0; grd < bxa.length(); grd++)
+        for (int grd = 0; grd < bxa.size(); grd++)
         {
-            Box ovlp = fsi().box() & ::grow(bxa[grd],ngrow);
+            Box ovlp = get(fsi).box() & BoxLib::grow(bxa[grd],ngrow);
 
             if (ovlp.ok())
             {

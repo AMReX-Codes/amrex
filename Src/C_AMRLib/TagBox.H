@@ -1,11 +1,8 @@
-
 #ifndef _TagBox_H_
 #define _TagBox_H_
-
 //
-// $Id: TagBox.H,v 1.16 2000-10-02 20:48:44 lijewski Exp $
+// $Id: TagBox.H,v 1.17 2001-08-01 21:50:47 lijewski Exp $
 //
-
 #include <IntVect.H>
 #include <Box.H>
 #include <Array.H>
@@ -15,18 +12,6 @@
 #include <BoxDomain.H>
 #include <PArray.H>
 #include <Geometry.H>
-
-#if !defined(BL_SPACEDIM) || (BL_SPACEDIM != 1 && BL_SPACEDIM !=2 && BL_SPACEDIM != 3)
-#error BL_SPACEDIM must be defined
-#endif
-
-#if (BL_SPACEDIM==1)
-#define TagBox        TagBox1d
-#elif (BL_SPACEDIM==2)
-#define TagBox        TagBox2d
-#elif (BL_SPACEDIM==3)
-#define TagBox        TagBox3d
-#endif
 
 //
 //@Man:
@@ -58,21 +43,14 @@ public:
     //
     TagBox (const Box& bx, int n = 1);
     //
-    //@ManDoc: The destructor.
-    //
-    ~TagBox();
-    //
     //@ManDoc: Resize the box on which the TagBox is defined.
     //
-    void resize (const Box& b, int ncomp=1)
-    {
-        BaseFab<TagType>::resize(b,ncomp);
-    }
+    void resize (const Box& b, int ncomp=1);
 
     /*@ManDoc: Construct and return a new tagbox in which the coarsened cell
                is tagged of any of the corresponding fine cells are tagged.
     */
-    TagBox* coarsen (const IntVect & ratio);
+    TagBox* coarsen (const IntVect& ratio);
 
     /*@ManDoc: Mark neighbors of every tagged cell a distance nbuff away
                only search interior for initial tagged points where nwid
@@ -127,7 +105,7 @@ private:
 
 class TagBoxArray
     :
-    public FabArray<TagBox::TagType,TagBox>
+    public FabArray<TagBox>
 {
 public:
     //
@@ -139,13 +117,9 @@ public:
     //
     TagBoxArray (const BoxArray& bs, int _ngrow=0);
     //
-    //@ManDoc: The destructor.
-    //
-    ~TagBoxArray ();
-    //
     //@ManDoc: Returns the grow factor for the TagBoxArray.
     //
-    int borderSize () { return m_border; }
+    int borderSize () const;
     //
     //@ManDoc: Calls buffer() on all contained TagBoxes.
     //

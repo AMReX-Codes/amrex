@@ -1,13 +1,15 @@
 
 //
-// $Id: MCCGSolver.cpp,v 1.10 2000-10-02 20:53:39 lijewski Exp $
+// $Id: MCCGSolver.cpp,v 1.11 2001-08-01 21:51:07 lijewski Exp $
 //
+
+#include <algorithm>
 
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
 #include <Utility.H>
-#include "CG_F.H"
-#include "MCCGSolver.H"
+#include <CG_F.H>
+#include <MCCGSolver.H>
 
 int MCCGSolver::initialized = 0;
 int MCCGSolver::def_maxiter = 40;
@@ -20,9 +22,7 @@ MCCGSolver::initialize ()
     pp.query("maxiter", def_maxiter);
     pp.query("v", def_verbose);
     if (ParallelDescriptor::IOProcessor() && def_verbose)
-    {
-	cout << "def_maxiter=" << def_maxiter << '\n';
-    }
+	std::cout << "def_maxiter=" << def_maxiter << '\n';
     initialized = 1;
 }
 
@@ -69,13 +69,13 @@ MCCGSolver::norm (const MultiFab& res)
     Real resk   = 0.0;
     const int ncomp = res.nComp();
     const BoxArray& gbox = res.boxArray();
-    for (ConstMultiFabIterator mfi(res); mfi.isValid(); ++mfi)
+    for (MFIter mfi(res); mfi.isValid(); ++mfi)
     {
         BL_ASSERT(mfi.validbox() == gbox[mfi.index()]);
-        resk = mfi().norm(mfi.validbox(), p, 0, ncomp);
+        resk = res[mfi].norm(mfi.validbox(), p, 0, ncomp);
         if (p == 0)
 	{
-	    restot = Max(restot, resk);
+	    restot = std::max(restot, resk);
         }
         else if (p == 2)
         {
@@ -169,8 +169,8 @@ MCCGSolver::solve (MultiFab&       sol,
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
         for (int k = 0; k < lev; k++)
-            cout << "   ";
-        cout << "MCCGsolver: Initial error (error0) =  " << rnorm0 << '\n';
+            std::cout << "   ";
+        std::cout << "MCCGsolver: Initial error (error0) =  " << rnorm0 << '\n';
     }
 
     Real beta, rho, rhoold=0.0;
@@ -210,16 +210,15 @@ MCCGSolver::solve (MultiFab&       sol,
 	int ncomp = z->nComp();
 	const BoxArray& gbox = r->boxArray();
 
-        for (MultiFabIterator rmfi(*r); rmfi.isValid(); ++rmfi)
+        for (MFIter rmfi(*r); rmfi.isValid(); ++rmfi)
 	{
-	    DependentMultiFabIterator zmfi(rmfi, (*z));
             Real trho;
 	    FORT_CGXDOTY(
 		&trho,
-		zmfi().dataPtr(), 
-                ARLIM(zmfi().loVect()), ARLIM(zmfi().hiVect()),
-		rmfi().dataPtr(), 
-                ARLIM(rmfi().loVect()), ARLIM(rmfi().hiVect()),
+		(*z)[rmfi].dataPtr(), 
+                ARLIM((*z)[rmfi].loVect()), ARLIM((*z)[rmfi].hiVect()),
+		(*r)[rmfi].dataPtr(), 
+                ARLIM((*r)[rmfi].loVect()), ARLIM((*r)[rmfi].hiVect()),
 		rmfi.validbox().loVect(), rmfi.validbox().hiVect(), &ncomp);
 	    rho += trho;
 	}
@@ -253,16 +252,16 @@ MCCGSolver::solve (MultiFab&       sol,
 	if (verbose > 2 && ParallelDescriptor::IOProcessor())
         {
             for (int k = 0; k < lev; k++)
-                cout << "   ";
-            cout << "MCCGSolver:"
-                 << " nit " << nit
-                 << " pw "  << pw 
-                 << " rho " << rho
-                 << " alpha " << alpha;
+                std::cout << "   ";
+            std::cout << "MCCGSolver:"
+                      << " nit " << nit
+                      << " pw "  << pw 
+                      << " rho " << rho
+                      << " alpha " << alpha;
             if (nit == 0)
-                cout << " beta undefined ...";
+                std::cout << " beta undefined ...";
             else
-                cout << " beta " << beta << " ...";
+                std::cout << " beta " << beta << " ...";
 	}
         //
 	// x += alpha p  and  r -= alpha w
@@ -278,11 +277,11 @@ MCCGSolver::solve (MultiFab&       sol,
 	    if (ParallelDescriptor::IOProcessor())
 	    {
 		for (int k = 0; k < lev; k++)
-                    cout << "   ";
-		cout << "MCCGSolver: Iteration "
-                     << nit
-                     << " error/error0 "
-		     << rnorm/rnorm0 << '\n';
+                    std::cout << "   ";
+		std::cout << "MCCGSolver: Iteration "
+                          << nit
+                          << " error/error0 "
+                          << rnorm/rnorm0 << '\n';
 	    }
 	}
     }
@@ -315,16 +314,22 @@ MCCGSolver::advance (MultiFab&       p,
     //
     // Compute p = z  +  beta p
     //
-    const BoxArray &gbox = Lp.boxArray(lev);
-    int ncomp = p.nComp();
-    for (MultiFabIterator pmfi(p); pmfi.isValid(); ++pmfi)
+    int             ncomp = p.nComp();
+    const BoxArray& gbox  = Lp.boxArray(lev);
+    const BoxArray& zbox  = z.boxArray();
+
+    for (MFIter pmfi(p); pmfi.isValid(); ++pmfi)
     {
-	DependentMultiFabIterator zmfi(pmfi, z);
+        const Box& bx = zbox[pmfi.index()];
+
+        BL_ASSERT(bx == gbox[pmfi.index()]);
+
 	FORT_CGADVCP(
-	    pmfi().dataPtr(), ARLIM(pmfi().loVect()), ARLIM(pmfi().hiVect()),
-	    zmfi().dataPtr(), ARLIM(zmfi().loVect()), ARLIM(zmfi().hiVect()),
-	    &beta,
-	    zmfi.validbox().loVect(), zmfi.validbox().hiVect(),&ncomp);
+	    p[pmfi].dataPtr(),
+            ARLIM(p[pmfi].loVect()), ARLIM(p[pmfi].hiVect()),
+	    z[pmfi].dataPtr(),
+            ARLIM(z[pmfi].loVect()), ARLIM(z[pmfi].hiVect()),
+	    &beta, bx.loVect(), bx.hiVect(),&ncomp);
     }
 }
 
@@ -340,17 +345,18 @@ MCCGSolver::update (MultiFab&       sol,
     //
     const BoxArray& gbox = Lp.boxArray(lev);
     int ncomp = r.nComp();
-    for (MultiFabIterator solmfi(sol); solmfi.isValid(); ++solmfi)
+    for (MFIter solmfi(sol); solmfi.isValid(); ++solmfi)
     {
-	DependentMultiFabIterator rmfi(solmfi, r);
-	DependentMultiFabIterator pmfi(solmfi, p);
-	DependentMultiFabIterator wmfi(solmfi, w);
 	FORT_CGUPDATE(
-	    solmfi().dataPtr(), ARLIM(solmfi().loVect()), ARLIM(solmfi().hiVect()),
-	    rmfi().dataPtr(),   ARLIM(rmfi().loVect()),   ARLIM(rmfi().hiVect()),
+	    sol[solmfi].dataPtr(),
+            ARLIM(sol[solmfi].loVect()),ARLIM(sol[solmfi].hiVect()),
+	    r[solmfi].dataPtr(),
+            ARLIM(r[solmfi].loVect()),ARLIM(r[solmfi].hiVect()),
 	    &alpha,
-	    wmfi().dataPtr(), ARLIM(wmfi().loVect()), ARLIM(wmfi().hiVect()),
-	    pmfi().dataPtr(), ARLIM(pmfi().loVect()), ARLIM(pmfi().hiVect()),
+	    w[solmfi].dataPtr(),
+            ARLIM(w[solmfi].loVect()),ARLIM(w[solmfi].hiVect()),
+	    p[solmfi].dataPtr(),
+            ARLIM(p[solmfi].loVect()), ARLIM(p[solmfi].hiVect()),
 	    solmfi.validbox().loVect(), solmfi.validbox().hiVect(),&ncomp);
     }
 }
@@ -367,14 +373,13 @@ MCCGSolver::axp (MultiFab& w,
     const BoxArray& gbox = Lp.boxArray(lev);
     Lp.apply(w, p, lev, bc_mode);
     int ncomp = p.nComp();
-    for (MultiFabIterator pmfi(p); pmfi.isValid(); ++pmfi)
+    for (MFIter pmfi(p); pmfi.isValid(); ++pmfi)
     {
-	DependentMultiFabIterator wmfi(pmfi, w);
 	Real tpw;
 	FORT_CGXDOTY(
 	    &tpw,
-	    pmfi().dataPtr(), ARLIM(pmfi().loVect()), ARLIM(pmfi().hiVect()),
-	    wmfi().dataPtr(), ARLIM(wmfi().loVect()), ARLIM(wmfi().hiVect()),
+	    p[pmfi].dataPtr(),ARLIM(p[pmfi].loVect()),ARLIM(p[pmfi].hiVect()),
+	    w[pmfi].dataPtr(),ARLIM(w[pmfi].loVect()),ARLIM(w[pmfi].hiVect()),
 	    pmfi.validbox().loVect(), pmfi.validbox().hiVect(),&ncomp);
 	pw += tpw;
     }

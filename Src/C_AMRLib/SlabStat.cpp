@@ -1,19 +1,18 @@
-
 //
-// $Id: SlabStat.cpp,v 1.11 2001-05-09 22:30:59 lijewski Exp $
+// $Id: SlabStat.cpp,v 1.12 2001-08-01 21:50:46 lijewski Exp $
 //
 
 #include <AmrLevel.H>
 #include <ParmParse.H>
 #include <SlabStat.H>
 
-SlabStatRec::SlabStatRec (const aString&  name,
-                          int             ncomp,
-                          Array<aString>& vars,
-                          int             ngrow,
-                          int             level,
-                          const BoxArray& boxes,
-                          SlabStatFunc    func)
+SlabStatRec::SlabStatRec (const std::string&  name,
+                          int                 ncomp,
+                          Array<std::string>& vars,
+                          int                 ngrow,
+                          int                 level,
+                          const BoxArray&     boxes,
+                          SlabStatFunc        func)
     :
     m_name(name),
     m_ncomp(ncomp),
@@ -23,10 +22,76 @@ SlabStatRec::SlabStatRec (const aString&  name,
     m_boxes(boxes),
     m_func(func),
     m_mf(m_boxes,m_ncomp,0),
-    m_tmp_mf(m_boxes,m_vars.length(),m_ngrow),
+    m_tmp_mf(m_boxes,m_vars.size(),m_ngrow),
     m_interval(0)
 {
     m_mf.setVal(0);
+}
+
+const std::string&
+SlabStatRec::name () const
+{
+    return m_name;
+}
+
+int
+SlabStatRec::nComp () const
+{
+    return m_ncomp;
+}
+
+const Array<std::string>&
+SlabStatRec::vars () const
+{
+    return m_vars;
+}
+
+long
+SlabStatRec::nVariables () const
+{
+    return m_vars.size();
+}
+
+int
+SlabStatRec::nGrow () const
+{
+    return m_ngrow;
+}
+
+int
+SlabStatRec::level () const
+{
+    return m_level;
+}
+
+const BoxArray&
+SlabStatRec::boxes () const
+{
+    return m_boxes;
+}
+
+SlabStatFunc
+SlabStatRec::func () const
+{
+    return m_func;
+}
+
+MultiFab&
+SlabStatRec::mf ()
+{
+    return m_mf;
+}
+
+MultiFab&
+SlabStatRec::tmp_mf ()
+{
+    return m_tmp_mf;
+}
+
+Real
+SlabStatRec::interval () const
+{
+    return m_interval;
 }
 
 //
@@ -58,18 +123,18 @@ SlabStatRec::SlabStatRec (const aString&  name,
 
 static
 void
-Boxes (const aString& file,
-       const aString& name,
-       BoxArray&      boxes,
-       int&           boxesLevel)
+Boxes (const std::string& file,
+       const std::string& name,
+       BoxArray&          boxes,
+       int&               boxesLevel)
 {
-    const aString TheDflt = "default:";
-    const aString TheName = name + ":";
+    const std::string TheDflt = "default:";
+    const std::string TheName = name + ":";
 
-    ifstream is(file.c_str(),ios::in);
+    std::ifstream is(file.c_str(),std::ios::in);
 
     if (!is.good())
-        Utility::FileOpenFailed(file);
+        BoxLib::FileOpenFailed(file);
 
 #define STRIP while( is.get() != '\n' )
 
@@ -78,11 +143,11 @@ Boxes (const aString& file,
     int bxLvl_dflt;
     int bxLvl_name;
 
-    aString line;
+    std::string line;
 
-    while (line.getline(is))
+    while (std::getline(is,line))
     {
-        if (line.isNull() || line[0] == '#') continue;
+        if (line.empty() || line[0] == '#') continue;
 
         if (line == TheDflt || line == TheName)
         {
@@ -107,19 +172,19 @@ Boxes (const aString& file,
 
     is.close();
 
-    if (!ba_dflt.ready() && !ba_name.ready())
+    if (ba_dflt.size() == 0 && ba_name.size() == 0)
         BoxLib::Abort("slabstats.boxes doesn't have appropriate structure");
 
-    boxes =  ba_name.ready() ? ba_name : ba_dflt;
-    boxesLevel = ba_name.ready() ? bxLvl_name : bxLvl_dflt;
+    boxes =  ba_name.size() ? ba_name : ba_dflt;
+    boxesLevel = ba_name.size() ? bxLvl_name : bxLvl_dflt;
 #undef STRIP
 }
 
-SlabStatRec::SlabStatRec (const aString&  name,
-                          int             ncomp,
-                          Array<aString>& vars,
-                          int             ngrow,
-                          SlabStatFunc    func)
+SlabStatRec::SlabStatRec (const std::string&  name,
+                          int                 ncomp,
+                          Array<std::string>& vars,
+                          int                 ngrow,
+                          SlabStatFunc        func)
     :
     m_name(name),
     m_ncomp(ncomp),
@@ -130,7 +195,7 @@ SlabStatRec::SlabStatRec (const aString&  name,
 {
     ParmParse pp("slabstat");
 
-    aString file;
+    std::string file;
 
     if (!pp.query("boxes", file))
         BoxLib::Abort("SlabStatRec: slabstat.boxes isn't defined");
@@ -139,19 +204,51 @@ SlabStatRec::SlabStatRec (const aString&  name,
 
     m_mf.define(m_boxes, m_ncomp, 0, Fab_allocate);
 
-    m_tmp_mf.define(m_boxes, m_vars.length(), m_ngrow, Fab_allocate);
+    m_tmp_mf.define(m_boxes, m_vars.size(), m_ngrow, Fab_allocate);
 
     m_mf.setVal(0);
 }
 
 SlabStatRec::~SlabStatRec () {}
 
+SlabStatList::SlabStatList () {}
+
 SlabStatList::~SlabStatList ()
 {
-    for (ListIterator<SlabStatRec*> li(m_list); li; ++li)
+    for (std::list<SlabStatRec*>::iterator li = m_list.begin();
+         li != m_list.end();
+         ++li)
     {
-        delete li();
+        delete *li;
     }
+}
+
+void
+SlabStatList::add (const std::string&  name,
+                   int                 ncomp,
+                   Array<std::string>& vars,
+                   int                 ngrow,
+                   int                 level,
+                   const BoxArray&     boxes,
+                   SlabStatFunc        func)
+{
+    m_list.push_back(new SlabStatRec(name,ncomp,vars,ngrow,level,boxes,func));
+}
+
+void
+SlabStatList::add (const std::string&  name,
+                   int                 ncomp,
+                   Array<std::string>& vars,
+                   int                 ngrow,
+                   SlabStatFunc        func)
+{
+    m_list.push_back(new SlabStatRec(name,ncomp,vars,ngrow,func));
+}
+
+std::list<SlabStatRec*>&
+SlabStatList::list ()
+{
+    return m_list;
 }
 
 void
@@ -159,34 +256,37 @@ SlabStatList::update (AmrLevel& amrlevel,
                       Real      time,
                       Real      dt)
 {
-    for (ListIterator<SlabStatRec*> li(m_list); li; ++li)
+    for (std::list<SlabStatRec*>::iterator li = m_list.begin();
+         li != m_list.end();
+         ++li)
     {
-        if (li()->level() == amrlevel.Level())
+        if ((*li)->level() == amrlevel.Level())
         {
-            li()->m_interval += dt;
+            (*li)->m_interval += dt;
 
-            for (int i = 0; i < li()->tmp_mf().nComp(); i++)
+            for (int i = 0; i < (*li)->tmp_mf().nComp(); i++)
             {
-                amrlevel.derive(li()->vars()[i],time+dt,li()->tmp_mf(),i);
+                amrlevel.derive((*li)->vars()[i],time+dt,(*li)->tmp_mf(),i);
             }
 
-            for (MultiFabIterator dmfi(li()->mf()); dmfi.isValid(); ++dmfi)
+            for (MFIter dmfi((*li)->mf()); dmfi.isValid(); ++dmfi)
             {
-                DependentMultiFabIterator smfi(dmfi,li()->tmp_mf());
+                FArrayBox&       dfab = (*li)->mf()[dmfi];
+                const FArrayBox& sfab = (*li)->tmp_mf()[dmfi];
 
-                const int nsrc = smfi().nComp();
-                const int ndst = dmfi().nComp();
+                const int nsrc = sfab.nComp();
+                const int ndst = dfab.nComp();
 
-                li()->func()(smfi().dataPtr(),
-                             ARLIM(smfi().box().loVect()),
-                             ARLIM(smfi().box().hiVect()),
-                             &nsrc,
-                             dmfi().dataPtr(),
-                             ARLIM(dmfi().box().loVect()),
-                             ARLIM(dmfi().box().hiVect()),
-                             &ndst,
-                             &dt,
-                             amrlevel.Geom().CellSize());
+                (*li)->func()(sfab.dataPtr(),
+                              ARLIM(sfab.box().loVect()),
+                              ARLIM(sfab.box().hiVect()),
+                              &nsrc,
+                              dfab.dataPtr(),
+                              ARLIM(dfab.box().loVect()),
+                              ARLIM(dfab.box().hiVect()),
+                              &ndst,
+                              &dt,
+                              amrlevel.Geom().CellSize());
             }
         }
     }
@@ -194,25 +294,25 @@ SlabStatList::update (AmrLevel& amrlevel,
 
 void
 SlabStatList::checkPoint (PArray<AmrLevel>& amrLevels,
-                          const int level0_step)
+                          int               level0_step)
 {
-    if (m_list.isEmpty()) return;
+    if (m_list.empty()) return;
     //
     // We put SlabStats in a subdirectory of the directory, 'slabstats'.
     //
-    aString statdir = "slabstats";
+    std::string statdir = "slabstats";
     if (ParallelDescriptor::IOProcessor())
-        if (!Utility::UtilCreateDirectory(statdir, 0755))
-            Utility::CreateDirectoryFailed(statdir);
+        if (!BoxLib::UtilCreateDirectory(statdir, 0755))
+            BoxLib::CreateDirectoryFailed(statdir);
 
     statdir = statdir + "/stats";
-    statdir = Utility::Concatenate(statdir, level0_step);
+    statdir = BoxLib::Concatenate(statdir, level0_step);
     //
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!Utility::UtilCreateDirectory(statdir, 0755))
-            Utility::CreateDirectoryFailed(statdir);
+        if (!BoxLib::UtilCreateDirectory(statdir, 0755))
+            BoxLib::CreateDirectoryFailed(statdir);
     //
     // Force other processors to wait till directory is built.
     //
@@ -223,23 +323,27 @@ SlabStatList::checkPoint (PArray<AmrLevel>& amrLevels,
         //
         // Only the IOProcessor() writes to the header file.
         //
-        const aString HeaderFileName = statdir + "/Header";
+        const std::string HeaderFileName = statdir + "/Header";
 
-        ofstream HeaderFile;
+        std::ofstream HeaderFile;
 
-        HeaderFile.open(HeaderFileName.c_str(), ios::out|ios::trunc);
+        HeaderFile.open(HeaderFileName.c_str(), std::ios::out|std::ios::trunc);
 
         if (!HeaderFile.good())
-            Utility::FileOpenFailed(HeaderFileName);
+            BoxLib::FileOpenFailed(HeaderFileName);
 
         int prec = HeaderFile.precision(30);
 
-        HeaderFile << m_list.length() << '\n';
+        HeaderFile << m_list.size() << '\n';
 
-        for (ListIterator<SlabStatRec*> li(m_list); li; ++li)
-            HeaderFile << li()->name() << " " << li()->level() << '\n';
+        for (std::list<SlabStatRec*>::const_iterator li = m_list.begin();
+             li != m_list.end();
+             ++li)
+        {
+            HeaderFile << (*li)->name() << " " << (*li)->level() << '\n';
+        }
 
-        HeaderFile << m_list.firstElement()->interval() << '\n';
+        HeaderFile << (*m_list.begin())->interval() << '\n';
 
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
             HeaderFile << Geometry::ProbLo(dir) << " ";
@@ -249,7 +353,7 @@ SlabStatList::checkPoint (PArray<AmrLevel>& amrLevels,
             HeaderFile << Geometry::ProbHi(dir) << " ";
         HeaderFile << '\n';
 
-        for (int level = 0; level < amrLevels.length(); level++)
+        for (int level = 0; level < amrLevels.size(); level++)
         {
             for (int dir = 0; dir < BL_SPACEDIM; dir++)
                 HeaderFile << amrLevels[level].Geom().CellSize(dir) << " ";
@@ -265,14 +369,16 @@ SlabStatList::checkPoint (PArray<AmrLevel>& amrLevels,
     //
     // Write out the SlabStat MultiFabs.
     //
-    const aString path = statdir + "/";
+    const std::string path = statdir + "/";
 
-    for (ListIterator<SlabStatRec*> li(m_list); li; ++li)
+    for (std::list<SlabStatRec*>::iterator li = m_list.begin();
+         li != m_list.end();
+         ++li)
     {
-        VisMF::Write(li()->mf(),path+li()->name());
+        VisMF::Write((*li)->mf(),path+(*li)->name());
 
-        li()->m_interval = 0;
+        (*li)->m_interval = 0;
 
-        li()->mf().setVal(0);
+        (*li)->mf().setVal(0);
     }
 }

@@ -1,15 +1,10 @@
-
 #ifndef _BCREC_H_
 #define _BCREC_H_ 
-
 //
-// $Id: BCRec.H,v 1.8 2000-10-02 20:48:41 lijewski Exp $
+// $Id: BCRec.H,v 1.9 2001-08-01 21:50:44 lijewski Exp $
 //
-
-#include <Misc.H>
 #include <Box.H>
 #include <BC_TYPES.H>
-
 //
 //@Man:
 //@Memo: Boundary Condition Records.
@@ -24,7 +19,7 @@ public:
     //
     //@ManDoc: The default constructor -- sets to invalid boundary types.
     //
-    BCRec () {}
+    BCRec ();
     //
     //@ManDoc: The constructor.
     //
@@ -46,42 +41,36 @@ public:
     //@ManDoc: Explicitly set lo bndry value.
     //
     void setLo (int dir,
-                int bc_val)
-    {
-        bc[dir] = bc_val;
-    }
+                int bc_val);
     //
     //@ManDoc: Explicitly set hi bndry value.
     //
     void setHi (int dir,
-                int bc_val)
-    {
-        bc[BL_SPACEDIM+dir] = bc_val;
-    }
+                int bc_val);
     //
     //@ManDoc: Return bndry values (used in calls to FORTRAN).
     //
-    const int* vect () const { return bc; } 
+    const int* vect () const;
     //
     //@ManDoc: Return low-end boundary data.
     //
-    const int* lo () const { return bc; }
+    const int* lo () const;
     //
     //@ManDoc: Return high-end boundary data.
     //
-    const int* hi () const { return bc+BL_SPACEDIM; }
+    const int* hi () const;
     //
     //@ManDoc: Return low-end boundary data in direction <dir>.
     //
-    int lo (int dir) const { return bc[dir]; }
+    int lo (int dir) const;
     //
     //@ManDoc: Return high-end boundary data in direction <dir>.
     //
-    int hi (int dir) const { return bc[BL_SPACEDIM+dir]; }
+    int hi (int dir) const;
     //
     //@ManDoc: ASCII write to ostream.
     //
-    friend ostream& operator << (ostream&, const BCRec& );
+    friend std::ostream& operator << (std::ostream&, const BCRec&);
 
 protected:
     //
@@ -90,23 +79,25 @@ protected:
     int bc[2*BL_SPACEDIM];
 };
 
-//
-// Function for setting a BC.
-//
-void setBC (const Box&   bx, 
-            const Box&   domain,
-            const BCRec& bc_dom, 
-            BCRec&       bcr);
-
-//
-// Function for setting array of BCs.
-//
-void setBC (const Box&          bx, 
-            const Box&          domain, 
-            int                 src_comp, 
-            int                 dest_comp, 
-            int                 ncomp,
-            const Array<BCRec>& bc_dom, 
-            Array<BCRec>&       bcr);
+namespace BoxLib
+{
+    //
+    // Function for setting a BC.
+    //
+    void setBC (const Box&   bx, 
+                const Box&   domain,
+                const BCRec& bc_dom, 
+                BCRec&       bcr);
+    //
+    // Function for setting array of BCs.
+    //
+    void setBC (const Box&          bx, 
+                const Box&          domain, 
+                int                 src_comp, 
+                int                 dest_comp, 
+                int                 ncomp,
+                const Array<BCRec>& bc_dom, 
+                Array<BCRec>&       bcr);
+}
 
 #endif /*_BCREC_H_*/

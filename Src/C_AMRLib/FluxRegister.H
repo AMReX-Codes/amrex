@@ -1,11 +1,8 @@
-
 #ifndef _FLUXREGISTER_H_
 #define _FLUXREGISTER_H_
-
 //
-// $Id: FluxRegister.H,v 1.11 2000-10-02 20:48:42 lijewski Exp $
+// $Id: FluxRegister.H,v 1.12 2001-08-01 21:50:45 lijewski Exp $
 //
-
 #include <BndryRegister.H>
 
 class Geometry;
@@ -50,23 +47,23 @@ public:
     //
     //@ManDoc: Returns the refinement ratio.
     //
-    const IntVect& refRatio () const { return ratio; }
+    const IntVect& refRatio () const;
     //
     //@ManDoc: Returns the level number of the fine level.
     //
-    int fineLevel () const { return fine_level; }
+    int fineLevel () const;
     //
     //@ManDoc: Returns the level number of the coarse level (fineLevel()-1).
     //
-    int crseLevel () const { return fine_level-1; }
+    int crseLevel () const;
     //
     //@ManDoc: The number of components.
     //
-    int nComp () const { return ncomp; }
+    int nComp () const;
     //
     //@ManDoc: The coarsened boxes.
     //
-    const BoxArray& coarsenedBoxes () const { return grids; }
+    const BoxArray& coarsenedBoxes () const;
     //
     //@ManDoc: Returns the sum of the registers.
     //
@@ -164,7 +161,6 @@ public:
                   int              destcomp,
                   int              numcomp,
                   Real             mult);
-
     //
     //@ManDoc: Apply flux correction.  Note that this takes the coarse Geometry.
     //

@@ -104,8 +104,8 @@ private:
 #endif
     int (*cgr)[N_CORNER_GRIDS];         // grid neighbor data for corners
 
-    void  add (List<Box>& bl, Box b, int startgrid);
-    void xfer (const List<Box>& bl, int idim);
+    void  add (std::list<Box>& bl, Box b, int startgrid);
+    void xfer (const std::list<Box>& bl, int idim);
 private:
     //
     // Not defined.

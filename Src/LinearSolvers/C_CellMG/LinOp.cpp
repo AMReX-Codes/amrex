@@ -1,24 +1,17 @@
 
 //
-// $Id: LinOp.cpp,v 1.26 2001-04-23 19:33:42 car Exp $
+// $Id: LinOp.cpp,v 1.27 2001-08-01 21:51:04 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <cstdlib>
-#else
-#include <stdlib.h>
-#endif
 
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
-
 #include <LO_BCTYPES.H>
 #include <LO_F.H>
 #include <LinOp.H>
+#include <Profiler.H>
 
-#ifdef BL3_PROFILING
-#include <BoxLib3/Profiler.H>
-#endif
 #ifdef BL3_PTHREADS
 #include <BoxLib3/WorkQueue.H>
 extern BoxLib3::WorkQueue wrkq;
@@ -49,8 +42,8 @@ LinOp::initialize ()
 
     if (ParallelDescriptor::IOProcessor() && def_verbose)
       {
-        cout << "def_harmavg = " << def_harmavg << '\n';
-        cout << "def_maxorder = " << def_maxorder << '\n';
+        std::cout << "def_harmavg = " << def_harmavg << '\n';
+        std::cout << "def_maxorder = " << def_maxorder << '\n';
       }
 
     initialized = true;
@@ -79,11 +72,11 @@ LinOp::LinOp (const BndryData& _bgb,
 
 LinOp::~LinOp ()
 {
-    for (int i = 0; i < maskvals.length(); ++i)
+    for (int i = 0; i < maskvals.size(); ++i)
     {
-        for (int j = 0; j < maskvals[i].length(); ++j)
+        for (int j = 0; j < maskvals[i].size(); ++j)
         {
-            for (int k = 0; k < maskvals[i][j].length(); ++k)
+            for (int k = 0; k < maskvals[i][j].size(); ++k)
             {
                 delete maskvals[i][j][k];
             }
@@ -132,11 +125,11 @@ LinOp::initConstruct (const Real* _h)
     undrrelxr.resize(1);
     undrrelxr[level] = new BndryRegister(gbox[level], 1, 0, 0, 1);
     maskvals.resize(1);
-    maskvals[level].resize(gbox[level].length());
+    maskvals[level].resize(gbox[level].size());
     //
     // For each orientation, build NULL masks, then use distributed allocation.
     //
-    for (int i = 0; i < gbox[level].length(); i++)
+    for (int i = 0; i < gbox[level].size(); i++)
     {
         maskvals[level][i].resize(2*BL_SPACEDIM, 0);
     }
@@ -145,7 +138,7 @@ LinOp::initConstruct (const Real* _h)
     {
         Orientation face = oitr();
         const FabSet& bndry = bgb[face];
-        for (int i = 0; i < gbox[level].length(); i++)
+        for (int i = 0; i < gbox[level].size(); i++)
         {
             if (bndry.DistributionMap()[i] == MyProc)
             {
@@ -164,16 +157,16 @@ LinOp::apply (MultiFab&      out,
               int            level,
               LinOp::BC_Mode bc_mode)
 {
-#ifdef BL3_PROFILING
-  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "apply()");
-#endif
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "apply()");
+
     applyBC(in,0,1,level,bc_mode);
     Fapply(out,in,level);
 }
 
 #ifdef BL3_PTHREADS
 class task_applybc_orientation
-  : public BoxLib3::WorkQueue::task
+  :
+    public BoxLib3::WorkQueue::task
 {
 public:
   task_applybc_orientation(const OrientationIter& oitr_,
@@ -224,12 +217,9 @@ task_applybc_orientation::task_applybc_orientation(const OrientationIter& oitr_,
 void
 task_applybc_orientation::run()
 {
-  const int comp = 0;
-  for (MultiFabIterator inoutmfi(inout); inoutmfi.isValid(); ++inoutmfi)
+    const int comp = 0;
+    for (MFIter inoutmfi(inout); inoutmfi.isValid(); ++inoutmfi)
     {
-      DependentFabSetIterator ffsi(inoutmfi, f);
-      DependentFabSetIterator fsfsi(inoutmfi, fs);
-
       const int gn = inoutmfi.index();
 
       const Mask& m = *maskvals[level][gn][oitr()];
@@ -237,22 +227,23 @@ task_applybc_orientation::run()
       int bct       = b[gn][comp];
 
       FORT_APPLYBC(&flagden, &flagbc, &maxorder,
-		   inoutmfi().dataPtr(src_comp),
-		   ARLIM(inoutmfi().loVect()), ARLIM(inoutmfi().hiVect()),
+		   inout[inoutmfi].dataPtr(src_comp),
+		   ARLIM(inout[inoutmfi].loVect()), ARLIM(inout[inoutmfi].hiVect()),
 		   &cdr, &bct, &bcl,
-		   fsfsi().dataPtr(), 
-		   ARLIM(fsfsi().loVect()), ARLIM(fsfsi().hiVect()),
+		   fs[inoutmfi].dataPtr(), 
+		   ARLIM(fs[inoutmfi].loVect()), ARLIM(fs[inoutmfi].hiVect()),
 		   m.dataPtr(),
 		   ARLIM(m.loVect()), ARLIM(m.hiVect()),
-		   ffsi().dataPtr(),
-		   ARLIM(ffsi().loVect()), ARLIM(ffsi().hiVect()),
+		   f[inoutmfi].dataPtr(),
+		   ARLIM(f[inoutmfi].loVect()), ARLIM(f[inoutmfi].hiVect()),
 		   inoutmfi.validbox().loVect(),
 		   inoutmfi.validbox().hiVect(), &nc, h);
     }
 }
 
 class task_applybc
-    : public BoxLib3::WorkQueue::task
+    :
+    public BoxLib3::WorkQueue::task
 {
 public:
     task_applybc(int flagden_, int flagbc_, int maxorder_,
@@ -318,9 +309,7 @@ LinOp::applyBC (MultiFab&      inout,
                 int            level,
                 LinOp::BC_Mode bc_mode)
 {
-#ifdef BL3_PROFILING
-    BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::applyBC()");
-#endif
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::applyBC()");
     //
     // The inout MultiFab needs at least LinOp_grow ghost cells for applyBC.
     //
@@ -374,7 +363,7 @@ LinOp::applyBC (MultiFab&      inout,
 					      f,
 					      num_comp, h[level]));
 #else
-        for (MultiFabIterator inoutmfi(inout); inoutmfi.isValid(); ++inoutmfi)
+        for (MFIter inoutmfi(inout); inoutmfi.isValid(); ++inoutmfi)
         {
             const int gn = inoutmfi.index();
 
@@ -396,11 +385,8 @@ LinOp::applyBC (MultiFab&      inout,
 #endif
 #else
         const int comp                     = 0;
-        for (MultiFabIterator inoutmfi(inout); inoutmfi.isValid(); ++inoutmfi)
+        for (MFIter inoutmfi(inout); inoutmfi.isValid(); ++inoutmfi)
         {
-            DependentFabSetIterator ffsi(inoutmfi, f);
-            DependentFabSetIterator fsfsi(inoutmfi, fs);
-
             const int gn = inoutmfi.index();
 
             BL_ASSERT(gbox[level][inoutmfi.index()] == inoutmfi.validbox());
@@ -410,15 +396,15 @@ LinOp::applyBC (MultiFab&      inout,
             int bct       = b[gn][comp];
 
             FORT_APPLYBC(&flagden, &flagbc, &maxorder,
-                         inoutmfi().dataPtr(src_comp),
-                         ARLIM(inoutmfi().loVect()), ARLIM(inoutmfi().hiVect()),
+                         inout[inoutmfi].dataPtr(src_comp),
+                         ARLIM(inout[inoutmfi].loVect()), ARLIM(inout[inoutmfi].hiVect()),
                          &cdr, &bct, &bcl,
-                         fsfsi().dataPtr(), 
-                         ARLIM(fsfsi().loVect()), ARLIM(fsfsi().hiVect()),
+                         fs[inoutmfi].dataPtr(), 
+                         ARLIM(fs[inoutmfi].loVect()), ARLIM(fs[inoutmfi].hiVect()),
                          m.dataPtr(),
                          ARLIM(m.loVect()), ARLIM(m.hiVect()),
-                         ffsi().dataPtr(),
-                         ARLIM(ffsi().loVect()), ARLIM(ffsi().hiVect()),
+                         f[inoutmfi].dataPtr(),
+                         ARLIM(f[inoutmfi].loVect()), ARLIM(f[inoutmfi].hiVect()),
                          inoutmfi.validbox().loVect(),
                          inoutmfi.validbox().hiVect(), &num_comp, h[level]);
         }
@@ -436,15 +422,12 @@ LinOp::residual (MultiFab&       residL,
                  int             level,
                  LinOp::BC_Mode  bc_mode)
 {
-#ifdef BL3_PROFILING
-  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "residual()");
-#endif
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "residual()");
+
     apply(residL, solnL, level, bc_mode);
 
-    for (MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
+    for (MFIter solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
     {
-        DependentMultiFabIterator residLmfi(solnLmfi, residL);
-        DependentMultiFabIterator rhsLmfi(solnLmfi, rhsL);
         int nc = residL.nComp();
         //
         // Only single-component solves supported (verified) by this class.
@@ -452,12 +435,12 @@ LinOp::residual (MultiFab&       residL,
         BL_ASSERT(nc == 1);
         BL_ASSERT(gbox[level][solnLmfi.index()] == solnLmfi.validbox());
         FORT_RESIDL(
-            residLmfi().dataPtr(), 
-            ARLIM(residLmfi().loVect()), ARLIM(residLmfi().hiVect()),
-            rhsLmfi().dataPtr(), 
-            ARLIM(rhsLmfi().loVect()), ARLIM(rhsLmfi().hiVect()),
-            residLmfi().dataPtr(), 
-            ARLIM(residLmfi().loVect()), ARLIM(residLmfi().hiVect()),
+            residL[solnLmfi].dataPtr(), 
+            ARLIM(residL[solnLmfi].loVect()), ARLIM(residL[solnLmfi].hiVect()),
+            rhsL[solnLmfi].dataPtr(), 
+            ARLIM(rhsL[solnLmfi].loVect()), ARLIM(rhsL[solnLmfi].hiVect()),
+            residL[solnLmfi].dataPtr(), 
+            ARLIM(residL[solnLmfi].loVect()), ARLIM(residL[solnLmfi].hiVect()),
             solnLmfi.validbox().loVect(), solnLmfi.validbox().hiVect(), &nc);
     }
 }
@@ -468,9 +451,7 @@ LinOp::smooth (MultiFab&       solnL,
                int             level,
                LinOp::BC_Mode  bc_mode)
 {
-#ifdef BL3_PROFILING
-    BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::smooth()");
-#endif
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::smooth()");
 
     for (int redBlackFlag = 0; redBlackFlag < 2; redBlackFlag++)
     {
@@ -507,7 +488,7 @@ LinOp::prepareForLevel (int level)
         h[level][i] = h[level-1][i]*2.0;
     }
     geomarray.resize(level+1);
-    geomarray[level].define(::coarsen(geomarray[level-1].Domain(),2));
+    geomarray[level].define(BoxLib::coarsen(geomarray[level-1].Domain(),2));
     const Box& curdomain = geomarray[level].Domain();
     //
     // Add a box to the new coarser level (assign removes old BoxArray).
@@ -527,10 +508,10 @@ LinOp::prepareForLevel (int level)
     // Initial masks for coarse levels, ignore outside_domain possibility since
     // we always solve homogeneous equation on coarse levels.
     //
-    BL_ASSERT(maskvals.length() == level);
+    BL_ASSERT(maskvals.size() == level);
     maskvals.resize(level+1);
-    maskvals[level].resize(gbox[level].length());
-    for (int i = 0; i < gbox[level].length(); i++)
+    maskvals[level].resize(gbox[level].size());
+    for (int i = 0; i < gbox[level].size(); i++)
     {
         maskvals[level][i].resize(2*BL_SPACEDIM, (Mask*)0);
     }
@@ -546,16 +527,15 @@ LinOp::prepareForLevel (int level)
         //
         const FabSet& bndry = bgb[face];
 
-        for (ConstFabSetIterator bndryfsi(bgb[face]); bndryfsi.isValid();
-             ++bndryfsi)
+        for (FabSetIter bndryfsi(bgb[face]); bndryfsi.isValid(); ++bndryfsi)
         {
             int gn = bndryfsi.index();
-            Box bx_k = ::adjCell(gbox[level][gn], face, 1);
+            Box bx_k = BoxLib::adjCell(gbox[level][gn], face, 1);
             BL_ASSERT(maskvals[level][gn][face] == 0);
             maskvals[level][gn][face] = new Mask(bx_k, 1);
             Mask& curmask = *(maskvals[level][gn][face]);
             curmask.setVal(BndryData::not_covered);
-            for (int gno = 0; gno < gbox[level].length(); ++gno)
+            for (int gno = 0; gno < gbox[level].size(); ++gno)
             {
                 if (gno != gn  &&  bx_k.intersects(gbox[level][gno]))
                 {
@@ -572,10 +552,10 @@ LinOp::prepareForLevel (int level)
             {
                 curgeom.periodicShift(curdomain, bx_k, pshifts);
 
-                for (int iiv = 0; iiv < pshifts.length(); iiv++)
+                for (int iiv = 0; iiv < pshifts.size(); iiv++)
                 {
                     curmask.shift(pshifts[iiv]);
-                    for (int gno = 0; gno < gbox[level].length(); ++gno)
+                    for (int gno = 0; gno < gbox[level].size(); ++gno)
                     {
                         Box btmp = gbox[level][gno] & curmask.box();
                         curmask.setVal(BndryData::covered, btmp,0);
@@ -640,18 +620,16 @@ LinOp::makeCoefficients (MultiFab&       cs,
 
     const BoxArray& grids = gbox[level];
 
-    MultiFabIterator csmfi(cs);
+    MFIter csmfi(cs);
 
     switch (cdir)
     {
     case -1:
         for ( ; csmfi.isValid(); ++csmfi)
         {
-            DependentMultiFabIterator fnmfi(csmfi, fn);
-
-            FORT_AVERAGECC(csmfi().dataPtr(), ARLIM(csmfi().loVect()),
-                           ARLIM(csmfi().hiVect()),fnmfi().dataPtr(),
-                           ARLIM(fnmfi().loVect()),ARLIM(fnmfi().hiVect()),
+            FORT_AVERAGECC(cs[csmfi].dataPtr(), ARLIM(cs[csmfi].loVect()),
+                           ARLIM(cs[csmfi].hiVect()),fn[csmfi].dataPtr(),
+                           ARLIM(fn[csmfi].loVect()),ARLIM(fn[csmfi].hiVect()),
                            grids[csmfi.index()].loVect(),
                            grids[csmfi.index()].hiVect(), &nc);
         }
@@ -663,14 +641,12 @@ LinOp::makeCoefficients (MultiFab&       cs,
         {
             for ( ; csmfi.isValid(); ++csmfi)
             {
-                DependentMultiFabIterator fnmfi(csmfi, fn);
-
-                FORT_HARMONIC_AVERAGEEC(csmfi().dataPtr(),
-                                        ARLIM(csmfi().loVect()),
-                                        ARLIM(csmfi().hiVect()),
-                                        fnmfi().dataPtr(),
-                                        ARLIM(fnmfi().loVect()),
-                                        ARLIM(fnmfi().hiVect()),
+                FORT_HARMONIC_AVERAGEEC(cs[csmfi].dataPtr(),
+                                        ARLIM(cs[csmfi].loVect()),
+                                        ARLIM(cs[csmfi].hiVect()),
+                                        fn[csmfi].dataPtr(),
+                                        ARLIM(fn[csmfi].loVect()),
+                                        ARLIM(fn[csmfi].hiVect()),
                                         grids[csmfi.index()].loVect(),
                                         grids[csmfi.index()].hiVect(),
                                         &nc,&cdir);
@@ -680,11 +656,9 @@ LinOp::makeCoefficients (MultiFab&       cs,
         {
             for ( ; csmfi.isValid(); ++csmfi)
             {
-                DependentMultiFabIterator fnmfi(csmfi, fn);
-
-                FORT_AVERAGEEC(csmfi().dataPtr(),ARLIM(csmfi().loVect()),
-                               ARLIM(csmfi().hiVect()),fnmfi().dataPtr(), 
-                               ARLIM(fnmfi().loVect()),ARLIM(fnmfi().hiVect()),
+                FORT_AVERAGEEC(cs[csmfi].dataPtr(),ARLIM(cs[csmfi].loVect()),
+                               ARLIM(cs[csmfi].hiVect()),fn[csmfi].dataPtr(), 
+                               ARLIM(fn[csmfi].loVect()),ARLIM(fn[csmfi].hiVect()),
                                grids[csmfi.index()].loVect(),
                                grids[csmfi.index()].hiVect(),&nc, &cdir);
             }
@@ -695,9 +669,9 @@ LinOp::makeCoefficients (MultiFab&       cs,
     }
 }
 
-ostream&
-operator<< (ostream&     os,
-            const LinOp& lp)
+std::ostream&
+operator<< (std::ostream& os,
+            const LinOp&  lp)
 {
     if (ParallelDescriptor::IOProcessor())
     {
@@ -739,7 +713,7 @@ operator<< (ostream&     os,
                 for (OrientationIter oitr; oitr; ++oitr)
                 {
                     Orientation face = oitr();
-                    for (int i=0; i<lp.boxArray().length(); ++i)
+                    for (int i=0; i<lp.boxArray().size(); ++i)
                     {
                         if (lp.maskvals[level][i][face])
                         {

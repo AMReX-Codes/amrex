@@ -1,30 +1,17 @@
-
 #ifndef _Cluster_H_
 #define _Cluster_H_ 
-
 //
-// $Id: Cluster.H,v 1.12 2000-10-02 20:48:41 lijewski Exp $
+// $Id: Cluster.H,v 1.13 2001-08-01 21:50:44 lijewski Exp $
 //
+#include <list>
 
 #include <IntVect.H>
 #include <Box.H>
 #include <Array.H>
 #include <BoxArray.H>
-#include <BoxDomain.H>
 #include <REAL.H>
 
-#if !defined(BL_SPACEDIM) || (BL_SPACEDIM != 1 && BL_SPACEDIM !=2 && BL_SPACEDIM != 3)
-#error BL_SPACEDIM must be defined
-#endif
-
-#if (BL_SPACEDIM==1)
-#define Cluster        Cluster1d
-#elif (BL_SPACEDIM==2)
-#define Cluster        Cluster2d
-#elif (BL_SPACEDIM==3)
-#define Cluster        Cluster3d
-#endif
-
+class BoxDomain;
 class ClusterList;
 
 //
@@ -41,9 +28,7 @@ public:
     //
     //@ManDoc: The default constructor -- builds invalid Cluster.
     //
-    Cluster ()
-        :
-        m_ar(0) {}
+    Cluster ();
 
     /*@ManDoc: Construct a cluster from an array of IntVects.
                The Cluster object does NOT take over memory management
@@ -60,19 +45,19 @@ public:
     //
     //@ManDoc: The destructor.  Does NOT destroy the initial IntVect array.
     //
-    ~Cluster () {}
+    ~Cluster ();
     //
     //@ManDoc: Return minimal box containing all tagged points.
     //
-    const Box& box () const { return m_bx; }
+    const Box& box () const;
     //
     //@ManDoc: Does cluster contain any points?
     //
-    bool ok () const { return m_ar != 0 && m_len > 0; }
+    bool ok () const;
     //
     //@ManDoc: Returns number of tagged points in cluster.
     //
-    long numTag () const { return m_len; }
+    long numTag () const;
     //
     //@ManDoc: Return number of tagged points in intersection of cluster and Box b.
     //
@@ -100,11 +85,7 @@ public:
     //
     //@ManDoc: Compute ratio of tagged to total number of points in cluster.
     //
-    Real eff () const
-    {
-        BL_ASSERT(ok());
-        return ((Real) numTag())/((Real) m_bx.numPts());
-    }
+    Real eff () const;
 
 private:
     //
@@ -138,17 +119,12 @@ public:
     //
     //@ManDoc: The default constructor.
     //
-    ClusterList ()
-        :
-        lst() {}
+    ClusterList ();
     //
     //@ManDoc: Construct a list containing Cluster(pts,len).
     //
     ClusterList (IntVect* pts,
-                 long     len)
-    {
-        lst.append(new Cluster(pts,len));
-    }
+                 long     len);
     //
     //@ManDoc: The destructor.
     //
@@ -156,11 +132,11 @@ public:
     //
     //@ManDoc: Return number of clusters in list.
     //
-    int length () const { return lst.length(); }
+    int length () const;
     //
     //@ManDoc: Add cluster to end of list.
     //
-    void append (Cluster* c) { lst.append(c); }
+    void append (Cluster* c);
     //
     //@ManDoc: Return array of boxes corresponding to clusters.
     //
@@ -196,7 +172,7 @@ private:
     //
     // The data.
     //    
-    List<Cluster*> lst;
+    std::list<Cluster*> lst;
 };
 
 #endif /*_Cluster_H_*/

@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.36 2001-07-18 16:46:09 car Exp $
+# Make.defs $Id: Make.defs,v 1.37 2001-08-01 21:51:05 lijewski Exp $
 #
 
 #
@@ -126,10 +126,6 @@ ifndef COMP
   COMP	= CC
 endif
 
-ifndef NAMESPACE
-  NAMESPACE   = FALSE
-endif
-
 ifndef USE_THREADS
   USE_THREADS  = FALSE
 endif
@@ -194,10 +190,19 @@ ifeq ($(COMP),g++)
     CXXOPTF    += -O
     CXXDEBF    += -g
     FULLWARN   := -Wall
-    CXX	       := g++ -ftemplate-depth-20
+    CXX	       := g++ -ftemplate-depth-25
     # DEFINES    += -DBL_OLD_STL
-    DEFINES    += -DBL_USE_NEW_HFILES
-    DEFINES    += -DBL_USE_SETBUF
+#    DEFINES    += -DBL_USE_NEW_HFILES
+#    DEFINES    += -DBL_USE_SETBUF
+    __gcc_version := $(shell gcc --version)
+    __gcc_major_version := $(shell gcc --version | sed -e 's;\..*;;')
+    __gcc_minor_version := $(shell gcc --version | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
+    DEFINES += -DBL_GCC_VERSION=$(__gcc_version)
+    DEFINES += -DBL_GCC_MAJOR_VERSION=$(__gcc_major_version)
+    DEFINES += -DBL_GCC_MINOR_VERSION=$(__gcc_minor_version)
+    ifneq ($(BL_GCC_MAJOR_VERSION),3)
+       GNU_STD_INCL = $(PBOXLIB_HOME)/BoxLib/std
+    endif
 endif
 #
 # Generic setup for using cfront ...
@@ -276,10 +281,7 @@ else
 endif
 
 ifeq ($(PROFILE),TRUE)
-    FFLAGS	+= $(FPRFF)
-    fFLAGS	+= $(fPRFF)
-    CXXFLAGS	+= $(CXXPRFF)
-    CFLAGS	+= $(CXXPRFF)
+    CPPFLAGS    += -DBL_PROFILING
     ProfSuffix	:= .PROF
 else
     ProfSuffix	:=
@@ -293,15 +295,8 @@ else
     MPISuffix	:=
 endif
 
-ifeq ($(NAMESPACE),FALSE)
-    CPPFLAGS  += -UBL_NAMESPACE
-    NamespaceSuffix :=
-else
-    CPPFLAGS  += -DBL_NAMESPACE='BoxLib2'
-    NamespaceSuffix := .NS
-endif
-
 ifeq ($(USE_THREADS),TRUE)
+    DEFINES += -DBL_THREADS
     ifeq ($(COMP),KCC)
         CXXFLAGS+=--thread_safe
     endif
@@ -355,15 +350,20 @@ objForExecs	= $(addprefix $(objEXETempDir)/, $(objStandalone))
 
 instSources	= $(CLIB_headers) $(FLIB_headers) $(cLIB_headers) $(T_sources) $(T_headers) $(fLIB_headers)
 
-INCLUDE_LOCATIONS += . $(XTRAINCLOC) $(XINCL)
+INCLUDE_LOCATIONS += . $(XTRAINCLOC) $(XINCL) $(GNU_STD_INCL)
 LIBRARY_LOCATIONS += . $(XTRALIBLOC) $(XLIBL)
 
 DEFINES		+= 	-DBL_SPACEDIM=$(DIM)      \
-		  	-DBL_USE_$(PRECISION)     \
-		  	-DBL_ARCH_$(ARCH)         \
 		  	-DBL_FORT_USE_$(FORTLINK) \
 		  	-DBL_$(MACHINE)           \
 		  	$(XTRADEFS)
+
+ifeq ($(PRECISION),FLOAT)
+DEFINES += -DBL_USE_FLOAT
+endif
+ifeq ($(ARCH),CRAY)
+DEFINES += -DBL_ARCH_CRAY
+endif
 
 includes	= $(addprefix -I, $(INCLUDE_LOCATIONS))
 
@@ -373,7 +373,7 @@ libraries	= $(LIBRARIES) $(BL_MPI_LIBS) $(XTRALIBS)
 
 LDFLAGS		+= $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(MACHINE).$(COMP)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MPISuffix)$(ThreadsSuffix)$(NamespaceSuffix)
+machineSuffix	= $(MACHINE).$(COMP)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MPISuffix)$(ThreadsSuffix)
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
 optionsLib	= $(addprefix lib, \

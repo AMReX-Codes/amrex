@@ -1,21 +1,22 @@
-
 #ifndef _StateData_H_
 #define _StateData_H_ 
-
 //
-// $Id: StateData.H,v 1.18 2000-10-02 20:48:43 lijewski Exp $
+// $Id: StateData.H,v 1.19 2001-08-01 21:50:46 lijewski Exp $
 //
-
 #include <Box.H>
-#include <RealBox.H>
 #include <BoxArray.H>
 #include <MultiFab.H>
 #include <BCRec.H>
 #include <Array.H>
-#include <StateDescriptor.H>
 #include <VisMF.H>
 
-extern void readBoxArray(BoxArray& ba, istream& is, bool bReadSpecial);
+class RealBox;
+class StateDescriptor;
+
+namespace BoxLib
+{
+    void readBoxArray (BoxArray&, std::istream&, bool);
+}
 //
 //@Man:
 //@Memo: Current and previous level-time data.
@@ -38,10 +39,7 @@ public:
                const BoxArray&        grds,
                const StateDescriptor* d,
                Real                   cur_time,
-               Real                   dt)
-    {
-        define(p_domain, grds, *d, cur_time, dt);
-    }
+               Real                   dt);
     //
     //@ManDoc: The destructor.
     //
@@ -61,21 +59,11 @@ public:
     //
     //@ManDoc: Allocates space for old timestep data.
     //
-    void allocOldData ()
-    {
-        if (old_data == 0)
-        {
-            old_data = new MultiFab(grids,desc->nComp(),desc->nExtra(),Fab_allocate);
-        }
-    }
+    void allocOldData ();
     //
     //@ManDoc: Deletes the space used by the old timestep data.
     //
-    void removeOldData ()
-    {
-        delete old_data;
-        old_data = 0;
-    }
+    void removeOldData ();
     //
     //@ManDoc: Reverts back to initial state.
     //
@@ -90,7 +78,6 @@ public:
     void setTimeLevel (Real t_new,
                        Real dt_old,
                        Real dt_new);
-
     //
     //@ManDoc: Sets time of old data.
     //
@@ -144,109 +131,85 @@ public:
     //
     //@ManDoc: Write the state data to a checkpoint file.
     //
-    void checkPoint (const aString& name,
-                     const aString& fullpathname,
-                     ostream&       os,
-                     VisMF::How     how,
-                     bool           dump_old = true);
+    void checkPoint (const std::string& name,
+                     const std::string& fullpathname,
+                     std::ostream&      os,
+                     VisMF::How         how,
+                     bool               dump_old = true);
     //
     //@ManDoc: Initializes state data from a checkpoint file.
     //
-    void restart (istream&               is,
+    void restart (std::istream&          is,
                   const StateDescriptor& d,
-                  const aString&         restart_file,
+                  const std::string&     restart_file,
 		  bool                   bReadSpecial = false);
     //
     //@ManDoc: Returns the StateDescriptor.
     //
-    const StateDescriptor* descriptor () const { return desc; }
+    const StateDescriptor* descriptor () const;
     //
     //@ManDoc: Returns the valid domain.
     //
-    const Box& getDomain () const { return domain; }
+    const Box& getDomain () const;
     //
     //@ManDoc: Returns the BoxArray.
     //
-    const BoxArray& boxArray () const { return grids; }
+    const BoxArray& boxArray () const;
     //
     //@ManDoc: Returns the current time.
     //
-    Real curTime () const { return 0.5*(new_time.start + new_time.stop); }
+    Real curTime () const;
     //
     //@ManDoc: Returns the previous time.
     //
-    Real prevTime () const { return 0.5*(old_time.start + old_time.stop); }
+    Real prevTime () const;
     //
     //@ManDoc: Returns the new data.
     //
-    MultiFab& newData ()
-    {
-        BL_ASSERT(new_data != 0);
-        return *new_data;
-    }
+    MultiFab& newData ();
     //
     //@ManDoc: Returns the new data.
     //
-    const MultiFab& newData () const
-    {
-        BL_ASSERT(new_data != 0);
-        return *new_data;
-    }
+    const MultiFab& newData () const;
     //
     //@ManDoc: Returns the old data.
     //
-    MultiFab& oldData ()
-    {
-        BL_ASSERT(old_data != 0);
-        return *old_data;
-    }
+    MultiFab& oldData ();
     //
     //@ManDoc: Returns the old data.
     //
-    const MultiFab& oldData () const
-    {
-        BL_ASSERT(old_data != 0);
-        return *old_data;
-    }
+    const MultiFab& oldData () const;
     //
     //@ManDoc: Returns the FAB of new data at grid index `i'.
     //
-    FArrayBox& newGrid (int i)
-    {
-        BL_ASSERT(new_data != 0);
-        return (*new_data)[i];
-    }
+    FArrayBox& newGrid (int i);
     //
     //@ManDoc: Returns the FAB of old data at grid index `i'.
     //
-    FArrayBox& oldGrid (int i)
-    {
-        BL_ASSERT(old_data != 0);
-        return (*old_data)[i];
-    }
+    FArrayBox& oldGrid (int i);
     //
     //@ManDoc: Returns an array of boundary condition records for the 
     //         specified component.  Each element in the array corresponds
     //         to a grid in the state.
     //
-    Array<BCRec>& getBCs (int comp) { return bc[comp]; }
+    Array<BCRec>& getBCs (int comp);
     //
     //@ManDoc: Returns boundary conditions of specified component on the
     //         specified grid.
     //
-    const BCRec& getBC (int comp, int i) const { return bc[comp][i]; }
+    const BCRec& getBC (int comp, int i) const;
     //
     //@ManDoc: Prints out the time interval.
     //
-    void printTimeInterval (ostream& os) const;
+    void printTimeInterval (std::ostream& os) const;
     //
     //@ManDoc: True if there is any old data available.
     //
-    bool hasOldData () const { return old_data != 0; }
+    bool hasOldData () const;
     //
     //@ManDoc: True if there is any new data available.
     //
-    bool hasNewData () const { return new_data != 0; }
+    bool hasNewData () const;
 
 protected:
 

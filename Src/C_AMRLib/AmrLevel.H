@@ -1,18 +1,13 @@
-
 #ifndef _AmrLevel_H_
 #define _AmrLevel_H_ 
-
 //
-// $Id: AmrLevel.H,v 1.49 2000-10-02 20:48:40 lijewski Exp $
+// $Id: AmrLevel.H,v 1.50 2001-08-01 21:50:44 lijewski Exp $
 //
-
 #include <REAL.H>
 #include <Box.H>
 #include <RealBox.H>
 #include <Geometry.H>
 #include <FArrayBox.H>
-#include <BoxList.H>
-#include <TagBox.H>
 #include <BoxArray.H>
 #include <Array.H>
 #include <FabArray.H>
@@ -25,6 +20,9 @@
 #include <StateDescriptor.H>
 #include <StateData.H>
 #include <VisMF.H>
+
+class TagBox;
+class TagBoxArray;
 
 //
 //@Man:
@@ -56,33 +54,33 @@ public:
                plot files.  This is a pure virtual function and hence MUST
                be implemented by derived classes.
     */
-    virtual aString thePlotFileType () const = 0;
+    virtual std::string thePlotFileType () const = 0;
 
     /*@ManDoc: Write plot file stuff to specified directory.  This is a
                pure virtual function and hence MUST be implemented by
                derived classes.
     */
-    virtual void writePlotFile (const aString& dir,
-                                ostream&       os,
-                                VisMF::How     how = VisMF::OneFilePerCPU) = 0;
+    virtual void writePlotFile (const std::string& dir,
+                                std::ostream&      os,
+                                VisMF::How         how = VisMF::OneFilePerCPU) = 0;
     //
     //@ManDoc: Write current state to checkpoint file.
     //
-    virtual void checkPoint (const aString& dir,
-                             ostream&       os,
+    virtual void checkPoint (const std::string& dir,
+                             std::ostream&  os,
                              VisMF::How     how = VisMF::OneFilePerCPU);
     //
     //@ManDoc: Restart from a checkpoint file.
     //
-    virtual void restart (Amr&     papa,
-                          istream& is,
-			  bool bReadSpecial = false);
+    virtual void restart (Amr&          papa,
+                          std::istream& is,
+			  bool          bReadSpecial = false);
     //
     //@ManDoc: Is name a state variable?
     //
-    static int isStateVariable (const aString& name,
-                                int&           state_indx,
-                                int&           ncomp);
+    static int isStateVariable (const std::string& name,
+                                int&               state_indx,
+                                int&               ncomp);
 
     /*@ManDoc: Compute the initial time step.  This is a pure virtual function
                and hence MUST be implemented by derived classes.
@@ -92,7 +90,7 @@ public:
                                    Array<int>&           n_cycle,
                                    const Array<IntVect>& ref_ratio,
                                    Array<Real>&          dt_level,
-                                   REAL                  stop_time) = 0;
+                                   Real                  stop_time) = 0;
 
     /*@ManDoc: Compute the next time step.  This is a pure virtual function
                and hence MUST be implemented by derived classes.
@@ -123,7 +121,7 @@ public:
     /*@ManDoc: Contains operations to be done only after a full coarse
                timestep.  The default implementation does nothing.
     */
-    virtual void postCoarseTimeStep (Real time) {}
+    virtual void postCoarseTimeStep (Real time);
 
     /*@ManDoc: Operations to be done after restart.  This is a pure virtual
                function and hence MUST be implemented by derived classes.
@@ -141,7 +139,7 @@ public:
                This is a pure virtual function and hence MUST be
                implemented by derived classes.
     */
-    virtual  void post_init (REAL stop_time) = 0;
+    virtual  void post_init (Real stop_time) = 0;
 
     /*@ManDoc: Is it ok to continue the calculation?
                This is a pure virtual function and hence MUST be
@@ -193,35 +191,35 @@ public:
     //
     //@ManDoc: Returns this AmrLevel.
     //
-    int Level () const { return level; }
+    int Level () const;
     //
     //@ManDoc: List of grids at this level.
     //
-    const BoxArray& boxArray () const { return grids; }
+    const BoxArray& boxArray () const;
     //
     //@ManDoc: Number of grids at this level.
     //
-    int numGrids () { return grids.length(); }
+    int numGrids () const;
     //
     //@ManDoc: Physical locations of grids at this level.
     //
-    const Array<RealBox>& gridLocations () const { return grid_loc; }
+    const Array<RealBox>& gridLocations () const;
     //
     //@ManDoc: Returns the indices defining physical domain.
     //
-    const Box& Domain () const { return geom.Domain(); }
+    const Box& Domain () const;
     //
     //@ManDoc: Timestep n at this level.
     //
-    int nStep () { return parent->levelSteps(level); }
+    int nStep () const;
     //
     //@ManDoc: Returns the geometry object.
     //
-    const Geometry& Geom () const { return geom; }
+    const Geometry& Geom () const;
     //
     //@ManDoc: Returns number of cells on level.
     //
-    long countCells ();
+    long countCells () const;
 
     /*@ManDoc: Error estimation for regridding. This is a pure virtual
                function and hence MUST be implemented by derived classes.
@@ -247,14 +245,7 @@ public:
     void setPhysBoundaryValues (int state_indx,
                                 int comp,
                                 int ncomp,
-                                int do_new = 1)
-    {
-        state[state_indx].FillBoundary(geom.CellSize(),
-                                       geom.ProbDomain(),
-                                       comp,
-                                       ncomp,
-                                       do_new);
-    }
+                                int do_new = 1);
     //
     //@ManDoc: Another function to set physical boundary conditions.
     //
@@ -268,70 +259,49 @@ public:
                with it.  If ngrow>0 the MultiFab is built on the appropriately
                grown BoxArray.
     */
-    MultiFab* derive (const aString& name,
-                      Real           time,
-                      int            ngrow);
+    MultiFab* derive (const std::string& name,
+                      Real               time,
+                      int                ngrow);
 
     /*@ManDoc: This version of derive() fills the dcomp'th component of mf
                with the derived quantity.
     */
-    void derive (const aString& name,
-                 Real           time,
-                 MultiFab&      mf,
-                 int            dcomp);
+    void derive (const std::string& name,
+                 Real               time,
+                 MultiFab&          mf,
+                 int                dcomp);
     //
     //@ManDoc: State data object.
     //
-    StateData& get_state_data (int state_indx) { return state[state_indx]; }
+    StateData& get_state_data (int state_indx);
     //
     //@ManDoc: State data at old time.
     //
-    MultiFab& get_old_data (int state_indx)
-    {
-        return state[state_indx].oldData();
-    }
+    MultiFab& get_old_data (int state_indx);
     //
     //@ManDoc: State data at old time.
     //
-    const MultiFab& get_old_data (int state_indx) const
-    {
-        return state[state_indx].oldData();
-    }
+    const MultiFab& get_old_data (int state_indx) const;
     //
     //@ManDoc: State data at new time.
     //
-    MultiFab& get_new_data (int state_indx)
-    {
-        return state[state_indx].newData();
-    }
+    MultiFab& get_new_data (int state_indx);
     //
     //@ManDoc: State data at new time.
     //
-    const MultiFab& get_new_data (int state_indx) const
-    {
-        return state[state_indx].newData();
-    }
+    const MultiFab& get_new_data (int state_indx) const;
     //
     //@ManDoc: Returns list of Descriptors.
     //
-    static const DescriptorList& get_desc_lst ()
-    {
-        return desc_lst;
-    }
+    static const DescriptorList& get_desc_lst ();
     //
     //@ManDoc: Returns list of derived variables.
     //
-    static DeriveList& get_derive_lst ()
-    {
-        return derive_lst;
-    }
+    static DeriveList& get_derive_lst ();
     //
     //@ManDoc: Returns list of slab stats.
     //
-    static SlabStatList& get_slabstat_lst ()
-    {
-        return slabstat_lst;
-    }
+    static SlabStatList& get_slabstat_lst ();
     //
     //@ManDoc: Boundary condition access function.
     //
@@ -352,9 +322,7 @@ public:
                                                int        scomp,
                                                int        dcomp,
                                                int        ncomp,
-                                               Real       time) const {}
-    //
-    //
+                                               Real       time) const;
     // 
     //@ManDoc: Called in grid\_places after other tagging routines to modify
     //         the list of tagged points.  Default implementation does nothing.
@@ -416,7 +384,7 @@ class FillPatchIteratorHelper;
 
 class FillPatchIterator
     :
-    public MultiFabIterator
+    public MFIter
 {
   public:
 
@@ -443,19 +411,11 @@ class FillPatchIterator
 
     const FArrayBox& operator() () const { return m_fab;  }
 
-    FArrayBox& operator* ()              { return m_fab;  }
-
-    const FArrayBox& operator* () const  { return m_fab;  }
-
-    FArrayBox* operator-> ()             { return &m_fab; }
-
-    const FArrayBox* operator-> () const { return &m_fab; }
-
     bool isValid ();
 
-    FabArrayIterator<Real,FArrayBox>& operator++ ();
+    void operator++ ();
 
-    const Box& UngrownBox () const { return MultiFabIterator::validbox(); }
+    const Box& UngrownBox () const { return MFIter::validbox(); }
 
   private:
     //
@@ -467,21 +427,19 @@ class FillPatchIterator
     //
     // The data.
     //
-    AmrLevel&                       m_amrlevel;
-    MultiFab&                       m_leveldata;
-    vector< pair<int,int> >         m_range;
-    PArray<FillPatchIteratorHelper> m_fph;
-    FArrayBox                       m_fab;
-    int                             m_ncomp;
+    AmrLevel&                         m_amrlevel;
+    MultiFab&                         m_leveldata;
+    std::vector< std::pair<int,int> > m_range;
+    PArray<FillPatchIteratorHelper>   m_fph;
+    FArrayBox                         m_fab;
+    int                               m_ncomp;
 };
 
 class FillPatchIteratorHelper
     :
-    public MultiFabIterator
+    public MFIter
 {
 public:
-
-//    enum FillType { FillLocally, FillRemotely, FillFromBoundary, Unfillable };
 
     FillPatchIteratorHelper (AmrLevel& amrlevel,
                              MultiFab& leveldata);
@@ -507,14 +465,6 @@ public:
     FArrayBox& operator() ()             { return m_fab;  }
 
     const FArrayBox& operator() () const { return m_fab;  }
-
-    FArrayBox& operator* ()              { return m_fab;  }
-
-    const FArrayBox& operator* () const  { return m_fab;  }
-
-    FArrayBox* operator-> ()             { return &m_fab; }
-
-    const FArrayBox* operator-> () const { return &m_fab; }
 
     bool isValid ();
 

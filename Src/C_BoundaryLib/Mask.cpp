@@ -1,13 +1,9 @@
 
 //
-// $Id: Mask.cpp,v 1.5 2000-10-02 20:51:17 lijewski Exp $
+// $Id: Mask.cpp,v 1.6 2001-08-01 21:51:04 lijewski Exp $
 //
 
-#ifdef BL_USE_NEW_HFILES
 #include <cstdlib>
-#else
-#include <stdlib.h>
-#endif
 
 #include <Looping.H>
 #include <Mask.H>
@@ -16,14 +12,14 @@
 const char NL = '\n';
 const char SP = ' ';
 
-Mask::Mask (istream& is)
+Mask::Mask (std::istream& is)
 {
     readFrom(is);
 }
 
-ostream&
-operator<< (ostream&    os,
-            const Mask& m)
+std::ostream&
+operator<< (std::ostream& os,
+            const Mask&   m)
 {
     int ncomp = m.nComp();
 
@@ -45,9 +41,9 @@ operator<< (ostream&    os,
     return os;
 }
 
-istream&
-operator>> (istream& is,
-            Mask&    m)
+std::istream&
+operator>> (std::istream& is,
+            Mask&         m)
 {
     is.ignore(BL_IGNORE_MAX,':');
     Box b;
@@ -71,7 +67,7 @@ operator>> (istream& is,
 }
 
 void
-Mask::writeOn (ostream& os) const
+Mask::writeOn (std::ostream& os) const
 {
     os << "(Mask: " << domain << SP << nvar << NL;
     const int* ptr = dataPtr();
@@ -81,7 +77,7 @@ Mask::writeOn (ostream& os) const
 }
 
 void
-Mask::readFrom (istream& is)
+Mask::readFrom (std::istream& is)
 {
     is.ignore(BL_IGNORE_MAX,':');
     Box b;

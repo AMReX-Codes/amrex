@@ -49,7 +49,7 @@ public:
                                         const level_interface& lev_interface,
                                         int w) const = 0;
 
-    virtual void duplicate (List<Box>&,
+    virtual void duplicate (std::list<Box>&,
                             const Box&) const = 0;
 
     virtual bool singular () const  = 0;
@@ -71,12 +71,12 @@ protected:
 			const Box&,
 			int) const = 0;
 
-    virtual void check_against_boundary_ (BoxList&   bl,
-					  List<int>& il,
-					  const Box& b,
-					  int        ib,
-					  const Box& d,
-					  int        dim1) const = 0;
+    virtual void check_against_boundary_ (BoxList&        bl,
+					  std::list<int>& il,
+					  const Box&      b,
+					  int             ib,
+					  const Box&      d,
+					  int             dim1) const = 0;
 };
 
 //
@@ -149,8 +149,8 @@ public:
                                         const level_interface& lev_interface,
                                         int                    w) const;
 
-    virtual void duplicate (List<Box>& bl,
-                            const Box& domain) const;
+    virtual void duplicate (std::list<Box>& bl,
+                            const Box&      domain) const;
 
     virtual bool singular () const;
 
@@ -171,12 +171,12 @@ protected:
 			const Box&,
 			int) const;
 
-    virtual void check_against_boundary_ (BoxList&   bl,
-					  List<int>& il,
-					  const Box& b,
-					  int        ib,
-					  const Box& d,
-					  int        dim1) const;
+    virtual void check_against_boundary_ (BoxList&        bl,
+					  std::list<int>& il,
+					  const Box&      b,
+					  int             ib,
+					  const Box&      d,
+					  int             dim1) const;
     //
     // The data.
     //

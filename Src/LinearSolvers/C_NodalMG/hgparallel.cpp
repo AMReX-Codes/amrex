@@ -7,20 +7,11 @@
 
 
 #ifdef HG_DEBUG
-#ifdef BL_USE_NEW_HFILES
+#include <algorithm>
 #include <typeinfo>
 #include <cstdio>
 #include <fstream>
-#ifndef __GNUC__
 #include <sstream>
-#else
-#include <cstdio>
-#endif
-#else
-#include <typeinfo.h>
-#include <fstream.h>
-#include <stdio.h>
-#endif
 #endif
 
 bool HG_is_debugging       = false;
@@ -53,11 +44,11 @@ HG::MPI_init ()
 
         if (ParallelDescriptor::IOProcessor())
         {
-            cout << "HG.cgsolve_maxiter = "   << cgsolve_maxiter   << '\n';
-            cout << "HG.multigrid_maxiter = " << multigrid_maxiter << '\n';
-            cout << "HG.cgsolve_tolfact = "   << cgsolve_tolfact   << '\n';
-            cout << "HG.max_live_tasks = "    << max_live_tasks    << '\n';
-            cout << "HG.pverbose = "          << pverbose          << '\n';
+            std::cout << "HG.cgsolve_maxiter = "   << cgsolve_maxiter   << '\n';
+            std::cout << "HG.multigrid_maxiter = " << multigrid_maxiter << '\n';
+            std::cout << "HG.cgsolve_tolfact = "   << cgsolve_tolfact   << '\n';
+            std::cout << "HG.max_live_tasks = "    << max_live_tasks    << '\n';
+            std::cout << "HG.pverbose = "          << pverbose          << '\n';
         }
 
         initialized = true;
@@ -77,7 +68,7 @@ HG::MPI_init ()
     std::ostringstream fname;
     fname << "gu" << ParallelDescriptor::NProcs()
 	  << "_" << ParallelDescriptor::MyProc() << std::ends;
-    debug_out.open(fname.str().c_str(), ios::trunc);
+    debug_out.open(fname.str().c_str(), std::ios::trunc);
 #endif
     if ( debug_out.fail() ) BoxLib::Error( "Failed to open debug file" );
     debug_out << std::setprecision(15);
@@ -124,7 +115,7 @@ task::need_to_communicate (int& /*with*/) const
 }
 
 void
-task::print_dependencies (ostream& os) const
+task::print_dependencies (std::ostream& os) const
 {
     os << "Task " << get_sequence_number() << " depends on ( ";
 
@@ -176,7 +167,7 @@ void
 task::hint () const
 {
     task::_hint();
-    HG_DEBUG_OUT(")" << endl);
+    HG_DEBUG_OUT(")" << std::endl);
 }
 
 bool
@@ -247,7 +238,7 @@ task_list::add_task (task* t)
 }
 
 void
-task_list::print_dependencies (ostream& os) const
+task_list::print_dependencies (std::ostream& os) const
 {
     os << "Task list ( " << '\n';
 
@@ -259,7 +250,7 @@ task_list::print_dependencies (ostream& os) const
         os << '\n';
     }
 
-    os << ')' << endl;
+    os << ')' << std::endl;
 }
 
 void
@@ -291,7 +282,7 @@ task_list::execute (const char* msg)
 #ifdef BL_USE_MPI
         HG_DEBUG_OUT(HG::mpi_comm);
 #endif
-        HG_DEBUG_OUT(" with " << tasks.size() << " elements " << endl);
+        HG_DEBUG_OUT(" with " << tasks.size() << " elements " << std::endl);
         print_dependencies(debug_out);
 #endif
     }
@@ -329,7 +320,8 @@ restart:
 
                     total_sndcnt += sndcnt;
                     total_rcvcnt += rcvcnt;
-                    maxpacketsize = Max(maxpacketsize, Max(sndcnt, rcvcnt));
+                    maxpacketsize = std::max(maxpacketsize,
+                                             std::max(sndcnt,rcvcnt));
                     live_tasks++;
                 }
                 if (t->ready())
@@ -362,7 +354,7 @@ restart:
                 total_rcvcnt,
                 maxpacketsize);
 
-        cout << buf << endl;
+        std::cout << buf << std::endl;
     }
 #endif
 }
@@ -520,7 +512,7 @@ task_copy_base::hint () const
     }
     HG_DEBUG_OUT('(' << m_dgrid << "," << m_sgrid << ')'
 		 << m_dbx << ' ' << m_sbx  << ' ' );
-    HG_DEBUG_OUT(")" << endl);
+    HG_DEBUG_OUT(")" << std::endl);
 }
 
 // task_copy
@@ -762,7 +754,7 @@ task_local_base::hint () const
     else
         HG_DEBUG_OUT("?");
     HG_DEBUG_OUT(m_bx <<  ' ' <<  m_sgrid << ' ');
-    HG_DEBUG_OUT(")" << endl);
+    HG_DEBUG_OUT(")" << std::endl);
 }
 
 task_copy_local::task_copy_local (task_list&      tl_,
@@ -858,7 +850,7 @@ task_bdy_fill::task_bdy_fill (task_list&          tl_,
     // This is a GROSS hack FIXME:  the growth should probably be set
     // by the refinement between the coarse/fine domains.
     //
-    m_bx = ::grow(tmpb, 4);
+    m_bx = BoxLib::grow(tmpb, 4);
 
     if (m_fab != 0 || is_local(m_smf, m_sgrid))
     {

@@ -1,16 +1,12 @@
 
 //
-// $Id: MCMultiGrid.cpp,v 1.10 2000-10-02 20:53:40 lijewski Exp $
+// $Id: MCMultiGrid.cpp,v 1.11 2001-08-01 21:51:07 lijewski Exp $
 // 
 
-#ifdef BL_USE_NEW_HFILES
+#include <algorithm>
 #include <cstdlib>
-#else
-#include <stdlib.h>
-#endif
 
 #include <ParmParse.H>
-#include <Misc.H>
 #include <Utility.H>
 #include <ParallelDescriptor.H>
 #include <MCCGSolver.H>
@@ -52,16 +48,16 @@ MCMultiGrid::initialize ()
     pp.query("numLevelsMAX", def_numLevelsMAX);
     if (ParallelDescriptor::IOProcessor() && def_verbose)
     {
-	cout << "def_nu_0 = " << def_nu_0 << NL;
-	cout << "def_nu_1 = " << def_nu_1 << NL;
-	cout << "def_nu_2 = " << def_nu_2 << NL;
-	cout << "def_nu_f = " << def_nu_f << NL;
-	cout << "def_maxiter = " << def_maxiter << NL;
-	cout << "def_usecg = "  << def_usecg << NL;
-	cout << "def_rtol_b = " << def_rtol_b << NL;
-	cout << "def_atol_b = " << def_atol_b << NL;
-	cout << "def_nu_b = "   << def_nu_b << NL;
-	cout << "def_numLevelsMAX = "   << def_numLevelsMAX << NL;
+	std::cout << "def_nu_0 = " << def_nu_0 << NL;
+	std::cout << "def_nu_1 = " << def_nu_1 << NL;
+	std::cout << "def_nu_2 = " << def_nu_2 << NL;
+	std::cout << "def_nu_f = " << def_nu_f << NL;
+	std::cout << "def_maxiter = " << def_maxiter << NL;
+	std::cout << "def_usecg = "  << def_usecg << NL;
+	std::cout << "def_rtol_b = " << def_rtol_b << NL;
+	std::cout << "def_atol_b = " << def_atol_b << NL;
+	std::cout << "def_nu_b = "   << def_nu_b << NL;
+	std::cout << "def_numLevelsMAX = "   << def_numLevelsMAX << NL;
     }
 }
 
@@ -93,7 +89,7 @@ MCMultiGrid::~MCMultiGrid ()
 {
     delete initialsolution;
 
-    for (int i = 0; i < cor.length(); ++i)
+    for (int i = 0; i < cor.size(); ++i)
     {
 	delete res[i];
 	delete rhs[i];
@@ -113,13 +109,13 @@ MCMultiGrid::errorEstimate (int       level,
     Real restot = 0.0;
     Real resk   = 0.0;
     const BoxArray& gbox = Lp.boxArray(0);
-    for (MultiFabIterator resmfi(*res[level]); resmfi.isValid(); ++resmfi)
+    for (MFIter resmfi(*res[level]); resmfi.isValid(); ++resmfi)
     {
         BL_ASSERT(gbox[resmfi.index()] == resmfi.validbox());
 
-        resk = resmfi().norm(resmfi.validbox(), p, 0, numcomps);
+        resk = (*res[level])[resmfi].norm(resmfi.validbox(),p,0,numcomps);
 
-        restot = Max(restot, resk);
+        restot = std::max(restot, resk);
     }
     ParallelDescriptor::ReduceRealMax(restot);
     return restot;
@@ -131,7 +127,7 @@ MCMultiGrid::prepareForLevel (int level)
     //
     // Build this level by allocating reqd internal MultiFabs if necessary
     //
-    if (cor.length() > level)
+    if (cor.size() > level)
 	return;
     res.resize(level+1, (MultiFab*)0);
     rhs.resize(level+1, (MultiFab*)0);
@@ -206,15 +202,15 @@ MCMultiGrid::solve_ (MultiFab& _sol,
     if (verbose && ParallelDescriptor::IOProcessor())
     {
         for (int k = 0; k < level; k++)
-            cout << "   ";
-        cout << "MCMultiGrid: Initial error (error0) = " << error0 << NL;
+            std::cout << "   ";
+        std::cout << "MCMultiGrid: Initial error (error0) = " << error0 << NL;
     }
 
     if (eps_rel < 1.0e-16 && eps_rel > 0.0 && ParallelDescriptor::IOProcessor())
     {
-        cerr << "MCMultiGrid: Tolerance "
-             << eps_rel
-             << " < 1e-16 is probably set too low" << NL;
+        std::cout << "MCMultiGrid: Tolerance "
+                  << eps_rel
+                  << " < 1e-16 is probably set too low" << NL;
     }
     int nit;
     //
@@ -240,11 +236,11 @@ MCMultiGrid::solve_ (MultiFab& _sol,
 	    if (ParallelDescriptor::IOProcessor())
 	    {
 		for (int k = 0; k < level; k++)
-                    cout << "   ";
-		cout << "MCMultiGrid: Iteration "
-                     << nit
-                     << " error/error0 "
-		     << error/error0 << NL;
+                    std::cout << "   ";
+		std::cout << "MCMultiGrid: Iteration "
+                          << nit
+                          << " error/error0 "
+                          << error/error0 << NL;
 	    }
 	}
     }
@@ -272,7 +268,7 @@ MCMultiGrid::getNumLevels (int _numlevels)
 {
     BL_ASSERT(_numlevels >= 0);
     int oldnumlevels = numlevels;
-    numlevels = Min(_numlevels, numLevels());
+    numlevels = std::min(_numlevels, numLevels());
     return oldnumlevels;
 }
 
@@ -388,15 +384,13 @@ MCMultiGrid::average (MultiFab&       c,
     //
     // Use Fortran function to average down (restrict) f to c.
     //
-    for (MultiFabIterator cmfi(c); cmfi.isValid(); ++cmfi)
+    for (MFIter cmfi(c); cmfi.isValid(); ++cmfi)
     {
-	DependentMultiFabIterator fmfi(cmfi, f);
-        BL_ASSERT(c.boxArray().get(cmfi.index()) == cmfi.validbox());
         const Box& bx = cmfi.validbox();
 	int nc = c.nComp();
 	FORT_AVERAGE(
-	    cmfi().dataPtr(), ARLIM(cmfi().loVect()), ARLIM(cmfi().hiVect()),
-	    fmfi().dataPtr(), ARLIM(fmfi().loVect()), ARLIM(fmfi().hiVect()),
+	    c[cmfi].dataPtr(),ARLIM(c[cmfi].loVect()),ARLIM(c[cmfi].hiVect()),
+	    f[cmfi].dataPtr(),ARLIM(f[cmfi].loVect()),ARLIM(f[cmfi].hiVect()),
 	    bx.loVect(), bx.hiVect(), &nc);
     }
 }
@@ -409,15 +403,13 @@ MCMultiGrid::interpolate (MultiFab&       f,
     // Use fortran function to interpolate up (prolong) c to f
     // Note: returns f=f+P(c) , i.e. ADDS interp'd c to f
     //
-    for (MultiFabIterator fmfi(f); fmfi.isValid(); ++fmfi)
+    for (MFIter fmfi(f); fmfi.isValid(); ++fmfi)
     {
-	DependentMultiFabIterator cmfi(fmfi, c);
-        BL_ASSERT(c.boxArray().get(cmfi.index()) == cmfi.validbox());
-        const Box& bx = cmfi.validbox();
+        const Box& bx = c.boxArray()[fmfi.index()];
 	int nc = f.nComp();
 	FORT_INTERP(
-	    fmfi().dataPtr(), ARLIM(fmfi().loVect()), ARLIM(fmfi().hiVect()),
-	    cmfi().dataPtr(), ARLIM(cmfi().loVect()), ARLIM(cmfi().hiVect()),
+	    f[fmfi].dataPtr(),ARLIM(f[fmfi].loVect()),ARLIM(f[fmfi].hiVect()),
+	    c[fmfi].dataPtr(),ARLIM(c[fmfi].loVect()),ARLIM(c[fmfi].hiVect()),
 	    bx.loVect(), bx.hiVect(), &nc);
     }
 }

@@ -1,18 +1,87 @@
-
 //
-// $Id: StateDescriptor.cpp,v 1.14 2000-10-02 20:48:43 lijewski Exp $
+// $Id: StateDescriptor.cpp,v 1.15 2001-08-01 21:50:46 lijewski Exp $
 //
+#include <algorithm>
+#include <string>
+#include <iostream>
 
 #include <StateDescriptor.H>
 #include <Interpolater.H>
 #include <BCRec.H>
+
+StateDescriptor::BndryFunc::BndryFunc ()
+    :
+    m_func(0) {}
+
+StateDescriptor::BndryFunc::BndryFunc (BndryFuncDefault inFunc)
+    :
+    m_func(inFunc) {}
+
+StateDescriptor::BndryFunc*
+StateDescriptor::BndryFunc::clone () const
+{
+    return new BndryFunc(*this);
+}
+
+StateDescriptor::BndryFunc::~BndryFunc () {}
+
+void
+StateDescriptor::BndryFunc::operator () (Real* data, const int* lo,
+                                         const int* hi,
+                                         const int* dom_lo, const int* dom_hi,
+                                         const Real* dx, const Real* grd_lo,
+                                         const Real* time, const int* bc) const
+{
+    BL_ASSERT(m_func != 0);
+
+    m_func(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+}
 
 DescriptorList::DescriptorList ()
     :
     desc(PArrayManage)
 {}
 
-DescriptorList::~DescriptorList () {}
+void
+DescriptorList::clear ()
+{
+    desc.clear();
+}
+
+int
+DescriptorList::size () const
+{
+    return desc.size();
+}
+
+void
+DescriptorList::resetComponentBCs (int                               indx,
+                                   int                               comp,
+                                   const BCRec&                      bc,
+                                   const StateDescriptor::BndryFunc& func)
+{
+    desc[indx].resetComponentBCs(comp,bc,func);
+}
+
+void
+DescriptorList::setComponent (int                               indx,
+                              int                               comp,
+                              const std::string&                nm,
+                              const BCRec&                      bc,
+                              const StateDescriptor::BndryFunc& func,
+                              Interpolater*                     interp,
+                              int                               max_map_start_comp,
+                              int                               min_map_end_comp)
+{
+    desc[indx].setComponent(comp,nm,bc,func,interp,max_map_start_comp,
+                            min_map_end_comp);
+}
+
+const StateDescriptor&
+DescriptorList::operator[] (int k) const
+{
+    return desc[k];
+}
 
 void
 DescriptorList::addDescriptor (int                         indx,
@@ -23,7 +92,7 @@ DescriptorList::addDescriptor (int                         indx,
                                Interpolater*               interp,
                                bool                        extrap)
 {
-    if (indx >= desc.length())
+    if (indx >= desc.size())
         desc.resize(indx+1);
     desc.set(indx,
              new StateDescriptor(typ,ttyp,indx,nextra,num_comp,interp,extrap));
@@ -73,6 +142,90 @@ StateDescriptor::~StateDescriptor ()
 }
 
 void
+StateDescriptor::resetComponentBCs (int              comp,
+                                    const BCRec&     bcr,
+                                    const BndryFunc& func)
+{
+    BL_ASSERT(comp >= 0 && comp < ncomp);
+
+    bc_func.clear(comp);
+    bc_func.set(comp,func.clone());
+    bc[comp] = bcr;
+}
+
+IndexType
+StateDescriptor::getType () const
+{
+    return type;
+}
+
+StateDescriptor::TimeCenter
+StateDescriptor::timeType () const
+{
+    return t_type;
+}
+
+int
+StateDescriptor::nComp () const
+{
+    return ncomp;
+}
+
+int
+StateDescriptor::nExtra () const
+{
+    return ngrow;
+}
+
+Interpolater*
+StateDescriptor::interp () const
+{
+    return mapper;
+}
+
+Interpolater*
+StateDescriptor::interp (int i) const
+{
+    return mapper_comp[i] == 0 ? mapper : mapper_comp[i];
+}
+
+const std::string&
+StateDescriptor::name (int i) const
+{
+    return names[i];
+}
+
+const BCRec&
+StateDescriptor::getBC (int i) const
+{
+    return bc[i];
+}
+
+const Array<BCRec>&
+StateDescriptor::getBCs () const
+{
+    return bc;
+}
+
+bool
+StateDescriptor::extrap () const
+{
+    return m_extrap;
+}
+
+const StateDescriptor::BndryFunc&
+StateDescriptor::bndryFill (int i) const
+{
+    return bc_func[i];
+}
+
+int
+StateDescriptor::inRange (int sc, int nc) const
+{
+    return sc>=0 && sc+nc<=ncomp;
+}
+
+void
 StateDescriptor::define (IndexType                   btyp,
                          StateDescriptor::TimeCenter ttyp,
                          int                         ident,
@@ -101,14 +254,14 @@ StateDescriptor::define (IndexType                   btyp,
 
 void
 StateDescriptor::setComponent (int                               comp,
-                               const aString&                    nm,
+                               const std::string&                nm,
                                const BCRec&                      bcr,
                                const StateDescriptor::BndryFunc& func,
                                Interpolater*                     interp, 
                                int                               max_map_start_comp_,
                                int                               min_map_end_comp_)
 {
-    BL_ASSERT(comp >= 0 && comp < ncomp && names[comp].isNull());
+    BL_ASSERT(comp >= 0 && comp < ncomp && names[comp].empty());
     names[comp]       = nm;
     bc_func.set(comp,func.clone());
     bc[comp]          = bcr;
@@ -130,9 +283,9 @@ StateDescriptor::setComponent (int                               comp,
 }
 
 void
-StateDescriptor::dumpNames (ostream& os,
-                            int      start_comp,
-                            int      num_comp) const
+StateDescriptor::dumpNames (std::ostream& os,
+                            int           start_comp,
+                            int           num_comp) const
 {
     BL_ASSERT(start_comp >= 0 && start_comp+num_comp <= ncomp);
 
@@ -239,8 +392,8 @@ StateDescriptor::setUpMaps (int&                use_default_map,
         else
         {
             map_num_comp[imap]++;
-            min_end_comp[imap]   = Max(min_end_comp[imap],min_map_end_comp[icomp]);
-            max_start_comp[imap] = Min(max_start_comp[imap],max_map_start_comp[icomp]);
+            min_end_comp[imap]   = std::max(min_end_comp[imap],min_map_end_comp[icomp]);
+            max_start_comp[imap] = std::min(max_start_comp[imap],max_map_start_comp[icomp]);
         }
         icomp++;
     }
@@ -276,14 +429,14 @@ StateDescriptor::identicalInterps (int scomp,
     return true;
 }
 
-vector< pair<int,int> >
+std::vector< std::pair<int,int> >
 StateDescriptor::sameInterps (int scomp,
                               int ncomp) const
 {
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(ncomp >= 1);
 
-    vector< pair<int,int> > range;
+    std::vector< std::pair<int,int> > range;
 
     Interpolater* map = interp(scomp);
 
@@ -297,7 +450,7 @@ StateDescriptor::sameInterps (int scomp,
         }
         else
         {
-            range.push_back(pair<int,int>(SComp,NComp));
+            range.push_back(std::pair<int,int>(SComp,NComp));
 
             map   = interp(i);
             SComp = i;
@@ -305,7 +458,7 @@ StateDescriptor::sameInterps (int scomp,
         }
     }
 
-    range.push_back(pair<int,int>(SComp,NComp));
+    range.push_back(std::pair<int,int>(SComp,NComp));
 
 #ifndef NDEBUG
     int sum = 0;

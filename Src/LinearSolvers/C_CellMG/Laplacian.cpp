@@ -1,6 +1,6 @@
 
 //
-// $Id: Laplacian.cpp,v 1.11 2000-11-01 18:06:14 lijewski Exp $
+// $Id: Laplacian.cpp,v 1.12 2001-08-01 21:51:03 lijewski Exp $
 //
 
 #include <Laplacian.H>
@@ -30,25 +30,21 @@ Laplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
     const BoxArray& bxa = gbox[level];
     int nc = in.nComp();
 
-    for (MultiFabIterator inmfi(in); inmfi.isValid(); ++inmfi)
+    for (MFIter inmfi(in); inmfi.isValid(); ++inmfi)
     {
-        D_TERM(DependentMultiFabIterator xflmfi(inmfi,xflux);,
-               DependentMultiFabIterator yflmfi(inmfi,yflux);,
-               DependentMultiFabIterator zflmfi(inmfi,zflux););
-
         BL_ASSERT(bxa[inmfi.index()] == inmfi.validbox());
 
-        FORT_FLUX(inmfi().dataPtr(),
-		  ARLIM(inmfi().loVect()), ARLIM(inmfi().hiVect()),
+        FORT_FLUX(in[inmfi].dataPtr(),
+		  ARLIM(in[inmfi].loVect()), ARLIM(in[inmfi].hiVect()),
 		  inmfi.validbox().loVect(), inmfi.validbox().hiVect(), &nc,
 		  h[level],
-		  xflmfi().dataPtr(),
-		  ARLIM(xflmfi().loVect()), ARLIM(xflmfi().hiVect()),
-		  yflmfi().dataPtr(),
-		  ARLIM(yflmfi().loVect()), ARLIM(yflmfi().hiVect())
+		  xflux[inmfi].dataPtr(),
+		  ARLIM(xflux[inmfi].loVect()), ARLIM(xflux[inmfi].hiVect()),
+		  yflux[inmfi].dataPtr(),
+		  ARLIM(yflux[inmfi].loVect()), ARLIM(yflux[inmfi].hiVect())
 #if (BL_SPACEDIM == 3)
-		  ,zflmfi().dataPtr(),
-		  ARLIM(zflmfi().loVect()), ARLIM(zflmfi().hiVect())
+		  ,zflux[inmfi].dataPtr(),
+		  ARLIM(zflux[inmfi].loVect()), ARLIM(zflux[inmfi].hiVect())
 #endif
 		  );
     }
@@ -72,17 +68,8 @@ Laplacian::Fsmooth (MultiFab&       solnL,
 #endif
     int nc = rhsL.nComp();
 
-    for (MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
+    for (MFIter solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
     {
-        DependentMultiFabIterator rhsLmfi(solnLmfi, rhsL);
-        DependentFabSetIterator f0fsi(solnLmfi, f0);
-        DependentFabSetIterator f1fsi(solnLmfi, f1);
-        DependentFabSetIterator f2fsi(solnLmfi, f2);
-        DependentFabSetIterator f3fsi(solnLmfi, f3);
-#if (BL_SPACEDIM > 2)
-        DependentFabSetIterator f4fsi(solnLmfi, f4);
-        DependentFabSetIterator f5fsi(solnLmfi, f5);
-#endif
         oitr.rewind();
         int gn = solnLmfi.index();
         const Mask& m0 = *maskvals[level][gn][oitr()]; oitr++;
@@ -97,24 +84,24 @@ Laplacian::Fsmooth (MultiFab&       solnL,
 
 #if (BL_SPACEDIM == 2)
         FORT_GSRB(
-            solnLmfi().dataPtr(), 
-            ARLIM(solnLmfi().loVect()),ARLIM(solnLmfi().hiVect()),
-            rhsLmfi().dataPtr(), 
-            ARLIM(rhsLmfi().loVect()), ARLIM(rhsLmfi().hiVect()),
-            f0fsi().dataPtr(), 
-            ARLIM(f0fsi().loVect()), ARLIM(f0fsi().hiVect()),
+            solnL[solnLmfi].dataPtr(), 
+            ARLIM(solnL[solnLmfi].loVect()),ARLIM(solnL[solnLmfi].hiVect()),
+            rhsL[solnLmfi].dataPtr(), 
+            ARLIM(rhsL[solnLmfi].loVect()), ARLIM(rhsL[solnLmfi].hiVect()),
+            f0[solnLmfi].dataPtr(), 
+            ARLIM(f0[solnLmfi].loVect()), ARLIM(f0[solnLmfi].hiVect()),
             m0.dataPtr(), 
             ARLIM(m0.loVect()), ARLIM(m0.hiVect()),
-            f1fsi().dataPtr(), 
-            ARLIM(f1fsi().loVect()), ARLIM(f1fsi().hiVect()),
+            f1[solnLmfi].dataPtr(), 
+            ARLIM(f1[solnLmfi].loVect()), ARLIM(f1[solnLmfi].hiVect()),
             m1.dataPtr(), 
             ARLIM(m1.loVect()), ARLIM(m1.hiVect()),
-            f2fsi().dataPtr(), 
-            ARLIM(f2fsi().loVect()), ARLIM(f2fsi().hiVect()),
+            f2[solnLmfi].dataPtr(), 
+            ARLIM(f2[solnLmfi].loVect()), ARLIM(f2[solnLmfi].hiVect()),
             m2.dataPtr(), 
             ARLIM(m2.loVect()), ARLIM(m2.hiVect()),
-            f3fsi().dataPtr(), 
-            ARLIM(f3fsi().loVect()), ARLIM(f3fsi().hiVect()),
+            f3[solnLmfi].dataPtr(), 
+            ARLIM(f3[solnLmfi].loVect()), ARLIM(f3[solnLmfi].hiVect()),
             m3.dataPtr(), 
             ARLIM(m3.loVect()), ARLIM(m3.hiVect()),
             solnLmfi.validbox().loVect(), solnLmfi.validbox().hiVect(), &nc,
@@ -123,32 +110,32 @@ Laplacian::Fsmooth (MultiFab&       solnL,
 
 #if (BL_SPACEDIM == 3)
         FORT_GSRB(
-            solnLmfi().dataPtr(), 
-            ARLIM(solnLmfi().loVect()),ARLIM(solnLmfi().hiVect()),
-            rhsLmfi().dataPtr(), 
-            ARLIM(rhsLmfi().loVect()), ARLIM(rhsLmfi().hiVect()),
-            f0fsi().dataPtr(), 
-            ARLIM(f0fsi().loVect()), ARLIM(f0fsi().hiVect()),
+            solnL[solnLmfi].dataPtr(), 
+            ARLIM(solnL[solnLmfi].loVect()),ARLIM(solnL[solnLmfi].hiVect()),
+            rhsL[solnLmfi].dataPtr(), 
+            ARLIM(rhsL[solnLmfi].loVect()), ARLIM(rhsL[solnLmfi].hiVect()),
+            f0[solnLmfi].dataPtr(), 
+            ARLIM(f0[solnLmfi].loVect()), ARLIM(f0[solnLmfi].hiVect()),
             m0.dataPtr(), 
             ARLIM(m0.loVect()), ARLIM(m0.hiVect()),
-            f1fsi().dataPtr(), 
-            ARLIM(f1fsi().loVect()), ARLIM(f1fsi().hiVect()),
+            f1[solnLmfi].dataPtr(), 
+            ARLIM(f1[solnLmfi].loVect()), ARLIM(f1[solnLmfi].hiVect()),
             m1.dataPtr(), 
             ARLIM(m1.loVect()), ARLIM(m1.hiVect()),
-            f2fsi().dataPtr(), 
-            ARLIM(f2fsi().loVect()), ARLIM(f2fsi().hiVect()),
+            f2[solnLmfi].dataPtr(), 
+            ARLIM(f2[solnLmfi].loVect()), ARLIM(f2[solnLmfi].hiVect()),
             m2.dataPtr(), 
             ARLIM(m2.loVect()), ARLIM(m2.hiVect()),
-            f3fsi().dataPtr(), 
-            ARLIM(f3fsi().loVect()), ARLIM(f3fsi().hiVect()),
+            f3[solnLmfi].dataPtr(), 
+            ARLIM(f3[solnLmfi].loVect()), ARLIM(f3[solnLmfi].hiVect()),
             m3.dataPtr(), 
             ARLIM(m3.loVect()), ARLIM(m3.hiVect()),
-            f4fsi().dataPtr(), 
-            ARLIM(f4fsi().loVect()), ARLIM(f4fsi().hiVect()),
+            f4[solnLmfi].dataPtr(), 
+            ARLIM(f4[solnLmfi].loVect()), ARLIM(f4[solnLmfi].hiVect()),
             m4.dataPtr(), 
             ARLIM(m4.loVect()), ARLIM(m4.hiVect()),
-            f5fsi().dataPtr(), 
-            ARLIM(f5fsi().loVect()), ARLIM(f5fsi().hiVect()),
+            f5[solnLmfi].dataPtr(), 
+            ARLIM(f5[solnLmfi].loVect()), ARLIM(f5[solnLmfi].hiVect()),
             m5.dataPtr(), 
             ARLIM(m5.loVect()), ARLIM(m5.hiVect()),
             solnLmfi.validbox().loVect(), solnLmfi.validbox().hiVect(), &nc,
@@ -164,14 +151,12 @@ Laplacian::Fapply (MultiFab&       y,
 {
     int nc = y.nComp();
 
-    for (MultiFabIterator ymfi(y); ymfi.isValid(); ++ymfi)
+    for (MFIter ymfi(y); ymfi.isValid(); ++ymfi)
     {
-        DependentMultiFabIterator xmfi(ymfi,  x);
-
-        FORT_ADOTX(ymfi().dataPtr(), 
-                   ARLIM(ymfi().loVect()), ARLIM(ymfi().hiVect()),
-                   xmfi().dataPtr(), 
-                   ARLIM(xmfi().loVect()), ARLIM(xmfi().hiVect()),
+        FORT_ADOTX(y[ymfi].dataPtr(), 
+                   ARLIM(y[ymfi].loVect()), ARLIM(y[ymfi].hiVect()),
+                   x[ymfi].dataPtr(), 
+                   ARLIM(x[ymfi].loVect()), ARLIM(x[ymfi].hiVect()),
                    ymfi.validbox().loVect(), ymfi.validbox().hiVect(), &nc,
                    h[level]);
     }

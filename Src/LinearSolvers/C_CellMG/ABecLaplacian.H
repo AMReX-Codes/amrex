@@ -3,7 +3,7 @@
 #define _ABecLAPLACIAN_H_
 
 //
-// $Id: ABecLaplacian.H,v 1.9 2000-10-02 20:51:15 lijewski Exp $
+// $Id: ABecLaplacian.H,v 1.10 2001-08-01 21:51:02 lijewski Exp $
 //
 
 #include <Tuple.H>
@@ -188,11 +188,11 @@ private:
     //
     // Flag, can a coeffs be trusted at a level.
     //
-    Array< bool > a_valid;
+    std::vector<bool> a_valid;
     //
     // Flag, can b coeffs be trusted at a level.
     //
-    Array< bool > b_valid;
+    std::vector<bool> b_valid;
     //
     // Default value for a (MultiFab) coefficient.
     //

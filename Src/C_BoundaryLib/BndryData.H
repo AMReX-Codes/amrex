@@ -3,7 +3,7 @@
 #define _BNDRYDATA_H_
 
 //
-// $Id: BndryData.H,v 1.11 2001-01-19 22:57:48 marc Exp $
+// $Id: BndryData.H,v 1.12 2001-08-01 21:51:03 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -53,7 +53,7 @@ public:
     //
     //@ManDoc: return the number of Boxes
     //
-    BndryRegister::length;
+    BndryRegister::size;
     //
     //@ManDoc: mask values enumeration
     //
@@ -90,8 +90,7 @@ public:
     //
     //@ManDoc: write to output stream
     //
-    friend ostream& operator<< (ostream&         os,
-                                const BndryData& bd);
+    friend std::ostream& operator<< (std::ostream& os, const BndryData& bd);
     //
     //@ManDoc: return FabSet on given face
     //
@@ -156,12 +155,11 @@ public:
     //
     //@ManDoc: write the boundary data object to an ostream
     //
-    void writeOn(ostream& os) const;
+    void writeOn (std::ostream& os) const;
     //
     //@ManDoc: read the boundary data object from an istream
     //
-    void readFrom(istream& is);
-
+    void readFrom (std::istream& is);
 
 protected:
     //
@@ -237,7 +235,7 @@ inline
 int
 BndryData::nComp () const
 {
-    return bcond[0][0].length();
+    return bcond[0][0].size();
 }
 
 inline

@@ -1,18 +1,14 @@
-
 #ifndef _SlabStat_H_
 #define _SlabStat_H_
-
 //
-// $Id: SlabStat.H,v 1.8 2000-10-02 20:48:42 lijewski Exp $
+// $Id: SlabStat.H,v 1.9 2001-08-01 21:50:46 lijewski Exp $
 //
+#include <list>
 
 #include <ArrayLim.H>
 #include <REAL.H>
-#include <List.H>
-#include <aString.H>
 #include <Box.H>
 #include <MultiFab.H>
-
 //
 // Forward declaration.
 //
@@ -20,19 +16,19 @@ class AmrLevel;
 
 extern "C"
 {
-//
-// Type of extern "C" function called by SlabStat to compute a statistic.
-//
-// `dst' contains the statistics to be updated in place.
-// `src' contains the variables need to calculate the statistics.
-//
-typedef void (*SlabStatFunc)(const Real* src,
-                             ARLIM_P(src_lo), ARLIM_P(src_hi),
-                             const int* nsrc,
-                             Real* dst, ARLIM_P(dst_lo), ARLIM_P(dst_hi),
-                             const int* ndst,
-                             const Real* dt,
-                             const Real* dx);
+    //
+    // Type of extern "C" function called by SlabStat to compute a statistic.
+    //
+    // `dst' contains the statistics to be updated in place.
+    // `src' contains the variables need to calculate the statistics.
+    //
+    typedef void (*SlabStatFunc)(const Real* src,
+                                 ARLIM_P(src_lo), ARLIM_P(src_hi),
+                                 const int* nsrc,
+                                 Real* dst, ARLIM_P(dst_lo), ARLIM_P(dst_hi),
+                                 const int* ndst,
+                                 const Real* dt,
+                                 const Real* dx);
 }
 
 //
@@ -56,55 +52,55 @@ public:
     //
     //@ManDoc: The name of the statistic.
     //
-    const aString& name () const { return m_name; }
+    const std::string& name () const;
     //
     //@ManDoc: Number of components in the statistic.
     //
-    int nComp () const { return m_ncomp; }
+    int nComp () const;
     //
     //@ManDoc: The names of State/Derived variables needed for statistic.
     //
-    const Array<aString>& vars () const { return m_vars; }
+    const Array<std::string>& vars () const;
     //
     //@ManDoc: Number of variables used to calculate statistic.
     //
-    long nVariables () const { return m_vars.length(); }
+    long nVariables () const;
     //
     //@ManDoc: Ghost cells needed in the variables when calculating statistic.
     //
-    int nGrow () const { return m_ngrow; }
+    int nGrow () const;
     //
     //@ManDoc: Level on which to calculate the statistic
     //
-    int level () const { return m_level; }
+    int level () const;
     //
     //@ManDoc: Boxes, at specified level, on which to calculate the statistic.
     //
-    const BoxArray& boxes () const { return m_boxes; }
+    const BoxArray& boxes () const;
     //
     //@ManDoc: The SlabStatFunc used to calculate the statistic.
     //
-    SlabStatFunc func () const { return m_func; }
+    SlabStatFunc func () const;
     //
     //@ManDoc: The MultiFab in which statistics are accumulated.
     //
-    MultiFab& mf () { return m_mf; }
+    MultiFab& mf ();
     //
     //@ManDoc: Temporary (grown) MultiFab used in calculating the statistic.
     //
-    MultiFab& tmp_mf () { return m_tmp_mf; }
+    MultiFab& tmp_mf ();
     //
     //@ManDoc: Interval over which the stats have been calculated.
     //
-    Real interval () const { return m_interval; }
+    Real interval () const;
 
 protected:
     //
     // A Constructor.
     //
-    SlabStatRec (const aString&  name,
+    SlabStatRec (const std::string&  name,
                  int             ncomp,
-                 Array<aString>& vars,
+                 Array<std::string>& vars,
                  int             ngrow,
                  int             level,
                  const BoxArray& boxes,
@@ -112,9 +108,9 @@ protected:
     //
     // Another Constructor.
     //
-    SlabStatRec (const aString&  name,
+    SlabStatRec (const std::string&  name,
                  int             ncomp,
-                 Array<aString>& vars,
+                 Array<std::string>& vars,
                  int             ngrow,
                  SlabStatFunc    func);
     //
@@ -124,7 +120,7 @@ protected:
     //
     // Name of statistic
     //
-    aString m_name;
+    std::string m_name;
     //
     // Number of components in the statistic.
     //
@@ -132,7 +128,7 @@ protected:
     //    
     // Names of State/Derived variables needed to calculate statistic.
     //
-    Array<aString> m_vars;
+    Array<std::string> m_vars;
     //
     // Ghost cells needed in variables when calculating the statistic.
     //
@@ -184,7 +180,7 @@ public:
     //
     //@ManDoc: The default constructor.
     //
-    SlabStatList () {}
+    SlabStatList ();
     //
     //@ManDoc: The destructor.
     //
@@ -192,27 +188,21 @@ public:
     //
     //@ManDoc: Adds another entry to the list of SlabStats.
     //
-    void add (const aString&  name,
-              int             ncomp,
-              Array<aString>& vars,
-              int             ngrow,
-              int             level,
-              const BoxArray& boxes,
-              SlabStatFunc    func)
-    {
-        m_list.add(new SlabStatRec(name,ncomp,vars,ngrow,level,boxes,func));
-    }
+    void add (const std::string&  name,
+              int                 ncomp,
+              Array<std::string>& vars,
+              int                 ngrow,
+              int                 level,
+              const BoxArray&     boxes,
+              SlabStatFunc        func);
     //
     //@ManDoc: Another way to add an entry to the list of SlabStats.
     //
-    void add (const aString&  name,
-              int             ncomp,
-              Array<aString>& vars,
-              int             ngrow,
-              SlabStatFunc    func)
-    {
-        m_list.add(new SlabStatRec(name,ncomp,vars,ngrow,func));
-    }
+    void add (const std::string&  name,
+              int                 ncomp,
+              Array<std::string>& vars,
+              int                 ngrow,
+              SlabStatFunc        func);
     //
     //@ManDoc: Update the statistics in the list.
     //
@@ -220,14 +210,9 @@ public:
     //
     //@ManDoc: Write out any SlabStats in the list.
     //
-    void checkPoint (PArray<AmrLevel>& amrLevels,
-                     const int level0_step);
+    void checkPoint (PArray<AmrLevel>& amrLevels, int level0_step);
 
-    List<SlabStatRec*>& list () { return m_list; }
-
-protected:
-
-    List<SlabStatRec*> m_list;
+    std::list<SlabStatRec*>& list ();
 
 private:
     //
@@ -235,7 +220,8 @@ private:
     //
     SlabStatList (const SlabStatList&);
     SlabStatList& operator= (const SlabStatList&);
-};
 
+    std::list<SlabStatRec*> m_list;
+};
 
 #endif /*_SlabStat_H_*/

@@ -1,9 +1,11 @@
-
 //
-// $Id: BCRec.cpp,v 1.8 2000-10-02 20:48:41 lijewski Exp $
+// $Id: BCRec.cpp,v 1.9 2001-08-01 21:50:44 lijewski Exp $
 //
+#include <iostream>
 
 #include <BCRec.H>
+
+BCRec::BCRec () {}
 
 BCRec::BCRec (D_DECL(int loX, int loY, int loZ),
               D_DECL(int hiX, int hiY, int hiZ))
@@ -43,13 +45,57 @@ BCRec::BCRec (const Box&   bx,
 }
 
 void
-setBC (const Box&          bx,
-       const Box&          domain,
-       int                 src_comp,
-       int                 dest_comp,
-       int                 ncomp,
-       const Array<BCRec>& bc_dom,
-       Array<BCRec>&       bcr)
+BCRec::setLo (int dir,
+              int bc_val)
+{
+    bc[dir] = bc_val;
+}
+
+void
+BCRec::setHi (int dir,
+              int bc_val)
+{
+    bc[BL_SPACEDIM+dir] = bc_val;
+}
+
+const int*
+BCRec::vect () const
+{
+    return bc;
+} 
+
+const int*
+BCRec::lo () const
+{
+    return bc;
+}
+
+const int*
+BCRec::hi () const
+{
+    return bc+BL_SPACEDIM;
+}
+
+int
+BCRec::lo (int dir) const
+{
+    return bc[dir];
+}
+
+int
+BCRec::hi (int dir) const
+{
+    return bc[BL_SPACEDIM+dir];
+}
+
+void
+BoxLib::setBC (const Box&          bx,
+               const Box&          domain,
+               int                 src_comp,
+               int                 dest_comp,
+               int                 ncomp,
+               const Array<BCRec>& bc_dom,
+               Array<BCRec>&       bcr)
 {
     const int* bxlo = bx.loVect();
     const int* bxhi = bx.hiVect();
@@ -71,10 +117,10 @@ setBC (const Box&          bx,
 }           
 
 void
-setBC (const Box&   bx,
-       const Box&   domain, 
-       const BCRec& bc_dom,
-       BCRec&       bcr)
+BoxLib::setBC (const Box&   bx,
+               const Box&   domain, 
+               const BCRec& bc_dom,
+               BCRec&       bcr)
 {
     const int* bxlo = bx.loVect();
     const int* bxhi = bx.hiVect();
@@ -87,9 +133,9 @@ setBC (const Box&   bx,
     }
 }           
 
-ostream&
-operator<< (ostream&     os,
-            const BCRec& b)
+std::ostream&
+operator<< (std::ostream& os,
+            const BCRec&  b)
 {
     os << "(BCREC ";
     for (int i = 0; i < BL_SPACEDIM; i++)

@@ -1,29 +1,27 @@
-
 #ifndef _ErrorList_H_
 #define _ErrorList_H_
-
 //
-// $Id: ErrorList.H,v 1.9 2000-10-02 20:48:42 lijewski Exp $
+// $Id: ErrorList.H,v 1.10 2001-08-01 21:50:45 lijewski Exp $
 //
+#include <string>
+#include <vector>
 
 #include <REAL.H>
-#include <List.H>
-#include <aString.H>
 #include <ArrayLim.H>
 
 extern "C"
 {
-//
-// Type of extern "C" function called by ErrorRec to do tagging of cells for refinement.
-//
-typedef void (*ErrorFunc)(int* tag, ARLIM_P(tlo), ARLIM_P(thi),
-                          const int* tagval, const int* clearval,
-                          Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
-                          const int* lo, const int * hi, const int* nvar,
-                          const int* domain_lo, const int* domain_hi,
-                          const Real* dx, const Real* xlo,
-                          const Real* prob_lo, const Real* time,
-                          const int* level);
+    //
+    // Type of extern "C" function called by ErrorRec to do tagging of cells for refinement.
+    //
+    typedef void (*ErrorFunc)(int* tag, ARLIM_P(tlo), ARLIM_P(thi),
+                              const int* tagval, const int* clearval,
+                              Real* data, ARLIM_P(data_lo), ARLIM_P(data_hi),
+                              const int* lo, const int * hi, const int* nvar,
+                              const int* domain_lo, const int* domain_hi,
+                              const Real* dx, const Real* xlo,
+                              const Real* prob_lo, const Real* time,
+                              const int* level);
 }
 
 //
@@ -47,42 +45,32 @@ public:
     //
     //@ManDoc: The constructor.
     //
-    ErrorRec (const aString& nm,
-              int            ng,
-              ErrorType      etyp,
-              ErrorFunc      f)
-        :
-        derive_name(nm),
-        ngrow(ng),
-        err_func(f),
-        err_type(etyp)
-    {}
-    //
-    //@ManDoc: The destructor.
-    //
-    ~ErrorRec () {}
+    ErrorRec (const std::string& nm,
+              int                ng,
+              ErrorType          etyp,
+              ErrorFunc          f);
     //
     //@ManDoc: The name of the quantity to derive.
     //
-    const aString& name () const { return derive_name; }
+    const std::string& name () const;
     //
     //@ManDoc: The number of extra zones needed for derivation.
     //
-    int nGrow () const { return ngrow; }
+    int nGrow () const;
     //
     //@ManDoc: The type of the error tagging.
     //
-    ErrorType errType () const { return err_type; }
+    ErrorType errType () const;
     //
     //@ManDoc: The extern "C" function to do the error tagging.
     //
-    ErrorFunc errFunc () const { return err_func; }
+    ErrorFunc errFunc () const;
 
 private:
     //
     // Name of quantity to derive.
     //
-    aString derive_name;
+    std::string derive_name;
     //
     // Number of extra zones.
     //
@@ -107,43 +95,29 @@ private:
 
 class ErrorList
 {
-    friend ostream& operator<< (ostream& os, const ErrorList& el);
-
 public:
-    //
-    //@ManDoc: The constructor.
-    //
-    ErrorList () {}
-    //
-    //@ManDoc: The destructor.
-    //
-    ~ErrorList () {}
     //
     //@ManDoc: The number of ErrorRecs in the list.
     //
-    int length () const { return lst.length(); }
+    int size () const;
     //
     //@ManDoc: Append a new ErrorRec to the list.
     //
-    void add (const aString&      name,
+    void add (const std::string&  name,
               int                 nextra, 
               ErrorRec::ErrorType typ,
-              ErrorFunc           func)
-    {
-        //
-        // Keep list in order of definition, append().
-        //
-        lst.append(ErrorRec(name, nextra, typ, func));
-    }
+              ErrorFunc           func);
     //
     //@ManDoc: The kth ErrorRec.
     //
-    const ErrorRec* operator[] (int k) const;
+    const ErrorRec& operator[] (int k) const;
 
-protected:
+private:
 
-    List<ErrorRec> lst;
+    std::vector<ErrorRec> vec;
 };
+
+std::ostream& operator << (std::ostream& os, const ErrorList& elst);
 
 #endif
 
