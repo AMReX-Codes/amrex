@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.28 2003-09-16 18:39:45 almgren Exp $
+c $Id: INTERP_3D.F,v 1.29 2004-08-16 22:40:50 marc Exp $
 c
 
 #undef  BL_LANG_CC
@@ -1222,6 +1222,11 @@ c :::
       integer i,j,k,ic,jc,kc,n,nn
       integer numFineCells
       integer icase
+
+      if (MAX(lratiox,lratioy,lratioz).gt.rMAX) then
+         print *,'rMAX in INTERP_3D::FORT_PROTECT_INTERP must be >= ',MAX(lratiox,lratioy,lratioz)
+         call bl_abort(" ")
+      endif
 
       do kc = cblo(3), cbhi(3)
       do jc = cblo(2), cbhi(2)
