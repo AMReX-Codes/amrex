@@ -10,8 +10,15 @@
 #ifdef BL_USE_NEW_HFILES
 #include <typeinfo>
 #include <cstdio>
+#include <fstream>
+#ifndef __GNUC__
+#include <sstream>
+#else
+#include <cstdio>
+#endif
 #else
 #include <typeinfo.h>
+#include <fstream.h>
 #include <stdio.h>
 #endif
 #endif
@@ -26,6 +33,10 @@ int HG::cgsolve_maxiter    = 250;
 int HG::pverbose           = 0;
 bool HG::initialized       = false;
 double HG::cgsolve_tolfact = 1.0e-3;
+
+#ifdef HG_DEBUG
+std::ofstream debug_out;
+#endif
 
 void
 HG::MPI_init ()
@@ -56,10 +67,31 @@ HG::MPI_init ()
         if (res != 0)
             ParallelDescriptor::Abort(res);
 #endif
+
+#ifdef HG_DEBUG
+#ifdef __GNUC__
+    char buf[1024];
+    sprintf(buf, "guf%d_%d", ParallelDescriptor::NProcs(), ParallelDescriptor::MyProc());
+    debug_out.open(buf);
+#else
+    std::ostringstream fname;
+    fname << "gu" << ParallelDescriptor::NProcs()
+	  << "_" << ParallelDescriptor::MyProc() << std::ends;
+    debug_out.open(fname.str().c_str(), ios::trunc);
+#endif
+    if ( debug_out.fail() ) BoxLib::Error( "Failed to open debug file" );
+    debug_out << std::setprecision(15);
+#endif
     }
 }
 
-void HG::MPI_finish () {}
+void
+HG::MPI_finish ()
+{
+#ifdef HG_DEBUG
+    debug_out.close();
+#endif
+}
 
 
 // task
@@ -505,7 +537,7 @@ task_copy_base::hint () const
         HG_DEBUG_OUT("?");
     }
     HG_DEBUG_OUT('(' << m_dgrid << "," << m_sgrid << ')'
-		 << m_sbx << ' ' << m_bx  << ' ' );
+		 << m_dbx << ' ' << m_sbx  << ' ' );
     HG_DEBUG_OUT(")" << endl);
 }
 
