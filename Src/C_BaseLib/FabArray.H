@@ -4,13 +4,15 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.27 1998-02-20 18:30:47 vince Exp $
+// $Id: FabArray.H,v 1.28 1998-02-20 23:00:56 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
 #include <climits>
 #include <map>
 #include <utility>
+using std::multimap;
+using std::pair;
 #else
 #include <limits.h>
 #ifdef BL_T3E
