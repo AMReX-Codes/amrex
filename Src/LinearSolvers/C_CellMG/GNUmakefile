@@ -1,55 +1,52 @@
 #
-# $Id: GNUmakefile,v 1.1 1998-10-28 22:03:45 lijewski Exp $
+# $Id: GNUmakefile,v 1.2 1998-10-29 16:55:21 lijewski Exp $
 #
-
 PBOXLIB_HOME = ..
+
+TOP = $(PBOXLIB_HOME)
 
 PRECISION = DOUBLE
 DEBUG = TRUE
 DIM = 3
 COMP = KCC
 USE_MPI = TRUE
-
 #
 # The base name of the library we're building.
 #
 LBASE = mg
-
 #
 # Where libraries and include files will be installed.
 #
-INSTALL_ROOT = $(PBOXLIB_HOME)
+INSTALL_ROOT = $(TOP)
 
-include ../mk/Make.defs Make.package
+include $(TOP)/mk/Make.defs Make.package
 
-INCLUDE_LOCATIONS += ../include
+INCLUDE_LOCATIONS += $(TOP)/include
 
 ifeq ($(USE_MPI), TRUE)
 DEFINES += -DBL_USE_MPI
 LIBRARIES += -lmpi
 ifeq ($(MACHINE), OSF1)
-MPI_HOME = /usr/local/mpi
-INCLUDE_LOCATIONS += $(MPI_HOME)/include
-LIBRARY_LOCATIONS += $(MPI_HOME)/lib/alpha/ch_p4
+INCLUDE_LOCATIONS += /usr/local/mpi/include
+LIBRARY_LOCATIONS += /usr/local/mpi/lib/alpha/ch_p4
 endif
 endif
 
 ifeq ($(KCC_VERSION),3.3)
 CXXFLAGS += --one_instantiation_per_object
 endif
-
 #
 # Libraries to close against.
 #
 ifeq ($(COMP), KCC)
-LibsToCloseAgainst := ../lib/$(machineSuffix)/libamr$(DIM)d.a
-LibsToCloseAgainst += ../lib/$(machineSuffix)/libbndry$(DIM)d.a
-LibsToCloseAgainst += ../lib/$(machineSuffix)/libbox$(DIM)d.a
+LibsToCloseAgainst := $(TOP)/lib/$(machineSuffix)/libamr$(DIM)d.a
+LibsToCloseAgainst += $(TOP)/lib/$(machineSuffix)/libbndry$(DIM)d.a
+LibsToCloseAgainst += $(TOP)/lib/$(machineSuffix)/libbox$(DIM)d.a
 endif
 
 all: $(optionsLib)
 
-include ../mk/Make.rules
+include $(TOP)/mk/Make.rules
 
 #
 # Temp stuff for doing html docs.
@@ -57,7 +54,6 @@ include ../mk/Make.rules
 _docHeaders := $(sort $(wildcard *.H))
 
 _htmlDir := html
-
 #
 # This will make the HTML files in the directory html provided
 # any of the relevant .H files have changed more recently than the
@@ -82,7 +78,6 @@ MgLib.dvi: MgLib.tex
 
 MgLib.ps: MgLib.dvi
 	dvips MgLib.dvi -o MgLib.ps
-
 #
 # Install the PostScript file into $(INSTALL_ROOT)/ps
 #

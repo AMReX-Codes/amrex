@@ -1,34 +1,33 @@
 #
-# $Id: GNUmakefile,v 1.11 1998-10-28 17:42:16 lijewski Exp $
+# $Id: GNUmakefile,v 1.12 1998-10-29 16:54:03 lijewski Exp $
 #
 
 PBOXLIB_HOME = ..
+
+TOP = $(PBOXLIB_HOME)
 
 PRECISION = DOUBLE
 DEBUG = TRUE
 DIM = 3
 COMP = KCC
 USE_MPI = TRUE
-
 #
 # The base name of the library we're building.
 #
 LBASE = box
-
 #
 # Where libraries and include files will be installed.
 #
 INSTALL_ROOT = $(PBOXLIB_HOME)
 
-include ../mk/Make.defs Make.package
+include $(TOP)/mk/Make.defs ./Make.package
 
 ifeq ($(USE_MPI),TRUE)
 DEFINES += -DBL_USE_MPI
 LIBRARIES += -lmpi
 ifeq ($(MACHINE), OSF1)
-MPI_HOME = /usr/local/mpi
-INCLUDE_LOCATIONS += $(MPI_HOME)/include
-LIBRARY_LOCATIONS += $(MPI_HOME)/lib/alpha/ch_p4
+INCLUDE_LOCATIONS += /usr/local/mpi/include
+LIBRARY_LOCATIONS += /usr/local/mpi/lib/alpha/ch_p4
 endif
 endif
 
@@ -37,7 +36,6 @@ CXXFLAGS += --one_instantiation_per_object
 endif
 
 all: $(optionsLib)
-
 #
 # `install' does NOT try to build and install the HTML stuff.
 # doc++ isn't widely distributed enough to assume that.
@@ -45,8 +43,7 @@ all: $(optionsLib)
 #
 install: all
 
-include ../mk/Make.rules
-
+include $(TOP)/mk/Make.rules
 #
 # Temp stuff for doing html docs.
 #
@@ -55,7 +52,6 @@ _docHeaders := $(sort $(wildcard *.H))
 _htmlDir := html
 
 _installDir = $(instHtmlDir)/boxlib
-
 #
 # This unconditionally installs stuff from ./html into _installDir.
 #
@@ -71,7 +67,6 @@ install_html: html
 	    	    $(INSTALL_DATA) $$f $(_installDir); \
 	    done;                                       \
 	fi
-
 #
 # This will make the HTML files in the directory html provided
 # any of the relevant .H files have changed more recently than the
@@ -96,7 +91,6 @@ BoxLib.dvi: BoxLib.tex
 
 BoxLib.ps: BoxLib.dvi
 	dvips BoxLib.dvi -o BoxLib.ps
-
 #
 # Install the PostScript file into ./ps
 #
