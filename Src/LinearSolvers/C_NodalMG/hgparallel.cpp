@@ -2,12 +2,21 @@
 
 // TASK_COPY
 task_copy::task_copy(MultiFab& mf, int dgrid, const MultiFab& smf, int sgrid, const Box& bx)
-: m_mf(mf), m_dgrid(dgrid), m_smf(smf), m_sgrid(sgrid), m_bx(bx)
+: m_mf(mf), m_dgrid(dgrid), m_smf(smf), m_sgrid(sgrid), m_bx(bx), s_bx(bx), m_ready(false)
 #ifdef BL_USE_MPI
 , s_tmp(0), d_tmp(0)
 #endif
 {
 }
+
+task_copy::task_copy(MultiFab& mf, int dgrid, const Box& db, const MultiFab& smf, int sgrid, const Box& sb)
+: m_mf(mf), m_bx(db), m_dgrid(dgrid), m_smf(smf), s_bx(sb), m_sgrid(sgrid), m_ready(false)
+#ifdef BL_USE_MPI
+, s_tmp(0), d_tmp(0)
+#endif
+{
+}
+			// r[jgrid].copy(r[igrid], bb, 0, b, 0, r.nComp());
 
 task_copy::~task_copy()
 {
@@ -20,10 +29,10 @@ task_copy::~task_copy()
 bool task_copy::init(sequence_number sno, MPI_Comm comm)
 {
 #ifdef BL_USE_MPI
-    assert( is_local(m_mf, m_dgrid) || is_local(m_smf, m_sgrid) );
     if ( is_local(m_mf, m_dgrid) && is_local(m_smf, m_sgrid) )
     {
 	m_ready = true;
+	m_mf[m_dgrid].copy(m_smf[m_sgrid], s_bx, 0, m_bx, 0, m_mf.nComp());
     }
     else if ( is_local(m_mf, m_dgrid) )
     {
@@ -36,23 +45,17 @@ bool task_copy::init(sequence_number sno, MPI_Comm comm)
 	s_tmp->copy(m_smf[m_sgrid]);
 	MPI_Isend(s_tmp->dataPtr(), m_bx.numPts()*s_tmp->nComp(), MPI_DOUBLE, sno, processor_number(m_mf,  m_dgrid), comm, &m_request);
     }
-    return false;
+    return m_ready;
 #else
     m_ready = true;
     return true;
 #endif
 }
 
-task_copy::task_copy(MultiFab& mf, int dgrid, const Box& db, const MultiFab& smf, int sgrid, const Box& sb)
-: m_mf(mf), m_bx(db), m_dgrid(dgrid), m_smf(smf), s_bx(sb), m_sgrid(sgrid)
-{
-    m_ready = true;
-    m_mf[m_dgrid].copy(m_smf[m_sgrid], s_bx, 0, m_bx, 0, mf.nComp());
-}
-			// r[jgrid].copy(r[igrid], bb, 0, b, 0, r.nComp());
 
 bool task_copy::ready()
 {
+    abort();
 #ifdef BL_USE_MPI
     int flag;
     MPI_Status status;
@@ -83,7 +86,7 @@ task_copy_local::~task_copy_local()
 
 bool task_copy_local::ready()
 {
-    return m_ready;
+    abort(); return m_ready;
 }
 
 // TASK_LIST
@@ -149,6 +152,6 @@ task_fab_get::~task_fab_get()
 
 bool task_fab_get::ready()
 {
-    return true;
+    abort(); return true;
 }
 

@@ -130,8 +130,7 @@ class amr_boundary_class;
 class task_fill_patch : public task_fab
 {
 public:
-    task_fill_patch(const Box& region_,
-	const MultiFab& r_, const level_interface& lev_interface_, const amr_boundary_class* bdy_, int idim_ = 0, int index_ = 0);
+    task_fill_patch(const Box& region_, const MultiFab& r_, const level_interface& lev_interface_, const amr_boundary_class* bdy_, int idim_ = 0, int index_ = 0);
     virtual ~task_fill_patch();
     virtual const FArrayBox& fab();
     virtual bool ready();
@@ -169,6 +168,7 @@ public:
 	: m(m_), jgrid(jgrid_), igrid(igrid_), freg(freg_), t(t_) {}
     virtual bool ready()
     {
+	abort();
 	if ( t.ready() )
 	{
 	    m[jgrid].copy(m[igrid], freg);

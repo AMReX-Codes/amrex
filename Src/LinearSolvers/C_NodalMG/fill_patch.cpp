@@ -131,7 +131,7 @@ task_bdy_fill::task_bdy_fill(const amr_boundary_class* bdy_, FArrayBox& fab_, co
 
 bool task_bdy_fill::ready()
 {
-    bdy->fill(fab, region, src[grid], domain);
+    abort(); bdy->fill(fab, region, src[grid], domain);
     return true;
 }
 
@@ -261,7 +261,7 @@ task_fill_patch::~task_fill_patch()
 
 bool task_fill_patch::ready()
 {
-    fill_patch();
+    abort();    fill_patch();
     tl.execute();
     return true;
 }
@@ -396,7 +396,7 @@ public:
     }
     virtual bool ready()
     {
-	return true;
+	abort(); return true;
     }
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
@@ -598,7 +598,7 @@ private:
 bool
 task_restric_fill::ready()
 {
-    return true;
+    abort(); return true;
 }
 
 void restrict_level(MultiFab& dest, 

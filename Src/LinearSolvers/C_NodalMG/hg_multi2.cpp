@@ -68,7 +68,7 @@ public:
     }
     virtual bool ready()
     {
-	return false;
+	abort(); return false;
     };
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
@@ -105,7 +105,7 @@ public:
     }
     virtual bool ready()
     {
-	return false;
+	abort(); return false;
     };
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
