@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.28 1998-02-03 19:33:12 lijewski Exp $
+// $Id: Amr.cpp,v 1.29 1998-02-18 21:34:37 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -1172,7 +1172,7 @@ Amr::regrid (int  lbase,
 
     finest_level = new_finest;
 
-    if (lbase)
+    if (lbase == 0)
         //
         // Flush grid -> processor map cache, but only when at coarsest level.
         //
