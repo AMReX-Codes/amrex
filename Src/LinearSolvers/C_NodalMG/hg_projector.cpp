@@ -553,15 +553,16 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	    Scp = &S[lev-1][jgrid];
 	    cbox = Scp->box();
 	}
-	FArrayBox Sf(fbox);
-	fill_patch(Sf, Sf.box(), S[lev], lev_interface[mglev], boundary.scalar(), 1, iedge);
+	FArrayBox* Sf = new FArrayBox(fbox);
+	fill_patch(*Sf, Sf->box(), S[lev], lev_interface[mglev], boundary.scalar(), 1, iedge);
 	Box creg = lev_interface[mglev].node_box(1, iedge);
 	creg.coarsen(rat).grow(t - IntVect::TheUnitVector());
 	Array<int> ga = lev_interface[mglev].geo_array(1, iedge);
 	FORT_HGEAVG(sptr, DIMLIST(sbox),
 		    Scp->dataPtr(), DIMLIST(cbox),
-		    Sf.dataPtr(), DIMLIST(fbox),
+		    Sf->dataPtr(), DIMLIST(fbox),
 		    DIMLIST(creg), D_DECL(rat[0], rat[1], rat[2]), t.getVect(), ga.dataPtr());
+	delete Sf;
 	if (jgrid < 0) 
 	{
 	    delete Scp;
@@ -611,8 +612,8 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	    Scp = &S[lev-1][jgrid];
 	    cbox = Scp->box();
 	}
-	FArrayBox Sf(fbox);
-	fill_patch(Sf, Sf.box(), S[lev], lev_interface[mglev], boundary.scalar(), 0, icor);
+	FArrayBox* Sf = new FArrayBox(fbox);
+	fill_patch(*Sf, Sf->box(), S[lev], lev_interface[mglev], boundary.scalar(), 0, icor);
 	Box creg = lev_interface[mglev].box(0, icor);
 	creg.coarsen(rat);
 	Array<int> ga = lev_interface[mglev].geo_array(0, icor);
@@ -622,15 +623,16 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	const int imax = mg_domain[mglev].bigEnd(0) + 1;
 	FORT_HGCAVG(sptr, DIMLIST(sbox),
 		    Scp->dataPtr(), DIMLIST(cbox),
-		    Sf.dataPtr(), DIMLIST(fbox),
+		    Sf->dataPtr(), DIMLIST(fbox),
 		    DIMLIST(creg), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(),
 		    &hx, &isRZ, &imax);
 #else
 	FORT_HGCAVG(sptr, DIMLIST(sbox),
 		    Scp->dataPtr(), DIMLIST(cbox),
-		    Sf.dataPtr(), DIMLIST(fbox),
+		    Sf->dataPtr(), DIMLIST(fbox),
 		    DIMLIST(creg), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), 0);
 #endif
+	delete Sf;
 	if (jgrid < 0) 
 	{
 	    delete Scp;
@@ -954,42 +956,46 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 		fbox.growLo(idim, 1);
 	    }
 	    cbox.convert(IntVect::TheCellVector()).coarsen(rat);
-	    FArrayBox* ucp;
-	    FArrayBox* vcp;
+	    FArrayBox* ucp[BL_SPACEDIM];
 	    int jgrid = find_patch(cbox, u[0][lev-1]);
 	    if (jgrid < 0) 
 	    {
-		ucp = new FArrayBox(cbox);
-		vcp = new FArrayBox(cbox);
-		fill_patch(*ucp, ucp->box(), u[0][lev-1], lev_interface[mgc], boundary.velocity(0));
-		fill_patch(*vcp, vcp->box(), u[1][lev-1], lev_interface[mgc], boundary.velocity(1));
+		for(int i = 0; i < BL_SPACEDIM; ++i)
+		{
+		    ucp[i] = new FArrayBox(cbox);
+		    fill_patch(*ucp[i], ucp[i]->box(), u[i][lev-1], lev_interface[mgc], boundary.velocity(i));
+		}
 	    }
 	    else 
 	    {
-		ucp = &u[0][lev-1][jgrid];
-		vcp = &u[1][lev-1][jgrid];
-		cbox = ucp->box();
+		for(int i = 0; i < BL_SPACEDIM; ++i)
+		{
+		    ucp[i] = &u[i][lev-1][jgrid];
+		}
+		cbox = ucp[0]->box();
 	    }
 	    fbox.convert(IntVect::TheCellVector());
-	    FArrayBox uf(fbox);
-	    FArrayBox vf(fbox);
-	    fill_patch(uf, uf.box(), u[0][lev], lev_interface[mglev], boundary.velocity(0), 0, icor);
-	    fill_patch(vf, vf.box(), u[1][lev], lev_interface[mglev], boundary.velocity(1), 0, icor);
+	    FArrayBox* uf[BL_SPACEDIM];
+	    for (int i = 0; i < BL_SPACEDIM; ++i)
+	    {
+		uf[i] = new FArrayBox(fbox);
+		fill_patch(*uf[i], uf[i]->box(), u[i][lev], lev_interface[mglev], boundary.velocity(i), 0, icor);
+	    }
 	    Box creg = lev_interface[mglev].box(0, icor);
 	    creg.coarsen(rat);
 	    Real* sptr = source[lev][igrid].dataPtr();
 	    const int isRZ = IsRZ();
 	    const int imax = mg_domain[mglev].bigEnd(0) + 1;
 	    FORT_HGFDIV(sptr, DIMLIST(sbox),
-			D_DECL(ucp->dataPtr(), vcp->dataPtr(), wcp->dataPtr()), DIMLIST(cbox),
-			D_DECL(uf.dataPtr(), vf.dataPtr(), wf.dataPtr()), DIMLIST(fbox),
+			D_DECL(ucp[0]->dataPtr(), ucp[1]->dataPtr(), ucp[2]->dataPtr()), DIMLIST(cbox),
+			D_DECL(uf[0]->dataPtr(), uf[1]->dataPtr(), uf[2]->dataPtr()), DIMLIST(fbox),
 			DIMLIST(creg), 
 			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir,
 			&isRZ, &imax);
-	    if (jgrid < 0) 
+	    for(int i = 0; i < BL_SPACEDIM; ++i)
 	    {
-		delete ucp;
-		delete vcp;
+		delete uf[i];
+		if ( jgrid < 0 ) delete ucp[i];
 	    }
 	    // fill in the grids on the other sides, if any
 	    const Box& freg = lev_interface[mglev].box(0, icor);
@@ -1009,19 +1015,15 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    Box cbox = lev_interface[mglev].box(0, icor);
 	    cbox.grow(rat).convert(IntVect::TheCellVector()).coarsen(rat);
 	    FArrayBox* ucp;
-	    FArrayBox* vcp;
 	    int jgrid = find_patch(cbox, u[0][lev-1]);
 	    if (jgrid < 0) 
 	    {
 		ucp = new FArrayBox(cbox);
-		vcp = new FArrayBox(cbox);
-		fill_patch(*ucp, ucp->box(), u[0][lev-1], lev_interface[mgc], boundary.velocity(0));
 		fill_patch(*vcp, vcp->box(), u[1][lev-1], lev_interface[mgc], boundary.velocity(1));
 	    }
 	    else 
 	    {
 		ucp = &u[0][lev-1][jgrid];
-		vcp = &u[1][lev-1][jgrid];
 		cbox = ucp->box();
 	    }
 	    const Box& fbox = u[0][lev][igrid].box();
@@ -1036,11 +1038,8 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 			D_DECL(u0ptr, u1ptr, u2ptr), DIMLIST(fbox), DIMLIST(creg),
 			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]),
 			&idir0, &idir1, &isRZ);
-	    if (jgrid < 0) 
-	    {
-		delete ucp;
-		delete vcp;
-	    }
+	    for ( int i = 0; i < BL_SPACEDIM; ++i)
+		if (jgrid < 0) delete ucp[i];
 	}
 	else if (geo == (level_interface::LL | level_interface::HH) || geo == (level_interface::LH | level_interface::HL)) 
 	{
@@ -1048,27 +1047,32 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    const Box& sbox = source[lev][igrid].box();
 	    Box cbox = lev_interface[mglev].box(0, icor);
 	    cbox.grow(rat).convert(IntVect::TheCellVector()).coarsen(rat);
-	    FArrayBox* ucp;
-	    FArrayBox* vcp;
+	    FArrayBox* ucp[BL_SPACEDIM];
 	    int jgrid = find_patch(cbox, u[0][lev-1]);
 	    if (jgrid < 0) 
 	    {
-		ucp = new FArrayBox(cbox);
-		vcp = new FArrayBox(cbox);
-		fill_patch(*ucp, ucp->box(), u[0][lev-1], lev_interface[mgc], boundary.velocity(0));
-		fill_patch(*vcp, vcp->box(), u[1][lev-1], lev_interface[mgc], boundary.velocity(1));
+		for(int i = 0; i < BL_SPACEDIM; ++i)
+		{
+		    ucp[i] = new FArrayBox(cbox);
+		    fill_patch(*ucp[i], ucp[i]->box(), u[i][lev-1], lev_interface[mgc], boundary.velocity(i));
+		}
 	    }
 	    else 
 	    {
-		ucp = &u[0][lev-1][jgrid];
-		vcp = &u[1][lev-1][jgrid];
-		cbox = ucp->box();
+		for(int i = 0; i < BL_SPACEDIM; ++i)
+		{
+		    ucp[i] = &u[i][lev-1][jgrid];
+		}
+		cbox = ucp[0]->box();
 	    }
 	    Box fbox = lev_interface[mglev].box(0, icor);
 	    fbox.grow(rat).convert(IntVect::TheCellVector());
-	    FArrayBox uf(fbox), vf(fbox);
-	    fill_patch(uf, uf.box(), u[0][lev], lev_interface[mglev], boundary.velocity(0), 0, icor);
-	    fill_patch(vf, vf.box(), u[1][lev], lev_interface[mglev], boundary.velocity(1), 0, icor);
+	    FArrayBox* uf[BL_SPACEDIM;
+	    for(int i = 0; i < BL_SPACEDIM; ++i)
+	    {
+		uf[i] = new FArrayBox(fbox);
+		fill_patch(*uf[i], uf[i]->box(), u[i][lev], lev_interface[mglev], boundary.velocity(i), 0, icor);
+	    }
 	    int jdir = (geo == (level_interface::LL | level_interface::HH)) ? 1 : -1;
 	    Box creg = lev_interface[mglev].box(0, icor);
 	    creg.coarsen(rat);
@@ -1080,10 +1084,10 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 			DIMLIST(creg),
 			D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]),
 			&jdir, &isRZ);
-	    if (jgrid < 0) 
+	    for(int i = 0; i < BL_SPACEDIM; ++i)
 	    {
-		delete ucp;
-		delete vcp;
+		delete uf[i];
+		if (jgrid < 0) delete ucp[i];
 	    }
 	    // fill in the grids on the other sides, if any
 	    const Box& freg = lev_interface[mglev].box(0, icor);
