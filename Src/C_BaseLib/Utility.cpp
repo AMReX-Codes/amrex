@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.50 2001-07-22 20:44:30 car Exp $
+// $Id: Utility.cpp,v 1.51 2001-07-22 22:12:22 car Exp $
 //
 
 #include <cstdlib>
@@ -117,27 +117,32 @@ BoxLib::wsecond (double* t)
 }
 
 #elif defined(WIN32)
+
+#include <windows.h>
+
 namespace
 {
 double rate;
+bool inited = false;
 LONGLONG
 get_initial_wall_clock_time()
 {
     LARGE_INTEGER li;
     QueryPerformanceFrequency(&li);
-    rate = 1000000.0/li.QuadPart;
+    rate = 1.0/li.QuadPart;
     QueryPerformanceCounter(&li);
+    inited = true;
     return li.QuadPart;
 }
-LONGLONG llStart = get_initial_wall_clock_time();
+LONGLONG BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
 }
 double
-BoxLib3::wsecond(double* rslt)
+BoxLib::wsecond(double* rslt)
 {
-    Assert(inited, "initialize not called!");
+    BL_ASSERT( inited );
     LARGE_INTEGER li;
     QueryPerformanceCounter(&li);
-    double result = double((li.QuadPart-llStart)*rate);
+    double result = double(li.QuadPart-BL_Initial_Wall_Clock_Time)*rate;
     if ( rslt ) *rslt = result;
     return result;
 }

@@ -1,3 +1,4 @@
+#include <iostream>
 #include <Thread.H>
 #include <Profiler.H>
 #include <ParallelDescriptor.H>
@@ -36,12 +37,13 @@ int
 main(int argc, char** argv)
 {
     BoxLib::Initialize(argc, argv);
-
-    BL_PROFILE("BoxLib3::testing::profiler_main()");
+    const double million = 1000000.0;
+    
     BoxLib::WallTimer wt;
     wt.start();
     wt.stop();
-    //  std::cout << "Wall timer reports = " << wt << std::endl;
+    std::cout << "Wall timer reports (us) = " << wt.accum_time()*million << std::endl;
+    std::cout << "Wall timer tick = (us) " << wt.tick()*million << std::endl;
     thread_timing();
 
     BoxLib::Finalize();
