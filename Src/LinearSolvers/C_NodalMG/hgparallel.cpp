@@ -92,7 +92,6 @@ void task_list::add_task(task* t, task::sequence_number seq_no_)
 
 void task_list::execute()
 {
-    MPI_Barrier(comm);
     list< task** > dead_tasks;
     // The dead_task list is used, because the tasks being processed also appear
     // in tasks dependecy lists.
@@ -228,8 +227,8 @@ void task_copy::startup()
 	// before I can post the receive, I have to ensure that there are no dependent zones in the
 	// grid
 	tmp->copy(m_smf[m_sgrid], m_sbx);
-	HG_DEBUG_OUT( "<< Norm(S) of tmp " << m_sno << " " << tmp->norm(m_sbx, 2) << endl );
-	HG_DEBUG_OUT( "<<<Box(S) of tmp "   << m_sno << " " << tmp->box() << endl );
+	// HG_DEBUG_OUT( "<< Norm(S) of tmp " << m_sno << " " << tmp->norm(m_sbx, 2) << endl );
+	// HG_DEBUG_OUT( "<<<Box(S) of tmp "   << m_sno << " " << tmp->box() << endl );
 	// printRange(debug_out, *tmp, m_sbx, 0, tmp->nComp());
 	int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_mf,  m_dgrid), m_sno, m_comm, &m_request);
 	if ( res != 0 )

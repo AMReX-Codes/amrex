@@ -627,18 +627,83 @@ void clear_part_interface(MultiFab& r, const level_interface& lev_interface)
     }
 }
 
-class task_restric_fill : public task_copy
+class task_restric_fill : public task
 {
 public:
-    task_restric_fill(const amr_restrictor_class& restric, MultiFab& dest, int dgrid, MultiFab& r, int rgrid, const Box& box, const IntVect& rat)
-	: m_restric(restric), task_copy(dest, dgrid, r, rgrid, box), m_rat(rat)
+    task_restric_fill(const amr_restrictor_class& restric, MultiFab& dest, int dgrid, const MultiFab& r, int rgrid, const Box& box, const IntVect& rat)
+	: m_restric(restric), m_d(dest), m_dgrid(dgrid), m_r(r), m_rgrid(rgrid), m_rat(rat), m_tmp(0), m_box(box)
     {
     }
+    virtual ~task_restric_fill()
+    {
+	delete m_tmp;
+    }
+    virtual bool init(sequence_number sno, MPI_Comm comm);
     virtual bool ready();
 private:
+    void startup();
+    MPI_Request m_request;
     const amr_restrictor_class& m_restric;
     const IntVect m_rat;
+    FArrayBox* m_tmp;
+    MultiFab& m_d;
+    const int m_dgrid;
+    const MultiFab& m_r;
+    const int m_rgrid;
+    const Box m_box;
+    const Box m_rbx;
+    bool m_started;
+    bool m_local;
 };
+
+bool task_restric_fill::init(sequence_number sno, MPI_Comm comm)
+{
+    task::init(sno, comm);
+    if ( is_local(m_d, m_dgrid) || is_local(m_r, m_rgrid) )
+    {
+	return true;
+    }
+    else
+    {
+	return false;
+    }
+}
+
+void task_restric_fill::startup()
+{
+    if ( is_local(m_d, m_dgrid) && is_local(m_r, m_rgrid) )
+    {
+	m_local = true;
+    }
+    else if ( is_local(m_d, m_dgrid) )
+    {
+	m_tmp = new FArrayBox(m_rbx, m_r.nComp());
+	int res = MPI_Irecv(m_tmp->dataPtr(), m_tmp->box().numPts()*m_tmp->nComp(), MPI_DOUBLE, processor_number(m_r, m_rgrid), m_sno, m_comm, &m_request);
+	if ( res != 0 )
+	    ParallelDescriptor::Abort(res);
+	assert( m_request != MPI_REQUEST_NULL );
+    }
+    else if ( is_local(m_r, m_rgrid) ) 
+    {
+	m_tmp = new FArrayBox(m_rbx, m_r.nComp());
+	// before I can post the receive, I have to ensure that there are no dependent zones in the
+	// grid
+	m_tmp->copy(m_r[m_rgrid], m_rbx);
+	// HG_DEBUG_OUT( "<< Norm(S) of tmp " << m_sno << " " << tmp->norm(m_sbx, 2) << endl );
+	// HG_DEBUG_OUT( "<<<Box(S) of tmp "   << m_sno << " " << tmp->box() << endl );
+	// printRange(debug_out, *tmp, m_sbx, 0, tmp->nComp());
+	int res = MPI_Isend(m_tmp->dataPtr(), m_tmp->box().numPts()*m_tmp->nComp(), MPI_DOUBLE, processor_number(m_d,  m_dgrid), m_sno, m_comm, &m_request);
+	if ( res != 0 )
+	    ParallelDescriptor::Abort(res);
+	assert( m_request != MPI_REQUEST_NULL );
+    }
+    else
+    {
+	BoxLib::Abort( "task_copy::ready(): Can't be here" );
+	// neither fab lives on local processor
+    }
+    m_started = true;
+}
 
 
 bool task_restric_fill::ready()
@@ -647,7 +712,8 @@ bool task_restric_fill::ready()
     if ( ! m_started ) startup();
     if ( m_local )
     {
-	m_restric.fill(m_mf[m_dgrid], m_bx, m_smf[m_sgrid], m_rat);
+	HG_DEBUG_OUT("Local restrict fill " << m_sno << endl);
+	m_restric.fill(m_d[m_dgrid], m_box, m_r[m_rgrid], m_rat);
 	return true;
     }
     int flag;
@@ -657,9 +723,10 @@ bool task_restric_fill::ready()
 	ParallelDescriptor::Abort( res );
     if ( flag )
     {
-	if ( is_local(m_mf, m_dgrid) )
+	if ( is_local(m_d, m_dgrid) )
 	{
-	    m_restric.fill(m_mf[m_dgrid], m_bx, *tmp, m_rat);
+	    HG_DEBUG_OUT("Non Local restrict fill " << m_sno << endl );
+	    m_restric.fill(m_d[m_dgrid], m_box, *m_tmp, m_rat);
 	}
 	return true;
     }
