@@ -4,7 +4,7 @@
 #define _RealBox_H_ 
 
 //
-// $Id: RealBox.H,v 1.6 1998-05-20 00:10:45 marc Exp $
+// $Id: RealBox.H,v 1.7 1999-04-13 15:28:19 lijewski Exp $
 //
 
 #include <Array.H>
@@ -22,13 +22,6 @@
 class RealBox
 {
 public:
-
-#ifdef __GNUG__
-    //
-    // This is a hack to work around a g++ bug :-(
-    //
-    bool operator== (const RealBox& rhs) const { return true; }
-#endif 
     //
     //@ManDoc: Nice ASCII output.
     //
