@@ -17,8 +17,8 @@ Mutex print_mutex;
 #define DPRINTF(arg)							\
 do									\
   {									\
-    Lock<Mutex> lock(print_mutex);			\
-    std::printf("tid(%ld): ", pthread_self());				\
+    Lock<Mutex> lock(print_mutex);					\
+    std::printf("tid(%d): ", Thread::getID());				\
     std::printf arg;							\
   }									\
 while (false)
@@ -63,7 +63,7 @@ struct engine_t
 
 Mutex engine_list_mutex;
 std::list<engine_t*> engine_list;
-WorkQueue workq;
+WorkQueue workq(4);
 }
 
 void
@@ -120,7 +120,6 @@ main(int argc, char** argv)
 {
     BoxLib::Initialize(argc, argv);
 
-    workq.max_threads(4);
     FunctionThread ft(WorkQueue_routine);
     WorkQueue_routine(0);
     ft.join();
