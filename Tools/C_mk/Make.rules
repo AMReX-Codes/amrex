@@ -1,5 +1,5 @@
 #
-# $Id: Make.rules,v 1.25 2003-08-19 15:19:42 car Exp $
+# $Id: Make.rules,v 1.26 2004-12-03 18:54:52 car Exp $
 #
 $(addprefix $(instIncludeDir)/, $(instSources)): $(instIncludeDir)/% : %
 	@if [ ! -d $(instIncludeDir) ]; then mkdir -p $(instIncludeDir); fi
@@ -247,6 +247,9 @@ $(depEXETempDir)/%.d: %.f
 #
 # Now load/build the dependency files.
 #
+ifneq ($(MAKECMDGOALS),realclean)
+ifneq ($(MAKECMDGOALS),clean)
+
 ifdef CLIB_sources
 -include $(CLIB_sources:%.cpp=$(depTempDir)/%.d)
 endif
@@ -283,4 +286,7 @@ ifdef f90EXE_sources
 endif
 ifdef cEXE_sources
 -include $(cEXE_sources:%.c=$(depEXETempDir)/%.d)
+endif
+
+endif
 endif
