@@ -203,6 +203,7 @@ LIB32=link.exe -lib
 # Name "$PROJ - Win32 Debug"
 EOF
 
+
 #
 # Do C++ sources
 #
@@ -271,7 +272,7 @@ EOF
  done
 
 cat >> $OFILE << EOF
-# Begin Group "TEMPS"
+# Begin Group "TEMPS-Debug"
 
 # PROP Default_Filter "FOR"
 EOF
@@ -284,7 +285,46 @@ for file in $FEXE_sources
    cat >> $OFILE << EOF
 # Begin Source File
 
-SOURCE=$forfile
+SOURCE=Debug\\Fort\\$forfile
+
+!IF  "\$(CFG)" == "$PROJ - Win32 Release"
+
+# PROP Exclude_From_Build 1
+
+!ELSEIF  "\$(CFG)" == "$PROJ - Win32 Debug"
+
+!ENDIF 
+# End Source File
+EOF
+ done
+
+cat >> $OFILE << EOF
+# End Group
+EOF
+
+cat >> $OFILE << EOF
+# Begin Group "TEMPS-Release"
+
+# PROP Default_Filter "FOR"
+EOF
+
+for file in $FEXE_sources
+ do
+   filer=`basename $file .F`
+   ffile=$filer.FOR
+   forfile=`echo $ffile | sed 's/\\//\\\/g'`
+   cat >> $OFILE << EOF
+# Begin Source File
+
+SOURCE=Release\\Fort\\$forfile
+
+!IF  "\$(CFG)" == "$PROJ - Win32 Release"
+
+!ELSEIF  "\$(CFG)" == "$PROJ - Win32 Debug"
+
+# PROP Exclude_From_Build 1
+
+!ENDIF 
 # End Source File
 EOF
  done
@@ -312,8 +352,8 @@ SOURCE=$ffile
 InputPath=$ffile
 InputName=$ifile
 
-"\$(IntDir)\\\$(InputName).FOR" : \$(SOURCE) "\$(INTDIR)" "\$(OUTDIR)"
-	fpp /m /ansi /nologo $fdirlist /DBL_LANG_FORT  /DBL_SPACEDIM=${DIM} /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DBL_USE_CHEM ${FPROJDEF} ${FPROJVERS} \$(InputPath) | perl ${TOP}\scripts\strip72 -c > \$(InputName).FOR
+"Release\\Fort\\\$(InputName).FOR" : \$(SOURCE) "\$(INTDIR)" "\$(OUTDIR)"
+	fpp /m /ansi /nologo $fdirlist /DBL_LANG_FORT  /DBL_SPACEDIM=${DIM} /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DBL_USE_CHEM ${FPROJDEF} ${FPROJVERS} \$(InputPath) | perl ${TOP}\scripts\strip72 -c > Release\\Fort\\\$(InputName).FOR
 
 # End Custom Build
 
@@ -324,8 +364,8 @@ InputName=$ifile
 InputPath=$ffile
 InputName=$ifile
 
-"\$(IntDir)\\\$(InputName).FOR" : \$(SOURCE) "\$(INTDIR)" "\$(OUTDIR)"
-	fpp /m /ansi /nologo $fdirlist /DBL_LANG_FORT  /DBL_SPACEDIM=${DIM} /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DBL_USE_CHEM ${FPROJDEF} ${FPROJVERS} \$(InputPath) | perl ${TOP}\scripts\strip72 -c > \$(InputName).FOR
+"Debug\\Fort\\\$(InputName).FOR" : \$(SOURCE) "\$(INTDIR)" "\$(OUTDIR)"
+	fpp /m /ansi /nologo $fdirlist /DBL_LANG_FORT  /DBL_SPACEDIM=${DIM} /DBL_USE_DOUBLE /DBL_NO_FORT_FLUSH /DBL_USE_CHEM ${FPROJDEF} ${FPROJVERS} \$(InputPath) | perl ${TOP}\scripts\strip72 -c > Debug\\Fort\\\$(InputName).FOR
 
 # End Custom Build
 
@@ -344,5 +384,8 @@ cat >> $OFILE << EOF
 # End Project
 EOF
 
+# Add lf's needed by Windows junk
+perl -e 'while(<>) {s/\n/\r\n/;print;}' < $OFILE > junk.$$
+mv junk.$$ $OFILE
 exit 0
 
