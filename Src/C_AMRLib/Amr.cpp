@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.33 1998-04-01 18:21:50 lijewski Exp $
+// $Id: Amr.cpp,v 1.34 1998-04-20 22:43:03 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -395,7 +395,8 @@ void
 Amr::writePlotFile (const aString& root,
                     int            num)
 {
-    double dPlotFileTime0(ParallelDescriptor::second());
+    Real dPlotFileTime0 = ParallelDescriptor::second();
+
     aString pltfile = Concatenate(root, num);
 
     if (trace && ParallelDescriptor::IOProcessor())
@@ -463,11 +464,16 @@ Amr::writePlotFile (const aString& root,
             BoxLib::Error("Amr::writePlotFile() failed");
     }
 
-    double dPlotFileTime1(ParallelDescriptor::second());
-    double dPlotFileTime(dPlotFileTime1 - dPlotFileTime0);
+    Real dPlotFileTime1 = ParallelDescriptor::second();
+    Real dPlotFileTime  = dPlotFileTime1 - dPlotFileTime0;
+
     ParallelDescriptor::ReduceRealMax(dPlotFileTime);
-    if(ParallelDescriptor::IOProcessor()) {
-      cout << "Write plotfile time = " << dPlotFileTime << "  seconds." << endl;
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        cout << "Write plotfile time = "
+             << dPlotFileTime
+             << "  seconds." << endl;
     }
 }
 
@@ -526,6 +532,8 @@ Amr::checkInput ()
 void
 Amr::init ()
 {
+    TRACER("Amr::init()");
+
     if (!restart_file.isNull())
     {
         restart(restart_file);
@@ -542,6 +550,8 @@ Amr::init ()
 void
 Amr::initialInit ()
 {
+    TRACER("Amr::initialInit()");
+
     checkInput();
     //
     // Generate internal values from user-supplied values.
@@ -560,7 +570,8 @@ Amr::initialInit ()
     //
     defBaseLevel(strt_time);
 
-    if (max_level > 0) bldFineLevels(strt_time);
+    if (max_level > 0)
+        bldFineLevels(strt_time);
     //
     // Build any additional data structures after grid generation.
     //
@@ -596,7 +607,8 @@ Amr::initialInit ()
 void
 Amr::restart (const aString& filename)
 {
-    double dRestartTime0(ParallelDescriptor::second());
+    Real dRestartTime0 = ParallelDescriptor::second();
+
     int i;
 
     if (trace && ParallelDescriptor::IOProcessor())
@@ -714,19 +726,24 @@ Amr::restart (const aString& filename)
     for (lev = 0; lev <= finest_level; lev++)
         amr_level[lev].post_restart();
 
+    Real dRestartTime1 = ParallelDescriptor::second();
+    Real dRestartTime  = dRestartTime1 - dRestartTime0;
 
-    double dRestartTime1(ParallelDescriptor::second());
-    double dRestartTime(dRestartTime1 - dRestartTime0);
     ParallelDescriptor::ReduceRealMax(dRestartTime);
-    if(ParallelDescriptor::IOProcessor()) {
-      cout << "Restart time = " << dRestartTime << " seconds." << endl;
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        cout << "Restart time = "
+             << dRestartTime
+             << " seconds." << endl;
     }
 }
 
 void
 Amr::checkPoint ()
 {
-    double dCheckPointTime0(ParallelDescriptor::second());
+    Real dCheckPointTime0 = ParallelDescriptor::second();
+
     aString ckfile = Concatenate(check_file_root, level_steps[0]);
 
     if (trace && ParallelDescriptor::IOProcessor())
@@ -816,17 +833,16 @@ Amr::checkPoint ()
             BoxLib::Error("Amr::checkpoint() failed");
     }
 
+    Real dCheckPointTime1 = ParallelDescriptor::second();
+    Real dCheckPointTime  = dCheckPointTime1 - dCheckPointTime0;
 
-    double dCheckPointTime1(ParallelDescriptor::second());
-    double dCheckPointTime(dCheckPointTime1 - dCheckPointTime0);
     ParallelDescriptor::ReduceRealMax(dCheckPointTime);
 
     if (ParallelDescriptor::IOProcessor())
     {
-      cout << "Write checkpoint time = "
-           << dCheckPointTime
-           << "  seconds."
-           << endl;
+        cout << "Write checkpoint time = "
+             << dCheckPointTime
+             << "  seconds." << endl;
     }
 }
 
@@ -1036,6 +1052,8 @@ void
 Amr::regrid (int  lbase,
              Real time)
 {
+    TRACER("Amr::regrid()");
+
     int new_finest;
 
     if (!silent && ParallelDescriptor::IOProcessor())
@@ -1283,6 +1301,8 @@ Amr::grid_places (int              lbase,
                   int&             new_finest,
                   Array<BoxArray>& new_grids)
 {
+    TRACER("Amr::grid_places()");
+
     int i;
     int  max_crse = Min(finest_level,max_level-1);
 
@@ -1360,8 +1380,7 @@ Amr::grid_places (int              lbase,
     const BoxArray& bbase = amr_level[lbase].boxArray();
     for (i = 0; i < bbase.length(); i++)
     {
-        Box tmp(::coarsen(bbase[i],bf_lev[lbase]));
-        fd1.add(tmp);
+        fd1.add(::coarsen(bbase[i],bf_lev[lbase]));
     }
 
     p_n_comp[lbase].complementIn(pc_domain[lbase],fd1);
@@ -1415,7 +1434,6 @@ Amr::grid_places (int              lbase,
                 ngrow++;
             }
         }
-
         TagBoxArray tags(old_grids,n_error_buf[levc]+ngrow);
         amr_level[levc].errorEst(tags,TagBox::CLEAR,TagBox::SET,time);
         //
@@ -1510,6 +1528,8 @@ Amr::grid_places (int              lbase,
 void
 Amr::bldFineLevels (Real strt_time)
 {
+    TRACER("Amr::bldFineLevels");
+
     finest_level = 0;
     int more_levels = true;
 
@@ -1520,7 +1540,8 @@ Amr::bldFineLevels (Real strt_time)
         //
         // Get new grid placement.
         //
-        int     new_finest;
+        int new_finest;
+
         grid_places(finest_level,strt_time,new_finest,new_grid_places);
 
         if (new_finest <= finest_level)

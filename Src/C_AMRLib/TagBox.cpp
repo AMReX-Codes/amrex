@@ -1,13 +1,14 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.28 1998-04-18 21:24:58 lijewski Exp $
+// $Id: TagBox.cpp,v 1.29 1998-04-20 22:43:04 lijewski Exp $
 //
 
 #include <TagBox.H>
 #include <Misc.H>
 #include <Geometry.H>
 #include <ParallelDescriptor.H>
+#include <Tracer.H>
 
 #ifdef BL_USE_NEW_HFILES
 #include <vector>
@@ -298,14 +299,16 @@ TagBox::merge (const TagBox& src)
 
     if (bx.ok())
     {
-        const int* dlo = domain.loVect();
+        const int* dlo  = domain.loVect();
         const int* dlen = domain.length().getVect();
-        const int* slo = src.domain.loVect();
+        const int* slo  = src.domain.loVect();
         const int* slen = src.domain.length().getVect();
-        const int* lo = bx.loVect();
-        const int* hi = bx.hiVect();
+        const int* lo   = bx.loVect();
+        const int* hi   = bx.hiVect();
+
         const TagType* ds0 = src.dataPtr();
-        TagType* dd0 = dataPtr();
+        TagType* dd0       = dataPtr();
+
         int klo = 0, khi = 0, jlo = 0, jhi = 0, ilo, ihi;
         D_TERM(ilo=lo[0]; ihi=hi[0]; ,
                jlo=lo[1]; jhi=hi[1]; ,
@@ -448,6 +451,8 @@ TagBoxArray::buffer (int nbuf)
 void
 TagBoxArray::mergeUnique ()
 {
+    TRACER("TagBoxArray::mergeUnique()");
+
     FabArrayCopyDescriptor<TagType,TagBox> facd;
 
     FabArrayId              faid     = facd.RegisterFabArray(this);
@@ -758,6 +763,8 @@ TagBoxArray::numTags () const
 IntVect*
 TagBoxArray::collate (long& numtags) const
 {
+    TRACER("TagBoxArray::collate()");
+
     const int nGrids = fabparray.length();
 
     Array<int> sharedNTags(nGrids); // Shared numTags per grid.
