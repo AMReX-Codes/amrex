@@ -1,5 +1,5 @@
 c
-c $Id: ABec_UTIL.F,v 1.1 1998-03-24 07:06:53 almgren Exp $
+c $Id: ABec_UTIL.F,v 1.2 1998-07-14 20:23:41 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -39,7 +39,7 @@ c
         if (bet .eq. 0) then
           print *,'TRIDIAG FAILED '
           stop
-        endif
+        end if
         u(j) = (r(j)-a(j)*u(j-1))/bet
       end do
 
