@@ -1,5 +1,5 @@
 c
-c $Id: ABec_2D.F,v 1.5 1999-02-03 00:16:54 lijewski Exp $
+c $Id: ABec_2D.F,v 1.6 2000-06-22 22:52:28 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -91,11 +91,13 @@ c
       REAL_T dhx, dhy, cf0, cf1, cf2, cf3
       REAL_T delta, gamma, rho, rho_x, rho_y
 
-      REAL_T a_ls(0:4096)
-      REAL_T b_ls(0:4096)
-      REAL_T c_ls(0:4096)
-      REAL_T r_ls(0:4096)
-      REAL_T u_ls(0:4096)
+      integer LSDIM
+      parameter(LSDIM=127)
+      REAL_T a_ls(0:LSDIM)
+      REAL_T b_ls(0:LSDIM)
+      REAL_T c_ls(0:LSDIM)
+      REAL_T r_ls(0:LSDIM)
+      REAL_T u_ls(0:LSDIM)
 
       integer do_line
       integer ilen,jlen
@@ -103,14 +105,14 @@ c
       if (h(2). gt. 1.5*h(1)) then 
         do_line = 1
         ilen = hi(1)-lo(1)+1
-        if (ilen .gt. 4096) then
+        if (ilen .gt. LSDIM) then
           print *,'TOO BIG FOR LINE SOLVE IN GSRB: ilen = ',ilen
           stop
         end if
       else if (h(1) .gt. 1.5*h(2)) then
         do_line = 2
         jlen = hi(2)-lo(2)+1
-        if (jlen .gt. 4096) then
+        if (jlen .gt. LSDIM) then
           print *,'TOO BIG FOR LINE SOLVE IN GSRB: jlen = ',jlen
           stop
         end if
