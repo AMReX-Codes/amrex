@@ -1,4 +1,4 @@
-!!
+!! Fortran 90 style and boxes
 module fab_module
 
   use bl_types
@@ -6,6 +6,24 @@ module fab_module
   use box_module
 
   implicit none
+
+  !! Each Fab type, integer, double, and logical, consists of
+  !! DIM:    Dimension
+  !  BX:     The Box in index space for which this FAB is defined
+  !! IBX:    The index range of the valid data for the FAB
+  !! PBX:    The physical box for the FAB
+  !! NC:     Number of components
+  !! NG:     Number of ghost cells
+  
+  !! When a FAB is created IBX = BX, unless it is nodal, in which case
+  !! IBX = grow(BX, FACE=hi, 1 (in the nodal directions).
+  !! PBX = grow(IBX, NG)
+  
+  !! For parallel systems the BX, IBX, PBX, etc are all defined, but the
+  !! underlying pointer will not be allocated.
+
+  !! All FABS are 'Four' dimensional, conventially, (NX,NY,NZ,NC) in size.
+  !! NY = 1, NZ = 1, when DIM =1, NZ = 1, when DIM = 2.
 
   type fab
      integer   :: dim = 0
@@ -37,11 +55,16 @@ module fab_module
      logical, pointer, dimension(:,:,:,:) :: p => Null()
   end type lfab
 
+  !! Returns the Dimension  of the FAB
   interface dim
      module procedure fab_dim
      module procedure ifab_dim
   end interface
 
+  !! Returns whether the FAB has been built, this is different from
+  !! whether the underlying pointer has been allocated since on parallel
+  !! systems the pointer will not be allocated if the LAYOUT says it
+  !! lives on another processor
   interface built_q
      module procedure fab_built_q
      module procedure ifab_built_q
@@ -393,7 +416,7 @@ contains
        r = .true.
     else if ( built_q(a) .and. built_q(b) ) then
        r = a%dim == b%dim .AND. a%ng == b%ng .AND. &
-            a%nc == b%nc .AND. a%bx == b%bx
+            a%nc == b%nc .AND. a%ibx == b%ibx
     else
        r = .FALSE.
     end if 
@@ -405,7 +428,7 @@ contains
        r = .true.
     else if ( built_q(a) .and. built_q(b) ) then
        r = a%dim == b%dim .AND. a%ng == b%ng .AND. &
-            a%nc == b%nc .AND. a%bx == b%bx
+            a%nc == b%nc .AND. a%ibx == b%ibx
     else
        r = .FALSE.
     end if 

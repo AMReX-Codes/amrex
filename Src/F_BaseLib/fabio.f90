@@ -133,7 +133,7 @@ contains
     real(kind=dp_t), pointer :: fbp(:,:,:,:)
     integer :: count, lo(fb%dim), hi(fb%dim), nd(fb%dim), nc, lprec
     lprec = FABIO_DOUBLE; if ( present(prec) ) lprec = prec
-    if ( lprec /= FABIO_DOUBLE .or. lprec /= FABIO_SINGLE ) then
+    if ( lprec /= FABIO_DOUBLE .and. lprec /= FABIO_SINGLE ) then
        call bl_error("FABIO_WRITE: prec is wrong ", lprec)
     end if
     lall = .false.; if ( present(all) ) lall = all

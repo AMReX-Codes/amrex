@@ -19,4 +19,3 @@ include $(FPARALLEL)/boxlib/GPackage.mak
 VPATH_LOCATIONS += $(FPARALLEL)/boxlib
 
 include $(FPARALLEL)/mk/GMakerules.mak
-

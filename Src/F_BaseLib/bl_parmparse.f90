@@ -1,3 +1,5 @@
+!! Provide methods for accessing problem definition files and the
+!! command line
 module bl_parmparse_module
 
   use bl_error_module
@@ -50,21 +52,23 @@ contains
 
   end subroutine parmparse_seek_to
 
+  !! Returns the number of arguments on the command line that match
+  !! STR, or if present STR_LONG.
   function pp_arg_count(str, str_long) result(r)
     use f2kcli
     character(len=*), intent(in) :: str
     character(len=*), intent(in), optional :: str_long
     integer :: r
     integer :: narg, f
-    character(len=128) :: fname
+    character(len=128) :: option
     narg = command_argument_count()
     r = 0
     do f = 1, narg
-       call get_command_argument(f, value = fname)
-       if ( str == fname ) then
+       call get_command_argument(f, value = option )
+       if ( str == option ) then
           r = r + 1
        else if ( present(str_long) ) then
-          if ( str_long == fname ) then
+          if ( str_long == option ) then
              r = r + 1
           end if
        end if
