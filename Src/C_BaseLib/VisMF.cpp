@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.17 1997-11-11 21:02:19 lijewski Exp $
+// $Id: VisMF.cpp,v 1.18 1997-11-11 21:22:50 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -405,33 +405,43 @@ VisMF::ToString (long l)
 }
 
 void
-VisMF::WriteOneFilePerCPU (const MultiFab& mf,
-                           const aString&  mf_name)
+VisMF::Write (const MultiFab& mf,
+              const aString&  mf_name,
+              VisMF::How      how)
 {
     //
     // Structure we use to pass FabOnDisk data to the IOProcessor.
-    //
     // The variable length part of the message is name of the on-disk FAB.
     //
     struct
     {
-        int  m_index;    // Index of the FAB.
-        long m_head;     // Offset of the FAB in the file.
+        int  m_index; // Index of the FAB.
+        long m_head;  // Offset of the FAB in the file.
     }
     msg_hdr;
 
     VisMF::Header hdr(mf, VisMF::OneFilePerCPU);
 
-    aString FabFileName = mf_name;
+    int msg_hdr_size = sizeof(msg_hdr);
+    PD::SetMessageHeaderSize(msg_hdr_size);
 
-    FabFileName += VisMF::FabFileSuffix;
-    FabFileName += VisMF::ToString(PD::MyProc());
-
+    switch (how)
     {
+    case OneFilePerCPU:
+    {
+        aString FabFileName = mf_name;
+
+        FabFileName += VisMF::FabFileSuffix;
+        FabFileName += VisMF::ToString(PD::MyProc());
+
         ofstream FabFile(FabFileName.c_str());
 
-        int msg_hdr_size = sizeof(msg_hdr);
-        PD::SetMessageHeaderSize(msg_hdr_size);
+        if (!FabFile.good())
+        {
+            aString msg("Couldn't open file: ");
+            msg += FabFileName;
+            BoxLib::Error(msg.c_str());
+        }
 
         for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
         {
@@ -441,15 +451,52 @@ VisMF::WriteOneFilePerCPU (const MultiFab& mf,
             {
                 msg_hdr.m_index = mfi.index();
                 msg_hdr.m_head  = hdr.m_fod[mfi.index()].m_head;
+
                 PD::SendData(PD::IOProcessor(),
                              &msg_hdr,
                              FabFileName.c_str(),
                              FabFileName.length()+1); // Include NULL in MSG.
             }
         }
-        //
-        // Destruct FabFile -- close the open file before opening Header :-)
-        //
+    }
+    break;
+    case OneFilePerFab:
+    {
+        for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+        {
+            aString FabFileName = mf_name;
+
+            FabFileName += VisMF::FabFileSuffix;
+            FabFileName += VisMF::ToString(mfi.index());
+
+            ofstream FabFile(FabFileName.c_str());
+
+            if (!FabFile.good())
+            {
+                aString msg("Couldn't open file: ");
+                msg += FabFileName;
+                BoxLib::Error(msg.c_str());
+            }
+
+            hdr.m_fod[mfi.index()] = VisMF::Write(mfi(), FabFileName, FabFile);
+
+            assert(hdr.m_fod[mfi.index()].m_head == 0);
+
+            if (!PD::IOProcessor())
+            {
+                msg_hdr.m_head  = 0;
+                msg_hdr.m_index = mfi.index();
+
+                PD::SendData(PD::IOProcessor(),
+                             &msg_hdr,
+                             FabFileName.c_str(),
+                             FabFileName.length()+1); // Include NULL in MSG.
+            }
+        }
+    }
+    break;
+    default:
+        BoxLib::Error("Bad case in switch");
     }
 
     for (int len; PD::GetMessageHeader(len, &msg_hdr); )
@@ -469,85 +516,6 @@ VisMF::WriteOneFilePerCPU (const MultiFab& mf,
     }
 
     VisMF::WriteHeader(mf_name, hdr);
-}
-
-void
-VisMF::WriteOneFilePerFab (const MultiFab& mf,
-                           const aString&  mf_name)
-{
-    //
-    // Structure we use to pass FabOnDisk data to the IOProcessor.
-    //
-    // The variable length part of the message is name of the on-disk FAB.
-    //
-    struct
-    {
-        int  m_index; // Index of the FAB.
-    }
-    msg_hdr;
-
-    VisMF::Header hdr(mf, VisMF::OneFilePerFab);
-
-    int msg_hdr_size = sizeof(msg_hdr);
-    PD::SetMessageHeaderSize(msg_hdr_size);
-
-    for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
-    {
-        aString FabFileName = mf_name;
-
-        FabFileName += VisMF::FabFileSuffix;
-        FabFileName += VisMF::ToString(mfi.index());
-
-        ofstream FabFile(FabFileName.c_str());
-
-        hdr.m_fod[mfi.index()] = VisMF::Write(mfi(), FabFileName, FabFile);
-
-        assert(hdr.m_fod[mfi.index()].m_head == 0);
-
-        if (!PD::IOProcessor())
-        {
-            msg_hdr.m_index = mfi.index();
-
-            PD::SendData(PD::IOProcessor(),
-                         &msg_hdr,
-                         FabFileName.c_str(),
-                         FabFileName.length()+1); // Include NULL in MSG.
-        }
-    }
-
-    for (int len; PD::GetMessageHeader(len, &msg_hdr); )
-    {
-        assert(PD::IOProcessor());
-
-        char* fab_name = new char[len];
-        if (fab_name == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
-
-        PD::ReceiveData(fab_name, len);
-
-        hdr.m_fod[msg_hdr.m_index].m_head = 0;
-        hdr.m_fod[msg_hdr.m_index].m_name = fab_name;
-
-        delete [] fab_name;
-    }
-
-    VisMF::WriteHeader(mf_name, hdr);
-}
-
-void
-VisMF::Write (const MultiFab& mf,
-              const aString&  mf_name,
-              VisMF::How      how)
-{
-    switch (how)
-    {
-    case OneFilePerCPU:
-        WriteOneFilePerCPU(mf, mf_name); break;
-    case OneFilePerFab:
-        WriteOneFilePerFab(mf, mf_name); break;
-    default:
-        BoxLib::Error("Bad case in switch");
-    }
 }
 
 VisMF::VisMF (const aString& mf_name)

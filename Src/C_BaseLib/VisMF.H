@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.15 1997-11-11 01:18:13 lijewski Exp $
+// $Id: VisMF.H,v 1.16 1997-11-11 21:22:50 lijewski Exp $
 //
 
 #include <MultiFab.H>
@@ -132,12 +132,6 @@ private:
     static FabOnDisk Write (const FArrayBox& fab,
                             const aString&   filename,
                             ostream&         os);
-
-    static void WriteOneFilePerCPU (const MultiFab& mf,
-                                    const aString&  mf_name);
-
-    static void WriteOneFilePerFab (const MultiFab& mf,
-                                    const aString&  mf_name);
 
     static void WriteHeader (const aString& mf_name,
                              VisMF::Header& hdr);
