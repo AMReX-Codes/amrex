@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.17 1997-11-19 17:31:19 lijewski Exp $
+// $Id: FabArray.H,v 1.18 1997-11-20 00:19:50 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -358,14 +358,19 @@ public:
     {
         faName = faname;
     }
+    //
+    // Print out some FabArray-wide statistics.
+    //
+    static void PrintStats (ostream& os);
+
 protected:
 
-    int         n_grow;
-    int         n_comp;
-    BoxArray    boxarray;
-    PArray<FAB> fabparray;
+    int                 n_grow;
+    int                 n_comp;
+    BoxArray            boxarray;
+    PArray<FAB>         fabparray;
     DistributionMapping distributionMap;
-    aString faName;
+    aString             faName;
 
 private:
     //
@@ -377,7 +382,71 @@ private:
     // This is used locally in all define functions.
     //
     void AllocFabs (int nvar);
+    //
+    // Total volume of FABs allocated on this CPU during run.
+    //
+    static double m_volume;
 };
+
+//
+// The lone static member in FabArray.
+//
+template <class T, class FAB> double FabArray<T,FAB>::m_volume;
+
+template <class T, class FAB>
+void
+FabArray<T,FAB>::PrintStats (ostream& os)
+{
+    typedef ParallelDescriptor PD;  // Local typedef for typing efficiency.
+
+    struct
+    {
+        int    m_cpu; // CPU #
+        double m_vol; // Volume of FABs on that CPU.
+    }
+    msg_hdr;
+
+    int msg_hdr_size = sizeof(msg_hdr);
+    PD::SetMessageHeaderSize(msg_hdr_size);
+
+    if (!PD::IOProcessor())
+    {
+        msg_hdr.m_cpu = PD::MyProc();
+        msg_hdr.m_vol = m_volume;
+        PD::SendData(PD::IOProcessor(), &msg_hdr, 0, 0);
+    }
+
+    PD::Synchronize();
+
+    if (PD::IOProcessor())
+    {
+        double total;
+        Array<double> volume(PD::NProcs());
+        volume[PD::MyProc()] = total = m_volume;
+
+        for (int len; PD::GetMessageHeader(len, &msg_hdr); )
+        {
+            assert(len == 0);
+            volume[msg_hdr.m_cpu] = msg_hdr.m_vol;
+            total += msg_hdr.m_vol;
+            PD::ReceiveData(0, 0);
+        }
+
+        if (total > 0)
+        {
+            os << '\n';
+            for (int i = 0; i < PD::NProcs(); i++)
+            {
+                os << "Percentage (volume-wise) of FABs allocated on CPU #"
+                   << i
+                   << ":\t"
+                   << 100.0*volume[i]/total
+                   << '\n';
+            }
+            os << '\n';
+        }
+    }
+}
 
 template <class T, class FAB> class ConstFabArrayIterator;
 
@@ -957,6 +1026,7 @@ FabArray<T,FAB>::AllocFabs (int nvar)
       if (f == 0)
           BoxLib::OutOfMemory(__FILE__, __LINE__);
       fabparray.set(fai.index(), f);
+      m_volume += tmp.volume();
   }
 }
 
