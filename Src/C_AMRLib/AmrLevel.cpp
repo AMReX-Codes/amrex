@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.38 1998-07-04 03:35:14 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.39 1998-07-08 16:33:36 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -430,7 +430,7 @@ FillPatchIterator::Initialize (int           boxGrow,
     }
     for (int i = 0; i < m_ba.length(); ++i)
     {
-        if (m_leveldata.ProcessorMap()[i] == MyProc)
+        if (m_leveldata.DistributionMap()[i] == MyProc)
         {
             m_ba.set(i, m_leveldata.boxArray()[i]);
             m_fbid[i].resize(m_amrlevel.level + 1);
@@ -449,7 +449,7 @@ FillPatchIterator::Initialize (int           boxGrow,
     //
     for (int ibox = 0; ibox < m_ba.length(); ++ibox)
     {
-        if (m_leveldata.ProcessorMap()[ibox] != MyProc)
+        if (m_leveldata.DistributionMap()[ibox] != MyProc)
             continue;
 
         unfilledThisLevel.clear();
