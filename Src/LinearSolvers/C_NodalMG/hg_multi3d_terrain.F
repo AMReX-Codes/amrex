@@ -10,7 +10,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
      & sigmaf, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
      & sigmac, scl0,sch0,scl1,sch1,scl2,sch2,
      &         regl0,regh0,regl1,regh1,regl2,regh2,
-     & ir, jr, kr, idim, idir)
+     & hx, hy, hz, ir, jr, kr, idim, idir)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2
@@ -18,6 +18,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
       integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
       integer scl0,sch0,scl1,sch1,scl2,sch2
       integer regl0,regh0,regl1,regh1,regl2,regh2
+      double precision hx, hy, hz
       double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       double precision fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
@@ -498,7 +499,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
      & sigmaf, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
      & sigmac, scl0,sch0,scl1,sch1,scl2,sch2,
      &         regl0,regh0,regl1,regh1,regl2,regh2,
-     & ir, jr, kr, ivect, ga)
+     & hx, hy, hz, ir, jr, kr, ivect, ga)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2
@@ -506,6 +507,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
       integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
       integer scl0,sch0,scl1,sch1,scl2,sch2
       integer regl0,regh0,regl1,regh1,regl2,regh2
+      double precision hx, hy, hz
       double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       double precision fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
@@ -1415,7 +1417,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
      & sigmaf, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
      & sigmac, scl0,sch0,scl1,sch1,scl2,sch2,
      &         regl0,regh0,regl1,regh1,regl2,regh2,
-     & ir, jr, kr, ga)
+     & hx, hy, hz, ir, jr, kr, ga, idd)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2
@@ -1423,13 +1425,14 @@ c Note---assumes fdst linearly interpolated from cdst along face
       integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
       integer scl0,sch0,scl1,sch1,scl2,sch2
       integer regl0,regh0,regl1,regh1,regl2,regh2
+      double precision hx, hy, hz
       double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       double precision fdst(fdstl0:fdsth0,fdstl1:fdsth1,fdstl2:fdsth2)
       double precision cdst(cdstl0:cdsth0,cdstl1:cdsth1,cdstl2:cdsth2)
       double precision sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2,5)
       double precision sigmac(scl0:sch0,scl1:sch1,scl2:sch2,5)
-      integer ir, jr, kr, ga(0:1,0:1,0:1)
+      integer ir, jr, kr, ga(0:1,0:1,0:1), idd
       double precision cen, sum, fac00, fac0, fac1, fac2, fac
       integer ic, jc, kc, if, jf, kf, ii, ji, ki, idir, jdir, kdir
       integer l, m, n
@@ -2103,13 +2106,15 @@ c-----------------------------------------------------------------------
      & cor, destl0,desth0,destl1,desth1,destl2,desth2,
      & sig, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
      & cen, cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
-     &      regl0,regh0,regl1,regh1,regl2,regh2)
+     &      regl0,regh0,regl1,regh1,regl2,regh2,
+     & hx, hy, hz)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer sfl0,sfh0,sfl1,sfh1,sfl2,sfh2
       integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
+      double precision hx, hy, hz
       double precision res(resl0:resh0,resl1:resh1,resl2:resh2)
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       double precision cor(destl0:desth0,destl1:desth1,destl2:desth2)

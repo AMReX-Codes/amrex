@@ -917,7 +917,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
      & sigmaf, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
      & sigmac, scl0,sch0,scl1,sch1,scl2,sch2,
      &         regl0,regh0,regl1,regh1,regl2,regh2,
-     & hx, hy, hz, ir, jr, kr, ga)
+     & hx, hy, hz, ir, jr, kr, ga, idd)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2
@@ -932,7 +932,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
       double precision sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
       double precision sigmac(scl0:sch0,scl1:sch1,scl2:sch2)
       double precision hx, hy, hz
-      integer ir, jr, kr, ga(0:1,0:1,0:1)
+      integer ir, jr, kr, ga(0:1,0:1,0:1), idd
       double precision r3, hxm2, hym2, hzm2, hxm2c, hym2c, hzm2c
       double precision sum, center, cfac, ffac, fac1, fac2, fac
       integer ic, jc, kc, if, jf, kf, ii, ji, ki, idir, jdir, kdir

@@ -131,7 +131,7 @@ c Note---assumes fdst linearly interpolated from cdst along edges
      & sigmaf, sfl0, sfh0, sfl1, sfh1,
      & sigmac, scl0, sch0, scl1, sch1,
      & regl0, regh0, regl1, regh1,
-     & hx, hy, ir, jr, ga)
+     & hx, hy, ir, jr, ga, idd)
       integer resl0, resh0, resl1, resh1
       integer srcl0, srch0, srcl1, srch1
       integer fdstl0, fdsth0, fdstl1, fdsth1
@@ -146,7 +146,7 @@ c Note---assumes fdst linearly interpolated from cdst along edges
       double precision sigmaf(sfl0:sfh0,sfl1:sfh1)
       double precision sigmac(scl0:sch0,scl1:sch1)
       double precision hx, hy
-      integer ir, jr, ga(0:1,0:1)
+      integer ir, jr, ga(0:1,0:1), idd
       double precision hxm2, hym2, hxm2c, hym2c, sum, center, 
      &	ffac, cfac, fac, fac1
       integer ic, jc, if, jf, ii, ji, idir, jdir, m, n
@@ -932,8 +932,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
          end if
  20      continue
       end
-
-      
+c-----------------------------------------------------------------------      
       subroutine hgfres_terrain(res, resl0, resh0, resl1, resh1,
      @ src,  srcl0, srch0, srcl1, srch1,
      @ fdst, fdstl0, fdsth0, fdstl1, fdsth1,
@@ -941,7 +940,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      @ sigmaf, sfl0, sfh0, sfl1, sfh1,
      @ sigmac, scl0, sch0, scl1, sch1,
      @ regl0, regh0, regl1, regh1,
-     @ ir, jr, idim, idir)
+     @ hx, hy, ir, jr, idim, idir)
       integer resl0, resh0, resl1, resh1
       integer srcl0, srch0, srcl1, srch1
       integer fdstl0, fdsth0, fdstl1, fdsth1
@@ -949,6 +948,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       integer sfl0, sfh0, sfl1, sfh1
       integer scl0, sch0, scl1, sch1
       integer regl0, regh0, regl1, regh1
+      double precision hx, hy
       double precision res(resl0:resh0,resl1:resh1)
       double precision src(srcl0:srch0,srcl1:srch1)
       double precision fdst(fdstl0:fdsth0,fdstl1:fdsth1)
@@ -1104,7 +1104,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
  100     continue
       end if
       end
-      
+c-----------------------------------------------------------------------      
       subroutine hgcres_terrain(res, resl0, resh0, resl1, resh1,
      @ src,  srcl0, srch0, srcl1, srch1,
      @ fdst, fdstl0, fdsth0, fdstl1, fdsth1,
@@ -1112,7 +1112,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      @ sigmaf, sfl0, sfh0, sfl1, sfh1,
      @ sigmac, scl0, sch0, scl1, sch1,
      @ regl0, regh0, regl1, regh1,
-     @ ir, jr, ga)
+     @ hx, hy, ir, jr, ga, idd)
       integer resl0, resh0, resl1, resh1
       integer srcl0, srch0, srcl1, srch1
       integer fdstl0, fdsth0, fdstl1, fdsth1
@@ -1120,13 +1120,14 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       integer sfl0, sfh0, sfl1, sfh1
       integer scl0, sch0, scl1, sch1
       integer regl0, regh0, regl1, regh1
+      double precision hx, hy
       double precision res(resl0:resh0,resl1:resh1)
       double precision src(srcl0:srch0,srcl1:srch1)
       double precision fdst(fdstl0:fdsth0,fdstl1:fdsth1)
       double precision cdst(cdstl0:cdsth0,cdstl1:cdsth1)
       double precision sigmaf(sfl0:sfh0,sfl1:sfh1, 3)
       double precision sigmac(scl0:sch0,scl1:sch1, 3)
-      integer ir, jr, ga(0:1,0:1)
+      integer ir, jr, ga(0:1,0:1), idd
       double precision sum, fac, fac1
       integer ic, jc, if, jf, ii, ji, idir, jdir, m, n
       ic = regl0
@@ -1971,13 +1972,15 @@ c-----------------------------------------------------------------------
      & dest, destl0, desth0, destl1, desth1,
      & sig, sfl0, sfh0, sfl1, sfh1,
      & cen, cenl0, cenh0, cenl1, cenh1,
-     & regl0, regh0, regl1, regh1)
+     & regl0, regh0, regl1, regh1,
+     & hx, hy)
       integer resl0, resh0, resl1, resh1
       integer srcl0, srch0, srcl1, srch1
       integer destl0, desth0, destl1, desth1
       integer sfl0, sfh0, sfl1, sfh1
       integer cenl0, cenh0, cenl1, cenh1
       integer regl0, regh0, regl1, regh1
+      double precision hx, hy
       double precision res(resl0:resh0,resl1:resh1)
       double precision src(srcl0:srch0,srcl1:srch1)
       double precision dest(destl0:desth0,destl1:desth1)
