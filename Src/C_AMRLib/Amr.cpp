@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.65 1998-12-04 17:33:24 lijewski Exp $
+// $Id: Amr.cpp,v 1.66 1998-12-05 00:39:44 almgren Exp $
 //
 
 #include <TagBox.H>
@@ -1613,7 +1613,6 @@ Amr::grid_places (int              lbase,
             ba_proj.define(new_grids[levf+1]);
             ba_proj.coarsen(ref_ratio[levf]);
             ba_proj.grow(n_proper);
-//            ba_proj = intersect(ba_proj,geom[levf].Domain());
             ba_proj.coarsen(ref_ratio[levc]);
             while (!blst.contains(ba_proj))
             {
@@ -1630,24 +1629,20 @@ Amr::grid_places (int              lbase,
         // those grids down and tag cells on intersections to ensure
         // proper nesting.
         //
-
         // NOTE: this loop replaces the previous code:
         //      if (levf < new_finest) 
         //          tags.setVal(ba_proj,TagBox::SET);
         // The problem with this code is that it effectively 
         //  "buffered the buffer cells",  i.e., the grids at level
-        //   levf+1 which were created by buffering with n_error_buf[levf+1]
+        //   levf+1 which were created by buffering with n_error_buf[levf]
         //   are then coarsened down twice to define tagging at
         //   level levc, which will then also be buffered.  This can
         //   create grids which are larger than necessary.
 
-
-if (levf < new_finest)
-            tags.setVal(ba_proj,TagBox::SET);
-
-#if 0
-        int nerr = n_error_buf[levf];
         if (levf < new_finest) {
+
+            int nerr = n_error_buf[levf];
+
             BoxList bl_tagged;
             for (int i=0; i< new_grids[levf+1].length(); i++)
               bl_tagged.add(coarsen(new_grids[levf+1][i],ref_ratio[levf]));
@@ -1671,10 +1666,10 @@ if (levf < new_finest)
             BoxList blF = complementIn(mboxF,blFcomp);
 
             BoxArray baF(blF);
+            baF.grow(n_proper);
             baF.coarsen(ref_ratio[levc]);
             tags.setVal(baF,TagBox::SET);
         }
-#endif
         //
         // Buffer error cells.
         //
