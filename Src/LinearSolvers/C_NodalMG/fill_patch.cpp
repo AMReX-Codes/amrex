@@ -16,9 +16,9 @@ extern "C"
     void FORT_FIPRODC(const Real*, intS, const Real*, intS, intS, Real*);
     void FORT_FIPRODN(const Real*, intS, const Real*, intS, intS, Real*);
 #if (BL_SPACEDIM == 2)
-    void FORT_FFCPY2(Real*, intS, const Real*, intS, intS, const int*, const int&);
+    void FORT_FFCPY2(Real*, intS, Real*, intS, intS, const int*, const int&);
 #else
-    void FORT_FFCPY2(Real*, intS, const Real*, intS, intS, const int*, const int*, const int&);
+    void FORT_FFCPY2(Real*, intS, Real*, intS, intS, const int*, const int*, const int&);
 #endif
 }
 
@@ -376,19 +376,19 @@ static inline void node_dirs(int dir[2], const IntVect& typ)
 }
 #endif
 
-
-class task_copy_2 : public task_copy
+#if 0
+class task_copy_2 : public task
 {
 public:
-    task_copy_2(MultiFab& r1, int i1, const MultiFab& r2, int i2, const Box& bx, int w)
-	: task_copy(r1, i1, r2, i2, bx), m_w(w)
+    task_copy_2(MultiFab& r1, int i1, MultiFab& r2, int i2, const Box& bx, int w)
+	: m_r1(r1), m_i1(i1), m_r2(r2), m_i2(i2), m_bx(bx), m_w(w), m_mgrow(r1.nGrow())
     {
     }
     virtual bool ready()
     {
 	if ( m_local )
 	{
-	    doit(m_smf[m_sgrid]);
+	    doit(m_r1[m_i1], m_r2[m_i2]);
 	    return true;
 	}
 #ifdef BL_USE_MPI
@@ -397,8 +397,8 @@ public:
     	MPI_Test(&m_request, &flag, &status);
 	if ( flag )
 	{
-	    if ( is_local(m_mf, m_dgrid) )
-		doit(*tmp);
+	    if ( is_local(m_r1, m_i1) )
+		doit(*tmp1, *tmp2);
 	    return true;
 	}
 	return false;
@@ -406,22 +406,54 @@ public:
 	return true;
     }
 private:
-    void doit (const FArrayBox& m_sf)
+    void doit (FArrayBox& m_mf, FArrayBox& m_sf)
     {
-	    Real* ptra = m_mf[m_dgrid].dataPtr();
-	    const Real* ptrb = m_sf.dataPtr();
-	    const Box& boxa = m_mf[m_dgrid].box();
+	    Real* ptra = m_mf.dataPtr();
+	    Real* ptrb = m_sf.dataPtr();
+	    const Box& boxa = m_mf.box();
 	    const Box& boxb = m_sf.box();
 #if (BL_SPACEDIM == 2)
 	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(m_bx), &m_w, m_mf.nComp());
 #else
-	    const int ibord = m_mf.nGrow();
+	    const int ibord = m_mgrow;
 	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(m_bx), &m_w, &ibord, m_mf.nComp());
 #endif
     }
-
+    MultiFab& m_r1;
+    const int m_i1;
+    MultiFab& m_r2;
+    const int m_i2;
+    const Box m_bx;
+    FArrayBox* tmp1;
+    FArrayBox* tmp2;
+    bool m_local;
     const int m_w;
+    MPI_Request m_request;
+    const int m_mgrow;
 };
+#endif
+
+Box w_shift(const Box& bx, const Box& bo, int b, int w)
+{
+    Box res = bx;
+    assert( w == 1 || w == -1 );
+    int i;
+    for ( i = 0; i < BL_SPACEDIM; ++i)
+    {
+	if ( bx.smallEnd(i) == bx.bigEnd(i) )
+	{
+	    for ( int j = 0; j < i; ++j )
+	    {
+		if ( bx.smallEnd(j) + b == bo.smallEnd(j) ) res.growLo(j, abs(w));
+		if ( bx.bigEnd(j)   - b == bo.bigEnd(j)   ) res.growHi(j, abs(w));
+	    }
+	    res.shift(i, w);
+	    break;
+	}
+    }
+    assert ( i < BL_SPACEDIM );
+    return res;
+}
 
 // The sequencing used in fill_internal_borders, fcpy2 and set_border_cache
 // (narrow x, medium y, wide z) is necessary to avoid overwrite problems
@@ -516,7 +548,9 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 	    if (igrid < 0 || jgrid < 0 || lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL)
 		break;
 	    const Box& b = lev_interface.node_box(level_interface::FACEDIM, iface);
-	    tl.add_task(new task_copy_2(r, igrid, r, jgrid, b, w));
+	    // tl.add_task(new task_copy_2(r, igrid, r, jgrid, b, w));
+	    tl.add_task(new task_copy(r, igrid, r, jgrid, w_shift(b, r.box(igrid), r.nGrow(),  w)));
+	    tl.add_task(new task_copy(r, jgrid, r, igrid, w_shift(b, r.box(jgrid), r.nGrow(), -w)));
 	}
     }
     else if (type(r) == IntVect::TheCellVector()) 
