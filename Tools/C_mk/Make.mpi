@@ -47,8 +47,8 @@ ifeq ($(MACHINE), Linux)
       INCLUDE_LOCATIONS += $(MPI_HOME)/include
     endif
     ifdef MPICHHOME
-      mpicharch := $(shell tarch)
-      mpichdevice := $(shell tdevice)
+      mpicharch := $(shell $(MPICHHOME)/bin/tarch)
+      mpichdevice := $(shell $(MPICHHOME)/bin/tdevice)
       BL_MPI_LIBS += -lmpich
       LIBRARY_LOCATIONS += $(MPICHHOME)/build/$(mpicharch)/$(mpichdevice)/lib
       INCLUDE_LOCATIONS += $(MPICHHOME)/build/$(mpicharch)/$(mpichdevice)/include
