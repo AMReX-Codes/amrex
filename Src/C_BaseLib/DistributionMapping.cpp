@@ -1,5 +1,5 @@
 //
-// $Id: DistributionMapping.cpp,v 1.68 2004-10-11 20:20:47 car Exp $
+// $Id: DistributionMapping.cpp,v 1.69 2004-10-11 20:33:17 car Exp $
 //
 #include <winstd.H>
 
@@ -270,27 +270,34 @@ DistributionMapping::MetisProcessorMap (const BoxArray& boxes, int nprocs)
 void
 DistributionMapping::MetisProcessorMap (const BoxArray& boxes, int nprocs)
 {
-    int n = boxes.size();
-    std::vector<int> xadj(n+1);
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::MetisProcessorMap");
+    BL_ASSERT(boxes.size() > 0);
+    BL_ASSERT(m_procmap.size() == boxes.size()+1);
+    if ( nprocs < 2 )
+    {
+	RoundRobinProcessorMap(boxes, nprocs);
+	return;
+    }
+    int nboxes = boxes.size();
+    std::vector<int> xadj(nboxes+1);
     std::vector<int> adjncy;
-    std::vector<int> vwgt(n);
+    std::vector<int> vwgt(nboxes);
     int* adjwgt = 0;
     int wgtflag = 2;
     int numflag = 0;
     int nparts  = nprocs;
     int options[5] = {0, 0, 0, 0, 0};
     int edgecut;
-    std::vector<int> part(nprocs);
-    for ( int i = 0; i < n; ++i ) 
+    for ( int i = 0; i < nboxes; ++i ) 
     {
 	vwgt[i] = boxes[i].volume();
     }
     int cnt = 0;
-    for ( int i = 0; i < n; ++i ) 
+    for ( int i = 0; i < nboxes; ++i ) 
     {
 	Box bx = BoxLib::grow(boxes[i], 1);
 	xadj[i] = cnt;
-	for ( int j = 0; i < n; ++i )
+	for ( int j = 0; j < nboxes; ++j )
 	{
 	    if ( j == i ) continue;
 	    if ( bx.intersects(boxes[j]) )
@@ -300,10 +307,12 @@ DistributionMapping::MetisProcessorMap (const BoxArray& boxes, int nprocs)
 	    }
 	}
     }
-    METIS_PartGraphRecursive(
-	    &n, &xadj[0], &adjncy[0], &vwgt[0], &adjwgt[0],
+    xadj[nboxes] = cnt;
+    METIS_PartGraphKway(
+	    &nboxes, &xadj[0], &adjncy[0], &vwgt[0], &adjwgt[0],
 	    &wgtflag, &numflag,  &nparts, options,
-	    &edgecut, &part[0]);
+	    &edgecut, &m_procmap[0]);
+    m_procmap[nboxes] = ParallelDescriptor::MyProc();
 }
 #endif
 void

@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.12 2004-04-27 17:00:44 car Exp $
+# $Id: GNUmakefile,v 1.13 2004-10-11 20:33:17 car Exp $
 #
 
 #
@@ -34,9 +34,9 @@ include $(PBOXLIB_HOME)/mk/Make.defs
 #_progs += tProfiler tWorkQueue
 #_progs += tRan
 #_progs  := tProfiler
-_progs  := tread
-_progs  := tWorkQueue
-_progs  := tParmParse
+#_progs  := tread
+#_progs  := tWorkQueue
+#_progs  := tParmParse
 _progs  := tMF
 
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/BoxLib
