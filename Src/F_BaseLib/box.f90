@@ -1071,15 +1071,13 @@ contains
 
   subroutine periodic_shift(dmn,b,nodal,pmask,shft,bxs,cnt)
 
-    implicit none
-
     type(box), intent(in)  :: dmn,b
-    logical,   intent(in)  :: nodal(b%dim),pmask(b%dim)
-    integer,   intent(out) :: shft(27,b%dim),cnt
-    type(box), intent(out) :: bxs(27)
+    logical,   intent(in)  :: nodal(:),pmask(:)
+    integer,   intent(out) :: shft(:,:),cnt
+    type(box), intent(out) :: bxs(:)
 
     type(box) :: domain, bx, src
-    integer   :: nist,njst,nkst,niend,njend,nkend,ri,rj,rk,idx(3)
+    integer   :: nbeg(3),nend(3),r(3),i,ri,rj,rk
 
     cnt = 0
 
@@ -1090,32 +1088,28 @@ contains
 
     if (contains(domain,bx)) return
 
-    nist  = 0; njst  = 0; nkst  = 0
-    niend = 0; njend = 0; nkend = 0
+    nbeg = 0
+    nend = 0
+    do i = 1,bx%dim
+       nbeg(i) = -1
+       nend(i) = +1
+    end do
 
-    nist = -1; niend = 1
-    if (bx%dim > 1) then
-       njst = -1; njend = 1
-       if (bx%dim > 2) then
-          nkst = -1; nkend = 1
-       end if
-    end if
-
-    do ri = nist, niend
+    do ri = nbeg(1), nend(1)
        if (ri /= 0 .and. (.not. is_periodic(1))) cycle
 
        if (ri /= 0 .and. is_periodic(1)) then
           bx = shift(bx,ri*extent(domain,1),1)
        end if
 
-       do rj = njst, njend
+       do rj = nbeg(2), nend(2)
           if (rj /= 0 .and. (.not. is_periodic(2))) cycle
 
           if (rj /= 0 .and. is_periodic(2)) then
              bx = shift(bx,rj*extent(domain,2),2)
           end if
 
-          do rk = nkst, nkend
+          do rk = nbeg(3), nend(3)
              if (rk /= 0 .and. (.not. is_periodic(3))) cycle
 
              if (rk /= 0 .and. is_periodic(3)) then
@@ -1129,12 +1123,8 @@ contains
              if (.not. empty(src)) then
                 cnt = cnt + 1
                 bxs(cnt) = src
-                idx(1) = ri*extent(domain,1)
-                if (bx%dim > 1) then
-                   idx(2) = rj*extent(domain,2)
-                   if (bx%dim > 2) idx(3) = rk*extent(domain,3)
-                end if
-                shft(cnt,1:bx%dim) = idx(1:bx%dim)
+                r = (/ri,rj,rk/)
+                shft(cnt,1:bx%dim) = r(1:bx%dim)
              end if
 
              if (rk /= 0 .and. is_periodic(3)) then
