@@ -893,7 +893,7 @@ c#define TURNOFF
 c 9-point variable density stencils:
 
 c Note---assumes fdst linearly interpolated from cdst along edge
-      subroutine hgfres(res, dims(res),
+      subroutine hgfres_full_stencil(res, dims(res),
      @ src,  dims(src),
      @ fdst, dims(fdst),
      @ cdst, dims(cdst),

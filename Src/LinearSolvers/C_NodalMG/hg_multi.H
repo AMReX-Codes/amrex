@@ -66,10 +66,37 @@ public:
 	smoother_mode = mode;
     }
 protected:
-    
     void alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma, 
 	Real H[], int Lev_min, int Lev_max);
     void clear();
+    void build_line_order(int lsd);
+    
+    void build_sigma(PArray<MultiFab>& Sigma);
+    
+    void alloc_sync_caches();
+    void delete_sync_caches();
+    void build_sync_cache(int mglev, int lev);
+    
+    // all these inherited in some form from amr_multigrid
+    virtual bool can_coarsen(const BoxArray& mesh, const Box& domain) const;
+    virtual void sync_interfaces();
+    
+    // special case for periodic cleanup at the end:
+    void sync_periodic_interfaces();
+    
+    virtual void mg_interpolate_level(int lto, int lfrom);
+    virtual void mg_restrict_level(int lto, int lfrom);
+    virtual void interface_residual(int mglev, int lev);
+    virtual void level_residual(MultiFab& r, MultiFab& s, MultiFab& d, int mglev, bool iclear);
+    virtual void relax(int mglev, int i1, bool is_zero);
+    virtual void cgsolve(int mglev);
+    
+    void mg_restrict(int lto, int lfrom);
+private:
+    holy_grail_amr_multigrid(const holy_grail_amr_multigrid&);
+    void operator=(const holy_grail_amr_multigrid&);
+    
+protected: 
     
     bool m_hg_terrain; // false
     bool m_hg_cross_stencil;
@@ -102,33 +129,6 @@ protected:
     
     Array< Array<int> > line_order;
     Array< Array< List<int> > > line_after;
-    
-    void build_line_order(int lsd);
-    
-    void build_sigma(PArray<MultiFab>& Sigma);
-    
-    void alloc_sync_caches();
-    void delete_sync_caches();
-    void build_sync_cache(int mglev, int lev);
-    
-    // all these inherited in some form from amr_multigrid
-    virtual bool can_coarsen(const BoxArray& mesh, const Box& domain) const;
-    virtual void sync_interfaces();
-    
-    // special case for periodic cleanup at the end:
-    void sync_periodic_interfaces();
-    
-    virtual void mg_interpolate_level(int lto, int lfrom);
-    virtual void mg_restrict_level(int lto, int lfrom);
-    virtual void interface_residual(int mglev, int lev);
-    virtual void level_residual(MultiFab& r, MultiFab& s, MultiFab& d, int mglev, bool iclear);
-    virtual void relax(int mglev, int i1, bool is_zero);
-    virtual void cgsolve(int mglev);
-    
-    void mg_restrict(int lto, int lfrom);
-private:
-    holy_grail_amr_multigrid(const holy_grail_amr_multigrid&);
-    void operator=(const holy_grail_amr_multigrid&);
     
 };
 

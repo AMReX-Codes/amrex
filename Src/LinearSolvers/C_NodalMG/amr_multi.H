@@ -44,7 +44,7 @@ public:
     virtual void relax(int mglev, int i1, bool is_zero) = 0;
     virtual void cgsolve(int mglev) = 0;
 protected:
-   void build_index();
+    void build_index();
     
     int get_amr_level(int mglev) const 
     {
