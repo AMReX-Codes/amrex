@@ -299,7 +299,7 @@ bool ArrayViewTagBox(TagBox *debugTagBox) {
   FArrayBox *debugFab = new FArrayBox(debugTagBox->box(), nvar);
   for(int nv = 0; nv < nvar; ++nv) {
     Real *debugFabPtr    = debugFab->dataPtr(nv);
-    int  *debugTagBoxPtr = debugTagBox->dataPtr(nv);
+    char  *debugTagBoxPtr = debugTagBox->dataPtr(nv);
     for(int i = 0; i < debugTagBox->box().numPts() ; ++i) {
       debugFabPtr[i] = (Real) debugTagBoxPtr[i];
     }
@@ -343,7 +343,7 @@ bool ArrayViewTagBoxArray(TagBoxArray *debugTagBoxArray) {
     TagBox    &debugTagBox = (*debugTagBoxArray)[nfab];
     for(int nv = 0; nv < nvar; ++nv) {
       Real *debugFabPtr    = debugFab.dataPtr(nv);
-      int  *debugTagBoxPtr = debugTagBox.dataPtr(nv);
+      char  *debugTagBoxPtr = debugTagBox.dataPtr(nv);
       for(int i = 0; i < debugTagBox.box().numPts() ; ++i) {
         debugFabPtr[i] = (Real) debugTagBoxPtr[i];
       }
