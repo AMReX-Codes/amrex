@@ -5,6 +5,7 @@ Release
 Release3D
 *.ncb *.opt *.plg
 grdlog
+ti_files
 chk[0-9][0-9][0-9][0-9]
 plt[0-9][0-9][0-9][0-9]
 *.pixie *.Addrs
