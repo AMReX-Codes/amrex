@@ -89,6 +89,10 @@ module stencil_module
 
 ! private f_bc_bit
 
+  interface destroy
+     module procedure stencil_destroy
+  end interface
+
 contains
 
   subroutine bc_set_bc_face(bc_face, dim, face, bc_type)
