@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.28 2001-08-09 22:42:00 marc Exp $
+// $Id: MultiGrid.cpp,v 1.29 2001-08-21 22:15:41 car Exp $
 // 
 #include <winstd.H>
 
@@ -114,8 +114,8 @@ MultiGrid::initialize ()
 
 MultiGrid::MultiGrid (LinOp &_Lp)
     :
-    Lp(_Lp),
-    initialsolution((MultiFab*)NULL)
+    initialsolution(0),
+    Lp(_Lp)
 {
     if (!initialized)
         initialize();

@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.6 2001-07-23 04:31:03 car Exp $
+# $Id: GNUmakefile,v 1.7 2001-08-21 22:16:26 car Exp $
 #
 
 #
@@ -12,22 +12,22 @@ PRECISION    = DOUBLE
 DEBUG        = TRUE
 USE_MPI      = TRUE
 USE_MPI      = FALSE
-USE_THREADS = TRUE
+USE_THREADS  = FALSE
+USE_THREADS  = TRUE
+PROFILE      = TRUE
 
 PBOXLIB_HOME = ../..
 include $(PBOXLIB_HOME)/mk/Make.defs
-
-DEFINES += -DBL_PTHREADS
-DEFINES += -DBL_PROFILING
 
 #
 # Base name of each of the executables we want to build.
 # I'm assuming that each of these is a stand-alone program,
 # that simply needs to link against BoxLib.
 #
-_progs += tVisMF tDir t8BIT tFB tFAC tCArena
-_progs += tProfiler tThread tWorkQueue
-_progs += tRan
+#_progs += tVisMF tDir t8BIT tFB tFAC tCArena
+#_progs += tProfiler tThread tWorkQueue
+#_progs += tRan
+_progs  := tProfiler
 
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/BoxLib
 ifeq ($(COMP),g++)

@@ -1,6 +1,6 @@
 
 //
-// $Id: LinOp.cpp,v 1.28 2001-08-09 22:42:00 marc Exp $
+// $Id: LinOp.cpp,v 1.29 2001-08-21 22:15:41 car Exp $
 //
 #include <winstd.H>
 
@@ -13,10 +13,7 @@
 #include <LinOp.H>
 #include <Profiler.H>
 
-#ifdef BL3_PTHREADS
-#include <BoxLib3/WorkQueue.H>
-extern BoxLib3::WorkQueue wrkq;
-#endif
+#include <WorkQueue.H>
 
 bool LinOp::initialized = false;
 int LinOp::def_harmavg  = 0;
@@ -134,14 +131,14 @@ LinOp::initConstruct (const Real* _h)
     {
         maskvals[level][i].resize(2*BL_SPACEDIM, 0);
     }
-    const int MyProc = ParallelDescriptor::MyProc();
+
     for (OrientationIter oitr; oitr; ++oitr)
     {
         Orientation face = oitr();
         const FabSet& bndry = bgb[face];
         for (int i = 0; i < gbox[level].size(); i++)
         {
-            if (bndry.DistributionMap()[i] == MyProc)
+            if (bndry.DistributionMap()[i] == ParallelDescriptor::MyProc())
             {
                 const PArray<Mask>& pam = bgb.bndryMasks(face);
                 BL_ASSERT(maskvals[level][i][face] == 0);
@@ -164,10 +161,10 @@ LinOp::apply (MultiFab&      out,
     Fapply(out,in,level);
 }
 
-#ifdef BL3_PTHREADS
+#ifdef BL_THREADS
 class task_applybc_orientation
   :
-    public BoxLib3::WorkQueue::task
+    public WorkQueue::task
 {
 public:
   task_applybc_orientation(const OrientationIter& oitr_,
@@ -180,7 +177,7 @@ public:
 			   const Array< Array< Array< Mask*> > >& maskvals_,
 			   FabSet& f_,
 			   int nc_,
-			   const REAL* h_);
+			   const Real* h_);
   virtual void run();
 private:
   const OrientationIter oitr;
@@ -210,7 +207,7 @@ task_applybc_orientation::task_applybc_orientation(const OrientationIter& oitr_,
 						   const Array< Array< Array< Mask*> > >& maskvals_,
 						   FabSet& f_,
 						   int nc_,
-						   const REAL* h_)
+						   const Real* h_)
   : oitr(oitr_), level(level_), flagden(flagden_), flagbc(flagbc_), maxorder(maxorder_),
     inout(inout_), src_comp(src_comp_), num_comp(num_comp_), cdr(cdr_), b(b_), r(r_), fs(fs_), maskvals(maskvals_), f(f_), nc(nc_), h(h_)
 {}
@@ -218,6 +215,7 @@ task_applybc_orientation::task_applybc_orientation(const OrientationIter& oitr_,
 void
 task_applybc_orientation::run()
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::run()");
     const int comp = 0;
     for (MFIter inoutmfi(inout); inoutmfi.isValid(); ++inoutmfi)
     {
@@ -244,7 +242,7 @@ task_applybc_orientation::run()
 
 class task_applybc
     :
-    public BoxLib3::WorkQueue::task
+    public WorkQueue::task
 {
 public:
     task_applybc(int flagden_, int flagbc_, int maxorder_,
@@ -255,7 +253,7 @@ public:
 		 FArrayBox& f_,
 		 const Box& vbox_,
 		 int nc_,
-		 const REAL* h_);
+		 const Real* h_);
     virtual void run();
 private:  
     const int flagden;
@@ -282,7 +280,7 @@ task_applybc::task_applybc(int flagden_, int flagbc_, int maxorder_,
 			   FArrayBox& f_,
 			   const Box& vbox_,
 			   int nc_,
-			   const REAL* h_)
+			   const Real* h_)
   : flagden(flagden_), flagbc(flagbc_), maxorder(maxorder_),
     inout(inout_), src_comp(srccomp_), cdr(cdr_), bcl(bcl_), bct(bct_), fs(fs_), m(m_), f(f_), vbox(vbox_), nc(nc_), h(h_)
 {}
@@ -290,6 +288,7 @@ task_applybc::task_applybc(int flagden_, int flagbc_, int maxorder_,
 void
 task_applybc::run()
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::run()");
   FORT_APPLYBC(&flagden, &flagbc, &maxorder,
 	       inout.dataPtr(src_comp),
 	       ARLIM(inout.loVect()), ARLIM(inout.hiVect()),
@@ -353,9 +352,9 @@ LinOp::applyBC (MultiFab&      inout,
         int cdr                            = oitr();
         const FabSet& fs                   = bgb.bndryValues(oitr());
 
-#ifdef BL3_PTHREADS
+#ifdef BL_THREADS
 #if 1
-	wrkq.add(new task_applybc_orientation(oitr, level,
+	BoxLib::theWorkQueue().add(new task_applybc_orientation(oitr, level,
 					      flagden, flagbc, maxorder,
 					      inout, src_comp, num_comp,
 					      cdr, b, r,
@@ -374,7 +373,7 @@ LinOp::applyBC (MultiFab&      inout,
             Real bcl      = r[gn];
             int bct       = b[gn][comp];
 
-	    wrkq.add(new task_applybc(flagden, flagbc, maxorder,
+	    BoxLib::theWorkQueue().add(new task_applybc(flagden, flagbc, maxorder,
 				      inout[gn], src_comp, num_comp,
 				      cdr, bct, bcl,
 				      fs[gn],
@@ -411,9 +410,7 @@ LinOp::applyBC (MultiFab&      inout,
         }
 #endif
     }
-#ifdef BL3_PTHREADS
-    wrkq.wait();
-#endif
+    BoxLib::theWorkQueue().wait();
 }
 
 void
@@ -518,15 +515,12 @@ LinOp::prepareForLevel (int level)
     }
     Array<IntVect> pshifts(27);
 
-    const int MyProc = ParallelDescriptor::MyProc();
-
     for (OrientationIter oitr; oitr; ++oitr)
     {
         Orientation face = oitr();
         //
         // Use bgb's distribution map for masks.
         //
-        const FabSet& bndry = bgb[face];
 
         for (FabSetIter bndryfsi(bgb[face]); bndryfsi.isValid(); ++bndryfsi)
         {

@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.21 2001-08-01 21:51:04 lijewski Exp $
+// $Id: main.cpp,v 1.22 2001-08-21 22:15:37 car Exp $
 //
 
 #include <fstream>
@@ -16,15 +16,9 @@
 #include <ParallelDescriptor.H>
 #include <VisMF.H>
 
-#ifdef BL3_PTHREADS
-#include <BoxLib3/WorkQueue.H>
-BoxLib3::WorkQueue wrkq;
-#endif
+#include <WorkQueue.H>
 
-#include <WritePlotFile.H>
-#ifdef MG_USE_HYPRE
-#include <HypreABec.H>
-#endif
+//#include <WritePlotFile.H>
 
 static
 Real
@@ -65,11 +59,7 @@ main (int   argc, char* argv[])
 
   ParmParse pp;
 
-#ifdef BL3_PTHREADS
-  int maxthreads = 1; pp.query("maxthreads", maxthreads);
-  wrkq.max_threads(maxthreads);
-  std::cout << "maxthreads = " << wrkq.max_threads() << std::endl;
-#endif
+  std::cout << "maxthreads = " << BoxLib::theWorkQueue().max_threads() << std::endl;
 
   // Obtain prob domain and box-list, set H per phys domain [0:1]Xn
   Box container;
@@ -123,7 +113,6 @@ main (int   argc, char* argv[])
 
   // Choose operator (Laplacian or ABecLaplacian), get tolerance, numiter
   bool ABec=false           ; pp.query("ABec",ABec);
-  bool Hypre=false          ; pp.query("Hypre", Hypre);
   Real tolerance = 1.0e-10  ; pp.query("tol", tolerance);
   Real tolerance_abs = -1.0 ; pp.query("tol_abs", tolerance_abs);
   int numiter = 41          ; pp.query("numiter", numiter);
@@ -140,7 +129,7 @@ main (int   argc, char* argv[])
   bool dump_VisMF=false     ; pp.query("dump_VisMF", dump_VisMF);
   bool dump_ascii=false     ; pp.query("dump_ascii", dump_ascii);
   int res;
-  if ( !ABec && !Hypre )
+  if ( !ABec )
     {
       // Build Laplacian operator, solver, then solve 
       Laplacian lp(bd, H[0]);
@@ -272,24 +261,6 @@ main (int   argc, char* argv[])
 	} 
 
       // Build operator, set coeffs, build solver, solve
-      if ( Hypre )
-	{
-#ifdef MG_USE_HYPRE
-	  ParmParse pp("hy");
-	  int solver_flag = 0; pp.query("solver", solver_flag);
-	  bool inhom = true; pp.query("inhom", inhom);
-	  HypreABec hp(bs, bd, H, solver_flag, false);
-	  hp.setScalars(alpha, beta);
-	  hp.setCoefficients(acoefs, bcoefs);
-	  hp.setup_solver(tolerance, tolerance_abs, maxiter);
-	  hp.solve(soln, rhs, inhom);
-	  hp.clear_solver();
-#else
-	  BoxLib::Error("No Hypre in this build");
-#endif
-	}
-      else
-	{
 	  ABecLaplacian lp(bd, H);
 	  lp.setScalars(alpha, beta);
 	  lp.setCoefficients(acoefs, bcoefs);
@@ -382,7 +353,6 @@ main (int   argc, char* argv[])
 	  // Look at operator
 	  if ( dump_Lp )
 	    std::cout << lp << std::endl;
-	}
     } // -->> solve D^2(soln)=rhs   or   (alpha*a - beta*D.(b.G))soln=rhs
 
   // Write solution, and rhs
@@ -403,11 +373,11 @@ main (int   argc, char* argv[])
       temp.copy(rhs,  0, 1, 1);
       if ( dump_Mf )
 	{
-	  writePlotFile("soln", temp, geom, IntVect(D_DECL(2,2,2)), temp.min(0));
+	    // writePlotFile("soln", temp, geom, IntVect(D_DECL(2,2,2)), temp.min(0)); FIXME
 	}
       if ( dump_VisMF )
 	{
-	  VisMF::Write(temp, "soln_vismf", VisMF::OneFilePerCPU);
+	    VisMF::Write(temp, "soln_vismf", VisMF::OneFilePerCPU);
 	}
     }
   
@@ -420,11 +390,6 @@ main (int   argc, char* argv[])
     }
 
   BoxLib::Finalize();
-
-#ifdef BL3_PROFILING
-  BL3_PROFILE_STOP(mg_main);
-  BoxLib3::Profiler::Finalize();
-#endif
 
 }
 
@@ -451,7 +416,7 @@ readBoxList(const std::string file, Box& domain)
 	  std::cerr << "readBoxList: bogus box " << tmpbox << '\n';
 	  exit(1);
         }
-      retval.append(tmpbox);
+      retval.push_back(tmpbox);
     }
   boxspec.close();
   return retval;

@@ -1,5 +1,5 @@
 //
-// $Id: BLProfiler.cpp,v 1.19 2001-08-15 16:25:21 lijewski Exp $
+// $Id: BLProfiler.cpp,v 1.20 2001-08-21 22:16:26 car Exp $
 //
 #include <winstd.H>
 
@@ -540,7 +540,7 @@ Profiler::Tag::name() const
 }
 
 void
-Profiler::Initialize(int& argc, char**& argv)
+Profiler::Initialize()
 {
     ParmParse pp("profiler");
     pp.query("filename", filename);

@@ -1,6 +1,6 @@
 
 //
-// $Id: ABecLaplacian.cpp,v 1.16 2001-08-09 22:42:00 marc Exp $
+// $Id: ABecLaplacian.cpp,v 1.17 2001-08-21 22:15:41 car Exp $
 //
 #include <winstd.H>
 
@@ -11,10 +11,7 @@
 #include <ParallelDescriptor.H>
 #include <Profiler.H>
 
-#ifdef BL3_PTHREADS
-#include <BoxLib3/WorkQueue.H>
-extern BoxLib3::WorkQueue wrkq;
-#endif
+#include <WorkQueue.H>
 
 Real ABecLaplacian::a_def     = 0.0;
 Real ABecLaplacian::b_def     = 1.0;
@@ -249,10 +246,10 @@ ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflu
 }
 
 
-#ifdef BL3_PTHREADS
+#ifdef BL_THREADS
 class task_gsrb
   :
-    public BoxLib3::WorkQueue::task
+    public WorkQueue::task
 {
 public:
   task_gsrb(FArrayBox& solnL_,
@@ -402,8 +399,8 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
 
         BL_ASSERT(bxa[solnLmfi.index()] == solnLmfi.validbox());
 
-#ifdef BL3_PTHREADS
-	wrkq.add(new task_gsrb(solnL[gn],
+#ifdef BL_THREADS
+	BoxLib::theWorkQueue().add(new task_gsrb(solnL[gn],
 			       rhsL[gn],
 			       alpha, beta,
 			       a[gn],
@@ -463,9 +460,7 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
 #endif
 #endif
     }
-#ifdef BL3_PTHREADS
-    wrkq.wait();
-#endif
+    BoxLib::theWorkQueue().wait();
 }
 
 void
