@@ -60,7 +60,7 @@ public:
     {
 	dependencies.push_back(t1);
     }
-    bool depend_ready() const;
+    bool depend_ready();
 protected:
     sequence_number m_sno;
     list<task*> dependencies;

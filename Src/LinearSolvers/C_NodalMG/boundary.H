@@ -126,7 +126,7 @@ protected:
 
 class inviscid_fluid_boundary_class : public amr_fluid_boundary_class 
 {
-    friend mixed_boundary_class;
+    friend class mixed_boundary_class;
 public:
     inviscid_fluid_boundary_class(RegType Bc[BL_SPACEDIM][2]);
     virtual ~inviscid_fluid_boundary_class();

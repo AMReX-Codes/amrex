@@ -63,14 +63,14 @@ private:
     enum
     { 
 	N_FACE_GRIDS = 2,
-	N_CORNER_GRIDS = 4,
+	N_CORNER_GRIDS = 4
     };
 #elif (BL_SPACEDIM == 3)
     enum 
     { 
 	N_FACE_GRIDS = 2,
 	N_EDGE_GRIDS = 4,
-	N_CORNER_GRIDS = 8,
+	N_CORNER_GRIDS = 8
     };
 #endif
     int status;				// tells if some arrays are shared

@@ -1,7 +1,7 @@
 #include "amr_defs.H"
 #include "hgparallel.h"
 
-bool task::depend_ready() const;
+bool task::depend_ready()
 {
     list<task*>::iterator lit = dependencies.begin();
     while ( lit != dependencies.end() )
@@ -23,9 +23,13 @@ task_copy::task_copy(MultiFab& mf, int dgrid, const MultiFab& smf, int sgrid, co
 
 bool task_copy::depends_on_q(const task* t1) const
 {
-    task_copy* t1tc = dynamic_cast<const task_copy*>(t1);
+    const task_copy* t1tc = dynamic_cast<const task_copy*>(t1);
     if ( t1tc )
     {
+    }
+    else
+    {
+	BoxLib::Abort("Nightmare");
     }
     return false;
 }
