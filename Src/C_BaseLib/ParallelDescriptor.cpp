@@ -1,15 +1,13 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.9 1998-02-17 22:42:05 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.10 1998-02-18 16:14:42 lijewski Exp $
 //
 
 #include <Utility.H>
 #include <ParallelDescriptor.H>
 
 #ifdef BL_USE_BSP
-
-#include <RunStats.H>
 
 //
 // Type of function pointer required by bsp_fold().
@@ -19,20 +17,14 @@ typedef void (*VFVVVI)(void*,void*,void*,int*);
 void
 ParallelDescriptor::Synchronize ()
 {
-    RunStats stats("parallel_sync");
-    stats.start();
     bsp_sync();
-    stats.end();
 }
 
 void
 ParallelDescriptor::Synchronize (const char* msg)
 {
     cout << "----- " << bsp_pid() << " :  about to sync:  " << msg << endl;
-    RunStats stats("parallel_sync");
-    stats.start();
     bsp_sync();
-    stats.end();
 }
 
 void
