@@ -38,6 +38,11 @@ struct HG
     static MPI_Comm mpi_comm;
     static int mpi_tag_ub;
 #endif
+    static int multigrid_maxiter;
+    static int cgsolve_maxiter;
+    static double cgsolve_tolfact;
+private:
+    static bool initialized;
 };
 
 #ifdef BL_USE_NEW_HFILES
