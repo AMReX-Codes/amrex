@@ -1,6 +1,6 @@
 
 //
-// $Id: VisMF.cpp,v 1.69 2000-10-27 00:50:18 vince Exp $
+// $Id: VisMF.cpp,v 1.70 2001-04-02 16:48:31 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -334,19 +334,23 @@ VisMF::Header::Header (const MultiFab& mf,
     m_min(m_ba.length()),
     m_max(m_ba.length())
 {
+#ifdef BL_USE_MPI
     //
     // Note that m_min and m_max are only calculated on CPU owning the fab.
     // We pass this data back to IOProcessor() so it sees the whole Header.
     //
-    Array<Real> min_n_max(2 * m_ncomp);
+    const int SeqNo  = ParallelDescriptor::SeqNum();
+    const int MyProc = ParallelDescriptor::MyProc();
+    const int NProcs = ParallelDescriptor::NProcs();
+    const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
-#ifdef BL_USE_MPI
-    const int IoProc = ParallelDescriptor::IOProcessorNumber();
-#endif
+    int rc, nFabs = 0;
 
     for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
     {
-        int idx = mfi.index();
+        nFabs++;
+
+        const int idx = mfi.index();
 
         m_min[idx].resize(m_ncomp);
         m_max[idx].resize(m_ncomp);
@@ -358,63 +362,126 @@ VisMF::Header::Header (const MultiFab& mf,
             m_min[idx][j] = mfi().min(m_ba[idx],j);
             m_max[idx][j] = mfi().max(m_ba[idx],j);
         }
-
-        if (!ParallelDescriptor::IOProcessor())
-        {
-            for (int i = 0; i < m_ncomp; i++)
-            {
-                min_n_max[i]         = m_min[idx][i];
-                min_n_max[m_ncomp+i] = m_max[idx][i];
-            }
-#ifdef BL_USE_MPI
-            int rc = MPI_Ssend(min_n_max.dataPtr(),
-                               2 * m_ncomp,
-                               mpi_data_type(min_n_max.dataPtr()),
-                               IoProc,
-                               //
-                               // We use the index as the tag for uniqueness.
-                               //
-                               idx,
-                               ParallelDescriptor::Communicator());
-
-            if (!(rc == MPI_SUCCESS))
-                ParallelDescriptor::Abort(rc);
-#endif /*BL_USE_MPI*/
-        }
     }
 
-#ifdef BL_USE_MPI
-    if (ParallelDescriptor::IOProcessor())
+    if (!ParallelDescriptor::IOProcessor())
     {
-        MPI_Status        status;
-        const Array<int>& procmap = mf.DistributionMap().ProcessorMap();
-
-        for (int idx = 0, N = procmap.length(), rc = 0; idx < N; idx++)
+        if (nFabs)
         {
-            if (!(procmap[idx] == IoProc))
-            {
-                if ((rc = MPI_Recv(min_n_max.dataPtr(),
-                                   2 * m_ncomp,
-                                   mpi_data_type(min_n_max.dataPtr()),
-                                   //
-                                   // We recieve one message for each
-                                   // index that IoProc doesn't own.
-                                   //
-                                   procmap[idx],
-                                   idx,
-                                   ParallelDescriptor::Communicator(),
-                                   &status)) != MPI_SUCCESS)
-                    ParallelDescriptor::Abort(rc);
+            Array<Real> senddata(2*m_ncomp*nFabs);
 
-                m_min[idx].resize(m_ncomp);
-                m_max[idx].resize(m_ncomp);
+            int offset = 0;
+
+            for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+            {
+                const int idx = mfi.index();
 
                 for (int i = 0; i < m_ncomp; i++)
                 {
-                    m_min[idx][i] = min_n_max[i];
-                    m_max[idx][i] = min_n_max[m_ncomp+i];
+                    senddata[offset+i]         = m_min[idx][i];
+                    senddata[offset+m_ncomp+i] = m_max[idx][i];
                 }
+
+                offset += 2*m_ncomp;
             }
+
+            BL_ASSERT(offset == 2*m_ncomp*nFabs);
+
+            if ((rc = MPI_Send(senddata.dataPtr(),
+                               2*m_ncomp*nFabs,
+                               mpi_data_type(senddata.dataPtr()),
+                               IOProc,
+                               SeqNo,
+                               ParallelDescriptor::Communicator())) != MPI_SUCCESS)
+                ParallelDescriptor::Abort(rc);
+
+            BL_ASSERT(offset == 2*m_ncomp*nFabs);
+        }
+    }
+    else
+    {
+        const Array<int>& procmap = mf.DistributionMap().ProcessorMap();
+
+        Array<int>           fabs(NProcs,0);
+        Array<int>           indx(NProcs);
+        Array<MPI_Request>   reqs(NProcs,MPI_REQUEST_NULL);
+        Array<MPI_Status>    status(NProcs);
+        Array< Array<Real> > data(NProcs);
+
+        for (int i = 0, N = procmap.length(); i < N; i++)
+            fabs[procmap[i]]++;
+
+        fabs[IOProc] = 0;
+
+        int NWaits = 0;
+
+        for (int i = 0; i < NProcs; i++)
+        {
+            if (fabs[i])
+            {
+                NWaits++;
+
+                data[i].resize(2*m_ncomp*fabs[i]);
+
+                if ((rc = MPI_Irecv(data[i].dataPtr(),
+                                   2*m_ncomp*fabs[i],
+                                   mpi_data_type(data[i].dataPtr()),
+                                   i,
+                                   SeqNo,
+                                   ParallelDescriptor::Communicator(),
+                                   &reqs[i])) != MPI_SUCCESS)
+                    ParallelDescriptor::Abort(rc);
+            }
+        }
+
+        for (int completed; NWaits > 0; NWaits -= completed)
+        {
+            if ((rc = MPI_Waitsome(NProcs,
+                                   reqs.dataPtr(),
+                                   &completed,
+                                   indx.dataPtr(),
+                                   status.dataPtr())) != MPI_SUCCESS)
+                ParallelDescriptor::Abort(rc);
+
+            for (int k = 0; k < completed; k++)
+            {
+                int Ncpu = indx[k], offset = 0;
+
+                for (int idx = 0, N = procmap.length(); idx < N; idx++)
+                {
+                    if (procmap[idx] == Ncpu)
+                    {
+                        m_min[idx].resize(m_ncomp);
+                        m_max[idx].resize(m_ncomp);
+
+                        for (int i = 0; i < m_ncomp; i++)
+                        {
+                            m_min[idx][i] = data[Ncpu][offset+i];
+                            m_max[idx][i] = data[Ncpu][offset+m_ncomp+i];
+                        }
+
+                        offset += 2*m_ncomp;
+                    }
+                }
+
+                BL_ASSERT(offset == 2*m_ncomp*fabs[Ncpu]);
+            }
+        }
+    }
+#else
+    for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+    {
+        const int idx = mfi.index();
+
+        m_min[idx].resize(m_ncomp);
+        m_max[idx].resize(m_ncomp);
+
+        BL_ASSERT(mfi().box().contains(m_ba[idx]));
+
+        for (long j = 0; j < m_ncomp; j++)
+        {
+            m_min[idx][j] = mfi().min(m_ba[idx],j);
+            m_max[idx][j] = mfi().max(m_ba[idx],j);
         }
     }
 #endif /*BL_USE_MPI*/
@@ -465,10 +532,13 @@ VisMF::Write (const MultiFab& mf,
     BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
 
 #ifdef BL_USE_MPI
-    const int IoProc = ParallelDescriptor::IOProcessorNumber();
+    const int SeqNo  = ParallelDescriptor::SeqNum();
+    const int MyProc = ParallelDescriptor::MyProc();
+    const int NProcs = ParallelDescriptor::NProcs();
+    const int IOProc = ParallelDescriptor::IOProcessorNumber();
 #endif
 
-    long bytes  = 0;
+    long bytes = 0;
 
     VisMF::Header hdr(mf, how);
 
@@ -482,7 +552,7 @@ VisMF::Write (const MultiFab& mf,
 
         for (MultiFabIterator mfi(*the_mf); mfi.isValid(); ++mfi)
         {
-            int idx = mfi.index();
+            const int idx = mfi.index();
 
             for (int j = 0; j < hdr.m_ncomp; j++)
             {
@@ -495,179 +565,132 @@ VisMF::Write (const MultiFab& mf,
 
     char buf[sizeof(int) + 1];
 
-#ifdef BL_USE_MPI
-    //
-    // Structure we use to pass FabOnDisk data to the IOProcessor.
-    // The variable length part of the message is the name of the on-disk FAB.
-    //
-    struct
-    {
-        int  m_index; // Index of the FAB.
-        long m_head;  // Offset of the FAB in the file.
-    }
-    msg_hdr;
-
-    const int   NPBUF = 512;
-    Array<char> packedbuffer(NPBUF);
-    char*       pbuf = packedbuffer.dataPtr();
-#endif
-
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
 
-    switch (how)
-    {
-    case OneFilePerCPU:
-    {
-        aString FullFileName = mf_name;
+    aString FullFileName = mf_name;
 
-        FullFileName += VisMF::FabFileSuffix;
-        sprintf(buf, "%04d", ParallelDescriptor::MyProc());
-        FullFileName += buf;
+    FullFileName += VisMF::FabFileSuffix;
+    sprintf(buf, "%04d", MyProc);
+    FullFileName += buf;
 
-        ofstream FabFile;
+    ofstream FabFile;
 
 #ifdef BL_USE_SETBUF
-        FabFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
+    FabFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
 
 #ifdef BL_USE_NEW_HFILES
-        FabFile.open(FullFileName.c_str(), ios::out|ios::trunc|ios::binary);
+    FabFile.open(FullFileName.c_str(), ios::out|ios::trunc|ios::binary);
 #else
-        FabFile.open(FullFileName.c_str(), ios::out|ios::trunc);
+    FabFile.open(FullFileName.c_str(), ios::out|ios::trunc);
 #endif
-        if (!FabFile.good())
-            Utility::FileOpenFailed(FullFileName);
+    if (!FabFile.good())
+        Utility::FileOpenFailed(FullFileName);
 
-        aString TheBaseName = VisMF::BaseName(FullFileName);
+    aString basename = VisMF::BaseName(FullFileName);
+
+    for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+        hdr.m_fod[mfi.index()] = VisMF::Write(mfi(),basename,FabFile,bytes);
+
+#ifdef BL_USE_MPI
+    if (!ParallelDescriptor::IOProcessor())
+    {
+        int rc, nFabs = 0, idx = 0;
 
         for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+            nFabs++;
+
+        if (nFabs)
         {
-            hdr.m_fod[mfi.index()] = VisMF::Write(mfi(), TheBaseName, FabFile, bytes);
+            Array<long> senddata(nFabs);
 
-            if (!ParallelDescriptor::IOProcessor())
-            {
-#ifdef BL_USE_MPI
-                msg_hdr.m_index = mfi.index();
-                msg_hdr.m_head  = hdr.m_fod[mfi.index()].m_head;
-                //
-                // Pack FAB offset, length of FAB name, and name into buffer.
-                //
-                int rc = 0, pos = 0;
+            for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+                senddata[idx++] = hdr.m_fod[mfi.index()].m_head;
 
-                if ((rc = MPI_Pack(&msg_hdr.m_head,
-                                   1,
-                                   MPI_LONG,
-                                   pbuf,
-                                   NPBUF,
-                                   &pos,
-                                   ParallelDescriptor::Communicator())) != MPI_SUCCESS)
-                    ParallelDescriptor::Abort(rc);
-
-                int len = TheBaseName.length()+1; // Includes the NULL.
-
-                if ((rc = MPI_Pack(&len,
-                                   1,
-                                   MPI_INT,
-                                   pbuf,
-                                   NPBUF,
-                                   &pos,
-                                   ParallelDescriptor::Communicator())) != MPI_SUCCESS)
-                    ParallelDescriptor::Abort(rc);
-
-                if ((rc = MPI_Pack(const_cast<char*>(TheBaseName.c_str()),
-                                   len,
-                                   MPI_CHAR,
-                                   pbuf,
-                                   NPBUF,
-                                   &pos,
-                                   ParallelDescriptor::Communicator())) != MPI_SUCCESS)
-                    ParallelDescriptor::Abort(rc);
-
-                if ((rc = MPI_Ssend(pbuf,
-                                    pos,
-                                    MPI_PACKED,
-                                    IoProc,
-                                    //
-                                    // We use index as the tag for uniqueness.
-                                    //
-                                    mfi.index(),
-                                    ParallelDescriptor::Communicator())) != MPI_SUCCESS)
-                    ParallelDescriptor::Abort(rc);
-#endif /*BL_USE_MPI*/
-            }
+            if ((rc = MPI_Send(senddata.dataPtr(),
+                               nFabs,
+                               MPI_LONG,
+                               IOProc,
+                               SeqNo,
+                               ParallelDescriptor::Communicator())) != MPI_SUCCESS)
+                ParallelDescriptor::Abort(rc);
         }
-        if (VisMF::FileOffset(FabFile) <= 0)
-            Utility::UnlinkFile(FullFileName);
-    }
-    break;
-    default:
-        BoxLib::Error("Bad case in switch");
-    }
 
-#ifdef BL_USE_MPI
-    if (ParallelDescriptor::IOProcessor())
+        BL_ASSERT(idx == nFabs);
+    }
+    else
     {
-        MPI_Status        status;
         const Array<int>& procmap = mf.DistributionMap().ProcessorMap();
 
-        for (int idx = 0, N = procmap.length(); idx < N; idx++)
+        Array<int>           fabs(NProcs,0);
+        Array<int>           indx(NProcs);
+        Array<MPI_Request>   reqs(NProcs,MPI_REQUEST_NULL);
+        Array<MPI_Status>    status(NProcs);
+        Array< Array<long> > data(NProcs);
+
+        for (int i = 0, N = procmap.length(); i < N; i++)
+            fabs[procmap[i]]++;
+
+        fabs[IOProc] = 0;
+
+        int rc, NWaits = 0;
+
+        for (int i = 0; i < NProcs; i++)
         {
-            if (!(procmap[idx] == IoProc))
+            if (fabs[i])
             {
-                int rc, len, pos = 0;
+                NWaits++;
 
-                if ((rc = MPI_Recv(pbuf,
-                                   NPBUF,
-                                   MPI_PACKED,
-                                   //
-                                   // We recieve one message for each
-                                   // index that IoProc doesn't own.
-                                   //
-                                   procmap[idx],
-                                   idx,
+                data[i].resize(fabs[i]);
+
+                if ((rc = MPI_Irecv(data[i].dataPtr(),
+                                   fabs[i],
+                                   MPI_LONG,
+                                   i,
+                                   SeqNo,
                                    ParallelDescriptor::Communicator(),
-                                   &status)) != MPI_SUCCESS)
+                                   &reqs[i])) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
-                //
-                // Unpack FAB offset, length of name, and name.
-                //
-                if ((rc = MPI_Unpack(pbuf,
-                                     NPBUF,
-                                     &pos,
-                                     &msg_hdr.m_head,
-                                     1,
-                                     MPI_LONG,
-                                     ParallelDescriptor::Communicator())) != MPI_SUCCESS)
-                    ParallelDescriptor::Abort(rc);
+            }
+        }
 
-                if ((rc = MPI_Unpack(pbuf,
-                                     NPBUF,
-                                     &pos,
-                                     &len,
-                                     1,
-                                     MPI_INT,
-                                     ParallelDescriptor::Communicator())) != MPI_SUCCESS)
-                    ParallelDescriptor::Abort(rc);
+        for (int completed; NWaits > 0; NWaits -= completed)
+        {
+            if ((rc = MPI_Waitsome(NProcs,
+                                   reqs.dataPtr(),
+                                   &completed,
+                                   indx.dataPtr(),
+                                   status.dataPtr())) != MPI_SUCCESS)
+                ParallelDescriptor::Abort(rc);
 
-                char* fab_name = new char[len];
+            for (int k = 0; k < completed; k++)
+            {
+                int Ncpu = indx[k], offset = 0;
 
-                if ((rc = MPI_Unpack(pbuf,
-                                     NPBUF,
-                                     &pos,
-                                     fab_name,
-                                     len,
-                                     MPI_CHAR,
-                                     ParallelDescriptor::Communicator())) != MPI_SUCCESS)
-                    ParallelDescriptor::Abort(rc);
-                
-                hdr.m_fod[idx].m_head = msg_hdr.m_head;
-                hdr.m_fod[idx].m_name = fab_name;
+                for (int idx = 0, N = procmap.length(); idx < N; idx++)
+                {
+                    if (procmap[idx] == Ncpu)
+                    {
+                        hdr.m_fod[idx].m_head = data[Ncpu][offset++];
 
-                delete [] fab_name;
+                        aString name = mf_name;
+
+                        name += VisMF::FabFileSuffix;
+                        sprintf(buf, "%04d", Ncpu);
+                        name += buf;
+
+                        hdr.m_fod[idx].m_name = VisMF::BaseName(name);
+                    }
+                }
+
+                BL_ASSERT(offset == fabs[Ncpu]);
             }
         }
     }
 #endif /*BL_USE_MPI*/
+
+    if (VisMF::FileOffset(FabFile) <= 0)
+        Utility::UnlinkFile(FullFileName);
 
     bytes += VisMF::WriteHeader(mf_name, hdr);
 
