@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.144 2001-07-25 23:39:18 lijewski Exp $
+// $Id: FabArray.H,v 1.145 2001-07-25 23:42:02 lijewski Exp $
 //
 
 #include <cstring>
@@ -1001,7 +1001,7 @@ template <class FAB>
 bool
 FabArray<FAB>::ok () const
 {
-    int isok = true;
+    long isok = true;
 
     for (MFIter fai(*this); fai.isValid() && isok; ++fai)
     {
