@@ -49,6 +49,14 @@ csources += fabio_c.c
 csources += timer_c.c
 csources += ppm_util_c.c
 
+ifeq ($(ARCH),Darwin)
+  ifeq ($(COMP),g95)
+    ifndef OMP
+      f90sources += omp_stubs.f90
+    endif
+  endif
+endif
+
 ifeq ($(ARCH),Linux)
   ifeq ($(COMP),g95)
     ifndef OMP
