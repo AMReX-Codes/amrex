@@ -4,7 +4,7 @@
 #define _MULTIGRID_H_
 
 //
-// $Id: MultiGrid.H,v 1.7 2000-07-17 16:58:03 sstanley Exp $
+// $Id: MultiGrid.H,v 1.8 2000-08-24 16:02:46 car Exp $
 //
 
 #include <Array.H>
@@ -13,6 +13,7 @@
 #include <MultiFab.H>
 #include <BndryData.H>
 #include <LinOp.H>
+#include <CGSolver.H>
 
 //@Man:
 /*@Memo:
@@ -207,7 +208,9 @@ public:
     //@ManDoc: set the number of post-cg relax passes
     //
     int get_nu_b () const;
-    
+
+    CGSolver::Solver getCGSolver() const;
+    void setCGSolver(CGSolver::Solver solver_);
 protected:
     //@ManMemo: Internal members
     
@@ -310,6 +313,9 @@ protected:
     //@ManDoc: default flag controlling the behaviour when the cg solver returns indicating unstable
     //
     static int def_smooth_on_cg_unstable;
+  //
+  static CGSolver::Solver def_cg_solver;
+  CGSolver::Solver cg_solver;
     //
     //@ManDoc: verbosity
     //
@@ -549,6 +555,20 @@ int
 MultiGrid::get_nu_b () const
 {
     return nu_b;
+}
+
+inline
+void
+MultiGrid::setCGSolver (CGSolver::Solver cg_solver_)
+{
+  cg_solver = cg_solver_;
+}
+
+inline
+CGSolver::Solver
+MultiGrid::getCGSolver () const
+{
+  return cg_solver;
 }
 
 inline

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiGrid.cpp,v 1.17 2000-08-09 15:38:50 lijewski Exp $
+// $Id: MultiGrid.cpp,v 1.18 2000-08-24 16:02:47 car Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -36,6 +36,7 @@ Real MultiGrid::def_atol_b      = -1.0;
 int MultiGrid::def_nu_b         = 0;
 int MultiGrid::def_numLevelsMAX = 1024;
 int MultiGrid::def_smooth_on_cg_unstable = 0;
+CGSolver::Solver MultiGrid::def_cg_solver    = CGSolver::CG;
 
 void
 MultiGrid::initialize ()
@@ -57,6 +58,17 @@ MultiGrid::initialize ()
     pp.query("nu_b", def_nu_b);
     pp.query("numLevelsMAX", def_numLevelsMAX);
     pp.query("smooth_on_cg_unstable", def_smooth_on_cg_unstable);
+    int ii;
+    pp.query("cg_solver", ii );
+    switch (ii)
+      {
+      case 0: def_cg_solver = CGSolver::CG; break;
+      case 1: def_cg_solver = CGSolver::BiCGStab; break;
+      case 2: def_cg_solver = CGSolver::CG_Alt; break;
+      default:
+	BoxLib::Error("MultiGrid::initialize(): bad cg_solver value");
+      }
+	
 
     if (ParallelDescriptor::IOProcessor() && def_verbose)
     {
@@ -72,6 +84,7 @@ MultiGrid::initialize ()
         cout << "   def_nu_b =         " << def_nu_b         << '\n';
         cout << "   def_numLevelsMAX = " << def_numLevelsMAX << '\n';
         cout << "   def_smooth_on_cg_unstable = " << def_smooth_on_cg_unstable << '\n';
+        cout << "   def_cg_solver = " << def_cg_solver << '\n';
     }
 }
 
@@ -416,9 +429,9 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
     else
     {
         bool use_mg_precond = false;
-        CGSolver cg(Lp, use_mg_precond, level);
+	CGSolver cg(Lp, use_mg_precond, level);
 	cg.setExpert(true);
-        int ret = cg.solve(solL, rhsL, rtol_b, atol_b, bc_mode);
+	int ret = cg.solve(solL, rhsL, rtol_b, atol_b, bc_mode, cg_solver);
 	if (ret != 0)
         {
             if (smooth_on_cg_unstable)

@@ -4,7 +4,7 @@
 #define _CGSOLVER_H_
 
 //
-// $Id: CGSolver.H,v 1.5 1999-02-10 21:09:44 lijewski Exp $
+// $Id: CGSolver.H,v 1.6 2000-08-24 16:02:46 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -17,7 +17,8 @@
 #include <Pointers.H>
 #include <MultiFab.H>
 #include <LinOp.H>
-#include <MultiGrid.H>
+
+class MultiGrid;
 
 //@Man:
 /*@Memo:
@@ -95,7 +96,9 @@
 class CGSolver
 {
 public:
-    //
+    enum Solver { CG, BiCGStab, CG_Alt, Automatic};
+
+  //
     //@ManDoc: constructor
     //
     CGSolver (LinOp& _Lp,
@@ -112,11 +115,12 @@ public:
     // 1 means failed for loss of precision
     // 2 means iterations exceeded
     //
-    virtual int solve (MultiFab&       solnL,
-                        const MultiFab& rhsL,
-                        Real            eps_rel = -1.0,
-                        Real            eps_abs = -1.0,
-                        LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
+    int solve (MultiFab&       solnL,
+	       const MultiFab& rhsL,
+	       Real            eps_rel = -1.0,
+	       Real            eps_abs = -1.0,
+	       LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC,
+	       Solver cg_solver_ = Automatic);
     //
     //@ManDoc: set maximum allowed number of CG iterations
     //
@@ -148,7 +152,25 @@ public:
     //
     int getVerbose ();
 
+  void setCGSolver(Solver cg_solver_);
+  Solver getCGSolver() const;
+  
 protected:
+    int solve_00 (MultiFab&       solnL,
+	       const MultiFab& rhsL,
+	       Real            eps_rel = -1.0,
+	       Real            eps_abs = -1.0,
+	       LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
+    int solve_cg (MultiFab&       solnL,
+		  const MultiFab& rhsL,
+		  Real            eps_rel = -1.0,
+		  Real            eps_abs = -1.0,
+		  LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
+    int solve_bicgstab (MultiFab&       solnL,
+		  const MultiFab& rhsL,
+		  Real            eps_rel = -1.0,
+		  Real            eps_abs = -1.0,
+		  LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
     //
     //@ManDoc: construct work space, initialize parameters
     //
@@ -180,7 +202,7 @@ protected:
     //
     //@ManDoc: compute a suitable norm of the residual, used to check stopping criteria
     //
-    Real norm (const MultiFab& res);
+    static Real norm (const MultiFab& res);
     //
     //@ManDoc: Initialized yet?
     //
@@ -201,6 +223,8 @@ protected:
     //@ManDoc: Default verbosity flag.
     //
     static int def_verbose;
+    static Solver def_cg_solver;
+    Solver cg_solver;
     //
     // The data.
     //
@@ -261,5 +285,20 @@ CGSolver::getVerbose ()
 {
     return verbose;
 }
+
+inline
+void
+CGSolver::setCGSolver(Solver cg_solver_)
+{
+  cg_solver = cg_solver_;
+}
+
+inline
+CGSolver::Solver
+CGSolver::getCGSolver() const
+{
+  return cg_solver;
+}
+
 
 #endif /*_CGSOLVER_H_*/

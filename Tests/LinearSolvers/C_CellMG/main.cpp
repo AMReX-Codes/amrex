@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.13 2000-08-02 16:11:53 car Exp $
+// $Id: main.cpp,v 1.14 2000-08-24 16:02:47 car Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -183,6 +183,8 @@ main (int   argc, char* argv[])
   int maxiter = 40; pp.query("maxiter", maxiter);
   bool mg = true; pp.query("mg", mg);
   bool cg = false; pp.query("cg", cg);
+  bool bicg = false; pp.query("bicg", bicg);
+  bool acg = false; pp.query("acg", acg);
   bool use_mg_pre=false; pp.query("mg_pre",use_mg_pre);
   bool new_bc=false; pp.query("new_bc",new_bc);
   bool dump_norm=true; pp.query("dump_norm", dump_norm);
@@ -215,9 +217,49 @@ main (int   argc, char* argv[])
 	      mg.solve(soln, rhs, tolerance, tolerance_abs);
             }
         }
-      if ( cg )
+      else if ( cg )
 	{
-	  CGSolver cg(lp,use_mg_pre);
+	  CGSolver cg(lp,use_mg_pre); cg.setCGSolver(CGSolver::CG);
+	  cg.setMaxIter(maxiter);
+	  cg.solve(soln, rhs, tolerance, tolerance_abs);
+	  if ( new_bc )
+	    {
+	      for ( MultiFabIterator mfi(rhs); mfi.isValid(); ++mfi )
+		{
+		  int i = mfi.index();  //   ^^^ using rhs to get mfi.index() yes, this is a hack
+		  for ( int n=0; n<BL_SPACEDIM; ++n )
+		    {
+		      bd.setValue(Orientation(n, Orientation::low) ,i,4.0);
+		      bd.setValue(Orientation(n, Orientation::high),i,4.0);
+                    } // -->> over dimensions
+                } // -->> over boxes in domain
+	      lp.bndryData(bd);
+	      cg.solve(soln, rhs, tolerance, tolerance_abs);
+            }
+        }
+      else if ( bicg )
+	{
+	  CGSolver cg(lp,use_mg_pre); cg.setCGSolver(CGSolver::BiCGStab);
+	  cg.setMaxIter(maxiter);
+	  cg.solve(soln, rhs, tolerance, tolerance_abs);
+	  if ( new_bc )
+	    {
+	      for ( MultiFabIterator mfi(rhs); mfi.isValid(); ++mfi )
+		{
+		  int i = mfi.index();  //   ^^^ using rhs to get mfi.index() yes, this is a hack
+		  for ( int n=0; n<BL_SPACEDIM; ++n )
+		    {
+		      bd.setValue(Orientation(n, Orientation::low) ,i,4.0);
+		      bd.setValue(Orientation(n, Orientation::high),i,4.0);
+                    } // -->> over dimensions
+                } // -->> over boxes in domain
+	      lp.bndryData(bd);
+	      cg.solve(soln, rhs, tolerance, tolerance_abs);
+            }
+        }
+      else if ( acg )
+	{
+	  CGSolver cg(lp,use_mg_pre); cg.setCGSolver(CGSolver::CG_Alt);
 	  cg.setMaxIter(maxiter);
 	  cg.solve(soln, rhs, tolerance, tolerance_abs);
 	  if ( new_bc )
@@ -311,9 +353,47 @@ main (int   argc, char* argv[])
 		  mg.solve(soln, rhs, tolerance, tolerance_abs);
 		}
 	    }
-	  if ( cg )
+	  else if ( cg )
 	    {
 	      CGSolver cg(lp,use_mg_pre);
+	      cg.setMaxIter(maxiter);
+	      cg.solve(soln, rhs, tolerance, tolerance_abs);
+	      if ( new_bc )
+		{
+		  for ( int i=0; i < bs.length(); ++i )
+		    {
+		      for ( int n=0; n<BL_SPACEDIM; ++n )
+			{
+			  bd.setValue(Orientation(n, Orientation::low) ,i,4.0);
+			  bd.setValue(Orientation(n, Orientation::high),i,4.0);
+			} // -->> over dimensions
+		    } // -->> over boxes in domain
+		  lp.bndryData(bd);
+		  cg.solve(soln, rhs, tolerance, tolerance_abs);
+		}
+	    }
+	  else if ( bicg )
+	    {
+	      CGSolver cg(lp,use_mg_pre); cg.setCGSolver(CGSolver::BiCGStab);
+	      cg.setMaxIter(maxiter);
+	      cg.solve(soln, rhs, tolerance, tolerance_abs);
+	      if ( new_bc )
+		{
+		  for ( int i=0; i < bs.length(); ++i )
+		    {
+		      for ( int n=0; n<BL_SPACEDIM; ++n )
+			{
+			  bd.setValue(Orientation(n, Orientation::low) ,i,4.0);
+			  bd.setValue(Orientation(n, Orientation::high),i,4.0);
+			} // -->> over dimensions
+		    } // -->> over boxes in domain
+		  lp.bndryData(bd);
+		  cg.solve(soln, rhs, tolerance, tolerance_abs);
+		}
+	    }
+	  else if ( acg )
+	    {
+	      CGSolver cg(lp,use_mg_pre); cg.setCGSolver(CGSolver::CG_Alt);
 	      cg.setMaxIter(maxiter);
 	      cg.solve(soln, rhs, tolerance, tolerance_abs);
 	      if ( new_bc )
