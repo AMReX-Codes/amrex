@@ -59,6 +59,12 @@ using ::size_t;
 }
 #endif
 
+#if defined( BL_SUPERUX)
+namespace std
+{
+template <class T> inline T abs(const T& r) { return (r<0)?-r:r; }
+}
+#endif
 #if defined( BL_OSF1 ) && !defined(BL_KCC_VERSION)
 namespace std
 {
