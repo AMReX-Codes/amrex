@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.139 2001-07-24 18:16:53 lijewski Exp $
+// $Id: FabArray.H,v 1.140 2001-07-24 22:42:12 car Exp $
 //
 
 #include <cstring>
@@ -26,6 +26,95 @@
 
 #include <Profiler.H>
 
+class FabArrayBase
+{
+public:
+    FabArrayBase();
+    FabArrayBase(const BoxArray& bx, int nvar, int ngrow);
+    FabArrayBase(const BoxArray& bx, int nvar, int ngrow, const DistributionMapping& map);
+    virtual ~FabArrayBase();
+    //
+    //@ManDoc: Returns the grow factor that defines the region of definition.
+    //
+    int nGrow () const;
+    //
+    //@ManDoc: Returns number of variables associated with each point (nvar).
+    //
+    int nComp () const;
+    /*@ManDoc: Returns a constant reference to the BoxArray that defines the
+               valid region associated with this FabArray.
+    */
+    const BoxArray& boxArray () const;
+
+    /*@ManDoc: Returns a constant reference to the Kth Box in the BoxArray.
+               That is, the valid region of the Kth grid.
+    */
+    virtual const Box& box (int K) const;
+
+    /*@ManDoc: Returns the Kth FABs Box in the FabArray.
+               That is, the region the Kth fab is actually defined on.
+    */
+    virtual Box fabbox (int K) const;
+    //
+    //@ManDoc: Returns the number of FABs in the FabArray..
+    //
+    size_t size () const;
+    //
+    //@ManDoc: Returns constant reference to associated DistributionMapping.
+    //
+    const DistributionMapping& DistributionMap () const;
+protected:
+    //
+    // The data ...
+    //
+    mutable BoxArray    boxarray;   /* So FabSets can modify'm */
+    DistributionMapping distributionMap;
+    int                 n_grow;
+    int                 n_comp;
+};
+
+class MFIter
+{
+public:
+    //
+    //@ManDoc: Construct a FabArrayIterator.
+    //
+    explicit MFIter(const FabArrayBase& fabarray);
+    //
+    //@ManDoc: Returns the Box at the current index in the underlying BoxArray.
+    //
+    const Box& validbox () const;
+    //
+    //@ManDoc: Returns the Box of the FAB at which we currently point.
+    //
+    Box fabbox () const;
+    //
+    //@ManDoc: Increments iterator to the next FAB in the FabArray that we own.
+    //
+    MFIter& operator++ ();
+    //
+    //@ManDoc: Increments iterator to the next FAB in the FabArray that we own.
+    //
+    MFIter operator++ (int);
+    //
+    //@ManDoc: Is the iterator valid i.e. is it associated with a FAB?
+    //
+    bool isValid ();
+    //
+    //@ManDoc: The index into the underlying BoxArray of the current FAB.
+    //
+    int index () const;
+    //
+    //@ManDoc: Constant reference to FabArray over which we're iterating.
+    //
+    operator int() const;
+
+    const FabArrayBase& theFabArrayBase () const { return fabArray; }
+
+protected:
+    const FabArrayBase& fabArray;
+    int              currentIndex;
+};
 
 //
 // A forward declaration.
@@ -33,17 +122,6 @@
 template <class FAB> class FabArray;
 template <class FAB> class FabArrayCopyDescriptor;
 template <class FAB> class ConstFabArrayIterator;
-
-/*@ManDoc: An enumumeration that controls whether or not the memory for a FAB
-           will actually be allocated on construction of a FabArray.
-           Possible values are: Fab\_noallocate and Fab\_allocate.
-*/
-
-enum FabAlloc
-{
-    Fab_noallocate = 0,
-    Fab_allocate
-};
 
 //
 //@Man:
@@ -100,9 +178,21 @@ enum FabAlloc
   This class does NOT provide a copy constructor or assignment operator.
 */
 
+/*@ManDoc: An enumumeration that controls whether or not the memory for a FAB
+           will actually be allocated on construction of a FabArray.
+           Possible values are: Fab\_noallocate and Fab\_allocate.
+*/
+
+enum FabAlloc
+{
+    Fab_noallocate = 0,
+    Fab_allocate
+};
+
 
 template <class FAB>
 class FabArray
+    : public FabArrayBase
 {
 public:
 
@@ -173,30 +263,14 @@ public:
                with the definition of the FabArray.
     */
     bool ok () const;
-    //
-    //@ManDoc: Returns the grow factor that defines the region of definition.
-    //
-    int nGrow () const;
-
-    /*@ManDoc: Returns a constant reference to the BoxArray that defines the
-               valid region associated with this FabArray.
+    /*@ManDoc: Returns a constant reference to the FAB associated with the
+               Kth element.
     */
-    const BoxArray& boxArray () const;
-
-    /*@ManDoc: Returns a constant reference to the Kth Box in the BoxArray.
-               That is, the valid region of the Kth grid.
-    */
-    virtual const Box& box (int K) const;
-
-    /*@ManDoc: Returns the Kth FABs Box in the FabArray.
-               That is, the region the Kth fab is actually defined on.
-    */
-    virtual Box fabbox (int K) const;
+    const FAB& operator[] (const MFIter& mfi) const;
     //
-    //@ManDoc: Returns the number of FABs in the FabArray..
+    //@ManDoc: Returns a reference to the FAB associated with the Kth element.
     //
-    size_t size () const;
-
+    FAB& operator[] (const MFIter& mfi);
     /*@ManDoc: Returns a constant reference to the FAB associated with the
                Kth element.
     */
@@ -205,10 +279,6 @@ public:
     //@ManDoc: Returns a reference to the FAB associated with the Kth element.
     //
     FAB& operator[] (int K);
-    //
-    //@ManDoc: Returns number of variables associated with each point (nvar).
-    //
-    int nComp () const;
     //
     //@ManDoc: Explicitly set the Kth FAB in the FabArray to point to elem.
     //
@@ -329,15 +399,7 @@ public:
         return distributionMap;
     }
 protected:
-    //
-    // The data ...
-    //
-    mutable BoxArray    boxarray;   /* So FabSets can modify'm */
     PArray<FAB>         fabparray;
-    DistributionMapping distributionMap;
-    int                 n_grow;
-    int                 n_comp;
-
 private:
     //
     // These are disallowed.
@@ -910,46 +972,18 @@ class FabArrayCopyDescriptor
     FabArrayCopyDescriptor<FAB>& operator= (const FabArrayCopyDescriptor<FAB> &);
 };
 
-//
-// Inlines.
-//
-
 template <class FAB>
-int
-FabArray<FAB>::nGrow () const
+const FAB&
+FabArray<FAB>::operator[] (const MFIter& mfi) const
 {
-    return n_grow;
+    return fabparray[mfi.index()];
 }
 
 template <class FAB>
-const BoxArray&
-FabArray<FAB>::boxArray () const
+FAB&
+FabArray<FAB>::operator[] (const MFIter& mfi)
 {
-    return boxarray;
-}
-
-template <class FAB>
-const Box&
-FabArray<FAB>::box (int K) const
-{
-    return boxarray[K];
-}
-
-template <class FAB>
-Box
-FabArray<FAB>::fabbox (int K) const
-{
-    //
-    // Do not use fabparray[K] because it may not be valid in parallel.
-    //
-    return BoxLib::grow(boxarray[K], n_grow);
-}
-
-template <class FAB>
-size_t
-FabArray<FAB>::size () const
-{
-    return boxarray.size();
+    return fabparray[mfi.index()];
 }
 
 template <class FAB>
@@ -964,13 +998,6 @@ FAB&
 FabArray<FAB>::operator[] (int K)
 {
     return fabparray[K];
-}
-
-template <class FAB>
-int
-FabArray<FAB>::nComp () const
-{
-    return n_comp;
 }
 
 template <class FAB>
@@ -1000,9 +1027,7 @@ FabArray<FAB>::setVal (value_type          val,
 template <class FAB>
 FabArray<FAB>::FabArray ()
     :
-    fabparray(0,PArrayManage),
-    n_grow(0),
-    n_comp(0)
+    fabparray(0,PArrayManage)
 {}
 
 template <class FAB>
@@ -1012,7 +1037,7 @@ FabArray<FAB>::FabArray (const BoxArray& bxs,
     :
     fabparray(0,PArrayManage)
 {
-    define(bxs,ngrow,alloc);
+    define(bxs,1,ngrow,alloc);
 }
 
 template <class FAB>
@@ -1054,25 +1079,6 @@ FabArray<FAB>::ok () const
     ParallelDescriptor::ReduceLongAnd(isok);
 
     return isok != 0;
-}
-
-template <class FAB>
-void
-FabArray<FAB>::define (const BoxArray& bxs,
-                         int             ngrow,
-                         FabAlloc        alloc)
-{
-    BL_ASSERT(boxarray.size() == 0);
-    n_grow = ngrow;
-    n_comp = 0;
-    boxarray.define(bxs);
-    distributionMap.define(boxarray,ParallelDescriptor::NProcsCFD());
-    fabparray.resize(boxarray.size());
-    if (alloc == Fab_allocate)
-    {
-        n_comp = 1;
-        AllocFabs();
-    }
 }
 
 template <class FAB>

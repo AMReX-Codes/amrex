@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.63 2001-07-24 18:16:54 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.64 2001-07-24 22:42:13 car Exp $
 //
 #include <winstd.H>
 
@@ -114,11 +114,6 @@ MultiFab::MultiFab (const BoxArray& bxs,
     :
     FabArray<FArrayBox>(bxs,ncomp,ngrow,alloc)
 {}
-
-//
-// This isn't inlined as it's virtual.
-//
-MultiFab::~MultiFab () {}
 
 void
 MultiFab::probe (std::ostream& os,

@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.28 2001-07-24 18:16:54 lijewski Exp $
+# $Id: Make.package,v 1.29 2001-07-24 22:42:12 car Exp $
 #
 
 BOXLIB_BASE=EXE
@@ -76,5 +76,6 @@ C$(BOXLIB_BASE)_sources += MultiFab.cpp
 C$(BOXLIB_BASE)_headers += MultiFab.H
 
 T_headers += FabArray.H
+C$(BOXLIB_BASE)_sources += FabArray.cpp
 
 T_headers += ccse-mpi.H
