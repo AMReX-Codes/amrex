@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxLib.cpp,v 1.7 1998-10-08 18:05:45 car Exp $
+// $Id: BoxLib.cpp,v 1.8 1998-10-08 18:19:42 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -77,7 +77,7 @@ static void write_lib_id()
 {
     fflush(0);
     const char* const boxlib = "BoxLib::";
-    fwrite(boxlib, sizeof(boxlib) - 1, 1, stderr);
+    fwrite(boxlib, strlen(boxlib), 1, stderr);
 }
 
 void
