@@ -4,7 +4,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.12 1998-05-06 17:50:44 lijewski Exp $
+// $Id: Amr.H,v 1.13 1998-05-12 22:12:42 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -293,6 +293,7 @@ protected:
     ofstream         datalog;
     int              sub_cycle;
     aString          restart_file;
+    aString          probin_file;
     LevelBld*        levelbld;
 
 private:
