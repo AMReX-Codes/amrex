@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.17 1998-06-10 22:18:58 lijewski Exp $
+// $Id: Geometry.cpp,v 1.18 1998-06-13 15:49:08 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -14,6 +14,8 @@
 RealBox Geometry::prob_domain;
 
 bool Geometry::is_periodic[BL_SPACEDIM];
+
+list<Geometry::FPB> Geometry::m_Cache;
 
 ostream&
 operator<< (ostream&        os,
@@ -49,8 +51,8 @@ operator << (ostream&               os,
 }
 
 ostream&
-operator << (ostream&                 os,
-	     const Geometry::PIRMMap& pirm)
+operator<< (ostream&                 os,
+	    const Geometry::PIRMMap& pirm)
 {
     if (pirm.size() > 0)
     {
@@ -71,22 +73,36 @@ operator << (ostream&                 os,
     return os;
 }
 
-Geometry::PIRMMap
-Geometry::computePIRMMapForMultiFab(const BoxArray& grids,
-                                    int             nGrow,
-                                    bool            no_ovlp) const
+bool
+Geometry::FPB::operator== (const FPB& rhs) const
 {
-    //
-    // Build a MultiMap of <i,PIRec> pairs, where i is the index of
-    // a "local" box in grids, and the PIRec contains srcBox/dstBox pairs
-    // mapping valid data to grow regions over periodic boundaries.
-    //
-    PIRMMap pirmmap;
+    return m_ba == rhs.m_ba && m_ngrow == rhs.m_ngrow && m_noovlp == rhs.m_noovlp;
+}
 
-    if (!isAnyPeriodic())
-        return pirmmap;
+void
+Geometry::FlushPIRMCache ()
+{
+    for (list<FPB>::iterator it = m_Cache.begin(); it != m_Cache.end(); ++it)
+    {
+        delete (*it).m_pirm;
+    }
+    m_Cache.clear();
+}
 
-    int len = grids.length();
+Geometry::PIRMMap&
+Geometry::buildPIRMMap (const BoxArray& grids,
+                        int             nGrow,
+                        bool            no_ovlp) const
+{
+    assert(isAnyPeriodic());
+    //
+    // Add new FPBs to the front of the cache.
+    //
+    m_Cache.push_front(FPB(new PIRMMap,grids,nGrow,no_ovlp));
+
+    PIRMMap& pirm = *m_Cache.front().m_pirm;
+
+    const int len = grids.length();
     //
     // Make a junk multifab to access its iterator.
     // Don't allocate any mem for it.
@@ -99,7 +115,7 @@ Geometry::computePIRMMapForMultiFab(const BoxArray& grids,
     //
     for (ConstMultiFabIterator mfmfi(mf); mfmfi.isValid(); ++mfmfi)
     {
-	Box dest = ::grow(mfmfi.validbox(), nGrow);
+        Box dest = ::grow(mfmfi.validbox(), nGrow);
 
         assert(dest.ixType().cellCentered() || dest.ixType().nodeCentered());
 
@@ -130,93 +146,60 @@ Geometry::computePIRMMapForMultiFab(const BoxArray& grids,
             doit = !::grow(::surroundingNodes(Domain()),-1).contains(dest);
         }
 
-	if (doit)
-	{
-	    for (int j = 0; j < len; j++)
-	    {
-		periodicShift(dest, grids[j], pshifts);
+        if (doit)
+        {
+            for (int j = 0; j < len; j++)
+            {
+                periodicShift(dest, grids[j], pshifts);
 
-		for (int iiv = 0; iiv < pshifts.length(); iiv++)
-		{
-		    IntVect& iv = pshifts[iiv];
-		    Box shbox(grids[j]);
-		    D_TERM( shbox.shift(0,iv[0]);,
-			    shbox.shift(1,iv[1]);,
-			    shbox.shift(2,iv[2]); );
-		    
-		    Box srcBox = dest & shbox;
-		    assert(srcBox.ok());
+                for (int iiv = 0; iiv < pshifts.length(); iiv++)
+                {
+                    Box shbox(grids[j]);
+                    shbox.shift(pshifts[iiv]);
+                    Box srcBox = dest & shbox;
+                    assert(srcBox.ok());
                     //
-		    // OK, we got an intersection.
+                    // OK, we got an intersection.
                     //
-		    Box dstBox = srcBox;
-		    D_TERM(dstBox.shift(0,-iv[0]);,
-			   dstBox.shift(1,-iv[1]);,
-			   dstBox.shift(2,-iv[2]););
+                    Box dstBox = srcBox;
+                    dstBox.shift(-pshifts[iiv]);
 
-                    pirmmap.insert(PIRMMap::value_type(mfmfi.index(),
-                                                       PIRec(j,dstBox,srcBox)));
-		}
-	    }
-	}
+                    pirm.insert(PIRMMap::value_type(mfmfi.index(),
+                                                    PIRec(j,dstBox,srcBox)));
+                }
+            }
+        }
     }
 
-    return pirmmap;
+    return pirm;
 }
 
-void
-Geometry::FillPeriodicFabArray (FabArray<Real,FArrayBox>& fa,
-				PIRMMap&                  pirm,
-				int                       sComp,
-				int                       nComp) const
+Geometry::PIRMMap&
+Geometry::getPIRMMap (const BoxArray& grids,
+                      int             nGrow,
+                      bool            no_ovlp) const
 {
-    if (!isAnyPeriodic())
-        return;
+    assert(isAnyPeriodic());
     //
-    // Assumes PIRec MultiMap built correctly (i.e. each entry indexed on
-    // local fab id, contains srcBox/dstBox pairs to copy valid data from
-    // other fabs in the array).  Assumes box-pairs constructed so that
-    // all data is "fillable" from the valid region of "fa".
+    // Have we already made one with appropriate characteristics?
     //
-    FabArrayCopyDescriptor<Real,FArrayBox> facd;
+    FPB fpb(grids,nGrow,no_ovlp);
 
-    FabArrayId faid = facd.RegisterFabArray(&fa);
+    list<FPB>::iterator find_it = m_Cache.begin();
 
-    typedef PIRMMap::iterator PIRMMapIt;
-    //
-    // Register boxes in copy decriptor.
-    //
-    for (PIRMMapIt p_it = pirm.begin(); p_it != pirm.end(); ++p_it)
+    for ( ; find_it != m_Cache.end(); ++find_it)
     {
-	(*p_it).second.fbid = facd.AddBox(faid,
-                                          (*p_it).second.srcBox,
-                                          0,
-                                          (*p_it).second.srcId,
-                                          sComp,
-                                          sComp,
-                                          nComp);
+        if (*find_it == fpb)
+            break;
     }
-    //
-    // Gather/scatter distributed data to (local) internal buffers.
-    //
-    facd.CollectData();
-    //
-    // Loop over my receiving fabs, copy periodic regions from buffered data.
-    //
-    for (FabArrayIterator<Real,FArrayBox> fai(fa); fai.isValid(false); ++fai)
+
+    if (!(find_it == m_Cache.end()))
     {
-        pair<PIRMMapIt,PIRMMapIt> range = pirm.equal_range(fai.index());
-        //
-	// For each PIRec on this fab box ...
-        //
-	for (PIRMMapIt p_it = range.first; p_it != range.second; ++p_it)
-	{
-	    const FillBoxId& fbid = (*p_it).second.fbid;
-
-	    assert(fbid.box() == (*p_it).second.srcBox);
-
-	    facd.FillFab(faid, fbid, fai(), (*p_it).second.dstBox);
-        }
+        return *(*find_it).m_pirm;
+    }
+    else
+    {
+        return buildPIRMMap(grids,nGrow,no_ovlp);
     }
 }
 
@@ -226,14 +209,66 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
                                 int       num_comp,
                                 bool      no_ovlp) const
 {
+    if (!isAnyPeriodic())
+        return;
+
+    RunStats fpb_stats("fill_periodic_bndry");
+
+    fpb_stats.start();
     //
     // Get list of intersection boxes.
     //
-    PIRMMap pirm = computePIRMMapForMultiFab(mf.boxArray(),mf.nGrow(),no_ovlp);
+    PIRMMap& pirm = getPIRMMap(mf.boxArray(),mf.nGrow(),no_ovlp);
     //
     // Fill intersection list.
     //
-    FillPeriodicFabArray(mf, pirm, src_comp, num_comp);
+    // Assumes PIRec MultiMap built correctly (i.e. each entry indexed on
+    // local fab id, contains srcBox/dstBox pairs to copy valid data from
+    // other fabs in the array).  Assumes box-pairs constructed so that
+    // all data is "fillable" from the valid region of "fa".
+    //
+    MultiFabCopyDescriptor mfcd;
+
+    MultiFabId mfid = mfcd.RegisterMultiFab(&mf);
+
+    typedef PIRMMap::iterator PIRMMapIt;
+    //
+    // Register boxes in copy decriptor.
+    //
+    for (PIRMMapIt p_it = pirm.begin(); p_it != pirm.end(); ++p_it)
+    {
+	(*p_it).second.fbid = mfcd.AddBox(mfid,
+                                          (*p_it).second.srcBox,
+                                          0,
+                                          (*p_it).second.srcId,
+                                          src_comp,
+                                          src_comp,
+                                          num_comp);
+    }
+    //
+    // Gather/scatter distributed data to (local) internal buffers.
+    //
+    mfcd.CollectData();
+    //
+    // Loop over my receiving fabs, copy periodic regions from buffered data.
+    //
+    for (MultiFabIterator mfi(mf); mfi.isValid(false); ++mfi)
+    {
+        pair<PIRMMapIt,PIRMMapIt> range = pirm.equal_range(mfi.index());
+        //
+	// For each PIRec on this fab box ...
+        //
+	for (PIRMMapIt p_it = range.first; p_it != range.second; ++p_it)
+	{
+	    const FillBoxId& fbid = (*p_it).second.fbid;
+
+	    assert(fbid.box() == (*p_it).second.srcBox);
+
+	    mfcd.FillFab(mfid, fbid, mfi(), (*p_it).second.dstBox);
+        }
+    }
+
+    fpb_stats.end();
 }
 
 Geometry::Geometry () {}
