@@ -59,13 +59,15 @@ class amr_multigrid {
 
  public:
   int pcode;
+  int integrate;
 
   amr_multigrid(Array<BoxArray>& Mesh, Array<IntVect>& Gen_ratio,
 		int Lev_min_min, int Lev_min_max, int Lev_max_max,
 		amr_boundary Boundary, int Pcode) :
     ml_mesh(Mesh), gen_ratio(Gen_ratio),
     lev_min_min(Lev_min_min), lev_min_max(Lev_min_max),
-    lev_max_max(Lev_max_max), mg_boundary(Boundary), pcode(Pcode)
+    lev_max_max(Lev_max_max), mg_boundary(Boundary), pcode(Pcode),
+    integrate(0)
   {
   }
 

@@ -34,7 +34,7 @@ extern "C" {
   void FORT_HGINTS(Real*, intS, intS, Real*, intS, Real*, intS, intS, intRS);
 #    endif
 #  endif
-  void FANRST2(Real*, intS, intS, Real*, intS, intRS);
+  void FANRST2(Real*, intS, intS, Real*, intS, intRS, const int&);
   void FANINT2(Real*, intS, intS, Real*, intS, intS, intRS);
 #endif
 }
@@ -609,9 +609,16 @@ void holy_grail_amr_multigrid::mg_restrict_level(int lto, int lfrom)
 {
   IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
   if (get_amr_level(lto) >= 0) {
-    restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
-		   bilinear_restrictor_coarse,
-		   interface[lfrom], mg_boundary);
+    if (integrate == 0) {
+      restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
+		     bilinear_restrictor_coarse,
+		     interface[lfrom], mg_boundary);
+    }
+    else {
+      restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
+		     bilinear_integrator_coarse,
+		     interface[lfrom], mg_boundary);
+    }
   }
   else {
     mg_restrict(lto, lfrom);
@@ -629,7 +636,7 @@ void holy_grail_amr_multigrid::mg_restrict(int lto, int lfrom)
     const Box& creg = interface[lto].part_fine(igrid);
     FANRST2(resid[lto][igrid].dataPtr(), dimlist(cbox), dimlist(creg),
 	    work[lfrom][igrid].dataPtr(), dimlist(fbox),
-	    D_DECL(rat[0], rat[1], rat[2]));
+	    D_DECL(rat[0], rat[1], rat[2]), integrate);
   }
 
   clear_part_interface(resid[lto], interface[lto]);

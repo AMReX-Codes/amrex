@@ -509,14 +509,28 @@ void amr_multigrid::mg_restrict_level(int lto, int lfrom)
     restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
 		   cell_average_restrictor);
   }
-  else if (get_amr_level(lto) >= 0) {
-    restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
-		   bilinear_restrictor_coarse,
-		   interface[lfrom], mg_boundary);
+  else if (integrate == 0) {
+    if (get_amr_level(lto) >= 0) {
+      restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
+		     bilinear_restrictor_coarse,
+		     interface[lfrom], mg_boundary);
+    }
+    else {
+      restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
+		     bilinear_restrictor,
+		     interface[lfrom], mg_boundary);
+    }
   }
   else {
-    restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
-		   bilinear_restrictor,
-		   interface[lfrom], mg_boundary);
+    if (get_amr_level(lto) >= 0) {
+      restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
+		     bilinear_integrator_coarse,
+		     interface[lfrom], mg_boundary);
+    }
+    else {
+      restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
+		     bilinear_integrator,
+		     interface[lfrom], mg_boundary);
+    }
   }
 }
