@@ -61,7 +61,7 @@ contains
 
   !! Converts character to uppercase
   function to_upper ( c ) result(r)
-    character r
+    character :: r
     character, intent(in) :: c
     r = c
     if ( is_lower(c) ) then

@@ -155,8 +155,8 @@ contains
       integer, intent(in) :: ng
       logical, intent(in) :: tt(:,:,:,:)
       logical, intent(out) :: bb(1-ng:,1-ng:,1-ng:)
-      integer i, j, k, l, m, n
-      integer nx, ny, nz
+      integer :: i, j, k, l, m, n
+      integer :: nx, ny, nz
 
       nz = size(tt,3); ny = size(tt,2); nx = size(tt,1)
 
@@ -186,11 +186,11 @@ contains
     type(list_box_node), pointer :: bn
 
     logical, allocatable :: buf_box(:,:,:)
-    integer    nx, ny, nz
+    integer :: nx, ny, nz
 
-    integer i, j, k, l, m, n 
-    integer num_flag
-    integer bboxinte
+    integer :: i, j, k, l, m, n 
+    integer :: num_flag
+    integer :: bboxinte
 
     call build(boxes)
 
@@ -245,7 +245,7 @@ contains
     type(list_box_node), pointer :: bn
     integer, allocatable :: sigx(:), sigy(:), sigz(:)
     integer, allocatable :: lplx(:), lply(:), lplz(:)
-    logical flag
+    logical :: flag
     type(box) :: bbx
     integer :: lo(MAX_SPACEDIM), hi(MAX_SPACEDIM)
 
@@ -282,11 +282,11 @@ contains
     real(dp_t), intent(in) ::   min_eff
 
     type(list_box_node), pointer :: bn
-    integer sigx(size(tagbox,1)), sigy(size(tagbox,2)), sigz(size(tagbox,3))
-    integer lplx(size(tagbox,1)), lply(size(tagbox,2)), lplz(size(tagbox,3))
-    logical flag
-    integer nx, ny, nz
-    real(dp_t) cur_box_eff
+    integer :: sigx(size(tagbox,1)), sigy(size(tagbox,2)), sigz(size(tagbox,3))
+    integer :: lplx(size(tagbox,1)), lply(size(tagbox,2)), lplz(size(tagbox,3))
+    logical :: flag
+    integer :: nx, ny, nz
+    real(dp_t) :: cur_box_eff
 
     nx = size(tagbox,1); ny = size(tagbox,2); nz = size(tagbox,3)
 
@@ -321,7 +321,7 @@ contains
     integer :: n
 
     integer, allocatable :: tsigx(:),tsigy(:),tsigz(:)
-    integer i, j, k, lx, ly, lz, hx, hy, hz
+    integer :: i, j, k, lx, ly, lz, hx, hy, hz
 
     sigx = 0
     sigy = 0
@@ -399,7 +399,7 @@ contains
     integer, intent(out) :: sigx(0:),sigy(0:),sigz(0:)
     integer, intent(out) :: lplx(0:),lply(0:),lplz(0:)
 
-    integer i, j, k, lx, ly, lz, hx, hy, hz
+    integer :: i, j, k, lx, ly, lz, hx, hy, hz
 
     sigx = 0
     sigy = 0
@@ -510,7 +510,7 @@ contains
     type(box), intent(in) :: bx
     logical, intent(in) :: tagbox(0:,0:,0:)
 
-    integer lx, ly, lz, hx, hy, hz
+    integer :: lx, ly, lz, hx, hy, hz
 
     lx = lwb(bx,1); ly = lwb(bx,2); lz = lwb(bx,3)
     hx = upb(bx,1); hy = upb(bx,2); hz = upb(bx,3)
@@ -571,7 +571,7 @@ contains
     integer, intent(in) :: minwidth
     integer, intent(in) :: sigx(0:), sigy(0:), sigz(0:)
 
-    integer lx, hx, ly, hy, lz, hz
+    integer :: lx, hx, ly, hy, lz, hz
 
     if ( verbose  .and. parallel_IOProcessor() ) then
        call print(value(bn), 'find_holes')
@@ -662,10 +662,10 @@ contains
     integer, intent(in) :: lplx(0:), lply(0:), lplz(0:)
 
     type(box) :: b1, b2
-    integer lx, ly, lz, hx, hy, hz, wx, wy, wz
-    integer hix, ipx
-    integer hiy, ipy
-    integer hiz, ipz
+    integer :: lx, ly, lz, hx, hy, hz, wx, wy, wz
+    integer :: hix, ipx
+    integer :: hiy, ipy
+    integer :: hiz, ipz
 
     r = .false.
 

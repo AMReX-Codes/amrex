@@ -563,7 +563,7 @@ contains
   subroutine layout_roundrobin(prc, bxs)
     integer, intent(out), dimension(:) :: prc
     type(box), intent(in), dimension(:) :: bxs
-    integer i
+    integer :: i
     prc = mod((/(i,i=0,size(bxs)-1)/),parallel_nprocs())
   end subroutine layout_roundrobin
 
@@ -1154,7 +1154,7 @@ contains
 
   subroutine boxassoc_destroy(bxasc)
     type(boxassoc), intent(inout) :: bxasc
-    integer i
+    integer :: i
     if ( .not. built_q(bxasc) ) call bl_error("BOXASSOC_DESTROY: not built")
     do i = 1, size(bxasc%bis)
        deallocate(bxasc%bis(i)%bxo_r)

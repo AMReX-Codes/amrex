@@ -137,7 +137,7 @@ contains
 
     subroutine swap_balls(m,i,j,k)
       integer, intent(in) :: m, i, j, k
-      integer dmi, djk, ii, kk
+      integer :: dmi, djk, ii, kk
 
       dmi = ball(m,i)
       ii = erase(procs(iprocs(m)), i)
@@ -150,7 +150,7 @@ contains
 
     function weights() result(r)
       real(kind=dp_t), dimension(size(procs)) :: r
-      integer j
+      integer :: j
 
       r = 0
       do j = 1, size(procs)
@@ -162,7 +162,7 @@ contains
     function weight(i) result(r)
       integer, intent(in) :: i
       real(kind=dp_t) :: r
-      integer j
+      integer :: j
 
       r = 0
       do j = 1, size(procs(iprocs(i)))

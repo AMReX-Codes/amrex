@@ -39,7 +39,7 @@ contains
     integer, intent(in), optional :: unit
     logical, intent(in), optional :: total
     integer :: un
-    character(len=3) adv
+    character(len=3) :: adv
     logical :: ltotal
     ltotal = .true.; if ( present(total) ) ltotal = total
     if ( parallel_IOProcessor() ) then

@@ -41,7 +41,7 @@ contains
     type(mt19937), intent(inout), optional :: mt
     integer, intent(in) :: mn, mx
     type(box), intent(in) :: world
-    integer i
+    integer :: i
 
     do i = 1, size(bxs)
        bxs(i) = box_random_box(world, mn, mx, mt)

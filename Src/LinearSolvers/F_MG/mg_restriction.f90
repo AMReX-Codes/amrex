@@ -119,9 +119,9 @@ contains
     logical,intent(in) :: inject
     integer,intent(in) :: mg_restriction_mode
 
-    integer :: i,ifine,m
+    integer :: i, ifine, m
 
-    real(kind=dp_t) :: fac,fac0
+    real(kind=dp_t) :: fac, fac0
 
     hif = lof(1)+size(ff,dim=1)-1
 

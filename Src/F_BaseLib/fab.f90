@@ -959,8 +959,8 @@ contains
       integer, intent(in) :: lo(:)
       type(box), intent(in) :: bx
       real(kind=dp_t), intent(in) :: fb(lo(1):,:)
-      integer n, i
-      integer nc, hi(1)
+      integer ::n, i
+      integer :: nc, hi(1)
       character(len=1) c
       nc = size(fb,dim=2)
       hi(1) = lo(1) + size(fb,dim=1) - 1
@@ -981,8 +981,8 @@ contains
       integer, intent(in) :: lo(:)
       type(box), intent(in) :: bx
       real(kind=dp_t), intent(in) :: fb(lo(1):,lo(2):,:)
-      integer n, j, i
-      integer nc, hi(2)
+      integer :: n, j, i
+      integer :: nc, hi(2)
       character(len=1) c
       nc = size(fb,dim=3)
       do i = 1, 2
@@ -1007,9 +1007,9 @@ contains
       integer, intent(in) :: lo(:)
       type(box), intent(in) :: bx
       real(kind=dp_t), intent(in) :: fb(lo(1):,lo(2):,lo(3):,:)
-      integer n, k, j, i
-      integer nc, hi(3)
-      character(len=1) c
+      integer :: n, k, j, i
+      integer :: nc, hi(3)
+      character(len=1) :: c
       nc = size(fb,dim=4)
       do i = 1, 3
          hi(i) = lo(i) + size(fb,dim=i) - 1
@@ -1129,9 +1129,9 @@ contains
       integer, intent(in) :: lo(:)
       type(box), intent(in) :: bx
       integer, intent(in) :: fb(lo(1):,lo(2):,lo(3):,:)
-      integer n, k, j, i
-      integer nc, hi(3)
-      character(len=1) c
+      integer :: n, k, j, i
+      integer :: nc, hi(3)
+      character(len=1) :: c
       nc = size(fb,dim=4)
       do i = 1, 3
          hi(i) = lo(i) + size(fb,dim=i) - 1
@@ -1203,9 +1203,9 @@ contains
       integer, intent(in) :: lo(:)
       type(box), intent(in) :: bx
       logical, intent(in) :: fb(lo(1):,:)
-      integer n, i
-      integer nc, hi(1)
-      character(len=1) c
+      integer :: n, i
+      integer :: nc, hi(1)
+      character(len=1) :: c
       nc = size(fb,dim=2)
       hi(1) = lo(1) + size(fb,dim=1) - 1
       if ( ldata ) then
@@ -1225,9 +1225,9 @@ contains
       integer, intent(in) :: lo(:)
       type(box), intent(in) :: bx
       logical, intent(in) :: fb(lo(1):,lo(2):,:)
-      integer n, j, i
-      integer nc, hi(2)
-      character(len=1) c
+      integer :: n, j, i
+      integer :: nc, hi(2)
+      character(len=1) :: c
       nc = size(fb,dim=3)
       do i = 1, 2
          hi(i) = lo(i) + size(fb,dim=i) - 1
@@ -1251,9 +1251,9 @@ contains
       integer, intent(in) :: lo(:)
       type(box), intent(in) :: bx
       logical, intent(in) :: fb(lo(1):,lo(2):,lo(3):,:)
-      integer n, k, j, i
-      integer nc, hi(3)
-      character(len=1) c
+      integer :: n, k, j, i
+      integer :: nc, hi(3)
+      character(len=1) :: c
       nc = size(fb,dim=4)
       do i = 1, 3
          hi(i) = lo(i) + size(fb,dim=i) - 1
