@@ -31,14 +31,14 @@ extern "C"
 #if (BL_SPACEDIM == 1)
 #error not relevant
 #elif (BL_SPACEDIM == 2)
-    void FORT_HGFRES_TERRAIN(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, int&, int&);
+    void FORT_HGFRES_TERRAIN(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, const int*, const int*);
     void FORT_HGCRES_TERRAIN(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, const int*);
-    void FORT_HGIRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, CRealPS, intRS, int&, int&, const int& );
-    void FORT_HGDRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, CRealPS, intRS, int&, const int& );
+    void FORT_HGIRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, CRealPS, intRS, const int *, const int *, const int* );
+    void FORT_HGDRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, CRealPS, intRS, const int *, const int* );
     void FORT_HGCRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, CRealPS, intRS, const int*);
-    void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, CRealPS, intRS, int&, const int&);
-    void FORT_HGFRES_FULL_STENCIL(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, CRealPS, intRS, int&, int&, const int&, const int&);
-    void FORT_HGORES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, CRealPS, intRS, int&, int&, const int& );
+    void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, CRealPS, intRS, const int*, const int*);
+    void FORT_HGFRES_FULL_STENCIL(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, CRealPS, intRS, const int*, const int*, const int*, const int*);
+    void FORT_HGORES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, CRealPS, intRS, const int *, const int *, const int* );
 #elif (BL_SPACEDIM == 3)
     void FORT_HGFRES_TERRAIN(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, const int*, const int*);
     void FORT_HGERES_TERRAIN(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, const int*, const int*);
@@ -456,6 +456,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	else if (m_hg_full_stencil)
 	{
 #if BL_SPACEDIM != 3
+	    const int isRZ = IsRZ();
+	    const int imax = mg_domain[mglevc].bigEnd(0) + 1;
 	    FORT_HGFRES_FULL_STENCIL(rptr, DIMLIST(sbox),
 		sptr, DIMLIST(sbox),
 		dptr, DIMLIST(fbox),
@@ -463,9 +465,9 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		sigmafptr, DIMLIST(sigmafbox),
 		sigmac.dataPtr(), DIMLIST(sigmacbox),
 		DIMLIST(creg),
-		hx, hy,
-		rat[0], rat[1], idim, idir,
-		IsRZ(), mg_domain[mglevc].bigEnd(0) + 1
+		&hx, &hy,
+		rat[0], rat[1], &idim, &idir,
+		&isRZ, &imax
 		);
 #endif
 	}
@@ -651,8 +653,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    else if (geo == level_interface::XL || geo == level_interface::XH || geo == level_interface::YL || geo == level_interface::YH) 
 	    {
 		// fine grid on two adjacent sides
-		int idim = (geo == level_interface::XL || geo == level_interface::XH) ? 0 : 1;
-		int idir = (geo & level_interface::LL) ? -1 : 1;
+		const int idim = (geo == level_interface::XL || geo == level_interface::XH) ? 0 : 1;
+		const int idir = (geo & level_interface::LL) ? -1 : 1;
 		const Box& sbox = source[lev][igrid].box();
 		const Box& fbox = cres_fbox[lev][icor];
 		const Box& cbox = cres_cbox[lev][icor];
@@ -670,6 +672,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		}
 		Real * rptr = resid[mglev][igrid].dataPtr();
 		Real * sptr = source[lev][igrid].dataPtr();
+		const int isRZ = IsRZ();
+		const int imax = mg_domain[mglevc].bigEnd(0) + 1;
 		FORT_HGFRES_FULL_STENCIL(rptr, DIMLIST(sbox),
 		    sptr, DIMLIST(sbox),
 		    fdst.dataPtr(), DIMLIST(fbox),
@@ -677,9 +681,9 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		    sigmaf.dataPtr(), DIMLIST(sigmafbox),
 		    sigmac.dataPtr(), DIMLIST(sigmacbox),
 		    DIMLIST(creg),
-		    hx, hy,
-		    rat[0], rat[1], idim, idir,
-		    IsRZ(), mg_domain[mglevc].bigEnd(0) + 1
+		    &hx, &hy,
+		    rat[0], rat[1], &idim, &idir,
+		    &isRZ, &imax
 		    );
 		// fill in the grids on the other sides, if any
 		const Box& freg = lev_interface[mglev].corner(icor);
@@ -711,6 +715,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		Real* sptr = source[lev][igrid].dataPtr();
 		const Box& fbox = dest[lev][igrid].box();
 		Real* dptr = dest[lev][igrid].dataPtr();
+		const int isRZ = IsRZ();
 		FORT_HGORES(rptr, DIMLIST(sbox),
 		    sptr, DIMLIST(sbox),
 		    dptr, DIMLIST(fbox),
@@ -718,8 +723,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		    sigmaf.dataPtr(), DIMLIST(sigmafbox),
 		    sigmac.dataPtr(), DIMLIST(sigmacbox),
 		    DIMLIST(creg),
-		    hx, hy,
-		    rat[0], rat[1], idir0, idir1, IsRZ()
+		    &hx, &hy,
+		    rat[0], rat[1], &idir0, &idir1, &isRZ
 		    );
 	    }
 	    else if (geo == (level_interface::LL | level_interface::HH) || geo == (level_interface::LH | level_interface::HL)) 
@@ -743,6 +748,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		}
 		Real* rptr = resid[mglev][igrid].dataPtr();
 		Real* sptr = source[lev][igrid].dataPtr();
+		const int isRZ = IsRZ();
 		FORT_HGDRES(rptr, DIMLIST(sbox),
 		    sptr, DIMLIST(sbox),
 		    fdst.dataPtr(), DIMLIST(fbox),
@@ -750,8 +756,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		    sigmaf.dataPtr(), DIMLIST(sigmafbox),
 		    sigmac.dataPtr(), DIMLIST(sigmacbox),
 		    DIMLIST(creg),
-		    hx, hy,
-		    rat[0], rat[1], jdir, IsRZ()
+		    &hx, &hy,
+		    rat[0], rat[1], &jdir, &isRZ
 		    );
 		// fill in the grids on the other sides, if any
 		const Box& freg = lev_interface[mglev].corner(icor);
@@ -784,6 +790,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		}
 		Real* rptr = resid[mglev][igrid].dataPtr();
 		Real* sptr = source[lev][igrid].dataPtr();
+		const int isRZ = IsRZ();
 		FORT_HGIRES(rptr, DIMLIST(sbox),
 		    sptr, DIMLIST(sbox),
 		    fdst.dataPtr(), DIMLIST(fbox),
@@ -791,8 +798,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		    sigmaf.dataPtr(), DIMLIST(sigmafbox),
 		    sigmac.dataPtr(), DIMLIST(sigmacbox),
 		    DIMLIST(creg),
-		    hx, hy,
-		    rat[0], rat[1], idir0, idir1, IsRZ()
+		    &hx, &hy,
+		    rat[0], rat[1], &idir0, &idir1, &isRZ
 		    );
 		// fill in the grids on the other sides, if any
 		const Box& freg = lev_interface[mglev].corner(icor);

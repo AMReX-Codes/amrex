@@ -31,7 +31,11 @@ extern "C"
     void FORT_HGSRST(RealPS, intS, intS, CRealPS, intS, intRS);
     void FORT_HGINTS(Real*, intS, intS, Real*, intS, const Real*, intS, intS, intRS);
     void FORT_HGCEN_TERRAIN(Real*, intS, Real*, intS, intS);
-    void FORT_HGCEN_NO_SIGMA_NODE(Real*, intS, RealPS, intS, intS, CRealPS, const int&, const int&);
+#if SPACEDIM == 2
+    void FORT_HGCEN_NO_SIGMA_NODE(Real*, intS, RealPS, intS, intS, CRealPS, const int*, const int*);
+#else
+    void FORT_HGCEN_NO_SIGMA_NODE(Real*, intS, RealPS, intS, intS, CRealPS);
+#endif
     void FORT_HGINTS_NO_SIGMA_NODE(Real*, intS, intS, CRealPS, intS, const Real*, intS, intS, intRS);
     void FORT_FANRST2(Real*, intS, intS, const Real*, intS, intRS, const int&);
     void FORT_FANINT2(Real*, intS, intS, const Real*, intS, intS, intRS);
@@ -458,8 +462,8 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
     }
     else if (m_hg_full_stencil)
     {
-#if BL_SPACEDIM != 3
 	const Real hxyz[BL_SPACEDIM] = { D_DECL( h[mglev][0], h[mglev][1], h[mglev][2] ) };
+#if BL_SPACEDIM != 3
 	for (MultiFabIterator c_mfi(cen[mglev]); c_mfi.isValid(); ++c_mfi)
 	{
 	    const Box& cenbox = c_mfi->box();
@@ -470,15 +474,17 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 	    DependentMultiFabIterator s_dmfi(c_mfi, sigma[mglev]);
 	    const Box& sigbox = s_dmfi->box();
 #if (BL_SPACEDIM == 2)
+	    const int imax = mg_domain[mglev].bigEnd(0) + 1;
+	    const int isRZ = IsRZ();
 	    FORT_HGCEN_NO_SIGMA_NODE(c_mfi->dataPtr(), DIMLIST(cenbox), sn0->dataPtr(), sn1->dataPtr(),
 		DIMLIST(sigbox), DIMLIST(reg),
-		hxyz[0], hxyz[1], IsRZ(), mg_domain[mglev].bigEnd(0) + 1
+		&hxyz[0], &hxyz[1], &isRZ, &imax
 		);
 #else
 	    FORT_HGCEN_NO_SIGMA_NODE(c_mfi->dataPtr(), DIMLIST(cenbox), sn0->dataPtr(), sn1->dataPtr(),
 		sn2->dataPtr(),
 		DIMLIST(sigbox), DIMLIST(reg),
-		hxyz[0], hxyz[1], hxyz[2]
+		&hxyz[0], &hxyz[1], &hxyz[2]
 		);
 #endif
 	}
