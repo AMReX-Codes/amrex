@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.29 2000-01-10 23:55:15 vince Exp $
+# Make.defs $Id: Make.defs,v 1.30 2000-03-16 23:15:07 car Exp $
 #
 
 #
@@ -118,6 +118,11 @@ endif
 ifndef COMP
     COMP	= CC
 endif
+
+ifndef NAMESPACE
+    NAMESPACE   = FALSE
+endif
+
 #
 # Set some reasonable defaults.
 #
@@ -248,6 +253,12 @@ ifeq ($(USE_MPI),TRUE)
     include $(PBOXLIB_HOME)/mk/Make.mpi
 else
     MPISuffix	:=
+endif
+
+ifeq ($(NAMESPACE),FALSE)
+    CPPFLAGS  += -UBL_NAMESPACE
+else
+    CPPFLAGS  += -DBL_NAMESPACE='BoxLib2'
 endif
 
 ifeq ($(PRECISION),FLOAT)
