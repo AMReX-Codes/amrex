@@ -4,6 +4,7 @@ c-----------------------------------------------------------------------
 	CHARACTER*(*) str
 	INTEGER NSTR
 	PARAMETER (NSTR = 128)
+	INTEGER istr(NSTR)
 	CALL blstr2int(istr, NSTR, str)
 	CALL bl_pp_new_cpp(ipp, istr, NSTR)
 	END
