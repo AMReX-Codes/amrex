@@ -4,11 +4,8 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.9 1997-11-10 19:30:12 lijewski Exp $
+// $Id: VisMF.H,v 1.10 1997-11-10 21:17:10 lijewski Exp $
 //
-
-#include <sys/types.h>
-#include <unistd.h>
 
 #ifdef BL_USE_NEW_HFILES
 #include <iostream>
@@ -106,11 +103,11 @@ public:
     //
     const BoxArray& boxArray () const;
     //
-    // The min of the FAB at the specified index and component.
+    // The min of the FAB (in valid region) at specified index and component.
     //
     Real min (int i, int nComp) const;
     //
-    // The max of the FAB at the specified index and component.
+    // The max of the FAB (in valid region) at specified index and component.
     //
     Real max (int i, int nComp) const;
     //
@@ -132,7 +129,7 @@ private:
     VisMF (const VisMF&);
     VisMF& operator= (const VisMF&);
     //
-    // Writes a FAB to disk returning the FabOnDisk structure.
+    // Private helper functions.
     //
     static FabOnDisk Write (const FArrayBox& fab,
                             const aString&   filename,
@@ -143,14 +140,15 @@ private:
 
     static void WriteOneFilePerFab (const MultiFab& mf,
                                     const aString&  mf_name);
-    //
-    // Read the specified FAB from disk.
-    //
-    void readFAB (int i) const;
-    //
-    // Returns the CPU number as a four character string.
-    //
+
+    static void WriteHeader (const aString& mf_name,
+                             VisMF::Header& hdr);
+
+    static aString ToString (int i);
+
     static aString TheCpuNumber ();
+
+    void readFAB (int i) const;
     //
     // The suffix appended to files containing FAB data.
     //
@@ -240,6 +238,17 @@ VisMF::max (int i, int nComp) const
     assert(0 <= i && i < m_hdr.m_ba.length());
     assert(0 <= nComp && nComp < m_hdr.m_ncomp);
     return m_hdr.m_max[i][nComp];
+}
+
+inline
+const FArrayBox&
+VisMF::operator[] (int i) const
+{
+    if (!m_pa.defined(i))
+    {
+        readFAB(i);
+    }
+    return m_pa[i];
 }
 
 #endif /*BL_VISMF_H*/

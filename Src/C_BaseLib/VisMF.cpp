@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.9 1997-11-10 19:30:13 lijewski Exp $
+// $Id: VisMF.cpp,v 1.10 1997-11-10 21:17:11 lijewski Exp $
 //
 
 #include <VisMF.H>
@@ -271,10 +271,12 @@ VisMF::Header::Header (const MultiFab& mf,
         m_min[i].resize(m_ncomp);
         m_max[i].resize(m_ncomp);
 
+        const Box& valid_box = m_ba[i];
+
         for (long j = 0; j < m_ncomp; j++)
         {
-            m_min[i][j] = mf[i].min(j);
-            m_max[i][j] = mf[i].max(j);
+            m_min[i][j] = mf[i].min(valid_box,j);
+            m_max[i][j] = mf[i].max(valid_box,j);
         }
     }
 }
@@ -283,9 +285,27 @@ aString
 VisMF::TheCpuNumber ()
 {
     //
-    // TODO -- finish this!!!
+    // TODO -- make this work in parallel.
     //
     return aString("0000");
+}
+
+void
+VisMF::WriteHeader (const aString& mf_name,
+                    VisMF::Header& hdr)
+{
+    //
+    // TODO -- make this work in parallel!!!
+    //
+    // When running in parallel only one processor should do this I/O.
+    //
+    aString MFHdrFileName = mf_name;
+
+    MFHdrFileName += VisMF::MultiFabHdrFileSuffix;
+
+    ofstream MFHdrFile(MFHdrFileName.c_str());
+
+    MFHdrFile << hdr;
 }
 
 void
@@ -297,29 +317,44 @@ VisMF::WriteOneFilePerCPU (const MultiFab& mf,
     //
     VisMF::Header hdr(mf, VisMF::OneFilePerCPU);
 
-    aString fab_file_name = mf_name;
+    aString FabFileName = mf_name;
 
-    fab_file_name += VisMF::FabFileSuffix;
-    fab_file_name += VisMF::TheCpuNumber();
+    FabFileName += VisMF::FabFileSuffix;
+    FabFileName += VisMF::TheCpuNumber();
 
     {
-        ofstream fab_file(fab_file_name.c_str());
+        ofstream FabFile(FabFileName.c_str());
+
+        if (!FabFile.good())
+        {
+            aString msg("Couldn't open file: ");
+            msg += FabFileName;
+            BoxLib::Error(msg.c_str());
+        }
 
         for (long i = 0, N = mf.length(); i < N; i++)
         {
-            hdr.m_fod[i] = VisMF::Write(mf[i], fab_file_name, fab_file);
+            hdr.m_fod[i] = VisMF::Write(mf[i], FabFileName, FabFile);
         }
     }
     //
     // The Header gets written last to its own file.
     //
-    aString mf_hdr_file_name = mf_name;
+    VisMF::WriteHeader(mf_name, hdr);
+}
 
-    mf_hdr_file_name += VisMF::MultiFabHdrFileSuffix;
+//
+// Returns the integer as an aString of at least four digits.
+//
 
-    ofstream mf_hdr_file(mf_hdr_file_name.c_str());
+aString
+VisMF::ToString (int i)
+{
+    char buf[32];
 
-    mf_hdr_file << hdr;
+    sprintf(buf, "%04d", i);
+
+    return aString(buf);
 }
 
 void
@@ -331,7 +366,28 @@ VisMF::WriteOneFilePerFab (const MultiFab& mf,
     //
     VisMF::Header hdr(mf, VisMF::OneFilePerFab);
 
-    BoxLib::Error("Not implemented");
+    for (long i = 0, N = mf.length(); i < N; i++)
+    {
+        aString FabFileName = mf_name;
+
+        FabFileName += VisMF::FabFileSuffix;
+        FabFileName += VisMF::ToString(i);
+
+        ofstream FabFile(FabFileName.c_str());
+
+        if (!FabFile.good())
+        {
+            aString msg("Couldn't open file: ");
+            msg += FabFileName;
+            BoxLib::Error(msg.c_str());
+        }
+
+        hdr.m_fod[i] = VisMF::Write(mf[i], FabFileName, FabFile);
+    }
+    //
+    // The Header gets written last to its own file.
+    //
+    VisMF::WriteHeader(mf_name, hdr);
 }
 
 void
@@ -399,21 +455,10 @@ VisMF::readFAB (int i) const
         BoxLib::Error(msg.c_str());
     }
 
-    ifs.seekg(m_hdr.m_fod[i].m_head, ios::beg);
+    if (m_hdr.m_fod[i].m_head)
+    {
+        ifs.seekg(m_hdr.m_fod[i].m_head, ios::beg);
+    }
 
     fab->readFrom(ifs);
 }
-
-const FArrayBox&
-VisMF::operator[] (int i) const
-{
-    assert(0 <= i && i < m_pa.length());
-
-    if (!m_pa.defined(i))
-    {
-        readFAB(i);
-    }
-
-    return m_pa[i];
-}
-

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tVisMF.cpp,v 1.1 1997-11-10 19:30:13 lijewski Exp $
+// $Id: tVisMF.cpp,v 1.2 1997-11-10 21:17:11 lijewski Exp $
 //
 
 #include <VisMF.H>
@@ -30,7 +30,7 @@ main ()
 
     static const aString mfName = "Spam-n-Eggs";
 
-    VisMF::Write(mf, mfName, VisMF::OneFilePerCPU);
+    VisMF::Write(mf, mfName, VisMF::OneFilePerFab);
 
     VisMF vmf(mfName);
 
