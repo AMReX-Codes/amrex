@@ -6,15 +6,18 @@ vpath %.f90 . $(VPATH_LOCATIONS)
 doc:	$(html_sources)
 	mv *.html $(hdir)
 
-clean:
+clean::
 	$(RM) ./*.o ./*.mod $(mdir)/*.mod $(odir)/*.o *.exe *~
 	$(RM) $(odir)/*.il
 	$(RM) $(tdir)/f90.depends $(tdir)/c.depends
 	$(RM) *.html
-	$(RM) TAGS
+	$(RM) TAGS deppairs
 
-realclean: clean
+realclean:: clean
 	$(RM) -fr t
+
+deppairs: $(f90sources) $(fsources)
+	perl $(MODDEP) --tsort $^ > deppairs
 
 TAGS:	$(sources)
 	etags $^
