@@ -1,78 +1,43 @@
 
 FORT_CPP = /usr/ccs/lib/cpp
 
-ifeq ($(COMP),CC)
-  CXX     := CC -h instantiate=local
-  CXXOPTF += -O2 -h new_for_init
-  CXXDEBF += -g -h new_for_init
-  override XTRADEFS += -DBL_USE_SETBUF -DBL_SETBUF_SIGNED_CHAR
-endif
-
 ifeq ($(COMP),xlC)
   CXX     := xlC
-  CXXOPTF += -qsuppress=1500-036:1500-029:1501-201:1500-010
-  CXXOPTF += -Q -O3 -qrtti=all -qarch=auto -qtune=auto
-ifeq ($(USE_THREADS),TRUE)
-  CXXOPTF += -qthreaded
-  CXXDEBF += -qthreaded
-else
-  CXXOPTF += -qnothreaded
-  CXXDEBF += -qnothreaded
-endif
+  CXXOPTF += -O2 -qrtti=all -qsuppress=1500-029
   CXXDEBF += -g
 endif
 
 ifeq ($(COMP),mpCC)
   CXX     := mpCC
-  CXXOPTF += -qsuppress=1500-036:1500-029:1501-201:1500-010
-  CXXOPTF += -Q -O3 -qrtti=all -qarch=auto -qtune=auto
-ifeq ($(USE_THREADS),TRUE)
-  CXXOPTF += -qthreaded
-  CXXDEBF += -qthreaded
-else
-  CXXOPTF += -qnothreaded
-  CXXDEBF += -qnothreaded
-endif
+  CXXOPTF += -O2 -qrtti=all -qsuppress=1500-029
   CXXDEBF += -g
 endif
 
 ifeq ($(COMP),KCC)
   CXX     := KCC
-  CXXOPTF += +K2 --no_exceptions --backend '-qmaxmem=-1'
+  CXXOPTF += +K2 -O2 --no_exceptions --backend '-qmaxmem=-1'
   CXXDEBF += +K0 --no_exceptions
-endif
-
-ifeq ($(COMP),newKCC)
-  CXX     := newKCC
-  CXXOPTF += +K2
-  CXXDEBF += +K0
 endif
 
 ifeq ($(COMP),mpKCC)
   CXX     := mpKCC
-  CXXOPTF += +K2 --no_exceptions --backend '-qmaxmem=-1'
+  CXXOPTF += +K2 -O2 --no_exceptions --backend '-qmaxmem=-1'
   CXXDEBF += +K0 --no_exceptions
-endif
-
-ifeq ($(PROFILE),TRUE)
-  #CXXPRFF  +=
-  #XTRALIBS +=
-  #FPRFF    +=
 endif
 
 FC = xlf
 fC = $(FC)
 
 ifeq ($(PRECISION),FLOAT)
-  FOPTF += -O3 -qarch=auto -qtune=auto -qsuppress=1500-036:1501-510
+  FOPTF += -O3 -qarch=auto -qtune=auto -qsuppress=1500-036
   FDEBF += -g
-  fOPTF += -O3 -qarch=auto -qtune=auto -qsuppress=1500-036:1501-510
+  fOPTF += -O3 -qarch=auto -qtune=auto -qsuppress=1500-036
   fDEBF += -g
 else
-  FOPTF += -O3 -qarch=auto -qtune=auto -qsuppress=1500-036:1501-510
-  FDEBF += -g -qdpc
-  fOPTF += -O3 -qarch=auto -qtune=auto -qsuppress=1500-036:1501-510
-  fDEBF += -g -qdpc
+  FOPTF += -qdpc -O3 -qarch=auto -qtune=auto -qsuppress=1500-036
+  FDEBF += -qdpc -g
+  fOPTF += -qdpc -O3 -qarch=auto -qtune=auto -qsuppress=1500-036
+  fDEBF += -qdpc -g
 endif
 
 ifeq ($(AIXLARGEMEM),TRUE)
@@ -83,24 +48,22 @@ ifeq ($(AIXLARGEMEM),TRUE)
   fOPTF   += -q64
   fDEBF   += -q64
   LDFLAGS += -bmaxdata:0xF0000000
-else
-#  LDFLAGS += -bmaxdata:0x80000000
 endif
 
 ifeq ($(USE_THREADS),TRUE)
 FOPTF   += -qnosave -qthreaded
 fOPTF   += -qnosave -qthreaded
-CXXOPTF +=
-CXXDEBF +=
+FDEBF   += -qnosave -qthreaded
+fDEBF   += -qnosave -qthreaded
+CXXOPTF += -qthreaded
+CXXDEBF += -qthreaded
 endif
 
-COPTF += -O2
+COPTF += -O3
 CDEBF += -g
 CPRFF +=
 
 XTRALIBS += -lm -lxlf90
-
-#DEFINES += -D_POSIX_SOURCE
 
 FORTLINK := LOWERCASE
 FORT_EXE_OUTPUT_OPTION	= ; mv $*.o $(objEXETempDir)/$*.o
