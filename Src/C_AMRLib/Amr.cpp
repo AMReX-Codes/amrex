@@ -1,6 +1,6 @@
 
 //
-// $Id: Amr.cpp,v 1.2 1997-11-19 16:25:54 lijewski Exp $
+// $Id: Amr.cpp,v 1.3 1997-11-20 17:04:57 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -19,8 +19,11 @@
 #include <Utility.H>
 
 #ifdef BL_USE_NEW_HFILES
+#include <cstdio>
 using std::ifstream;
 using std::ios;
+#else
+#include <stdio.h>
 #endif
 
 AmrLevel&
