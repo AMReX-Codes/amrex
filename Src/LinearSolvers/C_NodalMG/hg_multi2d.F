@@ -1782,6 +1782,7 @@ c interface to grid at same level:
                wrk(i,j) = aj * betm
             endif
  20         continue
+         endif
       end
 
       subroutine hgrlnb(cor, dims(cor),
