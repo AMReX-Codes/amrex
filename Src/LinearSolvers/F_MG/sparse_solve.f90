@@ -202,9 +202,9 @@ contains
     allocate(spo%smt%ia(numpts+1))
 
     !   Create the minimum box containing all the grids
-    bbox = get_box(ss, 1)
+    bbox = get_ibox(ss, 1)
     do igrid = 2,ngrids
-       bbox = box_bbox(bbox,get_box(ss,igrid))
+       bbox = box_bbox(bbox,get_ibox(ss,igrid))
     end do
 
     !   Convert the ss into CSR format.
@@ -319,8 +319,7 @@ contains
        do j = jlo,jhi
           do igrid = 1, num_grids_for_j(j)
              ig = new_iarray_ij(j,igrid)
-             sbx = get_box(ss,ig)
-             ibx = sbx
+             ibx = get_box(ss,ig)
              call set_lwb(ibx,2,j)
              call set_upb(ibx,2,j)
 
@@ -363,10 +362,10 @@ contains
           do igrid = 1, num_grids_for_j(j)
              ig = new_iarray_ij(j,igrid)
 
-             sbx = get_pbox(spo%index_into_aa,ig)
-             call set_lwb(sbx,2,j-2)
-             call set_upb(sbx,2,j+2)
-             ind => dataptr(spo%index_into_aa, ig, sbx)
+             ibx = get_pbox(spo%index_into_aa,ig)
+             call set_lwb(ibx,2,j-2)
+             call set_upb(ibx,2,j+2)
+             ind => dataptr(spo%index_into_aa, ig, ibx)
 
              mbx = get_box(mm,ig)
              call set_lwb(mbx,2,j)
@@ -393,7 +392,7 @@ contains
              do igrid = 1,ngrids
                 b = get_box(ss,igrid)
                 if (j >= b%lo(2) .and. j <= b%hi(2) .and. &
-                     k >= b%lo(3) .and. k <= b%hi(3)) n = n+1
+                    k >= b%lo(3) .and. k <= b%hi(3)) n = n+1
              end do
 
              allocate(barray(n))
@@ -404,7 +403,7 @@ contains
              do igrid = 1,ngrids
                 b = get_box(ss,igrid)
                 if (j >= b%lo(2) .and. j <= b%hi(2) .and. &
-                     k >= b%lo(3) .and. k <= b%hi(3)) then
+                    k >= b%lo(3) .and. k <= b%hi(3)) then
                    n = n+1
                    barray(n) = get_box(ss,igrid)
                    iarray(n) = igrid
@@ -432,8 +431,7 @@ contains
           do j = jlo,jhi
              do igrid = 1, num_grids_for_jk(j,k)
                 ig = new_iarray_ijk(j,k,igrid)
-                sbx = get_box(ss,ig)
-                ibx = sbx
+                ibx = get_box(ss,ig)
                 call set_lwb(ibx,2,j)
                 call set_upb(ibx,2,j)
                 call set_lwb(ibx,3,k)
@@ -462,7 +460,7 @@ contains
        end do
 
        if ( verbose > 0 ) then
-          print *,'REAL NUMPTS NUM_AA ',numpts, num_aa
+          print *,'ACTUAL NUMPTS NUM_AA ',numpts, num_aa
        end if
 
        call imultifab_fill_boundary(spo%index_into_aa)
@@ -474,15 +472,16 @@ contains
 
        do k = klo,khi
           do j = jlo,jhi
+            
              do igrid = 1, num_grids_for_jk(j,k)
                 ig = new_iarray_ijk(j,k,igrid)
 
-                sbx = get_pbox(spo%index_into_aa,ig)
-                call set_lwb(sbx,2,j-2)
-                call set_upb(sbx,2,j+2)
-                call set_lwb(sbx,3,k-2)
-                call set_upb(sbx,3,k+2)
-                ind => dataptr(spo%index_into_aa, ig, sbx)
+                ibx = get_pbox(spo%index_into_aa,ig)
+                call set_lwb(ibx,2,j-2)
+                call set_upb(ibx,2,j+2)
+                call set_lwb(ibx,3,k-2)
+                call set_upb(ibx,3,k+2)
+                ind => dataptr(spo%index_into_aa, ig, ibx)
 
                 mbx = get_box(mm,ig)
                 call set_lwb(mbx,2,j)
@@ -1654,9 +1653,13 @@ contains
 
        do igrid = 1, ngrids
           ig = new_iarray_i(igrid)
-          sp => dataptr(ss, ig)
-          mp => dataptr(mm_grown,ig)
-          ind => dataptr(spo%index_into_aa, ig)
+
+          ibx = get_box(ss,ig)
+          sp  => dataptr(ss               ,ig,ibx)
+          ind => dataptr(spo%index_into_aa,ig,ibx)
+
+          ibx = get_pbox(mm_grown,ig)
+          mp  => dataptr(mm_grown,ig,ibx)
           call create_nodal_aa_1d(sp(:,1,1,:), &
                mp(:,1,1,1),              &
                temp_aa,                  &
@@ -1685,9 +1688,13 @@ contains
        iedge = 1
        do igrid = 1, ngrids
           ig = new_iarray_i(igrid)
-          mp => dataptr(mm_grown,ig)
-          sbx = get_pbox(spo%index_into_aa,ig)
-          ind => dataptr(spo%index_into_aa,ig)
+
+          ibx = get_pbox(spo%index_into_aa,ig)
+          ind => dataptr(spo%index_into_aa,ig,ibx)
+
+          ibx = get_pbox(mm_grown,ig)
+          mp => dataptr (mm_grown,ig,ibx)
+
           call create_nodal_ja_1d(spo%smt%ja,mp(:,1,1,1),ind(:,1,1,1),iedge)
        end do
 
@@ -1755,7 +1762,7 @@ contains
              call create_nodal_aa_2d(sp(:,:,1,:), & 
                   mp(:,:,1,1),              &
                   temp_aa,                  &
-                  spo%smt%ia,     & 
+                  spo%smt%ia,               & 
                   ind(:,:,1,1),             &
                   inode,iedge,at_jhi)
 
@@ -1816,9 +1823,9 @@ contains
           do j = jlo,jhi
              n = 0
              do igrid = 1,ngrids
-                b = get_box(ss,igrid)
+                b = get_ibox(ss,igrid)
                 if (j >= b%lo(2) .and. j <= b%hi(2) .and. &
-                     k >= b%lo(3) .and. k <= b%hi(3)) n = n+1
+                    k >= b%lo(3) .and. k <= b%hi(3)) n = n+1
              end do
 
              allocate(barray(n))
@@ -1827,9 +1834,9 @@ contains
 
              n = 0
              do igrid = 1,ngrids
-                b = get_box(ss,igrid)
+                b = get_ibox(ss,igrid)
                 if (j >= b%lo(2) .and. j <= b%hi(2) .and. &
-                     k >= b%lo(3) .and. k <= b%hi(3)) then
+                    k >= b%lo(3) .and. k <= b%hi(3)) then
                    n = n+1
                    barray(n) = get_box(ss,igrid)
                    iarray(n) = igrid
@@ -1857,9 +1864,8 @@ contains
           do j = jlo,jhi
              do igrid = 1, num_grids_for_jk(j,k)
                 ig = new_iarray_ijk(j,k,igrid)
-                sbx = get_ibox(ss,ig)
-                ibx = sbx
 
+                ibx = get_ibox(ss,ig)
                 at_jhi = (j == box_upb_d(ibx,2))
                 at_khi = (k == box_upb_d(ibx,3))
 
@@ -1869,11 +1875,18 @@ contains
                 call set_upb(ibx,3,k)
                 sp => dataptr(ss, ig, ibx)
                 ind => dataptr(spo%index_into_aa, ig, ibx)
-                mp => dataptr(mm,ig,ibx)
+
+                ibx = get_pbox(mm_grown,ig)
+                call set_lwb(ibx,2,j-1)
+                call set_upb(ibx,2,j+1)
+                call set_lwb(ibx,3,k-1)
+                call set_upb(ibx,3,k+1)
+                mp => dataptr(mm_grown,ig,ibx)
+
                 call create_nodal_aa_3d(sp(:,:,:,:), &
                      mp(:,:,:,1),              &
                      temp_aa,                  &
-                     spo%smt%ia,     & 
+                     spo%smt%ia,               & 
                      ind(:,:,:,1),             &
                      inode,iedge,at_jhi,at_khi)
              end do
@@ -1905,23 +1918,25 @@ contains
              do igrid = 1, num_grids_for_jk(j,k)
                 ig = new_iarray_ijk(j,k,igrid)
 
-                sbx = get_pbox(spo%index_into_aa,ig)
-                call set_lwb(sbx,2,j-2)
-                call set_upb(sbx,2,j+2)
-                call set_lwb(sbx,3,k-2)
-                call set_upb(sbx,3,k+2)
-                ind => dataptr(spo%index_into_aa, ig, sbx)
+                jbox = get_ibox(spo%index_into_aa,ig)
+                at_jhi = (j == box_upb_d(jbox,2))
+                at_khi = (k == box_upb_d(jbox,3))
 
-                mbx = get_box(mm,ig)
-                call set_lwb(mbx,2,j)
-                call set_upb(mbx,2,j)
-                call set_lwb(mbx,3,k)
-                call set_upb(mbx,3,k)
-                mp => dataptr(mm,ig,mbx)
+                ibx = get_pbox(spo%index_into_aa,ig)
+                call set_lwb(ibx,2,j-1)
+                call set_upb(ibx,2,j+1)
+                call set_lwb(ibx,3,k-1)
+                call set_upb(ibx,3,k+1)
+                ind => dataptr(spo%index_into_aa, ig, ibx)
 
-                at_jhi = (j == box_upb_d(ibx,2))
-                at_khi = (k == box_upb_d(ibx,3))
+                ibx = get_pbox(mm_grown,ig)
+                call set_lwb(ibx,2,j-1)
+                call set_upb(ibx,2,j+1)
+                call set_lwb(ibx,3,k-1)
+                call set_upb(ibx,3,k+1)
+                mp => dataptr(mm_grown,ig,ibx)
 
+                print *,'CALLING WITH J K ',j,k
                 call create_nodal_ja_3d(spo%smt%ja,mp(:,:,:,1),ind(:,:,:,1),iedge, &
                                         at_jhi,at_khi)
              end do
@@ -2039,113 +2054,83 @@ contains
       integer           , intent(inout) :: inode,iedge
       logical           , intent(in   ) :: at_jhi
 
-      integer :: i,j,nx,ny
+      logical :: at_ihi
+      logical :: neu_lo_i,neu_lo_j,neu_hi_i,neu_hi_j
+      integer :: i,j,nx
       integer :: iedge0
 
       nx = size(sp,dim=1)
-      ny = size(sp,dim=2)
 
       j = 1
       iedge0 = iedge
 
-      !   **************************************************************************
+!     **************************************************************************
+!     Note: only do high side if Neumann; otherwise is Dirichlet (in which case 
+!     we don't include it) or it has been taken care of by the grid on the
+!     other side.
+!     **************************************************************************
 
-      do i = 1, nx-1
+      do i = 1, nx
+         at_ihi = (i.eq.nx)
          if (.not. bc_dirichlet(mp(i,j),1,0)) then
-           if (.not. at_jhi .or. bc_neumann(mp(i,j),2,1)) then
+           if ( (.not. at_jhi .or. bc_neumann(mp(i,j),2,1)) .and. &
+                (.not. at_ihi .or. bc_neumann(mp(i,j),1,1)) ) then
             ia(inode) = iedge
             ind(i,j) = inode
+            neu_lo_i = bc_neumann(mp(i,j),1,-1)
+            neu_lo_j = bc_neumann(mp(i,j),2,-1)
+            neu_hi_i = bc_neumann(mp(i,j),1,+1)
+            neu_hi_j = bc_neumann(mp(i,j),2,+1)
             if (.not. bc_dirichlet(mp(i-1,j-1),1,0)) then
               aa(iedge) = sp(i,j,1)                           ! SW
-              if (bc_neumann(mp(i,j),2,1)) aa(iedge) = TWO*aa(iedge)
+              if (neu_hi_i) aa(iedge) = TWO*aa(iedge)
+              if (neu_hi_j) aa(iedge) = TWO*aa(iedge)
               iedge = iedge + 1
             end if
             if (.not. bc_dirichlet(mp(i  ,j-1),1,0)) then
               aa(iedge) = sp(i,j,2)                           ! S
-              if (bc_neumann(mp(i,j),2,1)) aa(iedge) = TWO*aa(iedge)
+              if (neu_hi_j) aa(iedge) = TWO*aa(iedge)
               iedge = iedge + 1
             end if
             if (.not. bc_dirichlet(mp(i+1,j-1),1,0)) then
               aa(iedge) = sp(i,j,3)                           ! SE
-              if (bc_neumann(mp(i,j),1,-1)) aa(iedge) = TWO*aa(iedge)
-              if (bc_neumann(mp(i,j),2, 1)) aa(iedge) = TWO*aa(iedge)
+              if (neu_lo_i) aa(iedge) = TWO*aa(iedge)
+              if (neu_hi_j) aa(iedge) = TWO*aa(iedge)
               iedge = iedge + 1
             end if
             if (.not. bc_dirichlet(mp(i-1,j  ),1,0)) then
               aa(iedge) = sp(i,j,4)                           ! W
-              if (bc_neumann(mp(i,j),1,-1)) aa(iedge) = TWO*aa(iedge)
+              if (neu_hi_i) aa(iedge) = TWO*aa(iedge)
               iedge = iedge + 1
             end if
               aa(iedge) = sp(i,j,0)                           ! Center
               iedge = iedge + 1
             if (.not. bc_dirichlet(mp(i+1,j  ),1,0)) then
               aa(iedge) = sp(i,j,5)                           ! E
-              if (bc_neumann(mp(i,j),1,-1)) aa(iedge) = TWO*aa(iedge)
+              if (neu_lo_i) aa(iedge) = TWO*aa(iedge)
               iedge = iedge + 1
             end if
             if (.not. bc_dirichlet(mp(i-1,j+1),1,0)) then
               aa(iedge) = sp(i,j,6)                           ! NW
-              if (bc_neumann(mp(i,j),2,-1)) aa(iedge) = TWO*aa(iedge)
+              if (neu_hi_i) aa(iedge) = TWO*aa(iedge)
+              if (neu_lo_j) aa(iedge) = TWO*aa(iedge)
               iedge = iedge + 1
             end if
             if (.not. bc_dirichlet(mp(i  ,j+1),1,0)) then
               aa(iedge) = sp(i,j,7)                           ! N
-              if (bc_neumann(mp(i,j),2,-1)) aa(iedge) = TWO*aa(iedge)
+              if (neu_lo_j) aa(iedge) = TWO*aa(iedge)
               iedge = iedge + 1
             end if
             if (.not. bc_dirichlet(mp(i+1,j+1),1,0)) then
               aa(iedge) = sp(i,j,8)                           ! NE
-              if (bc_neumann(mp(i,j),1,-1)) aa(iedge) = TWO*aa(iedge)
-              if (bc_neumann(mp(i,j),2,-1)) aa(iedge) = TWO*aa(iedge)
+              if (neu_lo_i) aa(iedge) = TWO*aa(iedge)
+              if (neu_lo_j) aa(iedge) = TWO*aa(iedge)
               iedge = iedge + 1
             end if
             inode = inode + 1
            end if
          end if
       end do
-
-      !   **************************************************************************
-
-      i = nx
-!     Only do high side if Neumann; otherwise is Dirichlet (in which case 
-!     we don't include it) or it has been taken care of by the grid on the
-!     other side.
-      if (.not. bc_dirichlet(mp(i,j),1,0) .and. &
-                bc_neumann(  mp(i,j),1,1)) then
-        if (.not. at_jhi .or. bc_neumann(mp(i,j),2,1)) then
-            ia(inode) = iedge
-            ind(i,j) = inode
-            if (.not. bc_dirichlet(mp(i-1,j-1),1,0)) then
-              aa(iedge) = sp(i,j,1)                           ! SW
-              if (bc_neumann(mp(i,j),2, 1)) aa(iedge) = TWO*aa(iedge)
-              if (bc_neumann(mp(i,j),1, 1)) aa(iedge) = TWO*aa(iedge)
-              iedge = iedge + 1
-            end if
-            if (.not. bc_dirichlet(mp(i  ,j-1),1,0)) then
-              aa(iedge) = sp(i,j,2)                           ! S
-              if (bc_neumann(mp(i,j),2, 1)) aa(iedge) = TWO*aa(iedge)
-              iedge = iedge + 1
-            end if
-            if (.not. bc_dirichlet(mp(i-1,j  ),1,0)) then
-              aa(iedge) = sp(i,j,4)                           ! W
-              if (bc_neumann(mp(i,j),1, 1)) aa(iedge) = TWO*aa(iedge)
-              iedge = iedge + 1
-            end if
-              aa(iedge) = sp(i,j,0) ; iedge = iedge + 1       ! Center
-            if (.not. bc_dirichlet(mp(i-1,j+1),1,0)) then
-              aa(iedge) = sp(i,j,6)                           ! NW
-              if (bc_neumann(mp(i,j),2,-1)) aa(iedge) = TWO*aa(iedge)
-              if (bc_neumann(mp(i,j),1, 1)) aa(iedge) = TWO*aa(iedge)
-              iedge = iedge + 1
-            end if
-            if (.not. bc_dirichlet(mp(i  ,j+1),1,0)) then
-              aa(iedge) = sp(i,j,7)                           ! N
-              if (bc_neumann(mp(i,j),2,-1)) aa(iedge) = TWO*aa(iedge)
-              iedge = iedge + 1
-            end if
-            inode = inode + 1
-        end if
-      end if
 
     end subroutine create_nodal_aa_2d
 
@@ -2157,19 +2142,23 @@ contains
       integer, intent(inout) :: iedge
       logical, intent(in   ) :: at_jhi
 
-      integer nx
-      integer i,j,ie
-      integer iedge0
+      logical :: at_ihi
+      integer :: i,j,ie,nx
 
       nx = size(mp,dim=1)-2
       j = 1
 
-      !**************************************************************************
+!     **************************************************************************
+!     Note: only do high side if Neumann; otherwise is Dirichlet (in which case 
+!     we don't include it) or it is taken care of by the grid on the
+!     other side.
+!     **************************************************************************
 
-      iedge0 = iedge
-      do i = 1, nx-1
+      do i = 1, nx
+         at_ihi = (i.eq.nx)
          if (.not. bc_dirichlet(mp(i,j),1,0)) then
-           if (.not. at_jhi .or. bc_neumann(mp(i,j),2,1)) then
+           if ( (.not. at_jhi .or. bc_neumann(mp(i,j),2,1)) .and. &
+                (.not. at_ihi .or. bc_neumann(mp(i,j),1,1)) ) then
             if (.not. bc_dirichlet(mp(i-1,j-1),1,0)) then
               ja(iedge) = ind(i-1,j-1) ; iedge = iedge + 1       ! SW
             end if
@@ -2199,47 +2188,20 @@ contains
          end if
       end do
 
-      !**************************************************************************
-
-      i = nx
-!     Only do high side if Neumann; otherwise is Dirichlet (in which case 
-!     we don't include it) or it is taken care of by the grid on the
-!     other side.
-      if (.not. bc_dirichlet(mp(i,j),1,0) .and. &
-                   bc_neumann(  mp(i,j),1,1)) then
-        if (.not. at_jhi .or. bc_neumann(mp(i,j),2,1)) then
-          if (.not. bc_dirichlet(mp(i-1,j-1),1,0)) then
-            ja(iedge) = ind(i-1,j-1) ; iedge = iedge + 1       ! SW
-          end if
-          if (.not. bc_dirichlet(mp(i  ,j-1),1,0)) then
-            ja(iedge) = ind(i  ,j-1) ; iedge = iedge + 1       ! S
-          end if
-          if (.not. bc_dirichlet(mp(i-1,j  ),1,0)) then
-            ja(iedge) = ind(i-1,j  ) ; iedge = iedge + 1       ! W
-          end if
-            ja(iedge) = ind(i  ,j  ) ; iedge = iedge + 1       ! Center
-          if (.not. bc_dirichlet(mp(i-1,j+1),1,0)) then
-            ja(iedge) = ind(i-1,j+1) ; iedge = iedge + 1       ! NW
-          end if
-          if (.not. bc_dirichlet(mp(i  ,j+1),1,0)) then
-            ja(iedge) = ind(i  ,j+1) ; iedge = iedge + 1       ! N
-          end if
-        end if
-      end if
-
     end subroutine create_nodal_ja_2d
 
     subroutine create_nodal_aa_3d(sp, mp, aa, ia, ind, inode, iedge, at_jhi, at_khi)
-      integer           , intent(in) :: mp(:,:,:)
-      real (kind = dp_t), intent(in) :: sp(:,:,:,0:)
+      real (kind = dp_t), intent(in   ) :: sp(:,:,:,0:)
+      integer           , intent(in   ) :: mp(0:,0:,0:)
       real (kind = dp_t), intent(inout) :: aa(:)
-      integer, intent(inout) :: ia(:)
-      integer, intent(inout) :: ind(:,:,:)
-      logical, intent(in   ) :: at_jhi, at_khi
-      integer iedge,inode
+      integer           , intent(inout) :: ia(:)
+      integer           , intent(inout) :: ind(:,:,:)
+      integer           , intent(inout) :: inode, iedge
+      logical           , intent(in   ) :: at_jhi, at_khi
 
-      integer nx
-      integer i,j,k
+      integer :: nx,i,j,k
+      logical :: at_ihi
+      logical :: neu_lo_i,neu_lo_j,neu_lo_k,neu_hi_i,neu_hi_j,neu_hi_k
 
       nx = size(sp,dim=1)
 
@@ -2248,220 +2210,302 @@ contains
 
       !**************************************************************************
 
-      do i = 1, nx-1
+      do i = 1, nx
+       at_ihi = (i.eq.nx)
        if (.not. bc_dirichlet(mp(i,j,k),1,0)) then
-        if ( (.not. at_jhi .or. bc_neumann(mp(i,j,k),2,1)) .and. &
+        if ( (.not. at_ihi .or. bc_neumann(mp(i,j,k),1,1)) .and. &
+             (.not. at_jhi .or. bc_neumann(mp(i,j,k),3,1)) .and. &
              (.not. at_khi .or. bc_neumann(mp(i,j,k),3,1)) ) then
+         neu_lo_i = bc_neumann(mp(i,j,k),1,-1)
+         neu_lo_j = bc_neumann(mp(i,j,k),2,-1)
+         neu_lo_k = bc_neumann(mp(i,j,k),3,-1)
+         neu_hi_i = bc_neumann(mp(i,j,k),1,+1)
+         neu_hi_j = bc_neumann(mp(i,j,k),2,+1)
+         neu_hi_k = bc_neumann(mp(i,j,k),3,+1)
          ia(inode) = iedge
          ind(i,j,k) = inode
-         aa(iedge) = sp(i,j,k,1 ) ; iedge = iedge + 1       ! SW : KLO
-         aa(iedge) = sp(i,j,k,2 ) ; iedge = iedge + 1       ! S  : KLO
-         aa(iedge) = sp(i,j,k,3 ) ; iedge = iedge + 1       ! SE : KLO
-         aa(iedge) = sp(i,j,k,4 ) ; iedge = iedge + 1       ! W  : KLO
-         aa(iedge) = sp(i,j,k,25) ; iedge = iedge + 1       ! C  : KLO
-         aa(iedge) = sp(i,j,k,5 ) ; iedge = iedge + 1       ! E  : KLO
-         aa(iedge) = sp(i,j,k,6 ) ; iedge = iedge + 1       ! NW : KLO
-         aa(iedge) = sp(i,j,k,7 ) ; iedge = iedge + 1       ! N  : KLO
-         aa(iedge) = sp(i,j,k,8 ) ; iedge = iedge + 1       ! NE : KLO
-         aa(iedge) = sp(i,j,k,9 ) ; iedge = iedge + 1       ! SW : KMED
-         aa(iedge) = sp(i,j,k,23) ; iedge = iedge + 1       ! S  : KMED
-         aa(iedge) = sp(i,j,k,10) ; iedge = iedge + 1       ! SE : KMED
-         aa(iedge) = sp(i,j,k,21) ; iedge = iedge + 1       ! W  : KMED
-         aa(iedge) = sp(i,j,k,0 ) ; iedge = iedge + 1       ! C  : KMED
-         aa(iedge) = sp(i,j,k,22) ; iedge = iedge + 1       ! E  : KMED
-         aa(iedge) = sp(i,j,k,11) ; iedge = iedge + 1       ! NW : KMED
-         aa(iedge) = sp(i,j,k,24) ; iedge = iedge + 1       ! N  : KMED
-         aa(iedge) = sp(i,j,k,12) ; iedge = iedge + 1       ! NE : KMED
-         aa(iedge) = sp(i,j,k,13) ; iedge = iedge + 1       ! SW : KHI
-         aa(iedge) = sp(i,j,k,14) ; iedge = iedge + 1       ! S  : KHI
-         aa(iedge) = sp(i,j,k,15) ; iedge = iedge + 1       ! SE : KHI
-         aa(iedge) = sp(i,j,k,16) ; iedge = iedge + 1       ! W  : KHI
-         aa(iedge) = sp(i,j,k,26) ; iedge = iedge + 1       ! C  : KHI
-         aa(iedge) = sp(i,j,k,17) ; iedge = iedge + 1       ! E  : KHI
-         aa(iedge) = sp(i,j,k,18) ; iedge = iedge + 1       ! NW : KHI
-         aa(iedge) = sp(i,j,k,19) ; iedge = iedge + 1       ! N  : KHI
-         aa(iedge) = sp(i,j,k,20) ; iedge = iedge + 1       ! NE : KHI
+         if (.not. bc_dirichlet(mp(i-1,j-1,k-1),1,0)) then
+           aa(iedge) = sp(i,j,k,1 )                           ! SW : KLO
+           if (neu_hi_i) aa(iedge) = TWO*aa(iedge)
+           if (neu_hi_j) aa(iedge) = TWO*aa(iedge)
+           if (neu_hi_k) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
+         if (.not. bc_dirichlet(mp(i  ,j-1,k-1),1,0)) then
+           aa(iedge) = sp(i,j,k,2 )                           ! S  : KLO
+           if (neu_hi_j) aa(iedge) = TWO*aa(iedge)
+           if (neu_hi_k) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
+         if (.not. bc_dirichlet(mp(i+1,j-1,k-1),1,0)) then
+           aa(iedge) = sp(i,j,k,3 )                           ! SE : KLO
+           if (neu_lo_i) aa(iedge) = TWO*aa(iedge)
+           if (neu_hi_j) aa(iedge) = TWO*aa(iedge)
+           if (neu_hi_k) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
+         if (.not. bc_dirichlet(mp(i-1,j  ,k-1),1,0)) then
+           aa(iedge) = sp(i,j,k,4 )                           ! W  : KLO
+           if (neu_hi_i) aa(iedge) = TWO*aa(iedge)
+           if (neu_hi_k) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
+         if (.not. bc_dirichlet(mp(i  ,j  ,k-1),1,0)) then
+           aa(iedge) = sp(i,j,k,25)                           ! C  : KLO
+           if (neu_hi_k) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
+         if (.not. bc_dirichlet(mp(i+1,j  ,k-1),1,0)) then
+           aa(iedge) = sp(i,j,k,5 )                           ! E  : KLO
+           if (neu_lo_i) aa(iedge) = TWO*aa(iedge)
+           if (neu_hi_k) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
+         if (.not. bc_dirichlet(mp(i-1,j+1,k-1),1,0)) then
+           aa(iedge) = sp(i,j,k,6 )                           ! NW : KLO
+           if (neu_hi_i) aa(iedge) = TWO*aa(iedge)
+           if (neu_lo_j) aa(iedge) = TWO*aa(iedge)
+           if (neu_hi_k) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
+         if (.not. bc_dirichlet(mp(i  ,j+1,k-1),1,0)) then
+           aa(iedge) = sp(i,j,k,7 )                           ! N  : KLO
+           if (neu_lo_j) aa(iedge) = TWO*aa(iedge)
+           if (neu_hi_k) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
+         if (.not. bc_dirichlet(mp(i+1,j+1,k-1),1,0)) then
+           aa(iedge) = sp(i,j,k,8 )                           ! NE : KLO
+           if (neu_lo_i) aa(iedge) = TWO*aa(iedge)
+           if (neu_lo_j) aa(iedge) = TWO*aa(iedge)
+           if (neu_hi_k) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
+         if (.not. bc_dirichlet(mp(i-1,j-1,k  ),1,0)) then
+           aa(iedge) = sp(i,j,k,9 )                           ! SW : KMED
+           if (neu_hi_i) aa(iedge) = TWO*aa(iedge)
+           if (neu_hi_j) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
+         if (.not. bc_dirichlet(mp(i  ,j-1,k  ),1,0)) then
+           aa(iedge) = sp(i,j,k,23)                           ! S  : KMED
+           if (neu_hi_j) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
+         if (.not. bc_dirichlet(mp(i+1,j-1,k  ),1,0)) then
+           aa(iedge) = sp(i,j,k,10)                           ! SE : KMED
+           if (neu_lo_i) aa(iedge) = TWO*aa(iedge)
+           if (neu_hi_j) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
+         if (.not. bc_dirichlet(mp(i-1,j  ,k  ),1,0)) then
+           if (neu_hi_i) aa(iedge) = TWO*aa(iedge)
+           aa(iedge) = sp(i,j,k,21)                           ! W  : KMED
+           iedge = iedge + 1
+         end if
+
+           aa(iedge) = sp(i,j,k,0 )                           ! C  : KMED
+           iedge = iedge + 1
+
+         if (.not. bc_dirichlet(mp(i+1,j  ,k  ),1,0)) then
+           aa(iedge) = sp(i,j,k,22)                           ! E  : KMED
+           if (neu_lo_i) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
+         if (.not. bc_dirichlet(mp(i-1,j+1,k  ),1,0)) then
+           aa(iedge) = sp(i,j,k,11)                           ! NW : KMED
+           if (neu_hi_i) aa(iedge) = TWO*aa(iedge)
+           if (neu_lo_j) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
+         if (.not. bc_dirichlet(mp(i  ,j+1,k  ),1,0)) then
+           aa(iedge) = sp(i,j,k,24)                           ! N  : KMED
+           if (neu_lo_j) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
+         if (.not. bc_dirichlet(mp(i+1,j+1,k  ),1,0)) then
+           aa(iedge) = sp(i,j,k,12)                           ! NE : KMED
+           if (neu_lo_i) aa(iedge) = TWO*aa(iedge)
+           if (neu_lo_j) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
+         if (.not. bc_dirichlet(mp(i-1,j-1,k+1),1,0)) then
+           aa(iedge) = sp(i,j,k,13)                           ! SW : KHI
+           if (neu_hi_i) aa(iedge) = TWO*aa(iedge)
+           if (neu_hi_j) aa(iedge) = TWO*aa(iedge)
+           if (neu_lo_k) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
+         if (.not. bc_dirichlet(mp(i  ,j-1,k+1),1,0)) then
+           aa(iedge) = sp(i,j,k,14)                           ! S  : KHI
+           if (neu_hi_j) aa(iedge) = TWO*aa(iedge)
+           if (neu_lo_k) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
+         if (.not. bc_dirichlet(mp(i+1,j-1,k+1),1,0)) then
+           aa(iedge) = sp(i,j,k,15)                           ! SE : KHI
+           if (neu_lo_i) aa(iedge) = TWO*aa(iedge)
+           if (neu_hi_j) aa(iedge) = TWO*aa(iedge)
+           if (neu_lo_k) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
+         if (.not. bc_dirichlet(mp(i-1,j  ,k+1),1,0)) then
+           aa(iedge) = sp(i,j,k,16)                           ! W  : KHI
+           if (neu_hi_i) aa(iedge) = TWO*aa(iedge)
+           if (neu_lo_k) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
+         if (.not. bc_dirichlet(mp(i  ,j  ,k+1),1,0)) then
+           aa(iedge) = sp(i,j,k,26)                           ! C  : KHI
+           if (neu_lo_k) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
+         if (.not. bc_dirichlet(mp(i+1,j  ,k+1),1,0)) then
+           aa(iedge) = sp(i,j,k,17)                           ! E  : KHI
+           if (neu_lo_i) aa(iedge) = TWO*aa(iedge)
+           if (neu_lo_k) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
+         if (.not. bc_dirichlet(mp(i-1,j+1,k+1),1,0)) then
+           aa(iedge) = sp(i,j,k,18)                           ! NW : KHI
+           if (neu_hi_i) aa(iedge) = TWO*aa(iedge)
+           if (neu_lo_j) aa(iedge) = TWO*aa(iedge)
+           if (neu_lo_k) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
+         if (.not. bc_dirichlet(mp(i  ,j+1,k+1),1,0)) then
+           aa(iedge) = sp(i,j,k,19)                           ! N  : KHI
+           if (neu_lo_j) aa(iedge) = TWO*aa(iedge)
+           if (neu_lo_k) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
+         if (.not. bc_dirichlet(mp(i+1,j+1,k+1),1,0)) then
+           aa(iedge) = sp(i,j,k,20)                           ! NE : KHI
+           if (neu_lo_i) aa(iedge) = TWO*aa(iedge)
+           if (neu_lo_j) aa(iedge) = TWO*aa(iedge)
+           if (neu_lo_k) aa(iedge) = TWO*aa(iedge)
+           iedge = iedge + 1
+         end if
          inode = inode + 1
         end if
        end if
       end do
 
-      !**************************************************************************
+  end subroutine create_nodal_aa_3d
 
-      if (nx /= 1) then
-         i = nx
-         ia(inode) = iedge
-         ind(i,j,k) = inode
-!        Only do high side if Neumann; otherwise is Dirichlet (in which case 
-!        we don't include it) or it has been taken care of by the grid on the
-!        other side.
-         if (.not. bc_dirichlet(mp(i,j,k),1,0) .and. &
-                   bc_neumann(  mp(i,j,k),1,1)) then
-          if ( (.not. at_jhi .or. bc_neumann(mp(i,j,k),2,1)) .and. &
-               (.not. at_khi .or. bc_neumann(mp(i,j,k),3,1)) ) then
-            aa(iedge) = sp(i,j,k,1 ) ; iedge = iedge + 1       ! SW : KLO
-            aa(iedge) = sp(i,j,k,2 ) ; iedge = iedge + 1       ! S  : KLO
-            aa(iedge) = sp(i,j,k,3 ) ; iedge = iedge + 1       ! SE : KLO
-            aa(iedge) = sp(i,j,k,4 ) ; iedge = iedge + 1       ! W  : KLO
-            aa(iedge) = sp(i,j,k,25) ; iedge = iedge + 1       ! C  : KLO
-            aa(iedge) = sp(i,j,k,5 ) ; iedge = iedge + 1       ! E  : KLO
-            aa(iedge) = sp(i,j,k,6 ) ; iedge = iedge + 1       ! NW : KLO
-            aa(iedge) = sp(i,j,k,7 ) ; iedge = iedge + 1       ! N  : KLO
-            aa(iedge) = sp(i,j,k,8 ) ; iedge = iedge + 1       ! NE : KLO
-            aa(iedge) = sp(i,j,k,9 ) ; iedge = iedge + 1       ! SW : KMED
-            aa(iedge) = sp(i,j,k,23) ; iedge = iedge + 1       ! S  : KMED
-            aa(iedge) = sp(i,j,k,10) ; iedge = iedge + 1       ! SE : KMED
-            aa(iedge) = sp(i,j,k,21) ; iedge = iedge + 1       ! W  : KMED
-            aa(iedge) = sp(i,j,k,0 ) ; iedge = iedge + 1       ! C  : KMED
-            aa(iedge) = sp(i,j,k,22) ; iedge = iedge + 1       ! E  : KMED
-            aa(iedge) = sp(i,j,k,11) ; iedge = iedge + 1       ! NW : KMED
-            aa(iedge) = sp(i,j,k,24) ; iedge = iedge + 1       ! N  : KMED
-            aa(iedge) = sp(i,j,k,12) ; iedge = iedge + 1       ! NE : KMED
-            aa(iedge) = sp(i,j,k,13) ; iedge = iedge + 1       ! SW : KHI
-            aa(iedge) = sp(i,j,k,14) ; iedge = iedge + 1       ! S  : KHI
-            aa(iedge) = sp(i,j,k,15) ; iedge = iedge + 1       ! SE : KHI
-            aa(iedge) = sp(i,j,k,16) ; iedge = iedge + 1       ! W  : KHI
-            aa(iedge) = sp(i,j,k,26) ; iedge = iedge + 1       ! C  : KHI
-            aa(iedge) = sp(i,j,k,17) ; iedge = iedge + 1       ! E  : KHI
-            aa(iedge) = sp(i,j,k,18) ; iedge = iedge + 1       ! NW : KHI
-            aa(iedge) = sp(i,j,k,19) ; iedge = iedge + 1       ! N  : KHI
-            aa(iedge) = sp(i,j,k,20) ; iedge = iedge + 1       ! NE : KHI
-            inode = inode + 1
-          end if
-         end if
-      end if
+  subroutine create_nodal_ja_3d(ja, mp, ind, iedge, at_jhi, at_khi)
 
-    end subroutine create_nodal_aa_3d
-
-    subroutine create_nodal_ja_3d(ja, mp, ind, iedge, at_jhi, at_khi)
       integer, intent(inout) :: ja(:)
-      integer, intent(in   ) :: mp(:,:,:)
-      integer, intent(inout) :: ind(-1:,-1:,-1:)
+      integer, intent(in   ) :: mp(0:,0:,0:)
+      integer, intent(inout) :: ind(0:,0:,0:)
+      integer, intent(inout) :: iedge
       logical, intent(in   ) :: at_jhi, at_khi
-      integer iedge
 
-      integer nx
-      integer i,j,k
+      logical :: at_ihi
+      integer :: nx,i,j,k
+      integer :: iedge0
 
-      nx = size(mp,dim=1)
+      nx = size(mp,dim=1)-2
 
       k = 1
       j = 1
 
       !**************************************************************************
 
-      i = 1
-      if (.not. bc_dirichlet(mp(i,j,k),1,0)) then
-       if ( (.not. at_jhi .or. bc_neumann(mp(i,j,k),2,1)) .and. &
-            (.not. at_khi .or. bc_neumann(mp(i,j,k),3,1)) ) then
-         ja(iedge) = ind(i-1,j-1,k-1) ; iedge = iedge + 1       ! SW : KLO
-         ja(iedge) = ind(i  ,j-1,k-1) ; iedge = iedge + 1       ! S  : KLO
-         ja(iedge) = ind(i+1,j-1,k-1) ; iedge = iedge + 1       ! SE : KLO
-         ja(iedge) = ind(i-1,j  ,k-1) ; iedge = iedge + 1       ! W  : KLO
-         ja(iedge) = ind(i  ,j  ,k-1) ; iedge = iedge + 1       ! C  : KLO
-         ja(iedge) = ind(i+1,j  ,k-1) ; iedge = iedge + 1       ! E  : KLO
-         ja(iedge) = ind(i-1,j+1,k-1) ; iedge = iedge + 1       ! NW : KLO
-         ja(iedge) = ind(i  ,j+1,k-1) ; iedge = iedge + 1       ! N  : KLO
-         ja(iedge) = ind(i+1,j+1,k-1) ; iedge = iedge + 1       ! NE : KLO
-         ja(iedge) = ind(i-1,j-1,k  ) ; iedge = iedge + 1       ! SW : KMED
-         ja(iedge) = ind(i  ,j-1,k  ) ; iedge = iedge + 1       ! S  : KMED
-         ja(iedge) = ind(i+1,j-1,k  ) ; iedge = iedge + 1       ! SE : KMED
-         ja(iedge) = ind(i-1,j  ,k  ) ; iedge = iedge + 1       ! W  : KMED
-         ja(iedge) = ind(i  ,j  ,k  ) ; iedge = iedge + 1       ! C  : KMED
-         ja(iedge) = ind(i+1,j  ,k  ) ; iedge = iedge + 1       ! E  : KMED
-         ja(iedge) = ind(i-1,j+1,k  ) ; iedge = iedge + 1       ! NW : KMED
-         ja(iedge) = ind(i  ,j+1,k  ) ; iedge = iedge + 1       ! N  : KMED
-         ja(iedge) = ind(i+1,j+1,k  ) ; iedge = iedge + 1       ! NE : KMED
-         ja(iedge) = ind(i-1,j-1,k+1) ; iedge = iedge + 1       ! SW : KHI
-         ja(iedge) = ind(i  ,j-1,k+1) ; iedge = iedge + 1       ! S  : KHI
-         ja(iedge) = ind(i+1,j-1,k+1) ; iedge = iedge + 1       ! SE : KHI
-         ja(iedge) = ind(i-1,j  ,k+1) ; iedge = iedge + 1       ! W  : KHI
-         ja(iedge) = ind(i  ,j  ,k+1) ; iedge = iedge + 1       ! C  : KHI
-         ja(iedge) = ind(i+1,j  ,k+1) ; iedge = iedge + 1       ! E  : KHI
-         ja(iedge) = ind(i-1,j+1,k+1) ; iedge = iedge + 1       ! NW : KHI
-         ja(iedge) = ind(i  ,j+1,k+1) ; iedge = iedge + 1       ! N  : KHI
-         ja(iedge) = ind(i+1,j+1,k+1) ; iedge = iedge + 1       ! NE : KHI
-       end if
-      end if
+      do i = 1, nx
+       iedge0 = iedge
+       at_ihi = (i.eq.nx)
+       if (.not. bc_dirichlet(mp(i,j,k),1,0)) then
+        if ( (.not. at_ihi .or. bc_neumann(mp(i,j,k),1,1)) .and. &
+             (.not. at_jhi .or. bc_neumann(mp(i,j,k),2,1)) .and. &
+             (.not. at_khi .or. bc_neumann(mp(i,j,k),3,1)) ) then
+         if (.not. bc_dirichlet(mp(i-1,j-1,k-1),1,0)) then
+           ja(iedge) = ind(i-1,j-1,k-1) ; iedge = iedge + 1       ! SW : KLO
+         end if
+         if (.not. bc_dirichlet(mp(i  ,j-1,k-1),1,0)) then
+           ja(iedge) = ind(i  ,j-1,k-1) ; iedge = iedge + 1       ! S  : KLO
+         end if
+         if (.not. bc_dirichlet(mp(i+1,j-1,k-1),1,0)) then
+           ja(iedge) = ind(i+1,j-1,k-1) ; iedge = iedge + 1       ! SE : KLO
+         end if
+         if (.not. bc_dirichlet(mp(i-1,j  ,k-1),1,0)) then
+           ja(iedge) = ind(i-1,j  ,k-1) ; iedge = iedge + 1       ! W  : KLO
+         end if
+         if (.not. bc_dirichlet(mp(i  ,j  ,k-1),1,0)) then
+           ja(iedge) = ind(i  ,j  ,k-1) ; iedge = iedge + 1       ! C  : KLO
+         end if
+         if (.not. bc_dirichlet(mp(i+1,j  ,k-1),1,0)) then
+           ja(iedge) = ind(i+1,j  ,k-1) ; iedge = iedge + 1       ! E  : KLO
+         end if
+         if (.not. bc_dirichlet(mp(i-1,j+1,k-1),1,0)) then
+           ja(iedge) = ind(i-1,j+1,k-1) ; iedge = iedge + 1       ! NW : KLO
+         end if
+         if (.not. bc_dirichlet(mp(i  ,j+1,k-1),1,0)) then
+           ja(iedge) = ind(i  ,j+1,k-1) ; iedge = iedge + 1       ! N  : KLO
+         end if
+         if (.not. bc_dirichlet(mp(i+1,j+1,k-1),1,0)) then
+           ja(iedge) = ind(i+1,j+1,k-1) ; iedge = iedge + 1       ! NE : KLO
+         end if
+         if (.not. bc_dirichlet(mp(i-1,j-1,k  ),1,0)) then
+           ja(iedge) = ind(i-1,j-1,k  ) ; iedge = iedge + 1       ! SW : KMED
+         end if
+         if (.not. bc_dirichlet(mp(i  ,j-1,k  ),1,0)) then
+           ja(iedge) = ind(i  ,j-1,k  ) ; iedge = iedge + 1       ! S  : KMED
+         end if
+         if (.not. bc_dirichlet(mp(i+1,j-1,k  ),1,0)) then
+           ja(iedge) = ind(i+1,j-1,k  ) ; iedge = iedge + 1       ! SE : KMED
+         end if
+         if (.not. bc_dirichlet(mp(i-1,j  ,k  ),1,0)) then
+           ja(iedge) = ind(i-1,j  ,k  ) ; iedge = iedge + 1       ! W  : KMED
+         end if
 
-      !**************************************************************************
+           ja(iedge) = ind(i  ,j  ,k  ) ; iedge = iedge + 1       ! C  : KMED
 
-      do i = 2, nx-1
-       if ( (.not. at_jhi .or. bc_neumann(mp(i,j,k),2,1)) .and. &
-            (.not. at_khi .or. bc_neumann(mp(i,j,k),3,1)) ) then
-         ja(iedge) = ind(i-1,j-1,k-1) ; iedge = iedge + 1       ! SW : KLO
-         ja(iedge) = ind(i  ,j-1,k-1) ; iedge = iedge + 1       ! S  : KLO
-         ja(iedge) = ind(i+1,j-1,k-1) ; iedge = iedge + 1       ! SE : KLO
-         ja(iedge) = ind(i-1,j  ,k-1) ; iedge = iedge + 1       ! W  : KLO
-         ja(iedge) = ind(i  ,j  ,k-1) ; iedge = iedge + 1       ! C  : KLO
-         ja(iedge) = ind(i+1,j  ,k-1) ; iedge = iedge + 1       ! E  : KLO
-         ja(iedge) = ind(i-1,j+1,k-1) ; iedge = iedge + 1       ! NW : KLO
-         ja(iedge) = ind(i  ,j+1,k-1) ; iedge = iedge + 1       ! N  : KLO
-         ja(iedge) = ind(i+1,j+1,k-1) ; iedge = iedge + 1       ! NE : KLO
-         ja(iedge) = ind(i-1,j-1,k  ) ; iedge = iedge + 1       ! SW : KMED
-         ja(iedge) = ind(i  ,j-1,k  ) ; iedge = iedge + 1       ! S  : KMED
-         ja(iedge) = ind(i+1,j-1,k  ) ; iedge = iedge + 1       ! SE : KMED
-         ja(iedge) = ind(i-1,j  ,k  ) ; iedge = iedge + 1       ! W  : KMED
-         ja(iedge) = ind(i  ,j  ,k  ) ; iedge = iedge + 1       ! C  : KMED
-         ja(iedge) = ind(i+1,j  ,k  ) ; iedge = iedge + 1       ! E  : KMED
-         ja(iedge) = ind(i-1,j+1,k  ) ; iedge = iedge + 1       ! NW : KMED
-         ja(iedge) = ind(i  ,j+1,k  ) ; iedge = iedge + 1       ! N  : KMED
-         ja(iedge) = ind(i+1,j+1,k  ) ; iedge = iedge + 1       ! NE : KMED
-         ja(iedge) = ind(i-1,j-1,k+1) ; iedge = iedge + 1       ! SW : KHI
-         ja(iedge) = ind(i  ,j-1,k+1) ; iedge = iedge + 1       ! S  : KHI
-         ja(iedge) = ind(i+1,j-1,k+1) ; iedge = iedge + 1       ! SE : KHI
-         ja(iedge) = ind(i-1,j  ,k+1) ; iedge = iedge + 1       ! W  : KHI
-         ja(iedge) = ind(i  ,j  ,k+1) ; iedge = iedge + 1       ! C  : KHI
-         ja(iedge) = ind(i+1,j  ,k+1) ; iedge = iedge + 1       ! E  : KHI
-         ja(iedge) = ind(i-1,j+1,k+1) ; iedge = iedge + 1       ! NW : KHI
-         ja(iedge) = ind(i  ,j+1,k+1) ; iedge = iedge + 1       ! N  : KHI
-         ja(iedge) = ind(i+1,j+1,k+1) ; iedge = iedge + 1       ! NE : KHI
+         if (.not. bc_dirichlet(mp(i+1,j  ,k  ),1,0)) then
+           ja(iedge) = ind(i+1,j  ,k  ) ; iedge = iedge + 1       ! E  : KMED
+         end if
+         if (.not. bc_dirichlet(mp(i-1,j+1,k  ),1,0)) then
+           ja(iedge) = ind(i-1,j+1,k  ) ; iedge = iedge + 1       ! NW : KMED
+         end if
+         if (.not. bc_dirichlet(mp(i  ,j+1,k  ),1,0)) then
+           ja(iedge) = ind(i  ,j+1,k  ) ; iedge = iedge + 1       ! N  : KMED
+         end if
+         if (.not. bc_dirichlet(mp(i+1,j+1,k  ),1,0)) then
+           ja(iedge) = ind(i+1,j+1,k  ) ; iedge = iedge + 1       ! NE : KMED
+         end if
+         if (.not. bc_dirichlet(mp(i-1,j-1,k+1),1,0)) then
+           ja(iedge) = ind(i-1,j-1,k+1) ; iedge = iedge + 1       ! SW : KHI
+         end if
+         if (.not. bc_dirichlet(mp(i  ,j-1,k+1),1,0)) then
+           ja(iedge) = ind(i  ,j-1,k+1) ; iedge = iedge + 1       ! S  : KHI
+         end if
+         if (.not. bc_dirichlet(mp(i+1,j-1,k+1),1,0)) then
+           ja(iedge) = ind(i+1,j-1,k+1) ; iedge = iedge + 1       ! SE : KHI
+         end if
+         if (.not. bc_dirichlet(mp(i-1,j  ,k+1),1,0)) then
+           ja(iedge) = ind(i-1,j  ,k+1) ; iedge = iedge + 1       ! W  : KHI
+         end if
+         if (.not. bc_dirichlet(mp(i  ,j  ,k+1),1,0)) then
+           ja(iedge) = ind(i  ,j  ,k+1) ; iedge = iedge + 1       ! C  : KHI
+         end if
+         if (.not. bc_dirichlet(mp(i+1,j  ,k+1),1,0)) then
+           ja(iedge) = ind(i+1,j  ,k+1) ; iedge = iedge + 1       ! E  : KHI
+         end if
+         if (.not. bc_dirichlet(mp(i-1,j+1,k+1),1,0)) then
+           ja(iedge) = ind(i-1,j+1,k+1) ; iedge = iedge + 1       ! NW : KHI
+         end if
+         if (.not. bc_dirichlet(mp(i  ,j+1,k+1),1,0)) then
+           ja(iedge) = ind(i  ,j+1,k+1) ; iedge = iedge + 1       ! N  : KHI
+         end if
+         if (.not. bc_dirichlet(mp(i+1,j+1,k+1),1,0)) then
+           ja(iedge) = ind(i+1,j+1,k+1) ; iedge = iedge + 1       ! NE : KHI
+         end if
+        end if
        end if
       end do
 
-      !**************************************************************************
 
-      if (nx /= 1) then
-         i = nx
-!        Only do high side if Neumann; otherwise is Dirichlet (in which case 
-!        we don't include it) or it has been taken care of by the grid on the
-!        other side.
-         if (.not. bc_dirichlet(mp(i,j,k),1,0) .and. &
-                   bc_neumann(  mp(i,j,k),1,1)) then
-          if ( (.not. at_jhi .or. bc_neumann(mp(i,j,k),2,1)) .and. &
-               (.not. at_khi .or. bc_neumann(mp(i,j,k),3,1)) ) then
-            ja(iedge) = ind(i-1,j-1,k-1) ; iedge = iedge + 1       ! SW : KLO
-            ja(iedge) = ind(i  ,j-1,k-1) ; iedge = iedge + 1       ! S  : KLO
-            ja(iedge) = ind(i+1,j-1,k-1) ; iedge = iedge + 1       ! SE : KLO
-            ja(iedge) = ind(i-1,j  ,k-1) ; iedge = iedge + 1       ! W  : KLO
-            ja(iedge) = ind(i  ,j  ,k-1) ; iedge = iedge + 1       ! C  : KLO
-            ja(iedge) = ind(i+1,j  ,k-1) ; iedge = iedge + 1       ! E  : KLO
-            ja(iedge) = ind(i-1,j+1,k-1) ; iedge = iedge + 1       ! NW : KLO
-            ja(iedge) = ind(i  ,j+1,k-1) ; iedge = iedge + 1       ! N  : KLO
-            ja(iedge) = ind(i+1,j+1,k-1) ; iedge = iedge + 1       ! NE : KLO
-            ja(iedge) = ind(i-1,j-1,k  ) ; iedge = iedge + 1       ! SW : KMED
-            ja(iedge) = ind(i  ,j-1,k  ) ; iedge = iedge + 1       ! S  : KMED
-            ja(iedge) = ind(i+1,j-1,k  ) ; iedge = iedge + 1       ! SE : KMED
-            ja(iedge) = ind(i-1,j  ,k  ) ; iedge = iedge + 1       ! W  : KMED
-            ja(iedge) = ind(i  ,j  ,k  ) ; iedge = iedge + 1       ! C  : KMED
-            ja(iedge) = ind(i+1,j  ,k  ) ; iedge = iedge + 1       ! E  : KMED
-            ja(iedge) = ind(i-1,j+1,k  ) ; iedge = iedge + 1       ! NW : KMED
-            ja(iedge) = ind(i  ,j+1,k  ) ; iedge = iedge + 1       ! N  : KMED
-            ja(iedge) = ind(i+1,j+1,k  ) ; iedge = iedge + 1       ! NE : KMED
-            ja(iedge) = ind(i-1,j-1,k+1) ; iedge = iedge + 1       ! SW : KHI
-            ja(iedge) = ind(i  ,j-1,k+1) ; iedge = iedge + 1       ! S  : KHI
-            ja(iedge) = ind(i+1,j-1,k+1) ; iedge = iedge + 1       ! SE : KHI
-            ja(iedge) = ind(i-1,j  ,k+1) ; iedge = iedge + 1       ! W  : KHI
-            ja(iedge) = ind(i  ,j  ,k+1) ; iedge = iedge + 1       ! C  : KHI
-            ja(iedge) = ind(i+1,j  ,k+1) ; iedge = iedge + 1       ! E  : KHI
-            ja(iedge) = ind(i-1,j+1,k+1) ; iedge = iedge + 1       ! NW : KHI
-            ja(iedge) = ind(i  ,j+1,k+1) ; iedge = iedge + 1       ! N  : KHI
-            ja(iedge) = ind(i+1,j+1,k+1) ; iedge = iedge + 1       ! NE : KHI
-          end if
-         end if
-      end if
-
-    end subroutine create_nodal_ja_3d
+  end subroutine create_nodal_ja_3d
 
   subroutine ilut_build(amat, sil)
     type(sparse_matrix), intent(in) :: amat
