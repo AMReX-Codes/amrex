@@ -2,7 +2,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.39 2001-07-25 05:22:56 car Exp $
+// $Id: MultiFab.H,v 1.40 2001-07-25 23:36:16 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -87,15 +87,8 @@ public:
     */
     MultiFab (const BoxArray& bs,
               int             ncomp,
-              int             ngrow = 0,
+              int             ngrow,
               FabAlloc        mem_mode = Fab_allocate);
-
-    /*@ManDoc: This is a diagnostic function.  It writes (in ASCII) the state
-               of the cell in the MultiFab with index location given by pnt
-               to the output stream strm.
-    */
-    void probe (std::ostream& strm,
-                IntVect&      pt);
 
     /*@ManDoc: Returns the minimum value contained in component comp of the
                MultiFab.  The parameter nghost determines the number of
