@@ -176,7 +176,9 @@ void task_list::execute()
 #ifdef BL_USE_MPI
     if ( HG_is_debugging ) MPI_Barrier(HG::mpi_comm);
 #endif
+#ifdef HG_DEBUG
     int l_progress = tasks.size() * 3;
+#endif
     if ( verbose )
     {
 #ifdef HG_DEBUG
@@ -214,10 +216,12 @@ void task_list::execute()
 	    }
 	}
         tasks.push_back(t);
+#ifdef HG_DEBUG
 	if ( l_progress-- < 0 )
 	{
-	    // BoxLib::Error("task_list::execute(): No Progress");
+	    BoxLib::Error("task_list::execute(): No Progress");
 	}
+#endif
     }
     seq_no = 1;
 }
