@@ -66,12 +66,14 @@ public:
     {
 	smoother_mode = mode;
     }
+
 protected:
-    void alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma,  Real H[], int Lev_min, int Lev_max);
+    void alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma,  Real H[], int Lev_min, int Lev_max, int for_sync_reg);
+    void sync_resid_clear();
     void clear();
     void build_line_order(int lsd);
     
-    void build_sigma(PArray<MultiFab>& Sigma);
+    void build_sigma(PArray<MultiFab>& Sigma, int for_sync_reg);
     
     void alloc_sync_caches();
     void delete_sync_caches();
@@ -87,7 +89,7 @@ protected:
     virtual void mg_interpolate_level(int lto, int lfrom);
     virtual void mg_restrict_level(int lto, int lfrom);
     virtual void interface_residual(int mglev, int lev);
-    virtual void level_residual(MultiFab& r, MultiFab& s, MultiFab& d, int mglev, bool iclear);
+    virtual void level_residual(MultiFab& r, MultiFab& s, MultiFab& d, int mglev, bool iclear, int for_sync_reg = 0);
     virtual void relax(int mglev, int i1, bool is_zero);
     virtual void cgsolve(int mglev);
     

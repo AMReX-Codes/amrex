@@ -66,7 +66,8 @@ public:
                                  MultiFab& s,
                                  MultiFab& d,
                                  int       mglev,
-                                 bool       iclear) = 0;
+                                 bool      iclear,
+                                 int       for_sync_resid = 0) = 0;
 
     virtual void interface_residual (int mglev,
                                      int mgc) = 0;
