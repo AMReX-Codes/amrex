@@ -1,5 +1,5 @@
 //
-// $Id: CoordSys.cpp,v 1.16 2001-08-15 19:23:55 lijewski Exp $
+// $Id: CoordSys.cpp,v 1.17 2004-02-19 17:52:40 car Exp $
 //
 #include <cmath>
 #include <iostream>
@@ -112,6 +112,7 @@ CoordSys::IsCartesian ()
 
 CoordSys::CoordSys ()
 {
+    D_TERM(dx[0]=0;,dx[1]=0;,dx[2]=0;)
     ok = false;
 }
 
