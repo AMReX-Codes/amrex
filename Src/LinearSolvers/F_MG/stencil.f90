@@ -353,6 +353,103 @@ contains
     end if
   end subroutine stencil_apply_st
 
+  subroutine stencil_flux_fill_st(st, br, uu, rr, c, mask)
+    use bndry_reg_module
+    type(stencil), intent(in) :: st
+    type(bndry_reg), intent(inout) :: br
+    type(multifab), intent(inout) :: uu
+    integer, intent(in) :: rr(:)
+    integer, intent(in), optional :: c
+    logical, intent(in), optional :: mask(:)
+    real(kind=dp_t), pointer :: rp(:,:,:,:)
+    real(kind=dp_t), pointer :: up(:,:,:,:)
+    real(kind=dp_t), pointer :: upn(:,:,:,:)
+    real(kind=dp_t), pointer :: sp(:,:,:,:)
+    integer        , pointer :: mp(:,:,:,:)
+    integer i, n, ff, dm, dd
+    logical :: skwd
+    integer :: lrr
+
+    call multifab_fill_boundary(uu)
+    if ( st%extrap_bc) then
+       call stencil_extrap_bc(st, uu)
+    end if
+
+    dm = st%dim
+    if ( present(c) ) then
+       n = c
+       if ( present(mask) ) then
+          if ( .not. mask(n) ) return
+       end if
+       do i = 1, uu%nboxes; if ( multifab_remote(uu, i) ) cycle
+          do ff = -1, 1, 2
+             do dd = 1, dm
+                up => dataptr(uu, i, n)
+                upn => dataptr(uu, i, get_ibox(uu,i), n)
+                sp => dataptr(st%ss, i)
+                mp => dataptr(st%mm, i)
+                select case ( st%type )
+                case (ST_CROSS)
+                   skwd = st%skewed(i)
+                   select case( st%dim )
+                   case (1)
+                      call stencil_flux_1d( &
+                           sp(:,1,1,:), rp(:,1,1,1), up(:,1,1,1), mp(:,1,1,1), &
+                           uu%ng, lrr, ff, dd, skwd)
+                   case (2)
+                      call stencil_flux_2d( &
+                           sp(:,:,1,:), rp(:,:,1,1), up(:,:,1,1), mp(:,:,1,1), &
+                           uu%ng, lrr, ff, dd, skwd)
+                   case (3)
+                      call stencil_flux_3d( &
+                           sp(:,:,:,:), rp(:,:,:,1), up(:,:,:,1), mp(:,:,:,1), &
+                           uu%ng, lrr, ff, dd, skwd)
+                   end select
+                case default
+                   call bl_error("STENCIL_FLUX_FILL_ST: not ready yet ", st%type)
+                end select
+             end do
+          end do
+       end do
+    else
+       do i = 1, uu%nboxes; if ( multifab_remote(uu, i) ) cycle
+          sp => dataptr(st%ss, i)
+          mp => dataptr(st%mm, i)
+          do ff = -1, 1, 2
+             do dd = 1, dm
+                do n = 1, uu%nc
+                   if ( present(mask) ) then
+                      if ( .not. mask(n) ) cycle
+                   end if
+                   up => dataptr(uu, i, n)
+                   upn => dataptr(uu, i, get_ibox(uu,i), n)
+                   select case ( st%type )
+                   case (ST_CROSS)
+                      skwd = st%skewed(i)
+                      select case( st%dim )
+                      case (1)
+                         call stencil_flux_1d( &
+                           sp(:,1,1,:), rp(:,1,1,1), up(:,1,1,1), mp(:,1,1,1), &
+                           uu%ng, lrr, ff, dd, skwd)
+                      case (2)
+                         call stencil_flux_2d( &
+                           sp(:,:,1,:), rp(:,:,1,1), up(:,:,1,1), mp(:,:,1,1), &
+                           uu%ng, lrr, ff, dd, skwd)
+                      case (3)
+                         call stencil_flux_3d( &
+                           sp(:,:,:,:), rp(:,:,:,1), up(:,:,:,1), mp(:,:,:,1), &
+                           uu%ng, lrr, ff, dd, skwd)
+                      end select
+                   case default
+                      call bl_error("STENCIL_FLUX_FILL_ST: not ready yet ", st%type)
+                   end select
+                end do
+             end do
+          end do
+       end do
+    end if
+  end subroutine stencil_flux_fill_st
+
   subroutine stencil_fill(st, pdv, bc_face, fill, coeffs, iparm, rparm, fill_fcn, alpha, beta)
     type(stencil), intent(inout)  :: st
     type(multifab), intent(inout), optional :: coeffs
@@ -1657,48 +1754,55 @@ contains
 
   end subroutine stencil_apply_1d
 
-  subroutine stencil_flux_1d(ss, flux, uu, mm, ng, ratio, face)
+  subroutine stencil_flux_1d(ss, flux, uu, mm, ng, ratio, face, dim, skwd)
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in)  :: ss(:,0:)
     real (kind = dp_t), intent(out) :: flux(:)
     real (kind = dp_t), intent(in)  :: uu(1-ng:)
     integer           , intent(in)  :: mm(:)
-    integer, intent(in) :: ratio, face
+    logical, intent(in), optional :: skwd
+    integer, intent(in) :: ratio, face, dim
     integer nx
     integer i
     integer, parameter :: XBC = 3
 
     real (kind = dp_t) :: fac
 
+    logical :: lskwd
+
+    lskwd = .true. ; if ( present(skwd) ) lskwd = skwd
+
     nx = size(ss,dim=1)
 
     !   This factor is dx^fine / dx^crse
     fac = ONE / real(ratio, kind=dp_t)
 
-    if (face == -1) then
-       i = 1
-       if (bc_dirichlet(mm(1),1,-1)) then
-          flux(1) = ss(i,1)*(uu(i+1)-uu(i)) + ss(i,2)*(uu(i-1)-uu(i)) &
+    if ( dim == 1 ) then
+       if ( face == -1 ) then
+          i = 1
+          if (bc_dirichlet(mm(1),1,-1)) then
+             flux(1) = ss(i,1)*(uu(i+1)-uu(i)) + ss(i,2)*(uu(i-1)-uu(i)) &
                   - ss(i+1,2)*(uu(i+1)-uu(i))
-          if (bc_skewed(mm(i),1,+1)) then
-             flux(1) =  flux(1) + ss(i,XBC)*uu(i+2)
+             if (bc_skewed(mm(i),1,+1)) then
+                flux(1) =  flux(1) + ss(i,XBC)*uu(i+2)
+             end if
+          else 
+             flux(1) = Huge(flux)
           end if
-       else 
-          flux(1) = Huge(flux)
-       end if
-       flux(1) = fac*flux(1)
-    else if (face == 1) then
-       i = nx
-       if (bc_dirichlet(mm(i),1,+1)) then
-          flux(1) = ss(i,1)*(uu(i+1)-uu(i)) + ss(i,2)*(uu(i-1)-uu(i)) &
+          flux(1) = fac*flux(1)
+       else if ( face == 1 ) then
+          i = nx
+          if (bc_dirichlet(mm(i),1,+1)) then
+             flux(1) = ss(i,1)*(uu(i+1)-uu(i)) + ss(i,2)*(uu(i-1)-uu(i)) &
                   - ss(i-1,1)*(uu(i-1)-uu(i))
-          if (bc_skewed(mm(i),1,-1)) then
-             flux(1) =  flux(1) + ss(i,XBC)*uu(i-2)
+             if (bc_skewed(mm(i),1,-1)) then
+                flux(1) =  flux(1) + ss(i,XBC)*uu(i-2)
+             end if
+          else 
+             flux(1) = Huge(flux)
           end if
-       else 
-          flux(1) = Huge(flux)
+          flux(1) = fac*flux(1)
        end if
-       flux(1) = fac*flux(1)
     end if
 
   end subroutine stencil_flux_1d
@@ -1765,18 +1869,21 @@ contains
     end if
   end subroutine stencil_apply_2d
 
-  subroutine stencil_flux_2d(ss, flux, uu, mm, ng, ratio, face)
+  subroutine stencil_flux_2d(ss, flux, uu, mm, ng, ratio, face, dim, skwd)
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in ) :: uu(1-ng:,1-ng:)
     real (kind = dp_t), intent(out) :: flux(:,:)
     real (kind = dp_t), intent(in ) :: ss(:,:,0:)
     integer           , intent(in)  :: mm(:,:)
-    integer, intent(in) :: ratio, face
+    logical, intent(in), optional :: skwd
+    integer, intent(in) :: ratio, face, dim
     integer nx,ny,nxc,nyc
     integer i,j,ic,jc
     real (kind = dp_t) :: fac
-
     integer, parameter :: XBC = 5, YBC = 6
+    logical :: lskwd
+
+    lskwd = .true. ; if ( present(skwd) ) lskwd = skwd
 
     nx = size(ss,dim=1)
     ny = size(ss,dim=2)
@@ -1789,84 +1896,88 @@ contains
     fac = ONE/real(ratio*ratio, kind=dp_t)
 
     !   Lo i face
-    if (face == -1) then
+    if ( dim == 1 ) then
+       if (face == -1) then
 
-       i = 1
-       flux(1,:) = ZERO
-       do j = 1,ny
-          jc = (j-1)/ratio+1
-          if (bc_dirichlet(mm(i,j),1,-1)) then
-             flux(1,jc) = flux(1,jc)  &
-                  + ss(i,j,1)*(uu(i+1,j)-uu(i,j)) &
-                  + ss(i,j,2)*(uu(i-1,j)-uu(i,j)) - ss(i+1,j,2)*(uu(i+1,j)-uu(i,j))
-             if (bc_skewed(mm(i,j),1,+1)) &
-                flux(1,jc) = flux(1,jc) + ss(i,j,XBC)*(uu(i+2,j)-uu(i,j)) 
-          else   
-             flux(1,jc) = Huge(flux)
-          end if
-       end do
-       flux(1,:) = fac * flux(1,:)
+          i = 1
+          flux(1,:) = ZERO
+          do j = 1,ny
+             jc = (j-1)/ratio+1
+             if (bc_dirichlet(mm(i,j),1,-1)) then
+                flux(1,jc) = flux(1,jc)  &
+                     + ss(i,j,1)*(uu(i+1,j)-uu(i,j)) &
+                     + ss(i,j,2)*(uu(i-1,j)-uu(i,j)) - ss(i+1,j,2)*(uu(i+1,j)-uu(i,j))
+                if (bc_skewed(mm(i,j),1,+1)) &
+                     flux(1,jc) = flux(1,jc) + ss(i,j,XBC)*(uu(i+2,j)-uu(i,j)) 
+             else   
+                flux(1,jc) = Huge(flux)
+             end if
+          end do
+          flux(1,:) = fac * flux(1,:)
 
-       !   Hi i face
-    else if (face == 1) then
+          !   Hi i face
+       else if (face == 1) then
 
-       i = nx
-       flux(1,:) = ZERO
-       do j = 1,ny
-          jc = (j-1)/ratio+1
-          if (bc_dirichlet(mm(i,j),1,+1)) then
+          i = nx
+          flux(1,:) = ZERO
+          do j = 1,ny
+             jc = (j-1)/ratio+1
+             if (bc_dirichlet(mm(i,j),1,+1)) then
 
-             flux(1,jc) = flux(1,jc) &
-                  + ss(i,j,1)*(uu(i+1,j)-uu(i,j)) &
-                  + ss(i,j,2)*(uu(i-1,j)-uu(i,j)) - ss(i-1,j,1)*(uu(i-1,j)-uu(i,j))
-             if (bc_skewed(mm(i,j),1,-1)) &
-                flux(1,jc) = flux(1,jc) + ss(i,j,XBC)*(uu(i-2,j)-uu(i,j))
-          else 
-             flux(1,jc) = Huge(flux)
-          end if
-       end do
-       flux(1,:) = fac * flux(1,:)
+                flux(1,jc) = flux(1,jc) &
+                     + ss(i,j,1)*(uu(i+1,j)-uu(i,j)) &
+                     + ss(i,j,2)*(uu(i-1,j)-uu(i,j)) - ss(i-1,j,1)*(uu(i-1,j)-uu(i,j))
+                if (bc_skewed(mm(i,j),1,-1)) &
+                     flux(1,jc) = flux(1,jc) + ss(i,j,XBC)*(uu(i-2,j)-uu(i,j))
+             else 
+                flux(1,jc) = Huge(flux)
+             end if
+          end do
+          flux(1,:) = fac * flux(1,:)
 
-
+       end if
        !   Lo j face
-    else if (face == -2) then
 
-       j = 1
-       flux(:,1) = ZERO
-       do i = 1,nx
-          ic = (i-1)/ratio+1
-          if (bc_dirichlet(mm(i,j),2,-1)) then
-             flux(ic,1) = flux(ic,1)  &
-                  + ss(i,j,3)*(uu(i,j+1)-uu(i,j)) &
-                  + ss(i,j,4)*(uu(i,j-1)-uu(i,j)) - ss(i,j+1,4)*(uu(i,j+1)-uu(i,j))
-             if (bc_skewed(mm(i,j),2,+1)) &
-                flux(ic,1) =  + ss(i,j,YBC)*(uu(i,j+2)-uu(i,j))
-          else 
-             flux(ic,1) = Huge(flux)
-          end if
-       end do
-       flux(:,1) = fac * flux(:,1)
+    else if ( dim == 2 ) then
+       if (face == -1) then
+
+          j = 1
+          flux(:,1) = ZERO
+          do i = 1,nx
+             ic = (i-1)/ratio+1
+             if (bc_dirichlet(mm(i,j),2,-1)) then
+                flux(ic,1) = flux(ic,1)  &
+                     + ss(i,j,3)*(uu(i,j+1)-uu(i,j)) &
+                     + ss(i,j,4)*(uu(i,j-1)-uu(i,j)) - ss(i,j+1,4)*(uu(i,j+1)-uu(i,j))
+                if (bc_skewed(mm(i,j),2,+1)) &
+                     flux(ic,1) =  + ss(i,j,YBC)*(uu(i,j+2)-uu(i,j))
+             else 
+                flux(ic,1) = Huge(flux)
+             end if
+          end do
+          flux(:,1) = fac * flux(:,1)
 
 
-       !   Hi j face
-    else if (face == 2) then
+          !   Hi j face
+       else if (face == 1) then
 
-       j = ny
-       flux(:,1) = ZERO
-       do i = 1,nx
-          ic = (i-1)/ratio+1
-          if (bc_dirichlet(mm(i,j),2,+1)) then
-             flux(ic,1) = flux(ic,1)  &
-                  + ss(i,j,3)*(uu(i,j+1)-uu(i,j)) &
-                  + ss(i,j,4)*(uu(i,j-1)-uu(i,j)) - ss(i,j-1,3)*(uu(i,j-1)-uu(i,j))
-             if (bc_skewed(mm(i,j),2,-1)) &
-                flux(ic,1) = flux(ic,1) + ss(i,j,YBC)*(uu(i,j-2)-uu(i,j))
-          else
-             flux(ic,1) = Huge(flux)
-          end if
-       end do
-       flux(:,1) = fac * flux(:,1)
+          j = ny
+          flux(:,1) = ZERO
+          do i = 1,nx
+             ic = (i-1)/ratio+1
+             if (bc_dirichlet(mm(i,j),2,+1)) then
+                flux(ic,1) = flux(ic,1)  &
+                     + ss(i,j,3)*(uu(i,j+1)-uu(i,j)) &
+                     + ss(i,j,4)*(uu(i,j-1)-uu(i,j)) - ss(i,j-1,3)*(uu(i,j-1)-uu(i,j))
+                if (bc_skewed(mm(i,j),2,-1)) &
+                     flux(ic,1) = flux(ic,1) + ss(i,j,YBC)*(uu(i,j-2)-uu(i,j))
+             else
+                flux(ic,1) = Huge(flux)
+             end if
+          end do
+          flux(:,1) = fac * flux(:,1)
 
+       end if
     end if
 
   end subroutine stencil_flux_2d
@@ -1953,17 +2064,21 @@ contains
     end if
   end subroutine stencil_apply_3d
 
-  subroutine stencil_flux_3d(ss, flux, uu, mm, ng, ratio, face)
+  subroutine stencil_flux_3d(ss, flux, uu, mm, ng, ratio, face, dim, skwd)
     integer, intent(in) :: ng
     real (kind = dp_t), intent(in ) :: uu(1-ng:,1-ng:,1-ng:)
     real (kind = dp_t), intent(out) :: flux(:,:,:)
     real (kind = dp_t), intent(in ) :: ss(:,:,:,0:)
     integer           , intent(in)  :: mm(:,:,:)
-    integer, intent(in) :: ratio, face
+    logical, intent(in), optional :: skwd
+    integer, intent(in) :: ratio, face, dim
     integer nx, ny, nz, nxc, nyc, nzc
     integer i,j,k,ic,jc,kc
     integer, parameter :: XBC = 7, YBC = 8, ZBC = 9
     real (kind = dp_t) :: fac
+    logical :: lskwd
+
+    lskwd = .true. ; if ( present(skwd) ) lskwd = skwd
 
     nx = size(ss,dim=1)
     ny = size(ss,dim=2)
@@ -1978,145 +2093,146 @@ contains
     fac = ONE/real(ratio*ratio*ratio, kind=dp_t)
 
     !   Lo i face
-    if (face == -1) then
+    if ( dim ==  1 ) then
+       if (face == -1) then
 
-       i = 1
-       flux(1,:,:) = ZERO
-       do k = 1,nz
-          do j = 1,ny
-             jc = (j-1)/ratio + 1
-             kc = (k-1)/ratio + 1
-             if (bc_dirichlet(mm(i,j,k),1,-1)) then
-                flux(1,jc,kc) =  flux(1,jc,kc) &
-                     + ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
-                     + ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
-                     - ss(i+1,j,k,2)*(uu(i+1,j,k)-uu(i,j,k))
-                if (bc_skewed(mm(i,j,k),1,+1)) &
-                   flux(1,jc,kc) =  flux(1,jc,kc) + ss(i,j,k,XBC)*(uu(i+2,j,k)-uu(i,j,k))
-             else 
-                flux(1,jc,kc) = Huge(flux)
-             end if
+          i = 1
+          flux(1,:,:) = ZERO
+          do k = 1,nz
+             do j = 1,ny
+                jc = (j-1)/ratio + 1
+                kc = (k-1)/ratio + 1
+                if (bc_dirichlet(mm(i,j,k),1,-1)) then
+                   flux(1,jc,kc) =  flux(1,jc,kc) &
+                        + ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
+                        + ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
+                        - ss(i+1,j,k,2)*(uu(i+1,j,k)-uu(i,j,k))
+                   if (bc_skewed(mm(i,j,k),1,+1)) &
+                        flux(1,jc,kc) =  flux(1,jc,kc) + ss(i,j,k,XBC)*(uu(i+2,j,k)-uu(i,j,k))
+                else 
+                   flux(1,jc,kc) = Huge(flux)
+                end if
+             end do
           end do
-       end do
-       flux(1,:,:) = flux(1,:,:) * fac
+          flux(1,:,:) = flux(1,:,:) * fac
 
-       !   Hi i face
-    else if (face ==  1) then
+          !   Hi i face
+       else if (face ==  1) then
 
-       i = nx
-       flux(1,:,:) = ZERO
-       do k = 1,nz
-          do j = 1,ny
-             jc = (j-1)/ratio + 1
-             kc = (k-1)/ratio + 1
-             if (bc_dirichlet(mm(i,j,k),1,+1)) then
-                flux(1,jc,kc) =  flux(1,jc,kc) &
-                     + ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
-                     + ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
-                     - ss(i-1,j,k,1)*(uu(i-1,j,k)-uu(i,j,k))
-                if (bc_skewed(mm(i,j,k),1,-1)) &
-                   flux(1,jc,kc) =  flux(1,jc,kc) + ss(i,j,k,XBC)*(uu(i-2,j,k)-uu(i,j,k))
-             else 
-                flux(1,jc,kc) = Huge(flux)
-             end if
+          i = nx
+          flux(1,:,:) = ZERO
+          do k = 1,nz
+             do j = 1,ny
+                jc = (j-1)/ratio + 1
+                kc = (k-1)/ratio + 1
+                if (bc_dirichlet(mm(i,j,k),1,+1)) then
+                   flux(1,jc,kc) =  flux(1,jc,kc) &
+                        + ss(i,j,k,1)*(uu(i+1,j,k)-uu(i,j,k)) &
+                        + ss(i,j,k,2)*(uu(i-1,j,k)-uu(i,j,k)) &
+                        - ss(i-1,j,k,1)*(uu(i-1,j,k)-uu(i,j,k))
+                   if (bc_skewed(mm(i,j,k),1,-1)) &
+                        flux(1,jc,kc) =  flux(1,jc,kc) + ss(i,j,k,XBC)*(uu(i-2,j,k)-uu(i,j,k))
+                else 
+                   flux(1,jc,kc) = Huge(flux)
+                end if
 
+             end do
           end do
-       end do
-       flux(1,:,:) = flux(1,:,:) * fac
-
+          flux(1,:,:) = flux(1,:,:) * fac
+       end if
        !   Lo j face
-    else if (face == -2) then
-
-       j = 1
-       flux(:,1,:) = ZERO
-       do k = 1,nz
-          do i = 1,nx
-             ic = (i-1)/ratio + 1
-             kc = (k-1)/ratio + 1
-             if (bc_dirichlet(mm(i,j,k),2,-1)) then
-                flux(ic,1,kc) =  flux(ic,1,kc) &
-                     + ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
-                     + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
-                     - ss(i,j+1,k,4)*(uu(i,j+1,k)-uu(i,j,k))
-                if (bc_skewed(mm(i,j,k),2,+1)) &
-                   flux(ic,1,kc) =  flux(ic,1,kc) + ss(i,j,k,YBC)*(uu(i,j+2,k)-uu(i,j,k))
-             else 
-                flux(ic,1,kc) = Huge(flux)
-             end if
+    else if ( dim == 2 ) then
+       if (face == -1) then
+          j = 1
+          flux(:,1,:) = ZERO
+          do k = 1,nz
+             do i = 1,nx
+                ic = (i-1)/ratio + 1
+                kc = (k-1)/ratio + 1
+                if (bc_dirichlet(mm(i,j,k),2,-1)) then
+                   flux(ic,1,kc) =  flux(ic,1,kc) &
+                        + ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
+                        + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
+                        - ss(i,j+1,k,4)*(uu(i,j+1,k)-uu(i,j,k))
+                   if (bc_skewed(mm(i,j,k),2,+1)) &
+                        flux(ic,1,kc) =  flux(ic,1,kc) + ss(i,j,k,YBC)*(uu(i,j+2,k)-uu(i,j,k))
+                else 
+                   flux(ic,1,kc) = Huge(flux)
+                end if
+             end do
           end do
-       end do
-       flux(:,1,:) = flux(:,1,:) * fac
+          flux(:,1,:) = flux(:,1,:) * fac
+          !   Hi j face
+       else if (face ==  1) then
+          j = ny
+          flux(:,1,:) = ZERO
+          do k = 1,nz
+             do i = 1,nx
+                ic = (i-1)/ratio + 1
+                kc = (k-1)/ratio + 1
 
-       !   Hi j face
-    else if (face ==  2) then
-
-       j = ny
-       flux(:,1,:) = ZERO
-       do k = 1,nz
-          do i = 1,nx
-             ic = (i-1)/ratio + 1
-             kc = (k-1)/ratio + 1
-
-             if (bc_dirichlet(mm(i,j,k),2,+1)) then
-                flux(ic,1,kc) =  flux(ic,1,kc) &
-                     + ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
-                     + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
-                     - ss(i,j-1,k,3)*(uu(i,j-1,k)-uu(i,j,k))
-                if (bc_skewed(mm(i,j,k),2,-1)) &
-                   flux(ic,1,kc) =  flux(ic,1,kc) + ss(i,j,k,YBC)*(uu(i,j-2,k)-uu(i,j,k))
-             else
-                flux(ic,1,kc) = Huge(flux)
-             end if
+                if (bc_dirichlet(mm(i,j,k),2,+1)) then
+                   flux(ic,1,kc) =  flux(ic,1,kc) &
+                        + ss(i,j,k,3)*(uu(i,j+1,k)-uu(i,j,k)) &
+                        + ss(i,j,k,4)*(uu(i,j-1,k)-uu(i,j,k)) &
+                        - ss(i,j-1,k,3)*(uu(i,j-1,k)-uu(i,j,k))
+                   if (bc_skewed(mm(i,j,k),2,-1)) &
+                        flux(ic,1,kc) =  flux(ic,1,kc) + ss(i,j,k,YBC)*(uu(i,j-2,k)-uu(i,j,k))
+                else
+                   flux(ic,1,kc) = Huge(flux)
+                end if
+             end do
           end do
-       end do
-       flux(:,1,:) = flux(:,1,:) * fac
+          flux(:,1,:) = flux(:,1,:) * fac
+          !   Lo k face
+       end if
+    else if ( dim == 3 ) then
+       if (face == -1) then
 
-       !   Lo k face
-    else if (face == -3) then
-
-       k = 1
-       flux(:,:,1) = ZERO
-       do j = 1,ny
-          do i = 1,nx
-             ic = (i-1)/ratio + 1
-             jc = (j-1)/ratio + 1
-             if (bc_dirichlet(mm(i,j,k),3,-1)) then
-                flux(ic,jc,1) =  flux(ic,jc,1) &
-                     + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) &
-                     + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k)) &
-                     - ss(i,j,k+1,6)*(uu(i,j,k+1)-uu(i,j,k))
-                if (bc_skewed(mm(i,j,k),3,+1)) &
-                   flux(ic,jc,1) =  flux(ic,jc,1) + ss(i,j,k,ZBC)*(uu(i,j,k+2)-uu(i,j,k)) 
-             else 
-                flux(ic,jc,1) = Huge(flux)
-             end if
+          k = 1
+          flux(:,:,1) = ZERO
+          do j = 1,ny
+             do i = 1,nx
+                ic = (i-1)/ratio + 1
+                jc = (j-1)/ratio + 1
+                if (bc_dirichlet(mm(i,j,k),3,-1)) then
+                   flux(ic,jc,1) =  flux(ic,jc,1) &
+                        + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) &
+                        + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k)) &
+                        - ss(i,j,k+1,6)*(uu(i,j,k+1)-uu(i,j,k))
+                   if (bc_skewed(mm(i,j,k),3,+1)) &
+                        flux(ic,jc,1) =  flux(ic,jc,1) + ss(i,j,k,ZBC)*(uu(i,j,k+2)-uu(i,j,k)) 
+                else 
+                   flux(ic,jc,1) = Huge(flux)
+                end if
+             end do
           end do
-       end do
-       flux(:,:,1) = flux(:,:,1) * fac
+          flux(:,:,1) = flux(:,:,1) * fac
 
-       !   Hi k face
-    else if (face ==  3) then
+          !   Hi k face
+       else if (face ==  1) then
 
-       k = nz
-       flux(:,:,1) = ZERO
-       do j = 1,ny
-          do i = 1,nx
-             ic = (i-1)/ratio + 1
-             jc = (j-1)/ratio + 1
-             if (bc_dirichlet(mm(i,j,k),3,+1)) then
-                flux(ic,jc,1) =  flux(ic,jc,1) &
-                     + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) &
-                     + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k)) &
-                     - ss(i,j,k-1,5)*(uu(i,j,k-1)-uu(i,j,k))
-                if (bc_skewed(mm(i,j,k),3,-1)) &
-                   flux(ic,jc,1) =  flux(ic,jc,1) + ss(i,j,k,ZBC)*(uu(i,j,k-2)-uu(i,j,k))
-             else
-                flux(ic,jc,1) = Huge(flux)
-             end if
+          k = nz
+          flux(:,:,1) = ZERO
+          do j = 1,ny
+             do i = 1,nx
+                ic = (i-1)/ratio + 1
+                jc = (j-1)/ratio + 1
+                if (bc_dirichlet(mm(i,j,k),3,+1)) then
+                   flux(ic,jc,1) =  flux(ic,jc,1) &
+                        + ss(i,j,k,5)*(uu(i,j,k+1)-uu(i,j,k)) &
+                        + ss(i,j,k,6)*(uu(i,j,k-1)-uu(i,j,k)) &
+                        - ss(i,j,k-1,5)*(uu(i,j,k-1)-uu(i,j,k))
+                   if (bc_skewed(mm(i,j,k),3,-1)) &
+                        flux(ic,jc,1) =  flux(ic,jc,1) + ss(i,j,k,ZBC)*(uu(i,j,k-2)-uu(i,j,k))
+                else
+                   flux(ic,jc,1) = Huge(flux)
+                end if
+             end do
           end do
-       end do
-       flux(:,:,1) = flux(:,:,1) * fac
+          flux(:,:,1) = flux(:,:,1) * fac
 
+       end if
     end if
 
   end subroutine stencil_flux_3d

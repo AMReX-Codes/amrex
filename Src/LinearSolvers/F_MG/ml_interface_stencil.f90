@@ -24,7 +24,7 @@ module ml_interface_stencil_module
 
 contains
 
- subroutine ml_interface(res, flux, crse, ss, crse_domain, side)
+ subroutine ml_interface(res, flux, crse, ss, crse_domain, face, dim)
   type(multifab), intent(inout) :: res
   type(multifab), intent(inout) :: flux
   type(multifab), intent(in   ) :: crse
@@ -38,7 +38,7 @@ contains
   integer :: los(res%dim)
   integer :: lo_dom(res%dim), hi_dom(res%dim)
   integer :: dm
-  integer :: side
+  integer :: face, dim
   integer :: dir
   integer :: i, j, n
 
@@ -48,7 +48,7 @@ contains
   real(kind=dp_t), pointer :: sp(:,:,:,:)
 
   dm = res%dim
-  dir = iabs(side)
+  dir = dim
 
   lo_dom = lwb(crse_domain)
   hi_dom = upb(crse_domain)
@@ -85,19 +85,19 @@ contains
                                   fp(:,1,1,n), lof, &
                                   cp(:,1,1,n), loc, &
                                   sp(:,1,1,:), los, &
-                                  lo, hi, side)
+                                  lo, hi, face, dim)
             case (2)
              call ml_interface_2d(rp(:,:,1,n), lor, &
                                   fp(:,:,1,n), lof, &
                                   cp(:,:,1,n), loc, &
                                   sp(:,:,1,:), los, &
-                                  lo, hi, side)
+                                  lo, hi, face, dim)
             case (3)
              call ml_interface_3d(rp(:,:,:,n), lor, &
                                   fp(:,:,:,n), lof, &
                                   cp(:,:,:,n), loc, &
                                   sp(:,:,:,:), los, &
-                                  lo, hi, side)
+                                  lo, hi, face, dim)
            end select
           end do
 
@@ -109,7 +109,7 @@ contains
  end subroutine ml_interface
 
   subroutine ml_interface_1d(res, lor, fine_flux, lof, cc, loc, &
-                             ss , los, lo, hi, side)
+                             ss , los, lo, hi, face, dim)
     integer, intent(in) :: lor(:)
     integer, intent(in) :: loc(:)
     integer, intent(in) :: los(:)
@@ -119,7 +119,7 @@ contains
     real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):)
     real (kind = dp_t), intent(in   ) :: cc(loc(1):)
     real (kind = dp_t), intent(in   ) :: ss(los(1):,0:)
-    integer, intent(in) :: side
+    integer, intent(in) :: face, dim
 
     integer i
     real (kind = dp_t) :: crse_flux
@@ -127,12 +127,12 @@ contains
     i = lo(1)
 
 !   Lo side
-    if (side == -1) then
+    if (face == -1) then
       crse_flux = ss(i,1)*(cc(i)-cc(i+1))
       res(i) = res(i) + fine_flux(i) - crse_flux
 
 !   Hi side
-    else if (side == 1) then
+    else if (face == 1) then
       crse_flux = ss(i,2)*(cc(i)-cc(i-1))
       res(i) = res(i) + fine_flux(i) - crse_flux
     end if
@@ -140,7 +140,7 @@ contains
   end subroutine ml_interface_1d
 
   subroutine ml_interface_2d(res, lor, fine_flux, lof, cc, loc, &
-                             ss , los, lo, hi, side)
+                             ss , los, lo, hi, face, dim)
     integer, intent(in) :: lor(:)
     integer, intent(in) :: loc(:)
     integer, intent(in) :: los(:)
@@ -150,48 +150,48 @@ contains
     real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):)
     real (kind = dp_t), intent(in   ) ::        cc(loc(1):,loc(2):)
     real (kind = dp_t), intent(in   ) ::        ss(los(1):,los(2):,0:)
-    integer, intent(in) :: side
+    integer, intent(in) :: face, dim
 
     integer i, j
     real (kind = dp_t) :: crse_flux
 
-!   Hi i side
-    if (side == 1) then
-      i = lo(1)
-      do j = lo(2),hi(2)
-        crse_flux = ss(i,j,2)*(cc(i,j)-cc(i-1,j))
-        res(i,j) = res(i,j) + fine_flux(i,j) - crse_flux
-      end do
-
-!   Lo i side
-    else if (side == -1) then
-      i = lo(1)
-      do j = lo(2),hi(2)
-        crse_flux = ss(i,j,1)*(cc(i,j)-cc(i+1,j))
-        res(i,j) = res(i,j) + fine_flux(i,j) - crse_flux
-      end do
-
-!   Hi j side
-    else if (side == 2) then
-      j = lo(2)
-      do i = lo(1),hi(1)
-        crse_flux = ss(i,j,4)*(cc(i,j)-cc(i,j-1))
-        res(i,j) = res(i,j) + fine_flux(i,j) - crse_flux
-      end do
-
-!   Lo j side
-    else if (side == -2) then
-      j = lo(2)
-      do i = lo(1),hi(1)
-        crse_flux = ss(i,j,3)*(cc(i,j)-cc(i,j+1))
-        res(i,j) = res(i,j) + fine_flux(i,j) - crse_flux
-      end do
+    !   Hi i side
+    if ( dim == 1 ) then
+       if (face == 1) then
+          i = lo(1)
+          do j = lo(2),hi(2)
+             crse_flux = ss(i,j,2)*(cc(i,j)-cc(i-1,j))
+             res(i,j) = res(i,j) + fine_flux(i,j) - crse_flux
+          end do
+          !   Lo i side
+       else if (face == -1) then
+          i = lo(1)
+          do j = lo(2),hi(2)
+             crse_flux = ss(i,j,1)*(cc(i,j)-cc(i+1,j))
+             res(i,j) = res(i,j) + fine_flux(i,j) - crse_flux
+          end do
+       end if
+    else if ( dim == 2 ) then
+       !   Hi j side
+       if (face == 1) then
+          j = lo(2)
+          do i = lo(1),hi(1)
+             crse_flux = ss(i,j,4)*(cc(i,j)-cc(i,j-1))
+             res(i,j) = res(i,j) + fine_flux(i,j) - crse_flux
+          end do
+          !   Lo j side
+       else if (face == -2) then
+          j = lo(2)
+          do i = lo(1),hi(1)
+             crse_flux = ss(i,j,3)*(cc(i,j)-cc(i,j+1))
+             res(i,j) = res(i,j) + fine_flux(i,j) - crse_flux
+          end do
+       end if
     end if
-
   end subroutine ml_interface_2d
 
   subroutine ml_interface_3d(res, lor, fine_flux, lof, cc, loc, &
-                             ss , los, lo, hi, side)
+                             ss , los, lo, hi, face, dim)
     integer, intent(in) :: lor(:)
     integer, intent(in) :: loc(:)
     integer, intent(in) :: los(:)
@@ -201,13 +201,14 @@ contains
     real (kind = dp_t), intent(in   ) :: fine_flux(lof(1):,lof(2):,lof(3):)
     real (kind = dp_t), intent(in   ) ::        cc(loc(1):,loc(2):,loc(3):)
     real (kind = dp_t), intent(in   ) ::        ss(los(1):,los(2):,los(3):,0:)
-    integer, intent(in) :: side
+    integer, intent(in) :: face, dim
 
     integer i, j, k
     real (kind = dp_t) :: crse_flux
 
 !   Hi i side
-    if (side == 1) then
+    if ( dim == 1 ) then
+       if (face == 1) then
       i = lo(1)
       do k = lo(3),hi(3)
       do j = lo(2),hi(2)
@@ -216,7 +217,7 @@ contains
       end do
       end do
 !   Lo i side
-    else if (side == -1) then
+    else if (face == -1) then
       i = lo(1)
       do k = lo(3),hi(3)
       do j = lo(2),hi(2)
@@ -224,8 +225,10 @@ contains
         res(i,j,k) = res(i,j,k) + fine_flux(i,j,k) - crse_flux
       end do
       end do
+   end if
 !   Hi j side
-    else if (side == 2) then
+   else if ( dim ==  2 )  then
+    if (face == 1) then
       j = lo(2)
       do k = lo(3),hi(3)
       do i = lo(1),hi(1)
@@ -234,7 +237,7 @@ contains
       end do
       end do
 !   Lo j side
-    else if (side == -2) then
+    else if (face == -1) then
       j = lo(2)
       do k = lo(3),hi(3)
       do i = lo(1),hi(1)
@@ -242,8 +245,10 @@ contains
         res(i,j,k) = res(i,j,k) + fine_flux(i,j,k) - crse_flux
       end do
       end do
+   end if
+      else if ( dim == 3 ) then
 !   Hi k side
-    else if (side == 3) then
+      if (face == 1) then
       k = lo(3)
       do j = lo(2),hi(2)
       do i = lo(1),hi(1)
@@ -252,7 +257,7 @@ contains
       end do
       end do
 !   Lo k side
-    else if (side == -3) then
+    else if (face == -1) then
       k = lo(3)
       do j = lo(2),hi(2)
       do i = lo(1),hi(1)
@@ -261,7 +266,7 @@ contains
       end do
       end do
     end if
-
+    end if
   end subroutine ml_interface_3d
 
  subroutine ml_crse_contrib(res, flux, crse, ss, mm, crse_domain, ir, side)

@@ -1,19 +1,19 @@
 module ml_util_module
 
+  use stencil_module
+  use mg_module
   implicit none
 
 contains
 
-  subroutine ml_fill_fluxes(mgt, ss, flux, uu, mm, ratio, side)
-    use stencil_module
-    use mg_module
+  subroutine ml_fill_fluxes(mgt, ss, flux, uu, mm, ratio, face, dim)
     type(mg_tower), intent(inout) :: mgt
     type(multifab), intent(inout) :: flux
     type(multifab), intent(in) :: ss
     type(multifab), intent(inout) :: uu
     type(imultifab), intent(in) :: mm
     integer :: ratio
-    integer :: side
+    integer :: face, dim
     integer :: i, n
     real(kind=dp_t), pointer :: fp(:,:,:,:)
     real(kind=dp_t), pointer :: up(:,:,:,:)
@@ -31,13 +31,13 @@ contains
        select case(mgt%dim)
        case (1)
           call stencil_flux_1d(sp(:,1,1,:), fp(:,1,1,n), up(:,1,1,n), &
-               mp(:,1,1,1), mgt%ng, ratio, side)
+               mp(:,1,1,1), mgt%ng, ratio, face, dim)
        case (2)
           call stencil_flux_2d(sp(:,:,1,:), fp(:,:,1,n), up(:,:,1,n), &
-               mp(:,:,1,1), mgt%ng, ratio, side)
+               mp(:,:,1,1), mgt%ng, ratio, face, dim)
        case (3)
           call stencil_flux_3d(sp(:,:,:,:), fp(:,:,:,n), up(:,:,:,n), &
-               mp(:,:,:,1), mgt%ng, ratio, side)
+               mp(:,:,:,1), mgt%ng, ratio, face, dim)
        end select
     end do
   end subroutine ml_fill_fluxes
