@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.13 1997-11-26 06:26:45 lijewski Exp $
+// $Id: Utility.cpp,v 1.14 1997-12-05 19:07:30 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -166,7 +166,7 @@ static
 time_t
 get_initial_wall_clock_time ()
 {
-    return ::time();
+    return ::time(0);
 }
 
 //
