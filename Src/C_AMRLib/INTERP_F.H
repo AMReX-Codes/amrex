@@ -2,7 +2,7 @@
 #define _INTERP_NAMES_H
 
 /*
-** $Id: INTERP_F.H,v 1.7 1998-11-03 18:16:37 lijewski Exp $
+** $Id: INTERP_F.H,v 1.8 1999-04-05 17:39:20 car Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -25,7 +25,7 @@
 #    define FORT_CCINTERP2   CCINTERP2
 #    define FORT_PCINTERP    PCINTERP
 #  else
-#  ifdef BL_AIX
+#  ifdef BL_FORT_USE_LOWERCASE
 #    define FORT_NBINTERP    nbinterp
 #    define FORT_CBINTERP    cbinterp
 #    define FORT_CCINTERP    ccinterp

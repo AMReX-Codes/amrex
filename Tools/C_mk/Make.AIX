@@ -60,5 +60,6 @@ XTRALIBS += -lm -lxlf90
 
 DEFINES += -D_POSIX_SOURCE
 
+FORTLINK := LOWERCASE
 FORT_EXE_OUTPUT_OPTION	= ; mv $*.o $(objEXETempDir)/$*.o
 FORT_LIB_OUTPUT_OPTION	= ; mv $*.o $(objTempDir)/$*.o

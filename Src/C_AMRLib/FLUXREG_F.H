@@ -21,7 +21,7 @@
 #    define FORT_FRCVREFLUX  FRCVREFLUX
 #    define FORT_SCALADDTO   SCALADDTO
 #  else
-#  ifdef BL_AIX
+#  ifdef BL_FORT_USE_LOWERCASE
 #    define FORT_FRCRSEINIT  frcrseinit
 #    define FORT_FRFINEADD   frfineadd
 #    define FORT_FRCAINIT    frcainit

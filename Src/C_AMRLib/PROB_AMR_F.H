@@ -2,7 +2,7 @@
 #define _PROB_AMR_F_H_
 
 /*
-** $Id: PROB_AMR_F.H,v 1.6 1998-11-03 18:16:38 lijewski Exp $
+** $Id: PROB_AMR_F.H,v 1.7 1999-04-05 17:39:21 car Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -13,7 +13,7 @@
 #  ifdef BL_FORT_USE_UPPERCASE
 #    define FORT_PROBINIT    PROBINIT
 #  else
-#  ifdef BL_AIX
+#  ifdef BL_FORT_USE_LOWERCASE
 #    define FORT_PROBINIT    probinit
 #  else
 #    define FORT_PROBINIT    probinit_
