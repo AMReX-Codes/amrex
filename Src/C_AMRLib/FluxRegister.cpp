@@ -1,8 +1,9 @@
 //
-// $Id: FluxRegister.cpp,v 1.69 2001-10-16 19:59:56 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.70 2001-10-23 17:01:20 lijewski Exp $
 //
 #include <winstd.H>
 
+#include <BArena.H>
 #include <FluxRegister.H>
 #include <Geometry.H>
 #include <FLUXREG_F.H>
@@ -706,6 +707,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 static Array<int>              CIMsgs;
 static std::vector<FabComTag>  CITags;
 static std::vector<FArrayBox*> CIFabs;
+static BArena                  CIArena;
 static Mutex                   CIMutex;
 
 static
@@ -770,6 +772,8 @@ FluxRegister::CrseInit (const FArrayBox& flux,
     BL_ASSERT(flux.box().contains(subbox));
     BL_ASSERT(srccomp  >= 0 && srccomp+numcomp  <= flux.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
+    
+    Arena* oldarena = BoxLib::ResetArena(&CIArena);
 
     for (int k = 0; k < grids.size(); k++)
     {
@@ -790,12 +794,16 @@ FluxRegister::CrseInit (const FArrayBox& flux,
             DoIt(hi,k,bndry,hibox,flux,srccomp,destcomp,numcomp,mult);
         }
     }
+
+    BoxLib::ResetArena(oldarena);
 }
 
 void
 FluxRegister::CrseInitFinish ()
 {
     if (ParallelDescriptor::NProcs() == 1) return;
+
+    Arena* oldarena = BoxLib::ResetArena(&CIArena);
 
     const int seqno_1 = ParallelDescriptor::SeqNum();
     const int seqno_2 = ParallelDescriptor::SeqNum();
@@ -1022,6 +1030,8 @@ FluxRegister::CrseInitFinish ()
     // Zero out CIMsgs.
     //
     for (int i = 0; i < NProcs; i++) CIMsgs[i] = 0;
+
+    BoxLib::ResetArena(oldarena);
 }
 
 void
