@@ -1746,9 +1746,9 @@ c sig here contains three different directions all stored on "nodes"
       double precision sig(*)
       double precision cen(*)
       double precision mask(*)
-      double precision avg
+      double precision AVG
       integer i, jdiff, kdiff, ly, lz
-      avg() = (sig(i-1)        * cor(i-1) +
+      AVG() = (sig(i-1)        * cor(i-1) +
      &         sig(i)          * cor(i+1) +
      &         sig(i+ly-jdiff) * cor(i-jdiff) +
      &         sig(i+ly)       * cor(i+jdiff) +
@@ -1792,8 +1792,8 @@ c-----------------------------------------------------------------------
       double precision signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
       double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       integer i, j, k, ipar0, ipar, ipass
-      double precision avg
-      avg() = (signd(i-1,j,k,1) * cor(i-1,j,k) +
+      double precision AVG
+      AVG() = (signd(i-1,j,k,1) * cor(i-1,j,k) +
      &         signd(i,j,k,1)   * cor(i+1,j,k) +
      &         signd(i,j-1,k,2) * cor(i,j-1,k) +
      &         signd(i,j,k,2)   * cor(i,j+1,k) +
@@ -1808,7 +1808,7 @@ c-----------------------------------------------------------------------
                ipar = 1 - ipar
 cdir$ ivdep
                do i = regl0 + ipar, regh0, 2
-                  cor(i,j,k) = (avg() - res(i,j,k)) * cen(i,j,k)
+                  cor(i,j,k) = (AVG() - res(i,j,k)) * cen(i,j,k)
                end do
             end do
          end do
@@ -2315,9 +2315,9 @@ c-----------------------------------------------------------------------
       double precision sigz(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2)
       double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       double precision hx, hy, hz, hxm2, hym2, hzm2
-      double precision avg
+      double precision AVG
       integer i, j, k, ipass, ipar, ipar0
-      avg() = 0.25d0 * (hxm2 *
+      AVG() = 0.25d0 * (hxm2 *
      &          ((sigx(i-1,j-1,k-1) + sigx(i-1,j-1,k) +
      &            sigx(i-1,j,k-1)   + sigx(i-1,j,k)) * cor(i-1,j,k) +
      &           (sigx(i,j-1,k-1)   + sigx(i,j-1,k) +

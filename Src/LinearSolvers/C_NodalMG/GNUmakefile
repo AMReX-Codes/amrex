@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.26 1998-12-02 05:58:57 car Exp $
+# $Id: GNUmakefile,v 1.27 1998-12-10 22:54:32 car Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -54,7 +54,9 @@ ifeq ($(EBASE),proj)
   #CXXFLAGS 	  += --strict
   #CPPFLAGS	  += -D__KAI_STRICT
 
-  CPPFLAGS          += -DHG_DEBUG
+  ifeq ($(DEBUG),TRUE)
+    CPPFLAGS          += -DHG_DEBUG
+  endif
   LIBRARIES         +=
   LIBRARY_LOCATIONS +=
   CEXE_sources      += proj.cpp
