@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.95 1999-09-17 23:32:45 lijewski Exp $
+// $Id: Amr.cpp,v 1.96 1999-10-08 20:54:50 propp Exp $
 //
 
 #include <TagBox.H>
@@ -53,6 +53,7 @@ static const aString CheckPointVersion = "CheckPointVersion_1.0";
 // Force immediate full (level 0) regrid() on restart?
 //
 static int regrid_on_restart = 0;
+static int plotfile_on_restart = 0;
 
 void
 Amr::setDtMin (const Array<REAL>& dt_min_in)
@@ -152,6 +153,7 @@ Amr::Amr ()
     pp.query("v",verbose);
 
     pp.query("regrid_on_restart",regrid_on_restart);
+    pp.query("plotfile_on_restart",plotfile_on_restart);
 
     sub_cycle = true;
     if (pp.contains("nosub"))
@@ -922,6 +924,7 @@ Amr::restart (const aString& filename)
 
     if (ParallelDescriptor::IOProcessor())
         cout << "Restart time = " << dRestartTime << " seconds." << endl;
+
 }
 
 void
@@ -1075,6 +1078,16 @@ Amr::timeStep (int  level,
         if (old_finest > finest_level)
           lev_top = Min(finest_level, max_level-1);
     }
+
+    //
+    // check to see if should write plotfile
+    // This routine is here so it is done after the restart regrid.
+    //
+    if (plotfile_on_restart && !(restart_file.isNull()) )
+      {
+	plotfile_on_restart = 0;
+	writePlotFile();
+      }
     //
     // Advance grids at this level.
     //
