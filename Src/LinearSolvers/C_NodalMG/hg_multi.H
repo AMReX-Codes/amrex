@@ -46,7 +46,10 @@ public:
     }
     void set_line_solve_dimension(int dim)
     {
-	if (dim != -1) BoxLib::Abort( "holy_grail_amr_multigird::holy_grail_amr_multigrid: LineSolves not supported in parallel" );
+	if (dim != -1) 
+	{
+	    BoxLib::Abort( "holy_grail_amr_multigird::holy_grail_amr_multigrid: LineSolves not supported in parallel" );
+	}
 	line_solve_dim = dim;
     }
     void set_smoother_mode(int mode)

@@ -298,7 +298,10 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		else 
 		{
 		    // Grid-by-grid line solve section:
-		    if(m_hg_terrain) BoxLib::Abort( "relax: Terrain line solves not implemented" );
+		    if(m_hg_terrain) 
+		    {
+			BoxLib::Abort( "relax: Terrain line solves not implemented" );
+		    }
 		    const Box& fbox = c_dmfi->box();
 		    const Box& cenbox = cn_dmfi->box();
 		    if (m_hg_cross_stencil)
@@ -368,7 +371,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
     }
     else 
     {
-	BoxLib::Abort( "relax: Line Solves aren't parallelized" ); /*NOTREACHED*/
+	BoxLib::Abort( "relax: Line Solves aren't parallelized" );
 	// Full-level line solve section:
 	if (line_order.length() == 0) 
 	{

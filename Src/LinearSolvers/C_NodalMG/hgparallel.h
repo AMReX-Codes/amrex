@@ -106,7 +106,7 @@ public:
     virtual bool ready();
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	BoxLib::Abort( "FIXME task_copy_local::init" ); /*NOTREACHED*/
+	BoxLib::Abort( "FIXME task_copy_local::init" );
 	return false;
     }
     virtual bool depends_on_q(const task* t) const;
@@ -137,7 +137,7 @@ public:
     virtual bool ready();
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	BoxLib::Abort( "FIXME task_fab_get::init" ); /*NOTREACHED*/
+	BoxLib::Abort( "FIXME task_fab_get::init" );
 	return false;
     }
 private:
@@ -205,7 +205,7 @@ public:
 	: m(m_), jgrid(jgrid_), igrid(igrid_), freg(freg_), t(t_) {}
     virtual bool ready()
     {
-	BoxLib::Abort( "FIXME task_copy_link::ready" ); /*NOTREACHED*/
+	BoxLib::Abort( "FIXME task_copy_link::ready" );
 	if ( t.ready() )
 	{
 	    m[jgrid].copy(m[igrid], freg);
@@ -215,7 +215,7 @@ public:
     }
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	BoxLib::Abort( "FIXME task_copy_link::init" ); /*NOTREACHED*/
+	BoxLib::Abort( "FIXME task_copy_link::init" );
 	return false;
     }
 private:

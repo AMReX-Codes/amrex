@@ -57,7 +57,7 @@ public:
     }
     virtual bool ready()
     {
-	BoxLib::Abort( "FIXME task_interpolate_patch::ready" ); /*NOTREACHED*/
+	BoxLib::Abort( "FIXME task_interpolate_patch::ready" );
 	if ( tf->ready() )
 	{
 	    interp.fill(dmf[dgrid], dbx, tf->fab(), tf->fab().box(), rat);

@@ -113,7 +113,7 @@ public:
     virtual bool ready();
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	BoxLib::Abort( "FIXME task_bdy_fill::init" ); /*NOTREACHED*/
+	BoxLib::Abort( "FIXME task_bdy_fill::init" );
 	return false;
     }
 private:
@@ -132,7 +132,7 @@ task_bdy_fill::task_bdy_fill(const amr_boundary_class* bdy_, FArrayBox& fab_, co
 
 bool task_bdy_fill::ready()
 {
-    BoxLib::Abort( "FIXME task_bdy_fill::ready" ); /*NOTREACHED*/
+    BoxLib::Abort( "FIXME task_bdy_fill::ready" );
     bdy->fill(fab, region, src[grid], domain);
     return true;
 }
@@ -246,20 +246,20 @@ task_fill_patch::task_fill_patch(const Box& region_, const MultiFab& r_, const l
 
 bool task_fill_patch::init(sequence_number, MPI_Comm comm)
 {
-    BoxLib::Abort( "FIXME task_fill_patch::init" ) ; /*NOTREACHED*/
+    BoxLib::Abort( "FIXME task_fill_patch::init" ) ;
     target = new FArrayBox(region, r.nComp());
     return true;
 }
 
 task_fill_patch::~task_fill_patch()
 {
-    BoxLib::Abort( "FIXME task_fill_patch::~task_fill_patch" ); /*NOTREACHED*/
+    BoxLib::Abort( "FIXME task_fill_patch::~task_fill_patch" );
     delete target;
 }
 
 bool task_fill_patch::ready()
 {
-    BoxLib::Abort( "FIXME task_fill_patch::ready" ); /*NOTREACHED*/
+    BoxLib::Abort( "FIXME task_fill_patch::ready" );
     fill_patch();
     tl.execute();
     return true;
@@ -267,7 +267,7 @@ bool task_fill_patch::ready()
 
 const FArrayBox& task_fill_patch::fab()
 {
-    BoxLib::Abort( "FIXME task_fill_patch::fab" ); /*NOTREACHED*/
+    BoxLib::Abort( "FIXME task_fill_patch::fab" );
     ready();
     return *target;
 }

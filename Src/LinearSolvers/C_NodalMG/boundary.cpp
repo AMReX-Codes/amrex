@@ -734,7 +734,9 @@ inviscid_fluid_boundary_class::inviscid_fluid_boundary_class(RegType Bc[BL_SPACE
 	bc[i][0] = Bc[i][0];
 	bc[i][1] = Bc[i][1];
 	if ((bc[i][0] == periodic || bc[i][1] == periodic) && bc[i][1] != bc[i][0])
+	{
 	    BoxLib::Abort( "inviscid_fluid_boundary_class::ctor---periodic bc's don't match" );
+	}
 	v[i] = new mixed_boundary_class(this, i);
     }
     s = new mixed_boundary_class(this, -1);
