@@ -12,5 +12,5 @@ chk[0-9][0-9][0-9][0-9]
 plt[0-9][0-9][0-9][0-9]
 gu[1-9]*
 guf
-*.pixie *.Addrs
+*.pixie *.Addrs *.Counts
 PI*
