@@ -2,7 +2,7 @@
 #
 # Prefix's for chk and plt files.
 #
-pidfile=compressor.$$
+pidfile=compressor.pid
 chk_prefix=chk
 plt_prefix=plt
 
@@ -11,7 +11,7 @@ if [ -f $pidfile ]; then
   exit -1
 fi
 
-touch $pidfile
+echo $$ > $pidfile
 
 trap '/bin/rm -f $pidfile' EXIT HUP TERM XCPU KILL
 
