@@ -1,6 +1,6 @@
 
 //
-// $Id: Amr.cpp,v 1.6 1997-11-22 01:10:41 lijewski Exp $
+// $Id: Amr.cpp,v 1.7 1997-11-22 17:51:31 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -319,7 +319,7 @@ Amr::setRecordGridInfo (const aString& filename)
     record_grid_info= true;
     gridlog.open(filename.c_str(),ios::out);
     if (!gridlog.good())
-        VisMF::FileOpenFailed(filename);
+        Utility::FileOpenFailed(filename);
 }
 
 void
@@ -328,7 +328,7 @@ Amr::setRecordRunInfo (const aString& filename)
     record_run_info= true;
     runlog.open(filename.c_str(),ios::out);
     if (!runlog.good())
-        VisMF::FileOpenFailed(filename);
+        Utility::FileOpenFailed(filename);
 }
 
 void
@@ -383,13 +383,9 @@ Concatenate (const aString& root,
              int            num)
 {
     aString result = root;
-
     char buf[sizeof(int) + 1];
-
     sprintf(buf, "%04d", num);
-
     result += buf;
-
     return result;
 }
 
@@ -409,16 +405,9 @@ Amr::writePlotFile (const aString& root,
         runlog << "PLOTFILE: file = " << pltfile << '\n';
     }
     if (!Utility::CreateDirectory(pltfile, 0755))
-    {
-        aString msg("Amr::writePlotFile(): couldn't create directory: ");
-        msg += pltfile;
-        BoxLib::Error(msg.c_str());
-    }
-    static const aString BaseName("Header");
+        Utility::CreateDirectoryFailed(pltfile);
 
-    aString HeaderFileName = pltfile;
-    HeaderFileName += '/';
-    HeaderFileName += BaseName;
+    aString HeaderFileName = pltfile + "/Header";
 
 #ifdef BL_USE_SETBUF
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
@@ -437,7 +426,7 @@ Amr::writePlotFile (const aString& root,
         HeaderFile.open(HeaderFileName.c_str(), ios::out|ios::trunc);
 
         if (!HeaderFile.good())
-            VisMF::FileOpenFailed(HeaderFileName);
+            Utility::FileOpenFailed(HeaderFileName);
     }
 
     for (int k = 0; k <= finest_level; k++)
@@ -486,7 +475,7 @@ Amr::writePlotFile (const aString& root,
     os.open(pltfile.c_str(), ios::out|ios::trunc);
 
     if (!os.good())
-        VisMF::FileOpenFailed(pltfile);
+        Utility::FileOpenFailed(pltfile);
 
     for (int k = 0; k <= finest_level; k++)
     {
@@ -672,7 +661,7 @@ Amr::restart (const aString& filename)
     is.open(File.c_str(), ios::in);
 
     if (!is.good())
-        VisMF::FileOpenFailed(File);
+        Utility::FileOpenFailed(File);
     //
     // Read global data.
     //
@@ -764,16 +753,9 @@ Amr::checkPoint ()
         runlog << "CHECKPOINT: file = " << ckfile << '\n';
     }
     if (!Utility::CreateDirectory(ckfile, 0755))
-    {
-        aString msg("Amr::checkPoint(): couldn't create directory: ");
-        msg += ckfile;
-        BoxLib::Error(msg.c_str());
-    }
-    static const aString BaseName("Header");
+        Utility::CreateDirectoryFailed(ckfile);
 
-    aString HeaderFileName = ckfile;
-    HeaderFileName += '/';
-    HeaderFileName += BaseName;
+    aString HeaderFileName = ckfile + "/Header";
 
 #ifdef BL_USE_SETBUF
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
@@ -792,7 +774,7 @@ Amr::checkPoint ()
         HeaderFile.open(HeaderFileName.c_str(), ios::out|ios::trunc);
 
         if (!HeaderFile.good())
-            VisMF::FileOpenFailed(HeaderFileName);
+            Utility::FileOpenFailed(HeaderFileName);
 
         HeaderFile << BL_SPACEDIM  << '\n'
                    << cumtime      << '\n'
@@ -862,7 +844,7 @@ Amr::checkPoint ()
     os.open(ckfile.c_str(), ios::out|ios::trunc);
 
     if (!os.good())
-        VisMF::FileOpenFailed(chkfile);
+        Utility::FileOpenFailed(chkfile);
 
     int old_prec = os.precision(15), i;
 
@@ -1313,10 +1295,10 @@ proj_periodic (BoxDomain&      bd,
 }
 
 void
-Amr::grid_places(int           lbase, //  => finest level that doesn't change
-                 REAL             time,
-                 int&             new_finest, // <=> new finest level
-                 Array<BoxArray>& new_grids)  // <=> new grid structure
+Amr::grid_places (int          lbase, //  => finest that level doesn't change
+                  REAL             time,
+                  int&             new_finest, // <=> new finest level
+                  Array<BoxArray>& new_grids)  // <=> new grid structure
 {
     int i;
     int  max_crse = Min(finest_level,max_level-1);
@@ -1327,7 +1309,8 @@ Amr::grid_places(int           lbase, //  => finest level that doesn't change
 
 	ifstream is(grids_file.c_str(),ios::in);
 
-	if (!is.good()) VisMF::FileOpenFailed(grids_file);
+	if (!is.good())
+            Utility::FileOpenFailed(grids_file);
 
 	new_finest = Min(max_level,(finest_level+1));
 	int in_finest;

@@ -1,6 +1,6 @@
 
 //
-// $Id: AmrLevel.cpp,v 1.1 1997-11-18 19:30:21 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.2 1997-11-22 17:51:31 lijewski Exp $
 //
 
 // #define ADVANCE_DEBUG 1
@@ -153,11 +153,8 @@ AmrLevel::checkPoint (const aString& dir,
     PathName += buf;
 
     if (!Utility::CreateDirectory(PathName, 0755))
-    {
-        aString msg("Couldn't create directory: ");
-        msg += PathName;
-        BoxLib::Error(msg.c_str());
-    }
+        Utility::CreateDirectoryFailed(PathName);
+
     if (ParallelDescriptor::IOProcessor())
     {
         os << level << '\n' << geom  << '\n';
