@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.14 1998-04-22 19:39:06 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.15 1998-05-29 20:58:28 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -190,8 +190,23 @@ FArrayBox::FArrayBox (const Box& b,
 #else
     setVal(FLT_QNAN);
 #endif
+#endif /*!defined(NDEBUG) && defined(BL_OSF1)*/
+}
+
+#if !defined(NDEBUG) && defined(BL_OSF1)
+void
+FArrayBox::resize (const Box& b,
+                   int        N)
+{
+    BaseFab<Real>::resize(b,N);
+
+#ifdef BL_USE_DOUBLE
+    setVal(DBL_QNAN);
+#else
+    setVal(FLT_QNAN);
 #endif
 }
+#endif /*!defined(NDEBUG) && defined(BL_OSF1)*/
 
 void
 FArrayBox::setFormat (FABio::Format fmt)

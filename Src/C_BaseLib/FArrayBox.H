@@ -4,7 +4,7 @@
 #define BL_FARRAYBOX_H
 
 //
-// $Id: FArrayBox.H,v 1.10 1998-02-18 21:31:13 vince Exp $
+// $Id: FArrayBox.H,v 1.11 1998-05-29 20:58:28 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -264,6 +264,14 @@ public:
     //@ManDoc:  The (virtual) destructor.
     //
     virtual ~FArrayBox ();
+
+#if !defined(NDEBUG) && defined(BL_OSF1)
+    //
+    // For debugging purposes we hide BaseFab version and do some extra work.
+    //
+    void resize (const Box& b,
+                 int        N = 1);
+#endif
 
     /*@ManDoc: Compute the Lp-norm of this FAB using components
                (comp : comp+numcomp-1).  p < 0  -> ERROR.
