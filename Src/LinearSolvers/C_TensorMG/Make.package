@@ -1,18 +1,22 @@
 #
-# $Id: Make.package,v 1.1 1998-11-17 19:11:10 lijewski Exp $
+# $Id: Make.package,v 1.2 1999-04-01 21:43:11 car Exp $
 #
-CLIB_headers += DivVis.H MCCGSolver.H MCInterpBndryData.H MCLinOp.H
-CLIB_headers += MCMultiGrid.H
+MCMGLIB_BASE=EXE
+ifeq ($(LBASE),mcmg)
+  MCMG_BASE=LIB
+endif
+C$(MCMGLIB_BASE)_headers += DivVis.H MCCGSolver.H MCInterpBndryData.H MCLinOp.H
+C$(MCMGLIB_BASE)_headers += MCMultiGrid.H
 
-CLIB_sources += DivVis.cpp MCCGSolver.cpp MCInterpBndryData.cpp MCLinOp.cpp
-CLIB_sources += MCMultiGrid.cpp
+C$(MCMGLIB_BASE)_sources += DivVis.cpp MCCGSolver.cpp MCInterpBndryData.cpp MCLinOp.cpp
+C$(MCMGLIB_BASE)_sources += MCMultiGrid.cpp
 
-FLIB_headers += DivVis_F.H MCINTERPBNDRYDATA_F.H MCLO_F.H
-FLIB_sources += MCLO_$(DIM)D.F MCINTERPBNDRYDATA_$(DIM)D.F
+F$(MCMGLIB_BASE)_headers += DivVis_F.H MCINTERPBNDRYDATA_F.H MCLO_F.H
+F$(MCMGLIB_BASE)_sources += MCLO_$(DIM)D.F MCINTERPBNDRYDATA_$(DIM)D.F
 
 ifeq ($(DIM),2)
-FLIB_sources += DV_2D.F
+  F$(MCMGLIB_BASE)_sources += DV_2D.F
 else
-FLIB_sources += DV_3D1.F DV_3D2.F DV_3D3.F DV_3D4.F
+  F$(MCMGLIB_BASE)_sources += DV_3D1.F DV_3D2.F DV_3D3.F DV_3D4.F
 endif
 

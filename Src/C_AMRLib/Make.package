@@ -1,27 +1,31 @@
 #
-# $Id: Make.package,v 1.6 1999-01-06 21:27:58 lijewski Exp $
+# $Id: Make.package,v 1.7 1999-04-01 21:43:10 car Exp $
 #
 
-CLIB_sources += Amr.cpp AmrLevel.cpp BCRec.cpp Cluster.cpp \
+AMRLIB_BASE=EXE
+ifeq ($(LBASE),amr)
+  AMRLIB_BASE=LIB
+endif
+
+C$(AMRLIB_BASE)_sources += Amr.cpp AmrLevel.cpp BCRec.cpp Cluster.cpp \
                 Derive.cpp ErrorList.cpp FluxRegister.cpp \
                 Interpolater.cpp StateData.cpp \
                 StateDescriptor.cpp StationData.cpp TagBox.cpp
-                           
 
-CLIB_headers += Amr.H AmrLevel.H BCRec.H BC_TYPES.H \
+C$(AMRLIB_BASE)_headers += Amr.H AmrLevel.H BCRec.H BC_TYPES.H \
                 Cluster.H Derive.H ErrorList.H FluxRegister.H \
                 LevelBld.H Interpolater.H StateData.H \
                 StateDescriptor.H StationData.H TagBox.H PROB_AMR_F.H 
 
-FLIB_headers += FLUXREG_F.H INTERP_F.H MAKESLICE_F.H
+F$(AMRLIB_BASE)_headers += FLUXREG_F.H INTERP_F.H MAKESLICE_F.H
 
-FLIB_sources += FILCC_$(DIM)D.F FLUXREG_$(DIM)D.F INTERP_$(DIM)D.F
+F$(AMRLIB_BASE)_sources += FILCC_$(DIM)D.F FLUXREG_$(DIM)D.F INTERP_$(DIM)D.F
 
 ifeq ($(DIM),3)
-FLIB_sources += MAKESLICE_$(DIM)D.F
+  F$(AMRLIB_BASE)_sources += MAKESLICE_$(DIM)D.F
 endif
 
 ifeq ($(USE_ARRAYVIEW),TRUE)
-CLIB_headers += DatasetClient.H
-CLIB_sources += DatasetClient.cpp
+  C$(AMRLIB_BASE)_headers += DatasetClient.H
+  C$(AMRLIB_BASE)_sources += DatasetClient.cpp
 endif
