@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.73 2000-07-25 19:10:38 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.74 2000-08-02 16:06:32 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -21,6 +21,10 @@
 #include <RunStats.H>
 #include <Utility.H>
 #include <ParmParse.H>
+
+#ifdef BL3_PROFILING
+#include <BoxLib3/Profiler.H>
+#endif
 
 DescriptorList AmrLevel::desc_lst;
 DeriveList     AmrLevel::derive_lst;
@@ -621,6 +625,9 @@ FillPatchIterator::Initialize (int  boxGrow,
                                int  scomp,
                                int  ncomp)
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::Initialize()");
+#endif
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(ncomp >= 1);
     BL_ASSERT(0 <= index && index < AmrLevel::desc_lst.length());
@@ -1062,6 +1069,9 @@ FillPatchIterator::operator++ ()
 bool
 FillPatchIterator::isValid ()
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::isValid()");
+#endif
     BL_ASSERT(m_ncomp > 0);
     BL_ASSERT(m_fph.length() == m_range.size());
 

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.111 2000-07-11 21:03:56 sstanley Exp $
+// $Id: Amr.cpp,v 1.112 2000-08-02 16:06:32 car Exp $
 //
 
 #include <TagBox.H>
@@ -22,6 +22,10 @@
 
 #ifdef BL_USE_ARRAYVIEW
 #include <DatasetClient.H>
+#endif
+
+#ifdef BL3_PROFILING
+#include <BoxLib3/Profiler.H>
 #endif
 
 #ifdef BL_USE_NEW_HFILES
@@ -551,6 +555,9 @@ void
 Amr::writePlotFile (const aString& root,
                     int            num)
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::writePlotFile()");
+#endif
     if (first_plotfile) 
     {
         first_plotfile = false;
@@ -658,6 +665,9 @@ Amr::writePlotFile (const aString& root,
 void
 Amr::checkInput ()
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::checkInput()");
+#endif
     if (max_level < 0)
         BoxLib::Error("checkInput: max_level not set");
     //
@@ -829,6 +839,9 @@ static aString the_previous_ckfile;
 void
 Amr::restart (const aString& filename)
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::restart()");
+#endif
     Real dRestartTime0 = ParallelDescriptor::second();
 
     int i;
@@ -997,6 +1010,9 @@ Amr::restart (const aString& filename)
 void
 Amr::checkPoint ()
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::checkPoint()");
+#endif
     static RunStats stats("write_chkfile");
 
     stats.start();
@@ -1146,6 +1162,9 @@ Amr::timeStep (int  level,
                int  iteration,
                int  niter)
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::timeStep()");
+#endif
     //
     // Time to regrid?
     //
@@ -1238,6 +1257,9 @@ Amr::timeStep (int  level,
 void
 Amr::coarseTimeStep (Real stop_time)
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::coarseTimeStep()");
+#endif
     //
     // Compute new dt.
     //
@@ -1351,6 +1373,9 @@ Amr::regrid (int  lbase,
              Real time,
              bool initial)
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::regrid()");
+#endif
     static RunStats stats("regrid");
 
     stats.start();

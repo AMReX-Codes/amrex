@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiGrid.cpp,v 1.15 2000-07-17 16:58:03 sstanley Exp $
+// $Id: MultiGrid.cpp,v 1.16 2000-08-02 16:06:44 car Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -17,6 +17,10 @@
 #include <CGSolver.H>
 #include <MG_F.H>
 #include <MultiGrid.H>
+
+#ifdef BL3_PROFILING
+#include <BoxLib3/Profiler.H>
+#endif
 
 bool MultiGrid::initialized     = false;
 int MultiGrid::def_nu_0         = 1;
@@ -203,6 +207,9 @@ MultiGrid::solve (MultiFab&       _sol,
                   Real            _eps_abs,
                   LinOp::BC_Mode  bc_mode)
 {
+#ifdef BL3_PROFILING
+    BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::solve()");
+#endif
     //
     // Prepare memory for new level, and solve the general boundary
     // value problem to within relative error _eps_rel.  Customized
@@ -346,6 +353,9 @@ MultiGrid::relax (MultiFab&      solL,
                   Real           eps_abs,
                   LinOp::BC_Mode bc_mode)
 {
+#ifdef BL3_PROFILING
+    BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::relax()");
+#endif
     //
     // Recursively relax system.  Equivalent to multigrid V-cycle.
     // At coarsest grid, call coarsestSmooth.

@@ -1,13 +1,16 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ABecLaplacian.cpp,v 1.8 2000-06-22 20:56:22 car Exp $
+// $Id: ABecLaplacian.cpp,v 1.9 2000-08-02 16:06:44 car Exp $
 //
 
 #include <ABecLaplacian.H>
 #include <ABec_F.H>
 #include <ParallelDescriptor.H>
 
+#ifdef BL3_PROFILING
+#include <BoxLib3/Profiler.H>
+#endif
 #ifdef BL3_PTHREADS
 #include <BoxLib3/WorkQueue.H>
 extern BoxLib3::WorkQueue wrkq;
@@ -295,6 +298,7 @@ private:
 void
 task_gsrb::run()
 {
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::run()");
   FORT_GSRB(solnL.dataPtr(), ARLIM(solnL.loVect()),ARLIM(solnL.hiVect()),
 	    rhsL.dataPtr(), ARLIM(rhsL.loVect()), ARLIM(rhsL.hiVect()),
 	    &alpha, &beta,
@@ -333,6 +337,9 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
                         int             level,
                         int             redBlackFlag)
 {
+#ifdef BL3_PROFILING
+    BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::Fsmooth()");
+#endif
     const BoxArray& bxa = gbox[level];
 
     OrientationIter oitr;
@@ -458,6 +465,9 @@ ABecLaplacian::Fapply (MultiFab&       y,
                        const MultiFab& x,
                        int             level)
 {
+#ifdef BL3_PROFILING
+    BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::Fapply()");
+#endif
     const BoxArray& bxa = gbox[level];
     const MultiFab& a   = aCoefficients(level);
     const MultiFab& bX  = bCoefficients(0,level);

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: LinOp.cpp,v 1.16 2000-06-22 18:34:50 car Exp $
+// $Id: LinOp.cpp,v 1.17 2000-08-02 16:06:44 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -17,6 +17,9 @@
 #include <LO_F.H>
 #include <LinOp.H>
 
+#ifdef BL3_PROFILING
+#include <BoxLib3/Profiler.H>
+#endif
 #ifdef BL3_PTHREADS
 #include <BoxLib3/WorkQueue.H>
 extern BoxLib3::WorkQueue wrkq;
@@ -310,6 +313,9 @@ LinOp::applyBC (MultiFab&      inout,
                 int            level,
                 LinOp::BC_Mode bc_mode)
 {
+#ifdef BL3_PROFILING
+    BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::applyBC()");
+#endif
     //
     // The inout MultiFab needs at least LinOp_grow ghost cells for applyBC.
     //
