@@ -4,7 +4,7 @@
 #define BL_BOXARRAY_H
 
 //
-// $Id: BoxArray.H,v 1.6 1998-02-04 16:25:50 lijewski Exp $
+// $Id: BoxArray.H,v 1.7 1998-03-26 17:32:16 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -180,6 +180,10 @@ public:
     //@ManDoc: Applies Box::convert(IndexType) to each Box in the BoxArray.
     //
     BoxArray& convert (IndexType typ);
+    //
+    //@ManDoc: Applies function (*fp)(Box) to each Box in the BoxArray.
+    //
+    BoxArray& convert (Box (*fp)(const Box&));
     //
     //@ManDoc: Applies Box::shift(int,int) to each Box in the BoxArray.
     //

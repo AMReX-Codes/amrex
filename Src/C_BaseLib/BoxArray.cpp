@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxArray.cpp,v 1.7 1998-02-04 16:25:50 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.8 1998-03-26 17:32:17 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -439,6 +439,19 @@ BoxArray::convert (IndexType typ)
         uniqify();
     for (int i = 0; i < length(); i++)
         m_ref->m_abox.get(i).convert(typ);
+    rehash();
+    return *this;
+}
+
+BoxArray&
+BoxArray::convert (Box (*fp)(const Box&))
+{
+    assert(!(fp == 0));
+
+    if (!m_ref.unique())
+        uniqify();
+    for (int i = 0; i < length(); i++)
+        m_ref->m_abox[i] = (*fp)(m_ref->m_abox[i]);
     rehash();
     return *this;
 }
