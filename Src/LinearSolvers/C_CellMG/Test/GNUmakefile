@@ -3,8 +3,8 @@ DEBUG	= FALSE
 DEBUG	= TRUE
 PROFILE = FALSE
 
-DIM	= 2
 DIM	= 3
+DIM	= 2
 
 COMP = KCC
 
@@ -34,7 +34,7 @@ CEXE_sources += DatasetClient.cpp
 DEFINES += -DBL_USE_ARRAYVIEW
 #DEFINES += -DBL_ARRAYVIEW_TAGBOX
 endif
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/util
+INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/util $(PBOXLIB_HOME)/pAmrvis
 CEXE_headers += TV_TempWrite.H
 endif
 
