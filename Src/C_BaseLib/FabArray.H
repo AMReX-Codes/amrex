@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.150 2001-08-02 01:11:36 car Exp $
+// $Id: FabArray.H,v 1.151 2001-08-02 01:22:48 car Exp $
 //
 #include <cstring>
 #include <limits>
@@ -78,7 +78,7 @@ class MFIter
 {
 public:
     //
-    //@ManDoc: Construct a FabArrayIterator.
+    //@ManDoc: Construct a MFIter.
     //
     explicit MFIter (const FabArrayBase& fabarray);
     //
@@ -117,7 +117,6 @@ protected:
 //
 template <class FAB> class FabArray;
 template <class FAB> class FabArrayCopyDescriptor;
-template <class FAB> class ConstFabArrayIterator;
 
 //
 //@Man:
