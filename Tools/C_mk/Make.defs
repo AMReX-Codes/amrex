@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.59 2003-01-22 19:19:27 car Exp $
+# Make.defs $Id: Make.defs,v 1.60 2003-02-05 16:33:24 car Exp $
 #
 
 #
@@ -232,23 +232,42 @@ ifeq ($(COMP),Intel)
 endif
 ifeq ($(FCOMP),Intel)
    FC := ifc
+   fC := $(FC)
+   FDEBF += -g
+   fDEBF += -g
+   FOPTF += -g
+   fOPTF += -g
+   FOPTF += -O3
+   FOPTF += -axK
+   fOPTF += -O3
+   fOPTF += -axK
+   fDEBF += -w
+   fOPTF += -w
    __ifc_version := $(shell $(FC) -V 2>&1 1>/dev/null | grep Version)
+   override XTRALIBS += -lintrins -lIEPCF90 -lF90 -limf -lcprts -lcxa -lirc
    ifeq ($(findstring Version 5.0.1, $(__ifc_version)), Version 5.0.1)
        IFC_VERSION := 5.0.1
        IFC_MAJOR_VERSION := 5
        IFC_MINOR_VERSION := 0
+       LIBRARY_LOCATIONS += $(IA32ROOT)/lib 
+       override XTRALIBS += $(IA32ROOT)/lib/icrt.link
    else
    ifeq ($(findstring Version 6.0, $(__ifc_version)), Version 6.0)
        IFC_VERSION := 6.0
        IFC_MAJOR_VERSION := 6
        IFC_MINOR_VERSION := 0
+       LIBRARY_LOCATIONS += /opt/intel/compiler60/ia32/lib 
    else
    ifeq ($(findstring Version 7.0, $(__ifc_version)), Version 7.0)
        IFC_VERSION := 7.0
        IFC_MAJOR_VERSION := 7
        IFC_MINOR_VERSION := 0
+       LIBRARY_LOCATIONS += /opt/intel/compiler70/ia32/lib 
    endif
    endif
+   endif
+   ifeq ($(USE_THREADS),TRUE)
+     override XTRALIBS += -lpthread
    endif
 endif
 #
