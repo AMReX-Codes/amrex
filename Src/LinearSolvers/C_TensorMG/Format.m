@@ -551,6 +551,8 @@ CAssign,FortranAssign,MapleAssign];
 
 Begin["`Private`"]
 
+machinePrecision = If[$VersionNumber >= 5.0, Ceiling[$MachinePrecision],$MachinePrecision];
+
 errmsgs = {
   {"argument lhs","a (flat) list of the same length as rhs"},
   {"option AssignBreak","False or a List of a positive integer and a string"},
@@ -634,7 +636,7 @@ Options[CAssign]:= {
 AssignBreak->{Options[$Output,PageWidth][[1,2]]-2,"\\\n"},
 AssignCase->Default, AssignEnd->";", AssignFortranNumbers->False, AssignHyperbolic->False,
 AssignIndent->"", AssignIndex->0, AssignLabel->"", AssignMaxSize->Infinity,
-AssignOptimize->False, AssignPrecision->Ceil[$MachinePrecision]-1,
+AssignOptimize->False, AssignPrecision-> machinePrecision-1,
 AssignRange->False, AssignReplace->{" "->""}, AssignTemporary->{"t",Array},
 AssignToArray->{}, AssignToFile->"", AssignTrig->True, AssignZero->True};
 
@@ -838,7 +840,7 @@ AssignBreak->{If[#>72,72,#]&[-1+Options[$Output,PageWidth][[1,2]]],
 AssignFortranNumbers->True, AssignHyperbolic->False,
 AssignIndent->"        ", AssignIndex->1, AssignLabel->"",
 AssignMaxSize->5000, AssignOptimize->False,
-AssignPrecision->Ceil[$MachinePrecision]-1, AssignRange->False,
+AssignPrecision->machinePrecision-1, AssignRange->False,
 AssignReplace->{" "->""}, AssignTemporary->{"t",Sequence}, AssignToArray->{},
 AssignToFile->"", AssignTrig->True, AssignZero->True};
 
@@ -1638,10 +1640,15 @@ MyN[expr_,_DirectedInfinity,__]:= expr;
 (* Finite precision. *)
 
 MyN[expr_,prec_,{}]:=
-  If[prec===Ceil[$MachinePrecision]-1,
+  If[$VersionNumber >= 5.0,
+  If[prec=== MachinePrecision,
     #,
     # //. {r_Real:>SetPrecision[r,prec]}
-  ]& @ N[ expr, prec ];
+  ]& @ N[ expr, prec ],
+  If[prec===$MachinePrecision,
+    #,
+    # //. {r_Real:>SetPrecision[r,prec]}
+  ]& @ N[ expr, prec ]]
 
 (* Finite Precision, protect array arguments from N. *)
 
