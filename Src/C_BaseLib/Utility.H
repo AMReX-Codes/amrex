@@ -4,7 +4,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.18 1998-01-08 23:06:04 vince Exp $
+// $Id: Utility.H,v 1.19 1998-04-30 18:04:33 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -55,17 +55,6 @@ public:
     //
     static bool is_integer (const char* str);
 
-    //
-    // These should be templates like the following.
-    // problems with void * cast to bsp.
-    //
-    template<class T> static void OpMin (T&   result,
-                                         T&   arg1,
-                                         T&   arg2,
-                                         int* nbytes)
-    {
-        result = (arg1 < arg2 ? arg1 : arg2);
-    }
     static void OpBoolAnd (bool& result,
                            bool& arg1,
                            bool& arg2,
