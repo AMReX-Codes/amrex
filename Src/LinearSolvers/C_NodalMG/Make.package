@@ -1,30 +1,28 @@
 #
-# $Id: Make.package,v 1.12 1998-11-02 18:16:13 lijewski Exp $
+# $Id: Make.package,v 1.13 1998-11-09 23:13:14 car Exp $
 #
 
+HGPROJ_BASE=EXE
 ifeq ($(LBASE),proj)
-CLIB_sources += interface.cpp boundary.cpp interpolator.cpp \
+    HGPROJ_BASE=LIB
+endif
+
+#ifeq ($(LBASE),proj)
+C$(HGPROJ_BASE)_sources += interface.cpp boundary.cpp interpolator.cpp \
                 restrictor.cpp fill_patch.cpp amr_multi.cpp \
                 hg_multi1.cpp hg_multi2.cpp hg_multi3.cpp \
                 hg_projector.cpp hgparallel.cpp
 
-CLIB_headers += amr_defs.H interface.H boundary.H interpolator.H \
+C$(HGPROJ_BASE)_headers += amr_defs.H interface.H boundary.H interpolator.H \
                 restrictor.H fill_patch.H amr_multi.H \
                 hg_multi.H hg_projector.H hgparallel.h
 
-FLIB_sources += amr_real$(DIM)d.F hg_multi$(DIM)d.F \
+F$(HGPROJ_BASE)_sources += amr_real$(DIM)d.F hg_multi$(DIM)d.F \
                 hg_proj$(DIM)d.F hg_avg$(DIM)d.F
 
 ifeq ($(DIM),3)
-FLIB_sources += hg_multi$(DIM)d_terrain.F
+F$(HGPROJ_BASE)_sources += hg_multi$(DIM)d_terrain.F
 endif
 
-FLIB_headers +=
-endif
-
-ifeq ($(EBASE),proj)
-CEXE_sources += proj.cpp
-CEXE_headers +=
-FEXE_sources +=
-FEXE_headers +=
-endif
+F$(HGPROJ_BASE)_headers +=
+#endif
