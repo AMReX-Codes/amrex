@@ -1,11 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tVisMF.cpp,v 1.7 1997-11-11 21:38:37 lijewski Exp $
+// $Id: tVisMF.cpp,v 1.8 1997-11-11 22:18:59 lijewski Exp $
 //
 
 #include <stdlib.h>
-#include <unistd.h>
 
 #include <VisMF.H>
 
@@ -218,10 +217,8 @@ Write_N_Read (const MultiFab& mf,
     default:
         BoxLib::Error("Bad case in switch");
     }
-    //
-    // Give stuff a chance to get to disk.
-    //
-    sleep(1);
+
+    ParallelDescriptor::Synchronize();
 
     VisMF vmf(mf_name);
 
