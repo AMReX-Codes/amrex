@@ -1,5 +1,5 @@
 c
-c $Id: ABec_2D.F,v 1.8 2002-08-29 22:14:39 car Exp $
+c $Id: ABec_2D.F,v 1.9 2002-11-27 21:54:35 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -107,14 +107,14 @@ c
         ilen = hi(1)-lo(1)+1
         if (ilen .gt. LSDIM) then
           print *,'TOO BIG FOR LINE SOLVE IN GSRB: ilen = ',ilen
-          stop
+          call bl_error("stop")
         end if
       else if (h(1) .gt. 1.5D0*h(2)) then
         do_line = 2
         jlen = hi(2)-lo(2)+1
         if (jlen .gt. LSDIM) then
           print *,'TOO BIG FOR LINE SOLVE IN GSRB: jlen = ',jlen
-          stop
+          call bl_error("stop")
         end if
       else 
         do_line = 0
@@ -239,7 +239,7 @@ c
 
        else
          print *,'BOGUS DO_LINE '
-         stop
+         call bl_error("stop")
        end if
       end do
 
