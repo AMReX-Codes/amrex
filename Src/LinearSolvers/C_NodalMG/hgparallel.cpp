@@ -177,7 +177,7 @@ void task_list::execute()
     if ( HG_is_debugging ) MPI_Barrier(HG::mpi_comm);
 #endif
 #ifdef HG_DEBUG
-    int l_progress = tasks.size() * 3;
+    int l_progress = tasks.size() * 30;
 #endif
     if ( verbose )
     {
