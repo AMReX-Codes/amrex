@@ -1,8 +1,10 @@
+//BL_COPYRIGHT_NOTICE
+
 #ifndef _INTERPOLATER_H_
 #define _INTERPOLATER_H_ 
 
 //
-// $Id: Interpolater.H,v 1.5 1998-05-06 17:50:48 lijewski Exp $
+// $Id: Interpolater.H,v 1.6 1998-06-20 16:16:09 lijewski Exp $
 //
 
 #include <Box.H>
