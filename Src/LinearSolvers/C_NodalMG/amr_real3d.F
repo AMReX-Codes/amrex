@@ -755,7 +755,6 @@ c NODE-based data only.
       double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       double precision fac0, fac1, fac2, fac
       integer i, j, k, l, m, n, nc
-      integer r,s
       do nc = 1, ncomp
          do k = regl2, regh2
             do j = regl1, regh1

@@ -1433,7 +1433,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
       double precision sigmaf(sfl0:sfh0,sfl1:sfh1,sfl2:sfh2,5)
       double precision sigmac(scl0:sch0,scl1:sch1,scl2:sch2,5)
       integer ir, jr, kr, ga(0:1,0:1,0:1), idd
-      double precision cen, sum, fac00, fac0, fac1, fac2, fac
+      double precision cen, sum, fac00, fac1, fac2, fac
       integer ic, jc, kc, if, jf, kf, ii, ji, ki, idir, jdir, kdir
       integer l, m, n
       double precision MXXC, MYYC, MZZC, MXZC, MYZC
@@ -2227,7 +2227,5 @@ c-----------------------------------------------------------------------
       double precision signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
       double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       integer lsd, ipass
-      double precision betm, aj
-      integer i, j, k, ioff, ipar
       stop 'hgrlnf_terrain: no code'
       end
