@@ -1,35 +1,49 @@
 c
-c $Id: MAKESLICE_3D.F,v 1.6 1998-03-31 00:24:00 lijewski Exp $
+c $Id: MAKESLICE_3D.F,v 1.7 1998-11-03 18:16:38 lijewski Exp $
 c
 
 #undef  BL_LANG_CC         
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT
 #endif
-        
+
+#include "ArrayLim.H"
 #include "REAL.H"
 #include "CONSTANTS.H"
 #include "MAKESLICE_F.H"
 
-#define DIMENSION(lo,hi) lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)
-#define SDIM 3         
+#define SDIM 3       
 #define npart 20
 
-
-      subroutine FORT_MAKEMASKSLICE(data1,dlo1,dhi1,
-     &  data2,dlo2,dhi2,data_min,data_max,slice_val,
-     &  slice,dx)
-      integer dlo1(SDIM),dhi1(SDIM)
-      integer dlo2(SDIM),dhi2(SDIM)
-      integer data1(DIMENSION(dlo1,dhi1))
-      integer data2(DIMENSION(dlo2,dhi2))
+      subroutine FORT_MAKEMASKSLICE(data1,DIMS(data1),
+     &  data2,DIMS(data2),data_min,data_max,slice_val,slice,dx)
+      
+      integer DIMDEC(data1)
+      integer DIMDEC(data2)
+      integer data1(DIMV(data1))
+      integer data2(DIMV(data2))
       REAL_T dx(SDIM)
       REAL_T data_min,data_max,slice_val
       integer slice
 
+      integer dlo1(SDIM), dhi1(SDIM)
+      integer dlo2(SDIM), dhi2(SDIM)
       integer index,idx1,idx2,found,i,j,k,kval,kval1,kval2
       integer leftval,rightval
       REAL_T zval,tval,floatdata
+
+      dlo1(1) = ARG_L1(data1)
+      dlo1(2) = ARG_L2(data1)
+      dlo1(3) = ARG_L3(data1)
+      dhi1(1) = ARG_H1(data1)
+      dhi1(2) = ARG_H2(data1)
+      dhi1(3) = ARG_H3(data1)
+      dlo2(1) = ARG_L1(data2)
+      dlo2(2) = ARG_L2(data2)
+      dlo2(3) = ARG_L3(data2)
+      dhi2(1) = ARG_H1(data2)
+      dhi2(2) = ARG_H2(data2)
+      dhi2(3) = ARG_H3(data2)
 
       if ((dlo2(3).ne.0).or.(dhi2(3).ne.0)) then
          write (6,*) "second data must be thin!"
@@ -101,20 +115,36 @@ c
 
       end
 
-      subroutine FORT_MAKESLICE(data1,dlo1,dhi1,
-     &  data2,dlo2,dhi2,data_min,data_max,slice_val,
+      subroutine FORT_MAKESLICE(data1,DIMS(data1),
+     &  data2,DIMS(data2),data_min,data_max,slice_val,
      &  slice,dx)
 
-      integer dlo1(SDIM),dhi1(SDIM)
-      integer dlo2(SDIM),dhi2(SDIM)
-      REAL_T data1(DIMENSION(dlo1,dhi1))
-      REAL_T data2(DIMENSION(dlo2,dhi2))
+      integer DIMDEC(data1)
+      integer DIMDEC(data2)
+      REAL_T data1(DIMV(data1))
+      REAL_T data2(DIMV(data2))
       REAL_T dx(SDIM)
       REAL_T data_min,data_max,slice_val
       integer slice
 
       integer index,idx1,idx2,found,i,j,k,kval,kval1,kval2
       REAL_T zval,leftval,rightval,tval
+
+      integer dlo1(SDIM),dhi1(SDIM)
+      integer dlo2(SDIM),dhi2(SDIM)
+
+      dlo1(1) = ARG_L1(data1)
+      dlo1(2) = ARG_L2(data1)
+      dlo1(3) = ARG_L3(data1)
+      dhi1(1) = ARG_H1(data1)
+      dhi1(2) = ARG_H2(data1)
+      dhi1(3) = ARG_H3(data1)
+      dlo2(1) = ARG_L1(data2)
+      dlo2(2) = ARG_L2(data2)
+      dlo2(3) = ARG_L3(data2)
+      dhi2(1) = ARG_H1(data2)
+      dhi2(2) = ARG_H2(data2)
+      dhi2(3) = ARG_H3(data2)
 
       if ((dlo2(3).ne.0).or.(dhi2(3).ne.0)) then
          write (6,*) "second data must be thin!"

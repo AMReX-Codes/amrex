@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.6 1998-02-22 19:06:58 car Exp $
+c $Id: INTERP_2D.F,v 1.7 1998-11-03 18:16:37 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -39,20 +39,20 @@ c ::: --------------------------------------------------------------
 c ::: 
       subroutine FORT_NBINTERP (crse, DIMS(crse), DIMS(cb),
      $                          fine, DIMS(fine), DIMS(fb),
-     $		                lratio, nvar,
+     $		                lratiox, lratioy, nvar,
      $                          sl, num_slp, strip, strip_lo, strip_hi)
 
       integer DIMDEC(crse)
       integer DIMDEC(cb)
       integer DIMDEC(fine)
       integer DIMDEC(fb)
-      integer lratio(2), nvar
+      integer lratiox, lratioy, nvar
       integer num_slp
       integer strip_lo, strip_hi
       REAL_T  fine(DIMV(fine), nvar)
       REAL_T  crse(DIMV(crse), nvar)
-      REAL_T    sl(DIM1(cb),num_slp)
-      REAL_T strip(strip_lo:strip_hi,0:lratio(2))
+      REAL_T  sl(DIM1(cb),num_slp)
+      REAL_T  strip(strip_lo:strip_hi,0:lratioy)
 
 #define  SLX 1
 #define  SLY 2
@@ -63,11 +63,7 @@ c ::: local var
       integer i,j,k,ii,jj,kk,n
       integer ibeg,iend,jstrs,jends,jbeg,jend
       integer lys,lye
-      integer lratiox, lratioy
       REAL_T invratiox, invratioy
-
-      lratiox = lratio(1)
-      lratioy = lratio(2)
 
       invratiox = one/dfloat(lratiox)
       invratioy = one/dfloat(lratioy)
@@ -165,33 +161,28 @@ c ::: --------------------------------------------------------------
 c ::: 
       subroutine FORT_CBINTERP (crse, DIMS(crse), DIMS(cb),
      $                          fine, DIMS(fine), DIMS(fb),
-     $		                lratio, nvar,
+     $		                lratiox, lratioy, nvar,
      $                          sl, num_slp, strip, strip_lo, strip_hi)
 
       integer DIMDEC(crse)
       integer DIMDEC(cb)
       integer DIMDEC(fine)
       integer DIMDEC(fb)
-      integer lratio(2), nvar
+      integer lratiox, lratioy, nvar
       integer num_slp
       integer strip_lo, strip_hi
       REAL_T  fine(DIMV(fine), nvar)
       REAL_T  crse(DIMV(crse), nvar)
-      REAL_T    sl(DIM1(cb),num_slp)
-      REAL_T strip(strip_lo:strip_hi)
+      REAL_T  sl(DIM1(cb),num_slp)
+      REAL_T  strip(strip_lo:strip_hi)
 
 #define SLX 1
 #define SLY 2
 #define SLXY 3
 
 c ::: local var
-      integer lx, ly, lratiox, lratioy
-      integer hratx, hraty, ic, jc, jfn, jfc, i, j, n
-      REAL_T x, y
-      REAL_T denomx, denomy
-
-      lratiox = lratio(1)
-      lratioy = lratio(2)
+      integer lx, ly, hratx, hraty, ic, jc, jfn, jfc, i, j, n
+      REAL_T x, y, denomx, denomy
 
       denomx = one/dfloat(2*lratiox)
       denomy = one/dfloat(2*lratioy)
@@ -358,7 +349,7 @@ c ::: --------------------------------------------------------------
 c ::: 
       subroutine FORT_CCINTERP (fine, DIMS(fine), 
      $                          fb_l1, fb_l2, fb_h1, fb_h2,
-     $                          nvar, lratio, crse, clo, chi, 
+     $                          nvar, lratiox, lratioy, crse, clo, chi, 
      $                          cb_l1, cb_l2, cb_h1, cb_h2,
      $		                fslo, fshi, cslope, clen, fslope, fdat,
      $                          flen, voff, bc, limslope,
@@ -369,7 +360,7 @@ c :::
       integer fb_l1, fb_l2, fb_h1, fb_h2
       integer cb_l1, cb_l2, cb_h1, cb_h2
       integer clo, chi
-      integer lratio(2), nvar, clen, flen, limslope
+      integer lratiox, lratioy, nvar, clen, flen, limslope
       integer bc(2,2,nvar)
       REAL_T fine(DIMV(fine),nvar)
       REAL_T crse(clo:chi, nvar)
@@ -399,10 +390,6 @@ c ::: local var
       integer icc, istart, iend
       integer lenx, leny, maxlen
       logical xok, yok
-      integer lratiox, lratioy
-
-      lratiox = lratio(1)
-      lratioy = lratio(2)
 
       ncbx = cb_h1-cb_l1+1
       ncby = cb_h2-cb_l2+1
@@ -687,7 +674,7 @@ c :::
      &                          uc_yslope, lc_yslope, yslope_factor,
      &                          DIMS(cslope),
      &                          cslopelo, cslopehi,
-     $                          nvar, lratio, 
+     $                          nvar, lratiox, lratioy, 
      $                          bc, lin_limit,
      $                          fvcx, fvcy, cvcx, cvcy,
      &                          voffx, voffy)
@@ -701,7 +688,7 @@ c :::
       integer DIMDEC(cslope)
       integer fblo(2), fbhi(2)
       integer cslopelo(2), cslopehi(2)
-      integer lratio(2), nvar, lin_limit
+      integer lratiox, lratioy, nvar, lin_limit
       integer bc(2,2,nvar)
       REAL_T fine(DIMV(fine),nvar)
       REAL_T crse(DIMV(crse), nvar)
@@ -728,11 +715,7 @@ c ::: local var
       REAL_T cen, forw, back, slp, sgn
       REAL_T factorn, denom, slope_factor, dummy
       REAL_T fxcen, cxcen, fycen, cycen
-      logical xok, yok
-      integer lratiox, lratioy, ncbx, ncby
-
-      lratiox = lratio(1)
-      lratioy = lratio(2)
+      logical xok, yok, ncbx, ncby
 
       ncbx = cslopehi(1)-cslopelo(1)+1
       ncby = cslopehi(2)-cslopelo(2)+1
@@ -1122,7 +1105,7 @@ c :::
 
       subroutine FORT_CQINTERP (fine, DIMS(fine), 
      $                          fb_l1, fb_l2, fb_h1, fb_h2,
-     $                          nvar, lratio, crse, clo, chi, 
+     $                          nvar, lratiox, lratioy, crse, clo, chi, 
      $                          cb_l1, cb_l2, cb_h1, cb_h2,
      $		                fslo, fshi, cslope, clen, fslope, fdat,
      $                          flen, voff, bc, limslope,
@@ -1133,7 +1116,7 @@ c :::
       integer fb_l1, fb_l2, fb_h1, fb_h2
       integer cb_l1, cb_l2, cb_h1, cb_h2
       integer clo, chi
-      integer lratio(2), nvar, clen, flen, limslope
+      integer lratiox, lratioy, nvar, clen, flen, limslope
       integer bc(2,2,nvar)
       REAL_T fine(DIMV(fine),nvar)
       REAL_T crse(clo:chi, nvar)
@@ -1164,10 +1147,6 @@ c ::: local var
       integer icc, istart, iend
       integer lenx, leny, maxlen
       logical xok, yok
-      integer lratiox, lratioy
-
-      lratiox = lratio(1)
-      lratioy = lratio(2)
 
       ncbx = cb_h1-cb_l1+1
       ncby = cb_h2-cb_l2+1
@@ -1380,22 +1359,19 @@ c ::: --------------------------------------------------------------
 c ::: 
       subroutine FORT_PCINTERP (crse,DIMS(crse),cblo,cbhi,
      &                          fine,DIMS(fine),fblo,fbhi,
-     &                          longdir,lratio,nvar,ftmp,ftmp_lo,ftmp_hi)
+     &                          longdir,lratiox,lratioy,nvar,
+     &                          ftmp,ftmp_lo,ftmp_hi)
       integer DIMDEC(crse)
       integer cblo(2), cbhi(2)
       integer DIMDEC(fine)
       integer fblo(2), fbhi(2)
       integer ftmp_lo, ftmp_hi
-      integer nvar, lratio(2), longdir
+      integer nvar, lratiox, lratioy, longdir
       REAL_T  crse(DIMV(crse), nvar)
       REAL_T  fine(DIMV(fine), nvar)
       REAL_T  ftmp(ftmp_lo:ftmp_hi)
 
       integer i, j, ic, jc, ioff, joff, n
-      integer lratiox, lratioy
-
-      lratiox = lratio(1)
-      lratioy = lratio(2)
 
       if (longdir .eq. 1) then
          do n = 1, nvar

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.58 1998-10-27 19:22:09 almgren Exp $
+// $Id: Amr.cpp,v 1.59 1998-11-03 18:16:36 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -627,7 +627,11 @@ Amr::initialInit (Real strt_time, Real stop_time)
     for (int i = 0; i < probin_file_length; i++)
         probin_file_name[i] = probin_file[i];
 
-    FORT_PROBINIT(&init, probin_file_name.dataPtr(), &probin_file_length);
+    FORT_PROBINIT(&init,
+                  probin_file_name.dataPtr(),
+                  &probin_file_length,
+                  Geometry::ProbLo(),
+                  Geometry::ProbHi());
     cumtime = strt_time;
     //
     // Define base level grids.
@@ -720,7 +724,11 @@ Amr::restart (const aString& filename)
     for (int i = 0; i < probin_file_length; i++)
         probin_file_name[i] = probin_file[i];
 
-    FORT_PROBINIT(&init, probin_file_name.dataPtr(), &probin_file_length);
+    FORT_PROBINIT(&init,
+                  probin_file_name.dataPtr(),
+                  &probin_file_length,
+                  Geometry::ProbLo(),
+                  Geometry::ProbHi());
     //
     // Start calculation from given restart file.
     //

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateData.cpp,v 1.22 1998-10-07 21:18:20 vince Exp $
+// $Id: StateData.cpp,v 1.23 1998-11-03 18:16:39 lijewski Exp $
 //
 
 #include <RunStats.H>
@@ -226,6 +226,17 @@ StateData::FillBoundary (const Real*    dx,
         if (!do_new)
             cur_time = 0.5*(old_time.start + old_time.stop);
     }
+    //
+    // Make ghost cell data consistent before bc's.
+    //
+    if (do_new)
+    {
+        new_data->FillBoundary(src_comp, num_comp);
+    }
+    else
+    {
+        old_data->FillBoundary(src_comp, num_comp);
+    }
 
     assert((do_new && new_data != 0) || old_data != 0);
 
@@ -253,7 +264,7 @@ StateData::FillBoundary (const Real*    dx,
             {
                 int sc = src_comp+i;
                 setBC(bx,domain,desc->getBC(sc),bcr);
-                desc->bndryFill(sc)(dest->dataPtr(sc),ARLIM(dlo),ARLIM(dhi),
+                desc->bndryFill(sc)(dest->dataPtr(sc),dlo,dhi,
                                     plo,phi,dx,xlo,&cur_time,bcr.vect());
             }                                  
         }
@@ -295,7 +306,7 @@ StateData::FillBoundary (FArrayBox&     dest,
         int sc = src_comp+i;
         Real* dat = dest.dataPtr(dc);
         setBC(bx,domain,desc->getBC(sc),bcr);
-        desc->bndryFill(sc)(dat,ARLIM(dlo),ARLIM(dhi),
+        desc->bndryFill(sc)(dat,dlo,dhi,
                             plo,phi,dx,xlo,&time,bcr.vect());
     }
 }
