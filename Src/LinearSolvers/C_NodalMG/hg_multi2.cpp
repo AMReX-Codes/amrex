@@ -3,15 +3,27 @@
 
 #ifdef BL_FORT_USE_UNDERSCORE
 #  define   FORT_HGFRES     hgfres_
+#  define   FORT_HGFRES_CD     hgfres_cd_
+#  define   FORT_HGFRES_TERRAIN     hgfres_terrain_
 #  define   FORT_HGERES     hgeres_
+#  define   FORT_HGERES_CD     hgeres_cd_
+#  define   FORT_HGERES_TERRAIN     hgeres_terrain_
 #  define   FORT_HGCRES     hgcres_
+#  define   FORT_HGCRES_CD     hgcres_cd_
+#  define   FORT_HGCRES_TERRAIN     hgcres_terrain_
 #  define   FORT_HGORES     hgores_
 #  define   FORT_HGIRES     hgires_
 #  define   FORT_HGDRES     hgdres_
 #else
 #  define   FORT_HGFRES     HGFRES
+#  define   FORT_HGFRES_CD     HGFRES_CD
+#  define   FORT_HGFRES_TERRAIN     HGFRES_TERRAIN
 #  define   FORT_HGERES     HGERES
+#  define   FORT_HGERES_CD     HGERES_CD
+#  define   FORT_HGERES_TERRAIN     HGERES_TERRAIN
 #  define   FORT_HGCRES     HGCRES
+#  define   FORT_HGCRES_CD     HGCRES_CD
+#  define   FORT_HGCRES_TERRAIN     HGCRES_TERRAIN
 #  define   FORT_HGORES     HGORES
 #  define   FORT_HGIRES     HGIRES
 #  define   FORT_HGDRES     HGDRES

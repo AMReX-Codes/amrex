@@ -9,25 +9,37 @@
 
 #ifdef BL_FORT_USE_UNDERSCORE
 #  define   FORT_HGRES      hgres_
+#  define   FORT_HGRES_CD      hgres_cd_
+#  define   FORT_HGRES_TERRAIN      hgres_terrain_
 #  define   FORT_HGRESU     hgresu_
+#  define   FORT_HGRESU_CD     hgresu_cd_
 #  define   FORT_HGRLX      hgrlx_
+#  define   FORT_HGRLX_TERRAIN      hgrlx_terrain_
 #  define   FORT_HGRLXU     hgrlxu_
 #  define   FORT_HGRLXL     hgrlxl_
 #  define   FORT_HGRLNF     hgrlnf_
+#  define   FORT_HGRLNF_TERRAIN     hgrlnf_terrain
 #  define   FORT_HGRLNB     hgrlnb_
 #  define   FORT_HGCG       hgcg_
+#  define   FORT_HGCG_CD       hgcg_cd_
 #  define   FORT_HGCG1      hgcg1_
 #  define   FORT_HGCG2      hgcg2_
 #  define   FORT_HGIP       hgip_
 #else
 #  define   FORT_HGRES      HGRES
+#  define   FORT_HGRES_CD      HGRES_CD
+#  define   FORT_HGRES_TERRAIN      HGRES_TERRAIN
 #  define   FORT_HGRESU     HGRESU
+#  define   FORT_HGRESU_CD     HGRESU_CD
 #  define   FORT_HGRLX      HGRLX
+#  define   FORT_HGRLX_TERRAIN      HGRLX_TERRAIN
 #  define   FORT_HGRLXU     HGRLXU
 #  define   FORT_HGRLXL     HGRLXL
 #  define   FORT_HGRLNF     HGRLNF
+#  define   FORT_HGRLNF_TERRAIN     HGRLNF_TERRAIN
 #  define   FORT_HGRLNB     HGRLNB
 #  define   FORT_HGCG       HGCG
+#  define   FORT_HGCG_CD       HGCG_CD
 #  define   FORT_HGCG1      HGCG1
 #  define   FORT_HGCG2      HGCG2
 #  define   FORT_HGIP       HGIP
