@@ -1,5 +1,5 @@
 c
-c $Id: ABec_2D.F,v 1.2 1998-03-27 00:41:26 marc Exp $
+c $Id: ABec_2D.F,v 1.3 1999-01-04 18:09:00 marc Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -334,6 +334,60 @@ c
      $              - dhy*
      $              (   bY(i,j+1)*( x(i,j+1,n) - x(i,j  ,n) )
      $              -   bY(i,j  )*( x(i,j  ,n) - x(i,j-1,n) ) )
+            end do
+         end do
+      end do
+      end
+
+c-----------------------------------------------------------------------
+c
+c     Fill in fluxes
+c
+      subroutine FORT_FLUX(
+     $     x,DIMS(x),
+     $     alpha, beta,
+     $     a, DIMS(a),
+     $     bX,DIMS(bX),
+     $     bY,DIMS(bY),
+     $     lo,hi,nc,
+     $     h,
+     $     xflux,DIMS(xflux),
+     $     yflux,DIMS(yflux)
+     $     )
+      implicit none
+      REAL_T alpha, beta
+      integer lo(BL_SPACEDIM), hi(BL_SPACEDIM), nc
+      integer DIMDEC(x)
+      integer DIMDEC(a)
+      integer DIMDEC(bX)
+      integer DIMDEC(bY)
+      integer DIMDEC(xflux)
+      integer DIMDEC(yflux)
+      REAL_T  x(DIMV(x),nc)
+      REAL_T  a(DIMV(a))
+      REAL_T bX(DIMV(bX))
+      REAL_T bY(DIMV(bY))
+      REAL_T xflux(DIMV(xflux),nc)
+      REAL_T yflux(DIMV(yflux),nc)
+      REAL_T h(BL_SPACEDIM)
+c
+      REAL_T dhx, dhy
+      integer i,j,n
+c
+      dhx = one/h(1)
+      dhy = one/h(2)
+c
+      do n = 1, nc
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)+1
+               xflux(i,j,n) = - dhx*bX(i,j)*( x(i,j,n) - x(i-1,j,n) )
+            end do
+         end do
+      end do
+      do n = 1, nc
+         do j = lo(2), hi(2)+1
+            do i = lo(1), hi(1)
+               yflux(i,j,n) = - dhy*bY(i,j)*( x(i,j,n) - x(i,j-1,n) )
             end do
          end do
       end do
