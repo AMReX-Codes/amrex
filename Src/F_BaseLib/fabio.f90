@@ -9,6 +9,7 @@ module fabio_module
   use fab_module
   use multifab_module
   use ml_boxarray_module
+  use ml_multifab_module
   use parallel
 
   implicit none
@@ -826,5 +827,14 @@ contains
       close(unit=lun)
     end subroutine build_ns_plotfile
   end subroutine fabio_ml_boxarray_read
+
+  ! FABIO
+  subroutine fabio_ml_mf_write(xx, fname)
+    type(ml_multifab), intent(in) :: xx
+    character(len=*), intent(in) :: fname
+
+    call fabio_ml_write(xx%mf, xx%mla%mba%rr(:,1), fname)
+
+  end subroutine fabio_ml_mf_write
 
 end module fabio_module

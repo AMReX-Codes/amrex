@@ -882,3 +882,12 @@ subroutine t_ml_mf_read
   end do
   deallocate(mmf)
 end subroutine t_ml_mf_read
+
+subroutine t_fabio_ml_boxarray
+  use fabio_module
+  implicit none
+  type(ml_boxarray) :: mba
+  call fabio_ml_boxarray_read(mba, "tdir_eig_x")
+  call ml_boxarray_print(mba)
+  call destroy(mba)
+end subroutine t_fabio_ml_boxarray

@@ -38,6 +38,10 @@ module ml_boxarray_module
      module procedure ml_boxarray_get_box
   end interface
 
+  interface get_pd
+     module procedure ml_boxarray_get_pd
+  end interface
+
   interface get_nlevel
      module procedure ml_boxarray_get_nlevel
   end interface

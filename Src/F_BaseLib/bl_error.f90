@@ -30,6 +30,16 @@ module bl_error_module
      module procedure bl_warn1_s
   end interface
 
+  !! Print an error message consisting of text when logical condition
+  !! in arguments are not all .TRUE.
+  interface bl_assert
+     module procedure bl_assert1
+     module procedure bl_assert2
+     module procedure bl_assert3
+     module procedure bl_assert4
+     module procedure bl_assert_v
+  end interface
+
 contains
 
   subroutine bl_error0(str)
@@ -97,14 +107,92 @@ contains
     write(*,fmt=*) "BOXLIB WARN: ", str, val
   end subroutine bl_warn1_s
 
+  !! Stolen from Numerical Recepies
   !! If COND is true, nothing; if COND is false, call BL_ERROR_C, which
   !! terminates the process
-  subroutine bl_assert(cond, str)
-    logical, intent(in) :: cond
+
+  subroutine bl_assert1(n1, str)
     character(len=*), intent(in) :: str
-    if ( .NOT. cond ) then
-       call bl_error("ASSERTION FAILED: ", str)
+    logical, intent(in) :: n1
+    if ( .not. n1 ) then
+       call bl_error("ASSERTION FAILED:1: ", str)
     end if
-  end subroutine bl_assert
+  end subroutine bl_assert1
+
+  subroutine bl_assert2(n1, n2, str)
+    character(len=*), intent(in) :: str
+    logical, intent(in) :: n1, n2
+    if ( .not. (n1 .and. n2) ) then
+       call bl_error("ASSERTION FAILED:2: ", str)
+    end if
+  end subroutine bl_assert2
+
+  subroutine bl_assert3(n1, n2, n3, str)
+    character(len=*), intent(in) :: str
+    logical, intent(in) :: n1, n2, n3
+    if ( .not. (n1 .and. n2 .and. n3) ) then
+       call bl_error("ASSERTION FAILED:3: ", str)
+    end if
+  end subroutine bl_assert3
+
+  subroutine bl_assert4(n1, n2, n3, n4, str)
+    character(len=*), intent(in) :: str
+    logical, intent(in) :: n1, n2, n3, n4
+    if ( .not. (n1 .and. n2 .and. n3 .and. n4) ) then
+       call bl_error("ASSERTION FAILED:4: ", str)
+    end if
+  end subroutine bl_assert4
+
+  subroutine bl_assert_v(n, str)
+    character(len=*), intent(in) :: str
+    logical, dimension(:), intent(in) :: n
+    if ( .not. all(n) ) then
+       call bl_error("ASSERTION FAILED:v: ", str)
+    end if
+  end subroutine bl_assert_v
+
+  function bl_assert_eq2(n1, n2, str)
+    character(len=*), intent(in) :: str
+    integer, intent(in) :: n1, n2
+    integer :: bl_assert_eq2
+    if ( n1 == n2 ) then
+       bl_assert_eq2 = n1
+    else
+       call bl_error("ASSERTION FAILED:e2: ", str)
+    end if
+  end function bl_assert_eq2
+
+  function bl_assert_eq3(n1, n2, n3, str)
+    character(len=*), intent(in) :: str
+    integer, intent(in) :: n1, n2, n3
+    integer :: bl_assert_eq3
+    if ( n1 == n2 .and. n2 == n3 ) then
+       bl_assert_eq3 = n1
+    else
+       call bl_error("ASSERTION FAILED:e3: ", str)
+    end if
+  end function bl_assert_eq3
+
+  function bl_assert_eq4(n1, n2, n3, n4, str)
+    character(len=*), intent(in) :: str
+    integer, intent(in) :: n1, n2, n3, n4
+    integer :: bl_assert_eq4
+    if ( n1 == n2 .and. n2 == n3 .and. n3 == n4 ) then
+       bl_assert_eq4 = n1
+    else
+       call bl_error("ASSERTION FAILED:e4: ", str)
+    end if
+  end function bl_assert_eq4
+
+  function bl_assert_eqn(nn, str)
+    character(len=*), intent(in) :: str
+    integer, dimension(:), intent(in) :: nn
+    integer :: bl_assert_eqn
+    if ( all(nn(2:) == nn(1)) ) then
+       bl_assert_eqn = nn(1)
+    else
+       call bl_error("ASSERTION FAILED:ev: ", str)
+    end if
+  end function bl_assert_eqn
 
 end module bl_error_module
