@@ -4,10 +4,10 @@
 #define BL_POINTERS_H
 
 //
-// $Id: Pointers.H,v 1.7 1999-02-10 21:09:57 lijewski Exp $
+// $Id: Pointers.H,v 1.8 1999-05-10 17:18:47 car Exp $
 //
 
-#include <Assert.H>
+#include <BLassert.H>
 #include <BoxLib.H>
 #include <UseCount.H>
 
@@ -350,7 +350,7 @@ inline
 T&
 CpPtr<T>::operator* () const
 {
-    assert(ptr != 0);
+    BLassert(ptr != 0);
     return *ptr;
 }
 
@@ -479,7 +479,7 @@ inline
 T&
 LnPtr<T>::operator* () const
 {
-    assert(ptr != 0);
+    BLassert(ptr != 0);
     return *ptr;
 }
 

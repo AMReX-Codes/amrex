@@ -4,7 +4,7 @@
 #define _COORDSYS_H_ 
 
 //
-// $Id: CoordSys.H,v 1.5 1998-10-07 21:18:24 vince Exp $
+// $Id: CoordSys.H,v 1.6 1999-05-10 17:18:29 car Exp $
 //
 
 #include <REAL.H>
@@ -293,7 +293,7 @@ inline
 const Real*
 CoordSys::CellSize () const
 {
-    assert(ok);
+    BLassert(ok);
     return dx;
 }
 
@@ -301,7 +301,7 @@ inline
 Real
 CoordSys::CellSize (int dir) const
 {
-    assert(ok);
+    BLassert(ok);
     return dx[dir];
 }
 
@@ -326,7 +326,7 @@ inline
 bool
 CoordSys::IsSPHERICAL ()
 {
-    assert(c_sys != undef);
+    BLassert(c_sys != undef);
 #if (BL_SPACEDIM <= 2)
     return (c_sys == SPHERICAL);
 #endif    
@@ -339,7 +339,7 @@ inline
 bool
 CoordSys::IsRZ ()
 {
-    assert(c_sys != undef);
+    BLassert(c_sys != undef);
 #if (BL_SPACEDIM == 2)
     return (c_sys == RZ);
 #endif    
@@ -352,7 +352,7 @@ inline
 bool
 CoordSys::IsCartesian ()
 {
-    assert(c_sys != undef);
+    BLassert(c_sys != undef);
     return (c_sys == cartesian);
 }
 
@@ -366,7 +366,7 @@ inline
 void
 CoordSys::define (const Real* cell_dx)
 {
-    assert(c_sys != undef);
+    BLassert(c_sys != undef);
     ok = true;
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
@@ -385,8 +385,8 @@ void
 CoordSys::CellCenter (const IntVect& point,
                       Real*          loc) const
 {
-    assert(ok);
-    assert(loc != 0);
+    BLassert(ok);
+    BLassert(loc != 0);
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
         loc[k] = offset[k] + dx[k]*(0.5+ (Real)point[k]);
@@ -398,7 +398,7 @@ void
 CoordSys::CellCenter (const IntVect& point,
                       Array<Real>&   loc) const
 {
-    assert(ok);
+    BLassert(ok);
     loc.resize(BL_SPACEDIM);
     CellCenter(point, loc.dataPtr());
 }
@@ -408,7 +408,7 @@ Real
 CoordSys::CellCenter (int point,
                       int dir) const
 {
-    assert(ok);
+    BLassert(ok);
     return offset[dir] + dx[dir]*(0.5+ (Real)point);
 }
 
@@ -417,7 +417,7 @@ Real
 CoordSys::LoEdge (int point,
                   int dir) const
 {
-    assert(ok);
+    BLassert(ok);
     return offset[dir] + dx[dir]*point;
 }
 
@@ -426,7 +426,7 @@ Real
 CoordSys::LoEdge (const IntVect& point,
                   int            dir) const
 {
-    assert(ok);
+    BLassert(ok);
     return offset[dir] + dx[dir]*point[dir];
 }
 
@@ -435,7 +435,7 @@ Real
 CoordSys::HiEdge (int point,
                   int dir) const
 {
-    assert(ok);
+    BLassert(ok);
     return offset[dir] + dx[dir]*(point + 1);
 }
 
@@ -444,7 +444,7 @@ Real
 CoordSys::HiEdge (const IntVect& point,
                   int            dir) const
 {
-    assert(ok);
+    BLassert(ok);
     return offset[dir] + dx[dir]*(point[dir] + 1);
 }
 
@@ -454,8 +454,8 @@ CoordSys::LoFace (const IntVect& point,
                   int            dir,
                   Real*          loc) const
 {
-    assert(ok);
-    assert(loc != 0);
+    BLassert(ok);
+    BLassert(loc != 0);
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
         Real off = (k == dir) ? 0.0 : 0.5;
@@ -479,8 +479,8 @@ CoordSys::HiFace (const IntVect& point,
                   int            dir,
                   Real*          loc) const
 {
-    assert(ok);
-    assert(loc != 0);
+    BLassert(ok);
+    BLassert(loc != 0);
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
         Real off = (k == dir) ? 1.0 : 0.5;
@@ -503,8 +503,8 @@ void
 CoordSys::LoNode (const IntVect& point,
                   Real*          loc) const
 {
-    assert(ok);
-    assert(loc != 0);
+    BLassert(ok);
+    BLassert(loc != 0);
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
         loc[k] = offset[k] + dx[k]*point[k];
@@ -525,8 +525,8 @@ void
 CoordSys::HiNode (const IntVect& point,
                   Real*          loc) const
 {
-    assert(ok);
-    assert(loc != 0);
+    BLassert(ok);
+    BLassert(loc != 0);
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
         loc[k] = offset[k] + dx[k]*(point[k] + 1);
@@ -546,8 +546,8 @@ inline
 IntVect
 CoordSys::CellIndex (const Real* point) const
 {
-    assert(ok);
-    assert(point != 0);
+    BLassert(ok);
+    BLassert(point != 0);
     IntVect ix;
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
@@ -560,8 +560,8 @@ inline
 IntVect
 CoordSys::LowerIndex (const Real* point) const
 {
-    assert(ok);
-    assert(point != 0);
+    BLassert(ok);
+    BLassert(point != 0);
     IntVect ix;
     for (int k = 0; k < BL_SPACEDIM; k++)
     {
@@ -574,8 +574,8 @@ inline
 IntVect
 CoordSys::UpperIndex(const Real* point) const
 {
-    assert(ok);
-    assert(point != 0);
+    BLassert(ok);
+    BLassert(point != 0);
     IntVect ix;
     for (int k = 0; k < BL_SPACEDIM; k++)
     {

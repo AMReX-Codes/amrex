@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: InterpBndryData.cpp,v 1.7 1999-04-08 17:49:12 marc Exp $
+// $Id: InterpBndryData.cpp,v 1.8 1999-05-10 17:18:39 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -81,8 +81,8 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
     //
     // Check that boxarrays are identical.
     //
-    assert(grids.ready());
-    assert(grids == mf.boxArray());
+    BLassert(grids.ready());
+    BLassert(grids == mf.boxArray());
 
     IntVect ref_ratio = IntVect::TheUnitVector();
     for (int n=bnd_start; n<bnd_start+num_comp; ++n)
@@ -90,7 +90,7 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
 
     for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
     {
-        assert(grids[mfi.index()] == mfi.validbox());
+        BLassert(grids[mfi.index()] == mfi.validbox());
 
         const Box& bx = grids[mfi.index()];
 
@@ -133,8 +133,8 @@ InterpBndryData::setBndryValues (BndryRegister& crse,
     //
     // Check that boxarrays are identical.
     //
-    assert(grids.ready());
-    assert(grids == fine.boxArray());
+    BLassert(grids.ready());
+    BLassert(grids == fine.boxArray());
     //
     // Set bndry types and bclocs.
     //
@@ -151,7 +151,7 @@ InterpBndryData::setBndryValues (BndryRegister& crse,
 
     for (ConstMultiFabIterator fine_mfi(fine); fine_mfi.isValid(); ++fine_mfi)
     {
-        assert(grids[fine_mfi.index()] == fine_mfi.validbox());
+        BLassert(grids[fine_mfi.index()] == fine_mfi.validbox());
 
         const Box& fine_bx = fine_mfi.validbox();
         Box crse_bx        = coarsen(fine_bx,ratio);

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DivVis.cpp,v 1.5 1999-04-20 23:54:55 sstanley Exp $
+// $Id: DivVis.cpp,v 1.6 1999-05-10 17:18:53 car Exp $
 //
 
 #include <DivVis.H>
@@ -93,7 +93,7 @@ DivVis::setScalars (Real _alpha,
 void
 DivVis::clearToLevel (int level)
 {
-    assert(level >= -1);
+    BLassert(level >= -1);
 
     for (int i = level+1; i < numLevels(); ++i)
     {
@@ -177,7 +177,7 @@ DivVis::initCoefficients (const BoxArray &_ba)
 
 #ifndef NDEBUG
     if (BL_SPACEDIM == 3)
-	assert(geomarray[level].IsCartesian());
+	BLassert(geomarray[level].IsCartesian());
 #endif
 
     acoefs[level] = new MultiFab(_ba, nComp, nGrow, Fab_allocate);
@@ -216,10 +216,10 @@ DivVis::invalidate_b_to_level (int lev)
 void
 DivVis::aCoefficients (const MultiFab& _a)
 {
-    assert(_a.ok());
-    assert(_a.boxArray() == (acoefs[0])->boxArray());
+    BLassert(_a.ok());
+    BLassert(_a.boxArray() == (acoefs[0])->boxArray());
     const int nComp = (BL_SPACEDIM == 2  ?  2  :  1);
-    assert(_a.nComp() == nComp);
+    BLassert(_a.nComp() == nComp);
     invalidate_a_to_level(0);
     (*acoefs[0]).copy(_a,0,0,nComp);
 }
@@ -228,9 +228,9 @@ void
 DivVis::bCoefficients (const MultiFab& _b,
                        int             dir)
 {
-    assert(_b.ok());
-    assert(_b.boxArray() == (bcoefs[0][dir])->boxArray());
-    assert(_b.nComp() == 1);
+    BLassert(_b.ok());
+    BLassert(_b.boxArray() == (bcoefs[0][dir])->boxArray());
+    BLassert(_b.nComp() == 1);
     invalidate_b_to_level(0);
     (*bcoefs[0][dir]).copy(_b,0,0,1);
 }
@@ -423,9 +423,9 @@ DivVis::compFlux (MultiFab& xflux,
 #endif
     const int nc = x.nComp();
 
-    assert(nc == BL_SPACEDIM);
-    assert(nc == xflux.nComp());
-    assert(nc == yflux.nComp());
+    BLassert(nc == BL_SPACEDIM);
+    BLassert(nc == xflux.nComp());
+    BLassert(nc == yflux.nComp());
 
     for (MultiFabIterator xmfi(x); xmfi.isValid(); ++xmfi)
     {

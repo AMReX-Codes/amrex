@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: aString.cpp,v 1.4 1998-02-12 16:56:08 lijewski Exp $
+// $Id: aString.cpp,v 1.5 1999-05-10 17:18:48 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -10,7 +10,7 @@
 #include <ctype.h>
 #endif
 
-#include <Assert.H>
+#include <BLassert.H>
 #include <aString.H>
 
 void
@@ -52,7 +52,7 @@ aString::aString (int size)
 
 aString::aString (const char* initialtext)
 {
-    assert(initialtext != 0);
+    BLassert(initialtext != 0);
     len = ::strlen(initialtext);
     p = new StringRep(len + 1);
     ::memcpy(p->s,initialtext,len+1);
@@ -85,7 +85,7 @@ aString::operator+= (const aString& val)
 aString&
 aString::operator+= (const char* s)
 {
-    assert(s != 0);
+    BLassert(s != 0);
     copyModify();
     int slen = ::strlen(s);
     int clen = length() + slen;
@@ -111,7 +111,7 @@ aString::operator+= (char c)
 char&
 aString::operator[] (int index)
 {
-    assert(index >= 0 && index < len);
+    BLassert(index >= 0 && index < len);
     copyModify();
     return p->s[index];
 }

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ErrorList.cpp,v 1.6 1998-03-23 21:02:56 lijewski Exp $
+// $Id: ErrorList.cpp,v 1.7 1999-05-10 17:18:28 car Exp $
 //
 
 #include <ErrorList.H>
@@ -9,7 +9,7 @@
 const ErrorRec*
 ErrorList::operator[] (int k) const
 {
-    assert(k < length());
+    BLassert(k < length());
 
     ListIterator<ErrorRec> li(lst);
     

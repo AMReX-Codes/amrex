@@ -4,7 +4,7 @@
 #define BL_FABCONV_H
 
 //
-// $Id: FabConv.H,v 1.3 1997-09-18 20:12:47 lijewski Exp $
+// $Id: FabConv.H,v 1.4 1999-05-10 17:18:45 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -20,7 +20,7 @@ using std::istream;
 #endif
 
 #include <Array.H>
-#include <Assert.H>
+#include <BLassert.H>
 #include <REAL.H>
 
 //
@@ -318,7 +318,7 @@ inline
 const long*
 RealDescriptor::format () const
 {
-    assert(fr.length() != 0);
+    BLassert(fr.length() != 0);
     return fr.dataPtr();
 }
 
@@ -326,7 +326,7 @@ inline
 const Array<long>&
 RealDescriptor::formatarray () const
 {
-    assert(fr.length() != 0);
+    BLassert(fr.length() != 0);
     return fr;
 }
 
@@ -334,7 +334,7 @@ inline
 const int*
 RealDescriptor::order () const
 {
-    assert(ord.length() != 0);
+    BLassert(ord.length() != 0);
     return ord.dataPtr();
 }
 
@@ -342,7 +342,7 @@ inline
 const Array<int>&
 RealDescriptor::orderarray () const
 {
-    assert(ord.length() != 0);
+    BLassert(ord.length() != 0);
     return ord;
 }
 
@@ -350,7 +350,7 @@ inline
 int
 RealDescriptor::numBytes () const
 {
-    assert(fr.length() != 0);
+    BLassert(fr.length() != 0);
     return (fr[0] + 7 ) >> 3;
 }
 

@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.31 1999-04-13 15:28:19 lijewski Exp $
+// $Id: Geometry.H,v 1.32 1999-05-10 17:18:30 car Exp $
 //
 
 #include <CoordSys.H>
@@ -299,10 +299,10 @@ Geometry::FPB::FPB (const BoxArray& ba,
     m_no_overlap(no_overlap),
     m_do_corners(do_corners)
 {
-    assert(scomp >= 0);
-    assert(ncomp >  0);
-    assert(ngrow >= 0);
-    assert(domain.ok());
+    BLassert(scomp >= 0);
+    BLassert(ncomp >  0);
+    BLassert(ngrow >= 0);
+    BLassert(domain.ok());
 }
 
 inline
@@ -383,7 +383,7 @@ inline
 int
 Geometry::period (int dir)
 {
-    assert(is_periodic[dir]);
+    BLassert(is_periodic[dir]);
     return domain.length(dir);
 }
 
@@ -443,7 +443,7 @@ Geometry::FPB&
 Geometry::getFPB (MultiFab&  mf,
                   const FPB& fpb) const
 {
-    assert(isAnyPeriodic());
+    BLassert(isAnyPeriodic());
     //
     // Have we already made one with appropriate characteristics?
     //

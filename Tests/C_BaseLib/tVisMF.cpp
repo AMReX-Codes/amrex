@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tVisMF.cpp,v 1.17 1998-08-08 17:26:05 lijewski Exp $
+// $Id: tVisMF.cpp,v 1.18 1999-05-10 17:18:49 car Exp $
 //
 
 #include <stdlib.h>
@@ -148,7 +148,7 @@ Write_N_Read (const MultiFab& mf,
 
     VisMF vmf(mf_name);
 
-    assert(vmf.length() == mf.boxArray().length());
+    BLassert(vmf.length() == mf.boxArray().length());
 
     for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
     {

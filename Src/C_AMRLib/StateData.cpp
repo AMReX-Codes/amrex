@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateData.cpp,v 1.24 1999-04-13 15:28:33 lijewski Exp $
+// $Id: StateData.cpp,v 1.25 1999-05-10 17:18:28 car Exp $
 //
 
 #include <RunStats.H>
@@ -227,7 +227,7 @@ StateData::FillBoundary (const Real*    dx,
         old_data->FillBoundary(src_comp, num_comp);
     }
 
-    assert((do_new && new_data != 0) || old_data != 0);
+    BLassert((do_new && new_data != 0) || old_data != 0);
 
     MultiFabIterator mfi(do_new ? *new_data : *old_data);
    
@@ -270,7 +270,7 @@ StateData::FillBoundary (FArrayBox&     dest,
                          int            num_comp)
 {
     Box dbox(dest.box());
-    assert(dbox.ixType() == desc->getType());
+    BLassert(dbox.ixType() == desc->getType());
    
     if (domain.contains(dbox))
         return;
@@ -477,7 +477,7 @@ StateData::checkPoint (const aString& name,
             os << 1 << '\n' << mf_name_new << '\n';
         }
     }
-    assert(new_data);
+    BLassert(new_data);
     aString mf_fullpath_new = fullpathname; mf_fullpath_new += NewSuffix;
     long bytesWritten;
     bytesWritten = VisMF::Write(*new_data,mf_fullpath_new,how);
@@ -485,7 +485,7 @@ StateData::checkPoint (const aString& name,
 
     if (dump_old)
     {
-        assert(old_data);
+        BLassert(old_data);
         aString mf_fullpath_old = fullpathname; mf_fullpath_old += OldSuffix;
         bytesWritten = VisMF::Write(*old_data,mf_fullpath_old,how);
         RunStats::addBytes(bytesWritten);
@@ -519,7 +519,7 @@ void readBoxArray(BoxArray& ba, istream& is, bool bReadSpecial)
     ba.define(is);
   }
   else {
-    assert(ba.length() == 0);
+    BLassert(ba.length() == 0);
     int maxbox;
     unsigned long in_hash; // will be ignored
     is.ignore(BL_IGNORE_MAX, '(') >> maxbox >> in_hash;

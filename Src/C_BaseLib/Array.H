@@ -4,7 +4,7 @@
 #define BL_ARRAY_H
 
 //
-// $Id: Array.H,v 1.12 1999-04-11 23:30:26 lijewski Exp $
+// $Id: Array.H,v 1.13 1999-05-10 17:18:43 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -17,7 +17,7 @@ using std::endl;
 #include <iostream.h>
 #endif
 
-#include <Assert.H>
+#include <BLassert.H>
 #include <BoxLib.H>
 #include <Misc.H>
 
@@ -252,8 +252,8 @@ inline
 T&
 Array<T>::operator[] (long i)
 {
-    assert(vp != 0);
-    assert(i >= 0 && i < nelem);
+    BLassert(vp != 0);
+    BLassert(i >= 0 && i < nelem);
     return vp[i];
 }
 
@@ -262,8 +262,8 @@ inline
 const T&
 Array<T>::operator[] (long i) const
 {
-    assert(vp != 0);
-    assert(i >= 0 && i < nelem);
+    BLassert(vp != 0);
+    BLassert(i >= 0 && i < nelem);
     return vp[i];
 }
 
@@ -272,8 +272,8 @@ inline
 T&
 Array<T>::get (long i)
 {
-    assert(vp != 0);
-    assert(i >= 0 && i < nelem);
+    BLassert(vp != 0);
+    BLassert(i >= 0 && i < nelem);
     return vp[i];
 }
 
@@ -282,8 +282,8 @@ inline
 const T&
 Array<T>::get (long i) const
 {
-    assert(vp != 0);
-    assert(i >= 0 && i < nelem);
+    BLassert(vp != 0);
+    BLassert(i >= 0 && i < nelem);
     return vp[i];
 }
 
@@ -293,8 +293,8 @@ void
 Array<T>::set (long     i,
                const T& elem)
 {
-    assert(vp != 0);
-    assert(i >= 0 && i < nelem);
+    BLassert(vp != 0);
+    BLassert(i >= 0 && i < nelem);
     vp[i] = elem;
 }
 
@@ -320,8 +320,8 @@ void
 Array<T>::swap (long i,
                 long j)
 {
-    assert(i >= 0 && i < nelem);
-    assert(j >= 0 && j < nelem);
+    BLassert(i >= 0 && i < nelem);
+    BLassert(j >= 0 && j < nelem);
     T tmp = vp[i];
     vp[i] = vp[j];
     vp[j] = tmp;
@@ -340,7 +340,7 @@ template <class T>
 inline
 Array<T>::Array (long len)
 {
-    assert(len >= 0);
+    BLassert(len >= 0);
     nelem    = len;
     vp       = new T[len];
     truesize = len;
@@ -380,7 +380,7 @@ template <class T>
 Array<T>::Array (long     len,
                  const T& initialValue)
 {
-    assert(len >= 0);
+    BLassert(len >= 0);
 
     nelem    = len;
     vp       = new T[len];
@@ -393,8 +393,8 @@ template <class T>
 Array<T>::Array (const T* vec,
                  long     len)
 {
-    assert(len >= 0);
-    assert(len == 0 || vec != 0);
+    BLassert(len >= 0);
+    BLassert(len == 0 || vec != 0);
 
     nelem    = len;
     vp       = new T[len];

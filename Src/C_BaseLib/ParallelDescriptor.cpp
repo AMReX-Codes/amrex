@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.52 1999-03-27 01:00:24 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.53 1999-05-10 17:18:47 car Exp $
 //
 
 #include <Utility.H>
@@ -121,7 +121,7 @@ ParallelDescriptor::Abort (int errorcode)
 
 const char* ParallelDescriptor::ErrorString (int errorcode)
 {
-    assert(errorcode > 0 && errorcode <= MPI_ERR_LASTCODE);
+    BLassert(errorcode > 0 && errorcode <= MPI_ERR_LASTCODE);
 
     int len = 0;
 
@@ -129,7 +129,7 @@ const char* ParallelDescriptor::ErrorString (int errorcode)
 
     MPI_Error_string(errorcode, msg, &len);
 
-    assert(len <= MPI_MAX_ERROR_STRING);
+    BLassert(len <= MPI_MAX_ERROR_STRING);
 
     return msg;
 }
@@ -138,8 +138,8 @@ void
 ParallelDescriptor::StartParallel (int*    argc,
                                    char*** argv)
 {
-    assert(m_MyId == -1);
-    assert(m_nProcs == -1);
+    BLassert(m_MyId == -1);
+    BLassert(m_nProcs == -1);
 
     int rc;
 
@@ -161,8 +161,8 @@ ParallelDescriptor::StartParallel (int*    argc,
 void
 ParallelDescriptor::EndParallel ()
 {
-    assert(m_MyId != -1);
-    assert(m_nProcs != -1);
+    BLassert(m_MyId != -1);
+    BLassert(m_nProcs != -1);
 
     int rc = MPI_Finalize();
 
@@ -512,7 +512,7 @@ ParallelDescriptor::Broadcast (int   fromproc,
                                void* dest,
                                int   nbytes)
 {
-    assert(src == dest);
+    BLassert(src == dest);
 
     static RunStats mpi_stats("mpi_broadcast");
 
@@ -529,10 +529,10 @@ ParallelDescriptor::Gather (Real* sendbuf,
                             Real* recvbuf,
                             int   root)
 {
-    assert(root >= 0);
-    assert(nsend > 0);
-    assert(!(sendbuf == 0));
-    assert(!(recvbuf == 0));
+    BLassert(root >= 0);
+    BLassert(nsend > 0);
+    BLassert(!(sendbuf == 0));
+    BLassert(!(recvbuf == 0));
 
     MPI_Datatype typ = mpi_data_type(sendbuf);
 
@@ -565,10 +565,10 @@ ParallelDescriptor::Gather (Real* sendbuf,
 			    Real* recvbuf,
 			    int   root)
 {
-    assert(root == 0);
-    assert(nsend > 0);
-    assert(!(sendbuf == 0));
-    assert(!(recvbuf == 0));
+    BLassert(root == 0);
+    BLassert(nsend > 0);
+    BLassert(!(sendbuf == 0));
+    BLassert(!(recvbuf == 0));
 
     for (int i = 0; i < nsend; ++i)
         recvbuf[i] = sendbuf[i];

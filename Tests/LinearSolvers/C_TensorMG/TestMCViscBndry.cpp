@@ -7,9 +7,9 @@ MCViscBndry::setBndryConds (const BCRec& bc,
 			    int          comp)
 {
 #if BL_SPACEDIM == 2
-    assert(comp<2*2); // u and v, plus derivs of same
+    BLassert(comp<2*2); // u and v, plus derivs of same
 #elif BL_SPACEDIM == 3
-    assert(comp<3*(3+1)); // u and v, plus derivs of same
+    BLassert(comp<3*(3+1)); // u and v, plus derivs of same
 #endif
 
     const REAL* dx = geom.CellSize();

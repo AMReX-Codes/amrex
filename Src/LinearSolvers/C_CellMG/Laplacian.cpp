@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Laplacian.cpp,v 1.5 1999-01-04 18:11:46 marc Exp $
+// $Id: Laplacian.cpp,v 1.6 1999-05-10 17:18:39 car Exp $
 //
 
 #include <Laplacian.H>
@@ -24,7 +24,7 @@ Laplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 #if (BL_SPACEDIM == 3)
         DependentMultiFabIterator zflmfi(inmfi, zflux);
 #endif
-        assert(bxa[inmfi.index()] == inmfi.validbox());
+        BLassert(bxa[inmfi.index()] == inmfi.validbox());
 
         FORT_FLUX(inmfi().dataPtr(),
 		  ARLIM(inmfi().loVect()), ARLIM(inmfi().hiVect()),
@@ -81,7 +81,7 @@ Laplacian::Fsmooth (MultiFab&       solnL,
         const Mask& m4 = *maskvals[level][gn][oitr()]; oitr++;
         const Mask& m5 = *maskvals[level][gn][oitr()]; oitr++;
 #endif
-        assert(bxa[solnLmfi.index()] == solnLmfi.validbox());
+        BLassert(bxa[solnLmfi.index()] == solnLmfi.validbox());
 
 #if (BL_SPACEDIM == 2)
         FORT_GSRB(

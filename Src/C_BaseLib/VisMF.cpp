@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.61 1999-03-29 23:26:46 lijewski Exp $
+// $Id: VisMF.cpp,v 1.62 1999-05-10 17:18:48 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -51,7 +51,7 @@ operator>> (istream&          is,
     aString str;
     is >> str;
 
-    assert(str == VisMF::FabOnDisk::Prefix);
+    BLassert(str == VisMF::FabOnDisk::Prefix);
 
     is >> fod.m_name;
     is >> fod.m_head;
@@ -88,7 +88,7 @@ operator>> (istream&                 is,
     long i = 0, N;
 
     is >> N;
-    assert(N >= 0);
+    BLassert(N >= 0);
 
     fa.resize(N);
 
@@ -114,7 +114,7 @@ operator<< (ostream&                    os,
 
     for ( ; i < N; i++)
     {
-        assert(ar[i].length() == M);
+        BLassert(ar[i].length() == M);
 
         for (long j = 0; j < M; j++)
         {
@@ -139,9 +139,9 @@ operator>> (istream&              is,
 
     is >> N >> ch >> M;
 
-    assert(N >= 0);
-    assert(ch == ',');
-    assert(M >= 0);
+    BLassert(N >= 0);
+    BLassert(ch == ',');
+    BLassert(M >= 0);
 
     ar.resize(N);
     
@@ -152,7 +152,7 @@ operator>> (istream&              is,
         for (long j = 0; j < M; j++)
         {
             is >> ar[i][j] >> ch;
-            assert(ch == ',');
+            BLassert(ch == ',');
         }
     }
 
@@ -195,7 +195,7 @@ operator>> (istream&       is,
             VisMF::Header& hd)
 {
     is >> hd.m_vers;
-    assert(hd.m_vers == VisMF::Header::Version);
+    BLassert(hd.m_vers == VisMF::Header::Version);
 
     int how;
     is >> how;
@@ -208,21 +208,21 @@ operator>> (istream&       is,
     }
 
     is >> hd.m_ncomp;
-    assert(hd.m_ncomp >= 0);
+    BLassert(hd.m_ncomp >= 0);
 
     is >> hd.m_ngrow;
-    assert(hd.m_ngrow >= 0);
+    BLassert(hd.m_ngrow >= 0);
 
     hd.m_ba = BoxArray(is);
 
     is >> hd.m_fod;
-    assert(hd.m_ba.length() == hd.m_fod.length());
+    BLassert(hd.m_ba.length() == hd.m_fod.length());
 
     is >> hd.m_min;
     is >> hd.m_max;
 
-    assert(hd.m_ba.length() == hd.m_min.length());
-    assert(hd.m_ba.length() == hd.m_max.length());
+    BLassert(hd.m_ba.length() == hd.m_min.length());
+    BLassert(hd.m_ba.length() == hd.m_max.length());
 
     if (!is.good())
         BoxLib::Error("Read of VisMF::Header failed");
@@ -233,7 +233,7 @@ operator>> (istream&       is,
 aString
 VisMF::BaseName (const aString& filename)
 {
-    assert(filename[filename.length() - 1] != '/');
+    BLassert(filename[filename.length() - 1] != '/');
 
     if (char* slash = strrchr(filename.c_str(), '/'))
     {
@@ -254,7 +254,7 @@ VisMF::BaseName (const aString& filename)
 aString
 VisMF::DirName (const aString& filename)
 {
-    assert(filename[filename.length() - 1] != '/');
+    BLassert(filename[filename.length() - 1] != '/');
 
     static const aString TheNullString("");
 
@@ -347,7 +347,7 @@ VisMF::Header::Header (const MultiFab& mf,
         m_min[idx].resize(m_ncomp);
         m_max[idx].resize(m_ncomp);
 
-        assert(mfi().box().contains(m_ba[idx]));
+        BLassert(mfi().box().contains(m_ba[idx]));
 
         for (long j = 0; j < m_ncomp; j++)
         {
@@ -460,7 +460,7 @@ VisMF::Write (const MultiFab& mf,
               VisMF::How      how,
               bool            set_ghost)
 {
-    assert(mf_name[mf_name.length() - 1] != '/');
+    BLassert(mf_name[mf_name.length() - 1] != '/');
 
     const int IoProc = ParallelDescriptor::IOProcessorNumber();
 
@@ -472,9 +472,9 @@ VisMF::Write (const MultiFab& mf,
     {
         MultiFab* the_mf = const_cast<MultiFab*>(&mf);
 
-        assert(!(the_mf == 0));
-        assert(hdr.m_ba == mf.boxArray());
-        assert(hdr.m_ncomp == mf.nComp());
+        BLassert(!(the_mf == 0));
+        BLassert(hdr.m_ba == mf.boxArray());
+        BLassert(hdr.m_ncomp == mf.nComp());
 
         for (MultiFabIterator mfi(*the_mf); mfi.isValid(); ++mfi)
         {
@@ -786,7 +786,7 @@ VisMF::Read (MultiFab&      mf,
         mf.setFab(mfi.index(), VisMF::readFAB(mfi.index(), mf_name, hdr));
     }
 
-    assert(mf.ok());
+    BLassert(mf.ok());
 }
 
 void

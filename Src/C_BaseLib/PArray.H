@@ -4,7 +4,7 @@
 #define BL_PARRAY_H
 
 //
-// $Id: PArray.H,v 1.10 1999-02-10 21:09:57 lijewski Exp $
+// $Id: PArray.H,v 1.11 1999-05-10 17:18:47 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -202,7 +202,7 @@ inline
 const T&
 PArray<T>::operator[] (int i) const
 {
-    assert(vp[i] != 0);
+    BLassert(vp[i] != 0);
     return *((T*)(vp[i]));
 }
 
@@ -211,7 +211,7 @@ inline
 T&
 PArray<T>::operator[] (int i)
 {
-    assert(vp[i] != 0);
+    BLassert(vp[i] != 0);
     return *((T*)(vp[i]));
 }
 
@@ -220,7 +220,7 @@ inline
 const T&
 PArray<T>::get (int i) const
 {
-    assert(vp[i] != 0);
+    BLassert(vp[i] != 0);
     return *((T*)(vp[i]));
 }
 
@@ -229,7 +229,7 @@ inline
 T&
 PArray<T>::get (int i)
 {
-    assert(vp[i] != 0);
+    BLassert(vp[i] != 0);
     return *((T*)(vp[i]));
 }
 
@@ -239,7 +239,7 @@ void
 PArray<T>::set (int i,
                 T*  elem)
 {
-    assert(vp[i] == 0);
+    BLassert(vp[i] == 0);
     vp[i] = elem;
 }
 
@@ -256,7 +256,7 @@ inline
 T*
 PArray<T>::remove (int i)
 {
-    assert(vp[i] != 0);
+    BLassert(vp[i] != 0);
     void* tmp = vp[i];
     vp[i]     = 0;
     return (T*) tmp;

@@ -4,10 +4,10 @@
 #define _BNDRYDATA_H_
 
 //
-// $Id: BndryData.H,v 1.7 1999-04-13 00:09:11 marc Exp $
+// $Id: BndryData.H,v 1.8 1999-05-10 17:18:38 car Exp $
 //
 
-#include <Assert.H>
+#include <BLassert.H>
 #include <BoxArray.H>
 #include <FArrayBox.H>
 #include <Orientation.H>

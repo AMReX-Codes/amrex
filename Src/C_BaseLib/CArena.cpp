@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CArena.cpp,v 1.15 1999-02-03 21:48:51 lijewski Exp $
+// $Id: CArena.cpp,v 1.16 1999-05-10 17:18:44 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -47,8 +47,8 @@ CArena::CArena (size_t hunk_size)
     //
     m_hunk = Arena::align(hunk_size == 0 ? DefaultHunkSize : hunk_size);
 
-    assert(m_hunk >= hunk_size);
-    assert(m_hunk%sizeof(Arena::Word) == 0);
+    BLassert(m_hunk >= hunk_size);
+    BLassert(m_hunk%sizeof(Arena::Word) == 0);
 }
 
 CArena::~CArena ()
@@ -96,9 +96,9 @@ CArena::alloc (size_t nbytes)
     }
     else
     {
-        assert((*free_it).size() >= nbytes);
+        BLassert((*free_it).size() >= nbytes);
 
-        assert(m_busylist.find(*free_it) == m_busylist.end());
+        BLassert(m_busylist.find(*free_it) == m_busylist.end());
 
         vp = (*free_it).block();
 
@@ -123,7 +123,7 @@ CArena::alloc (size_t nbytes)
 
     m_busylist.insert(Node(vp, nbytes));
 
-    assert(!(vp == 0));
+    BLassert(!(vp == 0));
 
     return vp;
 }
@@ -141,9 +141,9 @@ CArena::free (void* vp)
     //
     NL::iterator busy_it = m_busylist.find(Node(vp,0));
 
-    assert(!(busy_it == m_busylist.end()));
+    BLassert(!(busy_it == m_busylist.end()));
 
-    assert(m_freelist.find(*busy_it) == m_freelist.end());
+    BLassert(m_freelist.find(*busy_it) == m_freelist.end());
 
     void* freeblock = static_cast<char*>((*busy_it).block());
     //
@@ -151,11 +151,11 @@ CArena::free (void* vp)
     //
     pair<NL::iterator,bool> pair_it = m_freelist.insert(*busy_it);
 
-    assert(pair_it.second == true);
+    BLassert(pair_it.second == true);
 
     NL::iterator free_it = pair_it.first;
 
-    assert(free_it != m_freelist.end() && (*free_it).block() == freeblock);
+    BLassert(free_it != m_freelist.end() && (*free_it).block() == freeblock);
     //
     // And remove from busy list.
     //
@@ -183,7 +183,7 @@ CArena::free (void* vp)
             // back into the same place in the set.
             //
             Node* node = const_cast<Node*>(&(*lo_it));
-            assert(!(node == 0));
+            BLassert(!(node == 0));
             node->size((*lo_it).size() + (*free_it).size());
             m_freelist.erase(free_it);
             free_it = lo_it;
@@ -200,7 +200,7 @@ CArena::free (void* vp)
         // Ditto the above comment.
         //
         Node* node = const_cast<Node*>(&(*free_it));
-        assert(!(node == 0));
+        BLassert(!(node == 0));
         node->size((*free_it).size() + (*hi_it).size());
         m_freelist.erase(hi_it);
     }
@@ -210,8 +210,8 @@ void*
 CArena::calloc (size_t nmemb,
                 size_t size)
 {
-    assert(!(size == 0));
-    assert(!(nmemb == 0));
+    BLassert(!(size == 0));
+    BLassert(!(nmemb == 0));
 
     void* vp = CArena::alloc(nmemb*size);
 
@@ -226,7 +226,7 @@ CArena::realloc (void*  ptr,
 {
     if (ptr == 0)
     {
-        assert(!(size == 0));
+        BLassert(!(size == 0));
 
         return CArena::alloc(size);
     }
@@ -243,9 +243,9 @@ CArena::realloc (void*  ptr,
             //
             NL::iterator busy_it = m_busylist.find(Node(ptr,0));
 
-            assert(!(busy_it == m_busylist.end()));
+            BLassert(!(busy_it == m_busylist.end()));
 
-            assert(m_freelist.find(*busy_it) == m_freelist.end());
+            BLassert(m_freelist.find(*busy_it) == m_freelist.end());
 
             if (size > (*busy_it).size())
             {

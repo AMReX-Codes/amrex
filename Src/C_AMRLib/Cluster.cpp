@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Cluster.cpp,v 1.12 1998-08-08 17:25:40 lijewski Exp $
+// $Id: Cluster.cpp,v 1.13 1999-05-10 17:18:27 car Exp $
 //
 
 #include <Cluster.H>
@@ -49,8 +49,8 @@ Cluster::Cluster (Cluster&   c,
     m_ar(0),
     m_len(0)
 {
-    assert(b.ok());
-    assert(c.m_ar != 0 && c.m_len > 0);
+    BLassert(b.ok());
+    BLassert(c.m_ar != 0 && c.m_len > 0);
 
     if (b.contains(c.m_bx))
     {
@@ -102,9 +102,9 @@ void
 Cluster::distribute (ClusterList&     clst,
                      const BoxDomain& bd)
 {
-    assert(ok());
-    assert(bd.ok());
-    assert(clst.length() == 0);
+    BLassert(ok());
+    BLassert(bd.ok());
+    BLassert(clst.length() == 0);
    
     for (BoxDomainIterator bdi(bd); bdi && ok(); ++bdi)
     {
@@ -255,8 +255,8 @@ private:
 Cluster*
 Cluster::chop ()
 {
-    assert(m_len > 1);
-    assert(!(m_ar == 0));
+    BLassert(m_len > 1);
+    BLassert(!(m_ar == 0));
 
     const int* lo  = m_bx.loVect();
     const int* hi  = m_bx.hiVect();
@@ -297,7 +297,7 @@ Cluster::chop ()
             mincount++;
         }
     }
-    assert(mincut != InvalidCut);
+    BLassert(mincut != InvalidCut);
     //
     // Select best cutpoint and direction.
     //
@@ -314,13 +314,13 @@ Cluster::chop ()
             }
         }
     }
-    assert(dir >= 0 && dir < BL_SPACEDIM);
+    BLassert(dir >= 0 && dir < BL_SPACEDIM);
 
     int nlo = 0;
     for (int i = lo[dir]; i < cut[dir]; i++)
         nlo += hist[dir][i-lo[dir]];
 
-    assert(nlo > 0 && nlo < m_len);
+    BLassert(nlo > 0 && nlo < m_len);
 
     int nhi = m_len - nlo;
 
@@ -329,8 +329,8 @@ Cluster::chop ()
 
     IntVect* prt_it = partition(m_ar, m_ar+m_len, Cut(cut,dir));
 
-    assert((prt_it-m_ar) == nlo);
-    assert(((m_ar+m_len)-prt_it) == nhi);
+    BLassert((prt_it-m_ar) == nlo);
+    BLassert(((m_ar+m_len)-prt_it) == nhi);
 
     m_len = nlo;
     minBox();

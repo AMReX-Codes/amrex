@@ -4,7 +4,7 @@
 #define BL_BOXLIST_H
 
 //
-// $Id: BoxList.H,v 1.9 1999-04-26 20:09:11 lijewski Exp $
+// $Id: BoxList.H,v 1.10 1999-05-10 17:18:44 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -364,7 +364,7 @@ inline
 void
 BoxList::append (const Box& bn)
 {
-    assert(ixType() == bn.ixType());
+    BLassert(ixType() == bn.ixType());
     lbox.append(bn);
 }
 
@@ -379,7 +379,7 @@ inline
 void
 BoxList::prepend (const Box& bn)
 {
-    assert(ixType() == bn.ixType());
+    BLassert(ixType() == bn.ixType());
     lbox.prepend(bn);
 }
 
@@ -387,7 +387,7 @@ inline
 void
 BoxList::join (const BoxList& blist)
 {
-    assert(ixType() == blist.ixType());
+    BLassert(ixType() == blist.ixType());
     lbox.join(blist.lbox);
 }
 
@@ -395,9 +395,9 @@ inline
 void
 BoxList::catenate (BoxList& blist)
 {
-    assert(ixType() == blist.ixType());
+    BLassert(ixType() == blist.ixType());
     lbox.catenate(blist.lbox);
-    assert(blist.isEmpty());
+    BLassert(blist.isEmpty());
 }
 
 inline
@@ -412,7 +412,7 @@ void
 BoxList::addAfter (BoxListIterator& bli,
                    const Box&       bn)
 {
-    assert(ixType() == bn.ixType());
+    BLassert(ixType() == bn.ixType());
     lbox.addAfter(bli, bn);
 }
 
@@ -449,7 +449,7 @@ inline
 BoxList&
 BoxList::remove (const Box& bx)
 {
-    assert(ixType() == bx.ixType());
+    BLassert(ixType() == bx.ixType());
     lbox.remove(bx);
     return *this;
 }
@@ -459,7 +459,7 @@ void
 BoxList::addBefore (BoxListIterator& bli,
                     const Box&       bn)
 {
-    assert(ixType() == bn.ixType());
+    BLassert(ixType() == bn.ixType());
     lbox.addBefore(bli, bn);
 }
 
@@ -481,7 +481,7 @@ inline
 BoxList&
 BoxList::remove (BoxListIterator& bli)
 {
-    assert(ixType() == bli().ixType());
+    BLassert(ixType() == bli().ixType());
     lbox.remove(bli);
     return *this;
 }

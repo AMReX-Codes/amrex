@@ -4,7 +4,7 @@
 #define BL_NORMEDFAB_H
 
 //
-// $Id: NormedFab.H,v 1.4 1999-04-15 23:28:00 lijewski Exp $
+// $Id: NormedFab.H,v 1.5 1999-05-10 17:18:46 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -163,8 +163,8 @@ NormedFab<T>::norm (const Box& subbox,
                     int        comp,
                     int        numcomp) const
 {
-    assert(comp >= 0 && comp+numcomp <= nComp());
-    assert(p >= 0);
+    BLassert(comp >= 0 && comp+numcomp <= nComp());
+    BLassert(p >= 0);
 
     Real  nrm    = 0;
     Real* tmp    = 0;
@@ -237,8 +237,8 @@ NormedFab<Real>::norm (const Box& subbox,
                        int        comp,
                        int        numcomp) const
 {
-    assert(comp >= 0 && comp+numcomp <= nComp());
-    assert(p >= 0);
+    BLassert(comp >= 0 && comp+numcomp <= nComp());
+    BLassert(p >= 0);
 
     Real* RESTRICT tmp  = 0;
     int tmplen = 0;

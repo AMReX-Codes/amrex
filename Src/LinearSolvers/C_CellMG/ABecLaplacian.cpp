@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ABecLaplacian.cpp,v 1.5 1999-01-04 18:09:00 marc Exp $
+// $Id: ABecLaplacian.cpp,v 1.6 1999-05-10 17:18:38 car Exp $
 //
 
 #include <ABecLaplacian.H>
@@ -41,7 +41,7 @@ ABecLaplacian::~ABecLaplacian ()
 void
 ABecLaplacian::clearToLevel (int level)
 {
-    assert(level >= -1);
+    BLassert(level >= -1);
 
     for (int i = level+1; i < numLevels(); ++i)
     {
@@ -179,7 +179,7 @@ ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflu
         DependentMultiFabIterator bZmfi(inmfi, bZ);
         DependentMultiFabIterator zflmfi(inmfi, zflux);
 #endif
-        assert(bxa[inmfi.index()] == inmfi.validbox());
+        BLassert(bxa[inmfi.index()] == inmfi.validbox());
 
         FORT_FLUX(inmfi().dataPtr(),
 		  ARLIM(inmfi().loVect()), ARLIM(inmfi().hiVect()),
@@ -267,7 +267,7 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
         const Mask& m5 = *maskvals[level][gn][oitr()]; oitr++;
 #endif
 
-        assert(bxa[solnLmfi.index()] == solnLmfi.validbox());
+        BLassert(bxa[solnLmfi.index()] == solnLmfi.validbox());
         
 #if (BL_SPACEDIM == 2)
         FORT_GSRB(solnLmfi().dataPtr(), 
@@ -368,7 +368,7 @@ ABecLaplacian::Fapply (MultiFab&       y,
 #if (BL_SPACEDIM > 2)    
         DependentMultiFabIterator bZmfi(ymfi, bZ);
 #endif    
-        assert(bxa[ymfi.index()] == ymfi.validbox());
+        BLassert(bxa[ymfi.index()] == ymfi.validbox());
 
 #if (BL_SPACEDIM == 2)
         FORT_ADOTX(ymfi().dataPtr(),

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BndryData.cpp,v 1.9 1999-04-13 00:09:11 marc Exp $
+// $Id: BndryData.cpp,v 1.10 1999-05-10 17:18:38 car Exp $
 //
 
 #include <BndryData.H>
@@ -114,7 +114,7 @@ BndryData::define (const BoxArray& _grids,
 
     const int ngrd = grids.length();
 
-    assert(ngrd > 0);
+    BLassert(ngrd > 0);
 
     Array<IntVect> pshifts(27);
 

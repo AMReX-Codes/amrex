@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Box.cpp,v 1.6 1997-12-19 22:21:39 lijewski Exp $
+// $Id: Box.cpp,v 1.7 1999-05-10 17:18:44 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -10,7 +10,7 @@
 #include <limits.h>
 #endif
 
-#include <Assert.H>
+#include <BLassert.H>
 #include <BoxLib.H>
 #include <Misc.H>
 #include <Box.H>
@@ -71,14 +71,14 @@ Box::Box (const IntVect& small,
       bigend(big),
       btype(typ)
 {
-    assert(typ >= IntVect::TheZeroVector() && typ <= IntVect::TheUnitVector());
+    BLassert(typ >= IntVect::TheZeroVector() && typ <= IntVect::TheUnitVector());
     computeBoxLen();
 }
 
 bool
 Box::numPtsOK (long& N) const
 {
-    assert(ok());
+    BLassert(ok());
 
     N = len[0];
 
@@ -117,7 +117,7 @@ Box::numPts () const
 bool
 Box::volumeOK (long& N) const
 {
-    assert(ok());
+    BLassert(ok());
 
     N = len[0]-btype[0];
 
@@ -183,7 +183,7 @@ Box::shiftHalf (int dir,
 bool
 Box::intersects (const Box& b) const
 {
-    assert(sameType(b));
+    BLassert(sameType(b));
     IntVect low(smallend);
     IntVect hi(bigend);
     low.max(b.smallend);
@@ -198,7 +198,7 @@ Box::intersects (const Box& b) const
 Box&
 Box::operator&= (const Box& b)
 {
-    assert(sameType(b));
+    BLassert(sameType(b));
     smallend.max(b.smallend);
     bigend.min(b.bigend);
     computeBoxLen();
@@ -234,7 +234,7 @@ Box::enclosedCells ()
 void
 Box::next (IntVect& p) const
 {
-    assert(contains(p));
+    BLassert(contains(p));
 
     p.shift(0,1);
 #if BL_SPACEDIM==2
@@ -272,7 +272,7 @@ void
 Box::next (IntVect&   p,
            const int* shv) const
 {
-    assert(contains(p));
+    BLassert(contains(p));
 
 #if   BL_SPACEDIM==1
     p.shift(0,shv[0]);
@@ -408,7 +408,7 @@ Box::chop (int dir,
         //
         // NODE centered Box.
         //
-        assert(chop_pnt > smallend[dir] && chop_pnt < bigend[dir]);
+        BLassert(chop_pnt > smallend[dir] && chop_pnt < bigend[dir]);
         //
         // Shrink original Box to just contain chop_pnt.
         //
@@ -419,7 +419,7 @@ Box::chop (int dir,
         //
         // CELL centered Box.
         //
-        assert(chop_pnt > smallend[dir] && chop_pnt <= bigend[dir]);
+        BLassert(chop_pnt > smallend[dir] && chop_pnt <= bigend[dir]);
         //
         // Shrink origional Box to one below chop_pnt.
         //
@@ -670,7 +670,7 @@ operator>> (istream& is,
         IntVect v;
         is >> v;
         b.btype = IndexType(v);
-        assert(b.btype.ok());
+        BLassert(b.btype.ok());
         is.ignore(BL_IGNORE_MAX,')');
         b.computeBoxLen();
     }
@@ -681,7 +681,7 @@ operator>> (istream& is,
         IntVect v;
         is >> v;
         b.btype = IndexType(v);
-        assert(b.btype.ok());
+        BLassert(b.btype.ok());
         b.computeBoxLen();
     }
     else
@@ -718,8 +718,8 @@ Box::dumpOn (ostream& strm) const
 Box&
 Box::minBox (const Box &b)
 {
-    assert(b.ok() && ok());
-    assert(sameType(b));
+    BLassert(b.ok() && ok());
+    BLassert(sameType(b));
     smallend.min(b.smallend);
     bigend.max(b.bigend);
     computeBoxLen();
@@ -730,8 +730,8 @@ Box
 minBox (const Box& b,
         const Box& o)
 {
-    assert(b.ok() && o.ok());
-    assert(o.sameType(b));
+    BLassert(b.ok() && o.ok());
+    BLassert(o.sameType(b));
     IntVect small = b.smallend;
     IntVect big = b.bigend;
     small.min(o.smallend);
@@ -812,7 +812,7 @@ adjCellLo (const Box& b,
            int        dir,
            int        len)
 {
-    assert(len > 0);
+    BLassert(len > 0);
     IntVect low(b.smallend);
     IntVect hi(b.bigend);
     int sm = low[dir];
@@ -831,7 +831,7 @@ adjCellHi (const Box& b,
            int        dir,
            int        len)
 {
-    assert(len > 0);
+    BLassert(len > 0);
     IntVect low(b.smallend);
     IntVect hi(b.bigend);
     unsigned int bitval = b.btype.ixType(dir);
@@ -851,7 +851,7 @@ adjCell (const Box&         b,
          const Orientation& face,
          int                len)
 {
-    assert(len > 0);
+    BLassert(len > 0);
     IntVect low(b.smallend);
     IntVect hi(b.bigend);
     int dir = face.coordDir();

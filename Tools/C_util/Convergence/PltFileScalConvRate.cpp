@@ -112,7 +112,7 @@ main (int   argc,
 
     AmrData& amrDataC = dataServicesC.AmrDataRef();
     AmrData& amrDataF = dataServicesF.AmrDataRef();
-    assert(amrDatasHaveSameDerives(amrDataC,amrDataF));
+    BLassert(amrDatasHaveSameDerives(amrDataC,amrDataF));
 
     ComputeAmrDataNorms(amrDataC, norm0c, norm1c, norm2c, verbose);
     ComputeAmrDataNorms(amrDataF, norm0f, norm1f, norm2f, verbose);

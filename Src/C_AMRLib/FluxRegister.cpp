@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.54 1999-02-24 16:50:48 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.55 1999-05-10 17:18:28 car Exp $
 //
 
 #include <FluxRegister.H>
@@ -40,8 +40,8 @@ FluxRegister::define (const BoxArray& fine_boxes,
                       int             fine_lev,
                       int             nvar)
 {
-    assert(fine_boxes.isDisjoint());
-    assert(!grids.ready());
+    BLassert(fine_boxes.isDisjoint());
+    BLassert(!grids.ready());
 
     ratio      = ref_ratio;
     fine_level = fine_lev;
@@ -96,7 +96,7 @@ FluxRegister::copyTo (FArrayBox& flx,
                       int        dest_comp,
                       int        num_comp)
 {
-    assert(dir >= 0 && dir < BL_SPACEDIM);
+    BLassert(dir >= 0 && dir < BL_SPACEDIM);
 
     const FabSet& lofabs = bndry[Orientation(dir,Orientation::low)];
     const FabSet& hifabs = bndry[Orientation(dir,Orientation::high)];
@@ -256,13 +256,13 @@ FluxRegister::Reflux (MultiFab&       S,
                     // disgusting.
                     //
                     FArrayBox* cheatvol = const_cast<FArrayBox*>(&mfi_volume());
-                    assert(cheatvol != 0);
+                    BLassert(cheatvol != 0);
                     cheatvol->shift(iv);
                     const int* vlo = cheatvol->loVect();
                     const int* vhi = cheatvol->hiVect();
                     Box sftbox = mfi.validbox();
                     sftbox.shift(iv);
-                    assert(bx.intersects(sftbox));
+                    BLassert(bx.intersects(sftbox));
 
                     for (OrientationIter fi; fi; ++fi)
                     {
@@ -303,9 +303,9 @@ FluxRegister::Reflux (MultiFab&       S,
         const RF&        rf   = RFs[i];
         const FillBoxId& fbid = rf.m_fbid;
 
-        assert(bndry[rf.m_face].box(rf.m_fridx) == fbid.box());
-        assert(S.DistributionMap()[rf.m_fabidx] == MyProc);
-        assert(volume.DistributionMap()[rf.m_fabidx] == MyProc);
+        BLassert(bndry[rf.m_face].box(rf.m_fridx) == fbid.box());
+        BLassert(S.DistributionMap()[rf.m_fabidx] == MyProc);
+        BLassert(volume.DistributionMap()[rf.m_fabidx] == MyProc);
 
         FArrayBox&       fab_S      = S[rf.m_fabidx];
         const FArrayBox& fab_volume = volume[rf.m_fabidx];
@@ -322,7 +322,7 @@ FluxRegister::Reflux (MultiFab&       S,
         {
             Box ovlp = S.box(rf.m_fabidx) & fine_face;
 
-            assert(ovlp.ok());
+            BLassert(ovlp.ok());
 
             reg.resize(fbid.box(), num_comp);
             fscd.FillFab(fsid[rf.m_face], fbid, reg);
@@ -349,13 +349,13 @@ FluxRegister::Reflux (MultiFab&       S,
             // disgusting.
             //
             FArrayBox* cheatvol = const_cast<FArrayBox*>(&fab_volume);
-            assert(cheatvol != 0);
+            BLassert(cheatvol != 0);
             cheatvol->shift(rf.m_iv);
             Box sftbox = S.box(rf.m_fabidx);
             sftbox.shift(rf.m_iv);
             Box ovlp = sftbox & fine_face;
 
-            assert(ovlp.ok());
+            BLassert(ovlp.ok());
 
             reg.resize(fbid.box(), num_comp);
             fscd.FillFab(fsid[rf.m_face], fbid, reg);
@@ -448,7 +448,7 @@ FluxRegister::Reflux (MultiFab&       S,
                     const int* shi = mfi().hiVect();
                     Box sftbox     = mfi.validbox();
                     sftbox.shift(iv);
-                    assert(bx.intersects(sftbox));
+                    BLassert(bx.intersects(sftbox));
 
                     for (OrientationIter fi; fi; ++fi)
                     {
@@ -488,8 +488,8 @@ FluxRegister::Reflux (MultiFab&       S,
         const RF& rf          = RFs[i];
         const FillBoxId& fbid = rf.m_fbid;
 
-        assert(bndry[rf.m_face].box(rf.m_fridx) == fbid.box());
-        assert(S.DistributionMap()[rf.m_fabidx] == MyProc);
+        BLassert(bndry[rf.m_face].box(rf.m_fridx) == fbid.box());
+        BLassert(S.DistributionMap()[rf.m_fabidx] == MyProc);
 
         FArrayBox& fab_S     = S[rf.m_fabidx];
         Box        fine_face = ::adjCell(grids[rf.m_fridx],rf.m_face);
@@ -504,7 +504,7 @@ FluxRegister::Reflux (MultiFab&       S,
         {
             Box ovlp = S.box(rf.m_fabidx) & fine_face;
 
-            assert(ovlp.ok());
+            BLassert(ovlp.ok());
 
             reg.resize(fbid.box(), num_comp);
             fscd.FillFab(fsid[rf.m_face], fbid, reg);
@@ -524,7 +524,7 @@ FluxRegister::Reflux (MultiFab&       S,
             sftbox.shift(rf.m_iv);
             Box ovlp = sftbox & fine_face;
 
-            assert(ovlp.ok());
+            BLassert(ovlp.ok());
 
             reg.resize(fbid.box(), num_comp);
             fscd.FillFab(fsid[rf.m_face], fbid, reg);
@@ -553,8 +553,8 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                         int             numcomp,
                         Real            mult)
 {
-    assert(srccomp >= 0 && srccomp+numcomp <= mflx.nComp());
-    assert(destcomp >= 0 && destcomp+numcomp <= ncomp);
+    BLassert(srccomp >= 0 && srccomp+numcomp <= mflx.nComp());
+    BLassert(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
     const Orientation face_lo(dir,Orientation::low);
     const Orientation face_hi(dir,Orientation::high);
@@ -585,7 +585,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                                                      0,
                                                      numcomp));
 
-                assert(fillBoxId_mflx.back().box() == lobox);
+                BLassert(fillBoxId_mflx.back().box() == lobox);
                 //
                 // Here we'll save the index into the FabSet.
                 //
@@ -599,7 +599,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                                                      0,
                                                      1));
 
-                assert(fillBoxId_area.back().box() == lobox);
+                BLassert(fillBoxId_area.back().box() == lobox);
                 //
                 // Here we'll save the direction.
                 //
@@ -617,7 +617,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                                                      0,
                                                      numcomp));
 
-                assert(fillBoxId_mflx.back().box() == hibox);
+                BLassert(fillBoxId_mflx.back().box() == hibox);
                 //
                 // Here we'll save the index into the FabSet.
                 //
@@ -631,7 +631,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                                                      0,
                                                      1));
 
-                assert(fillBoxId_area.back().box() == hibox);
+                BLassert(fillBoxId_area.back().box() == hibox);
                 //
                 // Here we'll save the direction.
                 //
@@ -642,7 +642,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
     mfcd.CollectData();
 
-    assert(fillBoxId_mflx.size() == fillBoxId_area.size());
+    BLassert(fillBoxId_mflx.size() == fillBoxId_area.size());
 
     const int MyProc = ParallelDescriptor::MyProc();
 
@@ -653,11 +653,11 @@ FluxRegister::CrseInit (const MultiFab& mflx,
         const FillBoxId& fbid_mflx = fillBoxId_mflx[i];
         const FillBoxId& fbid_area = fillBoxId_area[i];
 
-        assert(fbid_mflx.box() == fbid_area.box());
+        BLassert(fbid_mflx.box() == fbid_area.box());
 
         Orientation the_face(dir,Orientation::Side(fbid_area.FabIndex()));
 
-        assert(the_face == face_lo || the_face == face_hi);
+        BLassert(the_face == face_lo || the_face == face_hi);
 
         mflx_fab.resize(fbid_mflx.box(), numcomp);
         mfcd.FillFab(mfid_mflx, fbid_mflx, mflx_fab);
@@ -667,7 +667,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
         FabSet&   fabset   = bndry[the_face];
         const int fabindex = fbid_mflx.FabIndex();
 
-        assert(fabset.DistributionMap()[fabindex] == MyProc);
+        BLassert(fabset.DistributionMap()[fabindex] == MyProc);
 
         FArrayBox&  fab      = fabset[fabindex];
         const int*  flo      = mflx_fab.box().loVect();
@@ -721,7 +721,7 @@ DoIt (Orientation        face,
 #ifdef BL_USE_MPI
     else
     {
-        assert(CIMsgs.length() == ParallelDescriptor::NProcs());
+        BLassert(CIMsgs.length() == ParallelDescriptor::NProcs());
 
         FabComTag tag;
 
@@ -754,9 +754,9 @@ FluxRegister::CrseInit (const FArrayBox& flux,
                         int              numcomp,
                         Real             mult)
 {
-    assert(flux.box().contains(subbox));
-    assert(srccomp  >= 0 && srccomp+numcomp  <= flux.nComp());
-    assert(destcomp >= 0 && destcomp+numcomp <= ncomp);
+    BLassert(flux.box().contains(subbox));
+    BLassert(srccomp  >= 0 && srccomp+numcomp  <= flux.nComp());
+    BLassert(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
     if (CIMsgs.length() == 0)
         CIMsgs.resize(ParallelDescriptor::NProcs(), 0);
@@ -800,12 +800,12 @@ FluxRegister::CrseInitFinish ()
 
     const int MyProc = ParallelDescriptor::MyProc();
 
-    assert(CITags.size() == CIFabs.size());
+    BLassert(CITags.size() == CIFabs.size());
 
     if (CIMsgs.length() == 0)
         CIMsgs.resize(ParallelDescriptor::NProcs(),0);
 
-    assert(CIMsgs[MyProc] == 0);
+    BLassert(CIMsgs[MyProc] == 0);
 
     int rc;
 
@@ -828,7 +828,7 @@ FluxRegister::CrseInitFinish ()
     }
     mpi_gath.end();
 
-    assert(Rcvs[MyProc] == 0);
+    BLassert(Rcvs[MyProc] == 0);
 
     int NumRcvs = 0;
 
@@ -840,7 +840,7 @@ FluxRegister::CrseInitFinish ()
     //
     // Make sure we can treat CommData as a stream of integers.
     //
-    assert(sizeof(CommData) == CommData::DIM*sizeof(int));
+    BLassert(sizeof(CommData) == CommData::DIM*sizeof(int));
     //
     // Post one receive for each chunk being sent by other CPUs.
     // This is the CommData describing the FAB data that will be sent.
@@ -866,7 +866,7 @@ FluxRegister::CrseInitFinish ()
     }
     mpi_recv.end();
 
-    assert(idx == NumRcvs);
+    BLassert(idx == NumRcvs);
     //
     // Now send the CommData.
     //
@@ -895,7 +895,7 @@ FluxRegister::CrseInitFinish ()
                 }
             }
 
-            assert(Processed == CIMsgs[i]);
+            BLassert(Processed == CIMsgs[i]);
             //
             // Use MPI_Ssend() to try and force the system not to buffer.
             //
@@ -936,8 +936,8 @@ FluxRegister::CrseInitFinish ()
             for (int j = 0; j < Rcvs[i]; j++)
                 N += rcv_cd[idx+j].box().numPts() * rcv_cd[idx+j].nComp();
 
-            assert(N < INT_MAX);
-            assert(!(The_FAB_Arena == 0));
+            BLassert(N < INT_MAX);
+            BLassert(!(The_FAB_Arena == 0));
 
             fab_data[i] = static_cast<Real*>(The_FAB_Arena->alloc(N*sizeof(Real)));
 
@@ -956,7 +956,7 @@ FluxRegister::CrseInitFinish ()
         }
     }
 
-    assert(idx == NumRcvs);
+    BLassert(idx == NumRcvs);
     //
     // Send the agglomerated FAB data.
     //
@@ -970,8 +970,8 @@ FluxRegister::CrseInitFinish ()
                 if (CITags[j].toProc == i)
                     N += CITags[j].box.numPts() * CITags[j].nComp;
 
-            assert(N < INT_MAX);
-            assert(!(The_FAB_Arena == 0));
+            BLassert(N < INT_MAX);
+            BLassert(!(The_FAB_Arena == 0));
 
             Real* data = static_cast<Real*>(The_FAB_Arena->alloc(N*sizeof(Real)));
             Real* dptr = data;
@@ -980,8 +980,8 @@ FluxRegister::CrseInitFinish ()
             {
                 if (CITags[j].toProc == i)
                 {
-                    assert(CITags[j].box == CIFabs[j]->box());
-                    assert(CITags[j].nComp == CIFabs[j]->nComp());
+                    BLassert(CITags[j].box == CIFabs[j]->box());
+                    BLassert(CITags[j].nComp == CIFabs[j]->nComp());
 
                     int count = CITags[j].box.numPts() * CITags[j].nComp;
 
@@ -995,7 +995,7 @@ FluxRegister::CrseInitFinish ()
                 }
             }
 
-            assert(data + N == dptr);
+            BLassert(data + N == dptr);
             //
             // Use MPI_Ssend() to try and force the system not to buffer.
             //
@@ -1009,7 +1009,7 @@ FluxRegister::CrseInitFinish ()
                 ParallelDescriptor::Abort(rc);
             mpi_send.end();
 
-            assert(!(The_FAB_Arena == 0));
+            BLassert(!(The_FAB_Arena == 0));
 
             The_FAB_Arena->free(data);
         }
@@ -1034,7 +1034,7 @@ FluxRegister::CrseInitFinish ()
 
             Real* dptr = fab_data[i];
 
-            assert(!(dptr == 0));
+            BLassert(!(dptr == 0));
 
             for (int j = 0; j < Rcvs[i]; j++)
             {
@@ -1044,7 +1044,7 @@ FluxRegister::CrseInitFinish ()
 
                 int N = fab.box().numPts() * fab.nComp();
 
-                assert(N < INT_MAX);
+                BLassert(N < INT_MAX);
 
                 memcpy(fab.dataPtr(), dptr, N * sizeof(Real));
 
@@ -1059,8 +1059,8 @@ FluxRegister::CrseInitFinish ()
                 Processed++;
             }
 
-            assert(Processed == Rcvs[i]);
-            assert(!(The_FAB_Arena == 0));
+            BLassert(Processed == Rcvs[i]);
+            BLassert(!(The_FAB_Arena == 0));
 
             The_FAB_Arena->free(fab_data[i]);
 
@@ -1070,7 +1070,7 @@ FluxRegister::CrseInitFinish ()
         }
     }
 
-    assert(idx == NumRcvs);
+    BLassert(idx == NumRcvs);
     //
     // Null out vectors.
     //
@@ -1133,8 +1133,8 @@ FluxRegister::FineAdd (const FArrayBox& flux,
                        int              numcomp,
                        Real             mult)
 {
-    assert(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
-    assert(destcomp >= 0 && destcomp+numcomp <= ncomp);
+    BLassert(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
+    BLassert(destcomp >= 0 && destcomp+numcomp <= ncomp);
 #ifndef NDEBUG
     Box cbox = ::coarsen(flux.box(),ratio);
 #endif
@@ -1145,7 +1145,7 @@ FluxRegister::FineAdd (const FArrayBox& flux,
 
     FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno];
 
-    assert(cbox.contains(loreg.box()));
+    BLassert(cbox.contains(loreg.box()));
     const int* rlo = loreg.box().loVect();
     const int* rhi = loreg.box().hiVect();
     Real* lodat = loreg.dataPtr(destcomp);
@@ -1155,7 +1155,7 @@ FluxRegister::FineAdd (const FArrayBox& flux,
 
     FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno];
 
-    assert(cbox.contains(hireg.box()));
+    BLassert(cbox.contains(hireg.box()));
     rlo = hireg.box().loVect();
     rhi = hireg.box().hiVect();
     Real* hidat = hireg.dataPtr(destcomp);
@@ -1174,8 +1174,8 @@ FluxRegister::FineAdd (const FArrayBox& flux,
                        int              numcomp,
                        Real             mult)
 {
-    assert(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
-    assert(destcomp >= 0 && destcomp+numcomp <= ncomp);
+    BLassert(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
+    BLassert(destcomp >= 0 && destcomp+numcomp <= ncomp);
 #ifndef NDEBUG
     Box cbox = ::coarsen(flux.box(),ratio);
 #endif
@@ -1189,7 +1189,7 @@ FluxRegister::FineAdd (const FArrayBox& flux,
 
     FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno];
 
-    assert(cbox.contains(loreg.box()));
+    BLassert(cbox.contains(loreg.box()));
     const int* rlo = loreg.box().loVect();
     const int* rhi = loreg.box().hiVect();
     Real* lodat = loreg.dataPtr(destcomp);
@@ -1200,7 +1200,7 @@ FluxRegister::FineAdd (const FArrayBox& flux,
 
     FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno];
 
-    assert(cbox.contains(hireg.box()));
+    BLassert(cbox.contains(hireg.box()));
     rlo = hireg.box().loVect();
     rhi = hireg.box().hiVect();
     Real* hidat = hireg.dataPtr(destcomp);

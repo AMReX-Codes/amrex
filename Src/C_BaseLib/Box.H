@@ -4,7 +4,7 @@
 #define BL_BOX_H
 
 //
-// $Id: Box.H,v 1.10 1999-02-10 21:09:55 lijewski Exp $
+// $Id: Box.H,v 1.11 1999-05-10 17:18:43 car Exp $
 //
 
 #ifdef NODEV
@@ -795,7 +795,7 @@ inline
 bool
 Box::contains (const Box& b) const
 {
-    assert(sameType(b));
+    BLassert(sameType(b));
     return b.smallend >= smallend && b.bigend <= bigend;
 }
 
@@ -803,7 +803,7 @@ inline
 bool
 Box::sameSize (const Box& b) const
 {
-    assert(sameType(b));
+    BLassert(sameType(b));
     return D_TERM(len[0] == b.len[0],
                   && len[1]==b.len[1],
                   && len[2]==b.len[2]);
@@ -934,7 +934,7 @@ inline
 Box&
 Box::convert (const IntVect& typ)
 {
-    assert(typ >= IntVect::TheZeroVector() && typ <= IntVect::TheUnitVector());
+    BLassert(typ >= IntVect::TheZeroVector() && typ <= IntVect::TheUnitVector());
     IntVect shft(typ - btype.ixType());
     bigend += shft;
     btype = IndexType(typ);
