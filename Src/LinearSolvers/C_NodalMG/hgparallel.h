@@ -143,7 +143,7 @@ public:
     void add_task(task* t);
     void execute();
 private:
-    list< task* > tasks;
+    list< task** > tasks;
     MPI_Comm comm;
     task::sequence_number seq_no;
     bool verbose;
