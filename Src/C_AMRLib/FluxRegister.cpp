@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.73 2002-11-26 22:38:59 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.74 2002-12-02 20:45:01 jbb Exp $
 //
 #include <winstd.H>
 
@@ -701,7 +701,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                       lo,hi,&numcomp,&dir,&mult);
         if (op == COPY)
         {
-            fab.copy(tmp_fab,0,destcomp,numcomp);
+            fab.copy(tmp_fab,fbid_mflx.box(),0,fbid_mflx.box(),destcomp,numcomp);
         }
         else
         {
