@@ -13,7 +13,28 @@ N=60
 #
 function tar_up_and_rm_files
 {
-  list=$(ls -d ${chk_prefix}* ${plt_prefix}*)
+  #
+  # Take all but the final chk file -- want job chaining to work.
+  #
+  chklist=$(ls -d ${chk_prefix}* 2>/dev/null)
+
+  if [ "$chklist" ]
+  then
+    nl=$(echo "$chklist" | wc -l)
+    nl=$(expr $nl - 1)
+    if [ $nl -eq 0 ]
+    then
+      chklist=""
+    else
+      chklist=$(echo "$chklist" | head -$nl)
+    fi
+  fi
+  #
+  # Take all the plt files.
+  #
+  pltlist=$(ls -d ${plt_prefix}*)
+
+  list="$chklist $pltlist"
 
   for dir in ${list}
   do
