@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.23 2003-07-30 15:07:34 car Exp $
+// $Id: main.cpp,v 1.24 2005-03-22 21:22:53 lijewski Exp $
 //
 
 #include <fstream>
@@ -114,7 +114,7 @@ main (int   argc, char* argv[])
 
   // Choose operator (Laplacian or ABecLaplacian), get tolerance, numiter
   bool ABec=false           ; pp.query("ABec",ABec);
-  Real tolerance = 1.0e-10  ; pp.query("tol", tolerance);
+  Real tolerance = 1.0e-12  ; pp.query("tol", tolerance);
   Real tolerance_abs = -1.0 ; pp.query("tol_abs", tolerance_abs);
   int numiter = 41          ; pp.query("numiter", numiter);
   int maxiter = 40          ; pp.query("maxiter", maxiter);
@@ -127,7 +127,7 @@ main (int   argc, char* argv[])
   bool dump_norm=true       ; pp.query("dump_norm", dump_norm);
   bool dump_Lp=false        ; pp.query("dump_Lp",dump_Lp);
   bool dump_Mf=false        ; pp.query("dump_Mf", dump_Mf);
-  bool dump_VisMF=false     ; pp.query("dump_VisMF", dump_VisMF);
+  bool dump_VisMF=true      ; pp.query("dump_VisMF", dump_VisMF);
   bool dump_ascii=false     ; pp.query("dump_ascii", dump_ascii);
   bool dump_rhs_ascii=false     ; pp.query("dump_rhs_ascii", dump_rhs_ascii);
   int res;
