@@ -4,7 +4,7 @@
 #define BL_DISTRIBUTIONMAPPING_H
 
 //
-// $Id: DistributionMapping.H,v 1.13 2000-04-24 17:52:34 car Exp $
+// $Id: DistributionMapping.H,v 1.14 2000-08-15 19:24:29 car Exp $
 //
 #ifdef BL_USE_NEW_HFILES
 #include <vector>
@@ -112,6 +112,8 @@ class DistributionMapping
     //
     bool operator!= (const DistributionMapping& rhs) const;
 
+    void RoundRobinProcessorMap   (int nprocs, int nboxes);
+    void KnapSackProcessorMap     (int nprocs, const vector<long>& boxes);
   private:
     //
     // Two ways to create the processor map.
