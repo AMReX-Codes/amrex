@@ -1,0 +1,36 @@
+This is f90doc version 0.3.4, a documentation tool for Fortran 90.  For
+more information (e.g., documentation), see
+
+        http://theory.lcs.mit.edu/~edemaine/f90doc
+
+or contact Erik Demaine (edemaine@mit.edu).  Comments, suggestions,
+criticisms, and bug reports go to this e-mail address.  If you modify f90doc or
+use it in a serious way, please contact me (I'd be interested).
+
+COPYRIGHT
+
+f90doc is freeware.  If you use it in a research or commercial project, you
+must acknowledge the software and its author.  I would also appreciate it if
+you contact me -- I'd like to know how f90doc is used.  If you base code on
+f90doc, you must acknowledge this.  Again, please let me know if you think your
+changes would be at all useful to the rest of the world (even if you are not
+willing to share it, the ideas may be useful).
+
+This information must accompany any copy of f90doc.
+
+INSTALLATION
+
+You shouldn't have to compile anything.  You can put the file f90doc in
+a more accessible place, but the .pl files have to be in the same directory.
+Alternatively, you can create a symlink to the real f90doc, where the .pl
+files are held.  For example,
+
+        ln -s /usr/local/lib/f90doc-0.3.4/f90doc /usr/local/bin/f90doc
+
+If you don't have a command /usr/bin/env, you'll need to replace the first line
+of f90doc with
+
+        #!/path/to/perl5/bin/perl -w
+
+Otherwise, Perl version 5.003 or higher must be the first program called "perl"
+in your path.
