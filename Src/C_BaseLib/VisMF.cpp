@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.32 1997-11-22 00:44:44 lijewski Exp $
+// $Id: VisMF.cpp,v 1.33 1997-11-22 01:11:09 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -31,6 +31,14 @@ double
 VisMF::TheBytesWrittenToDisk ()
 {
     return VisMF::BytesWrittenToDisk;
+}
+
+void
+VisMF::FileOpenFailed (const aString& file)
+{
+    aString msg("Couldn't open file: ");
+    msg += file;
+    BoxLib::Error(msg.c_str());
 }
 
 ostream&
@@ -381,12 +389,7 @@ VisMF::WriteHeader (const aString& mf_name,
 #endif
         MFHdrFile.open(MFHdrFileName.c_str(), ios::out|ios::trunc);
 
-        if (!MFHdrFile.good())
-        {
-            aString msg("VisMF::WriteHeader(): couldn't open file: ");
-            msg += MFHdrFileName;
-            BoxLib::Error(msg.c_str());
-        }
+        if (!MFHdrFile.good()) VisMF::FileOpenFailed(MFHdrFileName);
 
         MFHdrFile << hdr;
         //
@@ -418,6 +421,10 @@ VisMF::Write (const MultiFab& mf,
 
     char buf[sizeof(int) + 1];
 
+#ifdef BL_USE_SETBUF
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+#endif
+
     switch (how)
     {
     case OneFilePerCPU:
@@ -428,9 +435,6 @@ VisMF::Write (const MultiFab& mf,
         sprintf(buf, "%04ld", PD::MyProc());
         FabFileName += buf;
 
-#ifdef BL_USE_SETBUF
-        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-#endif
         ofstream FabFile;
 
 #ifdef BL_USE_SETBUF
@@ -438,12 +442,7 @@ VisMF::Write (const MultiFab& mf,
 #endif
         FabFile.open(FabFileName.c_str(), ios::out|ios::trunc);
 
-        if (!FabFile.good())
-        {
-            aString msg("VisMF::Write(): couldn't open file: ");
-            msg += FabFileName;
-            BoxLib::Error(msg.c_str());
-        }
+        if (!FabFile.good()) VisMF::FileOpenFailed(FabFileName);
 
         for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
         {
@@ -460,6 +459,9 @@ VisMF::Write (const MultiFab& mf,
                              FabFileName.length()+1); // Include NULL in MSG.
             }
         }
+        //
+        // TODO -- if offset is NULL unlink file !!
+        //
     }
     break;
     case OneFilePerFab:
@@ -472,9 +474,6 @@ VisMF::Write (const MultiFab& mf,
             sprintf(buf, "%04ld", mfi.index());
             FabFileName += buf;
 
-#ifdef BL_USE_SETBUF
-            VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-#endif
             ofstream FabFile;
 
 #ifdef BL_USE_SETBUF
@@ -482,12 +481,7 @@ VisMF::Write (const MultiFab& mf,
 #endif
             FabFile.open(FabFileName.c_str(), ios::out|ios::trunc);
 
-            if (!FabFile.good())
-            {
-                aString msg("VisMF::Write(): couldn't open file: ");
-                msg += FabFileName;
-                BoxLib::Error(msg.c_str());
-            }
+            if (!FabFile.good()) VisMF::FileOpenFailed(FabFileName);
 
             hdr.m_fod[mfi.index()] = VisMF::Write(mfi(), FabFileName, FabFile);
 
@@ -547,12 +541,7 @@ VisMF::VisMF (const aString& mf_name)
 #endif
     ifs.open(file.c_str(), ios::in);
 
-    if (!ifs.good())
-    {
-        aString msg("VisMF::VisMF(): couldn't open file: ");
-        msg += file;
-        BoxLib::Error(msg.c_str());
-    }
+    if (!ifs.good()) VisMF::FileOpenFailed(file);
 
     ifs >> m_hdr;
 
@@ -586,12 +575,7 @@ VisMF::readFAB (int                  i,
 #endif
     ifs.open(file.c_str(), ios::in);
 
-    if (!ifs.good())
-    {
-        aString msg("VisMF::readFAB(): couldn't open file: ");
-        msg += file;
-        BoxLib::Error(msg.c_str());
-    }
+    if (!ifs.good()) VisMF::FileOpenFailed(file);
 
     if (hdr.m_fod[i].m_head)
     {
@@ -624,12 +608,7 @@ VisMF::Read (MultiFab&      mf,
 #endif
         ifs.open(file.c_str(), ios::in);
 
-        if (!ifs.good())
-        {
-            aString msg("VisMF::Read(): couldn't open file: ");
-            msg += file;
-            BoxLib::Error(msg.c_str());
-        }
+        if (!ifs.good()) VisMF::FileOpenFailed(file);
 
         ifs >> hdr;
     }

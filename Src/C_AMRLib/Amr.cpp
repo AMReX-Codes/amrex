@@ -1,6 +1,6 @@
 
 //
-// $Id: Amr.cpp,v 1.5 1997-11-22 00:44:23 lijewski Exp $
+// $Id: Amr.cpp,v 1.6 1997-11-22 01:10:41 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -318,12 +318,8 @@ Amr::setRecordGridInfo (const aString& filename)
 {
     record_grid_info= true;
     gridlog.open(filename.c_str(),ios::out);
-    if (!gridlog)
-    {
-        aString msg("Amr::setRecordGridInfo(): couldn't open file: ");
-        msg += filename;
-        BoxLib::Error(msg.c_str());
-    }
+    if (!gridlog.good())
+        VisMF::FileOpenFailed(filename);
 }
 
 void
@@ -331,12 +327,8 @@ Amr::setRecordRunInfo (const aString& filename)
 {
     record_run_info= true;
     runlog.open(filename.c_str(),ios::out);
-    if (!runlog)
-    {
-        aString msg("Amr::setRecordRunInfo(): couldn't open file: ");
-        msg += filename;
-        BoxLib::Error(msg.c_str());
-    }
+    if (!runlog.good())
+        VisMF::FileOpenFailed(filename);
 }
 
 void
@@ -445,11 +437,7 @@ Amr::writePlotFile (const aString& root,
         HeaderFile.open(HeaderFileName.c_str(), ios::out|ios::trunc);
 
         if (!HeaderFile.good())
-        {
-            aString msg("Amr::writePlotFile():: couldn't open file: ");
-            msg += HeaderFileName;
-            BoxLib::Error(msg.c_str());
-        }
+            VisMF::FileOpenFailed(HeaderFileName);
     }
 
     for (int k = 0; k <= finest_level; k++)
@@ -498,11 +486,7 @@ Amr::writePlotFile (const aString& root,
     os.open(pltfile.c_str(), ios::out|ios::trunc);
 
     if (!os.good())
-    {
-        aString msg("Amr::writePlotFile(): couldn't open file: ");
-        msg += pltfile;
-        BoxLib::Error(msg.c_str());
-    }
+        VisMF::FileOpenFailed(pltfile);
 
     for (int k = 0; k <= finest_level; k++)
     {
@@ -685,15 +669,10 @@ Amr::restart (const aString& filename)
 #ifdef BL_USE_SETBUF
     is.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
-
     is.open(File.c_str(), ios::in);
 
     if (!is.good())
-    {
-        aString msg("Amr::restart():: couldn't open file: ");
-        msg += File;
-        BoxLib::Error(msg.c_str());
-    }
+        VisMF::FileOpenFailed(File);
     //
     // Read global data.
     //
@@ -813,11 +792,8 @@ Amr::checkPoint ()
         HeaderFile.open(HeaderFileName.c_str(), ios::out|ios::trunc);
 
         if (!HeaderFile.good())
-        {
-            aString msg("Amr::checkPoint(): couldn't open file: ");
-            msg += HeaderFileName;
-            BoxLib::Error(msg.c_str());
-        }
+            VisMF::FileOpenFailed(HeaderFileName);
+
         HeaderFile << BL_SPACEDIM  << '\n'
                    << cumtime      << '\n'
                    << max_level    << '\n'
@@ -884,6 +860,9 @@ Amr::checkPoint ()
     os.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
     os.open(ckfile.c_str(), ios::out|ios::trunc);
+
+    if (!os.good())
+        VisMF::FileOpenFailed(chkfile);
 
     int old_prec = os.precision(15), i;
 
@@ -1348,12 +1327,7 @@ Amr::grid_places(int           lbase, //  => finest level that doesn't change
 
 	ifstream is(grids_file.c_str(),ios::in);
 
-	if (!is.good())
-        {
-            aString msg("Amr::grid_places(): couldn't open file: ");
-            msg += grids_file;
-            BoxLib::Error(msg.c_str());
-	}
+	if (!is.good()) VisMF::FileOpenFailed(grids_file);
 
 	new_finest = Min(max_level,(finest_level+1));
 	int in_finest;
