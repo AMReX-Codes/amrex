@@ -199,9 +199,14 @@ void mixed_boundary_class::fill(Fab& patch,
   Box idomain = grow(tdomain, zerovect - type(src));
   Box image = region;
   int refarray[BL_SPACEDIM], negflag = 1;
-  int idir = 0;
+  int idir = 0, idim, i;
 
-  for (int idim = 0; idim < BL_SPACEDIM; idim++) {
+  int negarray[BL_SPACEDIM-1];
+  for (i = 0; i < BL_SPACEDIM - 1; i++) {
+    negarray[i] = 1;
+  }
+
+  for (idim = 0; idim < BL_SPACEDIM; idim++) {
     refarray[idim] = 0;
     if (region.bigEnd(idim) < idomain.smallEnd(idim)) {
       RegType t = ptr->bc[idim][0];
@@ -215,6 +220,16 @@ void mixed_boundary_class::fill(Fab& patch,
                     - 1 - region.bigEnd(idim) - region.smallEnd(idim));
         if (flowdim == -3 || t == refWall && idim == flowdim)
           negflag = -negflag;
+	if (flowdim == -4) {
+	  if (idim < BL_SPACEDIM - 1) {
+	    negarray[idim] = -negarray[idim];
+	  }
+	  else {
+	    for (i = 0; i < BL_SPACEDIM - 1; i++) {
+	      negarray[i] = -negarray[i];
+	    }
+	  }
+	}
       }
       else if (t == periodic) {
 	refarray[idim] = 0;
@@ -233,6 +248,16 @@ void mixed_boundary_class::fill(Fab& patch,
                     + 1 - region.bigEnd(idim) - region.smallEnd(idim));
         if (flowdim == -3 || t == refWall && idim == flowdim)
           negflag = -negflag;
+	if (flowdim == -4) {
+	  if (idim < BL_SPACEDIM - 1) {
+	    negarray[idim] = -negarray[idim];
+	  }
+	  else {
+	    for (i = 0; i < BL_SPACEDIM - 1; i++) {
+	      negarray[i] = -negarray[i];
+	    }
+	  }
+	}
       }
       else if (t == periodic) {
 	refarray[idim] = 0;
@@ -269,11 +294,32 @@ void mixed_boundary_class::fill(Fab& patch,
       BoxLib::Error("mixed_boundary_class::fill---exterior ref undefined");
     }
   }
+  else if (flowdim == -4) {
+    assert(igrid >= 0);
+    for (i = 0; i < BL_SPACEDIM; i++) {
+      FBREFM(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
+	     src[igrid].dataPtr(i), dimlist(src[igrid].box()),
+	     dimlist(image), refarray);
+    }
+    for (idim = 0; idim < BL_SPACEDIM - 1; idim++) {
+      i = idim + BL_SPACEDIM;
+      if (negarray[idim] == 1) {
+	FBREFM(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
+	       src[igrid].dataPtr(i), dimlist(src[igrid].box()),
+	       dimlist(image), refarray);
+      }
+      else if (negarray[idim] == -1) {
+	FBNEGM(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
+	       src[igrid].dataPtr(i), dimlist(src[igrid].box()),
+	       dimlist(image), refarray);
+      }
+    }
+  }
   else {
     // all cases other than normal-component inflow
     if (negflag == 1) {
       if (igrid >= 0) {
-	for (int i = 0; i < patch.nVar(); i++) {
+	for (i = 0; i < patch.nVar(); i++) {
 	  FBREFM(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
 		 src[igrid].dataPtr(i), dimlist(src[igrid].box()),
 		 dimlist(image), refarray);
@@ -285,7 +331,7 @@ void mixed_boundary_class::fill(Fab& patch,
     }
     else if (negflag == -1) {
       if (igrid >= 0) {
-	for (int i = 0; i < patch.nVar(); i++) {
+	for (i = 0; i < patch.nVar(); i++) {
 	  FBNEGM(patch.dataPtr(i), dimlist(patch.box()), dimlist(region),
 		 src[igrid].dataPtr(i), dimlist(src[igrid].box()),
 		 dimlist(image), refarray);
@@ -517,7 +563,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r,
 	  for (int i = 0; i < r.nVar(); i++) {
 	    Real *const rptr = r[jgrid].dataPtr(i);
 	    if ((i == idim + BL_SPACEDIM) ||
-		(i > BL_SPACEDIM && idim == BL_SPACEDIM - 1)) {
+		(i >= BL_SPACEDIM && idim == BL_SPACEDIM - 1)) {
 	      FBNEG(rptr, dimlist(rbox), dimlist(b),
 		    rptr, dimlist(rbox), dimlist(bb), idim);
 	    }
@@ -624,7 +670,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r,
 	  for (int i = 0; i < r.nVar(); i++) {
 	    Real *const rptr = r[igrid].dataPtr(i);
 	    if ((i == idim + BL_SPACEDIM) ||
-		(i > BL_SPACEDIM && idim == BL_SPACEDIM - 1)) {
+		(i >= BL_SPACEDIM && idim == BL_SPACEDIM - 1)) {
 	      FBNEG(rptr, dimlist(rbox), dimlist(b),
 		    rptr, dimlist(rbox), dimlist(bb), idim);
 	    }

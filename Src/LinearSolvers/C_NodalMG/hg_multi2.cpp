@@ -295,8 +295,10 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 
 #ifdef TERRAIN
   int ncomp = 2 * BL_SPACEDIM - 1;
+  amr_boundary bndry = boundary.terrain_sigma();
 #else
   int ncomp = 1;
+  amr_boundary bndry = boundary.scalar();
 #endif
 
   for (int iface = 0; iface < interface[mglev].nfaces(); iface++) {
@@ -337,7 +339,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     else {
       fres_sc[lev].set(iface, new Fab(sigmacbox, ncomp));
       fill_patch(fres_sc[lev][iface], sigma[mglevc],
-		 interface[mglevc], boundary.scalar());
+		 interface[mglevc], bndry);
     }
 #endif
     if (cgrid >= 0) {
@@ -385,7 +387,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     sigmafbox.convert(cellvect);
     eres_sf[lev].set(iedge, new Fab(sigmafbox, ncomp));
     fill_patch(eres_sf[lev][iedge], sigma[mglev], interface[mglev],
-	       boundary.scalar(), 0, 1, iedge);
+	       bndry, 0, 1, iedge);
     sigmacbox = cbox;
     sigmacbox.convert(cellvect);
     if (cgrid >= 0) {
@@ -395,7 +397,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     else {
       eres_sc[lev].set(iedge, new Fab(sigmacbox, ncomp));
       fill_patch(eres_sc[lev][iedge], sigma[mglevc],
-		 interface[mglevc], boundary.scalar());
+		 interface[mglevc], bndry);
     }
 #  endif
     if (cgrid >= 0) {
@@ -442,7 +444,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     sigmafbox.convert(cellvect);
     cres_sf[lev].set(icor, new Fab(sigmafbox, ncomp));
     fill_patch(cres_sf[lev][icor], sigma[mglev], interface[mglev],
-	       boundary.scalar(), 0, 0, icor);
+	       bndry, 0, 0, icor);
     sigmacbox = cbox;
     sigmacbox.convert(cellvect);
     if (cgrid >= 0) {
@@ -452,7 +454,7 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     else {
       cres_sc[lev].set(icor, new Fab(sigmacbox, ncomp));
       fill_patch(cres_sc[lev][icor], sigma[mglevc],
-		 interface[mglevc], boundary.scalar());
+		 interface[mglevc], bndry);
     }
 #endif
     if (cgrid >= 0) {

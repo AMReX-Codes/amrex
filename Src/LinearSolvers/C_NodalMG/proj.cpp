@@ -285,6 +285,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     rhoinv.set(ilev, new MultiFab(cmesh, 3, 0));
     rhoinv[ilev].setVal(1.0);
     rhoinv[ilev].setVal(0.0, 2, 1);
+    //rhoinv[ilev].setVal(0.2, 2, 1);
 #endif
     //rhs.set(ilev, new MultiFab(nmesh, 1, 1));
     rhs.set(ilev, new MultiFab(cmesh, 1, 1));

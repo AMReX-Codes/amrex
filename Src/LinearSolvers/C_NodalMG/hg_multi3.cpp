@@ -50,6 +50,8 @@ extern "C" {
 #    ifdef TERRAIN
   void FORT_HGRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS);
   void FORT_HGRLX(Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS);
+  void FORT_HGRLNF(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
+		   Real*, intS, intS, intS, const int&, const int&);
 #    elif (defined SIGMA_NODE)
   void FORT_HGRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS);
   void FORT_HGRESU(Real*, intS, Real*, Real*, Real*, Real*, intS);
@@ -61,6 +63,7 @@ extern "C" {
 		   Real*, intS, intS, intS, const int&, const int&);
 #    else
   void FORT_HGRES(Real*, intS, Real*, intS, Real*, intS, RealPS, intS, intS,
+
 		  RealRS, const int&, const int&);
   void FORT_HGRLX(Real*, intS, Real*, intS, RealPS, intS, Real*, intS, intS,
 		  RealRS, const int&, const int&);
@@ -367,16 +370,22 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, int is_zero)
 
 	  // Do grids in order along line_solve_dim:
 	  int igrid = line_order[lev][i];
+	  const Box& fbox = corr[mglev][igrid].box();
 	  const Box& sbox = resid[mglev][igrid].box();
+	  const Box& wbox = work[mglev][igrid].box();
+	  const Box& cenbox = cen[mglev][igrid].box();
 	  const Box& freg = corr[mglev].box(igrid);
 #ifdef TERRAIN
-	  BoxLib::Error("Terrain line solves not implemented");
+	  const Box& sigbox = sigma[mglev][igrid].box();
+	  FORT_HGRLNF(corr[mglev][igrid].dataPtr(), dimlist(fbox),
+		      resid[mglev][igrid].dataPtr(), dimlist(sbox),
+		      work[mglev][igrid].dataPtr(), dimlist(wbox),
+		      sigma[mglev][igrid].dataPtr(), dimlist(sigbox),
+		      cen[mglev][igrid].dataPtr(), dimlist(cenbox),
+		      dimlist(freg), dimlist(tdom), line_solve_dim, ipass);
 #elif (defined CONSTANT)
 	  BoxLib::Error("Constant-coefficient line solves not implemented");
 #else
-	  const Box& fbox = corr[mglev][igrid].box();
-	  const Box& wbox = work[mglev][igrid].box();
-	  const Box& cenbox = cen[mglev][igrid].box();
 #  ifdef SIGMA_NODE
 	  const Box& sigbox = sigma_node[mglev][igrid].box();
 	  FORT_HGRLNF(corr[mglev][igrid].dataPtr(), dimlist(fbox),

@@ -2377,58 +2377,58 @@ cdir$ ivdep
       endif
       end
 
-#define RHSL0 (res(i,j) - fac * (hxm2 * \
-                (sigx(i-1,j-1) * \
+#define RHSL0 (res(i,j) - fac * ( \
+                 sig(i-1,j-1,1) * \
                   (cor(i-1,j-1) - cor(i,j-1)) + \
-                 sigx(i-1,j) * \
+                 sig(i-1,j,1) * \
                   (cor(i-1,j+1) - cor(i,j+1)) + \
-                 sigx(i,j-1) * \
+                 sig(i,j-1,1) * \
                   (cor(i+1,j-1) - cor(i,j-1)) + \
-                 sigx(i,j) * \
-                  (cor(i+1,j+1) - cor(i,j+1))) + \
-                     hym2 * \
-                (sigy(i-1,j-1) * \
+                 sig(i,j,1) * \
+                  (cor(i+1,j+1) - cor(i,j+1)) + \
+                 sig(i-1,j-1,2) * \
                   (cor(i-1,j-1) + 2.d0 * cor(i,j-1)) + \
-                 sigy(i-1,j) * \
+                 sig(i-1,j,2) * \
                   (cor(i-1,j+1) + 2.d0 * cor(i,j+1)) + \
-                 sigy(i,j-1) * \
+                 sig(i,j-1,2) * \
                   (cor(i+1,j-1) + 2.d0 * cor(i,j-1)) + \
-                 sigy(i,j) * \
-                  (cor(i+1,j+1) + 2.d0 * cor(i,j+1)))))
+                 sig(i,j,2) * \
+                  (cor(i+1,j+1) + 2.d0 * cor(i,j+1)) - \
+                 3.d0 * (sig(i-1,j-1,3) * cor(i-1,j-1) - \
+                         sig(i-1,j,3)   * cor(i-1,j+1) - \
+                         sig(i,j-1,3)   * cor(i+1,j-1) + \
+                         sig(i,j,3)     * cor(i+1,j+1))))
 
-#define RHSL1 (res(i,j) - fac * (hxm2 * \
-                (sigx(i-1,j-1) * \
+#define RHSL1 (res(i,j) - fac * ( \
+                 sig(i-1,j-1,1) * \
                   (cor(i-1,j-1) + 2.d0 * cor(i-1,j)) + \
-                 sigx(i-1,j) * \
+                 sig(i-1,j,1) * \
                   (cor(i-1,j+1) + 2.d0 * cor(i-1,j)) + \
-                 sigx(i,j-1) * \
+                 sig(i,j-1,1) * \
                   (cor(i+1,j-1) + 2.d0 * cor(i+1,j)) + \
-                 sigx(i,j) * \
-                  (cor(i+1,j+1) + 2.d0 * cor(i+1,j))) + \
-                                 hym2 * \
-                (sigy(i-1,j-1) * \
+                 sig(i,j,1) * \
+                  (cor(i+1,j+1) + 2.d0 * cor(i+1,j)) + \
+                 sig(i-1,j-1,2) * \
                   (cor(i-1,j-1) - cor(i-1,j)) + \
-                 sigy(i-1,j) * \
+                 sig(i-1,j,2) * \
                   (cor(i-1,j+1) - cor(i-1,j)) + \
-                 sigy(i,j-1) * \
+                 sig(i,j-1,2) * \
                   (cor(i+1,j-1) - cor(i+1,j)) + \
-                 sigy(i,j) * \
-                  (cor(i+1,j+1) - cor(i+1,j)))))
-
-#define RHSRZL0 (RHSL0 - facrz * \
-                 ((sigy(i-1,j-1) / r0 - sigy(i,j-1) / r1) * cor(i,j-1) + \
-                  (sigy(i-1,j)   / r0 - sigy(i,j)   / r1) * cor(i,j+1)))
-
-#define RHSRZL1 RHSL1
+                 sig(i,j,2) * \
+                  (cor(i+1,j+1) - cor(i+1,j)) - \
+                 3.d0 * (sig(i-1,j-1,3) * cor(i-1,j-1) - \
+                         sig(i-1,j,3)   * cor(i-1,j+1) - \
+                         sig(i,j-1,3)   * cor(i+1,j-1) + \
+                         sig(i,j,3)     * cor(i+1,j+1))))
 
       subroutine hgrlnf(cor, dims(cor),
      @ res, dims(res),
      @ wrk, dims(wrk),
-     @ sigx, sigy, dims(sf),
+     @ sig, dims(sf),
      @ cen, dims(cen),
      @ dims(reg),
      @ dims(dom),
-     @ hx, hy, irz, imax, lsd, ipass)
+     @ lsd, ipass)
       integer dims(cor)
       integer dims(res)
       integer dims(wrk)
@@ -2439,276 +2439,126 @@ cdir$ ivdep
       real*8 cor(dimdec(cor))
       real*8 res(dimdec(res))
       real*8 wrk(dimdec(wrk))
-      real*8 sigx(dimdec(sf))
-      real*8 sigy(dimdec(sf))
+      real*8 sig(dimdec(sf), 3)
       real*8 cen(dimdec(cen))
-      real*8 hx, hy
-      integer irz, imax, lsd, ipass
-      real*8 hxm2, hym2, fac, facrz, r0, r1, betm, aj
+      integer lsd, ipass
+      real*8 fac, betm, aj
       integer i, j, ioff
-      hxm2 = 1.d0 / (hx*hx)
-      hym2 = 1.d0 / (hy*hy)
       fac = 1.d0 / 6.d0
-      if (irz .eq. 0) then
-         if (lsd .eq. 0) then
-            if (mod(regl1,2) .eq. 0) then
-               ioff = ipass
-            else
-               ioff = 1 - ipass
-            endif
-            i = regl0
-            do 10 j = regl1 + ioff, regh1, 2
-               aj = fac *
-     @           (hxm2 * 2.d0 * (sigx(i,j-1) + sigx(i,j)) -
-     @            hym2 * (sigy(i,j-1) + sigy(i,j)))
-               if (cen(i,j) .eq. 0.d0) then
-c dirichlet bdy:
-                  wrk(i,j) = 0.d0
-               else if (regl0 .eq. doml0) then
-c neumann bdy:
-                  betm = -cen(i,j)
-                  cor(i,j) = RHSL0 * betm
-                  wrk(i,j) = 2.d0 * aj * betm
-               endif
-               wrk(i+1,j) = aj
- 10            continue
-c forward solve loop:
-            do 20 i = regl0 + 1, regh0 - 1
-               do 20 j = regl1 + ioff, regh1, 2
-                  aj = wrk(i,j)
-                  if (cen(i,j) .eq. 0.d0) then
-                     betm = 0.d0
-                  else
-                     betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i-1,j))
-                  endif
-                  cor(i,j) = (RHSL0 - aj * cor(i-1,j)) * betm
-                  aj = fac *
-     @              (hxm2 * 2.d0 * (sigx(i,j-1) + sigx(i,j)) -
-     @               hym2 * (sigy(i,j-1) + sigy(i,j)))
-                  wrk(i+1,j) = aj
- 20               wrk(i,j) = aj * betm
-            i = regh0
-            do 30 j = regl1 + ioff, regh1, 2
-               if (cen(i,j) .eq. 0.d0) then
-c dirichlet bdy:
-               else if (regh0 .eq. domh0) then
-c neumann bdy:
-                  aj = 2.d0 * wrk(i,j)
-                  betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i-1,j))
-                  cor(i,j) = (RHSL0 - aj * cor(i-1,j)) * betm
-               else if (i .gt. regl0) then
-c interface to grid at same level:
-                  aj = wrk(i,j)
-                  betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i-1,j))
-                  cor(i,j) = (RHSL0 - aj * cor(i-1,j)) * betm
-                  aj = fac *
-     @              (hxm2 * 2.d0 * (sigx(i,j-1) + sigx(i,j)) -
-     @               hym2 * (sigy(i,j-1) + sigy(i,j)))
-                  wrk(i,j) = aj * betm
-               endif
- 30            continue
+      if (lsd .eq. 0) then
+         if (mod(regl1,2) .eq. 0) then
+            ioff = ipass
          else
-            if (mod(regl0,2) .eq. 0) then
-               ioff = ipass
-            else
-               ioff = 1 - ipass
-            endif
-            j = regl1
-            do 110 i = regl0 + ioff, regh0, 2
-               aj = fac *
-     @           (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
-     @            hxm2 * (sigx(i-1,j) + sigx(i,j)))
-               if (cen(i,j) .eq. 0.d0) then
-c dirichlet bdy:
-                  wrk(i,j) = 0.d0
-               else if (regl1 .eq. doml1) then
-c neumann bdy:
-                  betm = -cen(i,j)
-                  cor(i,j) = RHSL1 * betm
-                  wrk(i,j) = 2.d0 * aj * betm
-               endif
-               wrk(i,j+1) = aj
- 110           continue
-c forward solve loop:
-            do 120 j = regl1 + 1, regh1 - 1
-               do 120 i = regl0 + ioff, regh0, 2
-                  aj = wrk(i,j)
-                  if (cen(i,j) .eq. 0.d0) then
-                     betm = 0.d0
-                  else
-                     betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i,j-1))
-                  endif
-                  cor(i,j) = (RHSL1 - aj * cor(i,j-1)) * betm
-                  aj = fac *
-     @              (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
-     @               hxm2 * (sigx(i-1,j) + sigx(i,j)))
-                  wrk(i,j+1) = aj
- 120              wrk(i,j) = aj * betm
-            j = regh1
-            do 130 i = regl0 + ioff, regh0, 2
-               if (cen(i,j) .eq. 0.d0) then
-c dirichlet bdy:
-               else if (regh1 .eq. domh1) then
-c neumann bdy:
-                  aj = 2.d0 * wrk(i,j)
-                  betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i,j-1))
-                  cor(i,j) = (RHSL1 - aj * cor(i,j-1)) * betm
-               else if (j .gt. regl1) then
-c interface to grid at same level:
-                  aj = wrk(i,j)
-                  betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i,j-1))
-                  cor(i,j) = (RHSL1 - aj * cor(i,j-1)) * betm
-                  aj = fac *
-     @              (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
-     @               hxm2 * (sigx(i-1,j) + sigx(i,j)))
-                  wrk(i,j) = aj * betm
-               endif
- 130           continue
+            ioff = 1 - ipass
          endif
+         i = regl0
+         do 10 j = regl1 + ioff, regh1, 2
+            aj = fac *
+     @        (2.d0 * (sig(i,j-1,1) + sig(i,j,1)) -
+     @         (sig(i,j-1,2) + sig(i,j,2)))
+            if (cen(i,j) .eq. 0.d0) then
+c dirichlet bdy:
+               wrk(i,j) = 0.d0
+            else if (regl0 .eq. doml0) then
+c neumann bdy:
+               betm = -cen(i,j)
+               cor(i,j) = RHSL0 * betm
+               wrk(i,j) = 2.d0 * aj * betm
+            endif
+            wrk(i+1,j) = aj
+ 10         continue
+c forward solve loop:
+         do 20 i = regl0 + 1, regh0 - 1
+            do 20 j = regl1 + ioff, regh1, 2
+               aj = wrk(i,j)
+               if (cen(i,j) .eq. 0.d0) then
+                  betm = 0.d0
+               else
+                  betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i-1,j))
+               endif
+               cor(i,j) = (RHSL0 - aj * cor(i-1,j)) * betm
+               aj = fac *
+     @           (2.d0 * (sig(i,j-1,1) + sig(i,j,1)) -
+     @            (sig(i,j-1,2) + sig(i,j,2)))
+               wrk(i+1,j) = aj
+ 20            wrk(i,j) = aj * betm
+         i = regh0
+         do 30 j = regl1 + ioff, regh1, 2
+            if (cen(i,j) .eq. 0.d0) then
+c dirichlet bdy:
+            else if (regh0 .eq. domh0) then
+c neumann bdy:
+               aj = 2.d0 * wrk(i,j)
+               betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i-1,j))
+               cor(i,j) = (RHSL0 - aj * cor(i-1,j)) * betm
+            else if (i .gt. regl0) then
+c interface to grid at same level:
+               aj = wrk(i,j)
+               betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i-1,j))
+               cor(i,j) = (RHSL0 - aj * cor(i-1,j)) * betm
+               aj = fac *
+     @           (2.d0 * (sig(i,j-1,1) + sig(i,j,1)) -
+     @            (sig(i,j-1,2) + sig(i,j,2)))
+               wrk(i,j) = aj * betm
+            endif
+ 30         continue
       else
-         facrz = hx * hym2 / 12.d0
-         if (lsd .eq. 0) then
-            if (mod(regl1,2) .eq. 0) then
-               ioff = ipass
-            else
-               ioff = 1 - ipass
-            endif
-            i = regl0
-            r1 = (i + 0.5d0) * hx
-            r0 = r1 - hx
-            do 210 j = regl1 + ioff, regh1, 2
-               aj = fac *
-     @           (hxm2 * 2.d0 * (sigx(i,j-1) + sigx(i,j)) -
-     @            hym2 * (sigy(i,j-1) + sigy(i,j)))
-               if (cen(i,j) .eq. 0.d0) then
-c dirichlet bdy:
-                  wrk(i,j) = 0.d0
-               else if (regl0 .eq. doml0) then
-c neumann bdy:
-                  betm = -cen(i,j)
-                  cor(i,j) = RHSRZL0 * betm
-                  wrk(i,j) = 2.d0 * aj * betm
-               endif
-               wrk(i+1,j) = aj
- 210           continue
-c forward solve loop:
-            do 220 i = regl0 + 1, regh0 - 1
-               r1 = (i + 0.5d0) * hx
-               r0 = r1 - hx
-               do 220 j = regl1 + ioff, regh1, 2
-                  aj = wrk(i,j)
-                  if (cen(i,j) .eq. 0.d0) then
-                     betm = 0.d0
-                  else
-                     betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i-1,j))
-                  endif
-                  cor(i,j) = (RHSRZL0 - aj * cor(i-1,j)) * betm
-                  aj = fac *
-     @              (hxm2 * 2.d0 * (sigx(i,j-1) + sigx(i,j)) -
-     @               hym2 * (sigy(i,j-1) + sigy(i,j)))
-                  wrk(i+1,j) = aj
- 220              wrk(i,j) = aj * betm
-            i = regh0
-            r1 = (i + 0.5d0) * hx
-            r0 = r1 - hx
-            if (i .eq. imax) then
-               r1 = -r0
-            endif
-            do 230 j = regl1 + ioff, regh1, 2
-               if (cen(i,j) .eq. 0.d0) then
-c dirichlet bdy:
-               else if (regh0 .eq. domh0) then
-c neumann bdy:
-                  aj = 2.d0 * wrk(i,j)
-                  betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i-1,j))
-                  cor(i,j) = (RHSRZL0 - aj * cor(i-1,j)) * betm
-               else if (i .gt. regl0) then
-c interface to grid at same level:
-                  aj = wrk(i,j)
-                  betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i-1,j))
-                  cor(i,j) = (RHSRZL0 - aj * cor(i-1,j)) * betm
-                  aj = fac *
-     @              (hxm2 * 2.d0 * (sigx(i,j-1) + sigx(i,j)) -
-     @               hym2 * (sigy(i,j-1) + sigy(i,j)))
-                  wrk(i,j) = aj * betm
-               endif
- 230           continue
+         if (mod(regl0,2) .eq. 0) then
+            ioff = ipass
          else
-            if (mod(regl0,2) .eq. 0) then
-               ioff = ipass
-            else
-               ioff = 1 - ipass
-            endif
-            j = regl1
-            do 310 i = regl0 + ioff, regh0, 2
-               r1 = (i + 0.5d0) * hx
-               r0 = r1 - hx
-               if (i .eq. imax) then
-                  r1 = -r0
-               endif
-               aj = fac *
-     @                (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
-     @                 hxm2 * (sigx(i-1,j) + sigx(i,j))) +
-     @              facrz * (sigy(i-1,j) / r0 - sigy(i,j) / r1)
-               if (cen(i,j) .eq. 0.d0) then
-c dirichlet bdy:
-                  wrk(i,j) = 0.d0
-               else if (regl1 .eq. doml1) then
-c neumann bdy:
-                  betm = -cen(i,j)
-                  cor(i,j) = RHSRZL1 * betm
-                  wrk(i,j) = 2.d0 * aj * betm
-               endif
-               wrk(i,j+1) = aj
- 310           continue
-c forward solve loop:
-            do 320 j = regl1 + 1, regh1 - 1
-               do 320 i = regl0 + ioff, regh0, 2
-                  r1 = (i + 0.5d0) * hx
-                  r0 = r1 - hx
-                  if (i .eq. imax) then
-                     r1 = -r0
-                  endif
-                  aj = wrk(i,j)
-                  if (cen(i,j) .eq. 0.d0) then
-                     betm = 0.d0
-                  else
-                     betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i,j-1))
-                  endif
-                  cor(i,j) = (RHSRZL1 - aj * cor(i,j-1)) * betm
-                  aj = fac *
-     @                   (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
-     @                    hxm2 * (sigx(i-1,j) + sigx(i,j))) +
-     @                 facrz * (sigy(i-1,j) / r0 - sigy(i,j) / r1)
-                  wrk(i,j+1) = aj
- 320              wrk(i,j) = aj * betm
-            j = regh1
-            do 330 i = regl0 + ioff, regh0, 2
-               if (cen(i,j) .eq. 0.d0) then
-c dirichlet bdy:
-               else if (regh1 .eq. domh1) then
-c neumann bdy:
-                  aj = 2.d0 * wrk(i,j)
-                  betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i,j-1))
-                  cor(i,j) = (RHSRZL1 - aj * cor(i,j-1)) * betm
-               else if (j .gt. regl1) then
-c interface to grid at same level:
-                  r1 = (i + 0.5d0) * hx
-                  r0 = r1 - hx
-                  if (i .eq. imax) then
-                     r1 = -r0
-                  endif
-                  aj = wrk(i,j)
-                  betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i,j-1))
-                  cor(i,j) = (RHSRZL1 - aj * cor(i,j-1)) * betm
-                  aj = fac *
-     @                   (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
-     @                    hxm2 * (sigx(i-1,j) + sigx(i,j))) +
-     @                 facrz * (sigy(i-1,j) / r0 - sigy(i,j) / r1)
-                  wrk(i,j) = aj * betm
-               endif
- 330           continue
+            ioff = 1 - ipass
          endif
+         j = regl1
+         do 110 i = regl0 + ioff, regh0, 2
+            aj = fac *
+     @        (2.d0 * (sig(i-1,j,2) + sig(i,j,2)) -
+     @         (sig(i-1,j,1) + sig(i,j,1)))
+            if (cen(i,j) .eq. 0.d0) then
+c dirichlet bdy:
+               wrk(i,j) = 0.d0
+            else if (regl1 .eq. doml1) then
+c neumann bdy:
+               betm = -cen(i,j)
+               cor(i,j) = RHSL1 * betm
+               wrk(i,j) = 2.d0 * aj * betm
+            endif
+            wrk(i,j+1) = aj
+ 110        continue
+c forward solve loop:
+         do 120 j = regl1 + 1, regh1 - 1
+            do 120 i = regl0 + ioff, regh0, 2
+               aj = wrk(i,j)
+               if (cen(i,j) .eq. 0.d0) then
+                  betm = 0.d0
+               else
+                  betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i,j-1))
+               endif
+               cor(i,j) = (RHSL1 - aj * cor(i,j-1)) * betm
+               aj = fac *
+     @           (2.d0 * (sig(i-1,j,2) + sig(i,j,2)) -
+     @            (sig(i-1,j,1) + sig(i,j,1)))
+               wrk(i,j+1) = aj
+ 120           wrk(i,j) = aj * betm
+         j = regh1
+         do 130 i = regl0 + ioff, regh0, 2
+            if (cen(i,j) .eq. 0.d0) then
+c dirichlet bdy:
+            else if (regh1 .eq. domh1) then
+c neumann bdy:
+               aj = 2.d0 * wrk(i,j)
+               betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i,j-1))
+               cor(i,j) = (RHSL1 - aj * cor(i,j-1)) * betm
+            else if (j .gt. regl1) then
+c interface to grid at same level:
+               aj = wrk(i,j)
+               betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i,j-1))
+               cor(i,j) = (RHSL1 - aj * cor(i,j-1)) * betm
+               aj = fac *
+     @           (2.d0 * (sig(i-1,j,2) + sig(i,j,2)) -
+     @            (sig(i-1,j,1) + sig(i,j,1)))
+               wrk(i,j) = aj * betm
+            endif
+ 130        continue
       endif
       end
 
