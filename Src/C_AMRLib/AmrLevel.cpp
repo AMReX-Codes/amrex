@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.82 2002-06-17 17:01:27 car Exp $
+// $Id: AmrLevel.cpp,v 1.83 2002-08-06 18:09:06 car Exp $
 //
 #include <winstd.H>
 
@@ -921,7 +921,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     //
     // Set to special value we'll later check to ensure we've filled the FAB.
     //
-    fab.setVal(2.e30,fab.box(),dcomp,m_ncomp);
+    fab.setVal(2.e200,fab.box(),dcomp,m_ncomp);
     //
     // Build all coarse fabs from which we'll interpolate and
     // fill them with coarse data as best we can.
@@ -1177,7 +1177,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     //
     // The final FAB had better be completely filled with "good" data.
     //
-    BL_ASSERT(fab.norm(0,dcomp,m_ncomp) < 2.e30);
+    BL_ASSERT(fab.norm(0,dcomp,m_ncomp) < 2.e200);
 }
 
 bool
