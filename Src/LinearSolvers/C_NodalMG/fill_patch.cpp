@@ -547,35 +547,6 @@ node_dirs (int            dir[2],
 }
 #endif
 
-#if 0
-inline
-Box
-w_shift (const Box& bx,
-         const Box& bo,
-         int        b,
-         int        w)
-{
-    Box res = bx;
-    BL_ASSERT(w == 1 || w == -1);
-    int i;
-    for (i = 0; i < BL_SPACEDIM; ++i)
-    {
-	if (bx.smallEnd(i) == bx.bigEnd(i))
-	{
-	    for (int j = 0; j < i; ++j)
-	    {
-		if (bx.smallEnd(j) + b == bo.smallEnd(j)) res.growLo(j, abs(w));
-		if (bx.bigEnd(j)   - b == bo.bigEnd(j)  ) res.growHi(j, abs(w));
-	    }
-	    res.shift(i, w);
-	    break;
-	}
-    }
-    BL_ASSERT ( i < BL_SPACEDIM );
-    return res;
-}
-#endif
-
 //
 // The sequencing used in fill_internal_borders, fcpy2 and set_border_cache
 // (narrow x, medium y, wide z) is necessary to avoid overwrite problems
