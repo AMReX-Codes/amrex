@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.18 2001-10-22 22:49:53 car Exp $
+// $Id: BLThread.cpp,v 1.19 2001-11-01 17:08:41 car Exp $
 //
 
 #include <winstd.H>
@@ -50,6 +50,10 @@ namespace
 	buf[DIM-1] = '\0';		// Just to be safe.
 	return buf;
     }
+
+ThreadSpecificData<int> ts_tid;
+Mutex tid_lock;
+int thread_counter = 0;
 }
 
 namespace BoxLib
@@ -473,10 +477,12 @@ Thread::exit(void* st)
 int
 Thread::getID()
 {
-    //
-    // TODO -- fix this !!!
-    //
-    return 0;
+    int* a = ts_tid.get();
+    if ( a == 0 )
+    {
+	ts_tid.set(a = new int(0));
+    }
+    return *a;
 }
 
 void
@@ -781,6 +787,28 @@ ThreadSpecificData<void>::get() const
 
 
 
+struct thr_package
+{
+    Thread_Function m_func;
+    void* m_arg;
+};
+
+extern "C" void* thr_func(void* arg_)
+{
+    thr_package* tp = static_cast<thr_package*>(arg_);
+    Thread_Function func = tp->m_func;
+    void* arg = tp->m_arg;
+    delete tp;
+    int* a = new int;
+    {
+	Lock<Mutex> l(tid_lock);
+	*a = ++thread_counter;
+    }
+    // Initially the TS must be NULL
+    THREAD_REQUIRE( ts_tid.set(a) == 0 );
+    return (*func)(arg);
+}
+
 #ifdef WIN32
 #include <process.h>
 
@@ -862,6 +890,9 @@ FunctionThread::Implementation::Implementation(Thread_Function func_,
 	break;
     }
     THREAD_REQUIRE( pthread_attr_setdetachstate(&a, dstate) );
+    thr_package* tp = new thr_package;
+    tp->m_func = func_;
+    tp->m_arg  = arg_;
     THREAD_REQUIRE( pthread_create(&m_tid, &a, func_, arg_) );
 }
 
