@@ -284,7 +284,6 @@ restart:
     for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
         seq_no[i] = 1;
 
-//    if (maxpacketsize > 0)
     if (verbose && maxpacketsize > 0)
     {
         char buf[512];
