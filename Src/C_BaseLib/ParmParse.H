@@ -1,7 +1,7 @@
 #ifndef BL_PARMPARSE_H
 #define BL_PARMPARSE_H
 //
-// $Id: ParmParse.H,v 1.24 2001-08-11 20:45:55 car Exp $
+// $Id: ParmParse.H,v 1.25 2001-08-11 20:50:14 car Exp $
 //
 #include <stack>
 #include <string>
@@ -804,6 +804,20 @@ private:
     //
     std::stack<std::string> m_pstack;
     const Table& m_table;
+};
+
+struct ParmParse::PP_entry
+{
+    PP_entry (const std::string&            name,
+              const std::list<std::string>& vals);
+    PP_entry (const std::string& name,
+	      const Table& table);
+
+    const std::string        m_name;
+    std::vector<std::string> m_vals;
+    Table                    m_table;
+    mutable bool             m_queried;
+    bool m_recordQ;
 };
 
 class ParmParse::Frame

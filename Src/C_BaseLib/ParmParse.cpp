@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.35 2001-08-11 20:45:55 car Exp $
+// $Id: ParmParse.cpp,v 1.36 2001-08-11 20:50:14 car Exp $
 //
 #include <winstd.H>
 
@@ -19,20 +19,6 @@
 #include <ParallelDescriptor.H>
 #include <Box.H>
 #include <IntVect.H>
-
-struct ParmParse::PP_entry
-{
-    PP_entry (const std::string&            name,
-              const std::list<std::string>& vals);
-    PP_entry (const std::string& name,
-	      const Table& table);
-
-    const std::string        m_name;
-    std::vector<std::string> m_vals;
-    Table                    m_table;
-    mutable bool             m_queried;
-    bool m_recordQ;
-};
 
 //
 // Used by constructor to build table.
