@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.19 1997-11-20 00:49:42 lijewski Exp $
+// $Id: FabArray.H,v 1.20 1997-11-21 03:50:35 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -383,15 +383,15 @@ private:
     //
     void AllocFabs (int nvar);
     //
-    // Total volume of FABs allocated on this CPU during run.
+    // Accumulated total numPts() of FABs allocated on this CPU during run.
     //
-    static double m_volume;
+    static double m_numpts;
 };
 
 //
 // The lone static member in FabArray.
 //
-template <class T, class FAB> double FabArray<T,FAB>::m_volume;
+template <class T, class FAB> double FabArray<T,FAB>::m_numpts;
 
 template <class T, class FAB>
 void
@@ -411,7 +411,7 @@ FabArray<T,FAB>::PrintStats (ostream& os)
     if (!PD::IOProcessor())
     {
         msg_hdr.m_cpu = PD::MyProc();
-        msg_hdr.m_vol = m_volume;
+        msg_hdr.m_vol = m_numpts;
         PD::SendData(PD::IOProcessor(), &msg_hdr, 0, 0);
     }
 
@@ -421,7 +421,7 @@ FabArray<T,FAB>::PrintStats (ostream& os)
     {
         double total;
         Array<double> volume(PD::NProcs());
-        volume[PD::MyProc()] = total = m_volume;
+        volume[PD::MyProc()] = total = m_numpts;
 
         for (int len; PD::GetMessageHeader(len, &msg_hdr); )
         {
@@ -436,7 +436,7 @@ FabArray<T,FAB>::PrintStats (ostream& os)
             os << '\n';
             for (int i = 0; i < PD::NProcs(); i++)
             {
-                os << "Percentage (volume-wise) of FABs allocated on CPU #"
+                os << "Percentage of FABs allocated on CPU #"
                    << i
                    << ":\t"
                    << 100.0*volume[i]/total
@@ -1025,7 +1025,7 @@ FabArray<T,FAB>::AllocFabs (int nvar)
       if (f == 0)
           BoxLib::OutOfMemory(__FILE__, __LINE__);
       fabparray.set(fai.index(), f);
-      m_volume += tmp.volume();
+      m_numpts += tmp.numPts();
   }
 }
 
