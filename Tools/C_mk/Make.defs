@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.8 1998-05-11 17:45:46 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.9 1998-07-01 20:43:52 vince Exp $
 #
 
 #
@@ -42,11 +42,22 @@ ifndef MACHINE
     MACHINE := $(shell uname)
 endif
 
+UNAMER := $(shell uname -r)
+#
+# We'd also like to distinguish between OSF1 versions 3 and 4
+#
+ifeq ($(MACHINE), OSF1)
+  ifeq  ($(findstring V3, $(UNAMER)), V3)
+    WHICHOSF1 := V3
+  endif
+  ifeq  ($(findstring V4, $(UNAMER)), V4)
+    WHICHOSF1 := V4
+  endif
+endif
+
 #
 # We'd also like to distinguish between SunOS and Solaris.
 #
-UNAMER := $(shell uname -r)
-
 ifeq ($(MACHINE), SunOS)
     ifeq ($(shell awk 'BEGIN {print "$(UNAMER)"; print "5.0"}' /dev/null | \
             sort | head -1), 5.0)
