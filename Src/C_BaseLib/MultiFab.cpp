@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.15 1998-05-28 21:34:01 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.16 1998-06-12 20:34:37 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -32,10 +32,30 @@ using std::setw;
     const Real INFINITY = 1.0e100;
 #endif
 
+MultiFab::MultiFab ()
+    :
+    m_FB_mfcd(0),
+    m_FB_fbid(0)
+{}
+
+MultiFab::MultiFab (const BoxArray& bxs,
+                    int             ncomp,
+                    int             ngrow,
+                    FabAlloc        alloc)
+    :
+    FabArray<Real,FArrayBox>(bxs,ncomp,ngrow,alloc),
+    m_FB_mfcd(0),
+    m_FB_fbid(0)
+{}
+
 //
 // This isn't inlined as it's virtual.
 //
-MultiFab::~MultiFab() {}
+MultiFab::~MultiFab()
+{
+    delete m_FB_mfcd;
+    delete m_FB_fbid;
+}
 
 void
 MultiFab::probe (ostream& os,
@@ -462,4 +482,78 @@ linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
                        dest_comp,
                        num_comp);
     }
+}
+
+void
+MultiFab::FB_Doit (int start_comp,
+                   int num_comp)
+{
+    assert(m_FB_mfcd == 0);
+
+    m_FB_mfcd = new MultiFabCopyDescriptor;
+
+    MultiFabId mfid = m_FB_mfcd->RegisterMultiFab(this);
+
+    assert(mfid == MultiFabId(0));
+
+    m_FB_fbid = new vector<FillBoxId>;
+
+    for (MultiFabIterator mfi(*this); mfi.isValid(false); ++mfi)
+    {
+        for (int j = 0; j < length(); j++)
+        {
+            if (j == mfi.index())
+                //
+                // Don't copy into self.
+                //
+                continue;
+
+            if (boxarray[j].intersects(mfi().box()))
+            {
+                Box bx = boxarray[j] & mfi().box();
+
+                m_FB_fbid->push_back(m_FB_mfcd->AddBox(mfid,
+                                                       bx,
+                                                       0,
+                                                       j,
+                                                       start_comp,
+                                                       start_comp,
+                                                       num_comp));
+
+                m_FB_fbid->back().FabIndex(mfi.index());
+            }
+        }
+    }
+}
+
+void
+MultiFab::FillBoundary (int start_comp,
+                        int num_comp)
+{
+    RunStats fill_boundary_stats("fill_boundary");
+
+    fill_boundary_stats.start();
+
+    MultiFabCopyDescriptor& mfcd = theFBmfcd(start_comp,num_comp);
+
+    const vector<FillBoxId>& fillBoxIDs = theFBfbid();
+
+    mfcd.CollectData();
+
+    const int MyProc = ParallelDescriptor::MyProc();
+
+    const MultiFabId TheFBMultiFabId = 0;
+
+    for (int i = 0; i < fillBoxIDs.size(); i++)
+    {
+        int fabindex = fillBoxIDs[i].FabIndex();
+
+        assert(ProcessorMap()[fabindex] == MyProc);
+        //
+        // Directly fill the FAB.
+        //
+        mfcd.FillFab(TheFBMultiFabId, fillBoxIDs[i], (*this)[fabindex]);
+    }
+
+    fill_boundary_stats.end();
 }

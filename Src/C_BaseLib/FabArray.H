@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.62 1998-06-11 18:21:29 lijewski Exp $
+// $Id: FabArray.H,v 1.63 1998-06-12 20:34:36 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -339,19 +339,6 @@ public:
                    int strt_comp,
                    int ncomp);
 
-    /*@ManDoc: Copy on intersection within FabArray.  Data is copied from
-               valid regions to intersecting regions of definition.  The
-               purpose is to fill in the boundary regions of each FAB in
-               the FabArray.
-    */
-    void FillBoundary ();
-
-    /*@ManDoc: Same as FillBoundary(), but only copies
-               num\_comp components starting at start\_comp.
-    */
-    void FillBoundary (int start_comp,
-                       int num_comp);
-
     /*@ManDoc: This function copies data from fa to this FabArray.  Each FAB
                in fa is intersected with all FABs in this FabArray and a copy
                is performed on the region of intersection.  The intersection
@@ -413,23 +400,23 @@ public:
         return distributionMap;
     }
 
+    //
+    //@ManDoc: Returns constant reference to associated processor map.
+    //
+    const Array<int>& ProcessorMap () const
+    {
+        return distributionMap.ProcessorMap();
+    }
 protected:
-    //
-    // FillBoundary() Helper functions.
-    //
-    FabArrayCopyDescriptor<T,FAB>& theFBfacd (int start_comp,
-                                              int num_comp);
-    vector<FillBoxId>& theFBfbids () const;
+
     //
     // The data ...
     //
-    mutable BoxArray               boxarray;   /* So FabSets can modify'm */
-    PArray<FAB>                    fabparray;
-    DistributionMapping            distributionMap;
-    FabArrayCopyDescriptor<T,FAB>* m_FB_facd;  /* Hack for FillBoundary */
-    vector<FillBoxId>*             m_FB_fbids; /* Hack for FillBoundary */
-    int                            n_grow;
-    int                            n_comp;
+    mutable BoxArray    boxarray;   /* So FabSets can modify'm */
+    PArray<FAB>         fabparray;
+    DistributionMapping distributionMap;
+    int                 n_grow;
+    int                 n_comp;
 
 private:
     //
@@ -1029,8 +1016,6 @@ template <class T, class FAB>
 FabArray<T,FAB>::FabArray ()
     :
     fabparray(0,PArrayManage),
-    m_FB_facd(0),
-    m_FB_fbids(0),
     n_grow(0),
     n_comp(0)
 {}
@@ -1058,10 +1043,7 @@ FabArray<T,FAB>::FabArray (const BoxArray& bxs,
 
 template <class T, class FAB>
 FabArray<T,FAB>::~FabArray ()
-{
-    delete m_FB_facd;
-    delete m_FB_fbids;
-}
+{}
 
 template <class T, class FAB>
 bool
@@ -1100,10 +1082,8 @@ FabArray<T,FAB>::define (const BoxArray& bxs,
                          FabAlloc        alloc)
 {
     assert(!boxarray.ready());
-    m_FB_facd  = 0;
-    m_FB_fbids = 0;
-    n_grow     = ngrow;
-    n_comp     = 0;
+    n_grow = ngrow;
+    n_comp = 0;
     boxarray.define(bxs);
     distributionMap.define(ParallelDescriptor::NProcs(), boxarray);
     fabparray.resize(boxarray.length());
@@ -1122,10 +1102,8 @@ FabArray<T,FAB>::define (const BoxArray& bxs,
                          FabAlloc        alloc)
 {
     assert(!boxarray.ready());
-    m_FB_facd  = 0;
-    m_FB_fbids = 0;
-    n_grow     = ngrow;
-    n_comp     = nvar;
+    n_grow = ngrow;
+    n_comp = nvar;
     boxarray.define(bxs);
     distributionMap.define(ParallelDescriptor::NProcs(), boxarray);
     fabparray.resize(bxs.length());
@@ -1654,99 +1632,6 @@ FabArray<T,FAB>::setVal (T          val,
             fai().setVal(val, b, comp, num_comp);
         }
     }
-}
-
-template <class T, class FAB>
-FabArrayCopyDescriptor<T,FAB>&
-FabArray<T,FAB>::theFBfacd (int start_comp,
-                            int num_comp)
-{
-    if (m_FB_facd == 0)
-    {
-        m_FB_facd = new FabArrayCopyDescriptor<T,FAB>;
-
-        FabArrayId faid = m_FB_facd->RegisterFabArray(this);
-
-        assert(faid == FabArrayId(0));
-
-        m_FB_fbids = new vector<FillBoxId>;
-
-        for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
-        {
-            for (int j = 0; j < length(); j++)
-            {
-                if (j == fai.index())
-                    //
-                    // Don't copy into self.
-                    //
-                    continue;
-
-                if (boxarray[j].intersects(fai().box()))
-                {
-                    m_FB_fbids->push_back(m_FB_facd->AddBox(faid,
-                                                            (boxarray[j] & fai().box()),
-                                                            0,
-                                                            j,
-                                                            start_comp,
-                                                            start_comp,
-                                                            num_comp));
-                    m_FB_fbids->back().FabIndex(fai.index());
-                }
-            }
-        }
-    }
-
-    return *m_FB_facd;
-}
-
-template <class T, class FAB>
-inline
-vector<FillBoxId>&
-FabArray<T,FAB>::theFBfbids () const
-{
-    assert(m_FB_fbids != 0);
-    return *m_FB_fbids;
-}
-
-template <class T, class FAB>
-inline
-void
-FabArray<T,FAB>::FillBoundary ()
-{
-    FillBoundary(0, n_comp);
-}
-
-template <class T, class FAB>
-void
-FabArray<T,FAB>::FillBoundary (int start_comp,
-                               int num_comp)
-{
-    RunStats fill_boundary_stats("fill_boundary");
-
-    fill_boundary_stats.start();
-
-    FabArrayCopyDescriptor<T,FAB>& facd = theFBfacd(start_comp,num_comp);
-
-    const vector<FillBoxId>& fillBoxIdList = theFBfbids();
-
-    facd.CollectData();
-
-    const int MyProc = ParallelDescriptor::MyProc();
-
-    const FabArrayId TheFBFabArrayId = 0;
-
-    for (int i = 0; i < fillBoxIdList.size(); i++)
-    {
-        int fabindex = fillBoxIdList[i].FabIndex();
-
-        assert(DistributionMap().ProcessorMap()[fabindex] == MyProc);
-        //
-        // Directly fill the FAB.
-        //
-        facd.FillFab(TheFBFabArrayId, fillBoxIdList[i], (*this)[fabindex]);
-    }
-
-    fill_boundary_stats.end();
 }
 
 template <class T, class FAB>
