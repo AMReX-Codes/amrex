@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.48 1998-08-11 20:33:21 lijewski Exp $
+// $Id: TagBox.cpp,v 1.49 1998-08-12 18:00:55 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -552,7 +552,8 @@ TagBoxArray::collate (long& numtags) const
         TagBoxArray::BumpCollateSpace(numtags);
     }
 #ifdef BL_USE_MPI
-    static RunStats mpi_stats("mpi");
+
+    static RunStats mpi_bcast("mpi_broadcast");
 
     const int NGrids = fabparray.length();
 
@@ -566,7 +567,7 @@ TagBoxArray::collate (long& numtags) const
 
     const DistributionMapping& dMap = DistributionMap();
 
-    mpi_stats.start();
+    mpi_bcast.start();
 
     for (int i = 0, rc = 0; i < NGrids; ++i)
     {
@@ -578,7 +579,7 @@ TagBoxArray::collate (long& numtags) const
             ParallelDescriptor::Abort(rc);
     }
 
-    mpi_stats.end();
+    mpi_bcast.end();
 
     startOffset[0] = 0;
     for (int i = 1; i < NGrids; ++i)
@@ -595,7 +596,7 @@ TagBoxArray::collate (long& numtags) const
 
     assert(sizeof(IntVect) == BL_SPACEDIM * sizeof(int));
 
-    mpi_stats.start();
+    mpi_bcast.start();
 
     for (int i = 0, rc = 0; i < NGrids; ++i)
     {
@@ -607,7 +608,7 @@ TagBoxArray::collate (long& numtags) const
             ParallelDescriptor::Abort(rc);
     }
 
-    mpi_stats.end();
+    mpi_bcast.end();
 #else
     int start = 0;
 

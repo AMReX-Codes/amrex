@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.72 1998-08-11 20:33:38 lijewski Exp $
+// $Id: FabArray.H,v 1.73 1998-08-12 18:01:09 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1243,9 +1243,12 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
     //
     int rc;
 
-    static RunStats mpi_stats("mpi");
+    static RunStats mpi_recv("mpi_recv");
+    static RunStats mpi_send("mpi_send");
+    static RunStats mpi_redu("mpi_reduce");
+    static RunStats mpi_wait("mpi_waitall");
 
-    mpi_stats.start();
+    mpi_redu.start();
 
     for (int i = 0; i < msgs.length(); i++)
     {
@@ -1259,7 +1262,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
             ParallelDescriptor::Abort(rc);
     }
 
-    mpi_stats.end();
+    mpi_redu.end();
 
     const int NumRecv = nrcv[MyProc];
 
@@ -1271,7 +1274,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
     // First send/receive the box information.
     // I'll receive the NumRecv boxes in any order.
     //
-    mpi_stats.start();
+    mpi_recv.start();
 
     for (int i = 0; i < NumRecv; i++)
     {
@@ -1284,6 +1287,10 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                             &reqs[i])) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
+
+    mpi_recv.end();
+
+    mpi_send.start();
 
     for (int i = 0; i < sTags.size(); i++)
     {
@@ -1314,6 +1321,10 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
             ParallelDescriptor::Abort(rc);
     }
 
+    mpi_send.end();
+
+    mpi_wait.start();
+
     if ((rc = MPI_Waitall(NumRecv,
                           reqs.dataPtr(),
                           stat.dataPtr())) != MPI_SUCCESS)
@@ -1321,7 +1332,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
         ParallelDescriptor::Abort(rc);
     }
 
-    mpi_stats.end();
+    mpi_wait.end();
     //
     // Now the FAB data itself.
     //
@@ -1329,7 +1340,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
     {
         fabs.set(i, new FAB(recv[i].box(), num_comp));
 
-        mpi_stats.start();
+        mpi_recv.start();
 
         if ((rc = MPI_Irecv(fabs[i].dataPtr(),
                             fabs[i].box().numPts() * num_comp,
@@ -1340,7 +1351,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                             &reqs[i])) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
 
-        mpi_stats.end();
+        mpi_recv.end();
     }
 
     for (int i = 0; i < sTags.size(); i++)
@@ -1358,7 +1369,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
 
         assert(count < INT_MAX);
 
-        mpi_stats.start();
+        mpi_send.start();
         //
         // Use MPI_Ssend() to try and force the system not to buffer.
         //
@@ -1380,10 +1391,10 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                             MPI_COMM_WORLD)) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
 
-        mpi_stats.end();
+        mpi_send.end();
     }
 
-    mpi_stats.start();
+    mpi_wait.start();
 
     if ((rc = MPI_Waitall(NumRecv,
                           reqs.dataPtr(),
@@ -1392,7 +1403,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
         ParallelDescriptor::Abort(rc);
     }
 
-    mpi_stats.end();
+    mpi_wait.end();
 
     for (int i = 0; i < NumRecv; i++)
     {
@@ -1462,7 +1473,8 @@ FabArray<T,FAB>::copy (FAB&       dest,
     assert(dest_comp + num_comp <= dest.nComp());
 
 #ifdef BL_USE_MPI
-    static RunStats mpi_stats("mpi");
+
+    static RunStats mpi_bcast("mpi_broadcast");
 
     const int MyProc = ParallelDescriptor::MyProc();
 
@@ -1502,7 +1514,7 @@ FabArray<T,FAB>::copy (FAB&       dest,
         }
     }
 
-    mpi_stats.start();
+    mpi_bcast.start();
 
     for (int i = 0; i < overlapLength; i++)
     {
@@ -1511,11 +1523,12 @@ FabArray<T,FAB>::copy (FAB&       dest,
                            mpi_data_type(overlapData[i].dataPtr()),
                            overlapProc[i],
                            MPI_COMM_WORLD);
+
         if (!(rc == MPI_SUCCESS))
             ParallelDescriptor::Abort(rc);
     }
 
-    mpi_stats.end();
+    mpi_bcast.end();
 
     for (int i = 0; i < overlapLength; i++)
     {
@@ -2216,7 +2229,15 @@ void
 FabArrayCopyDescriptor<T,FAB>::CollectData ()
 {
 #ifdef BL_USE_MPI
-    static RunStats mpi_stats("mpi");
+
+    static RunStats mpi_stats("collect_data");
+
+    static RunStats mpi_recv("mpi_recv");
+    static RunStats mpi_send("mpi_send");
+    static RunStats mpi_redu("mpi_reduce");
+    static RunStats mpi_wait("mpi_waitall");
+
+    mpi_stats.start();
 
     const int MyProc = ParallelDescriptor::MyProc();
 
@@ -2237,7 +2258,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
     }
     int rc;
 
-    mpi_stats.start();
+    mpi_redu.start();
 
     for (int i = 0; i < msgs.length(); i++)
     {
@@ -2251,7 +2272,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
             ParallelDescriptor::Abort(rc);
     }
 
-    mpi_stats.end();
+    mpi_redu.end();
 
     const int NumRecv = nrcv[MyProc];
 
@@ -2261,7 +2282,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
     //
     // Post receives for the data being requested by other processors.
     //
-    mpi_stats.start();
+    mpi_recv.start();
 
     for (int i = 0; i < NumRecv; i++)
     {
@@ -2274,6 +2295,8 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
                             &reqs[i])) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
+
+    mpi_recv.end();
 
     for (int i = 0; i < fabComTagList.size(); i++)
     {
@@ -2294,6 +2317,8 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
                           fabComTagList[i].srcComp,
                           fabComTagList[i].fabArrayId,
                           fabComTagList[i].box);
+
+        mpi_send.start();
         //
         // Use MPI_Send() as we don't care whether or not this is buffered.
         //
@@ -2304,7 +2329,11 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
                             471,
                             MPI_COMM_WORLD)) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
+
+        mpi_send.end();
     }
+
+    mpi_wait.start();
 
     if ((rc = MPI_Waitall(NumRecv,
                           reqs.dataPtr(),
@@ -2313,7 +2342,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
         ParallelDescriptor::Abort(rc);
     }
 
-    mpi_stats.end();
+    mpi_wait.end();
 
     reqs.resize(fabComTagList.size());
     stat.resize(fabComTagList.size());
@@ -2338,7 +2367,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
             {
                 T* dataPtr = fcdp->localFabSource->dataPtr();
 
-                mpi_stats.start();
+                mpi_recv.start();
 
                 if ((rc = MPI_Irecv(dataPtr,
                                     tag.box.numPts() * tag.nComp,
@@ -2355,7 +2384,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
                                     &reqs[i])) != MPI_SUCCESS)
                     ParallelDescriptor::Abort(rc);
 
-                mpi_stats.end();
+                mpi_recv.end();
 
                 break;
             }
@@ -2385,7 +2414,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
         //
         // Use MPI_Ssend() to try and force the system not to buffer.
         //
-        mpi_stats.start();
+        mpi_send.start();
 
         if ((rc = MPI_Ssend(fab.dataPtr(),
                             int(count),
@@ -2395,10 +2424,10 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
                             MPI_COMM_WORLD)) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
 
-        mpi_stats.end();
+        mpi_send.end();
     }
 
-    mpi_stats.start();
+    mpi_wait.start();
 
     if ((rc = MPI_Waitall(fabComTagList.size(),
                           reqs.dataPtr(),
@@ -2407,9 +2436,11 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
         ParallelDescriptor::Abort(rc);
     }
 
-    mpi_stats.end();
+    mpi_wait.end();
 
     fabComTagList.clear();
+
+    mpi_stats.end();
 
 #endif /*BL_USE_MPI*/
 
