@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.12 1997-11-10 21:36:19 car Exp $
+// $Id: VisMF.cpp,v 1.13 1997-11-10 22:14:47 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -247,7 +247,11 @@ VisMF::Write (const FArrayBox& fab,
               const aString&   filename,
               ostream&         os)
 {
+#ifdef __KCC
+    VisMF::FabOnDisk fod(filename, os.tellp().offset());
+#else
     VisMF::FabOnDisk fod(filename, os.tellp());
+#endif
 
     fab.writeOn(os);
 
@@ -346,9 +350,7 @@ VisMF::WriteOneFilePerCPU (const MultiFab& mf,
             hdr.m_fod[i] = VisMF::Write(mf[i], FabFileName, FabFile);
         }
     }
-    //
-    // The Header gets written last to its own file.
-    //
+
     VisMF::WriteHeader(mf_name, hdr);
 }
 
@@ -393,9 +395,7 @@ VisMF::WriteOneFilePerFab (const MultiFab& mf,
 
         hdr.m_fod[i] = VisMF::Write(mf[i], FabFileName, FabFile);
     }
-    //
-    // The Header gets written last to its own file.
-    //
+
     VisMF::WriteHeader(mf_name, hdr);
 }
 

@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.12 1997-11-10 21:36:18 car Exp $
+// $Id: VisMF.H,v 1.13 1997-11-10 22:14:47 lijewski Exp $
 //
 
 #include <MultiFab.H>
@@ -90,6 +90,12 @@ public:
     // The grow factor of the on-disk MultiFab.
     //
     int nGrow () const;
+    //
+    // The # of FABs in the VisMF.
+    //
+    // Equal to the # of Boxes in the BoxArray.
+    //
+    int length () const;
     //
     // The BoxArray of the on-disk MultiFab.
     //
@@ -205,6 +211,13 @@ int
 VisMF::nGrow () const
 {
     return m_hdr.m_ngrow;
+}
+
+inline
+int
+VisMF::length () const
+{
+    return m_hdr.m_ba.length();
 }
 
 inline

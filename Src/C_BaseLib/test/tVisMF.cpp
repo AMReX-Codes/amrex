@@ -1,10 +1,43 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tVisMF.cpp,v 1.2 1997-11-10 21:17:11 lijewski Exp $
+// $Id: tVisMF.cpp,v 1.3 1997-11-10 22:14:48 lijewski Exp $
 //
 
+#include <stdlib.h>
+
 #include <VisMF.H>
+
+static
+void
+Write_N_Read (const MultiFab& mf,
+              const aString&  mf_name,
+              VisMF::How      how)
+{
+    switch (how)
+    {
+    case VisMF::OneFilePerCPU:
+        VisMF::Write(mf, mf_name, VisMF::OneFilePerCPU); break;
+    case VisMF::OneFilePerFab:
+        VisMF::Write(mf, mf_name, VisMF::OneFilePerFab); break;
+    default:
+        BoxLib::Error("Bad case in switch");
+    }
+
+    VisMF vmf(mf_name);
+
+    for (int i = 0, N = vmf.length(); i < N; i++)
+    {
+        cout << "Fab:\n" << vmf[i] << '\n';
+    }
+
+    aString cmd("/bin/rm -f ");
+
+    cmd += mf_name;
+    cmd += "*";
+
+    system(cmd.c_str());
+}
 
 int
 main ()
@@ -23,19 +56,16 @@ main ()
     for (int i = 0; i < NBX; i++)
         ba.set(i,bx[i]);
 
-    MultiFab mf(ba, 2, 0);
-
-    for (int i = 0; i < NBX; i++)
-        mf[i].setVal(i);
-
-    static const aString mfName = "Spam-n-Eggs";
-
-    VisMF::Write(mf, mfName, VisMF::OneFilePerFab);
-
-    VisMF vmf(mfName);
+    MultiFab mf(ba, 2, 1);
 
     for (int i = 0; i < NBX; i++)
     {
-        cout << "Fab:\n" << vmf[i] << '\n';
+        mf[i].setVal(i+1);
     }
+
+    static const aString mf_name = "Spam-n-Eggs";
+
+    Write_N_Read (mf, mf_name, VisMF::OneFilePerCPU);
+
+    Write_N_Read (mf, mf_name, VisMF::OneFilePerFab);
 }
