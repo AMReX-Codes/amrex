@@ -4,7 +4,7 @@
 #define _MCINTERPBNDRYDATA_H_
 
 //
-// $Id: MCInterpBndryData.H,v 1.6 1999-05-10 17:18:53 car Exp $
+// $Id: MCInterpBndryData.H,v 1.7 1999-06-28 20:37:05 car Exp $
 //
 
 #include <BLassert.H>
@@ -77,7 +77,7 @@ public:
     //
     //@ManDoc: set bndry values at fine level, performing necessary interpolations
     //
-    void setBndryValues (const BndryRegister& crse,
+    void setBndryValues (const ::BndryRegister& crse,
 			 int                  c_start,
 			 const MultiFab&      fine,
 			 int                  f_start,

@@ -4,7 +4,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.27 1999-05-10 18:54:22 car Exp $
+// $Id: MultiFab.H,v 1.28 1999-06-28 20:37:05 car Exp $
 //
 
 #include <BLassert.H>
@@ -31,6 +31,34 @@ class MultiFabCopyDescriptor;
 
   This class does NOT provide a copy constructor or assignment operator.
 */
+
+class MultiFab;
+void linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc, 
+                                 BoxList*                returnUnfilledBoxes,
+                                 Array<FillBoxId>&       returnedFillBoxIds,
+                                 const Box&              subbox,
+                                 const MultiFabId&       faid1,
+                                 const MultiFabId&       faid2,
+                                 Real                    t1,
+                                 Real                    t2,
+                                 Real                    t,
+                                 int                     src_comp,
+                                 int                     dest_comp,
+                                 int                     num_comp,
+                                 bool                    extrap = false);
+
+void linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
+                                  const Array<FillBoxId>& fillBoxIds,
+                                  const MultiFabId&       faid1,
+                                  const MultiFabId&       faid2,
+                                  FArrayBox&              dest,
+                                  Real                    t1,
+                                  Real                    t2,
+                                  Real                    t,
+                                  int                     src_comp,
+                                  int                     dest_comp,
+                                  int                     num_comp,
+                                  bool                    extrap = false);
 
 class MultiFab
     :
@@ -297,7 +325,7 @@ class MultiFab
                                  int                     src_comp,
                                  int                     dest_comp,
                                  int                     num_comp,
-                                 bool                    extrap = false);
+                                 bool                    extrap);
 
     friend void linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
                                   const Array<FillBoxId>& fillBoxIds,
@@ -310,7 +338,7 @@ class MultiFab
                                   int                     src_comp,
                                   int                     dest_comp,
                                   int                     num_comp,
-                                  bool                    extrap = false);
+                                  bool                    extrap);
 
     /*@ManDoc: Copy on intersection within MultiFab.  Data is copied from
                valid regions to intersecting regions of definition.  The

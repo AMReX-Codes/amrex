@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MCInterpBndryData.cpp,v 1.10 1999-05-10 18:54:27 car Exp $
+// $Id: MCInterpBndryData.cpp,v 1.11 1999-06-28 20:37:05 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -148,7 +148,7 @@ MCInterpBndryData::setBndryValues(const MultiFab&     mf,
 //     (B) Copy from ghost region of MultiFab at physical bndry
 //
 void
-MCInterpBndryData::setBndryValues (const BndryRegister& crse,
+MCInterpBndryData::setBndryValues (const ::BndryRegister& crse,
 				   int                  c_start,
 				   const MultiFab&      fine,
 				   int                  f_start,

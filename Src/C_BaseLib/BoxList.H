@@ -4,7 +4,7 @@
 #define BL_BOXLIST_H
 
 //
-// $Id: BoxList.H,v 1.11 1999-05-10 18:54:20 car Exp $
+// $Id: BoxList.H,v 1.12 1999-06-28 20:37:04 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -36,6 +36,14 @@ class BoxListIterator;
 
   This is a concrete class, not a polymorphic one.
 */
+
+class BoxList;
+
+BoxList complementIn(const Box& b, const BoxList& bl);
+BoxList boxDiff (const Box& b1in, const Box& b2);
+BoxList refine (const BoxList&  bl, int ratio);
+BoxList coarsen (const BoxList& bl, int ratio);
+
 
 class BoxList
 {

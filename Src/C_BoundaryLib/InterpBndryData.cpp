@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: InterpBndryData.cpp,v 1.9 1999-05-10 18:54:16 car Exp $
+// $Id: InterpBndryData.cpp,v 1.10 1999-06-28 20:37:04 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -119,7 +119,7 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
 //
 
 void
-InterpBndryData::setBndryValues (BndryRegister& crse,
+InterpBndryData::setBndryValues (::BndryRegister& crse,
                                  int             c_start,
                                  const MultiFab& fine,
                                  int             f_start,

@@ -4,7 +4,7 @@
 #define BL_ARENA
 
 //
-// $Id: Arena.H,v 1.5 1998-02-09 20:46:52 lijewski Exp $
+// $Id: Arena.H,v 1.6 1999-06-28 20:37:04 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -47,14 +47,12 @@ protected:
     //
     // Types used by align().
     //
-    typedef void (*FP) ();
-
     union Word
     {
         void*  p;
         double d;
         long   l;
-        FP     f;
+        void (*f) ();
     };
 };
 

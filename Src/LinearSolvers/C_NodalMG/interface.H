@@ -128,6 +128,8 @@ private:
     void operator= (const level_interface&);
 };
 
+extern const level_interface default_level_interface;
+
 inline int level_interface::grid (int idim, int i, int j) const 
 { 
     BL_ASSERT(idim >= 0 && idim <= FACEDIM);

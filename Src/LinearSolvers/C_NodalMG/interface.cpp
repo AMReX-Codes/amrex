@@ -3,6 +3,8 @@
 #include "interface.H"
 #include "boundary.H"
 
+const level_interface default_level_interface;
+
 inline
 void
 ins (List<Box>& bl, const Box& b) 
