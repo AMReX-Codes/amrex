@@ -1,5 +1,5 @@
 //
-// $Id: DistributionMapping.cpp,v 1.69 2004-10-11 20:33:17 car Exp $
+// $Id: DistributionMapping.cpp,v 1.70 2004-10-11 21:47:03 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -273,7 +273,7 @@ DistributionMapping::MetisProcessorMap (const BoxArray& boxes, int nprocs)
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::MetisProcessorMap");
     BL_ASSERT(boxes.size() > 0);
     BL_ASSERT(m_procmap.size() == boxes.size()+1);
-    if ( nprocs < 2 )
+    if (boxes.size() <= nprocs || nprocs < 2)
     {
 	RoundRobinProcessorMap(boxes, nprocs);
 	return;
