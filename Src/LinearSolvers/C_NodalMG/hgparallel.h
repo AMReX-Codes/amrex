@@ -3,7 +3,6 @@
 
 #ifdef BL_USE_NEW_HFILES
 #include <cstdlib>
-#include <limits>
 #else
 #include <stdlib.h>
 #endif
@@ -40,7 +39,7 @@ class task
 {
 public:
     typedef unsigned int sequence_number;
-    task() : m_sno(-1) {}
+    task() : m_sno(~0U) {}
     virtual ~task() {}
     virtual bool ready() = 0;
     virtual bool init(sequence_number sno, MPI_Comm comm) = 0;
