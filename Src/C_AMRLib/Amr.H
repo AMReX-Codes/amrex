@@ -4,7 +4,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.16 1998-09-15 22:31:40 lijewski Exp $
+// $Id: Amr.H,v 1.17 1998-09-23 20:19:38 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -115,7 +115,7 @@ public:
     //
     //@ManDoc: Interval between regridding.
     //
-    int regridInt(int lev) const;
+    int regridInt (int lev) const;
     //
     //@ManDoc: Number of time steps between checkpoint files.
     //
@@ -127,11 +127,11 @@ public:
     //
     //@ManDoc: Number of time steps between plot files.
     //
-    int plotInt() const;
+    int plotInt () const;
     //
     //@ManDoc: Time between plot files.
     //
-    Real plotPer() const;
+    Real plotPer () const;
 
     /*@ManDoc: The names of state or derived variables to output in the
                plotfile.  They can be set using the amr.plot_vars variable
@@ -230,7 +230,7 @@ protected:
     //
     // Restart from a checkpoint file.
     //
-    void restart(const aString& filename);
+    void restart (const aString& filename);
     //
     // Define and initialize coarsest level.
     //
@@ -243,7 +243,8 @@ protected:
     // Rebuild grid hierarchy finer than lbase.
     //
     void regrid (int  lbase,
-                 Real time);
+                 Real time,
+                 bool initial = false);
     //
     // Define new grid locations (called from regrid) and put into new_grids.
     //
@@ -267,7 +268,7 @@ protected:
 
     void setRecordRunInfo (const aString&);
 
-    void setRecordDataInfo(const aString&);
+    void setRecordDataInfo (const aString&);
     //
     // The data ...
     //
