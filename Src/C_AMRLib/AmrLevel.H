@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.38 1999-12-02 07:43:05 sstanley Exp $
+// $Id: AmrLevel.H,v 1.39 2000-01-06 19:03:27 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -146,7 +146,7 @@ public:
     virtual  int okToContinue () = 0;
 
     /*@ManDoc: Should I regrid with this level as base level?
-               This test is only evaluated when level_count >= regrid_int
+               This test is only evaluated when level\_count >= regrid\_int
                as well. Defaults to true.
     */
     virtual  int okToRegrid ();
@@ -338,7 +338,7 @@ public:
     //
     //
     // 
-    //@ManDoc: Called in grid_places after other tagging routines to modify
+    //@ManDoc: Called in grid\_places after other tagging routines to modify
     //         the list of tagged points.  Default implementation does nothing.
     //
     virtual void manual_tags_placement (TagBoxArray& tags, Array<IntVect>& bf_lev);
