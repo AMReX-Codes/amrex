@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.26 1998-12-09 21:56:28 wyc Exp $
+// $Id: Utility.cpp,v 1.27 1998-12-11 21:54:25 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -154,12 +154,15 @@ Utility::wsecond (double* t_)
 
 #elif defined(BL_T3E)
 
-#include <intrinsics.h>
+//#include <intrinsics.h>
 #include <unistd.h>
 
 static double BL_Clock_Rate;
-
-extern "C" long IRTC_RATE();
+extern "C"
+{
+long IRTC_RATE();
+long _irt();
+}
 
 static
 long
