@@ -1,13 +1,16 @@
-// $Id: DivVis.cpp,v 1.3 1998-07-29 20:25:55 lijewski Exp $
+//BL_COPYRIGHT_NOTICE
+
+//
+// $Id: DivVis.cpp,v 1.4 1999-01-04 21:31:48 lijewski Exp $
+//
 
 #include <DivVis.H>
 #include <DivVis_F.H>
 
-Real DivVis::a_def=0.0;
-Real DivVis::b_def=1.0;
-Real DivVis::alpha_def=1.0;
-Real DivVis::beta_def=1.0;
-
+Real DivVis::a_def     = 0.0;
+Real DivVis::b_def     = 1.0;
+Real DivVis::alpha_def = 1.0;
+Real DivVis::beta_def  = 1.0;
 
 int
 DivVis::numberComponents ()
@@ -27,35 +30,41 @@ DivVis::numberPhases ()
 
 DivVis::DivVis (const BndryData& _bd,
 		Real             _h)
-    : MCLinOp(_bd, _h),
-      alpha(alpha_def),
-      beta(beta_def)
+    :
+    MCLinOp(_bd, _h),
+    alpha(alpha_def),
+    beta(beta_def)
 {
-    REAL __h[BL_SPACEDIM];
-    for(int i = 0; i < BL_SPACEDIM; i++)
-    {
-        __h[i] = _h;
-    }
+    Real __h[BL_SPACEDIM];
+
+    D_TERM(__h[0] = _h;,
+           __h[1] = _h;,
+           __h[2] = _h;);
+
     initConstruct(__h);
 }
 
 DivVis::DivVis (const BndryData& _bd,
 	        const Real*      _h)
-    : MCLinOp(_bd, _h),
-      alpha(alpha_def),
-      beta(beta_def)
+    :
+    MCLinOp(_bd, _h),
+    alpha(alpha_def),
+    beta(beta_def)
 {
     initConstruct(_h);
 }
 
 void
-DivVis::initConstruct(const Real* _h)
+DivVis::initConstruct (const Real* _h)
 {
-    int level = 0;
+    const int level       = 0;
     const BoxArray& grids = gbox[level];
+
     initCoefficients(gbox[level]);
-    numcomp = numberComponents(); // wyc
-    numphase = numberPhases();    // wyc
+
+    numcomp  = numberComponents(); // wyc
+    numphase = numberPhases();     // wyc
+
     undrrelxr.resize(1);
     undrrelxr[level] = new BndryRegister(gbox[level], 1, 0, 0, numcomp);
     tangderiv.resize(1);
@@ -64,7 +73,7 @@ DivVis::initConstruct(const Real* _h)
 #elif BL_SPACEDIM==3
     tangderiv[level] = new BndryRegister(gbox[level], 0, 1, 0, numcomp*(1+3));
 #else
-# error
+# error "BL_SPACEDIME must be 2 or 3"
 #endif
 }
 
@@ -84,10 +93,13 @@ DivVis::setScalars (Real _alpha,
 void
 DivVis::clearToLevel (int level)
 {
-    assert(level>=-1);
-    for (int i=level+1; i<numLevels(); ++i) {
+    assert(level >= -1);
+
+    for (int i = level+1; i < numLevels(); ++i)
+    {
 	delete acoefs[i];
-	for(int j=0; j<BL_SPACEDIM; ++j) {
+	for (int j = 0; j < BL_SPACEDIM; ++j)
+        {
 	    delete bcoefs[i][j];
 	}
     }
@@ -97,20 +109,26 @@ void
 DivVis::prepareForLevel (int level)
 {
     MCLinOp::prepareForLevel(level);
-    if (level == 0 ) return;
+    if (level == 0)
+        return;
     prepareForLevel(level-1);
-
+    //
     // If coefficients were marked invalid, or if not yet made, make new ones
     // (Note: makeCoefficients is a MCLinOp routine, and it allocates AND
     // fills coefficients.  A more efficient implementation would allocate
     // and fill in separate steps--we could then use the a_valid bool
     // along with the length of a_valid to separately determine whether to
-    // fill or allocate the coefficient MultiFabs
-    if (level >= a_valid.length() || a_valid[level] == false )  {
-	if (acoefs.length() < level+1) {
+    // fill or allocate the coefficient MultiFabs.
+    //
+    if (level >= a_valid.length() || a_valid[level] == false)
+    {
+	if (acoefs.length() < level+1)
+        {
 	    acoefs.resize(level+1);
 	    acoefs[level] = new MultiFab;
-	} else {
+	}
+        else
+        {
 	    delete acoefs[level];
 	    acoefs[level] = new MultiFab;
 	}
@@ -119,20 +137,25 @@ DivVis::prepareForLevel (int level)
 	a_valid[level] = true;
     }
     
-    if (level >= b_valid.length() || b_valid[level] == false )  {
-	if (bcoefs.length() < level+1) {
+    if (level >= b_valid.length() || b_valid[level] == false)
+    {
+	if (bcoefs.length() < level+1)
+        {
 	    bcoefs.resize(level+1);
-	    for(int i = 0; i < BL_SPACEDIM; ++i)
+	    for (int i = 0; i < BL_SPACEDIM; ++i)
 		bcoefs[level][i] = new MultiFab;
-	} else {
-	    for(int i = 0; i < BL_SPACEDIM; ++i) {
+	}
+        else
+        {
+	    for (int i = 0; i < BL_SPACEDIM; ++i)
+            {
 		delete bcoefs[level][i];
 		bcoefs[level][i] = new MultiFab;
 	    }
 	}
-	for(int i = 0; i < BL_SPACEDIM; ++i) {
+	for (int i = 0; i < BL_SPACEDIM; ++i)
 	    makeCoefficients(*bcoefs[level][i], *bcoefs[level-1][i], level);
-	}
+
 	b_valid.resize(level+1);
 	b_valid[level] = true;
     }
@@ -141,25 +164,29 @@ DivVis::prepareForLevel (int level)
 void
 DivVis::initCoefficients (const BoxArray &_ba)
 {
-    int nGrow=0;
-    int level = 0;
+    const int nGrow = 0;
+    const int level = 0;
+
     acoefs.resize(1);
     bcoefs.resize(1);
+    //
     // In 2D, need 2 components for "a" to handle r-z properly (will need three
-    //  for r-theta-phi, but allowing only 3D cartesian for now)
-    int nComp = (BL_SPACEDIM == 2  ?  2  :  1);
+    // for r-theta-phi, but allowing only 3D cartesian for now).
+    //
+    const int nComp = (BL_SPACEDIM == 2  ?  2  :  1);
+
 #ifndef NDEBUG
     if (BL_SPACEDIM == 3)
-    {
 	assert(geomarray[level].IsCartesian());
-    }
 #endif
+
     acoefs[level] = new MultiFab(_ba, nComp, nGrow, Fab_allocate);
     acoefs[level]->setVal(a_def);
     a_valid.resize(1);
     a_valid[level] = true;
 
-    for(int i = 0; i < BL_SPACEDIM; ++i) {
+    for (int i = 0; i < BL_SPACEDIM; ++i)
+    {
 	BoxArray edge_boxes(_ba);
 	edge_boxes.surroundingNodes(i);
 	bcoefs[level][i] = new MultiFab(edge_boxes, 1, nGrow, Fab_allocate);
@@ -170,93 +197,102 @@ DivVis::initCoefficients (const BoxArray &_ba)
 }
 
 void
-DivVis::invalidate_a_to_level(int lev)
+DivVis::invalidate_a_to_level (int lev)
 {
     lev = (lev >= 0 ? lev : 0);
-    for (int i=lev; i<numLevels(); i++) a_valid[i]=false;
+    for (int i = lev; i < numLevels(); i++)
+        a_valid[i]=false;
 }
 
 void
-DivVis::invalidate_b_to_level(int lev)
+DivVis::invalidate_b_to_level (int lev)
 {
     lev = (lev >= 0 ? lev : 0);
-    for (int i=lev; i<numLevels(); i++) b_valid[i]=false;
+    for (int i = lev; i < numLevels(); i++)
+        b_valid[i]=false;
 }
 
 
 void
-DivVis::aCoefficients(const MultiFab &_a)
+DivVis::aCoefficients (const MultiFab& _a)
 {
-    assert( _a.ok() );
-    assert( _a.boxArray() == (acoefs[0])->boxArray() );
-    int nComp = (BL_SPACEDIM == 2  ?  2  :  1);
-    assert( _a.nComp() == nComp );
+    assert(_a.ok());
+    assert(_a.boxArray() == (acoefs[0])->boxArray());
+    const int nComp = (BL_SPACEDIM == 2  ?  2  :  1);
+    assert(_a.nComp() == nComp);
     invalidate_a_to_level(0);
     (*acoefs[0]).copy(_a,0,0,nComp);
-    return;
 }
 
 void
-DivVis::bCoefficients(const MultiFab &_b, int dir)
+DivVis::bCoefficients (const MultiFab& _b,
+                       int             dir)
 {
-    assert( _b.ok() );
-    assert( _b.boxArray() == (bcoefs[0][dir])->boxArray() );
-    assert( _b.nComp() == 1);
+    assert(_b.ok());
+    assert(_b.boxArray() == (bcoefs[0][dir])->boxArray());
+    assert(_b.nComp() == 1);
     invalidate_b_to_level(0);
     (*bcoefs[0][dir]).copy(_b,0,0,1);
-    return;
 }
 
 const MultiFab&
-DivVis::aCoefficients(int level)
+DivVis::aCoefficients (int level)
 {
     prepareForLevel(level);
     return *acoefs[level];
 }
 
 const MultiFab&
-DivVis::bCoefficients(int dir,int level)
+DivVis::bCoefficients (int dir,
+                       int level)
 {
     prepareForLevel(level);
     return *bcoefs[level][dir];
 }
 
-// must be defined for MultiGrid/CGSolver to work
+//
+// Must be defined for MultiGrid/CGSolver to work.
+//
 void
-DivVis::Fsmooth(MultiFab &solnL, const MultiFab &rhsL,
-		       int level, int phaseflag)
+DivVis::Fsmooth (MultiFab&       solnL,
+                 const MultiFab& rhsL,
+                 int             level,
+                 int             phaseflag)
 {
     OrientationIter oitr;
-    const FabSet &fw = (*undrrelxr[level])[oitr()]; 
-    const FabSet &tdw = (*tangderiv[level])[oitr()];
+
+    const FabSet& fw  = (*undrrelxr[level])[oitr()]; 
+    const FabSet& tdw = (*tangderiv[level])[oitr()];
     oitr++;
-    const FabSet &fs = (*undrrelxr[level])[oitr()]; 
-    const FabSet &tds = (*tangderiv[level])[oitr()];
-    oitr++;
-#if BL_SPACEDIM>2
-    const FabSet &fb = (*undrrelxr[level])[oitr()]; 
-    const FabSet &tdb = (*tangderiv[level])[oitr()];
-    oitr++;
-#endif
-    const FabSet &fe = (*undrrelxr[level])[oitr()]; 
-    const FabSet &tde = (*tangderiv[level])[oitr()];
-    oitr++;
-    const FabSet &fn = (*undrrelxr[level])[oitr()]; 
-    const FabSet &tdn = (*tangderiv[level])[oitr()];
+    const FabSet& fs  = (*undrrelxr[level])[oitr()]; 
+    const FabSet& tds = (*tangderiv[level])[oitr()];
     oitr++;
 #if BL_SPACEDIM>2
-    const FabSet &ft = (*undrrelxr[level])[oitr()]; 
-    const FabSet &tdt = (*tangderiv[level])[oitr()];
+    const FabSet& fb  = (*undrrelxr[level])[oitr()]; 
+    const FabSet& tdb = (*tangderiv[level])[oitr()];
     oitr++;
 #endif
-    const MultiFab  &a = aCoefficients(level);
-    const MultiFab  &bX = bCoefficients(0,level);
-    const MultiFab  &bY = bCoefficients(1,level);
+    const FabSet& fe  = (*undrrelxr[level])[oitr()]; 
+    const FabSet& tde = (*tangderiv[level])[oitr()];
+    oitr++;
+    const FabSet& fn  = (*undrrelxr[level])[oitr()]; 
+    const FabSet& tdn = (*tangderiv[level])[oitr()];
+    oitr++;
+#if BL_SPACEDIM>2
+    const FabSet& ft  = (*undrrelxr[level])[oitr()]; 
+    const FabSet& tdt = (*tangderiv[level])[oitr()];
+    oitr++;
+#endif
+    const MultiFab& a  = aCoefficients(level);
+    const MultiFab& bX = bCoefficients(0,level);
+    const MultiFab& bY = bCoefficients(1,level);
 #if BL_SPACEDIM>2
     const MultiFab  &bZ = bCoefficients(2,level);
 #endif
     int nc = solnL.nComp();
-    for(MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi) {
+
+    for (MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
+    {
 	DependentMultiFabIterator rhsLmfi(solnLmfi, rhsL);
 	DependentMultiFabIterator amfi(solnLmfi,  a);
 	DependentMultiFabIterator bXmfi(solnLmfi, bX);
@@ -282,7 +318,8 @@ DivVis::Fsmooth(MultiFab &solnL, const MultiFab &rhsL,
 #endif
 
 	oitr.rewind();
-        int gn = solnLmfi.index();
+        const int gn = solnLmfi.index();
+
 	const Mask& mw = *maskvals[level][gn][oitr()]; oitr++;
 	const Mask& ms = *maskvals[level][gn][oitr()]; oitr++;
 #if BL_SPACEDIM>2
@@ -356,41 +393,42 @@ DivVis::Fsmooth(MultiFab &solnL, const MultiFab &rhsL,
 }
 
 void 
-DivVis::compFlux (MultiFab &xflux, 
-		  MultiFab &yflux, 
+DivVis::compFlux (MultiFab& xflux, 
+		  MultiFab& yflux, 
 #if BL_SPACEDIM>2
-		  MultiFab &zflux, 
+		  MultiFab& zflux, 
 #endif
 		  MultiFab& x)
 {
-    int level = 0;
+    const int level   = 0;
     MCBC_Mode bc_mode = MCInhomogeneous_BC;
     applyBC(x,level,bc_mode);
     
-    const MultiFab  &a = aCoefficients(level);
-    const MultiFab  &bX = bCoefficients(0,level);
-    const MultiFab  &bY = bCoefficients(1,level);
+    const MultiFab& a  = aCoefficients(level);
+    const MultiFab& bX = bCoefficients(0,level);
+    const MultiFab& bY = bCoefficients(1,level);
 #if BL_SPACEDIM>2
-    const MultiFab  &bZ = bCoefficients(2,level);
+    const MultiFab& bZ = bCoefficients(2,level);
 #endif
     OrientationIter oitr;
-    const FabSet &tdw = (*tangderiv[level])[oitr()]; oitr++;
-    const FabSet &tds = (*tangderiv[level])[oitr()]; oitr++;
+    const FabSet& tdw = (*tangderiv[level])[oitr()]; oitr++;
+    const FabSet& tds = (*tangderiv[level])[oitr()]; oitr++;
 #if BL_SPACEDIM>2
-    const FabSet &tdb = (*tangderiv[level])[oitr()]; oitr++;
+    const FabSet& tdb = (*tangderiv[level])[oitr()]; oitr++;
 #endif
-    const FabSet &tde = (*tangderiv[level])[oitr()]; oitr++;
-    const FabSet &tdn = (*tangderiv[level])[oitr()]; oitr++;
+    const FabSet& tde = (*tangderiv[level])[oitr()]; oitr++;
+    const FabSet& tdn = (*tangderiv[level])[oitr()]; oitr++;
 #if BL_SPACEDIM>2
-    const FabSet &tdt = (*tangderiv[level])[oitr()]; oitr++;
+    const FabSet& tdt = (*tangderiv[level])[oitr()]; oitr++;
 #endif
-    int nc = x.nComp();
-    assert( nc == BL_SPACEDIM );
-    assert( nc == xflux.nComp() );
-    assert( nc == yflux.nComp() );
+    const int nc = x.nComp();
 
+    assert(nc == BL_SPACEDIM);
+    assert(nc == xflux.nComp());
+    assert(nc == yflux.nComp());
 
-    for(MultiFabIterator xmfi(x); xmfi.isValid(); ++xmfi) {
+    for (MultiFabIterator xmfi(x); xmfi.isValid(); ++xmfi)
+    {
 	DependentMultiFabIterator amfi(xmfi,  a);
 	DependentMultiFabIterator bXmfi(xmfi, bX);
 	DependentMultiFabIterator xfluxmfi(xmfi, xflux);
@@ -412,7 +450,7 @@ DivVis::compFlux (MultiFab &xflux,
 #endif
 
 	oitr.rewind();
-        int gn = xmfi.index();
+        const int gn = xmfi.index();
 	const Mask& mw = *maskvals[level][gn][oitr()]; oitr++;
 	const Mask& ms = *maskvals[level][gn][oitr()]; oitr++;
 #if BL_SPACEDIM>2
@@ -478,31 +516,34 @@ DivVis::compFlux (MultiFab &xflux,
     }
 }
 
-
-
 void
-DivVis::Fapply(MultiFab& y, const MultiFab &x, int level)
+DivVis::Fapply (MultiFab&       y,
+                const MultiFab& x,
+                int             level)
 {
-    const MultiFab  &a = aCoefficients(level);
-    const MultiFab  &bX = bCoefficients(0,level);
-    const MultiFab  &bY = bCoefficients(1,level);
+    const MultiFab& a  = aCoefficients(level);
+    const MultiFab& bX = bCoefficients(0,level);
+    const MultiFab& bY = bCoefficients(1,level);
 #if BL_SPACEDIM>2
-    const MultiFab  &bZ = bCoefficients(2,level);
+    const MultiFab& bZ = bCoefficients(2,level);
 #endif
     OrientationIter oitr;
-    const FabSet &tdw = (*tangderiv[level])[oitr()]; oitr++;
-    const FabSet &tds = (*tangderiv[level])[oitr()]; oitr++;
+    const FabSet& tdw = (*tangderiv[level])[oitr()]; oitr++;
+    const FabSet& tds = (*tangderiv[level])[oitr()]; oitr++;
 #if BL_SPACEDIM>2
-    const FabSet &tdb = (*tangderiv[level])[oitr()]; oitr++;
+    const FabSet& tdb = (*tangderiv[level])[oitr()]; oitr++;
 #endif
-    const FabSet &tde = (*tangderiv[level])[oitr()]; oitr++;
-    const FabSet &tdn = (*tangderiv[level])[oitr()]; oitr++;
+    const FabSet& tde = (*tangderiv[level])[oitr()]; oitr++;
+    const FabSet& tdn = (*tangderiv[level])[oitr()]; oitr++;
 #if BL_SPACEDIM>2
-    const FabSet &tdt = (*tangderiv[level])[oitr()]; oitr++;
+    const FabSet& tdt = (*tangderiv[level])[oitr()]; oitr++;
 #endif
-    int nc = y.nComp();
-    // HACK: Cast away const for compatibility with BoxLib constructors
-    for(MultiFabIterator xmfi((MultiFab&)x); xmfi.isValid(); ++xmfi) {
+    const int nc = y.nComp();
+    //
+    // HACK: Cast away const for compatibility with BoxLib constructors.
+    //
+    for (MultiFabIterator xmfi((MultiFab&)x); xmfi.isValid(); ++xmfi)
+    {
         DependentMultiFabIterator ymfi(xmfi,  y);
         DependentMultiFabIterator amfi(xmfi,  a);
         DependentMultiFabIterator bXmfi(xmfi, bX);
@@ -523,7 +564,7 @@ DivVis::Fapply(MultiFab& y, const MultiFab &x, int level)
 #endif
 
         oitr.rewind();
-        int gn = xmfi.index();
+        const int gn = xmfi.index();
 	const Mask& mw = *maskvals[level][gn][oitr()]; oitr++;
 	const Mask& ms = *maskvals[level][gn][oitr()]; oitr++;
 #if BL_SPACEDIM>2

@@ -1,5 +1,11 @@
+//BL_COPYRIGHT_NOTICE
+
 #ifndef _DivVis_H_
-#define _DivVis_H_ "$Id: DivVis.H,v 1.2 1998-04-15 21:48:09 marc Exp $"
+#define _DivVis_H_
+
+//
+// $Id: DivVis.H,v 1.3 1999-01-04 21:31:48 lijewski Exp $
+//
 
 #include <Tuple.H>
 #include <Boolean.H>
@@ -64,7 +70,8 @@
   \end{itemize}
   */
 class DivVis
-    : public MCLinOp
+    :
+    public MCLinOp
 {
 public:
     //
@@ -89,7 +96,7 @@ public:
     //
     //@ManDoc: get scalar alpha coefficient
     //
-    inline Real get_alpha () const;
+    Real get_alpha () const;
     //
     //@ManDoc: get scalar beta coefficient
     //
@@ -203,36 +210,52 @@ protected:
     Real beta;
 
 private:
-    //flag, can a coeffs be trusted at a level
+    //
+    // Flag, can a coeffs be trusted at a level.
+    //
     Array< bool > a_valid;
-    //flag, can b coeffs be trusted at a level
+    // Flag, can b coeffs be trusted at a level.
+    //
     Array< bool > b_valid;
-    //default value for a (MultiFab) coeficient
+    //
+    // Default value for a (MultiFab) coeficient.
+    //
     static Real a_def;
-    //default value for b (MultiFab) coeficient
+    //
+    // Default value for b (MultiFab) coeficient.
+    //
     static Real b_def;
-    //default value for alpha (scalar) coeficient
+    //
+    // Default value for alpha (scalar) coeficient.
+    //
     static Real alpha_def;
-    //default value for beta (scalar) coeficient
+    //
+    // Default value for beta (scalar) coeficient.
+    //
     static Real beta_def;
-    //Disallow copy constructors (for now...to be fixed)
+    //
+    // Disallow copy constructors (for now...to be fixed).
+    //
     DivVis (const DivVis&);
     DivVis& operator = (const DivVis&);
 };
 
-inline Real
+inline
+Real
 DivVis::get_alpha () const
 {
     return alpha;
 }
 
-inline Real
+inline
+Real
 DivVis::get_beta () const
 {
     return beta;
 }
 
-inline void
+inline
+void
 DivVis::setCoefficients (const MultiFab &_a,
 			 const MultiFab &_bX,
 			 const MultiFab &_bY
@@ -249,12 +272,13 @@ DivVis::setCoefficients (const MultiFab &_a,
 #endif
 }
 
-inline void
+inline
+void
 DivVis::setCoefficients (const MultiFab& _a,
 			 const MultiFab* _b)
 {
     aCoefficients(_a);
-    for (int n=0; n<BL_SPACEDIM; ++n) bCoefficients(_b[n], n);
+    for (int n = 0; n < BL_SPACEDIM; ++n) bCoefficients(_b[n], n);
 }
 
-#endif
+#endif /*_DivVis_H_*/

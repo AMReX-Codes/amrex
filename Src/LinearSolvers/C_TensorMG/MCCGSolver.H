@@ -1,5 +1,11 @@
+//BL_COPYRIGHT_NOTICE
+
 #ifndef _MCCGSOLVER_H_
-#define _MCCGSOLVER_H_ "$Id: MCCGSolver.H,v 1.3 1998-04-15 21:48:11 marc Exp $"
+#define _MCCGSOLVER_H_
+
+//
+// $Id: MCCGSolver.H,v 1.4 1999-01-04 21:31:48 lijewski Exp $
+//
 
 #ifdef BL_USE_NEW_HFILES
 #include <cmath>
@@ -100,27 +106,27 @@ public:
     //
     //@ManDoc: set maximum allowed number of CG iterations
     //
-    inline void setMaxIter (int _maxiter);
+    void setMaxIter (int _maxiter);
     //
     //@ManDoc: get maximum allowed number of CG iterations
     //
-    inline int getMaxIter () const;
+    int getMaxIter () const;
     //
     //@ManDoc: set flag determining whether MG preconditioning is used
     //
-    inline void setUseMGPrecond (bool _use_mg_precond);
+    void setUseMGPrecond (bool _use_mg_precond);
     //
     //@ManDoc: get  flag determining whether MG preconditioning is used
     //
-    inline bool getUseMGPrecond () const;
+    bool getUseMGPrecond () const;
     //
     //@ManDoc: set the verbosity value
     //
-    inline void setVerbose (int _verbose);
+    void setVerbose (int _verbose);
     //
     //@ManDoc: return the verbosity value
     //
-    inline int getVerbose ();
+    int getVerbose ();
 
 protected:
     //
@@ -192,40 +198,47 @@ private:
     MCCGSolver& operator= (const MCCGSolver&);
 };
 
-inline void
+inline
+void
 MCCGSolver::setMaxIter (int _maxiter)
 {
     maxiter = _maxiter;
 }
 
-inline int
+inline
+int
 MCCGSolver::getMaxIter () const
 {
     return maxiter;
 }
 
-inline void
+inline
+void
 MCCGSolver::setUseMGPrecond (bool _use_mg_precond)
 {
     use_mg_precond = _use_mg_precond;
     set_mg_precond();
 }
 
-inline bool
+inline
+bool
 MCCGSolver::getUseMGPrecond () const
 {
     return use_mg_precond;
 }
 
-inline void
+inline
+void
 MCCGSolver::setVerbose (int _verbose)
 {
     verbose = _verbose;
 }
 
-inline int
+inline
+int
 MCCGSolver::getVerbose ()
 {
     return verbose;
 }
-#endif
+
+#endif /*_MCCGSOLVER_H_*/

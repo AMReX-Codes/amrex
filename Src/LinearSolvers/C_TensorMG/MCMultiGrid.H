@@ -1,5 +1,11 @@
+//BL_COPYRIGHT_NOTICE
+
 #ifndef _MCMULTIGRID_H_
-#define _MCMULTIGRID_H_ "$Id: MCMultiGrid.H,v 1.2 1998-04-15 21:48:14 marc Exp $"
+#define _MCMULTIGRID_H_
+
+//
+// $Id: MCMultiGrid.H,v 1.3 1999-01-04 21:31:49 lijewski Exp $
+//
 
 #include <Boolean.H>
 #include <Array.H>
@@ -103,31 +109,31 @@ public:
     //
     //@ManDoc: return the linear operator
     //
-    inline MCLinOp& linOp ();
+    MCLinOp& linOp ();
     //
     //@ManDoc: set the maximum permitted multigrid iterations
     //
-    inline void setMaxIter (int _maxiter);
+    void setMaxIter (int _maxiter);
     //
     //@ManDoc: return the maximum permitted multigrid iterations
     //
-    inline int getMaxIter () const;
+    int getMaxIter () const;
     //
     //@ManDoc: set the number of multigrid iterations to perform
     //
-    inline void setNumIter (int _numiter);
+    void setNumIter (int _numiter);
     //
     //@ManDoc: return the number of multigrid iterations
     //
-    inline int getNumIter () const;
+    int getNumIter () const;
     //
     //@ManDoc: set the flag for whether to use CGSolver at coarsest level
     //
-    inline void setUseCG (int _usecg);
+    void setUseCG (int _usecg);
     //
     //@ManDoc: return the flag for whether to use CGSolver at coarsest level
     //
-    inline int getUseCG () const;
+    int getUseCG () const;
     //
     //@ManDoc: set/return the number of multigrid levels
     //
@@ -135,75 +141,75 @@ public:
     //
     //@ManDoc: return the number of multigrid levels
     //
-    inline int getNumLevels () const;
+    int getNumLevels () const;
     //
     //@ManDoc: return the number of components in solution
     //
-    inline int getNumComponents () const;
+    int getNumComponents () const;
     //
     //@ManDoc: set the verbosity value
     //
-    inline void setVerbose (int _verbose);
+    void setVerbose (int _verbose);
     //
     //@ManDoc: return the verbosity value
     //
-    inline int getVerbose ();
+    int getVerbose ();
     //
     //@ManDoc: set the number of passes of the pre-smoother
     //
-    inline void set_preSmooth (int pre_smooth);
+    void set_preSmooth (int pre_smooth);
     //
     //@ManDoc: set the number of passes of the post-smoother
     //
-    inline void set_postSmooth (int post_smooth);
+    void set_postSmooth (int post_smooth);
     //
     //@ManDoc: set the number of passes of the coarse-grid smoother/mg iteration
     //
-    inline void set_cntRelax (int cnt_relax);
+    void set_cntRelax (int cnt_relax);
     //
     //@ManDoc: set the number of passes of the bottom mg relaxer
     //
-    inline void set_finalSmooth (int final_smooth);
+    void set_finalSmooth (int final_smooth);
     //
     //@ManDoc: Return the number of pre-smooth iterations at the level
     //
-    inline int preSmooth () const;
+    int preSmooth () const;
     //
     //@ManDoc: Return the number of post-smooth iterations at the level
     //
-    inline int postSmooth () const;
+    int postSmooth () const;
     //
     //@ManDoc: Return the number of level relaxations  (not implemented)
     //
-    inline int cntRelax () const;
+    int cntRelax () const;
     //
     //@ManDoc: Return the number of smoothing passes at bottom of MG (if no cg)
     //
-    inline int finalSmooth () const;
+    int finalSmooth () const;
     //
     //@ManDoc: set the maximum permitted absolute tolerance (<0 bypasses test)
     //
-    inline void set_atol_b (Real atol);
+    void set_atol_b (Real atol);
     //
     //@ManDoc: get the maximum permitted absolute tolerance
     //
-    inline Real get_atol_b () const;    
+    Real get_atol_b () const;    
     //
     //@ManDoc: set the maximum permitted relative tolerance (<0 bypasses test)
     //
-    inline void set_rtol_b (Real rtol);
+    void set_rtol_b (Real rtol);
     //
     //@ManDoc: get the maximum permitted relative tolerance
     //
-    inline Real get_rtol_b () const;
+    Real get_rtol_b () const;
     //
     //@ManDoc: set the number of post-cg relax passes
     //
-    inline void set_nu_b (int _nu_b);
+    void set_nu_b (int _nu_b);
     //
     //@ManDoc: set the number of post-cg relax passes
     //
-    inline int get_nu_b () const;
+    int get_nu_b () const;
     
 protected:
     //
@@ -375,154 +381,179 @@ private:
     MCMultiGrid& operator= (const MCMultiGrid&);
 };
 
-inline MCLinOp&
+inline
+MCLinOp&
 MCMultiGrid::linOp ()
 {
     return Lp;
 }
 
-inline void
+inline
+void
 MCMultiGrid::setMaxIter (int _maxiter)
 {
     maxiter = _maxiter;
 }
 
-inline int
+inline
+int
 MCMultiGrid::getMaxIter () const
 {
     return maxiter;
 }
 
-inline void
+inline
+void
 MCMultiGrid::setNumIter (int _numiter)
 {
     numiter = _numiter;
 }
 
-inline int
+inline
+int
 MCMultiGrid::getNumIter () const
 {
     return numiter;
 }
 
-inline void
+inline
+void
 MCMultiGrid::setUseCG (int _usecg)
 {
     usecg = _usecg;
 }
 
-inline int
+inline
+int
 MCMultiGrid::getUseCG () const
 {
     return usecg;
 }
 
-inline int
+inline
+int
 MCMultiGrid::getNumLevels () const
 {
     return numlevels;
 }
 
-inline int
+inline
+int
 MCMultiGrid::getNumComponents () const
 {
     return numcomps;
 }
 
-inline void
+inline
+void
 MCMultiGrid::setVerbose (int _verbose)
 {
     verbose = _verbose;
 }
 
-inline int
+inline
+int
 MCMultiGrid::getVerbose ()
 {
     return verbose;
 }
 
-inline void
+inline
+void
 MCMultiGrid::set_preSmooth (int pre_smooth)
 {
     nu_1 = pre_smooth;
 }
 
-inline void
+inline
+void
 MCMultiGrid::set_postSmooth (int post_smooth)
 {
     nu_2 = post_smooth;
 }
 
-inline void
+inline
+void
 MCMultiGrid::set_cntRelax (int cnt_relax)
 {
     nu_0 = cnt_relax;
 }
 
-inline void
+inline
+void
 MCMultiGrid::set_finalSmooth (int final_smooth)
 {
     nu_f = final_smooth;
 }
 
-inline int
+inline
+int
 MCMultiGrid::preSmooth () const
 {
     return nu_1;
 }
 
-inline int
+inline
+int
 MCMultiGrid::postSmooth () const
 {
     return nu_2;
 }
 
-inline int
+inline
+int
 MCMultiGrid::cntRelax () const
 {
     return nu_0;
 }
 
-inline int
+inline
+int
 MCMultiGrid::finalSmooth () const
 {
     return nu_f;
 }
 
-inline void
+inline
+void
 MCMultiGrid::set_atol_b (Real atol)
 {
     atol_b = atol;
 }
 
-inline Real
+inline
+Real
 MCMultiGrid::get_atol_b () const
 {
     return atol_b;
 }
 
-inline void
+inline
+void
 MCMultiGrid::set_rtol_b (Real rtol)
 {
     rtol_b = rtol;
 }
 
-inline Real
+inline
+Real
 MCMultiGrid::get_rtol_b () const
 {
     return rtol_b;
 }
 
-inline void
+inline
+void
 MCMultiGrid::set_nu_b (int _nu_b)
 {
     nu_b = _nu_b;
 }
 
-inline int
+inline
+int
 MCMultiGrid::get_nu_b () const
 {
     return nu_b;
 }
 
-#endif
+#endif /*_MCMULTIGRID_H_*/
