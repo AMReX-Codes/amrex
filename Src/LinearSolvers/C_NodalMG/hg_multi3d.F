@@ -1822,7 +1822,7 @@ c edges
      @             + 6.d0 * ( sigmaf(if+m-1,jf+ji-1,kf+ki-1,4)
      @                       -sigmaf(if+m  ,jf+ji-1,kf+ki-1,4)) * kdir 
      @             + 6.d0 * (-sigmaf(if+m-1,jf+ji-1,kf+ki-1,5)
-     @                  -sigmaf(if+m  ,jf+ji-1,kf+ki-1,5)) * jdir * kdir 
+     @                  -sigmaf(if+m  ,jf+ji-1,kf+ki-1,5)) * jdir * kdir
 
                   sum = sum - fac * cen * fdst(if+m,jf,kf)
  60               continue
@@ -3887,8 +3887,8 @@ cdir$ ivdep
  50            dest(i+1,j+1,k) = (signd(i,j+1,k,1)   * dest(i,j+1,k) +
      @                            signd(i+1,j+1,k,1) * dest(i+2,j+1,k) +
      @                            signd(i+1,j,k,2)   * dest(i+1,j,k) +
-     @                            signd(i+1,j+1,k,2) * dest(i+1,j+2,k)) /
-     @                           (signd(i,j+1,k,1) + signd(i+1,j+1,k,1) +
+     @                           signd(i+1,j+1,k,2) * dest(i+1,j+2,k)) /
+     @                          (signd(i,j+1,k,1) + signd(i+1,j+1,k,1) +
      @                            signd(i+1,j,k,2) + signd(i+1,j+1,k,2))
       end if
       if (ir .eq. 2 .and. kr .eq. 2) then
