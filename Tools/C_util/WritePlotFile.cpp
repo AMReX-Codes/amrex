@@ -3,9 +3,16 @@
 // level 1 data. All this could be cleaner, but this is throw-away code
 // anyway, so why bother?
 
+#ifdef BL_USE_NEW_HFILES
+#include <iostream>
+#include <fstream>
+#include <cstdio>
+using std::ios;
+#else
 #include <iostream.h>
 #include <fstream.h>
-
+#include <stdio.h>
+#endif
 
 #ifdef BL_ARCH_CRAY
 #ifdef BL_USE_DOUBLE
@@ -35,6 +42,10 @@ using std::set_new_handler;
 #endif
 
 #include <WritePlotFile.H>
+
+#ifdef BL_USE_SETBUF
+#define pubsetbuf setbuf
+#endif
 
 aString
 thePlotFileType ()
