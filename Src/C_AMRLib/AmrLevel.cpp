@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.65 2000-03-01 20:19:02 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.66 2000-03-24 22:10:02 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -933,7 +933,6 @@ FillPatchIteratorHelper::isValid ()
             //
             amrLevels[l].set_preferred_boundary_values(m_fab,
                                                        m_index,
-                                                       -1,
                                                        m_scomp,
                                                        0,
                                                        m_ncomp,
@@ -1034,7 +1033,6 @@ FillPatchIteratorHelper::isValid ()
     //
     m_amrlevel.set_preferred_boundary_values(m_fab,
                                              m_index,
-                                             currentIndex,
                                              m_scomp,
                                              0,
                                              m_ncomp,
