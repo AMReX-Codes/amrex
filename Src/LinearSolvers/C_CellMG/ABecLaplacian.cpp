@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ABecLaplacian.cpp,v 1.4 1998-07-29 19:09:49 lijewski Exp $
+// $Id: ABecLaplacian.cpp,v 1.5 1999-01-04 18:09:00 marc Exp $
 //
 
 #include <ABecLaplacian.H>
@@ -152,6 +152,61 @@ ABecLaplacian::invalidate_b_to_level (int lev)
     for (int i = lev; i < numLevels(); i++)
         b_valid[i] = false;
 }
+
+void
+ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
+			 MultiFab& in, const BC_Mode& bc_mode)
+{
+    int level = 0;
+    applyBC(in,level,bc_mode);
+    const BoxArray& bxa = gbox[level];
+    const MultiFab& a   = aCoefficients(level);
+    const MultiFab& bX  = bCoefficients(0,level);
+    const MultiFab& bY  = bCoefficients(1,level);
+#if (BL_SPACEDIM == 3)
+    const MultiFab& bZ  = bCoefficients(2,level);
+#endif
+    int nc = in.nComp();
+
+    for (MultiFabIterator inmfi(in); inmfi.isValid(); ++inmfi)
+    {
+        DependentMultiFabIterator amfi(inmfi,  a);
+        DependentMultiFabIterator bXmfi(inmfi, bX);
+        DependentMultiFabIterator bYmfi(inmfi, bY);
+        DependentMultiFabIterator xflmfi(inmfi, xflux);
+        DependentMultiFabIterator yflmfi(inmfi, yflux);
+#if (BL_SPACEDIM == 3)	
+        DependentMultiFabIterator bZmfi(inmfi, bZ);
+        DependentMultiFabIterator zflmfi(inmfi, zflux);
+#endif
+        assert(bxa[inmfi.index()] == inmfi.validbox());
+
+        FORT_FLUX(inmfi().dataPtr(),
+		  ARLIM(inmfi().loVect()), ARLIM(inmfi().hiVect()),
+		  &alpha, &beta, amfi().dataPtr(), 
+		  ARLIM(amfi().loVect()), ARLIM(amfi().hiVect()),
+		  bXmfi().dataPtr(), 
+		  ARLIM(bXmfi().loVect()), ARLIM(bXmfi().hiVect()),
+		  bYmfi().dataPtr(), 
+		  ARLIM(bYmfi().loVect()), ARLIM(bYmfi().hiVect()),
+#if (BL_SPACEDIM == 3)
+		  bZmfi().dataPtr(), 
+		  ARLIM(bZmfi().loVect()), ARLIM(bZmfi().hiVect()),
+#endif
+		  inmfi.validbox().loVect(), inmfi.validbox().hiVect(), &nc,
+		  h[level],
+		  xflmfi().dataPtr(),
+		  ARLIM(xflmfi().loVect()), ARLIM(xflmfi().hiVect()),
+		  yflmfi().dataPtr(),
+		  ARLIM(yflmfi().loVect()), ARLIM(yflmfi().hiVect())
+#if (BL_SPACEDIM == 3)
+		  ,zflmfi().dataPtr(),
+		  ARLIM(zflmfi().loVect()), ARLIM(zflmfi().hiVect())
+#endif
+		  );
+    }
+}
+
 
 //
 // Must be defined for MultiGrid/CGSolver to work.

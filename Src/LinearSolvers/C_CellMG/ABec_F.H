@@ -2,7 +2,7 @@
 #define _AABBEC_F_H_
 
 /*
-** $Id: ABec_F.H,v 1.1 1998-03-24 07:05:51 almgren Exp $
+** $Id: ABec_F.H,v 1.2 1999-01-04 18:09:01 marc Exp $
 */
 
 #include <REAL.H>
@@ -13,12 +13,14 @@
 #define FORT_GSRB          gsrb2daabbec
 #define FORT_CGPRECND      cgprecnd2daabbec
 #define FORT_ADOTX         adotx2daabbec
+#define FORT_FLUX          flux2daabbec
 #endif
 
 #if (BL_SPACEDIM == 3)
 #define FORT_GSRB          gsrb3daabbec
 #define FORT_CGPRECND      cgprecnd3daabbec
 #define FORT_ADOTX         adotx3daabbec
+#define FORT_FLUX          flux3daabbec
 #endif
 
 #endif
@@ -32,12 +34,14 @@
 #define FORT_GSRB     GSRB2DAABBEC
 #define FORT_CGPRECND CGPRECND2DAABBEC
 #define FORT_ADOTX    ADOTX2DAABBEC
+#define FORT_FLUX     FLUX2DAABBEC
 #endif
 
 #ifdef BL_FORT_USE_UNDERSCORE
 #define FORT_GSRB     gsrb2daabbec_
 #define FORT_CGPRECND cgprecnd2daabbec_
 #define FORT_ADOTX    adotx2daabbec_
+#define FORT_FLUX     flux2daabbec_
 #endif
 
 #endif
@@ -49,12 +53,14 @@
 #define FORT_GSRB     GSRB3DAABBEC
 #define FORT_CGPRECND CGPRECND3DAABBEC
 #define FORT_ADOTX    ADOTX3DAABBEC
+#define FORT_FLUX     FLUX3DAABBEC
 #endif
 
 #ifdef BL_FORT_USE_UNDERSCORE
 #define FORT_GSRB     gsrb3daabbec_
 #define FORT_CGPRECND cgprecnd3daabbec_
 #define FORT_ADOTX    adotx3daabbec_
+#define FORT_FLUX     flux3daabbec_
 #endif
 
 #endif
@@ -104,6 +110,18 @@ extern "C"
         const Real* bY, ARLIM_P(bY_lo), ARLIM_P(bY_hi),
         const int *lo, const int *hi, const int *nc,
         const Real *h
+        );
+    
+    void FORT_FLUX(
+        const Real *x, ARLIM_P(x_lo), ARLIM_P(x_hi),
+        const Real* alpha, const Real* beta,
+        const Real* a , ARLIM_P(a_lo),  ARLIM_P(a_hi),
+        const Real* bX, ARLIM_P(bX_lo), ARLIM_P(bX_hi),
+        const Real* bY, ARLIM_P(bY_lo), ARLIM_P(bY_hi),
+        const int *lo, const int *hi, const int *nc,
+        const Real *h,
+        const Real* xflux, ARLIM_P(xflux_lo), ARLIM_P(xflux_hi),
+        const Real* yflux, ARLIM_P(yflux_lo), ARLIM_P(yflux_hi)
         );
 #endif    
 
@@ -155,6 +173,20 @@ extern "C"
         const Real* bZ, ARLIM_P(bZ_lo), ARLIM_P(bZ_hi),
         const int *lo, const int *hi, const int *nc,
         const Real *h
+        );
+    
+    void FORT_FLUX(
+        const Real *x, ARLIM_P(x_lo), ARLIM_P(x_hi),
+        const Real* alpha, const Real* beta,
+        const Real* a , ARLIM_P(a_lo),  ARLIM_P(a_hi),
+        const Real* bX, ARLIM_P(bX_lo), ARLIM_P(bX_hi),
+        const Real* bY, ARLIM_P(bY_lo), ARLIM_P(bY_hi),
+        const Real* bZ, ARLIM_P(bZ_lo), ARLIM_P(bZ_hi),
+        const int *lo, const int *hi, const int *nc,
+        const Real *h,
+        Real* xflux, ARLIM_P(xflux_lo), ARLIM_P(xflux_hi),
+        Real* yflux, ARLIM_P(yflux_lo), ARLIM_P(yflux_hi),
+        Real* zflux, ARLIM_P(zflux_lo), ARLIM_P(zflux_hi)
         );
 #endif
 }

@@ -4,7 +4,7 @@
 #define _ABecLAPLACIAN_H_
 
 //
-// $Id: ABecLaplacian.H,v 1.3 1998-07-07 17:25:11 lijewski Exp $
+// $Id: ABecLaplacian.H,v 1.4 1999-01-04 18:09:00 marc Exp $
 //
 
 #include <Tuple.H>
@@ -85,6 +85,11 @@ public:
     //@ManDoc: destructor
     //
     virtual ~ABecLaplacian ();
+    //
+    //@ManDoc: Compute extensive (area-weighted) flux associated with the op
+    //
+    virtual void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
+			   MultiFab& in, const BC_Mode& bc_mode=Inhomogeneous_BC);
     //
     //@ManDoc: Set scalar coefficients.
     //
