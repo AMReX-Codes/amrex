@@ -648,6 +648,7 @@ void restrict_level(MultiFab& dest, int bflag,
 		    const level_interface& lev_interface,
 		    const amr_boundary_class& bdy)
 {
+    assert(bflag == 0);
     for (int igrid = 0; igrid < dest.length(); igrid++) 
     {
 	if (bflag) 

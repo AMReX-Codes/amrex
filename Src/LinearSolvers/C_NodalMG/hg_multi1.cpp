@@ -47,8 +47,7 @@ extern "C"
 #endif
 }
 
-void 
-holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
+void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
 				PArray<MultiFab>& Source,
 				PArray<MultiFab>& Coarse_source,
 				PArray<MultiFab>& Sigma,
@@ -193,7 +192,7 @@ holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
     singular = false;
     if (mg_boundary.singular()) 
     {
-	long sng;
+	long sng = 0;
 	for (int i = 0; i < mg_mesh[0].length(); i++) 
 	{
 	    sng += mg_mesh[0][i].numPts();
@@ -208,8 +207,7 @@ holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
 
 #ifndef HG_CONSTANT
 
-void 
-holy_grail_sigma_restrictor_class::fill(FArrayBox& patch,
+void holy_grail_sigma_restrictor_class::fill(FArrayBox& patch,
 					const Box& region,
 					const FArrayBox& fgr,
 					const IntVect& rat) const
@@ -295,8 +293,7 @@ holy_grail_sigma_restrictor_class::fill(FArrayBox& patch,
 
 #endif
 
-void 
-holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
+void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 {
    
 #ifdef HG_TERRAIN

@@ -236,9 +236,11 @@ void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArr
     
     
     assert(type(Source[lev_min]) == type(Dest[lev_min]));
+#ifndef NDEBUG
     for (int i = lev_min; i <= lev_max; i++)
 	assert(Source[i].boxArray() == Dest[i].boxArray());
-    
+#endif
+
     // old version checked that these matched ml_mesh, but that's
     // harder to do with pure BoxLib.
     //if (source.mesh() != ml_mesh || dest.mesh() != ml_mesh)
