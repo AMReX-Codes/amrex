@@ -57,8 +57,8 @@ private:
 class task_fceres_2 : public task_fec_base
 {
 public:
-    task_fceres_2(FCERES f_, MultiFab& r_, const MultiFab& s_, const MultiFab& d_, const MultiFab& sg_, int igrid_, task_fab* c_, task_fab* sc_, const Box& creg_, const Real h_[BL_SPACEDIM], const IntVect& rat_, int idim_, int idir_)
-	: task_fec_base(r_, igrid_), f(f_), s(s_), d(d_), sg(sg_), creg(creg_), rat(rat_), idim(idim_), idir(idir_)
+    task_fceres_2(FCERES f_, task_list& tl_, MultiFab& r_, const MultiFab& s_, const MultiFab& d_, const MultiFab& sg_, int igrid_, task_fab* c_, task_fab* sc_, const Box& creg_, const Real h_[BL_SPACEDIM], const IntVect& rat_, int idim_, int idir_)
+	: task_fec_base(tl_, r_, igrid_), f(f_), s(s_), d(d_), sg(sg_), creg(creg_), rat(rat_), idim(idim_), idir(idir_)
     {
 	push_back(c_);
 	push_back(sc_);
@@ -69,28 +69,24 @@ public:
     }
     virtual bool ready()
     {
-	if ( task_fec_base::ready() )
+	if ( is_local_target() )
 	{
-	    if ( is_local_target() )
-	    {
-		const int igrid = grid_number();
-		FArrayBox& r_fab = target_fab();
-		const Box& r_fab_box = r_fab.box();
-		const FArrayBox& s_fab = s[igrid];
-		const Box& s_fab_box = s_fab.box();
-		const FArrayBox& d_fab = d[igrid];
-		const Box& d_fab_box = d_fab.box();
-		const FArrayBox& c_fab = task_fab_result(0);
-		const Box& c_fab_box = c_fab.box();
-		const FArrayBox& sg_fab = sg[igrid];
-		const Box& sg_fab_box = sg_fab.box();
-		const FArrayBox& sc_fab = task_fab_result(1);
-		const Box& sc_fab_box = sc_fab.box();
-		(*f)(r_fab.dataPtr(), DIMLIST(r_fab_box), s_fab.dataPtr(), DIMLIST(s_fab_box), d_fab.dataPtr(), DIMLIST(d_fab_box), c_fab.dataPtr(), DIMLIST(c_fab_box), sg_fab.dataPtr(), DIMLIST(sg_fab_box), sc_fab.dataPtr(), DIMLIST(sc_fab_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir);
-	    }
-	    return true;
+	    const int igrid = grid_number();
+	    FArrayBox& r_fab = target_fab();
+	    const Box& r_fab_box = r_fab.box();
+	    const FArrayBox& s_fab = s[igrid];
+	    const Box& s_fab_box = s_fab.box();
+	    const FArrayBox& d_fab = d[igrid];
+	    const Box& d_fab_box = d_fab.box();
+	    const FArrayBox& c_fab = task_fab_result(0);
+	    const Box& c_fab_box = c_fab.box();
+	    const FArrayBox& sg_fab = sg[igrid];
+	    const Box& sg_fab_box = sg_fab.box();
+	    const FArrayBox& sc_fab = task_fab_result(1);
+	    const Box& sc_fab_box = sc_fab.box();
+	    (*f)(r_fab.dataPtr(), DIMLIST(r_fab_box), s_fab.dataPtr(), DIMLIST(s_fab_box), d_fab.dataPtr(), DIMLIST(d_fab_box), c_fab.dataPtr(), DIMLIST(c_fab_box), sg_fab.dataPtr(), DIMLIST(sg_fab_box), sc_fab.dataPtr(), DIMLIST(sc_fab_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir);
 	}
-	return false;
+	return true;
     };
 private:
     FCERES f;
@@ -107,8 +103,8 @@ private:
 class task_fceres_4 : public task_fec_base
 {
 public:
-    task_fceres_4(FCERES f_, const list<int> tll_, const Box& freg_, MultiFab& r_, const MultiFab& s_, int igrid_, task_fab* ff_, task_fab* cc_, task_fab* sigmaf_, task_fab* sigmac_, const Box& creg_, const Real h_[BL_SPACEDIM], const IntVect& rat_, const Array<int>& ga_, const IntVect& t_ = IntVect())
-	: task_fec_base(tll_, freg_, r_, igrid_), f(f_), s(s_), creg(creg_), rat(rat_), ga(ga_), t(BL_SPACEDIM)
+    task_fceres_4(FCERES f_, task_list& tl_, MultiFab& r_, const MultiFab& s_, int igrid_, task_fab* ff_, task_fab* cc_, task_fab* sigmaf_, task_fab* sigmac_, const Box& creg_, const Real h_[BL_SPACEDIM], const IntVect& rat_, const Array<int>& ga_, const IntVect& t_ = IntVect())
+	: task_fec_base(tl_, r_, igrid_), f(f_), s(s_), creg(creg_), rat(rat_), ga(ga_), t(BL_SPACEDIM)
     {
 	push_back(ff_);
 	push_back(cc_);
@@ -122,29 +118,25 @@ public:
     }
     virtual bool ready()
     {
-	if ( task_fec_base::ready() )
+	if ( is_local_target() )
 	{
-	    if ( is_local_target() )
-	    {
-		const int igrid = grid_number();
-		FArrayBox& r_fab = target_fab();
-		const Box& r_fab_box = r_fab.box();
-		const FArrayBox& s_fab = s[igrid];
-		const Box& s_fab_box = s_fab.box();
+	    const int igrid = grid_number();
+	    FArrayBox& r_fab = target_fab();
+	    const Box& r_fab_box = r_fab.box();
+	    const FArrayBox& s_fab = s[igrid];
+	    const Box& s_fab_box = s_fab.box();
 
-		const FArrayBox& ff_fab = task_fab_result(0);
-		const Box& ff_fab_box = ff_fab.box();
-		const FArrayBox& cc_fab = task_fab_result(1);
-		const Box& cc_fab_box = cc_fab.box();
-		const FArrayBox& sigmaf_fab = task_fab_result(2);
-		const Box& sigmaf_fab_box = sigmaf_fab.box();
-		const FArrayBox& sigmac_fab = task_fab_result(3);
-		const Box& sigmac_fab_box = sigmac_fab.box();
-		(*f)(r_fab.dataPtr(), DIMLIST(r_fab_box), s_fab.dataPtr(), DIMLIST(s_fab_box), ff_fab.dataPtr(), DIMLIST(ff_fab_box), cc_fab.dataPtr(), DIMLIST(cc_fab_box), sigmaf_fab.dataPtr(), DIMLIST(sigmaf_fab_box), sigmac_fab.dataPtr(), DIMLIST(sigmac_fab_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), t.dataPtr());
-	    }
-	    return true;
+	    const FArrayBox& ff_fab = task_fab_result(0);
+	    const Box& ff_fab_box = ff_fab.box();
+	    const FArrayBox& cc_fab = task_fab_result(1);
+	    const Box& cc_fab_box = cc_fab.box();
+	    const FArrayBox& sigmaf_fab = task_fab_result(2);
+	    const Box& sigmaf_fab_box = sigmaf_fab.box();
+	    const FArrayBox& sigmac_fab = task_fab_result(3);
+	    const Box& sigmac_fab_box = sigmac_fab.box();
+	    (*f)(r_fab.dataPtr(), DIMLIST(r_fab_box), s_fab.dataPtr(), DIMLIST(s_fab_box), ff_fab.dataPtr(), DIMLIST(ff_fab_box), cc_fab.dataPtr(), DIMLIST(cc_fab_box), sigmaf_fab.dataPtr(), DIMLIST(sigmaf_fab_box), sigmac_fab.dataPtr(), DIMLIST(sigmac_fab_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), t.dataPtr());
 	}
-	return false;
+	return true;
     }
 private:
     FCERES f;
@@ -387,13 +379,13 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	const int idir = (geo & level_interface::LOW) ? -1 : 1;
 	const Box& cbox = fres_cbox[lev][iface];
 	const Box& sigmacbox = fres_scbox[lev][iface];
-	task_fab* sigmac = new task_fill_patch(resid[mglev], igrid, sigmacbox, sigma[mglevc], lev_interface[mglevc], bndry, -1, -1);
-	task_fab* cdst   = new task_fill_patch(resid[mglev], igrid, cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure(), -1, -1);
+	task_fab* sigmac = new task_fill_patch(tl, resid[mglev], igrid, sigmacbox, sigma[mglevc], lev_interface[mglevc], bndry, -1, -1);
+	task_fab* cdst   = new task_fill_patch(tl, resid[mglev], igrid, cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure(), -1, -1);
 	const Box& creg = fres_creg[lev][iface];
 	if (m_hg_terrain)
 	{
 	    tl.add_task(
-		new task_fceres_2(&FORT_HGFRES_TERRAIN, resid[mglev], source[lev], dest[lev], sigma[mglev], igrid, cdst, sigmac, creg, h[mglev], rat, idim, idir)
+		new task_fceres_2(&FORT_HGFRES_TERRAIN, tl, resid[mglev], source[lev], dest[lev], sigma[mglev], igrid, cdst, sigmac, creg, h[mglev], rat, idim, idir)
 		);
 	}
 	else if (m_hg_full_stencil)
@@ -409,7 +401,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	else
 	{
 	    tl.add_task(
-		new task_fceres_2(&FORT_HGFRES, resid[mglev], source[lev], dest[lev], sigma[mglev], igrid, cdst, sigmac, creg, h[mglev], rat, idim, idir)
+		new task_fceres_2(&FORT_HGFRES, tl, resid[mglev], source[lev], dest[lev], sigma[mglev], igrid, cdst, sigmac, creg, h[mglev], rat, idim, idir)
 		);
 	}
     }
@@ -438,35 +430,37 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		const Box& cbox = eres_cbox[lev][iedge];
 		const Box& sigmafbox = eres_sfbox[lev][iedge];
 		const Box& sigmacbox = eres_scbox[lev][iedge];
-		task_fab* sigmaf = new task_fill_patch(resid[mglev], igrid, sigmafbox, sigma[mglev],  lev_interface[mglev],  bndry, 1, iedge);
-		task_fab* sigmac = new task_fill_patch(resid[mglev], igrid, sigmacbox, sigma[mglevc], lev_interface[mglevc], bndry, -1, -1);
+		task_fab* sigmaf = new task_fill_patch(tl, resid[mglev], igrid, sigmafbox, sigma[mglev],  lev_interface[mglev],  bndry, 1, iedge);
+		task_fab* sigmac = new task_fill_patch(tl, resid[mglev], igrid, sigmacbox, sigma[mglevc], lev_interface[mglevc], bndry, -1, -1);
 		const Box& creg = eres_creg[lev][iedge];
 		const IntVect t = lev_interface[mglev].box(1, iedge).type();
-		task_fab* fdst = new task_fill_patch(resid[mglev], igrid, fbox, dest[lev],   lev_interface[mglev],  boundary.pressure(), 1, iedge);
-		task_fab* cdst = new task_fill_patch(resid[mglev], igrid, cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure(), -1, -1);
+		task_fab* fdst = new task_fill_patch(tl, resid[mglev], igrid, fbox, dest[lev],   lev_interface[mglev],  boundary.pressure(), 1, iedge);
+		task_fab* cdst = new task_fill_patch(tl, resid[mglev], igrid, cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure(), -1, -1);
 		Array<int> ga = lev_interface[mglev].geo_array(1, iedge);
+		task::task_proxy tp;
+		if (m_hg_terrain)
+		{
+		    tp = tl.add_task(
+			new task_fceres_4(&FORT_HGERES_TERRAIN, tl, resid[mglev], source[lev], igrid, fdst, cdst, sigmaf, sigmac, creg, h[mglev], rat, ga, t)
+			);
+		}
+		else
+		{
+		    tp = tl.add_task(
+			new task_fceres_4(&FORT_HGERES,         tl, resid[mglev], source[lev], igrid, fdst, cdst, sigmaf, sigmac, creg, h[mglev], rat, ga, t)
+			);
+		}
 		// fill in the grids on the other sides, if any
-		list<int> tll;
 		const Box& freg = lev_interface[mglev].node_box(1, iedge);
 		for (int i = 1; i < lev_interface[mglev].ngrids(1); i++) 
 		{
 		    const int jgrid = lev_interface[mglev].grid(1, iedge, i);
 		    if (jgrid >= 0 && jgrid != igrid)
 		    {
-			tll.push_back(jgrid);
+			tl.add_task(
+			    new task_copy(tl, resid[mglev], jgrid, resid[mglev], igrid, freg)
+			    )->depend_on(tp);
 		    }
-		}
-		if (m_hg_terrain)
-		{
-		    tl.add_task(
-			new task_fceres_4(&FORT_HGERES_TERRAIN, tll, freg, resid[mglev], source[lev], igrid, fdst, cdst, sigmaf, sigmac, creg, h[mglev], rat, ga, t)
-			);
-		}
-		else
-		{
-		    tl.add_task(
-			new task_fceres_4(&FORT_HGERES,         tll, freg, resid[mglev], source[lev], igrid, fdst, cdst, sigmaf, sigmac, creg, h[mglev], rat, ga, t)
-			);
 		}
 	    }
 	}
@@ -490,34 +484,36 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		const Box& cbox = cres_cbox[lev][icor];
 		const Box& sigmafbox = cres_sfbox[lev][icor];
 		const Box& sigmacbox = cres_scbox[lev][icor];
-		task_fab* sigmaf = new task_fill_patch(resid[mglev], igrid, sigmafbox, sigma[mglev],  lev_interface[mglev],  bndry, 0, icor);
-		task_fab* sigmac = new task_fill_patch(resid[mglev], igrid, sigmacbox, sigma[mglevc], lev_interface[mglevc], bndry, -1, -1);
+		task_fab* sigmaf = new task_fill_patch(tl, resid[mglev], igrid, sigmafbox, sigma[mglev],  lev_interface[mglev],  bndry, 0, icor);
+		task_fab* sigmac = new task_fill_patch(tl, resid[mglev], igrid, sigmacbox, sigma[mglevc], lev_interface[mglevc], bndry, -1, -1);
 		const Box& creg = cres_creg[lev][icor];
-		task_fab* fdst = new task_fill_patch(resid[mglev], igrid, fbox, dest[lev],   lev_interface[mglev],  boundary.pressure(), 0, icor);
-		task_fab* cdst = new task_fill_patch(resid[mglev], igrid, cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure(), -1, -1);
+		task_fab* fdst = new task_fill_patch(tl, resid[mglev], igrid, fbox, dest[lev],   lev_interface[mglev],  boundary.pressure(), 0, icor);
+		task_fab* cdst = new task_fill_patch(tl, resid[mglev], igrid, cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure(), -1, -1);
 		Array<int> ga = lev_interface[mglev].geo_array(0, icor);
+		task::task_proxy tp;
+		if (m_hg_terrain)
+		{
+		    tp = tl.add_task(
+			new task_fceres_4(&FORT_HGCRES_TERRAIN, tl, resid[mglev], source[lev], igrid, fdst, cdst, sigmaf, sigmac, creg, h[mglev], rat, ga)
+			);
+		}
+		else
+		{
+		    tp = tl.add_task(
+			new task_fceres_4(&FORT_HGCRES,         tl, resid[mglev], source[lev], igrid, fdst, cdst, sigmaf, sigmac, creg, h[mglev], rat, ga)
+			);
+		}
 		// fill in the grids on the other sides, if any
-		list<int> tll;
 		const Box& freg = lev_interface[mglev].box(0, icor);
 		for (int i = 1; i < lev_interface[mglev].ngrids(0); i++) 
 		{
 		    const int jgrid = lev_interface[mglev].grid(0, icor, i);
 		    if (jgrid >= 0 && jgrid != igrid)
 		    {
-			tll.push_back(jgrid);
+			tl.add_task(
+			    new task_copy(tl, resid[mglev], jgrid, resid[mglev], igrid, freg)
+			    )->depend_on(tp);
 		    }
-		}
-		if (m_hg_terrain)
-		{
-		    tl.add_task(
-			new task_fceres_4(&FORT_HGCRES_TERRAIN, tll, freg, resid[mglev], source[lev], igrid, fdst, cdst, sigmaf, sigmac, creg, h[mglev], rat, ga)
-			);
-		}
-		else
-		{
-		    tl.add_task(
-			new task_fceres_4(&FORT_HGCRES,         tll, freg, resid[mglev], source[lev], igrid, fdst, cdst, sigmaf, sigmac, creg, h[mglev], rat, ga)
-			);
 		}
 	    }
 	}

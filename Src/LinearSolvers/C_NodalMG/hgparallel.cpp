@@ -2,20 +2,83 @@
 #include "hgparallel.h"
 
 #ifdef HG_DEBUG
-#  include <typeinfo>
+#include <typeinfo>
 #endif
 
 bool HG_is_debugging = false;
+MPI_Comm HG::mpi_comm;
+int HG::mpi_tag_ub;
+
+void HG::MPI_init()
+{
+    static int first = 0;
+    if ( first == 0 )
+    {
+	int flag;
+	int res = MPI_Attr_get(MPI_COMM_WORLD, MPI_TAG_UB, &mpi_tag_ub, &flag);
+	if ( res != 0  )
+	    ParallelDescriptor::Abort( res );
+    }
+    int res = MPI_Comm_dup(MPI_COMM_WORLD, &mpi_comm);
+    // HG_DEBUG_OUT("<<<< task_list::task_list(): comm_ = " << MPI_COMM_WORLD << " comm = " << mpi_comm << endl);
+    if ( res != 0 )
+	ParallelDescriptor::Abort( res );
+}
+
+void HG::MPI_finish()
+{
+}
+
+// TASK
+
+task::task(task_list& tl_) 
+    : m_sno(tl_.get_then_advance()), m_started(false), m_task_list(tl_) 
+{
+    assert(m_sno != 0);
+}
+
+task::~task() 
+{
+    assert(m_sno != 0);
+}
+
+bool task::is_started() const
+{
+    return m_started;
+}
+
+bool task::startup()
+{
+    m_started = true;
+    return true;
+}
+
+task::sequence_number task::get_sequence_number() const
+{
+    return m_sno;
+}
+
+void task::print_dependencies(ostream& os) const
+{
+    os << "Task " << get_sequence_number() << " depends on ( ";
+    for ( list<task_proxy>::const_iterator lit = dependencies.begin(); lit != dependencies.end(); ++lit)
+    {
+	if ( ! lit->is_finished() )
+	{
+	    os << (*lit)->get_sequence_number() << " ";
+	}
+    }
+    os << ") ";
+}
 
 bool task::depend_ready()
 {
-    list< task** >::iterator lit = dependencies.begin();
-    while ( lit != dependencies.end() )
+    for ( list<task_proxy>::iterator lit = dependencies.begin(); lit != dependencies.end(); )
     {
-	task** t = *lit;
-	if ( *t == 0 )
+	task_proxy t = *lit;
+	if ( t.is_finished() )
 	{
-	    list< task** >::iterator tmp = lit++;
+	    list< task_proxy >::iterator tmp = lit++;
 	    dependencies.erase(tmp);
 	}
 	else
@@ -26,16 +89,15 @@ bool task::depend_ready()
     return dependencies.empty();
 }
 
-bool task::recommit(list<task*>*)
-{
-    return false;
-}
-
 void task::_hint() const
 {
+#ifdef HG_DEBUG
+    assert(m_sno != 0);
     HG_DEBUG_OUT( 
-	"(" << typeid(*this).name() << ' ' << m_sno << ' ' << m_started << ' ' << m_comm << ' '
+	"(" << typeid(*this).name() << ' ' << m_sno << ' ' << m_started << ' '
 	);
+    print_dependencies(debug_out);
+#endif
 }
 
 void task::hint() const
@@ -44,158 +106,151 @@ void task::hint() const
     HG_DEBUG_OUT(")" << endl);
 }
 
+bool task::depends_on_q(const task* t1) const
+{
+    return false;
+}
+
+void task::depend_on(const task_proxy& t1)
+{
+    dependencies.push_back( t1 );
+}
+
+bool task::ready()
+{
+    assert(is_started());
+    return true;
+}
+
+// The list...
 // TASK_LIST
 
-bool task_list::def_verbose = true;
+bool task_list::def_verbose = false;
 
-task_list::task_list(MPI_Comm comm_)
-    : seq_no(0), seq_delta(10), verbose(def_verbose)
+task_list::task_list()
+    : seq_no(1), seq_delta(1), verbose(def_verbose)
 {
-    int res = MPI_Comm_dup(comm_, &comm);
-    if ( res != 0 )
-	ParallelDescriptor::Abort( res );
 }
 
 task_list::~task_list()
 {
-    seq_no = 0;
-    int res = MPI_Comm_free(&comm);
-    if ( res != 0 )
-	ParallelDescriptor::Abort( res );
+    seq_no = 1;
 }
 
-void task_list::add_task(task* t)
+task::sequence_number task_list::get_then_advance()
 {
+    task::sequence_number tmp = seq_no;
     seq_no += seq_delta;
-    add_task(t, seq_no);
+    return tmp;
 }
 
-void task_list::add_task(task* t, task::sequence_number seq_no_)
+task::task_proxy task_list::add_task(task* t)
 {
-    if ( ! t->init(seq_no_, comm) )
+    task::task_proxy result(t);
+    tasks.push_back( result );
+    return result;
+}
+
+void task_list::print_dependencies(ostream& os) const
+{
+    os << "Task list ( " << endl;
+    for( list< task::task_proxy >::const_iterator tli = tasks.begin(); tli != tasks.end(); ++tli )
     {
-	delete t;
+	(*tli)->print_dependencies(os);
+	os << endl;
     }
-    else
-    {
-	task** tp = new task*( t );
-	// loop here over existing tasks, see if the depend on this one,
-	// if so, add them to the dependency
-	list< task**>::const_iterator cit = tasks.begin();
-	while ( cit != tasks.end() )
-	{
-	    if ( t->depends_on_q( **cit ) )
-	    {
-		t->depend_on(**cit);
-	    }
-	    cit++;
-	}
-	tasks.push_back( tp );
-    }
+    os << ")" << endl;
 }
 
 void task_list::execute()
 {
-    if ( HG_is_debugging ) MPI_Barrier(comm);
+    if ( HG_is_debugging ) MPI_Barrier(HG::mpi_comm);
     int l_progress = tasks.size() * 3;
-    HG_DEBUG_OUT("Processing List " << comm << " with " << tasks.size() << " elements " << endl);
-    list< task** > dead_tasks;
-    // The dead_task list is used, because the tasks being processed also appear
-    // in tasks dependecy lists.
+    if ( verbose )
+    {
+#ifdef HG_DEBUG
+	HG_DEBUG_OUT("Processing List " << HG::mpi_comm << " with " << tasks.size() << " elements " << endl);
+	print_dependencies(debug_out);
+#endif
+    }
     while ( !tasks.empty() )
     {
-	task** t = tasks.front();
+	task::task_proxy t = tasks.front();
 	tasks.pop_front();
 	if ( verbose ) 
-	    (*t)->hint();
-	HG_DEBUG_OUT("*** Trying " << t << endl;)
-	if ( (*t)->ready() )
 	{
-	    HG_DEBUG_OUT("*** Finished " << t << endl);
-	    list<task*> tl;
-	    if ( (*t)->recommit(&tl) )
+	    t->hint();
+	}
+	if ( t->depend_ready() )
+	{
+	    if ( ! t->is_started() )
 	    {
-		int i = 0;
-		for(list<task*>::iterator tli = tl.begin(); tli != tl.end(); ++tli)
+		if ( ! t->startup() )
 		{
-		    add_task(*tli, (*tli)->get_sequence_number() + ++i);
+		    t.set_finished();
+		    continue;
 		}
 	    }
-	    delete *t;
-	    *t = 0;
-	    dead_tasks.push_back(t);
+	    assert(t->is_started());
+	    if ( t->depend_ready() && t->ready() )
+	    {
+		t.set_finished();
+		continue;
+	    }
 	}
-	else
-	{
-	    HG_DEBUG_OUT("*** Retry " << t << endl);
-	    tasks.push_back(t);
-	}
+        tasks.push_back(t);
 	if ( l_progress-- < 0 )
 	{
-	    BoxLib::Error("task_list::execute(): No Progress");
+	    // BoxLib::Error("task_list::execute(): No Progress");
 	}
     }
-    while ( !dead_tasks.empty() )
-    {
-	delete dead_tasks.front();
-	dead_tasks.pop_front();
-    }
+    seq_no = 1;
 }
 
-bool task_list::execute_no_block()
-{
-    HG_DEBUG_OUT("No Block Processing List " << comm << " with " << tasks.size() << " elements " << endl);
-    list< task** > dead_tasks;
-    list< task** >::iterator tli = tasks.begin();
-    while ( tli != tasks.end() )
-    {
-	task** t = *tli;
-	if ( verbose )
-	    (*t)->hint();
-	HG_DEBUG_OUT("*** No Block Trying " << t << endl;)
-	if ( (*t)->ready() )
-	{
-	    HG_DEBUG_OUT("*** No Block Finished " << t << endl);
-	    list<task*> tl;
-	    if ( (*t)->recommit(&tl) )
-	    {
-		int i = 0;
-		for(list<task*>::iterator tli = tl.begin(); tli != tl.end(); ++tli)
-		{
-		    add_task(*tli, (*tli)->get_sequence_number() + ++i);
-		}
-	    }
-	    delete *t;
-	    *t = 0;
-	    dead_tasks.push_back(t);
-	    list< task** >::iterator tmp = tli++;
-	    tasks.erase(tmp);
-	}
-	else
-	{
-	    tli++;
-	}
-    }
-    while ( !dead_tasks.empty() )
-    {
-	delete dead_tasks.front();
-	dead_tasks.pop_front();
-    }
-    return tasks.empty();
+bool task_list::empty() const 
+{ 
+    return tasks.empty(); 
 }
+int task_list::size() const 
+{
+    return tasks.size(); 
+}
+
+list<task::task_proxy>::const_iterator task_list::begin() const
+{
+    return tasks.begin();
+}
+
+list<task::task_proxy>::const_iterator task_list::end() const
+{
+    return tasks.end();
+}
+
+list<task::task_proxy>::iterator task_list::begin()
+{
+    return tasks.begin();
+}
+
+list<task::task_proxy>::iterator task_list::end()
+{
+    return tasks.end();
+}
+
 
 // TASK_COPY
-task_copy::task_copy(MultiFab& mf, int dgrid, const MultiFab& smf, int sgrid, const Box& bx)
-    : m_mf(mf), m_dgrid(dgrid), m_smf(smf), m_sgrid(sgrid), m_bx(bx), m_sbx(bx), m_local(false), tmp(0), m_request(MPI_REQUEST_NULL)
+task_copy::task_copy(task_list& tl_, MultiFab& mf, int dgrid, const MultiFab& smf, int sgrid, const Box& bx)
+    : task(tl_), m_mf(mf), m_dgrid(dgrid), m_smf(smf), m_sgrid(sgrid), m_bx(bx), m_sbx(bx), m_local(false), tmp(0), m_request(MPI_REQUEST_NULL)
 {
+    _do_depend();
 }
 
-task_copy::task_copy(MultiFab& mf, int dgrid, const Box& db, const MultiFab& smf, int sgrid, const Box& sb)
-    : m_mf(mf), m_bx(db), m_dgrid(dgrid), m_smf(smf), m_sbx(sb), m_sgrid(sgrid), m_local(false), tmp(0), m_request(MPI_REQUEST_NULL)
+task_copy::task_copy(task_list& tl_, MultiFab& mf, int dgrid, const Box& db, const MultiFab& smf, int sgrid, const Box& sb)
+    : task(tl_), m_mf(mf), m_bx(db), m_dgrid(dgrid), m_smf(smf), m_sbx(sb), m_sgrid(sgrid), m_local(false), tmp(0), m_request(MPI_REQUEST_NULL)
 {
+    _do_depend();
 }
 			// r[jgrid].copy(r[igrid], bb, 0, b, 0, r.nComp());
-static bool eq(const MultiFab& a, const MultiFab& b)
+static inline bool eq(const MultiFab& a, const MultiFab& b)
 {
     return &a == &b;
 }
@@ -207,34 +262,34 @@ bool task_copy::depends_on_q(const task* t1) const
     if ( const task_copy* t1tc = dynamic_cast<const task_copy*>(t1) )
     {
 	const Box& t1_bx = t1tc->m_bx;
-	if ( m_bx.intersects(t1_bx) || m_sbx.intersects(t1_bx) ) return true;
+	// if ( m_sbx.intersects(t1_bx) ) return true;
+	if (  m_bx.intersects(t1_bx) ) return true;
     }
     return false;
 }
 
-
+void task_copy::_do_depend()
+{
+    
+    for ( list< task::task_proxy >::const_iterator cit = m_task_list.begin(); cit != m_task_list.end(); ++cit)
+    {
+	if ( depends_on_q( **cit ) )
+	{
+	    depend_on(*cit);
+	}
+    }
+}
+  
 task_copy::~task_copy()
 {
     delete tmp;
     assert( m_request == MPI_REQUEST_NULL);
 }
 
-bool task_copy::init(sequence_number sno, MPI_Comm comm)
+bool task_copy::startup()
 {
-    task::init(sno, comm);
-    assert( m_sbx.numPts() == m_bx.numPts() );
-    if ( is_local(m_mf, m_dgrid) || is_local(m_smf, m_sgrid) )
-    {
-	return true;
-    }
-    else
-    {
-	return false;
-    }
-}
-
-void task_copy::startup()
-{
+    bool result = true;
+    m_started = true;
     if ( is_local(m_mf, m_dgrid) && is_local(m_smf, m_sgrid) )
     {
 	m_local = true;
@@ -242,7 +297,7 @@ void task_copy::startup()
     else if ( is_local(m_mf, m_dgrid) )
     {
 	tmp = new FArrayBox(m_sbx, m_smf.nComp());
-	int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, m_comm, &m_request);
+	int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, HG::mpi_comm, &m_request);
 	if ( res != 0 )
 	    ParallelDescriptor::Abort(res);
 	assert( m_request != MPI_REQUEST_NULL );
@@ -251,22 +306,21 @@ void task_copy::startup()
     {
 	tmp = new FArrayBox(m_sbx, m_smf.nComp());
 	tmp->copy(m_smf[m_sgrid], m_sbx);
-	int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_mf,  m_dgrid), m_sno, m_comm, &m_request);
+	int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_mf,  m_dgrid), m_sno, HG::mpi_comm, &m_request);
 	if ( res != 0 )
 	    ParallelDescriptor::Abort(res);
 	assert( m_request != MPI_REQUEST_NULL );
     }
     else
     {
-	BoxLib::Abort( "task_copy::ready(): Can't be here" );
+	result = false;
     }
-    m_started = true;
+    return result;
 }
 
 bool task_copy::ready()
 {
-    if ( ! depend_ready() ) return false;
-    if ( ! m_started ) startup();
+    assert(is_started());
     if ( m_local )
     {
 	m_mf[m_dgrid].copy(m_smf[m_sgrid], m_sbx, 0, m_bx, 0, m_mf.nComp());
@@ -290,7 +344,7 @@ bool task_copy::ready()
 	    if ( res != 0 )
 		ParallelDescriptor::Abort( res );
 	    assert(count == tmp->box().numPts()*tmp->nComp());
-	    m_mf[m_dgrid].copy(*tmp, m_sbx, 0, m_bx, 0, m_smf.nComp());
+	    m_mf[m_dgrid].copy(*tmp, tmp->box(), 0, m_bx, 0, m_smf.nComp());
 	}
 	return true;
     }
@@ -317,17 +371,17 @@ void task_copy::hint() const
 	HG_DEBUG_OUT( "?" );
     }
     HG_DEBUG_OUT(
-	' ' <<
-	m_bx  << ' ' << m_dgrid << ' ' <<
-	m_sbx  << ' ' << m_sgrid << ' '
+	'(' << m_dgrid << "," << m_sgrid << ')' <<
+	m_sbx << ' ' <<
+	m_bx  << ' '
 	);
     HG_DEBUG_OUT( ")" << endl );
 }
 
 // TASK_COPY_LOCAL
 
-task_copy_local::task_copy_local(FArrayBox* fab_, const Box& bx, const MultiFab& smf_, int grid)
-    : m_fab(fab_), m_smf(smf_), m_sgrid(grid), m_bx(bx), tmp(0), m_local(false)
+task_copy_local::task_copy_local(task_list& tl_, FArrayBox* fab_, int target_proc_id, const Box& bx, const MultiFab& smf_, int grid)
+    : task(tl_), m_fab(fab_), m_smf(smf_), m_sgrid(grid), m_bx(bx), tmp(0), m_local(false), m_target_proc_id(target_proc_id)
 {
 }
 
@@ -335,14 +389,6 @@ task_copy_local::~task_copy_local()
 {
     if ( tmp ) HG_DEBUG_OUT("task_copy_local::~task_copy_local(): delete tmp" << endl);
     delete tmp;
-}
-
-bool task_copy_local::init(sequence_number sno, MPI_Comm comm)
-{
-    task::init( sno, comm);
-    assert ( m_fab ==0 || m_fab->nComp() == m_smf.nComp() );
-    if ( m_fab != 0 || is_local(m_smf, m_sgrid) ) return true;
-    return false;
 }
 
 void task_copy_local::hint() const
@@ -358,8 +404,10 @@ void task_copy_local::hint() const
     HG_DEBUG_OUT( ")" << endl );
 }
 
-void task_copy_local::startup()
+bool task_copy_local::startup()
 {
+    bool result = true;
+    m_started = true;
     if ( m_fab !=0 && is_local(m_smf, m_sgrid) )
     {
 	m_local = true;
@@ -367,7 +415,7 @@ void task_copy_local::startup()
     else if ( m_fab != 0 )
     {
 	tmp = new FArrayBox(m_bx, m_smf.nComp());
-	int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, m_comm, &m_request);
+	int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, HG::mpi_comm, &m_request);
 	if ( res != 0 )
 	    ParallelDescriptor::Abort(res);
 	assert( m_request != MPI_REQUEST_NULL );
@@ -376,22 +424,21 @@ void task_copy_local::startup()
     {
 	tmp = new FArrayBox(m_bx, m_smf.nComp());
 	tmp->copy(m_smf[m_sgrid], m_bx);
-	int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, m_comm, &m_request);
+	int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, m_target_proc_id, m_sno, HG::mpi_comm, &m_request);
 	if ( res != 0 )
 	    ParallelDescriptor::Abort(res);
 	assert( m_request != MPI_REQUEST_NULL );
     }
     else
     {
-	BoxLib::Abort( "task_copy_local::ready(): Can't Happen" );
+	result = false;
     }
-    m_started = true;
+    return result;
 }
 
 bool task_copy_local::ready()
 {
-    if ( ! depend_ready() ) return false;
-    if ( ! m_started ) startup();
+    assert(is_started());
     if ( m_local )
     {
 	m_fab->copy(m_smf[m_sgrid], m_bx);
@@ -403,7 +450,6 @@ bool task_copy_local::ready()
     int res = MPI_Test(&m_request, &flag, &status);
     if ( res != 0 )
 	ParallelDescriptor::Abort( res );
-    HG_DEBUG_OUT("task_copy_local::ready(): " << flag << endl);
     if ( flag )
     {
 	assert ( m_request == MPI_REQUEST_NULL );
@@ -425,75 +471,49 @@ bool task_copy_local::ready()
 
 // TASK_FAB
 
+task_fab::task_fab(task_list& tl_, const MultiFab&t_, int tt_, const Box& region_, int ncomp_)
+    : task(tl_), m_target_proc_id(processor_number(t_,tt_)), region(region_), ncomp(ncomp_), target(0) 
+{
+    assert(m_sno != 0);
+    if ( is_local(t_, tt_) )
+    {
+	target = new FArrayBox(region, ncomp);
+    }
+}
+
+task_fab::~task_fab()
+{
+    delete target;
+}
+
+int task_fab::target_proc_id() const
+{
+    return m_target_proc_id;
+}
+
 const FArrayBox& task_fab::fab()
 {
     assert(target != 0);
     return *target;
 }
 
-bool task_fab::init(sequence_number sno, MPI_Comm comm)
-{
-    task::init(sno, comm);
-    if ( m_local_target )
-    {
-	target = new FArrayBox(region, ncomp);
-	return true;
-    }
-    return false;
-}
-
-
 // task_fec_base
 
-task_fec_base::task_fec_base(const list<int>& tll_, const Box& freg_, MultiFab& s_, int igrid_)
-    : tll(tll_), freg(freg_), s(s_), igrid(igrid_)
+task_fec_base::task_fec_base( task_list& tl_, MultiFab& s_, int igrid_)
+    : task(tl_), s(s_), igrid(igrid_)
 {
 }
-task_fec_base::task_fec_base( MultiFab& s_, int igrid_)
-: s(s_), igrid(igrid_)
-{
-}
+
 task_fec_base::~task_fec_base()
 {
     HG_DEBUG_OUT("task_fec_base::~task_fec_base()" << endl);
-    for( vector<task_fab*>::iterator tfi = tfvect.begin(); tfi != tfvect.end(); ++tfi)
-    {
-	delete *tfi;
-    }
-}
-
-bool task_fec_base::init(sequence_number sno, MPI_Comm comm)
-{
-    task::init(sno, comm);
-    bool result = is_local(s, igrid);
-    for(vector<task_fab*>::iterator tli = tfvect.begin(); tli != tfvect.end(); ++tli)
-    {
-	bool tresult = (*tli)->init(sno, comm);
-	result = tresult ||  result;
-    }
-    for ( list<int>::const_iterator tli = tll.begin(); tli != tll.end(); ++tli )
-    {
-	bool tresult = is_local(s, *tli);
-	result = result || tresult;
-    }
-    HG_DEBUG_OUT("task_fec_base::init(): result = " << result << endl);
-    return result;
-}
-
-bool task_fec_base::ready()
-{
-    bool result = true;
-    for(vector<task_fab*>::iterator tfi = tfvect.begin(); tfi != tfvect.end(); ++tfi)
-    {
-	bool tresult = (*tfi)->ready();
-	result = tresult && result;
-    }
-    return result;
 }
 
 void task_fec_base::push_back(task_fab* tf)
 {
-    tfvect.push_back(tf);
+    task_proxy tp(m_task_list.add_task(tf));
+    tfvect.push_back(tp);
+    depend_on( tp );
 }
 
 bool task_fec_base::is_local_target() const
@@ -515,20 +535,6 @@ int task_fec_base::grid_number() const
 const FArrayBox& task_fec_base::task_fab_result(int n)
 {
     assert ( n >= 0 && n < tfvect.size() );
-    return tfvect[n]->fab();
-}
-
-bool task_fec_base::recommit(list<task*>* tl)
-{
-    for(list<int>::const_iterator tlli = tll.begin(); tlli != tll.end(); ++tlli)
-    {
-	tl->push_back(
-	    new task_copy(s, *tlli, s, igrid, freg)
-	    );
-    }
-    return tl->size() > 0;
-}
-
-void task_fec_base::clean_up()
-{
+    task_fab* tf = dynamic_cast<task_fab*>(tfvect[n].get());
+    return tf->fab();
 }

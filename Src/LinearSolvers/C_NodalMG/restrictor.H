@@ -20,7 +20,8 @@ public:
     virtual ~amr_restrictor_class() 
     { 
     }
-    virtual Box box(const Box&, const IntVect&) const = 0;
+    virtual Box box(const Box&, const IntVect&) const;
+    virtual Box rebox(const Box&, const IntVect&) const;
     virtual void fill(FArrayBox&, const Box&, const FArrayBox&, const IntVect&) const = 0;
     virtual void fill_interface(MultiFab&, MultiFab&, const level_interface&, const amr_boundary_class*, const IntVect&) const 
     {
@@ -34,7 +35,6 @@ public:
 	: integrate(i) 
     { 
     }
-    virtual Box box(const Box& fb, const IntVect& rat) const;
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
 protected:
     int integrate;
@@ -56,7 +56,6 @@ public:
     injection_restrictor_class() 
     { 
     }
-    virtual Box box(const Box& fb, const IntVect& rat) const;
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
 };
 
@@ -66,7 +65,6 @@ public:
     default_restrictor() 
     { 
     }
-    virtual Box box(const Box& fb, const IntVect& rat) const;
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
 };
 
@@ -78,6 +76,7 @@ class bilinear_restrictor_class : public amr_restrictor_class
 public:
     bilinear_restrictor_class(int i, bool hg_terrain);
     virtual Box box(const Box& fb, const IntVect& rat) const;
+    virtual Box rebox(const Box& cb, const IntVect& rat) const;
     virtual void fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const;
     virtual void fill_interface(MultiFab&, MultiFab&, const level_interface&, const amr_boundary_class*, const IntVect&) const;
 protected:

@@ -5,7 +5,7 @@ Release
 Release3D
 lib
 hglib___
-*.ncb *.opt *.plg
+*.ncb *.opt *.plg *.3log
 grdlog
 ti_files
 chk[0-9][0-9][0-9][0-9]

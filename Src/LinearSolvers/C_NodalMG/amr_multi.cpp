@@ -5,6 +5,30 @@
 int amr_multigrid::c_sys = 0; // default is Cartesian, 1 is RZ
 #endif
 
+
+#ifdef HG_DEBUG
+inline static const char* mf_centeredness(const MultiFab& m)
+{
+    if ( type(m) == IntVect::TheCellVector() ) return "C";
+    if ( type(m) == IntVect::TheNodeVector() ) return "N";
+    return "?";
+}
+
+void hg_debug_norm_2(const MultiFab& d, const char* str1, const char* str2)
+{
+    double dz[2] = { mfnorm_2(d), mfnorm_0(d)};
+    debug_out << str1;
+    if ( ParallelDescriptor::IOProcessor() )
+	debug_out << " : Norm[" << d.length() << ","
+	<< mf_centeredness(d) << ","
+	<< d.nComp() << ","
+	<< d.nGrow() << "]( " << str2 << " ) = ("
+	<< dz[0] << ", " << dz[1] << " )";
+    debug_out << std::endl;
+    
+}
+#endif
+
 void amr_multigrid::mesh_read(Array<BoxArray>& m, Array<IntVect>& r, Array<Box>& d, istream& is)
 {
     int ilev;
@@ -348,7 +372,6 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2)
     }
     
     Real err = ml_cycle(lev_max, mglev_max, i1, i2, abstol, 0.0);
-
     if (pcode >= 2 && ParallelDescriptor::IOProcessor())
     {
 	cout << "Err from ml_cycle is " << err << endl;
@@ -362,7 +385,10 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2)
     while (err > tol) 
     {
 	err = ml_cycle(lev_max, mglev_max, i1, i2, tol, 0.0);
-	HG_DEBUG_OUT("err = " << err << endl);
+	if ( pcode >= 2 && ParallelDescriptor::IOProcessor())
+	{
+	    cout << "Err from " << it + 1 << "th ml_cycle is " << err << endl;
+	}
 	if (++it > 100)
 	{
 	    BoxLib::Error( "amr_multigrid::solve---multigrid iteration failed" );
@@ -460,6 +486,7 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2, Real tol, Real 
 
 Real amr_multigrid::ml_residual(int mglev, int lev)
 {
+    HG_TEST_NORM( resid[mglev], "ml_residual 1");
     if (lev > lev_min) 
     {
 	// This call is necessary to clear garbage values on outside edges that
@@ -483,6 +510,7 @@ Real amr_multigrid::ml_residual(int mglev, int lev)
 	    resid[mglev].plus(coarse_source[lev], 0, 1, 0);
 	}
     }
+    HG_TEST_NORM( resid[mglev], "ml_residual 2");
     return mfnorm(resid[mglev]);
 }
 

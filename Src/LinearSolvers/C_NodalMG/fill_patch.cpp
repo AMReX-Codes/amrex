@@ -59,12 +59,10 @@ Real inner_product(const MultiFab& r, const MultiFab& s)
 class task_bdy_fill : public task
 {
 public:
-    task_bdy_fill(const amr_boundary_class* bdy_, FArrayBox* fab_, const Box& region_, const MultiFab& smf_, int grid_, const Box& domain_);
+    task_bdy_fill(task_list& tl_, const amr_boundary_class* bdy_, FArrayBox* fab_, int target_proc_id, const Box& region_, const MultiFab& smf_, int grid_, const Box& domain_);
     virtual ~task_bdy_fill();
     virtual bool ready();
-    virtual bool init(sequence_number sno, MPI_Comm comm);
-private:
-    void startup();
+    virtual bool startup();
 private:
     const amr_boundary_class* m_bdy;
     FArrayBox* m_fab;
@@ -76,10 +74,11 @@ private:
     FArrayBox* tmp;
     bool m_local;
     MPI_Request m_request;
+    int m_target_proc_id;
 };
 
-task_bdy_fill::task_bdy_fill(const amr_boundary_class* bdy_, FArrayBox* fab_, const Box& region_, const MultiFab& src_, int grid_, const Box& domain_)
-    : m_bdy(bdy_), m_fab(fab_), m_region(region_), m_smf(src_), m_sgrid(grid_), m_domain(domain_), tmp(0)
+task_bdy_fill::task_bdy_fill(task_list& tl_, const amr_boundary_class* bdy_, FArrayBox* fab_, int target_proc_id, const Box& region_, const MultiFab& src_, int grid_, const Box& domain_)
+    : task(tl_), m_bdy(bdy_), m_fab(fab_), m_region(region_), m_smf(src_), m_sgrid(grid_), m_domain(domain_), tmp(0), m_target_proc_id(target_proc_id), m_local(false)
 {
     m_bx = src_.box(grid_);
     m_bx.grow(src_.nGrow());
@@ -92,15 +91,10 @@ task_bdy_fill::~task_bdy_fill()
     delete tmp;
 }
 
-bool task_bdy_fill::init(sequence_number sno, MPI_Comm comm)
+bool task_bdy_fill::startup()
 {
-    task::init( sno, comm);
-    if ( m_fab != 0 || is_local(m_smf, m_sgrid) ) return true;
-    return false;
-}
-
-void task_bdy_fill::startup()
-{
+    bool result = true;
+    m_started = true;
     if ( m_fab !=0 && is_local(m_smf, m_sgrid) )
     {
 	m_local = true;
@@ -108,7 +102,7 @@ void task_bdy_fill::startup()
     else if ( m_fab != 0 )
     {
 	tmp = new FArrayBox(m_bx, m_smf.nComp());
-	int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, m_comm, &m_request);
+	int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, HG::mpi_comm, &m_request);
 	if ( res != 0 )
 	    ParallelDescriptor::Abort(res);
 	assert( m_request != MPI_REQUEST_NULL );
@@ -116,29 +110,22 @@ void task_bdy_fill::startup()
     else if ( m_fab == 0 && is_local(m_smf, m_sgrid) ) 
     {
 	tmp = new FArrayBox(m_bx, m_smf.nComp());
-	// before I can post the receive, I have to ensure that there are no dependent zones in the
-	// grid
 	tmp->copy(m_smf[m_sgrid], m_bx);
-	HG_DEBUG_OUT( "<< Norm(S) of tmp "  << m_sno << " " << tmp->norm(m_bx, 2) << endl );
-	HG_DEBUG_OUT( "<<<Box(S) of tmp "   << m_sno << " " << tmp->box() << endl );
-	// printRange(debug_out, *tmp, m_sbx, 0, tmp->nComp());
-	int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(), m_sno, m_comm, &m_request);
+	int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, m_target_proc_id, m_sno, HG::mpi_comm, &m_request);
 	if ( res != 0 )
 	    ParallelDescriptor::Abort(res);
 	assert( m_request != MPI_REQUEST_NULL );
     }
     else
     {
-	BoxLib::Abort( "task_bdy_fill::ready(): Can't Happen" );
-	// neither fab lives on local processor
+	result = false;
     }
-    m_started = true;
+    return result;
 }
 
 bool task_bdy_fill::ready()
 {
-    if ( ! depend_ready() ) return false;
-    if ( ! m_started ) startup();
+    assert( is_started() );
     if ( m_local )
     {
 	m_bdy->fill(*m_fab, m_region, m_smf[m_sgrid], m_domain);
@@ -171,27 +158,14 @@ bool task_bdy_fill::ready()
 
 // TASK_FILL_PATCH
 
-task_fill_patch::task_fill_patch(const MultiFab& t_, int tt_, const Box& region_, const MultiFab& r_, const level_interface& lev_interface_, const amr_boundary_class* bdy_, int idim_, int index_)
-    : r(r_), lev_interface(lev_interface_), bdy(bdy_), idim(idim_), index(index_), task_fab(t_, tt_, region_, r_.nComp())
+task_fill_patch::task_fill_patch(task_list& tl_, const MultiFab& t_, int tt_, const Box& region_, const MultiFab& r_, const level_interface& lev_interface_, const amr_boundary_class* bdy_, int idim_, int index_)
+    : task_fab(tl_, t_, tt_, region_, r_.nComp()), r(r_), lev_interface(lev_interface_), bdy(bdy_), idim(idim_), index(index_)
 {
-}
-
-bool task_fill_patch::init(sequence_number sno, MPI_Comm comm)
-{
-    task_fab::init(sno, comm);
     fill_patch();
-    // HG_DEBUG_OUT("Fill patch has " << tl.size() << " entries" << endl );
-    return !tl.empty();
 }
 
 task_fill_patch::~task_fill_patch()
 {
-    HG_DEBUG_OUT("deleting fill patch " << this << endl );
-}
-
-bool task_fill_patch::ready()
-{
-    return tl.execute_no_block();
 }
 
 bool task_fill_patch::fill_patch_blindly()
@@ -206,7 +180,7 @@ bool task_fill_patch::fill_patch_blindly()
 	}
 	if (tb.contains(region)) 
 	{
-	    tl.add_task(new task_copy_local(target, region, r, igrid));
+	    depend_on(m_task_list.add_task(new task_copy_local(m_task_list, target, target_proc_id(), region, r, igrid)));
 	    // target->copy(r[igrid], region);
 	    return true;
 	}
@@ -222,7 +196,7 @@ bool task_fill_patch::fill_patch_blindly()
 	if (tb.intersects(region)) 
 	{
 	    tb &= region;
-	    tl.add_task(new task_copy_local(target, tb, r, igrid));
+	    depend_on(m_task_list.add_task(new task_copy_local(m_task_list, target, target_proc_id(), tb, r, igrid)));
 	    // target->copy(r[igrid], tb);
 	}
     }
@@ -241,14 +215,14 @@ bool task_fill_patch::fill_exterior_patch_blindly()
 	    tb.convert(type(r));
 	    if (tb.contains(region)) 
 	    {
-		tl.add_task(new task_bdy_fill(bdy, target, region, r, jgrid, lev_interface.domain()));
+		depend_on(m_task_list.add_task(new task_bdy_fill(m_task_list, bdy, target, target_proc_id(), region, r, jgrid, lev_interface.domain())));
 		// bdy->fill(*target, region, r[jgrid], lev_interface.domain());
 		return true;
 	    }
 	    if (tb.intersects(region)) 
 	    {
 		tb &= region;
-		tl.add_task(new task_bdy_fill(bdy, target, tb, r, jgrid, lev_interface.domain()));
+		depend_on(m_task_list.add_task(new task_bdy_fill(m_task_list, bdy, target, target_proc_id(), tb, r, jgrid, lev_interface.domain())));
 		//bdy->fill(*target, tb, r[jgrid], lev_interface.domain());
 	    }
 	}
@@ -316,7 +290,7 @@ void task_fill_patch::fill_patch()
 			{
 			    Box tb = r.box(igrid);
 			    tb &= region;
-			    tl.add_task(new task_copy_local(target, tb, r, igrid));
+			    depend_on(m_task_list.add_task(new task_copy_local(m_task_list, target, target_proc_id(), tb, r, igrid)));
 			}
 			else 
 			{
@@ -324,9 +298,9 @@ void task_fill_patch::fill_patch()
 			    Box tb = lev_interface.exterior_mesh()[igrid];
 			    tb.convert(type(r));
 			    tb &= region;
-			    tl.add_task(
-				new task_bdy_fill(bdy, target, tb, r, lev_interface.direct_exterior_ref(igrid), lev_interface.domain())
-				);
+			    depend_on(m_task_list.add_task(
+				new task_bdy_fill(m_task_list, bdy, target, target_proc_id(), tb, r, lev_interface.direct_exterior_ref(igrid), lev_interface.domain())
+				));
 			    // bdy->fill(*target, tb, r[lev_interface.direct_exterior_ref(igrid)], lev_interface.domain());
 			}
 			break;
@@ -349,7 +323,7 @@ static void sync_internal_borders(MultiFab& r, const level_interface& lev_interf
 	// only do interior faces with fine grid on both sides
 	if (igrid < 0 || jgrid < 0 || lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL)
 	    break;
-	tl.add_task(new task_copy(r, jgrid, r, igrid, lev_interface.node_box(level_interface::FACEDIM, iface)));
+	tl.add_task(new task_copy(tl, r, jgrid, r, igrid, lev_interface.node_box(level_interface::FACEDIM, iface)));
     }
 #if (BL_SPACEDIM == 2)
     for (int icor = 0; icor < lev_interface.nboxes(0); icor++) 
@@ -371,7 +345,7 @@ static void sync_internal_borders(MultiFab& r, const level_interface& lev_interf
 	if (igrid < 0 || jgrid < 0 || lev_interface.geo(1, iedge) != level_interface::ALL)
 	    break;
 	if (jgrid == lev_interface.grid(1, iedge, 1))
-	    tl.add_task(new task_copy(r, jgrid, r, igrid, lev_interface.node_box(1, iedge)));
+	    tl.add_task(new task_copy(tl, r, jgrid, r, igrid, lev_interface.node_box(1, iedge)));
     }
     for (int icor = 0; icor < lev_interface.nboxes(0); icor++) 
     {
@@ -384,26 +358,26 @@ static void sync_internal_borders(MultiFab& r, const level_interface& lev_interf
 	{
 	    if (jgrid != lev_interface.grid(0, icor, 3)) 
 	    {
-		tl.add_task(new task_copy(r, jgrid, r, igrid, lev_interface.box(0, icor)));
+		tl.add_task(new task_copy(tl, r, jgrid, r, igrid, lev_interface.box(0, icor)));
 		jgrid = lev_interface.grid(0, icor, 5);
 		if (jgrid != lev_interface.grid(0, icor, 7))
-		    tl.add_task(new task_copy(r, jgrid, r, igrid, lev_interface.box(0, icor)));
+		    tl.add_task(new task_copy(tl, r, jgrid, r, igrid, lev_interface.box(0, icor)));
 	    }
 	}
 	else if (lev_interface.grid(0, icor, 5) == lev_interface.grid(0, icor, 1)) 
 	{
 	    if (jgrid != lev_interface.grid(0, icor, 5)) 
 	    {
-		tl.add_task(new task_copy(r, jgrid, r, igrid, lev_interface.box(0, icor)));
+		tl.add_task(new task_copy(tl, r, jgrid, r, igrid, lev_interface.box(0, icor)));
 		jgrid = lev_interface.grid(0, icor, 3);
 		if (jgrid != lev_interface.grid(0, icor, 7)) 
 		{
-		    tl.add_task(new task_copy(r, jgrid, r, igrid, lev_interface.box(0, icor)));
+		    tl.add_task(new task_copy(tl, r, jgrid, r, igrid, lev_interface.box(0, icor)));
 		    if (jgrid == lev_interface.grid(0, icor, 2)) 
 		    {
 			jgrid = lev_interface.grid(0, icor, 6);
 			if (jgrid != lev_interface.grid(0, icor, 7))
-			    tl.add_task(new task_copy(r, jgrid, r, igrid, lev_interface.box(0, icor)));
+			    tl.add_task(new task_copy(tl, r, jgrid, r, igrid, lev_interface.box(0, icor)));
 		    }
 		}
 	    }
@@ -505,16 +479,16 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 			if (kgrid == lev_interface.grid(1, iedge, 1)) 
 			{
 			    Box b = lev_interface.node_box(1, iedge);
-			    tl.add_task(new task_copy(r, jgrid, r, igrid, b.shift(dir[0], -1)));
+			    tl.add_task(new task_copy(tl, r, jgrid, r, igrid, b.shift(dir[0], -1)));
 			    b = lev_interface.node_box(1, iedge);
-			    tl.add_task(new task_copy(r, igrid, r, jgrid, b.shift(dir[1],  1)));
+			    tl.add_task(new task_copy(tl, r, igrid, r, jgrid, b.shift(dir[1],  1)));
 			}
 			else 
 			{
 			    Box b = lev_interface.node_box(1, iedge);
-			    tl.add_task(new task_copy(r, jgrid, r, igrid, b.shift(dir[1], -1)));
+			    tl.add_task(new task_copy(tl, r, jgrid, r, igrid, b.shift(dir[1], -1)));
 			    b = lev_interface.node_box(1, iedge);
-			    tl.add_task(new task_copy(r, igrid, r, jgrid, b.shift(dir[0],  1)));
+			    tl.add_task(new task_copy(tl, r, igrid, r, jgrid, b.shift(dir[0],  1)));
 			}
 		    }
 		}
@@ -532,16 +506,16 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 			if (kgrid == lev_interface.grid(1, iedge, 0)) 
 			{
 			    Box b = lev_interface.node_box(1, iedge);
-			    tl.add_task(new task_copy(r, jgrid, r, igrid, b.shift(dir[0],  1)));
+			    tl.add_task(new task_copy(tl, r, jgrid, r, igrid, b.shift(dir[0],  1)));
 			    b = lev_interface.node_box(1, iedge);
-			    tl.add_task(new task_copy(r, igrid, r, jgrid, b.shift(dir[1],  1)));
+			    tl.add_task(new task_copy(tl, r, igrid, r, jgrid, b.shift(dir[1],  1)));
 			}
 			else 
 			{
 			    Box b = lev_interface.node_box(1, iedge);
-			    tl.add_task(new task_copy(r, jgrid, r, igrid, b.shift(dir[1], -1)));
+			    tl.add_task(new task_copy(tl, r, jgrid, r, igrid, b.shift(dir[1], -1)));
 			    b = lev_interface.node_box(1, iedge);
-			    tl.add_task(new task_copy(r, igrid, r, jgrid, b.shift(dir[0], -1)));
+			    tl.add_task(new task_copy(tl, r, igrid, r, jgrid, b.shift(dir[0], -1)));
 			}
 		    }
 		}
@@ -555,33 +529,30 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 	    if (igrid < 0 || jgrid < 0 || lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL)
 		break;
 	    const Box& b = lev_interface.node_box(level_interface::FACEDIM, iface);
-            const int idim = lev_interface.fdim(iface);
-            Box bj = lev_interface.node_box(level_interface::FACEDIM, iface);
+	    // tl.add_task(new task_copy_2(r, igrid, r, jgrid, b, w));
+      const int idim = lev_interface.fdim(iface);
+      Box bj = lev_interface.node_box(level_interface::FACEDIM, iface);
       Box bi = lev_interface.node_box(level_interface::FACEDIM, iface);
-      for (int i = 0; i < idim; i++)
+      for (int i = 0; i < idim; i++) 
       {
-        if (r.box(jgrid).smallEnd(i) == bj.smallEnd(i))
-          bj.growLo(i, w);
-        if (r.box(jgrid).bigEnd(i) == bj.bigEnd(i))
-          bj.growHi(i, w);
-        if (r.box(igrid).smallEnd(i) == bi.smallEnd(i))
-          bi.growLo(i, w);
-        if (r.box(igrid).bigEnd(i) == bi.bigEnd(i))
-          bi.growHi(i, w);
+	if (r.box(jgrid).smallEnd(i) == bj.smallEnd(i))
+	  bj.growLo(i, w);
+	if (r.box(jgrid).bigEnd(i) == bj.bigEnd(i))
+	  bj.growHi(i, w);
+	if (r.box(igrid).smallEnd(i) == bi.smallEnd(i))
+	  bi.growLo(i, w);
+	if (r.box(igrid).bigEnd(i) == bi.bigEnd(i))
+	  bi.growHi(i, w);
       }
       bj.shift(idim, -1).growLo(idim, w-1);
       bi.shift(idim,  1).growHi(idim, w-1);
 #if 1
-            tl.add_task(new task_copy( r, jgrid, r, igrid, bj));
-            tl.add_task(new task_copy( r, igrid, r, jgrid, bi));
+	    tl.add_task(new task_copy(tl, r, jgrid, r, igrid, bj));
+	    tl.add_task(new task_copy(tl, r, igrid, r, jgrid, bi));
 #else
-            tl.add_task(new task_copy( r, jgrid, r, igrid, w_shift(b,
-r.box(jgrid), r.nGrow(), -w)));
-            tl.add_task(new task_copy( r, igrid, r, jgrid, w_shift(b,
-r.box(igrid), r.nGrow(),  w)));
+	    tl.add_task(new task_copy(tl, r, jgrid, r, igrid, w_shift(b, r.box(jgrid), r.nGrow(), -w)));
+	    tl.add_task(new task_copy(tl, r, igrid, r, jgrid, w_shift(b, r.box(igrid), r.nGrow(),  w)));
 #endif
-
-
 	}
     }
     else if (type(r) == IntVect::TheCellVector()) 
@@ -616,8 +587,8 @@ r.box(igrid), r.nGrow(),  w)));
 	    }
 	    bj.growLo(idim, w).convert(IntVect::TheCellVector());
 	    bi.growHi(idim, w).convert(IntVect::TheCellVector());
-	    tl.add_task(new task_copy(r, jgrid, r, igrid, bj));
-	    tl.add_task(new task_copy(r, igrid, r, jgrid, bi));
+	    tl.add_task(new task_copy(tl, r, jgrid, r, igrid, bj));
+	    tl.add_task(new task_copy(tl, r, igrid, r, jgrid, bi));
 #endif
 	}
     }
@@ -655,19 +626,18 @@ void clear_part_interface(MultiFab& r, const level_interface& lev_interface)
 class task_restric_fill : public task
 {
 public:
-    task_restric_fill(const amr_restrictor_class& restric, MultiFab& dest, int dgrid, const MultiFab& r, int rgrid, const Box& box, const IntVect& rat)
-	: m_restric(restric), m_d(dest), m_dgrid(dgrid), m_r(r), m_rgrid(rgrid), m_rat(rat), m_tmp(0), m_box(box), m_local(false), m_started(false)
+    task_restric_fill(task_list& tl_, const amr_restrictor_class& restric, MultiFab& dest, int dgrid, const MultiFab& r, int rgrid, const Box& box, const IntVect& rat)
+	: task(tl_), m_restric(restric), m_d(dest), m_dgrid(dgrid), m_r(r), m_rgrid(rgrid), m_rat(rat), m_tmp(0), m_box(box), m_local(false)
     {
     }
     virtual ~task_restric_fill()
     {
 	delete m_tmp;
     }
-    virtual bool init(sequence_number sno, MPI_Comm comm);
     virtual bool ready();
     virtual void hint() const;
+    virtual bool startup();
 private:
-    void startup();
     MPI_Request m_request;
     const amr_restrictor_class& m_restric;
     const IntVect m_rat;
@@ -677,7 +647,6 @@ private:
     const MultiFab& m_r;
     const int m_rgrid;
     const Box m_box;
-    bool m_started;
     bool m_local;
 };
 
@@ -707,57 +676,44 @@ void task_restric_fill::hint() const
     HG_DEBUG_OUT( ")" << endl );
 }
 
-bool task_restric_fill::init(sequence_number sno, MPI_Comm comm)
+bool task_restric_fill::startup()
 {
-    task::init(sno, comm);
-    if ( is_local(m_d, m_dgrid) || is_local(m_r, m_rgrid) )
-    {
-	return true;
-    }
-    else
-    {
-	return false;
-    }
-}
-
-void task_restric_fill::startup()
-{
+    bool result = true;
+    m_started = true;
     if ( is_local(m_d, m_dgrid) && is_local(m_r, m_rgrid) )
     {
 	m_local = true;
     }
     else if ( is_local(m_d, m_dgrid) )
     {
-	const Box rbx = refine(m_box, m_rat);
+	const Box rbx = m_restric.rebox(m_box, m_rat);
 	m_tmp = new FArrayBox(rbx, m_r.nComp());
-	int res = MPI_Irecv(m_tmp->dataPtr(), m_tmp->box().numPts()*m_tmp->nComp(), MPI_DOUBLE, processor_number(m_r, m_rgrid), m_sno, m_comm, &m_request);
+	int res = MPI_Irecv(m_tmp->dataPtr(), m_tmp->box().numPts()*m_tmp->nComp(), MPI_DOUBLE, processor_number(m_r, m_rgrid), m_sno, HG::mpi_comm, &m_request);
 	if ( res != 0 )
 	    ParallelDescriptor::Abort(res);
 	assert( m_request != MPI_REQUEST_NULL );
     }
     else if ( is_local(m_r, m_rgrid) ) 
     {
-	const Box rbx = refine(m_box, m_rat);
+	const Box rbx = m_restric.rebox(m_box, m_rat);
 	m_tmp = new FArrayBox(rbx, m_r.nComp());
 	m_tmp->copy(m_r[m_rgrid], rbx);
-	int res = MPI_Isend(m_tmp->dataPtr(), m_tmp->box().numPts()*m_tmp->nComp(), MPI_DOUBLE, processor_number(m_d,  m_dgrid), m_sno, m_comm, &m_request);
+	int res = MPI_Isend(m_tmp->dataPtr(), m_tmp->box().numPts()*m_tmp->nComp(), MPI_DOUBLE, processor_number(m_d,  m_dgrid), m_sno, HG::mpi_comm, &m_request);
 	if ( res != 0 )
 	    ParallelDescriptor::Abort(res);
 	assert( m_request != MPI_REQUEST_NULL );
     }
     else
     {
-	BoxLib::Abort( "task_restric_fill::ready(): Can't be here" );
-	// neither fab lives on local processor
+	result = false;
     }
-    m_started = true;
+    return result;
 }
 
 
 bool task_restric_fill::ready()
 {
-    if ( ! depend_ready() ) return false;
-    if ( ! m_started ) startup();
+    assert( is_started() );
     if ( m_local )
     {
 	m_restric.fill(m_d[m_dgrid], m_box, m_r[m_rgrid], m_rat);
@@ -795,7 +751,7 @@ void restrict_level(MultiFab& dest, MultiFab& r, const IntVect& rat, const amr_r
 	    {
 		cbox &= region;
 		// restric.fill(dest[jgrid], cbox, r[igrid], rat);
-		tl.add_task(new task_restric_fill(restric, dest, jgrid, r, igrid, cbox, rat));
+		tl.add_task(new task_restric_fill(tl, restric, dest, jgrid, r, igrid, cbox, rat));
 	    }
 	}
     }

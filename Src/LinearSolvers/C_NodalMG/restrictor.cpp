@@ -46,69 +46,53 @@ extern "C"
 class task_fab_get : public task_fab
 {
 public:
-    task_fab_get(const MultiFab& d_, int dgrid_, const Box& bx, const MultiFab& s_, int sgrid_);
+    task_fab_get(task_list& tl_, const MultiFab& d_, int dgrid_, const Box& bx, const MultiFab& s_, int sgrid_);
     virtual ~task_fab_get();
-    virtual bool ready();
-    virtual bool init(sequence_number sno, MPI_Comm comm);
 private:
-    task* tf;
+    task::task_proxy tf;
     const MultiFab& s;
     const int sgrid;
     const Box bx;
 };
 
-task_fab_get::task_fab_get(const MultiFab& d_, int dgrid_, const Box& bx_, const MultiFab& s_, int sgrid_) 
-    : task_fab(d_, dgrid_, bx_, s_.nComp()), s(s_), sgrid(sgrid_), bx(bx_)
+task_fab_get::task_fab_get(task_list& tl_, const MultiFab& d_, int dgrid_, const Box& bx_, const MultiFab& s_, int sgrid_) 
+    : task_fab(tl_, d_, dgrid_, bx_, s_.nComp()), s(s_), sgrid(sgrid_), bx(bx_), tf(0)
 {
+    depend_on(tf = m_task_list.add_task(
+	new task_copy_local(m_task_list, target, target_proc_id(), bx, s, sgrid)
+	));
 }
 
 task_fab_get::~task_fab_get()
 {
 }
-
-bool task_fab_get::init(sequence_number sno, MPI_Comm comm)
-{
-    task_fab::init(sno, comm);
-    tf = new task_copy_local(target, bx, s, sgrid);
-    bool result = m_local_target;
-    bool tresult = tf->init(sno, comm);
-    return result || tresult;
-}
-
-bool task_fab_get::ready()
-{
-    if ( tf->ready() )
-    {
-	delete tf;
-	return true;
-    }
-    return false;
-}
-
+ 
 typedef void (*RESTFUN)(Real*, intS, intS, const Real*, intS, intRS, const int&, const int*, const int*, const int*); 
 
 struct task_restriction_fill : public task
 {
-    task_restriction_fill(const RESTFUN ref_, MultiFab& m_, int ind_, const Box& cbox_, task_fab* tf_, const IntVect& rat_, int integrate_, int i1_ = 0, int i2_ = 0) 
-	: ref(ref_), m(m_), ind(ind_), cbox(cbox_), tf(tf_), rat(rat_), integrate(integrate_), arg1(1), arg2(1) 
+    task_restriction_fill(const RESTFUN ref_, task_list& tl_, MultiFab& m_, int ind_, const Box& cbox_, task_fab* tf_, const IntVect& rat_, int integrate_, int i1_ = 0, int i2_ = 0) 
+	: task(tl_), ref(ref_), m(m_), ind(ind_), cbox(cbox_), rat(rat_), integrate(integrate_), arg1(1), arg2(1) 
     {
+	depend_on(tf = m_task_list.add_task( tf_ ));
 	arg1[0] = i1_;
 	arg2[0] = i2_;
     }
-    task_restriction_fill(const RESTFUN ref_, MultiFab& m_, int ind_, const Box& cbox_, task_fab* tf_, const IntVect& rat_, int integrate_, const Array<int>& i1_) 
-	: ref(ref_), m(m_), ind(ind_), cbox(cbox_), tf(tf_), rat(rat_), integrate(integrate_), arg1(i1_), arg2(1) 
+    task_restriction_fill(const RESTFUN ref_, task_list& tl_, MultiFab& m_, int ind_, const Box& cbox_, task_fab* tf_, const IntVect& rat_, int integrate_, const Array<int>& i1_) 
+	: task(tl_), ref(ref_), m(m_), ind(ind_), cbox(cbox_), rat(rat_), integrate(integrate_), arg1(i1_), arg2(1) 
     {
+	depend_on(tf = m_task_list.add_task( tf_) );
 	arg2[0] = 0;
     }
-    task_restriction_fill(const RESTFUN ref_, MultiFab& m_, int ind_, const Box& cbox_, task_fab* tf_, const IntVect& rat_, int integrate_, const IntVect& i1_, const Array<int>& i2_) 
-	: ref(ref_), m(m_), ind(ind_), cbox(cbox_), tf(tf_), rat(rat_), integrate(integrate_), arg1(i1_.getVect(), BL_SPACEDIM), arg2(i2_) 
+    task_restriction_fill(const RESTFUN ref_, task_list& tl_, MultiFab& m_, int ind_, const Box& cbox_, task_fab* tf_, const IntVect& rat_, int integrate_, const IntVect& i1_, const Array<int>& i2_) 
+	: task(tl_), ref(ref_), m(m_), ind(ind_), cbox(cbox_), rat(rat_), integrate(integrate_), arg1(i1_.getVect(), BL_SPACEDIM), arg2(i2_) 
     {
+	depend_on(tf = m_task_list.add_task( tf_ ));
     }
     virtual bool ready();
-    virtual bool init(sequence_number sno, MPI_Comm comm);
 private:
     const RESTFUN ref;
-    task_fab* tf;
+    task_proxy tf;
     MultiFab& m;
     int ind;
     const Box cbox;
@@ -118,33 +102,34 @@ private:
     Array<int> arg2;
 };
 
-bool task_restriction_fill::init(sequence_number sno, MPI_Comm comm)
-{
-    bool result = is_local( m, ind );
-    bool tresult = tf->init(sno, comm);
-    return result || tresult;
-}
-
 bool task_restriction_fill::ready()
 {
-    if ( tf->ready() )
+    assert(tf->ready());
+    if ( is_local(m, ind) )
     {
-	const Box fb = tf->fab().box();
+	task_fab* tff = dynamic_cast<task_fab*>(tf.get());
+	const Box fb = tff->fab().box();
 	const Box pb = m[ind].box();
-	(*ref)(m[ind].dataPtr(), DIMLIST(pb), DIMLIST(cbox), tf->fab().dataPtr(), DIMLIST(fb), D_DECL(rat[0], rat[1], rat[2]), m.nComp(), &integrate, arg1.dataPtr(), arg2.dataPtr());
-	delete tf;
-	return true;
+	(*ref)(m[ind].dataPtr(), DIMLIST(pb), DIMLIST(cbox), tff->fab().dataPtr(), DIMLIST(fb), D_DECL(rat[0], rat[1], rat[2]), m.nComp(), &integrate, arg1.dataPtr(), arg2.dataPtr());
     }
-    return false;
+    return true;
 }
 
-// some restrictor implementations...
-Box cell_average_restrictor_class::box(const Box& fb, const IntVect& rat) const
+// amr_restrictor_class fill ins
+Box amr_restrictor_class::box(const Box& fb, const IntVect& rat) const
 {
     Box retbox(fb);
     return retbox.coarsen(rat);
 }
 
+Box amr_restrictor_class::rebox(const Box& cb, const IntVect& rat) const
+{
+    Box retbox(cb);
+    return retbox.refine(rat);
+}
+
+
+// some restrictor implementations...
 void cell_average_restrictor_class::fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const
 {
     assert(patch.box().cellCentered());
@@ -166,11 +151,6 @@ void terrain_velocity_restrictor_class::fill(FArrayBox& patch, const Box& region
 }
 
 // injection_restrictor
-Box injection_restrictor_class::box(const Box& fb, const IntVect& rat) const
-{
-    Box retbox(fb);
-    return retbox.coarsen(rat);
-}
 
 void injection_restrictor_class::fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const
 {
@@ -181,11 +161,6 @@ void injection_restrictor_class::fill(FArrayBox& patch, const Box& region, const
 }
 
 // default_restrictor
-Box default_restrictor::box(const Box& fb, const IntVect& rat) const
-{
-    Box retbox(fb);
-    return retbox.coarsen(rat);
-}
 
 void default_restrictor::fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const
 {
@@ -212,6 +187,12 @@ Box bilinear_restrictor_class::box(const Box& fb, const IntVect& rat) const
 {
     Box retbox(fb);
     return retbox.coarsen(rat).grow(-1);
+}
+
+Box bilinear_restrictor_class::rebox(const Box& cb, const IntVect& rat) const
+{
+    Box retbox(cb);
+    return retbox.refine(rat).grow(rat-1);
 }
 
 void bilinear_restrictor_class::fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const
@@ -275,17 +256,17 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest, MultiFab& fine, c
 			const Box& fb = grow(fine.box(igrid), fine.nGrow());
 			assert( is_remote(fine, igrid) || fb == fine[igrid].box());
 			// const Box& fb = fine[igrid].box();
-			task_fab* tfab = new task_fab_get(dest, jgrid, fb, fine, igrid);
+			task_fab* tfab = new task_fab_get(tl, dest, jgrid, fb, fine, igrid);
 			tl.add_task(
-			    new task_restriction_fill(&FORT_FANRST2, dest, jgrid, cbox, tfab, rat, integrate)
+			    new task_restriction_fill(&FORT_FANRST2, tl, dest, jgrid, cbox, tfab, rat, integrate)
 			    );
 		    }
 		    else 
 		    {
 			Box fbox = grow(refine(cbox, rat), rat - 1);
-			task_fab* tfab = new task_fill_patch(dest, jgrid, fbox, fine, lev_interface, bdy, level_interface::FACEDIM, iface);
+			task_fab* tfab = new task_fill_patch(tl, dest, jgrid, fbox, fine, lev_interface, bdy, level_interface::FACEDIM, iface);
 			tl.add_task(
-			    new task_restriction_fill(&FORT_FANRST2, dest, jgrid, cbox, tfab, rat, integrate)
+			    new task_restriction_fill(&FORT_FANRST2, tl, dest, jgrid, cbox, tfab, rat, integrate)
 			    );
 		    }
 		}
@@ -300,9 +281,9 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest, MultiFab& fine, c
 			const Box& fb = grow(fine.box(igrid), fine.nGrow());
 			assert ( is_remote(fine, igrid) || fb == fine[igrid].box());
 			// const Box& fb = fine[igrid].box();
-			task_fab* tfab = new task_fab_get(dest, jgrid, fb, fine, igrid);
+			task_fab* tfab = new task_fab_get(tl, dest, jgrid, fb, fine, igrid);
 			tl.add_task(
-			    new task_restriction_fill(&FORT_FANFR2, dest, jgrid, cbox, tfab, rat, integrate, idim, idir)
+			    new task_restriction_fill(&FORT_FANFR2, tl, dest, jgrid, cbox, tfab, rat, integrate, idim, idir)
 			    );
 		    }
 		    else 
@@ -313,9 +294,9 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest, MultiFab& fine, c
 			    fbox.growHi(idim, 1 - rat[idim]);
 			else
 			    fbox.growLo(idim, 1 - rat[idim]);
-			task_fab* tfab = new task_fill_patch(dest, jgrid, fbox, fine, lev_interface, bdy, level_interface::FACEDIM, iface);
+			task_fab* tfab = new task_fill_patch(tl, dest, jgrid, fbox, fine, lev_interface, bdy, level_interface::FACEDIM, iface);
 			tl.add_task(
-			    new task_restriction_fill(&FORT_FANFR2, dest, jgrid, cbox, tfab, rat, integrate, idim, idir)
+			    new task_restriction_fill(&FORT_FANFR2, tl, dest, jgrid, cbox, tfab, rat, integrate, idim, idir)
 			    );
 		    }
 		}
@@ -449,27 +430,27 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest, MultiFab& fine, c
 		    const Box& fb = grow(fine.box(igrid), fine.nGrow());
 		    assert( is_remote(fine, igrid) || fb == fine[igrid].box());
 		    // const Box& fb = fine[igrid].box();
-		    task_fab* tfab = new task_fab_get(dest, jgrid, fb, fine, igrid);
+		    task_fab* tfab = new task_fab_get(tl, dest, jgrid, fb, fine, igrid);
 		    tl.add_task(
-			new task_restriction_fill(&FORT_FANRST2, dest, jgrid, cbox, tfab, rat, integrate)
+			new task_restriction_fill(&FORT_FANRST2, tl, dest, jgrid, cbox, tfab, rat, integrate)
 			);
 		}
 		else 
 		{
 		    Box fbox = grow(refine(cbox, rat), rat - 1);
-		    task_fab* tfab = new task_fill_patch(dest, jgrid, fbox, fine, lev_interface, bdy, 1, iedge);
+		    task_fab* tfab = new task_fill_patch(tl, dest, jgrid, fbox, fine, lev_interface, bdy, 1, iedge);
 		    if (geo == level_interface::ALL) 
 		    { 
 			// fine grid on all sides
 			tl.add_task(
-			    new task_restriction_fill(&FORT_FANRST2, dest, jgrid, cbox, tfab, rat, integrate)
+			    new task_restriction_fill(&FORT_FANRST2, tl, dest, jgrid, cbox, tfab, rat, integrate)
 			    );
 		    }
 		    else 
 		    {
 			Array<int> ga = lev_interface.geo_array(1, iedge);
 			tl.add_task(
-			    new task_restriction_fill(&FORT_FANER2, dest, jgrid, cbox, tfab, rat, integrate, t, ga)
+			    new task_restriction_fill(&FORT_FANER2, tl, dest, jgrid, cbox, tfab, rat, integrate, t, ga)
 			    );
 		    }
 		}
@@ -492,27 +473,27 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest, MultiFab& fine, c
 		    const Box& fb = grow(fine.box(igrid), fine.nGrow());
 		    assert( is_remote(fine, igrid) || fb == fine[igrid].box());
 		    // const Box& fb = fine[igrid].box();
-		    task_fab* tfab = new task_fab_get(dest, jgrid, fb, fine, igrid);
+		    task_fab* tfab = new task_fab_get(tl, dest, jgrid, fb, fine, igrid);
 		    tl.add_task(
-			new task_restriction_fill(&FORT_FANRST2, dest, jgrid, cbox, tfab, rat, integrate)
+			new task_restriction_fill(&FORT_FANRST2, tl, dest, jgrid, cbox, tfab, rat, integrate)
 			);
 		}
 		else 
 		{
 		    Box fbox = grow(refine(cbox, rat), rat - 1);
-		    task_fab* tfab = new task_fill_patch(dest, jgrid, fbox, fine, lev_interface, bdy, 0, icor);
+		    task_fab* tfab = new task_fill_patch(tl, dest, jgrid, fbox, fine, lev_interface, bdy, 0, icor);
 		    if (geo == level_interface::ALL) 
 		    { 
 			// fine grid on all sides
 			tl.add_task(
-			    new task_restriction_fill(&FORT_FANRST2, dest, jgrid, cbox, tfab, rat, integrate)
+			    new task_restriction_fill(&FORT_FANRST2, tl, dest, jgrid, cbox, tfab, rat, integrate)
 			    );
 		    }
 		    else 
 		    {
 			Array<int> ga = lev_interface.geo_array(0, icor);
 			tl.add_task(
-			    new task_restriction_fill(&FORT_FANCR2, dest, jgrid, cbox, tfab, rat, integrate, ga)
+			    new task_restriction_fill(&FORT_FANCR2, tl, dest, jgrid, cbox, tfab, rat, integrate, ga)
 			    );
 		    }
 		}

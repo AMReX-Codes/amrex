@@ -53,6 +53,18 @@ inline IndexType::CellIndex type(const FabArray<Real,FArrayBox>& r, int idir)
 
 // norm helper functions:
 
+inline Real mfnorm_0(const MultiFab& mf) 
+{
+    Real r = 0;
+    for ( ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi ) 
+    {
+	Real s = cmfi->norm(cmfi->box(), 0, 0, cmfi->nComp());
+	r = (r > s) ? r : s;
+    }
+    ParallelDescriptor::ReduceRealMax(r);
+    return r;
+}
+
 inline Real mfnorm_2(const MultiFab& mf) 
 {
     Real r = 0;
@@ -78,29 +90,14 @@ inline Real mfnorm(const MultiFab& mf)
     return r;
 }
 
+void hg_debug_norm_2(const MultiFab& d, const char* str1, const char* str2);
+
 #ifdef HG_DEBUG
 #include <fstream>
 extern std::ofstream debug_out;
 
-inline const char* mf_centeredness(const MultiFab& m)
-{
-    if ( type(m) == IntVect::TheCellVector() ) return "C";
-    if ( type(m) == IntVect::TheNodeVector() ) return "N";
-    return "O";
-}
-
 #define HG_DEBUG_OUT(s) debug_out << s
-#define HG_TEST_NORM(d, s)					    \
-    if ( true ) {						    \
-	double dz = mfnorm_2(d);				    \
-	debug_out << s;						    \
-	if ( ParallelDescriptor::IOProcessor() )		    \
-	    debug_out << " : Norm[" << d.length() << ","	    \
-	    << mf_centeredness(d) << ","			    \
-	    << d.nComp() << ","					    \
-	    << d.nGrow() << "]( " #d " ) = " << dz;		    \
-	debug_out << std::endl;					    \
-    } else
+#define HG_TEST_NORM(d, s) hg_debug_norm_2(d, s, #d)
 #else
 #define HG_DEBUG_OUT(s)
 #define HG_TEST_NORM(d, s)

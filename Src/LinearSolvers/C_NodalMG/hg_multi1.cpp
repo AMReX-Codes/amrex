@@ -45,16 +45,11 @@ extern "C"
 class task_interpolate_patch : public task
 {
 public:
-    task_interpolate_patch(MultiFab& dmf_, int dgrid_, const Box& dbx_, const MultiFab& smf_, const IntVect& rat_, const amr_interpolator_class* interp_, const level_interface& lev_interface_)
-	: dmf(dmf_), dgrid(dgrid_), dbx(dbx_), smf(smf_), rat(rat_), interp(interp_), lev_interface(lev_interface_)
-    {
-	assert(dbx.sameType(dmf.box(dgrid)));
-    }
-    virtual bool init(sequence_number sno, MPI_Comm comm);
+    task_interpolate_patch(task_list& tl_, MultiFab& dmf_, int dgrid_, const Box& dbx_, const MultiFab& smf_, const IntVect& rat_, const amr_interpolator_class* interp_, const level_interface& lev_interface_);
     virtual bool ready();
     virtual ~task_interpolate_patch();
 private:
-    task_fab* tf;
+    task::task_proxy tf;
     MultiFab& dmf;
     const int dgrid;
     const Box dbx;
@@ -64,23 +59,26 @@ private:
     const level_interface& lev_interface;
 };
 
-bool task_interpolate_patch::init(sequence_number sno, MPI_Comm comm)
+task_interpolate_patch::task_interpolate_patch(task_list& tl_, MultiFab& dmf_, int dgrid_, const Box& dbx_, const MultiFab& smf_, const IntVect& rat_, const amr_interpolator_class* interp_, const level_interface& lev_interface_)
+    : task(tl_), dmf(dmf_), dgrid(dgrid_), dbx(dbx_), smf(smf_), rat(rat_), interp(interp_), lev_interface(lev_interface_), tf(0)
 {
-    tf = new task_fill_patch( dmf, dgrid, interp->box(dbx, rat), smf, lev_interface, 0, -1, -1);
-    return tf->init(sno, comm);
+    assert(dbx.sameType(dmf.box(dgrid)));
+    tf = m_task_list.add_task(
+	new task_fill_patch( m_task_list, dmf, dgrid, interp->box(dbx, rat), smf, lev_interface, 0, -1, -1)
+	);
+    depend_on( tf );
 }
+
 bool task_interpolate_patch::ready()
 {
-    if ( tf->ready() )
+    assert(is_started());
+    assert(tf->ready());
+    if ( is_local(dmf, dgrid) )
     {
-	if ( is_local(dmf, dgrid) )
-	{
-	    interp->fill(dmf[dgrid], dbx, tf->fab(), tf->fab().box(), rat);
-	}
-	delete tf;
-	return true;
+	task_fab* tff = dynamic_cast<task_fab*>(tf.get());
+	interp->fill(dmf[dgrid], dbx, tff->fab(), tff->fab().box(), rat);
     }
-    return false;
+    return true;
 }
 
 task_interpolate_patch::~task_interpolate_patch()
@@ -373,11 +371,14 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 	}
 	
 	sigma[mglev_max].setVal(1.e20);
+	HG_TEST_NORM(sigma[mglev_max], "restrict_level aa1");
+	HG_TEST_NORM(Sigma[  lev_max], "restrict_level aa10");
 	for (MultiFabIterator S_mfi(Sigma[lev_max]); S_mfi.isValid(); ++S_mfi)
 	{
 	    DependentMultiFabIterator s_dmfi(S_mfi, sigma[mglev_max]);
 	    s_dmfi->copy(S_mfi(), mg_mesh[mglev_max][S_mfi.index()], 0, mg_mesh[mglev_max][S_mfi.index()], 0, 1);
 	}
+	HG_TEST_NORM(sigma[mglev_max], "restrict_level aa2");
 	if (mglev_max > 0) 
 	{
 	    IntVect rat = mg_domain[mglev_max].length() / mg_domain[mglev_max-1].length();
@@ -697,7 +698,7 @@ void holy_grail_amr_multigrid::sync_interfaces()
 	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(level_interface::FACEDIM, iface) )
 		continue;
 	    tl.add_task(
-		new task_interpolate_patch(target, igrid, nbox, dest[lev-1], rat, new bilinear_interpolator_class(), lev_interface[mgc])
+		new task_interpolate_patch(tl, target, igrid, nbox, dest[lev-1], rat, new bilinear_interpolator_class(), lev_interface[mgc])
 		);
 	}
 	tl.execute();
@@ -728,7 +729,7 @@ void holy_grail_amr_multigrid::sync_periodic_interfaces()
 		continue;
 	    if ( idomain.intersects(nbox) ) continue;
 	    tl.add_task(
-		new task_interpolate_patch(target, igrid, nbox, dest[lev-1], rat, new bilinear_interpolator_class(), lev_interface[mgc])
+		new task_interpolate_patch(tl, target, igrid, nbox, dest[lev-1], rat, new bilinear_interpolator_class(), lev_interface[mgc])
 	    );
 	}
 	tl.execute();
@@ -750,6 +751,8 @@ void holy_grail_amr_multigrid::mg_restrict_level(int lto, int lfrom)
 
 void holy_grail_amr_multigrid::mg_restrict(int lto, int lfrom)
 {
+    HG_TEST_NORM( work[lfrom], "mg_restrict 1");
+    HG_TEST_NORM( resid[lto], "mg_restrict 11");
     fill_borders(work[lfrom], lev_interface[lfrom], mg_boundary, -1, m_hg_terrain);
     const IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
     for (MultiFabIterator w_mfi(work[lfrom]); w_mfi.isValid(); ++w_mfi)
@@ -763,6 +766,7 @@ void holy_grail_amr_multigrid::mg_restrict(int lto, int lfrom)
 	    D_DECL(rat[0], rat[1], rat[2]), 1, &integrate, 0, 0);
     }
     clear_part_interface(resid[lto], lev_interface[lto]);
+    HG_TEST_NORM( resid[lto], "mg_restrict 21");
 }
 
 void holy_grail_interpolator_class_not_cross::fill(FArrayBox& patch, const Box& region, const FArrayBox& cgr, const Box& cb, const IntVect& rat) const
@@ -858,7 +862,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 #endif
 	    }
 	    tl.add_task(
-		new task_interpolate_patch(target, igrid, target.box(igrid), corr[lfrom], rat, hgi, lev_interface[lfrom])
+		new task_interpolate_patch(tl, target, igrid, target.box(igrid), corr[lfrom], rat, hgi, lev_interface[lfrom])
 		);
 	}
 	tl.execute();
