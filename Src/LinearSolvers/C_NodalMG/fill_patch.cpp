@@ -668,6 +668,7 @@ void interpolate_level(MultiFab& target,
 	}
     }
 }
+
 static void restrict_patch(FArrayBox& patch, const Box& region,
 		    MultiFab& r, const IntVect& rat,
 		    const copy_cache* border_cache,
@@ -701,24 +702,16 @@ static void restrict_patch(FArrayBox& patch, const Box& region,
     }
 }
 
-void restrict_level(MultiFab& dest, bool bflag, MultiFab& r, const IntVect& rat,
+void restrict_level(MultiFab& dest, MultiFab& r, const IntVect& rat,
 		    const copy_cache* border_cache,
 		    const amr_restrictor_class& restric,
 		    const level_interface& lev_interface,
 		    const amr_boundary_class* bdy)
 {
-    assert( !bflag );
     // fillpatchiterator
     for (int igrid = 0; igrid < dest.length(); igrid++) 
     {
-	if (bflag) 
-	{
-	    restrict_patch(dest[igrid], dest[igrid].box(), r, rat, border_cache, restric, lev_interface, bdy);
-	}
-	else 
-	{
-	    restrict_patch(dest[igrid], dest.box(igrid), r, rat, border_cache, restric, lev_interface, bdy);
-	}
+        restrict_patch(dest[igrid], dest.box(igrid), r, rat, border_cache, restric, lev_interface, bdy);
     }
 }
 

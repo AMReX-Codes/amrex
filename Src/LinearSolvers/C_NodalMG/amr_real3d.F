@@ -3,11 +3,12 @@ c Works for CELL- or NODE-based data.
      & destl0,desth0,destl1,desth1,destl2,desth2,
      & regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2, ncomp)
-	integer ncomp
+      integer ncomp
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
-      real*8 dest(destl0:desth0,destl1:desth1,destl2:desth2, ncomp)
+      real*8 dest(destl0:desth0,destl1:desth1,destl2:desth2, 
+     &                  ncomp)
       real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       integer i, j, k, ic
       if (regh2 - regl2 .gt. regh1 - regl1 .and.
@@ -42,9 +43,10 @@ c Unrolled copy---works for CELL- or NODE-based data.
       integer ncomp
       integer nvals, i
       nvals = (regh0-regl0+1) * (regh1-regl1+1) 
-     &	    * (regh2-regl2+1) * ncomp
-      do 10 i = 1, nvals
- 10      dest(i) = src(i)
+     &            * (regh2-regl2+1) * ncomp
+      do i = 1, nvals
+         dest(i) = src(i)
+      end do
       end
 
 c Works for NODE-based data.
@@ -189,10 +191,10 @@ c Works for CELL- or NODE-based data.
       integer ncomp
       integer nvals, i
       nvals = (regh0-regl0+1) * (regh1-regl1+1)
-     &	     * (regh2-regl2+1) * ncomp
+     &      * (regh2-regl2+1) * ncomp
       do i = 1, nvals
-	    v(i) = x
-	end do
+         v(i) = x
+      end do
       end
 
 c Works for CELL- or NODE-based data.
@@ -203,8 +205,8 @@ c Works for CELL- or NODE-based data.
       real*8 v1(*)
       integer i
       do i = 1, (regh0-regl0+1) * (regh1-regl1+1) * (regh2-regl2+1)
-	    v0(i) = v0(i) + v1(i)
-	end do
+         v0(i) = v0(i) + v1(i)
+      end do
       end
 
 c Works for CELL-based data.
@@ -722,7 +724,7 @@ cdir$ ivdep
      &               (dest(ir*ic,jr*jc,4*kc) + dest(ir*ic,jr*jc,4*kc+2))
  120              dest(ir*ic,jr*jc,4*kc+3) = 0.5d0 *
      &               (dest(ir*ic,jr*jc,4*kc+2) 
-     &		+ dest(ir*ic,jr*jc,4*kc+4))
+     &                + dest(ir*ic,jr*jc,4*kc+4))
       else if (kr .ne. 1) then
          do 220 m = 1, kr-1
             q = dble(m)/kr
@@ -899,9 +901,10 @@ c NODE-based data only.
       real*8 src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
       real*8 fac0, fac1, fac2, fac
       integer i, j, k, l, m, n
-	integer r,s
-	real*8 RESTR2, RR0, RS0, REST4A, REST4B, REST4C, REST4D, REST4E
-	RESTR2() = 0.125d0 * src(2*i,2*j,2*k) + 
+      integer r,s
+      real*8 RESTR2, RR0, RS0
+      real*8 REST4A, REST4B, REST4C, REST4D, REST4E
+      RESTR2() = 0.125d0 * src(2*i,2*j,2*k) + 
      &  0.0625d0   * (src(2*i,2*j,2*k-1) + src(2*i,2*j,2*k+1) + 
      &                src(2*i,2*j-1,2*k) + src(2*i,2*j+1,2*k) + 
      &                src(2*i-1,2*j,2*k) + src(2*i+1,2*j,2*k)) + 
@@ -916,19 +919,19 @@ c NODE-based data only.
      &                src(2*i+1,2*j-1,2*k-1) + src(2*i+1,2*j-1,2*k+1) + 
      &                src(2*i+1,2*j+1,2*k-1) + src(2*i+1,2*j+1,2*k+1))
 
-	RR0(r) = (src(4*i-r,4*j-r,4*k) + src(4*i-r,4*j+r,4*k) + 
+      RR0(r) = (src(4*i-r,4*j-r,4*k) + src(4*i-r,4*j+r,4*k) + 
      &          src(4*i+r,4*j-r,4*k) + src(4*i+r,4*j+r,4*k) + 
      &          src(4*i-r,4*j,4*k-r) + src(4*i-r,4*j,4*k+r) + 
      &          src(4*i+r,4*j,4*k-r) + src(4*i+r,4*j,4*k+r) + 
      &          src(4*i,4*j-r,4*k-r) + src(4*i,4*j-r,4*k+r) + 
      &          src(4*i,4*j+r,4*k-r) + src(4*i,4*j+r,4*k+r))
-	RS0(r,s) = (src(4*i-r,4*j-s,4*k) + src(4*i-r,4*j+s,4*k) + 
+      RS0(r,s) = (src(4*i-r,4*j-s,4*k) + src(4*i-r,4*j+s,4*k) + 
      &            src(4*i+r,4*j-s,4*k) + src(4*i+r,4*j+s,4*k) + 
      &            src(4*i-r,4*j,4*k-s) + src(4*i-r,4*j,4*k+s) + 
      &            src(4*i+r,4*j,4*k-s) + src(4*i+r,4*j,4*k+s) + 
      &            src(4*i,4*j-r,4*k-s) + src(4*i,4*j-r,4*k+s) + 
      &            src(4*i,4*j+r,4*k-s) + src(4*i,4*j+r,4*k+s))
-	REST4A() = 0.015625d0 * src(4*i,4*j,4*k) +
+      REST4A() = 0.015625d0 * src(4*i,4*j,4*k) +
      &  0.01171875d0 * (src(4*i,4*j,4*k-1) + src(4*i,4*j,4*k+1) + 
      &                  src(4*i,4*j-1,4*k) + src(4*i,4*j+1,4*k) + 
      &                  src(4*i-1,4*j,4*k) + src(4*i+1,4*j,4*k)) + 
@@ -938,11 +941,11 @@ c NODE-based data only.
      &  0.00390625d0 * (src(4*i,4*j,4*k-3) + src(4*i,4*j,4*k+3) + 
      &                  src(4*i,4*j-3,4*k) + src(4*i,4*j+3,4*k) + 
      &                  src(4*i-3,4*j,4*k) + src(4*i+3,4*j,4*k))
-	REST4B() = 0.0087890625d0 * RR0(1) + 
-     &	0.00390625d0 * RR0(2) + 0.0009765625d0 * RR0(3)
-	REST4C() = 0.001953125d0 * (RS0(2,3) + RS0(3,2))
-	REST4D() = 0.005859375d0 * (RS0(1,2) + RS0(2,1))
-	REST4E() = 0.0029296875d0 * (RS0(1,3) + RS0(3,1))
+      REST4B() = 0.0087890625d0 * RR0(1) + 
+     &        0.00390625d0 * RR0(2) + 0.0009765625d0 * RR0(3)
+      REST4C() = 0.001953125d0 * (RS0(2,3) + RS0(3,2))
+      REST4D() = 0.005859375d0 * (RS0(1,2) + RS0(2,1))
+      REST4E() = 0.0029296875d0 * (RS0(1,3) + RS0(3,1))
       if (ir .eq. 2 .and. jr .eq. 2 .and. kr .eq. 2) then
          if (regh2 - regl2 .gt. regh1 - regl1 .and.
      &       regh2 - regl2 .gt. regh0 - regl0) then

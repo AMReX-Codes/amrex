@@ -219,7 +219,7 @@ void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u,
 	{
 	    alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max, m_use_cache);
 	    // source is set to 0 at this point
-	    right_hand_side((PArray<MultiFab>*)0, rhs);
+	    right_hand_side(0, rhs);
 	}
     }
     if (singular && Coarse_source.ready() && make_sparse_node_source_solvable) 
@@ -336,7 +336,7 @@ void holy_grail_amr_projector::grid_average(PArray<MultiFab>& S)
 	Real adjust = 0.0;
 	for (int lev = lev_max; lev > lev_min; lev--) 
 	{
-	    restrict_level(S[lev-1], false, S[lev], gen_ratio[lev-1],
+	    restrict_level(S[lev-1], S[lev], gen_ratio[lev-1],
 		0, default_restrictor(), level_interface(), 0);
 	}
 	for (int igrid = 0; igrid < ml_mesh[lev_min].length(); igrid++) 
@@ -443,7 +443,7 @@ void holy_grail_amr_projector::sync_right_hand_side(PArray<MultiFab>* u)
     if (singular) 
     {
 	int mglev1 = ml_index[lev_min+1];
-	restrict_level(source[lev_min], false, source[lev_min+1], gen_ratio[lev_min],
+	restrict_level(source[lev_min], source[lev_min+1], gen_ratio[lev_min],
 	    0, bilinear_restrictor_coarse_class(0), lev_interface[mglev1], mg_boundary);
 	work[mglev0].setVal(1.0);
 	Real adjustment = inner_product(source[lev_min], work[mglev0]) /
@@ -1244,15 +1244,15 @@ void holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u, const P
 	for (int lev = lev_max; lev > lev_min; lev--) 
 	{
 	    const IntVect& rat = gen_ratio[lev-1];
-	    restrict_level(dest[lev-1], false, dest[lev], rat,
+	    restrict_level(dest[lev-1], dest[lev], rat,
 		dest_bcache[lev], injection_restrictor_class(), level_interface(), 0);
 	    for (int i = 0; i < BL_SPACEDIM; i++) 
 	    {
 #ifndef HG_TERRAIN
-		restrict_level(u[i][lev-1], false, u[i][lev], rat,
+		restrict_level(u[i][lev-1], u[i][lev], rat,
 		    0, default_restrictor(), level_interface(), 0);
 #else
-		restrict_level(u[i][lev-1], false, u[i][lev], rat,
+		restrict_level(u[i][lev-1], u[i][lev], rat,
 		    0, terrain_velocity_restrictor_class(i), level_interface(), 0);
 #endif
 	    }
@@ -1263,7 +1263,7 @@ void holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u, const P
 	sync_periodic_interfaces();
 	for (int lev = lev_max; lev > lev_min; lev--) 
 	{
-	    restrict_level(dest[lev-1], false, dest[lev], gen_ratio[lev-1],
+	    restrict_level(dest[lev-1], dest[lev], gen_ratio[lev-1],
 		dest_bcache[lev], injection_restrictor_class(), level_interface(), 0);
 	}
     }

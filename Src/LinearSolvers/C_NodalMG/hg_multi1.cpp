@@ -329,7 +329,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
     for (int mglev = mglev_max; mglev > 0; mglev--) 
     {
 	IntVect rat = mg_domain[mglev].length() / mg_domain[mglev-1].length();
-	restrict_level(sigma[mglev-1], false, sigma[mglev], rat, 
+	restrict_level(sigma[mglev-1], sigma[mglev], rat, 
 	    0, holy_grail_sigma_restrictor_class(), level_interface(), 0);
     }
     for (int mglev = 0; mglev <= mglev_max; mglev++) 
@@ -400,14 +400,14 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
     if (mglev_max > 0) 
     {
 	IntVect rat = mg_domain[mglev_max].length() / mg_domain[mglev_max-1].length();
-	restrict_level(sigma_split[mglev_max-1], false, sigma[mglev_max], rat, 
+	restrict_level(sigma_split[mglev_max-1], sigma[mglev_max], rat, 
 	    0, holy_grail_sigma_restrictor_class(), level_interface(), 0);
     }
     fill_borders(sigma[mglev_max], 0, lev_interface[mglev_max], boundary.scalar(), -1);
     for (int mglev = mglev_max - 1; mglev > 0; mglev--) 
     {
 	IntVect rat = mg_domain[mglev].length() / mg_domain[mglev-1].length();
-	restrict_level(sigma_split[mglev-1], false, sigma_split[mglev], rat, 
+	restrict_level(sigma_split[mglev-1], sigma_split[mglev], rat, 
 	    0, holy_grail_sigma_restrictor_class(), level_interface(), 0);
     }
     for (int mglev = 0; mglev < mglev_max; mglev++) 
@@ -774,12 +774,12 @@ void holy_grail_amr_multigrid::mg_restrict_level(int lto, int lfrom)
     {
 	if (integrate == 0) 
 	{
-	    restrict_level(resid[lto], false, work[lfrom], rat, 
+	    restrict_level(resid[lto], work[lfrom], rat, 
 		work_bcache[lfrom], bilinear_restrictor_coarse_class(0), lev_interface[lfrom], mg_boundary);
 	}
 	else 
 	{
-	    restrict_level(resid[lto], false, work[lfrom], rat, 
+	    restrict_level(resid[lto], work[lfrom], rat, 
 		work_bcache[lfrom], bilinear_restrictor_coarse_class(1), lev_interface[lfrom], mg_boundary);
 	}
     }

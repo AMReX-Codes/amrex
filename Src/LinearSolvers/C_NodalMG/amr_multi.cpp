@@ -69,6 +69,7 @@ void amr_multigrid::mesh_write(const Array<BoxArray>& m, const Array<IntVect>& r
 
 amr_multigrid::~amr_multigrid()
 {
+    // note: lev_min is a class member
     for (lev_min = lev_min_min; lev_min <= lev_min_max; lev_min++) 
     {
 	delete [] interface_array[lev_min - lev_min_min];
@@ -558,19 +559,19 @@ void amr_multigrid::mg_restrict_level(int lto, int lfrom)
     IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
     if (type(resid[lto]) == IntVect::TheCellVector()) 
     {
-	restrict_level(resid[lto], false, work[lfrom], rat, 
+	restrict_level(resid[lto], work[lfrom], rat, 
 	    work_bcache[lfrom], cell_average_restrictor_class(0), level_interface(), 0);
     }
     else if (integrate == 0) 
     {
 	if (get_amr_level(lto) >= 0) 
 	{
-	    restrict_level(resid[lto], false, work[lfrom], rat,
+	    restrict_level(resid[lto], work[lfrom], rat,
 		work_bcache[lfrom], bilinear_restrictor_coarse_class(0), lev_interface[lfrom], mg_boundary);
 	}
 	else 
 	{
-	    restrict_level(resid[lto], false, work[lfrom], rat, 
+	    restrict_level(resid[lto], work[lfrom], rat, 
 		work_bcache[lfrom], bilinear_restrictor_class(0), lev_interface[lfrom], mg_boundary);
 	}
     }
@@ -578,12 +579,12 @@ void amr_multigrid::mg_restrict_level(int lto, int lfrom)
     {
 	if (get_amr_level(lto) >= 0) 
 	{
-	    restrict_level(resid[lto], false, work[lfrom], rat, 
+	    restrict_level(resid[lto], work[lfrom], rat, 
 		work_bcache[lfrom], bilinear_restrictor_coarse_class(1), lev_interface[lfrom], mg_boundary);
 	}
 	else 
 	{
-	    restrict_level(resid[lto], false, work[lfrom], rat, 
+	    restrict_level(resid[lto], work[lfrom], rat, 
 		work_bcache[lfrom], bilinear_restrictor_class(1), lev_interface[lfrom], mg_boundary);
 	}
     }
