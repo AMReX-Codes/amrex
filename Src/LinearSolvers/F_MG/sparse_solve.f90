@@ -1936,7 +1936,6 @@ contains
                 call set_upb(ibx,3,k+1)
                 mp => dataptr(mm_grown,ig,ibx)
 
-                print *,'CALLING WITH J K ',j,k
                 call create_nodal_ja_3d(spo%smt%ja,mp(:,:,:,1),ind(:,:,:,1),iedge, &
                                         at_jhi,at_khi)
              end do
@@ -2202,6 +2201,7 @@ contains
       integer :: nx,i,j,k
       logical :: at_ihi
       logical :: neu_lo_i,neu_lo_j,neu_lo_k,neu_hi_i,neu_hi_j,neu_hi_k
+      integer :: iedge0
 
       nx = size(sp,dim=1)
 
@@ -2212,9 +2212,10 @@ contains
 
       do i = 1, nx
        at_ihi = (i.eq.nx)
+       iedge0 = iedge
        if (.not. bc_dirichlet(mp(i,j,k),1,0)) then
         if ( (.not. at_ihi .or. bc_neumann(mp(i,j,k),1,1)) .and. &
-             (.not. at_jhi .or. bc_neumann(mp(i,j,k),3,1)) .and. &
+             (.not. at_jhi .or. bc_neumann(mp(i,j,k),2,1)) .and. &
              (.not. at_khi .or. bc_neumann(mp(i,j,k),3,1)) ) then
          neu_lo_i = bc_neumann(mp(i,j,k),1,-1)
          neu_lo_j = bc_neumann(mp(i,j,k),2,-1)
