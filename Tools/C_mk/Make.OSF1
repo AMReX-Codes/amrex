@@ -1,5 +1,5 @@
 #
-# $Id: Make.OSF1,v 1.21 2001-10-22 21:12:45 lijewski Exp $
+# $Id: Make.OSF1,v 1.22 2001-12-04 21:28:17 car Exp $
 #
 
 #
@@ -7,6 +7,19 @@
 #
 
 SHELL := /bin/ksh
+
+UNAMER := $(shell uname -r)
+#
+# We'd also like to distinguish between OSF1 versions 3 and 4
+#
+ifeq ($(MACHINE), OSF1)
+  ifeq ($(findstring V3, $(UNAMER)), V3)
+    WHICHOSF1 := V3
+  endif
+  ifeq ($(findstring V4, $(UNAMER)), V4)
+    WHICHOSF1 := V4
+  endif
+endif
 
 ifeq ($(COMP),cxx)
   CXX      := cxx -define_templates
@@ -16,8 +29,7 @@ ifeq ($(COMP),cxx)
   CXXPRFF  := -p
   ifeq ($(WHICHOSF1),V3)
     override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
-  endif
-  ifeq ($(WHICHOSF1),V4)
+  else
     override XTRALIBS += -lfor -lUfor -lFutil -lots -lm
   endif
   #
@@ -37,8 +49,7 @@ ifeq ($(COMP),KCC)
   CXXDEBF     += +K0
   ifeq ($(WHICHOSF1),V3)
     override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
-  endif
-  ifeq ($(WHICHOSF1),V4)
+  else
     override XTRALIBS += -lfor -lUfor -lFutil -lots -lm
   endif
   #
@@ -50,8 +61,7 @@ endif
 ifeq ($(COMP),g++)
   ifeq ($(WHICHOSF1),V3)
     override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
-  endif
-  ifeq ($(WHICHOSF1),V4)
+  else
     override XTRALIBS += -lfor -lUfor -lFutil -lots -lm
   endif
   #
