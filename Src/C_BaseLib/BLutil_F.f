@@ -1,5 +1,5 @@
 C
-C $Id: BLutil_F.f,v 1.3 2002-06-18 16:28:28 car Exp $
+C $Id: BLutil_F.f,v 1.4 2002-06-19 20:49:44 car Exp $
 C
 C=======================================================================
 C
@@ -24,7 +24,7 @@ C
       END IF
 C     Make sure that IARR is empty
       DO J = 1, N
-          iarr(J) = 0
+          iarr(J) = ichar(' ')
       END DO
       j = 1
       DO i = 1, len(str)
@@ -44,6 +44,9 @@ C-----------------------------------------------------------------------
       PARAMETER (EOS=-1)
       INTEGER i
 C
+      DO i = 1, LEN(str)
+          str(i:i) = ' '
+      END DO
       DO i = 1, n
           IF ( i .GT. LEN(str) ) STOP "blint2str: iarr to large for str"
           IF ( iarr(i) .EQ. EOS ) GO TO 100
