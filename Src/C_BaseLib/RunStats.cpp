@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.8 1998-12-11 19:21:26 car Exp $
+// $Id: RunStats.cpp,v 1.9 1999-02-03 19:29:57 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -15,15 +15,15 @@ using std::ios;
 using std::setprecision;
 #endif
 
-double RunStats::TotalCPU;
+Real RunStats::TotalCPU;
 
-double RunStats::TotalWCT;
+Real RunStats::TotalWCT;
 
-double RunStats::DiskBytes;
+Real RunStats::DiskBytes;
 
 Array<long> RunStats::TheCells;
 
-Array<double> RunStats::TheNumPts;
+Array<Real> RunStats::TheNumPts;
 
 List<RunStatsData> RunStats::TheStats;
 
@@ -77,6 +77,8 @@ RunStats::RunStats (const aString& _name,
     entry  = RunStats::find(_name, _level);
 
     entry->is_on = true;
+
+    time = wtime = 0;
 }
 
 RunStats::~RunStats () {}
@@ -96,9 +98,8 @@ RunStats::end ()
 {
     if (gentry->is_on && entry->is_on)
     {
-        time  += Utility::second();
-        wtime += Utility::wsecond();
-
+        time              += Utility::second();
+        wtime             += Utility::wsecond();
         entry->run_time   += time;
         gentry->run_time  += time;
         entry->run_wtime  += wtime;
@@ -111,9 +112,7 @@ RunStats::addCells (int  lev,
                     long count)
 {
     if (lev >= RunStats::TheCells.length())
-    {
         RunStats::TheCells.resize(lev+1, 0);
-    }
     RunStats::TheCells[lev] += count;
 }
 
@@ -142,8 +141,8 @@ RunStats::addNumPts (long count)
 void
 RunStats::Print (ostream&            os,
                  const RunStatsData& data,
-                 double              tot_run_time,
-                 double              tot_run_wtime)
+                 Real                tot_run_time,
+                 Real                tot_run_wtime)
 {
     int old_prec = os.precision(4);
 
@@ -166,12 +165,11 @@ RunStats::report (ostream& os)
 {
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
-    double rtime  = Utility::second();
-    double rwtime = Utility::wsecond();
+    Real rtime  = Utility::second();
+    Real rwtime = Utility::wsecond();
 
     ParallelDescriptor::ReduceRealSum(rtime,IOProc);
     ParallelDescriptor::ReduceRealMax(rwtime,IOProc);
-
     ParallelDescriptor::ReduceRealSum(Incremental_Byte_Count,IOProc);
 
     RunStats::DiskBytes += Incremental_Byte_Count;
@@ -192,8 +190,8 @@ RunStats::report (ostream& os)
 
     if (ParallelDescriptor::IOProcessor())
     {
-        double tot_run_time  = RunStats::TotalCPU + rtime;
-        double tot_run_wtime = RunStats::TotalWCT + rwtime;
+        Real tot_run_time  = RunStats::TotalCPU + rtime;
+        Real tot_run_wtime = RunStats::TotalWCT + rwtime;
 
         os.setf(ios::showpoint);
 
@@ -212,7 +210,7 @@ RunStats::report (ostream& os)
         os << "\nTotal cells advanced: " << tot_cells << '\n';
         os << "\nTotal bytes written to disk: " << RunStats::DiskBytes << '\n';
 
-        double tot_num_pts = 0;
+        Real tot_num_pts = 0;
 
         for (int i = 0; i < RunStats::TheNumPts.length(); i++)
             tot_num_pts += RunStats::TheNumPts[i];
@@ -236,9 +234,7 @@ RunStats::report (ostream& os)
         int maxlev = 0;
         ListIterator<RunStatsData> it(TheTotals);
         for ( ; it; ++it)
-        {
             maxlev = Max(maxlev, it().level);
-        }
 
         for (int lev = 0; lev <= maxlev; ++lev)
         {
@@ -253,9 +249,7 @@ RunStats::report (ostream& os)
                         if (iti().name == it().name && iti().level == -1)
                             break;
                     if (it().is_on)
-                    {
                         Print(os, it(), tot_run_time, tot_run_wtime);
-                    }
                 }
             }
         }
@@ -264,12 +258,8 @@ RunStats::report (ostream& os)
         it.rewind();
 
         for ( ; it; ++it)
-        {
             if (it().level == -1 && it().is_on )
-            {
                 Print(os, it(), tot_run_time, tot_run_wtime);
-            }
-        }
 
         os << '\n'
            << "Total CPU time        : " << tot_run_time  << '\n'
@@ -295,10 +285,9 @@ RunStats::report_names (Array<aString>& stat_names)
     int nstat = 0;
     
     for (ListIterator<RunStatsData> ldi(RunStats::TheStats); ldi; ++ldi)
-    {
         if (ldi().level == -1)
             nstat++;
-    }
+
     stat_names.resize(nstat);
     //
     // Get their names.
@@ -314,15 +303,16 @@ RunStats::report_names (Array<aString>& stat_names)
             ind++;
         }
     }
+
     assert(ind == nstat);
 }
 
 void
 RunStats::report_values (const Array<aString>& stat_names,
-                         Array<double>&        stat_time,
-                         Array<double>&        stat_wtime,
-                         double&               tot_run_time,
-                         double&               tot_run_wtime,
+                         Array<Real>&          stat_time,
+                         Array<Real>&          stat_wtime,
+                         Real&                 tot_run_time,
+                         Real&                 tot_run_wtime,
                          long&                 tot_cells)
 {
     const int NStats = stat_names.length();
@@ -330,8 +320,8 @@ RunStats::report_values (const Array<aString>& stat_names,
     stat_time.resize(NStats);
     stat_wtime.resize(NStats);
 
-    double rtime  = Utility::second();
-    double rwtime = Utility::wsecond();
+    Real rtime  = Utility::second();
+    Real rwtime = Utility::wsecond();
 
     ParallelDescriptor::ReduceRealSum(rtime);
     ParallelDescriptor::ReduceRealMax(rwtime);
@@ -367,12 +357,11 @@ RunStats::dumpStats (ofstream& os)
 {
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
-    double rtime  = Utility::second();
-    double rwtime = Utility::wsecond();
+    Real rtime  = Utility::second();
+    Real rwtime = Utility::wsecond();
 
     ParallelDescriptor::ReduceRealSum(rtime,IOProc);
     ParallelDescriptor::ReduceRealMax(rwtime,IOProc);
-
     ParallelDescriptor::ReduceRealSum(Incremental_Byte_Count,IOProc);
 
     RunStats::DiskBytes += Incremental_Byte_Count;
@@ -406,16 +395,12 @@ RunStats::dumpStats (ofstream& os)
         long nlev = RunStats::TheNumPts.length();
         os << nlev;
         for (int i = 0; i < nlev; i++)
-        {
             os << ' ' << RunStats::TheNumPts[i];
-        }
         os << '\n';
         nlev = RunStats::TheCells.length();
         os << nlev;
         for (int i = 0; i < nlev; i++)
-        {
             os << ' ' << RunStats::TheCells[i];
-        }
         os << ")\n";
     }
 }
@@ -457,24 +442,28 @@ RunStats::readStats (ifstream& is,
     RunStats::TheNumPts.resize(nlen);
     int i;
     for (i = 0; i < nlen; i++)
-    {
         is >> RunStats::TheNumPts[i];
-    }
     is >> nlen;
     RunStats::TheCells.resize(nlen);
     for (i = 0; i < nlen; i++)
-    {
         is >> RunStats::TheCells[i];
-    }
     is.ignore(BL_IGNORE_MAX,')');
 }
+
+//
+// Gather the processor specific Incremental_Num_Pts to IOProcessor().
+//
 
 void
 RunStats::CollectNumPts ()
 {
     //
-    // Gather the processor specific Incremental_Num_Pts to IOProcessor().
+    // Never decrease the size of RunStats::TheNumPts.
     //
+    if (ParallelDescriptor::IOProcessor())
+        if (ParallelDescriptor::NProcs() > RunStats::TheNumPts.length())
+            RunStats::TheNumPts.resize(ParallelDescriptor::NProcs(), 0);
+
     Array<Real> numpts(ParallelDescriptor::NProcs());
 
     ParallelDescriptor::Gather(&Incremental_Num_Pts,
@@ -483,18 +472,8 @@ RunStats::CollectNumPts ()
                                ParallelDescriptor::IOProcessorNumber());
 
     if (ParallelDescriptor::IOProcessor())
-    {
-        if (ParallelDescriptor::NProcs() > RunStats::TheNumPts.length())
-            //
-            // Never decrease the size of RunStats::TheNumPts.
-            //
-            RunStats::TheNumPts.resize(ParallelDescriptor::NProcs(), 0);
-
         for (int i = 0; i < numpts.length(); i++)
-        {
             RunStats::TheNumPts[i] += numpts[i];
-        }
-    }
 
     Incremental_Num_Pts = 0;
 }
