@@ -1,6 +1,6 @@
 
 //
-// $Id: ABecLaplacian.cpp,v 1.12 2000-10-02 20:51:15 lijewski Exp $
+// $Id: ABecLaplacian.cpp,v 1.13 2000-11-01 18:06:14 lijewski Exp $
 //
 
 #include <ABecLaplacian.H>
@@ -50,20 +50,18 @@ ABecLaplacian::norm(int nm, int level)
 {
   BL_ASSERT(nm == 0);
   const MultiFab& a   = aCoefficients(level);
-  const MultiFab& bX  = bCoefficients(0,level);
-  const MultiFab& bY  = bCoefficients(1,level);
-#if (BL_SPACEDIM == 3)
-  const MultiFab& bZ  = bCoefficients(2,level);
-#endif
+
+  D_TERM(const MultiFab& bX  = bCoefficients(0,level);,
+         const MultiFab& bY  = bCoefficients(1,level);,
+         const MultiFab& bZ  = bCoefficients(2,level););
+
   const int nc = a.nComp();
   Real res = 0.0;
   for (ConstMultiFabIterator amfi(a); amfi.isValid(); ++amfi)
     {
-      ConstDependentMultiFabIterator bXmfi(amfi, bX);
-      ConstDependentMultiFabIterator bYmfi(amfi, bY);
-#if (BL_SPACEDIM==3)
-      ConstDependentMultiFabIterator bZmfi(amfi, bZ);
-#endif
+      D_TERM(ConstDependentMultiFabIterator bXmfi(amfi,bX);,
+             ConstDependentMultiFabIterator bYmfi(amfi,bY);,
+             ConstDependentMultiFabIterator bZmfi(amfi,bZ););
 
       Real tres;
 #if (BL_SPACEDIM==2)
@@ -216,24 +214,25 @@ ABecLaplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflu
     applyBC(in,src_comp,num_comp,level,bc_mode);
     const BoxArray& bxa = gbox[level];
     const MultiFab& a   = aCoefficients(level);
-    const MultiFab& bX  = bCoefficients(0,level);
-    const MultiFab& bY  = bCoefficients(1,level);
-#if (BL_SPACEDIM == 3)
-    const MultiFab& bZ  = bCoefficients(2,level);
-#endif
+
+    D_TERM(const MultiFab& bX  = bCoefficients(0,level);,
+           const MultiFab& bY  = bCoefficients(1,level);,
+           const MultiFab& bZ  = bCoefficients(2,level););
+
     int nc = in.nComp();
 
     for (MultiFabIterator inmfi(in); inmfi.isValid(); ++inmfi)
     {
         DependentMultiFabIterator amfi(inmfi,  a);
-        DependentMultiFabIterator bXmfi(inmfi, bX);
-        DependentMultiFabIterator bYmfi(inmfi, bY);
-        DependentMultiFabIterator xflmfi(inmfi, xflux);
-        DependentMultiFabIterator yflmfi(inmfi, yflux);
-#if (BL_SPACEDIM == 3)	
-        DependentMultiFabIterator bZmfi(inmfi, bZ);
-        DependentMultiFabIterator zflmfi(inmfi, zflux);
-#endif
+
+        D_TERM(DependentMultiFabIterator bXmfi(inmfi,bX);,
+               DependentMultiFabIterator bYmfi(inmfi,bY);,
+               DependentMultiFabIterator bZmfi(inmfi,bZ););
+
+        D_TERM(DependentMultiFabIterator xflmfi(inmfi,xflux);,
+               DependentMultiFabIterator yflmfi(inmfi,yflux);,
+               DependentMultiFabIterator zflmfi(inmfi,zflux););
+
         BL_ASSERT(bxa[inmfi.index()] == inmfi.validbox());
 
         FORT_FLUX(inmfi().dataPtr(),
@@ -272,11 +271,9 @@ public:
 	    const FArrayBox& rhsL_,
 	    Real alpha_, Real beta_,
 	    const FArrayBox& a_,
-	    const FArrayBox& bX_,
-	    const FArrayBox& bY_,
-#if BL_SPACEDIM == 3
-	    const FArrayBox& bZ_,
-#endif
+	    D_DECL(const FArrayBox& bX_,
+                   const FArrayBox& bY_,
+                   const FArrayBox& bZ_),
 	    const FArrayBox& f0_, const Mask& m0_,
 	    const FArrayBox& f1_, const Mask& m1_,
 	    const FArrayBox& f2_, const Mask& m2_,
@@ -289,15 +286,14 @@ public:
 	    int nc_,
 	    const Real* h_,
 	    int redBlackFlag_)
-    : solnL(solnL_),
+    :
+      solnL(solnL_),
       rhsL(rhsL_),
       alpha(alpha_), beta(beta_),
       a(a_),
-      bX(bX_),
-      bY(bY_),
-#if BL_SPACEDIM == 3
-      bZ(bZ_),
-#endif
+      D_DECL(bX(bX_),
+             bY(bY_),
+             bZ(bZ_)),
       f0(f0_), m0(m0_),
       f1(f1_), m1(m1_),
       f2(f2_), m2(m2_),
@@ -317,11 +313,9 @@ private:
   const FArrayBox& rhsL;
   const Real alpha, beta;
   const FArrayBox& a;
-  const FArrayBox& bX;
-  const FArrayBox& bY;
-#if BL_SPACEDIM == 3
-  const FArrayBox& bZ;
-#endif
+  D_TERM(const FArrayBox& bX;,
+         const FArrayBox& bY;,
+         const FArrayBox& bZ;);
   const FArrayBox& f0;
   const Mask& m0;
   const FArrayBox& f1;
@@ -400,22 +394,20 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
     const FabSet &f5 = (*undrrelxr[level])[oitr()]; oitr++;
 #endif    
     const MultiFab  &a = aCoefficients(level);
-    const MultiFab  &bX = bCoefficients(0,level);
-    const MultiFab  &bY = bCoefficients(1,level);
-#if (BL_SPACEDIM > 2)    
-    const MultiFab  &bZ = bCoefficients(2,level);
-#endif    
+    D_TERM(const MultiFab  &bX = bCoefficients(0,level);,
+           const MultiFab  &bY = bCoefficients(1,level);,
+           const MultiFab  &bZ = bCoefficients(2,level););
 
     int nc = solnL.nComp();
     for (MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
     {
         DependentMultiFabIterator rhsLmfi(solnLmfi, rhsL);
         DependentMultiFabIterator amfi(solnLmfi,  a);
-        DependentMultiFabIterator bXmfi(solnLmfi, bX);
-        DependentMultiFabIterator bYmfi(solnLmfi, bY);
-#if (BL_SPACEDIM > 2)    
-        DependentMultiFabIterator bZmfi(solnLmfi, bZ);
-#endif    
+
+        D_TERM(DependentMultiFabIterator bXmfi(solnLmfi,bX);,
+               DependentMultiFabIterator bYmfi(solnLmfi,bY);,
+               DependentMultiFabIterator bZmfi(solnLmfi,bZ););
+
         DependentFabSetIterator f0fsi(solnLmfi, f0);
         DependentFabSetIterator f1fsi(solnLmfi, f1);
         DependentFabSetIterator f2fsi(solnLmfi, f2);
@@ -442,11 +434,7 @@ ABecLaplacian::Fsmooth (MultiFab&       solnL,
 			       rhsL[gn],
 			       alpha, beta,
 			       a[gn],
-			       bX[gn],
-			       bY[gn],
-#if BL_SPACEDIM == 3
-			       bZ[gn],
-#endif
+			       D_DECL(bX[gn], bY[gn], bZ[gn]),
 			       f0[gn], m0,
 			       f1[gn], m1,
 			       f2[gn], m2,
@@ -517,22 +505,20 @@ ABecLaplacian::Fapply (MultiFab&       y,
 #endif
     const BoxArray& bxa = gbox[level];
     const MultiFab& a   = aCoefficients(level);
-    const MultiFab& bX  = bCoefficients(0,level);
-    const MultiFab& bY  = bCoefficients(1,level);
-#if (BL_SPACEDIM > 2)
-    const MultiFab& bZ  = bCoefficients(2,level);
-#endif
+    D_TERM(const MultiFab& bX  = bCoefficients(0,level);,
+           const MultiFab& bY  = bCoefficients(1,level);,
+           const MultiFab& bZ  = bCoefficients(2,level););
     int nc = y.nComp();
 
     for (MultiFabIterator ymfi(y); ymfi.isValid(); ++ymfi)
     {
         DependentMultiFabIterator xmfi(ymfi,  x);
         DependentMultiFabIterator amfi(ymfi,  a);
-        DependentMultiFabIterator bXmfi(ymfi, bX);
-        DependentMultiFabIterator bYmfi(ymfi, bY);
-#if (BL_SPACEDIM > 2)    
-        DependentMultiFabIterator bZmfi(ymfi, bZ);
-#endif    
+
+        D_TERM(DependentMultiFabIterator bXmfi(ymfi,bX);,
+               DependentMultiFabIterator bYmfi(ymfi,bY);,
+               DependentMultiFabIterator bZmfi(ymfi,bZ););
+
         BL_ASSERT(bxa[ymfi.index()] == ymfi.validbox());
 
 #if (BL_SPACEDIM == 2)

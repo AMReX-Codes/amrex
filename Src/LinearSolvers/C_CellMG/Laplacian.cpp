@@ -1,6 +1,6 @@
 
 //
-// $Id: Laplacian.cpp,v 1.10 2000-10-02 20:51:16 lijewski Exp $
+// $Id: Laplacian.cpp,v 1.11 2000-11-01 18:06:14 lijewski Exp $
 //
 
 #include <Laplacian.H>
@@ -32,11 +32,10 @@ Laplacian::compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 
     for (MultiFabIterator inmfi(in); inmfi.isValid(); ++inmfi)
     {
-        DependentMultiFabIterator xflmfi(inmfi, xflux);
-        DependentMultiFabIterator yflmfi(inmfi, yflux);
-#if (BL_SPACEDIM == 3)
-        DependentMultiFabIterator zflmfi(inmfi, zflux);
-#endif
+        D_TERM(DependentMultiFabIterator xflmfi(inmfi,xflux);,
+               DependentMultiFabIterator yflmfi(inmfi,yflux);,
+               DependentMultiFabIterator zflmfi(inmfi,zflux););
+
         BL_ASSERT(bxa[inmfi.index()] == inmfi.validbox());
 
         FORT_FLUX(inmfi().dataPtr(),
