@@ -4,7 +4,7 @@
 #define BL_FABCONV_H
 
 //
-// $Id: FabConv.H,v 1.5 1999-05-10 18:54:21 car Exp $
+// $Id: FabConv.H,v 1.6 2000-04-04 00:20:13 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -180,6 +180,11 @@ public:
     //
     bool operator != (const RealDescriptor& rd) const;
 
+    //
+    //@ManDoc: Set to always fix denormals when converting to native format.
+    //
+    static void SetFixDenormals();
+
     /*@ManDoc: Returns a copy of this RealDescriptor on the heap.
                The user is responsible for deletion.
     */
@@ -242,6 +247,7 @@ public:
 protected:
     Array<long> fr;
     Array<int>  ord;
+    static bool bAlwaysFixDenormals;
 };
 
 //
@@ -366,6 +372,13 @@ bool
 RealDescriptor::operator != (const RealDescriptor& rd) const
 {
     return !operator==(rd);
+}
+
+inline
+void
+RealDescriptor::SetFixDenormals()
+{
+    bAlwaysFixDenormals = true;
 }
 
 #endif /*BL_FABCONV_H*/
