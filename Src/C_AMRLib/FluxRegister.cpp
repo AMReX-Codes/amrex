@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.72 2002-11-14 07:08:32 marc Exp $
+// $Id: FluxRegister.cpp,v 1.73 2002-11-26 22:38:59 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -585,10 +585,10 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     {
         for (int k = 0; k < mflx.boxArray().size(); k++)
         {
-            if (mfi_lo.fabbox().intersects(mflx.boxArray()[k]))
-            {
-                Box lobox = mfi_lo.fabbox() & mflx.boxArray()[k];
+            Box lobox = mfi_lo.fabbox() & mflx.boxArray()[k];
 
+            if (lobox.ok())
+            {
                 fillBoxId_mflx.push_back(mfcd.AddBox(mfid_mflx,
                                                      lobox,
                                                      0,
@@ -618,10 +618,10 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                 fillBoxId_area.back().FabIndex(Orientation::low);
             }
 
-            if (bndry[face_hi].fabbox(mfi_lo.index()).intersects(mflx.boxArray()[k]))
-            {
-                Box hibox = bndry[face_hi].fabbox(mfi_lo.index()) & mflx.boxArray()[k];
+            Box hibox = bndry[face_hi].fabbox(mfi_lo.index()) & mflx.boxArray()[k];
 
+            if (hibox.ok())
+            {
                 fillBoxId_mflx.push_back(mfcd.AddBox(mfid_mflx,
                                                      hibox,
                                                      0,
@@ -790,19 +790,18 @@ FluxRegister::CrseInit (const FArrayBox& flux,
     for (int k = 0; k < grids.size(); k++)
     {
         const Orientation lo(dir,Orientation::low);
-
-        if (subbox.intersects(bndry[lo].box(k)))
-        {
-            Box lobox = bndry[lo].box(k) & subbox;
-
-            DoIt(lo,k,bndry,lobox,flux,srccomp,destcomp,numcomp,mult,op);
-        }
         const Orientation hi(dir,Orientation::high);
 
-        if (subbox.intersects(bndry[hi].box(k)))
-        {
-            Box hibox = bndry[hi].box(k) & subbox;
+        const Box lobox = bndry[lo].box(k) & subbox;
+        const Box hibox = bndry[hi].box(k) & subbox;
 
+        if (lobox.ok())
+        {
+            DoIt(lo,k,bndry,lobox,flux,srccomp,destcomp,numcomp,mult,op);
+        }
+
+        if (hibox.ok())
+        {
             DoIt(hi,k,bndry,hibox,flux,srccomp,destcomp,numcomp,mult,op);
         }
     }

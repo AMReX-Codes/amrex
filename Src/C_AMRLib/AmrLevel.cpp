@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.90 2002-11-14 00:13:23 marc Exp $
+// $Id: AmrLevel.cpp,v 1.91 2002-11-26 22:38:59 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -990,10 +990,10 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
                         for (int j = 0; j < CrseFabs.size(); j++)
                         {
                             FArrayBox& srcfab = CrseFabs[j];
+                            Box        srcbox = fullsrcbox & srcfab.box();
 
-                            if (fullsrcbox.intersects(srcfab.box()))
+                            if (srcbox.ok())
                             {
-                                Box srcbox = fullsrcbox & srcfab.box();
                                 Box dstbox = srcbox - pshifts[iiv];
 
                                 dstfab.copy(srcfab,srcbox,0,dstbox,0,m_ncomp);
