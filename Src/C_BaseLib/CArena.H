@@ -9,9 +9,8 @@
 using std::ostream;
 #else
 #include <stddef.h>
-class ostream;
+#include <iostream.h>
 #endif
-
 
 #include <Boolean.H>
 #include <Arena.H>
@@ -59,8 +58,9 @@ protected:
 
     bool ok (int level);
 
-    Header* freeFree(Header* lower, Header* upper);
-    Header* freeUsed(Header* freeblock, Header* busyblock);
+    Header* freeFree (Header* lower, Header* upper);
+    Header* freeUsed (Header* freeblock, Header* busyblock);
+    Header* morecore (size_t);
     //
     // Static data.
     //
@@ -69,12 +69,12 @@ protected:
     // Local data.
     //
     Array<void*> psaved;
-    Header*      morecore(size_t);
-    size_t       c_hunk_size;
+    Header       base;
     Header*      highest_mem;
     Header*      lowest_mem;
-    Header       base;
     Header*      freep;
+    size_t       c_hunk_size;
+
 private:
     //
     // Disallowed.
