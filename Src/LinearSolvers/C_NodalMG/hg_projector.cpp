@@ -2,41 +2,41 @@
 #include "hg_projector.H"
 
 #ifdef BL_FORT_USE_UNDERSCORE
-#  define   FORT_HGDIV      hgdiv_
-#  define   FORT_HGDIV_TERRAIN      hgdiv_terrain_
-#  define   FORT_HGFDIV     hgfdiv_
-#  define   FORT_HGFDIV_TERRAIN     hgfdiv_terrain_
-#  define   FORT_HGEDIV     hgediv_
-#  define   FORT_HGEDIV_TERRAIN     hgediv_terrain_
-#  define   FORT_HGCDIV     hgcdiv_
-#  define   FORT_HGCDIV_TERRAIN     hgcdiv_terrain_
-#  define   FORT_HGODIV     hgodiv_
-#  define   FORT_HGIDIV     hgidiv_
-#  define   FORT_HGDDIV     hgddiv_
-#  define   FORT_HGGRAD     hggrad_
-#  define   FORT_HGGRAD_TERRAIN     hggrad_terrain_
-#  define   FORT_HGAVG      hgavg_
-#  define   FORT_HGFAVG     hgfavg_
-#  define   FORT_HGEAVG     hgeavg_
-#  define   FORT_HGCAVG     hgcavg_
+#define   FORT_HGDIV      hgdiv_
+#define   FORT_HGDIV_TERRAIN      hgdiv_terrain_
+#define   FORT_HGFDIV     hgfdiv_
+#define   FORT_HGFDIV_TERRAIN     hgfdiv_terrain_
+#define   FORT_HGEDIV     hgediv_
+#define   FORT_HGEDIV_TERRAIN     hgediv_terrain_
+#define   FORT_HGCDIV     hgcdiv_
+#define   FORT_HGCDIV_TERRAIN     hgcdiv_terrain_
+#define   FORT_HGODIV     hgodiv_
+#define   FORT_HGIDIV     hgidiv_
+#define   FORT_HGDDIV     hgddiv_
+#define   FORT_HGGRAD     hggrad_
+#define   FORT_HGGRAD_TERRAIN     hggrad_terrain_
+#define   FORT_HGAVG      hgavg_
+#define   FORT_HGFAVG     hgfavg_
+#define   FORT_HGEAVG     hgeavg_
+#define   FORT_HGCAVG     hgcavg_
 #else
-#  define   FORT_HGDIV      HGDIV
-#  define   FORT_HGDIV_TERRAIN      HGDIV_TERRAIN
-#  define   FORT_HGFDIV     HGFDIV
-#  define   FORT_HGFDIV_TERRAIN     HGFDIV_TERRAIN
-#  define   FORT_HGEDIV     HGEDIV
-#  define   FORT_HGEDIV_TERRAIN     HGEDIV_TERRAIN
-#  define   FORT_HGCDIV     HGCDIV
-#  define   FORT_HGCDIV_TERRAIN     HGCDIV_TERRAIN
-#  define   FORT_HGODIV     HGODIV
-#  define   FORT_HGIDIV     HGIDIV
-#  define   FORT_HGDDIV     HGDDIV
-#  define   FORT_HGGRAD     HGGRAD
-#  define   FORT_HGGRAD_TERRAIN     HGGRAD_TERRAIN
-#  define   FORT_HGAVG      HGAVG
-#  define   FORT_HGFAVG     HGFAVG
-#  define   FORT_HGEAVG     HGEAVG
-#  define   FORT_HGCAVG     HGCAVG
+#define   FORT_HGDIV      HGDIV
+#define   FORT_HGDIV_TERRAIN      HGDIV_TERRAIN
+#define   FORT_HGFDIV     HGFDIV
+#define   FORT_HGFDIV_TERRAIN     HGFDIV_TERRAIN
+#define   FORT_HGEDIV     HGEDIV
+#define   FORT_HGEDIV_TERRAIN     HGEDIV_TERRAIN
+#define   FORT_HGCDIV     HGCDIV
+#define   FORT_HGCDIV_TERRAIN     HGCDIV_TERRAIN
+#define   FORT_HGODIV     HGODIV
+#define   FORT_HGIDIV     HGIDIV
+#define   FORT_HGDDIV     HGDDIV
+#define   FORT_HGGRAD     HGGRAD
+#define   FORT_HGGRAD_TERRAIN     HGGRAD_TERRAIN
+#define   FORT_HGAVG      HGAVG
+#define   FORT_HGFAVG     HGFAVG
+#define   FORT_HGEAVG     HGEAVG
+#define   FORT_HGCAVG     HGCAVG
 #endif
 
 extern "C" 
@@ -48,9 +48,9 @@ extern "C"
     void FORT_HGGRAD_TERRAIN(RealPS, intS, Real*, intS, intS);
     void FORT_HGDIV_TERRAIN(Real*, intS, RealPS, intS, intS);
     void FORT_HGFDIV_TERRAIN(Real*, intS, RealPS, intS, RealPS, intS, intS, intRS, const int*, const int*);
-#    if (BL_SPACEDIM == 3)
+#if (BL_SPACEDIM == 3)
     void FORT_HGEDIV_TERRAIN(Real*, intS, RealPS, intS, RealPS, intS, intS, intRS, const int*, const int*);
-#    endif
+#endif
     void FORT_HGCDIV_TERRAIN(Real*, intS, RealPS, intS, RealPS, intS, intS, intRS, const int*);
     
 #if (BL_SPACEDIM == 2)
@@ -64,7 +64,7 @@ extern "C"
     void FORT_HGFAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, int*, int*,
 	const Real*, const int*, const int*);
     void FORT_HGCAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const Real*, const int*, const int*);
-#  elif (BL_SPACEDIM == 3)
+#elif (BL_SPACEDIM == 3)
     void FORT_HGGRAD(RealPS, intS, Real*, intS, intS, CRealPS);
     void FORT_HGDIV(Real*, intS, RealPS, intS, intS, CRealPS);
     void FORT_HGFDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, CRealPS, intRS, const int*, const int*);
@@ -74,7 +74,7 @@ extern "C"
     void FORT_HGFAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*);
     void FORT_HGEAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*);
     void FORT_HGCAVG(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*);
-#  endif
+#endif
 #endif
 }
 
@@ -881,7 +881,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	FArrayBox vf(fbox);
 	fill_patch(uf, uf.box(), u[0][lev], lev_interface[mglev], boundary.velocity(0), 0, icor);
 	fill_patch(vf, vf.box(), u[1][lev], lev_interface[mglev], boundary.velocity(1), 0, icor);
-#  if (BL_SPACEDIM == 3)
+#if (BL_SPACEDIM == 3)
 	FArrayBox* wcp;
 	if (jgrid < 0) 
 	{
@@ -894,7 +894,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	}
 	FArrayBox  wf(fbox);
 	fill_patch(wf, wf.box(), u[2][lev], lev_interface[mglev], boundary.velocity(2), 0, icor);
-#  endif
+#endif
 	Box creg = lev_interface[mglev].box(0, icor);
 	creg.coarsen(rat);
 	Array<int> ga = lev_interface[mglev].geo_array(0, icor);

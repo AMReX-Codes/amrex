@@ -2,29 +2,29 @@
 #include "hg_multi.H"
 
 #ifdef BL_FORT_USE_UNDERSCORE
-#  define   FORT_HGSRST     hgsrst_
-#  define   FORT_HGSCON     hgscon_
-#  define   FORT_HGCEN      hgcen_
-#  define   FORT_HGCEN_FULL hgcen_full_
-#  define   FORT_HGCEN_NO_SIGMA_NODE      hgcen_no_sigma_node_
-#  define   FORT_HGCEN_TERRAIN      hgcen_terrain_
-#  define   FORT_HGINTS     hgints_
-#  define   FORT_HGINTS_NO_SIGMA_NODE     hgints_no_sigma_node_
-#  define   FORT_FACRST1    acrst1_
-#  define   FORT_FANRST2    anrst2_
-#  define   FORT_FANINT2    anint2_
+#define   FORT_HGSRST     hgsrst_
+#define   FORT_HGSCON     hgscon_
+#define   FORT_HGCEN      hgcen_
+#define   FORT_HGCEN_FULL hgcen_full_
+#define   FORT_HGCEN_NO_SIGMA_NODE      hgcen_no_sigma_node_
+#define   FORT_HGCEN_TERRAIN      hgcen_terrain_
+#define   FORT_HGINTS     hgints_
+#define   FORT_HGINTS_NO_SIGMA_NODE     hgints_no_sigma_node_
+#define   FORT_FACRST1    acrst1_
+#define   FORT_FANRST2    anrst2_
+#define   FORT_FANINT2    anint2_
 #else
-#  define   FORT_HGSRST     HGSRST
-#  define   FORT_HGSCON     HGSCON
-#  define   FORT_HGCEN      HGCEN
-#  define   FORT_HGCEN_FULL      HGCEN_FULL
-#  define   FORT_HGCEN_NO_SIGMA_NODE      HGCEN_NO_SIGMA_NODE
-#  define   FORT_HGCEN_TERRAIN     HGCEN_TERRAIN
-#  define   FORT_HGINTS     HGINTS
-#  define   FORT_HGINTS_NO_SIGMA_NODE     HGINTS_NO_SIGMA_NODE
-#  define   FORT_FACRST1    ACRST1
-#  define   FORT_FANRST2    ANRST2
-#  define   FORT_FANINT2    ANINT2
+#define   FORT_HGSRST     HGSRST
+#define   FORT_HGSCON     HGSCON
+#define   FORT_HGCEN      HGCEN
+#define   FORT_HGCEN_FULL      HGCEN_FULL
+#define   FORT_HGCEN_NO_SIGMA_NODE      HGCEN_NO_SIGMA_NODE
+#define   FORT_HGCEN_TERRAIN     HGCEN_TERRAIN
+#define   FORT_HGINTS     HGINTS
+#define   FORT_HGINTS_NO_SIGMA_NODE     HGINTS_NO_SIGMA_NODE
+#define   FORT_FACRST1    ACRST1
+#define   FORT_FANRST2    ANRST2
+#define   FORT_FANINT2    ANINT2
 #endif
 
 extern "C" 
@@ -194,11 +194,11 @@ void holy_grail_sigma_restrictor_class::fill(FArrayBox& patch,
 	    DIMLIST(fgr.box()),
 	    D_DECL(rat[0], rat[1], rat[2]), &integ);
 	
-#  if (BL_SPACEDIM == 2)
+#if (BL_SPACEDIM == 2)
 	patch.mult((Real) rat[1] / rat[0], region, 0, 1);
 	patch.mult((Real) rat[0] / rat[1], region, 1, 1);
 	// component 2 remains unchanged
-#  else
+#else
 	FORT_FACRST1(patch.dataPtr(BL_SPACEDIM+1),
 	    DIMLIST(patch.box()),
 	    DIMLIST(region),
@@ -210,7 +210,7 @@ void holy_grail_sigma_restrictor_class::fill(FArrayBox& patch,
 	patch.mult((Real) rat[0] * rat[1] / rat[2], region, 2, 1);
 	patch.mult((Real) rat[1],                   region, 3, 1);
 	patch.mult((Real) rat[0],                   region, 4, 1);
-#  endif
+#endif
 	
     }
     else
@@ -434,7 +434,7 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 		    }
 		}
 	    }
-#  endif
+#endif
 	}
 	
     }

@@ -2,11 +2,11 @@
 #include "interpolator.H"
 
 #ifdef BL_FORT_USE_UNDERSCORE
-#  define FORT_FACINT2  acint2_
-#  define FORT_FANINT2  anint2_
+#define FORT_FACINT2  acint2_
+#define FORT_FANINT2  anint2_
 #else
-#  define FORT_FACINT2  ACINT2
-#  define FORT_FANINT2  ANINT2
+#define FORT_FACINT2  ACINT2
+#define FORT_FANINT2  ANINT2
 #endif
 
 extern "C" 
