@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.73 2004-07-22 17:33:12 car Exp $
+# Make.defs $Id: Make.defs,v 1.74 2004-07-28 20:20:24 welcome Exp $
 #
 
 #
@@ -48,6 +48,11 @@ UNAMES := $(shell uname -s)
 ifeq ($(findstring SUPER-UX, $(UNAMES)), SUPER-UX)
     # We use this name so we can define a CPP macro, BL_SUPERUX
     MACHINE := SUPERUX
+endif
+ifeq ($(findstring asama, $(UNAMEN)), asama)
+#   front end is a Linux box with cross-compilers
+    MACHINE := SUPERUX
+    WHICHSX6 := ASAMA
 endif
 ifeq ($(findstring CYGWIN_NT, $(UNAMES)), CYGWIN_NT)
     MACHINE := CYGWIN_NT
