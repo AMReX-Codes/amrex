@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.63 1998-06-12 20:34:36 lijewski Exp $
+// $Id: FabArray.H,v 1.64 1998-06-15 15:13:25 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1177,6 +1177,10 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
 {
     if (src.boxarray == boxarray)
     {
+        RunStats stats("fabarray_copy");
+
+        stats.start();
+
         for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
         {
             DependentFabArrayIterator<T,FAB> dfai(fai, src);
@@ -1193,8 +1197,15 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                            num_comp);
             }
         }
+
+        stats.end();
+
         return;
     }
+
+    RunStats stats("fabarray_copy");
+
+    stats.start();
 
     const int MyProc = ParallelDescriptor::MyProc();
 
@@ -1443,6 +1454,8 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                                      num_comp);
     }
 #endif /*BL_USE_MPI*/
+
+    stats.end();
 }
 
 template <class T, class FAB>
