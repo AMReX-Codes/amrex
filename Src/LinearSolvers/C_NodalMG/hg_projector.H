@@ -15,15 +15,14 @@ public:
     // and Lev_max.  Lev_min can be anything from Lev_min_min to Lev_min_max;
     // Lev_max can then be anything from Lev_min to Lev_max_max.
     
-    holy_grail_amr_projector(Array<BoxArray>& Mesh, Array<IntVect>& Gen_ratio,
+    holy_grail_amr_projector(const Array<BoxArray>& Mesh, const Array<IntVect>& Gen_ratio, const Array< Array<int> >& Pd,
 	const Box& fdomain,
 	int Lev_min_min, int Lev_min_max, int Lev_max_max,
 	const amr_fluid_boundary_class& Boundary, 
 	bool hg_terrain, bool hg_cross_stencil, bool hg_full_stencil,
 	int Pcode = 2)
-	: holy_grail_amr_multigrid(Mesh, Gen_ratio, fdomain, Lev_min_min, Lev_min_max, Lev_max_max, Boundary, 
-	  hg_terrain, hg_cross_stencil, hg_full_stencil,
-	    Pcode),
+	: holy_grail_amr_multigrid(Mesh, Gen_ratio, Pd, fdomain, Lev_min_min, Lev_min_max, Lev_max_max, Boundary, 
+	  hg_terrain, hg_cross_stencil, hg_full_stencil, Pcode),
 	  make_sparse_node_source_solvable(false) { }
     
     const Array<BoxArray>& mesh() const

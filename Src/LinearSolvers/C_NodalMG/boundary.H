@@ -21,7 +21,7 @@ public:
     virtual ~amr_boundary_class() { }
 
     int dir(const Box&, const Box&) const;
-    void boundary_mesh(BoxArray& exterior_mesh, int *&grid_ref, const BoxArray& interior_mesh, const Box& domain) const;
+    void boundary_mesh(BoxArray& exterior_mesh, int*& grid_ref, const BoxArray& interior_mesh, const Box& domain) const;
 
     virtual Box box(const Box&, const Box&, int) const = 0;
     virtual void fill(FArrayBox&, const Box&, const FArrayBox&, int, const Box&) const = 0;

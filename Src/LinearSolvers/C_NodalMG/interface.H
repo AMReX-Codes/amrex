@@ -29,14 +29,8 @@ public:
     
     level_interface() : status(-1) { }
     ~level_interface();
-    
-    level_interface(const BoxArray& Im, const Box& Domain, const amr_boundary_class* Bdy)
-	: status(-1) 
-    {
-	alloc(Im, Domain, Bdy);
-    }
     // a pseudo constructor.
-    void alloc(const BoxArray& Im, const Box& Domain, const amr_boundary_class* Bdy);
+    void alloc(const BoxArray& Im, const Box& Domain, const amr_boundary_class* Bdy, const Array<int>& Pd);
     // two pseudo copy operators/constructors.
     void copy(const level_interface& src);
     void alloc_coarsened(const BoxArray& Im, const amr_boundary_class* Bdy, const level_interface& src, const IntVect& rat);
@@ -46,8 +40,8 @@ public:
     const Box& domain()               const { return dom; }
     const BoxArray& interior_mesh()   const { return im; }
     const BoxArray& exterior_mesh()   const { return em; }
-    int exterior_ref(int igrid)       const { return grid_ref[-2-igrid]; }
-    int direct_exterior_ref(int igrid)const { return grid_ref[igrid]; }
+    int exterior_ref(int igrid)       const { assert(igrid < -1); return grid_ref[-2-igrid]; }
+    int direct_exterior_ref(int igrid)const { assert(igrid > -1); return grid_ref[   igrid]; }
     const Box& part_fine(int i)       const { return pf[i]; }
     
     Array<int> geo_array(int idim, int i) const;
@@ -64,6 +58,9 @@ public:
     bool flag(int idim, int i)        const { return flg[idim][i]; }
     static int ngrids(int idim);
 
+    const int* ProcessorMap() const  { return processorMap; }
+    bool ownsGrid(int igrid) const { return (processorMap[igrid] == ParallelDescriptor::MyProc())?true:false; }
+    int Owner(int igrid) const { return processorMap[igrid]; }
 private:
 #if (BL_SPACEDIM == 2)
     enum
@@ -83,7 +80,7 @@ private:
     Box dom;				// BoxArray doesn't know domain
     BoxArray im;			// interior BoxArray
     BoxArray em;			// exterior BoxArray
-    Array<int> processorDist;
+    int* processorMap;
     int* grid_ref;                      // one for each exterior box
     Box* pf;                            // expanded NODE boxes for interior grids
     int nbx[BL_SPACEDIM];               // numbers of interface boxes

@@ -511,8 +511,8 @@ void clear_part_interface(MultiFab& r, const level_interface& lev_interface)
 	{
 	    // coarse-fine face contained in part_fine grid, or orphan edge/corner
 	    int igrid = lev_interface.aux(i, ibox);
-	    if ( igrid >= 0 )
-		r[igrid].setVal(0.0, lev_interface.node_box(i, ibox), 0);
+	    if ( igrid < 0 ) continue;
+	    r[igrid].setVal(0.0, lev_interface.node_box(i, ibox), 0);
 	}
     }
 }
