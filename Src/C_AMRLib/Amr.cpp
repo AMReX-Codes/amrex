@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.64 1998-11-29 00:22:37 lijewski Exp $
+// $Id: Amr.cpp,v 1.65 1998-12-04 17:33:24 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -1036,7 +1036,7 @@ Amr::timeStep (int  level,
 
     RunStats::addCells(level,amr_level[level].countCells());
 
-    station.report(time,level,amr_level[level]);
+    station.report(time+dt_level[level],level,amr_level[level]);
     //
     // Advance grids at higher level.
     //
@@ -1613,7 +1613,7 @@ Amr::grid_places (int              lbase,
             ba_proj.define(new_grids[levf+1]);
             ba_proj.coarsen(ref_ratio[levf]);
             ba_proj.grow(n_proper);
-            ba_proj = intersect(ba_proj,geom[levf].Domain());
+//            ba_proj = intersect(ba_proj,geom[levf].Domain());
             ba_proj.coarsen(ref_ratio[levc]);
             while (!blst.contains(ba_proj))
             {
@@ -1641,6 +1641,11 @@ Amr::grid_places (int              lbase,
         //   level levc, which will then also be buffered.  This can
         //   create grids which are larger than necessary.
 
+
+if (levf < new_finest)
+            tags.setVal(ba_proj,TagBox::SET);
+
+#if 0
         int nerr = n_error_buf[levf];
         if (levf < new_finest) {
             BoxList bl_tagged;
@@ -1669,6 +1674,7 @@ Amr::grid_places (int              lbase,
             baF.coarsen(ref_ratio[levc]);
             tags.setVal(baF,TagBox::SET);
         }
+#endif
         //
         // Buffer error cells.
         //
