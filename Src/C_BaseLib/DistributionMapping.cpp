@@ -1,11 +1,13 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.7 1997-11-25 17:08:25 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.8 1997-11-25 18:47:05 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
 #include <ParallelDescriptor.H>
+#include <ParmParse.H>
+#include <RunStats.H>
 
 #ifdef BL_USE_NEW_HFILES
 #include <iostream>
@@ -24,94 +26,165 @@ using namespace std;
 #include <algorithm.h>
 #endif
 
+//
+// Everyone uses the same Strategy -- defaults to ROUNDROBIN.
+//
+DistributionMapping::Strategy
+DistributionMapping::distributionStrategy = DistributionMapping::ROUNDROBIN;
+
+void
+DistributionMapping::strategy (DistributionMapping::Strategy how)
+{
+    DistributionMapping::distributionStrategy = how;
+}
+
+DistributionMapping::Strategy
+DistributionMapping::strategy ()
+{
+    return DistributionMapping::distributionStrategy;
+}
+
+bool DistributionMapping::initialized = false;
+
+//
+// Forward declaration.
+//
+static vector< list<int> > knapsack (const vector<long>&, int);
+
+void
+DistributionMapping::init ()
+{
+    DistributionMapping::initialized = true;
+        
+    ParmParse pp("DistributionMapping");
+
+    aString theStrategy;
+
+    if (pp.query("strategy", theStrategy))
+    {
+        if (theStrategy == "ROUNDROBIN")
+        {
+            DistributionMapping::distributionStrategy = ROUNDROBIN;
+        }
+        else if (theStrategy == "KNAPSACK")
+        {
+            DistributionMapping::distributionStrategy = KNAPSACK;
+        }
+        else if (theStrategy == "RANDOM")
+        {
+            DistributionMapping::distributionStrategy = RANDOM;
+        }
+        else if (theStrategy == "SIZEBALANCED")
+        {
+            DistributionMapping::distributionStrategy = SIZEBALANCED;
+        }
+        else
+        {
+            aString msg("Unknown strategy: ");
+            msg += theStrategy;
+            BoxLib::Warning(msg.c_str());
+        }
+    }
+}
+
 DistributionMapping::DistributionMapping ()
     :
-    nProcessors(0),
-    boxarray(),
-    distributionStrategy(ROUNDROBIN),
-    processorMap(),
-    objectsPerProcessor(),
-    nPtsPerProcessor()
+    nProcessors(0)
 {
+    if (!initialized)
+        DistributionMapping::init();
+
     CreateProcessorMap();
 }
 
-DistributionMapping::DistributionMapping (int                  nprocessors,
-                                          const BoxArray&      boxes,
-                                          DistributionStrategy strategy)
+DistributionMapping::DistributionMapping (int             nprocessors,
+                                          const BoxArray& boxes)
     :
     nProcessors(nprocessors),
     boxarray(boxes),
-    distributionStrategy(strategy),
-    processorMap(boxes.length()),
-    objectsPerProcessor(nprocessors),
-    nPtsPerProcessor(nprocessors)
+    processorMap(boxes.length())
 {
+    if (!initialized)
+        DistributionMapping::init();
+
     CreateProcessorMap();
 }
 
 DistributionMapping::~DistributionMapping () {}
 
 void
-DistributionMapping::define (int                  nprocessors,
-                             const BoxArray&      boxes,
-                             DistributionStrategy strategy)
+DistributionMapping::define (int             nprocessors,
+                             const BoxArray& boxes)
 {
     nProcessors = nprocessors;
     boxarray = boxes;
-    distributionStrategy = strategy;
     processorMap.resize(boxes.length());
-    objectsPerProcessor.resize(nprocessors, 0);
-    nPtsPerProcessor.resize(nprocessors);
     CreateProcessorMap();
 }
 
 void
 DistributionMapping::CreateProcessorMap ()
 {
-    int i;
-    switch (distributionStrategy)
+    RunStats stats("processor_map");
+
+    stats.start();
+
+    switch (DistributionMapping::distributionStrategy)
     {
     case ROUNDROBIN:
-        for (i = 0; i < processorMap.length(); i++)
+    {
+        for (int i = 0; i < processorMap.length(); i++)
         {
             processorMap[i] = i % nProcessors;
-            ++objectsPerProcessor[processorMap[i]];
         }
-        break;
+    }
+    break;
     case RANDOM:
         BoxLib::Error("RANDOM not implemented");
         break;
     case KNAPSACK:
-	// Bill's Algorithm:
-	BoxLib::Error("KNAPSACK not implement");
-	break;
+    {
+        vector<long> pts(boxarray.length());
+
+        for (int i = 0; i < pts.size(); i++)
+        {
+            pts[i] = boxarray[i].numPts();
+        }
+
+        vector< list<int> > vec = knapsack(pts, nProcessors);
+
+        list<int>::iterator lit;
+
+        for (int i = 0; i < vec.size(); i++)
+        {
+            for (lit = vec[i].begin(); lit != vec[i].end(); ++lit)
+            {
+                processorMap[*lit] = i;
+            }
+        }
+    }
+    break;
     case SIZEBALANCED:
         BoxLib::Error("SIZEBALANCED not implemented");
         break;
     default:
-        BoxLib::Error("Bad DistributionStrategy");
+        BoxLib::Error("Bad Strategy");
     }
-}
 
-int
-DistributionMapping::operator () (int        level,
-                                  const Box& box) const
-{
-    return -1;
+    stats.end();
 }
 
 ostream&
 operator<< (ostream&                   os,
             const DistributionMapping& pmap)
 {
-    int i;
-
     os << "(DistributionMapping" << '\n';
-    for (i = 0; i < pmap.processorMap.length(); i++)
+
+    for (int i = 0; i < pmap.ProcessorMap().length(); i++)
     {
-        os << "processorMap[" << i << "] = " << pmap.processorMap[i] << '\n';
+        os << "processorMap[" << i << "] = " << pmap.ProcessorMap()[i] << '\n';
     }
+
     os << ')' << '\n';
 
     if (os.fail())
@@ -172,6 +245,7 @@ operator< (const WeightedBoxList& lhs,
     return lhs.weight() > rhs.weight();
 }
 
+static
 vector< list<int> >
 knapsack (const vector<long>& pts,
           int                 nProcessors)
@@ -228,7 +302,9 @@ knapsack (const vector<long>& pts,
     }
     cout << "sum_weight = " << sum_weight << '\n';
     cout << "max_weight = " << max_weight << '\n';
-    double efficiency = sum_weight/nProcessors/max_weight;
+    double efficiency = 0;
+    if (max_weight)
+        efficiency = sum_weight/nProcessors/max_weight;
     cout << "Efficiency = " << efficiency << '\n';
 top:
     list<WeightedBoxList>::iterator it_top = wblqg.begin();
@@ -262,7 +338,7 @@ top:
 		// If the other ball reduces the weight of the top box when
                 // swapped, then it will change the efficiency.
                 //
-		if ( w_tb < (*it_top).weight() && w_ob < (*it_top).weight() )
+		if (w_tb < (*it_top).weight() && w_ob < (*it_top).weight())
 		{
                     //
 		    // Adjust the sum weight and the max weight.
@@ -288,9 +364,10 @@ top:
 		    // for(list<WeightedBoxList>::const_iterator ita = wblqg.begin(); ita != wblqg.end(); ++ita)
 		    //	cout << ita->weight() << '\n';
 		    max_weight = (*wblqg.begin()).weight();
-		    efficiency = sum_weight/(nProcessors*max_weight);
-		    // cout << "Efficiency = " << efficiency << '\n';
-		    // cout << "max_weight = " << max_weight << '\n';
+                    if (max_weight)
+                        efficiency = sum_weight/(nProcessors*max_weight);
+                    //cout << "Efficiency = " << efficiency << '\n';
+                    //cout << "max_weight = " << max_weight << '\n';
 		    goto top;
 		}
 	    }

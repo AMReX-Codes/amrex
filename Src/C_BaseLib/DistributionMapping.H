@@ -4,7 +4,7 @@
 #define BL_DISTRIBUTIONMAPPING_H
 
 //
-// $Id: DistributionMapping.H,v 1.3 1997-11-18 21:45:28 car Exp $
+// $Id: DistributionMapping.H,v 1.4 1997-11-25 18:47:05 lijewski Exp $
 //
 
 #include <BoxLib.H>
@@ -16,42 +16,66 @@ class DistributionMapping
 {
   public:
 
-    enum DistributionStrategy { ROUNDROBIN, RANDOM, SIZEBALANCED, KNAPSACK };
+    enum Strategy { ROUNDROBIN, RANDOM, SIZEBALANCED, KNAPSACK };
 
     DistributionMapping ();
-    DistributionMapping (int                  nprocessors,
-                         const BoxArray&      boxes,
-                         DistributionStrategy strategy = ROUNDROBIN);
+    DistributionMapping (int             nprocessors,
+                         const BoxArray& boxes);
 
     ~DistributionMapping ();
 
-    void define (int                  nprocessors,
-                 const BoxArray&      boxes,
-                 DistributionStrategy strategy = ROUNDROBIN);
+    void define (int             nprocessors,
+                 const BoxArray& boxes);
 
     const Array<int>& ProcessorMap () const { return processorMap; }
 
-    int operator() (int        level,
-                    const Box& box) const;
-
     int operator[] (int index) const { return processorMap[index]; }
-
-    friend ostream& operator<< (ostream&                   os,
-                                const DistributionMapping& pmap);
+    //
+    // Set distribution strategy.
+    //
+    static void strategy (Strategy how);
+    //
+    // Returns the distribution strategy.
+    //
+    static Strategy strategy ();
 
   private:
-
+    //
+    // Creates the processor map.
+    //
     void CreateProcessorMap ();
-
-    int                  nProcessors;
-    BoxArray             boxarray;
-    DistributionStrategy distributionStrategy;
-    Array<int>           processorMap;
     //
-    // diagnostics
+    // Initializes distribution strategy from ParmParse.
     //
-    Array<int>           objectsPerProcessor;
-    Array<long>          nPtsPerProcessor;
+    // ParmParse options are:
+    //
+    //   DistributionMapping.strategy = ROUNDROBIN
+    //   DistributionMapping.strategy = KNAPSACK
+    //   DistributionMapping.strategy = RANDOM
+    //   DistributionMapping.strategy = SIZEBALANCED
+    //
+    static void init ();
+    //
+    // Local data.
+    //
+    int        nProcessors;
+    BoxArray   boxarray;
+    Array<int> processorMap;
+    //
+    // Everyone uses the same Strategy -- defaults to ROUNDROBIN.
+    //
+    static Strategy distributionStrategy;
+    //
+    // Have we initialized from ParmParse yet?
+    //
+    static bool initialized;
 };
+
+//
+// Our output operator.
+//
+ostream&
+operator<< (ostream&                   os,
+            const DistributionMapping& pmap);
 
 #endif /*BL_DISTRIBUTIONMAPPING_H*/
