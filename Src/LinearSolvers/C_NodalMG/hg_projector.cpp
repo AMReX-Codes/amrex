@@ -492,8 +492,8 @@ task_fecdiv_2::doit ()
     const int   igrid           = grid_number();
     FArrayBox&  s               = target_fab();
     const Box&  s_box           = target_fab().box();
-    const Real* uf[BL_SPACEDIM] = { D_DECL( task_fab_result(3).dataPtr(), task_fab_result(4).dataPtr(), task_fab_result(5).dataPtr() ) };
-    const Box&  uf_box          = task_fab_result(3).box();
+    const Real* uf[BL_SPACEDIM] = { D_DECL( task_fab_result(BL_SPACEDIM).dataPtr(), task_fab_result(BL_SPACEDIM+1).dataPtr(), task_fab_result(BL_SPACEDIM+2).dataPtr() ) };
+    const Box&  uf_box          = task_fab_result(BL_SPACEDIM).box();
     const Real* uc[BL_SPACEDIM] = { D_DECL( task_fab_result(0).dataPtr(), task_fab_result(1).dataPtr(), task_fab_result(2).dataPtr() ) };
     const Box&  uc_box          = task_fab_result(0).box();
 
