@@ -174,6 +174,13 @@ level_interface::part_fine (int i) const
 
 inline
 int
+level_interface::nboxes (int idim) const
+{
+    return nbx[idim];
+}
+
+inline
+int
 level_interface::grid (int idim, int i, int j) const
 {
     BL_ASSERT(idim >= 0 && idim <= FACEDIM);
@@ -221,13 +228,6 @@ int
 level_interface::fdim (int i) const
 {
     return fdm[i];
-}
-
-inline
-int
-level_interface::nboxes (int idim) const
-{
-    return nbx[idim];
 }
 
 inline
