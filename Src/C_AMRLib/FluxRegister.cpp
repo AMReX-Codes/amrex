@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.67 2001-09-25 22:45:41 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.68 2001-09-26 16:59:53 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -818,7 +818,7 @@ FluxRegister::CrseInitFinish ()
     Array<MPI_Request> req_cd(NProcs,MPI_REQUEST_NULL);
     Array<MPI_Request> req_data(NProcs,MPI_REQUEST_NULL);
 
-    int rc, NumRcvs = 0, idx = 0, NWaits = 0;
+    int NumRcvs = 0, idx = 0, NWaits = 0;
     //
     // Set Rcvs[i] to # of blocks we expect to get from CPU i ...
     //
