@@ -168,19 +168,19 @@ init(PArray<MultiFab> u[], PArray<MultiFab>& p,
      const Array<BoxArray>& m, const Array<IntVect>& ratio)
 {
 #if (BL_SPACEDIM == 2)
-    for (int ilev = 0; ilev < m.length(); ilev++)
+    for (int ilev = 0; ilev < m.size(); ilev++)
     {
 	u[0][ilev].setVal(0.0);
 	u[1][ilev].setVal(0.0);
     }
-    if (m.length() == 1)
+    if (m.size() == 1)
     {
 	for (MFIter u_mfi(u[0][0]); u_mfi.isValid(); ++u_mfi)
 	{
 	    u[0][0][u_mfi](m[0][u_mfi.index()].smallEnd() + IntVect(2,2)) = 3.0;
 	}
     }
-    else if (m.length() == 2)
+    else if (m.size() == 2)
     {
 	for (MFIter u_mfi(u[0][1]); u_mfi.isValid(); ++u_mfi)
 	{
@@ -197,7 +197,7 @@ init(PArray<MultiFab> u[], PArray<MultiFab>& p,
 		u[0][0][0](IntVect(12,12)) = 3.0;
 	}
     }
-    else if (m.length() == 3)
+    else if (m.size() == 3)
     {
 	for (MFIter u_mfi(u[0][1]); u_mfi.isValid(); ++u_mfi)
 	{
@@ -206,7 +206,7 @@ init(PArray<MultiFab> u[], PArray<MultiFab>& p,
     }
     else
     {
-	for (int ilev = 0; ilev < m.length(); ilev++)
+	for (int ilev = 0; ilev < m.size(); ilev++)
 	{
 	    for ( MFIter u_mfi(u[0][ilev]); u_mfi.isValid(); ++u_mfi)
 	    {
@@ -226,7 +226,7 @@ init(PArray<MultiFab> u[], PArray<MultiFab>& p,
     //u[0][1][0](IntVect(31,31)) = -1.0;
     //u[1][1][0](IntVect(31,30)) = 1.0;
     //u[1][1][0](IntVect(30,31)) = -1.0;
-    for (int ilev = 0; ilev < p.length(); ilev++)
+    for (int ilev = 0; ilev < p.size(); ilev++)
     {
 	p[ilev].setVal(0.0);
     }
@@ -343,7 +343,7 @@ rz_adj(PArray<MultiFab> u[], PArray<MultiFab>& rhs,
 		    double x = (i + 0.5) * h;
 		    u[1][ilev][u_mfi](IntVect(i,j)) *= x;
 		    if (j >= m[ilev][igrid].smallEnd(1))
-			rhoinv[ilev][r_dmfi](IntVect(i,j)) *= x;
+			rhoinv[ilev][igrid](IntVect(i,j)) *= x;
 		}
 	    }
 	}
