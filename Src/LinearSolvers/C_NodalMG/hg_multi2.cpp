@@ -83,27 +83,39 @@ extern "C" {
 		   );
 #  endif
 #elif (BL_SPACEDIM == 3)
+#  if (defined TERRAIN)
   void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-#  ifdef CONSTANT
-		   intS, Real&, const int&,
-#  else
-		   Real*, intS, Real*, intS, intS, RealRS, intRS,
-#  endif
+		   Real*, intS, Real*, intS, intS, intRS,
 		   int&, int&);
   void FORT_HGERES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-#  ifdef CONSTANT
-		   intS, Real&, const int&,
-#  else
-		   Real*, intS, Real*, intS, intS, RealRS, intRS,
-#  endif
+		   Real*, intS, Real*, intS, intS, intRS,
 		   const int*, const int*);
   void FORT_HGCRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-#  ifdef CONSTANT
-		   intS, Real&, const int&,
-#  else
-		   Real*, intS, Real*, intS, intS, RealRS, intRS,
-#  endif
+		   Real*, intS, Real*, intS, intS, intRS,
 		   const int*);
+#  else
+  void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
+#    ifdef CONSTANT
+		   intS, Real&, const int&,
+#    else
+		   Real*, intS, Real*, intS, intS, RealRS, intRS,
+#    endif
+		   int&, int&);
+  void FORT_HGERES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
+#    ifdef CONSTANT
+		   intS, Real&, const int&,
+#    else
+		   Real*, intS, Real*, intS, intS, RealRS, intRS,
+#    endif
+		   const int*, const int*);
+  void FORT_HGCRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
+#    ifdef CONSTANT
+		   intS, Real&, const int&,
+#    else
+		   Real*, intS, Real*, intS, intS, RealRS, intRS,
+#    endif
+		   const int*);
+#  endif
 #endif
 }
 
@@ -527,7 +539,7 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		hx,
 		rat[0], idim, idir
 #elif (defined TERRAIN)
-		rat[0], rat[1], idim, idir
+		D_DECL(rat[0], rat[1], rat[2]), idim, idir
 #elif (BL_SPACEDIM == 2)
 		hx, hy,
 #  ifdef CROSS_STENCIL
@@ -591,6 +603,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		  dimlist(creg),
 #ifdef CONSTANT
                   hx, rat[0],
+#elif (defined TERRAIN)
+		  rat[0], rat[1], rat[2],
 #else
 		  hx, hy, hz, rat[0], rat[1], rat[2],
 #endif

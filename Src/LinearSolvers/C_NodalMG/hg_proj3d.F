@@ -6,6 +6,73 @@
 c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)*(a h2-a l2+1)
 #define dimdecu(a) *
 
+#ifdef TERRAIN
+
+      subroutine hggrad(gpx, gpy, gpz,
+     @ dims(gp),
+     @ dest,
+     @ dims(dest),
+     @ dims(freg))
+      integer dims(gp)
+      integer dims(dest)
+      integer dims(freg)
+      real*8 gpx(dimdec(gp))
+      real*8 gpy(dimdec(gp))
+      real*8 gpz(dimdec(gp))
+      real*8 dest(dimdec(dest))
+      integer i, j, k
+      do 10 k = fregl2, fregh2
+         do 10 j = fregl1, fregh1
+            do 10 i = fregl0, fregh0
+               gpx(i,j,k) = 0.25d0 * (dest(i+1,j,k) + dest(i+1,j+1,k) +
+     @                           dest(i+1,j,k+1) + dest(i+1,j+1,k+1) -
+     @                           dest(i,j,k) - dest(i,j+1,k) -
+     @                           dest(i,j,k+1) - dest(i,j+1,k+1))
+               gpy(i,j,k) = 0.25d0 * (dest(i,j+1,k) + dest(i+1,j+1,k) +
+     @                           dest(i,j+1,k+1) + dest(i+1,j+1,k+1) -
+     @                           dest(i,j,k) - dest(i+1,j,k) -
+     @                           dest(i,j,k+1) - dest(i+1,j,k+1))
+ 10            gpz(i,j,k) = 0.25d0 * (dest(i,j,k+1) + dest(i+1,j,k+1) +
+     @                           dest(i,j+1,k+1) + dest(i+1,j+1,k+1) -
+     @                           dest(i,j,k) - dest(i+1,j,k) -
+     @                           dest(i,j+1,k) - dest(i+1,j+1,k))
+      end
+
+      subroutine hgdiv(src,
+     @ dims(src),
+     @ uf, vf, wf,
+     @ dims(f),
+     @ dims(freg))
+      integer dims(src)
+      integer dims(f)
+      integer dims(freg)
+      real*8 src(dimdec(src))
+      real*8 uf(dimdec(f))
+      real*8 vf(dimdec(f))
+      real*8 wf(dimdec(f))
+      real*8 fac
+      integer i, j, k
+      fac = 0.25d0
+      do 10 k = fregl2, fregh2
+         do 10 j = fregl1, fregh1
+            do 10 i = fregl0, fregh0
+ 10            src(i,j,k) = fac *
+     @              (uf(i,j-1,k-1) - uf(i-1,j-1,k-1) +
+     @               uf(i,j-1,k)   - uf(i-1,j-1,k) +
+     @               uf(i,j,k-1)   - uf(i-1,j,k-1) +
+     @               uf(i,j,k)     - uf(i-1,j,k) +
+     @               vf(i-1,j,k-1) - vf(i-1,j-1,k-1) +
+     @               vf(i-1,j,k)   - vf(i-1,j-1,k) +
+     @               vf(i,j,k-1)   - vf(i,j-1,k-1) +
+     @               vf(i,j,k)     - vf(i,j-1,k) +
+     @               wf(i-1,j-1,k) - wf(i-1,j-1,k-1) +
+     @               wf(i-1,j,k)   - wf(i-1,j,k-1) +
+     @               wf(i,j-1,k)   - wf(i,j-1,k-1) +
+     @               wf(i,j,k)     - wf(i,j,k-1))
+      end
+
+#else
+
       subroutine hggrad(gpx, gpy, gpz,
      @ dims(gp),
      @ dest,
@@ -79,6 +146,8 @@ c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)*(a h2-a l2+1)
      @                       wf(i,j-1,k)   - wf(i,j-1,k-1) +
      @                       wf(i,j,k)     - wf(i,j,k-1)))
       end
+
+#endif
 
 c Note---only generates values at coarse points along edge of fine grid
       subroutine hgfdiv(src,

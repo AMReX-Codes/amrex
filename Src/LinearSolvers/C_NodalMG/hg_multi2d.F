@@ -2566,16 +2566,19 @@ c interface to grid at same level:
      @ src,  dims(src),
      @ dest, dims(dest),
      @ sig, dims(sf),
+     @ cen, dims(cen),
      @ dims(reg))
       integer dims(res)
       integer dims(src)
       integer dims(dest)
       integer dims(sf)
+      integer dims(cen)
       integer dims(reg)
       real*8 res(dimdec(res))
       real*8 src(dimdec(src))
       real*8 dest(dimdec(dest))
       real*8 sig(dimdec(sf), 3)
+      real*8 cen(dimdec(cen))
       real*8 fac, tmp
       integer i, j
       fac = 1.d0 / 6.d0

@@ -8,7 +8,9 @@ c#define dimdecu(a) (a h0-a l0+1)*(a h1-a l1+1)*(a h2-a l2+1)
 
 #ifndef CONSTANT
 
-#define SIGMA_NODE
+#  ifndef TERRAIN
+#    define SIGMA_NODE
+#  endif
 
 c variable density versions:
 
@@ -1589,7 +1591,6 @@ c NODE-based data, factor of 2 only.
      @ src,
      @ dims(src),
      @ dims(bb), ir, jr, kr)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(sb)
@@ -1601,6 +1602,7 @@ c NODE-based data, factor of 2 only.
       real*8 sigy(dimdec(sb))
       real*8 sigz(dimdec(sb))
       real*8 src(dimdec(src))
+      integer i, j, k, ic, jc, kc
       do 10 kc = bbl2, bbh2
          do 10 jc = bbl1, bbh1
             do 10 ic = bbl0, bbh0
@@ -2403,10 +2405,20 @@ cdir$ ivdep
       endif
       end
 
-#define RHSL (res(i,j,k) - (signd(i-1,j,k,1) * cor(i-1,j,k) + \
-                            signd(i,j,k,1)   * cor(i+1,j,k) + \
-                            signd(i,j-1,k,2) * cor(i,j-1,k) + \
-                            signd(i,j,k,2)   * cor(i,j+1,k)))
+#define RHSL0 (res(i,j,k) - (signd(i,j-1,k,2) * cor(i,j-1,k) + \
+                             signd(i,j,k,2)   * cor(i,j+1,k) + \
+                             signd(i,j,k-1,3) * cor(i,j,k-1) + \
+                             signd(i,j,k,3)   * cor(i,j,k+1)))
+
+#define RHSL1 (res(i,j,k) - (signd(i-1,j,k,1) * cor(i-1,j,k) + \
+                             signd(i,j,k,1)   * cor(i+1,j,k) + \
+                             signd(i,j,k-1,3) * cor(i,j,k-1) + \
+                             signd(i,j,k,3)   * cor(i,j,k+1)))
+
+#define RHSL2 (res(i,j,k) - (signd(i-1,j,k,1) * cor(i-1,j,k) + \
+                             signd(i,j,k,1)   * cor(i+1,j,k) + \
+                             signd(i,j-1,k,2) * cor(i,j-1,k) + \
+                             signd(i,j,k,2)   * cor(i,j+1,k)))
 
       subroutine hgrlxl(cor,
      @ dims(cor),
@@ -2447,13 +2459,13 @@ c dirichlet bdy:
                wrk(1) = 0.d0
             else if (regl2 .eq. doml2) then
 c neumann bdy:
-               cor(i,j,k) = RHSL * betm
+               cor(i,j,k) = RHSL2 * betm
                aj = signd(i,j,k,3)
                wrk(1) = 2.d0 * aj * betm
             else
 c interface to grid at same level:
                aj = signd(i,j,k-1,3)
-               cor(i,j,k) = (RHSL - aj * cor(i,j,k-1)) * betm
+               cor(i,j,k) = (RHSL2 - aj * cor(i,j,k-1)) * betm
                aj = signd(i,j,k,3)
                wrk(1) = aj * betm
             endif
@@ -2465,7 +2477,7 @@ c forward solve loop:
                else
                   betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(kw))
                endif
-               cor(i,j,k) = (RHSL - aj * cor(i,j,k-1)) * betm
+               cor(i,j,k) = (RHSL2 - aj * cor(i,j,k-1)) * betm
                aj = signd(i,j,k,3)
                wrk(kw + 1) = aj * betm
  10            continue
@@ -2478,11 +2490,11 @@ c dirichlet bdy:
 c neumann bdy:
                aj = 2.d0 * aj
                betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(kw))
-               cor(i,j,k) = (RHSL - aj * cor(i,j,k-1)) * betm
+               cor(i,j,k) = (RHSL2 - aj * cor(i,j,k-1)) * betm
             else if (kw .gt. 0) then
 c interface to grid at same level:
                betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(kw))
-               cor(i,j,k) = RHSL - aj * cor(i,j,k-1)
+               cor(i,j,k) = RHSL2 - aj * cor(i,j,k-1)
                aj = signd(i,j,k,3)
                cor(i,j,k) = (cor(i,j,k) - aj * cor(i,j,k+1)) * betm
             endif
@@ -2520,7 +2532,123 @@ c back substitution loop:
       integer lsd, ipass
       real*8 betm, aj
       integer i, j, k, ioff, ipar
-      if (lsd .eq. 2) then
+      if (lsd .eq. 0) then
+         if (mod(regl1 + regl2, 2) .eq. 0) then
+            ioff = 1 - ipass
+         else
+            ioff = ipass
+         endif
+         i = regl0
+         ipar = ioff
+         do 10 k = regl2, regh2
+            ipar = 1 - ipar
+            do 10 j = regl1 + ipar, regh1, 2
+               if (cen(i,j,k) .eq. 0.d0) then
+c dirichlet bdy:
+                  wrk(i,j,k) = 0.d0
+               else if (regl0 .eq. doml0) then
+c neumann bdy:
+                  betm = -cen(i,j,k)
+                  cor(i,j,k) = RHSL0 * betm
+                  aj = signd(i,j,k,1)
+                  wrk(i,j,k) = 2.d0 * aj * betm
+               endif
+ 10            continue
+c forward solve loop:
+         do 20 i = regl0 + 1, regh0 - 1
+            ipar = ioff
+            do 20 k = regl2, regh2
+               ipar = 1 - ipar
+               do 20 j = regl1 + ipar, regh1, 2
+                  aj = signd(i-1,j,k,1)
+                  if (cen(i,j,k) .eq. 0.d0) then
+                     betm = 0.d0
+                  else
+                     betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(i-1,j,k))
+                  endif
+                  cor(i,j,k) = (RHSL0 - aj * cor(i-1,j,k)) * betm
+                  aj = signd(i,j,k,1)
+ 20               wrk(i,j,k) = aj * betm
+         i = regh0
+         ipar = ioff
+         do 30 k = regl2, regh2
+            ipar = 1 - ipar
+            do 30 j = regl1 + ipar, regh1, 2
+               if (cen(i,j,k) .eq. 0.d0) then
+c dirichlet bdy:
+               else if (regh0 .eq. domh0) then
+c neumann bdy:
+                  aj = 2.d0 * signd(i-1,j,k,1)
+                  betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(i-1,j,k))
+                  cor(i,j,k) = (RHSL0 - aj * cor(i-1,j,k)) * betm
+               else if (i .gt. regl0) then
+c interface to grid at same level:
+                  aj = signd(i-1,j,k,1)
+                  betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(i-1,j,k))
+                  cor(i,j,k) = (RHSL0 - aj * cor(i-1,j,k)) * betm
+                  aj = signd(i,j,k,1)
+                  wrk(i,j,k) = aj * betm
+               endif
+ 30            continue
+      else if (lsd .eq. 1) then
+         if (mod(regl0 + regl2, 2) .eq. 0) then
+            ioff = 1 - ipass
+         else
+            ioff = ipass
+         endif
+         j = regl1
+         ipar = ioff
+         do 110 k = regl2, regh2
+            ipar = 1 - ipar
+            do 110 i = regl0 + ipar, regh0, 2
+               if (cen(i,j,k) .eq. 0.d0) then
+c dirichlet bdy:
+                  wrk(i,j,k) = 0.d0
+               else if (regl1 .eq. doml1) then
+c neumann bdy:
+                  betm = -cen(i,j,k)
+                  cor(i,j,k) = RHSL1 * betm
+                  aj = signd(i,j,k,2)
+                  wrk(i,j,k) = 2.d0 * aj * betm
+               endif
+ 110           continue
+c forward solve loop:
+         do 120 j = regl1 + 1, regh1 - 1
+            ipar = ioff
+            do 120 k = regl2, regh2
+               ipar = 1 - ipar
+               do 120 i = regl0 + ipar, regh0, 2
+                  aj = signd(i,j-1,k,2)
+                  if (cen(i,j,k) .eq. 0.d0) then
+                     betm = 0.d0
+                  else
+                     betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(i,j-1,k))
+                  endif
+                  cor(i,j,k) = (RHSL1 - aj * cor(i,j-1,k)) * betm
+                  aj = signd(i,j,k,2)
+ 120              wrk(i,j,k) = aj * betm
+         j = regh1
+         ipar = ioff
+         do 130 k = regl2, regh2
+            ipar = 1 - ipar
+            do 130 i = regl0 + ipar, regh0, 2
+               if (cen(i,j,k) .eq. 0.d0) then
+c dirichlet bdy:
+               else if (regh1 .eq. domh1) then
+c neumann bdy:
+                  aj = 2.d0 * signd(i,j-1,k,2)
+                  betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(i,j-1,k))
+                  cor(i,j,k) = (RHSL1 - aj * cor(i,j-1,k)) * betm
+               else if (j .gt. regl1) then
+c interface to grid at same level:
+                  aj = signd(i,j-1,k,2)
+                  betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(i,j-1,k))
+                  cor(i,j,k) = (RHSL1 - aj * cor(i,j-1,k)) * betm
+                  aj = signd(i,j,k,2)
+                  wrk(i,j,k) = aj * betm
+               endif
+ 130           continue
+      else
          if (mod(regl0 + regl1, 2) .eq. 0) then
             ioff = 1 - ipass
          else
@@ -2528,58 +2656,56 @@ c back substitution loop:
          endif
          k = regl2
          ipar = ioff
-         do 10 j = regl1, regh1
+         do 210 j = regl1, regh1
             ipar = 1 - ipar
-            do 10 i = regl0 + ipar, regh0, 2
+            do 210 i = regl0 + ipar, regh0, 2
                if (cen(i,j,k) .eq. 0.d0) then
 c dirichlet bdy:
                   wrk(i,j,k) = 0.d0
                else if (regl2 .eq. doml2) then
 c neumann bdy:
                   betm = -cen(i,j,k)
-                  cor(i,j,k) = RHSL * betm
+                  cor(i,j,k) = RHSL2 * betm
                   aj = signd(i,j,k,3)
                   wrk(i,j,k) = 2.d0 * aj * betm
                endif
- 10            continue
+ 210           continue
 c forward solve loop:
-         do 20 k = regl2 + 1, regh2 - 1
+         do 220 k = regl2 + 1, regh2 - 1
             ipar = ioff
-            do 20 j = regl1, regh1
+            do 220 j = regl1, regh1
                ipar = 1 - ipar
-               do 20 i = regl0 + ipar, regh0, 2
+               do 220 i = regl0 + ipar, regh0, 2
                   aj = signd(i,j,k-1,3)
                   if (cen(i,j,k) .eq. 0.d0) then
                      betm = 0.d0
                   else
                      betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(i,j,k-1))
                   endif
-                  cor(i,j,k) = (RHSL - aj * cor(i,j,k-1)) * betm
+                  cor(i,j,k) = (RHSL2 - aj * cor(i,j,k-1)) * betm
                   aj = signd(i,j,k,3)
- 20               wrk(i,j,k) = aj * betm
+ 220              wrk(i,j,k) = aj * betm
          k = regh2
          ipar = ioff
-         do 30 j = regl1, regh1
+         do 230 j = regl1, regh1
             ipar = 1 - ipar
-            do 30 i = regl0 + ipar, regh0, 2
+            do 230 i = regl0 + ipar, regh0, 2
                if (cen(i,j,k) .eq. 0.d0) then
 c dirichlet bdy:
                else if (regh2 .eq. domh2) then
 c neumann bdy:
                   aj = 2.d0 * signd(i,j,k-1,3)
                   betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(i,j,k-1))
-                  cor(i,j,k) = (RHSL - aj * cor(i,j,k-1)) * betm
+                  cor(i,j,k) = (RHSL2 - aj * cor(i,j,k-1)) * betm
                else if (k .gt. regl2) then
 c interface to grid at same level:
                   aj = signd(i,j,k-1,3)
                   betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(i,j,k-1))
-                  cor(i,j,k) = (RHSL - aj * cor(i,j,k-1)) * betm
+                  cor(i,j,k) = (RHSL2 - aj * cor(i,j,k-1)) * betm
                   aj = signd(i,j,k,3)
                   wrk(i,j,k) = aj * betm
                endif
- 30            continue
-      else
-         print *, "Line solve not implemented in dimension", lsd
+ 230           continue
       endif
       end
 
@@ -2946,7 +3072,472 @@ cdir$ ivdep
 
 #else
 
-c twenty-seven-point stencils not implemented
+c twenty-seven-point terrain stencils
+
+      subroutine hgcen(cen, dims(cen),
+     @ sig, dims(sb),
+     @ dims(reg))
+      integer dims(cen)
+      integer dims(sb)
+      integer dims(reg)
+      real*8 cen(dimdec(cen))
+      real*8 sig(dimdec(sb), 5)
+      integer i, j, k
+      do 10 k = regl2, regh2
+         do 10 j = regl1, regh1
+            do 10 i = regl0, regh0
+ 10            cen(i,j,k) = 36.d0 /
+     @           (4.d0 * (sig(i-1,j-1,k-1,1) + sig(i-1,j-1,k,1) +
+     @                    sig(i-1,j,k-1,1)   + sig(i-1,j,k,1) +
+     @                    sig(i,j-1,k-1,1)   + sig(i,j-1,k,1) +
+     @                    sig(i,j,k-1,1)     + sig(i,j,k,1) +
+     @                    sig(i-1,j-1,k-1,2) + sig(i-1,j-1,k,2) +
+     @                    sig(i-1,j,k-1,2)   + sig(i-1,j,k,2) +
+     @                    sig(i,j-1,k-1,2)   + sig(i,j-1,k,2) +
+     @                    sig(i,j,k-1,2)     + sig(i,j,k,2) +
+     @                    sig(i-1,j-1,k-1,3) + sig(i-1,j-1,k,3) +
+     @                    sig(i-1,j,k-1,3)   + sig(i-1,j,k,3) +
+     @                    sig(i,j-1,k-1,3)   + sig(i,j-1,k,3) +
+     @                    sig(i,j,k-1,3)     + sig(i,j,k,3)) +
+     @            6.d0 * (sig(i-1,j-1,k,4)   - sig(i-1,j-1,k-1,4) +
+     @                    sig(i-1,j,k,4)     - sig(i-1,j,k-1,4) +
+     @                    sig(i,j-1,k-1,4)   - sig(i,j-1,k,4) +
+     @                    sig(i,j,k-1,4)     - sig(i,j,k,4) +
+     @                    sig(i-1,j-1,k,5)   - sig(i-1,j-1,k-1,5) +
+     @                    sig(i-1,j,k-1,5)   - sig(i-1,j,k,5) +
+     @                    sig(i,j-1,k,5)     - sig(i,j-1,k-1,5) +
+     @                    sig(i,j,k-1,5)     - sig(i,j,k,5)))
+      end
+
+#define MXX(ii,jj,kk) (4.d0 *  cor(ii,j,k)   + \
+                       2.d0 * (cor(ii,jj,k)  - cor(i,jj,k) + \
+                               cor(ii,j,kk)  - cor(i,j,kk)) + \
+                              (cor(ii,jj,kk) - cor(i,jj,kk)))
+
+#define MYY(ii,jj,kk) (4.d0 *  cor(i,jj,k)   + \
+                       2.d0 * (cor(ii,jj,k)  - cor(ii,j,k) + \
+                               cor(i,jj,kk)  - cor(i,j,kk)) + \
+                              (cor(ii,jj,kk) - cor(ii,j,kk)))
+
+#define MZZ(ii,jj,kk) (4.d0 *  cor(i,j,kk)   + \
+                       2.d0 * (cor(ii,j,kk)  - cor(ii,j,k) + \
+                               cor(i,jj,kk)  - cor(i,jj,k)) + \
+                              (cor(ii,jj,kk) - cor(ii,jj,k)))
+
+#define MXZ(ii,jj,kk) (6.d0 *  cor(ii,j,kk)  + \
+                       3.d0 * (cor(ii,jj,kk) - cor(i,jj,k)))
+
+#define MYZ(ii,jj,kk) (6.d0 *  cor(i,jj,kk)  + \
+                       3.d0 * (cor(ii,jj,kk) - cor(ii,j,k)))
+
+      subroutine hgrlx(cor, dims(cor),
+     @ res, dims(res),
+     @ sig, dims(sf),
+     @ cen, dims(cen),
+     @ dims(reg))
+      integer dims(cor)
+      integer dims(res)
+      integer dims(sf)
+      integer dims(cen)
+      integer dims(reg)
+      real*8 cor(dimdec(cor))
+      real*8 res(dimdec(res))
+      real*8 sig(dimdec(sf), 5)
+      real*8 cen(dimdec(cen))
+      real*8 fac, tmp
+      integer i, j, k
+      fac = 1.d0 / 36.d0
+      if (regh2 - regl2 .gt. regh1 - regl1 .and.
+     @    regh2 - regl2 .gt. regh0 - regl0) then
+         do 10 j = regl1, regh1
+            do 10 i = regl0, regh0
+cdir$ ivdep
+               do 10 k = regl2, regh2
+                  tmp = sig(i-1,j-1,k-1,1) * MXX(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,1) * MXX(i-1,j-1,k+1) +
+     @                  sig(i-1,j  ,k-1,1) * MXX(i-1,j+1,k-1) +
+     @                  sig(i-1,j  ,k  ,1) * MXX(i-1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i  ,j-1,k-1,1) * MXX(i+1,j-1,k-1) +
+     @                  sig(i  ,j-1,k  ,1) * MXX(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,1) * MXX(i+1,j+1,k-1) +
+     @                  sig(i  ,j  ,k  ,1) * MXX(i+1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i-1,j-1,k-1,2) * MYY(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,2) * MYY(i-1,j-1,k+1) +
+     @                  sig(i-1,j  ,k-1,2) * MYY(i-1,j+1,k-1) +
+     @                  sig(i-1,j  ,k  ,2) * MYY(i-1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i  ,j-1,k-1,2) * MYY(i+1,j-1,k-1) +
+     @                  sig(i  ,j-1,k  ,2) * MYY(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,2) * MYY(i+1,j+1,k-1) +
+     @                  sig(i  ,j  ,k  ,2) * MYY(i+1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i-1,j-1,k-1,3) * MZZ(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,3) * MZZ(i-1,j-1,k+1) +
+     @                  sig(i-1,j  ,k-1,3) * MZZ(i-1,j+1,k-1) +
+     @                  sig(i-1,j  ,k  ,3) * MZZ(i-1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i  ,j-1,k-1,3) * MZZ(i+1,j-1,k-1) +
+     @                  sig(i  ,j-1,k  ,3) * MZZ(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,3) * MZZ(i+1,j+1,k-1) +
+     @                  sig(i  ,j  ,k  ,3) * MZZ(i+1,j+1,k+1)
+                  tmp = tmp -
+     @                  sig(i-1,j-1,k-1,4) * MXZ(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,4) * MXZ(i-1,j-1,k+1) -
+     @                  sig(i-1,j  ,k-1,4) * MXZ(i-1,j+1,k-1) +
+     @                  sig(i-1,j  ,k  ,4) * MXZ(i-1,j+1,k+1) +
+     @                  sig(i  ,j-1,k-1,4) * MXZ(i+1,j-1,k-1) -
+     @                  sig(i  ,j-1,k  ,4) * MXZ(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,4) * MXZ(i+1,j+1,k-1) -
+     @                  sig(i  ,j  ,k  ,4) * MXZ(i+1,j+1,k+1)
+                  tmp = tmp -
+     @                  sig(i-1,j-1,k-1,5) * MYZ(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,5) * MYZ(i-1,j-1,k+1) +
+     @                  sig(i-1,j  ,k-1,5) * MYZ(i-1,j+1,k-1) -
+     @                  sig(i-1,j  ,k  ,5) * MYZ(i-1,j+1,k+1) -
+     @                  sig(i  ,j-1,k-1,5) * MYZ(i+1,j-1,k-1) +
+     @                  sig(i  ,j-1,k  ,5) * MYZ(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,5) * MYZ(i+1,j+1,k-1) -
+     @                  sig(i  ,j  ,k  ,5) * MYZ(i+1,j+1,k+1)
+                  cor(i,j,k) = (fac * tmp - res(i,j,k)) * cen(i,j,k)
+ 10               continue
+      else if (regh1 - regl1 .gt. regh0 - regl0) then
+         do 20 k = regl2, regh2
+            do 20 i = regl0, regh0
+cdir$ ivdep
+               do 20 j = regl1, regh1
+                  tmp = sig(i-1,j-1,k-1,1) * MXX(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,1) * MXX(i-1,j-1,k+1) +
+     @                  sig(i-1,j  ,k-1,1) * MXX(i-1,j+1,k-1) +
+     @                  sig(i-1,j  ,k  ,1) * MXX(i-1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i  ,j-1,k-1,1) * MXX(i+1,j-1,k-1) +
+     @                  sig(i  ,j-1,k  ,1) * MXX(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,1) * MXX(i+1,j+1,k-1) +
+     @                  sig(i  ,j  ,k  ,1) * MXX(i+1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i-1,j-1,k-1,2) * MYY(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,2) * MYY(i-1,j-1,k+1) +
+     @                  sig(i-1,j  ,k-1,2) * MYY(i-1,j+1,k-1) +
+     @                  sig(i-1,j  ,k  ,2) * MYY(i-1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i  ,j-1,k-1,2) * MYY(i+1,j-1,k-1) +
+     @                  sig(i  ,j-1,k  ,2) * MYY(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,2) * MYY(i+1,j+1,k-1) +
+     @                  sig(i  ,j  ,k  ,2) * MYY(i+1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i-1,j-1,k-1,3) * MZZ(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,3) * MZZ(i-1,j-1,k+1) +
+     @                  sig(i-1,j  ,k-1,3) * MZZ(i-1,j+1,k-1) +
+     @                  sig(i-1,j  ,k  ,3) * MZZ(i-1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i  ,j-1,k-1,3) * MZZ(i+1,j-1,k-1) +
+     @                  sig(i  ,j-1,k  ,3) * MZZ(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,3) * MZZ(i+1,j+1,k-1) +
+     @                  sig(i  ,j  ,k  ,3) * MZZ(i+1,j+1,k+1)
+                  tmp = tmp -
+     @                  sig(i-1,j-1,k-1,4) * MXZ(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,4) * MXZ(i-1,j-1,k+1) -
+     @                  sig(i-1,j  ,k-1,4) * MXZ(i-1,j+1,k-1) +
+     @                  sig(i-1,j  ,k  ,4) * MXZ(i-1,j+1,k+1) +
+     @                  sig(i  ,j-1,k-1,4) * MXZ(i+1,j-1,k-1) -
+     @                  sig(i  ,j-1,k  ,4) * MXZ(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,4) * MXZ(i+1,j+1,k-1) -
+     @                  sig(i  ,j  ,k  ,4) * MXZ(i+1,j+1,k+1)
+                  tmp = tmp -
+     @                  sig(i-1,j-1,k-1,5) * MYZ(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,5) * MYZ(i-1,j-1,k+1) +
+     @                  sig(i-1,j  ,k-1,5) * MYZ(i-1,j+1,k-1) -
+     @                  sig(i-1,j  ,k  ,5) * MYZ(i-1,j+1,k+1) -
+     @                  sig(i  ,j-1,k-1,5) * MYZ(i+1,j-1,k-1) +
+     @                  sig(i  ,j-1,k  ,5) * MYZ(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,5) * MYZ(i+1,j+1,k-1) -
+     @                  sig(i  ,j  ,k  ,5) * MYZ(i+1,j+1,k+1)
+                  cor(i,j,k) = (fac * tmp - res(i,j,k)) * cen(i,j,k)
+ 20               continue
+      else
+         do 30 k = regl2, regh2
+            do 30 j = regl1, regh1
+cdir$ ivdep
+               do 30 i = regl0, regh0
+                  tmp = sig(i-1,j-1,k-1,1) * MXX(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,1) * MXX(i-1,j-1,k+1) +
+     @                  sig(i-1,j  ,k-1,1) * MXX(i-1,j+1,k-1) +
+     @                  sig(i-1,j  ,k  ,1) * MXX(i-1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i  ,j-1,k-1,1) * MXX(i+1,j-1,k-1) +
+     @                  sig(i  ,j-1,k  ,1) * MXX(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,1) * MXX(i+1,j+1,k-1) +
+     @                  sig(i  ,j  ,k  ,1) * MXX(i+1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i-1,j-1,k-1,2) * MYY(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,2) * MYY(i-1,j-1,k+1) +
+     @                  sig(i-1,j  ,k-1,2) * MYY(i-1,j+1,k-1) +
+     @                  sig(i-1,j  ,k  ,2) * MYY(i-1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i  ,j-1,k-1,2) * MYY(i+1,j-1,k-1) +
+     @                  sig(i  ,j-1,k  ,2) * MYY(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,2) * MYY(i+1,j+1,k-1) +
+     @                  sig(i  ,j  ,k  ,2) * MYY(i+1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i-1,j-1,k-1,3) * MZZ(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,3) * MZZ(i-1,j-1,k+1) +
+     @                  sig(i-1,j  ,k-1,3) * MZZ(i-1,j+1,k-1) +
+     @                  sig(i-1,j  ,k  ,3) * MZZ(i-1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i  ,j-1,k-1,3) * MZZ(i+1,j-1,k-1) +
+     @                  sig(i  ,j-1,k  ,3) * MZZ(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,3) * MZZ(i+1,j+1,k-1) +
+     @                  sig(i  ,j  ,k  ,3) * MZZ(i+1,j+1,k+1)
+                  tmp = tmp -
+     @                  sig(i-1,j-1,k-1,4) * MXZ(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,4) * MXZ(i-1,j-1,k+1) -
+     @                  sig(i-1,j  ,k-1,4) * MXZ(i-1,j+1,k-1) +
+     @                  sig(i-1,j  ,k  ,4) * MXZ(i-1,j+1,k+1) +
+     @                  sig(i  ,j-1,k-1,4) * MXZ(i+1,j-1,k-1) -
+     @                  sig(i  ,j-1,k  ,4) * MXZ(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,4) * MXZ(i+1,j+1,k-1) -
+     @                  sig(i  ,j  ,k  ,4) * MXZ(i+1,j+1,k+1)
+                  tmp = tmp -
+     @                  sig(i-1,j-1,k-1,5) * MYZ(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,5) * MYZ(i-1,j-1,k+1) +
+     @                  sig(i-1,j  ,k-1,5) * MYZ(i-1,j+1,k-1) -
+     @                  sig(i-1,j  ,k  ,5) * MYZ(i-1,j+1,k+1) -
+     @                  sig(i  ,j-1,k-1,5) * MYZ(i+1,j-1,k-1) +
+     @                  sig(i  ,j-1,k  ,5) * MYZ(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,5) * MYZ(i+1,j+1,k-1) -
+     @                  sig(i  ,j  ,k  ,5) * MYZ(i+1,j+1,k+1)
+                  cor(i,j,k) = (fac * tmp - res(i,j,k)) * cen(i,j,k)
+ 30               continue
+      endif
+      end
+
+c cor substituted for dest to use same macro:
+
+      subroutine hgres(res, dims(res),
+     @ src,  dims(src),
+     @ cor, dims(dest),
+     @ sig, dims(sf),
+     @ cen, dims(cen),
+     @ dims(reg))
+      integer dims(res)
+      integer dims(src)
+      integer dims(dest)
+      integer dims(sf)
+      integer dims(cen)
+      integer dims(reg)
+      real*8 res(dimdec(res))
+      real*8 src(dimdec(src))
+      real*8 cor(dimdec(dest))
+      real*8 sig(dimdec(sf), 5)
+      real*8 cen(dimdec(cen))
+      real*8 fac, tmp
+      integer i, j, k
+      fac = 1.d0 / 36.d0
+      if (regh2 - regl2 .gt. regh1 - regl1 .and.
+     @    regh2 - regl2 .gt. regh0 - regl0) then
+         do 10 j = regl1, regh1
+            do 10 i = regl0, regh0
+               do 10 k = regl2, regh2
+                  tmp = sig(i-1,j-1,k-1,1) * MXX(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,1) * MXX(i-1,j-1,k+1) +
+     @                  sig(i-1,j  ,k-1,1) * MXX(i-1,j+1,k-1) +
+     @                  sig(i-1,j  ,k  ,1) * MXX(i-1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i  ,j-1,k-1,1) * MXX(i+1,j-1,k-1) +
+     @                  sig(i  ,j-1,k  ,1) * MXX(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,1) * MXX(i+1,j+1,k-1) +
+     @                  sig(i  ,j  ,k  ,1) * MXX(i+1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i-1,j-1,k-1,2) * MYY(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,2) * MYY(i-1,j-1,k+1) +
+     @                  sig(i-1,j  ,k-1,2) * MYY(i-1,j+1,k-1) +
+     @                  sig(i-1,j  ,k  ,2) * MYY(i-1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i  ,j-1,k-1,2) * MYY(i+1,j-1,k-1) +
+     @                  sig(i  ,j-1,k  ,2) * MYY(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,2) * MYY(i+1,j+1,k-1) +
+     @                  sig(i  ,j  ,k  ,2) * MYY(i+1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i-1,j-1,k-1,3) * MZZ(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,3) * MZZ(i-1,j-1,k+1) +
+     @                  sig(i-1,j  ,k-1,3) * MZZ(i-1,j+1,k-1) +
+     @                  sig(i-1,j  ,k  ,3) * MZZ(i-1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i  ,j-1,k-1,3) * MZZ(i+1,j-1,k-1) +
+     @                  sig(i  ,j-1,k  ,3) * MZZ(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,3) * MZZ(i+1,j+1,k-1) +
+     @                  sig(i  ,j  ,k  ,3) * MZZ(i+1,j+1,k+1)
+                  tmp = tmp -
+     @                  sig(i-1,j-1,k-1,4) * MXZ(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,4) * MXZ(i-1,j-1,k+1) -
+     @                  sig(i-1,j  ,k-1,4) * MXZ(i-1,j+1,k-1) +
+     @                  sig(i-1,j  ,k  ,4) * MXZ(i-1,j+1,k+1) +
+     @                  sig(i  ,j-1,k-1,4) * MXZ(i+1,j-1,k-1) -
+     @                  sig(i  ,j-1,k  ,4) * MXZ(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,4) * MXZ(i+1,j+1,k-1) -
+     @                  sig(i  ,j  ,k  ,4) * MXZ(i+1,j+1,k+1)
+                  tmp = tmp -
+     @                  sig(i-1,j-1,k-1,5) * MYZ(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,5) * MYZ(i-1,j-1,k+1) +
+     @                  sig(i-1,j  ,k-1,5) * MYZ(i-1,j+1,k-1) -
+     @                  sig(i-1,j  ,k  ,5) * MYZ(i-1,j+1,k+1) -
+     @                  sig(i  ,j-1,k-1,5) * MYZ(i+1,j-1,k-1) +
+     @                  sig(i  ,j-1,k  ,5) * MYZ(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,5) * MYZ(i+1,j+1,k-1) -
+     @                  sig(i  ,j  ,k  ,5) * MYZ(i+1,j+1,k+1)
+                  if (cen(i,j,k) .ne. 0.d0) then
+                     res(i,j,k) = src(i,j,k)
+     @                  - fac * tmp + cor(i,j,k) / cen(i,j,k)
+                  else
+                     res(i,j,k) = 0.d0
+                  endif
+ 10               continue
+      else if (regh1 - regl1 .gt. regh0 - regl0) then
+         do 20 k = regl2, regh2
+            do 20 i = regl0, regh0
+               do 20 j = regl1, regh1
+                  tmp = sig(i-1,j-1,k-1,1) * MXX(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,1) * MXX(i-1,j-1,k+1) +
+     @                  sig(i-1,j  ,k-1,1) * MXX(i-1,j+1,k-1) +
+     @                  sig(i-1,j  ,k  ,1) * MXX(i-1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i  ,j-1,k-1,1) * MXX(i+1,j-1,k-1) +
+     @                  sig(i  ,j-1,k  ,1) * MXX(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,1) * MXX(i+1,j+1,k-1) +
+     @                  sig(i  ,j  ,k  ,1) * MXX(i+1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i-1,j-1,k-1,2) * MYY(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,2) * MYY(i-1,j-1,k+1) +
+     @                  sig(i-1,j  ,k-1,2) * MYY(i-1,j+1,k-1) +
+     @                  sig(i-1,j  ,k  ,2) * MYY(i-1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i  ,j-1,k-1,2) * MYY(i+1,j-1,k-1) +
+     @                  sig(i  ,j-1,k  ,2) * MYY(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,2) * MYY(i+1,j+1,k-1) +
+     @                  sig(i  ,j  ,k  ,2) * MYY(i+1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i-1,j-1,k-1,3) * MZZ(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,3) * MZZ(i-1,j-1,k+1) +
+     @                  sig(i-1,j  ,k-1,3) * MZZ(i-1,j+1,k-1) +
+     @                  sig(i-1,j  ,k  ,3) * MZZ(i-1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i  ,j-1,k-1,3) * MZZ(i+1,j-1,k-1) +
+     @                  sig(i  ,j-1,k  ,3) * MZZ(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,3) * MZZ(i+1,j+1,k-1) +
+     @                  sig(i  ,j  ,k  ,3) * MZZ(i+1,j+1,k+1)
+                  tmp = tmp -
+     @                  sig(i-1,j-1,k-1,4) * MXZ(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,4) * MXZ(i-1,j-1,k+1) -
+     @                  sig(i-1,j  ,k-1,4) * MXZ(i-1,j+1,k-1) +
+     @                  sig(i-1,j  ,k  ,4) * MXZ(i-1,j+1,k+1) +
+     @                  sig(i  ,j-1,k-1,4) * MXZ(i+1,j-1,k-1) -
+     @                  sig(i  ,j-1,k  ,4) * MXZ(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,4) * MXZ(i+1,j+1,k-1) -
+     @                  sig(i  ,j  ,k  ,4) * MXZ(i+1,j+1,k+1)
+                  tmp = tmp -
+     @                  sig(i-1,j-1,k-1,5) * MYZ(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,5) * MYZ(i-1,j-1,k+1) +
+     @                  sig(i-1,j  ,k-1,5) * MYZ(i-1,j+1,k-1) -
+     @                  sig(i-1,j  ,k  ,5) * MYZ(i-1,j+1,k+1) -
+     @                  sig(i  ,j-1,k-1,5) * MYZ(i+1,j-1,k-1) +
+     @                  sig(i  ,j-1,k  ,5) * MYZ(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,5) * MYZ(i+1,j+1,k-1) -
+     @                  sig(i  ,j  ,k  ,5) * MYZ(i+1,j+1,k+1)
+                  if (cen(i,j,k) .ne. 0.d0) then
+                     res(i,j,k) = src(i,j,k)
+     @                  - fac * tmp + cor(i,j,k) / cen(i,j,k)
+                  else
+                     res(i,j,k) = 0.d0
+                  endif
+ 20               continue
+      else
+         do 30 k = regl2, regh2
+            do 30 j = regl1, regh1
+               do 30 i = regl0, regh0
+                  tmp = sig(i-1,j-1,k-1,1) * MXX(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,1) * MXX(i-1,j-1,k+1) +
+     @                  sig(i-1,j  ,k-1,1) * MXX(i-1,j+1,k-1) +
+     @                  sig(i-1,j  ,k  ,1) * MXX(i-1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i  ,j-1,k-1,1) * MXX(i+1,j-1,k-1) +
+     @                  sig(i  ,j-1,k  ,1) * MXX(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,1) * MXX(i+1,j+1,k-1) +
+     @                  sig(i  ,j  ,k  ,1) * MXX(i+1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i-1,j-1,k-1,2) * MYY(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,2) * MYY(i-1,j-1,k+1) +
+     @                  sig(i-1,j  ,k-1,2) * MYY(i-1,j+1,k-1) +
+     @                  sig(i-1,j  ,k  ,2) * MYY(i-1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i  ,j-1,k-1,2) * MYY(i+1,j-1,k-1) +
+     @                  sig(i  ,j-1,k  ,2) * MYY(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,2) * MYY(i+1,j+1,k-1) +
+     @                  sig(i  ,j  ,k  ,2) * MYY(i+1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i-1,j-1,k-1,3) * MZZ(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,3) * MZZ(i-1,j-1,k+1) +
+     @                  sig(i-1,j  ,k-1,3) * MZZ(i-1,j+1,k-1) +
+     @                  sig(i-1,j  ,k  ,3) * MZZ(i-1,j+1,k+1)
+                  tmp = tmp +
+     @                  sig(i  ,j-1,k-1,3) * MZZ(i+1,j-1,k-1) +
+     @                  sig(i  ,j-1,k  ,3) * MZZ(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,3) * MZZ(i+1,j+1,k-1) +
+     @                  sig(i  ,j  ,k  ,3) * MZZ(i+1,j+1,k+1)
+                  tmp = tmp -
+     @                  sig(i-1,j-1,k-1,4) * MXZ(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,4) * MXZ(i-1,j-1,k+1) -
+     @                  sig(i-1,j  ,k-1,4) * MXZ(i-1,j+1,k-1) +
+     @                  sig(i-1,j  ,k  ,4) * MXZ(i-1,j+1,k+1) +
+     @                  sig(i  ,j-1,k-1,4) * MXZ(i+1,j-1,k-1) -
+     @                  sig(i  ,j-1,k  ,4) * MXZ(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,4) * MXZ(i+1,j+1,k-1) -
+     @                  sig(i  ,j  ,k  ,4) * MXZ(i+1,j+1,k+1)
+                  tmp = tmp -
+     @                  sig(i-1,j-1,k-1,5) * MYZ(i-1,j-1,k-1) +
+     @                  sig(i-1,j-1,k  ,5) * MYZ(i-1,j-1,k+1) +
+     @                  sig(i-1,j  ,k-1,5) * MYZ(i-1,j+1,k-1) -
+     @                  sig(i-1,j  ,k  ,5) * MYZ(i-1,j+1,k+1) -
+     @                  sig(i  ,j-1,k-1,5) * MYZ(i+1,j-1,k-1) +
+     @                  sig(i  ,j-1,k  ,5) * MYZ(i+1,j-1,k+1) +
+     @                  sig(i  ,j  ,k-1,5) * MYZ(i+1,j+1,k-1) -
+     @                  sig(i  ,j  ,k  ,5) * MYZ(i+1,j+1,k+1)
+                  if (cen(i,j,k) .ne. 0.d0) then
+                     res(i,j,k) = src(i,j,k)
+     @                  - fac * tmp + cor(i,j,k) / cen(i,j,k)
+                  else
+                     res(i,j,k) = 0.d0
+                  endif
+ 30               continue
+      endif
+      end
+
+      subroutine hgrlnf(cor,
+     @ dims(cor),
+     @ res, dims(res),
+     @ wrk, dims(wrk),
+     @ signd, dims(sn),
+     @ cen, dims(cen),
+     @ dims(reg),
+     @ dims(dom),
+     @ lsd, ipass)
+      integer dims(cor)
+      integer dims(res)
+      integer dims(wrk)
+      integer dims(sn)
+      integer dims(cen)
+      integer dims(reg)
+      integer dims(dom)
+      real*8 cor(dimdec(cor))
+      real*8 res(dimdec(res))
+      real*8 wrk(dimdec(wrk))
+      real*8 signd(dimdec(sn), 3)
+      real*8 cen(dimdec(cen))
+      integer lsd, ipass
+      real*8 betm, aj
+      integer i, j, k, ioff, ipar
+      end
 
 #endif
 
@@ -2961,22 +3552,48 @@ c twenty-seven-point stencils not implemented
       real*8 wrk(dimdec(wrk))
       integer lsd, ipass
       integer ioff, ipar, i, j, k
-      if (lsd .eq. 2) then
+      if (lsd .eq. 0) then
+         if (mod(regl1 + regl2, 2) .eq. 0) then
+            ioff = 1 - ipass
+         else
+            ioff = ipass
+         endif
+c back substitution loop:
+         do 10 i = regh0 - 1, regl0, -1
+            ipar = ioff
+            do 10 k = regl2, regh2
+               ipar = 1 - ipar
+               do 10 j = regl1 + ipar, regh1, 2
+                  cor(i,j,k) = cor(i,j,k) - wrk(i,j,k) * cor(i+1,j,k)
+ 10               continue
+      else if (lsd .eq. 1) then
+         if (mod(regl0 + regl2, 2) .eq. 0) then
+            ioff = 1 - ipass
+         else
+            ioff = ipass
+         endif
+c back substitution loop:
+         do 20 j = regh1 - 1, regl1, -1
+            ipar = ioff
+            do 20 k = regl2, regh2
+               ipar = 1 - ipar
+               do 20 i = regl0 + ipar, regh0, 2
+                  cor(i,j,k) = cor(i,j,k) - wrk(i,j,k) * cor(i,j+1,k)
+ 20               continue
+      else
          if (mod(regl0 + regl1, 2) .eq. 0) then
             ioff = 1 - ipass
          else
             ioff = ipass
          endif
 c back substitution loop:
-         do 20 k = regh2 - 1, regl2, -1
+         do 30 k = regh2 - 1, regl2, -1
             ipar = ioff
-            do 20 j = regl1, regh1
+            do 30 j = regl1, regh1
                ipar = 1 - ipar
-               do 20 i = regl0 + ipar, regh0, 2
+               do 30 i = regl0 + ipar, regh0, 2
                   cor(i,j,k) = cor(i,j,k) - wrk(i,j,k) * cor(i,j,k+1)
- 20               continue
-      else
-         print *, "Line solve not implemented in dimension", lsd
+ 30               continue
       endif
       end
 

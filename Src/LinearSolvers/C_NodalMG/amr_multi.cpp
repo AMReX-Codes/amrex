@@ -440,7 +440,7 @@ Real amr_multigrid::ml_residual(int mglev, int lev)
     }
   }
   //fit(mg_domain[mglev]);
-  //contour(resid[mglev], 3, 1);
+  //contour(resid[mglev], unitvect, 3, 1);
   //contour(resid[mglev], unitvect, 11, 1);
   //cout << mglev << " " << mfnorm(resid[mglev]) << endl;
   //cin.get();

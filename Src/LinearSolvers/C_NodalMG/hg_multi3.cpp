@@ -48,7 +48,8 @@ extern "C" {
 #    endif
 #  else
 #    ifdef TERRAIN
-  void FORT_HGRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS);
+  void FORT_HGRES(Real*, intS, Real*, intS, Real*, intS,
+		  Real*, intS, Real*, intS, intS);
   void FORT_HGRLX(Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS);
   void FORT_HGRLNF(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
 		   Real*, intS, intS, intS, const int&, const int&);
@@ -122,12 +123,14 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
     const Box& rbox = r[igrid].box();
     const Box& sbox = s[igrid].box();
     const Box& dbox = d[igrid].box();
+    const Box& cenbox = cen[mglev][igrid].box();
     const Box& sigbox = sigma[mglev][igrid].box();
     const Box& freg = interface[mglev].part_fine(igrid);
     FORT_HGRES(r[igrid].dataPtr(), dimlist(rbox),
                s[igrid].dataPtr(), dimlist(sbox),
                d[igrid].dataPtr(), dimlist(dbox),
                sigma[mglev][igrid].dataPtr(), dimlist(sigbox),
+               cen[mglev][igrid].dataPtr(), dimlist(cenbox),
                dimlist(freg));
   }
 

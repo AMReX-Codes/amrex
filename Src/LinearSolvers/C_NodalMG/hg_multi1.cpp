@@ -221,13 +221,23 @@ void holy_grail_sigma_restrictor_class::fill(Fab& patch,
 		fgr.dataPtr(BL_SPACEDIM),
 		dimlist(fgr.box()),
 		D_DECL(rat[0], rat[1], rat[2]), 0);
-#  if (BL_SPACEDIM == 3)
+
+#  if (BL_SPACEDIM == 2)
+    patch.mult((Real) rat[1] / rat[0], 0, 1);
+    patch.mult((Real) rat[0] / rat[1], 1, 1);
+    // component 2 remains unchanged
+#  else
     FACRST1(patch.dataPtr(BL_SPACEDIM+1),
 		dimlist(patch.box()),
 		dimlist(region),
 		fgr.dataPtr(BL_SPACEDIM+1),
 		dimlist(fgr.box()),
 		D_DECL(rat[0], rat[1], rat[2]), 0);
+    patch.mult((Real) rat[1] * rat[2] / rat[0], 0, 1);
+    patch.mult((Real) rat[0] * rat[2] / rat[1], 1, 1);
+    patch.mult((Real) rat[0] * rat[1] / rat[2], 2, 1);
+    patch.mult((Real) rat[1],                   3, 1);
+    patch.mult((Real) rat[0],                   4, 1);
 #  endif
 
 #else
@@ -832,7 +842,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 #ifdef CONSTANT
       FANINT2(work[lto][igrid].dataPtr(), dimlist(fbox), dimlist(freg),
 	      corr[lfrom][igrid].dataPtr(), dimlist(cbox), dimlist(creg),
-	      rat);
+	      D_DECL(rat[0], rat[1], rat[2]));
 #else
 #ifndef SIGMA_NODE
       const Box& sigbox = sigma[lto][igrid].box();

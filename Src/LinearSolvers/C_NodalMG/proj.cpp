@@ -278,14 +278,21 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     for (i = 0; i < BL_SPACEDIM; i++)
       u[i].set(ilev, new MultiFab(cmesh, 1, 1));
     p.set(ilev, new MultiFab(nmesh, 1, 1));
-#ifndef TERRAIN
-    rhoinv.set(ilev, new MultiFab(cmesh, 1, 0));
-    rhoinv[ilev].setVal(1.0);
-#else
+#ifdef TERRAIN
+#  if (BL_SPACEDIM == 2)
     rhoinv.set(ilev, new MultiFab(cmesh, 3, 0));
     rhoinv[ilev].setVal(1.0);
     rhoinv[ilev].setVal(0.0, 2, 1);
     //rhoinv[ilev].setVal(0.2, 2, 1);
+#  else
+    rhoinv.set(ilev, new MultiFab(cmesh, 5, 0));
+    rhoinv[ilev].setVal(1.0);
+    rhoinv[ilev].setVal(0.2, 3, 1);
+    rhoinv[ilev].setVal(0.5, 4, 1);
+#  endif
+#else
+    rhoinv.set(ilev, new MultiFab(cmesh, 1, 0));
+    rhoinv[ilev].setVal(1.0);
 #endif
     //rhs.set(ilev, new MultiFab(nmesh, 1, 1));
     rhs.set(ilev, new MultiFab(cmesh, 1, 1));
@@ -411,7 +418,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 #endif
   //proj.smoother_mode  = 1;
   //proj.line_solve_dim = BL_SPACEDIM - 1;
-  //proj.line_solve_dim = 0;
+  proj.line_solve_dim = -1;
 
   if (m.length() == 1) {
     t1 = clock();

@@ -49,6 +49,7 @@ extern "C" {
 		   intS, intRS, const int*);
 
   // to be replaced?
+#  if (BL_SPACEDIM == 2)
   void FORT_HGAVG(Real*, intS, Real*, intS, intS,
                   const Real&, const int&, const int&);
   void FORT_HGFAVG(Real*, intS, Real*, intS, Real*, intS,
@@ -57,6 +58,15 @@ extern "C" {
   void FORT_HGCAVG(Real*, intS, Real*, intS, Real*, intS,
 		   intS, intRS, const int*,
                    const Real&, const int&, const int&);
+#  else
+  void FORT_HGAVG(Real*, intS, Real*, intS, intS);
+  void FORT_HGFAVG(Real*, intS, Real*, intS, Real*, intS,
+		   intS, intRS, int&, int&);
+  void FORT_HGEAVG(Real*, intS, Real*, intS, Real*, intS,
+		   intS, intRS, const int*, const int*);
+  void FORT_HGCAVG(Real*, intS, Real*, intS, Real*, intS,
+		   intS, intRS, const int*);
+#  endif
 
 #  elif (BL_SPACEDIM == 2)
   void FORT_HGGRAD(RealPS, intS, Real*, intS, intS, RealRS, const int&);
@@ -391,6 +401,9 @@ void holy_grail_amr_projector::grid_divergence(PArray<MultiFab>* u)
       Real *const sptr = source[lev][igrid].dataPtr();
       Real *const u0ptr = u[0][lev][igrid].dataPtr();
       Real *const u1ptr = u[1][lev][igrid].dataPtr();
+#if (BL_SPACEDIM == 3)
+      Real *const u2ptr = u[2][lev][igrid].dataPtr();
+#endif
 #ifdef TERRAIN
       FORT_HGDIV(sptr, dimlist(sbox),
 		 D_DECL(u0ptr, u1ptr, u2ptr), dimlist(fbox), dimlist(freg));
@@ -399,7 +412,6 @@ void holy_grail_amr_projector::grid_divergence(PArray<MultiFab>* u)
 		 u0ptr, u1ptr, dimlist(fbox), dimlist(freg), hx, hy,
 		 IsRZ(), mg_domain[mglev].bigEnd(0) + 1);
 #else
-      Real *const u2ptr = u[2][lev][igrid].dataPtr();
       FORT_HGDIV(sptr, dimlist(sbox),
 		 u0ptr, u1ptr, u2ptr, dimlist(fbox), dimlist(freg),
 		 hx, hy, hz);
@@ -769,7 +781,11 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u,
     FORT_HGEDIV(sptr, dimlist(sbox),
 		uc.dataPtr(), vc.dataPtr(), wc.dataPtr(), dimlist(cbox),
 		uf.dataPtr(), vf.dataPtr(), wf.dataPtr(), dimlist(fbox),
-		dimlist(creg), hx, hy, hz, rat[0], rat[1], rat[2],
+		dimlist(creg),
+#  ifndef TERRAIN
+		hx, hy, hz,
+#  endif
+		rat[0], rat[1], rat[2],
 		t.getVect(), ga);
     if (jgrid < 0) {
       delete ucp;
