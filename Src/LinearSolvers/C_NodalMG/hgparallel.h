@@ -36,12 +36,12 @@ struct HG
     static void MPI_finish();
 #ifdef BL_USE_MPI
     static MPI_Comm mpi_comm;
-    static int mpi_tag_ub;
 #endif
     static int max_live_tasks;
     static int multigrid_maxiter;
     static int cgsolve_maxiter;
     static double cgsolve_tolfact;
+    static int pverbose;
 private:
     static bool initialized;
 };
