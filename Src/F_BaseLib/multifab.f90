@@ -1234,16 +1234,17 @@ contains
     end do
   end subroutine multifab_set_border_val
 
-  subroutine multifab_fill_boundary(mf, ng, nocomm)
+  subroutine multifab_fill_boundary(mf, ng, nocomm, cross)
     type(multifab), intent(inout) :: mf
     integer, intent(in), optional :: ng
-    logical, intent(in), optional :: nocomm
+    logical, intent(in), optional :: nocomm, cross
 
     integer :: lng
-    logical :: lnocomm 
+    logical :: lnocomm, lcross
 
+    lcross  = .false.; if ( present(cross) )  lcross  = cross
     lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
-    lng = mf%ng; if ( present(ng) ) lng = ng
+    lng     = mf%ng;   if ( present(ng) )     lng     = ng
 
     if ( lng > mf%ng ) call bl_error("MULTIFAB_FILL_BOUNDARY: ng too large", ng)
 
@@ -1305,7 +1306,7 @@ contains
       integer :: nc, sh(MAX_SPACEDIM+1)
       type(boxassoc) :: bxasc
 
-      bxasc = layout_boxassoc(mf%la, lng, mf%nodal)
+      bxasc = layout_boxassoc(mf%la, lng, mf%nodal, lcross)
 !call boxassoc_print(bxasc, unit = 1)
 
       !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2)
@@ -1388,17 +1389,18 @@ contains
     end subroutine fancy
   end subroutine multifab_fill_boundary
 
-  subroutine multifab_fill_boundary_c(mf, c, nc, ng, nocomm)
+  subroutine multifab_fill_boundary_c(mf, c, nc, ng, nocomm, cross)
     type(multifab), intent(inout) :: mf
     integer, intent(in)           :: c, nc
     integer, intent(in), optional :: ng
-    logical, intent(in), optional :: nocomm
+    logical, intent(in), optional :: nocomm, cross
 
     integer :: lng
-    logical :: lnocomm 
+    logical :: lnocomm, lcross
 
+    lcross  = .false.; if ( present(cross) )  lcross  = cross
     lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
-    lng = mf%ng; if ( present(ng) ) lng = ng
+    lng     = mf%ng;   if ( present(ng) )     lng     = ng
 
     if ( lng > mf%ng ) call bl_error("MULTIFAB_FILL_BOUNDARY: ng too large", ng)
 
@@ -1460,7 +1462,7 @@ contains
       integer :: sh(MAX_SPACEDIM+1)
       type(boxassoc) :: bxasc
 
-      bxasc = layout_boxassoc(mf%la, lng, mf%nodal)
+      bxasc = layout_boxassoc(mf%la, lng, mf%nodal, lcross)
 !call boxassoc_print(bxasc, unit = 1)
 
       !$OMP PARALLEL DO PRIVATE(i,ii,jj,sbx,dbx,p1,p2)
@@ -1543,16 +1545,17 @@ contains
     end subroutine fancy
   end subroutine multifab_fill_boundary_c
 
-  subroutine imultifab_fill_boundary(mf, ng, nocomm)
+  subroutine imultifab_fill_boundary(mf, ng, nocomm, cross)
     type(imultifab), intent(inout) :: mf
     integer, intent(in), optional  :: ng
-    logical, intent(in), optional  :: nocomm
+    logical, intent(in), optional  :: nocomm, cross
 
     integer :: lng
-    logical :: lnocomm
+    logical :: lnocomm, lcross
 
+    lcross  = .false.; if ( present(cross) )  lcross  = cross
     lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
-    lng = mf%ng; if ( present(ng) ) lng = ng
+    lng     = mf%ng;   if ( present(ng) )     lng     = ng
 
     if ( lng > mf%ng ) &
          call bl_error("IMULTIFAB_FILL_BOUNDARY: ng too large", ng)
@@ -1614,7 +1617,7 @@ contains
       integer :: nc, sh(MAX_SPACEDIM+1)
       type(boxassoc) :: bxasc
 
-      bxasc = layout_boxassoc(mf%la, lng, mf%nodal)
+      bxasc = layout_boxassoc(mf%la, lng, mf%nodal, lcross)
 
       do i = 1, bxasc%l_con%ncpy
          ii = bxasc%l_con%cpy(i)%nd
@@ -1691,16 +1694,17 @@ contains
     end subroutine fancy
   end subroutine imultifab_fill_boundary
 
-  subroutine lmultifab_fill_boundary(mf, ng, nocomm)
+  subroutine lmultifab_fill_boundary(mf, ng, nocomm, cross)
     type(lmultifab), intent(inout) :: mf
     integer, intent(in), optional  :: ng
-    logical, intent(in), optional  :: nocomm
+    logical, intent(in), optional  :: nocomm, cross
 
     integer :: lng
-    logical :: lnocomm
+    logical :: lnocomm, lcross
 
+    lcross  = .false.; if ( present(cross) )  lcross  = cross
     lnocomm = .false.; if ( present(nocomm) ) lnocomm = nocomm
-    lng = mf%ng; if ( present(ng) ) lng = ng
+    lng     = mf%ng;   if ( present(ng) )     lng     = ng
 
     if ( lng > mf%ng ) &
          call bl_error("LMULTIFAB_FILL_BOUNDARY: ng too large", ng)
@@ -1762,7 +1766,7 @@ contains
       integer :: nc, sh(MAX_SPACEDIM+1)
       type(boxassoc) :: bxasc
 
-      bxasc = layout_boxassoc(mf%la, lng, mf%nodal)
+      bxasc = layout_boxassoc(mf%la, lng, mf%nodal, lcross)
 
       do i = 1, bxasc%l_con%ncpy
          ii = bxasc%l_con%cpy(i)%nd
