@@ -43,12 +43,10 @@ PrintUsage(int argc, char *argv[])
          << "             (default is comp1=0)" << endl;
     cout << "     ncomp = Number of components" << endl
          << "             (default is ncomp=mfab0.nComp())" << endl;
+    cout << "   outfile = Name of file to dump result of diff" << endl;
     cout << endl;
     cout << "Options:" << endl;
-    cout << "  -validbox : Confine the difference to the valid region" << endl
-         << "              of the FABs.  Difference values are set to" << endl
-         << "              zero on the ghostcells.  Default behaviour" << endl
-         << "              is to compare the entire FAB." << endl;
+    cout << "     ngrow = Number of grow cells to include in result [0]" << endl;
     exit(0);
 }
 
@@ -76,7 +74,7 @@ int main (int   argc,
     if (pp.contains("help"))
         PrintUsage(argc, argv);
 
-    aString iFile0, iFile1, diffFile;
+    aString iFile0, iFile1;
 
     pp.query("mfab0", iFile0);
     if (iFile0.isNull())
@@ -94,10 +92,13 @@ int main (int   argc,
 
     int nComp = -1;
     pp.query("ncomp", nComp);
+    
+    int ngrow = 0;
+    pp.query("ngrow",ngrow);
+    assert(ngrow>=0);
 
-    bool validBoxOnly;
-    validBoxOnly = pp.contains("validbox");
-
+    aString outfile;
+    pp.query("outfile",outfile);
 
 //
 //  Actually Calculate the Difference
@@ -106,11 +107,30 @@ int main (int   argc,
     readMF(mf0,iFile0.c_str());
     readMF(mf1,iFile1.c_str());
 
+    BoxArray compBoxes = mf0.boxArray();
+
     if (mf0.boxArray() != mf1.boxArray())
-        BoxLib::Abort("BoxArray's incompatible");
+    {
+        //
+        // For this, assume no grow cells
+        //
+        BoxList common_bl;
+        for (int i=0; i<mf0.boxArray().length(); ++i)
+            common_bl.join(BoxList(::intersect(mf1.boxArray(), mf0.boxArray()[i])));
+        compBoxes = BoxArray(common_bl);
+    }
     
-    if (mf0.nGrow()  != mf1.nGrow())
-        BoxLib::Abort("nGrow's incompatible");
+    if (ngrow != Min(ngrow,mf0.nGrow()))
+    {
+        BoxLib::Warning("Shrinking ngrow to that available in mfab0");
+        ngrow = mf0.nGrow();
+    }
+
+    if (ngrow != Min(ngrow,mf1.nGrow()))
+    {
+        BoxLib::Warning("Shrinking ngrow to that available in mfab1");
+        ngrow = mf1.nGrow();
+    }
 
     if (nComp == -1) {
         if (mf0.nComp() != mf1.nComp())
@@ -127,29 +147,41 @@ int main (int   argc,
 	return 0;
     }
 
-//
-//
-//
-    BoxArray compBoxes = mf0.boxArray();
-    if (!validBoxOnly)
-        compBoxes.grow(mf0.nGrow());
-
-    MultiFab diff(mf0.boxArray(), nComp, mf0.nGrow(), Fab_allocate);
-    for (MultiFabIterator diffmfi(diff); diffmfi.isValid(); ++diffmfi)
+    //
+    // Result may have different processor mapping than src mfabs
+    // I think that means you got to things in the following way
+    //
+    PArray<FArrayBox> fabs(compBoxes.length(),PArrayManage);
+    for (int i=0; i<fabs.length(); ++i)
     {
-	DependentMultiFabIterator mf0mfi(diffmfi, mf0);
-	DependentMultiFabIterator mf1mfi(diffmfi, mf1);
-
-        int mfiIndx = diffmfi.index();
-	const Box compBox = compBoxes[mfiIndx];
-
-	diffmfi().setVal(0.0);
-	diffmfi().copy(mf0mfi(),compBox,comp0,compBox,0,nComp);
-	diffmfi().minus(mf1mfi(),compBox,compBox,comp1,0,nComp);
+        fabs.set(i,new FArrayBox(compBoxes[i],nComp));
+        fabs[i].setVal(0.0);
+    
+        for (MultiFabIterator mf0_mfi(mf0); mf0_mfi.isValid(); ++mf0_mfi)
+        {
+            const Box box = ::grow(mf0_mfi.validbox(),ngrow) & fabs[i].box();
+            if (box.ok())
+                fabs[i].copy(mf0_mfi(),box,comp0,box,0,nComp);
+        }
+        for (MultiFabIterator mf1_mfi(mf1); mf1_mfi.isValid(); ++mf1_mfi)
+        {
+            const Box box = ::grow(mf1_mfi.validbox(),ngrow) & fabs[i].box();
+            if (box.ok())
+                fabs[i].minus(mf1_mfi(),box,box,comp1,0,nComp);
+        }
     }
-    Real norm0 = MFNorm(diff, compBoxes, 0, 0, nComp);
-    Real norm1 = MFNorm(diff, compBoxes, 1, 0, nComp);
-    Real norm2 = MFNorm(diff, compBoxes, 2, 0, nComp);
+
+    //
+    // Get the result into a viewable MultiFab
+    //
+    MultiFab diffmfab(compBoxes,nComp,ngrow,Fab_allocate);
+    for (MultiFabIterator mfi(diffmfab); mfi.isValid(); ++mfi)
+        for (int i=0; i<fabs.length(); ++i)
+            mfi().copy(fabs[i]);
+
+    Real norm0 = MFNorm(diffmfab, 0, 0, nComp, ngrow);
+    Real norm1 = MFNorm(diffmfab, 1, 0, nComp, ngrow);
+    Real norm2 = MFNorm(diffmfab, 2, 0, nComp, ngrow);
 
     if(ParallelDescriptor::IOProcessor())
     {
@@ -157,9 +189,9 @@ int main (int   argc,
 	     << norm0 << ", " << norm1 << ", " << norm2 << endl;
     }
     
-    if (!diffFile.isNull())
+    if (!outfile.isNull())
     {
-	writeMF(&diff,diffFile.c_str());
+	writeMF(&diffmfab,outfile.c_str());
 	return 1;
 
     } else {
@@ -171,7 +203,7 @@ int main (int   argc,
 
 	} else {
 	    
-	    return ArrayViewMultiFab(&diff);
+	    return ArrayViewMultiFab(&diffmfab);
 	}
     }
 }
