@@ -32,23 +32,21 @@
 
 #include <windows.h>
 
-#ifdef US
-#define f2kgetcl  f2kgetcl_
-#define f2kgetexe f2kgetexe_
-#define f2kgetenv f2kgetenv_
-#else
-#ifdef UPPER
-#define f2kgetcl  F2KGETCL
-#define f2kgetexe F2KGETEXE
-#define f2kgetenv F2KGETENV
-#endif
+#if defined(BL_FORT_USE_UNDERSCORE)
+#define F2KGETCL  f2kgetcl_
+#define F2KGETEXE f2kgetexe_
+#define F2KGETENV f2kgetenv_
+#elif defined(BL_FORT_USE_LOWERCASE)
+#define F2KGETCL  f2kgetcl
+#define F2KGETEXE f2kgetexe
+#define F2KGETENV f2kgetenv
 #endif
 
 #ifdef WATCOM
 
 struct character {char *ptr; int len;};
 
-void f2kgetcl(struct character *argstr)
+void F2KGETCL(struct character *argstr)
 {
     int ncopy;
     ncopy = lstrlen(GetCommandLine()) + 1;
@@ -56,14 +54,14 @@ void f2kgetcl(struct character *argstr)
     lstrcpyn(argstr->ptr,GetCommandLine(),ncopy);
 }
 
-void f2kgetexe(struct character *exestr)
+void F2KGETEXE(struct character *exestr)
 {
     GetModuleFileName(NULL,exestr->ptr,exestr->len);
 }
 
 #else
 
-void f2kgetcl(char *argstrptr,int argstrlen)
+void F2KGETCL(char *argstrptr,int argstrlen)
 {
     int ncopy;
     ncopy = lstrlen(GetCommandLine()) + 1;
@@ -71,12 +69,12 @@ void f2kgetcl(char *argstrptr,int argstrlen)
     lstrcpyn(argstrptr,GetCommandLine(),ncopy);
 }
 
-void f2kgetexe(char *exestrptr,int exestrlen)
+void F2KGETEXE(char *exestrptr,int exestrlen)
 {
     GetModuleFileName(NULL,exestrptr,exestrlen);
 }
 
-void f2kgetenv(const char *name, int namelen, char* value, int valuelen)
+void F2KGETENV(const char *name, int namelen, char* value, int valuelen)
 {
     GetEnvironmentVariable(name, value, valuelen);
 }
