@@ -1,5 +1,3 @@
-#override ARCH	   = T3E
-#override PRECISION = FLOAT
 
 CPP = cpp
 
@@ -12,14 +10,14 @@ CXX := KCC
 endif
 
 ifeq ($(COMP),CFRONT)
-CXX		          := OCC
+CXX	          := OCC
 override XTRADEFS += -DBL_BUG_DEFARG
 OUTPUT_OPTION	   =  ; mv $*.o $@
 endif
 
 ifeq ($(COMP),CC)
-CXXOPTF	          += -O2 -h new_for_init
-CXXDEBF	          += -g -h new_for_init
+CXXOPTF += -O2 -h new_for_init
+CXXDEBF += -g -h new_for_init
 override XTRADEFS += -DBL_USE_SETBUF -DBL_SETBUF_SIGNED_CHAR
 endif
 
@@ -44,6 +42,6 @@ CPRFF +=
 
 OUTPUT_OPTION	= ; mv $*.o $(objTempDir)/$*.o
 
-FORTPREP	= perl $(INSTALL_ROOT)/bin/strip72 -c
+FORTPREP	= perl ../scripts/strip72 -c
 FORT_OUTPUT_OPTION	= ; mv $*.o $(objTempDir)/$*.o
 FORTLINK	= UPPERCASE
