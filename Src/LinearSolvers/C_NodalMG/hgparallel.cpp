@@ -42,7 +42,7 @@ void task::hint() const
 
 // TASK_LIST
 
-bool task_list::def_verbose = true;
+bool task_list::def_verbose = false;
 
 task_list::task_list(MPI_Comm comm_)
     : seq_no(0), seq_delta(10), verbose(def_verbose)
