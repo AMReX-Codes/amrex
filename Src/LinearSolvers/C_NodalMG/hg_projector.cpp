@@ -185,7 +185,6 @@ public:
 		const Box& uc_box = task_fab_result(0).box();
 		(*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(up[0], up[1], up[2]), DIMLIST(up_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir);
 	    }
-	    clean_up();
 	    return true;
 	}
 	return false;
@@ -780,6 +779,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	}
     }
     tl.execute();
+
     HG_TEST_NORM(source[lev], "interface_divergence,a");
 #if (BL_SPACEDIM == 3) || (defined HG_TERRAIN)
     

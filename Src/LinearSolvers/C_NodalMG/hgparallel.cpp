@@ -3,6 +3,8 @@
 
 #include <typeinfo>
 
+bool HG_is_debugging = false;
+
 bool task::depend_ready()
 {
     list< task** >::iterator lit = dependencies.begin();
@@ -93,6 +95,7 @@ void task_list::add_task(task* t, task::sequence_number seq_no_)
 void task_list::execute()
 {
     if ( HG_is_debugging ) MPI_Barrier(comm);
+    int l_progress = tasks.size() * 3;
     HG_DEBUG_OUT("Processing List " << comm << " with " << tasks.size() << " elements " << endl);
     list< task** > dead_tasks;
     // The dead_task list is used, because the tasks being processed also appear
@@ -125,6 +128,10 @@ void task_list::execute()
 	    HG_DEBUG_OUT("*** Retry " << t << endl);
 	    tasks.push_back(t);
 	}
+	if ( l_progress-- < 0 )
+	{
+	    BoxLib::Error("task_list::execute(): No Progress");
+	}
     }
     while ( !dead_tasks.empty() )
     {
@@ -136,14 +143,17 @@ void task_list::execute()
 bool task_list::execute_no_block()
 {
     HG_DEBUG_OUT("No Block Processing List " << comm << " with " << tasks.size() << " elements " << endl);
+    list< task** > dead_tasks;
     list< task** >::iterator tli = tasks.begin();
     while ( tli != tasks.end() )
     {
 	task** t = *tli;
 	if ( verbose )
 	    (*t)->hint();
+	HG_DEBUG_OUT("*** No Block Trying " << t << endl;)
 	if ( (*t)->ready() )
 	{
+	    HG_DEBUG_OUT("*** No Block Finished " << t << endl);
 	    list<task*> tl;
 	    if ( (*t)->recommit(&tl) )
 	    {
@@ -155,6 +165,7 @@ bool task_list::execute_no_block()
 	    }
 	    delete *t;
 	    *t = 0;
+	    dead_tasks.push_back(t);
 	    list< task** >::iterator tmp = tli++;
 	    tasks.erase(tmp);
 	}
@@ -162,6 +173,11 @@ bool task_list::execute_no_block()
 	{
 	    tli++;
 	}
+    }
+    while ( !dead_tasks.empty() )
+    {
+	delete dead_tasks.front();
+	dead_tasks.pop_front();
     }
     return tasks.empty();
 }
@@ -306,6 +322,7 @@ void task_copy::hint() const
     HG_DEBUG_OUT( ")" << endl );
 }
 
+// TASK_COPY_LOCAL
 
 task_copy_local::task_copy_local(FArrayBox* fab_, const Box& bx, const MultiFab& smf_, int grid)
     : m_fab(fab_), m_smf(smf_), m_sgrid(grid), m_bx(bx), tmp(0), m_local(false)
@@ -314,6 +331,7 @@ task_copy_local::task_copy_local(FArrayBox* fab_, const Box& bx, const MultiFab&
 
 task_copy_local::~task_copy_local()
 {
+    if ( tmp ) HG_DEBUG_OUT("task_copy_local::~task_copy_local(): delete tmp" << endl);
     delete tmp;
 }
 
@@ -328,12 +346,12 @@ bool task_copy_local::init(sequence_number sno, MPI_Comm comm)
 void task_copy_local::hint() const
 {
     task::_hint();
-    if ( m_local ) HG_DEBUG_OUT( "L" );
+    if ( m_fab !=0 && is_local(m_smf, m_sgrid) ) HG_DEBUG_OUT( "L" );
+    else if ( m_fab != 0) HG_DEBUG_OUT("R");
     else if ( is_local( m_smf, m_sgrid ) ) HG_DEBUG_OUT("S");
-    else HG_DEBUG_OUT("R");
+    else HG_DEBUG_OUT("?");
     HG_DEBUG_OUT(
-	' ' <<
-	m_bx <<  ' ' <<  m_sgrid
+	m_bx <<  ' ' <<  m_sgrid << ' '
 	);
     HG_DEBUG_OUT( ")" << endl );
 }
@@ -352,11 +370,11 @@ void task_copy_local::startup()
 	    ParallelDescriptor::Abort(res);
 	assert( m_request != MPI_REQUEST_NULL );
     }
-    else if ( m_fab == 0 && is_local(m_smf, m_sgrid) ) 
+    else if ( is_local(m_smf, m_sgrid) ) 
     {
 	tmp = new FArrayBox(m_bx, m_smf.nComp());
 	tmp->copy(m_smf[m_sgrid], m_bx);
-	int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(), m_sno, m_comm, &m_request);
+	int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, m_comm, &m_request);
 	if ( res != 0 )
 	    ParallelDescriptor::Abort(res);
 	assert( m_request != MPI_REQUEST_NULL );
@@ -383,6 +401,7 @@ bool task_copy_local::ready()
     int res = MPI_Test(&m_request, &flag, &status);
     if ( res != 0 )
 	ParallelDescriptor::Abort( res );
+    HG_DEBUG_OUT("task_copy_local::ready(): " << flag << endl);
     if ( flag )
     {
 	assert ( m_request == MPI_REQUEST_NULL );
@@ -434,6 +453,7 @@ task_fec_base::task_fec_base( MultiFab& s_, int igrid_)
 }
 task_fec_base::~task_fec_base()
 {
+    HG_DEBUG_OUT("task_fec_base::~task_fec_base()" << endl);
     for( vector<task_fab*>::iterator tfi = tfvect.begin(); tfi != tfvect.end(); ++tfi)
     {
 	delete *tfi;
@@ -449,11 +469,12 @@ bool task_fec_base::init(sequence_number sno, MPI_Comm comm)
 	bool tresult = (*tli)->init(sno, comm);
 	result = tresult ||  result;
     }
-    for ( list<int>::const_iterator tli = tll.begin(); tli != tll.end(); /*NOTHING*/ )
+    for ( list<int>::const_iterator tli = tll.begin(); tli != tll.end(); ++tli )
     {
-	bool tresult = is_local(s, *tli++);
+	bool tresult = is_local(s, *tli);
 	result = result || tresult;
     }
+    HG_DEBUG_OUT("task_fec_base::init(): result = " << result << endl);
     return result;
 }
 
