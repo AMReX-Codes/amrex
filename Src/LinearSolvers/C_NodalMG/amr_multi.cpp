@@ -99,8 +99,17 @@ void amr_multigrid::build_mesh(const Box& fdomain)
     int mglev_common = mg_mesh.length(), ldiff;
     if (lev_min > lev_min_min) {
       ldiff = mg_mesh_array[lev_min - 1].length() - mg_mesh.length();
+
       // ml_index here is still the index for the previous mg_mesh:
+      mglev_common = ml_index[lev_min] - ldiff;
+/*
+         Before IntVect refinement ratios we used
+
       mglev_common = ml_index[lev_min - 1] + 1 - ldiff;
+
+         This can no longer be counted on to work since in a (4,1) case
+         the intermediate levels no longer match.
+*/
       mglev_common = (mglev_common > 0) ? mglev_common : 0;
     }
 
@@ -124,8 +133,10 @@ void amr_multigrid::build_mesh(const Box& fdomain)
 				 mg_boundary);
 	}
 	else {
+	  IntVect rat =
+	    mg_domain[mglev+1].length() / mg_domain[mglev].length();
 	  interface[mglev].alloc_coarsened(mg_mesh[mglev], mg_boundary,
-					   interface[mglev + 1], 2);
+					   interface[mglev + 1], rat);
 	}
       }
     }
@@ -168,16 +179,26 @@ int amr_multigrid::build_down(const BoxArray& l_mesh, const Box& l_domain,
 void amr_multigrid::make_coarser_level(BoxArray& mesh, Box& domain,
 				       int& flev, IntVect& rat)
 {
-  if (flev > lev_min && (rat * 2) >= gen_ratio[flev-1]) {
-    mesh = ml_mesh[flev-1];
-    domain.coarsen(gen_ratio[flev-1] / rat);
-    flev--;
-    rat = IntVect::TheUnitVector();
+  if (flev > lev_min) {
+    if ((rat * 2) >= gen_ratio[flev-1]) {
+      mesh = ml_mesh[flev-1];
+      domain.coarsen(gen_ratio[flev-1] / rat);
+      flev--;
+      rat = IntVect::TheUnitVector();
+    }
+    else {
+      IntVect trat = rat;
+      rat *= 2;
+      rat.min(gen_ratio[flev-1]);
+      trat = (rat / trat);
+      mesh.coarsen(trat);
+      domain.coarsen(trat);
+    }
   }
   else if (can_coarsen(mesh, domain)) {
+    rat *= 2;
     mesh.coarsen(2);
     domain.coarsen(2);
-    rat *= 2;
   }
   else {
     mesh.clear();
@@ -465,7 +486,7 @@ void amr_multigrid::mg_cycle(int mglev, int i1, int i2, int is_zero)
 void amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 {
   MultiFab& target = work[lto];
-  const IntVect& rat = mg_domain[lto].length() / mg_domain[lfrom].length();
+  IntVect rat = mg_domain[lto].length() / mg_domain[lfrom].length();
   if (target.nGrow() == 0) {
     for (int i = 0; i < target.length(); i++) {
       interpolate_patch(target[i], corr[lfrom], rat,
@@ -482,7 +503,7 @@ void amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 
 void amr_multigrid::mg_restrict_level(int lto, int lfrom)
 {
-  const IntVect& rat = mg_domain[lfrom].length() / mg_domain[lto].length();
+  IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
   if (type(resid[lto]) == cellvect) {
     restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom],
 		   cell_average_restrictor);

@@ -48,7 +48,7 @@ class level_interface {
   }
   void copy(const level_interface& src);
   void alloc_coarsened(const BoxArray& Im, amr_boundary Bdy,
-		       const level_interface& src, int rat);
+		       const level_interface& src, const IntVect& rat);
 
   int ok()                          const { return (status >= 0); }
   int null()                        const { return (status <  0); }

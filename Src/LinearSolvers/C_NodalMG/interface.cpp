@@ -66,7 +66,8 @@ void level_interface::copy(const level_interface& src)
 
 void level_interface::alloc_coarsened(const BoxArray& Im,
 				      amr_boundary /*bdy*/,
-				      const level_interface& src, int rat)
+				      const level_interface& src,
+				      const IntVect& rat)
 {
   if (ok())
     BoxLib::Error("level_interface::alloc_coarsened---this object already allocated");
