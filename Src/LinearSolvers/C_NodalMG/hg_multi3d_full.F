@@ -1469,7 +1469,7 @@ c-----------------------------------------------------------------------
                if ( tmp .eq. 0.0 ) then
                   cen(i,j,k) = 0.0d0
                else
-                  cen(i,j,k) = 36 / tmp
+                  cen(i,j,k) = 36.0d0 / tmp
                end if
             end do
          end do
