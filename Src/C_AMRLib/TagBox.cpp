@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.22 1998-04-14 23:57:43 lijewski Exp $
+// $Id: TagBox.cpp,v 1.23 1998-04-15 16:50:26 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -511,14 +511,14 @@ TagBoxArray::mergeUnique ()
 
     FabArrayId            faid     = facd.RegisterFabArray(this);
     int                   nOverlap = 0;
-    int                   myproc   = ParallelDescriptor::MyProc();
+    const int             MyProc   = ParallelDescriptor::MyProc();
     List<TagBoxMergeDesc> tbmdList;
     BoxList               notUsed;   // Required in call to AddBox().
     TagBoxMergeDesc       tbmd;
 
     for (int idest = 0; idest < fabparray.length(); ++idest)
     {
-        bool destLocal = (distributionMap[idest] == myproc);
+        bool destLocal = (distributionMap[idest] == MyProc);
 
         for (int isrc = idest + 1; isrc < fabparray.length(); ++isrc)
         {
@@ -603,7 +603,6 @@ TagBoxArray::mergeUnique ()
             ParallelDescriptor::Abort(rc);
     }
 
-    const int MyProc  = ParallelDescriptor::MyProc();
     const int NumRecv = nrcv[MyProc];
 
     Array<MPI_Request> reqs(NumRecv);
@@ -662,7 +661,7 @@ TagBoxArray::mergeUnique ()
     int dataWaitingSize;
     while (ParallelDescriptor::GetMessageHeader(dataWaitingSize, &tbmdClear))
     {
-       assert(distributionMap[tbmdClear.fabIndex] == myproc);
+       assert(distributionMap[tbmdClear.fabIndex] == MyProc);
 
        fabparray[tbmdClear.fabIndex].setVal(TagBox::CLEAR,tbmdClear.ovlpBox,0);
 
@@ -677,7 +676,7 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
     FabArrayCopyDescriptor<TagType,TagBox> facd;
 
     FabArrayId      faid   = facd.RegisterFabArray(this);
-    int             myproc = ParallelDescriptor::MyProc();
+    const int       MyProc = ParallelDescriptor::MyProc();
     List<FillBoxId> fillBoxIdList;
     FillBoxId       tempFillBoxId;
     Box             domain(geom.Domain());
@@ -703,7 +702,7 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
                 //
                 for (int j = 0; j < fabparray.length(); j++)
                 {
-                    if (distributionMap[j] == myproc)
+                    if (distributionMap[j] == MyProc)
                     {
                         Box intbox = fabparray[j].box() & shiftbox;
 
@@ -765,7 +764,7 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
                 //
                 for (int j = 0; j < fabparray.length(); j++)
                 {
-                    if (distributionMap[j] == myproc)
+                    if (distributionMap[j] == MyProc)
                     {
                         //
                         // Local dest fab.
@@ -822,7 +821,7 @@ TagBoxArray::numTags () const
 IntVect*
 TagBoxArray::collate (long& numtags) const
 {
-    const int myproc = ParallelDescriptor::MyProc();
+    const int MyProc = ParallelDescriptor::MyProc();
     const int nGrids = fabparray.length();
     int* sharedNTags = new int[nGrids]; // Shared numTags per grid.
     for (int isn = 0; isn < nGrids; ++isn)
@@ -845,7 +844,7 @@ TagBoxArray::collate (long& numtags) const
         {
             for (int iProc = 0; iProc < nProcs; ++iProc)
             {
-                if (iProc != myproc)
+                if (iProc != MyProc)
                     ParallelDescriptor::WriteData(iProc,
                                                   &sharedNTags[iGrid],
                                                   sharedNTags,
@@ -893,7 +892,7 @@ TagBoxArray::collate (long& numtags) const
 
         for (int iProc = 0; iProc < nProcs; ++iProc)
         {
-            if (iProc != myproc)
+            if (iProc != MyProc)
             {
                 if (sharedNTags[fai.index()] != 0)
                 {
