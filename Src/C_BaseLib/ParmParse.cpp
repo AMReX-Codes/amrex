@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParmParse.cpp,v 1.3 1997-09-24 03:01:20 car Exp $
+// $Id: ParmParse.cpp,v 1.4 1997-09-24 22:06:45 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -14,7 +14,6 @@
 using std::cin;
 using std::cout;
 using std::cerr;
-using std::endl;
 #else
 #include <iostream.h>
 #include <stddef.h>
@@ -67,7 +66,7 @@ PP_entry::dump (ostream& os) const
     os << tmp;
     for (int i = 0; i < nval; i++)
        os << " (" << TokenInitial[ParmParse::ppString] << ',' << val[i] << ')';
-    os << endl;
+    os << '\n';
 
     if (os.fail())
         BoxLib::Error("PP_entry::dump(ostream&) failed");
@@ -261,7 +260,7 @@ ParmParse::getval (const char*  name,
         if (!thePrefix.isNull())
             cerr << thePrefix << '.';
         cerr << "ParmParse::getval(): " << name
-             << " not found in table"   << endl;
+             << " not found in table"   << '\n';
         dumpTable(cerr);
         BoxLib::Abort();
     }
@@ -291,7 +290,7 @@ ParmParse::queryval (const char*  name,
             cerr << "last occurence of ";
         else
             cerr << " occurence " << occurence << " of ";
-        cerr << def->defname << endl;
+        cerr << def->defname << '\n';
         def->dump(cerr);
         abort();
     }
@@ -327,14 +326,14 @@ ParmParse::queryval (const char*  name,
     if (!ok)
     {
         cerr << "ParmParse::queryval type mismatch on value number "
-             << ival << " of " << endl;
+             << ival << " of " << '\n';
         if (occurence < 0)
             cerr << " last occurence of ";
         else
             cerr << " occurence number " << occurence << " of ";
-        cerr << def->defname << endl;
+        cerr << def->defname << '\n';
         cerr << " Expected " << tok_name[type]
-             << " value = " << valname << endl;
+             << " value = " << valname << '\n';
         def->dump(cerr);
         abort();
     }
@@ -357,7 +356,7 @@ ParmParse::getarr (const char*  name,
         if (!thePrefix.isNull())
             cerr << thePrefix << '.';
         cerr << "ParmParse::getarr(): " << name
-             << " not found in table"   << endl;
+             << " not found in table"   << '\n';
         dumpTable(cerr);
         BoxLib::Abort();
     }
@@ -389,7 +388,7 @@ ParmParse::queryarr (const char*  name,
             cerr << " last occurence of ";
         else
             cerr << " occurence " << occurence << " of ";
-        cerr << def->defname << endl;
+        cerr << def->defname << '\n';
         def->dump(cerr);
         abort();
     }
@@ -424,7 +423,7 @@ ParmParse::queryarr (const char*  name,
            ptr = (aString*)ptr+1;
            break;
        default:
-           cerr << "ParmParse::get invalid type" << endl;
+           cerr << "ParmParse::get invalid type" << '\n';
            abort();
        }
        if (!ok)
@@ -435,9 +434,9 @@ ParmParse::queryarr (const char*  name,
                cerr << " last occurence of ";
            else
                cerr << " occurence number " << occurence << " of ";
-           cerr << def->defname << endl;
+           cerr << def->defname << '\n';
            cerr << " Expected " << tok_name[type]
-                << " value = " << valname << endl;
+                << " value = " << valname << '\n';
            def->dump(cerr);
            abort();
        }
@@ -561,10 +560,10 @@ ParmParse::getToken (const char* str,
 {
 #define ERROR_MESS \
    ostr[k++] = '\0'; \
-   cerr << "ParmParse::getToken(): invalid string = " << ostr << endl; \
+   cerr << "ParmParse::getToken(): invalid string = " << ostr << '\n'; \
    cerr << "STATE = " << state_name[state] \
-        << ", next char = " << ch << endl; \
-   cerr << ", rest of input = \n" << (str+i) << endl; \
+        << ", next char = " << ch << '\n'; \
+   cerr << ", rest of input = \n" << (str+i) << '\n'; \
    BoxLib::Abort()
 
    //

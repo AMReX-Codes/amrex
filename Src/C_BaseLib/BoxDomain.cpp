@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxDomain.cpp,v 1.1 1997-09-12 18:00:04 lijewski Exp $
+// $Id: BoxDomain.cpp,v 1.2 1997-09-24 22:06:43 lijewski Exp $
 //
 
 #include <BoxDomain.H>
@@ -112,9 +112,9 @@ BoxDomain::ok () const
             {
                 if (bli().intersects(blii()))
                 {
-                    cout << "Invalid DOMAIN, boxes overlap" << endl;
-                    cout << "b1 = " << bli() << endl;
-                    cout << "b2 = " << blii() << endl;
+                    cout << "Invalid DOMAIN, boxes overlap" << '\n';
+                    cout << "b1 = " << bli() << '\n';
+                    cout << "b2 = " << blii() << '\n';
                     status = false;
                 }
                 ++blii;

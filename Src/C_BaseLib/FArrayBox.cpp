@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.4 1997-09-18 20:12:47 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.5 1997-09-24 22:06:44 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -13,7 +13,6 @@
 using std::cin;
 using std::cout;
 using std::cerr;
-using std::endl;
 using std::setw;
 using std::setprecision;
 using std::ios;
@@ -542,9 +541,9 @@ FABio_ascii::write (ostream&         os,
         os << p;
         for (int k=0; k < num_comp; k++)
             os << "  " << f(p,k+comp);
-        os << "\n";
+        os << '\n';
     }
-    os << endl;
+    os << '\n';
 
     if (os.fail())
         BoxLib::Error("FABio_ascii::write() failed");
@@ -563,7 +562,7 @@ FABio_ascii::read (istream&   is,
     {
         is >> q;
         if(p != q) {
-	  cerr << "Error:  read IntVect " << q << "  should be " << p << endl;
+	  cerr << "Error:  read IntVect " << q << "  should be " << p << '\n';
           BoxLib::Error("FABio_ascii::read() bad IntVect");
 	}
         for (int k = 0; k < f.nComp(); k++)
@@ -586,7 +585,7 @@ FABio_ascii::write_header (ostream&         os,
                            const FArrayBox& f,
                            int              nvar) const
 {
-    os << "FAB: " << FABio::FAB_ASCII << " " << 0 << " " << sys_name << '\n';
+    os << "FAB: " << FABio::FAB_ASCII << ' ' << 0 << ' ' << sys_name << '\n';
     FABio::write_header(os, f, nvar);
 }
 
@@ -685,7 +684,7 @@ FABio_8bit::write_header (ostream&         os,
                           const FArrayBox& f,
                           int              nvar) const
 {
-    os << "FAB: " << FABio::FAB_8BIT << " " << 0 << " " << sys_name << '\n';
+    os << "FAB: " << FABio::FAB_8BIT << ' ' << 0 << ' ' << sys_name << '\n';
     FABio::write_header(os, f, nvar);
 }
 
@@ -762,13 +761,13 @@ printRange (ostream&         os,
     if ((! reg.ok() ) || comp < 0 || comp+numcomp > fab.nComp())
     {
         os << "printRange: bad indices:" <<  reg;
-        os << " " << comp << " " << numcomp << endl;
+        os << ' ' << comp << ' ' << numcomp << '\n';
         return;
     }
     if (!( (fab.box()).contains(reg)))
     {
-        os << "printRange: indices outside FAB:" << reg << endl;
-        os << fab.box() << endl;
+        os << "printRange: indices outside FAB:" << reg << '\n';
+        os << fab.box() << '\n';
         return;
     }
 
@@ -783,10 +782,10 @@ printRange (ostream&         os,
                 if ((k-comp)%4 == 3)
                     os << "\n\t";
         }
-        os << "\n";
+        os << '\n';
     }
     os << setprecision(prec);
-    os << endl;
+    os << '\n';
 
     if (os.fail())
         BoxLib::Error("printRange() failed");

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: IndexType.cpp,v 1.2 1997-09-18 20:12:49 lijewski Exp $
+// $Id: IndexType.cpp,v 1.3 1997-09-24 22:06:44 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -10,7 +10,6 @@
 using std::cin;
 using std::cout;
 using std::cerr;
-using std::endl;
 #else
 #include <iostream.h>
 #include <iomanip.h>

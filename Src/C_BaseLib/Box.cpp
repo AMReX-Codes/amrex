@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Box.cpp,v 1.2 1997-09-18 20:12:44 lijewski Exp $
+// $Id: Box.cpp,v 1.3 1997-09-24 22:06:41 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -701,7 +701,7 @@ Box::dumpOn (ostream& strm) const
          << " type ["
          << btype.ixType()
          << "]"
-         << endl;
+         << '\n';
 
     if (strm.fail())
         BoxLib::Error("Box::dumpOn(ostream&) failed");

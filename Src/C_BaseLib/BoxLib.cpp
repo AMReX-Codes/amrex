@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxLib.cpp,v 1.3 1997-09-24 04:24:50 lijewski Exp $
+// $Id: BoxLib.cpp,v 1.4 1997-09-24 22:06:43 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -10,7 +10,6 @@
 #include <cstring>
 #include <iostream>
 using std::cerr;
-using std::endl;
 #else
 #include <stdio.h>
 #include <stdlib.h>
@@ -90,7 +89,7 @@ BoxLib::Warning (const char* msg)
 {
     if (msg)
     {
-        cerr << msg << '!' << endl;
+        cerr << msg << '!' << '\n';
     }
 }
 

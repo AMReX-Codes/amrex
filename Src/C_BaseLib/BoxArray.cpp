@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxArray.cpp,v 1.1 1997-09-12 18:00:03 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.2 1997-09-24 22:06:42 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -369,8 +369,8 @@ operator<< (ostream&        os,
     os << "       hash_sig("  << bs.hash_sig << ")\n";
     os << "       ";
     for (int i = 0; i < bs.length(); ++i)
-        os << bs[i] << " ";
-    os << ")" << endl;
+        os << bs[i] << ' ';
+    os << ')' << '\n';
 
     if (os.fail())
         BoxLib::Error("operator<<(ostream&,BoxArray&) failed");

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxList.cpp,v 1.2 1997-09-24 04:24:50 lijewski Exp $
+// $Id: BoxList.cpp,v 1.3 1997-09-24 22:06:43 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -468,10 +468,10 @@ operator<< (ostream&       os,
             const BoxList& blist)
 {
     BoxListIterator bli(blist);
-    os << "(BoxList " << blist.length() << ' ' << blist.btype << "\n";
+    os << "(BoxList " << blist.length() << ' ' << blist.btype << '\n';
     for (int count = 1; bli; ++bli, ++count)
-        os << count << " : " << bli() << "\n";
-    os << ")" << endl;
+        os << count << " : " << bli() << '\n';
+    os << ')' << '\n';
 
     if (os.fail())
         BoxLib::Error("operator<<(ostream&,BoxList&) failed");

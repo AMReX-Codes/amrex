@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxAssoc.cpp,v 1.1 1997-09-12 18:00:04 lijewski Exp $
+// $Id: BoxAssoc.cpp,v 1.2 1997-09-24 22:06:42 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -204,7 +204,7 @@ operator<< (ostream&        os,
             }
         }
     }
-    os << ")" << endl;
+    os << ')' << '\n';
 
     if (os.fail())
         BoxLib::Error("operator<<(ostream&,BoxAssoc&) failed");
