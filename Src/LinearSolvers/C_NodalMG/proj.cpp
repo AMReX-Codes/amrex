@@ -45,6 +45,13 @@ int pcode = 4;
 int nrep  = 1;
 Real tol = 2.e-10;
 int coordsys = 0;
+RegType bcall = refWall;
+RegType bc00;
+RegType bc10;
+RegType bc20;
+RegType bc01;
+RegType bc11;
+RegType bc21;
 
 holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::cross;
 
@@ -90,6 +97,15 @@ main(int argc, char **argv)
 	::sleep(slp);
     }
 #endif
+    aString ass;
+    if ( pp.query("bcall", ass) ) bcall = RegTypeSet(ass);
+    bc00 = bc10 = bc20 = bc01 = bc11 = bc21 = bcall;
+    if ( pp.query("bc00", ass) ) bc00 = RegTypeSet(ass);
+    if ( pp.query("bc10", ass) ) bc10 = RegTypeSet(ass);
+    if ( pp.query("bc20", ass) ) bc20 = RegTypeSet(ass);
+    if ( pp.query("bc01", ass) ) bc01 = RegTypeSet(ass);
+    if ( pp.query("bc11", ass) ) bc11 = RegTypeSet(ass);
+    if ( pp.query("bc21", ass) ) bc21 = RegTypeSet(ass);
     pp.query("nrep", nrep);
     pp.query("pcode", pcode);
     pp.query("tol", tol);
@@ -110,7 +126,7 @@ main(int argc, char **argv)
     }
     else
     {
-	BoxLib::Error("stencil must be cross, terrain, or full");
+      BoxLib::Error("stencil must be cross, terrain, or full");
     }
 
     if ( ParallelDescriptor::IOProcessor() )
@@ -419,21 +435,20 @@ projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     
     RegType bc[BL_SPACEDIM][2];
     
-    for (int i = 0; i < BL_SPACEDIM; i++) 
-    {
-	bc[i][0] = refWall;
-	bc[i][1] = refWall;
-	bc[i][0] = periodic;
-	bc[i][1] = periodic;
-    }
+    bc[0][0] = bc00;
+    bc[1][0] = bc10;
+    bc[2][0] = bc20;
+    bc[0][1] = bc01;
+    bc[1][1] = bc11;
+    bc[2][1] = bc21;
     // bc[1][0] = refWall;
     // bc[1][1] = refWall;
     // bc[0][0] = refWall;
     // bc[0][1] = refWall;
     // bc[2][0] = periodic;
     // bc[2][1] = periodic;
-    bc[1][0] = inflow;
-    bc[1][1] = outflow;
+    // bc[1][0] = inflow;
+    // bc[1][1] = outflow;
         
     PArray<MultiFab> u[BL_SPACEDIM];
     PArray<MultiFab> p, rhoinv, rhs;
