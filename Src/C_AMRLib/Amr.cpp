@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.20 1997-12-08 23:13:00 lijewski Exp $
+// $Id: Amr.cpp,v 1.21 1997-12-11 06:07:47 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -394,7 +394,7 @@ Amr::writePlotFile (const aString& root,
 
     if (trace && ParallelDescriptor::IOProcessor())
     {
-        cout << "PLOTFILE: file = " << pltfile << '\n';
+        cout << "PLOTFILE: file = " << pltfile << endl;
     }
     if (record_run_info && ParallelDescriptor::IOProcessor())
     {
@@ -453,7 +453,7 @@ Amr::writePlotFile (const aString& root,
 
     if (trace && ParallelDescriptor::IOProcessor())
     {
-        cout << "PLOTFILE: file = " << pltfile << '\n';
+        cout << "PLOTFILE: file = " << pltfile << endl;
     }
     if (record_run_info && ParallelDescriptor::IOProcessor())
     {
@@ -616,7 +616,7 @@ Amr::restart (const aString& filename)
 
     if (trace && ParallelDescriptor::IOProcessor())
     {
-	cout << "restarting calculation from file " << filename << '\n';
+	cout << "restarting calculation from file " << filename << endl;
     }
     //
     // Init problem dependent data.
@@ -736,7 +736,7 @@ Amr::checkPoint ()
 
     if (trace && ParallelDescriptor::IOProcessor())
     {
-        cout << "CHECKPOINT: file = " << ckfile << '\n';
+        cout << "CHECKPOINT: file = " << ckfile << endl;
     }
     if (record_run_info && ParallelDescriptor::IOProcessor())
     {
@@ -816,7 +816,7 @@ Amr::checkPoint ()
 
     if (trace && ParallelDescriptor::IOProcessor())
     {
-        cout << "CHECKPOINT: file = " << ckfile << '\n';
+        cout << "CHECKPOINT: file = " << ckfile << endl;
     }
     if (record_run_info && ParallelDescriptor::IOProcessor())
     {
@@ -931,9 +931,9 @@ Amr::timeStep (int  level,
     {
 	cout << "ADVANCE grids at level "
              << level
-	     << " with dt = "
+             << " with dt = "
              << dt_level[level]
-             << '\n';
+             << endl;
     }
     Real dt_new = amr_level[level].advance(time,
                                            dt_level[level],
