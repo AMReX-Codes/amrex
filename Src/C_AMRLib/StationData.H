@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StationData.H,v 1.6 1998-11-30 02:12:35 lijewski Exp $
+// $Id: StationData.H,v 1.7 1998-11-30 18:52:05 lijewski Exp $
 //
 
 #ifndef _StationData_H_
@@ -40,12 +40,11 @@ struct StationRec
         own = false;
     }
 
-    Real    pos[BL_SPACEDIM]; // Physical coordinates
-    IntVect ix;               // Index position
-    int     id;               // Identifier
-    int     level;            // Finest level containing station
-    int     grd;              // Index of BoxArray containing FAB
-    bool    own;              // Does this CPU own the data at grd?
+    Real pos[BL_SPACEDIM]; // Physical coordinates
+    int  id;               // Identifier
+    int  level;            // Finest level containing station
+    int  grd;              // Index of BoxArray containing FAB
+    bool own;              // Does this CPU own the data at grd?
 };
 
 class StationData
