@@ -1,8 +1,15 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.29 1999-02-24 16:50:31 lijewski Exp $
+// $Id: FabSet.cpp,v 1.30 1999-03-31 17:04:17 lijewski Exp $
 //
+
+#ifdef BL_USE_NEW_HFILES
+#include <list>
+using std::list;
+#else
+#include <list.h>
+#endif
 
 #include <FabSet.H>
 #include <Looping.H>
@@ -61,68 +68,216 @@ FabSet::copyFrom (const FArrayBox& src,
     return *this;
 }
 
-FabSet&
-FabSet::copyFrom (const MultiFab& src,
-                  int             nghost,
-                  int             src_comp,
-                  int             dest_comp,
-                  int             num_comp)
+//
+// Used in caching CollectData() stuff for copyFrom() and plusFrom().
+//
+
+struct FSRec
 {
-    assert((dest_comp+num_comp) <= nComp());
-    assert((src_comp+num_comp)  <= src.nComp());
+    FSRec ();
 
-    static RunStats stats("fabset_copyfrom");
+    FSRec (const BoxArray& src,
+           const BoxArray& dst,
+           int             ngrow,
+           int             scomp,
+           int             dcomp,
+           int             ncomp);
 
-    stats.start();
+    FSRec (const FSRec& rhs);
 
-    assert(nghost <= src.nGrow());
+    ~FSRec ();
 
+    bool operator== (const FSRec& rhs) const;
+    bool operator!= (const FSRec& rhs) const { return !operator==(rhs); }
+
+    Array<int>    m_snds;     // Snds cache for CollectData().
+    CommDataCache m_commdata; // CommData cache for CollectData().
+    BoxArray      m_src;
+    BoxArray      m_dst;
+    int           m_ngrow;
+    int           m_scomp;
+    int           m_dcomp;
+    int           m_ncomp;
+};
+
+FSRec::FSRec ()
+    :
+    m_ngrow(-1),
+    m_scomp(-1),
+    m_dcomp(-1),
+    m_ncomp(-1)
+{}
+
+FSRec::FSRec (const BoxArray& src,
+              const BoxArray& dst,
+              int             ngrow,
+              int             scomp,
+              int             dcomp,
+              int             ncomp)
+    :
+    m_src(src),
+    m_dst(dst),
+    m_ngrow(ngrow),
+    m_scomp(scomp),
+    m_dcomp(dcomp),
+    m_ncomp(ncomp)
+{
+    assert(ngrow >= 0);
+    assert(scomp >= 0);
+    assert(dcomp >= 0);
+    assert(ncomp >  0);
+}
+
+FSRec::FSRec (const FSRec& rhs)
+    :
+    m_snds(rhs.m_snds),
+    m_commdata(rhs.m_commdata),
+    m_src(rhs.m_src),
+    m_dst(rhs.m_dst),
+    m_ngrow(rhs.m_ngrow),
+    m_scomp(rhs.m_scomp),
+    m_dcomp(rhs.m_dcomp),
+    m_ncomp(rhs.m_ncomp)
+{}
+
+FSRec::~FSRec () {}
+
+bool
+FSRec::operator== (const FSRec& rhs) const
+{
+    return
+        m_ngrow == rhs.m_ngrow &&
+        m_scomp == rhs.m_scomp &&
+        m_dcomp == rhs.m_dcomp &&
+        m_ncomp == rhs.m_ncomp &&
+        m_src   == rhs.m_src   &&
+        m_dst   == rhs.m_dst;
+}
+
+//
+// A useful typedef.
+//
+typedef list<FSRec> FSRecList;
+
+//
+// Cache of FSRec info.
+//
+static FSRecList TheCache;
+
+void
+FabSet::FlushCache ()
+{
+    TheCache.clear();
+}
+
+static
+FSRec&
+TheFSRec (const MultiFab& src,
+          const FabSet&   dst,
+          int             ngrow,
+          int             scomp,
+          int             dcomp,
+          int             ncomp)
+{
+    assert(ngrow >= 0);
+    assert(scomp >= 0);
+    assert(dcomp >= 0);
+    assert(ncomp >  0);
+
+    FSRec rec(src.boxArray(),dst.boxArray(),ngrow,scomp,dcomp,ncomp);
+
+    for (FSRecList::iterator it = TheCache.begin(); it != TheCache.end(); ++it)
+    {
+        if (*it == rec)
+        {
+            return *it;
+        }
+    }
+
+    TheCache.push_front(rec);
+
+    return TheCache.front();
+}
+
+void
+FabSet::DoIt (const MultiFab& src,
+              int             ngrow,
+              int             scomp,
+              int             dcomp,
+              int             ncomp,
+              How             how)
+{
+    assert(ngrow <= src.nGrow());
+    assert((dcomp+ncomp) <= nComp());
+    assert((scomp+ncomp) <= src.nComp());
+    assert(how == FabSet::COPYFROM || how == FabSet::PLUSFROM);
+
+    FArrayBox            tmp;
     FabSetCopyDescriptor fscd;
-
-    MultiFabId srcmfid = fscd.RegisterFabArray(const_cast<MultiFab*>(&src));
-
-    vector<FillBoxId> fillBoxIdList;
+    vector<FillBoxId>    fbids;
+    const int            MyProc = ParallelDescriptor::MyProc();
+    MultiFabId           mfid   = fscd.RegisterFabArray(const_cast<MultiFab*>(&src));
+    FSRec&               rec    = TheFSRec(src,*this,ngrow,scomp,dcomp,ncomp);
 
     for (FabSetIterator fsi(*this); fsi.isValid(); ++fsi)
     {
-       for (int s = 0; s < src.length(); ++s)
+       for (int i = 0; i < src.length(); i++)
        {
-           Box ovlp = fsi().box() & ::grow(src.boxArray()[s],nghost);
+           Box ovlp = fsi().box() & ::grow(src.boxArray()[i],ngrow);
 
             if (ovlp.ok())
             {
-                fillBoxIdList.push_back(fscd.AddBox(srcmfid,
-                                                    ovlp,
-                                                    0,
-                                                    s,
-                                                    src_comp,
-                                                    dest_comp,
-                                                    num_comp,
-                                                    false));
+                fbids.push_back(fscd.AddBox(mfid,
+                                            ovlp,
+                                            0,
+                                            i,
+                                            scomp,
+                                            dcomp,
+                                            ncomp,
+                                            false));
 
-                assert(fillBoxIdList.back().box() == ovlp);
+                assert(fbids.back().box() == ovlp);
                 //
                 // Also save the index of our FAB needing filling.
                 //
-                fillBoxIdList.back().FabIndex(fsi.index());
+                fbids.back().FabIndex(fsi.index());
             }
         }
     }
 
-    fscd.CollectData();
+    fscd.CollectData(&rec.m_snds,&rec.m_commdata);
 
-    const int MyProc = ParallelDescriptor::MyProc();
-
-    for (int i = 0; i < fillBoxIdList.size(); i++)
+    for (int i = 0; i < fbids.size(); i++)
     {
-        const int fabindex = fillBoxIdList[i].FabIndex();
+        assert(DistributionMap()[fbids[i].FabIndex()] == MyProc);
 
-        assert(DistributionMap()[fabindex] == MyProc);
-        //
-        // Directly fill the FAB.
-        //
-        fscd.FillFab(srcmfid, fillBoxIdList[i], (*this)[fabindex]);
+        if (how == COPYFROM)
+        {
+            fscd.FillFab(mfid, fbids[i], (*this)[fbids[i].FabIndex()]);
+        }
+        else
+        {
+            tmp.resize(fbids[i].box(), ncomp);
+
+            fscd.FillFab(mfid, fbids[i], tmp);
+
+            (*this)[fbids[i].FabIndex()].plus(tmp,tmp.box(),scomp,dcomp,ncomp);
+        }
     }
+}
+
+FabSet&
+FabSet::copyFrom (const MultiFab& src,
+                  int             ngrow,
+                  int             scomp,
+                  int             dcomp,
+                  int             ncomp)
+{
+    static RunStats stats("fabset_copyfrom");
+
+    stats.start();
+
+    DoIt(src,ngrow,scomp,dcomp,ncomp,FabSet::COPYFROM);
 
     stats.end();
 
@@ -131,66 +286,16 @@ FabSet::copyFrom (const MultiFab& src,
 
 FabSet&
 FabSet::plusFrom (const MultiFab& src,
-                  int             nghost,
-                  int             src_comp,
-                  int             dest_comp,
-                  int             num_comp)
+                  int             ngrow,
+                  int             scomp,
+                  int             dcomp,
+                  int             ncomp)
 {
     static RunStats stats("fabset_plusfrom");
 
     stats.start();
 
-    assert(nghost <= src.nGrow());
-
-    MultiFabCopyDescriptor mfcd;
-    MultiFabId             mfidsrc = mfcd.RegisterFabArray((MultiFab*) &src);
-    vector<FillBoxId>      fillBoxIdList;
-    FArrayBox              tmpfab;
-
-    for (FabSetIterator fsi(*this); fsi.isValid(); ++fsi)
-    {
-        for (int isrc = 0; isrc < src.length(); ++isrc)
-        {
-            Box ovlp = fsi().box() & ::grow(src.boxArray()[isrc], nghost);
-
-            if (ovlp.ok())
-            {
-                fillBoxIdList.push_back(mfcd.AddBox(mfidsrc,
-                                                    ovlp,
-                                                    0,
-                                                    isrc,
-                                                    src_comp,
-                                                    dest_comp,
-                                                    num_comp,
-                                                    false));
-
-                assert(fillBoxIdList.back().box() == ovlp);
-                //
-                // Also save the index of our FAB needed filling.
-                //
-                fillBoxIdList.back().FabIndex(fsi.index());
-            }
-        }
-    }
-
-    mfcd.CollectData();
-
-    const int MyProc = ParallelDescriptor::MyProc();
-
-    for (int i = 0; i < fillBoxIdList.size(); i++)
-    {
-        const FillBoxId& fbidsrc = fillBoxIdList[i];
-
-        const int fabidx = fbidsrc.FabIndex();
-
-        assert(DistributionMap()[fabidx] == MyProc);
-
-        tmpfab.resize(fbidsrc.box(), num_comp);
-
-        mfcd.FillFab(mfidsrc, fbidsrc, tmpfab);
-
-        (*this)[fabidx].plus(tmpfab,fbidsrc.box(),src_comp,dest_comp,num_comp);
-    }
+    DoIt(src,ngrow,scomp,dcomp,ncomp,FabSet::PLUSFROM);
 
     stats.end();
 
@@ -205,9 +310,9 @@ FabSet&
 FabSet::linComb (Real          a,
                  Real          b,
                  const FabSet& src,
-                 int           src_comp,
-                 int           dest_comp,
-                 int           num_comp)
+                 int           scomp,
+                 int           dcomp,
+                 int           ncomp)
 {
     assert(length() == src.length());
 
@@ -221,15 +326,15 @@ FabSet::linComb (Real          a,
         //
         fsi().linComb(fsi(),
                       fsi().box(),
-                      dest_comp,
+                      dcomp,
                       dfsi(),
                       dfsi().box(),
-                      src_comp,
+                      scomp,
                       a,
                       b,
                       fsi().box(),
-                      dest_comp,
-                      num_comp);
+                      dcomp,
+                      ncomp);
     }
     return *this;
 }
@@ -241,10 +346,13 @@ FabSet::linComb (Real            a,
                  Real            b,
                  const MultiFab& mfb,
                  int             b_comp,
-                 int             dest_comp,
-                 int             num_comp,
-                 int             n_ghost)
+                 int             dcomp,
+                 int             ncomp,
+                 int             ngrow)
 {
+    assert(ngrow <= mfa.nGrow());
+    assert(ngrow <= mfb.nGrow());
+
     static RunStats stats("fabset_lincomb");
 
     stats.start();
@@ -253,49 +361,47 @@ FabSet::linComb (Real            a,
     const BoxArray& bxb = mfb.boxArray();
 
     assert(bxa == bxb);
-    assert(n_ghost <= mfa.nGrow());
-    assert(n_ghost <= mfb.nGrow());
 
     MultiFabCopyDescriptor mfcd;
 
     MultiFabId mfid_mfa = mfcd.RegisterFabArray(const_cast<MultiFab*>(&mfa));
     MultiFabId mfid_mfb = mfcd.RegisterFabArray(const_cast<MultiFab*>(&mfb));
 
-    vector<FillBoxId> fillBoxIDs_mfa, fillBoxIDs_mfb;
+    vector<FillBoxId> fbids_mfa, fbids_mfb;
 
     for (FabSetIterator fsi(*this); fsi.isValid(); ++fsi)
     {
         for (int grd = 0; grd < bxa.length(); grd++)
         {
-            Box ovlp = fsi().box() & ::grow(bxa[grd],n_ghost);
+            Box ovlp = fsi().box() & ::grow(bxa[grd],ngrow);
 
             if (ovlp.ok())
             {
-                fillBoxIDs_mfa.push_back(mfcd.AddBox(mfid_mfa,
-                                                        ovlp,
-                                                        0,
-                                                        grd,
-                                                        a_comp,
-                                                        0,
-                                                        num_comp,
-                                                        false));
+                fbids_mfa.push_back(mfcd.AddBox(mfid_mfa,
+                                                ovlp,
+                                                0,
+                                                grd,
+                                                a_comp,
+                                                0,
+                                                ncomp,
+                                                false));
 
-                assert(fillBoxIDs_mfa.back().box() == ovlp);
+                assert(fbids_mfa.back().box() == ovlp);
                 //
                 // Also save the index of the FAB in the FabSet.
                 //
-                fillBoxIDs_mfa.back().FabIndex(fsi.index());
+                fbids_mfa.back().FabIndex(fsi.index());
 
-                fillBoxIDs_mfb.push_back(mfcd.AddBox(mfid_mfb,
-                                                        ovlp,
-                                                        0,
-                                                        grd,
-                                                        b_comp,
-                                                        0,
-                                                        num_comp,
-                                                        false));
+                fbids_mfb.push_back(mfcd.AddBox(mfid_mfb,
+                                                ovlp,
+                                                0,
+                                                grd,
+                                                b_comp,
+                                                0,
+                                                ncomp,
+                                                false));
 
-                assert(fillBoxIDs_mfb.back().box() == ovlp);
+                assert(fbids_mfb.back().box() == ovlp);
             }
         }
     }
@@ -306,35 +412,29 @@ FabSet::linComb (Real            a,
 
     const int MyProc = ParallelDescriptor::MyProc();
 
-    assert(fillBoxIDs_mfa.size() ==fillBoxIDs_mfb.size());
+    assert(fbids_mfa.size() == fbids_mfb.size());
 
-    for (int i = 0; i < fillBoxIDs_mfa.size(); i++)
+    for (int i = 0; i < fbids_mfa.size(); i++)
     {
-        const FillBoxId& fbid_mfa = fillBoxIDs_mfa[i];
-        a_fab.resize(fbid_mfa.box(), num_comp);
-        mfcd.FillFab(mfid_mfa, fbid_mfa, a_fab);
+        a_fab.resize(fbids_mfa[i].box(), ncomp);
+        b_fab.resize(fbids_mfb[i].box(), ncomp);
 
-        const FillBoxId& fbid_mfb = fillBoxIDs_mfb[i];
-        b_fab.resize(fbid_mfb.box(), num_comp);
-        mfcd.FillFab(mfid_mfb, fbid_mfb, b_fab);
+        mfcd.FillFab(mfid_mfa, fbids_mfa[i], a_fab);
+        mfcd.FillFab(mfid_mfb, fbids_mfb[i], b_fab);
 
-        const int fabindex = fbid_mfa.FabIndex();
+        assert(DistributionMap()[fbids_mfa[i].FabIndex()] == MyProc);
 
-        assert(DistributionMap()[fabindex] == MyProc);
-
-        const Box& ovlp = fbid_mfa.box();
-
-        (*this)[fabindex].linComb(a_fab,
-                                  ovlp,
-                                  0,
-                                  b_fab,
-                                  ovlp,
-                                  0,
-                                  a,
-                                  b,
-                                  ovlp,
-                                  dest_comp,
-                                  num_comp);
+        (*this)[fbids_mfa[i].FabIndex()].linComb(a_fab,
+                                                 fbids_mfa[i].box(),
+                                                 0,
+                                                 b_fab,
+                                                 fbids_mfa[i].box(),
+                                                 0,
+                                                 a,
+                                                 b,
+                                                 fbids_mfa[i].box(),
+                                                 dcomp,
+                                                 ncomp);
     }
 
     stats.end();

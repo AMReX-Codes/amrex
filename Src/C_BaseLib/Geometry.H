@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.27 1999-03-27 01:01:16 lijewski Exp $
+// $Id: Geometry.H,v 1.28 1999-03-31 17:04:18 lijewski Exp $
 //
 
 #include <CoordSys.H>
@@ -236,16 +236,16 @@ protected:
         bool operator== (const FPB& rhs) const;
         bool operator!= (const FPB& rhs) const { return !operator==(rhs); }
 
-        Array<int>      m_cache;    // Snds cached for CollectData().
-        Array<CommData> m_commdata; // Yet another cache for CollectData().
-        PIRMMap         m_pirm;
-        BoxArray        m_ba;
-        Box             m_domain;
-        int             m_scomp;
-        int             m_ncomp;
-        int             m_ngrow;
-        bool            m_no_overlap;
-        bool            m_do_corners;
+        Array<int>    m_cache;    // Snds cached for CollectData().
+        CommDataCache m_commdata; // Yet another cache for CollectData().
+        PIRMMap       m_pirm;
+        BoxArray      m_ba;
+        Box           m_domain;
+        int           m_scomp;
+        int           m_ncomp;
+        int           m_ngrow;
+        bool          m_no_overlap;
+        bool          m_do_corners;
     };
     //
     // A useful typedef.
