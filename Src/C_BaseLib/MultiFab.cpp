@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.13 1998-03-30 18:59:28 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.14 1998-04-27 19:43:48 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -353,7 +353,7 @@ MultiFab::negate (const Box& region,
 
 void
 linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
-                 BoxList&                returnUnfilledBoxes,
+                 BoxList*                returnUnfilledBoxes,
                  Array<FillBoxId>&       returnedFillBoxIds,
                  const Box&              subbox,
                  const MultiFabId&       faid1,
@@ -373,29 +373,39 @@ linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
     if (t < t1+teps)
     {
         returnedFillBoxIds.resize(1);
-        returnedFillBoxIds[0] = fabCopyDesc.AddBox(faid1, subbox,
+        returnedFillBoxIds[0] = fabCopyDesc.AddBox(faid1,
+                                                   subbox,
                                                    returnUnfilledBoxes,
-                                                   src_comp, dest_comp,
+                                                   src_comp,
+                                                   dest_comp,
                                                    num_comp);
     }
     else if (t > t2-teps && t < t2+teps)
     {
         returnedFillBoxIds.resize(1);
-        returnedFillBoxIds[0] = fabCopyDesc.AddBox(faid2, subbox,
+        returnedFillBoxIds[0] = fabCopyDesc.AddBox(faid2,
+                                                   subbox,
                                                    returnUnfilledBoxes,
-                                                   src_comp, dest_comp,
+                                                   src_comp,
+                                                   dest_comp,
                                                    num_comp);
     }
     else
     {
         returnedFillBoxIds.resize(2);
         BoxList tempUnfilledBoxes(subbox.ixType());
-        returnedFillBoxIds[0] = fabCopyDesc.AddBox(faid1, subbox,
-                                       returnUnfilledBoxes,
-                                       src_comp, dest_comp, num_comp);
-        returnedFillBoxIds[1] = fabCopyDesc.AddBox(faid2, subbox,
-                                       tempUnfilledBoxes,
-                                       src_comp, dest_comp, num_comp);
+        returnedFillBoxIds[0] = fabCopyDesc.AddBox(faid1,
+                                                   subbox,
+                                                   returnUnfilledBoxes,
+                                                   src_comp,
+                                                   dest_comp,
+                                                   num_comp);
+        returnedFillBoxIds[1] = fabCopyDesc.AddBox(faid2,
+                                                   subbox,
+                                                   &tempUnfilledBoxes,
+                                                   src_comp,
+                                                   dest_comp,
+                                                   num_comp);
         //
         // The boxarrays for faid1 and faid2 should be the
         // same so only use returnUnfilledBoxes from one AddBox here.
@@ -439,8 +449,17 @@ linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
         dest2.setVal(1.e30);
         fabCopyDesc.FillFab(faid1, fillBoxIds[0], dest1);
         fabCopyDesc.FillFab(faid2, fillBoxIds[1], dest2);
-        dest.linInterp(dest1, dest1.box(), src_comp,
-                       dest2, dest2.box(), src_comp,
-                       t1, t2, t, dest.box(), dest_comp, num_comp);
+        dest.linInterp(dest1,
+                       dest1.box(),
+                       src_comp,
+                       dest2,
+                       dest2.box(),
+                       src_comp,
+                       t1,
+                       t2,
+                       t,
+                       dest.box(),
+                       dest_comp,
+                       num_comp);
     }
 }

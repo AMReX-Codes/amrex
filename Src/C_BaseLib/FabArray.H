@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.44 1998-04-24 17:10:37 lijewski Exp $
+// $Id: FabArray.H,v 1.45 1998-04-27 19:43:46 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -672,12 +672,12 @@ class FabArrayCopyDescriptor
 
     FillBoxId AddBox(const FabArrayId& fabarrayid,
                      const Box&        destFabBox,
-                     BoxList&          unfilledBoxes,
+                     BoxList*          unfilledBoxes,
                      bool              bUseValidBox = true);
 
     FillBoxId AddBox(const FabArrayId& fabarrayid,
                      const Box&        destFabBox,
-                     BoxList&          unfilledBoxes,
+                     BoxList*          unfilledBoxes,
                      int               srccomp,
                      int               destcomp,
                      int               numcomp,
@@ -687,7 +687,7 @@ class FabArrayCopyDescriptor
     //
     FillBoxId AddBox (const FabArrayId& fabarrayid,
                       const Box&        destFabBox,
-                      BoxList&          unfilledBoxes,
+                      BoxList*          unfilledBoxes,
                       int               fabarrayindex,
                       int               srccomp,
                       int               destcomp,
@@ -1502,7 +1502,6 @@ FabArray<T,FAB>::FillBoundary (int start_comp,
 
     FabArrayId        faid = facd.RegisterFabArray(this);
     vector<FillBoxId> fillBoxIdList;
-    BoxList           notUsed;  // Required in AddBox() call.
 
     for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(false); ++fai)
     {
@@ -1520,7 +1519,7 @@ FabArray<T,FAB>::FillBoundary (int start_comp,
             {
                 fillBoxIdList.push_back(facd.AddBox(faid,
                                                     destbox,
-                                                    notUsed,
+                                                    0,
                                                     start_comp,
                                                     start_comp,
                                                     num_comp));
@@ -1978,7 +1977,7 @@ inline
 FillBoxId
 FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
                                       const Box&        destFabBox,
-                                      BoxList&          returnedUnfilledBoxes,
+                                      BoxList*          returnedUnfilledBoxes,
                                       bool              bUseValidBox)
 {
     return AddBox(fabarrayid,
@@ -1993,7 +1992,7 @@ template <class T, class FAB>
 FillBoxId
 FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
                                        const Box&        destFabBox,
-                                       BoxList&          returnedUnfilledBoxes,
+                                       BoxList*          returnedUnfilledBoxes,
                                        int               srccomp,
                                        int               destcomp,
                                        int               numcomp,
@@ -2070,8 +2069,11 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
             unfilledBoxDomain.rmBox(intersectBox);
         }
     }
-    returnedUnfilledBoxes.clear();
-    returnedUnfilledBoxes = unfilledBoxDomain.boxList();
+    if (!(returnedUnfilledBoxes == 0))
+    {
+        returnedUnfilledBoxes->clear();
+        (*returnedUnfilledBoxes) = unfilledBoxDomain.boxList();
+    }
 
     return FillBoxId(nextFillBoxId++, destFabBox, filledBoxes);
 }
@@ -2080,7 +2082,7 @@ template <class T, class FAB>
 FillBoxId
 FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
                                       const Box&        destFabBox,
-                                      BoxList&          returnedUnfilledBoxes,
+                                      BoxList*          returnedUnfilledBoxes,
                                       int               fabarrayindex,
                                       int               srccomp,
                                       int               destcomp,
@@ -2152,8 +2154,11 @@ FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
                       FCDMapValueType(fcd->fillBoxId, fcd));
         unfilledBoxDomain.rmBox(intersectBox);
     }
-    returnedUnfilledBoxes.clear();
-    returnedUnfilledBoxes = unfilledBoxDomain.boxList();
+    if (!(returnedUnfilledBoxes == 0))
+    {
+        returnedUnfilledBoxes->clear();
+        (*returnedUnfilledBoxes) = unfilledBoxDomain.boxList();
+    }
 
     return FillBoxId(nextFillBoxId++, destFabBox, filledBoxes);
 }

@@ -4,7 +4,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.12 1998-04-02 00:14:07 lijewski Exp $
+// $Id: MultiFab.H,v 1.13 1998-04-27 19:43:47 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -287,7 +287,7 @@ public:
                 int             nghost);
 
     friend void linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
-                                 BoxList&                returnUnfilledBoxes,
+                                 BoxList*                returnUnfilledBoxes,
                                  Array<FillBoxId>&       returnedFillBoxIds,
                                  const Box&              subbox,
                                  const MultiFabId&       faid1,
