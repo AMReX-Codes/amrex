@@ -4,7 +4,7 @@
 #define _TagBox_H_
 
 //
-// $Id: TagBox.H,v 1.7 1998-01-28 04:55:11 lijewski Exp $
+// $Id: TagBox.H,v 1.8 1998-01-28 18:35:07 lijewski Exp $
 //
 
 #include <IntVect.H>
@@ -145,6 +145,10 @@ private:
     // amount we bump it each time it is not large enough.
     //
     enum { ChunkSize = 1048576 };
+    //
+    // Helper functions.
+    //
+    static void BumpCollateSpace (long numtags);
     //
     // Not to be confused with FabArray::n_grow which defines
     // the invalid regions of the fabs in the FabArray.

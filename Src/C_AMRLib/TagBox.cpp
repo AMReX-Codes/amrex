@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.12 1998-01-28 04:55:12 lijewski Exp $
+// $Id: TagBox.cpp,v 1.13 1998-01-28 18:35:08 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -22,6 +22,30 @@ long TagBoxArray::m_CollateCount = TagBoxArray::ChunkSize;
 // Static space used by collate().
 //
 IntVect* TagBoxArray::m_CollateSpace = new IntVect[TagBoxArray::ChunkSize];
+
+void
+TagBoxArray::BumpCollateSpace (long numtags)
+{
+    assert(TagBoxArray::m_CollateCount < numtags);
+
+    do
+    {
+        TagBoxArray::m_CollateCount += TagBoxArray::ChunkSize;
+    }
+    while (TagBoxArray::m_CollateCount < numtags);
+
+    delete [] TagBoxArray::m_CollateSpace;
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        cout << "*** Bumping TagBoxArray::m_CollateSpace capacity to "
+             << TagBoxArray::m_CollateCount
+             << " IntVects"
+             << endl;
+    }
+
+    TagBoxArray::m_CollateSpace = new IntVect[TagBoxArray::m_CollateCount];
+}
 
 struct TagBoxMergeDesc
 {
@@ -741,28 +765,18 @@ TagBoxArray::collate (long& numtags) const
     numtags = numTags();
 
     if (TagBoxArray::m_CollateCount < numtags)
-    {
-        do
-        {
-            TagBoxArray::m_CollateCount += TagBoxArray::ChunkSize;
-        }
-        while (TagBoxArray::m_CollateCount < numtags);
-
-        delete [] TagBoxArray::m_CollateSpace;
-
-        TagBoxArray::m_CollateSpace = new IntVect[TagBoxArray::m_CollateCount];
-    }
+        TagBoxArray::BumpCollateSpace(numtags);
 
     for (ConstFabArrayIterator<TagType,TagBox> fai(*this); fai.isValid();++fai)
     {
         fai().collate(TagBoxArray::m_CollateSpace, startOffset[fai.index()]);
     }
 
-    const size_t ivSize = sizeof(IntVect);
+    const size_t IVSize = sizeof(IntVect);
     //
     // Now copy the local IntVects to all other processors.
     //
-    ParallelDescriptor::ShareVar(TagBoxArray::m_CollateSpace, numtags*ivSize);
+    ParallelDescriptor::ShareVar(TagBoxArray::m_CollateSpace, numtags*IVSize);
     ParallelDescriptor::Synchronize();  // For ShareVar.
 
     for (ConstFabArrayIterator<TagType,TagBox> fai(*this); fai.isValid();++fai)
@@ -780,8 +794,8 @@ TagBoxArray::collate (long& numtags) const
                     ParallelDescriptor::WriteData(iProc,
                                                   ivDestBase,
                                                   TagBoxArray::m_CollateSpace,
-                                                  startOffset[idx]*ivSize,
-                                                  sharedNTags[idx]*ivSize);
+                                                  startOffset[idx]*IVSize,
+                                                  sharedNTags[idx]*IVSize);
                 }
             }
         }

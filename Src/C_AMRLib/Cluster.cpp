@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Cluster.cpp,v 1.9 1998-01-28 04:55:11 lijewski Exp $
+// $Id: Cluster.cpp,v 1.10 1998-01-28 18:35:07 lijewski Exp $
 //
 
 #include <Cluster.H>
@@ -10,7 +10,11 @@
 #include <algorithm>
 using std::partition;
 #else
+#if (defined(BL_T3E) && !defined(__KCC)) || defined(__GNUC__)
+#include <algo.h>
+#else
 #include <algorithm.h>
+#endif
 #endif
 
 enum CutStatus { HoleCut=0, SteepCut, BisectCut, InvalidCut };
@@ -197,16 +201,16 @@ FindCut (const int* hist,
     int locmax = -1;
     for (i = 0+MINOFF; i < len-MINOFF; i++)
     {
-        int iprev = dhist[i-1];
-        int icur = dhist[i];
+        int iprev  = dhist[i-1];
+        int icur   = dhist[i];
         int locdif = abs(iprev-icur);
-        if ((iprev*icur < 0) && (locdif >= locmax))
+        if (iprev*icur < 0 && locdif >= locmax)
         {
             if (locdif > locmax)
             {
-                status = SteepCut;
+                status   = SteepCut;
                 cutpoint = i;
-                locmax = locdif;
+                locmax   = locdif;
             }
             else
             {
@@ -252,6 +256,7 @@ Cluster*
 Cluster::chop ()
 {
     assert(m_len > 1);
+    assert(!(m_ar == 0));
 
     const int* lo  = m_bx.loVect();
     const int* hi  = m_bx.hiVect();
@@ -260,20 +265,15 @@ Cluster::chop ()
     // Compute histogram.
     //
     int* hist[BL_SPACEDIM];
-    int n;
-    for (n = 0; n < BL_SPACEDIM; n++)
+    for (int n = 0; n < BL_SPACEDIM; n++)
     {
         hist[n] = new int[len[n]];
-    }
-    for (n = 0; n < BL_SPACEDIM; n++)
-    {
         for (int i = 0; i < len[n]; i++)
             hist[n][i] = 0;
     }
-    int i;
-    for (i = 0; i < m_len; i++)
+    for (int n = 0; n < m_len; n++)
     {
-        const int* p = m_ar[i].getVect();
+        const int* p = m_ar[n].getVect();
         D_TERM( hist[0][p[0]-lo[0]]++;,
                 hist[1][p[1]-lo[1]]++;,
                 hist[2][p[2]-lo[2]]++; )
@@ -284,8 +284,7 @@ Cluster::chop ()
     CutStatus mincut = InvalidCut;
     CutStatus status[BL_SPACEDIM];
     IntVect cut;
-    int mincount = 0;
-    for (n = 0; n < BL_SPACEDIM; n++)
+    for (int n = 0, mincount = 0; n < BL_SPACEDIM; n++)
     {
         cut[n] = FindCut(hist[n], lo[n], hi[n], status[n]);
         if (status[n] < mincut)
@@ -302,9 +301,8 @@ Cluster::chop ()
     //
     // Select best cutpoint and direction.
     //
-    int minlen = -1;
     int dir;
-    for (n = 0; n < BL_SPACEDIM; n++)
+    for (int n = 0, minlen = -1; n < BL_SPACEDIM; n++)
     {
         if (status[n] == mincut)
         {
@@ -316,17 +314,17 @@ Cluster::chop ()
             }
         }
     }
-    assert(dir >=0 && dir < BL_SPACEDIM);
+    assert(dir >= 0 && dir < BL_SPACEDIM);
 
     int nlo = 0;
-    for (i = lo[dir]; i < cut[dir]; i++)
+    for (int i = lo[dir]; i < cut[dir]; i++)
         nlo += hist[dir][i-lo[dir]];
 
     assert(nlo > 0 && nlo < m_len);
 
     int nhi = m_len - nlo;
 
-    for (i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < BL_SPACEDIM; i++)
         delete [] hist[i];
 
     IntVect* prt_it = partition(m_ar, m_ar+m_len, Cut(cut,dir));
@@ -413,8 +411,8 @@ ClusterList::intersect (const BoxDomain& dom)
     for (ListIterator<Cluster*> cli(lst); cli; )
     {
         Cluster* c = cli();
-        const Box& cbox = c->box();
-        if (dom.contains(cbox))
+
+        if (dom.contains(c->box()))
         {
             ++cli;
         }
@@ -422,7 +420,7 @@ ClusterList::intersect (const BoxDomain& dom)
         {
             BoxDomain bxdom;
 
-            ::intersect(bxdom, dom, cbox);
+            ::intersect(bxdom, dom, c->box());
 
             if (bxdom.length() > 0)
             {
