@@ -4,7 +4,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.15 1998-06-12 20:34:37 lijewski Exp $
+// $Id: MultiFab.H,v 1.16 1998-06-13 17:28:58 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -15,6 +15,11 @@
 typedef FabArrayId MultiFabId;
 
 class MultiFabCopyDescriptor;
+
+//
+// Forward declaration.
+//
+class Geometry;
 
 //
 //@Man:
@@ -323,11 +328,23 @@ public:
     void FillBoundary ();
 
     /*@ManDoc: Same as FillBoundary(), but only copies
-               num\_comp components starting at start\_comp.
+               num\_comp components starting at src\_comp.
     */
-    void FillBoundary (int start_comp,
+    void FillBoundary (int src_comp,
                        int num_comp);
 
+    //
+    //@ManDoc: The cached copy descriptor used by FillBoundary.
+    //
+    MultiFabCopyDescriptor& theFBmfcd (int src_comp,
+                                       int num_comp);
+    //
+    //@ManDoc: The cached copy descriptor used by FillPeriodicBoundary.
+    //
+    MultiFabCopyDescriptor& theFPBmfcd (const Geometry& geom,
+                                        int             src_comp,
+                                        int             num_comp,
+                                        bool            no_ovlp);
 private:
     //
     // These are disabled.
@@ -337,18 +354,23 @@ private:
     //
     // FillBoundary() Helper functions.
     //
-    MultiFabCopyDescriptor& theFBmfcd (int start_comp,
-                                       int num_comp);
-
     vector<FillBoxId>& theFBfbid () const;
 
-    void FB_Doit (int start_comp,
-                  int num_comp);
+    void buildFBmfcd (int src_comp,
+                      int num_comp);
+    //
+    // FillPeriodic helper function.
+    //
+    void buildFPBmfcd (const Geometry& geom,
+                       int             src_comp,
+                       int             num_comp,
+                       bool            no_ovlp);
     //
     // Some additional cached data.
     //
-    MultiFabCopyDescriptor* m_FB_mfcd; /* Hack for FillBoundary */
-    vector<FillBoxId>*      m_FB_fbid; /* Hack for FillBoundary */
+    MultiFabCopyDescriptor* m_FB_mfcd;  /* Hack for FillBoundary */
+    vector<FillBoxId>*      m_FB_fbid;  /* Hack for FillBoundary */
+    MultiFabCopyDescriptor* m_FPB_mfcd; /* Hack for FillPeriodicBoundary */
 };
 
 class ConstMultiFabIterator;
@@ -528,15 +550,30 @@ MultiFab::theFBfbid () const
 
 inline
 MultiFabCopyDescriptor&
-MultiFab::theFBmfcd (int start_comp,
+MultiFab::theFBmfcd (int src_comp,
                      int num_comp)
 {
     if (m_FB_mfcd == 0)
     {
-        FB_Doit(start_comp, num_comp);
+        buildFBmfcd(src_comp, num_comp);
     }
 
     return *m_FB_mfcd;
+}
+
+inline
+MultiFabCopyDescriptor&
+MultiFab::theFPBmfcd (const Geometry& geom,
+                      int             src_comp,
+                      int             num_comp,
+                      bool            no_ovlp)
+{
+    if (m_FPB_mfcd == 0)
+    {
+        buildFPBmfcd(geom,src_comp,num_comp,no_ovlp);
+    }
+
+    return *m_FPB_mfcd;
 }
 
 inline
