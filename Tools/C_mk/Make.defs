@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.66 2003-05-21 22:47:52 vince Exp $
+# Make.defs $Id: Make.defs,v 1.67 2003-06-04 21:41:56 car Exp $
 #
 
 #
@@ -270,10 +270,17 @@ ifeq ($(FCOMP),Intel)
        IFC_MINOR_VERSION := 0
        LIBRARY_LOCATIONS += /opt/intel/compiler60/ia32/lib 
    else
-   ifeq ($(findstring Version 7.0, $(__ifc_version)), Version 7.0)
-       IFC_VERSION := 7.0
+   ifeq ($(findstring Version 7, $(__ifc_version)), Version 7)
        IFC_MAJOR_VERSION := 7
-       IFC_MINOR_VERSION := 0
+       ifeq ($(findstr Version 7.0, $(__ifc_version)), 7.0)
+         IFC_VERSION := 7.0
+         IFC_MINOR_VERSION := 0
+       else
+       ifeq ($(findstr Version 7.1, $(__ifc_version)), 7.1)
+         IFC_VERSION := 7.1
+         IFC_MINOR_VERSION := 1
+       endif
+       endif
        LIBRARY_LOCATIONS += /opt/intel/compiler70/ia32/lib 
    endif
    endif
