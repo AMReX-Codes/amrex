@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.76 2002-12-20 23:05:39 car Exp $
+// $Id: FluxRegister.cpp,v 1.77 2003-07-18 04:57:11 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -851,10 +851,11 @@ FluxRegister::CrseInitFinish (FrOp op)
     //
     // Set Rcvs[i] to # of blocks we expect to get from CPU i ...
     //
-    for (int i = 0; i < NProcs; i++)
-    {
-        ParallelDescriptor::Gather(&CIMsgs[i], 1, Rcvs.dataPtr(), 1, i);
-    }
+#if BL_USE_MPI
+    MPI_Alltoall(CIMsgs.dataPtr(), 1, ParallelDescriptor::Mpi_typemap<int>::type(),
+                 Rcvs.dataPtr(), 1, ParallelDescriptor::Mpi_typemap<int>::type(),
+                 ParallelDescriptor::Communicator());
+#endif
 
     BL_ASSERT(Rcvs[MyProc] == 0);
 
