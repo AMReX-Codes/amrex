@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.31 2003-03-12 20:54:59 lijewski Exp $
+// $Id: MultiGrid.cpp,v 1.32 2003-03-12 21:03:32 lijewski Exp $
 // 
 #include <winstd.H>
 
@@ -306,16 +306,14 @@ MultiGrid::solve_ (MultiFab&      _sol,
       norm_cor = norm_inf(*cor[level]);
       error = errorEstimate(level, bc_mode);
 	
-      if (ParallelDescriptor::IOProcessor())
+      if (ParallelDescriptor::IOProcessor() && verbose > 1 )
       {
-          if (verbose > 1 )
-          {
-              Spacer(std::cout, level);
-              std::cout << "MultiGrid: Iteration "
-                        << nit
-                        << " error/error0 "
-                        << error/new_error_0 << '\n';
-          }
+          const Real rel_error = (error0 != 0) ? error/new_error_0 : 0;
+          Spacer(std::cout, level);
+          std::cout << "MultiGrid: Iteration "
+                    << nit
+                    << " error/error0 "
+                    << rel_error << '\n';
       }
   }
 
@@ -448,11 +446,12 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
             if (verbose > 1 || (i == 1 && verbose))
             {
                 Real error = errorEstimate(level, bc_mode);
+                const Real rel_error = (error0 != 0) ? error/error0 : 0;
                 if (ParallelDescriptor::IOProcessor())
                     std::cout << "   Bottom Smoother: Iteration "
                               << i
                               << " error/error0 "
-                              << error/error0 << '\n';
+                              << rel_error << '\n';
             }
         }
     }

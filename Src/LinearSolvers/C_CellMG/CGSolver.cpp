@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.31 2003-02-07 16:34:12 car Exp $
+// $Id: CGSolver.cpp,v 1.32 2003-03-12 21:03:32 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -201,8 +201,8 @@ CGSolver::solve_00 (MultiFab&       sol,
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
-      Spacer(std::cout, lev);
-      std::cout << "CGsolver: Initial error (error0) =  " << rnorm0 << '\n';
+        Spacer(std::cout, lev);
+        std::cout << "CGsolver: Initial error (error0) =  " << rnorm0 << '\n';
     }
 
     Real beta, rho, rhoold = 0.0;
@@ -326,11 +326,12 @@ CGSolver::solve_00 (MultiFab&       sol,
                 (((eps_rel > 0. && rnorm < eps_rel*rnorm0) ||
                   (eps_abs > 0. && rnorm < eps_abs)) && verbose))
             {
+                const Real rel_error = (rnorm0 != 0) ? rnorm/rnorm0 : 0;
                 Spacer(std::cout, lev);
                 std::cout << "CGSolver_00: Iteration "
                           << std::setw(4) << nit
                           << " error/error0 "
-                          << rnorm/rnorm0 << '\n';
+                          << rel_error << '\n';
             }
         }
     }
@@ -341,11 +342,12 @@ CGSolver::solve_00 (MultiFab&       sol,
 	    (((eps_rel > 0. && rnorm < eps_rel*rnorm0) ||
 	      (eps_abs > 0. && rnorm < eps_abs)) && verbose))
         {
+            const Real rel_error = (rnorm0 != 0) ? rnorm/rnorm0 : 0;
 	    Spacer(std::cout, lev);
 	    std::cout << "CGSolver_00: Final: Iteration "
                       << std::setw(4) << nit
                       << " error/error0 "
-                      << rnorm/rnorm0 << '\n';
+                      << rel_error << '\n';
         }
     }
     if (ret != 0 && isExpert == false)
