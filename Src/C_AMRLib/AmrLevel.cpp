@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.93 2003-02-18 20:55:00 car Exp $
+// $Id: AmrLevel.cpp,v 1.94 2003-03-07 17:39:39 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -121,12 +121,12 @@ AmrLevel::get_slabstat_lst ()
 }
 
 void
-AmrLevel::set_preferred_boundary_values(FArrayBox& S,
-                                        int        state_index,
-                                        int        scomp,
-                                        int        dcomp,
-                                        int        ncomp,
-                                        Real       time) const
+AmrLevel::set_preferred_boundary_values (MultiFab& S,
+                                         int       state_index,
+                                         int       scomp,
+                                         int       dcomp,
+                                         int       ncomp,
+                                         Real      time) const
 {}
 
 DeriveList&
@@ -451,8 +451,6 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
     m_amrlevel(amrlevel),
     m_leveldata(leveldata),
     m_fph(PArrayManage),
-    m_fabs(leveldata.size(),PArrayManage),
-    m_filled(leveldata.size(),false),
     m_ncomp(0)
 {}
 
@@ -495,8 +493,6 @@ FillPatchIterator::FillPatchIterator (AmrLevel& amrlevel,
     m_amrlevel(amrlevel),
     m_leveldata(leveldata),
     m_fph(PArrayManage),
-    m_fabs(leveldata.size(),PArrayManage),
-    m_filled(leveldata.size(),false),
     m_ncomp(ncomp)
 {
     BL_ASSERT(scomp >= 0);
@@ -767,8 +763,8 @@ FillPatchIterator::Initialize (int  boxGrow,
 
     for (int i = 0; i < m_range.size(); i++)
     {
-        const int SComp  = m_range[i].first;
-        const int NComp  = m_range[i].second;
+        const int SComp = m_range[i].first;
+        const int NComp = m_range[i].second;
 
         m_fph.set(i,new FillPatchIteratorHelper(m_amrlevel,
                                                 m_leveldata,
@@ -779,17 +775,42 @@ FillPatchIterator::Initialize (int  boxGrow,
                                                 NComp,
                                                 desc.interp(SComp)));
     }
-    //
-    // The main thread allocates storage for the FABs we own.
-    //
-    const BoxArray& ba = m_leveldata.boxArray();
 
-    for (MFIter mfi(m_leveldata); mfi.isValid(); ++mfi)
+    BoxList bl(m_leveldata.boxArray()[0].ixType());
+
+    for (int i = 0; i < m_leveldata.boxArray().size(); i++)
+        bl.push_back(BoxLib::grow(m_leveldata.boxArray()[i], boxGrow));
+
+    BoxArray nba(bl);
+
+    m_fabs.define(nba,m_ncomp,0,Fab_allocate);
+
+    BL_ASSERT(m_leveldata.DistributionMap() == m_fabs.DistributionMap());
+    //
+    // Now fill all our FABs.
+    //
+    for (MFIter mfi(m_fabs); mfi.isValid(); ++mfi)
     {
-        Box bx = BoxLib::grow(ba[mfi.index()], boxGrow);
+        int DComp = 0;
 
-        m_fabs.set(mfi.index(), new FArrayBox(bx, m_ncomp));
+        for (int i = 0; i < m_range.size(); i++)
+        {
+            m_fph[i].fill(m_fabs[mfi.index()],DComp,mfi.index());
+
+            DComp += m_range[i].second;
+        }
+
+        BL_ASSERT(DComp == m_ncomp);
     }
+    //
+    // Call hack to touch up fillPatched data
+    //
+    m_amrlevel.set_preferred_boundary_values(m_fabs,
+                                             index,
+                                             scomp,
+                                             0,
+                                             ncomp,
+                                             time);
 }
 
 static
@@ -1066,17 +1087,6 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
                           theBCs,
                           bcr);
             //
-            // Overwrite boundary cells with preferred data (use grid index < 0
-            // to indicate that this fab is not to be associated with the grid 
-            // index at that level
-            //
-            amrLevels[l].set_preferred_boundary_values(fab,
-                                                       m_index,
-                                                       m_scomp,
-                                                       dcomp,
-                                                       m_ncomp,
-                                                       m_time);
-            //
             // The coarse FAB had better be completely filled with "good" data.
             //
             BL_ASSERT(crsefab.norm(0,0,m_ncomp) < 3.e200);
@@ -1159,18 +1169,6 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
     {
         FixUpPhysCorners(fab,FineState,FineGeom,m_time,m_scomp,dcomp,m_ncomp);
     }
-    //
-    // Call hack to touch up fillPatched data
-    //
-    m_amrlevel.set_preferred_boundary_values(fab,
-                                             m_index,
-                                             m_scomp,
-                                             dcomp,
-                                             m_ncomp,
-                                             m_time);
-    //
-    // The final FAB had better be completely filled with "good" data.
-    //
 }
 
 bool
@@ -1187,32 +1185,6 @@ FillPatchIterator::operator++ ()
     MFIter::operator++();
 
     for (int i = 0; i < m_fph.size(); i++) ++m_fph[i];
-}
-
-FArrayBox&
-FillPatchIterator::fill (int idx)
-{
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::fill()");
-
-    if (m_filled[idx] == false)
-    {
-        int DComp = 0;
-
-        for (int i = 0; i < m_range.size(); i++)
-        {
-            const int NComp  = m_range[i].second;
-
-            m_fph[i].fill(m_fabs[idx],DComp,idx);
-
-            DComp += NComp;
-        }
-
-        BL_ASSERT(DComp == m_ncomp);
-
-        m_filled[idx] = true;
-    }
-
-    return m_fabs[idx];
 }
 
 bool

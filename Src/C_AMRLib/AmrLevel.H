@@ -1,7 +1,7 @@
 #ifndef _AmrLevel_H_
 #define _AmrLevel_H_ 
 //
-// $Id: AmrLevel.H,v 1.53 2002-06-17 17:01:27 car Exp $
+// $Id: AmrLevel.H,v 1.54 2003-03-07 17:39:39 lijewski Exp $
 //
 #include <REAL.H>
 #include <Box.H>
@@ -317,12 +317,12 @@ public:
     //
     //@ManDoc: Hack to allow override of (non-fine-fine) fillpatched boundary data
     //
-    virtual void set_preferred_boundary_values(FArrayBox& S,
-                                               int        state_index,
-                                               int        scomp,
-                                               int        dcomp,
-                                               int        ncomp,
-                                               Real       time) const;
+    virtual void set_preferred_boundary_values (MultiFab& S,
+                                                int       state_index,
+                                                int       scomp,
+                                                int       dcomp,
+                                                int       ncomp,
+                                                Real      time) const;
     // 
     //@ManDoc: Called in grid\_places after other tagging routines to modify
     //         the list of tagged points.  Default implementation does nothing.
@@ -407,13 +407,11 @@ class FillPatchIterator
 
     ~FillPatchIterator ();
 
-    FArrayBox& operator() () { return fill(index()); }
+    FArrayBox& operator() () { return m_fabs[index()]; }
 
     bool isValid ();
 
     void operator++ ();
-
-    FArrayBox& fill (int idx);
 
     const Box& UngrownBox () const { return MFIter::validbox(); }
 
@@ -431,8 +429,7 @@ class FillPatchIterator
     MultiFab&                         m_leveldata;
     std::vector< std::pair<int,int> > m_range;
     PArray<FillPatchIteratorHelper>   m_fph;
-    PArray<FArrayBox>                 m_fabs;
-    std::vector<bool>                 m_filled;
+    MultiFab                          m_fabs;
     int                               m_ncomp;
 };
 
