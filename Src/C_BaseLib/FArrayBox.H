@@ -4,7 +4,7 @@
 #define _FARRAYBOX_H_
 
 //
-// $Id: FArrayBox.H,v 1.1 1997-09-12 18:00:06 lijewski Exp $
+// $Id: FArrayBox.H,v 1.2 1997-09-15 23:33:20 lijewski Exp $
 //
 
 #include <iostream.h>
@@ -238,14 +238,7 @@ public:
 
 #endif /*BL_CRAY_BUG_DEFARG*/
 #endif /*BL_USE_POINTLIB*/
- 
-    /*@ManDoc: Creates aliasing FArrayBox which uses memory in BaseFab bf.
-               See aliasing constructor for BaseFab.
-    */
-    FArrayBox (BaseFab<Real>& bf,
-               Box            subb,
-               int            ns,
-               int            nc);
+
     //
     //@ManDoc: Constructs FAB by reading it from istream.
     //

@@ -4,7 +4,7 @@
 #define _DPTR_H_
 
 //
-// $Id: DPtr.H,v 1.1 1997-09-12 18:00:06 lijewski Exp $
+// $Id: DPtr.H,v 1.2 1997-09-15 23:33:20 lijewski Exp $
 //
 
 #include <stddef.h>
@@ -119,7 +119,8 @@ public:
     //@ManDoc: Construct a DPtrRep using the given Arena.
     //
     DPtrRep (Arena *_arena = 0)
-        : arena(_arena)
+        :
+        arena(_arena)
     {}
     //
     //@ManDoc: Virtual destructor.

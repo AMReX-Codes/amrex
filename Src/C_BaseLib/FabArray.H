@@ -4,7 +4,7 @@
 #define _FABARRAY_H_
 
 //
-// $Id: FabArray.H,v 1.1 1997-09-12 18:00:07 lijewski Exp $
+// $Id: FabArray.H,v 1.2 1997-09-15 23:33:21 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -640,43 +640,6 @@ class FabArrayCopyDescriptor {
     FabArrayCopyDescriptor(const FabArrayCopyDescriptor<T,FAB> &);
     FabArrayCopyDescriptor<T,FAB> &operator=(const FabArrayCopyDescriptor<T,FAB> &);
 };
-// ----------------------------------------------------------------------------
-
-// ========================================================================
-
-
-
-#ifdef BL_USE_LPARX_CONSTRUCTS
-#undef BL_USE_LPARX_CONSTRUCTS
-/*@ManDoc:
-  The macro BL\_USE\_LPARX\_CONSTRUCTS enables the use of the "forallthis",
-  "forall", "pforallthis" and "pforall" macros in some earlier versions
-  of BoxLib.  The BL\_USE\_LPARX\_CONSTRUCTS macro is not turned on by default.
-  If you use any of the four above macros in your code, you should probably
-  replace them with the equivalent macro expansion, as the
-  BL\_USE\_LPARX\_CONSTRUCTS macro will probably go away in the future.
-*/
-#define BL_USE_LPARX_CONSTRUCTS 1
-#endif /*BL_USE_LPARX_CONSTRUCTS*/
-
-#ifdef BL_USE_LPARX_CONSTRUCTS
-#define forallthis(i) {                             \
-    for (int i = 0; i < length(); i++) {
-
-#define forall(i, fabarray) {                       \
-    for (int i = 0; i < (fabarray).length(); i++) {
-#define endforall }}
-
-#define pforallthis(i) {                            \
-    for (int i = 0; i < length(); i++) {
-
-#define pforall(i, fabarray) {                      \
-    for (int i = 0; i < (fabarray).length(); i++) {
-#define pendforallnosync }}
-#define pendforall pendforallnosync
-#endif
-
-
 
 //
 // Inlines.

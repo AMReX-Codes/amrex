@@ -4,7 +4,7 @@
 #define _BASEFAB_H_
 
 //
-// $Id: BaseFab.H,v 1.1 1997-09-12 18:00:02 lijewski Exp $
+// $Id: BaseFab.H,v 1.2 1997-09-15 23:33:20 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -83,15 +83,6 @@ public:
     //
     BaseFab (const Box& bx,
              int        n = 1);
-
-    /*@ManDoc: Make a BaseFab which aliases the data in the argument BaseFab
-               f. The new domain is subb, number of components is nc. The
-               first component of new BaseFab is same as ns'th component of f.
-    */
-    BaseFab (BaseFab<T>& f,
-             const Box&  subb,
-             int         ns,
-             int         nc);
 
 #ifdef BL_USE_POINTLIB
 #ifndef BL_CRAY_BUG_DEFARG
@@ -683,7 +674,6 @@ BaseFab<T>::setVal (T          x,
     performSetVal(x,b,ns,num);
 }
 
-
 #include <stdlib.h>
 #include <Assert.H>
 #include <Box.H>
@@ -743,6 +733,7 @@ BaseFab<T>::define ()
 {
     assert(nvar > 0);
     assert(numpts > 0);
+
     if (!dptr.ok())
     {
         AliasedDPtr<T>* ptr = new AliasedDPtr<T>(nvar*numpts);
@@ -750,31 +741,6 @@ BaseFab<T>::define ()
             BoxLib::OutOfMemory(__FILE__, __LINE__);
         dptr.setDPtr(ptr);
     }
-}
-
-//
-// Alias.
-//
-template <class T>
-BaseFab<T>::BaseFab (BaseFab<T>& fr,
-                     const Box&  subb,
-                     int         ns,
-                     int         nc)
-    : domain(subb),
-      pdomain(fr.box())
-{
-    pnvar   = fr.nComp();
-    pnumpts = fr.pnumpts;
-    nvar    = nc;
-    noffset = ns;
-    numpts  = subb.numPts();
-
-    AliasedDPtr<T>* p = new AliasedDPtr<T>((AliasedDPtr<T>*)fr.dptr.getDPtr(),
-                                           nvar*numpts);
-    if (p == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
-
-    dptr.setDPtr(p);
 }
 
 //

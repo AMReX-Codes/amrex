@@ -1,11 +1,11 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BArena.cpp,v 1.1 1997-09-12 18:00:01 lijewski Exp $
+// $Id: BArena.cpp,v 1.2 1997-09-15 23:33:19 lijewski Exp $
 //
 
 #include <BArena.H>
-#include <Assert.H>
+#include <BoxLib.H>
 
 void*
 BArena::alloc (size_t _sz,

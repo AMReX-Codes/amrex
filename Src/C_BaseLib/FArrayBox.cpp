@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.1 1997-09-12 18:00:07 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.2 1997-09-15 23:33:21 lijewski Exp $
 //
 
 #include <stdlib.h>
@@ -219,13 +219,6 @@ FArrayBox::FArrayBox (const PointFab<PointDomain>& pf,
 {}
 #endif /*BL_CRAY_BUG_DEFARG*/
 #endif /*BL_USE_POINTLIB*/
-
-FArrayBox::FArrayBox (BaseFab<Real>& bf,
-                      Box            subb,
-                      int            ns,
-                      int            nc)
-    : BaseFab<Real>(bf,subb,ns,nc)
-{}
 
 //
 // This isn't inlined as it's virtual.
