@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.15 1998-11-18 20:32:40 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.16 1998-11-20 23:18:03 lijewski Exp $
 #
 
 #
@@ -134,6 +134,7 @@ ifndef INSTALL_PREFIX
 endif
 
 RANLIB		   = true
+OUTPUT_OPTION      = -o $@
 FORT_OUTPUT_OPTION = -o $@
 
 #
