@@ -4,7 +4,7 @@
 #define _RUNSTATS_H_ 
 
 //
-// $Id: RunStats.H,v 1.8 1997-11-24 21:04:37 lijewski Exp $
+// $Id: RunStats.H,v 1.9 1997-11-26 04:21:46 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -110,10 +110,6 @@ public:
     //
     static void addNumPts (long count);
     //
-    // Init from ParmParse with "RunStats" prefix.
-    //
-    static void init ();
-    //
     // Report stats in formatted form to output stream.
     //
     static void report (ostream &os);
@@ -127,6 +123,13 @@ public:
     static void readStats (ifstream &is, bool restart = false);
 
 private:
+    //
+    // Init from ParmParse with "RunStats" prefix.
+    //
+    static void init ();
+    //
+    // Do we have an entry by the specified name?
+    //
     static RunStatsData* find (const char* _name, int _level);
 
     void resize (int level);
@@ -146,12 +149,13 @@ private:
     //
     // Static data.
     //
-    static double             TotalCPU;  // Total CPU time.
-    static double             TotalWCT;  // Total Wall Clock time.
-    static double             DiskBytes; // Total bytes written to disk.
-    static Array<long>        TheCells;  // Total cells advanced per level.
-    static Array<double>      TheNumPts; // Total numPts() per CPU.
-    static List<RunStatsData> TheStats;  // List of RunStatsData.
+    static double             TotalCPU;    // Total CPU time.
+    static double             TotalWCT;    // Total Wall Clock time.
+    static double             DiskBytes;   // Total bytes written to disk.
+    static Array<long>        TheCells;    // Total cells advanced per level.
+    static Array<double>      TheNumPts;   // Total numPts() per CPU.
+    static List<RunStatsData> TheStats;    // List of RunStatsData.
+    static bool               Initialized; // init()'s been called?
 };
 
 //

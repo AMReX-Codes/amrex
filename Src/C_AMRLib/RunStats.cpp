@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.13 1997-11-25 19:23:31 lijewski Exp $
+// $Id: RunStats.cpp,v 1.14 1997-11-26 04:21:47 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -27,14 +27,52 @@ Array<double> RunStats::TheNumPts;
 
 List<RunStatsData> RunStats::TheStats;
 
+bool RunStats::Initialized = false;
+
+void
+RunStats::init ()
+{
+    RunStats::Initialized = true;
+
+    ParmParse pp("RunStats");
+
+    if (pp.contains("statvar"))
+    {
+        aString nm;
+
+	for (int i = 0, n = pp.countval("statvar"); i < n; i++)
+        {
+	    pp.get("statvar", nm, i);
+	    turnOn(nm.c_str());
+	}
+    }
+}
+
+RunStatsData *
+RunStats::find (const char* _name,
+                int         _level)
+{
+    for (ListIterator<RunStatsData> it(RunStats::TheStats); it; ++it)
+	if (it().level == _level && it().name == _name)
+	    return &RunStats::TheStats[it];
+
+    RunStats::TheStats.append(RunStatsData(_name, _level));
+
+    return &RunStats::TheStats.lastElement();
+}
+
 RunStats::RunStats (const char* _name,
                     int         _level)
     :
     name(_name),
     level(_level)
 {
+    if (!RunStats::Initialized)
+        RunStats::init();
+
     gentry = find(_name, -1);
     entry  = find(_name, _level);
+
     entry->is_on  = true;
 }
 
@@ -96,37 +134,6 @@ void
 RunStats::addNumPts (long count)
 {
     Incremental_Num_Pts += count;
-}
-
-RunStatsData *
-RunStats::find (const char* _name,
-                int         _level)
-{
-    
-    for (ListIterator<RunStatsData> it(RunStats::TheStats); it; ++it)
-	if (it().level == _level && it().name == _name)
-	    return &RunStats::TheStats[it];
-
-    RunStats::TheStats.append(RunStatsData(_name, _level));
-
-    return &RunStats::TheStats.lastElement();
-}
-
-void
-RunStats::init ()
-{
-    ParmParse pp("RunStats");
-
-    if (pp.contains("statvar"))
-    {
-        aString nm;
-
-	for (int i = 0, n = pp.countval("statvar"); i < n; i++)
-        {
-	    pp.get("statvar", nm, i);
-	    turnOn(nm.c_str());
-	}
-    }
 }
 
 void
