@@ -4,7 +4,7 @@
 #define _FABSET_H_
 
 //
-// $Id: FabSet.H,v 1.14 1999-02-24 01:03:47 lijewski Exp $
+// $Id: FabSet.H,v 1.15 1999-02-24 16:50:31 lijewski Exp $
 //
 
 #include <FArrayBox.H>
@@ -45,17 +45,34 @@ class FabSet
 
 public:
     //
-    //@ManDoc: The default constructor.
+    //@ManDoc: The default constructor -- you must later call define().
     //
     FabSet ();
     //
-    //@ManDoc: Construct a set of `len' FABs.
+    //@ManDoc: Construct a FabSet of specified # of components on the grids.
     //
-    FabSet (int len);
+    FabSet (const BoxArray& grids, int ncomp);
     //
     //@ManDoc: The destructor.
     //
     virtual ~FabSet ();
+    //
+    //@ManDoc: Define a FabSet constructed via default constructor.
+    //
+    void define (const BoxArray& grids, int ncomp);
+    //
+    //@ManDoc: Returns number of variables associated with each point.
+    //
+    MultiFab::nComp;
+    //
+    //@ManDoc: Returns a constant reference to the BoxArray.
+    //
+    MultiFab::boxArray;
+    //
+    //@ManDoc: Returns a constant reference to the Kth Box in the BoxArray.
+    //
+    MultiFab::box;
+    MultiFab::fabbox;
     //
     //@ManDoc: Promote all setVal() member functions back to public.
     //
@@ -195,35 +212,6 @@ public:
     //
     MultiFab::DistributionMap;
     //
-    //@ManDoc: The box at the specified index into the underlying BoxArray.
-    //
-    const Box& box (int K) const { return fabboxarray[K]; }
-    //
-    //@ManDoc: The box corresponding to the FAB at specified index.
-    //
-    Box fabbox (int K) const { return fabboxarray[K]; }
-    //
-    //@ManDoc: Set the FAB at the specified index into the underlying BoxArray.
-    //
-    void setFab (int        boxno,
-                 FArrayBox* fab);
-    //
-    //@ManDoc: Change the size of the set of FABs.
-    //
-    void resize (int newsize) { fabparray.resize(newsize); }
-    //
-    //@ManDoc: Set the Box at the specified index into the BoxArray.
-    //
-    void setBox (int index, const Box& b) { fabboxarray.set(index, b); }
-    //
-    //@ManDoc: Use specified BoxArray as our computational grid.
-    //
-    void DefineGrids (const BoxArray& newgrids)
-    {
-        boxarray.define(newgrids);
-        fabboxarray.resize(newgrids.length());
-    }
-    //
     //@ManDoc: True if there is at least one FAB in the underlying MultiFab.
     //
     bool ready () const { return fabparray.ready(); }
@@ -234,14 +222,6 @@ public:
     //
     //@ManDoc: Define the distribution map on specified boxarray.
     //
-    void DefineDistributionMap (const BoxArray& boxarray)
-    {
-        distributionMap.define(ParallelDescriptor::NProcs(), boxarray);
-    }
-
-  private:
-
-    BoxArray fabboxarray;
 };
 
 //
@@ -293,7 +273,8 @@ public:
     //
     DependentFabSetIterator (FabSetIterator& controllerfsiter,
                              FabSet&         fabset)
-        : DependentMultiFabIterator(controllerfsiter, fabset) {}
+        :
+        DependentMultiFabIterator(controllerfsiter, fabset) {}
     //
     //@ManDoc: Constructor over an immutable dependent FabSet.
     //
@@ -417,10 +398,19 @@ private:
 //
 
 inline
+void
+FabSet::define (const BoxArray& grids, int ncomp)
+{
+    MultiFab* tmp = this;
+
+    tmp->define(grids, ncomp, 0, Fab_allocate);
+}
+
+inline
 const FabSet&
 FabSet::copyTo (FArrayBox& dest) const
 {
-    copyTo(dest,dest.box(),0,0,nComp());
+    copy(dest);
     return *this;
 }
 
@@ -431,15 +421,46 @@ FabSet::copyTo (FArrayBox& dest,
                 int        dest_comp,
                 int        num_comp) const
 {
-    copyTo(dest, dest.box(), src_comp, dest_comp, num_comp);
+    copy(dest,src_comp,dest_comp,num_comp);
     return *this;
+}
+
+inline
+const FabSet&
+FabSet::copyTo (FArrayBox& dest,
+                const Box& subbox,
+                int        src_comp,
+                int        dest_comp,
+                int        num_comp) const
+{
+    copy(dest,subbox,src_comp,dest_comp,num_comp);
+    return *this;
+}
+
+inline
+void
+FabSet::copyTo (MultiFab& dest) const
+{
+    dest.copy(*this);
 }
 
 inline
 FabSet&
 FabSet::copyFrom (const FabSet& src)
 {
-    return copyFrom(src,0,0,nComp());
+    copy(src);
+    return *this;
+}
+
+inline
+FabSet&
+FabSet::copyFrom (const FabSet& src,
+                  int           src_comp,
+                  int           dest_comp,
+                  int           num_comp)
+{
+    copy(src,src_comp,dest_comp,num_comp);
+    return *this;
 }
 
 //

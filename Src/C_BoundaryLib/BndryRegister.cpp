@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BndryRegister.cpp,v 1.6 1998-03-30 20:24:11 lijewski Exp $
+// $Id: BndryRegister.cpp,v 1.7 1999-02-24 16:50:31 lijewski Exp $
 //
 
 #include <BndryRegister.H>
@@ -13,18 +13,16 @@ BndryRegister::~BndryRegister () {}
 BndryRegister::BndryRegister (const BndryRegister& src)
 {
     grids.define(src.grids);
-    int ngrd = grids.length();
+
     for (int i = 0; i < 2*BL_SPACEDIM; i++)
     {
-        bndry[i].resize(ngrd);
-        const FabSet& srcfs = src.bndry[i];
-        bndry[i].DefineGrids(grids);
-        bndry[i].DefineDistributionMap(grids);
-        for (ConstFabSetIterator mfi(srcfs); mfi.isValid(); ++mfi)
+        FabSet& fs = bndry[i];
+
+        fs.define(src.bndry[i].boxArray(), src.bndry[i].nComp());
+
+        for (ConstFabSetIterator mfi(src.bndry[i]); mfi.isValid(); ++mfi)
         {
-            FArrayBox* fab = new FArrayBox(mfi().box(),mfi().nComp());
-            fab->copy(mfi());
-            bndry[i].setFab(mfi.index(),fab);
+            fs[mfi.index()].copy(mfi());
         }
     }
 }
@@ -43,8 +41,12 @@ BndryRegister::BndryRegister (const BoxArray& _grids,
 
     for (OrientationIter face; face; ++face)
     {
-        define(face(),IndexType::TheCellType(),_in_rad,
-               _out_rad,_extent_rad,_ncomp);
+        define(face(),
+               IndexType::TheCellType(),
+               _in_rad,
+               _out_rad,
+               _extent_rad,
+               _ncomp);
     }
 }
 
@@ -57,21 +59,21 @@ BndryRegister::operator= (const BndryRegister& src)
         for (int i = 0; i < 2*BL_SPACEDIM; i++)
             bndry[i].clear();
     }
+
     grids.define(src.grids);
-    int ngrd = grids.length();
+
     for (int i = 0; i < 2*BL_SPACEDIM; i++)
     {
-        bndry[i].resize(ngrd);
-        bndry[i].DefineGrids(grids);
-        bndry[i].DefineDistributionMap(grids);
-        const FabSet& srcfs = src.bndry[i];
-        for (ConstFabSetIterator mfi(srcfs); mfi.isValid(); ++mfi)
+        FabSet& fs = bndry[i];
+
+        fs.define(src.bndry[i].boxArray(), src.bndry[i].nComp());
+
+        for (ConstFabSetIterator mfi(src.bndry[i]); mfi.isValid(); ++mfi)
         {
-            FArrayBox* fab = new FArrayBox(mfi().box(), mfi().nComp());
-            fab->copy(mfi());
-            bndry[i].setFab(mfi.index(),fab);
+            fs[mfi.index()].copy(mfi());
         }
     }
+
     return *this;
 }
 
@@ -81,15 +83,14 @@ BndryRegister::setBoxes (const BoxArray& _grids)
     assert(!grids.ready());
     assert(_grids.ready());
     assert(_grids[0].cellCentered());
+
     grids.define(_grids);
     //
     // Insure bndry regions are not allocated.
     //
     for (int k = 0; k < 2*BL_SPACEDIM; k++)
-    {
         if (bndry[k].ready())
             bndry[k].clear();
-    }
 }
 
 void
@@ -100,24 +101,21 @@ BndryRegister::define (const Orientation& _face,
                        int                _extent_rad,
                        int                _ncomp)
 {
-    int myproc = ParallelDescriptor::MyProc();
     assert(grids.ready());
-    int ngrd = grids.length();
-    FabSet &fabs = bndry[_face];
-    assert( !fabs.ready());
-    fabs.resize(ngrd);
-    fabs.DefineGrids(grids);
-    fabs.DefineDistributionMap(grids);
-    int coord_dir = _face.coordDir();
-    int lo_side = _face.isLow();
+
+    FabSet& fabs = bndry[_face];
+
+    assert(!fabs.ready());
+
+    const int coord_dir = _face.coordDir();
+    const int lo_side   = _face.isLow();
     //
-    // Don't use a FabSetIterator here.
+    // Build the BoxArray on which to define the FabSet on this face.
     //
-    for (int mfiindex = 0; mfiindex < grids.length(); ++mfiindex)
+    BoxArray fsBA(grids.length());
+
+    for (int idx = 0; idx < grids.length(); ++idx)
     {
-        //
-        // TODO -- get rid of mfi.index() here.
-        //
         Box b;
         //
         // First construct proper box for direction normal to face.
@@ -125,43 +123,26 @@ BndryRegister::define (const Orientation& _face,
         if (_out_rad > 0)
         {
             if (_typ.ixType(coord_dir) == IndexType::CELL)
-            {
-                b = adjCell(grids[mfiindex], _face, _out_rad);
-            }
+                b = ::adjCell(grids[idx], _face, _out_rad);
             else
-            {
-                b = bdryNode(grids[mfiindex], _face, _out_rad);
-            }
+                b = ::bdryNode(grids[idx], _face, _out_rad);
+
             if (_in_rad > 0)
-            {
-                //
-                // Grow in opposite direction to face.
-                //
-                Orientation opposite = _face.flip();
-                b.grow(opposite, _in_rad);
-            }
+                b.grow(_face.flip(), _in_rad);
         }
         else
         {
             if (_in_rad > 0)
             {
-                //
-                // adjCells in opposite direction to face.
-                //
                 if (_typ.ixType(coord_dir) == IndexType::CELL)
-                {
-                    b = adjCell(grids[mfiindex], _face, _in_rad);
-                }
+                    b = ::adjCell(grids[idx], _face, _in_rad);
                 else
-                {
-                    b = bdryNode(grids[mfiindex], _face, _in_rad);
-                }
-                b.shift(coord_dir, lo_side?_in_rad:-_in_rad);
+                    b = ::bdryNode(grids[idx], _face, _in_rad);
+
+                b.shift(coord_dir, lo_side ? _in_rad : -_in_rad);
             }
             else
-            {
-                BoxLib::Error("strange values for in_rad, out_rad");
-            }
+                BoxLib::Error("BndryRegister::define(): strange values for in_rad, out_rad");
         }
         //
         // Now alter box in all other index directions.
@@ -171,28 +152,22 @@ BndryRegister::define (const Orientation& _face,
             if (dir == coord_dir)
                 continue;
             if (_typ.ixType(dir) == IndexType::NODE)
-            {
                 b.surroundingNodes(dir);
-            }
             if (_extent_rad > 0)
                 b.grow(dir,_extent_rad);
         }
-        assert( b.ok() );
-        fabs.setBox(mfiindex, b);
-        if (fabs.DistributionMap()[mfiindex] == myproc)
-        {
-            //
-            // Local.
-            //
-            assert( ! fabs.defined(mfiindex) );
-            fabs.clear(mfiindex);
-            FArrayBox* fab = new FArrayBox(b,_ncomp);
-            fabs.setFab(mfiindex,fab);
-        }
+
+        assert(b.ok());
+
+        fsBA.set(idx,b);
     }
+
+    assert(fsBA.ok());
+
+    fabs.define(fsBA,_ncomp);
 }
 
-void BndryRegister::setVal(Real v)
+void BndryRegister::setVal (Real v)
 {
     for (OrientationIter face; face; ++face)
     {
@@ -213,8 +188,15 @@ BndryRegister::linComb (Real            a,
 {
     for (OrientationIter face; face; ++face)
     {
-        bndry[face()].linComb(a,mfa,a_comp,b,mfb,b_comp,
-                              dest_comp,num_comp,n_ghost);
+        bndry[face()].linComb(a,
+                              mfa,
+                              a_comp,
+                              b,
+                              mfb,
+                              b_comp,
+                              dest_comp,
+                              num_comp,
+                              n_ghost);
     }
     return *this;
 }
