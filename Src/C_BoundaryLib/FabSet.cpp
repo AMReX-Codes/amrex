@@ -1,6 +1,6 @@
 
 //
-// $Id: FabSet.cpp,v 1.36 2000-10-02 20:49:03 lijewski Exp $
+// $Id: FabSet.cpp,v 1.37 2001-01-25 23:53:23 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -243,7 +243,6 @@ FabSet::DoIt (const MultiFab& src,
               int             ncomp,
               How             how)
 {
-    BL_ASSERT(ngrow <= src.nGrow());
     BL_ASSERT((dcomp+ncomp) <= nComp());
     BL_ASSERT((scomp+ncomp) <= src.nComp());
     BL_ASSERT(how == FabSet::COPYFROM || how == FabSet::PLUSFROM);
