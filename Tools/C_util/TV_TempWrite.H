@@ -17,7 +17,7 @@ extern "C" {
 		FullPath += '/';
 	    
 	    if (ParallelDescriptor::IOProcessor())
-		if (!Utility::CreateDirectory(FullPath, 0755))
+		if (!Utility::UtilCreateDirectory(FullPath, 0755))
 		    Utility::CreateDirectoryFailed(FullPath);
 	    
 	    static const aString MultiFabBaseName("MultiFab");

@@ -137,7 +137,7 @@ writePlotFile (const aString&  dir,
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-	if (!Utility::CreateDirectory(FullPath, 0755))
+	if (!Utility::UtilCreateDirectory(FullPath, 0755))
 	    Utility::CreateDirectoryFailed(FullPath);
     //
     // Force other processors to wait till directory is built.
@@ -246,7 +246,7 @@ writePlotFile (const char*     name,
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!Utility::CreateDirectory(pltfile, 0755))
+        if (!Utility::UtilCreateDirectory(pltfile, 0755))
             Utility::CreateDirectoryFailed(pltfile);
     //
     // Force other processors to wait till directory is built.
