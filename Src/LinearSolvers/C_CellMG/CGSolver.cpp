@@ -1,21 +1,39 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CGSolver.cpp,v 1.12 1999-08-06 18:20:16 propp Exp $
+// $Id: CGSolver.cpp,v 1.13 2000-08-24 16:02:46 car Exp $
 //
 
 // Conjugate gradient support
+
+#ifdef BL3_PROFILING
+#include <BoxLib3/Profiler.H>
+#endif
 
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
 #include <Utility.H>
 #include <CG_F.H>
 #include <CGSolver.H>
+#include <MultiGrid.H>
 
 int CGSolver::initialized = 0;
 int CGSolver::def_maxiter = 40;
 int CGSolver::def_verbose = 0;
+CGSolver::Solver CGSolver::def_cg_solver = CG;
 double CGSolver::def_unstable_criterion = 10.;
+
+namespace
+{
+void
+spacer(ostream& os, int lev)
+{
+  for (int k = 0; k < lev; k++)
+    {
+      os << "   ";
+    }
+}
+}
 
 void
 CGSolver::initialize ()
@@ -25,12 +43,23 @@ CGSolver::initialize ()
     pp.query("maxiter", def_maxiter);
     pp.query("v", def_verbose);
     pp.query("unstable_criterion",def_unstable_criterion);
+    int ii;
+    pp.query("cg_solver", ii);
+    switch (ii)
+      {
+      case 0: def_cg_solver = CG; break;
+      case 1: def_cg_solver = BiCGStab; break;
+      case 2: def_cg_solver = CG_Alt; break;
+      default:
+	BoxLib::Error("CGSolver::initialize(): bad cg_solver");
+      }
 
     if (ParallelDescriptor::IOProcessor() && def_verbose)
     {
         cout << "CGSolver settings...\n";
 	cout << "   def_maxiter            = " << def_maxiter << '\n';
 	cout << "   def_unstable_criterion = " << def_unstable_criterion << '\n';
+	cout << "   def_cg_solver = " << def_cg_solver << '\n';
     }
     
     initialized = 1;
@@ -50,6 +79,7 @@ CGSolver::CGSolver (LinOp& _Lp,
         initialize();
     maxiter = def_maxiter;
     verbose = def_verbose;
+    cg_solver = def_cg_solver;
     set_mg_precond();
 }
 
@@ -75,16 +105,15 @@ CGSolver::norm (const MultiFab& res)
     //
     // Compute max-norm.
     //
-    int p       = 0;
+    const int p       = 0;
     Real restot = 0.0;
-    Real resk   = 0.0;
     const BoxArray& gbox = res.boxArray();
 
     for (ConstMultiFabIterator mfi(res); mfi.isValid(); ++mfi) 
     {
         BL_ASSERT(mfi.validbox() == gbox[mfi.index()]);
 
-        resk = mfi().norm(mfi.validbox(), p);
+        Real resk = mfi().norm(mfi.validbox(), p);
 
         if (p == 0)
         {
@@ -117,8 +146,26 @@ CGSolver::solve (MultiFab&       sol,
                  const MultiFab& rhs,
                  Real            eps_rel,
                  Real            eps_abs,
+                 LinOp::BC_Mode  bc_mode,
+		 Solver solver)
+{
+  if ( solver == Automatic ) solver = cg_solver;
+  if ( solver == CG_Alt ) return solve_cg(sol, rhs, eps_rel, eps_abs, bc_mode);
+  if ( solver == BiCGStab ) return solve_bicgstab(sol, rhs, eps_rel, eps_abs, bc_mode);
+  if ( solver == CG ) return solve_00(sol, rhs, eps_rel, eps_abs, bc_mode);
+  return solve_00(sol, rhs, eps_rel, eps_abs, bc_mode);
+}
+
+int
+CGSolver::solve_00 (MultiFab&       sol,
+                 const MultiFab& rhs,
+                 Real            eps_rel,
+                 Real            eps_abs,
                  LinOp::BC_Mode  bc_mode)
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::solve_00()");
+#endif
     //
     // algorithm:
     //
@@ -187,9 +234,8 @@ CGSolver::solve (MultiFab&       sol,
 
     if (verbose > 0 && ParallelDescriptor::IOProcessor())
     {
-        for (int k = 0; k < lev; k++)
-            cout << "   ";
-        cout << "CGsolver: Initial error (error0) =  " << rnorm0 << '\n';
+      spacer(cout, lev);
+      cout << "CGsolver: Initial error (error0) =  " << rnorm0 << '\n';
     }
 
     Real beta, rho, rhoold = 0.0;
@@ -276,8 +322,7 @@ CGSolver::solve (MultiFab&       sol,
         
         if (ParallelDescriptor::IOProcessor() && verbose > 2)
         {
-            for (int k = 0; k < lev; k++)
-                cout << "   ";
+	  spacer(cout, lev);
             cout << "CGSolver:"
                  << " nit " << nit
                  << " pw "  << pw 
@@ -299,7 +344,7 @@ CGSolver::solve (MultiFab&       sol,
         update(sol, alpha, *r, *p, *w);
         rnorm = norm(*r);
 	if( rnorm > def_unstable_criterion*minrnorm ){
-	  ret = 1;
+	  ret = 2;
 	  break;
 	}
 	else if( rnorm < minrnorm ){
@@ -312,8 +357,7 @@ CGSolver::solve (MultiFab&       sol,
                 (((eps_rel > 0. && rnorm < eps_rel*rnorm0) ||
                   (eps_abs > 0. && rnorm < eps_abs)) && verbose))
             {
-                for (int k = 0; k < lev; k++)
-                    cout << "   ";
+	      spacer(cout, lev);
                 cout << "CGSolver: Iteration "
                      << nit
                      << " error/error0 "
@@ -441,3 +485,346 @@ CGSolver::axp (MultiFab&      w,
 
     return pw;
 }
+
+namespace
+{
+void
+sxay (MultiFab& ss, const MultiFab& xx, Real a, const MultiFab& yy)
+{
+#ifdef BL3_PROFILING
+  BL3_PROFILE("CGSolver::sxay");
+#endif
+  const int ncomp = ss.nComp();
+
+  for (MultiFabIterator smfi(ss); smfi.isValid(); ++smfi)
+    {
+      DependentMultiFabIterator xmfi(smfi, xx);
+      DependentMultiFabIterator ymfi(smfi, yy);
+
+      FORT_CGSXAY(smfi().dataPtr(),   ARLIM(smfi().loVect()), ARLIM(smfi().hiVect()),
+		    xmfi().dataPtr(), ARLIM(xmfi().loVect()), ARLIM(xmfi().hiVect()),
+		    &a,
+		    ymfi().dataPtr(), ARLIM(ymfi().loVect()), ARLIM(ymfi().hiVect()),
+		    smfi.validbox().loVect(), smfi.validbox().hiVect(),
+		    &ncomp);
+    }
+}
+
+Real
+dotxy(const MultiFab& r, const MultiFab& z)
+{
+#ifdef BL3_PROFILING
+  BL3_PROFILE("CGSolver::dotxy");
+#endif
+  int ncomp = z.nComp();
+  Real rho = 0.0;
+  for ( ConstMultiFabIterator rmfi(r); rmfi.isValid(); ++rmfi )
+    {
+      ConstDependentMultiFabIterator zmfi(rmfi, z);
+      Real trho;
+      FORT_CGXDOTY(&trho,
+		   zmfi().dataPtr(), ARLIM(zmfi().loVect()),ARLIM(zmfi().hiVect()),
+		   rmfi().dataPtr(), ARLIM(rmfi().loVect()),ARLIM(rmfi().hiVect()),
+		   rmfi.validbox().loVect(),rmfi.validbox().hiVect(),
+		   &ncomp);
+      rho += trho;
+    }
+  ParallelDescriptor::ReduceRealSum(rho);
+  return rho;
+}
+}
+
+int
+CGSolver::solve_bicgstab (MultiFab&       sol,
+		       const MultiFab& rhs,
+		       Real            eps_rel,
+		       Real            eps_abs,
+		       LinOp::BC_Mode  bc_mode)
+{
+#ifdef BL3_PROFILING
+    BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::solve_bicgstab()");
+#endif
+  const int nghost = 1;
+  const int ncomp  = 1;
+  BL_ASSERT(sol.boxArray() == Lp.boxArray(lev));
+  BL_ASSERT(rhs.boxArray() == Lp.boxArray(lev));
+  BL_ASSERT(sol.nComp() == 1);
+
+  MultiFab sorig(sol.boxArray(), ncomp, nghost);
+  MultiFab s(sol.boxArray(), ncomp, nghost);
+  MultiFab sh(sol.boxArray(), ncomp, nghost);
+  MultiFab r(sol.boxArray(), ncomp, nghost);
+  MultiFab rh(sol.boxArray(), ncomp, nghost);
+  MultiFab p(sol.boxArray(), ncomp, nghost);
+  MultiFab ph(sol.boxArray(), ncomp, nghost);
+  MultiFab v(sol.boxArray(), ncomp, nghost);
+  MultiFab t(sol.boxArray(), ncomp, nghost);
+
+  sorig.copy(sol);
+  Lp.residual(r, rhs, sorig, lev, bc_mode);
+  rh.copy(r);
+  sol.setVal(0.0);
+  const LinOp::BC_Mode temp_bc_mode=LinOp::Homogeneous_BC;
+
+  Real rnorm = norm(r);
+  const Real rnorm0 = rnorm;
+
+  if (verbose > 0 && ParallelDescriptor::IOProcessor())
+    {
+      spacer(cout, lev);
+      cout << "CGSolver_bicgstab: Initial error (error0) =  " << rnorm0 << '\n';
+    }
+  int ret = 0;			// will return this value if all goes well
+  Real rho_1;
+  Real alpha, omega;
+  for (int nit = 1; nit <= maxiter; ++nit)
+    {
+      Real rho = dotxy(rh, r);
+      if ( rho == 0 ) 
+	{
+	  BoxLib::Error("CGSolver_bicgstab fails");
+	}
+      if ( nit == 1 )
+        {
+	  p.copy(r);
+        }
+      else
+        {
+	  Real beta = (rho/rho_1)*(alpha/omega);
+	  sxay(p, p, -omega, v);
+	  sxay(p, r, beta, p);
+        }
+
+      if ( use_mg_precond )
+        {
+	  ph.setVal(0.0);
+	  mg_precond->solve(ph, p, eps_rel, eps_abs, temp_bc_mode);
+        }
+      else
+        {
+	  ph.copy(p);
+        }
+      Lp.apply(v, ph, lev, temp_bc_mode);
+
+      if ( Real rhTv = dotxy(rh, v) )
+	{
+	  alpha = rho/rhTv;
+	}
+      else
+	{
+	  ret = 1;
+	  break;
+	}
+
+      sxay(s, r, -alpha, v);
+      rnorm = norm(s);
+      if ( rnorm < eps_rel*rnorm0 && rnorm < eps_abs )
+	{
+	  sxay(sol, sol, alpha, ph);
+	  break;
+	}
+      if (ParallelDescriptor::IOProcessor())
+        {
+	  if (verbose > 1 ||
+	      (((eps_rel > 0. && rnorm < eps_rel*rnorm0) ||
+		(eps_abs > 0. && rnorm < eps_abs)) && verbose))
+            {
+	      spacer(cout, lev);
+	      cout << "CGSolver_bicgstab: Half Iteration "
+		   << nit
+		   << " error/error0 "
+		   << rnorm/rnorm0 << '\n';
+            }
+        }
+
+      if ( use_mg_precond )
+        {
+	  sh.setVal(0.0);
+	  mg_precond->solve(sh, s, eps_rel, eps_abs, temp_bc_mode);
+        }
+      else
+        {
+	  sh.copy(s);
+        }
+      Lp.apply(t, sh, lev, temp_bc_mode);
+      if ( Real tTt = dotxy(t,t) )
+	{
+	  omega = dotxy(t,s)/tTt;
+	}
+      else
+	{
+	  ret = 2;
+	  break;
+	}
+      sxay(sol, sol, alpha, ph);
+      sxay(sol, sol, omega, sh);
+      sxay(r, s, -omega, t);
+      Real rnorm = norm(r);
+      if ( rnorm < eps_rel*rnorm0 && rnorm < eps_abs )
+	{
+	  break;
+	}
+      if ( omega == 0 )
+	{
+	  ret = 3;
+	  break;
+	}
+      if (ParallelDescriptor::IOProcessor())
+        {
+	  if (verbose > 1 ||
+	      (((eps_rel > 0. && rnorm < eps_rel*rnorm0) ||
+		(eps_abs > 0. && rnorm < eps_abs)) && verbose))
+            {
+	      spacer(cout, lev);
+	      cout << "CGSolver_bicgstab: Iteration "
+		   << nit
+		   << " error/error0 "
+		   << rnorm/rnorm0 << '\n';
+            }
+        }
+      rho_1 = rho;
+    }
+    
+  if( ret != 0 && isExpert == false )
+    {
+      BoxLib::Error("CGSolver_bicgstab:: apparent accuracy problem; try expert setting or change unstable_criterion");
+    }
+  if ( ret == 0 && rnorm > eps_rel*rnorm0 && rnorm > eps_abs)
+    {
+      BoxLib::Error("CGSolver_bicgstab:: failed to converge!");
+    }
+
+  if ( ret == 0 )
+    {
+      sol.plus(sorig, 0, 1, 0);
+    }
+  return ret;
+}
+
+int
+CGSolver::solve_cg (MultiFab&       sol,
+		    const MultiFab& rhs,
+		    Real            eps_rel,
+		    Real            eps_abs,
+		    LinOp::BC_Mode  bc_mode)
+{
+#ifdef BL3_PROFILING
+    BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::solve_cg()");
+#endif
+  const int nghost = 1;
+  const int ncomp = sol.nComp();
+  BL_ASSERT(sol.boxArray() == Lp.boxArray(lev));
+  BL_ASSERT(rhs.boxArray() == Lp.boxArray(lev));
+  BL_ASSERT(ncomp == 1 );
+
+  MultiFab sorig(sol.boxArray(), ncomp, nghost);
+  MultiFab r(sol.boxArray(), ncomp, nghost);
+  MultiFab z(sol.boxArray(), ncomp, nghost);
+  MultiFab q(sol.boxArray(), ncomp, nghost);
+  MultiFab p(sol.boxArray(), ncomp, nghost);
+
+  sorig.copy(sol);
+  Lp.residual(r, rhs, sorig, lev, bc_mode);
+  sol.setVal(0.0);
+  const LinOp::BC_Mode temp_bc_mode=LinOp::Homogeneous_BC;
+
+  Real rnorm  = norm(r);
+  const Real rnorm0 = rnorm;
+  Real minrnorm = rnorm;
+
+  if (verbose > 0 && ParallelDescriptor::IOProcessor())
+    {
+      spacer(cout, lev);
+      cout << "aCGsolver: Initial error (error0) =  " << rnorm0 << '\n';
+    }
+
+  int ret = 0;			// will return this value if all goes well
+  Real rho_1;
+  for (int nit = 1; nit <= maxiter && rnorm > eps_rel*rnorm0 && rnorm > eps_abs; ++nit)
+    {
+      if (use_mg_precond)
+        {
+	  z.setVal(0.);
+	  mg_precond->solve(z, r, eps_rel, eps_abs, temp_bc_mode);
+        }
+      else
+        {
+	  z.copy(r);
+        }
+
+      Real rho = dotxy(z,r);
+      if (nit == 1)
+        {
+	  p.copy(z);
+        }
+      else
+        {
+	  Real beta = rho/rho_1;
+	  sxay(p, z, beta, p);
+        }
+
+      Lp.apply(q, p, lev, temp_bc_mode);
+      Real alpha;
+      if ( Real pw = dotxy(p, q) )
+	{
+	  alpha = rho/pw;
+	}
+      else
+	{
+	  ret = 1;
+	  break;
+	}
+        
+      if (ParallelDescriptor::IOProcessor() && verbose > 2)
+        {
+	  spacer(cout, lev);
+	  cout << "CGSolver_cg:"
+	       << " nit " << nit
+	       << " rho " << rho
+	       << " alpha " << alpha;
+        }
+      sxay(sol, sol, alpha, p);
+      sxay(  r,   r,-alpha, q);
+      rnorm = norm(r);
+      if( rnorm > def_unstable_criterion*minrnorm )
+	{
+	  ret = 2;
+	  break;
+	}
+      else if( rnorm < minrnorm )
+	{
+	  minrnorm = rnorm;
+	}
+
+      if (ParallelDescriptor::IOProcessor())
+        {
+	  if (verbose > 1 ||
+	      (((eps_rel > 0. && rnorm < eps_rel*rnorm0) ||
+		(eps_abs > 0. && rnorm < eps_abs)) && verbose))
+            {
+	      spacer(cout, lev);
+	      cout << "CGSolver_cg: Iteration "
+		   << nit
+		   << " error/error0 "
+		   << rnorm/rnorm0 << '\n';
+            }
+        }
+      rho_1 = rho;
+    }
+    
+  if ( ret != 0 && !isExpert )
+    {
+      BoxLib::Error("CGSolver_cg:: apparent accuracy problem; try expert setting or change unstable_criterion");
+    }
+  if ( ret == 0 &&  rnorm > eps_rel*rnorm0 && rnorm > eps_abs )
+    {
+      BoxLib::Error("CGSolver_cg:: failed to converge!");
+    }
+  if ( ret == 0 )
+    {
+      sol.plus(sorig, 0, 1, 0);
+    }
+
+  return ret;
+}
+

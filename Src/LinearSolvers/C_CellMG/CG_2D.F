@@ -1,4 +1,4 @@
-c     $Id: CG_2D.F,v 1.3 1998-07-14 20:23:42 car Exp $
+c     $Id: CG_2D.F,v 1.4 2000-08-24 16:02:46 car Exp $
 
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -138,6 +138,36 @@ c
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
                pw = pw + pp(i,j,n)*ww(i,j,n)
+            end do
+         end do
+      end do
+c
+      end
+c-----------------------------------------------------------------------
+      subroutine FORT_CGSXAY(
+     $     ss, DIMS(ss),
+     $     xx, DIMS(xx),
+     $     a,
+     $     yy, DIMS(yy),
+     $     lo, hi, nc
+     $     )
+      integer nc
+      integer lo(BL_SPACEDIM)
+      integer hi(BL_SPACEDIM)
+      integer DIMDEC(ss)
+      REAL_T ss(DIMV(ss),nc)
+      integer DIMDEC(xx)
+      REAL_T xx(DIMV(xx),nc)
+      integer DIMDEC(yy)
+      REAL_T yy(DIMV(yy),nc)
+      REAL_T a
+c
+      integer i, j, n
+c
+      do n = 1, nc
+         do j = lo(2), hi(2)
+            do i = lo(1), hi(1)
+               ss(i,j,n) = xx(i,j,n) + a*yy(i,j,n)
             end do
          end do
       end do

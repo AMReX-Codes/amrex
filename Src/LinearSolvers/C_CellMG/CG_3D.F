@@ -1,4 +1,4 @@
-c     $Id: CG_3D.F,v 1.4 1999-04-13 21:36:11 sstanley Exp $
+c     $Id: CG_3D.F,v 1.5 2000-08-24 16:02:46 car Exp $
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT
@@ -62,7 +62,6 @@ c                 rr(i,j,k,n) = rr(i,j,k,n) - a(n) * ww(i,j,k,n)
       end do
 c
       end
-      
 c-----------------------------------------------------------------------
 c      
 c     CGADVCP: Modify the input arrays as follows:
@@ -142,6 +141,38 @@ c
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
                   pw = pw + pp(i,j,k,n)*ww(i,j,k,n)
+               end do
+            end do
+         end do
+      end do
+c
+      end
+c-----------------------------------------------------------------------
+      subroutine FORT_CGSXAY(
+     $     ss, DIMS(ss),
+     $     xx, DIMS(xx),
+     $     a,
+     $     yy, DIMS(yy),
+     $     lo, hi, nc
+     $     )
+      integer nc
+      integer lo(BL_SPACEDIM)
+      integer hi(BL_SPACEDIM)
+      integer DIMDEC(ss)
+      REAL_T ss(DIMV(ss),nc)
+      integer DIMDEC(xx)
+      REAL_T xx(DIMV(xx),nc)
+      integer DIMDEC(yy)
+      REAL_T yy(DIMV(yy),nc)
+      REAL_T a
+c
+      integer i, j, k, n
+c
+      do n = 1, nc
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  ss(i,j,k,n) = xx(i,j,k,n) + a*yy(i,j,k,n)
                end do
             end do
          end do

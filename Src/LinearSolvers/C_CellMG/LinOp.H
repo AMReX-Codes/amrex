@@ -4,7 +4,7 @@
 #define _LINOP_H_
 
 //
-// $Id: LinOp.H,v 1.11 2000-08-02 21:03:50 almgren Exp $
+// $Id: LinOp.H,v 1.12 2000-08-24 16:02:46 car Exp $
 //
 
 #include <Array.H>
@@ -139,11 +139,13 @@ public:
                  const MultiFab& rhsL,
                  int             level = 0,
                  LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
+#if 0
     //
     //@ManDoc: Compute the norm of "in"
     //
     Real norm (const MultiFab& in,
                int             level = 0) const;
+#endif
     //
     //@ManDoc: Compute flux associated with the op
     //

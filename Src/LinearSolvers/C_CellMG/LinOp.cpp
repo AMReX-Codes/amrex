@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: LinOp.cpp,v 1.18 2000-08-02 21:03:50 almgren Exp $
+// $Id: LinOp.cpp,v 1.19 2000-08-24 16:02:46 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -481,6 +481,7 @@ LinOp::smooth (MultiFab&       solnL,
     }
 }
 
+#if 0
 Real
 LinOp::norm (const MultiFab& in,
              int             level) const
@@ -494,6 +495,7 @@ LinOp::norm (const MultiFab& in,
     ParallelDescriptor::ReduceRealSum(norm);
     return norm;
 }
+#endif
 
 void
 LinOp::prepareForLevel (int level)
