@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.80 2001-10-30 22:03:42 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.81 2002-02-22 20:53:54 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -534,13 +534,12 @@ FillPatchIteratorHelper::Initialize (int           boxGrow,
     BL_ASSERT(AmrLevel::desc_lst[index].inRange(scomp,ncomp));
     BL_ASSERT(0 <= index && index < AmrLevel::desc_lst.size());
 
-    m_map      = mapper;
-    m_time     = time;
-    m_growsize = boxGrow;
-    m_index    = index;
-    m_scomp    = scomp;
-    m_ncomp    = ncomp;
-
+    m_map          = mapper;
+    m_time         = time;
+    m_growsize     = boxGrow;
+    m_index        = index;
+    m_scomp        = scomp;
+    m_ncomp        = ncomp;
     m_FixUpCorners = NeedToTouchUpPhysCorners(m_amrlevel.geom);
 
     const int         MyProc     = ParallelDescriptor::MyProc();
@@ -838,11 +837,9 @@ FixUpPhysCorners (FArrayBox&      fab,
         if (!TheGeom.isPeriodic(dir))
         {
             int lo = ProbDomain.smallEnd(dir) - fab.box().smallEnd(dir);
-            if (lo > 0)
-                GrownDomain.growLo(dir,lo);
-            int hi = fab.box().bigEnd(dir) - ProbDomain.bigEnd(dir);
-            if (hi > 0)
-                GrownDomain.growHi(dir,hi);
+            int hi = fab.box().bigEnd(dir)    - ProbDomain.bigEnd(dir);
+            if (lo > 0) GrownDomain.growLo(dir,lo);
+            if (hi > 0) GrownDomain.growHi(dir,hi);
         }
     }
 
@@ -864,18 +861,18 @@ FixUpPhysCorners (FArrayBox&      fab,
             BL_ASSERT(fab.box().contains(lo_slab));
             BL_ASSERT(HasPhysBndry(lo_slab,ProbDomain,TheGeom));
 
-            tmp.resize(lo_slab,fab.nComp());
-            tmp.copy(fab);
-            tmp.shift(dir, ProbDomain.length(dir));
+            tmp.resize(lo_slab,ncomp);
+            tmp.copy(fab,dcomp,0,ncomp);
+            tmp.shift(dir,ProbDomain.length(dir));
             TheState.FillBoundary(tmp,
                                   time,
                                   TheGeom.CellSize(),
                                   TheGeom.ProbDomain(),
                                   0,
                                   scomp,
-                                  tmp.nComp());
+                                  ncomp);
             tmp.shift(dir,-ProbDomain.length(dir));
-            fab.copy(tmp);
+            fab.copy(tmp,0,dcomp,ncomp);
         }
 
         if (hi_slab.ok())
@@ -885,8 +882,8 @@ FixUpPhysCorners (FArrayBox&      fab,
             BL_ASSERT(fab.box().contains(hi_slab));
             BL_ASSERT(HasPhysBndry(hi_slab,ProbDomain,TheGeom));
 
-            tmp.resize(hi_slab,fab.nComp());
-            tmp.copy(fab);
+            tmp.resize(hi_slab,ncomp);
+            tmp.copy(fab,dcomp,0,ncomp);
             tmp.shift(dir,-ProbDomain.length(dir));
             TheState.FillBoundary(tmp,
                                   time,
@@ -894,9 +891,9 @@ FixUpPhysCorners (FArrayBox&      fab,
                                   TheGeom.ProbDomain(),
                                   0,
                                   scomp,
-                                  tmp.nComp());
-            tmp.shift(dir, ProbDomain.length(dir));
-            fab.copy(tmp);
+                                  ncomp);
+            tmp.shift(dir,ProbDomain.length(dir));
+            fab.copy(tmp,0,dcomp,ncomp);
         }
     }
 }
@@ -1030,7 +1027,7 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
         {
             for (int i = 0; i < CrseFabs.size(); i++)
             {
-                FixUpPhysCorners(CrseFabs[i],TheState,TheGeom,m_time,m_scomp,dcomp,m_ncomp);
+                FixUpPhysCorners(CrseFabs[i],TheState,TheGeom,m_time,m_scomp,0,m_ncomp);
             }
         }
         //
