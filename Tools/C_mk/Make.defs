@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.33 2000-06-20 23:29:00 marc Exp $
+# Make.defs $Id: Make.defs,v 1.34 2000-08-02 16:08:35 car Exp $
 #
 
 #
@@ -294,7 +294,7 @@ ifeq ($(USE_THREADS),TRUE)
         CXXFLAGS+=--thread_safe
     endif
     ifeq ($(COMP),g++)
-        CPPFLAGS+=-D_THREAD_SAFE
+        CPPFLAGS+=-pthread
     endif
     ThreadsSuffix := .TS
 else
@@ -361,7 +361,7 @@ libraries	= $(LIBRARIES) $(BL_MPI_LIBS) $(XTRALIBS)
 
 LDFLAGS		+= $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(MACHINE).$(COMP)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MPISuffix)$(ThreadSuffix)$(NamespaceSuffix)
+machineSuffix	= $(MACHINE).$(COMP)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MPISuffix)$(ThreadsSuffix)$(NamespaceSuffix)
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
 optionsLib	= $(addprefix lib, \
