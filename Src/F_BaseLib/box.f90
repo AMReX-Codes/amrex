@@ -1069,52 +1069,44 @@ contains
 
   end subroutine box_read
 
-  subroutine periodic_shift(dmn,b,nodal,pmask,shft,bxs,cnt)
+  subroutine periodic_shift(dmn,b,nodal,pmask,ng,shft,bxs,cnt)
 
     type(box), intent(in)  :: dmn,b
     logical,   intent(in)  :: nodal(:),pmask(:)
+    integer,   intent(in)  :: ng
     integer,   intent(out) :: shft(:,:),cnt
     type(box), intent(out) :: bxs(:)
 
     type(box) :: domain, bx, src
-    integer   :: nbeg(3),nend(3),r(3),i,ri,rj,rk
+    integer   :: nbeg(3),nend(3),ldomain(3),r(3),ri,rj,rk
 
     cnt = 0
 
     if (all(pmask .eqv. .false.)) return
 
-    bx     = box_nodalize(b,nodal)
+    bx     = grow(box_nodalize(b,nodal),ng)
     domain = box_nodalize(dmn,nodal)
 
     if (contains(domain,bx)) return
 
     nbeg = 0
     nend = 0
-    do i = 1,bx%dim
-       nbeg(i) = -1
-       nend(i) = +1
-    end do
+    nbeg(1:bx%dim) = -1
+    nend(1:bx%dim) = +1
+
+    ldomain = (/ extent(domain,1),extent(domain,2),extent(domain,3) /)
 
     do ri = nbeg(1), nend(1)
        if (ri /= 0 .and. (.not. is_periodic(1))) cycle
-
-       if (ri /= 0 .and. is_periodic(1)) then
-          bx = shift(bx,ri*extent(domain,1),1)
-       end if
+       if (ri /= 0 .and. is_periodic(1)) bx = shift(bx,ri*ldomain(1),1)
 
        do rj = nbeg(2), nend(2)
           if (rj /= 0 .and. (.not. is_periodic(2))) cycle
-
-          if (rj /= 0 .and. is_periodic(2)) then
-             bx = shift(bx,rj*extent(domain,2),2)
-          end if
+          if (rj /= 0 .and. is_periodic(2)) bx = shift(bx,rj*ldomain(2),2)
 
           do rk = nbeg(3), nend(3)
              if (rk /= 0 .and. (.not. is_periodic(3))) cycle
-
-             if (rk /= 0 .and. is_periodic(3)) then
-                bx = shift(bx,rk*extent(domain,3),3)
-             end if
+             if (rk /= 0 .and. is_periodic(3)) bx = shift(bx,rk*ldomain(3),3)
 
              if (ri == 0 .and. rj == 0 .and. rk == 0) cycle
 
@@ -1124,22 +1116,17 @@ contains
                 cnt = cnt + 1
                 bxs(cnt) = src
                 r = (/ri,rj,rk/)
+                r = r*ldomain
                 shft(cnt,1:bx%dim) = r(1:bx%dim)
              end if
 
-             if (rk /= 0 .and. is_periodic(3)) then
-                bx = shift(bx,-rk*extent(domain,3),3)
-             end if
+             if (rk /= 0 .and. is_periodic(3)) bx = shift(bx,-rk*ldomain(3),3)
           end do
 
-          if (rj /= 0 .and. is_periodic(2)) then
-             bx = shift(bx,-rj*extent(domain,2),2)
-          end if
+          if (rj /= 0 .and. is_periodic(2)) bx = shift(bx,-rj*ldomain(2),2)
        end do
 
-       if (ri /= 0 .and. is_periodic(1)) then
-          bx = shift(bx,-ri*extent(domain,1),1)
-       end if
+       if (ri /= 0 .and. is_periodic(1)) bx = shift(bx,-ri*ldomain(1),1)
     end do
 
     contains
