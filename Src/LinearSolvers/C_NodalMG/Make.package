@@ -1,13 +1,12 @@
 #
-# $Id: Make.package,v 1.13 1998-11-09 23:13:14 car Exp $
+# $Id: Make.package,v 1.14 1998-11-16 21:44:10 car Exp $
 #
 
 HGPROJ_BASE=EXE
 ifeq ($(LBASE),proj)
-    HGPROJ_BASE=LIB
+  HGPROJ_BASE=LIB
 endif
 
-#ifeq ($(LBASE),proj)
 C$(HGPROJ_BASE)_sources += interface.cpp boundary.cpp interpolator.cpp \
                 restrictor.cpp fill_patch.cpp amr_multi.cpp \
                 hg_multi1.cpp hg_multi2.cpp hg_multi3.cpp \
@@ -21,8 +20,7 @@ F$(HGPROJ_BASE)_sources += amr_real$(DIM)d.F hg_multi$(DIM)d.F \
                 hg_proj$(DIM)d.F hg_avg$(DIM)d.F
 
 ifeq ($(DIM),3)
-F$(HGPROJ_BASE)_sources += hg_multi$(DIM)d_terrain.F
+  F$(HGPROJ_BASE)_sources += hg_multi$(DIM)d_terrain.F
 endif
 
 F$(HGPROJ_BASE)_headers +=
-#endif
