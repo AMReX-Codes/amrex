@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.10 2004-01-20 21:54:10 lijewski Exp $
+# $Id: GNUmakefile,v 1.11 2004-03-04 18:09:01 car Exp $
 #
 
 #
@@ -9,6 +9,8 @@ COMP         = KCC
 COMP         = g++
 DIM          = 2
 PRECISION    = DOUBLE
+COMP = PathScale
+FCOMP = PathScale
 DEBUG        = FALSE
 DEBUG        = TRUE
 USE_MPI      = TRUE
@@ -33,6 +35,7 @@ include $(PBOXLIB_HOME)/mk/Make.defs
 _progs  := tread
 _progs  := tWorkQueue
 _progs  := tParmParse
+_progs  := tMF
 
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/BoxLib
 ifeq ($(COMP),g++)
