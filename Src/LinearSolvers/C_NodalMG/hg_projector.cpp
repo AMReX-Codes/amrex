@@ -811,9 +811,11 @@ holy_grail_amr_projector::project (PArray<MultiFab>* u,
 
     BL_ASSERT(Sigma.size() > 0);
 
-    BL_ASSERT(u[      0      ][Lev_min].nGrow() == 1);
-    BL_ASSERT(u[      1      ][Lev_min].nGrow() == 1);
-    BL_ASSERT(u[BL_SPACEDIM-1][Lev_min].nGrow() == 1);
+    if (u) {
+      BL_ASSERT(u[      0      ][Lev_min].nGrow() == 1);
+      BL_ASSERT(u[      1      ][Lev_min].nGrow() == 1);
+      BL_ASSERT(u[BL_SPACEDIM-1][Lev_min].nGrow() == 1);
+    }
 
     PArray<MultiFab> u_local_crse[BL_SPACEDIM];
     PArray<MultiFab> u_local_fine[BL_SPACEDIM];
@@ -943,6 +945,39 @@ holy_grail_amr_projector::project (PArray<MultiFab>* u,
     {
 	fill_sync_reg(u_local_crse, p, rhs_local_crse, Sigma_local, Sync_resid_crse, crse_geom, h, Lev_min, true);
     }
+}
+
+void
+holy_grail_amr_projector::pressure_project (PArray<MultiFab>& p,
+                                            PArray<MultiFab>& Sigma,
+                                            const Geometry&   crse_geom,
+                                            Real              H[],
+                                            Real              tol,
+                                            int               Lev_min,
+                                            int               Lev_max,
+                                            Real              scale)
+{
+    Box crse_domain(crse_geom.Domain());
+
+    PArray<MultiFab> rhs_local_crse(Lev_max+1, PArrayManage);
+    PArray<MultiFab> rhs_local_fine(Lev_max+1, PArrayManage);
+
+    if (Lev_min < 0)
+	Lev_min = lev_min_max;
+    if (Lev_max < 0)
+	Lev_max = Lev_min;
+
+    BL_ASSERT(Sigma.size() > 0);
+
+    const inviscid_fluid_boundary* ifbc =
+        dynamic_cast<const inviscid_fluid_boundary*>(&boundary);
+    BL_ASSERT(ifbc != 0);
+
+    alloc_hg_multi(p, null_amr_real, null_amr_real, 
+                   Sigma, H, Lev_min, Lev_max, 0);
+    solve(tol, scale, 2, 2);
+    clear_hg_multi();
+
 }
 
 void
