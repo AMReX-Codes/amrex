@@ -1,27 +1,45 @@
 #
-# $Id: GNUmakefile.test,v 1.7 1998-09-30 17:07:39 lijewski Exp $
+# $Id: GNUmakefile.test,v 1.8 1998-10-26 20:50:54 lijewski Exp $
 #
 
 #
-# Set these to the appropriate place.
+# Set these to the appropriate value.
 #
 GUTHAMR_HOME = ..
 COMP         = KCC
 DIM          = 2
 PRECISION    = DOUBLE
 DEBUG        = TRUE
+USE_MPI      = FALSE
 
 PBOXLIB_HOME = ..
 include $(GUTHAMR_HOME)/mk/Make.defs
 
 LIBRARIES += -lbox$(optionsSuffix)
 
+MPI_HOME =
+
+ifeq ($(USE_MPI), TRUE)
+DEFINES += -DBL_USE_MPI
+ifeq ($(MACHINE), OSF1)
+MPI_HOME = /usr/local/mpi
+endif
+endif
+
+ifeq ($(USE_MPI), TRUE)
+ifeq ($(MACHINE), OSF1)
+INCLUDE_LOCATIONS += $(MPI_HOME)/include
+LIBRARY_LOCATIONS += $(MPI_HOME)/lib/alpha/ch_p4
+endif
+LIBRARIES += -lmpi
+endif
+
 #
 # Base name of each of the executables we want to build.
 # I'm assuming that each of these is a stand-alone program,
 # that simply needs to link against BoxLib.
 #
-_progs = tVisMF tDir t8BIT tFB
+_progs = tVisMF tDir t8BIT tFB tFAC
 
 all: $(addsuffix $(optionsSuffix).ex, $(_progs))
 
