@@ -1265,7 +1265,6 @@ c NODE-based data, factor of 2 only.
       if (ir .eq. 2 .and. jr .eq. 2) then
          do kc = bbl2, bbh2
             do jc = bbl1, bbh1-1
-cdir$ ivdep
                do ic = bbl0, bbh0-1
                   i = ir * ic
                   j = jr * jc
@@ -1297,7 +1296,6 @@ cdir$ ivdep
       if (ir .eq. 2 .and. kr .eq. 2) then
          do kc = bbl2, bbh2-1
             do jc = bbl1, bbh1
-cdir$ ivdep
                do ic = bbl0, bbh0-1
                   i = ir * ic
                   j = jr * jc
@@ -1329,7 +1327,6 @@ cdir$ ivdep
       if (jr .eq. 2 .and. kr .eq. 2) then
          do kc = bbl2, bbh2-1
             do jc = bbl1, bbh1-1
-cdir$ ivdep
                do ic = bbl0, bbh0
                   i = ir * ic
                   j = jr * jc
@@ -1361,7 +1358,6 @@ cdir$ ivdep
       if (ir .eq. 2 .and. jr .eq. 2 .and. kr .eq. 2) then
          do kc = bbl2, bbh2-1
             do jc = bbl1, bbh1-1
-cdir$ ivdep
                do ic = bbl0, bbh0-1
                   i = ir * ic
                   j = jr * jc
@@ -1473,7 +1469,6 @@ c NODE-based data, factor of 2 only.
       if (ir .eq. 2 .and. jr .eq. 2) then
          do kc = bbl2, bbh2
             do jc = bbl1, bbh1-1
-cdir$ ivdep
                do ic = bbl0, bbh0-1
                   i = ir * ic
                   j = jr * jc
@@ -1491,7 +1486,6 @@ cdir$ ivdep
       if (ir .eq. 2 .and. kr .eq. 2) then
          do kc = bbl2, bbh2-1
             do jc = bbl1, bbh1
-cdir$ ivdep
                do ic = bbl0, bbh0-1
                   i = ir * ic
                   j = jr * jc
@@ -1509,7 +1503,6 @@ cdir$ ivdep
       if (jr .eq. 2 .and. kr .eq. 2) then
          do kc = bbl2, bbh2-1
             do jc = bbl1, bbh1-1
-cdir$ ivdep
                do ic = bbl0, bbh0
                   i = ir * ic
                   j = jr * jc
@@ -1527,7 +1520,6 @@ cdir$ ivdep
       if (ir .eq. 2 .and. jr .eq. 2 .and. kr .eq. 2) then
          do kc = bbl2, bbh2-1
             do jc = bbl1, bbh1-1
-cdir$ ivdep
                do ic = bbl0, bbh0-1
                   i = ir * ic
                   j = jr * jc
@@ -1767,7 +1759,6 @@ c sig here contains three different directions all stored on "nodes"
       kdiff = (resh1 - resl1 + 1) * jdiff
       ly    = (resh2 - resl2 + 1) * kdiff
       lz    = 2 * ly
-cdir$ ivdep
       do i = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
      &          (regl0 - resl0) + 1,
      &          (regh2 - resl2) * kdiff + (regh1 - resl1) * jdiff +
@@ -1775,7 +1766,6 @@ cdir$ ivdep
          cor(i) = cor(i)
      &      + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
       end do
-cdir$ ivdep
       do i = (regl2 - resl2) * kdiff + (regl1 - resl1) * jdiff +
      &          (regl0 - resl0) + 2,
      &          (regh2 - resl2) * kdiff + (regh1 - resl1) * jdiff +
@@ -1812,7 +1802,6 @@ c sig here contains three different directions all stored on "nodes"
             ipar = ipar0
             do j = regl1, regh1
                ipar = 1 - ipar
-cdir$ ivdep
                do i = regl0 + ipar, regh0, 2
                   cor(i,j,k) = (AVG() - res(i,j,k)) * cen(i,j,k)
                end do
@@ -1851,7 +1840,6 @@ c-----------------------------------------------------------------------
             ipar = ipar0
             do j = regl1, regh1
                ipar = 1 - ipar
-cdir$ ivdep
                do i = regl0 + ipar, regh0, 2
                   cor(i,j,k) = (AVG() - res(i,j,k)) * cen(i,j,k)
                end do
@@ -2377,7 +2365,6 @@ c-----------------------------------------------------------------------
             ipar = ipar0
             do j = regl1, regh1
                ipar = 1 - ipar
-cdir$ ivdep
                do i = regl0 + ipar, regh0, 2
                   cor(i,j,k) = (AVG() - res(i,j,k)) * cen(i,j,k)
                end do

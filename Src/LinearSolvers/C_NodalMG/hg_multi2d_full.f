@@ -333,20 +333,10 @@ c-----------------------------------------------------------------------
 
       fac = 1.d0 / 6.d0
       do j = regl1, regh1
-cdir$ ivdep
          do i = regl0, regh0
                cor(i,j) = (AVG() - res(i,j)) * cen(i,j)
          end do
       end do
-c$$$      write(unit = 10, fmt = *) 'cor'
-c$$$      write(unit = 10, fmt = *) cor
-c$$$      write(unit = 10, fmt = *) 'sig'
-c$$$      write(unit = 10, fmt = *) sig
-c$$$      write(unit = 10, fmt = *) 'res'
-c$$$      write(unit = 10, fmt = *) res
-c$$$      write(unit = 10, fmt = *) 'cen'
-c$$$      write(unit = 10, fmt = *) cen
-c$$$      stop
       end
 c-----------------------------------------------------------------------
       subroutine hgres_full(

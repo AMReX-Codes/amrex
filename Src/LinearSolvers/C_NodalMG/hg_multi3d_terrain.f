@@ -2052,7 +2052,6 @@ c-----------------------------------------------------------------------
          do k = regl2, regh2
             do j = regl1, regh1
                do i = regl0, regh0
-cdir$ ivdep
                   tmp = sig(i-1,j-1,k-1,1) * MXX(i-1,j-1,k-1) +
      &                  sig(i-1,j-1,k  ,1) * MXX(i-1,j-1,k+1) +
      &                  sig(i-1,j  ,k-1,1) * MXX(i-1,j+1,k-1) +

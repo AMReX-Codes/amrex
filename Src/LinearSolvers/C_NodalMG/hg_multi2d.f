@@ -339,7 +339,6 @@ c-----------------------------------------------------------------------
             ipar = ipass
             do i = regl0, regh0
                ipar = 1 - ipar
-cdir$ ivdep
                do j = regl1 + ipar, regh1, 2
                   cor(i,j) = (AVG() - res(i,j)) * cen(i,j)
                   if (irz .eq. 1 .and. i .eq. 0) then
@@ -360,7 +359,6 @@ cdir$ ivdep
             ipar = ipass
             do j = regl1, regh1
                ipar = 1 - ipar
-cdir$ ivdep
                do i = regl0 + ipar, regh0, 2
                   cor(i,j) = (AVG() - res(i,j)) * cen(i,j)
                   if (irz .eq. 1 .and. i .eq. 0) then
@@ -732,7 +730,6 @@ c-----------------------------------------------------------------------
       fac = 1.d0 / 6.d0
       if (irz .eq. 0) then
          do j = regl1, regh1
-cdir$ ivdep
             do i = regl0, regh0
                cor(i,j) = (AVG() - res(i,j)) * cen(i,j)
             end do
@@ -740,7 +737,6 @@ cdir$ ivdep
       else
          facrz = hx * hym2 / 12.d0
          do j = regl1, regh1
-cdir$ ivdep
             do i = regl0, regh0
                r1 = (i + 0.5d0) * hx
                r0 = r1 - hx
@@ -937,14 +933,12 @@ c update neumann bdys:
                if (i .eq. imax) then
                   r1 = -r0
                end if
-cdir$ ivdep
                do j = regl1, regh1
                   cor(i,j) = (AVGRZ() - res(i,j)) * cen(i,j)
                end do
             end do
          else
             do j = regl1, regh1
-cdir$ ivdep
                do i = regl0, regh0
                   r1 = (i + 0.5d0) * hx
                   r0 = r1 - hx
@@ -1646,13 +1640,11 @@ c sig here contains three different directions all stored on "nodes"
       ly    = (resh1 - resl1 + 1) * jdiff
       istart = (regl1 - resl1) * jdiff + (regl0 - resl0)
       iend   = (regh1 - resl1) * jdiff + (regh0 - resl0)
-cdir$ ivdep
       if (irz .eq. 0 .or. regl0 .gt. 0) then
         do i = istart + 1, iend + 1, 2
            cor(i) = cor(i)
      &        + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
         end do
-cdir$ ivdep
         do i = istart + 2, iend + 1, 2
            cor(i) = cor(i)
      &        + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
@@ -1670,7 +1662,6 @@ c     Now irz = 1 and regl0 = 0, so we are touching the r=0 edge
      &          + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
            endif
         end do
-cdir$ ivdep
         do i = istart + 2, iend + 1, 2
            if (mod(i-istart-1,jdiff) .eq. 0) then
              cor(i) = cor(i)
@@ -1739,7 +1730,6 @@ c     Now irz = 1 and regl0 = 0, so we are touching the r=0 edge
             endif
           end do
         end do
-cdir$ ivdep
         ipar = 0
         do j = regl1, regh1
           ipar = 1 - ipar
@@ -2531,7 +2521,6 @@ c NODE-based data, factor of 2 only.
       end if
       if (ir .eq. 2 .and. jr .eq. 2) then
          do jc = bbl1, bbh1-1
-cdir$ ivdep
             do ic = bbl0, bbh0-1
                i = ir * ic
                j = jr * jc
@@ -2599,7 +2588,6 @@ c NODE-based data, factor of 2 only.
       end if
       if (ir .eq. 2 .and. jr .eq. 2) then
          do jc = bbl1, bbh1-1
-cdir$ ivdep
             do ic = bbl0, bbh0-1
                i = ir * ic
                j = jr * jc

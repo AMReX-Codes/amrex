@@ -391,7 +391,6 @@ c NODE-based data only.
             q = dble(m)/ir
             p = 1.0d0 - q
             do ic = bbl0, bbh0-1
-cdir$ ivdep
                do j = regl1, regh1
                   dest(ir*ic+m,j,nc) = p * dest(ir*ic,j,nc) +
      &                              q * dest(ir*(ic+1),j,nc)
