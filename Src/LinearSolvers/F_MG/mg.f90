@@ -253,10 +253,10 @@ contains
        hi_dom = upb(pd,id)
        do i = 1,mgt%nboxes
           lo_grid =  lwb(get_box(mgt%ss(mgt%nlevels), i),id)
-          if (lo_grid .eq. lo_dom) mgt%face_type(i,id,1) = domain_bc(id,1)
+          if (lo_grid == lo_dom) mgt%face_type(i,id,1) = domain_bc(id,1)
 
           hi_grid = upb(get_box(mgt%ss(mgt%nlevels), i),id)
-          if (hi_grid .eq. hi_dom) mgt%face_type(i,id,2) = domain_bc(id,2)
+          if (hi_grid == hi_dom) mgt%face_type(i,id,2) = domain_bc(id,2)
        end do
     end do
 

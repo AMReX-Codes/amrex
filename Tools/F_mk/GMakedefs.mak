@@ -95,10 +95,10 @@ ifeq ($(ARCH),Linux)
       FFLAGS += -O
       CFLAGS += -O
     else
-      F90FLAGS += -g 
+      F90FLAGS += -g
       F90FLAGS += -Wall
       F90FLAGS += -fbounds-check
-      FFLAGS += -g 
+      FFLAGS += -g
       FFLAGS += -Wall
       FFLAGS += -fbounds-check
       CFLAGS += -g
