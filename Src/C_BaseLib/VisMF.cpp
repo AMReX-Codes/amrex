@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.93 2004-03-31 23:18:22 car Exp $
+// $Id: VisMF.cpp,v 1.94 2004-10-06 23:54:50 vince Exp $
 //
 
 #include <winstd.H>
@@ -289,6 +289,7 @@ VisMF::clear (int fabIndex,
               int compIndex)
 {
     delete m_pa[compIndex][fabIndex];
+    m_pa[compIndex][fabIndex] = 0;
 }
 
 long
