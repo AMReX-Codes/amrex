@@ -1,5 +1,5 @@
 c
-c $Id: COORDSYS_3D.F,v 1.6 1998-03-31 00:26:27 lijewski Exp $
+c $Id: COORDSYS_3D.F,v 1.7 2001-08-15 19:23:55 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -99,3 +99,46 @@ c ::
        end if
        
        end
+
+c :: SETDLOGA
+c ::             Compute  d(log(A))/dr in each cell
+c ::
+c :: INPUTS / OUTPUTS:
+c ::  dloga        <=  dloga array
+c ::  dlo,dhi      => index limits of dloga array
+c ::  offset       => shift to origin of computational domain
+c ::  dx           => cell size
+c ::  coord        => coordinate flag (0 = cartesian, 1 = RZ)
+c :: ----------------------------------------------------------
+c ::
+       subroutine FORT_SETDLOGA(dloga,DIMS(dloga),offset,dx,dir,coord)
+
+       integer    DIMDEC(dloga)
+       integer    coord
+       REAL_T     dx(SDIM), offset(SDIM)
+       REAL_T     dloga(DIMV(dloga))
+       integer dir
+       
+       integer    i, j, k
+       REAL_T     ri, ro, dlga, po, pi
+       
+       if (coord .eq. 0) then
+c
+c         ::::: cartesian
+c
+          do k = ARG_L3(dloga), ARG_H3(dloga)
+          do j = ARG_L2(dloga), ARG_H2(dloga)
+             do i = ARG_L1(dloga), ARG_H1(dloga)
+                dloga(i,j,k) = zero
+             end do
+          end do
+	  enddo
+
+       else 
+	 write(6,*)' non-cartesian not allowed in 3D yet'
+	stop
+
+	endif
+
+	return
+	end

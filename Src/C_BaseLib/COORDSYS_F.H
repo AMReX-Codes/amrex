@@ -2,7 +2,7 @@
 #define _COORDSYS_F_H_
 
 /*
-** $Id: COORDSYS_F.H,v 1.7 2001-08-01 21:50:49 lijewski Exp $
+** $Id: COORDSYS_F.H,v 1.8 2001-08-15 19:23:55 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -45,12 +45,10 @@ extern "C"
                         Real* rilo, ARLIM_P(rilo), ARLIM_P(rihi),
                        const Real* dx, const int* coord);
 
-#if (BL_SPACEDIM == 2)
      void FORT_SETDLOGA (Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
                          const Real* offset,
                          const Real* dx, const int* dir,
                          const int* coord);
-#endif
 
      void FORT_SETAREA (Real* area,  ARLIM_P(alo), ARLIM_P(ahi),
                         const Real* offset,

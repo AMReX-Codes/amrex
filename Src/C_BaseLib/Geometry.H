@@ -1,7 +1,7 @@
 #ifndef _GEOMETRY_H_
 #define _GEOMETRY_H_
 //
-// $Id: Geometry.H,v 1.38 2001-08-09 22:50:20 marc Exp $
+// $Id: Geometry.H,v 1.39 2001-08-15 19:23:55 lijewski Exp $
 //
 #include <iosfwd>
 #include <list>
@@ -99,7 +99,6 @@ public:
                     const BoxArray& grds,
                     int             grow) const;
 
-#if (BL_SPACEDIM == 2)
     /*@ManDoc: Compute d(log(A))/dr at cell centers in given region and
                stuff the results into the passed MultiFab.
     */
@@ -107,7 +106,6 @@ public:
                    const BoxArray& grds,
                    int             dir,
                    int             grow) const;
-#endif
 
     /*@ManDoc: Compute area of cell faces in given region and stuff
                stuff the results into the passed MultiFab.
@@ -176,6 +174,7 @@ protected:
     //
     // Static data.
     //
+    static int     spherical_origin_fix;
     static bool    is_periodic[BL_SPACEDIM]; // 0 means not periodic
     static RealBox prob_domain;
     //

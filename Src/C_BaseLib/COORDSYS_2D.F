@@ -1,5 +1,5 @@
 c
-c $Id: COORDSYS_2D.F,v 1.7 2001-02-16 22:59:51 almgren Exp $
+c $Id: COORDSYS_2D.F,v 1.8 2001-08-15 19:23:55 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -23,7 +23,7 @@ c ::  vol         <=  volume array
 c ::  vlo,vhi      => index limits of vol array
 c ::  offset       => shift to origin of computational domain
 c ::  dx           => cell size
-c ::  coord        => coordinate flag (0 = cartesian, 1 = RZ)
+c ::  coord        => coordinate flag (0 = cartesian, 1 = RZ, 2 = RTHETA)
 c :: ----------------------------------------------------------
 c ::
        subroutine FORT_SETVOL(vol,DIMS(vol),offset,dx,coord)
@@ -33,9 +33,9 @@ c ::
        REAL_T     vol(DIMV(vol))
        
        integer    i, j
-       REAL_T     ri, ro, v
+       REAL_T     ri, ro, pi, po, v
        REAL_T     RZFACTOR
-       parameter (RZFACTOR = 2*Pi)
+       parameter (RZFACTOR = 2.d0*3.14159265358979323846d0)
        
        if (coord .eq. 0) then
 c
@@ -47,7 +47,7 @@ c
                 vol(i,j) = v
              end do
           end do
-       else
+       elseif(coord .eq. 1) then
 c
 c         ::::: R-Z
 c
@@ -56,9 +56,24 @@ c
              ro = ri + dx(1)
              v = (half*RZFACTOR)*dx(2)*dx(1)*(ro + ri)
              do j = ARG_L2(vol), ARG_H2(vol)
-                vol(i,j) = v
+                vol(i,j) = abs(v)
              end do
           end do
+       elseif(coord .eq. 2) then
+c
+c  	  ::::: R-THETA
+c
+          do i = ARG_L1(vol), ARG_H1(vol)
+             ri = offset(1) + dx(1)*i
+             ro = ri + dx(1)
+             do j = ARG_L2(vol), ARG_H2(vol)
+                pi = offset(2) + dx(2)*j
+                po = pi + dx(2)
+                v = RZFACTOR*(ro**3 - ri**3)*(cos(pi)-cos(po))/three
+                vol(i,j) = abs(v)
+             enddo
+          enddo
+
        end if
        
        end
@@ -115,7 +130,7 @@ c ::
        integer dir
        
        integer    i, j
-       REAL_T     ri, ro, dlga
+       REAL_T     ri, ro, dlga, po, pi
        
        if (coord .eq. 0) then
 c
@@ -153,9 +168,35 @@ c
              write(6,*)'setdloga: illega direction ',dir
              stop
           end if
-       else
+       else if( coord .eq. 2) then
+          if(dir .eq. 0) then
+             do i = ARG_L1(dloga), ARG_H1(dloga)
+                ri = offset(1) + dx(1)*i
+                ri = ri
+                ro = ri + dx(1)
+                ro = ro
+                dlga = four/(ro+ri)
+                do j = ARG_L2(dloga), ARG_H2(dloga)
+                   dloga(i,j) = dlga
+                enddo
+             enddo
+          elseif(dir .eq. 1) then
+             do i = ARG_L1(dloga), ARG_H1(dloga)
+                ri = offset(1) + dx(1)*i
+                ri = ri
+                ro = ri + dx(1)
+                ro = ro
+                dlga = two/(ro+ri)
+                do j = ARG_L2(dloga), ARG_H2(dloga)
+                   pi = offset(2) + dx(2)*j
+                   po = pi + dx(2)
+                   dloga(i,j) = dlga/tan(half*(pi+po))
+                enddo
+             enddo
+	  else
           write(6,*)'setdloga: illegal coordinate system ',coord
           stop
+	  endif
        end if
        
        end
@@ -180,9 +221,9 @@ c ::
        REAL_T     area(DIMV(area))
        
        integer    i, j
-       REAL_T     ri, ro, a
+       REAL_T     ri, ro, a, pi, po
        REAL_T     RZFACTOR
-       parameter (RZFACTOR = 2*Pi)
+       parameter (RZFACTOR = 2.d0*3.14159265358979323846d0)
        
        if (coord .eq. 0) then
 c
@@ -201,7 +242,7 @@ c
                 end do
              end do
           end if
-       else
+       elseif(coord .eq. 1) then
 c
 c         ::::: R-Z
 c
@@ -223,6 +264,33 @@ c
                 end do
              end do
           end if
+       elseif(coord .eq. 2) then
+              if (dir .eq. 0) then
+                 do i = ARG_L1(area), ARG_H1(area)
+                    ri = offset(1) + dx(1)*i
+                    do j = ARG_L2(area), ARG_H2(area)
+                       pi = offset(2) + dx(2)*j
+                       po = pi + dx(2)
+                       a = RZFACTOR*ri*ri*(cos(pi)-cos(po))
+                       area(i,j) = abs(a)
+                    enddo
+                 enddo
+              elseif(dir .eq. 1) then
+                 do i = ARG_L1(area), ARG_H1(area)
+                    ri = offset(1) + dx(1)*i
+                    ro = ri + dx(1)
+                    do j = ARG_L2(area), ARG_H2(area)
+                       pi = offset(2) + dx(2)*j
+                       a = RZFACTOR*sin(pi)*(ro**2 - ri**2)/two
+                       area(i,j) = abs(a)
+                    enddo
+                 enddo
+              else
+                 write(6,*)' bogus dir ', dir
+                 stop
+              endif
+
        end if
        
        end
+
