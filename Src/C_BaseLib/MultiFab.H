@@ -4,7 +4,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.21 1998-07-08 19:17:51 lijewski Exp $
+// $Id: MultiFab.H,v 1.22 1998-09-30 17:05:55 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -347,11 +347,8 @@ private:
     MultiFab (const MultiFab& rhs);
     MultiFab& operator= (const MultiFab& rhs);
     //
-    // FillBoundary() Helper functions.
+    // Build and register the MFCD.  Guarantee the Register() MultiFabId == 0.
     //
-    void buildFBmfcd (int src_comp,
-                      int num_comp);
-
     MultiFabCopyDescriptor& theFBmfcd (int src_comp,
                                        int num_comp);
     //
@@ -543,7 +540,21 @@ MultiFab::theFBmfcd (int src_comp,
 
     if (!(m_FB_scomp == src_comp && m_FB_ncomp == num_comp))
     {
-        buildFBmfcd(src_comp, num_comp);
+        m_FB_scomp = src_comp;
+        m_FB_ncomp = num_comp;
+
+        if (m_FB_mfcd == 0)
+        {
+            m_FB_mfcd = new MultiFabCopyDescriptor;
+        }
+        else
+        {
+            m_FB_mfcd->clear();
+        }
+
+        MultiFabId mfid = m_FB_mfcd->RegisterMultiFab(this);
+
+        assert(mfid == MultiFabId(0));
     }
 
     return *m_FB_mfcd;
