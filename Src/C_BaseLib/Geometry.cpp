@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.11 1998-05-19 20:27:04 lijewski Exp $
+// $Id: Geometry.cpp,v 1.12 1998-05-19 21:08:35 marc Exp $
 //
 
 #include <Geometry.H>
@@ -99,9 +99,9 @@ Geometry:: computePIRMMapForMultiFab(const BoxArray& grids,
     //
     for (ConstMultiFabIterator mfmfi(mf); mfmfi.isValid(); ++mfmfi)
     {
-        assert(dest.ixType().cellCentered() || dest.ixType().nodeCentered());
-
 	Box dest = ::grow(mfmfi.validbox(), nGrow);
+
+        assert(dest.ixType().cellCentered() || dest.ixType().nodeCentered());
 
         if (no_ovlp)
         {
@@ -127,7 +127,7 @@ Geometry:: computePIRMMapForMultiFab(const BoxArray& grids,
         }
         else
         {
-            doit = ::grow(::surroundingNodes(Domain()),-1).contains(dest);
+            doit = !::grow(::surroundingNodes(Domain()),-1).contains(dest);
         }
 
 	if (doit)
