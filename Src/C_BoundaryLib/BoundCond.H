@@ -4,7 +4,7 @@
 #define _BOUNDCOND_H_
 
 //
-// $Id: BoundCond.H,v 1.6 1999-12-01 16:37:24 lijewski Exp $
+// $Id: BoundCond.H,v 1.7 2000-03-27 16:26:13 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -35,6 +35,17 @@ public:
     //@ManDoc: Copy constructor.
     //
     BoundCond (const BoundCond& rhs) : bctype(rhs.bctype) {}
+    //
+    //@ManDoc: Copy assignment operator.
+    //
+    BoundCond& operator= (const BoundCond& rhs)
+    {
+        if (!(this == &rhs))
+        {
+            bctype = rhs.bctype;
+        }
+        return *this;
+    }
     //
     //@ManDoc: Return index of boundary condition type.
     //

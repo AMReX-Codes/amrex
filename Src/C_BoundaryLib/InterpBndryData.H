@@ -4,7 +4,7 @@
 #define _INTERPBNDRYDATA_H_
 
 //
-// $Id: InterpBndryData.H,v 1.6 1999-06-28 20:37:03 car Exp $
+// $Id: InterpBndryData.H,v 1.7 2000-03-27 16:26:13 lijewski Exp $
 //
 
 #include <BoxArray.H>
@@ -61,6 +61,21 @@ public:
     InterpBndryData (const BoxArray& _grids,
                      int             _ncomp,
                      const Geometry& geom);
+    //
+    //@ManDoc: Copy constructor.
+    //
+    InterpBndryData (const InterpBndryData& rhs) : BndryData(rhs) {}
+    //
+    //@ManDoc: Copy assignment operator.
+    //
+    InterpBndryData& operator= (const InterpBndryData& rhs)
+    {
+        if (!(this == &rhs))
+        {
+            BndryData::operator=(rhs);
+        }
+        return *this;
+    }
     //
     //@ManDoc: interpret user BCs to those expected by LinOp: takes integer ratio and
     // is a wrapper to the IntVect version
