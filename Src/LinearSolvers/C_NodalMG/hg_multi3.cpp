@@ -64,12 +64,12 @@ extern "C"
 #endif
 }
 
-void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab& d, copy_cache* dbc, int mglev, bool iclear)
+void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab& d, int mglev, bool iclear)
 {
     assert(r.boxArray() == s.boxArray());
     assert(r.boxArray() == d.boxArray());
     assert(mglev >= 0);
-    fill_borders(d, dbc, lev_interface[mglev], mg_boundary, -1, m_hg_terrain);
+    fill_borders(d, lev_interface[mglev], mg_boundary, -1, m_hg_terrain);
     
     if(m_hg_terrain)
     {
@@ -185,7 +185,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 	{
 	    
 	    if ( is_zero == false )
-		fill_borders(corr[mglev], corr_bcache[mglev], lev_interface[mglev], mg_boundary, -1, m_hg_terrain);
+		fill_borders(corr[mglev], lev_interface[mglev], mg_boundary, -1, m_hg_terrain);
 	    else
 		is_zero = false;
 	    for (MultiFabIterator r_mfi(resid[mglev]); r_mfi.isValid(); ++r_mfi)
@@ -291,7 +291,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		}
 		}
       }
-      sync_borders(corr[mglev], corr_scache[mglev], lev_interface[mglev], mg_boundary);
+      sync_borders(corr[mglev], lev_interface[mglev], mg_boundary);
     }
     else 
     {
@@ -307,7 +307,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 	for (int ipass = 0; ipass <= 1; ipass++) 
 	{
 	    if (is_zero == false)
-		fill_borders(corr[mglev], corr_bcache[mglev], lev_interface[mglev], mg_boundary, -1, m_hg_terrain);
+		fill_borders(corr[mglev], lev_interface[mglev], mg_boundary, -1, m_hg_terrain);
 	    else
 		is_zero = false;
 	    
@@ -484,7 +484,6 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 	alpha = inner_product(r, w) / mg_domain[mglev].volume();
 	r.plus(-alpha, 0);
     }
-    copy_cache* pbc = cgw1_bcache;
     
     rho = 0.0;
     for(MultiFabIterator r_mfi(r); r_mfi.isValid(); ++r_mfi)
@@ -511,7 +510,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 	Real rho_old = rho;
 	// safe to set the clear flag to 0 here---bogus values make it
 	// into r but are cleared from z by the mask in c
-	level_residual(w, zero_array, p, pbc, 0, false);
+	level_residual(w, zero_array, p, 0, false);
 	alpha = 0.0;
 	for(MultiFabIterator p_mfi(p); p_mfi.isValid(); ++p_mfi)
 	{

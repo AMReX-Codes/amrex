@@ -3,7 +3,6 @@
 
 #include "interface.H"
 #include "boundary.H"
-#include "cache.H"
 #include "interpolator.H"
 #include "restrictor.H"
 
@@ -40,14 +39,9 @@ bool fill_patch(FArrayBox& patch, const Box& region,
 // inclusive, it will be used as the width of the regions to be
 // filled---otherwise, the full width will be used.
 
-void sync_borders(MultiFab& r,
-		  const copy_cache* sync_cache,
-		  const level_interface& lev_interface, 
-		  const amr_boundary_class* bdy);
+void sync_borders(MultiFab& r, const level_interface& lev_interface, const amr_boundary_class* bdy);
 
-void fill_borders(MultiFab& r,
-		  const copy_cache* border_cache,
-		  const level_interface& lev_interface, const amr_boundary_class* bdy, int w, bool hg_terrain);
+void fill_borders(MultiFab& r, const level_interface& lev_interface, const amr_boundary_class* bdy, int w, bool hg_terrain);
 
 void clear_part_interface(MultiFab& r, const level_interface& lev_interface);
 
@@ -58,7 +52,6 @@ void interpolate_patch(FArrayBox& patch, const Box& region,
 		       const amr_boundary_class* bdy);
 
 void restrict_level(MultiFab& dest, MultiFab& r, const IntVect& rat,
-		    const copy_cache* border_cache,
 		    const amr_restrictor_class& restric,
 		    const level_interface& lev_interface,
 		    const amr_boundary_class* bdy);

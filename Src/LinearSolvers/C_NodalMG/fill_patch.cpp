@@ -674,7 +674,6 @@ void interpolate_level(MultiFab& target,
 
 static void restrict_patch(FArrayBox& patch, const Box& region,
 		    MultiFab& r, const IntVect& rat,
-		    const copy_cache* border_cache,
 		    const amr_restrictor_class& restric,
 		    const level_interface& lev_interface,
 		    const amr_boundary_class* bdy)
@@ -701,12 +700,11 @@ static void restrict_patch(FArrayBox& patch, const Box& region,
     {
 	// This assertion difficult in BoxLib since r.mesh() is not cc:
 	//assert(r.mesh() == lev_interface.interior_mesh());
-	restric.lev_interface(patch, region, r, border_cache, lev_interface, bdy, rat);
+	restric.lev_interface(patch, region, r, lev_interface, bdy, rat);
     }
 }
 
 void restrict_level(MultiFab& dest, MultiFab& r, const IntVect& rat,
-		    const copy_cache* border_cache,
 		    const amr_restrictor_class& restric,
 		    const level_interface& lev_interface,
 		    const amr_boundary_class* bdy)
@@ -714,36 +712,21 @@ void restrict_level(MultiFab& dest, MultiFab& r, const IntVect& rat,
     // fillpatchiterator
     for (int igrid = 0; igrid < dest.length(); igrid++) 
     {
-        restrict_patch(dest[igrid], dest.box(igrid), r, rat, border_cache, restric, lev_interface, bdy);
+        restrict_patch(dest[igrid], dest.box(igrid), r, rat, restric, lev_interface, bdy);
     }
 }
 
-void sync_borders(MultiFab& r, const copy_cache* sync_cache, const level_interface& lev_interface, const amr_boundary_class* bdy)
+void sync_borders(MultiFab& r, const level_interface& lev_interface, const amr_boundary_class* bdy)
 {
-    assert(sync_cache == 0);
-    if (sync_cache) 
-    {
-	// assumes cache built properly---does not check current bdy
-	sync_cache->run();
-	return;
-    }
     sync_internal_borders(r, lev_interface);
     assert(bdy != 0);
     bdy->sync_borders(r, lev_interface);
 }
 
 void fill_borders(MultiFab& r,
-		  const copy_cache* border_cache,
 		  const level_interface& lev_interface,
 		  const amr_boundary_class* bdy, int w, bool hg_terrain)
 {
-    assert(border_cache == 0);
-    if (border_cache) 
-    {
-	// assumes cache built properly---does not check current bdy and w
-	border_cache->run();
-	return;
-    }
     fill_internal_borders(r, lev_interface, w, hg_terrain);
     assert(bdy != 0);
     bdy->fill_borders(r, lev_interface, w);

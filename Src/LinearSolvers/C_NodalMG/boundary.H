@@ -4,9 +4,6 @@
 #include "interface.H"
 #include "RegType.H"
 
-class copy_cache;
-class unroll_cache;
-
 // This is the base class for all amr_boundaries.  The default function dir
 // should always be acceptable.  The default box and check_against_boundary
 // functions are appropriate for wall-type boundaries.  The default
@@ -30,8 +27,6 @@ public:
     virtual void fill(FArrayBox&, const Box&, const FArrayBox&, int, const Box&) const = 0;
     virtual void sync_borders(MultiFab&, const level_interface&) const = 0;
     virtual void fill_borders(MultiFab& r, const level_interface& lev_interface, int w) const = 0;
-    virtual void set_sync_cache(copy_cache*, int, int&, const MultiFab&, const level_interface&) const = 0;
-    virtual void set_border_cache(copy_cache*, int, int&, const MultiFab&, const level_interface&, int) const  = 0;
     virtual void duplicate(List<Box>&, const Box&) const = 0;
     virtual bool singular() const  = 0;
 protected:
@@ -115,8 +110,6 @@ public:
     virtual void fill(FArrayBox&, const Box&, const FArrayBox&, int, const Box&) const;
     virtual void sync_borders(MultiFab&, const level_interface&) const;
     virtual void fill_borders(MultiFab& r, const level_interface& lev_interface, int w) const;
-    virtual void set_sync_cache(copy_cache* cache, int nsets, int& iset, const MultiFab& r, const level_interface& lev_interface) const;
-    virtual void set_border_cache(copy_cache* cache, int nsets, int& iset, const MultiFab& r, const level_interface& lev_interface, int w) const;
     virtual void duplicate(List<Box>& bl, const Box& domain) const;
     virtual bool singular() const;
 protected:

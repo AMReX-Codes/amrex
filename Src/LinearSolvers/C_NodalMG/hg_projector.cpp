@@ -99,7 +99,7 @@ void holy_grail_amr_projector::project(PArray<MultiFab>* u,
     assert(u[      1      ][Lev_min].nGrow() == 1);
     assert(u[BL_SPACEDIM-1][Lev_min].nGrow() == 1);
     
-    alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max, m_use_cache);
+    alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max);
     right_hand_side(u, null_amr_real);
     if (singular && Coarse_source.ready() && make_sparse_node_source_solvable) 
     {
@@ -130,7 +130,7 @@ void holy_grail_amr_projector::sync_project(PArray<MultiFab>* u,
     assert(u[      1      ][Lev_min].nGrow() == 1);
     assert(u[BL_SPACEDIM-1][Lev_min].nGrow() == 1);
     
-    alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max, m_use_cache);
+    alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max);
     sync_right_hand_side(u);
     if (singular && Coarse_source.ready() && make_sparse_node_source_solvable) 
     {
@@ -165,7 +165,7 @@ void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u,
 	assert(u[      1      ][Lev_min].nGrow() == 1);
 	assert(u[BL_SPACEDIM-1][Lev_min].nGrow() == 1);
 	
-	alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max, m_use_cache);
+	alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max);
 	if (rhs.length() > 0) 
 	{
 	    if (type(rhs[Lev_min]) == IntVect::TheNodeVector()) 
@@ -197,7 +197,7 @@ void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u,
 	
 	if (type(rhs[Lev_min]) == IntVect::TheNodeVector()) 
 	{
-	    alloc(p, rhs, Coarse_source, Sigma, H, Lev_min, Lev_max, m_use_cache);
+	    alloc(p, rhs, Coarse_source, Sigma, H, Lev_min, Lev_max);
 	    if (singular && make_sparse_node_source_solvable) 
 	    {
 		// Note:  You don't want to do this if rhs is not sparse!
@@ -206,7 +206,7 @@ void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u,
 	}
 	else 
 	{
-	    alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max, m_use_cache);
+	    alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max);
 	    // source is set to 0 at this point
 	    right_hand_side(0, rhs);
 	}
@@ -326,7 +326,7 @@ void holy_grail_amr_projector::grid_average(PArray<MultiFab>& S)
 	for (int lev = lev_max; lev > lev_min; lev--) 
 	{
 	    restrict_level(S[lev-1], S[lev], gen_ratio[lev-1],
-		0, default_restrictor(), level_interface(), 0);
+		default_restrictor(), level_interface(), 0);
 	}
 	for(MultiFabIterator S_mfi(S[lev_min]); S_mfi.isValid(); ++S_mfi)
 	{
@@ -349,7 +349,7 @@ void holy_grail_amr_projector::grid_average(PArray<MultiFab>& S)
 	int mglev = ml_index[lev];
 	Real hx = h[mglev][0];
 	
-	fill_borders(S[lev], 0, lev_interface[mglev], boundary.scalar(), -1, m_hg_terrain);
+	fill_borders(S[lev], lev_interface[mglev], boundary.scalar(), -1, m_hg_terrain);
 	
 	for (MultiFabIterator s_mfi(source[lev]); s_mfi.isValid(); ++s_mfi)
 	{
@@ -385,7 +385,7 @@ void holy_grail_amr_projector::grid_divergence(PArray<MultiFab>* u)
 	
 	for (int i = 0; i < BL_SPACEDIM; i++) 
 	{
-	    fill_borders(u[i][lev], 0, lev_interface[mglev], boundary.velocity(i), -1, m_hg_terrain);
+	    fill_borders(u[i][lev], lev_interface[mglev], boundary.velocity(i), -1, m_hg_terrain);
 	}
 	
 	for (MultiFabIterator s_mfi(source[lev]); s_mfi.isValid(); ++s_mfi)
@@ -437,7 +437,7 @@ void holy_grail_amr_projector::sync_right_hand_side(PArray<MultiFab>* u)
     {
 	int mglev1 = ml_index[lev_min+1];
 	restrict_level(source[lev_min], source[lev_min+1], gen_ratio[lev_min],
-	    0, bilinear_restrictor_coarse_class(0, m_hg_terrain), lev_interface[mglev1], mg_boundary);
+	    bilinear_restrictor_coarse_class(0, m_hg_terrain), lev_interface[mglev1], mg_boundary);
 	work[mglev0].setVal(1.0);
 	Real adjustment = inner_product(source[lev_min], work[mglev0]) /
 	    mg_domain[ml_index[lev_min]].volume();
@@ -1273,18 +1273,18 @@ void holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u, const P
 	{
 	    const IntVect& rat = gen_ratio[lev-1];
 	    restrict_level(dest[lev-1], dest[lev], rat,
-		dest_bcache[lev], injection_restrictor_class(), level_interface(), 0);
+		injection_restrictor_class(), level_interface(), 0);
 	    for (int i = 0; i < BL_SPACEDIM; i++) 
 	    {
 		if(!m_hg_terrain)
 		{
 		    restrict_level(u[i][lev-1], u[i][lev], rat,
-			0, default_restrictor(), level_interface(), 0);
+			default_restrictor(), level_interface(), 0);
 		}
 		else
 		{
 		    restrict_level(u[i][lev-1], u[i][lev], rat,
-			0, terrain_velocity_restrictor_class(i), level_interface(), 0);
+			terrain_velocity_restrictor_class(i), level_interface(), 0);
 		}
 	    }
 	}
@@ -1295,7 +1295,7 @@ void holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u, const P
 	for (int lev = lev_max; lev > lev_min; lev--) 
 	{
 	    restrict_level(dest[lev-1], dest[lev], gen_ratio[lev-1],
-		dest_bcache[lev], injection_restrictor_class(), level_interface(), 0);
+		injection_restrictor_class(), level_interface(), 0);
 	}
     }
 }

@@ -272,10 +272,6 @@ void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArr
     work.resize(mglev_max + 1);
     save.resize(lev_max + 1);
     
-    dest_bcache.resize(lev_max + 1, 0);
-    corr_bcache.resize(mglev_max + 1, 0);
-    work_bcache.resize(mglev_max + 1, 0);
-    
     for (int i = 0; i <= mglev_max; i++) 
     {
 	BoxArray mesh = mg_mesh[i];
@@ -292,9 +288,6 @@ void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArr
 	if (work[i].nGrow() > 0)
 	    work[i].setVal(0.0);
 	
-	// if a cache is desired, it should be created by the derived class:
-	corr_bcache.set(i, 0);
-	work_bcache.set(i, 0);
     }
     
     for (int i = lev_min + 1; i <= lev_max - 1; i++) 
@@ -302,11 +295,6 @@ void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArr
 	save.set(i, new MultiFab(dest[i].boxArray(), 1, 0));
     }
     
-    for (int i = lev_min; i <= lev_max; i++) 
-    {
-	// if a cache is desired, it should be created by the derived class:
-	dest_bcache.set(i, 0);
-    }
 }
 
 void amr_multigrid::clear()
@@ -416,12 +404,12 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2, Real tol, Real 
 	if (lev < lev_max) 
 	{
 	    save[lev].copy(ctmp);
-	    level_residual(wtmp, rtmp, ctmp, corr_bcache[mglev], mglev, false);
+	    level_residual(wtmp, rtmp, ctmp, mglev, false);
 	    rtmp.copy(wtmp);
 	}
 	else 
 	{
-	    level_residual(rtmp, stmp, dtmp, dest_bcache[lev], mglev, false);
+	    level_residual(rtmp, stmp, dtmp, mglev, false);
 	}
 	interface_residual(mglev, lev);
 	int mgc = ml_index[lev-1];
@@ -438,12 +426,12 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2, Real tol, Real 
 	if (lev < lev_max)
 	{
 	    save[lev].plus(ctmp, 0, 1, 0);
-	    level_residual(wtmp, rtmp, ctmp, corr_bcache[mglev], mglev, false);
+	    level_residual(wtmp, rtmp, ctmp, mglev, false);
 	    rtmp.copy(wtmp);
 	}
 	else 
 	{
-	    level_residual(rtmp, stmp, dtmp, dest_bcache[lev], mglev, false);
+	    level_residual(rtmp, stmp, dtmp, mglev, false);
 	}
 	ctmp.setVal(0.0);
 	mg_cycle(mglev, 0, i2, true);
@@ -471,7 +459,7 @@ Real amr_multigrid::ml_residual(int mglev, int lev)
     // Clear flag set here because we want to compute a norm, and to
     // kill a feedback loop by which garbage in the border of dest
     // could grow exponentially.
-    level_residual(resid[mglev], source[lev], dest[lev], dest_bcache[lev], mglev, true);
+    level_residual(resid[mglev], source[lev], dest[lev], mglev, true);
     if (lev < lev_max) 
     {
 	int mgf = ml_index[lev+1];
@@ -507,13 +495,13 @@ void amr_multigrid::mg_cycle(int mglev, int i1, int i2, bool is_zero)
 	if (pcode >= 4) 
 	{
 	    wtmp.setVal(0.0);
-	    level_residual(wtmp, resid[mglev], ctmp, corr_bcache[mglev], mglev, true);
+	    level_residual(wtmp, resid[mglev], ctmp, mglev, true);
 	    cout << "  Residual at multigrid level " << mglev << " is "
 		<< mfnorm(wtmp) << endl;
 	}
 	else 
 	{
-	    level_residual(wtmp, resid[mglev], ctmp, corr_bcache[mglev], mglev, false);
+	    level_residual(wtmp, resid[mglev], ctmp, mglev, false);
 	}
 	
 	mg_restrict_level(mglev-1, mglev);

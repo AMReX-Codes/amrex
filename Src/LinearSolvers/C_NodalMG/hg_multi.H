@@ -46,10 +46,10 @@ public:
 	int Lev_min_min, int Lev_min_max, int Lev_max_max,
 	const amr_fluid_boundary_class& Boundary, 
 	bool hg_terrain, bool hg_cross_stencil, bool hg_full_stencil,
-	bool use_cache,  int Pcode = 2)
+	int Pcode = 2)
 	: amr_multigrid(Mesh, Gen_ratio, Lev_min_min, Lev_min_max, Lev_max_max,
 	Boundary.pressure(), Pcode),
-	boundary(Boundary), smoother_mode(2), line_solve_dim(-1), m_use_cache(use_cache),
+	boundary(Boundary), smoother_mode(2), line_solve_dim(-1), 
 	m_hg_terrain(hg_terrain),
 	m_hg_cross_stencil(hg_cross_stencil),
 	m_hg_full_stencil(hg_full_stencil)
@@ -68,13 +68,12 @@ public:
 protected:
     
     void alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma, 
-	Real H[], int Lev_min, int Lev_max, bool use_cache);
+	Real H[], int Lev_min, int Lev_max);
     void clear();
     
     bool m_hg_terrain; // false
     bool m_hg_cross_stencil;
     bool m_hg_full_stencil;
-    bool m_use_cache;
     int smoother_mode;
     int line_solve_dim;
     const amr_fluid_boundary_class& boundary;
@@ -86,12 +85,7 @@ protected:
     bool singular;
     bool source_owned;
     
-    // level caches which are not members of amr_multigrid:
-    Array<copy_cache*> corr_scache;
-    Array<unroll_cache*> cgw_ucache;
-    copy_cache* cgw1_bcache;
     // sync caches:
-    
     Box **fres_fbox, **fres_cbox, **fres_sfbox, **fres_scbox, **fres_creg;
     PArray<FArrayBox> *fres_sc, *fres_dc;
     int **fres_flag;
@@ -127,7 +121,7 @@ protected:
     virtual void mg_interpolate_level(int lto, int lfrom);
     virtual void mg_restrict_level(int lto, int lfrom);
     virtual void interface_residual(int mglev, int lev);
-    virtual void level_residual(MultiFab& r, MultiFab& s, MultiFab& d, copy_cache* dbc, int mglev, bool iclear);
+    virtual void level_residual(MultiFab& r, MultiFab& s, MultiFab& d, int mglev, bool iclear);
     virtual void relax(int mglev, int i1, bool is_zero);
     virtual void cgsolve(int mglev);
     

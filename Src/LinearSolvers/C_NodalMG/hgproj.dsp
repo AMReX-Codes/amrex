@@ -100,10 +100,6 @@ SOURCE=.\boundary.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\cache.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\fill_patch.cpp
 # End Source File
 # Begin Source File
@@ -149,10 +145,6 @@ SOURCE=.\amr_multi.H
 # Begin Source File
 
 SOURCE=.\boundary.H
-# End Source File
-# Begin Source File
-
-SOURCE=.\cache.H
 # End Source File
 # Begin Source File
 

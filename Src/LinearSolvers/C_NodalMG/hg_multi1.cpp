@@ -43,7 +43,7 @@ void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
 				PArray<MultiFab>& Source,
 				PArray<MultiFab>& Coarse_source,
 				PArray<MultiFab>& Sigma,
-				Real H[], int Lev_min, int Lev_max, bool use_cache)
+				Real H[], int Lev_min, int Lev_max)
 {
     assert(Dest.length() > Lev_max);
     assert(Dest[Lev_min].nGrow() == 1);
@@ -79,25 +79,6 @@ void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
     }
     
     
-    corr_scache.resize(mglev_max + 1, 0);
-
-    if ( use_cache )
-    {
-	for (int lev = lev_min; lev <= lev_max; lev++) 
-	{
-	    int mglev = ml_index[lev];
-	    dest_bcache.set(lev, new copy_cache(dest[lev], lev_interface[mglev], mg_boundary, 1, m_hg_terrain));
-	}
-	for (int mglev = 0; mglev <= mglev_max; mglev++) 
-	{
-	    corr_bcache.set(mglev, new copy_cache(corr[mglev], lev_interface[mglev], mg_boundary, 1, m_hg_terrain));
-	    corr_scache.set(mglev, new copy_cache(corr[mglev], lev_interface[mglev], mg_boundary));
-	}
-	for (int mglev = 1; mglev <= mglev_max; mglev++) 
-	{
-	    work_bcache.set(mglev, new copy_cache(work[mglev], lev_interface[mglev], mg_boundary, 1, m_hg_terrain));
-	}
-    }
     build_sigma(Sigma);
     
     alloc_sync_caches();
@@ -116,12 +97,6 @@ void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
     cgwork[6].setVal(0.0);
     cgwork.set(7, new MultiFab(mesh0, 1, ib));
     
-    cgw1_bcache = 0;
-    if ( use_cache )
-    {
-        cgw1_bcache = new copy_cache(cgwork[1], lev_interface[0], mg_boundary, 1, m_hg_terrain);
-    }
-  
     assert(cgwork[3].nGrow() == ib &&
 	cgwork[4].nGrow() == ib &&
 	cgwork[5].nGrow() == ib);
@@ -293,11 +268,11 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 	{
 	    IntVect rat = mg_domain[mglev].length() / mg_domain[mglev-1].length();
 	    restrict_level(sigma[mglev-1], sigma[mglev], rat, 
-		0, holy_grail_sigma_restrictor_class(), level_interface(), 0);
+		holy_grail_sigma_restrictor_class(), level_interface(), 0);
 	}
 	for (int mglev = 0; mglev <= mglev_max; mglev++) 
 	{
-	    fill_borders(sigma[mglev], 0, lev_interface[mglev], boundary.terrain_sigma(), -1, m_hg_terrain);
+	    fill_borders(sigma[mglev], lev_interface[mglev], boundary.terrain_sigma(), -1, m_hg_terrain);
 	}
 	
     }
@@ -366,18 +341,18 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 	{
 	    IntVect rat = mg_domain[mglev_max].length() / mg_domain[mglev_max-1].length();
 	    restrict_level(sigma_split[mglev_max-1], sigma[mglev_max], rat, 
-		0, holy_grail_sigma_restrictor_class(), level_interface(), 0);
+		holy_grail_sigma_restrictor_class(), level_interface(), 0);
 	}
-	fill_borders(sigma[mglev_max], 0, lev_interface[mglev_max], boundary.scalar(), -1, m_hg_terrain);
+	fill_borders(sigma[mglev_max], lev_interface[mglev_max], boundary.scalar(), -1, m_hg_terrain);
 	for (int mglev = mglev_max - 1; mglev > 0; mglev--) 
 	{
 	    IntVect rat = mg_domain[mglev].length() / mg_domain[mglev-1].length();
 	    restrict_level(sigma_split[mglev-1], sigma_split[mglev], rat, 
-		0, holy_grail_sigma_restrictor_class(), level_interface(), 0);
+		holy_grail_sigma_restrictor_class(), level_interface(), 0);
 	}
 	for (int mglev = 0; mglev < mglev_max; mglev++) 
 	{
-	    fill_borders(sigma_split[mglev], 0, lev_interface[mglev], boundary.scalar(), -1, m_hg_terrain);
+	    fill_borders(sigma_split[mglev], lev_interface[mglev], boundary.scalar(), -1, m_hg_terrain);
 	}
 	
 	for (int i = 0; i < BL_SPACEDIM; i++) 
@@ -549,9 +524,6 @@ void holy_grail_amr_multigrid::clear()
     
     delete_sync_caches();
     
-    delete cgw1_bcache;
-    
-    
     delete cgwork.remove(0);
     delete cgwork.remove(1);
     delete cgwork.remove(2);
@@ -608,24 +580,6 @@ void holy_grail_amr_multigrid::clear()
 	{
 	    if (source.defined(lev)) delete source.remove(lev);
 	}
-    }
-    
-    for (int lev = lev_min; lev <= lev_max; lev++) 
-    {
-	delete dest_bcache[lev];
-	dest_bcache[lev] = 0;
-    }
-    for (int mglev = 0; mglev <= mglev_max; mglev++) 
-    {
-	delete corr_bcache[mglev];
-	corr_bcache[mglev] = 0;
-	delete corr_scache[mglev];
-	corr_scache[mglev] = 0;
-    }
-    for (int mglev = 1; mglev <= mglev_max; mglev++) 
-    {
-	delete work_bcache[mglev];
-	work_bcache[mglev] = 0;
     }
     
     amr_multigrid::clear();
@@ -711,12 +665,12 @@ void holy_grail_amr_multigrid::mg_restrict_level(int lto, int lfrom)
 	if (integrate == 0) 
 	{
 	    restrict_level(resid[lto], work[lfrom], rat, 
-		work_bcache[lfrom], bilinear_restrictor_coarse_class(0, m_hg_terrain), lev_interface[lfrom], mg_boundary);
+		bilinear_restrictor_coarse_class(0, m_hg_terrain), lev_interface[lfrom], mg_boundary);
 	}
 	else 
 	{
 	    restrict_level(resid[lto], work[lfrom], rat, 
-		work_bcache[lfrom], bilinear_restrictor_coarse_class(1, m_hg_terrain), lev_interface[lfrom], mg_boundary);
+		bilinear_restrictor_coarse_class(1, m_hg_terrain), lev_interface[lfrom], mg_boundary);
 	}
     }
     else 
@@ -727,7 +681,7 @@ void holy_grail_amr_multigrid::mg_restrict_level(int lto, int lfrom)
 
 void holy_grail_amr_multigrid::mg_restrict(int lto, int lfrom)
 {
-    fill_borders(work[lfrom], work_bcache[lfrom], lev_interface[lfrom], mg_boundary, -1, m_hg_terrain);
+    fill_borders(work[lfrom], lev_interface[lfrom], mg_boundary, -1, m_hg_terrain);
     IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
     for (MultiFabIterator w_mfi(work[lfrom]); w_mfi.isValid(); ++w_mfi)
     {

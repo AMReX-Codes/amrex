@@ -141,7 +141,6 @@ void bilinear_restrictor_class::fill(FArrayBox& patch,
 void bilinear_restrictor_class::lev_interface(FArrayBox& patch,
 					      const Box& region,
 					      MultiFab& fine,
-					      const copy_cache* border_cache,
 					      const level_interface& lev_interface,
 					      const amr_boundary_class* bdy,
 					      const IntVect& rat) const
@@ -236,7 +235,7 @@ void bilinear_restrictor_class::lev_interface(FArrayBox& patch,
     }
     else 
     {
-	fill_borders(fine, border_cache, lev_interface, bdy, ratmax - 1, m_hg_terrain);
+	fill_borders(fine, lev_interface, bdy, ratmax - 1, m_hg_terrain);
 	for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
 	{
 	    if (lev_interface.fgeo(iface) == level_interface::ALL && lev_interface.fflag(iface) == 0) 
@@ -324,7 +323,6 @@ void bilinear_restrictor_class::lev_interface(FArrayBox& patch,
 void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 						     const Box& region,
 						     MultiFab& fine,
-						     const copy_cache* border_cache,
 						     const level_interface& lev_interface,
 						     const amr_boundary_class* bdy,
 						     const IntVect& rat) const
@@ -340,7 +338,7 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 	ratmax = (rat[i] > ratmax) ? rat[i] : ratmax;
     
     if (fine.nGrow() >= ratmax - 1)
-	fill_borders(fine, border_cache, lev_interface, bdy, ratmax - 1, m_hg_terrain);
+	fill_borders(fine, lev_interface, bdy, ratmax - 1, m_hg_terrain);
     
     for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
     {

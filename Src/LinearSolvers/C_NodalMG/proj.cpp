@@ -1,8 +1,3 @@
-#include <new>
-#ifndef WIN32
-using std::set_new_handler;
-#endif
-
 #include "hg_projector.H"
 
 #include <Utility.H>
@@ -11,16 +6,19 @@ using std::set_new_handler;
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <new>
 using std::fstream;
 using std::ios;
 using std::setprecision;
+#ifndef WIN32
+using std::set_new_handler;
+#endif
+
 #else
 #include <iostream.h>
 #include <iomanip.h>
 #include <fstream.h>
 #endif
-
-//void malloc_info();
 
 #if (BL_SPACEDIM == 2)
 /*
@@ -39,14 +37,6 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain);
 
 void driver(const char* filename);
 
-#include <CArena.H>
-void carena_test()
-{
-    CArena carena(100000);
-    void* p = carena.alloc(100);
-    carena.free(p);
-}
-
 int main(int argc, char **argv)
 {
 #ifndef WIN32
@@ -54,11 +44,6 @@ int main(int argc, char **argv)
 #endif
     StartParallel(1);
     
-    if ( false )
-    {
-	carena_test();
-	return 0;
-    }
     for(int i = 1; i < argc; ++i)
 	driver(argv[i]);
     EndParallel();
@@ -78,6 +63,10 @@ driver(const char *filename)
     grid.close();
     projtest(m, ratio, domain);
 }
+
+bool hg_terrain = false;
+bool hg_cross_stencil = true;
+bool hg_full_stencil = false;
 
 void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m,
 	  const Array<IntVect>& ratio)
@@ -109,18 +98,17 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m,
 	//u[0][1][0](IntVect(20,90)) = 1.0;
 	//u[0][1][0](IntVect(50,50)) = 1.0;
 	//u[0][1][0](IntVect(22,12)) = 1.0;
-#ifndef HG_TERRAIN
-	u[0][0][0](IntVect(12,12)) = 3.0;
-#else
-	u[0][0][0](IntVect(12,12)) = 3.0 * ratio[0][0];
-#endif
-	/*
-	if (m[0].domain().length(0) == 32)
-	u[0][1][0](IntVect(30,30)) = 1.0;
-	else if (m[0].domain().length(0) == 64)
-	u[0][1][0](IntVect(60,60)) = 1.0;
+	if (hg_terrain)
+	    u[0][0][0](IntVect(12,12)) = 3.0;
 	else
-	u[0][1][0](IntVect(120,120)) = 1.0;
+	    u[0][0][0](IntVect(12,12)) = 3.0 * ratio[0][0];
+	    /*
+	    if (m[0].domain().length(0) == 32)
+	    u[0][1][0](IntVect(30,30)) = 1.0;
+	    else if (m[0].domain().length(0) == 64)
+	    u[0][1][0](IntVect(60,60)) = 1.0;
+	    else
+	    u[0][1][0](IntVect(120,120)) = 1.0;
 	*/
     }
     else 
@@ -328,47 +316,51 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 	for (int i = 0; i < BL_SPACEDIM; i++)
 	    u[i].set(ilev, new MultiFab(cmesh, 1, 1));
 	p.set(ilev, new MultiFab(nmesh, 1, 1));
-#ifdef HG_TERRAIN
+	if (hg_terrain)
+	{
 #  if (BL_SPACEDIM == 2)
-	rhoinv.set(ilev, new MultiFab(cmesh, 3, 0));
-	rhoinv[ilev].setVal(1.0);
-	rhoinv[ilev].setVal(0.2, 2, 1);
+	    rhoinv.set(ilev, new MultiFab(cmesh, 3, 0));
+	    rhoinv[ilev].setVal(1.0);
+	    rhoinv[ilev].setVal(0.2, 2, 1);
 #  else
-	rhoinv.set(ilev, new MultiFab(cmesh, 5, 0));
-	rhoinv[ilev].setVal(1.0);
-	rhoinv[ilev].setVal(0.2, 3, 1);
-	rhoinv[ilev].setVal(0.5, 4, 1);
+	    rhoinv.set(ilev, new MultiFab(cmesh, 5, 0));
+	    rhoinv[ilev].setVal(1.0);
+	    rhoinv[ilev].setVal(0.2, 3, 1);
+	    rhoinv[ilev].setVal(0.5, 4, 1);
 #  endif
-#else
-	rhoinv.set(ilev, new MultiFab(cmesh, 1, 0));
-	rhoinv[ilev].setVal(1.0);
-#endif
+	}
+	else
+	{
+	    rhoinv.set(ilev, new MultiFab(cmesh, 1, 0));
+	    rhoinv[ilev].setVal(1.0);
+	}
 	rhs.set(ilev, new MultiFab(nmesh, 1, 1));
 	//rhs.set(ilev, new MultiFab(cmesh, 1, 1));
 	rhs[ilev].setVal(0.0);
     }
     
-#ifdef HG_TERRAIN
-    // Adjust sigmas using refinement ratio information.
-    // Assume spacing on level 0 already incorporated into values assigned above.
-    // (h is ignored.)
-    IntVect rat = IntVect::TheUnitVector();
-    for (int ilev = 1; ilev < m.length(); ilev++) 
+    if (hg_terrain)
     {
-	rat *= ratio[ilev-1];
+	// Adjust sigmas using refinement ratio information.
+	// Assume spacing on level 0 already incorporated into values assigned above.
+	// (h is ignored.)
+	IntVect rat = IntVect::TheUnitVector();
+	for (int ilev = 1; ilev < m.length(); ilev++) 
+	{
+	    rat *= ratio[ilev-1];
 #  if (BL_SPACEDIM == 2)
-	rhoinv[ilev].mult((Real) rat[0] / rat[1], 0, 1);
-	rhoinv[ilev].mult((Real) rat[1] / rat[0], 1, 1);
-	// component 2 remains unchanged
+	    rhoinv[ilev].mult((Real) rat[0] / rat[1], 0, 1);
+	    rhoinv[ilev].mult((Real) rat[1] / rat[0], 1, 1);
+	    // component 2 remains unchanged
 #  else
-	rhoinv[ilev].mult((Real) rat[0] / (rat[1] * rat[2]), 0, 1);
-	rhoinv[ilev].mult((Real) rat[1] / (rat[0] * rat[2]), 1, 1);
-	rhoinv[ilev].mult((Real) rat[2] / (rat[0] * rat[1]), 2, 1);
-	rhoinv[ilev].mult(1.0 / rat[1]                     , 3, 1);
-	rhoinv[ilev].mult(1.0 / rat[0]                     , 4, 1);
+	    rhoinv[ilev].mult((Real) rat[0] / (rat[1] * rat[2]), 0, 1);
+	    rhoinv[ilev].mult((Real) rat[1] / (rat[0] * rat[2]), 1, 1);
+	    rhoinv[ilev].mult((Real) rat[2] / (rat[0] * rat[1]), 2, 1);
+	    rhoinv[ilev].mult(1.0 / rat[1]                     , 3, 1);
+	    rhoinv[ilev].mult(1.0 / rat[0]                     , 4, 1);
 #  endif
+	}
     }
-#endif
     
     init(u, p, m, ratio);
     
@@ -485,12 +477,13 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 #endif
     t0 = Utility::second();
     inviscid_fluid_boundary_class afb(bc);
-    holy_grail_amr_projector proj(m, ratio, domain[m.length() - 1], 0, m.length() - 1, m.length() - 1, afb, false, true, false, false, pcode);
+    holy_grail_amr_projector proj(m, ratio, domain[m.length() - 1], 0, m.length() - 1, m.length() - 1, afb, false, true, false, pcode);
 #if (BL_SPACEDIM == 2)
-#  ifndef HG_TERRAIN
-    rz_adj(u, rhs, rhoinv, m, domain);
-    proj.SetRZ();
-#  endif
+    if(!hg_terrain)
+    {
+	rz_adj(u, rhs, rhoinv, m, domain);
+	proj.SetRZ();
+    }
 #endif
     //proj.smoother_mode  = 1;
     //proj.line_solve_dim = BL_SPACEDIM - 1;
