@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.30 1999-03-31 17:04:17 lijewski Exp $
+// $Id: FabSet.cpp,v 1.31 1999-04-08 17:01:45 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -232,7 +232,7 @@ FabSet::DoIt (const MultiFab& src,
                                             0,
                                             i,
                                             scomp,
-                                            dcomp,
+                                            how == COPYFROM ? dcomp : 0,
                                             ncomp,
                                             false));
 
@@ -261,7 +261,7 @@ FabSet::DoIt (const MultiFab& src,
 
             fscd.FillFab(mfid, fbids[i], tmp);
 
-            (*this)[fbids[i].FabIndex()].plus(tmp,tmp.box(),scomp,dcomp,ncomp);
+            (*this)[fbids[i].FabIndex()].plus(tmp,tmp.box(),0,dcomp,ncomp);
         }
     }
 }
