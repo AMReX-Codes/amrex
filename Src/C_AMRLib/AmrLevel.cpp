@@ -1,5 +1,5 @@
 //
-// $Id: AmrLevel.cpp,v 1.81 2002-02-22 20:53:54 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.82 2002-06-17 17:01:27 car Exp $
 //
 #include <winstd.H>
 
@@ -254,7 +254,7 @@ AmrLevel::setTimeLevel (Real time,
     }
 }
 
-int
+bool
 AmrLevel::isStateVariable (const std::string& name,
                            int&           typ,
                            int&            n)
