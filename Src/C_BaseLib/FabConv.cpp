@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabConv.cpp,v 1.6 1999-05-10 18:54:21 car Exp $
+// $Id: FabConv.cpp,v 1.7 2000-04-04 00:20:13 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -42,6 +42,7 @@ extern "C"
 }
 #endif /*defined(BL_ARCH_CRAY)*/
 
+bool RealDescriptor::bAlwaysFixDenormals(false);
 //
 // This is not inlined as it's an inherited virtual.
 //
@@ -116,7 +117,11 @@ RealDescriptor::newRealDescriptor (int         iot,
         switch (prec)
         {
         case FABio::FAB_FLOAT:
-            rd = new RealDescriptor(FPC::ieee_float, ord, 4);
+	    if(strcmp(sys, "CRAY") == 0) {
+              rd = new RealDescriptor(FPC::ieee_double, ord, 8);
+	    } else {
+              rd = new RealDescriptor(FPC::ieee_float, ord, 4);
+	    }
             return rd;
         case FABio::FAB_DOUBLE:
             rd = new RealDescriptor(FPC::ieee_double, ord, 8);
@@ -1192,6 +1197,7 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
                                        void*                 in,
                                        const RealDescriptor& id)
 {
+
     PD_convert(out,
                in,
                nitems,
@@ -1199,6 +1205,11 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
                FPC::NativeRealDescriptor(),
                id,
                FPC::NativeLongDescriptor());
+
+    if(bAlwaysFixDenormals) {
+      PD_fixdenormals(out, nitems, FPC::NativeRealDescriptor().format(),
+		      FPC::NativeRealDescriptor().order());
+    }
 }
 
 //
@@ -1226,6 +1237,11 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
                    FPC::NativeRealDescriptor(),
                    id,
                    FPC::NativeLongDescriptor());
+
+        if(bAlwaysFixDenormals) {
+          PD_fixdenormals(out, get, FPC::NativeRealDescriptor().format(),
+			  FPC::NativeRealDescriptor().order());
+        }
         nitems -= get;
         out    += get;
     }
