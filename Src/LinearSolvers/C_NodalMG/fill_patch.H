@@ -104,29 +104,23 @@ inline void  restrict_patch(FArrayBox& patch,
 			    const level_interface& lev_interface = null_level_interface,
 			    const amr_boundary_class& bdy = error_boundary)
 {
-    restrict_patch(patch, patch.box(), r, rat, 
-	border_cache,
-	restric, lev_interface, bdy);
+    restrict_patch(patch, patch.box(), r, rat, border_cache, restric, lev_interface, bdy);
 }
 
-void restrict_level(MultiFab& dest, int bflag,
-		    MultiFab& r, const IntVect& rat,
+void restrict_level(MultiFab& dest, int bflag, MultiFab& r, const IntVect& rat,
 		    const copy_cache* border_cache = 0,
 		    const amr_restrictor_class& restric = default_restrictor(),
 		    const level_interface& lev_interface = null_level_interface,
 		    const amr_boundary_class& bdy = error_boundary);
 
 inline
-void restrict_level(MultiFab& dest,
-		    MultiFab& r, const IntVect& rat,
+void restrict_level(MultiFab& dest, MultiFab& r, const IntVect& rat,
 		    const copy_cache* border_cache = 0,
 		    const amr_restrictor_class& restric = default_restrictor(),
 		    const level_interface& lev_interface = null_level_interface,
 		    const amr_boundary_class& bdy = error_boundary)
 {
-    restrict_level(dest, 0, r, rat, 
-	border_cache, 
-	restric, lev_interface, bdy);
+    restrict_level(dest, 0, r, rat,  border_cache, restric, lev_interface, bdy);
 }
 
 #endif

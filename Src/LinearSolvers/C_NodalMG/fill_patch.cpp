@@ -641,8 +641,7 @@ void restrict_patch(FArrayBox& patch, const Box& region,
     }
 }
 
-void restrict_level(MultiFab& dest, int bflag,
-		    MultiFab& r, const IntVect& rat,
+void restrict_level(MultiFab& dest, int bflag, MultiFab& r, const IntVect& rat,
 		    const copy_cache* border_cache,
 		    const amr_restrictor_class& restric,
 		    const level_interface& lev_interface,

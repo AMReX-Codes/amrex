@@ -416,16 +416,12 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2, Real tol, Real 
 	if (lev < lev_max) 
 	{
 	    save[lev].copy(ctmp);
-	    level_residual(wtmp, rtmp, ctmp, 
-		corr_bcache[mglev], 
-		mglev, false);
+	    level_residual(wtmp, rtmp, ctmp, corr_bcache[mglev], mglev, false);
 	    rtmp.copy(wtmp);
 	}
 	else 
 	{
-	    level_residual(rtmp, stmp, dtmp, 
-		dest_bcache[lev], 
-		mglev, false);
+	    level_residual(rtmp, stmp, dtmp, dest_bcache[lev], mglev, false);
 	}
 	interface_residual(mglev, lev);
 	int mgc = ml_index[lev-1];
@@ -442,16 +438,12 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2, Real tol, Real 
 	if (lev < lev_max)
 	{
 	    save[lev].plus(ctmp, 0, 1, 0);
-	    level_residual(wtmp, rtmp, ctmp, 
-		corr_bcache[mglev], 
-		mglev, false);
+	    level_residual(wtmp, rtmp, ctmp, corr_bcache[mglev], mglev, false);
 	    rtmp.copy(wtmp);
 	}
 	else 
 	{
-	    level_residual(rtmp, stmp, dtmp, 
-		dest_bcache[lev], 
-		mglev, false);
+	    level_residual(rtmp, stmp, dtmp, dest_bcache[lev], mglev, false);
 	}
 	ctmp.setVal(0.0);
 	//mg_cycle(mglev, i1, i2, 1);
@@ -480,9 +472,7 @@ Real amr_multigrid::ml_residual(int mglev, int lev)
     // Clear flag set here because we want to compute a norm, and to
     // kill a feedback loop by which garbage in the border of dest
     // could grow exponentially.
-    level_residual(resid[mglev], source[lev], dest[lev], 
-	dest_bcache[lev],
-	mglev, true);
+    level_residual(resid[mglev], source[lev], dest[lev], dest_bcache[lev], mglev, true);
     if (lev < lev_max) 
     {
 	int mgf = ml_index[lev+1];
@@ -517,17 +507,13 @@ void amr_multigrid::mg_cycle(int mglev, int i1, int i2, int is_zero)
 	if (pcode >= 4) 
 	{
 	    wtmp.setVal(0.0);
-	    level_residual(wtmp, resid[mglev], ctmp, 
-		corr_bcache[mglev], 
-		mglev, true);
+	    level_residual(wtmp, resid[mglev], ctmp, corr_bcache[mglev], mglev, true);
 	    cout << "  Residual at multigrid level " << mglev << " is "
 		<< mfnorm(wtmp) << endl;
 	}
 	else 
 	{
-	    level_residual(wtmp, resid[mglev], ctmp, 
-		corr_bcache[mglev], 
-		mglev, false);
+	    level_residual(wtmp, resid[mglev], ctmp, corr_bcache[mglev], mglev, false);
 	}
 	
 	mg_restrict_level(mglev-1, mglev);
@@ -572,47 +558,32 @@ void amr_multigrid::mg_restrict_level(int lto, int lfrom)
     IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
     if (type(resid[lto]) == IntVect::TheCellVector()) 
     {
-	restrict_level(resid[lto], 0, 
-	    work[lfrom], rat, 
-	    work_bcache[lfrom],
-	    cell_average_restrictor_class(0));
+	restrict_level(resid[lto], 0, work[lfrom], rat, work_bcache[lfrom], cell_average_restrictor_class(0));
     }
     else if (integrate == 0) 
     {
 	if (get_amr_level(lto) >= 0) 
 	{
-	    restrict_level(resid[lto], 0,
-		work[lfrom], rat, 
-		work_bcache[lfrom],
-		bilinear_restrictor_coarse_class(0),
-		lev_interface[lfrom], mg_boundary);
+	    restrict_level(resid[lto], 0, work[lfrom], rat,
+		work_bcache[lfrom], bilinear_restrictor_coarse_class(0), lev_interface[lfrom], mg_boundary);
 	}
 	else 
 	{
-	    restrict_level(resid[lto], 0,
-		work[lfrom], rat, 
-		work_bcache[lfrom],
-		bilinear_restrictor_class(0),
-		lev_interface[lfrom], mg_boundary);
+	    restrict_level(resid[lto], 0, work[lfrom], rat, 
+		work_bcache[lfrom], bilinear_restrictor_class(0), lev_interface[lfrom], mg_boundary);
 	}
     }
     else 
     {
 	if (get_amr_level(lto) >= 0) 
 	{
-	    restrict_level(resid[lto], 0,
-		work[lfrom], rat, 
-		work_bcache[lfrom],
-		bilinear_restrictor_coarse_class(1),
-		lev_interface[lfrom], mg_boundary);
+	    restrict_level(resid[lto], 0, work[lfrom], rat, 
+		work_bcache[lfrom], bilinear_restrictor_coarse_class(1), lev_interface[lfrom], mg_boundary);
 	}
 	else 
 	{
-	    restrict_level(resid[lto], 0,
-		work[lfrom], rat, 
-		work_bcache[lfrom],
-		bilinear_restrictor_class(1),
-		lev_interface[lfrom], mg_boundary);
+	    restrict_level(resid[lto], 0, work[lfrom], rat, 
+		work_bcache[lfrom], bilinear_restrictor_class(1), lev_interface[lfrom], mg_boundary);
 	}
     }
 }

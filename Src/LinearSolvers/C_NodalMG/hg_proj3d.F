@@ -2,7 +2,7 @@
 #define dims(a) a##l0,a##h0,a##l1,a##h1,a##l2,a##h2
 #define dimdec(a) a##l0:a##h0,a##l1:a##h1,a##l2:a##h2
 
-#ifdef TERRAIN
+#ifdef HG_TERRAIN
 
       subroutine hggrad(gpx, gpy, gpz,
      @ dims(gp),
@@ -17,9 +17,9 @@
       real*8 gpz(dimdec(gp))
       real*8 dest(dimdec(dest))
       integer i, j, k
-      do 10 k = fregl2, fregh2
-         do 10 j = fregl1, fregh1
-            do 10 i = fregl0, fregh0
+      do k = fregl2, fregh2
+	    do j = fregl1, fregh1
+		do i = fregl0, fregh0
                gpx(i,j,k) = 0.25d0 * (dest(i+1,j,k  ) + dest(i+1,j+1,k  ) +
      @                                dest(i+1,j,k+1) + dest(i+1,j+1,k+1) -
      @                                dest(i  ,j,k  ) - dest(i  ,j+1,k  ) -
@@ -28,10 +28,13 @@
      @                                dest(i,j+1,k+1) + dest(i+1,j+1,k+1) -
      @                                dest(i,j  ,k  ) - dest(i+1,j  ,k  ) -
      @                                dest(i,j  ,k+1) - dest(i+1,j  ,k+1))
- 10            gpz(i,j,k) = 0.25d0 * (dest(i,j  ,k+1) + dest(i+1,j  ,k+1) +
+		 gpz(i,j,k) = 0.25d0 * (dest(i,j  ,k+1) + dest(i+1,j  ,k+1) +
      @                                dest(i,j+1,k+1) + dest(i+1,j+1,k+1) -
      @                                dest(i,j  ,k  ) - dest(i+1,j  ,k  ) -
      @                                dest(i,j+1,k  ) - dest(i+1,j+1,k  ))
+		enddo
+	    enddo
+	enddo
       end
 
       subroutine hgdiv(src,
@@ -49,10 +52,10 @@
       real*8 fac
       integer i, j, k
       fac = 0.25d0
-      do 10 k = fregl2, fregh2
-         do 10 j = fregl1, fregh1
-            do 10 i = fregl0, fregh0
- 10            src(i,j,k) = fac *
+      do k = fregl2, fregh2
+         do j = fregl1, fregh1
+            do i = fregl0, fregh0
+             src(i,j,k) = fac *
      @              (uf(i  ,j-1,k-1) - uf(i-1,j-1,k-1) +
      @               uf(i  ,j-1,k  ) - uf(i-1,j-1,k  ) +
      @               uf(i  ,j  ,k-1) - uf(i-1,j  ,k-1) +
@@ -65,6 +68,9 @@
      @               wf(i-1,j  ,k  ) - wf(i-1,j  ,k-1) +
      @               wf(i  ,j-1,k  ) - wf(i  ,j-1,k-1) +
      @               wf(i  ,j  ,k  ) - wf(i  ,j  ,k-1))
+		enddo
+	    enddo
+	enddo
       end
 
 c Note---only generates values at coarse points along edge of fine grid
@@ -100,15 +106,17 @@ c Note---only generates values at coarse points along edge of fine grid
             iuf = i * ir - 1
          endif
          fac0 = 0.25d0
-         do 10 k = cregl2, cregh2
-            do 10 j = cregl1, cregh1
- 10            src(i*ir,j*jr,k*kr) = fac0 *
+         do  k = cregl2, cregh2
+            do  j = cregl1, cregh1
+             src(i*ir,j*jr,k*kr) = fac0 *
      @           ((vc(iuc,j,k) - vc(iuc,j-1,k) +
      @             vc(iuc,j,k-1) - vc(iuc,j-1,k-1)) +
      @            (wc(iuc,j,k) - wc(iuc,j,k-1) +
      @             wc(iuc,j-1,k) - wc(iuc,j-1,k-1)) -
      @     idir * (uc(iuc,j,k) + uc(iuc,j,k-1) +
      @             uc(iuc,j-1,k) + uc(iuc,j-1,k-1)))
+		enddo
+	    enddo
          fac0 = fac0 / (jr * kr)
          i = i * ir
          do 20 l = 0, kr-1

@@ -39,9 +39,7 @@ public:
     virtual void mg_interpolate_level(int lto, int lfrom);
     virtual void mg_restrict_level(int lto, int lfrom);
     
-    virtual void level_residual(MultiFab& r, MultiFab& s, MultiFab& d,
-	copy_cache* dbc,
-	int mglev, bool iclear) = 0;
+    virtual void level_residual(MultiFab& r, MultiFab& s, MultiFab& d, copy_cache* dbc, int mglev, bool iclear) = 0;
     virtual void interface_residual(int mglev, int mgc) = 0;
     virtual void relax(int mglev, int i1, int is_zero) = 0;
     virtual void cgsolve(int mglev) = 0;

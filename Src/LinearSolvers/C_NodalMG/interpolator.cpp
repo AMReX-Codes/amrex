@@ -73,5 +73,7 @@ void bilinear_interpolator_class::fill(FArrayBox& patch,
 	}
     }
     else
+    {
 	BoxLib::Error("bilinear_interpolator_class::fill---Interpolation only defined for pure CELL- or NODE-based data");
+    }
 }

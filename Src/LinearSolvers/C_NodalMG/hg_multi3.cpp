@@ -92,12 +92,7 @@ extern "C"
 #endif
 }
 
-void holy_grail_amr_multigrid::level_residual(MultiFab& r,
-					      MultiFab& s,
-					      MultiFab& d,
-					      copy_cache* dbc,
-					      int mglev,
-					      bool iclear)
+void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab& d, copy_cache* dbc, int mglev, bool iclear)
 {
     assert(r.boxArray() == s.boxArray());
     assert(r.boxArray() == d.boxArray());
@@ -595,9 +590,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 	Real rho_old = rho;
 	// safe to set the clear flag to 0 here---bogus values make it
 	// into r but are cleared from z by the mask in c
-	level_residual(w, zero_array, p, 
-	    pbc, 
-	    0, false);
+	level_residual(w, zero_array, p, pbc, 0, false);
 	alpha = 0.0;
 	for (int igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
 	{
