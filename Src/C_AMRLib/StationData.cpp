@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StationData.cpp,v 1.5 1998-11-29 01:33:53 lijewski Exp $
+// $Id: StationData.cpp,v 1.6 1998-11-30 02:12:35 lijewski Exp $
 //
 #ifdef BL_USE_NEW_HFILES
 #include <cstring>
@@ -13,11 +13,12 @@
 #include <ParmParse.H>
 #include <StationData.H>
 
-static int id_count = 0;
-
 StationData::StationData () {}
 
-StationData::~StationData () {}
+StationData::~StationData ()
+{
+    m_ofile.close();
+}
 
 void
 StationData::init ()
@@ -25,21 +26,22 @@ StationData::init ()
     //
     // ParmParse variables:
     //
-    //   StationData.vars     -- Array of name of StateData components
+    //   StationData.vars     -- Names of StateData components to output
     //   StationData.coord    -- BL_SPACEDIM array of Reals
     //   StationData.coord    -- the next one
     //   StationData.coord    -- ditto ...
-    //   StationData.rootname -- root name of output files.
     //
     ParmParse pp("StationData");
 
     if (pp.contains("vars"))
     {
-        m_vars.resize(pp.countval("vars"));
-        m_typ.resize(m_vars.length());
-        m_ncomp.resize(m_vars.length());
+        const int N = pp.countval("vars");
 
-        for (int i = 0; i < m_vars.length(); i++)
+        m_vars.resize(N);
+        m_typ.resize(N);
+        m_ncomp.resize(N);
+
+        for (int i = 0; i < N; i++)
         {
             pp.get("vars", m_vars[i], i);
 
@@ -55,11 +57,15 @@ StationData::init ()
 
     if (m_vars.length() > 0 && pp.contains("coord"))
     {
+        static int identifier;
+
         Array<Real> data(BL_SPACEDIM);
 
-        m_stn.resize(pp.countname("coord"));
+        const int N  = pp.countname("coord");
 
-        for (int k = 0; k < m_stn.length(); k++)
+        m_stn.resize(N);
+
+        for (int k = 0; k < N; k++)
         {
             pp.getktharr("coord", k, data, 0, BL_SPACEDIM);
 
@@ -67,81 +73,47 @@ StationData::init ()
                    m_stn[k].pos[1] = data[1];,
                    m_stn[k].pos[2] = data[2];);
 
-            m_stn[k].id = id_count++;
+            m_stn[k].id = identifier++;
             //
             // TODO -- check that coords are valid.
             //
         }
     }
 
-    m_name = "Stations/stn";
-
-    pp.query("rootname",m_name);
-
-    if (m_name[m_name.length()-1] == '/')
-        BoxLib::Error("StationData::init(): rootname must be valid filename");
-    //
-    // Make any directories assumed by m_name.
-    //
     if (m_vars.length() > 0)
     {
-        if (char* slash = strrchr(m_name.c_str(), '/'))
-        {
-            int idx = slash - m_name.c_str();
+        //
+        // Make "Stations/" directory.
+        //
+        // Only the I/O processor makes the directory if it doesn't exist.
+        //
+        static const aString Dir("Stations");
 
-            assert(idx > 0);
-            assert(m_name[idx] == '/');
-            //
-            // Some aString hanky-panky.
-            //
-            m_name[idx] = 0;
-            aString dir = m_name.c_str();
-            m_name[idx] = '/';
-            //
-            // Only the I/O processor makes the directory if it doesn't exist.
-            //
-            if (ParallelDescriptor::IOProcessor())
-                if (!Utility::UtilCreateDirectory(dir, 0755))
-                    Utility::CreateDirectoryFailed(dir);
-            //
-            // Everyone must wait till directory is built.
-            //
-            ParallelDescriptor::Barrier();
-        }
-    }
-
-    openFile();
-
-    listStations();
-}
-
-void
-StationData::openFile ()
-{
-    if (m_stn.length() > 0)
-    {
+        if (ParallelDescriptor::IOProcessor())
+            if (!Utility::UtilCreateDirectory(Dir, 0755))
+                Utility::CreateDirectoryFailed(Dir);
+        //
+        // Everyone must wait till directory is built.
+        //
+        ParallelDescriptor::Barrier();
+        //
+        // Open the data file.
+        //
         char buf[80];
 
-        sprintf(buf, "_CPU_%04d", ParallelDescriptor::MyProc());
+        sprintf(buf,
+                "Stations/stn_CPU_%04d",
+                ParallelDescriptor::MyProc());
 
-        aString filename = m_name;
-
-        filename += buf;
-
-        m_ofile.open(filename.c_str(), ios::out|ios::app);
+        m_ofile.open(buf, ios::out|ios::app);
 
         m_ofile.precision(15);
 
         assert(!m_ofile.bad());
-    }
-}
-
-void
-StationData::listStations () const
-{
-    if (m_stn.length() > 0 && ParallelDescriptor::IOProcessor())
-    {
-        ofstream os("Station.List", ios::out);
+        //
+        // Output the list of stations.
+        //
+        ofstream os("Stations/Station.List", ios::out);
 
         for (int i = 0; i < m_stn.length(); i++)
         {
@@ -260,7 +232,6 @@ StationData::findGrid (const PArray<AmrLevel>& levels,
                         MultiFab mf(ba,1,0,Fab_noallocate);
 
                         m_stn[i].own = (mf.DistributionMap()[j] == MyProc);
-
                         
                         break;
                     }
