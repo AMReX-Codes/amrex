@@ -5,19 +5,16 @@
 #define FORT_FIPRODC   iprodc_
 #define FORT_FIPRODN   iprodn_
 #define FORT_FFCPY2    fcpy2_
-#define FORT_FFCPY     fcpy_
 #else
 #define FORT_FIPRODC   IPRODC
 #define FORT_FIPRODN   IPRODN
 #define FORT_FFCPY2    FCPY2
-#define FORT_FFCPY     FCPY
 #endif
 
 extern "C"
 {
     void FORT_FIPRODC(const Real*, intS, const Real*, intS, intS, Real*);
     void FORT_FIPRODN(const Real*, intS, const Real*, intS, intS, Real*);
-    void FORT_FFCPY (Real*, intS, intS, const Real*, intS, const int&);
 #if (BL_SPACEDIM == 2)
     void FORT_FFCPY2(Real*, intS, const Real*, intS, intS, const int*, const int&);
 #else
@@ -27,13 +24,7 @@ extern "C"
 
 void internal_copy(MultiFab& r, int destgrid, int srcgrid, const Box& b) 
 {
-    Real* dptr = r[destgrid].dataPtr();
-    const Real* sptr = r[srcgrid].dataPtr();
-    const Box& dbx = r[destgrid].box();
-    const Box& sbx = r[srcgrid].box();
-    assert( dbx.contains(b) );
-    assert( sbx.contains(b) );
-    FORT_FFCPY(dptr, DIMLIST(dbx), DIMLIST(b), sptr, DIMLIST(sbx), r.nComp());
+    r[destgrid].copy(r[srcgrid], b);
 }
 
 
@@ -79,76 +70,124 @@ Real inner_product(const MultiFab& r, const MultiFab& s)
 
 int find_patch(const Box& region, const MultiFab& r)
 {
-    if (r.nGrow() == 0 ) 
+    for (int igrid = 0; igrid < r.length(); igrid++) 
     {
-	for (int igrid = 0; igrid < r.length(); igrid++) 
-	{
-	    assert( r[igrid].box() == r.box(igrid) );
-	    if (r[igrid].box().contains(region))
-		return igrid;
-	}
-    }
-    else 
-    {
-	for (int igrid = 0; igrid < r.length(); igrid++) 
-	{
-	    if (r.box(igrid).contains(region))
-		return igrid;
-	}
+	if (r.box(igrid).contains(region))
+	    return igrid;
     }
     return -1;
 }
 
-static bool fill_patch_blindly(FArrayBox& patch, const Box& region, const MultiFab& r)
+
+class task_fab : public task
 {
-    if (r.nGrow() == 0) 
+public:
+    virtual const FArrayBox& fab() const = 0;
+};
+
+class task_fab_get : public task_fab
+{
+public:
+    task_fab_get(const MultiFab& r_, int grid_);
+    virtual ~task_fab_get();
+    virtual const FArrayBox& fab() const;
+    virtual bool ready();
+private:
+    const MultiFab& r;
+    const int grid;
+};
+
+task_fab_get::task_fab_get(const MultiFab& r_, int grid_) : r(r_), grid(grid_) {}
+const FArrayBox& task_fab_get::fab() const
+{
+    return r[grid];
+}
+task_fab_get::~task_fab_get()
+{
+}
+
+bool task_fab_get::ready()
+{
+    return true;
+}
+
+class task_fill_patch : public task_fab
+{
+public:
+    task_fill_patch(FArrayBox& fab_, const Box& region_,
+	const MultiFab& r_, const level_interface& lev_interface_, const amr_boundary_class* bdy_, int idim_, int index_);
+    task_fill_patch(const Box& region_, int ncomp_, 
+	const MultiFab& r_, const level_interface& lev_interface_, const amr_boundary_class* bdy_, int idim_, int index_);
+    virtual ~task_fill_patch();
+    virtual const FArrayBox& fab() const;
+    virtual bool ready();
+private:
+    bool fill_patch_blindly();
+    bool fill_exterior_patch_blindly();
+    void fill_patch();
+    bool newed;
+    FArrayBox* target;
+    const Box region;
+    const MultiFab& r;
+    const level_interface& lev_interface;
+    const amr_boundary_class* bdy;
+    const int idim;
+    const int index;
+    task_list tl;
+};
+
+bool
+task_fill_patch::fill_patch_blindly()
+{
+    for (int igrid = 0; igrid < r.length(); igrid++) 
     {
-	for (int igrid = 0; igrid < r.length(); igrid++) 
+	Box tb = grow(r[igrid].box(), -r.nGrow());
+	if (tb.contains(region)) 
 	{
-	    if (r[igrid].box().contains(region)) 
-	    {
-		patch.copy(r[igrid], region, 0, region, 0, patch.nComp());
-		return true;
-	    }
-	}
-	for (int igrid = 0; igrid < r.length(); igrid++) 
-	{
-	    if (r[igrid].box().intersects(region)) 
-	    {
-		Box tb = region & r[igrid].box();
-		patch.copy(r[igrid], tb, 0, tb, 0, patch.nComp());
-	    }
+	    tl.add_task(new task_copy(target, r, igrid, region));
+	    // target->copy(r[igrid], region);
+	    return true;
 	}
     }
-    else 
+    for (int igrid = 0; igrid < r.length(); igrid++) 
     {
-	for (int igrid = 0; igrid < r.length(); igrid++) 
+	Box tb = grow(r[igrid].box(), -r.nGrow());
+	if (tb.intersects(region)) 
 	{
-	    Box tb = grow(r[igrid].box(), -r.nGrow());
-	    if (tb.contains(region)) 
-	    {
-		patch.copy(r[igrid], region, 0, region, 0, patch.nComp());
-		return true;
-	    }
-	}
-	for (int igrid = 0; igrid < r.length(); igrid++) 
-	{
-	    Box tb = grow(r[igrid].box(), -r.nGrow());
-	    if (tb.intersects(region)) 
-	    {
-		tb &= region;
-		patch.copy(r[igrid], tb, 0, tb, 0, patch.nComp());
-	    }
+	    tb &= region;
+	    tl.add_task(new task_copy(target, r, igrid, tb));
+	    // target->copy(r[igrid], tb);
 	}
     }
     return false;
 }
 
-static bool fill_exterior_patch_blindly(FArrayBox& patch,
-				const Box& region,
-				const MultiFab& r,
-				const level_interface& lev_interface,
-				const amr_boundary_class* bdy)
+class task_bdy_fill : public task
+{
+public:
+    task_bdy_fill(const amr_boundary_class* bdy_, FArrayBox& fab_, const Box& region_, const MultiFab& src_, int grid_, const Box& domain_);
+    virtual bool ready();
+private:
+    const amr_boundary_class* bdy;
+    FArrayBox& fab;
+    const Box region;
+    const MultiFab& src;
+    const int grid;
+    const Box& domain;
+};
+
+task_bdy_fill::task_bdy_fill(const amr_boundary_class* bdy_, FArrayBox& fab_, const Box& region_, const MultiFab& src_, int grid_, const Box& domain_)
+: bdy(bdy_), fab(fab_), region(region_), src(src_), grid(grid_), domain(domain_)
+{
+}
+
+bool task_bdy_fill::ready()
+{
+    bdy->fill(fab, region, src[grid], domain);
+    return true;
+}
+
+bool task_fill_patch::fill_exterior_patch_blindly()
 {
     const BoxArray& em = lev_interface.exterior_mesh();
     for (int igrid = 0; igrid < em.length(); igrid++) 
@@ -156,61 +195,59 @@ static bool fill_exterior_patch_blindly(FArrayBox& patch,
 	int jgrid = lev_interface.direct_exterior_ref(igrid);
 	if (jgrid >= 0) 
 	{
+	    assert(bdy != 0);
 	    Box tb = em[igrid];
 	    tb.convert(type(r));
 	    if (tb.contains(region)) 
 	    {
-		assert(bdy != 0);
-		bdy->fill(patch, region, r[jgrid], jgrid, lev_interface.domain());
+		tl.add_task(new task_bdy_fill(bdy, *target, region, r, jgrid, lev_interface.domain()));
+		// bdy->fill(*target, region, r[jgrid], lev_interface.domain());
 		return true;
 	    }
 	    if (tb.intersects(region)) 
 	    {
 		tb &= region;
-		assert(bdy != 0);
-		bdy->fill(patch, tb, r[jgrid], jgrid, lev_interface.domain());
+		tl.add_task(new task_bdy_fill(bdy, *target, tb, r, jgrid, lev_interface.domain()));
+		//bdy->fill(*target, tb, r[jgrid], lev_interface.domain());
 	    }
 	}
     }
     return false;
 }
 
-void fill_patch(FArrayBox& patch, const Box& region,
-	       const MultiFab& r,
-	       const level_interface& lev_interface,
-	       const amr_boundary_class* bdy,
-	       int idim, int index)
+void task_fill_patch::fill_patch()
 {
     if ( !region.ok() ) return;
-    
-    assert(patch.nComp() == r.nComp());
-    assert(type(patch) == type(r));
+
+    assert(target->box() == region);
+    assert(target->nComp() == r.nComp());
+    assert(type(*target) == type(r));
     assert(lev_interface.ok());
     assert( idim >= -1 && idim < BL_SPACEDIM );
     
     Box tdomain = lev_interface.domain();
-    tdomain.convert(type(patch));
+    tdomain.convert(type(*target));
     Box idomain = grow(tdomain, IntVect::TheZeroVector() - type(r));
     
     if (idim == -1 ) 
     {
 	if (idomain.contains(region) || bdy == 0) 
 	{
-	    fill_patch_blindly(patch, region, r);
+	    fill_patch_blindly();
 	}
 	else if (!tdomain.intersects(region)) 
 	{
-	    fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy);
+	    fill_exterior_patch_blindly();
 	}
 	else if (idomain.intersects(region)) 
 	{
-	    if ( !fill_patch_blindly(patch, region, r) )
-		fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy);
+	    if ( !fill_patch_blindly() )
+		fill_exterior_patch_blindly();
 	}
 	else 
 	{
-	    if ( !fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy) )
-		fill_patch_blindly(patch, region, r);
+	    if ( !fill_exterior_patch_blindly() )
+		fill_patch_blindly();
 	}
     }
     else
@@ -232,8 +269,7 @@ void fill_patch(FArrayBox& patch, const Box& region,
 			{
 			    Box tb = r.box(igrid);
 			    tb &= region;
-			    const Box& rbox = r[igrid].box();
-			    FORT_FFCPY(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(tb), r[igrid].dataPtr(), DIMLIST(rbox), patch.nComp());
+			    target->copy(r[igrid], tb);
 			}
 			else 
 			{
@@ -241,7 +277,8 @@ void fill_patch(FArrayBox& patch, const Box& region,
 			    Box tb = lev_interface.exterior_mesh()[igrid];
 			    tb.convert(type(r));
 			    tb &= region;
-			    bdy->fill(patch, tb, r[lev_interface.direct_exterior_ref(igrid)], lev_interface.direct_exterior_ref(igrid), lev_interface.domain());
+			    assert( bdy != 0 );
+			    bdy->fill(*target, tb, r[lev_interface.direct_exterior_ref(igrid)], lev_interface.domain());
 			}
 			break;
 		    }
@@ -251,11 +288,63 @@ void fill_patch(FArrayBox& patch, const Box& region,
     }
 }
 
+task_fill_patch::task_fill_patch(const Box& region_, int ncomp_,
+				 const MultiFab& r_,
+				 const level_interface& lev_interface_,
+				 const amr_boundary_class* bdy_,
+				 int idim_, int index_)
+				 : target(0), region(region_),
+				 r(r_), lev_interface(lev_interface_), bdy(bdy_), idim(idim_), index(index_), newed(true)
+{
+    target = new FArrayBox(region, ncomp_);
+}
+
+task_fill_patch::task_fill_patch(FArrayBox& fab_, const Box& region_,
+				 const MultiFab& r_,
+				 const level_interface& lev_interface_,
+				 const amr_boundary_class* bdy_,
+				 int idim_, int index_)
+				 : target(0), region(region_),
+				 r(r_), lev_interface(lev_interface_), bdy(bdy_), idim(idim_), index(index_), newed(false)
+{
+    target = &fab_;
+}
+
+
+task_fill_patch::~task_fill_patch()
+{
+    if ( newed) delete target;
+}
+
+bool task_fill_patch::ready()
+{
+    fill_patch();
+    tl.execute();
+    return true;
+}
+
+const FArrayBox& task_fill_patch::fab() const
+{
+    return *target;
+}
+
+void fill_patch(FArrayBox& patch, const Box& region,
+	       const MultiFab& r,
+	       const level_interface& lev_interface,
+	       const amr_boundary_class* bdy,
+	       int idim, int index)
+{
+    task_fill_patch* t = new task_fill_patch(patch, region, r, lev_interface, bdy, idim, index);
+    assert(t->ready());
+    delete t;
+    return;
+}
+
 static void sync_internal_borders(MultiFab& r, const level_interface& lev_interface)
 {
     assert(type(r) == IntVect::TheNodeVector());
 
-    // PARALLEL
+    task_list tl;
     for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
     {
 	int igrid = lev_interface.grid(level_interface::FACEDIM, iface, 0);
@@ -263,10 +352,9 @@ static void sync_internal_borders(MultiFab& r, const level_interface& lev_interf
 	// only do interior faces with fine grid on both sides
 	if (igrid < 0 || jgrid < 0 || lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL)
 	    break;
-	internal_copy(r, jgrid, igrid, lev_interface.node_box(level_interface::FACEDIM, iface));
+	tl.add_task(new task_copy(&r, jgrid, r, igrid, lev_interface.node_box(level_interface::FACEDIM, iface)));
     }
 #if (BL_SPACEDIM == 2)
-    // PARALLEL
     for (int icor = 0; icor < lev_interface.nboxes(0); icor++) 
     {
 	int igrid = lev_interface.grid(0, icor, 0);
@@ -275,10 +363,9 @@ static void sync_internal_borders(MultiFab& r, const level_interface& lev_interf
 	if (igrid < 0 || jgrid < 0 || lev_interface.geo(0, icor) != level_interface::ALL)
 	    break;
 	if (jgrid == lev_interface.grid(0, icor, 1))
-	    internal_copy(r, jgrid, igrid, lev_interface.box(0, icor));
+	    tl.add_task(new task_copy(&r, jgrid, r, igrid, lev_interface.box(0, icor)));
     }
 #else
-    // PARALLEL
     for (int iedge = 0; iedge < lev_interface.nboxes(1); iedge++) 
     {
 	int igrid = lev_interface.grid(1, iedge, 0);
@@ -287,9 +374,8 @@ static void sync_internal_borders(MultiFab& r, const level_interface& lev_interf
 	if (igrid < 0 || jgrid < 0 || lev_interface.geo(1, iedge) != level_interface::ALL)
 	    break;
 	if (jgrid == lev_interface.grid(1, iedge, 1))
-	    internal_copy(r, jgrid, igrid, lev_interface.node_box(1, iedge));
+	    tl.add_task(new task_copy(&r, jgrid, r, igrid, lev_interface.node_box(1, iedge)));
     }
-    // PARALLEL
     for (int icor = 0; icor < lev_interface.nboxes(0); icor++) 
     {
 	int igrid = lev_interface.grid(0, icor, 0);
@@ -301,32 +387,40 @@ static void sync_internal_borders(MultiFab& r, const level_interface& lev_interf
 	{
 	    if (jgrid != lev_interface.grid(0, icor, 3)) 
 	    {
-		internal_copy(r, jgrid, igrid, lev_interface.box(0, icor));
+		tl.add_task(new task_copy(&r, jgrid, r, igrid, lev_interface.box(0, icor)));
 		jgrid = lev_interface.grid(0, icor, 5);
 		if (jgrid != lev_interface.grid(0, icor, 7))
-		    internal_copy(r, jgrid, igrid, lev_interface.box(0, icor));
+		    tl.add_task(new task_copy(&r, jgrid, r, igrid, lev_interface.box(0, icor)));
 	    }
 	}
 	else if (lev_interface.grid(0, icor, 5) == lev_interface.grid(0, icor, 1)) 
 	{
 	    if (jgrid != lev_interface.grid(0, icor, 5)) 
 	    {
-		internal_copy(r, jgrid, igrid, lev_interface.box(0, icor));
+		tl.add_task(new task_copy(&r, jgrid, r, igrid, lev_interface.box(0, icor)));
 		jgrid = lev_interface.grid(0, icor, 3);
 		if (jgrid != lev_interface.grid(0, icor, 7)) 
 		{
-		    internal_copy(r, jgrid, igrid, lev_interface.box(0, icor));
+		    tl.add_task(new task_copy(&r, jgrid, r, igrid, lev_interface.box(0, icor)));
 		    if (jgrid == lev_interface.grid(0, icor, 2)) 
 		    {
 			jgrid = lev_interface.grid(0, icor, 6);
 			if (jgrid != lev_interface.grid(0, icor, 7))
-			    internal_copy(r, jgrid, igrid, lev_interface.box(0, icor));
+			    tl.add_task(new task_copy(&r, jgrid, r, igrid, lev_interface.box(0, icor)));
 		    }
 		}
 	    }
 	}
     }
 #endif
+    tl.execute();
+}
+
+void sync_borders(MultiFab& r, const level_interface& lev_interface, const amr_boundary_class* bdy)
+{
+    sync_internal_borders(r, lev_interface);
+    assert(bdy != 0);
+    bdy->sync_borders(r, lev_interface);
 }
 
 #if BL_SPACEDIM == 3
@@ -350,6 +444,37 @@ static inline void node_dirs(int dir[2], const IntVect& typ)
 }
 #endif
 
+
+class task_copy_2 : public task
+{
+public:
+    task_copy_2(MultiFab* r1, int i1, const MultiFab& r2, int i2, const Box& bx, int w)
+	: m_r1(r1), m_i1(i1), m_r2(r2), m_i2(i2), m_bx(bx), m_w(w)
+    {
+	    Real* ptra = (*m_r1)[m_i1].dataPtr();
+	    const Real* ptrb = m_r2[m_i2].dataPtr();
+	    const Box& boxa = (*m_r1)[m_i1].box();
+	    const Box& boxb = m_r2[m_i2].box();
+#if (BL_SPACEDIM == 2)
+	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(m_bx), &m_w, m_r1->nComp());
+#else
+	    const int ibord = m_r1->nGrow();
+	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(m_bx), &m_w, &ibord, m_r1->nComp());
+#endif
+    }
+    virtual bool ready()
+    {
+	return true;
+    }
+private:
+    MultiFab* m_r1;
+    const int m_i1;
+    const MultiFab& m_r2;
+    const int m_i2;
+    const Box m_bx;
+    const int m_w;
+};
+
 // The sequencing used in fill_internal_borders, fcpy2 and set_border_cache
 // (narrow x, medium y, wide z) is necessary to avoid overwrite problems
 // like those seen in the sync routines.  Boundary copies are all wide
@@ -367,13 +492,14 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
     w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
     assert( w == 1 || w == 0 );
 
+    task_list tl;
     if ( type(r) == IntVect::TheNodeVector() ) 
     {
 #if (BL_SPACEDIM == 3)
 	if(hg_terrain)
 	{
 	    // attempt to deal with corner-coupling problem with 27-point stencils
-	    //PARALLEL
+	    task_list tl;
 	    for (int iedge = 0; iedge < lev_interface.nboxes(1); iedge++) 
 	    {
 		if (lev_interface.geo(1, iedge) == level_interface::ALL)
@@ -394,14 +520,14 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 			    Box b = lev_interface.node_box(1, iedge);
 			    internal_copy(r, jgrid, igrid, b.shift(dir[0], -1));
 			    b = lev_interface.node_box(1, iedge);
-			    internal_copy(r, igrid, jgrid, b.shift(dir[1],  1));
+			    tl.add_task(new task_copy(&r, igrid, r, jgrid, b.shift(dir[1],  1)));
 			}
 			else 
 			{
 			    Box b = lev_interface.node_box(1, iedge);
 			    internal_copy(r, jgrid, igrid, b.shift(dir[1], -1));
 			    b = lev_interface.node_box(1, iedge);
-			    internal_copy(r, igrid, jgrid, b.shift(dir[0],  1));
+			    tl.add_task(new task_copy(&r, igrid, r, jgrid, b.shift(dir[0],  1)));
 			}
 		    }
 		}
@@ -421,21 +547,20 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 			    Box b = lev_interface.node_box(1, iedge);
 			    internal_copy(r, jgrid, igrid, b.shift(dir[0],  1));
 			    b = lev_interface.node_box(1, iedge);
-			    internal_copy(r, igrid, jgrid, b.shift(dir[1],  1));
+			    tl.add_task(new task_copy(&r, igrid, r, jgrid, b.shift(dir[1],  1)));
 			}
 			else 
 			{
 			    Box b = lev_interface.node_box(1, iedge);
 			    internal_copy(r, jgrid, igrid, b.shift(dir[1], -1));
 			    b = lev_interface.node_box(1, iedge);
-			    internal_copy(r, igrid, jgrid, b.shift(dir[0], -1));
+			    tl.add_task(new task_copy(&r, igrid, r, jgrid, b.shift(dir[0], -1)));
 			}
 		    }
 		}
 	    }
 	}
 #endif
-	// PARALLEL
 	for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
 	{
 	    const int igrid = lev_interface.grid(level_interface::FACEDIM, iface, 0);
@@ -443,21 +568,11 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 	    if (igrid < 0 || jgrid < 0 || lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL)
 		break;
 	    const Box& b = lev_interface.node_box(level_interface::FACEDIM, iface);
-	    Real* ptra = r[igrid].dataPtr();
-	    const Real* ptrb = r[jgrid].dataPtr();
-	    const Box& boxa = r[igrid].box();
-	    const Box& boxb = r[jgrid].box();
-#if (BL_SPACEDIM == 2)
-	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(b), &w, r.nComp());
-#else
-	    const int ibord = r.nGrow();
-	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(b), &w, &ibord, r.nComp());
-#endif
+	    tl.add_task(new task_copy_2(&r, igrid, r, jgrid, b, w));
 	}
     }
     else if (type(r) == IntVect::TheCellVector()) 
     {
-	// PARALLEL
 	for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
 	{
 	    const int igrid = lev_interface.grid(level_interface::FACEDIM, iface, 0);
@@ -470,8 +585,8 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 	    if (idim == 1)
 		b.grow(0, w);
 	    b.growLo(idim, w).convert(IntVect::TheCellVector());
-	    internal_copy(r, jgrid, igrid, b);
-	    internal_copy(r, igrid, jgrid, b.shift(idim, w));
+	    tl.add_task(new task_copy(&r, jgrid, r, igrid, b));
+	    tl.add_task(new task_copy(&r, igrid, r, jgrid, b.shift(idim, w));
 #else
 	    Box bj = lev_interface.box(level_interface::FACEDIM, iface);
 	    Box bi = lev_interface.box(level_interface::FACEDIM, iface);
@@ -488,11 +603,19 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 	    }
 	    bj.growLo(idim, w).convert(IntVect::TheCellVector());
 	    bi.growHi(idim, w).convert(IntVect::TheCellVector());
-	    internal_copy(r, jgrid, igrid, bj);
-	    internal_copy(r, igrid, jgrid, bi);
+	    tl.add_task(new task_copy(&r, jgrid, r, igrid, bj));
+	    tl.add_task(new task_copy(&r, igrid, r, jgrid, bi));
 #endif
 	}
     }
+    tl.execute();
+}
+
+void fill_borders(MultiFab& r, const level_interface& lev_interface, const amr_boundary_class* bdy, int w, bool hg_terrain)
+{
+    fill_internal_borders(r, lev_interface, w, hg_terrain);
+    assert(bdy != 0);
+    bdy->fill_borders(r, lev_interface, w);
 }
 
 void clear_part_interface(MultiFab& r, const level_interface& lev_interface)
@@ -500,14 +623,13 @@ void clear_part_interface(MultiFab& r, const level_interface& lev_interface)
     assert(r.nComp() == 1);
     assert(type(r) == IntVect::TheNodeVector());
 
-    // PARALLEL
     for (int i = 0; i < BL_SPACEDIM; i++) 
     {
 	for (int ibox = 0; ibox < lev_interface.nboxes(i); ibox++) 
 	{
 	    // coarse-fine face contained in part_fine grid, or orphan edge/corner
 	    int igrid = lev_interface.aux(i, ibox);
-	    if ( igrid < 0  ) continue;
+	    if ( igrid < 0  || is_remote(r, igrid) ) continue;
 	    r[igrid].setVal(0.0, lev_interface.node_box(i, ibox), 0);
 	}
     }
@@ -534,32 +656,31 @@ void interpolate_patch(FArrayBox& patch, const Box& region,
     }
 }
 
-#include <list>
-using namespace std;
-
-class task
+class task_restric_fill : public task
 {
 public:
-    virtual bool ready() = 0;
-};
-
-class restric_fill : public task
-{
-public:
-    restric_fill();
-    virtual bool ready()
+    task_restric_fill(const amr_restrictor_class& restric,
+	MultiFab& dest, int dgrid, MultiFab& r, int rgrid, const Box& box, const IntVect& rat)
+	: m_restric(restric), m_dest(dest), m_dgrid(dgrid), m_rgrid(rgrid), m_r(r), m_box(box), m_rat(rat)
     {
-	return true;
+	m_restric.fill(m_dest[m_dgrid], m_box, m_r[m_rgrid], m_rat);
     }
+    virtual bool ready();
+private:
+    const amr_restrictor_class& m_restric;
+    MultiFab& m_dest;
+    const int m_dgrid;
+    MultiFab& m_r;
+    const int m_rgrid;
+    const Box m_box;
+    const IntVect m_rat;
 };
 
-class task_list
+bool
+task_restric_fill::ready()
 {
-public:
-    task_list();
-private:
-    list<task*> tasks;
-};
+    return true;
+}
 
 void restrict_level(MultiFab& dest, 
 		    MultiFab& r, const IntVect& rat,
@@ -568,7 +689,7 @@ void restrict_level(MultiFab& dest,
 		    const amr_boundary_class* bdy)
 {
     assert(type(dest) == type(r));
-    // PARALLEL
+     task_list tl;
     for (int jgrid = 0; jgrid < dest.length(); jgrid++) 
     {
 	const Box& region = dest.box(jgrid);
@@ -579,26 +700,15 @@ void restrict_level(MultiFab& dest,
 	    if (region.intersects(cbox)) 
 	    {
 		cbox &= region;
-		restric.fill(dest[jgrid], cbox, r[igrid], rat);
+		// restric.fill(dest[jgrid], cbox, r[igrid], rat);
+		tl.add_task(new task_restric_fill(restric, dest, jgrid, r, igrid, cbox, rat));
 	    }
 	}
     }
+    tl.execute();
     if ( lev_interface.ok() )
     {
 	restric.fill_interface( dest, r, lev_interface, bdy, rat);
     }
 }
 
-void sync_borders(MultiFab& r, const level_interface& lev_interface, const amr_boundary_class* bdy)
-{
-    sync_internal_borders(r, lev_interface);
-    assert(bdy != 0);
-    bdy->sync_borders(r, lev_interface);
-}
-
-void fill_borders(MultiFab& r, const level_interface& lev_interface, const amr_boundary_class* bdy, int w, bool hg_terrain)
-{
-    fill_internal_borders(r, lev_interface, w, hg_terrain);
-    assert(bdy != 0);
-    bdy->fill_borders(r, lev_interface, w);
-}

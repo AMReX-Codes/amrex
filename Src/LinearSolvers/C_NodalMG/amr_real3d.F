@@ -1,29 +1,4 @@
 c-----------------------------------------------------------------------
-c Works for CELL- or NODE-based data.
-      subroutine fcpy(
-     & dest, destl0,desth0,destl1,desth1,destl2,desth2,
-     &       regl0,regh0,regl1,regh1,regl2,regh2,
-     & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2, 
-     & ncomp)
-      integer ncomp
-      integer destl0,desth0,destl1,desth1,destl2,desth2
-      integer regl0,regh0,regl1,regh1,regl2,regh2
-      integer srcl0,srch0,srcl1,srch1,srcl2,srch2
-      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2, 
-     &                  ncomp)
-      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
-      integer i, j, k, ic
-      do  ic = 1, ncomp
-         do  k = regl2, regh2
-            do  j = regl1, regh1
-               do  i = regl0, regh0
-                  dest(i,j,k,ic) = src(i,j,k,ic)
-               end do
-            end do
-         end do
-      end do
-      end
-c-----------------------------------------------------------------------
 c Works for NODE-based data.
       subroutine fcpy2(
      & da,  dal0,dah0,dal1,dah1,dal2,dah2,
@@ -198,26 +173,30 @@ c Works for CELL- or NODE-based data.
       end do
       end
 c-----------------------------------------------------------------------
+c     These routines implement boundary conditions
+c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
       subroutine bref(
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
      &       bbl0,bbh0,bbl1,bbh1,bbl2,bbh2, 
-     & idir)
+     & idir, ncomp)
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer bbl0,bbh0,bbl1,bbh1,bbl2,bbh2
-      integer idir
-      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
-      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      integer i, j, k
+      integer idir, ncomp
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
+     &   ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
+      integer i, j, k, nc
+      do nc = 1, ncomp
       if (idir .eq. 0) then
          do i = regl0, regh0
             do k = regl2, regh2
                do j = regl1, regh1
-                  dest(i,j,k) = src(bbh0-(i-regl0),j,k)
+                  dest(i,j,k,nc) = src(bbh0-(i-regl0),j,k,nc)
                end do
             end do
          end do
@@ -225,7 +204,7 @@ c Works for CELL- or NODE-based data.
          do j = regl1, regh1
             do k = regl2, regh2
                do i = regl0, regh0
-                  dest(i,j,k) = src(i,bbh1-(j-regl1),k)
+                  dest(i,j,k,nc) = src(i,bbh1-(j-regl1),k, nc)
                end do
             end do
          end do
@@ -233,11 +212,12 @@ c Works for CELL- or NODE-based data.
          do k = regl2, regh2
             do j = regl1, regh1
                do i = regl0, regh0
-                  dest(i,j,k) = src(i,j,bbh2-(k-regl2))
+                  dest(i,j,k,nc) = src(i,j,bbh2-(k-regl2),nc)
                end do
             end do
          end do
       end if
+      end do
       end
 c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
@@ -246,21 +226,24 @@ c Works for CELL- or NODE-based data.
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
      &       bbl0,bbh0,bbl1,bbh1,bbl2,bbh2, 
-     & ra)
+     & ra, ncomp)
+      integer ncomp
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer bbl0,bbh0,bbl1,bbh1,bbl2,bbh2
       integer ra(0:2)
-      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
-      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      integer i, j, k
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
+     &   ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
+      integer i, j, k, nc
+      do nc = 1, ncomp
       if (ra(0) .eq. 0 .and. ra(1) .eq. 0 .and. ra(2) .eq. 0) then
             do k = regl2, regh2
                do j = regl1, regh1
                   do i = regl0, regh0
-                     dest(i,j,k) = src(bbl0+(i-regl0),
-     &                                 bbl1+(j-regl1), bbl2+(k-regl2))
+                     dest(i,j,k,nc) = src(bbl0+(i-regl0),
+     &                                bbl1+(j-regl1), bbl2+(k-regl2),nc)
                   end do
                end do
             end do
@@ -268,8 +251,8 @@ c Works for CELL- or NODE-based data.
          do k = regl2, regh2
             do j = regl1, regh1
                do i = regl0, regh0
-                  dest(i,j,k) = src(bbl0+(i-regl0),
-     &                              bbl1+(j-regl1), bbh2-(k-regl2))
+                  dest(i,j,k,nc) = src(bbl0+(i-regl0),
+     &                              bbl1+(j-regl1), bbh2-(k-regl2),nc)
                end do
             end do
          end do
@@ -277,8 +260,8 @@ c Works for CELL- or NODE-based data.
          do j = regl1, regh1
             do k = regl2, regh2
                do i = regl0, regh0
-                  dest(i,j,k) = src(bbl0+(i-regl0),
-     &                              bbh1-(j-regl1), bbl2+(k-regl2))
+                  dest(i,j,k,nc) = src(bbl0+(i-regl0),
+     &                              bbh1-(j-regl1), bbl2+(k-regl2),nc)
                end do
             end do
          end do
@@ -286,8 +269,8 @@ c Works for CELL- or NODE-based data.
          do k = regl2, regh2
             do j = regl1, regh1
                do i = regl0, regh0
-                  dest(i,j,k) = src(bbl0+(i-regl0),
-     &                              bbh1-(j-regl1), bbh2-(k-regl2))
+                  dest(i,j,k,nc) = src(bbl0+(i-regl0),
+     &                              bbh1-(j-regl1), bbh2-(k-regl2),nc)
                end do
             end do
          end do
@@ -295,8 +278,8 @@ c Works for CELL- or NODE-based data.
          do i = regl0, regh0
             do k = regl2, regh2
                do j = regl1, regh1
-                  dest(i,j,k) = src(bbh0-(i-regl0),
-     &                              bbl1+(j-regl1), bbl2+(k-regl2))
+                  dest(i,j,k,nc) = src(bbh0-(i-regl0),
+     &                              bbl1+(j-regl1), bbl2+(k-regl2),nc)
                end do
             end do
          end do
@@ -304,8 +287,8 @@ c Works for CELL- or NODE-based data.
          do k = regl2, regh2
             do i = regl0, regh0
                do j = regl1, regh1
-                  dest(i,j,k) = src(bbh0-(i-regl0),
-     &                              bbl1+(j-regl1), bbh2-(k-regl2))
+                  dest(i,j,k,nc) = src(bbh0-(i-regl0),
+     &                              bbl1+(j-regl1), bbh2-(k-regl2),nc)
                end do
             end do
          end do
@@ -313,8 +296,8 @@ c Works for CELL- or NODE-based data.
          do j = regl1, regh1
             do i = regl0, regh0
                do k = regl2, regh2
-                  dest(i,j,k) = src(bbh0-(i-regl0),
-     &                              bbh1-(j-regl1), bbl2+(k-regl2))
+                  dest(i,j,k,nc) = src(bbh0-(i-regl0),
+     &                              bbh1-(j-regl1), bbl2+(k-regl2),nc)
                end do
             end do
          end do
@@ -322,12 +305,13 @@ c Works for CELL- or NODE-based data.
          do k = regl2, regh2
             do j = regl1, regh1
                do i = regl0, regh0
-                  dest(i,j,k) = src(bbh0-(i-regl0),
-     &                              bbh1-(j-regl1), bbh2-(k-regl2))
+                  dest(i,j,k,nc) = src(bbh0-(i-regl0),
+     &                              bbh1-(j-regl1), bbh2-(k-regl2),nc)
                end do
             end do
          end do
       end if
+      end do
       end
 c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
@@ -336,20 +320,22 @@ c Works for CELL- or NODE-based data.
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
      &       bbl0,bbh0,bbl1,bbh1,bbl2,bbh2, 
-     & idir)
+     & idir, ncomp)
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer bbl0,bbh0,bbl1,bbh1,bbl2,bbh2
-      integer idir
-      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
-      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      integer i, j, k
+      integer idir,ncomp
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
+     &   ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
+      integer i, j, k, nc
+      do nc = 1, ncomp
       if (idir .eq. 0) then
          do i = regl0, regh0
             do k = regl2, regh2
                do j = regl1, regh1
-                  dest(i,j,k) = -src(bbh0-(i-regl0),j,k)
+                  dest(i,j,k,nc) = -src(bbh0-(i-regl0),j,k,nc)
                end do
             end do
          end do
@@ -357,7 +343,7 @@ c Works for CELL- or NODE-based data.
          do j = regl1, regh1
             do k = regl2, regh2
                do i = regl0, regh0
-                  dest(i,j,k) = -src(i,bbh1-(j-regl1),k)
+                  dest(i,j,k,nc) = -src(i,bbh1-(j-regl1),k,nc)
                end do
             end do
          end do
@@ -365,11 +351,12 @@ c Works for CELL- or NODE-based data.
          do k = regl2, regh2
             do j = regl1, regh1
                do i = regl0, regh0
-                  dest(i,j,k) = -src(i,j,bbh2-(k-regl2))
+                  dest(i,j,k,nc) = -src(i,j,bbh2-(k-regl2),nc)
                end do
             end do
          end do
       end if
+      end do
       end
 c-----------------------------------------------------------------------
 c Works for CELL- or NODE-based data.
@@ -378,21 +365,24 @@ c Works for CELL- or NODE-based data.
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
      &       bbl0,bbh0,bbl1,bbh1,bbl2,bbh2, 
-     & ra)
+     & ra, ncomp)
+      integer ncomp
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer bbl0,bbh0,bbl1,bbh1,bbl2,bbh2
       integer ra(0:2)
-      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
-      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      integer i, j, k
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2, 
+     &   ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
+      integer i, j, k, nc
+      do nc = 1, ncomp
       if (ra(0) .eq. 0 .and. ra(1) .eq. 0 .and. ra(2) .eq. 0) then
          do k = regl2, regh2
             do j = regl1, regh1
                do i = regl0, regh0
-                  dest(i,j,k) = -src(bbl0+(i-regl0),
-     &                            bbl1+(j-regl1), bbl2+(k-regl2))
+                  dest(i,j,k,nc) = -src(bbl0+(i-regl0),
+     &                            bbl1+(j-regl1), bbl2+(k-regl2),nc)
                end do
             end do
          end do
@@ -400,8 +390,8 @@ c Works for CELL- or NODE-based data.
          do k = regl2, regh2
             do j = regl1, regh1
                do i = regl0, regh0
-                  dest(i,j,k) = -src(bbl0+(i-regl0),
-     &                               bbl1+(j-regl1), bbh2-(k-regl2))
+                  dest(i,j,k,nc) = -src(bbl0+(i-regl0),
+     &                               bbl1+(j-regl1), bbh2-(k-regl2),nc)
                end do
             end do
          end do
@@ -409,8 +399,8 @@ c Works for CELL- or NODE-based data.
          do j = regl1, regh1
             do k = regl2, regh2
                do i = regl0, regh0
-                  dest(i,j,k) = -src(bbl0+(i-regl0),
-     &                               bbh1-(j-regl1), bbl2+(k-regl2))
+                  dest(i,j,k,nc) = -src(bbl0+(i-regl0),
+     &                               bbh1-(j-regl1), bbl2+(k-regl2),nc)
                end do
             end do
          end do
@@ -418,8 +408,8 @@ c Works for CELL- or NODE-based data.
          do k = regl2, regh2
             do j = regl1, regh1
                do i = regl0, regh0
-                  dest(i,j,k) = -src(bbl0+(i-regl0),
-     &                               bbh1-(j-regl1), bbh2-(k-regl2))
+                  dest(i,j,k,nc) = -src(bbl0+(i-regl0),
+     &                               bbh1-(j-regl1), bbh2-(k-regl2),nc)
                end do
             end do
          end do
@@ -427,8 +417,8 @@ c Works for CELL- or NODE-based data.
          do i = regl0, regh0
             do k = regl2, regh2
                do j = regl1, regh1
-                  dest(i,j,k) = -src(bbh0-(i-regl0),
-     &                               bbl1+(j-regl1), bbl2+(k-regl2))
+                  dest(i,j,k,nc) = -src(bbh0-(i-regl0),
+     &                               bbl1+(j-regl1), bbl2+(k-regl2),nc)
                end do
             end do
          end do
@@ -436,8 +426,8 @@ c Works for CELL- or NODE-based data.
          do k = regl2, regh2
             do i = regl0, regh0
                do j = regl1, regh1
-                  dest(i,j,k) = -src(bbh0-(i-regl0),
-     &                               bbl1+(j-regl1), bbh2-(k-regl2))
+                  dest(i,j,k,nc) = -src(bbh0-(i-regl0),
+     &                               bbl1+(j-regl1), bbh2-(k-regl2),nc)
                end do
             end do
          end do
@@ -445,8 +435,8 @@ c Works for CELL- or NODE-based data.
          do j = regl1, regh1
             do i = regl0, regh0
                do k = regl2, regh2
-                  dest(i,j,k) = -src(bbh0-(i-regl0),
-     &                               bbh1-(j-regl1), bbl2+(k-regl2))
+                  dest(i,j,k,nc) = -src(bbh0-(i-regl0),
+     &                               bbh1-(j-regl1), bbl2+(k-regl2),nc)
                end do
             end do
          end do
@@ -454,12 +444,13 @@ c Works for CELL- or NODE-based data.
          do k = regl2, regh2
             do j = regl1, regh1
                do i = regl0, regh0
-                  dest(i,j,k) = -src(bbh0-(i-regl0),
-     &                               bbh1-(j-regl1), bbh2-(k-regl2))
+                  dest(i,j,k,nc) = -src(bbh0-(i-regl0),
+     &                               bbh1-(j-regl1), bbh2-(k-regl2),nc)
                end do
             end do
          end do
       end if
+      end do
       end
 c-----------------------------------------------------------------------
 c Works for CELL-based velocity data.
@@ -471,22 +462,25 @@ c inflow face, so that binfil can be run for subsequent fills
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
      &       bbl0,bbh0,bbl1,bbh1,bbl2,bbh2,
-     & idir)
+     & idir, ncomp)
+      integer ncomp
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer bbl0,bbh0,bbl1,bbh1,bbl2,bbh2
       integer idir
-      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
-      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      integer i, j, k
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
+     &   ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
+      integer i, j, k, nc
+      do nc = 1, ncomp
       if (idir .eq. 0) then
          if (regl0 .lt. bbh0) then
             do i = regl0, regh0
                do k = regl2, regh2
                   do j = regl1, regh1
-                     dest(i,j,k) = 2.d0 * dest(regh0,j,k) -
-     &                             src(bbh0-(i-regl0),j,k)
+                     dest(i,j,k,nc) = 2.d0 * dest(regh0,j,k,nc) -
+     &                             src(bbh0-(i-regl0),j,k,nc)
                   end do
                end do
             end do
@@ -494,8 +488,8 @@ c inflow face, so that binfil can be run for subsequent fills
             do i = regh0, regl0, -1
                do k = regl2, regh2
                   do j = regl1, regh1
-                     dest(i,j,k) = 2.d0 * dest(regh0,j,k) -
-     &                             src(bbh0-(i-regl0),j,k)
+                     dest(i,j,k,nc) = 2.d0 * dest(regh0,j,k, nc) -
+     &                             src(bbh0-(i-regl0),j,k, nc)
                   end do
                end do
             end do
@@ -505,8 +499,8 @@ c inflow face, so that binfil can be run for subsequent fills
             do j = regl1, regh1
                do k = regl2, regh2
                   do i = regl0, regh0
-                     dest(i,j,k) = 2.d0 * dest(i,regh1,k) -
-     &                             src(i,bbh1-(j-regl1),k)
+                     dest(i,j,k,nc) = 2.d0 * dest(i,regh1,k,nc) -
+     &                             src(i,bbh1-(j-regl1),k,nc)
                   end do
                end do
             end do
@@ -514,8 +508,8 @@ c inflow face, so that binfil can be run for subsequent fills
             do j = regh1, regl1, -1
                do k = regl2, regh2
                   do i = regl0, regh0
-                     dest(i,j,k) = 2.d0 * dest(i,regh1,k) -
-     &                             src(i,bbh1-(j-regl1),k)
+                     dest(i,j,k,nc) = 2.d0 * dest(i,regh1,k,nc) -
+     &                             src(i,bbh1-(j-regl1),k,nc)
                   end do
                end do
             end do
@@ -525,8 +519,8 @@ c inflow face, so that binfil can be run for subsequent fills
             do k = regl2, regh2
                do j = regl1, regh1
                   do i = regl0, regh0
-                     dest(i,j,k) = 2.d0 * dest(i,j,regh2) -
-     &                             src(i,j,bbh2-(k-regl2))
+                     dest(i,j,k,nc) = 2.d0 * dest(i,j,regh2,nc) -
+     &                             src(i,j,bbh2-(k-regl2),nc)
                   end do
                end do
             end do
@@ -534,13 +528,14 @@ c inflow face, so that binfil can be run for subsequent fills
             do k = regh2, regl2, -1
                do j = regl1, regh1
                   do i = regl0, regh0
-                     dest(i,j,k) = 2.d0 * dest(i,j,regh2) -
-     &                             src(i,j,bbh2-(k-regl2))
+                     dest(i,j,k,nc) = 2.d0 * dest(i,j,regh2,nc) -
+     &                             src(i,j,bbh2-(k-regl2),nc)
                   end do
                end do
             end do
          end if
       end if
+      end do
       end
 c-----------------------------------------------------------------------
 c Works for CELL-based velocity data.
@@ -551,22 +546,26 @@ c been altered by a call to fill_borders.
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
      &       bbl0,bbh0,bbl1,bbh1,bbl2,bbh2,
-     & idir)
+     & idir, ncomp)
+      integer ncomp
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer bbl0,bbh0,bbl1,bbh1,bbl2,bbh2
       integer idir
-      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
-      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
-      integer i, j, k
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
+     &   ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
+      integer i, j, k, nc
+      do nc = 1, ncomp
       if (idir .eq. 0) then
          if (regl0 .lt. bbh0) then
             do  i = regl0, regh0
                do k = regl2, regh2
                   do j = regl1, regh1
-                     dest(i,j,k) = src(bbl0,j,k) + src(bbl0+1,j,k) -
-     &                             src(bbh0-(i-regl0),j,k)
+                     dest(i,j,k,nc) = src(bbl0,j,k,nc) 
+     &                           + src(bbl0+1,j,k,nc) -
+     &                             src(bbh0-(i-regl0),j,k,nc)
                   end do
                end do
             end do
@@ -574,8 +573,9 @@ c been altered by a call to fill_borders.
             do i = regh0, regl0, -1
                do k = regl2, regh2
                   do j = regl1, regh1
-                     dest(i,j,k) = src(bbh0-1,j,k) + src(bbh0,j,k) -
-     &                             src(bbl0+(regh0-i),j,k)
+                     dest(i,j,k,nc) = src(bbh0-1,j,k,nc) 
+     &                + src(bbh0,j,k,nc) -
+     &                             src(bbl0+(regh0-i),j,k,nc)
                   end do
                end do
             end do
@@ -585,8 +585,9 @@ c been altered by a call to fill_borders.
             do j = regl1, regh1
                do k = regl2, regh2
                   do i = regl0, regh0
-                     dest(i,j,k) = src(i,bbl1,k) + src(i,bbl1+1,k) -
-     &                             src(i,bbh1-(j-regl1),k)
+                     dest(i,j,k,nc) = src(i,bbl1,k,nc)
+     &                 + src(i,bbl1+1,k,nc) -
+     &                             src(i,bbh1-(j-regl1),k,nc)
                   end do
                end do
             end do
@@ -594,8 +595,9 @@ c been altered by a call to fill_borders.
             do j = regh1, regl1, -1
                do k = regl2, regh2
                   do i = regl0, regh0
-                     dest(i,j,k) = src(i,bbh1-1,k) + src(i,bbh1,k) -
-     &                             src(i,bbl1+(regh1-j),k)
+                     dest(i,j,k,nc) = src(i,bbh1-1,k,nc)
+     &                 + src(i,bbh1,k,nc) -
+     &                             src(i,bbl1+(regh1-j),k,nc)
                   end do
                end do
             end do
@@ -605,8 +607,9 @@ c been altered by a call to fill_borders.
             do k = regl2, regh2
                do j = regl1, regh1
                   do i = regl0, regh0
-                     dest(i,j,k) = src(i,j,bbl2) + src(i,j,bbl2+1) -
-     &                             src(i,j,bbh2-(k-regl2))
+                     dest(i,j,k,nc) = src(i,j,bbl2,nc) 
+     &                     + src(i,j,bbl2+1,nc) -
+     &                             src(i,j,bbh2-(k-regl2),nc)
                   end do
                end do
             end do
@@ -614,14 +617,18 @@ c been altered by a call to fill_borders.
             do k = regh2, regl2, -1
                do j = regl1, regh1
                   do i = regl0, regh0
-                     dest(i,j,k) = src(i,j,bbh2-1) + src(i,j,bbh2) -
-     &                             src(i,j,bbl2+(regh2-k))
+                     dest(i,j,k,nc) = src(i,j,bbh2-1,nc)
+     &                      + src(i,j,bbh2,nc) -
+     &                             src(i,j,bbl2+(regh2-k),nc)
                   end do
                end do
             end do
          end if
       end if
+      end do
       end
+c-----------------------------------------------------------------------
+c     Interpolation routines
 c-----------------------------------------------------------------------
 c CELL-based data only.
       subroutine acint2(
@@ -629,16 +636,19 @@ c CELL-based data only.
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
      &       bbl0,bbh0,bbl1,bbh1,bbl2,bbh2, 
-     & ir, jr, kr)
+     & ir, jr, kr, ncomp)
+      integer ncomp
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer bbl0,bbh0,bbl1,bbh1,bbl2,bbh2
       integer ir, jr, kr
-      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
-      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
+     &    ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       double precision xoff, yoff, zoff, sx, sy, sz
-      integer ic, jc, kc, i, j, k
+      integer ic, jc, kc, i, j, k, nc
+      do nc = 1, ncomp
       do k = regl2, regh2
          kc = k/kr
          zoff = (mod(k,kr) + 0.5) / kr - 0.5
@@ -648,12 +658,14 @@ c CELL-based data only.
             do i = regl0, regh0
                ic = i/ir
                xoff = (mod(i,ir) + 0.5) / ir - 0.5
-               sz = 0.5 * (src(ic,jc,kc+1) - src(ic,jc,kc-1))
-               sy = 0.5 * (src(ic,jc+1,kc) - src(ic,jc-1,kc))
-               sx = 0.5 * (src(ic+1,jc,kc) - src(ic-1,jc,kc))
-               dest(i,j,k) = src(ic,jc,kc) + xoff*sx + yoff*sy + zoff*sz
+               sz = 0.5 * (src(ic,jc,kc+1,nc) - src(ic,jc,kc-1,nc))
+               sy = 0.5 * (src(ic,jc+1,kc,nc) - src(ic,jc-1,kc,nc))
+               sx = 0.5 * (src(ic+1,jc,kc,nc) - src(ic-1,jc,kc,nc))
+               dest(i,j,k,nc) = src(ic,jc,kc,nc) 
+     &          + xoff*sx + yoff*sy + zoff*sz
             end do
          end do
+      end do
       end do
       end
 c-----------------------------------------------------------------------
@@ -663,86 +675,38 @@ c NODE-based data only.
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
      &       bbl0,bbh0,bbl1,bbh1,bbl2,bbh2, 
-     & ir, jr, kr)
+     & ir, jr, kr, ncomp)
+      integer ncomp
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer bbl0,bbh0,bbl1,bbh1,bbl2,bbh2
       integer ir, jr, kr
-      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
-      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
+     &   ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       double precision p, q
-      integer ic, jc, kc, j, k, m
+      integer ic, jc, kc, j, k, m, nc
+      do nc = 1, ncomp
       do kc = bbl2, bbh2
          do jc = bbl1, bbh1
             do ic = bbl0, bbh0
-               dest(ir*ic,jr*jc,kr*kc) = src(ic,jc,kc)
+               dest(ir*ic,jr*jc,kr*kc, nc) = src(ic,jc,kc, nc)
             end do
          end do
       end do
-      if (kr .eq. 2) then
-         do kc = bbl2, bbh2-1
-            do jc = bbl1, bbh1
-               do ic = bbl0, bbh0
-                  dest(ir*ic,jr*jc,2*kc+1) = 0.5d0 * (src(ic,jc,kc) +
-     &                                                src(ic,jc,kc+1))
-               end do
-            end do
-         end do
-      else if (kr .eq. 4) then
-         do kc = bbl2, bbh2-1
-            do jc = bbl1, bbh1
-cdir$ ivdep
-               do ic = bbl0, bbh0
-                  dest(ir*ic,jr*jc,4*kc+2) = 0.5d0 *
-     &               (src(ic,jc,kc) + src(ic,jc,kc+1))
-                  dest(ir*ic,jr*jc,4*kc+1) = 0.5d0 *
-     &               (dest(ir*ic,jr*jc,4*kc) + dest(ir*ic,jr*jc,4*kc+2))
-                  dest(ir*ic,jr*jc,4*kc+3) = 0.5d0 *
-     &               (dest(ir*ic,jr*jc,4*kc+2) 
-     &                + dest(ir*ic,jr*jc,4*kc+4))
-               end do
-            end do
-         end do
-      else if (kr .ne. 1) then
          do m = 1, kr-1
             q = dble(m)/kr
             p = 1.0d0 - q
             do kc = bbl2, bbh2-1
                do jc = bbl1, bbh1
                   do ic = bbl0, bbh0
-                     dest(ir*ic,jr*jc,kr*kc+m) =
-     &                  p * src(ic,jc,kc) + q * src(ic,jc,kc+1)
+                     dest(ir*ic,jr*jc,kr*kc+m,nc) =
+     &                  p * src(ic,jc,kc,nc) + q * src(ic,jc,kc+1,nc)
                   end do
                end do
             end do
          end do
-      end if
-      if (jr .eq. 2) then
-         do jc = bbl1, bbh1-1
-            do ic = bbl0, bbh0
-cdir$ ivdep
-               do k = regl2, regh2
-                  dest(ir*ic,2*jc+1,k) = 0.5d0 *
-     &               (dest(ir*ic,2*jc,k) + dest(ir*ic,2*jc+2,k))
-               end do
-            end do
-         end do
-      else if (jr .eq. 4) then
-         do jc = bbl1, bbh1-1
-            do ic = bbl0, bbh0
-cdir$ ivdep
-               do k = regl2, regh2
-                  dest(ir*ic,4*jc+2,k) = 0.5d0 *
-     &               (dest(ir*ic,4*jc,k) + dest(ir*ic,4*jc+4,k))
-                  dest(ir*ic,4*jc+1,k) = 0.5d0 *
-     &               (dest(ir*ic,4*jc,k) + dest(ir*ic,4*jc+2,k))
-                  dest(ir*ic,4*jc+3,k) = 0.5d0 *
-     &               (dest(ir*ic,4*jc+2,k) + dest(ir*ic,4*jc+4,k))
-               end do
-            end do
-         end do
-      else if (jr .ne. 1) then
          do m = 1, jr-1
             q = dble(m)/jr
             p = 1.0d0 - q
@@ -750,68 +714,13 @@ cdir$ ivdep
                do ic = bbl0, bbh0
 cdir$ ivdep
                   do k = regl2, regh2
-                     dest(ir*ic,jr*jc+m,k) =
-     &                  p * dest(ir*ic,jr*jc,k) +
-     &                  q * dest(ir*ic,jr*(jc+1),k)
+                     dest(ir*ic,jr*jc+m,k,nc) =
+     &                  p * dest(ir*ic,jr*jc,k,nc) +
+     &                  q * dest(ir*ic,jr*(jc+1),k,nc)
                   end do
                end do
             end do
          end do
-      end if
-      if (ir .eq. 2) then
-         if (regh2 - regl2 .gt. regh1 - regl1) then
-            do ic = bbl0, bbh0-1
-               do j = regl1, regh1
-cdir$ ivdep
-                  do k = regl2, regh2
-                     dest(2*ic+1,j,k) = 0.5d0 *
-     &                  (dest(2*ic,j,k) + dest(2*ic+2,j,k))
-                  end do
-               end do
-            end do
-         else
-            do ic = bbl0, bbh0-1
-               do k = regl2, regh2
-cdir$ ivdep
-                  do j = regl1, regh1
-                     dest(2*ic+1,j,k) = 0.5d0 *
-     &                  (dest(2*ic,j,k) + dest(2*ic+2,j,k))
-                  end do
-               end do
-            end do
-         end if
-      else if (ir .eq. 4) then
-         if (regh2 - regl2 .gt. regh1 - regl1) then
-            do ic = bbl0, bbh0-1
-               do j = regl1, regh1
-cdir$ ivdep
-                  do k = regl2, regh2
-                     dest(4*ic+2,j,k) = 0.5d0 *
-     &                  (dest(4*ic,j,k) + dest(4*ic+4,j,k))
-                     dest(4*ic+1,j,k) = 0.5d0 *
-     &                  (dest(4*ic,j,k) + dest(4*ic+2,j,k))
-                     dest(4*ic+3,j,k) = 0.5d0 *
-     &                  (dest(4*ic+2,j,k) + dest(4*ic+4,j,k))
-                  end do
-               end do
-            end do
-         else
-            do ic = bbl0, bbh0-1
-               do k = regl2, regh2
-cdir$ ivdep
-                  do j = regl1, regh1
-                     dest(4*ic+2,j,k) = 0.5d0 *
-     &                  (dest(4*ic,j,k) + dest(4*ic+4,j,k))
-                     dest(4*ic+1,j,k) = 0.5d0 *
-     &                  (dest(4*ic,j,k) + dest(4*ic+2,j,k))
-                     dest(4*ic+3,j,k) = 0.5d0 *
-     &                  (dest(4*ic+2,j,k) + dest(4*ic+4,j,k))
-                  end do
-               end do
-            end do
-         end if
-      else if (ir .ne. 1) then
-         if (regh2 - regl2 .gt. regh1 - regl1) then
             do  m = 1, ir-1
                q = dble(m)/ir
                p = 1.0d0 - q
@@ -819,50 +728,39 @@ cdir$ ivdep
                   do k = regl2, regh2
 cdir$ ivdep
                      do j = regl1, regh1
-                        dest(ir*ic+m,j,k) =
-     &                     p * dest(ir*ic,j,k) +
-     &                     q * dest(ir*(ic+1),j,k)
+                        dest(ir*ic+m,j,k,nc) =
+     &                     p * dest(ir*ic,j,k,nc) +
+     &                     q * dest(ir*(ic+1),j,k,nc)
                      end do
                   end do
                end do
             end do
-         else
-            do  m = 1, ir-1
-               q = dble(m)/ir
-               p = 1.0d0 - q
-               do ic = bbl0, bbh0-1
-                  do k = regl2, regh2
-cdir$ ivdep
-                     do j = regl1, regh1
-                        dest(ir*ic+m,j,k) =
-     &                     p * dest(ir*ic,j,k) +
-     &                     q * dest(ir*(ic+1),j,k)
-                     end do
-                  end do
-               end do
-            end do
-         end if
-      end if
+      end do
       end
+c-----------------------------------------------------------------------
+c     Restrictions
 c-----------------------------------------------------------------------
 c CELL-based data only.
       subroutine acrst1(
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & ir, jr, kr, integ)
+     & ir, jr, kr, ncomp, integ)
+      integer ncomp
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer ir, jr, kr, integ
-      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
-      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
+     &   ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       double precision fac
-      integer i, j, k, l, m, n
+      integer i, j, k, l, m, n,nc
+      do nc = 1, ncomp
       do k = regl2, regh2
          do j = regl1, regh1
             do i = regl0, regh0
-               dest(i,j,k) = 0.d0
+               dest(i,j,k,nc) = 0.d0
             end do
          end do
       end do
@@ -872,8 +770,8 @@ c CELL-based data only.
                do k = regl2, regh2
                   do j = regl1, regh1
                      do i = regl0, regh0
-                        dest(i,j,k) = dest(i,j,k) +
-     &                    src(i*ir+m, j*jr+n, k*kr+l)
+                        dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &                    src(i*ir+m, j*jr+n, k*kr+l,nc)
                      end do
                   end do
                end do
@@ -885,11 +783,12 @@ c CELL-based data only.
          do k = regl2, regh2
             do j = regl1, regh1
                do i = regl0, regh0
-                  dest(i,j,k) = dest(i,j,k) * fac
+                  dest(i,j,k,nc) = dest(i,j,k,nc) * fac
                end do
             end do
          end do
       end if
+      end do
       end
 c-----------------------------------------------------------------------
 c NODE-based data only.
@@ -897,20 +796,25 @@ c NODE-based data only.
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & ir, jr, kr)
+     & ir, jr, kr, ncomp)
+      integer ncomp
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer ir, jr, kr
-      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
-      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      integer nc
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
+     &   ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       integer i, j, k
+      do nc = 1, ncomp
       do k = regl2, regh2
          do j = regl1, regh1
             do i = regl0, regh0
-               dest(i,j,k) = src(i*ir, j*jr, k*kr)
+               dest(i,j,k,nc) = src(i*ir, j*jr, k*kr, nc)
             end do
          end do
+      end do
       end do
       end
 c-----------------------------------------------------------------------
@@ -919,118 +823,23 @@ c NODE-based data only.
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & ir, jr, kr, integ)
+     & ir, jr, kr, ncomp, integ)
+      integer ncomp
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer ir, jr, kr, integ
-      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
-      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
+     &   ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       double precision fac0, fac1, fac2, fac
-      integer i, j, k, l, m, n
+      integer i, j, k, l, m, n, nc
       integer r,s
-      double precision RESTR2, RR0, RS0
-      double precision REST4A, REST4B, REST4C, REST4D, REST4E
-      RESTR2() = 0.125d0 * src(2*i,2*j,2*k) + 
-     &  0.0625d0   * (src(2*i,2*j,2*k-1) + src(2*i,2*j,2*k+1) + 
-     &                src(2*i,2*j-1,2*k) + src(2*i,2*j+1,2*k) + 
-     &                src(2*i-1,2*j,2*k) + src(2*i+1,2*j,2*k)) + 
-     &  0.03125d0  * (src(2*i,2*j-1,2*k-1) + src(2*i,2*j-1,2*k+1) + 
-     &                src(2*i,2*j+1,2*k-1) + src(2*i,2*j+1,2*k+1) + 
-     &                src(2*i-1,2*j,2*k-1) + src(2*i-1,2*j,2*k+1) + 
-     &                src(2*i+1,2*j,2*k-1) + src(2*i+1,2*j,2*k+1) + 
-     &                src(2*i-1,2*j-1,2*k) + src(2*i-1,2*j+1,2*k) + 
-     &                src(2*i+1,2*j-1,2*k) + src(2*i+1,2*j+1,2*k)) + 
-     &  0.015625d0 * (src(2*i-1,2*j-1,2*k-1) + src(2*i-1,2*j-1,2*k+1) + 
-     &                src(2*i-1,2*j+1,2*k-1) + src(2*i-1,2*j+1,2*k+1) + 
-     &                src(2*i+1,2*j-1,2*k-1) + src(2*i+1,2*j-1,2*k+1) + 
-     &                src(2*i+1,2*j+1,2*k-1) + src(2*i+1,2*j+1,2*k+1))
-
-      RR0(r) = (src(4*i-r,4*j-r,4*k) + src(4*i-r,4*j+r,4*k) + 
-     &          src(4*i+r,4*j-r,4*k) + src(4*i+r,4*j+r,4*k) + 
-     &          src(4*i-r,4*j,4*k-r) + src(4*i-r,4*j,4*k+r) + 
-     &          src(4*i+r,4*j,4*k-r) + src(4*i+r,4*j,4*k+r) + 
-     &          src(4*i,4*j-r,4*k-r) + src(4*i,4*j-r,4*k+r) + 
-     &          src(4*i,4*j+r,4*k-r) + src(4*i,4*j+r,4*k+r))
-      RS0(r,s) = (src(4*i-r,4*j-s,4*k) + src(4*i-r,4*j+s,4*k) + 
-     &            src(4*i+r,4*j-s,4*k) + src(4*i+r,4*j+s,4*k) + 
-     &            src(4*i-r,4*j,4*k-s) + src(4*i-r,4*j,4*k+s) + 
-     &            src(4*i+r,4*j,4*k-s) + src(4*i+r,4*j,4*k+s) + 
-     &            src(4*i,4*j-r,4*k-s) + src(4*i,4*j-r,4*k+s) + 
-     &            src(4*i,4*j+r,4*k-s) + src(4*i,4*j+r,4*k+s))
-      REST4A() = 0.015625d0 * src(4*i,4*j,4*k) +
-     &  0.01171875d0 * (src(4*i,4*j,4*k-1) + src(4*i,4*j,4*k+1) + 
-     &                  src(4*i,4*j-1,4*k) + src(4*i,4*j+1,4*k) + 
-     &                  src(4*i-1,4*j,4*k) + src(4*i+1,4*j,4*k)) + 
-     &  0.0078125d0  * (src(4*i,4*j,4*k-2) + src(4*i,4*j,4*k+2) + 
-     &                  src(4*i,4*j-2,4*k) + src(4*i,4*j+2,4*k) + 
-     &                  src(4*i-2,4*j,4*k) + src(4*i+2,4*j,4*k)) + 
-     &  0.00390625d0 * (src(4*i,4*j,4*k-3) + src(4*i,4*j,4*k+3) + 
-     &                  src(4*i,4*j-3,4*k) + src(4*i,4*j+3,4*k) + 
-     &                  src(4*i-3,4*j,4*k) + src(4*i+3,4*j,4*k))
-      REST4B() = 0.0087890625d0 * RR0(1) + 
-     &        0.00390625d0 * RR0(2) + 0.0009765625d0 * RR0(3)
-      REST4C() = 0.001953125d0 * (RS0(2,3) + RS0(3,2))
-      REST4D() = 0.005859375d0 * (RS0(1,2) + RS0(2,1))
-      REST4E() = 0.0029296875d0 * (RS0(1,3) + RS0(3,1))
-      if (ir .eq. 2 .and. jr .eq. 2 .and. kr .eq. 2) then
-           do k = regl2, regh2
-               do j = regl1, regh1
-                  do i = regl0, regh0
-                     dest(i,j,k) = RESTR2()
-                  end do
-               end do
-            end do
-      else if (ir .eq. 4 .and. jr .eq. 4 .and. kr .eq. 4) then
+      do nc = 1, ncomp
             do k = regl2, regh2
                do j = regl1, regh1
                   do i = regl0, regh0
-                     dest(i,j,k) = REST4A()
-                  end do
-                  do i = regl0, regh0
-                     dest(i,j,k) = dest(i,j,k) + REST4B()
-                  end do
-                  do i = regl0, regh0
-                     dest(i,j,k) = dest(i,j,k) + REST4C()
-                  end do
-                  do i = regl0, regh0
-                     dest(i,j,k) = dest(i,j,k) + REST4D()
-                  end do
-                  do i = regl0, regh0
-                     dest(i,j,k) = dest(i,j,k) + REST4E()
-                  end do
-               end do
-            end do
-            fac0 = 1.d0 / (ir*ir * jr*jr * kr*kr)
-            do l = 1, 3
-               fac2 = (4-l) * fac0
-               do n = 1, 3
-                  fac1 = (4-n) * fac2
-                  do m = 1, 3
-                     fac = (4-m) * fac1
-                     do k = regl2, regh2
-                        do j = regl1, regh1
-                           do i = regl0, regh0
-                              dest(i,j,k) = dest(i,j,k) +
-     &                  fac * (src(4*i-m,4*j-n,4*k-l)+
-     &                         src(4*i-m,4*j-n,4*k+l)+
-     &                         src(4*i-m,4*j+n,4*k-l)+
-     &                         src(4*i-m,4*j+n,4*k+l)+
-     &                         src(4*i+m,4*j-n,4*k-l)+
-     &                         src(4*i+m,4*j-n,4*k+l)+
-     &                         src(4*i+m,4*j+n,4*k-l)+
-     &                         src(4*i+m,4*j+n,4*k+l))
-                           end do
-                        end do
-                     end do
-                  end do
-               end do
-            end do
-      else
-            do k = regl2, regh2
-               do j = regl1, regh1
-                  do i = regl0, regh0
-                     dest(i,j,k) = 0.d0
+                     dest(i,j,k,nc) = 0.d0
                   end do
                end do
             end do
@@ -1047,32 +856,32 @@ c NODE-based data only.
                      do k = regl2, regh2
                         do j = regl1, regh1
                            do i = regl0, regh0
-                              dest(i,j,k) = dest(i,j,k) +
-     &                  fac * (src(i*ir-m,j*jr-n,k*kr-l)+
-     &                         src(i*ir-m,j*jr-n,k*kr+l)+
-     &                         src(i*ir-m,j*jr+n,k*kr-l)+
-     &                         src(i*ir-m,j*jr+n,k*kr+l)+
-     &                         src(i*ir+m,j*jr-n,k*kr-l)+
-     &                         src(i*ir+m,j*jr-n,k*kr+l)+
-     &                         src(i*ir+m,j*jr+n,k*kr-l)+
-     &                         src(i*ir+m,j*jr+n,k*kr+l))
+                              dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &                  fac * (src(i*ir-m,j*jr-n,k*kr-l,nc)+
+     &                         src(i*ir-m,j*jr-n,k*kr+l,nc)+
+     &                         src(i*ir-m,j*jr+n,k*kr-l,nc)+
+     &                         src(i*ir-m,j*jr+n,k*kr+l,nc)+
+     &                         src(i*ir+m,j*jr-n,k*kr-l,nc)+
+     &                         src(i*ir+m,j*jr-n,k*kr+l,nc)+
+     &                         src(i*ir+m,j*jr+n,k*kr-l,nc)+
+     &                         src(i*ir+m,j*jr+n,k*kr+l,nc))
                            end do
                         end do
                      end do
                   end do
                end do
             end do
-      end if
       if (integ .eq. 1) then
          fac = ir * jr * kr
             do k = regl2, regh2
                do j = regl1, regh1
                   do i = regl0, regh0
-                     dest(i,j,k) = fac * dest(i,j,k)
+                     dest(i,j,k,nc) = fac * dest(i,j,k,nc)
                   end do
                end do
             end do
          end if
+      end do
       end
 c-----------------------------------------------------------------------
 c NODE-based data only.
@@ -1082,15 +891,17 @@ c Handles coarse-fine face, with orientation determined by idim and idir
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & ir, jr, kr, idim, idir, integ)
+     & ir, jr, kr, idim, idir, ncomp, integ)
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer ir, jr, kr, idim, idir, integ
-      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
-      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      integer ncomp
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
+     &   ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       double precision fac0, fac1, fac2, fac
-      integer i, j, k, l, m, n
+      integer i, j, k, l, m, n, nc
       if (idim .eq. 0) then
          if (integ .eq. 0) then
             fac = (0.5d0 + 0.5d0 / ir)
@@ -1100,11 +911,14 @@ c Handles coarse-fine face, with orientation determined by idim and idir
             fac0 = 1.d0 / (ir * jr * kr)
          end if
          i = regl0
+         do nc = 1, ncomp
          do k = regl2, regh2
             do j = regl1, regh1
-               dest(i,j,k) = fac * src(i*ir,j*jr,k*kr)
+               dest(i,j,k,nc) = fac * src(i*ir,j*jr,k*kr,nc)
             end do
          end do
+         end do
+         do nc = 1, ncomp
          do l = 0, kr-1
             fac2 = (kr-l) * fac0
             if (l .eq. 0) fac2 = 0.5d0 * fac2
@@ -1115,15 +929,16 @@ c Handles coarse-fine face, with orientation determined by idim and idir
                   fac = (ir-abs(m)) * fac1
                   do k = regl2, regh2
                      do j = regl1, regh1
-                        dest(i,j,k) = dest(i,j,k) +
-     &                       fac * (src(i*ir+m,j*jr-n,k*kr-l) +
-     &                              src(i*ir+m,j*jr-n,k*kr+l) +
-     &                              src(i*ir+m,j*jr+n,k*kr-l) +
-     &                              src(i*ir+m,j*jr+n,k*kr+l))
+                        dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &                       fac * (src(i*ir+m,j*jr-n,k*kr-l,nc) +
+     &                              src(i*ir+m,j*jr-n,k*kr+l,nc) +
+     &                              src(i*ir+m,j*jr+n,k*kr-l,nc) +
+     &                              src(i*ir+m,j*jr+n,k*kr+l,nc))
                      end do
                   end do
                end do
             end do
+         end do
          end do
       else if (idim .eq. 1) then
          if (integ .eq. 0) then
@@ -1134,12 +949,15 @@ c Handles coarse-fine face, with orientation determined by idim and idir
             fac0 = 1.d0 / (ir * jr * kr)
          end if
          j = regl1
+         do nc = 1, ncomp
          do k = regl2, regh2
             do i = regl0, regh0
-               dest(i,j,k) = fac * src(i*ir,j*jr,k*kr)
+               dest(i,j,k,nc) = fac * src(i*ir,j*jr,k*kr,nc)
             end do
          end do
+         end do
          fac0 = 1.d0 / (ir*ir * jr*jr * kr*kr)
+         do nc = 1, ncomp
          do l = 0, kr-1
             fac2 = (kr-l) * fac0
             if (l .eq. 0) fac2 = 0.5d0 * fac2
@@ -1150,15 +968,16 @@ c Handles coarse-fine face, with orientation determined by idim and idir
                   if (m .eq. 0) fac = 0.5d0 * fac
                   do k = regl2, regh2
                      do i = regl0, regh0
-                        dest(i,j,k) = dest(i,j,k) +
-     &                       fac * (src(i*ir-m,j*jr+n,k*kr-l) +
-     &                              src(i*ir-m,j*jr+n,k*kr+l) +
-     &                              src(i*ir+m,j*jr+n,k*kr-l) +
-     &                              src(i*ir+m,j*jr+n,k*kr+l))
+                        dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &                       fac * (src(i*ir-m,j*jr+n,k*kr-l,nc) +
+     &                              src(i*ir-m,j*jr+n,k*kr+l,nc) +
+     &                              src(i*ir+m,j*jr+n,k*kr-l,nc) +
+     &                              src(i*ir+m,j*jr+n,k*kr+l,nc))
                      end do
                   end do
                end do
             end do
+         end do
          end do
       else
          if (integ .eq. 0) then
@@ -1169,12 +988,15 @@ c Handles coarse-fine face, with orientation determined by idim and idir
             fac0 = 1.d0 / (ir * jr * kr)
          end if
          k = regl2
+         do nc = 1, ncomp
          do j = regl1, regh1
             do i = regl0, regh0
-               dest(i,j,k) = fac * src(i*ir,j*jr,k*kr)
+               dest(i,j,k,nc) = fac * src(i*ir,j*jr,k*kr,nc)
             end do
          end do
+         end do
          fac0 = 1.d0 / (ir*ir * jr*jr * kr*kr)
+         do nc = 1, ncomp
          do l = idir, idir*(kr-1), idir
             fac2 = (kr-abs(l)) * fac0
             do n = 0, jr-1
@@ -1185,15 +1007,16 @@ c Handles coarse-fine face, with orientation determined by idim and idir
                   if (m .eq. 0) fac = 0.5d0 * fac
                   do j = regl1, regh1
                      do i = regl0, regh0
-                        dest(i,j,k) = dest(i,j,k) +
-     &                       fac * (src(i*ir-m,j*jr-n,k*kr+l) +
-     &                              src(i*ir-m,j*jr+n,k*kr+l) +
-     &                              src(i*ir+m,j*jr-n,k*kr+l) +
-     &                              src(i*ir+m,j*jr+n,k*kr+l))
+                        dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &                       fac * (src(i*ir-m,j*jr-n,k*kr+l,nc) +
+     &                              src(i*ir-m,j*jr+n,k*kr+l,nc) +
+     &                              src(i*ir+m,j*jr-n,k*kr+l,nc) +
+     &                              src(i*ir+m,j*jr+n,k*kr+l,nc))
                      end do
                   end do
                end do
             end do
+         end do
          end do
       end if
       end
@@ -1205,21 +1028,24 @@ c Handles any edge geometry except all-coarse or all-fine.
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & ir, jr, kr, ivect, ga, integ)
+     & ir, jr, kr, ivect, ga, ncomp, integ)
+      integer ncomp
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer ir, jr, kr, ivect(0:2), ga(0:1,0:1,0:1), integ
-      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
-      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
+     &   ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2,ncomp)
       double precision cube, center, cfac, fac0, fac1, fac2, fac
-      integer i, j, k, ii, ji, ki, idir, jdir, kdir, l, m, n
+      integer i, j, k, ii, ji, ki, idir, jdir, kdir, l, m, n, nc
       cube = ir * jr * kr
       if (ivect(0) .eq. 0) then
          j = regl1
          k = regl2
+         do nc = 1, ncomp
          do i = regl0, regh0
-            dest(i,j,k) = 0.d0
+            dest(i,j,k,nc) = 0.d0
          end do
 c center gets center plus two edges
          if (integ .eq. 0) then
@@ -1245,9 +1071,9 @@ c each quadrant is two octants and a face
                            fac = (ir-m) * fac1
                            if (m .eq. 0) fac = 0.5d0 * fac
                            do i = regl0, regh0
-                              dest(i,j,k) = dest(i,j,k) +
-     &                          fac * (src(i*ir-m,j*jr+n,k*kr+l) +
-     &                                 src(i*ir+m,j*jr+n,k*kr+l))
+                              dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &                          fac * (src(i*ir-m,j*jr+n,k*kr+l,nc) +
+     &                                 src(i*ir+m,j*jr+n,k*kr+l,nc))
                            end do
                         end do
                      end do
@@ -1270,9 +1096,9 @@ c each face is two faces and an edge
                      fac = (ir-m) * fac1
                      if (m .eq. 0) fac = 0.5d0 * fac
                      do i = regl0, regh0
-                        dest(i,j,k) = dest(i,j,k) +
-     &                    fac * (src(i*ir-m,j*jr+n,k*kr) +
-     &                           src(i*ir+m,j*jr+n,k*kr))
+                        dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &                    fac * (src(i*ir-m,j*jr+n,k*kr,nc) +
+     &                           src(i*ir+m,j*jr+n,k*kr,nc))
                      end do
                   end do
                end do
@@ -1291,9 +1117,9 @@ c each face is two faces and an edge
                      fac = (ir-m) * fac1
                      if (m .eq. 0) fac = 0.5d0 * fac
                      do i = regl0, regh0
-                        dest(i,j,k) = dest(i,j,k) +
-     &                    fac * (src(i*ir-m,j*jr,k*kr+l) +
-     &                           src(i*ir+m,j*jr,k*kr+l))
+                        dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &                    fac * (src(i*ir-m,j*jr,k*kr+l,nc) +
+     &                           src(i*ir+m,j*jr,k*kr+l,nc))
                      end do
                   end do
                end do
@@ -1303,14 +1129,16 @@ c each face is two faces and an edge
          end do
 c center
          do i = regl0, regh0
-            dest(i,j,k) = dest(i,j,k) +
-     &        center * src(i*ir,j*jr,k*kr)
+            dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &        center * src(i*ir,j*jr,k*kr,nc)
+         end do
          end do
       else if (ivect(1) .eq. 0) then
          i = regl0
          k = regl2
+         do nc = 1, ncomp
          do  j = regl1, regh1
-            dest(i,j,k) = 0.d0
+            dest(i,j,k,nc) = 0.d0
          end do
 c center gets center plus two edges
          if (integ .eq. 0) then
@@ -1336,9 +1164,9 @@ c each quadrant is two octants and a face
                         do m = idir, idir*(ir-1), idir
                            fac = (ir-abs(m)) * fac1
                            do j = regl1, regh1
-                              dest(i,j,k) = dest(i,j,k) +
-     &                          fac * (src(i*ir+m,j*jr-n,k*kr+l) +
-     &                                 src(i*ir+m,j*jr+n,k*kr+l))
+                              dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &                          fac * (src(i*ir+m,j*jr-n,k*kr+l,nc) +
+     &                                 src(i*ir+m,j*jr+n,k*kr+l,nc))
                            end do
                         end do
                      end do
@@ -1361,9 +1189,9 @@ c each face is two faces and an edge
                   do m = idir, idir*(ir-1), idir
                      fac = (ir-abs(m)) * fac1
                      do j = regl1, regh1
-                        dest(i,j,k) = dest(i,j,k) +
-     &                    fac * (src(i*ir+m,j*jr-n,k*kr) +
-     &                           src(i*ir+m,j*jr+n,k*kr))
+                        dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &                    fac * (src(i*ir+m,j*jr-n,k*kr,nc) +
+     &                           src(i*ir+m,j*jr+n,k*kr,nc))
                      end do
                   end do
                end do
@@ -1382,9 +1210,9 @@ c each face is two faces and an edge
                      fac = (jr-n) * fac1
                      if (n .eq. 0) fac = 0.5d0 * fac
                      do j = regl1, regh1
-                        dest(i,j,k) = dest(i,j,k) +
-     &                    fac * (src(i*ir,j*jr-n,k*kr+l) +
-     &                           src(i*ir,j*jr+n,k*kr+l))
+                        dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &                    fac * (src(i*ir,j*jr-n,k*kr+l,nc) +
+     &                           src(i*ir,j*jr+n,k*kr+l,nc))
                      end do
                   end do
                end do
@@ -1394,14 +1222,16 @@ c each face is two faces and an edge
          end do
 c center
          do j = regl1, regh1
-            dest(i,j,k) = dest(i,j,k) +
-     &        center * src(i*ir,j*jr,k*kr)
+            dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &        center * src(i*ir,j*jr,k*kr,nc)
+         end do
          end do
       else
          i = regl0
          j = regl1
+         do nc = 1, ncomp
          do k = regl2, regh2
-            dest(i,j,k) = 0.d0
+            dest(i,j,k,nc) = 0.d0
          end do
 c center gets center plus two edges
          if (integ .eq. 0) then
@@ -1427,9 +1257,9 @@ c each quadrant is two octants and a face
                         do m = idir, idir*(ir-1), idir
                            fac = (ir-abs(m)) * fac1
                            do k = regl2, regh2
-                              dest(i,j,k) = dest(i,j,k) +
-     &                          fac * (src(i*ir+m,j*jr+n,k*kr-l) +
-     &                                 src(i*ir+m,j*jr+n,k*kr+l))
+                              dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &                          fac * (src(i*ir+m,j*jr+n,k*kr-l,nc) +
+     &                                 src(i*ir+m,j*jr+n,k*kr+l,nc))
                            end do
                         end do
                      end do
@@ -1452,9 +1282,9 @@ c each face is two faces and an edge
                   do m = idir, idir*(ir-1), idir
                      fac = (ir-abs(m)) * fac1
                      do k = regl2, regh2
-                        dest(i,j,k) = dest(i,j,k) +
-     &                    fac * (src(i*ir+m,j*jr,k*kr-l) +
-     &                           src(i*ir+m,j*jr,k*kr+l))
+                        dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &                    fac * (src(i*ir+m,j*jr,k*kr-l,nc) +
+     &                           src(i*ir+m,j*jr,k*kr+l,nc))
                      end do
                   end do
                end do
@@ -1473,9 +1303,9 @@ c each face is two faces and an edge
                   do n = jdir, jdir*(jr-1), jdir
                      fac = (jr-abs(n)) * fac1
                      do k = regl2, regh2
-                        dest(i,j,k) = dest(i,j,k) +
-     &                    fac * (src(i*ir,j*jr+n,k*kr-l) +
-     &                           src(i*ir,j*jr+n,k*kr+l))
+                        dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &                    fac * (src(i*ir,j*jr+n,k*kr-l,nc) +
+     &                           src(i*ir,j*jr+n,k*kr+l,nc))
                      end do
                   end do
                end do
@@ -1485,8 +1315,9 @@ c each face is two faces and an edge
             end do
 c center
          do k = regl2, regh2
-            dest(i,j,k) = dest(i,j,k) +
-     &        center * src(i*ir,j*jr,k*kr)
+            dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &        center * src(i*ir,j*jr,k*kr,nc)
+         end do
          end do
       end if
       end
@@ -1498,19 +1329,22 @@ c Handles any corner geometry except all-coarse.
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & src,  srcl0,srch0,srcl1,srch1,srcl2,srch2,
-     & ir, jr, kr, ga, integ)
+     & ir, jr, kr, ga, ncomp, integ)
+      integer ncomp
       integer destl0,desth0,destl1,desth1,destl2,desth2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer ir, jr, kr, ga(0:1,0:1,0:1), integ
-      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2)
-      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2)
+      double precision dest(destl0:desth0,destl1:desth1,destl2:desth2,
+     &   ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,srcl2:srch2, ncomp)
       double precision cube, center, cfac, fac0, fac1, fac2, fac
-      integer i, j, k, ii, ji, ki, idir, jdir, kdir, l, m, n
+      integer i, j, k, ii, ji, ki, idir, jdir, kdir, l, m, n,nc
       i = regl0
       j = regl1
       k = regl2
-      dest(i,j,k) = 0.d0
+      do nc = 1, ncomp
+      dest(i,j,k,nc) = 0.d0
       cube = ir * jr * kr
       if (integ .eq. 0) then
          center = 1.d0 / cube
@@ -1534,8 +1368,8 @@ c octants
                         fac1 = (jr-abs(n)) * fac2
                         do m = idir, idir*(ir-1), idir
                            fac = (ir-abs(m)) * fac1
-                           dest(i,j,k) = dest(i,j,k) +
-     &                       fac * src(i*ir+m,j*jr+n,k*kr+l)
+                           dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &                       fac * src(i*ir+m,j*jr+n,k*kr+l,nc)
                         end do
                      end do
                   end do
@@ -1557,8 +1391,8 @@ c faces
                   fac1 = (jr-abs(n)) * fac2
                   do m = idir, idir*(ir-1), idir
                      fac = (ir-abs(m)) * fac1
-                     dest(i,j,k) = dest(i,j,k) +
-     &                 fac * src(i*ir+m,j*jr+n,k*kr)
+                     dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &                 fac * src(i*ir+m,j*jr+n,k*kr,nc)
                   end do
                end do
             else if (integ .eq. 0) then
@@ -1577,8 +1411,8 @@ c faces
                   fac1 = (kr-abs(l)) * fac2
                   do m = idir, idir*(ir-1), idir
                      fac = (ir-abs(m)) * fac1
-                     dest(i,j,k) = dest(i,j,k) +
-     &                 fac * src(i*ir+m,j*jr,k*kr+l)
+                     dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &                 fac * src(i*ir+m,j*jr,k*kr+l,nc)
                   end do
                end do
             else if (integ .eq. 0) then
@@ -1597,8 +1431,8 @@ c faces
                   fac1 = (kr-abs(l)) * fac2
                   do n = jdir, jdir*(jr-1), jdir
                      fac = (jr-abs(n)) * fac1
-                     dest(i,j,k) = dest(i,j,k) +
-     &                 fac * src(i*ir,j*jr+n,k*kr+l)
+                     dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &                 fac * src(i*ir,j*jr+n,k*kr+l,nc)
                   end do
                end do
             else if (integ .eq. 0) then
@@ -1615,8 +1449,8 @@ c edges
      &       ga(ii,1,0) + ga(ii,1,1) .eq. 4) then
             do m = idir, idir*(ir-1), idir
                fac = (ir-abs(m)) * fac1
-               dest(i,j,k) = dest(i,j,k) +
-     &           fac * src(i*ir+m,j*jr,k*kr)
+               dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &           fac * src(i*ir+m,j*jr,k*kr,nc)
             end do
          else if (integ .eq. 0) then
             center = center + cfac
@@ -1630,8 +1464,8 @@ c edges
      &       ga(1,ji,0) + ga(1,ji,1) .eq. 4) then
             do n = jdir, jdir*(jr-1), jdir
                fac = (jr-abs(n)) * fac1
-               dest(i,j,k) = dest(i,j,k) +
-     &            fac * src(i*ir,j*jr+n,k*kr)
+               dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &            fac * src(i*ir,j*jr+n,k*kr,nc)
             end do
          else if (integ .eq. 0) then
             center = center + cfac
@@ -1645,14 +1479,15 @@ c edges
      &       ga(1,0,ki) + ga(1,1,ki) .eq. 4) then
             do l = kdir, kdir*(kr-1), kdir
                fac = (kr-abs(l)) * fac1
-               dest(i,j,k) = dest(i,j,k) +
-     &           fac * src(i*ir,j*jr,k*kr+l)
+               dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &           fac * src(i*ir,j*jr,k*kr+l,nc)
             end do
          else if (integ .eq. 0) then
             center = center + cfac
          end if
       end do
 c center
-      dest(i,j,k) = dest(i,j,k) +
-     &  center * src(i*ir,j*jr,k*kr)
+      dest(i,j,k,nc) = dest(i,j,k,nc) +
+     &  center * src(i*ir,j*jr,k*kr,nc)
+      end do
       end

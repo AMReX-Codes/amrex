@@ -2,7 +2,7 @@
 #define _AMR_DEFS_H_
 
 //
-// $Id: amr_defs.H,v 1.12 1998-05-08 22:25:19 car Exp $
+// $Id: amr_defs.H,v 1.13 1998-05-15 00:31:48 car Exp $
 //
 
 #include <MultiFab.H>
@@ -26,6 +26,8 @@
 #define RealPS Real*, Real*, Real*
 #define CRealPS const Real*, const Real*, const Real*
 #endif
+
+#include "hgparallel.h"
 
 // index type helper functions:
 

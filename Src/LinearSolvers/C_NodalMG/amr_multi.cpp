@@ -386,7 +386,7 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2, Real tol, Real 
     ctmp.setVal(0.0); // ctmp.setBndry(0.0); // is necessary?
     if (lev > lev_min || res_norm > tol) 
     {
-	mg_cycle(mglev, (lev == lev_min) ? i1 : 0, i2, true);
+	mg_cycle(mglev, (lev == lev_min) ? i1 : 0, i2);
 	dtmp.plus(ctmp, 0, 1, 0);
     }
     
@@ -428,7 +428,7 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2, Real tol, Real 
 	    level_residual(rtmp, stmp, dtmp, mglev, false);
 	}
 	ctmp.setVal(0.0);
-	mg_cycle(mglev, 0, i2, true);
+	mg_cycle(mglev, 0, i2);
 	dtmp.plus(ctmp, 0, 1, 0);
 	if (lev < lev_max) 
 	{
@@ -467,9 +467,8 @@ Real amr_multigrid::ml_residual(int mglev, int lev)
     return mfnorm(resid[mglev]);
 }
 
-void amr_multigrid::mg_cycle(int mglev, int i1, int i2, bool is_zero)
+void amr_multigrid::mg_cycle(int mglev, int i1, int i2)
 {
-    assert(is_zero);
     if (mglev == 0)
     {
 	cgsolve(mglev);
@@ -479,7 +478,7 @@ void amr_multigrid::mg_cycle(int mglev, int i1, int i2, bool is_zero)
 	MultiFab& ctmp = corr[mglev];
 	MultiFab& wtmp = work[mglev];
 	
-	relax(mglev, i1, is_zero);
+	relax(mglev, i1, true);
 	
 	if (pcode >= 4  && ParallelDescriptor::IOProcessor()) 
 	{
@@ -495,7 +494,7 @@ void amr_multigrid::mg_cycle(int mglev, int i1, int i2, bool is_zero)
 	
 	mg_restrict_level(mglev-1, mglev);
 	corr[mglev-1].setVal(0.0);
-	mg_cycle(mglev-1, i1, i2, true);
+	mg_cycle(mglev-1, i1, i2);
 	//wtmp.assign(0.0);
 	mg_interpolate_level(mglev, mglev-1);
 	// Pitfall?  If corr and work both have borders, crud there will

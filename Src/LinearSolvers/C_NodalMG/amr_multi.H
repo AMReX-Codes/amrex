@@ -42,7 +42,7 @@ public:
     virtual void cgsolve(int mglev) = 0;
 protected:
     Real ml_cycle(int lev, int mglev, int i1, int i2, Real tol, Real res_norm_fine);
-    void mg_cycle(int mglev, int i1, int i2, bool is_zero);
+    void mg_cycle(int mglev, int i1, int i2);
     Real ml_residual(int mglev, int lev);
 
     void build_index();

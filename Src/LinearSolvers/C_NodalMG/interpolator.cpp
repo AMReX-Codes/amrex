@@ -11,8 +11,8 @@
 
 extern "C" 
 {
-    void FORT_FACINT2(Real*, intS, intS, const Real*, intS, intS, intRS);
-    void FORT_FANINT2(Real*, intS, intS, const Real*, intS, intS, intRS);
+    void FORT_FACINT2(Real*, intS, intS, const Real*, intS, intS, intRS, const int&);
+    void FORT_FANINT2(Real*, intS, intS, const Real*, intS, intS, intRS, const int&);
 }
 
 Box 
@@ -41,34 +41,19 @@ void bilinear_interpolator_class::fill(FArrayBox& patch,
 {
     if (patch.box().cellCentered()) 
     {
-	for (int i = 0; i < patch.nComp(); i++) 
-	{
-	    FORT_FACINT2(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
-		cgr.dataPtr(i), DIMLIST(cgr.box()), DIMLIST(cb),
-		D_DECL(rat[0], rat[1], rat[2]));
-	}
+	FORT_FACINT2(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), cgr.dataPtr(), DIMLIST(cgr.box()), DIMLIST(cb), D_DECL(rat[0], rat[1], rat[2]), patch.nComp());
     }
     else if (patch.box().type() == IntVect::TheNodeVector()) 
     {
 	const Box eregion = refine(cb, rat);
 	if (eregion == region) 
 	{
-	    for (int i = 0; i < patch.nComp(); i++) 
-	    {
-		FORT_FANINT2(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
-		    cgr.dataPtr(i), DIMLIST(cgr.box()), DIMLIST(cb),
-		    D_DECL(rat[0], rat[1], rat[2]));
-	    }
+	    FORT_FANINT2(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), cgr.dataPtr(), DIMLIST(cgr.box()), DIMLIST(cb), D_DECL(rat[0], rat[1], rat[2]), patch.nComp());
 	}
 	else 
 	{
 	    FArrayBox epatch(eregion, patch.nComp());
-	    for (int i = 0; i < patch.nComp(); i++) 
-	    {
-		FORT_FANINT2(epatch.dataPtr(i), DIMLIST(epatch.box()), DIMLIST(eregion),
-		    cgr.dataPtr(i), DIMLIST(cgr.box()), DIMLIST(cb),
-		    D_DECL(rat[0], rat[1], rat[2]));
-	    }
+	    FORT_FANINT2(epatch.dataPtr(), DIMLIST(epatch.box()), DIMLIST(eregion), cgr.dataPtr(), DIMLIST(cgr.box()), DIMLIST(cb), D_DECL(rat[0], rat[1], rat[2]), patch.nComp());
 	    patch.copy(epatch,region);
 	}
     }
