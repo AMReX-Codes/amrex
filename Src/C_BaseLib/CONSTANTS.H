@@ -2,7 +2,7 @@
 #define BL_CONSTANTS_H
 
 /*
- * $Id: CONSTANTS.H,v 1.11 2001-08-02 16:18:15 car Exp $
+ * $Id: CONSTANTS.H,v 1.12 2001-08-02 16:37:49 car Exp $
  */
 
 #include <REAL.H>
@@ -10,7 +10,7 @@
 
 #ifdef BL_LANG_FORT
 
-#define bigreal BL_REAL_N(1.0e,30)
+#define bigreal BL_REAL_E(1.0,30)
 #define zero    BL_REAL(0.0)
 #define one     BL_REAL(1.0)
 #define two     BL_REAL(2.0)
