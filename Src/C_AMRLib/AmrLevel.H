@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.33 1999-07-27 17:35:51 marc Exp $
+// $Id: AmrLevel.H,v 1.34 1999-08-13 16:28:57 propp Exp $
 //
 
 #include <REAL.H>
@@ -310,6 +310,14 @@ public:
         return desc_lst;
     }
     //
+    //@ManDoc: Returns list of derived variables.
+    //
+    static DeriveList& get_derive_lst ()
+    {
+        return derive_lst;
+    }
+
+    //
     //@ManDoc: Boundary condition access function.
     //
     Array<int> getBCArray (int State_Type,
@@ -339,6 +347,11 @@ public:
     //         the list of tagged points
     //
     virtual void manual_tags_placement(TagBoxArray& tags, IntVect& bf) {}
+
+    //
+    //@ManDoc: Modify list of variables to be plotted
+    // 
+    virtual void setPlotVariables();
 
 protected:
     //
