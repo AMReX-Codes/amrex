@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.41 1998-05-13 23:15:04 almgren Exp $
+// $Id: Amr.cpp,v 1.42 1998-05-14 22:08:50 almgren Exp $
 //
 
 #include <TagBox.H>
@@ -533,7 +533,7 @@ Amr::checkInput ()
 }
 
 void
-Amr::init (REAL stop_time)
+Amr::init (Real strt_time, Real stop_time)
 {
     TRACER("Amr::init()");
 
@@ -543,7 +543,7 @@ Amr::init (REAL stop_time)
     }
     else
     {
-        initialInit(stop_time);
+        initialInit(strt_time,stop_time);
         checkPoint();
         if (plot_int > 0 || plot_per > 0)
             writePlotFile();
@@ -551,7 +551,7 @@ Amr::init (REAL stop_time)
 }
 
 void
-Amr::initialInit (REAL stop_time)
+Amr::initialInit (Real strt_time, Real stop_time)
 {
     TRACER("Amr::initialInit()");
 
@@ -563,7 +563,6 @@ Amr::initialInit (REAL stop_time)
     //
     // Init problem dependent data.
     //
-    Real strt_time = 0;
     int  init = true;
     //
     // Populate integer array with name of `probin' file.
