@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.11 1997-11-10 21:29:48 lijewski Exp $
+// $Id: VisMF.H,v 1.12 1997-11-10 21:36:18 car Exp $
 //
 
 #include <MultiFab.H>
@@ -69,7 +69,7 @@ public:
         //
         // Construct from a MultiFab -- fills in all but m_fod member.
         //
-        Header (const MultiFab& mf, VisMF::How how);
+        Header (const MultiFab& mf, How how);
         //
         // The data.
         //

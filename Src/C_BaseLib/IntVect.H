@@ -4,7 +4,7 @@
 #define BL_INTVECT_H
 
 //
-// $Id: IntVect.H,v 1.3 1997-09-18 20:12:49 lijewski Exp $
+// $Id: IntVect.H,v 1.4 1997-11-10 21:36:18 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -375,6 +375,7 @@ protected:
 //
 //@ManDoc: A typedef to IntVect provided for backward compatibility. 
 //
+
 typedef IntVect INTVECT;
 
 //

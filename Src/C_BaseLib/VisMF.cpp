@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.11 1997-11-10 21:29:48 lijewski Exp $
+// $Id: VisMF.cpp,v 1.12 1997-11-10 21:36:19 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -247,7 +247,7 @@ VisMF::Write (const FArrayBox& fab,
               const aString&   filename,
               ostream&         os)
 {
-    VisMF::FabOnDisk fod(filename, os.tellp().offset());
+    VisMF::FabOnDisk fod(filename, os.tellp());
 
     fab.writeOn(os);
 

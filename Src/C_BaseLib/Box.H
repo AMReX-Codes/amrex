@@ -4,7 +4,7 @@
 #define BL_BOX_H
 
 //
-// $Id: Box.H,v 1.4 1997-10-21 21:55:53 vince Exp $
+// $Id: Box.H,v 1.5 1997-11-10 21:36:17 car Exp $
 //
 
 #ifdef NODEV
@@ -634,6 +634,7 @@ private:
 //
 //@ManDoc: BOX is a typedef for Box provided for backward compatibility.
 //
+
 typedef Box BOX;
 
 //

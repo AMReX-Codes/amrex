@@ -507,6 +507,11 @@ SOURCE=.\Utility.cpp
 !ENDIF 
 
 # End Source File
+# Begin Source File
+
+SOURCE=.\VisMF.cpp
+# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
+# End Source File
 # End Group
 # Begin Group "Header Files"
 
@@ -678,6 +683,10 @@ SOURCE=.\UseCount.H
 # Begin Source File
 
 SOURCE=.\Utility.H
+# End Source File
+# Begin Source File
+
+SOURCE=.\VisMF.H
 # End Source File
 # End Group
 # End Target
