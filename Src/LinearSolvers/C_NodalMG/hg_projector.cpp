@@ -513,10 +513,7 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 		    D_DECL(rat[0], rat[1], rat[2]), 
 		    &idim, &idir);
 #endif
-	if (jgrid < 0) 
-	{
-	    delete Scp;
-	}
+        delete Scp;
     }
     
 #if (BL_SPACEDIM == 3)
@@ -724,12 +721,9 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 			&idim, &idir, 0, 0);
 #endif
 	}
-	if (jgrid < 0) 
-	{
-	    for(int i = 0; i < BL_SPACEDIM; ++i)
-	    {
-		delete ucp[i];
-	    }
+        for(int i = 0; i < BL_SPACEDIM; ++i)
+        {
+	    delete ucp[i];
 	}
     }
     
@@ -1017,7 +1011,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 			&idir0, &idir1, &isRZ);
 	    for ( int i = 0; i < BL_SPACEDIM; ++i)
 	    {
-		if (jgrid < 0) delete ucp[i];
+		delete ucp[i];
 	    }
 	}
 	else if (geo == (level_interface::LL | level_interface::HH) || geo == (level_interface::LH | level_interface::HL)) 
@@ -1063,7 +1057,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    for(int i = 0; i < BL_SPACEDIM; ++i)
 	    {
 		delete uf[i];
-		if (jgrid < 0) delete ucp[i];
+		delete ucp[i];
 	    }
 	    // fill in the grids on the other sides, if any
 	    const Box& freg = lev_interface[mglev].box(0, icor);

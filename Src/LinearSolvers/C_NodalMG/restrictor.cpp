@@ -46,8 +46,24 @@ typedef void (*RESTFUN)(Real*, intS, intS, const Real*, intS, intRS, const int&,
 
 struct task_restriction_fill : public task
 {
-    task_restriction_fill(const RESTFUN ref_, MultiFab& m_, int ind_, const Box& pb_, const Box& cbox_, task_fab* tf_, const IntVect& rat_, int integrate_)
-	: ref(ref_), m(m_), ind(ind_), pb(pb_), cbox(cbox_), tf(tf_), rat(rat_), integrate(integrate_) {}
+    task_restriction_fill(const RESTFUN ref_, MultiFab& m_, int ind_, const Box& pb_, const Box& cbox_, task_fab* tf_, const IntVect& rat_,
+	int integrate_, int i1_ = 0, int i2_ = 0) 
+	: ref(ref_), m(m_), ind(ind_), pb(pb_), cbox(cbox_), tf(tf_), rat(rat_), integrate(integrate_), arg1(1), arg2(1) 
+    {
+	arg1[0] = i1_;
+	arg2[0] = i2_;
+    }
+    task_restriction_fill(const RESTFUN ref_, MultiFab& m_, int ind_, const Box& pb_, const Box& cbox_, task_fab* tf_, const IntVect& rat_,
+	int integrate_, const Array<int>& i1_) 
+	: ref(ref_), m(m_), ind(ind_), pb(pb_), cbox(cbox_), tf(tf_), rat(rat_), integrate(integrate_), arg1(i1_), arg2(1) 
+    {
+	arg2[0] = 0;
+    }
+    task_restriction_fill(const RESTFUN ref_, MultiFab& m_, int ind_, const Box& pb_, const Box& cbox_, task_fab* tf_, const IntVect& rat_,
+	int integrate_, const IntVect& i1_, const Array<int>& i2_) 
+	: ref(ref_), m(m_), ind(ind_), pb(pb_), cbox(cbox_), tf(tf_), rat(rat_), integrate(integrate_), arg1(i1_.getVect(), BL_SPACEDIM), arg2(i2_) 
+    {
+    }
     virtual bool ready();
 private:
     task_fab* tf;
@@ -68,7 +84,7 @@ task_restriction_fill::ready()
     tf->ready();
     const Box fb = tf->fab().box();
     (*ref)(m[ind].dataPtr(), DIMLIST(pb), DIMLIST(cbox), tf->fab().dataPtr(), DIMLIST(fb),
-	D_DECL(rat[0], rat[1], rat[2]), m.nComp(), &integrate, 0, 0);
+	D_DECL(rat[0], rat[1], rat[2]), m.nComp(), &integrate, arg1.dataPtr(), arg2.dataPtr());
 			//FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fine[igrid].dataPtr(), DIMLIST(fb), 
 			//    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
 
@@ -207,8 +223,6 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 	    if (region.intersects(cbox)) 
 	    {
 		// my argument list stuff
-		RESTFUN ref;
-		task_fab* tfab;
 		// This extends fine face by one coarse cell past coarse face:
 		cbox &= regplus;
 		int idim = lev_interface.fdim(iface);
@@ -222,8 +236,10 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 			if (igrid < 0)
 			    igrid = lev_interface.grid(level_interface::FACEDIM, iface, 1);
 			const Box& fb = fine[igrid].box();
-			ref = &FORT_FANRST2;
-			tfab = new task_fab_get(fine, igrid, fb);
+			task_fab* tfab = new task_fab_get(fine, igrid, fb);
+			tl.add_task(
+			    new task_restriction_fill(&FORT_FANRST2, dest, jgrid, pb, cbox, tfab, rat, integrate)
+			    );
 			//FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fine[igrid].dataPtr(), DIMLIST(fb), 
 			//    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
 		    }
@@ -232,8 +248,10 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 			Box fbox = grow(refine(cbox, rat), rat - IntVect::TheUnitVector());
 			// FArrayBox fgr(fbox, dest[jgrid].nComp());
 			// fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, level_interface::FACEDIM, iface);
-			ref = &FORT_FANRST2;
-			tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, level_interface::FACEDIM, iface);
+			task_fab* tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, level_interface::FACEDIM, iface);
+			tl.add_task(
+			    new task_restriction_fill(&FORT_FANRST2, dest, jgrid, pb, cbox, tfab, rat, integrate)
+			    );
 			//FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox), 
 			//    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
 		    }
@@ -247,8 +265,10 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		    {
 			// Usual case, a fine grid extends all along the face.
 			const Box& fb = fine[igrid].box();
-			ref = &FORT_FANFR2;
-			tfab = new task_fab_get(fine, igrid, fb);
+			task_fab* tfab = new task_fab_get(fine, igrid, fb);
+			tl.add_task(
+			    new task_restriction_fill(&FORT_FANFR2, dest, jgrid, pb, cbox, tfab, rat, integrate, idim, idir)
+			    );
 			//FORT_FANFR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fine[igrid].dataPtr(), DIMLIST(fb), 
 			//    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, &idim, &idir);
 		    }
@@ -262,13 +282,14 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 			    fbox.growLo(idim, 1 - rat[idim]);
 			// FArrayBox fgr(fbox, dest[jgrid].nComp());
 			// fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, level_interface::FACEDIM, iface);
-			tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, level_interface::FACEDIM, iface);
-			ref = &FORT_FANFR2;
+			task_fab* tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, level_interface::FACEDIM, iface);
+			tl.add_task(
+			    new task_restriction_fill(&FORT_FANFR2, dest, jgrid, pb, cbox, tfab, rat, integrate, idim, idir)
+			    );
 			// FORT_FANFR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
 			//    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, &idim, &idir);
 		    }
 		}
-		tl.add_task(new task_restriction_fill(ref, dest, jgrid, pb, cbox, tfab, rat, integrate));
 	    }
 	}
 	
@@ -281,8 +302,6 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 	    cbox.coarsen(rat);
 	    if (region.intersects(cbox)) 
 	    {
-		RESTFUN ref;
-		task_fab* tfab;
 		const unsigned int geo = lev_interface.geo(0, icor);
 		if (geo == level_interface::ALL && fine.nGrow() >= ratmax - 1) 
 		{ 
@@ -291,8 +310,10 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		    for (int itmp = 1; igrid < 0; itmp++)
 			igrid = lev_interface.grid(0, icor, itmp);
 		    const Box& fb = fine[igrid].box();
-		    ref = &FORT_FANRST2;
-		    tfab = new task_fab_get(fine, igrid, fb);
+		    task_fab* tfab = new task_fab_get(fine, igrid, fb);
+		    tl.add_task(
+			new task_restriction_fill(&FORT_FANRST2, dest, jgrid, pb, cbox, tfab, rat, integrate)
+			);
 		    // FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fine[igrid].dataPtr(), DIMLIST(fb),
 		    //	D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
 		}
@@ -302,8 +323,10 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		    const Box fb = refine(grow(cbox, 1), rat);
 		    // FArrayBox fgr(refine(grow(cbox, 1), rat), dest[jgrid].nComp());
 		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
-		    tfab = new task_fill_patch(fb, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor);
-		    ref = &FORT_FANRST2;
+		    task_fab* tfab = new task_fill_patch(fb, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor);
+		    tl.add_task(
+			new task_restriction_fill(&FORT_FANRST2, dest, jgrid, pb, cbox, tfab, rat, integrate)
+			);
 		    // FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fb),
 		    //	D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
 		}
@@ -319,8 +342,10 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 			fbox.growHi(idim, rat[idim]);
 		    // FArrayBox fgr(fbox, dest[jgrid].nComp());
 		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
-		    tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor);
-		    ref = &FORT_FANFR2;
+		    task_fab* tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor);
+		    tl.add_task(
+			new task_restriction_fill(&FORT_FANFR2, dest, jgrid, pb, cbox, tfab, rat, integrate, idim, idir)
+			);
 		    // FORT_FANFR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
 		    // 	D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, &idim, &idir);
 		}
@@ -352,8 +377,10 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		    }
 		    // FArrayBox fgr(fbox, dest[jgrid].nComp());
 		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
-		    tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor);
-		    ref = &FORT_FANOR2;
+		    task_fab* tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor);
+		    tl.add_task(
+			new task_restriction_fill(&FORT_FANOR2, dest, jgrid, pb, cbox, tfab, rat, integrate, idir0, idir1)
+			);
 		    //FORT_FANOR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
 		    //   D_DECL(rat[0], rat[1], rat[2]),dest.nComp(), &integrate, &idir0, &idir1);
 		}
@@ -364,8 +391,10 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		    // FArrayBox fgr(fbox, dest[jgrid].nComp());
 		    const int idir1 = (geo == (level_interface::LL | level_interface::HH)) ? 1 : -1;
 		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
-		    tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor);
-		    ref = &FORT_FANDR2;
+		    task_fab* tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor);
+		    tl.add_task(
+			new task_restriction_fill(&FORT_FANDR2, dest, jgrid, pb, cbox, tfab, rat, integrate, idir1)
+			);
 		    //FORT_FANDR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
 		    //   D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, &idir1, 0);
 		}
@@ -377,12 +406,13 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		    const int idir0 = ((geo & level_interface::XL) == level_interface::XL) ? -1 : 1;
 		    const int idir1 = ((geo & level_interface::YL) == level_interface::YL) ? -1 : 1;
 		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
-		    tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor);
-		    ref = &FORT_FANIR2;
+		    task_fab* tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor);
+		    tl.add_task(
+			new task_restriction_fill(&FORT_FANIR2, dest, jgrid, pb, cbox, tfab, rat, integrate, idir0, idir1)
+			);
 		    // FORT_FANIR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
 		   //	D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, &idir0, &idir1);
 		}
-		tl.add_task(new task_restriction_fill(ref, dest, jgrid, pb, cbox, tfab, rat, integrate));
 	    }
 	}
 	
@@ -397,8 +427,6 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 	    cbox.coarsen(rat);
 	    if (region.intersects(cbox)) 
 	    {
-		RESTFUN ref;
-		task_fab* tfab;
 		// This extends fine edge by one coarse cell past coarse face:
 		cbox &= regplus;
 		cbox.grow(t - IntVect::TheUnitVector());
@@ -409,8 +437,10 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		    for (int itmp = 1; igrid < 0; itmp++)
 			igrid = lev_interface.grid(1, iedge, itmp);
 		    const Box& fb = fine[igrid].box();
-		    tfab = new task_fab_get(fine, igrid, fb);
-		    ref = &FORT_FANRST2;
+		    task_fab* tfab = new task_fab_get(fine, igrid, fb);
+		    tl.add_task(
+			new task_restriction_fill(&FORT_FANRST2, dest, jgrid, pb, cbox, tfab, rat, integrate)
+			);
 		    //FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fine[igrid].dataPtr(), DIMLIST(fb),
 		    //   D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
 		}
@@ -419,23 +449,26 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		    Box fbox = grow(refine(cbox, rat), rat - IntVect::TheUnitVector());
 		    // FArrayBox fgr(fbox, dest[jgrid].nComp());
 		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 1, iedge);
-		    tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, 1, iedge);
+		    task_fab* tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, 1, iedge);
 		    if (geo == level_interface::ALL) 
 		    { 
 			// fine grid on all sides
-			ref = &FORT_FANRST2;
+			tl.add_task(
+			    new task_restriction_fill(&FORT_FANRST2, dest, jgrid, pb, cbox, tfab, rat, integrate)
+			    );
 			// FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
 			//    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
 		    }
 		    else 
 		    {
 			Array<int> ga = lev_interface.geo_array(1, iedge);
-			ref = &FORT_FANER2;
+			tl.add_task(
+			    new task_restriction_fill(&FORT_FANER2, dest, jgrid, pb, cbox, tfab, rat, integrate, t, ga)
+			    );
 			// FORT_FANER2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
 			//    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, t.getVect(), ga.dataPtr());
 		    }
 		}
-		tl.add_task(new task_restriction_fill(ref, dest, jgrid, pb, cbox, tfab, rat, integrate));
 	    }
 	}
 	for (int icor = 0; icor < lev_interface.nboxes(0); icor++) 
@@ -446,8 +479,6 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 	    cbox.coarsen(rat);
 	    if (region.intersects(cbox)) 
 	    {
-		RESTFUN ref;
-		task_fab* tfab;
 		const unsigned int geo = lev_interface.geo(0, icor);
 		if (geo == level_interface::ALL && fine.nGrow() >= ratmax - 1) 
 		{
@@ -455,8 +486,10 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		    for (int itmp = 1; igrid < 0; itmp++)
 			igrid = lev_interface.grid(0, icor, itmp);
 		    const Box& fb = fine[igrid].box();
-		    tfab = new task_fab_get(fine, igrid, fb);
-		    ref = &FORT_FANRST2;
+		    task_fab* tfab = new task_fab_get(fine, igrid, fb);
+		    tl.add_task(
+			new task_restriction_fill(&FORT_FANRST2, dest, jgrid, pb, cbox, tfab, rat, integrate)
+			);
 		    //FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fine[igrid].dataPtr(), DIMLIST(fb),
 			// D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
 		}
@@ -465,23 +498,26 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		    Box fbox = grow(refine(cbox, rat), rat - IntVect::TheUnitVector());
 		    // FArrayBox fgr(fbox, dest[jgrid].nComp());
 		    // fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
-		    tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor);
+		    task_fab* tfab = new task_fill_patch(fbox, dest[jgrid].nComp(), fine, lev_interface, bdy, 0, icor);
 		    if (geo == level_interface::ALL) 
 		    { 
 			// fine grid on all sides
-			ref = &FORT_FANRST2;
+			tl.add_task(
+			    new task_restriction_fill(&FORT_FANRST2, dest, jgrid, pb, cbox, tfab, rat, integrate)
+			    );
 			//FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
 			//    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
 		    }
 		    else 
 		    {
 			Array<int> ga = lev_interface.geo_array(0, icor);
-			ref = &FORT_FANCR2;
+			tl.add_task(
+			    new task_restriction_fill(&FORT_FANCR2, dest, jgrid, pb, cbox, tfab, rat, integrate, ga)
+			    );
 			// FORT_FANCR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
 			//    D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, ga.dataPtr(), 0);
 		    }
 		}
-		tl.add_task(new task_restriction_fill(ref, dest, jgrid, pb, cbox, tfab, rat, integrate));
 	    }
 	}
 #endif
