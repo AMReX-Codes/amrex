@@ -218,6 +218,8 @@ c-----------------------------------------------------------------------
      &                          dest(i,j) - dest(i+1,j))
          end do
       end do
+#if 0
+c     We dont want to use these terms for the five-point stencil.
       if (irz .eq. 1) then
          fac = hx / (12.d0 * hy)
          do j = fregl1, fregh1
@@ -230,6 +232,7 @@ c-----------------------------------------------------------------------
             end do
          end do
       end if
+#endif
       end
 c-----------------------------------------------------------------------
       subroutine hgdiv(src, srcl0, srch0, srcl1, srch1,
@@ -258,6 +261,8 @@ c-----------------------------------------------------------------------
      &                 vf(i,j)   - vf(i,j-1)))
          end do
       end do
+#if 0
+c     We dont want to use these terms for the five-point stencil.
       if (irz .eq. 1) then
          fac = hx / (12.d0 * hy)
          r1  = (fregl0 - 0.5d0) * hx
@@ -277,6 +282,7 @@ c-----------------------------------------------------------------------
             end do
          end do
       end if
+#endif
       end
 c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
@@ -316,6 +322,8 @@ c Note---only generates values at coarse points along edge of fine grid
      &        (hym1 * (vc(iuc,j) - vc(iuc,j-1)) -
      &         hxm1 * idir * (uc(iuc,j) + uc(iuc,j-1)))
          end do
+#if 0
+c  We dont want to use these extra terms for the five-point stencil
          if (irz .eq. 1) then
             r = (iuc + 0.5d0) * (hx * ir)
             rfac = (ir * hx) / (6.d0 * jr * hy * r)
@@ -326,6 +334,7 @@ c Note---only generates values at coarse points along edge of fine grid
             r = (iuf + 0.5d0) * hx
             rfac = hx / (6.d0 * hy * r)
          end if
+#endif
          fac0 = fac0 / (ir * jr * jr)
          hxm1 = ir * hxm1
          hym1 = jr * hym1
@@ -340,6 +349,8 @@ c Note---only generates values at coarse points along edge of fine grid
      &            hym1 * (vf(iuf,j-n) - vf(iuf,j-n-1) +
      &                    vf(iuf,j+n) - vf(iuf,j+n-1)))
             end do
+#if 0
+c  We dont want to use these extra terms for the five-point stencil
             if (irz .eq. 1) then
                do j = jr*cregl1, jr*cregh1, jr
                   src(i,j) = src(i,j) - fac1 *
@@ -347,6 +358,7 @@ c Note---only generates values at coarse points along edge of fine grid
      &                              vf(iuf,j+n) - vf(iuf,j+n-1)))
                end do
             end if
+#endif
          end do
       else
          j = cregl1
@@ -365,6 +377,8 @@ c Note---only generates values at coarse points along edge of fine grid
      &        (hxm1 * (uc(i,juc) - uc(i-1,juc)) -
      &         hym1 * idir * (vc(i,juc) + vc(i-1,juc)))
          end do
+#if 0
+c  We dont want to use these extra terms for the five-point stencil
          if (irz .eq. 1 .and. cregh0 .lt. imax) then
             do i = cregl0, cregh0
                r = (i + 0.5d0) * (hx * ir)
@@ -382,6 +396,7 @@ c This should only occur with a corner at the outer boundary:
             src(i*ir,j*jr) = src(i*ir,j*jr) + fac0 *
      &           (idir * (rfac1 * vc(i,juc) - rfac0 * vc(i-1,juc)))
          end if
+#endif
          fac0 = fac0 / (ir * ir * jr)
          hxm1 = ir * hxm1
          hym1 = jr * hym1
@@ -396,6 +411,8 @@ c This should only occur with a corner at the outer boundary:
      &            hym1 * idir * (vf(i-m,juf) + vf(i-m-1,juf) +
      &                           vf(i+m,juf) + vf(i+m-1,juf)))
             end do
+#if 0
+c  We dont want to use these extra terms for the five-point stencil
             if (irz .eq. 1 .and. cregh0 .lt. imax) then
                do i = ir*cregl0, ir*cregh0, ir
                   r = (i + 0.5d0) * hx
@@ -427,6 +444,7 @@ c This should only occur with a corner at the outer boundary:
      &                       rfac1p * vf(i+m,juf) 
      &                     - rfac0p * vf(i+m-1,juf)))
             end if
+#endif
          end do
       end if
       end
@@ -475,6 +493,8 @@ c Note---only generates values at coarse points along edge of fine grid
      &                  uc(iuc,juc+jdir)) +
      &   hym1 * jdir * (vc(iuc,juc+jdir) - vc(iuc,juc) -
      &                  vc(iuc+idir,juc)))
+#if 0
+c  We dont want to use these extra terms for the five-point stencil
       if (irz .eq. 1) then
          r = (iuc + 0.5d0) * (hx * ir)
          rfac0 = (ir * hx) / (6.d0 * jr * hy * (r + idir * hx * ir))
@@ -483,6 +503,7 @@ c Note---only generates values at coarse points along edge of fine grid
      &     (idir * jdir * (rfac1 * (vc(iuc,juc+jdir) - vc(iuc,juc)) +
      &                     rfac0 *  vc(iuc+idir,juc)))
       end if
+#endif
       i = i * ir
       j = j * jr
       fac0 = fac0 / (ir * jr)
@@ -490,18 +511,23 @@ c Note---only generates values at coarse points along edge of fine grid
       hym1 = jr * hym1
       src(i,j) = src(i,j) + fac0 *
      &  (hxm1 * idir * uf(iuf,juf) + hym1 * jdir * vf(iuf,juf))
+#if 0
+c  We dont want to use these extra terms for the five-point stencil
       if (irz .eq. 1) then
          r = (iuf + 0.5d0) * hx
          rfac = hx / (6.d0 * hy * r)
          src(i,j) = src(i,j) - fac0 *
      &     (idir * jdir * rfac * vf(iuf,juf))
       end if
+#endif
       fac0 = fac0 / ir
       do m = idir, idir*(ir-1), idir
          fac1 = (ir-abs(m)) * fac0
          src(i,j) = src(i,j) + fac1 *
      &     (hxm1 * idir * (uf(iuf+m,juf) - uf(iuf+m-idir,juf)) +
      &      hym1 * jdir * (vf(iuf+m,juf) + vf(iuf+m-idir,juf)))
+#if 0
+c  We dont want to use these extra terms for the five-point stencil
          if (irz .eq. 1) then
             r = (iuf + 0.5d0) * hx
             rfac0p = hx / (6.d0 * hy * (r + (m - idir) * hx))
@@ -510,6 +536,7 @@ c Note---only generates values at coarse points along edge of fine grid
      &        (idir * jdir * (rfac1p * vf(iuf+m,juf) -
      &                        rfac0p * vf(iuf+m-idir,juf)))
          end if
+#endif
       end do
       fac0 = ir * fac0 / jr
       do n = jdir, jdir*(jr-1), jdir
@@ -517,12 +544,15 @@ c Note---only generates values at coarse points along edge of fine grid
          src(i,j) = src(i,j) + fac1 *
      &     (hxm1 * idir * (uf(iuf,juf+n) + uf(iuf,juf+n-jdir)) +
      &      hym1 * jdir * (vf(iuf,juf+n) - vf(iuf,juf+n-jdir)))
+#if 0
+c  We dont want to use these extra terms for the five-point stencil
          if (irz .eq. 1) then
             r = (iuf + 0.5d0) * hx
             rfac1  = hx / (6.d0 * hy * r)
             src(i,j) = src(i,j) - fac1 *
      &        idir * jdir * rfac1 * (vf(iuf,juf+n) - vf(iuf,juf+n-jdir))
          end if
+#endif
       end do
       end
 c-----------------------------------------------------------------------
@@ -567,12 +597,15 @@ c Note---only generates values at coarse points along edge of fine grid
       end if
       src(i*ir,j*jr) = -fac0 *
      &  (hxm1 * idir * uc(iuc,juc) + hym1 * jdir * vc(iuc,juc))
+#if 0
+c  We dont want to use these extra terms for the five-point stencil
       if (irz .eq. 1) then
          r = (iuc + 0.5d0) * (hx * ir)
          rfac = (ir * hx) / (6.d0 * jr * hy * r)
          src(i*ir,j*jr) = src(i*ir,j*jr) - fac0 *
      &     (idir * jdir * rfac * vc(iuc,juc))
       end if
+#endif
       i = i * ir
       j = j * jr
       fac0 = fac0 / (ir * jr)
@@ -583,6 +616,8 @@ c Note---only generates values at coarse points along edge of fine grid
      &                  uf(iuf,juf-jdir)) +
      &   hym1 * jdir * (vf(iuf,juf) + vf(iuf-idir,juf) -
      &                  vf(iuf,juf-jdir)))
+#if 0
+c  We dont want to use these extra terms for the five-point stencil
       if (irz .eq. 1) then
          r = (iuf + 0.5d0) * hx
          rfac0 = hx / (6.d0 * hy * (r - idir * hx))
@@ -591,12 +626,15 @@ c Note---only generates values at coarse points along edge of fine grid
      &     (idir * jdir * (rfac1 * (vf(iuf,juf-jdir) - vf(iuf,juf)) +
      &                     rfac0 *  vf(iuf-idir,juf)))
       end if
+#endif
       fac0 = fac0 / ir
       do m = idir, idir*(ir-1), idir
          fac1 = (ir-abs(m)) * fac0
          src(i,j) = src(i,j) + fac1 *
      &     (hxm1 * idir * (uf(iuf-m,juf) - uf(iuf-m-idir,juf)) +
      &      hym1 * jdir * (vf(iuf-m,juf) + vf(iuf-m-idir,juf)))
+#if 0
+c  We dont want to use these extra terms for the five-point stencil
          if (irz .eq. 1) then
             r = (iuf + 0.5d0) * hx
             rfac0m = hx / (6.d0 * hy * (r - (m + idir) * hx))
@@ -605,6 +643,7 @@ c Note---only generates values at coarse points along edge of fine grid
      &        (idir * jdir * (rfac1m * vf(iuf-m,juf) -
      &                        rfac0m * vf(iuf-m-idir,juf)))
          end if
+#endif
       end do
       fac0 = ir * fac0 / jr
       do n = jdir, jdir*(jr-1), jdir
@@ -612,12 +651,15 @@ c Note---only generates values at coarse points along edge of fine grid
          src(i,j) = src(i,j) + fac1 *
      &     (hxm1 * idir * (uf(iuf,juf-n) + uf(iuf,juf-n-jdir)) +
      &      hym1 * jdir * (vf(iuf,juf-n) - vf(iuf,juf-n-jdir)))
+#if 0
+c  We dont want to use these extra terms for the five-point stencil
          if (irz .eq. 1) then
             r = (iuf + 0.5d0) * hx
             rfac1  = hx / (6.d0 * hy * r)
             src(i,j) = src(i,j) - fac1 *
      &        idir * jdir * rfac1 * (vf(iuf,juf-n) - vf(iuf,juf-n-jdir))
          end if
+#endif
       end do
       end
 c-----------------------------------------------------------------------
@@ -656,6 +698,8 @@ c Note---only generates values at coarse points along edge of fine grid
       src(i*ir,j*jr) = fac0 *
      &  (hxm1 * (uc(i,juc-jdir) - uc(i-1,juc)) +
      &   hym1 * jdir * (vc(i-1,juc) - vc(i,juc-jdir)))
+#if 0
+c  We dont want to use these extra terms for the five-point stencil
       if (irz .eq. 1) then
          r = (i + 0.5d0) * (hx * ir)
          rfac0 = (ir * hx) / (6.d0 * jr * hy * (r - hx * ir))
@@ -664,6 +708,7 @@ c Note---only generates values at coarse points along edge of fine grid
      &     (jdir * (rfac1 * vc(i,juc-jdir) +
      &              rfac0 * vc(i-1,juc)))
       end if
+#endif
       i = i * ir
       j = j * jr
       fac0 = fac0 / (ir * jr)
@@ -672,6 +717,8 @@ c Note---only generates values at coarse points along edge of fine grid
       src(i,j) = src(i,j) + fac0 *
      &  (hxm1 * (uf(i,juf) - uf(i-1,juf-jdir)) +
      &   hym1 * jdir * (vf(i,juf) - vf(i-1,juf-jdir)))
+#if 0
+c  We dont want to use these extra terms for the five-point stencil
       if (irz .eq. 1) then
          r = (i + 0.5d0) * hx
          rfac0 = hx / (6.d0 * hy * (r - hx))
@@ -680,6 +727,7 @@ c Note---only generates values at coarse points along edge of fine grid
      &     (jdir * (rfac1 * vf(i,juf) +
      &              rfac0 * vf(i-1,juf-jdir)))
       end if
+#endif
       fac0 = fac0 / ir
       do m = 1, ir-1
          fac1 = (ir-m) * fac0
@@ -688,6 +736,8 @@ c Note---only generates values at coarse points along edge of fine grid
      &              uf(i-m,juf-jdir) - uf(i-m-1,juf-jdir)) +
      &      hym1 * jdir * (vf(i+m,juf) + vf(i+m-1,juf) -
      &                     vf(i-m,juf-jdir) - vf(i-m-1,juf-jdir)))
+#if 0
+c  We dont want to use these extra terms for the five-point stencil
          if (irz .eq. 1) then
             r = (i + 0.5d0) * hx
             rfac0m = hx / (6.d0 * hy * (r - (m + 1) * hx))
@@ -700,6 +750,7 @@ c Note---only generates values at coarse points along edge of fine grid
      &                 rfac1m * vf(i-m,juf-jdir) +
      &                 rfac0m * vf(i-m-1,juf-jdir)))
          end if
+#endif
       end do
       fac0 = ir * fac0 / jr
       do n = jdir, jdir*(jr-1), jdir
@@ -709,6 +760,8 @@ c Note---only generates values at coarse points along edge of fine grid
      &              uf(i-1,juf-n) - uf(i-1,juf-n-jdir)) +
      &      hym1 * jdir * (vf(i,juf+n) - vf(i,juf+n-jdir) +
      &                     vf(i-1,juf-n) - vf(i-1,juf-n-jdir)))
+#if 0
+c  We dont want to use these extra terms for the five-point stencil
          if (irz .eq. 1) then
             r = (i + 0.5d0) * hx
             rfac0  = hx / (6.d0 * hy * (r - hx))
@@ -717,6 +770,7 @@ c Note---only generates values at coarse points along edge of fine grid
      &        (jdir * (rfac1 * (vf(i,juf+n) - vf(i,juf+n-jdir)) -
      &                 rfac0 * (vf(i-1,juf-n) - vf(i-1,juf-n-jdir))))
          end if
+#endif
       end do
       end
 c-----------------------------------------------------------------------
