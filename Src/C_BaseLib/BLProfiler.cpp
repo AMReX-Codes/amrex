@@ -1,5 +1,5 @@
 //
-// $Id: BLProfiler.cpp,v 1.6 2001-07-20 19:45:42 car Exp $
+// $Id: BLProfiler.cpp,v 1.7 2001-07-21 17:37:09 car Exp $
 //
 
 #include <winstd.H>
@@ -631,6 +631,11 @@ Profiler::stop()
     started = false;
 }
 
+#ifdef WIN32
+void
+Profiler::glean()
+{}
+#else
 void
 Profiler::glean()
 {
@@ -845,6 +850,7 @@ Profiler::glean()
 	os << "}";
     }
 }
+#endif
 
 bool
 Profiler::is_profiling()
