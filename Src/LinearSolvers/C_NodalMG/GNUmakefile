@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.49 2001-08-01 21:50:50 lijewski Exp $
+# $Id: GNUmakefile,v 1.50 2002-09-03 16:34:54 car Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -13,8 +13,9 @@ PROFILE   = FALSE
 DIM       = 2
 DIM       = 3
 COMP      = cxx
-COMP	  = g++
 COMP      = KCC
+COMP	  = g++
+FCOMP	  = g77
 USE_MPI   = FALSE
 USE_MPI   = TRUE
 NAMESPACE = TRUE
@@ -83,7 +84,8 @@ ifeq ($(EBASE),proj)
 
   vpath %.cpp	. $(TOP)/BoxLib $(TOP)/bndrylib
   vpath %.H     . $(TOP)/BoxLib $(TOP)/bndrylib
-  vpath %.F	.                  $(TOP)/bndrylib
+  vpath %.F	. $(TOP)/BoxLib $(TOP)/bndrylib
+  vpath %.f	. $(TOP)/BoxLib $(TOP)/bndrylib
   all: $(executable)
 endif
 
