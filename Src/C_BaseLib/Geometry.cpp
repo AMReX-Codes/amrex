@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.43 1999-01-20 04:41:36 lijewski Exp $
+// $Id: Geometry.cpp,v 1.44 1999-03-12 21:17:39 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -14,8 +14,6 @@
 RealBox Geometry::prob_domain;
 
 bool Geometry::is_periodic[BL_SPACEDIM];
-
-static int MaxFPBCacheSize = 10;  // Also settable as geometry.fpb_cache_size
 
 Geometry::FPBList Geometry::m_FPBCache;
 
@@ -77,12 +75,10 @@ Geometry::buildPIRMMap (MultiFab&  mf,
                         const FPB& fpb) const
 {
     assert(isAnyPeriodic());
-    assert(MaxFPBCacheSize > 0);
-
-    if (m_FPBCache.size() == MaxFPBCacheSize)
-        m_FPBCache.pop_back();
 
     m_FPBCache.push_front(fpb);
+
+    //cout << "*** FPB Cache Size = " << m_FPBCache.size() << endl;
 
     PIRMMap& pirm = m_FPBCache.front().m_pirm;
 
@@ -252,12 +248,6 @@ Geometry::Setup ()
     int coord;
     pp.get("coord_sys",coord);
     SetCoord( (CoordType) coord );
-
-    if (pp.contains("fpb_cache_size"))
-    {
-        pp.get("fpb_cache_size",MaxFPBCacheSize);
-        assert(MaxFPBCacheSize > 0);
-    }
 
     Array<Real> prob_lo(BL_SPACEDIM);
     pp.getarr("prob_lo",prob_lo,0,BL_SPACEDIM);

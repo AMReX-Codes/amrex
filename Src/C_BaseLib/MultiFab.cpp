@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.33 1999-03-12 02:55:26 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.34 1999-03-12 21:17:12 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -615,11 +615,6 @@ typedef list<SI> SIList;
 //
 static SIList SICache;
 
-//
-// Maximum size of the cache.
-//
-const int MaxSICacheSize = 10;
-
 void
 MultiFab::FlushSICache ()
 {
@@ -642,16 +637,12 @@ BuildFBsirec (const SI&       si,
     assert(si.m_ngrow >= 0);
     assert(mf.nGrow() == si.m_ngrow);
     assert(mf.boxArray() == si.m_ba);
-
-    if (SICache.size() == MaxSICacheSize)
-        //
-        // Don't let cache get too big.
-        //
-        SICache.pop_back();
     //
     // Insert new ones at beginning of list.
     //
     SICache.push_front(si);
+
+    //cout << "*** FB Cache Size = " << SICache.size() << endl;
 
     vector<SIRec>& sirec = SICache.front().m_sirec;
 
