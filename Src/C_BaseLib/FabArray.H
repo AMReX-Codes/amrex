@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.128 2001-07-19 21:11:50 lijewski Exp $
+// $Id: FabArray.H,v 1.129 2001-07-20 17:20:48 car Exp $
 //
 
 #include <climits>
@@ -124,7 +124,7 @@ private:
 //
 // A forward declaration.
 //
-template <class T, class FAB> class FabArrayCopyDescriptor;
+template <class FAB> class FabArrayCopyDescriptor;
 
 /*@ManDoc: An enumumeration that controls whether or not the memory for a FAB
            will actually be allocated on construction of a FabArray.
@@ -193,17 +193,19 @@ enum FabAlloc
 */
 
 
-template <class T, class FAB>
+template <class FAB>
 class FabArray
 {
-
 public:
+
+    typedef typename FAB::value_type value_type;
+
     //
-    //@ManDoc: Constructs an empty FabArray<T,FAB>.
+    //@ManDoc: Constructs an empty FabArray<FAB>.
     //
     FabArray ();
 
-    /*@ManDoc: Construct a FabArray<T,FAB> with a valid region defined by bxs
+    /*@ManDoc: Construct a FabArray<FAB> with a valid region defined by bxs
                and a region of definition defined by the grow factor ngrow.
                If mem\_mode is defined to be Fab\_allocate then FABs are
                allocated for each Box in the BoxArray.  The size of the Kth
@@ -312,13 +314,13 @@ public:
     //
     //@ManDoc: Set all components in the valid region of each FAB to val.
     //
-    void setVal (T val);
+    void setVal (value_type val);
 
     /*@ManDoc: Set the value of num\_comp components in the valid region of
                each FAB in the FabArray, starting at component comp to val.
                Also set the value of nghost boundary cells.
     */
-    void setVal (T   val,
+    void setVal (value_type   val,
                  int comp,
                  int num_comp,
                  int nghost = 0);
@@ -328,7 +330,7 @@ public:
                as nghost boundary cells, to val, provided they also intersect
                with the Box region.
     */
-    void setVal (T          val,
+    void setVal (value_type          val,
                  const Box& region,
                  int        comp,
                  int        num_comp,
@@ -337,25 +339,25 @@ public:
     /*@ManDoc: Set all components in the valid region of each FAB in the
                FabArray to val, including nghost boundary cells.
     */
-    void setVal (T   val,
+    void setVal (value_type   val,
                  int nghost);
 
     /*@ManDoc: Set all components in the valid region of each FAB in the
                FabArray to val, including nghost boundary cells, that also
                intersect the Box region.
     */
-    void setVal (T          val,
+    void setVal (value_type          val,
                  const Box& region,
                  int        nghost);
     //
     //@ManDoc: Set all values in the boundary region to val.
     //
-    void setBndry (T val);
+    void setBndry (value_type val);
 
     /*@ManDoc: Set ncomp values in the boundary region, starting at
                start\_comp to val.
     */
-    void setBndry (T   val,
+    void setBndry (value_type   val,
                    int strt_comp,
                    int ncomp);
 
@@ -364,7 +366,7 @@ public:
                is performed on the region of intersection.  The intersection
                is restricted to the valid region of each FAB.
     */
-    void copy (const FabArray<T,FAB>& fa);
+    void copy (const FabArray<FAB>& fa);
 
     /*@ManDoc: This function copies data from src to this FabArray.  Each FAB
                in src is intersected with all FABs in this FabArray and a copy
@@ -375,7 +377,7 @@ public:
                the source and destination FabArray have identical valid
                regions.
     */
-    void copy (const FabArray<T,FAB>& src,
+    void copy (const FabArray<FAB>& src,
                int                    src_comp,
                int                    dest_comp,
                int                    num_comp);
@@ -433,15 +435,15 @@ private:
     //
     // These are disallowed.
     //
-    FabArray (const FabArray<T,FAB>&);
-    FabArray<T,FAB>& operator= (const FabArray<T,FAB>&);
+    FabArray (const FabArray<FAB>&);
+    FabArray<FAB>& operator= (const FabArray<FAB>&);
     //
     // This is used locally in all define functions.
     //
     void AllocFabs ();
 };
 
-template <class T, class FAB> class ConstFabArrayIterator;
+template <class FAB> class ConstFabArrayIterator;
 
 //
 //@Man:
@@ -453,14 +455,14 @@ template <class T, class FAB> class ConstFabArrayIterator;
   only those FABs in the FabArray that are actually owned by that CPU.
 */
 
-template <class T, class FAB>
+template <class FAB>
 class FabArrayIterator
 {
   public:
     //
     //@ManDoc: Construct a FabArrayIterator.
     //
-    FabArrayIterator(FabArray<T,FAB>& fabarray);
+    FabArrayIterator(FabArray<FAB>& fabarray);
     //
     //@ManDoc: Returns a reference to the FAB at which we currently point.
     //
@@ -496,7 +498,7 @@ class FabArrayIterator
     //
     //@ManDoc: Increments iterator to the next FAB in the FabArray that we own.
     //
-    FabArrayIterator<T,FAB>& operator++ ();
+    FabArrayIterator<FAB>& operator++ ();
     //
     //@ManDoc: Is the iterator valid i.e. is it associated with a FAB?
     //
@@ -508,11 +510,11 @@ class FabArrayIterator
     //
     //@ManDoc: Constant reference to FabArray over which we're iterating.
     //
-    const FabArray<T,FAB>& theFabArray () const { return fabArray; }
+    const FabArray<FAB>& theFabArray () const { return fabArray; }
 
   protected:
 
-    FabArray<T,FAB>& fabArray;
+    FabArray<FAB>& fabArray;
     int              currentIndex;
 
   private:
@@ -520,8 +522,8 @@ class FabArrayIterator
     // These are disallowed.
     //
     FabArrayIterator ();
-    FabArrayIterator (const FabArrayIterator<T,FAB>&);
-    FabArrayIterator<T,FAB>& operator= (const FabArrayIterator<T,FAB>&);
+    FabArrayIterator (const FabArrayIterator<FAB>&);
+    FabArrayIterator<FAB>& operator= (const FabArrayIterator<FAB>&);
 };
 
 //
@@ -536,20 +538,20 @@ class FabArrayIterator
   FabArrays.
 */
 
-template <class T, class FAB>
+template <class FAB>
 class DependentFabArrayIterator
 {
   public:
     //
     //@ManDoc: Constructor over a mutable dependent FabArray.
     //
-    DependentFabArrayIterator(FabArrayIterator<T,FAB>& controllerfaiter,
-                              FabArray<T,FAB>&         dependentfabarray);
+    DependentFabArrayIterator(FabArrayIterator<FAB>& controllerfaiter,
+                              FabArray<FAB>&         dependentfabarray);
     //
     //@ManDoc: Constructor over an immutable dependent FabArray.
     //
-    DependentFabArrayIterator(FabArrayIterator<T,FAB>& controllerfaiter,
-                              const FabArray<T,FAB>&   dependentfabarray);
+    DependentFabArrayIterator(FabArrayIterator<FAB>& controllerfaiter,
+                              const FabArray<FAB>&   dependentfabarray);
     //
     //@ManDoc: Returns a reference to the FAB at which we currently point.
     //
@@ -589,16 +591,16 @@ class DependentFabArrayIterator
 
   protected:
 
-    FabArray<T,FAB>&         fabArray;
-    FabArrayIterator<T,FAB>* controller;
+    FabArray<FAB>&         fabArray;
+    FabArrayIterator<FAB>* controller;
 
   private:
     //
     // These are disallowed.
     //
     DependentFabArrayIterator ();
-    DependentFabArrayIterator (const DependentFabArrayIterator<T,FAB> &);
-    DependentFabArrayIterator<T,FAB>& operator=(const DependentFabArrayIterator<T,FAB> &);
+    DependentFabArrayIterator (const DependentFabArrayIterator<FAB> &);
+    DependentFabArrayIterator<FAB>& operator=(const DependentFabArrayIterator<FAB> &);
 };
 
 //
@@ -612,14 +614,14 @@ class DependentFabArrayIterator
   a constant iterator; you can access the FABs but you cannot change them.
 */
 
-template <class T, class FAB>
+template <class FAB>
 class ConstFabArrayIterator
 {
   public:
     //
     //@ManDoc: Construct a ConstFabArrayIterator.
     //
-    ConstFabArrayIterator (const FabArray<T,FAB>& fabarray);
+    ConstFabArrayIterator (const FabArray<FAB>& fabarray);
     //
     //@ManDoc: Returns a constant reference to the FAB at which we currently point.
     //
@@ -643,7 +645,7 @@ class ConstFabArrayIterator
     //
     //@ManDoc: Increments iterator to the next FAB in the FabArray that we own.
     //
-    ConstFabArrayIterator<T,FAB>& operator++ ();
+    ConstFabArrayIterator<FAB>& operator++ ();
     //
     //@ManDoc: Is the iterator valid i.e. is it associated with a FAB?
     //
@@ -655,11 +657,11 @@ class ConstFabArrayIterator
     //
     //@ManDoc: Constant reference to FabArray over which we're iterating.
     //
-    const FabArray<T,FAB>& theFabArray () const { return fabArray; }
+    const FabArray<FAB>& theFabArray () const { return fabArray; }
 
   protected:
 
-    const FabArray<T,FAB>& fabArray;
+    const FabArray<FAB>& fabArray;
     int                    currentIndex;
 
   private:
@@ -667,8 +669,8 @@ class ConstFabArrayIterator
     // These are disallowed.
     //
     ConstFabArrayIterator ();
-    ConstFabArrayIterator (const ConstFabArrayIterator<T,FAB> &);
-    ConstFabArrayIterator<T,FAB>& operator= (const ConstFabArrayIterator<T,FAB> &);
+    ConstFabArrayIterator (const ConstFabArrayIterator<FAB> &);
+    ConstFabArrayIterator<FAB>& operator= (const ConstFabArrayIterator<FAB> &);
 };
 
 //
@@ -683,15 +685,15 @@ class ConstFabArrayIterator
   more dependent FabArrays.
 */
 
-template <class T, class FAB>
+template <class FAB>
 class ConstDependentFabArrayIterator
 {
   public:
     //
     //@ManDoc: The constructor.
     //
-    ConstDependentFabArrayIterator(ConstFabArrayIterator<T,FAB>& cfai,
-                                   const FabArray<T,FAB>&        fa);
+    ConstDependentFabArrayIterator(ConstFabArrayIterator<FAB>& cfai,
+                                   const FabArray<FAB>&        fa);
     //
     //@ManDoc: Returns constant reference to the FAB at which we currently point.
     //
@@ -719,16 +721,16 @@ class ConstDependentFabArrayIterator
 
   protected:
 
-    const FabArray<T,FAB>&        fabArray;
-    ConstFabArrayIterator<T,FAB>* controller;
+    const FabArray<FAB>&        fabArray;
+    ConstFabArrayIterator<FAB>* controller;
 
   private:
     //
     // These are disallowed.
     //
     ConstDependentFabArrayIterator ();
-    ConstDependentFabArrayIterator (const ConstDependentFabArrayIterator<T,FAB> &);
-    ConstDependentFabArrayIterator<T,FAB>& operator= (const ConstDependentFabArrayIterator<T,FAB> &);
+    ConstDependentFabArrayIterator (const ConstDependentFabArrayIterator<FAB> &);
+    ConstDependentFabArrayIterator<FAB>& operator= (const ConstDependentFabArrayIterator<FAB> &);
 };
 
 class FabArrayId
@@ -812,7 +814,7 @@ FabCopyDescriptor<FAB>::~FabCopyDescriptor ()
 // from fabarray on the local processor (myProc).
 //
 
-template <class T, class FAB>
+template <class FAB>
 class FabArrayCopyDescriptor
 {
   typedef std::multimap<int,FabCopyDescriptor<FAB>*> FCDMap;
@@ -826,7 +828,7 @@ class FabArrayCopyDescriptor
 
     ~FabArrayCopyDescriptor ();
 
-    FabArrayId RegisterFabArray(FabArray<T,FAB> *fabarray);
+    FabArrayId RegisterFabArray(FabArray<FAB> *fabarray);
 
     FillBoxId AddBox (FabArrayId fabarrayid,
                       const Box& destFabBox,
@@ -891,7 +893,7 @@ class FabArrayCopyDescriptor
                      BoxDomain& unfilledBoxDomain,
                      BoxList&   filledBoxes);
 
-    std::vector<FabArray<T,FAB>*> fabArrays;
+    std::vector<FabArray<FAB>*> fabArrays;
     std::vector<FCDMap>           fabCopyDescList;
     std::vector<FabComTag>        fabComTagList;
     int                           nextFillBoxId;
@@ -901,38 +903,38 @@ class FabArrayCopyDescriptor
     //
     // These are disallowed.
     //
-    FabArrayCopyDescriptor (const FabArrayCopyDescriptor<T,FAB>&);
-    FabArrayCopyDescriptor<T,FAB>& operator= (const FabArrayCopyDescriptor<T,FAB> &);
+    FabArrayCopyDescriptor (const FabArrayCopyDescriptor<FAB>&);
+    FabArrayCopyDescriptor<FAB>& operator= (const FabArrayCopyDescriptor<FAB> &);
 };
 
 //
 // Inlines.
 //
 
-template <class T, class FAB>
+template <class FAB>
 int
-FabArray<T,FAB>::nGrow () const
+FabArray<FAB>::nGrow () const
 {
     return n_grow;
 }
 
-template <class T, class FAB>
+template <class FAB>
 const BoxArray&
-FabArray<T,FAB>::boxArray () const
+FabArray<FAB>::boxArray () const
 {
     return boxarray;
 }
 
-template <class T, class FAB>
+template <class FAB>
 const Box&
-FabArray<T,FAB>::box (int K) const
+FabArray<FAB>::box (int K) const
 {
     return boxarray[K];
 }
 
-template <class T, class FAB>
+template <class FAB>
 Box
-FabArray<T,FAB>::fabbox (int K) const
+FabArray<FAB>::fabbox (int K) const
 {
     //
     // Do not use fabparray[K] because it may not be valid in parallel.
@@ -940,68 +942,68 @@ FabArray<T,FAB>::fabbox (int K) const
     return BoxLib::grow(boxarray[K], n_grow);
 }
 
-template <class T, class FAB>
+template <class FAB>
 int
-FabArray<T,FAB>::length () const
+FabArray<FAB>::length () const
 {
     return boxarray.length();
 }
 
-template <class T, class FAB>
+template <class FAB>
 const FAB&
-FabArray<T,FAB>::operator[] (int K) const
+FabArray<FAB>::operator[] (int K) const
 {
     return fabparray[K];
 }
 
-template <class T, class FAB>
+template <class FAB>
 FAB&
-FabArray<T,FAB>::operator[] (int K)
+FabArray<FAB>::operator[] (int K)
 {
     return fabparray[K];
 }
 
-template <class T, class FAB>
+template <class FAB>
 int
-FabArray<T,FAB>::nComp () const
+FabArray<FAB>::nComp () const
 {
     return n_comp;
 }
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArray<T,FAB>::clear ()
+FabArray<FAB>::clear ()
 {
     fabparray.clear();
 }
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArray<T,FAB>::setVal (T   val,
+FabArray<FAB>::setVal (value_type   val,
                          int nghost)
 {
     setVal(val,0,n_comp,nghost);
 }
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArray<T,FAB>::setVal (T          val,
+FabArray<FAB>::setVal (value_type          val,
                          const Box& region,
                          int        nghost)
 {
     setVal(val,region,0,n_comp,nghost);
 }
 
-template <class T, class FAB>
-FabArray<T,FAB>::FabArray ()
+template <class FAB>
+FabArray<FAB>::FabArray ()
     :
     fabparray(0,PArrayManage),
     n_grow(0),
     n_comp(0)
 {}
 
-template <class T, class FAB>
-FabArray<T,FAB>::FabArray (const BoxArray& bxs,
+template <class FAB>
+FabArray<FAB>::FabArray (const BoxArray& bxs,
                            int             ngrow,
                            FabAlloc        alloc)
     :
@@ -1010,8 +1012,8 @@ FabArray<T,FAB>::FabArray (const BoxArray& bxs,
     define(bxs,ngrow,alloc);
 }
 
-template <class T, class FAB>
-FabArray<T,FAB>::FabArray (const BoxArray& bxs,
+template <class FAB>
+FabArray<FAB>::FabArray (const BoxArray& bxs,
                            int             nvar,
                            int             ngrow,
                            FabAlloc        alloc)
@@ -1021,19 +1023,19 @@ FabArray<T,FAB>::FabArray (const BoxArray& bxs,
     define(bxs,nvar,ngrow,alloc);
 }
 
-template <class T, class FAB>
-FabArray<T,FAB>::~FabArray ()
+template <class FAB>
+FabArray<FAB>::~FabArray ()
 {}
 
-template <class T, class FAB>
+template <class FAB>
 bool
-FabArray<T,FAB>::ok () const
+FabArray<FAB>::ok () const
 {
     BL_ASSERT(boxarray.ready());
 
     long isok = 1;
 
-    ConstFabArrayIterator<T,FAB> fai(*this);
+    ConstFabArrayIterator<FAB> fai(*this);
 
     for ( ; fai.isValid() && isok; ++fai)
     {
@@ -1053,9 +1055,9 @@ FabArray<T,FAB>::ok () const
     return isok != 0;
 }
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArray<T,FAB>::define (const BoxArray& bxs,
+FabArray<FAB>::define (const BoxArray& bxs,
                          int             ngrow,
                          FabAlloc        alloc)
 {
@@ -1072,9 +1074,9 @@ FabArray<T,FAB>::define (const BoxArray& bxs,
     }
 }
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArray<T,FAB>::define (const BoxArray& bxs,
+FabArray<FAB>::define (const BoxArray& bxs,
                          int             nvar,
                          int             ngrow,
                          FabAlloc        alloc)
@@ -1089,9 +1091,9 @@ FabArray<T,FAB>::define (const BoxArray& bxs,
         AllocFabs();
 }
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArray<T,FAB>::define (const BoxArray&            bxs,
+FabArray<FAB>::define (const BoxArray&            bxs,
                          int                        nvar,
                          int                        ngrow,
 			 const DistributionMapping& dm,
@@ -1107,11 +1109,11 @@ FabArray<T,FAB>::define (const BoxArray&            bxs,
         AllocFabs();
 }
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArray<T,FAB>::AllocFabs ()
+FabArray<FAB>::AllocFabs ()
 {
-    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
+    for (FabArrayIterator<FAB> fai(*this); fai.isValid(); ++fai)
     {
         Box tmp = BoxLib::grow(fai.validbox(), n_grow);
 
@@ -1119,9 +1121,9 @@ FabArray<T,FAB>::AllocFabs ()
     }
 }
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArray<T,FAB>::setFab (int  boxno,
+FabArray<FAB>::setFab (int  boxno,
                          FAB* elem)
 {
     //
@@ -1139,31 +1141,31 @@ FabArray<T,FAB>::setFab (int  boxno,
     fabparray.set(boxno,elem);
 }
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArray<T,FAB>::setBndry (T val)
+FabArray<FAB>::setBndry (value_type val)
 {
     setBndry(val, 0, n_comp);
 }
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArray<T,FAB>::setBndry (T   val,
+FabArray<FAB>::setBndry (value_type   val,
                            int strt_comp,
                            int ncomp)
 {
     if (n_grow > 0)
     {
-        for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
+        for (FabArrayIterator<FAB> fai(*this); fai.isValid(); ++fai)
         {
             fai().setComplement(val, fai.validbox(), strt_comp, ncomp);
         }
     }
 }
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
+FabArray<FAB>::copy (const FabArray<FAB>& src,
                        int                    scomp,
                        int                    dcomp,
                        int                    ncomp)
@@ -1176,9 +1178,9 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
     {
         BL_ASSERT(distributionMap == src.distributionMap);
 
-        for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
+        for (FabArrayIterator<FAB> fai(*this); fai.isValid(); ++fai)
         {
-            DependentFabArrayIterator<T,FAB> dfai(fai,src);
+            DependentFabArrayIterator<FAB> dfai(fai,src);
             BL_ASSERT(fai.validbox() == dfai.validbox());
             const Box& bx = fai.validbox();
             fai().copy(dfai(),bx,scomp,bx,dcomp,ncomp);
@@ -1190,7 +1192,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
     const int MyProc = ParallelDescriptor::MyProc();
     const int NProcs = ParallelDescriptor::NProcs();
 
-    static Array<T*>          fab_data(NProcs);
+    static Array<value_type*>          fab_data(NProcs);
     static Array<int>         indx(NProcs);
     static Array<MPI_Status>  status(NProcs);
     static Array<MPI_Request> reqs(NProcs);
@@ -1357,9 +1359,9 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
     {
         BL_ASSERT(distributionMap == src.distributionMap);
 
-        for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
+        for (FabArrayIterator<FAB> fai(*this); fai.isValid(); ++fai)
         {
-            DependentFabArrayIterator<T,FAB> dfai(fai,src);
+            DependentFabArrayIterator<FAB> dfai(fai,src);
             BL_ASSERT(fai.validbox() == dfai.validbox());
             const Box& bx = fai.validbox();
             fai().copy(dfai(),bx,scomp,bx,dcomp,ncomp);
@@ -1383,9 +1385,9 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
 #endif /*BL_USE_MPI*/
 }
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArray<T,FAB>::copy (const FabArray<T,FAB>& src)
+FabArray<FAB>::copy (const FabArray<FAB>& src)
 {
     copy(src,0,0,nComp());
 }
@@ -1394,24 +1396,24 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src)
 // Copies to FABs, note that destination is first arg.
 //
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArray<T,FAB>::copy (FAB& dest) const
+FabArray<FAB>::copy (FAB& dest) const
 {
     copy(dest, dest.box(), 0, 0, dest.nComp());
 }
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArray<T,FAB>::copy (FAB&       dest,
+FabArray<FAB>::copy (FAB&       dest,
                        const Box& subbox) const
 {
     copy(dest, subbox, 0, 0, dest.nComp());
 }
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArray<T,FAB>::copy (FAB& dest,
+FabArray<FAB>::copy (FAB& dest,
                        int  scomp,
                        int  dcomp,
                        int  ncomp) const
@@ -1419,9 +1421,9 @@ FabArray<T,FAB>::copy (FAB& dest,
     copy(dest, dest.box(), scomp, dcomp, ncomp);
 }
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArray<T,FAB>::copy (FAB&       dest,
+FabArray<FAB>::copy (FAB&       dest,
                        const Box& subbox,
                        int        scomp,
                        int        dcomp,
@@ -1475,19 +1477,19 @@ FabArray<T,FAB>::copy (FAB&       dest,
 #endif /*BL_USE_MPI*/
 }
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArray<T,FAB>::setVal (T val)
+FabArray<FAB>::setVal (value_type val)
 {
-    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
+    for (FabArrayIterator<FAB> fai(*this); fai.isValid(); ++fai)
     {
         fai().setVal(val);
     }
 }
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArray<T,FAB>::setVal (T   val,
+FabArray<FAB>::setVal (value_type   val,
                          int comp,
                          int ncomp,
                          int nghost)
@@ -1495,15 +1497,15 @@ FabArray<T,FAB>::setVal (T   val,
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
     BL_ASSERT(comp+ncomp <= n_comp);
 
-    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
+    for (FabArrayIterator<FAB> fai(*this); fai.isValid(); ++fai)
     {
         fai().setVal(val,BoxLib::grow(fai.validbox(),nghost), comp, ncomp);
     }
 }
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArray<T,FAB>::setVal (T          val,
+FabArray<FAB>::setVal (value_type          val,
                          const Box& region,
                          int        comp,
                          int        ncomp,
@@ -1512,7 +1514,7 @@ FabArray<T,FAB>::setVal (T          val,
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
     BL_ASSERT(comp+ncomp <= n_comp);
 
-    for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
+    for (FabArrayIterator<FAB> fai(*this); fai.isValid(); ++fai)
     {
         Box b = BoxLib::grow(fai.validbox(),nghost) & region;
 
@@ -1521,8 +1523,8 @@ FabArray<T,FAB>::setVal (T          val,
     }
 }
 
-template <class T, class FAB>
-FabArrayIterator<T,FAB>::FabArrayIterator (FabArray<T,FAB>& fabarray)
+template <class FAB>
+FabArrayIterator<FAB>::FabArrayIterator (FabArray<FAB>& fabarray)
     :
     fabArray(fabarray),
     currentIndex(0)
@@ -1541,55 +1543,55 @@ FabArrayIterator<T,FAB>::FabArrayIterator (FabArray<T,FAB>& fabarray)
 #endif
 }
 
-template <class T, class FAB>
+template <class FAB>
 FAB&
-FabArrayIterator<T,FAB>::operator() ()
+FabArrayIterator<FAB>::operator() ()
 {
   BL_ASSERT(fabArray.DistributionMap()[currentIndex] == ParallelDescriptor::MyProc());
 
   return fabArray[currentIndex];
 }
 
-template <class T, class FAB>
+template <class FAB>
 FAB&
-FabArrayIterator<T,FAB>::operator* ()
+FabArrayIterator<FAB>::operator* ()
 {
-    return FabArrayIterator<T,FAB>::operator()();
+    return FabArrayIterator<FAB>::operator()();
 }
 
-template <class T, class FAB>
+template <class FAB>
 const FAB&
-FabArrayIterator<T,FAB>::operator* () const
+FabArrayIterator<FAB>::operator* () const
 {
-    return FabArrayIterator<T,FAB>::operator()();
+    return FabArrayIterator<FAB>::operator()();
 }
 
-template <class T, class FAB>
+template <class FAB>
 FAB*
-FabArrayIterator<T,FAB>::operator-> ()
+FabArrayIterator<FAB>::operator-> ()
 {
-    return &FabArrayIterator<T,FAB>::operator()();
+    return &FabArrayIterator<FAB>::operator()();
 }
 
-template <class T, class FAB>
+template <class FAB>
 const FAB*
-FabArrayIterator<T,FAB>::operator-> () const
+FabArrayIterator<FAB>::operator-> () const
 {
-    return &FabArrayIterator<T,FAB>::operator()();
+    return &FabArrayIterator<FAB>::operator()();
 }
 
-template <class T, class FAB>
+template <class FAB>
 const FAB&
-FabArrayIterator<T,FAB>::operator() () const
+FabArrayIterator<FAB>::operator() () const
 {
   BL_ASSERT(fabArray.DistributionMap()[currentIndex] == ParallelDescriptor::MyProc());
 
   return fabArray[currentIndex];
 }
 
-template <class T, class FAB>
-FabArrayIterator<T,FAB>&
-FabArrayIterator<T,FAB>::operator++ ()
+template <class FAB>
+FabArrayIterator<FAB>&
+FabArrayIterator<FAB>::operator++ ()
 {
 #ifdef BL_USE_MPI
     const int MyProc = ParallelDescriptor::MyProc();
@@ -1608,30 +1610,30 @@ FabArrayIterator<T,FAB>::operator++ ()
     return *this;
 }
 
-template <class T, class FAB>
+template <class FAB>
 int
-FabArrayIterator<T,FAB>::index () const
+FabArrayIterator<FAB>::index () const
 {
     return currentIndex;
 }
 
-template <class T, class FAB>
+template <class FAB>
 const Box&
-FabArrayIterator<T,FAB>::validbox () const
+FabArrayIterator<FAB>::validbox () const
 {
     return fabArray.box(currentIndex);
 }
 
-template <class T, class FAB>
+template <class FAB>
 const Box&
-FabArrayIterator<T,FAB>::fabbox () const
+FabArrayIterator<FAB>::fabbox () const
 {
     return fabArray[currentIndex].box();
 }
 
-template <class T, class FAB>
+template <class FAB>
 bool
-FabArrayIterator<T,FAB>::isValid ()
+FabArrayIterator<FAB>::isValid ()
 {
     BL_ASSERT(currentIndex >= 0);
 
@@ -1648,10 +1650,10 @@ FabArrayIterator<T,FAB>::isValid ()
     return currentIndex < fabArray.length();
 }
 
-template <class T, class FAB>
-DependentFabArrayIterator<T,FAB>::DependentFabArrayIterator(
-    FabArrayIterator<T,FAB>& controllerfaiter,
-    FabArray<T,FAB>&         dependentfabarray)
+template <class FAB>
+DependentFabArrayIterator<FAB>::DependentFabArrayIterator(
+    FabArrayIterator<FAB>& controllerfaiter,
+    FabArray<FAB>&         dependentfabarray)
     :
     fabArray(dependentfabarray),
     controller(&controllerfaiter)
@@ -1660,83 +1662,83 @@ DependentFabArrayIterator<T,FAB>::DependentFabArrayIterator(
            dependentfabarray.DistributionMap());
 }
 
-template <class T, class FAB>
-DependentFabArrayIterator<T,FAB>::DependentFabArrayIterator(
-    FabArrayIterator<T,FAB>& controllerfaiter,
-    const FabArray<T,FAB>&   dependentfabarray)
+template <class FAB>
+DependentFabArrayIterator<FAB>::DependentFabArrayIterator(
+    FabArrayIterator<FAB>& controllerfaiter,
+    const FabArray<FAB>&   dependentfabarray)
     :
-    fabArray(const_cast<FabArray<T,FAB>&>(dependentfabarray)),
+    fabArray(const_cast<FabArray<FAB>&>(dependentfabarray)),
     controller(&controllerfaiter)
 {
     BL_ASSERT(controllerfaiter.theFabArray().DistributionMap() ==
            dependentfabarray.DistributionMap());
 }
 
-template <class T, class FAB>
+template <class FAB>
 int
-DependentFabArrayIterator<T,FAB>::index () const
+DependentFabArrayIterator<FAB>::index () const
 {
     return controller->index();
 }
 
-template <class T, class FAB>
+template <class FAB>
 const Box&
-DependentFabArrayIterator<T,FAB>::validbox() const
+DependentFabArrayIterator<FAB>::validbox() const
 {
     return fabArray.box(controller->index());
 }
 
-template <class T, class FAB>
+template <class FAB>
 const Box&
-DependentFabArrayIterator<T,FAB>::fabbox() const
+DependentFabArrayIterator<FAB>::fabbox() const
 {
     return fabArray[controller->index()].box();
 }
 
-template <class T, class FAB>
+template <class FAB>
 FAB&
-DependentFabArrayIterator<T,FAB>::operator() ()
+DependentFabArrayIterator<FAB>::operator() ()
 {
     return fabArray[controller->index()];
 }
 
-template <class T, class FAB>
+template <class FAB>
 const FAB&
-DependentFabArrayIterator<T,FAB>::operator() () const
+DependentFabArrayIterator<FAB>::operator() () const
 {
     return fabArray[controller->index()];
 }
 
-template <class T, class FAB>
+template <class FAB>
 FAB&
-DependentFabArrayIterator<T,FAB>::operator* ()
+DependentFabArrayIterator<FAB>::operator* ()
 {
-    return DependentFabArrayIterator<T,FAB>::operator()();
+    return DependentFabArrayIterator<FAB>::operator()();
 }
 
-template <class T, class FAB>
+template <class FAB>
 const FAB&
-DependentFabArrayIterator<T,FAB>::operator* () const
+DependentFabArrayIterator<FAB>::operator* () const
 {
-    return DependentFabArrayIterator<T,FAB>::operator()();
+    return DependentFabArrayIterator<FAB>::operator()();
 }
 
-template <class T, class FAB>
+template <class FAB>
 FAB*
-DependentFabArrayIterator<T,FAB>::operator-> ()
+DependentFabArrayIterator<FAB>::operator-> ()
 {
-    return &DependentFabArrayIterator<T,FAB>::operator()();
+    return &DependentFabArrayIterator<FAB>::operator()();
 }
 
-template <class T, class FAB>
+template <class FAB>
 const FAB*
-DependentFabArrayIterator<T,FAB>::operator-> () const
+DependentFabArrayIterator<FAB>::operator-> () const
 {
-    return &DependentFabArrayIterator<T,FAB>::operator()();
+    return &DependentFabArrayIterator<FAB>::operator()();
 }
 
-template <class T, class FAB>
-ConstFabArrayIterator<T,FAB>::ConstFabArrayIterator(const FabArray<T,FAB>& fabarray)
+template <class FAB>
+ConstFabArrayIterator<FAB>::ConstFabArrayIterator(const FabArray<FAB>& fabarray)
     :
     fabArray(fabarray),
     currentIndex(0)
@@ -1755,30 +1757,30 @@ ConstFabArrayIterator<T,FAB>::ConstFabArrayIterator(const FabArray<T,FAB>& fabar
 #endif
 }
 
-template <class T, class FAB>
+template <class FAB>
 const FAB&
-ConstFabArrayIterator<T,FAB>::operator() () const
+ConstFabArrayIterator<FAB>::operator() () const
 {
     return fabArray[currentIndex];
 }
 
-template <class T, class FAB>
+template <class FAB>
 const FAB&
-ConstFabArrayIterator<T,FAB>::operator* () const
+ConstFabArrayIterator<FAB>::operator* () const
 {
-    return ConstFabArrayIterator<T,FAB>::operator() ();
+    return ConstFabArrayIterator<FAB>::operator() ();
 }
 
-template <class T, class FAB>
+template <class FAB>
 const FAB*
-ConstFabArrayIterator<T,FAB>::operator-> () const
+ConstFabArrayIterator<FAB>::operator-> () const
 {
-    return &ConstFabArrayIterator<T,FAB>::operator() ();
+    return &ConstFabArrayIterator<FAB>::operator() ();
 }
 
-template <class T, class FAB>
-ConstFabArrayIterator<T,FAB>&
-ConstFabArrayIterator<T,FAB>::operator++ ()
+template <class FAB>
+ConstFabArrayIterator<FAB>&
+ConstFabArrayIterator<FAB>::operator++ ()
 {
 #ifdef BL_USE_MPI
     const int MyProc = ParallelDescriptor::MyProc();
@@ -1797,30 +1799,30 @@ ConstFabArrayIterator<T,FAB>::operator++ ()
     return *this;
 }
 
-template <class T, class FAB>
+template <class FAB>
 int
-ConstFabArrayIterator<T,FAB>::index () const
+ConstFabArrayIterator<FAB>::index () const
 {
     return currentIndex;
 }
 
-template <class T, class FAB>
+template <class FAB>
 const Box&
-ConstFabArrayIterator<T,FAB>::validbox () const
+ConstFabArrayIterator<FAB>::validbox () const
 {
     return fabArray.box(currentIndex);
 }
 
-template <class T, class FAB>
+template <class FAB>
 const Box&
-ConstFabArrayIterator<T,FAB>::fabbox() const
+ConstFabArrayIterator<FAB>::fabbox() const
 {
     return fabArray[currentIndex].box();
 }
 
-template <class T, class FAB>
+template <class FAB>
 bool
-ConstFabArrayIterator<T,FAB>::isValid () const
+ConstFabArrayIterator<FAB>::isValid () const
 {
     BL_ASSERT(currentIndex >= 0);
 
@@ -1837,10 +1839,10 @@ ConstFabArrayIterator<T,FAB>::isValid () const
     return currentIndex < fabArray.length();
 }
 
-template <class T, class FAB>
-ConstDependentFabArrayIterator<T,FAB>::ConstDependentFabArrayIterator(
-    ConstFabArrayIterator<T,FAB>& controllerfaiter,
-    const FabArray<T,FAB>&        dependentfabarray)
+template <class FAB>
+ConstDependentFabArrayIterator<FAB>::ConstDependentFabArrayIterator(
+    ConstFabArrayIterator<FAB>& controllerfaiter,
+    const FabArray<FAB>&        dependentfabarray)
     :
     fabArray(dependentfabarray),
     controller(&controllerfaiter)
@@ -1849,58 +1851,58 @@ ConstDependentFabArrayIterator<T,FAB>::ConstDependentFabArrayIterator(
            dependentfabarray.DistributionMap());
 }
 
-template <class T, class FAB>
+template <class FAB>
 int
-ConstDependentFabArrayIterator<T,FAB>::index () const
+ConstDependentFabArrayIterator<FAB>::index () const
 {
     return controller->index();
 }
 
-template <class T, class FAB>
+template <class FAB>
 const Box&
-ConstDependentFabArrayIterator<T,FAB>::validbox () const
+ConstDependentFabArrayIterator<FAB>::validbox () const
 {
     return fabArray.box(controller->index());
 }
 
-template <class T, class FAB>
+template <class FAB>
 const Box&
-ConstDependentFabArrayIterator<T,FAB>::fabbox() const
+ConstDependentFabArrayIterator<FAB>::fabbox() const
 {
     return fabArray[controller->index()].box();
 }
 
-template <class T, class FAB>
+template <class FAB>
 const FAB&
-ConstDependentFabArrayIterator<T,FAB>::operator()() const
+ConstDependentFabArrayIterator<FAB>::operator()() const
 {
     return fabArray[controller->index()];
 }
 
-template <class T, class FAB>
+template <class FAB>
 const FAB&
-ConstDependentFabArrayIterator<T,FAB>::operator* () const
+ConstDependentFabArrayIterator<FAB>::operator* () const
 {
-    return ConstDependentFabArrayIterator<T,FAB>::operator() ();
+    return ConstDependentFabArrayIterator<FAB>::operator() ();
 }
 
-template <class T, class FAB>
+template <class FAB>
 const FAB*
-ConstDependentFabArrayIterator<T,FAB>::operator-> () const
+ConstDependentFabArrayIterator<FAB>::operator-> () const
 {
-    return &ConstDependentFabArrayIterator<T,FAB>::operator() ();
+    return &ConstDependentFabArrayIterator<FAB>::operator() ();
 }
 
-template <class T, class FAB>
-FabArrayCopyDescriptor<T,FAB>::FabArrayCopyDescriptor ()
+template <class FAB>
+FabArrayCopyDescriptor<FAB>::FabArrayCopyDescriptor ()
     :
     nextFillBoxId(0),
     dataAvailable(false)
 {}
 
-template <class T, class FAB>
+template <class FAB>
 FabArrayId
-FabArrayCopyDescriptor<T,FAB>::RegisterFabArray(FabArray<T,FAB>* fabarray)
+FabArrayCopyDescriptor<FAB>::RegisterFabArray(FabArray<FAB>* fabarray)
 {
     BL_ASSERT(fabArrays.size() == fabCopyDescList.size());
 
@@ -1911,9 +1913,9 @@ FabArrayCopyDescriptor<T,FAB>::RegisterFabArray(FabArray<T,FAB>* fabarray)
     return FabArrayId(fabArrays.size() - 1);
 }
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArrayCopyDescriptor<T,FAB>::AddBoxDoIt (FabArrayId fabarrayid,
+FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
                                            const Box& destFabBox,
                                            BoxList*   returnedUnfilledBoxes,
                                            int        faindex,
@@ -1926,7 +1928,7 @@ FabArrayCopyDescriptor<T,FAB>::AddBoxDoIt (FabArrayId fabarrayid,
 {
     const int MyProc = ParallelDescriptor::MyProc();
 
-    FabArray<T,FAB>* fabArray = fabArrays[fabarrayid.Id()];
+    FabArray<FAB>* fabArray = fabArrays[fabarrayid.Id()];
 
     BL_ASSERT(faindex >= 0 && faindex < fabArray->length());
 
@@ -2000,9 +2002,9 @@ FabArrayCopyDescriptor<T,FAB>::AddBoxDoIt (FabArrayId fabarrayid,
     }
 }
 
-template <class T, class FAB>
+template <class FAB>
 FillBoxId
-FabArrayCopyDescriptor<T,FAB>::AddBox (FabArrayId fabarrayid,
+FabArrayCopyDescriptor<FAB>::AddBox (FabArrayId fabarrayid,
                                        const Box& destFabBox,
                                        BoxList*   returnedUnfilledBoxes,
                                        int        srccomp,
@@ -2041,9 +2043,9 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (FabArrayId fabarrayid,
     return FillBoxId(nextFillBoxId++, destFabBox);
 }
 
-template <class T, class FAB>
+template <class FAB>
 FillBoxId
-FabArrayCopyDescriptor<T,FAB>::AddBox (FabArrayId fabarrayid,
+FabArrayCopyDescriptor<FAB>::AddBox (FabArrayId fabarrayid,
                                        const Box& destFabBox,
                                        BoxList*   returnedUnfilledBoxes,
                                        int        fabarrayindex,
@@ -2080,9 +2082,9 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (FabArrayId fabarrayid,
     return FillBoxId(nextFillBoxId++, destFabBox);
 }
 
-template <class T, class FAB>
+template <class FAB>
 FillBoxId
-FabArrayCopyDescriptor<T,FAB>::AddBox (FabArrayId fabarrayid,
+FabArrayCopyDescriptor<FAB>::AddBox (FabArrayId fabarrayid,
                                        const Box& destFabBox,
                                        BoxList*   returnedUnfilledBoxes,
                                        bool       bUseValidBox)
@@ -2096,15 +2098,15 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (FabArrayId fabarrayid,
                   bUseValidBox);
 }
 
-template <class T, class FAB>
-FabArrayCopyDescriptor<T,FAB>::~FabArrayCopyDescriptor()
+template <class FAB>
+FabArrayCopyDescriptor<FAB>::~FabArrayCopyDescriptor()
 {
    clear();
 }
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArrayCopyDescriptor<T,FAB>::clear ()
+FabArrayCopyDescriptor<FAB>::clear ()
 {
    for (unsigned int i = 0; i < fabCopyDescList.size(); ++i)
    {
@@ -2124,11 +2126,13 @@ FabArrayCopyDescriptor<T,FAB>::clear ()
    dataAvailable = false;
 }
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
+FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
                                             CommDataCache* cd_cache)
 {
+    typedef typename FAB::value_type value_type;
+
     dataAvailable = true;
 
     const int NProcs = ParallelDescriptor::NProcs();
@@ -2143,7 +2147,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
     static Array<int>         Snds(NProcs);
     static Array<int>         Rcvs(NProcs);
     static Array<int>         indx(NProcs);
-    static Array<T*>          fab_data(NProcs);
+    static Array<value_type*>          fab_data(NProcs);
     static Array<MPI_Request> req_data(NProcs);
     static Array<MPI_Request> req_cd(NProcs);
     static Array<MPI_Status>  status(NProcs);
@@ -2476,9 +2480,9 @@ FabArrayCopyDescriptor<T,FAB>::CollectData (Array<int>*    snd_cache,
 #endif /*BL_USE_MPI*/
 }
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArrayCopyDescriptor<T,FAB>::FillFab (FabArrayId       faid,
+FabArrayCopyDescriptor<FAB>::FillFab (FabArrayId       faid,
                                         const FillBoxId& fillboxid,
                                         FAB&             destFab)
 {
@@ -2501,9 +2505,9 @@ FabArrayCopyDescriptor<T,FAB>::FillFab (FabArrayId       faid,
     }
 }
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArrayCopyDescriptor<T,FAB>::FillFab (FabArrayId       faid,
+FabArrayCopyDescriptor<FAB>::FillFab (FabArrayId       faid,
                                         const FillBoxId& fillboxid,
                                         FAB&             destFab,
                                         const Box&       destBox)
@@ -2530,9 +2534,9 @@ FabArrayCopyDescriptor<T,FAB>::FillFab (FabArrayId       faid,
     BL_ASSERT(++fmi == fabCopyDescList[faid.Id()].upper_bound(fillboxid.Id()));
 }
 
-template <class T, class FAB>
+template <class FAB>
 void
-FabArrayCopyDescriptor<T,FAB>::PrintStats () const
+FabArrayCopyDescriptor<FAB>::PrintStats () const
 {
     const int MyProc = ParallelDescriptor::MyProc();
 

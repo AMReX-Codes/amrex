@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.58 2001-07-19 20:02:46 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.59 2001-07-20 17:20:49 car Exp $
 //
 
 #include <algorithm>
@@ -110,7 +110,7 @@ MultiFab::MultiFab (const BoxArray& bxs,
                     int             ngrow,
                     FabAlloc        alloc)
     :
-    FabArray<Real,FArrayBox>(bxs,ncomp,ngrow,alloc)
+    FabArray<FArrayBox>(bxs,ncomp,ngrow,alloc)
 {}
 
 //
