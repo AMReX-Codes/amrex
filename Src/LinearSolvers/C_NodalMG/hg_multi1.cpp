@@ -504,20 +504,17 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 			     s_mfi.isValid(); ++s_mfi)
 		    {
 			DependentMultiFabIterator t_dmfi(s_mfi, sigma[mglev]);
-
+			Box copyon(s_mfi.validbox());
+                        if (for_fill_sync_reg != 0) copyon.grow(1);
 		        if ( Sigma[lev].nComp() == 1 )
 		        {
 			    for ( int i = 0; i < ncomp; ++i )
 		 	    {
-				t_dmfi->copy(s_mfi(), s_mfi.validbox(), 0,
-					     t_dmfi.validbox(), i, 1);
+				t_dmfi->copy(s_mfi(), copyon, 0, copyon, i, 1);
 			    }
 			}
 		        else if ( Sigma[lev].nComp() == ncomp )
-			{
-			    t_dmfi->copy(s_mfi(), s_mfi.validbox(), 0,
-					 t_dmfi.validbox(), 0, ncomp);
-			}
+			    t_dmfi->copy(s_mfi(), copyon, 0, copyon, 0, ncomp);
 		    }
 		}
 	    }
