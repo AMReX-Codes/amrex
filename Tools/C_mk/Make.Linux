@@ -42,6 +42,7 @@ ifeq ($(FCOMP),PGI)
 else
 ifeq ($(FCOMP),Intel)
   FC   := ifc
+  fC   := $(FC)
   FDEBF += -CB
   FDEBF += -g
   FOPTF += -g
