@@ -1,5 +1,5 @@
 c
-c $Id: ABec_3D.F,v 1.4 1999-01-04 19:01:08 marc Exp $
+c $Id: ABec_3D.F,v 1.5 2000-07-14 23:37:06 almgren Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -104,13 +104,55 @@ c
       integer  i, j, k, ioff, n
 c
       REAL_T dhx, dhy, dhz, cf0, cf1, cf2, cf3, cf4, cf5
-      REAL_T delta, gamma, rho
+      REAL_T delta, gamma, rho, rho_xy, rho_yz, rho_xz
 c
+      integer do_line
+      integer LSDIM
+      parameter (LSDIM=127)
+      REAL_T a_ls(0:LSDIM)
+      REAL_T b_ls(0:LSDIM)
+      REAL_T c_ls(0:LSDIM)
+      REAL_T r_ls(0:LSDIM)
+      REAL_T u_ls(0:LSDIM)
+      integer ilen,jlen,klen
+
+      ilen = hi(1)-lo(1)+1
+      jlen = hi(2)-lo(2)+1
+      klen = hi(3)-lo(3)+1
+
+#if 0
+      if (klen .gt. ilen .and. klen .gt. jlen) then
+        do_line = 3
+        if (klen .gt. LSDIM) then
+          print *,'TOO BIG FOR LINE SOLVE IN GSRB: klen = ',klen
+          stop
+        endif
+      else if (jlen .gt. ilen .and. jlen .gt. klen) then
+        do_line = 2
+        if (jlen .gt. LSDIM) then
+          print *,'JLEN TOO BIG FOR LINE SOLVE IN GSRB: jlen = ',jlen
+          stop
+        endif
+      else if (ilen .gt. jlen .and. ilen .gt. klen) then
+        do_line = 1
+        if (ilen .gt. LSDIM) then
+          print *,'ILEN TOO BIG FOR LINE SOLVE IN GSRB: ilen = ',ilen
+          stop
+        endif
+      else 
+        do_line = 0
+      endif
+#endif
+
+      do_line = 0
+
       dhx = beta/h(1)**2
       dhy = beta/h(2)**2
       dhz = beta/h(3)**2
+
       do n = 1, nc
-         do k = lo(3), hi(3)
+         if (do_line .eq. 0) then
+          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                ioff = MOD(j + k + redblack,2)
                do i = lo(1) + ioff,hi(1),2
@@ -149,7 +191,173 @@ c
 c                  
                end do
             end do
-         end do
+          end do
+
+         else if (do_line .eq. 3) then
+
+           do j = lo(2), hi(2)
+             ioff = MOD(j + redblack,2)
+             do i = lo(1) + ioff,hi(1),2
+c
+               do k = lo(3),hi(3)
+                  cf0 = cvmgt(f0(lo(1),j,k), 0.0,
+     $                 (i .eq. lo(1)) .and. (m0(lo(1)-1,j,k).gt.0))
+                  cf1 = cvmgt(f1(i,lo(2),k), 0.0,
+     $                 (j .eq. lo(2)) .and. (m1(i,lo(2)-1,k).gt.0))
+                  cf2 = cvmgt(f2(i,j,lo(3)), 0.0,
+     $                 (k .eq. lo(3)) .and. (m2(i,j,lo(3)-1).gt.0))
+                  cf3 = cvmgt(f3(hi(1),j,k), 0.0,
+     $                 (i .eq. hi(1)) .and. (m3(hi(1)+1,j,k).gt.0))
+                  cf4 = cvmgt(f4(i,hi(2),k), 0.0,
+     $                 (j .eq. hi(2)) .and. (m4(i,hi(2)+1,k).gt.0))
+                  cf5 = cvmgt(f5(i,j,hi(3)), 0.0,
+     $                 (k .eq. hi(3)) .and. (m5(i,j,hi(3)+1).gt.0))
+c
+                  delta = dhx*(bX(i,j,k)*cf0 + bX(i+1,j,k)*cf3)
+     $                 +  dhy*(bY(i,j,k)*cf1 + bY(i,j+1,k)*cf4)
+     $                 +  dhz*(bZ(i,j,k)*cf2 + bZ(i,j,k+1)*cf5)
+c                  
+                  gamma = alpha*a(i,j,k)
+     $                 +   dhx*(bX(i,j,k)+bX(i+1,j,k))
+     $                 +   dhy*(bY(i,j,k)+bY(i,j+1,k))
+     $                 +   dhz*(bZ(i,j,k)+bZ(i,j,k+1))
+c
+                  rho_xy =  dhx*( bX(i  ,j,k)*phi(i-1,j,k,n)
+     $                    +       bX(i+1,j,k)*phi(i+1,j,k,n) )
+     $                    + dhy*( bY(i,j  ,k)*phi(i,j-1,k,n)
+     $                    +       bY(i,j+1,k)*phi(i,j+1,k,n) )
+
+                  a_ls(k-lo(3)) = -dhz*bZ(i,j,k)
+                  b_ls(k-lo(3)) = gamma - delta
+                  c_ls(k-lo(3)) = -dhz*bZ(i,j,k+1)
+                  r_ls(k-lo(3)) = rhs(i,j,k,n) + rho_xy - phi(i,j,k,n)*delta
+
+                  if (k .eq. lo(3))
+     $               r_ls(k-lo(3)) = r_ls(k-lo(3)) + dhz*bZ(i,j,k)*phi(i,j,k-1,n)
+
+                  if (k .eq. hi(3))
+     $               r_ls(k-lo(3)) = r_ls(k-lo(3)) + dhz*bZ(i,j,k+1)*phi(i,j,k+1,n)
+                end do
+c
+                call tridiag(a_ls,b_ls,c_ls,r_ls,u_ls,klen)
+
+                do k = lo(3),hi(3)
+                  phi(i,j,k,n) = u_ls(k-lo(3))
+                end do
+c                  
+               end do
+            end do
+
+         else if (do_line .eq. 2) then
+
+           do k = lo(3), hi(3)
+             ioff = MOD(k + redblack,2)
+             do i = lo(1) + ioff,hi(1),2
+c
+               do j = lo(2),hi(2)
+                  cf0 = cvmgt(f0(lo(1),j,k), 0.0,
+     $                 (i .eq. lo(1)) .and. (m0(lo(1)-1,j,k).gt.0))
+                  cf1 = cvmgt(f1(i,lo(2),k), 0.0,
+     $                 (j .eq. lo(2)) .and. (m1(i,lo(2)-1,k).gt.0))
+                  cf2 = cvmgt(f2(i,j,lo(3)), 0.0,
+     $                 (k .eq. lo(3)) .and. (m2(i,j,lo(3)-1).gt.0))
+                  cf3 = cvmgt(f3(hi(1),j,k), 0.0,
+     $                 (i .eq. hi(1)) .and. (m3(hi(1)+1,j,k).gt.0))
+                  cf4 = cvmgt(f4(i,hi(2),k), 0.0,
+     $                 (j .eq. hi(2)) .and. (m4(i,hi(2)+1,k).gt.0))
+                  cf5 = cvmgt(f5(i,j,hi(3)), 0.0,
+     $                 (k .eq. hi(3)) .and. (m5(i,j,hi(3)+1).gt.0))
+c
+                  delta = dhx*(bX(i,j,k)*cf0 + bX(i+1,j,k)*cf3)
+     $                 +  dhy*(bY(i,j,k)*cf1 + bY(i,j+1,k)*cf4)
+     $                 +  dhz*(bZ(i,j,k)*cf2 + bZ(i,j,k+1)*cf5)
+c                  
+                  gamma = alpha*a(i,j,k)
+     $                 +   dhx*(bX(i,j,k)+bX(i+1,j,k))
+     $                 +   dhy*(bY(i,j,k)+bY(i,j+1,k))
+     $                 +   dhz*(bZ(i,j,k)+bZ(i,j,k+1))
+c
+                  rho_xz =  dhx*( bX(i  ,j,k)*phi(i-1,j,k,n)
+     $                    +       bX(i+1,j,k)*phi(i+1,j,k,n) )
+     $                    + dhz*( bZ(i,j,k  )*phi(i,j,k-1,n)
+     $                    +       bZ(i,j,k+1)*phi(i,j,k+1,n) )
+
+                  a_ls(j-lo(2)) = -dhy*bY(i,j,k)
+                  b_ls(j-lo(2)) = gamma - delta
+                  c_ls(j-lo(2)) = -dhy*bY(i,j+1,k)
+                  r_ls(j-lo(2)) = rhs(i,j,k,n) + rho_xz - phi(i,j,k,n)*delta
+
+                  if (j .eq. lo(2))
+     $               r_ls(j-lo(2)) = r_ls(j-lo(2)) + dhy*bY(i,j,k)*phi(i,j-1,k,n)
+
+                  if (j .eq. hi(2))
+     $               r_ls(j-lo(2)) = r_ls(j-lo(2)) + dhy*bY(i,j+1,k)*phi(i,j+1,k,n)
+                end do
+c
+                call tridiag(a_ls,b_ls,c_ls,r_ls,u_ls,jlen)
+
+                do j = lo(2),hi(2)
+                  phi(i,j,k,n) = u_ls(j-lo(2))
+                end do
+c                  
+               end do
+            end do
+
+         else if (do_line .eq. 1) then
+
+           do k = lo(3), hi(3)
+             ioff = MOD(k + redblack,2)
+             do j = lo(2) + ioff,hi(2),2
+c
+               do i = lo(1),hi(1)
+                  cf0 = cvmgt(f0(lo(1),j,k), 0.0,
+     $                 (i .eq. lo(1)) .and. (m0(lo(1)-1,j,k).gt.0))
+                  cf1 = cvmgt(f1(i,lo(2),k), 0.0,
+     $                 (j .eq. lo(2)) .and. (m1(i,lo(2)-1,k).gt.0))
+                  cf2 = cvmgt(f2(i,j,lo(3)), 0.0,
+     $                 (k .eq. lo(3)) .and. (m2(i,j,lo(3)-1).gt.0))
+                  cf3 = cvmgt(f3(hi(1),j,k), 0.0,
+     $                 (i .eq. hi(1)) .and. (m3(hi(1)+1,j,k).gt.0))
+                  cf4 = cvmgt(f4(i,hi(2),k), 0.0,
+     $                 (j .eq. hi(2)) .and. (m4(i,hi(2)+1,k).gt.0))
+                  cf5 = cvmgt(f5(i,j,hi(3)), 0.0,
+     $                 (k .eq. hi(3)) .and. (m5(i,j,hi(3)+1).gt.0))
+c
+                  delta = dhx*(bX(i,j,k)*cf0 + bX(i+1,j,k)*cf3)
+     $                 +  dhy*(bY(i,j,k)*cf1 + bY(i,j+1,k)*cf4)
+     $                 +  dhz*(bZ(i,j,k)*cf2 + bZ(i,j,k+1)*cf5)
+c                  
+                  gamma = alpha*a(i,j,k)
+     $                 +   dhx*(bX(i,j,k)+bX(i+1,j,k))
+     $                 +   dhy*(bY(i,j,k)+bY(i,j+1,k))
+     $                 +   dhz*(bZ(i,j,k)+bZ(i,j,k+1))
+c
+                  rho_yz =  dhy*( bY(i,j  ,k)*phi(i,j-1,k,n)
+     $                    +       bY(i,j+1,k)*phi(i,j+1,k,n) )
+     $                    + dhz*( bZ(i,j,k  )*phi(i,j,k-1,n)
+     $                    +       bZ(i,j,k+1)*phi(i,j,k+1,n) )
+
+                  a_ls(i-lo(1)) = -dhx*bX(i,j,k)
+                  b_ls(i-lo(1)) = gamma - delta
+                  c_ls(i-lo(1)) = -dhx*bX(i+1,j,k)
+                  r_ls(i-lo(1)) = rhs(i,j,k,n) + rho_yz - phi(i,j,k,n)*delta
+
+                  if (i .eq. lo(1))
+     $               r_ls(i-lo(1)) = r_ls(i-lo(1)) + dhx*bX(i,j,k)*phi(i-1,j,k,n)
+
+                  if (i .eq. hi(1))
+     $               r_ls(i-lo(1)) = r_ls(i-lo(1)) + dhx*bX(i+1,j,k)*phi(i+1,j,k,n)
+                end do
+c
+                call tridiag(a_ls,b_ls,c_ls,r_ls,u_ls,ilen)
+
+                do i = lo(1),hi(1)
+                  phi(i,j,k,n) = u_ls(i-lo(1))
+                end do
+c                  
+               end do
+            end do
+         endif
       end do
 c     
       end
