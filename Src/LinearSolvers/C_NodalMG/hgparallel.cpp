@@ -203,7 +203,7 @@ void task_copy_local::startup()
     {
 	m_local = true;
     }
-#if HG_DEBUG
+#ifdef HG_DEBUG
     else if ( is_local(m_mf, m_dgrid) )
     {
 	tmp = new FArrayBox(m_sbx, m_smf.nComp());
