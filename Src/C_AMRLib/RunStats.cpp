@@ -1,6 +1,6 @@
 
 //
-// $Id: RunStats.cpp,v 1.9 1997-11-23 21:42:31 lijewski Exp $
+// $Id: RunStats.cpp,v 1.10 1997-11-24 18:40:53 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -221,7 +221,6 @@ RunStats::report (ostream& os)
                        << '\n';
                 }
             }
-            os << '\n';
         }
 
 	int maxlev = 0;
@@ -236,7 +235,7 @@ RunStats::report (ostream& os)
 
 	for (int lev = 0; lev <= maxlev; ++lev)
         {
-	    os << "Timings for level " << lev << " ...\n\n";
+	    os << "\nTimings for level " << lev << " ...\n\n";
 	    it.rewind();
 	    for ( ; it; ++it)
             {
