@@ -238,6 +238,10 @@ SOURCE=.\Arena.H
 # End Source File
 # Begin Source File
 
+SOURCE=.\ArithFab.H
+# End Source File
+# Begin Source File
+
 SOURCE=.\Array.H
 # End Source File
 # Begin Source File
@@ -343,6 +347,14 @@ SOURCE=.\Misc.H
 # Begin Source File
 
 SOURCE=.\MultiFab.H
+# End Source File
+# Begin Source File
+
+SOURCE=.\NormedFab.H
+# End Source File
+# Begin Source File
+
+SOURCE=.\OrderedFab.H
 # End Source File
 # Begin Source File
 

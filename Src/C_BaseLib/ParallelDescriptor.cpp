@@ -1,13 +1,45 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.11 1998-03-24 20:18:52 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.12 1998-03-25 18:23:08 car Exp $
 //
-
 #include <Utility.H>
 #include <ParallelDescriptor.H>
 
+#ifdef BL_USE_BSP
+#include "bsp.h"
+
+#ifdef FIXBSPLIBLEVEL1HEADER
+extern "C"
+{
+  extern void bsp_fold(void (*)(void *, void *, void *, int *),
+                       void*,void*,int);
+  extern void bsp_fold_cpp(void (*)(void *, void *, void *, int *),
+                           void*,void* , int, int, char *);
+}
+#endif /*FIXBSPLIBLEVEL1HEADER*/
+
+#include "bsp_level1.h"
+#endif /*BL_USE_BSP*/
+
+
 #if defined(BL_USE_BSP)
+
+
+void StartParallel(int nprocs)
+{
+    bsp_begin(nprocs);
+}
+
+void StartParallelAllProcs() 
+{
+    bsp_begin(bsp_nprocs());
+}
+
+void EndParallel()            
+{
+    bsp_end();
+}
 
 //
 // Type of function pointer required by bsp_fold().
@@ -231,6 +263,81 @@ void ParallelDescriptor::Broadcast (int fromproc, void*  src, void*  dest, int n
 
 
 #else
+
+
+void StartParallel(int ) {}
+void StartParallelAllProcs()  {}
+void EndParallel() {}
+
+void ParallelDescriptor::Abort (const char* str)
+{
+    BoxLib::Abort(str);
+}
+int ParallelDescriptor::MyProc () { return 0; }
+int ParallelDescriptor::NProcs () { return 1; }
+void ParallelDescriptor::Synchronize () {}
+void ParallelDescriptor::Synchronize (const char* msg)
+{
+    cout << "----- " << 0 << " :  about to sync:  " << msg << endl;
+}
+bool ParallelDescriptor::IOProcessor () { return true; }
+int  ParallelDescriptor::IOProcessorNumber () { return 0; }
+
+// reduction operations
+//template<class T> static void ReduceMin (T &rvar) {}
+
+// bool
+void ParallelDescriptor::ReduceBoolAnd (bool& rvar) {}
+void ParallelDescriptor::ReduceBoolOr  (bool& rvar) {}
+// Real
+void ParallelDescriptor::ReduceRealSum (Real& rvar) {}
+void ParallelDescriptor::ReduceRealMax (Real& rvar) {}
+void ParallelDescriptor::ReduceRealMin (Real& rvar) {}
+// int
+void ParallelDescriptor::ReduceIntSum (int& rvar) {}
+void ParallelDescriptor::ReduceIntMax (int& rvar) {}
+void ParallelDescriptor::ReduceIntMin (int& rvar) {}
+// long
+void ParallelDescriptor::ReduceLongSum (long& rvar) {}
+void ParallelDescriptor::ReduceLongMax (long& rvar) {}
+void ParallelDescriptor::ReduceLongMin (long& rvar) {}
+void ParallelDescriptor::ReduceLongAnd (long& rvar) {}
+
+// data transfer functions
+void ParallelDescriptor::ShareVar (const void* var, int         bytes) {}
+void ParallelDescriptor::UnshareVar (const void* var) {}
+void ParallelDescriptor::WriteData (int         procnum,
+		       const void* src,
+		       void*       dest,
+		       int         offset,
+		       int         bytes) {}
+
+void ParallelDescriptor::ReadData (int         procnum,
+	       const void* src,
+	       int         offset,
+	       void*       dest,
+	       int         bytes) {}
+
+void ParallelDescriptor::SetMessageHeaderSize (int messageHeaderSize) {} 
+
+bool ParallelDescriptor::GetMessageHeader (int&  dataSize,
+		       void* messageHeader)
+{
+    return false;  // no messages waiting
+} 
+bool ParallelDescriptor::MessageQueueEmpty ()
+{
+    return true;  // no messages waiting
+} 
+void ParallelDescriptor::SendData (int         toproc,
+	       const void* messageHeader,
+	       const void* data,
+	       int         datasizeinbytes) {}
+
+void ParallelDescriptor::ReceiveData (void* data,
+		  int   datasizeinbytes) {}
+
+void ParallelDescriptor::Broadcast (int fromproc, void*  src, void*  dest, int nbytes) {}
 
 //
 // Here so we don't need to include <Utility.H> in <ParallelDescriptor.H>.
