@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.25 1998-11-20 21:58:24 lijewski Exp $
+// $Id: Utility.cpp,v 1.26 1998-12-09 21:56:28 wyc Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -31,7 +31,7 @@ const char* path_sep_str = "\\";
 const char* path_sep_str = "/";
 #endif
 
-#if !defined(BL_ARCH_CRAY) && !defined(WIN32) && !defined(T3E)
+#if !defined(BL_ARCH_CRAY) && !defined(WIN32) && !defined(BL_T3E)
 
 #include <sys/types.h>
 #include <sys/times.h>
@@ -246,7 +246,7 @@ Utility::wsecond (double* r)
     return rr;
 }
 
-#endif /*!defined(BL_ARCH_CRAY) && !defined(WIN32) && !defined(T3E)*/
+#endif /*!defined(BL_ARCH_CRAY) && !defined(WIN32) && !defined(BL_T3E)*/
 
 void
 Utility::ResetWallClockTime ()
