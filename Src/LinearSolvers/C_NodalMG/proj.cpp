@@ -7,6 +7,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <sstream>
 #include <new>
 using namespace std;
 
@@ -15,6 +16,8 @@ using namespace std;
 #include <iomanip.h>
 #include <fstream.h>
 #endif
+
+std::ofstream debug_out;
 
 void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain);
 
@@ -26,9 +29,24 @@ int main(int argc, char **argv)
     set_new_handler(Utility::OutOfMemory);
 #endif
     ParallelDescriptor::StartParallel(1, &argc, &argv);
+
+    if ( ParallelDescriptor::IOProcessor() )
+    {
+	std::ostringstream fname;
+	fname << "gu" << ParallelDescriptor::NProcs() << std::ends;
+	debug_out.open(fname.str().c_str(), ios::trunc);
+	if ( debug_out.fail() )
+	    BoxLib::Error("Failed to open debug file");
+	debug_out << std::setprecision(15);
+    }
     
     for (int i = 1; i < argc; ++i)
 	driver(argv[i]);
+
+    if ( ParallelDescriptor::IOProcessor() )
+    {
+	debug_out.close();
+    }
     ParallelDescriptor::EndParallel();
     return 0;
 }

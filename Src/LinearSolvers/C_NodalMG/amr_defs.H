@@ -2,7 +2,7 @@
 #define _AMR_DEFS_H_
 
 //
-// $Id: amr_defs.H,v 1.16 1998-08-06 03:46:58 car Exp $
+// $Id: amr_defs.H,v 1.17 1998-08-06 20:30:04 car Exp $
 //
 
 #include <MultiFab.H>
@@ -28,13 +28,6 @@
 #endif
 
 #include "hgparallel.h"
-
-#define HG_TEST_NORM(d, s) \
-    if ( true ) { \
-	double dz = mfnorm_2(d); \
-	if ( ParallelDescriptor::IOProcessor() ) \
-	    cout << s << " : Norm( " #d " ) = " << dz << endl; \
-    } else
 
 // index type helper functions:
 
@@ -85,5 +78,24 @@ inline Real mfnorm(const MultiFab& mf)
     ParallelDescriptor::ReduceRealMax(r);
     return r;
 }
+
+#include <fstream>
+extern std::ofstream debug_out;
+
+inline const char* mf_centeredness(const MultiFab& m)
+{
+    if ( type(m) == IntVect::TheCellVector() ) return "C";
+    if ( type(m) == IntVect::TheNodeVector() ) return "N";
+    return "O";
+}
+
+
+#define HG_TEST_NORM(d, s) \
+    if ( true ) { \
+	double dz = mfnorm_2(d); \
+	if ( ParallelDescriptor::IOProcessor() ) \
+	    debug_out << s << " : Norm[" << mf_centeredness(d) << "," << d.nComp() << "," << d.nGrow() << "]( " #d " ) = " << dz << std::endl; \
+    } else
+
 
 #endif
