@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BndryRegister.cpp,v 1.7 1999-02-24 16:50:31 lijewski Exp $
+// $Id: BndryRegister.cpp,v 1.8 1999-03-17 21:58:14 lijewski Exp $
 //
 
 #include <BndryRegister.H>
@@ -9,23 +9,6 @@
 BndryRegister::BndryRegister () {}
 
 BndryRegister::~BndryRegister () {}
-
-BndryRegister::BndryRegister (const BndryRegister& src)
-{
-    grids.define(src.grids);
-
-    for (int i = 0; i < 2*BL_SPACEDIM; i++)
-    {
-        FabSet& fs = bndry[i];
-
-        fs.define(src.bndry[i].boxArray(), src.bndry[i].nComp());
-
-        for (ConstFabSetIterator mfi(src.bndry[i]); mfi.isValid(); ++mfi)
-        {
-            fs[mfi.index()].copy(mfi());
-        }
-    }
-}
 
 BndryRegister::BndryRegister (const BoxArray& _grids,
                               int             _in_rad,
@@ -35,9 +18,9 @@ BndryRegister::BndryRegister (const BoxArray& _grids,
     :
     grids(_grids)
 {
+    assert(_ncomp > 0);
     assert(grids.ready());
     assert(grids[0].cellCentered());
-    assert(_ncomp > 0);
 
     for (OrientationIter face; face; ++face)
     {
@@ -50,16 +33,9 @@ BndryRegister::BndryRegister (const BoxArray& _grids,
     }
 }
 
-BndryRegister&
-BndryRegister::operator= (const BndryRegister& src)
+void
+BndryRegister::init (const BndryRegister& src)
 {
-    if (grids.ready())
-    {
-        grids.clear();
-        for (int i = 0; i < 2*BL_SPACEDIM; i++)
-            bndry[i].clear();
-    }
-
     grids.define(src.grids);
 
     for (int i = 0; i < 2*BL_SPACEDIM; i++)
@@ -73,24 +49,27 @@ BndryRegister::operator= (const BndryRegister& src)
             fs[mfi.index()].copy(mfi());
         }
     }
-
-    return *this;
 }
 
-void
-BndryRegister::setBoxes (const BoxArray& _grids)
+BndryRegister::BndryRegister (const BndryRegister& src)
 {
-    assert(!grids.ready());
-    assert(_grids.ready());
-    assert(_grids[0].cellCentered());
+    init(src);
+}
 
-    grids.define(_grids);
-    //
-    // Insure bndry regions are not allocated.
-    //
-    for (int k = 0; k < 2*BL_SPACEDIM; k++)
-        if (bndry[k].ready())
-            bndry[k].clear();
+BndryRegister&
+BndryRegister::operator= (const BndryRegister& src)
+{
+    if (grids.ready())
+    {
+        grids.clear();
+
+        for (int i = 0; i < 2*BL_SPACEDIM; i++)
+            bndry[i].clear();
+    }
+
+    init(src);
+
+    return *this;
 }
 
 void
@@ -165,6 +144,21 @@ BndryRegister::define (const Orientation& _face,
     assert(fsBA.ok());
 
     fabs.define(fsBA,_ncomp);
+}
+
+void
+BndryRegister::setBoxes (const BoxArray& _grids)
+{
+    assert(!grids.ready());
+    assert(_grids.ready());
+    assert(_grids[0].cellCentered());
+
+    grids.define(_grids);
+    //
+    // Check that bndry regions are not allocated.
+    //
+    for (int k = 0; k < 2*BL_SPACEDIM; k++)
+        assert(!bndry[k].ready());
 }
 
 void BndryRegister::setVal (Real v)

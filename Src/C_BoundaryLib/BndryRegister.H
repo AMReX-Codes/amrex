@@ -4,7 +4,7 @@
 #define _BNDRYREGISTER_H_
 
 //
-// $Id: BndryRegister.H,v 1.7 1998-05-06 22:36:14 lijewski Exp $
+// $Id: BndryRegister.H,v 1.8 1999-03-17 21:58:13 lijewski Exp $
 //
 
 #include <BoxArray.H>
@@ -44,15 +44,15 @@ public:
     //
     //@ManDoc: The default constructor.
     //
-    BndryRegister();
+    BndryRegister ();
     //
     //@ManDoc: The constructor, given number of cells in/out, extent and number of components (assumes cell-centered boxes, and allocates cell-centered FABs)
     //
-    BndryRegister (const BoxArray& _grids,
-                   int             _in_rad,
-                   int             _out_rad,
-                   int             _extent_rad,
-                   int             _ncomp);
+    BndryRegister (const BoxArray& grids,
+                   int             in_rad,
+                   int             out_rad,
+                   int             extent_rad,
+                   int             ncomp);
     //
     //@ManDoc: The copy constructor.
     //
@@ -76,11 +76,11 @@ public:
     //
     //@ManDoc: Return const set of FABs bounding the domain grid boxes on a given orientation
     //
-    const FabSet& operator[] (const Orientation& _face) const;
+    const FabSet& operator[] (const Orientation& face) const;
     //
     //@ManDoc: Return set of FABs bounding the domain grid boxes on a given orientation
     //
-    FabSet& operator[] (const Orientation& _face);
+    FabSet& operator[] (const Orientation& face);
     //
     //@ManDoc: Set all boundary FABs to given value.
     //
@@ -112,21 +112,25 @@ public:
                             int             b_comp,
                             int             dest_comp,
                             int             num_comp,
-                            int             n_ghost=0);
+                            int             n_ghost = 0);
     //
     //@ManDoc: Set box domain, if not set previously.
     //
-    void setBoxes (const BoxArray& _grids);
+    void setBoxes (const BoxArray& grids);
     //
     //@ManDoc: Build FABs along given face.
     //
-    void define (const Orientation& _face,
-                 const IndexType&   _typ,
-                 int                _in_rad,
-                 int                _out_rad,
-                 int                _extent_rad,
-                 int                _ncomp);
+    void define (const Orientation& face,
+                 const IndexType&   typ,
+                 int                in_rad,
+                 int                out_rad,
+                 int                extent_rad,
+                 int                ncomp);
 protected:
+    //
+    // Used by the copy constructor and assignment operator.
+    //
+    void init (const BndryRegister& src);
     //
     // The data.
     //
@@ -165,6 +169,5 @@ BndryRegister::operator[] (const Orientation& _face)
 {
     return bndry[_face];
 }
-
 
 #endif /*_BNDRYREGISTER_H_*/
