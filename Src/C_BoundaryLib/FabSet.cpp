@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.14 1998-05-25 22:55:24 lijewski Exp $
+// $Id: FabSet.cpp,v 1.15 1998-05-26 22:58:17 lijewski Exp $
 //
 
 #include <FabSet.H>
@@ -127,7 +127,7 @@ FabSet::copyFrom (const MultiFab& src,
             if (ovlp.ok())
             {
                 assert(!(fbidli == fillBoxIdList.end()));
-                FillBoxId fbid = *fbidli++;
+                const FillBoxId& fbid = *fbidli++;
                 assert(fbid.box() == ovlp);
                 //
                 // Directly fill the FAB.
@@ -186,7 +186,7 @@ FabSet::plusFrom (const MultiFab& src,
             if (ovlp.ok())
             {
                 assert(!(fbidli == fillBoxIdList.end()));
-                FillBoxId fbidsrc = *fbidli++;
+                const FillBoxId& fbidsrc = *fbidli++;
                 assert(fbidsrc.box() == ovlp);
                 //
                 // Directly fill the FAB.
@@ -305,13 +305,13 @@ FabSet::linComb (Real            a,
             if (ovlp.ok())
             {
                 assert(!(fbidli_mfa == fillBoxIdList_mfa.end()));
-                FillBoxId fbid_mfa = *fbidli_mfa++;
+                const FillBoxId& fbid_mfa = *fbidli_mfa++;
                 assert(fbid_mfa.box() == ovlp);
                 a_fab.resize(fbid_mfa.box(), num_comp);
                 mfcd.FillFab(mfid_mfa, fbid_mfa, a_fab);
 
                 assert(!(fbidli_mfb == fillBoxIdList_mfb.end()));
-                FillBoxId fbid_mfb = *fbidli_mfb++;
+                const FillBoxId& fbid_mfb = *fbidli_mfb++;
                 assert(fbid_mfb.box() == ovlp);
                 b_fab.resize(fbid_mfb.box(), num_comp);
                 mfcd.FillFab(mfid_mfb, fbid_mfb, b_fab);
