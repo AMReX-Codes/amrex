@@ -3,7 +3,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.110 2000-10-02 20:52:35 lijewski Exp $
+// $Id: FabArray.H,v 1.111 2000-10-19 18:04:17 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1119,7 +1119,7 @@ FabArray<T,FAB>::define (const BoxArray& bxs,
     n_grow = ngrow;
     n_comp = 0;
     boxarray.define(bxs);
-    distributionMap.define(ParallelDescriptor::NProcs(), boxarray);
+    distributionMap.define(boxarray);
     fabparray.resize(boxarray.length());
     if (alloc == Fab_allocate)
     {
@@ -1139,7 +1139,7 @@ FabArray<T,FAB>::define (const BoxArray& bxs,
     n_grow = ngrow;
     n_comp = nvar;
     boxarray.define(bxs);
-    distributionMap.define(ParallelDescriptor::NProcs(), boxarray);
+    distributionMap.define(boxarray);
     fabparray.resize(bxs.length());
     if (alloc == Fab_allocate)
         AllocFabs();
