@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.18 1998-04-16 22:05:13 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.19 1998-04-16 23:07:32 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -894,7 +894,7 @@ FluxRegister::CrseInit (const FArrayBox& flux,
     {
         if ((rc = MPI_Irecv(fabs[i].dataPtr(),
                             fabs[i].box().numPts() * numcomp,
-                            sizeof(Real) == sizeof(float) ? MPI_FLOAT : MPI_DOUBLE,
+                            mpi_data_type(fabs[i].dataPtr()),
                             MPI_ANY_SOURCE,
                             803,
                             MPI_COMM_WORLD,
@@ -915,7 +915,7 @@ FluxRegister::CrseInit (const FArrayBox& flux,
 
         if ((rc = MPI_Send(fab.dataPtr(),
                            int(count),
-                           sizeof(Real) == sizeof(float) ? MPI_FLOAT : MPI_DOUBLE,
+                           mpi_data_type(fab.dataPtr()),
                            sTags[i].toProc,
                            803,
                            MPI_COMM_WORLD)) != MPI_SUCCESS)

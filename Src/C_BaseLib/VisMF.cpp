@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.45 1998-04-14 16:50:53 lijewski Exp $
+// $Id: VisMF.cpp,v 1.46 1998-04-16 23:07:11 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -363,7 +363,7 @@ VisMF::Header::Header (const MultiFab& mf,
 #ifdef BL_USE_MPI
             int rc = MPI_Send(min_n_max.dataPtr(),
                               2 * m_ncomp,
-                              sizeof(Real) == sizeof(float) ? MPI_FLOAT : MPI_DOUBLE,
+                              mpi_data_type(min_n_max.dataPtr()),
                               ParallelDescriptor::IOProcessor(),
                               117,
                               MPI_COMM_WORLD);
@@ -394,7 +394,7 @@ VisMF::Header::Header (const MultiFab& mf,
 
                 if ((rc = MPI_Recv(min_n_max.dataPtr(),
                                    2 * m_ncomp,
-                                   sizeof(Real) == sizeof(float) ? MPI_FLOAT : MPI_DOUBLE,
+                                   mpi_data_type(min_n_max.dataPtr()),
                                    MPI_ANY_SOURCE,
                                    117,
                                    MPI_COMM_WORLD,
