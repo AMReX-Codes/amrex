@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.85 1999-05-27 19:15:55 sstanley Exp $
+// $Id: Amr.cpp,v 1.86 1999-05-27 20:55:59 sstanley Exp $
 //
 
 #include <TagBox.H>
@@ -402,6 +402,9 @@ Amr::isDerivePlotVar (const aString& name)
 
     if (derive_plot_vars.length() == 1 && derive_plot_vars[0] == "NONE")
         return false;
+
+    if (derive_plot_vars.length() == 1 && derive_plot_vars[0] == "ALL")
+        return true;
 
     for (int i = 0; i < derive_plot_vars.length(); i++)
         if (derive_plot_vars[i] == name)
