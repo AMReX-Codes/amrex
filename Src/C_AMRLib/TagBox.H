@@ -1,7 +1,7 @@
 #ifndef _TagBox_H_
 #define _TagBox_H_
 //
-// $Id: TagBox.H,v 1.17 2001-08-01 21:50:47 lijewski Exp $
+// $Id: TagBox.H,v 1.18 2003-02-28 22:42:15 lijewski Exp $
 //
 #include <IntVect.H>
 #include <Box.H>
@@ -145,9 +145,10 @@ public:
     //@ManDoc: The total number of Tags in all the contained TagBoxes.
     //
     long numTags () const;
-    //
-    //@ManDoc: Calls collate() on all contained TagBoxes.
-    //
+
+    /*@ManDoc: Calls collate() on all contained TagBoxes.
+               The callee must delete[] the space when not needed.
+    */
     IntVect* collate (long& numtags) const;
 
 private:
@@ -157,23 +158,6 @@ private:
     TagBoxArray ();
     TagBoxArray (const TagBoxArray& rhs);
     TagBoxArray& operator= (const TagBoxArray& rhs);
-    //
-    // Static space used by collate().
-    //
-    static IntVect* m_CollateSpace;
-    //
-    // Number of IntVects that can fit into m_CollateSpace
-    //
-    static long m_CollateCount;
-    //
-    // The initial size of `TagBoxArray::m_CollateCount' and the
-    // amount we bump it each time it is not large enough.
-    //
-    enum { ChunkSize = 50000 };
-    //
-    // Helper functions.
-    //
-    static void BumpCollateSpace (long numtags);
     //
     // Not to be confused with FabArray::n_grow which defines
     // the invalid regions of the fabs in the FabArray.
