@@ -2,7 +2,7 @@
 #define _BL_THREAD_H_
 
 //
-// $Id: Thread.H,v 1.8 2001-07-22 19:38:17 car Exp $
+// $Id: Thread.H,v 1.9 2001-08-21 20:30:02 car Exp $
 //
 
 #ifdef BL_THREADS
@@ -472,7 +472,7 @@ public:
     void* get() const;
 private:
     pthread_key_t key;
-#ifndef BL_PTHREADS
+#ifndef BL_THREADS
     void* v;
     void (*tsd)(void*);
 #endif
@@ -722,7 +722,7 @@ namespace BoxLib
     void Thread_Error(const char* file, int lineno, const char* message, int status);
 }
 
-#ifdef BL_PTHREADS
+#ifdef BL_THREADS
 
 #define THREAD_REQUIRE(x)						\
 do									\

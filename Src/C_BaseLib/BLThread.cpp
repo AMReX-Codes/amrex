@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.8 2001-07-22 18:11:02 car Exp $
+// $Id: BLThread.cpp,v 1.9 2001-08-21 20:30:02 car Exp $
 //
 
 #include <winstd.H>
@@ -420,7 +420,7 @@ Lock<Semaphore>::~Lock()
     sem.post();
 }
 
-#ifdef BL_PTHREADS
+#ifdef BL_THREADS
 
 namespace
 {
