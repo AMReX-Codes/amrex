@@ -6,8 +6,10 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
-#include <sstream>
 #include <new>
+#ifndef __GNUC__
+#include <sstream>
+#endif
 using namespace std;
 
 #else
@@ -33,10 +35,14 @@ int main(int argc, char **argv)
     ParallelDescriptor::StartParallel(1, &argc, &argv);
     
 #ifdef HG_DEBUG
+#ifdef __GNUC__
+    debug_out.open("guf", ios::trunc);
+#else
     std::ostringstream fname;
     fname << "gu" << ParallelDescriptor::NProcs() << "_" << ParallelDescriptor::MyProc() << std::ends;
     debug_out.open(fname.str().c_str(), ios::trunc);
-    if ( debug_out.fail() ) throw "Failed to open debug file";
+#endif
+    if ( debug_out.fail() ) BoxLib::Error( "Failed to open debug file" );
     debug_out << std::setprecision(15);
 #endif
 
