@@ -1,10 +1,6 @@
 #ifndef _AMR_DEFS_H_
 #define _AMR_DEFS_H_
 
-//
-//
-//
-
 #include <MultiFab.H>
 
 #if (BL_SPACEDIM == 1)

@@ -52,8 +52,18 @@ public:
     {
 	return m_sno;
     }
+    virtual bool depends_on_q(const task* t1) const
+    {
+	return false;
+    }
+    void depend_on(task* t1)
+    {
+	dependencies.push_back(t1);
+    }
+    bool depend_ready() const;
 protected:
     sequence_number m_sno;
+    list<task*> dependencies;
 };
 
 class task_copy : public task
@@ -65,6 +75,7 @@ public:
     virtual bool ready();
     virtual bool init(sequence_number sno, MPI_Comm comm);
     virtual void hint() const;
+    virtual bool depends_on_q(const task* t) const;
 protected:
 #ifdef BL_USE_MPI
     MPI_Request m_request;
@@ -135,8 +146,8 @@ private:
     list<task*> tasks;
     MPI_Comm comm;
     task::sequence_number seq_no;
-    bool verbosity;
-    static bool def_verbosity;
+    bool verbose;
+    static bool def_verbose;
 };
 
 class level_interface;
