@@ -10,6 +10,6 @@ f90sources += stencil.f90
 f90sources += st_coeffs.f90
 f90sources += stencil_nodal.f90
 
-include $(FPARALLEL)/aux/SPARSKIT/GPackage.mak
-VPATH_LOCATIONS += $(FPARALLEL)/aux/SPARSKIT
+include $(FPARALLEL)/extern/SPARSKIT/GPackage.mak
+VPATH_LOCATIONS += $(FPARALLEL)/extern/SPARSKIT
 
