@@ -883,9 +883,9 @@ contains
     do k = 1, nn(3)
        do j = 1, nn(2)
           if ( bc_dirichlet(mm( 1,j,k), 1, -1) ) &
-               ph(0   ,j,k) = sum(ph(1:norder(1)-1         ,j,k)*cc(1:norder(1)-1,1))
+               ph(0   ,j,k) = sum(ph(0:norder(1)-1         ,j,k)*cc(0:norder(1)-1,1))
           if ( bc_dirichlet(mm(nn(1),j,k), 1, +1) ) &
-               ph(nn(1)+1,j,k) = sum(ph(nn(1):nn(1)-(norder(1)-2):-1,j,k)*cc(1:norder(1)-1,2))
+               ph(nn(1)+1,j,k) = sum(ph(nn(1)+1:nn(1)-(norder(1)-2):-1,j,k)*cc(0:norder(1)-1,2))
        end do
     end do
 
@@ -896,9 +896,9 @@ contains
     do k = 1, nn(3)
        do i = 1, nn(1)
           if ( bc_dirichlet(mm(i, 1,k), 2, -1) ) &
-               ph(i   ,0,k) = sum(ph(i,1:norder(2)-1         ,k)*cc(1:norder(2)-1,1))
+               ph(i   ,0,k) = sum(ph(i,0:norder(2)-1         ,k)*cc(0:norder(2)-1,1))
           if ( bc_dirichlet(mm(i,nn(2),k), 2, +1) ) &
-               ph(i,nn(2)+1,k) = sum(ph(i,nn(2):nn(2)-(norder(2)-2):-1,k)*cc(1:norder(2)-1,2))
+               ph(i,nn(2)+1,k) = sum(ph(i,nn(2)+1:nn(2)-(norder(2)-2):-1,k)*cc(0:norder(2)-1,2))
        end do
     end do
 
@@ -909,9 +909,9 @@ contains
     do j = 1, nn(2)
        do i = 1, nn(1)
           if ( bc_dirichlet(mm(i,j, 1), 3, -1) ) &
-               ph(i,j,   0) = sum(ph(i,j,1:norder(3)-1         )*cc(1:norder(3)-1,1))
+               ph(i,j,   0) = sum(ph(i,j,0:norder(3)-1         )*cc(0:norder(3)-1,1))
           if ( bc_dirichlet(mm(i,j,nn(3)), 2, +1) ) &
-               ph(i,j,nn(3)+1) = sum(ph(i,j,nn(3):nn(3)-(norder(3)-2):-1)*cc(1:norder(3)-1,2))
+               ph(i,j,nn(3)+1) = sum(ph(i,j,nn(3)+1:nn(3)-(norder(3)-2):-1)*cc(0:norder(3)-1,2))
        end do
     end do
 

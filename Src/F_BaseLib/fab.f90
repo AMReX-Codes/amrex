@@ -434,6 +434,85 @@ contains
     end if 
   end function ifab_conformant_q
 
+  subroutine fab_set_border_val(fb, val)
+    type(fab), intent(inout) :: fb
+    real(kind=dp_t), intent(in), optional :: val
+    real(kind=dp_t) :: tval
+    integer :: i,j,k,n
+    integer :: plo(MAX_SPACEDIM), phi(MAX_SPACEDIM)
+    integer ::  lo(MAX_SPACEDIM),  hi(MAX_SPACEDIM)
+    tval = 0.0_dp_t; if ( present(val) ) tval = val
+    plo = 1; plo(1:fb%dim) = lwb(fb%pbx)
+    phi = 1; phi(1:fb%dim) = upb(fb%pbx)
+    lo = 1;  lo(1:fb%dim) = lwb(fb%ibx)
+    hi = 1;  hi(1:fb%dim) = upb(fb%ibx)
+    do n = 1, fb%nc
+       do k = plo(3), phi(3)
+          do j = plo(2), phi(2)
+             do i = plo(1), phi(1)
+                 if ( k >= lo(3) .and. k <= hi(3) .and. &
+                      j >= lo(2) .and. j <= hi(2) .and. &
+                      i >= lo(1) .and. i <= hi(1) ) cycle
+                 fb%p(i,j,k,n) = val
+             end do
+          end do
+       end do
+    end do
+  end subroutine fab_set_border_val
+  subroutine ifab_set_border_val(fb, val)
+    type(ifab), intent(inout) :: fb
+    integer, intent(in), optional :: val
+    integer :: tval
+    integer :: i,j,k,n
+    integer :: plo(MAX_SPACEDIM), phi(MAX_SPACEDIM)
+    integer ::  lo(MAX_SPACEDIM),  hi(MAX_SPACEDIM)
+    tval = 0; if ( present(val) ) tval = val
+    plo = 1; plo(1:fb%dim) = lwb(fb%pbx)
+    phi = 1; phi(1:fb%dim) = upb(fb%pbx)
+    lo = 1;  lo(1:fb%dim) = lwb(fb%ibx)
+    hi = 1;  hi(1:fb%dim) = upb(fb%ibx)
+    do n = 1, fb%nc
+       do k = plo(3), phi(3)
+          do j = plo(2), phi(2)
+             do i = plo(1), phi(1)
+                 if ( k >= lo(3) .and. k <= hi(3) .and. &
+                      j >= lo(2) .and. j <= hi(2) .and. &
+                      i >= lo(1) .and. i <= hi(1) ) cycle
+                 fb%p(i,j,k,n) = val
+             end do
+          end do
+       end do
+    end do
+  end subroutine ifab_set_border_val
+  !! lfab_set_border_val:
+  !! The default value is .false. since that is sort of mask
+  !! like on 'non-valid' data.
+  subroutine lfab_set_border_val(fb, val)
+    type(lfab), intent(inout) :: fb
+    logical, intent(in), optional :: val
+    logical :: tval
+    integer :: i,j,k,n
+    integer :: plo(MAX_SPACEDIM), phi(MAX_SPACEDIM)
+    integer ::  lo(MAX_SPACEDIM),  hi(MAX_SPACEDIM)
+    tval = .false.; if ( present(val) ) tval = val
+    plo = 1; plo(1:fb%dim) = lwb(fb%pbx)
+    phi = 1; phi(1:fb%dim) = upb(fb%pbx)
+    lo = 1;  lo(1:fb%dim) = lwb(fb%ibx)
+    hi = 1;  hi(1:fb%dim) = upb(fb%ibx)
+    do n = 1, fb%nc
+       do k = plo(3), phi(3)
+          do j = plo(2), phi(2)
+             do i = plo(1), phi(1)
+                 if ( k >= lo(3) .and. k <= hi(3) .and. &
+                      j >= lo(2) .and. j <= hi(2) .and. &
+                      i >= lo(1) .and. i <= hi(1) ) cycle
+                 fb%p(i,j,k,n) = val
+             end do
+          end do
+       end do
+    end do
+  end subroutine lfab_set_border_val
+
   subroutine fab_build(fb, bx, nc, ng, nodal, alloc)
     type(fab), intent(out) :: fb
     type(box), intent(in)  :: bx
