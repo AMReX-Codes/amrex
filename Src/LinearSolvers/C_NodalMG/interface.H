@@ -8,22 +8,8 @@ class amr_boundary_class;
 
 extern const class level_interface null_level_interface;
 
-#if 0
-#if (BL_SPACEDIM == 2)
-#  define DECLARE_GEOMETRY_TYPES \
-     enum { LL = 0x1, HL = 0x2, LH = 0x4, HH = 0x8, \
-	    XL = 0x5, XH = 0xA, YL = 0x3, YH = 0xC, \
-	    ALL = 0xF, LOW = 0x1 }
-#elif (BL_SPACEDIM == 3)
-#  define DECLARE_GEOMETRY_TYPES \
-     enum { LLL = 0x01, HLL = 0x02, LHL = 0x04, HHL = 0x08, \
-            LLH = 0x10, HLH = 0x20, LHH = 0x40, HHH = 0x80, \
-	    XL  = 0x55, XH  = 0xAA, YL  = 0x33, YH  = 0xCC, \
-            ZL  = 0x0F, ZH  = 0xF0, ALL = 0xFF, LOW = 0x01 }
-#endif
-#endif
-
-class level_interface {
+class level_interface 
+{
  public:
 
 #if (BL_SPACEDIM == 2)

@@ -688,9 +688,9 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
     // reject fine-fine interfaces and those without an interior fine grid
     if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].cflag(icor) == 1)
       continue;
-    else if (geo == level_interface::XL || geo == XH || geo == level_interface::YL || geo == YH) {
+    else if (geo == level_interface::XL || geo == level_interface::XH || geo == level_interface::YL || geo == level_interface::YH) {
       // fine grid on two adjacent sides
-      int idim = (geo == level_interface::XL || geo == XH) ? 0 : 1;
+      int idim = (geo == level_interface::XL || geo == level_interface::XH) ? 0 : 1;
       int idir = (geo & level_interface::LL) ? -1 : 1;
       const Box& sbox = source[lev][igrid].box();
       const Box& fbox = cres_fbox[lev][icor];

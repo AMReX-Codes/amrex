@@ -429,12 +429,12 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 		  D_DECL(rat[0], rat[1], rat[2]), integrate);
 	}
       }
-      else if (geo == XL || geo == XH || geo == YL || geo == YH) {
+      else if (geo == level_interface::XL || geo == level_interface::XH || geo == level_interface::YL || geo == level_interface::YH) {
 	// fine grid on two adjacent sides
-	int idim = (geo == XL || geo == XH) ? 0 : 1;
-	int idir = (geo & LL) ? -1 : 1;
+	int idim = (geo == level_interface::XL || geo == level_interface::XH) ? 0 : 1;
+	int idir = (geo & level_interface::LL) ? -1 : 1;
 	Box fbox = refine(cbox, rat).grow(1 - idim, rat[1-idim]);
-	if (geo & LL)
+	if (geo & level_interface::LL)
 	  fbox.growLo(idim, rat[idim]);
 	else
 	  fbox.growHi(idim, rat[idim]);
@@ -446,11 +446,11 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 		 D_DECL(rat[0], rat[1], rat[2]), idim, idir, integrate);
 	}
       }
-      else if (geo == LL || geo == HL || geo == LH || geo == HH) {
+      else if (geo == level_interface::LL || geo == level_interface::HL || geo == level_interface::LH || geo == level_interface::HH) {
 	// outside corner
 	Box fbox = refine(cbox, rat);
 	int idir0, idir1;
-	if (geo & XL) {
+	if (geo & level_interface::XL) {
 	  fbox.growLo(0, rat[0]);
 	  idir0 = -1;
 	}
@@ -458,7 +458,7 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 	  fbox.growHi(0, rat[0]);
 	  idir0 = 1;
 	}
-	if (geo & YL) {
+	if (geo & level_interface::YL) {
 	  fbox.growLo(1, rat[1]);
 	  idir1 = -1;
 	}
@@ -474,11 +474,11 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 		 D_DECL(rat[0], rat[1], rat[2]), idir0, idir1, integrate);
 	}
       }
-      else if (geo == (LL | HH) || geo == (LH | HL)) {
+      else if (geo == (level_interface::LL | level_interface::HH) || geo == (level_interface::LH | level_interface::HL)) {
 	// diagonal corner
 	Box fbox = refine(cbox, rat).grow(rat);
 	FArrayBox fgr(fbox, patch.nComp());
-	int idir1 = (geo == (LL | HH)) ? 1 : -1;
+	int idir1 = (geo == (level_interface::LL | level_interface::HH)) ? 1 : -1;
 	fill_patch(fgr, fine, lev_interface, bdy, 0, 0, icor);
 	for (int i = 0; i < patch.nComp(); i++) {
 	  FANDR2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
@@ -490,8 +490,8 @@ void bilinear_restrictor_coarse_class::lev_interface(FArrayBox& patch,
 	// inside corner
 	Box fbox = refine(cbox, rat).grow(rat);
 	FArrayBox fgr(fbox, patch.nComp());
-	int idir0 = ((geo & XL) == XL) ? -1 : 1;
-	int idir1 = ((geo & YL) == YL) ? -1 : 1;
+	int idir0 = ((geo & level_interface::XL) == level_interface::XL) ? -1 : 1;
+	int idir1 = ((geo & level_interface::YL) == level_interface::YL) ? -1 : 1;
 	fill_patch(fgr, fine, lev_interface, bdy, 0, 0, icor);
 	for (int i = 0; i < patch.nComp(); i++) {
 	  FANIR2(patch.dataPtr(i), dimlist(pb), dimlist(cbox),
