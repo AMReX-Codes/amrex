@@ -1258,18 +1258,15 @@ contains
   contains
 
     subroutine easy()
-      real(kind=dp_t), dimension(:,:,:,:), pointer :: pdst, psrc
-      type(boxarray)                               :: bxai
-      type(box)                                    :: abx, dbx
-      integer                                      :: i, j, ii, proc
-      integer                                      :: shft(2*3**mf%la%lap%dim,mf%la%lap%dim)
-      logical                                      :: nodal(mf%la%lap%dim)
-      integer, parameter                           :: tag = 1101
-
-      nodal = .false. ! We implicitly get the "nodal-ness" via get_ibox()
+      real(dp_t), dimension(:,:,:,:), pointer :: pdst, psrc
+      type(boxarray)                          :: bxai
+      type(box)                               :: abx, dbx
+      integer                                 :: i, j, ii, proc
+      integer                                 :: shft(2*3**mf%la%lap%dim,mf%la%lap%dim)
+      integer, parameter                      :: tag = 1101
 
       do i = 1, mf%nboxes
-         call boxarray_bndry_periodic(bxai,mf%la%lap%pd,get_ibox(mf,i),nodal,mf%la%lap%pmask,lng,shft)
+         call boxarray_bndry_periodic(bxai, mf%la%lap%pd, get_box(mf,i), mf%nodal, mf%la%lap%pmask, lng, shft)
          do j = 1, mf%nboxes
             if ( remote(mf,i) .and. remote(mf,j) ) cycle
             do ii = 1, bxai%nboxes
@@ -1418,18 +1415,15 @@ contains
   contains
 
     subroutine easy()
-      real(kind=dp_t), dimension(:,:,:,:), pointer :: pdst, psrc
-      type(boxarray)                               :: bxai
-      type(box)                                    :: abx, dbx
-      integer                                      :: i, j, ii, proc
-      integer                                      :: shft(2*3**mf%la%lap%dim,mf%la%lap%dim)
-      logical                                      :: nodal(mf%la%lap%dim)
-      integer, parameter                           :: tag = 1101
-
-      nodal = .false. ! We implicitly get the "nodal-ness" via get_ibox()
+      real(dp_t), dimension(:,:,:,:), pointer :: pdst, psrc
+      type(boxarray)                          :: bxai
+      type(box)                               :: abx, dbx
+      integer                                 :: i, j, ii, proc
+      integer                                 :: shft(2*3**mf%la%lap%dim,mf%la%lap%dim)
+      integer, parameter                      :: tag = 1101
 
       do i = 1, mf%nboxes
-         call boxarray_bndry_periodic(bxai,mf%la%lap%pd,get_ibox(mf,i),nodal,mf%la%lap%pmask,lng,shft)
+         call boxarray_bndry_periodic(bxai, mf%la%lap%pd, get_box(mf,i), mf%nodal, mf%la%lap%pmask, lng, shft)
          do j = 1, mf%nboxes
             if ( remote(mf,i) .and. remote(mf,j) ) cycle
             do ii = 1, bxai%nboxes
@@ -1582,13 +1576,10 @@ contains
       type(box)                            :: abx, dbx
       integer                              :: i, j, ii, proc
       integer                              :: shft(2*3**mf%la%lap%dim,mf%la%lap%dim)
-      logical                              :: nodal(mf%la%lap%dim)
       integer, parameter                   :: tag = 1101
 
-      nodal = .false. ! We implicitly get the "nodal-ness" via get_ibox()
-
       do i = 1, mf%nboxes
-         call boxarray_bndry_periodic(bxai,mf%la%lap%pd,get_ibox(mf,i),nodal,mf%la%lap%pmask,lng,shft)
+         call boxarray_bndry_periodic(bxai, mf%la%lap%pd, get_box(mf,i), mf%nodal, mf%la%lap%pmask, lng, shft)
          do j = 1, mf%nboxes
             if ( remote(mf,i) .and. remote(mf,j) ) cycle
             do ii = 1, bxai%nboxes
@@ -1735,13 +1726,10 @@ contains
       type(box)                            :: abx, dbx
       integer                              :: i, j, ii, proc
       integer                              :: shft(2*3**mf%la%lap%dim,mf%la%lap%dim)
-      logical                              :: nodal(mf%la%lap%dim)
       integer, parameter                   :: tag = 1101
 
-      nodal = .false. ! We implicitly get the "nodal-ness" via get_ibox()
-
       do i = 1, mf%nboxes
-         call boxarray_bndry_periodic(bxai,mf%la%lap%pd,get_ibox(mf,i),nodal,mf%la%lap%pmask,lng,shft)
+         call boxarray_bndry_periodic(bxai, mf%la%lap%pd, get_box(mf,i), mf%nodal, mf%la%lap%pmask, lng, shft)
          do j = 1, mf%nboxes
             if ( remote(mf,i) .and. remote(mf,j) ) cycle
             do ii = 1, bxai%nboxes
@@ -1860,22 +1848,23 @@ contains
     end subroutine fancy
 
   end subroutine lmultifab_fill_boundary
-
+  !!
   !! Internal Sync makes sure that any overlapped values are reconciled
   !! by coping values from the lower index number fabs to the higher index
   !! numbered boxes.  Works cell centered and node centered.  Though in a typical
   !! cell-centered multifab, there are no overlaps to reconcile.
   !! if ALL is true then even ghost cell data is 'reconciled'
+  !!
   subroutine multifab_internal_sync(mf, all, filter)
-    type(multifab), intent(inout) :: mf
-    logical, intent(in), optional :: all
-    type(box) :: ibx, jbx, abx
-    real(kind=dp_t), dimension(:,:,:,:), pointer :: p1, p2
-    integer :: i, j
-    integer :: proc
-    integer, parameter :: tag = 1104
-    logical :: lall
+    type(multifab), intent(inout)               :: mf
+    logical, intent(in), optional               :: all
+    type(box)                                   :: ibx, jbx, abx
+    real(dp_t), dimension(:,:,:,:), pointer     :: pdst, psrc
     real(dp_t), dimension(:,:,:,:), allocatable :: pt
+    integer                                     :: i, j, proc
+    integer, parameter                          :: tag = 1104
+    logical                                     :: lall
+
     interface
        subroutine filter(out, in)
          use bl_types
@@ -1883,9 +1872,11 @@ contains
          real(dp_t), intent(in   ) ::  in(:,:,:,:)
        end subroutine filter
     end interface
+
     optional filter
 
     lall = .false. ; if ( present(all) ) lall = all
+
     do j = 1, mf%nboxes - 1
        if ( lall ) then
           jbx = get_pbox(mf,j)
@@ -1901,27 +1892,27 @@ contains
           abx = intersection(ibx, jbx)
           if ( .not. empty(abx) ) then
              if ( local(mf, i) .and. local(mf, j) ) then
-                p1 => dataptr(mf, i, abx)
-                p2 => dataptr(mf, j, abx)
+                pdst => dataptr(mf, i, abx)
+                psrc => dataptr(mf, j, abx)
                 if ( present(filter) ) then
-                   call filter(p1, p2)
+                   call filter(pdst, psrc)
                 else
-                   p1 = p2
+                   pdst = psrc
                 end if
              else if ( local(mf, j) ) then ! must send
                 proc = get_proc(mf%la, i)
-                p2 => dataptr(mf, j, abx)
-                call parallel_send(p2, proc, tag)
+                psrc => dataptr(mf, j, abx)
+                call parallel_send(psrc, proc, tag)
              else if ( local(mf, i) ) then  ! must recv
                 proc = get_proc(mf%la,j)
-                p1 => dataptr(mf, i, abx)
+                pdst => dataptr(mf, i, abx)
                 if ( present(filter) ) then
-                   allocate(pt(size(p1,1),size(p1,2),size(p1,3),size(p1,4)))
+                   allocate(pt(size(pdst,1),size(pdst,2),size(pdst,3),size(pdst,4)))
                    call parallel_recv(pt, proc, tag)
-                   call filter(p1, pt)
+                   call filter(pdst, pt)
                    deallocate(pt)
                 else
-                   call parallel_recv(p1, proc, tag)
+                   call parallel_recv(pdst, proc, tag)
                 end if
              end if
           end if
