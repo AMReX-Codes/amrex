@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.19 1998-02-18 21:35:32 vince Exp $
+// $Id: AmrLevel.cpp,v 1.20 1998-03-24 18:28:29 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1480,20 +1480,18 @@ AmrLevel::derive (const aString& name,
                   Real           time)
 {
     BoxLib::Error("AmrLevel::derive(MultiFab*) not implemented");
-    //
-    // TODO -- implement this!!!
+#if 0
     //
     // The below code returns PArray<FArrayBox*> which isn't OK for parallel.
     //
-#if 0
     int state_indx, src_comp;
 
     if (isStateVariable(name,state_indx,src_comp))
     {
         const StateDescriptor& desc = desc_lst[state_indx];
-        int nc = desc.nComp();
-        const BoxArray& grds = state[state_indx].boxArray();
-        PArray<FArrayBox> *df = new PArray<FArrayBox>(grids.length(),PArrayManage);
+        int nc                      = desc.nComp();
+        const BoxArray& grds        = state[state_indx].boxArray();
+        PArray<FArrayBox>* df = new PArray<FArrayBox>(grids.length(),PArrayManage);
         for (int i = 0; i < grds.length(); i++)
         {
             FArrayBox* dest = new FArrayBox(grds[i],1);
@@ -1508,36 +1506,34 @@ AmrLevel::derive (const aString& name,
     const DeriveRec* d;
     if (d = derive_lst.get(name))
     {
-        PArray<FArrayBox> *df = new PArray<FArrayBox>(grids.length(),PArrayManage);
+        PArray<FArrayBox>* df = new PArray<FArrayBox>(grids.length(),PArrayManage);
 
         const Real* dx = geom.CellSize();
         int state_indx, src_comp, num_comp;
         d->getRange(0,state_indx,src_comp,num_comp);
         const BoxArray& grds = state[state_indx].boxArray();
         int n_state = d->numState();
-        int n_der = d->numDerive();
-        int nsr = d->numRange();
+        int n_der   = d->numDerive();
+        int nsr     = d->numRange();
         IndexType der_typ = d->deriveType();
         //
-        // Can do special fill
-        int i;
-        for (i = 0; i < grds.length(); i++)
+        // Can do special fill?
+        //
+        for (int i = 0; i < grds.length(); i++)
         {
             //
             // Build destination FAB and install.
             //
             Box dbox(grids[i]);
             dbox.convert(der_typ);
-            FArrayBox *dest = new FArrayBox(dbox,n_der);
+            FArrayBox* dest = new FArrayBox(dbox,n_der);
             df->set(i,dest);
             //
             // Build src fab and fill with component state data.
             //
             Box sbox(d->boxMap()(dbox));
             FArrayBox src(sbox,n_state);
-            int dc = 0;
-            int k;
-            for (k = 0; k < nsr; k++)
+            for (int k = 0, dc = 0; k < nsr; k++)
             {
                 d->getRange(k,state_indx,src_comp,num_comp); 
                 const StateDescriptor &desc = desc_lst[state_indx];
@@ -1561,16 +1557,16 @@ AmrLevel::derive (const aString& name,
             //
             // Call deriving function.
             //
-            Real *ddat = dest->dataPtr();
-            const int* dlo = dest->loVect();
-            const int* dhi = dest->hiVect();
-            Real *cdat = src.dataPtr();
-            const int* clo = src.loVect();
-            const int* chi = src.hiVect();
+            Real *ddat        = dest->dataPtr();
+            const int* dlo    = dest->loVect();
+            const int* dhi    = dest->hiVect();
+            Real *cdat        = src.dataPtr();
+            const int* clo    = src.loVect();
+            const int* chi    = src.hiVect();
             const int* dom_lo = state[state_indx].getDomain().loVect();
             const int* dom_hi = state[state_indx].getDomain().hiVect();
-            const int* bcr = d->getBC();
-            const Real* xlo = grid_loc[i].lo();
+            const int* bcr    = d->getBC();
+            const Real* xlo   = grid_loc[i].lo();
             d->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
                          cdat,ARLIM(clo),ARLIM(chi),&n_state,
                          dlo,dhi,dom_lo,dom_hi,dx,xlo,&time,bcr,
@@ -1585,10 +1581,7 @@ AmrLevel::derive (const aString& name,
     msg += name;
     BoxLib::Error(msg.c_str());
 #endif
-    //
-    // Just to keep the compiler happy
-    //
-    return 0;
+    return 0; // Just to keep the compiler happy
 }
 
 FArrayBox*
@@ -1596,10 +1589,8 @@ AmrLevel::derive (const Box&     b,
                   const aString& name,
                   Real           time)
 {
-    BoxLib::Warning("AmrLevel::derive(FAB*) not implemented in parallel");
-
     if (ParallelDescriptor::NProcs() > 1)
-        BoxLib::Error();
+        BoxLib::Error("AmrLevel::derive(FAB*) not implemented in parallel");
 
     int state_indx, src_comp;
     //
@@ -1625,10 +1616,8 @@ AmrLevel::derive (const Box&     b,
     aString msg("AmrLevel::derive(FAB): unknown variable: ");
     msg += name;
     BoxLib::Error(msg.c_str());
-    //
-    // Just to keep the compiler happy.
-    //
-    return 0;
+
+    return 0; // Just to keep the compiler happy.
 }
 
 void
@@ -1637,6 +1626,9 @@ AmrLevel::FillDerive (FArrayBox&     dest,
                       const aString& name,
                       Real           time)
 {
+    if (ParallelDescriptor::NProcs() > 1)
+        BoxLib::Error("AmrLevel::FillDerive(): no implemented in parallel");
+
     const DeriveRec* d = derive_lst.get(name);
     assert (d != 0);
     //
@@ -1694,7 +1686,7 @@ AmrLevel::FillDerive (FArrayBox&     dest,
         AmrLevel &crse_lev = parent->getLevel(level-1);
         crse_lev.FillDerive(crse,crse_reg,name,time);
         //
-        // Get bncry conditions for this patch.
+        // Get bndry conditions for this patch.
         //
         Array<BCRec> bc_crse;
         //
