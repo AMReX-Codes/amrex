@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.42 2000-04-24 17:52:38 car Exp $
+// $Id: VisMF.H,v 1.43 2000-05-31 20:33:14 car Exp $
 //
 
 #include <MultiFab.H>
@@ -342,7 +342,7 @@ VisMF::FileOffset (ostream& os)
 {
     return
 #if defined(__KCC) 
-#if BL_KCC_MAJOR_VERSION == 3 && BL_KCC_MINOR_VERSION > 3
+#if BL_KCC_MAJOR_VERSION >= 4 || (BL_KCC_MAJOR_VERSION == 3 && BL_KCC_MINOR_VERSION > 3)
       os.tellp();
 #else
     os.tellp().offset();

@@ -4,7 +4,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.31 2000-04-24 17:52:38 car Exp $
+// $Id: Utility.H,v 1.32 2000-05-31 20:33:14 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -63,6 +63,8 @@ public:
     //@ManDoc: Return true if argument is a non-zero length string of digits.
     //
     static bool is_integer (const char* str);
+
+#ifdef BL_DOES_USE_BSP_NOW
     //
     // The `Op' functions aren't documented as they're used only in BSP-specific code.
     //
@@ -150,6 +152,7 @@ public:
     {
         result = arg1 && arg2;
     }
+#endif
     //
     //@ManDoc: Returns rootNNNN where NNNN == num.
     //
