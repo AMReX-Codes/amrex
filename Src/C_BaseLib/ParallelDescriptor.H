@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.28 1998-04-17 22:22:06 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.29 1998-04-24 17:10:37 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -13,7 +13,7 @@
 #include <Box.H>
 
 //
-// Some of these can be collapsed.
+// Used for collecting information used in communicating FABs.
 //
 struct FabComTag
 {
@@ -21,19 +21,15 @@ struct FabComTag
     int toProc;
     int fabIndex;
     int fineIndex;
-    int crseIndex;
     int srcComp;
     int destComp;
     int nComp;
     int face;
-    int dataType;
     int fabArrayId;
     int fillBoxId;
     int procThatNeedsData;
     int procThatHasData;
     Box box;
-    Box ovlpBox;
-    Box subBox;
     //
     // A default constructor -- to quiet 3rd.
     //
@@ -43,12 +39,10 @@ struct FabComTag
         toProc            = 0;
         fabIndex          = 0;
         fineIndex         = 0;
-        crseIndex         = 0;
         srcComp           = 0;
         destComp          = 0;
         nComp             = 0;
         face              = 0;
-        dataType          = 0;
         fabArrayId        = 0;
         fillBoxId         = 0;
         procThatNeedsData = 0;
