@@ -466,14 +466,13 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
     
     
     Real alpha, rho;
-    int i = 0;
     
     // x (corr[0]) should be all 0.0 at this point
-    // PARALLEL TODO
-    for (int igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+    for(MultiFabIterator r_mfi(r); r_mfi.isValid(); ++r_mfi)
     {
-	r[igrid].copy(resid[mglev][igrid]);
-	r[igrid].negate();
+	DependentMultiFabIterator r_dmfi(r_mfi, resid[mglev]);
+	r_mfi->copy(r_dmfi());
+	r_mfi->negate();
     }
     //r.copy(resid[mglev]);
     //r.negate();
@@ -503,6 +502,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
     ParallelDescriptor::ReduceRealSum(rho);
     Real tol = 1.e-3 * rho;
     
+    int i = 0;
     while (tol > 0.0) 
     {
 	i++;
