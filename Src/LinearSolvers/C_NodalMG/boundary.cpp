@@ -243,9 +243,13 @@ mixed_boundary::image (const Box& region,
 	{
 	    const RegType t = ptr->bc[idim][1];
 
-	    // FIXME
+	    // FIXME ?????????????????????? car 11-18
 	    // There is no correspondence with above???
-	    if (t == refWall || t == inflow || t == outflow) 
+	    // This fixed a bug in for inflow on the high side of an idim.
+	    if ( t== inflow && idim == flowdim )
+	      {
+	      }
+	    else if (t == refWall || t == inflow || t == outflow) 
 	    {
 		image.shift(
 		    idim,
