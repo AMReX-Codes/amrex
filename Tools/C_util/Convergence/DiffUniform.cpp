@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DiffUniform.cpp,v 1.1 1999-02-24 23:31:21 sstanley Exp $
+// $Id: DiffUniform.cpp,v 1.2 1999-03-12 20:09:10 sstanley Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -27,7 +27,6 @@ using std::set_new_handler;
 #include "Box.H"
 #include "FArrayBox.H"
 #include "ParmParse.H"
-#include "Boolean.H"
 #include "ParallelDescriptor.H"
 #include "DataServices.H"
 #include "Utility.H"
