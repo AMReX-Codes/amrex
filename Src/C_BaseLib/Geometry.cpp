@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.49 1999-06-18 16:01:57 lijewski Exp $
+// $Id: Geometry.cpp,v 1.50 1999-07-14 23:06:15 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -214,7 +214,13 @@ Geometry::Geometry (const Box& dom)
 
 Geometry::Geometry (const Geometry& g)
 {
-    define(g.domain);
+    domain = g.domain;
+    ok     = g.ok;
+
+    for (int k = 0; k < BL_SPACEDIM; k++)
+    {
+        dx[k] = g.dx[k];
+    }
 }
 
 Geometry::~Geometry() {}
