@@ -6,6 +6,7 @@
 #define   FORT_HGRES_TERRAIN	hgres_terrain_
 #define   FORT_HGRES_FULL	hgres_full_
 #define   FORT_HGRESU		hgresu_
+#define   FORT_HGRESUR		hgresur_
 #define   FORT_HGRLX		hgrlx_
 #define   FORT_HGRLX_TERRAIN	hgrlx_terrain_
 #define   FORT_HGRLX_FULL	hgrlx_full_
@@ -25,6 +26,7 @@
 #define   FORT_HGRES_TERRAIN    HGRES_TERRAIN
 #define   FORT_HGRES_FULL	HGRES_FULL
 #define   FORT_HGRESU		HGRESU
+#define   FORT_HGRESUR		HGRESUR
 #define   FORT_HGRLX		HGRLX
 #define   FORT_HGRLX_TERRAIN    HGRLX_TERRAIN
 #define   FORT_HGRLX_FULL	HGRLX_FULL
@@ -44,6 +46,7 @@
 #define   FORT_HGRES_TERRAIN    hgres_terrain
 #define   FORT_HGRES_FULL	hgres_full
 #define   FORT_HGRESU		hgresu
+#define   FORT_HGRESUR		hgresur
 #define   FORT_HGRLX		hgrlx
 #define   FORT_HGRLX_TERRAIN    hgrlx_terrain
 #define   FORT_HGRLX_FULL	hgrlx_full
@@ -111,6 +114,8 @@ extern "C"
 			     const Real*, intS, intS);
     void FORT_HGRESU        (Real*, intS, const Real*, const Real*,
 			     const Real*, const Real*, intS, const int*);
+    void FORT_HGRESUR        (Real*, intS, const Real*, const Real*,
+			      const Real*, intS, const int*);
     void FORT_HGRLX         (Real*, intS, const Real*, intS,
 			     CRealPS, intS, const Real*, intS, intS,
 			     CRealPS, const int*, const int*);
@@ -216,10 +221,17 @@ holy_grail_amr_multigrid::level_residual (MultiFab& r,
 		BoxLib::surroundingNodes(mg_mesh[mglev][r_mfi.index()]) :
 		Box(lev_interface[mglev].part_fine(r_mfi.index()));
 
+#if 0
 	    FORT_HGRESU(r[r_mfi].dataPtr(), DIMLIST(rbox),
 			s[r_mfi].dataPtr(), d[r_mfi].dataPtr(),
                         sigma_node[mglev][r_mfi].dataPtr(), mask[mglev][r_mfi].dataPtr(), DIMLIST(freg),
                         &isRZ);
+#else
+	    FORT_HGRESUR(r[r_mfi].dataPtr(), DIMLIST(rbox),
+			s[r_mfi].dataPtr(), d[r_mfi].dataPtr(),
+                        sigma_node[mglev][r_mfi].dataPtr(), DIMLIST(freg),
+                        &isRZ);
+#endif
 	}
     }
     HG_TEST_NORM(r, "level_residual: out");

@@ -1540,6 +1540,50 @@ c-----------------------------------------------------------------------
 
       end
 c-----------------------------------------------------------------------
+      subroutine hgresur(
+     & res, resl0,resh0,resl1,resh1,
+     & src, dest, signd,
+     &      regl0,regh0,regl1,regh1,
+     & irz)
+      integer resl0,resh0,resl1,resh1
+      integer regl0,regh0,regl1,regh1
+      double precision res(resl0:resh0, resl1:resh1)
+      double precision src(resl0:resh0, resl1:resh1)
+      double precision dest(resl0:resh0, resl1:resh1)
+      double precision signd(resl0:resh0, resl1:resh1,2)
+      integer irz
+      integer istart, iend
+      integer i, j, jdiff, ly
+      integer ilocal, jlocal
+      jdiff = resh0 - resl0 + 1
+      ly = (resh1 - resl1 + 1) * jdiff
+      istart = (regl1 - resl1) * jdiff + (regl0 - resl0)
+      iend   = (regh1 - resl1) * jdiff + (regh0 - resl0)
+
+      do j = regl1, regh1
+	  do i = regl0, regh0
+	  res(i,j) = (src(i,j) - (
+     &    + signd(i-1,j,1)*(dest(i-1,j)-dest(i,j))
+     &    + signd(i,j,1)  *(dest(i+1,j)-dest(i,j))
+     &    + signd(i,j-1,2)*(dest(i,j-1)-dest(i,j))
+     &    + signd(i,j,2)  *(dest(i,j+1)-dest(i,j))
+     &    )
+     &    )
+	end do
+	end do
+c      do i = istart+1, iend+1
+c         jlocal = i / jdiff + resl1
+c         ilocal = resl0 + (i-jlocal*jdiff-resl1)
+c         res(i) = mask(i) * (src(i) -
+c     &     (signd(i-1)        * (dest(i-1) - dest(i)) +
+c     &      signd(i)          * (dest(i+1) - dest(i)) +
+c     &      signd(i+ly-jdiff) * (dest(i-jdiff) - dest(i)) +
+c     &      signd(i+ly)       * (dest(i+jdiff) - dest(i))))
+c      end do
+
+      if ( irz .eq. 1 ) stop 'not yet'
+      end
+c-----------------------------------------------------------------------
       subroutine hgscon(
      & signd, snl0,snh0,snl1,snh1,
      & sigx, sigy,
