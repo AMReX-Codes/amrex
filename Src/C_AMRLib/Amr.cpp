@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.43 1998-06-13 15:48:11 lijewski Exp $
+// $Id: Amr.cpp,v 1.44 1998-06-15 23:55:36 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -1120,6 +1120,9 @@ Amr::regrid (int  lbase,
             cout << "Flushing processor map cache: "
                  << DistributionMapping::CacheSize()
                  << " entries\n";
+            cout << "Flushing fill boundary cache: "
+                 << MultiFab::SICacheSize()
+                 << " entries\n";
             cout << "Flushing fill periodic boundary cache: "
                  << Geometry::PIRMCacheSize()
                  << " entries\n";
@@ -1132,6 +1135,10 @@ Amr::regrid (int  lbase,
         // Likewise with PIRM cache.
         //
         Geometry::FlushPIRMCache();
+        //
+        // Likewise with SI cache.
+        //
+        MultiFab::FlushSICache();
     }
     //
     // Define the new grids from level lbase+1 up to new_finest.
