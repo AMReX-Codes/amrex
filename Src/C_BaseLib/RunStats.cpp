@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.13 1999-03-19 17:57:35 lijewski Exp $
+// $Id: RunStats.cpp,v 1.14 1999-03-29 19:27:52 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -473,7 +473,7 @@ RunStats::CollectNumPts ()
             //
             RunStats::TheNumPts.resize(ParallelDescriptor::NProcs(), 0);
 
-        for (int i = 0; i < RunStats::TheNumPts.length(); i++)
+        for (int i = 0; i < numpts.length(); i++)
             RunStats::TheNumPts[i] += numpts[i];
     }
 
