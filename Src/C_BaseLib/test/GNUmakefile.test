@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile.test,v 1.8 1998-10-26 20:50:54 lijewski Exp $
+# $Id: GNUmakefile.test,v 1.9 1998-11-18 20:33:02 lijewski Exp $
 #
 
 #
@@ -20,7 +20,6 @@ LIBRARIES += -lbox$(optionsSuffix)
 MPI_HOME =
 
 ifeq ($(USE_MPI), TRUE)
-DEFINES += -DBL_USE_MPI
 ifeq ($(MACHINE), OSF1)
 MPI_HOME = /usr/local/mpi
 endif
