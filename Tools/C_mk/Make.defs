@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.3 1997-09-15 21:53:51 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.4 1997-12-03 19:24:54 vince Exp $
 #
 
 #
@@ -12,6 +12,7 @@
 # don't make the distinction for now, just use CRAY
 #
 UNAMEM := $(shell uname -m)
+UNAMEN := $(shell uname -n)
 ifeq    ($(findstring CRAY, $(UNAMEM)), CRAY)
 ifeq    ($(findstring Y-MP, $(UNAMEM)), Y-MP)
     MACHINE := CRAY
@@ -24,6 +25,12 @@ ifeq	($(findstring J90, $(UNAMEM)), J90)
 endif
 ifeq	($(findstring T3E, $(UNAMEM)), T3E)
     MACHINE := T3E
+ifeq	($(findstring mcurie, $(UNAMEN)), mcurie)
+    WHICHT3E := NERSC
+endif
+ifeq	($(findstring seymour, $(UNAMEN)), seymour)
+    WHICHT3E := NAVO
+endif
 endif
 endif
 
