@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.25 2002-12-07 16:25:26 lijewski Exp $
+c $Id: INTERP_3D.F,v 1.26 2002-12-11 20:43:22 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -2150,27 +2150,33 @@ c :::
       integer num_cells_ok(nvar)
 
       integer rMAX
-      parameter (rMAX = 4)
+      parameter (rMAX = 8)
       REAL_T alpha, sumN, sumP, crseTot, negVal, posVal
       REAL_T sum_fine_new,sum_fine_old
       REAL_T orig_fine(0:rMAX-1,0:rMAX-1,0:rMAX-1)
       integer redo_me
-      integer ioff,joff,koff
+      integer ilo,ihi,jlo,jhi,klo,khi
       integer i,j,k,ic,jc,kc,n,nn
+      integer numFineCells
       integer icase
 
       do kc = cblo(3), cbhi(3)
       do jc = cblo(2), cbhi(2)
       do ic = cblo(1), cbhi(1)
+
+         ilo = max(lratiox*ic            ,fine_l1)
+         ihi = min(lratiox*ic+(lratiox-1),fine_h1)
+         jlo = max(lratioy*jc            ,fine_l2)
+         jhi = min(lratioy*jc+(lratioy-1),fine_h2)
+         klo = max(lratioz*kc            ,fine_l3)
+         khi = min(lratioz*kc+(lratioz-1),fine_h3)
+
          do n = 2, nvar-1
 
             redo_me = 0
-            do koff = 0, lratioz-1
-            do joff = 0, lratioy-1
-            do ioff = 0, lratiox-1
-               i = lratiox*ic + ioff
-               j = lratioy*jc + joff
-               k = lratioz*kc + koff
+            do k = klo,khi
+            do j = jlo,jhi
+            do i = ilo,ihi
                if ((fine_state(i,j,k,n)+fine(i,j,k,n)) .lt. 0.d0) redo_me = 1
             enddo
             enddo
@@ -2219,28 +2225,23 @@ c
 
                icase = 0
                sum_fine_old = 0.d0
-               do koff = 0, lratioz-1
-               do joff = 0, lratioy-1
-               do ioff = 0, lratiox-1
-                  i = lratiox*ic + ioff
-                  j = lratioy*jc + joff
-                  k = lratioz*kc + koff
+               do k = klo,khi
+               do j = jlo,jhi
+               do i = ilo,ihi
                   sum_fine_old = sum_fine_old + fine(i,j,k,n)
-                  orig_fine(ioff,joff,koff) = fine(i,j,k,n)
+                  orig_fine(i-ilo,j-jlo,k-klo) = fine(i,j,k,n)
                enddo
                enddo
                enddo
 
-               crseTot = lratiox*lratioy*lratioz*crse(ic,jc,kc,n)
+               crseTot = sum_fine_old
+               numFineCells = (ihi-ilo+1) * (jhi-jlo+1) * (khi-klo+1)
 
                sumN = zero
                sumP = zero
-               do koff = 0, lratioz-1
-               do joff = 0, lratioy-1
-               do ioff = 0, lratiox-1
-                  i = lratiox*ic + ioff
-                  j = lratioy*jc + joff
-                  k = lratioz*kc + koff
+               do k = klo,khi
+               do j = jlo,jhi
+               do i = ilo,ihi
                   if (fine_state(i,j,k,n) .le. 0.d0) then
                     sumN = SumN + fine_state(i,j,k,n)
                   else
@@ -2255,12 +2256,9 @@ c              Here we want to fill in the negative values first, then add
 c                the remaining positive proportionally.
 
                    icase = 1
-                   do koff = 0, lratioz-1
-                   do joff = 0, lratioy-1
-                   do ioff = 0, lratiox-1
-                      i = lratiox*ic + ioff
-                      j = lratioy*jc + joff
-                      k = lratioz*kc + koff
+                   do k = klo,khi
+                   do j = jlo,jhi
+                   do i = ilo,ihi
                       if (fine_state(i,j,k,n) .le. 0.d0) then
                         fine(i,j,k,n) = -fine_state(i,j,k,n)
                       endif
@@ -2272,12 +2270,9 @@ c                the remaining positive proportionally.
 
                     alpha = (crseTot - abs(sumN)) / sumP
 
-                    do koff = 0, lratioz-1
-                    do joff = 0, lratioy-1
-                    do ioff = 0, lratiox-1
-                       i = lratiox*ic + ioff
-                       j = lratioy*jc + joff
-                       k = lratioz*kc + koff
+                    do k = klo,khi
+                    do j = jlo,jhi
+                    do i = ilo,ihi
                        if (fine_state(i,j,k,n) .ge. 0.d0) then
                          fine(i,j,k,n) = alpha * fine_state(i,j,k,n)
                        endif
@@ -2287,14 +2282,11 @@ c                the remaining positive proportionally.
 
                   else
 
-                    posVal = (crseTot - abs(sumN)) / float(lratiox*lratioy*lratioz)
+                    posVal = (crseTot - abs(sumN)) / float(numFineCells)
 
-                    do koff = 0, lratioz-1
-                    do joff = 0, lratioy-1
-                    do ioff = 0, lratiox-1
-                       i = lratiox*ic + ioff
-                       j = lratioy*jc + joff
-                       k = lratioz*kc + koff
+                    do k = klo,khi
+                    do j = jlo,jhi
+                    do i = ilo,ihi
                        fine(i,j,k,n) = fine(i,j,k,n) + posVal
                     enddo
                     enddo
@@ -2312,12 +2304,9 @@ c                and don't add any correction to the states already positive.
                    icase = 2
                    alpha = crseTot / abs(sumN)
 
-                   do koff = 0, lratioz-1
-                   do joff = 0, lratioy-1
-                   do ioff = 0, lratiox-1
-                      i = lratiox*ic + ioff
-                      j = lratioy*jc + joff
-                      k = lratioz*kc + koff
+                   do k = klo,khi
+                   do j = jlo,jhi
+                   do i = ilo,ihi
                       if (fine_state(i,j,k,n) .lt. 0.d0) then
                         fine(i,j,k,n) = alpha * abs(fine_state(i,j,k,n))
                       else 
@@ -2335,14 +2324,11 @@ c                negative correction, so we want to end up with all the fine
 c                cells having the same negative value.
 
                    icase = 3
-                   negVal = (sumP + sumN + crseTot)/float(lratiox*lratioy*lratioz)
+                   negVal = (sumP + sumN + crseTot)/float(numFineCells)
 
-                   do koff = 0, lratioz-1
-                   do joff = 0, lratioy-1
-                   do ioff = 0, lratiox-1
-                      i = lratiox*ic + ioff
-                      j = lratioy*jc + joff
-                      k = lratioz*kc + koff
+                   do k = klo,khi
+                   do j = jlo,jhi
+                   do i = ilo,ihi
                       fine(i,j,k,n) = negVal - fine_state(i,j,k,n)
                    enddo
                    enddo
@@ -2359,12 +2345,9 @@ c                positive.
                    icase = 4
                    alpha = (crseTot + sumN) / sumP
 
-                   do koff = 0, lratioz-1
-                   do joff = 0, lratioy-1
-                   do ioff = 0, lratiox-1
-                      i = lratiox*ic + ioff
-                      j = lratioy*jc + joff
-                      k = lratioz*kc + koff
+                   do k = klo,khi
+                   do j = jlo,jhi
+                   do i = ilo,ihi
                       if (fine_state(i,j,k,n) .lt. 0.d0) then
                         fine(i,j,k,n) = -fine_state(i,j,k,n)
                       else
@@ -2386,12 +2369,9 @@ c                remaining positiveness from the states to help the negative sta
                    icase = 5
                    alpha = (crseTot + sumP) / sumN
 
-                   do koff = 0, lratioz-1
-                   do joff = 0, lratioy-1
-                   do ioff = 0, lratiox-1
-                      i = lratiox*ic + ioff
-                      j = lratioy*jc + joff
-                      k = lratioz*kc + koff
+                   do k = klo,khi
+                   do j = jlo,jhi
+                   do i = ilo,ihi
                       if (fine_state(i,j,k,n) .gt. 0.d0) then
                         fine(i,j,k,n) = -fine_state(i,j,k,n)
                       else 
@@ -2404,12 +2384,9 @@ c                remaining positiveness from the states to help the negative sta
                endif
 
                sum_fine_new = 0.d0
-               do koff = 0, lratioz-1
-               do joff = 0, lratioy-1
-               do ioff = 0, lratiox-1
-                  i = lratiox*ic + ioff
-                  j = lratioy*jc + joff
-                  k = lratioz*kc + koff
+               do k = klo,khi
+               do j = jlo,jhi
+               do i = ilo,ihi
                   sum_fine_new = sum_fine_new + fine(i,j,k,n)
                enddo
                enddo
@@ -2422,25 +2399,19 @@ c                remaining positiveness from the states to help the negative sta
                   print *,'NEW SUM / OLD SUM ',sum_fine_new, sum_fine_old
                   print *,'CRSETOT ',crseTot
                   print *,'SUMP SUMN ',sumP,sumN
-                  do koff = 0, lratioz-1
-                  do joff = 0, lratioy-1
-                  do ioff = 0, lratiox-1
-                     i = lratiox*ic + ioff
-                     j = lratioy*jc + joff
-                     k = lratioz*kc + koff
-                     print *,'FINE OLD NEW ',ioff,joff,koff,orig_fine(ioff,joff,koff),
-     $                                          fine(i,j,k,n), fine_state(i,j,k,n)
+                  do k = klo,khi
+                  do j = jlo,jhi
+                  do i = ilo,ihi
+                     print *,'FINE OLD NEW ',i,j,k,orig_fine(i-ilo,j-jlo,k-klo),
+     $                                       fine(i,j,k,n), fine_state(i,j,k,n)
                   enddo
                   enddo
                   enddo
                endif
 
-c              do koff = 0, lratioz-1
-c              do joff = 0, lratioy-1
-c              do ioff = 0, lratiox-1
-c                 i = lratiox*ic + ioff
-c                 j = lratioy*jc + joff
-c                 k = lratioz*kc + koff
+c              do k = klo,khi
+c              do j = jlo,jhi
+c              do i = ilo,ihi
 c                 if ((fine_state(i,j,k,n) + fine(i,j,k,n)) .lt. 0.d0) then
 c                    print *,'STILL NEGATIVE AT ',i,j,k,n
 c                    print *,'AT COARSE CELL ',ic,jc,kc
@@ -2460,12 +2431,9 @@ c           End (if redo .eq. 1)
          enddo
 
 c     Set sync for density (n=1) to sum of spec sync (2:nvar-1)
-         do koff = 0, lratioz-1
-         do joff = 0, lratioy-1
-         do ioff = 0, lratiox-1
-            i = lratiox*ic + ioff
-            j = lratioy*jc + joff
-            k = lratioz*kc + koff
+         do k = klo,khi
+         do j = jlo,jhi
+         do i = ilo,ihi
             fine(i,j,k,1) = 0.d0
             do n = 2,nvar-1
                fine(i,j,k,1) = fine(i,j,k,1) + fine(i,j,k,n)
