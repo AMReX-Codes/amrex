@@ -86,7 +86,7 @@ MFIter::MFIter (const FabArrayBase& fabarray)
 #endif
 }
 
-MFIter&
+void
 MFIter::operator++ ()
 {
 #ifdef BL_USE_MPI
@@ -102,25 +102,10 @@ MFIter::operator++ ()
 #else
     ++currentIndex;
 #endif
-
-    return *this;
-}
-
-MFIter
-MFIter::operator++ (int)
-{
-    MFIter res(*this);
-    this->operator++();
-    return res;
 }
 
 int
 MFIter::index () const
-{
-    return currentIndex;
-}
-
-MFIter::operator int () const
 {
     return currentIndex;
 }
@@ -152,6 +137,12 @@ MFIter::isValid ()
     }
 #endif
     return currentIndex < fabArray.size();
+}
+
+const FabArrayBase&
+MFIter::theFabArrayBase () const
+{
+    return fabArray;
 }
 
 //
