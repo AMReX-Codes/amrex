@@ -1467,7 +1467,7 @@ c-----------------------------------------------------------------------
      &              sig(i  ,j-1,k-1,3) + sig(i  ,j-1,k,3) +
      &              sig(i  ,j  ,k-1,3) + sig(i  ,j  ,k,3)))
                if ( tmp .eq. 0.0 ) then
-                  cen(i,j,k) = zero
+                  cen(i,j,k) = 0.0d0
                else
                   cen(i,j,k) = 36 / tmp
                end if
