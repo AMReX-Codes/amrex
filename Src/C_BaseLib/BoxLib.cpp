@@ -1,5 +1,5 @@
 //
-// $Id: BoxLib.cpp,v 1.16 2001-07-19 16:57:31 lijewski Exp $
+// $Id: BoxLib.cpp,v 1.17 2001-07-20 19:52:54 car Exp $
 //
 
 #include <cstdio>
@@ -10,6 +10,7 @@
 #include <BoxLib.H>
 #include <BLVERSION.H>
 #include <ParallelDescriptor.H>
+#include <Profiler.H>
 
 #define bl_str(s)  # s
 #define bl_xstr(s) bl_str(s)
@@ -133,4 +134,18 @@ BoxLib::OutOfMemory (const char* file,
                      int         line)
 {
     BoxLib::Assert("operator new", file, line);
+}
+
+void
+BoxLib::Initialize(int& argc, char**& argv)
+{
+    Profiler::Initialize(argc, argv);
+    ParallelDescriptor::StartParallel(&argc, &argv);
+}
+
+void
+BoxLib::Finalize()
+{
+    ParallelDescriptor::EndParallel();
+    Profiler::Finalize();
 }
