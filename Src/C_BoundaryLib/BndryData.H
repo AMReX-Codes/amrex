@@ -4,7 +4,7 @@
 #define _BNDRYDATA_H_
 
 //
-// $Id: BndryData.H,v 1.6 1999-03-17 21:58:46 lijewski Exp $
+// $Id: BndryData.H,v 1.7 1999-04-13 00:09:11 marc Exp $
 //
 
 #include <Assert.H>
@@ -15,46 +15,6 @@
 #include <Mask.H>
 #include <BoundCond.H>
 #include <Geometry.H>
-
-//@Man:
-/*@Memo:
-  A ProxyGeometry is a class constructed solely to prevent automatic
-  type conversion with the Geometry::Geometry(const Box&) constructor.
-  This class can easily make a Geometry object, but does not have a
-  ProxyGeometry::ProxyGeometry(const Box&) constructor.
-*/    
-/*@Doc:
-        A ProxyGeometry object is, for most purposes, merely a wrapper to the
-    Geometry class.  The Geometry class contains a single-argument
-    constructor taking a const Box &, and therefore allows implicit
-    type conversion.  However, that constructor requires parm-parsed
-    input for the coordinate system and prob lo and hi.  This has led to
-    some some mysterious error messages, by correctly compiled code
-    passing in a Box where a Geometry was called for.  This little class
-    is an attempt to circumvent this little funny business.
-*/
-
-class ProxyGeometry
-{
-
-public:
-    //
-    //@ManDoc: The default constructor.
-    //
-    ProxyGeometry (const Geometry& g)
-        :
-        m_g(g) {}
-    //
-    //@ManDoc: Type conversion operator.
-    //
-    operator Geometry () const { return m_g; }
-
-protected:
-    //
-    //@ManDoc: The underlying Geometry
-    //
-    const Geometry& m_g;
-};
 
 //@Man:
 /*@Memo:
@@ -107,9 +67,9 @@ public:
     /*@ManDoc: constructor specifying number of components and box of physical
         domain (cell-centered)
     */
-    BndryData (const BoxArray&      grids,
-               int                  ncomp,
-               const ProxyGeometry& geom);
+    BndryData (const BoxArray& grids,
+               int             ncomp,
+               const Geometry& geom);
     //
     //@ManDoc: destructor
     //
@@ -125,9 +85,9 @@ public:
     //
     //@ManDoc: alocate bndry fabs along given face
     //
-    void define (const BoxArray&      grids,
-                 int                  ncomp,
-                 const ProxyGeometry& geom);
+    void define (const BoxArray& grids,
+                 int             ncomp,
+                 const Geometry& geom);
     //
     //@ManDoc: write to output stream
     //
