@@ -68,7 +68,7 @@ void task::print_dependencies(ostream& os) const
     os << "Task " << get_sequence_number() << " depends on ( ";
     for ( list<task_proxy>::const_iterator lit = dependencies.begin(); lit != dependencies.end(); ++lit)
     {
-	if ( ! lit->is_finished() )
+	if ( ! (*lit).is_finished() )
 	{
 	    os << (*lit)->get_sequence_number() << " ";
 	}
