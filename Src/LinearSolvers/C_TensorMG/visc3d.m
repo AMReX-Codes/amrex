@@ -1,6 +1,9 @@
 Off[General::spell,General::spell1];
 
-SetOptions[$Output, PageWidth->73];
+(* Set PageWidth to 59 to reproduce old files *)
+SetOptions[$Output, PageWidth->59]; 
+(* SetOptions[$Output, PageWidth->73]; *)
+
 Get["Format.m"]
 
 (*
