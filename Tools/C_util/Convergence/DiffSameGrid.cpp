@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DiffSameGrid.cpp,v 1.9 2000-06-01 21:22:31 car Exp $
+// $Id: DiffSameGrid.cpp,v 1.10 2000-10-02 21:08:53 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

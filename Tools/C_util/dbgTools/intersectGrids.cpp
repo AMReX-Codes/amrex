@@ -1,4 +1,3 @@
-//BL_COPYRIGHT_NOTICE
 
 //
 // $ $

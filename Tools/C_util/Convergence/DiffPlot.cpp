@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DiffPlot.cpp,v 1.5 2000-03-15 00:03:06 sstanley Exp $
+// $Id: DiffPlot.cpp,v 1.6 2000-10-02 21:08:53 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

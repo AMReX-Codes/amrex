@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Add.cpp,v 1.2 1999-03-12 20:09:09 sstanley Exp $
+// $Id: Add.cpp,v 1.3 2000-10-02 21:08:52 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES

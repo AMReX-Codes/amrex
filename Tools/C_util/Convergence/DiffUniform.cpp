@@ -1,7 +1,6 @@
-//BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DiffUniform.cpp,v 1.6 1999-10-29 17:31:48 sstanley Exp $
+// $Id: DiffUniform.cpp,v 1.7 2000-10-02 21:08:54 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
