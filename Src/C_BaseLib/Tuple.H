@@ -2,7 +2,7 @@
 #define BL_TUPLE_H
 
 //
-// $Id: Tuple.H,v 1.15 2004-02-19 18:17:54 car Exp $
+// $Id: Tuple.H,v 1.16 2005-01-05 21:53:21 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -127,8 +127,11 @@ template <class T, std::size_t N>
 Tuple<T,N>&
 Tuple<T,N>::operator= (const Tuple<T,N>& rhs)
 {
-    for (std::size_t i = 0; i < N; ++i)
-        vect[i] = rhs.vect[i];
+    if (this != &rhs)
+    {
+        for (std::size_t i = 0; i < N; ++i)
+            vect[i] = rhs.vect[i];
+    }
     return *this;
 }
 
