@@ -447,7 +447,6 @@ contains
     subroutine build_ns_plotfile()
       integer :: i, n, k
       integer :: j, nc
-      integer n1
       character(len=FABIO_MAX_PATH_NAME) :: str, str1, cdummy, filename
       integer :: offset
       integer :: idummy, sz, fd
@@ -633,8 +632,8 @@ contains
     subroutine build_ns_plotfile()
       integer :: i, n, k
       integer :: j, nc
-      character(len=256) :: str, str1, cdummy, filename
-      integer :: idummy, lun1, fd
+      character(len=256) :: str, str1, cdummy
+      integer :: idummy, lun1
       real(kind=dp_t) :: rdummy
       integer :: nvars, dm, flevel
       integer :: nboxes
