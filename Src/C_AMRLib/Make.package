@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.1 1998-10-28 18:15:14 lijewski Exp $
+# $Id: Make.package,v 1.2 1998-10-28 22:01:15 lijewski Exp $
 #
 
 AMRLIB_BASE=EXE
@@ -13,9 +13,9 @@ C$(AMRLIB_BASE)_sources += Amr.cpp AmrLevel.cpp BCRec.cpp Cluster.cpp \
                            StateDescriptor.cpp TagBox.cpp
                            
 
-C$(AMRLIB_BASE)_headers += Amr.H AmrLevel.H BCRec.H Cluster.H  \
-                           Derive.H ErrorList.H FluxRegister.H \
-                           Interpolater.H StateData.H          \
+C$(AMRLIB_BASE)_headers += Amr.H AmrLevel.H BCRec.H BC_TYPES.H \
+                           Cluster.H Derive.H ErrorList.H FluxRegister.H \
+                           Interpolater.H StateData.H \
                            StateDescriptor.H TagBox.H
 
 F$(AMRLIB_BASE)_headers += FLUXREG_F.H INTERP_F.H MAKESLICE_F.H
