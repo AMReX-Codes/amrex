@@ -97,22 +97,22 @@ protected:
     
     // all these inherited in some form from amr_multigrid
     virtual int can_coarsen(const BoxArray& mesh, const Box& domain) const;
-    void sync_interfaces();
+    virtual void sync_interfaces();
     
     // special case for periodic cleanup at the end:
     void sync_periodic_interfaces();
     
-    void mg_interpolate_level(int lto, int lfrom);
-    void mg_restrict_level(int lto, int lfrom);
-    void interface_residual(int mglev, int lev);
-    void level_residual(MultiFab& r,
+    virtual void mg_interpolate_level(int lto, int lfrom);
+    virtual void mg_restrict_level(int lto, int lfrom);
+    virtual void interface_residual(int mglev, int lev);
+    virtual void level_residual(MultiFab& r,
 		      MultiFab& s,
 		      MultiFab& d,
 #ifdef HG_USE_CACHE
 		      copy_cache* dbc,
 #endif
 		      int mglev,
-		      int iclear = 1);
+		      bool iclear);
     virtual void relax(int mglev, int i1, int is_zero);
     virtual void cgsolve(int mglev);
     
@@ -120,7 +120,7 @@ protected:
     
 public:
     
-    holy_grail_amr_multigrid(Array<BoxArray>& Mesh, Array<IntVect>& Gen_ratio,
+    holy_grail_amr_multigrid(const Array<BoxArray>& Mesh, const Array<IntVect>& Gen_ratio,
 	const Box& fdomain,
 	int Lev_min_min, int Lev_min_max, int Lev_max_max,
 	const amr_fluid_boundary_class& Boundary, int Pcode = 2)
@@ -131,10 +131,8 @@ public:
 	build_mesh(fdomain);
     }
     
-    void alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source,
-	PArray<MultiFab>& Coarse_source,
-	PArray<MultiFab>& Sigma, Real H[],
-	int Lev_min, int Lev_max);
+    void alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma, 
+	Real H[], int Lev_min, int Lev_max);
     void clear();
     
     int smoother_mode;

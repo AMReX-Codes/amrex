@@ -25,7 +25,9 @@ protected:
     Array<copy_cache*> dest_bcache, corr_bcache, work_bcache;
 #endif
     
+#if BL_SPACEDIM==2
     static int c_sys;
+#endif
     
     void build_index();
     
@@ -41,10 +43,8 @@ protected:
     
     // All of these have built-in defaults except can_coarsen()
     void build_mesh(const Box& fdomain);
-    virtual int build_down(const BoxArray& l_mesh, const Box& l_domain,
-	int flev, IntVect rat, int nlev);
-    virtual void make_coarser_level(BoxArray& mesh, Box& domain,
-	int& flev, IntVect& rat);
+    virtual int build_down(const BoxArray& l_mesh, const Box& l_domain, int flev, IntVect rat, int nlev);
+    virtual void make_coarser_level(BoxArray& mesh, Box& domain, int& flev, IntVect& rat);
     virtual int can_coarsen(const BoxArray& mesh, const Box& domain) const = 0;
     
     // Before using the multigrid, a derived class must call build_mesh()
@@ -54,19 +54,16 @@ protected:
     // which deletes them, be called when the solver is actually being used.
     // These are made non-virtual so that a derived class can define a more
     // complicated lev_interface.
-    void alloc(PArray<MultiFab>& Dest,
-	PArray<MultiFab>& Source,
-	PArray<MultiFab>& Coarse_source,
-	int Lev_min, int Lev_max);
+    void alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArray<MultiFab>& Coarse_source, int Lev_min, int Lev_max);
     void clear();
     
     virtual void sync_interfaces() = 0;
     
-public:
     int pcode;
     int integrate;
+public:
     
-    amr_multigrid(Array<BoxArray>& Mesh, Array<IntVect>& Gen_ratio,
+    amr_multigrid(const Array<BoxArray>& Mesh, const Array<IntVect>& Gen_ratio,
 	int Lev_min_min, int Lev_min_max, int Lev_max_max,
 	const amr_boundary_class& Boundary, int Pcode) :
     ml_mesh(Mesh), gen_ratio(Gen_ratio),
@@ -86,24 +83,19 @@ public:
     static void SetCartesian()
     { c_sys = 0; }
     
-    static bool IsRZ()
+    static int IsRZ()
     { return c_sys == 1; }
-    static bool IsCartesian()
+    static int IsCartesian()
     { return c_sys == 0; }
 #endif
     
-    static void mesh_read(Array<BoxArray>& m, Array<IntVect>& r,
-	Array<Box>& d, istream& is);
+    static void mesh_read(Array<BoxArray>& m, Array<IntVect>& r, Array<Box>& d, istream& is);
     
-    static void mesh_write(Array<BoxArray>& m,
-	Array<Box>& d, ostream& os);
-    static void mesh_write(Array<BoxArray>& m, Array<IntVect>& r,
-	Box fd, ostream& os);
+    static void mesh_write(Array<BoxArray>& m, Array<Box>& d, ostream& os);
+    static void mesh_write(Array<BoxArray>& m, Array<IntVect>& r, Box fd, ostream& os);
     
-    virtual void solve(Real reltol, Real abstol = 0.0, int i1=2, int i2=2,
-	int linesolvdim = -1);
-    virtual Real ml_cycle(int lev, int mglev, int i1=2, int i2=2,
-	Real tol = -1.0, Real res_norm_fine = 0.0);
+    virtual void solve(Real reltol, Real abstol = 0.0, int i1=2, int i2=2, int linesolvdim = -1);
+    virtual Real ml_cycle(int lev, int mglev, int i1=2, int i2=2, Real tol = -1.0, Real res_norm_fine = 0.0);
     virtual void mg_cycle(int mglev, int i1=2, int i2=2, int is_zero=0);
     virtual Real ml_residual(int mglev, int lev);
     virtual void mg_interpolate_level(int lto, int lfrom);
@@ -113,7 +105,7 @@ public:
 #ifdef HG_USE_CACHE
 	copy_cache* dbc,
 #endif
-	int mglev, int iclear = 1) = 0;
+	int mglev, bool iclear) = 0;
     virtual void interface_residual(int mglev, int mgc) = 0;
     virtual void relax(int mglev, int i1, int is_zero) = 0;
     virtual void cgsolve(int mglev) = 0;

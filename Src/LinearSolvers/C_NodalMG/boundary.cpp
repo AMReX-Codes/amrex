@@ -58,8 +58,7 @@ Box amr_boundary_class::box(const Box& region, const Box& domain,
     return retbox;
 }
 
-Box periodic_boundary_class::box(const Box& region, const Box& domain,
-				 int idir) const
+Box periodic_boundary_class::box(const Box& region, const Box& domain, int idir) const
 {
     const int idim = abs(idir) - 1;
     Box retbox(region);
@@ -72,8 +71,7 @@ Box periodic_boundary_class::box(const Box& region, const Box& domain,
     return retbox;
 }
 
-Box mixed_boundary_class::box(const Box& region, const Box& domain,
-			      int idir) const
+Box mixed_boundary_class::box(const Box& region, const Box& domain, int idir) const
 {
     const int idim = abs(idir) - 1;
     RegType t = ptr->bc[idim][idir > 0];
@@ -1724,8 +1722,7 @@ inviscid_fluid_boundary_class::inviscid_fluid_boundary_class(RegType Bc[BL_SPACE
     {
 	bc[i][0] = Bc[i][0];
 	bc[i][1] = Bc[i][1];
-	if ((bc[i][0] == periodic || bc[i][1] == periodic) &&
-	    bc[i][1] != bc[i][0])
+	if ((bc[i][0] == periodic || bc[i][1] == periodic) && bc[i][1] != bc[i][0])
 	    BoxLib::Error("inviscid_fluid_boundary_class::ctor---periodic bc's don't match");
 	v[i] = new mixed_boundary_class(this, i);
     }

@@ -40,8 +40,8 @@ extern "C"
 #error not relevant
 #else
 #  ifdef HG_CONSTANT
-    void FORT_HGRES(Real*, intS, Real*, Real*, intS, Real&);
-    void FORT_HGRESU(Real*, intS, Real*, Real*, intS, Real&);
+    void FORT_HGRES(Real*, intS, const Real*, const Real*, intS, Real&);
+    void FORT_HGRESU(Real*, intS, const Real*, const Real*, intS, Real&);
 #    ifdef HG_CROSS_STENCIL
     void FORT_HGRLXU(Real*, Real*, intS, Real*, intS, Real&);
 #    else
@@ -49,14 +49,14 @@ extern "C"
 #    endif
 #  else
 #    ifdef HG_TERRAIN
-    void FORT_HGRES(Real*, intS, Real*, intS, Real*, intS,
+    void FORT_HGRES(Real*, intS, const Real*, intS, const Real*, intS,
 	Real*, intS, Real*, intS, intS);
     void FORT_HGRLX(Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS);
     void FORT_HGRLNF(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
 	Real*, intS, intS, intS, const int&, const int&);
 #    elif (defined HG_SIGMA_NODE)
-    void FORT_HGRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS);
-    void FORT_HGRESU(Real*, intS, Real*, Real*, Real*, Real*, intS);
+    void FORT_HGRES(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS);
+    void FORT_HGRESU(Real*, intS, const Real*, const Real*, const Real*, Real*, intS);
     void FORT_HGRLX(Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS);
     void FORT_HGRLXU(Real*, Real*, Real*, Real*, intS, Real*, intS);
     void FORT_HGRLXL(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
@@ -64,11 +64,10 @@ extern "C"
     void FORT_HGRLNF(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
 	Real*, intS, intS, intS, const int&, const int&);
 #    else
-    void FORT_HGRES(Real*, intS, Real*, intS, Real*, intS, RealPS, intS, intS,
-	
-	RealRS, const int&, const int&);
-    void FORT_HGRLX(Real*, intS, Real*, intS, RealPS, intS, Real*, intS, intS,
-	RealRS, const int&, const int&);
+    void FORT_HGRES(Real*, intS, const Real*, intS, const Real*, intS, CRealPS, intS, intS,
+	CRealRS, const int&, const int&);
+    void FORT_HGRLX(Real*, intS, const Real*, intS, CRealPS, intS, const Real*, intS, intS,
+	CRealRS, const int&, const int&);
     void FORT_HGRLXL(Real*, intS, Real*, intS, RealPS, intS, Real*, intS,
 	intS, intS, RealRS, const int&, const int&, const int&);
     void FORT_HGRLNF(Real*, intS, Real*, intS, Real*, intS,
@@ -111,11 +110,11 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
 					      copy_cache* dbc,
 #endif
 					      int mglev,
-					      int iclear)
+					      bool iclear)
 {
     assert(r.boxArray() == s.boxArray());
     assert(r.boxArray() == d.boxArray());
-    
+    assert(mglev >= 0);
     fill_borders(d,
 #ifdef HG_USE_CACHE
 	dbc, 
@@ -628,7 +627,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 #ifdef HG_USE_CACHE
 	    &pbc, 
 #endif
-	    0, 0);
+	    0, false);
 	alpha = 0.0;
 	for (int igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
 	{
@@ -682,7 +681,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 	Real rho_old = rho;
 	// safe to set the clear flag to 0 here---bogus values make it
 	// into r but are cleared from z by the mask in c
-	level_residual(w, zero_array, p, &pbc, 0, 0);
+	level_residual(w, zero_array, p, &pbc, 0, false);
 	alpha = rho / inner_product(p, w);
 	for (int igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
 	{

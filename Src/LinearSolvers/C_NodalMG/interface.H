@@ -110,7 +110,9 @@ protected:
     
     void  add(List<Box>& bl, Box b, int startgrid = 0);
     void xfer(List<Box>& bl, int idim);
-    
+private:
+    level_interface(const level_interface&);
+    void operator=(const level_interface&);
 public:
     static void ins(List<Box>& bl, const Box& b) 
     {

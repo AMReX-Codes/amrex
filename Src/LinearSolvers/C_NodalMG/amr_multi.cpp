@@ -1,7 +1,9 @@
 
 #include "amr_multi.H"
 
+#if BL_SPACEDIM==2
 int amr_multigrid::c_sys = 0; // default is Cartesian, 1 is RZ
+#endif
 
 void amr_multigrid::mesh_read(Array<BoxArray>& m, Array<IntVect>& r,
 			      Array<Box>& d, istream& is)
@@ -229,8 +231,7 @@ void amr_multigrid::make_coarser_level(BoxArray& mesh, Box& domain,
     }
 }
 
-void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source,
-			  PArray<MultiFab>& Coarse_source,
+void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArray<MultiFab>& Coarse_source,
 			  int Lev_min, int Lev_max)
 {
     lev_min = Lev_min;
@@ -432,7 +433,7 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2,
 #ifdef HG_USE_CACHE
 		corr_bcache[mglev], 
 #endif
-		mglev, 0);
+		mglev, false);
 	    rtmp.copy(wtmp);
 	}
 	else 
@@ -441,7 +442,7 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2,
 #ifdef HG_USE_CACHE
 		dest_bcache[lev], 
 #endif
-		mglev, 0);
+		mglev, false);
 	}
 	interface_residual(mglev, lev);
 	int mgc = ml_index[lev-1];
@@ -462,7 +463,7 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2,
 #ifdef HG_USE_CACHE
 		corr_bcache[mglev], 
 #endif
-		mglev, 0);
+		mglev, false);
 	    rtmp.copy(wtmp);
 	}
 	else 
@@ -471,7 +472,7 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2,
 #ifdef HG_USE_CACHE
 		dest_bcache[lev], 
 #endif
-		mglev, 0);
+		mglev, false);
 	}
 	ctmp.setVal(0.0);
 	//mg_cycle(mglev, i1, i2, 1);
@@ -504,7 +505,7 @@ Real amr_multigrid::ml_residual(int mglev, int lev)
 #ifdef HG_USE_CACHE
 	dest_bcache[lev],
 #endif
-	mglev);
+	mglev, true);
     if (lev < lev_max) 
     {
 	int mgf = ml_index[lev+1];
@@ -543,7 +544,7 @@ void amr_multigrid::mg_cycle(int mglev, int i1, int i2, int is_zero)
 #ifdef HG_USE_CACHE
 		corr_bcache[mglev], 
 #endif
-		mglev, 1);
+		mglev, true);
 	    cout << "  Residual at multigrid level " << mglev << " is "
 		<< mfnorm(wtmp) << endl;
 	}
@@ -553,7 +554,7 @@ void amr_multigrid::mg_cycle(int mglev, int i1, int i2, int is_zero)
 #ifdef HG_USE_CACHE
 		corr_bcache[mglev], 
 #endif
-		mglev, 0);
+		mglev, false);
 	}
 	
 	mg_restrict_level(mglev-1, mglev);
