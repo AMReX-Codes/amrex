@@ -1,6 +1,8 @@
 #include "amr_defs.H"
 #include "hgparallel.h"
 
+#include <typeinfo>
+
 bool task::depend_ready()
 {
     list< task** >::iterator lit = dependencies.begin();
@@ -23,6 +25,19 @@ bool task::depend_ready()
 bool task::recommit(list<task*>*)
 {
     return false;
+}
+
+void task::_hint() const
+{
+    HG_DEBUG_OUT( 
+	"(" << typeid(*this).name() << ' ' << m_sno << ' ' << m_started
+	);
+}
+
+void task::hint() const
+{
+    task::_hint();
+    HG_DEBUG_OUT(")");
 }
 
 // TASK_LIST
@@ -273,7 +288,7 @@ bool task_copy::ready()
 
 void task_copy::hint() const
 {
-    HG_DEBUG_OUT( "task_copy : ");
+    task::_hint();
     if ( m_local )
     {
 	HG_DEBUG_OUT( "L" );
@@ -286,13 +301,13 @@ void task_copy::hint() const
     {
     	HG_DEBUG_OUT( "R" );
     }
-    HG_DEBUG_OUT( 
-	' ' <<
-	m_sno << ' ' <<
+    HG_DEBUG_OUT(
 	m_bx  << ' ' << m_dgrid << ' ' <<
-	m_sbx  << ' ' << m_sgrid << ' ' <<
-	endl );	// to flush
+	m_sbx  << ' ' << m_sgrid << ' '
+	);
+    HG_DEBUG_OUT( ")" );
 }
+
 
 task_copy_local::task_copy_local(FArrayBox* fab_, const Box& bx, const MultiFab& smf_, int grid)
     : m_fab(fab_), m_smf(smf_), m_sgrid(grid), m_bx(bx), tmp(0)
@@ -311,6 +326,13 @@ bool task_copy_local::init(sequence_number sno, MPI_Comm comm)
     assert ( m_fab->nComp() == m_smf.nComp() );
     if ( m_fab != 0 || is_local(m_smf, m_sgrid) ) return true;
     return false;
+}
+
+void task_copy_local::hint() const
+{
+    task::_hint();
+    if ( m_local ) HG_DEBUG_OUT( "L" );
+    HG_DEBUG_OUT( "L" );
 }
 
 void task_copy_local::startup()
