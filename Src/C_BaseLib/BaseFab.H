@@ -4,7 +4,7 @@
 #define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.18 1999-02-10 21:09:55 lijewski Exp $
+// $Id: BaseFab.H,v 1.19 1999-04-11 23:31:22 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -112,12 +112,12 @@ public:
 
     /*@ManDoc: This function resizes a `BaseFab' so it covers the `Box' B
                with N components.  The default action
-               is that under resizing, the memory allocated for the `BaseFab'
-               only grows and never shrinks.  This function is particularly
-               useful when a `BaseFab' is used as a temporary space which
-               must be a different size whenever it is used.  Resize'ing a
-               temp will often be faster than re-allocating a `BaseFab'
-               because memory allocation can often be avoided.
+               is that under resize()ing, the memory allocated for the
+               `BaseFab' only grows and never shrinks.  This function is
+               particularly useful when a `BaseFab' is used as a temporary
+               space which must be a different size whenever it is used.
+               Resize()ing a temp will often be faster than re-allocating a
+               `BaseFab' because memory allocation can often be avoided.
     */
     void resize (const Box& b,
                  int        N = 1);
@@ -388,6 +388,7 @@ protected:
     Box  domain;   // My index space.
     int  nvar;     // Number components.
     long numpts;   // Cached number of points in FAB.
+    long truesize; // nvar*numpts that was allocated on heap.
     T*   dptr;     // The data pointer.
 };
 
@@ -567,7 +568,7 @@ inline
 BaseFab<T>&
 BaseFab<T>::shift (const IntVect& v)
 {
-    domain  += v;
+    domain += v;
     return *this;
 }
 
@@ -638,8 +639,6 @@ BaseFab<T>::setVal (T          x,
     performSetVal(x,b,ns,num);
 }
 
-
-
 template <class T>
 inline
 BaseFab<T>&
@@ -707,11 +706,26 @@ BaseFab<T>::copy (const BaseFab<T>& src,
 
 template <class T>
 inline
+void
+BaseFab<T>::define ()
+{
+    assert(nvar > 0);
+    assert(dptr == 0);
+    assert(numpts > 0);
+    assert(!(The_FAB_Arena == 0));
+
+    truesize = nvar*numpts;
+    dptr     = static_cast<T*>(The_FAB_Arena->alloc(truesize*sizeof(T)));
+}
+
+template <class T>
+inline
 BaseFab<T>::BaseFab ()
     :
     domain(Box()),
     nvar(0),
     numpts(0),
+    truesize(0),
     dptr(0)
 {}
 
@@ -739,7 +753,7 @@ BaseFab<T>::BaseFab (const PointBaseFab<PointDomain,T>& pbf,
     numpts(domain.numPts()),
     dptr(0)
 {
-    resize(domain, nvar);
+    define();
     setVal(val);
     PointForAllCX(PointDomain,T,pbf)
     {
@@ -748,6 +762,28 @@ BaseFab<T>::BaseFab (const PointBaseFab<PointDomain,T>& pbf,
 }
 #endif /*BL_CRAY_BUG_DEFARG*/
 #endif /*BL_USE_POINTLIB*/
+
+template <class T>
+inline
+void
+BaseFab<T>::resize (const Box& b,
+                    int        n)
+{
+    nvar   = n;
+    domain = b;
+    numpts = domain.numPts();
+
+    if (dptr == 0)
+    {
+        define();
+    }
+    else if (nvar*numpts > truesize)
+    {
+        The_FAB_Arena->free(dptr);
+        dptr = 0; // To satisfy assert() in define().
+        define();
+    }
+}
 
 //
 // This isn't inlined as it's virtual.
@@ -763,20 +799,6 @@ BaseFab<T>::~BaseFab ()
 
 template <class T>
 void
-BaseFab<T>::define ()
-{
-    assert(nvar > 0);
-    assert(numpts > 0);
-
-    if (dptr == 0)
-    {
-        assert(!(The_FAB_Arena == 0));
-        dptr = static_cast<T*>(The_FAB_Arena->alloc(nvar*numpts*sizeof(T)));
-    }
-}
-
-template <class T>
-void
 BaseFab<T>::clear ()
 {
     assert(!(The_FAB_Arena == 0));
@@ -787,35 +809,6 @@ BaseFab<T>::clear ()
     domain = Box();
     nvar   = 0;
     numpts = 0;
-}
-
-template <class T>
-void
-BaseFab<T>::resize (const Box& b,
-                    int        n)
-{
-    long old_size = nvar*numpts;
-
-    nvar   = n;
-    domain = b;
-    numpts = domain.numPts();
-
-    if (dptr == 0)
-    {
-        define();
-    }
-    else
-    {
-        long new_size = nvar*numpts;
-
-        if (new_size > old_size)
-        {
-            assert(!(The_FAB_Arena == 0));
-            T* odptr = dptr;
-            dptr = static_cast<T*>(The_FAB_Arena->alloc(new_size*sizeof(T)));
-            The_FAB_Arena->free(odptr);
-        }
-    }
 }
 
 //
