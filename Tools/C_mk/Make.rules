@@ -1,5 +1,5 @@
 #
-# $Id: Make.rules,v 1.9 1998-11-21 19:34:19 lijewski Exp $
+# $Id: Make.rules,v 1.10 1998-11-22 17:42:54 lijewski Exp $
 #
 $(addprefix $(instIncludeDir)/, $(instSources)): $(instIncludeDir)/% : %
 	@if [ ! -d $(instIncludeDir) ]; then mkdir -p $(instIncludeDir); fi
@@ -20,12 +20,14 @@ ifeq ($(CLOSELIB),TRUE)
 endif
 	$(RM) $(EBASE)$(optionsSuffix).ex *.pure
 #
-# Rule for building libraries.
+# A canned command sequence for closing libraries.
 #
-$(optionsLib): $(optionsLib)( $(objForLibs) )
-ifeq ($(CLOSELIB),TRUE)
+define CloseTheLibrary
 ifeq ($(CLOSELIB),TRUE)
 ifeq ($(COMP), CFRONT)
+#
+# With cfront we only close boxlib.
+#
 ifeq ($(LBASE),box)
 	$(RM) -r ./tmp
 	mkdir ./tmp
@@ -38,6 +40,9 @@ ifeq ($(LBASE),box)
 endif
 endif
 ifeq ($(SUNPRO),TRUE)
+#
+# With sunpro we only close boxlib.
+#
 ifeq ($(LBASE),box)
 	$(RM) -r ./tmp
 	mkdir ./tmp
@@ -48,11 +53,19 @@ ifeq ($(LBASE),box)
 	$(RM) -r ./tmp
 endif
 endif
+#
+# On KCC we close all libraries.
+#
 ifeq ($(COMP), KCC)
 	$(CXX) $(CXXLIBFLAGS) $(CXXFLAGS) $(CPPFLAGS) -DBL_LANG_CC -o $(optionsLib) $(addprefix $(objTempDir)/, $(objForLibs)) $(LibsToCloseAgainst)
 endif
 endif
-endif
+endef
+#
+# Rule for building libraries.
+#
+$(optionsLib): $(optionsLib)( $(objForLibs) )
+	$(CloseTheLibrary)
 	$(RANLIB) $@
 
 realclean: clean
