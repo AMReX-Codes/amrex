@@ -1,7 +1,7 @@
 #ifndef _INTERPOLATER_H_
 #define _INTERPOLATER_H_ 
 //
-// $Id: Interpolater.H,v 1.10 2002-09-27 19:20:00 almgren Exp $
+// $Id: Interpolater.H,v 1.11 2003-09-15 21:17:03 lijewski Exp $
 //
 #include <Box.H>
 #include <BCRec.H>
@@ -154,55 +154,6 @@ public:
                          const Geometry&  crse_geom,
                          const Geometry&  fine_geom,
                          Array<BCRec>&    bcr);
-};
-
-//
-//@Man:
-//@Memo: Conservative interpolation on cell centered data
-/*@Doc:
-
-  Conservative interpolation on cell centered data
-*/
-
-class CellConservative
-    :
-    public Interpolater
-{
-public:
-    //
-    //@ManDoc: The constructor.
-    //
-    CellConservative (bool limit = true);
-    //
-    //@ManDoc: The destructor.
-    //
-    virtual ~CellConservative ();
-    //
-    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
-    //
-    virtual Box CoarseBox (const Box& fine,
-                           int        ratio);
-    //
-    //@ManDoc: Returns coarsened box given fine box and refinement ratio.
-    //
-    virtual Box CoarseBox (const Box&     fine,
-                           const IntVect& ratio);
-    //
-    //@ManDoc: Coarse to fine interpolation in space.
-    //
-    virtual void interp (const FArrayBox& crse,
-                         int              crse_comp,
-                         FArrayBox&       fine,
-                         int              fine_comp,
-                         int              ncomp,
-                         const Box&       fine_region,
-                         const IntVect&   ratio,
-                         const Geometry&  crse_geom,
-                         const Geometry&  fine_geom,
-                         Array<BCRec>&    bcr);
-private:
-
-    bool   do_limited_slope;
 };
 
 //
@@ -421,15 +372,12 @@ public:
 //
 // CONSTRUCT A GLOBAL OBJECT OF EACH VERSION.
 //
-
+extern PCInterp                  pc_interp;
 extern NodeBilinear              node_bilinear_interp;
 extern CellBilinear              cell_bilinear_interp;
-extern CellConservative          cell_cons_interp;
 extern CellQuadratic             quadratic_interp;
-extern CellConservative          unlimited_cc_interp;
-extern PCInterp                  pc_interp;
 extern CellConservativeLinear    lincc_interp;
-extern CellConservativeLinear    nonlincc_interp;
+extern CellConservativeLinear    cell_cons_interp;
 extern CellConservativeProtected protected_interp;
 
 #endif /*_INTERPOLATER_H_*/
