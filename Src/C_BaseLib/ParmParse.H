@@ -3,7 +3,7 @@
 #define BL_PARMPARSE_H
 
 //
-// $Id: ParmParse.H,v 1.9 2000-10-02 20:52:37 lijewski Exp $
+// $Id: ParmParse.H,v 1.10 2001-04-25 04:16:20 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -769,7 +769,7 @@ protected:
 
     bool isInteger (const aString& str,
                     int&           val);
-    int isDouble (const aString& str,
+    bool isDouble (const aString& str,
                   double&        val);
 };
 
@@ -1215,7 +1215,7 @@ ParmParse::isInteger (const aString& str,
 }
 
 inline
-int
+bool
 ParmParse::isDouble (const aString& str,
                      double&        val)
 {
