@@ -1188,7 +1188,7 @@ c quadrants
      &             2.d0 * (cdst(ic,jc+jdir) - cdst(ic,jc))) -
      &                     sigmac(ic+ii-1,jc+ji-1,3) * idir * jdir *
      &            3.d0 * (cdst(ic+idir,jc+jdir) - cdst(ic,jc))
-            endif
+            end if
          end do
       end do
 c edges
@@ -1217,7 +1217,7 @@ c edges
      &                               sigmaf(if+m,jf+ji-1,3) * jdir *
      &               3.d0 * (fdst(if+m+1,jf+jdir) - fdst(if+m,jf)))
                end do
-            endif
+            end if
             if (ga(ii,ji) - ga(1-ii,ji) .eq. 1) then
                fac1 = 1.d0 / jr
                do n = jdir, jdir*(jr-1), jdir
@@ -1239,7 +1239,7 @@ c edges
      &                               sigmaf(if+ii-1,jf+n,3) * idir *
      &               3.d0 * (fdst(if+idir,jf+n+1) - fdst(if,jf+n)))
                end do
-            endif
+            end if
          end do
       end do
 c weighting
