@@ -1,10 +1,12 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BndryRegister.cpp,v 1.8 1999-03-17 21:58:14 lijewski Exp $
+// $Id: BndryRegister.cpp,v 1.9 1999-04-23 17:47:07 sstanley Exp $
 //
 
 #include <BndryRegister.H>
+
+const Real BL_SAFE_BOGUS = -666.e30;
 
 BndryRegister::BndryRegister () {}
 
@@ -144,6 +146,14 @@ BndryRegister::define (const Orientation& _face,
     assert(fsBA.ok());
 
     fabs.define(fsBA,_ncomp);
+
+    // 
+    // Go ahead and assign values to the boundary register fabs
+    // since in some places APPLYBC (specifically in the tensor
+    // operator) the boundary registers are used for a few calculations
+    // before the masks are tested to see if you need them.
+    //
+    fabs.setVal(BL_SAFE_BOGUS);
 }
 
 void
