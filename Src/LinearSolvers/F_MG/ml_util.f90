@@ -70,9 +70,9 @@ contains
 
     ng = uu%ng
 
-    if ( uu%nc /= flux%nc ) then
-       call bl_error("ML_FILL_FLUXES: uu%nc /= flux%nc")
-    end if
+!    if ( uu%nc /= flux%nc ) then
+!       call bl_error("ML_FILL_FLUXES: uu%nc /= flux%nc")
+!    end if
 
     call multifab_fill_boundary(uu)
     do i = 1, flux%nboxes

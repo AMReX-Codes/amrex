@@ -2825,23 +2825,29 @@ contains
     type(lmultifab), intent(in), optional :: mask
     real(dp_t), pointer :: mp(:,:,:,:)
     logical, pointer :: lp(:,:,:,:)
-    integer :: i
+    integer :: i, nc, n
     real(dp_t) :: r1
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
+    nc = mf%nc
     if ( present(mask) ) then
        !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(+:r1)
        do i = 1, mf%nboxes
           if ( multifab_remote(mf,i) ) cycle
           if ( lall ) then
-             mp => dataptr(mf, i, get_pbox(mf, i))
              lp => dataptr(mask, i, get_pbox(mask, i))
           else
-             mp => dataptr(mf, i, get_ibox(mf, i))
              lp => dataptr(mask, i, get_ibox(mask, i))
           end if
-          r1 = r1 + sum(mp**2, mask=lp)
+          do n = 1, nc
+             if ( lall ) then
+                mp => dataptr(mf, i, get_pbox(mf, i), c=n)
+             else
+                mp => dataptr(mf, i, get_ibox(mf, i), c=n)
+             end if
+             r1 = r1 + sum(mp**2, mask = lp)
+          end do
        end do
        !$OMP END PARALLEL DO
     else
@@ -2870,7 +2876,7 @@ contains
     type(multifab), intent(in) :: mf
     logical, pointer :: lp(:,:,:,:)
     real(dp_t), pointer :: mp(:,:,:,:)
-    integer :: i
+    integer :: i, n
     real(dp_t) :: r1
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
@@ -2880,13 +2886,18 @@ contains
        do i = 1, mf%nboxes
           if ( multifab_remote(mf,i) ) cycle
           if ( lall ) then
-             mp => dataptr(mf, i, get_pbox(mf, i), comp, nc)
              lp => dataptr(mask, i, get_pbox(mask, i))
           else
-             mp => dataptr(mf, i, get_ibox(mf, i), comp, nc)
              lp => dataptr(mask, i, get_ibox(mask, i))
           end if
-          r1 = max(r1, maxval(abs(mp), mask = lp))
+          do n = comp, comp+nc-1
+             if ( lall ) then
+                mp => dataptr(mf, i, get_pbox(mf, i), comp)
+             else
+                mp => dataptr(mf, i, get_ibox(mf, i), comp)
+             end if
+             r1 = max(r1, maxval(abs(mp), mask = lp))
+          end do
        end do
        !$OMP END PARALLEL DO
     else
@@ -2911,23 +2922,29 @@ contains
     type(multifab), intent(in) :: mf
     real(dp_t), pointer :: mp(:,:,:,:)
     logical, pointer :: lp(:,:,:,:)
-    integer :: i
+    integer :: i, n, nc
     real(dp_t) :: r1
     logical :: lall
     lall = .false.; if ( present(all) ) lall = all
     r1 = 0
+    nc = mf%nc
     if ( present(mask) ) then
        !$OMP PARALLEL DO PRIVATE(i,mp) REDUCTION(MAX:r1)
        do i = 1, mf%nboxes
           if ( multifab_remote(mf,i) ) cycle
           if ( lall ) then
-             mp => dataptr(mf, i, get_pbox(mf, i))
              lp => dataptr(mask, i, get_pbox(mask, i))
           else
-             mp => dataptr(mf, i, get_ibox(mf, i))
              lp => dataptr(mask, i, get_ibox(mask, i))
           end if
-          r1 = max(r1, maxval(abs(mp),mask=lp))
+          do n = 1, nc
+             if ( lall ) then
+                mp => dataptr(mf, i, get_pbox(mf, i), n)
+             else
+                mp => dataptr(mf, i, get_ibox(mf, i), n)
+             end if
+             r1 = max(r1, maxval(abs(mp),mask=lp))
+          end do
        end do
        !$OMP END PARALLEL DO
     else
