@@ -2,7 +2,9 @@
 
 ifeq ($(COMP),KCC)
   CXX      = KCC
-  CXXOPTF += -O3 +K3
+  # CXXOPTF += -O3 +K3
+  # CXXOPTF += -O2 +K2
+  CXXOPTF += -O1 +K1
   CXXDEBF += +K0
   FULLWARN := --strict_warnings
   override XTRADEFS += -DBL_USE_NEW_HFILES

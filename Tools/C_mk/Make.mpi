@@ -53,9 +53,9 @@ ifeq ($(MACHINE), Linux)
       # 1.2.0 locations
       INCLUDE_LOCATIONS += $(MPICHHOME)/include
       LIBRARY_LOCATIONS += $(MPICHHOME)/lib
-      # not needed in 1.2.0, but shouldn't hurt
-      INCLUDE_LOCATIONS += $(MPICHHOME)/build/$(mpicharch)/$(mpichdevice)/include
-      LIBRARY_LOCATIONS += $(MPICHHOME)/build/$(mpicharch)/$(mpichdevice)/lib
+      # not needed in 1.2.0
+      # INCLUDE_LOCATIONS += $(MPICHHOME)/build/$(mpicharch)/$(mpichdevice)/include
+      # LIBRARY_LOCATIONS += $(MPICHHOME)/build/$(mpicharch)/$(mpichdevice)/lib
     endif
   endif
 endif
