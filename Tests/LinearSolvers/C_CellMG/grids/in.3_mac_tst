@@ -13,8 +13,8 @@ rhs_scale    = 12957.80877
 dump_norm = true
 
 mg.numLevelsMAX=1
-mg.v                    = 4
-mg.usecg   = 0
+mg.v       = 4
+mg.usecg   = 1
 mg.nu_0    = 1
 mg.nu_1    = 4
 mg.nu_2    = 4
@@ -23,5 +23,5 @@ mg.maxiter = 100
 
 cg.maxiter = 40              # default 40
 cg.unstable_criterion = 10.  # default 10.
-cg.v                    = 4
+cg.v                  = 4
 
