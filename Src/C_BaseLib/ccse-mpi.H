@@ -2,7 +2,7 @@
 #define BL_CCSE_MPP
 
 //
-// $Id: ccse-mpi.H,v 1.13 2001-10-10 20:12:44 car Exp $
+// $Id: ccse-mpi.H,v 1.14 2001-12-03 22:24:54 lijewski Exp $
 //
 
 //
@@ -16,26 +16,6 @@
 
 #include <mpi.h>
 
-//
-// Template function to return MPI_Datatype depending on argument type.
-//
-// We only implement this function for standard MPI data types.
-//
-template<class T> MPI_Datatype mpi_data_type(T*);
-//
-// And the appropriate specializations for the basic MPI types.
-//
-template<> inline MPI_Datatype mpi_data_type(char*)           { return MPI_CHAR;   }
-template<> inline MPI_Datatype mpi_data_type(short*)          { return MPI_SHORT;  }
-template<> inline MPI_Datatype mpi_data_type(int*)            { return MPI_INT;    }
-template<> inline MPI_Datatype mpi_data_type(long*)           { return MPI_LONG;   }
-template<> inline MPI_Datatype mpi_data_type(float*)          { return MPI_FLOAT;  }
-template<> inline MPI_Datatype mpi_data_type(double*)         { return MPI_DOUBLE; }
-template<> inline MPI_Datatype mpi_data_type(unsigned char*)  { return MPI_UNSIGNED_CHAR;   }
-template<> inline MPI_Datatype mpi_data_type(unsigned short*) { return MPI_UNSIGNED_SHORT;  }
-template<> inline MPI_Datatype mpi_data_type(unsigned int*)   { return MPI_UNSIGNED;    }
-template<> inline MPI_Datatype mpi_data_type(unsigned long*)  { return MPI_UNSIGNED_LONG;   }
-
 namespace ParallelDescriptor
 {
     template <class T>
@@ -43,6 +23,9 @@ namespace ParallelDescriptor
     {
 	static MPI_Datatype type();
     };
+    //
+    // Template functions to return MPI_Datatype depending on argument type.
+    //
     template <> MPI_Datatype Mpi_typemap<char>::type();
     template <> MPI_Datatype Mpi_typemap<short>::type();
     template <> MPI_Datatype Mpi_typemap<int>::type();

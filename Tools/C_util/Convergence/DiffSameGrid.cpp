@@ -1,6 +1,6 @@
 
 //
-// $Id: DiffSameGrid.cpp,v 1.11 2001-10-17 17:53:33 lijewski Exp $
+// $Id: DiffSameGrid.cpp,v 1.12 2001-12-03 22:24:54 lijewski Exp $
 //
 
 #include <new>
@@ -192,7 +192,7 @@ main (int   argc,
 
 
 #ifdef BL_USE_MPI
-        MPI_Datatype datatype = mpi_data_type(norms.dataPtr());
+        MPI_Datatype datatype = Mpi_typemap<Real>::type(),
         if (ParallelDescriptor::IOProcessor())
         {
             Array<Real> tmp(nComp);
