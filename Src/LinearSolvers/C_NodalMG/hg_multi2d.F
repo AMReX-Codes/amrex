@@ -1368,7 +1368,7 @@ c NODE-based data, factor of 2 only.
             end do
       end if
       if (ir .eq. 2 .and. jr .eq. 2) then
-	    do jc = bbl1, bbh1-1
+          do jc = bbl1, bbh1-1
 do jc = bbl1, bbh1-1
 cdir$ ivdep
                do ic = bbl0, bbh0-1
@@ -1535,11 +1535,12 @@ c-----------------------------------------------------------------------
       double precision wrk(256)
       integer irz, imax, lsd
       double precision hxm2, hym2, betm, aj
-      double precision RHSL0, RHSL1
+      double precision RHSL0
+      double precision RHSL1
       integer i, j, jw, ipass
-      RHSL0()=(res(i,j) - 0.5d0 * hym2 * 
-     &          ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) + 
-     &           (sigy(i-1,j) + sigy(i,j)) * cor(i,j+1)))
+c      RHSL0()=(res(i,j) - 0.5d0 * hym2 * 
+c     &          ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) + 
+c     &           (sigy(i-1,j) + sigy(i,j)) * cor(i,j+1)))
 
       RHSL1()=(res(i,j) - 0.5d0 * hxm2 * 
      &          ((sigx(i-1,j-1) + sigx(i-1,j)) * cor(i-1,j) + 
@@ -2323,26 +2324,28 @@ c-----------------------------------------------------------------------
       integer irz, imax, lsd
       double precision hxm2, hym2, fac, facrz, r0, r1, betm, aj
       integer i, j, jw, ipass
-      double precision RHSL0, RHSL1, RHSRZL0, RHSRZL1
+c     double precision RHSL0
+      double precision RHSL1
+c     double precision RHSRZL0, RHSRZL1
       double precision AVG, AVGRZ
-      RHSL0() = (res(i,j) - fac * (hxm2 *
-     &           (sigx(i-1,j-1) *
-     &             (cor(i-1,j-1) - cor(i,j-1)) +
-     &            sigx(i-1,j) *
-     &             (cor(i-1,j+1) - cor(i,j+1)) +
-     &            sigx(i,j-1) *
-     &             (cor(i+1,j-1) - cor(i,j-1)) +
-     &            sigx(i,j) * 
-     &             (cor(i+1,j+1) - cor(i,j+1))) + 
-     &                            hym2 * 
-     &           (sigy(i-1,j-1) * 
-     &             (cor(i-1,j-1) + 2.d0 * cor(i,j-1)) + 
-     &            sigy(i-1,j) * 
-     &             (cor(i-1,j+1) + 2.d0 * cor(i,j+1)) + 
-     &            sigy(i,j-1) * 
-     &             (cor(i+1,j-1) + 2.d0 * cor(i,j-1)) + 
-     &            sigy(i,j) * 
-     &             (cor(i+1,j+1) + 2.d0 * cor(i,j+1)))))
+c      RHSL0() = (res(i,j) - fac * (hxm2 *
+c     &           (sigx(i-1,j-1) *
+c     &             (cor(i-1,j-1) - cor(i,j-1)) +
+c     &            sigx(i-1,j) *
+c     &             (cor(i-1,j+1) - cor(i,j+1)) +
+c     &            sigx(i,j-1) *
+c     &             (cor(i+1,j-1) - cor(i,j-1)) +
+c     &            sigx(i,j) * 
+c     &             (cor(i+1,j+1) - cor(i,j+1))) + 
+c     &                            hym2 * 
+c     &           (sigy(i-1,j-1) * 
+c     &             (cor(i-1,j-1) + 2.d0 * cor(i,j-1)) + 
+c     &            sigy(i-1,j) * 
+c     &             (cor(i-1,j+1) + 2.d0 * cor(i,j+1)) + 
+c     &            sigy(i,j-1) * 
+c     &             (cor(i+1,j-1) + 2.d0 * cor(i,j-1)) + 
+c     &            sigy(i,j) * 
+c     &             (cor(i+1,j+1) + 2.d0 * cor(i,j+1)))))
       RHSL1() = (res(i,j) - fac * (hxm2 *
      &          (sigx(i-1,j-1) *
      &             (cor(i-1,j-1) + 2.d0 * cor(i-1,j)) +
@@ -2362,11 +2365,11 @@ c-----------------------------------------------------------------------
      &            sigy(i,j) * 
      &             (cor(i+1,j+1) - cor(i+1,j)))))
 
-      RHSRZL0() = (RHSL0() - facrz *
-     &           ((sigy(i-1,j-1) / r0 - sigy(i,j-1) / r1) * cor(i,j-1) +
-     &            (sigy(i-1,j)   / r0 - sigy(i,j)   / r1) * cor(i,j+1)))
-
-      RHSRZL1()= RHSL1()
+c      RHSRZL0() = (RHSL0() - facrz *
+c     &           ((sigy(i-1,j-1) / r0 - sigy(i,j-1) / r1) * cor(i,j-1) +
+c     &            (sigy(i-1,j)   / r0 - sigy(i,j)   / r1) * cor(i,j+1)))
+c
+c      RHSRZL1()= RHSL1()
       AVG() = fac * (hxm2 *
      &          (sigx(i-1,j-1) *
      &            (cor(i-1,j-1) - cor(i,j-1) + 2.d0 * cor(i-1,j)) +
@@ -2529,7 +2532,8 @@ c-----------------------------------------------------------------------
       double precision hxm2, hym2, fac, facrz, r0, r1, betm, aj
       integer i, j, ioff
       double precision RHSL0, RHSL1, RHSRZL0, RHSRZL1
-      double precision AVG, AVGRZ
+c      double precision AVG
+c      double precision AVGRZ
       RHSL0() = (res(i,j) - fac * (hxm2 *
      &           (sigx(i-1,j-1) *
      &             (cor(i-1,j-1) - cor(i,j-1)) +
@@ -2572,27 +2576,27 @@ c-----------------------------------------------------------------------
      &            (sigy(i-1,j)   / r0 - sigy(i,j)   / r1) * cor(i,j+1)))
 
       RHSRZL1()= RHSL1()
-      AVG() = fac * (hxm2 *
-     &          (sigx(i-1,j-1) *
-     &            (cor(i-1,j-1) - cor(i,j-1) + 2.d0 * cor(i-1,j)) +
-     &           sigx(i-1,j) *
-     &            (cor(i-1,j+1) - cor(i,j+1) + 2.d0 * cor(i-1,j)) +
-     &           sigx(i,j-1) *
-     &            (cor(i+1,j-1) - cor(i,j-1) + 2.d0 * cor(i+1,j)) +
-     &           sigx(i,j) *
-     &            (cor(i+1,j+1) - cor(i,j+1) + 2.d0 * cor(i+1,j))) +
-     &               hym2 *
-     &          (sigy(i-1,j-1) *
-     &            (cor(i-1,j-1) - cor(i-1,j) + 2.d0 * cor(i,j-1)) +
-     &           sigy(i-1,j) *
-     &            (cor(i-1,j+1) - cor(i-1,j) + 2.d0 * cor(i,j+1)) +
-     &           sigy(i,j-1) *
-     &            (cor(i+1,j-1) - cor(i+1,j) + 2.d0 * cor(i,j-1)) +
-     &           sigy(i,j) *
-     &            (cor(i+1,j+1) - cor(i+1,j) + 2.d0 * cor(i,j+1))))
-      AVGRZ() = AVG() + facrz *
-     &           ((sigy(i-1,j-1) / r0 - sigy(i,j-1) / r1) * cor(i,j-1) +
-     &             (sigy(i-1,j)   / r0 - sigy(i,j)   / r1) * cor(i,j+1))
+c      AVG() = fac * (hxm2 *
+c     &          (sigx(i-1,j-1) *
+c     &            (cor(i-1,j-1) - cor(i,j-1) + 2.d0 * cor(i-1,j)) +
+c     &           sigx(i-1,j) *
+c     &            (cor(i-1,j+1) - cor(i,j+1) + 2.d0 * cor(i-1,j)) +
+c     &           sigx(i,j-1) *
+c     &            (cor(i+1,j-1) - cor(i,j-1) + 2.d0 * cor(i+1,j)) +
+c     &           sigx(i,j) *
+c     &            (cor(i+1,j+1) - cor(i,j+1) + 2.d0 * cor(i+1,j))) +
+c     &               hym2 *
+c     &          (sigy(i-1,j-1) *
+c     &            (cor(i-1,j-1) - cor(i-1,j) + 2.d0 * cor(i,j-1)) +
+c     &           sigy(i-1,j) *
+c     &            (cor(i-1,j+1) - cor(i-1,j) + 2.d0 * cor(i,j+1)) +
+c     &           sigy(i,j-1) *
+c     &            (cor(i+1,j-1) - cor(i+1,j) + 2.d0 * cor(i,j-1)) +
+c     &           sigy(i,j) *
+c     &            (cor(i+1,j+1) - cor(i+1,j) + 2.d0 * cor(i,j+1))))
+c      AVGRZ() = AVG() + facrz *
+c     &           ((sigy(i-1,j-1) / r0 - sigy(i,j-1) / r1) * cor(i,j-1) +
+c     &             (sigy(i-1,j)   / r0 - sigy(i,j)   / r1) * cor(i,j+1))
       hxm2 = 1.d0 / (hx*hx)
       hym2 = 1.d0 / (hy*hy)
       fac = 1.d0 / 6.d0
