@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.36 1998-04-16 22:36:15 lijewski Exp $
+// $Id: FabArray.H,v 1.37 1998-04-16 23:07:09 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1176,12 +1176,9 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
 
     for (int i = 0; i < NumRecv; i++)
     {
-        //
-        // TODO -- this only works if T is of type Real.
-        //
         if ((rc = MPI_Irecv(fabs[i].dataPtr(),
                             fabs[i].box().numPts() * farray.nComp(),
-                            sizeof(Real) == sizeof(float) ? MPI_FLOAT : MPI_DOUBLE,
+                            mpi_data_type(fabs[i].dataPtr()),
                             MPI_ANY_SOURCE,
                             666,
                             MPI_COMM_WORLD,
@@ -1203,12 +1200,10 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
         long count = sTags[i].box.numPts() * farray.nComp();
 
         assert(count < INT_MAX);
-        //
-        // TODO -- this only works if T is of type Real.
-        //
+
         if ((rc = MPI_Send(fab.dataPtr(),
                            int(count),
-                           sizeof(Real) == sizeof(float) ? MPI_FLOAT : MPI_DOUBLE,
+                           mpi_data_type(fab.dataPtr()),
                            sTags[i].toProc,
                            666,
                            MPI_COMM_WORLD)) != MPI_SUCCESS)

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.25 1998-04-16 22:36:16 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.26 1998-04-16 23:07:10 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -356,13 +356,6 @@ ParallelDescriptor::Gather (Real* sendbuf,
 static int nProcs = -1;
 static int MyId   = -1;
 
-inline
-MPI_Datatype
-TheRealType ()
-{
-    return sizeof(Real) == sizeof(float) ? MPI_FLOAT : MPI_DOUBLE;
-}
-
 void
 ParallelDescriptor::Abort (const char* msg)
 {
@@ -462,7 +455,12 @@ ParallelDescriptor::ReduceRealMax (Real& r)
 {
     Real recv;
 
-    int rc = MPI_Allreduce(&r,&recv,1,TheRealType(),MPI_MAX, MPI_COMM_WORLD);
+    int rc = MPI_Allreduce(&r,
+                           &recv,
+                           1,
+                           mpi_data_type(&recv),
+                           MPI_MAX,
+                           MPI_COMM_WORLD);
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
@@ -475,7 +473,12 @@ ParallelDescriptor::ReduceRealMin (Real& r)
 {
     Real recv;
 
-    int rc = MPI_Allreduce(&r,&recv,1,TheRealType(),MPI_MIN,MPI_COMM_WORLD);
+    int rc = MPI_Allreduce(&r,
+                           &recv,
+                           1,
+                           mpi_data_type(&recv),
+                           MPI_MIN,
+                           MPI_COMM_WORLD);
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
@@ -488,7 +491,12 @@ ParallelDescriptor::ReduceRealSum (Real& r)
 {
     Real recv;
 
-    int rc = MPI_Allreduce(&r,&recv,1,TheRealType(),MPI_SUM,MPI_COMM_WORLD);
+    int rc = MPI_Allreduce(&r,
+                           &recv,
+                           1,
+                           mpi_data_type(&recv),
+                           MPI_SUM,
+                           MPI_COMM_WORLD);
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
@@ -546,9 +554,16 @@ ParallelDescriptor::Gather (Real* sendbuf,
     assert(!(sendbuf == 0));
     assert(!(recvbuf == 0));
 
-    MPI_Datatype typ = TheRealType();
+    MPI_Datatype typ = mpi_data_type(sendbuf);
 
-    int rc = MPI_Gather(sendbuf,nsend,typ,recvbuf,nsend,typ,root,MPI_COMM_WORLD);
+    int rc = MPI_Gather(sendbuf,
+                        nsend,
+                        typ,
+                        recvbuf,
+                        nsend,
+                        typ,
+                        root,
+                        MPI_COMM_WORLD);
 
     if (!(rc == MPI_SUCCESS))
         ParallelDescriptor::Abort(rc);
