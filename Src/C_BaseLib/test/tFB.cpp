@@ -1,17 +1,12 @@
 
 //
-// $Id: tFB.cpp,v 1.9 2004-03-04 18:09:01 car Exp $
+// $Id: tFB.cpp,v 1.10 2004-03-05 17:49:38 car Exp $
 //
 // A test program for FillBoundary().
 //
 
 #include <Utility.H>
 #include <MultiFab.H>
-
-#include <new>
-#ifndef WIN32
-using std::set_new_handler;
-#endif
 
 static
 void
@@ -81,9 +76,6 @@ DoIt (MultiFab& mf)
 int
 main (int argc, char** argv)
 {
-#ifndef WIN32
-    set_new_handler(BoxLib::OutOfMemory);
-#endif
     BoxLib::Initialize(argc, argv);
 
     BoxList bl;

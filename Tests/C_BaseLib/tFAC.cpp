@@ -1,6 +1,6 @@
 
 //
-// $Id: tFAC.cpp,v 1.5 2001-07-22 18:25:48 car Exp $
+// $Id: tFAC.cpp,v 1.6 2004-03-05 17:49:51 car Exp $
 //
 // A simple program to test FabArray<T>::copy() in parallel.
 //
@@ -43,7 +43,7 @@ main (int argc, char** argv)
     //
     // Set second component to relevent index.
     //
-    for (int i = 0; i < mf_2.length(); i++)
+    for (int i = 0; i < mf_2.size(); i++)
     {
         mf_2.setVal(i+1,ba_2[i],1,1,0);
     }
@@ -52,7 +52,7 @@ main (int argc, char** argv)
 
     if (ParallelDescriptor::IOProcessor())
     {
-        cout << mf_1[0] << endl;
+	std::cout << mf_1[0] << std::endl;
     }
 
     BoxLib::Finalize();

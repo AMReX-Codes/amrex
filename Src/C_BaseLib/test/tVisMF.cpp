@@ -1,9 +1,10 @@
 
 //
-// $Id: tVisMF.cpp,v 1.21 2001-07-22 18:25:48 car Exp $
+// $Id: tVisMF.cpp,v 1.22 2004-03-05 17:49:38 car Exp $
 //
 
-#include <stdlib.h>
+#include <cstdlib>
+#include <string>
 
 #include <VisMF.H>
 #include <Utility.H>
@@ -12,14 +13,6 @@ static int nBoxs  = 10;
 
 static char* the_prog_name;
 
-static aString PerFab("PerFab");
-
-static aString PerCPU("PerCPU");
-
-//
-// How defaults to PerCPU.
-//
-static aString How(PerCPU);
 
 static
 void
@@ -67,7 +60,7 @@ parse_args (char**& argv)
 static
 void
 Write_N_Read (const MultiFab& mf,
-              const aString&  mf_name)
+              const std::string&  mf_name)
 {
     if (ParallelDescriptor::IOProcessor())
     {
@@ -96,9 +89,9 @@ Write_N_Read (const MultiFab& mf,
 
     VisMF vmf(mf_name);
 
-    BL_ASSERT(vmf.length() == mf.boxArray().length());
+    BL_ASSERT(vmf.size() == mf.boxArray().size());
 
-    for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
         //const FArrayBox& fab = vmf[mfi.index()];
         const FArrayBox& fab = vmf.GetFab(mfi.index(), 0);
@@ -140,7 +133,7 @@ main (int argc, char** argv)
 
     MultiFab mf(ba, 2, 1);
 
-    for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
         mf[mfi.index()].setVal(mfi.index()+1);
     }
@@ -149,7 +142,7 @@ main (int argc, char** argv)
     //
     mf.setBndry(0);
 
-    static const aString mf_name = "Spam-n-Eggs";
+    static const std::string mf_name = "Spam-n-Eggs";
 
     Write_N_Read (mf,
                   mf_name);
