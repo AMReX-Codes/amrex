@@ -26,8 +26,9 @@ void METIS_PartGraphRecursive(int *, int *, int *, int *, int *, int *, int *, i
 #endif
 
 static int    metis_opt                  = 0;
-static int    verbose                    = 0;
+static int    verbose                    = 1;
 static double max_efficiency             = .95;
+static bool   only_heaviest_cpu          = false;
 static bool   do_not_minimize_comm_costs = false;
 //
 // Everyone uses the same Strategy -- defaults to KNAPSACK.
@@ -104,6 +105,8 @@ DistributionMapping::Initialize ()
     pp.query("verbose", verbose);
 
     pp.query("efficiency", max_efficiency);
+
+    pp.query("only_heaviest_cpu", only_heaviest_cpu);
 
     pp.query("do_not_minimize_comm_costs", do_not_minimize_comm_costs);
 
@@ -603,12 +606,12 @@ top:
     return result;
 }
 
-//static
-//int
-//HeaviestCPU (const std::vector<long>& percpu)
-//{
-//  return std::distance(percpu.begin(),std::max_element(percpu.begin(),percpu.end()));
-//}
+static
+int
+HeaviestCPU (const std::vector<long>& percpu)
+{
+  return std::distance(percpu.begin(),std::max_element(percpu.begin(),percpu.end()));
+}
 
 static
 void
@@ -618,7 +621,7 @@ SwapAndTest (const std::map< int,std::vector<int>,std::greater<int> >& samesize,
              std::vector<long>&                                        percpu,
              bool&                                                     swapped)
 {
-//    int Hvy = HeaviestCPU(percpu);
+    int Hvy = only_heaviest_cpu ? HeaviestCPU(percpu) : 0;
 
     for (std::map< int,std::vector<int>,std::greater<int> >::const_iterator it = samesize.begin();
          it != samesize.end();
@@ -642,7 +645,7 @@ SwapAndTest (const std::map< int,std::vector<int>,std::greater<int> >& samesize,
                 //
                 // Only swaps between CPU of highest latency to another.
                 //
-//                if (procmap[*lit1] != Hvy && procmap[*lit2] != Hvy) continue;
+                if (only_heaviest_cpu && procmap[*lit1] != Hvy && procmap[*lit2] != Hvy) continue;
                 //
                 // Will swapping these boxes decrease latency?
                 //
@@ -700,16 +703,20 @@ SwapAndTest (const std::map< int,std::vector<int>,std::greater<int> >& samesize,
                 const long cost_old = percpu_lit1+percpu_lit2;
                 const long cost_new = percpu[procmap[*lit1]]+percpu[procmap[*lit2]];
 
+                bool oldswapped = swapped;
+
                 if (cost_new < cost_old)
                 {
+                    Hvy     = only_heaviest_cpu ? HeaviestCPU(percpu) : 0;
                     swapped = true;
-//                    Hvy = HeaviestCPU(percpu);
                 }
                 else
                 {
                     //
                     // Undo our changes ...
                     //
+                    swapped = oldswapped;
+
                     std::swap(procmap[*lit1],procmap[*lit2]);
 
                     percpu[procmap[*lit1]] = percpu_lit1;
@@ -864,7 +871,6 @@ MinimizeCommCosts (std::vector<int>&        procmap,
     // Now need to swap boxes of equal size & see if global minimum decreases.
     //
     bool swapped;
-    static int Nsnt = 0;
     //
     // Then minimize number of off-CPU messages.
     //
@@ -873,8 +879,6 @@ MinimizeCommCosts (std::vector<int>&        procmap,
         swapped = false;
 
         SwapAndTest(samesize,nbrs,procmap,percpu,swapped);
-
-        Nsnt++;
     }
     while (swapped);
 
@@ -885,7 +889,6 @@ MinimizeCommCosts (std::vector<int>&        procmap,
         for (int i = 0; i < percpu.size(); i++) cnt += percpu[i];
 
         std::cout << "Final off-CPU connection count: " << cnt << '\n';
-        std::cout << "# of calls to SwapAndTest(): " << Nsnt << '\n';
 
         if (verbose > 1)
         {
