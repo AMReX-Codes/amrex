@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.32 1999-05-10 18:54:23 car Exp $
+// $Id: Utility.cpp,v 1.33 1999-07-14 19:20:44 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -31,6 +31,10 @@
 const char* path_sep_str = "\\";
 #else
 const char* path_sep_str = "/";
+#endif
+
+#ifdef BL_T3E
+#include <malloc.h>
 #endif
 
 #if !defined(BL_ARCH_CRAY) && !defined(WIN32) && !defined(BL_T3E)
@@ -398,6 +402,9 @@ Utility::UnlinkFile (const aString& file)
 void
 Utility::OutOfMemory ()
 {
+#ifdef BL_T3E
+    malloc_stats(0);
+#endif
     BoxLib::Error("Sorry, out of memory, bye ...");
 }
 
