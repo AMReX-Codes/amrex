@@ -4,7 +4,7 @@
 #define BL_BOXLIST_H
 
 //
-// $Id: BoxList.H,v 1.12 1999-06-28 20:37:04 car Exp $
+// $Id: BoxList.H,v 1.13 1999-08-02 19:22:17 sstanley Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -23,8 +23,18 @@ using std::endl;
 #include <BoxArray.H>
 #include <List.H>
 
+//
+// Forward declaration.
+//
 class BoxArray;
 class BoxListIterator;
+
+class BoxList;
+BoxList complementIn(const Box& b, const BoxList& bl);
+BoxList boxDiff (const Box& b1in, const Box& b2);
+BoxList refine (const BoxList&  bl, int ratio);
+BoxList coarsen (const BoxList& bl, int ratio);
+
 
 //
 //@Man:
@@ -36,14 +46,6 @@ class BoxListIterator;
 
   This is a concrete class, not a polymorphic one.
 */
-
-class BoxList;
-
-BoxList complementIn(const Box& b, const BoxList& bl);
-BoxList boxDiff (const Box& b1in, const Box& b2);
-BoxList refine (const BoxList&  bl, int ratio);
-BoxList coarsen (const BoxList& bl, int ratio);
-
 
 class BoxList
 {

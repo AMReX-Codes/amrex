@@ -4,7 +4,7 @@
 #define BL_BOX_H
 
 //
-// $Id: Box.H,v 1.14 1999-07-15 17:07:04 lijewski Exp $
+// $Id: Box.H,v 1.15 1999-08-02 19:22:16 sstanley Exp $
 //
 
 #ifdef NODEV
@@ -29,22 +29,8 @@ using std::ws;
 #include <SPACE.H>
 
 //
-//@Man:
-//@Memo: A Rectangular Domain on an Integer Lattice
-/*@Doc: 
-
-  A Box is an abstraction for defining discrete regions of
-  SPACEDIM indexing space.  Boxes have an IndexType, which defines
-  IndexType::CELL or IndexType::NODE based points for each direction
-  and a low and high INTVECT which defines the lower and upper corners
-  of the Box.  Boxes can exist in positive and negative indexing space.
-
-  Box is a dimension dependent class, so SPACEDIM must be 
-  defined as either 1, 2, or 3 when compiling.
-
-  For historical reasons, BOX is synonomous with Box.  That usage is
-  deprecated, however.
-*/
+// Forward declaration.
+//
 class Box;
 Box coarsen (const Box& b, int refinement_ratio);
 Box coarsen (const Box& b, const IntVect& refinement_ratio);
@@ -61,6 +47,23 @@ Box adjCellLo (const Box& b, int dir, int len=1);
 Box adjCellHi (const Box& b, int dir, int len=1);
 Box adjCell (const Box& b, const Orientation& face, int len=1);
 
+//
+//@Man:
+//@Memo: A Rectangular Domain on an Integer Lattice
+/*@Doc: 
+
+  A Box is an abstraction for defining discrete regions of
+  SPACEDIM indexing space.  Boxes have an IndexType, which defines
+  IndexType::CELL or IndexType::NODE based points for each direction
+  and a low and high INTVECT which defines the lower and upper corners
+  of the Box.  Boxes can exist in positive and negative indexing space.
+
+  Box is a dimension dependent class, so SPACEDIM must be 
+  defined as either 1, 2, or 3 when compiling.
+
+  For historical reasons, BOX is synonomous with Box.  That usage is
+  deprecated, however.
+*/
 class Box
 {
 public:

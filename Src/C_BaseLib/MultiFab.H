@@ -4,33 +4,19 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.28 1999-06-28 20:37:05 car Exp $
+// $Id: MultiFab.H,v 1.29 1999-08-02 19:22:17 sstanley Exp $
 //
 
 #include <BLassert.H>
 #include <FArrayBox.H>
 #include <FabArray.H>
 
+//
+// Forward declaration.
+//
 typedef FabArrayId MultiFabId;
 
 class MultiFabCopyDescriptor;
-
-//
-//@Man:
-//@Memo: A Collection of FArrayBoxes
-/*@Doc:
-
-  The MultiFab class is publically derived from the
-  FabArray<Real,FArrayBox> class.  It is a collection (stored as an array) of
-  FArrayBoxes useful for storing floating point data on a domain defined by
-  a union of rectangular regions embedded in a uniform index space.  The
-  MultiFab class extends the function of the underlying FabArray class just
-  as the FArrayBox class extends the funtion of BaseFab<Real>.  Additional
-  member functions are defined for I/O and simple arithmetic operations on
-  these aggregate objects.
-
-  This class does NOT provide a copy constructor or assignment operator.
-*/
 
 class MultiFab;
 void linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc, 
@@ -60,6 +46,23 @@ void linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
                                   int                     num_comp,
                                   bool                    extrap = false);
 
+
+//
+//@Man:
+//@Memo: A Collection of FArrayBoxes
+/*@Doc:
+
+  The MultiFab class is publically derived from the
+  FabArray<Real,FArrayBox> class.  It is a collection (stored as an array) of
+  FArrayBoxes useful for storing floating point data on a domain defined by
+  a union of rectangular regions embedded in a uniform index space.  The
+  MultiFab class extends the function of the underlying FabArray class just
+  as the FArrayBox class extends the funtion of BaseFab<Real>.  Additional
+  member functions are defined for I/O and simple arithmetic operations on
+  these aggregate objects.
+
+  This class does NOT provide a copy constructor or assignment operator.
+*/
 class MultiFab
     :
     public FabArray<Real, FArrayBox>

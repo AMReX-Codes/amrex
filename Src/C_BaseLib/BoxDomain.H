@@ -4,7 +4,7 @@
 #define BL_BOXDOMAIN_H
 
 //
-// $Id: BoxDomain.H,v 1.9 1999-06-28 20:37:04 car Exp $
+// $Id: BoxDomain.H,v 1.10 1999-08-02 19:22:16 sstanley Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -30,6 +30,10 @@ using std::endl;
 //
 class BoxDomainIterator;
 
+class BoxDomain;
+BoxDomain complementIn (const Box& b, const BoxDomain& bl);
+void coarsen (BoxDomain& dest, const BoxDomain& fin, int ratio);
+
 //
 //@Man:
 //@Memo: A List of Disjoint Boxes
@@ -42,10 +46,6 @@ class BoxDomainIterator;
 
   This is a concrete class, not a polymorphic one.
 */
-
-class BoxDomain;
-BoxDomain complementIn (const Box& b, const BoxDomain& bl);
-void coarsen (BoxDomain& dest, const BoxDomain& fin, int ratio);
 
 class BoxDomain
     :
