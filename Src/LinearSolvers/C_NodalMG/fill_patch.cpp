@@ -599,7 +599,7 @@ void restrict_level(MultiFab& dest,
 {
     assert(type(dest) == type(r));
     // PARALLEL
-    task_list<restric_fill> li;
+    //task_list<restric_fill> li;
     for (int jgrid = 0; jgrid < dest.length(); jgrid++) 
     {
         // restrict_patch(dest[jgrid], dest.box(jgrid), r, rat, restric, lev_interface, bdy);
@@ -611,12 +611,12 @@ void restrict_level(MultiFab& dest,
 	    if (region.intersects(cbox)) 
 	    {
 		cbox &= region;
-		//restric.fill(dest[jgrid], cbox, r[igrid], rat);
-		li.add_task(restric_fill(restric, dest, jgrid, cbox, r, igrid, rat));
+		restric.fill(dest[jgrid], cbox, r[igrid], rat);
+		//li.add_task(restric_fill(restric, dest, jgrid, cbox, r, igrid, rat));
 	    }
 	}
     }
-    li.execute();
+    //li.execute();
     if ( lev_interface.ok() )
     {
 	restric.fill_interface( dest, r, lev_interface, bdy, rat);
