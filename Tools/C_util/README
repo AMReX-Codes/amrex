@@ -1,0 +1,28 @@
+This directory contains code, useful for debugging, but which didn't
+seem to belong anywhere else.
+
+ArrayView.H               Allow access to ArrayView from within TotalView
+DatasetClient.[H,cpp]
+
+TV_TempWrite.H            Allows access to writeMF and readMF functions for
+                            writing/reading MultiFab's into a file format
+                            readible by the little functions in the ViewMF
+                            subdirectory here
+
+preload.cpp               Contains BSP initialization stuff needed for any
+                            code linking to BSP.  It is used by all the apps
+                            and test codes in the paralle environment
+
+WritePlotFile.[H,cpp]     Define a function called writePlotFile which takes
+                            a MultiFab and writes it into a HyperCLawV1.1 
+                            pltfile format readible by pAmrvis
+
+ViewMF                    Code for building a viewer for 2D and 3D which 
+                            simply calls ArrayView after reading MultiFabs
+                            written by writeMF defined in TV_TempWrite.H
+                            The trivial code builds a simple viewer or a
+                            viewer to the difference between two written
+                            MultiFabs (useful for comparing output of two
+                            separate codes).
+
+Marc Day, 041598
