@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.12 2002-09-27 19:20:00 almgren Exp $
+c $Id: INTERP_2D.F,v 1.13 2002-10-07 20:28:10 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -1440,9 +1440,6 @@ c
                enddo
 
                cvol = (cvcx(ic+1)-cvcx(ic)) * (cvcy(jc+1)-cvcy(jc))
-               if (crseTot .ne. cvol * crse(ic,jc,n)) then
-                print *,'MISMATCH IN CORRECTION TOTALS ',crseTot, cvol*crse(ic,jc,n)
-               endif
 
                sumN = zero
                sumP = zero
