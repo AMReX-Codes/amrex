@@ -63,9 +63,13 @@ class holy_grail_amr_multigrid : public amr_multigrid {
   PArray<MultiFab> cgwork; // all 8 components live on coarsest level
   int singular, source_owned;
 
+  // level caches which are not members of amr_multigrid:
+
   Array<copy_cache*> corr_scache;
   Array<unroll_cache*> cgw_ucache;
   copy_cache* cgw1_bcache;
+
+  // sync caches:
 
   Box **fres_fbox, **fres_cbox, **fres_sfbox, **fres_scbox, **fres_creg;
   PArray<Fab> *fres_sc, *fres_dc;
@@ -78,6 +82,13 @@ class holy_grail_amr_multigrid : public amr_multigrid {
   Box **cres_fbox, **cres_cbox, **cres_sfbox, **cres_scbox, **cres_creg;
   PArray<Fab> *cres_sf, *cres_sc, *cres_df, *cres_dc;
   int **cres_flag;
+
+  // orderings for full-level line solves:
+
+  Array< Array<int> > line_order;
+  Array< Array< List<int> > > line_after;
+
+  void build_line_order(int lsd);
 
   void build_sigma(PArray<MultiFab>& Sigma);
 
@@ -114,7 +125,7 @@ class holy_grail_amr_multigrid : public amr_multigrid {
 			   amr_fluid_boundary Boundary, int Pcode = 2)
     : amr_multigrid(Mesh, Gen_ratio, Lev_min_min, Lev_min_max, Lev_max_max,
 		    Boundary.pressure(), Pcode),
-      boundary(Boundary), line_solve_dim(-1)
+      boundary(Boundary), smoother_mode(2), line_solve_dim(-1)
   {
     build_mesh(fdomain);
   }
@@ -125,6 +136,7 @@ class holy_grail_amr_multigrid : public amr_multigrid {
 	     int Lev_min, int Lev_max);
   void clear();
 
+  int smoother_mode;
   int line_solve_dim;
 };
 

@@ -396,6 +396,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 #if (BL_SPACEDIM == 2)
   //proj.SetRZ();
 #endif
+  //proj.smoother_mode  = 1;
   proj.line_solve_dim = BL_SPACEDIM - 1;
 
   if (m.length() == 1) {

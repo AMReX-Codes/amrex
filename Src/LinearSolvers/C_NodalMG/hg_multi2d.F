@@ -1659,6 +1659,7 @@ cdir$ ivdep
             if (betm .eq. 0.d0) then
 c dirichlet bdy:
                cor(i,j) = 0.d0
+               aj = 0.d0
                wrk(1) = 0.d0
             else if (regl1 .eq. doml1) then
 c neumann bdy:
@@ -1738,11 +1739,16 @@ c back substitution loop:
       hxm2 = 1.d0 / (hx*hx)
       hym2 = 1.d0 / (hy*hy)
       if (lsd .eq. 1) then
-         do 20 i = regl0 + ipass, regh0, 2
-            j = regl1
+         if (mod(regl0,2) .eq. 0) then
+            ioff = ipass
+         else
+            ioff = 1 - ipass
+         endif
+         j = regl1
+         aj = 0.d0
+         do 10 i = regl0 + ioff, regh0, 2
             if (cen(i,j) .eq. 0.d0) then
 c dirichlet bdy:
-               cor(i,j) = 0.d0
                wrk(i,j) = 0.d0
             else if (regl1 .eq. doml1) then
 c neumann bdy:
@@ -1754,56 +1760,39 @@ c neumann bdy:
 c interface to grid at same level:
                aj = 0.5d0 * hym2 * (sigy(i-1,j) + sigy(i,j))
             endif
+            wrk(i,j+1) = aj
+ 10         continue
 c forward solve loop:
-            do 10 j = regl1 + 1, regh1 - 1
+         do 20 j = regl1 + 1, regh1 - 1
+            do 20 i = regl0 + ioff, regh0, 2
                if (cen(i,j) .eq. 0.d0) then
                   betm = 0.d0
                else
+                  aj = wrk(i,j)
                   betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i,j-1))
                endif
                cor(i,j) = (RHSL - aj * cor(i,j-1)) * betm
                aj = 0.5d0 * hym2 * (sigy(i-1,j) + sigy(i,j))
-               wrk(i,j) = aj * betm
- 10            continue
-            j = regh1
+               wrk(i,j+1) = aj
+ 20            wrk(i,j) = aj * betm
+         j = regh1
+         do 30 i = regl0 + ioff, regh0, 2
             if (cen(i,j) .eq. 0.d0) then
 c dirichlet bdy:
-               cor(i,j) = 0.d0
             else if (regh1 .eq. domh1) then
 c neumann bdy:
-               aj = 2.d0 * aj
+               aj = 2.d0 * wrk(i,j)
                betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i,j-1))
                cor(i,j) = (RHSL - aj * cor(i,j-1)) * betm
             else if (j .gt. regl1) then
 c interface to grid at same level:
+               aj = wrk(i,j)
                betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i,j-1))
                cor(i,j) = (RHSL - aj * cor(i,j-1)) * betm
                aj = 0.5d0 * hym2 * (sigy(i-1,j) + sigy(i,j))
                wrk(i,j) = aj * betm
             endif
- 20         continue
-         endif
-      end
-
-      subroutine hgrlnb(cor, dims(cor),
-     @ wrk, dims(wrk),
-     @ dims(reg),
-     @ dims(dom),
-     @ hx, hy, irz, imax, lsd, ipass)
-      implicit real*8(a-h,o-z), integer(i-n)
-      integer dims(cor)
-      integer dims(wrk)
-      integer dims(reg)
-      integer dims(dom)
-      real*8 cor(dimdec(cor))
-      real*8 wrk(dimdec(wrk))
-      integer irz, imax, lsd, ipass
-      if (lsd .eq. 1) then
-         do 20 i = regl0 + ipass, regh0, 2
-c back substitution loop:
-            do 20 j = regh1 - 1, regl1, -1
-               cor(i,j) = cor(i,j) - wrk(i,j) * cor(i,j+1)
- 20            continue
+ 30         continue
       else
          print *, "Line solve not implemented in dimension", lsd
       endif
@@ -2290,6 +2279,112 @@ cdir$ ivdep
       endif
       end
 
+      subroutine hgrlnf(cor, dims(cor),
+     @ res, dims(res),
+     @ wrk, dims(wrk),
+     @ sigx, sigy, dims(sf),
+     @ cen, dims(cen),
+     @ dims(reg),
+     @ dims(dom),
+#ifdef TURNOFF
+     @ hx, hy, irz1, imax, lsd, ipass)
+#else
+     @ hx, hy, irz, imax, lsd, ipass)
+#endif
+      implicit real*8(a-h,o-z), integer(i-n)
+      integer dims(cor)
+      integer dims(res)
+      integer dims(wrk)
+      integer dims(sf)
+      integer dims(cen)
+      integer dims(reg)
+      integer dims(dom)
+      real*8 cor(dimdec(cor))
+      real*8 res(dimdec(res))
+      real*8 wrk(dimdec(wrk))
+      real*8 sigx(dimdec(sf))
+      real*8 sigy(dimdec(sf))
+      real*8 cen(dimdec(cen))
+      real*8 hx, hy
+      integer irz, imax, lsd, ipass
+#ifdef TURNOFF
+      irz = 0
+#endif
+      hxm2 = 1.d0 / (hx*hx)
+      hym2 = 1.d0 / (hy*hy)
+      fac = 1.d0 / 6.d0
+      if (irz .eq. 0) then
+         if (lsd .eq. 1) then
+            if (mod(regl0,2) .eq. 0) then
+               ioff = ipass
+            else
+               ioff = 1 - ipass
+            endif
+            j = regl1
+            aj = 0.d0
+            do 10 i = regl0 + ioff, regh0, 2
+               if (cen(i,j) .eq. 0.d0) then
+c dirichlet bdy:
+                  wrk(i,j) = 0.d0
+               else if (regl1 .eq. doml1) then
+c neumann bdy:
+                  betm = -cen(i,j)
+                  cor(i,j) = RHSL * betm
+                  aj = fac *
+     @              (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
+     @               hxm2 * (sigx(i-1,j) + sigx(i,j)))
+                  wrk(i,j) = 2.d0 * aj * betm
+               else
+c interface to grid at same level:
+                  aj = fac *
+     @              (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
+     @               hxm2 * (sigx(i-1,j) + sigx(i,j)))
+               endif
+               wrk(i,j+1) = aj
+ 10            continue
+c forward solve loop:
+            do 20 j = regl1 + 1, regh1 - 1
+               do 20 i = regl0 + ioff, regh0, 2
+                  if (cen(i,j) .eq. 0.d0) then
+                     betm = 0.d0
+                  else
+                     aj = wrk(i,j)
+                     betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i,j-1))
+                  endif
+                  cor(i,j) = (RHSL - aj * cor(i,j-1)) * betm
+                  aj = fac *
+     @              (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
+     @               hxm2 * (sigx(i-1,j) + sigx(i,j)))
+                  wrk(i,j+1) = aj
+ 20               wrk(i,j) = aj * betm
+            j = regh1
+            do 30 i = regl0 + ioff, regh0, 2
+               if (cen(i,j) .eq. 0.d0) then
+c dirichlet bdy:
+               else if (regh1 .eq. domh1) then
+c neumann bdy:
+                  aj = 2.d0 * wrk(i,j)
+                  betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i,j-1))
+                  cor(i,j) = (RHSL - aj * cor(i,j-1)) * betm
+               else if (j .gt. regl1) then
+c interface to grid at same level:
+                  aj = wrk(i,j)
+                  betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i,j-1))
+                  cor(i,j) = (RHSL - aj * cor(i,j-1)) * betm
+                  aj = fac *
+     @              (hym2 * 2.d0 * (sigy(i-1,j) + sigy(i,j)) -
+     @               hxm2 * (sigx(i-1,j) + sigx(i,j)))
+                  wrk(i,j) = aj * betm
+               endif
+ 30            continue
+         else
+            print *, "Line solve not implemented in dimension", lsd
+         endif
+      else
+         print *, "Line solve not implemented for rz:"
+      endif
+      end
+
       subroutine hgres(res, dims(res),
      @ src,  dims(src),
      @ dest, dims(dest),
@@ -2398,6 +2493,33 @@ cdir$ ivdep
 #endif
 
 #endif
+
+      subroutine hgrlnb(cor, dims(cor),
+     @ wrk, dims(wrk),
+     @ dims(reg),
+     @ lsd, ipass)
+      implicit real*8(a-h,o-z), integer(i-n)
+      integer dims(cor)
+      integer dims(wrk)
+      integer dims(reg)
+      real*8 cor(dimdec(cor))
+      real*8 wrk(dimdec(wrk))
+      integer lsd, ipass
+      if (lsd .eq. 1) then
+         if (mod(regl0,2) .eq. 0) then
+            ioff = ipass
+         else
+            ioff = 1 - ipass
+         endif
+c back substitution loop:
+         do 20 j = regh1 - 1, regl1, -1
+            do 20 i = regl0 + ioff, regh0, 2
+               cor(i,j) = cor(i,j) - wrk(i,j) * cor(i,j+1)
+ 20            continue
+      else
+         print *, "Line solve not implemented in dimension", lsd
+      endif
+      end
 
 #ifdef CONSTANT
 #  define CGOPT 2

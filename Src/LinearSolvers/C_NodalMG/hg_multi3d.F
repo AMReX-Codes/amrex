@@ -2488,6 +2488,93 @@ c back substitution loop:
       endif
       end
 
+      subroutine hgrlnf(cor,
+     @ dims(cor),
+     @ res, dims(res),
+     @ wrk, dims(wrk),
+     @ signd, dims(sn),
+     @ cen, dims(cen),
+     @ dims(reg),
+     @ dims(dom),
+     @ lsd, ipass)
+      implicit real*8(a-h,o-z), integer(i-n)
+      integer dims(cor)
+      integer dims(res)
+      integer dims(wrk)
+      integer dims(sn)
+      integer dims(cen)
+      integer dims(reg)
+      integer dims(dom)
+      real*8 cor(dimdec(cor))
+      real*8 res(dimdec(res))
+      real*8 wrk(dimdec(wrk))
+      real*8 signd(dimdec(sn), 3)
+      real*8 cen(dimdec(cen))
+      integer lsd, ipass
+      if (lsd .eq. 2) then
+         if (mod(regl0 + regl1, 2) .eq. 0) then
+            ioff = 1 - ipass
+         else
+            ioff = ipass
+         endif
+         k = regl2
+         aj = 0.d0
+         ipar = ioff
+         do 10 j = regl1, regh1
+            ipar = 1 - ipar
+            do 10 i = regl0 + ipar, regh0, 2
+               if (cen(i,j,k) .eq. 0.d0) then
+c dirichlet bdy:
+                  wrk(i,j,k) = 0.d0
+               else if (regl2 .eq. doml2) then
+c neumann bdy:
+                  betm = -cen(i,j,k)
+                  cor(i,j,k) = RHSL * betm
+                  aj = signd(i,j,k,3)
+                  wrk(i,j,k) = 2.d0 * aj * betm
+               endif
+ 10            continue
+c forward solve loop:
+         do 20 k = regl2 + 1, regh2 - 1
+            ipar = ioff
+            do 20 j = regl1, regh1
+               ipar = 1 - ipar
+               do 20 i = regl0 + ipar, regh0, 2
+                  if (cen(i,j,k) .eq. 0.d0) then
+                     betm = 0.d0
+                  else
+                     aj = signd(i,j,k-1,3)
+                     betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(i,j,k-1))
+                  endif
+                  cor(i,j,k) = (RHSL - aj * cor(i,j,k-1)) * betm
+                  aj = signd(i,j,k,3)
+ 20               wrk(i,j,k) = aj * betm
+         k = regh2
+         ipar = ioff
+         do 30 j = regl1, regh1
+            ipar = 1 - ipar
+            do 30 i = regl0 + ipar, regh0, 2
+               if (cen(i,j,k) .eq. 0.d0) then
+c dirichlet bdy:
+               else if (regh2 .eq. domh2) then
+c neumann bdy:
+                  aj = 2.d0 * signd(i,j,k-1,3)
+                  betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(i,j,k-1))
+                  cor(i,j,k) = (RHSL - aj * cor(i,j,k-1)) * betm
+               else if (k .gt. regl2) then
+c interface to grid at same level:
+                  aj = signd(i,j,k-1,3)
+                  betm = 1.d0 / (-1.d0 / cen(i,j,k) - aj * wrk(i,j,k-1))
+                  cor(i,j,k) = (RHSL - aj * cor(i,j,k-1)) * betm
+                  aj = signd(i,j,k,3)
+                  wrk(i,j,k) = aj * betm
+               endif
+ 30            continue
+      else
+         print *, "Line solve not implemented in dimension", lsd
+      endif
+      end
+
       subroutine hgres(res,
      @ dims(res),
      @ src,
@@ -2853,6 +2940,36 @@ cdir$ ivdep
 c twenty-seven-point stencils not implemented
 
 #endif
+
+      subroutine hgrlnb(cor, dims(cor),
+     @ wrk, dims(wrk),
+     @ dims(reg),
+     @ lsd, ipass)
+      implicit real*8(a-h,o-z), integer(i-n)
+      integer dims(cor)
+      integer dims(wrk)
+      integer dims(reg)
+      real*8 cor(dimdec(cor))
+      real*8 wrk(dimdec(wrk))
+      integer lsd, ipass
+      if (lsd .eq. 2) then
+         if (mod(regl0 + regl1, 2) .eq. 0) then
+            ioff = 1 - ipass
+         else
+            ioff = ipass
+         endif
+c back substitution loop:
+         do 20 k = regh2 - 1, regl2, -1
+            ipar = ioff
+            do 20 j = regl1, regh1
+               ipar = 1 - ipar
+               do 20 i = regl0 + ipar, regh0, 2
+                  cor(i,j,k) = cor(i,j,k) - wrk(i,j,k) * cor(i,j,k+1)
+ 20               continue
+      else
+         print *, "Line solve not implemented in dimension", lsd
+      endif
+      end
 
 #ifdef CONSTANT
 #  define CGOPT 2

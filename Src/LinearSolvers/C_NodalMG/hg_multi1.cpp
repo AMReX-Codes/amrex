@@ -460,6 +460,9 @@ void holy_grail_amr_multigrid::clear()
 {
   int i, lev, mglev;
 
+  line_order.clear();
+  line_after.clear();
+
   delete_sync_caches();
 
   delete cgw1_bcache;
