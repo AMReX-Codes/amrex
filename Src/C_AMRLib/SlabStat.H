@@ -4,7 +4,7 @@
 #define _SlabStat_H_
 
 //
-// $Id: SlabStat.H,v 1.4 2000-04-21 22:28:16 sstanley Exp $
+// $Id: SlabStat.H,v 1.5 2000-04-22 00:16:26 sstanley Exp $
 //
 
 #include <ArrayLim.H>
@@ -117,7 +117,6 @@ protected:
                  int             ncomp,
                  Array<aString>& vars,
                  int             ngrow,
-                 int             level,
                  SlabStatFunc    func);
     //
     // Destructor.
@@ -211,10 +210,9 @@ public:
               int             ncomp,
               Array<aString>& vars,
               int             ngrow,
-              int             level,
               SlabStatFunc    func)
     {
-        m_list.add(new SlabStatRec(name,ncomp,vars,ngrow,level,func));
+        m_list.add(new SlabStatRec(name,ncomp,vars,ngrow,func));
     }
     //
     //@ManDoc: Update the statistics in the list.

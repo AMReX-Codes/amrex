@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: SlabStat.cpp,v 1.6 2000-04-21 16:24:02 sstanley Exp $
+// $Id: SlabStat.cpp,v 1.7 2000-04-22 00:16:26 sstanley Exp $
 //
 
 #include <AmrLevel.H>
@@ -43,12 +43,14 @@ SlabStatRec::SlabStatRec (const aString&  name,
 //   #
 //   default:
 //     N
+//     level
 //     b1
 //     b2
 //     ...
 //     bN
 //   name:
 //     M
+//     level
 //     b1
 //     b2
 //     ...
@@ -56,9 +58,11 @@ SlabStatRec::SlabStatRec (const aString&  name,
 //
 
 static
-BoxArray
+void
 Boxes (const aString& file,
-       const aString& name)
+       const aString& name,
+       BoxArray&      boxes,
+       int&           boxesLevel)
 {
     const aString TheDflt = "default:";
     const aString TheName = name + ":";
@@ -72,6 +76,8 @@ Boxes (const aString& file,
 
     BoxArray ba_dflt;
     BoxArray ba_name;
+    int bxLvl_dflt;
+    int bxLvl_name;
 
     aString line;
 
@@ -83,9 +89,10 @@ Boxes (const aString& file,
         {
             bool dflt = (line == TheDflt) ? true : false;
 
-            int N; Box bx; BoxList bl;
+            int N; int lvl; Box bx; BoxList bl;
 
             is >> N; STRIP;
+            is >> lvl; STRIP;
 
             BL_ASSERT(N > 0);
 
@@ -95,6 +102,7 @@ Boxes (const aString& file,
             }
 
             (dflt ? ba_dflt : ba_name) = BoxArray(bl);
+            (dflt ? bxLvl_dflt : bxLvl_name) = lvl;
         }
     }
 
@@ -103,8 +111,8 @@ Boxes (const aString& file,
     if (!ba_dflt.ready() && !ba_name.ready())
         BoxLib::Abort("slabstats.boxes doesn't have appropriate structure");
 
-    return ba_name.ready() ? ba_name : ba_dflt;
-
+    boxes =  ba_name.ready() ? ba_name : ba_dflt;
+    boxesLevel = ba_name.ready() ? bxLvl_name : bxLvl_dflt;
 #undef STRIP
 }
 
@@ -112,14 +120,12 @@ SlabStatRec::SlabStatRec (const aString&  name,
                           int             ncomp,
                           Array<aString>& vars,
                           int             ngrow,
-                          int             level,
                           SlabStatFunc    func)
     :
     m_name(name),
     m_ncomp(ncomp),
     m_vars(vars),
     m_ngrow(ngrow),
-    m_level(level),
     m_func(func),
     m_interval(0)
 {
@@ -130,7 +136,7 @@ SlabStatRec::SlabStatRec (const aString&  name,
     if (!pp.query("boxes", file))
         BoxLib::Abort("SlabStatRec: slabstat.boxes isn't defined");
 
-    m_boxes = Boxes(file, m_name);
+    Boxes(file, m_name, m_boxes, m_level);
 
     m_mf.define(m_boxes, m_ncomp, 0, Fab_allocate);
 
