@@ -1,5 +1,5 @@
 c
-c $Id: SLABSTAT_3D.F,v 1.3 2000-05-22 19:54:00 sstanley Exp $
+c $Id: SLABSTAT_3D.F,v 1.4 2002-11-27 21:54:19 car Exp $
 c
 #undef BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -79,7 +79,7 @@ c
  1000   format('Incorrect relationship between nStats and nStateComp in',
      $        /'FORT_REYNAVG_FIRST4MOMS.  Should have nStats = 4*nStateComp',
      $        /'   nStats = ', I5, 5x, 'nStateComp = ', I5)
-        stop
+        call bl_error("stop")
       endif
 
       nghost = 0
@@ -92,7 +92,7 @@ c
      $          /'   Direction = ', I2, 5x, 'nghost = ', I2,
      $          /'   loStats = ', SDIM (I2,1x), 5x, 'hiStats = ', SDIM (I2,1x),
      $          /'   loState = ', SDIM (I2,1x), 5x, 'hiState = ', SDIM (I2,1x))
-          stop
+          call bl_error("stop")
         endif
       enddo
 #endif
@@ -194,7 +194,7 @@ c
  1000   format('Incorrect relationship between nStats and nStateComp in',
      $        /'FORT_FAVREAVG_FIRST4MOMS.  Should have nStats = 4*nStateComp',
      $        /'   nStats = ', I5, 5x, 'nStateComp = ', I5)
-        stop
+        call bl_error("stop")
       endif
 
       nghost = 0
@@ -207,7 +207,7 @@ c
      $          /'   Direction = ', I2, 5x, 'nghost = ', I2,
      $          /'   loStats = ', SDIM (I2,1x), 5x, 'hiStats = ', SDIM (I2,1x),
      $          /'   loState = ', SDIM (I2,1x), 5x, 'hiState = ', SDIM (I2,1x))
-          stop
+          call bl_error("stop")
         endif
       enddo
 #endif

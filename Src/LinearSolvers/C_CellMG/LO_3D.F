@@ -1,5 +1,5 @@
 c
-c $Id: LO_3D.F,v 1.3 2002-08-29 22:14:39 car Exp $
+c $Id: LO_3D.F,v 1.4 2002-11-27 21:54:35 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -416,7 +416,7 @@ c
             end if
          else
             print *,'UNKNOWN BC ON LEFT FACE IN APPLYBC'
-            stop
+            call bl_error("stop")
          end if
       end if
 c
@@ -509,7 +509,7 @@ c
             end if
          else
             print *,'UNKNOWN BC ON RIGHT FACE IN APPLYBC'
-            stop
+            call bl_error("stop")
          end if
       end if
 c
@@ -602,7 +602,7 @@ c
             end if
          else
             print *,'UNKNOWN BC ON BOTTOM FACE IN APPLYBC'
-            stop
+            call bl_error("stop")
          end if
       end if
 c
@@ -695,7 +695,7 @@ c
             end if
          else
             print *,'UNKNOWN BC ON TOP FACE IN APPLYBC'
-            stop
+            call bl_error("stop")
          end if
       end if
 c
@@ -788,7 +788,7 @@ c
             end if
          else
             print *,'UNKNOWN BC ON FRONT FACE IN APPLYBC'
-            stop
+            call bl_error("stop")
          end if
       end if
 c
@@ -881,7 +881,7 @@ c
             end if
          else
             print *,'UNKNOWN BC ON BACK FACE IN APPLYBC'
-            stop
+            call bl_error("stop")
          end if
       end if
 c

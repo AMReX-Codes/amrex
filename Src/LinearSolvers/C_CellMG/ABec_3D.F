@@ -1,5 +1,5 @@
 c
-c $Id: ABec_3D.F,v 1.7 2002-08-29 22:14:39 car Exp $
+c $Id: ABec_3D.F,v 1.8 2002-11-27 21:54:35 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -125,19 +125,19 @@ c
         do_line = 3
         if (klen .gt. LSDIM) then
           print *,'TOO BIG FOR LINE SOLVE IN GSRB: klen = ',klen
-          stop
+          call bl_error("stop")
         endif
       else if (jlen .gt. ilen .and. jlen .gt. klen) then
         do_line = 2
         if (jlen .gt. LSDIM) then
           print *,'JLEN TOO BIG FOR LINE SOLVE IN GSRB: jlen = ',jlen
-          stop
+          call bl_error("stop")
         endif
       else if (ilen .gt. jlen .and. ilen .gt. klen) then
         do_line = 1
         if (ilen .gt. LSDIM) then
           print *,'ILEN TOO BIG FOR LINE SOLVE IN GSRB: ilen = ',ilen
-          stop
+          call bl_error("stop")
         endif
       else 
         do_line = 0
