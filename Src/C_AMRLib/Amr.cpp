@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.125 2001-08-17 15:41:33 lijewski Exp $
+// $Id: Amr.cpp,v 1.126 2001-08-22 20:18:14 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -319,6 +319,8 @@ Amr::Amr ()
       for (int i = 0; i < num_datalogs; i++) 
         setRecordDataInfo(i,data_file_names[i]);
     }
+
+    probin_file = "probin";  // Make "probin" the default
 
     if (pp.contains("probin_file"))
     {
