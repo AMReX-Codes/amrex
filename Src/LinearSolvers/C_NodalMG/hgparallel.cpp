@@ -49,7 +49,7 @@ bool task_copy::init(sequence_number sno, MPI_Comm comm)
     {
 	tmp = new FArrayBox(m_sbx, m_smf.nComp());
 	tmp->copy(m_smf[m_sgrid], m_sbx);
-	debug_out << "Norm(S) of tmp " << m_sno << " " << tmp->norm(m_sbx, 2) << endl;
+	HG_DEBUG_OUT( "Norm(S) of tmp " << m_sno << " " << tmp->norm(m_sbx, 2) << endl );
 	// printRange(debug_out, *tmp, m_sbx, 0, tmp->nComp());
 	int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_mf,  m_dgrid), m_sno, comm, &m_request);
 	if ( res != 0 )
@@ -69,31 +69,32 @@ bool task_copy::init(sequence_number sno, MPI_Comm comm)
 
 void task_copy::hint() const
 {
-    debug_out << "task_copy : ";
+    HG_DEBUG_OUT( "task_copy : ");
     if ( m_local )
     {
-	debug_out << "L";
+	HG_DEBUG_OUT( "L" );
     }
     else if ( is_local(m_smf, m_sgrid) )
     {
-	debug_out << "S";
+	HG_DEBUG_OUT( "S" );
     }
     else
     {
-    	debug_out << "R";
+    	HG_DEBUG_OUT( "R" );
     }
-    debug_out << ' ';
-    debug_out << m_sno << ' ';
-    debug_out << m_bx  << ' ' << m_dgrid << ' ';
-    debug_out << m_sbx  << ' ' << m_sgrid << ' ';
-    debug_out << endl;	// to flush
+    HG_DEBUG_OUT( 
+	' ' <<
+	m_sno << ' ' <<
+	m_bx  << ' ' << m_dgrid << ' ' <<
+	m_sbx  << ' ' << m_sgrid << ' ' <<
+	endl );	// to flush
 }
 
 bool task_copy::ready()
 {
     if ( m_local )
     {
-	debug_out << "Norm(L) " << m_sno << " " << m_smf[m_sgrid].norm(m_sbx, 2) << endl;
+	HG_DEBUG_OUT( "Norm(L) " << m_sno << " " << m_smf[m_sgrid].norm(m_sbx, 2) << endl );
 	// printRange(debug_out, m_smf[m_sgrid], m_sbx, 0, m_smf.nComp());
 	m_mf[m_dgrid].copy(m_smf[m_sgrid], m_sbx, 0, m_bx, 0, m_mf.nComp());
 	return true;
@@ -115,7 +116,7 @@ bool task_copy::ready()
 	    assert( status.MPI_TAG    == m_sno );
 	    MPI_Get_count(&status, MPI_DOUBLE, &count);
 	    assert(count == tmp->box().numPts()*tmp->nComp());
-	    debug_out << "Norm(R) of tmp " << m_sno << " " << tmp->norm(m_sbx, 2) << endl;
+	    HG_DEBUG_OUT( "Norm(R) of tmp " << m_sno << " " << tmp->norm(m_sbx, 2) << endl );
 	    // printRange(debug_out, *tmp, m_sbx, 0, tmp->nComp());
 	    m_mf[m_dgrid].copy(*tmp, m_sbx, 0, m_bx, 0, m_smf.nComp());
 	}

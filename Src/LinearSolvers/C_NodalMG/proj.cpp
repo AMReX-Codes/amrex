@@ -17,7 +17,9 @@ using namespace std;
 #include <fstream.h>
 #endif
 
+#ifdef HG_DEBUG
 std::ofstream debug_out;
+#endif
 
 void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain);
 
@@ -30,17 +32,21 @@ int main(int argc, char **argv)
 #endif
     ParallelDescriptor::StartParallel(1, &argc, &argv);
     
+#ifdef HG_DEBUG
     std::ostringstream fname;
     fname << "gu" << ParallelDescriptor::NProcs() << "_" << ParallelDescriptor::MyProc() << std::ends;
     debug_out.open(fname.str().c_str(), ios::trunc);
     if ( debug_out.fail() )
 	BoxLib::Error("Failed to open debug file");
     debug_out << std::setprecision(15);
-    
+#endif
+
     for (int i = 1; i < argc; ++i)
 	driver(argv[i]);
-    
+
+#ifdef HG_DEBUG
     debug_out.close();
+#endif
     ParallelDescriptor::EndParallel();
     return 0;
 }
