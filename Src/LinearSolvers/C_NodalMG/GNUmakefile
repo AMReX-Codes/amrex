@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.18 1998-11-09 23:13:14 car Exp $
+# $Id: GNUmakefile,v 1.19 1998-11-10 02:21:59 car Exp $
 #
 PRECISION = DOUBLE
 DEBUG     = FALSE
@@ -83,3 +83,6 @@ o/3d.OSF1.KCC/hg_multi3d_terrain.o: hg_multi3d_terrain.F
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	$(CPP) -DBL_LANG_FORT $(CPPFLAGS) $< | $(FORTPREP) > f/3d.OSF1.KCC/hg_multi3d_terrain.f
 	$(COMPILE.f) $(FEXEFLAGS) -O f/3d.OSF1.KCC/hg_multi3d_terrain.f $(FORT_OUTPUT_OPTION)
+
+libs:
+	cd $(TOP)/pBoxLib_2; $(MAKE) PRECISION=$(PRECISION) PROFILE=$(PROFILE) COMP=$(COMP) DEBUG=$(DEBUG) DIM=$(DIM) USE_MPI=$(USE_MPI) install
