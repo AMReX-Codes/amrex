@@ -1,8 +1,8 @@
-#ifndef _AABBecLAPLACIAN_H_
-#define _AABBecLAPLACIAN_H_
+#ifndef _ABecLAPLACIAN_H_
+#define _ABecLAPLACIAN_H_
 
 //
-// $Id: ABecLaplacian.H,v 1.1 1998-03-24 07:05:47 almgren Exp $
+// $Id: ABecLaplacian.H,v 1.2 1998-04-15 21:25:55 marc Exp $
 //
 
 #include <Tuple.H>
@@ -68,96 +68,152 @@ class ABecLaplacian
     : public LinOp
 {
 public:
-//@ManMemo: administrative functions
-//@ManDoc: constructor for box array, boundary data and scalar mesh spacing
-    ABecLaplacian(const BoxArray &ba, const BndryData& bd, Real _h);
-//@ManDoc: constructor for box array, boundary data and vector mesh spacing
-    ABecLaplacian(const BoxArray &ba, const BndryData& bd, const Real * _h);
-
-//@ManDoc: destructor
+    //
+    //@ManDoc: constructor for box array, boundary data and scalar mesh spacing
+    //
+    ABecLaplacian(const BndryData& bd, Real _h);
+    //
+    //@ManDoc: constructor for box array, boundary data and vector mesh spacing
+    //
+    ABecLaplacian(const BndryData& bd, const Real * _h);
+    //
+    //@ManDoc: destructor
+    //
     virtual ~ABecLaplacian();
-
-//@ManMemo: access functions
-//@ManDoc: set scalar coefficients
+    //
+    //@ManDoc: set scalar coefficients
+    //
     void setScalars(Real _alpha, Real _beta);
-//@ManDoc: get scalar alpha coefficient
-    Real get_alpha() const
-    {
-        return alpha;
-    }
-//@ManDoc: get scalar beta coefficient
-    Real get_beta() const
-    {
-        return beta;
-    }
-//@ManDoc: return reference to "a" coefficients for base level
+    //
+    //@ManDoc: get scalar alpha coefficient
+    //
+    inline Real get_alpha() const;
+    //
+    //@ManDoc: get scalar beta coefficient
+    //
+    inline Real get_beta() const;
+    //
+    //@ManDoc: return reference to "a" coefficients for base level
+    //
     const MultiFab& aCoefficients(int level=0);
-//@ManDoc: return reference to "b" coefficients for base level
+    //
+    //@ManDoc: return reference to "b" coefficients for base level
+    //
     const MultiFab& bCoefficients(int dir, int level=0);
-//@ManDoc: copy \_a into "a" coeffs for base level
+    //
+    //@ManDoc: copy \_a into "a" coeffs for base level
+    //
     void aCoefficients(const MultiFab& _a);
-//@ManDoc: copy \_b into "b" coeffs in "dir" coordinate direction for base level
+    //
+    //@ManDoc: copy \_b into "b" coeffs in "dir" coordinate direction for base level
+    //
     void bCoefficients(const MultiFab& _b, int dir);
-
-//@ManDoc: alternative (older) version of above members
-    void setCoefficients(const MultiFab &_a,
-                         const MultiFab &_bX,
-                         const MultiFab &_bY)
-    {
-        aCoefficients(_a);
-        bCoefficients(_bX, 0);
-        bCoefficients(_bY, 1);
-    }
-//@ManDoc: collective version of above members (taking an array of MultiFabs for "b")
-    void setCoefficients(const MultiFab& _a,
-                         const MultiFab* _b)
-    {
-        aCoefficients(_a);
-        for (int n=0; n<BL_SPACEDIM; ++n) bCoefficients(_b[n], n);
-    }
-//@ManDoc: allocate/fill internal data for new level
+    //
+    //@ManDoc: alternative (older) version of above members
+    //
+    inline void setCoefficients(const MultiFab &_a,
+				const MultiFab &_bX,
+				const MultiFab &_bY);
+    //
+    //@ManDoc: collective version of above members (taking an array of MultiFabs for "b")
+    //
+    inline void setCoefficients(const MultiFab& _a,
+				const MultiFab* _b);
+    //
+    //@ManDoc: allocate/fill internal data for new level
+    //
     virtual void prepareForLevel(int level);
-//@ManDoc: remove internal data for this level and all levels above
+    //
+    //@ManDoc: remove internal data for this level and all levels above
+    //
     virtual void clearToLevel(int level);
-//@ManDoc: set flags so that a coeffs at lev and coarser require recalculation
+    //
+    //@ManDoc: set flags so that a coeffs at lev and coarser require recalculation
+    //
     void invalidate_a_to_level(int lev);
-//@ManDoc: set flags so that b coeffs at lev and coarser require recalculation
+    //
+    //@ManDoc: set flags so that b coeffs at lev and coarser require recalculation
+    //
     void invalidate_b_to_level(int lev);
+    
 protected:
-//@ManDoc: initialize a full set (a,b) of coefficients on the box array
+    //
+    //@ManDoc: initialize a full set (a,b) of coefficients on the box array
+    //
     void initCoefficients(const BoxArray &_ba);
-//@ManMemoDoc: apply the operator
-//@ManDoc: compute out=L(in) at level=level
+    //
+    //@ManDoc: compute out=L(in) at level=level
+    //
     virtual void Fapply(MultiFab &out, const MultiFab &in, int level);
-//@ManMemoDoc: smooth the residual 
-//@ManDoc: apply smoother to improve residual to L(solnL)=rhsL
+    //
+    //@ManDoc: apply smoother to improve residual to L(solnL)=rhsL
+    //
     virtual void Fsmooth(MultiFab &solnL, const MultiFab &rhsL, int level,
                          int rgbflag);
-protected:
-//@ManDoc: Array (on level) of "a" coefficients
+    //
+    //@ManDoc: Array (on level) of "a" coefficients
+    //
     Array< MultiFab* > acoefs;
-//@ManDoc: Array (on level) of Tuple (on dimension) of "b" coefficients
+    //
+    //@ManDoc: Array (on level) of Tuple (on dimension) of "b" coefficients
+    //
     Array< Tuple< MultiFab*, BL_SPACEDIM> > bcoefs;
-//@ManDoc: Scalar "alpha" coefficient
+    //
+    //@ManDoc: Scalar "alpha" coefficient
+    //
     Real alpha;
-//@ManDoc: Scalar "beta" coefficient
+    //
+    //@ManDoc: Scalar "beta" coefficient
+    //
     Real beta;
+    
 private:
-// Flag, can a coeffs be trusted at a level
+    
+    // Flag, can a coeffs be trusted at a level
     Array< bool > a_valid;
-// Flag, can b coeffs be trusted at a level
+    // Flag, can b coeffs be trusted at a level
     Array< bool > b_valid;
-// Default value for a (MultiFab) coeficient
+    // Default value for a (MultiFab) coeficient
     static Real a_def;
-// Default value for b (MultiFab) coeficient
+    // Default value for b (MultiFab) coeficient
     static Real b_def;
-// Default value for alpha (scalar) coeficient
+    // Default value for alpha (scalar) coeficient
     static Real alpha_def;
-// Default value for beta (scalar) coeficient
+    // Default value for beta (scalar) coeficient
     static Real beta_def;
-// Disallow copy constructors (for now...to be fixed)
+    // Disallow copy constructors (for now...to be fixed)
     ABecLaplacian(const ABecLaplacian&);
     ABecLaplacian& operator =(const ABecLaplacian);
 };
+
+inline Real
+ABecLaplacian::get_alpha() const
+{
+    return alpha;
+}
+
+inline Real
+ABecLaplacian::get_beta() const
+{
+    return beta;
+}
+
+inline void
+ABecLaplacian::setCoefficients(const MultiFab &_a,
+			       const MultiFab &_bX,
+			       const MultiFab &_bY)
+{
+    aCoefficients(_a);
+    bCoefficients(_bX, 0);
+    bCoefficients(_bY, 1);
+}
+
+inline void
+ABecLaplacian::setCoefficients(const MultiFab& _a,
+			       const MultiFab* _b)
+{
+    aCoefficients(_a);
+    for (int n=0; n<BL_SPACEDIM; ++n) bCoefficients(_b[n], n);
+}
 
 #endif

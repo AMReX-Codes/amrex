@@ -1,5 +1,5 @@
 //
-// $Id: ABecLaplacian.cpp,v 1.1 1998-03-24 07:05:10 almgren Exp $
+// $Id: ABecLaplacian.cpp,v 1.2 1998-04-15 21:25:55 marc Exp $
 //
 
 #include <ABecLaplacian.H>
@@ -12,18 +12,16 @@ Real ABecLaplacian::alpha_def=1.0;
 Real ABecLaplacian::beta_def=1.0;
 
 
-ABecLaplacian::ABecLaplacian(const BoxArray &_ba, const BndryData &_bd,
-                             Real _h)
-    : LinOp(_ba, _bd, _h), alpha(alpha_def), beta(beta_def)
+ABecLaplacian::ABecLaplacian(const BndryData &_bd, Real _h)
+    : LinOp(_bd, _h), alpha(alpha_def), beta(beta_def)
 {
-    initCoefficients(_ba);
+    initCoefficients(_bd.boxes());
 }
 
-ABecLaplacian::ABecLaplacian(const BoxArray &_ba, const BndryData &_bd,
-                             const Real* _h)
-    : LinOp(_ba, _bd, _h), alpha(alpha_def), beta(beta_def)
+ABecLaplacian::ABecLaplacian(const BndryData &_bd, const Real* _h)
+    : LinOp(_bd, _h), alpha(alpha_def), beta(beta_def)
 {
-    initCoefficients(_ba);
+    initCoefficients(_bd.boxes());
 }
 
 ABecLaplacian::~ABecLaplacian()
@@ -44,9 +42,11 @@ ABecLaplacian::clearToLevel(int level)
     assert(level>=-1);
     for (int i=level+1; i<numLevels(); ++i) {
         delete acoefs[i];
+        a_valid[i] = false;
         for(int j=0; j<BL_SPACEDIM; ++j) {
             delete bcoefs[i][j];
         }
+        b_valid[i] = false;
     }
 }
 
@@ -57,12 +57,12 @@ ABecLaplacian::prepareForLevel(int level)
     if (level == 0 ) return;
     prepareForLevel(level-1);
 
-      // If coefficients were marked invalid, or if not yet made, make new ones
-      // (Note: makeCoefficients is a LinOp routine, and it allocates AND
-      // fills coefficients.  A more efficient implementation would allocate
-      // and fill in separate steps--we could then use the a_valid bool
-      // along with the length of a_valid to separately determine whether to
-      // fill or allocate the coefficient MultiFabs
+    // If coefficients were marked invalid, or if not yet made, make new ones
+    // (Note: makeCoefficients is a LinOp routine, and it allocates AND
+    // fills coefficients.  A more efficient implementation would allocate
+    // and fill in separate steps--we could then use the a_valid bool
+    // along with the length of a_valid to separately determine whether to
+    // fill or allocate the coefficient MultiFabs
     if (level >= a_valid.length() || a_valid[level] == false )  {
         if (acoefs.length() < level+1) {
             acoefs.resize(level+1);
@@ -138,10 +138,6 @@ ABecLaplacian::aCoefficients(const MultiFab &_a)
     assert( _a.ok() );
     assert( _a.boxArray() == (acoefs[0])->boxArray() );
     invalidate_a_to_level(0);
-    //int ngrd = _a.length();
-    //for (int k = 0; k < ngrd; k++) {
-      //(*acoefs[0])[k].copy(_a[k],0,0,1);
-    //}
     (*acoefs[0]).copy(_a,0,0,1);
     return;
 }
@@ -152,10 +148,6 @@ ABecLaplacian::bCoefficients(const MultiFab &_b, int dir)
     assert( _b.ok() );
     assert( _b.boxArray() == (bcoefs[0][dir])->boxArray() );
     invalidate_b_to_level(0);
-    //int ngrd = _b.length();
-    //for (int k = 0; k < ngrd; k++) {
-      //(*bcoefs[0][dir])[k].copy(_b[k],0,0,1);
-    //}
     (*bcoefs[0][dir]).copy(_b,0,0,1);
     return;
 }
@@ -179,7 +171,7 @@ void
 ABecLaplacian::Fsmooth(MultiFab &solnL, const MultiFab &rhsL,
                        int level, int redBlackFlag)
 {
-    const BoxArray &bxa = *gbox[level];
+    const BoxArray &bxa = gbox[level];
     OrientationIter oitr;
     const FabSet &f0 = (*undrrelxr[level])[oitr()]; oitr++;
     const FabSet &f1 = (*undrrelxr[level])[oitr()]; oitr++;
@@ -196,8 +188,7 @@ ABecLaplacian::Fsmooth(MultiFab &solnL, const MultiFab &rhsL,
     const MultiFab  &bZ = bCoefficients(2,level);
 #endif    
     int nc = solnL.nComp();
-    //for(int gn = 0; gn < solnL.length(); ++gn) {
-    for(MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi) {
+    for(MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(false); ++solnLmfi) {
       DependentMultiFabIterator rhsLmfi(solnLmfi, rhsL);
       DependentMultiFabIterator amfi(solnLmfi,  a);
       DependentMultiFabIterator bXmfi(solnLmfi, bX);
@@ -307,7 +298,7 @@ ABecLaplacian::Fsmooth(MultiFab &solnL, const MultiFab &rhsL,
 void
 ABecLaplacian::Fapply(MultiFab& y, const MultiFab &x, int level)
 {
-    const BoxArray &bxa = *gbox[level];
+    const BoxArray &bxa = gbox[level];
     const MultiFab  &a = aCoefficients(level);
     const MultiFab  &bX = bCoefficients(0,level);
     const MultiFab  &bY = bCoefficients(1,level);
@@ -315,8 +306,7 @@ ABecLaplacian::Fapply(MultiFab& y, const MultiFab &x, int level)
     const MultiFab  &bZ = bCoefficients(2,level);
 #endif
     int nc = y.nComp();
-    //for(int gn = 0; gn < y.length(); ++gn) {
-    for(MultiFabIterator ymfi(y); ymfi.isValid(); ++ymfi) {
+    for(MultiFabIterator ymfi(y); ymfi.isValid(false); ++ymfi) {
       DependentMultiFabIterator xmfi(ymfi,  x);
       DependentMultiFabIterator amfi(ymfi,  a);
       DependentMultiFabIterator bXmfi(ymfi, bX);
