@@ -51,8 +51,7 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void
-driver(const char *filename)
+void driver(const char *filename)
 {
     Array<BoxArray> m;
     Array<IntVect> ratio;
