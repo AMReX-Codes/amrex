@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.18 2002-11-04 18:39:50 almgren Exp $
+c $Id: INTERP_3D.F,v 1.19 2002-11-05 05:34:21 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -735,7 +735,7 @@ c               Limit slopes so as to not introduce new maxs or mins.
                        end do
                        end do
                    end do
-                end do
+c                end do
 
 c :::           ::::: Now interpolate to fine grid for real.
                 jj = lratioy*jc
