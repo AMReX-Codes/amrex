@@ -4,7 +4,7 @@
 #define BL_BOXARRAY_H
 
 //
-// $Id: BoxArray.H,v 1.8 1998-05-04 21:24:54 lijewski Exp $
+// $Id: BoxArray.H,v 1.9 1998-06-15 23:53:44 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -333,6 +333,20 @@ bool
 BoxArray::ready () const
 {
     return m_ref->m_abox.ready();
+}
+
+inline
+bool
+BoxArray::operator== (const BoxArray& rhs) const
+{
+    return m_ref == rhs.m_ref || *m_ref == *rhs.m_ref;
+}
+
+inline
+bool
+BoxArray::Ref::operator== (const BoxArray::Ref& rhs) const
+{
+    return m_hash_sig == rhs.m_hash_sig && m_abox == rhs.m_abox;
 }
 
 inline
