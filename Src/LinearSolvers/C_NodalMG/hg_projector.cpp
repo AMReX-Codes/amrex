@@ -82,37 +82,37 @@ typedef void (*FECFUNC)(Real*, intS, const Real*, intS, const Real*, intS, intS,
 typedef void (*FECFUNC)(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*);
 #endif
 
-
 class task_fecavg : public task_fec_base
 {
 public:
     task_fecavg(FECFUNC f_, task_list& tl_, MultiFab& s_, const MultiFab& S_, int igrid_, task_fab* tf_, const Box& creg_, const IntVect& rat_, int idim_, int idir_)
-	: task_fec_base(tl_, s_, igrid_), f(f_), S(S_), creg(creg_), rat(rat_), idim(idim_), idir(idir_)
+	:
+        task_fec_base(tl_, s_, igrid_), f(f_), S(S_), creg(creg_), rat(rat_), idim(idim_), idir(idir_)
     {
-	push_back(tf_);
+        push_back(tf_);
     }
-    virtual bool ready()
+    virtual bool ready ()
     {
-	if ( is_local_target() )
+	if (is_local_target())
 	{
-	    const int igrid = grid_number();
-	    FArrayBox& sfab = target_fab();
-	    const Box& sfab_box = sfab.box();
-	    const FArrayBox& cfab = task_fab_result(0);
-	    const Box& cfab_box = cfab.box();
-	    const FArrayBox& Sfab = S[igrid];
-	    const Box& Sfab_box = Sfab.box();
+	    const int        igrid    = grid_number();
+	    FArrayBox&       sfab     = target_fab();
+	    const Box&       sfab_box = sfab.box();
+	    const FArrayBox& cfab     = task_fab_result(0);
+	    const Box&       cfab_box = cfab.box();
+	    const FArrayBox& Sfab     = S[igrid];
+	    const Box&       Sfab_box = Sfab.box();
 	    (*f)(sfab.dataPtr(), DIMLIST(sfab_box), cfab.dataPtr(), DIMLIST(cfab_box), Sfab.dataPtr(), DIMLIST(Sfab_box), DIMLIST(creg), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir);
 	}
 	return true;
     }
 private:
-    FECFUNC f;
+    FECFUNC         f;
     const MultiFab& S;
-    const Box creg;
-    const IntVect rat;
-    const int idim;
-    const int idir;
+    const Box       creg;
+    const IntVect   rat;
+    const int       idim;
+    const int       idir;
 };
 
 
@@ -120,31 +120,32 @@ class task_fecavg_2 : public task_fec_base
 {
 public:
     task_fecavg_2(FECFUNC f_, task_list& tl_, MultiFab& s_, int igrid_, task_fab* Sfp_, task_fab* Scp_, const Box& creg_, const IntVect& rat_, const Array<int>& ga_, const IntVect& t_ = IntVect())
-	: task_fec_base(tl_, s_, igrid_), f(f_), creg(creg_), rat(rat_), t(t_), ga(ga_) 
+	:
+        task_fec_base(tl_, s_, igrid_), f(f_), creg(creg_), rat(rat_), t(t_), ga(ga_) 
     {
-	push_back(Sfp_);
-	push_back(Scp_);
+        push_back(Sfp_);
+        push_back(Scp_);
     }
-    virtual bool ready()
+    virtual bool ready ()
     {
-	if ( is_local_target() )
+	if (is_local_target())
 	{
-	    const int igrid = grid_number();
-	    FArrayBox& sfab = target_fab();
-	    const Box& sfab_box = sfab.box();
-	    const FArrayBox& Sf_fab = task_fab_result(0);
-	    const Box& Sf_fab_box =  Sf_fab.box();
-	    const FArrayBox& Sc_fab = task_fab_result(1);
-	    const Box& Sc_fab_box = Sc_fab.box();
+	    const int        igrid      = grid_number();
+	    FArrayBox&       sfab       = target_fab();
+	    const Box&       sfab_box   = sfab.box();
+	    const FArrayBox& Sf_fab     = task_fab_result(0);
+	    const Box&       Sf_fab_box =  Sf_fab.box();
+	    const FArrayBox& Sc_fab     = task_fab_result(1);
+	    const Box&       Sc_fab_box = Sc_fab.box();
 	    (*f)(sfab.dataPtr(), DIMLIST(sfab_box), Sf_fab.dataPtr(), DIMLIST(Sf_fab_box), Sc_fab.dataPtr(), DIMLIST(Sc_fab_box), DIMLIST(creg), D_DECL( rat[0], rat[1], rat[2]), t.getVect(), ga.dataPtr());
 	}
 	return true;
     }
 private:
-    FECFUNC f;
-    const Box creg;
-    const IntVect rat;
-    const IntVect t;
+    FECFUNC          f;
+    const Box        creg;
+    const IntVect    rat;
+    const IntVect    t;
     const Array<int> ga;
 };
 
@@ -153,26 +154,27 @@ class task_fecdiv : public task_fec_base
     typedef void (*FECDIV)(Real*,  intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
 public:
     task_fecdiv(FECDIV f_, task_list& tl_, MultiFab& s_, MultiFab* upt_[], int igrid_, task_fab* ucp_[], const Box& creg_, const Real* h_, const IntVect& rat_, int idim_, int idir_)
-	: task_fec_base(tl_, s_, igrid_), f(f_), creg(creg_), rat(rat_), idim(idim_), idir(idir_)
+	:
+        task_fec_base(tl_, s_, igrid_), f(f_), creg(creg_), rat(rat_), idim(idim_), idir(idir_)
     {
-	for(int i = 0; i  < BL_SPACEDIM; ++i)
-	{
-	    upt[i] = upt_[i];
-	    push_back(ucp_[i]);
-	    h[i] = h_[i];
-	}
+        for (int i = 0; i  < BL_SPACEDIM; ++i)
+        {
+            upt[i] = upt_[i];
+            push_back(ucp_[i]);
+            h[i] = h_[i];
+        }
     }
-    virtual bool ready()
+    virtual bool ready ()
     {
-	if ( is_local_target() )
+	if (is_local_target())
 	{
-	    const int igrid = grid_number();
-	    FArrayBox& s = target_fab();
-	    const Box& s_box = target_fab().box();
+	    const int   igrid           = grid_number();
+	    FArrayBox&  s               = target_fab();
+	    const Box&  s_box           = target_fab().box();
 	    const Real* up[BL_SPACEDIM] = { D_DECL( upt[0]->operator[](igrid).dataPtr(), upt[1]->operator[](igrid).dataPtr(), upt[2]->operator[](igrid).dataPtr() ) };
-	    const Box& up_box = upt[0]->operator[](igrid).box();
+	    const Box&  up_box          = upt[0]->operator[](igrid).box();
 	    const Real* uc[BL_SPACEDIM] = { D_DECL( task_fab_result(0).dataPtr(), task_fab_result(1).dataPtr(), task_fab_result(2).dataPtr() ) };
-	    const Box& uc_box = task_fab_result(0).box();
+	    const Box&  uc_box          = task_fab_result(0).box();
 	    (*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(up[0], up[1], up[2]), DIMLIST(up_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir);
 	}
 	return true;
@@ -182,13 +184,13 @@ public:
 	HG_DEBUG_OUT("destroying a task_fecdiv " << this << endl);
     }
 private:
-    FECDIV f;
-    MultiFab* upt[BL_SPACEDIM];
-    const Box creg;
-    Real h[BL_SPACEDIM];
+    FECDIV        f;
+    MultiFab*     upt[BL_SPACEDIM];
+    const Box     creg;
+    Real          h[BL_SPACEDIM];
     const IntVect rat;
-    const int idim;
-    const int idir;
+    const int     idim;
+    const int     idir;
 };
 
 class task_fecdiv_2 : public task_fec_base
@@ -196,40 +198,41 @@ class task_fecdiv_2 : public task_fec_base
     typedef void (*FECDIV)(Real*,  intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
 public:
     task_fecdiv_2(FECDIV f_, task_list& tl_, MultiFab& s_, int igrid_, task_fab* ufp_[], task_fab* ucp_[], const Box& creg_, const Real* h_, const IntVect& rat_, const Array<int>& ga_, const IntVect& t_ = IntVect())
-	: task_fec_base(tl_, s_, igrid_), f(f_), creg(creg_), rat(rat_), ga(ga_), t(t_)
+	:
+        task_fec_base(tl_, s_, igrid_), f(f_), creg(creg_), rat(rat_), ga(ga_), t(t_)
     {
-	for(int i = 0; i  < BL_SPACEDIM; ++i)
-	{
-	    push_back(ucp_[i]);
-	}
-	for(int i = 0; i < BL_SPACEDIM; ++i)
-	{
-	    push_back(ufp_[i]);
-	    h[i]   = h_[i];
-	}
+        for (int i = 0; i  < BL_SPACEDIM; ++i)
+        {
+            push_back(ucp_[i]);
+        }
+        for (int i = 0; i < BL_SPACEDIM; ++i)
+        {
+            push_back(ufp_[i]);
+            h[i]   = h_[i];
+        }
     }
-    virtual bool ready()
+    virtual bool ready ()
     {
-	if ( is_local_target() )
+	if (is_local_target())
 	{
-	    const int igrid = grid_number();
-	    FArrayBox& s = target_fab();
-	    const Box& s_box = target_fab().box();
+	    const int   igrid           = grid_number();
+	    FArrayBox&  s               = target_fab();
+	    const Box&  s_box           = target_fab().box();
 	    const Real* uf[BL_SPACEDIM] = { D_DECL( task_fab_result(3).dataPtr(), task_fab_result(4).dataPtr(), task_fab_result(5).dataPtr() ) };
-	    const Box& uf_box = task_fab_result(3).box();
+	    const Box&  uf_box          = task_fab_result(3).box();
 	    const Real* uc[BL_SPACEDIM] = { D_DECL( task_fab_result(0).dataPtr(), task_fab_result(1).dataPtr(), task_fab_result(2).dataPtr() ) };
-	    const Box& uc_box = task_fab_result(0).box();
+	    const Box&  uc_box          = task_fab_result(0).box();
 	    (*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(uf[0], uf[1], uf[2]), DIMLIST(uf_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), t.getVect());
 	}
 	return true;
     }
 private:
-    FECDIV f;
-    const Box creg;
-    Real h[BL_SPACEDIM];
-    const IntVect rat;
+    FECDIV           f;
+    const Box        creg;
+    Real             h[BL_SPACEDIM];
+    const IntVect    rat;
     const Array<int> ga;
-    const IntVect t;
+    const IntVect    t;
 };
 
 PArray<MultiFab> null_amr_real;
@@ -666,9 +669,9 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	    const int jgrid = lev_interface[mglev].grid(1, iedge, i);
 	    if (jgrid >= 0 && jgrid != igrid)
 	    {
-		tl.add_task(
-		    new task_copy(tl, source[lev], jgrid, source[lev], igrid, freg)
-		    )->depend_on(tp);
+                task::task_proxy tptmp = tl.add_task(new task_copy(tl,source[lev],jgrid,source[lev],igrid,freg));
+                if (!tptmp.null())
+		    tptmp->depend_on(tp);
 	    }
 	}
     }
@@ -713,9 +716,9 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	    const int jgrid = lev_interface[mglev].grid(0, icor, i);
 	    if (jgrid >= 0 && jgrid != igrid)
 	    {
-		tl.add_task(
-		    new task_copy(tl, source[lev], jgrid, source[lev], igrid, freg)
-		    )->depend_on(tp);
+                task::task_proxy tptmp = tl.add_task(new task_copy(tl,source[lev],jgrid,source[lev],igrid,freg));
+                if (!tptmp.null())
+		    tptmp->depend_on(tp);
 	    }
 	}
     }
@@ -752,7 +755,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	cbox.convert(IntVect::TheCellVector()).coarsen(rat);
 	task_fab* ucp[BL_SPACEDIM];
 	MultiFab* upt[BL_SPACEDIM];
-	for(int i = 0; i < BL_SPACEDIM; ++i)
+	for (int i = 0; i < BL_SPACEDIM; ++i)
 	{
 	    ucp[i] = new task_fill_patch(tl, source[lev], igrid, cbox, u[i][lev-1], lev_interface[mgc], boundary.velocity(i), -1, -1);
 	    upt[i] = &u[i][lev];
@@ -803,7 +806,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	fbox.refine(rat);
 	task_fab* ucp[BL_SPACEDIM];
 	task_fab* ufp[BL_SPACEDIM];
-	for(int i = 0; i < BL_SPACEDIM; ++i)
+	for (int i = 0; i < BL_SPACEDIM; ++i)
 	{
 	    ucp[i] = new task_fill_patch(tl, source[lev], igrid, cbox, u[i][lev-1], lev_interface[mgc],   boundary.velocity(i), -1, -1);
 	    ufp[i] = new task_fill_patch(tl, source[lev], igrid, fbox, u[i][lev],   lev_interface[mglev], boundary.velocity(i), 1, iedge);
@@ -827,7 +830,9 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    const int jgrid = lev_interface[mglev].grid(1, iedge, i);
 	    if (jgrid >= 0 && jgrid != igrid)
 	    {
-		tl.add_task( new task_copy(tl, source[lev], jgrid, source[lev], igrid, freg))->depend_on(tp);
+                task::task_proxy tptmp = tl.add_task(new task_copy(tl,source[lev],jgrid,source[lev],igrid,freg));
+                if (!tptmp.null())
+                    tptmp->depend_on(tp);
 	    }
 	}
     }
@@ -855,7 +860,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	fbox.refine(rat);
 	task_fab* ucp[BL_SPACEDIM];
 	task_fab* ufp[BL_SPACEDIM];
-	for(int i = 0; i < BL_SPACEDIM; ++i)
+	for (int i = 0; i < BL_SPACEDIM; ++i)
 	{
 	    ucp[i] = new task_fill_patch(tl, source[lev], igrid, cbox, u[i][lev-1], lev_interface[mgc],   boundary.velocity(i), -1, -1);
 	    ufp[i] = new task_fill_patch(tl, source[lev], igrid, fbox, u[i][lev],   lev_interface[mglev], boundary.velocity(i), 0, icor);
@@ -879,9 +884,9 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    const int jgrid = lev_interface[mglev].grid(0, icor, i);
 	    if (jgrid >= 0 && jgrid != igrid)
 	    {
-		tl.add_task(
-		    new task_copy(tl, source[lev], jgrid, source[lev], igrid, freg)
-		    )->depend_on(tp);
+                task::task_proxy tptmp = tl.add_task(new task_copy(tl,source[lev],jgrid,source[lev],igrid,freg));
+                if (!tptmp.null())
+		    tptmp->depend_on(tp);
 	    }
 	}
     }
@@ -925,7 +930,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    fbox.convert(IntVect::TheCellVector());
 	    task_fab* ucp[BL_SPACEDIM];
 	    task_fab* ufp[BL_SPACEDIM];
-	    for(int i = 0; i < BL_SPACEDIM; ++i)
+	    for (int i = 0; i < BL_SPACEDIM; ++i)
 	    {
 		ucp[i] = new task_fill_patch(cbox, u[i][lev-1], lev_interface[mgc],   boundary.velocity(i), -1, -1);
 		ufp[i] = new task_fill_patch(fbox, u[i][lev],   lev_interface[mglev], boundary.velocity(i), 0, icor);
@@ -956,7 +961,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    const Box& fbox = u[0][lev][igrid].box();
 	    task_fab* ucp[BL_SPACEDIM];
 	    MultiFab* upt[BL_SPACEDIM;
-	    for(int i = 0; i < BL_SPACEDIM; ++i)
+	    for (int i = 0; i < BL_SPACEDIM; ++i)
 	    {
 		ucp[i] = new task_fill_patch(cbox, u[i][lev-1], lev_interface[mgc], boundary.velocity(i), -1, -1);
 		upt[i] = &u[i][lev];
@@ -975,7 +980,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    fbox.grow(rat).convert(IntVect::TheCellVector());
 	    task_fab* ucp[BL_SPACEDIM];
 	    task_fab* ufp[BL_SPACEDIM];
-	    for(int i = 0; i < BL_SPACEDIM; ++i)
+	    for (int i = 0; i < BL_SPACEDIM; ++i)
 	    {
 	        ucp[i] = new task_fill_patch(cbox, u[i][lev-1], lev_interface[mgc],   boundary.velocity(i), -1, -1);
 		ufp[i] = new task_fill_patch(fbox, u[i][lev],   lev_interface[mglev], boundary.velocity(i), 0, icor);
@@ -1013,7 +1018,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    else
 		fbox.growLo(1, rat[1]-1);
 	    task_fab*  ufp[BL_SPACEDIM];
-	    for(int i = 0; i < BL_SPACEDIM; ++i)
+	    for (int i = 0; i < BL_SPACEDIM; ++i)
 	    {
 		ufp[i] = new task_fill_patch(fbox, u[i][lev], lev_interface[mglev], boundary.velocity(i), 0, icor);
 	    }
@@ -1040,7 +1045,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 		cbox.growHi(1, -1);
 	    }
 	    task_fab* ucp[BL_SPACEDIM];
-	    for(int i = 0; i < BL_SPACEDIM; ++i)
+	    for (int i = 0; i < BL_SPACEDIM; ++i)
 	    {
 	        ucp[i] = new task_fill_patch(cbox, u[i][lev-1], lev_interface[mgc], boundary.velocity(i), -1, -1);
 	    }
