@@ -1,7 +1,7 @@
 #ifndef BL_PARMPARSE_H
 #define BL_PARMPARSE_H
 //
-// $Id: ParmParse.H,v 1.27 2001-08-11 21:19:04 car Exp $
+// $Id: ParmParse.H,v 1.28 2001-08-13 01:54:26 car Exp $
 //
 #include <stack>
 #include <string>
@@ -839,6 +839,7 @@ class ParmParse::Record
 {
 public:
     const ParmParse* operator->() const;
+    const ParmParse& operator* () const;
 private:
     friend class ParmParse;
     explicit Record (const ParmParse& pp);

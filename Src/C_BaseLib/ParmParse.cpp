@@ -1,8 +1,9 @@
 //
-// $Id: ParmParse.cpp,v 1.38 2001-08-11 21:19:04 car Exp $
+// $Id: ParmParse.cpp,v 1.39 2001-08-13 01:54:26 car Exp $
 //
 #include <winstd.H>
 
+#include <typeinfo>
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
@@ -159,9 +160,10 @@ ParmParse::Table g_table;
 typedef std::list<ParmParse::PP_entry>::iterator list_iterator;
 typedef std::list<ParmParse::PP_entry>::const_iterator const_list_iterator;
 
-template <class T> const char* tok_name(const T&);
+template <class T> const char* tok_name(const T&) { return typeid(T).name(); }
 template <class T> const char* tok_name(std::vector<T>&) { return tok_name(T());}
 
+#if 0
 template <> const char* tok_name(const bool&)        { return "bool";        }
 template <> const char* tok_name(const int&)         { return "int";         }
 template <> const char* tok_name(const float&)       { return "float";       }
@@ -169,6 +171,7 @@ template <> const char* tok_name(const double&)      { return "double";      }
 template <> const char* tok_name(const std::string&) { return "std::string"; }
 template <> const char* tok_name(const Box&)         { return "Box";         }
 template <> const char* tok_name(const IntVect&)     { return "IntVect";     }
+#endif
 
 //
 // Simple lexical analyser.
@@ -282,7 +285,7 @@ getToken (const char*& str,
 	       str++;
 	       return pCloseBracket;
 	   }
-           else if ( isalpha(ch) || ch == '_' )
+           else if ( isalpha(ch) )
            {
                ostr[k++] = ch; str++;
                state = IDENTIFIER;
@@ -294,7 +297,7 @@ getToken (const char*& str,
            }
            break;
        case IDENTIFIER:
-           if ( isalnum(ch) || ch == '_' || ch == '.' )
+           if ( isalnum(ch) || ch == '_' || ch == '.' || ch == '[' || ch == ']' )
            {
                ostr[k++] = ch; str++;
            }
@@ -966,7 +969,7 @@ ParmParse::Frame::getPrefix () const
 namespace
 {
 void
-finalize_table (const ParmParse::Table& table)
+finalize_table (std::string pfx, const ParmParse::Table& table)
 {
     for ( const_list_iterator li = table.begin(); li != table.end(); ++li )
     {
@@ -978,12 +981,12 @@ finalize_table (const ParmParse::Table& table)
 	    }
 	    else
 	    {
-		finalize_table(*li->m_table);
+		finalize_table(pfx + "::" + li->m_name, *li->m_table);
 	    }
 	}
 	else if ( !li->m_queried )
 	{
-	    std::cout << *li << std::endl;
+	    std::cout << pfx << "::" << *li << std::endl;
 	}
     }
 }
@@ -996,7 +999,7 @@ ParmParse::Finalize ()
     if ( ParallelDescriptor::IOProcessor() )
     {
 	std::cout << "Unused ParmParse Variables:\n";
-	finalize_table(g_table);
+	finalize_table("[TOP]", g_table);
 	std::cout << "done.\n";
 	//
 	// First loop through and delete all queried entries.
@@ -1575,13 +1578,19 @@ ParmParse::getRecord (const std::string& name, int n) const
 //
 //
 
-ParmParse::Record::Record( const ParmParse& pp )
+ParmParse::Record::Record ( const ParmParse& pp )
     : m_pp(pp)
 {
 }
 
 const ParmParse*
-ParmParse::Record::operator->() const
+ParmParse::Record::operator-> () const
 {
     return &m_pp;
+}
+
+const ParmParse&
+ParmParse::Record::operator* () const
+{
+    return m_pp;
 }
