@@ -1,6 +1,7 @@
 #include "hg_projector.H"
 
 #include <Utility.H>
+#include <ParmParse.H>
 
 #ifdef BL_USE_NEW_HFILES
 #include <iostream>
@@ -39,6 +40,9 @@ int main(int argc, char **argv)
     set_new_handler(Utility::OutOfMemory);
 #endif
     ParallelDescriptor::StartParallel(&argc, &argv);
+    if ( argc < 2 ) BoxLib::Error("loose");
+    ParmParse pp(argc-2,argv+2, 0, argv[1]);
+
     HG_is_debugging = true;   
     HG_is_debugging = false;   
 #ifdef HG_DEBUG
@@ -59,12 +63,18 @@ int main(int argc, char **argv)
 #endif
     cout << setprecision(15);
 
-    for (int i = 1; i < argc; ++i)
-	driver(argv[i]);
+    int num = pp.countname("file");
+    for ( int k = 0; k < num; k++)
+    {
+	aString filename;
+	pp.getkth("file", k, filename, 0);
+	driver(filename.c_str());
+    }
 
 #ifdef HG_DEBUG
     debug_out.close();
 #endif
+    RunStats::report(cout);
     HG::MPI_finish();
     ParallelDescriptor::EndParallel();
     return 0;
