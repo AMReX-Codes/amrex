@@ -1,9 +1,20 @@
 //BL_COPYRIGHT_NOTICE
 
+#ifdef BL_USE_NEW_HFILES
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+using std::ofstream;
+using std::ios;
+using std::setw;
+using std::clog;
+using std::endl;
+#else
 #include <iostream.h>
 #include <iomanip.h>
 #include <fstream.h>
 #include <stdlib.h>
+#endif
 
 #include <CArena.H>
 
@@ -211,7 +222,7 @@ CArena::morecore (size_t nu)
     base.s.blprev->s.blnext = up;
     base.s.blprev = up;
     CArena::free((void*)(up+1));
-    if (verbose)
+    if (m_verbose)
     {
 	clog << "CArena::morecore: new = "
              << bytes_alloc

@@ -132,6 +132,10 @@ SOURCE=.\BoxList.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\CArena.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\DistributionMapping.cpp
 # ADD CPP /I "..\pBoxLib_2"
 # SUBTRACT CPP /I "."
@@ -287,6 +291,10 @@ SOURCE=.\BoxLib.H
 # Begin Source File
 
 SOURCE=.\BoxList.H
+# End Source File
+# Begin Source File
+
+SOURCE=.\CArena.H
 # End Source File
 # Begin Source File
 

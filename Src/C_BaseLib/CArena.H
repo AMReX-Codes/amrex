@@ -3,9 +3,15 @@
 #ifndef BL_CARENA
 #define BL_CARENA
 
+#ifdef BL_USE_NEW_HFILES
+#include <cstddef>
+#include <iostream>
+using std::ostream;
+#else
 #include <stddef.h>
-
 class ostream;
+#endif
+
 
 #include <Boolean.H>
 #include <Arena.H>
