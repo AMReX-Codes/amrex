@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 #include "amr_defs.H"
-#include "hgparallel.h"
+#include "hgparallel.H"
 
 #include <ParmParse.H>
 
