@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.68 1999-01-06 21:27:58 lijewski Exp $
+// $Id: Amr.cpp,v 1.69 1999-01-12 17:56:46 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -1141,7 +1141,7 @@ Amr::defBaseLevel (Real strt_time)
     {
         if (d_len[idir]%2 != 0)
         {
-            BoxLib::Error("defBaseLevel: domain not have even number of cells");
+            BoxLib::Error("defBaseLevel: must have even number of cells");
         }
     }
     //
@@ -1149,7 +1149,7 @@ Amr::defBaseLevel (Real strt_time)
     // each resulting grid will have an even number of
     // cells in each direction.
     //
-    BoxArray  lev0(1);
+    BoxArray lev0(1);
     lev0.set(0, ::coarsen(domain,2));
     //
     // Now split up into list of grids within max_grid_size limit.
@@ -1176,7 +1176,9 @@ Amr::regrid (int  lbase,
              Real time,
              bool initial)
 {
-    int new_finest;
+    static RunStats stats("regrid");
+
+    stats.start();
 
     if (verbose && ParallelDescriptor::IOProcessor())
     {
@@ -1184,7 +1186,7 @@ Amr::regrid (int  lbase,
     }
     if (record_run_info && ParallelDescriptor::IOProcessor())
     {
-        runlog << "REGRID: at level lbase = " << lbase << '\n';
+        runlog << "REGRID: at level lbase = " << lbase << endl;
     }
     //
     // Remove old-time grid space at highest level.
@@ -1195,20 +1197,20 @@ Amr::regrid (int  lbase,
     // Compute positions of new grids.
     //
     Array<BoxArray> new_grid_places(max_level+1);
-    assert(new_grid_places.ready());
+
+    int new_finest;
 
     if (lbase <= Min(finest_level,max_level-1))
       grid_places(lbase,time,new_finest, new_grid_places);
     //
     // Reclaim old-time grid space for all remain levels > lbase.
     //
-    int lev;
-    for (lev = lbase+1; lev <= finest_level; lev++)
+    for (int lev = lbase+1; lev <= finest_level; lev++)
         amr_level[lev].removeOldData();
     //
     // Reclaim all remaining storage for levels > new_finest.
     //
-    for (lev = new_finest+1; lev <= finest_level; lev++)
+    for (int lev = new_finest+1; lev <= finest_level; lev++)
         amr_level.clear(lev);
 
     finest_level = new_finest;
@@ -1216,7 +1218,7 @@ Amr::regrid (int  lbase,
     if (lbase == 0)
     {
         //
-        // Flush grid -> processor map cache, but only when at coarsest level.
+        // Flush grid -> processor map cache when at coarsest level.
         // Likewise with PIRM cache and SI cache.
         //
         DistributionMapping::FlushCache();
@@ -1226,36 +1228,28 @@ Amr::regrid (int  lbase,
     //
     // Define the new grids from level lbase+1 up to new_finest.
     //
-    for (lev = lbase+1; lev <= new_finest; lev++)
+    for (int lev = lbase+1; lev <= new_finest; lev++)
     {
         //
         // Construct skeleton of new level.
         //
-        AmrLevel* a = (*levelbld)(*this,lev,geom[lev],
-                                  new_grid_places[lev],cumtime);
+        AmrLevel* a = (*levelbld)(*this,lev,geom[lev],new_grid_places[lev],cumtime);
+
         assert(!(a == 0));
 
         if (initial)
-        {
             //
             // We're being called on startup from bldFineLevels().
             //
             a->initData();
-        }
         else if (amr_level.defined(lev))
-        {
             //
             // Init with data from old structure then remove old structure.
             //
             a->init(amr_level[lev]);
-        }
         else
-        {
             a->init();
-        }
-        //
-        // Install new structure.
-        //
+
         amr_level.clear(lev);
 
         amr_level.set(lev,a);
@@ -1263,10 +1257,8 @@ Amr::regrid (int  lbase,
     //
     // Build any additional data structures after grid generation.
     //
-    for (lev = 0; lev <= new_finest; lev++)
-    {
+    for (int lev = 0; lev <= new_finest; lev++)
         amr_level[lev].post_regrid(lbase,new_finest);
-    }
 
     station.findGrid(amr_level,geom);
     //
@@ -1276,10 +1268,10 @@ Amr::regrid (int  lbase,
     {
         for (int lev = lbase+1; lev <= finest_level; lev++)
         {
-            int numgrids = amr_level[lev].numGrids();
-            long ncells  = amr_level[lev].countCells();
-            long ntot    = geom[lev].Domain().numPts();
-            Real frac    = 100.0*(Real(ncells) / Real(ntot));
+            int  numgrids = amr_level[lev].numGrids();
+            long ncells   = amr_level[lev].countCells();
+            long ntot     = geom[lev].Domain().numPts();
+            Real frac     = 100.0*(Real(ncells) / Real(ntot));
 
             if (verbose)
             {
@@ -1305,25 +1297,25 @@ Amr::regrid (int  lbase,
                        << " cells  = "
                        << frac
                        << " % of domain"
-                       << '\n';
+                       << endl;
             }
         }
     }
     if (record_grid_info && ParallelDescriptor::IOProcessor())
     {
         if (lbase == 0)
-        {
             gridlog << "STEP = " << level_steps[0] << ' ';
-        }
 
         gridlog << "TIME = "
                 << time
                 << " : REGRID  with lbase = "
                 << lbase
-                << '\n';
+                << endl;
 
         printGridInfo(gridlog,lbase+1,finest_level);
     }
+
+    stats.end();
 }
 
 void
