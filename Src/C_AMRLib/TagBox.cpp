@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.1 1997-11-18 19:30:30 lijewski Exp $
+// $Id: TagBox.cpp,v 1.2 1997-11-20 00:49:43 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -471,39 +471,44 @@ TagBoxArray::mergeUnique()
      }
      ++listIndex;
    }
+   //
+   // Now send the clear list elements to the processor they belong to.
+   //
+   ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
 
-// now send the clear list elements to the processor they belong to
-   int tagSize = sizeof(FabComTag);
-   ParallelDescriptor::SetMessageHeaderSize(tagSize);
+   ListIterator<FabComTag> tbmdsendli(tbmdClearList);
 
-   for(ListIterator<FabComTag> tbmdsendli(tbmdClearList);
-       tbmdsendli;
-       ++tbmdsendli)
+   for ( ; tbmdsendli; ++tbmdsendli)
    {
      ParallelDescriptor::SendData(distributionMap[tbmdsendli().fabIndex],
-                                  &tbmdsendli(), NULL, 0);
+                                  &tbmdsendli(),
+                                  0,
+                                  0);
    }
 
-   ParallelDescriptor::Synchronize();  // to guarantee messages are sent
-
-   // now clear the overlaps in the TagBoxArray
+   ParallelDescriptor::Synchronize();  // To guarantee messages are sent.
+   //
+   // Now clear the overlaps in the TagBoxArray.
+   //
    int dataWaitingSize;
-   int *nullptr = NULL;
    FabComTag tbmdClear;
-   while(ParallelDescriptor::GetMessageHeader(dataWaitingSize, &tbmdClear))
-   {  // data was sent to this processor
-     bool srcLocal = (distributionMap[tbmdClear.fabIndex] == myproc);
+   while (ParallelDescriptor::GetMessageHeader(dataWaitingSize, &tbmdClear))
+   {
+       //
+       // Data was sent to this processor.
+       //
+       bool srcLocal = (distributionMap[tbmdClear.fabIndex] == myproc);
 
-     if (!srcLocal)
-       BoxLib::Error("tbmdClear.fabIndex is not local");
+       if (!srcLocal)
+           BoxLib::Error("tbmdClear.fabIndex is not local");
 
-     TAGBOX &src = fabparray[tbmdClear.fabIndex];
-     src.setVal(TAGBOX::CLEAR, tbmdClear.ovlpBox, 0);
+       TAGBOX &src = fabparray[tbmdClear.fabIndex];
+       src.setVal(TAGBOX::CLEAR, tbmdClear.ovlpBox, 0);
 
-     ParallelDescriptor::ReceiveData(nullptr, 0);  // to advance message header
+       ParallelDescriptor::ReceiveData(0, 0);  // To advance message header.
    }
    ParallelDescriptor::Synchronize();
-}  // end mergeUnique()
+}
 
 
 // ----------------------------------------------------------------------------

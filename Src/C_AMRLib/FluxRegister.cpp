@@ -1,6 +1,6 @@
 
 //
-// $Id: FluxRegister.cpp,v 1.1 1997-11-18 19:30:25 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.2 1997-11-20 00:49:43 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -838,8 +838,7 @@ void FluxRegister::CrseInit(const FArrayBox &flux, const Box &subbox, int dir,
 void FluxRegister::CrseInitFinish() {
 
     FabComTag fabComTag;
-    int tagSize = sizeof(FabComTag);
-    ParallelDescriptor::SetMessageHeaderSize(tagSize);
+    ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
 
     int dataWaitingSize;
 

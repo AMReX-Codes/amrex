@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.18 1997-11-20 00:19:50 lijewski Exp $
+// $Id: FabArray.H,v 1.19 1997-11-20 00:49:42 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -406,8 +406,7 @@ FabArray<T,FAB>::PrintStats (ostream& os)
     }
     msg_hdr;
 
-    int msg_hdr_size = sizeof(msg_hdr);
-    PD::SetMessageHeaderSize(msg_hdr_size);
+    PD::SetMessageHeaderSize(sizeof(msg_hdr));
 
     if (!PD::IOProcessor())
     {
@@ -1098,7 +1097,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
     else
     {
         //
-        // the index into these arrays is the same index of the FabArray
+        // The index into these arrays is the same index of the FabArray
         // these are intersections relative to this FabArray.
         //
         Array<BoxArray> boxIntersections(length());
@@ -1107,8 +1106,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
         Array<BoxArray> boxNonIntersections(length());
         int myproc = ParallelDescriptor::MyProc();
         FabComTag fabComTag;
-        int tagSize = sizeof(FabComTag);
-        ParallelDescriptor::SetMessageHeaderSize(tagSize);
+        ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
 
         int i, ii, iblocal;
         for (i = 0; i < length(); ++i)
@@ -1976,8 +1974,7 @@ FabArrayCopyDescriptor<T,FAB>::FabArrayCopyDescriptor (bool cacheremotedata)
     }
 
     FabComTag fabComTag;
-    int tagSize = sizeof(FabComTag);
-    ParallelDescriptor::SetMessageHeaderSize(tagSize);
+    ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
 
     fabArrays.reserve(16);
     fabComTagList.clear();
@@ -2205,10 +2202,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
     int dataWaitingSize;
     int myproc = ParallelDescriptor::MyProc();
     FabComTag fabComTag;
-
-    int tagSize = sizeof(FabComTag);
-    ParallelDescriptor::SetMessageHeaderSize(tagSize);
-    int *nullptr = NULL;
+    ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
     //
     // Go through the fabComTagList and send all fab requests.
     //
@@ -2252,7 +2246,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
             //assert(fabArrays[fabComTag.fabArrayId]->
                    //fabbox(fabComTag.fabIndex).contains(fabComTag.subBox));
 
-            ParallelDescriptor::ReceiveData(nullptr, 0);  // Advance msg hdr.
+            ParallelDescriptor::ReceiveData(0, 0);  // Advance msg hdr.
             --numberOfOutstandingRequestMessages;
             //
             // Now send the requested data from the fabs on this processor.

@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.7 1997-11-13 16:38:54 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.8 1997-11-20 00:49:44 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -124,7 +124,7 @@ public:
                           void*       dest,
                           int         bytes) {}
 
-    static void SetMessageHeaderSize (int& messageHeaderSize) {} 
+    static void SetMessageHeaderSize (int messageHeaderSize) {} 
 
     static bool GetMessageHeader (int&  dataSize,
                                   void* messageHeader)
@@ -219,9 +219,10 @@ class ParallelDescriptor
         bsp_get(procnum, src, offset, dest, bytes);
     }
 
-    static void SetMessageHeaderSize (int& messageHeaderSize)
+    static void SetMessageHeaderSize (int messageHeaderSize)
     {
-        bsp_set_tag_size(&messageHeaderSize);
+        int dummy = messageHeaderSize;
+        bsp_set_tag_size(&dummy);
     } 
 
     static bool GetMessageHeader (int& dataSize,
@@ -254,8 +255,6 @@ class ParallelDescriptor
     {
         bsp_bcast(toproc, (void *) src, (void *) dest, sizeof(T));
     }
-
-    //static void SendFab(int procnum, const FArrayBox &fab);
 
   private:
 

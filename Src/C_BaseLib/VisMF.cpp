@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.29 1997-11-17 21:09:30 lijewski Exp $
+// $Id: VisMF.cpp,v 1.30 1997-11-20 00:49:45 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -275,8 +275,7 @@ VisMF::Header::Header (const MultiFab& mf,
     }
     msg_hdr;
 
-    int msg_hdr_size = sizeof(msg_hdr);
-    PD::SetMessageHeaderSize(msg_hdr_size);
+    PD::SetMessageHeaderSize(sizeof(msg_hdr));
     //
     // Note that m_min and m_max are only calculated on CPU owning the fab.
     // We pass this data back to IOProcessor() so it sees the whole Header.
@@ -401,8 +400,7 @@ VisMF::Write (const MultiFab& mf,
 
     VisMF::Header hdr(mf, VisMF::OneFilePerCPU);
 
-    int msg_hdr_size = sizeof(msg_hdr);
-    PD::SetMessageHeaderSize(msg_hdr_size);
+    PD::SetMessageHeaderSize(sizeof(msg_hdr));
 
     char buf[sizeof(int) + 1];
 

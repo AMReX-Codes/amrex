@@ -1,24 +1,13 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.4 1997-11-11 21:04:53 vince Exp $
+// $Id: ParallelDescriptor.cpp,v 1.5 1997-11-20 00:49:44 lijewski Exp $
 //
 
 #ifdef BL_USE_BSP
 
 #include <ParallelDescriptor.H>
 #include <Utility.H>
-
-/*
-template<class T> static void ParallelDescriptor::ReduceMin(T &rvar) {
-    ParallelDescriptor::ShareVar(&rvar, sizeof(T));
-    ParallelDescriptor::Synchronize();
-    // bsp reduction
-    bsp_fold((void (*)(void *, void *, void *, int *)) Utility::OpRealMin,
-              &rvar, &rvar, sizeof(T));
-    ParallelDescriptor::UnshareVar(&rvar);
-}
-*/
 
 void
 ParallelDescriptor::ReduceBoolAnd (bool &rvar)
@@ -121,7 +110,7 @@ ParallelDescriptor::ReduceLongMin (long &rvar)
 }
 
 void
-ParallelDescriptor::ReduceLongAnd(long &rvar)
+ParallelDescriptor::ReduceLongAnd (long &rvar)
 {
     ParallelDescriptor::ShareVar(&rvar, sizeof(long));
     ParallelDescriptor::Synchronize();
@@ -132,13 +121,12 @@ ParallelDescriptor::ReduceLongAnd(long &rvar)
 
 
 bool
-ParallelDescriptor::MessageQueueEmpty()
+ParallelDescriptor::MessageQueueEmpty ()
 {
   int dataWaitingSize;
   FabComTag fabComTag;
-  int tagSize = sizeof(FabComTag);
-  ParallelDescriptor::SetMessageHeaderSize(tagSize);
-  return (ParallelDescriptor::GetMessageHeader(dataWaitingSize,&fabComTag));
+  ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
+  return ParallelDescriptor::GetMessageHeader(dataWaitingSize,&fabComTag);
 }
 
 #endif
