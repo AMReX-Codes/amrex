@@ -4,8 +4,10 @@
 #define _FABARRAY_H_
 
 //
-// $Id: FabArray.H,v 1.5 1997-09-16 22:12:43 lijewski Exp $
+// $Id: FabArray.H,v 1.6 1997-09-17 00:03:26 lijewski Exp $
 //
+
+#include <limits.h>
 
 #include <Assert.H>
 #include <aString.H>
@@ -1184,7 +1186,13 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
                      << myproc << " != " << fabComTag.toProc << endl;
                 ParallelDescriptor::Abort("Bad fabComTag.toProc");
             }
-            int shouldReceiveBytes = fabComTag.box.numPts() * fabComTag.nComp * sizeof(T);
+
+            long tmp_long = fabComTag.box.numPts()*fabComTag.nComp*sizeof(T);
+
+            assert(tmp_long < INT_MAX);
+            
+            int shouldReceiveBytes = int(tmp_long);
+
             if (dataWaitingSize != shouldReceiveBytes)
             {
                 cerr << "Error:  _in FabArray::copy(FabArray):  "
