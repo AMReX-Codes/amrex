@@ -1,21 +1,23 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.30 1997-11-20 00:49:45 lijewski Exp $
+// $Id: VisMF.cpp,v 1.31 1997-11-20 17:05:10 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
+#include <cstdio>
 #include <fstream>
 using std::ios;
 using std::ifstream;
 using std::ofstream;
 #else
+#include <stdio.h>
 #include <fstream.h>
 #endif
 
 #include <VisMF.H>
 
-typedef ParallelDescriptor PD;
+typedef ParallelDescriptor PD;  // A local typedef for typing ease :-)
 
 const aString VisMF::FabFileSuffix("_D_");
 
