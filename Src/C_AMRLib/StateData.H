@@ -4,7 +4,7 @@
 #define _StateData_H_ 
 
 //
-// $Id: StateData.H,v 1.9 1998-03-30 21:57:34 lijewski Exp $
+// $Id: StateData.H,v 1.10 1998-04-27 19:42:55 lijewski Exp $
 //
 
 #include <Box.H>
@@ -76,7 +76,7 @@ public:
 
     void linInterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
                           Array<MultiFabId>&      mfid,
-                          BoxList&                returnedUnfillableBoxes,
+                          BoxList*                returnedUnfillableBoxes,
                           Array<FillBoxId>&       returnedFillBoxIds,
                           const Box&              subbox,
                           Real                    time,

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.28 1998-04-02 00:13:02 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.29 1998-04-27 19:42:54 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -472,7 +472,7 @@ FillPatchIterator::Initialize (int           boxGrow,
                     BoxList tempUnfillableBoxes(boxType);
                     currentState.linInterpAddBox(multiFabCopyDesc,
                                                  stateDataMFId[currentLevel],
-                                                 tempUnfillableBoxes,
+                                                 &tempUnfillableBoxes,
                                                  fillBoxId[ibox][currentLevel][currentBLI],
                                                  tempCoarseBox,
                                                  interpTime, srcComp, destComp, nComp);
@@ -776,7 +776,7 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
 
             currentState.linInterpAddBox(multiFabCopyDesc,
                                          stateDataMFId[currentLevel],
-                                         unfillableBoxesOnThisLevel,
+                                         &unfillableBoxesOnThisLevel,
                                          fillBoxId[ibox][currentLevel][currentBLI],
                                          tempCoarseBox,
                                          interpTime, srcComp, destComp, nComp);

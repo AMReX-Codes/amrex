@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.32 1998-04-24 17:10:18 lijewski Exp $
+// $Id: TagBox.cpp,v 1.33 1998-04-27 19:42:56 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -459,7 +459,6 @@ TagBoxArray::mergeUnique ()
     int                     nOverlap = 0;
     const int               MyProc   = ParallelDescriptor::MyProc();
     vector<TagBoxMergeDesc> tbmdList;
-    BoxList                 notUsed;   // Required in call to AddBox().
     TagBoxMergeDesc         tbmd;
 
     for (int idest = 0; idest < fabparray.length(); ++idest)
@@ -478,7 +477,7 @@ TagBoxArray::mergeUnique ()
                 tbmd.nOverlap       = nOverlap++;
                 tbmd.destLocal      = destLocal;
                 if (destLocal)
-                    tbmd.fillBoxId = facd.AddBox(faid,ovlp,notUsed,isrc,0,0,1);
+                    tbmd.fillBoxId = facd.AddBox(faid,ovlp,0,isrc,0,0,1);
                 tbmdList.push_back(tbmd);
                 if (destLocal)
                     tbmd.fillBoxId = FillBoxId(); // Clear out for later reuse.
@@ -657,8 +656,6 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
                         if (intbox.ok())
                         {
-                            BoxList unfilledBoxes(intbox.ixType());
-
                             if (i == j)
                             {
                                 //
@@ -670,7 +667,7 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
                             }
                             fillBoxId.push_back(facd.AddBox(faid,
                                                             intbox,
-                                                            unfilledBoxes,
+                                                            0,
                                                             0,
                                                             0,
                                                             n_comp));
