@@ -1,5 +1,5 @@
 //
-// $Id: FArrayBox.cpp,v 1.45 2001-08-13 22:34:45 car Exp $
+// $Id: FArrayBox.cpp,v 1.46 2001-08-21 18:08:46 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -411,9 +411,7 @@ FArrayBox::Initialize ()
         }
     }
     pp.query("initval", initval);
-    int do_ini;
-    pp.query("do_initval", do_ini);
-    do_initval = do_ini ? true : false;
+    pp.query("do_initval", do_initval);
 }
 
 void
