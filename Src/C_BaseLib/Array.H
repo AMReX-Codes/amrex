@@ -4,7 +4,7 @@
 #define BL_ARRAY_H
 
 //
-// $Id: Array.H,v 1.11 1999-04-06 18:15:59 lijewski Exp $
+// $Id: Array.H,v 1.12 1999-04-11 23:30:26 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -329,6 +329,43 @@ Array<T>::swap (long i,
 
 template <class T>
 inline
+Array<T>::Array ()
+{
+    nelem    = 0;
+    vp       = 0;
+    truesize = 0;
+}
+
+template <class T>
+inline
+Array<T>::Array (long len)
+{
+    assert(len >= 0);
+    nelem    = len;
+    vp       = new T[len];
+    truesize = len;
+}
+
+template <class T>
+inline
+void
+Array<T>::clear ()
+{
+    delete [] vp;
+    vp       = 0;
+    nelem    = 0;
+    truesize = 0;
+}
+
+template <class T>
+inline
+Array<T>::~Array ()
+{
+    delete [] vp;
+}
+
+template <class T>
+inline
 bool
 Array<T>::operator!= (const Array<T>& rhs) const
 {
@@ -340,43 +377,11 @@ Array<T>::operator!= (const Array<T>& rhs) const
 //
 
 template <class T>
-Array<T>::Array ()
-{
-    nelem    = 0;
-    vp       = new T[1];
-    truesize = 1;
-}
-
-template <class T>
-Array<T>::Array (long len)
-{
-    assert(len >= 0);
-    nelem    = len;
-    vp       = new T[len];
-    truesize = nelem;
-}
-
-template <class T>
-void
-Array<T>::clear ()
-{
-    delete [] vp;
-    vp       = 0;
-    nelem    = 0;
-    truesize = 0;
-}
-
-template <class T>
-Array<T>::~Array ()
-{
-    delete [] vp;
-}
-
-template <class T>
 Array<T>::Array (long     len,
                  const T& initialValue)
 {
     assert(len >= 0);
+
     nelem    = len;
     vp       = new T[len];
     truesize = len;
@@ -389,6 +394,8 @@ Array<T>::Array (const T* vec,
                  long     len)
 {
     assert(len >= 0);
+    assert(len == 0 || vec != 0);
+
     nelem    = len;
     vp       = new T[len];
     truesize = len;
@@ -397,30 +404,30 @@ Array<T>::Array (const T* vec,
 }
 
 template <class T>
-Array<T>::Array (const Array<T>& a)
+Array<T>::Array (const Array<T>& rhs)
 {
-    nelem    = a.nelem;
-    vp       = new T[a.nelem];
-    truesize = a.nelem;
-    for (long i = 0; i < a.nelem; i++)
-        vp[i] = a.vp[i];
+    nelem    = rhs.nelem;
+    vp       = new T[rhs.nelem];
+    truesize = rhs.nelem;
+    for (long i = 0; i < rhs.nelem; i++)
+        vp[i] = rhs.vp[i];
 }
 
 template <class T>
 Array<T>&
-Array<T>::operator= (const Array<T>& sa)
+Array<T>::operator= (const Array<T>& rhs)
 {
-    if (!(this == &sa))
+    if (!(this == &rhs))
     {
-        if (sa.nelem > truesize)
+        if (rhs.nelem > truesize)
         {
             delete [] vp;
-            vp       = new T[sa.nelem];
-            truesize = sa.nelem;
+            vp       = new T[rhs.nelem];
+            truesize = rhs.nelem;
         }
-        nelem = sa.nelem;
-        for (long i = 0; i < sa.nelem; i++)
-            vp[i] = sa.vp[i];
+        nelem = rhs.nelem;
+        for (long i = 0; i < rhs.nelem; i++)
+            vp[i] = rhs.vp[i];
     }
     return *this;
 }
