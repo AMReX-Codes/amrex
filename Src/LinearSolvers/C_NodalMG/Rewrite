@@ -1,0 +1,47 @@
+
+These are the changes done in the aliaslib rewrite:
+
+1. The alias objects are gone, so this is no longer aliaslib.  The
+new name for the library is hgproj.  aliaslib still exists in cvs
+in case we want it again for anything.  The classes replaced are
+  level_mesh => BoxArray
+  amr_mesh   => Array<BoxArray>
+  grid_real  => Fab
+  level_real => MultiFab
+  amr_real   => PArray<MultiFab>
+Most of the changes involved translating function calls into a new
+syntax, but in some cases more extensive rewriting was necessary.
+The loss of the alias capability made some operations more complicated
+and prone to errors.
+
+2. The old classes had some information that the new ones do not, so
+some additional members have been added to amr_multigrid and its
+derived classes to store that information.  For example, level_mesh
+knows what the problem domain is but BoxArray does not, so now a
+separate Array of problem domains is provided.
+
+3. Some former aliaslib classes have been retained in the new
+library.  These include the boundary, interface, cache, restrictor
+and interpolator classes.  Some of this material may eventually be
+replaced by BoxLib equivalents, but for most of it equivalents do
+not exist.
+
+4. The fill_patch functions from aliaslib have been retained, since
+the Amr equivalents are not accessible.  The fill_borders and
+sync_borders functions are also retained.  fill_borders may be
+replaceable by its MultiFab equivalent, but I have not tried to
+do so yet.  There are questions of efficiency, whether the MultiFab
+versions correctly support node-based data, and interactions with
+the physical boundary conditions that would have to be addressed.
+
+5. The DLList-style lists are gone, replaced by List<T>.
+
+6. Some uses of bare C-style arrays have been replaced with Array
+or PArray, but some others have not.
+
+7. The DECLARE_ERROR_FUNC macros for defining error handlers are gone.
+The error calls they handled have been replaced by assertions or
+calls to BoxLib::Error().
+
+8. The macros BL_SPACEDIM and BL_FORT_USE_UNDERSCORE are now used in
+the standard way.
