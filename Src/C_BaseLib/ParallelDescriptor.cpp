@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.58 2000-06-02 01:04:12 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.59 2000-06-02 22:58:53 marc Exp $
 //
 
 #include <Utility.H>
@@ -678,36 +678,42 @@ ParallelDescriptor::second ()
 #define FORT_BL_PD_ABORT  	bl_pd_abort_
 #endif
 
+extern  "C"
 void
 FORT_BL_PD_BARRIER()
 {
   ParallelDescriptor::Barrier();
 }
 
+extern  "C"
 void
 FORT_BL_PD_COMMUNICATOR(MPI_Comm* comm)
 {
   *comm = ParallelDescriptor::Communicator();
 }
 
+extern  "C"
 void
 FORT_BL_PD_MYPROC(int* myproc)
 {
   *myproc = ParallelDescriptor::MyProc();
 }
 
+extern  "C"
 void
 FORT_BL_PD_NPROCS(int* nprocs)
 {
   *nprocs = ParallelDescriptor::NProcs();
 }
 
+extern  "C"
 void
 FORT_BL_PD_IOPROC(int* ioproc)
 {
   *ioproc = ParallelDescriptor::IOProcessorNumber();
 }
 
+extern  "C"
 void
 FORT_BL_PD_ABORT()
 {
