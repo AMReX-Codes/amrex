@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.23 1998-07-29 00:06:04 car Exp $
+// $Id: Utility.cpp,v 1.24 1998-10-07 21:18:28 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -35,7 +35,13 @@ const char* path_sep_str = "/";
 
 #include <sys/types.h>
 #include <sys/times.h>
+#ifdef BL_AIX
+#define _XOPEN_SOURCE_EXTENDED 1
+#endif
 #include <sys/time.h>
+#ifdef BL_AIX
+#define _XOPEN_SOURCE_EXTENDED 0
+#endif
 #include <sys/param.h>
 #include <unistd.h>
 
@@ -242,11 +248,11 @@ Utility::is_integer (const char* str)
 
 bool
 #ifdef WIN32
-Utility::CreateDirectory (const aString& path,
-                          int)
+Utility::UtilCreateDirectory (const aString& path,
+                              int)
 #else
-Utility::CreateDirectory (const aString& path,
-                          mode_t         mode)
+Utility::UtilCreateDirectory (const aString& path,
+                              mode_t         mode)
 #endif
 {
     if (path.length() == 0 || path == path_sep_str)
@@ -409,6 +415,18 @@ BLUTILRAND (Real* rn)
 
 #else
 
+#ifdef BL_AIX
+// AIX does not use the trailing underbar
+extern "C" void blutilrand (Real* rn);
+
+void
+blutilrand (Real* rn)
+{
+    assert(rn != 0);
+    *rn = Utility::Random();
+}
+
+#else
 extern "C" void blutilrand_ (Real* rn);
 
 void
@@ -418,6 +436,7 @@ blutilrand_ (Real* rn)
     *rn = Utility::Random();
 }
 
+#endif /*BL_AIX*/
 #endif /*BL_FORT_USE_UPPERCASE*/
 
 

@@ -4,7 +4,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.17 1998-09-23 20:19:38 lijewski Exp $
+// $Id: Amr.H,v 1.18 1998-10-07 21:18:18 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -56,6 +56,10 @@ public:
     //@ManDoc: Set the timestep on each level.
     //
     void setDtLevel (const Array<Real>& dt_lev);
+    //
+    //@ManDoc: Set the dtmin on each level.
+    //
+    void setDtMin(const Array<REAL>& dt_lev);
     //
     //@ManDoc: Set the cycle count on each level.
     //

@@ -2,7 +2,7 @@
 #define _PROB_AMR_F_H_
 
 /*
-** $Id: PROB_AMR_F.H,v 1.4 1998-05-12 22:12:43 lijewski Exp $
+** $Id: PROB_AMR_F.H,v 1.5 1998-10-07 21:18:20 vince Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -13,7 +13,11 @@
 #  ifdef BL_FORT_USE_UPPERCASE
 #    define FORT_PROBINIT    PROBINIT
 #  else
+#  ifdef BL_AIX
+#    define FORT_PROBINIT    probinit
+#  else
 #    define FORT_PROBINIT    probinit_
+#  endif
 #  endif
 
 extern "C"

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.43 1998-07-29 19:09:07 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.44 1998-10-07 21:18:19 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -70,7 +70,8 @@ AmrLevel::AmrLevel (Amr&            papa,
 
 void
 AmrLevel::restart (Amr&     papa,
-                   istream& is)
+                   istream& is,
+		   bool bReadSpecial)
 {
     parent = &papa;
 
@@ -89,7 +90,11 @@ AmrLevel::restart (Amr&     papa,
         fine_ratio = parent->refRatio(level);
     }
 
-    grids.define(is);
+    if(bReadSpecial) {
+      readBoxArray(grids, is, bReadSpecial);
+    } else {
+      grids.define(is);
+    }
 
     int nstate;
     is >> nstate;
@@ -99,7 +104,7 @@ AmrLevel::restart (Amr&     papa,
     state.resize(ndesc);
     for (int i = 0; i < ndesc; i++)
     {
-        state[i].restart(is, desc_lst[i], papa.theRestartFile());
+        state[i].restart(is, desc_lst[i], papa.theRestartFile(), bReadSpecial);
     }
 
     finishConstructor();
@@ -185,7 +190,7 @@ AmrLevel::checkPoint (const aString& dir,
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!Utility::CreateDirectory(FullPath, 0755))
+        if (!Utility::UtilCreateDirectory(FullPath, 0755))
             Utility::CreateDirectoryFailed(FullPath);
     //
     // Force other processors to wait till directory is built.

@@ -1,5 +1,5 @@
 c
-c $Id: FLUXREG_2D.F,v 1.4 1998-02-22 19:06:58 car Exp $
+c $Id: FLUXREG_2D.F,v 1.5 1998-10-07 21:18:19 vince Exp $
 c
 
 #undef  BL_LANG_CC
@@ -298,6 +298,7 @@ c ::
       integer    numcomp
       REAL_T     mult
       REAL_T     reg(DIMV(reg),numcomp)
+c :: For Multifluid reg is defined as: REAL_T reg(DIMV(reg),numcomp+FLUX_EXTRA)
       REAL_T       s(DIMV(s),numcomp)
       REAL_T     vol(DIMV(vol))
 
@@ -349,6 +350,7 @@ c ::
       integer    numcomp
       REAL_T     mult, dx(SDIM)
       REAL_T     reg(DIMV(reg),numcomp)
+c :: For Multifluid reg is defined as: REAL_T reg(DIMV(reg),numcomp+FLUX_EXTRA)
       REAL_T       s(DIMV(s),numcomp)
 
       integer n, i, j, lenx, leny

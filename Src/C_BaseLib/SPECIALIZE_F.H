@@ -1,5 +1,5 @@
 /*
-** $Id: SPECIALIZE_F.H,v 1.1 1997-12-18 18:44:39 lijewski Exp $
+** $Id: SPECIALIZE_F.H,v 1.2 1998-10-07 21:18:28 vince Exp $
 */
 
 #ifndef SPECIALIZE_H
@@ -22,8 +22,13 @@
 #define FORT_FASTCOPY       FASTCOPY
 #define FORT_FASTSETVAL     FASTSETVAL
 #else
+#  ifdef BL_AIX
+#define FORT_FASTCOPY       fastcopy
+#define FORT_FASTSETVAL     fastsetval
+#else
 #define FORT_FASTCOPY       fastcopy_
 #define FORT_FASTSETVAL     fastsetval_
+#endif
 #endif
 
 extern "C"

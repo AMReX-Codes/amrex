@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.22 1998-07-29 19:09:05 lijewski Exp $
+// $Id: AmrLevel.H,v 1.23 1998-10-07 21:18:18 vince Exp $
 //
 
 #include <REAL.H>
@@ -70,7 +70,8 @@ public:
     //@ManDoc: Restart from a checkpoint file.
     //
     virtual void restart (Amr&     papa,
-                          istream& is);
+                          istream& is,
+			  bool bReadSpecial = false);
     //
     //@ManDoc: Is name a state variable?
     //
@@ -217,7 +218,8 @@ public:
     virtual void errorEst (TagBoxArray& tb,
                            int          clearval,
                            int          tagval,
-                           Real         time) = 0;
+                           Real         time,
+			   int          n_error_buf = 0, int ngrow = 0) = 0;
     //
     //@ManDoc: Interpolate up from coarse level.
     //

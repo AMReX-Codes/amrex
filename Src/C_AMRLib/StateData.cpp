@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateData.cpp,v 1.21 1998-09-15 00:11:06 lijewski Exp $
+// $Id: StateData.cpp,v 1.22 1998-10-07 21:18:20 vince Exp $
 //
 
 #include <RunStats.H>
@@ -89,12 +89,21 @@ StateData::reset ()
 void
 StateData::restart (istream&               is,
                     const StateDescriptor& d,
-                    const aString&         chkfile)
+                    const aString&         chkfile,
+                    bool                   bReadSpecial)
 {
+    if(bReadSpecial) {
+      ParallelDescriptor::Abort();  // not implemented
+    }
+
     desc = &d;
 
     is >> domain;
-    grids.define(is);
+    if(bReadSpecial) {
+      readBoxArray(grids, is, bReadSpecial);
+    } else {
+      grids.define(is);
+    }
 
     is >> old_time.start;
     is >> old_time.stop;
@@ -470,13 +479,16 @@ StateData::checkPoint (const aString& name,
     }
     assert(new_data);
     aString mf_fullpath_new = fullpathname; mf_fullpath_new += NewSuffix;
-    RunStats::addBytes(VisMF::Write(*new_data,mf_fullpath_new,how));
+    long bytesWritten;
+    bytesWritten = VisMF::Write(*new_data,mf_fullpath_new,how);
+    RunStats::addBytes(bytesWritten);
 
     if (dump_old)
     {
         assert(old_data);
         aString mf_fullpath_old = fullpathname; mf_fullpath_old += OldSuffix;
-        RunStats::addBytes(VisMF::Write(*old_data,mf_fullpath_old,how));
+        bytesWritten = VisMF::Write(*old_data,mf_fullpath_old,how);
+        RunStats::addBytes(bytesWritten);
     }
 }
 
@@ -494,3 +506,33 @@ StateData::printTimeInterval (ostream &os) const
        << ']'
        << '\n';
 }
+
+
+///// ---------------------------------------------------------------
+// the following is from the asci version of StateData.C
+
+const int BL_IGNORE_MAX = 100000;
+
+void readBoxArray(BoxArray& ba, istream& is, bool bReadSpecial)
+{
+  if (bReadSpecial == false) {
+    ba.define(is);
+  }
+  else {
+    assert(ba.length() == 0);
+    int maxbox;
+    unsigned long in_hash; // will be ignored
+    is.ignore(BL_IGNORE_MAX, '(') >> maxbox >> in_hash;
+    ba.resize(maxbox);
+    for (int i = 0; i < maxbox; i++) {
+      Box b;
+      is >> b;
+      ba.set(i, b);
+    }
+    is.ignore(BL_IGNORE_MAX, ')');
+
+    if (is.fail())
+      BoxLib::Error("readBoxArray(BoxArray&,istream&,int) failed");
+  }
+}
+

@@ -1,5 +1,5 @@
 c
-c $Id: FILCC_2D.F,v 1.4 1998-02-22 19:06:57 car Exp $
+c $Id: FILCC_2D.F,v 1.5 1998-10-07 21:18:19 vince Exp $
 c
 
 #undef  BL_LANG_CC
@@ -59,7 +59,7 @@ c     ::::: first fill sides
       if (nlft .gt. 0) then
          ilo = domlo(1)
 
-	 if (bc(1,1) .eq. EXTRAP) then
+	 if (bc(1,1) .eq. FOEXTRAP) then
 	    do i = 1, nlft
 	    do j = ARG_L2(q), ARG_H2(q)
 	       q(ilo-i,j) = q(ilo,j)
@@ -99,7 +99,7 @@ c     ::::: first fill sides
       if (nrgt .gt. 0) then
          ihi = domhi(1)
 
-	 if (bc(1,2) .eq. EXTRAP) then
+	 if (bc(1,2) .eq. FOEXTRAP) then
 	    do i = 1, nrgt
 	    do j = ARG_L2(q), ARG_H2(q)
 	       q(ihi+i,j) = q(ihi,j)
@@ -139,7 +139,7 @@ c     ::::: first fill sides
       if (nbot .gt. 0) then
          jlo = domlo(2)
 
-	 if (bc(2,1) .eq. EXTRAP) then
+	 if (bc(2,1) .eq. FOEXTRAP) then
 	    do j = 1, nbot
 	    do i = ARG_L1(q), ARG_H1(q)
 	       q(i,jlo-j) = q(i,jlo)
@@ -179,7 +179,7 @@ c     ::::: first fill sides
       if (ntop .gt. 0) then
          jhi = domhi(2)
 
-	 if (bc(2,2) .eq. EXTRAP) then
+	 if (bc(2,2) .eq. FOEXTRAP) then
 	    do j = 1, ntop
  	    do i = ARG_L1(q), ARG_H1(q)
 	       q(i,jhi+j) = q(i,jhi)

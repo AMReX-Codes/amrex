@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CoordSys.cpp,v 1.7 1998-05-06 22:36:15 lijewski Exp $
+// $Id: CoordSys.cpp,v 1.8 1998-10-07 21:18:24 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -16,6 +16,9 @@
 #include <FArrayBox.H>
 
 #if (BL_SPACEDIM==2)
+#ifdef BL_AIX
+#define M_PI        3.14159265358979323846264338327950288
+#endif
 const double RZFACTOR = 2*M_PI;
 #endif
 
@@ -161,6 +164,17 @@ CoordSys::GetEdgeVolCoord (Array<Real>& vc,
             vc[i] = 0.5*r*r;
         }
     }
+    else
+    {
+        if(dir == 0 && c_sys == SPHERICAL) {
+            int len = vc.length();
+            int i;
+            for (i = 0; i < len; i++) {
+                REAL r = vc[i];
+                vc[i] = 0.3*r*r*r;
+            }
+        }
+    }
 #endif    
 }
 
@@ -185,6 +199,17 @@ CoordSys::GetCellVolCoord (Array<Real>& vc,
         {
             Real r = vc[i];
             vc[i] = 0.5*r*r;
+        }
+    }
+    else
+    {
+        if(dir == 0 && c_sys == SPHERICAL) {
+            int len = vc.length();
+            int i;
+            for (i = 0; i < len; i++) {
+                REAL r = vc[i];
+                vc[i] = 0.3*r*r*r;
+            }
         }
     }
 #endif    
