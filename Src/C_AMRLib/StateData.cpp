@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateData.cpp,v 1.12 1998-02-18 21:35:34 vince Exp $
+// $Id: StateData.cpp,v 1.13 1998-03-27 23:53:22 lijewski Exp $
 //
 
 #include <RunStats.H>
@@ -87,7 +87,6 @@ StateData::define (const Box&             p_domain,
     buildBC();
 }
 
-#ifdef BL_PARALLEL_IO
 void
 StateData::restart (istream&               is,
                     const StateDescriptor& d,
@@ -138,36 +137,6 @@ StateData::restart (istream&               is,
 
     buildBC();
 }
-
-#else
-
-void
-StateData::restart (istream&               is,
-                    const StateDescriptor& d)
-{
-    desc = &d;
-
-    is >> domain;
-    grids.define(is);
-
-    is >> old_time.start;
-    is >> old_time.stop;
-    is >> new_time.start;
-    is >> new_time.stop;
-
-    int nsets;
-    is >> nsets;
-
-    new_data = new MultiFab(is);
-
-    old_data = 0;
-
-    if (nsets == 2)
-        old_data = new MultiFab(is);
-
-    buildBC();
-}
-#endif /*BL_PARALLEL_IO*/
 
 void
 StateData::buildBC ()
@@ -518,7 +487,6 @@ StateData::linInterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
    }
 }
 
-#ifdef BL_PARALLEL_IO
 void
 StateData::checkPoint (const aString& name,
                        const aString& fullpathname,
@@ -572,38 +540,6 @@ StateData::checkPoint (const aString& name,
         RunStats::addBytes(VisMF::Write(*old_data, mf_fullpath_old, how));
     }
 }
-
-#else
-
-void
-StateData::checkPoint (ostream& os,
-                       bool     dump_old) 
-{
-    if (dump_old == true && old_data == 0)
-    {
-        dump_old = false;
-    }
-    if (ParallelDescriptor::IOProcessor())
-    {
-      os << domain << '\n';
-
-      grids.writeOn(os);
-
-      os << old_time.start << '\n'
-         << old_time.stop  << '\n'
-         << new_time.start << '\n'
-         << new_time.stop  << '\n';
-
-      int nsets = (dump_old ? 2 : 1);
-
-      os << nsets << '\n';
-    }
-    assert(new_data);
-    new_data->writeOn(os);
-    if (dump_old)
-        old_data->writeOn(os);
-}
-#endif /*BL_PARALLEL_IO*/
 
 void
 StateData::printTimeInterval (ostream &os)

@@ -4,7 +4,7 @@
 #define _StateData_H_ 
 
 //
-// $Id: StateData.H,v 1.6 1997-12-11 23:27:52 lijewski Exp $
+// $Id: StateData.H,v 1.7 1998-03-27 23:53:21 lijewski Exp $
 //
 
 #include <Box.H>
@@ -121,7 +121,6 @@ public:
     void FillBoundary(const Real* dx, const RealBox& prob_domain,
                    int src_comp, int num_comp = 1, int do_new=1);
 
-#ifdef BL_PARALLEL_IO
     void checkPoint (const aString& name,
                      const aString& fullpathname,
                      ostream&       os,
@@ -131,13 +130,6 @@ public:
     void restart (istream&               is,
                   const StateDescriptor& d,
                   const aString&         restart_file);
-#else
-    void checkPoint (ostream& os,
-                     bool     dump_old = true);
-
-    void restart (istream&               is,
-                  const StateDescriptor& d);
-#endif
 
 /// access functions
 ///

@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.12 1998-03-25 21:32:18 lijewski Exp $
+// $Id: AmrLevel.H,v 1.13 1998-03-27 23:53:20 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -39,8 +39,6 @@ class AmrLevel
 public:
 
     virtual ~AmrLevel();
-
-#ifdef BL_PARALLEL_IO
     //
     // A string written as the first item in writePlotFile() at level zero.
     // This MUST be defined by each derived class.
@@ -59,16 +57,6 @@ public:
     virtual void checkPoint (const aString& dir,
                              ostream&       os,
                              VisMF::How     how = VisMF::OneFilePerCPU);
-#else
-    //
-    // Write plot file.
-    //
-    virtual void writePlotFile (ostream &os) = 0;
-    //
-    // Write current state to checkpoint file.
-    //
-    virtual void checkPoint (ostream& os);
-#endif
     //
     // Restart from a checkpoint file.
     //

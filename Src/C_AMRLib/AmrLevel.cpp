@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.23 1998-03-26 17:31:50 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.24 1998-03-27 23:53:21 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -90,11 +90,7 @@ AmrLevel::restart (Amr&     papa,
     state.resize(ndesc);
     for (int i = 0; i < ndesc; i++)
     {
-#ifdef BL_PARALLEL_IO
         state[i].restart(is, desc_lst[i], papa.theRestartFile());
-#else
-        state[i].restart(is, desc_lst[i]);
-#endif
     }
 
     finishConstructor();
@@ -151,7 +147,6 @@ AmrLevel::countCells ()
     return cnt;
 }
 
-#ifdef BL_PARALLEL_IO
 void
 AmrLevel::checkPoint (const aString& dir,
                       ostream&       os,
@@ -209,27 +204,6 @@ AmrLevel::checkPoint (const aString& dir,
         state[i].checkPoint(PathNameInHeader, FullPathName, os, how);
     }
 }
-
-#else
-
-void
-AmrLevel::checkPoint (ostream& os)
-{
-    int ndesc = desc_lst.length(), i;
-
-    if (ParallelDescriptor::IOProcessor())
-    {
-        os << level << '\n' << geom  << '\n';
-        grids.writeOn(os);
-        os << ndesc << '\n';
-    }
-    //
-    // Output state data.
-    //
-    for (i = 0; i < ndesc; i++)
-        state[i].checkPoint(os);
-}
-#endif /*BL_PARALLEL_IO*/
 
 AmrLevel::~AmrLevel ()
 {

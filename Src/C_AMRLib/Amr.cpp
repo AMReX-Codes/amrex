@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.31 1998-03-25 21:32:18 lijewski Exp $
+// $Id: Amr.cpp,v 1.32 1998-03-27 23:53:20 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -391,7 +391,6 @@ Concatenate (const aString& root,
     return result;
 }
 
-#ifdef BL_PARALLEL_IO
 void
 Amr::writePlotFile (const aString& root,
                     int            num)
@@ -471,49 +470,6 @@ Amr::writePlotFile (const aString& root,
       cout << "Write plotfile time = " << dPlotFileTime << "  seconds." << endl;
     }
 }
-
-#else
-
-void
-Amr::writePlotFile (const aString& root,
-                    int            num)
-{
-    aString pltfile = Concatenate(root, num);
-
-    if (trace && ParallelDescriptor::IOProcessor())
-    {
-        cout << "PLOTFILE: file = " << pltfile << endl;
-    }
-    if (record_run_info && ParallelDescriptor::IOProcessor())
-    {
-        runlog << "PLOTFILE: file = " << pltfile << '\n';
-    }
-#ifdef BL_USE_SETBUF
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-#endif
-    ofstream os;
-
-#ifdef BL_USE_SETBUF
-    os.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
-#endif
-    os.open(pltfile.c_str(), ios::out|ios::trunc);
-
-    if (!os.good())
-        Utility::FileOpenFailed(pltfile);
-
-    for (int k = 0; k <= finest_level; k++)
-    {
-        RunStats write_pltfile_stats("write_pltfile", k);
-        write_pltfile_stats.start();
-        amr_level[k].writePlotFile(os);
-        write_pltfile_stats.end();
-    }
-    //
-    // Accumulate total # of bytes.
-    //
-    RunStats::addBytes(VisMF::FileOffset(os));
-}
-#endif /*BL_PARALLEL_IO*/
 
 void
 Amr::checkInput ()
@@ -668,10 +624,8 @@ Amr::restart (const aString& filename)
     //
     aString File = filename;
 
-#ifdef BL_PARALLEL_IO
     File += '/';
     File += "Header";
-#endif /*BL_PARALLEL_IO*/
 
 #ifdef BL_USE_SETBUF
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
@@ -769,7 +723,6 @@ Amr::restart (const aString& filename)
     }
 }
 
-#ifdef BL_PARALLEL_IO
 void
 Amr::checkPoint ()
 {
@@ -867,85 +820,15 @@ Amr::checkPoint ()
     double dCheckPointTime1(ParallelDescriptor::second());
     double dCheckPointTime(dCheckPointTime1 - dCheckPointTime0);
     ParallelDescriptor::ReduceRealMax(dCheckPointTime);
-    if(ParallelDescriptor::IOProcessor()) {
-      cout << "Write checkpoint time = " << dCheckPointTime << "  seconds." << endl;
-    }
-}
-
-#else
-
-void
-Amr::checkPoint ()
-{
-    aString ckfile = Concatenate(check_file_root, level_steps[0]);
-
-    if (trace && ParallelDescriptor::IOProcessor())
-    {
-        cout << "CHECKPOINT: file = " << ckfile << endl;
-    }
-    if (record_run_info && ParallelDescriptor::IOProcessor())
-    {
-        runlog << "CHECKPOINT: file = " << ckfile << '\n';
-    }
-
-#ifdef BL_USE_SETBUF
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-#endif
-    ofstream os;
-
-#ifdef BL_USE_SETBUF
-    os.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
-#endif
-    os.open(ckfile.c_str(), ios::out|ios::trunc);
-
-    if (!os.good())
-        Utility::FileOpenFailed(ckfile);
-
-    int old_prec = os.precision(15), i;
 
     if (ParallelDescriptor::IOProcessor())
     {
-        os << BL_SPACEDIM  << '\n'
-           << cumtime      << '\n'
-           << max_level    << '\n'
-           << finest_level << '\n';
-        //
-        // Write out problem domain.
-        //
-        for (i = 0; i <= max_level; i++) os << geom[i] << ' ';
-        os << '\n';
-        for (i = 0; i < max_level; i++) os << ref_ratio[i] << ' ';
-        os << '\n';
-        for (i = 0; i <= max_level; i++) os << dt_level[i] << ' ';
-        os << '\n';
-        for (i = 0; i <= max_level; i++) os << n_cycle[i] << ' ';
-        os << '\n';
-        for (i = 0; i <= max_level; i++) os << level_steps[i] << ' ';
-        os << '\n';
-        for (i = 0; i <= max_level; i++) os << level_count[i] << ' ';
-        os << '\n';
+      cout << "Write checkpoint time = "
+           << dCheckPointTime
+           << "  seconds."
+           << endl;
     }
-
-    for (i = 0; i <= finest_level; i++)
-    {
-        RunStats write_chkfile_stats("write_chkfile", i);
-        write_chkfile_stats.start();
-        amr_level[i].checkPoint(os);
-        write_chkfile_stats.end();
-    }
-
-    RunStats::dumpStats(os);
-    //
-    // Accumulate # of bytes.
-    //
-    RunStats::addBytes(VisMF::FileOffset(os));
-
-    os.precision(old_prec);
-
-    if (!os.good())
-        BoxLib::Error("Amr::checkpoint() failed");
 }
-#endif /*BL_PARALLEL_IO*/
 
 void
 Amr::timeStep (int  level,
