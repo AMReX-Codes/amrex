@@ -48,6 +48,8 @@ ifeq ($(AIXLARGEMEM),TRUE)
   fOPTF   += -q64
   fDEBF   += -q64
   LDFLAGS += -bmaxdata:0xF0000000
+else
+  LDFLAGS += -bmaxdata:0x80000000
 endif
 
 ifeq ($(USE_THREADS),TRUE)
