@@ -1,5 +1,5 @@
 //
-// $Id: IntVect.cpp,v 1.12 2001-07-19 20:02:45 lijewski Exp $
+// $Id: IntVect.cpp,v 1.13 2001-07-19 21:31:09 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -479,7 +479,7 @@ operator<< (std::ostream&  os,
 
 std::istream&
 operator>> (std::istream& is,
-            IntVect&      p)
+            IntVect&      iv)
 {
     is >> std::ws;
     char c;
@@ -487,9 +487,9 @@ operator>> (std::istream& is,
 
     if (c == '(')
     {
-        D_EXPR(is.ignore(BL_IGNORE_MAX, '(') >> p[0],
-               is.ignore(BL_IGNORE_MAX, ',') >> p[1],
-               is.ignore(BL_IGNORE_MAX, ',') >> p[2]);
+        D_EXPR(is >> iv[0],
+               is.ignore(BL_IGNORE_MAX, ',') >> iv[1],
+               is.ignore(BL_IGNORE_MAX, ',') >> iv[2]);
         is.ignore(BL_IGNORE_MAX, ')');
     }
     else
