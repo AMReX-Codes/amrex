@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Derive.cpp,v 1.2 1997-11-24 18:52:29 lijewski Exp $
+// $Id: Derive.cpp,v 1.3 1997-11-26 20:41:43 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -55,6 +55,8 @@ DeriveRec::addRange(const DescriptorList &d_list, int state_indx,
     const StateDescriptor &d = d_list[state_indx];
     assert (d.getType() == rng_type);
     StateRange *r = new StateRange;
+    if (r == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
     r->typ = state_indx;
     r->sc = src_comp;
     r->nc = num_comp;
@@ -92,7 +94,8 @@ DeriveRec::buildBC(const DescriptorList& d_list)
 {
     assert(nsr > 0);
     delete bcr;
-    bcr = new int[2*BL_SPACEDIM*n_state];
+    if ((bcr = new int[2*BL_SPACEDIM*n_state]) == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
     int *bci = bcr;
     DeriveRec::StateRange *r;
     for (r = rng; r != 0; r = r->next) {
@@ -168,8 +171,12 @@ DeriveList::add(const aString &name, IndexType result_type,
 		DeriveBoxMap box_map, IndexType component_type,
 		Interpolater *interp)
 {
-    lst.add(new DeriveRec(name,result_type,nvar_derive,
-		      der_func,box_map,component_type,interp));
+    DeriveRec* dr = new DeriveRec(name,result_type,nvar_derive,
+                                  der_func,box_map,component_type,interp);
+    if (dr == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
+
+    lst.add(dr);
 }
 
 // ------------------------------------------------------------------

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.4 1997-11-26 19:18:52 lijewski Exp $
+// $Id: TagBox.cpp,v 1.5 1997-11-26 20:41:44 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -44,6 +44,8 @@ TagBox::coarsen(const IntVect & ratio)
    Box cbx(domain);
    cbx.coarsen(ratio);
    TagBox* crse = new TagBox(cbx);
+   if (crse == 0)
+       BoxLib::OutOfMemory(__FILE__, __LINE__);
    const Box& cbox = crse->box();
    Box b1(::refine(cbox,ratio));
 
@@ -63,7 +65,8 @@ TagBox::coarsen(const IntVect & ratio)
    longlen = b1.longside(dir);
 
    int *t = new int[longlen];
-   assert(t);
+   if (t == 0)
+       BoxLib::OutOfMemory(__FILE__, __LINE__);
    int i;
    for (i = 0; i < longlen; i++) t[i] = TagBox::CLEAR;
 
@@ -349,7 +352,10 @@ TagBoxArray::TagBoxArray(const BoxArray &ba, int _ngrow,
    for (i = 0; i < fabparray.length(); i++) {
       Box bx(ba[i]);
       bx.grow(ngrow);
-      fabparray.set(i,new TagBox(bx,1));
+      TagBox* tb = new TagBox(bx,1);
+      if (tb == 0)
+          BoxLib::OutOfMemory(__FILE__, __LINE__);
+      fabparray.set(i,tb);
    } 
 }
 */
@@ -706,12 +712,16 @@ TagBoxArray::colate() const
    int nGrids = fabparray.length();
    int *startOffset = new int[nGrids];  // start locations per grid
    int *sharedNTags = new int[nGrids];  // shared numTags  per grid
+   if (startOffset == 0 || sharedNTags == 0)
+       BoxLib::OutOfMemory(__FILE__, __LINE__);
    for(int isn = 0; isn < nGrids; ++isn) {
      sharedNTags[isn] = -1;  // a bad value
    }
 
    int len = numTags();
    Array<IntVect> *ar = new Array<IntVect>(len);
+   if (ar == 0)
+       BoxLib::OutOfMemory(__FILE__, __LINE__);
    for(ConstFabArrayIterator<int, TagBox> fai(*this); fai.isValid(); ++fai) {
       sharedNTags[fai.index()] = fai().numTags();
    }
@@ -743,6 +753,8 @@ TagBoxArray::colate() const
 
         // need a 1d array for contiguous parallel copies
         int *tmpPts = new int[len * BL_SPACEDIM];
+        if (tmpPts == 0)
+            BoxLib::OutOfMemory(__FILE__, __LINE__);
         size_t ivSize = BL_SPACEDIM * sizeof(int);
 
         // copy the local IntVects into the shared array

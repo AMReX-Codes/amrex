@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Cluster.cpp,v 1.3 1997-11-26 19:18:48 lijewski Exp $
+// $Id: Cluster.cpp,v 1.4 1997-11-26 20:41:43 lijewski Exp $
 //
 
 #include <Cluster.H>
@@ -40,7 +40,8 @@ CLUSTER::CLUSTER(CLUSTER &c,const Box& b)
     }
     int len = c.ar->length();
     int *owns = new int[len];
-    assert( owns != 0 );
+    if (owns == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
     int nlen = 0;
     int i;
     for (i = 0; i < len; i++) {
@@ -60,8 +61,12 @@ CLUSTER::CLUSTER(CLUSTER &c,const Box& b)
 	c.ar = 0;
 	c.bx = Box();
     } else {
-	ar = new Array<IntVect>(nlen);
-	Array<IntVect> *car = new Array<IntVect>(len-nlen);
+	if ((ar = new Array<IntVect>(nlen)) == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
+
+	Array<IntVect>* car = new Array<IntVect>(len-nlen);
+    if (car == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
 	int i1 = 0;
 	int i2 = 0;
         int i;
@@ -94,6 +99,8 @@ CLUSTER::distribute(ClusterList &clst, const BoxDomain &bd)
     BoxDomainIterator bdi(bd);
     while (bdi && ok()) {
 	CLUSTER *c = new CLUSTER(*this,bdi());
+    if (c == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
 	if (c->ok()) {
 	    clst.append(c);
 	} else {
@@ -150,13 +157,13 @@ CLUSTER::chop()
     // Compute histogram.
     //
     int* hist[BL_SPACEDIM];
-    D_TERM( hist[0] = new int[len[0]]; ,
-	    hist[1] = new int[len[1]]; ,
-	    hist[2] = new int[len[2]]; )
     int n;
     for (n = 0; n < BL_SPACEDIM; n++) {
-      int i;
-      for (i = 0; i < len[n]; i++) hist[n][i] = 0;
+	    if ((hist[n] = new int[len[n]]) == 0)
+            BoxLib::OutOfMemory(__FILE__, __LINE__);
+    }
+    for (n = 0; n < BL_SPACEDIM; n++) {
+      for (int i = 0; i < len[n]; i++) hist[n][i] = 0;
     }
     int i;
     for (i = 0; i < npts; i++) {
@@ -206,6 +213,8 @@ CLUSTER::chop()
       // split intvect list
     Array<IntVect> *alo = new Array<IntVect>(nlo);
     Array<IntVect> *ahi = new Array<IntVect>(nhi);
+    if (alo == 0 || ahi == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
     int ilo = 0;
     int ihi = 0;
     for (i = 0; i < npts; i++) {
@@ -220,7 +229,11 @@ CLUSTER::chop()
     ar = alo;
     minBox();
 
-    return new CLUSTER(ahi);
+    CLUSTER* result = new CLUSTER(ahi);
+    if (result == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
+
+    return result;
 }
 
 
@@ -257,7 +270,8 @@ findCut(const int *hist, int lo, int hi, CutStatus &status)
       // if we got here, there was no obvious cutpoint, try
       // finding place where change in second derivative is max
     int *dhist = new int[len];
-    assert( dhist );
+    if (dhist == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
     for (i = 1; i < len-1; i++) {
 	dhist[i] = hist[i+1] - 2*hist[i] + hist[i-1];
     };
@@ -294,6 +308,8 @@ findCut(const int *hist, int lo, int hi, CutStatus &status)
 ClusterList::ClusterList(Array<IntVect> *pts)
 {
     CLUSTER *c = new CLUSTER(pts);
+    if (c == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
     lst.append(c);
 }
 

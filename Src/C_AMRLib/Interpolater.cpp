@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Interpolater.cpp,v 1.3 1997-11-26 19:18:50 lijewski Exp $
+// $Id: Interpolater.cpp,v 1.4 1997-11-26 20:41:44 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -67,7 +67,8 @@ NodeBilinear::interp(FArrayBox& crse, int crse_comp,
     if (slope_len < slp_len) {
 	delete slope;
 	slope_len = slp_len;
-	slope = new Real[slope_len];
+	if ((slope = new Real[slope_len]) == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
     }
     int strp_len = len0*ratio[0];
     for( int n=1; n<BL_SPACEDIM; n++ ) {
@@ -76,7 +77,8 @@ NodeBilinear::interp(FArrayBox& crse, int crse_comp,
     if (strip_len < strp_len) {
 	delete strip;
 	strip_len = strp_len;
-	strip = new Real[strip_len];
+	if ((strip = new Real[strip_len]) == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
     }
     int strip_lo = ratio[0] * clo[0];
     int strip_hi = ratio[0] * chi[0];
@@ -155,13 +157,15 @@ CellBilinear::interp(FArrayBox& crse, int crse_comp,
     if (slope_len < slp_len) {
 	delete slope;
 	slope_len = slp_len;
-	slope = new Real[slope_len];
+	if ((slope = new Real[slope_len]) == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
     }
     int strp_len = len0*ratio[0];
     if (strip_len < strp_len) {
 	delete strip;
 	strip_len = strp_len;
-	strip = new Real[strip_len];
+	if ((strip = new Real[strip_len]) == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
     }
     int strip_lo = ratio[0] * clo[0];
     int strip_hi = ratio[0] * chi[0];
@@ -244,7 +248,8 @@ CellConservative::interp(FArrayBox& crse, int crse_comp,
     if (slope_len < BL_SPACEDIM*c_len) {
 	slope_len = BL_SPACEDIM*c_len;
 	delete cslope;
-	cslope = new Real[slope_len];
+	if ((cslope = new Real[slope_len]) == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
     }
     int loslp    = cslope_bx.index(crse_bx.smallEnd());
     int hislp    = cslope_bx.index(crse_bx.bigEnd());
@@ -261,7 +266,8 @@ CellConservative::interp(FArrayBox& crse, int crse_comp,
     if (strip_len < (BL_SPACEDIM+2)*f_len) {
 	strip_len = (BL_SPACEDIM+2)*f_len;
 	delete strip;
-	strip = new Real[strip_len];
+	if ((strip = new Real[strip_len]) == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
     }
     Real *fstrip = strip;
     Real *foff = fstrip + f_len;
@@ -359,7 +365,8 @@ PCInterp::interp(FArrayBox& crse, int crse_comp,
     if (strip_len < s_len) {
 	delete strip;
 	strip_len = s_len;
-	strip = new Real[strip_len];
+	if ((strip = new Real[strip_len]) == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
     }
     int strip_lo = ratio[long_dir] * cblo[long_dir];
     int strip_hi = ratio[long_dir] * (cbhi[long_dir]+1) - 1;

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateData.cpp,v 1.6 1997-11-26 19:18:51 lijewski Exp $
+// $Id: StateData.cpp,v 1.7 1997-11-26 20:41:44 lijewski Exp $
 //
 
 #include <RunStats.H>
@@ -82,7 +82,8 @@ StateData::define (const Box&             p_domain,
 	old_time.stop  = time;
     }
     int ncomp = desc->nComp();
-    new_data = new MultiFab(grids,ncomp,desc->nExtra(),Fab_allocate);
+    if ((new_data = new MultiFab(grids,ncomp,desc->nExtra(),Fab_allocate)) == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
     old_data = 0;
     buildBC();
 }
@@ -198,8 +199,9 @@ StateData::allocOldData ()
 {
     if (old_data == 0)
     {
-	old_data = new MultiFab(grids,desc->nComp(),desc->nExtra(),
-				Fab_allocate);
+	old_data = new MultiFab(grids,desc->nComp(),desc->nExtra(),Fab_allocate);
+    if (old_data == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
     }
 }
 

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ErrorList.cpp,v 1.2 1997-11-24 18:52:30 lijewski Exp $
+// $Id: ErrorList.cpp,v 1.3 1997-11-26 20:41:43 lijewski Exp $
 //
 
 #include <ErrorList.H>
@@ -58,7 +58,10 @@ void
 ErrorList::add(const aString &name, int nextra, ErrorType typ,
 	       ErrorFunc func)
 {
-    lst.append(new ErrorRec(name,nextra,typ,func));
+    ErrorRec* er = new ErrorRec(name,nextra,typ,func);
+    if (er == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
+    lst.append(er);
       // keep list in order of definition, append
 }
 

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.5 1997-11-26 19:18:47 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.6 1997-11-26 20:41:41 lijewski Exp $
 //
 
 // #define ADVANCE_DEBUG 1
@@ -1434,11 +1434,14 @@ AmrLevel::derive(const aString &name, Real time)
 	const StateDescriptor &desc = desc_lst[state_indx];
 	int nc = desc.nComp();
 	const BoxArray& grds = state[state_indx].boxArray();
-	PArray<FArrayBox> *df = new PArray<FArrayBox>(grids.length(),
-						      PArrayManage);
+	PArray<FArrayBox> *df = new PArray<FArrayBox>(grids.length(),PArrayManage);
+    if (df == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
         int i;
 	for (i = 0; i < grds.length(); i++) {
 	    FArrayBox *dest = new FArrayBox(grds[i],1);
+        if (dest == 0)
+            BoxLib::OutOfMemory(__FILE__, __LINE__);
 	    state[state_indx].linInterp(*dest,grds[i],time,src_comp,0,1);
 	    df->set(i,dest);
 	}
@@ -1448,8 +1451,9 @@ AmrLevel::derive(const aString &name, Real time)
       // can quantity be derived?
     const DeriveRec* d;
     if (d = derive_lst.get(name)) {
-	PArray<FArrayBox> *df = new PArray<FArrayBox>(grids.length(),
-						      PArrayManage);
+	PArray<FArrayBox> *df = new PArray<FArrayBox>(grids.length(),PArrayManage);
+    if (df == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
 
 	const Real* dx = geom.CellSize();
 	int state_indx, src_comp, num_comp;
@@ -1466,6 +1470,8 @@ AmrLevel::derive(const aString &name, Real time)
 	    Box dbox(grids[i]);
 	    dbox.convert(der_typ);
 	    FArrayBox *dest = new FArrayBox(dbox,n_der);
+        if (dest == 0)
+            BoxLib::OutOfMemory(__FILE__, __LINE__);
 	    df->set(i,dest);
 
 	      // build src fab and fill with component state data
@@ -1525,6 +1531,8 @@ AmrLevel::derive(const Box& b, const aString &name, Real time)
       // is it a state variable?
     if (isStateVariable(name,state_indx,src_comp)) {
 	FArrayBox *dest = new FArrayBox(b,1);
+    if (dest == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
 	FillPatch(*dest,0,time,state_indx,src_comp,1);
 	return dest;
     }
@@ -1532,6 +1540,8 @@ AmrLevel::derive(const Box& b, const aString &name, Real time)
     const DeriveRec* d;
     if (d = derive_lst.get(name)) {
 	FArrayBox *dest = new FArrayBox(b,d->numDerive());
+    if (dest == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
 	FillDerive(*dest,b,name,time);
 	return dest;
     }
@@ -1658,7 +1668,8 @@ int*
 AmrLevel::getBCArray(int State_Type, int gridno, int strt_comp, int num_comp)
 {
     int* bc = new int[2*BL_SPACEDIM*num_comp];
-    assert(bc);
+    if (bc == 0)
+        BoxLib::OutOfMemory(__FILE__, __LINE__);
     int* b = bc;
     int n;
     for (n = 0; n < num_comp; n++) {
