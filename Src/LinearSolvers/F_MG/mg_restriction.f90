@@ -116,8 +116,8 @@ contains
     integer        , intent(in)  :: mm_crse(lom_crse(1):)
     integer :: ir(:)
     integer :: hif
-    logical,intent(in) :: inject
-    integer,intent(in) :: mg_restriction_mode
+    logical, intent(in) :: inject
+    integer, intent(in) :: mg_restriction_mode
 
     integer :: i, ifine, m
 
@@ -196,7 +196,7 @@ contains
     integer        , intent(in)  :: mm_crse(lom_crse(1):,lom_crse(2):)
     integer :: ir(:)
     logical, intent(in) :: inject
-    integer,intent(in) :: mg_restriction_mode
+    integer, intent(in) :: mg_restriction_mode
 
     integer :: i, j, ifine, jfine, m, n, ng
     integer :: ileft,irght,jbot,jtop
@@ -347,10 +347,10 @@ contains
     integer,intent(in) :: mg_restriction_mode
 
     integer :: i, j, k, l, m, n, ng
-    integer :: ifine,jfine,kfine
-    integer :: ileft,irght,jbot,jtop,kdwn,kup
+    integer :: ifine, jfine, kfine
+    integer :: ileft, irght, jbot, jtop, kdwn, kup
     integer :: hif(3)
-    real(kind=dp_t) :: fac,fac0,fac1,fac2
+    real(kind=dp_t) :: fac, fac0, fac1, fac2
     logical :: add_lo_x, add_lo_y, add_lo_z, add_hi_x, add_hi_y, add_hi_z
 
     hif(1) = lof(1)+size(ff,dim=1)-1

@@ -36,7 +36,7 @@ contains
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     real(kind=dp_t), pointer :: cp(:,:,:,:)
     integer, pointer :: mp(:,:,:,:)
-    integer i
+    integer :: i
 
 !   Do this just to set everything in the mask to zero.
     call setval(mask,BC_INT)
@@ -116,8 +116,8 @@ contains
 
     type(box    )  :: bx1
     type(boxarray) :: ba
-    integer i, j, ib, jb, ilo, jlo, ii, nx, ny
-    real (kind = dp_t) fx, fy
+    integer :: i, j, ib, jb, ilo, jlo, ii, nx, ny
+    real (kind = dp_t) :: fx, fy
 
     fx = HALF*THIRD/dh(1)**2
     fy = HALF*THIRD/dh(2)**2
@@ -630,7 +630,7 @@ contains
     real (kind = dp_t), intent(in)  ::  uu(-1:)
     real (kind = dp_t), intent(in)  :: res(-1:)
     integer           , intent(in)  ::  mm(:)
-    integer ratio(:), side
+    integer, intent(in) :: ratio(:), side
 
     integer i,nx
     real (kind = dp_t) :: fac
@@ -657,8 +657,8 @@ contains
     real (kind = dp_t), intent(inout) ::  uu(-1:,-1:)
     real (kind = dp_t), intent(inout) :: res(-1:,-1:)
     integer           , intent(in   ) ::  mm(0:,0:)
-    integer ratio(2),side
-    integer nx,ny,nxc,nyc
+    integer, intent(in) :: ratio(:), side
+    integer :: nx, ny, nxc, nyc
     integer :: hid(2)
     integer :: lo(2),ng_res
     integer :: i,j,ic,jc,m,n,isign,ioff,joff
@@ -885,8 +885,8 @@ contains
     real (kind = dp_t), intent(in   ) ::  uu(-1:,-1:,-1:)
     real (kind = dp_t), intent(inout) :: res(-1:,-1:,-1:)
     integer           , intent(in   ) ::  mm(0:,0:,0:)
-    integer ratio(3),side
-    integer nx,ny,nz,nxc,nyc,nzc
+    integer, intent(in) :: ratio(:),side
+    integer :: nx, ny, nz, nxc, nyc, nzc
     integer :: hid(3),lo(3),ng_res
     integer :: i,j,k,l,ic,jc,kc,m,n
     integer :: isign,ioff,joff,koff

@@ -234,7 +234,7 @@ subroutine ml_interface_c(res, cr, flux, cf, crse, ss, crse_domain, face, dim)
     real (kind = dp_t), intent(in   ) ::        ss(los(1):,los(2):,0:)
     integer, intent(in) :: face, dim
 
-    integer i, j
+    integer :: i, j
     real (kind = dp_t) :: crse_flux
 
     !   Hi i side
@@ -285,7 +285,7 @@ subroutine ml_interface_c(res, cr, flux, cf, crse, ss, crse_domain, face, dim)
     real (kind = dp_t), intent(in   ) ::        ss(los(1):,los(2):,los(3):,0:)
     integer, intent(in) :: face, dim
 
-    integer i, j, k
+    integer :: i, j, k
     real (kind = dp_t) :: crse_flux
 
 !   Hi i side
@@ -458,7 +458,7 @@ subroutine ml_interface_c(res, cr, flux, cf, crse, ss, crse_domain, face, dim)
     integer, intent(in) :: side
     integer, intent(in) :: ir(:)
 
-    integer i
+    integer :: i
     real (kind = dp_t) :: crse_flux
 
     i = lo(1)
@@ -492,7 +492,7 @@ subroutine ml_interface_c(res, cr, flux, cf, crse, ss, crse_domain, face, dim)
     integer, intent(in) :: side
     integer, intent(in) :: ir(:)
 
-    integer i, j
+    integer :: i, j
     real (kind = dp_t) :: crse_flux
 
     i = lo(1)
@@ -621,11 +621,11 @@ subroutine ml_interface_c(res, cr, flux, cf, crse, ss, crse_domain, face, dim)
     integer, intent(in) :: side
     integer, intent(in) :: ir(:)
 
-    integer i, j, k
-    integer ioff,joff,koff
-    integer sig_mm,sig_mp,sig_pm,sig_pp
+    integer :: i, j, k
+    integer :: ioff, joff, koff
+    integer :: sig_mm, sig_mp, sig_pm, sig_pp
     real (kind = dp_t) :: crse_flux
-    real (kind = dp_t) :: cell_mm,cell_mp,cell_pm,cell_pp
+    real (kind = dp_t) :: cell_mm, cell_mp, cell_pm, cell_pp
 
     i = lo(1)
     j = lo(2)
