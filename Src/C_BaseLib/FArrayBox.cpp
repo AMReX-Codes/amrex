@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.27 1999-05-10 18:54:21 car Exp $
+// $Id: FArrayBox.cpp,v 1.28 1999-05-25 22:02:20 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -252,9 +252,8 @@ Real FArrayBox::initval = FLT_MAX;
 #endif
 #endif
 
-
 bool
-FArrayBox::set_do_initval(bool tf)
+FArrayBox::set_do_initval (bool tf)
 {
   bool o_tf = do_initval;
   do_initval = tf;
@@ -262,21 +261,21 @@ FArrayBox::set_do_initval(bool tf)
 }
 
 bool
-FArrayBox::get_do_initval()
+FArrayBox::get_do_initval ()
 {
   return do_initval;
 }
 
 Real
-FArrayBox::set_initval(Real iv)
+FArrayBox::set_initval (Real iv)
 {
-  bool o_iv = initval;
+  Real o_iv = initval;
   initval = iv;
   return o_iv;
 }
 
 Real
-FArrayBox::get_initval()
+FArrayBox::get_initval ()
 {
   return initval;
 }
