@@ -1,9 +1,9 @@
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 //
-// $Id: Utility.H,v 1.47 2001-07-26 20:08:46 lijewski Exp $
+// $Id: Utility.H,v 1.48 2001-07-26 20:31:38 car Exp $
 //
-#include <iosfwd>
+#include <iostream>
 #include <string>
 
 #include <winstd.H>
