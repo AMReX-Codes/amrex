@@ -13,8 +13,8 @@ override XTRADEFS += -DBL_COALESCE_FABS -DBL_OLD_STL
 endif
 
 ifeq ($(COMP),KCC)
-CXX     := KCC
-CXXOPTF += +K3 -O2
+CXX     := KCC --no_exceptions
+CXXOPTF += +K3
 CXXDEBF += +K0
 #
 # Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
