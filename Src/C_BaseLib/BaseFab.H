@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.49 2002-10-31 17:02:12 lijewski Exp $
+// $Id: BaseFab.H,v 1.50 2002-11-07 19:04:01 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1068,6 +1068,7 @@ BaseFab<T>::copy (const BaseFab<T>& src,
                   int               destcomp,
                   int               numcomp)
 {
+    BL_ASSERT(destbox.ok());
     BL_ASSERT(srcbox.sameSize(destbox));
     BL_ASSERT(src.box().contains(srcbox));
     BL_ASSERT(domain.contains(destbox));
@@ -1408,6 +1409,19 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
 #endif
 }
 
+//
+// Forward declaration of template specializaton for Real.
+// The definition is found in BaseFab.cpp.
+//
+template <>
+void
+BaseFab<Real>::performCopy (const BaseFab<Real>& src,
+                            const Box&           srcbox,
+                            int                  srccomp,
+                            const Box&           destbox,
+                            int                  destcomp,
+                            int                  numcomp);
+
 template <class T>
 void
 BaseFab<T>::performSetVal (T         val,
@@ -1421,6 +1435,7 @@ BaseFab<T>::performSetVal (T         val,
     if (bx == domain)
     {
         T* data = &dptr[ns*numpts];
+
         for (long i = 0, N = num*numpts; i < N; i++)
         {
             *data++ = val;
@@ -1434,6 +1449,17 @@ BaseFab<T>::performSetVal (T         val,
         } EndFor
     }
 }
+
+//
+// Forward declaration of template specializaton for Real.
+// Definition is found in BaseFab.cpp.
+//
+template <>
+void
+BaseFab<Real>::performSetVal (Real       val,
+                              const Box& bx,
+                              int        ns,
+                              int        num);
 
 template <class T>
 void
