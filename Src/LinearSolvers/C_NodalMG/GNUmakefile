@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.22 1998-11-16 21:44:10 car Exp $
+# $Id: GNUmakefile,v 1.23 1998-11-18 20:47:05 lijewski Exp $
 #
 PRECISION = DOUBLE
 DEBUG     = FALSE
@@ -66,7 +66,6 @@ endif
 include $(TOP)/mk/Make.rules
 
 ifeq ($(USE_MPI), TRUE)
-  DEFINES += -DBL_USE_MPI
   LIBRARIES += -lmpi
   ifeq ($(MACHINE), OSF1)
     INCLUDE_LOCATIONS += /usr/local/mpi/include
