@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.28 2001-11-21 19:50:44 car Exp $
+// $Id: BLThread.cpp,v 1.29 2001-11-26 18:14:26 car Exp $
 //
 
 #include <winstd.H>
@@ -8,9 +8,7 @@
 #include <Thread.H>
 
 #ifdef WIN32
-// minimum requirement of WindowsNT
 #define _WIN32_WINNT 0x0400
-#define WINVER       0x0400
 #include <windows.h>
 #else
 #include <unistd.h>
@@ -497,7 +495,7 @@ Thread::setCancelState(CancelState cs)
 int
 Thread::max_threads()
 {
-    return 16;			// FIXME
+    return INFINITE;		// No real limit.
 }
 #else
 
@@ -612,6 +610,14 @@ Mutex::Implementation::trylock ()
     }
     return true;
 #else
+#ifdef DEBUG
+    OSVERSIONINFO vi = { sizeof(vi) };
+    GetVersionEx(&vi);
+    if (vi.dwPlatformId != VER_PLATFORM_WIN32_NT) 
+    {
+	BoxLib::Error("trylock requires windows NT");
+    }
+#endif
     return TryEnterCriticalSection(&m_mutex) != 0;
 #endif
 }
