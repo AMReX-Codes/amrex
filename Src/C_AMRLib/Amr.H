@@ -4,7 +4,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.23 1999-04-27 18:24:45 lijewski Exp $
+// $Id: Amr.H,v 1.24 1999-05-27 19:15:54 sstanley Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -138,19 +138,48 @@ public:
     //
     Real plotPer () const;
 
-    /*@ManDoc: The names of state or derived variables to output in the
+    /*@ManDoc: The names of state variables to output in the
                plotfile.  They can be set using the amr.plot\_vars variable
                in a ParmParse inputs file.  If no variables are specified
                in the inputs file this defaults to a single-element array
                containing the string "ALL".
     */
-    const Array<aString>& plotVars () const;
+   static  const Array<aString>& plotVars ();
 
     /*@ManDoc: Is the string the name of a variable in plot\_vars?
                Also returns true if plot\_vars.length() == 1 and
                plot\_vars[0] == "ALL".
     */
-    bool isPlotVar (const aString& name) const;
+    static bool isPlotVar (const aString& name);
+
+    /*@ManDoc: If the string is not the name of a variable in plot\_vars,
+               add it to plot\_vars.  If plot\_vars.length() == 1 and
+               plot\_vars[0] == "ALL", then plot\_vars remains unchanged.
+    */
+    static void addPlotVar (const aString& name);
+
+    /*@ManDoc: The names of derived variables to output in the
+               plotfile.  They can be set using the amr.derive\_plot\_vars 
+               variable in a ParmParse inputs file.  If no variables are 
+               specified in the inputs file this defaults to a single-element 
+               array containing the string "NONE".
+    */
+    static const Array<aString>& derivePlotVars ();
+
+    /*@ManDoc: Is the string the name of a variable in derive\_plot\_vars?
+               Returns false if derive\_plot\_vars.length() == 1 and
+               derive\_plot\_vars[0] == "NONE".
+    */
+    static bool isDerivePlotVar (const aString& name);
+
+    /*@ManDoc: If the string is not the name of a variable in 
+               derive\_plot\_vars, add it to derive\_plot\_vars.  If 
+               derive\_plot\_vars.length() == 1 and 
+               derive\_plot\_vars[0] == "NONE" then 
+               derive\_plot\_vars[0] is redefined to the string 
+               name.
+    */
+    static void addDerivePlotVar (const aString& name);
     //
     //@ManDoc: Number of buffer cells in error estimator.
     //
@@ -317,7 +346,10 @@ protected:
     int              plot_int;        // How often plotfile (# of time steps)
     Real             plot_per;        // How often plotfile (in units of time)
     aString          plot_file_root;  // Root name of plotfile.
-    Array<aString>   plot_vars;       // Vars to dump to plotfile or "ALL".
+    static Array<aString> plot_vars;       // State Vars to dump to plotfile 
+                                           //   or "ALL".
+    static Array<aString> derive_plot_vars;// Derived Vars to dump to plotfile 
+                                           //   or "NONE".
     StationData      station;
     int              verbose;
     int              record_grid_info;
@@ -372,9 +404,16 @@ Amr::plotPer () const
 
 inline
 const Array<aString>&
-Amr::plotVars () const
+Amr::plotVars ()
 {
     return plot_vars;
+}
+
+inline
+const Array<aString>&
+Amr::derivePlotVars ()
+{
+    return derive_plot_vars;
 }
 
 inline

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.84 1999-05-10 20:31:14 marc Exp $
+// $Id: Amr.cpp,v 1.85 1999-05-27 19:15:55 sstanley Exp $
 //
 
 #include <TagBox.H>
@@ -38,6 +38,13 @@ using std::ios;
 #ifdef BL_USE_SETBUF
 #define pubsetbuf setbuf
 #endif
+
+//
+// Static objects.
+//
+Array<aString> Amr::plot_vars;
+Array<aString> Amr::derive_plot_vars;
+
 
 //
 // I now want to add a version string to the checkpoint file.
@@ -250,18 +257,34 @@ Amr::Amr ()
     {
         aString nm;
 
-        plot_vars.resize(pp.countval("plot_vars"));
+        int nPltVars = pp.countval("plot_vars");
 
-        for (i = 0; i < plot_vars.length(); i++)
+        for (i = 0; i < nPltVars; i++)
         {
             pp.get("plot_vars", nm, i);
-            plot_vars[i] = nm;
+            addPlotVar(nm);
         }
     }
-    else
+    else if (plot_vars.length() == 0)
     {
-        plot_vars.resize(1);
-        plot_vars[0] = "ALL";
+        addPlotVar("ALL");
+    }
+
+    if (pp.contains("derive_plot_vars"))
+    {
+        aString nm;
+
+        int nDrvPltVars = pp.countval("derive_plot_vars");
+
+        for (i = 0; i < nDrvPltVars; i++)
+        {
+            pp.get("derive_plot_vars", nm, i);
+            addDerivePlotVar(nm);
+        }
+    }
+    else if (derive_plot_vars.length() == 0)
+    {
+        addDerivePlotVar("NONE");
     }
 
     pp.query("max_grid_size",max_grid_size);
@@ -346,8 +369,11 @@ Amr::Amr ()
 }
 
 bool
-Amr::isPlotVar (const aString& name) const
+Amr::isPlotVar (const aString& name)
 {
+    if (plot_vars.length() == 0)
+        return false;
+
     if (plot_vars.length() == 1 && plot_vars[0] == "ALL")
         return true;
 
@@ -356,6 +382,49 @@ Amr::isPlotVar (const aString& name) const
             return true;
 
     return false;
+}
+
+void
+Amr::addPlotVar (const aString& name)
+{
+    if (!isPlotVar(name))
+    {
+        plot_vars.resize(plot_vars.length() + 1);
+        plot_vars[plot_vars.length() - 1] = name;
+    }
+}
+
+bool
+Amr::isDerivePlotVar (const aString& name)
+{
+    if (derive_plot_vars.length() == 0)
+        return false;
+
+    if (derive_plot_vars.length() == 1 && derive_plot_vars[0] == "NONE")
+        return false;
+
+    for (int i = 0; i < derive_plot_vars.length(); i++)
+        if (derive_plot_vars[i] == name)
+            return true;
+
+    return false;
+}
+
+void
+Amr::addDerivePlotVar (const aString& name)
+{
+    if (!isDerivePlotVar(name))
+    {
+        if (derive_plot_vars.length() == 1 && derive_plot_vars[0] == "NONE")
+        {
+            derive_plot_vars[0] = name;
+        }
+        else
+        {
+            derive_plot_vars.resize(derive_plot_vars.length() + 1);
+            derive_plot_vars[derive_plot_vars.length() - 1] = name;
+        }
+    }
 }
 
 Amr::~Amr ()
