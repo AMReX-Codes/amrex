@@ -1,10 +1,11 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tVisMF.cpp,v 1.5 1997-11-11 19:20:07 lijewski Exp $
+// $Id: tVisMF.cpp,v 1.6 1997-11-11 20:29:56 lijewski Exp $
 //
 
 #include <stdlib.h>
+#include <unistd.h>
 
 #include <VisMF.H>
 
@@ -122,8 +123,18 @@ _bsp_preload_init ()
 
 #endif /*BL_USE_BSP*/
 
-static int   nProcs = 1;
+static int nProcs = 1;
+
 static char* the_prog_name;
+
+static aString PerFile("PerFile");
+
+static aString PerCPU("PerCPU");
+
+//
+// How defaults to PerCPU.
+//
+static aString How(PerCPU);
 
 static
 void
@@ -131,6 +142,7 @@ usage ()
 {
     std::cout << "usage: "
               << the_prog_name
+              << "[-how PerFile|PerCPU]"
               << " [-nprocs N]"
               << std::endl;
     exit(1);
@@ -147,10 +159,34 @@ parse_args (char**& argv)
             if (*++argv)
             {
                 nProcs = atoi(*argv);
+
+                if (nProcs <= 0)
+                {
+                    std::cout << "nprocs must be positive" << std::endl;
+                    usage();
+                }
             }
             else
             {
-                std::cout << "No nprocs # supplied.\n";
+                std::cout << "No argument to -nprocs supplied.\n";
+                usage();
+            }
+        }
+        else if (strcmp(*argv, "-how") ==  0)
+        {
+            if (*++argv)
+            {
+                How = *argv;
+
+                if (!(How == PerCPU || How == PerFile))
+                {
+                    std::cout << "Invalid value for -how argument\n";
+                    usage();
+                }
+            }
+            else
+            {
+                std::cout << "No argument to -how supplied.\n";
                 usage();
             }
         }
@@ -160,11 +196,6 @@ parse_args (char**& argv)
             usage();
         }
     }
-    if (nProcs <= 0)
-    {
-        std::cout << "nprocs must be positive" << std::endl;
-        usage();
-    }
 }
 
 static
@@ -173,6 +204,11 @@ Write_N_Read (const MultiFab& mf,
               const aString&  mf_name,
               VisMF::How      how)
 {
+    if (ParallelDescriptor::IOProcessor())
+    {
+        std::cout << "Writing the MultiFab to disk ...\n";
+    }
+
     switch (how)
     {
     case VisMF::OneFilePerCPU:
@@ -182,6 +218,10 @@ Write_N_Read (const MultiFab& mf,
     default:
         BoxLib::Error("Bad case in switch");
     }
+    //
+    // Give stuff a chance to get to disk.
+    //
+    sleep(1);
 
     VisMF vmf(mf_name);
 
@@ -189,15 +229,10 @@ Write_N_Read (const MultiFab& mf,
 
     for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
     {
-        cout << "vmf[" << mfi.index() << "]:\n" << vmf[mfi.index()] << '\n';
+        int idx = mfi.index();
+
+        std::cout << "--> vmf[" << idx << "]:\n\n" << vmf[idx] << '\n';
     }
-
-    aString cmd("/bin/rm -f ");
-
-    cmd += mf_name;
-    cmd += "*";
-
-//    system(cmd.c_str());
 }
 
 int
@@ -232,9 +267,23 @@ main (int, char** argv)
 
     static const aString mf_name = "Spam-n-Eggs";
 
-    Write_N_Read (mf, mf_name, VisMF::OneFilePerCPU);
+    aString cmd("/bin/rm -f ");
 
-//    Write_N_Read (mf, mf_name, VisMF::OneFilePerFab);
+    cmd += mf_name;
+    cmd += "*";
+    //
+    // Clean out gunk from any previous runs.
+    //
+    system(cmd.c_str());
+
+    if (How == PerCPU)
+    {
+        Write_N_Read (mf, mf_name, VisMF::OneFilePerCPU);
+    }
+    else
+    {
+        Write_N_Read (mf, mf_name, VisMF::OneFilePerCPU);
+    }
 
     EndParallel();
 }
