@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MCMultiGrid.cpp,v 1.7 1999-05-10 18:54:27 car Exp $
+// $Id: MCMultiGrid.cpp,v 1.8 1999-08-06 21:48:37 propp Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -45,7 +45,6 @@ MCMultiGrid::initialize ()
     pp.query("nu_1", def_nu_1);
     pp.query("nu_2", def_nu_2);
     pp.query("nu_f", def_nu_f);
-    pp.query("verbose", def_verbose);
     pp.query("v", def_verbose);
     pp.query("usecg", def_usecg);
     pp.query("rtol_b", def_rtol_b);

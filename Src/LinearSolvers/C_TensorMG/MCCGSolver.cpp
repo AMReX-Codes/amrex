@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MCCGSolver.cpp,v 1.8 1999-05-10 18:54:26 car Exp $
+// $Id: MCCGSolver.cpp,v 1.9 1999-08-06 21:48:35 propp Exp $
 //
 
 #include <ParmParse.H>
@@ -19,7 +19,6 @@ MCCGSolver::initialize ()
 {
     ParmParse pp("cg");
     pp.query("maxiter", def_maxiter);
-    pp.query("verbose", def_verbose);
     pp.query("v", def_verbose);
     if (ParallelDescriptor::IOProcessor() && def_verbose)
     {

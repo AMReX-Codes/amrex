@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: LinOp.cpp,v 1.12 1999-05-10 18:54:16 car Exp $
+// $Id: LinOp.cpp,v 1.13 1999-08-06 21:48:46 propp Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -39,7 +39,6 @@ LinOp::initialize ()
     ParmParse pp("Lp");
 
     pp.query("harmavg", def_harmavg);
-    pp.query("verbose", def_verbose);
     pp.query("v", def_verbose);
     pp.query("alternateApplyBC", AlternateApplyBC);
 
