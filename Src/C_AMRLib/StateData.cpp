@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateData.cpp,v 1.17 1998-05-06 17:50:50 lijewski Exp $
+// $Id: StateData.cpp,v 1.18 1998-05-21 15:04:29 lijewski Exp $
 //
 
 #include <RunStats.H>
@@ -218,15 +218,15 @@ StateData::FillBoundary (const Real*    dx,
             cur_time = 0.5*(old_time.start + old_time.stop);
     }
 
-    MultiFabIterator new_datamfi(*new_data);
+    assert((do_new && new_data != 0) || old_data != 0);
+
+    MultiFabIterator mfi(do_new ? *new_data : *old_data);
    
-    for ( ; new_datamfi.isValid(); ++new_datamfi)
+    for ( ; mfi.isValid(); ++mfi)
     {
-        DependentMultiFabIterator old_datamfi(new_datamfi, *old_data);
-        FArrayBox* dest = &(new_datamfi());
-        if (!do_new)
-            dest = &(old_datamfi());
-        const Box& bx = dest->box();
+        FArrayBox* dest = &(mfi());
+        const Box& bx   = dest->box();
+
         if (!domain.contains(bx))
         {
             const int* dlo = bx.loVect();
@@ -236,18 +236,16 @@ StateData::FillBoundary (const Real*    dx,
             Real xlo[BL_SPACEDIM];
             BCRec bcr;
             const Real* problo = prob_domain.lo();
-            int i;
-            for (i = 0; i < BL_SPACEDIM; i++)
+            for (int i = 0; i < BL_SPACEDIM; i++)
             {
                 xlo[i] = problo[i] + dx[i]*(dlo[i]-plo[i]);
             }
-            for (i = 0; i < num_comp; i++)
+            for (int i = 0; i < num_comp; i++)
             {
                 int sc = src_comp+i;
-                Real* dat = dest->dataPtr(sc);
                 setBC(bx,domain,desc->getBC(sc),bcr);
-                desc->bndryFill(sc)(dat,ARLIM(dlo),ARLIM(dhi),
-                                    plo,phi,dx,xlo, &cur_time,bcr.vect());
+                desc->bndryFill(sc)(dest->dataPtr(sc),ARLIM(dlo),ARLIM(dhi),
+                                    plo,phi,dx,xlo,&cur_time,bcr.vect());
             }                                  
         }
     }
