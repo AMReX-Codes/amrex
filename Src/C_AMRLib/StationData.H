@@ -1,26 +1,23 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StationData.H,v 1.1 1998-11-25 19:14:16 lijewski Exp $
+// $Id: StationData.H,v 1.2 1998-11-25 23:58:22 lijewski Exp $
 //
 
 #ifndef _StationData_H_
 #define _StationData_H_
 
 #ifdef BL_USE_NEW_HFILES
-#include <cstdlib>
 #include <iostream>
 #include <fstream>
-#include <vector>
-using std::vector
+using std::ios;
 else
-#include <stdlib.h>
 #include <iostream.h>
 #include <fstream.h>
-#include <vector.h>
 #endif
 
 #include "Amr.H"
+#include "Array.H"
 #include "REAL.H"
 #include "aString.H"
 
@@ -28,16 +25,16 @@ struct StationRec
 {
     StationRec ()
     {
-        level = -1;
-        grd   = 0;
         id    = -1;
+        grd   = 0;
+        level = -1;
     }
 
-    int     id;               // Identifier
     Real    pos[BL_SPACEDIM]; // Physical coordinates
+    int     id;               // Identifier
     int     level;            // Finest level containing station
-    Grid*   grd;              // Pointer to grid containing point
     IntVect ix;               // Index position
+    Grid*   grd;              // Pointer to grid containing point
 };
 
 class StationData
@@ -48,42 +45,28 @@ public:
 
     ~StationData ();
     //
-    // Open station file.
+    // Open appropriately-named station file.
     //
-    void openFile (int suffix);
+    //  "rootname_CPU_NNNN_timestep"
     //
-    // Alloc list of stations and open output stream.
+    void openFile (int timestep);
     //
-    void init (int nvar, const char* root_name);
+    // Init from ParmParse.
     //
-    // Add station at this physical location.
+    // ParmParse variables:
     //
-    void addStation (Real* coord);
+    //   StationData.vars     -- Array of name of StateData components
+    //   StationData.coord    -- BL_SPACEDIM array of Reals
+    //   StationData.coord    -- the next one
+    //   StationData.coord    -- ditto ...
+    //   StationData.rootname -- root name of output files.
     //
-    // Return current number of stations.
-    //
-    int numStation () const { return m_stn.size(); }
-    //
-    // List all current stations by id and position.
-    //
-    void listStations (ofstream& os);
-    //
-    // List all current stations by id and position.  Write to default file.
-    //
-    void listStations ();
-    //
-    // Write station info to a checkpoint file.
-    //
-    void dumpStation (ofstream& os, int step) ;
-    //
-    // Read station info from a restart file.
-    //
-    void readStation (ifstream& is, int step);
+    void init ();
     //
     // Collect data for all station points located
     // at the given level and write to station file.
     //
-    void report (int level, Real time, int nvar);
+    void report (Real time) const;
     //
     // Locate finest level grid for each station point.
     //
@@ -92,11 +75,15 @@ public:
                    Real            dx_lev[MAX_LEV][BL_SPACEDIM],
                    Real            prob_lo[BL_SPACEDIM]);
 private:
+    //
+    // Writes out map of StationIDs to Real coordinates to "Station.List".
+    //
+    void listStations () const;
 
-    vector<StationRec> m_stn;   // Array of stations.
-    ofstream           m_ofile; // Output stream.
-    aString            m_name;  // Root name of station file.
-    int                m_nvar;  // Number of variables at data point.
+    Array<StationRec> m_stn;   // Array of stations.
+    Array<aString>    m_vars;  // Names of StateData components to output.
+    ofstream          m_ofile; // Output stream.
+    aString           m_name;  // Root name of station file.
 };
 
 #endif /*_StationData_H_*/
