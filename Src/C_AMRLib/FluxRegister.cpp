@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.68 2001-09-26 16:59:53 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.69 2001-10-16 19:59:56 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -918,9 +918,8 @@ FluxRegister::CrseInitFinish ()
                 N += recvdata[idx+j].box().numPts() * recvdata[idx+j].nComp();
 
             BL_ASSERT(N < INT_MAX);
-            BL_ASSERT(!(The_FAB_Arena == 0));
 
-            fab_data[Ncpu] = static_cast<Real*>(The_FAB_Arena->alloc(N*sizeof(Real)));
+            fab_data[Ncpu] = static_cast<Real*>(BoxLib::The_Arena()->alloc(N*sizeof(Real)));
 
             req_data[Ncpu] = ParallelDescriptor::Arecv(fab_data[Ncpu],N,Ncpu,seqno_2).req();
         }
@@ -939,9 +938,8 @@ FluxRegister::CrseInitFinish ()
                     N += CITags[j].box.numPts() * CITags[j].nComp;
 
             BL_ASSERT(N < INT_MAX);
-            BL_ASSERT(!(The_FAB_Arena == 0));
 
-            Real* data = static_cast<Real*>(The_FAB_Arena->alloc(N*sizeof(Real)));
+            Real* data = static_cast<Real*>(BoxLib::The_Arena()->alloc(N*sizeof(Real)));
             Real* dptr = data;
 
             for (int j = 0; j < CITags.size(); j++)
@@ -962,7 +960,7 @@ FluxRegister::CrseInitFinish ()
 
             ParallelDescriptor::Send(data, N, i, seqno_2);
 
-            The_FAB_Arena->free(data);
+            BoxLib::The_Arena()->free(data);
         }
     }
     //
@@ -1012,7 +1010,7 @@ FluxRegister::CrseInitFinish ()
 
             BL_ASSERT(Processed == Rcvs[Ncpu]);
 
-            The_FAB_Arena->free(fab_data[Ncpu]);
+            BoxLib::The_Arena()->free(fab_data[Ncpu]);
         }
     }
     //

@@ -113,7 +113,7 @@ main(int argc, char **argv)
 	driver(filename.c_str());
     }
 
-    if (CArena* arena = dynamic_cast<CArena*>(The_FAB_Arena))
+    if (CArena* arena = dynamic_cast<CArena*>(BoxLib::The_Arena()))
     {
         //
         // A barrier to make sure our output follows that of RunStats.

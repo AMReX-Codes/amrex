@@ -1,31 +1,33 @@
 //
-// $Id: CArena.cpp,v 1.28 2001-10-12 17:44:26 lijewski Exp $
+// $Id: CArena.cpp,v 1.29 2001-10-16 19:59:51 lijewski Exp $
 //
 #include <winstd.H>
 
 #include <utility>
 #include <cstring>
 
+#include <BArena.H>
 #include <CArena.H>
 #include <Thread.H>
-//
-// Only really use the coalescing FAB arena if BL_COALESCE_FABS.
-//
-#ifdef BL_COALESCE_FABS
 
-static CArena The_Static_FAB_CArena;
-Arena* The_FAB_Arena = &The_Static_FAB_CArena;
+Arena*
+BoxLib::The_Arena ()
+{
+    static ThreadSpecificData<Arena> arena;
 
+    Arena* a = arena.get();
+
+    if (a == 0)
+    {
+#if defined(BL_THREADS) || defined(BL_COALESCE_FABS)
+        arena.set(a = new CArena);
 #else
-
-#include <BArena.H>
-
-static BArena The_Static_FAB_BArena;
-Arena* The_FAB_Arena = &The_Static_FAB_BArena;
-
+        arena.set(a = new BArena);
 #endif
+    }
 
-static Mutex the_carena_mutex;
+    return a;
+}
 
 CArena::CArena (size_t hunk_size)
 {
@@ -47,8 +49,6 @@ CArena::~CArena ()
 void*
 CArena::alloc (size_t nbytes)
 {
-    Lock<Mutex> lock(the_carena_mutex);
-
     nbytes = Arena::align(nbytes == 0 ? 1 : nbytes);
     //
     // Find node in freelist at lowest memory address that'll satisfy request.
@@ -124,8 +124,6 @@ CArena::free (void* vp)
         // Allow calls with NULL as allowed by C++ delete.
         //
         return;
-
-    Lock<Mutex> lock(the_carena_mutex);
     //
     // `vp' had better be in the busy list.
     //
@@ -200,7 +198,5 @@ CArena::free (void* vp)
 size_t
 CArena::heap_space_used () const
 {
-    Lock<Mutex> lock(the_carena_mutex);
-
     return m_used;
 }
