@@ -699,13 +699,6 @@ task_fab::~task_fab ()
     delete target;
 }
 
-const FArrayBox&
-task_fab::fab ()
-{
-    assert(target != 0);
-    return *target;
-}
-
 bool
 task_fab::work_to_do () const
 {
