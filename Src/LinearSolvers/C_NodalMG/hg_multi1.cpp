@@ -49,11 +49,14 @@ extern "C"
     void FORT_HGCEN_TERRAIN  (Real*, intS, Real*, intS, intS);
 #if BL_SPACEDIM == 2
     void FORT_HGCEN_FULL     (Real*, intS, CRealPS, intS, intS, CRealPS, const int*, const int*);
-#endif
+    void FORT_HGCEN_NO_SIGMA (Real*, intS, RealPS, intS, intS, CRealPS, const int*);
+    void FORT_HGCEN          (Real*, intS, Real*, intS, intS, const int*);
+#elif (BL_SPACEDIM == 3)
     void FORT_HGCEN_NO_SIGMA (Real*, intS, RealPS, intS, intS, CRealPS);
+    void FORT_HGCEN          (Real*, intS, Real*, intS, intS);
+#endif
     void FORT_HGINTS_NO_SIGMA(Real*, intS, intS, CRealPS, intS, const Real*, intS, intS, intRS);
     void FORT_HGSCON         (Real*, intS, RealPS, intS, intS, CRealPS);
-    void FORT_HGCEN          (Real*, intS, Real*, intS, intS);
 }
 
 class task_interpolate_patch : public task
@@ -592,11 +595,23 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma)
 		    sn1(c_mfi, sigma_nd[1][mglev]),
 		    sn2(c_mfi, sigma_nd[2][mglev]));
 		const Box& sigbox = sn0->box();
-		FORT_HGCEN_NO_SIGMA(c_mfi->dataPtr(), DIMLIST(cenbox), D_DECL(sn0->dataPtr(), sn1->dataPtr(), sn2->dataPtr()),DIMLIST(sigbox), DIMLIST(reg), D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]));	    
+		const int isRZ = IsRZ();
+		FORT_HGCEN_NO_SIGMA(c_mfi->dataPtr(), DIMLIST(cenbox), 
+                       D_DECL(sn0->dataPtr(), sn1->dataPtr(), sn2->dataPtr()),
+                       DIMLIST(sigbox), DIMLIST(reg), 
+                       D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]),&isRZ);
 #else
 		DependentMultiFabIterator sn_dmfi(c_mfi, sigma_node[mglev]);
 		const Box& sigbox = sn_dmfi->box();
-		FORT_HGCEN(c_mfi->dataPtr(), DIMLIST(cenbox), sn_dmfi->dataPtr(), DIMLIST(sigbox), DIMLIST(reg));
+		const int isRZ = IsRZ();
+		FORT_HGCEN(c_mfi->dataPtr(), DIMLIST(cenbox), 
+                           sn_dmfi->dataPtr(), DIMLIST(sigbox), 
+#if (BL_SPACEDIM == 2)
+                           DIMLIST(reg),&isRZ);
+#else
+                           DIMLIST(reg));
+#endif
+
 #endif
 	    }
 	}	

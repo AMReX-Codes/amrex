@@ -261,6 +261,17 @@ c-----------------------------------------------------------------------
      &                 vf(i,j)   - vf(i,j-1)))
          end do
       end do
+
+c     This correction is *only* for the cross stencil
+      if (irz .eq. 1 .and. fregl0 .eq. 0) then
+         i = 0
+         do j = fregl1, fregh1
+            src(i,j) = src(i,j) - fac * hym1 * 0.5d0 * 
+     @                (vf(i-1,j) - vf(i-1,j-1) +
+     @                 vf(i,j)   - vf(i  ,j-1))
+         end do
+      endif
+
 #if 0
 c     We dont want to use these terms for the five-point stencil.
       if (irz .eq. 1) then
@@ -377,6 +388,13 @@ c  We dont want to use these extra terms for the five-point stencil
      &        (hxm1 * (uc(i,juc) - uc(i-1,juc)) -
      &         hym1 * idir * (vc(i,juc) + vc(i-1,juc)))
          end do
+         if (irz .eq. 1 .and. cregl0 .le. 0 .and. cregh0 .ge. 0) then
+            i = 0
+            src(i*ir,j*jr) = fac0 *
+     @        (hxm1 * (uc(i,juc) - uc(i-1,juc)) -
+     @         hym1 * idir * (vc(i,juc) + vc(i-1,juc))*0.5d0 )
+         endif
+
 #if 0
 c  We dont want to use these extra terms for the five-point stencil
          if (irz .eq. 1 .and. cregh0 .lt. imax) then
@@ -411,6 +429,13 @@ c This should only occur with a corner at the outer boundary:
      &            hym1 * idir * (vf(i-m,juf) + vf(i-m-1,juf) +
      &                           vf(i+m,juf) + vf(i+m-1,juf)))
             end do
+
+            if (irz .eq. 1 .and. ir*cregl0 .le. 0 .and. ir*cregh0 .ge. 0) then
+              i = 0
+              src(i,j) = src(i,j) - fac1 * 0.5d0 *  
+     @              hym1 * idir * (vf(i-m,juf) + vf(i-m-1,juf) +
+     @                             vf(i+m,juf) + vf(i+m-1,juf))
+            endif
 #if 0
 c  We dont want to use these extra terms for the five-point stencil
             if (irz .eq. 1 .and. cregh0 .lt. imax) then

@@ -9,7 +9,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      & sigmaf, sfl0, sfh0, sfl1, sfh1,
      & sigmac, scl0, sch0, scl1, sch1,
      &       regl0, regh0, regl1, regh1,
-     & hx, hy, ir, jr, idim, idir)
+     & hx, hy, ir, jr, idim, idir, irz)
       integer resl0, resh0, resl1, resh1
       integer srcl0, srch0, srcl1, srch1
       integer fdstl0, fdsth0, fdstl1, fdsth1
@@ -24,6 +24,7 @@ c Note---assumes fdst linearly interpolated from cdst along edge
       double precision sigmaf(sfl0:sfh0,sfl1:sfh1)
       double precision sigmac(scl0:sch0,scl1:sch1)
       double precision hx, hy
+      integer irz
       integer ir, jr, idim, idir
       double precision hxm2, hym2, fac0, fac1, tmp
       integer i, is, j, js, m, n
@@ -98,6 +99,16 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      &          ((sigmac(i-1,js) + sigmac(i,js)) *
      &            (cdst(i,j-idir) - cdst(i,j))))
          end do
+
+c        This correction is *only* for the cross stencil
+         if (irz .eq. 1 .and. regl0 .le. 0 .and. regh0 .ge. 0) then
+            i = 0
+            res(i*ir,j*jr) = res(i*ir,j*jr) + fac0 *
+     &         hym2 * 0.5d0 * 
+     &          ((sigmac(i-1,js) + sigmac(i,js)) *
+     &            (cdst(i,j-idir) - cdst(i,j)))
+         endif
+
          fac0 = fac0 / (ir * ir * jr)
          hxm2 = ir * ir * hxm2
          hym2 = jr * jr * hym2
@@ -126,6 +137,15 @@ c Note---assumes fdst linearly interpolated from cdst along edge
      &              (sigmaf(i+m-1,js) + sigmaf(i+m,js)) *
      &             (fdst(i+m,j+idir) - fdst(i+m,j))))
             end do
+
+            if (irz .eq. 1 .and. regl0 .le. 0 .and. regh0 .ge. 0) then
+               i = 0
+               res(i,j) = res(i,j) + fac1 * hym2 * 0.5d0 * 
+     &           ((sigmaf(i-m-1,js) + sigmaf(i-m,js)) *
+     &             (fdst(i-m,j+idir) - fdst(i-m,j)) +
+     &              (sigmaf(i+m-1,js) + sigmaf(i+m,js)) *
+     &             (fdst(i+m,j+idir) - fdst(i+m,j)))
+            endif
          end do
       end if
       end
@@ -1494,6 +1514,16 @@ c-----------------------------------------------------------------------
 cdir$ ivdep
                do j = regl1 + ipar, regh1, 2
                   cor(i,j) = (AVG() - res(i,j)) * cen(i,j)
+                  if (irz .eq. 1 .and. i .eq. 0) then
+                    cor(i,j) = (
+     $                        0.5d0 * hxm2 * 
+     $                 ((sigx(i-1,j-1) + sigx(i-1,j)) * cor(i-1,j) + 
+     $                  (sigx(i  ,j-1) + sigx(i  ,j)) * cor(i+1,j)) + 
+     $                       0.25d0 * hym2 * 
+     $                 ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) + 
+     $                  (sigy(i-1,j  ) + sigy(i,j  )) * cor(i,j+1)) 
+     $                    - res(i,j)) * cen(i,j)
+                  endif
                end do
             end do
          end do
@@ -1505,6 +1535,16 @@ cdir$ ivdep
 cdir$ ivdep
                do i = regl0 + ipar, regh0, 2
                   cor(i,j) = (AVG() - res(i,j)) * cen(i,j)
+                  if (irz .eq. 1 .and. i .eq. 0) then
+                    cor(i,j) = (
+     $                        0.5d0 * hxm2 * 
+     $                 ((sigx(i-1,j-1) + sigx(i-1,j)) * cor(i-1,j) + 
+     $                  (sigx(i,j-1) + sigx(i,j)) * cor(i+1,j)) + 
+     $                       0.25d0 * hym2 * 
+     $                 ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) + 
+     $                  (sigy(i-1,j  ) + sigy(i,j  )) * cor(i,j+1)) 
+     $                    - res(i,j)) * cen(i,j)
+                  endif
                end do
             end do
          end do
@@ -1561,12 +1601,15 @@ c dirichlet bdy:
 c neumann bdy:
                   cor(i,j) = RHSL1()* betm
                   aj = 0.5d0 * hym2 * (sigy(i-1,j) + sigy(i,j))
+                  if (irz .eq. 1 .and. i .eq. 0) aj = 0.5d0 * aj
                   wrk(1) = 2.d0 * aj * betm
                else
 c interface to grid at same level:
                   aj = 0.5d0 * hym2 * (sigy(i-1,j-1) + sigy(i,j-1))
+                  if (irz .eq. 1 .and. i .eq. 0) aj = 0.5d0 * aj
                   cor(i,j) = (RHSL1() - aj * cor(i,j-1)) * betm
                   aj = 0.5d0 * hym2 * (sigy(i-1,j) + sigy(i,j))
+                  if (irz .eq. 1 .and. i .eq. 0) aj = 0.5d0 * aj
                   wrk(1) = aj * betm
                end if
 c forward solve loop:
@@ -1579,6 +1622,7 @@ c forward solve loop:
                   end if
                   cor(i,j) = (RHSL1() - aj * cor(i,j-1)) * betm
                   aj = 0.5d0 * hym2 * (sigy(i-1,j) + sigy(i,j))
+                  if (irz .eq. 1 .and. i .eq. 0) aj = 0.5d0 * aj
                   wrk(jw + 1) = aj * betm
                end do
                j = regh1
@@ -1596,6 +1640,7 @@ c interface to grid at same level:
                   betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(jw))
                   cor(i,j) = RHSL1() - aj * cor(i,j-1)
                   aj = 0.5d0 * hym2 * (sigy(i-1,j) + sigy(i,j))
+                  if (irz .eq. 1 .and. i .eq. 0) aj = 0.5d0 * aj
                   cor(i,j) = (cor(i,j) - aj * cor(i,j+1)) * betm
                end if
 c back substitution loop:
@@ -1708,6 +1753,7 @@ c interface to grid at same level:
          j = regl1
          do i = regl0 + ioff, regh0, 2
             aj = 0.5d0 * hym2 * (sigy(i-1,j) + sigy(i,j))
+            if (irz .eq. 1 .and. i .eq. 0) aj = 0.5d0 * aj
             if (cen(i,j) .eq. 0.d0) then
 c dirichlet bdy:
                wrk(i,j) = 0.d0
@@ -1730,6 +1776,7 @@ c forward solve loop:
                end if
                cor(i,j) = (RHSL1() - aj * cor(i,j-1)) * betm
                aj = 0.5d0 * hym2 * (sigy(i-1,j) + sigy(i,j))
+               if (irz .eq. 1 .and. i .eq. 0) aj = 0.5d0 * aj
                wrk(i,j+1) = aj
                wrk(i,j) = aj * betm
             end do
@@ -1749,6 +1796,7 @@ c interface to grid at same level:
                betm = 1.d0 / (-1.d0 / cen(i,j) - aj * wrk(i,j-1))
                cor(i,j) = (RHSL1() - aj * cor(i,j-1)) * betm
                aj = 0.5d0 * hym2 * (sigy(i-1,j) + sigy(i,j))
+               if (irz .eq. 1 .and. i .eq. 0) aj = 0.5d0 * aj
                wrk(i,j) = aj * betm
             end if
          end do
@@ -1761,7 +1809,7 @@ c-----------------------------------------------------------------------
      & dest,  destl0, desth0, destl1, desth1,
      & sigx,  sigy, sfl0, sfh0, sfl1, sfh1,
      &        regl0, regh0, regl1, regh1,
-     & hx, hy)
+     & hx, hy, irz)
       integer resl0, resh0, resl1, resh1
       integer srcl0, srch0, srcl1, srch1
       integer destl0, desth0, destl1, desth1
@@ -1773,10 +1821,13 @@ c-----------------------------------------------------------------------
       double precision sigx(sfl0:sfh0,sfl1:sfh1)
       double precision sigy(sfl0:sfh0,sfl1:sfh1)
       double precision hx, hy
+      integer irz
       double precision hxm2, hym2
       integer i, j
+
       hxm2 = 1.d0 / (hx*hx)
       hym2 = 1.d0 / (hy*hy)
+
       do j = regl1, regh1
          do i = regl0, regh0
             res(i,j) = src(i,j) - 0.5d0 * (hxm2 *
@@ -1791,6 +1842,18 @@ c-----------------------------------------------------------------------
      &             (dest(i,j+1) - dest(i,j))))
          end do
       end do
+
+      if (irz .eq. 1 .and. regl0 .eq. 0) then
+         i = 0
+         do j = regl1, regh1
+            res(i,j) = res(i,j) + .25d0 * hym2 * 
+     @        ((sigy(i-1,j-1) + sigy(i,j-1)) *
+     @          (dest(i,j-1) - dest(i,j)) +
+     @         (sigy(i-1,j) + sigy(i,j)) *
+     @          (dest(i,j+1) - dest(i,j)))
+         end do
+      endif
+
       end
 c-----------------------------------------------------------------------
 c five-point variable stencils
@@ -1799,7 +1862,7 @@ c five-point variable stencils
      & sigx, sigy,
      &       sbl0,sbh0,sbl1,sbh1,
      &       regl0,regh0,regl1,regh1,
-     & hx, hy)
+     & hx, hy, irz)
       integer cenl0,cenh0,cenl1,cenh1
       integer sbl0,sbh0,sbl1,sbh1
       integer regl0,regh0,regl1,regh1
@@ -1807,6 +1870,7 @@ c five-point variable stencils
       double precision sigx(sbl0:sbh0,sbl1:sbh1)
       double precision sigy(sbl0:sbh0,sbl1:sbh1)
       double precision hx, hy
+      integer irz
       double precision hxm2, hym2
       integer i, j
       hxm2 = 1.d0 / (hx*hx)
@@ -1818,24 +1882,38 @@ c five-point variable stencils
      &                         hym2 * (sigy(i-1,j-1) + sigy(i-1,j) +
      &                                 sigy(i,j-1) + sigy(i,j)))
          end do
+         if (irz .eq. 1 .and. regl0 .le. 0 .and. regh0 .ge. 0) then
+            i = 0
+            cen(i,j) = 2.d0 / (hxm2 * (sigx(i-1,j-1) + sigx(i-1,j) +
+     &                                 sigx(i,j-1) + sigx(i,j)) +
+     &                         hym2 * (sigy(i-1,j-1) + sigy(i-1,j) +
+     &                                 sigy(i,j-1) + sigy(i,j)) * 0.5d0 )
+         endif
       end do
       end
 c-----------------------------------------------------------------------
       subroutine hgcen(
      & cen,   cenl0,cenh0,cenl1,cenh1,
      & signd, snl0,snh0,snl1,snh1,
-     &        regl0,regh0,regl1,regh1)
+     &        regl0,regh0,regl1,regh1,irz)
       integer cenl0,cenh0,cenl1,cenh1
       integer snl0,snh0,snl1,snh1
       integer regl0,regh0,regl1,regh1
       double precision cen(cenl0:cenh0,cenl1:cenh1)
       double precision signd(snl0:snh0,snl1:snh1, 2)
+      integer irz
       integer i, j, k
          do j = regl1, regh1
             do i = regl0, regh0
                cen(i,j) = 1.0D0 / (signd(i-1,j,1) + signd(i,j,1) +
-     &                              signd(i,j-1,2) + signd(i,j,2))
+     &                             signd(i,j-1,2) + signd(i,j,2))
             end do
+            if (irz .eq. 1 .and. regl0 .eq. 0) then
+              i = 0
+              cen(i,j) = 1.0D0 / (      signd(i-1,j,1) +       signd(i,j,1) +
+     &                            0.5d0*signd(i,j-1,2) + 0.5d0*signd(i,j,2))
+               
+            endif
          end do
       end
 c-----------------------------------------------------------------------
@@ -3075,7 +3153,7 @@ c-----------------------------------------------------------------------
       subroutine hgresu(
      & res, resl0,resh0,resl1,resh1,
      & src, dest, signd, mask,
-     &      regl0,regh0,regl1,regh1)
+     &      regl0,regh0,regl1,regh1,irz)
       integer resl0,resh0,resl1,resh1
       integer regl0,regh0,regl1,regh1
       double precision res(*)
@@ -3083,17 +3161,36 @@ c-----------------------------------------------------------------------
       double precision dest(*)
       double precision signd(*)
       double precision mask(*)
+      integer irz
+      integer istart, iend
       integer i, jdiff, ly
+      integer ilocal, jlocal
       jdiff = resh0 - resl0 + 1
       ly = (resh1 - resl1 + 1) * jdiff
-      do i = (regl1 - resl1) * jdiff + (regl0 - resl0) + 1,
-     &          (regh1 - resl1) * jdiff + (regh0 - resl0) + 1
+      istart = (regl1 - resl1) * jdiff + (regl0 - resl0)
+      iend   = (regh1 - resl1) * jdiff + (regh0 - resl0)
+
+      do i = istart+1, iend+1
+         jlocal = i / jdiff + resl1
+         ilocal = resl0 + (i-jlocal*jdiff-resl1)
          res(i) = mask(i) * (src(i) -
      &     (signd(i-1)        * (dest(i-1) - dest(i)) +
      &      signd(i)          * (dest(i+1) - dest(i)) +
      &      signd(i+ly-jdiff) * (dest(i-jdiff) - dest(i)) +
      &      signd(i+ly)       * (dest(i+jdiff) - dest(i))))
       end do
+
+      if (irz .eq. 1 .and. regl0 .eq. 0) then
+        do i = (regl1 - resl1) * jdiff + (regl0 - resl0) + 1,
+     &         (regh1 - resl1) * jdiff + (regh0 - resl0) + 1, jdiff
+           res(i) = mask(i) * (src(i) -
+     &       (signd(i-1)        * (dest(i-1) - dest(i)) +
+     &        signd(i)          * (dest(i+1) - dest(i)) +
+     &        signd(i+ly-jdiff) * (dest(i-jdiff) - dest(i)) * 0.5d0 +
+     &        signd(i+ly)       * (dest(i+jdiff) - dest(i)) * 0.5d0 ))
+        end do
+      endif
+
       end
 c-----------------------------------------------------------------------
 c sig here contains three different directions all stored on "nodes"
@@ -3101,7 +3198,7 @@ c sig here contains three different directions all stored on "nodes"
      & cor, res, sig, cen,
      &     resl0,resh0,resl1,resh1,
      & mask,
-     &     regl0,regh0,regl1,regh1)
+     &     regl0,regh0,regl1,regh1,irz)
       integer resl0,resh0,resl1,resh1
       integer regl0,regh0,regl1,regh1
       double precision cor(*)
@@ -3110,23 +3207,56 @@ c sig here contains three different directions all stored on "nodes"
       double precision cen(*)
       double precision mask(*)
       double precision AVG
+      double precision AVGREDGE
+      integer irz
+      integer istart, iend
       integer i, jdiff, ly
       AVG() = (sig(i-1)        * cor(i-1) +
      &         sig(i)          * cor(i+1) +
      &         sig(i+ly-jdiff) * cor(i-jdiff) +
      &         sig(i+ly)       * cor(i+jdiff))
+      AVGREDGE() = (sig(i-1)        * cor(i-1) +
+     &              sig(i)          * cor(i+1) +
+     &              sig(i+ly-jdiff) * cor(i-jdiff) * 0.5d0 +
+     &              sig(i+ly)       * cor(i+jdiff) * 0.5d0 )
       jdiff =  resh0 - resl0 + 1
       ly    = (resh1 - resl1 + 1) * jdiff
+      istart = (regl1 - resl1) * jdiff + (regl0 - resl0)
+      iend   = (regh1 - resl1) * jdiff + (regh0 - resl0)
 cdir$ ivdep
-      do i = (regl1 - resl1) * jdiff + (regl0 - resl0) + 1,
-     &          (regh1 - resl1) * jdiff + (regh0 - resl0) + 1, 2
-         cor(i) = cor(i) 
-     &      + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
-      end do
+      if (irz .eq. 0 .or. regl0 .gt. 0) then
+        do i = istart + 1, iend + 1, 2
+           cor(i) = cor(i) 
+     &        + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
+        end do
 cdir$ ivdep
-      do i = (regl1 - resl1) * jdiff + (regl0 - resl0) + 2,
-     &          (regh1 - resl1) * jdiff + (regh0 - resl0) + 1, 2
-         cor(i) = cor(i) 
-     &      + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
-      end do
+        do i = istart + 2, i end + 1, 2
+           cor(i) = cor(i) 
+     &        + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
+        end do
+
+      else 
+
+c     Now irz = 1 and regl0 = 0, so we are touching the r=0 edge
+        do i = istart + 1, iend + 1, 2
+           if (mod(i-istart-1,jdiff) .eq. 0) then
+             cor(i) = cor(i) 
+     &          + mask(i) * ((AVGREDGE() - res(i)) * cen(i) - cor(i))
+           else
+             cor(i) = cor(i) 
+     &          + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
+           endif
+        end do
+cdir$ ivdep
+        do i = istart + 2, iend + 1, 2
+           if (mod(i-istart-1,jdiff) .eq. 0) then
+             cor(i) = cor(i) 
+     &          + mask(i) * ((AVGREDGE() - res(i)) * cen(i) - cor(i))
+           else
+             cor(i) = cor(i) 
+     &          + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
+           endif
+        end do
+      endif
+
       end
