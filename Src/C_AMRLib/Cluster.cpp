@@ -1,6 +1,8 @@
 //
-// $Id: Cluster.cpp,v 1.17 2001-08-02 16:04:11 car Exp $
+// $Id: Cluster.cpp,v 1.18 2001-08-09 16:20:37 marc Exp $
 //
+
+#include <winstd.H>
 
 #include <algorithm>
 
