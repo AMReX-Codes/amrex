@@ -2,9 +2,7 @@
 #define dims(a) a##l0, a##h0, a##l1, a##h1
 #define dimdec(a) a##l0:a##h0,a##l1:a##h1
 
-#ifdef HG_TERRAIN
-
-      subroutine hggrad(gpx, gpy, dims(gp),
+      subroutine hggrad_terrain(gpx, gpy, dims(gp),
      @ dest, dims(dest),
      @ dims(freg))
       integer dims(gp)
@@ -22,7 +20,7 @@
      @                          dest(i,j  ) - dest(i+1,j  ))
       end
 
-      subroutine hgdiv(src, dims(src),
+      subroutine hgdiv_terrain(src, dims(src),
      @ uf, vf, dims(f),
      @ dims(freg))
       integer dims(src)
@@ -44,7 +42,7 @@
       end
 
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgfdiv(src, dims(src),
+      subroutine hgfdiv_terrain(src, dims(src),
      @ uc, vc, dims(c),
      @ uf, vf, dims(f),
      @ dims(creg),
@@ -115,7 +113,7 @@ c Note---only generates values at coarse points along edge of fine grid
       end
 
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgcdiv(src, dims(src),
+      subroutine hgcdiv_terrain(src, dims(src),
      @ uc, vc, dims(c),
      @ uf, vf, dims(f),
      @ dims(creg),
@@ -177,8 +175,6 @@ c edges
 c weighting
       src(if,jf) = 0.5d0 * sum
       end
-
-#else
 
       subroutine hggrad(gpx, gpy, dims(gp),
      @ dest, dims(dest),
@@ -685,5 +681,3 @@ c Note---only generates values at coarse points along edge of fine grid
          end if
  20      continue
       end
-
-#endif
