@@ -145,6 +145,20 @@ contains
        end do
     end do
   end subroutine bndry_reg_copy
+  subroutine bndry_reg_copy_c(br, cb, mf, cm, nc, all)
+    type(multifab), intent(in) :: mf
+    type(bndry_reg), intent(inout) :: br
+    integer, intent(in) :: cb, cm
+    integer, intent(in), optional :: nc
+    logical, intent(in), optional :: all
+    integer i, f, lnc
+    lnc = 1; if ( present(nc) ) lnc = nc
+    do i = 1, br%dim
+       do f = 0, 1
+          call copy(br%bmf(i,f), cb, mf, cm, all=all)
+       end do
+    end do
+  end subroutine bndry_reg_copy_c
 
   subroutine bndry_reg_setval(br, val, all)
     type(bndry_reg), intent(inout) :: br
