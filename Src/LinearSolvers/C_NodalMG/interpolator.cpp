@@ -32,11 +32,7 @@ Box bilinear_interpolator_class::box(const Box& region, const IntVect& rat) cons
     }
 }
 
-void bilinear_interpolator_class::fill(FArrayBox& patch,
-				       const Box& region,
-				       const FArrayBox& cgr,
-				       const Box& cb,
-				       const IntVect& rat) const
+void bilinear_interpolator_class::fill(FArrayBox& patch, const Box& region, const FArrayBox& cgr, const Box& cb, const IntVect& rat) const
 {
     if (patch.box().cellCentered()) 
     {

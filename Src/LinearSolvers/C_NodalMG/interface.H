@@ -35,27 +35,27 @@ public:
     void copy(const level_interface& src);
     void alloc_coarsened(const BoxArray& Im, const amr_boundary_class* Bdy, const level_interface& src, const IntVect& rat);
     
-    bool ok()                         const { return (status >= 0); }
+    bool ok() const			    { return (status >= 0); }
     
-    const Box& domain()               const { return dom; }
-    const BoxArray& interior_mesh()   const { return im; }
-    const BoxArray& exterior_mesh()   const { return em; }
-    int exterior_ref(int igrid)       const { assert(igrid < -1); return grid_ref[-2-igrid]; }
+    const Box& domain() const		    { return dom; }
+    const BoxArray& interior_mesh() const   { return im; }
+    const BoxArray& exterior_mesh() const   { return em; }
+    int exterior_ref(int igrid) const	    { assert(igrid < -1); return grid_ref[-2-igrid]; }
     int direct_exterior_ref(int igrid)const { assert(igrid > -1); return grid_ref[   igrid]; }
-    const Box& part_fine(int i)       const { return pf[i]; }
+    const Box& part_fine(int i) const	    { return pf[i]; }
     
     Array<int> geo_array(int idim, int i) const;
 
     int grid(int idim, int i, int j)  const;
 
-    int fdim(int i)                   const { return fdm[i]; }
+    int fdim(int i) const		    { return fdm[i]; }
 
-    int nboxes(int idim)              const { return nbx[idim]; }
-    const Box& box(int idim, int i)   const { return bx[idim][i]; }
+    int nboxes(int idim) const		    { return nbx[idim]; }
+    const Box& box(int idim, int i) const   { return bx[idim][i]; }
     const Box& node_box(int idim, int i) const { return nodebx[idim][i]; }
     unsigned int geo(int idim, int i) const { return ge[idim][i]; }
     unsigned int aux(int idim, int i) const { return ax[idim][i]; }
-    bool flag(int idim, int i)        const { return flg[idim][i]; }
+    bool flag(int idim, int i) const	    { return flg[idim][i]; }
     static int ngrids(int idim);
 
 private:

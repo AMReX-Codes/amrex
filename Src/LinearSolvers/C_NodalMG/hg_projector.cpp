@@ -247,13 +247,7 @@ void holy_grail_amr_projector::project(PArray<MultiFab>* u,
     clear();
 }
 
-void holy_grail_amr_projector::sync_project(PArray<MultiFab>* u,
-					    PArray<MultiFab>& p,
-					    PArray<MultiFab>& Coarse_source,
-					    PArray<MultiFab>& Sigma,
-					    Real H[], Real tol,
-					    int Lev_min, int Lev_max,
-					    Real scale)
+void holy_grail_amr_projector::sync_project(PArray<MultiFab>* u, PArray<MultiFab>& p, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma, Real H[], Real tol, int Lev_min, int Lev_max, Real scale)
 {
     if (Lev_min < 0)
 	Lev_min = lev_min_max;
@@ -278,15 +272,7 @@ void holy_grail_amr_projector::sync_project(PArray<MultiFab>* u,
     clear();
 }
 
-void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u,
-					      PArray<MultiFab>& p,
-					      PArray<MultiFab>& rhs,
-					      PArray<MultiFab>& Coarse_source,
-					      PArray<MultiFab>& Sigma,
-					      bool use_u,
-					      Real H[], Real tol,
-					      int Lev_min, int Lev_max,
-					      Real scale)
+void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u, PArray<MultiFab>& p, PArray<MultiFab>& rhs, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma, bool use_u, Real H[], Real tol, int Lev_min, int Lev_max, Real scale)
 {
     if (Lev_min < 0)
 	Lev_min = lev_min_max;

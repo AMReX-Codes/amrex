@@ -99,10 +99,7 @@ Box cell_average_restrictor_class::box(const Box& fb, const IntVect& rat) const
     return retbox.coarsen(rat);
 }
 
-void cell_average_restrictor_class::fill(FArrayBox& patch,
-					 const Box& region,
-					 const FArrayBox& fgr,
-					 const IntVect& rat) const
+void cell_average_restrictor_class::fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const
 {
     assert(patch.box().cellCentered());
     assert(patch.nComp() == 1);
@@ -111,10 +108,7 @@ void cell_average_restrictor_class::fill(FArrayBox& patch,
 }
 
 // terrain_velocity_restrictor
-void terrain_velocity_restrictor_class::fill(FArrayBox& patch,
-					     const Box& region,
-					     const FArrayBox& fgr,
-					     const IntVect& rat) const
+void terrain_velocity_restrictor_class::fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const
 {
     assert(patch.box().cellCentered());
     assert(patch.nComp() == 1);
@@ -132,10 +126,7 @@ Box injection_restrictor_class::box(const Box& fb, const IntVect& rat) const
     return retbox.coarsen(rat);
 }
 
-void injection_restrictor_class::fill(FArrayBox& patch,
-				      const Box& region,
-				      const FArrayBox& fgr,
-				      const IntVect& rat) const
+void injection_restrictor_class::fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const
 {
     assert(patch.box().type() == IntVect::TheNodeVector());
     assert(patch.nComp() == fgr.nComp());
@@ -150,10 +141,7 @@ Box default_restrictor::box(const Box& fb, const IntVect& rat) const
     return retbox.coarsen(rat);
 }
 
-void default_restrictor::fill(FArrayBox& patch,
-			      const Box& region,
-			      const FArrayBox& fgr,
-			      const IntVect& rat) const
+void default_restrictor::fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const
 {
     assert(patch.box().cellCentered() || patch.box().type() == IntVect::TheNodeVector());
     assert(patch.nComp() == fgr.nComp());
@@ -180,10 +168,7 @@ Box bilinear_restrictor_class::box(const Box& fb, const IntVect& rat) const
     return retbox.coarsen(rat).grow(-1);
 }
 
-void bilinear_restrictor_class::fill(FArrayBox& patch,
-				     const Box& region,
-				     const FArrayBox& fgr,
-				     const IntVect& rat) const
+void bilinear_restrictor_class::fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const
 {
     assert(patch.box().type() == IntVect::TheNodeVector());
     assert(patch.nComp() == fgr.nComp());

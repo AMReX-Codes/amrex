@@ -15,7 +15,7 @@ bool task::depend_ready()
 
 // TASK_COPY
 task_copy::task_copy(MultiFab& mf, int dgrid, const MultiFab& smf, int sgrid, const Box& bx)
-: m_mf(mf), m_dgrid(dgrid), m_smf(smf), m_sgrid(sgrid), m_bx(bx), m_sbx(bx), m_local(false), tmp(0), m_request(MPI_REQUEST_NULL)
+    : m_mf(mf), m_dgrid(dgrid), m_smf(smf), m_sgrid(sgrid), m_bx(bx), m_sbx(bx), m_local(false), tmp(0), m_request(MPI_REQUEST_NULL)
 {
 }
 
@@ -41,7 +41,7 @@ bool task_copy::depends_on_q(const task* t1) const
 }
 
 task_copy::task_copy(MultiFab& mf, int dgrid, const Box& db, const MultiFab& smf, int sgrid, const Box& sb)
-: m_mf(mf), m_bx(db), m_dgrid(dgrid), m_smf(smf), m_sbx(sb), m_sgrid(sgrid), m_local(false), tmp(0), m_request(MPI_REQUEST_NULL)
+    : m_mf(mf), m_bx(db), m_dgrid(dgrid), m_smf(smf), m_sbx(sb), m_sgrid(sgrid), m_local(false), tmp(0), m_request(MPI_REQUEST_NULL)
 {
 }
 			// r[jgrid].copy(r[igrid], bb, 0, b, 0, r.nComp());
@@ -312,7 +312,7 @@ void task_list::add_task(task* t)
 // TASK_FAB_GET
 
 task_fab_get::task_fab_get(const MultiFab& d_, int dgrid_, const MultiFab& s_, int sgrid_, const Box& bx_) 
-: d(d_), dgrid(dgrid_), s(s_), sgrid(sgrid_), bx(bx_) {}
+    : d(d_), dgrid(dgrid_), s(s_), sgrid(sgrid_), bx(bx_) {}
 
 const FArrayBox& task_fab_get::fab()
 {

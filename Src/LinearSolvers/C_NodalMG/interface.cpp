@@ -76,10 +76,7 @@ void level_interface::copy(const level_interface& src)
     }
 }
 
-void level_interface::alloc_coarsened(const BoxArray& Im,
-				      const amr_boundary_class* /*bdy*/,
-				      const level_interface& src,
-				      const IntVect& rat)
+void level_interface::alloc_coarsened(const BoxArray& Im, const amr_boundary_class* /*bdy*/, const level_interface& src, const IntVect& rat)
 {
     if (ok())
 	throw "level_interface::alloc_coarsened---this object already allocated";

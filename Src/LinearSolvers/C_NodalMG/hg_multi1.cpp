@@ -84,11 +84,7 @@ private:
     const level_interface& lev_interface;
 };
 
-void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
-				PArray<MultiFab>& Source,
-				PArray<MultiFab>& Coarse_source,
-				PArray<MultiFab>& Sigma,
-				Real H[], int Lev_min, int Lev_max)
+void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma, Real H[], int Lev_min, int Lev_max)
 {
     assert(Dest.length() > Lev_max);
     assert(Dest[Lev_min].nGrow() == 1);
@@ -208,10 +204,7 @@ void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest,
 }
 
 
-void holy_grail_sigma_restrictor_class::fill(FArrayBox& patch,
-					const Box& region,
-					const FArrayBox& fgr,
-					const IntVect& rat) const
+void holy_grail_sigma_restrictor_class::fill(FArrayBox& patch, const Box& region, const FArrayBox& fgr, const IntVect& rat) const
 {
     assert(patch.box().cellCentered());
     assert(rat[0] == 2 && rat[1] == 2 ||
@@ -772,12 +765,7 @@ void holy_grail_amr_multigrid::mg_restrict(int lto, int lfrom)
     clear_part_interface(resid[lto], lev_interface[lto]);
 }
 
-
-void holy_grail_interpolator_class_not_cross::fill(FArrayBox& patch,
-					 const Box& region,
-					 const FArrayBox& cgr,
-					 const Box& cb,
-					 const IntVect& rat) const
+void holy_grail_interpolator_class_not_cross::fill(FArrayBox& patch, const Box& region, const FArrayBox& cgr, const Box& cb, const IntVect& rat) const
 {
     FORT_HGINTS_NO_SIGMA(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region),
 	D_DECL(sigptr[0], sigptr[1], sigptr[2]),
