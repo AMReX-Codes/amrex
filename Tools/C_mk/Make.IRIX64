@@ -1,0 +1,36 @@
+CPP = /lib/cpp
+
+ifeq ($(COMP),CC)
+CXX     := CC -ptused -LANG:ansi-for-init-scope=ON -64
+CXXOPTF += -O2 
+CXXDEBF += -g 
+#
+# Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
+#
+XTRALIBS          +=  -lftn -lm -lXm -lXt -lX11 -lm
+XTRAINCLOC        += /usr/include/X11 /usr/include/Xm
+override XTRADEFS += -DBL_USE_SETBUF -DBL_OLD_STL
+endif
+
+ifeq ($(COMP),KCC)
+CXX     := KCC
+CXXOPTF += +K2
+CXXDEBF += +K0
+#
+# Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
+#
+override XTRADEFS += -DBL_USE_NEW_HFILES
+endif
+
+FC     = f77 -64
+FOPTF += -g3  -Ofast=ip27
+FDEBF += -g
+
+COPTF += -O
+CDEBF += -g
+CPRFF +=
+
+OUTPUT_OPTION	= ; mv $*.o $(objTempDir)/$*.o
+
+FORTPREP	= perl $(PBOXLIB_HOME)/scripts/strip72 -c
+FORT_OUTPUT_OPTION	= ; mv $*.o $(objTempDir)/$*.o
