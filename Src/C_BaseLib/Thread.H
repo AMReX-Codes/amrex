@@ -2,10 +2,13 @@
 #define _BL_THREAD_H_
 
 //
-// $Id: Thread.H,v 1.7 2001-07-21 00:53:50 car Exp $
+// $Id: Thread.H,v 1.8 2001-07-22 19:38:17 car Exp $
 //
 
-#ifdef BL_PTHREADS
+#ifdef BL_THREADS
+#ifdef WIN32
+#error "Threads don't yet work in WIN32"
+#endif
 #include <pthread.h>
 #include <unistd.h>
 #else
@@ -17,7 +20,6 @@ typedef int pthread_t;
 #endif
 #endif
 
-#include <stdexcept>
 #include <Profiler.H>
 #include <Utility.H>
 
@@ -38,9 +40,6 @@ extern "C"
     typedef void* (*Thread_Function)(void*);
 }
 
-#if 0
-class ThreadBase;
-#endif
 class Thread;
 class FunctionThread;
 class Mutex;
@@ -704,26 +703,6 @@ private:
     static ThreadSpecificData<Thread> m_self;
 };
 
-#if 0
-class ThreadBase
-{
-protected:
-    pthread_t m_tid;
-    enum Status { Created, Running, Stopped };
-    Status m_status;
-    // a unique number on this processor, equal n'th thread that has started
-    static int m_next_id;
-    int m_id;
-    mutable bool m_jod;
-    static Mutex next_id;
-    Mutex m_mutex;
-    static ThreadSpecificData<ThreadBase> m_self;
-private:
-    static int get_next_id();
-    ThreadBase(const ThreadBase&);
-    void operator=(const ThreadBase&);
-};
-#endif
 
 
 class FunctionThread

@@ -1,5 +1,5 @@
 //
-// $Id: FArrayBox.cpp,v 1.35 2001-07-20 16:54:08 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.36 2001-07-22 19:38:16 car Exp $
 //
 
 #include <cstdlib>
@@ -8,11 +8,7 @@
 #include <cfloat>
 #include <cmath>
 #include <cstring>
-#ifndef __GNUC__
 #include <limits>
-#else
-#include <cfloat>
-#endif
 
 #include <FArrayBox.H>
 #include <FabConv.H>
@@ -299,18 +295,10 @@ bool FArrayBox::do_initval = true;
 #else
 bool FArrayBox::do_initval = false;
 #endif
-#if !defined(__GNUC__)
 Real FArrayBox::initval =
     std::numeric_limits<Real>::has_quiet_NaN
   ? std::numeric_limits<Real>::quiet_NaN()
   : std::numeric_limits<Real>::max();
-#else
-#ifdef BL_USE_FLOAT
-Real FArrayBox::initval = FLT_MAX;
-#else
-Real FArrayBox::initval = DBL_MAX;
-#endif
-#endif
 
 bool
 FArrayBox::set_do_initval (bool tf)

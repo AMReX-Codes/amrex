@@ -1,10 +1,10 @@
 //
-// $Id: FabConv.cpp,v 1.14 2001-07-19 20:02:45 lijewski Exp $
+// $Id: FabConv.cpp,v 1.15 2001-07-22 19:38:17 car Exp $
 //
 
 #include <iostream>
 #include <cstdlib>
-#include <climits>
+#include <limits>
 #include <cstring>
 
 #include <BoxLib.H>

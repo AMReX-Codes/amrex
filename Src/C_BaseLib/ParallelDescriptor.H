@@ -2,7 +2,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.63 2001-07-22 18:52:17 car Exp $
+// $Id: ParallelDescriptor.H,v 1.64 2001-07-22 19:38:17 car Exp $
 //
 
 #include <BLassert.H>
@@ -173,7 +173,7 @@ namespace ParallelDescriptor
                first routine in this class called from within a program.
     */
     void StartParallel (int*    argc = 0,
-                               char*** argv = 0);
+			char*** argv = 0);
 
     /*@ManDoc: Perform any needed parallel finalization.  This MUST be the
                last routine in this class called from within a program.
