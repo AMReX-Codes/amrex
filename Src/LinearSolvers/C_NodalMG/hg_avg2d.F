@@ -1,9 +1,9 @@
 c-----------------------------------------------------------------------
-      subroutine hgavg(src,
-     & srcl0, srch0, srcl1, srch1,
-     & rf,
-     & fl0, fh0, fl1, fh1,
-     & fregl0, fregh0, fregl1, fregh1, hx, irz, imax)
+      subroutine hgavg(
+     & src,   srcl0, srch0, srcl1, srch1,
+     & rf,    fl0, fh0, fl1, fh1,
+     &        fregl0, fregh0, fregl1, fregh1,
+     & hx, irz, imax)
       integer srcl0, srch0, srcl1, srch1
       integer fl0, fh0, fl1, fh1
       integer fregl0, fregh0, fregl1, fregh1
@@ -38,13 +38,11 @@ c-----------------------------------------------------------------------
       end
 c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgfavg(src,
-     & srcl0, srch0, srcl1, srch1,
-     & rc,
-     & cl0, ch0, cl1, ch1,
-     & rf,
-     & fl0, fh0, fl1, fh1,
-     & cregl0, cregh0, cregl1, cregh1,
+      subroutine hgfavg(
+     & src,   srcl0, srch0, srcl1, srch1,
+     & rc,    cl0, ch0, cl1, ch1,
+     & rf,    fl0, fh0, fl1, fh1,
+     &        cregl0, cregh0, cregl1, cregh1,
      & ir, jr, idim, idir, hx, irz, imax)
       integer srcl0, srch0, srcl1, srch1
       integer cl0, ch0, cl1, ch1
@@ -167,13 +165,11 @@ c should be handled by the cavg routine instead:
       end
 c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgcavg(src,
-     & srcl0, srch0, srcl1, srch1,
-     & rc,
-     & cl0, ch0, cl1, ch1,
-     & rf,
-     & fl0, fh0, fl1, fh1,
-     & cregl0, cregh0, cregl1, cregh1,
+      subroutine hgcavg(
+     & src,   srcl0, srch0, srcl1, srch1,
+     & rc,    cl0, ch0, cl1, ch1,
+     & rf,    fl0, fh0, fl1, fh1,
+     &        cregl0, cregh0, cregl1, cregh1,
      & ir, jr, ga, hx, irz, imax)
       integer srcl0, srch0, srcl1, srch1
       integer cl0, ch0, cl1, ch1
