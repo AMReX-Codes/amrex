@@ -554,7 +554,6 @@ contains
     integer        , pointer :: mp(:,:,:,:)
     integer :: i, n, nn
     integer :: lo(mgt%dim)
-    logical :: skewed
 
     if ( cell_centered_q(uu) ) then
        select case ( mgt%smoother )

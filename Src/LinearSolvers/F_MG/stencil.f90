@@ -271,8 +271,8 @@ contains
     real(kind=dp_t), pointer :: upn(:,:,:,:)
     real(kind=dp_t), pointer :: sp(:,:,:,:)
     integer        , pointer :: mp(:,:,:,:)
-    integer i, n, nn
-    data nn /21/
+    integer i, n
+!   integer :: nn = 21
     logical :: skwd
 
     call multifab_fill_boundary(uu)

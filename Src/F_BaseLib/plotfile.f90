@@ -104,7 +104,6 @@ contains
 
   function plotfile_refrat(pf) result(r)
     type(plotfile), intent(in) :: pf
-    integer :: n
     integer :: r(pf%flevel-1,pf%dim)
     r = pf%refrat
   end function plotfile_refrat
