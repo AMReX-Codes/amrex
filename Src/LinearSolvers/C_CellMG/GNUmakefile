@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.4 1998-12-02 00:05:09 lijewski Exp $
+# $Id: GNUmakefile,v 1.5 1999-03-31 18:19:38 car Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -29,6 +29,9 @@ INCLUDE_LOCATIONS += /usr/local/mpi/include
 endif
 ifeq ($(MACHINE),AIX)
 INCLUDE_LOCATIONS += /usr/lpp/ppe.poe/include
+endif
+ifeq ($(MACHINE), Linux)
+INCLUDE_LOCATIONS += $(HOME)/mpich/include
 endif
 endif
 
