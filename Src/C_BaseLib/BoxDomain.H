@@ -4,7 +4,7 @@
 #define BL_BOXDOMAIN_H
 
 //
-// $Id: BoxDomain.H,v 1.4 1997-11-18 00:04:48 lijewski Exp $
+// $Id: BoxDomain.H,v 1.5 1998-05-04 21:24:55 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -45,7 +45,8 @@ class BoxDomainIterator;
 */
 
 class BoxDomain
-    : protected BoxList
+    :
+    protected BoxList
 {
     //
     // BoxDomainIterator is a friend of ours :-)
@@ -180,9 +181,9 @@ public:
     /*@ManDoc: Refine all Boxes in the domain by the refinement ratio
                and return the result in dest.
     */
-    friend inline void refine (BoxDomain&       dest,
-                               const BoxDomain& fin,
-                               int              ratio);
+    friend void refine (BoxDomain&       dest,
+                        const BoxDomain& fin,
+                        int              ratio);
     //
     //@ManDoc: Coarsen all Boxes in the domain by the refinement ratio.
     //
@@ -191,9 +192,9 @@ public:
     /*@ManDoc: Coarsen all Boxes in the domain by the refinement ratio.
                The result is placed into a new BoxDomain.
     */
-    friend inline void coarsen (BoxDomain&       dest,
-                                const BoxDomain& fin,
-                                int              ratio);
+    friend void coarsen (BoxDomain&       dest,
+                         const BoxDomain& fin,
+                         int              ratio);
     //
     //@ManDoc: Intersect this BoxDomain with Box b.
     //
@@ -202,9 +203,9 @@ public:
     /*@ManDoc: Compute the intersection of BoxDomain fin with Box b
                and place the result into BoxDomain dest. 
     */
-    friend inline void intersect (BoxDomain&       dest,
-                                  const BoxDomain& fin,
-                                  const Box&       b);
+    friend void intersect (BoxDomain&       dest,
+                           const BoxDomain& fin,
+                           const Box&       b);
     //
     //@ManDoc: Grow each Box by size sz.
     //
@@ -213,9 +214,9 @@ public:
     /*@ManDoc: Grow each Box in BoxDomain fin by size sz and place
                the result into BoxDomain dest.
     */
-    friend inline void accrete (BoxDomain&       dest,
-                                const BoxDomain& fin,
-                                int              sz = 1);
+    friend void accrete (BoxDomain&       dest,
+                         const BoxDomain& fin,
+                         int              sz = 1);
     //
     //@ManDoc: Creates the complement of BoxDomain bl in Box b.
     //
@@ -224,8 +225,8 @@ public:
     //
     //@ManDoc: Returns the complement of BoxDomain bl in Box b.
     //
-    friend inline BoxDomain complementIn (const Box&       b,
-                                          const BoxDomain& bl);
+    friend BoxDomain complementIn (const Box&       b,
+                                   const BoxDomain& bl);
 };
 
 //
@@ -243,14 +244,16 @@ public:
 */
 
 class BoxDomainIterator
-    : public ListIterator<Box>
+    :
+    public ListIterator<Box>
 {
 public:
     //
     //@ManDoc: Construct a BoxDomianIterator on the supplied BoxDomain.
     //
     BoxDomainIterator (const BoxDomain& bl)
-        : ListIterator<Box>(bl.lbox) {}
+        :
+        ListIterator<Box>(bl.lbox) {}
 };
 
 //

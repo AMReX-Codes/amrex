@@ -25,49 +25,58 @@ using std::vector;
 #include <Arena.H>
 #include <Array.H>
 
+//
+//@Man:
+//@Memo: A Concrete Class for Dynamic Memory Management
+/*@Doc:
+
+  This is a coalescing memory manager.  It allocates (possibly) large
+  chunks of heap space and apportions it out as requested.  It merges
+  together neighboring chunks on each free().
+*/
+
 class CArena
     :
     public Arena
 {
 public:
-    //
-    // `hunk_size' is the minimum size of hunks of memory to
-    // allocate in any call of alloc().  If hunk_size == 0 we use
-    // DefaultHunkSize as specified below.
-    //
+
+    /*@ManDoc: Construct a coalescing memory manager.  `hunk\_size' is the
+               minimum size of hunks of memory to allocate from the heap.
+               If hunk\_size == 0 we use DefaultHunkSize as specified below.
+    */
     CArena (size_t hunk_size = 0);
     //
-    // The destructor.
+    //@ManDoc: The destructor.
     //
     ~CArena ();
     //
-    // Allocate some memory.
+    //@ManDoc: Allocate some memory.
     //
     virtual void* alloc (size_t nbytes);
-    //
-    // Free up allocated memory.
-    //
+
+    /*@ManDoc: Free up allocated memory.  Merge neighboring free memory chunks
+               into largest possible chunk.
+    */
     virtual void free (void* ap);
-    //
-    // Mirror the C calloc() function.
-    //
-    // Returns zero'd memory of size nmemb*size.
-    //
-    // This is here so that we can implement malloc(3) and family.
-    // Meer user's shouldn't use this function.
-    //
+
+    /*@ManDoc: Mirror the C calloc() function.  Returns zero'd memory of
+               size nmemb*size.  This is here so that we can implement
+               malloc(3) and family.  User's shouldn't use this function.
+    */
     void* calloc (size_t nmemb, size_t size);
-    //
-    // Mirror the C realloc() function.
-    //
-    // This is here so that we can implement malloc(3) and family.
-    // Meer user's shouldn't use this function.
-    //
+
+    /*@ManDoc: Mirror the C realloc() function.  This is here so that we can
+               implement malloc(3) and family.  User's shouldn't use this
+               function.
+    */
     void* realloc (void* ptr, size_t size);
+    //
+    //@ManDoc: The default memory hunk size to grab from the heap.
+    //
+    enum { DefaultHunkSize = 1024*1024 };
 
 protected:
-
-    enum { DefaultHunkSize = 1024*1024 };
     //
     // The nodes in our free list and block list.
     //

@@ -4,7 +4,7 @@
 #define BL_BARENA_H
 
 //
-// $Id: BArena.H,v 1.4 1998-02-09 20:46:52 lijewski Exp $
+// $Id: BArena.H,v 1.5 1998-05-04 21:24:54 lijewski Exp $
 //
 
 #include <Arena.H>
@@ -15,6 +15,8 @@
 /*@Doc:
 
   This is the simplest dynamic memory management class derived from Arena.
+
+  Makes calls to ::operator new() and ::operator delete().
 */
 
 class BArena

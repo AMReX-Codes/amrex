@@ -4,7 +4,7 @@
 #define BL_BOXARRAY_H
 
 //
-// $Id: BoxArray.H,v 1.7 1998-03-26 17:32:16 lijewski Exp $
+// $Id: BoxArray.H,v 1.8 1998-05-04 21:24:54 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -112,17 +112,13 @@ public:
     //@ManDoc: Output this BoxArray to a checkpoint file.
     //
     ostream& writeOn (ostream&) const;
-
-    /*@ManDoc: Are the BoxArrays equal?  This function works by examining
-               an internally maintained hash value.  It will make a mistake
-               once in 256 million.
-    */
+    //
+    //@ManDoc: Are the BoxArrays equal?
+    //
     bool operator== (const BoxArray& rhs) const;
-
-    /*@ManDoc: Are the BoxArrays not equal?  This function works by examining
-               an internally maintained hash value.  It will make a mistake
-               once in 256 million.
-    */
+    //
+    //@ManDoc: Are the BoxArrays not equal?
+    //
     bool operator!= (const BoxArray& rhs) const;
     //
     //@ManDoc: Forces each Box in BoxArray to have sides <= block\_size.

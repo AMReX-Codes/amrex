@@ -4,7 +4,7 @@
 #define BL_NORMEDFAB_H
 
 //
-// $Id: NormedFab.H,v 1.2 1998-02-18 21:31:14 vince Exp $
+// $Id: NormedFab.H,v 1.3 1998-05-04 21:24:58 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -96,14 +96,16 @@ private:
 template <class T>
 inline
 NormedFab<T>::NormedFab ()
-    : BaseFab<T>()
+    :
+    BaseFab<T>()
 {}
 
 template <class T>
 inline
 NormedFab<T>::NormedFab (const Box& b,
                          int        n)
-    : BaseFab<T>(b,n)
+    :
+    BaseFab<T>(b,n)
 {}
 
 //

@@ -4,7 +4,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.19 1998-04-30 18:04:33 lijewski Exp $
+// $Id: Utility.H,v 1.20 1998-05-04 21:25:02 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -54,7 +54,9 @@ public:
     //@ManDoc: Return true if argument is a non-zero length string of digits.
     //
     static bool is_integer (const char* str);
-
+    //
+    // The `Op' functions aren't documented as they're used only in BSP-specific code.
+    //
     static void OpBoolAnd (bool& result,
                            bool& arg1,
                            bool& arg2,
@@ -139,63 +141,66 @@ public:
     {
         result = arg1 && arg2;
     }
-    //
-    // Creates the specified directories.  `path' may be either a full pathname
-    // or a relative pathname.  It will create all the directories in the
-    // pathname, if they don't already exist, so that on successful return the
-    // pathname refers to an existing directory.  Returns true or false
-    // depending upon whether or not all it was successful.  Also returns
-    // if `path' is NULL or "/".  `mode' is the mode passed to mkdir() for
-    // any directories that must be created.
-    //
-    // For example, if it is passed the string "/a/b/c/d/e/f/g", it
-    // will return successfully when all the directories in the pathname
-    // exist; i.e. when the full pathname is a valid directory.
-    //
+
 #ifdef WIN32
     static bool CreateDirectory (const aString& path,
                                  int            mode);
 #else
+    /*@ManDoc:
+      Creates the specified directories.  `path' may be either a full pathname
+      or a relative pathname.  It will create all the directories in the
+      pathname, if they don't already exist, so that on successful return the
+      pathname refers to an existing directory.  Returns true or false
+      depending upon whether or not all it was successful.  Also returns
+      if `path' is NULL or "/".  `mode' is the mode passed to mkdir() for
+      any directories that must be created.
+    
+      For example, if it is passed the string "/a/b/c/d/e/f/g", it
+      will return successfully when all the directories in the pathname
+      exist; i.e. when the full pathname is a valid directory.
+    */
     static bool CreateDirectory (const aString& path,
                                  mode_t         mode);
 #endif
     //
-    // Output a message and abort when couldn't create the directory.
+    //@ManDoc: Output a message and abort when couldn't create the directory.
     //
     static void CreateDirectoryFailed (const aString& dir);
     //
-    // Output a message and abort when couldn't open the file.
+    //@ManDoc: Output a message and abort when couldn't open the file.
     //
     static void FileOpenFailed (const aString& dir);
     //
-    // Attempt to unlink the file.  Ignore any errors.
+    //@ManDoc: Attempt to unlink the file.  Ignore any errors.
     //
     static void UnlinkFile (const aString& file);
-    //
-    // Aborts after printing message indicating out-of-memory; i.e. new failed.
-    // The "supported" set_new_handler() function for BoxLib applications.
-    //
+
+    /*@ManDoc: Aborts after printing message indicating out-of-memory;
+               i.e. operator new has failed. This is the "supported"
+               set\_new\_handler() function for BoxLib applications.
+     */
     static void OutOfMemory ();
-    //
-    // A good random number generator.  Returns values in (0,1).
-    //
-    // Reference:
-    //
-    //   Random Number Generators: Good Ones Are Hard To Find,
-    //   Stephen K. Park and Keith W. Miller,
-    //   Communications of the ACM,
-    //   October 1988 Volume 31 Number 10, pages 1192 - 1201.
-    //
-    // There is also an entry point for Fortran callable as:
-    //
-    //    REAL_T rn
-    //    call blutilrand(rn)
-    //
+
+    /*@ManDoc:
+      A good random number generator.  Returns values in (0,1).
+    
+      Reference:
+    
+      Random Number Generators: Good Ones Are Hard To Find,
+      Stephen K. Park and Keith W. Miller,
+      Communications of the ACM,
+      October 1988 Volume 31 Number 10, pages 1192 - 1201.
+    
+      There is also an entry point for Fortran callable as:
+    
+      REAL\_T rn
+      call blutilrand(rn)
+    */
     static double Random ();
-    //
-    // Set the seed of the above random number generator to any
-    // integer other than zero and 2147483647 (2^31-1).
-    //
+
+    /*@ManDoc: Set the seed of the above random number generator to any
+               value other than zero and 2147483647.
+    */
     static void InitRandom (int seed);
 };
 
@@ -265,18 +270,6 @@ public:
 */
 #define BL_LANG_CC 1
 #endif /*BL_LANG_CC*/
-
-#ifdef BL_AUTO_INSTANTIATE
-#undef BL_AUTO_INSTANTIATE
-/*@ManDoc:
-  The macro BL\_AUTO\_INSTANTIATE indicates that the C++ compiler is not
-  able to find a template source file (.C file) given the template declaration
-  file (.H file).  This macro instructs the compiler to automatically include
-  the .C file, whenever it includes the .H file.
-*/
-#define BL_AUTO_INSTANTIATE 1
-#endif /*BL_AUTO_INSTANTIATE*/
-
 
 #ifdef BL_FORT_USE_UNDERSCORE
 #undef BL_FORT_USE_UNDERSCORE

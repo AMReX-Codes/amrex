@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.22 1998-04-07 23:10:18 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.23 1998-05-04 21:24:57 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -54,14 +54,8 @@ DistributionMapping::strategy (DistributionMapping::Strategy how)
     case ROUNDROBIN:
         m_BuildMap = &DistributionMapping::RoundRobinProcessorMap;
         break;
-    case RANDOM:
-        m_BuildMap = &DistributionMapping::RandomProcessorMap;
-        break;
     case KNAPSACK:
         m_BuildMap = &DistributionMapping::KnapSackProcessorMap;
-        break;
-    case SIZEBALANCED:
-        m_BuildMap = &DistributionMapping::SizeBalancedProcessorMap;
         break;
     default:
         BoxLib::Error("Bad DistributionMapping::Strategy");
@@ -90,10 +84,6 @@ DistributionMapping::init ()
             how = ROUNDROBIN;
         else if (theStrategy == "KNAPSACK")
             how = KNAPSACK;
-        else if (theStrategy == "RANDOM")
-            how = RANDOM;
-        else if (theStrategy == "SIZEBALANCED")
-            how = SIZEBALANCED;
         else
         {
             aString msg("Unknown strategy: ");
@@ -250,26 +240,6 @@ DistributionMapping::KnapSackProcessorMap (int             nprocs,
             }
         }
     }
-}
-
-void
-DistributionMapping::RandomProcessorMap (int             nprocs,
-                                         const BoxArray& boxes)
-{
-    assert(nprocs > 0);
-    assert(boxes.length() > 0);
-
-    BoxLib::Error("DistributionMapping::RANDOM not implemented");
-}
-
-void
-DistributionMapping::SizeBalancedProcessorMap (int             nprocs,
-                                               const BoxArray& boxes)
-{
-    assert(nprocs > 0);
-    assert(boxes.length() > 0);
-
-    BoxLib::Error("DistributionMapping::SIZEBALANCED not implemented");
 }
 
 void

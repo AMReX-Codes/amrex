@@ -4,7 +4,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.13 1998-04-27 19:43:47 lijewski Exp $
+// $Id: MultiFab.H,v 1.14 1998-05-04 21:24:58 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -260,26 +260,28 @@ public:
     void negate (const Box& region,
                  int        nghost = 0);
 
-    /* This function adds the values of the cells in mf to the corresponding
-       cells of this MultiFab.  mf is required to have the same BoxArray or
-       "valid region" as this MultiFab.  The addition is done only to num\_comp
-       components, starting with component number strt\_comp.  The parameter
-       nghost specifies the number of boundary cells that will be modified.
-       If nghost == 0, only the valid region of each FArrayBox will be
-       modified.
+    /*@ManDoc:
+      This function adds the values of the cells in mf to the corresponding
+      cells of this MultiFab.  mf is required to have the same BoxArray or
+      "valid region" as this MultiFab.  The addition is done only to num\_comp
+      components, starting with component number strt\_comp.  The parameter
+      nghost specifies the number of boundary cells that will be modified.
+      If nghost == 0, only the valid region of each FArrayBox will be
+      modified.
     */
     void plus (const MultiFab& mf,
                int             strt_comp,
                int             num_comp,
                int             nghost);
 
-    /* This function subtracts the values of the cells in mf from the
-       corresponding cells of this MultiFab.  mf is required to have the
-       same BoxArray or "valid region" as this MultiFab.  The subtraction is
-       done only to num\_comp components, starting with component number
-       strt\_comp.  The parameter nghost specifies the number of boundary
-       cells that will be modified.  If nghost == 0, only the valid region of
-       each FArrayBox will be modified.
+    /*@ManDoc:
+      This function subtracts the values of the cells in mf from the
+      corresponding cells of this MultiFab.  mf is required to have the
+      same BoxArray or "valid region" as this MultiFab.  The subtraction is
+      done only to num\_comp components, starting with component number
+      strt\_comp.  The parameter nghost specifies the number of boundary
+      cells that will be modified.  If nghost == 0, only the valid region of
+      each FArrayBox will be modified.
     */
     void minus (const MultiFab& mf,
                 int             strt_comp,
@@ -322,16 +324,26 @@ private:
 
 class ConstMultiFabIterator;
 
+//
+//@Man:
+//@Memo: An iterator over the FABs in a MultiFab.
+/*@Doc:
+
+  This class encapsulates an iterator over the FABs in a MultiFab such that
+  each CPU in a Single Program Multiple Data (SPMD) parallel program accesses
+  only those FABs in the MultiFab that are actually owned by that CPU.
+*/
 class MultiFabIterator
     :
     public FabArrayIterator<Real,FArrayBox>
 {
   public:
-
-    MultiFabIterator (MultiFab& multifab,
-                      int       nghost = 0)
+    //
+    //@ManDoc: The constructor.
+    //
+    MultiFabIterator (MultiFab& multifab)
         :
-        FabArrayIterator<Real, FArrayBox>(multifab, nghost) {}
+        FabArrayIterator<Real, FArrayBox>(multifab) {}
 
   private:
     //
@@ -342,22 +354,39 @@ class MultiFabIterator
     MultiFabIterator& operator= (const MultiFabIterator&);
 };
 
+//
+//@Man:
+//@Memo: An iterator over a dependent MultiFab.
+/*@Doc:
+
+  This class is used to iterator over a MultiFab (the dependent MultiFab) that
+  is defined over a BoxArray that is the same as (or sufficiently similar to)
+  one for which we already have a MultiFabIterator.  This allows us to iterate
+  over a MultiFab and access the associated FAB(s) in one or more dependent
+  MultiFabs.
+*/
+
 class DependentMultiFabIterator
     :
     public DependentFabArrayIterator<Real,FArrayBox>
 {
   public:
-
+    //
+    //@ManDoc: Constructor over a mutable dependent MultiFab.
+    //
     DependentMultiFabIterator (MultiFabIterator& controllermfiter,
                                MultiFab&         dependentmultifab)
         :
         DependentFabArrayIterator<Real,FArrayBox>(controllermfiter,
                                                   dependentmultifab) {}
-
+    //
+    //@ManDoc: Constructor over an immutable dependent MultiFab.
+    //
     DependentMultiFabIterator (MultiFabIterator& controllermfiter,
                                const MultiFab&   dependentmultifab)
-        : DependentFabArrayIterator<Real,FArrayBox>(controllermfiter,
-                                                    dependentmultifab) {}
+        :
+        DependentFabArrayIterator<Real,FArrayBox>(controllermfiter,
+                                                  dependentmultifab) {}
   private:
     //
     // These are disallowed.
@@ -367,16 +396,28 @@ class DependentMultiFabIterator
     DependentMultiFabIterator& operator=(const DependentMultiFabIterator&);
 };
 
+//
+//@Man:
+//@Memo: A constant iterator over the FABs in a MultiFab.
+/*@Doc:
+
+  This class encapsulates an iterator over the FABs in a MultiFab such that
+  each CPU in a Single Program Multiple Data (SPMD) parallel program accesses
+  only those FABs in the MultiFab that are actually owned by that CPU.  It is
+  a constant iterator; you can access the FABs but you cannot change them.
+*/
+
 class ConstMultiFabIterator
     :
     public ConstFabArrayIterator<Real,FArrayBox>
 {
   public:
-
-    ConstMultiFabIterator (const MultiFab& multifab,
-                           int             nghost = 0)
+    //
+    //@ManDoc: The constructor.
+    //
+    ConstMultiFabIterator (const MultiFab& multifab)
         :
-        ConstFabArrayIterator<Real,FArrayBox>(multifab, nghost) {}
+        ConstFabArrayIterator<Real,FArrayBox>(multifab) {}
 
   private:
     //
@@ -387,12 +428,26 @@ class ConstMultiFabIterator
     ConstMultiFabIterator& operator= (const ConstMultiFabIterator&);
 };
 
+//
+//@Man:
+//@Memo: A constant iterator over a dependent MultiFab.
+/*@Doc:
+
+  This class is used to iterator over a MultiFab (the dependent MultiFab) that
+  is defined over a BoxArray that is the same as (or sufficiently similar to)
+  one for which we already have a ConstMultiFabIterator.  This allows us to
+  iterate over a constant MultiFab and access the associated FAB(s) in one or
+  more dependent MultiFabs.
+*/
+
 class ConstDependentMultiFabIterator
     :
     public ConstDependentFabArrayIterator<Real,FArrayBox>
 {
   public:
-
+    //
+    //@ManDoc: The constructor.
+    //
     ConstDependentMultiFabIterator (ConstMultiFabIterator& controllermfiter,
                                     const MultiFab&        dependentmultifab)
         :

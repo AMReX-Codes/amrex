@@ -4,7 +4,7 @@
 #define _RUNSTATS_H_ 
 
 //
-// $Id: RunStats.H,v 1.3 1998-01-08 18:59:59 lijewski Exp $
+// $Id: RunStats.H,v 1.4 1998-05-04 21:25:01 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -67,69 +67,87 @@ private:
     {}
 };
 
+//
+//@Man:
+//@Memo: Collects run-time statistics.
+/*@Doc:
+
+  This class facilitates the generation, collection, and display of timing
+  statistics for various parts of a program.
+*/
+
 class RunStats
 {
 public:
-
-    RunStats (const char *name, int level = 0);
-
-    ~RunStats ();
-    
-    friend ostream& operator<< (ostream &os, const RunStats &r);
     //
-    // Start timing given variable.
+    //@ManDoc: The constructor.
+    //
+    RunStats (const char* name, int level = 0);
+    //
+    //@ManDoc: The destructor.
+    //
+    ~RunStats ();
+    //
+    //@ManDoc: A friendly output operator.
+    //
+    friend ostream& operator<< (ostream& os, const RunStats& r);
+    //
+    //@ManDoc: Start timing given variable.
     //
     void start ();
     //
-    // Stop timing given variable and record.
+    //@ManDoc: Stop timing given variable and record.
     //
     void end ();
     //
-    // Is the variable active?
+    //@ManDoc: Is the variable active?
     //
     int isOn () const;
     //
-    // Record cells advanced.
+    //@ManDoc: Record number of cells advanced at given level.
     //
     static void addCells (int level, long count);
     //
-    // Return number of cells advanced at given level.
+    //@ManDoc: Return number of cells advanced at given level.
     //
     static long getCells (int level);
     //
-    // Turn on/off recording of this stat.
+    //@ManDoc: Turn on recording of this stat.
     //
     static void turnOn (const char * s, int level = -1);
+    //
+    //@ManDoc: Turn off recording of this stat.
+    //
     static void turnOff (const char * s, int level = -1);
     //
-    // Record I/O bytes written to disk.
+    //@ManDoc: Record I/O bytes written to disk.
     //
     static void addBytes (long count);
     //
-    // Record numPts() of FAB in each MultiFab on this CPU.
+    //@ManDoc: Record numPts() of each FAB in each MultiFab on this CPU.
     //
     static void addNumPts (long count);
     //
-    // Report stats in formatted form to output stream.
+    //@ManDoc: Report stats in formatted form to output stream.
     //
     static void report (ostream &os);
     //
-    // Unformatted write to output stream.
+    //@ManDoc: Unformatted write to output stream.
     //
     static void dumpStats (ofstream &os);
     //
-    // Unformatted read from input stream.
+    //@ManDoc: Unformatted read from input stream.
     //
     static void readStats (ifstream &is, bool restart = false);
     //
-    // Report the names of the statistics as an array of aString.
+    //@ManDoc: Report the names of the statistics as an array of aString.
     //
     static void report_names (Array<aString>& stat_names);
-    //
-    // Report the values of the statistics as arrays of REALS.
-    //
-    // This assumes `stat_names' is result of previous call to report_names().
-    //
+
+    /*@ManDoc: Report the values of the statistics as arrays of REALS.
+               This assumes `stat\_names' is result of previous call to
+               report\_names().
+    */
     static void report_values (const Array<aString>& stat_names,
                                Array<double>&        stat_time,
                                Array<double>&        stat_wtime,
@@ -208,4 +226,4 @@ RunStats::turnOff (const char* s,
         RunStats::find(s, _level)->is_on = false;
     }
 }
-#endif
+#endif /*_RUNSTATS_H_*/

@@ -4,7 +4,7 @@
 #define BL_ARRAY_H
 
 //
-// $Id: Array.H,v 1.7 1997-12-11 23:25:38 lijewski Exp $
+// $Id: Array.H,v 1.8 1998-05-04 21:24:53 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -74,16 +74,7 @@ public:
     /*@ManDoc: Constructs an `Array<T>' of length len with the value of each
       element defined by the default constructor for `T'.
     */
-    explicit Array (long len)
-    {
-        //
-        // This is inlined here as OCC won't have it any other way :-(
-        //
-        assert(len >= 0);
-        nelem    = len;
-        vp       = new T[len];
-        truesize = nelem;
-    }
+    explicit Array (long len);
 
     /*@ManDoc: Constructs an `Array<T>' of length len with the value of each
                elements given by initialvalue.
@@ -193,15 +184,7 @@ public:
     //@ManDoc: Changes the i'th element of this `Array<T>' to elem.
     //
     void set (long     i,
-                     const T& elem)
-    {
-        //
-        // This is inlined here as OCC won't have it any other way :-(
-        //
-        assert(vp != 0);
-        assert(i >= 0 && i < nelem);
-        vp[i] = elem;
-    }
+              const T& elem);
     //
     //@ManDoc: This function swaps the i'th and j'th element of the array.
     //
@@ -248,6 +231,16 @@ Array<T>::Array ()
     nelem    = 0;
     vp       = new T[1];
     truesize = 1;
+}
+
+template <class T>
+inline
+Array<T>::Array (long len)
+{
+    assert(len >= 0);
+    nelem    = len;
+    vp       = new T[len];
+    truesize = nelem;
 }
 
 template <class T>
@@ -330,6 +323,17 @@ Array<T>::get (long i) const
     assert(vp != 0);
     assert(i >= 0 && i < nelem);
     return vp[i];
+}
+
+template <class T>
+inline
+void
+Array<T>::set (long     i,
+               const T& elem)
+{
+    assert(vp != 0);
+    assert(i >= 0 && i < nelem);
+    vp[i] = elem;
 }
 
 template <class T>

@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.30 1998-04-24 17:52:19 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.31 1998-05-04 21:25:00 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -149,53 +149,123 @@ template<> inline MPI_Datatype mpi_data_type(unsigned long*)  { return MPI_UNSIG
 
 #endif /*BL_USE_MPI*/
 
+//
+//@Man:
+//@Memo: Parallel functions.
+/*@Doc:
+
+  This class contains functions used for implementing parallelism.
+*/
+
 class ParallelDescriptor
 {
   public:
-    static void StartParallel (int nprocs,
-                               int* argc = 0,
-                               char*** argv = 0);
-    static void EndParallel ();
 
-    static int    MyProc ();
-    static int    NProcs ();
-    static void   Barrier ();
-    static void   Synchronize ();
-    static bool   IOProcessor ();
-    static int    IOProcessorNumber ();
-    static void   Abort (const char* msg);
-    static void   Abort (int errorcode);
+    /*@ManDoc: Perform any needed parallel initialization.  This MUST be the
+               first routine in this class called from within a program.
+    */
+    static void StartParallel (int     nprocs,
+                               int*    argc = 0,
+                               char*** argv = 0);
+
+    /*@ManDoc: Perform any needed parallel finalization.  This MUST be the
+               last routine in this class called from within a program.
+    */
+    static void EndParallel ();
+    //
+    //@ManDoc: Returns processor number of calling program.
+    //
+    static int MyProc ();
+    //
+    //@ManDoc: Returns number of CPUs involved in the computation.
+    //
+    static int NProcs ();
+    //
+    //@ManDoc: 
+    //
+    static void Barrier ();
+    //
+    //@ManDoc: Is this CPU the I/O Processor?
+    //
+    static bool IOProcessor ();
+    //
+    //@ManDoc: The CPU number of the I/O Processor.
+    //
+    static int IOProcessorNumber ();
+    //
+    //@ManDoc: Abort with specified message.
+    //
+    static void Abort (const char* msg);
+    //
+    //@ManDoc: Abort with specified error code.
+    //
+    static void Abort (int errorcode);
+    //
+    //@ManDoc: Returns wall-clock seconds since start of execution.
+    //
     static double second ();
     //
-    // Reduction operations.
-    //
-    // bool
+    //@ManDoc: And-wise boolean reduction.
     //
     static void ReduceBoolAnd (bool& rvar);
+    //
+    //@ManDoc: Or-wise boolean reduction.
+    //
     static void ReduceBoolOr  (bool& rvar);
     //
-    // Real
+    //@ManDoc: Real sum reduction.
     //
     static void ReduceRealSum (Real& rvar);
+    //
+    //@ManDoc: Real max reduction.
+    //
     static void ReduceRealMax (Real& rvar);
+    //
+    //@ManDoc: Real min reduction.
+    //
     static void ReduceRealMin (Real& rvar);
     //
-    // int
+    //@ManDoc: Integer sum reduction.
     //
     static void ReduceIntSum (int& rvar);
+    //
+    //@ManDoc: Integer max reduction.
+    //
     static void ReduceIntMax (int& rvar);
+    //
+    //@ManDoc: Integer min reduction.
+    //
     static void ReduceIntMin (int& rvar);
     //
-    // long
+    //@ManDoc: Long sum reduction.
     //
     static void ReduceLongSum (long& rvar);
+    //
+    //@ManDoc: Long max reduction.
+    //
     static void ReduceLongMax (long& rvar);
+    //
+    //@ManDoc: Long min reduction.
+    //
     static void ReduceLongMin (long& rvar);
+    //
+    //@ManDoc: Long and-wise reduction.
+    //
     static void ReduceLongAnd (long& rvar);
     //
-    // Data transfer functions.
+    //@ManDoc: Parallel gather.
     //
+    static void Gather (Real* sendbuf,
+                        int   sendcount,
+                        Real* recvbuf,
+                        int   root);
+    //
+    // None of the following are documented as they're BSP-specific.
+    //
+    static void Synchronize ();
+
     static void ShareVar (const void* var, int bytes);
+
     static void UnshareVar (const void* var);
 
     static void WriteData (int         procnum,
@@ -211,8 +281,10 @@ class ParallelDescriptor
                           int         bytes);
 
     static void SetMessageHeaderSize (int messageHeaderSize);
+
     static bool GetMessageHeader (int&  dataSize,
                                   void* messageHeader);
+
     static bool MessageQueueEmpty ();
 
     static void SendData (int         toproc,
@@ -227,11 +299,6 @@ class ParallelDescriptor
                            void* src,
                            void* dest,
                            int   nbytes);
-
-    static void Gather (Real* sendbuf,
-                        int   sendcount,
-                        Real* recvbuf,
-                        int   root);
   private:
     //
     // My processor ID.
