@@ -1,5 +1,5 @@
 //
-// $Id: Geometry.cpp,v 1.60 2001-08-22 19:21:00 lijewski Exp $
+// $Id: Geometry.cpp,v 1.61 2002-04-27 07:07:41 marc Exp $
 //
 #include <winstd.H>
 
@@ -443,9 +443,11 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
 Geometry::Geometry () {}
 
-Geometry::Geometry (const Box& dom)
+Geometry::Geometry (const Box&     dom,
+                    const RealBox* rb,
+                    int            coord)
 {
-    define(dom);
+    define(dom,rb,coord);
 }
 
 Geometry::Geometry (const Geometry& g)
@@ -459,10 +461,12 @@ Geometry::Geometry (const Geometry& g)
 Geometry::~Geometry() {}
 
 void
-Geometry::define (const Box& dom)
+Geometry::define (const Box&     dom,
+                  const RealBox* rb,
+                  int            coord)
 {
     if (c_sys == undef)
-        Setup();
+        Setup(rb,coord);
     domain = dom;
     ok     = true;
     for (int k = 0; k < BL_SPACEDIM; k++)
@@ -484,22 +488,49 @@ Geometry::define (const Box& dom)
 }
 
 void
-Geometry::Setup ()
+Geometry::Setup (const RealBox* rb, int coord)
 {
     ParmParse pp("geometry");
 
-    int coord;
-    pp.get("coord_sys",coord);
-    SetCoord( (CoordType) coord );
 
+    // The default behavior is as before.  If rb and coord come
+    // in with default values, we require that user set them through pp.
+    // If not, use those coming in, and possibly override them w/pp
     Array<Real> prob_lo(BL_SPACEDIM);
-    pp.getarr("prob_lo",prob_lo,0,BL_SPACEDIM);
-    BL_ASSERT(prob_lo.size() == BL_SPACEDIM);
     Array<Real> prob_hi(BL_SPACEDIM);
-    pp.getarr("prob_hi",prob_hi,0,BL_SPACEDIM);
-    BL_ASSERT(prob_lo.size() == BL_SPACEDIM);
-    prob_domain.setLo(prob_lo);
-    prob_domain.setHi(prob_hi);
+    if (rb == 0  &&  coord==-1)
+    {
+        pp.get("coord_sys",coord);
+        SetCoord( (CoordType) coord );
+        pp.getarr("prob_lo",prob_lo,0,BL_SPACEDIM);
+        BL_ASSERT(prob_lo.size() == BL_SPACEDIM);
+        pp.getarr("prob_hi",prob_hi,0,BL_SPACEDIM);
+        BL_ASSERT(prob_lo.size() == BL_SPACEDIM);
+        prob_domain.setLo(prob_lo);
+        prob_domain.setHi(prob_hi);
+    }
+    else
+    {
+        BL_ASSERT(rb != 0  &&  coord != -1);
+        pp.query("coord_sys",coord);
+        SetCoord( (CoordType) coord );
+        prob_domain.setLo(rb->lo());
+        prob_domain.setHi(rb->hi());
+
+        if (pp.countval("prob_lo")>0)
+        {
+            pp.queryarr("prob_lo",prob_lo,0,BL_SPACEDIM);
+            BL_ASSERT(prob_lo.size() == BL_SPACEDIM);
+            prob_domain.setLo(prob_lo);
+        }
+        if (pp.countval("prob_hi")>0)
+        {
+            pp.queryarr("prob_hi",prob_hi,0,BL_SPACEDIM);
+            BL_ASSERT(prob_hi.size() == BL_SPACEDIM);
+            prob_domain.setHi(prob_hi);
+        }
+    }
+
     spherical_origin_fix = 0;
     pp.query("spherical_origin_fix",spherical_origin_fix);
     //
