@@ -1,6 +1,5 @@
-
 //
-// $Id: DistributionMapping.cpp,v 1.44 2000-10-19 18:04:17 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.45 2001-01-25 23:52:36 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -93,15 +92,13 @@ DistributionMapping::init ()
 
     if (pp.query("strategy", theStrategy))
     {
-        DistributionMapping::Strategy how = ROUNDROBIN;
-
         if (theStrategy == "ROUNDROBIN")
         {
-            how = ROUNDROBIN;
+            strategy(ROUNDROBIN);
         }
         else if (theStrategy == "KNAPSACK")
         {
-            how = KNAPSACK;
+            strategy(KNAPSACK);
         }
         else
         {
@@ -109,8 +106,6 @@ DistributionMapping::init ()
             msg += theStrategy;
             BoxLib::Warning(msg.c_str());
         }
-
-        strategy(how);
     }
 }
 
@@ -124,20 +119,18 @@ DistributionMapping::GetMap (const BoxArray& boxes)
 {
     const int N = boxes.length();
 
-    BL_ASSERT(m_procmap.length() == N+1);
+    BL_ASSERT(m_procmap.length() == N + 1);
     //
     // Search from back to front ...
     //
     for (int i = m_Cache.size() - 1; i >= 0; i--)
     {
-        if (m_Cache[i].length() == N+1)
+        if (m_Cache[i].length() == N + 1)
         {
             const Array<int>& cached_procmap = m_Cache[i];
 
             for (int i = 0; i <= N; i++)
-            {
                 m_procmap[i] = cached_procmap[i];
-            }
 
             BL_ASSERT(m_procmap[N] == ParallelDescriptor::MyProc());
 
@@ -154,14 +147,14 @@ DistributionMapping::DistributionMapping ()
         DistributionMapping::init();
 }
 
-DistributionMapping::DistributionMapping (const BoxArray& boxes)
+DistributionMapping::DistributionMapping (const BoxArray& boxes, int nprocs)
     :
     m_procmap(boxes.length()+1)
 {
     if (!m_Initialized)
         DistributionMapping::init();
 
-    define(boxes);
+    define(boxes,nprocs);
 }
 
 DistributionMapping::DistributionMapping (const DistributionMapping& d1,
@@ -178,8 +171,6 @@ DistributionMapping::DistributionMapping (const DistributionMapping& d1,
 
     m_procmap.resize(L1+L2+1);
 
-    const int NProcs = ParallelDescriptor::NProcs();
-
     for (int i = 0; i < L1; i++)
         m_procmap[i] = pmap_1[i];
 
@@ -192,19 +183,17 @@ DistributionMapping::DistributionMapping (const DistributionMapping& d1,
 }
 
 void
-DistributionMapping::define (const BoxArray& boxes)
+DistributionMapping::define (const BoxArray& boxes, int nprocs)
 {
     if (!(m_procmap.length() == boxes.length()+1))
-    {
         m_procmap.resize(boxes.length()+1);
-    }
 
-    if (DistributionMapping::m_Strategy == DistributionMapping::ROUNDROBIN)
+    if (DistributionMapping::m_Strategy == ROUNDROBIN)
     {
         //
         // Don't bother with the cache -- just do it :-)
         //
-        (this->*m_BuildMap)(boxes);
+        (this->*m_BuildMap)(boxes,nprocs);
     }
     else
     {
@@ -214,7 +203,7 @@ DistributionMapping::define (const BoxArray& boxes)
 
             stats.start();
 
-            (this->*m_BuildMap)(boxes);
+            (this->*m_BuildMap)(boxes,nprocs);
 
 #if defined(BL_USE_MPI) && !defined(BL_NO_PROCMAP_CACHE)
             //
@@ -245,7 +234,7 @@ DistributionMapping::AddToCache (const DistributionMapping& dm)
     {
         BL_ASSERT(pmap[pmap.length()-1] == ParallelDescriptor::MyProc());
 
-        for (int i = 0; i < m_Cache.size(); i++)
+        for (int i = 0; i < m_Cache.size() && doit; i++)
         {
             if (pmap.length() == m_Cache[i].length())
             {
@@ -261,17 +250,14 @@ DistributionMapping::AddToCache (const DistributionMapping& dm)
 }
 
 void
-DistributionMapping::RoundRobinProcessorMap (int nboxes)
+DistributionMapping::RoundRobinProcessorMap (int nboxes, int nprocs)
 {
     BL_ASSERT(nboxes > 0);
+
     m_procmap.resize(nboxes+1);
 
-    const int NProcs = ParallelDescriptor::NProcs();
-
     for (int i = 0; i < nboxes; i++)
-    {
-        m_procmap[i] = i % NProcs;
-    }
+        m_procmap[i] = i % nprocs;
     //
     // Set sentinel equal to our processor number.
     //
@@ -279,17 +265,13 @@ DistributionMapping::RoundRobinProcessorMap (int nboxes)
 }
 
 void
-DistributionMapping::RoundRobinProcessorMap (const BoxArray& boxes)
+DistributionMapping::RoundRobinProcessorMap (const BoxArray& boxes, int nprocs)
 {
     BL_ASSERT(boxes.length() > 0);
     BL_ASSERT(m_procmap.length() == boxes.length()+1);
 
-    const int NProcs = ParallelDescriptor::NProcs();
-
     for (int i = 0; i < boxes.length(); i++)
-    {
-        m_procmap[i] = i % NProcs;
-    }
+        m_procmap[i] = i % nprocs;
     //
     // Set sentinel equal to our processor number.
     //
@@ -347,15 +329,14 @@ public:
 
 static
 vector< list<int> >
-knapsack (const vector<long>& pts)
+knapsack (const vector<long>& pts, int nprocs)
 {
-    const int NProcs = ParallelDescriptor::NProcs();
     //
     // Sort balls by size largest first.
     //
     static list<int> empty_list;  // Work-around MSVC++ bug :-(
 
-    vector< list<int> > result(NProcs, empty_list);
+    vector< list<int> > result(nprocs, empty_list);
 
     vector<WeightedBox> lb;
     lb.reserve(pts.size());
@@ -370,11 +351,11 @@ knapsack (const vector<long>& pts)
     // For each ball, starting with heaviest, assign ball to the lightest box.
     //
     priority_queue<WeightedBoxList> wblq;
-    for (int i  = 0; i < NProcs; ++i)
+    for (int i  = 0; i < nprocs; ++i)
     {
         wblq.push(WeightedBoxList());
     }
-    BL_ASSERT(wblq.size() == NProcs);
+    BL_ASSERT(wblq.size() == nprocs);
     for (int i = 0; i < pts.size(); ++i)
     {
         WeightedBoxList wbl = wblq.top();
@@ -382,14 +363,14 @@ knapsack (const vector<long>& pts)
         wbl.push_back(lb[i]);
         wblq.push(wbl);
     }
-    BL_ASSERT(wblq.size() == NProcs);
+    BL_ASSERT(wblq.size() == nprocs);
     list<WeightedBoxList> wblqg;
     while (!wblq.empty())
     {
         wblqg.push_back(wblq.top());
         wblq.pop();
     }
-    BL_ASSERT(wblqg.size() == NProcs);
+    BL_ASSERT(wblqg.size() == nprocs);
     wblqg.sort();
     //
     // Compute the max weight and the sum of the weights.
@@ -456,7 +437,7 @@ top:
                     wblqg.merge(tmp);
                     max_weight = (*wblqg.begin()).weight();
                     //
-                    //efficiency = sum_weight/(NProcs*max_weight);
+                    //efficiency = sum_weight/(nprocs*max_weight);
                     //cout << "Efficiency = " << efficiency << '\n';
                     //cout << "max_weight = " << max_weight << '\n';
                     //
@@ -469,7 +450,7 @@ top:
     // Here I am "load-balanced".
     //
     list<WeightedBoxList>::const_iterator cit = wblqg.begin();
-    for (int i = 0; i < NProcs; ++i)
+    for (int i = 0; i < nprocs; ++i)
     {
         const WeightedBoxList& wbl = *cit;
         list<WeightedBox>::const_iterator it1 = wbl.begin();
@@ -480,75 +461,26 @@ top:
         ++cit;
     }
 
-#if 0
-    //
-    // Output some statistics ...
-    //
-    if (ParallelDescriptor::IOProcessor())
-    {
-        long totalwork = accumulate(pts.begin(),pts.end(),0L);
-
-        vector<long> work(NProcs);
-
-        fill(work.begin(),work.end(),0L);
-
-        for (int i = 0; i < NProcs; i++)
-        {
-            list<int>::const_iterator it = result[i].begin();
-            for ( ; it != result[i].end(); ++it)
-                work[i] += pts[*it];
-        }
-
-        sort(work.begin(),work.end());
-
-        long median = work[NProcs/2];
-
-        if (NProcs%2 == 0)
-            median = (median + work[NProcs/2-1])/2;
-
-        double sd = 0;
-        for (int i = 0; i < NProcs; i++)
-            sd += (work[i]-median) * (work[i]-median);
-        sd = sqrt(sd/(NProcs-1));
-
-        cout << "Knapsack Statistics:\n"
-             << "\ttotal work: "   << totalwork                      << '\n'
-             << "\tminimum work: " << work[0]                        << '\n'
-             << "\tmaximum work: " << work[NProcs-1]                 << '\n'
-             << "\taverage work: " << totalwork/NProcs               << '\n'
-             << "\tmedian work: "  << median                         << '\n'
-             << "\tstd. dev.: "    << sd                             << '\n'
-             << "\tmin/max: "      << double(work[0])/work[NProcs-1] << '\n'
-             << "\tmin/median: "   << double(work[0])/median         << '\n'
-             << "\tmax/median: "   << double(work[NProcs-1])/median  << '\n';
-    }
-#endif
-
     return result;
 }
 #endif /*BL_USE_MPI*/
 
 void
-DistributionMapping::KnapSackProcessorMap (const vector<long>& pts)
+DistributionMapping::KnapSackProcessorMap (const vector<long>& pts, int nprocs)
 {
     BL_ASSERT(pts.size() > 0);
     m_procmap.resize(pts.size()+1);
 
-    const int NProcs = ParallelDescriptor::NProcs();
-
-    if (pts.size() <= NProcs || NProcs < 2)
+    if (pts.size() <= nprocs || nprocs < 2)
     {
-        //
-        // Might as well just use ROUNDROBIN.
-        //
-        RoundRobinProcessorMap(pts.size());
+        RoundRobinProcessorMap(pts.size(),nprocs);
     }
     else
     {
 #ifdef BL_USE_MPI
-        vector< list<int> > vec = knapsack(pts);
+        vector< list<int> > vec = knapsack(pts,nprocs);
 
-        BL_ASSERT(vec.size() == NProcs);
+        BL_ASSERT(vec.size() == nprocs);
 
         list<int>::iterator lit;
 
@@ -570,19 +502,14 @@ DistributionMapping::KnapSackProcessorMap (const vector<long>& pts)
 }
 
 void
-DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes)
+DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes, int nprocs)
 {
     BL_ASSERT(boxes.length() > 0);
     BL_ASSERT(m_procmap.length() == boxes.length()+1);
 
-    const int NProcs = ParallelDescriptor::NProcs();
-
-    if (boxes.length() <= NProcs || NProcs < 2)
+    if (boxes.length() <= nprocs || nprocs < 2)
     {
-        //
-        // Might as well just use ROUNDROBIN.
-        //
-        RoundRobinProcessorMap(boxes);
+        RoundRobinProcessorMap(boxes,nprocs);
     }
     else
     {
@@ -590,13 +517,11 @@ DistributionMapping::KnapSackProcessorMap (const BoxArray& boxes)
         vector<long> pts(boxes.length());
 
         for (int i = 0; i < pts.size(); i++)
-        {
             pts[i] = boxes[i].numPts();
-        }
 
-        vector< list<int> > vec = knapsack(pts);
+        vector< list<int> > vec = knapsack(pts,nprocs);
 
-        BL_ASSERT(vec.size() == NProcs);
+        BL_ASSERT(vec.size() == nprocs);
 
         list<int>::iterator lit;
 
@@ -643,8 +568,10 @@ operator<< (ostream&                   os,
             const DistributionMapping& pmap)
 {
     os << "(DistributionMapping" << '\n';
-
-    for (int i = 0; i < pmap.ProcessorMap().length(); i++)
+    //
+    // Do not print the sentinel value.
+    //
+    for (int i = 0; i < pmap.ProcessorMap().length() - 1; i++)
     {
         os << "m_procmap[" << i << "] = " << pmap.ProcessorMap()[i] << '\n';
     }

@@ -3,7 +3,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.50 2000-10-02 20:52:37 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.51 2001-01-25 23:52:37 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -175,6 +175,10 @@ class ParallelDescriptor
     //
     static int NProcs ();
     //
+    //@ManDoc: Returns number of CPUs to use in CFD portion of computation.
+    //
+    static int NProcsCFD ();
+    //
     //@ManDoc: 
     //
     static void Barrier ();
@@ -312,8 +316,11 @@ class ParallelDescriptor
                            void* src,
                            void* dest,
                            int   nbytes);
-  //@ManDoc: BoxLib's Parallel Communicator, probably MPI_COMM_WORLD
-  static MPI_Comm Communicator();
+    //
+    //@ManDoc: BoxLib's Parallel Communicator, probably MPI_COMM_WORLD
+    //
+  static MPI_Comm Communicator ();
+
   private:
     //
     // Reduce helper functons.
@@ -325,6 +332,10 @@ class ParallelDescriptor
     static void DoReduceLong (long& r, MPI_Op op, int cpu);
     static void DoReduceInt (int& r, MPI_Op op, int cpu);
     //
+    // Sets number of CPUs to use in CFD portion of computation via ParmParse.
+    //
+    static void SetNProcsCFD ();
+    //
     // My processor ID.
     //
     static int m_MyId;
@@ -332,10 +343,15 @@ class ParallelDescriptor
     // The number of processors.
     //
     static int m_nProcs;
-  //
-  // BoxLib's Communicator
-  //
-  static MPI_Comm m_comm;
+    //
+    // The number of processors in CFD part of computation.
+    //
+    static int m_nProcsCFD;
+    //
+    // BoxLib's Communicator
+    //
+    static MPI_Comm m_comm;
+
     enum { ioProcessor = 0 };
 };
 
@@ -357,6 +373,18 @@ ParallelDescriptor::NProcs ()
 {
     BL_ASSERT(m_nProcs != -1);
     return m_nProcs;
+}
+
+inline
+int
+ParallelDescriptor::NProcsCFD ()
+{
+    if (m_nProcsCFD == -1)
+        SetNProcsCFD();
+
+    BL_ASSERT(m_nProcsCFD != -1);
+
+    return m_nProcsCFD;
 }
 
 inline
