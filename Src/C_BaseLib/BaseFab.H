@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.43 2001-08-02 16:01:43 car Exp $
+// $Id: BaseFab.H,v 1.44 2001-08-15 16:25:21 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1847,10 +1847,6 @@ BaseFab<T>::maxIndex (const Box& subbox,
 
     return _max_loc;
 }
-
-#ifdef __GNUC__
-typedef BaseFab<int> bfi;
-#endif
 
 template <class T>
 int

@@ -1,11 +1,9 @@
 //
-// $Id: BLProfiler.cpp,v 1.18 2001-08-14 22:21:08 lijewski Exp $
+// $Id: BLProfiler.cpp,v 1.19 2001-08-15 16:25:21 lijewski Exp $
 //
 #include <winstd.H>
 
-#ifdef __GNUC__
 #include <cstdio>
-#endif
 #include <cctype>
 #include <cassert>
 #include <cmath>
@@ -562,6 +560,9 @@ std::string
 Profiler::clean_name(const std::string& str)
 {
 #ifdef __GNUC__
+    //
+    // g++ prepends runtime type id strings with their length :-(
+    //
     std::string result;
     unsigned int i = 0;
     unsigned cnt = 0;
@@ -911,8 +912,6 @@ show_time_count(std::ostream& os, int wd, double time, int count)
     os << std::setw(0)	// Reset the width to zero..."
        << "[" << std::setw(2*wd/3) << time*1000
        << "/" << std::setw(1*wd/3) << count << "]";
-
-    //
     os << std::setprecision(oprec);
 #endif
     os.flags(oldFlags);
