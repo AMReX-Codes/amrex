@@ -383,7 +383,6 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	const int idir = (geo & level_interface::LOW) ? -1 : 1;
 	const Box& cbox = fres_cbox[lev][iface];
 	const Box& sigmacbox = fres_scbox[lev][iface];
-	const Box& sigmafbox = fres_sfbox[lev][iface];
 	task_fab* sigmac = new task_fill_patch(resid[mglev], igrid, sigmacbox, sigma[mglevc], lev_interface[mglevc], bndry, -1, -1);
 	task_fab* cdst   = new task_fill_patch(resid[mglev], igrid, cbox, dest[lev-1], lev_interface[mglevc], boundary.pressure(), -1, -1);
 	const Box& creg = fres_creg[lev][iface];
