@@ -1,7 +1,7 @@
 #ifndef _StateDescriptor_H_
 #define _StateDescriptor_H_ 
 //
-// $Id: StateDescriptor.H,v 1.19 2001-08-01 21:50:46 lijewski Exp $
+// $Id: StateDescriptor.H,v 1.20 2003-01-22 22:39:44 lijewski Exp $
 //
 #include <utility>
 #include <vector>
@@ -43,7 +43,6 @@ public:
     //
     //@ManDoc: Type of function called by BCRec for user-supplied boundary data.
     //
-    //
     // Class wrapper around BndryFuncDefault.
     //
     class BndryFunc
@@ -54,7 +53,7 @@ public:
         //
         BndryFunc ();
         //
-        // Constructor.
+        // A Constructor.
         //
         BndryFunc (BndryFuncDefault inFunc);
         //
@@ -73,9 +72,10 @@ public:
                                   const int* dom_lo, const int* dom_hi,
                                   const Real* dx, const Real* grd_lo,
                                   const Real* time, const int* bc) const;
+
     private:
 
-        BndryFuncDefault m_func;
+        BndryFuncDefault  m_func;
     };
     //
     //@ManDoc: The default constructor.
@@ -108,13 +108,23 @@ public:
     //
     //@ManDoc: Sets details of `comp' component.
     //
-    void setComponent (int              comp,
-                       const std::string&   nm,
-                       const BCRec&     bc,
-                       const BndryFunc& func,
-                       Interpolater*    interp = 0,
-                       int              max_map_start_comp = -1,
-                       int              min_map_end_comp   = -1);
+    void setComponent (int                comp,
+                       const std::string& nm,
+                       const BCRec&       bc,
+                       const BndryFunc&   func,
+                       Interpolater*      interp = 0,
+                       int                max_map_start_comp = -1,
+                       int                min_map_end_comp   = -1);
+    //
+    //@ManDoc: Sets details of `comp' component.
+    //
+    void setComponent (int                comp,
+                       const std::string& nm,
+                       const BCRec&       bc,
+                       const BndryFunc&   func,
+                       Interpolater*      interp,
+                       bool               master_or_slave,
+                       int                groupsize);
     //
     //@ManDoc: Resets boundary condition data for `comp' component.
     //
@@ -205,6 +215,10 @@ public:
     //
     bool extrap () const;
 
+    bool master (int i) const { return m_master[i]; }
+
+    int groupsize (int i) const { return m_groupsize[i]; }
+
 protected:
 
     IndexType          type;     // Cell centered, node centered ...
@@ -217,6 +231,8 @@ protected:
     Array<std::string> names;    // Printable names of components
     Array<BCRec>       bc;       // Array of bndry types for entire level
     PArray<BndryFunc>  bc_func;  // PArray of pointers to bndry fill functions
+    std::vector<bool>  m_master; // Are we a master or slave?
+    Array<int>         m_groupsize; // Groupsize if we're a master
     //
     // If mapper_comp[icomp] != 0, that map is used instead of mapper
     // when interpolating icomp; otherwise, mapper is used.
@@ -287,6 +303,15 @@ public:
                        Interpolater*                     interp = 0,
                        int                               max_map_start_comp = -1,
                        int                               min_map_end_comp   = -1);
+    //
+    //@ManDoc: Calls setComponent() on StateDescriptor at index `indx' on group.
+    //
+    void setComponent (int                               indx,
+                       int                               comp,
+                       const Array<std::string>&         nm,
+                       const Array<BCRec>&               bc,
+                       const StateDescriptor::BndryFunc& func,
+                       Interpolater*                     interp = 0);
     //
     //@ManDoc: Returns StateDescriptor at index `k'.
     //
