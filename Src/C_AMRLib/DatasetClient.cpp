@@ -25,10 +25,14 @@
 #include <strstream.h>
 #include <unistd.h>
 
-#include <Box.H>
-#include <FArrayBox.H>
-#include <MultiFab.H>
-#include <DatasetClient.H>
+#include "DatasetClient.H"
+#include "Box.H"
+#include "FArrayBox.H"
+#include "MultiFab.H"
+#ifdef BL_ARRAYVIEW_TAGBOX
+#include "TagBox.H"
+#endif
+
 
 const int MAXBUFSIZE  = 1024;
 const int PORTOFFSET  = 5000;
@@ -271,6 +275,86 @@ bool ArrayViewMultiFabElementFormatLabel(MultiFab *debugMultiFab, int element,
   return ( ArrayViewFabFormatLabel(&((*debugMultiFab)[element]), format, label) );
 }
 
+
+
+#ifdef BL_ARRAYVIEW_TAGBOX
+// -------------------------------------------------------------------
+// pointer to TagBox interface
+// -------------------------------------------------------------------
+// -------------------------------------------------------------------
+bool ArrayViewTagBox(TagBox *debugTagBox) {
+  bool returnValue;
+  int nvar = debugTagBox->nComp();
+  if(nvar < 1) {
+    cerr << "Error in ArrayView:  fab nComp < 1:  fab->nComp = " << nvar << endl;
+    return false;
+  }
+  if( ! debugTagBox->box().ok()) {
+    cerr << "Error in ArrayView:  bad fab box = " << debugTagBox->box() << endl;
+    return false;
+  }
+
+  // create a temp fab and put the TagBox values (ints) into it
+  FArrayBox *debugFab = new FArrayBox(debugTagBox->box(), nvar);
+  for(int nv = 0; nv < nvar; ++nv) {
+    Real *debugFabPtr    = debugFab->dataPtr(nv);
+    int  *debugTagBoxPtr = debugTagBox->dataPtr(nv);
+    for(int i = 0; i < debugTagBox->box().numPts() ; ++i) {
+      debugFabPtr[i] = (Real) debugTagBoxPtr[i];
+    }
+  }
+
+  Real **dataArray = new Real * [nvar];
+  for(int d = 0; d < nvar; d++) {  // build the array of real pointers
+    dataArray[d] = debugFab->dataPtr(d);  // dont assume contiguous
+  }
+  returnValue = ArrayViewRealPtrArrayNVarDims(dataArray, nvar,
+                                debugFab->box().smallEnd().getVect(),
+                                debugFab->box().bigEnd().getVect(),
+				"%3.0f", " TagBox ");
+  delete [] dataArray;
+  delete debugFab;
+  return returnValue;
+}
+
+
+// -------------------------------------------------------------------
+// pointer to TagBoxArray interface
+// -------------------------------------------------------------------
+// -------------------------------------------------------------------
+bool ArrayViewTagBoxArray(TagBoxArray *debugTagBoxArray) {
+  bool returnValue;
+  int nvar = debugTagBoxArray->nComp();
+  if(nvar < 1) {
+    cerr << "Error in ArrayView:  fab nComp < 1:  fab->nComp = " << nvar << endl;
+    return false;
+  }
+  if( ! debugTagBoxArray->ok()) {
+    cerr << "Error in ArrayView:  bad TagBoxArray." << endl;
+    return false;
+  }
+
+  // create a temp fab and put the TagBoxArray values (ints) into it
+  MultiFab *debugMultiFab = new MultiFab(debugTagBoxArray->boxArray(),
+                                         nvar, debugTagBoxArray->nGrow());
+  for(int nfab = 0; nfab < debugTagBoxArray->length(); ++nfab) {
+    FArrayBox &debugFab    = (*debugMultiFab)[nfab];
+    TagBox    &debugTagBox = (*debugTagBoxArray)[nfab];
+    for(int nv = 0; nv < nvar; ++nv) {
+      Real *debugFabPtr    = debugFab.dataPtr(nv);
+      int  *debugTagBoxPtr = debugTagBox.dataPtr(nv);
+      for(int i = 0; i < debugTagBox.box().numPts() ; ++i) {
+        debugFabPtr[i] = (Real) debugTagBoxPtr[i];
+      }
+    }
+  }
+
+  returnValue =  ArrayViewMultiFabFormatLabel(debugMultiFab,
+                                              "%3.0f", " TagBoxArray ");
+  delete debugMultiFab;
+  return returnValue;
+}
+#endif
 
 
 
