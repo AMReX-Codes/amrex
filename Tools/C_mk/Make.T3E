@@ -58,3 +58,5 @@ FORT_EXE_OUTPUT_OPTION	= ; mv $*.o $(objEXETempDir)/$*.o
 FORT_LIB_OUTPUT_OPTION	= ; mv $*.o $(objTempDir)/$*.o
 
 FORTLINK = UPPERCASE
+
+FORTPREP = sed '/^!/d' | perl $(PBOXLIB_HOME)/scripts/strip72 -c
