@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.2 1997-09-17 17:16:00 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.3 1997-09-17 17:46:31 lijewski Exp $
 //
 
 #include <iostream.h>
@@ -15,34 +15,18 @@
 
 #if defined(BL_ARCH_IEEE)
 #ifdef BL_USE_DOUBLE
-    const Real INFINITY=1.0e100;
+    const Real INFINITY = 1.0e100;
 #elif  BL_USE_FLOAT
-    const Real INFINITY=1.0e35;
+    const Real INFINITY = 1.0e35;
 #endif
 #elif defined(BL_ARCH_CRAY)
     const Real INFINITY = 1.0e100;
 #endif
 
-MultiFab::MultiFab ()
-    : FabArray<Real,FArrayBox>()
-{}
-
-MultiFab::MultiFab (const BoxArray& bxs,
-                    int             ncomp,
-                    int             ngrow,
-                    FabAlloc        alloc)
-    : FabArray<Real,FArrayBox>(bxs,ncomp,ngrow,alloc)
-{}
-
-
-MultiFab::MultiFab (istream& is)
-    : FabArray<Real,FArrayBox>()
-{
-    readFrom(is);
-}
-
-MultiFab::~MultiFab()
-{}
+//
+// This isn't inlined as it's virtual.
+//
+MultiFab::~MultiFab() {}
 
 ostream &
 operator<< (ostream&        os,
@@ -58,9 +42,8 @@ operator<< (ostream&        os,
         os << mf[i] << '\n';
     os << ")" << flush;
 
-    if (os.fail()) {
+    if (os.fail())
         BoxLib::Error("operator<<(ostream&,MultiFab&) failed");
-    }
 
     return os;
 }
@@ -68,71 +51,77 @@ operator<< (ostream&        os,
 ostream &
 MultiFab::writeOn (ostream& os) const
 {
-  assert(boxarray.ready());
-  if(ParallelDescriptor::IOProcessor()) {
-    os << n_comp << '\n';
-    os << n_grow << '\n';
-    boxarray.writeOn(os);
-    os << 0 <<  '\n';  // no box association
-  }
+    assert(boxarray.ready());
 
-  streampos filePosition;
-  ParallelDescriptor::ShareVar(&filePosition, sizeof(streampos));
-  ParallelDescriptor::Synchronize();  // for ShareVar
-
-  int myproc = ParallelDescriptor::MyProc();
-  int fabProc;
-  for(int i = 0; i < length(); ++i) {
-    fabProc = distributionMap[i];
-    if(fabProc == myproc) {
-      fabparray[i].writeOn(os);
-      filePosition = os.tellp();
+    if (ParallelDescriptor::IOProcessor())
+    {
+        os << n_comp << '\n';
+        os << n_grow << '\n';
+        boxarray.writeOn(os);
+        os << 0 <<  '\n';
     }
-    ParallelDescriptor::Broadcast(fabProc, &filePosition, &filePosition);
-    os.seekp(filePosition);
-  }
 
-  ParallelDescriptor::Synchronize();
-  ParallelDescriptor::UnshareVar(&filePosition);
+    streampos filePosition;
+    ParallelDescriptor::ShareVar(&filePosition, sizeof(streampos));
+    ParallelDescriptor::Synchronize();
 
+    int myproc = ParallelDescriptor::MyProc();
+    int fabProc;
+    for (int i = 0; i < length(); ++i)
+    {
+        fabProc = distributionMap[i];
+        if (fabProc == myproc)
+        {
+            fabparray[i].writeOn(os);
+            filePosition = os.tellp();
+        }
+        ParallelDescriptor::Broadcast(fabProc, &filePosition, &filePosition);
+        os.seekp(filePosition);
+    }
+
+    ParallelDescriptor::Synchronize();
+    ParallelDescriptor::UnshareVar(&filePosition);
+    //
     // No need to check os here as itll be done in FArrayBox::writeOn().
+    //
     return os;
 }
-
-
-
 
 istream &
 MultiFab::readFrom (istream& is)
 {
-    assert( ! boxarray.ready());
+    assert(!boxarray.ready());
 
     is >> n_comp;
-    while (is.get() != '\n') {
+    while (is.get() != '\n')
         ;
-    }
+
     is >> n_grow;
-    while (is.get() != '\n') {
+    while (is.get() != '\n')
         ;
-    }
+
     boxarray.define(is);
     distributionMap.define(ParallelDescriptor::NProcs(), boxarray);
 
     int has_ba;
     is >> has_ba;
-    if (has_ba) {
+    if (has_ba)
+    {
         int cw;
         is >> cw;
-	// dont do anything with BoxAssoc
+        //
+	// Do not do anything with BoxAssoc.
+        //
     }
-    while (is.get() != '\n') {
+    while (is.get() != '\n')
         ;
-    }
+
     int nbox = boxarray.length();
     fabparray.resize(nbox);
 
 /*
-    // original code
+    original code:
+
     for (int i = 0; i < nbox; i++)
     {
         FArrayBox* tmp = new FArrayBox;
@@ -149,27 +138,28 @@ MultiFab::readFrom (istream& is)
 
     int myproc = ParallelDescriptor::MyProc();
     int fabProc;
-    for(int i = 0; i < nbox; i++) {
-      fabProc = distributionMap[i];
-      if(fabProc == myproc) {
-        FArrayBox* tmp = new FArrayBox;
-        if(tmp == 0) {
-          BoxLib::OutOfMemory(__FILE__, __LINE__);
+    for (int i = 0; i < nbox; i++)
+    {
+        fabProc = distributionMap[i];
+        if (fabProc == myproc)
+        {
+            FArrayBox* tmp = new FArrayBox;
+            if (tmp == 0)
+                BoxLib::OutOfMemory(__FILE__, __LINE__);
+
+            tmp->readFrom(is);
+            fabparray.set(i,tmp);
+            filePosition = is.tellg();
         }
-        tmp->readFrom(is);
-        fabparray.set(i,tmp);
-        filePosition = is.tellg();
-      }
-      ParallelDescriptor::Broadcast(fabProc, &filePosition, &filePosition);
-      is.seekg(filePosition);
+        ParallelDescriptor::Broadcast(fabProc, &filePosition, &filePosition);
+        is.seekg(filePosition);
     }
 
     ParallelDescriptor::Synchronize();
     ParallelDescriptor::UnshareVar(&filePosition);
 
-    if (is.fail()) {
+    if (is.fail())
         BoxLib::Error("MultiFab::readFrom(istream&) failed");
-    }
 
     return is;
 }
@@ -193,14 +183,14 @@ MultiFab::probe (ostream& os,
                << " data = ";
             for (int i = 0; i < nv; i++)
                 os << "  " << setw(20) << dat[i];
-            os << endl;
+            os << '\n';
         }
     }
     os.precision(prec);
+    os.flush();
 
-    if (os.fail()) {
+    if (os.fail())
         BoxLib::Error("MultiFab::probe(ostream&,IntVect&) failed");
-    }
 }
 
 Real
@@ -211,9 +201,10 @@ MultiFab::min (int comp,
 
     Real mn = INFINITY;
 
-    for(ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi) {
-      Box b(grow(mfi.validbox(), nghost));
-      mn = Min(mn, mfi().min(b, comp));
+    for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    {
+        Box b(grow(mfi.validbox(), nghost));
+        mn = Min(mn, mfi().min(b, comp));
     }
 
     ParallelDescriptor::ReduceRealMin(mn);
@@ -230,11 +221,13 @@ MultiFab::min (const Box& region,
 
     Real mn = INFINITY;
 
-    for(ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi) {
+    for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    {
         Box b(grow(mfi.validbox(), nghost));
         b &= region;
-        if(b.ok()) {
-          mn = Min(mn, mfi().min(b, comp));
+        if(b.ok())
+        {
+            mn = Min(mn, mfi().min(b, comp));
         }
     }
 
@@ -251,7 +244,8 @@ MultiFab::max (int comp,
 
     Real mn = -INFINITY;
 
-    for(ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi) {
+    for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    {
         Box b(grow(mfi.validbox(), nghost));
         mn = Max(mn, mfi().max(b, comp));
     }
@@ -271,12 +265,15 @@ MultiFab::max (const Box& region,
     Real mn = -INFINITY;
 
     int first = true;
-    for(ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi) {
+    for (ConstMultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    {
         Box b(grow(mfi.validbox(), nghost));
         b &= region;
-        if(b.ok()) {
+        if (b.ok())
+        {
             Real mg = mfi().max(b,comp);
-            if(first) {
+            if(first)
+            {
                 mn = mg;
                 first = false;
             }
@@ -303,11 +300,12 @@ MultiFab::minus (const MultiFab& mf,
     assert(lst_comp < n_comp && lst_comp < mf.n_comp);
     assert(nghost <= n_grow && nghost <= mf.n_grow);
 
-    for(MultiFabIterator mfi(*this); mfi.isValid(); ++mfi) {
-      DependentMultiFabIterator dmfi(mfi, mf);
-      Box bx(mfi.validbox());
-      bx.grow(nghost);
-      mfi().minus(dmfi(), bx, strt_comp, strt_comp, num_comp);
+    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    {
+        DependentMultiFabIterator dmfi(mfi, mf);
+        Box bx(mfi.validbox());
+        bx.grow(nghost);
+        mfi().minus(dmfi(), bx, strt_comp, strt_comp, num_comp);
     }
 }
 
@@ -320,7 +318,8 @@ MultiFab::plus (Real val,
     assert(nghost >= 0 && nghost <= n_grow);
     assert(comp+num_comp <= n_comp);
 
-    for(MultiFabIterator mfi(*this); mfi.isValid(); ++mfi) {
+    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    {
         Box b(grow(mfi.validbox(), nghost));
         mfi().plus(val, b, comp, num_comp);
     }
@@ -336,10 +335,12 @@ MultiFab::plus (Real       val,
     assert(nghost >= 0 && nghost <= n_grow);
     assert(comp+num_comp <= n_comp);
 
-    for(MultiFabIterator mfi(*this); mfi.isValid(); ++mfi) {
+    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    {
         Box b(grow(mfi.validbox(), nghost));
         b &= region;
-        if(b.ok()) {
+        if (b.ok())
+        {
             mfi().plus(val, b, comp, num_comp);
         }
     }
@@ -359,8 +360,9 @@ MultiFab::plus (const MultiFab& mf,
     assert(lst_comp < n_comp && lst_comp < mf.n_comp);
     assert(nghost <= n_grow && nghost <= mf.n_grow);
 
-    for(MultiFabIterator mfi(*this); mfi.isValid(); ++mfi) {
-      DependentMultiFabIterator dmfi(mfi, mf);
+    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    {
+        DependentMultiFabIterator dmfi(mfi, mf);
         Box bx(mfi.validbox());
         bx.grow(nghost);
         mfi().plus(dmfi(), bx, strt_comp, strt_comp, num_comp);
@@ -376,7 +378,8 @@ MultiFab::mult (Real val,
     assert(nghost >= 0 && nghost <= n_grow);
     assert(comp+num_comp <= n_comp);
 
-    for(MultiFabIterator mfi(*this); mfi.isValid(); ++mfi) {
+    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    {
         Box b(grow(mfi.validbox(), nghost));
         mfi().mult(val, b, comp, num_comp);
     }
@@ -392,10 +395,12 @@ MultiFab::mult (Real       val,
     assert(nghost >= 0 && nghost <= n_grow);
     assert(comp+num_comp <= n_comp);
 
-    for(MultiFabIterator mfi(*this); mfi.isValid(); ++mfi) {
+    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    {
         Box b(grow(mfi.validbox(), nghost));
         b &= region;
-        if(b.ok()) {
+        if(b.ok())
+        {
             mfi().mult(val, b, comp, num_comp);
         }
     }
@@ -410,7 +415,8 @@ MultiFab::invert (Real numerator,
     assert(nghost >= 0 && nghost <= n_grow);
     assert(comp+num_comp <= n_comp);
 
-    for(MultiFabIterator mfi(*this); mfi.isValid(); ++mfi) {
+    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    {
         Box b(grow(mfi.validbox(), nghost));
         mfi().invert(numerator, b, comp, num_comp);
     }
@@ -426,10 +432,12 @@ MultiFab::invert (Real       numerator,
     assert(nghost >= 0 && nghost <= n_grow);
     assert(comp+num_comp <= n_comp);
 
-    for(MultiFabIterator mfi(*this); mfi.isValid(); ++mfi) {
+    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    {
         Box b(grow(mfi.validbox(), nghost));
         b &= region;
-        if(b.ok()) {
+        if(b.ok())
+        {
             mfi().invert(numerator, b, comp, num_comp);
         }
     }
@@ -443,7 +451,8 @@ MultiFab::negate (int comp,
     assert(nghost >= 0 && nghost <= n_grow);
     assert(comp+num_comp <= n_comp);
 
-    for(MultiFabIterator mfi(*this); mfi.isValid(); ++mfi) {
+    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    {
         Box b(grow(mfi.validbox(), nghost));
         mfi().negate(b, comp, num_comp);
     }
@@ -458,10 +467,12 @@ MultiFab::negate (const Box& region,
     assert(nghost >= 0 && nghost <= n_grow);
     assert(comp+num_comp <= n_comp);
 
-    for(MultiFabIterator mfi(*this); mfi.isValid(); ++mfi) {
+    for (MultiFabIterator mfi(*this); mfi.isValid(); ++mfi)
+    {
         Box b(grow(mfi.validbox(), nghost));
         b &= region;
-        if(b.ok()) {
+        if (b.ok())
+        {
             mfi().negate(b, comp, num_comp);
         }
     }
@@ -496,11 +507,14 @@ linInterp (FArrayBox&      dest,
         const int dc = 0;
         const int sc = 0;
 
-      cerr << "Error in MultiFab::linInterp 1:  fix for parallel" << endl;
-      ParallelDescriptor::Abort("Error: MultiFab::linInterp 1:  fix parallel.");
-        for(ConstMultiFabIterator mfi(f2); mfi.isValid(); ++mfi) {
+        cerr << "Error in MultiFab::linInterp 1:  fix for parallel" << endl;
+        ParallelDescriptor::Abort("Error: MultiFab::linInterp 1:  fix parallel.");
+
+        for (ConstMultiFabIterator mfi(f2); mfi.isValid(); ++mfi)
+        {
 	    ConstDependentMultiFabIterator dmfi(mfi, f1);
-            if(mfi.validbox().intersects(subbox)) {
+            if (mfi.validbox().intersects(subbox))
+            {
                 Box destbox(mfi.validbox());
                 destbox &= subbox;
                 dest.linInterp(dmfi(), destbox, sc,
@@ -544,16 +558,23 @@ linInterp (FArrayBox&      dest,
         const int dc = dest_comp;
         const int sc = src_comp;
 
-      if(ParallelDescriptor::NProcs() > 1) {
-	ParallelDescriptor::Abort("Error: MultiFab::linInterp 2 not implemented in parallel.");
-      } else {
-	cerr << "Error: MultiFab::linInterp 2 not implemented in parallel." << endl;
-      }
+        if (ParallelDescriptor::NProcs() > 1)
+        {
+            ParallelDescriptor::Abort("MultiFab::linInterp 2 not implemented in parallel.");
+        }
+        else
+        {
+            cerr << "MultiFab::linInterp 2 not implemented in parallel." << endl;
+        }
 
-        for(ConstMultiFabIterator mfi(f2); mfi.isValid(); ++mfi) {
-	    ConstDependentMultiFabIterator dmfi(mfi, f1);
-            if(mfi.validbox().intersects(subbox)) {
+        for (ConstMultiFabIterator mfi(f2); mfi.isValid(); ++mfi)
+        {
+            ConstDependentMultiFabIterator dmfi(mfi, f1);
+            if (mfi.validbox().intersects(subbox))
+            {
+                //
                 // Restrict copy to domain of validity of source.
+                //
                 Box destbox(mfi.validbox());
                 destbox &= subbox;
 
@@ -565,38 +586,43 @@ linInterp (FArrayBox&      dest,
     }
 }
 
-
-
 void
-linInterpAddBox (MultiFabCopyDescriptor &fabCopyDesc,
-	   BoxList &returnUnfilledBoxes,
-	   Array<FillBoxId> &returnedFillBoxIds,
-           const Box      &subbox,
-	   const MultiFabId &faid1,
-	   const MultiFabId &faid2,
-           Real            t1,
-           Real            t2,
-           Real            t,
-           int             src_comp,
-           int             dest_comp,
-           int             num_comp,
-           bool            extrap)
+linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
+                 BoxList&                returnUnfilledBoxes,
+                 Array<FillBoxId>&       returnedFillBoxIds,
+                 const Box&              subbox,
+                 const MultiFabId&       faid1,
+                 const MultiFabId&       faid2,
+                 Real                    t1,
+                 Real                    t2,
+                 Real                    t,
+                 int                     src_comp,
+                 int                     dest_comp,
+                 int                     num_comp,
+                 bool                    extrap)
 {
     const Real teps = (t2-t1)/1000.0;
 
     assert(t>t1-teps && (extrap || t < t2+teps));
 
-    if (t < t1+teps) {
+    if (t < t1+teps)
+    {
 	returnedFillBoxIds.resize(1);
 	returnedFillBoxIds[0] = fabCopyDesc.AddBox(faid1, subbox,
-				       returnUnfilledBoxes,
-				       src_comp, dest_comp, num_comp);
-    } else if (t > t2-teps && t < t2+teps) {
+                                                   returnUnfilledBoxes,
+                                                   src_comp, dest_comp,
+                                                   num_comp);
+    }
+    else if (t > t2-teps && t < t2+teps)
+    {
 	returnedFillBoxIds.resize(1);
 	returnedFillBoxIds[0] = fabCopyDesc.AddBox(faid2, subbox,
-				       returnUnfilledBoxes,
-				       src_comp, dest_comp, num_comp);
-    } else {
+                                                   returnUnfilledBoxes,
+                                                   src_comp, dest_comp,
+                                                   num_comp);
+    }
+    else
+    {
         //assert(f1.boxArray() == boxarray2);
         //assert(f1.n_comp == f2.n_comp);
         //assert(src_comp + num_comp <= f1.n_comp);
@@ -612,34 +638,37 @@ linInterpAddBox (MultiFabCopyDescriptor &fabCopyDesc,
 				       src_comp, dest_comp, num_comp);
 	// note:  the boxarrays for faid1 and faid2 should be the
 	//        same so only use returnUnfilledBoxes from one AddBox here
-
     }
 }
 
-
 void
-linInterpFillFab (MultiFabCopyDescriptor &fabCopyDesc,
-	   const Array<FillBoxId> &fillBoxIds,
-           const MultiFabId &faid1,
-           const MultiFabId &faid2,
-	   FArrayBox      &dest,
-           Real            t1,
-           Real            t2,
-           Real            t,
-           int             src_comp,   // these comps need to be removed
-           int             dest_comp,  // from this routine
-           int             num_comp,
-           bool            extrap)
+linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
+                  const Array<FillBoxId>& fillBoxIds,
+                  const MultiFabId&       faid1,
+                  const MultiFabId&       faid2,
+                  FArrayBox&              dest,
+                  Real                    t1,
+                  Real                    t2,
+                  Real                    t,
+                  int                     src_comp,   // these comps need to be removed
+                  int                     dest_comp,  // from this routine
+                  int                     num_comp,
+                  bool                    extrap)
 {
     const Real teps = (t2-t1)/1000.0;
 
     assert(t>t1-teps && (extrap || t < t2+teps));
 
-    if (t < t1+teps) {
+    if (t < t1+teps)
+    {
 	fabCopyDesc.FillFab(faid1, fillBoxIds[0], dest);
-    } else if (t > t2-teps && t < t2+teps) {
+    }
+    else if (t > t2-teps && t < t2+teps)
+    {
 	fabCopyDesc.FillFab(faid2, fillBoxIds[0], dest);
-    } else {
+    }
+    else
+    {
         assert(dest_comp + num_comp <= dest.nComp());
 
 	FArrayBox dest1(dest.box(), dest.nComp());

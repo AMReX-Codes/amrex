@@ -4,7 +4,7 @@
 #define _MULTIFAB_H_
 
 //
-// $Id: MultiFab.H,v 1.2 1997-09-17 17:15:59 lijewski Exp $
+// $Id: MultiFab.H,v 1.3 1997-09-17 17:46:31 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -28,13 +28,13 @@
   This class does NOT provide a copy constructor or assignment operator.
 */
 
-
 typedef FabArrayId MultiFabId;
+
 class MultiFabCopyDescriptor;
 
-
 class MultiFab
-    : public FabArray<Real, FArrayBox>
+    :
+    public FabArray<Real, FArrayBox>
 {
   public:
 
@@ -503,6 +503,30 @@ class MultiFabCopyDescriptor
 //
 // Inlines.
 //
+
+inline
+MultiFab::MultiFab ()
+    :
+    FabArray<Real,FArrayBox>()
+{}
+
+inline
+MultiFab::MultiFab (const BoxArray& bxs,
+                    int             ncomp,
+                    int             ngrow,
+                    FabAlloc        alloc)
+    :
+    FabArray<Real,FArrayBox>(bxs,ncomp,ngrow,alloc)
+{}
+
+inline
+MultiFab::MultiFab (istream& is)
+    :
+    FabArray<Real,FArrayBox>()
+{
+    readFrom(is);
+}
+
 
 inline
 void
