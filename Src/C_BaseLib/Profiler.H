@@ -2,7 +2,7 @@
 #define _BL_PROFILER_H_
 
 //
-// $Id: Profiler.H,v 1.5 2001-07-22 22:12:22 car Exp $
+// $Id: Profiler.H,v 1.6 2001-07-22 23:25:25 car Exp $
 //
 
 #include <iostream>
@@ -28,7 +28,6 @@ private:
     const Tag& tag;
     bool started;
     static bool profiling;
-    static bool initialized;
     Profiler(const Profiler& prf);
     Profiler& operator=(const Profiler& prf);
 };
