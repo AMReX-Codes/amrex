@@ -1,4 +1,4 @@
-c     $Id: CG_3D.F,v 1.3 1998-07-14 20:23:42 car Exp $
+c     $Id: CG_3D.F,v 1.4 1999-04-13 21:36:11 sstanley Exp $
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT
@@ -132,16 +132,16 @@ c-----------------------------------------------------------------------
       REAL_T ww(DIMV(ww),nc)
       integer DIMDEC(pp)
       REAL_T pp(DIMV(pp),nc)
-      REAL_T pw(nc)
+      REAL_T pw
 c
       integer i, j, k, n
 c
+      pw = 0.0
       do n = 1, nc
-         pw(n) = 0.0
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  pw(n) = pw(n) + pp(i,j,k,n)*ww(i,j,k,n)
+                  pw = pw + pp(i,j,k,n)*ww(i,j,k,n)
                end do
             end do
          end do
