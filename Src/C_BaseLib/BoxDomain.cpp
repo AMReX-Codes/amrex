@@ -1,5 +1,5 @@
 //
-// $Id: BoxDomain.cpp,v 1.15 2001-07-24 18:16:52 lijewski Exp $
+// $Id: BoxDomain.cpp,v 1.16 2001-07-24 22:04:48 lijewski Exp $
 //
 
 #include <BoxDomain.H>
@@ -109,10 +109,10 @@ BoxDomain::add (const Box& b)
 
     std::list<Box> check;
     check.push_back(b);
-    for (Iterator bli = lbox.begin(); bli != lbox.end(); ++bli)
+    for (iterator bli = lbox.begin(); bli != lbox.end(); ++bli)
     {
         std::list<Box> tmp;
-        for (Iterator ci = check.begin(); ci != check.end(); )
+        for (iterator ci = check.begin(); ci != check.end(); )
         {
             if (ci->intersects(*bli))
             {
@@ -143,7 +143,7 @@ BoxDomain::add (const Box& b)
 void
 BoxDomain::add (const BoxList& bl)
 {
-    for (BoxList::ConstIterator bli = bl.begin(); bli != bl.end(); ++bli)
+    for (BoxList::const_iterator bli = bl.begin(); bli != bl.end(); ++bli)
         add(*bli);
 }
 
@@ -183,9 +183,9 @@ BoxDomain::ok () const
         //
         // Now check to see that boxes are disjoint.
         //
-        for (ConstIterator bli = begin(); bli != end(); ++bli)
+        for (const_iterator bli = begin(); bli != end(); ++bli)
         {
-            ConstIterator blii = bli; ++blii;
+            const_iterator blii = bli; ++blii;
             for ( ; blii != end(); ++blii)
             {
                 if (bli->intersects(*blii))

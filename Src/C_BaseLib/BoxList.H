@@ -2,7 +2,7 @@
 #define BL_BOXLIST_H
 
 //
-// $Id: BoxList.H,v 1.24 2001-07-24 18:16:52 lijewski Exp $
+// $Id: BoxList.H,v 1.25 2001-07-24 22:04:48 lijewski Exp $
 //
 
 #include <iostream>
@@ -75,8 +75,8 @@ public:
 
     friend class BoxDomain;
 
-    typedef std::list<Box>::iterator       Iterator;
-    typedef std::list<Box>::const_iterator ConstIterator;
+    typedef std::list<Box>::iterator       iterator;
+    typedef std::list<Box>::const_iterator const_iterator;
     //
     //@ManDoc: Construct an empty BoxList with IndexType::TheCellType().
     //
@@ -114,11 +114,11 @@ public:
     //
     size_t size () const;
 
-    Iterator begin ();
-    ConstIterator begin () const;
+    iterator begin ();
+    const_iterator begin () const;
 
-    Iterator end ();
-    ConstIterator end () const;
+    iterator end ();
+    const_iterator end () const;
 
     /*@ManDoc: True if this BoxList is valid; i.e. all the Boxes are
                valid and they all have the same IndexType.  Also returns
@@ -180,7 +180,7 @@ public:
     //
     //@ManDoc: Remove the pointed to Box from this BoxList.
     //
-    BoxList& remove (Iterator bli);
+    BoxList& remove (iterator bli);
     //
     //@ManDoc: Creates the complement of BoxList bl in Box b.
     //

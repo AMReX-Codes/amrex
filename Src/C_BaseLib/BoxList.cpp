@@ -1,5 +1,5 @@
 //
-// $Id: BoxList.cpp,v 1.19 2001-07-24 18:16:52 lijewski Exp $
+// $Id: BoxList.cpp,v 1.20 2001-07-24 22:04:48 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -8,25 +8,25 @@
 #include <BoxArray.H>
 #include <BoxList.H>
 
-BoxList::Iterator
+BoxList::iterator
 BoxList::begin()
 {
     return lbox.begin();
 }
 
-BoxList::ConstIterator
+BoxList::const_iterator
 BoxList::begin() const
 {
     return lbox.begin();
 }
 
-BoxList::Iterator
+BoxList::iterator
 BoxList::end()
 {
     return lbox.end();
 }
 
-BoxList::ConstIterator
+BoxList::const_iterator
 BoxList::end() const
 {
     return lbox.end();
@@ -109,7 +109,7 @@ BoxList::remove (const Box& bx)
 }
 
 BoxList&
-BoxList::remove (Iterator bli)
+BoxList::remove (iterator bli)
 {
     BL_ASSERT(ixType() == bli->ixType());
     lbox.erase(bli);
@@ -196,7 +196,7 @@ bool
 BoxList::ok () const
 {
     bool isok = true;
-    ConstIterator bli = begin();
+    const_iterator bli = begin();
     if ( bli != end() )
     {
         for (Box b(*bli); bli != end() && isok; ++bli)
@@ -211,9 +211,9 @@ bool
 BoxList::isDisjoint () const
 {
     bool isdisjoint = true;
-    for (ConstIterator bli = begin(); bli != end() && isdisjoint; ++bli)
+    for (const_iterator bli = begin(); bli != end() && isdisjoint; ++bli)
     {
-        ConstIterator bli2 = bli;
+        const_iterator bli2 = bli;
         //
         // Skip the first element.
         //
@@ -233,7 +233,7 @@ bool
 BoxList::contains (const IntVect& v) const
 {
     bool contained = false;
-    for (ConstIterator bli = begin(); bli != end() && !contained; ++bli)
+    for (const_iterator bli = begin(); bli != end() && !contained; ++bli)
     {
         if (bli->contains(v))
 	{
@@ -246,7 +246,7 @@ BoxList::contains (const IntVect& v) const
 bool
 BoxList::contains (const BoxList&  bl) const
 {
-    for (ConstIterator bli = bl.begin(); bli != bl.end(); ++bli)
+    for (const_iterator bli = bl.begin(); bli != bl.end(); ++bli)
     {
 	if ( !contains(*bli) )
 	{
@@ -268,7 +268,7 @@ BoxList::contains (const BoxArray&  ba) const
 BoxList&
 BoxList::intersect (const Box& b)
 {
-    for (Iterator bli= begin(); bli != end(); )
+    for (iterator bli= begin(); bli != end(); )
     {
         if (bli->intersects(b))
         {
@@ -288,9 +288,9 @@ BoxList::intersect (const BoxList& b)
 {
     BoxList bl;
 
-    for (Iterator lhs = begin(); lhs != end(); ++lhs)
+    for (iterator lhs = begin(); lhs != end(); ++lhs)
     {
-        for (ConstIterator rhs = b.begin(); rhs != b.end(); ++rhs)
+        for (const_iterator rhs = b.begin(); rhs != b.end(); ++rhs)
         {
             if ( lhs->intersects(*rhs) )
             {
@@ -310,9 +310,9 @@ BoxLib::complementIn (const Box&     b,
 {
     BoxList newb(b.ixType());
     newb.append(b);
-    for (BoxList::ConstIterator bli = bl.begin(); bli != bl.end() && newb.isNotEmpty(); ++bli)
+    for (BoxList::const_iterator bli = bl.begin(); bli != bl.end() && newb.isNotEmpty(); ++bli)
     {
-        for (BoxList::Iterator newbli = newb.begin(); newbli != newb.end(); )
+        for (BoxList::iterator newbli = newb.begin(); newbli != newb.end(); )
         {
             if ( newbli->intersects(*bli))
             {
@@ -335,9 +335,9 @@ BoxList::complementIn (const Box&     b,
 {
     clear();
     append(b);
-    for (ConstIterator bli = bl.begin(); bli != bl.end() && isNotEmpty(); ++bli)
+    for (const_iterator bli = bl.begin(); bli != bl.end() && isNotEmpty(); ++bli)
     {
-        for (Iterator newbli = lbox.begin(); newbli != lbox.end(); )
+        for (iterator newbli = lbox.begin(); newbli != lbox.end(); )
         {
             if ( newbli->intersects(*bli) )
             {
@@ -357,7 +357,7 @@ BoxList::complementIn (const Box&     b,
 BoxList&
 BoxList::refine (int ratio)
 {
-    for (Iterator bli = begin(); bli != end(); ++bli)
+    for (iterator bli = begin(); bli != end(); ++bli)
     {
         bli->refine(ratio);
     }
@@ -367,7 +367,7 @@ BoxList::refine (int ratio)
 BoxList&
 BoxList::refine (const IntVect& ratio)
 {
-    for (Iterator bli = begin(); bli != end(); ++bli)
+    for (iterator bli = begin(); bli != end(); ++bli)
     {
         bli->refine(ratio);
     }
@@ -377,7 +377,7 @@ BoxList::refine (const IntVect& ratio)
 BoxList&
 BoxList::coarsen (int ratio)
 {
-    for (Iterator bli = begin(); bli != end(); ++bli)
+    for (iterator bli = begin(); bli != end(); ++bli)
     {
         bli->coarsen(ratio);
     }
@@ -387,7 +387,7 @@ BoxList::coarsen (int ratio)
 BoxList&
 BoxList::coarsen (const IntVect& ratio)
 {
-    for (Iterator bli = begin(); bli != end(); ++bli)
+    for (iterator bli = begin(); bli != end(); ++bli)
     {
         bli->coarsen(ratio);
     }
@@ -397,7 +397,7 @@ BoxList::coarsen (const IntVect& ratio)
 BoxList&
 BoxList::accrete (int sz)
 {
-    for (Iterator bli = begin(); bli != end(); ++bli)
+    for (iterator bli = begin(); bli != end(); ++bli)
     {
         bli->grow(sz);
     }
@@ -408,7 +408,7 @@ BoxList&
 BoxList::shift (int dir,
                 int nzones)
 {
-    for (Iterator bli = begin(); bli != end(); ++bli)
+    for (iterator bli = begin(); bli != end(); ++bli)
     {
         bli->shift(dir, nzones);
     }
@@ -419,7 +419,7 @@ BoxList&
 BoxList::shiftHalf (int dir,
                     int num_halfs)
 {
-    for (Iterator bli = begin(); bli != end(); ++bli)
+    for (iterator bli = begin(); bli != end(); ++bli)
     {
         bli->shiftHalf(dir, num_halfs);
     }
@@ -429,7 +429,7 @@ BoxList::shiftHalf (int dir,
 BoxList&
 BoxList::shiftHalf (const IntVect& iv)
 {
-    for (Iterator bli = begin(); bli != end(); ++bli)
+    for (iterator bli = begin(); bli != end(); ++bli)
     {
         bli->shiftHalf(iv);
     }
@@ -495,12 +495,12 @@ BoxList::simplify ()
     int lo[BL_SPACEDIM];
     int hi[BL_SPACEDIM];
 
-    for (Iterator bla = begin(); bla != end(); )
+    for (iterator bla = begin(); bla != end(); )
     {
         const int* alo   = bla->loVect();
         const int* ahi   = bla->hiVect();
         bool       match = false;
-        Iterator blb = bla;
+        iterator blb = bla;
         ++blb;
         while ( blb != end() )
         {
@@ -582,7 +582,7 @@ BoxList::minimalBox () const
     Box minbox;
     if ( !isEmpty() )
     {
-        ConstIterator bli = begin();
+        const_iterator bli = begin();
         minbox = *bli;
         while ( bli != end() )
 	{
@@ -595,7 +595,7 @@ BoxList::minimalBox () const
 BoxList&
 BoxList::maxSize (const IntVect& chunk)
 {
-    for (Iterator bli = begin(); bli != end(); ++bli)
+    for (iterator bli = begin(); bli != end(); ++bli)
     {
         const int* len = bli->length().getVect();
 
@@ -657,7 +657,7 @@ BoxList::maxSize (int chunk)
 BoxList&
 BoxList::surroundingNodes ()
 {
-    for (Iterator bli = begin(); bli != end(); ++bli)
+    for (iterator bli = begin(); bli != end(); ++bli)
     {
         bli->surroundingNodes();
     }
@@ -667,7 +667,7 @@ BoxList::surroundingNodes ()
 BoxList&
 BoxList::surroundingNodes (int dir)
 {
-    for (Iterator bli = begin(); bli != end(); ++bli)
+    for (iterator bli = begin(); bli != end(); ++bli)
     {
         bli->surroundingNodes(dir);
     }
@@ -677,7 +677,7 @@ BoxList::surroundingNodes (int dir)
 BoxList&
 BoxList::enclosedCells ()
 {
-    for (Iterator bli = begin(); bli != end(); ++bli)
+    for (iterator bli = begin(); bli != end(); ++bli)
     {
         bli->enclosedCells();
     }
@@ -687,7 +687,7 @@ BoxList::enclosedCells ()
 BoxList&
 BoxList::enclosedCells (int dir)
 {
-    for (Iterator bli = begin(); bli != end(); ++bli)
+    for (iterator bli = begin(); bli != end(); ++bli)
     {
         bli->enclosedCells(dir);
     }
@@ -698,7 +698,7 @@ BoxList&
 BoxList::convert (IndexType typ)
 {
     btype = typ;
-    for (Iterator bli = begin(); bli != end(); ++bli)
+    for (iterator bli = begin(); bli != end(); ++bli)
     {
         bli->convert(typ);
     }
@@ -709,7 +709,7 @@ std::ostream&
 operator<< (std::ostream&  os,
             const BoxList& blist)
 {
-    BoxList::ConstIterator bli = blist.begin();
+    BoxList::const_iterator bli = blist.begin();
     os << "(BoxList " << blist.size() << ' ' << blist.ixType() << '\n';
     for (int count = 1; bli != blist.end(); ++bli, ++count)
     {
@@ -733,7 +733,7 @@ BoxList::operator== (const BoxList& rhs) const
     }
     else
     {
-        BoxList::ConstIterator liter = begin(), riter = rhs.begin();
+        BoxList::const_iterator liter = begin(), riter = rhs.begin();
         for (; liter != end() && rc; ++liter, ++riter)
 	{
             if ( !( *liter == *riter) )

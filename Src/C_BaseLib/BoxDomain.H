@@ -2,7 +2,7 @@
 #define BL_BOXDOMAIN_H
 
 //
-// $Id: BoxDomain.H,v 1.21 2001-07-24 18:16:52 lijewski Exp $
+// $Id: BoxDomain.H,v 1.22 2001-07-24 22:04:47 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -75,7 +75,7 @@ class BoxDomain
 {
 public:
 
-    typedef BoxList::ConstIterator ConstIterator;
+    using BoxList::const_iterator;
     //
     //@ManDoc: Construct an empty BoxDomain of IndexType::TheCellType().
     //
