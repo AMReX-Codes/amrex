@@ -4,6 +4,7 @@ vpath %.h   . $(VPATH_LOCATIONS)
 vpath %.f90 . $(VPATH_LOCATIONS)
 
 doc:	$(html_sources)
+	mv *.html $(hdir)
 
 clean:
 	$(RM) ./*.o ./*.mod $(mdir)/*.mod $(odir)/*.o *.exe *~
@@ -60,11 +61,11 @@ endif
 
 ${hdir}/%.html: %.f90
 	@if [ ! -d $(hdir) ]; then mkdir -p $(hdir); fi
-	$(F90DOC) $(OUTPUT_OPTION) $<
+	$(F90DOC) $(F90DOC_OPTION) $<
 
 ${hdir}/%.html: %.f
 	@if [ ! -d $(hdir) ]; then mkdir -p $(hdir); fi
-	$(F90DOC) $(OUTPUT_OPTION) $<
+	$(F90DOC) $(F90DOC_OPTION) $<
 
 $(tdir)/f90.depends: $(fsources) $(f90sources)
 	@if [ ! -d $(tdir) ]; then mkdir -p $(tdir); fi
