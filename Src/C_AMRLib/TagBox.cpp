@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.38 1998-05-28 21:32:04 lijewski Exp $
+// $Id: TagBox.cpp,v 1.39 1998-05-29 19:46:52 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -454,9 +454,10 @@ TagBoxArray::mergeUnique ()
 
     FabArrayCopyDescriptor<TagType,TagBox> facd;
 
-    FabArrayId              faid     = facd.RegisterFabArray(this);
-    int                     nOverlap = 0;
-    const int               MyProc   = ParallelDescriptor::MyProc();
+    FabArrayId faid     = facd.RegisterFabArray(this);
+    int        nOverlap = 0;
+    const int  MyProc   = ParallelDescriptor::MyProc();
+
     vector<TagBoxMergeDesc> tbmdList;
     TagBoxMergeDesc         tbmd;
 
@@ -474,6 +475,7 @@ TagBoxArray::mergeUnique ()
                 tbmd.nOverlap       = nOverlap++;
                 tbmd.destLocal      = destLocal;
                 if (destLocal)
+                {
                     tbmd.fillBoxId = facd.AddBox(faid,
                                                  tbmd.overlapBox,
                                                  0,
@@ -481,12 +483,12 @@ TagBoxArray::mergeUnique ()
                                                  0,
                                                  0,
                                                  1);
+                }
                 tbmdList.push_back(tbmd);
-                if (destLocal)
-                    tbmd.fillBoxId = FillBoxId(); // Clear out for later reuse.
             }
         }
     }
+
     facd.CollectData();
 
     TagBox            src;
