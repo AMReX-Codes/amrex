@@ -190,8 +190,6 @@ task::_do_depend ()
         //
         return;
 
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::_do_depend()");
-
     for (std::list<task::task_proxy>::const_iterator cit = m_task_list.begin();
 	 cit != m_task_list.end();
          ++cit)
@@ -216,8 +214,6 @@ task_list::~task_list () {}
 task::task_proxy
 task_list::add_task (task* t)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::add_task()");
-
     BL_ASSERT(t != 0);
 
     if (t->is_finished())
@@ -504,8 +500,6 @@ task_copy::task_copy (task_list&      tl_,
     :
     task_copy_base(tl_, mf, dgrid, bx, smf, sgrid, bx)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::task_copy(1)");
-
     init();
 }
 
@@ -519,8 +513,6 @@ task_copy::task_copy (task_list&      tl_,
     :
     task_copy_base(tl_, mf, dgrid, db, smf, sgrid, sb)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::task_copy(2)");
-
     init();
 }
 
@@ -534,8 +526,6 @@ task_copy::task_copy (task_list&        tl_,
     :
     task_copy_base(tl_, mf, dgrid, bx, smf, sgrid, bx)
 {
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::task_copy(3)");
-
     depend_on(tp);
     init();
 }
