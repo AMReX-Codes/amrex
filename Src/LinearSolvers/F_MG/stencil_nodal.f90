@@ -116,7 +116,7 @@ contains
 
     type(box    )  :: bx1
     type(boxarray) :: ba
-    integer i, j, ib, jb, ilo, jlo, ii, jj, nx, ny
+    integer i, j, ib, jb, ilo, jlo, ii, nx, ny
     real (kind = dp_t) fx, fy
 
     fx = HALF*THIRD/dh(1)**2
