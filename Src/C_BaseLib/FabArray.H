@@ -4,7 +4,7 @@
 #define _FABARRAY_H_
 
 //
-// $Id: FabArray.H,v 1.4 1997-09-16 21:11:34 lijewski Exp $
+// $Id: FabArray.H,v 1.5 1997-09-16 22:12:43 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -176,7 +176,7 @@ public:
     //
     //@ManDoc: Returns the length of this FabArray; i.e. the number of FABs.
     //
-    inline int length () const;
+    int length () const;
 
     /*@ManDoc: Returns a constant reference to the FAB associated with the
                Kth element.
@@ -436,18 +436,36 @@ template <class T, class FAB>
 class DependentFabArrayIterator
 {
   public:
-
+    //
+    //
+    //
     DependentFabArrayIterator(FabArrayIterator<T,FAB>& controllerfaiter,
                               FabArray<T,FAB>&         dependentfabarray);
+    //
+    //
+    //
     DependentFabArrayIterator(FabArrayIterator<T,FAB>& controllerfaiter,
                               const FabArray<T,FAB>&   dependentfabarray);
-    virtual ~DependentFabArrayIterator();
-
-    virtual inline const FAB& operator() () const;
-    virtual inline FAB& operator() ();
-    virtual inline const Box& validbox () const;
-    virtual inline const Box& fabbox () const;
-    virtual inline int index () const;
+    //
+    //
+    //
+    const FAB& operator() () const;
+    //
+    //
+    //
+    FAB& operator() ();
+    //
+    //
+    //
+    const Box& validbox () const;
+    //
+    //
+    //
+    const Box& fabbox () const;
+    //
+    //
+    //
+    int index () const;
 
   protected:
 
@@ -460,26 +478,46 @@ class DependentFabArrayIterator
     //
     DependentFabArrayIterator ();
     DependentFabArrayIterator (const DependentFabArrayIterator<T,FAB> &);
-    DependentFabArrayIterator<T,FAB>
-		      &operator=(const DependentFabArrayIterator<T,FAB> &);
+    DependentFabArrayIterator<T,FAB>& operator=(const DependentFabArrayIterator<T,FAB> &);
 };
 
 template <class T, class FAB>
 class ConstFabArrayIterator
 {
   public:
-
+    //
+    //
+    //
     ConstFabArrayIterator(const FabArray<T,FAB>& fabarray,
                           const int              nghost = 0);
-    virtual ~ConstFabArrayIterator ();
-
-    virtual inline const FAB& operator() () const;
-    virtual inline const Box& validbox () const;
-    virtual inline const Box& fabbox () const;
-    virtual inline ConstFabArrayIterator<T,FAB>& operator++ ();
-    virtual inline int index () const;
-    virtual inline bool isValid () const;
-    inline int NGhost () const;
+    //
+    //
+    //
+    const FAB& operator() () const;
+    //
+    //
+    //
+    const Box& validbox () const;
+    //
+    //
+    //
+    const Box& fabbox () const;
+    //
+    //
+    //
+    ConstFabArrayIterator<T,FAB>& operator++ ();
+    //
+    //
+    //
+    int index () const;
+    //
+    //
+    //
+    bool isValid () const;
+    //
+    //
+    //
+    int NGhost () const;
 
   protected:
 
@@ -493,24 +531,34 @@ class ConstFabArrayIterator
     //
     ConstFabArrayIterator ();
     ConstFabArrayIterator (const ConstFabArrayIterator<T,FAB> &);
-    ConstFabArrayIterator<T,FAB>& operator=(const ConstFabArrayIterator<T,FAB> &);
+    ConstFabArrayIterator<T,FAB>& operator= (const ConstFabArrayIterator<T,FAB> &);
 };
 
 template <class T, class FAB>
 class ConstDependentFabArrayIterator
 {
   public:
-
-    ConstDependentFabArrayIterator(
-        ConstFabArrayIterator<T,FAB>& controllerfaiter,
-        const FabArray<T,FAB>& dependentfabarray);
-
-    virtual ~ConstDependentFabArrayIterator ();
-
-    virtual inline const FAB& operator() () const;
-    virtual inline const Box& validbox () const;
-    virtual inline const Box& fabbox () const;
-    virtual inline int index () const;
+    //
+    //
+    //
+    ConstDependentFabArrayIterator(ConstFabArrayIterator<T,FAB>& cfai,
+                                   const FabArray<T,FAB>&        fa);
+    //
+    //
+    //
+    const FAB& operator() () const;
+    //
+    //
+    //
+    const Box& validbox () const;
+    //
+    //
+    //
+    const Box& fabbox () const;
+    //
+    //
+    //
+    int index () const;
 
   protected:
 
@@ -523,8 +571,7 @@ class ConstDependentFabArrayIterator
     //
     ConstDependentFabArrayIterator ();
     ConstDependentFabArrayIterator (const ConstDependentFabArrayIterator<T,FAB> &);
-    ConstDependentFabArrayIterator<T,FAB>
-		      &operator=(const ConstDependentFabArrayIterator<T,FAB> &);
+    ConstDependentFabArrayIterator<T,FAB>& operator= (const ConstDependentFabArrayIterator<T,FAB> &);
 };
 
 class FabArrayId
@@ -532,12 +579,14 @@ class FabArrayId
   public:
 
     FabArrayId (int newid = -1) : fabArrayId(newid) {}
-    ~FabArrayId()  {}
-    int Id() const { return fabArrayId; }
+
+    FabArrayId (const FabArrayId& rhs) : fabArrayId(rhs.fabArrayId) {}
+
+    int Id () const { return fabArrayId; }
 
   protected:
 
-    void SetId(int id) { fabArrayId = id; }
+    void SetId (int id) { fabArrayId = id; }
 
   private:
 
@@ -548,18 +597,22 @@ class FillBoxId
 {
   public:
 
-    FillBoxId ()
-        :
-        fillBoxId(-1)
-    {}
+    FillBoxId () : fillBoxId(-1) {}
+
     FillBoxId (int            newid,
                const Box&     fillbox,
                const BoxList& filledboxes)
         :
         fillBoxId(newid),
         fillBox(fillbox),
-        filledBoxes(filledboxes)
-    {}
+        filledBoxes(filledboxes) {}
+
+    FillBoxId (const FillBoxId& rhs)
+        :
+        fillBoxId(rhs.fillBoxId),
+        fillBox(rhs.fillBox),
+        filledBoxes(rhs.filledBoxes) {}
+
     ~FillBoxId() {}
 
     int Id () const                       { return fillBoxId;   }
@@ -587,32 +640,40 @@ enum FillType { FillLocally, FillRemotely, Unfillable };
 template <class FAB>
 struct FabCopyDescriptor
 {
-        FabCopyDescriptor(); // : myProc(-1), copyFromProc(-1), copyFromIndex(-1),
-			     //   fabArrayId(-1), fillBoxId(-1),
-			     //   fillType(Unfillable),
-			     //   cacheDataAllocated(false)
-        //{ }
+    FabCopyDescriptor()
+        :
+        myProc(-1),
+        copyFromProc(-1),
+        copyFromIndex(-1),
+        fabArrayId(-1),
+        fillBoxId(-1),
+        srcComp(-1),
+        destComp(-1),
+        nComp(-1),
+        fillType(Unfillable),
+        cacheDataAllocated(false),
+        localFabSource(NULL)
+    {}
 
-        ~FabCopyDescriptor();
-	//{
-	  //if(cacheDataAllocated) {
-	    //delete localFabSource;
-	  //}
-        //}
+    ~FabCopyDescriptor()
+    {
+        if (cacheDataAllocated)
+            delete localFabSource;
+    }
 
-        int myProc;
-        int copyFromProc;
-        int copyFromIndex;
-        int fabArrayId;
-        int fillBoxId;
-        int srcComp;
-        int destComp;
-        int nComp;
-        Box subBox;
-        FillType fillType;
-        bool cacheDataAllocated;
-        FAB *localFabSource;  // either a local fab from this fabarray or a
-			      // temp local fab with data from a remote copy
+    int      myProc;
+    int      copyFromProc;
+    int      copyFromIndex;
+    int      fabArrayId;
+    int      fillBoxId;
+    int      srcComp;
+    int      destComp;
+    int      nComp;
+    Box      subBox;
+    FillType fillType;
+    bool     cacheDataAllocated;
+    FAB*     localFabSource;  // Either a local fab from this fabarray or a
+                              // temp local fab with data from a remote copy.
 };
 
 //
@@ -627,13 +688,14 @@ class FabArrayCopyDescriptor
 
     FabArrayCopyDescriptor (bool cacheremotedata);
 
-    virtual ~FabArrayCopyDescriptor ();
+    ~FabArrayCopyDescriptor ();
 
     FabArrayId RegisterFabArray(FabArray<T,FAB> *fabarray);
 
     FillBoxId AddBox(const FabArrayId& fabarrayid,
                      const Box&        destFabBox,
 		     BoxList&          unfilledBoxes);
+
     FillBoxId AddBox(const FabArrayId& fabarrayid,
                      const Box&        destFabBox,
 		     BoxList&          unfilledBoxes,
@@ -655,14 +717,18 @@ class FabArrayCopyDescriptor
 		     //int srccomp, int destcomp, int numcomp);
 
     void CollectData ();
+
     void FillFab (const FabArrayId& fabarrayid,
                   const FillBoxId&  fillboxid,
                   FAB&              destFab);
 
     void PrintStats ();
+
     //const BoxList &UnfilledBoxes()  { return unfilledBoxes;    }
     //const Box &box() const          { return destBox;          }
+
     bool DataAvailable () const      { return dataAvailable;    }
+
     //bool CompletelyFilled()         { return completelyFilled; }
 
   protected:
@@ -693,8 +759,8 @@ class FabArrayCopyDescriptor
     // These are disallowed.
     //
     FabArrayCopyDescriptor();
-    FabArrayCopyDescriptor(const FabArrayCopyDescriptor<T,FAB> &);
-    FabArrayCopyDescriptor<T,FAB> &operator=(const FabArrayCopyDescriptor<T,FAB> &);
+    FabArrayCopyDescriptor (const FabArrayCopyDescriptor<T,FAB>&);
+    FabArrayCopyDescriptor<T,FAB>& operator= (const FabArrayCopyDescriptor<T,FAB> &);
 };
 
 //
@@ -1581,35 +1647,33 @@ FabArrayIterator<T,FAB>::isValid ()
   bool valid = (currentIndex >= 0 && currentIndex < fabArray.length());
   if (!valid)
   {
-      //ParallelDescriptor::Synchronize("FAI::isValid() sync");
       ParallelDescriptor::Synchronize();
   }
   return valid;
 }
 
 template <class T, class FAB>
+inline
 DependentFabArrayIterator<T,FAB>::DependentFabArrayIterator(
-    FabArrayIterator<T,FAB> &controllerfaiter,
-    FabArray<T,FAB> &dependentfabarray)
+    FabArrayIterator<T,FAB>& controllerfaiter,
+    FabArray<T,FAB>&         dependentfabarray)
     :
     fabArray(dependentfabarray),
     controller(&controllerfaiter)
 {}
 
 template <class T, class FAB>
+inline
 DependentFabArrayIterator<T,FAB>::DependentFabArrayIterator(
-    FabArrayIterator<T,FAB> &controllerfaiter,
-    const FabArray<T,FAB> &dependentfabarray)
+    FabArrayIterator<T,FAB>& controllerfaiter,
+    const FabArray<T,FAB>&   dependentfabarray)
     :
-    fabArray((FabArray<T,FAB> &) dependentfabarray),
+    fabArray(const_cast<FabArray<T,FAB>&>(dependentfabarray)),
     controller(&controllerfaiter)
 {}
 
 template <class T, class FAB>
-DependentFabArrayIterator<T,FAB>::~DependentFabArrayIterator ()
-{}
-
-template <class T, class FAB>
+inline
 int
 DependentFabArrayIterator<T,FAB>::index () const
 {
@@ -1617,6 +1681,7 @@ DependentFabArrayIterator<T,FAB>::index () const
 }
 
 template <class T, class FAB>
+inline
 const Box&
 DependentFabArrayIterator<T,FAB>::validbox() const
 {
@@ -1624,6 +1689,7 @@ DependentFabArrayIterator<T,FAB>::validbox() const
 }
 
 template <class T, class FAB>
+inline
 const Box&
 DependentFabArrayIterator<T,FAB>::fabbox() const
 {
@@ -1631,6 +1697,7 @@ DependentFabArrayIterator<T,FAB>::fabbox() const
 }
 
 template <class T, class FAB>
+inline
 FAB&
 DependentFabArrayIterator<T,FAB>::operator() ()
 {
@@ -1638,6 +1705,7 @@ DependentFabArrayIterator<T,FAB>::operator() ()
 }
 
 template <class T, class FAB>
+inline
 const FAB&
 DependentFabArrayIterator<T,FAB>::operator() () const
 {
@@ -1666,10 +1734,7 @@ ConstFabArrayIterator<T,FAB>::ConstFabArrayIterator(
 }
 
 template <class T, class FAB>
-ConstFabArrayIterator<T,FAB>::~ConstFabArrayIterator ()
-{}
-
-template <class T, class FAB>
+inline
 const FAB&
 ConstFabArrayIterator<T,FAB>::operator() () const
 {
@@ -1687,13 +1752,15 @@ ConstFabArrayIterator<T,FAB>::operator++ ()
     do
     {
         ++currentIndex;
-    } while (currentIndex < fabArray.length() &&
-             fabArray.DistributionMap()[currentIndex] != myproc);
+    }
+    while (currentIndex < fabArray.length() &&
+           fabArray.DistributionMap()[currentIndex] != myproc);
 
     return *this;
 }
 
 template <class T, class FAB>
+inline
 int
 ConstFabArrayIterator<T,FAB>::index () const
 {
@@ -1701,6 +1768,7 @@ ConstFabArrayIterator<T,FAB>::index () const
 }
 
 template <class T, class FAB>
+inline
 const Box&
 ConstFabArrayIterator<T,FAB>::validbox () const
 {
@@ -1708,6 +1776,7 @@ ConstFabArrayIterator<T,FAB>::validbox () const
 }
 
 template <class T, class FAB>
+inline
 const Box&
 ConstFabArrayIterator<T,FAB>::fabbox() const
 {
@@ -1715,19 +1784,20 @@ ConstFabArrayIterator<T,FAB>::fabbox() const
 }
 
 template <class T, class FAB>
+inline
 bool
 ConstFabArrayIterator<T,FAB>::isValid () const
 {
     bool valid = (currentIndex >= 0 && currentIndex < fabArray.length());
     if (!valid)
     {
-        //ParallelDescriptor::Synchronize("CFAI::isValid sync");
         ParallelDescriptor::Synchronize();
     }
     return valid;
 }
 
 template <class T, class FAB>
+inline
 ConstDependentFabArrayIterator<T,FAB>::ConstDependentFabArrayIterator(
     ConstFabArrayIterator<T,FAB>& controllerfaiter,
     const FabArray<T,FAB>&        dependentfabarray)
@@ -1737,10 +1807,7 @@ ConstDependentFabArrayIterator<T,FAB>::ConstDependentFabArrayIterator(
 {}
 
 template <class T, class FAB>
-ConstDependentFabArrayIterator<T,FAB>::~ConstDependentFabArrayIterator ()
-{}
-
-template <class T, class FAB>
+inline
 int
 ConstDependentFabArrayIterator<T,FAB>::index () const
 {
@@ -1748,6 +1815,7 @@ ConstDependentFabArrayIterator<T,FAB>::index () const
 }
 
 template <class T, class FAB>
+inline
 const Box&
 ConstDependentFabArrayIterator<T,FAB>::validbox () const
 {
@@ -1755,6 +1823,7 @@ ConstDependentFabArrayIterator<T,FAB>::validbox () const
 }
 
 template <class T, class FAB>
+inline
 const Box&
 ConstDependentFabArrayIterator<T,FAB>::fabbox() const
 {
@@ -1762,6 +1831,7 @@ ConstDependentFabArrayIterator<T,FAB>::fabbox() const
 }
 
 template <class T, class FAB>
+inline
 const FAB&
 ConstDependentFabArrayIterator<T,FAB>::operator()() const
 {
@@ -1809,6 +1879,7 @@ FabArrayCopyDescriptor<T,FAB>::RegisterFabArray(FabArray<T,FAB>* fabarray)
 }
 
 template <class T, class FAB>
+inline
 FillBoxId
 FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
                                       const Box&        destFabBox,
@@ -1857,7 +1928,7 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
             if (myproc == remoteProc)
             {
                 //
-                // data is local
+                // Data is local.
                 //
                 fcd->fillType = FillLocally;
                 fcd->localFabSource = &((*fabArray)[i]);
@@ -1865,7 +1936,7 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
             else
             {
                 //
-                // data is remote
+                // Data is remote.
                 //
                 dataAvailable = false;
                 fcd->fillType = FillRemotely;
@@ -1884,8 +1955,9 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
                     fabComTag.srcComp    = srccomp;
                     fabComTag.destComp   = destcomp;
                     fabComTag.nComp      = numcomp;
-
-                    // dont SendData yet
+                    //
+                    // Do not SendData yet.
+                    //
                     fabComTagList.append(fabComTag);
                 }
                 //nRemoteBoxes[i]++;
@@ -1897,7 +1969,7 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
             fabCopyDescList.append(fcd);
             unfilledBoxDomain.rmBox(intersectBox);
             //nSubBoxes++;
-        }  // end if(intersectBox...)
+        }
     }
     returnedUnfilledBoxes.clear();
     returnedUnfilledBoxes = unfilledBoxDomain.boxList();
@@ -1946,7 +2018,7 @@ FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
         if (myproc == remoteProc)
         {
             //
-            // data is local
+            // Data is local.
             //
             fcd->fillType = FillLocally;
             fcd->localFabSource = &((*fabArray)[i]);
@@ -1954,7 +2026,7 @@ FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
         else
         {
             //
-            // data is remote
+            // Data is remote.
             //
             dataAvailable = false;
             fcd->fillType = FillRemotely;
@@ -1973,8 +2045,9 @@ FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
                 fabComTag.srcComp    = srccomp;
                 fabComTag.destComp   = destcomp;
                 fabComTag.nComp      = numcomp;
-
-                // dont SendData yet
+                //
+                // Do not SendData yet.
+                //
                 fabComTagList.append(fabComTag);
             }
             //nRemoteBoxes[i]++;
@@ -1986,8 +2059,7 @@ FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
         fabCopyDescList.append(fcd);
         unfilledBoxDomain.rmBox(intersectBox);
         //nSubBoxes++;
-    }  // end if(intersectBox...)
-    //}
+    }
     returnedUnfilledBoxes.clear();
     returnedUnfilledBoxes = unfilledBoxDomain.boxList();
     //if(unfilledBoxes.length() == 0) {
@@ -2000,10 +2072,10 @@ FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
 template <class T, class FAB>
 FabArrayCopyDescriptor<T,FAB>::~FabArrayCopyDescriptor()
 {
-  for (ListIterator<FabCopyDescriptor<FAB>*> fli(fabCopyDescList); fli; ++fli)
-  { 
-      delete fli();
-  }
+   for (ListIterator<FabCopyDescriptor<FAB>*> fli(fabCopyDescList); fli; ++fli)
+   { 
+       delete fli();
+   }
 }
 
 template <class T, class FAB>
@@ -2017,8 +2089,9 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
     int tagSize = sizeof(FabComTag);
     ParallelDescriptor::SetMessageHeaderSize(tagSize);
     int *nullptr = NULL;
-
-    // go through the fabComTagList and send all fab requests
+    //
+    // Go through the fabComTagList and send all fab requests.
+    //
     if (ParallelDescriptor::NProcs() == 1)
     {
         assert(fabComTagList.length() == 0);
@@ -2033,32 +2106,34 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
     fabComTagList.clear();
 
     ParallelDescriptor::Synchronize();
-
-    // check for consistency and correct number of received and expected messages
+    //
+    // Check for consistency and correct # of received and expected messages.
+    //
     if (!dataAvailable)
     {
         while (ParallelDescriptor::GetMessageHeader(dataWaitingSize, &fabComTag))
         {
             //
-            // data was sent to this processor
+            // Data was sent to this processor.
             //
             assert(dataWaitingSize == 0);
             assert(fabComTag.procThatHasData == myproc);
             assert(fabComTag.subBox.ok());
             assert(fabArrays[fabComTag.fabArrayId]->
                    box(fabComTag.fabIndex).contains(fabComTag.subBox));
-            // other checks here
 
-            ParallelDescriptor::ReceiveData(nullptr, 0);  // to advance msg header
-
-            // now send the requested data from the fabs on this processor
-
+            ParallelDescriptor::ReceiveData(nullptr, 0);  // Advance msg hdr.
+            //
+            // Now send the requested data from the fabs on this processor.
+            //
             FAB tempFab(fabComTag.subBox, fabComTag.nComp);
             //tempFab.setVal(1.e29);
             tempFab.copy((*fabArrays[fabComTag.fabArrayId])[fabComTag.fabIndex],
                          fabComTag.subBox, fabComTag.srcComp,
                          fabComTag.subBox, 0, fabComTag.nComp);
+            //
             // ^ copy to zero component of temp fab
+            //
             ParallelDescriptor::SendData(fabComTag.procThatNeedsData, fabComTag,
                                          tempFab.dataPtr(),
                                          tempFab.box().numPts() *
@@ -2117,7 +2192,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
 
     ParallelDescriptor::Synchronize();
 
-}  // end CollectData()
+}
 
 template <class T, class FAB>
 void
@@ -2135,7 +2210,7 @@ FabArrayCopyDescriptor<T,FAB>::FillFab (const FabArrayId& fabarrayid,
         ParallelDescriptor::Abort("FillFab:  data not available");
     }
     //
-    // optimize this vvvvvvvvvvvvvv
+    // TODO -- optimize this.
     //
     for (ListIterator<FabCopyDescriptor<FAB>*> fli(fabCopyDescList); fli; ++fli)
     {
@@ -2151,7 +2226,7 @@ FabArrayCopyDescriptor<T,FAB>::FillFab (const FabArrayId& fabarrayid,
                 //
                 // FillRemotely
                 //
-                localSrcComp = 0;  // copy from zero component of local temp fab
+                localSrcComp = 0; // Copy from zero component of local temp fab
             }
             destFab.copy(*(fli()->localFabSource), fli()->subBox, localSrcComp,
                          fli()->subBox, fli()->destComp, fli()->nComp);
@@ -2189,29 +2264,6 @@ FabArrayCopyDescriptor<T,FAB>::PrintStats ()
     cout << "    nRemoteBytes[" << i << "] = " << nRemoteBytes[i] << endl;
   }
   */
-}
-
-template <class FAB>
-FabCopyDescriptor<FAB>::FabCopyDescriptor ()
-    :
-    myProc(-1),
-    copyFromProc(-1),
-    copyFromIndex(-1),
-    fabArrayId(-1),
-    fillBoxId(-1),
-    srcComp(-1),
-    destComp(-1),
-    nComp(-1),
-    fillType(Unfillable),
-    cacheDataAllocated(false),
-    localFabSource(NULL)
-{}
-
-template <class FAB>
-FabCopyDescriptor<FAB>::~FabCopyDescriptor ()
-{
-    if (cacheDataAllocated)
-        delete localFabSource;
 }
 
 #endif
