@@ -1700,7 +1700,7 @@ contains
     type(multifab), intent(inout) :: dd, uu
     type(imultifab), intent(in)   :: mm
 
-    call stencil_apply(ss,dd,uu,mm)
+    call stencil_apply(ss, dd, uu, mm)
 
     call saxpy(dd, ff, -1.0_dp_t, dd)
 
