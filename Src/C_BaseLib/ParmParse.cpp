@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParmParse.cpp,v 1.11 2000-06-27 20:54:50 lijewski Exp $
+// $Id: ParmParse.cpp,v 1.12 2000-07-06 17:03:57 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -25,6 +25,7 @@ using std::cerr;
 
 #include <BoxLib.H>
 #include <ParmParse.H>
+#include <ParallelDescriptor.H>
 
 #ifdef BL_NAMESPACE
 namespace BL_NAMESPACE
@@ -148,16 +149,19 @@ ParmParse::~ParmParse ()
             //
             // Now spit out unused entries.
             //
-            cout << "\nUnused ParmParse Variables: ";
+            if (ParallelDescriptor::IOProcessor())
+                cout << "\nUnused ParmParse Variables: ";
 
             for (ListIterator<PP_entry*> li(table); li; ++li)
             {
-                cout << li()->defname << ' ';
+                if (ParallelDescriptor::IOProcessor())
+                    cout << li()->defname << ' ';
 
                 delete table[li];
             }
 
-            cout << '\n' << '\n';
+            if (ParallelDescriptor::IOProcessor())
+                cout << '\n' << '\n';
 
             table.clear();
         }
