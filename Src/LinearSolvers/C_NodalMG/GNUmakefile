@@ -20,7 +20,6 @@ INCLUDE_LOCATIONS += ../pBoxLib_2
 include $(TOP)/mk/Make.defs
 
 CPPFLAGS += -DBL_USE_NEW_HFILES
-FOPTF += -fast -O -tune ev5
 
 include ./Make.package
 include ../pBoxLib_2/Make.package
@@ -54,5 +53,13 @@ FDEBF += -automatic
 # FOR RUNNING 3RD ONLY
 endif
 FDEBF += -u
+
+# Lower optimization level for this big file
+o/3d.OSF1.KCC/hg_multi3d_terrain.o: hg_multi3d_terrain.F
+	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
+	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
+	$(CPP) -DBL_LANG_FORT $(CPPFLAGS) $< | $(FORTPREP) > f/3d.OSF1.KCC/hg_multi3d_terrain.f
+	$(COMPILE.f) $(FEXEFLAGS) -O f/3d.OSF1.KCC/hg_multi3d_terrain.f $(FORT_OUTPUT_OPTION)
+
 
 include $(TOP)/mk/Make.rules
