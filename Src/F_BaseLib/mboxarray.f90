@@ -34,6 +34,10 @@ module mboxarray_module
      module procedure mboxarray_get_box
   end interface
 
+  interface get_nlevel
+     module procedure mboxarray_get_nlevel
+  end interface
+
   interface get_boxarray
      module procedure mboxarray_get_boxarray
   end interface
@@ -41,6 +45,18 @@ module mboxarray_module
   type(mem_stats), private, save :: mboxarray_ms
 
 contains
+
+  pure function mboxarray_dim(mba) result(r)
+    integer :: r
+    type(mboxarray), intent(in) :: mba
+    r = mba%dim
+  end function mboxarray_dim
+
+  pure function mboxarray_get_nlevel(mba) result(r)
+    integer :: r
+    type(mboxarray), intent(in) :: mba
+    r = mba%nlevel
+  end function mboxarray_get_nlevel
 
   subroutine mboxarray_set_mem_stats(ms)
     type(mem_stats), intent(in) :: ms
