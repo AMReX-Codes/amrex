@@ -71,4 +71,4 @@ contains
     end do
   end function pp_arg_count
 
-end module parmparse_module
+end module bl_parmparse_module
