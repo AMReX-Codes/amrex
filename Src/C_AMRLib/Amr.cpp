@@ -1,6 +1,6 @@
 
 //
-// $Id: Amr.cpp,v 1.116 2000-10-02 20:48:40 lijewski Exp $
+// $Id: Amr.cpp,v 1.117 2000-10-27 00:51:30 vince Exp $
 //
 
 #include <TagBox.H>
@@ -607,7 +607,9 @@ Amr::writePlotFile (const aString& root,
 
     ofstream HeaderFile;
 
+#ifdef BL_USE_SETBUF
     HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
+#endif
 
     int old_prec;
 
@@ -903,7 +905,9 @@ Amr::restart (const aString& filename)
 
     ifstream is;
 
+#ifdef BL_USE_SETBUF
     is.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
+#endif
 
     is.open(File.c_str(), ios::in);
 
@@ -1065,7 +1069,9 @@ Amr::checkPoint ()
 
     ofstream HeaderFile;
 
+#ifdef BL_USE_SETBUF
     HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
+#endif
 
     int old_prec, i;
 
