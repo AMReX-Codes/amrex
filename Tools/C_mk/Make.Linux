@@ -58,8 +58,15 @@ ifeq ($(FCOMP),Intel)
   fDEBF += -CU
   fOPTF += -g
   fOPTF += -O3
-  LIBRARY_LOCATIONS += $(IA32ROOT)/lib 
-  override XTRALIBS += -lintrins -lIEPCF90 -lF90 -limf -lcprts -lcxa -lirc $(IA32ROOT)/lib/icrt.link
+  override XTRALIBS += -lintrins -lIEPCF90 -lF90 -limf -lcprts -lcxa -lirc
+  ifeq ($(IFC_MAJOR_VERSION),6)
+      LIBRARY_LOCATIONS += /opt/intel/compiler60/ia32/lib 
+  else
+  ifeq ($(IFC_MAJOR_VERSION),5)
+      LIBRARY_LOCATIONS += $(IA32ROOT)/lib 
+    override XTRALIBS += $(IA32ROOT)/lib/icrt.link
+  endif
+  endif
 else
   # default g77/f77 version
   FOPTF += -O
