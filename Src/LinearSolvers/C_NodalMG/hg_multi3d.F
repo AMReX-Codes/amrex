@@ -1833,17 +1833,8 @@ c-----------------------------------------------------------------------
       double precision wrk(256)
       integer lsd
       double precision betm, aj
-      double precision RHSL0, RHSL1, RHSL2
+      double precision RHSL2
       integer i, j, k, kw, ipass, ipar
-      RHSL0() = (res(i,j,k) - (signd(i,j-1,k,2) * cor(i,j-1,k) + 
-     &                        signd(i,j,k,2)   * cor(i,j+1,k) + 
-     &                        signd(i,j,k-1,3) * cor(i,j,k-1) + 
-     &                        signd(i,j,k,3)   * cor(i,j,k+1)))
-
-      RHSL1() = (res(i,j,k) - (signd(i-1,j,k,1) * cor(i-1,j,k) +
-     &                        signd(i,j,k,1)   * cor(i+1,j,k) +
-     &                        signd(i,j,k-1,3) * cor(i,j,k-1) +
-     &                        signd(i,j,k,3)   * cor(i,j,k+1)))
 
       RHSL2() = (res(i,j,k) - (signd(i-1,j,k,1) * cor(i-1,j,k) +
      &                        signd(i,j,k,1)   * cor(i+1,j,k) +
