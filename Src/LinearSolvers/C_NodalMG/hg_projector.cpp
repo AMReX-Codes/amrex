@@ -229,7 +229,7 @@ public:
 		const Box& uf_box = task_fab_result(3).box();
 		const Real* uc[BL_SPACEDIM] = { D_DECL( task_fab_result(0).dataPtr(), task_fab_result(1).dataPtr(), task_fab_result(2).dataPtr() ) };
 		const Box& uc_box = task_fab_result(0).box();
-		(*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(uf[0], uf[1], uf[2]), DIMLIST(uf_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), t.getVect(), ga.dataPtr());
+		(*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(uf[0], uf[1], uf[2]), DIMLIST(uf_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), t.getVect());
 	    }
 	    return true;
 	}

@@ -296,7 +296,7 @@ c Note---only generates values at coarse points along edge of fine grid
      & uf, vf, wf,
      &     fl0,fh0,fl1,fh1,fl2,fh2,
      &     cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
-     & hx, hy, hz, ir, jr, kr, ivect, ga)
+     & hx, hy, hz, ir, jr, kr, ga, ivect)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
@@ -668,7 +668,7 @@ c Note---only generates values at coarse points along edge of fine grid
      & uf, vf, wf,
      &      fl0,fh0,fl1,fh1,fl2,fh2,
      &      cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
-     & hx, hy, hz, ir, jr, kr, ga)
+     & hx, hy, hz, ir, jr, kr, ga, ijnk)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
@@ -681,7 +681,7 @@ c Note---only generates values at coarse points along edge of fine grid
       double precision uf(fl0:fh0,fl1:fh1,fl2:fh2)
       double precision vf(fl0:fh0,fl1:fh1,fl2:fh2)
       double precision wf(fl0:fh0,fl1:fh1,fl2:fh2)
-      integer ir, jr, kr, ga(0:1,0:1,0:1)
+      integer ir, jr, kr, ga(0:1,0:1,0:1), ijnk(0:2)
       double precision sum, fac0, fac1, fac
       integer ic, jc, kc, if, jf, kf, iuc, iuf, juc, juf, kuc, kuf
       integer ii, ji, ki, idir, jdir, kdir, l, m, n
@@ -1164,7 +1164,7 @@ c Note---only generates values at coarse points along edge of fine grid
      & uf, vf, wf,
      &      fl0,fh0,fl1,fh1,fl2,fh2,
      &      cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
-     & hx, hy, hz, ir, jr, kr, ivect, ga)
+     & hx, hy, hz, ir, jr, kr, ga, ivect)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
@@ -1570,7 +1570,7 @@ c Note---only generates values at coarse points along edge of fine grid
      & uf, vf, wf,
      &      fl0,fh0,fl1,fh1,fl2,fh2,
      &      cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
-     & hx, hy, hz, ir, jr, kr, ga)
+     & hx, hy, hz, ir, jr, kr, ga, ijnk)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
@@ -1583,7 +1583,7 @@ c Note---only generates values at coarse points along edge of fine grid
       double precision vf(fl0:fh0,fl1:fh1,fl2:fh2)
       double precision wf(fl0:fh0,fl1:fh1,fl2:fh2)
       double precision hx, hy, hz
-      integer ir, jr, kr, ga(0:1,0:1,0:1)
+      integer ir, jr, kr, ga(0:1,0:1,0:1),ijnk(3)
       double precision r3, hxm1, hym1, hzm1, hxm1c, hym1c, hzm1c
       double precision sum, center, cfac, ffac, fac0, fac1, fac
       integer ic, jc, kc, if, jf, kf, iuc, iuf, juc, juf, kuc, kuf
