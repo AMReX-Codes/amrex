@@ -44,29 +44,7 @@ public:
     virtual void relax(int mglev, int i1, bool is_zero) = 0;
     virtual void cgsolve(int mglev) = 0;
 protected:
-    const int lev_min_min, lev_min_max, lev_max_max;
-    int lev_min, lev_max, mglev_max;
-    Array<IntVect> gen_ratio;            // assoc with ml_mesh
-    Array<int> ml_index;                 // assoc with ml_mesh
-    Array<Box> mg_domain;                // assoc with mg_mesh
-    Array<BoxArray> ml_mesh, mg_mesh;
-    Array< Array<Box> > mg_domain_array;
-    Array< Array<BoxArray> > mg_mesh_array;
-    const amr_boundary_class* mg_boundary;
-    level_interface* lev_interface;
-    level_interface** interface_array;
-    PArray<MultiFab> source, dest;       // live on active levels of ml_mesh
-    PArray<MultiFab> resid, corr, work;  // live on mg_mesh
-    PArray<MultiFab> save;               // lives on middle levels of ml_mesh
-    PArray<MultiFab> coarse_source;      // lives on ml_mesh, if it exists
-    
-    Array<copy_cache*> dest_bcache, corr_bcache, work_bcache;
-    
-#if BL_SPACEDIM==2
-    static int c_sys;
-#endif
-    
-    void build_index();
+   void build_index();
     
     int get_amr_level(int mglev) const 
     {
@@ -95,6 +73,28 @@ protected:
     void clear();
     
     virtual void sync_interfaces() = 0;
+    
+    const int lev_min_min, lev_min_max, lev_max_max;
+    int lev_min, lev_max, mglev_max;
+    Array<IntVect> gen_ratio;            // assoc with ml_mesh
+    Array<int> ml_index;                 // assoc with ml_mesh
+    Array<Box> mg_domain;                // assoc with mg_mesh
+    Array<BoxArray> ml_mesh, mg_mesh;
+    Array< Array<Box> > mg_domain_array;
+    Array< Array<BoxArray> > mg_mesh_array;
+    const amr_boundary_class* mg_boundary;
+    level_interface* lev_interface;
+    level_interface** interface_array;
+    PArray<MultiFab> source, dest;       // live on active levels of ml_mesh
+    PArray<MultiFab> resid, corr, work;  // live on mg_mesh
+    PArray<MultiFab> save;               // lives on middle levels of ml_mesh
+    PArray<MultiFab> coarse_source;      // lives on ml_mesh, if it exists
+    
+    Array<copy_cache*> dest_bcache, corr_bcache, work_bcache;
+    
+#if BL_SPACEDIM==2
+    static int c_sys;
+#endif
     
     int pcode;
     int integrate;

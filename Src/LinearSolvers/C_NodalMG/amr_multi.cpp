@@ -554,6 +554,7 @@ void amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 
 void amr_multigrid::mg_restrict_level(int lto, int lfrom)
 {
+    assert( "I'm never called" == 0);
     IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
     if (type(resid[lto]) == IntVect::TheCellVector()) 
     {

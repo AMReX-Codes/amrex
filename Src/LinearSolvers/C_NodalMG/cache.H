@@ -15,9 +15,9 @@
 extern "C"
 {
 #if (BL_SPACEDIM == 2)
-    void FORT_FFCCPY1(Real*, const Real*, const int&, int*, int*, int*, int*, int*);
+    void FORT_FFCCPY1(Real*, const Real*, const int*, int*, int*, int*, int*, int*);
 #else
-    void FORT_FFCCPY2(Real*, const Real*, const int&, int*, int*, int*, int*, int*, int*, int*, int*);
+    void FORT_FFCCPY2(Real*, const Real*, const int*, int*, int*, int*, int*, int*, int*, int*, int*);
 #endif
 }
 
@@ -111,9 +111,9 @@ inline copy_cache::~copy_cache()
 inline void copy_cache::run() const 
 {
 #if (BL_SPACEDIM == 2)
-    FORT_FFCCPY1(dptr, sptr, nsets, dstart, sstart, dstrid, sstrid, nvals);
+    FORT_FFCCPY1(dptr, sptr, &nsets, dstart, sstart, dstrid, sstrid, nvals);
 #else
-    FORT_FFCCPY2(dptr, sptr, nsets, dstart, sstart, dstrid1, dstrid2, sstrid1, sstrid2, nvals1, nvals2);
+    FORT_FFCCPY2(dptr, sptr, &nsets, dstart, sstart, dstrid1, dstrid2, sstrid1, sstrid2, nvals1, nvals2);
 #endif
 }
 
@@ -135,7 +135,7 @@ public:
 #endif
     }
     
-    unroll_cache(MultiFab& r);
+//    explicit unroll_cache(const MultiFab& r);
     
     ~unroll_cache() 
     {
@@ -164,8 +164,8 @@ public:
 #endif
 private:
     // data are public so that users may set up their own calls
-    int nsets;
-    Real *ptr;
+    const int nsets;
+    Real* const ptr;
     int *start;
 #if (BL_SPACEDIM == 2)
     int *strid;

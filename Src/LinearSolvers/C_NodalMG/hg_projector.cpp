@@ -361,13 +361,15 @@ void holy_grail_amr_projector::grid_average(PArray<MultiFab>& S)
 	
 	fill_borders(S[lev], 0, lev_interface[mglev], boundary.scalar(), -1);
 	
-	for (int igrid = 0; igrid < ml_mesh[lev].length(); igrid++) 
+	//for (int igrid = 0; igrid < ml_mesh[lev].length(); igrid++) 
+	for (MultiFabIterator s_mfi(source[lev]); s_mfi.isValid(); ++s_mfi)
 	{
-	    const Box& sbox = source[lev][igrid].box();
-	    const Box& fbox = S[lev][igrid].box();
-	    const Box& freg = lev_interface[mglev].part_fine(igrid);
-	    Real *const sptr = source[lev][igrid].dataPtr();
-	    Real *const csptr = S[lev][igrid].dataPtr();
+	    DependentMultiFabIterator S_dmfi(s_mfi, S[lev]);
+	    const Box& sbox = s_mfi->box();
+	    const Box& fbox = S_dmfi->box();
+	    const Box& freg = lev_interface[mglev].part_fine(s_mfi.index());
+	    Real *const sptr = s_mfi->dataPtr();
+	    Real *const csptr = S_dmfi->dataPtr();
 #if (BL_SPACEDIM == 2)
 	    FORT_HGAVG(sptr, DIMLIST(sbox),
 		csptr, DIMLIST(fbox), DIMLIST(freg),

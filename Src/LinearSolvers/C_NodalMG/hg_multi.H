@@ -64,6 +64,14 @@ public:
     {
 	build_mesh(fdomain);
     }
+    void set_line_solve_dimension(int dim)
+    {
+	line_solve_dim = dim;
+    }
+    void set_smoother_mode(int mode)
+    {
+	smoother_mode = mode;
+    }
 protected:
     
     void alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma, 

@@ -108,19 +108,19 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface, const 
 	}
 	set(iset++, dstartj, sstarti, stridj, stridi, nvals);
 #else
-	int dstartj, sstarti, stridi1, stridi2, stridj1, stridj2, nvals1, nvals2;
-	stridi1 = r[igrid].box().length(0);
-	stridi2 = stridi1 * r[igrid].box().length(1);
-	stridj1 = r[jgrid].box().length(0);
-	stridj2 = stridj1 * r[jgrid].box().length(1);
-	sstarti = r[igrid].dataPtr() - baseptr +
+	int stridi1 = r[igrid].box().length(0);
+	int stridi2 = stridi1 * r[igrid].box().length(1);
+	int stridj1 = r[jgrid].box().length(0);
+	int stridj2 = stridj1 * r[jgrid].box().length(1);
+	int sstarti = r[igrid].dataPtr() - baseptr +
 	    b.smallEnd(0) - r[igrid].box().smallEnd(0) +
 	    stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
 	    stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
-	dstartj = r[jgrid].dataPtr() - baseptr +
+	int dstartj = r[jgrid].dataPtr() - baseptr +
 	    b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
 	    stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
 	    stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
+	int nvals1, nvals2;
 	if (lev_interface.fdim(iface) == 0) 
 	{
 	    nvals1 = b.length(1);
@@ -324,8 +324,7 @@ static inline void node_dirs(int dir[2], const IntVect& typ)
     }
 }
 
-copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface,
-		       const amr_boundary_class* bdy, int w)
+copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface, const amr_boundary_class* bdy, int w)
 {
     assert(r.length() > 0);
     assert(r.nComp() == 1);
@@ -640,7 +639,6 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface,
 	}
 	else if (lev_interface.fdim(iface) == 1) 
 	{
-	    int nvals1i, nvals1j, nvals2;
 	    int il1 = 0, ih1 = 0, jl1 = 0, jh1 = 0;
 	    if (r.box(jgrid).smallEnd(0) == b.smallEnd(0))
 		jl1 = w;
@@ -650,9 +648,9 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface,
 		il1 = w;
 	    if (r.box(igrid).bigEnd(0) == b.bigEnd(0))
 		ih1 = w;
-	    nvals1i = b.length(0) + il1 + ih1;
-	    nvals1j = b.length(0) + jl1 + jh1;
-	    nvals2 = b.length(2);
+	    int nvals1i = b.length(0) + il1 + ih1;
+	    int nvals1j = b.length(0) + jl1 + jh1;
+	    int nvals2 = b.length(2);
 	    stridi1 = r[igrid].box().length(0);
 	    stridi2 = stridi1 * r[igrid].box().length(1);
 	    stridj1 = r[jgrid].box().length(0);
@@ -680,7 +678,6 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface,
 	}
 	else 
 	{
-	    int nvals1i, nvals1j, nvals2i, nvals2j;
 	    int il1 = 0, ih1 = 0, jl1 = 0, jh1 = 0;
 	    int il2 = 0, ih2 = 0, jl2 = 0, jh2 = 0;
 	    if (r.box(jgrid).smallEnd(0) == b.smallEnd(0))
@@ -699,10 +696,10 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface,
 		il2 = w;
 	    if (r.box(igrid).bigEnd(1) == b.bigEnd(1))
 		ih2 = w;
-	    nvals1i = b.length(0) + il1 + ih1;
-	    nvals1j = b.length(0) + jl1 + jh1;
-	    nvals2i = b.length(1) + il2 + ih2;
-	    nvals2j = b.length(1) + jl2 + jh2;
+	    int nvals1i = b.length(0) + il1 + ih1;
+	    int nvals1j = b.length(0) + jl1 + jh1;
+	    int nvals2i = b.length(1) + il2 + ih2;
+	    int nvals2j = b.length(1) + jl2 + jh2;
 	    stridi1 = r[igrid].box().length(0);
 	    stridi2 = stridi1 * r[igrid].box().length(1);
 	    stridj1 = r[jgrid].box().length(0);
@@ -737,7 +734,8 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface,
   nsets = iset;
 }
 
-unroll_cache::unroll_cache(MultiFab& r)
+/*
+unroll_cache::unroll_cache(const MultiFab& r)
 {
     nsets = r.length();
     assert(nsets > 0);
@@ -765,3 +763,4 @@ unroll_cache::unroll_cache(MultiFab& r)
 	    r[igrid].box().numPts());
     }
 }
+*/

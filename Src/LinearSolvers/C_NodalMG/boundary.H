@@ -26,8 +26,8 @@ public:
     virtual Box box(const Box&, const Box&, int) const;
     void boundary_mesh(BoxArray& exterior_mesh, int *&grid_ref, const BoxArray& interior_mesh, const Box& domain) const;
 
-    virtual void fill(FArrayBox&, const Box&, const FArrayBox&, const Box&, const Box&, int) const = 0;
-    virtual void fill(FArrayBox&, const Box&, const MultiFab&, int, const Box&) const = 0;
+    // virtual void fill(FArrayBox&, const Box&, const MultiFab&, int, const Box&) const = 0;
+    virtual void fill(FArrayBox&, const Box&, const FArrayBox&, int, const Box&) const = 0;
     virtual void sync_borders(MultiFab&, const level_interface&) const = 0;
     virtual void fill_borders(MultiFab& r, const level_interface& lev_interface, int w) const = 0;
     virtual void set_sync_cache(copy_cache*, int, int&, const MultiFab&, const level_interface&) const = 0;
@@ -35,6 +35,7 @@ public:
     virtual void duplicate(List<Box>&, const Box&) const = 0;
     virtual bool singular() const  = 0;
 protected:
+    virtual void fill(FArrayBox&, const Box&, const FArrayBox&, const Box&, const Box&, int) const = 0;
     virtual void check_against_boundary(BoxList& bl, List<int>& il, const Box& b, int ib, const Box& d, int dim1) const;
 };
 
@@ -110,8 +111,8 @@ public:
     mixed_boundary_class(inviscid_fluid_boundary_class *Ptr, int idim)  : ptr(Ptr), flowdim(idim) {}
     
     virtual Box box(const Box&, const Box&, int) const;
-    virtual void fill(FArrayBox&, const Box&, const FArrayBox&, const Box&, const Box&, int) const;
-    virtual void fill(FArrayBox&, const Box&, const MultiFab&, int, const Box&) const;
+    // virtual void fill(FArrayBox&, const Box&, const MultiFab&, int, const Box&) const;
+    virtual void fill(FArrayBox&, const Box&, const FArrayBox&, int, const Box&) const;
     virtual void sync_borders(MultiFab&, const level_interface&) const;
     virtual void fill_borders(MultiFab& r, const level_interface& lev_interface, int w) const;
     virtual void set_sync_cache(copy_cache* cache, int nsets, int& iset, const MultiFab& r, const level_interface& lev_interface) const;
@@ -121,6 +122,7 @@ public:
 protected:
     const inviscid_fluid_boundary_class* ptr;
     const int flowdim;
+    virtual void fill(FArrayBox&, const Box&, const FArrayBox&, const Box&, const Box&, int) const;
     virtual void check_against_boundary(BoxList& bl, List<int>& il, const Box& b, int ib, const Box& d, int dim1) const;
 };
 

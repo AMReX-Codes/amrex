@@ -793,13 +793,15 @@ void holy_grail_amr_multigrid::mg_restrict(int lto, int lfrom)
 {
     fill_borders(work[lfrom], work_bcache[lfrom], lev_interface[lfrom], mg_boundary, -1);
     IntVect rat = mg_domain[lfrom].length() / mg_domain[lto].length();
-    for (int igrid = 0; igrid < resid[lto].length(); igrid++) 
+    // for (int igrid = 0; igrid < resid[lto].length(); igrid++) 
+    for (MultiFabIterator w_mfi(work[lfrom]); w_mfi.isValid(); ++w_mfi)
     {
-	const Box& fbox = work[lfrom][igrid].box();
-	const Box& cbox = resid[lto][igrid].box();
-	const Box& creg = lev_interface[lto].part_fine(igrid);
-	FORT_FANRST2(resid[lto][igrid].dataPtr(), DIMLIST(cbox), DIMLIST(creg),
-	    work[lfrom][igrid].dataPtr(), DIMLIST(fbox),
+	DependentMultiFabIterator r_dmfi(w_mfi, resid[lto]);
+	const Box& fbox = w_mfi->box();
+	const Box& cbox = r_dmfi->box();
+	const Box& creg = lev_interface[lto].part_fine(w_mfi.index());
+	FORT_FANRST2(r_dmfi->dataPtr(), DIMLIST(cbox), DIMLIST(creg),
+	    w_mfi->dataPtr(), DIMLIST(fbox),
 	    D_DECL(rat[0], rat[1], rat[2]), integrate);
     }
     

@@ -168,14 +168,14 @@ static bool fill_exterior_patch_blindly(FArrayBox& patch,
 	    if (tb.contains(region)) 
 	    {
 		assert(bdy != 0);
-		bdy->fill(patch, region, r, jgrid, lev_interface.domain());
+		bdy->fill(patch, region, r[jgrid], jgrid, lev_interface.domain());
 		return true;
 	    }
 	    if (tb.intersects(region)) 
 	    {
 		tb &= region;
 		assert(bdy != 0);
-		bdy->fill(patch, tb, r, jgrid, lev_interface.domain());
+		bdy->fill(patch, tb, r[jgrid], jgrid, lev_interface.domain());
 	    }
 	}
     }
@@ -206,228 +206,218 @@ bool fill_patch(FArrayBox& patch, const Box& region,
     tdomain.convert(type(patch));
     Box idomain = grow(tdomain, IntVect::TheZeroVector() - type(r));
     
-    if ((flags & 1) == 0) 
+    assert( (flags&1) == 0);
+    assert( idim >= -1 && idim < BL_SPACEDIM );
+    if (idim == -1 || (flags & 2)) 
     {
-	if (idim == -1 || (flags & 2)) 
+	if (idomain.contains(region) || bdy == 0) 
 	{
-	    if (idomain.contains(region) || bdy == 0) 
-	    {
-		return fill_patch_blindly(patch, region, r, flags);
-	    }
-	    else if (!tdomain.intersects(region)) 
-	    {
+	    return fill_patch_blindly(patch, region, r, flags);
+	}
+	else if (!tdomain.intersects(region)) 
+	{
+	    return fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy, flags);
+	}
+	else if (idomain.intersects(region)) 
+	{
+	    if (fill_patch_blindly(patch, region, r, flags) == 1)
+		return true;
+	    else
 		return fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy, flags);
-	    }
-	    else if (idomain.intersects(region)) 
-	    {
-		if (fill_patch_blindly(patch, region, r, flags) == 1)
-		    return true;
-		else
-		    return fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy, flags);
-	    }
-	    else 
-	    {
-		if (fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy, flags) == 1)
-		    return true;
-		else
-		    return fill_patch_blindly(patch, region, r, flags);
-	    }
 	}
-	else if (idim == 0) 
+	else 
 	{
-	    int gridnum[level_interface::N_CORNER_GRIDS+1];
-	    gridnum[0] = -1;
-	    for (int i = 0; i < level_interface::N_CORNER_GRIDS; i++) 
+	    if (fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy, flags) == 1)
+		return true;
+	    else
+		return fill_patch_blindly(patch, region, r, flags);
+	}
+    }
+    else if (idim == 0) 
+    {
+	int gridnum[level_interface::N_CORNER_GRIDS+1];
+	gridnum[0] = -1;
+	for (int i = 0; i < level_interface::N_CORNER_GRIDS; i++) 
+	{
+	    int igrid = lev_interface.cgrid(index,i);
+	    if (igrid != -1) 
 	    {
-		int igrid = lev_interface.cgrid(index,i);
-		if (igrid != -1) 
+		for (int j = 0; gridnum[j] != igrid; j++) 
 		{
-		    for (int j = 0; gridnum[j] != igrid; j++) 
+		    if (gridnum[j] == -1) 
 		    {
-			if (gridnum[j] == -1) 
+			gridnum[j] = igrid;
+			gridnum[j+1] = -1;
+			if (igrid >= 0) 
 			{
-			    gridnum[j] = igrid;
-			    gridnum[j+1] = -1;
-			    if (igrid >= 0) 
-			    {
-				Box tb = r.box(igrid);
-				tb &= region;
-				const Box& rbox = r[igrid].box();
-				FORT_FFCPY(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(tb), r[igrid].dataPtr(), DIMLIST(rbox), patch.nComp());
-			    }
-			    else 
-			    {
-				igrid = -2 - igrid;
-				Box tb = lev_interface.exterior_mesh()[igrid];
-				tb.convert(type(r));
-				tb &= region;
-				bdy->fill(patch, tb, r, lev_interface.direct_exterior_ref(igrid), lev_interface.domain());
-			    }
-			    break;
+			    Box tb = r.box(igrid);
+			    tb &= region;
+			    const Box& rbox = r[igrid].box();
+			    FORT_FFCPY(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(tb), r[igrid].dataPtr(), DIMLIST(rbox), patch.nComp());
 			}
+			else 
+			{
+			    igrid = -2 - igrid;
+			    Box tb = lev_interface.exterior_mesh()[igrid];
+			    tb.convert(type(r));
+			    tb &= region;
+			    bdy->fill(patch, tb, r[lev_interface.direct_exterior_ref(igrid)], lev_interface.direct_exterior_ref(igrid), lev_interface.domain());
+			}
+			break;
 		    }
 		}
 	    }
 	}
+    }
 #if (BL_SPACEDIM == 3)
-	else if (idim == 1) 
+    else if (idim == 1) 
+    {
+	int gridnum[level_interface::N_EDGE_GRIDS+1];
+	gridnum[0] = -1;
+	for (int i = 0; i < level_interface::N_EDGE_GRIDS; i++) 
 	{
-	    int gridnum[level_interface::N_EDGE_GRIDS+1];
-	    gridnum[0] = -1;
-	    for (int i = 0; i < level_interface::N_EDGE_GRIDS; i++) 
+	    int igrid = lev_interface.egrid(index,i);
+	    if (igrid != -1) 
 	    {
-		int igrid = lev_interface.egrid(index,i);
-		if (igrid != -1) 
+		for (int j = 0; gridnum[j] != igrid; j++) 
 		{
-		    for (int j = 0; gridnum[j] != igrid; j++) 
+		    if (gridnum[j] == -1) 
 		    {
-			if (gridnum[j] == -1) 
+			gridnum[j] = igrid;
+			gridnum[j+1] = -1;
+			if (igrid >= 0) 
 			{
-			    gridnum[j] = igrid;
-			    gridnum[j+1] = -1;
-			    if (igrid >= 0) 
-			    {
-				Box tb = r.box(igrid);
-				tb &= region;
-				const Box& rbox = r[igrid].box();
-				FORT_FFCPY(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(tb), r[igrid].dataPtr(), DIMLIST(rbox), patch.nComp());
-			    }
-			    else 
-			    {
-				igrid = -2 - igrid;
-				Box tb = lev_interface.exterior_mesh()[igrid];
-				tb.convert(type(r));
-				tb &= region;
-				bdy->fill(patch, tb, r, lev_interface.direct_exterior_ref(igrid), lev_interface.domain());
-			    }
-			    break;
+			    Box tb = r.box(igrid);
+			    tb &= region;
+			    const Box& rbox = r[igrid].box();
+			    FORT_FFCPY(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(tb), r[igrid].dataPtr(), DIMLIST(rbox), patch.nComp());
 			}
+			else 
+			{
+			    igrid = -2 - igrid;
+			    Box tb = lev_interface.exterior_mesh()[igrid];
+			    tb.convert(type(r));
+			    tb &= region;
+			    bdy->fill(patch, tb, r[lev_interface.direct_exterior_ref(igrid)], lev_interface.direct_exterior_ref(igrid), lev_interface.domain());
+			}
+			break;
 		    }
 		}
 	    }
 	}
+    }
 #endif
-	else if (idim == level_interface::FACEDIM) 
+    else if (idim == level_interface::FACEDIM) 
+    {
+	int gridnum[level_interface::N_FACE_GRIDS+1];
+	gridnum[0] = -1;
+	for (int i = 0; i < level_interface::N_FACE_GRIDS; i++) 
 	{
-	    int gridnum[level_interface::N_FACE_GRIDS+1];
-	    gridnum[0] = -1;
-	    for (int i = 0; i < level_interface::N_FACE_GRIDS; i++) 
+	    int igrid = lev_interface.fgrid(index,i);
+	    if (igrid != -1) 
 	    {
-		int igrid = lev_interface.fgrid(index,i);
-		if (igrid != -1) 
+		for (int j = 0; gridnum[j] != igrid; j++) 
 		{
-		    for (int j = 0; gridnum[j] != igrid; j++) 
+		    if (gridnum[j] == -1) 
 		    {
-			if (gridnum[j] == -1) 
+			gridnum[j] = igrid;
+			gridnum[j+1] = -1;
+			if (igrid >= 0) 
 			{
-			    gridnum[j] = igrid;
-			    gridnum[j+1] = -1;
-			    if (igrid >= 0) 
-			    {
-				Box tb = r.box(igrid);
-				tb &= region;
-				const Box& rbox = r[igrid].box();
-				FORT_FFCPY(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(tb), r[igrid].dataPtr(), DIMLIST(rbox), patch.nComp());
-			    }
-			    else 
-			    {
-				igrid = -2 - igrid;
-				Box tb = lev_interface.exterior_mesh()[igrid];
-				tb.convert(type(r));
-				tb &= region;
-				bdy->fill(patch, tb, r, lev_interface.direct_exterior_ref(igrid), lev_interface.domain());
-			    }
-			    break;
+			    Box tb = r.box(igrid);
+			    tb &= region;
+			    const Box& rbox = r[igrid].box();
+			    FORT_FFCPY(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(tb), r[igrid].dataPtr(), DIMLIST(rbox), patch.nComp());
 			}
+			else 
+			{
+			    igrid = -2 - igrid;
+			    Box tb = lev_interface.exterior_mesh()[igrid];
+			    tb.convert(type(r));
+			    tb &= region;
+			    bdy->fill(patch, tb, r[lev_interface.direct_exterior_ref(igrid)], lev_interface.direct_exterior_ref(igrid), lev_interface.domain());
+			}
+			break;
 		    }
 		}
 	    }
 	}
-  }
-  else 
-  {
-      BoxLib::Error("fill_patch---lev_interface version only defined for blind mode");
-  }
-  return true;
+    }
+    return true;
 }
 
 static void sync_internal_borders(MultiFab& r, const level_interface& lev_interface)
 {
-    if (type(r) == IntVect::TheNodeVector()) 
+    assert(type(r) == IntVect::TheNodeVector());
+    
+    for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
     {
-	for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
-	{
-	    int igrid = lev_interface.fgrid(iface, 0);
-	    int jgrid = lev_interface.fgrid(iface, 1);
-	    // only do interior faces with fine grid on both sides
-	    if (igrid < 0 || jgrid < 0 || lev_interface.fgeo(iface) != level_interface::ALL)
-		break;
-	    internal_copy(r, jgrid, igrid, lev_interface.node_face(iface));
-	}
+	int igrid = lev_interface.fgrid(iface, 0);
+	int jgrid = lev_interface.fgrid(iface, 1);
+	// only do interior faces with fine grid on both sides
+	if (igrid < 0 || jgrid < 0 || lev_interface.fgeo(iface) != level_interface::ALL)
+	    break;
+	internal_copy(r, jgrid, igrid, lev_interface.node_face(iface));
+    }
 #if (BL_SPACEDIM == 2)
-	for (int icor = 0; icor < lev_interface.ncorners(); icor++) 
-	{
-	    int igrid = lev_interface.cgrid(icor, 0);
-	    int jgrid = lev_interface.cgrid(icor, 3);
-	    // only do interior corners with fine grid on all sides
-	    if (igrid < 0 || jgrid < 0 || lev_interface.geo(0, icor) != level_interface::ALL)
-		break;
-	    if (jgrid == lev_interface.cgrid(icor, 1))
-		internal_copy(r, jgrid, igrid, lev_interface.corner(icor));
-	}
+    for (int icor = 0; icor < lev_interface.ncorners(); icor++) 
+    {
+	int igrid = lev_interface.cgrid(icor, 0);
+	int jgrid = lev_interface.cgrid(icor, 3);
+	// only do interior corners with fine grid on all sides
+	if (igrid < 0 || jgrid < 0 || lev_interface.geo(0, icor) != level_interface::ALL)
+	    break;
+	if (jgrid == lev_interface.cgrid(icor, 1))
+	    internal_copy(r, jgrid, igrid, lev_interface.corner(icor));
+    }
 #else
-	for (int iedge = 0; iedge < lev_interface.nedges(); iedge++) 
+    for (int iedge = 0; iedge < lev_interface.nedges(); iedge++) 
+    {
+	int igrid = lev_interface.egrid(iedge, 0);
+	int jgrid = lev_interface.egrid(iedge, 3);
+	// only do interior edges with fine grid on all sides
+	if (igrid < 0 || jgrid < 0 || lev_interface.geo(1, iedge) != level_interface::ALL)
+	    break;
+	if (jgrid == lev_interface.egrid(iedge, 1))
+	    internal_copy(r, jgrid, igrid, lev_interface.node_edge(iedge));
+    }
+    for (int icor = 0; icor < lev_interface.ncorners(); icor++) 
+    {
+	int igrid = lev_interface.cgrid(icor, 0);
+	int jgrid = lev_interface.cgrid(icor, 7);
+	// only do interior corners with fine grid on all sides
+	if (igrid < 0 || jgrid < 0 || lev_interface.geo(0, icor) != level_interface::ALL)
+	    break;
+	if (lev_interface.cgrid(icor, 3) == lev_interface.cgrid(icor, 1)) 
 	{
-	    int igrid = lev_interface.egrid(iedge, 0);
-	    int jgrid = lev_interface.egrid(iedge, 3);
-	    // only do interior edges with fine grid on all sides
-	    if (igrid < 0 || jgrid < 0 || lev_interface.geo(1, iedge) != level_interface::ALL)
-		break;
-	    if (jgrid == lev_interface.egrid(iedge, 1))
-		internal_copy(r, jgrid, igrid, lev_interface.node_edge(iedge));
-	}
-	for (int icor = 0; icor < lev_interface.ncorners(); icor++) 
-	{
-	    int igrid = lev_interface.cgrid(icor, 0);
-	    int jgrid = lev_interface.cgrid(icor, 7);
-	    // only do interior corners with fine grid on all sides
-	    if (igrid < 0 || jgrid < 0 || lev_interface.geo(0, icor) != level_interface::ALL)
-		break;
-	    if (lev_interface.cgrid(icor, 3) == lev_interface.cgrid(icor, 1)) 
+	    if (jgrid != lev_interface.cgrid(icor, 3)) 
 	    {
-		if (jgrid != lev_interface.cgrid(icor, 3)) 
-		{
+		internal_copy(r, jgrid, igrid, lev_interface.corner(icor));
+		jgrid = lev_interface.cgrid(icor, 5);
+		if (jgrid != lev_interface.cgrid(icor, 7))
 		    internal_copy(r, jgrid, igrid, lev_interface.corner(icor));
-		    jgrid = lev_interface.cgrid(icor, 5);
-		    if (jgrid != lev_interface.cgrid(icor, 7))
-			internal_copy(r, jgrid, igrid, lev_interface.corner(icor));
-		}
 	    }
-	    else if (lev_interface.cgrid(icor, 5) == lev_interface.cgrid(icor, 1)) 
+	}
+	else if (lev_interface.cgrid(icor, 5) == lev_interface.cgrid(icor, 1)) 
+	{
+	    if (jgrid != lev_interface.cgrid(icor, 5)) 
 	    {
-		if (jgrid != lev_interface.cgrid(icor, 5)) 
+		internal_copy(r, jgrid, igrid, lev_interface.corner(icor));
+		jgrid = lev_interface.cgrid(icor, 3);
+		if (jgrid != lev_interface.cgrid(icor, 7)) 
 		{
 		    internal_copy(r, jgrid, igrid, lev_interface.corner(icor));
-		    jgrid = lev_interface.cgrid(icor, 3);
-		    if (jgrid != lev_interface.cgrid(icor, 7)) 
+		    if (jgrid == lev_interface.cgrid(icor, 2)) 
 		    {
-			internal_copy(r, jgrid, igrid, lev_interface.corner(icor));
-			if (jgrid == lev_interface.cgrid(icor, 2)) 
-			{
-			    jgrid = lev_interface.cgrid(icor, 6);
-			    if (jgrid != lev_interface.cgrid(icor, 7))
-				internal_copy(r, jgrid, igrid, lev_interface.corner(icor));
-			}
+			jgrid = lev_interface.cgrid(icor, 6);
+			if (jgrid != lev_interface.cgrid(icor, 7))
+			    internal_copy(r, jgrid, igrid, lev_interface.corner(icor));
 		    }
 		}
 	    }
 	}
+    }
 #endif
-    }
-    else 
-    {
-	BoxLib::Error("sync_internal_borders---only NODE-based sync defined");
-    }
 }
 
 // local function used only by fill_internal_borders:
@@ -463,26 +453,25 @@ static inline void node_dirs(int dir[2], const IntVect& typ)
 static void fill_internal_borders(MultiFab& r, const level_interface& lev_interface, int w)
 {
     w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
-    int igrid, jgrid;
     if (type(r) == IntVect::TheNodeVector()) 
     {
 #if ((BL_SPACEDIM == 3) && (defined TERRAIN))
 	// attempt to deal with corner-coupling problem with 27-point stencils
-	int kgrid, dir[2];
-	Box b;
 	for (int iedge = 0; iedge < lev_interface.nboxes(1); iedge++) 
 	{
 	    if (lev_interface.geo(1, iedge) == level_interface::ALL)
 		continue;
-	    igrid = lev_interface.egrid(iedge, 0);
-	    jgrid = lev_interface.egrid(iedge, 3);
+	    int igrid = lev_interface.egrid(iedge, 0);
+	    int jgrid = lev_interface.egrid(iedge, 3);
 	    if (igrid >= 0 && jgrid >= 0) 
 	    {
-		kgrid = lev_interface.egrid(iedge, 1);
+		int kgrid = lev_interface.egrid(iedge, 1);
 		if (kgrid == -1)
 		    kgrid = lev_interface.egrid(iedge, 2);
 		if (kgrid != -1 && kgrid != igrid && kgrid != jgrid)
-		{
+		{	
+		    Box b;
+		    int dir[2];
 		    node_dirs(dir, lev_interface.edge(iedge).type());
 		    if (kgrid == lev_interface.egrid(iedge, 1)) 
 		    {
@@ -504,11 +493,13 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 	    jgrid = lev_interface.egrid(iedge, 2);
 	    if (igrid >= 0 && jgrid >= 0) 
 	    {
-		kgrid = lev_interface.egrid(iedge, 0);
+		int kgrid = lev_interface.egrid(iedge, 0);
 		if (kgrid == -1)
 		    kgrid = lev_interface.egrid(iedge, 3);
 		if (kgrid != -1 && kgrid != igrid && kgrid != jgrid) 
 		{
+		    Box b;		    
+		    int dir[2];
 		    node_dirs(dir, lev_interface.edge(iedge).type());
 		    if (kgrid == lev_interface.egrid(iedge, 0)) 
 		    {
@@ -530,8 +521,8 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 #endif
 	for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
 	{
-	    igrid = lev_interface.fgrid(iface, 0);
-	    jgrid = lev_interface.fgrid(iface, 1);
+	    int igrid = lev_interface.fgrid(iface, 0);
+	    int jgrid = lev_interface.fgrid(iface, 1);
 	    if (igrid < 0 || jgrid < 0 || lev_interface.fgeo(iface) != level_interface::ALL)
 		break;
 	    const Box& b = lev_interface.node_face(iface);
@@ -551,8 +542,8 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
     {
 	for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
 	{
-	    igrid = lev_interface.fgrid(iface, 0);
-	    jgrid = lev_interface.fgrid(iface, 1);
+	    int igrid = lev_interface.fgrid(iface, 0);
+	    int jgrid = lev_interface.fgrid(iface, 1);
 	    if (igrid < 0 || jgrid < 0 || lev_interface.fgeo(iface) != level_interface::ALL)
 		break;
 	    const int idim = lev_interface.fdim(iface);
@@ -588,8 +579,8 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
     {
 	for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
 	{
-	    igrid = lev_interface.fgrid(iface, 0);
-	    jgrid = lev_interface.fgrid(iface, 1);
+	    int igrid = lev_interface.fgrid(iface, 0);
+	    int jgrid = lev_interface.fgrid(iface, 1);
 	    if (igrid < 0 || jgrid < 0 || lev_interface.fgeo(iface) != level_interface::ALL)
 		break;
 	    const int idim = lev_interface.fdim(iface);
@@ -619,22 +610,16 @@ void clear_part_interface(MultiFab& r, const level_interface& lev_interface)
     if (r.nComp() != 1)
 	BoxLib::Error("clear_part_interface---only single components currently supported");
     
-    if (type(r) == IntVect::TheNodeVector()) 
+    assert(type(r) == IntVect::TheNodeVector());
+    for (int i = 0; i < BL_SPACEDIM; i++) 
     {
-	for (int i = 0; i < BL_SPACEDIM; i++) 
+	for (int ibox = 0; ibox < lev_interface.nboxes(i); ibox++) 
 	{
-	    for (int ibox = 0; ibox < lev_interface.nboxes(i); ibox++) 
-	    {
-		// coarse-fine face contained in part_fine grid, or orphan edge/corner
-		int igrid;
-		if ((igrid = lev_interface.aux(i, ibox)) >= 0)
-		    r[igrid].setVal(0.0, lev_interface.node_box(i, ibox), 0);
-	    }
+	    // coarse-fine face contained in part_fine grid, or orphan edge/corner
+	    int igrid;
+	    if ((igrid = lev_interface.aux(i, ibox)) >= 0)
+		r[igrid].setVal(0.0, lev_interface.node_box(i, ibox), 0);
 	}
-    }
-    else 
-    {
-	BoxLib::Error("clear_part_interface---only NODE-based version defined");
     }
 }
 
@@ -660,6 +645,29 @@ void interpolate_patch(FArrayBox& patch, const Box& region,
     }
 }
 
+// Should include lev_interface points
+void interpolate_level(MultiFab& target, 
+		       const MultiFab& r, const IntVect& rat,
+		       const amr_interpolator_class& interp,
+		       const level_interface& lev_interface,
+		       const amr_boundary_class* bdy)
+{
+    if (target.nGrow() == 0) 
+    {
+	for (int i = 0; i < target.length(); i++) 
+	{
+	    assert( target[i].box() == target.box(i) );
+	    interpolate_patch(target[i], target[i].box(), r, rat, interp, lev_interface, 0);
+	}
+    }
+    else 
+    {
+	for (int i = 0; i < target.length(); i++) 
+	{
+	    interpolate_patch(target[i], target.box(i), r, rat, interp, lev_interface, 0);
+	}
+    }
+}
 static void restrict_patch(FArrayBox& patch, const Box& region,
 		    MultiFab& r, const IntVect& rat,
 		    const copy_cache* border_cache,
@@ -742,4 +750,3 @@ void fill_borders(MultiFab& r,
     assert(bdy != 0);
     bdy->fill_borders(r, lev_interface, w);
 }
-

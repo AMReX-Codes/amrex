@@ -140,10 +140,14 @@ Box mixed_boundary_class::box(const Box& region, const Box& domain, int idir) co
 // On velocity inflow, uses box function which extends interior
 // box just past edge of domain.
 
+//void mixed_boundary_class::fill(FArrayBox& patch,
+//				const Box& region,
+//				const MultiFab& src,
+//				int igrid, const Box& domain) const
 void mixed_boundary_class::fill(FArrayBox& patch,
 				const Box& region,
-				const MultiFab& src,
-				int igrid, const Box& domain) const
+				const FArrayBox& src, int igrid,
+				const Box& domain) const
 {
     Box tdomain = domain;
     tdomain.convert(type(src));
@@ -242,13 +246,13 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 	    if (image == region) 
 	    {
 		// only bdy involved, can fill directly from interior
-		fill(patch, region, src[igrid], bb, domain, idir);
+		fill(patch, region, src, bb, domain, idir);
 	    }
 	    else 
 	    {
 		// multiple bdys, fill intermediate patch
 		FArrayBox gb(image);
-		fill(gb, image, src[igrid], bb, domain, idir);
+		fill(gb, image, src, bb, domain, idir);
 		if (negflag == 1) 
 		{
 		    FORT_FBREFM(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region),
@@ -274,7 +278,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 	for (int i = 0; i < BL_SPACEDIM; i++) 
 	{
 	    FORT_FBREFM(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
-		src[igrid].dataPtr(i), DIMLIST(src[igrid].box()),
+		src.dataPtr(i), DIMLIST(src.box()),
 		DIMLIST(image), refarray);
 	}
 	for (int idim = 0; idim < BL_SPACEDIM - 1; idim++) 
@@ -283,13 +287,13 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 	    if (negarray[idim] == 1) 
 	    {
 		FORT_FBREFM(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
-		    src[igrid].dataPtr(i), DIMLIST(src[igrid].box()),
+		    src.dataPtr(i), DIMLIST(src.box()),
 		    DIMLIST(image), refarray);
 	    }
 	    else if (negarray[idim] == -1) 
 	    {
 		FORT_FBNEGM(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
-		    src[igrid].dataPtr(i), DIMLIST(src[igrid].box()),
+		    src.dataPtr(i), DIMLIST(src.box()),
 		    DIMLIST(image), refarray);
 	    }
 	}
@@ -304,7 +308,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 		for (int i = 0; i < patch.nComp(); i++) 
 		{
 		    FORT_FBREFM(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
-			src[igrid].dataPtr(i), DIMLIST(src[igrid].box()),
+			src.dataPtr(i), DIMLIST(src.box()),
 			DIMLIST(image), refarray);
 		}
 	    }
@@ -320,7 +324,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 		for (int i = 0; i < patch.nComp(); i++) 
 		{
 		    FORT_FBNEGM(patch.dataPtr(i), DIMLIST(patch.box()), DIMLIST(region),
-			src[igrid].dataPtr(i), DIMLIST(src[igrid].box()),
+			src.dataPtr(i), DIMLIST(src.box()),
 			DIMLIST(image), refarray);
 		}
 	    }
@@ -437,10 +441,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 
 void mixed_boundary_class::sync_borders(MultiFab& r, const level_interface& lev_interface) const
 {
-    if (type(r) != IntVect::TheNodeVector()) 
-    {
-	BoxLib::Error("mixed_boundary_class::sync_borders---only NODE-based sync defined");
-    }
+    assert(type(r) == IntVect::TheNodeVector());
     
     for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
     {
@@ -466,19 +467,19 @@ void mixed_boundary_class::sync_borders(MultiFab& r, const level_interface& lev_
 void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_interface, int w) const
 {
     w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
+    assert( w == 1 || w == 0 );
     const Box& domain = lev_interface.domain();
-    int igrid, jgrid;
     for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
     {
 	if (lev_interface.fgeo(iface) != level_interface::ALL)
 	    break;
-	igrid = lev_interface.fgrid(iface, 0);
-	jgrid = lev_interface.fgrid(iface, 1);
+	const int igrid = lev_interface.fgrid(iface, 0);
+	const int jgrid = lev_interface.fgrid(iface, 1);
 	if (igrid < 0 || jgrid < 0) 
 	{
 	    Box b = lev_interface.face(iface);
-	    int idim = lev_interface.fdim(iface);
-	    int a = (type(r,idim) == IndexType::NODE);
+	    const int idim = lev_interface.fdim(iface);
+	    const int a = (type(r,idim) == IndexType::NODE);
 	    // need to do on x borders too in case y border is an interior face
 #if (BL_SPACEDIM == 2)
 	    //b.grow(1 - idim, w); // replaced by grow stmts below?
@@ -733,6 +734,7 @@ void mixed_boundary_class::set_sync_cache(copy_cache* cache,
     if (type(r) != IntVect::TheNodeVector())
 	BoxLib::Error("mixed_boundary_class::set_sync_cache---only NODE-based sync defined");
     
+    assert( cache != 0);
     Real *const baseptr = cache->dataPtr();
     
     const Box& domain = lev_interface.domain();
@@ -847,23 +849,24 @@ void mixed_boundary_class::set_border_cache(copy_cache* cache,
 					    const level_interface& lev_interface,
 					    int w) const
 {
+    assert( w == 0 || w == 1 );
     if (r.nComp() != 1)
 	BoxLib::Error("mixed_boundary_class::set_border_cache---only single components currently supported");
     if (w != 1 || type(r) != IntVect::TheNodeVector())
 	BoxLib::Error("mixed_boundary_class::set_border_cache---only width 1 borders currently supported");
     if (flowdim >= 0 || flowdim == -3)
 	BoxLib::Error("mixed_boundary_class::set_border_cache---negation borders not currently supported");
-    
+  
+    assert(cache != 0);
     Real *const baseptr = cache->dataPtr();
     
     const Box& domain = lev_interface.domain();
-    int igrid, jgrid;
     for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
     {
 	if (lev_interface.fgeo(iface) != level_interface::ALL)
 	    break;
-	igrid = lev_interface.fgrid(iface, 0);
-	jgrid = lev_interface.fgrid(iface, 1);
+	int igrid = lev_interface.fgrid(iface, 0);
+	int jgrid = lev_interface.fgrid(iface, 1);
 	if (igrid < 0 || jgrid < 0) 
 	{
 	    const Box& b = lev_interface.node_face(iface);
