@@ -4,7 +4,7 @@
 #define BL_TUPLE_H
 
 //
-// $Id: Tuple.H,v 1.7 1999-05-10 18:54:23 car Exp $
+// $Id: Tuple.H,v 1.8 2000-04-24 17:52:38 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -14,6 +14,11 @@
 #endif
 
 #include <BLassert.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 //
 //@Man:
@@ -137,5 +142,12 @@ Tuple<T,N>::operator= (const Tuple<T,N>& rhs)
         vect[i] = rhs.vect[i];
     return *this;
 }
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_TUPLE_H*/

@@ -4,7 +4,7 @@
 #define BL_MISC_H
 
 //
-// $Id: Misc.H,v 1.2 1997-09-17 22:51:18 lijewski Exp $
+// $Id: Misc.H,v 1.3 2000-04-24 17:52:36 car Exp $
 //
 
 #include <SPACE.H>
@@ -16,6 +16,10 @@
   particular, it will work with any integral or floating-point
   intrinsic type.
 */
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 template <class T>
 inline
@@ -74,5 +78,12 @@ Swap (T& a, T& b)
     a = b;
     b = tmp;
 }
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_MISC_H*/

@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.41 2000-03-01 15:43:03 lijewski Exp $
+// $Id: VisMF.H,v 1.42 2000-04-24 17:52:38 car Exp $
 //
 
 #include <MultiFab.H>
@@ -16,6 +16,11 @@
 
   Wrapper class for reading/writing MultiFabs to disk in various "smart" ways.
 */
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 class VisMF
 {
@@ -362,5 +367,12 @@ VisMF::readFAB (int idx,
 {
     return VisMF::readFAB(idx,m_mfname,m_hdr,ncomp);
 }
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_VISMF_H*/

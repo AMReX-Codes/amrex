@@ -4,7 +4,7 @@
 #define BL_INDEXTYPE_H
 
 //
-// $Id: IndexType.H,v 1.6 1999-04-26 20:09:22 lijewski Exp $
+// $Id: IndexType.H,v 1.7 2000-04-24 17:52:35 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -17,6 +17,11 @@ using std::flush;
 #include <Misc.H>
 #include <IntVect.H>
 #include <SPACE.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 //
 //@Man:
@@ -310,5 +315,12 @@ IndexType::ixType () const
 {
     return IntVect(D_DECL(itype&1, (itype>>1)&1, (itype>>2)&1));
 }
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_INDEXTYPE_H*/

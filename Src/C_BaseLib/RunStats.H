@@ -4,7 +4,7 @@
 #define _RUNSTATS_H_ 
 
 //
-// $Id: RunStats.H,v 1.8 1999-07-01 19:44:49 lijewski Exp $
+// $Id: RunStats.H,v 1.9 2000-04-24 17:52:37 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -25,6 +25,11 @@ using std::ofstream;
 #include <List.H>
 #include <Array.H>
 #include <ParallelDescriptor.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 class RunStatsData
 {
@@ -193,5 +198,12 @@ RunStats::getCells (int lev)
 {
     return TheCells[lev];
 }
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*_RUNSTATS_H_*/

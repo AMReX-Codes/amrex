@@ -4,7 +4,7 @@
 #define BL_BOXLIB_H
 
 //
-// $Id: BoxLib.H,v 1.5 2000-01-06 18:26:40 lijewski Exp $
+// $Id: BoxLib.H,v 1.6 2000-04-24 17:52:33 car Exp $
 //
 
 //
@@ -19,6 +19,11 @@
   terminating exclamation mark, so there is no need to add any punction
   to sentences that get output explicitly.
 */
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 class BoxLib
 {
@@ -65,5 +70,12 @@ public:
    */
     static const char * const version;
 };
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_BOXLIB_H*/

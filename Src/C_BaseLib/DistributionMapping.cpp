@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.40 2000-02-28 23:27:00 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.41 2000-04-24 17:52:34 car Exp $
 //
 
 #include <DistributionMapping.H>
@@ -33,6 +33,11 @@ using namespace std;
 #include <numeric.h>
 #endif
 #endif /*BL_USE_NEW_HFILES*/
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 //
 // Everyone uses the same Strategy -- defaults to ROUNDROBIN.
@@ -574,3 +579,8 @@ operator<< (ostream&                   os,
 
     return os;
 }
+
+#ifdef BL_NAMESPACE
+}
+#endif
+

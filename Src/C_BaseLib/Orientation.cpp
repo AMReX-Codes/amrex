@@ -1,11 +1,16 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Orientation.cpp,v 1.2 1997-12-17 23:05:20 lijewski Exp $
+// $Id: Orientation.cpp,v 1.3 2000-04-24 17:52:36 car Exp $
 //
 
 #include <BoxLib.H>
 #include <Orientation.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 ostream&
 operator<< (ostream&           os,
@@ -43,3 +48,8 @@ operator>> (istream&     is,
 
     return is;
 }
+
+#ifdef BL_NAMESPACE
+}
+#endif
+

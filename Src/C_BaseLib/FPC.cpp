@@ -1,10 +1,15 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FPC.cpp,v 1.2 1999-03-30 00:54:06 car Exp $
+// $Id: FPC.cpp,v 1.3 2000-04-24 17:52:34 car Exp $
 //
 
 #include <FPC.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 //
 // FP orders.
@@ -126,5 +131,9 @@ FPC::Ieee64NormalRealDescriptor ()
       defined(_MSC_VER) || \
       defined(_AIX))
 #error We do not yet support FAB I/O on this machine
+#endif
+
+#ifdef BL_NAMESPACE
+}
 #endif
 

@@ -4,12 +4,17 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.30 1999-09-30 14:56:19 lijewski Exp $
+// $Id: MultiFab.H,v 1.31 2000-04-24 17:52:36 car Exp $
 //
 
 #include <BLassert.H>
 #include <FArrayBox.H>
 #include <FabArray.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 //
 // Forward declaration.
@@ -620,5 +625,12 @@ MultiFab::negate (const Box& region,
 {
     negate(region,0,n_comp,nghost);
 }
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_MULTIFAB_H*/

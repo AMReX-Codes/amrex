@@ -1,11 +1,16 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BArena.cpp,v 1.5 1998-02-09 20:46:52 lijewski Exp $
+// $Id: BArena.cpp,v 1.6 2000-04-24 17:52:32 car Exp $
 //
 
 #include <BArena.H>
 #include <BoxLib.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 void*
 BArena::alloc (size_t _sz)
@@ -18,3 +23,8 @@ BArena::free (void* pt)
 {
     ::operator delete(pt);
 }
+
+#ifdef BL_NAMESPACE
+}
+#endif
+

@@ -1,10 +1,15 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxDomain.cpp,v 1.4 1999-05-10 18:54:20 car Exp $
+// $Id: BoxDomain.cpp,v 1.5 2000-04-24 17:52:33 car Exp $
 //
 
 #include <BoxDomain.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 BoxDomain::BoxDomain ()
     : BoxList(IndexType::TheCellType())
@@ -153,3 +158,8 @@ operator<< (ostream&         os,
         BoxLib::Error("operator<<(ostream&,BoxDomain&) failed");
     return os;
 }
+
+#ifdef BL_NAMESPACE
+}
+#endif
+

@@ -4,7 +4,7 @@
 #define BL_ORIENTATION_H
 
 //
-// $Id: Orientation.H,v 1.8 2000-01-06 18:26:40 lijewski Exp $
+// $Id: Orientation.H,v 1.9 2000-04-24 17:52:36 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -21,6 +21,11 @@ using std::istream;
 
 #include <BLassert.H>
 #include <SPACE.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 class OrientationIter;
 
@@ -433,5 +438,12 @@ OrientationIter::operator!= (const OrientationIter& oi) const
     BL_ASSERT(ok() && oi.ok());
     return face != oi.face;
 }
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_ORIENTATION_H*/

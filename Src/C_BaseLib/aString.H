@@ -4,7 +4,7 @@
 #define BL_ASTRING_H
 
 //
-// $Id: aString.H,v 1.9 1999-08-23 21:19:58 lijewski Exp $
+// $Id: aString.H,v 1.10 2000-04-24 17:52:38 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -29,6 +29,11 @@ using std::vector;
 #include <BLassert.H>
 #include <BoxLib.H>
 #include <Pointers.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 //
 // Helper class for class aString.
@@ -540,5 +545,12 @@ operator>  (const char*    left,
 {
     return ::strcmp(left, right.c_str()) > 0;
 }
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_ASTRING_H*/

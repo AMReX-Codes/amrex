@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.17 1999-05-24 18:11:45 car Exp $
+# $Id: GNUmakefile,v 1.18 2000-04-24 17:52:35 car Exp $
 #
 
 PBOXLIB_HOME = ..
@@ -11,6 +11,8 @@ DEBUG     = TRUE
 DIM       = 3
 COMP      = KCC
 USE_MPI   = TRUE
+NAMESPACE = TRUE
+
 #
 # The base name of the library we're building.
 #
@@ -35,6 +37,7 @@ all: $(optionsLib)
 install: all
 
 include $(TOP)/mk/Make.rules
+
 #
 # Temp stuff for doing html docs.
 #

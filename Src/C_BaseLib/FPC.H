@@ -4,7 +4,7 @@
 #define BL_FPC_H
 
 //
-// $Id: FPC.H,v 1.2 1997-09-17 22:51:15 lijewski Exp $
+// $Id: FPC.H,v 1.3 2000-04-24 17:52:34 car Exp $
 //
 
 #include <FabConv.H>
@@ -19,6 +19,10 @@
   namespaces, and we don't like global constants, we make them static
   constant data members of this class.
 */
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 class FPC
 {
@@ -104,5 +108,12 @@ public:
     */
     static const RealDescriptor& Ieee64NormalRealDescriptor ();
 };
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_FPC_H*/

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Tracer.cpp,v 1.5 1998-04-21 05:21:08 lijewski Exp $
+// $Id: Tracer.cpp,v 1.6 2000-04-24 17:52:38 car Exp $
 //
 // Definition of Tracer member functions.
 //
@@ -19,6 +19,11 @@
 #include <BoxLib.H>
 #include <Tracer.H>
 #include <ParallelDescriptor.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 const char* Tracer::m_program = 0;
 
@@ -187,3 +192,7 @@ main ()
 }
 
 #endif /*TEST_TRACER*/
+
+#ifdef BL_NAMESPACE
+}
+#endif

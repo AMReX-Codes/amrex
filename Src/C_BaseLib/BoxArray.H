@@ -4,7 +4,7 @@
 #define BL_BOXARRAY_H
 
 //
-// $Id: BoxArray.H,v 1.14 1999-09-30 15:55:12 sstanley Exp $
+// $Id: BoxArray.H,v 1.15 2000-04-24 17:52:33 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -17,6 +17,11 @@
 #include <BoxList.H>
 #include <Array.H>
 #include <Pointers.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 //
 // Forward declaration.
@@ -345,5 +350,12 @@ BoxArray::reserve (long _truesize)
         uniqify();
     m_ref->m_abox.reserve(_truesize);
 }
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_BOXARRAY_H*/

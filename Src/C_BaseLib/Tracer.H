@@ -1,11 +1,16 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Tracer.H,v 1.3 1997-11-18 00:04:54 lijewski Exp $
+// $Id: Tracer.H,v 1.4 2000-04-24 17:52:38 car Exp $
 //
 
 #ifndef BL_TRACER_H
 #define BL_TRACER_H
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 //
 //@Man:
@@ -59,6 +64,13 @@ class Tracer
 #define TRACER(s) Tracer  _trace(s)
 #else
 #define TRACER(s)
+#endif
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
 #endif
 
 #endif /*BL_TRACER_H*/

@@ -4,7 +4,7 @@
 #define BL_ORDEREDFAB_H
 
 //
-// $Id: OrderedFab.H,v 1.3 1999-04-15 23:28:00 lijewski Exp $
+// $Id: OrderedFab.H,v 1.4 2000-04-24 17:52:36 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -22,6 +22,11 @@ using std::endl;
 #include <BaseFab.H>
 #include <Misc.H>
 #include <Looping.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 //
 //@Man:
@@ -507,5 +512,12 @@ OrderedFab<T>::maskGE(BaseFab<int>& mask,
 
     return cnt;
 }
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_ORDEREDFAB_H*/

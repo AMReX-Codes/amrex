@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxLib.cpp,v 1.9 1998-10-08 20:23:57 car Exp $
+// $Id: BoxLib.cpp,v 1.10 2000-04-24 17:52:33 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -20,6 +20,11 @@ using std::cerr;
 #include <BoxLib.H>
 #include <BLVERSION.H>
 #include <ParallelDescriptor.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 //
 // The definition of our NULL string used as default argument.
@@ -140,3 +145,8 @@ BoxLib::OutOfMemory (const char* file,
 {
     BoxLib::Assert("operator new", file, line);
 }
+
+#ifdef BL_NAMESPACE
+}
+#endif
+

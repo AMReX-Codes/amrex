@@ -4,13 +4,18 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.47 1999-07-26 16:59:42 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.48 2000-04-24 17:52:36 car Exp $
 //
 
 #include <BLassert.H>
 #include <REAL.H>
 #include <Box.H>
 #include <ccse-mpi.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 //
 // Used for collecting information used in communicating FABs.
@@ -364,5 +369,12 @@ ParallelDescriptor::IOProcessorNumber ()
 {
     return ioProcessor;
 }
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_PARALLELDESCRIPTOR_H*/

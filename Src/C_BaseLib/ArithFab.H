@@ -4,7 +4,7 @@
 #define BL_ARITHFAB_H
 
 //
-// $Id: ArithFab.H,v 1.3 1999-04-15 23:27:58 lijewski Exp $
+// $Id: ArithFab.H,v 1.4 2000-04-24 17:52:32 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -23,6 +23,11 @@ using std::endl;
 #include <Misc.H>
 #include <REAL.H>
 #include <Looping.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 //
 //@Man:
@@ -1081,4 +1086,12 @@ ArithFab<T>::linComb (const ArithFab<T>& f1,
     return *this;
 }
 
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
+
 #endif /*BL_ARITHFAB_H*/
+

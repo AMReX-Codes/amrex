@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.29 1999-05-26 19:33:33 marc Exp $
+// $Id: FArrayBox.cpp,v 1.30 2000-04-24 17:52:34 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -46,6 +46,11 @@ using std::ios;
 #ifdef BL_USE_DOUBLE
 #error DOUBLE not allowed on CRAY
 #endif
+#endif
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
 #endif
 
 #if defined(BL_ARCH_IEEE)
@@ -1097,3 +1102,8 @@ operator>> (istream&   is,
     delete fabrd;
     return is;
 }
+
+#ifdef BL_NAMESPACE
+}
+#endif
+

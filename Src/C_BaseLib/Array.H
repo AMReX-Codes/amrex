@@ -4,7 +4,7 @@
 #define BL_ARRAY_H
 
 //
-// $Id: Array.H,v 1.14 1999-05-10 18:54:19 car Exp $
+// $Id: Array.H,v 1.15 2000-04-24 17:52:32 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -20,6 +20,11 @@ using std::endl;
 #include <BLassert.H>
 #include <BoxLib.H>
 #include <Misc.H>
+
+#ifdef BL_NAMESPACE
+namespace BL_NAMESPACE
+{
+#endif
 
 template <class T> class Array;
 
@@ -510,5 +515,12 @@ Array<T>::operator== (const Array<T>& rhs) const
 
     return true;
 }
+
+#ifdef BL_NAMESPACE
+}
+#ifndef BL_NO_USING_DIRECTIVE
+using namespace BL_NAMESPACE;
+#endif
+#endif
 
 #endif /*BL_ARRAY_H*/
