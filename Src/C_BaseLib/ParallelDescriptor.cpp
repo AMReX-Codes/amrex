@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.77 2001-07-20 17:01:45 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.78 2001-07-20 17:57:27 car Exp $
 //
 
 #include <cstdio>
@@ -15,15 +15,15 @@ namespace ParallelDescriptor
     //
     // My processor ID.
     //
-    int m_MyId;
+    int m_MyId = -1;
     //
     // The number of processors.
     //
-    int m_nProcs;
+    int m_nProcs = -1;
     //
     // The number of processors in CFD part of computation.
     //
-    int m_nProcsCFD;
+    int m_nProcsCFD = -1;
     //
     // BoxLib's Communicator
     //
@@ -352,6 +352,8 @@ ParallelDescriptor::StartParallel (int*    argc,
     BL_ASSERT(m_MyId == -1);
     BL_ASSERT(m_nProcs == -1);
     BL_ASSERT(m_nProcsCFD == -1);
+
+    m_comm = MPI_COMM_WORLD;
 
     int rc, sflag;
 
