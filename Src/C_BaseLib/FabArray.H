@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.156 2001-09-26 02:16:58 car Exp $
+// $Id: FabArray.H,v 1.157 2001-09-26 15:43:31 car Exp $
 //
 #include <cstring>
 #include <limits>
@@ -106,10 +106,14 @@ public:
     //
     const FabArrayBase& theFabArrayBase () const;
 
+    static void setDebugging(bool debugging);
+
 protected:
 
     const FabArrayBase& fabArray;
     int              currentIndex;
+    bool	     m_debugging;
+    static bool      g_debugging;
 };
 
 //
@@ -1452,7 +1456,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
     const int NProcs = ParallelDescriptor::NProcs();
 
     if (NProcs == 1) return;
-#if defined(BL_USE_MPI) || !defined(WIN32)
+
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::CollectData()");
 
     const int MyProc = ParallelDescriptor::MyProc();
@@ -1464,8 +1468,8 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
     static Array<MPI_Request> req_data(NProcs);
     static Array<MPI_Request> req_cd(NProcs);
     static Array<MPI_Status>  status(NProcs);
-    static Array<CommData>    senddata;
-    static Array<CommData>    recv_cd;
+    Array<CommData>    senddata;
+    Array<CommData>    recv_cd;
 
     for (int i = 0; i < NProcs; i++)
         Snds[i] = Rcvs[i] = 0;
@@ -1758,7 +1762,6 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
             fab_data[indx[k]] = 0;
         }
     }
-#endif
 }
 
 template <class FAB>
