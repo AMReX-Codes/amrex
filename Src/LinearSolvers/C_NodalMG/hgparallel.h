@@ -3,6 +3,7 @@
 
 #ifdef BL_USE_NEW_HFILES
 #include <cstdlib>
+#include <limits>
 #else
 #include <stdlib.h>
 #endif
