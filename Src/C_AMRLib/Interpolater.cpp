@@ -1,5 +1,5 @@
 //
-// $Id: Interpolater.cpp,v 1.21 2001-08-09 22:42:00 marc Exp $
+// $Id: Interpolater.cpp,v 1.22 2001-08-16 23:06:48 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -12,9 +12,13 @@
 #include <INTERP_F.H>
 
 //
-// CONSTRUCT A GLOBAL OBJECT OF EACH VERSION.
+// Note that in 1D, CellConservativeLinear and CellQuadratic
+// interpolation are turned off in a hardwired way.
 //
 
+//
+// CONSTRUCT A GLOBAL OBJECT OF EACH VERSION.
+//
 NodeBilinear           node_bilinear_interp;
 CellBilinear           cell_bilinear_interp;
 CellConservative       cell_cons_interp;
@@ -481,6 +485,8 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     Array<int> bc     = GetBCArray(bcr);
     const int* ratioV = ratio.getVect();
 
+#if (BL_SPACEDIM > 1)
+
     FORT_LINCCINTERP (fdat,ARLIM(flo),ARLIM(fhi),
                       fblo, fbhi,
                       ARLIM(fvcblo), ARLIM(fvcbhi),
@@ -500,6 +506,8 @@ CellConservativeLinear::interp (const FArrayBox& crse,
                       D_DECL(voffx,voffy,voffz));
 
     D_TERM(delete [] voffx;, delete [] voffy;, delete [] voffz;);
+
+#endif /*(BL_SPACEDIM > 1)*/
 }
 
 CellQuadratic::CellQuadratic (bool limit)
@@ -623,6 +631,8 @@ CellQuadratic::interp (const FArrayBox& crse,
     Array<int> bc     = GetBCArray(bcr);
     const int* ratioV = ratio.getVect();
 
+#if (BL_SPACEDIM > 1)
+
     FORT_CQINTERP (fdat,ARLIM(flo),ARLIM(fhi),
                    ARLIM(fblo), ARLIM(fbhi),
                    &ncomp,D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
@@ -633,6 +643,8 @@ CellQuadratic::interp (const FArrayBox& crse,
                    bc.dataPtr(), &slope_flag,
                    D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
                    D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()));
+
+#endif /*(BL_SPACEDIM > 1)*/
 }
 
 PCInterp::PCInterp ()
