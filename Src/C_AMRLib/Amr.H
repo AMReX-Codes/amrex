@@ -4,7 +4,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.26 1999-11-03 16:33:25 propp Exp $
+// $Id: Amr.H,v 1.27 2000-08-17 17:31:00 marc Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -206,10 +206,6 @@ public:
     //
     int nProper () const;
     //
-    //@ManDoc: Blocking factor in grid generation.
-    //
-    int blockingFactor () const;
-    //
     //@ManDoc: List of grids at each level.
     //
     const BoxArray& boxArray (int lev) const;
@@ -343,7 +339,7 @@ protected:
     bool             isPeriodic[BL_SPACEDIM];  // Domain periodic?
     Array<int>       regrid_int;      // Interval between regridding.
     Array<int>       n_error_buf;     // Buffer cells around each tagged cell.
-    int              blocking_factor; // Blocking factor in grid generation.
+    Array<int>       blocking_factor; // Blocking factor in grid generation.
     Real             grid_eff;        // Grid efficiency.
     int              max_grid_size;   // Maximum allowable grid size.
     int              n_proper;        // # cells required for proper nesting.
@@ -528,13 +524,6 @@ int
 Amr::subCycle () const
 {
     return sub_cycle;
-}
-
-inline
-int
-Amr::blockingFactor () const
-{
-    return blocking_factor;
 }
 
 inline
