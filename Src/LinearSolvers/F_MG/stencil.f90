@@ -762,12 +762,12 @@ contains
 
     xx(0,1) = -xa(1)/dh(1)
     xx(0,2) = -xb(1)/dh(1)
-    call poly_interp_coeff(cc(0:norder(1)-1,1), -HALF, xx(0:norder(1)-1,1))
-    call poly_interp_coeff(cc(0:norder(1)-1,2), -HALF, xx(0:norder(1)-1,2))
+    call poly_interp_coeff(cc(0:norder(1),1), -HALF, xx(0:norder(1),1))
+    call poly_interp_coeff(cc(0:norder(1),2), -HALF, xx(0:norder(1),2))
     if ( bc_dirichlet(mm( 1), 1, -1) ) &
-         ph(0   ) = sum(ph(1:norder(1)-1         )*cc(1:norder(1)-1,1))
+         ph(0   ) = sum(ph(0:norder(1)         )*cc(0:norder(1),1))
     if ( bc_dirichlet(mm(nn(1)), 1, +1) ) &
-         ph(nn(1)+1) = sum(ph(nn(1):nn(1)-(norder(1)-2):-1)*cc(1:norder(1)-1,2))
+         ph(nn(1)+1) = sum(ph(nn(1)+1:nn(1)-(norder(1)-1):-1)*cc(1:norder(1),2))
 
   end subroutine extrap_1d
 
@@ -792,28 +792,34 @@ contains
     xx(:,2) = (/ Huge(xx), (i+HALF, i=0, max_order-1) /)
     xc(:)   = (/           (i+HALF, i=0, max_order  ) /)
 
+print *, 'max_order = ', max_order
     norder = min(nn, max_order)
 
+print *, 'norder = ', norder
     xx(0,1) = -xa(1)/dh(1)
     xx(0,2) = -xb(1)/dh(1)
-    call poly_interp_coeff(cc(0:norder(1)-1,1), -HALF, xx(0:norder(1)-1,1))
-    call poly_interp_coeff(cc(0:norder(1)-1,2), -HALF, xx(0:norder(1)-1,2))
+print *, 'xx1 = ', xx(:,1)
+print *, 'xx2 = ', xx(:,2)
+    call poly_interp_coeff(cc(0:norder(1),1), -HALF, xx(0:norder(1),1))
+    call poly_interp_coeff(cc(0:norder(1),2), -HALF, xx(0:norder(1),2))
+print *, 'cc1 = ', cc(:,1)
+print *, 'cc2 = ', cc(:,2)
     do j = 1, nn(2)
        if ( bc_dirichlet(mm( 1,j), 1, -1) ) &
-            ph(0   ,j) = sum(ph(0:norder(1)-1         ,j)*cc(0:norder(1)-1,1))
+            ph(0   ,j) = sum(ph(0:norder(1)         ,j)*cc(0:norder(1),1))
        if ( bc_dirichlet(mm(nn(1),j), 1, +1) ) &
-            ph(nn(1)+1,j) = sum(ph(nn(1)+1:nn(1)-(norder(1)-2):-1,j)*cc(0:norder(1)-1,2))
+            ph(nn(1)+1,j) = sum(ph(nn(1)+1:nn(1)-(norder(1)-1):-1,j)*cc(0:norder(1)-1,2))
     end do
 
     xx(0,1) = -xa(2)/dh(2)
     xx(0,2) = -xb(2)/dh(2)
-    call poly_interp_coeff(cc(0:norder(2)-1,1), -HALF, xx(0:norder(2)-1,1))
-    call poly_interp_coeff(cc(0:norder(2)-1,2), -HALF, xx(0:norder(2)-1,2))
+    call poly_interp_coeff(cc(0:norder(2),1), -HALF, xx(0:norder(2),1))
+    call poly_interp_coeff(cc(0:norder(2),2), -HALF, xx(0:norder(2),2))
     do i = 1, nn(1)
        if ( bc_dirichlet(mm(i, 1), 2, -1) ) &
-            ph(i   ,0) = sum(ph(i,0:norder(2)-1         )*cc(0:norder(2)-1,1))
+            ph(i   ,0) = sum(ph(i,0:norder(2)         )*cc(0:norder(2),1))
        if ( bc_dirichlet(mm(i,nn(2)), 2, +1) ) &
-            ph(i,nn(2)+1) = sum(ph(i,nn(2)+1:nn(2)-(norder(2)-2):-1)*cc(0:norder(2)-1,2))
+            ph(i,nn(2)+1) = sum(ph(i,nn(2)+1:nn(2)-(norder(2)-1):-1)*cc(0:norder(2),2))
     end do
 
     norder = min(nn, max_order+1)
@@ -878,40 +884,40 @@ contains
 
     xx(0,1) = -xa(1)/dh(1)
     xx(0,2) = -xb(1)/dh(1)
-    call poly_interp_coeff(cc(0:norder(1)-1,1), -HALF, xx(0:norder(1)-1,1))
-    call poly_interp_coeff(cc(0:norder(1)-1,2), -HALF, xx(0:norder(1)-1,2))
+    call poly_interp_coeff(cc(0:norder(1),1), -HALF, xx(0:norder(1),1))
+    call poly_interp_coeff(cc(0:norder(1),2), -HALF, xx(0:norder(1),2))
     do k = 1, nn(3)
        do j = 1, nn(2)
           if ( bc_dirichlet(mm( 1,j,k), 1, -1) ) &
-               ph(0   ,j,k) = sum(ph(0:norder(1)-1         ,j,k)*cc(0:norder(1)-1,1))
+               ph(0   ,j,k) = sum(ph(0:norder(1)         ,j,k)*cc(0:norder(1),1))
           if ( bc_dirichlet(mm(nn(1),j,k), 1, +1) ) &
-               ph(nn(1)+1,j,k) = sum(ph(nn(1)+1:nn(1)-(norder(1)-2):-1,j,k)*cc(0:norder(1)-1,2))
+               ph(nn(1)+1,j,k) = sum(ph(nn(1)+1:nn(1)-(norder(1)-1):-1,j,k)*cc(0:norder(1),2))
        end do
     end do
 
     xx(0,1) = -xa(2)/dh(2)
     xx(0,2) = -xb(2)/dh(2)
-    call poly_interp_coeff(cc(0:norder(2)-1,1), -HALF, xx(0:norder(2)-1,1))
-    call poly_interp_coeff(cc(0:norder(2)-1,2), -HALF, xx(0:norder(2)-1,2))
+    call poly_interp_coeff(cc(0:norder(2),1), -HALF, xx(0:norder(2),1))
+    call poly_interp_coeff(cc(0:norder(2),2), -HALF, xx(0:norder(2),2))
     do k = 1, nn(3)
        do i = 1, nn(1)
           if ( bc_dirichlet(mm(i, 1,k), 2, -1) ) &
-               ph(i   ,0,k) = sum(ph(i,0:norder(2)-1         ,k)*cc(0:norder(2)-1,1))
+               ph(i   ,0,k) = sum(ph(i,0:norder(2)         ,k)*cc(0:norder(2),1))
           if ( bc_dirichlet(mm(i,nn(2),k), 2, +1) ) &
-               ph(i,nn(2)+1,k) = sum(ph(i,nn(2)+1:nn(2)-(norder(2)-2):-1,k)*cc(0:norder(2)-1,2))
+               ph(i,nn(2)+1,k) = sum(ph(i,nn(2)+1:nn(2)-(norder(2)-1):-1,k)*cc(0:norder(2),2))
        end do
     end do
 
     xx(0,1) = -xa(3)/dh(3)
     xx(0,2) = -xb(3)/dh(3)
-    call poly_interp_coeff(cc(0:norder(3)-1,1), -HALF, xx(0:norder(3)-1,1))
-    call poly_interp_coeff(cc(0:norder(3)-1,2), -HALF, xx(0:norder(3)-1,2))
+    call poly_interp_coeff(cc(0:norder(3),1), -HALF, xx(0:norder(3),1))
+    call poly_interp_coeff(cc(0:norder(3),2), -HALF, xx(0:norder(3),2))
     do j = 1, nn(2)
        do i = 1, nn(1)
           if ( bc_dirichlet(mm(i,j, 1), 3, -1) ) &
-               ph(i,j,   0) = sum(ph(i,j,0:norder(3)-1         )*cc(0:norder(3)-1,1))
+               ph(i,j,   0) = sum(ph(i,j,0:norder(3)         )*cc(0:norder(3),1))
           if ( bc_dirichlet(mm(i,j,nn(3)), 2, +1) ) &
-               ph(i,j,nn(3)+1) = sum(ph(i,j,nn(3)+1:nn(3)-(norder(3)-2):-1)*cc(0:norder(3)-1,2))
+               ph(i,j,nn(3)+1) = sum(ph(i,j,nn(3)+1:nn(3)-(norder(3)-1):-1)*cc(0:norder(3),2))
        end do
     end do
 
@@ -2408,6 +2414,7 @@ contains
     real(kind=dp_t) num, den
     integer i, j, N
     N = size(x)
+print *, 'N = ', N
     do j = 1, N
        num = ONE
        den = ONE
