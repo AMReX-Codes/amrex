@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateDescriptor.cpp,v 1.4 1997-11-26 20:41:44 lijewski Exp $
+// $Id: StateDescriptor.cpp,v 1.5 1997-12-04 22:57:09 lijewski Exp $
 //
 
 #include <StateDescriptor.H>
@@ -121,7 +121,7 @@ StateDescriptor::setComponent (int            comp,
                                const BCRec&   bcr,
                                BndryFunc      func)
 {
-    assert(comp >= 0 && comp < ncomp && names[comp] == "");
+    assert(comp >= 0 && comp < ncomp && names[comp].isNull());
     names[comp] = nm;
     bc_func[comp] = func;
     bc[comp] = bcr;

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.9 1997-12-04 20:58:50 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.10 1997-12-04 22:57:08 lijewski Exp $
 //
 
 #ifdef	_MSC_VER
@@ -168,7 +168,7 @@ AmrLevel::checkPoint (const aString& dir,
     // Now for the full pathname of that directory.
     //
     aString FullPath = dir;
-    if (FullPath != "" && FullPath[FullPath.length()-1] != '/')
+    if (!FullPath.isNull() && FullPath[FullPath.length()-1] != '/')
         FullPath += '/';
     FullPath += Level;
 

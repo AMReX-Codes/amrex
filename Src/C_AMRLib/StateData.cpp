@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateData.cpp,v 1.9 1997-12-04 20:58:50 lijewski Exp $
+// $Id: StateData.cpp,v 1.10 1997-12-04 22:57:09 lijewski Exp $
 //
 
 #include <RunStats.H>
@@ -118,7 +118,7 @@ StateData::restart (istream&               is,
     // We need to prepend the name of the chkfile directory.
     //
     aString FullPathName = chkfile;
-    if (chkfile.length() > 0 && chkfile[chkfile.length()-1] != '/')
+    if (!chkfile.isNull() && chkfile[chkfile.length()-1] != '/')
         FullPathName += '/';
     FullPathName += mf_name;
     VisMF::Read(*new_data, FullPathName);
@@ -133,7 +133,7 @@ StateData::restart (istream&               is,
         // We need to prepend the name of the chkfile directory.
         //
         FullPathName = chkfile;
-        if (chkfile.length() > 0 && chkfile[chkfile.length()-1] != '/')
+        if (!chkfile.isNull() && chkfile[chkfile.length()-1] != '/')
             FullPathName += '/';
         FullPathName += mf_name;
         VisMF::Read(*old_data, FullPathName);

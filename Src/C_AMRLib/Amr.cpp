@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.16 1997-12-04 20:58:49 lijewski Exp $
+// $Id: Amr.cpp,v 1.17 1997-12-04 22:57:08 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -538,8 +538,10 @@ Amr::checkInput ()
 void
 Amr::init ()
 {
-    if (restart_file.length() > 0)
+    if (!restart_file.isNull())
+    {
 	restart(restart_file);
+    }
     else
     {
 	initialInit();
@@ -1306,15 +1308,15 @@ proj_periodic (BoxDomain&      bd,
 }
 
 void
-Amr::grid_places (int          lbase, //  => finest that level doesn't change
+Amr::grid_places (int              lbase,
                   Real             time,
-                  int&             new_finest, // <=> new finest level
-                  Array<BoxArray>& new_grids)  // <=> new grid structure
+                  int&             new_finest,
+                  Array<BoxArray>& new_grids)
 {
     int i;
     int  max_crse = Min(finest_level,max_level-1);
 
-    if (grids_file.length() > 0)
+    if (!grids_file.isNull())
     {
 #define STRIP while( is.get() != '\n' )
 
@@ -1363,17 +1365,17 @@ Amr::grid_places (int          lbase, //  => finest that level doesn't change
     //
     // Construct problem domain at each level.
     //
-    Array<IntVect> bf_lev(max_level);    // blocking factor at each level
+    Array<IntVect> bf_lev(max_level); // Blocking factor at each level.
     Array<IntVect> rr_lev(max_level);
-    Array<Box> pc_domain(max_level); // prob domain coarsened by blocking_factor
+    Array<Box> pc_domain(max_level);  // Coarsened problem domain.
     for (i = lbase; i <= max_crse; i++)
     {
-        for( int n=0; n<BL_SPACEDIM; n++ )
+        for (int n=0; n<BL_SPACEDIM; n++)
             bf_lev[i][n] = Max(1,blocking_factor/ref_ratio[i][n]);
     }
     for (i = lbase; i < max_crse; i++)
     {
-        for( int n=0; n<BL_SPACEDIM; n++ )
+        for (int n=0; n<BL_SPACEDIM; n++)
             rr_lev[i][n] = (ref_ratio[i][n]*bf_lev[i][n])/bf_lev[i+1][n];
     }
     for (i = lbase; i <= max_crse; i++)
