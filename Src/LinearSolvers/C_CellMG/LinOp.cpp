@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: LinOp.cpp,v 1.8 1998-07-29 19:09:55 lijewski Exp $
+// $Id: LinOp.cpp,v 1.9 1998-11-07 02:51:08 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -195,7 +195,7 @@ LinOp::applyBC (MultiFab&      inout,
     //
     // Do periodic fixup.
     //
-    geomarray[level].FillPeriodicBoundary(inout, 0, nc);
+    geomarray[level].FillPeriodicBoundary(inout, 0, nc, false, false);
     //
     // Fill boundary cells.
     //
