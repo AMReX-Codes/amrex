@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.21 1998-11-21 19:02:54 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.22 1999-01-04 18:28:45 marc Exp $
 #
 
 #
@@ -224,18 +224,21 @@ CPlusPlusSourceFiles =
 C89SourceFiles	=
 F77SourceFiles	=
 F90SourceFiles	=
+f77SourceFiles	=
 
 objForLibs	=	$(CLIB_sources:%.cpp=%.o) \
 			$(FLIB_sources:%.F=%.o) \
-			$(cLIB_sources:%.c=%.o)
+			$(cLIB_sources:%.c=%.o) \
+			$(fLIB_sources:%.f=%.o) \
 
 objStandalone	= 	$(CEXE_sources:%.cpp=%.o) \
 			$(FEXE_sources:%.F=%.o) \
-			$(cEXE_sources:%.c=%.o)
+			$(cEXE_sources:%.c=%.o) \
+			$(fEXE_sources:%.f=%.o)
 
 objForExecs	= $(addprefix $(objEXETempDir)/, $(objStandalone))
 
-instSources	= $(CLIB_headers) $(FLIB_headers) $(cLIB_headers) $(T_sources) $(T_headers)
+instSources	= $(CLIB_headers) $(FLIB_headers) $(cLIB_headers) $(T_sources) $(T_headers) $(fLIB_headers)
 
 INCLUDE_LOCATIONS += . $(XTRAINCLOC) $(XINCL)
 LIBRARY_LOCATIONS += . $(XTRALIBLOC) $(XLIBL)
@@ -287,7 +290,9 @@ FSRCALL		= $(FEXE_sources) $(FEXE_headers) $(FLIB_sources) \
                   $(FLIB_headers)
 cSRCALL		= $(cEXE_sources) $(cEXE_headers) $(cLIB_sources) \
                   $(cLIB_headers)
-allSources	= $(CSRCALL) $(FSRCALL) $(cSRCALL)
+fSRCALL		= $(fEXE_sources) $(fEXE_headers) $(fLIB_sources) \
+                  $(fLIB_headers)
+allSources	= $(CSRCALL) $(FSRCALL) $(cSRCALL) $(fSRCALL)
 
 
 ifndef CLOSELIB

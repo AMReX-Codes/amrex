@@ -1,5 +1,5 @@
 #
-# $Id: Make.rules,v 1.12 1998-11-23 18:27:01 lijewski Exp $
+# $Id: Make.rules,v 1.13 1999-01-04 18:28:45 marc Exp $
 #
 $(addprefix $(instIncludeDir)/, $(instSources)): $(instIncludeDir)/% : %
 	@if [ ! -d $(instIncludeDir) ]; then mkdir -p $(instIncludeDir); fi
@@ -63,7 +63,7 @@ endif
 	$(RANLIB) $@
 
 realclean: clean
-	$(RM) lib*.a *.f TAGS tags
+	$(RM) lib*.a TAGS tags
 	$(RM) -r d o f ii_files *~
 	$(RM) *.ex *.ii *.o mon.out gmon.out
 
@@ -102,14 +102,21 @@ $(optionsLib)(%.o): %.c
 
 $(optionsLib)(%.o): %.F
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
+	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
 	$(CPP) $(CPPFLAGS) -DBL_LANG_FORT $< | $(FORTPREP) > $(f77TempDir)/$*.f
 	$(FC) $(FLIBFLAGS) $(FFLAGS) -c $(f77TempDir)/$*.f $(FORT_LIB_OUTPUT_OPTION)
 	$(AR) r $@ $(objTempDir)/$*.o
 
 $(optionsLib)(%.o): %.f90
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
+	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
 	$(CPP) $(CPPFLAGS) -DBL_LANG_FORT $< | $(FORTPREP) > $(f77TempDir)/$*.f
 	$(FC) $(FLIBFLAGS) $(FFLAGS) -c $(f77TempDir)/$*.f $(FORT_LIB_OUTPUT_OPTION)
+	$(AR) r $@ $(objTempDir)/$*.o
+
+$(optionsLib)(%.o): %.f
+	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
+	$(FC) $(FLIBFLAGS) $(FFLAGS) -c $< $(FORT_LIB_OUTPUT_OPTION)
 	$(AR) r $@ $(objTempDir)/$*.o
 #
 # Rules for objects.
@@ -133,6 +140,10 @@ $(objEXETempDir)/%.o: %.f90
 	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
 	$(CPP) -DBL_LANG_FORT $(CPPFLAGS) $< | $(FORTPREP) > $(f77TempDir)/$*.f
 	$(COMPILE.f) $(FEXEFLAGS) $(f77TempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
+
+$(objEXETempDir)/%.o: %.f
+	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
+	$(COMPILE.f) $(FEXEFLAGS) $< $(FORT_EXE_OUTPUT_OPTION)
 #
 # Rules for dependencies in libraries.
 #
@@ -158,6 +169,13 @@ $(depTempDir)/%.d: %.F
 		sed -e '\''s,$*.o,$(optionsLib)(&) $@,'\'' > $@'
 
 $(depTempDir)/%.d: %.f90
+	@echo Depending $< ...
+	@if [ ! -d $(depTempDir) ]; then mkdir -p $(depTempDir); fi
+	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
+		sed -e '\''s,^[^:]*\/,,'\'' | \
+		sed -e '\''s,$*.o,$(optionsLib)(&) $@,'\'' > $@'
+
+$(depTempDir)/%.d: %.f
 	@echo Depending $< ...
 	@if [ ! -d $(depTempDir) ]; then mkdir -p $(depTempDir); fi
 	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
@@ -193,6 +211,13 @@ $(depEXETempDir)/%.d: %.f90
 	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
 		sed -e '\''s,$*.o,$(objEXETempDir)/& $@,'\'' > $@'
+
+$(depEXETempDir)/%.d: %.f
+	@echo Depending $< ...
+	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
+	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
+		sed -e '\''s,^[^:]*\/,,'\'' | \
+		sed -e '\''s,$*.o,$(objEXETempDir)/& $@,'\'' > $@'
 #
 # Now load/build the dependency files.
 #
@@ -205,6 +230,9 @@ endif
 ifdef cLIB_sources
 -include $(cLIB_sources:%.c=$(depTempDir)/%.d)
 endif
+ifdef fLIB_sources
+-include $(fLIB_sources:%.f=$(depTempDir)/%.d)
+endif
 ifdef CEXE_sources
 -include $(CEXE_sources:%.cpp=$(depEXETempDir)/%.d)
 endif
@@ -213,4 +241,7 @@ ifdef FEXE_sources
 endif
 ifdef cEXE_sources
 -include $(cEXE_sources:%.c=$(depEXETempDir)/%.d)
+endif
+ifdef fEXE_sources
+-include $(fEXE_sources:%.f=$(depEXETempDir)/%.d)
 endif
