@@ -639,7 +639,9 @@ bool task_restric_fill::ready()
     if ( flag )
     {
 	if ( is_local(m_mf, m_dgrid) )
+	{
 	    m_restric.fill(m_mf[m_dgrid], m_bx, *tmp, m_rat);
+	}
 	return true;
     }
     return false;
