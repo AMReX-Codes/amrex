@@ -153,7 +153,6 @@ contains
   function timer_tick() result(r)
     real(kind=dp_t) :: r
     call wall_second_tick(r)
-    r = r*MIL_SEC
   end function timer_tick
 
   function MY_CPU_SECOND_TICK() result(r)
@@ -173,7 +172,7 @@ contains
              end if
           end do
        end do
-       tickval = MIL_SEC*tickval
+       tickval = tickval
     end if
     r = tickval
   end function MY_CPU_SECOND_TICK
@@ -195,7 +194,7 @@ contains
              end if
           end do
        end do
-       tickval = tickval*MIL_SEC
+       tickval = tickval
     end if
     r = tickval
   end function MY_WALL_SECOND_TICK
