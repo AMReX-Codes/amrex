@@ -142,7 +142,7 @@ ifeq ($(ARCH),Linux)
        CFLAGS += -fast
       endif
     endif
-    ifeq ($(COMP),Intel7)
+    ifeq ($(_comp),Intel7)
       ifdef NDEBUG
         ifdef OMP
           CFLAGS += -O0
