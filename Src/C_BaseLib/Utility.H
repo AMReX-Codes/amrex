@@ -4,7 +4,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.21 1998-05-07 22:26:09 lijewski Exp $
+// $Id: Utility.H,v 1.22 1998-07-29 17:21:30 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -162,6 +162,11 @@ public:
       For example, if it is passed the string "/a/b/c/d/e/f/g", it
       will return successfully when all the directories in the pathname
       exist; i.e. when the full pathname is a valid directory.
+
+      In a Windows environment, the path separator is a '\', so that if using
+      the example given above you must pass the string  
+      "\\a\\b\\c\\d\\e\\f\\g"  (Note that you must escape the backslash in a
+      character string), 
     */
     static bool CreateDirectory (const aString& path,
                                  mode_t         mode);
