@@ -1260,7 +1260,7 @@ contains
     subroutine easy()
       real(dp_t), dimension(:,:,:,:), pointer :: pdst, psrc
       type(boxarray)                          :: bxai
-      type(box)                               :: abx, dbx
+      type(box)                               :: abx
       integer                                 :: i, j, ii, proc
       integer                                 :: shft(2*3**mf%la%lap%dim,mf%la%lap%dim)
       integer, parameter                      :: tag = 1101
@@ -1272,11 +1272,9 @@ contains
             do ii = 1, bxai%nboxes
                abx = intersection(get_ibox(mf,j), bxai%bxs(ii))
                if ( .not. empty(abx) ) then
-                dbx = abx
-                if (.not. all(shft(ii,:) == 0)) dbx = shift(abx,-shft(ii,:))
                   if ( local(mf,i) .and. local(mf,j) ) then
                      psrc => dataptr(mf, j, abx)
-                     pdst => dataptr(mf, i, dbx)
+                     pdst => dataptr(mf, i, shift(abx,-shft(ii,:)))
                      pdst = psrc
                   else if ( .not. lnocomm ) then
                      if ( local(mf,j) ) then ! must send
@@ -1284,7 +1282,7 @@ contains
                         proc = get_proc(mf%la, i)
                         call parallel_send(psrc, proc, tag)
                      else if ( local(mf,i) ) then  ! must recv
-                        pdst => dataptr(mf, i, dbx)
+                        pdst => dataptr(mf, i, shift(abx,-shft(ii,:)))
                         proc = get_proc(mf%la,j)
                         call parallel_recv(pdst, proc, tag)
                      end if
@@ -1417,7 +1415,7 @@ contains
     subroutine easy()
       real(dp_t), dimension(:,:,:,:), pointer :: pdst, psrc
       type(boxarray)                          :: bxai
-      type(box)                               :: abx, dbx
+      type(box)                               :: abx
       integer                                 :: i, j, ii, proc
       integer                                 :: shft(2*3**mf%la%lap%dim,mf%la%lap%dim)
       integer, parameter                      :: tag = 1101
@@ -1429,11 +1427,9 @@ contains
             do ii = 1, bxai%nboxes
                abx = intersection(get_ibox(mf,j), bxai%bxs(ii))
                if ( .not. empty(abx) ) then
-                dbx = abx
-                if (.not. all(shft(ii,:) == 0)) dbx = shift(abx,-shft(ii,:))
                   if ( local(mf,i) .and. local(mf,j) ) then
                      psrc => dataptr(mf, j, abx, c, nc)
-                     pdst => dataptr(mf, i, dbx, c, nc)
+                     pdst => dataptr(mf, i, shift(abx,-shft(ii,:)), c, nc)
                      pdst = psrc
                   else if ( .not. lnocomm ) then
                      if ( local(mf,j) ) then ! must send
@@ -1441,7 +1437,7 @@ contains
                         proc = get_proc(mf%la, i)
                         call parallel_send(psrc, proc, tag)
                      else if ( local(mf,i) ) then  ! must recv
-                        pdst => dataptr(mf, i, dbx, c, nc)
+                        pdst => dataptr(mf, i, shift(abx,-shft(ii,:)), c, nc)
                         proc = get_proc(mf%la,j)
                         call parallel_recv(pdst, proc, tag)
                      end if
@@ -1573,7 +1569,7 @@ contains
     subroutine easy()
       integer, dimension(:,:,:,:), pointer :: pdst, psrc
       type(boxarray)                       :: bxai
-      type(box)                            :: abx, dbx
+      type(box)                            :: abx
       integer                              :: i, j, ii, proc
       integer                              :: shft(2*3**mf%la%lap%dim,mf%la%lap%dim)
       integer, parameter                   :: tag = 1101
@@ -1585,11 +1581,9 @@ contains
             do ii = 1, bxai%nboxes
                abx = intersection(get_ibox(mf,j), bxai%bxs(ii))
                if ( .not. empty(abx) ) then
-                dbx = abx
-                if (.not. all(shft(ii,:) == 0)) dbx = shift(abx,-shft(ii,:))
                   if ( local(mf,i) .and. local(mf,j) ) then
                      psrc => dataptr(mf, j, abx)
-                     pdst => dataptr(mf, i, dbx)
+                     pdst => dataptr(mf, i, shift(abx,-shft(ii,:)))
                      pdst = psrc
                   else if ( .not. lnocomm ) then
                      if ( local(mf,j) ) then ! must send
@@ -1597,7 +1591,7 @@ contains
                         proc = get_proc(mf%la, i)
                         call parallel_send(psrc, proc, tag)
                      else if ( local(mf,i) ) then  ! must recv
-                        pdst => dataptr(mf, i, dbx)
+                        pdst => dataptr(mf, i, shift(abx,-shft(ii,:)))
                         proc = get_proc(mf%la,j)
                         call parallel_recv(pdst, proc, tag)
                      end if
@@ -1723,7 +1717,7 @@ contains
     subroutine easy()
       logical, dimension(:,:,:,:), pointer :: pdst, psrc
       type(boxarray)                       :: bxai
-      type(box)                            :: abx, dbx
+      type(box)                            :: abx
       integer                              :: i, j, ii, proc
       integer                              :: shft(2*3**mf%la%lap%dim,mf%la%lap%dim)
       integer, parameter                   :: tag = 1101
@@ -1735,11 +1729,9 @@ contains
             do ii = 1, bxai%nboxes
                abx = intersection(get_ibox(mf,j), bxai%bxs(ii))
                if ( .not. empty(abx) ) then
-                dbx = abx
-                if (.not. all(shft(ii,:) == 0)) dbx = shift(abx,-shft(ii,:))
                   if ( local(mf,i) .and. local(mf,j) ) then
                      psrc => dataptr(mf, j, abx)
-                     pdst => dataptr(mf, i, dbx)
+                     pdst => dataptr(mf, i, shift(abx,-shft(ii,:)))
                      pdst = psrc
                   else if ( .not. lnocomm ) then
                      if ( local(mf,j) ) then ! must send
@@ -1747,7 +1739,7 @@ contains
                         proc = get_proc(mf%la, i)
                         call parallel_send(psrc, proc, tag)
                      else if ( local(mf,i) ) then  ! must recv
-                        pdst => dataptr(mf, i, dbx)
+                        pdst => dataptr(mf, i, shift(abx,-shft(ii,:)))
                         proc = get_proc(mf%la,j)
                         call parallel_recv(pdst, proc, tag)
                      end if
@@ -1848,9 +1840,82 @@ contains
     end subroutine fancy
 
   end subroutine lmultifab_fill_boundary
+
+  subroutine multifab_internal_sync_shift(mf,bx,shft,cnt)
+    type(multifab), intent(in)  :: mf
+    type(box),      intent(in)  :: bx
+    integer,        intent(out) :: shft(:,:),cnt
+
+    type(box) :: domain,src
+    integer   :: nbeg(3),nend(3),ldomain(3),r(3),ri,rj,rk
+    logical   :: pmask(bx%dim)
+
+    cnt = 0
+
+    if (.not. ((all(mf%la%lap%pmask .eqv. .false.)) .or. (box_contains_strict(mf%la%lap%pd, bx)))) then
+       nbeg           = 0
+       nend           = 0
+       nbeg(1:bx%dim) = -1
+       nend(1:bx%dim) = +1
+       src            = bx
+       pmask          = mf%la%lap%pmask
+       domain         = mf%la%lap%pd
+       ldomain        = (/ extent(domain,1),extent(domain,2),extent(domain,3) /)
+
+       do ri = nbeg(1), nend(1)
+          if (ri /= 0 .and. (.not. is_periodic(1))) cycle
+          if (ri /= 0 .and. is_periodic(1)) src = shift(src,ri*ldomain(1),1)
+
+          do rj = nbeg(2), nend(2)
+             if (rj /= 0 .and. (.not. is_periodic(2))) cycle
+             if (rj /= 0 .and. is_periodic(2)) src = shift(src,rj*ldomain(2),2)
+
+             do rk = nbeg(3), nend(3)
+                if (rk /= 0 .and. (.not. is_periodic(3))) cycle
+                if (rk /= 0 .and. is_periodic(3)) src = shift(src,rk*ldomain(3),3)
+
+                if (ri == 0 .and. rj == 0 .and. rk == 0) cycle
+
+                if (intersects(domain,src)) then
+                   cnt = cnt + 1
+                   r = (/ri,rj,rk/)
+                   r = r*ldomain
+                   shft(cnt,1:src%dim) = r(1:src%dim)
+                end if
+
+                if (rk /= 0 .and. is_periodic(3)) src = shift(src,-rk*ldomain(3),3)
+             end do
+
+             if (rj /= 0 .and. is_periodic(2)) src = shift(src,-rj*ldomain(2),2)
+          end do
+
+          if (ri /= 0 .and. is_periodic(1)) src = shift(src,-ri*ldomain(1),1)
+       end do
+    end if
+    !
+    ! Add a zero shift to represent the original box.
+    !
+    cnt = cnt + 1
+    shft(cnt,1:bx%dim) = 0
+
+    call box_print(bx,'multifab_internal_sync_shift')
+    do ri = 1,cnt
+       print*, 'shft(',ri,'): ', shft(ri,1:bx%dim)
+    end do
+
+    contains
+
+      function is_periodic(i) result(r)
+        integer, intent(in) :: i
+        logical             :: r
+        r = .false.
+        if (i >= 1 .and. i <= bx%dim) r = pmask(i) .eqv. .true.
+      end function is_periodic
+
+  end subroutine multifab_internal_sync_shift
   !!
   !! Internal Sync makes sure that any overlapped values are reconciled
-  !! by coping values from the lower index number fabs to the higher index
+  !! by copying values from the lower index number fabs to the higher index
   !! numbered boxes.  Works cell centered and node centered.  Though in a typical
   !! cell-centered multifab, there are no overlaps to reconcile.
   !! if ALL is true then even ghost cell data is 'reconciled'
@@ -1858,10 +1923,11 @@ contains
   subroutine multifab_internal_sync(mf, all, filter)
     type(multifab), intent(inout)               :: mf
     logical, intent(in), optional               :: all
-    type(box)                                   :: ibx, jbx, abx
+    type(box)                                   :: ibx, jbx, abx, sbx
     real(dp_t), dimension(:,:,:,:), pointer     :: pdst, psrc
     real(dp_t), dimension(:,:,:,:), allocatable :: pt
-    integer                                     :: i, j, proc
+    integer                                     :: i, j, jj, proc, cnt
+    integer                                     :: shft(3**mf%la%lap%dim,mf%la%lap%dim)
     integer, parameter                          :: tag = 1104
     logical                                     :: lall
 
@@ -1883,39 +1949,42 @@ contains
        else
           jbx = get_ibox(mf,j)
        end if
-       do i = j + 1, mf%nboxes
-          if ( lall ) then
-             ibx = get_pbox(mf,i)
-          else
-             ibx = get_ibox(mf,i)
-          end if
-          abx = intersection(ibx, jbx)
-          if ( .not. empty(abx) ) then
-             if ( local(mf, i) .and. local(mf, j) ) then
-                pdst => dataptr(mf, i, abx)
-                psrc => dataptr(mf, j, abx)
-                if ( present(filter) ) then
-                   call filter(pdst, psrc)
-                else
-                   pdst = psrc
-                end if
-             else if ( local(mf, j) ) then ! must send
-                proc = get_proc(mf%la, i)
-                psrc => dataptr(mf, j, abx)
-                call parallel_send(psrc, proc, tag)
-             else if ( local(mf, i) ) then  ! must recv
-                proc = get_proc(mf%la,j)
-                pdst => dataptr(mf, i, abx)
-                if ( present(filter) ) then
-                   allocate(pt(size(pdst,1),size(pdst,2),size(pdst,3),size(pdst,4)))
-                   call parallel_recv(pt, proc, tag)
-                   call filter(pdst, pt)
-                   deallocate(pt)
-                else
-                   call parallel_recv(pdst, proc, tag)
+       call multifab_internal_sync_shift(mf,jbx,shft,cnt)
+       do jj = 1, cnt
+          do i = j + 1, mf%nboxes
+             if ( lall ) then
+                ibx = get_pbox(mf,i)
+             else
+                ibx = get_ibox(mf,i)
+             end if
+             abx = intersection(ibx, shift(jbx,shft(jj,:)))
+             if ( .not. empty(abx) ) then
+                if ( local(mf, i) .and. local(mf, j) ) then
+                   pdst => dataptr(mf, i, abx)
+                   psrc => dataptr(mf, j, shift(abx,-shft(jj,:)))
+                   if ( present(filter) ) then
+                      call filter(pdst, psrc)
+                   else
+                      pdst = psrc
+                   end if
+                else if ( local(mf, j) ) then ! must send
+                   proc = get_proc(mf%la, i)
+                   psrc => dataptr(mf, j, shift(abx,-shft(jj,:)))
+                   call parallel_send(psrc, proc, tag)
+                else if ( local(mf, i) ) then  ! must recv
+                   proc = get_proc(mf%la,j)
+                   pdst => dataptr(mf, i, abx)
+                   if ( present(filter) ) then
+                      allocate(pt(size(pdst,1),size(pdst,2),size(pdst,3),size(pdst,4)))
+                      call parallel_recv(pt, proc, tag)
+                      call filter(pdst, pt)
+                      deallocate(pt)
+                   else
+                      call parallel_recv(pdst, proc, tag)
+                   end if
                 end if
              end if
-          end if
+          end do
        end do
     end do
   end subroutine multifab_internal_sync
