@@ -115,7 +115,7 @@ contains
     real (kind = dp_t), intent(inout) :: ff(lof(1):)
     real (kind = dp_t), intent(in   ) :: cc(loc(1):)
     integer, intent(in) :: ir(:)
-    integer i, ic
+    integer :: i, ic
 
     do i = lo(1),hi(1)
        ic = i / ir(1) 
@@ -131,7 +131,7 @@ contains
     real (kind = dp_t), intent(inout) :: ff(lof(1):,lof(2):)
     real (kind = dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
     integer, intent(in) :: ir(:)
-    integer i, j, ic, jc
+    integer :: i, j, ic, jc
 
     do j = lo(2),hi(2)
        jc = j / ir(2) 
@@ -150,7 +150,7 @@ contains
     real (kind = dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
     real (kind = dp_t), intent(in   ) :: cc(loc(1):,loc(2):,loc(3):)
     integer, intent(in) :: ir(:)
-    integer i, j, k, ic, jc, kc
+    integer :: i, j, k, ic, jc, kc
 
     do k = lo(3),hi(3)
        kc = k / ir(3)
@@ -172,7 +172,7 @@ contains
     real (kind = dp_t), intent(inout) :: ff(lof(1):)
     real (kind = dp_t), intent(in   ) :: cc(loc(1):)
     integer, intent(in) :: ir(:)
-    integer i, ic, l
+    integer :: i, ic, l
     real (kind = dp_t) :: fac_left, fac_rght
 
     do i = lo(1),hi(1),ir(1)
@@ -200,7 +200,7 @@ contains
     real (kind = dp_t), intent(inout) :: ff(lof(1):,lof(2):)
     real (kind = dp_t), intent(in   ) :: cc(loc(1):,loc(2):)
     integer, intent(in) :: ir(:)
-    integer i, j, ic, jc, l, m
+    integer :: i, j, ic, jc, l, m
     real (kind = dp_t) :: fac_left, fac_rght
     real (kind = dp_t) :: temp(lof(1):lof(1)+size(ff,dim=1)-1,&
                                lof(2):lof(2)+size(ff,dim=2)-1)
@@ -252,7 +252,7 @@ contains
     real (kind = dp_t), intent(inout) :: ff(lof(1):,lof(2):,lof(3):)
     real (kind = dp_t), intent(in   ) :: cc(loc(1):,loc(2):,loc(3):)
     integer, intent(in) :: ir(:)
-    integer i, j, k, ic, jc, kc, l, m, n
+    integer :: i, j, k, ic, jc, kc, l, m, n
     real (kind = dp_t) :: fac_left, fac_rght
     real (kind = dp_t) :: temp(lof(1):lof(1)+size(ff,dim=1)-1,&
                                lof(2):lof(2)+size(ff,dim=2)-1,&
@@ -439,7 +439,7 @@ contains
     integer :: lof(fine%dim)
     integer :: dm, side
     integer :: i, n, lnc
-    integer :: dir,face
+    integer :: dir, face
 
     real(kind=dp_t), pointer :: fp(:,:,:,:)
     real(kind=dp_t), pointer :: cp(:,:,:,:)
@@ -539,7 +539,7 @@ contains
     real (kind = dp_t), intent(in) :: cc(loc(1):)
     integer, intent(in) :: side
     integer, intent(in) :: ir(:)
-    integer i, ic
+    integer :: i, ic
 
     i  = lo(1)
     ic = i / ir(1)
@@ -555,7 +555,7 @@ contains
     real (kind = dp_t), intent(inout) :: cc(loc(1):,loc(2):)
     integer, intent(in) :: side
     integer, intent(in) :: ir(:)
-    integer i, j, ic, jc, m
+    integer :: i, j, ic, jc, m
     real (kind = dp_t) :: xloc(0:3)
     real (kind = dp_t) :: first_der, second_der
 
@@ -649,7 +649,7 @@ contains
     real (kind = dp_t), intent(inout) :: cc(loc(1):,loc(2):)
     integer, intent(in) :: side
     integer, intent(in) :: ir(:)
-    integer i, j, ic, jc, m
+    integer :: i, j, ic, jc, m
     real (kind = dp_t) :: xloc(0:3)
     real (kind = dp_t) :: first_der
 
@@ -701,7 +701,7 @@ contains
     real (kind = dp_t), intent(in) :: cc(loc(1):,loc(2):,loc(3):)
     integer, intent(in) :: side
     integer, intent(in) :: ir(:)
-    integer i, j, k, ic, jc, kc, m, n
+    integer :: i, j, k, ic, jc, kc, m, n
     real (kind = dp_t) :: xloc(0:3)
     real (kind = dp_t) :: xder,x2der,yder,y2der,zder,z2der
     real (kind = dp_t) :: xyder,yzder,xzder
@@ -870,7 +870,7 @@ contains
     real (kind = dp_t), intent(in) :: cc(loc(1):,loc(2):,loc(3):)
     integer, intent(in) :: side
     integer, intent(in) :: ir(:)
-    integer i, j, k, ic, jc, kc, m, n
+    integer :: i, j, k, ic, jc, kc, m, n
     real (kind = dp_t) :: xloc(0:3)
     real (kind = dp_t) :: xder, yder, zder
     real (kind = dp_t) :: xyder,yzder,xzder

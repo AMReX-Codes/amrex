@@ -22,8 +22,8 @@ contains
     integer            ,intent(in)    :: mm(lo(1):)
     logical, intent(in), optional :: skwd
 
-    real (kind = dp_t) dd
-    integer ioff, i, hi(size(lo))
+    real (kind = dp_t) :: dd
+    integer :: ioff, i, hi(size(lo))
     integer, parameter ::  XBC = 3
     logical :: lskwd
 
@@ -65,12 +65,11 @@ contains
     real (kind = dp_t), intent(in) :: ss(lo(1):, lo(2):, 0:)
     integer            ,intent(in) :: mm(lo(1):,lo(2):)
     logical, intent(in), optional :: skwd
-    integer j, i
-    integer hi(size(lo))
-    integer ioff
+    integer :: j, i
+    integer :: hi(size(lo))
+    integer :: ioff
     integer, parameter ::  XBC = 5, YBC = 6
-    real (kind = dp_t) dd
-
+    real (kind = dp_t) :: dd
     logical :: lskwd
 
     lskwd = .true.; if ( present(skwd) ) lskwd = skwd
@@ -134,9 +133,9 @@ contains
     real (kind = dp_t), intent(in) :: ss(lo(1):, lo(2):, lo(3):, 0:)
     integer            ,intent(in) :: mm(lo(1):,lo(2):,lo(3):)
     logical, intent(in), optional :: skwd
-    integer i, j, k, ioff
-    integer hi(size(lo))
-    real (kind = dp_t) dd
+    integer :: i, j, k, ioff
+    integer :: hi(size(lo))
+    real (kind = dp_t) :: dd
     integer, parameter ::  XBC = 7, YBC = 8, ZBC = 9
     logical :: lskwd
 
@@ -213,9 +212,8 @@ contains
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:)
     real (kind = dp_t), intent(in)    :: ss(lo(1):,0:)
     integer            ,intent(in)    :: mm(lo(1):)
-
-    real (kind = dp_t) dd
-    integer i, hi(size(lo))
+    real (kind = dp_t) :: dd
+    integer :: i, hi(size(lo))
 
     hi = ubound(uu)-ng
 
@@ -248,9 +246,9 @@ contains
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:, lo(2)-ng:)
     real (kind = dp_t), intent(in) :: ss(lo(1):, lo(2):, 0:)
     integer            ,intent(in) :: mm(lo(1):,lo(2):)
-    integer j, i
-    integer hi(size(lo))
-    real (kind = dp_t) dd
+    integer :: j, i
+    integer :: hi(size(lo))
+    real (kind = dp_t) :: dd
 
     hi = ubound(uu)-ng
     dd = ZERO
@@ -287,9 +285,9 @@ contains
     real (kind = dp_t), intent(inout) :: uu(lo(1)-ng:,lo(2)-ng:,lo(3)-ng:)
     real (kind = dp_t), intent(in) :: ss(lo(1):, lo(2):, lo(3):, 0:)
     integer            ,intent(in) :: mm(lo(1):,lo(2):,lo(3):)
-    integer i, j, k
-    integer hi(size(lo))
-    real (kind = dp_t) dd
+    integer :: i, j, k
+    integer :: hi(size(lo))
+    real (kind = dp_t) :: dd
 
     hi(1) = lo(1) + size(mm,dim=1)-1
     hi(2) = lo(2) + size(mm,dim=2)-1
