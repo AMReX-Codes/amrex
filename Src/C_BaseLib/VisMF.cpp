@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.20 1997-11-12 04:12:25 lijewski Exp $
+// $Id: VisMF.cpp,v 1.21 1997-11-12 17:40:33 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -422,9 +422,10 @@ VisMF::WriteHeader (const aString& mf_name,
 
 #ifdef BL_T3E
         MFHdrFile.setbuf(VisMF::Large_IO_Buffer(), VisMF::IO_Buffer_Size);
-#endif
+        MFHdrFile.open(MFHdrFileName.c_str(), ios::out|ios::trunc);
+#else
         MFHdrFile.open(MFHdrFileName.c_str(), ios::out|ios::trunc|ios::binary);
-
+#endif
         MFHdrFile << hdr;
     }
 }
@@ -477,9 +478,10 @@ VisMF::Write (const MultiFab& mf,
 
 #ifdef BL_T3E
         FabFile.setbuf(VisMF::Large_IO_Buffer(), VisMF::IO_Buffer_Size);
-#endif
+        FabFile.open(FabFileName.c_str(), ios::out|ios::trunc);
+#else
         FabFile.open(FabFileName.c_str(), ios::out|ios::trunc|ios::binary);
-
+#endif
         if (!FabFile.good())
         {
             aString msg("Couldn't open file: ");
@@ -517,9 +519,10 @@ VisMF::Write (const MultiFab& mf,
 
 #ifdef BL_T3E
             FabFile.setbuf(VisMF::Large_IO_Buffer(), VisMF::IO_Buffer_Size);
-#endif
+            FabFile.open(FabFileName.c_str(), ios::out|ios::trunc);
+#else
             FabFile.open(FabFileName.c_str(), ios::out|ios::trunc|ios::binary);
-
+#endif
             if (!FabFile.good())
             {
                 aString msg("Couldn't open file: ");
@@ -579,9 +582,10 @@ VisMF::VisMF (const aString& mf_name)
 
 #ifdef BL_T3E
     ifs.setbuf(VisMF::Large_IO_Buffer(), VisMF::IO_Buffer_Size);
-#endif
-
+    ifs.open(file.c_str(), ios::in);
+#else
     ifs.open(file.c_str(), ios::in|ios::binary);
+#endif
 
     if (!ifs.good())
     {
@@ -617,9 +621,10 @@ VisMF::readFAB (int i) const
 
 #ifdef BL_T3E
     ifs.setbuf(VisMF::Large_IO_Buffer(), VisMF::IO_Buffer_Size);
-#endif
-
+    ifs.open(file.c_str(), ios::in);
+#else
     ifs.open(file.c_str(), ios::in|ios::binary);
+#endif
 
     if (!ifs.good())
     {

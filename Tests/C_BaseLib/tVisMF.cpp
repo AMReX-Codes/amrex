@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tVisMF.cpp,v 1.9 1997-11-12 04:12:25 lijewski Exp $
+// $Id: tVisMF.cpp,v 1.10 1997-11-12 17:40:34 lijewski Exp $
 //
 
 #include <stdlib.h>
@@ -124,6 +124,8 @@ _bsp_preload_init ()
 
 static int nProcs = 1;
 
+static int nBoxs  = 10;
+
 static char* the_prog_name;
 
 static aString PerFile("PerFile");
@@ -141,8 +143,9 @@ usage ()
 {
     std::cout << "usage: "
               << the_prog_name
-              << "[-how PerFile|PerCPU]"
+              << " [-how PerFile|PerCPU]"
               << " [-nprocs N]"
+              << " [-nboxs N]"
               << std::endl;
     exit(1);
 }
@@ -162,6 +165,24 @@ parse_args (char**& argv)
                 if (nProcs <= 0)
                 {
                     std::cout << "nprocs must be positive" << std::endl;
+                    usage();
+                }
+            }
+            else
+            {
+                std::cout << "No argument to -nprocs supplied.\n";
+                usage();
+            }
+        }
+        else if (strcmp(*argv, "-nboxs") ==  0)
+        {
+            if (*++argv)
+            {
+                nBoxs = atoi(*argv);
+
+                if (nBoxs <= 0)
+                {
+                    std::cout << "nboxs must be positive" << std::endl;
                     usage();
                 }
             }
@@ -208,6 +229,15 @@ Write_N_Read (const MultiFab& mf,
         std::cout << "Writing the MultiFab to disk ...\n";
     }
 
+    double start, end;
+
+    ParallelDescriptor::Synchronize();
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        start = Utility::wsecond();
+    }
+
     switch (how)
     {
     case VisMF::OneFilePerCPU:
@@ -220,15 +250,28 @@ Write_N_Read (const MultiFab& mf,
 
     ParallelDescriptor::Synchronize();
 
+    if (ParallelDescriptor::IOProcessor())
+    {
+        end = Utility::wsecond();
+
+        std::cout << "\nWallclock time for MF write: " << (end-start) << '\n';
+
+        std::cout << "Reading the MultiFab from disk ...\n";
+    }
+
     VisMF vmf(mf_name);
 
     assert(vmf.length() == mf.boxArray().length());
 
     for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
     {
-        int idx = mfi.index();
+        const FArrayBox& fab = vmf[mfi.index()];
 
-        std::cout << "--> vmf[" << idx << "]:\n\n" << vmf[idx] << '\n';
+        std::cout << "\tCPU #"
+                  << ParallelDescriptor::MyProc()
+                  << " read FAB #"
+                  << mfi.index()
+                  << '\n';
     }
 }
 
@@ -241,19 +284,14 @@ main (int, char** argv)
 
     StartParallel(nProcs);
 
-    Box bx[] =
+    BoxArray ba(nBoxs);
+
+    ba.set(0, Box(IntVect(D_DECL(0,0,0)), IntVect(D_DECL(2,2,2))));
+
+    for (int i = 1; i < nBoxs; i++)
     {
-        Box(IntVect(D_DECL(0,0,0)), IntVect(D_DECL( 2, 2, 2))),
-        Box(IntVect(D_DECL(3,3,3)), IntVect(D_DECL( 8, 8, 8))),
-        Box(IntVect(D_DECL(9,9,9)), IntVect(D_DECL(16,16,16)))
-    };
-
-    const int NBX = sizeof(bx) / sizeof(bx[0]);
-
-    BoxArray ba(NBX);
-
-    for (int i = 0; i < NBX; i++)
-        ba.set(i,bx[i]);
+        ba.set(i,grow(ba[i-1],2));
+    }
 
     MultiFab mf(ba, 2, 1);
 
@@ -268,14 +306,9 @@ main (int, char** argv)
 
     static const aString mf_name = "Spam-n-Eggs";
 
-    if (How == PerCPU)
-    {
-        Write_N_Read (mf, mf_name, VisMF::OneFilePerCPU);
-    }
-    else
-    {
-        Write_N_Read (mf, mf_name, VisMF::OneFilePerCPU);
-    }
+    Write_N_Read (mf,
+                  mf_name,
+                  (How==PerCPU) ? VisMF::OneFilePerCPU : VisMF::OneFilePerCPU);
 
     EndParallel();
 }
