@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.75 1999-03-18 17:05:35 lijewski Exp $
+// $Id: Amr.cpp,v 1.76 1999-03-31 17:04:48 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -18,6 +18,7 @@
 #include <ParallelDescriptor.H>
 #include <Utility.H>
 #include <DistributionMapping.H>
+#include <FabSet.H>
 
 #ifdef BL_USE_ARRAYVIEW
 #include <DatasetClient.H>
@@ -1241,12 +1242,12 @@ Amr::regrid (int  lbase,
     if (lbase == 0)
     {
         //
-        // Flush grid -> processor map cache when at coarsest level.
-        // Likewise with PIRM cache and SI cache.
+        // Flush processor map-dependent caches when at coarsest level.
         //
         DistributionMapping::FlushCache();
         MultiFab::FlushSICache();
         Geometry::FlushPIRMCache();
+        FabSet::FlushCache();
     }
     //
     // Define the new grids from level lbase+1 up to new_finest.
