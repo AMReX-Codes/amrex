@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.6 1997-11-17 19:02:03 car Exp $
+// $Id: Utility.cpp,v 1.7 1997-11-17 19:05:31 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -192,7 +192,8 @@ Utility::is_integer (const char* str)
 
 bool
 #ifdef WIN32
-Utility::CreateDirectory (const aString& path)
+Utility::CreateDirectory (const aString& path,
+			  int)
 #else
 Utility::CreateDirectory (const aString& path,
                           mode_t         mode)
