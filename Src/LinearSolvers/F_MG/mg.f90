@@ -1010,6 +1010,7 @@ contains
     integer,intent(in) :: mg_restriction_mode
 
     integer :: i, j, ifine, jfine, m, n, ng
+    integer :: ileft,irght,jbot,jtop
     integer :: hif(2)
     real(kind=dp_t) :: fac,fac0,fac1
     logical :: add_lo_x, add_lo_y, add_hi_x, add_hi_y
@@ -1075,22 +1076,50 @@ contains
                add_lo_y = .true.
                add_hi_x = .true.
                add_hi_y = .true.
-               ifine = i*ir(1)
-               if (.not. bc_dirichlet(mm_fine(ifine,jfine),1,0)) then
-                 
-                 if (ifine == lof(1)+1 .and. &
-                     .not. bc_neumann(mm_fine(ifine,jfine),1,-1)) add_lo_x = .false. 
-                 if (jfine == lof(2)+1 .and. &
-                     .not. bc_neumann(mm_fine(ifine,jfine),2,-1)) add_lo_y = .false. 
-                 if (ifine == hif(1)-1 .and. &
-                     .not. bc_neumann(mm_fine(ifine,jfine),1,+1)) add_hi_x = .false.
-                 if (jfine == hif(2)-1 .and. &
-                     .not. bc_neumann(mm_fine(ifine,jfine),2,+1)) add_hi_y = .false.
 
-                 if (add_lo_x .and. add_lo_y) cc(i,j) = cc(i,j) + fac*ff(ifine-m,jfine-n)
-                 if (add_hi_x .and. add_lo_y) cc(i,j) = cc(i,j) + fac*ff(ifine+m,jfine-n)
-                 if (add_lo_x .and. add_hi_y) cc(i,j) = cc(i,j) + fac*ff(ifine-m,jfine+n)
-                 if (add_hi_x .and. add_hi_y) cc(i,j) = cc(i,j) + fac*ff(ifine+m,jfine+n)
+               ifine = i*ir(1)
+               ileft = ifine-m
+               irght = ifine+m
+               jbot = jfine-n
+               jtop = jfine+n
+
+               if (.not. bc_dirichlet(mm_fine(ifine,jfine),1,0)) then
+
+                 if (ifine == lof(1)+1 .and. &
+                     .not. bc_neumann(mm_fine(ifine,jfine),1,-1)) then
+                    add_lo_x = .false. 
+                 else if (ifine == lof(1)+1 .and. &
+                           bc_neumann(mm_fine(ifine,jfine),1,-1)) then
+                    ileft = irght
+                 end if
+
+                 if (jfine == lof(2)+1 .and. &
+                     .not. bc_neumann(mm_fine(ifine,jfine),2,-1)) then
+                    add_lo_y = .false. 
+                 else if (jfine == lof(2)+1 .and. &
+                           bc_neumann(mm_fine(ifine,jfine),2,-1)) then
+                    jbot = jtop
+                 end if
+
+                 if (ifine == hif(1)-1 .and. &
+                     .not. bc_neumann(mm_fine(ifine,jfine),1,+1)) then
+                    add_hi_x = .false.
+                 else if (ifine == hif(1)-1 .and. &
+                           bc_neumann(mm_fine(ifine,jfine),1,+1)) then
+                    irght = ileft
+                 end if
+                 if (jfine == hif(2)-1 .and. &
+                     .not. bc_neumann(mm_fine(ifine,jfine),2,+1)) then
+                    add_hi_y = .false.
+                 else if (jfine == hif(2)-1 .and. &
+                           bc_neumann(mm_fine(ifine,jfine),2,+1)) then
+                    jtop = jbot
+                 end if
+
+                 if (add_lo_x .and. add_lo_y) cc(i,j) = cc(i,j) + fac*ff(ileft,jbot)
+                 if (add_hi_x .and. add_lo_y) cc(i,j) = cc(i,j) + fac*ff(irght,jbot)
+                 if (add_lo_x .and. add_hi_y) cc(i,j) = cc(i,j) + fac*ff(ileft,jtop)
+                 if (add_hi_x .and. add_hi_y) cc(i,j) = cc(i,j) + fac*ff(irght,jtop)
 
                end if
             end do
