@@ -205,7 +205,7 @@ task::_do_depend ()
 task_list::task_list ()
     :
     seq_no(ParallelDescriptor::NProcs(), 1),
-    verbose(HG::pverbose)
+    verbose(HG::pverbose != 0)
 {}
 
 task_list::~task_list () {}
