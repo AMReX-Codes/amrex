@@ -38,6 +38,9 @@ else
 endif
 endif
 
+CXXPRFF += -pg
+FPRF    += -pg
+
 override XTRALIBS +=   -lm
 
 FDEBF += -g
