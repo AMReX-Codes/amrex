@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateData.cpp,v 1.14 1998-03-30 20:04:18 lijewski Exp $
+// $Id: StateData.cpp,v 1.15 1998-03-30 21:57:34 lijewski Exp $
 //
 
 #include <RunStats.H>
@@ -143,12 +143,10 @@ StateData::buildBC ()
 {
     int ncomp = desc->nComp();
     bc.resize(ncomp);
-    int i;
-    for (i = 0; i < ncomp; i++)
+    for (int i = 0; i < ncomp; i++)
     {
         bc[i].resize(grids.length());
-        int j;
-        for (j = 0; j < grids.length(); j++)
+        for (int j = 0; j < grids.length(); j++)
         {
             BCRec bcr;
             setBC(grids[j],domain,desc->getBC(i),bcr);
@@ -205,7 +203,7 @@ StateData::allocOldData ()
 {
     if (old_data == 0)
     {
-          old_data = new MultiFab(grids,desc->nComp(),desc->nExtra(),Fab_allocate);
+        old_data = new MultiFab(grids,desc->nComp(),desc->nExtra(),Fab_allocate);
     }
 }
 
@@ -292,7 +290,8 @@ StateData::FillBoundary (FArrayBox&     dest,
     Box dbox(dest.box());
     assert( dbox.ixType() == desc->getType() );
    
-    if (domain.contains(dbox)) return;
+    if (domain.contains(dbox))
+        return;
 
     dbox &= domain;
     const Box& bx = dest.box();
@@ -341,13 +340,15 @@ StateData::linInterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
                             bool                    extrap)
 {
     Real teps = (new_time.start - old_time.start)/1000.0;
+
     if (desc->timeType() == StateDescriptor::Point)
     {
         if (old_data == 0)
         {
             teps = new_time.start/10000.0;
             Real dt = time - new_time.start;
-            if (dt < 0.0) dt = -dt;
+            if (dt < 0.0)
+                dt = -dt;
             returnedFillBoxIds.resize(1);
             returnedFillBoxIds[0] = multiFabCopyDesc.AddBox(mfid[MFNEWDATA],
                                                             subbox,
@@ -358,38 +359,37 @@ StateData::linInterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
             return;
         }
 
-      ::linInterpAddBox(multiFabCopyDesc, unfillableBoxes, returnedFillBoxIds,
-                  subbox, mfid[MFOLDDATA], mfid[MFNEWDATA],
-                  old_time.start, new_time.start, time,
-                  src_comp, dest_comp, num_comp,
-                  extrap);
+        ::linInterpAddBox(multiFabCopyDesc,unfillableBoxes,returnedFillBoxIds,
+                          subbox, mfid[MFOLDDATA], mfid[MFNEWDATA],
+                          old_time.start, new_time.start, time,
+                          src_comp, dest_comp, num_comp, extrap);
    }
     else
     {
-      if (time > new_time.start-teps && time < new_time.stop+teps)
-      {
-         returnedFillBoxIds.resize(1);
-         returnedFillBoxIds[0] = multiFabCopyDesc.AddBox(mfid[MFNEWDATA],
-                                                         subbox,
-                                                         unfillableBoxes,
-                                                         src_comp,
-                                                         dest_comp,
-                                                         num_comp);
-      } else if (old_data != 0 && time > old_time.start-teps &&
-                 time < old_time.stop+teps)
-      {
-         returnedFillBoxIds.resize(1);
-         returnedFillBoxIds[0] = multiFabCopyDesc.AddBox(mfid[MFOLDDATA],
-                                                         subbox,
-                                                         unfillableBoxes,
-                                                         src_comp,
-                                                         dest_comp,
-                                                         num_comp);
-      }
-      else
-      {
-         BoxLib::Error("StateData::linInterp(): cannot interp");
-      }
+        if (time > new_time.start-teps && time < new_time.stop+teps)
+        {
+            returnedFillBoxIds.resize(1);
+            returnedFillBoxIds[0] = multiFabCopyDesc.AddBox(mfid[MFNEWDATA],
+                                                            subbox,
+                                                            unfillableBoxes,
+                                                            src_comp,
+                                                            dest_comp,
+                                                            num_comp);
+        } else if (old_data != 0 && time > old_time.start-teps &&
+                   time < old_time.stop+teps)
+        {
+            returnedFillBoxIds.resize(1);
+            returnedFillBoxIds[0] = multiFabCopyDesc.AddBox(mfid[MFOLDDATA],
+                                                            subbox,
+                                                            unfillableBoxes,
+                                                            src_comp,
+                                                            dest_comp,
+                                                            num_comp);
+        }
+        else
+        {
+            BoxLib::Error("StateData::linInterp(): cannot interp");
+        }
    }
 }
 
@@ -405,39 +405,40 @@ StateData::linInterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
                              bool                     extrap)
 {
     Real teps = (new_time.start - old_time.start)/1000.0;
+
     if (desc->timeType() == StateDescriptor::Point)
     {
         if (old_data == 0)
         {
             teps = new_time.start/10000.0;
             Real dt = time - new_time.start;
-            if (dt < 0.0) dt = -dt;
+            if (dt < 0.0)
+                dt = -dt;
             multiFabCopyDesc.FillFab(mfid[MFNEWDATA], fillBoxIds[0], dest);
             return;
         }
 
-      ::linInterpFillFab(multiFabCopyDesc, fillBoxIds,
-                         mfid[MFOLDDATA], mfid[MFNEWDATA],
-                         dest,
-                         old_time.start, new_time.start, time,
-                         src_comp, dest_comp, num_comp,
-                         extrap);
-   }
+        ::linInterpFillFab(multiFabCopyDesc, fillBoxIds,
+                           mfid[MFOLDDATA], mfid[MFNEWDATA],
+                           dest, old_time.start, new_time.start, time,
+                           src_comp, dest_comp, num_comp, extrap);
+    }
     else
     {
-      if (time > new_time.start-teps && time < new_time.stop+teps)
-      {
-         multiFabCopyDesc.FillFab(mfid[MFNEWDATA], fillBoxIds[0], dest);
-      }
-      else if (old_data != 0 && time > old_time.start-teps &&
-                 time < old_time.stop+teps) {
-         multiFabCopyDesc.FillFab(mfid[MFOLDDATA], fillBoxIds[0], dest);
-      }
-      else
-      {
-         BoxLib::Error("StateData::linInterp(): cannot interp");
-      }
-   }
+        if (time > new_time.start-teps && time < new_time.stop+teps)
+        {
+            multiFabCopyDesc.FillFab(mfid[MFNEWDATA], fillBoxIds[0], dest);
+        }
+        else if (old_data != 0 && time > old_time.start-teps &&
+                 time < old_time.stop+teps)
+        {
+            multiFabCopyDesc.FillFab(mfid[MFOLDDATA], fillBoxIds[0], dest);
+        }
+        else
+        {
+            BoxLib::Error("StateData::linInterp(): cannot interp");
+        }
+    }
 }
 
 void
@@ -495,7 +496,7 @@ StateData::checkPoint (const aString& name,
 }
 
 void
-StateData::printTimeInterval (ostream &os)
+StateData::printTimeInterval (ostream &os) const
 {
     os << '['
        << old_time.start
@@ -503,7 +504,8 @@ StateData::printTimeInterval (ostream &os)
        << old_time.stop
        << "] ["
        << new_time.start
-       << ' ' << new_time.stop
+       << ' '
+       << new_time.stop
        << ']'
        << '\n';
 }

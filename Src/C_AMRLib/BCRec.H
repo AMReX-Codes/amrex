@@ -4,87 +4,108 @@
 #define _BCREC_H_ 
 
 //
-// $Id: BCRec.H,v 1.4 1997-12-11 23:27:47 lijewski Exp $
+// $Id: BCRec.H,v 1.5 1998-03-30 21:57:32 lijewski Exp $
 //
 
 #include <Misc.H>
 #include <Box.H>
 #include <BC_TYPES.H>
 
-/// Necessary information and functions for computing boundary conditions
+//
+// Necessary information and functions for computing boundary conditions.
+//
 class BCRec
 {
-
-/* The BCRec class computes and stores  boundary condition
-data for grids in the AMR hierarchy.  The taxonomy is defined
-in Blob.C; boundary data can (usually) be proscribed in the "inputs" file.
-*/
-
-protected:
-//  array of integer values describing boundary conditions
-    int bc[2*BL_SPACEDIM];
-
 public:
 #ifdef __GNUG__
      bool operator== (const BCRec& rhs) const { return true; }
 #endif 
-
-//  sets to invalid bndry types
-    BCRec(){};
-
-//  constructor
-    BCRec(D_DECL(int loX, int loY, int loZ),
-          D_DECL(int hiX, int hiY, int hiZ));
-
-//  constructor
-    BCRec(const int* lo, const int* hi);
-
-/*  inherits bndry types from bc_domain when bx lies on edge of
-    domain otherwise gets interior Dirchlet
-*/
-    BCRec(const Box& bx, const Box& domain, const BCRec &bc_domain);
-    
-//  Explicitly set bndry value
-    void setLo(int dir, int bc_val) { bc[dir] = bc_val; }
-
-//  Explicitly set bndry value
-    void setHi(int dir, int bc_val) { bc[BL_SPACEDIM+dir] = bc_val; }
-
-//  return bndry values (used in calls to FORTRAN)
-    const int* vect() const { return bc; } 
-
-/// access functions
-
-//  return low-end boundary data
-    const int* lo() const { return bc; }
-
-//  return high-end boundary data
-    const int* hi() const { return bc+BL_SPACEDIM; }
-
-//  return low-end boundary data in direction <dir>
-    int lo(int dir) const { return bc[dir]; }
-
-//  return high-end boundary data in direction <dir>
-    int hi(int dir) const { return bc[BL_SPACEDIM+dir]; }
-
-/// io functions
-//  pipe boundary data into ostream
+    //
+    // Sets to invalid bndry types.
+    //
+    BCRec () {}
+    //
+    // Constructor.
+    //
+    BCRec (D_DECL(int loX, int loY, int loZ),
+           D_DECL(int hiX, int hiY, int hiZ));
+    //
+    // Constructor.
+    //
+    BCRec (const int* lo,
+           const int* hi);
+    //
+    // Inherits bndry types from bc_domain when bx lies on edge of
+    // domain otherwise gets interior Dirchlet.
+    //
+    BCRec (const Box&   bx,
+           const Box&   domain,
+           const BCRec& bc_domain);
+    //
+    // Explicitly set bndry value.
+    //
+    void setLo (int dir,
+                int bc_val)
+    {
+        bc[dir] = bc_val;
+    }
+    //
+    // Explicitly set bndry value.
+    //
+    void setHi (int dir,
+                int bc_val)
+    {
+        bc[BL_SPACEDIM+dir] = bc_val;
+    }
+    //
+    // Return bndry values (used in calls to FORTRAN).
+    //
+    const int* vect () const { return bc; } 
+    //
+    // Return low-end boundary data.
+    //
+    const int* lo () const { return bc; }
+    //
+    // Return high-end boundary data.
+    //
+    const int* hi () const { return bc+BL_SPACEDIM; }
+    //
+    // Return low-end boundary data in direction <dir>.
+    //
+    int lo (int dir) const { return bc[dir]; }
+    //
+    // Return high-end boundary data in direction <dir>.
+    //
+    int hi (int dir) const { return bc[BL_SPACEDIM+dir]; }
+    //
+    // Pipe boundary data into ostream.
+    //
     friend ostream& operator << (ostream&, const BCRec& );
+
+protected:
+    //
+    // Array of integer values describing boundary conditions.
+    //
+    int bc[2*BL_SPACEDIM];
 };
 
-///  function for setting a BC
-void setBC(const Box & bx, 
-           const Box & domain,
-           const BCRec & bc_dom, 
-           BCRec & bcr);
+//
+// Function for setting a BC.
+//
+void setBC (const Box&   bx, 
+            const Box&   domain,
+            const BCRec& bc_dom, 
+            BCRec&       bcr);
 
-///  function for setting array of BCs
-void setBC(const Box & bx, 
-           const Box & domain, 
-           int src_comp, 
-           int dest_comp, 
-           int ncomp,
-           const Array<BCRec> & bc_dom, 
-           Array<BCRec> & bcr);
-    
-#endif
+//
+// Function for setting array of BCs.
+//
+void setBC (const Box&          bx, 
+            const Box&          domain, 
+            int                 src_comp, 
+            int                 dest_comp, 
+            int                 ncomp,
+            const Array<BCRec>& bc_dom, 
+            Array<BCRec>&       bcr);
+
+#endif /*_BCREC_H_*/

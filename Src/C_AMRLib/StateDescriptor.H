@@ -4,7 +4,7 @@
 #define _StateDescriptor_H_ 
 
 //
-// $Id: StateDescriptor.H,v 1.6 1998-01-06 23:43:58 lijewski Exp $
+// $Id: StateDescriptor.H,v 1.7 1998-03-30 21:57:34 lijewski Exp $
 //
 
 #include <Array.H>
@@ -122,26 +122,21 @@ protected:
     Array<aString>   names;   // Printable names of components
     Array<BCRec>     bc;      // Array of bndry types for entire level
     Array<BndryFunc> bc_func; // Array of pointers to bndry fill functions
-
-//  array of pointers to interpolaters
-//  If mapper_comp[icomp] != 0, that
-//  map is used instead of mapper when
-//  interpolating icomp; otherwise, mapper is used.
-
+    //
+    // If mapper_comp[icomp] != 0, that map is used instead of mapper
+    // when interpolating icomp; otherwise, mapper is used.
+    //
     Array<Interpolater*> mapper_comp;
-
-//  for component icomp, max_map_start_comp[icomp] and
-//  min_map_end_comp[icomp] represent the maximum starting
-//  index and minimum ending index with which to use
-//  mapper_comp[icomp] when interpolating component icomp. 
-//  These are convenient for using
-//  with "coupled" multiple component maps like
-//  CellConservativeLinear.
-
-//  If there is no need to "couple" a component,
-//  max_map_start_comp[icomp] and min_map_end_comp[icomp]
-//  simply equal icomp
-
+    //
+    // For component icomp, max_map_start_comp[icomp] and
+    // min_map_end_comp[icomp] represent the maximum starting index and
+    // minimum ending index with which to use mapper_comp[icomp] when
+    // interpolating component icomp.  These are convenient for using
+    // with "coupled" multiple component maps like CellConservativeLinear.
+    //
+    // If there is no need to "couple" a component, max_map_start_comp[icomp]
+    // and min_map_end_comp[icomp] simply equal icomp.
+    //
     Array<int> max_map_start_comp;
     Array<int> min_map_end_comp;
 };
