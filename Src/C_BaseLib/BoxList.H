@@ -4,7 +4,7 @@
 #define BL_BOXLIST_H
 
 //
-// $Id: BoxList.H,v 1.13 1999-08-02 19:22:17 sstanley Exp $
+// $Id: BoxList.H,v 1.14 1999-12-01 16:16:45 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -402,6 +402,13 @@ BoxList::join (const BoxList& blist)
 }
 
 inline
+bool
+BoxList::isEmpty () const
+{
+    return lbox.isEmpty();
+}
+
+inline
 void
 BoxList::catenate (BoxList& blist)
 {
@@ -431,13 +438,6 @@ int
 BoxList::length () const
 {
     return lbox.length();
-}
-
-inline
-bool
-BoxList::isEmpty () const
-{
-    return lbox.isEmpty();
 }
 
 inline
