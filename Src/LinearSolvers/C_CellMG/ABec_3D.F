@@ -1,5 +1,5 @@
 c
-c $Id: ABec_3D.F,v 1.5 2000-07-14 23:37:06 almgren Exp $
+c $Id: ABec_3D.F,v 1.6 2000-08-26 19:41:00 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -475,6 +475,57 @@ c
       end do
       end
 
+c-----------------------------------------------------------------------
+c
+c     Fill in a matrix x vector operator here
+c
+      subroutine FORT_NORMA(
+     &     res,
+     $     alpha, beta,
+     $     a, DIMS(a),
+     $     bX,DIMS(bX),
+     $     bY,DIMS(bY),
+     $     bZ,DIMS(bZ),
+     $     lo,hi,nc,
+     $     h
+     $     )
+      REAL_T alpha, beta, res
+      integer lo(BL_SPACEDIM), hi(BL_SPACEDIM), nc
+      integer DIMDEC(a)
+      integer DIMDEC(bX)
+      integer DIMDEC(bY)
+      integer DIMDEC(bZ)
+      REAL_T  a(DIMV(a))
+      REAL_T bX(DIMV(bX))
+      REAL_T bY(DIMV(bY))
+      REAL_T bZ(DIMV(bZ))
+      REAL_T h(BL_SPACEDIM)
+c
+      integer i,j,k,n
+      REAL_T dhx,dhy,dhz
+c
+      dhx = beta/h(1)**2
+      dhy = beta/h(2)**2
+      dhz = beta/h(3)**2
+c
+      res = 0.0
+      do n = 1, nc
+         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  res = max(res, 
+     &                 abs(alpha*a(i,j,k)
+     &                 + dhx*(bX(i+1,j,k) + bX(i,j,k))
+     &                 + dhy*(bY(i,j+1,k) + bY(i,j,k))
+     $                 - dhz*(bZ(i,j,k+1) + bZ(i,j,k)))
+     &                 + abs( -dhx*bX(i+1,j,k)) + abs( -dhx*bX(i,j,k))
+     &                 + abs( -dhy*bY(i,j+1,k)) + abs( -dhy*bY(i,j,k))
+     &                 + abs( -dhz*bZ(i,j,k+1)) + abs( -dhz*bZ(i,j,k)))
+               end do
+            end do
+         end do
+      end do
+      end
 c-----------------------------------------------------------------------
 c
 c     Fill in fluxes
