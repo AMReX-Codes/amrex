@@ -18,14 +18,14 @@ FORT_CPP := gcc -E -traditional
 FC       := g77 -fno-second-underscore
 fC       := $(FC)
 
-ifeq ($(FCOMP),Fujitsu)
-  FC    := frt
+ifeq ($(FCOMP),Lahey)
+  FC    := lf95 --ml cdecl
   fC    := $(FC)
-  FDEBF += -H aesu
-  FOPTF += -K fast
-  fDEBF += -H aesu
-  fOPTF += -K fast
-  LIBRARY_LOCATIONS += /usr/FFC/lib
+  # FDEBF += -H aesu
+  # FOPTF += -K fast
+  # fDEBF += -H aesu
+  # fOPTF += -K fast
+  LIBRARY_LOCATIONS += /usr/local/lf9561/lib
   override XTRALIBS += -lfj9f6 -lfj9i6 -lfj9e6
 else
 ifeq ($(FCOMP),Absoft)
