@@ -316,7 +316,7 @@ contains
        write(unit=un, fmt='(i0)') nc
        if ( present(names) ) then
           do i = 1, nc
-             write(unit=un, fmt='(A)') names(i)
+             write(unit=un, fmt='(A)') trim(names(i))
           end do
        else
           do i = 1, nc
