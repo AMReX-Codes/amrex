@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.16 1998-11-20 23:18:03 lijewski Exp $
+# Make.defs $Id: Make.defs,v 1.17 1998-11-21 00:15:40 lijewski Exp $
 #
 
 #
@@ -133,9 +133,12 @@ ifndef INSTALL_PREFIX
     INSTALL_PREFIX = $(INSTALL_ROOT)
 endif
 
-RANLIB		   = true
-OUTPUT_OPTION      = -o $@
-FORT_OUTPUT_OPTION = -o $@
+RANLIB = true
+
+EXE_OUTPUT_OPTION      = -o $@
+LIB_OUTPUT_OPTION      = -o $@
+FORT_EXE_OUTPUT_OPTION = -o $@
+FORT_LIB_OUTPUT_OPTION = -o $@
 
 #
 # Generic setup for using g++ ...

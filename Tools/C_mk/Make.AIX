@@ -5,7 +5,6 @@ ifeq ($(COMP),CFRONT)
 CXX	          := OCC
 override XTRADEFS += -DBL_BUG_DEFARG -DBL_USE_SETBUF 
 override XTRADEFS += -DBL_SETBUF_SIGNED_CHAR -DBL_COALESCE_FABS
-OUTPUT_OPTION	   =  ; mv $*.o $@
 endif
 
 ifeq ($(COMP),CC)
@@ -61,8 +60,7 @@ XTRALIBS += -lm -lxlf90
 
 DEFINES += -D_POSIX_SOURCE
 
-OUTPUT_OPTION	= -o $@
-
 FORTPREP	= perl $(PBOXLIB_HOME)/scripts/strip72 -c
-FORT_OUTPUT_OPTION	= ; mv $*.o $(objTempDir)/$*.o
+FORT_EXE_OUTPUT_OPTION	= ; mv $*.o $(objEXETempDir)/$*.o
+FORT_LIB_OUTPUT_OPTION	= ; mv $*.o $(objTempDir)/$*.o
 #FORTLINK	= UPPERCASE
