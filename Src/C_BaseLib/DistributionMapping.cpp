@@ -1,5 +1,5 @@
 //
-// $Id: DistributionMapping.cpp,v 1.64 2003-03-06 22:34:56 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.65 2003-03-06 23:57:38 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -465,10 +465,13 @@ top:
     const int IOProc   = ParallelDescriptor::IOProcessorNumber();
     Real      stoptime = ParallelDescriptor::second() - strttime;
 
-    ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+    if (verbose)
+    {
+        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
-    if (ParallelDescriptor::IOProcessor())
-        std::cout << "knapsack() time: " << stoptime << std::endl;
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "knapsack() time: " << stoptime << std::endl;
+    }
 
     return result;
 }
@@ -790,10 +793,13 @@ MinimizeCommCosts (std::vector<int>&        procmap,
     const int IOProc   = ParallelDescriptor::IOProcessorNumber();
     Real      stoptime = ParallelDescriptor::second() - strttime;
 
-    ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+    if (verbose)
+    {
+        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
-    if (ParallelDescriptor::IOProcessor())
-        std::cout << "MinimizeCommCosts() time: " << stoptime << std::endl;
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "MinimizeCommCosts() time: " << stoptime << std::endl;
+    }
 }
 
 void
