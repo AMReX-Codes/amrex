@@ -31,6 +31,8 @@ void internal_copy(MultiFab& r, int destgrid, int srcgrid, const Box& b)
     const Real* sptr = r[srcgrid].dataPtr();
     const Box& dbx = r[destgrid].box();
     const Box& sbx = r[srcgrid].box();
+    assert( dbx.contains(b) );
+    assert( sbx.contains(b) );
     FORT_FFCPY(dptr, DIMLIST(dbx), DIMLIST(b), sptr, DIMLIST(sbx), r.nComp());
 }
 
@@ -517,20 +519,20 @@ void clear_part_interface(MultiFab& r, const level_interface& lev_interface)
     }
 }
 
-void interpolate_patch(MultiFab& target, int igrid, const Box& region,
+void interpolate_patch(FArrayBox& patch, const Box& region,
 		       const MultiFab& r, const IntVect& rat,
 		       const amr_interpolator_class& interp,
 		       const level_interface& lev_interface)
 {
-    FArrayBox& patch = target[igrid];
     assert(region.sameType(patch.box()));
     const Box cb = interp.box(region, rat);
     const int jgrid = find_patch(cb, r);
     if (jgrid == -1) 
     {
-	FArrayBox cgr(cb, r.nComp());
-	fill_patch(cgr, cb, r, lev_interface, 0);
-	interp.fill(patch, region, cgr, cb, rat);
+	FArrayBox* cgr = new FArrayBox(cb, r.nComp());
+	fill_patch(*cgr, cb, r, lev_interface, 0);
+	interp.fill(patch, region, *cgr, cb, rat);
+	delete cgr;
     }
     else 
     {
@@ -538,57 +540,31 @@ void interpolate_patch(MultiFab& target, int igrid, const Box& region,
     }
 }
 
-#ifdef BL_USE_NEW_HFILES
 #include <list>
 using namespace std;
-#else
-#include <list.h>
-#endif
 
-template <class T>
+class task
+{
+public:
+    virtual bool ready() = 0;
+};
+
+class restric_fill : public task
+{
+public:
+    restric_fill();
+    virtual bool ready()
+    {
+	return true;
+    }
+};
+
 class task_list
 {
 public:
-    void add_task(T t);
-    void execute();
+    task_list();
 private:
-    list<T> tasks;
-};
-
-template <class T>
-void
-task_list<T>::execute()
-{
-    for ( list<T>::iterator li = tasks.begin(); li != tasks.end(); ++li)
-    {
-	li->execute();
-    }
-}
-
-template <class T>
-void
-task_list<T>::add_task(T t)
-{
-    tasks.push_back(t);
-}
-
-struct restric_fill
-{
-public:
-    restric_fill(const amr_restrictor_class& restric, MultiFab& targ, int jgrid, const Box& cbox, const MultiFab& src, int igrid, const IntVect& rat)
-	: m_restric(restric), m_targ(targ), m_jgrid(jgrid), m_cbox(cbox), m_src(src), m_igrid(igrid), m_rat(rat) {}
-    void execute()
-    {
-	m_restric.fill(m_targ[m_jgrid], m_cbox, m_src[m_igrid], m_rat);
-    }
-private:
-    const amr_restrictor_class& m_restric;
-    MultiFab& m_targ;
-    const int m_jgrid;
-    const Box m_cbox;
-    const MultiFab& m_src;
-    const int m_igrid;
-    const IntVect m_rat;
+    list<task*> tasks;
 };
 
 void restrict_level(MultiFab& dest, 
@@ -599,10 +575,8 @@ void restrict_level(MultiFab& dest,
 {
     assert(type(dest) == type(r));
     // PARALLEL
-    //task_list<restric_fill> li;
     for (int jgrid = 0; jgrid < dest.length(); jgrid++) 
     {
-        // restrict_patch(dest[jgrid], dest.box(jgrid), r, rat, restric, lev_interface, bdy);
 	const Box& region = dest.box(jgrid);
 	for (int igrid = 0; igrid < r.length(); igrid++) 
 	{
@@ -612,11 +586,9 @@ void restrict_level(MultiFab& dest,
 	    {
 		cbox &= region;
 		restric.fill(dest[jgrid], cbox, r[igrid], rat);
-		//li.add_task(restric_fill(restric, dest, jgrid, cbox, r, igrid, rat));
 	    }
 	}
     }
-    //li.execute();
     if ( lev_interface.ok() )
     {
 	restric.fill_interface( dest, r, lev_interface, bdy, rat);

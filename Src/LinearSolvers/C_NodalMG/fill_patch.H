@@ -20,8 +20,6 @@ bool fill_patch(FArrayBox& patch, const Box& region,
 		const amr_boundary_class* bdy,
 		int idim = -1, int index = -1);
 
-
-
 // Fills all ghost cells that can be obtained from other grids or
 // from the boundary conditions.  If w is between 0 and border(),
 // inclusive, it will be used as the width of the regions to be
@@ -33,7 +31,7 @@ void fill_borders(MultiFab& r, const level_interface& lev_interface, const amr_b
 
 void clear_part_interface(MultiFab& r, const level_interface& lev_interface);
 
-void interpolate_patch(MultiFab& target, int igrid, const Box& region,
+void interpolate_patch(FArrayBox& target, const Box& region,
 		       const MultiFab& r, const IntVect& rat,
 		       const amr_interpolator_class& interp,
 		       const level_interface& lev_interface);
