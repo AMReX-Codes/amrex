@@ -263,7 +263,7 @@ c-----------------------------------------------------------------------
       end do
 
 c     This correction is *only* for the cross stencil
-      if (irz .eq. 1 .and. fregl0 .eq. 0) then
+      if (irz .eq. 1 .and. fregl0 .le. 0 .and. fregh0 .ge. 0) then
          i = 0
          do j = fregl1, fregh1
             src(i,j) = src(i,j) - fac * hym1 * 0.5d0 * 
@@ -388,6 +388,7 @@ c  We dont want to use these extra terms for the five-point stencil
      &        (hxm1 * (uc(i,juc) - uc(i-1,juc)) -
      &         hym1 * idir * (vc(i,juc) + vc(i-1,juc)))
          end do
+
          if (irz .eq. 1 .and. cregl0 .le. 0 .and. cregh0 .ge. 0) then
             i = 0
             src(i*ir,j*jr) = fac0 *
@@ -807,7 +808,7 @@ c Note---only generates values at coarse points along edge of fine grid
      & uf, vf,
      &      fl0,fh0,fl1,fh1,
      &      cregl0,cregh0,cregl1,cregh1,
-     & hx, hy, ir, jr, ga, ijnk)
+     & hx, hy, ir, jr, ga, irz)
       integer srcl0,srch0,srcl1,srch1
       integer cl0,ch0,cl1,ch1
       integer fl0,fh0,fl1,fh1
@@ -818,7 +819,7 @@ c Note---only generates values at coarse points along edge of fine grid
       double precision uf(fl0:fh0,fl1:fh1)
       double precision vf(fl0:fh0,fl1:fh1)
       double precision hx, hy, hz
-      integer ir, jr, kr, ga(0:1,0:1),ijnk(2)
+      integer ir, jr, kr, ga(0:1,0:1), irz
       double precision r3, hxm1, hym1, hxm1c, hym1c
       double precision sum, center, cfac, ffac, fac0, fac1, fac
       integer ic, jc, if, jf, iuc, iuf, juc, juf
@@ -847,15 +848,27 @@ c octants
                if (ga(ii,ji) .eq. 1) then
                   iuf = if + ii - 1
                   center = center + ffac
-                  sum = sum + fac *
-     &              (hxm1 * idir * uf(iuf,juf) +
-     &               hym1 * jdir * vf(iuf,juf))
+                  if (irz .eq. 1 .and. ic .eq. 0) then
+                    sum = sum + fac *
+     &                (hxm1 * idir * uf(iuf,juf) +
+     &                 hym1 * jdir * vf(iuf,juf) * 0.5d0)
+                  else
+                    sum = sum + fac *
+     &                (hxm1 * idir * uf(iuf,juf) +
+     &                 hym1 * jdir * vf(iuf,juf))
+                  endif
                else
                   iuc = ic + ii - 1
                   center = center + cfac
-                  sum = sum + r3 *
-     &              (hxm1c * idir * uc(iuc,juc) +
-     &               hym1c * jdir * vc(iuc,juc))
+                  if (irz .eq. 1 .and. ic .eq. 0) then
+                    sum = sum + r3 *
+     &                (hxm1c * idir * uc(iuc,juc) +
+     &                 hym1c * jdir * vc(iuc,juc) * 0.5d0)
+                  else
+                    sum = sum + r3 *
+     &                (hxm1c * idir * uc(iuc,juc) +
+     &                 hym1c * jdir * vc(iuc,juc))
+                  endif
                end if
             end do
          end do

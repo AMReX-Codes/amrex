@@ -83,15 +83,15 @@ extern "C"
     void FORT_HGDDIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
 
     void FORT_HGEDIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
-    void FORT_HGCDIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
-
 #if (BL_SPACEDIM == 2)
     void FORT_HGAVG         (Real*, intS, const Real*, intS, intS, const Real*, const int*, const int*);
     void FORT_HGFAVG        (Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*, const Real*, const int*, const int*);
     void FORT_HGCAVG        (Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*, const Real*, const int*, const int*);
     void FORT_HGFDIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*, const int*, const int*);
+    void FORT_HGCDIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
 #elif (BL_SPACEDIM == 3)
     void FORT_HGFDIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
+    void FORT_HGCDIV        (Real*, intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
     void FORT_HGAVG         (Real*, intS, const Real*, intS, intS);
     void FORT_HGFAVG        (Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*);
     void FORT_HGEAVG        (Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*);
@@ -532,6 +532,101 @@ task_fecdiv_2::doit ()
     const Box&  uc_box          = task_fab_result(0).box();
 
     (*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(uf[0], uf[1], uf[2]), DIMLIST(uf_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), t.getVect());
+}
+
+extern "C"
+{
+  typedef void (*FECDIV_3)(Real*,  intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
+}
+
+class task_fecdiv_3 : public task_fec_base
+{
+public:
+    task_fecdiv_3 (FECDIV_3          f_,
+                   task_list&        tl_,
+                   MultiFab&         s_,
+                   int               igrid_,
+                   task_fab*         ufp_[],
+                   task_fab*         ucp_[],
+                   const Box&        creg_,
+                   const Real*       h_,
+                   const IntVect&    rat_,
+                   const Array<int>& ga_,
+                   const int         isrz_);
+
+    virtual bool ready ();
+private:
+
+    void doit ();
+
+    FECDIV_3         f;
+    const Box        creg;
+    Real             h[BL_SPACEDIM];
+    const IntVect    rat;
+    const Array<int> ga;
+    int              isrz;
+};
+
+task_fecdiv_3::task_fecdiv_3 (FECDIV_3          f_,
+                              task_list&        tl_,
+                              MultiFab&         s_,
+                              int               igrid_,
+                              task_fab*         ufp_[],
+                              task_fab*         ucp_[],
+                              const Box&        creg_,
+                              const Real*       h_,
+                              const IntVect&    rat_,
+                              const Array<int>& ga_,
+                              int               isrz_)
+    :
+    task_fec_base(tl_,s_,igrid_),
+    f(f_),
+    creg(creg_),
+    rat(rat_),
+    ga(ga_),
+    isrz(isrz_)
+{
+    for (int i = 0; i  < BL_SPACEDIM; ++i)
+    {
+        push_back(ucp_[i]);
+    }
+    for (int i = 0; i < BL_SPACEDIM; ++i)
+    {
+        push_back(ufp_[i]);
+        h[i]   = h_[i];
+    }
+
+    if (is_local_target() && dependencies.empty()) doit();
+}
+
+bool
+task_fecdiv_3::ready ()
+{
+    BL_ASSERT(!done);
+
+    if (is_local_target()) doit();
+
+    return true;
+}
+
+void
+task_fecdiv_3::doit ()
+{
+    BL_ASSERT(!done);
+    BL_ASSERT(is_local_target());
+    BL_ASSERT(dependencies.empty());
+
+    done = true;
+
+    const int   igrid           = grid_number();
+    FArrayBox&  s               = target_fab();
+    const Box&  s_box           = target_fab().box();
+    const Real* uf[BL_SPACEDIM] = { D_DECL( task_fab_result(BL_SPACEDIM).dataPtr(), task_fab_result(BL_SPACEDIM+1).dataPtr(), task_fab_result(BL_SPACEDIM+2).dataPtr() ) };
+    const Box&  uf_box          = task_fab_result(BL_SPACEDIM).box();
+    const Real* uc[BL_SPACEDIM] = { D_DECL( task_fab_result(0).dataPtr(), task_fab_result(1).dataPtr(), task_fab_result(2).dataPtr() ) };
+    const Box&  uc_box          = task_fab_result(0).box();
+
+    (*f)(s.dataPtr(), DIMLIST(s_box), D_DECL( uc[0], uc[1], uc[2]), DIMLIST(uc_box), D_DECL(uf[0], uf[1], uf[2]), DIMLIST(uf_box), DIMLIST(creg), D_DECL(&h[0], &h[1], &h[2]), D_DECL(rat[0], rat[1], rat[2]), ga.dataPtr(), &isrz);
 }
 
 PArray<MultiFab> null_amr_real;
@@ -1268,7 +1363,12 @@ holy_grail_amr_projector::interface_divergence (PArray<MultiFab>* u,
 	}
 	else
 	{
+#if (BL_SPACEDIM == 2)
+            const int isRZ = IsRZ();
+	    tp = tl.add_task(new task_fecdiv_3(&FORT_HGCDIV,         tl, source[lev], igrid, ufp, ucp, creg, h[mglev], rat, ga, isRZ));
+#elif (BL_SPACEDIM == 3)
 	    tp = tl.add_task(new task_fecdiv_2(&FORT_HGCDIV,         tl, source[lev], igrid, ufp, ucp, creg, h[mglev], rat, ga));
+#endif
 	}
         //
 	// Fill in the grids on the other sides, if any.

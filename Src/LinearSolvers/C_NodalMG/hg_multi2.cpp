@@ -666,10 +666,10 @@ holy_grail_amr_multigrid::interface_residual (int mglev,
 	}
 	else
 	{
-#if BL_SPACEDIM == 2
+#if (BL_SPACEDIM == 2)
 	    const int isRZ = IsRZ();
 	    tl.add_task(new task_fceres_3(&FORT_HGFRES,tl,resid[mglev],source[lev],dest[lev],sigma[mglev],igrid,cdst,sigmac,creg,h[mglev],rat,idim,idir,isRZ));
-#elif BL_SPACEDIM == 3
+#elif (BL_SPACEDIM == 3)
 	    tl.add_task(new task_fceres_2(&FORT_HGFRES,tl,resid[mglev],source[lev],dest[lev],sigma[mglev],igrid,cdst,sigmac,creg,h[mglev],rat,idim,idir));
 #endif
 	}
