@@ -98,11 +98,16 @@ extern "C"
 #endif
 }
 
+extern "C"
+{
 #if BL_SPACEDIM==2
-typedef void (*FECFUNC)(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*, const Real*, const int*, const int*);
+  typedef void (*FECFUNC)(Real*, intS, const Real*, intS, const Real*, intS,
+			  intS, intRS, const int*, const int*, const Real*, const int*, const int*);
 #else
-typedef void (*FECFUNC)(Real*, intS, const Real*, intS, const Real*, intS, intS, intRS, const int*, const int*);
+  typedef void (*FECFUNC)(Real*, intS, const Real*, intS, const Real*, intS,
+			  intS, intRS, const int*, const int*);
 #endif
+}
 
 class task_fecavg : public task_fec_base
 {
@@ -309,15 +314,18 @@ task_fecavg_2::doit ()
         );
 }
 
-class task_fecdiv : public task_fec_base
+extern "C"
 {
     typedef void (*FECDIV)(Real*,  intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int* 
 #if BL_SPACEDIM == 2
-    , const int*, const int *
+			 , const int*, const int *
 #endif 
-    );
-public:
+			 );
+}
 
+class task_fecdiv : public task_fec_base
+{
+public:
     task_fecdiv (FECDIV         f_,
                  task_list&     tl_,
                  MultiFab&      s_,
@@ -429,9 +437,13 @@ task_fecdiv::~task_fecdiv ()
     HG_DEBUG_OUT("destroying a task_fecdiv " << this << endl);
 }
 
+extern "C"
+{
+  typedef void (*FECDIV)(Real*,  intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
+}
+
 class task_fecdiv_2 : public task_fec_base
 {
-    typedef void (*FECDIV)(Real*,  intS, CRealPS, intS, CRealPS, intS, intS, CRealPS, intRS, const int*, const int*);
 public:
     task_fecdiv_2 (FECDIV            f_,
                    task_list&        tl_,
@@ -801,7 +813,7 @@ holy_grail_amr_projector::grid_average (PArray<MultiFab>& S)
 	Real adjust = 0.0;
 	for (int lev = lev_max; lev > lev_min; lev--) 
 	{
-	    restrict_level(S[lev-1], S[lev], gen_ratio[lev-1], default_restrictor(), level_interface(), 0);
+	    restrict_level(S[lev-1], S[lev], gen_ratio[lev-1], default_restrictor(), default_level_interface, 0);
 	}
 	for (MultiFabIterator S_mfi(S[lev_min]); S_mfi.isValid(); ++S_mfi)
 	{
@@ -1062,9 +1074,11 @@ holy_grail_amr_projector::interface_average (PArray<MultiFab>& S, int lev)
 	const Real hx = h[mglev][0];
 	const int isRZ = IsRZ();
 	const int imax = mg_domain[mglev].bigEnd(0) + 1;
-	task::task_proxy tp = tl.add_task(new task_fecavg_2(&FORT_HGCAVG, tl, source[lev], igrid, Sfp, Scp, creg, rat, ga, IntVect(D_DECL(0,0,0)), hx, isRZ, imax));
+	task::task_proxy tp =
+	  tl.add_task(new task_fecavg_2(&FORT_HGCAVG, tl, source[lev], igrid, Sfp, Scp, creg, rat, ga, IntVect(), hx, isRZ, imax));
 #else
-	task::task_proxy tp = tl.add_task(new task_fecavg_2(&FORT_HGCAVG, tl, source[lev], igrid, Sfp, Scp, creg, rat, ga, IntVect(D_DECL(0,0,0))));
+	task::task_proxy tp =
+	  tl.add_task(new task_fecavg_2(&FORT_HGCAVG, tl, source[lev], igrid, Sfp, Scp, creg, rat, ga, IntVect()));
 #endif
         //
 	// Fill in the grids on the other sides, if any.
@@ -1351,16 +1365,16 @@ holy_grail_amr_projector::form_solution_vector (PArray<MultiFab>*       u,
 	for (int lev = lev_max; lev > lev_min; lev--) 
 	{
 	    const IntVect& rat = gen_ratio[lev-1];
-	    restrict_level(dest[lev-1], dest[lev], rat, injection_restrictor_class(), level_interface(), 0);
+	    restrict_level(dest[lev-1], dest[lev], rat, injection_restrictor_class(), default_level_interface, 0);
 	    for (int i = 0; i < BL_SPACEDIM; i++) 
 	    {
 		if (m_stencil != terrain)
 		{
-		    restrict_level(u[i][lev-1], u[i][lev], rat, default_restrictor(), level_interface(), 0);
+		    restrict_level(u[i][lev-1], u[i][lev], rat, default_restrictor(), default_level_interface, 0);
 		}
 		else
 		{
-		    restrict_level(u[i][lev-1], u[i][lev], rat, terrain_velocity_restrictor_class(i), level_interface(), 0);
+		    restrict_level(u[i][lev-1], u[i][lev], rat, terrain_velocity_restrictor_class(i), default_level_interface, 0);
 		}
 	    }
 	}
@@ -1370,7 +1384,7 @@ holy_grail_amr_projector::form_solution_vector (PArray<MultiFab>*       u,
 	sync_periodic_interfaces();
 	for (int lev = lev_max; lev > lev_min; lev--) 
 	{
-	    restrict_level(dest[lev-1], dest[lev], gen_ratio[lev-1], injection_restrictor_class(), level_interface(), 0);
+	    restrict_level(dest[lev-1], dest[lev], gen_ratio[lev-1], injection_restrictor_class(), default_level_interface, 0);
 	}
     }
 }

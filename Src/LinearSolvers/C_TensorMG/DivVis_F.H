@@ -251,7 +251,7 @@ extern "C"
 		    );
 
 
-};
+}
 
 #endif
 

@@ -4,7 +4,7 @@
 #define BL_BOXARRAY_H
 
 //
-// $Id: BoxArray.H,v 1.11 1999-02-10 21:09:55 lijewski Exp $
+// $Id: BoxArray.H,v 1.12 1999-06-28 20:37:04 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -32,6 +32,11 @@ class BoxList;
   reference-counted concrete class, not a polymorphic one; i.e. you
   cannot use any of the List member functions with a BoxList.
 */
+
+class BoxArray;
+BoxArray boxComplement (const Box& b1in, const Box& b2);
+BoxArray complementIn (const Box& b, const BoxArray& ba);
+BoxArray intersect (const BoxArray& ba, const Box& b);
 
 class BoxArray
 {

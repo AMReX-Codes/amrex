@@ -102,7 +102,10 @@ task_fab_get::work_to_do () const
     return ParallelDescriptor::MyProc() == m_target_proc_id || !tf.null();
 }
  
-typedef void (*RESTFUN)(Real*, intS, intS, const Real*, intS, intRS, const int&, const int*, const int*, const int*); 
+extern "C" 
+{
+  typedef void (*RESTFUN)(Real*, intS, intS, const Real*, intS, intRS, const int&, const int*, const int*, const int*); 
+}
 
 struct task_restriction_fill : public task
 {

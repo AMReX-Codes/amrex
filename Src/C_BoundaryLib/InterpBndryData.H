@@ -4,7 +4,7 @@
 #define _INTERPBNDRYDATA_H_
 
 //
-// $Id: InterpBndryData.H,v 1.5 1999-01-04 18:11:14 marc Exp $
+// $Id: InterpBndryData.H,v 1.6 1999-06-28 20:37:03 car Exp $
 //
 
 #include <BoxArray.H>
@@ -84,7 +84,7 @@ public:
     //
     //@ManDoc: set bndry values at fine level, performing necessary interpolations
     //
-    void setBndryValues (BndryRegister&  crse,
+    void setBndryValues (::BndryRegister&  crse,
                          int             c_start,
                          const MultiFab& fine,
                          int             f_start,
@@ -95,7 +95,7 @@ public:
     //
     //@ManDoc: set bndry values at fine level, performing necessary interpolations
     //
-    void setBndryValues (BndryRegister&  crse,
+    void setBndryValues (::BndryRegister&  crse,
                          int             c_start,
                          const MultiFab& fine,
                          int             f_start,
@@ -107,7 +107,7 @@ public:
 
 inline
 void
-InterpBndryData::setBndryValues (BndryRegister&  crse,
+InterpBndryData::setBndryValues (::BndryRegister&  crse,
                                  int             c_start,
                                  const MultiFab& fine,
                                  int             f_start,

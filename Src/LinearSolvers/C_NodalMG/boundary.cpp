@@ -37,8 +37,6 @@ extern "C"
     void FORT_FBINFIL(Real*, intS, intS, const Real*, intS, intS, const int*, const int&);
 }
 
-typedef void (PPF)(Real*, intS, intS, const Real*, intS, intS, const int*, const int&);
-
 amr_boundary_class::~amr_boundary_class () {}
 
 int

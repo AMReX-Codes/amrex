@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.36 1999-05-24 18:11:44 car Exp $
+# $Id: GNUmakefile,v 1.37 1999-06-28 20:37:00 car Exp $
 #
 PBOXLIB_HOME = ..
 
@@ -96,6 +96,9 @@ ifeq ($(MACHINE),OSF1)
   #
   FDEBF += -u
 endif
+
+CXXFLAGS += --strict --diag_suppress 450
+
 #
 # Lower optimization level for this big file
 #

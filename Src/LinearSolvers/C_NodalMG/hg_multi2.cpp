@@ -59,7 +59,12 @@ extern "C"
 #endif
 }
 
-typedef void (*FCERES) (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
+extern "C"
+{
+  typedef void (*FCERES) (Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS,
+			  const Real*, intS, const Real*, intS, intS, CRealPS, intRS, const int*, const int*);
+}
+
 
 class task_fceres_2 : public task_fec_base
 {

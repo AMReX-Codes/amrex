@@ -4,7 +4,7 @@
 #define BL_BOX_H
 
 //
-// $Id: Box.H,v 1.12 1999-05-10 18:54:19 car Exp $
+// $Id: Box.H,v 1.13 1999-06-28 20:37:04 car Exp $
 //
 
 #ifdef NODEV
@@ -45,6 +45,21 @@ using std::ws;
   For historical reasons, BOX is synonomous with Box.  That usage is
   deprecated, however.
 */
+class Box;
+Box coarsen (const Box& b, int refinement_ratio);
+Box coarsen (const Box& b, const IntVect& refinement_ratio);
+Box refine (const Box& b, int refinement_ratio);
+Box refine (const Box& b, const IntVect& refinement_ratio);
+Box surroundingNodes (const Box& b, int        dir);
+Box surroundingNodes (const Box& b);
+Box enclosedCells (const Box& b, int dir);
+Box enclosedCells (const Box& b);
+Box bdryLo (const Box& b, int dir, int len=1);
+Box bdryHi (const Box& b, int dir, int len=1);
+Box bdryNode (const Box& b, const Orientation& face, int len=1);
+Box adjCellLo (const Box& b, int dir, int len=1);
+Box adjCellHi (const Box& b, int dir, int len=1);
+Box adjCell (const Box& b, const Orientation& face, int len=1);
 
 class Box
 {
@@ -353,21 +368,21 @@ public:
     */
     friend Box bdryLo (const Box& b,
                        int        dir,
-                       int        len=1);
+                       int        len);
  
     /*@ManDoc: Returns the edge-centered Box (in direction dir) defining
                the high side of Box b.
     */
     friend Box bdryHi (const Box& b,
                        int        dir,
-                       int        len=1);
+                       int        len);
  
     /*@ManDoc: Similar to bdryLo and bdryHi except that it operates on the
                given face of  box b.
     */
     friend Box bdryNode (const Box&         b,
                          const Orientation& face,
-                         int                len=1);
+                         int                len);
  
     /*@ManDoc: Return the cell centered Box of length len adjacent
                to b on the low end along the coordinate direction dir.
@@ -382,21 +397,21 @@ public:
     */
     friend Box adjCellLo (const Box& b,
                           int        dir,
-                          int        len=1);
+                          int        len);
  
     /*@ManDoc: Similar to adjCellLo but builds an adjacent Box on
                the high end.
     */
     friend Box adjCellHi (const Box& b,
                           int        dir,
-                          int        len=1);
+                          int        len);
  
     /*@ManDoc: Similar to adjCellLo and adjCellHi except that it operates
                on given face.
     */
     friend Box adjCell (const Box&         b,
                         const Orientation& face,
-                        int                len=1);
+                        int                len);
 
     /*@ManDoc: Return Box that is intersection of this Box
                and argument.  The Boxes MUST be of same type.
