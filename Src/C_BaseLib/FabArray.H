@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.41 1998-04-20 22:34:09 lijewski Exp $
+// $Id: FabArray.H,v 1.42 1998-04-22 21:02:48 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -2370,7 +2370,6 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
                                      &fabComTagList[i], 0, 0);
         ++nRequestMessages;
     }
-    fabComTagList.erase(fabComTagList.begin(), fabComTagList.end());
 
     ParallelDescriptor::Synchronize();
 
@@ -2450,6 +2449,8 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
     assert(nFabMessages == 0);
 #endif
 #endif /*BL_USE_MPI*/
+
+    fabComTagList.erase(fabComTagList.begin(), fabComTagList.end());
 
     dataAvailable = true;
 }
