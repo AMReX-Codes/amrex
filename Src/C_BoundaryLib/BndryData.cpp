@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BndryData.cpp,v 1.11 1999-05-10 18:54:16 car Exp $
+// $Id: BndryData.cpp,v 1.12 2000-07-15 00:11:01 sstanley Exp $
 //
 
 #include <BndryData.H>
@@ -235,4 +235,95 @@ operator<< (ostream&         os,
     }
 
     return os;
+}
+
+void 
+BndryData::writeOn (ostream& os) const
+{
+    int ngrds = grids.length();
+    int ncomp = bcond[0][0].length();
+
+    os << ngrds << " " << ncomp << endl;
+
+    for (int grd = 0; grd < ngrds; grd++)
+    {
+        os << grids[grd] << endl;
+    }
+
+    os << geom << endl;
+
+    for (int grd = 0; grd < ngrds; grd++)
+    {
+        for (OrientationIter face; face; ++face)
+        {
+            Orientation f = face();
+
+            for (int cmp = 0; cmp < ncomp; cmp++)
+                os << bcond[f][grd][cmp] << " ";
+            os << endl;
+
+            os << bcloc[f][grd] << endl;
+        }
+    }
+
+    for (OrientationIter face; face; ++face)
+    {
+        Orientation f = face();
+
+        for (int grd = 0; grd < ngrds; grd++)
+        {
+            masks[f][grd].writeOn(os);
+            bndry[f][grd].writeOn(os);
+        }
+    }
+}
+
+void 
+BndryData::readFrom(istream& is)
+{
+    int tmpNgrids, tmpNcomp;
+    is >> tmpNgrids >> tmpNcomp;
+
+    BoxArray tmpBa(tmpNgrids);
+    for (int grd = 0; grd < tmpNgrids; grd++)
+    {
+        Box readBox;
+        is >> readBox;
+        tmpBa.set(grd, readBox);
+    }
+
+    Geometry tmpGeom;
+    is >> tmpGeom;
+
+    define(tmpBa, tmpNcomp, tmpGeom);
+
+    for (int grd = 0; grd < tmpNgrids; grd++)
+    {
+        for (OrientationIter face; face; ++face)
+        {
+            Orientation f = face();
+
+            int intBc;
+            for (int cmp = 0; cmp < tmpNcomp; cmp++)
+            {
+                is >> intBc;
+                setBoundCond(f, grd, cmp, BoundCond(intBc));
+            }
+
+            Real realBcLoc;
+            is >> realBcLoc;
+            setBoundLoc(f, grd, realBcLoc);
+        }
+    }
+
+    for (OrientationIter face; face; ++face)
+    {
+        Orientation f = face();
+
+        for (int grd = 0; grd < tmpNgrids; grd++)
+        {
+            masks[f][grd].readFrom(is);
+            bndry[f][grd].readFrom(is);
+        }
+    }
 }

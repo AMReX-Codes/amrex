@@ -4,7 +4,7 @@
 #define _BNDRYDATA_H_
 
 //
-// $Id: BndryData.H,v 1.8 1999-05-10 17:18:38 car Exp $
+// $Id: BndryData.H,v 1.9 2000-07-15 00:11:01 sstanley Exp $
 //
 
 #include <BLassert.H>
@@ -154,6 +154,15 @@ public:
     //@ManDoc: implement public access to BndryRegister::operator[]
     //
     FabSet& operator[] (const Orientation& face);
+    //
+    //@ManDoc: write the boundary data object to an ostream
+    //
+    void writeOn(ostream& os) const;
+    //
+    //@ManDoc: read the boundary data object from an istream
+    //
+    void readFrom(istream& is);
+
 
 protected:
     //
