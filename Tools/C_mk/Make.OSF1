@@ -1,5 +1,5 @@
 #
-# $Id: Make.OSF1,v 1.8 1998-07-01 20:43:52 vince Exp $
+# $Id: Make.OSF1,v 1.9 1998-07-06 20:44:47 lijewski Exp $
 #
 
 #
@@ -12,7 +12,10 @@ CXXOPTF  += -O2 -tune ev5 -Olimit 2400
 CXXDEBF  += -g
 CXXPRFF  := -p
 override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
-DEFINES += -DBL_USE_SETBUF
+#
+# Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
+#
+DEFINES +=
 endif
 
 ifeq ($(COMP),KCC)
@@ -30,12 +33,18 @@ endif
 ifeq ($(WHICHOSF1),V4)
 override XTRALIBS += -lfor -lUfor -lFutil -lots -lm
 endif
-DEFINES += -DBL_USE_SETBUF
+#
+# Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
+#
+DEFINES += 
 endif
 
 ifeq ($(COMP),g++)
 override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
-DEFINES += -DBL_USE_SETBUF
+#
+# Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
+#
+DEFINES += 
 endif
 
 FC = f90
