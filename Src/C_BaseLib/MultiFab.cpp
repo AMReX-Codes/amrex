@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.12 1998-03-30 18:14:50 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.13 1998-03-30 18:59:28 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -347,114 +347,6 @@ MultiFab::negate (const Box& region,
         if (b.ok())
         {
             mfi().negate(b, comp, num_comp);
-        }
-    }
-}
-
-void
-linInterp (FArrayBox&      dest,
-           const Box&      subbox,
-           const MultiFab& f1,
-           const MultiFab& f2,
-           Real            t1,
-           Real            t2,
-           Real            t,
-           bool            extrap)
-{
-    const Real teps = (t2-t1)/1000.0;
-
-    assert(t>t1-teps && (extrap || t < t2+teps));
-
-    if (t < t1+teps)
-        f1.copy(dest,subbox);
-    else if (t > t2-teps && t < t2+teps)
-        f2.copy(dest,subbox);
-    else
-    {
-        const int       nv  = dest.nComp();
-        const BoxArray& boxarray2 = f2.boxArray();
-
-        assert(f1.boxArray() == boxarray2);
-        assert(nv == f1.n_comp && nv == f2.n_comp);
-
-        const int dc = 0;
-        const int sc = 0;
-
-        cerr << "Error in MultiFab::linInterp 1:  fix for parallel\n";
-        BoxLib::Error("Error: MultiFab::linInterp 1:  fix parallel.");
-
-        for (ConstMultiFabIterator mfi(f2); mfi.isValid(); ++mfi)
-        {
-            ConstDependentMultiFabIterator dmfi(mfi, f1);
-            if (mfi.validbox().intersects(subbox))
-            {
-                Box destbox(mfi.validbox());
-                destbox &= subbox;
-                dest.linInterp(dmfi(), destbox, sc,
-                               mfi(),  destbox, sc,
-                               t1, t2, t, destbox, dc, nv);
-            }
-        }
-    }
-}
-
-void
-linInterp (FArrayBox&      dest,
-           const Box&      subbox,
-           const MultiFab& f1,
-           const MultiFab& f2,
-           Real            t1,
-           Real            t2,
-           Real            t,
-           int             src_comp,
-           int             dest_comp,
-           int             num_comp,
-           bool            extrap)
-{
-    const Real teps = (t2-t1)/1000.0;
-
-    assert(t>t1-teps && (extrap || t < t2+teps));
-
-    if (t < t1+teps)
-        f1.copy(dest,subbox,src_comp,dest_comp,num_comp);
-    else if (t > t2-teps && t < t2+teps)
-        f2.copy(dest,subbox,src_comp,dest_comp,num_comp);
-    else
-    {
-        const BoxArray& boxarray2 = f2.boxArray();
-
-        assert(f1.boxArray() == boxarray2);
-        assert(f1.n_comp == f2.n_comp);
-        assert(src_comp + num_comp <= f1.n_comp);
-        assert(dest_comp + num_comp <= dest.nComp());
-
-        const int dc = dest_comp;
-        const int sc = src_comp;
-
-        if (ParallelDescriptor::NProcs() > 1)
-        {
-            BoxLib::Error("MultiFab::linInterp 2 not implemented in parallel.");
-        }
-        else
-        {
-            cerr << "MultiFab::linInterp 2 not implemented in parallel.\n";
-        }
-
-        for (ConstMultiFabIterator mfi(f2); mfi.isValid(); ++mfi)
-        {
-            ConstDependentMultiFabIterator dmfi(mfi, f1);
-            if (mfi.validbox().intersects(subbox))
-            {
-                //
-                // Restrict copy to domain of validity of source.
-                //
-                Box destbox(mfi.validbox());
-                destbox &= subbox;
-
-                dest.linInterp(dmfi(), destbox, sc,
-                               mfi(),  destbox, sc,
-                               t1, t2, t, destbox, dc, num_comp);
-            }
         }
     }
 }

@@ -4,7 +4,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.9 1998-03-30 18:14:49 lijewski Exp $
+// $Id: MultiFab.H,v 1.10 1998-03-30 18:59:27 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -285,71 +285,32 @@ public:
                 int             num_comp,
                 int             nghost);
 
-    /*@ManDoc: This function performs a linear interpolation of values between
-               corresponding cells of the MultiFabs f1 and f2.  The
-               interpolation is done on the intersection of the two MultiFabs
-               with the Box given by subbox (which is contained in dest).
-               The results are stored in the FArrayBox dest.  The two
-               MultiFabs are required to have the same underlying BoxArray
-               (or valid region).  The parameters t, t1, and t2 are expected
-               to have the relation t1 <= t <= t2.  The interpolated value of
-               a cell is given by: f1*(t2-t)/(t2-t1)+f2*(t-t1)/(t2-t1).
-               If t<t1 or t>t2 and extrap == true, then linear extrapolation
-               using the same formula is used.
-    */
-    friend void linInterp (FArrayBox&      dest,
-                           const Box&      subbox,
-                           const MultiFab& f1,
-                           const MultiFab& f2,
-                           Real            t1,
-                           Real            t2,
-                           Real            t,
-                           bool            extrap = false);
+    friend void linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
+                                 BoxList&                returnUnfilledBoxes,
+                                 Array<FillBoxId>&       returnedFillBoxIds,
+                                 const Box&              subbox,
+                                 const MultiFabId&       faid1,
+                                 const MultiFabId&       faid2,
+                                 Real                    t1,
+                                 Real                    t2,
+                                 Real                    t,
+                                 int                     src_comp,
+                                 int                     dest_comp,
+                                 int                     num_comp,
+                                 bool                    extrap = false);
 
-    /*@ManDoc: This function is identical to the previous one except that
-               the interpolation is performed on only num\_comp components
-               starting with MultiFab component src\_comp.  The resulting
-               data is written into dest starting at component dest\_comp.
-    */
-    friend void linInterp (FArrayBox      &dest,
-                           const Box      &subbox,
-                           const MultiFab &f1,
-                           const MultiFab &f2,
-                           Real            t1,
-                           Real            t2,
-                           Real            t,
-                           int             src_comp,
-                           int             dest_comp,
-                           int             num_comp,
-                           bool            extrap = false);
-
-    friend void linInterpAddBox (MultiFabCopyDescriptor &fabCopyDesc,
-                           BoxList &returnUnfilledBoxes,
-                           Array<FillBoxId> &returnedFillBoxIds,
-                           const Box      &subbox,
-                           const MultiFabId &faid1,
-                           const MultiFabId &faid2,
-                           Real            t1,
-                           Real            t2,
-                           Real            t,
-                           int             src_comp,
-                           int             dest_comp,
-                           int             num_comp,
-                           bool            extrap = false);
-
-    friend void linInterpFillFab (MultiFabCopyDescriptor &fabCopyDesc,
-                           const Array<FillBoxId> &fillBoxIds,
-                           const MultiFabId &faid1,
-                           const MultiFabId &faid2,
-                           FArrayBox      &dest,
-                           Real            t1,
-                           Real            t2,
-                           Real            t,
-                           int             src_comp,
-                           int             dest_comp,
-                           int             num_comp,
-                           bool            extrap = false);
-
+    friend void linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
+                                  const Array<FillBoxId>& fillBoxIds,
+                                  const MultiFabId&       faid1,
+                                  const MultiFabId&       faid2,
+                                  FArrayBox&              dest,
+                                  Real                    t1,
+                                  Real                    t2,
+                                  Real                    t,
+                                  int                     src_comp,
+                                  int                     dest_comp,
+                                  int                     num_comp,
+                                  bool                    extrap = false);
 private:
     //
     // These are disabled.
