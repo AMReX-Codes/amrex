@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.34 2000-05-31 20:35:25 car Exp $
+// $Id: Geometry.H,v 1.35 2000-06-05 22:37:37 lijewski Exp $
 //
 
 #include <CoordSys.H>
@@ -149,16 +149,14 @@ public:
     //@ManDoc: Fill ghost cells of all components with periodic data.
     //
     void FillPeriodicBoundary (MultiFab& mf,
-                               bool      no_overlap,
-                               bool      do_corners) const;
+                               bool      do_corners = false) const;
     //
     //@ManDoc: Fill ghost cells of selected components with periodic data.
     //
     void FillPeriodicBoundary (MultiFab& mf,
                                int       src_comp,
                                int       num_comp,
-                               bool      no_overlap,
-                               bool      do_corners) const;
+                               bool      do_corners = false) const;
     //
     // Src/dest box pairs to copy for periodic.
     //
@@ -219,7 +217,6 @@ protected:
              int             scomp,
              int             ncomp,
              int             ngrow,
-             bool            no_overlap,
              bool            do_corners);
 
         FPB (const FPB& rhs);
@@ -237,7 +234,6 @@ protected:
         int           m_scomp;
         int           m_ncomp;
         int           m_ngrow;
-        bool          m_no_overlap;
         bool          m_do_corners;
     };
     //
@@ -278,7 +274,6 @@ Geometry::FPB::FPB ()
     m_scomp(-1),
     m_ncomp(-1),
     m_ngrow(-1),
-    m_no_overlap(false),
     m_do_corners(false)
 {}
 
@@ -288,7 +283,6 @@ Geometry::FPB::FPB (const BoxArray& ba,
                     int             scomp,
                     int             ncomp,
                     int             ngrow,
-                    bool            no_overlap,
                     bool            do_corners)
     :
     m_ba(ba),
@@ -296,7 +290,6 @@ Geometry::FPB::FPB (const BoxArray& ba,
     m_scomp(scomp),
     m_ncomp(ncomp),
     m_ngrow(ngrow),
-    m_no_overlap(no_overlap),
     m_do_corners(do_corners)
 {
     BL_ASSERT(scomp >= 0);
@@ -316,7 +309,6 @@ Geometry::FPB::FPB (const FPB& rhs)
     m_scomp(rhs.m_scomp),
     m_ncomp(rhs.m_ncomp),
     m_ngrow(rhs.m_ngrow),
-    m_no_overlap(rhs.m_no_overlap),
     m_do_corners(rhs.m_do_corners)
 {}
 
@@ -331,7 +323,6 @@ Geometry::FPB::operator== (const FPB& rhs) const
         m_scomp      == rhs.m_scomp      &&
         m_ncomp      == rhs.m_ncomp      &&
         m_ngrow      == rhs.m_ngrow      &&
-        m_no_overlap == rhs.m_no_overlap &&
         m_do_corners == rhs.m_do_corners &&
         m_domain     == rhs.m_domain     &&
         m_ba         == rhs.m_ba;
@@ -432,10 +423,9 @@ Geometry::ProbLength (int dir)
 inline
 void
 Geometry::FillPeriodicBoundary (MultiFab& mf,
-                                bool no_overlap,
                                 bool do_corners) const
 {
-    FillPeriodicBoundary(mf, 0, mf.nComp(), no_overlap, do_corners);
+    FillPeriodicBoundary(mf,0,mf.nComp(),do_corners);
 }
 
 inline

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MCLinOp.cpp,v 1.14 1999-10-25 18:31:33 marc Exp $
+// $Id: MCLinOp.cpp,v 1.15 2000-06-05 22:38:53 lijewski Exp $
 //
 // Differences from LinOp: den has nc components, bct has nc components.
 //
@@ -197,7 +197,7 @@ MCLinOp::applyBC (MultiFab& inout,
     inout.FillBoundary();
     prepareForLevel(level);
 
-    geomarray[level].FillPeriodicBoundary(inout, 0, nc, false, false);
+    geomarray[level].FillPeriodicBoundary(inout,0,nc);
     //
     // Fill boundary cells.
     //

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.51 1999-09-30 14:55:53 lijewski Exp $
+// $Id: Geometry.cpp,v 1.52 2000-06-05 22:37:37 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -89,17 +89,6 @@ Geometry::buildFPB (MultiFab&  mf,
         BL_ASSERT(dest == ::grow(mfi.validbox(), mf.nGrow()));
         BL_ASSERT(dest.ixType().cellCentered() || dest.ixType().nodeCentered());
 
-        if (fpb.m_no_overlap)
-        {
-            for (int idir = 0; idir < BL_SPACEDIM; idir++)
-            {
-                if (mfi.validbox().smallEnd(idir) != Domain().smallEnd(idir))
-                    dest.growLo(idir,-mf.nGrow());
-                if (mfi.validbox().bigEnd(idir) != Domain().bigEnd(idir))
-                    dest.growHi(idir,-mf.nGrow());
-            }
-        }
-
         bool DoIt;
         Box  TheDomain;
 
@@ -157,7 +146,6 @@ void
 Geometry::FillPeriodicBoundary (MultiFab& mf,
                                 int       scomp,
                                 int       ncomp,
-                                bool      noovlp,
                                 bool      corners) const
 {
     if (!isAnyPeriodic()) return;
@@ -168,7 +156,7 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
     MultiFabCopyDescriptor mfcd;
 
-    FPB TheFPB(mf.boxArray(),Domain(),scomp,ncomp,mf.nGrow(),noovlp,corners);
+    FPB TheFPB(mf.boxArray(),Domain(),scomp,ncomp,mf.nGrow(),corners);
 
     const MultiFabId mfid = mfcd.RegisterMultiFab(&mf);
     FPB&             fpb  = getFPB(mf,TheFPB);
