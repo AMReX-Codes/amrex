@@ -126,9 +126,6 @@ ifeq ($(ARCH),Linux)
     ifdef OMP
       FFLAGS   += -openmp -fpp2
       F90FLAGS += -openmp -fpp2
-    else
-      FFLAGS   += -openmp_stubs -fpp2
-      F90FLAGS += -openmp_stubs -fpp2
     endif
     ifeq ($(_comp),Intel8)
       ifndef NDEBUG
