@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.14 1997-11-10 22:41:21 lijewski Exp $
+// $Id: VisMF.cpp,v 1.15 1997-11-11 01:18:16 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -14,6 +14,8 @@ using std::ofstream;
 #endif
 
 #include <VisMF.H>
+
+typedef ParallelDescriptor PD;
 
 const aString VisMF::FabFileSuffix("_D_");
 
@@ -301,7 +303,7 @@ VisMF::WriteHeader (const aString& mf_name,
     //
     // When running in parallel only one processor should do this I/O.
     //
-    if (ParallelDescriptor::IOProcessor())
+    if (PD::IOProcessor())
     {
         //
         // TODO -- all headers must be passed to IOProcessor for reduction.
@@ -316,6 +318,20 @@ VisMF::WriteHeader (const aString& mf_name,
     }
 }
 
+//
+// Returns the long as an aString of at least four digits.
+//
+
+aString
+VisMF::ToString (long l)
+{
+    char buf[32];
+
+    sprintf(buf, "%04ld", l);
+
+    return aString(buf);
+}
+
 void
 VisMF::WriteOneFilePerCPU (const MultiFab& mf,
                            const aString&  mf_name)
@@ -325,7 +341,7 @@ VisMF::WriteOneFilePerCPU (const MultiFab& mf,
     aString FabFileName = mf_name;
 
     FabFileName += VisMF::FabFileSuffix;
-    FabFileName += VisMF::ToString(ParallelDescriptor::NProcs());
+    FabFileName += VisMF::ToString(PD::NProcs());
 
     {
         ofstream FabFile(FabFileName.c_str());
@@ -337,27 +353,54 @@ VisMF::WriteOneFilePerCPU (const MultiFab& mf,
             BoxLib::Error(msg.c_str());
         }
 
+        FabComTag MsgHdr;
+        int MsgHdrSize = sizeof(FabComTag);
+        PD::SetMessageHeaderSize(MsgHdrSize);
+
         for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
         {
             hdr.m_fod[mfi.index()] = VisMF::Write(mfi(), FabFileName, FabFile);
+
+            if (!PD::IOProcessor())
+            {
+                MsgHdr.fabIndex = mfi.index();
+                //
+                // Marshall the variable length data into an ASCII string.
+                //
+                aString data = VisMF::ToString(hdr.m_fod[mfi.index()].m_head);
+                data += '\n';
+                data += hdr.m_fod[mfi.index()].m_name;
+                PD::SendData(PD::IOProcessor(),
+                             MsgHdr,
+                             data.c_str(),
+                             data.length()+1);
+            }
         }
+        //
+        // Destruct FabFile -- close the open file before open another :-)
+        //
+    }
+
+    for (int data_length; PD::GetMessageHeader(data_length, &MsgHdr); )
+    {
+        assert(PD::MyProc() == PD::IOProcessor());
+
+        char* data = new char[data_length];
+        if (data == 0)
+            BoxLib::OutOfMemory(__FILE__, __LINE__);
+
+        PD::ReceiveData(data, data_length);
+        //
+        // Unmarshall the data from an ASCII string.
+        //
+        char* str_ptr;
+        hdr.m_fod[MsgHdr.fabIndex].m_head = strtol(data, &str_ptr, 10);
+        assert(*str_ptr == '\n');
+        hdr.m_fod[MsgHdr.fabIndex].m_name = ++str_ptr;
+        delete [] data;
     }
 
     VisMF::WriteHeader(mf_name, hdr);
-}
-
-//
-// Returns the integer as an aString of at least four digits.
-//
-
-aString
-VisMF::ToString (int i)
-{
-    char buf[32];
-
-    sprintf(buf, "%04d", i);
-
-    return aString(buf);
 }
 
 void

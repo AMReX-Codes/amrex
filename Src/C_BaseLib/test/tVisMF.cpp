@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tVisMF.cpp,v 1.3 1997-11-10 22:14:48 lijewski Exp $
+// $Id: tVisMF.cpp,v 1.4 1997-11-11 01:18:16 lijewski Exp $
 //
 
 #include <stdlib.h>
@@ -42,6 +42,8 @@ Write_N_Read (const MultiFab& mf,
 int
 main ()
 {
+    StartParallel(2);
+
     Box bx[] =
     {
         Box(IntVect(D_DECL(0,0,0)), IntVect(D_DECL( 2, 2, 2))),
@@ -68,4 +70,6 @@ main ()
     Write_N_Read (mf, mf_name, VisMF::OneFilePerCPU);
 
     Write_N_Read (mf, mf_name, VisMF::OneFilePerFab);
+
+    EndParallel();
 }
