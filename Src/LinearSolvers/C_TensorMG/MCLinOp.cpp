@@ -1,13 +1,12 @@
 
 //
-// $Id: MCLinOp.cpp,v 1.19 2004-01-07 21:18:43 car Exp $
+// $Id: MCLinOp.cpp,v 1.20 2005-01-26 23:20:51 lijewski Exp $
 //
 // Differences from LinOp: den has nc components, bct has nc components.
 //
 #include <winstd.H>
 
 #include <cstdlib>
-#include <cmath>
 
 #include <ParmParse.H>
 #include <ParallelDescriptor.H>
@@ -147,9 +146,7 @@ MCLinOp::initConstruct (const Real* _h)
 int
 MCLinOp::bcComponentsNeeded()
 {
-  float d = (float) BL_SPACEDIM;
-  int nDer = int(std::pow(d,d-1)+d);
-  return nDer;
+  return D_TERM(1,*BL_SPACEDIM,*BL_SPACEDIM) + BL_SPACEDIM;
 }
 
 void
