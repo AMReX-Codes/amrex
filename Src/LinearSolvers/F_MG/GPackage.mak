@@ -7,6 +7,7 @@ f90sources += ml.f90
 f90sources += mlmg.f90
 f90sources += sparse_solve.f90
 f90sources += stencil.f90
+f90sources += st_coeffs.f90
 f90sources += stencil_nodal.f90
 
 include $(FPARALLEL)/aux/SPARSKIT/GPackage.mak
