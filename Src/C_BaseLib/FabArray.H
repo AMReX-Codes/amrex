@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.49 1998-05-22 22:03:14 lijewski Exp $
+// $Id: FabArray.H,v 1.50 1998-05-22 23:52:27 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1167,6 +1167,8 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
     FabComTag tag;
     ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
 
+    FAB fab;
+
 #ifdef BL_USE_MPI
     vector<FabComTag> sTags;
     Array<int>        msgs(ParallelDescriptor::NProcs(), 0);
@@ -1224,7 +1226,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
                         //
                         // Send intersection of farray[ii] to fab[i]s proc.
                         //
-                        FAB fab(boxISectionsRemote[i][iblocal],farray.nComp());
+                        fab.resize(boxISectionsRemote[i][iblocal],farray.nComp());
 
                         fab.copy(farray[ii],
                                  boxISectionsRemote[i][iblocal],  
@@ -1336,7 +1338,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
 
     for (int i = 0; i < sTags.size(); i++)
     {
-        FAB fab(sTags[i].box, farray.nComp());
+        fab.resize(sTags[i].box, farray.nComp());
 
         fab.copy(farray[sTags[i].fineIndex],
                  sTags[i].box,
@@ -1393,13 +1395,15 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
     //
     int dataWaitingSize;
 
+    FAB fab;
+
     while (ParallelDescriptor::GetMessageHeader(dataWaitingSize, &tag))
     {
         assert(tag.box.ok());
         assert(MyProc == tag.toProc);
         assert(dataWaitingSize == tag.box.numPts()*farray.nComp()*sizeof(T));
 
-        FAB fab(tag.box, farray.nComp());
+        fab.resize(tag.box, farray.nComp());
 
         ParallelDescriptor::ReceiveData(fab.dataPtr(), dataWaitingSize);
 
@@ -2459,11 +2463,13 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
         assert(!(fmi == match.second));
     }
 
+    FAB fab;
+
     for (int i = 0; i < NumRecv; i++)
     {
         Box bx = recv[i].box();
 
-        FAB fab(bx, recv[i].nComp());
+        fab.resize(bx, recv[i].nComp());
 
         fab.copy((*fabArrays[recv[i].fabarrayid()])[recv[i].fabindex()],
                  bx,
@@ -2515,6 +2521,8 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
 
     if (!dataAvailable)
     {
+        FAB fab;
+
         while (ParallelDescriptor::GetMessageHeader(dataWaitingSize, &tag))
         {
             assert(tag.box.ok());
@@ -2526,7 +2534,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
             //
             // Now send the requested data from the fabs on this processor.
             //
-            FAB fab(tag.box, tag.nComp);
+            fab.resize(tag.box, tag.nComp);
 
             fab.copy((*fabArrays[tag.fabArrayId])[tag.fabIndex],
                      tag.box,
