@@ -1,22 +1,18 @@
-#include <BoxLib3/Thread.H>
+#include <Thread.H>
 #include <cassert>
 #include <iostream>
 #include <cstdlib>
-#include <BoxLib3/Error.H>
-#include <BoxLib3/Debug.H>
 
-namespace BoxLib3
-{
 namespace testing
 {
 void prodcons_main();
 void philosophers_main();
 }
-}
 
 namespace
 {
-BoxLib3::Mutex rand_mutex;
+Mutex rand_mutex;
+    Mutex print_mutex;
 int random_l()
 {
     rand_mutex.lock();
@@ -25,31 +21,31 @@ int random_l()
     return i;
 }
 
-//extern BoxLib3::Mutex BoxLib3::Debug::print_mutex;
+//extern Mutex Debug::print_mutex;
 #define PRINTMSG(x)							\
 do									\
   {									\
-    BoxLib3::Lock<BoxLib3::Mutex> lock(BoxLib3::Debug::print_mutex);	\
+    Lock<Mutex> lock(print_mutex);	\
     x;									\
   }									\
 while ( false )
 
 
 const int N_DINERS = 5;	// n philosophers sharing n chopsticks
-BoxLib3::Mutex chopsticks[N_DINERS];
+Mutex chopsticks[N_DINERS];
 
 // At most n philosophers are allowed into the room, others would
 // have to wait at the door. This restriction demonstrates the use
 // of condition variables.
 
-BoxLib3::ConditionVariable room_cond;
+ConditionVariable room_cond;
 int room_occupancy = 0;
 }
 
 class philosopher* phillies[N_DINERS];
 
 class philosopher
-    : public BoxLib3::Thread
+    : public Thread
 {
 public:
     philosopher(int id);
@@ -90,11 +86,11 @@ philosopher::work()
 	chopsticks[l].lock();
 	chopsticks[r].lock();
 	PRINTMSG( std::cout << "Philosopher #" << id << " is eating spaghetti now." << std::endl );
-	BoxLib3::Thread::sleep(BoxLib3::Time(random_l()%2,random_l()%1000000000));
+	Thread::sleep(BoxLib::Time(random_l()%2,random_l()%1000000000));
 	chopsticks[l].unlock();
 	chopsticks[r].unlock();
 	PRINTMSG( std::cout << "Philosopher #" << id << " is pondering about life." << std::endl );
-	BoxLib3::Thread::sleep(BoxLib3::Time(random_l()%2,random_l()%1000000000));
+	Thread::sleep(BoxLib::Time(random_l()%2,random_l()%1000000000));
     }
 
     room_cond.lock();
@@ -107,11 +103,11 @@ philosopher::work()
 }
 
 void
-BoxLib3::testing::philosophers_main()
+testing::philosophers_main()
 {
     if ( Thread::max_threads() == 1 )
     {
-	throw Error("not going to work");
+	BoxLib::Error("not going to work");
     }
     room_cond.lock();
     for ( int i=0; i<N_DINERS; i++ )
@@ -136,7 +132,7 @@ BoxLib3::testing::philosophers_main()
 	// Sleep for a while and then create a new philosopher
 
 	PRINTMSG(std::cout << "main thread sleep" << std::endl);
-	BoxLib3::Thread::sleep(BoxLib3::Time(1,200000000));
+	Thread::sleep(BoxLib::Time(1,200000000));
 	PRINTMSG(std::cout << "main thread wake up" << std::endl);
 
 	room_cond.lock();
@@ -152,7 +148,7 @@ BoxLib3::testing::philosophers_main()
 	{
 	    PRINTMSG( std::cout << "Contrary to what I was told, no one has left the room!!!!\n" );
 	    PRINTMSG( std::cout << "I give up!!!" << std::endl );
-	    throw BoxLib3::Error("philosophers");
+	    BoxLib::Error("philosophers");
 	}
 	phillies[i] = new philosopher(i);
 	room_occupancy++;
@@ -161,15 +157,15 @@ BoxLib3::testing::philosophers_main()
 
 namespace
 {
-BoxLib3::ConditionVariable full;
-BoxLib3::ConditionVariable empty;
+ConditionVariable full;
+ConditionVariable empty;
 int empty_flag = 1;
 const char* message;
 const char* msgs[] = { "wibble", "wobble", "jelly", "plate" };
 }
 
 class producer
-    : public BoxLib3::Thread
+    : public Thread
 {
 public:
     producer(const char* name_) : name(name_) {}
@@ -179,7 +175,7 @@ private:
 };
 
 class consumer
-    : public BoxLib3::Thread
+    : public Thread
 {
 public:
     consumer(const char* name_) : name(name_) {}
@@ -189,11 +185,11 @@ private:
 };
 
 void
-BoxLib3::testing::prodcons_main()
+testing::prodcons_main()
 {
     if ( Thread::max_threads() == 1 )
     {
-	throw Error("not going to work");
+	BoxLib::Error("not going to work");
     }
     PRINTMSG( std::cout << "main: creating producer1\n" );
     producer p1("producer1");
@@ -221,7 +217,7 @@ consumer::work()
     for (;;)
     {
 	full.lock();
-	BoxLib3::Time t = BoxLib3::Time::get_time(); // 1/2 second from now
+	BoxLib::Time t = BoxLib::Time::get_time(); // 1/2 second from now
 	t += 0.5;
 	while ( empty_flag )
 	{
@@ -229,7 +225,7 @@ consumer::work()
 	    if ( full.timedwait(t) )
 	    {
 		PRINTMSG( std::cout << name << ": timed out, trying again\n" );
-		t = BoxLib3::Time::get_time();
+		t = BoxLib::Time::get_time();
 		t += 0.5;
 	    }
 	    else if ( empty_flag )
@@ -242,7 +238,7 @@ consumer::work()
 	empty_flag = 1;
 	empty.signal();
 	full.unlock();
-	BoxLib3::Thread::sleep(BoxLib3::Time(random_l() % 2, 1000000 * (random_l() % 1000)));
+	Thread::sleep(BoxLib::Time(random_l() % 2, 1000000 * (random_l() % 1000)));
     }
 }
 
@@ -262,6 +258,19 @@ producer::work()
 	full.signal();
 	PRINTMSG( std::cout << name << ": put message: '" << message << "'\n" );
 	full.unlock();
-	BoxLib3::Thread::sleep(BoxLib3::Time(random_l() % 2, 1000000 * (random_l() % 500) + 500) );
+	Thread::sleep(BoxLib::Time(random_l() % 2, 1000000 * (random_l() % 500) + 500) );
     }
+}
+
+int
+main(int argc, char** argv)
+{
+    BL_PROFILE_TIMER(pmain, "main()");
+    BL_PROFILE_START(pmain);
+    BoxLib::Initialize(argc, argv);
+    using namespace testing;
+    prodcons_main();
+    philosophers_main();
+    BL_PROFILE_STOP(pmain);
+    BoxLib::Finalize();
 }

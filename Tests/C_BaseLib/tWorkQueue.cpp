@@ -2,18 +2,18 @@
 #include <list>
 #include <cstdio>
 
-#include <BoxLib3/WorkQueue.H>
+#include <WorkQueue.H>
 
 namespace
 {
-BoxLib3::Mutex print_mutex;
+Mutex print_mutex;
 }
 
 #if 1
 #define DPRINTF(arg)							\
 do									\
   {									\
-    BoxLib3::Lock<BoxLib3::Mutex> lock(print_mutex);			\
+    Lock<Mutex> lock(print_mutex);			\
     std::printf("tid(%ld): ", pthread_self());				\
     std::printf arg;							\
   }									\
@@ -24,10 +24,10 @@ while (false)
 
 namespace
 {
-BoxLib3::Mutex rand_mutex;
+Mutex rand_mutex;
 int random_l()
 {
-    BoxLib3::Lock<BoxLib3::Mutex> lock(rand_mutex);
+    Lock<Mutex> lock(rand_mutex);
     int i = rand();
     return i;
 }
@@ -38,7 +38,7 @@ namespace
 const int ITERATIONS = 25;
 
 struct power_t
-    : public BoxLib3::WorkQueue::task
+    : public WorkQueue::task
 {
     power_t(int value_, int power_) : value(value_), power(power_)
     {
@@ -57,22 +57,22 @@ struct engine_t
     int calls;
 };
 
-BoxLib3::Mutex engine_list_mutex;
+Mutex engine_list_mutex;
 std::list<engine_t*> engine_list;
-BoxLib3::WorkQueue workq;
+WorkQueue workq;
 }
 
 void
 Engine_destructor(void* value_ptr)
 {
     engine_t* engine = static_cast<engine_t*>(value_ptr);
-    BoxLib3::Lock<BoxLib3::Mutex> lock(engine_list_mutex);
+    Lock<Mutex> lock(engine_list_mutex);
     engine_list.push_back(engine);
 }
 
 namespace
 {
-BoxLib3::ThreadSpecificData<engine_t> engine_key(0, Engine_destructor);
+ThreadSpecificData<engine_t> engine_key(0, Engine_destructor);
 
 void
 power_t::run()
@@ -111,11 +111,15 @@ WorkQueue_routine(void*)
     return 0;
 }
 
-void
-Workq_main(int&, char**&)
+int
+main(int argc, char** argv)
 {
+    BL_PROFILE_TIMER(pmain, "main()");
+    BL_PROFILE_START(pmain);
+    BoxLib::Initialize(argc, argv);
+
     workq.max_threads(4);
-    BoxLib3::FunctionThread ft(WorkQueue_routine);
+    FunctionThread ft(WorkQueue_routine);
     WorkQueue_routine(0);
     ft.join();
     workq.add(0);
@@ -135,4 +139,6 @@ Workq_main(int&, char**&)
 	delete engine;
     }
     std::printf("%d engine threads processed %d calls\n", count, calls);
+    BL_PROFILE_STOP(pmain);
+    BoxLib::Finalize();
 }

@@ -2,7 +2,7 @@
 #define _BL_THREAD_H_
 
 //
-// $Id: Thread.H,v 1.6 2001-07-20 23:06:18 lijewski Exp $
+// $Id: Thread.H,v 1.7 2001-07-21 00:53:50 car Exp $
 //
 
 #ifdef BL_PTHREADS
@@ -575,7 +575,6 @@ ThreadSpecificData<T>::tsd_destroy(void* v)
 class Thread
 {
 public:
-    class thread_error;
     class Attr;
     //
     // Creates a Pthread.  Thread must be created, in the non-running state
@@ -725,14 +724,6 @@ private:
     void operator=(const ThreadBase&);
 };
 #endif
-
-class Thread::thread_error
-    : public std::runtime_error
-{
-public:
-    thread_error(const char* file, int line, const char* call, int status = 0);
-};
-
 
 
 class FunctionThread

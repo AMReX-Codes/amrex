@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.5 2001-07-20 23:06:17 lijewski Exp $
+// $Id: BLThread.cpp,v 1.6 2001-07-21 00:53:50 car Exp $
 //
 
 #include <BoxLib.H>
@@ -102,11 +102,6 @@ Thread::_doit(void* arg)
     {
 	m_self.set(static_cast<Thread*>(arg));
 	return static_cast<Thread*>(arg)->work();
-    }
-    catch( Thread::thread_error& bad )
-    {
-	std::cerr << "_doit caught " << bad.what() << std::endl << std::flush;
-	std::abort();
     }
     catch(...)
     {
