@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.97 2002-11-14 18:43:29 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.98 2003-01-27 17:10:36 car Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -996,6 +996,11 @@ BL_FORT_PROC_DECL(BL_PD_NPROCS,bl_pd_nprocs)(int* nprocs)
 BL_FORT_PROC_DECL(BL_PD_IOPROC,bl_pd_ioproc)(int* ioproc)
 {
     *ioproc = ParallelDescriptor::IOProcessorNumber();
+}
+
+BL_FORT_PROC_DECL(BL_PD_IS_IOPROC,bl_pd_is_ioproc)(int* ioproc)
+{
+    *ioproc = ParallelDescriptor::IOProcessor()?1:0;
 }
 
 BL_FORT_PROC_DECL(BL_PD_ABORT,bl_pd_abort)()
