@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.65 2001-09-07 23:06:44 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.66 2001-09-21 21:38:21 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -730,7 +730,6 @@ DoIt (Orientation        face,
         bndry[face][k].copy(flux, bx, srccomp, bx, destcomp, numcomp);
         bndry[face][k].mult(mult, bx, destcomp, numcomp);
     }
-#ifdef BL_USE_MPI
     else
     {
         FabComTag tag;
@@ -757,7 +756,6 @@ DoIt (Orientation        face,
 
         CIMsgs[dMap[k]]++;
     }
-#endif /*BL_USE_MPI*/
 }
 
 void

@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.85 2001-08-06 19:39:25 car Exp $
+// $Id: VisMF.cpp,v 1.86 2001-09-21 21:38:21 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -609,11 +609,6 @@ VisMF::Write (const MultiFab&    mf,
 {
     BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
 
-#ifdef BL_USE_MPI
-    const int SeqNo  = ParallelDescriptor::SeqNum();
-    const int NProcs = ParallelDescriptor::NProcs();
-    const int IOProc = ParallelDescriptor::IOProcessorNumber();
-#endif
     const int MyProc = ParallelDescriptor::MyProc();
 
     long bytes = 0;
@@ -657,9 +652,7 @@ VisMF::Write (const MultiFab&    mf,
     FabFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 #endif
 
-    FabFile.open(FullFileName.c_str(), std::ios::out|
-                                       std::ios::trunc|
-                                       std::ios::binary);
+    FabFile.open(FullFileName.c_str(), std::ios::out|std::ios::trunc|std::ios::binary);
 
     if (!FabFile.good())
         BoxLib::FileOpenFailed(FullFileName);
@@ -670,6 +663,10 @@ VisMF::Write (const MultiFab&    mf,
         hdr.m_fod[mfi.index()] = VisMF::Write(mf[mfi],basename,FabFile,bytes);
 
 #ifdef BL_USE_MPI
+    const int SeqNo  = ParallelDescriptor::SeqNum();
+    const int NProcs = ParallelDescriptor::NProcs();
+    const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
     if (!ParallelDescriptor::IOProcessor())
     {
         int nFabs = 0, idx = 0;
