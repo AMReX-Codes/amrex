@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.53 1999-07-27 17:34:59 marc Exp $
+// $Id: TagBox.cpp,v 1.54 2000-06-01 21:39:54 car Exp $
 //
 
 #include <TagBox.H>
@@ -571,7 +571,7 @@ TagBoxArray::collate (long& numtags) const
                             1,
                             MPI_INT,
                             dMap[i],
-                            MPI_COMM_WORLD)) != MPI_SUCCESS)
+                            ParallelDescriptor::Communicator())) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
     mpi_bcast.end();
@@ -600,7 +600,7 @@ TagBoxArray::collate (long& numtags) const
                             sharedNTags[i] * BL_SPACEDIM,
                             MPI_INT,
                             dMap[i],
-                            MPI_COMM_WORLD)) != MPI_SUCCESS)
+                            ParallelDescriptor::Communicator())) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
     mpi_bcast.end();

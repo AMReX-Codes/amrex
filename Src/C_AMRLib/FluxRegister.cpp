@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.56 1999-05-10 18:54:08 car Exp $
+// $Id: FluxRegister.cpp,v 1.57 2000-06-01 21:39:54 car Exp $
 //
 
 #include <FluxRegister.H>
@@ -823,7 +823,7 @@ FluxRegister::CrseInitFinish ()
                              1,
                              MPI_INT,
                              i,
-                             MPI_COMM_WORLD)) != MPI_SUCCESS)
+                             ParallelDescriptor::Communicator())) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
     mpi_gath.end();
@@ -857,7 +857,7 @@ FluxRegister::CrseInitFinish ()
                                 MPI_INT,
                                 i,
                                 741,
-                                MPI_COMM_WORLD,
+                                ParallelDescriptor::Communicator(),
                                 &req_cd[i])) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
 
@@ -905,7 +905,7 @@ FluxRegister::CrseInitFinish ()
                                 MPI_INT,
                                 i,
                                 741,
-                                MPI_COMM_WORLD)) != MPI_SUCCESS)
+                                ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
             mpi_send.end();
         }
@@ -947,7 +947,7 @@ FluxRegister::CrseInitFinish ()
                                 mpi_data_type(fab_data[i]),
                                 i,
                                 719,
-                                MPI_COMM_WORLD,
+                                ParallelDescriptor::Communicator(),
                                 &req_data[i])) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
             mpi_recv.end();
@@ -1005,7 +1005,7 @@ FluxRegister::CrseInitFinish ()
                                 mpi_data_type(data),
                                 i,
                                 719,
-                                MPI_COMM_WORLD)) != MPI_SUCCESS)
+                                ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
             mpi_send.end();
 
