@@ -1063,7 +1063,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	    }
 	    Box fbox = lev_interface[mglev].box(0, icor);
 	    fbox.grow(rat).convert(IntVect::TheCellVector());
-	    FArrayBox* uf[BL_SPACEDIM;
+	    FArrayBox* uf[BL_SPACEDIM];
 	    for(int i = 0; i < BL_SPACEDIM; ++i)
 	    {
 		uf[i] = new FArrayBox(fbox);
