@@ -2,8 +2,19 @@
 #
 # Prefix's for chk and plt files.
 #
+#pidfile=compressor.$$
 chk_prefix=chk
 plt_prefix=plt
+
+#if [ -f $pidfile ]; then
+#  echo 2>&1 "compressor lock file " $pidfile " already exists"
+#  exit -1
+#fi
+
+#touch $pidfile
+
+#trap '/bin/rm -f $pidfile' EXIT HUP TERM XCPU KILL
+
 #
 # Number of seconds to sleep before checking again.
 #
@@ -13,6 +24,7 @@ N=60
 #
 function tar_up_and_rm_files
 {
+  if [ -f $pid
   #
   # Take all but the final chk file -- want job chaining to work.
   # Strip out any tar files that are lying around. 
@@ -70,4 +82,3 @@ do
   tar_up_and_rm_files
   sleep $N
 done
-
