@@ -41,26 +41,28 @@ public:
     {
 	return m_verbose;
     }
+
+protected:
+
     union Header
     {
 	struct
 	{
 	    Header* frnext;
 	    Header* frprev;
-	    size_t  size;
-	    void**  callback;
 	    Header* blnext;
 	    Header* blprev;
+	    void**  callback;
+	    size_t  size;
 	} s;
 	Word x;
     };
-protected:
 
     bool ok (int level);
-
     Header* freeFree (Header* lower, Header* upper);
     Header* freeUsed (Header* freeblock, Header* busyblock);
     Header* morecore (size_t);
+    void dump (const char*, void*);
     //
     // Static data.
     //

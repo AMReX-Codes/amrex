@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CArena.cpp,v 1.3 1998-02-06 23:44:09 lijewski Exp $
+// $Id: CArena.cpp,v 1.4 1998-02-07 23:41:57 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -22,20 +22,12 @@ using std::endl;
 
 #include <CArena.H>
 
+
+#include <ParallelDescriptor.H>
+
 static CArena The_Static_FAB_CArena;
 
 extern CArena* The_FAB_CArena = &The_Static_FAB_CArena;
-
-ostream&
-operator<< (ostream& os, const CArena::Header& hd)
-{
-    os << "frnext = " << hd.s.frnext << '\n';
-    os << "frprev = " << hd.s.frprev << '\n';
-    os << "size   = " << hd.s.size   << '\n';
-    os << "blnext = " << hd.s.blnext << '\n';
-    os << "blprev = " << hd.s.blprev << '\n';
-    return os;
-}
 
 //
 // These routines implement a COMPACTING version of Kernighan
@@ -44,7 +36,7 @@ operator<< (ostream& os, const CArena::Header& hd)
 // are broken up into a list of blocks, each of which is either
 // in use by the calling program or free to be used.
 // 
-// If the block is in use it contains an extera header at the
+// If the block is in use it contains an extra header at the
 // front of the block that records the size of the used block and
 // pointers to the next and previous blocks.  It also contains
 // the address of the pointer in the user program that points
@@ -166,33 +158,24 @@ CArena::alloc (size_t nbytes,
                 //
                 // Also correct pointer of next block.
                 //
-                (freepart->s.blnext)->s.blprev = freepart;
+                freepart->s.blnext->s.blprev = freepart;
                 p->s.size = nunits;
                 p->s.blnext = freepart;
             }
             p->s.frnext = 0;    // Indicates is not free.
             p->s.frprev = 0;
             freep = prevp;
-            *ind = (void*)(p+1);
+            *ind = p+1;
             p->s.callback = ind;
             bytes_free -= p->s.size*sizeof(Header);
             return *ind;
         }
 
-        if (p == freep)
+        if (p == freep && (p = morecore(nunits)) == 0)
         {
-            //
-            // Wrapped around free list.
-            //
-            if ((p = morecore(nunits)) == 0)
-            {
-                //
-                // TODO -- should we dump core here ?!?
-                //
-                *ind = 0;
-
-                return *ind;
-            }
+            BoxLib::Error("Out Of Memory");
+            *ind = 0;
+            return *ind;
         }
     }
 }
@@ -201,6 +184,7 @@ CArena::Header*
 CArena::morecore (size_t nu)
 {
     calls_more++;
+
     if (nu < c_hunk_size)
         nu = c_hunk_size;
 
@@ -226,7 +210,7 @@ CArena::morecore (size_t nu)
     up->s.blprev = base.s.blprev;
     base.s.blprev->s.blnext = up;
     base.s.blprev = up;
-    CArena::free((void*)(up+1));
+    CArena::free(up+1);
     if (m_verbose)
     {
         clog << "CArena::morecore(): new = "
@@ -248,13 +232,13 @@ CArena::free (void* ap)
         return;
 
     calls_free++;
-    Header *bp = (Header*) ap, *p;
+    Header *bp = (Header*) ap, *p = freep;
     bp -= 1; // Point to block header.
     bytes_free += bp->s.size*sizeof(Header);
     //
     // Search the free list.
     //
-    for (p = freep; !(bp > p && bp < p->s.frnext); p = p->s.frnext)
+    for ( ; !(bp > p && bp < p->s.frnext); p = p->s.frnext)
     {
         if (p > highest_mem || p < lowest_mem)
             BoxLib::Error("memory corrupted");
@@ -263,14 +247,14 @@ CArena::free (void* ap)
             //
             // Freed block at start or end.
             //
-            break;        
+            break;
     }
     if (bp + bp->s.size == p->s.frnext)
     {
         //
         // Join to upper nbr.
         //
-        Header *above = p->s.frnext;
+        Header* above = p->s.frnext;
         bp->s.size += above->s.size;
         bp->s.frnext = above->s.frnext;
         bp->s.frnext->s.frprev = bp;
@@ -288,7 +272,7 @@ CArena::free (void* ap)
         // Join to lower nbr.
         //
         p->s.size += bp->s.size;
-        p->s.frnext   = bp->s.frnext;
+        p->s.frnext = bp->s.frnext;
         p->s.frnext->s.frprev = p;
         p->s.blnext = bp->s.blnext;
         (bp->s.blnext)->s.blprev = p;
@@ -301,8 +285,9 @@ CArena::free (void* ap)
     freep = p;
 }
 
+
 //
-// Returns pointer to next block to work on.  If blocks coallesce, then
+// Returns pointer to next block to work on.  If blocks coalesce, then
 // points at lower free block.  If blocks do not coalesce because they
 // are not contiguous, then points at higher block.
 //
@@ -312,16 +297,10 @@ CArena::freeFree (Header* lower,
                   Header* upper)
 {
     //
-    // Make copy of upper.
-    //
-    Header oldupper = *upper;
-    //
     // Check that are really free.
     //
-    if (upper->s.frnext == 0 || 
-        upper->s.frprev == 0 ||
-        lower->s.frnext == 0 || 
-        lower->s.frprev == 0)
+    if (upper->s.frnext == 0 || upper->s.frprev == 0 ||
+        lower->s.frnext == 0 || lower->s.frprev == 0)
     {
         BoxLib::Error("free block is actually used");
     }
@@ -329,20 +308,20 @@ CArena::freeFree (Header* lower,
     // Check that are adjacent.
     //
     if (upper != (lower + lower->s.size))
-    {
         return upper;
-    }
     //
     // Reset values in lower.
     //
-    lower->s.size  += oldupper.s.size;
-    lower->s.frnext = oldupper.s.frnext;
-    lower->s.blnext = oldupper.s.blnext;
+    lower->s.size  += upper->s.size;
+    lower->s.frnext = upper->s.frnext;
+    lower->s.blnext = upper->s.blnext;
     //
     // Correct pointers that pointed to upper.
     //
-    oldupper.s.frnext->s.frprev = lower;
-    oldupper.s.blnext->s.blprev = lower;
+    assert(upper->s.frnext->s.frprev == upper);
+    assert(upper->s.blnext->s.blprev == upper);
+    upper->s.frnext->s.frprev = lower;
+    upper->s.blnext->s.blprev = lower;
 
     return lower;
 }
@@ -361,19 +340,17 @@ CArena::freeUsed (Header* freeblock,
         BoxLib::Error("busy block is actually free");
 
     if (busyblock != (freeblock + freeblock->s.size))
-    {
         //
         // Are not contiguous.
         //
         return freeblock->s.frnext;
-    }
 
     Header oldfree = *freeblock;    // copy stuff
     Header oldbusy = *busyblock;
     //
     // Save pointer to busy memory.
     //
-    void* busymem = (void*)(busyblock+1);
+    void* busymem = busyblock+1;
     //
     // Reset block pointers.
     //
@@ -390,11 +367,11 @@ CArena::freeUsed (Header* freeblock,
     // Change the callback pointer.
     //
     busyblock->s.callback    = oldbusy.s.callback;
-    *(busyblock->s.callback) = (void*)(busyblock+1);
+    *(busyblock->s.callback) = busyblock+1;
     //
     // Move the memory.
     //
-    memcpy((void*)(busyblock+1),busymem,(oldbusy.s.size-1)*sizeof(Header));
+    memmove(busyblock+1, busymem, (oldbusy.s.size-1)*sizeof(Header));
     //
     // New values for the upper block, which will be free.
     //
@@ -406,12 +383,12 @@ CArena::freeUsed (Header* freeblock,
     //
     // Reset free neighbors.
     //
-    (freeblock->s.frnext)->s.frprev = freeblock;
-    (freeblock->s.frprev)->s.frnext = freeblock;
+    freeblock->s.frnext->s.frprev = freeblock;
+    freeblock->s.frprev->s.frnext = freeblock;
     //
     // Reset block neighbors.
     //
-    (freeblock->s.blnext)->s.blprev = freeblock;
+    freeblock->s.blnext->s.blprev = freeblock;
 
     return freeblock;
 }
@@ -421,10 +398,11 @@ CArena::compact ()
 {
     calls_compact++;
 
-//    assert(CArena::ok(0));
+    assert(CArena::ok(0));
 
     for (Header* p = base.s.frnext; p != &base ; )
     {
+        assert(CArena::ok(0));
         Header* nxtblk = p->s.blnext;
         if (nxtblk == &base)
             break;
@@ -436,11 +414,29 @@ CArena::compact ()
         {
             p = freeUsed(p,nxtblk);
         }
+        assert(CArena::ok(0));
     }
     //
-    // freep must be reset so it points to a element of free list.
+    // freep must be reset so it points to an element of free list.
     //
     freep = &base;
+}
+
+void
+CArena::dump (const char* what,
+              void*       p)
+{
+    ofstream dump("mem_map", ios::out);
+
+    dump << "CArena::ok(): "
+         << what
+         << " chain corrupted near "
+         << p
+         << '\n';
+
+    stat(dump,3);
+    dump.close();
+    BoxLib::Abort();
 }
 
 //
@@ -450,9 +446,7 @@ CArena::compact ()
 bool
 CArena::ok (int level)
 {
-    Header* p;
-
-    for (p = base.s.blprev; p != &base; p = p->s.blprev)
+    for (Header* p = base.s.blprev; p != &base; p = p->s.blprev)
     {
         Header* hnext = p->s.blnext;
         Header* hprev = p->s.blprev;
@@ -464,25 +458,13 @@ CArena::ok (int level)
             hnext->s.blprev != p || 
             hprev->s.blnext != p)
         {
-            cerr << "block chain corrupted near "
-                 << (void*)p
-                 << '\n';
+            cerr << "Block chain corrupted near " << p << '\n';
             if (level)
-            {
-                ofstream dump("mem_map",ios::out);
-                dump << "CArena::ok(): "
-                     << "block"
-                     << " chain corrupted near "
-                     << (void*)p
-                     << '\n';
-                stat(dump,3);
-                dump.close();
-                BoxLib::Abort();
-            }
+                dump("block", p);
             return false;
         }
     }
-    for (p = base.s.frprev; p != &base; p = p->s.frprev)
+    for (Header* p = base.s.frprev; p != &base; p = p->s.frprev)
     {
         Header* hnext = p->s.frnext;
         Header* hprev = p->s.frprev;
@@ -494,21 +476,9 @@ CArena::ok (int level)
             hnext->s.frprev != p || 
             hprev->s.frnext != p)
         {
-            cerr << "free chain corrupted near "
-                 << (void*)p
-                 << '\n';
+            cerr << "Free chain corrupted near " << p << '\n';
             if (level)
-            {
-                ofstream dump("mem_map",ios::out);
-                dump << "CArena::ok(): "
-                     << "free"
-                     << " chain corrupted near "
-                     << (void*)p
-                     << '\n';
-                stat(dump,3);
-                dump.close();
-                BoxLib::Abort();
-            }
+                dump("free", p);
             return false;
         }
     }
@@ -538,7 +508,7 @@ CArena::stat (ostream& os,
         os << calls_compact << " calls to compact\n";
         os << bytes_alloc   << " bytes allocated\n";
         os << bytes_free << " free bytes = "
-//           << 100.0*double(bytes_free)/double(bytes_alloc)
+           << (bytes_alloc==0 ? 0 : 100*double(bytes_free)/double(bytes_alloc))
            << " % of total" << '\n';
     }
     if (level&2)
@@ -566,7 +536,7 @@ CArena::stat (ostream& os,
                    << '\n';
                 BoxLib::Abort();
             }
-            os << setw(11) << (void*)p;
+            os << setw(11) << p;
             os << setw(11) << p->s.size;
             os << setw(11) << p->s.frnext;
             os << setw(11) << p->s.frprev;
