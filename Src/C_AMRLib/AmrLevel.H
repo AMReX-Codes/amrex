@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.24 1998-11-29 00:22:09 lijewski Exp $
+// $Id: AmrLevel.H,v 1.25 1998-12-23 23:14:07 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -401,9 +401,9 @@ class FillPatchIterator
     MultiFab&                    m_leveldata;
     MultiFabCopyDescriptor       m_mfcd;
     Array<Array<MultiFabId> >    m_mfid;     // [level][oldnew]
-    Array<IntVect>               m_ratio;    // [level]
     Array<Interpolater*>         m_map;      // [level]
-    Array<Array<Array<Box> > >   m_finebox;  // [grid][level][fillablesubbox]
+    Array<Array<Array<Box> > >   m_finebox;  // [grid][level][validregion]
+    Array<Array<Array<Box> > >   m_crsebox;  // [grid][level][fillablesubbox]
     Array<Array<Array<Array<FillBoxId> > > > m_fbid;// [grid][level][fillablesubbox][oldnew]
     BoxArray                     m_ba;
     FArrayBox                    m_fab;
