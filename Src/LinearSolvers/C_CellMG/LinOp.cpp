@@ -1,6 +1,6 @@
 
 //
-// $Id: LinOp.cpp,v 1.23 2000-10-02 20:51:16 lijewski Exp $
+// $Id: LinOp.cpp,v 1.24 2001-02-01 23:39:35 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -29,8 +29,6 @@ int LinOp::def_harmavg  = 0;
 int LinOp::def_verbose  = 0;
 int LinOp::def_maxorder = 2;
 
-static int AlternateApplyBC = false;
-
 #ifndef NDEBUG
 //
 // LinOp::applyBC fills LinOp_grow ghost cells with data expected in
@@ -47,15 +45,10 @@ LinOp::initialize ()
 
     pp.query("harmavg", def_harmavg);
     pp.query("v", def_verbose);
-    pp.query("alternateApplyBC", AlternateApplyBC);
-
-if (AlternateApplyBC)
-    cout << "*** AlternateApplyBC !!!" << endl;
 
     if (ParallelDescriptor::IOProcessor() && def_verbose)
-    {
         cout << "def_harmavg = " << def_harmavg << '\n';
-    }
+
     initialized = true;
 }
 
@@ -471,29 +464,21 @@ LinOp::smooth (MultiFab&       solnL,
                LinOp::BC_Mode  bc_mode)
 {
 #ifdef BL3_PROFILING
-  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::smooth()");
+    BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::smooth()");
 #endif
-    if (!AlternateApplyBC)
-    {
-        for (int redBlackFlag = 0; redBlackFlag < 2; redBlackFlag++)
-        {
-            applyBC(solnL, 0, 1, level, bc_mode);
-            Fsmooth(solnL, rhsL, level, redBlackFlag);
-        }
-    }
-    else
+
+    for (int redBlackFlag = 0; redBlackFlag < 2; redBlackFlag++)
     {
         applyBC(solnL, 0, 1, level, bc_mode);
-        for (int redBlackFlag = 0; redBlackFlag < 2; redBlackFlag++)
-            Fsmooth(solnL, rhsL, level, redBlackFlag);
+        Fsmooth(solnL, rhsL, level, redBlackFlag);
     }
 }
 
 Real
 LinOp::norm (int nm, int level)
 {
-  BoxLib::Error("Placeholder for pure virtual function");
-  return 0.0;
+    BoxLib::Error("Placeholder for pure virtual function");
+    return 0.0;
 }
 
 
