@@ -92,8 +92,8 @@ CPU_SECOND (double* r)
 
 #include <assert.h>
 #include <time.h>
-#include <sys/resource.h>
 #include <sys/time.h>
+#include <sys/resource.h>
 
 void
 CPU_SECOND(double* rslt)
