@@ -17,7 +17,7 @@ void amr_multigrid::mesh_read(Array<BoxArray>& m, Array<IntVect>& r, Array<Box>&
 	Box b;
 	int igrid;
 	is >> b >> igrid;
-	if ( is.fail() ) throw "failed to read box";
+	if ( is.fail() ) BoxLib::Abort( "failed to read box" );
 	d.set(ilev, b);
 	if (ilev > 0) 
 	{
@@ -27,7 +27,7 @@ void amr_multigrid::mesh_read(Array<BoxArray>& m, Array<IntVect>& r, Array<Box>&
 	for (int igrid = 0; igrid < m[ilev].length(); igrid++) 
 	{
 	    is >> b;
-	    if ( is.fail() ) throw "failed to read box";
+	    if ( is.fail() ) BoxLib::Abort( "failed to read box" );
 	    m[ilev].set(igrid, b);
 	}
     }
@@ -358,7 +358,7 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2)
     {
 	err = ml_cycle(lev_max, mglev_max, i1, i2, tol, 0.0);
 	if (++it > 100)
-	    throw "amr_multigrid::solve---multigrid iteration failed";
+	    BoxLib::Error( "amr_multigrid::solve---multigrid iteration failed" );
     }
     if (pcode >= 1 && ParallelDescriptor::IOProcessor())
     {

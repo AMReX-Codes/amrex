@@ -298,7 +298,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
 		else 
 		{
 		    // Grid-by-grid line solve section:
-		    if(m_hg_terrain) throw "relax: Terrain line solves not implemented";
+		    if(m_hg_terrain) BoxLib::Abort( "relax: Terrain line solves not implemented" );
 		    const Box& fbox = c_dmfi->box();
 		    const Box& cenbox = cn_dmfi->box();
 		    if (m_hg_cross_stencil)
@@ -368,7 +368,7 @@ void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
     }
     else 
     {
-	throw "relax: Line Solves aren't parallelized"; /*NOTREACHED*/
+	BoxLib::Abort( "relax: Line Solves aren't parallelized" ); /*NOTREACHED*/
 	// Full-level line solve section:
 	if (line_order.length() == 0) 
 	{
@@ -597,7 +597,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
     {
 	if ( ++i > 250 && ParallelDescriptor::IOProcessor() )
 	{
-	    throw "cgsolve: Conjugate-gradient iteration failed to converge";
+	    BoxLib::Error( "cgsolve: Conjugate-gradient iteration failed to converge" );
 	}
 	Real rho_old = rho;
 	// safe to set the clear flag to 0 here---bogus values make it
@@ -634,7 +634,7 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 	if (rho <= tol)
 	    break;
 	if  ( i > 25 ) // FIXME
-	    throw "hgamg::cgsolve iteration count exceeded";
+	    BoxLib::Error( "hgamg::cgsolve iteration count exceeded" );
 	alpha = rho / rho_old;
 	for (MultiFabIterator p_mfi(p); p_mfi.isValid(); ++p_mfi)
 	{

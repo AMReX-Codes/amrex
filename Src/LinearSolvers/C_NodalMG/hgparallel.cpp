@@ -35,7 +35,7 @@ bool task_copy::depends_on_q(const task* t1) const
     }
     else
     {
-	throw "Nightmare in task_copy::depends_on_q";
+	BoxLib::Abort( "Nightmare in task_copy::depends_on_q" );
     }
     return false;
 }
@@ -96,7 +96,7 @@ void task_copy::startup()
     }
     else
     {
-	throw "task_copy::ready: Can't be here";
+	BoxLib::Abort( "task_copy::ready: Can't be here" );
 	// neither fab lives on local processor
     }
     m_started = true;
@@ -180,7 +180,7 @@ task_copy_local::~task_copy_local()
 
 bool task_copy_local::ready()
 { 
-    throw "FIXME task_copy_local::ready"; /*NOTREACHED*/
+    BoxLib::Abort( "FIXME task_copy_local::ready" ); /*NOTREACHED*/
     return m_local;
 }
 
@@ -193,7 +193,7 @@ bool task_copy_local::depends_on_q(const task* t1) const
     }
     else
     {
-	throw "Nightmare in task_copy_local::depends_on_q";
+	BoxLib::Abort( "Nightmare in task_copy_local::depends_on_q" );
     }
     return false;
 }
@@ -230,7 +230,7 @@ void task_copy_local::startup()
 #endif
     else
     {
-	throw "task_copy::ready: Can't be here";
+	BoxLib::Abort( "task_copy::ready: Can't be here" );
 	// neither fab lives on local processor
     }
     m_started = true;
@@ -325,6 +325,6 @@ task_fab_get::~task_fab_get()
 
 bool task_fab_get::ready()
 {
-    throw "FIXME task_fab_get::ready"; /*NOTREACHED*/
+    BoxLib::Abort( "FIXME task_fab_get::ready" ); /*NOTREACHED*/
     return true;
 }

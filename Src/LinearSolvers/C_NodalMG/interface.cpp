@@ -46,7 +46,7 @@ level_interface::~level_interface()
 void level_interface::copy(const level_interface& src)
 {
     if ( ok() )
-	throw "level_interface::copy---this object already allocated";
+	BoxLib::Error( "level_interface::copy---this object already allocated" ); 
     
     status = 0;
 
@@ -79,7 +79,7 @@ void level_interface::copy(const level_interface& src)
 void level_interface::alloc_coarsened(const BoxArray& Im, const amr_boundary_class* /*bdy*/, const level_interface& src, const IntVect& rat)
 {
     if (ok())
-	throw "level_interface::alloc_coarsened---this object already allocated";
+	BoxLib::Error( "level_interface::alloc_coarsened---this object already allocated" );
     
     status = 1;
     
@@ -151,7 +151,7 @@ void level_interface::alloc_coarsened(const BoxArray& Im, const amr_boundary_cla
 void level_interface::alloc(const BoxArray& Im, const Box& Domain, const amr_boundary_class* bdy)
 {
     if (ok())
-	throw "level_interface::alloc---this object already allocated";
+	BoxLib::Error( "level_interface::alloc---this object already allocated" );
     
     status = 3;
     
@@ -561,7 +561,7 @@ void level_interface::add(List<Box>& bl, Box b, int startgrid)
 		    }
 		}
 	    }
-	    throw "level_interface::add()---shouldn't ever get here.";
+	    BoxLib::Abort( "level_interface::add()---shouldn't ever get here." );
 	}
     }
     ins(bl, b);

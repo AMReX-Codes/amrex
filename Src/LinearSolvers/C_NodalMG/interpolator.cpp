@@ -27,7 +27,7 @@ Box bilinear_interpolator_class::box(const Box& region, const IntVect& rat) cons
     }
     else 
     {
-	throw "bilinear_interpolator_class::box---Interpolation only defined for pure CELL- or NODE-based data"; /*NOTREACHED*/
+	BoxLib::Abort( "bilinear_interpolator_class::box---Interpolation only defined for pure CELL- or NODE-based data" ); /*NOTREACHED*/
 	return Box();
     }
 }
@@ -54,6 +54,6 @@ void bilinear_interpolator_class::fill(FArrayBox& patch, const Box& region, cons
     }
     else
     {
-	throw "bilinear_interpolator_class::fill---Interpolation only defined for pure CELL- or NODE-based data";
+	BoxLib::Abort( "bilinear_interpolator_class::fill---Interpolation only defined for pure CELL- or NODE-based data" );
     }
 }
