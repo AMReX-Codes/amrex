@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateDescriptor.cpp,v 1.8 1998-05-06 17:50:51 lijewski Exp $
+// $Id: StateDescriptor.cpp,v 1.9 1998-11-03 18:16:39 lijewski Exp $
 //
 
 #include <StateDescriptor.H>
@@ -34,6 +34,7 @@ StateDescriptor::StateDescriptor ()
     ncomp(0),
     ngrow(0),
     mapper(0),
+    bc_func(PArrayManage),
     t_type(Point)
 {}
 
@@ -49,7 +50,8 @@ StateDescriptor::StateDescriptor (IndexType                   btyp,
     id(ident),
     ngrow(nextra),
     ncomp(num_comp),
-    mapper(interp)
+    mapper(interp),
+    bc_func(PArrayManage)
 {
     assert (num_comp > 0);
    
@@ -92,17 +94,17 @@ StateDescriptor::define (IndexType                   btyp,
 }
 
 void
-StateDescriptor::setComponent (int            comp,
-                               const aString& nm,
-                               const BCRec&   bcr,
-                               BndryFunc      func,
-                               Interpolater*  interp, 
-                               int            max_map_start_comp_,
-                               int            min_map_end_comp_)
+StateDescriptor::setComponent (int                               comp,
+                               const aString&                    nm,
+                               const BCRec&                      bcr,
+                               const StateDescriptor::BndryFunc& func,
+                               Interpolater*                     interp, 
+                               int                               max_map_start_comp_,
+                               int                               min_map_end_comp_)
 {
     assert(comp >= 0 && comp < ncomp && names[comp].isNull());
     names[comp]       = nm;
-    bc_func[comp]     = func;
+    bc_func.set(comp,func.clone());
     bc[comp]          = bcr;
     mapper_comp[comp] = interp;
 

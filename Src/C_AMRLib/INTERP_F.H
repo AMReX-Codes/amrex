@@ -2,7 +2,7 @@
 #define _INTERP_NAMES_H
 
 /*
-** $Id: INTERP_F.H,v 1.6 1998-10-07 21:18:19 vince Exp $
+** $Id: INTERP_F.H,v 1.7 1998-11-03 18:16:37 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -52,21 +52,22 @@ extern "C"
                         ARLIM_P(cblo), ARLIM_P(cbhi),
                         Real* fine, ARLIM_P(flo), ARLIM_P(fhi),
                         ARLIM_P(fblo), ARLIM_P(fbhi),
-                        const int* lratio, const int* nvar,
-                        Real* slope, const int* num_slope,
+                        D_DECL(const int* lrx,const int* lry,const int* lrz),
+                        const int* nvar, Real* slope, const int* num_slope,
                         Real* strip, const int* strip_lo, const int* strip_hi);
       
     void FORT_CBINTERP (const Real* crse, ARLIM_P(clo), ARLIM_P(chi),
                         ARLIM_P(cblo), ARLIM_P(cbhi),
                         Real* fine, ARLIM_P(flo), ARLIM_P(fhi),
                         ARLIM_P(fblo), ARLIM_P(fbhi),
-                        const int* lratio, const int* nvar,
-                        Real* slope, const int* num_slope,
+                        D_DECL(const int* lrx,const int* lry,const int* lrz),
+                        const int* nvar, Real* slope, const int* num_slope,
                         Real* strip, const int* strip_lo, const int* strip_hi);
 
     void FORT_CCINTERP (Real* fine, ARLIM_P(flo), ARLIM_P(fhi),
                         ARLIM_P(fblo), ARLIM_P(fbhi),
-                        const int* nvar, const int* lratio,
+                        const int* nvar,
+                        D_DECL(const int* lrx,const int* lry,const int* lrz),
                         const Real* crse, const int* clo, const int* chi,
                         ARLIM_P(cblo), ARLIM_P(cbhi),
                         const int* fslo, const int* fshi,
@@ -79,7 +80,8 @@ extern "C"
 
     void FORT_CCINTERP2 (Real* fine, const int* flo, const int* fhi,
                          ARLIM_P(fblo), ARLIM_P(fbhi),
-                         const int* nvar, const int* lratio,
+                         const int* nvar,
+                         D_DECL(const int* lrx,const int* lry,const int* lrz),
                          const Real* crse, const int* clo, const int* chi,
                          ARLIM_P(cblo), ARLIM_P(cbhi),
                          const int* fslo, const int* fshi,
@@ -105,7 +107,8 @@ extern "C"
 #endif
                            ARLIM_P(csblo), ARLIM_P(csbhi),
                            const int* csblo, const int* csbhi,
-                           const int* nvar, const int* lratio,
+                           const int* nvar,
+                           D_DECL(const int* lrx,const int* lry,const int* lrz),
                            const int* bc, const int* lim_limit,
                            D_DECL(const Real* fvcx,const Real* fvcy, const Real* fvcz),
                            D_DECL(const Real* cvcx,const Real* cvcy, const Real* cvcz),
@@ -113,7 +116,8 @@ extern "C"
 
     void FORT_CQINTERP (Real* fine, ARLIM_P(flo), ARLIM_P(fhi),
                         ARLIM_P(fblo), ARLIM_P(fbhi),
-                        const int* nvar, const int* lratio,
+                        const int* nvar,
+                        D_DECL(const int* lrx,const int* lry,const int* lrz),
                         const Real* crse, const int* clo, const int* chi,
                         ARLIM_P(cblo), ARLIM_P(cbhi),
                         const int* fslo, const int* fshi,
@@ -128,7 +132,8 @@ extern "C"
                         const int* cblo, const int* cbhi,
                         Real*  fine, ARLIM_P(flo), ARLIM_P(fhi),
                         const int* fblo, const int* fbhi,
-                        const int* longdir, const int* ratio,
+                        const int* longdir,
+                        D_DECL(const int* lrx,const int* lry,const int* lrz),
                         const int* nvar, Real* strip,
                         const int* strip_lo, const int* strip_hi);
   }

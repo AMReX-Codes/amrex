@@ -2,7 +2,7 @@
 #define _MAKESLICE_F_H_
 
 /*
-** $Id: MAKESLICE_F.H,v 1.4 1998-10-07 21:18:20 vince Exp $
+** $Id: MAKESLICE_F.H,v 1.5 1998-11-03 18:16:38 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -38,13 +38,13 @@
 extern "C"
 {
 #if (BL_SPACEDIM==3)
-    void FORT_MAKESLICE(const Real* data1,const int* dlo1,const int* dhi1,
-                        Real* data2,const int* dlo2,const int* dhi2,
+    void FORT_MAKESLICE(const Real* data1,ARLIM_P(data1l), ARLIM_P(data1h),
+                        Real* data2,ARLIM_P(data2l), ARLIM_P(data2h),
                         Real* data_min, Real* data_max,Real* slice_val,
                         int* slice,const Real* dx);
 
-    void FORT_MAKEMASKSLICE(const int* data1,const int* dlo1,const int* dhi1,
-                            int* data2,const int* dlo2,const int* dhi2,
+    void FORT_MAKEMASKSLICE(const int* data1,ARLIM_P(data1l), ARLIM_P(data1h),
+                            int* data2,ARLIM_P(data2l), ARLIM_P(data2h),
                             Real* data_min, Real* data_max,Real* slice_val,
                             int* slice,const Real* dx);
 #endif

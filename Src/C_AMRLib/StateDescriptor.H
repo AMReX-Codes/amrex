@@ -4,7 +4,7 @@
 #define _StateDescriptor_H_ 
 
 //
-// $Id: StateDescriptor.H,v 1.10 1998-05-11 17:06:24 lijewski Exp $
+// $Id: StateDescriptor.H,v 1.11 1998-11-03 18:16:39 lijewski Exp $
 //
 
 #include <Array.H>
@@ -16,17 +16,6 @@
 #include <ArrayLim.H>
 
 class Interpolater;
-
-extern "C"
-{
-//
-// Type of extern "C" function called by BCRec for user-supplied boundary data.
-//
-typedef void (*BndryFunc)(Real* data, ARLIM_P(lo), ARLIM_P(hi),
-                          const int* dom_lo, const int* dom_hi,
-                          const Real* dx, const Real* grd_lo,
-                          const Real* time, const int* bc);
-}
 
 //
 //@Man:
@@ -45,6 +34,55 @@ public:
     //@ManDoc: Defines the temporal centeredness of data.
     //
     enum TimeCenter { Point = 0 , Interval };
+    //
+    //@ManDoc: Type of function called by BCRec for user-supplied boundary data.
+    //
+    typedef void (*BndryFuncDefault)(Real* data, ARLIM_P(lo), ARLIM_P(hi),
+                                     const int* dom_lo, const int* dom_hi,
+                                     const Real* dx, const Real* grd_lo,
+                                     const Real* time, const int* bc);
+    //
+    // Class wrapper around BndryFuncDefault.
+    //
+    class BndryFunc
+    {
+    public:
+        //
+        // Bogus constructor.
+        //
+        BndryFunc () : m_func(0) {}
+        //
+        // Constructor.
+        //
+        BndryFunc (BndryFuncDefault inFunc) : m_func(inFunc) {}
+        //
+        // Return a ptr to a clone of this object.
+        // It is the responsibility of the caller to delete the result.
+        //
+        virtual BndryFunc* clone () const
+        {
+            return new BndryFunc(*this);
+        }
+        //
+        // Destructor.
+        //
+        virtual ~BndryFunc() {}
+        //
+        // Fill boundary cells.
+        //
+        virtual void operator () (REAL* data, const int* lo, const int* hi,
+                                  const int* dom_lo, const int* dom_hi,
+                                  const REAL* dx, const REAL* grd_lo,
+                                  const REAL* time, const int* bc) const
+        {
+            assert(m_func != 0);
+            m_func(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+        }
+        
+    private:
+
+        BndryFuncDefault m_func;
+    };
     //
     //@ManDoc: The default constructor.
     //
@@ -74,22 +112,23 @@ public:
     //
     //@ManDoc: Sets details of `comp' component.
     //
-    void setComponent (int            comp,
-                       const aString& nm,
-                       const BCRec&   bc,
-                       BndryFunc      func,
-                       Interpolater*  interp=0,
-                       int            max_map_start_comp = -1,
-                       int            min_map_end_comp   = -1);
+    void setComponent (int              comp,
+                       const aString&   nm,
+                       const BCRec&     bc,
+                       const BndryFunc& func,
+                       Interpolater*    interp = 0,
+                       int              max_map_start_comp = -1,
+                       int              min_map_end_comp   = -1);
     //
     //@ManDoc: Resets boundary condition data for `comp' component.
     //
-    void resetComponentBCs (int          comp,
-                            const BCRec& bcr,
-                            BndryFunc    func)
+    void resetComponentBCs (int              comp,
+                            const BCRec&     bcr,
+                            const BndryFunc& func)
     {
         assert(comp >= 0 && comp < ncomp);
-        bc_func[comp] = func;
+        bc_func.clear(comp);
+        bc_func.set(comp,func.clone());
         bc[comp] = bcr;
     }
     //
@@ -158,7 +197,7 @@ public:
     //
     //@ManDoc: Returns the BndryFunc of specified component.
     //
-    BndryFunc bndryFill (int i) const { return bc_func[i]; }
+    const BndryFunc& bndryFill (int i) const { return bc_func[i]; }
     //
     //@ManDoc: Is sc>=0 \&\& sc+nc<=ncomp ?
     //
@@ -166,15 +205,15 @@ public:
 
 protected:
 
-    IndexType        type;    // Cell centered, node centered ...
-    TimeCenter       t_type;  // Temporal centering
-    int              id;      // Unique id
-    int              ncomp;   // Number of components
-    int              ngrow;   // Grow factor
-    Interpolater*    mapper;  // Default interpolator
-    Array<aString>   names;   // Printable names of components
-    Array<BCRec>     bc;      // Array of bndry types for entire level
-    Array<BndryFunc> bc_func; // Array of pointers to bndry fill functions
+    IndexType         type;    // Cell centered, node centered ...
+    TimeCenter        t_type;  // Temporal centering
+    int               id;      // Unique id
+    int               ncomp;   // Number of components
+    int               ngrow;   // Grow factor
+    Interpolater*     mapper;  // Default interpolator
+    Array<aString>    names;   // Printable names of components
+    Array<BCRec>      bc;      // Array of bndry types for entire level
+    PArray<BndryFunc> bc_func; // PArray of pointers to bndry fill functions
     //
     // If mapper_comp[icomp] != 0, that map is used instead of mapper
     // when interpolating icomp; otherwise, mapper is used.
@@ -233,24 +272,24 @@ public:
     //
     //@ManDoc: Calls resetComponentBCs() on StateDescriptor at index `indx'.
     //
-    void resetComponentBCs (int          indx,
-                            int          comp,
-                            const BCRec& bc,
-                            BndryFunc    func)
+    void resetComponentBCs (int                               indx,
+                            int                               comp,
+                            const BCRec&                      bc,
+                            const StateDescriptor::BndryFunc& func)
     {
         desc[indx].resetComponentBCs(comp,bc,func);
     }
     //
     //@ManDoc: Calls setComponent() on StateDescriptor at index `indx'.
     //
-    void setComponent (int            indx,
-                       int            comp,
-                       const aString& nm,
-                       const BCRec&   bc,
-                       BndryFunc      func,
-                       Interpolater*  interp = 0,
-                       int            max_map_start_comp = -1,
-                       int            min_map_end_comp   = -1)
+    void setComponent (int                               indx,
+                       int                               comp,
+                       const aString&                    nm,
+                       const BCRec&                      bc,
+                       const StateDescriptor::BndryFunc& func,
+                       Interpolater*                     interp = 0,
+                       int                               max_map_start_comp = -1,
+                       int                               min_map_end_comp   = -1)
     {
         desc[indx].setComponent(comp,nm,bc,func,interp,max_map_start_comp,
                                 min_map_end_comp);

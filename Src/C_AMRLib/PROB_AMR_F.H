@@ -2,7 +2,7 @@
 #define _PROB_AMR_F_H_
 
 /*
-** $Id: PROB_AMR_F.H,v 1.5 1998-10-07 21:18:20 vince Exp $
+** $Id: PROB_AMR_F.H,v 1.6 1998-11-03 18:16:38 lijewski Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -24,7 +24,9 @@ extern "C"
 {
      void FORT_PROBINIT (const int* init,
                          const int* name,
-                         const int* namelen);
+                         const int* namelen,
+                         const Real* problo,
+                         const Real* probhi);
 }
 
 #endif

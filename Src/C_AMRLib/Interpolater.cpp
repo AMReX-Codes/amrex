@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Interpolater.cpp,v 1.13 1998-07-16 18:19:18 lijewski Exp $
+// $Id: Interpolater.cpp,v 1.14 1998-11-03 18:16:38 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -123,14 +123,15 @@ NodeBilinear::interp (const FArrayBox& crse,
         strip_len = strp_len;
         strip     = new Real[strip_len];
     }
-    int strip_lo     = ratio[0] * clo[0];
-    int strip_hi     = ratio[0] * chi[0];
-    const Real* cdat = crse.dataPtr(crse_comp);
-    Real*       fdat = fine.dataPtr(fine_comp);
+    int strip_lo      = ratio[0] * clo[0];
+    int strip_hi      = ratio[0] * chi[0];
+    const Real* cdat  = crse.dataPtr(crse_comp);
+    Real*       fdat  = fine.dataPtr(fine_comp);
+    const int* ratioV = ratio.getVect();
 
     FORT_NBINTERP (cdat,ARLIM(clo),ARLIM(chi),ARLIM(clo),ARLIM(chi),
                    fdat,ARLIM(flo),ARLIM(fhi),ARLIM(lo),ARLIM(hi),
-                   ratio.getVect(),&ncomp,
+                   D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),&ncomp,
                    slope,&num_slope,strip,&strip_lo,&strip_hi);
 }
 
@@ -214,12 +215,13 @@ CellBilinear::interp (const FArrayBox& crse, int crse_comp,
     int strip_lo = ratio[0] * clo[0];
     int strip_hi = ratio[0] * chi[0];
 
-    const Real* cdat = crse.dataPtr(crse_comp);
-    Real*       fdat = fine.dataPtr(fine_comp);
+    const Real* cdat  = crse.dataPtr(crse_comp);
+    Real*       fdat  = fine.dataPtr(fine_comp);
+    const int* ratioV = ratio.getVect();
 
     FORT_CBINTERP (cdat,ARLIM(clo),ARLIM(chi),ARLIM(clo),ARLIM(chi),
                    fdat,ARLIM(flo),ARLIM(fhi),ARLIM(lo),ARLIM(hi),
-                   ratio.getVect(),&ncomp,
+                   D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),&ncomp,
                    slope,&num_slope,strip,&strip_lo,&strip_hi);
 }
 
@@ -240,7 +242,7 @@ Box
 CellConservative::CoarseBox (const Box&     fine,
                              const IntVect& ratio)
 {
-    Box crse(::coarsen(fine,ratio));
+    Box crse = ::coarsen(fine,ratio);
     crse.grow(1);
     return crse;
 }
@@ -249,7 +251,7 @@ Box
 CellConservative::CoarseBox (const Box& fine,
                              int        ratio)
 {
-    Box crse(::coarsen(fine,ratio));
+    Box crse = ::coarsen(fine,ratio);
     crse.grow(1);
     return crse;
 }
@@ -346,24 +348,25 @@ CellConservative::interp (const FArrayBox& crse,
     //
     // Alloc tmp space for slope calc and to allow for vectorization.
     //
-    Real* fdat      = fine.dataPtr(fine_comp);
-    const Real* cdat= crse.dataPtr(crse_comp);
-    const int* flo  = fine.loVect();
-    const int* fhi  = fine.hiVect();
-    const int* fblo = target_fine_region.loVect();
-    const int* fbhi = target_fine_region.hiVect();
-    const int* cblo = crse_bx.loVect();
-    const int* cbhi = crse_bx.hiVect();
-    const int* cflo = crse.loVect();
-    const int* cfhi = crse.hiVect();
-    const int* fslo = fslope_bx.loVect();
-    const int* fshi = fslope_bx.hiVect();
-    int slope_flag  = (do_limited_slope ? 1 : 0);
-    Array<int> bc   = GetBCArray(bcr);
+    Real* fdat        = fine.dataPtr(fine_comp);
+    const Real* cdat  = crse.dataPtr(crse_comp);
+    const int* flo    = fine.loVect();
+    const int* fhi    = fine.hiVect();
+    const int* fblo   = target_fine_region.loVect();
+    const int* fbhi   = target_fine_region.hiVect();
+    const int* cblo   = crse_bx.loVect();
+    const int* cbhi   = crse_bx.hiVect();
+    const int* cflo   = crse.loVect();
+    const int* cfhi   = crse.hiVect();
+    const int* fslo   = fslope_bx.loVect();
+    const int* fshi   = fslope_bx.hiVect();
+    int slope_flag    = (do_limited_slope ? 1 : 0);
+    Array<int> bc     = GetBCArray(bcr);
+    const int* ratioV = ratio.getVect();
 
     FORT_CCINTERP (fdat,ARLIM(flo),ARLIM(fhi),
                    ARLIM(fblo), ARLIM(fbhi),
-                   &ncomp,ratio.getVect(),
+                   &ncomp,D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
                    cdat,&clo,&chi,
                    ARLIM(cblo), ARLIM(cbhi),
                    fslo,fshi,
@@ -385,7 +388,7 @@ Box
 CellConservativeLinear::CoarseBox (const Box&     fine,
                                    const IntVect& ratio)
 {
-    Box crse(::coarsen(fine,ratio));
+    Box crse = ::coarsen(fine,ratio);
     crse.grow(1);
     return crse;
 }
@@ -488,7 +491,8 @@ CellConservativeLinear::interp (const FArrayBox& crse, int crse_comp,
     Real* voffz = new Real[fvc[2].length()];
 #endif
 
-    Array<int> bc = GetBCArray(bcr);
+    Array<int> bc     = GetBCArray(bcr);
+    const int* ratioV = ratio.getVect();
 
     FORT_LINCCINTERP (fdat,ARLIM(flo),ARLIM(fhi),
                       fblo, fbhi,
@@ -502,7 +506,7 @@ CellConservativeLinear::interp (const FArrayBox& crse, int crse_comp,
 #endif
                       ARLIM(csblo), ARLIM(csbhi),
                       csblo, csbhi,
-                      &ncomp,ratio.getVect(),
+                      &ncomp,D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
                       bc.dataPtr(), &lin_limit,
                       D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
                       D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()),
@@ -533,7 +537,7 @@ Box
 CellQuadratic::CoarseBox (const Box&     fine,
                           const IntVect& ratio)
 {
-    Box crse(::coarsen(fine,ratio));
+    Box crse = ::coarsen(fine,ratio);
     crse.grow(1);
     return crse;
 }
@@ -542,7 +546,7 @@ Box
 CellQuadratic::CoarseBox (const Box& fine,
                           int        ratio)
 {
-    Box crse(::coarsen(fine,ratio));
+    Box crse = ::coarsen(fine,ratio);
     crse.grow(1);
     return crse;
 }
@@ -618,32 +622,32 @@ CellQuadratic::interp (const FArrayBox& crse, int crse_comp,
     //
     // Alloc tmp space for slope calc and to allow for vectorization.
     //
-    Real* fdat      = fine.dataPtr(fine_comp);
-    const Real* cdat= crse.dataPtr(crse_comp);
-    const int* flo  = fine.loVect();
-    const int* fhi  = fine.hiVect();
-    const int* fblo = target_fine_region.loVect();
-    const int* fbhi = target_fine_region.hiVect();
-    const int* cblo = crse_bx.loVect();
-    const int* cbhi = crse_bx.hiVect();
-    const int* cflo = crse.loVect();
-    const int* cfhi = crse.hiVect();
-    const int* fslo = fslope_bx.loVect();
-    const int* fshi = fslope_bx.hiVect();
-    int slope_flag  = (do_limited_slope ? 1 : 0);
-    Array<int> bc   = GetBCArray(bcr);
+    Real* fdat        = fine.dataPtr(fine_comp);
+    const Real* cdat  = crse.dataPtr(crse_comp);
+    const int* flo    = fine.loVect();
+    const int* fhi    = fine.hiVect();
+    const int* fblo   = target_fine_region.loVect();
+    const int* fbhi   = target_fine_region.hiVect();
+    const int* cblo   = crse_bx.loVect();
+    const int* cbhi   = crse_bx.hiVect();
+    const int* cflo   = crse.loVect();
+    const int* cfhi   = crse.hiVect();
+    const int* fslo   = fslope_bx.loVect();
+    const int* fshi   = fslope_bx.hiVect();
+    int slope_flag    = (do_limited_slope ? 1 : 0);
+    Array<int> bc     = GetBCArray(bcr);
+    const int* ratioV = ratio.getVect();
 
     FORT_CQINTERP (fdat,ARLIM(flo),ARLIM(fhi),
                    ARLIM(fblo), ARLIM(fbhi),
-                   &ncomp,ratio.getVect(),
+                   &ncomp,D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
                    cdat,&clo,&chi,
                    ARLIM(cblo), ARLIM(cbhi),
                    fslo,fshi,
                    cslope,&c_len,fslope,fstrip,&f_len,foff,
                    bc.dataPtr(), &slope_flag,
                    D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
-                   D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr())
-                   );
+                   D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()));
 }
 
 PCInterp::PCInterp ()
@@ -709,11 +713,14 @@ PCInterp::interp (const FArrayBox& crse, int crse_comp,
     // Convert long_dir to FORTRAN (1 based) index.
     //
     long_dir++;
-    const Real* cdat = crse.dataPtr(crse_comp);
-    Real*       fdat = fine.dataPtr(fine_comp);
+    const Real* cdat  = crse.dataPtr(crse_comp);
+    Real*       fdat  = fine.dataPtr(fine_comp);
+    const int* ratioV = ratio.getVect();
+
 
     FORT_PCINTERP (cdat,ARLIM(clo),ARLIM(chi),cblo,cbhi,
                    fdat,ARLIM(flo),ARLIM(fhi),fblo,fbhi,
-                   &long_dir,ratio.getVect(),&ncomp,strip,&strip_lo,&strip_hi);
+                   &long_dir,D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
+                   &ncomp,strip,&strip_lo,&strip_hi);
 }
 
