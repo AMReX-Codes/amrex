@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.46 1998-11-16 03:52:13 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.47 1998-11-16 15:53:17 car Exp $
 //
 
 #include <Utility.H>
@@ -80,7 +80,9 @@ int ParallelDescriptor::m_MyId   = -1;
 void
 ParallelDescriptor::Abort ()
 {
+#ifdef WIN32
     if ( m_nProcs <= 1 ) throw;
+#endif
     MPI_Abort(MPI_COMM_WORLD, -1);
 }
 
