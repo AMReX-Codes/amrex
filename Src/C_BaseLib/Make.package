@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.32 2001-10-31 22:42:01 lijewski Exp $
+# $Id: Make.package,v 1.33 2002-05-23 18:22:13 car Exp $
 #
 
 BOXLIB_BASE=EXE
@@ -29,6 +29,8 @@ C$(BOXLIB_BASE)_headers += VisMF.H Arena.H BArena.H CArena.H
 
 C$(BOXLIB_BASE)_sources += BLProfiler.cpp
 C$(BOXLIB_BASE)_headers += Profiler.H
+
+C$(BOXLIB_BASE)_headers += BLFort.H
 
 C$(BOXLIB_BASE)_sources += BLThread.cpp
 C$(BOXLIB_BASE)_headers += Thread.H
