@@ -1,0 +1,160 @@
+#!/usr/bin/env perl
+eval 'exec perl $0 ${1+"$@"}'
+   if 0;
+warn ("Perl 5 not detected, likely a big problem") if $] < 5.0;
+warn "Less than Perl 5.003.  You may witness mysterious segmentation faults."
+   if $] < 5.003;
+
+use strict;
+
+BEGIN {
+  my $zero = $0;
+  while (-l $zero) {
+    my $nextzero = readlink $zero;
+    if (substr ($nextzero, 0, 1) eq "/") {
+      $zero = $nextzero;
+    } elsif ($zero =~ m#^(.*)/#) {
+      $zero = "$1/$nextzero";
+    } else {
+      $zero = $nextzero;
+    }
+  }
+  if ($zero =~ m#(.*)/\w+#) {
+    push @INC, "$1/../common/", $1;
+  } else {
+    push @INC, "../common/", ".";
+  }
+}
+
+require "htmling.pl";
+require "stmts.pl";
+require "utils.pl";
+#require "expr_parse.pl";
+#require "typing.pl";
+
+####################
+
+if (! @ARGV) {
+   print <<END
+Usage: f90doc [options] [--] path/file.f90 ...
+Description: Generates HTML files corresponding to each module in the listed
+   files, and stores them in the current directory.
+Options: -cp: comments should be considered to be preformatted text
+         -cs: comments are formatted "smartly" (default)
+         -ch: comments should be considered to be HTML
+         -o file.html: override output filename for next input file
+         -fixed: fixed form style (like Fortran 77) \ these apply to all
+         -free: free form style (new to Fortran 90) / future files only
+Note: Files are only affected by options listed before them.
+END
+}
+
+####################
+
+($stmts::bangbang, $stmts::comments, $stmts::disable_warns)
+   = (\&addto_comments, \&make_comments, 1);
+print substr ("$stmts::bangbang$stmts::comments$stmts::disable_warns", 0, 0);
+
+my ($catch_args, $next_output, $grab_next) = (1, undef, undef);
+my $arg;
+foreach $arg (@ARGV) {
+  if (defined $grab_next) {
+    $$grab_next = $arg;
+    $grab_next = undef;
+    next;
+  }
+  if ($arg eq "--") {
+    $catch_args = 0;
+  } else {
+    if ($catch_args && substr ($arg, 0, 1) eq "-") {
+      if ($arg =~ /^-cp$/i) {
+        $htmling::comments_type = "preformatted";
+      } elsif ($arg =~ /^-cs$/i) {
+        $htmling::comments_type = "smart";
+      } elsif ($arg =~ /^-ch$/i) {
+        $htmling::comments_type = "html";
+      } elsif ($arg =~ /^-o$/i) {
+        $grab_next = \$next_output;
+      } elsif ($arg =~ /^-fixed$/i) {
+        $stmts::fixed_form = 1;
+      } elsif ($arg =~ /^-free$/i) {
+        $stmts::fixed_form = 0;
+      } else {
+        die "Unrecognized option `$arg'";
+      }
+    } else {
+      process_file ($arg, $next_output);
+      $next_output = undef;
+    }
+  }
+}
+
+print "Done.\n";
+
+####################
+
+sub process_file {
+   my ($infile, $outfile) = @_;
+
+   print "Processing $infile...\n";
+
+   reset_comments ();
+   my $top;
+   for $top (stmts::read_file ($infile, \&reset_comments)) {
+     htmling::do_toplevel ($top, $outfile);
+   }
+}
+
+sub addto_comments {
+   my ($com) = @_;
+
+   $com =~ s/\s*!!//;
+
+   # Check for macros and paragraph breaks.
+   if ($com =~ /^\s*@/) {
+      $com =~ s/^\s*@\s*//;
+      do_macro ($com);
+   } else {
+      push (@::comments, $com);
+   }
+}
+
+sub reset_comments {
+   @::comments = ();
+   @::see_list = ();
+   $::version_num = "";
+   @::authors = ();
+}
+
+sub make_comments {
+   my ($out, $see);
+   $out = join ("\n", @::comments) . "\n";
+   $out = "${out}<P>\n<STRONG>Author:</STRONG> " . join (", ", @::authors) . "\n" if @::authors;
+   $out = "${out}<P>\n<STRONG>Version:</STRONG> $::version_num\n" if $::version_num;
+   $out = "${out}<P>\n<STRONG>See also:</STRONG> " . join (", ", @::see_list) . "\n" if @::see_list;
+   $out = "" if $out eq "\n";
+   $out;
+}
+
+sub do_macro {
+   my ($macro) = @_;
+   my ($part);
+
+   $macro =~ s/\s*$//;
+   if ($macro =~ /^see/i) {
+      die 'Invalid @see macro' unless $macro =~ /^see\s+(\w+)(#\w+)?$/;
+      if ($2) {
+         $part = substr ($2, 1);
+         push (@::see_list, "<A HREF=\"$1.html#" . lc ($part) . "\">$part</A> in module <A HREF=\"$1.html\">$1</A>");
+      } else {
+         push (@::see_list, "module <A HREF=\"$1.html\">$1</A>");
+      }
+   } elsif ($macro =~ /^author\s+/i) {
+      push (@::authors, $');
+   } elsif ($macro =~ /^version\s+/i) {
+      die "Two versions in a single !! block" if $::version_num;
+      $::version_num = $';
+   } else {
+      die "Unrecognized macro $macro";
+   }
+}
