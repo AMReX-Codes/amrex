@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.130 2001-07-20 17:57:27 car Exp $
+// $Id: FabArray.H,v 1.131 2001-07-20 18:18:42 car Exp $
 //
 
 #include <climits>
@@ -1248,7 +1248,7 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
     const int seqno = ParallelDescriptor::SeqNum();
 
-    int rc, NWaits = 0;
+    int NWaits = 0;
     //
     // Post one receive for each chunk being sent by other CPUs.
     //
@@ -1269,14 +1269,13 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
             fab_data[i] = static_cast<value_type*>(The_FAB_Arena->alloc(N*sizeof(value_type)));
 
-            if ((rc = MPI_Irecv(fab_data[i],
-                                int(N),
-                                mpi_data_type(fab_data[i]),
-                                i,
-                                seqno,
-                                ParallelDescriptor::Communicator(),
-                                &reqs[i])) != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
+            MPI_REQUIRE( MPI_Irecv(fab_data[i],
+				   int(N),
+				   mpi_data_type(fab_data[i]),
+				   i,
+				   seqno,
+				   ParallelDescriptor::Communicator(),
+				   &reqs[i]) );
         }
     }
 
@@ -1310,13 +1309,12 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
             BL_ASSERT(data+N == dptr);
 
-            if ((rc = MPI_Send(data,
-                               int(N),
-                               mpi_data_type(data),
-                               i,
-                               seqno,
-                               ParallelDescriptor::Communicator())) != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
+            MPI_REQUIRE( MPI_Send(data,
+				  int(N),
+				  mpi_data_type(data),
+				  i,
+				  seqno,
+				  ParallelDescriptor::Communicator()));
 
             The_FAB_Arena->free(data);
         }
@@ -1326,12 +1324,11 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     //
     for (int completed; NWaits > 0; NWaits -= completed)
     {
-        if ((rc = MPI_Waitsome(NProcs,
-                               reqs.dataPtr(),
-                               &completed,
-                               indx.dataPtr(),
-                               status.dataPtr())) != MPI_SUCCESS)
-            ParallelDescriptor::Abort(rc);
+        MPI_REQUIRE( MPI_Waitsome(NProcs,
+				  reqs.dataPtr(),
+				  &completed,
+				  indx.dataPtr(),
+				  status.dataPtr()));
 
         for (int k = 0; k < completed; k++)
         {
@@ -1462,14 +1459,11 @@ FabArray<FAB>::copy (FAB&       dest,
             if (ParallelDescriptor::MyProc() == distributionMap[i])
                 overlapData.copy(fabparray[i],bx,scomp,bx,0,ncomp);
 
-            int rc = MPI_Bcast(overlapData.dataPtr(),
-                               bx.numPts()*ncomp,
-                               mpi_data_type(overlapData.dataPtr()),
-                               distributionMap[i],
-                               ParallelDescriptor::Communicator());
-
-            if (rc != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
+            MPI_REQUIRE( MPI_Bcast(overlapData.dataPtr(),
+				   bx.numPts()*ncomp,
+				   mpi_data_type(overlapData.dataPtr()),
+				   distributionMap[i],
+				   ParallelDescriptor::Communicator()));
 
             dest.copy(overlapData,bx,0,bx,dcomp,ncomp);
         }
@@ -1642,8 +1636,7 @@ FabArrayIterator<FAB>::isValid ()
     if (HG_is_debugging)
     {
 	if (currentIndex < fabArray.length()) return true;
-	int rc = MPI_Barrier(ParallelDescriptor::Communicator());
-	if (rc != MPI_SUCCESS) ParallelDescriptor::Abort(rc);
+	MPI_REQUIRE( MPI_Barrier(ParallelDescriptor::Communicator()) );
 	return false;
     }
 #endif
@@ -1831,8 +1824,7 @@ ConstFabArrayIterator<FAB>::isValid () const
     if (HG_is_debugging)
     {
 	if (currentIndex < fabArray.length()) return true;
-	int rc = MPI_Barrier(ParallelDescriptor::Communicator());
-	if (rc != MPI_SUCCESS) ParallelDescriptor::Abort(rc);
+	MPI_REQUITE( MPI_Barrier(ParallelDescriptor::Communicator()) );
 	return false;
     }
 #endif
@@ -2163,7 +2155,7 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
     const int seqno_1 = ParallelDescriptor::SeqNum();
     const int seqno_2 = ParallelDescriptor::SeqNum();
 
-    int rc, idx = 0, NumReqs = 0, NWaits;
+    int idx = 0, NumReqs = 0, NWaits;
     //
     // Set Rcvs[i] to # of blocks needed from CPU i
     //
@@ -2184,15 +2176,14 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 #endif
     {
         for (int i = 0; i < NProcs; i++)
-            if ((rc = MPI_Gather(&Rcvs[i],
-                                 1,
-                                 MPI_INT,
-                                 Snds.dataPtr(),
-                                 1,
-                                 MPI_INT,
-                                 i,
-                                 ParallelDescriptor::Communicator())) != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
+            MPI_REQUIRE( MPI_Gather(&Rcvs[i],
+				    1,
+				    MPI_INT,
+				    Snds.dataPtr(),
+				    1,
+				    MPI_INT,
+				    i,
+				    ParallelDescriptor::Communicator()));
 
         BL_ASSERT(Snds[MyProc] == 0);
     }
@@ -2230,14 +2221,13 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
         {
             if (Snds[i] > 0)
             {
-                if ((rc = MPI_Irecv(&recv_cd[idx],
-                                    Snds[i] * CommData::DIM,
-                                    MPI_INT,
-                                    i,
-                                    seqno_1,
-                                    ParallelDescriptor::Communicator(),
-                                    &req_cd[i])) != MPI_SUCCESS)
-                    ParallelDescriptor::Abort(rc);
+                MPI_REQUIRE( MPI_Irecv(&recv_cd[idx],
+				       Snds[i] * CommData::DIM,
+				       MPI_INT,
+				       i,
+				       seqno_1,
+				       ParallelDescriptor::Communicator(),
+				       &req_cd[i]));
 
                 idx += Snds[i];
             }
@@ -2277,13 +2267,12 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
                 BL_ASSERT(Processed == Rcvs[i]);
 
-                if ((rc = MPI_Send(senddata.dataPtr(),
-                                   senddata.length() * CommData::DIM,
-                                   MPI_INT,
-                                   i,
-                                   seqno_1,
-                                   ParallelDescriptor::Communicator())) != MPI_SUCCESS)
-                    ParallelDescriptor::Abort(rc);
+                MPI_REQUIRE( MPI_Send(senddata.dataPtr(),
+				      senddata.length() * CommData::DIM,
+				      MPI_INT,
+				      i,
+				      seqno_1,
+				      ParallelDescriptor::Communicator()));
             }
         }
 
@@ -2294,12 +2283,11 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
         for (int completed; NWaits > 0; NWaits -= completed)
         {
-            if ((rc = MPI_Waitsome(NProcs,
-                                   req_cd.dataPtr(),
-                                   &completed,
-                                   indx.dataPtr(),
-                                   status.dataPtr())) != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
+            MPI_REQUIRE( MPI_Waitsome(NProcs,
+				      req_cd.dataPtr(),
+				      &completed,
+				      indx.dataPtr(),
+				      status.dataPtr()));
         }
     }
 
@@ -2334,14 +2322,13 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
             fab_data[i] = static_cast<value_type*>(The_FAB_Arena->alloc(N*sizeof(value_type)));
 
-            if ((rc = MPI_Irecv(fab_data[i],
-                                int(N),
-                                mpi_data_type(fab_data[i]),
-                                i,
-                                seqno_2,
-                                ParallelDescriptor::Communicator(),
-                                &req_data[i])) != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
+            MPI_REQUIRE( MPI_Irecv(fab_data[i],
+				   int(N),
+				   mpi_data_type(fab_data[i]),
+				   i,
+				   seqno_2,
+				   ParallelDescriptor::Communicator(),
+				   &req_data[i]));
         }
     }
     //
@@ -2396,13 +2383,12 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
             BL_ASSERT(data+N == dptr);
 
-            if ((rc = MPI_Send(data,
-                               int(N),
-                               mpi_data_type(data),
-                               i,
-                               seqno_2,
-                               ParallelDescriptor::Communicator())) != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
+            MPI_REQUIRE( MPI_Send(data,
+				  int(N),
+				  mpi_data_type(data),
+				  i,
+				  seqno_2,
+				  ParallelDescriptor::Communicator()));
 
             The_FAB_Arena->free(data);
 
@@ -2423,12 +2409,11 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
     for (int completed; NWaits > 0; NWaits -= completed)
     {
-        if ((rc = MPI_Waitsome(NProcs,
-                               req_data.dataPtr(),
-                               &completed,
-                               indx.dataPtr(),
-                               status.dataPtr())) != MPI_SUCCESS)
-            ParallelDescriptor::Abort(rc);
+        MPI_REQUIRE( MPI_Waitsome(NProcs,
+				  req_data.dataPtr(),
+				  &completed,
+				  indx.dataPtr(),
+				  status.dataPtr()));
 
         for (int k = 0; k < completed; k++)
         {

@@ -2,7 +2,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.58 2001-07-20 17:01:45 car Exp $
+// $Id: ParallelDescriptor.H,v 1.59 2001-07-20 18:18:42 car Exp $
 //
 
 #include <BLassert.H>
@@ -368,9 +368,9 @@ namespace ParallelDescriptor
 #define MPI_REQUIRE(x)							\
 do									\
 {									\
-  if ( int status = (x) )						\
+  if ( int l_status_ = (x) )						\
     {									\
-      ParallelDescriptor::MPI_Error(__FILE__,__LINE__,#x,status);       \
+      ParallelDescriptor::MPI_Error(__FILE__,__LINE__,#x, l_status_);   \
     }									\
 }									\
 while ( false )

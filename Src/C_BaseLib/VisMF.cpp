@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.76 2001-07-19 21:11:50 lijewski Exp $
+// $Id: VisMF.cpp,v 1.77 2001-07-20 18:18:42 car Exp $
 //
 
 #include <cstdio>
@@ -416,7 +416,7 @@ VisMF::Header::Header (const MultiFab& mf,
     const int NProcs = ParallelDescriptor::NProcs();
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
-    int rc, nFabs = 0;
+    int nFabs = 0;
 
     for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
     {
@@ -459,13 +459,12 @@ VisMF::Header::Header (const MultiFab& mf,
 
             BL_ASSERT(offset == 2*m_ncomp*nFabs);
 
-            if ((rc = MPI_Send(senddata.dataPtr(),
-                               2*m_ncomp*nFabs,
-                               mpi_data_type(senddata.dataPtr()),
-                               IOProc,
-                               SeqNo,
-                               ParallelDescriptor::Communicator())) != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
+            MPI_REQUIRE( MPI_Send(senddata.dataPtr(),
+				  2*m_ncomp*nFabs,
+				  mpi_data_type(senddata.dataPtr()),
+				  IOProc,
+				  SeqNo,
+				  ParallelDescriptor::Communicator()) );
 
             BL_ASSERT(offset == 2*m_ncomp*nFabs);
         }
@@ -495,25 +494,23 @@ VisMF::Header::Header (const MultiFab& mf,
 
                 data[i].resize(2*m_ncomp*fabs[i]);
 
-                if ((rc = MPI_Irecv(data[i].dataPtr(),
-                                   2*m_ncomp*fabs[i],
-                                   mpi_data_type(data[i].dataPtr()),
-                                   i,
-                                   SeqNo,
-                                   ParallelDescriptor::Communicator(),
-                                   &reqs[i])) != MPI_SUCCESS)
-                    ParallelDescriptor::Abort(rc);
+                MPI_REQUIRE( MPI_Irecv(data[i].dataPtr(),
+				       2*m_ncomp*fabs[i],
+				       mpi_data_type(data[i].dataPtr()),
+				       i,
+				       SeqNo,
+				       ParallelDescriptor::Communicator(),
+				       &reqs[i]) );
             }
         }
 
         for (int completed; NWaits > 0; NWaits -= completed)
         {
-            if ((rc = MPI_Waitsome(NProcs,
-                                   reqs.dataPtr(),
-                                   &completed,
-                                   indx.dataPtr(),
-                                   status.dataPtr())) != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
+            MPI_REQUIRE( MPI_Waitsome(NProcs,
+				      reqs.dataPtr(),
+				      &completed,
+				      indx.dataPtr(),
+				      status.dataPtr()) );
 
             for (int k = 0; k < completed; k++)
             {
@@ -666,7 +663,7 @@ VisMF::Write (const MultiFab& mf,
 #ifdef BL_USE_MPI
     if (!ParallelDescriptor::IOProcessor())
     {
-        int rc, nFabs = 0, idx = 0;
+        int nFabs = 0, idx = 0;
 
         for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
             nFabs++;
@@ -678,13 +675,12 @@ VisMF::Write (const MultiFab& mf,
             for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
                 senddata[idx++] = hdr.m_fod[mfi.index()].m_head;
 
-            if ((rc = MPI_Send(senddata.dataPtr(),
-                               nFabs,
-                               MPI_LONG,
-                               IOProc,
-                               SeqNo,
-                               ParallelDescriptor::Communicator())) != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
+            MPI_REQUIRE( MPI_Send(senddata.dataPtr(),
+				  nFabs,
+				  MPI_LONG,
+				  IOProc,
+				  SeqNo,
+				  ParallelDescriptor::Communicator()));
         }
 
         BL_ASSERT(idx == nFabs);
@@ -704,7 +700,7 @@ VisMF::Write (const MultiFab& mf,
 
         fabs[IOProc] = 0;
 
-        int rc, NWaits = 0;
+        int NWaits = 0;
 
         for (int i = 0; i < NProcs; i++)
         {
@@ -714,25 +710,23 @@ VisMF::Write (const MultiFab& mf,
 
                 data[i].resize(fabs[i]);
 
-                if ((rc = MPI_Irecv(data[i].dataPtr(),
-                                   fabs[i],
-                                   MPI_LONG,
-                                   i,
-                                   SeqNo,
-                                   ParallelDescriptor::Communicator(),
-                                   &reqs[i])) != MPI_SUCCESS)
-                    ParallelDescriptor::Abort(rc);
+                MPI_REQUIRE( MPI_Irecv(data[i].dataPtr(),
+				       fabs[i],
+				       MPI_LONG,
+				       i,
+				       SeqNo,
+				       ParallelDescriptor::Communicator(),
+				       &reqs[i]));
             }
         }
 
         for (int completed; NWaits > 0; NWaits -= completed)
         {
-            if ((rc = MPI_Waitsome(NProcs,
-                                   reqs.dataPtr(),
-                                   &completed,
-                                   indx.dataPtr(),
-                                   status.dataPtr())) != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
+            MPI_REQUIRE( MPI_Waitsome(NProcs,
+				      reqs.dataPtr(),
+				      &completed,
+				      indx.dataPtr(),
+				      status.dataPtr()));
 
             for (int k = 0; k < completed; k++)
             {

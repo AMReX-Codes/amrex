@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.78 2001-07-20 17:57:27 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.79 2001-07-20 18:18:42 car Exp $
 //
 
 #include <cstdio>
@@ -190,16 +190,6 @@ operator<< (std::ostream&          os,
 
 namespace
 {
-
-    const char*
-    ErrorString(int errorcode)
-    {
-	int len = 0;
-	static char msg[MPI_MAX_ERROR_STRING+1];
-	MPI_REQUIRE( MPI_Error_string(errorcode, msg, &len) );
-	return msg;
-    }
-
     const char*
     the_message_string(const char* file, int line, const char* call, int status)
     {
@@ -210,7 +200,8 @@ namespace
 	static char buf[DIM];
 	if ( status )
 	{
-	    std::sprintf(buf, "File %s, line %d, %s: %s", file, line, call, ErrorString(status));
+	    std::sprintf(buf, "File %s, line %d, %s: %s",
+			 file, line, call, ParallelDescriptor::ErrorString(status));
 	}
 	else
 	{
@@ -355,25 +346,21 @@ ParallelDescriptor::StartParallel (int*    argc,
 
     m_comm = MPI_COMM_WORLD;
 
-    int rc, sflag;
+    int sflag;
 
-    if ((rc = MPI_Initialized(&sflag)) != MPI_SUCCESS)
-	ParallelDescriptor::Abort(rc);
+    MPI_REQUIRE( MPI_Initialized(&sflag) );
 
     if (!sflag)
-	if ((rc = MPI_Init(argc, argv)) != MPI_SUCCESS)
-            ParallelDescriptor::Abort(rc);
+	MPI_REQUIRE( MPI_Init(argc, argv) );
     
-    if ((rc = MPI_Comm_size(Communicator(), &m_nProcs)) != MPI_SUCCESS)
-        ParallelDescriptor::Abort(rc);
+    MPI_REQUIRE( MPI_Comm_size(Communicator(), &m_nProcs) );
 
-    if ((rc = MPI_Comm_rank(Communicator(), &m_MyId)) != MPI_SUCCESS)
-        ParallelDescriptor::Abort(rc);
+    MPI_REQUIRE( MPI_Comm_rank(Communicator(), &m_MyId) );
+
     //
     // Wait till all other processes are properly started.
     //
-    if ((rc = MPI_Barrier(Communicator())) != MPI_SUCCESS)
-        ParallelDescriptor::Abort(rc);
+    MPI_REQUIRE( MPI_Barrier(Communicator()) );
 }
 
 void
@@ -382,10 +369,7 @@ ParallelDescriptor::EndParallel ()
     BL_ASSERT(m_MyId != -1);
     BL_ASSERT(m_nProcs != -1);
 
-    int rc = MPI_Finalize();
-
-    if (!(rc == MPI_SUCCESS))
-        ParallelDescriptor::Abort(rc);
+    MPI_REQUIRE( MPI_Finalize() );
 }
 
 double
@@ -397,10 +381,7 @@ ParallelDescriptor::second ()
 void
 ParallelDescriptor::Barrier ()
 {
-    int rc = MPI_Barrier(Communicator());
-
-    if (!(rc == MPI_SUCCESS))
-        ParallelDescriptor::Abort(rc);
+    MPI_REQUIRE( MPI_Barrier(Communicator()) );
 }
 
 void
@@ -409,16 +390,13 @@ ParallelDescriptor::util::DoAllReduceReal (Real& r,
 {
     Real recv;
 
-    int rc = MPI_Allreduce(&r,
-                           &recv,
-                           1,
-                           mpi_data_type(&recv),
-                           op,
-                           Communicator());
+    MPI_REQUIRE( MPI_Allreduce(&r,
+			       &recv,
+			       1,
+			       mpi_data_type(&recv),
+			       op,
+			       Communicator()) );
 
-    if (!(rc == MPI_SUCCESS))
-        ParallelDescriptor::Abort(rc);
-    
     r = recv;
 }
 
@@ -429,16 +407,13 @@ ParallelDescriptor::util::DoReduceReal (Real& r,
 {
     Real recv;
 
-    int rc = MPI_Reduce(&r,
-                        &recv,
-                        1,
-                        mpi_data_type(&recv),
-                        op,
-                        cpu,
-                        Communicator());
-
-    if (!(rc == MPI_SUCCESS))
-        ParallelDescriptor::Abort(rc);
+    MPI_REQUIRE( MPI_Reduce(&r,
+			    &recv,
+			    1,
+			    mpi_data_type(&recv),
+			    op,
+			    cpu,
+			    Communicator()) );
 
     if (ParallelDescriptor::MyProc() == cpu)
         r = recv;
@@ -486,16 +461,12 @@ ParallelDescriptor::util::DoAllReduceLong (long& r,
 {
     long recv;
 
-    int rc = MPI_Allreduce(&r,
+    MPI_REQUIRE( MPI_Allreduce(&r,
                            &recv,
                            1,
                            MPI_LONG,
                            op,
-                           Communicator());
-
-    if (!(rc == MPI_SUCCESS))
-        ParallelDescriptor::Abort(rc);
-    
+			       Communicator()) );
     r = recv;
 }
 
@@ -506,16 +477,13 @@ ParallelDescriptor::util::DoReduceLong (long& r,
 {
     long recv;
 
-    int rc = MPI_Reduce(&r,
+    MPI_REQUIRE( MPI_Reduce(&r,
                         &recv,
                         1,
                         MPI_LONG,
                         op,
                         cpu,
-                        Communicator());
-
-    if (!(rc == MPI_SUCCESS))
-        ParallelDescriptor::Abort(rc);
+                        Communicator()));
 
     if (ParallelDescriptor::MyProc() == cpu)
         r = recv;
@@ -575,16 +543,13 @@ ParallelDescriptor::util::DoAllReduceInt (int& r,
 {
     int recv;
 
-    int rc = MPI_Allreduce(&r,
-                           &recv,
-                           1,
-                           MPI_INT,
-                           op,
-                           Communicator());
+    MPI_REQUIRE( MPI_Allreduce(&r,
+			       &recv,
+			       1,
+			       MPI_INT,
+			       op,
+			       Communicator()));
 
-    if (!(rc == MPI_SUCCESS))
-        ParallelDescriptor::Abort(rc);
-    
     r = recv;
 }
 
@@ -595,16 +560,13 @@ ParallelDescriptor::util::DoReduceInt (int& r,
 {
     int recv;
 
-    int rc = MPI_Reduce(&r,
+    MPI_REQUIRE( MPI_Reduce(&r,
                         &recv,
                         1,
                         MPI_INT,
                         op,
                         cpu,
-                        Communicator());
-
-    if (!(rc == MPI_SUCCESS))
-        ParallelDescriptor::Abort(rc);
+                        Communicator()));
 
     if (ParallelDescriptor::MyProc() == cpu)
         r = recv;
@@ -712,17 +674,15 @@ ParallelDescriptor::Gather (Real* sendbuf,
 
     MPI_Datatype typ = mpi_data_type(sendbuf);
 
-    int rc = MPI_Gather(sendbuf,
-                        nsend,
-                        typ,
-                        recvbuf,
-                        nsend,
-                        typ,
-                        root,
-                        Communicator());
+    MPI_REQUIRE( MPI_Gather(sendbuf,
+			    nsend,
+			    typ,
+			    recvbuf,
+			    nsend,
+			    typ,
+			    root,
+			    Communicator()));
 
-    if (!(rc == MPI_SUCCESS))
-        ParallelDescriptor::Abort(rc);
 }
 
 MPI_Op
