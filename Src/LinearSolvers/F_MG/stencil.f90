@@ -792,18 +792,18 @@ contains
     xx(:,2) = (/ Huge(xx), (i+HALF, i=0, max_order-1) /)
     xc(:)   = (/           (i+HALF, i=0, max_order  ) /)
 
-print *, 'max_order = ', max_order
+!print *, 'max_order = ', max_order
     norder = min(nn, max_order)
 
-print *, 'norder = ', norder
+!print *, 'norder = ', norder
     xx(0,1) = -xa(1)/dh(1)
     xx(0,2) = -xb(1)/dh(1)
-print *, 'xx1 = ', xx(:,1)
-print *, 'xx2 = ', xx(:,2)
+!print *, 'xx1 = ', xx(:,1)
+!print *, 'xx2 = ', xx(:,2)
     call poly_interp_coeff(cc(0:norder(1),1), -HALF, xx(0:norder(1),1))
     call poly_interp_coeff(cc(0:norder(1),2), -HALF, xx(0:norder(1),2))
-print *, 'cc1 = ', cc(:,1)
-print *, 'cc2 = ', cc(:,2)
+!print *, 'cc1 = ', cc(:,1)
+!print *, 'cc2 = ', cc(:,2)
     do j = 1, nn(2)
        if ( bc_dirichlet(mm( 1,j), 1, -1) ) &
             ph(0   ,j) = sum(ph(0:norder(1)         ,j)*cc(0:norder(1),1))
@@ -2407,7 +2407,7 @@ print *, 'cc2 = ', cc(:,2)
     real(kind=dp_t) num, den
     integer i, j, N
     N = size(x)
-print *, 'N = ', N
+!print *, 'N = ', N
     do j = 1, N
        num = ONE
        den = ONE
