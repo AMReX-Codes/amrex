@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.18 1997-11-11 21:22:50 lijewski Exp $
+// $Id: VisMF.cpp,v 1.19 1997-11-12 00:16:57 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -244,6 +244,41 @@ operator>> (istream&       is,
     return is;
 }
 
+#ifdef BL_T3E
+signed char*
+VisMF::Large_IO_Buffer ()
+{
+    //
+    // Used to implicitly manage allocation/deallocation of I/O buffer.
+    //
+    struct XXX
+    {
+        //
+        // The only constructor
+        //
+        XXX (int size)
+        {
+            if ((m_buffer = new signed char[VisMF::IO_Buffer_Size]) == 0)
+                BoxLib::OutOfMemory(__FILE__, __LINE__);
+        }
+        //
+        // The destructor.
+        //
+        ~XXX () { delete [] m_buffer; m_buffer = 0; }
+        //
+        // The data we manage -- a buffer for I/O.
+        //
+        signed char* m_buffer;
+    };
+
+    static XXX IO_Buffer_Manager;
+
+    assert(!(IO_Buffer_Manager.m_buffer == 0));
+
+    return IO_Buffer_Manager.m_buffer;
+}
+#endif /*BL_T3E*/
+
 VisMF::FabOnDisk
 VisMF::Write (const FArrayBox& fab,
               const aString&   filename,
@@ -384,7 +419,12 @@ VisMF::WriteHeader (const aString& mf_name,
 
         MFHdrFileName += VisMF::MultiFabHdrFileSuffix;
 
-        ofstream MFHdrFile(MFHdrFileName.c_str());
+        ofstream MFHdrFile;
+
+#ifdef BL_T3E
+        MFHdrFile.setbuf(VisMF::Large_IO_Buffer(), VisMF::IO_Buffer_Size);
+#endif
+        MFHdrFile.open(MFHdrFileName.c_str(), ios::out);
 
         MFHdrFile << hdr;
     }
@@ -434,7 +474,12 @@ VisMF::Write (const MultiFab& mf,
         FabFileName += VisMF::FabFileSuffix;
         FabFileName += VisMF::ToString(PD::MyProc());
 
-        ofstream FabFile(FabFileName.c_str());
+        ofstream FabFile;
+
+#ifdef BL_T3E
+        FabFile.setbuf(VisMF::Large_IO_Buffer(), VisMF::IO_Buffer_Size);
+#endif
+        FabFile.open(FabFileName.c_str(), ios::out);
 
         if (!FabFile.good())
         {
@@ -469,7 +514,12 @@ VisMF::Write (const MultiFab& mf,
             FabFileName += VisMF::FabFileSuffix;
             FabFileName += VisMF::ToString(mfi.index());
 
-            ofstream FabFile(FabFileName.c_str());
+            ofstream FabFile;
+
+#ifdef BL_T3E
+            FabFile.setbuf(VisMF::Large_IO_Buffer(), VisMF::IO_Buffer_Size);
+#endif
+            FabFile.open(FabFileName.c_str(), ios::out);
 
             if (!FabFile.good())
             {
@@ -526,7 +576,13 @@ VisMF::VisMF (const aString& mf_name)
 
     file += VisMF::MultiFabHdrFileSuffix;
 
-    ifstream ifs(file.c_str());
+    ifstream ifs;
+
+#ifdef BL_T3E
+    ifs.setbuf(VisMF::Large_IO_Buffer(), VisMF::IO_Buffer_Size);
+#endif
+
+    ifs.open(file.c_str(), ios::out);
 
     if (!ifs.good())
     {
@@ -558,7 +614,13 @@ VisMF::readFAB (int i) const
 
     const aString& file = m_hdr.m_fod[i].m_name;
 
-    ifstream ifs(file.c_str());
+    ifstream ifs;
+
+#ifdef BL_T3E
+    ifs.setbuf(VisMF::Large_IO_Buffer(), VisMF::IO_Buffer_Size);
+#endif
+
+    ifs.open(file.c_str(), ios::out);
 
     if (!ifs.good())
     {
