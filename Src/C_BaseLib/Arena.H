@@ -2,7 +2,7 @@
 #define BL_ARENA_H
 
 //
-// $Id: Arena.H,v 1.9 2001-07-17 23:02:17 lijewski Exp $
+// $Id: Arena.H,v 1.10 2001-07-19 15:26:47 lijewski Exp $
 //
 
 #include <cstddef>
@@ -55,23 +55,6 @@ protected:
         void (*f) ();
     };
 };
-
-//
-// Inlines.
-//
-
-inline
-Arena::~Arena ()
-{}
-
-inline
-size_t
-Arena::align (size_t s)
-{
-    size_t x = s + sizeof(Word) - 1;
-    x -= x%sizeof(Word);
-    return x;
-}
 
 #ifdef BL_NAMESPACE
 }
