@@ -4,7 +4,7 @@
 #define _SlabStat_H_
 
 //
-// $Id: SlabStat.H,v 1.3 2000-03-29 21:42:38 lijewski Exp $
+// $Id: SlabStat.H,v 1.4 2000-04-21 22:28:16 sstanley Exp $
 //
 
 #include <ArrayLim.H>
@@ -36,6 +36,19 @@ typedef void (*SlabStatFunc)(const Real* src,
                              const Real* dx);
 }
 
+//
+//@Man:
+//@Memo: Slab Statistics Record
+/*@Doc:
+
+  SlabStatRecs are designed to control the output of running averages as 
+  a simulation proceeds.  A required list of state and derived variables
+  is specified, as well as a list of boxes on which the statistics are
+  to be calculated.  Every time step on the level where these boxes are 
+  defined, the specified fortran function is called and the running statistics
+  are accumulated.  The statistics are written out every check_int level 0
+  timesteps.
+*/
 class SlabStatRec
 {
    friend class SlabStatList;
