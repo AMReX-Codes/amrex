@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.15 1998-02-18 21:35:34 vince Exp $
+// $Id: TagBox.cpp,v 1.16 1998-02-19 18:10:46 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -41,12 +41,22 @@ TagBoxArray::BumpCollateSpace (long numtags)
 
 struct TagBoxMergeDesc
 {
-  bool      destLocal;
-  int       mergeIndexSrc;
-  int       mergeIndexDest;
-  int       nOverlap;
-  Box       overlapBox;
-  FillBoxId fillBoxId;
+    FillBoxId fillBoxId;
+    Box       overlapBox;
+    int       mergeIndexSrc;
+    int       mergeIndexDest;
+    int       nOverlap;
+    bool      destLocal;
+    //
+    // Default constructor -- keep 3rd quiet.
+    //
+    TagBoxMergeDesc ()
+    {
+        mergeIndexSrc  = 0;
+        mergeIndexDest = 0;
+        nOverlap       = 0;
+        destLocal      = false;
+    }
 };
 
 TagBox::TagBox () {}
