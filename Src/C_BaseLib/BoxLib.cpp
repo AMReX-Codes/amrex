@@ -1,5 +1,5 @@
 //
-// $Id: BoxLib.cpp,v 1.19 2001-07-22 19:38:16 car Exp $
+// $Id: BoxLib.cpp,v 1.20 2001-07-22 22:12:10 car Exp $
 //
 
 #include <cstdio>
@@ -136,11 +136,17 @@ BoxLib::OutOfMemory (const char* file,
     BoxLib::Assert("operator new", file, line);
 }
 
+namespace
+{
+Profiler* bl_prf;
+}
+
 void
 BoxLib::Initialize(int& argc, char**& argv)
 {
-    BL_PROFILE_TIMER(pmain, "BoxLib");
-    BL_PROFILE_START(pmain);
+    static Profiler::Tag bl_prf_tag("BoxLib");
+    bl_prf = new Profiler(bl_prf_tag, true);
+    bl_prf->start();
     Profiler::Initialize(argc, argv);
     ParallelDescriptor::StartParallel(&argc, &argv);
 }
@@ -148,7 +154,7 @@ BoxLib::Initialize(int& argc, char**& argv)
 void
 BoxLib::Finalize()
 {
-    BL_PROFILE_TIMER(pmain, "main()");
+    bl_prf->stop();
     Profiler::Finalize();
     ParallelDescriptor::EndParallel();
 }
