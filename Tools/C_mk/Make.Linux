@@ -32,6 +32,14 @@ ifeq ($(FCOMP),Absoft)
   override XTRALIBS += -lfio -lf77math
   #override FORTLINK := LOWERCASE
 else
+ifeq ($(FCOMP),PGI)
+  FC := pgf77
+  fC := $(FC)
+  FOPTF += -fast -tp athlon -Mcache_align -Mvect=prefetch
+  fOPTF += -fast -tp athlon -Mcache_align -Mvect=prefetch
+  LIBRARY_LOCATIONS += /usr/local/pgi/linux86/lib
+  override XTRALIBS += -lpgftnrtl -lpgc
+else
 ifeq ($(FCOMP),Intel)
   FC   := ifc
   FOPTF += -O3
@@ -39,13 +47,16 @@ ifeq ($(FCOMP),Intel)
   LIBRARY_LOCATIONS += $(IA32ROOT)/lib 
   override XTRALIBS += -lintrins -lIEPCF90 -lF90 -limf -lcxa -lirc
 else
+  # default g77 version
   FOPTF += -O
   fOPTF += -O
   #DEFINES += -DBL_FORT_USE_UNDERSCORE
   #override XTRALIBS +=  -lf2c
+  LIBRARY_LOCATIONS += /usr/lib/gcc-lib/i386-redhat-linux/2.96
   override XTRALIBS += -lg2c
   FDEBF +=   -ffortran-bounds-check -Wimplicit
   fDEBF +=   -ffortran-bounds-check -Wimplicit
+endif
 endif
 endif
 endif
