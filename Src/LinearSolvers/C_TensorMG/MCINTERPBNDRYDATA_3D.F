@@ -1858,7 +1858,7 @@ c ::      is made to check that the one-sided difference does not poke out
 c ::      the other side of the grid.  But if grids are that small, a lot
 c ::      of things will be blowing up.
 c ::      NOTE: only the transverse derivs are computed, so one of the
-c ::      deriv's if filled with error values
+c ::      derivs if filled with error values
 
 c :: Inputs/Outputs:
 c ::  bdry <= fine grid bndry data strip
@@ -1964,7 +1964,7 @@ c ::      is made to check that the one-sided difference does not poke out
 c ::      the other side of the grid.  But if grids are that small, a lot
 c ::      of things will be blowing up.
 c ::      NOTE: only the transverse derivs are computed, so one of the
-c ::      deriv's if filled with error values
+c ::      derivs if filled with error values
 
 c :: Inputs/Outputs:
 c ::  bdry <= fine grid bndry data strip
@@ -2069,7 +2069,7 @@ c ::      is made to check that the one-sided difference does not poke out
 c ::      the other side of the grid.  But if grids are that small, a lot
 c ::      of things will be blowing up.
 c ::      NOTE: only the transverse derivs are computed, so one of the
-c ::      deriv's if filled with error values
+c ::      derivs if filled with error values
 
 c :: Inputs/Outputs:
 c ::  bdry <= fine grid bndry data strip
@@ -2175,7 +2175,7 @@ c ::      is made to check that the one-sided difference does not poke out
 c ::      the other side of the grid.  But if grids are that small, a lot
 c ::      of things will be blowing up.
 c ::      NOTE: only the transverse derivs are computed, so one of the
-c ::      deriv's if filled with error values
+c ::      derivs if filled with error values
 
 c :: Inputs/Outputs:
 c ::  bdry <= fine grid bndry data strip
@@ -2281,7 +2281,7 @@ c ::      is made to check that the one-sided difference does not poke out
 c ::      the other side of the grid.  But if grids are that small, a lot
 c ::      of things will be blowing up.
 c ::      NOTE: only the transverse derivs are computed, so one of the
-c ::      deriv's if filled with error values
+c ::      derivs if filled with error values
 
 c :: Inputs/Outputs:
 c ::  bdry <= fine grid bndry data strip
@@ -2388,7 +2388,7 @@ c ::      is made to check that the one-sided difference does not poke out
 c ::      the other side of the grid.  But if grids are that small, a lot
 c ::      of things will be blowing up.
 c ::      NOTE: only the transverse derivs are computed, so one of the
-c ::      deriv's if filled with error values
+c ::      derivs if filled with error values
 
 c :: Inputs/Outputs:
 c ::  bdry <= fine grid bndry data strip
