@@ -35,14 +35,10 @@ csources    =
 
 
 CPPFLAGS += -DBL_$(ARCH)
-ifeq ($(ARCH),AIX)
-  CPPFLAGS += -DBL_FORT_USE_LOWERCASE
-else
+
+F_C_LINK := UNDERSCORE
 ifeq ($(COMP),g95)
-  CPPFLAGS += -DBL_FORT_USE_DBL_UNDERSCORE
-else
-  CPPFLAGS += -DBL_FORT_USE_UNDERSCORE
-endif
+  F_C_LINK := DBL_UNDERSCORE
 endif
 
 odir=.
@@ -55,6 +51,15 @@ mdir = $(tdir)/m
 hdir = t/html
 
 ifeq ($(ARCH),Darwin)
+  ifeq ($(COMP),IBM)
+    F_C_LINK := LOWERCASE
+    FC := xlf
+    F90 := xlf95
+    CC  := xlc
+    F90FLAGS += -qsuffix=f=f90 -qnosave
+    F90FLAGS += -qmoddir=$(mdir)
+    F90FLAGS += -I$(mdir)
+  endif
   ifeq ($(COMP),g95)
     FC := g95
     F90 := g95
@@ -392,6 +397,7 @@ ifeq ($(ARCH),CRAYX1)
   f2kcli_suf := _crayx1
 endif
 ifeq ($(ARCH),AIX)
+  F_C_LINK := LOWERCASE
   COMP = xlf
   ifdef OMP
     rsuf := _r
@@ -514,7 +520,7 @@ FPPFLAGS += $(fpp_flags)
 LDFLAGS  += $(fld_flags)
 libraries += $(mpi_libraries)
 
-CPPFLAGS += $(addprefix -I, $(INCLUDE_LOCATIONS))
+CPPFLAGS += -DBL_FORT_USE_$(F_C_LINK) $(addprefix -I, $(INCLUDE_LOCATIONS))
 
 objects = $(addprefix $(odir)/,       \
 	$(sort $(f90sources:.f90=.o)) \
