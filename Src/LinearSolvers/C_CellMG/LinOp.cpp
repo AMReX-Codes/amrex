@@ -1,5 +1,5 @@
 //
-// $Id: LinOp.cpp,v 1.5 1998-06-13 15:50:01 lijewski Exp $
+// $Id: LinOp.cpp,v 1.6 1998-07-06 18:05:03 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -16,8 +16,8 @@
 #include <LinOp.H>
 
 bool LinOp::initialized = false;
-int LinOp::def_harmavg = 0;
-int LinOp::def_verbose = 0;
+int LinOp::def_harmavg  = 0;
+int LinOp::def_verbose  = 0;
 int LinOp::def_maxorder = 2;
 
 #ifndef NDEBUG
@@ -283,8 +283,7 @@ LinOp::norm (const MultiFab& in,
     Real norm = 0.0;
     for (ConstMultiFabIterator inmfi(in); inmfi.isValid(false); ++inmfi)
     {
-        int gn     = inmfi.index();
-        Real tnorm = inmfi().norm(gbox[level][gn]);
+        Real tnorm = inmfi().norm(gbox[level][inmfi.index()]);
         norm      += tnorm*tnorm;
     }
     ParallelDescriptor::ReduceRealSum(norm);
@@ -296,7 +295,9 @@ LinOp::prepareForLevel (int level)
 {
     if (level == 0)
         return;
+
     LinOp::prepareForLevel(level-1);
+
     if (h.size() > level)
         return;
     //
@@ -404,6 +405,7 @@ LinOp::makeCoefficients (MultiFab&       cs,
 #if (BL_SPACEDIM == 3)    
     const IndexType zType(D_DECL(IndexType::CELL, IndexType::CELL, IndexType::NODE));
 #endif
+
     int cdir;
     if (iType == cType)
     {
@@ -427,57 +429,71 @@ LinOp::makeCoefficients (MultiFab&       cs,
     {
 	BoxLib::Error("LinOp::makeCoeffients: Bad index type");
     }
+
     BoxArray d(gbox[level]);
     if (cdir >= 0)
         d.surroundingNodes(cdir);
     //
     // Only single-component solves supported (verified) by this class.
     //
-    int nComp=1;
-    int nGrow=0;
+    const int nComp=1;
+    const int nGrow=0;
     cs.define(d, nComp, nGrow, Fab_allocate);
-    cs.setVal(0.0);
 
     const BoxArray& grids = gbox[level];
-    for (MultiFabIterator csmfi(cs); csmfi.isValid(false); ++csmfi)
+
+    MultiFabIterator csmfi(cs);
+
+    switch (cdir)
     {
-	DependentMultiFabIterator fnmfi(csmfi, fn);
-        switch(cdir)
-	{
-        case -1:
-            FORT_AVERAGECC(
-                csmfi().dataPtr(), ARLIM(csmfi().loVect()), ARLIM(csmfi().hiVect()),
-                fnmfi().dataPtr(), ARLIM(fnmfi().loVect()), ARLIM(fnmfi().hiVect()),
-                grids[csmfi.index()].loVect(), grids[csmfi.index()].hiVect(), &nc
-                );
-            break;
-        case 0:
-        case 1:
-        case 2:
-            if ( harmavg )
-	    {
-                FORT_HARMONIC_AVERAGEEC(
-                    csmfi().dataPtr(), 
-                    ARLIM(csmfi().loVect()), ARLIM(csmfi().hiVect()),
-                    fnmfi().dataPtr(), 
-                    ARLIM(fnmfi().loVect()), ARLIM(fnmfi().hiVect()),
-                    grids[csmfi.index()].loVect(), grids[csmfi.index()].hiVect(),
-		    &nc, &cdir);
-		
-            } else {
-		
-                FORT_AVERAGEEC(
-                    csmfi().dataPtr(), 
-                    ARLIM(csmfi().loVect()), ARLIM(csmfi().hiVect()),
-                    fnmfi().dataPtr(), 
-                    ARLIM(fnmfi().loVect()), ARLIM(fnmfi().hiVect()),
-                    grids[csmfi.index()].loVect(), grids[csmfi.index()].hiVect(),
-		    &nc, &cdir);
-            }
-            break;
-        default:
-            BoxLib::Error("LinOp:: bad coefficient coarsening direction!");
+    case -1:
+        for ( ; csmfi.isValid(false); ++csmfi)
+        {
+            DependentMultiFabIterator fnmfi(csmfi, fn);
+
+            FORT_AVERAGECC(csmfi().dataPtr(), ARLIM(csmfi().loVect()),
+                           ARLIM(csmfi().hiVect()),fnmfi().dataPtr(),
+                           ARLIM(fnmfi().loVect()),ARLIM(fnmfi().hiVect()),
+                           grids[csmfi.index()].loVect(),
+                           grids[csmfi.index()].hiVect(), &nc);
         }
+        break;
+    case 0:
+    case 1:
+    case 2:
+        if (harmavg)
+        {
+            for ( ; csmfi.isValid(false); ++csmfi)
+            {
+                DependentMultiFabIterator fnmfi(csmfi, fn);
+
+                FORT_HARMONIC_AVERAGEEC(csmfi().dataPtr(),
+                                        ARLIM(csmfi().loVect()),
+                                        ARLIM(csmfi().hiVect()),
+                                        fnmfi().dataPtr(),
+                                        ARLIM(fnmfi().loVect()),
+                                        ARLIM(fnmfi().hiVect()),
+                                        grids[csmfi.index()].loVect(),
+                                        grids[csmfi.index()].hiVect(),
+                                        &nc,&cdir);
+            }
+        }
+        else
+        {
+            for ( ; csmfi.isValid(false); ++csmfi)
+            {
+                DependentMultiFabIterator fnmfi(csmfi, fn);
+
+                FORT_AVERAGEEC(csmfi().dataPtr(),ARLIM(csmfi().loVect()),
+                               ARLIM(csmfi().hiVect()),fnmfi().dataPtr(), 
+                               ARLIM(fnmfi().loVect()),ARLIM(fnmfi().hiVect()),
+                               grids[csmfi.index()].loVect(),
+                               grids[csmfi.index()].hiVect(),&nc, &cdir);
+            }
+        }
+        break;
+    default:
+        BoxLib::Error("LinOp:: bad coefficient coarsening direction!");
     }
 }
 
@@ -487,13 +503,13 @@ operator << (std::ostream& os,
 {
     if (ParallelDescriptor::IOProcessor())
     {
-	os << "LinOp" << endl;
-	os << "Grids: " << endl;
+	os << "LinOp" << '\n';
+	os << "Grids: " << '\n';
 	for (int level = 0; level < lp.h.size(); ++level)
 	{
-	    os << " level = " << level << ": " << lp.gbox[level] << endl;
+	    os << " level = " << level << ": " << lp.gbox[level] << '\n';
 	}
-	os << "Grid Spacing: " << endl;
+	os << "Grid Spacing: " << '\n';
 	for (int level = 0; level < lp.h.size(); ++level)
 	{
 	    os << " level = " << level << ", dx = ";
@@ -501,27 +517,27 @@ operator << (std::ostream& os,
 	    {
 		os << lp.h[level][d] << "  ";
 	    }
-	    os << endl;
+	    os << '\n';
 	}
-	os << "Harmonic average? " << (lp.harmavg == 1 ? "yes" : "no") << endl;
-	os << "Verbosity: " << lp.verbose << endl;
-	os << "Max Order: " << lp.maxorder << endl;
+	os << "Harmonic average? " << (lp.harmavg == 1 ? "yes" : "no") << '\n';
+	os << "Verbosity: " << lp.verbose << '\n';
+	os << "Max Order: " << lp.maxorder << '\n';
     }
 
     if (ParallelDescriptor::IOProcessor())
     {
-	os << "Masks:" << endl;
+	os << "Masks:" << '\n';
     }
     for (int level = 0; level < lp.h.size(); ++level)
     {
 	if (ParallelDescriptor::IOProcessor())
-	    os << "level = " << level << endl;
+	    os << "level = " << level << '\n';
 	ParallelDescriptor::Synchronize();
 	for (int nproc = 0; nproc < ParallelDescriptor::NProcs(); ++nproc)
 	{
 	    if (nproc == ParallelDescriptor::MyProc())
 	    {
-		os << "Processor " << nproc << endl;
+		os << "Processor " << nproc << '\n';
 		for (OrientationIter oitr; oitr; ++oitr)
 		{
 		    Orientation face = oitr();
