@@ -1,14 +1,13 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.40 1998-06-11 22:37:45 lijewski Exp $
+// $Id: TagBox.cpp,v 1.41 1998-06-20 03:20:02 lijewski Exp $
 //
 
 #include <TagBox.H>
 #include <Misc.H>
 #include <Geometry.H>
 #include <ParallelDescriptor.H>
-#include <Tracer.H>
 
 #ifdef BL_USE_NEW_HFILES
 #include <vector>
@@ -23,6 +22,11 @@ extern void inspectFAB (FArrayBox& unfab, int n);
 
 #ifdef BL_USE_MPI
 #include <mpi.h>
+#endif
+
+#ifndef NDEBUG
+extern "C" void PrintTagBox (const TagBox& tb);
+extern "C" void PrintTagBoxArray (const TagBoxArray& tba);
 #endif
 
 //
@@ -450,8 +454,6 @@ TagBoxArray::buffer (int nbuf)
 void
 TagBoxArray::mergeUnique ()
 {
-    TRACER("TagBoxArray::mergeUnique()");
-
     FabArrayCopyDescriptor<TagType,TagBox> facd;
 
     FabArrayId faid     = facd.RegisterFabArray(this);
@@ -461,11 +463,11 @@ TagBoxArray::mergeUnique ()
     vector<TagBoxMergeDesc> tbmdList;
     TagBoxMergeDesc         tbmd;
 
-    for (int idest = 0; idest < fabparray.length(); ++idest)
+    for (int idest = 0; idest < boxarray.length(); ++idest)
     {
         bool destLocal = (distributionMap[idest] == MyProc);
 
-        for (int isrc = idest + 1; isrc < fabparray.length(); ++isrc)
+        for (int isrc = idest + 1; isrc < boxarray.length(); ++isrc)
         {
             if (boxarray[idest].intersects(boxarray[isrc]))
             {
@@ -512,7 +514,9 @@ TagBoxArray::mergeUnique ()
                 {
                     Box ovlpBox = src.box() & tbmdList[j].overlapBox;
                     if (tbmdList[j].nOverlap < i)
+                    {
                         src.setVal(TagBox::CLEAR, ovlpBox, 0);
+                    }
                     tbmdClear.fabIndex = desc.mergeIndexSrc;
                     tbmdClear.box      = desc.overlapBox;
                     clearList.push_back(tbmdClear);
@@ -635,49 +639,48 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 
     FabArrayId        faid   = facd.RegisterFabArray(this);
     const int         MyProc = ParallelDescriptor::MyProc();
-    vector<FillBoxId> fillBoxId;
-    Box               domain(geom.Domain());
+    const Box&        domain(geom.Domain());
     Array<IntVect>    pshifts(27);
+    vector<FillBoxId> fillBoxId;
     vector<IntVect>   shifts;
 
-    for (int i = 0; i < fabparray.length(); i++)
+    for (int i = 0; i < boxarray.length(); i++)
     {
         if (!domain.contains(boxarray[i]))
         {
-            //
-            // src is candidate for periodic mapping.
-            //
             geom.periodicShift(domain, boxarray[i], pshifts);
 
             for (int iiv = 0; iiv < pshifts.length(); iiv++)
             {
                 Box shiftbox(boxarray[i]);
-                D_TERM(shiftbox.shift(0,pshifts[iiv][0]);,
-                       shiftbox.shift(1,pshifts[iiv][1]);,
-                       shiftbox.shift(2,pshifts[iiv][2]);)
-                //
-                // Possible periodic remapping, try each tagbox.
-                //
-                for (int j = 0; j < fabparray.length(); j++)
+
+                shiftbox.shift(pshifts[iiv]);
+
+                for (int j = 0; j < boxarray.length(); j++)
                 {
                     if (distributionMap[j] == MyProc)
                     {
-                        if (shiftbox.intersects(fabparray[j].box()))
+                        if (shiftbox.intersects(boxarray[j]))
                         {
-                            Box intbox = fabparray[j].box() & shiftbox;
+                            Box intbox = boxarray[j] & shiftbox;
+
+                            intbox.shift(-pshifts[iiv]);
 
                             fillBoxId.push_back(facd.AddBox(faid,
                                                             intbox,
                                                             0,
+                                                            i,
                                                             0,
                                                             0,
                                                             n_comp));
+
+                            assert(fillBoxId.back().box() == intbox);
                             //
                             // Here we'll save the index into fabparray.
                             //
                             fillBoxId.back().FabIndex(j);
                             //
-                            // We maintain a parallel array of IntVect shifts.
+                            // Maintain a parallel array of IntVect shifts.
                             //
                             shifts.push_back(pshifts[iiv]);
                         }
@@ -696,9 +699,13 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
     for (int i = 0; i < fillBoxId.size(); i++)
     {
         assert(distributionMap[fillBoxId[i].FabIndex()] == MyProc);
+
         src.resize(fillBoxId[i].box(), n_comp);
+
         facd.FillFab(faid, fillBoxId[i], src);
+
         src.shift(shifts[i]);
+
         fabparray[fillBoxId[i].FabIndex()].merge(src);
     }
 }
@@ -707,19 +714,22 @@ long
 TagBoxArray::numTags () const 
 {
    long ntag = 0;
-   for (ConstFabArrayIterator<TagType,TagBox> fai(*this); fai.isValid(false); ++fai)
+
+   ConstFabArrayIterator<TagType,TagBox> fai(*this);
+
+   for ( ; fai.isValid(false); ++fai)
    {
       ntag += fai().numTags();
-   } 
+   }
+
    ParallelDescriptor::ReduceLongSum(ntag);
+
    return ntag;
 }
 
 IntVect*
 TagBoxArray::collate (long& numtags) const
 {
-    TRACER("TagBoxArray::collate()");
-
     const int NGrids = fabparray.length();
 
     Array<int> sharedNTags(NGrids); // Shared numTags per grid.
@@ -906,5 +916,4 @@ TagBoxArray::coarsen (const IntVect & ratio)
     }
     boxarray.coarsen(ratio);
     m_border = 0;
-    n_grow   = 0;
 }
