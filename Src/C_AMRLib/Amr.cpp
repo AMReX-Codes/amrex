@@ -1,5 +1,5 @@
 //
-// $Id: Amr.cpp,v 1.136 2003-06-24 17:18:21 lijewski Exp $
+// $Id: Amr.cpp,v 1.137 2003-09-08 21:07:45 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1878,7 +1878,7 @@ Amr::grid_places (int              lbase,
         TagBoxArray tags(old_grids,n_error_buf[levc]+ngrow);
         amr_level[levc].errorEst(tags,
                                  TagBox::CLEAR,TagBox::SET,time,
-				 n_error_buf[levc],ngrow);
+                                 n_error_buf[levc],ngrow);
         //
         // If new grids have been constructed above this level, project
         // those grids down and tag cells on intersections to ensure
@@ -1953,7 +1953,7 @@ Amr::grid_places (int              lbase,
         //
         // Buffer error cells.
         //
-        tags.buffer(n_error_buf[levc]);
+        tags.buffer(n_error_buf[levc]+ngrow);
         //
         // Coarsen the taglist by blocking_factor.
         //
