@@ -9,7 +9,7 @@ ifeq ($(COMP),KCC)
   FULLWARN := --strict_warnings
 endif
 
-FORT_CPP    := gcc -E -x c++
+FORT_CPP    := gcc -E -traditional
 FC  := g77 -fno-second-underscore
 fC  := $(FC)
 
