@@ -1,5 +1,5 @@
 //
-// $Id: FPC.cpp,v 1.8 2003-12-08 23:13:46 car Exp $
+// $Id: FPC.cpp,v 1.9 2004-03-04 18:09:40 car Exp $
 //
 
 #include <FPC.H>
@@ -33,7 +33,7 @@ const
 IntDescriptor&
 FPC::NativeLongDescriptor ()
 {
-#if defined(__alpha) || defined(__i486__) || defined(WIN32) || defined(i386) || defined(__i386__) || defined(__amd64__) || defined(powerpc)
+#if defined(__alpha) || defined(__i486__) || defined(WIN32) || defined(i386) || defined(__i386__) || defined(__x86_64) || defined(__amd64__) || defined(powerpc)
     static const IntDescriptor nld(sizeof(long), IntDescriptor::ReverseOrder);
 #endif
 
@@ -56,7 +56,7 @@ const
 RealDescriptor&
 FPC::NativeRealDescriptor ()
 {
-#if defined(__alpha) || defined(__i486__) || defined(WIN32) || defined(i386) || defined(__i386__) || defined(__amd64__)
+#if defined(__alpha) || defined(__i486__) || defined(WIN32) || defined(i386) || defined(__i386__) || defined(__amd64__) || defined(__x86_64)
 #ifdef BL_USE_FLOAT
     static const RealDescriptor nrd(ieee_float, reverse_float_order, 4);
 #else
@@ -121,6 +121,7 @@ FPC::Ieee64NormalRealDescriptor ()
       defined(i386)     || \
       defined(__i386__) || \
       defined(__amd64__) || \
+      defined(__x86_64) || \
       defined(__hpux)   || \
       defined(powerpc)  || \
       defined(_MSC_VER) || \
