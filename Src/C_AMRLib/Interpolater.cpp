@@ -1,12 +1,14 @@
 
 //
-// $Id: Interpolater.cpp,v 1.6 1997-12-11 23:27:52 lijewski Exp $
+// $Id: Interpolater.cpp,v 1.7 1997-12-13 19:53:07 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
 #include <cmath>
+#include <climits>
 #else
 #include <math.h>
+#include <limits.h>
 #endif
 
 #include <Interpolater.H>
@@ -306,30 +308,15 @@ CellConservative::interp (FArrayBox& crse, int crse_comp,
     int slope_flag = (do_limited_slope ? 1 : 0);
 
     FORT_CCINTERP (fdat,ARLIM(flo),ARLIM(fhi),
-                   fblo[0], fblo[1],
-#if (BL_SPACEDIM == 3)
-                   fblo[2],
-#endif 
-                   fbhi[0], fbhi[1],
-#if (BL_SPACEDIM == 3)
-                   fbhi[2],
-#endif 
+                   ARLIM(fblo), ARLIM(fbhi),
                    &ncomp,ratio.getVect(),
                    cdat,&clo,&chi,
-                   cblo[0], cblo[1],
-#if (BL_SPACEDIM == 3)
-                   cblo[2],
-#endif 
-                   cbhi[0], cbhi[1],
-#if (BL_SPACEDIM == 3)
-                   cbhi[2],
-#endif 
+                   ARLIM(cblo), ARLIM(cbhi),
                    fslo,fshi,
                    cslope,&c_len,fslope,fstrip,&f_len,foff,
                    (int*)bcr.dataPtr(), &slope_flag,
                    D_DECL(fvc[0].dataPtr(),fvc[1].dataPtr(),fvc[2].dataPtr()),
-                   D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr())
-                   );
+                   D_DECL(cvc[0].dataPtr(),cvc[1].dataPtr(),cvc[2].dataPtr()));
 }
 
 CellConservativeLinear::CellConservativeLinear (bool do_linear_limiting_)
@@ -596,24 +583,10 @@ CellQuadratic::interp (FArrayBox& crse, int crse_comp,
     int slope_flag = (do_limited_slope ? 1 : 0);
 
     FORT_CQINTERP (fdat,ARLIM(flo),ARLIM(fhi),
-                   fblo[0], fblo[1],
-#if (BL_SPACEDIM == 3)
-                   fblo[2],
-#endif 
-                   fbhi[0], fbhi[1],
-#if (BL_SPACEDIM == 3)
-                   fbhi[2],
-#endif 
+                   ARLIM(fblo), ARLIM(fbhi),
                    &ncomp,ratio.getVect(),
                    cdat,&clo,&chi,
-                   cblo[0], cblo[1],
-#if (BL_SPACEDIM == 3)
-                   cblo[2],
-#endif 
-                   cbhi[0], cbhi[1],
-#if (BL_SPACEDIM == 3)
-                   cbhi[2],
-#endif 
+                   ARLIM(cblo), ARLIM(cbhi),
                    fslo,fshi,
                    cslope,&c_len,fslope,fstrip,&f_len,foff,
                    (int*)bcr.dataPtr(), &slope_flag,

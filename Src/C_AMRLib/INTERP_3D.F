@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_3D.F,v 1.4 1997-12-12 22:43:16 lijewski Exp $
+c $Id: INTERP_3D.F,v 1.5 1997-12-13 19:53:07 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -548,18 +548,16 @@ c :::    jst = 6    = stride in J direction  (ncsx)
 c ::: 
 c ::: --------------------------------------------------------------
       subroutine FORT_CCINTERP (fine, DIMS(fine), 
-     $                          fb_l1, fb_l2, fb_l3, fb_h1, fb_h2, fb_h3, 
+     $                          DIMS(fb),
      $                          nvar, lratio, crse, clo, chi, 
-     $                          cb_l1, cb_l2, cb_l3, cb_h1, cb_h2, cb_h3, 
+     $                          DIMS(cb),
      $		                fslo, fshi, cslope, clen, fslope, fdat,
      $                          flen, voff, bc, limslope,
      $                          fvcx, fvcy, fvcz, cvcx, cvcy, cvcz)
 
       integer DIMDEC(fine)
-      integer fb_l1, fb_l2, fb_l3
-      integer fb_h1, fb_h2, fb_h3
-      integer cb_l1, cb_l2, cb_l3
-      integer cb_h1, cb_h2, cb_h3
+      integer DIMDEC(fb)
+      integer DIMDEC(cb)
       integer fslo(3), fshi(3)
       integer nvar, lratio(3)
       integer bc(3,2,nvar)
@@ -1933,18 +1931,16 @@ c ::: --------------------------------------------------------------
 c ::: 
 
       subroutine FORT_CQINTERP (fine, DIMS(fine), 
-     $                          fb_l1, fb_l2, fb_l3, fb_h1, fb_h2, fb_h3, 
+     $                          DIMS(fb),
      $                          nvar, lratio, crse, clo, chi, 
-     $                          cb_l1, cb_l2, cb_l3, cb_h1, cb_h2, cb_h3, 
+     $                          DIMS(cb),
      $		                fslo, fshi, cslope, clen, fslope, fdat,
      $                          flen, voff, bc, limslope,
      $                          fvcx, fvcy, fvcz, cvcx, cvcy, cvcz)
 
       integer DIMDEC(fine)
-      integer fb_l1, fb_l2, fb_l3
-      integer fb_h1, fb_h2, fb_h3
-      integer cb_l1, cb_l2, cb_l3
-      integer cb_h1, cb_h2, cb_h3
+      integer DIMDEC(fb)
+      integer DIMDEC(cb)
       integer fslo(3), fshi(3)
       integer nvar, lratio(3)
       integer bc(3,2,nvar)
