@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.75 2001-07-19 16:57:37 lijewski Exp $
+// $Id: VisMF.cpp,v 1.76 2001-07-19 21:11:50 lijewski Exp $
 //
 
 #include <cstdio>
@@ -584,7 +584,7 @@ VisMF::WriteHeader (const aString& mf_name,
         MFHdrFile.open(MFHdrFileName.c_str(), std::ios::out|std::ios::trunc);
 
         if (!MFHdrFile.good())
-            Utility::FileOpenFailed(MFHdrFileName);
+            BoxLib::FileOpenFailed(MFHdrFileName);
 
         MFHdrFile << hdr;
         //
@@ -656,7 +656,7 @@ VisMF::Write (const MultiFab& mf,
                                        std::ios::binary);
 
     if (!FabFile.good())
-        Utility::FileOpenFailed(FullFileName);
+        BoxLib::FileOpenFailed(FullFileName);
 
     aString basename = VisMF::BaseName(FullFileName);
 
@@ -761,7 +761,7 @@ VisMF::Write (const MultiFab& mf,
 #endif /*BL_USE_MPI*/
 
     if (VisMF::FileOffset(FabFile) <= 0)
-        Utility::UnlinkFile(FullFileName);
+        BoxLib::UnlinkFile(FullFileName);
 
     bytes += VisMF::WriteHeader(mf_name, hdr);
 
@@ -787,7 +787,7 @@ VisMF::VisMF (const aString& mf_name)
     ifs.open(FullHdrFileName.c_str(), std::ios::in);
 
     if (!ifs.good())
-        Utility::FileOpenFailed(FullHdrFileName);
+        BoxLib::FileOpenFailed(FullHdrFileName);
 
     ifs >> m_hdr;
 
@@ -832,7 +832,7 @@ VisMF::readFAB (int                  idx,
     ifs.open(FullFileName.c_str(), std::ios::in|std::ios::binary);
 
     if (!ifs.good())
-        Utility::FileOpenFailed(FullFileName);
+        BoxLib::FileOpenFailed(FullFileName);
 
     if (hdr.m_fod[idx].m_head)
         ifs.seekg(hdr.m_fod[idx].m_head, std::ios::beg);
@@ -870,7 +870,7 @@ VisMF::Read (MultiFab&      mf,
         ifs.open(FullHdrFileName.c_str(), std::ios::in);
 
         if (!ifs.good())
-            Utility::FileOpenFailed(FullHdrFileName);
+            BoxLib::FileOpenFailed(FullHdrFileName);
 
         ifs >> hdr;
     }

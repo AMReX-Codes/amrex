@@ -1,5 +1,5 @@
 //
-// $Id: RunStats.cpp,v 1.28 2001-07-19 16:57:37 lijewski Exp $
+// $Id: RunStats.cpp,v 1.29 2001-07-19 21:11:50 lijewski Exp $
 //
 
 #include <algorithm>
@@ -92,8 +92,8 @@ RunStats::start ()
 {
     if (isOn())
     {
-        time  = -Utility::second();
-        wtime = -Utility::wsecond();
+        time  = -BoxLib::second();
+        wtime = -BoxLib::wsecond();
     }
 }
 
@@ -102,8 +102,8 @@ RunStats::end ()
 {
     if (isOn())
     {
-        time              += Utility::second();
-        wtime             += Utility::wsecond();
+        time              += BoxLib::second();
+        wtime             += BoxLib::wsecond();
         entry->run_time   += time;
         gentry->run_time  += time;
         entry->run_wtime  += wtime;
@@ -359,8 +359,8 @@ RunStats::report (std::ostream& os)
 {
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
-    Real rtime  = Utility::second();
-    Real rwtime = Utility::wsecond();
+    Real rtime  = BoxLib::second();
+    Real rwtime = BoxLib::wsecond();
 
     ParallelDescriptor::ReduceRealSum(rtime,IOProc);
     ParallelDescriptor::ReduceRealMax(rwtime,IOProc);
@@ -459,8 +459,8 @@ RunStats::report_values (const Array<aString>& stat_names,
     stat_time.resize(NStats);
     stat_wtime.resize(NStats);
 
-    Real rtime  = Utility::second();
-    Real rwtime = Utility::wsecond();
+    Real rtime  = BoxLib::second();
+    Real rwtime = BoxLib::wsecond();
 
     ParallelDescriptor::ReduceRealSum(rtime);
     ParallelDescriptor::ReduceRealMax(rwtime);
@@ -492,8 +492,8 @@ RunStats::dumpStats (std::ofstream& os)
 {
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
-    Real rtime  = Utility::second();
-    Real rwtime = Utility::wsecond();
+    Real rtime  = BoxLib::second();
+    Real rwtime = BoxLib::wsecond();
 
     ParallelDescriptor::ReduceRealSum(rtime,IOProc);
     ParallelDescriptor::ReduceRealMax(rwtime,IOProc);

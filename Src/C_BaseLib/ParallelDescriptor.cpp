@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.74 2001-07-19 16:57:34 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.75 2001-07-19 21:11:50 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -133,6 +133,15 @@ operator<< (std::ostream&   os,
        << cd.fabarrayid() << ' '
        << cd.box();
 
+    return os;
+}
+
+std::ostream&
+operator<< (std::ostream&          os,
+            const Array<CommData>& cd)
+{
+    for (int i = 0; i < cd.length(); i++)
+        os << cd[i] << '\n';
     return os;
 }
 
@@ -649,7 +658,7 @@ void ParallelDescriptor::Broadcast (int,void*,void*,int) {}
 double
 ParallelDescriptor::second ()
 {
-    return Utility::second();
+    return BoxLib::second();
 }
 
 #endif
