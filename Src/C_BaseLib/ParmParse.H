@@ -2,7 +2,7 @@
 #define BL_PARMPARSE_H
 
 //
-// $Id: ParmParse.H,v 1.17 2001-07-23 19:33:37 car Exp $
+// $Id: ParmParse.H,v 1.18 2001-07-24 05:12:48 car Exp $
 //
 
 #include <string>
@@ -11,6 +11,7 @@
 #include <cstdlib>
 
 #include <Array.H>
+
 //
 // ParmParse class implements a simple database for the storage and
 // retrieval of command-line and input-file arguments.  The entries are
@@ -243,6 +244,9 @@
      FILE = prob\_file
 */
 
+class Box;
+class IntVect;
+
 class ParmParse
 {
 public:
@@ -461,6 +465,78 @@ public:
     //
     int query (const char* name,
                std::string&    ref,
+               int         ival=0) const;
+
+    /*@ManDoc: Get the ival'th value of kth occurrence of the requested name.
+               If successful, the value is converted to an IntVect and stored
+               in reference ref.  If the kth occurrence does not exist or
+               ival'th value does not exist, or if the printed representation
+               of the value cannot be converted to a IntVect, an error message
+               is output and the program halts.   Note that ival = 0 is the
+               first value in the list.
+    */
+    void getkth (const char* name,
+                 int         k,
+                 IntVect&    ref,
+                 int         ival=0) const;
+    //
+    //@ManDoc: Same as getkth() but searches for the last occurrence of name.
+    //
+    void get (const char* name,
+              IntVect&    ref,
+              int         ival=0) const;
+
+    /*@ManDoc: Similar to getkth() but returns 0 if there is no kth occurrence
+               of name.  If successful, it returns 1 and stores the value in
+               ref.  If the kth occurrence exists, but ival'th value of that
+               occurrence does not, or if there is a type mismatch, then the
+               program signals an error and halts.
+    */
+    int querykth (const char* name,
+                  int         k,
+                  IntVect&   ref,
+                  int         ival=0) const;
+    //
+    //@ManDoc: Same as querykth() but searches for the last occurrence of name.
+    //
+    int query (const char* name,
+               IntVect&    ref,
+               int         ival=0) const;
+
+    /*@ManDoc: Get the ival'th value of kth occurrence of the requested name.
+               If successful, the value is converted to a Box and stored
+               in reference ref.  If the kth occurrence does not exist or
+               ival'th value does not exist, or if the printed representation
+               of the value cannot be converted to a Box, an error message
+               is output and the program halts.   Note that ival = 0 is the
+               first value in the list.
+    */
+    void getkth (const char* name,
+                 int         k,
+                 Box&        ref,
+                 int         ival=0) const;
+    //
+    //@ManDoc: Same as getkth() but searches for the last occurrence of name.
+    //
+    void get (const char* name,
+              Box&        ref,
+              int         ival=0) const;
+
+    /*@ManDoc: Similar to getkth() but returns 0 if there is no kth occurrence
+               of name.  If successful, it returns 1 and stores the value in
+               ref.  If the kth occurrence exists, but ival'th value of that
+               occurrence does not, or if there is a type mismatch, then the
+               program signals an error and halts.
+    */
+    int querykth (const char* name,
+                  int         k,
+                  Box&        ref,
+                  int         ival=0) const;
+    //
+    //@ManDoc: Same as querykth() but searches for the last occurrence of name.
+    //
+    int query (const char* name,
+               Box&        ref,
                int         ival=0) const;
 
     /*@ManDoc: Gets an Array<int> of num\_val values from kth occurrence of

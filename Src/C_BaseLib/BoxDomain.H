@@ -2,7 +2,7 @@
 #define BL_BOXDOMAIN_H
 
 //
-// $Id: BoxDomain.H,v 1.19 2001-07-23 23:07:36 lijewski Exp $
+// $Id: BoxDomain.H,v 1.20 2001-07-24 05:12:47 car Exp $
 //
 
 #include <cstdlib>
@@ -143,6 +143,14 @@ public:
     //
     using BoxList::contains;
     //
+    //@ManDoc: Promoted from BoxList
+    //
+    using BoxList::shift;
+    //
+    //@ManDoc: Promoted from BoxList
+    //
+    using BoxList::shiftHalf;
+    //
     //@ManDoc: Create a BoxList from this BoxDomain.
     //
     BoxList boxList () const;
@@ -154,20 +162,6 @@ public:
     //@ManDoc: Are the BoxDomains not equal?
     //
     bool operator!= (const BoxDomain& rhs) const;
-    //
-    //@ManDoc: Applies Box::shift(int,int) to each Box in the BoxDomain.
-    //
-    BoxDomain& shift (int dir,
-                      int nzones);
-    //
-    //@ManDoc: Applies Box::shiftHalf(int,int) to each Box in the BoxDomain.
-    //
-    BoxDomain& shiftHalf (int dir,
-                          int num_halfs);
-    //
-    //@ManDoc: Applies Box::shiftHalf(IntVect) to each Box in BoxDomain.
-    //
-    BoxDomain& shiftHalf (const IntVect& iv);
     //
     //@ManDoc: Refine all Boxes in the domain by the refinement ratio.
     //
