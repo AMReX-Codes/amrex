@@ -4,12 +4,13 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.45 1999-05-10 18:54:22 car Exp $
+// $Id: ParallelDescriptor.H,v 1.46 1999-07-07 22:48:33 car Exp $
 //
 
 #include <BLassert.H>
 #include <REAL.H>
 #include <Box.H>
+#include <ccse-mpi.H>
 
 //
 // Used for collecting information used in communicating FABs.
@@ -309,12 +310,12 @@ class ParallelDescriptor
     //
     // Reduce helper functons.
     //
-    static void DoAllReduceReal (Real& r, int op);
-    static void DoAllReduceLong (long& r, int op);
-    static void DoAllReduceInt (int& r, int op);
-    static void DoReduceReal (Real& r, int op, int cpu);
-    static void DoReduceLong (long& r, int op, int cpu);
-    static void DoReduceInt (int& r, int op, int cpu);
+    static void DoAllReduceReal (Real& r, MPI_Op op);
+    static void DoAllReduceLong (long& r, MPI_Op op);
+    static void DoAllReduceInt (int& r, MPI_Op op);
+    static void DoReduceReal (Real& r, MPI_Op op, int cpu);
+    static void DoReduceLong (long& r, MPI_Op op, int cpu);
+    static void DoReduceInt (int& r, MPI_Op op, int cpu);
     //
     // My processor ID.
     //

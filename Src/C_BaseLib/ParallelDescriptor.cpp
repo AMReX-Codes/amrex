@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.54 1999-05-10 18:54:22 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.55 1999-07-07 22:48:33 car Exp $
 //
 
 #include <Utility.H>
@@ -193,7 +193,7 @@ ParallelDescriptor::Barrier ()
 
 void
 ParallelDescriptor::DoAllReduceReal (Real& r,
-                                     int   op)
+                                     MPI_Op   op)
 {
     Real recv;
 
@@ -217,7 +217,7 @@ ParallelDescriptor::DoAllReduceReal (Real& r,
 
 void
 ParallelDescriptor::DoReduceReal (Real& r,
-                                  int   op,
+                                  MPI_Op   op,
                                   int   cpu)
 {
     Real recv;
@@ -280,7 +280,7 @@ ParallelDescriptor::ReduceRealSum (Real& r, int cpu)
 
 void
 ParallelDescriptor::DoAllReduceLong (long& r,
-                                     int   op)
+                                     MPI_Op   op)
 {
     long recv;
 
@@ -304,7 +304,7 @@ ParallelDescriptor::DoAllReduceLong (long& r,
 
 void
 ParallelDescriptor::DoReduceLong (long& r,
-                                  int   op,
+                                  MPI_Op   op,
                                   int   cpu)
 {
     long recv;
@@ -379,7 +379,7 @@ ParallelDescriptor::ReduceLongMin (long& r, int cpu)
 
 void
 ParallelDescriptor::DoAllReduceInt (int& r,
-                                    int  op)
+                                    MPI_Op  op)
 {
     int recv;
 
@@ -403,7 +403,7 @@ ParallelDescriptor::DoAllReduceInt (int& r,
 
 void
 ParallelDescriptor::DoReduceInt (int& r,
-                                 int  op,
+                                 MPI_Op  op,
                                  int  cpu)
 {
     int recv;
