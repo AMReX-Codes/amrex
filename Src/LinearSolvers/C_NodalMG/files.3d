@@ -1,16 +1,32 @@
+
+ALL OF THESE WORK WITH THE CODE AS OF 3/12/02:
+
+gt0
+gt010
+gt012
+gt016
+gt05
+gt1
 gt2
 gt2t1
 gt2t2
 gt2t3
+gt2t4
+gt3
+gt.32
 gt3ann
+gt3ann2
+gt4
 gt4s2
 gt4s2.4.4
 gt4s2a
 gt4s4
 gt4s4.2.4
 gt4s4.4.2
+gt5
 gt5s2
 gt5s4
+gt6
 gt6s
 gt6s2
 gt6s4
@@ -21,11 +37,31 @@ gt8a
 gt8b
 gt8c
 gt8ms2
+gtbig
 gtbig2
 gtgrav2
 gtgrav4
 gtjbb
+gtjbb2
+gtpfail
+gt.jbb.1
 gt.sas
 gt.scott.1
 gt.sstanley_2.32
 gt.sstanley_2.64
+gtclearsmall
+
+THESE FAIL TO CONVERGE:
+
+gt12   FAILS
+gt12.2 FAILS
+gt12.3 FAILS
+gtbig3 FAILS
+
+THESE ARE UNTESTED:  
+
+gtbig4
+gtbig5
+gt.bill1
+gtrick
+gt.sstanley_3
