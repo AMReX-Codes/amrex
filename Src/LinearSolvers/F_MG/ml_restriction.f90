@@ -42,11 +42,11 @@ contains
              do n = 1, 1
                 select case (dm)
                 case (1)
-                   call cc_restriction(cp(:,1,1,n), loc, fp(:,1,1,n), lof, lo, hi, ir)
+                   call cc_restriction_1d(cp(:,1,1,n), loc, fp(:,1,1,n), lof, lo, hi, ir)
                 case (2)
-                   call cc_restriction(cp(:,:,1,n), loc, fp(:,:,1,n), lof, lo, hi, ir)
+                   call cc_restriction_2d(cp(:,:,1,n), loc, fp(:,:,1,n), lof, lo, hi, ir)
                 case (3)
-                   call cc_restriction(cp(:,:,:,n), loc, fp(:,:,:,n), lof, lo, hi, ir)
+                   call cc_restriction_3d(cp(:,:,:,n), loc, fp(:,:,:,n), lof, lo, hi, ir)
                 end select
              end do
           end if
@@ -133,27 +133,27 @@ contains
           select case (dm)
           case (1)
              if ( .not.nodal_flag ) then
-               call cc_restriction(cp(:,1,1,n), loc, fp(:,1,1,n), lof, lo, hi, ir)
+               call cc_restriction_1d(cp(:,1,1,n), loc, fp(:,1,1,n), lof, lo, hi, ir)
              else
-               call nodal_restriction(cp(:,1,1,n), loc, fp(:,1,1,n), lof, &
+               call nodal_restriction_1d(cp(:,1,1,n), loc, fp(:,1,1,n), lof, &
                     mp_fine(:,1,1,1), lom_fine, &
                     mp_crse(:,1,1,1), lom_crse, lo, hi, ir, local_inject, &
                     mg_restriction_mode)
              end if
           case (2)
              if ( .not.nodal_flag ) then
-               call cc_restriction(cp(:,:,1,n), loc, fp(:,:,1,n), lof, lo, hi, ir)
+               call cc_restriction_2d(cp(:,:,1,n), loc, fp(:,:,1,n), lof, lo, hi, ir)
              else
-               call nodal_restriction(cp(:,:,1,n), loc, fp(:,:,1,n), lof, &
+               call nodal_restriction_2d(cp(:,:,1,n), loc, fp(:,:,1,n), lof, &
                     mp_fine(:,:,1,1), lom_fine, &
                     mp_crse(:,:,1,1), lom_crse, lo, hi, ir, local_inject, &
                     mg_restriction_mode)
              end if
           case (3)
              if ( .not.nodal_flag ) then
-               call cc_restriction(cp(:,:,:,n), loc, fp(:,:,:,n), lof, lo, hi, ir)
+               call cc_restriction_3d(cp(:,:,:,n), loc, fp(:,:,:,n), lof, lo, hi, ir)
              else
-               call nodal_restriction(cp(:,:,:,n), loc, fp(:,:,:,n), lof, &
+               call nodal_restriction_3d(cp(:,:,:,n), loc, fp(:,:,:,n), lof, &
                     mp_fine(:,:,:,1), lom_fine, &
                     mp_crse(:,:,:,1), lom_crse, lo, hi, ir, local_inject, &
                     mg_restriction_mode)

@@ -466,7 +466,7 @@ contains
     end if
 
 !   This is the same interpolation as done in IAMR.
-    if (side == 1 .or. side == -1) then
+    if ( abs(side) == 1 ) then
       i  = lo(1)
       ic = i / ir(1)
       do jc = lo(2)/ir(2), hi(2)/ir(2)
@@ -499,7 +499,7 @@ contains
         end do
       end do
 
-    else if ( side == 2 .or. side == -2 ) then
+    else if ( abs(side) == 2 ) then
 
       j  = lo(2)
       jc = j / ir(2)

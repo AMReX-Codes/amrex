@@ -175,8 +175,8 @@ ifeq ($(ARCH),Linux)
                                 # Someday, can eliminate these	
         F90FLAGS += -g 
         FFLAGS   += -g 
- 	F90FLAGS += -check all
- 	FFLAGS   += -check all
+        F90FLAGS += -check all
+        FFLAGS   += -check all
         F90FLAGS += -check noshape -check nopointer
         FFLAGS   += -check noshape -check nopointer
         CFLAGS   += -g
@@ -188,6 +188,9 @@ ifeq ($(ARCH),Linux)
        FFLAGS += -ipo
        CFLAGS += -ipo
 #       LDFLAGS += -static
+      endif
+      ifdef PROF
+        F90FLAGS += -pg
       endif
     endif
     ifeq ($(_comp),Intel7)
