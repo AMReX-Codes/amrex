@@ -4,7 +4,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.21 1998-11-29 00:22:36 lijewski Exp $
+// $Id: Amr.H,v 1.22 1999-04-22 17:13:19 marc Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -159,6 +159,10 @@ public:
     //@ManDoc: Minimum allowable grid efficiency.
     //
     Real gridEff () const;
+    //
+    //@ManDoc: Number of cells to define proper nesting 
+    //
+    int nProper () const;
     //
     //@ManDoc: Blocking factor in grid generation.
     //
@@ -478,6 +482,13 @@ int
 Amr::blockingFactor () const
 {
     return blocking_factor;
+}
+
+inline
+int
+Amr::nProper () const
+{
+    return n_proper;
 }
 
 inline
