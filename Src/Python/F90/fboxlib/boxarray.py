@@ -27,7 +27,7 @@ class boxarray():
     return fcboxlib.boxarray_dim(self.cptr)
 
   def maxsize(self, size):
-    size = np.asarray(size)
+    size = np.asarray(size, np.int32)
     fcboxlib.boxarray_maxsize(self.cptr, size)
 
   def echo(self):
