@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.37 1998-07-01 19:20:39 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.38 1998-07-04 03:35:14 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -831,7 +831,7 @@ AmrLevel::FillCoarsePatch (MultiFab&     mfdest,
         map->interp(fpi(),0,mfdest_mfi(),dest_comp,ncomp,dbox,
                     crse_ratio,crse_lev.geom,geom,bcr);
 
-        if (!p_domain.contains(dbox)) 
+        if (!p_domain.contains(mfdest_mfi().box()))
         {
             state[state_indx].FillBoundary(mfdest_mfi(),time,geom.CellSize(),
                                            prob_domain,dest_comp,src_comp,
