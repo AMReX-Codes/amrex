@@ -1434,25 +1434,25 @@ c Note---assumes fdst linearly interpolated from cdst along face
      &                   3.d0 * (cdst(ii,jj,kk) - cdst(ii,jc,kc)))
 
 	MXXF(i1,j1,k1,ii,jj,kk) = (4.d0 *  fdst(ii,j1,k1)   + 
-     &                            2.d0 * (fdst(ii,jj,k1) - fdst(i1,jj,k1) +
-     &                                    fdst(ii,j1,kk) - fdst(i1,j1,kk)) +
-     &                                   (fdst(ii,jj,kk) - fdst(i1,jj,kk)))
+     &                         2.d0 * (fdst(ii,jj,k1) - fdst(i1,jj,k1) +
+     &                               fdst(ii,j1,kk) - fdst(i1,j1,kk)) +
+     &                                (fdst(ii,jj,kk) - fdst(i1,jj,kk)))
 
 	MYYF(i1,j1,k1,ii,jj,kk) = (4.d0 *  fdst(i1,jj,k1)   + 
-     &                            2.d0 * (fdst(ii,jj,k1) - fdst(ii,j1,k1) +
-     &                                    fdst(i1,jj,kk) - fdst(i1,j1,kk)) +
-     &                                   (fdst(ii,jj,kk) - fdst(ii,j1,kk)))
+     &                         2.d0 * (fdst(ii,jj,k1) - fdst(ii,j1,k1) +
+     &                                fdst(i1,jj,kk) - fdst(i1,j1,kk)) +
+     &                                (fdst(ii,jj,kk) - fdst(ii,j1,kk)))
 
 	MZZF(i1,j1,k1,ii,jj,kk) = (4.d0 *  fdst(i1,j1,kk)   + 
-     &                            2.d0 * (fdst(ii,j1,kk) - fdst(ii,j1,k1) +
-     &                                    fdst(i1,jj,kk) - fdst(i1,jj,k1)) +
-     &                                   (fdst(ii,jj,kk) - fdst(ii,jj,k1)))
+     &                         2.d0 * (fdst(ii,j1,kk) - fdst(ii,j1,k1) +
+     &                                fdst(i1,jj,kk) - fdst(i1,jj,k1)) +
+     &                                (fdst(ii,jj,kk) - fdst(ii,jj,k1)))
 
 	MXZF(i1,j1,k1,ii,jj,kk) = (6.d0 *  fdst(ii,j1,kk)  +
-     &                            3.d0 * (fdst(ii,jj,kk) - fdst(i1,jj,k1)))
+     &                         3.d0 * (fdst(ii,jj,kk) - fdst(i1,jj,k1)))
 
 	MYZF(i1,j1,k1,ii,jj,kk) = (6.d0 *  fdst(i1,jj,kk)  +
-     &                            3.d0 * (fdst(ii,jj,kk) - fdst(ii,j1,k1)))
+     &                         3.d0 * (fdst(ii,jj,kk) - fdst(ii,j1,k1)))
       ic = regl0
       jc = regl1
       kc = regl2
