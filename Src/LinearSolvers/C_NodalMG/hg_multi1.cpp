@@ -201,7 +201,7 @@ private:
 };
 
 void
-holy_grail_amr_multigrid::alloc (PArray<MultiFab>& Dest,
+holy_grail_amr_multigrid::alloc_hg_multi (PArray<MultiFab>& Dest,
                                  PArray<MultiFab>& Source,
                                  PArray<MultiFab>& Coarse_source,
                                  PArray<MultiFab>& Sigma,
@@ -216,7 +216,7 @@ holy_grail_amr_multigrid::alloc (PArray<MultiFab>& Dest,
     if (Source.ready()) 
     {
 	source_owned = false;
-	amr_multigrid::alloc(Dest, Source, Coarse_source, Lev_min, Lev_max);
+	amr_multigrid::alloc_amr_multi(Dest, Source, Coarse_source, Lev_min, Lev_max);
     }
     else 
     {
@@ -229,7 +229,7 @@ holy_grail_amr_multigrid::alloc (PArray<MultiFab>& Dest,
 	    Src.set(lev, new MultiFab(mesh, 1, Dest[Lev_min].nGrow()));
 	    Src[lev].setVal(0.0);
 	}
-	amr_multigrid::alloc(Dest, Src,    Coarse_source, Lev_min, Lev_max);
+	amr_multigrid::alloc_amr_multi(Dest, Src,    Coarse_source, Lev_min, Lev_max);
     }
     
     h = new Real[mglev_max + 1][BL_SPACEDIM];
@@ -244,7 +244,7 @@ holy_grail_amr_multigrid::alloc (PArray<MultiFab>& Dest,
 	}
     }
     
-    build_sigma(Sigma,for_sync_reg);
+    build_sigma(Sigma, for_sync_reg);
     
     if (for_sync_reg > 0) return;
 
@@ -734,8 +734,8 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 	}
     }
     
-    if (for_sync_reg == 0)
-    {
+    //    if (for_sync_reg == 0)
+    //    {
 	cen.resize(mglev_max + 1);
 	for (int mglev = 0; mglev <= mglev_max; mglev++) 
 	{
@@ -789,7 +789,7 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 	    HG_TEST_NORM(ctmp, "buildsigma");
 	    clear_part_interface(ctmp, lev_interface[mglev]);
 	}
-    }
+	//    }
     
     if (m_stencil == cross)
     {
@@ -828,7 +828,7 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 }
 
 void
-holy_grail_amr_multigrid::clear ()
+holy_grail_amr_multigrid::clear_hg_multi ()
 {
     line_order.clear();
     line_after.clear();
@@ -884,7 +884,7 @@ holy_grail_amr_multigrid::clear ()
 	}
     }
     
-    amr_multigrid::clear();
+    amr_multigrid::clear_amr_multi();
 }
 
 void
@@ -914,6 +914,15 @@ holy_grail_amr_multigrid::sync_resid_clear ()
 	}
     }
     
+    for (int mglev = 0; mglev <= mglev_max; mglev++) 
+    {
+	delete cen.remove(mglev);
+	if (mask.ready() && mask.defined(mglev))
+	{
+	    delete mask.remove(mglev);
+	}
+    }
+    
     delete [] h;
     if (source_owned) 
     {
@@ -926,7 +935,7 @@ holy_grail_amr_multigrid::sync_resid_clear ()
 	}
     }
     
-    amr_multigrid::clear();
+    amr_multigrid::clear_amr_multi();
 }
 
 bool

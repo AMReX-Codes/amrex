@@ -815,7 +815,7 @@ holy_grail_amr_projector::project (PArray<MultiFab>* u,
 	}
     }
     
-    alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max, 0);
+    alloc_hg_multi(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max, 0);
     right_hand_side(u, null_amr_real, 0);
     if ( singular
 	 && Coarse_source.ready()
@@ -826,7 +826,7 @@ holy_grail_amr_projector::project (PArray<MultiFab>* u,
 
     solve(tol, scale, 2, 2);
     form_solution_vector(u, Sigma);
-    clear();
+    clear_hg_multi();
 
     Real h[BL_SPACEDIM];
     if (Sync_resid_crse != 0 || Sync_resid_fine != 0) 
@@ -851,14 +851,12 @@ holy_grail_amr_projector::project (PArray<MultiFab>* u,
     //
     if (Sync_resid_fine != 0) 
     {
-	fill_sync_reg(u_local_fine,p,rhs_local_fine,Sigma_local,
-		      Sync_resid_fine,crse_geom,h,Lev_min,1);
+	fill_sync_reg(u_local_fine, p, rhs_local_fine, Sigma_local, Sync_resid_fine, crse_geom, h, Lev_min, false);
     }
 
     if (Sync_resid_crse != 0) 
     {
-	fill_sync_reg(u_local_crse,p,rhs_local_crse,Sigma_local,
-		      Sync_resid_crse,crse_geom,h,Lev_min,0);
+	fill_sync_reg(u_local_crse, p, rhs_local_crse, Sigma_local, Sync_resid_crse, crse_geom, h, Lev_min, true);
     }
 
     hg_proj.end();
@@ -873,10 +871,10 @@ holy_grail_amr_projector::fill_sync_reg (PArray<MultiFab>* u_local,
                                          const Geometry&   crse_geom,
                                          Real              H[],
                                          int               Lev_min,
-                                         int               is_fine)
+                                         bool               is_coarse)
 {
     int for_sync_reg;
-    if (is_fine == 0) 
+    if ( is_coarse ) 
     {
 	for_sync_reg = 1;
     }
@@ -885,7 +883,7 @@ holy_grail_amr_projector::fill_sync_reg (PArray<MultiFab>* u_local,
 	for_sync_reg = 2;
     }
 
-    if (is_fine == 0)
+    if ( is_coarse )
     {
         const int mglev_crse = ml_index[Lev_min];
         const Box domain = mg_domain[mglev_crse];
@@ -976,7 +974,7 @@ holy_grail_amr_projector::fill_sync_reg (PArray<MultiFab>* u_local,
 //            touching diagonally at a periodic interface.
 //          For Sync_resid_fine we use a different paradigm, whereby
 //            *no* boundary cells are filled except velocity at inflow.
-    if (is_fine == 0) 
+    if ( is_coarse ) 
     {
         crse_geom.FillPeriodicBoundary(Sigma_local[Lev_min],0,1,false,true);
         if (rhs_local.defined(Lev_min) > 0)
@@ -989,8 +987,7 @@ holy_grail_amr_projector::fill_sync_reg (PArray<MultiFab>* u_local,
 	}
     }
 
-    alloc(p, null_amr_real, null_amr_real, 
-	  Sigma_local, H, Lev_min, Lev_min, for_sync_reg);
+    alloc_hg_multi(p, null_amr_real, null_amr_real, Sigma_local, H, Lev_min, Lev_min, for_sync_reg);
 
     if (rhs_local.defined(Lev_min)) 
     {
@@ -1009,7 +1006,7 @@ holy_grail_amr_projector::fill_sync_reg (PArray<MultiFab>* u_local,
 	right_hand_side(u_local, null_amr_real, for_sync_reg);
     }
 
-    if (is_fine == 0)
+    if ( is_coarse )
     {
 	crse_geom.FillPeriodicBoundary(dest[Lev_min],0,1,false,false);
     }
@@ -1049,7 +1046,7 @@ holy_grail_amr_projector::sync_project (PArray<MultiFab>* u,
     BL_ASSERT(u[      1      ][Lev_min].nGrow() == 1);
     BL_ASSERT(u[BL_SPACEDIM-1][Lev_min].nGrow() == 1);
     
-    alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max, 0);
+    alloc_hg_multi(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max, 0);
     sync_right_hand_side(u);
     if ( singular
 	 && Coarse_source.ready()
@@ -1186,7 +1183,7 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
 	BL_ASSERT(u[      1      ][Lev_min].nGrow() == 1);
 	BL_ASSERT(u[BL_SPACEDIM-1][Lev_min].nGrow() == 1);
 	
-	alloc(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max, 0);
+	alloc_hg_multi(p, null_amr_real, Coarse_source, Sigma, H, Lev_min, Lev_max, 0);
 	if (rhs.length() > 0) 
 	{
 	    if (type(rhs[Lev_min]) == IntVect::TheNodeVector()) 
@@ -1222,7 +1219,7 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
 	
 	if (type(rhs[Lev_min]) == IntVect::TheNodeVector()) 
 	{
-	    alloc(p, rhs, Coarse_source, Sigma, H, Lev_min, Lev_max, 0);
+	    alloc_hg_multi(p, rhs, Coarse_source, Sigma, H, Lev_min, Lev_max, 0);
 	    if (singular && make_sparse_node_source_solvable) 
 	    {
                 //
@@ -1233,7 +1230,7 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
 	}
 	else 
 	{
-	    alloc(p, null_amr_real, Coarse_source, Sigma, H,
+	    alloc_hg_multi(p, null_amr_real, Coarse_source, Sigma, H,
 		  Lev_min, Lev_max, 0);
             //
 	    // Source is set to 0 at this point.
@@ -1278,7 +1275,7 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
 
     solve(tol, scale, 2, 2);
     form_solution_vector(u, Sigma);
-    clear();
+    clear_hg_multi();
 
     Real h[BL_SPACEDIM];
     if (Sync_resid_crse != 0 || Sync_resid_fine != 0) 
@@ -1304,14 +1301,12 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
     //
     if (Sync_resid_fine != 0) 
     {
-	fill_sync_reg(u_local_fine,p,rhs_local_fine,Sigma_local,
-		      Sync_resid_fine,crse_geom,h,Lev_min,1);
+	fill_sync_reg(u_local_fine, p, rhs_local_fine, Sigma_local, Sync_resid_fine, crse_geom, h, Lev_min, false);
     }
 
     if (Sync_resid_crse != 0) 
     {
-	fill_sync_reg(u_local_crse,p,rhs_local_crse,Sigma_local,
-		      Sync_resid_crse,crse_geom,h,Lev_min,0);
+	fill_sync_reg(u_local_crse, p, rhs_local_crse, Sigma_local, Sync_resid_crse, crse_geom, h, Lev_min, true);
     }
 
     hg_man_proj.end();

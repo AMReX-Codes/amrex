@@ -180,6 +180,13 @@ public:
                          int               Lev_max = -1,
                          Real              scale = 0.0);
 
+    void make_it_so ()
+    {
+	make_sparse_node_source_solvable = true;
+    }
+
+protected:
+
     void fill_sync_reg (PArray<MultiFab>* u_local,
                         PArray<MultiFab>& p,
                         PArray<MultiFab>& rhs_local,
@@ -188,15 +195,8 @@ public:
                         const Geometry&   crse_geom,
                         Real              H[],
                         int               Lev_min,
-                        int               is_fine);
+                        bool              is_coarse);
     
-    void make_it_so ()
-    {
-	make_sparse_node_source_solvable = true;
-    }
-
-protected:
-
     void right_hand_side (PArray<MultiFab>* u, PArray<MultiFab>& S,
                           int for_sync_reg);
 #ifdef HG_USE_SYNC_PROJECT

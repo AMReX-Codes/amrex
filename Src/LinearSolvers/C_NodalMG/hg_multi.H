@@ -55,7 +55,7 @@ public:
     }
 
 protected:
-    void alloc(PArray<MultiFab>& Dest,
+    void alloc_hg_multi(PArray<MultiFab>& Dest,
 	       PArray<MultiFab>& Source,
 	       PArray<MultiFab>& Coarse_source,
 	       PArray<MultiFab>& Sigma,
@@ -64,7 +64,7 @@ protected:
 	       int Lev_max,
 	       int for_sync_reg);
     void sync_resid_clear();
-    void clear();
+    void clear_hg_multi();
     void build_line_order(int lsd);
     
     void build_sigma(PArray<MultiFab>& Sigma,
