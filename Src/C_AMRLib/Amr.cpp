@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.112 2000-08-02 16:06:32 car Exp $
+// $Id: Amr.cpp,v 1.113 2000-08-17 17:31:00 marc Exp $
 //
 
 #include <TagBox.H>
@@ -155,7 +155,6 @@ Amr::Amr ()
     record_run_info  = false;
     record_grid_info = false;
     grid_eff         = 0.7;
-    blocking_factor  = 1;
     last_checkpoint  = 0;
     last_plotfile    = 0;
     plot_int         = -1;
@@ -226,6 +225,7 @@ Amr::Amr ()
     regrid_int.resize(nlev);
     n_cycle.resize(nlev);
     dt_min.resize(nlev);
+    blocking_factor.resize(nlev);
     n_error_buf.resize(nlev);
     amr_level.resize(nlev);
     //
@@ -240,6 +240,7 @@ Amr::Amr ()
         n_cycle[i]     = 0;
         dt_min[i]      = 0.0;
         n_error_buf[i] = 1;
+        blocking_factor[i] = 1;
     }
     ref_ratio.resize(max_level);
     for (i = 0; i < max_level; i++)
@@ -285,7 +286,6 @@ Amr::Amr ()
 
     pp.query("max_grid_size",max_grid_size);
     pp.query("n_proper",n_proper);
-    pp.query("blocking_factor",blocking_factor);
     pp.query("grid_eff",grid_eff);
     pp.queryarr("n_error_buf",n_error_buf,0,max_level);
     //
@@ -328,6 +328,30 @@ Amr::Amr ()
       {
           BoxLib::Error("Must input *either* ref_ratio or ref_ratio_vect");
       }
+    }
+    //
+    // Read in the blocking_factors.
+    //
+    if (pp.countval("blocking_factor") == 1)
+    {
+        //
+        // Set all values to the single available value.
+        //
+        int the_blocking_factor = 0;
+
+        pp.query("blocking_factor",the_blocking_factor);
+
+        for (i = 0; i < max_level; i++)
+        {
+            blocking_factor[i] = the_blocking_factor;
+        }
+    }
+    else
+    {
+        //
+        // Otherwise we expect a vector of blocking factors.
+        //
+        pp.queryarr("blocking_factor",blocking_factor,0,max_level);
     }
     //
     // Read computational domain and set geometry.
@@ -673,11 +697,14 @@ Amr::checkInput ()
     //
     // Check that multigrid factor is a power of 2.
     //
-    int k = blocking_factor;
-    while ( k > 0 && (k%2 == 0) )
-        k = k/2;
-    if (k != 1)
-        BoxLib::Error("Amr::checkInputs: multiGrid factor not a power of 2");
+    for (int i = 0; i < max_level; i++)
+    {
+        int k = blocking_factor[i];
+        while ( k > 0 && (k%2 == 0) )
+            k /= 2;
+        if (k != 1)
+            BoxLib::Error("Amr::checkInputs: multiGrid factor not power of 2");
+    }
     //
     // Check level dependent values.
     //
@@ -691,12 +718,12 @@ Amr::checkInput ()
     if (!domain.ok())
         BoxLib::Error("level 0 domain bad or not set");
     //
-    // Check that domain size has a factor of blocking_factor.
+    // Check that domain size has a factor of blocking_factor[0].
     //
     for (i = 0; i < BL_SPACEDIM; i++)
     {
         int len = domain.length(i);
-        if (len%blocking_factor != 0)
+        if (len%blocking_factor[0] != 0)
             BoxLib::Error("domain size not divisible by blocking_factor");
     }
     //
@@ -706,7 +733,7 @@ Amr::checkInput ()
     {
         for (int n=0; n<BL_SPACEDIM; n++)
         {
-            int lratio = blocking_factor*ref_ratio[i][n];
+            int lratio = blocking_factor[i]*ref_ratio[i][n];
             if (max_grid_size%lratio != 0)
                 BoxLib::Error("max_grid_size not divisible by blocking_factor*ref_ratio");
         }
@@ -1730,7 +1757,7 @@ Amr::grid_places (int              lbase,
     for (i = 0; i <= max_crse; i++)
     {
         for (int n=0; n<BL_SPACEDIM; n++)
-            bf_lev[i][n] = Max(1,blocking_factor/ref_ratio[i][n]);
+            bf_lev[i][n] = Max(1,blocking_factor[i]/ref_ratio[i][n]);
     }
     for (i = lbase; i < max_crse; i++)
     {
