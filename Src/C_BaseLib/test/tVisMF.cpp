@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: tVisMF.cpp,v 1.12 1997-11-18 18:48:13 lijewski Exp $
+// $Id: tVisMF.cpp,v 1.13 1997-11-18 18:51:53 lijewski Exp $
 //
 
 #include <stdlib.h>
@@ -128,7 +128,7 @@ static int nBoxs  = 10;
 
 static char* the_prog_name;
 
-static aString PerFile("PerFile");
+static aString PerFab("PerFab");
 
 static aString PerCPU("PerCPU");
 
@@ -143,7 +143,7 @@ usage ()
 {
     std::cout << "usage: "
               << the_prog_name
-              << " [-how PerFile|PerCPU]"
+              << " [-how PerFab|PerCPU]"
               << " [-nprocs N]"
               << " [-nboxs N]"
               << std::endl;
@@ -198,7 +198,7 @@ parse_args (char**& argv)
             {
                 How = *argv;
 
-                if (!(How == PerCPU || How == PerFile))
+                if (!(How == PerCPU || How == PerFab))
                 {
                     std::cout << "Invalid value for -how argument\n";
                     usage();
