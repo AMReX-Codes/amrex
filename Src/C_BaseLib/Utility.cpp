@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.36 1999-10-30 00:01:38 propp Exp $
+// $Id: Utility.cpp,v 1.37 1999-12-09 22:06:08 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -409,61 +409,96 @@ Utility::OutOfMemory ()
     BoxLib::Error("Sorry, out of memory, bye ...");
 }
 
-//
-// Ths following are the original random variations from
-// "Random Number Generators: Good Ones Are Hard To Find",
-// Stephen K. Park and Keith W. Miller, "Communications of the ACM",
-// October 1988 Volume 31 Number 10, pages 1192 - 1201.
-//
-// This requires INT_MAX of 2**31 - 1 or larger.  If INT_MAX doesn't
-// satisfy this but LONG_MAX does, replace all ints below with longs.
+/*
+** Mersenne Twister pseudo-random number generator.
+**
+** Generates one pseudorandom real number (double) which is
+** uniformly distributed on [0,1]-interval for each call.
+**
+** Uses any 32-bit integer except for 0 for a seed (with 4357 as the default).
+**
+** Has a period of 2**19937.
+**
+** Coded by Takuji Nishimura, considering the suggestions by
+** Topher Cooper and Marc Rieffel in July-Aug. 1997.
+**
+** Mersenne Twister Home Page: http://www.math.keio.ac.jp/matumoto/emt.html
+**
+** Copyright (C) 1997 Makoto Matsumoto and Takuji Nishimura.
+*/
 
-static int The_Random_Seed = 1;
+#define RAND_N 624
+#define RAND_M 397
+
+static unsigned long mt[RAND_N];
+static int mti = RAND_N+1;
 
 void
-Utility::InitRandom (int seed)
+Utility::InitRandom (unsigned long seed)
 {
-    BL_ASSERT(seed != 0);
-    BL_ASSERT(seed != 2147483647);
-    The_Random_Seed = seed;
+    /*
+    ** Setting initial seeds using the generator Line 25 of Table 1 in
+    ** KNUTH 1981, The Art of Computer Programming Vol. 2 (2nd Ed.), pp102.
+    */
+    int i;
+
+    for (i = 0; i < RAND_N; i++)
+    {
+         mt[i] = seed & 0xffff0000;
+         seed = 69069 * seed + 1;
+         mt[i] |= (seed & 0xffff0000) >> 16;
+         seed = 69069 * seed + 1;
+    }
+    mti = RAND_N;
 }
 
 double
 Utility::Random ()
 {
-    const int A  = 16807;
-    const int M  = 2147483647;  /* Mersenne prime 2^31-1 */
-    const int Q  = 127773;      /* m div a               */
-    const int R  = 2836;        /* m mod a               */
+    static unsigned long mag01[2] = { 0x0, 0x9908b0df };
 
-    int hi = The_Random_Seed / Q;
+    unsigned long y;
 
-    The_Random_Seed = A * (The_Random_Seed - hi*Q) - R * hi;
-
-    if (The_Random_Seed <  0)
-	The_Random_Seed += M;
-
-    return double(The_Random_Seed) / double(M);
-}
-
-#if 0
-//
-// A simple test of the random number generator.
-// Report whether or not you've got a "good" random number generator.
-//
-int
-main ()
-{
-    double u;
-    for (int i = 1; i <= 10000; i++)
+    if (mti >= RAND_N)
     {
-        u = Utility::Random();
+        /*
+        ** Generate RAND_N words at one time.
+        */
+        int kk;
+
+        if (mti == RAND_N+1)
+            /*
+            ** Use the default initial seed.
+            */
+            Utility::InitRandom(4357);
+
+        for (kk = 0; kk < RAND_N-RAND_M; kk++)
+        {
+            y = (mt[kk]&0x80000000)|(mt[kk+1]&0x7fffffff);
+            mt[kk] = mt[kk+RAND_M] ^ (y >> 1) ^ mag01[y & 0x1];
+        }
+        for ( ; kk < RAND_N-1; kk++)
+        {
+            y = (mt[kk]&0x80000000)|(mt[kk+1]&0x7fffffff);
+            mt[kk] = mt[kk+(RAND_M-RAND_N)] ^ (y >> 1) ^ mag01[y & 0x1];
+        }
+        y = (mt[RAND_N-1]&0x80000000)|(mt[0]&0x7fffffff);
+        mt[RAND_N-1] = mt[RAND_M-1] ^ (y >> 1) ^ mag01[y & 0x1];
+
+        mti = 0;
     }
-    printf("The current value of seed is %d.", The_Random_Seed);
-    printf("\nIt should be 1043618065.\n");
-    return 0;
+  
+    y = mt[mti++];
+    y ^= (y >> 11);
+    y ^= (y << 7) & 0x9d2c5680;
+    y ^= (y << 15) & 0xefc60000;
+    y ^= (y >> 18);
+
+    return ( (double)y / (unsigned long)0xffffffff );
 }
-#endif
+
+#undef RAND_N
+#undef RAND_M
 
 //
 // Fortran entry point for Utility::Random().
