@@ -1,6 +1,6 @@
 
 //
-// $Id: ABecLaplacian.cpp,v 1.13 2000-11-01 18:06:14 lijewski Exp $
+// $Id: ABecLaplacian.cpp,v 1.14 2001-04-23 20:08:51 car Exp $
 //
 
 #include <ABecLaplacian.H>
@@ -313,9 +313,9 @@ private:
   const FArrayBox& rhsL;
   const Real alpha, beta;
   const FArrayBox& a;
-  D_TERM(const FArrayBox& bX;,
-         const FArrayBox& bY;,
-         const FArrayBox& bZ;);
+  D_TERM(const FArrayBox& bX,
+         ;const FArrayBox& bY,
+         ;const FArrayBox& bZ);
   const FArrayBox& f0;
   const Mask& m0;
   const FArrayBox& f1;

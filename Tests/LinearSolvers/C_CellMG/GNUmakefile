@@ -12,6 +12,7 @@ USE_MPI=TRUE
 USE_THREADS=FALSE
 USE_THREADS=TRUE
 NAMESPACE=FALSE
+STRICTLY=TRUE
 
 USE_ARRAYVIEW = TRUE
 USE_ARRAYVIEW = FALSE
@@ -84,6 +85,7 @@ CEXE_headers += AmrData.H
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/pAmrvis
 vpathdir += $(PBOXLIB_HOME)/pAmrvis
 
+# BL3 Support for threads and profiling
 ifeq ($(USE_BL3),TRUE)
   CPPFLAGS += -DBL3_PROFILING
   ifeq ($(USE_MPI),TRUE)
@@ -94,10 +96,6 @@ ifeq ($(USE_BL3),TRUE)
     DEFINES += -DBL3_PTHREADS
   endif
   include $(PBOXLIB_HOME)/BoxLib3/Make.package.mini
-  #CEXE_headers += WorkQueue.H Threads.H Timer.H
-  #CEXE_sources += BL3WorkQueue.cpp BL3Thread.cpp BL3Utility.cpp 
-  #CEXE_sources += BL3Error.cpp BL3Profiler.cpp 
-  #CEXE_sources += BL3Parallel.cpp BL3BoxLib3.cpp
   INCLUDE_LOCATIONS += $(PBOXLIB_HOME)
   vpathdir += $(PBOXLIB_HOME)/BoxLib3
   ifeq ($(COMP),g++)
