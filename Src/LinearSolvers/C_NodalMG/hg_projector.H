@@ -4,6 +4,7 @@
 #define _HG_PROJECTOR_H_
 
 #include "hg_multi.H"
+#include <Geometry.H>
 
 extern PArray<MultiFab> null_amr_real;
 
@@ -78,7 +79,7 @@ public:
                   PArray<MultiFab>& Coarse_source,
                   MultiFab*         Sync_resid_crse,
                   MultiFab*         Sync_resid_fine,
-                  const Box&        crse_domain,
+                  const Geometry&   crse_geom,
                   bool              is_sync,
                   Real              H[],
                   Real              tol,
@@ -87,7 +88,7 @@ public:
                   Real              scale = 0.0) 
     {
 	project(u, p, Coarse_source, null_amr_real, 
-                Sync_resid_crse, Sync_resid_fine, crse_domain, is_sync,
+                Sync_resid_crse, Sync_resid_fine, crse_geom, is_sync,
                 H, tol, Lev_min, Lev_max, scale);
     }
     void project (PArray<MultiFab>* u,
@@ -96,7 +97,7 @@ public:
                   PArray<MultiFab>& Sigma,
                   MultiFab*         Sync_resid_crse,
                   MultiFab*         Sync_resid_fine,
-                  const Box&        crse_domain,
+                  const Geometry&   crse_geom,
                   bool              is_sync,
                   Real              H[],
                   Real              tol,
@@ -150,7 +151,7 @@ public:
                          PArray<MultiFab>& Coarse_source,
                          MultiFab*         Sync_resid_crse,
                          MultiFab*         Sync_resid_fine,
-                         const Box&        crse_domain,
+                         const Geometry&   crse_geom,
                          bool              is_sync,
                          bool              use_u,
                          Real              H[],
@@ -160,7 +161,7 @@ public:
                          Real              scale = 0.0) 
     {
 	manual_project(u, p, rhs, Coarse_source, null_amr_real, 
-                       Sync_resid_crse, Sync_resid_fine, crse_domain, is_sync, 
+                       Sync_resid_crse, Sync_resid_fine, crse_geom, is_sync, 
                        use_u, H, tol, Lev_min, Lev_max, scale);
     }
 
@@ -171,7 +172,7 @@ public:
                          PArray<MultiFab>& Sigma,
                          MultiFab*         Sync_resid_crse,
                          MultiFab*         Sync_resid_fine,
-                         const Box&        crse_domain,
+                         const Geometry&   crse_geom,
                          bool              is_sync,
                          bool              use_u,
                          Real              H[],
@@ -185,6 +186,7 @@ public:
                         PArray<MultiFab>& rhs_local,
                         PArray<MultiFab>& Sigma_local,
                         MultiFab*         Sync_resid,
+                        const Geometry&   crse_geom,
                         bool              is_sync,
                         Real              H[],
                         int               Lev_min,
