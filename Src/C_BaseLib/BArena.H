@@ -1,7 +1,7 @@
 #ifndef BL_BARENA_H
 #define BL_BARENA_H
 //
-// $Id: BArena.H,v 1.10 2001-07-31 17:56:24 lijewski Exp $
+// $Id: BArena.H,v 1.11 2004-01-07 21:18:19 car Exp $
 //
 #include <Arena.H>
 
@@ -24,7 +24,7 @@ public:
     /*@ManDoc: Allocates a dynamic memory arena of size sz.  Returns a
                pointer to this memory.
     */
-    virtual void* alloc (size_t sz);
+    virtual void* alloc (std::size_t sz);
     //
     //@ManDoc: Deletes the arena pointed to by pt.
     //

@@ -1,6 +1,6 @@
 
 //
-// $Id: MCCGSolver.cpp,v 1.13 2001-10-05 07:19:55 marc Exp $
+// $Id: MCCGSolver.cpp,v 1.14 2004-01-07 21:18:43 car Exp $
 //
 #include <winstd.H>
 
@@ -100,7 +100,7 @@ MCCGSolver::norm (const MultiFab& res)
     else if (p == 2)
     {
 	ParallelDescriptor::ReduceRealSum(restot);
-	restot = sqrt(restot);
+	restot = std::sqrt(restot);
     }
     return restot;
 }

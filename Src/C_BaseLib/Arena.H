@@ -1,7 +1,7 @@
 #ifndef BL_ARENA_H
 #define BL_ARENA_H
 //
-// $Id: Arena.H,v 1.14 2001-10-23 17:01:02 lijewski Exp $
+// $Id: Arena.H,v 1.15 2004-01-07 21:18:19 car Exp $
 //
 #include <cstddef>
 
@@ -33,7 +33,7 @@ public:
     /*@ManDoc: Allocate a dynamic memory arena of size sz.
                A pointer to this memory should be returned.
     */
-    virtual void* alloc (size_t sz) = 0;
+    virtual void* alloc (std::size_t sz) = 0;
 
     /*@ManDoc: A pure virtual function for deleting the arena pointed
                to by pt.
@@ -45,7 +45,7 @@ public:
                of objects of the largest of the types void*, long,
                double and function pointer.
     */
-    static size_t align (size_t sz);
+    static std::size_t align (std::size_t sz);
 
 protected:
     //

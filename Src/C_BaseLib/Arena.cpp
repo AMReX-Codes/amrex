@@ -1,5 +1,5 @@
 //
-// $Id: Arena.cpp,v 1.2 2001-07-19 16:57:30 lijewski Exp $
+// $Id: Arena.cpp,v 1.3 2004-01-07 21:18:19 car Exp $
 //
 
 #include <Arena.H>
@@ -7,10 +7,10 @@
 
 Arena::~Arena () {}
 
-size_t
-Arena::align (size_t s)
+std::size_t
+Arena::align (std::size_t s)
 {
-    size_t x = s + sizeof(Word) - 1;
+    std::size_t x = s + sizeof(Word) - 1;
     x -= x%sizeof(Word);
     return x;
 }
