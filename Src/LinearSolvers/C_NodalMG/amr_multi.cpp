@@ -310,11 +310,20 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2,
     sync_interfaces();
 
   Real norm = 0.0;
-  for (int lev = lev_min; lev <= lev_max; lev++) {
+  int lev;
+  for (lev = lev_min; lev <= lev_max; lev++) {
     Real lev_norm = mfnorm(source[lev]);
     norm = (lev_norm > norm) ? lev_norm : norm;
     //if (pcode >= 2)
     //  cout << "Source norm is " << lev_norm << " at level " << lev << endl;
+  }
+  if (coarse_source.ready()) {
+    for (lev = lev_min; lev < lev_max; lev++) {
+      if (coarse_source.defined(lev)) {
+	Real crse_lev_norm = mfnorm(coarse_source[lev]);
+	norm = (crse_lev_norm > norm) ? crse_lev_norm : norm;
+      }
+    }
   }
   if (pcode >= 1)
     cout << "Source norm is " << norm << endl;

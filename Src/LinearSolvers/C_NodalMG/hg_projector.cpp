@@ -205,6 +205,7 @@ void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u,
 	for (int lev = Lev_min; lev <= Lev_max; lev++)
 	  source[lev].plus(rhs[lev], 0, 1, 0);
 	if (singular && make_sparse_node_source_solvable) {
+	  // Note:  You don't want to do this if rhs is not sparse!
 	  sparse_node_source_adjustment(rhs);
 	}
       }
@@ -224,6 +225,7 @@ void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u,
     if (type(rhs[Lev_min]) == nodevect) {
       alloc(p, rhs, Coarse_source, Sigma, H, Lev_min, Lev_max);
       if (singular && make_sparse_node_source_solvable) {
+	// Note:  You don't want to do this if rhs is not sparse!
 	sparse_node_source_adjustment(rhs);
       }
     }

@@ -281,9 +281,11 @@ void plot(const BoxArray& mesh, const IntVect& ratio)
 
 void plot(const Array<BoxArray>& mesh, const Array<IntVect>& gen_ratio)
 {
-  plot(mesh[0], unitvect);
+  IntVect ratio = unitvect;
+  plot(mesh[0], ratio);
   for (int i = 1; i < mesh.length(); i++) {
-    plot(mesh[i], gen_ratio[i-1]);
+    ratio *= gen_ratio[i-1];
+    plot(mesh[i], ratio);
   }
 }
 

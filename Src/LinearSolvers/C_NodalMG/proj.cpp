@@ -106,8 +106,8 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m,
   else {
     for (ilev = 0; ilev < m.length(); ilev++) {
       for (int igrid = 0; igrid < m[ilev].length(); igrid++) {
-	u[0][ilev][igrid].setVal(1.e20);
-	u[1][ilev][igrid].setVal(3.e20);
+	//u[0][ilev][igrid].setVal(1.e20);
+	//u[1][ilev][igrid].setVal(3.e20);
 	u[0][ilev][igrid].setVal(0.0, m[ilev][igrid], 0);
 	u[1][ilev][igrid].setVal(0.0, m[ilev][igrid], 0);
       }
@@ -223,6 +223,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
   for (i = 0; i < BL_SPACEDIM; i++)
     h[i] = 1;
   //h[BL_SPACEDIM-1] = 0.1;
+  h[BL_SPACEDIM-1] = 2.0;
 
   RegType bc[BL_SPACEDIM][2];
 
@@ -294,8 +295,8 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     rhoinv.set(ilev, new MultiFab(cmesh, 1, 0));
     rhoinv[ilev].setVal(1.0);
 #endif
-    //rhs.set(ilev, new MultiFab(nmesh, 1, 1));
-    rhs.set(ilev, new MultiFab(cmesh, 1, 1));
+    rhs.set(ilev, new MultiFab(nmesh, 1, 1));
+    //rhs.set(ilev, new MultiFab(cmesh, 1, 1));
     rhs[ilev].setVal(0.0);
   }
 
@@ -305,7 +306,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
   //hb93_test1(u, m);
   //rhs[1][0](Iv(16,51)) = 100.0;
   //rhs[1][0](Iv(16,50)) = 100.0;
-  //rhs[1][0](Iv(47,20)) = 100.0;
+  rhs[0][0](Iv(24,32)) = 100.0;
   //rhs[1][0](Iv(30,40)) = -100.0;
   //rhs[0][0](Iv(4,13)) = 100.0;
   //rhs[0][0](Iv(20,90)) = 100.0;
@@ -401,7 +402,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
   //Real tol = 2.e-10;
 #else
   int pcode = 2, nrep = 1;
-  Real tol = 1.e-12;
+  Real tol = 1.e-14;
   //int pcode = 1, nrep = 3;
   //Real tol = 1.e-6;
   // for vd tests in May, and most code validation tests:
@@ -413,8 +414,8 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
   i = m.length() - 1;
   holy_grail_amr_projector proj(m, ratio, domain[i], 0, i, i, afb, pcode);
 #if (BL_SPACEDIM == 2)
-  //rz_adj(u, rhs, rhoinv, m, domain);
-  //proj.SetRZ();
+  rz_adj(u, rhs, rhoinv, m, domain);
+  proj.SetRZ();
 #endif
   //proj.smoother_mode  = 1;
   //proj.line_solve_dim = BL_SPACEDIM - 1;
@@ -469,7 +470,7 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     }
 */
   }
-  else {
+  else if (m.length() == 3) {
     proj.project(u, p, null_amr_real, rhoinv, h, tol, 2, 2);
     t1 = clock();
     cout << "First time is " << t1 - t0 << endl;
@@ -484,6 +485,12 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     t3 = clock();
     cout << "Third time is " << t3 - t2 << endl;
     cout << "Total time was  " << t3 - t0 << endl;
+  }
+  else {
+    proj.make_it_so();
+    proj.manual_project(u, p, null_amr_real, rhs, rhoinv, 1, h, tol, 0, 3);
+    t1 = clock();
+    cout << "First time is " << t1 - t0 << endl;
   }
 #ifdef USE_GRAPHICS
   //contour(u[0], ratio, 11);
