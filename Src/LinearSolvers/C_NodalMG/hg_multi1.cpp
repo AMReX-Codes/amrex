@@ -48,27 +48,11 @@ public:
     task_interpolate_patch(MultiFab& dmf_, int dgrid_, const Box& dbx_, const MultiFab& smf_, const IntVect& rat_, const amr_interpolator_class* interp_, const level_interface& lev_interface_)
 	: dmf(dmf_), dgrid(dgrid_), dbx(dbx_), smf(smf_), rat(rat_), interp(interp_), lev_interface(lev_interface_)
     {
-	assert(dbx.sameType(dmf[dgrid].box()));
+	assert(dbx.sameType(dmf.box(dgrid)));
     }
-    virtual bool ready()
-    {
-	if ( tf->ready() )
-	{
-	    interp->fill(dmf[dgrid], dbx, tf->fab(), tf->fab().box(), rat);
-	    delete tf;
-	    return true;
-	}
-	return false;
-    }
-    virtual bool init(sequence_number sno, MPI_Comm comm)
-    {
-	tf = new task_fill_patch( dmf, dgrid, interp->box(dbx, rat), smf, lev_interface, 0, -1, -1);
-	return tf->init(sno, comm);
-    }
-    virtual ~task_interpolate_patch()
-    {
-	delete interp;
-    }
+    virtual bool init(sequence_number sno, MPI_Comm comm);
+    virtual bool ready();
+    virtual ~task_interpolate_patch();
 private:
     task_fab* tf;
     MultiFab& dmf;
@@ -79,6 +63,30 @@ private:
     const amr_interpolator_class* interp;
     const level_interface& lev_interface;
 };
+
+bool task_interpolate_patch::init(sequence_number sno, MPI_Comm comm)
+{
+    tf = new task_fill_patch( dmf, dgrid, interp->box(dbx, rat), smf, lev_interface, 0, -1, -1);
+    return tf->init(sno, comm);
+}
+bool task_interpolate_patch::ready()
+{
+    if ( tf->ready() )
+    {
+	if ( is_local(dmf, dgrid) )
+	{
+	    interp->fill(dmf[dgrid], dbx, tf->fab(), tf->fab().box(), rat);
+	}
+	delete tf;
+	return true;
+    }
+    return false;
+}
+
+task_interpolate_patch::~task_interpolate_patch()
+{
+    delete interp;
+}
 
 void holy_grail_amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma, Real H[], int Lev_min, int Lev_max)
 {
@@ -370,7 +378,6 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
 	    DependentMultiFabIterator s_dmfi(S_mfi, sigma[mglev_max]);
 	    s_dmfi->copy(S_mfi(), mg_mesh[mglev_max][S_mfi.index()], 0, mg_mesh[mglev_max][S_mfi.index()], 0, 1);
 	}
-	
 	if (mglev_max > 0) 
 	{
 	    IntVect rat = mg_domain[mglev_max].length() / mg_domain[mglev_max-1].length();
@@ -795,37 +802,58 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 	    amr_interpolator_class* hgi;
 	    if (m_hg_terrain)
 	    {
-		Real* sigptr[BL_SPACEDIM];
-		for (int i = 0; i < BL_SPACEDIM; i++) 
+		Real* sigptr[BL_SPACEDIM] = { D_DECL(0,0,0) };
+		if ( is_local(sigma[ltmp], igrid) )
 		{
-		    sigptr[i] = sigma[ltmp][igrid].dataPtr(i);
+		    for (int i = 0; i < BL_SPACEDIM; i++) 
+		    {
+			sigptr[i] = sigma[ltmp][igrid].dataPtr(i);
+		    }
 		}
-		const Box& sigbox = sigma[ltmp][igrid].box();
+		//const Box& sigbox = sigma[ltmp][igrid].box();
+		const Box& sigbox = sigma[ltmp].box(igrid);
+		assert( is_remote(sigma[ltmp], igrid) || sigbox == sigma[ltmp][igrid].box());
 		hgi = new holy_grail_interpolator_class_not_cross(sigptr, sigbox);
 	    }
 	    else if (m_hg_full_stencil)
 	    {
-		Real* sigptr[BL_SPACEDIM];
+		Real* sigptr[BL_SPACEDIM] = { D_DECL(0,0,0) };
 		for (int i = 0; i < BL_SPACEDIM; i++) 
 		{
-		    sigptr[i] = sigma_nd[i][ltmp][igrid].dataPtr();
+		    if ( is_local(sigma_nd[i][ltmp], igrid) )
+		    {
+			sigptr[i] = sigma_nd[i][ltmp][igrid].dataPtr();
+		    }
 		}
-		const Box& sigbox = sigma[ltmp][igrid].box();
+		const Box& sigbox = grow(sigma_nd[0][ltmp].box(igrid), sigma_nd[0][ltmp].nGrow());
+		assert(is_remote(sigma_nd[0][ltmp], igrid) || sigbox == sigma[ltmp][igrid].box());
+		// const Box& sigbox = sigma[ltmp][igrid].box();
 		hgi = new holy_grail_interpolator_class_not_cross(sigptr, sigbox);
 	    }
 	    else
 	    {
 #if BL_SPACEDIM != 3
-		Real* sigptr[BL_SPACEDIM];
-		for (int i = 0; i < BL_SPACEDIM; i++) 
+		Real* sigptr[BL_SPACEDIM] = { D_DECL(0,0,0) };
+		if ( is_local(sigma_nd[ltmp], igrid) )
 		{
-		    sigptr[i] = sigma_nd[i][ltmp][igrid].dataPtr();
+		    for (int i = 0; i < BL_SPACEDIM; i++) 
+		    {
+			sigptr[i] = sigma_nd[i][ltmp][igrid].dataPtr();
+		    }
 		}
-		const Box& sigbox = sigma_nd[0][ltmp][igrid].box();
+		const Box& sigbox = grow(sigma_nd[0][ltmp].box(igrid), sigma_nd[0][ltmp].nGrow());
+		assert( is_remote(sigma_nd[0][ltmp], igrid) || sigbox == sigma_nd[0][ltmp][igrid].box());
+		// const Box& sigbox = sigma_nd[0][ltmp][igrid].box();
 		hgi = new holy_grail_interpolator_class_not_cross(sigptr, sigbox);
 #else
-		Real* sigptr = sigma_node[ltmp][igrid].dataPtr();
-		const Box& sigbox = sigma_node[ltmp][igrid].box();
+		Real* sigptr = 0;
+		if ( is_local(sigma_node[ltmp], igrid ) )
+		{
+		    sigptr = sigma_node[ltmp][igrid].dataPtr();
+		}
+		const Box& sigbox = grow(sigma_node[ltmp].box(igrid), sigma_node[ltmp].nGrow());
+		assert( is_remote(sigma_node[ltmp], igrid) || sigbox == sigma_node[ltmp][igrid].box());
+		// const Box& sigbox = sigma_node[ltmp][igrid].box();
 		hgi = new holy_grail_interpolator_class(sigptr, sigbox);
 #endif
 	    }

@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.81 1998-10-27 22:07:10 lijewski Exp $
+// $Id: FabArray.H,v 1.82 1998-11-19 22:10:26 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1833,6 +1833,16 @@ FabArrayIterator<T,FAB>::isValid ()
 {
     assert(currentIndex >= 0);
 
+#ifdef HG_DEBUG
+    extern bool HG_is_debugging;
+    if ( HG_is_debugging )
+    {
+	if ( currentIndex < fabArray.length() ) return true;
+	int rc = MPI_Barrier(MPI_COMM_WORLD);
+	if ( rc != MPI_SUCCESS) ParallelDescriptor::Abort(rc);
+	return false;
+    }
+#endif
     return currentIndex < fabArray.length();
 }
 
@@ -2025,6 +2035,16 @@ ConstFabArrayIterator<T,FAB>::isValid () const
 {
     assert(currentIndex >= 0);
 
+#ifdef HG_DEBUG
+    extern bool HG_is_debugging;
+    if ( HG_is_debugging )
+    {
+	if ( currentIndex < fabArray.length() ) return true;
+	int rc = MPI_Barrier(MPI_COMM_WORLD);
+	if ( rc != MPI_SUCCESS) ParallelDescriptor::Abort(rc);
+	return false;
+    }
+#endif
     return currentIndex < fabArray.length();
 }
 

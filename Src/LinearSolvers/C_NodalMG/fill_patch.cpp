@@ -79,8 +79,11 @@ private:
 };
 
 task_bdy_fill::task_bdy_fill(const amr_boundary_class* bdy_, FArrayBox* fab_, const Box& region_, const MultiFab& src_, int grid_, const Box& domain_)
-    : m_bdy(bdy_), m_fab(fab_), m_region(region_), m_smf(src_), m_sgrid(grid_), m_domain(domain_), m_bx(src_[grid_].box()), tmp(0)
+    : m_bdy(bdy_), m_fab(fab_), m_region(region_), m_smf(src_), m_sgrid(grid_), m_domain(domain_), tmp(0)
 {
+    m_bx = src_.box(grid_);
+    m_bx.grow(src_.nGrow());
+    assert(is_remote(src_, grid_) || m_bx == src_[grid_].box());
     assert(m_bdy != 0);
 }
 
@@ -194,7 +197,12 @@ bool task_fill_patch::fill_patch_blindly()
 {
     for (int igrid = 0; igrid < r.length(); igrid++) 
     {
-	Box tb = grow(r[igrid].box(), -r.nGrow());
+	Box tb = r.box(igrid);
+	if ( is_local(r, igrid ) ) 
+	{
+	    Box tb1 = grow(r[igrid].box(), -r.nGrow());
+	    assert(tb1 == tb);
+	}
 	if (tb.contains(region)) 
 	{
 	    tl.add_task(new task_copy_local(target, region, r, igrid));
@@ -204,7 +212,12 @@ bool task_fill_patch::fill_patch_blindly()
     }
     for (int igrid = 0; igrid < r.length(); igrid++) 
     {
-	Box tb = grow(r[igrid].box(), -r.nGrow());
+	Box tb = r.box(igrid);
+	if ( is_local(r, igrid ) )
+	{
+	    Box tb1 = grow(r[igrid].box(), -r.nGrow());
+	    assert( tb1 == tb );
+	}
 	if (tb.intersects(region)) 
 	{
 	    tb &= region;
@@ -246,14 +259,19 @@ void task_fill_patch::fill_patch()
 {
     if ( !region.ok() ) return;
 
-    assert(target->box() == region);
-    assert(target->nComp() == r.nComp());
-    assert(type(*target) == type(r));
+    if ( target != 0 )
+    {
+	assert(target->box() == region);
+	assert(target->nComp() == r.nComp());
+	assert(type(*target) == type(r));
+    }
     assert(lev_interface.ok());
     assert( idim >= -1 && idim < BL_SPACEDIM );
     
     Box tdomain = lev_interface.domain();
-    tdomain.convert(type(*target));
+    tdomain.convert( region.type() );
+    assert ( target == 0 || type(*target) == region.type());
+    // tdomain.convert(type(*target));
     Box idomain = grow(tdomain, IntVect::TheZeroVector() - type(r));
     
     if (idim == -1 ) 
@@ -603,6 +621,7 @@ void clear_part_interface(MultiFab& r, const level_interface& lev_interface)
 	    // coarse-fine face contained in part_fine grid, or orphan edge/corner
 	    int igrid = lev_interface.aux(i, ibox);
 	    if ( igrid < 0  || is_remote(r, igrid) ) continue;
+	    assert(is_local(r, igrid));
 	    r[igrid].setVal(0.0, lev_interface.node_box(i, ibox), 0);
 	}
     }
