@@ -4,7 +4,7 @@
 #define BL_ARRAYLIM_H
 
 /*
-** $Id: ArrayLim.H,v 1.4 1997-12-12 22:44:54 lijewski Exp $
+** $Id: ArrayLim.H,v 1.5 2000-09-26 18:19:25 car Exp $
 */
 
 #if !defined(BL_LANG_FORT)
@@ -30,8 +30,10 @@
 #define ARLIM_P(x)  const int&,const int&,const int&
 #define ARLIM(x)  x[0],x[1],x[2]
 #endif
-
 #endif
+
+#define BL_TO_FORTRAN(x) (x).dataPtr(), ARLIM((x).loVect()), ARLIM((x).hiVect())
+#define BL_TO_FORTRAN_N(x,n) (x).dataPtr(n), ARLIM((x).loVect()), ARLIM((x).hiVect())
 
 #else
 
