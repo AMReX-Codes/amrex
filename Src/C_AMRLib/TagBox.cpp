@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.29 1998-04-20 22:43:04 lijewski Exp $
+// $Id: TagBox.cpp,v 1.30 1998-04-22 22:40:37 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -765,32 +765,33 @@ TagBoxArray::collate (long& numtags) const
 {
     TRACER("TagBoxArray::collate()");
 
-    const int nGrids = fabparray.length();
+    const int NGrids = fabparray.length();
 
-    Array<int> sharedNTags(nGrids); // Shared numTags per grid.
-    Array<int> startOffset(nGrids); // Start locations per grid.
+    Array<int> sharedNTags(NGrids); // Shared numTags per grid.
+    Array<int> startOffset(NGrids); // Start locations per grid.
 
 #ifdef BL_USE_MPI
     for (ConstFabArrayIterator<TagType,TagBox> fai(*this); fai.isValid(false);++fai)
     {
         sharedNTags[fai.index()] = fai().numTags();
     }
+
     const DistributionMapping& dMap = DistributionMap();
 
-    for (int iGrid = 0, rc = 0; iGrid < nGrids; ++iGrid)
+    for (int i = 0, rc = 0; i < NGrids; ++i)
     {
-        if ((rc = MPI_Bcast(&sharedNTags[iGrid],
+        if ((rc = MPI_Bcast(&sharedNTags[i],
                             1,
                             MPI_INT,
-                            dMap[iGrid],
+                            dMap[i],
                             MPI_COMM_WORLD)) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
 
     startOffset[0] = 0;
-    for (int iGrid = 1; iGrid < nGrids; ++iGrid)
+    for (int i = 1; i < NGrids; ++i)
     {
-        startOffset[iGrid] = startOffset[iGrid-1] + sharedNTags[iGrid-1];
+        startOffset[i] = startOffset[i-1] + sharedNTags[i-1];
     }
     //
     // Communicate all local points so all procs have the same global set.
@@ -807,12 +808,12 @@ TagBoxArray::collate (long& numtags) const
 
     assert(sizeof(IntVect) == BL_SPACEDIM * sizeof(int));
     
-    for (int iGrid = 0, rc = 0; iGrid < nGrids; ++iGrid)
+    for (int i = 0, rc = 0; i < NGrids; ++i)
     {
-        if ((rc = MPI_Bcast(TagBoxArray::m_CollateSpace + startOffset[iGrid],
-                            sharedNTags[iGrid] * sizeof(IntVect),
+        if ((rc = MPI_Bcast(TagBoxArray::m_CollateSpace + startOffset[i],
+                            sharedNTags[i] * BL_SPACEDIM,
                             MPI_INT,
-                            dMap[iGrid],
+                            dMap[i],
                             MPI_COMM_WORLD)) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
@@ -820,7 +821,7 @@ TagBoxArray::collate (long& numtags) const
     const int MyProc = ParallelDescriptor::MyProc();
     const int nProcs = ParallelDescriptor::NProcs();
 
-    for (int isn = 0; isn < nGrids; ++isn)
+    for (int isn = 0; isn < NGrids; ++isn)
     {
         sharedNTags[isn] = -1;  // A bad value.
     }
@@ -831,19 +832,19 @@ TagBoxArray::collate (long& numtags) const
     //
     // Communicate number of local tags for each grid.
     //
-    ParallelDescriptor::ShareVar(sharedNTags.dataPtr(), nGrids * sizeof(int));
+    ParallelDescriptor::ShareVar(sharedNTags.dataPtr(), NGrids * sizeof(int));
     ParallelDescriptor::Synchronize();  // For ShareVar.
-    for (int iGrid = 0; iGrid < nGrids; ++iGrid)
+    for (int i = 0; i < NGrids; ++i)
     {
-        if (sharedNTags[iGrid] != -1)
+        if (sharedNTags[i] != -1)
         {
             for (int iProc = 0; iProc < nProcs; ++iProc)
             {
                 if (iProc != MyProc)
                     ParallelDescriptor::WriteData(iProc,
-                                                  &sharedNTags[iGrid],
+                                                  &sharedNTags[i],
                                                   sharedNTags.dataPtr(),
-                                                  iGrid * sizeof(int),
+                                                  i * sizeof(int),
                                                   sizeof(int));
             }
         }
@@ -852,9 +853,9 @@ TagBoxArray::collate (long& numtags) const
     ParallelDescriptor::UnshareVar(sharedNTags.dataPtr());
 
     startOffset[0] = 0;
-    for (int iGrid = 1; iGrid < nGrids; ++iGrid)
+    for (int i = 1; i < NGrids; ++i)
     {
-        startOffset[iGrid] = startOffset[iGrid-1] + sharedNTags[iGrid-1];
+        startOffset[i] = startOffset[i-1] + sharedNTags[i-1];
     }
     //
     // Communicate all local points so all procs have the same global set.
