@@ -8,11 +8,19 @@ FULLWARN := --strict_warnings
 override XTRADEFS += -DBL_USE_NEW_HFILES
 endif
 
-FC  = f77 -fno-second-underscore
-CPP    = gcc -E -x c++
-FDEBF += -g
+CPP    := gcc -E -x c++
+FC  := g77 -fno-second-underscore
 
-
-#override XTRALIBS +=  -lf2c
-override XTRALIBS += -lg2c
+ifeq ($(FCOMP),Absoft)
+FC  := f77 -f -B108
+FC  := f90 -en -B108 -YEXT_NAMES=LCS
+override XTRALIBS += -L/usr/absoft/lib -lfio -lf77math
+#override FORTLINK := LOWERCASE
+else
+#DEFINES += -DBL_FORT_USE_UNDERSCORE
+#override XTRALIBS += -lg2c
+override XTRALIBS +=  -lf2c
 override XTRALIBS +=   -lm
+endif
+
+FDEBF += -g
