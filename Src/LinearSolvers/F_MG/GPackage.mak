@@ -12,4 +12,3 @@ f90sources += stencil_nodal.f90
 
 include $(FPARALLEL)/extern/SPARSKIT/GPackage.mak
 VPATH_LOCATIONS += $(FPARALLEL)/extern/SPARSKIT
-

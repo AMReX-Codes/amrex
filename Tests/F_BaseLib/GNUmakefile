@@ -2,8 +2,6 @@ NDEBUG :=
 MPI    :=
 OMP    :=
 
-MKVERBOSE:=t
-
 COMP := g95
 COMP := Lahey
 COMP := Intel

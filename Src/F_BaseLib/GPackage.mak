@@ -37,8 +37,6 @@ f90sources += sort_d.f90
 
 f90sources += ppm_util.f90
 
-f90sources += bl_ieee.f90
-
 ifndef MPI
   f90sources += parallel_stubs.f90
 else
@@ -50,8 +48,6 @@ endif
 csources += fabio_c.c
 csources += timer_c.c
 csources += ppm_util_c.c
-csources += bl_ieee_c.c
-hsources += bl_ieee_c.h
 
 ifeq ($(ARCH),Linux)
   ifeq ($(COMP),g95)
