@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.60 1998-11-20 21:23:36 lijewski Exp $
+// $Id: VisMF.cpp,v 1.61 1999-03-29 23:26:46 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -203,8 +203,6 @@ operator>> (istream&       is,
     {
     case VisMF::OneFilePerCPU:
         hd.m_how = VisMF::OneFilePerCPU; break;
-    case VisMF::OneFilePerFab:
-        hd.m_how = VisMF::OneFilePerFab; break;
     default:
         BoxLib::Error("Bad case in switch");
     }
@@ -599,90 +597,6 @@ VisMF::Write (const MultiFab& mf,
         }
         if (VisMF::FileOffset(FabFile) <= 0)
             Utility::UnlinkFile(FullFileName);
-    }
-    break;
-    case OneFilePerFab:
-    {
-        for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
-        {
-            aString FullFileName = mf_name;
-
-            FullFileName += VisMF::FabFileSuffix;
-            sprintf(buf, "%04d", mfi.index());
-            FullFileName += buf;
-
-            ofstream FabFile;
-
-            FabFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
-
-#ifdef BL_USE_NEW_HFILES
-            FabFile.open(FullFileName.c_str(),ios::out|ios::trunc|ios::binary);
-#else
-            FabFile.open(FullFileName.c_str(),ios::out|ios::trunc);
-#endif
-            if (!FabFile.good())
-                Utility::FileOpenFailed(FullFileName);
-
-            aString TheBaseName = VisMF::BaseName(FullFileName);
-
-            hdr.m_fod[mfi.index()] = VisMF::Write(mfi(), TheBaseName, FabFile, bytes);
-
-            assert(hdr.m_fod[mfi.index()].m_head == 0);
-
-            if (!ParallelDescriptor::IOProcessor())
-            {
-#ifdef BL_USE_MPI
-                msg_hdr.m_head  = 0;
-                msg_hdr.m_index = mfi.index();
-                //
-                // Pack FAB offset, length of name, and name into buffer.
-                //
-                int rc = 0, pos = 0;
-
-                mpi_send.start();
-                if ((rc = MPI_Pack(&msg_hdr.m_head,
-                                   1,
-                                   MPI_LONG,
-                                   pbuf,
-                                   NPBUF,
-                                   &pos,
-                                   MPI_COMM_WORLD)) != MPI_SUCCESS)
-                    ParallelDescriptor::Abort(rc);
-
-                int len = TheBaseName.length()+1; // Includes the NULL.
-
-                if ((rc = MPI_Pack(&len,
-                                   1,
-                                   MPI_INT,
-                                   pbuf,
-                                   NPBUF,
-                                   &pos,
-                                   MPI_COMM_WORLD)) != MPI_SUCCESS)
-                    ParallelDescriptor::Abort(rc);
-
-                if ((rc = MPI_Pack((void*)TheBaseName.c_str(),
-                                   len,
-                                   MPI_CHAR,
-                                   pbuf,
-                                   NPBUF,
-                                   &pos,
-                                   MPI_COMM_WORLD)) != MPI_SUCCESS)
-                    ParallelDescriptor::Abort(rc);
-
-                if ((rc = MPI_Ssend(pbuf,
-                                    pos,
-                                    MPI_PACKED,
-                                    IoProc,
-                                    //
-                                    // We use index as the tag for uniqueness.
-                                    //
-                                    mfi.index(),
-                                    MPI_COMM_WORLD)) != MPI_SUCCESS)
-                    ParallelDescriptor::Abort(rc);
-                mpi_send.end();
-#endif /*BL_USE_MPI*/
-            }
-        }
     }
     break;
     default:
