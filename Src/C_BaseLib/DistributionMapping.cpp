@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.3 1997-11-13 18:45:15 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.4 1997-11-18 21:45:28 car Exp $
 //
 
 #include <DistributionMapping.H>
@@ -65,6 +65,9 @@ DistributionMapping::CreateProcessorMap ()
     case RANDOM:
         BoxLib::Error("RANDOM not implemented");
         break;
+    case KNAPSACK:
+	BoxLib::Error("KNAPSACK not implement");
+	break;
     case SIZEBALANCED:
         BoxLib::Error("SIZEBALANCED not implemented");
         break;

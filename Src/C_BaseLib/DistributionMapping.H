@@ -4,7 +4,7 @@
 #define BL_DISTRIBUTIONMAPPING_H
 
 //
-// $Id: DistributionMapping.H,v 1.2 1997-09-15 19:40:05 lijewski Exp $
+// $Id: DistributionMapping.H,v 1.3 1997-11-18 21:45:28 car Exp $
 //
 
 #include <BoxLib.H>
@@ -16,7 +16,7 @@ class DistributionMapping
 {
   public:
 
-    enum DistributionStrategy { ROUNDROBIN, RANDOM, SIZEBALANCED };
+    enum DistributionStrategy { ROUNDROBIN, RANDOM, SIZEBALANCED, KNAPSACK };
 
     DistributionMapping ();
     DistributionMapping (int                  nprocessors,
