@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.48 2002-03-26 20:04:06 lijewski Exp $
+// $Id: BaseFab.H,v 1.49 2002-10-31 17:02:12 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -15,6 +15,8 @@
 #include <CArena.H>
 #include <Looping.H>
 #include <REAL.H>
+#include <Profiler.H>
+
 //
 //@Man:
 //@Memo: A Fortran Array-like Object
@@ -1275,6 +1277,8 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
     BL_ASSERT(destbox.sameSize(srcbox));
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
+
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::performCopy()");
 
 #if (BL_SPACEDIM == 1)
 {                                                                       

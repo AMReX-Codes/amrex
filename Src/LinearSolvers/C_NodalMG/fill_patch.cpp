@@ -654,6 +654,7 @@ fill_internal_borders (MultiFab&              r,
 #endif
 	}
     }
+
     tl.execute("fill_internal_borders");
 }
 
