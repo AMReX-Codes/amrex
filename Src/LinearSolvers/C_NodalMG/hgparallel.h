@@ -132,6 +132,29 @@ protected:
     bool m_local;
 };
 
+// TASK_COPY_LOCAL
+
+class task_copy_local : public task
+{
+public:
+    task_copy_local(FArrayBox* fab_, const Box& bx, const MultiFab& mf_, int grid_);
+    virtual ~task_copy_local();
+    virtual bool ready();
+    virtual bool init(sequence_number sno, MPI_Comm comm);
+private:
+    void startup();
+private:
+    bool m_local;
+    MPI_Request m_request;
+    FArrayBox* m_fab;
+    const Box m_bx;
+    FArrayBox* tmp;
+    const MultiFab& m_smf;
+    const int m_sgrid;
+};
+
+// TASK_FAB
+
 class task_fab : public task
 {
 public:
@@ -171,19 +194,6 @@ private:
     const int idim;
     const int index;
     task_list tl;
-};
-
-class task_fab_get : public task_fab
-{
-public:
-    task_fab_get(const MultiFab& d_, int dgrid_, const Box& bx, const MultiFab& s_, int sgrid_);
-    virtual ~task_fab_get();
-    virtual bool ready();
-    virtual bool init(sequence_number sno, MPI_Comm comm);
-private:
-    const MultiFab& s;
-    const int sgrid;
-    const Box bx;
 };
 
 class task_fec_base : public task
