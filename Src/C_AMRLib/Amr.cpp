@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.94 1999-09-17 21:45:06 lijewski Exp $
+// $Id: Amr.cpp,v 1.95 1999-09-17 23:32:45 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -1498,8 +1498,28 @@ Amr::grid_places (int              lbase,
                   int&             new_finest,
                   Array<BoxArray>& new_grids)
 {
-    int i;
-    int max_crse = Min(finest_level,max_level-1);
+    int i, max_crse = Min(finest_level,max_level-1);
+
+    if (lbase == 0)
+    {
+        //
+        // Recalculate level 0 BoxArray in case max_grid_size has changed.
+        // This is done exactly as in defBaseLev().
+        //
+        BoxArray lev0(1);
+
+        lev0.set(0,::coarsen(geom[0].Domain(),2));
+        //
+        // Now split up into list of grids within max_grid_size limit.
+        //
+        lev0.maxSize(max_grid_size/2);
+        //
+        // Now refine these boxes back to level 0.
+        //
+        lev0.refine(2);
+
+        new_grids[0] = lev0;
+    }
 
     if (!grids_file.isNull())
     {
@@ -1767,27 +1787,6 @@ Amr::grid_places (int              lbase,
             }
             new_grids[levf].define(new_bx);
         }
-    }
-
-    if (lbase == 0)
-    {
-        //
-        // Recalculate level 0 BoxArray in case max_grid_size has changed.
-        // This is done exactly as in defBaseLev().
-        //
-        BoxArray lev0(1);
-
-        lev0.set(0,::coarsen(geom[0].Domain(),2));
-        //
-        // Now split up into list of grids within max_grid_size limit.
-        //
-        lev0.maxSize(max_grid_size/2);
-        //
-        // Now refine these boxes back to level 0.
-        //
-        lev0.refine(2);
-
-        new_grids[0] = lev0;
     }
 }
 
