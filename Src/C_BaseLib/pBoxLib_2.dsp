@@ -43,7 +43,7 @@ F90=df.exe
 # ADD BASE F90 /include:"Release/" /compile_only /nologo /warn:nofileopt
 # ADD F90 /include:"Release/" /compile_only /nologo /iface:cref /warn:nofileopt
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /D "NDEBUG" /D "_WINDOWS" /D "WIN32" /D "BL_USE_NEW_HFILES" /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -66,7 +66,7 @@ LIB32=link.exe -lib
 # ADD BASE F90 /include:"Debug/" /compile_only /nologo /debug:full /optimize:0 /warn:nofileopt
 # ADD F90 /browser /include:"Debug/" /compile_only /nologo /debug:full /optimize:0 /iface:cref /warn:nofileopt
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
+# ADD CPP /nologo /W3 /GX /Z7 /Od /D "_DEBUG" /D "_WINDOWS" /D "WIN32" /D "BL_USE_NEW_HFILES" /FR /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -89,7 +89,7 @@ LIB32=link.exe -lib
 # ADD BASE F90 /include:"Debug3D/" /compile_only /nologo /debug:full /optimize:0 /warn:nofileopt
 # ADD F90 /browser /include:"Debug3D/" /compile_only /nologo /debug:full /optimize:0 /iface:cref /warn:nofileopt
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /W3 /Gi- /GX /Z7 /Od /D "_WINDOWS" /D "WIN32" /D "_DEBUG" /D BL_SPACEDIM=3 /FR /YX /FD /c
+# ADD CPP /nologo /W3 /GX /Z7 /Od /D "_WINDOWS" /D "_DEBUG" /D BL_SPACEDIM=3 /D "WIN32" /D "BL_USE_NEW_HFILES" /FR /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -122,7 +122,7 @@ SOURCE=.\aString.cpp
 !ELSEIF  "$(CFG)" == "pboxlib_2 - Win32 Debug3D"
 
 # ADD BASE CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
-# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /D BL_SPACEDIM=3
+# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
 !ENDIF 
 
@@ -142,7 +142,7 @@ SOURCE=.\BArena.cpp
 !ELSEIF  "$(CFG)" == "pboxlib_2 - Win32 Debug3D"
 
 # ADD BASE CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
-# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /D BL_SPACEDIM=3
+# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
 !ENDIF 
 
@@ -162,7 +162,7 @@ SOURCE=.\Box.cpp
 !ELSEIF  "$(CFG)" == "pboxlib_2 - Win32 Debug3D"
 
 # ADD BASE CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
-# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /D BL_SPACEDIM=3
+# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
 !ENDIF 
 
@@ -182,7 +182,7 @@ SOURCE=.\BoxArray.cpp
 !ELSEIF  "$(CFG)" == "pboxlib_2 - Win32 Debug3D"
 
 # ADD BASE CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
-# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /D BL_SPACEDIM=3
+# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
 !ENDIF 
 
@@ -202,7 +202,7 @@ SOURCE=.\BoxAssoc.cpp
 !ELSEIF  "$(CFG)" == "pboxlib_2 - Win32 Debug3D"
 
 # ADD BASE CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
-# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /D BL_SPACEDIM=3
+# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
 !ENDIF 
 
@@ -222,7 +222,7 @@ SOURCE=.\BoxDomain.cpp
 !ELSEIF  "$(CFG)" == "pboxlib_2 - Win32 Debug3D"
 
 # ADD BASE CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
-# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /D BL_SPACEDIM=3
+# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
 !ENDIF 
 
@@ -242,7 +242,7 @@ SOURCE=.\BoxLib.cpp
 !ELSEIF  "$(CFG)" == "pboxlib_2 - Win32 Debug3D"
 
 # ADD BASE CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
-# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /D BL_SPACEDIM=3
+# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
 !ENDIF 
 
@@ -262,7 +262,7 @@ SOURCE=.\BoxList.cpp
 !ELSEIF  "$(CFG)" == "pboxlib_2 - Win32 Debug3D"
 
 # ADD BASE CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
-# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /D BL_SPACEDIM=3
+# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
 !ENDIF 
 
@@ -282,7 +282,7 @@ SOURCE=.\DistributionMapping.cpp
 !ELSEIF  "$(CFG)" == "pboxlib_2 - Win32 Debug3D"
 
 # ADD BASE CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
-# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /D BL_SPACEDIM=3
+# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
 !ENDIF 
 
@@ -302,7 +302,7 @@ SOURCE=.\FabConv.cpp
 !ELSEIF  "$(CFG)" == "pboxlib_2 - Win32 Debug3D"
 
 # ADD BASE CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
-# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /D BL_SPACEDIM=3
+# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
 !ENDIF 
 
@@ -322,7 +322,7 @@ SOURCE=.\FArrayBox.cpp
 !ELSEIF  "$(CFG)" == "pboxlib_2 - Win32 Debug3D"
 
 # ADD BASE CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
-# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /D BL_SPACEDIM=3
+# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
 !ENDIF 
 
@@ -342,7 +342,7 @@ SOURCE=.\FPC.cpp
 !ELSEIF  "$(CFG)" == "pboxlib_2 - Win32 Debug3D"
 
 # ADD BASE CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
-# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /D BL_SPACEDIM=3
+# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
 !ENDIF 
 
@@ -362,7 +362,7 @@ SOURCE=.\IndexType.cpp
 !ELSEIF  "$(CFG)" == "pboxlib_2 - Win32 Debug3D"
 
 # ADD BASE CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
-# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /D BL_SPACEDIM=3
+# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
 !ENDIF 
 
@@ -382,7 +382,7 @@ SOURCE=.\IntVect.cpp
 !ELSEIF  "$(CFG)" == "pboxlib_2 - Win32 Debug3D"
 
 # ADD BASE CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
-# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /D BL_SPACEDIM=3
+# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
 !ENDIF 
 
@@ -402,7 +402,7 @@ SOURCE=.\MultiFab.cpp
 !ELSEIF  "$(CFG)" == "pboxlib_2 - Win32 Debug3D"
 
 # ADD BASE CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
-# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /D BL_SPACEDIM=3
+# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
 !ENDIF 
 
@@ -422,7 +422,7 @@ SOURCE=.\Orientation.cpp
 !ELSEIF  "$(CFG)" == "pboxlib_2 - Win32 Debug3D"
 
 # ADD BASE CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
-# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /D BL_SPACEDIM=3
+# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
 !ENDIF 
 
@@ -442,7 +442,7 @@ SOURCE=.\ParallelDescriptor.cpp
 !ELSEIF  "$(CFG)" == "pboxlib_2 - Win32 Debug3D"
 
 # ADD BASE CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
-# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /D BL_SPACEDIM=3
+# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
 !ENDIF 
 
@@ -462,7 +462,7 @@ SOURCE=.\ParmParse.cpp
 !ELSEIF  "$(CFG)" == "pboxlib_2 - Win32 Debug3D"
 
 # ADD BASE CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
-# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /D BL_SPACEDIM=3
+# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
 !ENDIF 
 
@@ -482,7 +482,7 @@ SOURCE=.\Tracer.cpp
 !ELSEIF  "$(CFG)" == "pboxlib_2 - Win32 Debug3D"
 
 # ADD BASE CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
-# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /D BL_SPACEDIM=3
+# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
 !ENDIF 
 
@@ -502,7 +502,7 @@ SOURCE=.\Utility.cpp
 !ELSEIF  "$(CFG)" == "pboxlib_2 - Win32 Debug3D"
 
 # ADD BASE CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D BL_SPACEDIM=2 /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
-# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for" /D BL_SPACEDIM=3
+# ADD CPP /I ".\\" /D "BL_USE_DOUBLE" /D "BL_ARCH_IEEE" /D "BL_LANG_CC" /D "BL_FORT_USE_UPPERCASE" /D for="if(0);else for"
 
 !ENDIF 
 
