@@ -1,5 +1,11 @@
+//BL_COPYRIGHT_NOTICE
+
 #ifndef _MCLINOP_H_
-#define _MCLINOP_H_ "$Id: MCLinOp.H,v 1.3 1998-11-17 19:11:09 lijewski Exp $"
+#define _MCLINOP_H_
+
+//
+// $Id: MCLinOp.H,v 1.4 1999-01-04 21:31:49 lijewski Exp $
+//
 
 #include <Assert.H>
 #include <Array.H>
@@ -142,31 +148,31 @@ public:
     //
     //@ManDoc: return the boundary data object
     //
-    inline const BndryData& bndryData () const;
+    const BndryData& bndryData () const;
     //
     //@ManDoc: set the boundary data object
     //
-    inline void bndryData (const BndryData& bd);
+    void bndryData (const BndryData& bd);
     //
     //@ManDoc: return the box array
     //
-    inline const BoxArray& boxArray (int level = 0) const;
+    const BoxArray& boxArray (int level = 0) const;
     //
     //@ManDoc: return the number of grids
     //
-    inline int numGrids () const;
+    int numGrids () const;
     //
     //@ManDoc: return the number of levels
     //
-    inline int numLevels () const;
+    int numLevels () const;
     //
     //@ManDoc: return the order of the boundary condition interpolant
     //
-    inline int maxOrder () const;
+    int maxOrder () const;
     //
     //@ManDoc: set the order of the boundary condition interpolant
     //
-    inline int maxOrder (int maxorder_);
+    int maxOrder (int maxorder_);
     //
     //@ManDoc: construct/allocate internal data necessary for adding a new level
     //
@@ -186,8 +192,7 @@ public:
     //
     //@ManDoc: output the operator to an ASCII stream
     //
-    friend std::ostream& operator << (std::ostream&   os,
-				      const MCLinOp&  lp);
+    friend ostream& operator<< (ostream& os, const MCLinOp&  lp);
     
 protected:
     //
@@ -284,45 +289,52 @@ protected:
     static int def_maxorder;
 };
 
-inline const BndryData&
+inline
+const BndryData&
 MCLinOp::bndryData () const
 {
     return bgb;
 }
 
-inline void
+inline
+void
 MCLinOp::bndryData (const BndryData& bd)
 {
-    assert ( gbox[0] == bd.boxes() );
+    assert(gbox[0] == bd.boxes());
     bgb = bd;
 }
 
-inline const BoxArray&
+inline
+const BoxArray&
 MCLinOp::boxArray (int level) const
 {
     assert(level < numLevels());
     return gbox[level];
 }
 
-inline int
+inline
+int
 MCLinOp::numGrids () const
 {
     return gbox[0].length();
 }
 
-inline int
+inline
+int
 MCLinOp::numLevels () const
 {
     return h.length();
 }
 
-inline int
+inline
+int
 MCLinOp::maxOrder () const
 {
     return maxorder;
 }
 
-inline int
+inline
+int
 MCLinOp::maxOrder (int maxorder_)
 {
     assert(maxorder_ >= 2);
@@ -332,4 +344,4 @@ MCLinOp::maxOrder (int maxorder_)
     return omaxorder;
 }
 
-#endif
+#endif /*_MCLINOP_H_*/

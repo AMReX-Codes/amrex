@@ -1,5 +1,11 @@
+//BL_COPYRIGHT_NOTICE
+
 #ifndef _MCINTERPBNDRYDATA_H_
-#define _MCINTERPBNDRYDATA_H_  "%W% %G%"
+#define _MCINTERPBNDRYDATA_H_
+
+//
+// $Id: MCInterpBndryData.H,v 1.4 1999-01-04 21:31:48 lijewski Exp $
+//
 
 #include <Assert.H>
 #include <BoxArray.H>
@@ -37,7 +43,9 @@
 	bounds the cells that do not meet the above two criteria
 	\end{enumerate}
 */
-class MCInterpBndryData : public BndryData
+class MCInterpBndryData
+    :
+    public BndryData
 {
 public:
     //@ManMemo: Constructor
@@ -45,7 +53,7 @@ public:
     //
     //@ManDoc: default constructor
     //
-    MCInterpBndryData () : BndryData() {};
+    MCInterpBndryData () : BndryData() {}
     //
     //@ManDoc: constructor for given BoxArray, etc
     //
@@ -79,6 +87,4 @@ public:
 			 const Array<BCRec>&  phys_bc);
 };
 
-
-#endif
-
+#endif /*_MCINTERPBNDRYDATA_H_*/
