@@ -1,7 +1,7 @@
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 //
-// $Id: Utility.H,v 1.50 2001-08-01 18:14:13 lijewski Exp $
+// $Id: Utility.H,v 1.51 2001-10-15 18:17:51 car Exp $
 //
 #include <winstd.H>
 
@@ -125,12 +125,9 @@ namespace BoxLib
     // Helper class for Times, used in Threads, Profiling, and Timers.
     //
     class Time
-	:
-    public timespec
     {
     public:
 	Time();
-	Time(const timespec& ts);
 	Time(long s, long n = 0);
 	Time(double d);
 	double as_double() const;
@@ -139,6 +136,8 @@ namespace BoxLib
 	Time operator+(const Time&) const;
 	static Time get_time();
     private:
+	long tv_sec;
+	long tv_nsec;
 	void normalize();
     };
     //
