@@ -13,9 +13,10 @@ c Routines to cut slice:
 
       subroutine getsl0(a,mlo,mhi,nlo,nhi,olo,ohi,
      @  ilo,ihi,jlo,jhi,klo,khi,b,islice)
-      implicit real*8 (a-h,l,p-z), integer(i-k,m-o)
+      integer mlo,mhi,nlo,nhi,olo,ohi,ilo,ihi,jlo,jhi,klo,khi,islice
       real*8 a(mlo:mhi,nlo:nhi,olo:ohi)
       real*8 b(jlo:jhi,klo:khi)
+      integer k, j
       do 10 k = klo, khi
          do 10 j = jlo, jhi
  10         b(j,k) = a(islice,j,k)
@@ -23,9 +24,10 @@ c Routines to cut slice:
 
       subroutine getsl1(a,mlo,mhi,nlo,nhi,olo,ohi,
      @  ilo,ihi,jlo,jhi,klo,khi,b,jslice)
-      implicit real*8 (a-h,l,p-z), integer(i-k,m-o)
+      integer mlo,mhi,nlo,nhi,olo,ohi,ilo,ihi,jlo,jhi,klo,khi,jslice
       real*8 a(mlo:mhi,nlo:nhi,olo:ohi)
       real*8 b(ilo:ihi,klo:khi)
+      integer k, i
       do 10 k = klo, khi
          do 10 i = ilo, ihi
  10         b(i,k) = a(i,jslice,k)
@@ -33,9 +35,10 @@ c Routines to cut slice:
 
       subroutine getsl2(a,mlo,mhi,nlo,nhi,olo,ohi,
      @  ilo,ihi,jlo,jhi,klo,khi,b,kslice)
-      implicit real*8 (a-h,l,p-z), integer(i-k,m-o)
+      integer mlo,mhi,nlo,nhi,olo,ohi,ilo,ihi,jlo,jhi,klo,khi,kslice
       real*8 a(mlo:mhi,nlo:nhi,olo:ohi)
       real*8 b(ilo:ihi,jlo:jhi)
+      integer j, i
       do 10 j = jlo, jhi
          do 10 i = ilo, ihi
  10         b(i,j) = a(i,j,kslice)
@@ -46,9 +49,14 @@ c Begin full 3D version:
       subroutine cont3d(a,mlo,mhi,nlo,nhi,olo,ohi,
      @  ilo,ihi,jlo,jhi,klo,khi,rx,ry,rz,
      @  xo,yo,zo,theta,phi,value,ifail)
-      implicit real*8 (a-h,l,p-z), integer(i-k,m-o)
+      integer mlo,mhi,nlo,nhi,olo,ohi,ilo,ihi,jlo,jhi,klo,khi
       real*8 a(mlo:mhi,nlo:nhi,olo:ohi)
-      integer rx, ry, rz
+      integer rx, ry, rz, ifail
+      real*8 xo, yo, zo, theta, phi, value
+      real*8 pi, ct, st, cp, sp, ctsp, stsp, hx, hy, hz
+      real*8 xp, yp, zp, xlb, xlt, xrb, xrt, ylb, ylt, yrb, yrt
+      real*8 lb, lt, rb, rt
+      integer i, j, k
       parameter(pi=3.14159265358979323846d0)
       ifail=0
       ct = cos(theta*pi/180)
@@ -128,8 +136,11 @@ c Begin full 3D version:
 
       subroutine face(xlb,xlt,xrb,xrt,ylb,ylt,yrb,yrt,
      @                lb,lt,rb,rt,value,ifail)
-      implicit real*8 (a-h,l,p-z), integer(i-k,m-o)
+      real*8 xlb, xlt, xrb, xrt, ylb, ylt, yrb, yrt, lb, lt, rb, rt
+      real*8 value
+      integer ifail
       logical left,right,top,bottom,btwn
+      real*8 xl, yl, xr, yr, xt, yt, xb, yb
       left=btwn(lb,value,lt)
       if (left)then
          if (lb .ne. lt)then

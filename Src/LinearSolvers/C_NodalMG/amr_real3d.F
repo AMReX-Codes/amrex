@@ -9,7 +9,6 @@ c Works for CELL- or NODE-based data.
      @ dims(dest),
      @ dims(reg),
      @ src,  dims(src), ncomp)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
@@ -18,6 +17,7 @@ c      real*8 src(dimdec(src), ncomp)
       real*8 dest(dimdec(dest), *)
       real*8 src(dimdec(src), *)
       integer ncomp
+      integer i, j, k, ic
       if (regh2 - regl2 .gt. regh1 - regl1 .and.
      @    regh2 - regl2 .gt. regh0 - regl0) then
          do 10 ic = 1, ncomp
@@ -44,11 +44,11 @@ c Unrolled copy---works for CELL- or NODE-based data.
       subroutine fcpyu(dest, src,
      @ dims(reg),
      @ ncomp)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(reg)
       real*8 dest(*)
       real*8 src(*)
       integer ncomp
+      integer nvals, i
       nvals = (regh0-regl0+1) * (regh1-regl1+1) * (regh2-regl2+1) * ncomp
       do 10 i = 1, nvals
  10      dest(i) = src(i)
@@ -101,13 +101,13 @@ c Works for NODE-based data.
      @ dims(da),
      @ db,  dims(db),
      @ dims(reg), w, b, ncomp)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(da)
       integer dims(db)
       integer dims(reg)
+      integer w, b, ncomp
       real*8 da(dimdec(da), ncomp)
       real*8 db(dimdec(db), ncomp)
-      integer w, b, ncomp
+      integer i, j, k, ic, ial, iah, ibl, ibh, jal, jah, jbl, jbh
       if (regl0 .eq. regh0) then
          do 10 ic = 1, ncomp
             do 10 i = 1, w
@@ -162,13 +162,13 @@ c Works for NODE-based data.
       subroutine fccpy2(dest, src, nsets, dstart, sstart,
      @                  dstrd1, dstrd2, sstrd1, sstrd2,
      @                  nvals1, nvals2)
-      implicit real*8(a-h,o-z), integer(i-n)
       real*8 dest(0:1), src(0:1)
       integer nsets
       integer dstart(nsets), sstart(nsets)
       integer dstrd1(nsets), dstrd2(nsets)
       integer sstrd1(nsets), sstrd2(nsets)
       integer nvals1(nsets), nvals2(nsets)
+      integer i, j, k
       do 10 k = 1, nsets
          do 10 j = 0, nvals2(k) - 1
             do 10 i = 0, nvals1(k) - 1
@@ -181,7 +181,6 @@ c Works for CELL- or NODE-based data.
      @ dims(src),
      @ dims(reg),
      @ retval)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(src)
       integer dims(reg)
       real*8 src(dimdec(src))
@@ -189,6 +188,7 @@ c Works for CELL- or NODE-based data.
       integer bufsiz
       parameter(bufsiz = 128)
       real*8 buf(0:bufsiz-1)
+      integer i, j, k, ii, jj, kk, idif, jdif, kdif, nbuf
       idif = regh0 - regl0
       jdif = regh1 - regl1
       kdif = regh2 - regl2
@@ -232,11 +232,11 @@ c Works for CELL- or NODE-based data.
       subroutine fassnu(v, x,
      @ dims(reg),
      @ ncomp)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(reg)
       real*8 v(*)
       real*8 x
       integer ncomp
+      integer nvals, i
       nvals = (regh0-regl0+1) * (regh1-regl1+1) * (regh2-regl2+1) * ncomp
       do 10 i = 1, nvals
  10      v(i) = x
@@ -245,10 +245,10 @@ c Works for CELL- or NODE-based data.
 c Works for CELL- or NODE-based data.
       subroutine fplusu(v0, v1,
      @ dims(reg))
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(reg)
       real*8 v0(dimdecu(reg))
       real*8 v1(dimdecu(reg))
+      integer i
       do 10 i = 1, (regh0-regl0+1) * (regh1-regl1+1) * (regh2-regl2+1)
  10      v0(i) = v0(i) + v1(i)
       end
@@ -258,13 +258,13 @@ c Works for CELL-based data.
      @ dims(v0),
      @ v1, dims(v1),
      @ dims(reg), sum)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(v0)
       integer dims(v1)
       integer dims(reg)
       real*8 v0(dimdec(v0))
       real*8 v1(dimdec(v1))
       real*8 sum
+      integer i, j, k
       if (regh2 - regl2 .gt. regh1 - regl1 .and.
      @    regh2 - regl2 .gt. regh0 - regl0) then
          do 10 j = regl1, regh1
@@ -289,13 +289,13 @@ c Works for CELL- or NODE-based data.
      @ dims(v0),
      @ v1, dims(v1),
      @ dims(reg), sum)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(v0)
       integer dims(v1)
       integer dims(reg)
       real*8 v0(dimdec(v0))
       real*8 v1(dimdec(v1))
       real*8 sum
+      integer i, j, k
       sum = sum + 0.125d0 *
      @            (v0(regl0,regl1,regl2) * v1(regl0,regl1,regl2) +
      @             v0(regl0,regl1,regh2) * v1(regl0,regl1,regh2) +
@@ -363,7 +363,6 @@ c Works for CELL- or NODE-based data.
      @ dims(reg),
      @ src,  dims(src),
      @ dims(bb), idir)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
@@ -371,6 +370,7 @@ c Works for CELL- or NODE-based data.
       integer idir
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
+      integer i, j, k
       if (idir .eq. 0) then
          do 10 i = regl0, regh0
             do 10 k = regl2, regh2
@@ -395,7 +395,6 @@ c Works for CELL- or NODE-based data.
      @ dims(reg),
      @ src,  dims(src),
      @ dims(bb), ra)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
@@ -403,6 +402,7 @@ c Works for CELL- or NODE-based data.
       integer ra(0:2)
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
+      integer i, j, k
       if (ra(0) .eq. 0 .and. ra(1) .eq. 0 .and. ra(2) .eq. 0) then
          if (regh2 - regl2 .gt. max(regh0 - regl0, regh1 - regl1)) then
             do 10 j = regl1, regh1
@@ -474,7 +474,6 @@ c Works for CELL- or NODE-based data.
      @ dims(reg),
      @ src,  dims(src),
      @ dims(bb), idir)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
@@ -482,6 +481,7 @@ c Works for CELL- or NODE-based data.
       integer idir
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
+      integer i, j, k
       if (idir .eq. 0) then
          do 10 i = regl0, regh0
             do 10 k = regl2, regh2
@@ -506,7 +506,6 @@ c Works for CELL- or NODE-based data.
      @ dims(reg),
      @ src,  dims(src),
      @ dims(bb), ra)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
@@ -514,6 +513,7 @@ c Works for CELL- or NODE-based data.
       integer ra(0:2)
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
+      integer i, j, k
       if (ra(0) .eq. 0 .and. ra(1) .eq. 0 .and. ra(2) .eq. 0) then
          if (regh2 - regl2 .gt. max(regh0 - regl0, regh1 - regl1)) then
             do 10 j = regl1, regh1
@@ -588,7 +588,6 @@ c inflow face, so that binfil can be run for subsequent fills
      @ src,  dims(src),
      @ dims(bb),
      @ idir)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
@@ -596,6 +595,7 @@ c inflow face, so that binfil can be run for subsequent fills
       integer idir
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
+      integer i, j, k
       if (idir .eq. 0) then
          if (regl0 .lt. bbh0) then
             do 10 i = regl0, regh0
@@ -649,7 +649,6 @@ c been altered by a call to fill_borders.
      @ src,  dims(src),
      @ dims(bb),
      @ idir)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
@@ -657,6 +656,7 @@ c been altered by a call to fill_borders.
       integer idir
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
+      integer i, j, k
       if (idir .eq. 0) then
          if (regl0 .lt. bbh0) then
             do 10 i = regl0, regh0
@@ -708,7 +708,6 @@ c CELL-based data only.
      @ dims(reg),
      @ src,  dims(src),
      @ dims(bb), ir, jr, kr)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
@@ -716,6 +715,8 @@ c CELL-based data only.
       integer ir, jr, kr
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
+      real*8 xoff, yoff, zoff, sx, sy, sz
+      integer ic, jc, kc, i, j, k
       do 10 k = regl2, regh2
          kc = k/kr
          zoff = (mod(k,kr) + 0.5) / kr - 0.5
@@ -737,7 +738,6 @@ c NODE-based data only.
      @ dims(reg),
      @ src,  dims(src),
      @ dims(bb), ir, jr, kr)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
@@ -745,6 +745,8 @@ c NODE-based data only.
       integer ir, jr, kr
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
+      real*8 p, q
+      integer ic, jc, kc, j, k, m
       do 10 kc = bbl2, bbh2
          do 10 jc = bbl1, bbh1
             do 10 ic = bbl0, bbh0
@@ -879,13 +881,14 @@ c CELL-based data only.
      @ dims(reg),
      @ src,  dims(src),
      @ ir, jr, kr)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
       integer ir, jr, kr
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
+      real*8 fac
+      integer i, j, k, l, m, n
       do 10 k = regl2, regh2
          do 10 j = regl1, regh1
             do 10 i = regl0, regh0
@@ -911,13 +914,13 @@ c NODE-based data only.
      @ dims(reg),
      @ src,  dims(src),
      @ ir, jr, kr)
-      implicit real*8(a-h,o-z), integer(i-n)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
       integer ir, jr, kr
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
+      integer i, j, k
       do 10 k = regl2, regh2
          do 10 j = regl1, regh1
             do 10 i = regl0, regh0
@@ -972,14 +975,15 @@ c NODE-based data only.
      @ dims(dest),
      @ dims(reg),
      @ src,  dims(src),
-     @ ir, jr, kr)
-      implicit real*8(a-h,o-z), integer(i-n)
+     @ ir, jr, kr, integ)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
-      integer ir, jr, kr
+      integer ir, jr, kr, integ
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
+      real*8 fac0, fac1, fac2, fac
+      integer i, j, k, l, m, n
       if (ir .eq. 2 .and. jr .eq. 2 .and. kr .eq. 2) then
          if (regh2 - regl2 .gt. regh1 - regl1 .and.
      @       regh2 - regl2 .gt. regh0 - regl0) then
@@ -1182,6 +1186,26 @@ c NODE-based data only.
      @                         src(i*ir+m,j*jr+n,k*kr+l))
          endif
       endif
+      if (integ .eq. 1) then
+         fac = ir * jr * kr
+         if (regh2 - regl2 .gt. regh1 - regl1 .and.
+     @       regh2 - regl2 .gt. regh0 - regl0) then
+            do 310 j = regl1, regh1
+               do 310 i = regl0, regh0
+                  do 310 k = regl2, regh2
+ 310                 dest(i,j,k) = fac * dest(i,j,k)
+         else if (regh1 - regl1 .gt. regh0 - regl0) then
+            do 320 k = regl2, regh2
+               do 320 i = regl0, regh0
+                  do 320 j = regl1, regh1
+ 320                 dest(i,j,k) = fac * dest(i,j,k)
+         else
+            do 330 k = regl2, regh2
+               do 330 j = regl1, regh1
+                  do 330 i = regl0, regh0
+ 330                 dest(i,j,k) = fac * dest(i,j,k)
+         endif
+      endif
       end
 
 c NODE-based data only.
@@ -1191,21 +1215,27 @@ c Handles coarse-fine face, with orientation determined by idim and idir
      @ dims(dest),
      @ dims(reg),
      @ src,  dims(src),
-     @ ir, jr, kr, idim, idir)
-      implicit real*8(a-h,o-z), integer(i-n)
+     @ ir, jr, kr, idim, idir, integ)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
-      integer ir, jr, kr, idim, idir
+      integer ir, jr, kr, idim, idir, integ
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
+      real*8 fac0, fac1, fac2, fac
+      integer i, j, k, l, m, n
       if (idim .eq. 0) then
+         if (integ .eq. 0) then
+            fac = (0.5d0 + 0.5d0 / ir)
+            fac0 = 1.d0 / (ir*ir * jr*jr * kr*kr)
+         else
+            fac = 1.d0
+            fac0 = 1.d0 / (ir * jr * kr)
+         endif
          i = regl0
          do 10 k = regl2, regh2
             do 10 j = regl1, regh1
- 10            dest(i,j,k) = (0.5d0 + 0.5d0 / ir) *
-     @                       src(i*ir,j*jr,k*kr)
-         fac0 = 1.d0 / (ir*ir * jr*jr * kr*kr)
+ 10            dest(i,j,k) = fac * src(i*ir,j*jr,k*kr)
          do 20 l = 0, kr-1
             fac2 = (kr-l) * fac0
             if (l .eq. 0) fac2 = 0.5d0 * fac2
@@ -1222,11 +1252,17 @@ c Handles coarse-fine face, with orientation determined by idim and idir
      @                              src(i*ir+m,j*jr+n,k*kr-l) +
      @                              src(i*ir+m,j*jr+n,k*kr+l))
       else if (idim .eq. 1) then
+         if (integ .eq. 0) then
+            fac = (0.5d0 + 0.5d0 / jr)
+            fac0 = 1.d0 / (ir*ir * jr*jr * kr*kr)
+         else
+            fac = 1.d0
+            fac0 = 1.d0 / (ir * jr * kr)
+         endif
          j = regl1
          do 30 k = regl2, regh2
             do 30 i = regl0, regh0
- 30            dest(i,j,k) = (0.5d0 + 0.5d0 / jr) *
-     @                       src(i*ir,j*jr,k*kr)
+ 30            dest(i,j,k) = fac * src(i*ir,j*jr,k*kr)
          fac0 = 1.d0 / (ir*ir * jr*jr * kr*kr)
          do 40 l = 0, kr-1
             fac2 = (kr-l) * fac0
@@ -1244,11 +1280,17 @@ c Handles coarse-fine face, with orientation determined by idim and idir
      @                              src(i*ir+m,j*jr+n,k*kr-l) +
      @                              src(i*ir+m,j*jr+n,k*kr+l))
       else
+         if (integ .eq. 0) then
+            fac = (0.5d0 + 0.5d0 / kr)
+            fac0 = 1.d0 / (ir*ir * jr*jr * kr*kr)
+         else
+            fac = 1.d0
+            fac0 = 1.d0 / (ir * jr * kr)
+         endif
          k = regl2
          do 50 j = regl1, regh1
             do 50 i = regl0, regh0
- 50            dest(i,j,k) = (0.5d0 + 0.5d0 / kr) *
-     @                       src(i*ir,j*jr,k*kr)
+ 50            dest(i,j,k) = fac * src(i*ir,j*jr,k*kr)
          fac0 = 1.d0 / (ir*ir * jr*jr * kr*kr)
          do 60 l = idir, idir*(kr-1), idir
             fac2 = (kr-abs(l)) * fac0
@@ -1275,14 +1317,15 @@ c Handles any edge geometry except all-coarse or all-fine.
      @ dims(dest),
      @ dims(reg),
      @ src,  dims(src),
-     @ ir, jr, kr, ivect, ga)
-      implicit real*8(a-h,o-z), integer(i-n)
+     @ ir, jr, kr, ivect, ga, integ)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
-      integer ir, jr, kr, ivect(0:2), ga(0:1,0:1,0:1)
+      integer ir, jr, kr, ivect(0:2), ga(0:1,0:1,0:1), integ
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
+      real*8 cube, center, cfac, fac0, fac1, fac2, fac
+      integer i, j, k, ii, ji, ki, idir, jdir, kdir, l, m, n
       cube = ir * jr * kr
       if (ivect(0) .eq. 0) then
          j = regl1
@@ -1290,11 +1333,16 @@ c Handles any edge geometry except all-coarse or all-fine.
          do 10 i = regl0, regh0
  10         dest(i,j,k) = 0.d0
 c center gets center plus two edges
-         center = ir / cube
+         if (integ .eq. 0) then
+            center = ir / cube
+            fac0 = 1.d0 / (cube**2)
+            cfac = 0.25d0 * cube * fac0 * ir * (jr-1) * (kr-1)
+         else
+            center = 1.d0
+            fac0 = 1.d0 / cube
+         endif
 c quadrants
-         fac0 = 1.d0 / (cube**2)
 c each quadrant is two octants and a face
-         cfac = 0.25d0 * cube * fac0 * ir * (jr-1) * (kr-1)
          do 30 ki = 0, 1
             kdir = 2 * ki - 1
             do 30 ji = 0, 1
@@ -1311,45 +1359,45 @@ c each quadrant is two octants and a face
  20                           dest(i,j,k) = dest(i,j,k) +
      @                          fac * (src(i*ir-m,j*jr+n,k*kr+l) +
      @                                 src(i*ir+m,j*jr+n,k*kr+l))
-               else
+               else if (integ .eq. 0) then
                   center = center + cfac
                endif
  30            continue
 c faces
 c each face is two faces and an edge
-      fac2 = kr * fac0
-      cfac = 0.5d0 * cube * fac0 * ir * (jr-1)
-      do 50 ji = 0, 1
-         jdir = 2 * ji - 1
-         if (ga(0,ji,0) + ga(0,ji,1) .eq. 2) then
-            do 40 n = jdir, jdir*(jr-1), jdir
-               fac1 = (jr-abs(n)) * fac2
-               do 40 m = 0, ir-1
-                  fac = (ir-m) * fac1
-                  if (m .eq. 0) fac = 0.5d0 * fac
-                  do 40 i = regl0, regh0
- 40                  dest(i,j,k) = dest(i,j,k) +
-     @                 fac * (src(i*ir-m,j*jr+n,k*kr) +
-     @                        src(i*ir+m,j*jr+n,k*kr))
-            else
+         fac2 = kr * fac0
+         cfac = 0.5d0 * cube * fac0 * ir * (jr-1)
+         do 50 ji = 0, 1
+            jdir = 2 * ji - 1
+            if (ga(0,ji,0) + ga(0,ji,1) .eq. 2) then
+               do 40 n = jdir, jdir*(jr-1), jdir
+                  fac1 = (jr-abs(n)) * fac2
+                  do 40 m = 0, ir-1
+                     fac = (ir-m) * fac1
+                     if (m .eq. 0) fac = 0.5d0 * fac
+                     do 40 i = regl0, regh0
+ 40                     dest(i,j,k) = dest(i,j,k) +
+     @                    fac * (src(i*ir-m,j*jr+n,k*kr) +
+     @                           src(i*ir+m,j*jr+n,k*kr))
+            else if (integ .eq. 0) then
                center = center + cfac
             endif
  50         continue
-      fac2 = jr * fac0
-      cfac = 0.5d0 * cube * fac0 * ir * (kr-1)
-      do 70 ki = 0, 1
-         kdir = 2 * ki - 1
-         if (ga(0,0,ki) + ga(0,1,ki) .eq. 2) then
-            do 60 l = kdir, kdir*(kr-1), kdir
-               fac1 = (kr-abs(l)) * fac2
-               do 60 m = 0, ir-1
-                  fac = (ir-m) * fac1
-                  if (m .eq. 0) fac = 0.5d0 * fac
-                  do 60 i = regl0, regh0
- 60                  dest(i,j,k) = dest(i,j,k) +
-     @                 fac * (src(i*ir-m,j*jr,k*kr+l) +
-     @                        src(i*ir+m,j*jr,k*kr+l))
-            else
+         fac2 = jr * fac0
+         cfac = 0.5d0 * cube * fac0 * ir * (kr-1)
+         do 70 ki = 0, 1
+            kdir = 2 * ki - 1
+            if (ga(0,0,ki) + ga(0,1,ki) .eq. 2) then
+               do 60 l = kdir, kdir*(kr-1), kdir
+                  fac1 = (kr-abs(l)) * fac2
+                  do 60 m = 0, ir-1
+                     fac = (ir-m) * fac1
+                     if (m .eq. 0) fac = 0.5d0 * fac
+                     do 60 i = regl0, regh0
+ 60                     dest(i,j,k) = dest(i,j,k) +
+     @                    fac * (src(i*ir-m,j*jr,k*kr+l) +
+     @                           src(i*ir+m,j*jr,k*kr+l))
+            else if (integ .eq. 0) then
                center = center + cfac
             endif
  70         continue
@@ -1363,11 +1411,16 @@ c center
          do 110 j = regl1, regh1
  110        dest(i,j,k) = 0.d0
 c center gets center plus two edges
-         center = jr / cube
+         if (integ .eq. 0) then
+            center = jr / cube
+            fac0 = 1.d0 / (cube**2)
+            cfac = 0.25d0 * cube * fac0 * jr * (ir-1) * (kr-1)
+         else
+            center = 1.d0
+            fac0 = 1.d0 / cube
+         endif
 c quadrants
-         fac0 = 1.d0 / (cube**2)
 c each quadrant is two octants and a face
-         cfac = 0.25d0 * cube * fac0 * jr * (ir-1) * (kr-1)
          do 130 ki = 0, 1
             kdir = 2 * ki - 1
             do 130 ii = 0, 1
@@ -1384,45 +1437,45 @@ c each quadrant is two octants and a face
  120                          dest(i,j,k) = dest(i,j,k) +
      @                          fac * (src(i*ir+m,j*jr-n,k*kr+l) +
      @                                 src(i*ir+m,j*jr+n,k*kr+l))
-               else
+               else if (integ .eq. 0) then
                   center = center + cfac
                endif
  130           continue
 c faces
 c each face is two faces and an edge
-      fac2 = kr * fac0
-      cfac = 0.5d0 * cube * fac0 * jr * (ir-1)
-      do 150 ii = 0, 1
-         idir = 2 * ii - 1
-         if (ga(ii,0,0) + ga(ii,0,1) .eq. 2) then
-            do 140 n = 0, jr-1
-               fac1 = (jr-n) * fac2
-               if (n .eq. 0) fac1 = 0.5d0 * fac1
-               do 140 m = idir, idir*(ir-1), idir
-                  fac = (ir-abs(m)) * fac1
-                  do 140 j = regl1, regh1
- 140                 dest(i,j,k) = dest(i,j,k) +
-     @                 fac * (src(i*ir+m,j*jr-n,k*kr) +
-     @                        src(i*ir+m,j*jr+n,k*kr))
-            else
+         fac2 = kr * fac0
+         cfac = 0.5d0 * cube * fac0 * jr * (ir-1)
+         do 150 ii = 0, 1
+            idir = 2 * ii - 1
+            if (ga(ii,0,0) + ga(ii,0,1) .eq. 2) then
+               do 140 n = 0, jr-1
+                  fac1 = (jr-n) * fac2
+                  if (n .eq. 0) fac1 = 0.5d0 * fac1
+                  do 140 m = idir, idir*(ir-1), idir
+                     fac = (ir-abs(m)) * fac1
+                     do 140 j = regl1, regh1
+ 140                    dest(i,j,k) = dest(i,j,k) +
+     @                    fac * (src(i*ir+m,j*jr-n,k*kr) +
+     @                           src(i*ir+m,j*jr+n,k*kr))
+            else if (integ .eq. 0) then
                center = center + cfac
             endif
  150        continue
-      fac2 = ir * fac0
-      cfac = 0.5d0 * cube * fac0 * jr * (kr-1)
-      do 170 ki = 0, 1
-         kdir = 2 * ki - 1
-         if (ga(0,0,ki) + ga(1,0,ki) .eq. 2) then
-            do 160 l = kdir, kdir*(kr-1), kdir
-               fac1 = (kr-abs(l)) * fac2
-               do 160 n = 0, jr-1
-                  fac = (jr-n) * fac1
-                  if (n .eq. 0) fac = 0.5d0 * fac
-                  do 160 j = regl1, regh1
- 160                 dest(i,j,k) = dest(i,j,k) +
-     @                 fac * (src(i*ir,j*jr-n,k*kr+l) +
-     @                        src(i*ir,j*jr+n,k*kr+l))
-            else
+         fac2 = ir * fac0
+         cfac = 0.5d0 * cube * fac0 * jr * (kr-1)
+         do 170 ki = 0, 1
+            kdir = 2 * ki - 1
+            if (ga(0,0,ki) + ga(1,0,ki) .eq. 2) then
+               do 160 l = kdir, kdir*(kr-1), kdir
+                  fac1 = (kr-abs(l)) * fac2
+                  do 160 n = 0, jr-1
+                     fac = (jr-n) * fac1
+                     if (n .eq. 0) fac = 0.5d0 * fac
+                     do 160 j = regl1, regh1
+ 160                    dest(i,j,k) = dest(i,j,k) +
+     @                    fac * (src(i*ir,j*jr-n,k*kr+l) +
+     @                           src(i*ir,j*jr+n,k*kr+l))
+            else if (integ .eq. 0) then
                center = center + cfac
             endif
  170        continue
@@ -1436,11 +1489,16 @@ c center
          do 210 k = regl2, regh2
  210        dest(i,j,k) = 0.d0
 c center gets center plus two edges
-         center = kr / cube
+         if (integ .eq. 0) then
+            center = kr / cube
+            fac0 = 1.d0 / (cube**2)
+            cfac = 0.25d0 * cube * fac0 * kr * (ir-1) * (jr-1)
+         else
+            center = 1.d0
+            fac0 = 1.d0 / cube
+         endif
 c quadrants
-         fac0 = 1.d0 / (cube**2)
 c each quadrant is two octants and a face
-         cfac = 0.25d0 * cube * fac0 * kr * (ir-1) * (jr-1)
          do 230 ji = 0, 1
             jdir = 2 * ji - 1
             do 230 ii = 0, 1
@@ -1457,45 +1515,45 @@ c each quadrant is two octants and a face
  220                          dest(i,j,k) = dest(i,j,k) +
      @                          fac * (src(i*ir+m,j*jr+n,k*kr-l) +
      @                                 src(i*ir+m,j*jr+n,k*kr+l))
-               else
+               else if (integ .eq. 0) then
                   center = center + cfac
                endif
  230           continue
 c faces
 c each face is two faces and an edge
-      fac2 = jr * fac0
-      cfac = 0.5d0 * cube * fac0 * kr * (ir-1)
-      do 250 ii = 0, 1
-         idir = 2 * ii - 1
-         if (ga(ii,0,0) + ga(ii,1,0) .eq. 2) then
-            do 240 l = 0, kr-1
-               fac1 = (kr-l) * fac2
-               if (l .eq. 0) fac1 = 0.5d0 * fac1
-               do 240 m = idir, idir*(ir-1), idir
-                  fac = (ir-abs(m)) * fac1
-                  do 240 k = regl2, regh2
- 240                 dest(i,j,k) = dest(i,j,k) +
-     @                 fac * (src(i*ir+m,j*jr,k*kr-l) +
-     @                        src(i*ir+m,j*jr,k*kr+l))
-            else
+         fac2 = jr * fac0
+         cfac = 0.5d0 * cube * fac0 * kr * (ir-1)
+         do 250 ii = 0, 1
+            idir = 2 * ii - 1
+            if (ga(ii,0,0) + ga(ii,1,0) .eq. 2) then
+               do 240 l = 0, kr-1
+                  fac1 = (kr-l) * fac2
+                  if (l .eq. 0) fac1 = 0.5d0 * fac1
+                  do 240 m = idir, idir*(ir-1), idir
+                     fac = (ir-abs(m)) * fac1
+                     do 240 k = regl2, regh2
+ 240                    dest(i,j,k) = dest(i,j,k) +
+     @                    fac * (src(i*ir+m,j*jr,k*kr-l) +
+     @                           src(i*ir+m,j*jr,k*kr+l))
+            else if (integ .eq. 0) then
                center = center + cfac
             endif
  250        continue
-      fac2 = ir * fac0
-      cfac = 0.5d0 * cube * fac0 * kr * (jr-1)
-      do 270 ji = 0, 1
-         jdir = 2 * ji - 1
-         if (ga(0,ji,0) + ga(1,ji,0) .eq. 2) then
-            do 260 l = 0, kr-1
-               fac1 = (kr-l) * fac2
-               if (l .eq. 0) fac1 = 0.5d0 * fac1
-               do 260 n = jdir, jdir*(jr-1), jdir
-                  fac = (jr-abs(n)) * fac1
-                  do 260 k = regl2, regh2
- 260                 dest(i,j,k) = dest(i,j,k) +
-     @                 fac * (src(i*ir,j*jr+n,k*kr-l) +
-     @                        src(i*ir,j*jr+n,k*kr+l))
-            else
+         fac2 = ir * fac0
+         cfac = 0.5d0 * cube * fac0 * kr * (jr-1)
+         do 270 ji = 0, 1
+            jdir = 2 * ji - 1
+            if (ga(0,ji,0) + ga(1,ji,0) .eq. 2) then
+               do 260 l = 0, kr-1
+                  fac1 = (kr-l) * fac2
+                  if (l .eq. 0) fac1 = 0.5d0 * fac1
+                  do 260 n = jdir, jdir*(jr-1), jdir
+                     fac = (jr-abs(n)) * fac1
+                     do 260 k = regl2, regh2
+ 260                    dest(i,j,k) = dest(i,j,k) +
+     @                    fac * (src(i*ir,j*jr+n,k*kr-l) +
+     @                           src(i*ir,j*jr+n,k*kr+l))
+            else if (integ .eq. 0) then
                center = center + cfac
             endif
  270        continue
@@ -1513,23 +1571,29 @@ c Handles any corner geometry except all-coarse.
      @ dims(dest),
      @ dims(reg),
      @ src,  dims(src),
-     @ ir, jr, kr, ga)
-      implicit real*8(a-h,o-z), integer(i-n)
+     @ ir, jr, kr, ga, integ)
       integer dims(dest)
       integer dims(reg)
       integer dims(src)
-      integer ir, jr, kr, ga(0:1,0:1,0:1)
+      integer ir, jr, kr, ga(0:1,0:1,0:1), integ
       real*8 dest(dimdec(dest))
       real*8 src(dimdec(src))
+      real*8 cube, center, cfac, fac0, fac1, fac2, fac
+      integer i, j, k, ii, ji, ki, idir, jdir, kdir, l, m, n
       i = regl0
       j = regl1
       k = regl2
       dest(i,j,k) = 0.d0
       cube = ir * jr * kr
-      center = 1.d0 / cube
+      if (integ .eq. 0) then
+         center = 1.d0 / cube
+         fac0 = 1.d0 / (cube**2)
+         cfac = 0.125d0 * cube * fac0 * (ir-1) * (jr-1) * (kr-1)
+      else
+         center = 1.d0
+         fac0 = 1.d0 / cube
+      endif
 c octants
-      fac0 = 1.d0 / (cube**2)
-      cfac = 0.125d0 * cube * fac0 * (ir-1) * (jr-1) * (kr-1)
       do 20 ki = 0, 1
          kdir = 2 * ki - 1
          do 20 ji = 0, 1
@@ -1545,7 +1609,7 @@ c octants
                            fac = (ir-abs(m)) * fac1
  10                        dest(i,j,k) = dest(i,j,k) +
      @                       fac * src(i*ir+m,j*jr+n,k*kr+l)
-               else
+               else if (integ .eq. 0) then
                   center = center + cfac
                endif
  20            continue
@@ -1563,7 +1627,7 @@ c faces
                      fac = (ir-abs(m)) * fac1
  30                  dest(i,j,k) = dest(i,j,k) +
      @                 fac * src(i*ir+m,j*jr+n,k*kr)
-            else
+            else if (integ .eq. 0) then
                center = center + cfac
             endif
  40         continue
@@ -1580,7 +1644,7 @@ c faces
                      fac = (ir-abs(m)) * fac1
  50                  dest(i,j,k) = dest(i,j,k) +
      @                 fac * src(i*ir+m,j*jr,k*kr+l)
-            else
+            else if (integ .eq. 0) then
                center = center + cfac
             endif
  60         continue
@@ -1597,7 +1661,7 @@ c faces
                      fac = (jr-abs(n)) * fac1
  70                  dest(i,j,k) = dest(i,j,k) +
      @                 fac * src(i*ir,j*jr+n,k*kr+l)
-            else
+            else if (integ .eq. 0) then
                center = center + cfac
             endif
  80         continue
@@ -1612,7 +1676,7 @@ c edges
                fac = (ir-abs(m)) * fac1
  90            dest(i,j,k) = dest(i,j,k) +
      @           fac * src(i*ir+m,j*jr,k*kr)
-         else
+         else if (integ .eq. 0) then
             center = center + cfac
          endif
  100     continue
@@ -1626,7 +1690,7 @@ c edges
                fac = (jr-abs(n)) * fac1
  110           dest(i,j,k) = dest(i,j,k) +
      @           fac * src(i*ir,j*jr+n,k*kr)
-         else
+         else if (integ .eq. 0) then
             center = center + cfac
          endif
  120     continue
@@ -1640,7 +1704,7 @@ c edges
                fac = (kr-abs(l)) * fac1
  130           dest(i,j,k) = dest(i,j,k) +
      @           fac * src(i*ir,j*jr,k*kr+l)
-         else
+         else if (integ .eq. 0) then
             center = center + cfac
          endif
  140     continue
