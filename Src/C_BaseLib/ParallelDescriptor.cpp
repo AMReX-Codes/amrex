@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.44 1998-09-10 17:59:13 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.45 1998-10-18 01:43:50 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -48,6 +48,23 @@ CommData::CommData (int        face,
 
     for (int i = 0; i < BL_SPACEDIM; i++)
         m_data[7+2*BL_SPACEDIM+i] = typ[i];
+}
+
+CommData::CommData (const CommData& rhs)
+{
+    for (int i = 0; i < length(); i++)
+        m_data[i] = rhs.m_data[i];
+}
+
+CommData&
+CommData::operator= (const CommData& rhs)
+{
+    if (!(this == &rhs))
+    {
+        for (int i = 0; i < length(); i++)
+            m_data[i] = rhs.m_data[i];
+    }
+    return *this;
 }
 
 #ifdef BL_USE_MPI
