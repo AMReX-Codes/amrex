@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.47 1998-04-20 04:18:14 lijewski Exp $
+// $Id: VisMF.cpp,v 1.48 1998-04-21 23:09:42 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -21,6 +21,7 @@ using std::ofstream;
 
 #include <Utility.H>
 #include <VisMF.H>
+#include <Tracer.H>
 
 #ifdef BL_USE_MPI
 #include <mpi.h>
@@ -331,6 +332,8 @@ VisMF::Header::Header (const MultiFab& mf,
     m_min(m_ba.length()),
     m_max(m_ba.length())
 {
+    TRACER("VisMF::Header::Header(MultiFab,VisMF::How");
+
     ParallelDescriptor::SetMessageHeaderSize(sizeof(int));
     //
     // Note that m_min and m_max are only calculated on CPU owning the fab.
@@ -476,6 +479,8 @@ VisMF::Write (const MultiFab& mf,
               const aString&  mf_name,
               VisMF::How      how)
 {
+    TRACER("VisMF::Write(MultiFab,aString,VisMF::How)");
+
     assert(mf_name[mf_name.length() - 1] != '/');
 
     const int IoProc = ParallelDescriptor::IOProcessorNumber();
