@@ -1,5 +1,5 @@
 /* 
-   $Id: fabio_c.c,v 1.6 2005-01-24 23:54:32 car Exp $ 
+   $Id: fabio_c.c,v 1.7 2005-03-12 14:39:49 car Exp $ 
    Contains the IO routines for fabio module
 */
 #include <stdlib.h>
@@ -124,7 +124,7 @@ FABIO_OPEN_STR(int* fdp, const int* ifilename, const int* flagp)
  */
 static const char* str_ieee_d = "64 11 52 0 1 12 0 1023";
 static const char* str_ieee_f = "32 8 23 0 1 9 0 127";
-#if defined(BL_AIX)
+#if defined(BL_AIX) || defined(BL_Darwin)
 static const int norder_d[8] = { 1, 2, 3, 4, 5, 6, 7, 8};
 static const char* str_norder_d = "1 2 3 4 5 6 7 8";
 static const int norder_f[4] = { 1, 2, 3, 4};
