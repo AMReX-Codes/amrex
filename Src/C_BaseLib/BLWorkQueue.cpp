@@ -1,5 +1,5 @@
 //
-// $Id: BLWorkQueue.cpp,v 1.5 2001-09-04 16:59:41 car Exp $
+// $Id: BLWorkQueue.cpp,v 1.6 2001-09-14 21:03:06 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -34,13 +34,14 @@ void
 WorkQueue::Initialize ()
 {
     ParmParse pp("workqueue");
-    int maxthreads = 0; pp.query("maxthreads", maxthreads);
-    int verbose = false; pp.query("verbose", verbose);
-    if ( verbose )
-    {
-	std::cout << "workqueue.maxthreads = " << maxthreads << std::endl;
-	std::cout << "workqueue.verbose = " << verbose << std::endl;
-    }
+
+    int maxthreads = 0;
+
+    pp.query("maxthreads", maxthreads);
+    pp.query("verbose", verbose);
+
+    std::cout << "workqueue.maxthreads = " << maxthreads << std::endl;
+
     bl_wrkq = new WorkQueue(maxthreads);
 }
 
