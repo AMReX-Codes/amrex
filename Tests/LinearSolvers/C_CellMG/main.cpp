@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.7 1999-01-04 18:12:08 marc Exp $
+// $Id: main.cpp,v 1.8 1999-08-27 15:10:53 sstanley Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -77,8 +77,7 @@ main (int   argc,
     set_new_handler(Utility::OutOfMemory);
 #endif
 
-    int nprocs = 1;
-    ParallelDescriptor::StartParallel(nprocs,&argc,&argv);
+    ParallelDescriptor::StartParallel(&argc, &argv);
 
     cout << setprecision(10);
 
