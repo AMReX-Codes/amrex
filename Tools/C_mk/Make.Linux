@@ -11,12 +11,6 @@ ifeq ($(COMP),PGI)
   CXXOPTF +=
   CXXDEBF += -g
 else
-ifeq ($(COMP),Intel)
-  CXX      = icc
-  CXXOPTF += -O
-  CXXDEBF += -g
-  CPPFLAGS += -DBL_ICC_VERSION=5.0.1
-endif
 endif
 endif
 

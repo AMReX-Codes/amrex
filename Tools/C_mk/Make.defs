@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.48 2002-03-26 22:15:43 car Exp $
+# Make.defs $Id: Make.defs,v 1.49 2002-04-12 17:09:17 car Exp $
 #
 
 #
@@ -202,6 +202,20 @@ ifeq ($(FCOMP),g77)
     fOPTF += -O
     FDEBF += -g
     fDEBF += -g
+endif
+ifeq ($(COMP),Intel)
+   CXX := icc
+   CXXOPTF += -O
+   CXXDEBF += -g
+   __icc_version := $(shell $(CXX) -V 2>&1 1>/dev/null | grep Version)
+   ifeq ($(findstring Version 5.0.1, $(__icc_version)), Version 5.0.1)
+       ICC_VERSION := 5.0.1
+       ICC_MAJOR_VERSION := 5
+       ICC_MINOR_VERSION := 0
+   endif
+   DEFINES += -DBL_ICC_VERSION=$(ICC_VERSION)
+   DEFINES += -DBL_ICC_MAJOR_VERSION=$(ICC_MAJOR_VERSION)
+   DEFINES += -DBL_ICC_MINOR_VERSION=$(ICC_MINOR_VERSION)
 endif
 #
 # Generic setup for using cfront ...
