@@ -2,7 +2,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.57 2001-07-20 04:46:21 car Exp $
+// $Id: ParallelDescriptor.H,v 1.58 2001-07-20 17:01:45 car Exp $
 //
 
 #include <BLassert.H>
@@ -148,306 +148,385 @@ std::ostream& operator<< (std::ostream& os, const Array<CommData>& cd);
   This class contains functions used for implementing parallelism.
 */
 
-class ParallelDescriptor
+namespace ParallelDescriptor
 {
-  public:
+    class Message
+    {
+    public:
+	Message();
+	Message(MPI_Request req_, MPI_Datatype type_);
+	Message(MPI_Status stat_, MPI_Datatype type_);
+	void wait();
+	bool test();
+	size_t count() const;
+	int tag() const;
+	int pid() const;
+	MPI_Datatype type() const;
+    private:
+	bool m_finished;
+	MPI_Datatype m_type;
+	MPI_Request m_req;
+	mutable MPI_Status m_stat;
+    };
 
     /*@ManDoc: Perform any needed parallel initialization.  This MUST be the
                first routine in this class called from within a program.
     */
-    static void StartParallel (int*    argc = 0,
+    void StartParallel (int*    argc = 0,
                                char*** argv = 0);
 
     /*@ManDoc: Perform any needed parallel finalization.  This MUST be the
                last routine in this class called from within a program.
     */
-    static void EndParallel ();
+    void EndParallel ();
     //
     //@ManDoc: Returns processor number of calling program.
     //
-    static int MyProc ();
+    int MyProc ();
     //
     //@ManDoc: Returns number of CPUs involved in the computation.
     //
-    static int NProcs ();
+    int NProcs ();
     //
     //@ManDoc: Returns number of CPUs to use in CFD portion of computation.
     //
-    static int NProcsCFD ();
+    int NProcsCFD ();
     //
     //@ManDoc: 
     //
-    static void Barrier ();
+    void Barrier ();
     //
     //@ManDoc: Is this CPU the I/O Processor?
     //
-    static bool IOProcessor ();
+    bool IOProcessor ();
     //
     //@ManDoc: The CPU number of the I/O Processor.
     //
-    static int IOProcessorNumber ();
+    int IOProcessorNumber ();
     //
     //@ManDoc: Issue architecture specific Abort.
     //
-    static void Abort ();
+    void Abort ();
     //
     //@ManDoc: Abort with specified error code.
     //
-    static void Abort (int errorcode);
+    void Abort (int errorcode);
     //
     //@ManDoc: ErrorString return string associated with error internal error condition
     //
-    static const char* ErrorString(int errcode);
+    const char* ErrorString(int errcode);
     //
     //@ManDoc: Returns wall-clock seconds since start of execution.
     //
-    static double second ();
+    double second ();
     //
     //@ManDoc: And-wise boolean reduction.
     //
-    static void ReduceBoolAnd (bool& rvar);
+    void ReduceBoolAnd (bool& rvar);
     //
     //@ManDoc: And-wise boolean reduction to specified cpu.
     //
-    static void ReduceBoolAnd (bool& rvar, int cpu);
+    void ReduceBoolAnd (bool& rvar, int cpu);
     //
     //@ManDoc: Or-wise boolean reduction.
     //
-    static void ReduceBoolOr  (bool& rvar);
+    void ReduceBoolOr  (bool& rvar);
     //
     //@ManDoc: Or-wise boolean reduction to specified cpu.
     //
-    static void ReduceBoolOr  (bool& rvar, int cpu);
+    void ReduceBoolOr  (bool& rvar, int cpu);
     //
     //@ManDoc: Real sum reduction.
     //
-    static void ReduceRealSum (Real& rvar);
+    void ReduceRealSum (Real& rvar);
     //
     //@ManDoc: Real sum reduction to specified cpu.
     //
-    static void ReduceRealSum (Real& rvar, int cpu);
+    void ReduceRealSum (Real& rvar, int cpu);
     //
     //@ManDoc: Real max reduction.
     //
-    static void ReduceRealMax (Real& rvar);
+    void ReduceRealMax (Real& rvar);
     //
     //@ManDoc: Real max reduction to specified cpu.
     //
-    static void ReduceRealMax (Real& rvar, int cpu);
+    void ReduceRealMax (Real& rvar, int cpu);
     //
     //@ManDoc: Real min reduction.
     //
-    static void ReduceRealMin (Real& rvar);
+    void ReduceRealMin (Real& rvar);
     //
     //@ManDoc: Real min reduction to specified cpu.
     //
-    static void ReduceRealMin (Real& rvar, int cpu);
+    void ReduceRealMin (Real& rvar, int cpu);
     //
     //@ManDoc: Integer sum reduction.
     //
-    static void ReduceIntSum (int& rvar);
+    void ReduceIntSum (int& rvar);
     //
     //@ManDoc: Integer sum reduction to specified cpu.
     //
-    static void ReduceIntSum (int& rvar, int cpu);
+    void ReduceIntSum (int& rvar, int cpu);
     //
     //@ManDoc: Integer max reduction.
     //
-    static void ReduceIntMax (int& rvar);
+    void ReduceIntMax (int& rvar);
     //
     //@ManDoc: Integer max reduction to specified cpu.
     //
-    static void ReduceIntMax (int& rvar, int cpu);
+    void ReduceIntMax (int& rvar, int cpu);
     //
     //@ManDoc: Integer min reduction.
     //
-    static void ReduceIntMin (int& rvar);
+    void ReduceIntMin (int& rvar);
     //
     //@ManDoc: Integer min reduction to specified cpu.
     //
-    static void ReduceIntMin (int& rvar, int cpu);
+    void ReduceIntMin (int& rvar, int cpu);
     //
     //@ManDoc: Long sum reduction.
     //
-    static void ReduceLongSum (long& rvar);
+    void ReduceLongSum (long& rvar);
     //
     //@ManDoc: Long sum reduction to specified cpu.
     //
-    static void ReduceLongSum (long& rvar, int cpu);
+    void ReduceLongSum (long& rvar, int cpu);
     //
     //@ManDoc: Long max reduction.
     //
-    static void ReduceLongMax (long& rvar);
+    void ReduceLongMax (long& rvar);
     //
     //@ManDoc: Long max reduction to specified cpu.
     //
-    static void ReduceLongMax (long& rvar, int cpu);
+    void ReduceLongMax (long& rvar, int cpu);
     //
     //@ManDoc: Long min reduction.
     //
-    static void ReduceLongMin (long& rvar);
+    void ReduceLongMin (long& rvar);
     //
     //@ManDoc: Long min reduction to specified cpu.
     //
-    static void ReduceLongMin (long& rvar, int cpu);
+    void ReduceLongMin (long& rvar, int cpu);
     //
     //@ManDoc: Long and-wise reduction.
     //
-    static void ReduceLongAnd (long& rvar);
+    void ReduceLongAnd (long& rvar);
     //
     //@ManDoc: Long and-wise reduction to specified cpu.
     //
-    static void ReduceLongAnd (long& rvar, int cpu);
+    void ReduceLongAnd (long& rvar, int cpu);
     //
     //@ManDoc: Parallel gather.
     //
-    static void Gather (Real* sendbuf,
+    void Gather (Real* sendbuf,
                         int   sendcount,
                         Real* recvbuf,
                         int   root);
     //
     //@ManDoc: Parallel broadcast of nbyte bytes from fromproc to all procs.
     //
-    static void Broadcast (int   fromproc,
+    void Broadcast (int   fromproc,
                            void* src,
                            void* dest,
                            int   nbytes);
     //
     //@ManDoc: BoxLib's Parallel Communicator, probably MPI_COMM_WORLD
     //
-    static MPI_Comm Communicator ();
+    MPI_Comm Communicator ();
     //
     //@ManDoc: Returns sequential message sequence numbers in range 1000-9000.
     //
-    static int SeqNum ();
+    int SeqNum ();
 
-    template <class T> static void Send(const T* buf, size_t n, int dst_pid, int tag);
-    template <class T> static void Send(const std::vector<T>& buf, int dst_pid, int tag);
+    template <class T> Message Asend(const T*, size_t n, int pid, int tag);
+    template <class T> Message Asend(const std::vector<T>& buf, int pid, int tag);
 
-    template <class T> static void Recv(T*, size_t n, int pid, int tag);
-    template <class T> static void Recv(std::vector<T>& t, int pid, int tag);
+    template <class T> Message Arecv(T*, size_t n, int pid, int tag);
+    template <class T> Message Arecv(std::vector<T>& buf, int pid, int tag);
 
-    template <class T, class T1> static void Gather(T*, size_t n, const T1*, size_t n1, int root = 0);
-    template <class T> static std::vector<T> Gather(const T&, int root = 0);
+    template <class T> Message Send(const T* buf, size_t n, int dst_pid, int tag);
+    template <class T> Message Send(const std::vector<T>& buf, int dst_pid, int tag);
 
-private:
-    //
-    // Reduce helper functons.
-    //
-    static void DoAllReduceReal (Real& r, MPI_Op op);
-    static void DoAllReduceLong (long& r, MPI_Op op);
-    static void DoAllReduceInt (int& r, MPI_Op op);
-    static void DoReduceReal (Real& r, MPI_Op op, int cpu);
-    static void DoReduceLong (long& r, MPI_Op op, int cpu);
-    static void DoReduceInt (int& r, MPI_Op op, int cpu);
-    //
-    // Sets number of CPUs to use in CFD portion of computation via ParmParse.
-    //
-    static void SetNProcsCFD ();
-    //
-    // My processor ID.
-    //
-    static int m_MyId;
-    //
-    // The number of processors.
-    //
-    static int m_nProcs;
-    //
-    // The number of processors in CFD part of computation.
-    //
-    static int m_nProcsCFD;
-    //
-    // BoxLib's Communicator
-    //
-    static MPI_Comm m_comm;
+    template <class T> Message Recv(T*, size_t n, int pid, int tag);
+    template <class T> Message Recv(std::vector<T>& t, int pid, int tag);
 
-    enum { ioProcessor = 0 };
-};
+    template <class T> void Bcast(T*, size_t n, int root = 0);
+    template <class T> T Bcast(const T&, int root = 0);
+
+    template <class Op, class T> T Reduce(const T& t);
+    template <class Op, class T> std::vector<T> Reduce(const std::vector<T>& t);
+
+    template <class T, class T1> void Scatter(T*, size_t n, const T1*, size_t n1, int root = 0);
+    template <class T> T Scatter(const std::vector<T>& t, int root = 0);
+
+    template <class T, class T1> void Gather(T*, size_t n, const T1*, size_t n1, int root = 0);
+    template <class T> std::vector<T> Gather(const T&, int root = 0);
+
+    void MPI_Error(const char* file, int line, const char* msg, int rc);
+}
 
 #define MPI_REQUIRE(x)							\
 do									\
 {									\
   if ( int status = (x) )						\
     {									\
-      BoxLib3::Error(#x); \
+      ParallelDescriptor::MPI_Error(__FILE__,__LINE__,#x,status);       \
     }									\
 }									\
 while ( false )
 
 #if BL_USE_MPI
 template <class T>
-void
-ParallelDescriptor::Send(const T* buf, size_t n, int dst_pid, int tag)
+ParallelDescriptor::Message
+ParallelDescriptor::Asend(const T* buf, size_t n, int dst_pid, int tag)
 {
-    MPI_REQUIRE( MPI_Send(const_cast<T*>(buf), n, mpi_data_type(buf), dst_pid, tag, m_comm) );
+    MPI_Request req;
+    MPI_REQUIRE( MPI_Isend(const_cast<T*>(buf), n, Mpi_typemap<T>::type(), dst_pid, tag, Communicator(), &req) );
+    return Message(req, Mpi_typemap<T>::type());
 }
 
 template <class T>
+ParallelDescriptor::Message
+ParallelDescriptor::Asend(const std::vector<T>& buf, int dst_pid, int tag)
+{
+    MPI_Request req;
+    MPI_REQUIRE( MPI_Isend(const_cast<T*>(&buf[0]), buf.size(), Mpi_typemap<T>::type(), dst_pid, tag, Communicator(), &req) );
+    return Message(req, Mpi_typemap<T>::type());
+}
+
+template <class T>
+ParallelDescriptor::Message
+ParallelDescriptor::Send(const T* buf, size_t n, int dst_pid, int tag)
+{
+    MPI_REQUIRE( MPI_Send(const_cast<T*>(buf), n, Mpi_typemap<T>::type(), dst_pid, tag, Communicator()) );
+    return Message();
+}
+
+template <class T>
+ParallelDescriptor::Message
 ParallelDescriptor::Send(const std::vector<T>& buf, int dst_pid, int tag)
 {
-    MPI_REQUIRE( MPI_Send(const_cast<T*>(&buf[0]), buf.size(), mpi_data_type(buf), dst_pid, tag, m_comm) );
+    MPI_REQUIRE( MPI_Send(const_cast<T*>(&buf[0]), buf.size(), Mpi_typemap<T>::type(), dst_pid, tag, Communicator()) );
+    return Message();
 }
+
 template <class T>
-void
+ParallelDescriptor::Message
+ParallelDescriptor::Arecv(T* buf, size_t n, int src_pid, int tag)
+{
+    MPI_Request req;
+    MPI_REQUIRE( MPI_Irecv(buf, n, Mpi_typemap<T>::type(), src_pid, tag, Communicator(), &req) );
+    return Message(req, Mpi_typemap<T>::type());
+}
+
+template <class T>
+ParallelDescriptor::Message
+ParallelDescriptor::Arecv(std::vector<T>& buf, int src_pid, int tag)
+{
+    MPI_Request req;
+    MPI_REQUIRE( MPI_Irecv(&buf[0], buf.size(), Mpi_typemap<T>::type(), src_pid, tag, Communicator(), &req) );
+    return Message(req, Mpi_typemap<T>::type());
+}
+
+template <class T>
+ParallelDescriptor::Message
 ParallelDescriptor::Recv(T* buf, size_t n, int src_pid, int tag)
 {
     MPI_Status stat;
-    MPI_REQUIRE( MPI_Recv(buf, n, Mpi_typemap<T>::type(), src_pid, tag, m_comm, &stat) );
+    MPI_REQUIRE( MPI_Recv(buf, n, Mpi_typemap<T>::type(), src_pid, tag, Communicator(), &stat) );
     return Message(stat, Mpi_typemap<T>::type());
 }
 
 template <class T>
-void
+ParallelDescriptor::Message
 ParallelDescriptor::Recv(std::vector<T>& buf, int src_pid, int tag)
 {
     MPI_Status stat;
-    MPI_REQUIRE( MPI_Recv(&buf[0], buf.size(), Mpi_typemap<T>::type(), src_pid, tag, m_comm, &stat) );
+    MPI_REQUIRE( MPI_Recv(&buf[0], buf.size(), Mpi_typemap<T>::type(), src_pid, tag, Communicator(), &stat) );
     return Message(stat, Mpi_typemap<T>::type());
+}
+
+template <class Op, class T>
+T
+ParallelDescriptor::Reduce(const T& t)
+{
+    T recv;
+    MPI_REQUIRE( MPI_Allreduce(const_cast<T*>(&t), &recv, 1, Mpi_typemap<T>::type(), Op::op(), Communicator()) );
+    return recv;
+}
+
+template <class Op, class T>
+std::vector<T>
+ParallelDescriptor::Reduce(const std::vector<T>& t)
+{
+    std::vector<T> recv;
+    MPI_REQUIRE( MPI_Allreduce(const_cast<T*>(&t[0]), &recv[0], t.size(), Mpi_typemap<T>::type(), Op::op(), Communicator()) );
+    return recv;
+}
+
+template <class T>
+void
+ParallelDescriptor::Bcast(T* t, size_t n, int root)
+{
+    MPI_REQUIRE( MPI_Bcast(t, n, Mpi_typemap<T>::type(), root, Communicator()) );
+}
+
+template <class T>
+T
+ParallelDescriptor::Bcast(const T& t, int root)
+{
+    T resl;
+    if ( MyId() == root ) resl = t;
+    MPI_REQUIRE( MPI_Bcast(&resl, 1, Mpi_typemap<T>::type(), root, Communicator()) );
+    return resl;
 }
 
 template <class T, class T1>
 void
-Comm::Gather(T* t, size_t n, const T1* t1, size_t n1, int root)
+ParallelDescriptor::Gather(T* t, size_t n, const T1* t1, size_t n1, int root)
 {
     MPI_REQUIRE( MPI_Gather(t1, n1, Mpi_typemap<T1>::type(),
 			    t, n, Mpi_typemap<T>::type(),
-			    root, m_comm) );
+			    root, Communicator()) );
 }
 
 template <class T>
 std::vector<T>
-Comm::Gather(const T& t, int root)
+ParallelDescriptor::Gather(const T& t, int root)
 {
     std::vector<T> resl;
-    if ( root == MyId() ) resl.resize(NumProcs());
+    if ( root == MyProc() ) resl.resize(NProcs());
     MPI_REQUIRE( MPI_Gather(const_cast<T*>(&t), 1, Mpi_typemap<T>::type(),
 			    &resl[0], 1, Mpi_typemap<T>::type(),
-			    root, m_comm) );
+			    root, Communicator()) );
     return resl;
 }
 
+template <class T, class T1>
+void
+ParallelDescriptor::Scatter(T* t, size_t n, const T1* t1, size_t n1, int root)
+{
+    MPI_REQUIRE( MPI_Scatter(const_cast<T1*>(t1), n1, Mpi_typemap<T1>::type(),
+			     t, n, Mpi_typemap<T>::type(),
+			     root, Communicator()) );
+}
+
+template <class T>
+T
+ParallelDescriptor::Scatter(const std::vector<T>& t, int root)
+{
+    T resl;
+    MPI_REQUIRE( MPI_Scatter(&t[0], 1, Mpi_typemap<T>::type(),
+			     &resl, 1, Mpi_typemap<T>::type(),
+			     root, Communicator()) );
+    return resl;
+}
 #else
 template <class T>
-void
-ParallelDescriptor::Send(const T* buf, size_t n, int dst_pid, int tag)
+T
+ParallelDescriptor::Scatter(const std::vector<T>& t, int root)
 {
-}
-
-template <class T>
-void
-ParallelDescriptor::Send(const std::vector<T>& buf, int dst_pid, int tag)
-{
-}
-template <class T>
-void
-ParallelDescriptor::Recv(T* buf, size_t n, int src_pid, int tag)
-{
-}
-
-template <class T>
-void
-ParallelDescriptor::Recv(std::vector<T>& buf, int src_pid, int tag)
-{
+    return t[0];
 }
 
 template <class T>
@@ -457,6 +536,89 @@ ParallelDescriptor::Gather(const T& t, int root)
     std::vector<T> resl(1);
     resl[0] = t;
     return resl;
+}
+
+template <class T>
+void
+ParallelDescriptor::Bcast(T* t, size_t n, int root)
+{
+}
+
+template <class T>
+T
+ParallelDescriptor::Bcast(const T& t, int root)
+{
+    return t;
+}
+
+template <class T>
+ParallelDescriptor::Message
+ParallelDescriptor::Asend(const T* buf, size_t n, int dst_pid, int tag)
+{
+    return Message();
+}
+
+template <class T>
+ParallelDescriptor::Message
+ParallelDescriptor::Asend(const std::vector<T>& buf, int dst_pid, int tag)
+{
+    return Message();
+}
+
+template <class T>
+ParallelDescriptor::Message
+ParallelDescriptor::Send(const T* buf, size_t n, int dst_pid, int tag)
+{
+    return Message();
+}
+
+template <class T>
+ParallelDescriptor::Message
+ParallelDescriptor::Send(const std::vector<T>& buf, int dst_pid, int tag)
+{
+    return Message();
+}
+
+template <class T>
+ParallelDescriptor::Message
+ParallelDescriptor::Arecv(T* buf, size_t n, int src_pid, int tag)
+{
+    return Message();
+}
+
+template <class T>
+ParallelDescriptor::Message
+ParallelDescriptor::Arecv(std::vector<T>& buf, int src_pid, int tag)
+{
+    return Message();
+}
+
+template <class T>
+ParallelDescriptor::Message
+ParallelDescriptor::Recv(T* buf, size_t n, int src_pid, int tag)
+{
+    return Message();
+}
+
+template <class T>
+ParallelDescriptor::Message
+ParallelDescriptor::Recv(std::vector<T>& buf, int src_pid, int tag)
+{
+    return Message();
+}
+
+template <class Op, class T>
+T
+ParallelDescriptor::Reduce(const T& t)
+{
+    return t;
+}
+
+template <class Op, class T>
+std::vector<T>
+ParallelDescriptor::Reduce(const std::vector<T>& t)
+{
+    return t;
 }
 
 #endif

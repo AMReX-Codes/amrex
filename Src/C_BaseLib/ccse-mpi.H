@@ -2,7 +2,7 @@
 #define BL_CCSE_MPP
 
 //
-// $Id: ccse-mpi.H,v 1.8 2001-07-19 16:57:38 lijewski Exp $
+// $Id: ccse-mpi.H,v 1.9 2001-07-20 17:01:45 car Exp $
 //
 
 //
@@ -38,9 +38,44 @@ template<> inline MPI_Datatype mpi_data_type(unsigned char*)  { return MPI_UNSIG
 template<> inline MPI_Datatype mpi_data_type(unsigned short*) { return MPI_UNSIGNED_SHORT;  }
 template<> inline MPI_Datatype mpi_data_type(unsigned int*)   { return MPI_UNSIGNED;    }
 template<> inline MPI_Datatype mpi_data_type(unsigned long*)  { return MPI_UNSIGNED_LONG;   }
+
+namespace ParallelDescriptor
+{
+    template <class T>
+    struct Mpi_typemap
+    {
+	static MPI_Datatype type();
+    };
+    template <> MPI_Datatype Mpi_typemap<char>::type();
+    template <> MPI_Datatype Mpi_typemap<short>::type();
+    template <> MPI_Datatype Mpi_typemap<int>::type();
+    template <> MPI_Datatype Mpi_typemap<long>::type();
+    template <> MPI_Datatype Mpi_typemap<unsigned char>::type();
+    template <> MPI_Datatype Mpi_typemap<unsigned short>::type();
+    template <> MPI_Datatype Mpi_typemap<unsigned int>::type();
+    template <> MPI_Datatype Mpi_typemap<unsigned long>::type();
+    template <> MPI_Datatype Mpi_typemap<float>::type();
+    template <> MPI_Datatype Mpi_typemap<double>::type();
+
+    struct Max         { static MPI_Op op(); };
+    struct Min         { static MPI_Op op(); };
+    struct Sum         { static MPI_Op op(); };
+    struct Prod        { static MPI_Op op(); };
+    struct Logical_And { static MPI_Op op(); };
+    struct Boolean_And { static MPI_Op op(); };
+    struct Logical_Or  { static MPI_Op op(); };
+    struct Boolean_Or  { static MPI_Op op(); };
+    struct Logical_XOr { static MPI_Op op(); };
+    struct Boolean_XOr { static MPI_Op op(); };
+}
+
+
 #else
 typedef int MPI_Op;
 typedef int MPI_Comm;
+typedef int MPI_Datatype;
+struct MPI_Status {};
+typedef int MPI_Request;
 #endif /*BL_USE_MPI*/
 
 #endif /*BL_CCSE_MPP*/

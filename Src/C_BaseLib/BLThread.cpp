@@ -1,3 +1,4 @@
+#include <BoxLib.H>
 #include <Thread.H>
 
 #include <unistd.h>
@@ -14,12 +15,45 @@
 #include <cerrno>
 #include <cstdlib>
 
+namespace
+{
+    const char*
+    the_message_string(const char* file, int line, const char* call, int status = 0)
+    {
+	//
+	// Should be large enough.
+	//
+	const int DIM = 1024;
+	static char buf[DIM];
+	if ( status )
+	{
+	    std::sprintf(buf, "File %s, line %d, %s: %s", file, line, call, std::strerror(status));
+	}
+	else
+	{
+	    std::sprintf(buf, "File %s, line %d, %s", file, line, call);
+	}
+	buf[DIM-1] = '\0';		// Just to be safe.
+	return buf;
+    }
+}
+
+namespace BoxLib
+{
+    void
+    Thread_Error(const char* file, int line, const char* call, int status = 0)
+    {
+	Error(the_message_string(file, line, call,status));
+    }
+
+}
+
 #define THREAD_ASSERT(x)						\
 do									\
 {									\
   if ( !(x) )								\
     {									\
-      BoxLib::Error(#x );	\
+      BoxLib::Thread_Error(__FILE__,__LINE__,#x );			\
     }									\
 }									\
 while ( false )
@@ -27,34 +61,6 @@ while ( false )
 int Thread::m_next_id = 0;
 Mutex Thread::next_id;
 ThreadSpecificData<Thread> Thread::m_self(0,0);
-
-namespace
-{
-std::string
-the_message_string(const char* file, int line, const char* call, int status)
-{
-    //
-    // Should be large enough.
-    //
-    const int DIM = 1024;
-    char buf[DIM];
-    if ( status )
-    {
-	std::sprintf(buf, "File %s, line %d, %s: %s", file, line, call, std::strerror(status));
-    }
-    else
-    {
-	std::sprintf(buf, "File %s, line %d, %s", file, line, call);
-    }
-    buf[DIM-1] = '\0';		// Just to be safe.
-    return std::string(buf);
-}
-}
-
-Thread::thread_error::thread_error(const char* file, int line, const char* call, int status)
-    : std::runtime_error( the_message_string(file, line, call, status) )
-{
-}
 
 int
 Thread::get_next_id()
@@ -110,7 +116,7 @@ Thread::self()
 }
 
 void
-Thread::sleep(const Time& spec_)
+Thread::sleep(const BoxLib::Time& spec_)
 {
 #ifndef BL_USE_NANOSLEEP
     unsigned long tosleep = spec_.as_long();
@@ -129,7 +135,7 @@ Thread::sleep(const Time& spec_)
     {
 	if ( errno != EINVAL )
 	{
-	    throw thread_error(__FILE__, __LINE__, "nanosleep", errno);
+	    BoxLib::Thread_Error(__FILE__, __LINE__, "nanosleep", errno);
 	}
 	spec = rem;
     }
@@ -584,7 +590,7 @@ Thread::Attr::Attr(DetachState inistate)
     : m_is_joinable( true )
 {
     THREAD_REQUIRE( pthread_attr_init(&m_attr) );
-    if ( Debug::Ndebug )
+    if ( BoxLib::NDebug )
     {
 	int l;
 	THREAD_REQUIRE( pthread_attr_getdetachstate(&m_attr, &l) );
@@ -800,7 +806,8 @@ Mutex::trylock()
     int status = pthread_mutex_trylock(&m_mutex);
     if ( status == 0 ) return true;
     if ( status == EBUSY ) return false;
-    throw Thread::thread_error(__FILE__,__LINE__,"pthread_mutex_trylock(&m_mutex", status);
+    BoxLib::Thread_Error(__FILE__,__LINE__,"pthread_mutex_trylock(&m_mutex)", status);
+    return false;
 }
 
 void
@@ -886,23 +893,27 @@ ConditionVariable::wait(Mutex& m)
 }
 
 bool
-ConditionVariable::timedwait(const Time& abstime)
+ConditionVariable::timedwait(const BoxLib::Time& abstime)
 {
     int status = pthread_cond_timedwait(&m_cv, &theMutex(), &abstime);
 
     if ( status == 0 ) return false;
     if ( status == ETIMEDOUT ) return true;
-    throw Thread::thread_error(__FILE__, __LINE__, "pthread_cond_timedwait(&m_cv, &theMutex(), &abstime)", status);
+    BoxLib::Thread_Error(__FILE__, __LINE__, "pthread_cond_timedwait(&m_cv, &theMutex(), &abstime)", status);
+    /*NOTREACHED*/
+    return false;
 }
 
 bool
-ConditionVariable::timedwait(Mutex& m, const Time& abstime)
+ConditionVariable::timedwait(Mutex& m, const BoxLib::Time& abstime)
 {
     int status = pthread_cond_timedwait(&m_cv, &m.theMutex(), &abstime);
 
     if ( status == 0 ) return false;
     if ( status == ETIMEDOUT ) return true;
-    throw Thread::thread_error(__FILE__, __LINE__, "pthread_cond_timedwait", status);
+    BoxLib::Thread_Error(__FILE__, __LINE__, "pthread_cond_timedwait", status);
+    /*NOTREACHED*/
+    return false;
 }
 
 pthread_cond_t&
@@ -1250,14 +1261,14 @@ Thread::setCancelState(CancelState)
 //
 
 bool
-ConditionVariable::timedwait(const Time& t)
+ConditionVariable::timedwait(const BoxLib::Time& t)
 {
     Thread::sleep(t);
     return true;
 }
 
 bool
-ConditionVariable::timedwait(Mutex&, const Time& t)
+ConditionVariable::timedwait(Mutex&, const BoxLib::Time& t)
 {
     Thread::sleep(t);
     return true;

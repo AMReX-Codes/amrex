@@ -2,18 +2,12 @@
 #define BL_ASTRING_H
 
 //
-// $Id: aString.H,v 1.15 2001-07-20 04:46:22 car Exp $
+// $Id: aString.H,v 1.16 2001-07-20 17:01:45 car Exp $
 //
 
+#include <cstddef>
 #include <string>
 #include <iostream>
-#include <cstring>
-#include <cstdlib>
-#include <vector>
-
-#include <BLassert.H>
-#include <BoxLib.H>
-#include <Pointers.H>
 
 class aString;
 
@@ -64,7 +58,7 @@ public:
     */
     aString(const std::string& str);
     
-    explicit aString (int len);
+    explicit aString (size_type len);
 
     /*@ManDoc: Constructs an aString initialized to the character string s.
                It is an error is `s' is the null string.
@@ -91,7 +85,7 @@ public:
     /*@ManDoc: Returns the number of characters stored in this aString.
                This does not include the terminating null character.
     */
-    int length () const;
+    size_type length () const;
 
     //
     //@ManDoc: Returns true if this is the null string.
@@ -101,12 +95,12 @@ public:
     /*@ManDoc: Returns a reference to the kth character in the string.  An
                error occurs if k < 0 or k >= length().
     */
-    char& operator [] (int k);
+    char& operator [] (size_type k);
 
     /*@ManDoc: Returns kth character in the string.  An error occurs
                if k < 0 or k >= length().
     */
-    char operator[] (int k) const;
+    char operator[] (size_type k) const;
 
 
     /*@ManDoc: Returns the value of the string as a double.  In the case

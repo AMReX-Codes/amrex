@@ -1,5 +1,5 @@
 //
-// $Id: Utility.cpp,v 1.45 2001-07-19 20:02:47 lijewski Exp $
+// $Id: Utility.cpp,v 1.46 2001-07-20 17:01:45 car Exp $
 //
 
 #include <cstdlib>
@@ -17,6 +17,7 @@
 #include <REAL.H>
 #include <BoxLib.H>
 #include <Utility.H>
+#include <BLassert.H>
 
 #ifdef WIN32
 #include <direct.h>
@@ -547,3 +548,75 @@ BoxLib::Execute (const char* cmd)
     return pid;
 }
 #endif
+
+namespace
+{
+const long billion = 1000000000L;
+}
+
+BoxLib::Time::Time()
+{
+    tv_sec = 0;
+    tv_nsec = 0;
+}
+
+BoxLib::Time::Time(long s, long n)
+{
+    BL_ASSERT(s >= 0);
+    BL_ASSERT(n >= 0);
+    BL_ASSERT(n < billion);
+    tv_sec = s;
+    tv_nsec = n;
+    normalize();
+}
+
+BoxLib::Time::Time(double d)
+{
+    tv_sec = long(d);
+    tv_nsec = long((d-tv_sec)*billion);
+    normalize();
+}
+
+double
+BoxLib::Time::as_double() const
+{
+    return tv_sec + tv_nsec/double(billion);
+}
+
+long
+BoxLib::Time::as_long() const
+{
+    return tv_sec + tv_nsec/billion;
+}
+
+BoxLib::Time&
+BoxLib::Time::operator+=(const Time& r)
+{
+    tv_sec += r.tv_sec;
+    tv_nsec += r.tv_nsec;
+    normalize();
+    return *this;
+}
+
+BoxLib::Time
+BoxLib::Time::operator+(const Time& r) const
+{
+    Time result(*this);
+    return result+=r;
+}
+
+void
+BoxLib::Time::normalize()
+{
+    if ( tv_nsec > billion )
+    {
+	tv_nsec -= billion;
+	tv_sec += 1;
+    }
+}
+
+BoxLib::Time
+BoxLib::Time::get_time()
+{
+    return Time(BoxLib::wsecond());
+}
