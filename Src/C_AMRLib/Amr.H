@@ -4,7 +4,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.19 1998-10-30 19:02:44 lijewski Exp $
+// $Id: Amr.H,v 1.20 1998-11-04 00:45:16 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -213,6 +213,10 @@ public:
     //@ManDoc: Name of the restart file.
     //
     const aString& theRestartFile () const;
+    //
+    //@ManDoc: The datalog file.  Do with it what you want.
+    //
+    ostream& DataLog() { return datalog; }
 
 protected:
     //
