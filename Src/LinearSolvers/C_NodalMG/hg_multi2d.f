@@ -1608,7 +1608,7 @@ cdir$ ivdep
      &        + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
         end do
 cdir$ ivdep
-        do i = istart + 2, i end + 1, 2
+        do i = istart + 2, iend + 1, 2
            cor(i) = cor(i)
      &        + mask(i) * ((AVG() - res(i)) * cen(i) - cor(i))
         end do
