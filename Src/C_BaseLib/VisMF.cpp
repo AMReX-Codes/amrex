@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.59 1998-10-23 16:54:13 lijewski Exp $
+// $Id: VisMF.cpp,v 1.60 1998-11-20 21:23:36 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -522,7 +522,7 @@ VisMF::Write (const MultiFab& mf,
         aString FullFileName = mf_name;
 
         FullFileName += VisMF::FabFileSuffix;
-        sprintf(buf, "%04ld", ParallelDescriptor::MyProc());
+        sprintf(buf, "%04d", ParallelDescriptor::MyProc());
         FullFileName += buf;
 
         ofstream FabFile;
@@ -608,7 +608,7 @@ VisMF::Write (const MultiFab& mf,
             aString FullFileName = mf_name;
 
             FullFileName += VisMF::FabFileSuffix;
-            sprintf(buf, "%04ld", mfi.index());
+            sprintf(buf, "%04d", mfi.index());
             FullFileName += buf;
 
             ofstream FabFile;
