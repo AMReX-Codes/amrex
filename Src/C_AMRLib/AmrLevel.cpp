@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.14 1997-12-12 00:17:15 car Exp $
+// $Id: AmrLevel.cpp,v 1.15 1997-12-12 23:23:42 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -171,9 +171,16 @@ AmrLevel::checkPoint (const aString& dir,
     if (!FullPath.isNull() && FullPath[FullPath.length()-1] != '/')
         FullPath += '/';
     FullPath += Level;
-
-    if (!Utility::CreateDirectory(FullPath, 0755))
-        Utility::CreateDirectoryFailed(FullPath);
+    //
+    // Only the I/O processor makes the directory if it doesn't already exist.
+    //
+    if (ParallelDescriptor::IOProcessor())
+        if (!Utility::CreateDirectory(FullPath, 0755))
+            Utility::CreateDirectoryFailed(FullPath);
+    //
+    // Force other processors to wait till directory is built.
+    //
+    ParallelDescriptor::Synchronize();
 
     if (ParallelDescriptor::IOProcessor())
     {

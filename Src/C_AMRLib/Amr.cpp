@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.23 1997-12-11 23:27:46 lijewski Exp $
+// $Id: Amr.cpp,v 1.24 1997-12-12 23:23:40 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -400,8 +400,16 @@ Amr::writePlotFile (const aString& root,
     {
         runlog << "PLOTFILE: file = " << pltfile << '\n';
     }
-    if (!Utility::CreateDirectory(pltfile, 0755))
-        Utility::CreateDirectoryFailed(pltfile);
+    //
+    // Only the I/O processor makes the directory if it doesn't already exist.
+    //
+    if (ParallelDescriptor::IOProcessor())
+        if (!Utility::CreateDirectory(pltfile, 0755))
+            Utility::CreateDirectoryFailed(pltfile);
+    //
+    // Force other processors to wait till directory is built.
+    //
+    ParallelDescriptor::Synchronize();
 
     aString HeaderFileName = pltfile + "/Header";
 
@@ -742,8 +750,16 @@ Amr::checkPoint ()
     {
         runlog << "CHECKPOINT: file = " << ckfile << '\n';
     }
-    if (!Utility::CreateDirectory(ckfile, 0755))
-        Utility::CreateDirectoryFailed(ckfile);
+    //
+    // Only the I/O processor makes the directory if it doesn't already exist.
+    //
+    if (ParallelDescriptor::IOProcessor())
+        if (!Utility::CreateDirectory(ckfile, 0755))
+            Utility::CreateDirectoryFailed(ckfile);
+    //
+    // Force other processors to wait till directory is built.
+    //
+    ParallelDescriptor::Synchronize();
 
     aString HeaderFileName = ckfile + "/Header";
 
