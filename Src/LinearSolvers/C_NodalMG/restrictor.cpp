@@ -64,13 +64,9 @@ struct task_restriction_fill : public task
     {
     }
     virtual bool ready();
-    virtual bool is_off_processor() const
+    virtual bool init(sequence_number sno, MPI_Comm comm)
     {
 	abort(); return false;
-    }
-    virtual void init(sequence_number sno, MPI_Comm comm)
-    {
-	abort();
     }
 private:
     task_fab* tf;

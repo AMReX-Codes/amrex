@@ -91,13 +91,9 @@ public:
     {
 	return false;
     }
-    virtual bool is_off_processor() const
+    virtual bool init(sequence_number sno, MPI_Comm comm)
     {
 	abort(); return false;
-    }
-    virtual void init(sequence_number sno, MPI_Comm comm)
-    {
-	abort();
     }
 private:
     FECFUNC f;
@@ -120,13 +116,9 @@ public:
     {
 	return false;
     }
-    virtual bool is_off_processor() const
+    virtual bool init(sequence_number sno, MPI_Comm comm)
     {
 	abort(); return false;
-    }
-    virtual void init(sequence_number sno, MPI_Comm comm)
-    {
-	abort();
     }
 private:
     FECFUNC f;
@@ -158,13 +150,9 @@ public:
     {
 	return false;
     }
-    virtual bool is_off_processor() const
+    virtual bool init(sequence_number sno, MPI_Comm comm)
     {
 	abort(); return false;
-    }
-    virtual void init(sequence_number sno, MPI_Comm comm)
-    {
-	abort();
     }
 private:
     FECDIV f;
@@ -197,13 +185,9 @@ public:
     {
 	return false;
     }
-    virtual bool is_off_processor() const
+    virtual bool init(sequence_number sno, MPI_Comm comm)
     {
 	abort(); return false;
-    }
-    virtual void init(sequence_number sno, MPI_Comm comm)
-    {
-	abort();
     }
 private:
     FECDIV f;
