@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.74 1998-10-15 17:14:32 lijewski Exp $
+// $Id: FabArray.H,v 1.75 1998-10-15 21:52:15 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -2242,7 +2242,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
     assert(ParallelDescriptor::NProcs() > 1 || fabComTagList.size() == 0);
 
     Array<int> msgs(ParallelDescriptor::NProcs(), 0);
-    Array<int> nrcv(ParallelDescriptor::NProcs(), 0);
+    Array<int> nreq(ParallelDescriptor::NProcs(), 0);
     //
     // Figure out how many requests for data to expect.
     //
@@ -2261,7 +2261,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
     for (int i = 0; i < msgs.length(); i++)
     {
         if ((rc = MPI_Reduce(&msgs[i],
-                             &nrcv[i],
+                             &nreq[i],
                              1,
                              MPI_INT,
                              MPI_SUM,
@@ -2274,7 +2274,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
 #ifdef BL_INSTRUMENT
     int total_number_of_send_recv = 0;
 
-    if ((rc = MPI_Reduce(&nrcv[MyProc],
+    if ((rc = MPI_Reduce(&nreq[MyProc],
                          &total_number_of_send_recv,
                          1,
                          MPI_INT,
@@ -2284,18 +2284,18 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
         ParallelDescriptor::Abort(rc);
 
     total_number_of_send_recv *= 2; // Two sends/recvs for each FAB chunk.
-#endif
+#endif /*BL_INSTRUMENT*/
 
-    const int NumRecv = nrcv[MyProc];
+    const int NumReqs = nreq[MyProc];
 
-    Array<MPI_Request> reqs(NumRecv);
-    Array<MPI_Status>  stat(NumRecv);
-    Array<CommData>    recv(NumRecv);
+    Array<MPI_Request> reqs(NumReqs);
+    Array<MPI_Status>  stat(NumReqs);
+    Array<CommData>    recv(NumReqs);
     //
-    // Post receives for the data being requested from other processors.
+    // Post receives for the data being requested by other processors.
     //
     mpi_recv.start();
-    for (int i = 0; i < NumRecv; i++)
+    for (int i = 0; i < NumReqs; i++)
     {
         if ((rc = MPI_Irecv(recv[i].dataPtr(),
                             recv[i].length(),
@@ -2344,7 +2344,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
     }
 
     mpi_wait.start();
-    if ((rc = MPI_Waitall(NumRecv,
+    if ((rc = MPI_Waitall(NumReqs,
                           reqs.dataPtr(),
                           stat.dataPtr())) != MPI_SUCCESS)
         ParallelDescriptor::Abort(rc);
@@ -2399,7 +2399,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
 
     FAB fab;
 
-    for (int i = 0; i < NumRecv; i++)
+    for (int i = 0; i < NumReqs; i++)
     {
         fab.resize(recv[i].box(), recv[i].nComp());
 
@@ -2456,9 +2456,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
              << total_number_of_bytes_sent
              << endl;
     }
-#endif
-
-    fabComTagList.clear();
+#endif /*BL_INSTRUMENT*/
 
     mpi_stat.end();
 #endif /*BL_USE_MPI*/
