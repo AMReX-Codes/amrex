@@ -1858,7 +1858,11 @@ contains
 
     dom = box_nodalize(dmn,nodal)
 
-    if (box_contains_strict(dom,bx)) return
+    if (any(nodal .eqv. .true.)) then
+       if (box_contains_strict(dom,bx)) return
+    else
+       if (box_contains(dom,bx)) return
+    end if
 
     l(:) = 0; where(nodal) l = 1
     
