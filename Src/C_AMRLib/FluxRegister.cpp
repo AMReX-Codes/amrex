@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.6 1997-12-11 23:27:51 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.7 1998-02-18 21:35:34 vince Exp $
 //
 
 #include <FluxRegister.H>
@@ -79,7 +79,7 @@ FluxRegister::SumReg (int comp) const
         Orientation hi_face(dir,Orientation::high);
         const FabSet &lofabs = bndry[lo_face];
         const FabSet &hifabs = bndry[hi_face];
-        for (ConstFabSetIterator fsi(lofabs); fsi.isValid(); ++fsi)
+        for (ConstFabSetIterator fsi(lofabs); fsi.isValid(false); ++fsi)
         {
             ConstDependentFabSetIterator dfsi(fsi, hifabs);
             sum += fsi().sum(comp);
@@ -146,7 +146,7 @@ FluxRegister::Reflux (MultiFab&       S,
 
     const BoxArray& grd_boxes = S.boxArray();
 
-    for (MultiFabIterator mfi(S); mfi.isValid(); ++mfi)
+    for (MultiFabIterator mfi(S); mfi.isValid(false); ++mfi)
     {
         int grd = mfi.index();  // Punt for now.
         DependentMultiFabIterator mfi_volume(mfi, volume);
@@ -262,11 +262,15 @@ FluxRegister::Reflux (MultiFab&       S,
     }
     fillBoxIdList.clear();
 
+
+    //cout << "_in Reflux 1:  CopyDescriptor stats:" << endl;
+    //fscd.PrintStats();
+
     fscd.CollectData();
 
     int overlapId = 0;
 
-    for (MultiFabIterator mfi(S); mfi.isValid(); ++mfi)
+    for (MultiFabIterator mfi(S); mfi.isValid(false); ++mfi)
     {
         int grd = mfi.index();  // Punt for now.
         DependentMultiFabIterator mfi_volume(mfi, volume);
@@ -415,7 +419,7 @@ FluxRegister::Reflux (MultiFab&       S,
     List<FillBoxId> fillBoxIdList;
     FillBoxId tempFillBoxId;
 
-    for (MultiFabIterator mfi(S); mfi.isValid(); ++mfi)
+    for (MultiFabIterator mfi(S); mfi.isValid(false); ++mfi)
     {
         const Box &s_box = mfi.validbox();
         //
@@ -510,10 +514,14 @@ FluxRegister::Reflux (MultiFab&       S,
     }
     fillBoxIdList.clear();
 
+
+    //cout << "_in Reflux 2:  CopyDescriptor stats:" << endl;
+    //fscd.PrintStats();
+
     fscd.CollectData();
 
     int overlapId = 0;
-    for (MultiFabIterator mfi(S); mfi.isValid(); ++mfi)
+    for (MultiFabIterator mfi(S); mfi.isValid(false); ++mfi)
     {
         const Box &s_box = mfi.validbox();
         //
@@ -662,7 +670,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     List<FillBoxId> fillBoxIdList_area;
 
     const BoxArray &bxa = mflx.boxArray();
-    for (FabSetIterator mfi_bndry_lo(bndry[face_lo]); mfi_bndry_lo.isValid();
+    for (FabSetIterator mfi_bndry_lo(bndry[face_lo]); mfi_bndry_lo.isValid(false);
         ++mfi_bndry_lo)
     {
       DependentFabSetIterator mfi_bndry_hi(mfi_bndry_lo, bndry[face_hi]);
@@ -707,12 +715,15 @@ FluxRegister::CrseInit (const MultiFab& mflx,
       }
     }
 
+    //cout << "_in CrseInit:  CopyDescriptor stats:" << endl;
+    //mfcd.PrintStats();
+
     mfcd.CollectData();
 
     ListIterator<FillBoxId> fbidli_mflx(fillBoxIdList_mflx);
     ListIterator<FillBoxId> fbidli_area(fillBoxIdList_area);
 
-    for (FabSetIterator mfi_bndry_lo(bndry[face_lo]); mfi_bndry_lo.isValid();
+    for (FabSetIterator mfi_bndry_lo(bndry[face_lo]); mfi_bndry_lo.isValid(false);
         ++mfi_bndry_lo)
     {
       DependentFabSetIterator mfi_bndry_hi(mfi_bndry_lo, bndry[face_hi]);
@@ -1006,7 +1017,7 @@ FluxRegister::FineAdd (const MultiFab& mflx,
                        int             numcomp,
                        Real            mult)
 {
-    for (ConstMultiFabIterator mflxmfi(mflx); mflxmfi.isValid(); ++mflxmfi)
+    for (ConstMultiFabIterator mflxmfi(mflx); mflxmfi.isValid(false); ++mflxmfi)
     {
         FineAdd(mflxmfi(),dir,mflxmfi.index(),srccomp,destcomp,numcomp,mult);
     }
@@ -1021,7 +1032,7 @@ FluxRegister::FineAdd (const MultiFab& mflx,
                        int             numcomp,
                        Real            mult)
 {
-    for (ConstMultiFabIterator mflxmfi(mflx); mflxmfi.isValid(); ++mflxmfi)
+    for (ConstMultiFabIterator mflxmfi(mflx); mflxmfi.isValid(false); ++mflxmfi)
     {
         ConstDependentMultiFabIterator areamfi(mflxmfi, area);
         FineAdd(mflxmfi(),areamfi(),dir,mflxmfi.index(),

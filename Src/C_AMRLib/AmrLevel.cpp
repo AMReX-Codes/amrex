@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.18 1998-01-06 23:43:57 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.19 1998-02-18 21:35:32 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -542,6 +542,9 @@ FillPatchIterator::Initialize (int           boxGrow,
         }
     }
 
+  //cout << "_in FillPatchIterator::Init():  CopyDescriptor stats: " << endl;
+  //multiFabCopyDesc.PrintStats();
+
     multiFabCopyDesc.CollectData();
 
     bIsInitialized = true;
@@ -826,8 +829,8 @@ FillPatchIterator::FillPatchIterator (AmrLevel&     amrlevel,
 
             if (unfilledBoxOnThisLevel.ok())
             {
-                cout << "unfilled box on level " << currentLevel << " = " << unfilledBoxOnThisLevel
-                     << '\n';
+                //cout << "unfilled box on level " << currentLevel << " = " << unfilledBoxOnThisLevel
+                     //<< '\n';
             }
             else
             {
@@ -877,7 +880,7 @@ FillPatchIterator::isValid (bool bDoSync)
             break;
         }
     }
-    cout << "coarsestFillLevel = " << coarsestFillLevel << '\n';
+    //cout << "coarsestFillLevel = " << coarsestFillLevel << '\n';
     assert(coarsestFillLevel >= 0 && coarsestFillLevel <= amrLevel.level);
 
     for (currentLevel = coarsestFillLevel; currentLevel < amrLevel.level;
@@ -887,7 +890,7 @@ FillPatchIterator::isValid (bool bDoSync)
             continue;
 
         assert(fillBoxId[currentIndex][currentLevel].length() == 1);
-        cout << "currentLevel     = " << currentLevel     << '\n';
+        //cout << "currentLevel     = " << currentLevel     << '\n';
 
         int ivRefRatio = 2;
         int currentBox = 0;
@@ -897,7 +900,7 @@ FillPatchIterator::isValid (bool bDoSync)
         if (currentLevel == coarsestFillLevel)
         {
             assert(tempCoarseBox.ok());
-            cout << "Resizing coarse fab to " << tempCoarseBox << '\n';
+            //cout << "Resizing coarse fab to " << tempCoarseBox << '\n';
             tempCoarseDestFab.resize(tempCoarseBox, nComp);
             tempCoarseDestFab.setVal(1.e30);
             coarseDestFabPtr = &tempCoarseDestFab;
@@ -909,7 +912,7 @@ FillPatchIterator::isValid (bool bDoSync)
         }
         assert(coarseDestFabPtr != 0);
 
-        cout << "linInterp on coarse.box() = " << coarseDestFabPtr->box() << '\n';
+        //cout << "linInterp on coarse.box() = " << coarseDestFabPtr->box() << '\n';
         currentState.linInterpFillFab(multiFabCopyDesc,
                                       stateDataMFId[currentLevel],
                                       fillBoxId[currentIndex][currentLevel][currentBox],
@@ -919,8 +922,8 @@ FillPatchIterator::isValid (bool bDoSync)
         const Real *dx = amrLevels[currentLevel].geom.CellSize();
         const RealBox &realProbDomain = amrLevels[currentLevel].geom.ProbDomain();
 
-        cout << "FillBoundary on coarse.box() = " << coarseDestFabPtr->box()
-             << "  outside boundary " << realProbDomain << '\n';
+        //cout << "FillBoundary on coarse.box() = " << coarseDestFabPtr->box()
+             //<< "  outside boundary " << realProbDomain << '\n';
         currentState.FillBoundary(*coarseDestFabPtr, interpTime, dx,
                                   realProbDomain, destComp, srcComp, nComp);
 
@@ -955,14 +958,14 @@ FillPatchIterator::isValid (bool bDoSync)
             fineDestFabPtr = &tempFineDestFab;
         }
 
-        cout << "map->interp coarse.box() = " << coarseDestFabPtr->box()
-             << " to finer box = " << fineDestFabPtr->box()
-             << " on int_region = " << intersectDestBox << '\n';
-        cout << "crse0_geom = " << amrLevels[currentLevel].geom << '\n';
-        cout << "crse_geom  = " << amrLevels[currentLevel + 1].geom  << '\n';
-        for(int ibc=0; ibc < nComp; ++ibc) {
-            cout << "bc_crse[" << ibc << "] = " << bcCoarse[ibc] << '\n';
-        }
+        //cout << "map->interp coarse.box() = " << coarseDestFabPtr->box()
+             //<< " to finer box = " << fineDestFabPtr->box()
+             //<< " on int_region = " << intersectDestBox << '\n';
+        //cout << "crse0_geom = " << amrLevels[currentLevel].geom << '\n';
+        //cout << "crse_geom  = " << amrLevels[currentLevel + 1].geom  << '\n';
+        //for(int ibc=0; ibc < nComp; ++ibc) {
+            //cout << "bc_crse[" << ibc << "] = " << bcCoarse[ibc] << '\n';
+        //}
         map[currentLevel]->interp(*coarseDestFabPtr, 0, *fineDestFabPtr,
                                   destComp, nComp, intersectDestBox,
                                   ivRefRatio,
@@ -973,8 +976,8 @@ FillPatchIterator::isValid (bool bDoSync)
 
     currentLevel = amrLevel.level;
     int currentBox = 0;
-    cout << "linInterp on currentFillPatched.box() = "
-         << currentFillPatchedFab.box() << '\n';
+    //cout << "linInterp on currentFillPatched.box() = "
+         //<< currentFillPatchedFab.box() << '\n';
     StateData &currentState = amrLevel.state[stateIndex];
     currentState.linInterpFillFab(multiFabCopyDesc,
                                   stateDataMFId[currentLevel],
@@ -990,9 +993,9 @@ FillPatchIterator::isValid (bool bDoSync)
         const Real *dx = amrLevel.geom.CellSize();
         const RealBox &realProbDomain = amrLevel.geom.ProbDomain();
 
-        cout << "FillBoundary on dest.box() = "
-             << currentFillPatchedFab.box() << " outside boundary "
-             << realProbDomain << '\n';
+        //cout << "FillBoundary on dest.box() = "
+             //<< currentFillPatchedFab.box() << " outside boundary "
+             //<< realProbDomain << '\n';
         currentState.FillBoundary(currentFillPatchedFab, interpTime, dx,
                                   realProbDomain,
                                   destComp, srcComp, nComp);

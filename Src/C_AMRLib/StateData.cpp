@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateData.cpp,v 1.11 1997-12-11 23:27:53 lijewski Exp $
+// $Id: StateData.cpp,v 1.12 1998-02-18 21:35:34 vince Exp $
 //
 
 #include <RunStats.H>
@@ -467,6 +467,8 @@ StateData::linInterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
          BoxLib::Error("StateData::linInterp(): cannot interp");
       }
    }
+   //cout << "_in StateData::linInterpAddBox:  CopyDescriptor stats:" << endl;
+   //multiFabCopyDesc.PrintStats();
 }
 
 void

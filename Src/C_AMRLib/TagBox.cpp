@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.14 1998-02-05 17:02:28 lijewski Exp $
+// $Id: TagBox.cpp,v 1.15 1998-02-18 21:35:34 vince Exp $
 //
 
 #include <TagBox.H>
@@ -461,6 +461,9 @@ TagBoxArray::mergeUnique ()
             }
         }
     }
+    //cout << "_in TagBoxArray::mergeUnique:  CopyDescriptor stats:" << endl;
+    //facd.PrintStats();
+
     facd.CollectData();
 
     int listIndex = 0;
@@ -697,7 +700,7 @@ long
 TagBoxArray::numTags () const 
 {
    long ntag = 0;
-   for (ConstFabArrayIterator<TagType,TagBox> fai(*this); fai.isValid(); ++fai)
+   for (ConstFabArrayIterator<TagType,TagBox> fai(*this); fai.isValid(false); ++fai)
    {
       ntag += fai().numTags();
    } 
@@ -715,7 +718,7 @@ TagBoxArray::collate (long& numtags) const
     {
         sharedNTags[isn] = -1;  // A bad value.
     }
-    for (ConstFabArrayIterator<TagType,TagBox> fai(*this); fai.isValid();++fai)
+    for (ConstFabArrayIterator<TagType,TagBox> fai(*this); fai.isValid(false);++fai)
     {
         sharedNTags[fai.index()] = fai().numTags();
     }
@@ -759,7 +762,7 @@ TagBoxArray::collate (long& numtags) const
     if (TagBoxArray::m_CollateCount < numtags)
         TagBoxArray::BumpCollateSpace(numtags);
 
-    for (ConstFabArrayIterator<TagType,TagBox> fai(*this); fai.isValid();++fai)
+    for (ConstFabArrayIterator<TagType,TagBox> fai(*this); fai.isValid(false);++fai)
     {
         fai().collate(TagBoxArray::m_CollateSpace, startOffset[fai.index()]);
     }
@@ -771,7 +774,7 @@ TagBoxArray::collate (long& numtags) const
     ParallelDescriptor::ShareVar(TagBoxArray::m_CollateSpace, numtags*IVSize);
     ParallelDescriptor::Synchronize();  // For ShareVar.
 
-    for (ConstFabArrayIterator<TagType,TagBox> fai(*this); fai.isValid();++fai)
+    for (ConstFabArrayIterator<TagType,TagBox> fai(*this); fai.isValid(false);++fai)
     {
         int idx = fai.index();
 

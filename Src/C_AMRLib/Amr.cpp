@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.29 1998-02-18 21:34:37 lijewski Exp $
+// $Id: Amr.cpp,v 1.30 1998-02-18 21:35:32 vince Exp $
 //
 
 #include <TagBox.H>
@@ -404,6 +404,7 @@ void
 Amr::writePlotFile (const aString& root,
                     int            num)
 {
+    double dPlotFileTime0(ParallelDescriptor::second());
     aString pltfile = Concatenate(root, num);
 
     if (trace && ParallelDescriptor::IOProcessor())
@@ -469,6 +470,13 @@ Amr::writePlotFile (const aString& root,
 
         if (!HeaderFile.good())
             BoxLib::Error("Amr::writePlotFile() failed");
+    }
+
+    double dPlotFileTime1(ParallelDescriptor::second());
+    double dPlotFileTime(dPlotFileTime1 - dPlotFileTime0);
+    ParallelDescriptor::ReduceRealMax(dPlotFileTime);
+    if(ParallelDescriptor::IOProcessor()) {
+      cout << "Write plotfile time = " << dPlotFileTime << "  seconds." << endl;
     }
 }
 
@@ -640,6 +648,7 @@ Amr::initialInit ()
 void
 Amr::restart (const aString& filename)
 {
+    double dRestartTime0(ParallelDescriptor::second());
     int i;
 
     if (trace && ParallelDescriptor::IOProcessor())
@@ -758,12 +767,21 @@ Amr::restart (const aString& filename)
     //
     for (lev = 0; lev <= finest_level; lev++)
         amr_level[lev].post_restart();
+
+
+    double dRestartTime1(ParallelDescriptor::second());
+    double dRestartTime(dRestartTime1 - dRestartTime0);
+    ParallelDescriptor::ReduceRealMax(dRestartTime);
+    if(ParallelDescriptor::IOProcessor()) {
+      cout << "Restart time = " << dRestartTime << " seconds." << endl;
+    }
 }
 
 #ifdef BL_PARALLEL_IO
 void
 Amr::checkPoint ()
 {
+    double dCheckPointTime0(ParallelDescriptor::second());
     aString ckfile = Concatenate(check_file_root, level_steps[0]);
 
     if (trace && ParallelDescriptor::IOProcessor())
@@ -851,6 +869,14 @@ Amr::checkPoint ()
 
         if (!HeaderFile.good())
             BoxLib::Error("Amr::checkpoint() failed");
+    }
+
+
+    double dCheckPointTime1(ParallelDescriptor::second());
+    double dCheckPointTime(dCheckPointTime1 - dCheckPointTime0);
+    ParallelDescriptor::ReduceRealMax(dCheckPointTime);
+    if(ParallelDescriptor::IOProcessor()) {
+      cout << "Write checkpoint time = " << dCheckPointTime << "  seconds." << endl;
     }
 }
 
