@@ -1,5 +1,5 @@
 c
-c $Id: COORDSYS_2D.F,v 1.4 1998-03-31 00:26:27 lijewski Exp $
+c $Id: COORDSYS_2D.F,v 1.5 1998-10-07 21:18:23 vince Exp $
 c
 
 #undef  BL_LANG_CC
@@ -62,6 +62,38 @@ c
        end if
        
        end
+
+c========================================================
+c========================================================
+        subroutine FORT_SETVOLPT(vol,
+     $          ro, ri, po, pi,  dx, coord)
+
+        integer coord
+        REAL_T dx(SDIM)
+        REAL_T     vol
+        REAL_T     ro, po, pi
+        REAL_T     ri
+
+        integer i,j
+        REAL_T     RZFACTOR
+        parameter (RZFACTOR = 2.d0*3.14159265358979323846d0)
+
+        if(coord .eq. 0) then
+           vol = (ro-ri)*dx(2)
+        elseif(coord .eq. 1) then
+           vol = half*RZFACTOR*dx(2)*(ro**2 - ri**2)
+           vol = abs(vol)
+        elseif(coord .eq. 2) then
+           vol = RZFACTOR*(ro**3-ri**3)*(cos(pi)-cos(po))/three
+        else
+            write(6,*) ' bogus value of coord ... bndrylib::SETVOLPT'
+            stop
+        endif
+
+        return
+        end
+
+
 
 c :: ----------------------------------------------------------
 c :: SETDLOGA

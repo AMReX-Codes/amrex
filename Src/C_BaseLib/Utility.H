@@ -4,7 +4,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.22 1998-07-29 17:21:30 car Exp $
+// $Id: Utility.H,v 1.23 1998-10-07 21:18:28 vince Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -147,8 +147,8 @@ public:
     }
 
 #ifdef WIN32
-    static bool CreateDirectory (const aString& path,
-                                 int            mode);
+    static bool UtilCreateDirectory (const aString& path,
+                                     int            mode);
 #else
     /*@ManDoc:
       Creates the specified directories.  `path' may be either a full pathname
@@ -168,8 +168,8 @@ public:
       "\\a\\b\\c\\d\\e\\f\\g"  (Note that you must escape the backslash in a
       character string), 
     */
-    static bool CreateDirectory (const aString& path,
-                                 mode_t         mode);
+    static bool UtilCreateDirectory (const aString& path,
+                                     mode_t         mode);
 #endif
     //
     //@ManDoc: Output a message and abort when couldn't create the directory.

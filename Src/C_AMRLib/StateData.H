@@ -4,7 +4,7 @@
 #define _StateData_H_ 
 
 //
-// $Id: StateData.H,v 1.11 1998-05-06 17:50:50 lijewski Exp $
+// $Id: StateData.H,v 1.12 1998-10-07 21:18:20 vince Exp $
 //
 
 #include <Box.H>
@@ -16,6 +16,7 @@
 #include <StateDescriptor.H>
 #include <VisMF.H>
 
+extern void readBoxArray(BoxArray& ba, istream& is, bool bReadSpecial);
 //
 //@Man:
 //@Memo: Current and previous level-time data.
@@ -152,7 +153,8 @@ public:
     //
     void restart (istream&               is,
                   const StateDescriptor& d,
-                  const aString&         restart_file);
+                  const aString&         restart_file,
+		  bool                   bReadSpecial = false);
     //
     //@ManDoc: Returns the StateDescriptor.
     //

@@ -2,7 +2,7 @@
 #define _INTERP_NAMES_H
 
 /*
-** $Id: INTERP_F.H,v 1.5 1998-04-07 15:52:24 lijewski Exp $
+** $Id: INTERP_F.H,v 1.6 1998-10-07 21:18:19 vince Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -25,6 +25,15 @@
 #    define FORT_CCINTERP2   CCINTERP2
 #    define FORT_PCINTERP    PCINTERP
 #  else
+#  ifdef BL_AIX
+#    define FORT_NBINTERP    nbinterp
+#    define FORT_CBINTERP    cbinterp
+#    define FORT_CCINTERP    ccinterp
+#    define FORT_LINCCINTERP linccinterp
+#    define FORT_CQINTERP    cqinterp
+#    define FORT_CCINTERP2   ccinterp2
+#    define FORT_PCINTERP    pcinterp
+#  else
 #    define FORT_NBINTERP    nbinterp_
 #    define FORT_CBINTERP    cbinterp_
 #    define FORT_CCINTERP    ccinterp_
@@ -32,6 +41,7 @@
 #    define FORT_CQINTERP    cqinterp_
 #    define FORT_CCINTERP2   ccinterp2_
 #    define FORT_PCINTERP    pcinterp_
+#  endif
 #  endif
 
 #include <ArrayLim.H>

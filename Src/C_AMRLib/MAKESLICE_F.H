@@ -2,7 +2,7 @@
 #define _MAKESLICE_F_H_
 
 /*
-** $Id: MAKESLICE_F.H,v 1.3 1997-12-14 23:34:29 lijewski Exp $
+** $Id: MAKESLICE_F.H,v 1.4 1998-10-07 21:18:20 vince Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -22,10 +22,17 @@
 #endif
 
 #  else
+#  ifdef BL_AIX
+#if (BL_SPACEDIM==3)
+#    define FORT_MAKESLICE      makeslice
+#    define FORT_MAKEMASKSLICE  makemaskslice
+#endif
+#  else
 #if (BL_SPACEDIM==3)
 #    define FORT_MAKESLICE      makeslice_
 #    define FORT_MAKEMASKSLICE  makemaskslice_
 #endif
+#  endif
 #  endif
 
 extern "C"

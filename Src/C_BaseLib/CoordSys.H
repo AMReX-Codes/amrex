@@ -4,7 +4,7 @@
 #define _COORDSYS_H_ 
 
 //
-// $Id: CoordSys.H,v 1.4 1998-05-06 22:36:15 lijewski Exp $
+// $Id: CoordSys.H,v 1.5 1998-10-07 21:18:24 vince Exp $
 //
 
 #include <REAL.H>
@@ -27,8 +27,11 @@ class FArrayBox;
 class CoordSys
 {
 public:
+#if (BL_SPACEDIM == 1)    
+    enum CoordType { undef = -1, cartesian = 0, RZ = 1, SPHERICAL = 2 };
+#endif
 #if (BL_SPACEDIM == 2)    
-    enum CoordType { undef = -1, cartesian = 0, RZ = 1 };
+    enum CoordType { undef = -1, cartesian = 0, RZ = 1, SPHERICAL = 2 };
 #endif
 #if (BL_SPACEDIM == 3)
     enum CoordType { undef = -1, cartesian = 0 };
@@ -65,6 +68,10 @@ public:
     //@ManDoc: Returns the CoordType.
     //
     static CoordType Coord ();
+    //
+    //@ManDoc: Is CoordType == SPHERICAL?
+    //
+    static bool IsSPHERICAL ();
     //
     //@ManDoc: Is CoordType == RZ?
     //
@@ -313,6 +320,19 @@ CoordSys::SetOffset (const Real* x_lo)
     {
         offset[k] = x_lo[k];
     }
+}
+
+inline
+bool
+CoordSys::IsSPHERICAL ()
+{
+    assert(c_sys != undef);
+#if (BL_SPACEDIM <= 2)
+    return (c_sys == SPHERICAL);
+#endif    
+#if (BL_SPACEDIM == 3)
+    return false;
+#endif    
 }
 
 inline

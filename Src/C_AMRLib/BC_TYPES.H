@@ -17,7 +17,7 @@ INFLOW      |    EXT_DIR      |     EXT_DIR      |    EXT_DIR     |
             |                 |                  |                |
 ---------------------------------------------------------------------
             |                 |                  |                |
-OUTFLOW     |    EXTRAP       |     EXTRAP       |    EXTRAP      |
+OUTFLOW     |    FOEXTRAP       |     FOEXTRAP       |    FOEXTRAP      |
             |                 |                  |                |
 ---------------------------------------------------------------------
 NO SLIP WALL   |                 |                  |                |
@@ -45,7 +45,7 @@ SYMMETRY    |  Un REFLECT_ODD |  REFLECT_EVEN    | REFLECT_EVEN   |
 INT_DIR      : data taken from other grids or interpolated
 EXT_DIR      : data specified on EDGE (FACE) of bndry
 HOEXTRAP     : higher order extrapolation to EDGE of bndry
-EXTRAP       : first order extrapolation from last cell in interior
+FOEXTRAP       : first order extrapolation from last cell in interior
 REFLECT_EVEN : F(-n) = F(n)   true reflection from interior cells
 REFLECT_ODD  : F(-n) = -F(n)  true reflection from interior cells
 
@@ -61,7 +61,7 @@ enum physicalBndryTypes {Interior,Inflow,Outflow,Symmetry,
 #define REFLECT_ODD -1
 #define INT_DIR 0
 #define REFLECT_EVEN 1
-#define EXTRAP  2
+#define FOEXTRAP  2
 #define EXT_DIR 3
 #define HOEXTRAP 4
 

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.56 1998-09-23 22:00:10 lijewski Exp $
+// $Id: Amr.cpp,v 1.57 1998-10-07 21:18:18 vince Exp $
 //
 
 #include <TagBox.H>
@@ -34,6 +34,15 @@ using std::ios;
 #ifdef BL_USE_SETBUF
 #define pubsetbuf setbuf
 #endif
+
+
+void
+Amr::setDtMin(const Array<REAL>& dt_min_in)
+{
+    for (int i = 0; i <= finest_level; i++) {
+        dt_min[i] = dt_min_in[i];
+    }
+}
 
 AmrLevel&
 Amr::getLevel (int lev)
@@ -462,7 +471,7 @@ Amr::writePlotFile (const aString& root,
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!Utility::CreateDirectory(pltfile, 0755))
+        if (!Utility::UtilCreateDirectory(pltfile, 0755))
             Utility::CreateDirectoryFailed(pltfile);
     //
     // Force other processors to wait till directory is built.
@@ -625,16 +634,36 @@ Amr::initialInit (Real strt_time, Real stop_time)
     //
     defBaseLevel(strt_time);
 
-    if (max_level > 0)
-        bldFineLevels(strt_time);
     //
     // Compute dt and set time levels of all grid data.
     //
     amr_level[0].computeInitialDt(finest_level,sub_cycle,
-                                  n_cycle,ref_ratio,dt_level,stop_time);
+                                  n_cycle,ref_ratio,
+                                  //dt_min,
+                                  dt_level,
+                                  stop_time);
+
+    // ----- the following was added for multifluid
+    Real dt0 = dt_level[0];
+    dt_min[0] = dt_level[0];
+    n_cycle[0] = 1;
+    for (int lev = 1; lev <= max_level; lev++) {
+        dt0 /= Real (ref_ratio[lev-1][0]);
+        dt_level[lev] = dt0;
+        dt_min[lev] = dt_level[lev];
+        n_cycle[lev] = ref_ratio[lev-1][0];
+    }
+    // ----- end multifluid
+
+    if (max_level > 0)
+        bldFineLevels(strt_time);
 
     for (int lev = 0; lev <= finest_level; lev++)
         amr_level[lev].setTimeLevel(strt_time,dt_level[lev],dt_level[lev]);
+
+    for (int lev = 0; lev <= finest_level; lev++)
+        amr_level[lev].post_regrid(0,finest_level);
+
     //
     // Perform any special post_initialization operations.
     //
@@ -823,7 +852,7 @@ Amr::checkPoint ()
     // Only the I/O processor makes the directory if it doesn't already exist.
     //
     if (ParallelDescriptor::IOProcessor())
-        if (!Utility::CreateDirectory(ckfile, 0755))
+        if (!Utility::UtilCreateDirectory(ckfile, 0755))
             Utility::CreateDirectoryFailed(ckfile);
     //
     // Force other processors to wait till directory is built.
@@ -1565,7 +1594,9 @@ Amr::grid_places (int              lbase,
             }
         }
         TagBoxArray tags(old_grids,n_error_buf[levc]+ngrow);
-        amr_level[levc].errorEst(tags,TagBox::CLEAR,TagBox::SET,time);
+        amr_level[levc].errorEst(tags,
+                                 TagBox::CLEAR,TagBox::SET,time,
+				 n_error_buf[levc],ngrow);
         //
         // If new grids have been constructed above this level, project
         // those grids down and tag cells on intersections to ensure
