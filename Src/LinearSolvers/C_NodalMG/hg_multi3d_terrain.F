@@ -2038,120 +2038,6 @@ c-----------------------------------------------------------------------
       MYZ(ii,jj,kk) = (6.d0 *  cor(i,jj,kk)  + 
      &                  3.d0 * (cor(ii,jj,kk) - cor(ii,j,k)))
       fac = 1.d0 / 36.d0
-      if (regh2 - regl2 .gt. regh1 - regl1 .and.
-     &    regh2 - regl2 .gt. regh0 - regl0) then
-         do j = regl1, regh1
-            do i = regl0, regh0
-cdir$ ivdep
-               do k = regl2, regh2
-                  tmp = sig(i-1,j-1,k-1,1) * MXX(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,1) * MXX(i-1,j-1,k+1) +
-     &                  sig(i-1,j  ,k-1,1) * MXX(i-1,j+1,k-1) +
-     &                  sig(i-1,j  ,k  ,1) * MXX(i-1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i  ,j-1,k-1,1) * MXX(i+1,j-1,k-1) +
-     &                  sig(i  ,j-1,k  ,1) * MXX(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,1) * MXX(i+1,j+1,k-1) +
-     &                  sig(i  ,j  ,k  ,1) * MXX(i+1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i-1,j-1,k-1,2) * MYY(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,2) * MYY(i-1,j-1,k+1) +
-     &                  sig(i-1,j  ,k-1,2) * MYY(i-1,j+1,k-1) +
-     &                  sig(i-1,j  ,k  ,2) * MYY(i-1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i  ,j-1,k-1,2) * MYY(i+1,j-1,k-1) +
-     &                  sig(i  ,j-1,k  ,2) * MYY(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,2) * MYY(i+1,j+1,k-1) +
-     &                  sig(i  ,j  ,k  ,2) * MYY(i+1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i-1,j-1,k-1,3) * MZZ(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,3) * MZZ(i-1,j-1,k+1) +
-     &                  sig(i-1,j  ,k-1,3) * MZZ(i-1,j+1,k-1) +
-     &                  sig(i-1,j  ,k  ,3) * MZZ(i-1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i  ,j-1,k-1,3) * MZZ(i+1,j-1,k-1) +
-     &                  sig(i  ,j-1,k  ,3) * MZZ(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,3) * MZZ(i+1,j+1,k-1) +
-     &                  sig(i  ,j  ,k  ,3) * MZZ(i+1,j+1,k+1)
-                  tmp = tmp -
-     &                  sig(i-1,j-1,k-1,4) * MXZ(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,4) * MXZ(i-1,j-1,k+1) -
-     &                  sig(i-1,j  ,k-1,4) * MXZ(i-1,j+1,k-1) +
-     &                  sig(i-1,j  ,k  ,4) * MXZ(i-1,j+1,k+1) +
-     &                  sig(i  ,j-1,k-1,4) * MXZ(i+1,j-1,k-1) -
-     &                  sig(i  ,j-1,k  ,4) * MXZ(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,4) * MXZ(i+1,j+1,k-1) -
-     &                  sig(i  ,j  ,k  ,4) * MXZ(i+1,j+1,k+1)
-                  tmp = tmp -
-     &                  sig(i-1,j-1,k-1,5) * MYZ(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,5) * MYZ(i-1,j-1,k+1) +
-     &                  sig(i-1,j  ,k-1,5) * MYZ(i-1,j+1,k-1) -
-     &                  sig(i-1,j  ,k  ,5) * MYZ(i-1,j+1,k+1) -
-     &                  sig(i  ,j-1,k-1,5) * MYZ(i+1,j-1,k-1) +
-     &                  sig(i  ,j-1,k  ,5) * MYZ(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,5) * MYZ(i+1,j+1,k-1) -
-     &                  sig(i  ,j  ,k  ,5) * MYZ(i+1,j+1,k+1)
-                  cor(i,j,k) = (fac * tmp - res(i,j,k)) * cen(i,j,k)
-               end do
-            end do
-         end do
-      else if (regh1 - regl1 .gt. regh0 - regl0) then
-         do k = regl2, regh2
-            do i = regl0, regh0
-cdir$ ivdep
-               do j = regl1, regh1
-                  tmp = sig(i-1,j-1,k-1,1) * MXX(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,1) * MXX(i-1,j-1,k+1) +
-     &                  sig(i-1,j  ,k-1,1) * MXX(i-1,j+1,k-1) +
-     &                  sig(i-1,j  ,k  ,1) * MXX(i-1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i  ,j-1,k-1,1) * MXX(i+1,j-1,k-1) +
-     &                  sig(i  ,j-1,k  ,1) * MXX(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,1) * MXX(i+1,j+1,k-1) +
-     &                  sig(i  ,j  ,k  ,1) * MXX(i+1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i-1,j-1,k-1,2) * MYY(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,2) * MYY(i-1,j-1,k+1) +
-     &                  sig(i-1,j  ,k-1,2) * MYY(i-1,j+1,k-1) +
-     &                  sig(i-1,j  ,k  ,2) * MYY(i-1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i  ,j-1,k-1,2) * MYY(i+1,j-1,k-1) +
-     &                  sig(i  ,j-1,k  ,2) * MYY(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,2) * MYY(i+1,j+1,k-1) +
-     &                  sig(i  ,j  ,k  ,2) * MYY(i+1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i-1,j-1,k-1,3) * MZZ(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,3) * MZZ(i-1,j-1,k+1) +
-     &                  sig(i-1,j  ,k-1,3) * MZZ(i-1,j+1,k-1) +
-     &                  sig(i-1,j  ,k  ,3) * MZZ(i-1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i  ,j-1,k-1,3) * MZZ(i+1,j-1,k-1) +
-     &                  sig(i  ,j-1,k  ,3) * MZZ(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,3) * MZZ(i+1,j+1,k-1) +
-     &                  sig(i  ,j  ,k  ,3) * MZZ(i+1,j+1,k+1)
-                  tmp = tmp -
-     &                  sig(i-1,j-1,k-1,4) * MXZ(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,4) * MXZ(i-1,j-1,k+1) -
-     &                  sig(i-1,j  ,k-1,4) * MXZ(i-1,j+1,k-1) +
-     &                  sig(i-1,j  ,k  ,4) * MXZ(i-1,j+1,k+1) +
-     &                  sig(i  ,j-1,k-1,4) * MXZ(i+1,j-1,k-1) -
-     &                  sig(i  ,j-1,k  ,4) * MXZ(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,4) * MXZ(i+1,j+1,k-1) -
-     &                  sig(i  ,j  ,k  ,4) * MXZ(i+1,j+1,k+1)
-                  tmp = tmp -
-     &                  sig(i-1,j-1,k-1,5) * MYZ(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,5) * MYZ(i-1,j-1,k+1) +
-     &                  sig(i-1,j  ,k-1,5) * MYZ(i-1,j+1,k-1) -
-     &                  sig(i-1,j  ,k  ,5) * MYZ(i-1,j+1,k+1) -
-     &                  sig(i  ,j-1,k-1,5) * MYZ(i+1,j-1,k-1) +
-     &                  sig(i  ,j-1,k  ,5) * MYZ(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,5) * MYZ(i+1,j+1,k-1) -
-     &                  sig(i  ,j  ,k  ,5) * MYZ(i+1,j+1,k+1)
-                  cor(i,j,k) = (fac * tmp - res(i,j,k)) * cen(i,j,k)
-               end do
-            end do
-         end do
-      else
          do k = regl2, regh2
             do j = regl1, regh1
 cdir$ ivdep
@@ -2207,7 +2093,6 @@ cdir$ ivdep
                end do
             end do
          end do
-      end if
       end
 
 c cor substituted for dest to use same macro:
@@ -2254,128 +2139,6 @@ c-----------------------------------------------------------------------
       MYZ(ii,jj,kk) = (6.d0 *  cor(i,jj,kk)  + 
      &                  3.d0 * (cor(ii,jj,kk) - cor(ii,j,k)))
       fac = 1.d0 / 36.d0
-      if (regh2 - regl2 .gt. regh1 - regl1 .and.
-     &    regh2 - regl2 .gt. regh0 - regl0) then
-         do j = regl1, regh1
-            do i = regl0, regh0
-               do k = regl2, regh2
-                  tmp = sig(i-1,j-1,k-1,1) * MXX(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,1) * MXX(i-1,j-1,k+1) +
-     &                  sig(i-1,j  ,k-1,1) * MXX(i-1,j+1,k-1) +
-     &                  sig(i-1,j  ,k  ,1) * MXX(i-1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i  ,j-1,k-1,1) * MXX(i+1,j-1,k-1) +
-     &                  sig(i  ,j-1,k  ,1) * MXX(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,1) * MXX(i+1,j+1,k-1) +
-     &                  sig(i  ,j  ,k  ,1) * MXX(i+1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i-1,j-1,k-1,2) * MYY(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,2) * MYY(i-1,j-1,k+1) +
-     &                  sig(i-1,j  ,k-1,2) * MYY(i-1,j+1,k-1) +
-     &                  sig(i-1,j  ,k  ,2) * MYY(i-1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i  ,j-1,k-1,2) * MYY(i+1,j-1,k-1) +
-     &                  sig(i  ,j-1,k  ,2) * MYY(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,2) * MYY(i+1,j+1,k-1) +
-     &                  sig(i  ,j  ,k  ,2) * MYY(i+1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i-1,j-1,k-1,3) * MZZ(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,3) * MZZ(i-1,j-1,k+1) +
-     &                  sig(i-1,j  ,k-1,3) * MZZ(i-1,j+1,k-1) +
-     &                  sig(i-1,j  ,k  ,3) * MZZ(i-1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i  ,j-1,k-1,3) * MZZ(i+1,j-1,k-1) +
-     &                  sig(i  ,j-1,k  ,3) * MZZ(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,3) * MZZ(i+1,j+1,k-1) +
-     &                  sig(i  ,j  ,k  ,3) * MZZ(i+1,j+1,k+1)
-                  tmp = tmp -
-     &                  sig(i-1,j-1,k-1,4) * MXZ(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,4) * MXZ(i-1,j-1,k+1) -
-     &                  sig(i-1,j  ,k-1,4) * MXZ(i-1,j+1,k-1) +
-     &                  sig(i-1,j  ,k  ,4) * MXZ(i-1,j+1,k+1) +
-     &                  sig(i  ,j-1,k-1,4) * MXZ(i+1,j-1,k-1) -
-     &                  sig(i  ,j-1,k  ,4) * MXZ(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,4) * MXZ(i+1,j+1,k-1) -
-     &                  sig(i  ,j  ,k  ,4) * MXZ(i+1,j+1,k+1)
-                  tmp = tmp -
-     &                  sig(i-1,j-1,k-1,5) * MYZ(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,5) * MYZ(i-1,j-1,k+1) +
-     &                  sig(i-1,j  ,k-1,5) * MYZ(i-1,j+1,k-1) -
-     &                  sig(i-1,j  ,k  ,5) * MYZ(i-1,j+1,k+1) -
-     &                  sig(i  ,j-1,k-1,5) * MYZ(i+1,j-1,k-1) +
-     &                  sig(i  ,j-1,k  ,5) * MYZ(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,5) * MYZ(i+1,j+1,k-1) -
-     &                  sig(i  ,j  ,k  ,5) * MYZ(i+1,j+1,k+1)
-                  if (cen(i,j,k) .ne. 0.d0) then
-                     res(i,j,k) = src(i,j,k)
-     &                  - fac * tmp + cor(i,j,k) / cen(i,j,k)
-                  else
-                     res(i,j,k) = 0.d0
-                  end if
-               end do
-            end do
-         end do
-      else if (regh1 - regl1 .gt. regh0 - regl0) then
-         do k = regl2, regh2
-            do i = regl0, regh0
-               do j = regl1, regh1
-                  tmp = sig(i-1,j-1,k-1,1) * MXX(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,1) * MXX(i-1,j-1,k+1) +
-     &                  sig(i-1,j  ,k-1,1) * MXX(i-1,j+1,k-1) +
-     &                  sig(i-1,j  ,k  ,1) * MXX(i-1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i  ,j-1,k-1,1) * MXX(i+1,j-1,k-1) +
-     &                  sig(i  ,j-1,k  ,1) * MXX(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,1) * MXX(i+1,j+1,k-1) +
-     &                  sig(i  ,j  ,k  ,1) * MXX(i+1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i-1,j-1,k-1,2) * MYY(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,2) * MYY(i-1,j-1,k+1) +
-     &                  sig(i-1,j  ,k-1,2) * MYY(i-1,j+1,k-1) +
-     &                  sig(i-1,j  ,k  ,2) * MYY(i-1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i  ,j-1,k-1,2) * MYY(i+1,j-1,k-1) +
-     &                  sig(i  ,j-1,k  ,2) * MYY(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,2) * MYY(i+1,j+1,k-1) +
-     &                  sig(i  ,j  ,k  ,2) * MYY(i+1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i-1,j-1,k-1,3) * MZZ(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,3) * MZZ(i-1,j-1,k+1) +
-     &                  sig(i-1,j  ,k-1,3) * MZZ(i-1,j+1,k-1) +
-     &                  sig(i-1,j  ,k  ,3) * MZZ(i-1,j+1,k+1)
-                  tmp = tmp +
-     &                  sig(i  ,j-1,k-1,3) * MZZ(i+1,j-1,k-1) +
-     &                  sig(i  ,j-1,k  ,3) * MZZ(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,3) * MZZ(i+1,j+1,k-1) +
-     &                  sig(i  ,j  ,k  ,3) * MZZ(i+1,j+1,k+1)
-                  tmp = tmp -
-     &                  sig(i-1,j-1,k-1,4) * MXZ(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,4) * MXZ(i-1,j-1,k+1) -
-     &                  sig(i-1,j  ,k-1,4) * MXZ(i-1,j+1,k-1) +
-     &                  sig(i-1,j  ,k  ,4) * MXZ(i-1,j+1,k+1) +
-     &                  sig(i  ,j-1,k-1,4) * MXZ(i+1,j-1,k-1) -
-     &                  sig(i  ,j-1,k  ,4) * MXZ(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,4) * MXZ(i+1,j+1,k-1) -
-     &                  sig(i  ,j  ,k  ,4) * MXZ(i+1,j+1,k+1)
-                  tmp = tmp -
-     &                  sig(i-1,j-1,k-1,5) * MYZ(i-1,j-1,k-1) +
-     &                  sig(i-1,j-1,k  ,5) * MYZ(i-1,j-1,k+1) +
-     &                  sig(i-1,j  ,k-1,5) * MYZ(i-1,j+1,k-1) -
-     &                  sig(i-1,j  ,k  ,5) * MYZ(i-1,j+1,k+1) -
-     &                  sig(i  ,j-1,k-1,5) * MYZ(i+1,j-1,k-1) +
-     &                  sig(i  ,j-1,k  ,5) * MYZ(i+1,j-1,k+1) +
-     &                  sig(i  ,j  ,k-1,5) * MYZ(i+1,j+1,k-1) -
-     &                  sig(i  ,j  ,k  ,5) * MYZ(i+1,j+1,k+1)
-                  if (cen(i,j,k) .ne. 0.d0) then
-                     res(i,j,k) = src(i,j,k)
-     &                  - fac * tmp + cor(i,j,k) / cen(i,j,k)
-                  else
-                     res(i,j,k) = 0.d0
-                  end if
-               end do
-            end do
-         end do
-      else
          do k = regl2, regh2
             do j = regl1, regh1
                do i = regl0, regh0
@@ -2435,7 +2198,6 @@ c-----------------------------------------------------------------------
                end do
             end do
          end do
-      end if
       end
 c-----------------------------------------------------------------------
       subroutine hgrlnf_terrain(

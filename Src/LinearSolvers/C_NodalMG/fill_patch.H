@@ -10,27 +10,15 @@ void internal_copy(MultiFab& r, int destgrid, int srcgrid, const Box& b);
 
 Real inner_product(const MultiFab& r, const MultiFab& s);
 
-// individual bits of flags are interpreted separately:
-// 1-bit:  action when part of patch cannot be filled
-//   0 -> ignore (i.e., fill-on-intersect) (default)
-//   1 -> return 0 indicating error
-// 2-bit:  controls use of ghost cells of source level_real
-//   0 -> ignore values in ghost cells (default)
-//   1 -> use values from ghost cells
-// 4-bit:  what to do with part of patch that can't be filled
-//   0 -> ignore (default)
-//   1 -> fill this section with zeroes to avoid floating-point errors
+// returns grid number if patch is contained in a single grid, -1 otherwise.
 
-// returns grid number if patch is contained in a single grid,
-// uses only 2-bit of flags
-
-int find_patch(const Box& region, const MultiFab& r, int flags);
+int find_patch(const Box& region, const MultiFab& r);
 
 bool fill_patch(FArrayBox& patch, const Box& region,
 		const MultiFab& r,
 		const level_interface& lev_interface,
 		const amr_boundary_class* bdy,
-		int flags, int idim = -1, int index = -1);
+		int idim = -1, int index = -1);
 
 
 
@@ -48,8 +36,7 @@ void clear_part_interface(MultiFab& r, const level_interface& lev_interface);
 void interpolate_patch(FArrayBox& patch, const Box& region,
 		       const MultiFab& r, const IntVect& rat,
 		       const amr_interpolator_class& interp,
-		       const level_interface& lev_interface,
-		       const amr_boundary_class* bdy);
+		       const level_interface& lev_interface);
 
 void restrict_level(MultiFab& dest, MultiFab& r, const IntVect& rat,
 		    const amr_restrictor_class& restric,

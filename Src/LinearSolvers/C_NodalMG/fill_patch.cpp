@@ -75,10 +75,9 @@ Real inner_product(const MultiFab& r, const MultiFab& s)
 }
 
 
-int find_patch(const Box& region, const MultiFab& r, int flags)
+int find_patch(const Box& region, const MultiFab& r)
 {
-    assert(flags == 0);
-    if (r.nGrow() == 0 || (flags & 2)) 
+    if (r.nGrow() == 0 ) 
     {
 	for (int igrid = 0; igrid < r.length(); igrid++) 
 	{
@@ -98,10 +97,9 @@ int find_patch(const Box& region, const MultiFab& r, int flags)
     return -1;
 }
 
-static bool fill_patch_blindly(FArrayBox& patch, const Box& region, const MultiFab& r, int flags)
+static bool fill_patch_blindly(FArrayBox& patch, const Box& region, const MultiFab& r)
 {
-    assert(flags == 0);
-    if (r.nGrow() == 0 || (flags & 2)) 
+    if (r.nGrow() == 0) 
     {
 	for (int igrid = 0; igrid < r.length(); igrid++) 
 	{
@@ -148,10 +146,8 @@ static bool fill_exterior_patch_blindly(FArrayBox& patch,
 				const Box& region,
 				const MultiFab& r,
 				const level_interface& lev_interface,
-				const amr_boundary_class* bdy,
-				int flags)
+				const amr_boundary_class* bdy)
 {
-    assert(flags==0);
     const BoxArray& em = lev_interface.exterior_mesh();
     for (int igrid = 0; igrid < em.length(); igrid++) 
     {
@@ -161,8 +157,6 @@ static bool fill_exterior_patch_blindly(FArrayBox& patch,
 	    Box tb;
 	    tb = em[igrid];
 	    tb.convert(type(r));
-	    if (r.nGrow() > 0 && (flags & 2))
-		tb.grow(r.nGrow());
 	    if (tb.contains(region)) 
 	    {
 		assert(bdy != 0);
@@ -183,61 +177,53 @@ static bool fill_exterior_patch_blindly(FArrayBox& patch,
 bool fill_patch(FArrayBox& patch, const Box& region,
 	       const MultiFab& r,
 	       const level_interface& lev_interface,
-	       const amr_boundary_class* bdy, int flags,
+	       const amr_boundary_class* bdy,
 	       int idim, int index)
 {
-    assert(flags == 0);
-    // assert(idim == -1);
-    // assert(index == -1);
-    // assert(bdy.defined() == 0);
     if (!region.ok())
 	return true;
-    
-    if (flags & 4)
-	patch.setVal(0.0, region, 0, patch.nComp());
     
     assert(patch.nComp() == r.nComp());
     assert(type(patch) == type(r));
     assert(lev_interface.ok());
+    assert( idim >= -1 && idim < BL_SPACEDIM );
     
     Box tdomain = lev_interface.domain();
     tdomain.convert(type(patch));
     Box idomain = grow(tdomain, IntVect::TheZeroVector() - type(r));
     
-    assert( (flags&1) == 0);
-    assert( idim >= -1 && idim < BL_SPACEDIM );
-    if (idim == -1 || (flags & 2)) 
+    if (idim == -1 ) 
     {
 	if (idomain.contains(region) || bdy == 0) 
 	{
-	    return fill_patch_blindly(patch, region, r, flags);
+	    return fill_patch_blindly(patch, region, r);
 	}
 	else if (!tdomain.intersects(region)) 
 	{
-	    return fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy, flags);
+	    return fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy);
 	}
 	else if (idomain.intersects(region)) 
 	{
-	    if (fill_patch_blindly(patch, region, r, flags) )
+	    if (fill_patch_blindly(patch, region, r) )
 		return true;
 	    else
-		return fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy, flags);
+		return fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy);
 	}
 	else 
 	{
-	    if (fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy, flags) )
+	    if (fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy) )
 		return true;
 	    else
-		return fill_patch_blindly(patch, region, r, flags);
+		return fill_patch_blindly(patch, region, r);
 	}
     }
     else if (idim == 0) 
     {
-	int gridnum[level_interface::N_CORNER_GRIDS+1];
+	Array<int> gridnum(lev_interface.ngrids(idim)+1);
 	gridnum[0] = -1;
-	for (int i = 0; i < level_interface::N_CORNER_GRIDS; i++) 
+	for (int i = 0; i < lev_interface.ngrids(idim); i++) 
 	{
-	    int igrid = lev_interface.grid(0, index,i);
+	    int igrid = lev_interface.grid(idim, index,i);
 	    if (igrid != -1) 
 	    {
 		for (int j = 0; gridnum[j] != igrid; j++) 
@@ -270,11 +256,11 @@ bool fill_patch(FArrayBox& patch, const Box& region,
 #if (BL_SPACEDIM == 3)
     else if (idim == 1) 
     {
-	int gridnum[level_interface::N_EDGE_GRIDS+1];
+	Array<int> gridnum(lev_interface.ngrids(idim)+1);
 	gridnum[0] = -1;
-	for (int i = 0; i < level_interface::N_EDGE_GRIDS; i++) 
+	for (int i = 0; i < lev_interface.ngrids(idim); i++) 
 	{
-	    int igrid = lev_interface.grid(1, index,i);
+	    int igrid = lev_interface.grid(idim, index,i);
 	    if (igrid != -1) 
 	    {
 		for (int j = 0; gridnum[j] != igrid; j++) 
@@ -307,11 +293,11 @@ bool fill_patch(FArrayBox& patch, const Box& region,
 #endif
     else if (idim == level_interface::FACEDIM) 
     {
-	int gridnum[level_interface::N_FACE_GRIDS+1];
+	Array<int> gridnum(lev_interface.ngrids(idim)+1);
 	gridnum[0] = -1;
-	for (int i = 0; i < level_interface::N_FACE_GRIDS; i++) 
+	for (int i = 0; i < lev_interface.ngrids(idim); i++) 
 	{
-	    int igrid = lev_interface.grid(level_interface::FACEDIM, index,i);
+	    int igrid = lev_interface.grid(idim, index,i);
 	    if (igrid != -1) 
 	    {
 		for (int j = 0; gridnum[j] != igrid; j++) 
@@ -637,18 +623,15 @@ void clear_part_interface(MultiFab& r, const level_interface& lev_interface)
 void interpolate_patch(FArrayBox& patch, const Box& region,
 		       const MultiFab& r, const IntVect& rat,
 		       const amr_interpolator_class& interp,
-		       const level_interface& lev_interface,
-		       const amr_boundary_class* bdy)
+		       const level_interface& lev_interface)
 {
     assert(region.sameType(patch.box()));
-    assert(bdy == 0);
-    
     const Box cb = interp.box(region, rat);
-    const int igrid = find_patch(cb, r, 0);
+    const int igrid = find_patch(cb, r);
     if (igrid == -1) 
     {
 	FArrayBox cgr(cb, r.nComp());
-	fill_patch(cgr, cb, r, lev_interface, bdy, 0);
+	fill_patch(cgr, cb, r, lev_interface, 0);
 	interp.fill(patch, region, cgr, cb, rat);
     }
     else 

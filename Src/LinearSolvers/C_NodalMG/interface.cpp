@@ -821,12 +821,14 @@ void level_interface::xfer(const List<Box>& bl, int idim)
     }
 }
 
-void level_interface::geo_array(int idim, int ga[], int i) const
+Array<int> level_interface::geo_array(int idim, int i) const
 {
+    Array<int> ga(N_CORNER_GRIDS);
     unsigned int gtmp = geo(idim, i);
     for (int k = 0; k < N_CORNER_GRIDS; k++) 
     {
 	ga[k] = (gtmp & 1);
 	gtmp >>= 1;
     }
+    return ga;
 }
