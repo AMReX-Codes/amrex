@@ -136,7 +136,7 @@ WALL_SECOND_TICK( double* r)
   if ( tickval < 0.0 )
     {
       tickval = 1.0e6;
-      for (icnt=0; icnt<10; icnt++)
+      for (icnt=0; icnt<100; icnt++)
 	{
 	  cnt = 1000;
 	  WALL_SECOND( &t1 );
@@ -163,7 +163,7 @@ CPU_SECOND_TICK( double* r)
   if ( tickval < 0.0 )
     {
       tickval = 1.0e6;
-      for (icnt=0; icnt<10; icnt++)
+      for (icnt=0; icnt<1000; icnt++)
 	{
 	  cnt = 1000;
 	  CPU_SECOND( &t1 );

@@ -360,9 +360,7 @@ subroutine t_mf_fabio
   type (layout) :: la
   type (multifab) :: mf
   type (boxassoc) :: bxasc
-  integer :: i, n, nx, ny, j
   integer :: rrs(1)
-  real(kind=dp_t), pointer :: fp(:,:,:,:)
 
   bx = refine(unit_box(dim=2),2)
   bxs(1) = bx
@@ -781,5 +779,18 @@ end subroutine t_box_chop
 
 subroutine t_knap
   use knapsack_module
+  implicit none
   call t_knapsack
 end subroutine t_knap
+
+subroutine t_timer
+  use bl_timer_module
+  implicit none
+  real(kind=dp_t) d
+  print *, 'MY_CPU_SECOND_TICK = ', MY_CPU_SECOND_TICK()
+  print *, 'MY_WALL_SECOND_TICK = ', MY_WALL_SECOND_TICK()
+  call cpu_second_tick(d)
+  print *, 'CPU_SECOND_TICK = ', d
+  call wall_second_tick(d)
+  print *, 'WALL_SECOND_TICK = ', d
+end subroutine t_timer
