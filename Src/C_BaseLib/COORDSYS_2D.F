@@ -1,5 +1,5 @@
 c
-c $Id: COORDSYS_2D.F,v 1.9 2002-11-14 23:04:56 lijewski Exp $
+c $Id: COORDSYS_2D.F,v 1.10 2002-12-30 22:09:45 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -248,7 +248,7 @@ c
                 ri = offset(1) + dx(1)*i
                 a = RZFACTOR*ri*dx(2)
                 do j = ARG_L2(area), ARG_H2(area)
-                   area(i,j) = a
+                   area(i,j) = abs(a)
                 end do
              end do
           else
@@ -257,7 +257,7 @@ c
                 ro = ri + dx(1)
                 a = dx(1)*(half*RZFACTOR)*(ri + ro)
                 do j = ARG_L2(area), ARG_H2(area)
-                   area(i,j) = a
+                   area(i,j) = abs(a)
                 end do
              end do
           end if
