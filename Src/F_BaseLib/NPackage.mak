@@ -8,6 +8,7 @@ f90sources = $(f90sources) bl_error.f90
 f90sources = $(f90sources) bl_IO.f90
 f90sources = $(f90sources) bl_kiss.f90
 f90sources = $(f90sources) bl_mem_stat.f90
+f90sources = $(f90sources) bl_parmparse.f90
 f90sources = $(f90sources) bl_space.f90  
 f90sources = $(f90sources) bl_stream.f90  
 f90sources = $(f90sources) bl_string.f90  
