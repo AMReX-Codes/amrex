@@ -7,7 +7,7 @@ plt_prefix=plt
 #
 # Number of seconds to sleep before checking again.
 #
-N=900
+N=300
 #
 # Tar up and then remove plt and chk directories.
 #
@@ -50,6 +50,15 @@ function tar_up_and_rm_files
   fi
 
   list="$chklist $pltlist"
+
+  if [ "$list" ]
+  then
+    #
+    # Sleep a little to let things settle out.
+    # Some of these "supercomputer" file systems need a little help.
+    #
+    sleep 60
+  fi
 
   for dir in ${list}
   do
