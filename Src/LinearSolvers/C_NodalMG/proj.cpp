@@ -67,9 +67,9 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m,
     }
     if (m.length() == 1) 
     {
-	for (int igrid = 0; igrid < m[0].length(); igrid++) 
+	for (MultiFabIterator u_mfi(u[0][0]); u_mfi.isValid(); ++u_mfi)
 	{
-	    u[0][0][igrid](m[0][igrid].smallEnd() + IntVect(2,2)) = 3.0;
+	    (*u_mfi)(m[0][u_mfi.index()].smallEnd() + IntVect(2,2)) = 3.0;
 	    //u[0][0][igrid](m[0][igrid].smallEnd() + IntVect(3,3)) = 1.0;
 	    //u[1][0][igrid](m[0][igrid].smallEnd() + IntVect(3,3)) = 1.0;
 	    //u[0][0][igrid](m[0][igrid].smallEnd() + IntVect(20,2)) = 3.0;
@@ -78,17 +78,19 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m,
     }
     else if (m.length() == 2) 
     {
-	for (int igrid = 0; igrid < m[1].length(); igrid++) 
+	for (MultiFabIterator u_mfi(u[0][1]); u_mfi.isValid(); ++u_mfi)
 	{
-	    u[0][1][igrid](m[1][igrid].smallEnd() + IntVect(2,2)) = 3.0;
+	    (*u_mfi)(m[1][u_mfi.index()].smallEnd() + IntVect(2,2)) = 3.0;
 	}
 	//u[0][1][0](IntVect(20,90)) = 1.0;
 	//u[0][1][0](IntVect(50,50)) = 1.0;
 	//u[0][1][0](IntVect(22,12)) = 1.0;
 	if (!hg_terrain)
-	    u[0][0][0](IntVect(12,12)) = 3.0;
+	{
+	    if ( is_local(u[0][0], 0) u[0][0][0](IntVect(12,12)) = 3.0;
+	}
 	else
-	    u[0][0][0](IntVect(12,12)) = 3.0 * ratio[0][0];
+	    if ( is_local(u[0][0], 0) u[0][0][0](IntVect(12,12)) = 3.0 * ratio[0][0];
 	    /*
 	    if (m[0].domain().length(0) == 32)
 	    u[0][1][0](IntVect(30,30)) = 1.0;
@@ -102,15 +104,16 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m,
     {
 	for (int ilev = 0; ilev < m.length(); ilev++) 
 	{
-	    for (int igrid = 0; igrid < m[ilev].length(); igrid++) 
+	    for ( MultiFabIterator u_mfi(u[0][ilev]); u_mfi.isValid(); ++u_mfi)
 	    {
+		DependentMultiFabIterator u_dmfi(u[1][ilev], u_mfi);
 		//u[0][ilev][igrid].setVal(1.e20);
 		//u[1][ilev][igrid].setVal(3.e20);
-		u[0][ilev][igrid].setVal(0.0, m[ilev][igrid], 0);
-		u[1][ilev][igrid].setVal(0.0, m[ilev][igrid], 0);
+		u_mfi->setVal(0.0, m[ilev][u_mfi.index()], 0);
+		u_dmfi->setVal(0.0, m[ilev][u_mfi.index()], 0);
 	    }
 	}
-	u[0][2][0](m[2][0].smallEnd() + IntVect(10,10)) = 3.0;
+	if ( is_local(u[0][2], 0) u[0][2][0](m[2][0].smallEnd() + IntVect(10,10)) = 3.0;
 	// for gr2ann
 	//u[0][2][0](IntVect(20,20)) = 1.0;
 	//u[0][2][0](IntVect(20,20)) = 0.0;
@@ -132,11 +135,11 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m,
     {
 	//int ioff = m[0].domain().length(0) / 8;
 	int ioff = 2;
-	for (int igrid = 0; igrid < m[0].length(); igrid++) 
+	for (MultiFabIterator u_mfi(u[0][0]); u_mfi.isValid(); ++u_mfi)
 	{
 	    // Used for timings3_94:
 	    //u[0][0][igrid](m[0][igrid].smallEnd() + IntVect(2,2,2)) = 3.0;
-	    u[0][0][igrid](m[0][igrid].smallEnd() + IntVect(ioff,ioff,ioff)) = 3.0;
+	    (*u_mfi)(m[0][u_mfi.index()].smallEnd() + IntVect(ioff,ioff,ioff)) = 3.0;
 	}
     }
     else if (m.length() == 2) 
@@ -144,20 +147,20 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m,
 	// used for convergence-rate tests:
 	//int ioff = m[1].domain().length(0) / 8;
 	int ioff = 2;
-	for (int igrid = 0; igrid < m[1].length(); igrid++) 
+	for (MultiFabIterator u_mfi(u[0][1]); u_mfi.isValid(); ++u_mfi)
 	{
 	    // Used for timings3_94:
 	    //u[0][1][igrid](m[1][igrid].smallEnd() + IntVect(2,2,2)) = 3.0;
-	    u[0][1][igrid](m[1][igrid].smallEnd() + IntVect(ioff,ioff,ioff)) = 3.0;
+	    (*u_mfi)(m[1][u_mfi.index()].smallEnd() + IntVect(ioff,ioff,ioff)) = 3.0;
 	}
-	u[0][0][0](IntVect(1,1,1)) = 3.0;
+	if ( is_local(u[0][0], 0) ) u[0][0][0](IntVect(1,1,1)) = 3.0;
     }
     else if (m.length() == 3) 
     {
 	int ioff = 2;
-	for (int igrid = 0; igrid < m[2].length(); igrid++) 
+	for ( MultiFabIterator u_mfi(u[0][2]); u_mfi.isValid(); ++u_mfi)
 	{
-	    u[0][2][igrid](m[2][igrid].smallEnd() + IntVect(ioff,ioff,ioff)) = 3.0;
+	    (*u_mfi)(m[2][u_mfi.index()].smallEnd() + IntVect(ioff,ioff,ioff)) = 3.0;
 	}
     }
     for (int ilev = 0; ilev < m.length(); ilev++) 
@@ -174,16 +177,18 @@ void hb93_test1(PArray<MultiFab> u[], const Array<BoxArray>& m, const Array<Box>
     {
 	double h = 1.0 / d[ilev].length(0);
 	double pi = 3.14159265358979323846;
-	for (int igrid = 0; igrid < m[ilev].length() ; igrid++) 
+	for ( MultiFabIterator u_mfi(u[0][ilev]); u_mfi.isValid(); ++u_mfi)
 	{
+	    DependentMultiFabIterator u_dmfi(u[1][ilev], u_mfi);
+	    int igrid = u_mfi.index();
 	    for (int i = m[ilev][igrid].smallEnd(0); i <= m[ilev][igrid].bigEnd(0); i++) 
 	    {
 		for (int j = m[ilev][igrid].smallEnd(1); j <= m[ilev][igrid].bigEnd(1); j++) 
 		{
 		    double x = (i + 0.5) * h;
 		    double y = (j + 0.5) * h;
-		    u[0][ilev][igrid](IntVect(i,j)) = -0.5*(1.0-cos(2*pi*x))*sin(2*pi*y);
-		    u[1][ilev][igrid](IntVect(i,j)) =  0.5*(1.0-cos(2*pi*y))*sin(2*pi*x);
+		    (*u_mfi)(IntVect(i,j)) = -0.5*(1.0-cos(2*pi*x))*sin(2*pi*y);
+		    (*u_dmfi)(IntVect(i,j)) =  0.5*(1.0-cos(2*pi*y))*sin(2*pi*x);
 		    //u[0][ilev][igrid](IntVect(i,j)) =  0.2*(x+1)*sin(pi*x)*
 		    //  (pi*(y+1)*cos(pi*y)+sin(pi*y));
 		    //u[1][ilev][igrid](IntVect(i,j)) = -0.2*(y+1)*sin(pi*y)*
@@ -199,16 +204,18 @@ void linear_test(PArray<MultiFab> u[], const Array<BoxArray>& m, const Array<Box
     for (int ilev = 0 ; ilev < m.length() ; ilev++) 
     {
 	double h = 1.0 / d[ilev].length(0);
-	for (int igrid = 0; igrid < m[ilev].length() ; igrid++) 
+	for ( MultiFabIterator u_mfi(u[0][ilev]); u_mfi.isValid(); ++u_mfi)
 	{
+	    DependentMultiFabIterator u_dmfi(u[1][ilev], u_mfi);
+	    int igrid = u_mfi.index();
 	    for (int i = m[ilev][igrid].smallEnd(0); i <= m[ilev][igrid].bigEnd(0); i++) 
 	    {
 		for (int j = m[ilev][igrid].smallEnd(1); j <= m[ilev][igrid].bigEnd(1); j++) 
 		{
 		    double x = (i + 0.5) * h;
 		    double y = (j + 0.5) * h;
-		    u[0][ilev][igrid](IntVect(i,j)) = 0.0;
-		    u[1][ilev][igrid](IntVect(i,j)) = x;
+		    (*u_mfi)(IntVect(i,j)) = 0.0;
+		    (*u_dmfi)(IntVect(i,j)) = x;
 		}
 	    }
 	}
@@ -223,8 +230,10 @@ void rz_adj(PArray<MultiFab> u[], PArray<MultiFab>& rhs,
     {
 	double h = 1.0 / d[ilev].length(0);
 	double pi = 3.14159265358979323846;
-	for (int igrid = 0; igrid < m[ilev].length() ; igrid++) 
+	for ( MultiFabIterator u_mfi(u[1][ilev]); u_mfi.isValid(); ++u_mfi)
 	{
+	    DependentMultiFabIterator r_dmfi(rhoinv[ilev], u_mfi);
+	    int igrid = u_mfi.index();
 	    for (int i = m[ilev][igrid].smallEnd(0); i <= m[ilev][igrid].bigEnd(0); i++) 
 	    {
 		for (int j = m[ilev][igrid].smallEnd(1) - 1; j <= m[ilev][igrid].bigEnd(1); j++) 
@@ -233,10 +242,10 @@ void rz_adj(PArray<MultiFab> u[], PArray<MultiFab>& rhs,
 		    double y = (j + 0.5) * h;
 		    double x0 = i * h, x1 = x0 + h;
 		    //u[0][ilev][igrid](IntVect(i,j)) = 0.0;
-		    u[1][ilev][igrid](IntVect(i,j)) *= x;
+		    (*u_mfi)(IntVect(i,j)) *= x;
 		    //u[1][ilev][igrid](IntVect(i,j)) = x;
 		    if (j >= m[ilev][igrid].smallEnd(1))
-			rhoinv[ilev][igrid](IntVect(i,j)) *= x;
+			(*r_dmfi)(IntVect(i,j)) *= x;
 		}
 	    }
 	}
