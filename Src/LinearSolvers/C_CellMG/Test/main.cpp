@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.17 2000-12-11 18:45:53 car Exp $
+// $Id: main.cpp,v 1.18 2001-03-28 20:25:53 car Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -29,6 +29,7 @@
 BoxLib3::WorkQueue wrkq;
 #endif
 #ifdef BL3_PROFILING
+#include <BoxLib3/BoxLib3.H>
 #include <BoxLib3/Parallel.H>
 #include <BoxLib3/Timer.H>
 #endif
@@ -53,28 +54,28 @@ static
 Real
 mfnorm_0_valid (const MultiFab& mf)
 {
-    Real r = 0;
-    for ( ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi )
+  Real r = 0;
+  for ( ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi )
     {
-	Real s = cmfi->norm(cmfi.validbox(), 0, 0, cmfi->nComp());
-	r = (r > s) ? r : s;
+      Real s = cmfi->norm(cmfi.validbox(), 0, 0, cmfi->nComp());
+      r = (r > s) ? r : s;
     }
-    ParallelDescriptor::ReduceRealMax(r);
-    return r;
+  ParallelDescriptor::ReduceRealMax(r);
+  return r;
 }
 
 static
 Real
 mfnorm_2_valid (const MultiFab& mf)
 {
-    Real r = 0;
-    for ( ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi )
+  Real r = 0;
+  for ( ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi )
     {
-	Real s = cmfi->norm(cmfi.validbox(), 2, 0, cmfi->nComp());
-	r += s*s;
+      Real s = cmfi->norm(cmfi.validbox(), 2, 0, cmfi->nComp());
+      r += s*s;
     }
-    ParallelDescriptor::ReduceRealSum(r);
-    return ::sqrt(r);
+  ParallelDescriptor::ReduceRealSum(r);
+  return ::sqrt(r);
 }
 
 BoxList readBoxList (aString file, BOX& domain);
@@ -89,12 +90,10 @@ main (int   argc, char* argv[])
   set_new_handler(Utility::OutOfMemory);
 #endif
 #ifdef BL3_PROFILING
-  BoxLib3::Profiler::Initialize(argc, argv);
   BL3_PROFILE_TIMER(mg_main, "main()");
   BL3_PROFILE_START(mg_main);
-#endif
-#ifdef BL3_USE_MPI
-  BoxLib3::Parallel::Initialize(argc, argv);
+  BoxLib3::Profiler::Initialize(argc, argv);
+  BoxLib3::Initialize(argc, argv);
 #endif
   ParallelDescriptor::StartParallel(&argc, &argv);
 
@@ -154,6 +153,7 @@ main (int   argc, char* argv[])
       rhsmfi().operator()(ivmid,0) = 1;
       ivmid += IntVect::TheUnitVector();
       rhsmfi().operator()(ivmid,0) = -1;
+      // rhsmfi->setVal(1.0);
     }
 
   // Initialize boundary data, set boundary condition flags and locations:
@@ -169,8 +169,8 @@ main (int   argc, char* argv[])
 	  bd.setBoundLoc(Orientation(n, Orientation::high),i,0.0 );
 	  bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,LO_DIRICHLET);
 	  bd.setBoundCond(Orientation(n, Orientation::high),i,comp,LO_DIRICHLET);
-	  bd.setValue(Orientation(n, Orientation::low) ,i,1.0);
-	  bd.setValue(Orientation(n, Orientation::high),i,1.0);
+	  bd.setValue(Orientation(n, Orientation::low) ,i, 0.0);
+	  bd.setValue(Orientation(n, Orientation::high),i, 0.0);
 	}
     }
 
@@ -296,7 +296,7 @@ main (int   argc, char* argv[])
     {
       // Allocate space for ABecLapacian coeffs, fill with values
       Real alpha = 1.0; pp.query("alpha",alpha);
-      Real beta = -1.0; pp.query("beta",beta);
+      Real beta =  1.0; pp.query("beta",beta);
       Real a=0.0; pp.query("a",  a);
       Tuple<Real, BL_SPACEDIM> b;
       b[0]=1.0; pp.query("b0", b[0]);
