@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.25 1998-07-08 16:36:12 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.26 1998-07-23 20:53:10 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -228,92 +228,7 @@ DistributionMapping::RoundRobinProcessorMap (int             nprocs,
     m_procmap[boxes.length()] = ParallelDescriptor::MyProc();
 }
 
-//
-// Forward declaration.
-//
-static vector< list<int> > knapsack (const vector<long>&, int);
-
-void
-DistributionMapping::KnapSackProcessorMap (int             nprocs,
-                                           const BoxArray& boxes)
-{
-    assert(nprocs > 0);
-    assert(boxes.length() > 0);
-    assert(m_procmap.length() == boxes.length()+1);
-
-    if (boxes.length() <= nprocs || nprocs < 2)
-    {
-        //
-        // Might as well just use ROUNDROBIN.
-        //
-        RoundRobinProcessorMap(nprocs, boxes);
-    }
-    else
-    {
-        vector<long> pts(boxes.length());
-
-        for (int i = 0; i < pts.size(); i++)
-        {
-            pts[i] = boxes[i].numPts();
-        }
-
-        vector< list<int> > vec = knapsack(pts, nprocs);
-
-        list<int>::iterator lit;
-
-        for (int i = 0; i < vec.size(); i++)
-        {
-            for (lit = vec[i].begin(); lit != vec[i].end(); ++lit)
-            {
-                m_procmap[*lit] = i;
-            }
-        }
-        //
-        // Set sentinel equal to our processor number.
-        //
-        m_procmap[boxes.length()] = ParallelDescriptor::MyProc();
-    }
-}
-
-void
-DistributionMapping::CacheStats (ostream& os)
-{
-    os << "The DistributionMapping cache contains "
-       << DistributionMapping::m_Cache.size()
-       << " Processor Map(s):\n";
-
-    if (!DistributionMapping::m_Cache.empty())
-    {
-        for (int i = 0; i < m_Cache.size(); i++)
-        {
-            os << "\tMap #"
-               << i
-               << " is of length "
-               << m_Cache[i].length()
-               << '\n';
-        }
-        os << '\n';
-    }
-}
-
-ostream&
-operator<< (ostream&                   os,
-            const DistributionMapping& pmap)
-{
-    os << "(DistributionMapping" << '\n';
-
-    for (int i = 0; i < pmap.ProcessorMap().length(); i++)
-    {
-        os << "m_procmap[" << i << "] = " << pmap.ProcessorMap()[i] << '\n';
-    }
-
-    os << ')' << '\n';
-
-    if (os.fail())
-        BoxLib::Error("operator<<(ostream &, DistributionMapping &) failed");
-
-    return os;
-}
+#if defined(BL_USE_BSP) || defined(BL_USE_MPI)
 
 class WeightedBox
 {
@@ -371,9 +286,9 @@ knapsack (const vector<long>& pts,
     //
     // Sort balls by size largest first.
     //
-    vector< list<int> > result(nprocs, list<int>() );	// FIXME: MSVC BUG
+    static list<int> empty_list;  // Work-around MSVC++ bug :-(
 
-#if defined(BL_USE_BSP) || defined(BL_USE_MPI)
+    vector< list<int> > result(nprocs, empty_list);
 
     vector<WeightedBox> lb;
     lb.reserve(pts.size());
@@ -382,7 +297,7 @@ knapsack (const vector<long>& pts,
         lb.push_back(WeightedBox(i, pts[i]));
     }
     assert(lb.size() == pts.size());
-    sort(lb.begin(), lb.end());				// This line gives fatal compiler error
+    sort(lb.begin(), lb.end());
     assert(lb.size() == pts.size());
     //
     // For each ball, starting with heaviest, assign ball to the lightest box.
@@ -421,10 +336,6 @@ knapsack (const vector<long>& pts,
         sum_weight += wgt;
         max_weight = (wgt > max_weight) ? wgt : max_weight;
     }
-    //cout << "sum_weight = " << sum_weight << '\n';
-    //cout << "max_weight = " << max_weight << '\n';
-    //double efficiency = sum_weight/nprocs/max_weight;
-    //cout << "Efficiency = " << efficiency << '\n';
 top:
     list<WeightedBoxList>::iterator it_top = wblqg.begin();
     list<WeightedBoxList>::iterator it_chk = it_top;
@@ -465,28 +376,23 @@ top:
                     //
                     WeightedBox wb = *it_wb;
                     WeightedBox owb = *it_owb;
-                    // for(list<WeightedBoxList>::const_iterator ita = wblqg.begin(); ita != wblqg.end(); ++ita)
-                    //        cout << ita->weight() << '\n';
                     wblqg.erase(it_top);
                     wblqg.erase(it_chk);
-                    // cout << "weight_top = " << wbl_top.weight() << '\n';
                     wbl_top.erase(it_wb);
                     wbl_chk.erase(it_owb);
-                    // cout << "weight_top = " << wbl_top.weight() << '\n';
                     wbl_top.push_back(owb);
-                    // cout << "weight_top = " << wbl_top.weight() << '\n';
                     wbl_chk.push_back(wb);
                     list<WeightedBoxList> tmp;
                     tmp.push_back(wbl_top);
                     tmp.push_back(wbl_chk);
                     tmp.sort();
                     wblqg.merge(tmp);
-                    // for(list<WeightedBoxList>::const_iterator ita = wblqg.begin(); ita != wblqg.end(); ++ita)
-                    //        cout << ita->weight() << '\n';
                     max_weight = (*wblqg.begin()).weight();
+                    //
                     //efficiency = sum_weight/(nprocs*max_weight);
                     //cout << "Efficiency = " << efficiency << '\n';
                     //cout << "max_weight = " << max_weight << '\n';
+                    //
                     goto top;
                 }
             }
@@ -506,11 +412,95 @@ top:
         }
         ++cit;
     }
-#else
-
-    BoxLib::Error("how did this happen?");
-
-#endif /*defined(BL_USE_BSP) || defined(BL_USE_MPI)*/
 
     return result;
+}
+#endif /*defined(BL_USE_BSP) || defined(BL_USE_MPI)*/
+
+void
+DistributionMapping::KnapSackProcessorMap (int             nprocs,
+                                           const BoxArray& boxes)
+{
+    assert(nprocs > 0);
+    assert(boxes.length() > 0);
+    assert(m_procmap.length() == boxes.length()+1);
+
+    if (boxes.length() <= nprocs || nprocs < 2)
+    {
+        //
+        // Might as well just use ROUNDROBIN.
+        //
+        RoundRobinProcessorMap(nprocs, boxes);
+    }
+    else
+    {
+#if defined(BL_USE_BSP) || defined(BL_USE_MPI)
+        vector<long> pts(boxes.length());
+
+        for (int i = 0; i < pts.size(); i++)
+        {
+            pts[i] = boxes[i].numPts();
+        }
+
+        vector< list<int> > vec = knapsack(pts, nprocs);
+
+        assert(vec.size() == nprocs);
+
+        list<int>::iterator lit;
+
+        for (int i = 0; i < vec.size(); i++)
+        {
+            for (lit = vec[i].begin(); lit != vec[i].end(); ++lit)
+            {
+                m_procmap[*lit] = i;
+            }
+        }
+        //
+        // Set sentinel equal to our processor number.
+        //
+        m_procmap[boxes.length()] = ParallelDescriptor::MyProc();
+#else
+        BoxLib::Error("How did this happen?");
+#endif
+    }
+}
+
+void
+DistributionMapping::CacheStats (ostream& os)
+{
+    os << "The DistributionMapping cache contains "
+       << DistributionMapping::m_Cache.size()
+       << " Processor Map(s):\n";
+
+    if (!DistributionMapping::m_Cache.empty())
+    {
+        for (int i = 0; i < m_Cache.size(); i++)
+        {
+            os << "\tMap #"
+               << i
+               << " is of length "
+               << m_Cache[i].length()
+               << '\n';
+        }
+        os << '\n';
+    }
+}
+
+ostream&
+operator<< (ostream&                   os,
+            const DistributionMapping& pmap)
+{
+    os << "(DistributionMapping" << '\n';
+
+    for (int i = 0; i < pmap.ProcessorMap().length(); i++)
+    {
+        os << "m_procmap[" << i << "] = " << pmap.ProcessorMap()[i] << '\n';
+    }
+
+    os << ')' << '\n';
+
+    if (os.fail())
+        BoxLib::Error("operator<<(ostream &, DistributionMapping &) failed");
+
+    return os;
 }
