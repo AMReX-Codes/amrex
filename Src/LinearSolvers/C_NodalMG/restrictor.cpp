@@ -404,16 +404,13 @@ bilinear_restrictor_class::fill_interface (MultiFab&                 dest,
         // Interface restriction is sufficiently rare and specialized that
         // we will let the restrictor handle it---at least for now.
         //
-        // This assertion difficult in BoxLib since r.mesh() is not cc:
-        //BL_ASSERT(r.mesh() == lev_interface.interior_mesh());
-        //
         const Box regplus = ::grow(region,1);
     
 	task_list tl;
         for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
         {
-            if (lev_interface.flag(level_interface::FACEDIM, iface))
-                continue;
+            if (lev_interface.flag(level_interface::FACEDIM, iface)) continue;
+
             Box cbox = lev_interface.node_box(level_interface::FACEDIM, iface);
             const IntVect t = lev_interface.box(level_interface::FACEDIM, iface).type();
             const unsigned int geo = lev_interface.geo(level_interface::FACEDIM, iface);
@@ -426,6 +423,8 @@ bilinear_restrictor_class::fill_interface (MultiFab&                 dest,
                 cbox &= regplus;
                 int idim = lev_interface.fdim(iface);
                 cbox.grow(t - 1);
+                Box fb = rebox(cbox,rat);
+
                 if (geo == level_interface::ALL) 
                 {
                     //
@@ -436,19 +435,12 @@ bilinear_restrictor_class::fill_interface (MultiFab&                 dest,
                         int igrid = lev_interface.grid(level_interface::FACEDIM, iface, 0);
                         if (igrid < 0)
                             igrid = lev_interface.grid(level_interface::FACEDIM, iface, 1);
-                        //
-                        // FIXME--want minimal box.
-                        //
-                        const Box fb = ::grow(fine_ba[igrid], fine.nGrow());
-                        BL_ASSERT(is_remote(fine,igrid) || fb == fine[igrid].box());
-                        // const Box& fb = fine[igrid].box();
                         task_fab* tfab = new task_fab_get(tl,dest,jgrid,fb,fine,igrid);
                         tl.add_task(new task_restriction_fill(&FORT_FANRST2,tl,dest,jgrid,cbox,tfab,rat,integrate));
                     }
                     else
                     {
-                        Box fbox = ::grow(::refine(cbox, rat), rat - 1);
-                        task_fab* tfab = new task_fill_patch(tl,dest,jgrid,fbox,fine,lev_interface,bdy,level_interface::FACEDIM,iface);
+                        task_fab* tfab = new task_fill_patch(tl,dest,jgrid,fb,fine,lev_interface,bdy,level_interface::FACEDIM,iface);
                         tl.add_task(new task_restriction_fill(&FORT_FANRST2,tl,dest,jgrid,cbox,tfab,rat,integrate));
                     }
                 }
@@ -457,17 +449,15 @@ bilinear_restrictor_class::fill_interface (MultiFab&                 dest,
                     //
                     // Fine grid on just one side.
                     //
-                    const int idir = (geo & level_interface::LOW) ? -1 : 1;
+                    const int idir  = (geo & level_interface::LOW) ? -1 : 1;
                     const int igrid = (idir < 0) ? lev_interface.grid(level_interface::FACEDIM, iface, 0) :
                         lev_interface.grid(level_interface::FACEDIM, iface, 1) ;
+
                     if (igrid >= 0) 
                     {
                         //
                         // Usual case, a fine grid extends all along the face.
                         //
-                        Box fb = ::grow(fine_ba[igrid], fine.nGrow());
-                        BL_ASSERT(is_remote(fine, igrid) || fb == fine[igrid].box());
-                        // const Box& fb = fine[igrid].box();
                         task_fab* tfab = new task_fab_get(tl,dest,jgrid,fb,fine,igrid);
                         tl.add_task(new task_restriction_fill(&FORT_FANFR2,tl,dest,jgrid,cbox,tfab,rat,integrate,idim,idir));
                     }
@@ -476,12 +466,11 @@ bilinear_restrictor_class::fill_interface (MultiFab&                 dest,
                         //
                         // A virtual fine grid is on the other side of the boundary.
                         //
-                        Box fbox = ::refine(cbox, rat).grow(rat - 1);
                         if (geo & level_interface::LOW)
-                            fbox.growHi(idim, 1 - rat[idim]);
+                            fb.growHi(idim, 1 - rat[idim]);
                         else
-                            fbox.growLo(idim, 1 - rat[idim]);
-                        task_fab* tfab = new task_fill_patch(tl,dest,jgrid,fbox,fine,lev_interface,bdy,level_interface::FACEDIM,iface);
+                            fb.growLo(idim, 1 - rat[idim]);
+                        task_fab* tfab = new task_fill_patch(tl,dest,jgrid,fb,fine,lev_interface,bdy,level_interface::FACEDIM,iface);
                         tl.add_task(new task_restriction_fill(&FORT_FANFR2,tl,dest,jgrid,cbox,tfab,rat,integrate,idim,idir));
                     }
                 }
@@ -493,11 +482,12 @@ bilinear_restrictor_class::fill_interface (MultiFab&                 dest,
     
         for (int iedge = 0; iedge < lev_interface.nboxes(1); iedge++) 
         {
-            if (lev_interface.flag(1, iedge))
-                continue;
+            if (lev_interface.flag(1, iedge)) continue;
+
             Box cbox = lev_interface.node_box(1, iedge);
             const IntVect t = lev_interface.box(1, iedge).type();
             cbox.coarsen(rat);
+
             if (region.intersects(cbox)) 
             {
                 //
@@ -505,25 +495,25 @@ bilinear_restrictor_class::fill_interface (MultiFab&                 dest,
                 //
                 cbox &= regplus;
                 cbox.grow(t - 1);
+                const Box          fb  = rebox(cbox,rat);
                 const unsigned int geo = lev_interface.geo(1, iedge);
+
                 if (geo == level_interface::ALL && fine.nGrow() >= ratmax - 1) 
                 {
                     int igrid = lev_interface.grid(1, iedge, 0);
                     for (int itmp = 1; igrid < 0; itmp++)
                         igrid = lev_interface.grid(1, iedge, itmp);
-                    Box fb = ::grow(fine_ba[igrid], fine.nGrow());
-                    BL_ASSERT(is_remote(fine, igrid) || fb == fine[igrid].box());
-                    // const Box& fb = fine[igrid].box();
                     task_fab* tfab = new task_fab_get(tl,dest,jgrid,fb,fine,igrid);
                     tl.add_task(new task_restriction_fill(&FORT_FANRST2,tl,dest,jgrid,cbox,tfab,rat,integrate));
                 }
                 else 
                 {
-                    Box fbox = ::grow(::refine(cbox, rat), rat - 1);
-                    task_fab* tfab = new task_fill_patch(tl,dest,jgrid,fbox,fine,lev_interface,bdy,1,iedge);
+                    task_fab* tfab = new task_fill_patch(tl,dest,jgrid,fb,fine,lev_interface,bdy,1,iedge);
                     if (geo == level_interface::ALL) 
-                    { 
-                        // fine grid on all sides
+                    {
+                        //
+                        // Fine grid on all sides.
+                        //
                         tl.add_task(new task_restriction_fill(&FORT_FANRST2,tl,dest,jgrid,cbox,tfab,rat,integrate));
                     }
                     else 
@@ -538,28 +528,27 @@ bilinear_restrictor_class::fill_interface (MultiFab&                 dest,
 #endif
         for (int icor = 0; icor < lev_interface.nboxes(0); icor++) 
         {
-            if (lev_interface.flag(0, icor))
-                continue;
+            if (lev_interface.flag(0, icor)) continue;
+
             Box cbox = lev_interface.box(0, icor);
             cbox.coarsen(rat);
+
             if (region.intersects(cbox)) 
             {
+                const Box          fb  = rebox(cbox,rat);
                 const unsigned int geo = lev_interface.geo(0, icor);
+
                 if (geo == level_interface::ALL && fine.nGrow() >= ratmax - 1) 
                 {
                     int igrid = lev_interface.grid(0, icor, 0);
                     for (int itmp = 1; igrid < 0; itmp++)
                         igrid = lev_interface.grid(0, icor, itmp);
-                    Box fb = ::grow(fine_ba[igrid], fine.nGrow());
-                    BL_ASSERT(is_remote(fine, igrid) || fb == fine[igrid].box());
-                    // const Box& fb = fine[igrid].box();
                     task_fab* tfab = new task_fab_get(tl,dest,jgrid,fb,fine,igrid);
                     tl.add_task(new task_restriction_fill(&FORT_FANRST2,tl,dest,jgrid,cbox,tfab,rat,integrate));
                 }
                 else 
                 {
-                    Box fbox = ::grow(::refine(cbox, rat), rat - 1);
-                    task_fab* tfab = new task_fill_patch(tl,dest,jgrid,fbox,fine,lev_interface,bdy,0,icor);
+                    task_fab* tfab = new task_fill_patch(tl,dest,jgrid,fb,fine,lev_interface,bdy,0,icor);
                     if (geo == level_interface::ALL) 
                     {
                         //
