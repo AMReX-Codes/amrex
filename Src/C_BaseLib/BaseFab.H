@@ -4,7 +4,7 @@
 #define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.9 1997-11-18 00:04:45 lijewski Exp $
+// $Id: BaseFab.H,v 1.10 1997-12-03 03:26:57 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -371,7 +371,7 @@ protected:
 #endif
 #endif
     //
-    // This virtual function is called by the `BaseFab' setVal operations.
+    // This function is called by the `BaseFab' setVal operations.
     //
     void performSetVal (T          x,
                         const Box& bx,
@@ -1000,10 +1000,21 @@ BaseFab<T>::performSetVal (T         val,
     assert(domain.contains(bx));
     assert(ns >= 0 && ns + num <= nvar);
 
-    ForAllThisBNN(T,bx,ns,num)
+    if (bx == domain)
     {
-        thisR = val;
-    } EndFor
+        T* data = &dptr[ns*numpts];
+        for (long i = 0, N = num*numpts; i < N; i++)
+        {
+            *data++ = val;
+        }
+    }
+    else
+    {
+        ForAllThisBNN(T,bx,ns,num)
+        {
+            thisR = val;
+        } EndFor
+    }
 }
 
 template <class T>
