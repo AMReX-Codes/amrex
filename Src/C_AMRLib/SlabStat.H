@@ -4,7 +4,7 @@
 #define _SlabStat_H_
 
 //
-// $Id: SlabStat.H,v 1.1 2000-02-28 23:26:37 lijewski Exp $
+// $Id: SlabStat.H,v 1.2 2000-03-01 15:43:34 lijewski Exp $
 //
 
 #include <ArrayLim.H>
@@ -81,6 +81,10 @@ public:
     //@ManDoc: Temporary (grown) MultiFab used in calculating the statistic.
     //
     MultiFab& tmp_mf () { return m_tmp_mf; }
+    //
+    //@ManDoc: Interval over which the stats have been calculated.
+    //
+    Real interval () const { return m_interval; }
 
 protected:
     //
@@ -134,9 +138,9 @@ protected:
     //
     MultiFab m_tmp_mf;
     //
-    // Time we began accumulating the statistic.
+    // Time interval over which the Stats have been summed.
     //
-    Real m_time;
+    Real m_interval;
 
 private:
     //
@@ -178,10 +182,14 @@ public:
     {
         m_list.add(new SlabStatRec(name,ncomp,vars,ngrow,level,boxes,func));
     }
-     //
+    //
     //@ManDoc: Update the statistics in the list.
     //
     void update (AmrLevel& amrlevel, Real time, Real dt);
+    //
+    //@ManDoc: Write out any SlabStats in the list.
+    //
+    void checkPoint (const aString& ckfile);
 
     List<SlabStatRec*>& list () { return m_list; }
 

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.104 2000-02-28 23:26:36 lijewski Exp $
+// $Id: Amr.cpp,v 1.105 2000-03-01 15:43:34 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -1082,6 +1082,10 @@ Amr::checkPoint ()
         if (!HeaderFile.good())
             BoxLib::Error("Amr::checkpoint() failed");
     }
+    //
+    // Dump out any SlabStats MultiFabs.
+    //
+    AmrLevel::get_slabstat_lst().checkPoint(ckfile);
     //
     // Don't forget to reset FAB format.
     //
