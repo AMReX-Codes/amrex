@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DiffSameGrid.cpp,v 1.5 1999-06-04 17:03:52 sstanley Exp $
+// $Id: DiffSameGrid.cpp,v 1.6 1999-09-24 21:26:34 sstanley Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -191,7 +191,16 @@ main (int   argc,
             for (int iComp = 0; iComp < nComp; iComp++)
             {
                 Real grdL2 = mfi().norm(norm, iComp, 1);
-                norms[iComp] = norms[iComp] + pow(grdL2, norm);
+
+                if (norm != 0)
+                {
+                    norms[iComp] = norms[iComp] + pow(grdL2, norm);
+                }
+                else
+                {
+                    norms[iComp] = Max(norms[iComp], grdL2);
+                }
+                
             }
         }
 
@@ -213,7 +222,14 @@ main (int   argc,
                         ParallelDescriptor::Abort(rc);
 
                     for (int iComp = 0; iComp < nComp; iComp++)
-                        norms[iComp] = norms[iComp] + tmp[iComp];
+                        if (norm != 0)
+                        {
+                            norms[iComp] = norms[iComp] + tmp[iComp];
+                        }
+                        else
+                        {
+                            norms[iComp] = Max(norms[iComp], tmp[iComp]);
+                        }
                 }
         }
         else
@@ -233,7 +249,8 @@ main (int   argc,
         {
             for (int iComp = 0; iComp < nComp; iComp++)
             {
-                norms[iComp] = pow(norms[iComp], (1.0/norm));
+                if (norm != 0)
+                    norms[iComp] = pow(norms[iComp], (1.0/norm));
 
                 cout << norms[iComp] << " ";
             }
