@@ -1,5 +1,5 @@
 //
-// $Id: BoxLib.cpp,v 1.26 2001-08-13 22:34:45 car Exp $
+// $Id: BoxLib.cpp,v 1.27 2001-08-16 20:11:38 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -145,21 +145,6 @@ BoxLib::OutOfMemory (const char* file,
 namespace
 {
     Profiler* bl_prf;
-
-    void PrintUsage (int, char *argv[])
-    {
-        std::cerr << "usage:\n";
-        std::cerr << argv[0] << " infile [options] \n\tOptions:\n";
-        std::cerr << "\t     [<root>.]<var>  = <val_list>\n";
-        std::cerr << "\tor  -[<root>.]<var>\n";
-        std::cerr << "\t where:\n";
-        std::cerr << "\t    <root>     =  class name of variable\n";
-        std::cerr << "\t    <var>      =  variable name\n";
-        std::cerr << "\t    <val_list> =  list of values\n";
-
-        BoxLib::Error();
-    }
-
 }
 
 void
@@ -178,17 +163,22 @@ BoxLib::Initialize (int& argc, char**& argv)
     bl_prf->start();
 
     ParallelDescriptor::StartParallel(&argc, &argv);
-    
-    if (argc < 2)
-        PrintUsage(argc,argv);
 
-    if (argv[1][0] == '-')
+    if (argc == 1)
     {
-        std::cerr << "input file must be first argument\n";
-        PrintUsage(argc, argv);
+        ParmParse::Initialize(0,0,0);
     }
-
-    ParmParse::Initialize(argc-2,argv+2,argv[1]); 
+    else
+    {
+        if (strchr(argv[1],'='))
+        {
+            ParmParse::Initialize(argc-1,argv+1,0);
+        }
+        else
+        {
+            ParmParse::Initialize(argc-2,argv+2,argv[1]);
+        }
+    }
 
     Profiler::Initialize(argc, argv);
     //
