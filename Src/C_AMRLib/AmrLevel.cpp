@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.63 1999-12-02 07:43:05 sstanley Exp $
+// $Id: AmrLevel.cpp,v 1.64 2000-02-28 23:26:37 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -24,9 +24,12 @@
 
 DescriptorList AmrLevel::desc_lst;
 DeriveList     AmrLevel::derive_lst;
+SlabStatList   AmrLevel::slabstat_lst;
 
 void
-AmrLevel::manual_tags_placement (TagBoxArray& tags, Array<IntVect>& bf_lev) {}
+AmrLevel::manual_tags_placement (TagBoxArray&    tags,
+                                 Array<IntVect>& bf_lev)
+{}
 
 AmrLevel::AmrLevel ()
 {
