@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.59 1998-06-10 19:20:00 lijewski Exp $
+// $Id: FabArray.H,v 1.60 1998-06-10 22:24:32 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -783,10 +783,10 @@ struct FabCopyDescriptor
 template <class T, class FAB>
 class FabArrayCopyDescriptor
 {
-  typedef multimap<int, FabCopyDescriptor<FAB>*> FCDMap;
-  typedef typename FCDMap::value_type            FCDMapValueType;
-  typedef typename FCDMap::iterator              FCDMapIter;
-  typedef typename FCDMap::const_iterator        FCDMapConstIter;
+  typedef multimap<int,FabCopyDescriptor<FAB>*> FCDMap;
+  typedef typename FCDMap::value_type           FCDMapValueType;
+  typedef typename FCDMap::iterator             FCDMapIter;
+  typedef typename FCDMap::const_iterator       FCDMapConstIter;
 
   public:
 
@@ -1627,6 +1627,9 @@ void
 FabArray<T,FAB>::FillBoundary (int start_comp,
                                int num_comp)
 {
+    RunStats fill_boundary_stats("fill_boundary");
+    fill_boundary_stats.start();
+
     FabArrayCopyDescriptor<T,FAB> facd;
 
     FabArrayId faid = facd.RegisterFabArray(this);
@@ -1681,10 +1684,11 @@ FabArray<T,FAB>::FillBoundary (int start_comp,
             }
         }
     }
+    fill_boundary_stats.end();
 }
 
 template <class T, class FAB>
-FabArrayIterator<T,FAB>::FabArrayIterator(FabArray<T,FAB>& fabarray)
+FabArrayIterator<T,FAB>::FabArrayIterator (FabArray<T,FAB>& fabarray)
     :
     fabArray(fabarray),
     currentIndex(0)
@@ -2095,12 +2099,11 @@ FabArrayId
 FabArrayCopyDescriptor<T,FAB>::RegisterFabArray(FabArray<T,FAB>* fabarray)
 {
     assert(nextFabArrayId == fabArrays.size());
+    assert(nextFabArrayId == fabCopyDescList.size());
 
     fabArrays.push_back(fabarray);
-    //
-    // TODO -- optimize this push_back.
-    //
-    fabCopyDescList.push_back(FCDMap());
+
+    fabCopyDescList.resize(nextFabArrayId + 1);
 
     return FabArrayId(nextFabArrayId++);
 }
