@@ -453,7 +453,7 @@ c ::: local var
 c ::: ::::: added to prevent underflow for small crse values
       do n = 1, nvar 
         do i = clo, chi 
-          crse(i,n) = cvmgt(crse(i,n),zero,abs(crse(i,n)).gt.1.0e-20)
+          crse(i,n) = cvmgt(crse(i,n),zero,abs(crse(i,n)).gt.1.0D-20)
         enddo
       enddo
 

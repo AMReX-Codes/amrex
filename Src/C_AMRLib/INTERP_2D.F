@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.10 2000-06-02 17:09:16 lijewski Exp $
+c $Id: INTERP_2D.F,v 1.11 2002-08-29 22:14:34 car Exp $
 c
 
 #undef  BL_LANG_CC
@@ -431,7 +431,7 @@ c ::: local var
 c ::: ::::: added to prevent underflow for small crse values
       do n = 1, nvar 
         do i = clo, chi 
-          crse(i,n) = cvmgt(crse(i,n),zero,abs(crse(i,n)).gt.1.0e-20)
+          crse(i,n) = cvmgt(crse(i,n),zero,abs(crse(i,n)).gt.1.0D-20)
         end do
       end do
 

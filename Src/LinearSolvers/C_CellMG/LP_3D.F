@@ -1,5 +1,5 @@
 c
-c $Id: LP_3D.F,v 1.3 1999-01-04 18:11:46 marc Exp $
+c $Id: LP_3D.F,v 1.4 2002-08-29 22:14:39 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -85,24 +85,24 @@ c
       REAL_T cf0, cf1, cf2, cf3, cf4, cf5
       REAL_T delta, gamma, rho
 c
-      gamma = 6.0
+      gamma = 6.0D0
       do n = 1, nc
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                ioff = MOD(j + k + redblack,2)
                do i = lo(1) + ioff,hi(1),2
 c
-                  cf0 = cvmgt(f0(lo(1),j,k), 0.0,
+                  cf0 = cvmgt(f0(lo(1),j,k), 0.0D0,
      $                 (i .eq. lo(1)) .and. (m0(lo(1)-1,j,k).gt.0))
-                  cf1 = cvmgt(f1(i,lo(2),k), 0.0,
+                  cf1 = cvmgt(f1(i,lo(2),k), 0.0D0,
      $                 (j .eq. lo(2)) .and. (m1(i,lo(2)-1,k).gt.0))
-                  cf2 = cvmgt(f2(i,j,lo(3)), 0.0,
+                  cf2 = cvmgt(f2(i,j,lo(3)), 0.0D0,
      $                 (k .eq. lo(3)) .and. (m2(i,j,lo(3)-1).gt.0))
-                  cf3 = cvmgt(f3(hi(1),j,k), 0.0,
+                  cf3 = cvmgt(f3(hi(1),j,k), 0.0D0,
      $                 (i .eq. hi(1)) .and. (m3(hi(1)+1,j,k).gt.0))
-                  cf4 = cvmgt(f4(i,hi(2),k), 0.0,
+                  cf4 = cvmgt(f4(i,hi(2),k), 0.0D0,
      $                 (j .eq. hi(2)) .and. (m4(i,hi(2)+1,k).gt.0))
-                  cf5 = cvmgt(f5(i,j,hi(3)), 0.0,
+                  cf5 = cvmgt(f5(i,j,hi(3)), 0.0D0,
      $                 (k .eq. hi(3)) .and. (m5(i,j,hi(3)+1).gt.0))
 c
                   delta = cf0 + cf1 + cf2 + cf3 + cf4 + cf5
@@ -148,7 +148,7 @@ c
       integer n
       REAL_T denom
 c
-      rho = 0.0
+      rho = 0.0D0
       denom = -h**2*sixth
       do n = 1, nc
          do k = lo(3), hi(3)
@@ -184,7 +184,7 @@ c
       integer i, j, k, n
       REAL_T scal
 c     
-      scal = 1.0/h**2
+      scal = 1.0D0/h**2
 c     
       do n = 1, nc
          do k = lo(3), hi(3)

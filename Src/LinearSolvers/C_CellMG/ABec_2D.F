@@ -1,5 +1,5 @@
 c
-c $Id: ABec_2D.F,v 1.7 2000-08-24 20:28:28 car Exp $
+c $Id: ABec_2D.F,v 1.8 2002-08-29 22:14:39 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -102,14 +102,14 @@ c
       integer do_line
       integer ilen,jlen
       
-      if (h(2). gt. 1.5*h(1)) then 
+      if (h(2). gt. 1.5D0*h(1)) then 
         do_line = 1
         ilen = hi(1)-lo(1)+1
         if (ilen .gt. LSDIM) then
           print *,'TOO BIG FOR LINE SOLVE IN GSRB: ilen = ',ilen
           stop
         end if
-      else if (h(1) .gt. 1.5*h(2)) then
+      else if (h(1) .gt. 1.5D0*h(2)) then
         do_line = 2
         jlen = hi(2)-lo(2)+1
         if (jlen .gt. LSDIM) then
@@ -129,13 +129,13 @@ c
             ioff = MOD(j + redblack,2)
             do i = lo(1) + ioff,hi(1),2
 c     
-               cf0 = cvmgt(f0(lo(1),j), 0.0,
+               cf0 = cvmgt(f0(lo(1),j), 0.0D0,
      $              (i .eq. lo(1)) .and. (m0(lo(1)-1,j).gt.0))
-               cf1 = cvmgt(f1(i,lo(2)), 0.0,
+               cf1 = cvmgt(f1(i,lo(2)), 0.0D0,
      $              (j .eq. lo(2)) .and. (m1(i,lo(2)-1).gt.0))
-               cf2 = cvmgt(f2(hi(1),j), 0.0,
+               cf2 = cvmgt(f2(hi(1),j), 0.0D0,
      $              (i .eq. hi(1)) .and. (m2(hi(1)+1,j).gt.0))
-               cf3 = cvmgt(f3(i,hi(2)), 0.0,
+               cf3 = cvmgt(f3(i,hi(2)), 0.0D0,
      $              (j .eq. hi(2)) .and. (m3(i,hi(2)+1).gt.0))
 c     
                delta = dhx*(bX(i,j)*cf0 + bX(i+1,j)*cf2)
@@ -157,13 +157,13 @@ c
          do i = lo(1) + redblack,hi(1),2
              do j = lo(2), hi(2)
 c     
-               cf0 = cvmgt(f0(lo(1),j), 0.0,
+               cf0 = cvmgt(f0(lo(1),j), 0.0D0,
      $              (i .eq. lo(1)) .and. (m0(lo(1)-1,j).gt.0))
-               cf1 = cvmgt(f1(i,lo(2)), 0.0,
+               cf1 = cvmgt(f1(i,lo(2)), 0.0D0,
      $              (j .eq. lo(2)) .and. (m1(i,lo(2)-1).gt.0))
-               cf2 = cvmgt(f2(hi(1),j), 0.0,
+               cf2 = cvmgt(f2(hi(1),j), 0.0D0,
      $              (i .eq. hi(1)) .and. (m2(hi(1)+1,j).gt.0))
-               cf3 = cvmgt(f3(i,hi(2)), 0.0,
+               cf3 = cvmgt(f3(i,hi(2)), 0.0D0,
      $              (j .eq. hi(2)) .and. (m3(i,hi(2)+1).gt.0))
 c     
                delta = dhx*(bX(i,j)*cf0 + bX(i+1,j)*cf2)
@@ -200,13 +200,13 @@ c
            do j = lo(2) + redblack,hi(2),2
              do i = lo(1), hi(1)
 c     
-               cf0 = cvmgt(f0(lo(1),j), 0.0,
+               cf0 = cvmgt(f0(lo(1),j), 0.0D0,
      $              (i .eq. lo(1)) .and. (m0(lo(1)-1,j).gt.0))
-               cf1 = cvmgt(f1(i,lo(2)), 0.0,
+               cf1 = cvmgt(f1(i,lo(2)), 0.0D0,
      $              (j .eq. lo(2)) .and. (m1(i,lo(2)-1).gt.0))
-               cf2 = cvmgt(f2(hi(1),j), 0.0,
+               cf2 = cvmgt(f2(hi(1),j), 0.0D0,
      $              (i .eq. hi(1)) .and. (m2(hi(1)+1,j).gt.0))
-               cf3 = cvmgt(f3(i,hi(2)), 0.0,
+               cf3 = cvmgt(f3(i,hi(2)), 0.0D0,
      $              (j .eq. hi(2)) .and. (m3(i,hi(2)+1).gt.0))
 c     
                delta = dhx*(bX(i,j)*cf0 + bX(i+1,j)*cf2)
@@ -283,7 +283,7 @@ c
       do n = 1, nc
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
-               de = 1.0/(alpha*a(i,j) + dhx*(bX(i+1,j)+bX(i,j))
+               de = 1.0D0/(alpha*a(i,j) + dhx*(bX(i+1,j)+bX(i,j))
      $              + dhy*(bY(i,j+1)+bY(i,j))
      $              )
                zz(i,j,n) = rr(i,j,n)*de
@@ -372,7 +372,7 @@ c
       dhx = beta/h(1)**2
       dhy = beta/h(2)**2
 c
-      res = 0.0
+      res = 0.0D0
       do n = 1, nc
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
