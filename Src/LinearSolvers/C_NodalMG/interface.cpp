@@ -192,8 +192,10 @@ level_interface::alloc (const BoxArray&           Im,
 	{
 	    IntVect t = IntVect::TheCellVector();
 	    t[i] = IndexType::NODE;
-	    add(bl, BoxLib::bdryLo(im[igrid], i).convert(t), 0);
-	    add(bl, BoxLib::bdryHi(im[igrid], i).convert(t), 0);
+	    Box lo = BoxLib::bdryLo(im[igrid],i).convert(t);
+	    Box hi = BoxLib::bdryHi(im[igrid],i).convert(t);
+	    add(bl,lo,0);
+	    add(bl,hi,0);
 	}
     }
 
@@ -214,8 +216,10 @@ level_interface::alloc (const BoxArray&           Im,
 		continue;
 	    else
 		t[i] = IndexType::NODE;
-	    add(bl, BoxLib::bdryLo(bx[2][iface], i).convert(t), 0);
-	    add(bl, BoxLib::bdryHi(bx[2][iface], i).convert(t), 0);
+	    Box lo = BoxLib::bdryLo(bx[2][iface], i).convert(t);
+	    Box hi = BoxLib::bdryHi(bx[2][iface], i).convert(t);
+	    add(bl, lo, 0);
+	    add(bl, hi, 0);
 	}
     }
 
@@ -481,8 +485,9 @@ level_interface::alloc (const BoxArray&           Im,
 		int igrid;
 		if ((igrid = fgr[iface][i]) >= 0)
 		{
-		    if (pf[igrid].intersects(nodebx[idim][iface]))
+		    if (pf[igrid].intersects(nodebx[idim][iface])) {
 			ax[idim][iface] = igrid;
+                    }
 		}
 	    }
 	}
@@ -490,6 +495,7 @@ level_interface::alloc (const BoxArray&           Im,
 
 #if (BL_SPACEDIM == 3)
     ax[1] = new int[nbx[1]];
+
     for (int iedge = 0; iedge < nbx[1]; iedge++)
     {
 	ax[1][iedge] = -1;
@@ -503,19 +509,32 @@ level_interface::alloc (const BoxArray&           Im,
 		    if (pf[igrid].intersects(nodebx[1][iedge]))
 		    {
 			ax[1][iedge] = igrid;
-			for (int iface = 0; iface < nbx[2]; iface++)
-			{
-			    if (ax[2][iface] == igrid)
-			    {
-				if (nodebx[2][iface].contains(nodebx[1][iedge]))
+
+                        IntVect iv(1,1,1);
+                        IndexType ityp(IndexType(iv));
+
+                        int first = -1;
+			for (int iface = 0; iface < nbx[2] && first==-1; iface++)
+                        {
+			  if (ax[2][iface] == igrid) first = iface;
+                        }
+                        if (first != -1)
+                        {
+                          BoxList face_list(nodebx[2][first]);
+			  for (int iface = 0; iface < nbx[2]; iface++)
+			    if (ax[2][iface] == igrid && iface != first) 
+                              face_list.push_back(nodebx[2][iface]);
+                          BoxArray face_array(face_list);
+
+  				if (face_array.contains(nodebx[1][iedge]))
 				    ax[1][iedge] = -1;
-			    }
-			}
+                        }
 		    }
 		}
 	    }
 	}
     }
+
 #endif
 
     ax[0] = new int[nbx[0]];
