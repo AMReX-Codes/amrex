@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxArray.cpp,v 1.2 1997-09-24 22:06:42 lijewski Exp $
+// $Id: BoxArray.cpp,v 1.3 1997-11-10 17:54:40 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -9,15 +9,25 @@
 #include <Utility.H>
 
 BoxArray::BoxArray ()
-    : abox(),
-      hash_sig(0)
+    :
+    abox(),
+    hash_sig(0)
 {}
 
 BoxArray::BoxArray (const BoxList& bl)
-    : abox(),
-      hash_sig(0)
+    :
+    abox(),
+    hash_sig(0)
 {
     define(bl);
+}
+
+BoxArray::BoxArray (istream& is)
+    :
+    abox(),
+    hash_sig(0)
+{
+    define(is);
 }
 
 BoxArray&
@@ -29,20 +39,23 @@ BoxArray::operator= (const BoxArray& rhs)
 }
 
 BoxArray::BoxArray (const BoxArray& bs)
-    : abox(bs.abox)
+    :
+    abox(bs.abox)
 {
     hash_sig = bs.hash_sig;
 }
 
 BoxArray::BoxArray (size_t size)
-    : abox(size)
+    :
+    abox(size)
 {
     hash_sig = do_hash();
 }
 
 BoxArray::BoxArray (const Box* bxvec,
                     int        nbox)
-    : abox(bxvec, nbox)
+    :
+    abox(bxvec, nbox)
 {
     hash_sig = do_hash();
 }

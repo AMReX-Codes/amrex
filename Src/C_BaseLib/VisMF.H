@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.7 1997-11-10 03:55:46 lijewski Exp $
+// $Id: VisMF.H,v 1.8 1997-11-10 17:54:41 lijewski Exp $
 //
 
 #include <sys/types.h>
@@ -31,6 +31,14 @@ public:
     // How we write out MultiFabs.
     //
     enum How { OneFilePerCPU, OneFilePerFab };
+    //
+    // Construct by reading in the on-disk VisMF of the specified name.
+    //
+    // The MF on-disk is read lazily.
+    //
+    // The name here is the name of the MF not the name of the on-disk file.
+    //
+    explicit VisMF (const aString& mf_name);
     //
     // A structure containing info regarding an on-disk FAB.
     //
@@ -65,6 +73,10 @@ public:
         // The current version of the MultiFab Header code.
         //
         enum { Version = 1 };
+        //
+        // The default constructor -- does nothing.
+        //
+        Header ();
         //
         // Construct from a MultiFab -- fills in all but m_fod member.
         //
@@ -118,6 +130,10 @@ private:
     // The suffix appended to files containing MultiFabs.
     //
     static const aString MultiFabHdrFileSuffix;
+    //
+    // The data.
+    //
+    Header m_hdr;
 };
 
 //

@@ -1,14 +1,14 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.7 1997-11-10 03:55:47 lijewski Exp $
+// $Id: VisMF.cpp,v 1.8 1997-11-10 17:54:41 lijewski Exp $
 //
 
 #include <VisMF.H>
 
-const aString VisMF::FabFileSuffix("_data_");
+const aString VisMF::FabFileSuffix("_D_");
 
-const aString VisMF::MultiFabHdrFileSuffix("_hdr_");
+const aString VisMF::MultiFabHdrFileSuffix("_H");
 
 const aString VisMF::FabOnDisk::Prefix("FOD:");
 
@@ -26,7 +26,7 @@ ostream&
 operator<< (ostream&                os,
             const VisMF::FabOnDisk& fod)
 {
-    os << VisMF::FabOnDisk::Prefix << ' ' << fod.m_name << ',' << fod.m_head;
+    os << VisMF::FabOnDisk::Prefix << ' ' << fod.m_name << ' ' << fod.m_head;
 
     if (!os.good())
         BoxLib::Error("Write of VisMF::FabOnDisk failed");
@@ -44,9 +44,11 @@ operator>> (istream&          is,
 
     GetTheChar(is, ' ');
 
-    char ch;
-    is >> fod.m_name >> ch >> fod.m_head;
-    assert(ch == ',');
+    is >> fod.m_name;
+
+    GetTheChar(is, ' ');
+
+    is >> fod.m_head;
 
     if (!is.good())
         BoxLib::Error("Read of VisMF::FabOnDisk failed");
@@ -167,7 +169,9 @@ operator<< (ostream&             os,
     os << int(hd.m_how) << '\n';
     os << hd.m_ncomp    << '\n';
     os << hd.m_ngrow    << '\n';
-    os << hd.m_ba       << '\n';
+
+    hd.m_ba.writeOn(os); os << '\n';
+
     os << hd.m_fod      << '\n';
     os << hd.m_min      << '\n';
     os << hd.m_max      << '\n';
@@ -207,7 +211,7 @@ operator>> (istream&       is,
     assert(hd.m_ngrow >= 0);
     GetTheChar(is, '\n');
 
-    hd.m_ba.define(is);
+    hd.m_ba = BoxArray(is);
     GetTheChar(is, '\n');
 
     is >> hd.m_fod;
@@ -240,6 +244,15 @@ VisMF::Write (const FArrayBox& fab,
 
     return fod;
 }
+
+//
+// This does not build a valid header.
+//
+
+VisMF::Header::Header ()
+    :
+    m_vers(0)
+{}
 
 VisMF::Header::Header (const MultiFab& mf,
                        VisMF::How      how)
@@ -335,4 +348,22 @@ VisMF::Write (const MultiFab& mf,
     default:
         BoxLib::Error("Bad case in switch");
     }
+}
+
+VisMF::VisMF (const aString& mf_name)
+{
+    aString file = mf_name;
+
+    file += VisMF::MultiFabHdrFileSuffix;
+
+    ifstream ifs(file.c_str());
+
+    if (!ifs.good())
+    {
+        aString msg("Couldn't open file: ");
+        msg += file;
+        BoxLib::Error(msg.c_str());
+    }
+
+    ifs >> m_hdr;
 }
