@@ -406,7 +406,6 @@ void holy_grail_amr_projector::right_hand_side(PArray<MultiFab>* u, PArray<Multi
     {
 	grid_average(S);
     }
-    
     for (int lev = lev_min; lev <= lev_max; lev++) 
     {
 	const int mglev = ml_index[lev];
@@ -419,6 +418,7 @@ void holy_grail_amr_projector::right_hand_side(PArray<MultiFab>* u, PArray<Multi
 	    {
 		interface_divergence(u, lev);
 	    }
+   
 	    if (S.length() > 0) 
 	    {
 		interface_average(S, lev);
@@ -506,7 +506,6 @@ void holy_grail_amr_projector::grid_divergence(PArray<MultiFab>* u)
 #if (BL_SPACEDIM == 3)
 	const Real hz = h[mglev][2];
 #endif
-	
 	for (int i = 0; i < BL_SPACEDIM; i++) 
 	{
 	    fill_borders(u[i][lev], lev_interface[mglev], boundary.velocity(i), -1, m_hg_terrain);

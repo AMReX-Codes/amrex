@@ -190,6 +190,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r, MultiFab& s, MultiFab
 	}
 #endif
     }
+
 }
 
 void holy_grail_amr_multigrid::relax(int mglev, int i1, bool is_zero)
@@ -577,12 +578,17 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 	p_dmfi->copy(z_dmfi());
     }
     ParallelDescriptor::ReduceRealSum(rho);
+    if ( pcode >= 3 && ParallelDescriptor::IOProcessor() )
+    {
+	cout << " CGSolve RHO = " << rho << endl;
+    }
+
     const Real tol = 1.e-3 * rho;
     
     int i = 0;
     while (tol > 0.0) 
     {
-	if (++i > 250 && pcode >= 2  && ParallelDescriptor::IOProcessor())
+	if (++i > 250 && ParallelDescriptor::IOProcessor())
 	{
 	    BoxLib::Error("Conjugate-gradient iteration failed to converge");
 	}

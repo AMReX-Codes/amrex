@@ -338,9 +338,16 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2)
 	}
     }
     if (pcode >= 1 && ParallelDescriptor::IOProcessor())
+    {
 	cout << "Source norm is " << norm << endl;
+    }
     
     Real err = ml_cycle(lev_max, mglev_max, i1, i2, abstol, 0.0);
+
+    if (pcode >= 2 && ParallelDescriptor::IOProcessor())
+    {
+	cout << "Err from ml_cycle is " << err << endl;
+    }
     
     norm = (err > norm) ? err : norm;
     Real tol = reltol * norm;
@@ -378,7 +385,9 @@ Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2, Real tol, Real 
     Real res_norm = ml_residual(mglev, lev);
     
     if (pcode >= 2  && ParallelDescriptor::IOProcessor())
+    {
 	cout << "Residual at level " << lev << " is " << res_norm << endl;
+    }
     
     res_norm = (res_norm_fine > res_norm) ? res_norm_fine : res_norm;
     
@@ -480,12 +489,15 @@ void amr_multigrid::mg_cycle(int mglev, int i1, int i2)
 	
 	relax(mglev, i1, true);
 	
-	if (pcode >= 4  && ParallelDescriptor::IOProcessor()) 
+	if (pcode >= 4 )
 	{
 	    wtmp.setVal(0.0);
 	    level_residual(wtmp, resid[mglev], ctmp, mglev, true);
-	    cout << "  Residual at multigrid level " << mglev << " is "
-		<< mfnorm(wtmp) << endl;
+	    double nm = mfnorm(wtmp);
+	    if ( ParallelDescriptor::IOProcessor() )
+	    {
+		cout << "  Residual at multigrid level " << mglev << " is " << mfnorm(wtmp) << endl;
+	    }
 	}
 	else 
 	{
