@@ -50,9 +50,12 @@ ifeq ($(MACHINE), Linux)
       mpicharch := $(shell $(MPICHHOME)/bin/tarch)
       mpichdevice := $(shell $(MPICHHOME)/bin/tdevice)
       BL_MPI_LIBS += -lmpich
-      LIBRARY_LOCATIONS += $(MPICHHOME)/build/$(mpicharch)/$(mpichdevice)/lib
-      INCLUDE_LOCATIONS += $(MPICHHOME)/build/$(mpicharch)/$(mpichdevice)/include
+      # 1.2.0 locations
       INCLUDE_LOCATIONS += $(MPICHHOME)/include
+      LIBRARY_LOCATIONS += $(MPICHHOME)/lib
+      # not needed in 1.2.0, but shouldn't hurt
+      INCLUDE_LOCATIONS += $(MPICHHOME)/build/$(mpicharch)/$(mpichdevice)/include
+      LIBRARY_LOCATIONS += $(MPICHHOME)/build/$(mpicharch)/$(mpichdevice)/lib
     endif
   endif
 endif
