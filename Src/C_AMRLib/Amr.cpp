@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.37 1998-04-24 16:23:58 lijewski Exp $
+// $Id: Amr.cpp,v 1.38 1998-04-30 16:35:03 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -977,7 +977,7 @@ Amr::coarseTimeStep (Real stop_time)
     int check_test = 0;
     if (check_per > 0.0)
     {
-      int num_per = (cumtime+.001*dt_level[0]) / check_per;
+      int num_per = int((cumtime+.001*dt_level[0]) / check_per);
       Real resid = cumtime - num_per * check_per;
       if (resid < .001*dt_level[0])
           check_test = 1;
@@ -992,7 +992,7 @@ Amr::coarseTimeStep (Real stop_time)
     int plot_test = 0;
     if (plot_per > 0.0)
     {
-      int num_per = (cumtime+.001*dt_level[0]) / plot_per;
+      int num_per = int((cumtime+.001*dt_level[0]) / plot_per);
       Real resid = cumtime - num_per * plot_per;
       if (resid < .001*dt_level[0])
           plot_test = 1;

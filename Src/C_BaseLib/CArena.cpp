@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CArena.cpp,v 1.10 1998-02-12 18:13:27 lijewski Exp $
+// $Id: CArena.cpp,v 1.11 1998-04-30 16:35:34 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -38,10 +38,10 @@ using std::pair;
 #ifdef BL_DONT_COALESCE_MEMORY
 #include <BArena.H>
 static CArena The_Static_FAB_BArena;
-extern Arena* The_FAB_Arena = &The_Static_FAB_BArena;
+Arena* The_FAB_Arena = &The_Static_FAB_BArena;
 #else
 static CArena The_Static_FAB_CArena;
-extern Arena* The_FAB_Arena = &The_Static_FAB_CArena;
+Arena* The_FAB_Arena = &The_Static_FAB_CArena;
 #endif
 
 CArena::CArena (size_t hunk_size)

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.20 1998-02-18 21:31:15 vince Exp $
+// $Id: Utility.cpp,v 1.21 1998-04-30 16:35:34 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -88,7 +88,7 @@ get_initial_wall_clock_time ()
 //
 // Attempt to guarantee wsecond() gets initialized on program startup.
 //
-extern double BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
+double BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
 
 double
 Utility::wsecond (double* t)
@@ -131,7 +131,7 @@ get_initial_wall_clock_time ()
 //
 // Attempt to guarantee wsecond() gets initialized on program startup.
 //
-extern double BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
+double BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
 
 double
 Utility::wsecond (double* t_)
@@ -174,7 +174,7 @@ get_initial_wall_clock_time ()
 //
 // Attempt to guarantee wsecond() gets initialized on program startup.
 //
-extern time_t BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
+time_t BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
 
 double
 Utility::wsecond (double* r)
