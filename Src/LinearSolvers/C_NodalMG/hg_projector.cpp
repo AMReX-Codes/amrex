@@ -154,8 +154,26 @@ public:
     }
     virtual bool ready()
     {
-	throw( "task_fecdiv::ready(): FIXME" ); /*NOTREACHED*/
-	return false;
+	bool result = false;
+	for(int i = 0; i < BL_SPACEDIM; ++i)
+	{
+	    bool tresult = ucp[i]->ready();
+	    result = tresult || result;
+	}
+	if ( !result ) return false;
+	if ( is_local(s, igrid) )
+	{
+	    Real* sp = s[igrid].dataPtr();
+	    const Real* up[BL_SPACEDIM] = { D_DECL( upt[0]->operator[](igrid).dataPtr(), upt[1]->operator[](igrid).dataPtr(), upt[2]->operator[](igrid).dataPtr() ) };
+	    const Box& sbox = s[igrid].box();
+	    const Box& fbox = upt[0]->operator[](igrid).box();
+	    // (*f)(s[igrid].dataPtr(), DIMLIST(s[igrid].box()));
+	    for(int i = 0 ; i < BL_SPACEDIM; ++i)
+	    {
+		delete ucp[i];
+	    }
+	}
+	return true;
     }
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
@@ -213,8 +231,21 @@ public:
     }
     virtual bool ready()
     {
-	throw( "task_fecdiv_2::ready(): FIXME" ); /*NOTREACHED*/
-	return false;
+	bool result = false;
+	for(int i = 0; i < BL_SPACEDIM; ++i)
+	{
+	    bool tresult = ucp[i]->ready();
+	    result = tresult || result;
+	}
+	if ( !result ) return false;
+	if ( is_local(s, igrid) )
+	{
+	    for(int i = 0; i < BL_SPACEDIM; ++i)
+	    {
+		delete ucp[i];
+	    }
+	}
+	return true;
     }
 private:
     FECDIV f;
@@ -233,13 +264,7 @@ private:
 
 PArray<MultiFab> null_amr_real;
 
-void holy_grail_amr_projector::project(PArray<MultiFab>* u,
-				       PArray<MultiFab>& p,
-				       PArray<MultiFab>& Coarse_source,
-				       PArray<MultiFab>& Sigma,
-				       Real H[], Real tol,
-				       int Lev_min, int Lev_max,
-				       Real scale)
+void holy_grail_amr_projector::project(PArray<MultiFab>* u, PArray<MultiFab>& p, PArray<MultiFab>& Coarse_source, PArray<MultiFab>& Sigma, Real H[], Real tol, int Lev_min, int Lev_max, Real scale)
 {
     if (Lev_min < 0)
 	Lev_min = lev_min_max;

@@ -560,7 +560,7 @@ void level_interface::add(List<Box>& bl, Box b, int startgrid)
 		    }
 		}
 	    }
-	    throw( "level_interface::add(): Can't happen." );
+	    BoxLib::Abort( "level_interface::add(): Can't happen." );
 	}
     }
     ins(bl, b);

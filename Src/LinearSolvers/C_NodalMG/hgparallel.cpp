@@ -139,7 +139,7 @@ bool task_copy::depends_on_q(const task* t1) const
     }
     else
     {
-	throw( "task_copy::depends_on_q(): Can't Happen" );
+	BoxLib::Abort( "task_copy::depends_on_q(): Can't Happen" );
     }
     return false;
 }
@@ -200,7 +200,7 @@ void task_copy::startup()
     }
     else
     {
-	throw( "task_copy::ready(): Can't be here" );
+	BoxLib::Abort( "task_copy::ready(): Can't be here" );
 	// neither fab lives on local processor
     }
     m_started = true;
