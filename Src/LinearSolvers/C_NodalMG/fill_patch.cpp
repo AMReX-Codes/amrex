@@ -540,7 +540,7 @@ void interpolate_patch(MultiFab& target, int igrid, const Box& region,
 
 #ifdef BL_USE_NEW_HFILES
 #include <list>
-using std::list;
+using namespace std;
 #else
 #include <list.h>
 #endif
