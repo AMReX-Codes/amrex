@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.12 1998-05-19 21:08:35 marc Exp $
+// $Id: Geometry.cpp,v 1.13 1998-05-22 21:46:29 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -201,6 +201,8 @@ Geometry::FillPeriodicFabArray (FabArray<Real,FArrayBox>& fa,
     // Gather/scatter distributed data to (local) internal buffers.
     //
     facd.CollectData();
+
+    FArrayBox overlapFab;
     //
     // Loop over my receiving fabs, copy periodic regions from buffered data.
     //
@@ -216,7 +218,7 @@ Geometry::FillPeriodicFabArray (FabArray<Real,FArrayBox>& fa,
 
 	    assert(fbid.box() == (*p_it).second.srcBox);
 
-	    FArrayBox overlapFab(fbid.box(), nComp);
+	    overlapFab.resize(fbid.box(), nComp);
             //
 	    // Fill fab with buffered data, copy into destination.
             //
