@@ -155,6 +155,15 @@ public:
                          int               Lev_max = -1,
                          Real              scale = 0.0);
 
+    void stream_func_project(PArray<MultiFab>* u,
+                             PArray<MultiFab>& p,
+                             PArray<MultiFab>& Sigma,
+                             Real              H[],
+                             Real              tol,
+                             int               Lev_min = -1,
+                             int               Lev_max = -1,
+                             Real              scale = 0.0);
+
     void make_it_so ();
 
 protected:
@@ -171,17 +180,21 @@ protected:
 
     void right_hand_side (PArray<MultiFab>* u, PArray<MultiFab>& S,
                           int for_fill_sync_reg);
+    void right_hand_side_for_stream_func (PArray<MultiFab>* u);
 #ifdef HG_USE_SYNC_PROJECT
     void sync_right_hand_side (PArray<MultiFab>* u);
 #endif
     void interface_average (PArray<MultiFab>& S, int lev);
     void interface_divergence (PArray<MultiFab>* u, int lev);
+    void interface_vorticity  (PArray<MultiFab>* u, int lev);
     void form_solution_vector (PArray<MultiFab>* u,
 			       const PArray<MultiFab>& sigma_in);
     void sparse_node_source_adjustment (PArray<MultiFab>& sparse_source);
     void grid_divergence (PArray<MultiFab>* u,
 			  PArray<MultiFab>& s,
                           int for_fill_sync_reg);
+    void grid_vorticity (PArray<MultiFab>* u,
+			 PArray<MultiFab>& s);
     void grid_average (PArray<MultiFab>& S,
 		       PArray<MultiFab>& src,
                        int for_sync_reg);

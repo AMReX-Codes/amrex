@@ -6,43 +6,67 @@
 
 #if defined( BL_FORT_USE_UNDERSCORE )
 #define   FORT_HGDIV		hgdiv_
-#define   FORT_HGDIV_DENSE    hgdiv_dense_
+#define   FORT_HGDIV_DENSE      hgdiv_dense_
 #define   FORT_HGFDIV		hgfdiv_
-#define   FORT_HGFDIV_DENSE   hgfdiv_dense_
+#define   FORT_HGFDIV_DENSE     hgfdiv_dense_
 #define   FORT_HGEDIV		hgediv_
-#define   FORT_HGEDIV_DENSE   hgediv_dense_
+#define   FORT_HGEDIV_DENSE     hgediv_dense_
 #define   FORT_HGCDIV		hgcdiv_
-#define   FORT_HGCDIV_DENSE   hgcdiv_dense_
+#define   FORT_HGCDIV_DENSE     hgcdiv_dense_
+#define   FORT_HGVORT		hgvort_
+#define   FORT_HGVORT_DENSE     hgvort_dense_
+#define   FORT_HGFVORT		hgfvort_
+#define   FORT_HGFVORT_DENSE    hgfvort_dense_
+#define   FORT_HGEVORT		hgevort_
+#define   FORT_HGEVORT_DENSE    hgevort_dense_
+#define   FORT_HGCVORT		hgcvort_
+#define   FORT_HGCVORT_DENSE    hgcvort_dense_
 #define   FORT_HGGRAD		hggrad_
-#define   FORT_HGGRAD_DENSE   hggrad_dense_
+#define   FORT_HGGRAD_DENSE     hggrad_dense_
 #define   FORT_HGAVG		hgavg_
 #define   FORT_HGFAVG		hgfavg_
 #define   FORT_HGEAVG		hgeavg_
 #define   FORT_HGCAVG		hgcavg_
 #elif defined( BL_FORT_USE_UPPERCASE )
 #define   FORT_HGDIV		HGDIV
-#define   FORT_HGDIV_DENSE    HGDIV_DENSE
+#define   FORT_HGDIV_DENSE      HGDIV_DENSE
 #define   FORT_HGFDIV		HGFDIV
-#define   FORT_HGFDIV_DENSE   HGFDIV_DENSE
+#define   FORT_HGFDIV_DENSE     HGFDIV_DENSE
 #define   FORT_HGEDIV		HGEDIV
-#define   FORT_HGEDIV_DENSE   HGEDIV_DENSE
+#define   FORT_HGEDIV_DENSE     HGEDIV_DENSE
 #define   FORT_HGCDIV		HGCDIV
-#define   FORT_HGCDIV_DENSE   HGCDIV_DENSE
+#define   FORT_HGCDIV_DENSE     HGCDIV_DENSE
+#define   FORT_HGVORT		HGVORT
+#define   FORT_HGVORT_DENSE     HGVORT_DENSE
+#define   FORT_HGFVORT	 	HGFVORT
+#define   FORT_HGFVORT_DENSE    HGFVORT_DENSE
+#define   FORT_HGEVORT		HGEVORT
+#define   FORT_HGEVORT_DENSE    HGEVORT_DENSE
+#define   FORT_HGCVORT		HGCVORT
+#define   FORT_HGCVORT_DENSE    HGCVORT_DENSE
 #define   FORT_HGGRAD		HGGRAD
-#define   FORT_HGGRAD_DENSE   HGGRAD_DENSE
+#define   FORT_HGGRAD_DENSE     HGGRAD_DENSE
 #define   FORT_HGAVG		HGAVG
 #define   FORT_HGFAVG		HGFAVG
 #define   FORT_HGEAVG		HGEAVG
 #define   FORT_HGCAVG		HGCAVG
 #elif defined( BL_FORT_USE_LOWERCASE )
 #define   FORT_HGDIV		hgdiv
-#define   FORT_HGDIV_DENSE    hgdiv_dense
+#define   FORT_HGDIV_DENSE      hgdiv_dense
 #define   FORT_HGFDIV		hgfdiv
-#define   FORT_HGFDIV_DENSE   hgfdiv_dense
+#define   FORT_HGFDIV_DENSE     hgfdiv_dense
 #define   FORT_HGEDIV		hgediv
-#define   FORT_HGEDIV_DENSE   hgediv_dense
+#define   FORT_HGEDIV_DENSE     hgediv_dense
 #define   FORT_HGCDIV		hgcdiv
-#define   FORT_HGCDIV_DENSE   hgcdiv_dense
+#define   FORT_HGCDIV_DENSE     hgcdiv_dense
+#define   FORT_HGVORT		hgdiv
+#define   FORT_HGVORT_DENSE     hgdiv_dense
+#define   FORT_HGFVORT		hgfdiv
+#define   FORT_HGFVORT_DENSE    hgfdiv_dense
+#define   FORT_HGEVORT		hgediv
+#define   FORT_HGEVORT_DENSE    hgediv_dense
+#define   FORT_HGCVORT		hgcdiv
+#define   FORT_HGCVORT_DENSE    hgcdiv_dense
 #define   FORT_HGGRAD		hggrad
 #define   FORT_HGGRAD_DENSE   hggrad_dense
 #define   FORT_HGAVG		hgavg
@@ -90,8 +114,33 @@ extern "C"
 			    CRealPS, intRS,
 			    const int*, const int*);
 
-
 #if (BL_SPACEDIM == 2)
+    void FORT_HGVORT        (Real*, intS, CRealPS, intS, intS, CRealPS,
+			     const int*, const int*);
+    void FORT_HGVORT_DENSE  (Real*, intS, CRealPS, intS, intS, CRealPS,
+			     const int*, const int*);
+
+    void FORT_HGFVORT       (Real*, intS, CRealPS, intS, CRealPS, intS, intS,
+			     CRealPS, intRS,
+			     const int*, const int*, const int*, const int*);
+    void FORT_HGFVORT_DENSE (Real*,  intS, CRealPS, intS, CRealPS, intS, intS,
+			     CRealPS, intRS,
+			     const int*, const int*, const int*, const int*);
+
+    void FORT_HGEVORT       (Real*, intS, CRealPS, intS, CRealPS, intS, intS,
+			     CRealPS, intRS,
+			     const int*, const int*);
+    void FORT_HGEVORT_DENSE (Real*,  intS, CRealPS, intS, CRealPS, intS, intS,
+			     CRealPS, intRS,
+			     const int*, const int*);
+
+    void FORT_HGCVORT       (Real*, intS, CRealPS, intS, CRealPS, intS, intS,
+			     CRealPS, intRS,
+			     const int*, const int*);
+    void FORT_HGCVORT_DENSE (Real*, intS, CRealPS, intS, CRealPS, intS, intS,
+			     CRealPS, intRS,
+			     const int*, const int*);
+
     void FORT_HGAVG        (Real*, intS, const Real*, intS, intS,
 			    const Real*, const int*, const int*, const int*);
     void FORT_HGFAVG       (Real*, intS, const Real*, intS,
@@ -1471,6 +1520,20 @@ holy_grail_amr_projector::right_hand_side (PArray<MultiFab>* u,
 
 }
 
+void
+holy_grail_amr_projector::right_hand_side_for_stream_func (PArray<MultiFab>* u)
+{
+    grid_vorticity(u,source);
+
+    for (int lev = lev_min; lev <= lev_max; lev++)
+    {
+	const int mglev = ml_index[lev];
+	clear_part_interface(source[lev], lev_interface[mglev]);
+	if (lev > lev_min)
+	    interface_vorticity(u, lev);
+    }
+}
+
 //
 // Averages cell-based S onto node-based source conservatively
 // across the composite mesh.  S must be passed in with a one
@@ -1633,6 +1696,63 @@ holy_grail_amr_projector::grid_divergence (PArray<MultiFab>* u,
 	}
 	HG_TEST_NORM( s[lev], "grid_divergence");
     }
+}
+
+void
+holy_grail_amr_projector::grid_vorticity (PArray<MultiFab>* u,
+                                          PArray<MultiFab>& s)
+{
+#if (BL_SPACEDIM == 2)
+    for (int lev = lev_min; lev <= lev_max; lev++)
+    {
+	const int mglev = ml_index[lev];
+	const Real hxyz[BL_SPACEDIM] = { D_DECL(h[mglev][0],
+						h[mglev][1],
+						h[mglev][2]) };
+	for (int i = 0; i < BL_SPACEDIM; i++)
+	{
+	    fill_borders(u[i][lev], lev_interface[mglev],
+		         boundary.velocity(i), -1, is_dense(m_stencil));
+	    HG_TEST_NORM( u[i][lev], "grid_vorticity");
+	}
+
+	for (MultiFabIterator s_mfi(s[lev]); s_mfi.isValid(); ++s_mfi)
+	{
+	    DependentMultiFabIterator u_dmfi_0(s_mfi, u[0][lev]);
+	    DependentMultiFabIterator u_dmfi_1(s_mfi, u[1][lev]);
+	    const Box& sbox = s_mfi->box();
+	    const Box& fbox = u_dmfi_0->box();
+            Box freg = 
+		Box(lev_interface[mglev].part_fine(s_mfi.index()));
+	    Real* sptr = s_mfi->dataPtr();
+	    Real* u0ptr = u_dmfi_0->dataPtr();
+	    Real* u1ptr = u_dmfi_1->dataPtr();
+#if (BL_SPACEDIM == 3)
+	    DependentMultiFabIterator u_dmfi_2(s_mfi, u[2][lev]);
+	    Real* u2ptr = u_dmfi_2->dataPtr();
+#endif
+	    if ( is_dense(m_stencil) )
+	    {
+		FORT_HGVORT_DENSE(
+		    sptr, DIMLIST(sbox),
+		    D_DECL(u0ptr, u1ptr, u2ptr),
+		    DIMLIST(fbox), DIMLIST(freg),
+		    D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]), 0, 0);
+	    }
+	    else
+	    {
+		const int isRZ = getCoordSys();
+		const int imax = mg_domain[mglev].bigEnd(0) + 1;
+		FORT_HGVORT(
+		    sptr, DIMLIST(sbox),
+		    D_DECL(u0ptr, u1ptr, u2ptr), DIMLIST(fbox),
+		    DIMLIST(freg),
+		    D_DECL(&hxyz[0], &hxyz[1], &hxyz[2]), &isRZ, &imax);
+	    }
+	}
+	HG_TEST_NORM( s[lev], "grid_vorticity");
+    }
+#endif
 }
 
 #ifdef HG_USE_SYNC_PROJECT
@@ -2124,6 +2244,251 @@ holy_grail_amr_projector::interface_divergence (PArray<MultiFab>* u,
 }
 
 void
+holy_grail_amr_projector::interface_vorticity (PArray<MultiFab>* u,
+                                                int               lev)
+{
+#if (BL_SPACEDIM == 2)
+    const int mglev = ml_index[lev];
+    const int mgc = ml_index[lev-1];
+
+    const IntVect& rat = gen_ratio[lev-1];
+    task_list tl;
+    HG_TEST_NORM(source[lev], "interface_vorticity,b");
+    for (int iface = 0;
+	 iface < lev_interface[mglev].nboxes(level_interface::FACEDIM);
+	 iface++)
+    {
+        //
+	// Find a fine grid touching this face.
+        //
+	int igrid =
+	    lev_interface[mglev].grid(level_interface::FACEDIM, iface, 0);
+	if (igrid < 0)
+	    igrid =
+		lev_interface[mglev].grid(level_interface::FACEDIM, iface, 1);
+	const unsigned int geo =
+	    lev_interface[mglev].geo(level_interface::FACEDIM, iface);
+        //
+	// Reject fine-fine interfaces and those without an interior fine grid
+        //
+	if (geo == level_interface::ALL
+	    || igrid < 0
+	    || lev_interface[mglev].flag(level_interface::FACEDIM, iface) )
+	{
+	    continue;
+	}
+        //
+	// Fine grid on just one side.
+        //
+	const int idim = lev_interface[mglev].fdim(iface);
+	const int idir = (geo & level_interface::LOW) ? -1 : 1;
+	Box cbox = lev_interface[mglev].box(level_interface::FACEDIM, iface);
+	const IntVect t = cbox.type();
+	if (idir > 0)
+	{
+	    cbox.growLo(idim, rat[idim]);
+	}
+	else
+	{
+	    cbox.growHi(idim, rat[idim]);
+	}
+	cbox.convert(IntVect::TheCellVector()).coarsen(rat);
+	task_fab* ucp[BL_SPACEDIM];
+	MultiFab* upt[BL_SPACEDIM];
+	for (int i = 0; i < BL_SPACEDIM; ++i)
+	{
+	    ucp[i] = new task_fill_patch(tl, source[lev], igrid, cbox,
+					 u[i][lev-1], lev_interface[mgc],
+					 boundary.velocity(i), -1, -1);
+	    upt[i] = &u[i][lev];
+	}
+	Box creg =
+	    lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
+	creg.coarsen(rat).grow(t - 1);
+	if ( is_dense(m_stencil))
+	{
+	    tl.add_task(
+		new task_fdiv(&FORT_HGFVORT_DENSE, tl,
+				source[lev], upt, igrid, ucp, creg,
+				h[mglev], rat, idim, idir, 0, 0));
+	}
+	else
+	{
+	    const int isRZ = getCoordSys();
+	    const int imax = mg_domain[mglev].bigEnd(0) + 1;
+	    tl.add_task(
+		new task_fdiv(&FORT_HGFVORT, tl,
+				source[lev], upt, igrid, ucp, creg,
+				h[mglev], rat, idim, idir, isRZ, imax));
+	}
+    }
+    tl.execute("holy_grail_amr_projector::interface_vorticity(1)");
+
+    HG_TEST_NORM(source[lev], "interface_vorticity,a");
+
+#if (BL_SPACEDIM == 3)
+
+    for (int iedge = 0; iedge < lev_interface[mglev].nboxes(1); iedge++)
+    {
+        //
+	// Find a fine grid touching this edge.
+        //
+	int igrid;
+	for (int i = 0; i < lev_interface[mglev].ngrids(1); i++)
+	{
+	    igrid = lev_interface[mglev].grid(1, iedge, i);
+	    if (igrid >= 0)
+		break;
+	}
+	const unsigned int geo = lev_interface[mglev].geo(1, iedge);
+        //
+	// Reject fine-fine interfaces and those without an interior fine grid
+        //
+	if (geo == level_interface::ALL
+	    || igrid < 0
+	    || lev_interface[mglev].flag(1, iedge) )
+	{
+	    continue;
+	}
+        //
+	// Fine grid on just one side.
+        //
+	Box cbox = lev_interface[mglev].box(1, iedge);
+	const IntVect t = cbox.type();
+	cbox.coarsen(rat).grow(t).convert(IntVect::TheCellVector());
+	Box fbox = cbox;
+	fbox.refine(rat);
+	task_fab* ucp[BL_SPACEDIM];
+	task_fab* ufp[BL_SPACEDIM];
+	for (int i = 0; i < BL_SPACEDIM; ++i)
+	{
+	    ucp[i] =
+		new task_fill_patch(tl, source[lev], igrid, cbox,
+				    u[i][lev-1], lev_interface[mgc],
+				    boundary.velocity(i), -1, -1);
+	    ufp[i] =
+		new task_fill_patch(tl, source[lev], igrid, fbox,
+				    u[i][lev],   lev_interface[mglev],
+				    boundary.velocity(i), 1, iedge);
+	}
+	Box creg = lev_interface[mglev].node_box(1, iedge);
+	creg.coarsen(rat).grow(t - 1);
+	Array<int> ga = lev_interface[mglev].geo_array(1, iedge);
+	task::task_proxy tp;
+	if ( is_dense(m_stencil) )
+	{
+	    tp = tl.add_task(
+		new task_ediv(&FORT_HGEVORT_DENSE, tl,
+			      source[lev], igrid, ufp, ucp, creg,
+			      h[mglev], rat, ga, t));
+	}
+	else
+	{
+	    tp = tl.add_task(
+		new task_ediv(&FORT_HGEVORT,         tl,
+			      source[lev], igrid, ufp, ucp, creg,
+			      h[mglev], rat, ga, t));
+	}
+        //
+	// Fill in the grids on the other sides, if any.
+        //
+	const Box& freg = lev_interface[mglev].node_box(1, iedge);
+	for (int i = 1; i < lev_interface[mglev].ngrids(1); i++)
+	{
+	    const int jgrid = lev_interface[mglev].grid(1, iedge, i);
+	    if (jgrid >= 0 && jgrid != igrid)
+	    {
+                tl.add_task(
+		    new task_copy(tl, source[lev], jgrid,
+				  source[lev], igrid, freg, tp));
+	    }
+	}
+    }
+    tl.execute("holy_grail_amr_projector::interface_vorticity(2)");
+    HG_TEST_NORM(source[lev], "interface_vorticity,a1");
+#endif
+    for (int icor = 0; icor < lev_interface[mglev].nboxes(0); icor++)
+    {
+        //
+	// Find a fine grid touching this corner.
+        //
+	int igrid;
+	for (int i = 0; i < lev_interface[mglev].ngrids(0); i++)
+	{
+	    igrid = lev_interface[mglev].grid(0, icor, i);
+	    if (igrid >= 0)
+		break;
+	}
+	const unsigned int geo = lev_interface[mglev].geo(0, icor);
+        //
+	// Reject fine-fine interfaces and those without an interior fine grid
+        //
+	if (geo == level_interface::ALL
+	    || igrid < 0
+	    || lev_interface[mglev].flag(0, icor) )
+	{
+	    continue;
+	}
+        //
+	// Fine grid on just one side.
+        //
+	Box cbox = lev_interface[mglev].box(0, icor);
+	cbox.coarsen(rat).grow(1).convert(IntVect::TheCellVector());
+	Box fbox = cbox;
+	fbox.refine(rat);
+	task_fab* ucp[BL_SPACEDIM];
+	task_fab* ufp[BL_SPACEDIM];
+	for (int i = 0; i < BL_SPACEDIM; ++i)
+	{
+	    ucp[i] =
+		new task_fill_patch(tl, source[lev], igrid, cbox,
+				    u[i][lev-1], lev_interface[mgc],
+				    boundary.velocity(i), -1, -1);
+	    ufp[i] =
+		new task_fill_patch(tl, source[lev], igrid, fbox,
+				    u[i][lev],   lev_interface[mglev],
+				    boundary.velocity(i), 0, icor);
+	}
+	Box creg = lev_interface[mglev].box(0, icor);
+	creg.coarsen(rat);
+	Array<int> ga = lev_interface[mglev].geo_array(0, icor);
+	task::task_proxy tp;
+	if ( is_dense(m_stencil) )
+	{
+	    tp = tl.add_task(
+		new task_cdiv(&FORT_HGCVORT_DENSE, tl,
+			      source[lev], igrid, ufp, ucp, creg,
+			      h[mglev], rat, ga, 0));
+	}
+	else
+	{
+            const int isRZ = getCoordSys();
+	    tp = tl.add_task(
+		new task_cdiv(&FORT_HGCVORT,         tl,
+			      source[lev], igrid, ufp, ucp, creg,
+			      h[mglev], rat, ga,
+			      isRZ));
+	}
+        //
+	// Fill in the grids on the other sides, if any.
+        //
+	const Box& freg = lev_interface[mglev].box(0, icor);
+	for (int i = 1; i < lev_interface[mglev].ngrids(0); i++)
+	{
+	    const int jgrid = lev_interface[mglev].grid(0, icor, i);
+	    if (jgrid >= 0 && jgrid != igrid)
+	    {
+                tl.add_task(
+		    new task_copy(tl, source[lev], jgrid,
+				  source[lev], igrid, freg, tp));
+	    }
+	}
+    }
+    tl.execute("holy_grail_amr_projector::interface_vorticity(3)");
+#endif
+}
+
+void
 holy_grail_amr_projector::form_solution_vector (PArray<MultiFab>* u,
                                                 const PArray<MultiFab>& sigma_in)
 {
@@ -2238,4 +2603,32 @@ holy_grail_amr_projector::form_solution_vector (PArray<MultiFab>* u,
 			   default_level_interface, 0);
 	}
     }
+}
+
+void
+holy_grail_amr_projector::stream_func_project (PArray<MultiFab>* u,
+                                               PArray<MultiFab>& p,
+                                               PArray<MultiFab>& Sigma,
+                                               Real              H[],
+                                               Real              tol,
+                                               int               Lev_min,
+                                               int               Lev_max,
+                                               Real              scale)
+{
+    if (Lev_min < 0)
+	Lev_min = lev_min_max;
+    if (Lev_max < 0)
+	Lev_max = Lev_min;
+
+    BL_ASSERT(Sigma.length() > 0);
+
+    BL_ASSERT(u[      0      ][Lev_min].nGrow() == 1);
+    BL_ASSERT(u[      1      ][Lev_min].nGrow() == 1);
+    BL_ASSERT(u[BL_SPACEDIM-1][Lev_min].nGrow() == 1);
+
+    alloc_hg_multi(p, null_amr_real, null_amr_real, Sigma, H, Lev_min, Lev_max, 0);
+    right_hand_side_for_stream_func(u);
+
+    solve(tol, scale, 2, 2);
+    clear_hg_multi();
 }
