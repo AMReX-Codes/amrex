@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.15 2002-10-11 18:23:00 almgren Exp $
+c $Id: INTERP_2D.F,v 1.16 2002-10-19 18:33:28 car Exp $
 c
 
 #undef  BL_LANG_CC
@@ -69,8 +69,8 @@ c ::: local var
       slope(i,j,n,fx,fy) = crse(i,j,n) +
      &                     fx*sl(i,SLX) + fy*sl(i,SLY) + fx*fy*sl(i,SLXY)
 
-      RX = one/dfloat(lratiox)
-      RY = one/dfloat(lratioy)
+      RX = one/dble(lratiox)
+      RY = one/dble(lratioy)
       RXY = RX*RY
 
 c
@@ -124,7 +124,7 @@ c         ::::: compute fine strip of interpolated data
 c
           do ly = jlo, jhi
             jfn = lratioy * j + ly
-            fy = dfloat(ly)
+            fy = dble(ly)
 
             do i = ARG_L1(cb), ARG_H1(cb)
               istrtFine = i * lratiox
@@ -136,7 +136,7 @@ c
 
               do lx = ilo, ihi
                 ifn = lratiox * i + lx
-                fx = dfloat(lx)
+                fx = dble(lx)
 
                 fine(ifn,jfn,n) = slope(i,j,n,fx,fy)
               end do
@@ -204,8 +204,8 @@ c ::: local var
       integer lx, ly, hratx, hraty, ic, jc, jfn, jfc, i, j, n
       REAL_T x, y, denomx, denomy
 
-      denomx = one/dfloat(2*lratiox)
-      denomy = one/dfloat(2*lratioy)
+      denomx = one/dble(2*lratiox)
+      denomy = one/dble(2*lratioy)
 
       hratx = lratiox/2
       hraty = lratioy/2

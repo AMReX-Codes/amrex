@@ -1,5 +1,5 @@
 c
-c $Id: INTERPBNDRYDATA_2D.F,v 1.2 2001-01-19 22:57:48 marc Exp $
+c $Id: INTERPBNDRYDATA_2D.F,v 1.3 2002-10-19 18:33:57 car Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -112,7 +112,7 @@ c     Can we do better by sliding stencil down?
 
 c        ::::: interpolate to fine grid
          do off = 0, ratioy - 1
-            xx = (dfloat(off - ratioy/2) + half)/ratioy
+            xx = (dble(off - ratioy/2) + half)/ratioy
             do jc = jclo, jchi
                j = ratioy*jc + off
                bdry(i,j,n) = crse(ic,jc,n)
@@ -165,7 +165,7 @@ c        ::::: interpolate to fine grid
      &           (mask(i,j+ratioy).ne.not_covered) ) NN = 1
             
             do off = 0,ratioy-1
-               xInt = (dfloat(off - ratioy/2) + half)/ratioy
+               xInt = (dble(off - ratioy/2) + half)/ratioy
                call polyInterpCoeff(xInt, x, NN, c)
                bdry(i,j+off,n) = zero
                do m=1,NN
@@ -272,7 +272,7 @@ c     Can we do better by sliding stencil down?
 
 c        ::::: interpolate to fine grid
          do off = 0, ratioy - 1
-            xx = (dfloat(off - ratioy/2) + half)/ratioy
+            xx = (dble(off - ratioy/2) + half)/ratioy
             do jc = jclo, jchi
                j = ratioy*jc + off
                bdry(i,j,n) = crse(ic,jc,n)
@@ -325,7 +325,7 @@ c        ::::: interpolate to fine grid
      &           (mask(i,j+ratioy).ne.not_covered) ) NN = 1
             
             do off = 0,ratioy-1
-               xInt = (dfloat(off - ratioy/2) + half)/ratioy
+               xInt = (dble(off - ratioy/2) + half)/ratioy
                call polyInterpCoeff(xInt, x, NN, c)
                bdry(i,j+off,n) = zero
                do m=1,NN
@@ -430,7 +430,7 @@ c     Can we do better by sliding stencil to the left
 
 c        ::::: interpolate to fine grid
          do off = 0, ratiox - 1
-            xx = (dfloat(off - ratiox/2) + half)/ratiox
+            xx = (dble(off - ratiox/2) + half)/ratiox
             do ic = iclo, ichi
                i = ratiox*ic + off
                bdry(i,j,n) = crse(ic,jc,n)
@@ -483,7 +483,7 @@ c        ::::: interpolate to fine grid
      &           (mask(i+ratiox,j).ne.not_covered) ) NN = 1
             
             do off = 0,ratiox-1
-               xInt = (dfloat(off - ratiox/2) + half)/ratiox
+               xInt = (dble(off - ratiox/2) + half)/ratiox
                call polyInterpCoeff(xInt, x, NN, c)
                bdry(i+off,j,n) = zero
                do m=1,NN
@@ -588,7 +588,7 @@ c     Can we do better by sliding stencil to the left
 
 c        ::::: interpolate to fine grid
          do off = 0, ratiox - 1
-            xx = (dfloat(off - ratiox/2) + half)/ratiox
+            xx = (dble(off - ratiox/2) + half)/ratiox
             do ic = iclo, ichi
                i = ratiox*ic + off
                bdry(i,j,n) = crse(ic,jc,n)
@@ -641,7 +641,7 @@ c        ::::: interpolate to fine grid
      &           (mask(i+ratiox,j).ne.not_covered) ) NN = 1
             
             do off = 0,ratiox-1
-               xInt = (dfloat(off - ratiox/2) + half)/ratiox
+               xInt = (dble(off - ratiox/2) + half)/ratiox
                call polyInterpCoeff(xInt, x, NN, c)
                bdry(i+off,j,n) = zero
                do m=1,NN

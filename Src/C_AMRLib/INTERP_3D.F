@@ -1,5 +1,5 @@
 C
-c $Id: INTERP_3D.F,v 1.16 2002-10-11 18:23:00 almgren Exp $
+c $Id: INTERP_3D.F,v 1.17 2002-10-19 18:33:28 car Exp $
 c
 
 #undef  BL_LANG_CC
@@ -75,9 +75,9 @@ c ::: local var
      &     fx*fy*sl(i,SLXY) + fx*fz*sl(i,SLXZ) + fy*fz*sl(i,SLYZ) +
      &     fx*fy*fz*sl(i,SLXYZ)
 
-      RX = one/dfloat(lratiox)
-      RY = one/dfloat(lratioy)
-      RZ = one/dfloat(lratioz)
+      RX = one/dble(lratiox)
+      RY = one/dble(lratioy)
+      RZ = one/dble(lratioz)
       RXY = RX*RY
       RXZ = RX*RZ
       RYZ = RY*RZ
@@ -163,11 +163,11 @@ c           ::::: compute fine strip of interpolated data
 c
             do lz = klo, khi
               kfn = lratioz * k + lz
-              fz = dfloat(lz)
+              fz = dble(lz)
 
               do ly = jlo, jhi
                 jfn = lratioy * j + ly
-                fy = dfloat(ly)
+                fy = dble(ly)
 
                 do i = ARG_L1(cb), ARG_H1(cb)
                   istrtFine = i * lratiox
@@ -179,7 +179,7 @@ c
 
                   do lx = ilo, ihi
                     ifn = lratiox * i + lx
-                    fx = dfloat(lx)
+                    fx = dble(lx)
 
                     fine(ifn,jfn,kfn,n) = slope(i,j,k,n,fx,fy,fz)
                   end do
@@ -1814,13 +1814,13 @@ c     :::::: helpful statement functions
       c3 = two3rd
       c4 = tenth
 
-      hafratx = half*dfloat(lratiox-1)
-      hafraty = half*dfloat(lratioy-1)
-      hafratz = half*dfloat(lratioz-1)
+      hafratx = half*dble(lratiox-1)
+      hafraty = half*dble(lratioy-1)
+      hafratz = half*dble(lratioz-1)
 
-      volratiox = one/dfloat(lratiox)
-      volratioy = one/dfloat(lratioy)
-      volratioz = one/dfloat(lratioz)
+      volratiox = one/dble(lratiox)
+      volratioy = one/dble(lratioy)
+      volratioz = one/dble(lratioz)
 
       do n = 1, nvar
       do kc = cb_l3, cb_h3
@@ -1933,13 +1933,13 @@ c	 ::::: now interpolate to fine grid
 
 	 do koff = klo, khi
 	    k = lratioz*kc + koff
-	    zoff = dfloat(koff)-hafratz
+	    zoff = dble(koff)-hafratz
 	    do joff = jlo, jhi
 	       j = lratioy*jc + joff
-	       yoff = dfloat(joff)-hafraty
+	       yoff = dble(joff)-hafraty
 	       do ioff = ilo, ihi
 	          i = lratiox*ic + ioff
-		  xoff = dfloat(ioff)-hafratx
+		  xoff = dble(ioff)-hafratx
 		  fine(i,j,k,n) = crse(ic,jc,kc,n) + 
      &				( volratiox*xoff*cx + volratioy*yoff*cy 
      &                          + volratioz*zoff*cz )
