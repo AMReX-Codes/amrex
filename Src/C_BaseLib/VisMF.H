@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.28 1997-12-04 20:11:01 lijewski Exp $
+// $Id: VisMF.H,v 1.29 1997-12-05 16:18:22 lijewski Exp $
 //
 
 #include <MultiFab.H>
@@ -115,6 +115,14 @@ public:
     //
     const FArrayBox& operator[] (int i) const;
     //
+    // Delete's the FAB at the specified index.
+    //
+    void clear (int i);
+    //
+    // Delete's all the FABs.
+    //
+    void clear ();
+    //
     // Write a MultiFab to disk in a "smart" way.
     // Returns the total # of bytes written (on this processor).
     //
@@ -132,7 +140,7 @@ public:
     //
     enum { IO_Buffer_Size = 40960 * 32 };
     //
-    // The type of a char buffer required by setbuf().
+    // The type of a char buffer required by [p]setbuf().
     //
 #ifdef BL_SETBUF_SIGNED_CHAR
     typedef signed char Setbuf_Char_Type;
@@ -165,7 +173,7 @@ private:
     static long WriteHeader (const aString& mf_name,
                              VisMF::Header& hdr);
 
-    static FArrayBox* readFAB (int i,const aString& mf_name,const Header& hdr);
+    static FArrayBox* readFAB (int, const aString&, const Header&);
 
     static aString DirName (const aString& filename);
 
@@ -281,6 +289,20 @@ VisMF::operator[] (int i) const
         m_pa.set(i, VisMF::readFAB(i, m_mfname, m_hdr));
     }
     return m_pa[i];
+}
+
+inline
+void
+VisMF::clear (int i)
+{
+    m_pa.clear(i);
+}
+
+inline
+void
+VisMF::clear ()
+{
+    m_pa.clear();
 }
 
 inline
