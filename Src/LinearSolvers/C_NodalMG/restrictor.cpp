@@ -439,7 +439,7 @@ void bilinear_restrictor_coarse_class::fill_interface(MultiFab& dest,
 			igrid = lev_interface.grid(0, icor, itmp);
 		    const Box& fb = fine[igrid].box();
 		    FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fine[igrid].dataPtr(), DIMLIST(fb),
-			D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate);
+			D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
 		}
 		else if (geo == level_interface::ALL) 
 		{
@@ -448,7 +448,7 @@ void bilinear_restrictor_coarse_class::fill_interface(MultiFab& dest,
 		    fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
 		    const Box& fb = fgr.box();
 		    FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fb),
-			D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate);
+			D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
 		}
 		else if (geo == level_interface::XL || geo == level_interface::XH || geo == level_interface::YL || geo == level_interface::YH) 
 		{
@@ -463,7 +463,7 @@ void bilinear_restrictor_coarse_class::fill_interface(MultiFab& dest,
 		    FArrayBox fgr(fbox, dest[jgrid].nComp());
 		    fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
 		    FORT_FANFR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
-			D_DECL(rat[0], rat[1], rat[2], dest.nComp(), &integrate, &idim, &idir));
+			D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, &idim, &idir);
 		}
 		else if (geo == level_interface::LL || geo == level_interface::HL || geo == level_interface::LH || geo == level_interface::HH) 
 		{
@@ -504,7 +504,7 @@ void bilinear_restrictor_coarse_class::fill_interface(MultiFab& dest,
 		    const int idir1 = (geo == (level_interface::LL | level_interface::HH)) ? 1 : -1;
 		    fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, 0, icor);
 		    FORT_FANDR2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fbox),
-			D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, &idir1);
+			D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, &idir1, 0);
 		}
 		else 
 		{
