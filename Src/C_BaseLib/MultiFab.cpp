@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.45 2000-04-24 17:52:36 car Exp $
+// $Id: MultiFab.cpp,v 1.46 2000-06-02 17:59:53 almgren Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -456,9 +456,9 @@ linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
 {
     const Real teps = (t2-t1)/1000.0;
 
-    BL_ASSERT(t>t1-teps && (extrap || t < t2+teps));
+    BL_ASSERT(t>=t1-teps && (extrap || t <= t2+teps));
 
-    if (t < t1+teps)
+    if (t <= t1+teps)
     {
         returnedFillBoxIds.resize(1);
         returnedFillBoxIds[0] = fabCopyDesc.AddBox(faid1,
@@ -517,9 +517,9 @@ linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
 {
     const Real teps = (t2-t1)/1000.0;
 
-    BL_ASSERT(t>t1-teps && (extrap || t < t2+teps));
+    BL_ASSERT(t >= t1-teps && (extrap || t <= t2+teps));
 
-    if (t < t1+teps)
+    if (t <= t1+teps)
     {
         fabCopyDesc.FillFab(faid1, fillBoxIds[0], dest);
     }
