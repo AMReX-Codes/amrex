@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Box.cpp,v 1.8 1999-05-10 18:54:20 car Exp $
+// $Id: Box.cpp,v 1.9 1999-07-15 17:07:04 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -25,73 +25,24 @@ Box::TheUnitBox ()
 //
 // Administrative functions.
 //
-Box::Box ()
-    : smallend(IntVect::TheUnitVector()),
-      bigend(IntVect::TheZeroVector()),
-      btype()
-{
-    //
-    // Mark as illegal Box.
-    //
-    D_EXPR(len[0] = -1, len[1] = -1, len[2] = -1);
-}
-
-Box::Box (const IntVect& small,
-          const int*     vec_len)
-    : smallend(small),
-      bigend(D_DECL(small[0]+vec_len[0]-1,
-                    small[1]+vec_len[1]-1,
-                    small[2]+vec_len[2]-1))
-{
-    D_EXPR(len[0] = vec_len[0], len[1] = vec_len[1], len[2] = vec_len[2]);
-}
-
-Box::Box (const IntVect&   small,
-          const IntVect&   big,
-          const IndexType& t)
-    : smallend(small),
-      bigend(big),
-      btype(t)
-{
-    computeBoxLen();
-}
-
-Box::Box (const IntVect& small,
-          const IntVect& big)
-    : smallend(small),
-      bigend(big)
-{
-    computeBoxLen();
-}
-
-Box::Box (const IntVect& small,
-          const IntVect& big,
-          const IntVect& typ)
-    : smallend(small),
-      bigend(big),
-      btype(typ)
-{
-    BL_ASSERT(typ >= IntVect::TheZeroVector() && typ <= IntVect::TheUnitVector());
-    computeBoxLen();
-}
 
 bool
 Box::numPtsOK (long& N) const
 {
     BL_ASSERT(ok());
 
-    N = len[0];
+    N = length(0);
 
     for (int i = 1; i < BL_SPACEDIM; i++)
     {
-        if (len[i] == 0)
+        if (length(i) == 0)
         {
             N = 0;
             return true;
         }
-        else if (N <= LONG_MAX/len[i])
+        else if (N <= LONG_MAX/length(i))
         {
-            N *= len[i];
+            N *= length(i);
         }
         else
         {
@@ -119,11 +70,11 @@ Box::volumeOK (long& N) const
 {
     BL_ASSERT(ok());
 
-    N = len[0]-btype[0];
+    N = length(0)-btype[0];
 
     for (int i = 1; i < BL_SPACEDIM; i++)
     {
-        long diff = (len[i]-btype[i]);
+        long diff = (length(i)-btype[i]);
 
         if (diff == 0)
         {
@@ -201,7 +152,6 @@ Box::operator&= (const Box& b)
     BL_ASSERT(sameType(b));
     smallend.max(b.smallend);
     bigend.min(b.bigend);
-    computeBoxLen();
     return *this;
 }
 
@@ -212,7 +162,6 @@ Box::surroundingNodes ()
         if ((btype[i] == 0))
             bigend.shift(i,1);
     btype.setall();
-    computeBoxLen();
     return *this;
 }
 
@@ -223,7 +172,6 @@ Box::enclosedCells ()
         if (btype[i])
             bigend.shift(i,-1);
     btype.clear();
-    computeBoxLen();
     return *this;
 }
 
@@ -313,7 +261,6 @@ Box::refine (int refinement_ratio)
     bigend += shft; // Bigend does more than just multiply.
     bigend.scale(refinement_ratio);
     bigend -= shft;
-    computeBoxLen();
     return *this;
 }
 
@@ -326,7 +273,6 @@ Box::refine (const IntVect& refinement_ratio)
     bigend += shft;
     bigend   *= refinement_ratio;
     bigend -= shft;
-    computeBoxLen();
     return *this;
 }
 
@@ -338,23 +284,23 @@ Box::refine (const IntVect& refinement_ratio)
 int
 Box::longside () const
 {
-    int maxlen = len[0];
+    int maxlen = length(0);
     for (int i = 1; i < BL_SPACEDIM; i++)
-        if (len[i] > maxlen)
-            maxlen = len[i];
+        if (length(i) > maxlen)
+            maxlen = length(i);
     return maxlen;
 }
 
 int
 Box::longside (int& dir) const
 {
-    int maxlen = len[0];
+    int maxlen = length(0);
     dir = 0;
     for (int i = 1; i < BL_SPACEDIM; i++)
     {
-        if (len[i] > maxlen)
+        if (length(i) > maxlen)
         {
-            maxlen = len[i];
+            maxlen = length(i);
             dir = i;
         }
     }
@@ -364,23 +310,23 @@ Box::longside (int& dir) const
 int
 Box::shortside () const
 {
-    int minlen = len[0];
+    int minlen = length(0);
     for (int i = 1; i < BL_SPACEDIM; i++)
-        if(len[i] < minlen)
-            minlen = len[i];
+        if (length(i) < minlen)
+            minlen = length(i);
     return minlen;
 }
 
 int
 Box::shortside (int& dir) const
 {
-    int minlen = len[0];
+    int minlen = length(0);
     dir = 0;
     for (int i = 1; i < BL_SPACEDIM; i++)
     {
-        if(len[i] < minlen)
+        if (length(i) < minlen)
         {
-            minlen = len[i];
+            minlen = length(i);
             dir = i;
         }
     }
@@ -425,7 +371,6 @@ Box::chop (int dir,
         //
         bigend.setVal(dir,chop_pnt-1);
     }
-    computeBoxLen();
     return Box(sm,bg,btype);
 }
 
@@ -464,8 +409,6 @@ Box::convert (int                  dir,
    unsigned int bitval = btype[dir];
    int off = typ - bitval;
    bigend.shift(dir,off);
-   if (off != 0)
-      computeBoxLen();
    //
    // Set dir'th bit to typ.
    //
@@ -484,7 +427,6 @@ Box::convert (IndexType t)
       bigend.shift(dir,off);
       btype.setType(dir, (IndexType::CellIndex) typ);
    }
-   computeBoxLen();
    return *this;
 }
 
@@ -548,9 +490,10 @@ Box::coarsen (const IntVect& refinement_ratio)
         bigend += off;
     }
     else
+    {
         bigend.coarsen(refinement_ratio);
+    }
 
-    computeBoxLen();
     return *this;
 }
 
@@ -597,9 +540,10 @@ Box::coarsen (int refinement_ratio)
         bigend += off;
     }
     else
+    {
         bigend.coarsen(refinement_ratio);
+    }
 
-    computeBoxLen();
     return *this;
 }
 
@@ -672,7 +616,6 @@ operator>> (istream& is,
         b.btype = IndexType(v);
         BL_ASSERT(b.btype.ok());
         is.ignore(BL_IGNORE_MAX,')');
-        b.computeBoxLen();
     }
     else if (c == '<')
     {
@@ -682,7 +625,6 @@ operator>> (istream& is,
         is >> v;
         b.btype = IndexType(v);
         BL_ASSERT(b.btype.ok());
-        b.computeBoxLen();
     }
     else
         BoxLib::Error("operator>>(istream&,Box&): expected \'<\'");
@@ -722,7 +664,6 @@ Box::minBox (const Box &b)
     BL_ASSERT(sameType(b));
     smallend.min(b.smallend);
     bigend.max(b.bigend);
-    computeBoxLen();
     return *this;
 }
 
@@ -733,7 +674,7 @@ minBox (const Box& b,
     BL_ASSERT(b.ok() && o.ok());
     BL_ASSERT(o.sameType(b));
     IntVect small = b.smallend;
-    IntVect big = b.bigend;
+    IntVect big   = b.bigend;
     small.min(o.smallend);
     big.max(o.bigend);
     return Box(small,big,b.btype);
