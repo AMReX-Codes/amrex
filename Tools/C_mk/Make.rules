@@ -1,0 +1,215 @@
+#
+# $Id: Make.rules,v 1.1 1997-09-15 20:37:04 lijewski Exp $
+#
+
+#
+# Rule for closing a library.  Unless we're using KCC, we only close boxlib.
+#
+closelib:
+ifeq ($(CLOSELIB),TRUE)
+ifeq ($(COMP), CFRONT)
+ifeq ($(LBASE),box)
+	$(RM) -r ./tmp
+	mkdir ./tmp
+	-cp -p $(addprefix $(objTempDir)/, $(objForLibs)) $(LibsToCloseAgainst) ./tmp
+	-$(CXX) -ptv -pts $(CXXLIBFLAGS) -DBL_LANG_CC -DBL_SPACEDIM=$(DIM) $(CPPFLAGS) $(CXXFLAGS) ./tmp/*.o
+	n=1; for i in $(ptRepDir)/*.o; do cp $$i ./tmp/$${n}.o; n=`expr $$n + 1`; done
+	$(RM) $(optionsLib)
+	ar crv $(optionsLib) ./tmp/*.o
+	$(RM) -r ./tmp
+endif
+endif
+ifeq ($(SUNPRO), TRUE)
+ifeq ($(LBASE),box)
+	$(RM) -r ./tmp
+	mkdir ./tmp
+	-cp -p $(addprefix $(objTempDir)/, $(objForLibs)) $(LibsToCloseAgainst) ./tmp
+	n=1; for i in $(ptRepDir)/Templates.DB/*.o; do cp $$i ./tmp/$${n}.o; n=`expr $$n + 1`; done
+	$(RM) $(optionsLib)
+	ar crv $(optionsLib) ./tmp/*.o
+	$(RM) -r ./tmp
+endif
+endif
+ifeq ($(COMP), KCC)
+	$(CXX) $(CXXLIBFLAGS) $(CXXFLAGS) $(CPPFLAGS) -DBL_LANG_CC -o $(optionsLib) $(addprefix $(objTempDir)/, $(objForLibs)) $(LibsToCloseAgainst)
+
+endif
+endif
+
+$(addprefix $(instIncludeDir)/, $(instSources)): $(instIncludeDir)/% : %
+	@if [ ! -d $(instIncludeDir) ]; then mkdir -p $(instIncludeDir); fi
+	$(INSTALL_DATA) $< $@
+
+$(instLib) : $(optionsLib)
+	@if [ ! -d $(instLibDir) ]; then mkdir -p $(instLibDir); fi
+	$(INSTALL_DATA) $< $@
+	$(RANLIB) $@
+
+install: $(instLib) $(addprefix $(instIncludeDir)/, $(instSources))
+
+clean:
+	$(RM) $(optionsLib) $(objTempDir)/*.o $(f77TempDir)/*.f
+ifeq ($(CLOSELIB), TRUE)
+	$(RM) *.o *.ii $(ptRepDir)/*.o
+	$(RM) $(optionsLib) $(objTempDir)/KCC_files
+endif
+	$(RM) $(EBASE)$(optionsSuffix).ex *.pure
+
+#
+# Rule for building libraries.
+#
+ifeq ($(CLOSELIB),TRUE)
+$(optionsLib): $(optionsLib)( $(objForLibs) ) closelib
+else
+$(optionsLib): $(optionsLib)( $(objForLibs) )
+endif
+	$(RANLIB) $@
+
+realclean: clean
+	$(RM) lib*.a *.f TAGS tags
+	$(RM) -r d o f ii_files *~
+	$(RM) *.ex *.ii *.o mon.out gmon.out
+
+tags:	$(allSources)
+	ctags $^
+
+TAGS:	$(allSources)
+	etags $^
+
+.PHONY:	all clean install TAGS realclean tags
+
+#
+# Rules for building executable.
+#
+$(executable):	$(objForExecs)
+	$(PRELINK) $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) \
+		-o $@ $(objForExecs) $(libraries)
+#
+# Rule for building a purified executable.
+#
+ifdef PURIFY
+%.pure: %
+	$(PURIFY) $(PURIFYFLAGS) $^
+endif
+
+#
+# Rules for libraries.
+#
+
+$(optionsLib)(%.o): %.cpp
+	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
+	$(CXX) $(CXXLIBFLAGS) $(CXXFLAGS) $(CPPFLAGS) -DBL_LANG_CC -c $< -o $(objTempDir)/$*.o
+	$(AR) r $@ $(objTempDir)/$*.o
+ifneq ($(CLOSELIB), TRUE)
+	$(RM) $(objTempDir)/$*.o
+endif
+
+$(optionsLib)(%.o): %.c
+	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
+	$(CC) $(CLIBFLAGS) $(CFLAGS) $(CPPFLAGS) -DBL_LANG_C -c $< -o $(objTempDir)/$*.o
+	$(AR) r $@ $(objTempDir)/$*.o
+ifneq ($(CLOSELIB), TRUE)
+	$(RM) $(objTempDir)/$*.o
+endif
+
+$(optionsLib)(%.o): %.F
+	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
+	$(CPP) $(CPPFLAGS) -DBL_LANG_FORT $< | $(FORTPREP) > $(f77TempDir)/$*.f
+ifeq ($(MACHINE),CRAY)
+	$(FC) $(FLIBFLAGS) $(FFLAGS) -c $(f77TempDir)/$*.f
+	mv $*.o $(objTempDir)
+else
+	$(FC) $(FLIBFLAGS) $(FFLAGS) -c $(f77TempDir)/$*.f -o $(objTempDir)/$*.o
+endif
+	$(AR) r $@ $(objTempDir)/$*.o
+ifneq ($(CLOSELIB), TRUE)
+	$(RM) $(objTempDir)/$*.o
+endif
+
+#
+# Rules for objects.
+#
+
+$(objTempDir)/%.o: %.cpp
+	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
+	$(COMPILE.C) $(CXXEXEFLAGS) -DBL_LANG_CC $< $(OUTPUT_OPTION)
+
+$(objTempDir)/%.o: %.c
+	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
+	$(COMPILE.c) $(CEXEFLAGS) -DBL_LANG_C $< $(OUTPUT_OPTION)
+
+$(objTempDir)/%.o: %.F
+	@if [ ! -d $(objTempDir) ]; then mkdir -p $(objTempDir); fi
+	@if [ ! -d $(f77TempDir) ]; then mkdir -p $(f77TempDir); fi
+	$(CPP) -DBL_LANG_FORT $(CPPFLAGS) $< | $(FORTPREP) > $(f77TempDir)/$*.f
+	$(COMPILE.f) $(FEXEFLAGS) $(f77TempDir)/$*.f $(FORT_OUTPUT_OPTION)
+
+#
+# Rules for dependencies in libraries.
+#
+
+$(depTempDir)/%.dl: %.cpp
+	@echo Depending $< ...
+	@if [ ! -d $(depTempDir) ]; then mkdir -p $(depTempDir); fi
+	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
+		sed -e '\''s,^[^:]*\/,,'\'' | \
+		sed -e '\''s,$*.o,$(optionsLib)(&) $@,'\'' > $@'
+
+$(depTempDir)/%.dl: %.c
+	@echo Depending $< ...
+	@if [ ! -d $(depTempDir) ]; then mkdir -p $(depTempDir); fi
+	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
+		sed -e '\''s,^[^:]*\/,,'\'' | \
+		sed -e '\''s,$*.o,$(optionsLib)(&) $@,'\'' > $@'
+
+$(depTempDir)/%.dl: %.F
+	@echo Depending $< ...
+	@if [ ! -d $(depTempDir) ]; then mkdir -p $(depTempDir); fi
+	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
+		sed -e '\''s,^[^:]*\/,,'\'' | \
+		sed -e '\''s,$*.o,$(optionsLib)(&) $@,'\'' > $@'
+#
+# Rules for dependencies in bare object files.
+#
+
+$(depTempDir)/%.d: %.cpp
+	@echo Depending $< ...
+	@if [ ! -d $(depTempDir) ]; then mkdir -p $(depTempDir); fi
+	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
+		sed -e '\''s,^[^:]*\/,,'\'' | \
+		sed -e '\''s,$*.o,$(objTempDir)/& $@,'\'' > $@'
+
+$(depTempDir)/%.d: %.c
+	@echo Depending $< ...
+	@if [ ! -d $(depTempDir) ]; then mkdir -p $(depTempDir); fi
+	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
+		sed -e '\''s,^[^:]*\/,,'\'' | \
+		sed -e '\''s,$*.o,$(objTempDir)/& $@,'\'' > $@'
+
+$(depTempDir)/%.d: %.F
+	@echo Depending $< ...
+	@if [ ! -d $(depTempDir) ]; then mkdir -p $(depTempDir); fi
+	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
+		sed -e '\''s,^[^:]*\/,,'\'' | \
+		sed -e '\''s,$*.o,$(objTempDir)/& $@,'\'' > $@'
+#
+# Now load/build the dependency files.
+#
+ifdef CLIB_sources
+-include $(CLIB_sources:%.cpp=$(depTempDir)/%.dl)
+endif
+ifdef FLIB_sources
+-include $(FLIB_sources:%.F=$(depTempDir)/%.dl)
+endif
+ifdef cLIB_sources
+-include $(cLIB_sources:%.c=$(depTempDir)/%.dl)
+endif
+ifdef CEXE_sources
+-include $(CEXE_sources:%.cpp=$(depTempDir)/%.d)
+endif
+ifdef FEXE_sources
+-include $(FEXE_sources:%.F=$(depTempDir)/%.d)
+endif
+ifdef cEXE_sources
+-include $(cEXE_sources:%.c=$(depTempDir)/%.d)
+endif

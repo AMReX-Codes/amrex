@@ -1,0 +1,264 @@
+#
+# Make.defs $Id: Make.defs,v 1.1 1997-09-15 20:37:04 lijewski Exp $
+#
+
+#
+# Establish some defaults, assuming that they are not already set by the
+# Makefile that includes this file.
+#
+
+#
+# To destinguish between YMP or C90
+# don't make the distinction for now, just use CRAY
+#
+UNAMEM := $(shell uname -m)
+ifeq    ($(findstring CRAY, $(UNAMEM)), CRAY)
+ifeq    ($(findstring Y-MP, $(UNAMEM)), Y-MP)
+    MACHINE := CRAY
+endif
+ifeq    ($(findstring C90, $(UNAMEM)), C90)
+    MACHINE := CRAY
+endif
+ifeq	($(findstring J90, $(UNAMEM)), J90)
+    MACHINE := CRAY
+endif
+ifeq	($(findstring T3E, $(UNAMEM)), T3E)
+    MACHINE := T3E
+endif
+endif
+
+ifndef MACHINE
+    MACHINE := $(shell uname)
+endif
+
+#
+# We'd also like to distinguish between SunOS and Solaris.
+#
+UNAMER := $(shell uname -r)
+
+ifeq ($(MACHINE), SunOS)
+    ifeq ($(shell awk 'BEGIN {print "$(UNAMER)"; print "5.0"}' /dev/null | \
+            sort | head -1), 5.0)
+        MACHINE := Solaris
+    endif
+endif
+
+ifeq ($(MACHINE), HP-UX)
+    #
+    # `-' is not a valid character in a preprocessing token.
+    # That is to say, -DBL_HP-UX is not, strictly speaking, valid.
+    #
+    MACHINE := HPUX
+endif
+
+ifndef PRECISION
+    PRECISION	= DOUBLE
+endif
+
+ifndef DEBUG
+    DEBUG	= TRUE
+endif
+
+ifndef PROFILE
+    PROFILE	= FALSE
+endif
+
+ifndef DIM
+    DIM		= 2
+endif
+
+ifndef COMP
+    COMP	= CC
+endif
+
+#
+# Set some reasonable defaults.
+#
+CXX = CC
+FC  = f77
+CC  = cc
+
+#
+# Defaults for BoxLib style programs.
+#
+ARCH		= IEEE
+FORTLINK  	= UNDERSCORE
+
+FORTPREP  	= perl $(GUTHAMR_HOME)/bin/strip72 -c
+MKDEP		= perl $(GUTHAMR_HOME)/bin/mkdep
+INSTALL		= sh   $(GUTHAMR_HOME)/bin/install-sh -c
+#
+# SunOS ranlib has a problem if the library is installed 444 :-(
+#
+ifeq ($(MACHINE), SunOS)
+INSTALL_DATA 	= $(INSTALL) -m 0644
+else
+INSTALL_DATA 	= $(INSTALL) -m 0444
+endif
+
+#
+# We assume that INSTALL_ROOT is either set on the command line,
+# set in the environment, or set by a controlling GNUmakefile.
+# It is where the stuff is to be installed. For the guthamr stuff
+# proper, we set this to GUTHAMR_HOME.  If this isn't set,
+# we set it to where guthamr was installed.
+#
+ifndef INSTALL_ROOT
+    INSTALL_ROOT = $(GUTHAMR_HOME)
+endif
+
+ifndef INSTALL_PREFIX
+    INSTALL_PREFIX = $(INSTALL_ROOT)
+endif
+
+RANLIB		   = true
+FORT_OUTPUT_OPTION = -o $@
+
+#
+# Generic setup for using g++ ...
+#
+ifeq ($(COMP),g++)
+    CXXPRFF    := -p
+    CXXOPTF    += -O2
+    CXXDEBF    += -g
+    FULLWARN   := -Wall
+    CXX	       := g++
+    override XTRADEFS += -DBL_AUTO_INSTANTIATE
+endif
+
+#
+# Generic setup for using cfront ...
+#
+ifeq ($(COMP),CFRONT)
+    CLOSELIB    := TRUE
+    ptRepDir	 = $(objTempDir)/ptrepository
+    CXXLIBFLAGS += -ptr$(ptRepDir)
+endif
+
+#
+# We can do library closure with KCC 3.x.
+#
+ifeq ($(COMP),KCC)
+    __kcc_version := $(shell echo 'int i;' > _X.cpp)
+    __kcc_version := $(shell KCC -c -v _X.cpp 1>/dev/null 2>.slime)
+    __kcc_version := $(shell cat .slime | fgrep KAI)
+    $(shell /bin/rm -f _X.cpp _X.o .slime)
+ifeq ($(findstring KAI C++ 3., $(__kcc_version)), KAI C++ 3.)
+    CLOSELIB := TRUE
+endif
+endif
+
+ifndef MAKEARCHFILE
+    include $(GUTHAMR_HOME)/mk/Make.$(MACHINE)
+else
+    include $(MAKEARCHFILE)
+endif
+
+ifeq ($(DEBUG),TRUE)
+    FFLAGS	+= $(FDEBF)
+    CXXFLAGS	+= $(CXXDEBF)
+    CFLAGS	+= $(CDEBF)
+    DebugSuffix := .DEBUG
+else
+    FFLAGS	+= $(FOPTF)
+    CXXFLAGS	+= $(CXXOPTF)
+    CFLAGS	+= $(COPTF)
+    CPPFLAGS	+= -DNDEBUG
+    DebugSuffix :=
+endif
+
+ifeq ($(PROFILE),TRUE)
+    FFLAGS	+= $(FPRFF)
+    CXXFLAGS	+= $(CXXPRFF)
+    CFLAGS	+= $(CXXPRFF)
+    ProfSuffix	:= .PROF
+else
+    ProfSuffix	:=
+endif
+
+ifeq ($(PRECISION),FLOAT)
+ifeq ($(MACHINE),CRAY)
+    PrecisionSuffix :=
+else
+    PrecisionSuffix := .$(PRECISION)
+endif
+else
+    PrecisionSuffix :=
+endif
+
+CPlusPlusSourceFiles =
+C89SourceFiles	=
+F77SourceFiles	=
+F90SourceFiles	=
+
+objForLibs	=	$(CLIB_sources:%.cpp=%.o) \
+			$(FLIB_sources:%.F=%.o) \
+			$(cLIB_sources:%.c=%.o)
+
+objStandalone	= 	$(CEXE_sources:%.cpp=%.o) \
+			$(FEXE_sources:%.F=%.o) \
+			$(cEXE_sources:%.c=%.o)
+
+objForExecs	= $(addprefix $(objTempDir)/, $(objStandalone))
+
+instSources	= $(CLIB_headers) $(FLIB_headers) $(cLIB_headers) $(T_sources) $(T_headers)
+
+INCLUDE_LOCATIONS += . $(XTRAINCLOC) $(XINCL)
+LIBRARY_LOCATIONS += . $(XTRALIBLOC) $(XLIBL)
+
+DEFINES		+= 	-DBL_SPACEDIM=$(DIM)      \
+		  	-DBL_USE_$(PRECISION)     \
+		  	-DBL_ARCH_$(ARCH)         \
+		  	-DBL_FORT_USE_$(FORTLINK) \
+		  	-DBL_$(MACHINE)           \
+		  	$(XTRADEFS)
+
+includes	= $(addprefix -I, $(INCLUDE_LOCATIONS))
+
+CPPFLAGS	+= $(DEFINES) $(includes)
+
+libraries	= $(LIBRARIES) $(XTRALIBS)
+
+LDFLAGS		= $(addprefix -L, $(LIBRARY_LOCATIONS))
+
+machineSuffix	= $(MACHINE).$(COMP)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)
+optionsSuffix	= $(DIM)d.$(machineSuffix)
+
+optionsLib	= $(addprefix lib, \
+			$(addsuffix $(optionsSuffix).a, $(LBASE)))
+
+instIncludeDir	= $(INSTALL_PREFIX)/include
+instLibDir	= $(INSTALL_PREFIX)/lib/$(machineSuffix)
+instBinDir	= $(INSTALL_PREFIX)/bin/$(machineSuffix)
+instScriptDir	= $(INSTALL_PREFIX)/bin
+instHtmlDir	= $(INSTALL_PREFIX)/html
+instInfoDir	= $(INSTALL_PREFIX)/info
+instMkDir	= $(INSTALL_PREFIX)/mk
+
+executable	= $(addsuffix $(optionsSuffix).ex, $(EBASE))
+
+depTempDir	= d/$(optionsSuffix)
+objTempDir	= o/$(optionsSuffix)
+f77TempDir	= f/$(optionsSuffix)
+
+instLib		= $(instLibDir)/lib$(LBASE)$(DIM)d.a
+
+#
+# For source code mainipulation
+#
+CSRCALL		= $(CEXE_sources) $(CEXE_headers) \
+		  $(CLIB_sources) $(CLIB_headers) $(T_sources) $(T_headers)
+FSRCALL		= $(FEXE_sources) $(FEXE_headers) $(FLIB_sources) \
+                  $(FLIB_headers)
+cSRCALL		= $(cEXE_sources) $(cEXE_headers) $(cLIB_sources) \
+                  $(cLIB_headers)
+allSources	= $(CSRCALL) $(FSRCALL) $(cSRCALL)
+
+
+ifndef CLOSELIB
+    CLOSELIB   := FALSE
+endif
+
+ifdef WARNINGS
+    CXX += $(FULLWARN)
+endif

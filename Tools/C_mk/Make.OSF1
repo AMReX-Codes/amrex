@@ -1,0 +1,47 @@
+#
+# $Id: Make.OSF1,v 1.1 1997-09-15 20:37:04 lijewski Exp $
+#
+
+#
+# Version 5.1 will NOT compile BoxLib.
+#
+ifeq ($(COMP),cxx)
+CXX             := cxx -define_templates
+FULLWARN        := +pp -fullwarn
+CXXOPTF         += -O2 -tune ev5 -Olimit 2400
+CXXDEBF         += -g
+CXXPRFF         := -p
+override XTRADEFS += -DBL_AUTO_INSTANTIATE
+override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
+endif
+
+ifeq ($(COMP),KCC)
+CXX		:= KCC
+ifneq ($(CLOSELIB), TRUE)
+    CXXLIBFLAGS := -tused -tlocal
+endif
+CXXPRFF         := -p
+FULLWARN	:= --strict_warnings
+CXXOPTF		+= -O3 +K3 -g3 -Olimit 2000
+CXXDEBF		+= +K0
+override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
+endif
+
+ifeq ($(COMP),g++)
+override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
+endif
+
+FC              = f77 -u -extend_source
+
+ifeq ($(PRECISION),FLOAT)
+FOPTF           += -fast -O5 -tune ev5
+else
+FOPTF           += -fast -O5 -tune ev5
+endif
+FDEBF           += -g
+FPRFF           +=
+
+CPP                = /usr/bin/cpp
+PURIFY             =
+
+OUTPUT_OPTION = -o $@
