@@ -1,5 +1,5 @@
 c
-c $Id: FLUXREG_2D.F,v 1.6 1999-02-02 23:36:05 lijewski Exp $
+c $Id: FLUXREG_2D.F,v 1.7 2000-06-02 17:09:16 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -36,29 +36,16 @@ c ::: -----------------------------------------------------------
       REAL_T     reg(DIMV(reg),numcomp)
       REAL_T     flx(DIMV(flx),numcomp)
 
-      integer    n, i, j, lenx, leny
+      integer    n, i, j
 
-      lenx = hi(1)-lo(1)+1
-      leny = hi(2)-lo(2)+1
-      if (lenx .ge. leny) then
-         do n = 1, numcomp
+      do n = 1, numcomp
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
                reg(i,j,n) =  mult*flx(i,j,n)
             end do
          end do
-         end do
-      else
-         do n = 1, numcomp
-         do i = lo(1), hi(1)
-            do j = lo(2), hi(2)
-               reg(i,j,n) = mult*flx(i,j,n)
-            end do
-         end do
-         end do
-      end if
+      end do
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -86,31 +73,18 @@ c ::: -----------------------------------------------------------
       REAL_T     mult
       REAL_T     reg(DIMV(reg),numcomp)
       REAL_T     flx(DIMV(flx),numcomp)
-      REAL_T    area(DIMV(area))
+      REAL_T     area(DIMV(area))
 
-      integer    n, i, j, lenx, leny
+      integer    n, i, j
 
-      lenx = hi(1)-lo(1)+1
-      leny = hi(2)-lo(2)+1
-      if (lenx .ge. leny) then
-         do n = 1, numcomp
+      do n = 1, numcomp
          do j = lo(2), hi(2)
             do i = lo(1), hi(1)
                reg(i,j,n) = mult*area(i,j)*flx(i,j,n)
             end do
          end do
-         end do
-      else
-         do n = 1, numcomp
-         do i = lo(1), hi(1)
-            do j = lo(2), hi(2)
-               reg(i,j,n) = mult*area(i,j)*flx(i,j,n)
-            end do
-         end do
-         end do
-      end if
+      end do
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -158,12 +132,12 @@ c        ::::: flux normal to X direction
             stop
          end if
          do n = 1, numcomp
-         do off = 0, ratioy-1
-         do jc = ARG_L2(reg), ARG_H2(reg)
-            j = ratioy*jc + off
-            reg(ic,jc,n) = reg(ic,jc,n) + mult*flx(i,j,n)
-         end do
-         end do
+            do off = 0, ratioy-1
+               do jc = ARG_L2(reg), ARG_H2(reg)
+                  j = ratioy*jc + off
+                  reg(ic,jc,n) = reg(ic,jc,n) + mult*flx(i,j,n)
+               end do
+            end do
          end do
       else
 c        ::::: flux normal to Y direction
@@ -178,16 +152,15 @@ c        ::::: flux normal to Y direction
             stop
          end if
          do n = 1, numcomp
-         do off = 0, ratiox-1
-         do ic = ARG_L1(reg), ARG_H1(reg)
-            i = ratiox*ic + off
-            reg(ic,jc,n) = reg(ic,jc,n) + mult*flx(i,j,n)
-         end do
-         end do
+            do off = 0, ratiox-1
+               do ic = ARG_L1(reg), ARG_H1(reg)
+                  i = ratiox*ic + off
+                  reg(ic,jc,n) = reg(ic,jc,n) + mult*flx(i,j,n)
+               end do
+            end do
          end do
       end if
 
-      return
       end
 
 c ::: -----------------------------------------------------------
@@ -240,12 +213,12 @@ c        ::::: flux normal to X direction
             stop
          end if
          do n = 1, numcomp
-         do off = 0, ratioy-1
-         do jc = ARG_L2(reg), ARG_H2(reg)
-            j = ratioy*jc + off
-            reg(ic,jc,n) = reg(ic,jc,n) + mult*area(i,j)*flx(i,j,n)
-         end do
-         end do
+            do off = 0, ratioy-1
+               do jc = ARG_L2(reg), ARG_H2(reg)
+                  j = ratioy*jc + off
+                  reg(ic,jc,n) = reg(ic,jc,n) + mult*area(i,j)*flx(i,j,n)
+               end do
+            end do
          end do
       else
 c        ::::: flux normal to Y direction
@@ -260,16 +233,15 @@ c        ::::: flux normal to Y direction
             stop
          end if
          do n = 1, numcomp
-         do off = 0, ratiox-1
-         do ic = ARG_L1(reg), ARG_H1(reg)
-            i = ratiox*ic + off
-            reg(ic,jc,n) = reg(ic,jc,n) + mult*area(i,j)*flx(i,j,n)
-         end do
-         end do
+            do off = 0, ratiox-1
+               do ic = ARG_L1(reg), ARG_H1(reg)
+                  i = ratiox*ic + off
+                  reg(ic,jc,n) = reg(ic,jc,n) + mult*area(i,j)*flx(i,j,n)
+               end do
+            end do
          end do
       end if
 
-      return
       end
 
 c ::
@@ -302,29 +274,16 @@ c :: For Multifluid reg is defined as: REAL_T reg(DIMV(reg),numcomp+FLUX_EXTRA)
       REAL_T       s(DIMV(s),numcomp)
       REAL_T     vol(DIMV(vol))
 
-      integer n, i, j, lenx, leny
-      lenx = hi(1) - lo(1) + 1
-      leny = hi(2) - lo(2) + 1
+      integer n, i, j
 
-      if (lenx .ge. leny) then
-         do n = 1, numcomp
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  s(i,j,n) = s(i,j,n) + mult*reg(i,j,n)/vol(i,j)
-               end do
-            end do
-         end do
-      else
-         do n = 1, numcomp
+      do n = 1, numcomp
+         do j = lo(2), hi(2)
             do i = lo(1), hi(1)
-               do j = lo(2), hi(2)
-                  s(i,j,n) = s(i,j,n) + mult*reg(i,j,n)/vol(i,j)
-               end do
+               s(i,j,n) = s(i,j,n) + mult*reg(i,j,n)/vol(i,j)
             end do
          end do
-      end if
+      end do
 
-      return
       end
 
 c ::
@@ -351,32 +310,19 @@ c ::
       REAL_T     mult, dx(SDIM)
       REAL_T     reg(DIMV(reg),numcomp)
 c :: For Multifluid reg is defined as: REAL_T reg(DIMV(reg),numcomp+FLUX_EXTRA)
-      REAL_T       s(DIMV(s),numcomp)
+      REAL_T     s(DIMV(s),numcomp)
 
-      integer n, i, j, lenx, leny
-      REAL_T vol
+      integer n, i, j
+      REAL_T vmult
 
-      vol = dx(1)*dx(2)
-      lenx = hi(1) - lo(1) + 1
-      leny = hi(2) - lo(2) + 1
+      vmult = mult/(dx(1)*dx(2))
 
-      if (lenx .ge. leny) then
-         do n = 1, numcomp
-            do j = lo(2), hi(2)
-               do i = lo(1), hi(1)
-                  s(i,j,n) = s(i,j,n) + mult*reg(i,j,n)/vol
-               end do
-            end do
-         end do
-      else
-         do n = 1, numcomp
+      do n = 1, numcomp
+         do j = lo(2), hi(2)
             do i = lo(1), hi(1)
-               do j = lo(2), hi(2)
-                  s(i,j,n) = s(i,j,n) + mult*reg(i,j,n)/vol
-               end do
+               s(i,j,n) = s(i,j,n) + vmult*reg(i,j,n)
             end do
          end do
-      end if
+      end do
 
-      return
       end

@@ -1,5 +1,5 @@
 c
-c $Id: FLUXREG_3D.F,v 1.7 1998-08-08 17:25:42 lijewski Exp $
+c $Id: FLUXREG_3D.F,v 1.8 2000-06-02 17:09:16 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -373,43 +373,17 @@ c ::
       REAL_T     vol(DIMV(vol))
       REAL_T     reg(DIMV(reg),numcomp)
       
-      integer n, i, j, k, lenx, leny, lenz, maxlen
-      lenx = hi(1) - lo(1) + 1
-      leny = hi(2) - lo(2) + 1
-      lenz = hi(3) - lo(3) + 1
-      maxlen = max(lenx, leny, lenz)
+      integer n, i, j, k
       
-      if (lenx .eq. maxlen) then
-         do n = 1, numcomp
-            do k = lo(3), hi(3)
+      do n = 1, numcomp
+         do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
                   s(i,j,k,n) = s(i,j,k,n) + mult*reg(i,j,k,n)/vol(i,j,k)
                end do
             end do
-            end do
          end do
-      else if (leny .eq. maxlen) then
-         do n = 1, numcomp
-            do i = lo(1), hi(1)
-            do k = lo(3), hi(3)
-               do j = lo(2), hi(2)
-                  s(i,j,k,n) = s(i,j,k,n) + mult*reg(i,j,k,n)/vol(i,j,k)
-               end do
-            end do
-            end do
-         end do
-      else
-         do n = 1, numcomp
-            do i = lo(1), hi(1)
-            do j = lo(2), hi(2)
-               do k = lo(3), hi(3)
-                  s(i,j,k,n) = s(i,j,k,n) + mult*reg(i,j,k,n)/vol(i,j,k)
-               end do
-            end do
-            end do
-         end do
-      end if
+      end do
       
       end
 
@@ -437,48 +411,22 @@ c ::
       integer    numcomp
       REAL_T     mult, dx(SDIM)
       REAL_T     reg(DIMV(reg),numcomp)
-      REAL_T       s(DIMV(s),numcomp)
+      REAL_T     s(DIMV(s),numcomp)
       
-      integer n, i, j, k, lenx, leny, lenz, maxlen
-      REAL_T vol
+      integer n, i, j, k
+      REAL_T vmult
 
-      lenx = hi(1) - lo(1) + 1
-      leny = hi(2) - lo(2) + 1
-      lenz = hi(3) - lo(3) + 1
-      maxlen = max(lenx, leny, lenz)
-      vol = dx(1)*dx(2)*dx(3)
+      vmult = mult/(dx(1)*dx(2)*dx(3))
       
-      if (lenx .eq. maxlen) then
-         do n = 1, numcomp
-            do k = lo(3), hi(3)
+      do n = 1, numcomp
+         do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  s(i,j,k,n) = s(i,j,k,n) + mult*reg(i,j,k,n)/vol
+                  s(i,j,k,n) = s(i,j,k,n) + vmult*reg(i,j,k,n)
                end do
             end do
-            end do
          end do
-      else if (leny .eq. maxlen) then
-         do n = 1, numcomp
-            do i = lo(1), hi(1)
-            do k = lo(3), hi(3)
-               do j = lo(2), hi(2)
-                  s(i,j,k,n) = s(i,j,k,n) + mult*reg(i,j,k,n)/vol
-               end do
-            end do
-            end do
-         end do
-      else
-         do n = 1, numcomp
-            do i = lo(1), hi(1)
-            do j = lo(2), hi(2)
-               do k = lo(3), hi(3)
-                  s(i,j,k,n) = s(i,j,k,n) + mult*reg(i,j,k,n)/vol
-               end do
-            end do
-            end do
-         end do
-      end if
+      end do
       
       end
 
