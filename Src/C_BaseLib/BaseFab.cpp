@@ -74,8 +74,6 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    BL_PROFILE("template<> BaseFab<Real>::performCopy()");
-
     if (destbox == domain && srcbox == src.box())
     {
         Real*       data_dst = dataPtr(destcomp);

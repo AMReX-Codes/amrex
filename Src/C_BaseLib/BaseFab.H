@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.51 2003-01-23 20:10:01 car Exp $
+// $Id: BaseFab.H,v 1.52 2003-05-15 22:01:01 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -1278,8 +1278,6 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
     BL_ASSERT(destbox.sameSize(srcbox));
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
-
-    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::performCopy()");
 
 #if (BL_SPACEDIM == 1)
 {                                                                       
