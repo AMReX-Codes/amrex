@@ -1,7 +1,7 @@
 #ifndef BL_POINTERS_H
 #define BL_POINTERS_H
 //
-// $Id: Pointers.H,v 1.16 2001-07-31 22:43:19 lijewski Exp $
+// $Id: Pointers.H,v 1.17 2004-07-21 23:50:01 car Exp $
 //
 #include <BLassert.H>
 #include <BoxLib.H>
@@ -404,7 +404,7 @@ inline
 T*
 CpClassPtr<T>::operator-> () const
 {
-    return ptr;
+    return CpPtr<T>::ptr;
 }
 
 template <class T>
@@ -530,7 +530,7 @@ inline
 T*
 LnClassPtr<T>::operator->() const
 {
-    return ptr;
+    return LnPtr<T>::ptr;
 }
 
 #endif /*BL_POINTERS_H*/
