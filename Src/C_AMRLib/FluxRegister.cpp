@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.26 1998-04-27 19:42:55 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.27 1998-05-08 00:23:56 marc Exp $
 //
 
 #include <FluxRegister.H>
@@ -129,6 +129,7 @@ FluxRegister::Reflux (MultiFab&       S,
 
     const BoxArray& grd_boxes = S.boxArray();
 
+    const int reg_comp = 0;
     for (MultiFabIterator mfi(S); mfi.isValid(false); ++mfi)
     {
         int grd = mfi.index();  // Punt for now.
@@ -158,7 +159,7 @@ FluxRegister::Reflux (MultiFab&       S,
                     Box fine_face(adjCell(reg_box,face));
                     //
                     // low(hight)  face of fine grid => high (low)
-                    // face of the exterior crarse grid cell updated.
+                    // face of the exterior coarse grid cell updated.
                     // adjust sign of scale accordingly.
                     //
                     Real mult = face.isLow() ? -scale : scale;
@@ -170,7 +171,7 @@ FluxRegister::Reflux (MultiFab&       S,
                                                         regBox,
                                                         0,
                                                         src_comp,
-                                                        dest_comp,
+                                                        reg_comp,
                                                         num_comp));
                     }
                 }
@@ -211,7 +212,7 @@ FluxRegister::Reflux (MultiFab&       S,
                         Box fine_face(adjCell(reg_box,face));
                         //
                         // low(hight)  face of fine grid => high (low)
-                        // face of the exterior crarse grid cell updated.
+                        // face of the exterior coarse grid cell updated.
                         // adjust sign of scale accordingly.
                         //
                         Real mult = face.isLow() ? -scale : scale;
@@ -223,7 +224,7 @@ FluxRegister::Reflux (MultiFab&       S,
                                                             regBox,
                                                             0,
                                                             src_comp,
-                                                            dest_comp,
+                                                            reg_comp,
                                                             num_comp));
                         }
                     }
@@ -266,8 +267,8 @@ FluxRegister::Reflux (MultiFab&       S,
                     Orientation face = fi();
                     Box fine_face(adjCell(reg_box,face));
                     //
-                    // low(hight)  face of fine grid => high (low)
-                    // face of the exterior crarse grid cell updated.
+                    // low(high)  face of fine grid => high (low)
+                    // face of the exterior coarse grid cell updated.
                     // adjust sign of scale accordingly.
                     //
                     Real mult = face.isLow() ? -scale : scale;
@@ -278,14 +279,7 @@ FluxRegister::Reflux (MultiFab&       S,
                         FillBoxId fbid = fillBoxId[overlapId];
                         FArrayBox reg(fbid.box(), num_comp);
                         fscd.FillFab(fsid[face], fbid, reg);
-if (src_comp != 0)
-{
-    cerr << "\nCheck me: FluxRegister::Reflux(MultiFab&, const MultiFab&, ...)\n\n";
-    //
-    // Is reg.dataPtr(0) is correct?  Should it be reg.dataPtr(src_comp)?
-    //
-}
-                        const Real* reg_dat = reg.dataPtr(0);
+                        const Real* reg_dat = reg.dataPtr(reg_comp);
                         const int* rlo      = fine_face.loVect();
                         const int* rhi      = fine_face.hiVect();
                         const int* lo       = ovlp.loVect();
@@ -333,7 +327,7 @@ if (src_comp != 0)
                         Orientation face = fi();
                         Box fine_face(adjCell(reg_box,face));
                         //
-                        // low(hight)  face of fine grid => high (low)
+                        // low(high)  face of fine grid => high (low)
                         // face of the exterior crarse grid cell updated.
                         // adjust sign of scale accordingly.
                         //
@@ -346,7 +340,7 @@ if (src_comp != 0)
                             assert(regBox == fbid.box());
                             FArrayBox reg(fbid.box(), num_comp);
                             fscd.FillFab(fsid[face], fbid, reg);
-                            const Real* reg_dat = reg.dataPtr(0);
+                            const Real* reg_dat = reg.dataPtr(reg_comp);
                             const int* rlo      = fine_face.loVect();
                             const int* rhi      = fine_face.hiVect();
                             const int* lo       = ovlp.loVect();
@@ -387,6 +381,7 @@ FluxRegister::Reflux (MultiFab&       S,
 
     vector<FillBoxId> fillBoxId;
 
+    const int reg_comp = 0;
     for (MultiFabIterator mfi(S); mfi.isValid(false); ++mfi)
     {
         const Box& s_box = mfi.validbox();
@@ -411,7 +406,7 @@ FluxRegister::Reflux (MultiFab&       S,
                                                         regBox,
                                                         0,
                                                         src_comp,
-                                                        dest_comp,
+                                                        reg_comp,
                                                         num_comp));
                     }
                 }
@@ -441,7 +436,7 @@ FluxRegister::Reflux (MultiFab&       S,
                         Orientation face = fi();
                         Box fine_face(adjCell(reg_box,face));
                         //
-                        // low(hight)  face of fine grid => high (low)
+                        // low(high)  face of fine grid => high (low)
                         // face of the exterior coarse grid cell updated.
                         // adjust sign of scale accordingly.
                         //
@@ -454,7 +449,7 @@ FluxRegister::Reflux (MultiFab&       S,
                                                             regBox,
                                                             0,
                                                             src_comp,
-                                                            dest_comp,
+                                                            reg_comp,
                                                             num_comp));
                         }
                     }
@@ -484,7 +479,7 @@ FluxRegister::Reflux (MultiFab&       S,
                     Orientation face = fi();
                     Box fine_face(adjCell(reg_box,face));
                     //
-                    // low(hight)  face of fine grid => high (low)
+                    // low(high)  face of fine grid => high (low)
                     // face of the exterior coarse grid cell updated.
                     // adjust sign of scale accordingly.
                     //
@@ -499,22 +494,15 @@ FluxRegister::Reflux (MultiFab&       S,
                         FillBoxId fbid  = fillBoxId[overlapId];
                         FArrayBox reg(fbid.box(), num_comp);
                         fscd.FillFab(fsid[face], fbid, reg);
-if (src_comp != 0)
-{
-   cerr << "\nCheck me: FluxRegister::Reflux(MultiFab&, Real,...)\n\n";
-   //
-   // Is reg.dataPtr(0) is correct?  Should it be reg.dataPtr(src_comp)?
-   //
-}
-                      const Real* reg_dat = reg.dataPtr(0);
-                      const int* rlo      = fine_face.loVect();
-                      const int* rhi      = fine_face.hiVect();
-                      const int* lo       = ovlp.loVect();
-                      const int* hi       = ovlp.hiVect();
-                      FORT_FRCVREFLUX(s_dat,ARLIM(slo),ARLIM(shi),dx,
-                                      reg_dat,ARLIM(rlo),ARLIM(rhi),lo,hi,
-                                      &num_comp,&mult);
-                      ++overlapId;
+			const Real* reg_dat = reg.dataPtr(reg_comp);
+			const int* rlo      = fine_face.loVect();
+			const int* rhi      = fine_face.hiVect();
+			const int* lo       = ovlp.loVect();
+			const int* hi       = ovlp.hiVect();
+			FORT_FRCVREFLUX(s_dat,ARLIM(slo),ARLIM(shi),dx,
+					reg_dat,ARLIM(rlo),ARLIM(rhi),lo,hi,
+					&num_comp,&mult);
+			++overlapId;
                     }
                 }
             }
@@ -555,7 +543,7 @@ if (src_comp != 0)
                             assert(regBox == fbid.box());
                             FArrayBox reg(fbid.box(), num_comp);
                             fscd.FillFab(fsid[face], fbid, reg);
-                            const Real* reg_dat = reg.dataPtr(0);
+                            const Real* reg_dat = reg.dataPtr(reg_comp);
                             const int* rlo      = fine_face.loVect();
                             const int* rhi      = fine_face.hiVect();
                             const int* lo       = ovlp.loVect();
