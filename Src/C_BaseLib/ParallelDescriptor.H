@@ -1,7 +1,7 @@
 #ifndef BL_PARALLELDESCRIPTOR_H
 #define BL_PARALLELDESCRIPTOR_H
 //
-// $Id: ParallelDescriptor.H,v 1.74 2002-10-31 18:09:00 car Exp $
+// $Id: ParallelDescriptor.H,v 1.75 2002-10-31 18:44:00 car Exp $
 //
 #include <BLassert.H>
 #include <REAL.H>
@@ -167,30 +167,30 @@ namespace ParallelDescriptor
     //
     //@ManDoc: Returns processor number of calling program.
     //
+    extern int m_MyId;
     inline int
     MyProc ()
     {
         BL_ASSERT(m_MyId != -1);
-        extern int ParallelDescriptor::m_MyId;
         return m_MyId;
     }
     //
     //@ManDoc: Returns number of CPUs involved in the computation.
     //
+    extern int m_nProcs;
     inline int
     NProcs ()
     {
         BL_ASSERT(m_nProcs != -1);
-        extern int ParallelDescriptor::m_nProcs;
         return m_nProcs;
     }
     //
     //@ManDoc: The CPU number of the I/O Processor.
     //
+    extern const int ioProcessor;
     inline int
     IOProcessorNumber ()
     {
-        extern int ParallelDescriptor::ioProcessor;
         return ioProcessor;
     }
     //
@@ -209,9 +209,9 @@ namespace ParallelDescriptor
     //
     //@ManDoc: BoxLib's Parallel Communicator, probably MPI_COMM_WORLD
     //
+    extern MPI_Comm m_comm;
     inline MPI_Comm Communicator ()
     {
-        extern MPI_Comm ParallelDescriptor::m_comm;
         return m_comm;
     }
     //
