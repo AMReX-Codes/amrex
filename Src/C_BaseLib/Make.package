@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.14 1999-04-20 01:26:16 car Exp $
+# $Id: Make.package,v 1.15 1999-04-27 21:38:04 lijewski Exp $
 #
 
 BOXLIB_BASE=EXE
@@ -47,12 +47,6 @@ C$(BOXLIB_BASE)_headers += Box.H IntVect.H IndexType.H Orientation.H
 #
 C$(BOXLIB_BASE)_sources += BoxList.cpp BoxArray.cpp BoxDomain.cpp
 C$(BOXLIB_BASE)_headers += BoxList.H BoxArray.H BoxDomain.H
-
-#
-# BoxArray relationships.
-#
-C$(BOXLIB_BASE)_sources += BoxAssoc.cpp
-C$(BOXLIB_BASE)_headers += BoxAssoc.H
 
 #
 # FORTRAN array data.
