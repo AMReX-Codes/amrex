@@ -2,7 +2,7 @@
 #define BL_BOXLIST_H
 
 //
-// $Id: BoxList.H,v 1.21 2001-07-23 20:07:14 lijewski Exp $
+// $Id: BoxList.H,v 1.22 2001-07-23 21:15:16 car Exp $
 //
 
 #include <iostream>
@@ -121,13 +121,13 @@ public:
     //
     //@ManDoc: Add the Box after where the iterator points.
     //
-    void addAfter (Iterator& bli,
-                   const Box&       bn);
+    //void addAfter (Iterator& bli,
+    //const Box&       bn);
     //
     //@ManDoc: Add the Box before where the iterator points.
     //
-    void addBefore (Iterator& bli,
-                    const Box&       bn);
+    //void addBefore (Iterator& bli,
+    //const Box&       bn);
     //
     //@ManDoc: Remove all Boxes from this BoxList.
     //
@@ -164,14 +164,6 @@ public:
     //@ManDoc: Is this BoxList not empty?
     //
     bool isNotEmpty () const;
-    //
-    //@ManDoc: Access the Box to which the iterator points.
-    //
-    const Box& operator[] (const Iterator& bli) const;
-    //
-    //@ManDoc: Access the Box to which the iterator points.
-    //
-    Box& operator[] (const Iterator& bli);
     //
     //@ManDoc: True if the set of intersecting Boxes is empty.
     //
@@ -211,7 +203,7 @@ public:
     //
     //@ManDoc: Remove the pointed to Box from this BoxList.
     //
-    BoxList& remove (Iterator& bli);
+    BoxList& remove (Iterator bli);
     //
     //@ManDoc: Creates the complement of BoxList bl in Box b.
     //

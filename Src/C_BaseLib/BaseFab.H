@@ -3,7 +3,7 @@
 #include <winstd.H>
 
 //
-// $Id: BaseFab.H,v 1.35 2001-07-21 17:37:10 car Exp $
+// $Id: BaseFab.H,v 1.36 2001-07-23 21:15:16 car Exp $
 //
 
 #include <cstdlib>
@@ -1359,8 +1359,8 @@ BaseFab<T>::setComplement (T          x,
                            int        num)
 {
     BoxList b_lst = BoxLib::boxDiff(domain,b);
-    for (BoxListIterator bli(b_lst); bli; ++bli)
-        performSetVal(x,bli(),ns,num);
+    for (BoxList::Iterator bli = b_lst.begin(); bli != b_lst.end(); ++bli)
+        performSetVal(x, *bli, ns, num);
 }
 
 template <class T>

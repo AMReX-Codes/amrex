@@ -2,7 +2,7 @@
 #define BL_BOXDOMAIN_H
 
 //
-// $Id: BoxDomain.H,v 1.16 2001-07-23 20:07:14 lijewski Exp $
+// $Id: BoxDomain.H,v 1.17 2001-07-23 21:15:16 car Exp $
 //
 
 #include <cstdlib>
@@ -16,8 +16,6 @@
 //
 // Forward declaration of our BoxDomain iterator class.
 //
-class BoxDomainIterator;
-
 class BoxDomain;
 
 namespace BoxLib
@@ -112,10 +110,6 @@ public:
                disjointness. Returns true if the BoxDomain is empty.
     */
     bool ok () const;
-    //
-    //@ManDoc: Access the Box to which the iterator points.
-    //
-    const Box& operator[] (const BoxDomainIterator& bli) const;
     //
     //@ManDoc: Promoted from BoxList.
     //
