@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.28 2001-07-24 18:16:54 lijewski Exp $
+// $Id: ParmParse.cpp,v 1.29 2001-07-24 19:47:17 car Exp $
 //
 
 #include <iostream>
@@ -108,15 +108,15 @@ std::list<PP_entry*> table;
 typedef std::list<PP_entry*>::iterator list_iterator;
 typedef std::list<PP_entry*>::const_iterator const_list_iterator;
 
-template <class T> const char* const tok_name(T&)    { return "unknown";     }
+template <class T> const char* tok_name(T&)    { return "unknown";     }
 
-template <> const char* const tok_name(bool&)        { return "bool";        }
-template <> const char* const tok_name(int&)         { return "int";         }
-template <> const char* const tok_name(float&)       { return "float";       }
-template <> const char* const tok_name(double&)      { return "double";      }
-template <> const char* const tok_name(std::string&) { return "std::string"; }
-template <> const char* const tok_name(Box&)         { return "Box";         }
-template <> const char* const tok_name(IntVect&)     { return "IntVect";     }
+template <> const char* tok_name(bool&)        { return "bool";        }
+template <> const char* tok_name(int&)         { return "int";         }
+template <> const char* tok_name(float&)       { return "float";       }
+template <> const char* tok_name(double&)      { return "double";      }
+template <> const char* tok_name(std::string&) { return "std::string"; }
+template <> const char* tok_name(Box&)         { return "Box";         }
+template <> const char* tok_name(IntVect&)     { return "IntVect";     }
 
 
 //
@@ -554,7 +554,7 @@ squeryval (const char*  name,
     //
     // Get last occurrance of name in table.
     //
-    const PP_entry* def = ppindex(occurence,name, thePrefix);
+    const PP_entry* def = ppindex(occurence, name, thePrefix);
     if ( def == 0 )
     {
         return false;
@@ -562,11 +562,11 @@ squeryval (const char*  name,
     //
     // Does it have ival values?
     //
-    if ( size_t(ival) >= def->val.size() )
+    if ( ival >= def->val.size() )
     {
         std::cerr << "ParmParse::queryval no value number"
                   << ival << " for ";
-        if ( occurence < 0 )
+        if ( occurence ==  ParmParse::LAST )
 	{
             std::cerr << "last occurence of ";
 	}
@@ -585,7 +585,7 @@ squeryval (const char*  name,
     {
         std::cerr << "ParmParse::queryval type mismatch on value number "
                   << ival << " of " << '\n';
-        if ( occurence < 0 )
+        if ( occurence == ParmParse::LAST )
 	{
             std::cerr << " last occurence of ";
 	}
@@ -658,11 +658,19 @@ squeryarr (const char*  name,
     // Does it have sufficient number of values and are they all
     // the same type?
     //
+    if ( num_val == ParmParse::ALL )
+    {
+	num_val = def->val.size();
+    }
     int stop_ix = start_ix + num_val - 1;
-    if ( size_t(stop_ix) >= def->val.size() )
+    if ( ptr.size() < stop_ix )
+    {
+        ptr.resize(stop_ix + 1);
+    }
+    if ( stop_ix >= def->val.size() )
     {
         std::cerr << "ParmParse::queryarr too many values requested for";
-        if ( occurence < 0)
+        if ( occurence == ParmParse::LAST )
 	{
             std::cerr << " last occurence of ";
 	}
@@ -673,7 +681,6 @@ squeryarr (const char*  name,
         std::cerr << def->defname << '\n' << *def << '\n';
         BoxLib::Abort();
     }
-
     for ( int n = start_ix; n <= stop_ix; n++ )
     {
 	const std::string& valname = def->val[n];
@@ -682,7 +689,7 @@ squeryarr (const char*  name,
 	{
 	    std::cerr << "ParmParse::queryarr type mismatch on value number "
 		      <<  n << " of ";
-	    if ( occurence < 0)
+	    if ( occurence == ParmParse::LAST )
 	    {
 		std::cerr << " last occurence of ";
 	    }
@@ -948,10 +955,6 @@ ParmParse::getktharr (const char* name,
                       int         start_ix,
                       int         num_val) const
 {
-    if ( ptr.size() < num_val )
-    {
-        ptr.resize(num_val);
-    }
     sgetarr(name,thePrefix,ptr,start_ix,num_val,k);
 }
 
@@ -961,10 +964,6 @@ ParmParse::getarr (const char* name,
                    int         start_ix,
                    int         num_val) const
 {
-    if ( ptr.size() < num_val )
-    {
-        ptr.resize(num_val);
-    }
     sgetarr(name,thePrefix,ptr,start_ix,num_val, LAST);
 }
 
@@ -975,10 +974,6 @@ ParmParse::queryktharr (const char* name,
                         int         start_ix,
                         int         num_val) const
 {
-    if ( ptr.size() < num_val )
-    {
-        ptr.resize(num_val);
-    }
     return squeryarr(name,thePrefix,ptr,start_ix,num_val,k);
 }
 
@@ -988,10 +983,6 @@ ParmParse::queryarr (const char* name,
                      int         start_ix,
                      int         num_val) const
 {
-    if ( ptr.size() < num_val )
-    {
-        ptr.resize(num_val);
-    }
     return squeryarr(name,thePrefix,ptr,start_ix,num_val, LAST);
 }
 
@@ -1037,10 +1028,6 @@ ParmParse::getktharr (const char*   name,
                       int           start_ix,
                       int           num_val) const
 {
-    if ( ptr.size() < num_val )
-    {
-        ptr.resize(num_val);
-    }
     sgetarr(name,thePrefix,ptr,start_ix,num_val,k);
 }
 
@@ -1050,10 +1037,6 @@ ParmParse::getarr (const char*   name,
                    int           start_ix,
                    int           num_val) const
 {
-    if ( ptr.size() < num_val )
-    {
-        ptr.resize(num_val);
-    }
     sgetarr(name,thePrefix,ptr,start_ix,num_val, LAST);
 }
 
@@ -1064,10 +1047,6 @@ ParmParse::queryktharr (const char*   name,
                         int           start_ix,
                         int           num_val) const
 {
-    if ( ptr.size() < num_val )
-    {
-        ptr.resize(num_val);
-    }
     return squeryarr(name,thePrefix,ptr,start_ix, num_val,k);
 }
 
@@ -1077,10 +1056,6 @@ ParmParse::queryarr (const char*   name,
                      int           start_ix,
                      int           num_val) const
 {
-    if ( ptr.size() < num_val )
-    {
-        ptr.resize(num_val);
-    }
     return squeryarr(name,thePrefix,ptr,start_ix,num_val, LAST);
 }
 
@@ -1126,10 +1101,6 @@ ParmParse::getktharr (const char*    name,
                       int            start_ix,
                       int            num_val) const
 {
-    if ( ptr.size() < num_val )
-    {
-        ptr.resize(num_val);
-    }
     sgetarr(name,thePrefix,ptr,start_ix,num_val,k);
 }
 
@@ -1139,10 +1110,6 @@ ParmParse::getarr (const char*    name,
                    int            start_ix,
                    int            num_val) const
 {
-    if ( ptr.size() < num_val )
-    {
-        ptr.resize(num_val);
-    }
     sgetarr(name,thePrefix,ptr,start_ix,num_val, LAST);
 }
 
@@ -1153,10 +1120,6 @@ ParmParse::queryktharr (const char*    name,
                         int            start_ix,
                         int            num_val) const
 {
-    if ( ptr.size() < num_val )
-    {
-        ptr.resize(num_val);
-    }
     return squeryarr(name,thePrefix,ptr,start_ix, num_val,k);
 }
 
@@ -1166,10 +1129,6 @@ ParmParse::queryarr (const char*    name,
                      int            start_ix,
                      int            num_val) const
 {
-    if ( ptr.size() < num_val )
-    {
-        ptr.resize(num_val);
-    }
     return squeryarr(name,thePrefix,ptr,start_ix,num_val, LAST);
 }
 
@@ -1215,10 +1174,6 @@ ParmParse::getktharr (const char*     name,
                       int             start_ix,
                       int             num_val) const
 {
-    if ( ptr.size() < num_val )
-    {
-        ptr.resize(num_val);
-    }
     sgetarr(name,thePrefix,ptr,start_ix,num_val,k);
 }
 
@@ -1228,10 +1183,6 @@ ParmParse::getarr (const char*     name,
                    int             start_ix,
                    int             num_val) const
 {
-    if ( ptr.size() < num_val )
-    {
-        ptr.resize(num_val);
-    }
     sgetarr(name,thePrefix,ptr,start_ix,num_val, LAST);
 }
 
@@ -1242,10 +1193,6 @@ ParmParse::queryktharr (const char*     name,
                         int             start_ix,
                         int             num_val) const
 {
-    if ( ptr.size() < num_val )
-    {
-        ptr.resize(num_val);
-    }
     return squeryarr(name,thePrefix,ptr,start_ix, num_val,k);
 }
 
@@ -1255,10 +1202,6 @@ ParmParse::queryarr (const char*     name,
                      int             start_ix,
                      int             num_val) const
 {
-    if ( ptr.size() < num_val )
-    {
-        ptr.resize(num_val);
-    }
     return squeryarr(name,thePrefix,ptr,start_ix,num_val, LAST);
 }
 
@@ -1304,10 +1247,6 @@ ParmParse::getktharr (const char*     name,
                       int             start_ix,
                       int             num_val) const
 {
-    if ( ptr.size() < num_val )
-    {
-        ptr.resize(num_val);
-    }
     sgetarr(name,thePrefix,ptr,start_ix,num_val,k);
 }
 
@@ -1317,10 +1256,6 @@ ParmParse::getarr (const char*     name,
                    int             start_ix,
                    int             num_val) const
 {
-    if ( ptr.size() < num_val )
-    {
-        ptr.resize(num_val);
-    }
     sgetarr(name,thePrefix,ptr,start_ix,num_val, LAST);
 }
 
@@ -1331,10 +1266,6 @@ ParmParse::queryktharr (const char*     name,
                         int             start_ix,
                         int             num_val) const
 {
-    if ( ptr.size() < num_val )
-    {
-        ptr.resize(num_val);
-    }
     return squeryarr(name,thePrefix,ptr,start_ix, num_val,k);
 }
 
@@ -1344,10 +1275,6 @@ ParmParse::queryarr (const char*     name,
                      int             start_ix,
                      int             num_val) const
 {
-    if ( ptr.size() < num_val )
-    {
-        ptr.resize(num_val);
-    }
     return squeryarr(name,thePrefix,ptr,start_ix,num_val, LAST);
 }
 
@@ -1393,10 +1320,6 @@ ParmParse::getktharr (const char*     name,
                       int             start_ix,
                       int             num_val) const
 {
-    if ( ptr.size() < num_val )
-    {
-        ptr.resize(num_val);
-    }
     sgetarr(name,thePrefix,ptr,start_ix,num_val,k);
 }
 
@@ -1406,10 +1329,6 @@ ParmParse::getarr (const char*     name,
                    int             start_ix,
                    int             num_val) const
 {
-    if ( ptr.size() < num_val )
-    {
-        ptr.resize(num_val);
-    }
     sgetarr(name,thePrefix,ptr,start_ix,num_val, LAST);
 }
 
@@ -1420,10 +1339,6 @@ ParmParse::queryktharr (const char*     name,
                         int             start_ix,
                         int             num_val) const
 {
-    if ( ptr.size() < num_val )
-    {
-        ptr.resize(num_val);
-    }
     return squeryarr(name,thePrefix,ptr,start_ix, num_val,k);
 }
 
@@ -1433,10 +1348,6 @@ ParmParse::queryarr (const char*     name,
                      int             start_ix,
                      int             num_val) const
 {
-    if ( ptr.size() < num_val )
-    {
-        ptr.resize(num_val);
-    }
     return squeryarr(name,thePrefix,ptr,start_ix,num_val, LAST);
 }
 

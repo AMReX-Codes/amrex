@@ -2,7 +2,7 @@
 #define BL_PARMPARSE_H
 
 //
-// $Id: ParmParse.H,v 1.20 2001-07-24 18:12:35 car Exp $
+// $Id: ParmParse.H,v 1.21 2001-07-24 19:47:17 car Exp $
 //
 
 #include <string>
@@ -241,7 +241,7 @@ class ParmParse
 {
 public:
 
-    enum { LAST = -1, FIRST = 0 };
+    enum { LAST = -1, FIRST = 0, ALL = -1 };
 
     /*@ManDoc: Construct an additional ParmParse object sharing the same
                internal table as any other such objects in existence.  If
@@ -545,30 +545,30 @@ public:
     void getktharr (const char* name,
                     int         k,
                     Array<int>& ref,
-                    int         start_ix,
-                    int         num_val) const;
+                    int         start_ix = FIRST,
+                    int         num_val = ALL) const;
     //
     //@ManDoc: Same as getktharr() but searches for last occurrence of name.
     //
     void getarr (const char* name,
                  Array<int>& ref,
-                 int         start_ix,
-                 int         num_val) const;
+                 int         start_ix = FIRST,
+                 int         num_val = ALL) const;
     //
     //@ManDoc: queryktharr() is to querykth() as getktharr() is to getkth().
     //
     int queryktharr (const char* name,
                      int         k,
                      Array<int>& ref,
-                     int         start_ix,
-                     int         num_val) const;
+                     int         start_ix = FIRST,
+                     int         num_val = ALL) const;
     //
     //@ManDoc: Same as queryktharr() but searches for last occurrence of name.
     //
     int queryarr (const char* name,
                   Array<int>& ref,
-                  int         start_ix,
-                  int         num_val) const;
+                  int         start_ix = FIRST,
+                  int         num_val = ALL) const;
 
     /*@ManDoc: Gets an Array<float> of num\_val values from kth occurrence of
                given name.  If successful, the values are converted to a float
@@ -584,30 +584,30 @@ public:
     void getktharr (const char*   name,
                     int           k,
                     Array<float>& ref,
-                    int           start_ix,
-                    int           num_val) const;
+                    int           start_ix = FIRST,
+                    int           num_val = ALL) const;
     //
     //@ManDoc: Same as getktharr() but searches for last occurrence of name.
     //
     void getarr (const char*   name,
                  Array<float>& ref,
-                 int           start_ix,
-                 int           num_val) const;
+                 int           start_ix = FIRST,
+                 int           num_val = ALL) const;
     //
     //@ManDoc: queryktharr() is to querykth() as getktharr() is to getkth().
     //
     int queryktharr (const char*   name,
                      int           k,
                      Array<float>& ref,
-                     int           start_ix,
-                     int           num_val) const;
+                     int           start_ix = FIRST,
+                     int           num_val = ALL) const;
     //
     //@ManDoc: Same as queryktharr() but searches for last occurrence of name.
     //
     int queryarr (const char*   name,
                   Array<float>& ref,
-                  int           start_ix,
-                  int           num_val) const;
+                  int           start_ix = FIRST,
+                  int           num_val = ALL) const;
 
     /*@ManDoc: Gets an Array<double> of num\_val values from kth occurrence of
                given name.  If successful, the values are converted to a double
@@ -623,30 +623,30 @@ public:
     void getktharr (const char*    name,
                     int            k,
                     Array<double>& ref,
-                    int            start_ix,
-                    int            num_val) const;
+                    int            start_ix = FIRST,
+                    int            num_val = ALL) const;
     //
     //@ManDoc: Same as getktharr() but searches for last occurrence of name.
     //
     void getarr (const char*    name,
                  Array<double>& ref,
-                 int            start_ix,
-                 int            num_val) const;
+                 int            start_ix = FIRST,
+                 int            num_val = ALL) const;
     //
     //@ManDoc: queryktharr() is to querykth() as getktharr() is to getkth().
     //
     int queryktharr (const char*    name,
                      int            k,
                      Array<double>& ref,
-                     int            start_ix,
-                     int            num_val) const;
+                     int            start_ix = FIRST,
+                     int            num_val = ALL) const;
     //
     //@ManDoc: Same as queryktharr() but searches for last occurrence of name.
     //
     int queryarr (const char*    name,
                   Array<double>& ref,
-                  int            start_ix,
-                  int            num_val) const;
+                  int            start_ix = FIRST,
+                  int            num_val = ALL) const;
 
     /*@ManDoc: Gets an Array<std::string> of num\_val values from kth occurrence of
                given name.  If successful, the values are converted to an
@@ -662,30 +662,30 @@ public:
     void getktharr (const char*     name,
                     int             k,
                     Array<std::string>& ref,
-                    int             start_ix,
-                    int             num_val) const;
+                    int             start_ix = FIRST,
+                    int             num_val = ALL) const;
     //
     //@ManDoc: Same as getktharr() but searches for last occurrence of name.
     //
     void getarr (const char*     name,
                  Array<std::string>& ref,
-                 int             start_ix,
-                 int             num_val) const;
+                 int             start_ix = FIRST,
+                 int             num_val = ALL) const;
     //
     //@ManDoc: queryktharr() is to querykth() as getktharr() is to getkth().
     //
     int queryktharr (const char*     name,
                      int             k,
                      Array<std::string>& ref,
-                     int             start_ix,
-                     int             num_val) const;
+                     int             start_ix = FIRST,
+                     int             num_val = ALL) const;
     //
     //@ManDoc: Same as queryktharr() but searches for last occurrence of name.2
     //
     int queryarr (const char*     name,
                   Array<std::string>& ref,
-                  int             start_ix,
-                  int             num_val) const;
+                  int             start_ix = FIRST,
+                  int             num_val = ALL) const;
 
     /*@ManDoc: Gets an Array<IntVect> of num\_val values from kth occurrence of
                given name.  If successful, the values are converted to an
@@ -701,30 +701,30 @@ public:
     void getktharr (const char*     name,
                     int             k,
                     Array<IntVect>& ref,
-                    int             start_ix,
-                    int             num_val) const;
+                    int             start_ix = FIRST,
+                    int             num_val = ALL) const;
     //
     //@ManDoc: Same as getktharr() but searches for last occurrence of name.
     //
     void getarr (const char*     name,
                  Array<IntVect>& ref,
-                 int             start_ix,
-                 int             num_val) const;
+                 int             start_ix = FIRST,
+                 int             num_val = ALL) const;
     //
     //@ManDoc: queryktharr() is to querykth() as getktharr() is to getkth().
     //
     int queryktharr (const char*     name,
                      int             k,
                      Array<IntVect>& ref,
-                     int             start_ix,
-                     int             num_val) const;
+                     int             start_ix = FIRST,
+                     int             num_val = ALL) const;
     //
     //@ManDoc: Same as queryktharr() but searches for last occurrence of name.2
     //
     int queryarr (const char*     name,
                   Array<IntVect>& ref,
-                  int             start_ix,
-                  int             num_val) const;
+                  int             start_ix = FIRST,
+                  int             num_val = ALL) const;
 
     /*@ManDoc: Gets an Array<Box> of num\_val values from kth occurrence of
                given name.  If successful, the values are converted to an
@@ -740,30 +740,30 @@ public:
     void getktharr (const char*     name,
                     int             k,
                     Array<Box>& ref,
-                    int             start_ix,
-                    int             num_val) const;
+                    int             start_ix = FIRST,
+                    int             num_val = ALL) const;
     //
     //@ManDoc: Same as getktharr() but searches for last occurrence of name.
     //
     void getarr (const char*     name,
                  Array<Box>& ref,
-                 int             start_ix,
-                 int             num_val) const;
+                 int             start_ix = FIRST,
+                 int             num_val = ALL) const;
     //
     //@ManDoc: queryktharr() is to querykth() as getktharr() is to getkth().
     //
     int queryktharr (const char*     name,
                      int             k,
                      Array<Box>& ref,
-                     int             start_ix,
-                     int             num_val) const;
+                     int             start_ix = FIRST,
+                     int             num_val = ALL) const;
     //
     //@ManDoc: Same as queryktharr() but searches for last occurrence of name.2
     //
     int queryarr (const char*     name,
                   Array<Box>& ref,
-                  int             start_ix,
-                  int             num_val) const;
+                  int             start_ix = FIRST,
+                  int             num_val = ALL) const;
 
     /*@ManDoc: Construct an initial ParmParse object from the argc and argv
                passed in to main().  An error will be signalled if another
