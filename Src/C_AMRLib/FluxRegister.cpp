@@ -1,14 +1,20 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.16 1998-04-15 21:18:31 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.17 1998-04-15 22:49:54 lijewski Exp $
 //
 
 #include <FluxRegister.H>
 #include <Geometry.H>
-
 #include <FLUXREG_F.H>
 #include <ParallelDescriptor.H>
+
+#ifdef BL_USE_NEW_HFILES
+#include <vector>
+using std::vector;
+#else
+#include <vector.h>
+#endif
 
 #ifdef BL_USE_MPI
 
@@ -183,13 +189,15 @@ FluxRegister::Reflux (MultiFab&       S,
                       const Geometry& geom)
 {
     FabSetCopyDescriptor fscd;
+
     FabSetId fsid[2*BL_SPACEDIM];
+
     for (OrientationIter fi; fi; ++fi)
     {
         fsid[fi()] = fscd.RegisterFabSet(&(bndry[fi()]));
     }
-    List<FillBoxId> fillBoxIdList;
-    FillBoxId tempFillBoxId;
+
+    vector<FillBoxId> fillBoxId;
 
     const BoxArray& grd_boxes = S.boxArray();
 
@@ -226,16 +234,17 @@ FluxRegister::Reflux (MultiFab&       S,
                     // adjust sign of scale accordingly.
                     //
                     Real mult = face.isLow() ? -scale : scale;
-                    Box ovlp = s_box & fine_face;
+                    Box ovlp  = s_box & fine_face;
                     if (ovlp.ok())
                     {
                         Box regBox(bndry[face].box(k));
                         BoxList unfilledBoxes(regBox.ixType());
-
-                        tempFillBoxId = fscd.AddBox(fsid[face],regBox,
-                                                    unfilledBoxes, src_comp,
-                                                    dest_comp, num_comp);
-                        fillBoxIdList.append(tempFillBoxId);
+                        fillBoxId.push_back(fscd.AddBox(fsid[face],
+                                                        regBox,
+                                                        unfilledBoxes,
+                                                        src_comp,
+                                                        dest_comp,
+                                                        num_comp));
                     }
                 }
             }
@@ -284,12 +293,12 @@ FluxRegister::Reflux (MultiFab&       S,
                         {
                             Box regBox(bndry[face].box(k));
                             BoxList unfilledBoxes(regBox.ixType());
-
-                            tempFillBoxId = fscd.AddBox(fsid[face], regBox,
-                                                        unfilledBoxes,
-                                                        src_comp,dest_comp,
-                                                        num_comp);
-                            fillBoxIdList.append(tempFillBoxId);
+                            fillBoxId.push_back(fscd.AddBox(fsid[face],
+                                                            regBox,
+                                                            unfilledBoxes,
+                                                            src_comp,
+                                                            dest_comp,
+                                                            num_comp));
                         }
                     }
                     s.shift(-iv);
@@ -298,14 +307,6 @@ FluxRegister::Reflux (MultiFab&       S,
             }
         }
     }
-
-    Array<FillBoxId> fillBoxId(fillBoxIdList.length());
-    int ifbi = 0;
-    for (ListIterator<FillBoxId> li(fillBoxIdList); li; ++li)
-    {
-        fillBoxId[ifbi++] = li();
-    }
-    fillBoxIdList.clear();
 
     fscd.CollectData();
 
@@ -344,20 +345,20 @@ FluxRegister::Reflux (MultiFab&       S,
                     // adjust sign of scale accordingly.
                     //
                     Real mult = face.isLow() ? -scale : scale;
-                    Box ovlp = s_box & fine_face;
+                    Box ovlp  = s_box & fine_face;
+
                     if (ovlp.ok())
                     {
                         FillBoxId fbid = fillBoxId[overlapId];
                         FArrayBox reg(fbid.box(), num_comp);
                         fscd.FillFab(fsid[face], fbid, reg);
- if (src_comp != 0)
- {
-     cerr << "\nCheck me: "
-          << "FluxRegister::Reflux(MultiFab&, const MultiFab&, ...)\n\n";
-     //
-     // Is reg.dataPtr(0) is correct?  Should it be reg.dataPtr(src_comp)?
-     //
- }
+if (src_comp != 0)
+{
+    cerr << "\nCheck me: FluxRegister::Reflux(MultiFab&, const MultiFab&, ...)\n\n";
+    //
+    // Is reg.dataPtr(0) is correct?  Should it be reg.dataPtr(src_comp)?
+    //
+}
                         const Real* reg_dat = reg.dataPtr(0);
                         const int* rlo      = fine_face.loVect();
                         const int* rhi      = fine_face.hiVect();
@@ -450,13 +451,15 @@ FluxRegister::Reflux (MultiFab&       S,
     const Real* dx = geom.CellSize();
 
     FabSetCopyDescriptor fscd;
+
     FabSetId fsid[2*BL_SPACEDIM];
+
     for (OrientationIter fi; fi; ++fi)
     {
         fsid[fi()] = fscd.RegisterFabSet(&(bndry[fi()]));
     }
-    List<FillBoxId> fillBoxIdList;
-    FillBoxId tempFillBoxId;
+
+    vector<FillBoxId> fillBoxId;
 
     for (MultiFabIterator mfi(S); mfi.isValid(false); ++mfi)
     {
@@ -479,11 +482,12 @@ FluxRegister::Reflux (MultiFab&       S,
                     {
                         Box regBox(bndry[face].box(k));
                         BoxList unfilledBoxes(regBox.ixType());
-
-                        tempFillBoxId = fscd.AddBox(fsid[face],regBox,
-                                                    unfilledBoxes, src_comp,
-                                                    dest_comp, num_comp);
-                        fillBoxIdList.append(tempFillBoxId);
+                        fillBoxId.push_back(fscd.AddBox(fsid[face],
+                                                        regBox,
+                                                        unfilledBoxes,
+                                                        src_comp,
+                                                        dest_comp,
+                                                        num_comp));
                     }
                 }
             }
@@ -522,12 +526,12 @@ FluxRegister::Reflux (MultiFab&       S,
                         {
                             Box regBox(bndry[face].box(k));
                             BoxList unfilledBoxes(regBox.ixType());
-
-                            tempFillBoxId = fscd.AddBox(fsid[face],regBox,
-                                                        unfilledBoxes,
-                                                        src_comp, dest_comp,
-                                                        num_comp);
-                            fillBoxIdList.append(tempFillBoxId);
+                            fillBoxId.push_back(fscd.AddBox(fsid[face],
+                                                            regBox,
+                                                            unfilledBoxes,
+                                                            src_comp,
+                                                            dest_comp,
+                                                            num_comp));
                         }
                     }
                     s.shift(-iv);
@@ -535,14 +539,6 @@ FluxRegister::Reflux (MultiFab&       S,
             }
         }
     }
-
-    Array<FillBoxId> fillBoxId(fillBoxIdList.length());
-    int ifbi = 0;
-    for (ListIterator<FillBoxId> li(fillBoxIdList); li; ++li)
-    {
-        fillBoxId[ifbi++] = li();
-    }
-    fillBoxIdList.clear();
 
     fscd.CollectData();
 
@@ -579,14 +575,13 @@ FluxRegister::Reflux (MultiFab&       S,
                         FillBoxId fbid  = fillBoxId[overlapId];
                         FArrayBox reg(fbid.box(), num_comp);
                         fscd.FillFab(fsid[face], fbid, reg);
- if (src_comp != 0)
- {
-    cerr << "\nCheck me: "
-         << "FluxRegister::Reflux(MultiFab&, Real,...)\n\n";
-    //
-    // Is reg.dataPtr(0) is correct?  Should it be reg.dataPtr(src_comp)?
-    //
- }
+if (src_comp != 0)
+{
+   cerr << "\nCheck me: FluxRegister::Reflux(MultiFab&, Real,...)\n\n";
+   //
+   // Is reg.dataPtr(0) is correct?  Should it be reg.dataPtr(src_comp)?
+   //
+}
                       const Real* reg_dat = reg.dataPtr(0);
                       const int* rlo      = fine_face.loVect();
                       const int* rhi      = fine_face.hiVect();
@@ -670,11 +665,12 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     Orientation face_hi(dir,Orientation::high);
 
     MultiFabCopyDescriptor mfcd;
+
     MultiFabId mfid_mflx = mfcd.RegisterFabArray((MultiFab*) &mflx);
     MultiFabId mfid_area = mfcd.RegisterFabArray((MultiFab*) &area);
 
-    List<FillBoxId> fillBoxIdList_mflx;
-    List<FillBoxId> fillBoxIdList_area;
+    vector<FillBoxId> fillBoxId_mflx;
+    vector<FillBoxId> fillBoxId_area;
 
     const BoxArray& bxa = mflx.boxArray();
 
@@ -686,42 +682,51 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
         for (int k = 0; k < bxa.length(); k++)
         {
-            const Box subbox(bxa[k]);
-            Box lobox = mfi_bndry_lo.fabbox() & subbox;
+            Box lobox = mfi_bndry_lo.fabbox() & bxa[k];
+
             if (lobox.ok())
             {
-                BoxList unfilledBoxes(lobox.ixType());  // unused here
-                FillBoxId fbid_mflx;
-                fbid_mflx = mfcd.AddBox(mfid_mflx, mflx.fabbox(k),
-                                        unfilledBoxes, 0, 0, mflx.nComp());
-                fillBoxIdList_mflx.append(fbid_mflx);
+                BoxList unfilledBoxes(lobox.ixType());  // Unused here.
 
-                FillBoxId fbid_area;
-                fbid_area = mfcd.AddBox(mfid_area, area.fabbox(k),
-                                        unfilledBoxes, 0, 0, area.nComp());
-                fillBoxIdList_area.append(fbid_area);
+                fillBoxId_mflx.push_back(mfcd.AddBox(mfid_mflx,
+                                                     mflx.fabbox(k),
+                                                     unfilledBoxes,
+                                                     0,
+                                                     0,
+                                                     mflx.nComp()));
+                fillBoxId_area.push_back(mfcd.AddBox(mfid_area,
+                                                     area.fabbox(k),
+                                                     unfilledBoxes,
+                                                     0,
+                                                     0,
+                                                     area.nComp()));
             }
-            Box hibox = mfi_bndry_hi.fabbox() & subbox;
+            Box hibox = mfi_bndry_hi.fabbox() & bxa[k];
+
             if (hibox.ok())
             {
-                BoxList unfilledBoxes(hibox.ixType());  // unused here
-                FillBoxId fbid_mflx;
-                fbid_mflx = mfcd.AddBox(mfid_mflx, mflx.fabbox(k),
-                                        unfilledBoxes, 0, 0, mflx.nComp());
-                fillBoxIdList_mflx.append(fbid_mflx);
+                BoxList unfilledBoxes(hibox.ixType());  // Unused here.
 
-                FillBoxId fbid_area;
-                fbid_area = mfcd.AddBox(mfid_area, area.fabbox(k),
-                                        unfilledBoxes, 0, 0, area.nComp());
-                fillBoxIdList_area.append(fbid_area);
+                fillBoxId_mflx.push_back(mfcd.AddBox(mfid_mflx,
+                                                     mflx.fabbox(k),
+                                                     unfilledBoxes,
+                                                     0,
+                                                     0,
+                                                     mflx.nComp()));
+                fillBoxId_area.push_back(mfcd.AddBox(mfid_area,
+                                                     area.fabbox(k),
+                                                     unfilledBoxes,
+                                                     0,
+                                                     0,
+                                                     area.nComp()));
             }
         }
     }
 
     mfcd.CollectData();
 
-    ListIterator<FillBoxId> fbidli_mflx(fillBoxIdList_mflx);
-    ListIterator<FillBoxId> fbidli_area(fillBoxIdList_area);
+    vector<FillBoxId>::const_iterator fbidli_mflx = fillBoxId_mflx.begin();
+    vector<FillBoxId>::const_iterator fbidli_area = fillBoxId_area.begin();
 
     for (FabSetIterator mfi_bndry_lo(bndry[face_lo]);
          mfi_bndry_lo.isValid(false);
@@ -731,19 +736,17 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
         for (int k = 0; k < bxa.length(); k++)
         {
-            const Box subbox(bxa[k]);
-            Box lobox = mfi_bndry_lo.fabbox() & subbox;
+            Box lobox = mfi_bndry_lo.fabbox() & bxa[k];
+
             if (lobox.ok())
             {
-                assert(fbidli_mflx);
-                FillBoxId fbid_mflx = fbidli_mflx();
-                ++fbidli_mflx;
+                assert(!(fbidli_mflx == fillBoxId_mflx.end()));
+                FillBoxId fbid_mflx = *fbidli_mflx++;
                 FArrayBox mflx_fab(fbid_mflx.box(), mflx.nComp());
                 mfcd.FillFab(mfid_mflx,  fbid_mflx, mflx_fab);
 
-                assert(fbidli_area);
-                FillBoxId fbid_area = fbidli_area();
-                ++fbidli_area;
+                assert(!(fbidli_area == fillBoxId_area.end()));
+                FillBoxId fbid_area = *fbidli_area++;
                 FArrayBox area_fab(fbid_area.box(), area.nComp());
                 mfcd.FillFab(mfid_area,  fbid_area, area_fab);
 
@@ -766,18 +769,17 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                               area_dat,ARLIM(alo),ARLIM(ahi),
                               lo,hi,&numcomp,&dir,&mult);
             }
-            Box hibox = mfi_bndry_hi.fabbox() & subbox;
+            Box hibox = mfi_bndry_hi.fabbox() & bxa[k];
+
             if (hibox.ok())
             {
-                assert(fbidli_mflx);
-                FillBoxId fbid_mflx = fbidli_mflx();
-                ++fbidli_mflx;
+                assert(!(fbidli_mflx == fillBoxId_mflx.end()));
+                FillBoxId fbid_mflx = *fbidli_mflx++;
                 FArrayBox mflx_fab(fbid_mflx.box(), mflx.nComp());
                 mfcd.FillFab(mfid_mflx,  fbid_mflx, mflx_fab);
 
-                assert(fbidli_area);
-                FillBoxId fbid_area = fbidli_area();
-                ++fbidli_area;
+                assert(!(fbidli_area == fillBoxId_area.end()));
+                FillBoxId fbid_area = *fbidli_area++;
                 FArrayBox area_fab(fbid_area.box(), area.nComp());
                 mfcd.FillFab(mfid_area,  fbid_area, area_fab);
 
@@ -810,19 +812,19 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
 static
 void
-DoIt (Orientation      face,
-      int              k,
-      FabSet*          bndry,
-      const Box&       bx,
-      const FArrayBox& flux,
-      int              srccomp,
-      int              destcomp,
-      int              numcomp,
-      Real             mult,
-      List<FabComTag>& sTags,
-      Array<int>&      msgs)
+DoIt (Orientation        face,
+      int                k,
+      FabSet*            bndry,
+      const Box&         bx,
+      const FArrayBox&   flux,
+      int                srccomp,
+      int                destcomp,
+      int                numcomp,
+      Real               mult,
+      vector<FabComTag>& sTags,
+      Array<int>&        msgs)
 {
-    FabComTag fabComTag;
+    FabComTag tag;
 
     const int                  MyProc = ParallelDescriptor::MyProc();
     const DistributionMapping& dMap   = bndry[face].DistributionMap();
@@ -837,16 +839,16 @@ DoIt (Orientation      face,
     }
     else
     {
-        fabComTag.toProc   = dMap[k];
-        fabComTag.fabIndex = k;
-        fabComTag.box      = bx;
-        fabComTag.face     = face;
+        tag.toProc   = dMap[k];
+        tag.fabIndex = k;
+        tag.box      = bx;
+        tag.face     = face;
 #ifdef BL_USE_MPI
-        sTags.append(fabComTag);
+        sTags.push_back(tag);
         msgs[dMap[k]]++;
 #else
-        fabComTag.destComp = destcomp;
-        fabComTag.nComp    = numcomp;
+        tag.destComp = destcomp;
+        tag.nComp    = numcomp;
 
         FArrayBox fabCom(bx, numcomp);
 
@@ -854,7 +856,7 @@ DoIt (Orientation      face,
         fabCom.mult(mult, bx, 0, numcomp);
 
         ParallelDescriptor::SendData(dMap[k],
-                                     &fabComTag,
+                                     &tag,
                                      fabCom.dataPtr(),
                                      bx.numPts() * numcomp * sizeof(Real));
 #endif /*BL_USE_MPI*/
@@ -874,9 +876,10 @@ FluxRegister::CrseInit (const FArrayBox& flux,
     assert(srccomp  >= 0 && srccomp+numcomp  <= flux.nComp());
     assert(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
-    List<FabComTag> sTags;
-    Array<int>      msgs(ParallelDescriptor::NProcs(), 0);
-    Array<int>      nrcv(ParallelDescriptor::NProcs(), 0);
+    vector<FabComTag> sTags;
+
+    Array<int> msgs(ParallelDescriptor::NProcs(), 0);
+    Array<int> nrcv(ParallelDescriptor::NProcs(), 0);
 
     for (int k = 0; k < grids.length(); k++)
     {
@@ -935,14 +938,14 @@ FluxRegister::CrseInit (const FArrayBox& flux,
             ParallelDescriptor::Abort(rc);
     }
 
-    for (ListIterator<FabComTag> it(sTags); it; ++it)
+    for (int i = 0; i < sTags.size(); i++)
     {
-        CIData senddata(it().face, it().fabIndex, it().box);
+        CIData senddata(sTags[i].face, sTags[i].fabIndex, sTags[i].box);
 
         if ((rc = MPI_Send(senddata.dataPtr(),
                            senddata.length(),
                            MPI_INT,
-                           it().toProc,
+                           sTags[i].toProc,
                            711,
                            MPI_COMM_WORLD)) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
@@ -972,21 +975,21 @@ FluxRegister::CrseInit (const FArrayBox& flux,
             ParallelDescriptor::Abort(rc);
     }
 
-    for (ListIterator<FabComTag> it(sTags); it; ++it)
+    for (int i = 0; i < sTags.size(); i++)
     {
-        FArrayBox fab(it().box, numcomp);
+        FArrayBox fab(sTags[i].box, numcomp);
 
-        fab.copy(flux, it().box, srccomp, it().box, 0, numcomp);
-        fab.mult(mult, it().box, 0, numcomp);
+        fab.copy(flux, sTags[i].box, srccomp, sTags[i].box, 0, numcomp);
+        fab.mult(mult, sTags[i].box, 0, numcomp);
 
-        long count = it().box.numPts() * numcomp;
+        long count = sTags[i].box.numPts() * numcomp;
 
         assert(count < INT_MAX);
 
         if ((rc = MPI_Send(fab.dataPtr(),
                            int(count),
                            sizeof(Real) == sizeof(float) ? MPI_FLOAT : MPI_DOUBLE,
-                           it().toProc,
+                           sTags[i].toProc,
                            803,
                            MPI_COMM_WORLD)) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
@@ -1016,29 +1019,29 @@ void
 FluxRegister::CrseInitFinish ()
 {
 #ifndef BL_USE_MPI
-    FabComTag fabComTag;
+    FabComTag tag;
 
     ParallelDescriptor::SetMessageHeaderSize(sizeof(FabComTag));
 
     int dataWaitingSize;
-    while (ParallelDescriptor::GetMessageHeader(dataWaitingSize, &fabComTag))
+    while (ParallelDescriptor::GetMessageHeader(dataWaitingSize, &tag))
     {
-        long t_long = fabComTag.box.numPts() * fabComTag.nComp * sizeof(Real);
+        long t_long = tag.box.numPts() * tag.nComp * sizeof(Real);
 
         assert(t_long < INT_MAX);
         assert(dataWaitingSize == int(t_long));
-        assert(fabComTag.box.ok());
+        assert(tag.box.ok());
 
-        FArrayBox tempFab(fabComTag.box, fabComTag.nComp);
+        FArrayBox tempFab(tag.box, tag.nComp);
 
         ParallelDescriptor::ReceiveData(tempFab.dataPtr(), int(t_long));
 
-        bndry[fabComTag.face][fabComTag.fabIndex].copy(tempFab,
-                                                       fabComTag.box,
-                                                       0,
-                                                       fabComTag.box,
-                                                       fabComTag.destComp,
-                                                       fabComTag.nComp);
+        bndry[tag.face][tag.fabIndex].copy(tempFab,
+                                           tag.box,
+                                           0,
+                                           tag.box,
+                                           tag.destComp,
+                                           tag.nComp);
     }
 #endif /*!BL_USE_MPI*/
 }
