@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.77 1999-04-15 23:29:12 lijewski Exp $
+// $Id: Amr.cpp,v 1.78 1999-04-16 17:38:35 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -591,8 +591,7 @@ Amr::init (Real strt_time, Real stop_time)
 }
 
 void
-Amr::initialInit (Real strt_time,
-                  Real stop_time)
+Amr::initialInit (Real strt_time, Real stop_time)
 {
     checkInput();
     //
@@ -602,7 +601,7 @@ Amr::initialInit (Real strt_time,
     //
     // Init problem dependent data.
     //
-    int init = true;
+    int  init = true;
     //
     // Populate integer array with name of `probin' file.
     //
@@ -624,13 +623,13 @@ Amr::initialInit (Real strt_time,
     // Define base level grids.
     //
     defBaseLevel(strt_time);
+
     //
     // Compute dt and set time levels of all grid data.
     //
-    amr_level[0].computeInitialDt(finest_level,
-                                  sub_cycle,
-                                  n_cycle,
-                                  ref_ratio,
+    amr_level[0].computeInitialDt(finest_level,sub_cycle,
+                                  n_cycle,ref_ratio,
+                                  //dt_min,
                                   dt_level,
                                   stop_time);
     //
@@ -643,7 +642,7 @@ Amr::initialInit (Real strt_time,
     {
         for (int lev = 1; lev <= max_level; lev++)
         {
-            dt0           /= Real(ref_ratio[lev-1][0]);
+            dt0           /= Real (ref_ratio[lev-1][0]);
             dt_level[lev]  = dt0;
             dt_min[lev]    = dt_level[lev];
             n_cycle[lev]   = ref_ratio[lev-1][0];
@@ -658,6 +657,7 @@ Amr::initialInit (Real strt_time,
             n_cycle[lev]  = 1;
         }
     }
+    // ----- end multifluid
 
     if (max_level > 0)
         bldFineLevels(strt_time);
@@ -667,6 +667,7 @@ Amr::initialInit (Real strt_time,
 
     for (int lev = 0; lev <= finest_level; lev++)
         amr_level[lev].post_regrid(0,finest_level);
+
     //
     // Perform any special post_initialization operations.
     //
@@ -1161,14 +1162,19 @@ Amr::defBaseLevel (Real strt_time)
     const int* d_len  = domain.length().getVect();
 
     for (int idir = 0; idir < BL_SPACEDIM; idir++)
+    {
         if (d_len[idir]%2 != 0)
+        {
             BoxLib::Error("defBaseLevel: must have even number of cells");
+        }
+    }
     //
-    // Coarsening before we split the grids ensures that each resulting
-    // grid will have an even number of cells in each direction.
+    // Coarsening before we split the grids ensures that
+    // each resulting grid will have an even number of
+    // cells in each direction.
     //
     BoxArray lev0(1);
-    lev0.set(0,::coarsen(domain,2));
+    lev0.set(0, ::coarsen(domain,2));
     //
     // Now split up into list of grids within max_grid_size limit.
     //
@@ -1199,10 +1205,13 @@ Amr::regrid (int  lbase,
     stats.start();
 
     if (verbose && ParallelDescriptor::IOProcessor())
+    {
         cout << "REGRID: at level lbase = " << lbase << endl;
-
+    }
     if (record_run_info && ParallelDescriptor::IOProcessor())
+    {
         runlog << "REGRID: at level lbase = " << lbase << endl;
+    }
     //
     // Remove old-time grid space at highest level.
     //
@@ -1211,12 +1220,12 @@ Amr::regrid (int  lbase,
     //
     // Compute positions of new grids.
     //
-    Array<BoxArray> new_grids(max_level+1);
+    Array<BoxArray> new_grid_places(max_level+1);
 
     int new_finest;
 
     if (lbase <= Min(finest_level,max_level-1))
-      grid_places(lbase,time,new_finest,new_grids);
+      grid_places(lbase,time,new_finest, new_grid_places);
     //
     // Reclaim old-time grid space for all remain levels > lbase.
     //
@@ -1230,50 +1239,40 @@ Amr::regrid (int  lbase,
 
     finest_level = new_finest;
 
-    const bool FlushCaches = lbase == 0;
-
-    if (FlushCaches)
+    if (lbase == 0)
     {
-        FabSet::FlushCache();
+        //
+        // Flush processor map-dependent caches when at coarsest level.
+        //
+        DistributionMapping::FlushCache();
         MultiFab::FlushSICache();
         Geometry::FlushPIRMCache();
-        DistributionMapping::FlushCache();
-        //
-        // We must make sure that new_grids contains the previous BoxArray at
-        // level 0.  While we don't formally ever need to regrid level 0, the
-        // distribution of the level 0 grids may change across a regrid.
-        // Building a new level is the easiest way to make sure all is safe.
-        //
-        new_grids[0] = amr_level[0].boxArray();
+        FabSet::FlushCache();
     }
     //
     // Define the new grids from level lbase+1 up to new_finest.
     //
-    for (int lev = FlushCaches ? lbase : lbase+1; lev <= new_finest; lev++)
+    for (int lev = lbase+1; lev <= new_finest; lev++)
     {
         //
         // Construct skeleton of new level.
         //
-        AmrLevel* a = (*levelbld)(*this,lev,geom[lev],new_grids[lev],cumtime);
+        AmrLevel* a = (*levelbld)(*this,lev,geom[lev],new_grid_places[lev],cumtime);
+
+        assert(!(a == 0));
 
         if (initial)
-        {
             //
             // We're being called on startup from bldFineLevels().
             //
             a->initData();
-        }
         else if (amr_level.defined(lev))
-        {
             //
             // Init with data from old structure then remove old structure.
             //
             a->init(amr_level[lev]);
-        }
         else
-        {
             a->init();
-        }
 
         amr_level.clear(lev);
 
@@ -1293,17 +1292,17 @@ Amr::regrid (int  lbase,
     {
         for (int lev = lbase+1; lev <= finest_level; lev++)
         {
-            int  ngrids = amr_level[lev].numGrids();
-            long ncells = amr_level[lev].countCells();
-            long ntot   = geom[lev].Domain().numPts();
-            Real frac   = 100.0*(Real(ncells) / Real(ntot));
+            int  numgrids = amr_level[lev].numGrids();
+            long ncells   = amr_level[lev].countCells();
+            long ntot     = geom[lev].Domain().numPts();
+            Real frac     = 100.0*(Real(ncells) / Real(ntot));
 
             if (verbose)
             {
                 cout << "   level "
                      << lev
                      << ": "
-                     << ngrids
+                     << numgrids
                      << " grids, "
                      << ncells
                      << " cells  = "
@@ -1316,7 +1315,7 @@ Amr::regrid (int  lbase,
                 runlog << "   level "
                        << lev
                        << ": "
-                       << ngrids
+                       << numgrids
                        << " grids, "
                        << ncells
                        << " cells  = "
@@ -1791,11 +1790,9 @@ Amr::bldFineLevels (Real strt_time)
         //
         finest_level = new_finest;
 
-        AmrLevel* level = (*levelbld)(*this,
-                                      new_finest,
-                                      geom[new_finest],
-                                      grids[new_finest],
-                                      strt_time);
+        AmrLevel* level = (*levelbld)(*this,new_finest,geom[new_finest],
+                                      grids[new_finest],strt_time);
+        assert(!(level == 0));
 
         amr_level.set(new_finest,level);
 

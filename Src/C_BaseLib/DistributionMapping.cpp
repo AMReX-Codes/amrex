@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.36 1999-04-15 23:28:37 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.37 1999-04-16 17:38:06 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -121,16 +121,20 @@ DistributionMapping::GetMap (int             nprocs,
 {
     const int N = boxes.length();
 
-    assert(m_procmap.length() == N + 1);
+    assert(m_procmap.length() == N+1);
     //
     // Search from back to front ...
     //
     for (int i = m_Cache.size() - 1; i >= 0; i--)
     {
-        if (m_Cache[i].length() == N + 1)
+        if (m_Cache[i].length() == N+1)
         {
-            for (int j = 0; j <= N; j++)
-                m_procmap[j] = m_Cache[i][j];
+            const Array<int>& cached_procmap = m_Cache[i];
+
+            for (int i = 0; i <= N; i++)
+            {
+                m_procmap[i] = cached_procmap[i];
+            }
 
             assert(m_procmap[N] == ParallelDescriptor::MyProc());
 
@@ -144,14 +148,20 @@ DistributionMapping::GetMap (int             nprocs,
 DistributionMapping::DistributionMapping ()
 {
     if (!m_Initialized)
+    {
         DistributionMapping::init();
+    }
 }
 
 DistributionMapping::DistributionMapping (int             nprocs,
                                           const BoxArray& boxes)
+    :
+    m_procmap(boxes.length()+1)
 {
     if (!m_Initialized)
+    {
         DistributionMapping::init();
+    }
 
     define(nprocs, boxes);
 }
@@ -160,7 +170,10 @@ void
 DistributionMapping::define (int             nprocs,
                              const BoxArray& boxes)
 {
-    m_procmap.resize(boxes.length() + 1);
+    if (!(m_procmap.length() == boxes.length()+1))
+    {
+        m_procmap.resize(boxes.length()+1);
+    }
 
     if (DistributionMapping::m_Strategy == DistributionMapping::ROUNDROBIN)
     {
@@ -207,7 +220,9 @@ DistributionMapping::RoundRobinProcessorMap (int             nprocs,
     assert(m_procmap.length() == boxes.length()+1);
 
     for (int i = 0; i < boxes.length(); i++)
+    {
         m_procmap[i] = i % nprocs;
+    }
     //
     // Set sentinel equal to our processor number.
     //
@@ -455,57 +470,44 @@ DistributionMapping::KnapSackProcessorMap (int             nprocs,
     assert(boxes.length() > 0);
     assert(m_procmap.length() == boxes.length()+1);
 
-    if (nprocs == 1)
+    if (boxes.length() <= nprocs || nprocs < 2)
     {
         //
-        // Everything runs on processor 0.
+        // Might as well just use ROUNDROBIN.
         //
-        for (int i = 0; i < m_procmap.length()-1; i++)
-            m_procmap[i] = 0;
-    }
-#ifdef BL_USE_MPI
-    else if (boxes.length() <= nprocs)
-    {
-        //
-        // Randomize the distribution a bit.
-        //
-        vector<int> v(nprocs);
-
-        for (int i = 0; i < v.size(); i++)
-            v[i] = i;
-
-        random_shuffle(v.begin(), v.end());
-
-        for (int i = 0; i < m_procmap.length()-1; i++)
-            m_procmap[i] = v[i];
+        RoundRobinProcessorMap(nprocs, boxes);
     }
     else
     {
-        //
-        // The full-blown KnapSack algorithm.
-        //
+#ifdef BL_USE_MPI
         vector<long> pts(boxes.length());
 
         for (int i = 0; i < pts.size(); i++)
-            pts[i] = boxes[i].numPts();
-
-        vector< list<int> > vl = knapsack(pts, nprocs);
-
-        assert(vl.size() == nprocs);
-
-        for (int i = 0; i < vl.size(); i++)
         {
-            list<int>::iterator it = vl[i].begin();
-
-            for ( ; it != vl[i].end(); ++it)
-                m_procmap[*it] = i;
+            pts[i] = boxes[i].numPts();
         }
-    }
+
+        vector< list<int> > vec = knapsack(pts, nprocs);
+
+        assert(vec.size() == nprocs);
+
+        list<int>::iterator lit;
+
+        for (int i = 0; i < vec.size(); i++)
+        {
+            for (lit = vec[i].begin(); lit != vec[i].end(); ++lit)
+            {
+                m_procmap[*lit] = i;
+            }
+        }
+        //
+        // Set sentinel equal to our processor number.
+        //
+        m_procmap[boxes.length()] = ParallelDescriptor::MyProc();
+#else
+        BoxLib::Error("How did this happen?");
 #endif
-    //
-    // Set sentinel equal to our processor number.
-    //
-    m_procmap[boxes.length()] = ParallelDescriptor::MyProc();
+    }
 }
 
 void
