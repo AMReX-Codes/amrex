@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.166 2002-12-18 18:44:23 lijewski Exp $
+// $Id: FabArray.H,v 1.167 2003-07-18 04:51:46 lijewski Exp $
 //
 #include <cstring>
 #include <limits>
@@ -1512,11 +1512,11 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
     if (snd_cache == 0 || snd_cache->size() == 0)
 #endif
     {
-        for (int i = 0; i < NProcs; i++)
-        {
-            ParallelDescriptor::Gather(&Rcvs[i], 1, Snds.dataPtr(), 1, i);
-        }
-
+#if BL_USE_MPI
+        MPI_Alltoall(Rcvs.dataPtr(), 1, ParallelDescriptor::Mpi_typemap<int>::type(),
+                     Snds.dataPtr(), 1, ParallelDescriptor::Mpi_typemap<int>::type(),
+                     ParallelDescriptor::Communicator());
+#endif
         BL_ASSERT(Snds[MyProc] == 0);
     }
 
