@@ -451,16 +451,16 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 			new task_fceres_4(&FORT_HGERES,         tl, resid[mglev], source[lev], igrid, fdst, cdst, sigmaf, sigmac, creg, h[mglev], rat, ga, t)
 			);
 		}
-		// fill in the grids on the other sides, if any
+                //
+		// Fill in the grids on the other sides, if any.
+                //
 		const Box& freg = lev_interface[mglev].node_box(1, iedge);
 		for (int i = 1; i < lev_interface[mglev].ngrids(1); i++) 
 		{
 		    const int jgrid = lev_interface[mglev].grid(1, iedge, i);
 		    if (jgrid >= 0 && jgrid != igrid)
 		    {
-                        task::task_proxy tptmp = tl.add_task(new task_copy(tl,resid[mglev],jgrid,resid[mglev],igrid,freg));
-                        if (!tptmp.null())
-                            tptmp->depend_on(tp);
+                        tl.add_task(new task_copy(tl,resid[mglev],jgrid,resid[mglev],igrid,freg,tp));
 		    }
 		}
 	    }
@@ -504,16 +504,16 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 			new task_fceres_4(&FORT_HGCRES,         tl, resid[mglev], source[lev], igrid, fdst, cdst, sigmaf, sigmac, creg, h[mglev], rat, ga)
 			);
 		}
-		// fill in the grids on the other sides, if any
+                //
+		// Fill in the grids on the other sides, if any.
+                //
 		const Box& freg = lev_interface[mglev].box(0, icor);
 		for (int i = 1; i < lev_interface[mglev].ngrids(0); i++) 
 		{
 		    const int jgrid = lev_interface[mglev].grid(0, icor, i);
 		    if (jgrid >= 0 && jgrid != igrid)
 		    {
-                        task::task_proxy tptmp = tl.add_task(new task_copy(tl,resid[mglev],jgrid,resid[mglev],igrid,freg));
-                        if (!tptmp.null())
-                            tptmp->depend_on(tp);
+                        tl.add_task(new task_copy(tl,resid[mglev],jgrid,resid[mglev],igrid,freg,tp));
 		    }
 		}
 	    }

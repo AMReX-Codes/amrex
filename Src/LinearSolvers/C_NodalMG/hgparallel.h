@@ -176,25 +176,25 @@ protected:
     // The data.
     //
     const sequence_number m_sno;
-    list< task_proxy >    dependencies;
+    list<task_proxy>      dependencies;
     bool                  m_started;
     task_list&            m_task_list;
 private:
     //
     // Not defined.
     //
-    task(const task&);
-    void operator==(const task&);
+    task (const task&);
+    task& operator= (const task&);
 };
 
 class task_list
 {
 public:
-    explicit task_list();
-    ~task_list();
-    task::task_proxy add_task(task* t);
+    explicit task_list ();
+    ~task_list ();
+    task::task_proxy add_task (task* t);
     //
-    // executes once through the task list, return true if any elements left.
+    // Executes once through the task list, return true if any elements left.
     //
     void execute ();
 
@@ -242,6 +242,14 @@ public:
                int             sgrid,
                const Box&      sb);
 
+    task_copy (task_list&        tl_,
+               MultiFab&         mf,
+               int               dgrid,
+               const MultiFab&   smf,
+               int               sgrid,
+               const Box&        bx,
+               const task_proxy& tp);
+
     virtual ~task_copy ();
     virtual bool ready ();
     virtual bool depends_on_q (const task* t) const;
@@ -249,6 +257,10 @@ public:
     virtual bool startup ();
     virtual bool work_to_do () const;
 protected:
+    //
+    // Common function called by constructors.
+    //
+    void init ();
     //
     // The data.
     //
@@ -263,6 +275,7 @@ protected:
     MPI_Request     m_request;
 #endif
     bool            m_local;
+    bool            m_done;
 };
 
 class task_copy_local : public task

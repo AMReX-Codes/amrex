@@ -662,16 +662,16 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 	creg.coarsen(rat).grow(t - 1);
 	Array<int> ga = lev_interface[mglev].geo_array(1, iedge);
 	task::task_proxy tp = tl.add_task(new task_fecavg_2(&FORT_HGEAVG, tl, source[lev], igrid, Sfp, Scp, creg, rat, ga, t));
-	// fill in the grids on the other sides, if any
+        //
+	// Fill in the grids on the other sides, if any.
+        //
 	const Box& freg = lev_interface[mglev].node_box(1, iedge);
 	for (int i = 1; i < lev_interface[mglev].ngrids(1); i++) 
 	{
 	    const int jgrid = lev_interface[mglev].grid(1, iedge, i);
 	    if (jgrid >= 0 && jgrid != igrid)
 	    {
-                task::task_proxy tptmp = tl.add_task(new task_copy(tl,source[lev],jgrid,source[lev],igrid,freg));
-                if (!tptmp.null())
-		    tptmp->depend_on(tp);
+                tl.add_task(new task_copy(tl,source[lev],jgrid,source[lev],igrid,freg,tp));
 	    }
 	}
     }
@@ -709,16 +709,16 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
 #else
 	task::task_proxy tp = tl.add_task(new task_fecavg_2(&FORT_HGCAVG, tl, source[lev], igrid, Sfp, Scp, creg, rat, ga));
 #endif
-	// fill in the grids on the other sides, if any
+        //
+	// Fill in the grids on the other sides, if any.
+        //
 	const Box& freg = lev_interface[mglev].box(0, icor);
 	for (int i = 1; i < lev_interface[mglev].ngrids(0); i++) 
 	{
 	    const int jgrid = lev_interface[mglev].grid(0, icor, i);
 	    if (jgrid >= 0 && jgrid != igrid)
 	    {
-                task::task_proxy tptmp = tl.add_task(new task_copy(tl,source[lev],jgrid,source[lev],igrid,freg));
-                if (!tptmp.null())
-		    tptmp->depend_on(tp);
+                tl.add_task(new task_copy(tl,source[lev],jgrid,source[lev],igrid,freg,tp));
 	    }
 	}
     }
@@ -823,16 +823,16 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	{
 	    tp = tl.add_task(new task_fecdiv_2(&FORT_HGEDIV,         tl, source[lev], igrid, ufp, ucp, creg, h[mglev], rat, ga, t));
 	}
-	// fill in the grids on the other sides, if any
+        //
+	// Fill in the grids on the other sides, if any.
+        //
 	const Box& freg = lev_interface[mglev].node_box(1, iedge);
 	for (int i = 1; i < lev_interface[mglev].ngrids(1); i++) 
 	{
 	    const int jgrid = lev_interface[mglev].grid(1, iedge, i);
 	    if (jgrid >= 0 && jgrid != igrid)
 	    {
-                task::task_proxy tptmp = tl.add_task(new task_copy(tl,source[lev],jgrid,source[lev],igrid,freg));
-                if (!tptmp.null())
-                    tptmp->depend_on(tp);
+                tl.add_task(new task_copy(tl,source[lev],jgrid,source[lev],igrid,freg,tp));
 	    }
 	}
     }
@@ -877,16 +877,16 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
 	{
 	    tp = tl.add_task(new task_fecdiv_2(&FORT_HGCDIV,         tl, source[lev], igrid, ufp, ucp, creg, h[mglev], rat, ga));
 	}
-	// fill in the grids on the other sides, if any
+        //
+	// Fill in the grids on the other sides, if any.
+        //
 	const Box& freg = lev_interface[mglev].box(0, icor);
 	for (int i = 1; i < lev_interface[mglev].ngrids(0); i++) 
 	{
 	    const int jgrid = lev_interface[mglev].grid(0, icor, i);
 	    if (jgrid >= 0 && jgrid != igrid)
 	    {
-                task::task_proxy tptmp = tl.add_task(new task_copy(tl,source[lev],jgrid,source[lev],igrid,freg));
-                if (!tptmp.null())
-		    tptmp->depend_on(tp);
+                tl.add_task(new task_copy(tl,source[lev],jgrid,source[lev],igrid,freg,tp));
 	    }
 	}
     }
