@@ -60,7 +60,7 @@ inline Real mfnorm_2(const MultiFab& mf)
 	r += s*s;
     }
     ParallelDescriptor::ReduceRealSum(r);
-    return sqrt(r);
+    return ::sqrt(r);
 }
 
 inline Real mfnorm(const MultiFab& mf) 

@@ -70,7 +70,6 @@ bool task_fab_get::init(sequence_number sno, MPI_Comm comm)
     bool result = m_local_target;
     bool tresult = tf->init(sno, comm);
     return result || tresult;
-    return false;
 }
 
 bool task_fab_get::ready()
