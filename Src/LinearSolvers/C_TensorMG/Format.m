@@ -634,7 +634,7 @@ Options[CAssign]:= {
 AssignBreak->{Options[$Output,PageWidth][[1,2]]-2,"\\\n"},
 AssignCase->Default, AssignEnd->";", AssignFortranNumbers->False, AssignHyperbolic->False,
 AssignIndent->"", AssignIndex->0, AssignLabel->"", AssignMaxSize->Infinity,
-AssignOptimize->False, AssignPrecision->$MachinePrecision-1,
+AssignOptimize->False, AssignPrecision->Ceil[$MachinePrecision]-1,
 AssignRange->False, AssignReplace->{" "->""}, AssignTemporary->{"t",Array},
 AssignToArray->{}, AssignToFile->"", AssignTrig->True, AssignZero->True};
 
@@ -838,7 +838,7 @@ AssignBreak->{If[#>72,72,#]&[-1+Options[$Output,PageWidth][[1,2]]],
 AssignFortranNumbers->True, AssignHyperbolic->False,
 AssignIndent->"        ", AssignIndex->1, AssignLabel->"",
 AssignMaxSize->5000, AssignOptimize->False,
-AssignPrecision->$MachinePrecision-1, AssignRange->False,
+AssignPrecision->Ceil[$MachinePrecision]-1, AssignRange->False,
 AssignReplace->{" "->""}, AssignTemporary->{"t",Sequence}, AssignToArray->{},
 AssignToFile->"", AssignTrig->True, AssignZero->True};
 
@@ -1638,7 +1638,7 @@ MyN[expr_,_DirectedInfinity,__]:= expr;
 (* Finite precision. *)
 
 MyN[expr_,prec_,{}]:=
-  If[prec===$MachinePrecision,
+  If[prec===Ceil[$MachinePrecision]-1,
     #,
     # //. {r_Real:>SetPrecision[r,prec]}
   ]& @ N[ expr, prec ];
