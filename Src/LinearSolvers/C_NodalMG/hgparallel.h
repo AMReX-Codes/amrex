@@ -11,6 +11,8 @@
 
 #ifdef BL_USE_MPI
 #include <mpi.h>
+#else
+#error Must define BL_USE_MPI in this file
 #endif
 
 inline int processor_number(const MultiFab&r, int igrid)
@@ -84,10 +86,9 @@ public:
     virtual void hint() const;
     virtual bool depends_on_q(const task* t) const;
 protected:
-#ifdef BL_USE_MPI
+    void startup();
     MPI_Request m_request;
     FArrayBox* tmp;
-#endif
     MultiFab& m_mf;
     const MultiFab& m_smf;
     int m_dgrid;
