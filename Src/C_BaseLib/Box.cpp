@@ -1,5 +1,5 @@
 //
-// $Id: Box.cpp,v 1.17 2001-07-22 19:38:16 car Exp $
+// $Id: Box.cpp,v 1.18 2001-07-24 18:12:34 car Exp $
 //
 
 #include <limits>
@@ -1065,8 +1065,14 @@ operator>> (std::istream& is,
 
     if (c == '(')
     {
-        is >> lo >> hi >> typ;
-
+        is >> lo >> hi;
+	is >> c;
+	// Read an optional IndexType
+	is.putback(c);
+	if ( c == '(' )
+	{
+	    is >> typ;
+	}
         is.ignore(BL_IGNORE_MAX,')');
     }
     else

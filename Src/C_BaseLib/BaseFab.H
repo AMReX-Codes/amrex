@@ -3,7 +3,7 @@
 #include <winstd.H>
 
 //
-// $Id: BaseFab.H,v 1.36 2001-07-23 21:15:16 car Exp $
+// $Id: BaseFab.H,v 1.37 2001-07-24 18:12:34 car Exp $
 //
 
 #include <cstdlib>
@@ -77,6 +77,9 @@ public:
                (see `BaseFab::resize') before use.
     */
     BaseFab ();
+
+    BaseFab(const BaseFab&);
+    BaseFab& operator=(const BaseFab&);
     //
     //@ManDoc: Make BaseFab with desired domain and number of components.
     //
@@ -769,14 +772,6 @@ protected:
                         const Box& bx,
                         int        nstart,
                         int        numcomp);
-private:
-    //
-    // These functions are made private to prevent use of the default 
-    // functions provided by the C++ compiler.
-    //
-    BaseFab<T>& operator= (const BaseFab<T>&);
-    BaseFab (const BaseFab<T>&);
-
 protected:
 
     Box  domain;   // My index space.
@@ -1123,6 +1118,35 @@ BaseFab<T>::BaseFab ()
     truesize(0),
     dptr(0)
 {}
+
+template <class T>
+BaseFab<T>::BaseFab (const BaseFab& fab)
+    : domain(fab.box()),
+      nvar(fab.nComp())
+{
+    numpts = domain.numPts();
+    define();
+    for ( int i = 0; i < numpts*nvar; ++i )
+    {
+	dptr[i] = fab.dptr[i];
+    }
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::operator= (const BaseFab& fab)
+{
+    if ( this == &fab ) return *this;
+    domain = fab.box();
+    nvar   = fab.nComp();
+    numpts = domain.numPts();
+    define();
+    for ( int i = 0; i < numpts*nvar; ++i )
+    {
+	dptr[i] = fab.dptr[i];
+    }
+    return *this;
+}
 
 template <class T>
 BaseFab<T>::BaseFab (const Box& bx,
