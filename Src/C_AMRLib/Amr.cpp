@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.26 1998-01-06 23:43:56 lijewski Exp $
+// $Id: Amr.cpp,v 1.27 1998-01-28 04:55:10 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -1550,18 +1550,12 @@ Amr::grid_places (int              lbase,
         //
         // Create initial cluster containing all tagged points.
         //
-        Array<IntVect> *pts = tags.colate();
+        long len = 0;
+        IntVect* pts = tags.collate(len);
 
         tags.clear();
 
-        if (pts->length() == 0)
-        {
-            //
-            // No tagged points, no new level -- do cleanup.
-            //
-            delete pts;
-        }
-        else
+        if (len > 0)
         {
             //
             // Created new level, now generate efficient grids.
@@ -1570,7 +1564,7 @@ Amr::grid_places (int              lbase,
             //
             // Construct initial cluster.
             //
-            ClusterList clist(pts);
+            ClusterList clist(pts,len);
             clist.chop(grid_eff);
             clist.intersect(p_n[levc]);
             //

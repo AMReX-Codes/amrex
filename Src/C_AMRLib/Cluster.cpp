@@ -1,109 +1,105 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Cluster.cpp,v 1.8 1998-01-26 22:00:01 lijewski Exp $
+// $Id: Cluster.cpp,v 1.9 1998-01-28 04:55:11 lijewski Exp $
 //
 
 #include <Cluster.H>
 
+#ifdef BL_USE_NEW_HFILES
+#include <algorithm>
+using std::partition;
+#else
+#include <algorithm.h>
+#endif
+
 enum CutStatus { HoleCut=0, SteepCut, BisectCut, InvalidCut };
 
-Cluster::Cluster (Array<IntVect>* a) 
+Cluster::Cluster (IntVect* a, long len)
     :
-    m_ar(a)
+    m_ar(a),
+    m_len(len)
 {
     minBox();
 }
 
-Cluster::~Cluster ()
+//
+// Predicate in call to std::partition() in Cluster::Cluster(Cluster,Box).
+//
+class InBox
 {
-    delete m_ar;
-}
+public:
+    InBox (const Box& b) : m_box(b) {}
 
-//
-// Construct new cluster by removing all points from c that lie in box b.
-//
+    bool operator() (const IntVect& iv) const
+    {
+        return m_box.contains(iv);
+    }
+private:
+    const Box& m_box;
+};
 
 Cluster::Cluster (Cluster&   c,
                   const Box& b) 
     :
-    m_ar(0)
+    m_ar(0),
+    m_len(0)
 {
     assert(b.ok());
-    assert(c.m_ar!=0 && c.m_ar->length() > 0);
+    assert(c.m_ar != 0 && c.m_len > 0);
 
     if (b.contains(c.m_bx))
     {
-        m_bx = c.m_bx;
-        m_ar = c.m_ar;
-        c.m_ar = 0;
-        c.m_bx = Box();
+        m_bx    = c.m_bx;
+        m_ar    = c.m_ar;
+        m_len   = c.m_len;
+        c.m_ar  = 0;
+        c.m_len = 0;
+        c.m_bx  = Box();
     }
     else
     {
-        int len = c.m_ar->length();
-        int* owns = new int[len];
-        int nlen = 0;
-        for (int i = 0; i < len; i++)
+        IntVect* prt_it = partition(c.m_ar, c.m_ar+c.m_len, InBox(b));
+
+        if (prt_it == c.m_ar)
         {
-            if (b.contains(c.m_ar->get(i)))
-            {
-                nlen++;
-                owns[i] = 1;
-            }
-            else
-            {
-                owns[i] = 0;
-            }
+            //
+            // None of the points in `c.m_ar' were in `b'.
+            //
+            m_ar  = 0;
+            m_len = 0;
+            m_bx  = Box();
         }
-        if (nlen == 0)
+        else if (prt_it == (c.m_ar+c.m_len))
         {
-            m_ar = 0;
-            m_bx = Box();
-        }
-        else if (nlen == len)
-        {
-            m_bx = c.m_bx;
-            m_ar = c.m_ar;
-            c.m_ar = 0;
-            c.m_bx = Box();
+            //
+            // All the points in `c.m_ar' were in `b'.
+            //
+            m_bx    = c.m_bx;
+            m_ar    = c.m_ar;
+            m_len   = c.m_len;
+            c.m_ar  = 0;
+            c.m_len = 0;
+            c.m_bx  = Box();
         }
         else
         {
-            m_ar = new Array<IntVect>(nlen);
-            Array<IntVect>* cm_ar = new Array<IntVect>(len-nlen);
-            int i1 = 0;
-            int i2 = 0;
-            for (int i = 0; i < len; i++)
-            {
-                if (owns[i] == 1)
-                {
-                    m_ar->set(i1++, c.m_ar->get(i));
-                }
-                else
-                {
-                    cm_ar->set(i2++, c.m_ar->get(i));
-                }
-            }
-            delete c.m_ar;
-            c.m_ar = cm_ar;
-            c.minBox();
+            m_ar    = c.m_ar;
+            m_len   = prt_it - m_ar;
+            c.m_ar  = prt_it;
+            c.m_len = c.m_len - m_len;
             minBox();
+            c.minBox();
         }
-        delete [] owns;
     }
 }
-
-//
-// Construct new cluster by removing all points from c that lie in box b.
-//
 
 void
 Cluster::distribute (ClusterList&     clst,
                      const BoxDomain& bd)
 {
-    assert(bd.ok());
     assert(ok());
+    assert(bd.ok());
     assert(clst.length() == 0);
    
     for (BoxDomainIterator bdi(bd); bdi && ok(); ++bdi)
@@ -111,13 +107,9 @@ Cluster::distribute (ClusterList&     clst,
         Cluster* c = new Cluster(*this, bdi());
 
         if (c->ok())
-        {
             clst.append(c);
-        }
         else
-        {
             delete c;
-        }
     }
 }
 
@@ -125,9 +117,9 @@ long
 Cluster::numTag (const Box& b) const
 {
     long cnt = 0;
-    for (int i = 0; i < m_ar->length(); i++)
+    for (int i = 0; i < m_len; i++)
     {
-        if (b.contains((*m_ar)[i]))
+        if (b.contains(m_ar[i]))
             cnt++;
     }
     return cnt;
@@ -136,20 +128,17 @@ Cluster::numTag (const Box& b) const
 void
 Cluster::minBox ()
 {
-    long len = m_ar->length();
-
-    if (len == 0)
+    if (m_len == 0)
     {
         m_bx = Box();
     }
     else
     {
-        IntVect lo = (*m_ar)[0];
-        IntVect hi(lo);
-        for (int i = 1; i < len; i++)
+        IntVect lo = m_ar[0], hi = lo;
+        for (int i = 1; i < m_len; i++)
         {
-            lo.min((*m_ar)[i]);
-            hi.max((*m_ar)[i]);
+            lo.min(m_ar[i]);
+            hi.max(m_ar[i]);
         }
         m_bx = Box(lo,hi);
     }
@@ -174,7 +163,8 @@ FindCut (const int* hist,
     //
     // Check validity of histogram.
     //
-    if (len <= 1) return lo;
+    if (len <= 1)
+        return lo;
     //
     // First find centermost point where hist == 0 (if any).
     //
@@ -195,12 +185,12 @@ FindCut (const int* hist,
         }
     }
     if (status == HoleCut)
-        return lo+cutpoint;
+        return lo + cutpoint;
     //
     // If we got here, there was no obvious cutpoint, try
     // finding place where change in second derivative is max.
     //
-    int* dhist = new int[len];
+    Array<int> dhist(len,0);
     for (i = 1; i < len-1; i++)
         dhist[i] = hist[i+1] - 2*hist[i] + hist[i-1];
 
@@ -228,7 +218,6 @@ FindCut (const int* hist,
             }
         }
     }
-    delete [] dhist;
 
     if (locmax <= CUT_THRESH)
     {
@@ -242,11 +231,27 @@ FindCut (const int* hist,
     return lo + cutpoint;
 }
 
-Cluster* 
+//
+// Predicate in call to std::partition() in Cluster::chop().
+//
+class Cut
+{
+public:
+    Cut (const IntVect& cut, int dir) : m_cut(cut), m_dir(dir) {}
+
+    bool operator() (const IntVect& iv) const
+    {
+        return iv[m_dir] < m_cut[m_dir] ? true : false;
+    }
+private:
+    const IntVect& m_cut;
+    int            m_dir;
+};
+
+Cluster*
 Cluster::chop ()
 {
-    int npts = m_ar->length();
-    assert(npts > 1);
+    assert(m_len > 1);
 
     const int* lo  = m_bx.loVect();
     const int* hi  = m_bx.hiVect();
@@ -266,9 +271,9 @@ Cluster::chop ()
             hist[n][i] = 0;
     }
     int i;
-    for (i = 0; i < npts; i++)
+    for (i = 0; i < m_len; i++)
     {
-        const int* p = (*m_ar)[i].getVect();
+        const int* p = m_ar[i].getVect();
         D_TERM( hist[0][p[0]-lo[0]]++;,
                 hist[1][p[1]-lo[1]]++;,
                 hist[2][p[2]-lo[2]]++; )
@@ -278,7 +283,7 @@ Cluster::chop ()
     //
     CutStatus mincut = InvalidCut;
     CutStatus status[BL_SPACEDIM];
-    int cut[BL_SPACEDIM];
+    IntVect cut;
     int mincount = 0;
     for (n = 0; n < BL_SPACEDIM; n++)
     {
@@ -311,43 +316,28 @@ Cluster::chop ()
             }
         }
     }
+    assert(dir >=0 && dir < BL_SPACEDIM);
 
     int nlo = 0;
     for (i = lo[dir]; i < cut[dir]; i++)
         nlo += hist[dir][i-lo[dir]];
 
-    assert(nlo > 0 && nlo < npts);
+    assert(nlo > 0 && nlo < m_len);
 
-    int nhi = npts - nlo;
+    int nhi = m_len - nlo;
 
     for (i = 0; i < BL_SPACEDIM; i++)
         delete [] hist[i];
-    //
-    // Split intvect list.
-    //
-    Array<IntVect>* alo = new Array<IntVect>(nlo);
-    Array<IntVect>* ahi = new Array<IntVect>(nhi);
-    int ilo = 0;
-    int ihi = 0;
-    for (i = 0; i < npts; i++)
-    {
-        const IntVect& p = (*m_ar)[i];
-        if (p[dir] < cut[dir])
-        {
-            alo->set(ilo++, p);
-        }
-        else
-        {
-            ahi->set(ihi++, p);
-        }
-    }
-    delete m_ar;
-    m_ar = alo;
+
+    IntVect* prt_it = partition(m_ar, m_ar+m_len, Cut(cut,dir));
+
+    assert((prt_it-m_ar) == nlo);
+    assert(((m_ar+m_len)-prt_it) == nhi);
+
+    m_len = nlo;
     minBox();
 
-    Cluster* result = new Cluster(ahi);
-
-    return result;
+    return new Cluster(prt_it, nhi);
 }
 
 ClusterList::~ClusterList ()
@@ -431,7 +421,9 @@ ClusterList::intersect (const BoxDomain& dom)
         else
         {
             BoxDomain bxdom;
+
             ::intersect(bxdom, dom, cbox);
+
             if (bxdom.length() > 0)
             {
                 ClusterList clst;

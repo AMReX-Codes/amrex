@@ -4,7 +4,7 @@
 #define _TagBox_H_
 
 //
-// $Id: TagBox.H,v 1.6 1998-01-26 21:57:18 lijewski Exp $
+// $Id: TagBox.H,v 1.7 1998-01-28 04:55:11 lijewski Exp $
 //
 
 #include <IntVect.H>
@@ -49,7 +49,7 @@ public:
 
     TagBox (const Box& bx, int n = 1);
 
-    virtual ~TagBox();
+    ~TagBox();
     
     void resize (const Box& b) { BaseFab<TagType>::resize(b,1); }
     //
@@ -71,7 +71,7 @@ public:
     // Add location of every tagged cell to IntVect array,
     // starting at given location.
     //
-    int colate (Array<IntVect> &ar, int start) const;
+    void collate (IntVect* ar, int start) const;
 
     int numTags (const Box& bx) const;
     int numTags () const;
@@ -106,7 +106,7 @@ public:
 
     TagBoxArray (const BoxArray& bs, int _ngrow=0);
 
-    virtual ~TagBoxArray ();
+    ~TagBoxArray ();
 
     int borderSize () { return m_border; }
     void buffer (int nbuf);
@@ -121,9 +121,9 @@ public:
     void setVal (BoxArray& ba, TagBox::TagVal val);
     void coarsen (const IntVect& ratio);
 
-    long numTags() const;
+    long numTags () const;
 
-    Array<IntVect>* colate() const;
+    IntVect* collate (long& numtags) const;
 
 private:
     //
@@ -132,6 +132,19 @@ private:
     TagBoxArray ();
     TagBoxArray (const TagBoxArray& rhs);
     TagBoxArray& operator= (const TagBoxArray& rhs);
+    //
+    // Static space used by collate().
+    //
+    static IntVect* m_CollateSpace;
+    //
+    // Number of IntVects that can fit into m_CollateSpace
+    //
+    static long m_CollateCount;
+    //
+    // The initial size of `TagBoxArray::m_CollateCount' and the
+    // amount we bump it each time it is not large enough.
+    //
+    enum { ChunkSize = 1048576 };
     //
     // Not to be confused with FabArray::n_grow which defines
     // the invalid regions of the fabs in the FabArray.

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.11 1998-01-26 21:57:18 lijewski Exp $
+// $Id: TagBox.cpp,v 1.12 1998-01-28 04:55:12 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -13,13 +13,23 @@ extern void inspectTAGArray (const TagBoxArray& tba);
 extern void inspectTAG (const TagBox& tb, int n);
 extern void inspectFAB (FArrayBox& unfab, int n);
 
+//
+// Number of IntVects that can fit into m_CollateSpace
+//
+long TagBoxArray::m_CollateCount = TagBoxArray::ChunkSize;
+
+//
+// Static space used by collate().
+//
+IntVect* TagBoxArray::m_CollateSpace = new IntVect[TagBoxArray::ChunkSize];
+
 struct TagBoxMergeDesc
 {
-  bool destLocal;
-  int mergeIndexSrc;
-  int mergeIndexDest;
-  int nOverlap;
-  Box overlapBox;
+  bool      destLocal;
+  int       mergeIndexSrc;
+  int       mergeIndexDest;
+  int       nOverlap;
+  Box       overlapBox;
   FillBoxId fillBoxId;
 };
 
@@ -309,20 +319,22 @@ TagBox::numTags (const Box& b) const
    return tempTagBox.numTags();
 }
 
-int 
-TagBox::colate (Array<IntVect>& ar,
-                int             start) const
+void
+TagBox::collate (IntVect* ar,
+                 int      start) const
 {
+    assert(!(ar == 0));
+    assert(start >= 0);
     //
     // Starting at given offset of array ar, enter location (IntVect) of
     // each tagged cell in tagbox.
     //
-    int count = 0;
     const int* len = domain.length().getVect();
     const int* lo = domain.loVect();
     const TagType* d = dataPtr();
     int ni = 1, nj = 1, nk = 1;
     D_TERM(ni = len[0]; , nj = len[1]; , nk = len[2];)
+
     for (int k = 0; k < nk; k++)
     {
         for (int j = 0; j < nj; j++)
@@ -330,15 +342,13 @@ TagBox::colate (Array<IntVect>& ar,
             for (int i = 0; i < ni; i++)
             {
                 const TagType* dn = d + D_TERM(i, +j*len[0], +k*len[0]*len[1]);
-                if (*dn !=TagBox::CLEAR)
+                if (*dn != TagBox::CLEAR)
                 {
                     ar[start++] = IntVect(D_DECL(lo[0]+i,lo[1]+j,lo[2]+k));
-                    count++;
                 }
             }
         }
     }
-    return count;
 }
 
 Array<int>
@@ -374,16 +384,13 @@ TagBox::tags (const Array<int>& ar)
 }
 
 TagBoxArray::TagBoxArray (const BoxArray& ba,
-                          int             _ngrow)
+                          int             ngrow)
     :
-    FabArray<TagBox::TagType,TagBox>(),
-    m_border(_ngrow)
+    m_border(ngrow)
 {
     BoxArray grownBoxArray(ba);
-    grownBoxArray.grow(_ngrow);
-    int nvars = 1;
-    int growFabArray = 0;
-    define(grownBoxArray, nvars, growFabArray, Fab_allocate);
+    grownBoxArray.grow(ngrow);
+    define(grownBoxArray, 1, 0, Fab_allocate);
 }
 
 TagBoxArray::~TagBoxArray () {}
@@ -404,21 +411,6 @@ TagBoxArray::buffer (int nbuf)
 void
 TagBoxArray::mergeUnique ()
 {
-/*
-   // original code vvvvvvvvvvvvvvvvvvvvvvvvvvv
-   for(int i = 0; i < fabparray.length(); ++i) {
-      TagBox &dest = fabparray[i];
-      for(int j = i+1; j < fabparray.length(); j++) {
-         TagBox& src = fabparray[j];
-         Box ovlp(dest.box());
-         ovlp &= src.box();
-         if (ovlp.ok()) {
-            dest.merge(src);
-            src.setVal(TagBox::CLEAR,ovlp,0);
-         }
-      }
-   }
-*/
     FabArrayCopyDescriptor<TagType,TagBox> facd(true);
     FabArrayId faid = facd.RegisterFabArray(this);
     int nOverlap = 0;
@@ -524,50 +516,6 @@ TagBoxArray::mergeUnique ()
 void
 TagBoxArray::mapPeriodic (const Geometry& geom)
 {
-/*  // vvvvvvvvvvvvvvvoriginal code vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-  Box domain(geom.Domain());
-  TagBox tagtmp;
-  //for( int i=0; i<fabparray.length(); i++ ){
-  for(FabArrayIterator<TagType,TagBox> fai(*this); fai.isValid(); ++fai) {
-    TagBox &src = fai();
-    if( ! domain.contains( src.box() ) ){
-      // src is candidate for periodic mapping
-      Array<IntVect> pshifts(27);
-      geom.periodicShift( domain, src.box(), pshifts );
-      for( int iiv=0; iiv< pshifts.length(); iiv++ ){
-        IntVect iv = pshifts[iiv];
-        Box shiftbox( src.box() );
-        D_TERM( shiftbox.shift(0,iv[0]);,
-                shiftbox.shift(1,iv[1]);,
-                shiftbox.shift(2,iv[2]); )
-        // possible periodic remapping, try each tagbox
-        for( int j=0; j<fabparray.length(); j++ ){
-          TagBox& dest = fabparray[j];
-          Box intbox = dest.box() & shiftbox;
-          if( intbox.ok() ){
-            // ok, got a hit.  But be careful if is same TagBox
-            if( i != j ){
-              src.shift(iv);
-              dest.merge(src);
-              src.shift(-iv);
-            }
-            else {
-              // is same tagbox, must be careful
-              tagtmp.resize(intbox);
-              Box shintbox(intbox);
-              IntVect tmpiv( -iv );
-              D_TERM( shintbox.shift(0,tmpiv[0]);,
-                      shintbox.shift(1,tmpiv[1]);,
-                      shintbox.shift(2,tmpiv[2]); )
-              tagtmp.copy(src,shintbox,0,intbox,0,1);
-              dest.merge(tagtmp);
-            }
-          }
-        }
-      }
-    }
-  }
-*/
     FabArrayCopyDescriptor<TagType,TagBox> facd(true);
     FabArrayId faid = facd.RegisterFabArray(this);
     int myproc = ParallelDescriptor::MyProc();
@@ -741,12 +689,12 @@ TagBoxArray::numTags () const
    return ntag;
 }
 
-Array<IntVect>* 
-TagBoxArray::colate () const
+IntVect*
+TagBoxArray::collate (long& numtags) const
 {
     const int myproc = ParallelDescriptor::MyProc();
     const int nGrids = fabparray.length();
-    int* sharedNTags = new int[nGrids]; // Shared numTags  per grid.
+    int* sharedNTags = new int[nGrids]; // Shared numTags per grid.
     for (int isn = 0; isn < nGrids; ++isn)
     {
         sharedNTags[isn] = -1;  // A bad value.
@@ -776,40 +724,52 @@ TagBoxArray::colate () const
             }
         }
     }
-    ParallelDescriptor::Synchronize();  // Need this sync after the put.
+    ParallelDescriptor::Synchronize();
     ParallelDescriptor::UnshareVar(sharedNTags);
 
     int* startOffset = new int[nGrids]; // Start locations per grid.
     startOffset[0] = 0;
     for (int iGrid = 1; iGrid < nGrids; ++iGrid)
     {
-        startOffset[iGrid] = startOffset[iGrid - 1] + sharedNTags[iGrid - 1];
+        startOffset[iGrid] = startOffset[iGrid-1] + sharedNTags[iGrid-1];
     }
     //
     // Communicate all local points so all procs have the same global set.
     //
-    // Need a 1d array for contiguous parallel copies.
+    // Use our static 1D array for contiguous parallel copies.
     //
-    const long len = numTags();
+    numtags = numTags();
 
-    Array<IntVect>* ar = new Array<IntVect>(len);
-
-    for (ConstFabArrayIterator<TagType,TagBox> fai(*this); fai.isValid();++fai)
+    if (TagBoxArray::m_CollateCount < numtags)
     {
-        fai().colate(*ar, startOffset[fai.index()]);
+        do
+        {
+            TagBoxArray::m_CollateCount += TagBoxArray::ChunkSize;
+        }
+        while (TagBoxArray::m_CollateCount < numtags);
+
+        delete [] TagBoxArray::m_CollateSpace;
+
+        TagBoxArray::m_CollateSpace = new IntVect[TagBoxArray::m_CollateCount];
     }
 
-    IntVect* tmpPts = ar->dataPtr();
-    const size_t ivSize = BL_SPACEDIM * sizeof(int);
-    //
-    // Now copy the the local IntVects to all other processors.
-    //
-    ParallelDescriptor::ShareVar(tmpPts, len * ivSize);
-    ParallelDescriptor::Synchronize();  // For ShareVar.
-    
     for (ConstFabArrayIterator<TagType,TagBox> fai(*this); fai.isValid();++fai)
     {
-        IntVect* ivDestBase = tmpPts + startOffset[fai.index()];
+        fai().collate(TagBoxArray::m_CollateSpace, startOffset[fai.index()]);
+    }
+
+    const size_t ivSize = sizeof(IntVect);
+    //
+    // Now copy the local IntVects to all other processors.
+    //
+    ParallelDescriptor::ShareVar(TagBoxArray::m_CollateSpace, numtags*ivSize);
+    ParallelDescriptor::Synchronize();  // For ShareVar.
+
+    for (ConstFabArrayIterator<TagType,TagBox> fai(*this); fai.isValid();++fai)
+    {
+        int idx = fai.index();
+
+        IntVect* ivDestBase = TagBoxArray::m_CollateSpace + startOffset[idx];
 
         for (int iProc = 0; iProc < nProcs; ++iProc)
         {
@@ -819,20 +779,20 @@ TagBoxArray::colate () const
                 {
                     ParallelDescriptor::WriteData(iProc,
                                                   ivDestBase,
-                                                  tmpPts,
-                                                  startOffset[fai.index()]*ivSize,   // offset
-                                                  sharedNTags[fai.index()]*ivSize);  // nbytes
+                                                  TagBoxArray::m_CollateSpace,
+                                                  startOffset[idx]*ivSize,
+                                                  sharedNTags[idx]*ivSize);
                 }
             }
         }
     }
     ParallelDescriptor::Synchronize();  // Need this sync after the put.
-    ParallelDescriptor::UnshareVar(tmpPts);
+    ParallelDescriptor::UnshareVar(TagBoxArray::m_CollateSpace);
 
     delete [] startOffset;
     delete [] sharedNTags;
 
-    return ar;
+    return TagBoxArray::m_CollateSpace;
 }
 
 void

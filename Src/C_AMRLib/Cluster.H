@@ -4,7 +4,7 @@
 #define _Cluster_H_ 
 
 //
-// $Id: Cluster.H,v 1.7 1998-01-26 23:16:20 lijewski Exp $
+// $Id: Cluster.H,v 1.8 1998-01-28 04:55:10 lijewski Exp $
 //
 
 #include <IntVect.H>
@@ -40,19 +40,19 @@ public:
     Cluster () : m_ar(0) {}
     //
     // Construct a cluster from an array of IntVects.
-    // NOTE: Cluster object takes over memory management of array.
+    // Cluster object does NOT take over memory management of array.
     //
-    Cluster (Array<IntVect> *a);
+    Cluster (IntVect* a, long len);
     //
-    // Construct new cluster by removing all points from c
-    // that lie in box b.  Cluster c is modified and may become invalid.
+    // Construct new cluster by removing all points from c that lie in box b.
+    // Cluster c is modified and may become invalid.
     //
     Cluster (Cluster&   c,
              const Box& b);
     //
     // The destructor.
     //
-    ~Cluster ();
+    ~Cluster () {}
     //
     // Return minimal box containing all tagged points.
     //
@@ -60,11 +60,11 @@ public:
     //
     // Does cluster contain any points?
     //
-    bool ok () const { return m_ar!=0 && m_ar->length() > 0; }
+    bool ok () const { return m_ar != 0 && m_len > 0; }
     //
     //  Returns number of tagged points in cluster.
     //
-    long numTag () const { return m_ar->length(); }
+    long numTag () const { return m_len; }
     //
     // Return number of tagged points in intersection of cluster and Box b.
     //
@@ -110,8 +110,9 @@ private:
     //
     // The data.
     //
-    Box             m_bx;
-    Array<IntVect>* m_ar;
+    Box      m_bx;
+    IntVect* m_ar;
+    long     m_len;
 };
 
 //
@@ -124,13 +125,13 @@ public:
     //
     // Constructor.
     //
-    ClusterList() : lst() {}
+    ClusterList () : lst() {}
     //
     // Constructor.
     //
-    ClusterList (Array<IntVect>* pts)
+    ClusterList (IntVect* pts, long len)
     {
-        lst.append(new Cluster(pts));
+        lst.append(new Cluster(pts,len));
     }
     //
     // Destructor.
