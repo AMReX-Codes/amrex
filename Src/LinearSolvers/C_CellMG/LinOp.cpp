@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: LinOp.cpp,v 1.15 2000-06-22 18:34:27 car Exp $
+// $Id: LinOp.cpp,v 1.16 2000-06-22 18:34:50 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -414,7 +414,9 @@ LinOp::applyBC (MultiFab&      inout,
         }
 #endif
     }
+#ifdef BL3_PTHREADS
     wrkq.wait();
+#endif
 }
 
 void
