@@ -4,7 +4,7 @@
 #define BL_USECOUNT_H
 
 //
-// $Id: UseCount.H,v 1.2 1997-09-17 22:51:22 lijewski Exp $
+// $Id: UseCount.H,v 1.3 1997-12-11 23:25:47 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -68,10 +68,7 @@ private:
 inline
 UseCount::UseCount ()
     : cnt(new unsigned int(1))
-{
-    if (cnt == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
-}
+{}
 
 inline
 UseCount::UseCount (const UseCount& rhs)

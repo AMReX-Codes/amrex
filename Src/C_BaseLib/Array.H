@@ -4,7 +4,7 @@
 #define BL_ARRAY_H
 
 //
-// $Id: Array.H,v 1.6 1997-11-18 00:04:45 lijewski Exp $
+// $Id: Array.H,v 1.7 1997-12-11 23:25:38 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -83,8 +83,6 @@ public:
         nelem    = len;
         vp       = new T[len];
         truesize = nelem;
-        if (vp == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
     }
 
     /*@ManDoc: Constructs an `Array<T>' of length len with the value of each
@@ -250,8 +248,6 @@ Array<T>::Array ()
     nelem    = 0;
     vp       = new T[1];
     truesize = 1;
-    if (vp == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
 }
 
 template <class T>
@@ -384,8 +380,6 @@ Array<T>::Array (long     len,
     assert(len >= 0);
     nelem = len;
     vp    = new T[len];
-    if (vp == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     truesize = nelem;
     for(long i = 0; i < nelem; ++i)
         vp[i] = initialValue;
@@ -398,8 +392,6 @@ Array<T>::Array (const T* vec,
     assert(len >= 0);
     nelem = len;
     vp    = new T[len];
-    if (vp == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     truesize = nelem;
     for(long i = 0; i < nelem; ++i)
         vp[i] = vec[i];
@@ -410,8 +402,6 @@ Array<T>::Array (const Array<T>& a)
 {
     nelem = a.nelem;
     vp    = new T[nelem];
-    if (vp == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     truesize = nelem;
     for (long i = 0; i < nelem; i++)
         vp[i] = a.vp[i];
@@ -427,8 +417,6 @@ Array<T>::operator= (const Array<T>& sa)
         vp       = new T[sa.nelem];
         nelem    = sa.nelem;
         truesize = nelem;
-        if (vp == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
         for(long i = 0; i < nelem; i++)
             vp[i] = sa.vp[i];
     }
@@ -448,8 +436,6 @@ Array<T>::resize (long newlen)
     }
     T* newvp = new T[newlen];
     long len = Min(newlen,nelem);
-    if (newvp == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     for (long i = 0; i < len; i++)
         newvp[i] = vp[i];
     delete [] vp;
@@ -472,8 +458,6 @@ void Array<T>::resize (long     newlen,
         return;
     }
     T* newvp = new T[newlen];
-    if (newvp == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     long len = Min(newlen,nelem);
     long i;
     for (i = 0; i < len; i++)
@@ -493,8 +477,6 @@ Array<T>::reserve (long _truesize)
     if (_truesize > truesize)
     {
         T* newvp = new T[_truesize];
-        if (newvp == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
         for (long i = 0; i < nelem; i++)
             newvp[i] = vp[i];
         delete [] vp;
@@ -510,8 +492,6 @@ Array<T>::shrinkWrap ()
     if (nelem != truesize)
     {
         T* newvp = new T[nelem];
-        if (newvp == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
         for (long i = 0; i < nelem; i++)
             newvp[i] = vp[i];
         delete [] vp;

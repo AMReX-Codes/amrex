@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateDescriptor.cpp,v 1.5 1997-12-04 22:57:09 lijewski Exp $
+// $Id: StateDescriptor.cpp,v 1.6 1997-12-11 23:27:53 lijewski Exp $
 //
 
 #include <StateDescriptor.H>
@@ -30,11 +30,9 @@ DescriptorList::addDescriptor (int                         indx,
                                Interpolater*               interp)
 {
     if (indx >= desc.length())
-	desc.resize(indx+1);
+        desc.resize(indx+1);
     StateDescriptor* sd = new StateDescriptor(typ,ttyp,indx,nextra,
                                               num_comp,interp);
-    if (sd == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     desc.set(indx,sd);
 }  
 
@@ -114,7 +112,7 @@ StateDescriptor::define (IndexType                   btyp,
     bc_func.resize(num_comp);
 
 }
-		       
+                       
 void
 StateDescriptor::setComponent (int            comp,
                                const aString& nm,
@@ -145,6 +143,6 @@ StateDescriptor::dumpNames (ostream& os,
     assert(start_comp >= 0 && start_comp+num_comp <= ncomp);
     for (int k = 0; k < num_comp; k++)
     {
-	os << names[start_comp+k] << ' ';
+        os << names[start_comp+k] << ' ';
     }
 }

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.6 1997-11-13 18:45:16 lijewski Exp $
+// $Id: MultiFab.cpp,v 1.7 1997-12-11 23:25:44 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -121,7 +121,7 @@ MultiFab::readFrom (istream& is)
         int cw;
         is >> cw;
         //
-	// Do not do anything with BoxAssoc.
+        // Do not do anything with BoxAssoc.
         //
     }
     while (is.get() != '\n')
@@ -136,8 +136,6 @@ MultiFab::readFrom (istream& is)
     for (int i = 0; i < nbox; i++)
     {
         FArrayBox* tmp = new FArrayBox;
-        if (tmp == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
         tmp->readFrom(is);
         fabparray.set(i,tmp);
     }
@@ -155,8 +153,6 @@ MultiFab::readFrom (istream& is)
         if (fabProc == myproc)
         {
             FArrayBox* tmp = new FArrayBox;
-            if (tmp == 0)
-                BoxLib::OutOfMemory(__FILE__, __LINE__);
 
             tmp->readFrom(is);
             fabparray.set(i,tmp);
@@ -523,7 +519,7 @@ linInterp (FArrayBox&      dest,
 
         for (ConstMultiFabIterator mfi(f2); mfi.isValid(); ++mfi)
         {
-	    ConstDependentMultiFabIterator dmfi(mfi, f1);
+            ConstDependentMultiFabIterator dmfi(mfi, f1);
             if (mfi.validbox().intersects(subbox))
             {
                 Box destbox(mfi.validbox());
@@ -618,16 +614,16 @@ linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
 
     if (t < t1+teps)
     {
-	returnedFillBoxIds.resize(1);
-	returnedFillBoxIds[0] = fabCopyDesc.AddBox(faid1, subbox,
+        returnedFillBoxIds.resize(1);
+        returnedFillBoxIds[0] = fabCopyDesc.AddBox(faid1, subbox,
                                                    returnUnfilledBoxes,
                                                    src_comp, dest_comp,
                                                    num_comp);
     }
     else if (t > t2-teps && t < t2+teps)
     {
-	returnedFillBoxIds.resize(1);
-	returnedFillBoxIds[0] = fabCopyDesc.AddBox(faid2, subbox,
+        returnedFillBoxIds.resize(1);
+        returnedFillBoxIds[0] = fabCopyDesc.AddBox(faid2, subbox,
                                                    returnUnfilledBoxes,
                                                    src_comp, dest_comp,
                                                    num_comp);
@@ -639,16 +635,16 @@ linInterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
         //assert(src_comp + num_comp <= f1.n_comp);
         //assert(dest_comp + num_comp <= dest.nComp());
 
-	returnedFillBoxIds.resize(2);
-	BoxList tempUnfilledBoxes(subbox.ixType());
-	returnedFillBoxIds[0] = fabCopyDesc.AddBox(faid1, subbox,
-				       returnUnfilledBoxes,
-				       src_comp, dest_comp, num_comp);
-	returnedFillBoxIds[1] = fabCopyDesc.AddBox(faid2, subbox,
-				       tempUnfilledBoxes,
-				       src_comp, dest_comp, num_comp);
-	// note:  the boxarrays for faid1 and faid2 should be the
-	//        same so only use returnUnfilledBoxes from one AddBox here
+        returnedFillBoxIds.resize(2);
+        BoxList tempUnfilledBoxes(subbox.ixType());
+        returnedFillBoxIds[0] = fabCopyDesc.AddBox(faid1, subbox,
+                                       returnUnfilledBoxes,
+                                       src_comp, dest_comp, num_comp);
+        returnedFillBoxIds[1] = fabCopyDesc.AddBox(faid2, subbox,
+                                       tempUnfilledBoxes,
+                                       src_comp, dest_comp, num_comp);
+        // note:  the boxarrays for faid1 and faid2 should be the
+        //        same so only use returnUnfilledBoxes from one AddBox here
     }
 }
 
@@ -672,22 +668,22 @@ linInterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
 
     if (t < t1+teps)
     {
-	fabCopyDesc.FillFab(faid1, fillBoxIds[0], dest);
+        fabCopyDesc.FillFab(faid1, fillBoxIds[0], dest);
     }
     else if (t > t2-teps && t < t2+teps)
     {
-	fabCopyDesc.FillFab(faid2, fillBoxIds[0], dest);
+        fabCopyDesc.FillFab(faid2, fillBoxIds[0], dest);
     }
     else
     {
         assert(dest_comp + num_comp <= dest.nComp());
 
-	FArrayBox dest1(dest.box(), dest.nComp());
-	dest1.setVal(1.e30);
-	FArrayBox dest2(dest.box(), dest.nComp());
-	dest2.setVal(1.e30);
-	fabCopyDesc.FillFab(faid1, fillBoxIds[0], dest1);
-	fabCopyDesc.FillFab(faid2, fillBoxIds[1], dest2);
+        FArrayBox dest1(dest.box(), dest.nComp());
+        dest1.setVal(1.e30);
+        FArrayBox dest2(dest.box(), dest.nComp());
+        dest2.setVal(1.e30);
+        fabCopyDesc.FillFab(faid1, fillBoxIds[0], dest1);
+        fabCopyDesc.FillFab(faid2, fillBoxIds[1], dest2);
         dest.linInterp(dest1, dest1.box(), src_comp,
                        dest2, dest2.box(), src_comp,
                        t1, t2, t, dest.box(), dest_comp, num_comp);

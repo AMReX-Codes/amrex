@@ -4,7 +4,7 @@
 #define _Derive_H_
 
 //
-// $Id: Derive.H,v 1.3 1997-11-26 19:18:48 lijewski Exp $
+// $Id: Derive.H,v 1.4 1997-12-11 23:27:49 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -24,12 +24,12 @@ typedef Box (*DeriveBoxMap)(const Box&);
 */
 typedef void (*DeriveFunc)(Real* data, ARLIM_P(dlo), ARLIM_P(dhi),
                            const int* nvar, const Real* compdat,
-			   ARLIM_P(compdat_lo), ARLIM_P(compdat_hi),
-			   const int* ncomp,
-			   const int* lo, const int* hi,
-			   const int* domain_lo, const int* domain_hi,
-			   const Real* delta, const Real* xlo,
-			   const Real* time, const int* bcrec,
+                           ARLIM_P(compdat_lo), ARLIM_P(compdat_hi),
+                           const int* ncomp,
+                           const int* lo, const int* hi,
+                           const int* domain_lo, const int* domain_hi,
+                           const Real* delta, const Real* xlo,
+                           const Real* time, const int* bcrec,
                            const int* level, const int* grid_no) ;
 
 /// Computes quantities derived from state data
@@ -125,8 +125,8 @@ class DeriveRec
 //    constructor
       DeriveRec(const aString &name, IndexType result_type,
                 int nvar_derive, DeriveFunc der_func,
-		DeriveBoxMap box_map, IndexType component_type,
-		Interpolater *interp = &pc_interp);
+                DeriveBoxMap box_map, IndexType component_type,
+                Interpolater *interp = &pc_interp);
 
 //   destructor
      ~DeriveRec();
@@ -160,13 +160,13 @@ public:
 
 //  Adds another entry to the registry.
     void add(const aString &name, IndexType result_type,
-	     int nvar_derive, DeriveFunc der_func,
-	     DeriveBoxMap box_map, IndexType component_type,
-	     Interpolater *interp = &pc_interp);
+             int nvar_derive, DeriveFunc der_func,
+             DeriveBoxMap box_map, IndexType component_type,
+             Interpolater *interp = &pc_interp);
 
 //  Adds another Staterange to the DeriveRec identified by <name>
     void addComponent(const aString &name, const DescriptorList& d_list,
-		      int state_indx, int start_comp, int ncomp);
+                      int state_indx, int start_comp, int ncomp);
 
     List<DeriveRec*> &dlist() { return lst; }
 

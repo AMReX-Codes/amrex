@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.22 1997-11-23 21:42:50 lijewski Exp $
+// $Id: FabArray.H,v 1.23 1997-12-11 23:25:42 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -176,10 +176,10 @@ public:
     */
     virtual const Box& box (int K) const;
 
-    /*@ManDoc: Returns a constant reference to the Kth Fabs Box in the FabArray.
+    /*@ManDoc: Returns the Kth Fabs Box in the FabArray.
                That is, the region the Kth fab is actually defined on.
     */
-    virtual const Box fabbox (int K) const;
+    virtual Box fabbox (int K) const;
     //
     //@ManDoc: Returns the length of this FabArray; i.e. the number of FABs.
     //
@@ -204,7 +204,7 @@ public:
     //
 //private:
     void setFab (int  K,
-		 FAB* elem);
+                 FAB* elem);
 public:
 
     /*@ManDoc: Removes the Kth FAB from the FabArray and returns it to the
@@ -215,15 +215,15 @@ public:
     FAB* remove (int K);
 
     /*@ManDoc: Delete the Kth element in the FabArray only if the array is
-	       managed.  It leaves the Kth element in the FabArray undefined
-	       for both managed and unmanaged FabArrays.
+               managed.  It leaves the Kth element in the FabArray undefined
+               for both managed and unmanaged FabArrays.
     */
     void clear (int K);
     void clear ();
 
     /*@ManDoc: Delete all elements in the FabArray.  Use this only
-	       on unmanaged FabArrays.  It leaves all elements
-	       in the FabArray undefined.
+               on unmanaged FabArrays.  It leaves all elements
+               in the FabArray undefined.
     */
     void clearUnmanaged ();
 
@@ -662,16 +662,16 @@ class FabArrayCopyDescriptor
 
     FillBoxId AddBox(const FabArrayId& fabarrayid,
                      const Box&        destFabBox,
-		     BoxList&          unfilledBoxes,
-		     bool              bUseValidBox = true);
+                     BoxList&          unfilledBoxes,
+                     bool              bUseValidBox = true);
 
     FillBoxId AddBox(const FabArrayId& fabarrayid,
                      const Box&        destFabBox,
-		     BoxList&          unfilledBoxes,
-		     int               srccomp,
+                     BoxList&          unfilledBoxes,
+                     int               srccomp,
                      int               destcomp,
                      int               numcomp,
-		     bool              bUseValidBox = true);
+                     bool              bUseValidBox = true);
     //
     // Add a box but only from FabArray[fabarrayindex].
     //
@@ -682,7 +682,7 @@ class FabArrayCopyDescriptor
                       int               srccomp,
                       int               destcomp,
                       int               numcomp,
-		      bool              bUseValidBox = true);
+                      bool              bUseValidBox = true);
 
     void CollectData ();
 
@@ -749,7 +749,7 @@ FabArray<T,FAB>::box (int K) const
 }
 
 template <class T, class FAB>
-const Box
+Box
 FabArray<T,FAB>::fabbox (int K) const
 {
     //
@@ -923,8 +923,8 @@ FabArray<T,FAB>::define (const BoxArray& bxs,
     fabparray.resize(nbox);
     if (alloc == Fab_allocate)
     {
-	n_comp = 1;
-	AllocFabs(n_comp);
+        n_comp = 1;
+        AllocFabs(n_comp);
     }
 }
 
@@ -944,7 +944,7 @@ FabArray<T,FAB>::define (const BoxArray& bxs,
     fabparray.resize(nbox);
     if (alloc == Fab_allocate)
     {
-	AllocFabs(nvar);
+        AllocFabs(nvar);
     }
 }
 
@@ -956,8 +956,6 @@ FabArray<T,FAB>::AllocFabs (int nvar)
   {
       Box tmp(::grow(fai.validbox(), n_grow));
       FAB *f = new FAB(tmp, nvar);
-      if (f == 0)
-          BoxLib::OutOfMemory(__FILE__, __LINE__);
       fabparray.set(fai.index(), f);
       RunStats::addNumPts(tmp.numPts());
   }
@@ -1006,10 +1004,10 @@ FabArray<T,FAB>::setBndry(T   val,
 {
     if (n_grow > 0)
     {
-	for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
+        for (FabArrayIterator<T,FAB> fai(*this); fai.isValid(); ++fai)
         {
             fai().setComplement(val, fai.validbox(), strt_comp, ncomp);
-	}
+        }
     }
 }
 
@@ -1283,8 +1281,6 @@ FabArray<T,FAB>::copy (FAB&       dest,
             int tfigrow = 0;
             Box tfibox(::grow(overlapBoxArray[tfi], tfigrow));
             FAB *f = new FAB(tfibox, num_comp);
-            if (f == 0)
-                BoxLib::OutOfMemory(__FILE__, __LINE__);
             overlapData.set(tfi, f);
         }
 
@@ -1385,7 +1381,7 @@ FabArray<T,FAB>::setVal (T   val,
         for (k = 0; k < num_comp; k++)
         {
             fai().setVal(val, b, comp + k);
-	}
+        }
     }
 }
 
@@ -1409,7 +1405,7 @@ FabArray<T,FAB>::setVal (T          val,
             for (k = 0; k < num_comp; k++)
             {
                 fai().setVal(val, b, comp + k);
-	    }
+            }
         }
     }
 }
@@ -1930,7 +1926,7 @@ FillBoxId
 FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
                                       const Box&        destFabBox,
                                       BoxList&          returnedUnfilledBoxes,
-				      bool              bUseValidBox)
+                                      bool              bUseValidBox)
 {
     return AddBox(fabarrayid,
                   destFabBox,
@@ -1948,7 +1944,7 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (const FabArrayId& fabarrayid,
                                        int               srccomp,
                                        int               destcomp,
                                        int               numcomp,
-				       bool              bUseValidBox)
+                                       bool              bUseValidBox)
 {
     int myproc = ParallelDescriptor::MyProc();
     FabComTag fabComTag;
@@ -2040,7 +2036,7 @@ FabArrayCopyDescriptor<T,FAB>::AddBox(const FabArrayId& fabarrayid,
                                       int               srccomp,
                                       int               destcomp,
                                       int               numcomp,
-				      bool              bUseValidBox)
+                                      bool              bUseValidBox)
 {
     int myproc = ParallelDescriptor::MyProc();
     FabComTag fabComTag;
@@ -2200,7 +2196,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
                                          tempFab.box().numPts() *
                                          tempFab.nComp() * sizeof(T));
 
-	    ++numberOfOutstandingFabMessages;
+            ++numberOfOutstandingFabMessages;
         }
     }
 
@@ -2222,7 +2218,7 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
         {
             cerr << "myproc = " << myproc << endl;
             cerr << "fabComTag.procThatNeedsData = "
-		 << fabComTag.procThatNeedsData << '\n';
+                 << fabComTag.procThatNeedsData << '\n';
             BoxLib::Error("FillFab:  bad procThatNeedsData");
         }
         //
@@ -2242,9 +2238,9 @@ FabArrayCopyDescriptor<T,FAB>::CollectData ()
                 //
                 ParallelDescriptor::ReceiveData(fli()->localFabSource->dataPtr(),
                                                 fabComTag.subBox.numPts() *
-						fabComTag.nComp * sizeof(T));
+                                                fabComTag.nComp * sizeof(T));
                 matchFound = true;
-		--numberOfOutstandingFabMessages;
+                --numberOfOutstandingFabMessages;
             }
         }
         if (matchFound == false)

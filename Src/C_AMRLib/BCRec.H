@@ -4,7 +4,7 @@
 #define _BCREC_H_ 
 
 //
-// $Id: BCRec.H,v 1.3 1997-11-26 19:18:47 lijewski Exp $
+// $Id: BCRec.H,v 1.4 1997-12-11 23:27:47 lijewski Exp $
 //
 
 #include <Misc.H>
@@ -34,7 +34,7 @@ public:
 
 //  constructor
     BCRec(D_DECL(int loX, int loY, int loZ),
-	  D_DECL(int hiX, int hiY, int hiZ));
+          D_DECL(int hiX, int hiY, int hiZ));
 
 //  constructor
     BCRec(const int* lo, const int* hi);
@@ -75,16 +75,16 @@ public:
 ///  function for setting a BC
 void setBC(const Box & bx, 
            const Box & domain,
-	   const BCRec & bc_dom, 
+           const BCRec & bc_dom, 
            BCRec & bcr);
 
 ///  function for setting array of BCs
 void setBC(const Box & bx, 
            const Box & domain, 
-	   int src_comp, 
+           int src_comp, 
            int dest_comp, 
            int ncomp,
-	   const Array<BCRec> & bc_dom, 
+           const Array<BCRec> & bc_dom, 
            Array<BCRec> & bcr);
     
 #endif

@@ -1,14 +1,14 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BCRec.cpp,v 1.3 1997-11-26 19:18:47 lijewski Exp $
+// $Id: BCRec.cpp,v 1.4 1997-12-11 23:27:48 lijewski Exp $
 //
 
 #include <BCRec.H>
 
 // -------------------------------------------------------------
 BCRec::BCRec(D_DECL(int loX, int loY, int loZ),
-	     D_DECL(int hiX, int hiY, int hiZ))
+             D_DECL(int hiX, int hiY, int hiZ))
 {
     D_EXPR(bc[0] = loX,  bc[1] = loY,  bc[2] = loZ);
     D_EXPR(bc[BL_SPACEDIM] = hiX,  bc[BL_SPACEDIM+1] = hiY,  bc[BL_SPACEDIM+2] = hiZ);
@@ -56,12 +56,12 @@ setBC(const Box& bx, const Box& domain, int src_comp, int dest_comp,
       int dir;
       for (dir = 0; dir < BL_SPACEDIM; dir++) {
          bcr[dc].setLo(dir, ( bxlo[dir]<=dlo[dir]
-			    ? bc_dom[sc].lo(dir) : INT_DIR ));
+                            ? bc_dom[sc].lo(dir) : INT_DIR ));
          bcr[dc].setHi(dir, ( bxhi[dir]>=dhi[dir]
-			    ? bc_dom[sc].hi(dir) : INT_DIR ));
+                            ? bc_dom[sc].hi(dir) : INT_DIR ));
       }
    }
-}	   
+}           
 
 // -------------------------------------------------------------
 void
@@ -74,10 +74,10 @@ setBC(const Box& bx, const Box& domain,
     const int* dhi = domain.hiVect();
     int dir;
     for (dir = 0; dir < BL_SPACEDIM; dir++) {
-	bcr.setLo(dir, ( bxlo[dir]<=dlo[dir] ? bc_dom.lo(dir) : INT_DIR ));
-	bcr.setHi(dir, ( bxhi[dir]>=dhi[dir] ? bc_dom.hi(dir) : INT_DIR ));
+        bcr.setLo(dir, ( bxlo[dir]<=dlo[dir] ? bc_dom.lo(dir) : INT_DIR ));
+        bcr.setHi(dir, ( bxhi[dir]>=dhi[dir] ? bc_dom.hi(dir) : INT_DIR ));
     }
-}	   
+}           
 
 ostream&
 operator<< (ostream& os, const BCRec& b)
@@ -85,7 +85,7 @@ operator<< (ostream& os, const BCRec& b)
     os << "(BCREC ";
     int i;
     for (i = 0; i < BL_SPACEDIM; i++) {
-	os << b.bc[i] << ":" << b.bc[i+BL_SPACEDIM] << ' ';
+        os << b.bc[i] << ":" << b.bc[i+BL_SPACEDIM] << ' ';
     }
     os << ')' << flush;
     return os;

@@ -4,7 +4,7 @@
 #define BL_LIST_H
 
 //
-// $Id: List.H,v 1.4 1997-11-18 00:04:51 lijewski Exp $
+// $Id: List.H,v 1.5 1997-12-11 23:25:43 lijewski Exp $
 //
 
 #include <Boolean.H>
@@ -541,8 +541,6 @@ List<T>*
 List<T>::copy () const
 {
     List<T>* newlist = new List<T>(*this);
-    if (newlist == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     return newlist;
 }
 
@@ -735,9 +733,6 @@ List<T>::addBefore (ListLink<T>* ln,
         ln->pre = newlink;
     }
 
-    if (newlink == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
-
     return newlink;
 }
 
@@ -766,9 +761,6 @@ List<T>::addAfter (ListLink<T>* ln,
         ln->suc->pre = newlink;
         ln->suc = newlink;
     }
-
-    if (newlink == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
 
     return newlink;
 }

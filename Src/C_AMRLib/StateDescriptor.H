@@ -4,7 +4,7 @@
 #define _StateDescriptor_H_ 
 
 //
-// $Id: StateDescriptor.H,v 1.4 1997-11-26 19:18:51 lijewski Exp $
+// $Id: StateDescriptor.H,v 1.5 1997-12-11 23:27:53 lijewski Exp $
 //
 
 #include <Array.H>
@@ -22,8 +22,8 @@ class Interpolater;
 //
 typedef void (*BndryFunc)(Real* data, ARLIM_P(lo), ARLIM_P(hi),
                           const int* dom_lo, const int* dom_hi,
-			  const Real* dx, const Real* grd_lo,
-			  const Real* time, const int* bc);
+                          const Real* dx, const Real* grd_lo,
+                          const Real* time, const int* bc);
 //
 // Attributes of state at this level.
 //

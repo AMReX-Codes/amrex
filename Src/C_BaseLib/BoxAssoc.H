@@ -4,7 +4,7 @@
 #define BL_BOXASSOC_H
 
 //
-// $Id: BoxAssoc.H,v 1.3 1997-11-18 00:04:48 lijewski Exp $
+// $Id: BoxAssoc.H,v 1.4 1997-12-11 23:25:40 lijewski Exp $
 //
 
 #include <Boolean.H>
@@ -374,8 +374,6 @@ BoxAssoc::define (const BoxArray& bxs,
     if (bs == 0)
     {
         bs = new BoxArray(bxs);
-        if (bs == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
         bso = bs;
     }
     setCacheWidth(cw);
@@ -393,8 +391,6 @@ BoxAssoc::define (const BoxArray& bxs,
         bs = new BoxArray(bxs);
     if (bso == 0)
         bso = new BoxArray(bxso);
-    if (bs == 0 || bso == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     setCacheWidth(cw);
 }
 

@@ -4,7 +4,7 @@
 #define _FLUXREGISTER_H_
 
 //
-// $Id: FluxRegister.H,v 1.3 1997-11-26 19:18:49 lijewski Exp $
+// $Id: FluxRegister.H,v 1.4 1997-12-11 23:27:51 lijewski Exp $
 //
 
 #include <BndryRegister.H>
@@ -23,7 +23,7 @@ public:
     FluxRegister();
     //@ManDoc: constructor
     FluxRegister(const BoxArray& fine_boxes, 
-		 const IntVect & ref_ratio, int fine_lev, int nvar);
+                 const IntVect & ref_ratio, int fine_lev, int nvar);
 
 //@ManDoc: destructor
     virtual ~FluxRegister();
@@ -31,28 +31,28 @@ public:
 ///
 //@ManDoc: data member initialization
     virtual void define(const BoxArray& fine_boxes, 
-		        const IntVect & ref_ratio, int fine_lev, int nvar);
+                        const IntVect & ref_ratio, int fine_lev, int nvar);
 
       /// access functions
 ///
     const IntVect & refRatio() const {
-	return ratio;
+        return ratio;
     }
 ///
     int fineLevel() const {
-	return fine_level;
+        return fine_level;
     }
 ///
     int crseLevel() const {
-	return fine_level-1;
+        return fine_level-1;
     }
 ///
     int nComp() const {
-	return ncomp;
+        return ncomp;
     }
 ///
     const BoxArray& coarsenedBoxes() const {
-	return grids;
+        return grids;
     }
 ///
 
@@ -62,19 +62,19 @@ public:
 
       //@ManDoc: copy from flux register to fab
     void copyTo(FArrayBox& flx, int dir,
-	      int src_comp, int dest_comp, int num_comp);
+              int src_comp, int dest_comp, int num_comp);
 
       //@ManDoc: copy from flux register to multifab
     void copyTo(MultiFab& mf, int dir,
-	      int src_comp, int dest_comp, int num_comp);
+              int src_comp, int dest_comp, int num_comp);
 
       //@ManDoc: flx = flx + mult*register
     void addTo(FArrayBox& flx, int dir, Real mult,
-	       int src_comp, int dest_comp, int num_comp);
+               int src_comp, int dest_comp, int num_comp);
 
       //@ManDoc: mf = fm + mult*register
     void addTo(MultiFab& mf, int dir, Real mult,
-	       int src_comp, int dest_comp, int num_comp);
+               int src_comp, int dest_comp, int num_comp);
 
       //@ManDoc: flx = flx + mult*register/area
     void scaleAddTo(FArrayBox& flx, const FArrayBox& area,
@@ -112,20 +112,20 @@ public:
 
 ///
     void FineAdd(const MultiFab& mflx, int dir, 
-		 int srccomp, int destcomp, int numcomp, Real mult);
+                 int srccomp, int destcomp, int numcomp, Real mult);
 
 ///
     void FineAdd(const MultiFab& mflx, const MultiFab& area, int dir, 
-		 int srccomp, int destcomp, int numcomp, Real mult);
+                 int srccomp, int destcomp, int numcomp, Real mult);
 
 ///
     void FineAdd(const FArrayBox& flux, int dir, int boxno,
-		 int srccomp, int destcomp, int numcomp, Real mult);
+                 int srccomp, int destcomp, int numcomp, Real mult);
 
 ///
     void FineAdd(const FArrayBox& flux, const FArrayBox& area,
                  int dir, int boxno,
-		 int srccomp, int destcomp, int numcomp, Real mult);
+                 int srccomp, int destcomp, int numcomp, Real mult);
 
 ///
     //@ManDoc: reflux

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.14 1997-12-05 19:07:30 car Exp $
+// $Id: Utility.cpp,v 1.15 1997-12-11 23:25:48 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -152,7 +152,7 @@ Utility::second (double* r)
     clock_t finish = clock();
 
     if (start == -1)
-	start = finish;
+        start = finish;
 
     double rr = double(finish - start)/CLOCKS_PER_SEC;
 
@@ -231,7 +231,7 @@ Utility::is_integer (const char* str)
 bool
 #ifdef WIN32
 Utility::CreateDirectory (const aString& path,
-			  int)
+                          int)
 #else
 Utility::CreateDirectory (const aString& path,
                           mode_t         mode)
@@ -246,7 +246,7 @@ Utility::CreateDirectory (const aString& path,
         // No slashes in the path.
         //
 #ifdef WIN32
-	return _mkdir(path.c_str()) < 0 && errno != EACCES ? false : true;
+        return _mkdir(path.c_str()) < 0 && errno != EACCES ? false : true;
 #else
         return mkdir(path.c_str(),mode) < 0 && errno != EEXIST ? false : true;
 #endif
@@ -257,8 +257,6 @@ Utility::CreateDirectory (const aString& path,
         // Make copy of the directory pathname so we can write to it.
         //
         char* dir = new char[path.length() + 1];
-        if (dir == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
         (void) strcpy(dir, path.c_str());
 
         char* slash = strchr(dir, '/');
@@ -275,7 +273,7 @@ Utility::CreateDirectory (const aString& path,
                 if ((slash = strchr(slash+1, '/')) != 0)
                     *slash = 0;
 #ifdef WIN32
-		if (_mkdir(dir) < 0 && errno != EACCES )
+                if (_mkdir(dir) < 0 && errno != EACCES )
 #else
                 if (mkdir(dir, mode) < 0 && errno != EEXIST)
 #endif
@@ -293,7 +291,7 @@ Utility::CreateDirectory (const aString& path,
             {
                 *slash = 0;
 #ifdef WIN32
-		if (_mkdir(dir) < 0 && errno != EACCES )
+                if (_mkdir(dir) < 0 && errno != EACCES )
 #else
                 if (mkdir(dir, mode) < 0 && errno != EEXIST)
 #endif
@@ -302,7 +300,7 @@ Utility::CreateDirectory (const aString& path,
             } while ((slash = strchr(slash+1, '/')) != 0);
 
 #ifdef WIN32
-	    if (_mkdir(dir) < 0 && errno != EACCES)
+            if (_mkdir(dir) < 0 && errno != EACCES)
 #else
             if (mkdir(dir, mode) < 0 && errno != EEXIST)
 #endif

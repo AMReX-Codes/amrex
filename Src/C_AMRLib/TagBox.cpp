@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.8 1997-12-09 21:54:52 lijewski Exp $
+// $Id: TagBox.cpp,v 1.9 1997-12-11 23:27:54 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -41,8 +41,6 @@ TagBox::coarsen (const IntVect& ratio)
     Box cbx(domain);
     cbx.coarsen(ratio);
     TagBox* crse = new TagBox(cbx);
-    if (crse == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     const Box& cbox = crse->box();
     Box b1(::refine(cbox,ratio));
 
@@ -65,8 +63,6 @@ TagBox::coarsen (const IntVect& ratio)
     TagType* cdat = crse->dataPtr();
 
     TagType* t = new TagType[longlen];
-    if (t == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     for (int i = 0; i < longlen; i++)
         t[i] = TagBox::CLEAR;
 
@@ -87,7 +83,7 @@ TagBox::coarsen (const IntVect& ratio)
    int ratiox = 1, ratioy = 1, ratioz = 1;
    D_TERM(ratiox = ratio[0];,
           ratioy = ratio[1];,
-	  ratioz = ratio[2];)
+          ratioz = ratio[2];)
 
    int dummy_ratio = 1;
 
@@ -281,7 +277,7 @@ TagBox::merge (const TagBox& src)
                     {
                         TagType* dd = dd0 + OFF(i,j,k,dlo,dlen);
                         *dd = TagBox::SET;
-                    }	    
+                    }            
                 }
             }
         }
@@ -383,11 +379,11 @@ TagBoxArray::mergeUnique ()
       for(int j = i+1; j < fabparray.length(); j++) {
          TagBox& src = fabparray[j];
          Box ovlp(dest.box());
-	 ovlp &= src.box();
-	 if (ovlp.ok()) {
-	    dest.merge(src);
-	    src.setVal(TagBox::CLEAR,ovlp,0);
-	 }
+         ovlp &= src.box();
+         if (ovlp.ok()) {
+            dest.merge(src);
+            src.setVal(TagBox::CLEAR,ovlp,0);
+         }
       }
    }
 */
@@ -507,35 +503,35 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
       Array<IntVect> pshifts(27);
       geom.periodicShift( domain, src.box(), pshifts );
       for( int iiv=0; iiv< pshifts.length(); iiv++ ){
-	IntVect iv = pshifts[iiv];
-	Box shiftbox( src.box() );
-	D_TERM( shiftbox.shift(0,iv[0]);,
-		shiftbox.shift(1,iv[1]);,
-		shiftbox.shift(2,iv[2]); )
-	// possible periodic remapping, try each tagbox
-	for( int j=0; j<fabparray.length(); j++ ){
-	  TagBox& dest = fabparray[j];
-	  Box intbox = dest.box() & shiftbox;
-	  if( intbox.ok() ){
-	    // ok, got a hit.  But be careful if is same TagBox
-	    if( i != j ){
-	      src.shift(iv);
-	      dest.merge(src);
-	      src.shift(-iv);
-	    }
-	    else {
-	      // is same tagbox, must be careful
-	      tagtmp.resize(intbox);
-	      Box shintbox(intbox);
-	      IntVect tmpiv( -iv );
-	      D_TERM( shintbox.shift(0,tmpiv[0]);,
-		      shintbox.shift(1,tmpiv[1]);,
-		      shintbox.shift(2,tmpiv[2]); )
-	      tagtmp.copy(src,shintbox,0,intbox,0,1);
-	      dest.merge(tagtmp);
-	    }
-	  }
-	}
+        IntVect iv = pshifts[iiv];
+        Box shiftbox( src.box() );
+        D_TERM( shiftbox.shift(0,iv[0]);,
+                shiftbox.shift(1,iv[1]);,
+                shiftbox.shift(2,iv[2]); )
+        // possible periodic remapping, try each tagbox
+        for( int j=0; j<fabparray.length(); j++ ){
+          TagBox& dest = fabparray[j];
+          Box intbox = dest.box() & shiftbox;
+          if( intbox.ok() ){
+            // ok, got a hit.  But be careful if is same TagBox
+            if( i != j ){
+              src.shift(iv);
+              dest.merge(src);
+              src.shift(-iv);
+            }
+            else {
+              // is same tagbox, must be careful
+              tagtmp.resize(intbox);
+              Box shintbox(intbox);
+              IntVect tmpiv( -iv );
+              D_TERM( shintbox.shift(0,tmpiv[0]);,
+                      shintbox.shift(1,tmpiv[1]);,
+                      shintbox.shift(2,tmpiv[2]); )
+              tagtmp.copy(src,shintbox,0,intbox,0,1);
+              dest.merge(tagtmp);
+            }
+          }
+        }
       }
     }
   }
@@ -719,8 +715,6 @@ TagBoxArray::colate () const
     const int myproc = ParallelDescriptor::MyProc();
     const int nGrids = fabparray.length();
     int* sharedNTags = new int[nGrids]; // Shared numTags  per grid.
-    if (sharedNTags == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     for (int isn = 0; isn < nGrids; ++isn)
     {
         sharedNTags[isn] = -1;  // A bad value.
@@ -754,8 +748,6 @@ TagBoxArray::colate () const
     ParallelDescriptor::UnshareVar(sharedNTags);
 
     int* startOffset = new int[nGrids]; // Start locations per grid.
-    if (startOffset == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     startOffset[0] = 0;
     for (int iGrid = 1; iGrid < nGrids; ++iGrid)
     {
@@ -768,15 +760,11 @@ TagBoxArray::colate () const
     //
     const long len = numTags();
     int* tmpPts = new int[len * BL_SPACEDIM];
-    if (tmpPts == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     const size_t ivSize = BL_SPACEDIM * sizeof(int);
     //
     // Copy the local IntVects into the shared array.
     //
     Array<IntVect>* ar = new Array<IntVect>(len);
-    if (ar == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
 
     int *ivDest, *ivDestBase;
     const int *ivSrc;

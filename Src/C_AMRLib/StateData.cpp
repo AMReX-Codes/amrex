@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateData.cpp,v 1.10 1997-12-04 22:57:09 lijewski Exp $
+// $Id: StateData.cpp,v 1.11 1997-12-11 23:27:53 lijewski Exp $
 //
 
 #include <RunStats.H>
@@ -64,25 +64,24 @@ StateData::define (const Box&             p_domain,
     StateDescriptor::TimeCenter t_typ(desc->timeType());
     if (!typ.cellCentered())
     {
-	domain.convert(typ);
-	grids.convert(typ);
+        domain.convert(typ);
+        grids.convert(typ);
     }
     if (t_typ == StateDescriptor::Point)
     {
-	new_time.start = new_time.stop = time;
-	old_time.start = old_time.stop = time - dt;
+        new_time.start = new_time.stop = time;
+        old_time.start = old_time.stop = time - dt;
     }
     else
     {
-	new_time.start = time;
-	new_time.stop  = time+dt;
-	old_time.start = time-dt;
-	old_time.stop  = time;
+        new_time.start = time;
+        new_time.stop  = time+dt;
+        old_time.start = time-dt;
+        old_time.stop  = time;
     }
     int ncomp = desc->nComp();
 
-    if ((new_data = new MultiFab(grids,ncomp,desc->nExtra(),Fab_allocate)) == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
+    new_data = new MultiFab(grids,ncomp,desc->nExtra(),Fab_allocate);
 
     old_data = 0;
     buildBC();
@@ -109,8 +108,7 @@ StateData::restart (istream&               is,
 
     old_data = 0;
 
-    if ((new_data = new MultiFab) == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
+    new_data = new MultiFab;
     aString mf_name;
     is >> mf_name;
     //
@@ -125,8 +123,7 @@ StateData::restart (istream&               is,
 
     if (nsets == 2)
     {
-	if ((old_data = new MultiFab) == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
+        old_data = new MultiFab;
         is >> mf_name;
         //
         // Note that mf_name is relative to the Header file.
@@ -161,13 +158,12 @@ StateData::restart (istream&               is,
     int nsets;
     is >> nsets;
 
-    if ((new_data = new MultiFab(is)) == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
+    new_data = new MultiFab(is);
 
     old_data = 0;
 
-    if (nsets == 2 && (old_data = new MultiFab(is)) == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
+    if (nsets == 2)
+        old_data = new MultiFab(is);
 
     buildBC();
 }
@@ -181,14 +177,14 @@ StateData::buildBC ()
     int i;
     for (i = 0; i < ncomp; i++)
     {
-	bc[i].resize(grids.length());
+        bc[i].resize(grids.length());
         int j;
-	for (j = 0; j < grids.length(); j++)
+        for (j = 0; j < grids.length(); j++)
         {
-	    BCRec bcr;
-	    setBC(grids[j],domain,desc->getBC(i),bcr);
-	    bc[i].set(j,bcr);
-	}
+            BCRec bcr;
+            setBC(grids[j],domain,desc->getBC(i),bcr);
+            bc[i].set(j,bcr);
+        }
     }
 }
 
@@ -206,15 +202,15 @@ StateData::setTimeLevel (Real time,
 {
     if (desc->timeType() == StateDescriptor::Point)
     {
-	new_time.start = new_time.stop = time;
-	old_time.start = old_time.stop = time - dt_old;
+        new_time.start = new_time.stop = time;
+        old_time.start = old_time.stop = time - dt_old;
     }
     else
     {
-	new_time.start = time;
-	new_time.stop  = time+dt_new;
-	old_time.start = time-dt_old;
-	old_time.stop  = time;
+        new_time.start = time;
+        new_time.stop  = time+dt_new;
+        old_time.start = time-dt_old;
+        old_time.stop  = time;
     }
 }
 
@@ -224,13 +220,13 @@ StateData::swapTimeLevels (Real dt)
     old_time = new_time;
     if (desc->timeType() == StateDescriptor::Point)
     {
-	new_time.start += dt;
-	new_time.stop  += dt;
+        new_time.start += dt;
+        new_time.stop  += dt;
     }
     else
     {
-	new_time.start = new_time.stop;
-	new_time.stop += dt;
+        new_time.start = new_time.stop;
+        new_time.stop += dt;
     }
     Swap(old_data, new_data);
 }
@@ -240,9 +236,7 @@ StateData::allocOldData ()
 {
     if (old_data == 0)
     {
-	old_data = new MultiFab(grids,desc->nComp(),desc->nExtra(),Fab_allocate);
-        if (old_data == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
+          old_data = new MultiFab(grids,desc->nComp(),desc->nExtra(),Fab_allocate);
     }
 }
 
@@ -271,14 +265,14 @@ StateData::FillBoundary (const Real*    dx,
     Real cur_time;
     if (desc->timeType() == StateDescriptor::Point)
     {
-	cur_time = new_time.start;
-	if (!do_new)
+        cur_time = new_time.start;
+        if (!do_new)
             cur_time = old_time.start;
     }
     else
     {
-	cur_time = 0.5*(new_time.start + new_time.stop);
-	if (!do_new)
+        cur_time = 0.5*(new_time.start + new_time.stop);
+        if (!do_new)
             cur_time = 0.5*(old_time.start + old_time.stop);
     }
 
@@ -286,34 +280,34 @@ StateData::FillBoundary (const Real*    dx,
    
     for ( ; new_datamfi.isValid(); ++new_datamfi)
     {
-	DependentMultiFabIterator old_datamfi(new_datamfi, *old_data);
-	FArrayBox* dest = &(new_datamfi());
-	if (!do_new)
+        DependentMultiFabIterator old_datamfi(new_datamfi, *old_data);
+        FArrayBox* dest = &(new_datamfi());
+        if (!do_new)
             dest = &(old_datamfi());
-	const Box& bx = dest->box();
-	if (!domain.contains(bx))
+        const Box& bx = dest->box();
+        if (!domain.contains(bx))
         {
-	    const int* dlo = bx.loVect();
-	    const int* dhi = bx.hiVect();
-	    const int* plo = domain.loVect();
-	    const int* phi = domain.hiVect();
-	    Real xlo[BL_SPACEDIM];
-	    BCRec bcr;
-	    const Real* problo = prob_domain.lo();
+            const int* dlo = bx.loVect();
+            const int* dhi = bx.hiVect();
+            const int* plo = domain.loVect();
+            const int* phi = domain.hiVect();
+            Real xlo[BL_SPACEDIM];
+            BCRec bcr;
+            const Real* problo = prob_domain.lo();
             int i;
-	    for (i = 0; i < BL_SPACEDIM; i++)
+            for (i = 0; i < BL_SPACEDIM; i++)
             {
-		xlo[i] = problo[i] + dx[i]*(dlo[i]-plo[i]);
-	    }
-	    for (i = 0; i < num_comp; i++)
+                xlo[i] = problo[i] + dx[i]*(dlo[i]-plo[i]);
+            }
+            for (i = 0; i < num_comp; i++)
             {
-		int sc = src_comp+i;
-		Real* dat = dest->dataPtr(sc);
-		setBC(bx,domain,desc->getBC(sc),bcr);
+                int sc = src_comp+i;
+                Real* dat = dest->dataPtr(sc);
+                setBC(bx,domain,desc->getBC(sc),bcr);
                 desc->bndryFill(sc)(dat,ARLIM(dlo),ARLIM(dhi),
                                     plo,phi,dx,xlo, &cur_time,bcr.vect());
-	    }	                          
-	}
+            }                                  
+        }
     }
 }
 
@@ -343,17 +337,17 @@ StateData::FillBoundary (FArrayBox&     dest,
     int i;
     for (i = 0; i < BL_SPACEDIM; i++)
     {
-	xlo[i] = problo[i] + dx[i]*(dlo[i]-plo[i]);
+        xlo[i] = problo[i] + dx[i]*(dlo[i]-plo[i]);
     }
     for (i = 0; i < num_comp; i++)
     {
-	int dc = dest_comp+i;
-	int sc = src_comp+i;
-	Real* dat = dest.dataPtr(dc);
-	setBC(bx,domain,desc->getBC(sc),bcr);
-	desc->bndryFill(sc)(dat,ARLIM(dlo),ARLIM(dhi),
+        int dc = dest_comp+i;
+        int sc = src_comp+i;
+        Real* dat = dest.dataPtr(dc);
+        setBC(bx,domain,desc->getBC(sc),bcr);
+        desc->bndryFill(sc)(dat,ARLIM(dlo),ARLIM(dhi),
                             plo,phi,dx,xlo,&time,bcr.vect());
-    }	                          
+    }                                  
 }
 
 void
@@ -368,19 +362,19 @@ StateData::linInterp (FArrayBox& dest,
     Real teps = (new_time.start - old_time.start)/1000.0;
     if (desc->timeType() == StateDescriptor::Point)
     {
-	if (old_data == 0)
+        if (old_data == 0)
         {
-	    teps = new_time.start/10000.0;
-	    Real dt = time - new_time.start;
-	    if (dt < 0.0) dt = -dt;
-	    if (extrap || dt < teps);
-	    new_data->copy(dest,subbox,src_comp,dest_comp,num_comp);
-	    return;
-	}
+            teps = new_time.start/10000.0;
+            Real dt = time - new_time.start;
+            if (dt < 0.0) dt = -dt;
+            if (extrap || dt < teps);
+            new_data->copy(dest,subbox,src_comp,dest_comp,num_comp);
+            return;
+        }
                        
       ::linInterp(dest,subbox,*old_data,*new_data,
                   old_time.start,new_time.start,time,
-	          src_comp,dest_comp,num_comp,
+                  src_comp,dest_comp,num_comp,
                   extrap);
    }
     else
@@ -535,7 +529,7 @@ StateData::checkPoint (const aString& name,
 
     if (dump_old == true && old_data == 0)
     {
-	dump_old = false;
+        dump_old = false;
     }
 
     if (ParallelDescriptor::IOProcessor())
@@ -585,7 +579,7 @@ StateData::checkPoint (ostream& os,
 {
     if (dump_old == true && old_data == 0)
     {
-	dump_old = false;
+        dump_old = false;
     }
     if (ParallelDescriptor::IOProcessor())
     {

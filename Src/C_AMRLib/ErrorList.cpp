@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ErrorList.cpp,v 1.4 1997-12-02 19:12:17 lijewski Exp $
+// $Id: ErrorList.cpp,v 1.5 1997-12-11 23:27:50 lijewski Exp $
 //
 
 #include <ErrorList.H>
@@ -16,8 +16,8 @@ ErrorList::clear ()
 {
     for (ListIterator<ErrorRec*> li(lst); li; ++li)
     {
-	delete lst[li];
-	lst[li] = 0;
+        delete lst[li];
+        lst[li] = 0;
     }
 }
 
@@ -30,8 +30,8 @@ ErrorList::operator[] (int k) const
     
     while (li && k > 0)
     {
-	++li;
-	--k;
+        ++li;
+        --k;
     }
     return lst[li];
 }
@@ -43,8 +43,6 @@ ErrorList::add (const aString&      name,
                 ErrorRec::ErrorFunc func)
 {
     ErrorRec* er = new ErrorRec(name,nextra,typ,func);
-    if (er == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     //
     // Keep list in order of definition, append().
     //
@@ -58,7 +56,7 @@ operator << (ostream &os, const ErrorList& elst)
 {
     for (ListIterator<ErrorRec*> li(elst.lst); li; ++li)
     {
-	os << li()->name()
+        os << li()->name()
            << ' '
            << li()->nGrow()
            << ' '

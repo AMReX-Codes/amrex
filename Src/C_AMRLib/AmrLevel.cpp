@@ -1,10 +1,10 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.12 1997-12-08 23:13:01 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.13 1997-12-11 23:27:47 lijewski Exp $
 //
 
-#ifdef	_MSC_VER
+#ifdef        _MSC_VER
 #include <strstrea.h>
 #else
 #include <strstream.h>
@@ -57,7 +57,7 @@ AmrLevel::AmrLevel (Amr&            papa,
     state.resize(ndesc);
     const Box& domain = geom.Domain();
     for (int i = 0; i < ndesc; i++)
-	state[i].define(domain,grids,desc_lst[i],time, dt);
+        state[i].define(domain,grids,desc_lst[i],time, dt);
 
     finishConstructor();
 }
@@ -110,7 +110,7 @@ AmrLevel::finishConstructor()
     const Real* prob_lo = geom.ProbLo();
     const Real* dx = geom.CellSize();
     for (int i = 0; i < num_grids; i++)
-	grid_loc[i] = RealBox(grids[i],dx,prob_lo);
+        grid_loc[i] = RealBox(grids[i],dx,prob_lo);
 }
 
 void
@@ -120,7 +120,7 @@ AmrLevel::setTimeLevel (Real time,
 {
     int ndesc = desc_lst.length();
     for (int k = 0; k < ndesc; k++)
-	state[k].setTimeLevel(time,dt_old,dt_new);
+        state[k].setTimeLevel(time,dt_old,dt_new);
 }
 
 int
@@ -131,12 +131,12 @@ AmrLevel::isStateVariable (const aString& name,
     int ndesc = desc_lst.length();
     for (typ = 0; typ < ndesc; typ++)
     {
-	const StateDescriptor &desc = desc_lst[typ];
-	for (n = 0; n < desc.nComp(); n++)
+        const StateDescriptor &desc = desc_lst[typ];
+        for (n = 0; n < desc.nComp(); n++)
         {
-	    if (desc.name(n) == name)
-		return true;
-	}
+            if (desc.name(n) == name)
+                return true;
+        }
     }
     return false;
 }
@@ -146,7 +146,7 @@ AmrLevel::countCells ()
 {
     long cnt = 0;
     for (int i = 0; i < grids.length(); i++)
-	cnt += grids[i].numPts();
+        cnt += grids[i].numPts();
     return cnt;
 }
 
@@ -198,7 +198,7 @@ AmrLevel::checkPoint (const aString& dir,
         PathNameInHeader += buf;
         aString FullPathName = FullPath;
         FullPathName += buf;
-	state[i].checkPoint(PathNameInHeader, FullPathName, os, how);
+        state[i].checkPoint(PathNameInHeader, FullPathName, os, how);
     }
 }
 
@@ -219,7 +219,7 @@ AmrLevel::checkPoint (ostream& os)
     // Output state data.
     //
     for (i = 0; i < ndesc; i++)
-	state[i].checkPoint(os);
+        state[i].checkPoint(os);
 }
 #endif /*BL_PARALLEL_IO*/
 
@@ -233,7 +233,7 @@ AmrLevel::allocOldData ()
 {
     int ndesc = desc_lst.length();
     for (int i = 0; i < ndesc; i++)
-	state[i].allocOldData();
+        state[i].allocOldData();
 }
 
 void
@@ -241,7 +241,7 @@ AmrLevel::removeOldData()
 {
     int ndesc = desc_lst.length();
     for (int i = 0; i < ndesc; i++)
-	state[i].removeOldData();
+        state[i].removeOldData();
 }
 
 void
@@ -249,7 +249,7 @@ AmrLevel::reset ()
 {
     int ndesc = desc_lst.length();
     for (int i = 0; i < ndesc; i++)
-	state[i].reset();
+        state[i].reset();
 }
 
 MultiFab&
@@ -262,17 +262,17 @@ AmrLevel::get_data (int  state_indx,
 
     if (time > old_time-eps && time < old_time+eps)
     {
-	return get_old_data(state_indx);
+        return get_old_data(state_indx);
     }
     else if (time > new_time-eps && time < new_time+eps)
     {
-	return get_new_data(state_indx);
+        return get_new_data(state_indx);
     }
     else
     {
-	BoxLib::Error("get_data: invalid time");
-	static MultiFab bogus;
-	return bogus;
+        BoxLib::Error("get_data: invalid time");
+        static MultiFab bogus;
+        return bogus;
     }
 }
 
@@ -289,14 +289,14 @@ AmrLevel::setPhysBoundaryValues (int  state_indx,
     int do_new;
     if (time > old_time-eps && time < old_time+eps)
     {
-	do_new = 0;
+        do_new = 0;
     }
     else if (time > new_time-eps && time < new_time+eps)
     {
-	do_new = 1;
+        do_new = 1;
     }
     else
-	BoxLib::Error("setPhysBndryValues: invalid time");
+        BoxLib::Error("setPhysBndryValues: invalid time");
 
     state[state_indx].FillBoundary(geom.CellSize(),geom.ProbDomain(),comp,
                                    ncomp, do_new);
@@ -1322,13 +1322,13 @@ AmrLevel::FillCoarsePatch (FArrayBox&   dest,
                            int          state_indx,
                            int          src_comp,
                            int          ncomp,
-		          Interpolater* mapper)
+                          Interpolater* mapper)
 {
     //
     // Must fill this region on crse level and interpolate.
     //
     if (level == 0)
-	BoxLib::Error("crsePatch: called at level 0");
+        BoxLib::Error("crsePatch: called at level 0");
 
     Box dbox = dest.box();
 
@@ -1376,13 +1376,13 @@ AmrLevel::FillCoarsePatch (FArrayBox&   dest,
     //
     const Geometry& crse_geom = crse_lev.geom;
     map->interp(crse,0,dest,dest_comp,ncomp,dbox,
-		crse_ratio,crse_geom,geom,bc_crse);
+                crse_ratio,crse_geom,geom,bc_crse);
 
     if (!p_domain.contains(dbox))
     {
-	const Real* dx = geom.CellSize();
-	state[state_indx].FillBoundary(dest,time,dx,prob_domain,
-				   dest_comp,src_comp,ncomp);
+        const Real* dx = geom.CellSize();
+        state[state_indx].FillBoundary(dest,time,dx,prob_domain,
+                                   dest_comp,src_comp,ncomp);
     }
 }
 
@@ -1479,21 +1479,17 @@ AmrLevel::derive (const aString& name,
 
     if (isStateVariable(name,state_indx,src_comp))
     {
-	const StateDescriptor& desc = desc_lst[state_indx];
-	int nc = desc.nComp();
-	const BoxArray& grds = state[state_indx].boxArray();
-	PArray<FArrayBox> *df = new PArray<FArrayBox>(grids.length(),PArrayManage);
-        if (df == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
-	for (int i = 0; i < grds.length(); i++)
+        const StateDescriptor& desc = desc_lst[state_indx];
+        int nc = desc.nComp();
+        const BoxArray& grds = state[state_indx].boxArray();
+        PArray<FArrayBox> *df = new PArray<FArrayBox>(grids.length(),PArrayManage);
+        for (int i = 0; i < grds.length(); i++)
         {
-	    FArrayBox* dest = new FArrayBox(grds[i],1);
-            if (dest == 0)
-                BoxLib::OutOfMemory(__FILE__, __LINE__);
-	    state[state_indx].linInterp(*dest,grds[i],time,src_comp,0,1);
-	    df->set(i,dest);
-	}
-	return df;
+            FArrayBox* dest = new FArrayBox(grds[i],1);
+            state[state_indx].linInterp(*dest,grds[i],time,src_comp,0,1);
+            df->set(i,dest);
+        }
+        return df;
     }
     //
     // Can quantity be derived?
@@ -1501,79 +1497,75 @@ AmrLevel::derive (const aString& name,
     const DeriveRec* d;
     if (d = derive_lst.get(name))
     {
-	PArray<FArrayBox> *df = new PArray<FArrayBox>(grids.length(),PArrayManage);
-        if (df == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
+        PArray<FArrayBox> *df = new PArray<FArrayBox>(grids.length(),PArrayManage);
 
-	const Real* dx = geom.CellSize();
-	int state_indx, src_comp, num_comp;
-	d->getRange(0,state_indx,src_comp,num_comp);
-	const BoxArray& grds = state[state_indx].boxArray();
-	int n_state = d->numState();
-	int n_der = d->numDerive();
-	int nsr = d->numRange();
-	IndexType der_typ = d->deriveType();
+        const Real* dx = geom.CellSize();
+        int state_indx, src_comp, num_comp;
+        d->getRange(0,state_indx,src_comp,num_comp);
+        const BoxArray& grds = state[state_indx].boxArray();
+        int n_state = d->numState();
+        int n_der = d->numDerive();
+        int nsr = d->numRange();
+        IndexType der_typ = d->deriveType();
         //
         // Can do special fill
         int i;
-	for (i = 0; i < grds.length(); i++)
+        for (i = 0; i < grds.length(); i++)
         {
             //
             // Build destination FAB and install.
             //
-	    Box dbox(grids[i]);
-	    dbox.convert(der_typ);
-	    FArrayBox *dest = new FArrayBox(dbox,n_der);
-            if (dest == 0)
-                BoxLib::OutOfMemory(__FILE__, __LINE__);
-	    df->set(i,dest);
+            Box dbox(grids[i]);
+            dbox.convert(der_typ);
+            FArrayBox *dest = new FArrayBox(dbox,n_der);
+            df->set(i,dest);
             //
             // Build src fab and fill with component state data.
             //
-	    Box sbox(d->boxMap()(dbox));
-	    FArrayBox src(sbox,n_state);
-	    int dc = 0;
+            Box sbox(d->boxMap()(dbox));
+            FArrayBox src(sbox,n_state);
+            int dc = 0;
             int k;
-	    for (k = 0; k < nsr; k++)
+            for (k = 0; k < nsr; k++)
             {
-		d->getRange(k,state_indx,src_comp,num_comp); 
+                d->getRange(k,state_indx,src_comp,num_comp); 
                 const StateDescriptor &desc = desc_lst[state_indx];
-		if (grds[i].contains(sbox))
+                if (grds[i].contains(sbox))
                 {
                     //
                     // Can do copy.
                     //
-		    state[state_indx].linInterp(src,sbox,time,
-						src_comp,dc,num_comp);
-		}
+                    state[state_indx].linInterp(src,sbox,time,
+                                                src_comp,dc,num_comp);
+                }
                 else
                 {
                     //
                     // Must filpatch.
                     //
-		    FillPatch(src,dc,time,state_indx,src_comp,num_comp);
-		}
-		dc += num_comp;
-	    }
+                    FillPatch(src,dc,time,state_indx,src_comp,num_comp);
+                }
+                dc += num_comp;
+            }
             //
             // Call deriving function.
             //
-	    Real *ddat = dest->dataPtr();
-	    const int* dlo = dest->loVect();
-	    const int* dhi = dest->hiVect();
-	    Real *cdat = src.dataPtr();
-	    const int* clo = src.loVect();
-	    const int* chi = src.hiVect();
-	    const int* dom_lo = state[state_indx].getDomain().loVect();
-	    const int* dom_hi = state[state_indx].getDomain().hiVect();
-	    const int* bcr = d->getBC();
-	    const Real* xlo = grid_loc[i].lo();
-	    d->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
+            Real *ddat = dest->dataPtr();
+            const int* dlo = dest->loVect();
+            const int* dhi = dest->hiVect();
+            Real *cdat = src.dataPtr();
+            const int* clo = src.loVect();
+            const int* chi = src.hiVect();
+            const int* dom_lo = state[state_indx].getDomain().loVect();
+            const int* dom_hi = state[state_indx].getDomain().hiVect();
+            const int* bcr = d->getBC();
+            const Real* xlo = grid_loc[i].lo();
+            d->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
                          cdat,ARLIM(clo),ARLIM(chi),&n_state,
-			 dlo,dhi,dom_lo,dom_hi,dx,xlo,&time,bcr,
+                         dlo,dhi,dom_lo,dom_hi,dx,xlo,&time,bcr,
                          &level,&i);
-	}
-	return df;
+        }
+        return df;
     }
     //
     // If we got here, cannot derive given name.
@@ -1604,21 +1596,17 @@ AmrLevel::derive (const Box&     b,
     //
     if (isStateVariable(name,state_indx,src_comp))
     {
-	FArrayBox *dest = new FArrayBox(b,1);
-        if (dest == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
-	FillPatch(*dest,0,time,state_indx,src_comp,1);
-	return dest;
+        FArrayBox *dest = new FArrayBox(b,1);
+        FillPatch(*dest,0,time,state_indx,src_comp,1);
+        return dest;
     }
 
     const DeriveRec* d;
     if (d = derive_lst.get(name))
     {
-	FArrayBox *dest = new FArrayBox(b,d->numDerive());
-        if (dest == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
-	FillDerive(*dest,b,name,time);
-	return dest;
+        FArrayBox *dest = new FArrayBox(b,d->numDerive());
+        FillDerive(*dest,b,name,time);
+        return dest;
     }
     //
     // If we got here, cannot derive given name.
@@ -1664,10 +1652,10 @@ AmrLevel::FillDerive (FArrayBox&     dest,
     int i;
     for (i = 0; i < grids.length(); i++)
     {
-	Box gbox(grids[i]);
-	if (!cell_centered)
+        Box gbox(grids[i]);
+        if (!cell_centered)
             gbox.convert(der_typ);
-	if (dbox.intersects(gbox))
+        if (dbox.intersects(gbox))
             fd.rmBox(gbox);
     }
     unfilled_region = fd.minimalBox();
@@ -1678,32 +1666,32 @@ AmrLevel::FillDerive (FArrayBox&     dest,
         //
         // Must fill on this region on crse level and interpolate.
         //
-	if (level == 0)
-	    BoxLib::Error("FillPatch: unfilled region at level 0");
+        if (level == 0)
+            BoxLib::Error("FillPatch: unfilled region at level 0");
         //
         // Coarsen unfilled region and widen if necessary.
         //
-	Interpolater *mapper = d->interp();
-	Box crse_reg(mapper->CoarseBox(unfilled_region,crse_ratio));
+        Interpolater *mapper = d->interp();
+        Box crse_reg(mapper->CoarseBox(unfilled_region,crse_ratio));
         //
         // Alloc patch for crse level.
         //
-	FArrayBox crse(crse_reg,n_der);
+        FArrayBox crse(crse_reg,n_der);
         //
         // Fill patch at lower level.
         //
-	AmrLevel &crse_lev = parent->getLevel(level-1);
-	crse_lev.FillDerive(crse,crse_reg,name,time);
+        AmrLevel &crse_lev = parent->getLevel(level-1);
+        crse_lev.FillDerive(crse,crse_reg,name,time);
         //
         // Get bncry conditions for this patch.
         //
-	Array<BCRec> bc_crse;
+        Array<BCRec> bc_crse;
         //
         // Interpolate up to fine patch.
         //
-	const Geometry& crse_geom = crse_lev.geom;
-	mapper->interp(crse,0,dest,0,n_der,unfilled_region,
-		       crse_ratio,crse_geom,geom,bc_crse);
+        const Geometry& crse_geom = crse_lev.geom;
+        mapper->interp(crse,0,dest,0,n_der,unfilled_region,
+                       crse_ratio,crse_geom,geom,bc_crse);
     }
     //
     // Walk through grids, deriving on intersect.
@@ -1713,58 +1701,58 @@ AmrLevel::FillDerive (FArrayBox&     dest,
     const Real* dx = geom.CellSize();
     for (i = 0; i < grids.length(); i++)
     {
-	Box g(grids[i]);
-	if (!cell_centered)
+        Box g(grids[i]);
+        if (!cell_centered)
             g.convert(der_typ);
-	g &= dbox;
-	if (g.ok())
+        g &= dbox;
+        if (g.ok())
         {
-	    Box sbox(d->boxMap()(g));
-	    FArrayBox src(sbox,n_state);
-	    int dc = 0;
-	    int state_indx, sc, nc;
+            Box sbox(d->boxMap()(g));
+            FArrayBox src(sbox,n_state);
+            int dc = 0;
+            int state_indx, sc, nc;
             int k;
-	    for (k = 0; k < nsr; k++)
+            for (k = 0; k < nsr; k++)
             {
-		d->getRange(k,state_indx,sc,nc);
-		const Box& sg = state[state_indx].boxArray()[i];
-		if (sg.contains(sbox))
+                d->getRange(k,state_indx,sc,nc);
+                const Box& sg = state[state_indx].boxArray()[i];
+                if (sg.contains(sbox))
                 {
                     //
                     // Can do copy.
                     //
-		    state[state_indx].linInterp(src,sbox,time,sc,dc,nc);
-		}
+                    state[state_indx].linInterp(src,sbox,time,sc,dc,nc);
+                }
                 else
                 {
                     //
                     // Must filpatch.
                     //
-		    FillPatch(src,dc,time,state_indx,sc,nc);
-		}
-		dc += nc;
-	    }
+                    FillPatch(src,dc,time,state_indx,sc,nc);
+                }
+                dc += nc;
+            }
             //
             // Now derive.
             //
-	    Real *ddat = dest.dataPtr();
-	    const int* dlo = dest.loVect();
-	    const int* dhi = dest.hiVect();
-	    const int* lo = g.loVect();
-	    const int* hi = g.hiVect();
-	    Real *cdat = src.dataPtr();
-	    const int* clo = src.loVect();
-	    const int* chi = src.hiVect();
-	    const int* dom_lo = dom.loVect();
-	    const int* dom_hi = dom.hiVect();
-	    const int* bcr = d->getBC();
-	    Real xlo[BL_SPACEDIM];
-	    geom.LoNode(dest.smallEnd(),xlo);
-	    d->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
+            Real *ddat = dest.dataPtr();
+            const int* dlo = dest.loVect();
+            const int* dhi = dest.hiVect();
+            const int* lo = g.loVect();
+            const int* hi = g.hiVect();
+            Real *cdat = src.dataPtr();
+            const int* clo = src.loVect();
+            const int* chi = src.hiVect();
+            const int* dom_lo = dom.loVect();
+            const int* dom_hi = dom.hiVect();
+            const int* bcr = d->getBC();
+            Real xlo[BL_SPACEDIM];
+            geom.LoNode(dest.smallEnd(),xlo);
+            d->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
                          cdat,ARLIM(clo),ARLIM(chi),&n_state,
-			 lo,hi,dom_lo,dom_hi,dx,xlo,&time,bcr,
+                         lo,hi,dom_lo,dom_hi,dx,xlo,&time,bcr,
                          &level,&i);
-	}
+        }
     }
 }
 
@@ -1775,16 +1763,14 @@ AmrLevel::getBCArray (int State_Type,
                       int num_comp)
 {
     int* bc = new int[2*BL_SPACEDIM*num_comp];
-    if (bc == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     int* b = bc;
     int n;
     for (n = 0; n < num_comp; n++)
     {
-	const int* b_rec = 
-	state[State_Type].getBC(strt_comp+n,gridno).vect();
+        const int* b_rec = 
+        state[State_Type].getBC(strt_comp+n,gridno).vect();
         int m;
-	for (m = 0; m < 2*BL_SPACEDIM; m++)
+        for (m = 0; m < 2*BL_SPACEDIM; m++)
             *b++ = b_rec[m];
     }
     return bc;
@@ -1814,14 +1800,14 @@ AmrLevel::probe (ostream&       os,
     char buf[80];
     for (point=lo; point <= hi; bx.next(point))
     {
-	os << point;
+        os << point;
         int k;
-	for (k = 0; k < num_comp; k++)
+        for (k = 0; k < num_comp; k++)
         {
-	    sprintf(buf,"    %20.14f",fab(point,k));
-	    os << buf;
-	}
-	os << '\n';
+            sprintf(buf,"    %20.14f",fab(point,k));
+            os << buf;
+        }
+        os << '\n';
     }
     os << '\n';
     os << "----------------------------------------------------\n";

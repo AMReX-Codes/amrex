@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: aString.cpp,v 1.2 1997-09-18 20:13:01 lijewski Exp $
+// $Id: aString.cpp,v 1.3 1997-12-11 23:25:50 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -19,8 +19,6 @@ StringRep::resize (int n)
     if (n > bufferlength)
     {
         char* ns = new char[n];
-        if (ns == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
         ::memcpy(ns,s,bufferlength);
         bufferlength = n;
         delete [] s;
@@ -32,8 +30,6 @@ aString::aString ()
     : p(new StringRep(1)),
       len(0)
 {
-    if (p.isNull())
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     p->s[0] = 0;
 }
 
@@ -41,8 +37,6 @@ aString::aString (char c)
     : p(new StringRep(2)),
       len(1)
 {
-    if (p.isNull())
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     p->s[0] = c;
     p->s[1] = 0;
     if (c == '\0')
@@ -53,8 +47,6 @@ aString::aString (int size)
     : p(new StringRep(size+1)),
       len(0)
 {
-    if (p.isNull())
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     ::memset(p->s,'\0',p->bufferlength);
 }
 
@@ -63,8 +55,6 @@ aString::aString (const char* initialtext)
     assert(initialtext != 0);
     len = ::strlen(initialtext);
     p = new StringRep(len + 1);
-    if (p.isNull())
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     ::memcpy(p->s,initialtext,len+1);
 }
 
@@ -132,8 +122,6 @@ aString::copyModify ()
     if (!p.unique())
     {
         StringRep* np = new StringRep(len+1);
-        if (np == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
         ::memcpy(np->s,p->s,len+1);
         p = np;
     }

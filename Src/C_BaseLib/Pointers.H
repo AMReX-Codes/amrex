@@ -4,7 +4,7 @@
 #define BL_POINTERS_H
 
 //
-// $Id: Pointers.H,v 1.4 1997-11-18 00:04:54 lijewski Exp $
+// $Id: Pointers.H,v 1.5 1997-12-11 23:25:46 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -375,9 +375,6 @@ inline
 CpPtr<T>::CpPtr (const CpPtr<T>& rhs)
 {
     ptr = rhs.isNull() ?  0 : new T(*rhs.ptr);
-
-    if (!rhs.isNull() && ptr == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
 }
 
 template <class T>
@@ -389,9 +386,6 @@ CpPtr<T>::operator= (const CpPtr<T>& rhs)
     {
         delete ptr;
         ptr = rhs.isNull() ? 0 : new T(*rhs.ptr);
-
-        if (!rhs.isNull() && ptr == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
     }
     return *this;
 }

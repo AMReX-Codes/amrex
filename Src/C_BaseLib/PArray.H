@@ -4,7 +4,7 @@
 #define BL_PARRAY_H
 
 //
-// $Id: PArray.H,v 1.6 1997-11-18 00:04:53 lijewski Exp $
+// $Id: PArray.H,v 1.7 1997-12-11 23:25:45 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -292,9 +292,9 @@ PArray<T>::clear ()
     {
         for (int i = 0; i < length(); ++i)
         {
-	  if (!(vp[i] == 0))
+          if (!(vp[i] == 0))
               delete ((T*)(vp[i]));
-	}
+        }
     }
     for (int i = 0; i < length(); ++i)
         vp[i] = 0;
@@ -319,11 +319,11 @@ PArray<T>::resize (int newlen)
     {
         for (int i = newlen; i < onelem; i++)
         {
-	  if (!(ovp[i] == 0))
+          if (!(ovp[i] == 0))
           {
               delete ((T*)(ovp[i]));
               ovp[i]  = 0;
-	  }
+          }
         }
     }
 }

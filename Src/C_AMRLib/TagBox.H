@@ -4,7 +4,7 @@
 #define _TagBox_H_
 
 //
-// $Id: TagBox.H,v 1.4 1997-12-09 21:54:52 lijewski Exp $
+// $Id: TagBox.H,v 1.5 1997-12-11 23:27:54 lijewski Exp $
 //
 
 #include <IntVect.H>
@@ -22,11 +22,11 @@
 #endif
 
 #if (BL_SPACEDIM==1)
-#define TagBox	TagBox1d
+#define TagBox        TagBox1d
 #elif (BL_SPACEDIM==2)
-#define TagBox	TagBox2d
+#define TagBox        TagBox2d
 #elif (BL_SPACEDIM==3)
-#define TagBox	TagBox3d
+#define TagBox        TagBox3d
 #endif
 
 class TagBox
@@ -55,11 +55,11 @@ public:
 
     TagType& operator() (const IntVect& p)
     {
-	return dptr[domain.index(p)];
+        return dptr[domain.index(p)];
     }
     const TagType& operator() (const IntVect& p) const
     {
-	return dptr[domain.index(p)];
+        return dptr[domain.index(p)];
     }
     //
     // Construct and return a new tagbox in which the coarsened cell is

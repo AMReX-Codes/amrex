@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Tracer.cpp,v 1.2 1997-09-18 20:12:58 lijewski Exp $
+// $Id: Tracer.cpp,v 1.3 1997-12-11 23:25:47 lijewski Exp $
 //
 // Definition of Tracer member functions.
 //
@@ -82,9 +82,6 @@ void Tracer::init ()
 {
     char* symbol = new char[strlen(m_program) + strlen("TRACER") + 1];
 
-    if (symbol == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
-
     strcpy(symbol, m_program);
     strcat(symbol, "TRACER");
 
@@ -101,8 +98,7 @@ void Tracer::init ()
             //
             // If it isn't the NULL string, we do function tracing.
             //
-            if ((m_substr = new char[strlen(definition)+1]) == 0)
-                BoxLib::OutOfMemory(__FILE__, __LINE__);
+            m_substr = new char[strlen(definition)+1];
 
             strcpy(m_substr, definition);
         }

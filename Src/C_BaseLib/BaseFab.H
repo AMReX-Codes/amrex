@@ -4,7 +4,7 @@
 #define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.11 1997-12-09 23:29:59 lijewski Exp $
+// $Id: BaseFab.H,v 1.12 1997-12-11 23:25:39 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -288,8 +288,8 @@ public:
                component srccomp in src and stored starting at component
                destcomp. Note that the actual copy is made by the
                function `performCopy' of this class.  The results are
-	       UNDEFINED if the src and dest are the same and the srcbox and
-	       destbox overlap.
+               UNDEFINED if the src and dest are the same and the srcbox and
+               destbox overlap.
     */
     BaseFab<T>& copy (const BaseFab<T>& src,
                       const Box&        srcbox,
@@ -1055,8 +1055,7 @@ BaseFab<T>::define ()
 
     if (dptr == 0)
     {
-        if ((dptr = new T[nvar*numpts]) == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
+        dptr = new T[nvar*numpts];
     }
 }
 
@@ -1214,8 +1213,6 @@ BaseFab<T>::resize (const Box& b,
         if (new_size > old_size)
         {
             T* ndptr = new T[new_size];
-            if (ndptr == 0)
-                BoxLib::OutOfMemory(__FILE__, __LINE__);
             
             for (long i = 0; i < old_size; i++)
                 ndptr[i] = dptr[i];
@@ -1513,13 +1510,11 @@ BaseFab<T>::norm (const Box& subbox,
             if (tmp == 0)
             {
                 tmp = new Real[thisLen];
-                if (tmp == 0)
-                    BoxLib::OutOfMemory(__FILE__, __LINE__);
                 tmplen = thisLen;
                 for (int i = 0; i < thisLen; i++)
                 {
                     tmp[i] = Abs(Real(row[i]));
-		}
+                }
             }
             else
             {
@@ -1539,8 +1534,6 @@ BaseFab<T>::norm (const Box& subbox,
             if (tmp == 0)
             {
                 tmp = new Real[thisLen];
-                if (tmp == 0)
-                    BoxLib::OutOfMemory(__FILE__, __LINE__);
                 tmplen = thisLen;
                 for (int i = 0; i < thisLen; i++)
                     tmp[i] = Abs(Real(row[i]));
@@ -1588,31 +1581,29 @@ BaseFab<Real>::norm (const Box& subbox,
             if (tmp == 0)
             {
                 tmp = new Real[thisLen];
-                if (tmp == 0)
-                    BoxLib::OutOfMemory(__FILE__, __LINE__);
                 tmplen = thisLen;
 #pragma _CRI ivdep
                 for (int i = 0; i < thisLen; i++)
                 {
                     tmp[i] = fabs(row[i]);
-		}
+                }
             }
             else
             {
 #pragma _CRI ivdep
-	      for (int i = 0; i < thisLen; i++)
+              for (int i = 0; i < thisLen; i++)
               {
-		Real a = fabs(row[i]);
-		tmp[i] = tmp[i] > a ? tmp[i] : a ;
-	      }
+                Real a = fabs(row[i]);
+                tmp[i] = tmp[i] > a ? tmp[i] : a ;
+              }
             }
         } EndForPencil
         nrm = tmp[0];
         for (int i = 1; i < tmplen; i++)
         {
-	    Real a = tmp[i];
-	    nrm = nrm > a ? nrm : a ;
-	}
+            Real a = tmp[i];
+            nrm = nrm > a ? nrm : a ;
+        }
     }
     else if (p == 1)
     {
@@ -1622,22 +1613,20 @@ BaseFab<Real>::norm (const Box& subbox,
             if (tmp == 0)
             {
                 tmp = new Real[thisLen];
-                if (tmp == 0)
-                    BoxLib::OutOfMemory(__FILE__, __LINE__);
                 tmplen = thisLen;
 #pragma _CRI ivdep
                 for (int i = 0; i < thisLen; i++)
                 {
-		    tmp[i] = fabs(row[i]);
-		}
+                    tmp[i] = fabs(row[i]);
+                }
             }
             else
             {
 #pragma _CRI ivdep
-	      for (int i = 0; i < thisLen; i++)
+              for (int i = 0; i < thisLen; i++)
               {
-		    tmp[i] += fabs( row[i] );
-	      }
+                    tmp[i] += fabs( row[i] );
+              }
             }
         } EndForPencil
         nrm = tmp[0];
@@ -1666,8 +1655,6 @@ BaseFab<T>::min (int comp) const
         if (_min_row == 0)
         {
             _min_row = new T[thisLen];
-            if (_min_row == 0)
-                BoxLib::OutOfMemory(__FILE__, __LINE__);
             _X_len = thisLen;
             for (int i = 0; i < thisLen; i++)
                 _min_row[i] = _row[i];
@@ -1701,8 +1688,6 @@ BaseFab<T>::min (const Box& subbox,
         if (_min_row == 0)
         {
             _min_row = new T[thisLen];
-            if (_min_row == 0)
-                BoxLib::OutOfMemory(__FILE__, __LINE__);
             _X_len = thisLen;
             for (int i = 0; i < thisLen; i++)
                 _min_row[i] = _row[i];
@@ -1735,8 +1720,6 @@ BaseFab<T>::max (int comp) const
         if (_max_row== 0)
         {
             _max_row = new T[thisLen];
-            if (_max_row == 0)
-                BoxLib::OutOfMemory(__FILE__, __LINE__);
             _X_len = thisLen;
             for (int i = 0; i < thisLen; i++)
                 _max_row[i] = _row[i];
@@ -1770,8 +1753,6 @@ BaseFab<T>::max (const Box& subbox,
         if (_max_row == 0)
         {
             _max_row = new T[thisLen];
-            if (_max_row == 0)
-                BoxLib::OutOfMemory(__FILE__, __LINE__);
             _X_len = thisLen;
             for (int i = 0; i < thisLen; i++)
                 _max_row[i] = _row[i];
@@ -1993,8 +1974,6 @@ BaseFab<T>::sum (int comp,
         if (_sum_row == 0)
         {
             _sum_row = new T[thisLen];
-            if (_sum_row == 0)
-                BoxLib::OutOfMemory(__FILE__, __LINE__);
             _sum_len = thisLen;
             for (int i = 0; i < thisLen; i++)
                 _sum_row[i] = _row[i];
@@ -2028,8 +2007,6 @@ BaseFab<T>::sum (const Box& subbox,
         if (_sum_row == 0)
         {
             _sum_row = new T[thisLen];
-            if (_sum_row == 0)
-                BoxLib::OutOfMemory(__FILE__, __LINE__);
             _sum_len = thisLen;
             for (int i = 0; i < thisLen; i++)
                 _sum_row[i] = _row[i];

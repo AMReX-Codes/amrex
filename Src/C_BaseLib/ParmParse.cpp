@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParmParse.cpp,v 1.5 1997-12-04 22:33:20 lijewski Exp $
+// $Id: ParmParse.cpp,v 1.6 1997-12-11 23:25:46 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -456,8 +456,6 @@ ParmParse::read_file (const char*      fname,
         int pflen = (int)ftell(pffd);
         rewind(pffd);
         char* str = new char[pflen+1];
-        if (str == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
         memset(str,0,pflen+1);
         int nread = fread(str, 1, pflen, pffd);
         if (!(nread == pflen))
@@ -740,8 +738,6 @@ ParmParse::bldTable (const char*      str,
           addDefn(cur_name,cur_list,tab);
           tmp_str = tokname;
           pp = new PP_entry(tmp_str,ppOption,cur_list);
-          if (pp == 0)
-              BoxLib::OutOfMemory(__FILE__, __LINE__);
           tab.append(pp);
           break;
       case ppEQ_sign:
@@ -817,8 +813,6 @@ ParmParse::addDefn (aString&         def,
     else
     {
         PP_entry* pp = new PP_entry(def,ppDefn,val);
-        if (pp == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
         tab.append(pp);
     }
     val.clear();

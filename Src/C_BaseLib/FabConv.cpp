@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabConv.cpp,v 1.3 1997-09-24 22:06:44 lijewski Exp $
+// $Id: FabConv.cpp,v 1.4 1997-12-11 23:25:43 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -50,8 +50,6 @@ RealDescriptor*
 RealDescriptor::clone () const
 {
     RealDescriptor* rd = new RealDescriptor(*this);
-    if (rd == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     return rd;
 }
 
@@ -119,13 +117,9 @@ RealDescriptor::newRealDescriptor (int         iot,
         {
         case FABio::FAB_FLOAT:
             rd = new RealDescriptor(FPC::ieee_float, ord, 4);
-            if (rd == 0)
-                BoxLib::OutOfMemory(__FILE__, __LINE__);
             return rd;
         case FABio::FAB_DOUBLE:
             rd = new RealDescriptor(FPC::ieee_double, ord, 8);
-            if (rd == 0)
-                BoxLib::OutOfMemory(__FILE__, __LINE__);
             return rd;
         }
     }
@@ -133,16 +127,12 @@ RealDescriptor::newRealDescriptor (int         iot,
         if (sys != 0 && strncmp(sys, "CRAY", 4) == 0)
         {
             rd = new RealDescriptor(FPC::cray_float, FPC::cray_float_order, 8);
-            if (rd == 0)
-                BoxLib::OutOfMemory(__FILE__, __LINE__);
             return rd;
         }
     default:
         BoxLib::Error("RealDescriptor::newRealDescriptor(): Crazy precision");
     }
     rd = new RealDescriptor;
-    if (rd == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     return rd;
 }
 
@@ -178,9 +168,9 @@ _PD_get_bit (char*      base,
     offs   = offs % 8;
 
     if (ord == NULL)
-	base += (n + nbytes);
+        base += (n + nbytes);
     else
-	base += (n + (ord[nbytes] - 1));
+        base += (n + (ord[nbytes] - 1));
 
     int mask = (1 << (7 - offs));
 
@@ -221,15 +211,15 @@ _PD_extract_field (char*      in,
     unsigned char bpb = 8 - offs;
 
     if (ord == NULL)
-	ind = offy++;
+        ind = offy++;
     else
     {
-	if (offy >= nby)
-	{
-	    offy -= nby;
-	    in   += nby;
-	}
-	ind = (ord[offy++] - 1);
+        if (offy >= nby)
+        {
+            offy -= nby;
+            in   += nby;
+        }
+        ind = (ord[offy++] - 1);
     }
 
     int tgt  = in[ind];
@@ -237,31 +227,31 @@ _PD_extract_field (char*      in,
     bit_field = ((bit_field << bpb) | (tgt & mask));
     nbi -= bpb;
     if (nbi < 0)
-	bit_field = bit_field >> (-nbi);
+        bit_field = bit_field >> (-nbi);
     else
     {
-	for (; nbi > 0; nbi -= bpb)
-	{
+        for (; nbi > 0; nbi -= bpb)
+        {
             //
             // ind  = (ord == NULL) ? offy++ : (ord[offy++] - 1);
             //
-	    if (ord == NULL)
-		ind = offy++;
-	    else
-	    {
-		if (offy >= nby)
-		{
-		    offy -= nby;
-		    in += nby;
-		}
-		ind = (ord[offy++] - 1);
-	    }
+            if (ord == NULL)
+                ind = offy++;
+            else
+            {
+                if (offy >= nby)
+                {
+                    offy -= nby;
+                    in += nby;
+                }
+                ind = (ord[offy++] - 1);
+            }
 
-	    tgt  = in[ind];
-	    bpb  = nbi > 8 ? 8 : nbi;
-	    mask = (1 << bpb) - 1;
-	    bit_field = ((bit_field << bpb) | ((tgt >> (8 - bpb)) & mask));
-	}
+            tgt  = in[ind];
+            bpb  = nbi > 8 ? 8 : nbi;
+            mask = (1 << bpb) - 1;
+            bit_field = ((bit_field << bpb) | ((tgt >> (8 - bpb)) & mask));
+        }
     }
 
     return bit_field;
@@ -322,8 +312,8 @@ _PD_insert_field (long  in_long,
     //
     if (offs > 7)
     {
-	out  += (offs >> 3);
-	offs %= 8;
+        out  += (offs >> 3);
+        offs %= 8;
     }
     //
     // If mi is less than offs, copy the first dm bits over, reset offs to 0,
@@ -332,17 +322,17 @@ _PD_insert_field (long  in_long,
     int mi = BitsMax - nb;
     if (mi < offs)
     {
-	dm = BitsMax - (8 - offs);
-	if (nb == BitsMax)
-	    longmask = ~((1L << dm) - 1L);
-	else
-	    longmask = ((1L << nb) - 1L) ^ ((1L << dm) - 1L);
+        dm = BitsMax - (8 - offs);
+        if (nb == BitsMax)
+            longmask = ~((1L << dm) - 1L);
+        else
+            longmask = ((1L << nb) - 1L) ^ ((1L << dm) - 1L);
 
-	unsigned char fb = ((in_long&longmask)>>dm)&((1L<<(nb-dm))-1L);
-	*(out++) |= fb;
+        unsigned char fb = ((in_long&longmask)>>dm)&((1L<<(nb-dm))-1L);
+        *(out++) |= fb;
 
-	mi  += 8 - offs;
-	offs = 0;
+        mi  += 8 - offs;
+        offs = 0;
     }
     //
     // Assuming mi >= offs, left shift the input so that it is bit aligned
@@ -355,7 +345,7 @@ _PD_insert_field (long  in_long,
     // Reorder the bytes apropriately.
     //
     if (l_order == REVERSE_ORDER)
-	_PD_btrvout(in, l_bytes, 1L);
+        _PD_btrvout(in, l_bytes, 1L);
     //
     // Copy the remaining aligned bytes over.
     //
@@ -399,10 +389,10 @@ _PD_reorder (char*      arr,
 
     for (int j; nitems > 0; nitems--)
     {
-	arr--;
-	for (j = 0; j < nbytes; local[j] = arr[ord[j]], j++);
-	arr++;
-	for (j = 0; j < nbytes; *(arr++) = local[j++]);
+        arr--;
+        for (j = 0; j < nbytes; local[j] = arr[ord[j]], j++);
+        arr++;
+        for (j = 0; j < nbytes; *(arr++) = local[j++]);
     }
 }
 
@@ -556,95 +546,95 @@ PD_fconvert (void*       out,
         //
         // Move the exponent over.
         //
-	expn = _PD_extract_field(lin, bi_exp, nbi_exp, inbytes, inord);
-	sign = _PD_get_bit(lin, bi_sign, inbytes, inord);
+        expn = _PD_extract_field(lin, bi_exp, nbi_exp, inbytes, inord);
+        sign = _PD_get_bit(lin, bi_sign, inbytes, inord);
         //
         // If we have a negative number and ones complement arithmetic on the
         // input side (won't have it on the output side with modern data).
         // Take the complement of the exponent and mantissa.
         //
-	if (onescmp)
-	{
-	    if (sign)
-	    {
-		ONES_COMP_NEG(expn, nbi_exp, 1L);
-	    }
-	    else
-		expn += (expn < hexpn);
-	}
-	if (expn != 0)
-	    expn += DeltaBias;
-	if ((0 <= expn) && (expn < expn_max))
-	{
-	    _PD_insert_field(expn, nbo_exp, lout, bo_exp, l_order, l_bytes);
+        if (onescmp)
+        {
+            if (sign)
+            {
+                ONES_COMP_NEG(expn, nbi_exp, 1L);
+            }
+            else
+                expn += (expn < hexpn);
+        }
+        if (expn != 0)
+            expn += DeltaBias;
+        if ((0 <= expn) && (expn < expn_max))
+        {
+            _PD_insert_field(expn, nbo_exp, lout, bo_exp, l_order, l_bytes);
 
-	    if (sign)
-		_PD_set_bit(lout, bo_sign);
+            if (sign)
+                _PD_set_bit(lout, bo_sign);
 
-	    indxin  = bi_mant;
-	    inrem   = int(infor[2]);
-	    indxout = bo_mant;
-	    outrem  = int(outfor[2]);
+            indxin  = bi_mant;
+            inrem   = int(infor[2]);
+            indxout = bo_mant;
+            outrem  = int(outfor[2]);
             //
             // If input high mantissa bit (HMB) is assumed 1 and not written
             // (e.g. IEEE) but output HMB is assumed 0 (e.g. CRAY) write the
             // input starting at the output HMB+1 and set the HMB.
             //
-	    dindx = int(hmbo - hmbi);
-	    if (dindx > 0)
-	    {
-		_PD_set_bit(lout, indxout);
-		indxout += dindx;
-		outrem  -= dindx;
-	    }
+            dindx = int(hmbo - hmbi);
+            if (dindx > 0)
+            {
+                _PD_set_bit(lout, indxout);
+                indxout += dindx;
+                outrem  -= dindx;
+            }
             //
             // If input HMB is assumed 0 (e.g. CRAY) but output HMB is
             // assumed 1 and not written (e.g. IEEE) take the input from
             // HMB+1 and write it to output HMB.
             //
-	    else if (dindx < 0)
-	    {
-		indxin -= dindx;
-		inrem  += dindx;
-	    }
+            else if (dindx < 0)
+            {
+                indxin -= dindx;
+                inrem  += dindx;
+            }
             //
             // Move the mantissa over in sizeof(long) packets.
             //
-	    while ((inrem > 0) && (outrem > 0))
-	    {
-		nbits = BitsMax > inrem ? inrem : BitsMax;
-		nbits = nbits > outrem ? outrem : nbits;
-		mant  = _PD_extract_field(lin, indxin, nbits, inbytes, inord);
+            while ((inrem > 0) && (outrem > 0))
+            {
+                nbits = BitsMax > inrem ? inrem : BitsMax;
+                nbits = nbits > outrem ? outrem : nbits;
+                mant  = _PD_extract_field(lin, indxin, nbits, inbytes, inord);
                 //
                 // Do complement for negative ones complement data.
                 //
-		if (onescmp && sign)
-		    ONES_COMP_NEG(mant, nbits, 0L);
+                if (onescmp && sign)
+                    ONES_COMP_NEG(mant, nbits, 0L);
 
-		_PD_insert_field(mant, nbits, lout, indxout, l_order, l_bytes);
+                _PD_insert_field(mant, nbits, lout, indxout, l_order, l_bytes);
 
-		indxin  += nbits;
-		indxout += nbits;
-		inrem   -= nbits;
-		outrem  -= nbits;
-	    }
-	}
+                indxin  += nbits;
+                indxout += nbits;
+                inrem   -= nbits;
+                outrem  -= nbits;
+            }
+        }
         //
         // In case of overflow use 1.0e+(expn_max).
         //
-	else if (expn_max <= expn)
-	{
-	    _PD_insert_field(expn_max, nbo_exp, lout, bo_exp, l_order, l_bytes);
+        else if (expn_max <= expn)
+        {
+            _PD_insert_field(expn_max, nbo_exp, lout, bo_exp, l_order, l_bytes);
 
-	    if (_PD_get_bit(lin, bi_sign, inbytes, inord))
-		_PD_set_bit(lout, bo_sign);
-	}
-	bi_sign += nbi;
-	bi_exp  += nbi;
-	bi_mant += nbi;
-	bo_sign += nbo;
-	bo_exp  += nbo;
-	bo_mant += nbo;
+            if (_PD_get_bit(lin, bi_sign, inbytes, inord))
+                _PD_set_bit(lout, bo_sign);
+        }
+        bi_sign += nbi;
+        bi_exp  += nbi;
+        bi_mant += nbi;
+        bo_sign += nbo;
+        bo_exp  += nbo;
+        bo_mant += nbo;
     }
     //
     // Handle CRAY inconsistency which has zero as the only floating point
@@ -653,18 +643,18 @@ PD_fconvert (void*       out,
     //
     if (hmbo)
     {
-	int j, mask = (1 << (7 - bo_mant % 8));
+        int j, mask = (1 << (7 - bo_mant % 8));
 
-	indxout = int(outfor[5]/8);
-	rout    = (unsigned char *) out;
-	for (i = 0L; i < nitems; i++, rout += outbytes)
-	{
-	    for (j = 0; j < outbytes; j++)
-		if ((j == indxout) ? (rout[j] != mask) : rout[j])
-		    break;
-	    if (j == outbytes)
-		rout[indxout] = 0;
-	}
+        indxout = int(outfor[5]/8);
+        rout    = (unsigned char *) out;
+        for (i = 0L; i < nitems; i++, rout += outbytes)
+        {
+            for (j = 0; j < outbytes; j++)
+                if ((j == indxout) ? (rout[j] != mask) : rout[j])
+                    break;
+            if (j == outbytes)
+                rout[indxout] = 0;
+        }
     }
     //
     // Put the output bytes into the specified order.
@@ -1225,9 +1215,6 @@ RealDescriptor::convertToNativeFormat (Real*                 out,
 
     char* bufr = new char[SHOULDREAD * id.numBytes()];
 
-    if (bufr == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
-
     while (nitems > 0)
     {
         int get = int(nitems) > SHOULDREAD ? SHOULDREAD : int(nitems);
@@ -1282,9 +1269,6 @@ RealDescriptor::convertFromNativeFormat (ostream&              os,
     const int SHOULDWRITE = 8192;
 
     char* bufr = new char[SHOULDWRITE * od.numBytes()];
-
-    if (bufr == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
 
     while (nitems > 0)
     {

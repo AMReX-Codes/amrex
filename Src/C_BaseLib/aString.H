@@ -4,7 +4,7 @@
 #define BL_ASTRING_H
 
 //
-// $Id: aString.H,v 1.4 1997-11-18 00:04:55 lijewski Exp $
+// $Id: aString.H,v 1.5 1997-12-11 23:25:49 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -52,8 +52,6 @@ StringRep::StringRep (int _len)
 {
     bufferlength = _len;
     s = new char [bufferlength];
-    if (s == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
 }
 
 inline

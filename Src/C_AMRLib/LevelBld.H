@@ -4,7 +4,7 @@
 #define _LEVELBLD_H_
 
 //
-// $Id: LevelBld.H,v 1.3 1997-11-26 19:18:51 lijewski Exp $
+// $Id: LevelBld.H,v 1.4 1997-12-11 23:27:52 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -22,8 +22,8 @@ public:
     virtual void variableCleanUp() = 0;
     virtual AmrLevel* operator()()  = 0;
     virtual AmrLevel* operator()(Amr &papa, int lev,
-				 const Geometry &geom_lev,
-				 const BoxArray &ba, Real time) = 0;
+                                 const Geometry &geom_lev,
+                                 const BoxArray &ba, Real time) = 0;
 };
 
 #endif

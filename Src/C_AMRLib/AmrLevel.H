@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.8 1997-12-08 23:13:01 lijewski Exp $
+// $Id: AmrLevel.H,v 1.9 1997-12-11 23:27:47 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -78,7 +78,7 @@ public:
     // Is name a state variable?
     //
     int isStateVariable (const aString& name,
-			 int&           state_indx,
+                         int&           state_indx,
                          int&           n_comp);
     //
     // Compute the initial time step.
@@ -209,7 +209,7 @@ public:
                     int          state_indx,
                     int          src_comp,
                     int          ncomp,
-		   Interpolater* mapper = 0);
+                   Interpolater* mapper = 0);
     //
     // Interpolate up from coarse level.
     //

@@ -9,8 +9,8 @@
 PHYS BC     |   Velocity      |    Temperature   |    Scalars     |
 ---------------------------------------------------------------------
 INTERIOR    |                 |                  |                |
-   or	|    INT_DIR      |     INT_DIR      |    INT_DIR     |
-PERIODIC	|                 |                  |                |
+   or       |    INT_DIR      |     INT_DIR      |    INT_DIR     |
+PERIODIC    |                 |                  |                |
 ---------------------------------------------------------------------
             |                 |                  |                |
 INFLOW      |    EXT_DIR      |     EXT_DIR      |    EXT_DIR     |
@@ -20,12 +20,12 @@ INFLOW      |    EXT_DIR      |     EXT_DIR      |    EXT_DIR     |
 OUTFLOW     |    EXTRAP       |     EXTRAP       |    EXTRAP      |
             |                 |                  |                |
 ---------------------------------------------------------------------
-NO SLIP WALL |                 |                  |                |
-  with      |    EXT_DIR      |  REFLECT_EVEN    |    HOEXTRAP    |
+NO SLIP WALL   |                 |                  |                |
+  with         |    EXT_DIR      |  REFLECT_EVEN    |    HOEXTRAP    |
 ADIABATIC TEMP |    U = V = 0    |    dT/dn = 0     |                |
 ---------------------------------------------------------------------
 NO SLIP WALL |                 |                  |                |
-  with      |    EXT_DIR      |     EXT_DIR      |    HOEXTRAP    |
+  with       |    EXT_DIR      |     EXT_DIR      |    HOEXTRAP    |
 FIXED TEMP   |    U = V = 0    |                  |                |
 ---------------------------------------------------------------------
 SLIP WALL   |                 |                  |                |

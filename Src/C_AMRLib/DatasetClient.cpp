@@ -41,9 +41,9 @@ const char *defaultLabel = " ";
 
 // -------------------------------------------------------------------
 bool CreateSocket(int &newsocket) {
-  int 			sockfd;
-  struct sockaddr_in	serveraddr;
-  char		       *serverhost = "localhost";
+  int                         sockfd;
+  struct sockaddr_in        serveraddr;
+  char                       *serverhost = "localhost";
   struct hostent       *serverhostp;
 
   int GETUID_SERVER_PORT = getuid() + PORTOFFSET;  // use to contact the server
@@ -100,11 +100,11 @@ bool SendString(int sockfd, const char *sendstring) {
 
 // -------------------------------------------------------------------
 bool SendRealArray(int sockfd, Real *data[], int nvar,    // size nvar
-		   const int *lodim, const int *hidim)    // size BL_SPACEDIM
+                   const int *lodim, const int *hidim)    // size BL_SPACEDIM
 {
-  int			count;
-  char			buffer[MAXBUFSIZE];
-  char			ptrbuffer[MAXBUFSIZE];
+  int                        count;
+  char                        buffer[MAXBUFSIZE];
+  char                        ptrbuffer[MAXBUFSIZE];
 
   IntVect ivlo(lodim);
   IntVect ivhi(hidim);
@@ -213,7 +213,7 @@ bool ArrayViewFab(FArrayBox *debugFab) {
 
 // -------------------------------------------------------------------
 bool ArrayViewFabFormatLabel(FArrayBox *debugFab, const char *format,
-			     const char *label)
+                             const char *label)
 {
   bool returnValue;
   int nvar = debugFab->nComp();
@@ -231,8 +231,8 @@ bool ArrayViewFabFormatLabel(FArrayBox *debugFab, const char *format,
     dataArray[d] = debugFab->dataPtr(d);  // dont assume contiguous
   }
   returnValue = ArrayViewRealPtrArrayNVarDims(dataArray, nvar,
-			        debugFab->box().smallEnd().getVect(),
-			        debugFab->box().bigEnd().getVect(), format, label);
+                                debugFab->box().smallEnd().getVect(),
+                                debugFab->box().bigEnd().getVect(), format, label);
   delete [] dataArray;
   return returnValue;
 }
@@ -252,13 +252,13 @@ bool ArrayViewMultiFab(MultiFab *debugMultiFab) {
 // -------------------------------------------------------------------
 bool ArrayViewMultiFabElement(MultiFab *debugMultiFab, int element) {
   return( ArrayViewMultiFabElementFormatLabel(debugMultiFab, element,
-					      defaultFormat, "MultiFab element") );
+                                              defaultFormat, "MultiFab element") );
 }
 
 
 // -------------------------------------------------------------------
 bool ArrayViewMultiFabElementFormatLabel(MultiFab *debugMultiFab, int element,
-					 const char *format, const char *label)
+                                         const char *format, const char *label)
 {
   if( ! debugMultiFab->ok()) {
     cerr << "Error in ArrayViewMultiFabComp:  MultiFab is not ok()." << endl;
@@ -311,7 +311,7 @@ bool ArrayViewTagBox(TagBox *debugTagBox) {
   returnValue = ArrayViewRealPtrArrayNVarDims(dataArray, nvar,
                                 debugFab->box().smallEnd().getVect(),
                                 debugFab->box().bigEnd().getVect(),
-				"%3.0f", " TagBox ");
+                                "%3.0f", " TagBox ");
   delete [] dataArray;
   delete debugFab;
   return returnValue;
@@ -364,13 +364,13 @@ bool ArrayViewTagBoxArray(TagBoxArray *debugTagBoxArray) {
 // -------------------------------------------------------------------
 bool ArrayViewReal(Real *data, const int *lodim, const int *hidim) {
   return ( ArrayViewRealFormatLabel(data, lodim, hidim,
-				    defaultFormat, "Real Array") );
+                                    defaultFormat, "Real Array") );
 }
 
 
 // -------------------------------------------------------------------
 bool ArrayViewRealFormatLabel(Real *data, const int *lodim, const int *hidim,
-		         const char *format, const char *label)
+                         const char *format, const char *label)
 {
   return ( ArrayViewRealNVarFormatLabel(data, 1, lodim, hidim, format, label) );
 }
@@ -379,14 +379,14 @@ bool ArrayViewRealFormatLabel(Real *data, const int *lodim, const int *hidim,
 // -------------------------------------------------------------------
 bool ArrayViewRealNVar(Real *data, int nvar, const int *lodim, const int *hidim) {
   return ( ArrayViewRealNVarFormatLabel(data, nvar, lodim, hidim,
-				   defaultFormat, "Real Array") );
+                                   defaultFormat, "Real Array") );
 }
 
 
 // -------------------------------------------------------------------
 bool ArrayViewRealNVarFormatLabel(Real *data, int nvar,
-			 const int *lodim, const int *hidim,  // size BL_SPACEDIM
-			 const char *format, const char *label)
+                         const int *lodim, const int *hidim,  // size BL_SPACEDIM
+                         const char *format, const char *label)
 {
   bool returnValue;
 
@@ -412,7 +412,7 @@ bool ArrayViewRealNVarFormatLabel(Real *data, int nvar,
     dataArray[d] = (Real *) tempCharPtr;
   }
   returnValue = ArrayViewRealPtrArrayNVarDims(dataArray, nvar,
-					      lodim, hidim, format, label);
+                                              lodim, hidim, format, label);
   delete [] dataArray;
   return returnValue;
 }
@@ -425,29 +425,29 @@ bool ArrayViewRealNVarFormatLabel(Real *data, int nvar,
 // -------------------------------------------------------------------
 bool ArrayViewRealDims(Real *data, int xlo, int ylo, int xhi, int yhi) {
   return ( ArrayViewRealDimsFormatLabel(data, xlo, ylo, xhi, yhi,
-					defaultFormat, "Real data") );
+                                        defaultFormat, "Real data") );
 }
 
 // -------------------------------------------------------------------
 bool ArrayViewRealDimsFormatLabel(Real *data, int xlo, int ylo, int xhi, int yhi,
-		       const char *format, const char *label)
+                       const char *format, const char *label)
 {
   return ( ArrayViewRealNVarDimsFormatLabel(data, 1, xlo, ylo, xhi, yhi,
-					    format, label) );
+                                            format, label) );
 }
 
 // -------------------------------------------------------------------
 bool ArrayViewRealNVarDims(Real *data, int nvar,
-			   int xlo, int ylo, int xhi, int yhi)
+                           int xlo, int ylo, int xhi, int yhi)
 {
   return ( ArrayViewRealNVarDimsFormatLabel(data, nvar, xlo, ylo, xhi, yhi,
-					    defaultFormat, "Real data") );
+                                            defaultFormat, "Real data") );
 }
 
 // -------------------------------------------------------------------
 bool ArrayViewRealNVarDimsFormatLabel(Real *data, int nvar,
-			   int xlo, int ylo, int xhi, int yhi,
-		           const char *format, const char *label)
+                           int xlo, int ylo, int xhi, int yhi,
+                           const char *format, const char *label)
 {
   int lodims[BL_SPACEDIM], hidims[BL_SPACEDIM];
   if(data == NULL) {
@@ -480,40 +480,40 @@ bool ArrayViewRealNVarDimsFormatLabel(Real *data, int nvar,
 
 // -------------------------------------------------------------------
 bool ArrayViewRealDims(Real *data, int xlo, int ylo, int zlo,
-		       int xhi, int yhi, int zhi)
+                       int xhi, int yhi, int zhi)
 {
   return ( ArrayViewRealDimsFormatLabel(data, xlo, ylo, zlo, xhi, yhi, zhi,
-				        defaultFormat, "Real data") );
+                                        defaultFormat, "Real data") );
 }
 
 
 // -------------------------------------------------------------------
 bool ArrayViewRealDimsFormatLabel(Real *data,
-		                  int xlo, int ylo, int zlo,
-		                  int xhi, int yhi, int zhi,
-		                  const char *format, const char *label)
+                                  int xlo, int ylo, int zlo,
+                                  int xhi, int yhi, int zhi,
+                                  const char *format, const char *label)
 {
   return ( ArrayViewRealNVarDimsFormatLabel(data, 1, xlo, ylo, zlo, xhi, yhi, zhi,
-				            format, label) );
+                                            format, label) );
 }
 
 
 // -------------------------------------------------------------------
 bool ArrayViewRealNVarDims(Real *data, int nvar,
-		           int xlo, int ylo, int zlo,
-		           int xhi, int yhi, int zhi)
+                           int xlo, int ylo, int zlo,
+                           int xhi, int yhi, int zhi)
 {
   return ( ArrayViewRealNVarDimsFormatLabel(data, nvar,
-					    xlo, ylo, zlo, xhi, yhi, zhi,
-				            defaultFormat, "Real data") );
+                                            xlo, ylo, zlo, xhi, yhi, zhi,
+                                            defaultFormat, "Real data") );
 }
 
 
 // -------------------------------------------------------------------
 bool ArrayViewRealNVarDimsFormatLabel(Real *data, int nvar,
-		                      int xlo, int ylo, int zlo,
-		                      int xhi, int yhi, int zhi,
-		                      const char *format, const char *label)
+                                      int xlo, int ylo, int zlo,
+                                      int xhi, int yhi, int zhi,
+                                      const char *format, const char *label)
 {
   int lodims[BL_SPACEDIM], hidims[BL_SPACEDIM];
 
@@ -552,10 +552,10 @@ bool ArrayViewRealNVarDimsFormatLabel(Real *data, int nvar,
 
 // -------------------------------------------------------------------
 bool ArrayViewRealPtrArrayNVarDims(Real *data[], int nvar,    // size nvar
-			 const int *lodim, const int *hidim,  // size BL_SPACEDIM
-			 const char *format, const char *label)
+                         const int *lodim, const int *hidim,  // size BL_SPACEDIM
+                         const char *format, const char *label)
 {
-  int 	sockfd;
+  int         sockfd;
 
   if( ! CreateSocket(sockfd)) {
     return false;
@@ -588,7 +588,7 @@ bool ArrayViewRealPtrArrayNVarDims(Real *data[], int nvar,    // size nvar
 
 // -------------------------------------------------------------------
 bool ArrayViewMultiFabFormatLabel(MultiFab *multifab, const char *format,
-				  const char *label)
+                                  const char *label)
 {
   int  sockfd;
   char buffer[MAXBUFSIZE];
@@ -630,7 +630,7 @@ bool ArrayViewMultiFabFormatLabel(MultiFab *multifab, const char *format,
     }
 
     if( ! SendRealArray(sockfd, dataArray, nvar,
-			(fab.box()).loVect(), (fab.box()).hiVect()))
+                        (fab.box()).loVect(), (fab.box()).hiVect()))
     {
       return false;
     }

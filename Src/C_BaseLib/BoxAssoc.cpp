@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxAssoc.cpp,v 1.2 1997-09-24 22:06:42 lijewski Exp $
+// $Id: BoxAssoc.cpp,v 1.3 1997-12-11 23:25:40 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -13,8 +13,6 @@ BoxAssoc::indexVect::indexVect (int len)
 {
     nelem = len;
     vec   = new int[len];
-    if (vec == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
 }
 
 BoxAssoc::indexVect::indexVect (const indexVect& iv,
@@ -22,8 +20,6 @@ BoxAssoc::indexVect::indexVect (const indexVect& iv,
 {
     nelem = len;
     vec = new int[nelem];
-    if (vec == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     for (int i = 0; i < len; i++)
         vec[i] = iv.vec[i];
 }
@@ -35,8 +31,6 @@ BoxAssoc::indexVect::copy (const indexVect& iv,
     delete [] vec;
     nelem = len;
     vec = new int[len];
-    if (vec == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     for (int i = 0; i < len; i++)
         vec[i] = iv.vec[i];
 }
@@ -47,8 +41,6 @@ BoxAssoc::indexVect::resize (int newlen)
     if (newlen > nelem)
     {
         int* tmp = new int[newlen];
-        if (tmp == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
         for (int i = 0; i < nelem; i++)
             tmp[i] = vec[i];
         delete [] vec;
@@ -113,24 +105,16 @@ BoxAssoc::copy (const BoxAssoc& ba)
     clear();
     assert(ba.ready());
     bs = new BoxArray(ba.boxArray());
-    if (bs == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     bso = (ba.bs == ba.bso) ? bs : new BoxArray(ba.otherBoxArray());
-    if (bso == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     int nbx = bs->length();
     first = current = 0;
     BARec *prev = 0;
     for (BARec *a=ba.first; a != 0; a = a->next)
     {
         BARec* b = new BARec;
-        if (b == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
         b->cwidth = a->cwidth;
         b->next = 0;
         b->lst = new indexVect[nbx];
-        if (b->lst == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
         for (int i = 0; i < nbx; i++)
             b->lst[i].copy(a->lst[i],a->lst[i].size());
         if (first == 0)
@@ -236,15 +220,11 @@ BoxAssoc::setCacheWidth (int cw)
     if (ptr == 0)
     {
         ptr = new BARec;
-        if (ptr == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
         ptr->cwidth = cw;
         ptr->next = first;
         first = ptr;
         int len = bs->length();
         ptr->lst = new indexVect[len];
-        if (ptr->lst == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
         makeneighbors(ptr->lst,cw);
     }
     current = ptr;

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.7 1997-12-09 23:29:59 lijewski Exp $
+// $Id: FArrayBox.cpp,v 1.8 1997-12-11 23:25:42 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -197,9 +197,6 @@ FArrayBox::setFormat (FABio::Format fmt)
         BoxLib::Abort();
     }
 
-    if (fio == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
-
     setFABio(fio);
 }
 
@@ -283,9 +280,6 @@ FArrayBox::init ()
             BoxLib::Abort();
         }
 
-        if (fio == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
-
         setFABio(fio);
     }
     //
@@ -329,8 +323,7 @@ FArrayBox::norm (const Box& subbox,
             const Real* row = &thisR;
             if (tmp == 0)
             {
-                if ((tmp = new Real[thisLen]) == 0)
-                    BoxLib::OutOfMemory(__FILE__, __LINE__);
+                tmp = new Real[thisLen];
                 tmplen = thisLen;
                 for (int i = 0; i < thisLen; i++)
                     tmp[i] = row[i]*row[i];
@@ -354,8 +347,7 @@ FArrayBox::norm (const Box& subbox,
             const Real* row = &thisR;
             if (tmp == 0)
             {
-                if ((tmp = new Real[thisLen]) == 0)
-                    BoxLib::OutOfMemory(__FILE__, __LINE__);
+                tmp = new Real[thisLen];
                 tmplen = thisLen;
                 for (int i = 0; i < thisLen; i++)
                     tmp[i] = pow(row[i],pwr);
@@ -438,8 +430,7 @@ FABio::read_header (istream&   is,
         // The "new" FAB format.
         //
         is.putback(c);
-        if ((rd = new RealDescriptor) == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
+        rd = new RealDescriptor;
         is >> *rd;
         is >> bx;
         is >> nvar;
@@ -453,9 +444,6 @@ FABio::read_header (istream&   is,
 
     if (is.fail())
         BoxLib::Error("FABio::read_header() failed");
-
-    if (fio == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
 
     return fio;
 }
@@ -539,9 +527,9 @@ FABio_ascii::read (istream&   is,
         is >> q;
         if (p != q)
         {
-	  cerr << "Error:  read IntVect " << q << "  should be " << p << '\n';
+          cerr << "Error:  read IntVect " << q << "  should be " << p << '\n';
           BoxLib::Error("FABio_ascii::read() bad IntVect");
-	}
+        }
         for (int k = 0; k < f.nComp(); k++)
             is >> f(p, k);
     }
@@ -585,9 +573,6 @@ FABio_8bit::write (ostream&         os,
 
     unsigned char* c = new unsigned char[siz];
 
-    if (c == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
-
     for (int k = 0; k < num_comp; k++)
     {
         const Real mn   = f.min(k+comp);
@@ -617,8 +602,6 @@ FABio_8bit::read (istream&   is,
 {
     long siz         = f.box().numPts();
     unsigned char* c = new unsigned char[siz];
-    if (c == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
     Real mn, mx;
     for (int nbytes, k = 0; k < f.nComp(); k++)
     {

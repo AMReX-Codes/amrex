@@ -4,7 +4,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.13 1997-11-26 04:22:34 lijewski Exp $
+// $Id: Utility.H,v 1.14 1997-12-11 23:25:48 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -137,9 +137,9 @@ public:
         result = arg1 + arg2;
     }
     static void OpLongAnd (long& result,
-			   long& arg1,
-			   long& arg2,
-			   int* nbytes)
+                           long& arg1,
+                           long& arg2,
+                           int*  nbytes)
     {
         result = arg1 && arg2;
     }
@@ -158,7 +158,7 @@ public:
     //
 #ifdef WIN32
     static bool CreateDirectory (const aString& path,
-				 int		mode);
+                                 int            mode);
 #else
     static bool CreateDirectory (const aString& path,
                                  mode_t         mode);

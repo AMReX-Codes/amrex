@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.37 1997-12-05 00:08:58 lijewski Exp $
+// $Id: VisMF.cpp,v 1.38 1997-12-11 23:25:49 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -264,8 +264,6 @@ VisMF::DirName (const aString& filename)
         int len = (slash - str) + 1;
 
         char* buf = new char[len+1];
-        if (buf == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
 
         strncpy(buf, str, len);
 
@@ -369,8 +367,6 @@ VisMF::Header::Header (const MultiFab& mf,
             msg_hdr.m_index = idx;
 
             Real* min_n_max = new Real[2 * m_ncomp];
-            if (min_n_max == 0)
-                BoxLib::OutOfMemory(__FILE__, __LINE__);
 
             for (int i = 0; i < m_ncomp; i++)
             {
@@ -396,8 +392,6 @@ VisMF::Header::Header (const MultiFab& mf,
         m_max[msg_hdr.m_index].resize(m_ncomp);
 
         Real* min_n_max = new Real[2 * m_ncomp];
-        if (min_n_max == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
 
         ParallelDescriptor::ReceiveData(min_n_max, len);
 
@@ -576,8 +570,6 @@ VisMF::Write (const MultiFab& mf,
         assert(ParallelDescriptor::IOProcessor());
 
         char* fab_name = new char[len];
-        if (fab_name == 0)
-            BoxLib::OutOfMemory(__FILE__, __LINE__);
 
         ParallelDescriptor::ReceiveData(fab_name, len);
 
@@ -630,8 +622,6 @@ VisMF::readFAB (int                  idx,
         fab_box.grow(hdr.m_ngrow);
 
     FArrayBox* fab = new FArrayBox(fab_box, hdr.m_ncomp);
-    if (fab == 0)
-        BoxLib::OutOfMemory(__FILE__, __LINE__);
 
     aString FullFileName = VisMF::DirName(mf_name);
 

@@ -4,7 +4,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.6 1997-11-18 00:04:52 lijewski Exp $
+// $Id: MultiFab.H,v 1.7 1997-12-11 23:25:44 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -355,9 +355,9 @@ public:
                            bool            extrap = false);
 
     friend void linInterpAddBox (MultiFabCopyDescriptor &fabCopyDesc,
-			   BoxList &returnUnfilledBoxes,
-			   Array<FillBoxId> &returnedFillBoxIds,
-			   const Box      &subbox,
+                           BoxList &returnUnfilledBoxes,
+                           Array<FillBoxId> &returnedFillBoxIds,
+                           const Box      &subbox,
                            const MultiFabId &faid1,
                            const MultiFabId &faid2,
                            Real            t1,
@@ -369,10 +369,10 @@ public:
                            bool            extrap = false);
 
     friend void linInterpFillFab (MultiFabCopyDescriptor &fabCopyDesc,
-			   const Array<FillBoxId> &fillBoxIds,
+                           const Array<FillBoxId> &fillBoxIds,
                            const MultiFabId &faid1,
                            const MultiFabId &faid2,
-			   FArrayBox      &dest,
+                           FArrayBox      &dest,
                            Real            t1,
                            Real            t2,
                            Real            t,

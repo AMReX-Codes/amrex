@@ -4,7 +4,7 @@
 #define _Cluster_H_ 
 
 //
-// $Id: Cluster.H,v 1.4 1997-11-26 20:51:36 lijewski Exp $
+// $Id: Cluster.H,v 1.5 1997-12-11 23:27:48 lijewski Exp $
 //
 
 #include <IntVect.H>
@@ -19,11 +19,11 @@
 #endif
 
 #if (BL_SPACEDIM==1)
-#define Cluster	Cluster1d
+#define Cluster        Cluster1d
 #elif (BL_SPACEDIM==2)
-#define Cluster	Cluster2d
+#define Cluster        Cluster2d
 #elif (BL_SPACEDIM==3)
-#define Cluster	Cluster3d
+#define Cluster        Cluster3d
 #endif
 
 class ClusterList;
@@ -62,8 +62,8 @@ public:
 
 //  return ith tagged point in cluster
     IntVect operator[](int i) {
-	assert(ar != 0);
-	return (*ar)[i];
+        assert(ar != 0);
+        return (*ar)[i];
     }
 
 //  does cluster contain any points?
@@ -96,8 +96,8 @@ public:
 
 //  compute ratio of tagged to total number og points in cluster
     Real eff() const {
-	assert( ok() );
-	return ((Real) numTag())/((Real) bx.numPts());
+        assert( ok() );
+        return ((Real) numTag())/((Real) bx.numPts());
     }
 
 protected:

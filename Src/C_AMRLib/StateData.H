@@ -4,7 +4,7 @@
 #define _StateData_H_ 
 
 //
-// $Id: StateData.H,v 1.5 1997-12-04 20:58:50 lijewski Exp $
+// $Id: StateData.H,v 1.6 1997-12-11 23:27:52 lijewski Exp $
 //
 
 #include <Box.H>
@@ -25,7 +25,7 @@ for the current and previous time step
 */
 
     struct TimeInterval {
-	Real start, stop;
+        Real start, stop;
     };
 
 protected:
@@ -165,7 +165,7 @@ public:
 ///
     void printTimeInterval(ostream &os);
 ///
-    int hasOldData() { 	return (old_data != 0); }
+    int hasOldData() {         return (old_data != 0); }
 };
 
 #endif

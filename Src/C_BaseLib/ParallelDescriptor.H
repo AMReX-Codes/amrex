@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.9 1997-11-20 16:13:38 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.10 1997-12-11 23:25:45 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -76,7 +76,7 @@ public:
 
     static void Abort (const char* str)
     {
-	BoxLib::Abort(str);
+        BoxLib::Abort(str);
     }
     static int MyProc () { return 0; }
     static int NProcs () { return 1; }
@@ -161,7 +161,7 @@ class ParallelDescriptor
     static void Synchronize () { bsp_sync(); }
     static void Synchronize (const char *msg)
     {
-	  cout << "----- " << bsp_pid() << " :  about to sync:  " << msg
+          cout << "----- " << bsp_pid() << " :  about to sync:  " << msg
                << endl;
           bsp_sync();
     }

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.5 1997-12-02 23:40:32 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.6 1997-12-11 23:27:51 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -194,36 +194,36 @@ FluxRegister::Reflux (MultiFab&       S,
                 }
             }
             //
-	    // Add periodic possibilities.
+            // Add periodic possibilities.
             //
-	    if (geom.isAnyPeriodic() && !geom.Domain().contains(bx))
+            if (geom.isAnyPeriodic() && !geom.Domain().contains(bx))
             {
-	      Array<IntVect> pshifts(27);
-	      geom.periodicShift(bx,s_box,pshifts);
-	      for (int iiv=0; iiv<pshifts.length(); iiv++)
+              Array<IntVect> pshifts(27);
+              geom.periodicShift(bx,s_box,pshifts);
+              for (int iiv=0; iiv<pshifts.length(); iiv++)
               {
-		IntVect iv = pshifts[iiv];
-		s.shift(iv);
-		const int *slo = s.loVect();
-		const int *shi = s.hiVect();
+                IntVect iv = pshifts[iiv];
+                s.shift(iv);
+                const int *slo = s.loVect();
+                const int *shi = s.hiVect();
                 //
-		// This is a funny situation.  I don't want to permanently
-		// change vol, but I need to do a shift on it.  I'll shift
-		// it back later, so the overall change is nil.  But to do
-		// this, I have to cheat and do a cast.  This is pretty 
-		// disgusting.
-		FArrayBox &cheatvol = *(FArrayBox *)&vol;
-		cheatvol.shift(iv);
-		const int *vlo = cheatvol.loVect();
-		const int *vhi = cheatvol.hiVect();
-		Box s_box = grd_boxes[grd];
-		D_TERM( s_box.shift(0,iv[0]);,
-			s_box.shift(1,iv[1]);,
-			s_box.shift(2,iv[2]); )
-		if (!bx.intersects(s_box))
+                // This is a funny situation.  I don't want to permanently
+                // change vol, but I need to do a shift on it.  I'll shift
+                // it back later, so the overall change is nil.  But to do
+                // this, I have to cheat and do a cast.  This is pretty 
+                // disgusting.
+                FArrayBox &cheatvol = *(FArrayBox *)&vol;
+                cheatvol.shift(iv);
+                const int *vlo = cheatvol.loVect();
+                const int *vhi = cheatvol.hiVect();
+                Box s_box = grd_boxes[grd];
+                D_TERM( s_box.shift(0,iv[0]);,
+                        s_box.shift(1,iv[1]);,
+                        s_box.shift(2,iv[2]); )
+                if (!bx.intersects(s_box))
                     BoxLib::Error("FluxRegister::Reflux logic error");
 
-		for (OrientationIter fi; fi; ++fi)
+                for (OrientationIter fi; fi; ++fi)
                 {
                     Orientation face = fi();
                     Box fine_face(adjCell(reg_box,face));
@@ -246,10 +246,10 @@ FluxRegister::Reflux (MultiFab&       S,
                         fillBoxIdList.append(tempFillBoxId);
                     }
                 }
-		s.shift(-iv);
-		cheatvol.shift(-iv);
-	      }
-	    }
+                s.shift(-iv);
+                cheatvol.shift(-iv);
+              }
+            }
         }
     }
 
@@ -328,9 +328,9 @@ FluxRegister::Reflux (MultiFab&       S,
                 }
             }
             //
-	    // Add periodic possibilities.
+            // Add periodic possibilities.
             //
-	    if (geom.isAnyPeriodic() && !geom.Domain().contains(bx))
+            if (geom.isAnyPeriodic() && !geom.Domain().contains(bx))
             {
                 Array<IntVect> pshifts(27);
                 geom.periodicShift(bx,s_box,pshifts);
@@ -390,7 +390,7 @@ FluxRegister::Reflux (MultiFab&       S,
                     s.shift(-iv);
                     cheatvol.shift(-iv);
                 }
-	    }
+            }
         }
     }
 
@@ -635,7 +635,7 @@ if(ParallelDescriptor::NProcs() > 1) {
     const BoxArray& bxa = mflx.boxArray();
     for(ConstMultiFabIterator mfi(mflx); mfi.isValid(); ++mfi) {
         assert(mfi.validbox() == bxa[mfi.index()]);
-	CrseInit(mfi(),mfi.validbox(),dir,srccomp,destcomp,numcomp,mult);
+        CrseInit(mfi(),mfi.validbox(),dir,srccomp,destcomp,numcomp,mult);
     }
 }
 
@@ -670,9 +670,9 @@ FluxRegister::CrseInit (const MultiFab& mflx,
       for (int k = 0; k < bxa.length(); k++)
       {
         const Box subbox(bxa[k]);
-	Box lobox(mfi_bndry_lo.fabbox());
-	lobox &= subbox;
-	if (lobox.ok())
+        Box lobox(mfi_bndry_lo.fabbox());
+        lobox &= subbox;
+        if (lobox.ok())
         {
               BoxList unfilledBoxes(lobox.ixType());  // unused here
               FillBoxId fbid_mflx;
@@ -686,10 +686,10 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                                       unfilledBoxes, 0, 0,
                                       area.nComp());
               fillBoxIdList_area.append(fbid_area);
-	}
-	Box hibox(mfi_bndry_hi.fabbox());
-	hibox &= subbox;
-	if (hibox.ok())
+        }
+        Box hibox(mfi_bndry_hi.fabbox());
+        hibox &= subbox;
+        if (hibox.ok())
         {
               BoxList unfilledBoxes(hibox.ixType());  // unused here
               FillBoxId fbid_mflx;
@@ -703,7 +703,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                                       unfilledBoxes, 0, 0,
                                       area.nComp());
               fillBoxIdList_area.append(fbid_area);
-	}
+        }
       }
     }
 
@@ -720,9 +720,9 @@ FluxRegister::CrseInit (const MultiFab& mflx,
       for (int k = 0; k < bxa.length(); k++)
       {
         const Box subbox(bxa[k]);
-	Box lobox(mfi_bndry_lo.fabbox());
-	lobox &= subbox;
-	if (lobox.ok())
+        Box lobox(mfi_bndry_lo.fabbox());
+        lobox &= subbox;
+        if (lobox.ok())
         {
           assert(fbidli_mflx);
           FillBoxId fbid_mflx = fbidli_mflx();
@@ -757,8 +757,8 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                         area_dat,ARLIM(alo),ARLIM(ahi),
                         lo,hi,&numcomp,&dir,&mult);
         }
-	Box hibox(mfi_bndry_hi.fabbox());
-	hibox &= subbox;
+        Box hibox(mfi_bndry_hi.fabbox());
+        hibox &= subbox;
         if (hibox.ok())
         {
           assert(fbidli_mflx);
@@ -964,36 +964,36 @@ FluxRegister::CrseInit (const FArrayBox& flux,
     int nreg = grids.length();
     int k;
     for (k = 0; k < nreg; k++) {
-	Orientation face_lo(dir,Orientation::low);
-	FArrayBox& loreg = bndry[face_lo][k];
-	Box lobox(loreg.box());
-	lobox &= subbox;
-	if (lobox.ok()) {
-	    const int* rlo = loreg.loVect();
-	    const int* rhi = loreg.hiVect();
-	    Real* lodat = loreg.dataPtr(destcomp);
-	    const int* lo = lobox.loVect();
-	    const int* hi = lobox.hiVect();
-	    FORT_FRCAINIT(lodat,ARLIM(rlo),ARLIM(rhi),
+        Orientation face_lo(dir,Orientation::low);
+        FArrayBox& loreg = bndry[face_lo][k];
+        Box lobox(loreg.box());
+        lobox &= subbox;
+        if (lobox.ok()) {
+            const int* rlo = loreg.loVect();
+            const int* rhi = loreg.hiVect();
+            Real* lodat = loreg.dataPtr(destcomp);
+            const int* lo = lobox.loVect();
+            const int* hi = lobox.hiVect();
+            FORT_FRCAINIT(lodat,ARLIM(rlo),ARLIM(rhi),
                           flx_dat,ARLIM(flo),ARLIM(fhi),
-			  area_dat,ARLIM(alo),ARLIM(ahi),         
-		          lo,hi,&numcomp,&dir,&mult);
-	}
-	Orientation face_hi(dir,Orientation::high);
-	FArrayBox& hireg = bndry[face_hi][k];
-	Box hibox(hireg.box());
-	hibox &= subbox;
-	if (hibox.ok()) {
-	    const int* rlo = hireg.loVect();
-	    const int* rhi = hireg.hiVect();
-	    Real* hidat = hireg.dataPtr(destcomp);
-	    const int* lo = hibox.loVect();
-	    const int* hi = hibox.hiVect();
-	    FORT_FRCAINIT(hidat,ARLIM(rlo),ARLIM(rhi), 
+                          area_dat,ARLIM(alo),ARLIM(ahi),         
+                          lo,hi,&numcomp,&dir,&mult);
+        }
+        Orientation face_hi(dir,Orientation::high);
+        FArrayBox& hireg = bndry[face_hi][k];
+        Box hibox(hireg.box());
+        hibox &= subbox;
+        if (hibox.ok()) {
+            const int* rlo = hireg.loVect();
+            const int* rhi = hireg.hiVect();
+            Real* hidat = hireg.dataPtr(destcomp);
+            const int* lo = hibox.loVect();
+            const int* hi = hibox.hiVect();
+            FORT_FRCAINIT(hidat,ARLIM(rlo),ARLIM(rhi), 
                           flx_dat,ARLIM(flo),ARLIM(fhi),
-			  area_dat,ARLIM(alo),ARLIM(ahi),lo,hi,&numcomp,
-			  &dir,&mult);
-	}
+                          area_dat,ARLIM(alo),ARLIM(ahi),lo,hi,&numcomp,
+                          &dir,&mult);
+        }
     }
 */
 }
@@ -1008,7 +1008,7 @@ FluxRegister::FineAdd (const MultiFab& mflx,
 {
     for (ConstMultiFabIterator mflxmfi(mflx); mflxmfi.isValid(); ++mflxmfi)
     {
-	FineAdd(mflxmfi(),dir,mflxmfi.index(),srccomp,destcomp,numcomp,mult);
+        FineAdd(mflxmfi(),dir,mflxmfi.index(),srccomp,destcomp,numcomp,mult);
     }
 }
 
@@ -1023,9 +1023,9 @@ FluxRegister::FineAdd (const MultiFab& mflx,
 {
     for (ConstMultiFabIterator mflxmfi(mflx); mflxmfi.isValid(); ++mflxmfi)
     {
-	ConstDependentMultiFabIterator areamfi(mflxmfi, area);
-	FineAdd(mflxmfi(),areamfi(),dir,mflxmfi.index(),
-		srccomp,destcomp,numcomp,mult);
+        ConstDependentMultiFabIterator areamfi(mflxmfi, area);
+        FineAdd(mflxmfi(),areamfi(),dir,mflxmfi.index(),
+                srccomp,destcomp,numcomp,mult);
     }
 }
 

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.1 1997-12-04 21:32:06 lijewski Exp $
+// $Id: RunStats.cpp,v 1.2 1997-12-11 23:25:47 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -40,11 +40,11 @@ RunStats::init ()
     {
         aString nm;
 
-	for (int i = 0, n = pp.countval("statvar"); i < n; i++)
+        for (int i = 0, n = pp.countval("statvar"); i < n; i++)
         {
-	    pp.get("statvar", nm, i);
-	    turnOn(nm.c_str());
-	}
+            pp.get("statvar", nm, i);
+            turnOn(nm.c_str());
+        }
     }
 }
 
@@ -53,8 +53,8 @@ RunStats::find (const char* _name,
                 int         _level)
 {
     for (ListIterator<RunStatsData> it(RunStats::TheStats); it; ++it)
-	if (it().level == _level && it().name == _name)
-	    return &RunStats::TheStats[it];
+        if (it().level == _level && it().name == _name)
+            return &RunStats::TheStats[it];
 
     RunStats::TheStats.append(RunStatsData(_name, _level));
 
@@ -109,7 +109,7 @@ RunStats::addCells (int  lev,
 {
     if (lev >= RunStats::TheCells.length())
     {
-	RunStats::TheCells.resize(lev+1, 0);
+        RunStats::TheCells.resize(lev+1, 0);
     }
     RunStats::TheCells[lev] += count;
 }
@@ -190,26 +190,26 @@ RunStats::report (ostream& os)
 
     if (ParallelDescriptor::IOProcessor())
     {
-	os.setf(ios::showpoint);
+        os.setf(ios::showpoint);
 
         int old_prec = os.precision(15);
 
-	long tot_cells = 0;
-	for (int i = 0; i < RunStats::TheCells.length(); i++)
+        long tot_cells = 0;
+        for (int i = 0; i < RunStats::TheCells.length(); i++)
         {
-	    os << "Number of cells advanced at level "
+            os << "Number of cells advanced at level "
                << i
                << ": "
-	       << RunStats::TheCells[i]
+               << RunStats::TheCells[i]
                << '\n';
-	    tot_cells += RunStats::TheCells[i];
-	}
-	os << "\nTotal cells advanced: " << tot_cells << '\n';
-	os << "\nTotal bytes written to disk: " << RunStats::DiskBytes << '\n';
+            tot_cells += RunStats::TheCells[i];
+        }
+        os << "\nTotal cells advanced: " << tot_cells << '\n';
+        os << "\nTotal bytes written to disk: " << RunStats::DiskBytes << '\n';
 
         double tot_num_pts = 0;
 
-	for (int i = 0; i < RunStats::TheNumPts.length(); i++)
+        for (int i = 0; i < RunStats::TheNumPts.length(); i++)
             tot_num_pts += RunStats::TheNumPts[i];
 
         if (tot_num_pts > 0)
@@ -228,43 +228,43 @@ RunStats::report (ostream& os)
             }
         }
 
-	int maxlev = 0;
+        int maxlev = 0;
         ListIterator<RunStatsData> it(TheTotals);
-	for ( ; it; ++it)
+        for ( ; it; ++it)
         {
-	    maxlev = Max(maxlev, it().level);
+            maxlev = Max(maxlev, it().level);
         }
 
-	for (int lev = 0; lev <= maxlev; ++lev)
+        for (int lev = 0; lev <= maxlev; ++lev)
         {
-	    os << "\nTimings for level " << lev << " ...\n\n";
-	    it.rewind();
-	    for ( ; it; ++it)
+            os << "\nTimings for level " << lev << " ...\n\n";
+            it.rewind();
+            for ( ; it; ++it)
             {
-		if (it().level == lev)
+                if (it().level == lev)
                 {
                     ListIterator<RunStatsData> iti(TheTotals);
-		    for ( ; iti; ++iti)
-			if (iti().name == it().name && iti().level == -1)
-			    break;
-		    if (it().is_on)
+                    for ( ; iti; ++iti)
+                        if (iti().name == it().name && iti().level == -1)
+                            break;
+                    if (it().is_on)
                     {
                         Print(os, it(), tot_run_time, tot_run_wtime);
-		    }
-		}
-	    }
-	}
+                    }
+                }
+            }
+        }
         os << "\nTotals for all levels ...\n\n";
 
-	it.rewind();
+        it.rewind();
 
-	for ( ; it; ++it)
+        for ( ; it; ++it)
         {
-	    if (it().level == -1 && it().is_on == true)
+            if (it().level == -1 && it().is_on == true)
             {
                 Print(os, it(), tot_run_time, tot_run_wtime);
-	    }
-	}
+            }
+        }
 
         os << '\n'
            << "Total CPU time        : " << tot_run_time  << '\n'
@@ -307,30 +307,30 @@ RunStats::dumpStats (ofstream& os)
 
     if (ParallelDescriptor::IOProcessor())
     {
-	os << "(ListRunStats "
+        os << "(ListRunStats "
            << TheTotals.length()            << '\n'
            << (RunStats::TotalCPU + rtime)  << '\n'
            << (RunStats::TotalWCT + rwtime) << '\n'
            << RunStats::DiskBytes           << '\n';
 
-	for (ListIterator<RunStatsData> it(TheTotals); it; ++it)
+        for (ListIterator<RunStatsData> it(TheTotals); it; ++it)
         {
-	    os << it();
+            os << it();
         }
-	long nlev = RunStats::TheNumPts.length();
+        long nlev = RunStats::TheNumPts.length();
         os << nlev;
-	for (int i = 0; i < nlev; i++)
+        for (int i = 0; i < nlev; i++)
         {
-	    os << ' ' << RunStats::TheNumPts[i];
+            os << ' ' << RunStats::TheNumPts[i];
         }
         os << '\n';
         nlev = RunStats::TheCells.length();
         os << nlev;
-	for (int i = 0; i < nlev; i++)
+        for (int i = 0; i < nlev; i++)
         {
-	    os << ' ' << RunStats::TheCells[i];
+            os << ' ' << RunStats::TheCells[i];
         }
-	os << ")\n";
+        os << ")\n";
     }
 }
 
@@ -344,7 +344,7 @@ RunStats::readStats (ifstream& is,
     is >> s;
     if (s != "ListRunStats")
     {
-	cerr << "unexpected token " << s << '\n';
+        cerr << "unexpected token " << s << '\n';
         BoxLib::Error();
     }
     int n;
@@ -354,8 +354,8 @@ RunStats::readStats (ifstream& is,
     is >> RunStats::DiskBytes;
     while (n--)
     {
-	RunStatsData rd;
-	is >> rd;
+        RunStatsData rd;
+        is >> rd;
         if (restart && ParallelDescriptor::NProcs() > 1)
         {
             //
@@ -364,7 +364,7 @@ RunStats::readStats (ifstream& is,
             //
             rd.run_time /= ParallelDescriptor::NProcs();
         }
-	RunStats::TheStats.append(rd);
+        RunStats::TheStats.append(rd);
     }
     long nlen;
     is >> nlen;
@@ -372,13 +372,13 @@ RunStats::readStats (ifstream& is,
     int i;
     for (i = 0; i < nlen; i++)
     {
-	is >> RunStats::TheNumPts[i];
+        is >> RunStats::TheNumPts[i];
     }
     is >> nlen;
     RunStats::TheCells.resize(nlen);
     for (i = 0; i < nlen; i++)
     {
-	is >> RunStats::TheCells[i];
+        is >> RunStats::TheCells[i];
     }
     is.ignore(BL_IGNORE_MAX,')');
 }
@@ -435,12 +435,12 @@ ostream &
 operator<< (ostream&            os,
             const RunStatsData& rd)
 {
-	os << "(RunStatsData "
-	   << rd.name      << ' '
-	   << rd.level     << ' '
-	   << rd.is_on     << ' '
-	   << rd.run_time  << ' '
-	   << rd.run_wtime << ")\n";
+        os << "(RunStatsData "
+           << rd.name      << ' '
+           << rd.level     << ' '
+           << rd.is_on     << ' '
+           << rd.run_time  << ' '
+           << rd.run_wtime << ")\n";
     return os;
 }
 
@@ -448,20 +448,20 @@ istream &
 operator>> (istream&      is,
             RunStatsData& rd)
 {
-	is.ignore(BL_IGNORE_MAX, '(');
-	aString s;
-	is >> s;
-	if (s != "RunStatsData")
+        is.ignore(BL_IGNORE_MAX, '(');
+        aString s;
+        is >> s;
+        if (s != "RunStatsData")
         {
-	    cerr << "unexpected token " << s << '\n';
+            cerr << "unexpected token " << s << '\n';
             BoxLib::Abort();
-	}
-	is >> rd.name;
-	is >> rd.level;
-	is >> rd.is_on;
-	is >> rd.run_time;
-	is >> rd.run_wtime;
-	is.ignore(BL_IGNORE_MAX,')');
+        }
+        is >> rd.name;
+        is >> rd.level;
+        is >> rd.is_on;
+        is >> rd.run_time;
+        is >> rd.run_wtime;
+        is.ignore(BL_IGNORE_MAX,')');
     return is;
 }
 
@@ -469,11 +469,11 @@ ostream&
 operator<< (ostream&        os,
             const RunStats& r)
 {
-	os << "(RunStats "
+        os << "(RunStats "
            << r.name
-	   << " level "
+           << " level "
            << r.level
-	   << (r.isOn() ? "" : "in")
+           << (r.isOn() ? "" : "in")
            << "active)"
            << '\n';
     return os;

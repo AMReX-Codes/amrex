@@ -60,16 +60,16 @@ extern "C"
                        const int* ratio, const Real* mult);
 
     void FORT_FRREFLUX (Real* s,         ARLIM_P(slo), ARLIM_P(shi),
-			const Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
-			const Real* reg, ARLIM_P(rlo), ARLIM_P(rhi),
-			const int* lo, const int* hi,
-			const int* numcomp, const Real* mult);
+                        const Real* vol, ARLIM_P(vlo), ARLIM_P(vhi),
+                        const Real* reg, ARLIM_P(rlo), ARLIM_P(rhi),
+                        const int* lo, const int* hi,
+                        const int* numcomp, const Real* mult);
 
     void FORT_FRCVREFLUX (Real* s, ARLIM_P(slo), ARLIM_P(shi),
-			  const Real* dx,
-			  const Real* reg, ARLIM_P(rlo), ARLIM_P(rhi),
-			  const int* lo, const int* hi,
-			  const int* numcomp, const Real* mult);
+                          const Real* dx,
+                          const Real* reg, ARLIM_P(rlo), ARLIM_P(rhi),
+                          const int* lo, const int* hi,
+                          const int* numcomp, const Real* mult);
 
     void FORT_SCALADDTO (Real * flx,         ARLIM_P(flo), ARLIM_P(fhi),
                          const Real * area,  ARLIM_P(alo), ARLIM_P(ahi),
