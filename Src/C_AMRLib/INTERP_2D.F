@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.16 2002-10-19 18:33:28 car Exp $
+c $Id: INTERP_2D.F,v 1.17 2002-11-04 18:43:06 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -452,15 +452,17 @@ c ::: ::::: added to prevent underflow for small crse values
       do 290 n = 1, nvar 
 
           do i = 1,clen
-            cmax(i) = crse(i,n)
-            cmin(i) = crse(i,n)
+
             alpha(i) = 1.d0
-            do joff = -jst,jst,jst
-            do ioff = -ist,ist,ist
-              cmax(i) = max(cmax(i),crse(i+ioff+joff,n))
-              cmin(i) = min(cmin(i),crse(i+ioff+joff,n))
-            end do
-            end do
+
+            cmax(i) = crse(i,n)
+            cmax(i) = max(max(cmax(i),crse(i+ist,n)),crse(i-ist,n))
+            cmax(i) = max(max(cmax(i),crse(i+jst,n)),crse(i-jst,n))
+
+            cmin(i) = crse(i,n)
+            cmin(i) = min(min(cmin(i),crse(i+ist,n)),crse(i-ist,n))
+            cmin(i) = min(min(cmin(i),crse(i+jst,n)),crse(i-jst,n))
+
           end do
 
 c ::: ::::: compute slopes in x direction
