@@ -2,7 +2,7 @@
 #define _BL_THREAD_H_
 
 //
-// $Id: Thread.H,v 1.15 2001-10-20 22:45:32 car Exp $
+// $Id: Thread.H,v 1.16 2001-10-22 21:12:45 lijewski Exp $
 //
 
 //#include <cstdio>
@@ -508,7 +508,10 @@ class FunctionThread
 public:
     enum DetachState { Joinable, Detached };
     class Implementation;
-    FunctionThread(Thread_Function func_, void* arg_ = 0, DetachState = Joinable);
+    FunctionThread(Thread_Function func_,
+                   void* arg_ = 0,
+                   DetachState = Joinable,
+                   int stacksize = 0);
     ~FunctionThread();
     void* join() const;
     void detach() const;
