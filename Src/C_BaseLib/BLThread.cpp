@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.25 2001-11-12 23:28:03 car Exp $
+// $Id: BLThread.cpp,v 1.26 2001-11-13 00:08:29 car Exp $
 //
 
 #include <winstd.H>
@@ -980,10 +980,14 @@ FunctionThread::Implementation::Implementation(Thread_Function func_,
     pthread_attr_t a;
     THREAD_REQUIRE( pthread_attr_init(&a));
 
+#if defined( PTHREAD_STACK_MIN )
     if (stacksize > PTHREAD_STACK_MIN)
     {
         THREAD_REQUIRE(pthread_attr_setstacksize(&a,stacksize));
     }
+#else
+    THREAD_REQUIRE(pthread_attr_setstacksize(&a,stacksize));
+#endif
 
     int dstate;
     switch ( st_ )
