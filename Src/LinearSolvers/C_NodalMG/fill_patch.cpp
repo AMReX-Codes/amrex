@@ -43,9 +43,7 @@ Real inner_product(const MultiFab& r, const MultiFab& s)
 	    const Box& rbox = rcmfi->box();
 	    const Box& sbox = scmfi->box();
 	    const Box& reg  = rcmfi.validbox();
-	    FORT_FIPRODC(rcmfi->dataPtr(), DIMLIST(rbox),
-		scmfi->dataPtr(), DIMLIST(sbox),
-		DIMLIST(reg), sum);
+	    FORT_FIPRODC(rcmfi->dataPtr(), DIMLIST(rbox), scmfi->dataPtr(), DIMLIST(sbox), DIMLIST(reg), sum);
 	}
     }
     else if (type(r) == IntVect::TheNodeVector()) 
@@ -57,9 +55,7 @@ Real inner_product(const MultiFab& r, const MultiFab& s)
 	    const Box& rbox = rcmfi->box();
 	    const Box& sbox = scmfi->box();
 	    const Box& reg  = rcmfi.validbox();
-	    FORT_FIPRODN(rcmfi->dataPtr(), DIMLIST(rbox),
-		scmfi->dataPtr(), DIMLIST(sbox),
-		DIMLIST(reg), sum);
+	    FORT_FIPRODN(rcmfi->dataPtr(), DIMLIST(rbox), scmfi->dataPtr(), DIMLIST(sbox), DIMLIST(reg), sum);
 	}
     }
     else 
@@ -92,10 +88,7 @@ int find_patch(const Box& region, const MultiFab& r, int flags)
     return -1;
 }
 
-static bool fill_patch_blindly(FArrayBox& patch,
-		       const Box& region,
-		       const MultiFab& r,
-		       int flags)
+static bool fill_patch_blindly(FArrayBox& patch, const Box& region, const MultiFab& r, int flags)
 {
     assert(flags == 0);
     if (r.nGrow() == 0 || (flags & 2)) 
@@ -245,9 +238,7 @@ bool fill_patch(FArrayBox& patch, const Box& region,
 				Box tb = r.box(igrid);
 				tb &= region;
 				const Box& rbox = r[igrid].box();
-				FORT_FFCPY(patch.dataPtr(), DIMLIST(patch.box()),
-				    DIMLIST(tb),
-				    r[igrid].dataPtr(), DIMLIST(rbox), patch.nComp());
+				FORT_FFCPY(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(tb), r[igrid].dataPtr(), DIMLIST(rbox), patch.nComp());
 			    }
 			    else 
 			    {
@@ -286,9 +277,7 @@ bool fill_patch(FArrayBox& patch, const Box& region,
 				Box tb = r.box(igrid);
 				tb &= region;
 				const Box& rbox = r[igrid].box();
-				FORT_FFCPY(patch.dataPtr(), DIMLIST(patch.box()),
-				    DIMLIST(tb),
-				    r[igrid].dataPtr(), DIMLIST(rbox), patch.nComp());
+				FORT_FFCPY(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(tb), r[igrid].dataPtr(), DIMLIST(rbox), patch.nComp());
 			    }
 			    else 
 			    {
@@ -327,9 +316,7 @@ bool fill_patch(FArrayBox& patch, const Box& region,
 				Box tb = r.box(igrid);
 				tb &= region;
 				const Box& rbox = r[igrid].box();
-				FORT_FFCPY(patch.dataPtr(), DIMLIST(patch.box()),
-				    DIMLIST(tb),
-				    r[igrid].dataPtr(), DIMLIST(rbox), patch.nComp());
+				FORT_FFCPY(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(tb), r[igrid].dataPtr(), DIMLIST(rbox), patch.nComp());
 			    }
 			    else 
 			    {
@@ -466,12 +453,10 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
 	    const Box& boxa = r[igrid].box();
 	    const Box& boxb = r[jgrid].box();
 #  if (BL_SPACEDIM == 2)
-	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb),
-		DIMLIST(b), w, r.nComp());
+	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(b), w, r.nComp());
 #  else
 	    const int ibord = r.nGrow();
-	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb),
-		DIMLIST(b), w, ibord, r.nComp());
+	    FORT_FFCPY2(ptra, DIMLIST(boxa), ptrb, DIMLIST(boxb), DIMLIST(b), w, ibord, r.nComp());
 #  endif
 #else
 	    const int idim = lev_interface.fdim(iface);

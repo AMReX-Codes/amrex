@@ -40,71 +40,45 @@ extern "C"
 #  ifdef HG_TERRAIN
     void FORT_HGGRAD(RealPS, intS, Real*, intS, intS);
     void FORT_HGDIV(Real*, intS, RealPS, intS, intS);
-    void FORT_HGFDIV(Real*, intS, RealPS, intS, RealPS, intS,
-	intS, intRS, int&, int&);
+    void FORT_HGFDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, intRS, int&, int&);
 #    if (BL_SPACEDIM == 3)
-    void FORT_HGEDIV(Real*, intS, RealPS, intS, RealPS, intS,
-	intS, intRS, const int*, const int*);
+    void FORT_HGEDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, intRS, const int*, const int*);
 #    endif
-    void FORT_HGCDIV(Real*, intS, RealPS, intS, RealPS, intS,
-	intS, intRS, const int*);
+    void FORT_HGCDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, intRS, const int*);
     
     // to be replaced?
 #  if (BL_SPACEDIM == 2)
-    void FORT_HGAVG(Real*, intS, Real*, intS, intS,
-	const Real&, const int&, const int&);
-    void FORT_HGFAVG(Real*, intS, Real*, intS, Real*, intS,
-	intS, intRS, int&, int&,
-	const Real&, const int&, const int&);
-    void FORT_HGCAVG(Real*, intS, Real*, intS, Real*, intS,
-	intS, intRS, const int*,
-	const Real&, const int&, const int&);
+    void FORT_HGAVG(Real*, intS, Real*, intS, intS, const Real&, const int&, const int&);
+    void FORT_HGFAVG(Real*, intS, Real*, intS, Real*, intS, intS, intRS, int&, int&, const Real&, const int&, const int&);
+    void FORT_HGCAVG(Real*, intS, Real*, intS, Real*, intS, intS, intRS, const int*, const Real&, const int&, const int&);
 #  else
     void FORT_HGAVG(Real*, intS, Real*, intS, intS);
-    void FORT_HGFAVG(Real*, intS, Real*, intS, Real*, intS,
-	intS, intRS, int&, int&);
-    void FORT_HGEAVG(Real*, intS, Real*, intS, Real*, intS,
-	intS, intRS, const int*, const int*);
-    void FORT_HGCAVG(Real*, intS, Real*, intS, Real*, intS,
-	intS, intRS, const int*);
+    void FORT_HGFAVG(Real*, intS, Real*, intS, Real*, intS, intS, intRS, int&, int&);
+    void FORT_HGEAVG(Real*, intS, Real*, intS, Real*, intS, intS, intRS, const int*, const int*);
+    void FORT_HGCAVG(Real*, intS, Real*, intS, Real*, intS, intS, intRS, const int*);
 #  endif
     
 #  elif (BL_SPACEDIM == 2)
     void FORT_HGGRAD(RealPS, intS, Real*, intS, intS, RealRS, const int&);
-    void FORT_HGDIV(Real*, intS, RealPS, intS, intS, RealRS,
-	const int&, const int&);
-    void FORT_HGFDIV(Real*, intS, RealPS, intS, RealPS, intS,
-	intS, RealRS, intRS, int&, int&, const int&, const int&);
-    void FORT_HGODIV(Real*, intS, Real*, Real*, intS, Real*, Real*, intS,
-	intS, Real&, Real&, intRS, int&, int&, const int&);
-    void FORT_HGIDIV(Real*, intS, Real*, Real*, intS, Real*, Real*, intS,
-	intS, Real&, Real&, intRS, int&, int&, const int&);
-    void FORT_HGDDIV(Real*, intS, Real*, Real*, intS, Real*, Real*, intS,
-	intS, Real&, Real&, intRS, int&, const int&);
-    void FORT_HGAVG(Real*, intS, Real*, intS, intS,
+    void FORT_HGDIV(Real*, intS, RealPS, intS, intS, RealRS, const int&, const int&);
+    void FORT_HGFDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, RealRS, intRS, int&, int&, const int&, const int&);
+    void FORT_HGODIV(Real*, intS, Real*, Real*, intS, Real*, Real*, intS, intS, Real&, Real&, intRS, int&, int&, const int&);
+    void FORT_HGIDIV(Real*, intS, Real*, Real*, intS, Real*, Real*, intS, intS, Real&, Real&, intRS, int&, int&, const int&);
+    void FORT_HGDDIV(Real*, intS, Real*, Real*, intS, Real*, Real*, intS, intS, Real&, Real&, intRS, int&, const int&);
+    void FORT_HGAVG(Real*, intS, Real*, intS, intS, const Real&, const int&, const int&);
+    void FORT_HGFAVG(Real*, intS, Real*, intS, Real*, intS, intS, intRS, int&, int&,
 	const Real&, const int&, const int&);
-    void FORT_HGFAVG(Real*, intS, Real*, intS, Real*, intS,
-	intS, intRS, int&, int&,
-	const Real&, const int&, const int&);
-    void FORT_HGCAVG(Real*, intS, Real*, intS, Real*, intS,
-	intS, intRS, const int*,
-	const Real&, const int&, const int&);
+    void FORT_HGCAVG(Real*, intS, Real*, intS, Real*, intS, intS, intRS, const int*, const Real&, const int&, const int&);
 #  elif (BL_SPACEDIM == 3)
     void FORT_HGGRAD(RealPS, intS, Real*, intS, intS, RealRS);
     void FORT_HGDIV(Real*, intS, RealPS, intS, intS, RealRS);
-    void FORT_HGFDIV(Real*, intS, RealPS, intS, RealPS, intS,
-	intS, RealRS, intRS, int&, int&);
-    void FORT_HGEDIV(Real*, intS, RealPS, intS, RealPS, intS,
-	intS, RealRS, intRS, const int*, const int*);
-    void FORT_HGCDIV(Real*, intS, RealPS, intS, RealPS, intS,
-	intS, RealRS, intRS, const int*);
+    void FORT_HGFDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, RealRS, intRS, int&, int&);
+    void FORT_HGEDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, RealRS, intRS, const int*, const int*);
+    void FORT_HGCDIV(Real*, intS, RealPS, intS, RealPS, intS, intS, RealRS, intRS, const int*);
     void FORT_HGAVG(Real*, intS, Real*, intS, intS);
-    void FORT_HGFAVG(Real*, intS, Real*, intS, Real*, intS,
-	intS, intRS, int&, int&);
-    void FORT_HGEAVG(Real*, intS, Real*, intS, Real*, intS,
-	intS, intRS, const int*, const int*);
-    void FORT_HGCAVG(Real*, intS, Real*, intS, Real*, intS,
-	intS, intRS, const int*);
+    void FORT_HGFAVG(Real*, intS, Real*, intS, Real*, intS, intS, intRS, int&, int&);
+    void FORT_HGEAVG(Real*, intS, Real*, intS, Real*, intS, intS, intRS, const int*, const int*);
+    void FORT_HGCAVG(Real*, intS, Real*, intS, Real*, intS, intS, intRS, const int*);
 #  endif
 #endif
 }
@@ -182,7 +156,7 @@ void holy_grail_amr_projector::manual_project(PArray<MultiFab>* u,
 					      PArray<MultiFab>& rhs,
 					      PArray<MultiFab>& Coarse_source,
 					      PArray<MultiFab>& Sigma,
-					      int use_u,
+					      bool use_u,
 					      Real H[], Real tol,
 					      int Lev_min, int Lev_max,
 					      Real scale)
@@ -404,8 +378,7 @@ void holy_grail_amr_projector::grid_average(PArray<MultiFab>& S)
 		csptr, DIMLIST(fbox), DIMLIST(freg),
 		hx, IsRZ(), mg_domain[mglev].bigEnd(0) + 1);
 #else
-	    FORT_HGAVG(sptr, DIMLIST(sbox),
-		csptr, DIMLIST(fbox), DIMLIST(freg));
+	    FORT_HGAVG(sptr, DIMLIST(sbox), csptr, DIMLIST(fbox), DIMLIST(freg));
 #endif
 	}
     }
@@ -445,8 +418,7 @@ void holy_grail_amr_projector::grid_divergence(PArray<MultiFab>* u)
 	    Real *const u2ptr = u[2][lev][igrid].dataPtr();
 #endif
 #ifdef HG_TERRAIN
-	    FORT_HGDIV(sptr, DIMLIST(sbox),
-		D_DECL(u0ptr, u1ptr, u2ptr), DIMLIST(fbox), DIMLIST(freg));
+	    FORT_HGDIV(sptr, DIMLIST(sbox), D_DECL(u0ptr, u1ptr, u2ptr), DIMLIST(fbox), DIMLIST(freg));
 #elif (BL_SPACEDIM == 2)
 	    FORT_HGDIV(sptr, DIMLIST(sbox),
 		u0ptr, u1ptr, DIMLIST(fbox), DIMLIST(freg), hx, hy,

@@ -5,8 +5,7 @@
 int amr_multigrid::c_sys = 0; // default is Cartesian, 1 is RZ
 #endif
 
-void amr_multigrid::mesh_read(Array<BoxArray>& m, Array<IntVect>& r,
-			      Array<Box>& d, istream& is)
+void amr_multigrid::mesh_read(Array<BoxArray>& m, Array<IntVect>& r, Array<Box>& d, istream& is)
 {
     int ilev;
     is >> ilev;
@@ -34,8 +33,7 @@ void amr_multigrid::mesh_read(Array<BoxArray>& m, Array<IntVect>& r,
     }
 }
 
-void amr_multigrid::mesh_write(Array<BoxArray>& m,
-			       Array<Box>& d, ostream& os)
+void amr_multigrid::mesh_write(const Array<BoxArray>& m, const Array<Box>& d, ostream& os)
 {
     os << m.length() << endl;
     for (int ilev = 0; ilev < m.length(); ilev++) 
@@ -48,8 +46,7 @@ void amr_multigrid::mesh_write(Array<BoxArray>& m,
     }
 }
 
-void amr_multigrid::mesh_write(Array<BoxArray>& m, Array<IntVect>& r,
-			       Box fd, ostream& os)
+void amr_multigrid::mesh_write(const Array<BoxArray>& m, const Array<IntVect>& r, Box fd, ostream& os)
 {
     for (int ilev = m.length() - 2; ilev >= 0; ilev--) 
     {
@@ -94,8 +91,7 @@ void amr_multigrid::build_mesh(const Box& fdomain)
     for (lev_min = lev_min_min; lev_min <= lev_min_max; lev_min++) 
     {
 	// first, build mg_mesh
-	int nlev = build_down(ml_mesh[lev_max], fdomain,
-	    lev_max, IntVect::TheUnitVector(), 0);
+	int nlev = build_down(ml_mesh[lev_max], fdomain, lev_max, IntVect::TheUnitVector(), 0);
 #ifndef NDEBUG
 	for (int i = 0; i < mg_mesh.length(); i++)
 	    assert(mg_mesh[i].ok());
@@ -152,8 +148,7 @@ void amr_multigrid::build_mesh(const Box& fdomain)
 		else 
 		{
 		    IntVect rat = mg_domain[mglev+1].length() / mg_domain[mglev].length();
-		    lev_interface[mglev].alloc_coarsened(mg_mesh[mglev], mg_boundary,
-			lev_interface[mglev + 1], rat);
+		    lev_interface[mglev].alloc_coarsened(mg_mesh[mglev], mg_boundary, lev_interface[mglev + 1], rat);
 		}
 	    }
 	}
@@ -174,8 +169,7 @@ void amr_multigrid::build_index()
     }
 }
 
-int amr_multigrid::build_down(const BoxArray& l_mesh, const Box& l_domain,
-			      int flev, IntVect rat, int nlev)
+int amr_multigrid::build_down(const BoxArray& l_mesh, const Box& l_domain, int flev, IntVect rat, int nlev)
 {
     if (l_mesh.length() == 0) 
     {
@@ -197,8 +191,7 @@ int amr_multigrid::build_down(const BoxArray& l_mesh, const Box& l_domain,
     return nlev;
 }
 
-void amr_multigrid::make_coarser_level(BoxArray& mesh, Box& domain,
-				       int& flev, IntVect& rat)
+void amr_multigrid::make_coarser_level(BoxArray& mesh, Box& domain, int& flev, IntVect& rat)
 {
     if (flev > lev_min) 
     {
@@ -219,7 +212,7 @@ void amr_multigrid::make_coarser_level(BoxArray& mesh, Box& domain,
 	    domain.coarsen(trat);
 	}
     }
-    else if (can_coarsen(mesh, domain)) 
+    else if ( can_coarsen(mesh, domain) ) 
     {
 	rat *= 2;
 	mesh.coarsen(2);
@@ -337,8 +330,7 @@ void amr_multigrid::clear()
     mg_mesh.clear();
 }
 
-void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2,
-			  int linesolvdim)
+void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2, int linesolvdim)
 {
     assert(linesolvdim == -1); // line solves not supported through this arg
     
@@ -396,8 +388,7 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2,
     //}
 }
 
-Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2,
-			     Real tol, Real res_norm_fine)
+Real amr_multigrid::ml_cycle(int lev, int mglev, int i1, int i2, Real tol, Real res_norm_fine)
 {
     MultiFab& dtmp = dest[lev];
     MultiFab& ctmp = corr[mglev];

@@ -49,38 +49,27 @@ extern "C"
 #    endif
 #  else
 #    ifdef HG_TERRAIN
-    void FORT_HGRES(Real*, intS, const Real*, intS, const Real*, intS,
-	Real*, intS, Real*, intS, intS);
+    void FORT_HGRES(Real*, intS, const Real*, intS, const Real*, intS, Real*, intS, Real*, intS, intS);
     void FORT_HGRLX(Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS);
-    void FORT_HGRLNF(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-	Real*, intS, intS, intS, const int&, const int&);
+    void FORT_HGRLNF(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intS, const int&, const int&);
 #    elif (defined HG_SIGMA_NODE)
     void FORT_HGRES(Real*, intS, const Real*, intS, const Real*, intS, const Real*, intS, intS);
     void FORT_HGRESU(Real*, intS, const Real*, const Real*, const Real*, Real*, intS);
     void FORT_HGRLX(Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS);
     void FORT_HGRLXU(Real*, Real*, Real*, Real*, intS, Real*, intS);
-    void FORT_HGRLXL(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-	intS, intS, const int&);
-    void FORT_HGRLNF(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-	Real*, intS, intS, intS, const int&, const int&);
+    void FORT_HGRLXL(Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intS, const int&);
+    void FORT_HGRLNF(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intS, const int&, const int&);
 #    else
-    void FORT_HGRES(Real*, intS, const Real*, intS, const Real*, intS, CRealPS, intS, intS,
-	CRealRS, const int&, const int&);
-    void FORT_HGRLX(Real*, intS, const Real*, intS, CRealPS, intS, const Real*, intS, intS,
-	CRealRS, const int&, const int&);
-    void FORT_HGRLXL(Real*, intS, Real*, intS, RealPS, intS, Real*, intS,
-	intS, intS, RealRS, const int&, const int&, const int&);
-    void FORT_HGRLNF(Real*, intS, Real*, intS, Real*, intS,
-	RealPS, intS, Real*, intS, intS, intS, RealRS,
-	const int&, const int&, const int&, const int&);
+    void FORT_HGRES(Real*, intS, const Real*, intS, const Real*, intS, CRealPS, intS, intS, CRealRS, const int&, const int&);
+    void FORT_HGRLX(Real*, intS, const Real*, intS, CRealPS, intS, const Real*, intS, intS, CRealRS, const int&, const int&);
+    void FORT_HGRLXL(Real*, intS, Real*, intS, RealPS, intS, Real*, intS, intS, intS, RealRS, const int&, const int&, const int&);
+    void FORT_HGRLNF(Real*, intS, Real*, intS, Real*, intS, RealPS, intS, Real*, intS, intS, intS, RealRS, const int&, const int&, const int&, const int&);
 #    endif
-    void FORT_HGRLNB(Real*, intS, Real*, intS,
-	intS, const int&, const int&);
+    void FORT_HGRLNB(Real*, intS, Real*, intS, intS, const int&, const int&);
 #  endif
     
 #  if (CGOPT == 1)
-    void FORT_HGCG1(Real*, Real*, Real*, Real*, Real*, Real*, Real*,
-	intS, const Real&, Real&);
+    void FORT_HGCG1(Real*, Real*, Real*, Real*, Real*, Real*, Real*, intS, const Real&, Real&);
     void FORT_HGCG2(Real*, Real*, intS, const Real&);
     void FORT_HGIP(Real*, Real*, Real*, intS, Real&);
 #  elif (CGOPT == 2)
@@ -174,9 +163,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
 	{
 	    const Box& rbox = r[igrid].box();
 	    const Box& freg = lev_interface[mglev].part_fine(igrid);
-	    FORT_HGRESU(r[igrid].dataPtr(), DIMLIST(rbox),
-		s[igrid].dataPtr(), d[igrid].dataPtr(),
-		DIMLIST(freg), hx);
+	    FORT_HGRESU(r[igrid].dataPtr(), DIMLIST(rbox), s[igrid].dataPtr(), d[igrid].dataPtr(), DIMLIST(freg), hx);
 	}
     }
     else 
@@ -185,9 +172,7 @@ void holy_grail_amr_multigrid::level_residual(MultiFab& r,
 	{
 	    const Box& rbox = r[igrid].box();
 	    const Box& freg = lev_interface[mglev].part_fine(igrid);
-	    FORT_HGRES(r[igrid].dataPtr(), DIMLIST(rbox),
-		s[igrid].dataPtr(), d[igrid].dataPtr(),
-		DIMLIST(freg), hx);
+	    FORT_HGRES(r[igrid].dataPtr(), DIMLIST(rbox), s[igrid].dataPtr(), d[igrid].dataPtr(), DIMLIST(freg), hx);
 	}
 	clear_part_interface(r, lev_interface[mglev]);
     }

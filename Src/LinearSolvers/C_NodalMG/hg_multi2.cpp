@@ -39,12 +39,8 @@ extern "C"
 #    endif
 	const int*);
 #  elif (defined HG_TERRAIN)
-    void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-	Real*, intS, Real*, intS, intS, intRS,
-	int&, int&);
-    void FORT_HGCRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-	Real*, intS, Real*, intS, intS, intRS,
-	const int*);
+    void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, int&, int&);
+    void FORT_HGCRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, const int*);
 #  else
     void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
 #    ifdef HG_CONSTANT
@@ -85,15 +81,9 @@ extern "C"
 #  endif
 #elif (BL_SPACEDIM == 3)
 #  if (defined HG_TERRAIN)
-    void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-	Real*, intS, Real*, intS, intS, intRS,
-	int&, int&);
-    void FORT_HGERES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-	Real*, intS, Real*, intS, intS, intRS,
-	const int*, const int*);
-    void FORT_HGCRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-	Real*, intS, Real*, intS, intS, intRS,
-	const int*);
+    void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, int&, int&);
+    void FORT_HGERES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, const int*, const int*);
+    void FORT_HGCRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, const int*);
 #  else
     void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
 #    ifdef HG_CONSTANT

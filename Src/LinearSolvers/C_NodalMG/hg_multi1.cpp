@@ -722,8 +722,7 @@ void holy_grail_amr_multigrid::clear()
     amr_multigrid::clear();
 }
 
-int holy_grail_amr_multigrid::can_coarsen(const BoxArray& mesh,
-					  const Box& domain) const
+bool holy_grail_amr_multigrid::can_coarsen(const BoxArray& mesh, const Box& domain) const
 {
     int retval = 1;
     for (int i = 0; i < BL_SPACEDIM; i++) 
@@ -738,7 +737,7 @@ int holy_grail_amr_multigrid::can_coarsen(const BoxArray& mesh,
 		(mesh[igrid].length(i) >= 4));
 	}
     }
-    return retval;
+    return retval != 0;
 }
 
 void holy_grail_amr_multigrid::sync_interfaces()
