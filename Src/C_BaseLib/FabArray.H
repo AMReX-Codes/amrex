@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.45 1998-04-27 19:43:46 lijewski Exp $
+// $Id: FabArray.H,v 1.46 1998-05-01 17:12:32 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -2473,11 +2473,13 @@ FabArrayCopyDescriptor<T,FAB>::FillFab (const FabArrayId& fabarrayid,
     //
     assert(dataAvailable);
 
-    pair<FCDMapIter, FCDMapIter> match;
+    int fabid = fabarrayid.Id(), boxid = fillboxid.Id();
 
-    match = fabCopyDescList[fabarrayid.Id()].equal_range(fillboxid.Id());
+    FCDMapIter fmi = fabCopyDescList[fabid].lower_bound(boxid);
 
-    for (FCDMapIter fmi = match.first; fmi != match.second; ++fmi)
+    FCDMapIter end = fabCopyDescList[fabid].upper_bound(boxid);
+
+    for ( ; fmi != end; ++fmi)
     {
         FabCopyDescriptor<FAB>* fcdp = (*fmi).second;
 
@@ -2485,7 +2487,7 @@ FabArrayCopyDescriptor<T,FAB>::FillFab (const FabArrayId& fabarrayid,
 
         destFab.copy(*fcdp->localFabSource,
                      fcdp->subBox,
-                     fcdp->fillType == FillLocally ? fcdp->srcComp : 0,
+                     (fcdp->fillType == FillLocally) ? fcdp->srcComp : 0,
                      fcdp->subBox,
                      fcdp->destComp,
                      fcdp->nComp);
