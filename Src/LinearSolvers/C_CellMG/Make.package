@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.1 1998-10-28 22:03:45 lijewski Exp $
+# $Id: Make.package,v 1.2 1999-04-01 21:43:11 car Exp $
 #
 
 MGLIB_BASE=EXE
@@ -8,12 +8,14 @@ ifeq ($(LBASE),mg)
 endif
 
 C$(MGLIB_BASE)_sources += ABecLaplacian.cpp BndryData.cpp CGSolver.cpp \
-                          InterpBndryData.cpp Laplacian.cpp LinOp.cpp  \
+                          InterpBndryData.cpp LinOp.cpp  \
                           Mask.cpp MultiGrid.cpp
+C$(MGLIB_BASE)_sources += Laplacian.cpp
 
 C$(MGLIB_BASE)_headers += ABecLaplacian.H BndryData.H BoundCond.H \
                           CGSolver.H InterpBndryData.H LO_BCTYPES.H \
-                          Laplacian.H LinOp.H Mask.H MultiGrid.H
+                          LinOp.H Mask.H MultiGrid.H
+C$(MGLIB_BASE)_headers += Laplacian.H
 
 F$(MGLIB_BASE)_headers += ABec_F.H CG_F.H INTERPBNDRYDATA_F.H LO_F.H \
                           LP_F.H MG_F.H
