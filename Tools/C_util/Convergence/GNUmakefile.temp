@@ -1,0 +1,105 @@
+PRECISION = DOUBLE
+PROFILE   = FALSE
+COMP      = KCC
+DEBUG     = FALSE
+DIM       = 2
+
+PBOXLIB_HOME = ../..
+include $(PBOXLIB_HOME)/mk/Make.defs
+
+USE_ARRAYVIEW = FALSE
+ifeq ($(PROFILE), FALSE)
+ifeq ($(DEBUG), TRUE)
+USE_ARRAYVIEW = TRUE
+endif
+endif
+
+#USE_MPI=TRUE
+USE_MPI=FALSE
+
+EBASE = DiffFab
+#EBASE = DiffUniform
+#EBASE = PltFileNorm
+#EBASE = PltFileScalConvRate
+
+HERE = .
+
+INCLUDE_LOCATIONS += $(HERE)
+INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/pBoxLib_2
+INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/amrlib
+INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/pAmrvis
+
+INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/util
+INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/bndrylib
+
+LIBRARIES += -lbox$(DIM)d -lX11
+LIBRARY_LOCATIONS += $(PBOXLIB_HOME)/lib/$(machineSuffix)
+LIBRARY_LOCATIOSN += ../../lib/$(machineSuffix)
+MPI_HOME =
+
+ifeq ($(USE_MPI), TRUE)
+DEFINES += -DBL_USE_MPI
+ifeq ($(MACHINE), OSF1)
+MPI_HOME = /usr/local/mpi
+endif
+endif
+
+ifeq ($(USE_MPI), TRUE)
+ifeq ($(MACHINE), OSF1)
+INCLUDE_LOCATIONS += $(MPI_HOME)/include
+LIBRARY_LOCATIONS += $(MPI_HOME)/lib/alpha/ch_p4
+endif
+endif
+
+ifeq ($(USE_MPI), TRUE)
+ifeq ($(USE_UPSHOT), TRUE)
+LIBRARIES += -llmpi -lpmpi
+endif
+LIBRARIES += -lmpi
+endif
+
+
+DEFINES += -DBL_PARALLEL_IO
+
+ifeq ($(COMP),KCC)
+DEFINES += -DBL_USE_NEW_HFILES
+endif
+
+ifeq ($(COMP),g++)
+DEFINES += -DBL_USE_NEW_HFILES
+endif
+
+# if we are using float override FOPTF which sets -real_size 64
+ifeq ($(PRECISION), FLOAT)
+ifeq ($(MACHINE), OSF1)
+CXXOPTF  += -Olimit 2500
+FDEBF += -C -fpe2
+FOPTF    = -fast -O5 -tune ev5
+endif
+endif
+
+#
+# 3rd analyzer
+#
+#CXXDEBF = +K0 --link_command_prefix 3rd
+#LIBRARIES += -ldnet_stub
+
+XTRALIBS +=
+
+include $(HERE)/Make.package.temp
+
+#
+# Add in AmrDerive.cpp.
+#
+# This isn't in Make.package so that I can use the same Make.package for
+# both AmrDerive.cpp and AmrDeriveIntegrate.cpp.
+#
+
+vpath %.cpp $(HERE) $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/amrlib $(PBOXLIB_HOME)/pAmrvis $(PBOXLIB_HOME)/util $(PBOXLIB_HOME)/bndrylib
+vpath %.F $(HERE) $(PBOXLIB_HOME)/pAmrvis $(PBOXLIB_HOME)/bndrylib
+vpath %.a $(LIBRARY_LOCATIONS)
+
+all: $(executable)
+
+include $(PBOXLIB_HOME)/mk/Make.rules
+
