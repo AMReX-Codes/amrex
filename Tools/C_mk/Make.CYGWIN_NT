@@ -1,0 +1,59 @@
+# Make for CYGWIN_NT
+
+ifeq ($(COMP),KCC)
+  CXX      = KCC
+  # CXXOPTF += -O3 +K3
+  # CXXOPTF += -O2 +K2
+  CXXOPTF += -O1 +K1
+  CXXDEBF += +K0
+  FULLWARN := --strict_warnings
+  override XTRADEFS += -DBL_USE_NEW_HFILES
+endif
+
+CPP    := gcc -E -x c++
+FC  := g77 -fno-second-underscore
+fC  := $(FC)
+
+ifeq ($(FCOMP),Fujitsu)
+  FC  := frt
+  fC  := $(FC)
+  FDEBF += -H aesu
+  FOPTF += -K fast
+  fDEBF += -H aesu
+  fOPTF += -K fast
+  LIBRARY_LOCATIONS += /usr/FFC/lib
+  override XTRALIBS += -lfj9f6 -lfj9i6 -lfj9e6
+else
+ifeq ($(FCOMP),Absoft)
+  #FC  := f77 -f -B108
+  FC  := f90 -B108 -YEXT_NAMES=LCS
+  fC  := $(FC)
+  LIBRARY_LOCATIONS += /usr/absoft/lib
+  override XTRALIBS += -lfio -lf77math
+  #override FORTLINK := LOWERCASE
+else
+  FOPTF += -O
+  fOPTF += -O
+  #DEFINES += -DBL_FORT_USE_UNDERSCORE
+  #override XTRALIBS +=  -lf2c
+  override XTRALIBS += -lg2c
+endif
+endif
+
+CXXPRFF += -pg
+FPRF    += -pg
+
+override XTRALIBS +=   -lm
+
+FDEBF += -g
+fDEBF += -g
+
+#LIBRARY_LOCATIONS += /usr/local/pkg/gcc/lib/gcc-lib/i686-pc-linux-gnu/2.95.1
+
+
+ifdef WM_LINUX_FPU_EXTENSIONS_HOME
+  CPPFLAGS += -DBL_HAS_WM_LINUX_FPU_EXCEPTIONS
+  CPPFLAGS += -I$(WM_LINUX_FPU_EXTENSIONS_HOME)/include
+  LIBRARIES += -lfpuexc -lfenv
+  LDFLAGS  += -L$(WM_LINUX_FPU_EXTENSIONS_HOME)/lib
+endif
