@@ -4,7 +4,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.26 1999-08-25 18:03:58 propp Exp $
+// $Id: Utility.H,v 1.27 1999-10-20 18:25:13 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -215,6 +215,15 @@ public:
                value other than zero and 2147483647.
     */
     static void InitRandom (int seed);
+
+    /*@ManDoc: Try to execute a shell command in a subshell.
+               Doesn't exit (but attempts to issue warnings) on error.
+               Does a system(cmd) in a grandchild with the child
+               immediately exit()ing.
+               The grandchild is orphaned to and eventually grokked by
+               the init process.
+    */
+    static void Execute (const char* cmd);
 };
 
 //
