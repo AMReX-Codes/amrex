@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.18 2001-03-28 20:25:53 car Exp $
+// $Id: main.cpp,v 1.19 2001-03-28 21:22:20 car Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -197,7 +197,13 @@ main (int   argc, char* argv[])
     {
       // Build Laplacian operator, solver, then solve 
       Laplacian lp(bd, H[0]);
-      cout << "Norm = " << lp.norm() << endl;
+      {
+	double d = lp.norm();
+	if ( ParallelDescriptor::IOProcessor() )
+	  {
+	    cout << "Norm = " << d << endl;
+	  }
+      }
       if ( mg )
 	{
 	  MultiGrid mg(lp);
@@ -340,7 +346,13 @@ main (int   argc, char* argv[])
 	  ABecLaplacian lp(bd, H);
 	  lp.setScalars(alpha, beta);
 	  lp.setCoefficients(acoefs, bcoefs);
-	  cout << "Norm = " << lp.norm() << endl;
+          {
+	    double d = lp.norm();
+	    if ( ParallelDescriptor::IOProcessor() )
+	      {
+		cout << "Norm = " << d << endl;
+	      }
+          }
 
 	  if ( mg )
 	    {
@@ -428,14 +440,14 @@ main (int   argc, char* argv[])
 
   // Write solution, and rhs
   if ( dump_norm )
-  {
-    double d1 = mfnorm_2_valid(soln);
-    double d2 = mfnorm_0_valid(soln);
-    if ( ParallelDescriptor::IOProcessor() )
-      {
-	cout << "solution norm = " << d1 << "/" << d2 << endl;
-      }
-  }
+    {
+      double d1 = mfnorm_2_valid(soln);
+      double d2 = mfnorm_0_valid(soln);
+      if ( ParallelDescriptor::IOProcessor() )
+	{
+	  cout << "solution norm = " << d1 << "/" << d2 << endl;
+	}
+    }
   if ( dump_Mf || dump_VisMF )
     {
       MultiFab temp(bs, 2, Nghost, Fab_allocate);
