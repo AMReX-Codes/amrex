@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.31 1998-05-26 00:01:48 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.32 1998-05-26 00:27:07 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -161,6 +161,7 @@ FluxRegister::Reflux (MultiFab&       S,
                         fillBoxId.push_back(fscd.AddBox(fsid[fi()],
                                                         bndry[fi()].box(k),
                                                         0,
+                                                        k,
                                                         src_comp,
                                                         0,
                                                         num_comp));
@@ -208,6 +209,7 @@ FluxRegister::Reflux (MultiFab&       S,
                             fillBoxId.push_back(fscd.AddBox(fsid[fi()],
                                                             bndry[fi()].box(k),
                                                             0,
+                                                            k,
                                                             src_comp,
                                                             0,
                                                             num_comp));
@@ -380,6 +382,7 @@ FluxRegister::Reflux (MultiFab&       S,
                         fillBoxId.push_back(fscd.AddBox(fsid[fi()],
                                                         bndry[fi()].box(k),
                                                         0,
+                                                        k,
                                                         src_comp,
                                                         0,
                                                         num_comp));
@@ -416,6 +419,7 @@ FluxRegister::Reflux (MultiFab&       S,
                             fillBoxId.push_back(fscd.AddBox(fsid[fi()],
                                                             bndry[fi()].box(k),
                                                             0,
+                                                            k,
                                                             src_comp,
                                                             0,
                                                             num_comp));
