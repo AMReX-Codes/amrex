@@ -51,6 +51,7 @@ void cell_average_restrictor_class::fill(FArrayBox& patch,
 					 const IntVect& rat) const
 {
     assert(patch.box().cellCentered());
+    assert(patch.nComp() == 1);
     FORT_FACRST1(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), fgr.dataPtr(), DIMLIST(fgr.box()),
 	D_DECL(rat[0], rat[1], rat[2]), patch.nComp(), &integrate);
 }
