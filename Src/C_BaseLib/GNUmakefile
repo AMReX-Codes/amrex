@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.13 1998-11-18 20:33:02 lijewski Exp $
+# $Id: GNUmakefile,v 1.14 1998-12-02 00:04:06 lijewski Exp $
 #
 
 PBOXLIB_HOME = ..
@@ -7,10 +7,10 @@ PBOXLIB_HOME = ..
 TOP = $(PBOXLIB_HOME)
 
 PRECISION = DOUBLE
-DEBUG = TRUE
-DIM = 3
-COMP = KCC
-USE_MPI = TRUE
+DEBUG     = TRUE
+DIM       = 3
+COMP      = KCC
+USE_MPI   = TRUE
 #
 # The base name of the library we're building.
 #
@@ -23,10 +23,11 @@ INSTALL_ROOT = $(PBOXLIB_HOME)
 include $(TOP)/mk/Make.defs ./Make.package
 
 ifeq ($(USE_MPI),TRUE)
-LIBRARIES += -lmpi
-ifeq ($(MACHINE), OSF1)
+ifeq ($(MACHINE),OSF1)
 INCLUDE_LOCATIONS += /usr/local/mpi/include
-LIBRARY_LOCATIONS += /usr/local/mpi/lib/alpha/ch_p4
+endif
+ifeq ($(MACHINE),AIX)
+INCLUDE_LOCATIONS += /usr/lpp/ppe.poe/include
 endif
 endif
 
