@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.46 2000-07-11 20:47:48 lijewski Exp $
+// $Id: AmrLevel.H,v 1.47 2000-07-21 20:45:21 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -45,7 +45,7 @@ public:
     //
     //@ManDoc: What time are we at?
     //
-    enum TimeLevel { AmrOldTime, AmrNewTime, AmrOtherTime };
+    enum TimeLevel { AmrOldTime, AmrHalfTime, AmrNewTime, AmrOtherTime };
     //
     //@ManDoc: The destructor.
     //

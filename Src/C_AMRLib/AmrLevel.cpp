@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.71 2000-07-11 20:47:48 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.72 2000-07-21 20:45:21 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1371,62 +1371,64 @@ AmrLevel::okToRegrid ()
 void
 AmrLevel::setPlotVariables()
 {
-  ParmParse pp("amr");
+    ParmParse pp("amr");
 
-  if (pp.contains("plot_vars"))
+    if (pp.contains("plot_vars"))
     {
-      aString nm;
+        aString nm;
       
-      int nPltVars = pp.countval("plot_vars");
+        int nPltVars = pp.countval("plot_vars");
       
-      for (int i = 0; i < nPltVars; i++)
+        for (int i = 0; i < nPltVars; i++)
         {
-	  pp.get("plot_vars", nm, i);
-	  if (nm == "ALL") 
+            pp.get("plot_vars", nm, i);
+
+            if (nm == "ALL") 
 	    {
-	      parent->fillStatePlotVarList();
+                parent->fillStatePlotVarList();
 	    } 
-	  else if (nm == "NONE")
+            else if (nm == "NONE")
 	    {
-	      parent->clearStatePlotVarList();
+                parent->clearStatePlotVarList();
 	    }
-	  else
+            else
 	    {
-	      parent->addStatePlotVar(nm);
+                parent->addStatePlotVar(nm);
 	    }
         }
     }
-  else 
+    else 
     {
-      parent->fillStatePlotVarList();
+        parent->fillStatePlotVarList();
     }
   
-  if (pp.contains("derive_plot_vars"))
+    if (pp.contains("derive_plot_vars"))
     {
-      aString nm;
+        aString nm;
       
-      int nDrvPltVars = pp.countval("derive_plot_vars");
+        int nDrvPltVars = pp.countval("derive_plot_vars");
       
-      for (int i = 0; i < nDrvPltVars; i++)
+        for (int i = 0; i < nDrvPltVars; i++)
         {
-	  pp.get("derive_plot_vars", nm, i);
-	  if (nm == "ALL") 
+            pp.get("derive_plot_vars", nm, i);
+
+            if (nm == "ALL") 
 	    {
-	      parent->fillDerivePlotVarList();
+                parent->fillDerivePlotVarList();
 	    } 
-	  else if (nm == "NONE")
+            else if (nm == "NONE")
 	    {
-	      parent->clearDerivePlotVarList();
+                parent->clearDerivePlotVarList();
 	    }
-	  else
+            else
 	    {
-	      parent->addDerivePlotVar(nm);
+                parent->addDerivePlotVar(nm);
 	    }
         }
     }
-  else 
+    else 
     {
-      parent->clearDerivePlotVarList();
+        parent->clearDerivePlotVarList();
     }
 }
 
@@ -1436,15 +1438,20 @@ AmrLevel::which_time (int  state_indx,
 {
     const Real old_time = state[state_indx].prevTime();
     const Real new_time = state[state_indx].curTime();
-    const Real eps      = 0.001*(new_time - old_time);
+    const Real haf_time = .5 * (old_time + new_time);
+    const Real EPS      = 0.001 * (new_time - old_time);
     
-    if (time >= old_time-eps && time <= old_time+eps)
+    if (time >= old_time-EPS && time <= old_time+EPS)
     {
         return AmrOldTime;
     }
-    else if (time >= new_time-eps && time <= new_time+eps)
+    else if (time >= new_time-EPS && time <= new_time+EPS)
     {
         return AmrNewTime;
+    }
+    else if (time >= haf_time-EPS && time <= haf_time+EPS)
+    {
+        return AmrHalfTime;
     }
     return AmrOtherTime;
 }
