@@ -1,5 +1,5 @@
 c
-c $Id: FLUXREG_2D.F,v 1.5 1998-10-07 21:18:19 vince Exp $
+c $Id: FLUXREG_2D.F,v 1.6 1999-02-02 23:36:05 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -380,54 +380,3 @@ c :: For Multifluid reg is defined as: REAL_T reg(DIMV(reg),numcomp+FLUX_EXTRA)
 
       return
       end
-
-
-c ::: -----------------------------------------------------------
-c ::: Add flux register into coarse grid flux (opposite of standard reflux ops)
-c :::
-c ::: INPUTS/OUTPUTS:
-c ::: flx        => flux array
-c ::: DIMS(flx)  => index limits for flx
-c ::: reg       <=  flux register
-c ::: DIMS(reg)  => index limits for reg
-c ::: lo,hi      => region of update
-c ::: mult       => scalar multiplicative factor
-c ::: -----------------------------------------------------------
-
-      subroutine FORT_SCALADDTO (flx,DIMS(flx),area,DIMS(area),reg,DIMS(reg),
-     $                           lo,hi,numcomp,mult)
-
-      integer    DIMDEC(flx)
-      integer    DIMDEC(area)
-      integer    DIMDEC(reg)
-      integer    lo(SDIM), hi(SDIM)
-      integer    numcomp
-      REAL_T     mult
-      REAL_T     flx(DIMV(flx),numcomp)
-      REAL_T     area(DIMV(area))
-      REAL_T     reg(DIMV(reg),numcomp)
-
-      integer    n, i, j, istart
-
-      if (area(lo(1),lo(2)) .lt. 1.d-8) then
-        do n = 1, numcomp
-        do j = lo(2), hi(2)
-          flx(lo(1),j,n) = flx(lo(1),j,n)
-        end do
-        end do
-        istart = lo(1)+1
-      else
-        istart = lo(1)
-      end if
-
-      do n = 1, numcomp
-       do j = lo(2), hi(2)
-        do i = istart, hi(1)
-          flx(i,j,n) = flx(i,j,n) + mult*reg(i,j,numcomp)/area(i,j)
-        end do
-       end do
-      end do
-
-      return
-      end
-
