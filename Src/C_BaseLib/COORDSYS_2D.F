@@ -1,5 +1,5 @@
 c
-c $Id: COORDSYS_2D.F,v 1.6 1999-02-03 00:16:31 lijewski Exp $
+c $Id: COORDSYS_2D.F,v 1.7 2001-02-16 22:59:51 almgren Exp $
 c
 
 #undef  BL_LANG_CC
@@ -74,7 +74,6 @@ c========================================================
         REAL_T     ro, po, pi
         REAL_T     ri
 
-        integer i,j
         REAL_T     RZFACTOR
         parameter (RZFACTOR = 2*Pi)
 
