@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.136 2001-07-23 17:55:32 lijewski Exp $
+// $Id: FabArray.H,v 1.137 2001-07-23 22:30:24 car Exp $
 //
 
 #include <cstring>
@@ -1933,7 +1933,7 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
 
     if (intersect.ok())
     {
-        filledBoxes.add(intersect);
+        filledBoxes.append(intersect);
 
         FabCopyDescriptor<FAB>* fcd = new FabCopyDescriptor<FAB>;
 

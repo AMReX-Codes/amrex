@@ -2,7 +2,7 @@
 #define BL_BOXDOMAIN_H
 
 //
-// $Id: BoxDomain.H,v 1.17 2001-07-23 21:15:16 car Exp $
+// $Id: BoxDomain.H,v 1.18 2001-07-23 22:30:23 car Exp $
 //
 
 #include <cstdlib>
@@ -81,18 +81,6 @@ public:
     //@ManDoc: Construct an empty BoxDomain of IndexType itype.
     //
     explicit BoxDomain (IndexType itype);
-    //
-    //@ManDoc: The copy constructor.
-    //
-    BoxDomain (const BoxDomain& rhs);
-    //
-    //@ManDoc: The assignment operator.
-    //
-    BoxDomain& operator= (const BoxDomain& rhs);
-    //
-    //@ManDoc: The destructor.
-    //
-    ~BoxDomain ();
     //
     //@ManDoc: Add a Box to the domain.
     //

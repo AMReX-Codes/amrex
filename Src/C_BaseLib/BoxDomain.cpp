@@ -1,5 +1,5 @@
 //
-// $Id: BoxDomain.cpp,v 1.11 2001-07-23 21:15:16 car Exp $
+// $Id: BoxDomain.cpp,v 1.12 2001-07-23 22:30:23 car Exp $
 //
 
 #include <BoxDomain.H>
@@ -139,20 +139,6 @@ BoxDomain::BoxDomain ()
 
 BoxDomain::BoxDomain (IndexType _ctype)
     : BoxList(_ctype)
-{}
-
-BoxDomain::BoxDomain (const BoxDomain& rhs)
-    : BoxList(rhs)
-{}
-
-BoxDomain&
-BoxDomain::operator= (const BoxDomain& rhs)
-{
-    BoxList::operator=(rhs);
-    return *this;
-}
-
-BoxDomain::~BoxDomain ()
 {}
 
 void
