@@ -4,7 +4,7 @@
 #define BL_LIST_H
 
 //
-// $Id: List.H,v 1.5 1997-12-11 23:25:43 lijewski Exp $
+// $Id: List.H,v 1.6 1997-12-19 21:54:45 lijewski Exp $
 //
 
 #include <Boolean.H>
@@ -234,11 +234,6 @@ public:
     //@ManDoc: Removes all objects from the List<T>.
     //
     void clear ();
-
-    /*@ManDoc: Returns a copy of this List<T> on the heap.  It is the user's
-               responsibility to delete this when no longer needed.
-    */
-    List<T>* copy () const;
     //
     //@ManDoc: Returns a reference to the first element in the List<T>.
     //
@@ -533,15 +528,6 @@ void
 List<T>::append (const T& value)
 {
     addAfter(tail, value);
-}
-
-template <class T>
-inline
-List<T>*
-List<T>::copy () const
-{
-    List<T>* newlist = new List<T>(*this);
-    return newlist;
 }
 
 template <class T>
