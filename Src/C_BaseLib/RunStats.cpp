@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RunStats.cpp,v 1.10 1999-02-03 21:55:15 lijewski Exp $
+// $Id: RunStats.cpp,v 1.11 1999-02-03 21:56:58 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -471,7 +471,7 @@ RunStats::CollectNumPts ()
             //
             RunStats::TheNumPts.resize(ParallelDescriptor::NProcs(), 0);
 
-        RunStats::TheNumPts = numpts[i];
+        RunStats::TheNumPts = numpts;
     }
 
     Incremental_Num_Pts = 0;
