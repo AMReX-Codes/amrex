@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.18 1998-06-13 15:49:08 lijewski Exp $
+// $Id: Geometry.cpp,v 1.19 1998-06-13 17:28:30 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -215,40 +215,21 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
     RunStats fpb_stats("fill_periodic_bndry");
 
     fpb_stats.start();
-    //
-    // Get list of intersection boxes.
-    //
+
     PIRMMap& pirm = getPIRMMap(mf.boxArray(),mf.nGrow(),no_ovlp);
-    //
-    // Fill intersection list.
-    //
-    // Assumes PIRec MultiMap built correctly (i.e. each entry indexed on
-    // local fab id, contains srcBox/dstBox pairs to copy valid data from
-    // other fabs in the array).  Assumes box-pairs constructed so that
-    // all data is "fillable" from the valid region of "fa".
-    //
-    MultiFabCopyDescriptor mfcd;
 
-    MultiFabId mfid = mfcd.RegisterMultiFab(&mf);
-
-    typedef PIRMMap::iterator PIRMMapIt;
-    //
-    // Register boxes in copy decriptor.
-    //
-    for (PIRMMapIt p_it = pirm.begin(); p_it != pirm.end(); ++p_it)
-    {
-	(*p_it).second.fbid = mfcd.AddBox(mfid,
-                                          (*p_it).second.srcBox,
-                                          0,
-                                          (*p_it).second.srcId,
-                                          src_comp,
-                                          src_comp,
-                                          num_comp);
-    }
+    MultiFabCopyDescriptor& mfcd = mf.theFPBmfcd(*this,
+                                                 src_comp,
+                                                 num_comp,
+                                                 no_ovlp);
     //
     // Gather/scatter distributed data to (local) internal buffers.
     //
     mfcd.CollectData();
+
+    const MultiFabId TheFPBMultiFabId = 0;
+
+    typedef PIRMMap::iterator PIRMMapIt;
     //
     // Loop over my receiving fabs, copy periodic regions from buffered data.
     //
@@ -264,7 +245,7 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
 	    assert(fbid.box() == (*p_it).second.srcBox);
 
-	    mfcd.FillFab(mfid, fbid, mfi(), (*p_it).second.dstBox);
+	    mfcd.FillFab(TheFPBMultiFabId, fbid, mfi(), (*p_it).second.dstBox);
         }
     }
 

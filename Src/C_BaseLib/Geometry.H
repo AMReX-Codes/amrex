@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.13 1998-06-13 15:49:08 lijewski Exp $
+// $Id: Geometry.H,v 1.14 1998-06-13 17:28:30 lijewski Exp $
 //
 
 #include <CoordSys.H>
@@ -21,12 +21,6 @@ using std::list;
 #include <list.h>
 #include <map.h>
 #endif
-
-//
-// Forward declarations.
-//
-class BoxArray;
-class MultiFab;
 
 //
 //@Man:
@@ -197,25 +191,34 @@ public:
 #ifdef __GNUG__
 	bool operator== (const PIRec& rhs) const { return true; }
 #endif
-	friend ostream& operator << (ostream&                os,
-                                     const PIRec&  pir);
+	friend ostream& operator<< (ostream&      os,
+                                    const PIRec&  pir);
     };
     //
-    // Handy typedef and output function
+    //@ManDoc: Handy typedef.
     //
     typedef multimap<int,PIRec> PIRMMap;
-
+    //
+    //@ManDoc: Handy output function.
+    //
     friend ostream& operator<< (ostream&       os,
                                 const PIRMMap& pirm);
     //
-    // Flush the cache of PIRM information.
+    //@ManDoc: Flush the cache of PIRM information.
     //
     static void FlushPIRMCache ();
     //
-    // The size of the cache.
+    //@ManDoc: The size of the cache.
     //
     static int PIRMCacheSize ();
 
+    /*@ManDoc: Compute periodic intersection records for data into each
+               fab on this proc.  It's an error to call this if
+               !isAnyPeriodic().
+    */
+    PIRMMap& getPIRMMap (const BoxArray& grids,
+                         int             nGrow,
+                         bool            no_ovlp) const;
 protected:
     //
     // Used in caching FillPeriodicBoundary information.
@@ -267,13 +270,7 @@ protected:
     // Helper functions.
     //
     void read_params ();
-    //
-    // Compute periodic intersection records for data into each
-    // fab on this proc.  It's an error to call this if !isAnyPeriodic().
-    //
-    PIRMMap& getPIRMMap (const BoxArray& grids,
-                         int             nGrow,
-                         bool            no_ovlp) const;
+
     //
     // Helper function for getPIRMMap().
     //
