@@ -1,12 +1,13 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.12 1998-03-25 18:23:08 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.13 1998-03-25 19:03:06 car Exp $
 //
 #include <Utility.H>
 #include <ParallelDescriptor.H>
 
-#ifdef BL_USE_BSP
+
+#if defined(BL_USE_BSP)
 #include "bsp.h"
 
 #ifdef FIXBSPLIBLEVEL1HEADER
@@ -20,10 +21,6 @@ extern "C"
 #endif /*FIXBSPLIBLEVEL1HEADER*/
 
 #include "bsp_level1.h"
-#endif /*BL_USE_BSP*/
-
-
-#if defined(BL_USE_BSP)
 
 
 void StartParallel(int nprocs)
@@ -261,6 +258,42 @@ void ParallelDescriptor::Broadcast (int fromproc, void*  src, void*  dest, int n
 
 #elif defined(BL_USE_MPI)
 
+#include "mpi.h"
+
+static int numprocs = -1;
+static int myid = -1;
+
+void StartParallel(int)
+{
+    MPI_Init(0, 0);
+    MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
+    MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+}
+void EndParallel()
+{
+    MPI_Finalize();
+}
+
+int ParallelDescriptor::MyProc()
+{
+    assert(myid != -1);
+    return myid;
+}
+int ParallelDescriptor::NProcs()
+{
+    assert(numprocs != -1);
+    return numprocs;
+}
+
+bool ParallelDescriptor::IOProcessor()
+{
+    assert(myid == -1);
+    return myid == ioProcessor;
+}
+int ParallelDescriptor::IOProcessorNumber()
+{
+    return ioProcessor;
+}
 
 #else
 

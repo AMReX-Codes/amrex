@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.18 1998-03-25 18:23:08 car Exp $
+// $Id: ParallelDescriptor.H,v 1.19 1998-03-25 19:03:06 car Exp $
 //
 
 #include <Assert.H>
@@ -75,8 +75,6 @@ class ParallelDescriptor
     static double second ();
     //
     // Reduction operations.
-    //
-    //template<class T> static void ReduceMin (T& rvar);
     //
     // bool
     //
