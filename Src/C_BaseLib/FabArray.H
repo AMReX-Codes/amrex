@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.37 1998-04-16 23:07:09 lijewski Exp $
+// $Id: FabArray.H,v 1.38 1998-04-17 18:13:51 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1136,6 +1136,7 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
     PArray<FAB>        fabs(NumRecv,PArrayManage);
     //
     // First send/receive the box information.
+    // I'll receive the NumRecv boxes in any order.
     //
     for (int i = 0; i < NumRecv; i++)
     {
@@ -1151,8 +1152,23 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
 
     for (int i = 0; i < sTags.size(); i++)
     {
-        CommData senddata(0, sTags[i].fabIndex, sTags[i].box);
-
+        CommData senddata(0,
+                          sTags[i].fabIndex,
+                          MyProc,
+                          //
+                          // We use the index into loop over sTags as the ID.
+                          // The combination of the loop index and the
+                          // processor from which the message was sent forms
+                          // a unique identifier.  We'll later use the
+                          // combination of fromproc() and id() to match up
+                          // the box()s being sent now with the FAB data on
+                          // those box()s to be sent next.
+                          //
+                          i,
+                          sTags[i].box);
+        //
+        // Use MPI_Send() as we don't care whether or not this is buffered.
+        //
         if ((rc = MPI_Send(senddata.dataPtr(),
                            senddata.length(),
                            MPI_INT,
@@ -1172,15 +1188,12 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
     for (int i = 0; i < NumRecv; i++)
     {
         fabs.set(i, new FAB(recv[i].box(), farray.nComp()));
-    }
 
-    for (int i = 0; i < NumRecv; i++)
-    {
         if ((rc = MPI_Irecv(fabs[i].dataPtr(),
                             fabs[i].box().numPts() * farray.nComp(),
                             mpi_data_type(fabs[i].dataPtr()),
-                            MPI_ANY_SOURCE,
-                            666,
+                            recv[i].fromproc(),
+                            recv[i].id(),
                             MPI_COMM_WORLD,
                             &reqs[i])) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
@@ -1200,13 +1213,25 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& farray)
         long count = sTags[i].box.numPts() * farray.nComp();
 
         assert(count < INT_MAX);
-
-        if ((rc = MPI_Send(fab.dataPtr(),
-                           int(count),
-                           mpi_data_type(fab.dataPtr()),
-                           sTags[i].toProc,
-                           666,
-                           MPI_COMM_WORLD)) != MPI_SUCCESS)
+        //
+        // Use MPI_Ssend() to try and force the system not to buffer.
+        //
+        if ((rc = MPI_Ssend(fab.dataPtr(),
+                            int(count),
+                            mpi_data_type(fab.dataPtr()),
+                            sTags[i].toProc,
+                            //
+                            // We use the index into loop over sTags as the ID.
+                            // The combination of the loop index and the
+                            // processor from which the message was sent forms
+                            // a unique identifier.
+                            //
+                            // Note that the form of this MPI_Ssend() MUST
+                            // match the MPI_Send() of the box()es
+                            // corresponding to this FAB above.
+                            //
+                            i,
+                            MPI_COMM_WORLD)) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
 

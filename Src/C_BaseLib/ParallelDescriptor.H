@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.26 1998-04-16 23:07:10 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.27 1998-04-17 18:13:52 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -59,21 +59,25 @@ struct FabComTag
 //
 // Data structure used by a few routines when MPI is enabled.
 //
-// Used to communicate two integers and a box.
+// Used to communicate four integers and a box.
 //
 // We'll store all the info in a single array of integers.
 //
 struct CommData
 {
     //
-    // We encapsulate two `int's and a `Box' as an `int[3*BL_SPACEDIM+2]'.
+    // We encapsulate four `int's and a `Box' as an `int[3*BL_SPACEDIM+4]'.
     //
-    enum { DIM = 3*BL_SPACEDIM+2 };
+    enum { DIM = 3*BL_SPACEDIM+4 };
 
     int m_data[DIM];
 
     CommData ();
-    CommData (int face, int fabindex, const Box& box);
+    CommData (int        face,
+              int        fabindex,
+              int        fromproc,
+              int        id,
+              const Box& box);
     //
     // The number of integers.
     //
@@ -91,13 +95,24 @@ struct CommData
     //
     int fabindex () const { return m_data[1]; }
     //
+    // The processor sending this data.
+    //
+    int fromproc () const { return m_data[2]; }
+    //
+    // The ID of this message.
+    //
+    // Meant to be used as the MPI tag in a send/receive of additional
+    // data associated with this data.
+    //
+    int id () const { return m_data[3]; }
+    //
     // The contained box.
     //
     Box box () const
     {
-        return Box(IntVect(&m_data[2]),
-                   IntVect(&m_data[2+BL_SPACEDIM]),
-                   IntVect(&m_data[2+2*BL_SPACEDIM]));
+        return Box(IntVect(&m_data[4]),
+                   IntVect(&m_data[4+BL_SPACEDIM]),
+                   IntVect(&m_data[4+2*BL_SPACEDIM]));
     }
 };
 
