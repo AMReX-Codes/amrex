@@ -17,7 +17,7 @@ ifeq ($(MACHINE), IRIX64)
 endif
 
 ifeq ($(MACHINE), Linux)
-  ifdef WHICHLINUX
+  ifdef aaWHICHLINUX
     ifeq ($(WHICHLINUX), PCCLUSTER)
       MPI_HOME=/usr/local/pkg/mpich
       LIBRARY_LOCATIONS += $(MPI_HOME)/lib/LINUX/ch_p4
