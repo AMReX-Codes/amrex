@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateData.cpp,v 1.18 1998-05-21 15:04:29 lijewski Exp $
+// $Id: StateData.cpp,v 1.19 1998-09-11 19:58:15 lijewski Exp $
 //
 
 #include <RunStats.H>
@@ -312,16 +312,10 @@ StateData::linInterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
                             int                     num_comp,
                             bool                    extrap)
 {
-    Real teps = (new_time.start - old_time.start)/1000.0;
-
     if (desc->timeType() == StateDescriptor::Point)
     {
         if (old_data == 0)
         {
-            teps = new_time.start/10000.0;
-            Real dt = time - new_time.start;
-            if (dt < 0.0)
-                dt = -dt;
             returnedFillBoxIds.resize(1);
             returnedFillBoxIds[0] = multiFabCopyDesc.AddBox(mfid[MFNEWDATA],
                                                             subbox,
@@ -329,25 +323,28 @@ StateData::linInterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
                                                             src_comp,
                                                             dest_comp,
                                                             num_comp);
-            return;
         }
-
-        ::linInterpAddBox(multiFabCopyDesc,
-                          unfillableBoxes,
-                          returnedFillBoxIds,
-                          subbox,
-                          mfid[MFOLDDATA],
-                          mfid[MFNEWDATA],
-                          old_time.start,
-                          new_time.start,
-                          time,
-                          src_comp,
-                          dest_comp,
-                          num_comp,
-                          extrap);
+        else
+        {
+            ::linInterpAddBox(multiFabCopyDesc,
+                              unfillableBoxes,
+                              returnedFillBoxIds,
+                              subbox,
+                              mfid[MFOLDDATA],
+                              mfid[MFNEWDATA],
+                              old_time.start,
+                              new_time.start,
+                              time,
+                              src_comp,
+                              dest_comp,
+                              num_comp,
+                              extrap);
+        }
     }
     else
     {
+        Real teps = (new_time.start - old_time.start)/1000.0;
+
         if (time > new_time.start-teps && time < new_time.stop+teps)
         {
             returnedFillBoxIds.resize(1);
@@ -357,7 +354,8 @@ StateData::linInterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
                                                             src_comp,
                                                             dest_comp,
                                                             num_comp);
-        } else if (old_data != 0 && time > old_time.start-teps &&
+        } else if (old_data != 0 &&
+                   time > old_time.start-teps &&
                    time < old_time.stop+teps)
         {
             returnedFillBoxIds.resize(1);
@@ -386,32 +384,38 @@ StateData::linInterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
                              int                      num_comp,
                              bool                     extrap)
 {
-    Real teps = (new_time.start - old_time.start)/1000.0;
-
     if (desc->timeType() == StateDescriptor::Point)
     {
         if (old_data == 0)
         {
-            teps = new_time.start/10000.0;
-            Real dt = time - new_time.start;
-            if (dt < 0.0)
-                dt = -dt;
             multiFabCopyDesc.FillFab(mfid[MFNEWDATA], fillBoxIds[0], dest);
-            return;
         }
-
-        ::linInterpFillFab(multiFabCopyDesc, fillBoxIds,
-                           mfid[MFOLDDATA], mfid[MFNEWDATA],
-                           dest, old_time.start, new_time.start, time,
-                           src_comp, dest_comp, num_comp, extrap);
+        else
+        {
+            ::linInterpFillFab(multiFabCopyDesc,
+                               fillBoxIds,
+                               mfid[MFOLDDATA],
+                               mfid[MFNEWDATA],
+                               dest,
+                               old_time.start,
+                               new_time.start,
+                               time,
+                               src_comp,
+                               dest_comp,
+                               num_comp,
+                               extrap);
+        }
     }
     else
     {
+        Real teps = (new_time.start - old_time.start)/1000.0;
+
         if (time > new_time.start-teps && time < new_time.stop+teps)
         {
             multiFabCopyDesc.FillFab(mfid[MFNEWDATA], fillBoxIds[0], dest);
         }
-        else if (old_data != 0 && time > old_time.start-teps &&
+        else if (old_data != 0 &&
+                 time > old_time.start-teps &&
                  time < old_time.stop+teps)
         {
             multiFabCopyDesc.FillFab(mfid[MFOLDDATA], fillBoxIds[0], dest);
