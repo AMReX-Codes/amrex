@@ -336,7 +336,7 @@ void fill_patch(FArrayBox& patch, const Box& region,
 	       int idim, int index)
 {
     task_fill_patch* t = new task_fill_patch(patch, region, r, lev_interface, bdy, idim, index);
-    assert(t->ready());
+    t->ready();
     delete t;
     return;
 }
