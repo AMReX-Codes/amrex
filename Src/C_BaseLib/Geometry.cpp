@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.28 1998-07-07 20:04:56 lijewski Exp $
+// $Id: Geometry.cpp,v 1.29 1998-07-08 16:33:56 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -241,7 +241,7 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
     for (int i = 0; i < pirm.size(); i++)
     {
-        assert(mf.ProcessorMap()[pirm[i].mfid] == MyProc);
+        assert(mf.DistributionMap()[pirm[i].mfid] == MyProc);
 
         assert(pirm[i].fbid.box() == pirm[i].srcBox);
 

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.23 1998-06-21 18:02:39 lijewski Exp $
+// $Id: FabSet.cpp,v 1.24 1998-07-08 16:33:56 lijewski Exp $
 //
 
 #include <FabSet.H>
@@ -27,7 +27,7 @@ FabSet::setFab (int        boxno,
     assert(n_comp == fab->nComp());
     assert(boxarray.ready());
     assert(!fabparray.defined(boxno));
-    assert(distributionMap.ProcessorMap()[boxno] == ParallelDescriptor::MyProc());
+    assert(distributionMap[boxno] == ParallelDescriptor::MyProc());
 
     fabparray.set(boxno, fab);
     fabboxarray.set(boxno, fab->box());
@@ -139,7 +139,7 @@ FabSet::copyFrom (const MultiFab& src,
     {
         int fabindex = fillBoxIdList[i].FabIndex();
 
-        assert(DistributionMap().ProcessorMap()[fabindex] == MyProc);
+        assert(DistributionMap()[fabindex] == MyProc);
         //
         // Directly fill the FAB.
         //
@@ -205,7 +205,7 @@ FabSet::plusFrom (const MultiFab& src,
 
         int fabidx = fbidsrc.FabIndex();
 
-        assert(DistributionMap().ProcessorMap()[fabidx] == MyProc);
+        assert(DistributionMap()[fabidx] == MyProc);
 
         tmpfab.resize(fbidsrc.box(), num_comp);
 
@@ -342,7 +342,7 @@ FabSet::linComb (Real            a,
 
         int fabindex = fbid_mfa.FabIndex();
 
-        assert(ProcessorMap()[fabindex] == MyProc);
+        assert(DistributionMap()[fabindex] == MyProc);
 
         const Box& ovlp = fbid_mfa.box();
 
