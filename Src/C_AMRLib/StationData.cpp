@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StationData.cpp,v 1.4 1998-11-29 00:21:41 lijewski Exp $
+// $Id: StationData.cpp,v 1.5 1998-11-29 01:33:53 lijewski Exp $
 //
 #ifdef BL_USE_NEW_HFILES
 #include <cstring>
@@ -74,12 +74,41 @@ StationData::init ()
         }
     }
 
-    m_name = "stn";
+    m_name = "Stations/stn";
 
     pp.query("rootname",m_name);
 
     if (m_name[m_name.length()-1] == '/')
         BoxLib::Error("StationData::init(): rootname must be valid filename");
+    //
+    // Make any directories assumed by m_name.
+    //
+    if (m_vars.length() > 0)
+    {
+        if (char* slash = strrchr(m_name.c_str(), '/'))
+        {
+            int idx = slash - m_name.c_str();
+
+            assert(idx > 0);
+            assert(m_name[idx] == '/');
+            //
+            // Some aString hanky-panky.
+            //
+            m_name[idx] = 0;
+            aString dir = m_name.c_str();
+            m_name[idx] = '/';
+            //
+            // Only the I/O processor makes the directory if it doesn't exist.
+            //
+            if (ParallelDescriptor::IOProcessor())
+                if (!Utility::UtilCreateDirectory(dir, 0755))
+                    Utility::CreateDirectoryFailed(dir);
+            //
+            // Everyone must wait till directory is built.
+            //
+            ParallelDescriptor::Barrier();
+        }
+    }
 
     openFile();
 
