@@ -1,5 +1,5 @@
 //
-// $Id: BLThread.cpp,v 1.20 2001-11-01 18:46:37 car Exp $
+// $Id: BLThread.cpp,v 1.21 2001-11-01 18:53:15 car Exp $
 //
 
 #include <winstd.H>
@@ -484,6 +484,12 @@ Thread::getID()
 	ts_tid.set(a = new int(0));
     }
     return *a;
+}
+
+bool
+Thread::baseThread ()
+{
+    return getID() == 0;
 }
 
 void
