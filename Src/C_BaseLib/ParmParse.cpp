@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.47 2003-01-03 19:25:11 car Exp $
+// $Id: ParmParse.cpp,v 1.48 2004-01-20 21:53:31 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -749,7 +749,7 @@ squeryarr (const ParmParse::Table& table,
     if ( num_val == 0 ) return true;
 
     int stop_ix = start_ix + num_val - 1;
-    if ( ptr.size() < stop_ix )
+    if ( ptr.size() <= stop_ix )
     {
         ptr.resize(stop_ix + 1);
     }
