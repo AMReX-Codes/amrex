@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.78 1999-04-16 17:38:35 lijewski Exp $
+// $Id: Amr.cpp,v 1.79 1999-04-26 20:09:56 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -1442,64 +1442,6 @@ proj_periodic (BoxDomain&      bd,
     bd.add(blout);
 }
 
-static
-void
-MaxSizeBox (BoxList&       bx_list,
-            const IntVect& block_size)
-{
-    for (BoxListIterator bli(bx_list); bli; ++bli)
-    {
-        const IntVect& ivlen = bli().length();
-        const int* len       = ivlen.getVect();
-
-        for (int i = 0; i < SpaceDim; i++)
-        {
-            if (len[i] > block_size[i])
-            {
-                //
-                // Reduce by powers of 2.
-                //
-                int ratio = 1;
-                int bs    = block_size[i];
-                int nlen  = len[i];
-                while ((bs%2 == 0) && (nlen%2 == 0))
-                {
-                    ratio *= 2;
-                    bs    /=2;
-                    nlen  /=2;
-                }
-                //
-                // Determine number and size of (coarsened) cuts.
-                //
-                const int numblk = nlen/bs + (nlen%bs ? 1 : 0);
-                const int size   = nlen/numblk;
-                const int extra  = nlen%numblk;
-                //
-                // Number of cuts = number of blocks - 1.
-                //
-                for (int k = 0; k < numblk-1; k++)
-                {
-                    //
-                    // Compute size of this chunk, expand by power of 2.
-                    //
-                    int ksize = (k < extra ? size+1 : size) * ratio;
-                    //
-                    // Chop from high end.
-                    //
-                    int pos = bli().bigEnd(i) - ksize + 1;
-
-                    bx_list.append(bx_list[bli].chop(i,pos));
-                }
-            }
-        }
-        //
-        // b has been chopped down to size and pieces split off
-        // have been added to the end of the list so that they
-        // can be checked for splitting (in other directions) later.
-        //
-    }
-}
-
 void
 Amr::grid_places (int              lbase,
                   Real             time,
@@ -1746,10 +1688,9 @@ Amr::grid_places (int              lbase,
             for (int n = 0; n < BL_SPACEDIM; n++)
               largest_grid_size[n] = max_grid_size / lratio[n];
             //
-            // Ensure new grid boxes are at most max_grid_size in
-            // each index direction.
+            // Ensure new grid boxes are at most max_grid_size in index dirs.
             //
-            MaxSizeBox(new_bx,largest_grid_size);
+            new_bx.maxSize(largest_grid_size);
             //
             // Refine up to levf.
             //
