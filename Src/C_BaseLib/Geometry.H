@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.28 1999-03-31 17:04:18 lijewski Exp $
+// $Id: Geometry.H,v 1.29 1999-04-11 23:31:35 lijewski Exp $
 //
 
 #include <CoordSys.H>
@@ -234,7 +234,7 @@ protected:
         ~FPB ();
 
         bool operator== (const FPB& rhs) const;
-        bool operator!= (const FPB& rhs) const { return !operator==(rhs); }
+        bool operator!= (const FPB& rhs) const;
 
         Array<int>    m_cache;    // Snds cached for CollectData().
         CommDataCache m_commdata; // Yet another cache for CollectData().
@@ -278,6 +278,78 @@ protected:
 //
 // Inlines.
 //
+
+inline
+Geometry::FPB::FPB ()
+    :
+    m_scomp(-1),
+    m_ncomp(-1),
+    m_ngrow(-1),
+    m_no_overlap(false),
+    m_do_corners(false)
+{}
+
+inline
+Geometry::FPB::FPB (const BoxArray& ba,
+                    const Box&      domain,
+                    int             scomp,
+                    int             ncomp,
+                    int             ngrow,
+                    bool            no_overlap,
+                    bool            do_corners)
+    :
+    m_ba(ba),
+    m_domain(domain),
+    m_scomp(scomp),
+    m_ncomp(ncomp),
+    m_ngrow(ngrow),
+    m_no_overlap(no_overlap),
+    m_do_corners(do_corners)
+{
+    assert(scomp >= 0);
+    assert(ncomp >  0);
+    assert(ngrow >= 0);
+    assert(domain.ok());
+}
+
+inline
+Geometry::FPB::FPB (const FPB& rhs)
+    :
+    m_cache(rhs.m_cache),
+    m_commdata(rhs.m_commdata),
+    m_pirm(rhs.m_pirm),
+    m_ba(rhs.m_ba),
+    m_domain(rhs.m_domain),
+    m_scomp(rhs.m_scomp),
+    m_ncomp(rhs.m_ncomp),
+    m_ngrow(rhs.m_ngrow),
+    m_no_overlap(rhs.m_no_overlap),
+    m_do_corners(rhs.m_do_corners)
+{}
+
+inline
+Geometry::FPB::~FPB () {}
+
+inline
+bool
+Geometry::FPB::operator== (const FPB& rhs) const
+{
+    return
+        m_scomp      == rhs.m_scomp      &&
+        m_ncomp      == rhs.m_ncomp      &&
+        m_ngrow      == rhs.m_ngrow      &&
+        m_no_overlap == rhs.m_no_overlap &&
+        m_do_corners == rhs.m_do_corners &&
+        m_domain     == rhs.m_domain     &&
+        m_ba         == rhs.m_ba;
+}
+
+inline
+bool
+Geometry::FPB::operator!= (const FPB& rhs) const
+{
+    return !operator==(rhs);
+}
 
 inline
 const RealBox&
@@ -374,13 +446,6 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 }
 
 inline
-int
-Geometry::PIRMCacheSize ()
-{
-    return m_FPBCache.size();
-}
-
-inline
 Geometry::FPB&
 Geometry::getFPB (MultiFab&  mf,
                   const FPB& fpb) const
@@ -394,12 +459,8 @@ Geometry::getFPB (MultiFab&  mf,
     FPBList::iterator it = m_FPBCache.begin();
 
     for ( ; it != m_FPBCache.end(); ++it)
-    {
         if (*it == fpb)
-        {
             return *it;
-        }
-    }
 
     return buildFPB(mf,fpb);
 }
