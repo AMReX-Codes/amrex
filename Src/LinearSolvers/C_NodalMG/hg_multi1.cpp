@@ -486,73 +486,38 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 
 	sigma.resize(mglev_max+1);
 
-        if (for_fill_sync_reg == 0)
-        {
-	    for (int mglev = 0; mglev <= mglev_max; mglev++)
-	    {
+	for (int mglev = 0; mglev <= mglev_max; mglev++)
+	{
+            if (for_fill_sync_reg == 0 || mglev == mglev_max)
+            {
 		sigma.set(mglev, new MultiFab(mg_mesh[mglev], ncomp, 1));
 		sigma[mglev].setVal(1.0e20);
 		int lev;
 		if ((lev = get_amr_level(mglev)) >= 0)
 		{
-		    if ( Sigma[lev].nComp() == 1 )
+		    if ( Sigma[lev].nComp() != 1 && 
+			 Sigma[lev].nComp() != ncomp)
 		    {
-			for ( int i = 0; i < ncomp; ++i )
-			{
-			    for (MultiFabIterator s_mfi(Sigma[lev]);
-				 s_mfi.isValid(); ++s_mfi)
-			    {
-				DependentMultiFabIterator t_dmfi(s_mfi, sigma[mglev]);
+		      BoxLib::Error("Sigma has wrong number of components");
+		    }
+		    for (MultiFabIterator s_mfi(Sigma[lev]);
+			     s_mfi.isValid(); ++s_mfi)
+		    {
+			DependentMultiFabIterator t_dmfi(s_mfi, sigma[mglev]);
+
+		        if ( Sigma[lev].nComp() == 1 )
+		        {
+			    for ( int i = 0; i < ncomp; ++i )
+		 	    {
 				t_dmfi->copy(s_mfi(), s_mfi.validbox(), 0,
 					     t_dmfi.validbox(), i, 1);
 			    }
 			}
-		    }
-		    else if ( Sigma[lev].nComp() == ncomp )
-		    {
-			for (MultiFabIterator s_mfi(Sigma[lev]);
-			     s_mfi.isValid(); ++s_mfi)
+		        else if ( Sigma[lev].nComp() == ncomp )
 			{
-			    DependentMultiFabIterator t_dmfi(s_mfi, sigma[mglev]);
 			    t_dmfi->copy(s_mfi(), s_mfi.validbox(), 0,
 					 t_dmfi.validbox(), 0, ncomp);
 			}
-		    }
-		    else
-		    {
-			BoxLib::Error("Sigma has wrong number of components");
-		    }
-		}
-	    }
-	}
-        else
-	{
-	    sigma.set(mglev_max, new MultiFab(mg_mesh[mglev_max], ncomp, 1));
-	    sigma[mglev_max].setVal(1.0e20);
-	    int lev;
-	    if ((lev = get_amr_level(mglev_max)) >= 0)
-	    {
-		if ( Sigma[lev].nComp() == 1 )
-		{
-		    for ( int i = 0; i < ncomp; ++i )
-		    {
-			for (MultiFabIterator s_mfi(Sigma[lev]);
-			     s_mfi.isValid(); ++s_mfi)
-			{
-			    DependentMultiFabIterator t_dmfi(s_mfi, sigma[mglev_max]);
-			    t_dmfi->copy(s_mfi(), grow(s_mfi.validbox(), 1), 0,
-					 grow(t_dmfi.validbox(), 1), i, 1);
-			}
-		    }
-		}
-		else if ( Sigma[lev].nComp() == ncomp )
-		{
-		    for (MultiFabIterator s_mfi(Sigma[lev]);
-			 s_mfi.isValid(); ++s_mfi)
-		    {
-			DependentMultiFabIterator t_dmfi(s_mfi, sigma[mglev_max]);
-			t_dmfi->copy(s_mfi(), grow(s_mfi.validbox(), 1), 0,
-				     grow(t_dmfi.validbox(), 1), 0, ncomp);
 		    }
 		}
 	    }
@@ -569,9 +534,6 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 		    holy_grail_sigma_restrictor(m_stencil),
 		    default_level_interface, 0);
 	    }
-	}
-        if (for_fill_sync_reg == 0)
-        {
 	    for (int mglev = 0; mglev <= mglev_max; mglev++)
 	    {
 		// FIXME, not terrain sigma?
@@ -585,7 +547,8 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
         {
 	    // FIXME, not terrain sigma?
             boundary.terrain_sigma()->
-  	      fill_sync_reg_borders(sigma[mglev_max], lev_interface[mglev_max],-1);
+  	      fill_sync_reg_borders(sigma[mglev_max], 
+				    lev_interface[mglev_max],-1);
         }
     }
     else
@@ -653,28 +616,26 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 	sigma[mglev_max].setVal(1.0e20);
 	HG_TEST_NORM(sigma[mglev_max], "build_sigma aa1");
 	HG_TEST_NORM(Sigma[  lev_max], "build_sigma aa10");
-        if (for_fill_sync_reg == 0)
-        {
-	    for (MultiFabIterator S_mfi(Sigma[lev_max]);
-		 S_mfi.isValid(); ++S_mfi)
-	    {
-		DependentMultiFabIterator s_dmfi(S_mfi, sigma[mglev_max]);
+
+	for (MultiFabIterator S_mfi(Sigma[lev_max]);
+	     S_mfi.isValid(); ++S_mfi)
+	{
+	     DependentMultiFabIterator s_dmfi(S_mfi, sigma[mglev_max]);
+
+   	     if (for_fill_sync_reg == 0)
+             {
 		s_dmfi->copy(
 		    S_mfi(), mg_mesh[mglev_max][S_mfi.index()], 0,
 		    mg_mesh[mglev_max][S_mfi.index()], 0, 1);
-	    }
-  	}
-        else
-  	{
-	    for (MultiFabIterator S_mfi(Sigma[lev_max]);
-		 S_mfi.isValid(); ++S_mfi)
-	    {
-		DependentMultiFabIterator s_dmfi(S_mfi, sigma[mglev_max]);
+  	     }
+             else
+  	     {
 		s_dmfi->copy(
 		    S_mfi(), grow(mg_mesh[mglev_max][S_mfi.index()], 1), 0,
 		    grow(mg_mesh[mglev_max][S_mfi.index()], 1), 0, 1);
-	    }
-  	}
+	     }
+	}
+
 	HG_TEST_NORM(sigma[mglev_max], "build_sigma aa2");
         if (for_fill_sync_reg == 0)
 	{
@@ -687,9 +648,7 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 		    holy_grail_sigma_restrictor(m_stencil),
 		    default_level_interface, 0);
 	    }
-	}
-        if (for_fill_sync_reg == 0)
-        {
+
 	    fill_borders(sigma[mglev_max], lev_interface[mglev_max],
 			 boundary.scalar(),
 			 -1, is_dense(m_stencil));
@@ -881,18 +840,17 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
         {
 	    for (int mglev = 0; mglev <= mglev_max; mglev++)
 	    {
-		mask.set(mglev,
-			 new MultiFab(corr[mglev].boxArray(), 1,
-				      dest[lev_min].nGrow()));
-		MultiFab& mtmp = mask[mglev];
-		mtmp.setVal(0.0);
-		for (MultiFabIterator m_mfi(mtmp); m_mfi.isValid(); ++m_mfi)
+		mask.set(mglev, new MultiFab(corr[mglev].boxArray(),
+				             1, dest[lev_min].nGrow()));
+		mask[mglev].setVal(0.0);
+		for (MultiFabIterator m_mfi(mask[mglev]); 
+		     m_mfi.isValid(); ++m_mfi)
 		{
 		    m_mfi->setVal(1.0,
-				  lev_interface[mglev].part_fine(m_mfi.index()), 0);
+			  lev_interface[mglev].part_fine(m_mfi.index()), 0);
 		}
-		HG_TEST_NORM(mtmp, "buildsigma 2");
-		clear_part_interface(mtmp, lev_interface[mglev]);
+		HG_TEST_NORM(mask[mglev], "buildsigma 2");
+		clear_part_interface(mask[mglev], lev_interface[mglev]);
 	    }
         }
         else
