@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StationData.cpp,v 1.6 1998-11-30 02:12:35 lijewski Exp $
+// $Id: StationData.cpp,v 1.7 1998-11-30 18:52:05 lijewski Exp $
 //
 #ifdef BL_USE_NEW_HFILES
 #include <cstring>
@@ -73,10 +73,9 @@ StationData::init ()
                    m_stn[k].pos[1] = data[1];,
                    m_stn[k].pos[2] = data[2];);
 
+            assert(Geometry::ProbDomain().contains(data.dataPtr()));
+
             m_stn[k].id = identifier++;
-            //
-            // TODO -- check that coords are valid.
-            //
         }
     }
 
@@ -155,11 +154,24 @@ StationData::report (Real            time,
             {
                 const MultiFab& mf = amrlevel.get_new_data(m_typ[j]);
 
-                assert(mf.DistributionMap()[m_stn[i].grd] == MyProc);
-
                 assert(mf.nComp() > m_ncomp[j]);
+                assert(mf.DistributionMap()[m_stn[i].grd] == MyProc);
+                //
+                // Find IntVect so we can index into FAB.
+                // We want to use Geometry::CellIndex().
+                // Must adjust the position to account for NodeCentered-ness.
+                //
+                IndexType ityp = amrlevel.get_desc_lst()[m_typ[j]].getType();
 
-                data[j] = mf[m_stn[i].grd](m_stn[i].ix,m_ncomp[j]);
+                Real pos[BL_SPACEDIM];
+
+                D_TERM(pos[0] = m_stn[i].pos[0] + .5 * ityp[0];,
+                       pos[1] = m_stn[i].pos[1] + .5 * ityp[1];,
+                       pos[2] = m_stn[i].pos[2] + .5 * ityp[2];);
+
+                IntVect idx = amrlevel.Geom().CellIndex(&pos[0]);
+
+                data[j] = mf[m_stn[i].grd](idx,m_ncomp[j]);
             }
             //
             // Write data to output stream.
@@ -195,9 +207,7 @@ StationData::findGrid (const PArray<AmrLevel>& levels,
     // Flag all stations as not having a home.
     //
     for (int i = 0; i < m_stn.length(); i++)
-    {
         m_stn[i].level = -1;
-    }
     //
     // Find level and grid owning the data.
     //
@@ -205,34 +215,24 @@ StationData::findGrid (const PArray<AmrLevel>& levels,
 
     for (int level = levels.length()-1; level >= 0; level--)
     {
-        const BoxArray& ba          = levels[level].boxArray();
         const Array<RealBox>& boxes = levels[level].gridLocations();
 
-        assert(ba.length() == boxes.length());
+        MultiFab mf(levels[level].boxArray(),1,0,Fab_noallocate);
+
+        assert(mf.boxArray().length() == boxes.length());
 
         for (int i = 0; i < m_stn.length(); i++)
         {
             if (m_stn[i].level < 0)
             {
-                const Real* pos = &m_stn[i].pos[0];
-
                 for (int j = 0; j < boxes.length(); j++)
                 {
-                    if (boxes[j].contains(pos))
+                    if (boxes[j].contains(&m_stn[i].pos[0]))
                     {
-                        m_stn[i].level = level;
                         m_stn[i].grd   = j;
-                        //
-                        // TODO -- `ix' may depend on StateDescriptor::getType()
-                        //
-                        m_stn[i].ix    = geoms[level].CellIndex(pos);
-                        //
-                        // Does this CPU own the data?
-                        //
-                        MultiFab mf(ba,1,0,Fab_noallocate);
+                        m_stn[i].own   = (mf.DistributionMap()[j] == MyProc);
+                        m_stn[i].level = level;
 
-                        m_stn[i].own = (mf.DistributionMap()[j] == MyProc);
-                        
                         break;
                     }
                 }
