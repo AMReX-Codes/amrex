@@ -2040,45 +2040,64 @@ contains
       logical           , intent(in   ) :: at_jhi
 
       integer :: i,j,nx,ny
-      integer iedge0
+      integer :: iedge0
 
       nx = size(sp,dim=1)
       ny = size(sp,dim=2)
 
       j = 1
+      iedge0 = iedge
 
       !   **************************************************************************
 
       do i = 1, nx-1
-         iedge0 = iedge
          if (.not. bc_dirichlet(mp(i,j),1,0)) then
            if (.not. at_jhi .or. bc_neumann(mp(i,j),2,1)) then
             ia(inode) = iedge
             ind(i,j) = inode
             if (.not. bc_dirichlet(mp(i-1,j-1),1,0)) then
-              aa(iedge) = sp(i,j,1) ; iedge = iedge + 1       ! SW
+              aa(iedge) = sp(i,j,1)                           ! SW
+              if (bc_neumann(mp(i,j),2,1)) aa(iedge) = TWO*aa(iedge)
+              iedge = iedge + 1
             end if
             if (.not. bc_dirichlet(mp(i  ,j-1),1,0)) then
-              aa(iedge) = sp(i,j,2) ; iedge = iedge + 1       ! S
+              aa(iedge) = sp(i,j,2)                           ! S
+              if (bc_neumann(mp(i,j),2,1)) aa(iedge) = TWO*aa(iedge)
+              iedge = iedge + 1
             end if
             if (.not. bc_dirichlet(mp(i+1,j-1),1,0)) then
-              aa(iedge) = sp(i,j,3) ; iedge = iedge + 1       ! SE
+              aa(iedge) = sp(i,j,3)                           ! SE
+              if (bc_neumann(mp(i,j),1,-1)) aa(iedge) = TWO*aa(iedge)
+              if (bc_neumann(mp(i,j),2, 1)) aa(iedge) = TWO*aa(iedge)
+              iedge = iedge + 1
             end if
             if (.not. bc_dirichlet(mp(i-1,j  ),1,0)) then
-              aa(iedge) = sp(i,j,4) ; iedge = iedge + 1       ! W
+              aa(iedge) = sp(i,j,4)                           ! W
+              if (bc_neumann(mp(i,j),1,-1)) aa(iedge) = TWO*aa(iedge)
+              iedge = iedge + 1
             end if
-              aa(iedge) = sp(i,j,0) ; iedge = iedge + 1       ! Center
+              aa(iedge) = sp(i,j,0)                           ! Center
+              iedge = iedge + 1
             if (.not. bc_dirichlet(mp(i+1,j  ),1,0)) then
-              aa(iedge) = sp(i,j,5) ; iedge = iedge + 1       ! E
+              aa(iedge) = sp(i,j,5)                           ! E
+              if (bc_neumann(mp(i,j),1,-1)) aa(iedge) = TWO*aa(iedge)
+              iedge = iedge + 1
             end if
             if (.not. bc_dirichlet(mp(i-1,j+1),1,0)) then
-              aa(iedge) = sp(i,j,6) ; iedge = iedge + 1       ! NW
+              aa(iedge) = sp(i,j,6)                           ! NW
+              if (bc_neumann(mp(i,j),2,-1)) aa(iedge) = TWO*aa(iedge)
+              iedge = iedge + 1
             end if
             if (.not. bc_dirichlet(mp(i  ,j+1),1,0)) then
-              aa(iedge) = sp(i,j,7) ; iedge = iedge + 1       ! N
+              aa(iedge) = sp(i,j,7)                           ! N
+              if (bc_neumann(mp(i,j),2,-1)) aa(iedge) = TWO*aa(iedge)
+              iedge = iedge + 1
             end if
             if (.not. bc_dirichlet(mp(i+1,j+1),1,0)) then
-              aa(iedge) = sp(i,j,8) ; iedge = iedge + 1       ! NE
+              aa(iedge) = sp(i,j,8)                           ! NE
+              if (bc_neumann(mp(i,j),1,-1)) aa(iedge) = TWO*aa(iedge)
+              if (bc_neumann(mp(i,j),2,-1)) aa(iedge) = TWO*aa(iedge)
+              iedge = iedge + 1
             end if
             inode = inode + 1
            end if
@@ -2091,33 +2110,38 @@ contains
 !     Only do high side if Neumann; otherwise is Dirichlet (in which case 
 !     we don't include it) or it has been taken care of by the grid on the
 !     other side.
-      iedge0 = iedge
       if (.not. bc_dirichlet(mp(i,j),1,0) .and. &
                 bc_neumann(  mp(i,j),1,1)) then
         if (.not. at_jhi .or. bc_neumann(mp(i,j),2,1)) then
             ia(inode) = iedge
             ind(i,j) = inode
             if (.not. bc_dirichlet(mp(i-1,j-1),1,0)) then
-              aa(iedge) = TWO*sp(i,j,1) ; iedge = iedge + 1      ! SW
-!             aa(iedge) = sp(i,j,1) ; iedge = iedge + 1      ! SW
+              aa(iedge) = sp(i,j,1)                           ! SW
+              iedge = iedge + 1
+              if (bc_neumann(mp(i,j),2, 1)) aa(iedge) = TWO*aa(iedge)
+              if (bc_neumann(mp(i,j),1, 1)) aa(iedge) = TWO*aa(iedge)
             end if
             if (.not. bc_dirichlet(mp(i  ,j-1),1,0)) then
-              aa(iedge) = TWO*sp(i,j,2) ; iedge = iedge + 1       ! S
-!             aa(iedge) = sp(i,j,2) ; iedge = iedge + 1       ! S
+              aa(iedge) = sp(i,j,2)                           ! S
+              iedge = iedge + 1
+              if (bc_neumann(mp(i,j),2, 1)) aa(iedge) = TWO*aa(iedge)
             end if
             if (.not. bc_dirichlet(mp(i-1,j  ),1,0)) then
-              aa(iedge) = TWO*sp(i,j,4) ; iedge = iedge + 1       ! W
-!             aa(iedge) = sp(i,j,4) ; iedge = iedge + 1       ! W
+              aa(iedge) = sp(i,j,4)                           ! W
+              if (bc_neumann(mp(i,j),1, 1)) aa(iedge) = TWO*aa(iedge)
+              iedge = iedge + 1
             end if
-              aa(iedge) = TWO*sp(i,j,0) ; iedge = iedge + 1       ! Center
-!             aa(iedge) = sp(i,j,0) ; iedge = iedge + 1       ! Center
+              aa(iedge) = sp(i,j,0) ; iedge = iedge + 1       ! Center
             if (.not. bc_dirichlet(mp(i-1,j+1),1,0)) then
-              aa(iedge) = TWO*sp(i,j,6) ; iedge = iedge + 1       ! NW
-!             aa(iedge) = sp(i,j,6) ; iedge = iedge + 1       ! NW
+              aa(iedge) = sp(i,j,6)                           ! NW
+              if (bc_neumann(mp(i,j),2,-1)) aa(iedge) = TWO*aa(iedge)
+              if (bc_neumann(mp(i,j),1, 1)) aa(iedge) = TWO*aa(iedge)
+              iedge = iedge + 1
             end if
             if (.not. bc_dirichlet(mp(i  ,j+1),1,0)) then
-              aa(iedge) = TWO*sp(i,j,7) ; iedge = iedge + 1       ! N
-!             aa(iedge) = sp(i,j,7) ; iedge = iedge + 1       ! N
+              aa(iedge) = sp(i,j,7)                           ! N
+              if (bc_neumann(mp(i,j),2,-1)) aa(iedge) = TWO*aa(iedge)
+              iedge = iedge + 1
             end if
             inode = inode + 1
         end if
@@ -2690,7 +2714,7 @@ contains
        rp => dataptr(rh,igrid)
        ind => dataptr(spo%index_into_aa, igrid)
 
-       ibx = get_box(rh,igrid)
+       ibx = get_ibox(rh,igrid)
        lo = lwb(ibx)
        hi = upb(ibx)
 
@@ -2704,8 +2728,9 @@ contains
           !$OMP PARALLEL DO PRIVATE(i,j)
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
-               if (ind(i,j,1,1) .gt. -1) &
+               if (ind(i,j,1,1) .gt. -1) then
                  rhs(ind(i,j,1,1)) = rp(i,j,1,1)
+               end if
              end do
           end do
           !$OMP END PARALLEL DO
@@ -2746,7 +2771,6 @@ contains
              do i = lo(1),hi(1)
                if (ind(i,j,1,1) > -1) then
                  rp(i,j,1,1) = soln(ind(i,j,1,1))
-                 print *,'SETTING SOLN AT ',i,j,rp(i,j,1,1)
                end if
              end do
           end do
