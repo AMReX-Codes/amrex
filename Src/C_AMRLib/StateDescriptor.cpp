@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateDescriptor.cpp,v 1.6 1997-12-11 23:27:53 lijewski Exp $
+// $Id: StateDescriptor.cpp,v 1.7 1998-01-06 23:43:58 lijewski Exp $
 //
 
 #include <StateDescriptor.H>
@@ -41,9 +41,13 @@ DescriptorList::setComponent (int            indx,
                               int            comp,
                               const aString& nm,
                               const BCRec&   bc,
-                              BndryFunc      func)
+                              BndryFunc      func,
+                              Interpolater*  interp,
+                              int            max_map_start_comp, 
+                              int            min_map_end_comp)
 {
-    desc[indx].setComponent(comp,nm,bc,func);
+    desc[indx].setComponent(comp,nm,bc,func,interp,max_map_start_comp,
+                            min_map_end_comp);
 }  
 
 void
@@ -83,6 +87,9 @@ StateDescriptor::StateDescriptor (IndexType                   btyp,
     names.resize(num_comp);
     bc.resize(num_comp);
     bc_func.resize(num_comp);
+    mapper_comp.resize(num_comp);
+    max_map_start_comp.resize(num_comp);
+    min_map_end_comp.resize(num_comp);
 }
 
 StateDescriptor::~StateDescriptor ()
@@ -110,19 +117,40 @@ StateDescriptor::define (IndexType                   btyp,
     names.resize(num_comp);
     bc.resize(num_comp);
     bc_func.resize(num_comp);
-
+    mapper_comp.resize(num_comp);
+    max_map_start_comp.resize(num_comp);
+    min_map_end_comp.resize(num_comp);
 }
-                       
+
 void
 StateDescriptor::setComponent (int            comp,
                                const aString& nm,
                                const BCRec&   bcr,
-                               BndryFunc      func)
+                               BndryFunc      func,
+                               Interpolater*  interp, 
+                               int            max_map_start_comp_,
+                               int            min_map_end_comp_)
 {
     assert(comp >= 0 && comp < ncomp && names[comp].isNull());
     names[comp] = nm;
     bc_func[comp] = func;
     bc[comp] = bcr;
+
+    mapper_comp[comp] = interp;
+
+    if (max_map_start_comp_>=0 && min_map_end_comp_>=0)
+    {
+        assert(comp >= max_map_start_comp_ &&
+               comp <= min_map_end_comp_   &&
+               min_map_end_comp_ < ncomp);
+        max_map_start_comp[comp] = max_map_start_comp_;
+        min_map_end_comp[comp]   = min_map_end_comp_;
+    }
+    else
+    {
+        max_map_start_comp[comp] = comp;
+        min_map_end_comp[comp]   = comp;
+    }
 }
 
 void
@@ -145,4 +173,116 @@ StateDescriptor::dumpNames (ostream& os,
     {
         os << names[start_comp+k] << ' ';
     }
+}
+
+void
+StateDescriptor::setUpMaps (int&                use_default_map,
+                            const Interpolater* default_map,
+                            int                 start_comp,
+                            int                 num_comp,
+                            Interpolater**&     maps, 
+                            int&                nmaps,
+                            int*&               map_start_comp,
+                            int*&               map_num_comp, 
+                            int*&               max_start_comp,
+                            int*&               min_end_comp) const
+{
+    assert(start_comp>=0 && start_comp+num_comp-1 < ncomp && num_comp>0);
+
+    maps           = 0;
+    map_start_comp = 0;
+    map_num_comp   = 0;
+    max_start_comp = 0;
+    min_end_comp   = 0;
+    //
+    // First, count number of interpolaters needed and allocate.
+    //
+    Interpolater* map = mapper_comp[start_comp];
+    if (!map) map = (Interpolater*) default_map;
+    nmaps = 1; 
+    int icomp = start_comp+1;
+
+    use_default_map = 1;
+    while (icomp < start_comp+num_comp)
+    {
+        Interpolater* mapper_icomp = mapper_comp[icomp];
+        if (!mapper_icomp)
+        {
+            mapper_icomp = (Interpolater *) default_map;
+        }
+        else
+        {
+            use_default_map = 0;
+        }
+        if (map != mapper_icomp)
+        {
+            map = mapper_icomp;
+            nmaps++;
+        }
+        icomp++;
+    }
+
+    if (use_default_map) return;
+
+    maps           = new Interpolater*[nmaps];
+    map_start_comp = new int[nmaps];
+    map_num_comp   = new int[nmaps];
+    min_end_comp   = new int[nmaps];
+    max_start_comp = new int[nmaps];
+    //
+    // Now fill the slots.
+    //
+    int imap             = 0;
+    if (mapper_comp[start_comp])
+        maps[imap]         = mapper_comp[start_comp];
+    else 
+        maps[imap]         = (Interpolater *) default_map;
+
+    icomp                = start_comp+1;
+    map_start_comp[imap] = start_comp;
+    map_num_comp[imap]   = 1;
+    
+    min_end_comp[imap]   = min_map_end_comp[start_comp];
+    max_start_comp[imap] = max_map_start_comp[start_comp];
+
+    while (icomp<start_comp+num_comp)
+    {
+        Interpolater* mapper_icomp = mapper_comp[icomp];
+        if (!mapper_icomp) mapper_icomp = (Interpolater *) default_map;
+
+        if (maps[imap] != mapper_icomp)
+        {
+            imap++;
+
+            assert (imap < nmaps);
+
+            maps[imap]           = mapper_icomp;
+            map_start_comp[imap] = icomp;
+            map_num_comp[imap]   = 1;
+            min_end_comp[imap]   = min_map_end_comp[icomp];
+            max_start_comp[imap] = max_map_start_comp[icomp];
+
+        }
+        else
+        {
+            map_num_comp[imap]++;
+            min_end_comp[imap]   = Max(min_end_comp[imap],min_map_end_comp[icomp]);
+            max_start_comp[imap] = Min(max_start_comp[imap],max_map_start_comp[icomp]);
+        }
+        icomp++;
+    }
+}
+
+void
+StateDescriptor::cleanUpMaps (Interpolater**& maps, 
+                              int*&           map_start_comp,
+                              int*&           map_num_comp,
+                              int*&           max_start_comp,
+                              int*&           min_end_comp) const
+{
+    delete maps;
+    delete map_start_comp;
+    delete map_num_comp;
+    delete max_start_comp;
+    delete min_end_comp;
 }

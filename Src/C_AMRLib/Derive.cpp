@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Derive.cpp,v 1.4 1997-12-11 23:27:50 lijewski Exp $
+// $Id: Derive.cpp,v 1.5 1998-01-06 23:43:57 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -20,10 +20,26 @@ DeriveRec::DeriveRec()
 // ------------------------------------------------------------------
 DeriveRec::DeriveRec(const aString &name, IndexType result_type,
                      int nvar_derive, DeriveFunc der_func,
+		     DeriveBoxMap box_map, IndexType component_type,
+		     Interpolater *interp) :
+		     der_type(result_type), n_derive(nvar_derive),
+		     func(der_func), func_scr(0), bx_map(box_map),
+		     rng_type(component_type), mapper(interp)
+{
+    derive_name = name;
+    n_state = 0;
+    nsr = 0;
+    bcr = 0;
+    rng = 0;
+}
+
+// ------------------------------------------------------------------
+DeriveRec::DeriveRec(const aString &name, IndexType result_type,
+                     int nvar_derive, DeriveFuncScr der_func_scr,
                      DeriveBoxMap box_map, IndexType component_type,
                      Interpolater *interp) :
                      der_type(result_type), n_derive(nvar_derive),
-                     func(der_func), bx_map(box_map),
+                     func_scr(der_func_scr), func(0), bx_map(box_map),
                      rng_type(component_type), mapper(interp)
 {
     derive_name = name;
@@ -38,6 +54,7 @@ DeriveRec::~DeriveRec()
 {
    delete bcr;
    func = 0;
+   func_scr = 0;
    mapper = 0;
    bx_map = 0;
    while (rng != 0) {
@@ -168,9 +185,19 @@ DeriveList::add(const aString &name, IndexType result_type,
                 DeriveBoxMap box_map, IndexType component_type,
                 Interpolater *interp)
 {
-    DeriveRec* dr = new DeriveRec(name,result_type,nvar_derive,
-                                  der_func,box_map,component_type,interp);
-    lst.add(dr);
+    lst.add(new DeriveRec(name,result_type,nvar_derive,
+                          der_func,box_map,component_type,interp));
+}
+
+// ------------------------------------------------------------------
+void
+DeriveList::add(const aString &name, IndexType result_type,
+                int nvar_derive, DeriveFuncScr der_func_scr,
+                DeriveBoxMap box_map, IndexType component_type,
+                Interpolater *interp)
+{
+    lst.add(new DeriveRec(name,result_type,nvar_derive,
+                          der_func_scr,box_map,component_type,interp));
 }
 
 // ------------------------------------------------------------------

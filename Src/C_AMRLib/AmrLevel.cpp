@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.17 1997-12-19 18:43:52 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.18 1998-01-06 23:43:57 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -1707,6 +1707,7 @@ AmrLevel::FillDerive (FArrayBox&     dest,
     int n_state = d->numState();
     int nsr = d->numRange();
     const Real* dx = geom.CellSize();
+    Real dt = parent->dtLevel(level);
     for (i = 0; i < grids.length(); i++)
     {
         Box g(grids[i]);
@@ -1758,7 +1759,7 @@ AmrLevel::FillDerive (FArrayBox&     dest,
             geom.LoNode(dest.smallEnd(),xlo);
             d->derFunc()(ddat,ARLIM(dlo),ARLIM(dhi),&n_der,
                          cdat,ARLIM(clo),ARLIM(chi),&n_state,
-                         lo,hi,dom_lo,dom_hi,dx,xlo,&time,bcr,
+                         lo,hi,dom_lo,dom_hi,dx,xlo,&time,&dt,bcr,
                          &level,&i);
         }
     }

@@ -4,7 +4,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.8 1997-12-08 23:12:59 lijewski Exp $
+// $Id: Amr.H,v 1.9 1998-01-06 23:43:56 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -246,6 +246,8 @@ protected:
     void setRecordGridInfo (const aString&);
 
     void setRecordRunInfo (const aString&);
+
+    void setRecordDataInfo(const aString&);
     //
     // The data ...
     //
@@ -285,6 +287,7 @@ protected:
     int              record_run_info;
     ofstream         gridlog;
     ofstream         runlog;
+    ofstream         datalog;
     int              sub_cycle;
     aString          restart_file;
     LevelBld*        levelbld;

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.25 1997-12-16 16:44:54 lijewski Exp $
+// $Id: Amr.cpp,v 1.26 1998-01-06 23:43:56 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -152,6 +152,12 @@ Amr::Amr ()
         aString grid_file_name;
         pp.get("grid_log",grid_file_name);
         setRecordGridInfo(grid_file_name);
+    }
+    if (pp.contains("data_log"))
+    {
+	aString data_file_name;
+	pp.get("data_log",data_file_name);
+	setRecordDataInfo(data_file_name);
     }
     //
     // Restart or run from scratch?
@@ -329,6 +335,14 @@ Amr::setRecordRunInfo (const aString& filename)
     record_run_info= true;
     runlog.open(filename.c_str(),ios::out);
     if (!runlog.good())
+        Utility::FileOpenFailed(filename);
+}
+
+void
+Amr::setRecordDataInfo (const aString& filename)
+{
+    datalog.open(filename.c_str(),ios::out);
+    if (!datalog.good())
         Utility::FileOpenFailed(filename);
 }
 
@@ -1243,7 +1257,23 @@ Amr::regrid (int  lbase,
 
     if (record_grid_info && ParallelDescriptor::IOProcessor())
     {
-        gridlog << "REGRID  with lbase = " << lbase << '\n';
+        if (lbase == 0)
+        {
+            gridlog << "STEP = "
+                    << level_steps[0]
+                    << " TIME = "
+                    << time
+                    << " : REGRID  with lbase = "
+                    << lbase << '\n';
+        }
+        else
+        {
+            gridlog << "TIME = "
+                    << time
+                    << " : REGRID  with lbase = "
+                    << lbase
+                    << '\n';
+        } 
         printGridInfo(gridlog,lbase+1,finest_level);
     }
 }

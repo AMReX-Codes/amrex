@@ -4,7 +4,7 @@
 #define _Derive_H_
 
 //
-// $Id: Derive.H,v 1.4 1997-12-11 23:27:49 lijewski Exp $
+// $Id: Derive.H,v 1.5 1998-01-06 23:43:57 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -20,17 +20,30 @@
 
 typedef Box (*DeriveBoxMap)(const Box&);
 
-/*  Function called by DeriveRec to compute derived quantity.
+/*  Functions called by DeriveRec to compute derived quantity.
 */
-typedef void (*DeriveFunc)(Real* data, ARLIM_P(dlo), ARLIM_P(dhi),
-                           const int* nvar, const Real* compdat,
-                           ARLIM_P(compdat_lo), ARLIM_P(compdat_hi),
-                           const int* ncomp,
-                           const int* lo, const int* hi,
-                           const int* domain_lo, const int* domain_hi,
-                           const Real* delta, const Real* xlo,
-                           const Real* time, const int* bcrec,
+typedef void (*DeriveFunc)(REAL* data, ARLIM_P(dlo), ARLIM_P(dhi),
+                           const int* nvar, const REAL* compdat,
+			   ARLIM_P(compdat_lo), ARLIM_P(compdat_hi),
+			   const int* ncomp,
+			   const int* lo, const int* hi,
+			   const int* domain_lo, const int* domain_hi,
+			   const REAL* delta, const REAL* xlo,
+			   const REAL* time, const REAL* dt, 
+                           const int* bcrec,
                            const int* level, const int* grid_no) ;
+
+typedef void (*DeriveFuncScr)(REAL* data, ARLIM_P(dlo), ARLIM_P(dhi),
+                              const int* nvar, const REAL* compdat,
+  			      ARLIM_P(compdat_lo), ARLIM_P(compdat_hi),
+			      const int* ncomp,
+			      const int* lo, const int* hi,
+			      const int* domain_lo, const int* domain_hi,
+			      const REAL* delta, const REAL* xlo,
+			      const REAL* time, const REAL* dt, 
+                              const int* bcrec,
+                              REAL* scratch, ARLIM_P(slo), ARLIM_P(shi),
+                              const int* level, const int* grid_no) ;
 
 /// Computes quantities derived from state data
 class DeriveRec
@@ -66,8 +79,9 @@ class DeriveRec
 //    number of components in derived quantity
       int                n_derive;
 
-//    function that computes derived quantity from the following state variables
+//    functions that compute derived quantity from the following state variables
       DeriveFunc        func;
+      DeriveFuncScr     func_scr;
 
 //    interpolater for mapping crse grid derived data to finer levels
       Interpolater      *mapper;
@@ -99,6 +113,8 @@ class DeriveRec
       IndexType deriveType() const { return der_type; }
   ///
       DeriveFunc derFunc() const { return func; }
+
+      DeriveFuncScr derFuncScr() const { return func_scr; }
   ///
       DeriveBoxMap boxMap() const { return bx_map; }
   ///
@@ -125,6 +141,11 @@ class DeriveRec
 //    constructor
       DeriveRec(const aString &name, IndexType result_type,
                 int nvar_derive, DeriveFunc der_func,
+                DeriveBoxMap box_map, IndexType component_type,
+                Interpolater *interp = &pc_interp);
+
+      DeriveRec(const aString &name, IndexType result_type,
+                int nvar_derive, DeriveFuncScr der_func_scr,
                 DeriveBoxMap box_map, IndexType component_type,
                 Interpolater *interp = &pc_interp);
 
@@ -161,6 +182,11 @@ public:
 //  Adds another entry to the registry.
     void add(const aString &name, IndexType result_type,
              int nvar_derive, DeriveFunc der_func,
+             DeriveBoxMap box_map, IndexType component_type,
+             Interpolater *interp = &pc_interp);
+
+    void add(const aString &name, IndexType result_type,
+             int nvar_derive, DeriveFuncScr der_func_scr,
              DeriveBoxMap box_map, IndexType component_type,
              Interpolater *interp = &pc_interp);
 
