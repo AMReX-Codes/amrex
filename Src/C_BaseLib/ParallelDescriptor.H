@@ -4,13 +4,14 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.32 1998-06-16 20:53:49 car Exp $
+// $Id: ParallelDescriptor.H,v 1.33 1998-07-27 21:33:07 lijewski Exp $
 //
 
 #include <Assert.H>
 #include <Boolean.H>
 #include <REAL.H>
 #include <Box.H>
+#include <ccse-mpi.H>
 
 //
 // Used for collecting information used in communicating FABs.
@@ -124,32 +125,6 @@ struct CommData
                    IntVect(&m_data[7+2*BL_SPACEDIM]));
     }
 };
-
-#ifdef BL_USE_MPI
-#include <mpi.h>
-#undef min
-#undef max
-//
-// Template function to return MPI_Datatype depending on argument type.
-//
-// We only implement this function for standard MPI data types.
-//
-template<class T> MPI_Datatype mpi_data_type(T*);
-//
-// And the appropriate specializations for the basic MPI types.
-//
-template<> inline MPI_Datatype mpi_data_type(char*)           { return MPI_CHAR;   }
-template<> inline MPI_Datatype mpi_data_type(short*)          { return MPI_SHORT;  }
-template<> inline MPI_Datatype mpi_data_type(int*)            { return MPI_INT;    }
-template<> inline MPI_Datatype mpi_data_type(long*)           { return MPI_LONG;   }
-template<> inline MPI_Datatype mpi_data_type(float*)          { return MPI_FLOAT;  }
-template<> inline MPI_Datatype mpi_data_type(double*)         { return MPI_DOUBLE; }
-template<> inline MPI_Datatype mpi_data_type(unsigned char*)  { return MPI_UNSIGNED_CHAR;   }
-template<> inline MPI_Datatype mpi_data_type(unsigned short*) { return MPI_UNSIGNED_SHORT;  }
-template<> inline MPI_Datatype mpi_data_type(unsigned int*)   { return MPI_UNSIGNED;    }
-template<> inline MPI_Datatype mpi_data_type(unsigned long*)  { return MPI_UNSIGNED_LONG;   }
-
-#endif /*BL_USE_MPI*/
 
 //
 //@Man:

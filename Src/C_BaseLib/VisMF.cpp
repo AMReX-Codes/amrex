@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.52 1998-07-07 19:43:29 lijewski Exp $
+// $Id: VisMF.cpp,v 1.53 1998-07-27 21:33:08 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -22,18 +22,13 @@ using std::ofstream;
 #define pubsetbuf setbuf
 #endif
 
+#include <ccse-mpi.H>
 #include <Utility.H>
 #include <VisMF.H>
 #include <Tracer.H>
 
-#ifdef BL_USE_MPI
-#include <mpi.h>
-#endif
-
 const aString VisMF::FabFileSuffix("_D_");
-
 const aString VisMF::MultiFabHdrFileSuffix("_H");
-
 const aString VisMF::FabOnDisk::Prefix("FabOnDisk:");
 
 ostream&
