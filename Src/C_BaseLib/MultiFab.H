@@ -2,7 +2,7 @@
 #define BL_MULTIFAB_H
 
 //
-// $Id: MultiFab.H,v 1.37 2001-07-22 18:52:17 car Exp $
+// $Id: MultiFab.H,v 1.38 2001-07-24 22:42:13 car Exp $
 //
 #include <winstd.H>
 
@@ -68,7 +68,7 @@ class MultiFab
     :
     public FabArray<FArrayBox>
 {
-  public:
+public:
 
     /*@ManDoc: Constructs an empty MultiFab.  Data can be defined at a later
                time using the `define' member functions inherited
@@ -87,12 +87,8 @@ class MultiFab
     */
     MultiFab (const BoxArray& bs,
               int             ncomp,
-              int             ngrow,
+              int             ngrow = 0,
               FabAlloc        mem_mode = Fab_allocate);
-    //
-    //@ManDoc: The (virtual) destructor.
-    //
-    virtual ~MultiFab();
 
     /*@ManDoc: This is a diagnostic function.  It writes (in ASCII) the state
                of the cell in the MultiFab with index location given by pnt
