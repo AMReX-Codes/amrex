@@ -1,6 +1,8 @@
 //
-// $Id: CArena.cpp,v 1.24 2001-07-19 16:57:31 lijewski Exp $
+// $Id: CArena.cpp,v 1.25 2001-07-22 18:52:16 car Exp $
 //
+
+#include <winstd.H>
 
 #include <iostream>
 #include <iomanip>
