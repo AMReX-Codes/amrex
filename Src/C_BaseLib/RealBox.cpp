@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: RealBox.cpp,v 1.5 1998-05-06 22:36:19 lijewski Exp $
+// $Id: RealBox.cpp,v 1.6 1998-05-20 00:10:45 marc Exp $
 //
 
 #include <aString.H>
@@ -29,7 +29,7 @@ RealBox::RealBox (const Box&  bx,
 }
 
 bool
-RealBox::contains (const Real* point)
+RealBox::contains (const Real* point) const
 {
     return  (xlo[0]-eps < point[0]) && (point[0] < xhi[0]+eps)
 #if (BL_SPACEDIM > 1)   
