@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.41 2000-03-01 20:19:02 lijewski Exp $
+// $Id: AmrLevel.H,v 1.42 2000-03-24 22:10:01 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -346,7 +346,6 @@ public:
     //
     virtual void set_preferred_boundary_values(FArrayBox& S,
                                                int        state_index,
-                                               int        iGrid,
                                                int        scomp,
                                                int        dcomp,
                                                int        ncomp,
