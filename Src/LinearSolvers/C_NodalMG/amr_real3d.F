@@ -1757,7 +1757,7 @@ c edges
                fac = (kr-abs(l)) * fac1
                dest(i,j,k) = dest(i,j,k) +
      &           fac * src(i*ir,j*jr,k*kr+l)
-	      end do
+            end do
          else if (integ .eq. 0) then
             center = center + cfac
          end if
