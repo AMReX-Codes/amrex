@@ -32,6 +32,13 @@ ifeq ($(FCOMP),Absoft)
   override XTRALIBS += -lfio -lf77math
   #override FORTLINK := LOWERCASE
 else
+ifeq ($(FCOMP),Intel)
+  FC   := ifc
+  FOPTF += -O3
+  FOPTF += -g
+  LIBRARY_LOCATIONS += $(IA32ROOT)/lib 
+  override XTRALIBS += -lintrins -lIEPCF90 -lF90 -limf -lcxa -lirc
+else
   FOPTF += -O
   fOPTF += -O
   #DEFINES += -DBL_FORT_USE_UNDERSCORE
@@ -39,6 +46,7 @@ else
   override XTRALIBS += -lg2c
   FDEBF +=   -ffortran-bounds-check -Wimplicit
   fDEBF +=   -ffortran-bounds-check -Wimplicit
+endif
 endif
 endif
 
