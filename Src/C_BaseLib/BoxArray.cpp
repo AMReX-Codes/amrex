@@ -1,5 +1,5 @@
 //
-// $Id: BoxArray.cpp,v 1.30 2001-08-02 16:01:43 car Exp $
+// $Id: BoxArray.cpp,v 1.31 2001-08-06 19:40:27 car Exp $
 //
 #include <iostream>
 
@@ -20,6 +20,11 @@ BoxArray::BoxArray ()
     :
     m_ref(new BoxArray::Ref)
 {}
+
+BoxArray::BoxArray (const Box& bx)
+    : m_ref(new BoxArray::Ref(&bx, 1))
+{
+}
 
 BoxArray::Ref::Ref (const BoxList& bl)
 {

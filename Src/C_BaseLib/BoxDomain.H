@@ -1,7 +1,7 @@
 #ifndef BL_BOXDOMAIN_H
 #define BL_BOXDOMAIN_H
 //
-// $Id: BoxDomain.H,v 1.25 2001-07-31 17:56:25 lijewski Exp $
+// $Id: BoxDomain.H,v 1.26 2001-08-06 19:40:27 car Exp $
 //
 #include <iosfwd>
 
@@ -77,6 +77,10 @@ public:
     //@ManDoc: Construct an empty BoxDomain of IndexType::TheCellType().
     //
     BoxDomain ();
+    //
+    /// A Box Domain out of single Box
+    //
+    BoxDomain (const Box& bx);
     //
     //@ManDoc: Construct an empty BoxDomain of IndexType itype.
     //

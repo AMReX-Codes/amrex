@@ -1,5 +1,5 @@
 //
-// $Id: BoxDomain.cpp,v 1.17 2001-07-26 20:08:44 lijewski Exp $
+// $Id: BoxDomain.cpp,v 1.18 2001-08-06 19:40:27 car Exp $
 //
 #include <iostream>
 
@@ -102,6 +102,13 @@ BoxDomain::BoxDomain (IndexType _ctype)
     :
     BoxList(_ctype)
 {}
+
+BoxDomain::BoxDomain (const Box& bx)
+    :
+    BoxList(bx.ixType())
+{
+    add(bx);
+}
 
 void
 BoxDomain::add (const Box& b)
