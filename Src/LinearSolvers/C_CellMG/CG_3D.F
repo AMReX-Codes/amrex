@@ -1,6 +1,4 @@
-c
-c     $Id: CG_3D.F,v 1.1 1998-03-24 07:07:01 almgren Exp $
-c
+c     $Id: CG_3D.F,v 1.2 1998-03-26 18:55:52 marc Exp $
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
 #define BL_LANG_FORT
@@ -43,7 +41,9 @@ c-----------------------------------------------------------------------
       REAL_T pp(DIMV(pp),nc)
       integer DIMDEC(phi)
       REAL_T phi(DIMV(phi),nc)
-      REAL_T a(nc)
+      REAL_T a
+c ::: wyc change -- why was a a vector?
+c     REAL_T a(nc)
 c
       integer i,j,k,n
 c
@@ -51,12 +51,15 @@ c
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  phi(i,j,k,n) = phi(i,j,k,n) + a(n) * pp(i,j,k,n)
-                  rr(i,j,k,n) = rr(i,j,k,n) - a(n) * ww(i,j,k,n)
-               end do
-            end do
-         end do
-      end do
+                  phi(i,j,k,n) = phi(i,j,k,n) + a * pp(i,j,k,n)
+                  rr(i,j,k,n) = rr(i,j,k,n) - a * ww(i,j,k,n)
+c ::: wyc change -- why was a a vector?
+c                 phi(i,j,k,n) = phi(i,j,k,n) + a(n) * pp(i,j,k,n)
+c                 rr(i,j,k,n) = rr(i,j,k,n) - a(n) * ww(i,j,k,n)
+               enddo
+            enddo
+         enddo
+      enddo
 c
       end
       
@@ -85,7 +88,10 @@ c
       REAL_T rr(DIMV(rr),nc)
       integer DIMDEC(pp)
       REAL_T pp(DIMV(pp),nc)
-      REAL_T b(nc)
+      REAL_T b
+c ::: wyc change
+c     REAL_T b(nc)
+c
 c
       integer i,j,k,n
 c
@@ -93,11 +99,12 @@ c
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
-                  pp(i,j,k,n) = rr(i,j,k,n) + b(n)*pp(i,j,k,n)
-               end do
-            end do
-         end do
-      end do
+                  pp(i,j,k,n) = rr(i,j,k,n) + b*pp(i,j,k,n)
+c                 pp(i,j,k,n) = rr(i,j,k,n) + b(n)*pp(i,j,k,n)
+               enddo
+            enddo
+         enddo
+      enddo
 c
       end
       
@@ -135,9 +142,9 @@ c
             do j = lo(2), hi(2)
                do i = lo(1), hi(1)
                   pw(n) = pw(n) + pp(i,j,k,n)*ww(i,j,k,n)
-               end do
-            end do
-         end do
-      end do
+               enddo
+            enddo
+         enddo
+      enddo
 c
       end
