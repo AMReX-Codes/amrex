@@ -4,7 +4,7 @@
 #define _GEOMETRY_H_
 
 //
-// $Id: Geometry.H,v 1.18 1998-06-15 23:55:13 lijewski Exp $
+// $Id: Geometry.H,v 1.19 1998-06-18 04:12:41 lijewski Exp $
 //
 
 #include <CoordSys.H>
@@ -223,28 +223,33 @@ protected:
             m_noovlp(false) {}
 
         FPB (const BoxArray& ba,
+             const Box&      domain,
              int             ngrow,
              bool            noovlp)
             :
             m_ba(ba),
+            m_domain(domain),
             m_ngrow(ngrow),
             m_noovlp(true)
         {
             assert(ngrow >= 0);
+            assert(domain.ok());
         }
 
-        ~FPB () { }
+        ~FPB () {}
 
         bool operator== (const FPB& rhs) const
         {
             return
                 m_ngrow == rhs.m_ngrow &&
                 m_noovlp == rhs.m_noovlp &&
+                m_domain == rhs.m_domain &&
                 m_ba == rhs.m_ba;
         }
 
         PIRMMap  m_pirm;
         BoxArray m_ba;
+        Box      m_domain;
         int      m_ngrow;
         bool     m_noovlp;
     };
@@ -259,19 +264,13 @@ protected:
     //
     // Helper functions for FillPeriodicBoundary(). 
     //
-    PIRMMap& getPIRMMap (const BoxArray& grids,
-                         int             nGrow,
-                         bool            no_ovlp) const;
+    PIRMMap& getPIRMMap (MultiFab&  mf,
+                         bool       no_ovlp,
+                         const FPB& fpb) const;
 
-    PIRMMap& buildPIRMMap (const BoxArray& grids,
-                           int             nGrow,
-                           bool            no_ovlp) const;
-
-    MultiFabCopyDescriptor& theFPBmfcd (MultiFab& mf,
-                                        int       src_comp,
-                                        int       num_comp,
-                                        bool      no_ovlp,
-                                        PIRMMap&  pirm) const;
+    PIRMMap& buildPIRMMap (MultiFab&  mf,
+                           bool       no_ovlp,
+                           const FPB& fpb) const;
     //
     // Static data.
     //
@@ -389,15 +388,13 @@ Geometry::PIRMCacheSize ()
 
 inline
 Geometry::PIRMMap&
-Geometry::getPIRMMap (const BoxArray& grids,
-                      int             nGrow,
-                      bool            no_ovlp) const
+Geometry::getPIRMMap (MultiFab&  mf,
+                      bool       no_ovlp,
+                      const FPB& fpb) const
 {
     assert(isAnyPeriodic());
     //
     // Have we already made one with appropriate characteristics?
-    //
-    const FPB fpb(grids,nGrow,no_ovlp);
     //
     // Search from the front to the back ...
     //
@@ -411,7 +408,7 @@ Geometry::getPIRMMap (const BoxArray& grids,
         }
     }
 
-    return buildPIRMMap(grids,nGrow,no_ovlp);
+    return buildPIRMMap(mf,no_ovlp,fpb);
 }
 
 #endif /*_GEOMETRY_H_*/

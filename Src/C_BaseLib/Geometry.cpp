@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.25 1998-06-16 18:02:04 lijewski Exp $
+// $Id: Geometry.cpp,v 1.26 1998-06-18 04:12:42 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -40,8 +40,8 @@ operator>> (istream&  is,
 }
 
 ostream&
-operator << (ostream&               os,
-	     const Geometry::PIRec& pir)
+operator<< (ostream&               os,
+            const Geometry::PIRec& pir)
 {
     os << "mfi: "
        << pir.mfid
@@ -73,12 +73,15 @@ Geometry::FlushPIRMCache ()
 }
 
 Geometry::PIRMMap&
-Geometry::buildPIRMMap (const BoxArray& grids,
-                        int             nGrow,
-                        bool            no_ovlp) const
+Geometry::buildPIRMMap (MultiFab&  mf,
+                        bool       no_ovlp,
+                        const FPB& fpb) const
 {
     assert(isAnyPeriodic());
-
+    assert(MaxFPBCacheSize > 0);
+    //
+    // TODO -- assert that we can't find a matching FPB !!
+    //
     if (m_FPBCache.size() == MaxFPBCacheSize)
     {
         m_FPBCache.pop_back();
@@ -86,13 +89,11 @@ Geometry::buildPIRMMap (const BoxArray& grids,
     //
     // Add new FPBs to the front of the cache.
     //
-    m_FPBCache.push_front(FPB(grids,nGrow,no_ovlp));
+    m_FPBCache.push_front(FPB(mf.boxArray(),Domain(),mf.nGrow(),no_ovlp));
 
     PIRMMap& pirm = m_FPBCache.front().m_pirm;
-    //
-    // Make a junk multifab for its iterator.  Don't allocate any mem for it.
-    //
-    MultiFab mf(grids, 1, nGrow, Fab_noallocate);
+
+    assert(pirm.size() == 0);
 
     Array<IntVect> pshifts(27);
     //
@@ -100,7 +101,9 @@ Geometry::buildPIRMMap (const BoxArray& grids,
     //
     for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
     {
-        Box dest = ::grow(mfi.validbox(), nGrow);
+        Box dest = mfi().box();
+
+        assert(dest == ::grow(mfi.validbox(), mf.nGrow()));
 
         assert(dest.ixType().cellCentered() || dest.ixType().nodeCentered());
 
@@ -115,11 +118,11 @@ Geometry::buildPIRMMap (const BoxArray& grids,
                 //
                 if (validbox.smallEnd(idir) != Domain().smallEnd(idir))
                 {
-                    dest.growLo(idir,-nGrow);
+                    dest.growLo(idir,-mf.nGrow());
                 }
                 if (validbox.bigEnd(idir) != Domain().bigEnd(idir))
                 {
-                    dest.growHi(idir,-nGrow);
+                    dest.growHi(idir,-mf.nGrow());
                 }
             }
         }
@@ -136,6 +139,8 @@ Geometry::buildPIRMMap (const BoxArray& grids,
 
         if (doit)
         {
+            const BoxArray& grids = mf.boxArray();
+
             for (int j = 0; j < grids.length(); j++)
             {
                 periodicShift(dest, grids[j], pshifts);
@@ -157,37 +162,23 @@ Geometry::buildPIRMMap (const BoxArray& grids,
             }
         }
     }
-
-    return pirm;
-}
-
-MultiFabCopyDescriptor&
-Geometry::theFPBmfcd (MultiFab& mf,
-                      int       src_comp,
-                      int       num_comp,
-                      bool      no_ovlp,
-                      PIRMMap&  pirm) const
-{
-    bool buildit;
-
-    MultiFabCopyDescriptor& mfcd = mf.theFPBmfcd(src_comp,num_comp,
-                                                 no_ovlp,buildit);
-
-    if (buildit == false)
-    {
-        return mfcd;
-    }
     //
-    // Fill intersection list.
+    // We now need to populate the m_pirm member of the just-added FPB.
     //
+    // Since all we're trying to do is get the FillBoxId returned from
+    // AddBox() correctly we'll use arbitrary src_comp and num_comp;
+    //
+    MultiFabCopyDescriptor mfcd;
+
     MultiFabId mfid = mfcd.RegisterMultiFab(&mf);
 
     assert(mfid == MultiFabId(0));
-    //
-    // Register boxes in copy descriptor.
-    //
+
     for (int i = 0; i < pirm.size(); i++)
     {
+        const int src_comp = 0;
+        const int num_comp = 1;
+
         pirm[i].fbid = mfcd.AddBox(mfid,
                                    pirm[i].srcBox,
                                    0,
@@ -195,9 +186,11 @@ Geometry::theFPBmfcd (MultiFab& mf,
                                    src_comp,
                                    src_comp,
                                    num_comp);
+
+        assert(pirm[i].fbid.box() == pirm[i].srcBox);
     }
 
-    return mfcd;
+    return pirm;
 }
 
 void
@@ -213,17 +206,47 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
     stats.start();
 
-    PIRMMap& pirm = getPIRMMap(mf.boxArray(),mf.nGrow(),no_ovlp);
-    //
-    // Get cached MultiFabCopyDescriptor.
-    //
-    MultiFabCopyDescriptor& mfcd = theFPBmfcd(mf,src_comp,num_comp,no_ovlp,pirm);
+    const FPB fpb(mf.boxArray(),Domain(),mf.nGrow(),no_ovlp);
+
+    bool buildit = false;
+
+    MultiFabCopyDescriptor& mfcd = mf.theFPBmfcd(src_comp,
+                                                 num_comp,
+                                                 no_ovlp,
+                                                 buildit);
+    MultiFabId mfid = 0;
+
+    PIRMMap& pirm = getPIRMMap(mf,no_ovlp,fpb);
+
+    if (buildit)
+    {
+        FillBoxId fbid;
+
+        mfid = mfcd.RegisterMultiFab(&mf);
+
+        assert(mfid == MultiFabId(0));
+
+        for (int i = 0; i < pirm.size(); i++)
+        {
+            assert(pirm[i].fbid.box().ok());
+            assert(pirm[i].fbid.box() == pirm[i].srcBox);
+
+            fbid = mfcd.AddBox(mfid,
+                               pirm[i].srcBox,
+                               0,
+                               pirm[i].srcId,
+                               src_comp,
+                               src_comp,
+                               num_comp);
+
+            assert(fbid.box() == pirm[i].srcBox);
+        }
+    }
+
     //
     // Gather/scatter distributed data to (local) internal buffers.
     //
     mfcd.CollectData();
-
-    const MultiFabId TheFPBMultiFabId(0);
 
     const int MyProc = ParallelDescriptor::MyProc();
 
@@ -233,10 +256,7 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
 
         assert(pirm[i].fbid.box() == pirm[i].srcBox);
 
-        mfcd.FillFab(TheFPBMultiFabId,
-                     pirm[i].fbid,
-                     mf[pirm[i].mfid],
-                     pirm[i].dstBox);
+        mfcd.FillFab(mfid,pirm[i].fbid,mf[pirm[i].mfid],pirm[i].dstBox);
     }
 
     stats.end();
