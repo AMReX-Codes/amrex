@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.38 1998-12-09 20:21:30 lijewski Exp $
+// $Id: Geometry.cpp,v 1.39 1998-12-10 22:16:07 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -107,17 +107,29 @@ Geometry::buildPIRMMap (MultiFab&  mf,
             }
         }
 
-        bool doit = dest.ixType().cellCentered() ?
-            !Domain().contains(dest) :
-            !::grow(::surroundingNodes(Domain()),-1).contains(dest);
+        bool DoIt     = !Domain().contains(dest);
+        Box TheDomain = Domain();
 
-        if (doit)
+        if (!dest.ixType().cellCentered())
+        {
+            //
+            // If we're nodal, we don't want to do the nodes on the boundary.
+            // If we were to do them, all we'd do would be to shuffle them
+            // from one side of a periodic domain to the other.  Hence this
+            // code assumes that those values are already set to their
+            // appropriate values.
+            //
+            DoIt      = !::surroundingNodes(Domain()).contains(dest);
+            TheDomain = ::grow(::surroundingNodes(Domain()),-1);
+        }
+
+        if (DoIt)
         {
             const BoxArray& grids = mf.boxArray();
 
             for (int j = 0; j < grids.length(); j++)
             {
-                Box src = grids[j] & Domain();
+                Box src = grids[j] & TheDomain;
 
                 if (fpb.m_do_corners)
                 {
