@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.34 2002-06-17 17:00:40 car Exp $
+# $Id: Make.package,v 1.35 2002-06-17 19:34:49 car Exp $
 #
 
 BOXLIB_BASE=EXE
@@ -91,5 +91,5 @@ T_headers += ccse-mpi.H
 # Fortran interface routines.
 #
 
-f$(BOXLIB_BASE)_sources += blutil_F.f
-f$(BOXLIB_BASE)_sources += blParmParse_F.f
+f$(BOXLIB_BASE)_sources += BLutil_F.f
+f$(BOXLIB_BASE)_sources += BLParmParse_F.f
