@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.65 2003-02-28 22:42:15 lijewski Exp $
+// $Id: TagBox.cpp,v 1.66 2003-08-14 19:18:14 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -12,6 +12,7 @@
 #include <TagBox.H>
 #include <Geometry.H>
 #include <ParallelDescriptor.H>
+#include <Profiler.H>
 #include <ccse-mpi.H>
 
 TagBox::TagBox () {}
@@ -514,66 +515,91 @@ struct IntVectComp
 IntVect*
 TagBoxArray::collate (long& numtags) const
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::collate()");
+
     numtags = numTags();
     //
     // The caller of collate() is responsible for delete[]ing this space.
     //
     IntVect* TheCollateSpace = new IntVect[numtags];
 
-    const int NGrids = fabparray.size();
+    const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
-    Array<int> sharedNTags(NGrids); // Shared numTags per grid.
-    Array<int> startOffset(NGrids); // Start locations per grid.
+    Array<int> nmtags(ParallelDescriptor::NProcs(),0);
+    Array<int> offset(ParallelDescriptor::NProcs(),0);
+
+    int count = 0;
 
     for (MFIter fai(*this); fai.isValid(); ++fai)
     {
-        sharedNTags[fai.index()] = get(fai).numTags();
-    }
-    const DistributionMapping& dMap = DistributionMap();
-
-    for (int i = 0; i < NGrids; ++i)
-    {
-         ParallelDescriptor::Bcast(&sharedNTags[i],1,dMap[i]);
+        get(fai).collate(TheCollateSpace,count);
+        count += get(fai).numTags();
     }
 
-    startOffset[0] = 0;
+#if BL_USE_MPI
+    //
+    // Tell root CPU how many tags each CPU will be sending.
+    //
+    MPI_Gather(&count,
+               1,
+               ParallelDescriptor::Mpi_typemap<int>::type(),
+               nmtags.dataPtr(),
+               1,
+               ParallelDescriptor::Mpi_typemap<int>::type(),
+               IOProc,
+               ParallelDescriptor::Communicator());
+#endif
 
-    for (int i = 1; i < NGrids; ++i)
+    if (ParallelDescriptor::IOProcessor())
     {
-        startOffset[i] = startOffset[i-1]+sharedNTags[i-1];
+        BL_ASSERT(IOProc == 0);
+        BL_ASSERT(offset[0] == 0);
+
+        for (int i = 0; i < nmtags.size(); i++)
+            //
+            // Convert from count of tags to count of integers to expect.
+            //
+            nmtags[i] *= BL_SPACEDIM;
+
+        for (int i = 1; i < offset.size(); i++)
+            offset[i] = offset[i-1] + nmtags[i-1];
     }
+
+    int* start = reinterpret_cast<int*>(TheCollateSpace);
+
+#if BL_USE_MPI
     //
-    // Communicate all local points so all procs have the same global set.
-    //
-    for (MFIter fai(*this); fai.isValid(); ++fai)
-    {
-        get(fai).collate(TheCollateSpace,startOffset[fai.index()]);
-    }
-    //
-    // Make sure can pass IntVect as array of ints.
+    // Gather all the tags to IOProc into TheCollateSpace.
     //
     BL_ASSERT(sizeof(IntVect) == BL_SPACEDIM * sizeof(int));
 
-    for (int i = 0; i < NGrids; ++i)
-    {
-        int* iptr = reinterpret_cast<int*>(TheCollateSpace+startOffset[i]);
+    MPI_Gatherv(start,
+                count*BL_SPACEDIM,
+                ParallelDescriptor::Mpi_typemap<int>::type(),
+                start,
+                nmtags.dataPtr(),
+                offset.dataPtr(),
+                ParallelDescriptor::Mpi_typemap<int>::type(),
+                IOProc,
+                ParallelDescriptor::Communicator());
+#endif
 
-        ParallelDescriptor::Bcast(iptr,
-                                  sharedNTags[i]*BL_SPACEDIM,
-                                  dMap[i]);
+    if (ParallelDescriptor::IOProcessor())
+    {
+        //
+        // Remove duplicate IntVects.
+        //
+        std::sort(TheCollateSpace, TheCollateSpace+numtags, IntVectComp());
+        IntVect* end = std::unique(TheCollateSpace,TheCollateSpace+numtags);
+        ptrdiff_t duplicates = (TheCollateSpace+numtags) - end;
+        BL_ASSERT(duplicates >= 0);
+        numtags -= duplicates;
     }
     //
-    // Remove duplicate IntVects.
+    // Now broadcast them back to the other processors.
     //
-    std::sort(TheCollateSpace, TheCollateSpace+numtags, IntVectComp());
-
-    IntVect* end = std::unique(TheCollateSpace,TheCollateSpace+numtags);
-
-    ptrdiff_t duplicates = (TheCollateSpace+numtags) - end;
-
-    BL_ASSERT(duplicates >= 0);
-
-    numtags -= duplicates;
+    ParallelDescriptor::Bcast(&numtags, 1, IOProc);
+    ParallelDescriptor::Bcast(start, numtags*BL_SPACEDIM, IOProc);
 
     return TheCollateSpace;
 }
