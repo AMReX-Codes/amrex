@@ -2,8 +2,6 @@
 #define _AMR_DEFS_H_
 
 //
-// $Id: amr_defs.H,v 1.17 1998-08-06 20:30:04 car Exp $
-//
 
 #include <MultiFab.H>
 
