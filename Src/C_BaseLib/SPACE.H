@@ -3,7 +3,7 @@
 #define BL_SPACE_H
 
 /*
-** $Id: SPACE.H,v 1.5 2000-10-02 20:52:38 lijewski Exp $
+** $Id: SPACE.H,v 1.6 2000-11-15 20:12:02 car Exp $
 */
 
 #if defined(BL_SPACEDIM) && !defined(SPACEDIM)
@@ -128,14 +128,38 @@ using namespace BL_NAMESPACE;
   corresponding to BL\_SPACEDIM values of 1, 2, or 3.
 */
 #  define D_TERM(a,b,c) a
+
+/*@ManDoc:
+  The D\_PICK(a,b,c) macro expands to a single result equal to the
+  1st, 2nd, or 3rd of the arguments of the call, depending on the value
+  of BL\_SPACEDIM.  This can be used to write program logic
+  that depend on the value of BL\_SPACEDIM.
+
+  For example:
+
+     maxsize = D_PICK(1024, 128, 32);
+
+  More explicitly, this macro evaluates to one of
+
+     maxsize = 1024;
+
+     maxsize = 128;
+
+     maxsize = 32;
+
+  corresponding to BL\_SPACEDIM values of 1, 2, or 3.
+*/
+#  define D_PICK(a,b,c) a
 #elif BL_SPACEDIM==2
 #  define D_EXPR(a,b,c) ((void)((a),(b),0))
 #  define D_DECL(a,b,c) a,b
 #  define D_TERM(a,b,c) a b
+#  define D_PICK(a,b,c) b
 #elif BL_SPACEDIM==3
 #  define D_EXPR(a,b,c) ((void)((a),(b),(c),0))
 #  define D_DECL(a,b,c) a,b,c
 #  define D_TERM(a,b,c) a b c
+#  define D_PICK(a,b,c) c
 #endif
 
 #endif /*BL_SPACE_H*/
