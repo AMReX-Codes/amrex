@@ -80,6 +80,7 @@ inline Real mfnorm(const MultiFab& mf)
     return r;
 }
 
+#ifdef HG_DEBUG
 #include <fstream>
 extern std::ofstream debug_out;
 
@@ -97,6 +98,8 @@ inline const char* mf_centeredness(const MultiFab& m)
 	if ( ParallelDescriptor::IOProcessor() ) \
 	    debug_out << s << " : Norm[" << d.length() << "," << mf_centeredness(d) << "," << d.nComp() << "," << d.nGrow() << "]( " #d " ) = " << dz << std::endl; \
     } else
-
+#else
+#define HG_TEST_NORM(d, s)
+#endif
 
 #endif
