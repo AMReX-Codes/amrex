@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.19 1998-04-16 23:07:32 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.20 1998-04-17 18:14:12 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -844,6 +844,7 @@ FluxRegister::CrseInit (const FArrayBox& flux,
                              MPI_COMM_WORLD)) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
+    const int MyProc  = ParallelDescriptor::MyProc();
     const int NumRecv = nrcv[ParallelDescriptor::MyProc()];
 
     Array<MPI_Request> reqs(NumRecv);
@@ -851,7 +852,8 @@ FluxRegister::CrseInit (const FArrayBox& flux,
     Array<CommData>    recv(NumRecv);
     PArray<FArrayBox>  fabs(NumRecv,PArrayManage);
     //
-    // First send/receive the box information.
+    // First receive/send the box information.
+    // I'll receive the NumRecv boxes in any order.
     //
     for (int i = 0; i < NumRecv; i++)
     {
@@ -867,8 +869,23 @@ FluxRegister::CrseInit (const FArrayBox& flux,
 
     for (int i = 0; i < sTags.size(); i++)
     {
-        CommData senddata(sTags[i].face, sTags[i].fabIndex, sTags[i].box);
-
+        CommData senddata(sTags[i].face,
+                          sTags[i].fabIndex,
+                          MyProc,
+                          //
+                          // We use the index into loop over sTags as the ID.
+                          // The combination of the loop index and the
+                          // processor from which the message was sent forms
+                          // a unique identifier.  We'll later use the
+                          // combination of fromproc() and id() to match up
+                          // the box()s being sent now with the FAB data on
+                          // those box()s to be sent next.
+                          //
+                          i,
+                          sTags[i].box);
+        //
+        // Use MPI_Send() as we don't care whether or not this is buffered.
+        //
         if ((rc = MPI_Send(senddata.dataPtr(),
                            senddata.length(),
                            MPI_INT,
@@ -888,15 +905,12 @@ FluxRegister::CrseInit (const FArrayBox& flux,
     for (int i = 0; i < NumRecv; i++)
     {
         fabs.set(i, new FArrayBox(recv[i].box(), numcomp));
-    }
 
-    for (int i = 0; i < NumRecv; i++)
-    {
         if ((rc = MPI_Irecv(fabs[i].dataPtr(),
                             fabs[i].box().numPts() * numcomp,
                             mpi_data_type(fabs[i].dataPtr()),
-                            MPI_ANY_SOURCE,
-                            803,
+                            recv[i].fromproc(),
+                            recv[i].id(),
                             MPI_COMM_WORLD,
                             &reqs[i])) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
@@ -912,13 +926,25 @@ FluxRegister::CrseInit (const FArrayBox& flux,
         long count = sTags[i].box.numPts() * numcomp;
 
         assert(count < INT_MAX);
-
-        if ((rc = MPI_Send(fab.dataPtr(),
-                           int(count),
-                           mpi_data_type(fab.dataPtr()),
-                           sTags[i].toProc,
-                           803,
-                           MPI_COMM_WORLD)) != MPI_SUCCESS)
+        //
+        // Use MPI_Ssend() to try and force the system not to buffer.
+        //
+        if ((rc = MPI_Ssend(fab.dataPtr(),
+                            int(count),
+                            mpi_data_type(fab.dataPtr()),
+                            sTags[i].toProc,
+                            //
+                            // We use the index into loop over sTags as the ID.
+                            // The combination of the loop index and the
+                            // processor from which the message was sent forms
+                            // a unique identifier.
+                            //
+                            // Note that the form of this MPI_Ssend() MUST
+                            // match the MPI_Send() of the box()es
+                            // corresponding to this FAB above.
+                            //
+                            i,
+                            MPI_COMM_WORLD)) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
 
