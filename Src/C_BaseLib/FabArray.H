@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.140 2001-07-24 22:42:12 car Exp $
+// $Id: FabArray.H,v 1.141 2001-07-25 04:45:55 car Exp $
 //
 
 #include <cstring>
@@ -267,10 +267,12 @@ public:
                Kth element.
     */
     const FAB& operator[] (const MFIter& mfi) const;
+    const FAB& at(const MFIter& mfi) const;
     //
     //@ManDoc: Returns a reference to the FAB associated with the Kth element.
     //
     FAB& operator[] (const MFIter& mfi);
+    FAB& at(const MFIter& mfi);
     /*@ManDoc: Returns a constant reference to the FAB associated with the
                Kth element.
     */
@@ -980,8 +982,22 @@ FabArray<FAB>::operator[] (const MFIter& mfi) const
 }
 
 template <class FAB>
+const FAB&
+FabArray<FAB>::at (const MFIter& mfi) const
+{
+    return fabparray[mfi.index()];
+}
+
+template <class FAB>
 FAB&
 FabArray<FAB>::operator[] (const MFIter& mfi)
+{
+    return fabparray[mfi.index()];
+}
+
+template <class FAB>
+FAB&
+FabArray<FAB>::at (const MFIter& mfi)
 {
     return fabparray[mfi.index()];
 }
@@ -1120,7 +1136,7 @@ template <class FAB>
 void
 FabArray<FAB>::AllocFabs ()
 {
-    for (FabArrayIterator<FAB> fai(*this); fai.isValid(); ++fai)
+    for (MFIter fai(*this); fai.isValid(); ++fai)
     {
         Box tmp = BoxLib::grow(fai.validbox(), n_grow);
 
@@ -1163,9 +1179,9 @@ FabArray<FAB>::setBndry (value_type   val,
 {
     if (n_grow > 0)
     {
-        for (FabArrayIterator<FAB> fai(*this); fai.isValid(); ++fai)
+        for (MFIter fai(*this); fai.isValid(); ++fai)
         {
-            fai().setComplement(val, fai.validbox(), strt_comp, ncomp);
+            at(fai).setComplement(val, fai.validbox(), strt_comp, ncomp);
         }
     }
 }
@@ -1185,12 +1201,10 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     {
         BL_ASSERT(distributionMap == src.distributionMap);
 
-        for (FabArrayIterator<FAB> fai(*this); fai.isValid(); ++fai)
+        for (MFIter fai(*this); fai.isValid(); ++fai)
         {
-            DependentFabArrayIterator<FAB> dfai(fai,src);
-            BL_ASSERT(fai.validbox() == dfai.validbox());
             const Box& bx = fai.validbox();
-            fai().copy(dfai(),bx,scomp,bx,dcomp,ncomp);
+            at(fai).copy(src[fai],bx,scomp,bx,dcomp,ncomp);
         }
 
         return;
@@ -1363,12 +1377,10 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     {
         BL_ASSERT(distributionMap == src.distributionMap);
 
-        for (FabArrayIterator<FAB> fai(*this); fai.isValid(); ++fai)
+        for (MFIter fai(*this); fai.isValid(); ++fai)
         {
-            DependentFabArrayIterator<FAB> dfai(fai,src);
-            BL_ASSERT(fai.validbox() == dfai.validbox());
             const Box& bx = fai.validbox();
-            fai().copy(dfai(),bx,scomp,bx,dcomp,ncomp);
+            at(fai).copy(src[fai],bx,scomp,bx,dcomp,ncomp);
         }
     }
     else
@@ -1482,9 +1494,9 @@ template <class FAB>
 void
 FabArray<FAB>::setVal (value_type val)
 {
-    for (FabArrayIterator<FAB> fai(*this); fai.isValid(); ++fai)
+    for (MFIter fai(*this); fai.isValid(); ++fai)
     {
-        fai().setVal(val);
+        at(fai).setVal(val);
     }
 }
 
@@ -1498,9 +1510,9 @@ FabArray<FAB>::setVal (value_type   val,
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
     BL_ASSERT(comp+ncomp <= n_comp);
 
-    for (FabArrayIterator<FAB> fai(*this); fai.isValid(); ++fai)
+    for (MFIter fai(*this); fai.isValid(); ++fai)
     {
-        fai().setVal(val,BoxLib::grow(fai.validbox(),nghost), comp, ncomp);
+        at(fai).setVal(val,BoxLib::grow(fai.validbox(),nghost), comp, ncomp);
     }
 }
 
@@ -1515,12 +1527,12 @@ FabArray<FAB>::setVal (value_type          val,
     BL_ASSERT(nghost >= 0 && nghost <= n_grow);
     BL_ASSERT(comp+ncomp <= n_comp);
 
-    for (FabArrayIterator<FAB> fai(*this); fai.isValid(); ++fai)
+    for (MFIter fai(*this); fai.isValid(); ++fai)
     {
         Box b = BoxLib::grow(fai.validbox(),nghost) & region;
 
         if (b.ok())
-            fai().setVal(val, b, comp, ncomp);
+            at(fai).setVal(val, b, comp, ncomp);
     }
 }
 
