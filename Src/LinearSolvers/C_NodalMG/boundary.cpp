@@ -481,12 +481,6 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 	    const int idim = lev_interface.fdim(iface);
 	    const int a = (type(r,idim) == IndexType::NODE);
 	    // need to do on x borders too in case y border is an interior face
-#if (BL_SPACEDIM == 2)
-	    //b.grow(1 - idim, w); // replaced by grow stmts below?
-#else
-	    //could cause overwrite problem for periodic boundaries:
-	    //b.grow((idim + 1) % 3, w).grow((idim + 2) % 3, w);
-#endif
 	    if (igrid < 0) 
 	    {
 		for (int i = 0; i < BL_SPACEDIM; i++) 
@@ -510,8 +504,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		    for (int i = 0; i < r.nComp(); i++) 
 		    {
 			Real *const rptr = r[jgrid].dataPtr(i);
-			if ((i == idim + BL_SPACEDIM) ||
-			    (i >= BL_SPACEDIM && idim == BL_SPACEDIM - 1)) 
+			if ((i == idim + BL_SPACEDIM) || (i >= BL_SPACEDIM && idim == BL_SPACEDIM - 1)) 
 			{
 			    FORT_FBNEG(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), idim);
 			}
@@ -626,8 +619,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 	      for (int i = 0; i < r.nComp(); i++) 
 	      {
 		  Real *const rptr = r[igrid].dataPtr(i);
-		  if ((i == idim + BL_SPACEDIM) ||
-		      (i >= BL_SPACEDIM && idim == BL_SPACEDIM - 1)) 
+		  if ((i == idim + BL_SPACEDIM) || (i >= BL_SPACEDIM && idim == BL_SPACEDIM - 1)) 
 		  {
 		      FORT_FBNEG(rptr, DIMLIST(rbox), DIMLIST(b), rptr, DIMLIST(rbox), DIMLIST(bb), idim);
 		  }

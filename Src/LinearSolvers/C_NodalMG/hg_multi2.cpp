@@ -30,45 +30,23 @@ extern "C"
 #error not relevant
 #elif (BL_SPACEDIM == 2)
 #  ifdef HG_CROSS_STENCIL
-    void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-	Real*, intS, Real*, intS, intS, RealRS, intRS,
-	int&, int&);
-    void FORT_HGCRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-	Real*, intS, Real*, intS, intS, RealRS, intRS,
-	const int*);
+    void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, RealRS, intRS, int&, int&);
+    void FORT_HGCRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, RealRS, intRS, const int*);
     void FORT_HGFRES_TERRAIN(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, int&, int&);
     void FORT_HGCRES_TERRAIN(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, const int*);
 #  else
-    void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-	Real*, intS, Real*, intS, intS, RealRS,
-	intRS, int&, int&, const int&, const int&
-	);
-    void FORT_HGORES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-	Real*, intS, Real*, intS, intS, RealRS,
-	intRS, int&, int&, const int&
-	);
-    void FORT_HGIRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-	Real*, intS, Real*, intS, intS, RealRS,
-	intRS, int&, int&, const int&
-	);
-    void FORT_HGDRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-	Real*, intS, Real*, intS, intS, RealRS,
-	intRS, int&, const int&
-	);
+    void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, RealRS, intRS, int&, int&, const int&, const int&);
+    void FORT_HGORES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, RealRS, intRS, int&, int&, const int& );
+    void FORT_HGIRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, RealRS, intRS, int&, int&, const int& );
+    void FORT_HGDRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, RealRS, intRS, int&, const int& );
 #  endif
 #elif (BL_SPACEDIM == 3)
     void FORT_HGFRES_TERRAIN(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, int&, int&);
     void FORT_HGERES_TERRAIN(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, const int*, const int*);
     void FORT_HGCRES_TERRAIN(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, intRS, const int*);
-    void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-	Real*, intS, Real*, intS, intS, RealRS, intRS,
-	int&, int&);
-    void FORT_HGERES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-	Real*, intS, Real*, intS, intS, RealRS, intRS,
-	const int*, const int*);
-    void FORT_HGCRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS,
-	Real*, intS, Real*, intS, intS, RealRS, intRS,
-	const int*);
+    void FORT_HGFRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, RealRS, intRS, int&, int&);
+    void FORT_HGERES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, RealRS, intRS, const int*, const int*);
+    void FORT_HGCRES(Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, Real*, intS, intS, RealRS, intRS, const int*);
 #endif
 }
 
@@ -246,7 +224,8 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
 	int ncomp = 2 * BL_SPACEDIM - 1;
     }
     const amr_boundary_class* bndry = (m_hg_terrain)? boundary.terrain_sigma() : boundary.scalar();
-    
+
+    // PARALLEL TODO
     for (int iface = 0; iface < lev_interface[mglev].nfaces(); iface++) 
     {
 	// find a fine grid touching this face
@@ -306,7 +285,8 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     }
     
 #if (BL_SPACEDIM == 3)
-    
+
+    // PARALLEL TODO
     for (int iedge = 0; iedge < lev_interface[mglev].nedges(); iedge++) 
     {
 	// find a fine grid touching this edge
@@ -367,7 +347,8 @@ void holy_grail_amr_multigrid::build_sync_cache(int mglev, int lev)
     }
     
 #endif
-    
+
+    // PARALLEL TODO
     for (int icor = 0; icor < lev_interface[mglev].ncorners(); icor++) 
     {
 	// find a fine grid touching this corner
@@ -438,7 +419,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
     
     const IntVect& rat = gen_ratio[lev-1];
     int mglevc = ml_index[lev-1];
-    
+
+    // PARALLEL TODO
     for (int iface = 0; iface < lev_interface[mglev].nfaces(); iface++) 
     {
 	// find a fine grid touching this face
@@ -480,9 +462,9 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    D_DECL(rat[0], rat[1], rat[2]), idim, idir
 	    );
 	}
-	else
+	else if (m_hg_full_stencil)
 	{
-#if	(BL_SPACEDIM==2)
+#if BL_SPACEDIM != 3
 	FORT_HGFRES(rptr, DIMLIST(sbox),
 	    sptr, DIMLIST(sbox),
 	    dptr, DIMLIST(fbox),
@@ -491,14 +473,13 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    sigmac.dataPtr(), DIMLIST(sigmacbox),
 	    DIMLIST(creg),
 	    hx, hy,
-#  ifdef HG_CROSS_STENCIL
-	    rat[0], rat[1], idim, idir
-#  else
 	    rat[0], rat[1], idim, idir,
 	    IsRZ(), mg_domain[mglevc].bigEnd(0) + 1
-#  endif
 	    );
-#else
+#endif
+	}
+	else
+	{
 	FORT_HGFRES(rptr, DIMLIST(sbox),
 	    sptr, DIMLIST(sbox),
 	    dptr, DIMLIST(fbox),
@@ -506,19 +487,20 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    sigmafptr, DIMLIST(sigmafbox),
 	    sigmac.dataPtr(), DIMLIST(sigmacbox),
 	    DIMLIST(creg),
-	    hx, hy, hz,
-	    rat[0], rat[1], rat[2], idim, idir
+	    D_DECL(hx, hy, hz),
+	    D_DECL(rat[0], rat[1], rat[2]), idim, idir
 	    );
-#endif
 	}
     }
     
-#if (defined HG_CROSS_STENCIL) || (defined HG_TERRAIN)
+    if(m_hg_cross_stencil || m_hg_terrain)
+    {
     
     int ga[level_interface::N_CORNER_GRIDS];
     
 #if (BL_SPACEDIM == 3)
     
+    // PARALLEL TODO
     for (int iedge = 0; iedge < lev_interface[mglev].nedges(); iedge++) 
     {
 	// find a fine grid touching this edge
@@ -588,7 +570,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
     }
     
 #endif
-    
+
+    // PARALLEL TODO
     for (int icor = 0; icor < lev_interface[mglev].ncorners(); icor++) 
     {
 	// find a fine grid touching this corner
@@ -655,9 +638,11 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	    }
 	}
     }
-    
-#else /* 2d 9-point stencils: */
-    
+    }
+    else if (m_hg_full_stencil)
+    {
+#if BL_SPACEDIM != 3
+    // PARALLEL TODO
     for (int icor = 0; icor < lev_interface[mglev].ncorners(); icor++) 
     {
 	// find a fine grid touching this corner
@@ -833,4 +818,5 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 	}
   }
 #endif
+  }
 }

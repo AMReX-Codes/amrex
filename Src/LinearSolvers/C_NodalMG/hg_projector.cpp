@@ -328,6 +328,7 @@ void holy_grail_amr_projector::grid_average(PArray<MultiFab>& S)
 	    restrict_level(S[lev-1], S[lev], gen_ratio[lev-1],
 		0, default_restrictor(), level_interface(), 0);
 	}
+	// PARALLEL TODO
 	for (int igrid = 0; igrid < ml_mesh[lev_min].length(); igrid++) 
 	{
 	    adjust += S[lev_min][igrid].sum(S[lev_min].box(igrid), 0);
@@ -350,7 +351,6 @@ void holy_grail_amr_projector::grid_average(PArray<MultiFab>& S)
 	
 	fill_borders(S[lev], 0, lev_interface[mglev], boundary.scalar(), -1, m_hg_terrain);
 	
-	//for (int igrid = 0; igrid < ml_mesh[lev].length(); igrid++) 
 	for (MultiFabIterator s_mfi(source[lev]); s_mfi.isValid(); ++s_mfi)
 	{
 	    DependentMultiFabIterator S_dmfi(s_mfi, S[lev]);
@@ -388,7 +388,6 @@ void holy_grail_amr_projector::grid_divergence(PArray<MultiFab>* u)
 	    fill_borders(u[i][lev], 0, lev_interface[mglev], boundary.velocity(i), -1, m_hg_terrain);
 	}
 	
-	//for (int igrid = 0; igrid < ml_mesh[lev].length(); igrid++) 
 	for (MultiFabIterator s_mfi(source[lev]); s_mfi.isValid(); ++s_mfi)
 	{
 	    DependentMultiFabIterator u_dmfi_0(s_mfi, u[0][lev]);
@@ -459,6 +458,7 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
     int jgrid;
     
     const IntVect& rat = gen_ratio[lev-1];
+    // PARALLEL
     for (int iface = 0; iface < lev_interface[mglev].nfaces(); iface++) 
     {
 	// find a fine grid touching this face
@@ -519,7 +519,7 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
     int ga[level_interface::N_CORNER_GRIDS];
     
 #if (BL_SPACEDIM == 3)
-    
+    // PARALLEL    
     for (int iedge = 0; iedge < lev_interface[mglev].nedges(); iedge++) 
     {
 	// find a fine grid touching this edge
@@ -579,7 +579,7 @@ void holy_grail_amr_projector::interface_average(PArray<MultiFab>& S, int lev)
     }
     
 #endif
-    
+    // PARALLEL    
     for (int icor = 0; icor < lev_interface[mglev].ncorners(); icor++) 
     {
 	// find a fine grid touching this corner
@@ -658,6 +658,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
     int jgrid;
     
     const IntVect& rat = gen_ratio[lev-1];
+    // PARALLEL
     for (int iface = 0; iface < lev_interface[mglev].nfaces(); iface++) 
     {
 	// find a fine grid touching this face
@@ -755,6 +756,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
     
 #if (BL_SPACEDIM == 3)
     
+    // PARALLEL
     for (int iedge = 0; iedge < lev_interface[mglev].nedges(); iedge++) 
     {
 	// find a fine grid touching this edge
@@ -841,7 +843,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
     }
     
 #endif
-    
+    // PARALLEL    
     for (int icor = 0; icor < lev_interface[mglev].ncorners(); icor++) 
     {
 	// find a fine grid touching this corner
@@ -937,7 +939,7 @@ void holy_grail_amr_projector::interface_divergence(PArray<MultiFab>* u, int lev
     }
     
 #else
-    
+    // PARALLEL    
     for (int icor = 0; icor < lev_interface[mglev].ncorners(); icor++) 
     {
 	// find a fine grid touching this corner
@@ -1200,12 +1202,8 @@ void holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u, const P
 	for (int lev = lev_min; lev <= lev_max; lev++) 
 	{
 	    int mglev = ml_index[lev];
-	    Real hx = h[mglev][0];
-	    Real hy = h[mglev][1];
-#if (BL_SPACEDIM == 3)
-	    Real hz = h[mglev][2];
-#endif
-	    // Parallel Loop
+	    Real hxyz[BL_SPACEDIM] = { D_DECL( h[mglev][0], h[mglev][1], h[mglev][2] ) };
+	    // PARALLEL TODO
 	    for (int igrid = 0; igrid < ml_mesh[lev].length(); igrid++) 
 	    {
 		const Box& gbox = ml_mesh[lev][igrid];
@@ -1227,12 +1225,12 @@ void holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u, const P
 #if (BL_SPACEDIM == 2)
 		    FORT_HGGRAD(gp[0].dataPtr(), gp[1].dataPtr(), DIMLIST(gbox),
 			dest[lev][igrid].dataPtr(), DIMLIST(dbox),
-			DIMLIST(gbox), hx, hy, IsRZ());
+			DIMLIST(gbox), hxyz[0], hxyz[1], IsRZ());
 #else
 		    FORT_HGGRAD(gp[0].dataPtr(), gp[1].dataPtr(), gp[2].dataPtr(),
 			DIMLIST(gbox),
 			dest[lev][igrid].dataPtr(), DIMLIST(dbox),
-			DIMLIST(gbox), hx, hy, hz);
+			DIMLIST(gbox), hxyz[0], hxyz[1], hxyz[2]);
 #endif
 		}		
 		if(!m_hg_terrain)

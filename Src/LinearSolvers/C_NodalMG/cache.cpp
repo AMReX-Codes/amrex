@@ -407,81 +407,81 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface, const 
 #if (BL_SPACEDIM == 3) 
     if (hg_terrain)
     {
-    // attempt to deal with corner-coupling problem with 27-point stencils
-    int dir[2];
-    Box b;
-    int sstartj, dstartj, sstarti, dstarti;
-    int stridi1, stridi2, stridj1, stridj2, nvals1;
-    for (int iedge = 0; iedge < lev_interface.nedges(); iedge++) 
-    {
-	if (lev_interface.geo(1, iedge) == level_interface::ALL)
-	    continue;
-	int igrid = lev_interface.egrid(iedge, 0);
-	int jgrid = lev_interface.egrid(iedge, 3);
-	if (igrid >= 0 && jgrid >= 0) 
+	// attempt to deal with corner-coupling problem with 27-point stencils
+	int dir[2];
+	Box b;
+	int sstartj, dstartj, sstarti, dstarti;
+	int stridi1, stridi2, stridj1, stridj2, nvals1;
+	for (int iedge = 0; iedge < lev_interface.nedges(); iedge++) 
 	{
-	    int kgrid = lev_interface.egrid(iedge, 1);
-	    if (kgrid == -1)
-		kgrid = lev_interface.egrid(iedge, 2);
-	    if (kgrid != -1 && kgrid != igrid && kgrid != jgrid) 
+	    if (lev_interface.geo(1, iedge) == level_interface::ALL)
+		continue;
+	    int igrid = lev_interface.egrid(iedge, 0);
+	    int jgrid = lev_interface.egrid(iedge, 3);
+	    if (igrid >= 0 && jgrid >= 0) 
 	    {
-		node_dirs(dir, lev_interface.edge(iedge).type());
-		stridi1 = r[igrid].box().length(0);
-		stridi2 = stridi1 * r[igrid].box().length(1);
-		stridj1 = r[jgrid].box().length(0);
-		stridj2 = stridj1 * r[jgrid].box().length(1);
-		if (kgrid == lev_interface.egrid(iedge, 1)) 
+		int kgrid = lev_interface.egrid(iedge, 1);
+		if (kgrid == -1)
+		    kgrid = lev_interface.egrid(iedge, 2);
+		if (kgrid != -1 && kgrid != igrid && kgrid != jgrid) 
 		{
-		    b = lev_interface.node_edge(iedge);
-		    b.shift(dir[0], -1);
-		    sstarti = r[igrid].dataPtr() - baseptr +
-			b.smallEnd(0) - r[igrid].box().smallEnd(0) +
-			stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
-			stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
-		    dstartj = r[jgrid].dataPtr() - baseptr +
-			b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
-			stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
-			stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
-		    b = lev_interface.node_edge(iedge);
-		    b.shift(dir[1],  1);
-		    sstartj = r[jgrid].dataPtr() - baseptr +
-			b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
-			stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
-			stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
-		    dstarti = r[igrid].dataPtr() - baseptr +
-			b.smallEnd(0) - r[igrid].box().smallEnd(0) +
-			stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
-			stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
-		}
-		else 
-		{
-		    b = lev_interface.node_edge(iedge);
-		    b.shift(dir[1], -1);
-		    sstarti = r[igrid].dataPtr() - baseptr +
-			b.smallEnd(0) - r[igrid].box().smallEnd(0) +
-			stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
-			stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
-		    dstartj = r[jgrid].dataPtr() - baseptr +
-			b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
-			stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
-			stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
-		    b = lev_interface.node_edge(iedge);
-		    b.shift(dir[0],  1);
-		    sstartj = r[jgrid].dataPtr() - baseptr +
-			b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
-			stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
-			stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
-		    dstarti = r[igrid].dataPtr() - baseptr +
-			b.smallEnd(0) - r[igrid].box().smallEnd(0) +
-			stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
-			stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
-		}
-		if ((nvals1 = b.length(0)) > 1) 
-		{
-		    stridi1 = 1;
-		    stridj1 = 1;
-		}
-		else if ((nvals1 = b.length(2)) > 1) 
+		    node_dirs(dir, lev_interface.edge(iedge).type());
+		    stridi1 = r[igrid].box().length(0);
+		    stridi2 = stridi1 * r[igrid].box().length(1);
+		    stridj1 = r[jgrid].box().length(0);
+		    stridj2 = stridj1 * r[jgrid].box().length(1);
+		    if (kgrid == lev_interface.egrid(iedge, 1)) 
+		    {
+			b = lev_interface.node_edge(iedge);
+			b.shift(dir[0], -1);
+			sstarti = r[igrid].dataPtr() - baseptr +
+			    b.smallEnd(0) - r[igrid].box().smallEnd(0) +
+			    stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
+			    stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
+			dstartj = r[jgrid].dataPtr() - baseptr +
+			    b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
+			    stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
+			    stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
+			b = lev_interface.node_edge(iedge);
+			b.shift(dir[1],  1);
+			sstartj = r[jgrid].dataPtr() - baseptr +
+			    b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
+			    stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
+			    stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
+			dstarti = r[igrid].dataPtr() - baseptr +
+			    b.smallEnd(0) - r[igrid].box().smallEnd(0) +
+			    stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
+			    stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
+		    }
+		    else 
+		    {
+			b = lev_interface.node_edge(iedge);
+			b.shift(dir[1], -1);
+			sstarti = r[igrid].dataPtr() - baseptr +
+			    b.smallEnd(0) - r[igrid].box().smallEnd(0) +
+			    stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
+			    stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
+			dstartj = r[jgrid].dataPtr() - baseptr +
+			    b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
+			    stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
+			    stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
+			b = lev_interface.node_edge(iedge);
+			b.shift(dir[0],  1);
+			sstartj = r[jgrid].dataPtr() - baseptr +
+			    b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
+			    stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
+			    stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
+			dstarti = r[igrid].dataPtr() - baseptr +
+			    b.smallEnd(0) - r[igrid].box().smallEnd(0) +
+			    stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
+			    stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
+		    }
+		    if ((nvals1 = b.length(0)) > 1) 
+		    {
+			stridi1 = 1;
+			stridj1 = 1;
+		    }
+		    else if ((nvals1 = b.length(2)) > 1) 
 		{
 		    stridi1 = stridi2;
 		    stridj1 = stridj2;

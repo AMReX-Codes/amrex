@@ -2,7 +2,7 @@
 #define _AMR_DEFS_H_
 
 //
-// $Id: amr_defs.H,v 1.9 1998-01-28 21:58:32 car Exp $
+// $Id: amr_defs.H,v 1.10 1998-03-13 20:50:30 car Exp $
 //
 
 #include <MultiFab.H>
@@ -59,8 +59,6 @@ inline IndexType::CellIndex type(const FabArray<Real,FArrayBox>& r, int idir)
 inline Real mfnorm(const MultiFab& mf) 
 {
     Real r = 0;
-    // int i;
-    // for (i = 0; i < mf.length(); i++) {
     for ( ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi ) 
     {
 	Real s = cmfi->norm(0);

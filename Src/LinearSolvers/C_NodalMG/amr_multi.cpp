@@ -241,7 +241,7 @@ void amr_multigrid::alloc(PArray<MultiFab>& Dest, PArray<MultiFab>& Source, PArr
     for (int i = lev_min; i <= lev_max; i++)
 	assert(Source[i].boxArray() == Dest[i].boxArray());
 #endif
-
+    
     // old version checked that these matched ml_mesh, but that's
     // harder to do with pure BoxLib.
     //if (source.mesh() != ml_mesh || dest.mesh() != ml_mesh)
@@ -335,7 +335,7 @@ void amr_multigrid::solve(Real reltol, Real abstol, int i1, int i2, int linesolv
 	sync_interfaces();
     
     Real norm = 0.0;
-
+    
     for (int lev = lev_min; lev <= lev_max; lev++) 
     {
 	Real lev_norm = mfnorm(source[lev]);
