@@ -436,9 +436,9 @@ c fine region by at least one coarse cell on all sides.
       integer regl0, regh0, regl1, regh1
       integer srcl0, srch0, srcl1, srch1
       integer ir, jr, integ
-      double precision dest(destl0:desth0,destl1:desth1)
-      double precision src(srcl0:srch0,srcl1:srch1)
-      double precision fac0, fac1, fac, restr4
+      double precision dest(destl0:desth0,destl1:desth1,ncomp)
+      double precision src(srcl0:srch0,srcl1:srch1,ncomp)
+      double precision fac0, fac1, fac
       integer i, j, m, n, nc
       do nc = 1, ncomp
          do 230 j = regl1, regh1
@@ -463,8 +463,8 @@ c fine region by at least one coarse cell on all sides.
             do 320 j = regl1, regh1
                do 320 i = regl0, regh0
  320              dest(i,j,nc) = fac * dest(i,j,nc)
-      end do
       end if
+      end do
       end
 c-----------------------------------------------------------------------
 c NODE-based data only.
