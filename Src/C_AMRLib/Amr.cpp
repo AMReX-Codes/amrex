@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.18 1997-12-05 00:07:31 lijewski Exp $
+// $Id: Amr.cpp,v 1.19 1997-12-06 01:04:47 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -1261,7 +1261,6 @@ proj_periodic (BoxDomain&      bd,
     BoxList blout;  
     for (BoxDomainIterator bdi(bd); bdi; ++bdi)
         blout.add(bdi());
-    blout.intersect(domain);
     //
     // blorig will be the original bd intersected with domain.
     //
