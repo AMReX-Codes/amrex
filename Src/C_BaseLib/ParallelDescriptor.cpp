@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.94 2001-12-03 22:35:54 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.95 2002-03-26 20:04:06 lijewski Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -1070,7 +1070,9 @@ FORT_BL_PD_ABORT ()
 }
 
 #ifdef BL_USE_MPI
-template <> MPI_Datatype ParallelDescriptor::Mpi_typemap<IntVect>::type()
+namespace ParallelDescriptor
+{
+template <> MPI_Datatype Mpi_typemap<IntVect>::type()
 {
     static MPI_Datatype mine(MPI_DATATYPE_NULL);
     if ( mine == MPI_DATATYPE_NULL )
@@ -1096,7 +1098,7 @@ template <> MPI_Datatype ParallelDescriptor::Mpi_typemap<IntVect>::type()
     return mine;
 }
 
-template <> MPI_Datatype ParallelDescriptor::Mpi_typemap<IndexType>::type()
+template <> MPI_Datatype Mpi_typemap<IndexType>::type()
 {
     static MPI_Datatype mine(MPI_DATATYPE_NULL);
     if ( mine == MPI_DATATYPE_NULL )
@@ -1122,7 +1124,7 @@ template <> MPI_Datatype ParallelDescriptor::Mpi_typemap<IndexType>::type()
     return mine;
 }
 
-template <> MPI_Datatype ParallelDescriptor::Mpi_typemap<Box>::type()
+template <> MPI_Datatype Mpi_typemap<Box>::type()
 {
     static MPI_Datatype mine(MPI_DATATYPE_NULL);
     if ( mine == MPI_DATATYPE_NULL )
@@ -1150,5 +1152,6 @@ template <> MPI_Datatype ParallelDescriptor::Mpi_typemap<Box>::type()
 	BL_MPI_REQUIRE( MPI_Type_commit( &mine ) );
     }
     return mine;
+}
 }
 #endif

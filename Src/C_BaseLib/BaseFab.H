@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.47 2001-10-18 17:55:31 lijewski Exp $
+// $Id: BaseFab.H,v 1.48 2002-03-26 20:04:06 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -2607,14 +2607,14 @@ BaseFab<T>::linComb (const BaseFab<T>&  f1,
 }
 
 template <class T>
-BaseFab<T>::BFProxy
+typename BaseFab<T>::BFProxy
 BaseFab<T>::operator() (const Box& bx)
 {
     return BFProxy(*this, bx&box(), BFProxy::All);
 }
 
 template <class T>
-BaseFab<T>::CBFProxy
+typename BaseFab<T>::CBFProxy
 BaseFab<T>::operator() (const Box& bx) const
 {
     return CBFProxy(*this, bx&box(), CBFProxy::All);

@@ -1,5 +1,5 @@
 //
-// $Id: BLProfiler.cpp,v 1.23 2002-01-08 16:30:24 car Exp $
+// $Id: BLProfiler.cpp,v 1.24 2002-03-26 20:04:06 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -117,7 +117,9 @@ timer_packet::sort_criterion timer_packet::sort_by = timer_packet::sort_self;
 
 
 #ifdef BL_USE_MPI
-template <> MPI_Datatype ParallelDescriptor::Mpi_typemap<timer_packet>::type()
+namespace ParallelDescriptor
+{
+template <> MPI_Datatype Mpi_typemap<timer_packet>::type()
 {
     static MPI_Datatype mine(MPI_DATATYPE_NULL);
     if ( mine == MPI_DATATYPE_NULL )
@@ -152,6 +154,7 @@ template <> MPI_Datatype ParallelDescriptor::Mpi_typemap<timer_packet>::type()
 	BL_MPI_REQUIRE( MPI_Type_commit( &mine ) );
     }
     return mine;
+}
 }
 #endif
 namespace
