@@ -1,6 +1,6 @@
 
 //
-// $Id: MCInterpBndryData.cpp,v 1.14 2001-08-09 22:42:01 marc Exp $
+// $Id: MCInterpBndryData.cpp,v 1.15 2002-11-13 17:15:20 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -184,7 +184,7 @@ MCInterpBndryData::setBndryValues (const ::BndryRegister& crse,
 
         if (pow((double)mxlen,(double)BL_SPACEDIM-1) > tmplen)
         {
-            delete derives;
+            delete [] derives;
             tmplen = mxlen;
 #if (BL_SPACEDIM > 2)
 	    tmplen *= mxlen;
@@ -253,5 +253,5 @@ MCInterpBndryData::setBndryValues (const ::BndryRegister& crse,
 	    }
 	}
     }
-    delete derives;
+    delete [] derives;
 }
