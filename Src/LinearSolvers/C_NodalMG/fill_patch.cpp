@@ -141,6 +141,7 @@ static bool fill_exterior_patch_blindly(FArrayBox& patch,
 				const amr_boundary_class& bdy,
 				int flags)
 {
+    assert(flags==0);
     const BoxArray& em = lev_interface.exterior_mesh();
     for (int igrid = 0; igrid < em.length(); igrid++) 
     {
@@ -433,8 +434,7 @@ static void sync_internal_borders(MultiFab& r, const level_interface& lev_interf
 // modifications take the form of narrowing certain copies to avoid
 // overwriting good values with bad ones.
 
-static void fill_internal_borders(MultiFab& r, const level_interface& lev_interface,
-			   int w)
+static void fill_internal_borders(MultiFab& r, const level_interface& lev_interface, int w)
 {
     w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
     int igrid, jgrid;

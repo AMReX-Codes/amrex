@@ -39,13 +39,27 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain);
 
 void driver(const char* filename);
 
-main(int argc, char **argv)
+#include <CArena.H>
+void carena_test()
+{
+    CArena carena(100000);
+    void* p = carena.alloc(100, &p);
+    carena.free(p);
+    carena.compact();
+}
+
+int main(int argc, char **argv)
 {
 #ifndef WIN32
     set_new_handler(Utility::OutOfMemory);
 #endif
     StartParallel(1);
     
+    if ( false )
+    {
+	carena_test();
+	return 0;
+    }
     for(int i = 1; i < argc; ++i)
 	driver(argv[i]);
     EndParallel();
