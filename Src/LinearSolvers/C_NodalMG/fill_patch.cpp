@@ -252,6 +252,7 @@ void task_fill_patch::fill_patch()
     }
     else
     {
+	//FIXME!!!
 	Array<int> gridnum(lev_interface.ngrids(idim)+1);
 	gridnum[0] = -1;
 	for (int i = 0; i < lev_interface.ngrids(idim); i++) 
@@ -313,7 +314,7 @@ task_fill_patch::task_fill_patch(FArrayBox& fab_, const Box& region_,
 
 task_fill_patch::~task_fill_patch()
 {
-    if ( newed) delete target;
+    if ( newed ) delete target;
 }
 
 bool task_fill_patch::ready()
@@ -635,11 +636,59 @@ void clear_part_interface(MultiFab& r, const level_interface& lev_interface)
     }
 }
 
-void interpolate_patch(FArrayBox& patch, const Box& region,
+class task_interpolate_patch : public task
+{
+public:
+    task_interpolate_patch(MultiFab& dmf_, int dgrid_, const Box& dbx_,
+	const MultiFab& smf_, const IntVect& rat_,
+	const amr_interpolator_class& interp_, const level_interface& lev_interface_)
+	: dmf(dmf_), dgrid(dgrid_), dbx(dbx_),
+	smf(smf_), rat(rat_), interp(interp_), lev_interface(lev_interface_)
+    {
+    }
+    virtual bool ready()
+    {
+	return true;
+    }
+private:
+    MultiFab& dmf;
+    const int dgrid;
+    const Box dbx;
+    const MultiFab& smf;
+    const IntVect rat;
+    const amr_interpolator_class& interp;
+    const level_interface& lev_interface;
+};
+
+class task_interp_fill : public task
+{
+public:
+    task_interp_fill(const amr_interpolator_class& interp_,
+	MultiFab& dmf_, int dgrid_, const Box& dbx_,
+	task_fab* atask_, const Box& sbx_, const IntVect& rat_)
+	: interp(interp_), dmf(dmf_), dgrid(dgrid_), dbx(dbx_), atask(atask_), sbx(sbx_), rat(rat_) {}
+    virtual bool ready()
+    {
+	atask->ready();
+	interp.fill(dmf[dgrid], dbx, atask->fab(), sbx, rat);
+	return true;
+    }
+private:
+    const amr_interpolator_class& interp;
+    MultiFab& dmf;
+    const int dgrid;
+    const Box dbx;
+    task_fab* atask;
+    const Box sbx;
+    const IntVect rat;
+};
+
+void interpolate_patch(MultiFab& dmf, int dgrid, const Box& region,
 		       const MultiFab& r, const IntVect& rat,
 		       const amr_interpolator_class& interp,
 		       const level_interface& lev_interface)
 {
+    FArrayBox& patch = dmf[dgrid];
     assert(region.sameType(patch.box()));
     const Box cb = interp.box(region, rat);
     const int jgrid = find_patch(cb, r);
@@ -711,4 +760,3 @@ void restrict_level(MultiFab& dest,
 	restric.fill_interface( dest, r, lev_interface, bdy, rat);
     }
 }
-

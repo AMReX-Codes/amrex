@@ -658,7 +658,7 @@ void holy_grail_amr_multigrid::sync_interfaces()
 	    const Box& nbox = lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
 	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(level_interface::FACEDIM, iface) )
 		continue;
-	    interpolate_patch(target[igrid], nbox, dest[lev-1], rat, bilinear_interpolator_class(), lev_interface[mgc]);
+	    interpolate_patch(target, igrid, nbox, dest[lev-1], rat, bilinear_interpolator_class(), lev_interface[mgc]);
 	}
     }
 }
@@ -686,7 +686,7 @@ void holy_grail_amr_multigrid::sync_periodic_interfaces()
 	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(level_interface::FACEDIM, iface) )
 		continue;
 	    if ( idomain.intersects(nbox) ) continue;
-	    interpolate_patch(target[igrid], nbox, dest[lev-1], rat, bilinear_interpolator_class(), lev_interface[mgc]);
+	    interpolate_patch(target ,igrid, nbox, dest[lev-1], rat, bilinear_interpolator_class(), lev_interface[mgc]);
 	}
     }
 }
@@ -786,7 +786,8 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 	    {
 #if BL_SPACEDIM != 3
 		Real *sigptr[BL_SPACEDIM];
-		for (int i = 0; i < BL_SPACEDIM; i++) {
+		for (int i = 0; i < BL_SPACEDIM; i++) 
+		{
 		    sigptr[i] = sigma_nd[i][ltmp][igrid].dataPtr();
 		}
 		const Box& sigbox = sigma_nd[0][ltmp][igrid].box();
@@ -797,7 +798,7 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 		hgi = new holy_grail_interpolator_class(sigptr, sigbox);
 #endif
 	    }
-	    interpolate_patch(target[igrid], target.box(igrid), corr[lfrom], rat, *hgi, lev_interface[lfrom]);
+	    interpolate_patch(target ,igrid, target.box(igrid), corr[lfrom], rat, *hgi, lev_interface[lfrom]);
 	    delete hgi;
 	}
 	if (lto > ltmp) 
