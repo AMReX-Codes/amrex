@@ -35,7 +35,7 @@ bool task_copy::depends_on_q(const task* t1) const
     }
     else
     {
-	BoxLib::Abort( "Nightmare in task_copy::depends_on_q" );
+	throw( "task_copy::depends_on_q(): Can't Happen" );
     }
     return false;
 }
@@ -96,7 +96,7 @@ void task_copy::startup()
     }
     else
     {
-	BoxLib::Abort( "task_copy::ready: Can't be here" );
+	throw( "task_copy::ready(): Can't be here" );
 	// neither fab lives on local processor
     }
     m_started = true;
@@ -168,7 +168,7 @@ void task_copy::hint() const
 // TASK_COPY_LOCAL
 
 task_copy_local::task_copy_local(FArrayBox& fab_, const MultiFab& smf_, int grid, const Box& bx)
-: m_fab(fab_), m_smf(smf_), m_sgrid(grid), m_bx(bx)
+    : m_fab(fab_), m_smf(smf_), m_sgrid(grid), m_bx(bx)
 {
     m_local = true;
     m_fab.copy(m_smf[m_sgrid]);
@@ -180,7 +180,7 @@ task_copy_local::~task_copy_local()
 
 bool task_copy_local::ready()
 { 
-    BoxLib::Abort( "FIXME task_copy_local::ready" );
+    throw( "task_copy_local::ready(): FIXME" );
     return m_local;
 }
 
@@ -193,7 +193,7 @@ bool task_copy_local::depends_on_q(const task* t1) const
     }
     else
     {
-	BoxLib::Abort( "Nightmare in task_copy_local::depends_on_q" );
+	throw( "task_copy_local::depends_on_q(): Can't Happen" );
     }
     return false;
 }
@@ -230,7 +230,7 @@ void task_copy_local::startup()
 #endif
     else
     {
-	BoxLib::Abort( "task_copy::ready: Can't be here" );
+	throw( "task_copy::ready(): Can't Happen" );
 	// neither fab lives on local processor
     }
     m_started = true;
@@ -309,14 +309,34 @@ void task_list::add_task(task* t)
     }
 }
 
+// TASK_FAB
+
+const FArrayBox& task_fab::fab()
+{
+    return *target;
+}
+
+bool task_fab::init(sequence_number sno, MPI_Comm comm)
+{
+    if ( local_target )
+    {
+	target = new FArrayBox(region, ncomp);
+    }
+    return true;
+}
+
 // TASK_FAB_GET
 
-task_fab_get::task_fab_get(const MultiFab& d_, int dgrid_, const MultiFab& s_, int sgrid_, const Box& bx_) 
-    : d(d_), dgrid(dgrid_), s(s_), sgrid(sgrid_), bx(bx_) {}
-
-const FArrayBox& task_fab_get::fab()
+bool task_fab_get::init(sequence_number sno, MPI_Comm comm)
 {
-    return s[sgrid];
+    task_fab::init(sno, comm);
+    throw( "task_fab_get::init(): FIXME" );
+    return false;
+}
+
+task_fab_get::task_fab_get(const MultiFab& d_, int dgrid_, const Box& bx_, const MultiFab& s_, int sgrid_) 
+    : s(s_), sgrid(sgrid_), bx(bx_), task_fab(d_, dgrid_, bx_, s_.nComp())
+{
 }
 
 task_fab_get::~task_fab_get()
@@ -325,6 +345,6 @@ task_fab_get::~task_fab_get()
 
 bool task_fab_get::ready()
 {
-    BoxLib::Abort( "FIXME task_fab_get::ready" );
+    throw( "task_fab_get::ready(): FIXME" );
     return true;
 }

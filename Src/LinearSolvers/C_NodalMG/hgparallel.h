@@ -75,6 +75,22 @@ protected:
     MPI_Comm m_comm;
 };
 
+// The list...
+class task_list
+{
+public:
+    task_list(MPI_Comm comm = MPI_COMM_WORLD);
+    ~task_list();
+    void add_task(task* t);
+    void execute();
+private:
+    list< task** > tasks;
+    MPI_Comm comm;
+    task::sequence_number seq_no;
+    bool verbose;
+    static bool def_verbose;
+};
+
 class task_copy : public task
 {
 public:
@@ -106,7 +122,7 @@ public:
     virtual bool ready();
     virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	BoxLib::Abort( "FIXME task_copy_local::init" );
+	throw( "task_copy_local::init(): FIXME" );
 	return false;
     }
     virtual bool depends_on_q(const task* t) const;
@@ -121,65 +137,39 @@ private:
     bool m_local;
 };
 
+class level_interface;
+class amr_boundary_class;
+
 class task_fab : public task
 {
 public:
-    virtual const FArrayBox& fab() = 0;
-    virtual bool init(sequence_number sno, MPI_Comm comm) = 0;
-};
-
-class task_fab_get : public task_fab
-{
-public:
-    task_fab_get(const MultiFab& d_, int dgrid_, const MultiFab& s_, int sgrid_, const Box& bx);
-    virtual ~task_fab_get();
-    virtual const FArrayBox& fab();
-    virtual bool ready();
-    virtual bool init(sequence_number sno, MPI_Comm comm)
+    task_fab(const MultiFab&t_, int tt_, const Box& region_, int ncomp_)
+	: local_target(is_local(t_, tt_)), region(region_), ncomp(ncomp_), target(0) {}
+    virtual ~task_fab()
     {
-	BoxLib::Abort( "FIXME task_fab_get::init" );
-	return false;
+	delete target;
     }
-private:
-    const MultiFab& s;
-    const MultiFab& d;
-    const int dgrid;
-    const int sgrid;
-    const Box bx;
+    virtual const FArrayBox& fab();
+    virtual bool init(sequence_number sno, MPI_Comm comm);
+protected:
+    const Box region;
+    const int ncomp;
+    FArrayBox* target;
+    bool local_target;
 };
-
-class task_list
-{
-public:
-    task_list(MPI_Comm comm = MPI_COMM_WORLD);
-    ~task_list();
-    void add_task(task* t);
-    void execute();
-private:
-    list< task** > tasks;
-    MPI_Comm comm;
-    task::sequence_number seq_no;
-    bool verbose;
-    static bool def_verbose;
-};
-
-class level_interface;
-class amr_boundary_class;
 
 class task_fill_patch : public task_fab
 {
 public:
-    task_fill_patch(const Box& region_, const MultiFab& r_, const level_interface& lev_interface_, const amr_boundary_class* bdy_, int idim_ = 0, int index_ = 0);
+    task_fill_patch(const MultiFab& t_, int tt_, const Box& region_, const MultiFab& r_, const level_interface& lev_interface_, const amr_boundary_class* bdy_, int idim_ = 0, int index_ = 0);
     virtual ~task_fill_patch();
-    virtual const FArrayBox& fab();
     virtual bool ready();
     virtual bool init(sequence_number sno, MPI_Comm comm);
 private:
     bool fill_patch_blindly();
     bool fill_exterior_patch_blindly();
     void fill_patch();
-    FArrayBox* target;
-    const Box region;
+private:
     const MultiFab& r;
     const level_interface& lev_interface;
     const amr_boundary_class* bdy;
@@ -188,42 +178,17 @@ private:
     task_list tl;
 };
 
-class task_linked_task : public task
+class task_fab_get : public task_fab
 {
 public:
-    task_linked_task(task* t_) : lcpt(t_) {}
-    virtual bool ready() { return lcpt->ready(); }
-    virtual bool init(sequence_number no, MPI_Comm comm) { return lcpt->init(no, comm); }
+    task_fab_get(const MultiFab& d_, int dgrid_, const Box& bx, const MultiFab& s_, int sgrid_);
+    virtual ~task_fab_get();
+    virtual bool ready();
+    virtual bool init(sequence_number sno, MPI_Comm comm);
 private:
-    LnClassPtr<task> lcpt;
-};
-
-class task_copy_link : public task
-{
-public:
-    task_copy_link(MultiFab& m_, int jgrid_, int igrid_, const Box& freg_, const task_linked_task& t_)
-	: m(m_), jgrid(jgrid_), igrid(igrid_), freg(freg_), t(t_) {}
-    virtual bool ready()
-    {
-	BoxLib::Abort( "FIXME task_copy_link::ready" );
-	if ( t.ready() )
-	{
-	    m[jgrid].copy(m[igrid], freg);
-	    return true;
-	}
-	return false;
-    }
-    virtual bool init(sequence_number sno, MPI_Comm comm)
-    {
-	BoxLib::Abort( "FIXME task_copy_link::init" );
-	return false;
-    }
-private:
-    MultiFab& m;
-    const int igrid;
-    const int jgrid;
-    const Box freg;
-    task_linked_task t;
+    const MultiFab& s;
+    const int sgrid;
+    const Box bx;
 };
 
 #endif

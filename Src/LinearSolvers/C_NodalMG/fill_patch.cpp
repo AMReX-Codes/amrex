@@ -22,13 +22,6 @@ extern "C"
 #endif
 }
 
-/*
-void internal_copy(MultiFab& r, int destgrid, int srcgrid, const Box& b) 
-{
-    r[destgrid].copy(r[srcgrid], b);
-}
-*/
-
 Real inner_product(const MultiFab& r, const MultiFab& s)
 {
     assert(r.ok() && s.ok());
@@ -62,24 +55,70 @@ Real inner_product(const MultiFab& r, const MultiFab& s)
     }
     else 
     {
-	BoxLib::Abort( "inner_product---only supported for CELL- or NODE-based data" );
+	throw( "inner_product(): only supported for CELL- or NODE-based data" );
     }
     ParallelDescriptor::ReduceRealSum(sum);
     return sum;
 }
 
-
-/*
-int find_patch(const Box& region, const MultiFab& r)
+// TASK_BDY_FILL
+class task_bdy_fill : public task
 {
-    for (int igrid = 0; igrid < r.length(); igrid++) 
+public:
+    task_bdy_fill(const amr_boundary_class* bdy_, FArrayBox& fab_, const Box& region_, const MultiFab& src_, int grid_, const Box& domain_);
+    virtual bool ready();
+    virtual bool init(sequence_number sno, MPI_Comm comm)
     {
-	if (r.box(igrid).contains(region))
-	    return igrid;
+	throw( "task_bdy_fill::init(): FIXME" );
+	return false;
     }
-    return -1;
+private:
+    const amr_boundary_class* bdy;
+    FArrayBox& fab;
+    const Box region;
+    const MultiFab& src;
+    const int grid;
+    const Box& domain;
+};
+
+task_bdy_fill::task_bdy_fill(const amr_boundary_class* bdy_, FArrayBox& fab_, const Box& region_, const MultiFab& src_, int grid_, const Box& domain_)
+    : bdy(bdy_), fab(fab_), region(region_), src(src_), grid(grid_), domain(domain_)
+{
 }
-*/
+
+bool task_bdy_fill::ready()
+{
+    throw( "task_bdy_fill::ready(): FIXME" );
+    bdy->fill(fab, region, src[grid], domain);
+    return true;
+}
+
+// TASK_FILL_PATCH
+
+task_fill_patch::task_fill_patch(const MultiFab& t_, int tt_, const Box& region_, const MultiFab& r_, const level_interface& lev_interface_, const amr_boundary_class* bdy_, int idim_, int index_)
+    : r(r_), lev_interface(lev_interface_), bdy(bdy_), idim(idim_), index(index_), task_fab(t_, tt_, region_, r_.nComp())
+{
+}
+
+bool task_fill_patch::init(sequence_number sno, MPI_Comm comm)
+{
+    task_fab::init(sno, comm);
+    throw( "task_fill_patch::init(): FIXME" ) ;
+    return true;
+}
+
+task_fill_patch::~task_fill_patch()
+{
+    throw( "task_fill_patch::~task_fill_patch(): FIXME" );
+}
+
+bool task_fill_patch::ready()
+{
+    throw( "task_fill_patch::ready(): FIXME" );
+    fill_patch();
+    tl.execute();
+    return true;
+}
 
 bool task_fill_patch::fill_patch_blindly()
 {
@@ -104,37 +143,6 @@ bool task_fill_patch::fill_patch_blindly()
 	}
     }
     return false;
-}
-
-class task_bdy_fill : public task
-{
-public:
-    task_bdy_fill(const amr_boundary_class* bdy_, FArrayBox& fab_, const Box& region_, const MultiFab& src_, int grid_, const Box& domain_);
-    virtual bool ready();
-    virtual bool init(sequence_number sno, MPI_Comm comm)
-    {
-	BoxLib::Abort( "FIXME task_bdy_fill::init" );
-	return false;
-    }
-private:
-    const amr_boundary_class* bdy;
-    FArrayBox& fab;
-    const Box region;
-    const MultiFab& src;
-    const int grid;
-    const Box& domain;
-};
-
-task_bdy_fill::task_bdy_fill(const amr_boundary_class* bdy_, FArrayBox& fab_, const Box& region_, const MultiFab& src_, int grid_, const Box& domain_)
-    : bdy(bdy_), fab(fab_), region(region_), src(src_), grid(grid_), domain(domain_)
-{
-}
-
-bool task_bdy_fill::ready()
-{
-    BoxLib::Abort( "FIXME task_bdy_fill::ready" );
-    bdy->fill(fab, region, src[grid], domain);
-    return true;
 }
 
 bool task_fill_patch::fill_exterior_patch_blindly()
@@ -229,7 +237,10 @@ void task_fill_patch::fill_patch()
 			    tb.convert(type(r));
 			    tb &= region;
 			    assert( bdy != 0 );
-			    bdy->fill(*target, tb, r[lev_interface.direct_exterior_ref(igrid)], lev_interface.domain());
+			    tl.add_task(
+				new task_bdy_fill(bdy, *target, tb, r, lev_interface.direct_exterior_ref(igrid), lev_interface.domain())
+				);
+			    // bdy->fill(*target, tb, r[lev_interface.direct_exterior_ref(igrid)], lev_interface.domain());
 			}
 			break;
 		    }
@@ -237,39 +248,6 @@ void task_fill_patch::fill_patch()
 	    }
 	}
     }
-}
-
-task_fill_patch::task_fill_patch(const Box& region_, const MultiFab& r_, const level_interface& lev_interface_, const amr_boundary_class* bdy_, int idim_, int index_)
-    : region(region_), target(0), r(r_), lev_interface(lev_interface_), bdy(bdy_), idim(idim_), index(index_)
-{
-}
-
-bool task_fill_patch::init(sequence_number, MPI_Comm comm)
-{
-    BoxLib::Abort( "FIXME task_fill_patch::init" ) ;
-    target = new FArrayBox(region, r.nComp());
-    return true;
-}
-
-task_fill_patch::~task_fill_patch()
-{
-    BoxLib::Abort( "FIXME task_fill_patch::~task_fill_patch" );
-    delete target;
-}
-
-bool task_fill_patch::ready()
-{
-    BoxLib::Abort( "FIXME task_fill_patch::ready" );
-    fill_patch();
-    tl.execute();
-    return true;
-}
-
-const FArrayBox& task_fill_patch::fab()
-{
-    BoxLib::Abort( "FIXME task_fill_patch::fab" );
-    ready();
-    return *target;
 }
 
 static void sync_internal_borders(MultiFab& r, const level_interface& lev_interface)
@@ -565,8 +543,7 @@ void clear_part_interface(MultiFab& r, const level_interface& lev_interface)
 class task_restric_fill : public task_copy
 {
 public:
-    task_restric_fill(const amr_restrictor_class& restric,
-	MultiFab& dest, int dgrid, MultiFab& r, int rgrid, const Box& box, const IntVect& rat)
+    task_restric_fill(const amr_restrictor_class& restric, MultiFab& dest, int dgrid, MultiFab& r, int rgrid, const Box& box, const IntVect& rat)
 	: m_restric(restric), task_copy(dest, dgrid, r, rgrid, box), m_rat(rat)
     {
     }
@@ -600,11 +577,7 @@ bool task_restric_fill::ready()
     return false;
 }
 
-void restrict_level(MultiFab& dest, 
-		    MultiFab& r, const IntVect& rat,
-		    const amr_restrictor_class& restric,
-		    const level_interface& lev_interface,
-		    const amr_boundary_class* bdy)
+void restrict_level(MultiFab& dest, MultiFab& r, const IntVect& rat, const amr_restrictor_class& restric, const level_interface& lev_interface, const amr_boundary_class* bdy)
 {
     assert(type(dest) == type(r));
     HG_TEST_NORM( dest, "restrict_level a");
