@@ -491,7 +491,7 @@ contains
           hi = upb(box_intersection(cbox_refined,fbox_grown))
           fp => dataptr(fine, i)
           cp => dataptr(crse, i)
-          do n = 0, nc - 1
+          do n = 0, lnc - 1
              select case (dm)
              case (1)
                 if ( cell_centered_q(crse) ) then

@@ -82,18 +82,21 @@ contains
 
   end subroutine read_a_mglib_grid
 
-  subroutine read_a_hgproj_grid(mba, str)
+  subroutine read_a_hgproj_grid(mba, str, max_lev_of_mba)
     use bl_IO_module
     type(mboxarray), intent(out) :: mba
     character(len=*), intent(in) :: str
+    integer, optional, intent(in) :: max_lev_of_mba
     integer :: un, n, nl
     type(box) :: bx1
     type(box), allocatable:: bxs(:)
     integer :: i, j
- 
+    integer :: tml
+    tml = Huge(tml); if ( present(max_lev_of_mba) ) tml = max_lev_of_mba
     un = unit_new()
     open(unit=un, file=str, status = 'old', action = 'read')
     read(unit=un, fmt=*) nl
+    nl = min(tml, nl)
     call build(mba, nl)
     do i = 1, nl
        call box_read(bx1, un)
