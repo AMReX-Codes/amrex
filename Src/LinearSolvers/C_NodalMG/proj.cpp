@@ -285,15 +285,12 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 #  if (BL_SPACEDIM == 2)
     rhoinv.set(ilev, new MultiFab(cmesh, 3, 0));
     rhoinv[ilev].setVal(1.0);
-    //rhoinv[ilev].setVal(0.0, 2, 1);
     rhoinv[ilev].setVal(0.2, 2, 1);
 #  else
     rhoinv.set(ilev, new MultiFab(cmesh, 5, 0));
     rhoinv[ilev].setVal(1.0);
-    //rhoinv[ilev].setVal(0.2, 3, 1);
-    //rhoinv[ilev].setVal(0.5, 4, 1);
-    rhoinv[ilev].setVal(0.0, 3, 1);
-    rhoinv[ilev].setVal(0.0, 4, 1);
+    rhoinv[ilev].setVal(0.2, 3, 1);
+    rhoinv[ilev].setVal(0.5, 4, 1);
 #  endif
 #else
     rhoinv.set(ilev, new MultiFab(cmesh, 1, 0));
