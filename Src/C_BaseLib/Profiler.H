@@ -5,10 +5,6 @@
 #include <string>
 #include <typeinfo>
 
-#ifdef BL_NAMESPACE
-namespace BoxLib
-#endif
-
 class Profiler
 {
 public:
@@ -56,17 +52,13 @@ Profiler bl_prf_##var(bl_prf_tag_##var, true)
 
 #define BL_PROFILE_START(var) bl_prf_##var.start()
 #define BL_PROFILE_STOP(var) bl_prf_##var.stop()
-#define BL_PROFILE_THIS_NAME() BoxLib::Profiler::clean_name(std::string(typeid(*this).name()))
+#define BL_PROFILE_THIS_NAME() Profiler::clean_name(std::string(typeid(*this).name()))
 #else
 #define BL_PROFILE(a)
 #define BL_PROFILE_TIMER(var, a)
 #define BL_PROFILE_START(var)
 #define BL_PROFILE_STOP(var)
 #define BL_PROFILE_THIS_NAME()
-#endif
-
-#ifdef BL_NAMESPACE
-}
 #endif
 
 #endif

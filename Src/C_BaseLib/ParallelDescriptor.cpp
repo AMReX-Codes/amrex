@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.75 2001-07-19 21:11:50 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.76 2001-07-20 04:46:21 car Exp $
 //
 
 #include <Utility.H>
@@ -746,3 +746,4 @@ FORT_BL_PD_ABORT ()
 {
     ParallelDescriptor::Abort();
 }
+

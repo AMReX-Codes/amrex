@@ -2,9 +2,10 @@
 #define BL_ASTRING_H
 
 //
-// $Id: aString.H,v 1.14 2001-07-19 20:02:48 lijewski Exp $
+// $Id: aString.H,v 1.15 2001-07-20 04:46:22 car Exp $
 //
 
+#include <string>
 #include <iostream>
 #include <cstring>
 #include <cstdlib>
@@ -16,118 +17,6 @@
 
 class aString;
 
-//
-//@ManDoc: Write to an ostream in ASCII format.
-//
-std::ostream& operator<< (std::ostream& os, const aString& str);
-
-/*@ManDoc: Read a whitespace delimited string from an istream.
-               This function discards leading whitespace and then reads
-               in non-whitespace character until the next whitespace
-               character or end-of-file.  Note that there is no limit,
-               on the length of the character that can be read in, except
-               that dictated by the resources of the machine.
-               Note  also that operator>> and operator<< are not completely
-               symmetrical in the case where operator<< writes out a
-               string that contains whitespace.  If you're trying to
-               read in a string that contains whitespace, you might
-               want to use getline() instead.
-    */
-std::istream& operator>> (std::istream& is, aString& str);
-//
-// Catenate.
-//
-aString operator+  (const aString& left, const aString& right);
-//
-// Is left lexically less than right?
-//
-bool operator<  (const aString& left, const aString& right);
-//
-// Is left lexically less than or equal to right?
-//
-bool operator<= (const aString& left, const aString& right);
-//
-// Is left not equal to right?
-//
-bool operator!= (const aString& left, const aString& right);
-//
-// Is left equal to right?
-//
-bool operator== (const aString& left, const aString& right);
-//
-// Is left lexically greater than or equal to right?
-//
-bool operator>= (const aString& left, const aString& right);
-//
-// Is left lexically greater than right?
-//
-bool operator>  (const aString& left, const aString& right);
-//
-// Is left lexically less than right?
-//
-bool operator<  (const aString& left, const char*    right);
-//
-// Is left lexically less than or equal to right?
-//
-bool operator<= (const aString& left, const char*    right);
-//
-// Is left not equal to right?
-//
-bool operator!= (const aString& left, const char*    right);
-//
-// Is left equal to right?
-//
-bool operator== (const aString& left, const char*    right);
-//
-// Is left lexically greater than or equal to right?
-//
-bool operator>= (const aString& left, const char*    right);
-//
-// Is left lexically greater than right?
-//
-bool operator>  (const aString& left, const char*    right);
-//
-// Is left lexically less than right?
-//
-bool operator<  (const char*    left, const aString& right);
-//
-// Is left lexically less than or equal to right?
-//
-bool operator<= (const char*    left, const aString& right);
-//
-// Is left not equal to right?
-//
-bool operator!= (const char*    left, const aString& right);
-//
-// Is left equal to right?
-//
-bool operator== (const char*    left, const aString& right);
-//
-// Is left lexically greater than or equal to right?
-//
-bool operator>= (const char*    left, const aString& right);
-//
-// Is left lexically greater than right?
-//
-bool operator>  (const char*    left, const aString& right);
-
-//
-// Helper class for class aString.
-//
-
-class StringRep
-{
-    friend class aString;
-    char* s;
-    int   bufferlength;
-public:
-    explicit StringRep (int _len = 0);
-    ~StringRep ();
-    //
-    // Resized the buffer and copies the contents of old buffer to new one.
-    //
-    void resize (int n);
-};
 
 //
 //@Man:
@@ -152,6 +41,7 @@ public:
 */
 
 class aString
+    : public std::string
 {
 public:
     //
@@ -172,38 +62,14 @@ public:
                on an empty string.  In general though, you won't notice any
                difference and you really shouldn't use this constructor.
     */
+    aString(const std::string& str);
+    
     explicit aString (int len);
 
     /*@ManDoc: Constructs an aString initialized to the character string s.
                It is an error is `s' is the null string.
     */
     aString (const char* s);
-    //
-    //@ManDoc: The copy constructor.
-    //
-    aString (const aString& rhs);
-    //
-    //@ManDoc: The assignment operator
-    //
-    aString& operator= (const aString& rhs);
-
-    /*@ManDoc: Catenate aString right onto end of this aString.  Return a
-               reference to self to allow for operator chaining.
-    */
-    aString& operator+= (const aString& right);
-
-    /*@ManDoc: Catenate character string right onto end of this aString.
-               Returns a reference to self to allow for operator chaining.
-               It is an error is `right' is the null string.
-    */
-    aString& operator+= (const char* right);
-
-    /*@ManDoc: Catenate character c onto end of this aString.
-               Returns a reference to self to allow for operator chaining.
-               This does nothing if c is the null character.
-    */
-    aString& operator+= (char c);
-
     /*@ManDoc: Converts all characters in this aString to upper case.
                Returns a reference to self to allow for operator chaining.
     */
@@ -221,10 +87,6 @@ public:
                limit to the length of string that can be extracted.
     */
     std::istream& getline (std::istream& strm);
-    //
-    //@ManDoc: Returns the tokens in the aString.
-    //
-    std::vector<aString> tokenize (const aString& separators) const;
 
     /*@ManDoc: Returns the number of characters stored in this aString.
                This does not include the terminating null character.
@@ -246,10 +108,6 @@ public:
     */
     char operator[] (int k) const;
 
-    /*@ManDoc: Convert an aString to a const char *.  This allows an aString
-               to be used in any context where a const char* type is needed.
-    */
-    const char* c_str () const;
 
     /*@ManDoc: Returns the value of the string as a double.  In the case
                when the string is empty or when the initial characters
@@ -272,12 +130,6 @@ public:
     */
     long toLong () const;
 
-protected:
-    void copyModify ();
-
-private:
-    LnClassPtr<StringRep> p;
-    int                   len;
 };
 
 #endif /*BL_ASTRING_H*/

@@ -1,4 +1,4 @@
-#include <BoxLib/Thread.H>
+#include <Thread.H>
 
 #include <unistd.h>
 #include <sys/resource.h>
@@ -19,14 +19,14 @@ do									\
 {									\
   if ( !(x) )								\
     {									\
-      throw BoxLib::Thread::thread_error(__FILE__, __LINE__, #x );	\
+      BoxLib::Error(#x );	\
     }									\
 }									\
 while ( false )
 
-int BoxLib::Thread::m_next_id = 0;
-BoxLib::Mutex BoxLib::Thread::next_id;
-BoxLib::ThreadSpecificData<BoxLib::Thread> BoxLib::Thread::m_self(0,0);
+int Thread::m_next_id = 0;
+Mutex Thread::next_id;
+ThreadSpecificData<Thread> Thread::m_self(0,0);
 
 namespace
 {
@@ -51,38 +51,38 @@ the_message_string(const char* file, int line, const char* call, int status)
 }
 }
 
-BoxLib::Thread::thread_error::thread_error(const char* file, int line, const char* call, int status)
+Thread::thread_error::thread_error(const char* file, int line, const char* call, int status)
     : std::runtime_error( the_message_string(file, line, call, status) )
 {
 }
 
 int
-BoxLib::Thread::get_next_id()
+Thread::get_next_id()
 {
     Lock<Mutex> lock(next_id);
     int nid = m_next_id++;
     return nid;
 }
 
-BoxLib::Thread::Thread()
+Thread::Thread()
     : m_status(Created), m_id(get_next_id()), m_jod(false)
 {
 }
 
 pthread_t&
-BoxLib::Thread::theThread()
+Thread::theThread()
 {
     return m_tid;
 }
 
 int
-BoxLib::Thread::getID() const
+Thread::getID() const
 {
     return m_id;
 }
 
 void*
-BoxLib::Thread::_doit(void* arg)
+Thread::_doit(void* arg)
 {
     try
     {
@@ -103,14 +103,14 @@ BoxLib::Thread::_doit(void* arg)
     return 0;
 }
 
-BoxLib::Thread*
-BoxLib::Thread::self()
+Thread*
+Thread::self()
 {
     return m_self.get();
 }
 
 void
-BoxLib::Thread::sleep(const Time& spec_)
+Thread::sleep(const Time& spec_)
 {
 #ifndef BL_USE_NANOSLEEP
     unsigned long tosleep = spec_.as_long();
@@ -141,14 +141,14 @@ BoxLib::Thread::sleep(const Time& spec_)
 // Barrier
 //
 
-BoxLib::Barrier::Barrier(int i)
+Barrier::Barrier(int i)
     : count(0), n_sleepers(0), releasing(false)
 {
     init(i);
 }
 
 void
-BoxLib::Barrier::init(int i)
+Barrier::init(int i)
 {
     THREAD_ASSERT( !releasing );
     THREAD_ASSERT( n_sleepers == 0 );
@@ -156,7 +156,7 @@ BoxLib::Barrier::init(int i)
 }
 
 void
-BoxLib::Barrier::wait()
+Barrier::wait()
 {
     BL_PROFILE( BL_PROFILE_THIS_NAME() + "::wait()" );
     bool release = false;
@@ -198,13 +198,13 @@ BoxLib::Barrier::wait()
 // Semaphore
 //
 
-BoxLib::Semaphore::Semaphore(int val_)
+Semaphore::Semaphore(int val_)
     : value(val_)
 {
 }
 
 void
-BoxLib::Semaphore::wait()
+Semaphore::wait()
 {
     BL_PROFILE( BL_PROFILE_THIS_NAME() + "::wait()" );
     lock();
@@ -217,7 +217,7 @@ BoxLib::Semaphore::wait()
 }
 
 bool
-BoxLib::Semaphore::trywait()
+Semaphore::trywait()
 {
     lock();
     if ( value == 0 )
@@ -231,7 +231,7 @@ BoxLib::Semaphore::trywait()
 }
 
 void
-BoxLib::Semaphore::post()
+Semaphore::post()
 {
     lock();
     value++;
@@ -244,12 +244,12 @@ BoxLib::Semaphore::post()
 //
 //
 
-BoxLib::SemaphoreB::SemaphoreB(int val_)
+SemaphoreB::SemaphoreB(int val_)
     : val(val_)
 {}
 
 int
-BoxLib::SemaphoreB::down()
+SemaphoreB::down()
 {
     lock();
     while (val <= 0)
@@ -263,7 +263,7 @@ BoxLib::SemaphoreB::down()
 }
 
 int
-BoxLib::SemaphoreB::up()
+SemaphoreB::up()
 {
     lock();
     int t = ++val;
@@ -273,7 +273,7 @@ BoxLib::SemaphoreB::up()
 }
 
 int
-BoxLib::SemaphoreB::decrement()
+SemaphoreB::decrement()
 {
     lock();
     int t = --val;
@@ -282,7 +282,7 @@ BoxLib::SemaphoreB::decrement()
 }
 
 int
-BoxLib::SemaphoreB::value()
+SemaphoreB::value()
 {
     lock();
     int t = val;
@@ -294,13 +294,13 @@ BoxLib::SemaphoreB::value()
 // SingleBarrier
 //
 
-BoxLib::SingleBarrier::SingleBarrier(int i)
+SingleBarrier::SingleBarrier(int i)
     : count(i), n_posters(0), n_waiters(0), releasing(false)
 {
 }
 
 void
-BoxLib::SingleBarrier::wait()
+SingleBarrier::wait()
 {
     bool release = false;
     lock();
@@ -323,7 +323,7 @@ BoxLib::SingleBarrier::wait()
 }
 
 void
-BoxLib::SingleBarrier::post()
+SingleBarrier::post()
 {
     bool release = false;
     lock();
@@ -349,13 +349,13 @@ BoxLib::SingleBarrier::post()
 //Gate
 //
 
-BoxLib::Gate::Gate()
+Gate::Gate()
     : closed(true)
 {
 }
 
 void
-BoxLib::Gate::open()
+Gate::open()
 {
     lock();
     closed = false;
@@ -364,7 +364,7 @@ BoxLib::Gate::open()
 }
 
 void
-BoxLib::Gate::close()
+Gate::close()
 {
     lock();
     closed = true;
@@ -372,13 +372,13 @@ BoxLib::Gate::close()
 }
 
 void
-BoxLib::Gate::release()
+Gate::release()
 {
     broadcast();
 }
 
 void
-BoxLib::Gate::wait()
+Gate::wait()
 {
     BL_PROFILE( BL_PROFILE_THIS_NAME() + "::wait()" );
     lock();
@@ -391,16 +391,16 @@ BoxLib::Gate::wait()
 
 
 //
-// Lock<BoxLib::Semaphore> specialization
+// Lock<Semaphore> specialization
 //
 
-BoxLib::Lock<BoxLib::Semaphore>::Lock(Semaphore& sem_)
+Lock<Semaphore>::Lock(Semaphore& sem_)
     : sem(sem_)
 {
     sem.wait();
 }
 
-BoxLib::Lock<BoxLib::Semaphore>::~Lock()
+Lock<Semaphore>::~Lock()
 {
     sem.post();
 }
@@ -422,7 +422,7 @@ extern "C"
 // Thread
 //
 
-BoxLib::Thread::~Thread()
+Thread::~Thread()
 {
     if  ( m_status == Running && !m_jod )
     {
@@ -431,7 +431,7 @@ BoxLib::Thread::~Thread()
 }
 
 int
-BoxLib::Thread::max_threads()
+Thread::max_threads()
 {
 #ifdef PTHREAD_THREADS_MAX
     return PTHREAD_THREADS_MAX;
@@ -441,13 +441,13 @@ BoxLib::Thread::max_threads()
 }
 
 void
-BoxLib::Thread::run(DetachState instate)
+Thread::run(DetachState instate)
 {
     run(Attr(instate));
 }
 
 void
-BoxLib::Thread::run(const Attr& attr)
+Thread::run(const Attr& attr)
 {
     THREAD_ASSERT( m_status == Created );
     THREAD_ASSERT( !m_jod );
@@ -460,7 +460,7 @@ BoxLib::Thread::run(const Attr& attr)
 }
 
 void
-BoxLib::Thread::detach()
+Thread::detach()
 {
     THREAD_ASSERT( m_status == Running );
     THREAD_ASSERT( !m_jod );
@@ -469,7 +469,7 @@ BoxLib::Thread::detach()
 }
 
 void
-BoxLib::Thread::exit(void* st)
+Thread::exit(void* st)
 {
     if ( Thread* me = self() )
     {
@@ -482,7 +482,7 @@ BoxLib::Thread::exit(void* st)
 }
 
 void*
-BoxLib::Thread::join() const
+Thread::join() const
 {
     THREAD_ASSERT( m_status == Running );
     THREAD_ASSERT( !m_jod );
@@ -493,15 +493,15 @@ BoxLib::Thread::join() const
 }
 
 void
-BoxLib::Thread::yield()
+Thread::yield()
 {
 #ifdef _POSIX_PRIORITY_SCHEDULING
     sched_yield();
 #endif
 }
 
-BoxLib::Thread::CancelState
-BoxLib::Thread::setCancelState(CancelState state)
+Thread::CancelState
+Thread::setCancelState(CancelState state)
 {
     CancelState result;
     int newstate;
@@ -528,8 +528,8 @@ BoxLib::Thread::setCancelState(CancelState state)
     return result;
 }
 
-BoxLib::Thread::CancelType
-BoxLib::Thread::setCancelType(CancelType t)
+Thread::CancelType
+Thread::setCancelType(CancelType t)
 {
     CancelType result;
     int newtype;
@@ -557,13 +557,13 @@ BoxLib::Thread::setCancelType(CancelType t)
 }
 
 void
-BoxLib::Thread::testcancel()
+Thread::testcancel()
 {
     pthread_testcancel();
 }
 
 void
-BoxLib::Thread::cancel()
+Thread::cancel()
 {
     THREAD_ASSERT( m_status == Running );
     THREAD_REQUIRE( pthread_cancel(m_tid) );
@@ -571,16 +571,16 @@ BoxLib::Thread::cancel()
 
 
 //
-// BoxLib::Thread::Attr s.
+// Thread::Attr s.
 //
 
 bool
-BoxLib::Thread::Attr::isJoinable() const
+Thread::Attr::isJoinable() const
 {
     return m_is_joinable;
 }
 
-BoxLib::Thread::Attr::Attr(DetachState inistate)
+Thread::Attr::Attr(DetachState inistate)
     : m_is_joinable( true )
 {
     THREAD_REQUIRE( pthread_attr_init(&m_attr) );
@@ -597,13 +597,13 @@ BoxLib::Thread::Attr::Attr(DetachState inistate)
     }
 }
 
-BoxLib::Thread::Attr::~Attr()
+Thread::Attr::~Attr()
 {
     THREAD_REQUIRE( pthread_attr_destroy(&m_attr) );
 }
 
-BoxLib::Thread::DetachState
-BoxLib::Thread::Attr::get_detachstate() const
+Thread::DetachState
+Thread::Attr::get_detachstate() const
 {
     int l;
     THREAD_REQUIRE( pthread_attr_getdetachstate(&m_attr, &l) );
@@ -620,8 +620,8 @@ BoxLib::Thread::Attr::get_detachstate() const
     return result;
 }
 
-BoxLib::Thread::DetachState
-BoxLib::Thread::Attr::set_detachstate(Thread::DetachState ll)
+Thread::DetachState
+Thread::Attr::set_detachstate(Thread::DetachState ll)
 {
     int detachstate;
     switch ( ll )
@@ -639,8 +639,8 @@ BoxLib::Thread::Attr::set_detachstate(Thread::DetachState ll)
 }
 
 #ifdef _POSIX_THREAD_PRIORITY_SCHEDULING
-BoxLib::Thread::Attr::SchedPolicy
-BoxLib::Thread::Attr::get_schedpolicy() const
+Thread::Attr::SchedPolicy
+Thread::Attr::get_schedpolicy() const
 {
     int l;
     THREAD_REQUIRE( pthread_attr_getschedpolicy(&m_attr, &l) );
@@ -660,8 +660,8 @@ BoxLib::Thread::Attr::get_schedpolicy() const
     return result;
 }
 
-BoxLib::Thread::Attr::SchedPolicy
-BoxLib::Thread::Attr::set_schedpolicy(SchedPolicy schedpolicy)
+Thread::Attr::SchedPolicy
+Thread::Attr::set_schedpolicy(SchedPolicy schedpolicy)
 {
     int ll;
     switch ( schedpolicy )
@@ -675,8 +675,8 @@ BoxLib::Thread::Attr::set_schedpolicy(SchedPolicy schedpolicy)
     return l;
 }
 
-BoxLib::Thread::Attr::InheritSched
-BoxLib::Thread::Attr::get_inheritsched() const
+Thread::Attr::InheritSched
+Thread::Attr::get_inheritsched() const
 {
     int l;
     THREAD_REQUIRE( pthread_attr_getinheritsched(&m_attr, &l) );
@@ -693,8 +693,8 @@ BoxLib::Thread::Attr::get_inheritsched() const
     return result;
 }
 
-BoxLib::Thread::Attr::InheritSched
-BoxLib::Thread::Attr::set_inheritsched(InheritSched inheritsched)
+Thread::Attr::InheritSched
+Thread::Attr::set_inheritsched(InheritSched inheritsched)
 {
     int ll;
     switch ( inheritsched )
@@ -707,8 +707,8 @@ BoxLib::Thread::Attr::set_inheritsched(InheritSched inheritsched)
     return l;
 }
 
-BoxLib::Thread::Attr::SchedScope
-BoxLib::Thread::Attr::get_scope() const
+Thread::Attr::SchedScope
+Thread::Attr::get_scope() const
 {
     int l;
     THREAD_REQUIRE( pthread_attr_getscope(&m_attr, &l) );
@@ -725,8 +725,8 @@ BoxLib::Thread::Attr::get_scope() const
     return result;
 }
 
-BoxLib::Thread::Attr::SchedScope
-BoxLib::Thread::Attr::set_scope(SchedScope scope)
+Thread::Attr::SchedScope
+Thread::Attr::set_scope(SchedScope scope)
 {
     int ll;
     switch ( scope )
@@ -740,7 +740,7 @@ BoxLib::Thread::Attr::set_scope(SchedScope scope)
 }
 
 sched_param
-BoxLib::Thread::Attr::get_schedparam() const
+Thread::Attr::get_schedparam() const
 {
     sched_param l;
     THREAD_REQUIRE( pthread_attr_getschedparam(&m_attr, &l) );
@@ -748,7 +748,7 @@ BoxLib::Thread::Attr::get_schedparam() const
 }
 
 sched_param
-BoxLib::Thread::Attr::set_schedparam(const sched_param& schedparam)
+Thread::Attr::set_schedparam(const sched_param& schedparam)
 {
     sched_param l = get_schedparam();
     THREAD_REQUIRE( pthread_attr_setschedparam(&m_attr, &schedparam) );
@@ -762,12 +762,12 @@ BoxLib::Thread::Attr::set_schedparam(const sched_param& schedparam)
 //Mutex
 //
 
-BoxLib::Mutex::Mutex()
+Mutex::Mutex()
 {
     THREAD_REQUIRE( pthread_mutex_init(&m_mutex, 0) );
 }
 
-BoxLib::Mutex::Mutex(const Attr& attr)
+Mutex::Mutex(const Attr& attr)
 {
 #ifdef _AIX_PTHREADS_D7
     THREAD_REQUIRE( pthread_mutex_init(&m_mutex,
@@ -777,25 +777,25 @@ BoxLib::Mutex::Mutex(const Attr& attr)
 #endif
 }
 
-BoxLib::Mutex::~Mutex()
+Mutex::~Mutex()
 {
     THREAD_REQUIRE( pthread_mutex_destroy(&m_mutex) );
 }
 
 void
-BoxLib::Mutex::lock()
+Mutex::lock()
 {
     THREAD_REQUIRE( pthread_mutex_lock(&m_mutex) );
 }
 
 pthread_mutex_t&
-BoxLib::Mutex::theMutex()
+Mutex::theMutex()
 {
     return m_mutex;
 }
 
 bool
-BoxLib::Mutex::trylock()
+Mutex::trylock()
 {
     int status = pthread_mutex_trylock(&m_mutex);
     if ( status == 0 ) return true;
@@ -804,7 +804,7 @@ BoxLib::Mutex::trylock()
 }
 
 void
-BoxLib::Mutex::unlock()
+Mutex::unlock()
 {
     THREAD_REQUIRE( pthread_mutex_unlock(&m_mutex) );
 }
@@ -814,24 +814,24 @@ BoxLib::Mutex::unlock()
 // Mutex Atrributes
 //
 
-BoxLib::Mutex::Attr::Attr()
+Mutex::Attr::Attr()
 {
     THREAD_REQUIRE( pthread_mutexattr_init(&m_attr) );
 }
 
-BoxLib::Mutex::Attr::~Attr()
+Mutex::Attr::~Attr()
 {
     THREAD_REQUIRE( pthread_mutexattr_destroy(&m_attr) );
 }
 
 const pthread_mutexattr_t&
-BoxLib::Mutex::Attr::attribute() const
+Mutex::Attr::attribute() const
 {
     return m_attr;
 }
 
 pthread_mutexattr_t&
-BoxLib::Mutex::Attr::attribute()
+Mutex::Attr::attribute()
 {
     return m_attr;
 }
@@ -841,12 +841,12 @@ BoxLib::Mutex::Attr::attribute()
 // ConditionVariable
 //
 
-BoxLib::ConditionVariable::ConditionVariable()
+ConditionVariable::ConditionVariable()
 {
     THREAD_REQUIRE( pthread_cond_init(&m_cv, 0) );
 }
 
-BoxLib::ConditionVariable::ConditionVariable(const Attr& attr)
+ConditionVariable::ConditionVariable(const Attr& attr)
 {
 #ifdef _AIX_PTHREADS_D7
     THREAD_REQUIRE( pthread_cond_init(&m_cv,
@@ -856,37 +856,37 @@ BoxLib::ConditionVariable::ConditionVariable(const Attr& attr)
 #endif
 }
 
-BoxLib::ConditionVariable::~ConditionVariable()
+ConditionVariable::~ConditionVariable()
 {
     THREAD_REQUIRE( pthread_cond_destroy(&m_cv) );
 }
 
 void
-BoxLib::ConditionVariable::signal()
+ConditionVariable::signal()
 {
     THREAD_REQUIRE( pthread_cond_signal(&m_cv) );
 }
 
 void
-BoxLib::ConditionVariable::broadcast()
+ConditionVariable::broadcast()
 {
     THREAD_REQUIRE( pthread_cond_broadcast(&m_cv) );
 }
 
 void
-BoxLib::ConditionVariable::wait()
+ConditionVariable::wait()
 {
     THREAD_REQUIRE( pthread_cond_wait(&m_cv, &theMutex()) );
 }
 
 void
-BoxLib::ConditionVariable::wait(Mutex& m)
+ConditionVariable::wait(Mutex& m)
 {
     THREAD_REQUIRE( pthread_cond_wait(&m_cv, &m.theMutex()) );
 }
 
 bool
-BoxLib::ConditionVariable::timedwait(const Time& abstime)
+ConditionVariable::timedwait(const Time& abstime)
 {
     int status = pthread_cond_timedwait(&m_cv, &theMutex(), &abstime);
 
@@ -896,7 +896,7 @@ BoxLib::ConditionVariable::timedwait(const Time& abstime)
 }
 
 bool
-BoxLib::ConditionVariable::timedwait(Mutex& m, const Time& abstime)
+ConditionVariable::timedwait(Mutex& m, const Time& abstime)
 {
     int status = pthread_cond_timedwait(&m_cv, &m.theMutex(), &abstime);
 
@@ -906,7 +906,7 @@ BoxLib::ConditionVariable::timedwait(Mutex& m, const Time& abstime)
 }
 
 pthread_cond_t&
-BoxLib::ConditionVariable::theCV()
+ConditionVariable::theCV()
 {
     return m_cv;
 }
@@ -915,31 +915,31 @@ BoxLib::ConditionVariable::theCV()
 // ConditionVariable Attributes
 //
 
-BoxLib::ConditionVariable::Attr::Attr()
+ConditionVariable::Attr::Attr()
 {
     THREAD_REQUIRE( pthread_condattr_init(&m_attr) );
 }
 
-BoxLib::ConditionVariable::Attr::~Attr()
+ConditionVariable::Attr::~Attr()
 {
     THREAD_REQUIRE( pthread_condattr_destroy(&m_attr) );
 }
 
 const pthread_condattr_t&
-BoxLib::ConditionVariable::Attr::attribute() const
+ConditionVariable::Attr::attribute() const
 {
     return m_attr;
 }
 
 pthread_condattr_t&
-BoxLib::ConditionVariable::Attr::attribute()
+ConditionVariable::Attr::attribute()
 {
     return m_attr;
 }
 
 #ifdef _POSIX_THREAD_PROCESS_SHARED
-BoxLib::ConditionVariable::Attr::ProcessShared
-BoxLib::ConditionVariable::Attr::get_pshared() const
+ConditionVariable::Attr::ProcessShared
+ConditionVariable::Attr::get_pshared() const
 {
     ProcessShared result;
     int l;
@@ -956,8 +956,8 @@ BoxLib::ConditionVariable::Attr::get_pshared() const
     return result;
 }
 
-BoxLib::ConditionVariable::Attr::ProcessShared
-BoxLib::ConditionVariable::Attr::set_pshared(ProcessShared v)
+ConditionVariable::Attr::ProcessShared
+ConditionVariable::Attr::set_pshared(ProcessShared v)
 {
     int ll;
     switch ( v )
@@ -980,17 +980,17 @@ BoxLib::ConditionVariable::Attr::set_pshared(ProcessShared v)
 // RecursiveMutex
 //
 
-BoxLib::RecursiveMutex::RecursiveMutex()
+RecursiveMutex::RecursiveMutex()
     : count(0), owned(false)
 {
 }
 
-BoxLib::RecursiveMutex::~RecursiveMutex()
+RecursiveMutex::~RecursiveMutex()
 {
 }
 
 void
-BoxLib::RecursiveMutex::lock()
+RecursiveMutex::lock()
 {
     const pthread_t tid = pthread_self();
     Mutex::lock();
@@ -1005,7 +1005,7 @@ BoxLib::RecursiveMutex::lock()
 }
 
 bool
-BoxLib::RecursiveMutex::trylock()
+RecursiveMutex::trylock()
 {
     const pthread_t tid = pthread_self();
     Mutex::lock();
@@ -1022,7 +1022,7 @@ BoxLib::RecursiveMutex::trylock()
 }
 
 void
-BoxLib::RecursiveMutex::unlock()
+RecursiveMutex::unlock()
 {
     Mutex::lock();
     if ( --count == 0 )
@@ -1040,19 +1040,19 @@ BoxLib::RecursiveMutex::unlock()
 //Thread Specific Data
 //
 
-BoxLib::ThreadSpecificData<void>::ThreadSpecificData(void (*tsd)(void*))
+ThreadSpecificData<void>::ThreadSpecificData(void (*tsd)(void*))
 {
     THREAD_REQUIRE( pthread_key_create(&key, reinterpret_cast<thr_vvp>(tsd)) );
     THREAD_ASSERT(get() == 0);
 }
 
-BoxLib::ThreadSpecificData<void>::~ThreadSpecificData()
+ThreadSpecificData<void>::~ThreadSpecificData()
 {
     THREAD_REQUIRE( pthread_key_delete(key) );
 }
 
 void*
-BoxLib::ThreadSpecificData<void>::set(const void* v)
+ThreadSpecificData<void>::set(const void* v)
 {
     void* ov = pthread_getspecific(key);
     THREAD_REQUIRE( pthread_setspecific(key, v) );
@@ -1060,7 +1060,7 @@ BoxLib::ThreadSpecificData<void>::set(const void* v)
 }
 
 void*
-BoxLib::ThreadSpecificData<void>::get() const
+ThreadSpecificData<void>::get() const
 {
     return pthread_getspecific(key);
 }
@@ -1071,13 +1071,13 @@ BoxLib::ThreadSpecificData<void>::get() const
 //
 
 void
-BoxLib::RWLock::_rdlock_cleanup(void *arg)
+RWLock::_rdlock_cleanup(void *arg)
 {
     static_cast<ConditionVariable*>(arg)->unlock();
 }
 
 void
-BoxLib::RWLock::_wrlock_cleanup(void *arg)
+RWLock::_wrlock_cleanup(void *arg)
 {
     RWLock* rwp = static_cast<RWLock*>(arg);
     // Was the only queued writer and lock is available for readers.
@@ -1089,17 +1089,17 @@ BoxLib::RWLock::_wrlock_cleanup(void *arg)
     rwp->readers.unlock();
 }
 
-BoxLib::RWLock::RWLock()
+RWLock::RWLock()
     : state(0), waiters(0)
 {
 }
 
-BoxLib::RWLock::~RWLock()
+RWLock::~RWLock()
 {
 }
 
 void
-BoxLib::RWLock::rdlock()
+RWLock::rdlock()
 {
     readers.lock();
     pthread_cleanup_push(reinterpret_cast<thr_vvp>(_rdlock_cleanup), &readers);
@@ -1113,7 +1113,7 @@ BoxLib::RWLock::rdlock()
 }
 
 bool
-BoxLib::RWLock::tryrdlock()
+RWLock::tryrdlock()
 {
     bool result = false;
     Lock<ConditionVariable> lock(readers);
@@ -1127,7 +1127,7 @@ BoxLib::RWLock::tryrdlock()
 }
 
 void
-BoxLib::RWLock::wrlock()
+RWLock::wrlock()
 {
     readers.lock();
     waiters++;			// another writer queued
@@ -1142,7 +1142,7 @@ BoxLib::RWLock::wrlock()
 }
 
 bool
-BoxLib::RWLock::trywrlock()
+RWLock::trywrlock()
 {
     bool result = false;
     Lock<ConditionVariable> lock(readers);
@@ -1156,7 +1156,7 @@ BoxLib::RWLock::trywrlock()
 }
 
 void
-BoxLib::RWLock::unlock()
+RWLock::unlock()
 {
     Lock<ConditionVariable> lock(readers);
     if ( state == -1 )		// writer releasing
@@ -1182,7 +1182,7 @@ BoxLib::RWLock::unlock()
 
 
 
-BoxLib::FunctionThread::FunctionThread(Thread_Function func_, void* arg_, Thread::DetachState st)
+FunctionThread::FunctionThread(Thread_Function func_, void* arg_, Thread::DetachState st)
     : m_jod(false)
 {
     BL_PROFILE( BL_PROFILE_THIS_NAME() + "::FunctionThread()" );
@@ -1195,13 +1195,13 @@ BoxLib::FunctionThread::FunctionThread(Thread_Function func_, void* arg_, Thread
     THREAD_REQUIRE( pthread_create(&m_tid, &a, func_, arg_) );
 }
 
-BoxLib::FunctionThread::~FunctionThread()
+FunctionThread::~FunctionThread()
 {
     detach();
 }
 
 void*
-BoxLib::FunctionThread::join() const
+FunctionThread::join() const
 {
     BL_PROFILE( BL_PROFILE_THIS_NAME() + "::join()" );
     void* ret;
@@ -1214,7 +1214,7 @@ BoxLib::FunctionThread::join() const
 }
 
 void
-BoxLib::FunctionThread::detach() const
+FunctionThread::detach() const
 {
     BL_PROFILE( BL_PROFILE_THIS_NAME() + "::detach()" );
     if ( !m_jod )
@@ -1227,19 +1227,19 @@ BoxLib::FunctionThread::detach() const
 #else
 
 void
-BoxLib::Thread::run(DetachState inistate)
+Thread::run(DetachState inistate)
 {
     _doit(this);
 }
 
 void
-BoxLib::Thread::exit(void*)
+Thread::exit(void*)
 {
     std::exit(0);
 }
 
-BoxLib::Thread::CancelState
-BoxLib::Thread::setCancelState(CancelState)
+Thread::CancelState
+Thread::setCancelState(CancelState)
 {
     return Enable;
 }
@@ -1250,14 +1250,14 @@ BoxLib::Thread::setCancelState(CancelState)
 //
 
 bool
-BoxLib::ConditionVariable::timedwait(const BoxLib::Time& t)
+ConditionVariable::timedwait(const Time& t)
 {
     Thread::sleep(t);
     return true;
 }
 
 bool
-BoxLib::ConditionVariable::timedwait(BoxLib::Mutex&, const BoxLib::Time& t)
+ConditionVariable::timedwait(Mutex&, const Time& t)
 {
     Thread::sleep(t);
     return true;
@@ -1267,50 +1267,50 @@ BoxLib::ConditionVariable::timedwait(BoxLib::Mutex&, const BoxLib::Time& t)
 //
 //
 //
-BoxLib::ThreadSpecificData<void>::ThreadSpecificData(void (*tsd_)(void*))
+ThreadSpecificData<void>::ThreadSpecificData(void (*tsd_)(void*))
     : v(0), tsd(tsd_)
 {
 }
 
-BoxLib::ThreadSpecificData<void>::~ThreadSpecificData()
+ThreadSpecificData<void>::~ThreadSpecificData()
 {
     // std::cout << "got here" << std::endl;
     // (*tsd)(v);
 }
 
 void*
-BoxLib::ThreadSpecificData<void>::set(const void* v_)
+ThreadSpecificData<void>::set(const void* v_)
 {
     return v = const_cast<void*>(v_);
 }
 
 void*
-BoxLib::ThreadSpecificData<void>::get() const
+ThreadSpecificData<void>::get() const
 {
     return v;
 }
 
 // FuctioinThread
-BoxLib::FunctionThread::FunctionThread(Thread_Function func, void* arg_, Thread::DetachState st)
+FunctionThread::FunctionThread(Thread_Function func, void* arg_, Thread::DetachState st)
     : m_jod(false)
 {
     func(arg_);
 }
 
-BoxLib::FunctionThread::~FunctionThread()
+FunctionThread::~FunctionThread()
 {
     detach();
 }
 
 void*
-BoxLib::FunctionThread::join() const
+FunctionThread::join() const
 {
     m_jod = true;
     return 0;
 }
 
 void
-BoxLib::FunctionThread::detach() const
+FunctionThread::detach() const
 {
     m_jod = true;
 }
