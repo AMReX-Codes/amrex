@@ -3,6 +3,7 @@
 // $ $
 //
 
+#include <winstd.H>
 #include <new>
 #include <iostream>
 #include <cstdlib>
