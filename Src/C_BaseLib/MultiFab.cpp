@@ -1,5 +1,5 @@
 //
-// $Id: MultiFab.cpp,v 1.53 2001-07-18 20:41:04 car Exp $
+// $Id: MultiFab.cpp,v 1.54 2001-07-18 22:21:16 car Exp $
 //
 
 #include <algorithm>
@@ -12,9 +12,7 @@
 #include <MultiFab.H>
 #include <ParallelDescriptor.H>
 
-#ifdef BL3_PROFILING
-#include <BoxLib3/Profiler.H>
-#endif
+#include <BoxLib/Profiler.H>
 
 #ifdef BL_NAMESPACE
 namespace BL_NAMESPACE
@@ -829,9 +827,8 @@ void
 MultiFab::FillBoundary (int scomp,
                         int ncomp)
 {
-#ifdef BL3_PROFILING
-  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::FillBoundary(int, int)");
-#endif
+  BL_PROFILE(BL_PROFILE_THIS_NAME() + "::FillBoundary(int, int)");
+
     static RunStats stats("fill_boundary");
 
     stats.start();
