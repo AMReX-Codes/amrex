@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.19 1998-03-25 19:03:06 car Exp $
+// $Id: ParallelDescriptor.H,v 1.20 1998-03-25 20:54:31 car Exp $
 //
 
 #include <Assert.H>
@@ -68,7 +68,6 @@ class ParallelDescriptor
     static int MyProc ();
     static int NProcs ();
     static void Synchronize ();
-    static void Synchronize (const char* msg);
     static bool IOProcessor ();
     static int  IOProcessorNumber ();
     static void Abort (const char* msg);

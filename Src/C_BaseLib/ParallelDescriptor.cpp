@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.15 1998-03-25 19:20:50 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.16 1998-03-25 20:54:32 car Exp $
 //
 #include <Utility.H>
 #include <ParallelDescriptor.H>
@@ -321,11 +321,30 @@ void ParallelDescriptor::ReduceRealSum(Real& r)
     r = recv;
 }
 
+void ParallelDescriptor::ReduceLongAnd(long& r)
+{
+    long recv;
+    MPI_Allreduce(&r, &recv, 1, MPI_LONG, MPI_LAND, MPI_COMM_WORLD);
+    r = recv;
+}
+
 void ParallelDescriptor::ReduceLongSum(long& r)
 {
     long recv;
     MPI_Allreduce(&r, &recv, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
     r = recv;
+}
+
+void ParallelDescriptor::ReduceIntSum(int& r)
+{
+    int recv;
+    MPI_Allreduce(&r, &recv, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    r = recv;
+}
+
+void ParallelDescriptor::Abort(const char*)
+{
+    MPI_Abort(MPI_COMM_WORLD, -1);
 }
 
 #else

@@ -1,6 +1,6 @@
 
 //
-// $Id: WriteMultiFab.cpp,v 1.1 1998-03-24 07:05:43 almgren Exp $
+// $Id: WriteMultiFab.cpp,v 1.2 1998-03-25 20:54:31 car Exp $
 //
 
 #include <WriteMultiFab.H>
@@ -8,9 +8,6 @@
 #include <MultiFab.H>
 #include <aString.H>
 #include <ParallelDescriptor.H>
-#ifdef BL_USE_BSP
-#include <bsp.h>
-#endif
 
 #ifdef BL_USE_NEW_HFILES
 #include <ostream>

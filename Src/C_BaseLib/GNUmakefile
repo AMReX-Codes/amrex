@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.5 1998-02-22 19:07:01 car Exp $
+# $Id: GNUmakefile,v 1.6 1998-03-25 20:54:31 car Exp $
 #
 
 #
@@ -39,6 +39,12 @@ LBASE = box
 USE_BSP = TRUE
 USE_BSP = FALSE
 
+#
+# Should we use MPI?
+#
+USE_MPI = TRUE
+USE_MPI = FALSE
+
 include ../mk/Make.defs Make.package
 
 #
@@ -56,6 +62,14 @@ LIBRARIES += -lbspcore_O2 -lbsplevel1_O0
 #
 LIBRARY_LOCATIONS += /usr/ccs/lib/cmplrs/cc
 LIBRARIES += -lexc
+endif
+
+ifeq ($(USE_MPI),TRUE)
+DEFINES += -DBL_USE_MPI
+MPI_HOME = /usr/local/mpi
+INCLUDE_LOCATIONS += $(MPI_HOME)/include
+LIBRARY_LOCATIONS += $(MPI_HOME)/lib/alpha/ch_p4
+LIBRARIES += -lmpi
 endif
 
 all: $(optionsLib)
