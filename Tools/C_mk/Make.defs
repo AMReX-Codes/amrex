@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.43 2001-12-13 18:24:59 car Exp $
+# Make.defs $Id: Make.defs,v 1.44 2002-02-26 23:41:45 car Exp $
 #
 
 #
@@ -185,7 +185,6 @@ ifeq ($(COMP),g++)
     FULLWARN   := -Wall 
     FULLWARN   += -Wno-sign-compare
     CXX	       := g++ -ftemplate-depth-25
-    DEFINES    += -DBL_USE_SETBUF
     __gcc_version := $(shell gcc --version)
     __gcc_major_version := $(shell gcc --version | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell gcc --version | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
@@ -193,6 +192,7 @@ ifeq ($(COMP),g++)
     DEFINES += -DBL_GCC_MAJOR_VERSION=$(__gcc_major_version)
     DEFINES += -DBL_GCC_MINOR_VERSION=$(__gcc_minor_version)
     ifneq ($(__gcc_major_version),3)
+       DEFINES    += -DBL_USE_SETBUF
        GNU_STD_INCL = $(PBOXLIB_HOME)/BoxLib/std
     endif
 endif
