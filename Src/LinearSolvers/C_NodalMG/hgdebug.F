@@ -1,3 +1,5 @@
+#include "FLUSH_F.H"
+
 c-----------------------------------------------------------------------
       subroutine hgdebuginit(procno, numpc)
       integer procno, numpc
@@ -57,7 +59,7 @@ c-----------------------------------------------------------------------
 #include "hgdebug_F.H"
       if ( .NOT. dbon ) return
       write(unit=dbunit, fmt=*) name, i
-      call flush(dbunit)
+      call FORT_FLUSH(dbunit)
       end
 c-----------------------------------------------------------------------
       subroutine hgdebugd(name, d)
@@ -66,7 +68,7 @@ c-----------------------------------------------------------------------
 #include "hgdebug_F.H"
       if ( .NOT. dbon ) return
       write(unit=dbunit, fmt=*) name, d
-      call flush(dbunit)
+      call FORT_FLUSH(dbunit)
       end
 #if (BL_SPACEDIM == 2)
 c-----------------------------------------------------------------------
@@ -124,7 +126,7 @@ c-----------------------------------------------------------------------
             end do
          end do
       end if
-      call flush(dbunit)
+      call FORT_FLUSH(dbunit)
       end
 #else
 c-----------------------------------------------------------------------
@@ -194,6 +196,6 @@ c-----------------------------------------------------------------------
             end do
          end do
       end if
-      call flush(dbunit)
+      call FORT_FLUSH(dbunit)
       end
 #endif
