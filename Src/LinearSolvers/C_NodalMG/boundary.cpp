@@ -58,7 +58,7 @@ void amr_boundary_class::boundary_mesh(BoxArray& exterior_mesh,
 Box mixed_boundary_class::box(const Box& region, const Box& domain, int idir) const
 {
     const int idim = abs(idir) - 1;
-    RegType t = ptr->bc[idim][idir > 0];
+    const RegType t = ptr->bc[idim][idir > 0];
     Box retbox(region);
     
     if (t == refWall || t == outflow || (t == inflow && idim != flowdim)) 
@@ -163,7 +163,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 	refarray[idim] = 0;
 	if (region.bigEnd(idim) < idomain.smallEnd(idim)) 
 	{
-	    RegType t = ptr->bc[idim][0];
+	    const RegType t = ptr->bc[idim][0];
 	    if (t == inflow && idim == flowdim) 
 	    {
 		refarray[idim] = 0;
@@ -198,7 +198,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 	}
 	else if (region.smallEnd(idim) > idomain.bigEnd(idim)) 
 	{
-	    RegType t = ptr->bc[idim][1];
+	    const RegType t = ptr->bc[idim][1];
 	    if (t == inflow && idim == flowdim) 
 	    {
 		refarray[idim] = 0;
@@ -298,7 +298,7 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 				int idir) const
 {
     const int idim = abs(idir) - 1;
-    RegType t = ptr->bc[idim][idir > 0];
+    const RegType t = ptr->bc[idim][idir > 0];
     
     if (flowdim == -4 && (t == refWall || t == inflow)) 
     {
@@ -423,7 +423,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		    }
 		}
 		b.shift(idim, -a).growLo(idim, w-a).convert(type(r));
-		RegType t = ptr->bc[idim][0];
+		const RegType t = ptr->bc[idim][0];
 		Box bb = b;
 		if (flowdim == -4 && (t == refWall || t == inflow)) 
 		{
@@ -519,7 +519,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
 		    }
 		}
 		b.shift(idim, a).growHi(idim, w-a).convert(type(r));
-		RegType t = ptr->bc[idim][1];
+		const RegType t = ptr->bc[idim][1];
 		Box bb = b;
 		if (flowdim == -4 && (t == refWall || t == inflow)) 
 		{
