@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.10 1997-09-19 18:04:34 vince Exp $
+// $Id: FabArray.H,v 1.11 1997-09-19 18:20:02 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -952,7 +952,7 @@ FabArray<T,FAB>::ok () const
     }
 
     ParallelDescriptor::ReduceLongAnd(isok);
-    return isok;
+    return isok != 0;
 }
 
 template <class T, class FAB>
