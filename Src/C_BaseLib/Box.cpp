@@ -1,5 +1,5 @@
 //
-// $Id: Box.cpp,v 1.14 2001-07-19 16:57:30 lijewski Exp $
+// $Id: Box.cpp,v 1.15 2001-07-19 17:51:48 lijewski Exp $
 //
 
 #include <climits>
@@ -415,9 +415,9 @@ Box
 BoxLib::grow (const Box& b,
               int        i)
 {
-    IntVect small = diagShift(b.smallend,-i);
-    IntVect big   = diagShift(b.bigend,i);
-    return Box(small,big,b.btype);
+    IntVect small = diagShift(b.smallEnd(),-i);
+    IntVect big   = diagShift(b.bigEnd(),i);
+    return Box(small,big,b.ixType());
 }
 
 Box&
@@ -432,9 +432,9 @@ Box
 BoxLib::grow (const Box&     b,
               const IntVect& v)
 {
-    IntVect small = b.smallend - v;
-    IntVect big   = b.bigend   + v;
-    return Box(small,big,b.btype);
+    IntVect small = b.smallEnd() - v;
+    IntVect big   = b.bigEnd()   + v;
+    return Box(small,big,b.ixType());
 }
 
 Box&
@@ -893,30 +893,30 @@ Box
 BoxLib::refine (const Box& b,
                 int        refinement_ratio)
 {
-    IntVect small(b.smallend);
+    IntVect small(b.smallEnd());
     small.scale(refinement_ratio);
-    IntVect big(b.bigend);
+    IntVect big(b.bigEnd());
     IntVect shft(IntVect::TheUnitVector());
-    shft -= b.btype.ixType();
+    shft -= b.ixType().ixType();
     big += shft;        // Large end is not just multiply.
     big.scale(refinement_ratio);
     big -= shft;
-    return Box(small,big,b.btype);
+    return Box(small,big,b.ixType());
 }
 
 Box
 BoxLib::refine (const Box&     b,
                 const IntVect& refinement_ratio)
 {
-    IntVect small(b.smallend);
+    IntVect small(b.smallEnd());
     small *= refinement_ratio;
-    IntVect big(b.bigend);
+    IntVect big(b.bigEnd());
     IntVect shft(IntVect::TheUnitVector());
-    shft -= b.btype.ixType();
+    shft -= b.ixType().ixType();
     big += shft;
     big *= refinement_ratio;
     big -= shft;
-    return Box(small,big,b.btype);
+    return Box(small,big,b.ixType());
 }
 
 //
@@ -956,16 +956,16 @@ Box
 BoxLib::coarsen (const Box& b,
                  int        refinement_ratio)
 {
-    IntVect small(b.smallend);
+    IntVect small(b.smallEnd());
     small.coarsen(refinement_ratio);
-    IntVect big(b.bigend);
+    IntVect big(b.bigEnd());
 
-    if (b.btype.any())
+    if (b.ixType().any())
     {
         IntVect off(IntVect::TheZeroVector());
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
-            if (b.btype[dir])
+            if (b.ixType()[dir])
                 if (big[dir]%refinement_ratio)
                     off.setVal(dir,1);
         }
@@ -975,7 +975,7 @@ BoxLib::coarsen (const Box& b,
     else
         big.coarsen(refinement_ratio);
 
-    return Box(small,big,b.btype);
+    return Box(small,big,b.ixType());
 }
 
 Box&
@@ -1006,16 +1006,16 @@ Box
 BoxLib::coarsen (const Box&     b,
                  const IntVect& refinement_ratio)
 {
-    IntVect small(b.smallend);
+    IntVect small(b.smallEnd());
     small.coarsen(refinement_ratio);
-    IntVect big(b.bigend);
+    IntVect big(b.bigEnd());
 
-    if (b.btype.any())
+    if (b.ixType().any())
     {
         IntVect off(IntVect::TheZeroVector());
         for (int dir = 0; dir < BL_SPACEDIM; dir++)
         {
-            if (b.btype[dir])
+            if (b.ixType()[dir])
                 if (big[dir]%refinement_ratio[dir])
                     off.setVal(dir,1);
         }
@@ -1025,7 +1025,7 @@ BoxLib::coarsen (const Box&     b,
     else
         big.coarsen(refinement_ratio);
 
-    return Box(small,big,b.btype);
+    return Box(small,big,b.ixType());
 }
 
 //
@@ -1033,13 +1033,13 @@ BoxLib::coarsen (const Box&     b,
 //
 
 std::ostream&
-BoxLib::operator<< (std::ostream& os,
-                    const Box&    b)
+operator<< (std::ostream& os,
+            const Box&    b)
 {
     os << '('
-       << b.smallend << ' '
-       << b.bigend   << ' '
-       << b.btype.ixType()
+       << b.smallEnd() << ' '
+       << b.bigEnd()   << ' '
+       << b.type()
        << ')';
 
     if (os.fail())
@@ -1054,35 +1054,27 @@ BoxLib::operator<< (std::ostream& os,
 #define BL_IGNORE_MAX 100000
 
 std::istream&
-BoxLib::operator>> (std::istream& is,
-                    Box&          b)
+operator>> (std::istream& is,
+            Box&          b)
 {
+    IntVect lo, hi, typ;
+
     is >> std::ws;
     char c;
     is >> c;
-    is.putback(c);
+
     if (c == '(')
     {
-        is.ignore(BL_IGNORE_MAX, '(');
-        is >> b.smallend ;
-        is >> b.bigend ;
-        IntVect v;
-        is >> v;
-        b.btype = IndexType(v);
-        BL_ASSERT(b.btype.ok());
+        is >> lo >> hi >> typ;
+
         is.ignore(BL_IGNORE_MAX,')');
     }
-    else if (c == '<')
-    {
-        is >> b.smallend;
-        is >> b.bigend;
-        IntVect v;
-        is >> v;
-        b.btype = IndexType(v);
-        BL_ASSERT(b.btype.ok());
-    }
     else
-        BoxLib::Error("operator>>(istream&,Box&): expected \'<\'");
+    {
+        BoxLib::Error("operator>>(istream&,Box&): expected \'(\'");
+    }
+
+    b = Box(lo,hi,typ);
 
     if (is.fail())
         BoxLib::Error("operator>>(istream&,Box&) failed");
@@ -1110,11 +1102,11 @@ BoxLib::minBox (const Box& b,
 {
     BL_ASSERT(b.ok() && o.ok());
     BL_ASSERT(o.sameType(b));
-    IntVect small = b.smallend;
-    IntVect big   = b.bigend;
-    small.min(o.smallend);
-    big.max(o.bigend);
-    return Box(small,big,b.btype);
+    IntVect small = b.smallEnd();
+    IntVect big   = b.bigEnd();
+    small.min(o.smallEnd());
+    big.max(o.bigEnd());
+    return Box(small,big,b.ixType());
 }
 
 //
@@ -1126,14 +1118,14 @@ BoxLib::bdryLo (const Box& b,
                 int        dir,
                 int        len)
 {
-    IntVect low(b.smallend);
-    IntVect hi(b.bigend);
+    IntVect low(b.smallEnd());
+    IntVect hi(b.bigEnd());
     int sm = low[dir];
     hi.setVal(dir,sm+len-1);
     //
     // set dir'th bit to 1 = IndexType::NODE.
     //
-    IndexType typ(b.btype);
+    IndexType typ(b.ixType());
     typ.set(dir);
     return Box(low,hi,typ);
 }
@@ -1143,16 +1135,16 @@ BoxLib::bdryHi (const Box& b,
                 int        dir,
                 int        len)
 {
-    IntVect low(b.smallend);
-    IntVect hi(b.bigend);
-    unsigned int bitval = b.btype.ixType(dir);
+    IntVect low(b.smallEnd());
+    IntVect hi(b.bigEnd());
+    unsigned int bitval = b.type()[dir];
     int bg              = hi[dir]  + 1 - bitval%2;
     low.setVal(dir,bg);
     hi.setVal(dir,bg+len-1);
     //
     // Set dir'th bit to 1 = IndexType::NODE.
     //
-    IndexType typ(b.btype);
+    IndexType typ(b.ixType());
     typ.set(dir);
     return Box(low,hi,typ);
 }
@@ -1163,8 +1155,8 @@ BoxLib::bdryNode (const Box&         b,
                   int                len)
 {
     int dir = face.coordDir();
-    IntVect low(b.smallend);
-    IntVect hi(b.bigend);
+    IntVect low(b.smallEnd());
+    IntVect hi(b.bigEnd());
     if (face.isLow())
     {
         int sm = low[dir];
@@ -1172,7 +1164,7 @@ BoxLib::bdryNode (const Box&         b,
     }
     else
     {
-        unsigned int bitval = b.btype.ixType(dir);
+        unsigned int bitval = b.type()[dir];
         int bg              = hi[dir]  + 1 - bitval%2;
         low.setVal(dir,bg);
         hi.setVal(dir,bg+len-1);
@@ -1180,7 +1172,7 @@ BoxLib::bdryNode (const Box&         b,
     //
     // Set dir'th bit to 1 = IndexType::NODE.
     //
-    IndexType typ(b.btype);
+    IndexType typ(b.ixType());
     typ.set(dir);
     return Box(low,hi,typ);
 }
@@ -1191,15 +1183,15 @@ BoxLib::adjCellLo (const Box& b,
                    int        len)
 {
     BL_ASSERT(len > 0);
-    IntVect low(b.smallend);
-    IntVect hi(b.bigend);
+    IntVect low(b.smallEnd());
+    IntVect hi(b.bigEnd());
     int sm = low[dir];
     low.setVal(dir,sm - len);
     hi.setVal(dir,sm - 1);
     //
     // Set dir'th bit to 0 = IndexType::CELL.
     //
-    IndexType typ(b.btype);
+    IndexType typ(b.ixType());
     typ.unset(dir);
     return Box(low,hi,typ);
 }
@@ -1210,16 +1202,16 @@ BoxLib::adjCellHi (const Box& b,
                    int        len)
 {
     BL_ASSERT(len > 0);
-    IntVect low(b.smallend);
-    IntVect hi(b.bigend);
-    unsigned int bitval = b.btype.ixType(dir);
+    IntVect low(b.smallEnd());
+    IntVect hi(b.bigEnd());
+    unsigned int bitval = b.type()[dir];
     int bg              = hi[dir]  + 1 - bitval%2;
     low.setVal(dir,bg);
     hi.setVal(dir,bg + len - 1);
     //
     // Set dir'th bit to 0 = IndexType::CELL.
     //
-    IndexType typ(b.btype);
+    IndexType typ(b.ixType());
     typ.unset(dir);
     return Box(low,hi,typ);
 }
@@ -1230,8 +1222,8 @@ BoxLib::adjCell (const Box&         b,
                  int                len)
 {
     BL_ASSERT(len > 0);
-    IntVect low(b.smallend);
-    IntVect hi(b.bigend);
+    IntVect low(b.smallEnd());
+    IntVect hi(b.bigEnd());
     int dir = face.coordDir();
     if (face.isLow())
     {
@@ -1241,7 +1233,7 @@ BoxLib::adjCell (const Box&         b,
     }
     else
     {
-        unsigned int bitval = b.btype.ixType(dir);
+        unsigned int bitval = b.type()[dir];
         int bg              = hi[dir]  + 1 - bitval%2;
         low.setVal(dir,bg);
         hi.setVal(dir,bg + len - 1);
@@ -1249,7 +1241,7 @@ BoxLib::adjCell (const Box&         b,
     //
     // Set dir'th bit to 0 = IndexType::CELL.
     //
-    IndexType typ(b.btype);
+    IndexType typ(b.ixType());
     typ.unset(dir);
     return Box(low,hi,typ);
 }
