@@ -1,5 +1,5 @@
 #
-# $Id: Make.OSF1,v 1.12 1999-04-16 18:17:55 propp Exp $
+# $Id: Make.OSF1,v 1.13 1999-04-16 19:19:48 lijewski Exp $
 #
 
 #
@@ -8,7 +8,7 @@
 ifeq ($(COMP),cxx)
 CXX      := cxx -define_templates
 FULLWARN := +pp -fullwarn
-CXXOPTF  += -O2 -tune ev5 -Olimit 2400
+CXXOPTF  += -O2 -tune host -Olimit 2400
 CXXDEBF  += -g
 CXXPRFF  := -p
 override XTRALIBS += -lfor -lUfor -lFutil -lots -lm -lm_4sqrt
@@ -50,9 +50,9 @@ endif
 FC = f90
 
 ifeq ($(PRECISION),FLOAT)
-FOPTF += -fast -O -tune ev5
+FOPTF += -fast -O -tune host
 else
-FOPTF += -fast -O -tune ev5
+FOPTF += -fast -O -tune host
 endif
 
 FDEBF += -g -C -u
