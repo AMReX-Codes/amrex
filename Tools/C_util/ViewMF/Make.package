@@ -1,44 +1,8 @@
 #
-# boxlib sources
+# Local sources
 #
-BOXLIB_BASE=EXE
- 
-C$(BOXLIB_BASE)_sources += BoxLib.cpp Tracer.cpp RunStats.cpp
-C$(BOXLIB_BASE)_headers += BoxLib.H BLVERSION.H Tracer.H RunStats.H
+CEXE_sources += MFNorm.cpp
 
-C$(BOXLIB_BASE)_sources += ParmParse.cpp Utility.cpp aString.cpp
-C$(BOXLIB_BASE)_headers += ParmParse.H Utility.H Assert.H aString.H
-
-C$(BOXLIB_BASE)_headers += ArrayLim.H REAL.H Boolean.H SPACE.H SPACE_F.H
-C$(BOXLIB_BASE)_headers += CONSTANTS.H UseCount.H
-
-C$(BOXLIB_BASE)_sources += DistributionMapping.cpp ParallelDescriptor.cpp
-C$(BOXLIB_BASE)_headers += DistributionMapping.H ParallelDescriptor.H
-
-C${BOXLIB_BASE}_sources += FabConv.cpp FPC.cpp BoxAssoc.cpp FArrayBox.cpp
-C${BOXLIB_BASE}_headers += FabConv.H FPC.H BoxAssoc.H FArrayBox.H
-
-C$(BOXLIB_BASE)_sources += Box.cpp IntVect.cpp IndexType.cpp Orientation.cpp
-C$(BOXLIB_BASE)_headers += Box.H IntVect.H IndexType.H Orientation.H
-
-C$(BOXLIB_BASE)_sources += BoxList.cpp BoxArray.cpp BoxDomain.cpp MultiFab.cpp
-C$(BOXLIB_BASE)_headers += BoxList.H BoxArray.H BoxDomain.H Looping.H MultiFab.H
-
-C$(BOXLIB_BASE)_sources += VisMF.cpp BArena.cpp CArena.cpp
-C$(BOXLIB_BASE)_headers += VisMF.H Arena.H BArena.H CArena.H
-
-T_sources += Array.cpp PArray.cpp List.cpp Pointers.cpp Tuple.cpp
-T_headers += Array.H PArray.H List.H Pointers.H Tuple.H Misc.H
-
-T_sources += FabArray.cpp
-T_headers += BaseFab.H FabArray.H
-
-#
-# BSP stuff
-#
-ifeq ($(USE_BSP),TRUE)
-CEXE_sources += preload.cpp
-endif
+CEXE_sources += DatasetClient.cpp
 
 
-CEXE_sources += main.cpp
