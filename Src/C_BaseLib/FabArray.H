@@ -2,7 +2,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.145 2001-07-25 23:42:02 lijewski Exp $
+// $Id: FabArray.H,v 1.146 2001-07-26 13:51:54 car Exp $
 //
 
 #include <cstring>
@@ -378,10 +378,6 @@ public:
                int        src_comp,
                int        dest_comp,
                int        num_comp) const;
-    //
-    //@ManDoc: Returns constant reference to associated DistributionMapping.
-    //
-    const DistributionMapping& DistributionMap () const;
 
 protected:
 
@@ -967,13 +963,6 @@ FabArray<FAB>::setVal (value_type   val,
                          int        nghost)
 {
     setVal(val,region,0,n_comp,nghost);
-}
-
-template <class FAB>
-const DistributionMapping&
-FabArray<FAB>::DistributionMap () const
-{
-    return distributionMap;
 }
 
 template <class FAB>
