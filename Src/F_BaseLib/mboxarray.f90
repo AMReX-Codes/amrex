@@ -30,6 +30,14 @@ module mboxarray_module
      module procedure mboxarray_maxsize_v
   end interface
 
+  interface get_box
+     module procedure mboxarray_get_box
+  end interface
+
+  interface get_boxarray
+     module procedure mboxarray_get_boxarray
+  end interface
+
   type(mem_stats), private, save :: mboxarray_ms
 
 contains
@@ -118,6 +126,18 @@ contains
     integer, intent(in) :: n
     r = mba%pd(n)
   end function mboxarray_get_pd
+
+  function mboxarray_refrat_n_d(mba, n, dim) result(r)
+    type(mboxarray), intent(in) :: mba
+    integer, intent(in) :: n
+    integer, intent(in) :: dim
+    integer :: r
+    if ( n < 1 .or. n >= mba%nlevel) &
+         call bl_error("MBOXARRAY_REFRAT_N: out of bounds: ", n)
+    if ( dim < 1 .or. dim > mba%dim) &
+         call bl_error("MBOXARRAY_REFRAT_N_D: dim out of bounds: ", dim)
+    r = mba%rr(n,dim)
+  end function mboxarray_refrat_n_d
 
   function mboxarray_refrat_n(mba, n) result(r)
     type(mboxarray), intent(in) :: mba
