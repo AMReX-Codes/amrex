@@ -26,14 +26,12 @@ task_copy::~task_copy()
 {
 }
 
-bool
-task_copy::ready()
+bool task_copy::ready()
 {
     return m_ready;
 }
 
-void
-task_list::execute()
+void task_list::execute()
 {
     while ( !tasks.empty() )
     {
@@ -50,8 +48,7 @@ task_list::execute()
     }
 }
 
-void
-task_list::add_task(task* t)
+void task_list::add_task(task* t)
 {
     tasks.push_back(t);
 }
