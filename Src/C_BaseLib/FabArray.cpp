@@ -36,60 +36,6 @@ FabArrayBase::fabbox (int K) const
     return BoxLib::grow(boxarray[K], n_grow);
 }
 
-bool MFIter::g_debugging = false;
-
-MFIter::MFIter (const FabArrayBase& fabarray)
-    :
-    fabArray(fabarray),
-    currentIndex(0),
-    m_debugging(g_debugging)
-{
-    //
-    // Increment the currentIndex to start at the first valid index
-    // for this ParallelDescriptor::MyProc.
-    //
-    const int MyProc = ParallelDescriptor::MyProc();
-
-    while (fabArray.DistributionMap()[currentIndex] != MyProc)
-    {
-        ++currentIndex;
-    }
-}
-
-void
-MFIter::operator++ ()
-{
-    const int MyProc = ParallelDescriptor::MyProc();
-    //
-    // Go to the next index on this processor.
-    //
-    do
-    {
-        ++currentIndex;
-    }
-    while (fabArray.DistributionMap()[currentIndex] != MyProc);
-}
-
-void
-MFIter::setDebugging (bool debugging)
-{
-    g_debugging = debugging;
-}
-
-bool
-MFIter::isValid ()
-{
-    BL_ASSERT(currentIndex >= 0);
-
-    if (m_debugging)
-    {
-	if (currentIndex < fabArray.size()) return true;
-	ParallelDescriptor::Barrier();
-	return false;
-    }
-    return currentIndex < fabArray.size();
-}
-
 const Box&
 MFIter::validbox () const
 {

@@ -1,7 +1,7 @@
 #ifndef BL_FABARRAY_H
 #define BL_FABARRAY_H
 //
-// $Id: FabArray.H,v 1.157 2001-09-26 15:43:31 car Exp $
+// $Id: FabArray.H,v 1.158 2001-09-27 19:52:14 lijewski Exp $
 //
 #include <cstring>
 #include <limits>
@@ -106,14 +106,10 @@ public:
     //
     const FabArrayBase& theFabArrayBase () const;
 
-    static void setDebugging(bool debugging);
-
 protected:
 
     const FabArrayBase& fabArray;
     int              currentIndex;
-    bool	     m_debugging;
-    static bool      g_debugging;
 };
 
 //
@@ -648,6 +644,63 @@ FabArrayBase::DistributionMap () const
 }
 
 inline
+MFIter::MFIter (const FabArrayBase& fabarray)
+    :
+    fabArray(fabarray),
+    currentIndex(0)
+{
+#ifdef BL_USE_MPI
+    //
+    // Increment the currentIndex to start at the first valid index
+    // for this ParallelDescriptor::MyProc.
+    //
+    const int MyProc = ParallelDescriptor::MyProc();
+
+    while (fabArray.DistributionMap()[currentIndex] != MyProc)
+    {
+        ++currentIndex;
+    }
+#endif
+}
+
+inline
+void
+MFIter::operator++ ()
+{
+#ifdef BL_USE_MPI
+    const int MyProc = ParallelDescriptor::MyProc();
+    //
+    // Go to the next index on this processor.
+    //
+    do
+    {
+        ++currentIndex;
+    }
+    while (fabArray.DistributionMap()[currentIndex] != MyProc);
+#else
+    ++currentIndex;
+#endif
+}
+
+inline
+bool
+MFIter::isValid ()
+{
+    BL_ASSERT(currentIndex >= 0);
+
+#if defined(BL_USE_MPI) && defined(HG_DEBUG)
+    extern bool HG_is_debugging;
+    if (HG_is_debugging)
+    {
+	if (currentIndex < fabArray.size()) return true;
+	BL_MPI_REQUIRE( MPI_Barrier(ParallelDescriptor::Communicator()) );
+	return false;
+    }
+#endif
+    return currentIndex < fabArray.size();
+}
+
+inline
 const FabArrayBase&
 MFIter::theFabArrayBase () const
 {
@@ -913,12 +966,13 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 {
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::copy()");
 
+#ifdef BL_USE_MPI
+
     if (boxarray == src.boxarray && distributionMap == src.distributionMap)
     {
         for (MFIter fai(*this); fai.isValid(); ++fai)
         {
             const Box& bx = fai.validbox();
-
             get(fai).copy(src[fai],bx,scomp,bx,dcomp,ncomp);
         }
 
@@ -1005,7 +1059,13 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
             fab_data[i] = static_cast<value_type*>(The_FAB_Arena->alloc(N*sizeof(value_type)));
 
-            reqs[i] = ParallelDescriptor::Asend(fab_data[i],N,i,seqno).req();
+            BL_MPI_REQUIRE( MPI_Irecv(fab_data[i],
+				   int(N),
+				   mpi_data_type(fab_data[i]),
+				   i,
+				   seqno,
+				   ParallelDescriptor::Communicator(),
+				   &reqs[i]) );
         }
     }
 
@@ -1039,7 +1099,12 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
 
             BL_ASSERT(data+N == dptr);
 
-            ParallelDescriptor::Send(data, N, i, seqno);
+            BL_MPI_REQUIRE( MPI_Send(data,
+				  int(N),
+				  mpi_data_type(data),
+				  i,
+				  seqno,
+				  ParallelDescriptor::Communicator()));
 
             The_FAB_Arena->free(data);
         }
@@ -1049,7 +1114,11 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
     //
     for (int completed; NWaits > 0; NWaits -= completed)
     {
-        ParallelDescriptor::Waitsome(reqs, completed, indx, status);
+        BL_MPI_REQUIRE( MPI_Waitsome(NProcs,
+				  reqs.dataPtr(),
+				  &completed,
+				  indx.dataPtr(),
+				  status.dataPtr()));
 
         for (int k = 0; k < completed; k++)
         {
@@ -1070,6 +1139,33 @@ FabArray<FAB>::copy (const FabArray<FAB>& src,
             The_FAB_Arena->free(fab_data[indx[k]]);
         }
     }
+
+#else
+
+    if (boxarray == src.boxarray)
+    {
+        for (MFIter fai(*this); fai.isValid(); ++fai)
+        {
+            const Box& bx = fai.validbox();
+            get(fai).copy(src[fai],bx,scomp,bx,dcomp,ncomp);
+        }
+    }
+    else
+    {
+        for (int i = 0; i < size(); ++i)
+        {
+            for (int ii = 0; ii < src.boxarray.size(); ++ii)
+            {
+                if (src.boxarray[ii].intersects(boxarray[i]))
+                {
+                    Box bx = src.boxarray[ii] & boxarray[i];
+
+                    fabparray[i].copy(src[ii],bx,scomp,bx,dcomp,ncomp);
+                }
+            }
+        }
+    }
+#endif /*BL_USE_MPI*/
 }
 
 template <class FAB>
@@ -1135,7 +1231,8 @@ FabArray<FAB>::copy (FAB&       dest,
         return;
     }
 
-    FArrayBox ovlp;
+#ifdef BL_USE_MPI
+    FArrayBox overlapData;
 
     for (int i = 0; i < size(); i++)
     {
@@ -1143,18 +1240,21 @@ FabArray<FAB>::copy (FAB&       dest,
         {
             Box bx = subbox & boxarray[i];
 
-            ovlp.resize(bx,ncomp);
+            overlapData.resize(bx,ncomp);
 
             if (ParallelDescriptor::MyProc() == distributionMap[i])
-            {
-                ovlp.copy(fabparray[i],bx,scomp,bx,0,ncomp);
-            }
+                overlapData.copy(fabparray[i],bx,scomp,bx,0,ncomp);
 
-            ParallelDescriptor::Bcast(ovlp.dataPtr(),bx.numPts()*ncomp,distributionMap[i]);
+            BL_MPI_REQUIRE(MPI_Bcast(overlapData.dataPtr(),
+                                     bx.numPts()*ncomp,
+                                     mpi_data_type(overlapData.dataPtr()),
+                                     distributionMap[i],
+                                     ParallelDescriptor::Communicator()));
 
-            dest.copy(ovlp,bx,0,bx,dcomp,ncomp);
+            dest.copy(overlapData,bx,0,bx,dcomp,ncomp);
         }
     }
+#endif /*BL_USE_MPI*/
 }
 
 template <class FAB>
@@ -1323,12 +1423,12 @@ FabArrayCopyDescriptor<FAB>::AddBoxDoIt (FabArrayId fabarrayid,
 template <class FAB>
 FillBoxId
 FabArrayCopyDescriptor<FAB>::AddBox (FabArrayId fabarrayid,
-                                     const Box& destFabBox,
-                                     BoxList*   returnedUnfilledBoxes,
-                                     int        srccomp,
-                                     int        destcomp,
-                                     int        numcomp,
-                                     bool       bUseValidBox)
+                                       const Box& destFabBox,
+                                       BoxList*   returnedUnfilledBoxes,
+                                       int        srccomp,
+                                       int        destcomp,
+                                       int        numcomp,
+                                       bool       bUseValidBox)
 {
     BoxDomain unfilledBoxDomain(destFabBox.ixType());
     BoxList   filledBoxes(destFabBox.ixType());
@@ -1364,13 +1464,13 @@ FabArrayCopyDescriptor<FAB>::AddBox (FabArrayId fabarrayid,
 template <class FAB>
 FillBoxId
 FabArrayCopyDescriptor<FAB>::AddBox (FabArrayId fabarrayid,
-                                     const Box& destFabBox,
-                                     BoxList*   returnedUnfilledBoxes,
-                                     int        fabarrayindex,
-                                     int        srccomp,
-                                     int        destcomp,
-                                     int        numcomp,
-                                     bool       bUseValidBox)
+                                       const Box& destFabBox,
+                                       BoxList*   returnedUnfilledBoxes,
+                                       int        fabarrayindex,
+                                       int        srccomp,
+                                       int        destcomp,
+                                       int        numcomp,
+                                       bool       bUseValidBox)
 {
     BoxDomain unfilledBoxDomain(destFabBox.ixType());
     BoxList   filledBoxes(destFabBox.ixType());
@@ -1403,9 +1503,9 @@ FabArrayCopyDescriptor<FAB>::AddBox (FabArrayId fabarrayid,
 template <class FAB>
 FillBoxId
 FabArrayCopyDescriptor<FAB>::AddBox (FabArrayId fabarrayid,
-                                     const Box& destFabBox,
-                                     BoxList*   returnedUnfilledBoxes,
-                                     bool       bUseValidBox)
+                                       const Box& destFabBox,
+                                       BoxList*   returnedUnfilledBoxes,
+                                       bool       bUseValidBox)
 {
     return AddBox(fabarrayid,
                   destFabBox,
@@ -1447,7 +1547,7 @@ FabArrayCopyDescriptor<FAB>::clear ()
 template <class FAB>
 void
 FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
-                                          CommDataCache* cd_cache)
+                                            CommDataCache* cd_cache)
 {
     typedef typename FAB::value_type value_type;
 
@@ -1459,17 +1559,18 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
     BL_PROFILE(BL_PROFILE_THIS_NAME() + "::CollectData()");
 
+#ifdef BL_USE_MPI
     const int MyProc = ParallelDescriptor::MyProc();
 
     static Array<int>         Snds(NProcs);
     static Array<int>         Rcvs(NProcs);
     static Array<int>         indx(NProcs);
-    static Array<value_type*> fab_data(NProcs);
+    static Array<value_type*>          fab_data(NProcs);
     static Array<MPI_Request> req_data(NProcs);
     static Array<MPI_Request> req_cd(NProcs);
     static Array<MPI_Status>  status(NProcs);
-    Array<CommData>    senddata;
-    Array<CommData>    recv_cd;
+    static Array<CommData>    senddata;
+    static Array<CommData>    recv_cd;
 
     for (int i = 0; i < NProcs; i++)
         Snds[i] = Rcvs[i] = 0;
@@ -1501,7 +1602,14 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 #endif
     {
         for (int i = 0; i < NProcs; i++)
-            ParallelDescriptor::Gather(&Rcvs[i],1,Snds.dataPtr(),1,i);
+            BL_MPI_REQUIRE( MPI_Gather(&Rcvs[i],
+				    1,
+				    MPI_INT,
+				    Snds.dataPtr(),
+				    1,
+				    MPI_INT,
+				    i,
+				    ParallelDescriptor::Communicator()));
 
         BL_ASSERT(Snds[MyProc] == 0);
     }
@@ -1541,11 +1649,13 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
         {
             if (Snds[i] > 0)
             {
-                int* data = reinterpret_cast<int*>(&recv_cd[idx]);
-
-                const size_t N = Snds[i] * CommData::DIM;
-
-                req_cd[i] = ParallelDescriptor::Asend(data,N,i,seqno_1).req();
+                BL_MPI_REQUIRE( MPI_Irecv(&recv_cd[idx],
+				       Snds[i] * CommData::DIM,
+				       MPI_INT,
+				       i,
+				       seqno_1,
+				       ParallelDescriptor::Communicator(),
+				       &req_cd[i]));
 
                 idx += Snds[i];
             }
@@ -1585,11 +1695,12 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
                 BL_ASSERT(Processed == Rcvs[i]);
 
-                int* data = reinterpret_cast<int*>(senddata.dataPtr());
-
-                const size_t N = senddata.size() * CommData::DIM;
-
-                ParallelDescriptor::Send(data, N, i, seqno_1);
+                BL_MPI_REQUIRE( MPI_Send(senddata.dataPtr(),
+				      senddata.size() * CommData::DIM,
+				      MPI_INT,
+				      i,
+				      seqno_1,
+				      ParallelDescriptor::Communicator()));
             }
         }
 
@@ -1600,7 +1711,11 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
         for (int completed; NWaits > 0; NWaits -= completed)
         {
-            ParallelDescriptor::Waitsome(req_cd, completed, indx, status);
+            BL_MPI_REQUIRE( MPI_Waitsome(NProcs,
+				      req_cd.dataPtr(),
+				      &completed,
+				      indx.dataPtr(),
+				      status.dataPtr()));
         }
     }
 
@@ -1637,7 +1752,13 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
             fab_data[i] = static_cast<value_type*>(The_FAB_Arena->alloc(N*sizeof(value_type)));
 
-            req_data[i] = ParallelDescriptor::Asend(fab_data[i],N,i,seqno_2).req();
+            BL_MPI_REQUIRE( MPI_Irecv(fab_data[i],
+				   int(N),
+				   mpi_data_type(fab_data[i]),
+				   i,
+				   seqno_2,
+				   ParallelDescriptor::Communicator(),
+				   &req_data[i]));
         }
     }
     //
@@ -1692,7 +1813,12 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
             BL_ASSERT(data+N == dptr);
 
-            ParallelDescriptor::Send(data, N, i, seqno_2);
+            BL_MPI_REQUIRE( MPI_Send(data,
+				  int(N),
+				  mpi_data_type(data),
+				  i,
+				  seqno_2,
+				  ParallelDescriptor::Communicator()));
 
             The_FAB_Arena->free(data);
 
@@ -1713,11 +1839,15 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
 
     for (int completed; NWaits > 0; NWaits -= completed)
     {
-        ParallelDescriptor::Waitsome(req_data, completed, indx, status);
+        BL_MPI_REQUIRE( MPI_Waitsome(NProcs,
+				  req_data.dataPtr(),
+				  &completed,
+				  indx.dataPtr(),
+				  status.dataPtr()));
 
         for (int k = 0; k < completed; k++)
         {
-            int          Processed = 0;
+            int Processed = 0;
             value_type*  dptr      = fab_data[indx[k]];
 
             BL_ASSERT(!(dptr == 0));
@@ -1762,13 +1892,14 @@ FabArrayCopyDescriptor<FAB>::CollectData (Array<int>*    snd_cache,
             fab_data[indx[k]] = 0;
         }
     }
+#endif /*BL_USE_MPI*/
 }
 
 template <class FAB>
 void
 FabArrayCopyDescriptor<FAB>::FillFab (FabArrayId       faid,
-                                      const FillBoxId& fillboxid,
-                                      FAB&             destFab)
+                                        const FillBoxId& fillboxid,
+                                        FAB&             destFab)
 {
     BL_ASSERT(dataAvailable);
 
@@ -1792,9 +1923,9 @@ FabArrayCopyDescriptor<FAB>::FillFab (FabArrayId       faid,
 template <class FAB>
 void
 FabArrayCopyDescriptor<FAB>::FillFab (FabArrayId       faid,
-                                      const FillBoxId& fillboxid,
-                                      FAB&             destFab,
-                                      const Box&       destBox)
+                                        const FillBoxId& fillboxid,
+                                        FAB&             destFab,
+                                        const Box&       destBox)
 {
     BL_ASSERT(dataAvailable);
 
