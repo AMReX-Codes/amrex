@@ -23,6 +23,7 @@ INCLUDE_LOCATIONS += ../pBoxLib_2
 include $(TOP)/mk/Make.defs
 
 CPPFLAGS += -DBL_USE_NEW_HFILES
+CPPFLAGS += -DHG_DEBUG
 
 include ./Make.package
 include ../pBoxLib_2/Make.package
