@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.31 1998-07-24 01:26:24 lijewski Exp $
+// $Id: Geometry.cpp,v 1.32 1998-07-24 22:41:01 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -202,9 +202,7 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
     if (!isAnyPeriodic())
         return;
 
-    static const aString RunstatString("fill_periodic_bndry");
-
-    RunStats stats(RunstatString);
+    static RunStats stats("fill_periodic_bndry");
 
     stats.start();
 

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FluxRegister.cpp,v 1.42 1998-07-24 01:24:53 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.43 1998-07-24 22:40:46 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -161,7 +161,7 @@ FluxRegister::Reflux (MultiFab&       S,
                       int             num_comp, 
                       const Geometry& geom)
 {
-    RunStats stats(RunstatString);
+    static RunStats stats(RunstatString);
 
     stats.start();
 
@@ -377,7 +377,7 @@ FluxRegister::Reflux (MultiFab&       S,
                       int             num_comp, 
                       const Geometry& geom)
 {
-    RunStats stats(RunstatString);
+    static RunStats stats(RunstatString);
 
     stats.start();
 
