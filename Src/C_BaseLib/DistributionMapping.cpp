@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.31 1998-07-29 19:10:28 lijewski Exp $
+// $Id: DistributionMapping.cpp,v 1.32 1998-07-29 19:26:39 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -195,7 +195,7 @@ DistributionMapping::define (int             nprocs,
 
             (this->*m_BuildMap)(nprocs, boxes);
 
-#ifndef BL_NO_PROCMAP_CACHE
+#if defined(BL_USE_MPI) && !defined(BL_NO_PROCMAP_CACHE)
             //
             // We always append new processor maps.
             //
