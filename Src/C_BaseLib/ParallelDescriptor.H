@@ -2,7 +2,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.65 2001-07-23 04:16:52 car Exp $
+// $Id: ParallelDescriptor.H,v 1.66 2001-07-23 17:39:01 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -608,7 +608,7 @@ Bcast(const T& t, int root)
 
 template <class T, class T1>
 void
-ParallelDescriptor::Gather(T* t, size_t n, const T1* t1, size_t n1, int root)
+Gather(T* t, size_t n, const T1* t1, size_t n1, int root)
 {
 }
 
@@ -623,7 +623,7 @@ Gather(const T& t, int root)
 
 template <class T, class T1>
 void
-ParallelDescriptor::Scatter(T* t, size_t n, const T1* t1, size_t n1, int root)
+Scatter(T* t, size_t n, const T1* t1, size_t n1, int root)
 {
 }
 

@@ -1,5 +1,5 @@
 //
-// $Id: FArrayBox.cpp,v 1.37 2001-07-22 23:25:24 car Exp $
+// $Id: FArrayBox.cpp,v 1.38 2001-07-23 17:39:00 lijewski Exp $
 //
 
 #include <cstdlib>
@@ -138,11 +138,6 @@ FABio::write_header (std::ostream&    os,
 }
 
 //
-// Initially we have yet to read the ParmParse file.
-//
-bool FArrayBox::Initialized = false;
-
-//
 // Default format and FABio pointer to NATIVE type.
 //
 // Note: these should ALWAYS be changed in concert.
@@ -153,8 +148,6 @@ FABio* FArrayBox::fabio = new FABio_binary(FPC::NativeRealDescriptor().clone());
 
 FArrayBox::FArrayBox ()
 {
-    if (!FArrayBox::Initialized)
-        FArrayBox::init();
 }
 
 FArrayBox::FArrayBox (const Box& b,
@@ -162,8 +155,6 @@ FArrayBox::FArrayBox (const Box& b,
     :
     BaseFab<Real>(b,n)
 {
-    if (!FArrayBox::Initialized)
-        FArrayBox::init();
     //
     // For debugging purposes set values to QNAN when possible.
     //
@@ -331,8 +322,6 @@ FArrayBox::get_initval ()
 void
 FArrayBox::init ()
 {
-    FArrayBox::Initialized = true;
-
     ParmParse pp("fab");
 
     aString fmt;
@@ -649,9 +638,6 @@ FABio::read_header (std::istream& is,
 
 FArrayBox::FArrayBox (std::istream& ifile)
 {
-    if (!FArrayBox::Initialized)
-        FArrayBox::init();
-
     readFrom(ifile);
 }
 

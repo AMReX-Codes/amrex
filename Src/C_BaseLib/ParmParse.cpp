@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.20 2001-07-22 23:46:40 car Exp $
+// $Id: ParmParse.cpp,v 1.21 2001-07-23 17:39:01 lijewski Exp $
 //
 
 #include <iostream>
@@ -31,25 +31,21 @@ enum PPType
 
 struct PP_entry
 {
-    PP_entry() : queried(false) {}
+    PP_entry (aString&       name,
+              PPType         typ,
+              List<aString>& vals);
 
-    PP_entry (aString&          name,
-              PPType typ,
-              List<aString>&    vals);
-
-    ~PP_entry() {}
-
-    Array<aString>    val;
-    aString           defname;
-    PPType deftype;
-    bool              queried;
+    Array<aString> val;
+    aString        defname;
+    PPType         deftype;
+    bool           queried;
 
     void dump (std::ostream& os) const;
 };
 
 bool
 isInteger (const std::string& str,
-	   int&           val)
+	   int&               val)
 {
     //
     // Start token scan.

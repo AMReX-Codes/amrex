@@ -2,7 +2,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.43 2001-07-22 22:12:22 car Exp $
+// $Id: Utility.H,v 1.44 2001-07-23 17:39:01 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -137,10 +137,12 @@ namespace BoxLib
     */
     pid_t Execute (const char* cmd);
 #endif
-
-    // Helper class for Times, used in Threads, Profiling, and Timers
+    //
+    // Helper class for Times, used in Threads, Profiling, and Timers.
+    //
     class Time
-	: public timespec
+	:
+    public timespec
     {
     public:
 	Time();
@@ -155,11 +157,11 @@ namespace BoxLib
     private:
 	void normalize();
     };
-
+    //
     // Implements a simple in place Timer:
+    //
     template <double (*FCN)(double*)> class base_Timer;
     template <double (*FCN)(double*)> std::ostream& operator<<(std::ostream&, const base_Timer<FCN>&);
-
 
     typedef base_Timer<BoxLib::wsecond> WallTimer;
     typedef base_Timer<BoxLib::second>  CPUTimer;
@@ -186,7 +188,9 @@ namespace BoxLib
 	double accum_val;
 	int cnt;
     };
+    //
     // The Mersenne twistor :
+    //
     class mt19937
     {
     public:

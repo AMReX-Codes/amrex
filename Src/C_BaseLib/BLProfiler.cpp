@@ -1,5 +1,5 @@
 //
-// $Id: BLProfiler.cpp,v 1.14 2001-07-23 04:16:52 car Exp $
+// $Id: BLProfiler.cpp,v 1.15 2001-07-23 17:39:00 lijewski Exp $
 //
 
 #include <winstd.H>
@@ -516,7 +516,6 @@ std::vector<ThreadTimerTree*> tt_data;
 
 std::string filename("bl_prof");
 bool mma = false;
-bool initialized = false;
 }
 
 Profiler::Tag::Tag(const std::string& tag_)
@@ -573,9 +572,7 @@ Profiler::clean_name(const std::string& str)
 void
 Profiler::Finalize()
 {
-#ifndef BL_PROFILING
-    return;
-#endif
+#ifdef BL_PROFILING
     // Try to measure overhead:
     for ( int i = 0; i < 100; ++i )
     {
@@ -584,6 +581,7 @@ Profiler::Finalize()
     if ( profiling ) off();
 
     glean();
+#endif
 }
 
 Profiler::Profiler(const Tag& tag_, bool hold)
