@@ -4,7 +4,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.4 1997-11-24 18:52:26 lijewski Exp $
+// $Id: Amr.H,v 1.5 1997-11-26 18:27:45 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -49,9 +49,6 @@ public:
 
 //  initialize amr data after construction - must be called before timestepping
     void init( );
-
-//  set initial time variables
-    void setInitialTime(REAL strt_time);
 
 /// undocumented hacks
 ///

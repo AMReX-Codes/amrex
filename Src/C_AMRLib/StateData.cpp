@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: StateData.cpp,v 1.4 1997-11-26 17:46:22 lijewski Exp $
+// $Id: StateData.cpp,v 1.5 1997-11-26 18:27:46 lijewski Exp $
 //
 
 #include <RunStats.H>
@@ -160,18 +160,18 @@ StateData::~StateData()
 }
 
 void
-StateData::setTimeLevel (REAL time, REAL dt)
+StateData::setTimeLevel (Real time, Real dt_old, Real dt_new)
 {
     if (desc->timeType() == StateDescriptor::Point)
     {
 	new_time.start = new_time.stop = time;
-	old_time.start = old_time.stop = time - dt;
+	old_time.start = old_time.stop = time - dt_old;
     }
     else
     {
 	new_time.start = time;
-	new_time.stop  = time+dt;
-	old_time.start = time-dt;
+	new_time.stop  = time+dt_new;
+	old_time.start = time-dt_old;
 	old_time.stop  = time;
     }
 }

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: AmrLevel.cpp,v 1.3 1997-11-24 18:52:27 lijewski Exp $
+// $Id: AmrLevel.cpp,v 1.4 1997-11-26 18:27:46 lijewski Exp $
 //
 
 // #define ADVANCE_DEBUG 1
@@ -104,12 +104,12 @@ AmrLevel::finishConstructor()
 }
 
 void
-AmrLevel::setTimeLevel(Real time, Real dt)
+AmrLevel::setTimeLevel(Real time, Real dt_old, Real dt_new)
 {
     int ndesc = desc_lst.length();
     int k;
     for (k = 0; k < ndesc; k++)
-	state[k].setTimeLevel(time,dt);
+	state[k].setTimeLevel(time,dt_old,dt_new);
 }
 
 int

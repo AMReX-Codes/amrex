@@ -4,7 +4,7 @@
 #define _StateData_H_ 
 
 //
-// $Id: StateData.H,v 1.2 1997-11-24 18:52:32 lijewski Exp $
+// $Id: StateData.H,v 1.3 1997-11-26 18:27:46 lijewski Exp $
 //
 
 #include <Box.H>
@@ -89,10 +89,10 @@ public:
 //
     void swapTimeLevels(REAL dt);
 //
-    void setTimeLevel(REAL t_new, REAL dt);
+    void setTimeLevel(Real t_new, Real dt_old, Real dt_new);
 
-    void RegisterData(MultiFabCopyDescriptor &multiFabCopyDesc,
-                      Array<MultiFabId> &mfid);
+    void RegisterData(MultiFabCopyDescriptor& multiFabCopyDesc,
+                      Array<MultiFabId>&      mfid);
 
 //  interpolation routine
     void linInterp(FARRAYBOX& dest, const BOX& subbox, REAL time,

@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.2 1997-11-24 18:52:27 lijewski Exp $
+// $Id: AmrLevel.H,v 1.3 1997-11-26 18:27:45 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -154,7 +154,7 @@ public:
     virtual void initData() = 0;
 
 //  set the time levels of state data
-    virtual void setTimeLevel(Real time, Real dt);
+    virtual void setTimeLevel(Real time, Real dt_old, Real dt_new);
 
 //  alloc space for old time data
     virtual void allocOldData();

@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Amr.cpp,v 1.10 1997-11-24 18:52:27 lijewski Exp $
+// $Id: Amr.cpp,v 1.11 1997-11-26 18:27:45 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -589,7 +589,7 @@ Amr::initialInit ()
     amr_level[0].computeInitialDt(finest_level,sub_cycle,
 				  n_cycle,ref_ratio,dt_level);
     for (lev = 0; lev <= finest_level; lev++)
-	amr_level[lev].setTimeLevel(strt_time,dt_level[lev]);
+	amr_level[lev].setTimeLevel(strt_time,dt_level[lev],dt_level[lev]);
     //
     // Perform any special post_initialization operations.
     //
@@ -607,15 +607,6 @@ Amr::initialInit ()
 	gridlog << "INITIAL GRIDS \n";
 	printGridInfo(gridlog,0,finest_level);
     }
-}
-
-void
-Amr::setInitialTime (REAL strt_time)
-{
-    cumtime = strt_time;
-    int lev;
-    for (lev = 0; lev <= finest_level; lev++)
-	amr_level[lev].setTimeLevel(strt_time,dt_level[lev]);
 }
 
 void
