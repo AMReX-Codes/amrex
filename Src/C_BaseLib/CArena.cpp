@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CArena.cpp,v 1.11 1998-04-30 16:35:34 lijewski Exp $
+// $Id: CArena.cpp,v 1.12 1998-06-12 19:39:53 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -30,18 +30,15 @@ using std::pair;
 #include <CArena.H>
 
 //
-// If you want to test some FAB-based code without using the coalescing
-// memory manager [you don't trust this code :-)] simply touch this module
-// and recompile with the -DBL_DONT_COALESCE_MEMORY flag.  Fabs will then
-// use BArena which directly calls ::operator new().
+// Only really use the coalescing FAB arena if BL_COALESCE_FABS.
 //
-#ifdef BL_DONT_COALESCE_MEMORY
-#include <BArena.H>
-static CArena The_Static_FAB_BArena;
-Arena* The_FAB_Arena = &The_Static_FAB_BArena;
-#else
+#ifdef BL_COALESCE_FABS
 static CArena The_Static_FAB_CArena;
 Arena* The_FAB_Arena = &The_Static_FAB_CArena;
+#else
+#include <BArena.H>
+static BArena The_Static_FAB_BArena;
+Arena* The_FAB_Arena = &The_Static_FAB_BArena;
 #endif
 
 CArena::CArena (size_t hunk_size)
