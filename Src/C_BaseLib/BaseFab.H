@@ -1,7 +1,7 @@
 #ifndef BL_BASEFAB_H
 #define BL_BASEFAB_H
 //
-// $Id: BaseFab.H,v 1.46 2001-10-16 19:59:51 lijewski Exp $
+// $Id: BaseFab.H,v 1.47 2001-10-18 17:55:31 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -2619,5 +2619,20 @@ BaseFab<T>::operator() (const Box& bx) const
 {
     return CBFProxy(*this, bx&box(), CBFProxy::All);
 }
+
+namespace BoxLib
+{
+    class BF_init
+    {
+    public:
+        BF_init ();
+        ~BF_init ();
+    private:
+        static int m_cnt;
+    };
+}
+
+static BoxLib::BF_init file_scope_BF_init_object;
+
 
 #endif /*BL_BASEFAB_H*/

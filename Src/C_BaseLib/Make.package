@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.30 2001-07-31 19:24:10 lijewski Exp $
+# $Id: Make.package,v 1.31 2001-10-18 17:55:31 lijewski Exp $
 #
 
 BOXLIB_BASE=EXE
@@ -68,6 +68,7 @@ C$(BOXLIB_BASE)_headers += FArrayBox.H
 C$(BOXLIB_BASE)_headers += Looping.H
 
 T_headers += BaseFab.H
+C$(BOXLIB_BASE)_sources += BaseFab.cpp
 
 #
 # FORTRAN data defined on unions of rectangles.

@@ -2,8 +2,10 @@
 #define _BL_THREAD_H_
 
 //
-// $Id: Thread.H,v 1.13 2001-09-14 04:03:39 car Exp $
+// $Id: Thread.H,v 1.14 2001-10-18 17:55:31 lijewski Exp $
 //
+
+//#include <cstdio>
 
 #include <Utility.H>
 
@@ -407,7 +409,6 @@ class ThreadSpecificData
 {
 public:
     explicit ThreadSpecificData(const T* p = 0);
-    explicit ThreadSpecificData(const T* p, void (*dst)(void*) = 0);
     virtual ~ThreadSpecificData();
     T* set(const T* t);
     T* get() const;
@@ -424,13 +425,6 @@ private:
 template <class T>
 ThreadSpecificData<T>::ThreadSpecificData(const T* p)
     : ThreadSpecificData<void>(tsd_destroy)
-{
-    if ( p ) set(p);
-}
-
-template <class T>
-ThreadSpecificData<T>::ThreadSpecificData(const T* p, void (*dst)(void*))
-    : ThreadSpecificData<void>(dst)
 {
     if ( p ) set(p);
 }
@@ -487,6 +481,7 @@ template <class T>
 void
 ThreadSpecificData<T>::tsd_destroy(void* v)
 {
+    //printf("ThreadSpecificData<T>::tsd_destroy(%p)\n",v);
     delete static_cast<T*>(v);
 }
 
