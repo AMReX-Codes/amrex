@@ -149,9 +149,6 @@ contains
     ! Set the mask to BC_DIR at a coarse-fine boundary interior to the problem domain.
     ilo = bx%lo(1)
     jlo = bx%lo(2)
-    print *,'BX  ',bx%lo(1:2), bx%hi(1:2)
-    print *,'PD  ',pd%lo(1:2),pd%hi(1:2)
-    print *,'PDV  ',pdv%bxs(1)%lo(1:2),pdv%bxs(1)%hi(1:2)
 
     do jb = -1, 1
          do ib = -1, 1
