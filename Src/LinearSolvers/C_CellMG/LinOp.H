@@ -1,8 +1,10 @@
+//BL_COPYRIGHT_NOTICE
+
 #ifndef _LINOP_H_
 #define _LINOP_H_
 
 //
-// $Id: LinOp.H,v 1.5 1998-06-13 15:50:01 lijewski Exp $
+// $Id: LinOp.H,v 1.6 1998-07-07 17:25:14 lijewski Exp $
 //
 
 #include <Array.H>
@@ -80,8 +82,8 @@
         acting on in=0 returns out=0.
         
         This class does NOT provide a copy constructor or assignment operator.
-        
 */
+
 class LinOp
 {
 public:
@@ -91,18 +93,18 @@ public:
     //@ManDoc: allocate a LinOp for this box array, boundary and (uniform) spacing info
     //
     LinOp (const BndryData& mgb,
-	   const Real       _h);
+           const Real       _h);
     //
     //@ManDoc: allocate a LinOp for this box array, boundary data and spacing array info
     //
     LinOp (const BndryData& mgb,
-	   const Real*      _h);
+           const Real*      _h);
     //
     //@ManDoc: alocate a LinOp w/level structure beginning at the
     //  specified level of this LinOp
     //
     LinOp (const LinOp& _Lp,
-	   int          level);
+           int          level);
     //
     //@ManDoc: destructor
     //
@@ -111,63 +113,63 @@ public:
     //@ManDoc: applies level LinOp to "in", returns "out", uses BC\_mode flag
     //
     virtual void apply (MultiFab&      out,
-			MultiFab&      in,
-			int            level = 0,
-			LinOp::BC_Mode bc_mode = LinOp::Inhomogeneous_BC);
+                        MultiFab&      in,
+                        int            level = 0,
+                        LinOp::BC_Mode bc_mode = LinOp::Inhomogeneous_BC);
     //
     //@ManDoc: fills level boundary cells using BC\_mode flag, int. BC data if reqd
     //
     void applyBC (MultiFab&      inout,
-		  int            level = 0,
-		  LinOp::BC_Mode bc_mode = LinOp::Inhomogeneous_BC);
+                  int            level = 0,
+                  LinOp::BC_Mode bc_mode = LinOp::Inhomogeneous_BC);
     //
     //@ManDoc: compute the level residual = rhsL - L(solnL)
     //
     virtual void residual (MultiFab&       residL,
-			   const MultiFab& rhsL,
-			   MultiFab&       solnL,
-			   int             level = 0,
-			   LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
+                           const MultiFab& rhsL,
+                           MultiFab&       solnL,
+                           int             level = 0,
+                           LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
     //
     //@ManDoc: smooth the level system L(solnL)=rhsL
     //
     void smooth (MultiFab&       solnL,
-		 const MultiFab& rhsL,
-		 int             level = 0,
-		 LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
+                 const MultiFab& rhsL,
+                 int             level = 0,
+                 LinOp::BC_Mode  bc_mode = LinOp::Inhomogeneous_BC);
     //
     //@ManDoc: Compute the norm of "in"
     //
     Real norm (const MultiFab& in,
-	       int             level = 0) const;
+               int             level = 0) const;
     //
     //@ManDoc: return the boundary data object
     //
-    inline const BndryData& bndryData () const;
+    const BndryData& bndryData () const;
     //
     //@ManDoc: set the boundary data object
     //
-    inline void bndryData (const BndryData& bd);
+    void bndryData (const BndryData& bd);
     //
     //@ManDoc: return the box array
     //
-    inline const BoxArray& boxArray (int level = 0) const;
+    const BoxArray& boxArray (int level = 0) const;
     //
     //@ManDoc: return the number of grids
     //
-    inline int numGrids () const;
+    int numGrids () const;
     //
     //@ManDoc: return the number of levels
     //
-    inline int numLevels () const;
+    int numLevels () const;
     //
     //@ManDoc: return the order of the boundary condition interpolant
     //
-    inline int maxOrder () const;
+    int maxOrder () const;
     //
     //@ManDoc: set the order of the boundary condition interpolant
     //
-    inline int maxOrder (int maxorder_);
+    int maxOrder (int maxorder_);
     //
     //@ManDoc: construct/allocate internal data necessary for adding a new level
     //
@@ -175,43 +177,42 @@ public:
     //
     //@ManDoc: Output operator internal to an ASCII stream
     //
-    friend std::ostream& operator << (std::ostream& os,
-				      const LinOp&  lp);
+    friend ostream& operator<< (ostream&     os,
+                                const LinOp& lp);
 
 protected:
     //
-    //@ManDoc: remove internal data necessary for a level and all higher
+    //@ManDoc: Remove internal data necessary for a level and all higher.
     //
-    virtual void clearToLevel (int level) {};
+    virtual void clearToLevel (int level) {}
     //
-    //@ManDoc: virtual to apply the level operator to the internal nodes of
+    //@ManDoc: Virtual to apply the level operator to the internal nodes of
     // "in", return result in "out"
     //
     virtual void Fapply (MultiFab&       out,
-			 const MultiFab& in,
-			 int             level) = 0;
+                         const MultiFab& in,
+                         int             level) = 0;
     //
-    //@ManDoc: virtual to carry out the level smoothing operation for
+    //@ManDoc: Virtual to carry out the level smoothing operation for
     //  L(solnL)=rhsL on internal nodes.  Modify solnL in place.
     //
     virtual void Fsmooth (MultiFab&       solnL,
-			  const MultiFab& rhsL,
-			  int             level,
+                          const MultiFab& rhsL,
+                          int             level,
                           int             rgbflag) = 0;
-protected:
     //
     //@ManDoc: build coefficients at coarser level by interpolating "fine"
     //  (builds in appropriate node/cell centering)
     //
     void makeCoefficients (MultiFab&       crs,
-			   const MultiFab& fine,
-			   int             level);
+                           const MultiFab& fine,
+                           int             level);
     //
-    //@ManDoc: initialize LinOp internal data
+    //@ManDoc: Initialize LinOp internal data.
     //
     static void initialize ();
     //
-    //@ManDoc: Helper functin for object construction
+    //@ManDoc: Helper function for object construction.
     //
     void initConstruct (const Real* _h);
     //
@@ -276,49 +277,59 @@ protected:
     static int def_maxorder;
     
 private:
+    //
+    // Not implemented.
+    //
     LinOp (const LinOp& rhs);
     void operator = (const LinOp& rhs);
 };
 
-inline const BndryData&
+inline
+const BndryData&
 LinOp::bndryData () const
 {
     return bgb;
 }
 
-inline void
+inline
+void
 LinOp::bndryData (const BndryData& bd)
 {
     assert(gbox[0] == bd.boxes());
     bgb = bd;
 }
 
-inline const BoxArray&
+inline
+const BoxArray&
 LinOp::boxArray (int level) const
 {
     assert(level < numLevels());
     return gbox[level];
 }
 
-inline int
+inline
+int
 LinOp::numGrids () const
 {
     return gbox[0].length();
 }
 
-inline int
+inline
+int
 LinOp::numLevels () const
 {
     return h.size();
 }
 
-inline int
+inline
+int
 LinOp::maxOrder () const
 {
     return maxorder;
 }
 
-inline int
+inline
+int
 LinOp::maxOrder (int maxorder_)
 {
     assert(maxorder_ >= 2);
@@ -328,4 +339,4 @@ LinOp::maxOrder (int maxorder_)
     return omaxorder;
 }
 
-#endif
+#endif /*_LINOP_H_*/
