@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: BoxArray.cpp,v 1.14 2000-04-24 17:52:33 car Exp $
+// $Id: BoxArray.cpp,v 1.15 2000-06-02 22:37:40 lijewski Exp $
 //
 
 #include <BLassert.H>
@@ -521,6 +521,17 @@ intersect (const BoxArray& ba,
     return BoxArray(::intersect(ba.boxList(), b));
 #else
     return BoxArray(BL_NAMESPACE::intersect(ba.boxList(), b));
+#endif
+}
+
+BoxArray
+intersect (const BoxArray& lhs,
+           const BoxArray& rhs)
+{
+#ifndef BL_NAMESPACE
+    return BoxArray(::intersect(lhs.boxList(), rhs.boxList()));
+#else
+    return BoxArray(BL_NAMESPACE::intersect(lhs.boxList(), rhs.boxList()));
 #endif
 }
 
