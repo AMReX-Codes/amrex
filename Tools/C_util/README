@@ -1,9 +1,6 @@
 This directory contains code, useful for debugging, but which didn't
 seem to belong anywhere else.
 
-ArrayView.H               Allow access to ArrayView from within TotalView
-DatasetClient.[H,cpp]
-
 TV_TempWrite.H            Allows access to writeMF and readMF functions for
                             writing/reading MultiFab's into a file format
                             readible by the little functions in the ViewMF
