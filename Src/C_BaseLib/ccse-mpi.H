@@ -2,7 +2,7 @@
 #define BL_CCSE_MPP
 
 //
-// $Id: ccse-mpi.H,v 1.10 2001-07-26 20:50:06 car Exp $
+// $Id: ccse-mpi.H,v 1.11 2001-09-25 22:45:41 lijewski Exp $
 //
 
 //
@@ -68,11 +68,14 @@ namespace ParallelDescriptor
 
 
 #else
+
 typedef int MPI_Op;
 typedef int MPI_Comm;
 typedef int MPI_Datatype;
 struct MPI_Status {};
 typedef int MPI_Request;
+const int MPI_REQUEST_NULL = 0;
+
 #endif /*BL_USE_MPI*/
 
 #endif /*BL_CCSE_MPP*/
