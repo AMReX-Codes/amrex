@@ -4,7 +4,7 @@
 #define BL_ARRAY_H
 
 //
-// $Id: Array.H,v 1.10 1999-02-10 21:09:54 lijewski Exp $
+// $Id: Array.H,v 1.11 1999-04-06 18:15:59 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -225,43 +225,6 @@ private:
 
 template <class T>
 inline
-Array<T>::Array ()
-{
-    nelem    = 0;
-    vp       = new T[1];
-    truesize = 1;
-}
-
-template <class T>
-inline
-Array<T>::Array (long len)
-{
-    assert(len >= 0);
-    nelem    = len;
-    vp       = new T[len];
-    truesize = nelem;
-}
-
-template <class T>
-inline
-void
-Array<T>::clear ()
-{
-    delete [] vp;
-    vp       = 0;
-    nelem    = 0;
-    truesize = 0;
-}
-
-template <class T>
-inline
-Array<T>::~Array ()
-{
-    clear();
-}
-
-template <class T>
-inline
 bool
 Array<T>::ready () const
 {
@@ -377,14 +340,47 @@ Array<T>::operator!= (const Array<T>& rhs) const
 //
 
 template <class T>
+Array<T>::Array ()
+{
+    nelem    = 0;
+    vp       = new T[1];
+    truesize = 1;
+}
+
+template <class T>
+Array<T>::Array (long len)
+{
+    assert(len >= 0);
+    nelem    = len;
+    vp       = new T[len];
+    truesize = nelem;
+}
+
+template <class T>
+void
+Array<T>::clear ()
+{
+    delete [] vp;
+    vp       = 0;
+    nelem    = 0;
+    truesize = 0;
+}
+
+template <class T>
+Array<T>::~Array ()
+{
+    delete [] vp;
+}
+
+template <class T>
 Array<T>::Array (long     len,
                  const T& initialValue)
 {
     assert(len >= 0);
-    nelem = len;
-    vp    = new T[len];
-    truesize = nelem;
-    for(long i = 0; i < nelem; ++i)
+    nelem    = len;
+    vp       = new T[len];
+    truesize = len;
+    for (long i = 0; i < len; i++)
         vp[i] = initialValue;
 }
 
@@ -393,20 +389,20 @@ Array<T>::Array (const T* vec,
                  long     len)
 {
     assert(len >= 0);
-    nelem = len;
-    vp    = new T[len];
-    truesize = nelem;
-    for(long i = 0; i < nelem; ++i)
+    nelem    = len;
+    vp       = new T[len];
+    truesize = len;
+    for (long i = 0; i < len; ++i)
         vp[i] = vec[i];
 }
 
 template <class T>
 Array<T>::Array (const Array<T>& a)
 {
-    nelem = a.nelem;
-    vp    = new T[nelem];
-    truesize = nelem;
-    for (long i = 0; i < nelem; i++)
+    nelem    = a.nelem;
+    vp       = new T[a.nelem];
+    truesize = a.nelem;
+    for (long i = 0; i < a.nelem; i++)
         vp[i] = a.vp[i];
 }
 
@@ -414,13 +410,16 @@ template <class T>
 Array<T>&
 Array<T>::operator= (const Array<T>& sa)
 {
-    if (this != &sa)
+    if (!(this == &sa))
     {
-        clear();
-        vp       = new T[sa.nelem];
-        nelem    = sa.nelem;
-        truesize = nelem;
-        for(long i = 0; i < nelem; i++)
+        if (sa.nelem > truesize)
+        {
+            delete [] vp;
+            vp       = new T[sa.nelem];
+            truesize = sa.nelem;
+        }
+        nelem = sa.nelem;
+        for (long i = 0; i < sa.nelem; i++)
             vp[i] = sa.vp[i];
     }
     return *this;
@@ -430,47 +429,35 @@ template <class T>
 void
 Array<T>::resize (long newlen)
 {
-    if (newlen == nelem)
-        return;
-    if (newlen <= truesize)
+    if (newlen > truesize)
     {
-        nelem = newlen;
-        return;
+        T* newvp = new T[newlen];
+        for (long i = 0; i < nelem; i++)
+            newvp[i] = vp[i];
+        delete [] vp;
+        vp       = newvp;
+        truesize = newlen;
     }
-    T* newvp = new T[newlen];
-    long len = Min(newlen,nelem);
-    for (long i = 0; i < len; i++)
-        newvp[i] = vp[i];
-    delete [] vp;
-    vp = newvp;
     nelem = newlen;
-    truesize = newlen;
 }
 
 template <class T>
-void Array<T>::resize (long     newlen,
-                       const T& initialValue)
+void
+Array<T>::resize (long     newlen,
+                  const T& initialValue)
 {
-    if (newlen == nelem)
-        return;
-    if (newlen <= truesize)
+    if (newlen > truesize)
     {
-        for(long i = nelem; i < newlen; ++i)
-            vp[i] = initialValue;
-        nelem = newlen;
-        return;
+        T* newvp = new T[newlen];
+        for (long i = 0; i < nelem; i++)
+            newvp[i] = vp[i];
+        delete [] vp;
+        vp       = newvp;
+        truesize = newlen;
     }
-    T* newvp = new T[newlen];
-    long len = Min(newlen,nelem);
-    long i;
-    for (i = 0; i < len; i++)
-        newvp[i] = vp[i];
-    for(i = len; i < newlen; ++i)
-        newvp[i] = initialValue;
-    delete [] vp;
-    vp = newvp;
+    for (long i = nelem; i < newlen; ++i)
+        vp[i] = initialValue;
     nelem = newlen;
-    truesize = newlen;
 }
 
 template <class T>
@@ -483,7 +470,7 @@ Array<T>::reserve (long _truesize)
         for (long i = 0; i < nelem; i++)
             newvp[i] = vp[i];
         delete [] vp;
-        vp = newvp;
+        vp       = newvp;
         truesize = _truesize;
     }
 }
@@ -492,13 +479,13 @@ template <class T>
 void
 Array<T>::shrinkWrap ()
 {
-    if (nelem != truesize)
+    if (!(nelem == truesize))
     {
         T* newvp = new T[nelem];
         for (long i = 0; i < nelem; i++)
             newvp[i] = vp[i];
         delete [] vp;
-        vp = newvp;
+        vp       = newvp;
         truesize = nelem;
     }
 }
