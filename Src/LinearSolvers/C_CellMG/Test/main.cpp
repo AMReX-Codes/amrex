@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.6 1998-07-30 23:14:16 car Exp $
+// $Id: main.cpp,v 1.7 1999-01-04 18:12:08 marc Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -36,11 +36,35 @@ using std::set_new_handler;
 
 #include <WritePlotFile.H>
 
-const int NPROCS = 1;
-
 BoxList
 readBoxList (aString file,
 	     BOX&    domain);
+
+static void
+dumpMF(const MultiFab& mf, const char* str)
+{
+    ParallelDescriptor::Barrier();
+    if (ParallelDescriptor::IOProcessor())
+    {
+	cout << str << endl;
+	ConstMultiFabIterator it(mf);
+	for (;it.isValid(); ++it)
+	{
+	    cout << it() << endl;
+	}
+    }
+    ParallelDescriptor::Barrier();
+    if (!ParallelDescriptor::IOProcessor())
+    {
+	ConstMultiFabIterator it(mf);
+	for (;it.isValid(); ++it)
+	{
+	    cout << it() << endl;
+	}
+    }
+    ParallelDescriptor::Barrier();
+}
+
 
 int
 main (int   argc,
@@ -53,19 +77,31 @@ main (int   argc,
     set_new_handler(Utility::OutOfMemory);
 #endif
 
-    TRACER("mg");
-    
+    int nprocs = 1;
+    ParallelDescriptor::StartParallel(nprocs,&argc,&argv);
+
+    cout << setprecision(10);
+
     if(argc < 2) {
       cerr << "usage:  " << argv[0] << " inputsfile [options]" << '\n';
       exit(-1);
     }
 
-    // Parse command line
     ParmParse pp(argc-2,argv+2,NULL,argv[1]); 
-
-    int nprocs = NPROCS; pp.query("nprocs", nprocs);
-    ParallelDescriptor::StartParallel(nprocs, &argc, &argv);
-
+    //
+    // Initialize random seed after we're running in parallel.
+    //
+    Utility::InitRandom(ParallelDescriptor::MyProc() + 1);
+    //
+    // Instantiate after we're running in Parallel.
+    //
+#ifndef WIN32
+    int sleeptime = 0; pp.query("sleep", sleeptime);
+    sleep(sleeptime);
+#endif
+    
+    TRACER("mg");
+    
     int i, n;
     
       // Obtain prob domain and box-list, set H per phys domain [0:1]Xn
@@ -98,7 +134,7 @@ main (int   argc,
         ivmid += IntVect::TheUnitVector();
         rhsmfi().operator()(ivmid,0) = -1;
     } // -->> over boxes in domain
-    
+
       // Initialize boundary data, set boundary condition flags and locations:
       // (phys boundaries set to dirichlet on cell walls)
     BndryData bd(bs, 1, geom);
@@ -241,10 +277,13 @@ main (int   argc,
 	
     } // -->> solve D^2(soln)=rhs   or   (alpha*a - beta*D.(b.G))soln=rhs
 
-    // Write solution
+    // Write solution, and rhs
+    MultiFab temp(bs, 2, Nghost, Fab_allocate); temp.setVal(0.0);
+    temp.copy(soln, 0, 0, 1);
+    temp.copy(rhs,  0, 1, 1);
     const IntVect refRatio(D_DECL(2,2,2));
-    const Real bgVal = soln.min(0);
-    writePlotFile("soln",soln,geom,refRatio,bgVal);
+    const Real bgVal = temp.min(0);
+    writePlotFile("soln",temp,geom,refRatio,bgVal);
 
     ParallelDescriptor::EndParallel();
     
