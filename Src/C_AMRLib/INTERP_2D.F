@@ -1,5 +1,5 @@
 c
-c $Id: INTERP_2D.F,v 1.18 2002-11-05 21:21:58 almgren Exp $
+c $Id: INTERP_2D.F,v 1.19 2002-11-09 02:15:52 lijewski Exp $
 c
 
 #undef  BL_LANG_CC
@@ -627,6 +627,7 @@ c           Limit slopes so as to not introduce new maxs or mins.
                     alpha(icc) = min(alpha(icc),corr_fact)
                   endif
 
+#ifndef NDEBUG
                   if (alpha(icc) .lt. 0.d0) then
                     print *,'OOPS - ALPHA SHOULD BE POSITIVE IN CCINTERP '
                     print *,'ICC = ',icc
@@ -641,6 +642,7 @@ c           Limit slopes so as to not introduce new maxs or mins.
                     print *,'ORIG_CORR_FACT = ',orig_corr_fact
                     stop
                   endif
+#endif
 
 387            continue
 385         continue

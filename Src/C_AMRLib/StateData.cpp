@@ -1,6 +1,6 @@
 
 //
-// $Id: StateData.cpp,v 1.37 2002-10-31 21:56:45 lijewski Exp $
+// $Id: StateData.cpp,v 1.38 2002-11-09 02:15:52 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -10,6 +10,7 @@
 #include <StateData.H>
 #include <StateDescriptor.H>
 #include <ParallelDescriptor.H>
+#include <Profiler.H>
 
 const Real INVALID_TIME = -1.0e200;
 
@@ -351,6 +352,8 @@ StateData::FillBoundary (const Real*    dx,
                          int            num_comp,
                          int            do_new)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::FillBoundary()");
+
     Real cur_time;
     if (desc->timeType() == StateDescriptor::Point)
     {
@@ -516,6 +519,8 @@ StateData::linInterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
                              int                      num_comp,
                              bool                     extrap)
 {
+    BL_PROFILE(BL_PROFILE_THIS_NAME() + "::linInterpFillFab()");
+
     if (desc->timeType() == StateDescriptor::Point)
     {
         if (old_data == 0)
