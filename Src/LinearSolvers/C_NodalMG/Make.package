@@ -1,5 +1,5 @@
 #
-# $Id: Make.package,v 1.14 1998-11-16 21:44:10 car Exp $
+# $Id: Make.package,v 1.15 1999-04-08 21:00:56 car Exp $
 #
 
 HGPROJ_BASE=EXE
@@ -14,7 +14,7 @@ C$(HGPROJ_BASE)_sources += interface.cpp boundary.cpp interpolator.cpp \
 
 C$(HGPROJ_BASE)_headers += amr_defs.H interface.H boundary.H interpolator.H \
                 restrictor.H fill_patch.H amr_multi.H \
-                hg_multi.H hg_projector.H hgparallel.h
+                hg_multi.H hg_projector.H hgparallel.H
 
 F$(HGPROJ_BASE)_sources += amr_real$(DIM)d.F hg_multi$(DIM)d.F \
                 hg_proj$(DIM)d.F hg_avg$(DIM)d.F

@@ -26,7 +26,7 @@
 #define CRealPS const Real*, const Real*, const Real*
 #endif
 
-#include "hgparallel.h"
+#include "hgparallel.H"
 
 extern bool HG_is_debugging;
 
