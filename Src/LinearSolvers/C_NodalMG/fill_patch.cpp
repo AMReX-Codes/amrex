@@ -176,6 +176,7 @@ bool task_fill_patch::init(sequence_number sno, MPI_Comm comm)
 {
     task_fab::init(sno, comm);
     fill_patch();
+    HG_DEBUG_OUT("Fill patch has " << tl.size() << " entries" << endl );
     return !tl.empty();
 }
 
