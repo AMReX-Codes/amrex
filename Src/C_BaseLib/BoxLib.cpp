@@ -1,5 +1,5 @@
 //
-// $Id: BoxLib.cpp,v 1.27 2001-08-16 20:11:38 lijewski Exp $
+// $Id: BoxLib.cpp,v 1.28 2001-08-21 17:10:31 car Exp $
 //
 #include <winstd.H>
 
@@ -197,6 +197,7 @@ void
 BoxLib::Finalize ()
 {
     bl_prf->stop();
+    delete bl_prf;
     DistributionMapping::Finalize();
     FArrayBox::Finalize();
     Profiler::Finalize();
