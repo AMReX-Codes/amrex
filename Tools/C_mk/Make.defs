@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.40 2001-09-27 16:11:49 car Exp $
+# Make.defs $Id: Make.defs,v 1.41 2001-10-17 16:49:27 lijewski Exp $
 #
 
 #
@@ -192,9 +192,7 @@ ifeq ($(COMP),g++)
     FULLWARN   := -Wall 
     FULLWARN   += -Wno-sign-compare
     CXX	       := g++ -ftemplate-depth-25
-    # DEFINES    += -DBL_OLD_STL
-#    DEFINES    += -DBL_USE_NEW_HFILES
-#    DEFINES    += -DBL_USE_SETBUF
+    DEFINES    += -DBL_USE_SETBUF
     __gcc_version := $(shell gcc --version)
     __gcc_major_version := $(shell gcc --version | sed -e 's;\..*;;')
     __gcc_minor_version := $(shell gcc --version | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
