@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.10 1997-11-24 23:45:51 lijewski Exp $
+// $Id: Utility.cpp,v 1.11 1997-11-25 19:09:42 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -28,11 +28,7 @@
 #endif
 
 #if !defined(BL_ARCH_CRAY) && !defined(WIN32)
-//
-// ------------------------------------------------------------
-// Return current run-time.
-// ------------------------------------------------------------
-//
+
 #include <sys/types.h>
 #include <sys/times.h>
 #include <sys/time.h>
@@ -45,11 +41,6 @@
 #if defined(__GNUG__) && defined(__sun) && defined(BL_SunOS)
 extern "C" int gettimeofday (struct timeval*, struct timezone*);
 #endif
-
-//
-// Attempt to guarantee wsecond() gets initialized on program startup.
-//
-double The_BL_Utility_Wsecond_Initializer = Utility::wsecond();
 
 double
 Utility::second (double* t)
@@ -77,21 +68,35 @@ Utility::second (double* t)
     return dt;
 }
 
+static
+double
+get_time_of_day ()
+{
+    struct timeval tp;
+
+    if (gettimeofday(&tp, 0) != 0)
+        BoxLib::Abort("wsecond_int: gettimeofday() failed");
+
+    return tp.tv_sec + tp.tv_usec/1000000.0;
+}
+
+//
+// Attempt to guarantee wsecond() gets initialized on program startup.
+//
+static double Initial_Wall_Clock_Time = get_time_of_day();
+
 double
 Utility::wsecond (double* t)
 {
-    static double epoch = -1.0;
     struct timeval tp;
-    if (epoch < 0.0)
-    {
-        if (gettimeofday(&tp, 0) != 0)
-            BoxLib::Abort("wsecond(): gettimeofday() failed");
-        epoch = tp.tv_sec + tp.tv_usec/1000000.0;
-    }
+
     gettimeofday(&tp,0);
-    double dt = tp.tv_sec + tp.tv_usec/1000000.0-epoch;
-    if(t != 0)
+
+    double dt = tp.tv_sec + tp.tv_usec/1000000.0 - Initial_Wall_Clock_Time;
+
+    if (t != 0)
         *t = dt;
+
     return dt;
 }
 
@@ -112,13 +117,17 @@ double
 Utility::wsecond (double* t_)
 {
     static double epoch = -1.0;
+
     if (epoch < 0.0)
     {
         epoch = RTC();
     }
+
     double t = RTC() - epoch;
+
     if (t_)
         *t_ = t;
+
     return t;
 }
 
@@ -130,36 +139,47 @@ double
 Utility::second (double* r)
 {
     static clock_t start = -1;
+
     clock_t finish = clock();
-    if ( start == -1 )
+
+    if (start == -1)
     {
 	start = finish;
     }
+
     double rr = double(finish - start)/CLOCKS_PER_SEC;
-    if ( r ) *r = rr;
+
+    if (r)
+        *r = rr;
+
     return rr;
 }
 double
 Utility::wsecond (double* r)
 {
     static time_t start = -1;
+
     time_t finish;
+
     time(&finish);
-    if ( start == -1 )
+
+    if (start == -1)
     {
 	start = finish;
     }
+
     double rr = double(finish - start);
-    if ( r ) *r = rr;
+
+    if (r)
+        *r = rr;
+
     return rr;
 }
 
 #endif /*!defined(BL_ARCH_CRAY)*/
 
 //
-// ------------------------------------------------------------
 // Return true if argument is a non-zero length string of digits.
-// ------------------------------------------------------------
 //
 
 bool
@@ -194,7 +214,6 @@ Utility::is_integer (const char* str)
 // will return successfully when all the directories in the pathname
 // exist; i.e. when the full pathname is a valid directory.
 //
-
 
 bool
 #ifdef WIN32
