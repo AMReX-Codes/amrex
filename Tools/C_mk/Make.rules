@@ -1,5 +1,5 @@
 #
-# $Id: Make.rules,v 1.11 1998-11-23 17:56:42 lijewski Exp $
+# $Id: Make.rules,v 1.12 1998-11-23 18:27:01 lijewski Exp $
 #
 $(addprefix $(instIncludeDir)/, $(instSources)): $(instIncludeDir)/% : %
 	@if [ ! -d $(instIncludeDir) ]; then mkdir -p $(instIncludeDir); fi
@@ -20,9 +20,10 @@ ifeq ($(CLOSELIB),TRUE)
 endif
 	$(RM) $(EBASE)$(optionsSuffix).ex *.pure
 #
-# A canned command sequence for closing libraries.
+# Rule for building libraries.
 #
-define CloseTheLibrary
+$(optionsLib): $(optionsLib)( $(objForLibs) )
+ifeq ($(CLOSELIB),TRUE)
 ifeq ($(COMP), CFRONT)
 #
 # With cfront we only close boxlib.
@@ -58,13 +59,6 @@ endif
 ifeq ($(COMP), KCC)
 	$(CXX) $(CXXLIBFLAGS) $(CXXFLAGS) $(CPPFLAGS) -DBL_LANG_CC -o $(optionsLib) $(addprefix $(objTempDir)/, $(objForLibs)) $(LibsToCloseAgainst)
 endif
-endef
-#
-# Rule for building libraries.
-#
-$(optionsLib): $(optionsLib)( $(objForLibs) )
-ifeq ($(CLOSELIB),TRUE)
-	$(CloseTheLibrary)
 endif
 	$(RANLIB) $@
 
