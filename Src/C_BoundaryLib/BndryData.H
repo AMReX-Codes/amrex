@@ -4,7 +4,7 @@
 #define _BNDRYDATA_H_
 
 //
-// $Id: BndryData.H,v 1.5 1999-01-04 18:09:36 marc Exp $
+// $Id: BndryData.H,v 1.6 1999-03-17 21:58:46 lijewski Exp $
 //
 
 #include <Assert.H>
@@ -107,8 +107,8 @@ public:
     /*@ManDoc: constructor specifying number of components and box of physical
         domain (cell-centered)
     */
-    BndryData (const BoxArray&     _grids,
-               int                  _ncomp,
+    BndryData (const BoxArray&      grids,
+               int                  ncomp,
                const ProxyGeometry& geom);
     //
     //@ManDoc: destructor
@@ -119,14 +119,14 @@ public:
     //
     BndryData (const BndryData& src);
     //
-    //@ManDoc: copy operator
+    //@ManDoc: copy assignment operator
     //
     BndryData& operator= (const BndryData& src);
     //
     //@ManDoc: alocate bndry fabs along given face
     //
-    void define (const BoxArray&      _grids,
-                 int                  _ncomp,
+    void define (const BoxArray&      grids,
+                 int                  ncomp,
                  const ProxyGeometry& geom);
     //
     //@ManDoc: write to output stream
@@ -136,23 +136,23 @@ public:
     //
     //@ManDoc: return FabSet on given face
     //
-    const FabSet& bndryValues (const Orientation& _face) const;
+    const FabSet& bndryValues (const Orientation& face) const;
     //
     //@ManDoc: return boundary location on given face
     //
-    const Array<Real>& bndryLocs (const Orientation& _face) const;
+    const Array<Real>& bndryLocs (const Orientation& face) const;
     //
     //@ManDoc: return boundary type specifyer on given face
     //
-    const Array<Array<BoundCond> >& bndryConds (const Orientation& _face) const;
+    const Array<Array<BoundCond> >& bndryConds (const Orientation& face) const;
     //
     //@ManDoc: return boundary mask on given face
     //
-    const PArray<Mask>& bndryMasks (const Orientation& _face) const;
+    const PArray<Mask>& bndryMasks (const Orientation& face) const;
     //
     //@ManDoc: return number of components for which this object is inteded
     //
-    int nComp() const;
+    int nComp () const;
     //
     //@ManDoc: return domain used to define masks
     //
@@ -164,55 +164,42 @@ public:
     //
     //@ManDoc: set values of boundary Fab for given orientation on nth grid
     //
-    void setValue (const Orientation& _face,
-                   int                _n,
-                   Real               _val);
+    void setValue (const Orientation& face,
+                   int                n,
+                   Real               val);
     //
     //@ManDoc: set mask values for given orientation on nth grid
     //
-    void setMaskValue (const Orientation& _face,
-                       int                _n,
-                       int                _val);
+    void setMaskValue (const Orientation& face,
+                       int                n,
+                       int                val);
     //
     //@ManDoc: set boundary type specifier for given orientation on nth grid
     //
-    void setBoundCond (const Orientation& _face,
-                       int                _n,
-                       int                _comp,
-                       const BoundCond&   _bcn);
+    void setBoundCond (const Orientation& face,
+                       int                n,
+                       int                comp,
+                       const BoundCond&   bcn);
     //
     //@ManDoc: set boundary location for given orientation on nth grid
     //
-    void setBoundLoc (const Orientation& _face,
-                      int                _n,
-                      Real               _val);
+    void setBoundLoc (const Orientation& face,
+                      int                n,
+                      Real               val);
     //
     //@ManDoc: implement public access to const BndryRegister::operator[]
     //
-    const FabSet& operator[] (const Orientation& _face) const;
+    const FabSet& operator[] (const Orientation& face) const;
     //
     //@ManDoc: implement public access to BndryRegister::operator[]
     //
-    FabSet& operator[] (const Orientation& _face);
+    FabSet& operator[] (const Orientation& face);
 
 protected:
-    
-    /*@ManDoc: Array (on orientation)(on grid)(on component) of boundary
-         condition type specifiers.
-    */
-    Array< Array< BoundCond > > bcond[2*BL_SPACEDIM];
     //
-    //@ManDoc: Array (on orientation) of boundary condition locations.
+    // Helper function for copy constructor and assigment operator.
     //
-    Array< Real > bcloc[2*BL_SPACEDIM];
-    //
-    //@ManDoc: Array (on orientation) of boundary condition mask arrays (FAB-like)
-    //
-    PArray< Mask > masks[2*BL_SPACEDIM];
-    //
-    //@ManDoc: Domain used for mask defintions.
-    //
-    Geometry geom;
+    void init (const BndryData& src);
     //
     //@ManDoc: protect BndryRegister grids.
     //
@@ -221,6 +208,26 @@ protected:
     //@ManDoc: protect BndryRegister FabSets.
     //
     BndryRegister::bndry;
+    //
+    // The data.
+    //
+    // Array (on orientation)(on grid)(on component) of boundary
+    // condition type specifiers.
+    //
+    Array< Array<BoundCond> > bcond[2*BL_SPACEDIM];
+    //
+    // Array (on orientation) of boundary condition locations.
+    //
+    Array<Real> bcloc[2*BL_SPACEDIM];
+    //
+    // Array (on orientation) of boundary condition mask arrays (FAB-like)
+    //
+    PArray<Mask> masks[2*BL_SPACEDIM];
+    //
+    // Domain used for mask defintions.
+    //
+    Geometry geom;
+
 
 private:
     //
