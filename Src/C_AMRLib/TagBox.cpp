@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.44 1998-07-21 17:44:45 car Exp $
+// $Id: TagBox.cpp,v 1.45 1998-07-27 21:33:37 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -24,14 +24,7 @@ using std::unique;
 #include <vector.h>
 #endif
 
-#ifdef BL_USE_MPI
-#include <mpi.h>
-#endif
-
-#ifndef NDEBUG
-extern "C" void PrintTagBox (const TagBox& tb);
-extern "C" void PrintTagBoxArray (const TagBoxArray& tba);
-#endif
+#include <ccse-mpi.H>
 
 //
 // Number of IntVects that can fit into m_CollateSpace
