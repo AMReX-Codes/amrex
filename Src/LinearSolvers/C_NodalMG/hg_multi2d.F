@@ -2401,7 +2401,7 @@ c update neumann bdys:
                   r1 = -r0
                end if
 cdir$ ivdep
-               do 40 j = regl1, regh1
+               do j = regl1, regh1
                   cor(i,j) = (AVGRZ() - res(i,j)) * cen(i,j)
                end do
             end do
