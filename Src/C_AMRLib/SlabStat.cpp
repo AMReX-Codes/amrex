@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: SlabStat.cpp,v 1.5 2000-03-29 21:42:38 lijewski Exp $
+// $Id: SlabStat.cpp,v 1.6 2000-04-21 16:24:02 sstanley Exp $
 //
 
 #include <AmrLevel.H>
@@ -128,7 +128,7 @@ SlabStatRec::SlabStatRec (const aString&  name,
     aString file;
 
     if (!pp.query("boxes", file))
-        BoxLib::Abort("SlabStatRec: slabstats.boxes isn't defined");
+        BoxLib::Abort("SlabStatRec: slabstat.boxes isn't defined");
 
     m_boxes = Boxes(file, m_name);
 
