@@ -44,11 +44,6 @@ ifeq ($(EBASE),proj)
   all: $(executable)
 endif
 
-ifeq ($(MACHINE),Linux)
-  LIBRARIES += $(LINUXLIBS)
-endif
-
-
 ifeq ($(USE_MPI), TRUE)
 DEFINES += -DBL_USE_MPI
 MPI_HOME = /usr/local/mpi
@@ -56,6 +51,9 @@ INCLUDE_LOCATIONS += $(MPI_HOME)/include
 LIBRARY_LOCATIONS += $(MPI_HOME)/lib/alpha/ch_p4
 LIBRARIES += -lmpi
 endif
+
+#CXXFLAGS += --strict
+#CPPFLAGS +=  -D__KAI_STRICT
 
 #3RD = 1
 ifdef 3RD
