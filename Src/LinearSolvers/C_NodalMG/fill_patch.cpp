@@ -129,7 +129,7 @@ void task_bdy_fill::startup()
     }
     else
     {
-	BoxLib::Abort( "task_copy_local::ready(): Can't Happen" );
+	BoxLib::Abort( "task_bdy_fill::ready(): Can't Happen" );
 	// neither fab lives on local processor
     }
     m_started = true;
@@ -631,7 +631,7 @@ class task_restric_fill : public task
 {
 public:
     task_restric_fill(const amr_restrictor_class& restric, MultiFab& dest, int dgrid, const MultiFab& r, int rgrid, const Box& box, const IntVect& rat)
-	: m_restric(restric), m_d(dest), m_dgrid(dgrid), m_r(r), m_rgrid(rgrid), m_rat(rat), m_tmp(0), m_box(box)
+	: m_restric(restric), m_d(dest), m_dgrid(dgrid), m_r(r), m_rgrid(rgrid), m_rat(rat), m_tmp(0), m_box(box), m_local(false), m_started(false)
     {
     }
     virtual ~task_restric_fill()
@@ -699,7 +699,7 @@ void task_restric_fill::startup()
     }
     else
     {
-	BoxLib::Abort( "task_copy::ready(): Can't be here" );
+	BoxLib::Abort( "task_restric_fill::ready(): Can't be here" );
 	// neither fab lives on local processor
     }
     m_started = true;

@@ -1,6 +1,10 @@
 #
-# $Id: GNUmakefile,v 1.23 1998-11-18 20:47:05 lijewski Exp $
+# $Id: GNUmakefile,v 1.24 1998-11-20 05:01:10 car Exp $
 #
+PBOXLIB_HOME = ..
+
+TOP = $(PBOXLIB_HOME)
+
 PRECISION = DOUBLE
 DEBUG     = FALSE
 DEBUG     = TRUE
@@ -23,9 +27,7 @@ ifneq ($(EBASE),proj)
   override LBASE = proj
 endif
 
-PBOXLIB_HOME = ..
 
-TOP = $(PBOXLIB_HOME)
 #
 # Where libraries and include files will be installed.
 #
