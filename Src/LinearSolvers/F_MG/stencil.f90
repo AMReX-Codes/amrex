@@ -167,6 +167,198 @@ contains
           ibits(m,BC_BIT(BC_NEU,dim,face),1) == 0 )
   end function bc_interior
 
+  elemental function bc_pretty_bit(m, dim, face) result(r)
+    character :: r
+    integer, intent(in) :: m, dim, face
+    if ( ibits(m,BC_BIT(BC_DIR,dim,face),1) == 1 ) then
+       r = 'D'
+    else if ( ibits(m,BC_BIT(BC_NEU,dim,face),1) == 1 ) then
+       r = 'N'
+    else
+       r = 'I'
+    end if
+  end function bc_pretty_bit
+
+  subroutine mask_pretty_print(mf, str, unit, all, data, skip)
+    use bl_IO_module
+    type(imultifab), intent(in) :: mf
+    character (len=*), intent(in), optional :: str
+    integer, intent(in), optional :: unit
+    logical, intent(in), optional :: all, data
+    integer, intent(in), optional :: skip
+    integer :: i, ii
+    integer :: un
+    character(len=5) :: fn
+    un = unit_stdout(unit)
+    call unit_skip(un, skip)
+    write(unit=un, fmt='("IMULTIFAB")', advance = 'no')
+    if ( present(str) ) then
+       write(unit=un, fmt='(": ",A)') str
+    else
+       write(unit=un, fmt='()')
+    end if
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" DIM     = ",i2)') mf%dim
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" NC      = ",i2)') mf%nc
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" NG      = ",i2)') mf%ng
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" NODAL   = ",3(L2,1X))') mf%nodal
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" NBOXES  = ",i2)') mf%nboxes
+    do ii = 0, parallel_nprocs()
+       if ( ii == parallel_myproc() ) then
+          do i = 1, mf%nboxes; if ( remote(mf,i) ) cycle
+             write(unit=fn, fmt='(i5)') i
+             call mask_pretty_print_fab(mf%fbs(i), str = fn, unit = unit, &
+                  all = all, data = data, skip = unit_get_skip(skip) + 2)
+          end do
+       end if
+       call parallel_barrier()
+    end do
+  end subroutine mask_pretty_print
+
+  subroutine mask_pretty_print_fab(fb, str, unit, all, data, bx, skip)
+    use bl_IO_module
+    type(ifab), intent(in) :: fb
+    character(len=*), intent(in), optional :: str
+    integer, intent(in), optional :: unit
+    logical, intent(in), optional :: all, data
+    integer, intent(in), optional :: skip
+    type(box), intent(in), optional :: bx
+    integer :: un
+    logical :: lall, ldata
+    type(box) :: lbx
+    lbx  = box_allbox(fb%dim); if ( present(bx) ) lbx  = bx
+    lall = .TRUE.; if ( present(all) ) lall = all
+    ldata = .TRUE.; if ( present(data) ) ldata = data
+    un = unit_stdout(unit)
+    call unit_skip(un, skip)
+    write(unit=un, fmt='("IFAB")', advance = 'no')
+    if ( present(str) ) then
+       write(unit=un, fmt='(": ",A)') str
+    else
+       write(unit=un, fmt='()')
+    end if
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" DIM     = ",i2)') fb%dim
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" NG      = ",i2)') fb%ng
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" NC      = ",i2)') fb%nc
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" IBX     = ",i2)', advance = 'no')
+    call print(fb%ibx, unit = un)
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" PBX     = ",i2)', advance = 'no')
+    call print(fb%pbx, unit = un)
+    call unit_skip(un, skip)
+    write(unit=un, fmt='(" BX      = ",i2)', advance = 'no')
+    call print(fb%bx, unit = un)
+    if ( .not. associated(fb%p) ) then
+       call unit_skip(un, skip)
+       write(unit=un) 'NOT ASSOCIATED'
+    else
+       select case (fb%dim)
+       case (1)
+          call print_1d(fb%p(:,1,1,:), lbound(fb%p), intersection(fb%ibx,lbx))
+       case (2)
+          call print_2d(fb%p(:,:,1,:), lbound(fb%p), intersection(fb%ibx,lbx))
+       case (3)
+          call print_3d(fb%p(:,:,:,:), lbound(fb%p), intersection(fb%ibx,lbx))
+       end select
+    end if
+
+  contains
+
+    subroutine print_1d(fb, lo, bx)
+      integer, intent(in) :: lo(:)
+      type(box), intent(in) :: bx
+      integer, intent(in) :: fb(lo(1):,:)
+      integer n, i
+      integer nc, hi(1)
+      character(len=1) c
+      nc = size(fb,dim=2)
+      hi(1) = lo(1) + size(fb,dim=1) - 1
+      if ( ldata ) then
+         do n = 1, nc
+            do i = lo(1), hi(1)
+               if ( .not. ( lall .or. contains(bx, (/i/)) ) ) cycle
+               c = ' '
+               if ( .not. contains(bx, (/i/)) ) c = '*'
+               call unit_skip(un, skip)
+               write(unit=un, fmt='(A1,1X,I3,1(1X,I5),1X,A2,A2)') &
+                    c, n, i, &
+                    bc_pretty_bit(fb(i,n),1,-1), bc_pretty_bit(fb(i,n),1,1)
+            end do
+         end do
+      end if
+    end subroutine print_1d
+
+    subroutine print_2d(fb, lo, bx)
+      integer, intent(in) :: lo(:)
+      type(box), intent(in) :: bx
+      integer, intent(in) :: fb(lo(1):,lo(2):,:)
+      integer n, j, i
+      integer nc, hi(2)
+      character(len=1) c
+      nc = size(fb,dim=3)
+      do i = 1, 2
+         hi(i) = lo(i) + size(fb,dim=i) - 1
+      end do
+      if ( ldata ) then
+         do n = 1, nc
+            do j = lo(2), hi(2)
+               do i = lo(1), hi(1)
+                  if ( .not. ( lall .or. contains(bx, (/i,j/)) ) ) cycle
+                  c = ' '
+                  if ( .not. contains(bx, (/i,j/)) ) c = '*'
+                  call unit_skip(un, skip)
+                  write(unit=un, fmt='(A1,1X,I3,2(1X,I5),1X,A2,A2,A2,A2)') &
+                       c, n, i, j, &
+                       bc_pretty_bit(fb(i,j,n),1,-1), bc_pretty_bit(fb(i,j,n),1,1), &
+                       bc_pretty_bit(fb(i,j,n),2,-1), bc_pretty_bit(fb(i,j,n),2,1)
+               end do
+            end do
+         end do
+      end if
+    end subroutine print_2d
+
+    subroutine print_3d(fb, lo, bx)
+      integer, intent(in) :: lo(:)
+      type(box), intent(in) :: bx
+      integer, intent(in) :: fb(lo(1):,lo(2):,lo(3):,:)
+      integer :: n, k, j, i
+      integer :: nc, hi(3)
+      character(len=1) :: c
+      nc = size(fb,dim=4)
+      do i = 1, 3
+         hi(i) = lo(i) + size(fb,dim=i) - 1
+      end do
+      if ( ldata ) then
+         do n = 1, nc
+            do k = lo(3), hi(3)
+               do j = lo(2), hi(2)
+                  do i = lo(1), hi(1)
+                     if ( .not. ( lall .or. contains(bx, (/i,j,k/)) ) ) cycle
+                     c = ' '
+                     if ( .not. contains(bx, (/i,j,k/)) ) c = '*'
+                     call unit_skip(un, skip)
+                     write(unit=un, fmt='(A1,1X,I3,3(1X,I5),1X,A2,A2,A2,A2,A2,A2)') &
+                          c, n, i, j, k, &
+                          bc_pretty_bit(fb(i,j,k,n),1,-1), bc_pretty_bit(fb(i,j,k,n),1,1), &
+                          bc_pretty_bit(fb(i,j,k,n),2,-1), bc_pretty_bit(fb(i,j,k,n),2,1), &
+                          bc_pretty_bit(fb(i,j,k,n),3,-1), bc_pretty_bit(fb(i,j,k,n),3, 1)
+                  end do
+               end do
+            end do
+         end do
+      end if
+    end subroutine print_3d
+
+  end subroutine mask_pretty_print_fab
+
 ! elemental function f_bc_bit(bc, dim, face) result(r)
 !   integer :: r
 !   integer, intent(in) :: bc
@@ -1226,6 +1418,9 @@ contains
        end select
     end do
 
+!    call print(ss,unit=22)
+!    call mask_pretty_print(mask,unit=22)
+
   end subroutine stencil_fill_cc
 
   elemental function stencil_bc_type(mask, dir, face) result(r)
@@ -1289,7 +1484,10 @@ contains
     ss = 0
     sm = 0
     sp = 0
-
+    !
+    ! TODO -- this stuff is just not quite right.
+    ! Some of this logic needs to be moved into the bc_?? routines themselves.
+    !
     if ( nx > 1 ) bchi = BC_INT
     imaxo = maxo
     if ( nx == 1 ) imaxo = 1
@@ -1964,7 +2162,7 @@ contains
 
           call stencil_bndry_aaa(order, nz, 3, -1, mask(i,j,1), &
                ss(i,j,1,0), ss(i,j,1,5), ss(i,j,1,6),ss(i,j,1,ZBC), &
-               beta(i,j,1,2), beta(i,j,2,2), xa(3), xb(3), dh(3), bclo, bchi)
+               beta(i,j,1,3), beta(i,j,2,3), xa(3), xb(3), dh(3), bclo, bchi)
           if ( nz > 1 ) then
              call stencil_bndry_aaa(order, nz, 3, 1, mask(i,j,nz), &
                   ss(i,j,nz,0), ss(i,j,nz,5), ss(i,j,nz,6), ss(i,j,nz,ZBC), &
