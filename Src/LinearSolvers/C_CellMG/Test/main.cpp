@@ -1,5 +1,5 @@
 //
-// $Id: main.cpp,v 1.4 1998-04-01 17:01:55 car Exp $
+// $Id: main.cpp,v 1.5 1998-04-15 20:59:27 marc Exp $
 //
 
 #ifdef BL_ARCH_CRAY
@@ -21,8 +21,8 @@
 #include <CGSolver.H>
 #include <Laplacian.H>
 #include <ABecLaplacian.H>
-#include <WriteMultiFab.H>
 #include <ParallelDescriptor.H>
+#include <VisMF.H>
 
 #ifdef BL_USE_NEW_HFILES
 #include <new>
@@ -33,6 +33,8 @@ using std::set_new_handler;
 #else
 #include <new.h>
 #endif
+
+#include <WritePlotFile.H>
 
 const int NPROCS = 1;
 
@@ -98,6 +100,8 @@ main (int   argc,
     //for (i=0; i < bs.length(); i++) {
     for(MultiFabIterator rhsmfi(rhs); rhsmfi.isValid(); ++rhsmfi) {
         INTVECT ivmid = (rhsmfi().smallEnd() + rhsmfi().bigEnd())/2;
+	//ivmid -= IntVect(0, (rhsmfi().bigEnd()[1]-rhsmfi().smallEnd()[1])/2);
+	//ivmid = rhsmfi().smallEnd();
         rhsmfi().operator()(ivmid,0) = 1;
         ivmid += IntVect::TheUnitVector();
         rhsmfi().operator()(ivmid,0) = -1;
@@ -106,14 +110,15 @@ main (int   argc,
       // Initialize boundary data, set boundary condition flags and locations:
       // (phys boundaries set to dirichlet on cell walls)
     BndryData bd(bs, 1, geom);
+    int comp = 0;
     for(n=0; n<BL_SPACEDIM; ++n) {
       //for(i=0; i < bs.length(); ++i) {
       for(MultiFabIterator mfi(rhs); mfi.isValid(); ++mfi) {
         i = mfi.index();  //   ^^^ using rhs to get mfi.index() yes, this is a hack
             bd.setBoundLoc(Orientation(n, Orientation::low) ,i,0.0 );
             bd.setBoundLoc(Orientation(n, Orientation::high),i,0.0 );
-            bd.setBoundCond(Orientation(n, Orientation::low) ,i,LO_DIRICHLET);
-            bd.setBoundCond(Orientation(n, Orientation::high),i,LO_DIRICHLET);
+            bd.setBoundCond(Orientation(n, Orientation::low) ,i,comp,LO_DIRICHLET);
+            bd.setBoundCond(Orientation(n, Orientation::high),i,comp,LO_DIRICHLET);
             bd.setValue(Orientation(n, Orientation::low) ,i,1.0);
             bd.setValue(Orientation(n, Orientation::high),i,1.0);
       } // -->> over boxes in domain
@@ -130,9 +135,11 @@ main (int   argc,
     int mg_pre=0; pp.query("mg_pre",mg_pre);
     bool use_mg_pre = (mg_pre == 1 ? true : false );
     int new_bc=0; pp.query("new_bc",new_bc);
+    int dumpLp=0; pp.query("dumpLp",dumpLp);
+    bool write_lp = (dumpLp == 1 ? true : false);
     if( !ABec ) {
           // Build Laplacian operator, solver, then solve 
-        Laplacian lp(bs, bd, H[0]);
+        Laplacian lp(bd, H[0]);
         if (mg) {
             MultiGrid mg(lp);
             mg.setNumIter(numiter);
@@ -168,6 +175,11 @@ main (int   argc,
                 cg.solve(soln, rhs, tolerance, tolerance_abs);
             }
         }
+
+	// Look at operator
+	if (write_lp)
+	    cout << lp << endl;
+	
         
     } else {
           // Allocate space for ABecLapacian coeffs, fill with values
@@ -195,7 +207,7 @@ main (int   argc,
         } // -->> over dimension
         
           // Build operator, set coeffs, build solver, solve
-        ABecLaplacian lp(bs, bd, H);
+        ABecLaplacian lp(bd, H);
         lp.setScalars(alpha, beta);
         lp.setCoefficients(acoefs, bcoefs);
 
@@ -230,26 +242,24 @@ main (int   argc,
                 cg.solve(soln, rhs, tolerance, tolerance_abs);
             }
         }
+
+	// Look at operator
+	if (write_lp)
+	    cout << lp << endl;
+	
     } // -->> solve D^2(soln)=rhs   or   (alpha*a - beta*D.(b.G))soln=rhs
 
-    //ofstream os("pltfile");
-    int ratio=2;
-    REAL bg_val=1.0;
-    FArrayBox::setFormat(FABio::FAB_NATIVE);
-    BoxList bl(bs);
-    if ( !ABec ) {
-        WriteMultiFab("pltfile",soln, H[0], bl, container, ratio, bg_val);
-    } else {
-        WriteMultiFab("pltfile",soln, H, bl, container, ratio, bg_val);
-    }
+    // Write solution
+    const IntVect refRatio(D_DECL(2,2,2));
+    const Real bgVal = soln.min(0);
+    writePlotFile("soln",soln,geom,refRatio,bgVal);
 
     ParallelDescriptor::EndParallel();
     
 } // -->> main fnc
 
-
 BoxList
-readBoxList(const aString file, BOX& domain )
+readBoxList(const aString file, BOX& domain)
 {
     BoxList retval;
     ifstream boxspec(file.c_str());
