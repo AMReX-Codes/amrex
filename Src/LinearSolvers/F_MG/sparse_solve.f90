@@ -1678,6 +1678,7 @@ contains
        end if
 
        call imultifab_fill_boundary(spo%index_into_aa)
+       call copy_nodal_ind_on_intersect(spo%index_into_aa)
 
        allocate(spo%smt%ja(num_aa))
 
@@ -1775,6 +1776,7 @@ contains
        spo%smt%ia(inode) = iedge
 
        call imultifab_fill_boundary(spo%index_into_aa)
+       call copy_nodal_ind_on_intersect(spo%index_into_aa)
 
        allocate(spo%smt%ja(num_aa))
 
@@ -1891,6 +1893,8 @@ contains
        end if
 
        call imultifab_fill_boundary(spo%index_into_aa)
+       call copy_nodal_ind_on_intersect(spo%index_into_aa)
+
        allocate(spo%smt%ja(num_aa))
 
        iedge = 1
@@ -1923,6 +1927,7 @@ contains
              end do
           end do
        end do
+
     end select
 
     ! complete the definition of smt
@@ -2043,9 +2048,9 @@ contains
       j = 1
 
       !   **************************************************************************
-      iedge0 = iedge
 
       do i = 1, nx-1
+         iedge0 = iedge
          if (.not. bc_dirichlet(mp(i,j),1,0)) then
            if (.not. at_jhi .or. bc_neumann(mp(i,j),2,1)) then
             ia(inode) = iedge
@@ -2086,6 +2091,7 @@ contains
 !     Only do high side if Neumann; otherwise is Dirichlet (in which case 
 !     we don't include it) or it has been taken care of by the grid on the
 !     other side.
+      iedge0 = iedge
       if (.not. bc_dirichlet(mp(i,j),1,0) .and. &
                 bc_neumann(  mp(i,j),1,1)) then
         if (.not. at_jhi .or. bc_neumann(mp(i,j),2,1)) then
@@ -2093,19 +2099,25 @@ contains
             ind(i,j) = inode
             if (.not. bc_dirichlet(mp(i-1,j-1),1,0)) then
               aa(iedge) = TWO*sp(i,j,1) ; iedge = iedge + 1      ! SW
+!             aa(iedge) = sp(i,j,1) ; iedge = iedge + 1      ! SW
             end if
             if (.not. bc_dirichlet(mp(i  ,j-1),1,0)) then
               aa(iedge) = TWO*sp(i,j,2) ; iedge = iedge + 1       ! S
+!             aa(iedge) = sp(i,j,2) ; iedge = iedge + 1       ! S
             end if
-            if (.not. bc_dirichlet(mp(i-1,j-1),1,0)) then
+            if (.not. bc_dirichlet(mp(i-1,j  ),1,0)) then
               aa(iedge) = TWO*sp(i,j,4) ; iedge = iedge + 1       ! W
+!             aa(iedge) = sp(i,j,4) ; iedge = iedge + 1       ! W
             end if
               aa(iedge) = TWO*sp(i,j,0) ; iedge = iedge + 1       ! Center
+!             aa(iedge) = sp(i,j,0) ; iedge = iedge + 1       ! Center
             if (.not. bc_dirichlet(mp(i-1,j+1),1,0)) then
               aa(iedge) = TWO*sp(i,j,6) ; iedge = iedge + 1       ! NW
+!             aa(iedge) = sp(i,j,6) ; iedge = iedge + 1       ! NW
             end if
             if (.not. bc_dirichlet(mp(i  ,j+1),1,0)) then
               aa(iedge) = TWO*sp(i,j,7) ; iedge = iedge + 1       ! N
+!             aa(iedge) = sp(i,j,7) ; iedge = iedge + 1       ! N
             end if
             inode = inode + 1
         end if
@@ -2458,6 +2470,75 @@ contains
 
   end subroutine ilut_build
 
+  subroutine copy_nodal_ind_on_intersect(ind)
+
+    type(imultifab) , intent(inout) :: ind
+
+    integer        , pointer :: ind_i(:,:,:,:)
+    integer        , pointer :: ind_j(:,:,:,:)
+
+    integer :: lo_i(ind%dim),hi_i(ind%dim)
+    integer :: lo_j(ind%dim),hi_j(ind%dim)
+    integer :: lo_a(ind%dim),hi_a(ind%dim)
+    integer :: i,j,igrid,jgrid,ngrids,idm
+    logical :: do_copy
+
+    type(box) :: ibx, jbx, abx
+
+    ngrids = ind%nboxes
+
+!   Copy on intersect from the grid which owns ind() to the grid which doesn't.
+    if (ngrids > 1) then
+      do igrid = 1,ngrids
+        ibx = get_ibox(ind,igrid)
+
+        do jgrid = 1,ngrids
+         jbx = get_ibox(ind,jgrid)
+
+         abx = intersection(ibx,jbx)
+         if (.not. empty(abx)) then
+           ind_i => dataptr(ind, igrid)
+           ind_j => dataptr(ind, jgrid)
+           lo_i = lwb(ibx)
+           hi_i = upb(ibx)
+           lo_j = lwb(jbx)
+           hi_j = upb(jbx)
+           lo_a = lwb(abx)
+           hi_a = upb(abx)
+           do_copy = .false.
+           do idm = 1,ind%dim
+             if (lo_i(idm) == hi_j(idm)) do_copy = .true.
+           end do
+           if (do_copy) then
+             select case(ind%dim)
+             case(1)
+               if (ind_i(lo_a(1),1,1,1) .gt. -1) ind_j(i,1,1,1) = ind_i(i,1,1,1)
+             case(2)
+               do j = lo_a(2),hi_a(2)
+               do i = lo_a(1),hi_a(1)
+                 if (ind_i(i,j,1,1) .gt. -1) then
+                  ind_j(i,j,1,1) = ind_i(i,j,1,1)
+                 end if
+               end do
+               end do
+             case(3)
+               do k = lo_a(3),hi_a(3)
+               do j = lo_a(2),hi_a(2)
+               do i = lo_a(1),hi_a(1)
+                 if (ind_i(i,j,k,1) .gt. -1) &
+                  ind_j(i,j,k,1) = ind_i(i,j,k,1)
+               end do
+               end do
+               end do
+             end select
+           end if
+         end if
+        end do
+       end do
+    end if
+
+  end subroutine copy_nodal_ind_on_intersect
+
   end subroutine sparse_nodal_build
 
   subroutine sparse_solve(spo, uu, rh, eps, max_iter, verbose, stat)
@@ -2665,6 +2746,7 @@ contains
              do i = lo(1),hi(1)
                if (ind(i,j,1,1) > -1) then
                  rp(i,j,1,1) = soln(ind(i,j,1,1))
+                 print *,'SETTING SOLN AT ',i,j,rp(i,j,1,1)
                end if
              end do
           end do
