@@ -48,7 +48,7 @@ Real inner_product(const MultiFab& r, const MultiFab& s)
     }
     else 
     {
-	throw( "inner_product(): only supported for CELL- or NODE-based data" );
+	BoxLib::Abort( "inner_product(): only supported for CELL- or NODE-based data" );
     }
     ParallelDescriptor::ReduceRealSum(sum);
     return sum;
@@ -124,7 +124,7 @@ void task_copy_local::startup()
     }
     else
     {
-	throw( "task_copy_local::ready(): Can't Happen" );
+	BoxLib::Abort( "task_copy_local::ready(): Can't Happen" );
 	// neither fab lives on local processor
     }
     m_started = true;
@@ -136,7 +136,7 @@ bool task_copy_local::ready()
     if ( ! m_started ) startup();
     if ( m_local )
     {
-	m_fab->copy(*tmp, m_bx);
+	m_fab->copy(m_smf[m_sgrid], m_bx);
 	return true;
     }
     int flag;
@@ -167,35 +167,109 @@ bool task_copy_local::ready()
 class task_bdy_fill : public task
 {
 public:
-    task_bdy_fill(const amr_boundary_class* bdy_, FArrayBox* fab_, const Box& region_, const MultiFab& src_, int grid_, const Box& domain_);
+    task_bdy_fill(const amr_boundary_class* bdy_, FArrayBox* fab_, const Box& region_, const MultiFab& smf_, int grid_, const Box& domain_);
+    virtual ~task_bdy_fill();
     virtual bool ready();
     virtual bool init(sequence_number sno, MPI_Comm comm);
+private:
+    void startup();
 private:
     const amr_boundary_class* m_bdy;
     FArrayBox* m_fab;
     const Box m_region;
-    const MultiFab& m_src;
-    const int m_grid;
+    const MultiFab& m_smf;
+    Box m_bx;
+    const int m_sgrid;
     const Box& m_domain;
+    FArrayBox* tmp;
+    bool m_local;
+    MPI_Request m_request;
 };
 
 task_bdy_fill::task_bdy_fill(const amr_boundary_class* bdy_, FArrayBox* fab_, const Box& region_, const MultiFab& src_, int grid_, const Box& domain_)
-    : m_bdy(bdy_), m_fab(fab_), m_region(region_), m_src(src_), m_grid(grid_), m_domain(domain_)
+    : m_bdy(bdy_), m_fab(fab_), m_region(region_), m_smf(src_), m_sgrid(grid_), m_domain(domain_), m_bx(src_[grid_].box()), tmp(0)
 {
     assert(m_bdy != 0);
 }
 
-bool task_bdy_fill::ready()
+task_bdy_fill::~task_bdy_fill()
 {
-    throw( "task_bdy_fill::ready(): FIXME" ); /*NOTREACHED*/
-    m_bdy->fill(*m_fab, m_region, m_src[m_grid], m_domain);
-    return true;
+    delete tmp;
 }
 
 bool task_bdy_fill::init(sequence_number sno, MPI_Comm comm)
 {
     task::init( sno, comm);
-    if ( m_fab != 0 || is_local(m_src, m_grid) ) return true;
+    if ( m_fab != 0 || is_local(m_smf, m_sgrid) ) return true;
+    return false;
+}
+
+void task_bdy_fill::startup()
+{
+    if ( m_fab !=0 && is_local(m_smf, m_sgrid) )
+    {
+	m_local = true;
+    }
+    else if ( m_fab != 0 )
+    {
+	tmp = new FArrayBox(m_bx, m_smf.nComp());
+	int res = MPI_Irecv(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(m_smf, m_sgrid), m_sno, m_comm, &m_request);
+	if ( res != 0 )
+	    ParallelDescriptor::Abort(res);
+	assert( m_request != MPI_REQUEST_NULL );
+    }
+    else if ( m_fab == 0 && is_local(m_smf, m_sgrid) ) 
+    {
+	tmp = new FArrayBox(m_bx, m_smf.nComp());
+	// before I can post the receive, I have to ensure that there are no dependent zones in the
+	// grid
+	tmp->copy(m_smf[m_sgrid], m_bx);
+	HG_DEBUG_OUT( "<< Norm(S) of tmp "  << m_sno << " " << tmp->norm(m_bx, 2) << endl );
+	HG_DEBUG_OUT( "<<<Box(S) of tmp "   << m_sno << " " << tmp->box() << endl );
+	// printRange(debug_out, *tmp, m_sbx, 0, tmp->nComp());
+	int res = MPI_Isend(tmp->dataPtr(), tmp->box().numPts()*tmp->nComp(), MPI_DOUBLE, processor_number(), m_sno, m_comm, &m_request);
+	if ( res != 0 )
+	    ParallelDescriptor::Abort(res);
+	assert( m_request != MPI_REQUEST_NULL );
+    }
+    else
+    {
+	BoxLib::Abort( "task_copy_local::ready(): Can't Happen" );
+	// neither fab lives on local processor
+    }
+    m_started = true;
+}
+
+bool task_bdy_fill::ready()
+{
+    if ( ! depend_ready() ) return false;
+    if ( ! m_started ) startup();
+    if ( m_local )
+    {
+	m_bdy->fill(*m_fab, m_region, m_smf[m_sgrid], m_domain);
+	return true;
+    }
+    int flag;
+    MPI_Status status;
+    assert ( m_request != MPI_REQUEST_NULL );
+    int res = MPI_Test(&m_request, &flag, &status);
+    if ( res != 0 )
+	ParallelDescriptor::Abort( res );
+    if ( flag )
+    {
+	assert ( m_request == MPI_REQUEST_NULL );
+	if ( m_fab )
+	{
+	    int count;
+	    assert( status.MPI_SOURCE == processor_number(m_smf, m_sgrid) );
+	    assert( status.MPI_TAG    == m_sno );
+	    int res = MPI_Get_count(&status, MPI_DOUBLE, &count);
+	    if ( res != 0 )
+		ParallelDescriptor::Abort( res );
+	    assert(count == tmp->box().numPts()*tmp->nComp());
+	    m_bdy->fill(*m_fab, m_region, *tmp, m_domain);
+	}
+    }
     return false;
 }
 

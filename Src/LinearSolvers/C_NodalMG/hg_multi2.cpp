@@ -67,6 +67,7 @@ public:
     }
     virtual bool ready()
     {
+	if ( ! c->ready() ) return false;
 	throw( "task_fceres_2::ready(): FIXME" ); /*NOTREACHED*/
 	return false;
     };
