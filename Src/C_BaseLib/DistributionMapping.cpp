@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.9 1997-11-25 19:00:36 car Exp $
+// $Id: DistributionMapping.cpp,v 1.10 1997-11-25 19:55:15 car Exp $
 //
 
 #include <DistributionMapping.H>
@@ -254,6 +254,7 @@ knapsack (const vector<long>& pts,
     //
     // Sort balls by size largest first.
     //
+    assert(nProcessors > 0);
     vector< list<int> > result(nProcessors);
     vector<WeightedBox> lb;
     lb.reserve(pts.size());
