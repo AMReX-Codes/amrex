@@ -324,40 +324,40 @@ contains
             form = "formatted", access = "sequential", &
             status = "replace", action = "write")
        write(unit=un, fmt='("NavierStokes-V1.1")')
-       write(unit=un, fmt=*) nc
+       write(unit=un, fmt='(i0)') nc
        if ( present(names) ) then
           do i = 1, nc
-             write(unit=un, fmt=*) names(i)
+             write(unit=un, fmt='(A)') names(i)
           end do
        else
           do i = 1, nc
              write(unit=un, fmt='("Var-",i3.3)') i
           end do
        end if
-       write(unit=un, fmt=*) dm
+       write(unit=un, fmt='(i1)') dm
        write(unit=un, fmt='(es30.20e3)') ltime
-       write(unit=un, fmt=*) nl - 1
+       write(unit=un, fmt='(i0)') nl - 1
        write(unit=un, fmt='(3es30.20e3)') plo
        write(unit=un, fmt='(3es30.20e3)') phi
        do i = 1, nl - 1
           write(unit=un, fmt='(i0,1x)', advance='no') rrs(i)
        end do
-       write(unit=un, fmt=*)
+       write(unit=un, fmt='()')
        do i = 1, nl
           call box_print(lbbox, unit=un, legacy = .True., advance = 'no', nodal = mfs(i)%nodal)
-          write(unit=un, fmt=*)
+          write(unit=un, fmt='()')
           if ( i < nl ) lbbox = refine(lbbox, rrs(i))
        end do
        do i = 1, nl
           write(unit=un, fmt='(i0,1x)', advance = 'no') idummy
        end do
-       write(unit=un, fmt=*)
+       write(unit=un, fmt='()')
        do i = 1, nl
           write(unit=un, fmt='(3es30.20e3)') ldx
           if ( i < nl ) ldx = ldx/rrs(i)
        end do
-       write(unit=un, fmt=*) idummy
-       write(unit=un, fmt=*) idummy
+       write(unit=un, fmt='(i0)') idummy
+       write(unit=un, fmt='(i0)') idummy
        ! SOME STUFF
        do i = 1, nl
           write(unit=un, fmt=*) i-1, nboxes(mfs(i)), rdummy, idummy
