@@ -15,13 +15,13 @@ endif
 
 ifeq ($(COMP),KCC)
   CXX     := KCC
-  CXXOPTF += +K2 -O2 --no_exceptions --backend '-qmaxmem=-1'
+  CXXOPTF += +K1 --no_exceptions --backend '-qmaxmem=-1'
   CXXDEBF += +K0 --no_exceptions
 endif
 
 ifeq ($(COMP),mpKCC)
   CXX     := mpKCC
-  CXXOPTF += +K2 -O2 --no_exceptions --backend '-qmaxmem=-1'
+  CXXOPTF += +K1 --no_exceptions --backend '-qmaxmem=-1'
   CXXDEBF += +K0 --no_exceptions
 endif
 
@@ -34,9 +34,9 @@ ifeq ($(PRECISION),FLOAT)
   fOPTF += -O2 -qarch=auto -qtune=auto -qmaxmem=-1
   fDEBF += -g
 else
-  FOPTF += -qdpc -O2 -qarch=auto -qtune=auto -qmaxmem=-1
+  FOPTF += -O2 -qdpc -qarch=auto -qtune=auto -qmaxmem=-1
   FDEBF += -qdpc -g
-  fOPTF += -qdpc -O2 -qarch=auto -qtune=auto -qmaxmem=-1
+  fOPTF += -O2 -qdpc -qarch=auto -qtune=auto -qmaxmem=-1
   fDEBF += -qdpc -g
 endif
 
