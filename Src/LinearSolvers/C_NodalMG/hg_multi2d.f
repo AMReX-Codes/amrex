@@ -344,13 +344,13 @@ cdir$ ivdep
                   cor(i,j) = (AVG() - res(i,j)) * cen(i,j)
                   if (irz .eq. 1 .and. i .eq. 0) then
                     cor(i,j) = (
-     $                        0.5d0 * hxm2 *
-     $                 ((sigx(i-1,j-1) + sigx(i-1,j)) * cor(i-1,j) +
-     $                  (sigx(i  ,j-1) + sigx(i  ,j)) * cor(i+1,j)) +
-     $                       0.25d0 * hym2 *
-     $                 ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) +
-     $                  (sigy(i-1,j  ) + sigy(i,j  )) * cor(i,j+1))
-     $                    - res(i,j)) * cen(i,j)
+     &                        0.5d0 * hxm2 *
+     &                 ((sigx(i-1,j-1) + sigx(i-1,j)) * cor(i-1,j) +
+     &                  (sigx(i  ,j-1) + sigx(i  ,j)) * cor(i+1,j)) +
+     &                       0.25d0 * hym2 *
+     &                 ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) +
+     &                  (sigy(i-1,j  ) + sigy(i,j  )) * cor(i,j+1))
+     &                    - res(i,j)) * cen(i,j)
                   endif
                end do
             end do
@@ -365,13 +365,13 @@ cdir$ ivdep
                   cor(i,j) = (AVG() - res(i,j)) * cen(i,j)
                   if (irz .eq. 1 .and. i .eq. 0) then
                     cor(i,j) = (
-     $                        0.5d0 * hxm2 *
-     $                 ((sigx(i-1,j-1) + sigx(i-1,j)) * cor(i-1,j) +
-     $                  (sigx(i,j-1) + sigx(i,j)) * cor(i+1,j)) +
-     $                       0.25d0 * hym2 *
-     $                 ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) +
-     $                  (sigy(i-1,j  ) + sigy(i,j  )) * cor(i,j+1))
-     $                    - res(i,j)) * cen(i,j)
+     &                        0.5d0 * hxm2 *
+     &                 ((sigx(i-1,j-1) + sigx(i-1,j)) * cor(i-1,j) +
+     &                  (sigx(i,j-1) + sigx(i,j)) * cor(i+1,j)) +
+     &                       0.25d0 * hym2 *
+     &                 ((sigy(i-1,j-1) + sigy(i,j-1)) * cor(i,j-1) +
+     &                  (sigy(i-1,j  ) + sigy(i,j  )) * cor(i,j+1))
+     &                    - res(i,j)) * cen(i,j)
                   endif
                end do
             end do

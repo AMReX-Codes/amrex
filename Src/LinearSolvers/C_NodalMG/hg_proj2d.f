@@ -271,8 +271,8 @@ c     This correction is *only* for the cross stencil
          i = 0
          do j = fregl1, fregh1
             src(i,j) = src(i,j) - fac * hym1 * 0.5d0 *
-     @                (vf(i-1,j) - vf(i-1,j-1) +
-     @                 vf(i,j)   - vf(i  ,j-1))
+     &                (vf(i-1,j) - vf(i-1,j-1) +
+     &                 vf(i,j)   - vf(i  ,j-1))
          end do
       endif
 
@@ -353,8 +353,8 @@ c Note---only generates values at coarse points along edge of fine grid
          if (irz .eq. 1 .and. cregl0 .le. 0 .and. cregh0 .ge. 0) then
             i = 0
             src(i*ir,j*jr) = fac0 *
-     @        (hxm1 * (uc(i,juc) - uc(i-1,juc)) -
-     @         hym1 * idir * (vc(i,juc) + vc(i-1,juc))*0.5d0 )
+     &        (hxm1 * (uc(i,juc) - uc(i-1,juc)) -
+     &         hym1 * idir * (vc(i,juc) + vc(i-1,juc))*0.5d0 )
          endif
 
          fac0 = fac0 / (ir * ir * jr)
@@ -373,11 +373,11 @@ c Note---only generates values at coarse points along edge of fine grid
             end do
 
             if (irz .eq. 1 .and. m .eq. 0 .and.
-     @          ir*cregl0 .le. 0 .and. ir*cregh0 .ge. 0) then
+     &          ir*cregl0 .le. 0 .and. ir*cregh0 .ge. 0) then
               i = 0
               src(i,j) = src(i,j) - fac1 * 0.5d0 *
-     @              hym1 * idir * (vf(i-m,juf) + vf(i-m-1,juf) +
-     @                             vf(i+m,juf) + vf(i+m-1,juf))
+     &              hym1 * idir * (vf(i-m,juf) + vf(i-m-1,juf) +
+     &                             vf(i+m,juf) + vf(i+m-1,juf))
             endif
          end do
       end if
