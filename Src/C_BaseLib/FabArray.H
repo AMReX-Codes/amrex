@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.105 2000-06-01 21:07:51 car Exp $
+// $Id: FabArray.H,v 1.106 2000-08-02 16:00:53 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -44,6 +44,10 @@ using std::vector;
 #include <RunStats.H>
 #include <Tracer.H>
 #include <ccse-mpi.H>
+
+#ifdef BL3_PROFILING
+#include <BoxLib3/Profiler.H>
+#endif
 
 #ifdef BL_NAMESPACE
 namespace BL_NAMESPACE
@@ -1207,6 +1211,9 @@ FabArray<T,FAB>::copy (const FabArray<T,FAB>& src,
                        int                    dcomp,
                        int                    ncomp)
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::copy()");
+#endif
     if (boxarray == src.boxarray)
     {
         BL_ASSERT(distributionMap == src.distributionMap);
@@ -1611,6 +1618,9 @@ FabArray<T,FAB>::copy (FAB&       dest,
                        int        dcomp,
                        int        ncomp) const
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::copy(Fab&, ...)");
+#endif
     BL_ASSERT(dcomp + ncomp <= dest.nComp());
 
     if (ParallelDescriptor::NProcs() == 1)

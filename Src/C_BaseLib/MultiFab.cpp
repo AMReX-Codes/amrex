@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiFab.cpp,v 1.47 2000-07-13 23:26:55 almgren Exp $
+// $Id: MultiFab.cpp,v 1.48 2000-08-02 16:00:54 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -26,6 +26,10 @@ using std::setw;
 #include <Misc.H>
 #include <MultiFab.H>
 #include <ParallelDescriptor.H>
+
+#ifdef BL3_PROFILING
+#include <BoxLib3/Profiler.H>
+#endif
 
 #ifdef BL_NAMESPACE
 namespace BL_NAMESPACE
@@ -776,6 +780,9 @@ void
 MultiFab::FillBoundary (int scomp,
                         int ncomp)
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::FillBoundary(int, int)");
+#endif
     static RunStats stats("fill_boundary");
 
     stats.start();

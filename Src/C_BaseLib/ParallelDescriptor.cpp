@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.60 2000-06-05 19:11:16 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.61 2000-08-02 16:00:54 car Exp $
 //
 
 #include <Utility.H>
@@ -156,10 +156,17 @@ ParallelDescriptor::StartParallel (int*    argc,
     BL_ASSERT(m_nProcs == -1);
 
     int rc;
-
-    if ((rc = MPI_Init(argc, argv)) != MPI_SUCCESS)
-        ParallelDescriptor::Abort(rc);
-
+    int sflag;
+    if ( int rc = MPI_Initialized(&sflag) )
+      {
+	ParallelDescriptor::Abort(rc);
+      }
+    if ( !sflag )
+      {
+	if ((rc = MPI_Init(argc, argv)) != MPI_SUCCESS)
+	  ParallelDescriptor::Abort(rc);
+      }
+    
     if ((rc = MPI_Comm_size(Communicator(), &m_nProcs)) != MPI_SUCCESS)
         ParallelDescriptor::Abort(rc);
 
