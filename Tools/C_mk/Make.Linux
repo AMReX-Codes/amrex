@@ -42,14 +42,18 @@ ifeq ($(FCOMP),PGI)
 else
 ifeq ($(FCOMP),Intel)
   FC   := ifc
-  FOPTF += -O3
+  FDEBF += -CB
+  FDEBF += -g
   FOPTF += -g
+  FOPTF += -O3
   LIBRARY_LOCATIONS += $(IA32ROOT)/lib 
   override XTRALIBS += -lintrins -lIEPCF90 -lF90 -limf -lcxa -lirc
 else
   # default g77 version
   FOPTF += -O
   fOPTF += -O
+  FDEBF += -g
+  fDEBF += -g
   #DEFINES += -DBL_FORT_USE_UNDERSCORE
   #override XTRALIBS +=  -lf2c
   LIBRARY_LOCATIONS += /usr/lib/gcc-lib/i386-redhat-linux/2.96
@@ -66,8 +70,6 @@ FPRF    += -pg
 
 override XTRALIBS +=   -lm
 
-FDEBF += -g
-fDEBF += -g
 
 ifeq ($(WHICHLINUX), PCCLUSTER)
   LIBRARY_LOCATIONS += /usr/local/pkg/gcc/lib/gcc-lib/i686-pc-linux-gnu/2.95.1
