@@ -1,5 +1,5 @@
 c
-c $Id: LP_3D.F,v 1.1 1998-03-24 07:07:31 almgren Exp $
+c $Id: LP_3D.F,v 1.2 1998-12-14 20:23:47 lijewski Exp $
 c
 #undef  BL_LANG_CC
 #ifndef BL_LANG_FORT
@@ -149,7 +149,7 @@ c
       REAL_T denom
 c
       rho = 0.0
-      denom = -h**2/6.0d0
+      denom = -h**2*sixth
       do n = 1, nc
          do k = lo(3), hi(3)
             do j = lo(2), hi(2)
