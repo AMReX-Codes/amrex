@@ -4,7 +4,7 @@
 #define _Derive_H_
 
 //
-// $Id: Derive.H,v 1.7 1998-03-23 20:20:14 lijewski Exp $
+// $Id: Derive.H,v 1.8 1998-03-23 21:03:17 lijewski Exp $
 //
 
 #include <REAL.H>
@@ -42,6 +42,8 @@ class DeriveRec
 
 public:
 
+    ~DeriveRec ();
+
     const aString& name () const { return derive_name; }
 
     IndexType deriveType () const { return der_type; }
@@ -77,8 +79,6 @@ protected:
                DeriveBoxMap   box_map,
                IndexType      component_type,
                Interpolater*  interp = &pc_interp);
-
-    ~DeriveRec ();
 
     void addRange (const DescriptorList& d_list,
                    int                   state_indx,
@@ -151,11 +151,9 @@ class DeriveList
 {
 public:
 
-    DeriveList ();
+    DeriveList () {}
 
-    ~DeriveList ();
-
-    void clear ();
+    ~DeriveList () {}
     //
     // Determines whether quantity identified by <name> is in the registry.
     //
@@ -173,7 +171,16 @@ public:
               DeriveFunc     der_func,
               DeriveBoxMap   box_map,
               IndexType      component_type,
-              Interpolater*  interp = &pc_interp);
+              Interpolater*  interp = &pc_interp)
+    {
+        lst.add(DeriveRec(name,
+                          result_type,
+                          nvar_derive,
+                          der_func,
+                          box_map,
+                          component_type,
+                          interp));
+    }
     //
     // Adds another StateRange to the DeriveRec identified by <name>.
     //
@@ -183,11 +190,11 @@ public:
                        int                   start_comp,
                        int                   ncomp);
 
-    List<DeriveRec*>& dlist () { return lst; }
+    List<DeriveRec>& dlist () { return lst; }
 
 protected:
 
-    List<DeriveRec*> lst;
+    List<DeriveRec> lst;
 
 private:
     //

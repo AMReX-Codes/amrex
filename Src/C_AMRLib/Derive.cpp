@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Derive.cpp,v 1.8 1998-03-23 20:20:15 lijewski Exp $
+// $Id: Derive.cpp,v 1.9 1998-03-23 21:03:18 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -55,13 +55,13 @@ DeriveRec::addRange (const DescriptorList& d_list,
 {
     const StateDescriptor& d = d_list[state_indx];
 
-    assert (d.getType() == rng_type);
+    assert(d.getType() == rng_type);
 
     StateRange* r = new StateRange;
 
-    r->typ = state_indx;
-    r->sc = src_comp;
-    r->nc = num_comp;
+    r->typ  = state_indx;
+    r->sc   = src_comp;
+    r->nc   = num_comp;
     r->next = 0;
     //
     // Add to end of list.
@@ -72,7 +72,7 @@ DeriveRec::addRange (const DescriptorList& d_list,
     }
     else
     {
-        StateRange *prev = rng;
+        StateRange* prev = rng;
         while (prev->next != 0)
             prev = prev->next;
         prev->next = r;
@@ -90,6 +90,7 @@ DeriveRec::getRange (int  k,
                      int& num_comp) const
 {
     StateRange* r;
+
     for (r = rng; r != 0 && k > 0; k--, r = r->next)
         ;
     assert(r != 0);
@@ -122,30 +123,12 @@ DeriveRec::buildBC (const DescriptorList& d_list)
     }
 }
 
-DeriveList::DeriveList ()
-{}
-
-DeriveList::~DeriveList ()
-{
-    clear();
-}
-
-void
-DeriveList::clear ()
-{
-    for (ListIterator<DeriveRec*> li(lst); li; ++li)
-    {
-        delete lst[li];
-        lst[li] = 0;
-    }
-}
-
 bool
 DeriveList::canDerive (const aString& name) const 
 {
-    for (ListIterator<DeriveRec*> li(lst); li; ++li)
+    for (ListIterator<DeriveRec> li(lst); li; ++li)
     {
-        if (li()->derive_name == name)
+        if (li().derive_name == name)
             return true;
     }
     return false;
@@ -154,30 +137,12 @@ DeriveList::canDerive (const aString& name) const
 const DeriveRec*
 DeriveList::get (const aString& name) const
 {
-    for (ListIterator<DeriveRec*> li(lst); li; ++li)
+    for (ListIterator<DeriveRec> li(lst); li; ++li)
     {
-        if (li()->derive_name == name)
-            return li();
+        if (li().derive_name == name)
+            return &li();
     }
     return 0;
-}
-
-void
-DeriveList::add (const aString& name,
-                 IndexType      result_type,
-                 int            nvar_derive,
-                 DeriveFunc     der_func,
-                 DeriveBoxMap   box_map,
-                 IndexType      component_type,
-                 Interpolater*  interp)
-{
-    lst.add(new DeriveRec(name,
-                          result_type,
-                          nvar_derive,
-                          der_func,
-                          box_map,
-                          component_type,
-                          interp));
 }
 
 void
@@ -187,15 +152,15 @@ DeriveList::addComponent (const aString&        name,
                           int                   s_comp,
                           int                   n_comp)
 {
-    ListIterator<DeriveRec*> li(lst);
+    ListIterator<DeriveRec> li(lst);
 
     for ( ; li; ++li)
     {
-        if (li()->derive_name == name)
+        if (li().derive_name == name)
             break;
     }
     assert (li != 0);
-    lst[li]->addRange(d_list, state_indx, s_comp, n_comp);
+    lst[li].addRange(d_list, state_indx, s_comp, n_comp);
 }
 
 
