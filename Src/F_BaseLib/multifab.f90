@@ -240,6 +240,10 @@ module multifab_module
   type(mem_stats), private, save :: imultifab_ms
   type(mem_stats), private, save :: lmultifab_ms
 
+  interface assignment(=)
+     module procedure multifab_die_die
+  end interface
+
   private :: build_nodal_dot_mask
 
   ! buffers used for parallel fill_boundary
@@ -252,6 +256,12 @@ module multifab_module
   logical, private :: l_fancy = .true.
 
 contains
+
+  subroutine multifab_die_die(mf,mf1)
+    type(multifab), intent(in) :: mf1
+    type(multifab), intent(inout) :: mf
+    call bl_error("DIE")
+  end subroutine multifab_die_die
 
   function multifab_ncomp(mf) result(r)
     integer :: r
