@@ -1,11 +1,10 @@
 PRECISION = DOUBLE
-DEBUG	= FALSE
 DEBUG	= TRUE
+DEBUG	= FALSE
 PROFILE = FALSE
 
 DIM	= 2
 DIM	= 3
-
 
 COMP = KCC
 
@@ -33,9 +32,6 @@ include $(PBOXLIB_HOME)/mk/Make.defs
 
 CPPFLAGS += -DBL_USE_NEW_HFILES
 
-INCLUDE_LOCATIONS += . $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/amrlib
-INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/bndrylib $(PBOXLIB_HOME)/mglib
-
 ifeq ($(USE_BSP), TRUE)
 DEFINES += -DBL_USE_BSP
 ifeq ($(BSP_MACHINE), OSF1)
@@ -53,20 +49,19 @@ endif
 endif
 endif
 
-#
-# Uncomment this is you want to use Parallel I/O.
-#
-DEFINES += -DBL_PARALLEL_IO
+include $(HERE)/Make.package
 
+ifeq ($(DEBUG),TRUE)
 ifeq ($(USE_ARRAYVIEW),TRUE)
-#ARRAYVIEWDIR  = /usr/local/ccse/ArrayView
-#ARRAYVIEWDIR  = /usr/people/vince/Visualization/ArrayView
-ARRAYVIEWDIR  = .
+ARRAYVIEWDIR  = $(PBOXLIB_HOME)/util
 INCLUDE_LOCATIONS += $(ARRAYVIEWDIR)
-#LIBRARY_LOCATIONS += $(ARRAYVIEWDIR) 
-#LIBRARIES += -larrayview$(DIM)d.$(machineSuffix) 
+CEXE_headers += DatasetClient.H ArrayView.H
+CEXE_sources += DatasetClient.cpp
 DEFINES += -DBL_USE_ARRAYVIEW
-DEFINES += -DBL_ARRAYVIEW_TAGBOX
+#DEFINES += -DBL_ARRAYVIEW_TAGBOX
+endif
+INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/util
+CEXE_headers += TV_TempWrite.H
 endif
 
 ifeq ($(USE_BSP), TRUE)
@@ -98,18 +93,6 @@ LIBRARY_LOCATIONS += /usr/ccs/lib/cmplrs/cc
 LIBRARIES += -lexc 
 endif
 
-#CXXFLAGS = -g --diag_suppress 177
-#CXXFLAGS = --strict_warnings
-ifeq ($(BSP_MACHINE), OSF1)
-#FFLAGS += -real_size 64
-#FDEBF += -C
-#FDEBF += - -warn argument_checking
-#FDEBF += - -warn declarations
-#FDEBF += - -warn truncated_source
-#FDEBF += - -warn unused
-#FOPTF  = -fast -O5 -tune ev5
-endif
-
 3RD = 1
 3RD=
 ifdef 3RD
@@ -130,11 +113,13 @@ CFLAGS +=
 COPTF +=
 CDEBF +=
 
-include $(HERE)/Make.package
-
 FOPTF = -fast
 
-vpath %.cpp : . $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/amrlib $(PBOXLIB_HOME)/bndrylib $(PBOXLIB_HOME)/mglib
+ifeq ($(USE_BSP),TRUE)
+vpath %.cpp : . $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/amrlib $(PBOXLIB_HOME)/bndrylib $(PBOXLIB_HOME)/mglib $(UTILITY_DIR) $(PRELOAD_DIR)
+else
+vpath %.cpp : . $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/amrlib $(PBOXLIB_HOME)/bndrylib $(PBOXLIB_HOME)/mglib $(UTILITY_DIR) 
+endif
 vpath %.F   : . $(PBOXLIB_HOME)/pBoxLib_2 $(PBOXLIB_HOME)/amrlib $(PBOXLIB_HOME)/bndrylib $(PBOXLIB_HOME)/mglib
 
 all: $(executable)
