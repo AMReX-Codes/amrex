@@ -1,7 +1,7 @@
 #ifndef BL_PARALLELDESCRIPTOR_H
 #define BL_PARALLELDESCRIPTOR_H
 //
-// $Id: ParallelDescriptor.H,v 1.69 2001-09-24 19:10:10 lijewski Exp $
+// $Id: ParallelDescriptor.H,v 1.70 2001-09-25 22:45:40 lijewski Exp $
 //
 #include <BLassert.H>
 #include <REAL.H>
@@ -134,6 +134,7 @@ namespace ParallelDescriptor
     class Message
     {
     public:
+
 	Message ();
 	Message (MPI_Request req_, MPI_Datatype type_);
 	Message (MPI_Status stat_, MPI_Datatype type_);
@@ -143,7 +144,10 @@ namespace ParallelDescriptor
 	int tag () const;
 	int pid () const;
 	MPI_Datatype type () const;
+	MPI_Request  req () const;
+
     private:
+
 	bool               m_finished;
 	MPI_Datatype       m_type;
 	MPI_Request        m_req;
@@ -327,13 +331,14 @@ namespace ParallelDescriptor
     template <class T> void Bcast(T*, size_t n, int root = 0);
 
     template <class Op, class T> T Reduce(const T& t);
-    template <class Op, class T> std::vector<T> Reduce(const std::vector<T>& t);
 
     template <class T, class T1> void Scatter(T*, size_t n, const T1*, size_t n1, int root);
-    template <class T> T Scatter(const std::vector<T>& t, int root);
 
-    template <class T, class T1> void Gather(T*, size_t n, const T1*, size_t n1, int root);
+    template <class T, class T1> void Gather(const T*, size_t n, T1*, size_t n1, int root);
     template <class T> std::vector<T> Gather(const T&, int root);
+
+    void Waitsome (Array<MPI_Request>&, int&, Array<int>&, Array<MPI_Status>&);
+
     void MPI_Error(const char* file, int line, const char* msg, int rc);
 }
 
@@ -350,140 +355,222 @@ while ( false )
 #if BL_USE_MPI
 template <class T>
 ParallelDescriptor::Message
-ParallelDescriptor::Asend(const T* buf, size_t n, int dst_pid, int tag)
+ParallelDescriptor::Asend (const T* buf,
+                           size_t   n,
+                           int      dst_pid,
+                           int      tag)
 {
     MPI_Request req;
-    BL_MPI_REQUIRE( MPI_Isend(const_cast<T*>(buf), n, Mpi_typemap<T>::type(), dst_pid, tag, Communicator(), &req) );
+    BL_MPI_REQUIRE( MPI_Isend(const_cast<T*>(buf),
+                              n,
+                              Mpi_typemap<T>::type(),
+                              dst_pid,
+                              tag,
+                              Communicator(),
+                              &req) );
     return Message(req, Mpi_typemap<T>::type());
 }
 
 template <class T>
 ParallelDescriptor::Message
-ParallelDescriptor::Asend(const std::vector<T>& buf, int dst_pid, int tag)
+ParallelDescriptor::Asend (const std::vector<T>& buf,
+                           int                   dst_pid,
+                           int                   tag)
 {
     MPI_Request req;
-    BL_MPI_REQUIRE( MPI_Isend(const_cast<T*>(&buf[0]), buf.size(), Mpi_typemap<T>::type(), dst_pid, tag, Communicator(), &req) );
+    BL_MPI_REQUIRE( MPI_Isend(const_cast<T*>(&buf[0]),
+                              buf.size(),
+                              Mpi_typemap<T>::type(),
+                              dst_pid,
+                              tag,
+                              Communicator(),
+                              &req) );
     return Message(req, Mpi_typemap<T>::type());
 }
 
 template <class T>
 ParallelDescriptor::Message
-ParallelDescriptor::Send(const T* buf, size_t n, int dst_pid, int tag)
+ParallelDescriptor::Send (const T* buf,
+                          size_t   n,
+                          int      dst_pid,
+                          int      tag)
 {
-    BL_MPI_REQUIRE( MPI_Send(const_cast<T*>(buf), n, Mpi_typemap<T>::type(), dst_pid, tag, Communicator()) );
+    BL_MPI_REQUIRE( MPI_Send(const_cast<T*>(buf),
+                             n,
+                             Mpi_typemap<T>::type(),
+                             dst_pid,
+                             tag,
+                             Communicator()) );
     return Message();
 }
 
 template <class T>
 ParallelDescriptor::Message
-ParallelDescriptor::Send(const std::vector<T>& buf, int dst_pid, int tag)
+ParallelDescriptor::Send (const std::vector<T>& buf,
+                          int                   dst_pid,
+                          int                   tag)
 {
-    BL_MPI_REQUIRE( MPI_Send(const_cast<T*>(&buf[0]), buf.size(), Mpi_typemap<T>::type(), dst_pid, tag, Communicator()) );
+    BL_MPI_REQUIRE( MPI_Send(const_cast<T*>(&buf[0]),
+                             buf.size(),
+                             Mpi_typemap<T>::type(),
+                             dst_pid,
+                             tag,
+                             Communicator()) );
     return Message();
 }
 
 template <class T>
 ParallelDescriptor::Message
-ParallelDescriptor::Arecv(T* buf, size_t n, int src_pid, int tag)
+ParallelDescriptor::Arecv (T*     buf,
+                           size_t n,
+                           int    src_pid,
+                           int    tag)
 {
     MPI_Request req;
-    BL_MPI_REQUIRE( MPI_Irecv(buf, n, Mpi_typemap<T>::type(), src_pid, tag, Communicator(), &req) );
+    BL_MPI_REQUIRE( MPI_Irecv(buf,
+                              n,
+                              Mpi_typemap<T>::type(),
+                              src_pid,
+                              tag,
+                              Communicator(),
+                              &req) );
     return Message(req, Mpi_typemap<T>::type());
 }
 
 template <class T>
 ParallelDescriptor::Message
-ParallelDescriptor::Arecv(std::vector<T>& buf, int src_pid, int tag)
+ParallelDescriptor::Arecv (std::vector<T>& buf,
+                           int             src_pid,
+                           int             tag)
 {
     MPI_Request req;
-    BL_MPI_REQUIRE( MPI_Irecv(&buf[0], buf.size(), Mpi_typemap<T>::type(), src_pid, tag, Communicator(), &req) );
+    BL_MPI_REQUIRE( MPI_Irecv(&buf[0],
+                              buf.size(),
+                              Mpi_typemap<T>::type(),
+                              src_pid,
+                              tag,
+                              Communicator(),
+                              &req) );
     return Message(req, Mpi_typemap<T>::type());
 }
 
 template <class T>
 ParallelDescriptor::Message
-ParallelDescriptor::Recv(T* buf, size_t n, int src_pid, int tag)
+ParallelDescriptor::Recv (T*     buf,
+                          size_t n,
+                          int    src_pid,
+                          int    tag)
 {
     MPI_Status stat;
-    BL_MPI_REQUIRE( MPI_Recv(buf, n, Mpi_typemap<T>::type(), src_pid, tag, Communicator(), &stat) );
+    BL_MPI_REQUIRE( MPI_Recv(buf,
+                             n,
+                             Mpi_typemap<T>::type(),
+                             src_pid,
+                             tag,
+                             Communicator(),
+                             &stat) );
     return Message(stat, Mpi_typemap<T>::type());
 }
 
 template <class T>
 ParallelDescriptor::Message
-ParallelDescriptor::Recv(std::vector<T>& buf, int src_pid, int tag)
+ParallelDescriptor::Recv (std::vector<T>& buf,
+                          int             src_pid,
+                          int             tag)
 {
     MPI_Status stat;
-    BL_MPI_REQUIRE( MPI_Recv(&buf[0], buf.size(), Mpi_typemap<T>::type(), src_pid, tag, Communicator(), &stat) );
+    BL_MPI_REQUIRE( MPI_Recv(&buf[0],
+                             buf.size(),
+                             Mpi_typemap<T>::type(),
+                             src_pid,
+                             tag,
+                             Communicator(),
+                             &stat) );
     return Message(stat, Mpi_typemap<T>::type());
 }
 
 template <class Op, class T>
 T
-ParallelDescriptor::Reduce(const T& t)
+ParallelDescriptor::Reduce (const T& t)
 {
     T recv;
-    BL_MPI_REQUIRE( MPI_Allreduce(const_cast<T*>(&t), &recv, 1, Mpi_typemap<T>::type(), Op::op(), Communicator()) );
-    return recv;
-}
-
-template <class Op, class T>
-std::vector<T>
-ParallelDescriptor::Reduce(const std::vector<T>& t)
-{
-    std::vector<T> recv;
-    BL_MPI_REQUIRE( MPI_Allreduce(const_cast<T*>(&t[0]), &recv[0], t.size(), Mpi_typemap<T>::type(), Op::op(), Communicator()) );
+    BL_MPI_REQUIRE( MPI_Allreduce(const_cast<T*>(&t),
+                                  &recv,
+                                  1,
+                                  Mpi_typemap<T>::type(),
+                                  Op::op(),
+                                  Communicator()) );
     return recv;
 }
 
 template <class T>
 void
-ParallelDescriptor::Bcast(T* t, size_t n, int root)
+ParallelDescriptor::Bcast (T*     t,
+                           size_t n,
+                           int    root)
 {
-    BL_MPI_REQUIRE( MPI_Bcast(t, n, Mpi_typemap<T>::type(), root, Communicator()) );
+    BL_MPI_REQUIRE( MPI_Bcast(t,
+                              n,
+                              Mpi_typemap<T>::type(),
+                              root,
+                              Communicator()) );
 }
 
 template <class T, class T1>
 void
-ParallelDescriptor::Gather(T* t, size_t n, const T1* t1, size_t n1, int root)
+ParallelDescriptor::Gather (const T* t,
+                            size_t   n,
+                            T1*      t1,
+                            size_t   n1,
+                            int      root)
 {
-    BL_MPI_REQUIRE( MPI_Gather(t1, n1, Mpi_typemap<T1>::type(),
-			    t, n, Mpi_typemap<T>::type(),
-			    root, Communicator()) );
+    BL_MPI_REQUIRE( MPI_Gather(const_cast<T*>(t),
+                               n,
+                               Mpi_typemap<T>::type(),
+                               t1,
+                               n1,
+                               Mpi_typemap<T1>::type(),
+                               root,
+                               Communicator()) );
 }
 
 template <class T>
 std::vector<T>
-ParallelDescriptor::Gather(const T& t, int root)
+ParallelDescriptor::Gather (const T& t, int root)
 {
     std::vector<T> resl;
     if ( root == MyProc() ) resl.resize(NProcs());
-    BL_MPI_REQUIRE( MPI_Gather(const_cast<T*>(&t), 1, Mpi_typemap<T>::type(),
-			    &resl[0], 1, Mpi_typemap<T>::type(),
-			    root, Communicator()) );
+    BL_MPI_REQUIRE( MPI_Gather(const_cast<T*>(&t),
+                               1,
+                               Mpi_typemap<T>::type(),
+                               &resl[0],
+                               1,
+                               Mpi_typemap<T>::type(),
+                               root,
+                               Communicator()) );
     return resl;
 }
 
 template <class T, class T1>
 void
-ParallelDescriptor::Scatter(T* t, size_t n, const T1* t1, size_t n1, int root)
+ParallelDescriptor::Scatter (T*        t,
+                             size_t    n,
+                             const T1* t1,
+                             size_t    n1,
+                             int       root)
 {
-    BL_MPI_REQUIRE( MPI_Scatter(const_cast<T1*>(t1), n1, Mpi_typemap<T1>::type(),
-			     t, n, Mpi_typemap<T>::type(),
-			     root, Communicator()) );
+    BL_MPI_REQUIRE( MPI_Scatter(const_cast<T1*>(t1),
+                                n1,
+                                Mpi_typemap<T1>::type(),
+                                t,
+                                n,
+                                Mpi_typemap<T>::type(),
+                                root,
+                                Communicator()) );
 }
 
-template <class T>
-T
-ParallelDescriptor::Scatter(const std::vector<T>& t, int root)
-{
-    T resl;
-    BL_MPI_REQUIRE( MPI_Scatter(&t[0], 1, Mpi_typemap<T>::type(),
-			     &resl, 1, Mpi_typemap<T>::type(),
-			     root, Communicator()) );
-    return resl;
-}
 #else
+
 namespace ParallelDescriptor
 {
 template <class T>
@@ -549,18 +636,10 @@ Reduce(const T& t)
     return t;
 }
 
-template <class Op, class T>
-std::vector<T>
-Reduce(const std::vector<T>& t)
-{
-    return t;
-}
-
 template <class T>
 void
 Bcast(T* t, size_t n, int root)
-{
-}
+{}
 
 template <class T>
 T
@@ -571,9 +650,8 @@ Bcast(const T& t, int root)
 
 template <class T, class T1>
 void
-Gather(T* t, size_t n, const T1* t1, size_t n1, int root)
-{
-}
+Gather(const T* t, size_t n, T1* t1, size_t n1, int root)
+{}
 
 template <class T>
 std::vector<T>
@@ -587,15 +665,7 @@ Gather(const T& t, int root)
 template <class T, class T1>
 void
 Scatter(T* t, size_t n, const T1* t1, size_t n1, int root)
-{
-}
-
-template <class T>
-T
-Scatter(const std::vector<T>& t, int root)
-{
-    return t[0];
-}
+{}
 
 }
 #endif

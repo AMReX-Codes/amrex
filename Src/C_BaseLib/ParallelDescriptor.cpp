@@ -1,5 +1,5 @@
 //
-// $Id: ParallelDescriptor.cpp,v 1.88 2001-09-24 19:10:10 lijewski Exp $
+// $Id: ParallelDescriptor.cpp,v 1.89 2001-09-25 22:45:41 lijewski Exp $
 //
 #include <cstdio>
 #include <Utility.H>
@@ -334,6 +334,12 @@ MPI_Datatype
 ParallelDescriptor::Message::type () const
 {
     return m_type;
+}
+
+MPI_Request
+ParallelDescriptor::Message::req () const
+{
+    return m_req;
 }
 
 void
@@ -823,7 +829,20 @@ ParallelDescriptor::Mpi_typemap<double>::type ()
     return  MPI_DOUBLE;
 }
 
-#else
+void
+ParallelDescriptor::Waitsome (Array<MPI_Request>& reqs,
+                              int&                completed,
+                              Array<int>&         indx,
+                              Array<MPI_Status>&  status)
+{
+    BL_MPI_REQUIRE( MPI_Waitsome(reqs.size(),
+                                 reqs.dataPtr(),
+                                 &completed,
+                                 indx.dataPtr(),
+                                 status.dataPtr()));
+}
+
+#else /*!BL_USE_MPI*/
 
 void ParallelDescriptor::StartParallel (int*, char***)
 {
@@ -848,7 +867,6 @@ ParallelDescriptor::Gather (Real* sendbuf,
         recvbuf[i] = sendbuf[i];
 }
 
-
 ParallelDescriptor::Message::Message ()
     :
     m_finished(true)
@@ -862,6 +880,12 @@ bool
 ParallelDescriptor::Message::test ()
 {
     return m_finished;
+}
+
+MPI_Request
+ParallelDescriptor::Message::req () const
+{
+    return m_req;
 }
 
 void ParallelDescriptor::util::SetNProcsCFD () {}
@@ -884,7 +908,9 @@ void ParallelDescriptor::Abort (int)
     std::abort(); 
 #endif
 }
+
 const char* ParallelDescriptor::ErrorString (int) { return ""; }
+
 void ParallelDescriptor::Barrier () {}
 
 void ParallelDescriptor::ReduceRealMax (Real&) {}
@@ -926,6 +952,13 @@ ParallelDescriptor::second ()
 {
     return BoxLib::wsecond();
 }
+
+void
+ParallelDescriptor::Waitsome (Array<MPI_Request>& reqs,
+                              int&                completed,
+                              Array<int>&         indx,
+                              Array<MPI_Status>&  status)
+{}
 
 #endif
 //

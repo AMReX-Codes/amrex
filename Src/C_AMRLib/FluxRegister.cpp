@@ -1,5 +1,5 @@
 //
-// $Id: FluxRegister.cpp,v 1.66 2001-09-21 21:38:21 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.67 2001-09-25 22:45:41 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -797,8 +797,6 @@ FluxRegister::CrseInitFinish ()
 {
     if (ParallelDescriptor::NProcs() == 1) return;
 
-#ifdef BL_USE_MPI
-
     const int seqno_1 = ParallelDescriptor::SeqNum();
     const int seqno_2 = ParallelDescriptor::SeqNum();
     const int MyProc  = ParallelDescriptor::MyProc();
@@ -826,15 +824,7 @@ FluxRegister::CrseInitFinish ()
     //
     for (int i = 0; i < NProcs; i++)
     {
-        if ((rc = MPI_Gather(&CIMsgs[i],
-                             1,
-                             MPI_INT,
-                             Rcvs.dataPtr(),
-                             1,
-                             MPI_INT,
-                             i,
-                             ParallelDescriptor::Communicator())) != MPI_SUCCESS)
-            ParallelDescriptor::Abort(rc);
+        ParallelDescriptor::Gather(&CIMsgs[i], 1, Rcvs.dataPtr(), 1, i);
     }
 
     BL_ASSERT(Rcvs[MyProc] == 0);
@@ -857,14 +847,11 @@ FluxRegister::CrseInitFinish ()
         {
             NWaits++;
 
-            if ((rc = MPI_Irecv(&recvdata[idx],
-                                Rcvs[i] * CommData::DIM,
-                                MPI_INT,
-                                i,
-                                seqno_1,
-                                ParallelDescriptor::Communicator(),
-                                &req_cd[i])) != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
+            int* data = reinterpret_cast<int*>(&recvdata[idx]);
+
+            const size_t N = Rcvs[i]*CommData::DIM;
+
+            req_cd[i] = ParallelDescriptor::Arecv(data,N,i,seqno_1).req();
 
             idx += Rcvs[i];
         }
@@ -901,13 +888,11 @@ FluxRegister::CrseInitFinish ()
 
             BL_ASSERT(Processed == CIMsgs[i]);
 
-            if ((rc = MPI_Send(senddata.dataPtr(),
-                               senddata.size() * CommData::DIM,
-                               MPI_INT,
-                               i,
-                               seqno_1,
-                               ParallelDescriptor::Communicator())) != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
+            int* data = reinterpret_cast<int*>(senddata.dataPtr());
+
+            const size_t N = senddata.size() * CommData::DIM;
+
+            ParallelDescriptor::Send(data, N, i, seqno_1);
         }
     }
     //
@@ -915,12 +900,7 @@ FluxRegister::CrseInitFinish ()
     //
     for (int completed; NWaits > 0; NWaits -= completed)
     {
-        if ((rc = MPI_Waitsome(NProcs,
-                               req_cd.dataPtr(),
-                               &completed,
-                               indx.dataPtr(),
-                               status.dataPtr())) != MPI_SUCCESS)
-            ParallelDescriptor::Abort(rc);
+        ParallelDescriptor::Waitsome(req_cd, completed, indx, status);
 
         for (int k = 0; k < completed; k++)
         {
@@ -942,14 +922,7 @@ FluxRegister::CrseInitFinish ()
 
             fab_data[Ncpu] = static_cast<Real*>(The_FAB_Arena->alloc(N*sizeof(Real)));
 
-            if ((rc = MPI_Irecv(fab_data[Ncpu],
-                                int(N),
-                                mpi_data_type(fab_data[Ncpu]),
-                                Ncpu,
-                                seqno_2,
-                                ParallelDescriptor::Communicator(),
-                                &req_data[Ncpu])) != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
+            req_data[Ncpu] = ParallelDescriptor::Arecv(fab_data[Ncpu],N,Ncpu,seqno_2).req();
         }
     }
     //
@@ -987,13 +960,7 @@ FluxRegister::CrseInitFinish ()
 
             BL_ASSERT(data + N == dptr);
 
-            if ((rc = MPI_Send(data,
-                               int(N),
-                               mpi_data_type(data),
-                               i,
-                               seqno_2,
-                               ParallelDescriptor::Communicator())) != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
+            ParallelDescriptor::Send(data, N, i, seqno_2);
 
             The_FAB_Arena->free(data);
         }
@@ -1010,12 +977,7 @@ FluxRegister::CrseInitFinish ()
 
     for (int completed; NWaits > 0; NWaits -= completed)
     {
-        if ((rc = MPI_Waitsome(NProcs,
-                               req_data.dataPtr(),
-                               &completed,
-                               indx.dataPtr(),
-                               status.dataPtr())) != MPI_SUCCESS)
-            ParallelDescriptor::Abort(rc);
+        ParallelDescriptor::Waitsome(req_data, completed, indx, status);
 
         for (int k = 0; k < completed; k++)
         {
@@ -1062,7 +1024,6 @@ FluxRegister::CrseInitFinish ()
     // Zero out CIMsgs.
     //
     for (int i = 0; i < NProcs; i++) CIMsgs[i] = 0;
-#endif
 }
 
 void
