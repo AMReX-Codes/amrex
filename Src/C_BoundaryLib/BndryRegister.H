@@ -4,7 +4,7 @@
 #define _BNDRYREGISTER_H_
 
 //
-// $Id: BndryRegister.H,v 1.2 1997-12-10 21:56:01 lijewski Exp $
+// $Id: BndryRegister.H,v 1.3 1997-12-11 05:01:08 lijewski Exp $
 //
 
 #include <BoxArray.H>
@@ -36,85 +36,158 @@
 	on grid boundary orientation.  The BoxArray domain of definition is
 	accessible, but not resettable,
 */
+
 class BndryRegister
 {
-protected:
-    FabSet    bndry[2*BL_SPACEDIM];
-    BoxArray  grids;
 
 public:
-//@ManMemo: administrative functions
-//@ManDoc: default constructor
+    //
+    //@ManDoc: default constructor.
+    //
     BndryRegister();
-//@ManDoc: constructor, given number of cells in/out, extent and number of components (assumes cell-centered boxes, and allocates cell-centered FABs)
-    BndryRegister(const BoxArray& _grids, int _in_rad,
-		  int _out_rad, int _extent_rad, int _ncomp);
-//@ManDoc: construct from input stream
-    BndryRegister(istream& is);
-//@ManDoc: copy constructor
-    BndryRegister(const BndryRegister &src);
-//@ManDoc: copy operator
-    BndryRegister& operator = (const BndryRegister& src);
-//@ManDoc: destructor
+    //
+    //@ManDoc: constructor, given number of cells in/out, extent and number of components (assumes cell-centered boxes, and allocates cell-centered FABs)
+    BndryRegister (const BoxArray& _grids,
+                   int             _in_rad,
+                   int             _out_rad,
+                   int             _extent_rad,
+                   int             _ncomp);
+    //
+    //@ManDoc: construct from input stream.
+    //
+    BndryRegister (istream& is);
+    //
+    //@ManDoc: copy constructor.
+    //
+    BndryRegister (const BndryRegister& src);
+    //
+    //@ManDoc: copy assignment operator.
+    //
+    BndryRegister& operator= (const BndryRegister& src);
+    //
+    //@ManDoc: destructor.
+    //
     virtual ~BndryRegister();
-
-//@ManMemo: I/O functions
-//@ManDoc: write to stream, FAB-style
-    ostream& writeOn(ostream &os) const;
-//@ManDoc: write to stream
+    //
+    //@ManDoc: write to stream, FAB-style.
+    //
+    ostream& writeOn (ostream &os) const;
+    //
+    //@ManDoc: write to stream in ASCII.
+    //
     friend ostream& operator << (ostream &os, const BndryRegister &br);
-//@ManDoc: read from stream
+    //
+    //@ManDoc: read from stream.
+    //
     istream& readFrom(istream &is);
-
-//@ManMemo: access functions
-//@ManDoc: get box domain (as an array of boxes)
-    const BoxArray& boxes() const
-    {
-	return grids;
-    }
-//@ManDoc: return the number of grids in this domain
-    int length() const
-    {
-	return grids.length();
-    }
-//@ManDoc: return const set of FABs bounding the domain grid boxes on a given orientation
-    const FabSet& operator[](const Orientation& _face) const
-    {
-	return bndry[_face];
-    }
-//@ManDoc: return set of FABs bounding the domain grid boxes on a given orientation
-    FabSet& operator[](const Orientation& _face)
-    {
-	return bndry[_face];
-    }
-
-
-//@ManMemo: linear algebra functions on member data (over all orientations)
-//@ManDoc: set all boundary FABs to given value
-    void setVal(Real v);
-//@ManDoc: fill the boundary FABs on intersect with given MultiFab
-    BndryRegister& copyFrom(const MultiFab& src, int nghost, int src_comp,
-			    int dest_comp, int num_comp);
-//@ManDoc: increment the boundary FABs on intersect with given MultiFab
-    BndryRegister& plusFrom(const MultiFab& src, int nghost, int src_comp,
-			    int dest_comp, int num_comp);
-//@ManDoc: fill the given MultiFab on intersect with the boundary FABs
-    const BndryRegister& copyTo(MultiFab& dest, int nghost, int src_comp,
-				int dest_comp, int num_comp) const;
-//@ManDoc: Linear combination: this := a*mfa + b*mfb on intersection of MultiFabs with the boundary FABs
-    BndryRegister& linComb(Real a, const MultiFab& mfa, int a_comp,
-			   Real b, const MultiFab& mfb, int b_comp,
-			   int dest_comp, int num_comp, int n_ghost=0);
-
-//@ManMemo: internal administrative functions
-//@ManDoc: set box domain, if not set previously
-    void setBoxes(const BoxArray& _grids);
-//@ManDoc: build FABs along given face
-    void define(const Orientation& _face, const IndexType &_typ,
-		int _in_rad,  int _out_rad, int _extent_rad,
-		int _ncomp);
-
+    //
+    //@ManDoc: get box domain (as an array of boxes).
+    //
+    const BoxArray& boxes () const;
+    //
+    //@ManDoc: return the number of grids in this domain.
+    //
+    int length () const;
+    //
+    //@ManDoc: return const set of FABs bounding the domain grid boxes on a given orientation
+    //
+    const FabSet& operator[] (const Orientation& _face) const;
+    //
+    //@ManDoc: return set of FABs bounding the domain grid boxes on a given orientation
+    //
+    FabSet& operator[] (const Orientation& _face);
+    //
+    //@ManDoc: set all boundary FABs to given value.
+    //
+    void setVal (Real v);
+    //
+    //@ManDoc: fill the boundary FABs on intersect with given MultiFab.
+    //
+    BndryRegister& copyFrom (const MultiFab& src,
+                             int             nghost,
+                             int             src_comp,
+                             int             dest_comp,
+                             int             num_comp);
+    //
+    //@ManDoc: increment the boundary FABs on intersect with given MultiFab.
+    //
+    BndryRegister& plusFrom (const MultiFab& src,
+                             int             nghost,
+                             int             src_comp,
+                             int             dest_comp,
+                             int             num_comp);
+    //
+    //@ManDoc: fill the given MultiFab on intersect with the boundary FABs.
+    //
+    const BndryRegister& copyTo (MultiFab& dest,
+                                 int       nghost,
+                                 int       src_comp,
+                                 int       dest_comp,
+                                 int       num_comp) const;
+    //
+    //@ManDoc: Linear combination: this := a*mfa + b*mfb on intersection of MultiFabs with the boundary FABs
+    //
+    BndryRegister& linComb (Real            a,
+                            const MultiFab& mfa,
+                            int             a_comp,
+                            Real            b,
+                            const MultiFab& mfb,
+                            int             b_comp,
+                            int             dest_comp,
+                            int             num_comp,
+                            int             n_ghost=0);
+    //
+    //@ManDoc: set box domain, if not set previously.
+    //
+    void setBoxes (const BoxArray& _grids);
+    //
+    //@ManDoc: build FABs along given face.
+    //
+    void define (const Orientation& _face,
+                 const IndexType&   _typ,
+                 int                _in_rad,
+                 int                _out_rad,
+                 int                _extent_rad,
+                 int                _ncomp);
+protected:
+    //
+    // The data.
+    //
+    FabSet    bndry[2*BL_SPACEDIM];
+    BoxArray  grids;
 };
 
-#endif
+//
+// Inlines
+//
 
+inline
+const BoxArray&
+BndryRegister::boxes () const
+{
+    return grids;
+}
+
+inline
+int
+BndryRegister::length () const
+{
+    return grids.length();
+}
+
+inline
+const FabSet&
+BndryRegister::operator[] (const Orientation& _face) const
+{
+    return bndry[_face];
+}
+
+inline
+FabSet&
+BndryRegister::operator[] (const Orientation& _face)
+{
+    return bndry[_face];
+}
+
+
+#endif /*_BNDRYREGISTER_H_*/
