@@ -328,11 +328,11 @@ void holy_grail_amr_projector::grid_average(PArray<MultiFab>& S)
 	    restrict_level(S[lev-1], S[lev], gen_ratio[lev-1],
 		0, default_restrictor(), level_interface(), 0);
 	}
-	// PARALLEL TODO
-	for (int igrid = 0; igrid < ml_mesh[lev_min].length(); igrid++) 
+	for(MultiFabIterator S_mfi(S[lev_min]); S_mfi.isValid(); ++S_mfi)
 	{
-	    adjust += S[lev_min][igrid].sum(S[lev_min].box(igrid), 0);
+	    adjust += S_mfi->sum(S_mfi.validbox(), 0);
 	}
+	ParallelDescriptor::ReduceRealSum(adjust);
 	adjust /= mg_domain[ml_index[lev_min]].numPts();
 	
 	if (pcode >= 2)
@@ -1203,11 +1203,10 @@ void holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u, const P
 	{
 	    int mglev = ml_index[lev];
 	    Real hxyz[BL_SPACEDIM] = { D_DECL( h[mglev][0], h[mglev][1], h[mglev][2] ) };
-	    // PARALLEL TODO
-	    for (int igrid = 0; igrid < ml_mesh[lev].length(); igrid++) 
+	    for(MultiFabIterator d_mfi(dest[lev]); d_mfi.isValid(); ++d_mfi)
 	    {
-		const Box& gbox = ml_mesh[lev][igrid];
-		const Box& dbox = dest[lev][igrid].box();
+		const Box& gbox = ml_mesh[lev][d_mfi.index()];
+		const Box& dbox = d_mfi->box();
 		FArrayBox gp[BL_SPACEDIM];
 		for (int i = 0; i < BL_SPACEDIM; i++) 
 		{
@@ -1217,47 +1216,53 @@ void holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u, const P
 		{
 		    FORT_HGGRAD_TERRAIN(D_DECL(gp[0].dataPtr(), gp[1].dataPtr(), gp[2].dataPtr()),
 			DIMLIST(gbox),
-			dest[lev][igrid].dataPtr(), DIMLIST(dbox),
+			d_mfi->dataPtr(), DIMLIST(dbox),
 			DIMLIST(gbox));
 		}
 		else
 		{
 #if (BL_SPACEDIM == 2)
 		    FORT_HGGRAD(gp[0].dataPtr(), gp[1].dataPtr(), DIMLIST(gbox),
-			dest[lev][igrid].dataPtr(), DIMLIST(dbox),
+			d_mfi->dataPtr(), DIMLIST(dbox),
 			DIMLIST(gbox), hxyz[0], hxyz[1], IsRZ());
 #else
 		    FORT_HGGRAD(gp[0].dataPtr(), gp[1].dataPtr(), gp[2].dataPtr(),
 			DIMLIST(gbox),
-			dest[lev][igrid].dataPtr(), DIMLIST(dbox),
+			d_mfi->dataPtr(), DIMLIST(dbox),
 			DIMLIST(gbox), hxyz[0], hxyz[1], hxyz[2]);
 #endif
 		}		
 		if(!m_hg_terrain)
 		{
+		    DependentMultiFabIterator s_dmfi(d_mfi, sigma_in[lev]);
 		    for (int i = 0; i < BL_SPACEDIM; i++) 
 		    {
-			gp[i].mult(sigma_in[lev][igrid]);
-			u[i][lev][igrid].minus(gp[i]);
+			gp[i].mult(s_dmfi());
+			DependentMultiFabIterator u_dmfi(d_mfi, u[i][lev]);
+			u_dmfi->minus(gp[i]);
 		    }
 		}
 		else
 		{
+		    DependentMultiFabIterator s_dmfi(d_mfi, sigma_in[lev]);
 		    FArrayBox cross(gbox);
 		    for (int i = 0; i < BL_SPACEDIM; i++) 
 		    {
 			cross.copy(gp[i]);
-			cross.mult(sigma_in[lev][igrid], i, 0, 1);
-			u[i][lev][igrid].minus(cross);
+			cross.mult(s_dmfi(), i, 0, 1);
+			DependentMultiFabIterator u_dmfi(d_mfi, u[i][lev]);
+			u_dmfi->minus(cross);
 		    }
+		    DependentMultiFabIterator ul_dmfi(d_mfi, u[BL_SPACEDIM-1][lev]);
 		    for (int i = 0; i < BL_SPACEDIM - 1; i++) 
 		    {
 			cross.copy(gp[BL_SPACEDIM-1]);
-			cross.mult(sigma_in[lev][igrid], BL_SPACEDIM+i, 0, 1);
-			u[i][lev][igrid].plus(cross);
+			cross.mult(s_dmfi(), BL_SPACEDIM+i, 0, 1);
+			DependentMultiFabIterator u_dmfi(d_mfi, u[i][lev]);
+			u_dmfi->plus(cross);
 			cross.copy(gp[i]);
-			cross.mult(sigma_in[lev][igrid], BL_SPACEDIM+i, 0, 1);
-			u[BL_SPACEDIM-1][lev][igrid].plus(cross);
+			cross.mult(s_dmfi(), BL_SPACEDIM+i, 0, 1);
+			ul_dmfi->plus(cross);
 		    }
 		}
 	    }

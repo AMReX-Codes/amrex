@@ -488,17 +488,19 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
     copy_cache* pbc = cgw1_bcache;
     
     rho = 0.0;
-    // PARALLEL TODO
-    for (int igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+    for(MultiFabIterator r_mfi(r); r_mfi.isValid(); ++r_mfi)
     {
-	z[igrid].copy(r[igrid]);
-	z[igrid].mult(c[igrid]);
-	const Box& reg = p[igrid].box();
-	FORT_HGIP(z[igrid].dataPtr(), r[igrid].dataPtr(),
-	    ipmask[igrid].dataPtr(),
-	    DIMLIST(reg), rho);
-	p[igrid].copy(z[igrid]);
+	DependentMultiFabIterator z_dmfi(r_mfi, z);
+	DependentMultiFabIterator c_dmfi(r_mfi, c);
+	DependentMultiFabIterator i_dmfi(r_mfi, ipmask);
+	DependentMultiFabIterator p_dmfi(r_mfi, p);
+	z_dmfi->copy(r_mfi());
+	z_dmfi->mult(c_dmfi());
+	const Box& reg = p_dmfi->box();
+	FORT_HGIP(z_dmfi->dataPtr(), r_mfi->dataPtr(), i_dmfi->dataPtr(), DIMLIST(reg), rho);
+	p_dmfi->copy(z_dmfi());
     }
+    ParallelDescriptor::ReduceRealSum(rho);
     Real tol = 1.e-3 * rho;
     
     while (tol > 0.0) 
@@ -511,36 +513,40 @@ void holy_grail_amr_multigrid::cgsolve(int mglev)
 	// into r but are cleared from z by the mask in c
 	level_residual(w, zero_array, p, pbc, 0, false);
 	alpha = 0.0;
-	// PARALLEL TODO
-	for (int igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+	for(MultiFabIterator p_mfi(p); p_mfi.isValid(); ++p_mfi)
 	{
-	    const Box& reg = p[igrid].box();
-	    FORT_HGIP(p[igrid].dataPtr(), w[igrid].dataPtr(),
-		ipmask[igrid].dataPtr(),
-		DIMLIST(reg), alpha);
+	    DependentMultiFabIterator w_dmfi(p_mfi, w);
+	    DependentMultiFabIterator i_dmfi(p_mfi, ipmask);
+	    const Box& reg = p_mfi->box();
+	    FORT_HGIP(p_mfi->dataPtr(), w_dmfi->dataPtr(), i_dmfi->dataPtr(), DIMLIST(reg), alpha);
+
 	}
+	ParallelDescriptor::ReduceRealSum(alpha);
 	alpha = rho / alpha;
 	rho = 0.0;
-	// PARALLEL TODO
-	for (int igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+	for(MultiFabIterator r_mfi(r); r_mfi.isValid(); ++r_mfi)
 	{
-	    const Box& reg = p[igrid].box();
-	    FORT_HGCG1(r[igrid].dataPtr(), p[igrid].dataPtr(),
-		z[igrid].dataPtr(), x[igrid].dataPtr(),
-		w[igrid].dataPtr(), c[igrid].dataPtr(),
-		ipmask[igrid].dataPtr(), DIMLIST(reg), alpha, rho);
+	    DependentMultiFabIterator p_dmfi(r_mfi, p);
+	    DependentMultiFabIterator z_dmfi(r_mfi, z);
+	    DependentMultiFabIterator x_dmfi(r_mfi, x);
+	    DependentMultiFabIterator w_dmfi(r_mfi, w);
+	    DependentMultiFabIterator c_dmfi(r_mfi, c);
+	    DependentMultiFabIterator i_dmfi(r_mfi, ipmask);
+	    const Box& reg = p_dmfi->box();
+	    FORT_HGCG1(r_mfi->dataPtr(), p_dmfi->dataPtr(), z_dmfi->dataPtr(), x_dmfi->dataPtr(),
+		w_dmfi->dataPtr(), c_dmfi->dataPtr(), i_dmfi->dataPtr(), DIMLIST(reg), alpha, rho);
 	}
+	ParallelDescriptor::ReduceRealSum(rho);
 	if (pcode >= 3)
 	    cout << i << " " << rho << endl;
 	if (rho <= tol || i > 250)
 	    break;
 	alpha = rho / rho_old;
-	// PARALLEL TODO
-	for (int igrid = 0; igrid < mg_mesh[mglev].length(); igrid++) 
+	for(MultiFabIterator p_mfi(p); p_mfi.isValid(); ++p_mfi)
 	{
-	    const Box& reg = p[igrid].box();
-	    FORT_HGCG2(p[igrid].dataPtr(), z[igrid].dataPtr(),
-		DIMLIST(reg), alpha);
+	    DependentMultiFabIterator z_dmfi(p_mfi, z);
+	    const Box& reg = p_mfi->box();
+	    FORT_HGCG2(p_mfi->dataPtr(), z_dmfi->dataPtr(), DIMLIST(reg), alpha);
 	}
     }
     

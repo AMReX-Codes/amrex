@@ -823,8 +823,6 @@ void holy_grail_amr_multigrid::mg_interpolate_level(int lto, int lfrom)
 	// multigrid interpolation, grids known to match up
 	// special stencil needed for multigrid convergence
 	IntVect rat = mg_domain[lto].length() / mg_domain[lfrom].length();
-	// PARALLEL
-	//for (int igrid = 0; igrid < mg_mesh[lto].length(); igrid++) 
 	for(MultiFabIterator w_mfi(work[lto]); w_mfi.isValid(); ++w_mfi)
 	{
 	    DependentMultiFabIterator c_dmfi(w_mfi, corr[lfrom]);
