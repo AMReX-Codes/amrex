@@ -603,7 +603,9 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma)
 #else
 		DependentMultiFabIterator sn_dmfi(c_mfi, sigma_node[mglev]);
 		const Box& sigbox = sn_dmfi->box();
+#if (BL_SPACEDIM == 2)
 		const int isRZ = IsRZ();
+#endif
 		FORT_HGCEN(c_mfi->dataPtr(), DIMLIST(cenbox), 
                            sn_dmfi->dataPtr(), DIMLIST(sigbox), 
 #if (BL_SPACEDIM == 2)
