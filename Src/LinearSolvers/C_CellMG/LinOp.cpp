@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: LinOp.cpp,v 1.20 2000-08-24 20:28:29 car Exp $
+// $Id: LinOp.cpp,v 1.21 2000-08-24 22:39:02 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -168,6 +168,9 @@ LinOp::apply (MultiFab&      out,
               int            level,
               LinOp::BC_Mode bc_mode)
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "apply()");
+#endif
     applyBC(in,0,1,level,bc_mode);
     Fapply(out,in,level);
 }
@@ -436,6 +439,9 @@ LinOp::residual (MultiFab&       residL,
                  int             level,
                  LinOp::BC_Mode  bc_mode)
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "residual()");
+#endif
     apply(residL, solnL, level, bc_mode);
 
     for (MultiFabIterator solnLmfi(solnL); solnLmfi.isValid(); ++solnLmfi)
@@ -465,6 +471,9 @@ LinOp::smooth (MultiFab&       solnL,
                int             level,
                LinOp::BC_Mode  bc_mode)
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "residual()");
+#endif
     if (!AlternateApplyBC)
     {
         for (int redBlackFlag = 0; redBlackFlag < 2; redBlackFlag++)

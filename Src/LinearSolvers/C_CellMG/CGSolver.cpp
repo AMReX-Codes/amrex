@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CGSolver.cpp,v 1.14 2000-08-24 20:28:28 car Exp $
+// $Id: CGSolver.cpp,v 1.15 2000-08-24 22:39:02 car Exp $
 //
 
 // Conjugate gradient support
@@ -150,9 +150,9 @@ CGSolver::solve (MultiFab&       sol,
 		 Solver solver)
 {
   if ( solver == Automatic ) solver = cg_solver;
-  if ( solver == CG_Alt ) return solve_cg(sol, rhs, eps_rel, eps_abs, bc_mode);
+  if ( solver == CG )       return solve_cg(sol, rhs, eps_rel, eps_abs, bc_mode);
   if ( solver == BiCGStab ) return solve_bicgstab(sol, rhs, eps_rel, eps_abs, bc_mode);
-  if ( solver == CG ) return solve_00(sol, rhs, eps_rel, eps_abs, bc_mode);
+  if ( solver == CG_Alt )   return solve_00(sol, rhs, eps_rel, eps_abs, bc_mode);
   return solve_00(sol, rhs, eps_rel, eps_abs, bc_mode);
 }
 
@@ -248,8 +248,9 @@ CGSolver::solve_00 (MultiFab&       sol,
     //
     // If eps_rel or eps_abs < 0: that test is effectively bypassed.
     //
-    for (int nit = 0;
-         nit < maxiter && rnorm > eps_rel*rnorm0 && rnorm > eps_abs;
+    int nit = 1;
+    for (;
+         nit <= maxiter && rnorm > eps_rel*rnorm0 && rnorm > eps_abs;
          ++nit)
     {
         if (use_mg_precond)
@@ -288,7 +289,7 @@ CGSolver::solve_00 (MultiFab&       sol,
         }
         ParallelDescriptor::ReduceRealSum(rho);
 
-        if (nit == 0)
+        if (nit == 1)
         {
             //
             // k=1, p_1 = z_0
@@ -328,7 +329,7 @@ CGSolver::solve_00 (MultiFab&       sol,
                  << " pw "  << pw 
                  << " rho " << rho
                  << " alpha " << alpha;
-            if (nit == 0)
+            if (nit == 1)
             {
                 cout << " beta undefined ...";
             }
@@ -366,6 +367,19 @@ CGSolver::solve_00 (MultiFab&       sol,
         }
     }
     
+    if (ParallelDescriptor::IOProcessor())
+      {
+	if (verbose > 0 ||
+	    (((eps_rel > 0. && rnorm < eps_rel*rnorm0) ||
+	      (eps_abs > 0. && rnorm < eps_abs)) && verbose))
+	  {
+	    spacer(cout, lev);
+	    cout << "CGSolver: Final: Iteration "
+		 << nit
+		 << " error/error0 "
+		 << rnorm/rnorm0 << '\n';
+	  }
+      }
     if( ret != 0 && isExpert == false ){
       BoxLib::Error("CGSolver:: apparent accuracy problem; try expert setting or change unstable_criterion");
     }
@@ -560,6 +574,12 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
   MultiFab v(sol.boxArray(), ncomp, nghost);
   MultiFab t(sol.boxArray(), ncomp, nghost);
 
+  //  cout << "eps_rel = " << eps_rel << endl;
+  //  cout << "eps_abs = " << eps_abs << endl;
+  //  cout << "lp.norm = " << Lp.norm(0, lev) << endl;
+  //  cout << "sol.norm  = " << norm(sol) << endl;
+  //  cout << "rhs.norm  = " << norm(rhs) << endl;
+
   sorig.copy(sol);
   Lp.residual(r, rhs, sorig, lev, bc_mode);
   rh.copy(r);
@@ -577,7 +597,8 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
   int ret = 0;			// will return this value if all goes well
   Real rho_1;
   Real alpha, omega;
-  for (int nit = 1; nit <= maxiter; ++nit)
+  int nit = 1;
+  for (; nit <= maxiter; ++nit)
     {
       Real rho = dotxy(rh, r);
       if ( rho == 0 ) 
@@ -618,7 +639,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
 
       sxay(s, r, -alpha, v);
       rnorm = norm(s);
-      if ( rnorm < eps_rel*rnorm0 && rnorm < eps_abs )
+      if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs )
 	{
 	  sxay(sol, sol, alpha, ph);
 	  break;
@@ -630,7 +651,7 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
 		(eps_abs > 0. && rnorm < eps_abs)) && verbose))
             {
 	      spacer(cout, lev);
-	      cout << "CGSolver_bicgstab: Half Iteration "
+	      cout << "CGSolver_bicgstab: Half Iter "
 		   << nit
 		   << " error/error0 "
 		   << rnorm/rnorm0 << '\n';
@@ -659,8 +680,8 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
       sxay(sol, sol, alpha, ph);
       sxay(sol, sol, omega, sh);
       sxay(r, s, -omega, t);
-      Real rnorm = norm(r);
-      if ( rnorm < eps_rel*rnorm0 && rnorm < eps_abs )
+      rnorm = norm(r);
+      if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs )
 	{
 	  break;
 	}
@@ -685,6 +706,22 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
       rho_1 = rho;
     }
     
+  //  cout << "norm(R) = " << rnorm << endl;
+  //  cout << "AX+B = " << Lp.norm(0,lev)*norm(sol) + norm(rhs) << endl;
+  
+  if (ParallelDescriptor::IOProcessor())
+    {
+      if (verbose > 0 ||
+	  (((eps_rel > 0. && rnorm < eps_rel*rnorm0) ||
+	    (eps_abs > 0. && rnorm < eps_abs)) && verbose))
+	{
+	  spacer(cout, lev);
+	  cout << "CGSolver_bicgstab: Final: Iteration "
+	       << nit
+	       << " error/error0 "
+	       << rnorm/rnorm0 << '\n';
+	}
+    }
   if( ret != 0 && isExpert == false )
     {
       BoxLib::Error("CGSolver_bicgstab:: apparent accuracy problem; try expert setting or change unstable_criterion");
@@ -740,7 +777,8 @@ CGSolver::solve_cg (MultiFab&       sol,
 
   int ret = 0;			// will return this value if all goes well
   Real rho_1;
-  for (int nit = 1; nit <= maxiter && rnorm > eps_rel*rnorm0 && rnorm > eps_abs; ++nit)
+  int nit = 1;
+  for (; nit <= maxiter && rnorm > eps_rel*rnorm0 && rnorm > eps_abs; ++nit)
     {
       if (use_mg_precond)
         {
@@ -812,6 +850,19 @@ CGSolver::solve_cg (MultiFab&       sol,
       rho_1 = rho;
     }
     
+  if (ParallelDescriptor::IOProcessor())
+    {
+      if (verbose > 0 ||
+	  (((eps_rel > 0. && rnorm < eps_rel*rnorm0) ||
+	    (eps_abs > 0. && rnorm < eps_abs)) && verbose))
+	{
+	  spacer(cout, lev);
+	  cout << "CGSolver_cg: Final: Iteration "
+	       << nit
+	       << " error/error0 "
+	       << rnorm/rnorm0 << '\n';
+	}
+    }
   if ( ret != 0 && !isExpert )
     {
       BoxLib::Error("CGSolver_cg:: apparent accuracy problem; try expert setting or change unstable_criterion");

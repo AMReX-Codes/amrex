@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: MultiGrid.cpp,v 1.19 2000-08-24 20:28:29 car Exp $
+// $Id: MultiGrid.cpp,v 1.20 2000-08-24 22:39:02 car Exp $
 // 
 
 #ifdef BL_USE_NEW_HFILES
@@ -109,6 +109,7 @@ MultiGrid::MultiGrid (LinOp &_Lp)
     nu_b         = def_nu_b;
     numLevelsMAX = def_numLevelsMAX;
     smooth_on_cg_unstable = def_smooth_on_cg_unstable;
+    cg_solver    = def_cg_solver;
     numlevels    = numLevels();
     if (ParallelDescriptor::IOProcessor() && verbose > 2)
     {
@@ -399,6 +400,9 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
                            LinOp::BC_Mode bc_mode,
                            int            local_usecg)
 {
+#ifdef BL3_PROFILING
+  BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "coarsestSmooth()");
+#endif
     prepareForLevel(level);
     if (local_usecg == 0)
     {
