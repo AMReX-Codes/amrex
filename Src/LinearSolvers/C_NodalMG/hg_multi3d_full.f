@@ -29,6 +29,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
       double precision fac00, fac0, fac1, fac2, tmp, cen
       integer i, j, k, is, js, ks, l, m, n
       integer idd1
+      integer ii, jj, kk, i1, j1, k1
       double precision MXXC, MYYC, MZZC
       double precision MXXF, MYYF, MZZF
 
@@ -388,8 +389,9 @@ c Note---assumes fdst linearly interpolated from cdst along face
       double precision sigmac(scl0:sch0,scl1:sch1,scl2:sch2,3)
       integer ir, jr, kr, ivect(0:2), ga(0:1,0:1,0:1)
       double precision fac00, fac0, fac1, fac, tmp, cen
-      integer ic, jc, kc, if, jf, kf, ii, ji, ki, idir, jdir, kdir
+      integer ic, jc, kc, if, jf, kf, ji, ki, idir, jdir, kdir
       integer l, m, n
+      integer ii, jj, kk, i1, j1, k1
       double precision MXXC, MYYC, MZZC
       double precision MXXF, MYYF, MZZF
       MXXC(ii,jj,kk) = (4.0D0 *  cdst(ii,jc,kc) +
@@ -1056,8 +1058,9 @@ c Note---assumes fdst linearly interpolated from cdst along face
       double precision sigmac(scl0:sch0,scl1:sch1,scl2:sch2,3)
       integer ir, jr, kr, ga(0:1,0:1,0:1), idd
       double precision cen, sum, fac00, fac1, fac2, fac
-      integer ic, jc, kc, if, jf, kf, ii, ji, ki, idir, jdir, kdir
+      integer ic, jc, kc, if, jf, kf, ji, ki, idir, jdir, kdir
       integer l, m, n
+      integer ii, jj, kk, i1, j1, k1
       double precision MXXC, MYYC, MZZC
       double precision MXXF, MYYF, MZZF
       MXXC(ii,jj,kk) = (4.0D0 *  cdst(ii,jc,kc) +
@@ -1493,6 +1496,7 @@ c-----------------------------------------------------------------------
       double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       double precision fac, tmp
       integer i, j, k
+      integer ii, jj, kk
       double precision MXX, MYY, MZZ
       MXX(ii,jj,kk) = (4.0D0 *  cor(ii,j,k)   +
      &                  2.0D0 * (cor(ii,jj,k)  - cor(i,jj,k) +
@@ -1571,6 +1575,7 @@ c-----------------------------------------------------------------------
       double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       double precision fac, tmp
       integer i, j, k
+      integer ii, jj, kk
       double precision MXX, MYY, MZZ
       MXX(ii,jj,kk) = (4.0D0 *  cor(ii,j,k)   +
      &                  2.0D0 * (cor(ii,jj,k)  - cor(i,jj,k) +
