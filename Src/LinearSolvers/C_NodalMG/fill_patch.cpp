@@ -430,6 +430,25 @@ static void sync_internal_borders(MultiFab& r, const level_interface& lev_interf
     }
 }
 
+// local function used only by fill_internal_borders:
+
+static inline void node_dirs(int dir[2], const IntVect& typ)
+{
+    if (typ[0] == IndexType::NODE) 
+    {
+	dir[0] = 0;
+	if (typ[1] == IndexType::NODE)
+	    dir[1] = 1;
+	else
+	    dir[1] = 2;
+    }
+    else 
+    {
+	dir[0] = 1;
+	dir[1] = 2;
+    }
+}
+
 // The sequencing used in fill_internal_borders, fcpy2 and set_border_cache
 // (narrow x, medium y, wide z) is necessary to avoid overwrite problems
 // like those seen in the sync routines.  Boundary copies are all wide
@@ -447,6 +466,68 @@ static void fill_internal_borders(MultiFab& r, const level_interface& lev_interf
     int igrid, jgrid;
     if (type(r) == IntVect::TheNodeVector()) 
     {
+#if ((BL_SPACEDIM == 3) && (defined TERRAIN))
+	// attempt to deal with corner-coupling problem with 27-point stencils
+	int kgrid, dir[2];
+	Box b;
+	for (int iedge = 0; iedge < lev_interface.nboxes(1); iedge++) 
+	{
+	    if (lev_interface.geo(1, iedge) == level_interface::ALL)
+		continue;
+	    igrid = lev_interface.egrid(iedge, 0);
+	    jgrid = lev_interface.egrid(iedge, 3);
+	    if (igrid >= 0 && jgrid >= 0) 
+	    {
+		kgrid = lev_interface.egrid(iedge, 1);
+		if (kgrid == -1)
+		    kgrid = lev_interface.egrid(iedge, 2);
+		if (kgrid != -1 && kgrid != igrid && kgrid != jgrid)
+		{
+		    node_dirs(dir, lev_interface.edge(iedge).type());
+		    if (kgrid == lev_interface.egrid(iedge, 1)) 
+		    {
+			b = lev_interface.node_edge(iedge);
+			internal_copy(r, jgrid, igrid, b.shift(dir[0], -1));
+			b = lev_interface.node_edge(iedge);
+			internal_copy(r, igrid, jgrid, b.shift(dir[1],  1));
+		    }
+		    else 
+		    {
+			b = lev_interface.node_edge(iedge);
+			internal_copy(r, jgrid, igrid, b.shift(dir[1], -1));
+			b = lev_interface.node_edge(iedge);
+			internal_copy(r, igrid, jgrid, b.shift(dir[0],  1));
+		    }
+		}
+	    }
+	    igrid = lev_interface.egrid(iedge, 1);
+	    jgrid = lev_interface.egrid(iedge, 2);
+	    if (igrid >= 0 && jgrid >= 0) 
+	    {
+		kgrid = lev_interface.egrid(iedge, 0);
+		if (kgrid == -1)
+		    kgrid = lev_interface.egrid(iedge, 3);
+		if (kgrid != -1 && kgrid != igrid && kgrid != jgrid) 
+		{
+		    node_dirs(dir, lev_interface.edge(iedge).type());
+		    if (kgrid == lev_interface.egrid(iedge, 0)) 
+		    {
+			b = lev_interface.node_edge(iedge);
+			internal_copy(r, jgrid, igrid, b.shift(dir[0],  1));
+			b = lev_interface.node_edge(iedge);
+			internal_copy(r, igrid, jgrid, b.shift(dir[1],  1));
+		    }
+		    else 
+		    {
+			b = lev_interface.node_edge(iedge);
+			internal_copy(r, jgrid, igrid, b.shift(dir[1], -1));
+			b = lev_interface.node_edge(iedge);
+			internal_copy(r, igrid, jgrid, b.shift(dir[0], -1));
+		    }
+		}
+	    }
+	}
+#endif
 	for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
 	{
 	    igrid = lev_interface.fgrid(iface, 0);

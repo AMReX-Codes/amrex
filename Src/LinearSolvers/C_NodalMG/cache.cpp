@@ -304,6 +304,26 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface, const 
 
 // border cache
 
+// local function used by the copy_cache border constructor
+// (identical to one used in fill_patch.C)
+
+static inline void node_dirs(int dir[2], const IntVect& typ)
+{
+    if (typ[0] == IndexType::NODE) 
+    {
+	dir[0] = 0;
+	if (typ[1] == IndexType::NODE)
+	    dir[1] = 1;
+	else
+	    dir[1] = 2;
+    }
+    else 
+    {
+	dir[0] = 1;
+	dir[1] = 2;
+    }
+}
+
 copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface,
 		       const amr_boundary_class* bdy, int w)
 {
@@ -316,6 +336,35 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface,
     assert(w == 1);
     
     nsets = 0;
+#if ((BL_SPACEDIM == 3) && (defined HG_TERRAIN))
+    // attempt to deal with corner-coupling problem with 27-point stencils
+    int iedge, kgrid;
+    for (iedge = 0; iedge < lev_interface.nedges(); iedge++) 
+    {
+	if (lev_interface.geo(1, iedge) == level_interface::ALL)
+	    continue;
+	int igrid = lev_interface.egrid(iedge, 0);
+	int jgrid = lev_interface.egrid(iedge, 3);
+	if (igrid >= 0 && jgrid >= 0) 
+	{
+	    kgrid = lev_interface.egrid(iedge, 1);
+	    if (kgrid == -1)
+		kgrid = lev_interface.egrid(iedge, 2);
+	    if (kgrid != -1 && kgrid != igrid && kgrid != jgrid)
+		nsets += 2;
+	}
+	igrid = lev_interface.egrid(iedge, 1);
+	jgrid = lev_interface.egrid(iedge, 2);
+	if (igrid >= 0 && jgrid >= 0) \
+	{
+	    kgrid = lev_interface.egrid(iedge, 0);
+	    if (kgrid == -1)
+		kgrid = lev_interface.egrid(iedge, 3);
+	    if (kgrid != -1 && kgrid != igrid && kgrid != jgrid)
+		nsets += 2;
+	}
+    }
+#endif
     for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
     {
 	if (lev_interface.fgeo(iface) != level_interface::ALL)
@@ -354,6 +403,175 @@ copy_cache::copy_cache(MultiFab& r, const level_interface& lev_interface,
 #endif
     
     int iset = 0;
+#if ((BL_SPACEDIM == 3) && (defined HG_TERRAIN))
+    // attempt to deal with corner-coupling problem with 27-point stencils
+    int dir[2];
+    Box b;
+    int sstartj, dstartj, sstarti, dstarti;
+    int stridi1, stridi2, stridj1, stridj2, nvals1;
+    for (int iedge = 0; iedge < lev_interface.nedges(); iedge++) 
+    {
+	if (lev_interface.geo(1, iedge) == level_interface::ALL)
+	    continue;
+	int igrid = lev_interface.egrid(iedge, 0);
+	int jgrid = lev_interface.egrid(iedge, 3);
+	if (igrid >= 0 && jgrid >= 0) 
+	{
+	    int kgrid = lev_interface.egrid(iedge, 1);
+	    if (kgrid == -1)
+		kgrid = lev_interface.egrid(iedge, 2);
+	    if (kgrid != -1 && kgrid != igrid && kgrid != jgrid) 
+	    {
+		node_dirs(dir, lev_interface.edge(iedge).type());
+		stridi1 = r[igrid].box().length(0);
+		stridi2 = stridi1 * r[igrid].box().length(1);
+		stridj1 = r[jgrid].box().length(0);
+		stridj2 = stridj1 * r[jgrid].box().length(1);
+		if (kgrid == lev_interface.egrid(iedge, 1)) 
+		{
+		    b = lev_interface.node_edge(iedge);
+		    b.shift(dir[0], -1);
+		    sstarti = r[igrid].dataPtr() - baseptr +
+			b.smallEnd(0) - r[igrid].box().smallEnd(0) +
+			stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
+			stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
+		    dstartj = r[jgrid].dataPtr() - baseptr +
+			b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
+			stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
+			stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
+		    b = lev_interface.node_edge(iedge);
+		    b.shift(dir[1],  1);
+		    sstartj = r[jgrid].dataPtr() - baseptr +
+			b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
+			stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
+			stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
+		    dstarti = r[igrid].dataPtr() - baseptr +
+			b.smallEnd(0) - r[igrid].box().smallEnd(0) +
+			stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
+			stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
+		}
+		else 
+		{
+		    b = lev_interface.node_edge(iedge);
+		    b.shift(dir[1], -1);
+		    sstarti = r[igrid].dataPtr() - baseptr +
+			b.smallEnd(0) - r[igrid].box().smallEnd(0) +
+			stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
+			stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
+		    dstartj = r[jgrid].dataPtr() - baseptr +
+			b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
+			stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
+			stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
+		    b = lev_interface.node_edge(iedge);
+		    b.shift(dir[0],  1);
+		    sstartj = r[jgrid].dataPtr() - baseptr +
+			b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
+			stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
+			stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
+		    dstarti = r[igrid].dataPtr() - baseptr +
+			b.smallEnd(0) - r[igrid].box().smallEnd(0) +
+			stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
+			stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
+		}
+		if ((nvals1 = b.length(0)) > 1) 
+		{
+		    stridi1 = 1;
+		    stridj1 = 1;
+		}
+		else if ((nvals1 = b.length(2)) > 1) 
+		{
+		    stridi1 = stridi2;
+		    stridj1 = stridj2;
+		}
+		else 
+		{
+		    nvals1 = b.length(1);
+		}
+		set(iset++, dstartj, sstarti, stridj1, 0, stridi1, 0, nvals1, 1);
+		set(iset++, dstarti, sstartj, stridi1, 0, stridj1, 0, nvals1, 1);
+	    }
+	}
+	igrid = lev_interface.egrid(iedge, 1);
+	jgrid = lev_interface.egrid(iedge, 2);
+	if (igrid >= 0 && jgrid >= 0) 
+	{
+	    int kgrid = lev_interface.egrid(iedge, 0);
+	    if (kgrid == -1)
+		kgrid = lev_interface.egrid(iedge, 3);
+	    if (kgrid != -1 && kgrid != igrid && kgrid != jgrid) 
+	    {
+		node_dirs(dir, lev_interface.edge(iedge).type());
+		stridi1 = r[igrid].box().length(0);
+		stridi2 = stridi1 * r[igrid].box().length(1);
+		stridj1 = r[jgrid].box().length(0);
+		stridj2 = stridj1 * r[jgrid].box().length(1);
+		if (kgrid == lev_interface.egrid(iedge, 0)) 
+		{
+		    b = lev_interface.node_edge(iedge);
+		    b.shift(dir[0],  1);
+		    sstarti = r[igrid].dataPtr() - baseptr +
+			b.smallEnd(0) - r[igrid].box().smallEnd(0) +
+			stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
+			stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
+		    dstartj = r[jgrid].dataPtr() - baseptr +
+			b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
+			stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
+			stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
+		    b = lev_interface.node_edge(iedge);
+		    b.shift(dir[1],  1);
+		    sstartj = r[jgrid].dataPtr() - baseptr +
+			b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
+			stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
+			stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
+		    dstarti = r[igrid].dataPtr() - baseptr +
+			b.smallEnd(0) - r[igrid].box().smallEnd(0) +
+			stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
+			stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
+		}
+		else 
+		{
+		    b = lev_interface.node_edge(iedge);
+		    b.shift(dir[1], -1);
+		    sstarti = r[igrid].dataPtr() - baseptr +
+			b.smallEnd(0) - r[igrid].box().smallEnd(0) +
+			stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
+			stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
+		    dstartj = r[jgrid].dataPtr() - baseptr +
+			b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
+			stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
+			stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
+		    b = lev_interface.node_edge(iedge);
+		    b.shift(dir[0], -1);
+		    sstartj = r[jgrid].dataPtr() - baseptr +
+			b.smallEnd(0) - r[jgrid].box().smallEnd(0) +
+			stridj1 * (b.smallEnd(1) - r[jgrid].box().smallEnd(1)) +
+			stridj2 * (b.smallEnd(2) - r[jgrid].box().smallEnd(2));
+		    dstarti = r[igrid].dataPtr() - baseptr +
+			b.smallEnd(0) - r[igrid].box().smallEnd(0) +
+			stridi1 * (b.smallEnd(1) - r[igrid].box().smallEnd(1)) +
+			stridi2 * (b.smallEnd(2) - r[igrid].box().smallEnd(2));
+		}
+		if ((nvals1 = b.length(0)) > 1) 
+		{
+		    stridi1 = 1;
+		    stridj1 = 1;
+		}
+		else if ((nvals1 = b.length(2)) > 1) 
+		{
+		    stridi1 = stridi2;
+		    stridj1 = stridj2;
+		}
+		else 
+		{
+		    nvals1 = b.length(1);
+		}
+		set(iset++, dstartj, sstarti, stridj1, 0, stridi1, 0, nvals1, 1);
+		set(iset++, dstarti, sstartj, stridi1, 0, stridj1, 0, nvals1, 1);
+	    }
+	}
+    }
+#endif
+
     for (int iface = 0; iface < lev_interface.nfaces(); iface++) 
     {
 	const int igrid = lev_interface.fgrid(iface, 0);

@@ -2009,6 +2009,7 @@ c back substitution loop:
  20            continue
       else
          print *, "Line solve not implemented in dimension", lsd
+	    stop
       end if
       end
 
@@ -2985,10 +2986,12 @@ c update neumann bdys:
  30            continue
          else
             print *, "Line solve not implemented in dimension", lsd
+		stop
          end if
       else
          print *, "Line solve not implemented for rz:"
          print *, "   Using Gauss-Seidel instead."
+	    stop
          facrz = hx * hym2 / 12.d0
          if (regh1 - regl1 .gt. regh0 - regl0) then
             do 40 i = regl0, regh0

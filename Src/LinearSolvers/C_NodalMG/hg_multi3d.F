@@ -4110,6 +4110,7 @@ c NODE(EDGE)-based data only.
 	integer l, k, j, i, i2, j2, k2
       print *, "Warning:  Don't use this routine.  Not modified for "
       print *, "          IntVect refinement ratios"
+	stop
       do 10 k = regl2, regh2
          do 10 j = regl1, regh1
             do 10 i = regl0, regh0
@@ -4501,6 +4502,7 @@ c back substitution loop:
  20            continue
       else
          print *, "Line solve not implemented in dimension", lsd
+	    stop
       end if
       end
 
