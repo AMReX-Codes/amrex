@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: DistributionMapping.cpp,v 1.18 1997-12-12 00:14:57 car Exp $
+// $Id: DistributionMapping.cpp,v 1.19 1998-01-16 22:53:01 lijewski Exp $
 //
 
 #include <DistributionMapping.H>
@@ -22,13 +22,13 @@ using namespace std;
 #include <iostream.h>
 #include <stdlib.h>
 #include <vector.h>
-#if defined(BL_T3E) && !defined(__KCC)
+#if (defined(BL_T3E) && !defined(__KCC)) || defined(__GNUC__)
 #include <stack.h>
 #else
 #include <queue.h>
 #endif
 #include <list.h>
-#if defined(BL_T3E) && !defined(__KCC)
+#if (defined(BL_T3E) && !defined(__KCC)) || defined(__GNUC__)
 #include <algo.h>
 #else
 #include <algorithm.h>
@@ -42,7 +42,7 @@ DistributionMapping::Strategy
 DistributionMapping::m_Strategy = DistributionMapping::ROUNDROBIN;
 
 DistributionMapping::PVMF
-DistributionMapping::m_BuildMap = DistributionMapping::RoundRobinProcessorMap;
+DistributionMapping::m_BuildMap = &DistributionMapping::RoundRobinProcessorMap;
 
 void
 DistributionMapping::strategy (DistributionMapping::Strategy how)
@@ -52,16 +52,16 @@ DistributionMapping::strategy (DistributionMapping::Strategy how)
     switch (how)
     {
     case ROUNDROBIN:
-        m_BuildMap = DistributionMapping::RoundRobinProcessorMap;
+        m_BuildMap = &DistributionMapping::RoundRobinProcessorMap;
         break;
     case RANDOM:
-        m_BuildMap = DistributionMapping::RandomProcessorMap;
+        m_BuildMap = &DistributionMapping::RandomProcessorMap;
         break;
     case KNAPSACK:
-        m_BuildMap = DistributionMapping::KnapSackProcessorMap;
+        m_BuildMap = &DistributionMapping::KnapSackProcessorMap;
         break;
     case SIZEBALANCED:
-        m_BuildMap = DistributionMapping::SizeBalancedProcessorMap;
+        m_BuildMap = &DistributionMapping::SizeBalancedProcessorMap;
         break;
     default:
         BoxLib::Error("Bad DistributionMapping::Strategy");
@@ -210,11 +210,10 @@ DistributionMapping::RoundRobinProcessorMap (int             nprocs,
     }
 }
 
-
 //
 // Forward declaration.
 //
-vector< list<int> > knapsack (const vector<long>&, int);
+static vector< list<int> > knapsack (const vector<long>&, int);
 
 void
 DistributionMapping::KnapSackProcessorMap (int             nprocs,
@@ -367,7 +366,6 @@ operator< (const WeightedBoxList& lhs,
 {
     return lhs.weight() > rhs.weight();
 }
-
 
 static
 vector< list<int> >
