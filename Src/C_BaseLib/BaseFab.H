@@ -4,7 +4,7 @@
 #define BL_BASEFAB_H
 
 //
-// $Id: BaseFab.H,v 1.20 1999-04-15 23:27:59 lijewski Exp $
+// $Id: BaseFab.H,v 1.21 1999-04-29 20:41:45 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -76,6 +76,8 @@
   This is NOT a polymorphic class.
 
   It does NOT provide a copy constructor or assignment operator.
+
+  T MUST have a default constructor and an assignment operator.
 */
 
 template <class T>
@@ -344,7 +346,11 @@ protected:
     //
     // Allocates memory for the `BaseFab<T>'.
     //
-     void define ();
+    void define ();
+    //
+    // Deallocates memory for the `BaseFab<T>'.
+    //
+    void undefine ();
     //
     // The function called by BaseFab copy operations.
     //
@@ -708,7 +714,6 @@ BaseFab<T>::copy (const BaseFab<T>& src,
 }
 
 template <class T>
-inline
 void
 BaseFab<T>::define ()
 {
@@ -719,6 +724,31 @@ BaseFab<T>::define ()
 
     truesize = nvar*numpts;
     dptr     = static_cast<T*>(The_FAB_Arena->alloc(truesize*sizeof(T)));
+    //
+    // Now call T::T() on the raw memory so we have valid Ts.
+    //
+    T* ptr = dptr;
+
+    for (int i = 0; i < truesize; i++, ptr++)
+        new (ptr) T;
+}
+
+template <class T>
+void
+BaseFab<T>::undefine ()
+{
+    assert(!(The_FAB_Arena == 0));
+    //
+    // Call T::~T() on the to-be-destroyed memory.
+    //
+    T* ptr = dptr;
+
+    for (int i = 0; i < truesize; i++, ptr++)
+        ptr->~T();
+
+    The_FAB_Arena->free(dptr);
+
+    dptr = 0;
 }
 
 template <class T>
@@ -767,7 +797,6 @@ BaseFab<T>::BaseFab (const PointBaseFab<PointDomain,T>& pbf,
 #endif /*BL_USE_POINTLIB*/
 
 template <class T>
-inline
 void
 BaseFab<T>::resize (const Box& b,
                     int        n)
@@ -782,8 +811,8 @@ BaseFab<T>::resize (const Box& b,
     }
     else if (nvar*numpts > truesize)
     {
-        The_FAB_Arena->free(dptr);
-        dptr = 0; // To satisfy assert() in define().
+        undefine();
+
         define();
     }
 }
@@ -792,18 +821,15 @@ template <class T>
 inline
 BaseFab<T>::~BaseFab ()
 {
-    assert(!(The_FAB_Arena == 0));
-
-    The_FAB_Arena->free(dptr);
+    undefine();
 }
 
 template <class T>
+inline
 void
 BaseFab<T>::clear ()
 {
-    assert(!(The_FAB_Arena == 0));
-
-    The_FAB_Arena->free(dptr);
+    undefine();
 
     dptr   = 0;
     domain = Box();
