@@ -311,8 +311,40 @@ task_list::get_then_advance (int proc)
     return sno;
 }
 
+class task_copy_base
+  : public task
+{
+public:
+  task_copy_base(task_list&      tl_,
+		 MultiFab&       dmf_,
+		 int             dgrid_,
+		 const Box&      db_,
+		 const MultiFab& smf_,
+		 int             sgrid_,
+		 const Box&      sb_);
+  virtual ~task_copy_base();
+  virtual bool depends_on_q (const task* t) const;
+  virtual bool startup (long&,long&);
+  virtual bool work_to_do () const;
+  virtual bool need_to_communicate (int& with) const;
+  virtual void hint () const;
+protected:
+#ifdef BL_USE_MPI
+  MPI_Request     m_request;
+#endif
+  FArrayBox* m_tmp;
+  MultiFab& m_dmf;
+  const int m_dgrid;
+  const Box m_dbx;
+  const MultiFab& m_smf;
+  const int m_sgrid;
+  const Box m_sbx;
+  bool m_done;
+  bool m_local;
+};
+
 class task_copy
-    : public task
+    : public task_copy_base
 {
 public:
 
@@ -339,34 +371,12 @@ public:
                const Box&        bx,
                const task_proxy& tp);
 
-    virtual ~task_copy ();
     virtual bool ready ();
-    virtual bool depends_on_q (const task* t) const;
-    virtual void hint () const;
-    virtual bool startup (long&,long&);
-    virtual bool work_to_do () const;
-    virtual bool need_to_communicate (int& with) const;
-
-protected:
+private:
     //
     // Common function called by constructors.
     //
     void init ();
-    //
-    // The data.
-    //
-#ifdef BL_USE_MPI
-    MPI_Request     m_request;
-#endif
-    FArrayBox*      tmp;
-    MultiFab&       m_mf;
-    const MultiFab& m_smf;
-    int             m_dgrid;
-    const int       m_sgrid;
-    const Box       m_bx;
-    const Box       m_sbx;
-    bool            m_local;
-    bool            m_done;
 };
 
 class task_local_base
@@ -395,7 +405,7 @@ protected:
 #ifdef BL_USE_MPI
     MPI_Request     m_request;
 #endif
-    FArrayBox*      tmp;
+    FArrayBox*      m_tmp;
     FArrayBox*      m_fab;
     const MultiFab& m_smf;
     Box             m_bx;

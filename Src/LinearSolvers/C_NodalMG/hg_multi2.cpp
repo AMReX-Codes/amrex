@@ -213,6 +213,12 @@ task_fres::doit ()
     const FArrayBox& sc_fab     = task_fab_result(1);
     const Box&       sc_fab_box = sc_fab.box();
 
+    HG_DEBUG_OUT( "r_fab.norm() = " << r_fab.norm() << endl);
+    HG_DEBUG_OUT( "s_fab.norm() = " << s_fab.norm() << endl);
+    HG_DEBUG_OUT( "d_fab.norm() = " << d_fab.norm() << endl);
+    HG_DEBUG_OUT( "c_fab.norm() = " << c_fab.norm() << endl);
+    HG_DEBUG_OUT( "sg_fab.norm() = " << sg_fab.norm() << endl);
+    HG_DEBUG_OUT( "sc_fab.norm() = " << sc_fab.norm() << endl);
     (*f)(r_fab.dataPtr(), DIMLIST(r_fab_box),
 	 s_fab.dataPtr(), DIMLIST(s_fab_box),
 	 d_fab.dataPtr(), DIMLIST(d_fab_box),
@@ -489,12 +495,6 @@ holy_grail_amr_multigrid::alloc_sync_caches ()
 	fres_cbox[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(level_interface::FACEDIM)];
 	fres_creg[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(level_interface::FACEDIM)];
 
-	cres_sfbox[lev] = new Box[lev_interface[ml_index[lev]].nboxes(0)];
-	cres_scbox[lev] = new Box[lev_interface[ml_index[lev]].nboxes(0)];
-	cres_fbox[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(0)];
-	cres_cbox[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(0)];
-	cres_creg[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(0)];
-	
 #if (BL_SPACEDIM == 3)
 	eres_sfbox[lev] = new Box[lev_interface[ml_index[lev]].nboxes(1)];
 	eres_scbox[lev] = new Box[lev_interface[ml_index[lev]].nboxes(1)];
@@ -502,6 +502,13 @@ holy_grail_amr_multigrid::alloc_sync_caches ()
 	eres_cbox[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(1)];
 	eres_creg[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(1)];
 #endif
+	
+	cres_sfbox[lev] = new Box[lev_interface[ml_index[lev]].nboxes(0)];
+	cres_scbox[lev] = new Box[lev_interface[ml_index[lev]].nboxes(0)];
+	cres_fbox[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(0)];
+	cres_cbox[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(0)];
+	cres_creg[lev]  = new Box[lev_interface[ml_index[lev]].nboxes(0)];
+	
 	build_sync_cache(ml_index[lev], lev);
     }
 }
