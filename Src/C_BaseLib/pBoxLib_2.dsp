@@ -24,7 +24,7 @@ CFG=pBoxLib_2 - Win32 Debug
 # Begin Project
 # PROP Scc_ProjName ""
 # PROP Scc_LocalPath ""
-CPP=xicl.exe
+CPP=cl.exe
 F90=df.exe
 
 !IF  "$(CFG)" == "pBoxLib_2 - Win32 Release"

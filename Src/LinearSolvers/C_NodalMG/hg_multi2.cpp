@@ -373,7 +373,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		sigmafptr, DIMLIST(sigmafbox),
 		sigmac.dataPtr(), DIMLIST(sigmacbox),
 		DIMLIST(creg),
-		D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir
+		D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), 
+		&idim, &idir
 		);
 	}
 	else if (m_hg_full_stencil)
@@ -388,7 +389,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		sigmafptr, DIMLIST(sigmafbox),
 		sigmac.dataPtr(), DIMLIST(sigmacbox),
 		DIMLIST(creg),
-		D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir,
+		D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), 
+		&idim, &idir,
 		&isRZ, &imax
 		);
 #endif
@@ -402,7 +404,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		sigmafptr, DIMLIST(sigmafbox),
 		sigmac.dataPtr(), DIMLIST(sigmacbox),
 		DIMLIST(creg),
-		D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir
+		D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), 
+		&idim, &idir
 		);
 	}
     }
@@ -591,8 +594,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		    sigmaf.dataPtr(), DIMLIST(sigmafbox),
 		    sigmac.dataPtr(), DIMLIST(sigmacbox),
 		    DIMLIST(creg),
-		    D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &idim, &idir,
-		    &isRZ, &imax
+		    D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]),
+		    &idim, &idir, &isRZ, &imax
 		    );
 		// fill in the grids on the other sides, if any
 		const Box& freg = lev_interface[mglev].box(0, icor);
@@ -629,7 +632,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		    sigmaf.dataPtr(), DIMLIST(sigmafbox),
 		    sigmac.dataPtr(), DIMLIST(sigmacbox),
 		    DIMLIST(creg),
-		    D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &idir0, &idir1, &isRZ
+		    D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), 
+		    &idir0, &idir1, &isRZ
 		    );
 	    }
 	    else if (geo == (level_interface::LL | level_interface::HH) || geo == (level_interface::LH | level_interface::HL)) 
@@ -658,7 +662,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		    sigmaf.dataPtr(), DIMLIST(sigmafbox),
 		    sigmac.dataPtr(), DIMLIST(sigmacbox),
 		    DIMLIST(creg),
-		    D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &jdir, &isRZ
+		    D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), 
+		    &jdir, &isRZ
 		    );
 		// fill in the grids on the other sides, if any
 		const Box& freg = lev_interface[mglev].box(0, icor);
@@ -696,7 +701,8 @@ void holy_grail_amr_multigrid::interface_residual(int mglev, int lev)
 		    sigmaf.dataPtr(), DIMLIST(sigmafbox),
 		    sigmac.dataPtr(), DIMLIST(sigmacbox),
 		    DIMLIST(creg),
-		    D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), &idir0, &idir1, &isRZ
+		    D_DECL(&hx, &hy, &hz), D_DECL(rat[0], rat[1], rat[2]), 
+		    &idir0, &idir1, &isRZ
 		    );
 		// fill in the grids on the other sides, if any
 		const Box& freg = lev_interface[mglev].box(0, icor);
