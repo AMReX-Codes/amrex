@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Utility.cpp,v 1.12 1997-11-26 04:22:35 lijewski Exp $
+// $Id: Utility.cpp,v 1.13 1997-11-26 06:26:45 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -88,7 +88,7 @@ get_initial_wall_clock_time ()
 //
 // Attempt to guarantee wsecond() gets initialized on program startup.
 //
-static double Initial_Wall_Clock_Time = get_initial_wall_clock_time();
+extern double BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
 
 double
 Utility::wsecond (double* t)
@@ -97,7 +97,7 @@ Utility::wsecond (double* t)
 
     gettimeofday(&tp,0);
 
-    double dt = tp.tv_sec + tp.tv_usec/1000000.0 - Initial_Wall_Clock_Time;
+    double dt = tp.tv_sec + tp.tv_usec/1000000.0 - BL_Initial_Wall_Clock_Time;
 
     if (t != 0)
         *t = dt;
@@ -129,12 +129,12 @@ get_initial_wall_clock_time ()
 //
 // Attempt to guarantee wsecond() gets initialized on program startup.
 //
-static double Initial_Wall_Clock_Time = get_initial_wall_clock_time();
+extern double BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
 
 double
 Utility::wsecond (double* t_)
 {
-    double t = RTC() - Initial_Wall_Clock_Time;
+    double t = RTC() - BL_Initial_Wall_Clock_Time;
     if (t_)
         *t_ = t;
     return t;
@@ -172,7 +172,7 @@ get_initial_wall_clock_time ()
 //
 // Attempt to guarantee wsecond() gets initialized on program startup.
 //
-static time_t Initial_Wall_Clock_Time = get_initial_wall_clock_time();
+extern time_t BL_Initial_Wall_Clock_Time = get_initial_wall_clock_time();
 
 double
 Utility::wsecond (double* r)
@@ -181,7 +181,7 @@ Utility::wsecond (double* r)
 
     time(&finish);
 
-    double rr = double(finish - Initial_Wall_Clock_Time);
+    double rr = double(finish - BL_Initial_Wall_Clock_Time);
 
     if (r)
         *r = rr;
