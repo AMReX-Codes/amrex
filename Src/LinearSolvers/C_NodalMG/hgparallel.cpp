@@ -302,6 +302,7 @@ void task_copy::hint() const
     	HG_DEBUG_OUT( "R" );
     }
     HG_DEBUG_OUT(
+	' ' <<
 	m_bx  << ' ' << m_dgrid << ' ' <<
 	m_sbx  << ' ' << m_sgrid << ' '
 	);
@@ -335,6 +336,7 @@ void task_copy_local::hint() const
     else if ( is_local( m_smf, m_sgrid ) ) HG_DEBUG_OUT("S");
     else HG_DEBUG_OUT("R");
     HG_DEBUG_OUT(
+	' ' <<
 	m_bx <<  ' ' <<  m_sgrid
 	);
     HG_DEBUG_OUT( ")" << endl );
