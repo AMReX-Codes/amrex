@@ -27,31 +27,6 @@ extern "C"
     void FORT_FBINFIL(Real*, intS, intS, const Real*, intS, intS, const int*);
 }
 
-Box amr_boundary_class::box(const Box& region, const Box& domain, int idir) const
-{
-    const int idim = abs(idir) - 1;
-    Box retbox(region);
-    if (idir < 0) 
-    {
-	if (region.type(idim) == IndexType::CELL)
-	    retbox.shift(idim, 2 * domain.smallEnd(idim) - 1 - region.bigEnd(idim) - region.smallEnd(idim));
-	else
-	    retbox.shift(idim, 2 * domain.smallEnd(idim) - region.bigEnd(idim) - region.smallEnd(idim));
-    }
-    else if (idir > 0) 
-    {
-	if (region.type(idim) == IndexType::CELL)
-	    retbox.shift(idim, 2 * domain.bigEnd(idim) + 1 - region.bigEnd(idim) - region.smallEnd(idim));
-	else
-	    retbox.shift(idim, 2 * domain.bigEnd(idim) + 2 - region.bigEnd(idim) - region.smallEnd(idim));
-    }
-    else 
-    {
-	BoxLib::Error("amr_boundary_class::box---undefined boundary direction");
-    }
-    return retbox;
-}
-
 Box mixed_boundary_class::box(const Box& region, const Box& domain, int idir) const
 {
     const int idim = abs(idir) - 1;
@@ -741,29 +716,6 @@ void amr_boundary_class::boundary_mesh(BoxArray& exterior_mesh,
 	grid_ref[igrid] = in();
     }
     il.clear();
-}
-
-void amr_boundary_class::check_against_boundary(BoxList& bl, List<int>& il,
-						const Box& b, int ib,
-						const Box& d, int dim1) const
-{
-    for (int i = dim1; i < BL_SPACEDIM; i++) 
-    {
-	if (b.smallEnd(i) == d.smallEnd(i)) 
-	{
-	    Box bn = adjCellLo(b,i);
-	    bl.append(bn);
-	    il.append(ib);
-	    check_against_boundary(bl, il, bn, ib, d, i+1);
-	}
-	if (b.bigEnd(i) == d.bigEnd(i)) 
-	{
-	    Box bn = adjCellHi(b,i);
-	    bl.append(bn);
-	    il.append(ib);
-	    check_against_boundary(bl, il, bn, ib, d, i+1);
-	}
-    }
 }
 
 void mixed_boundary_class::check_against_boundary(BoxList& bl, List<int>& il,
