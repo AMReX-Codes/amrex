@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: Geometry.cpp,v 1.33 1998-09-30 19:29:16 lijewski Exp $
+// $Id: Geometry.cpp,v 1.34 1998-10-15 21:53:02 lijewski Exp $
 //
 
 #include <Geometry.H>
@@ -175,16 +175,21 @@ Geometry::FillPeriodicBoundary (MultiFab& mf,
     PIRMMap& pirm = getPIRMMap(mf,no_ovlp,fpb);
 
     const MultiFabId mfid = 0;
-
-    for (int i = 0; i < pirm.size(); i++)
+    //
+    // Add boxes we need to collect, if we haven't already done so.
+    //
+    if (mfcd.nFabComTags() == 0)
     {
-        pirm[i].fbid = mfcd.AddBox(mfid,
-                                   pirm[i].srcBox,
-                                   0,
-                                   pirm[i].srcId,
-                                   src_comp,
-                                   src_comp,
-                                   num_comp);
+        for (int i = 0; i < pirm.size(); i++)
+        {
+            pirm[i].fbid = mfcd.AddBox(mfid,
+                                       pirm[i].srcBox,
+                                       0,
+                                       pirm[i].srcId,
+                                       src_comp,
+                                       src_comp,
+                                       num_comp);
+        }
     }
 
     mfcd.CollectData();
