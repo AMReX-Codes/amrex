@@ -4,7 +4,7 @@
 #define BL_UTILITY_H
 
 //
-// $Id: Utility.H,v 1.28 1999-10-30 00:01:38 propp Exp $
+// $Id: Utility.H,v 1.29 1999-12-09 22:06:08 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -196,15 +196,17 @@ public:
     static void OutOfMemory ();
 
     /*@ManDoc:
-      A good random number generator.  Returns values in (0,1).
-    
-      Reference:
-    
-      Random Number Generators: Good Ones Are Hard To Find,
-      Stephen K. Park and Keith W. Miller,
-      Communications of the ACM,
-      October 1988 Volume 31 Number 10, pages 1192 - 1201.
-    
+      Mersenne Twister pseudo-random number generator.
+
+      Generates one pseudorandom real number (double) which is
+      uniformly distributed on [0,1]-interval for each call.
+
+      Accepts any 32-bit integer as a seed -- uses 4357 as the default.
+
+      Has a period of 2**19937.
+
+      Mersenne Twister Home Page: http://www.math.keio.ac.jp/matumoto/emt.html
+
       There is also an entry point for Fortran callable as:
     
       REAL\_T rn
@@ -212,10 +214,9 @@ public:
     */
     static double Random ();
 
-    /*@ManDoc: Set the seed of the above random number generator to any
-               value other than zero and 2147483647.
+    /*@ManDoc: Set the seed of the random number generator.
     */
-    static void InitRandom (int seed);
+    static void InitRandom (unsigned long seed);
 
     /*@ManDoc: Try to execute a shell command in a subshell.
                User is responsible for calling waitpid() on the pid
