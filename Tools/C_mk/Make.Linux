@@ -59,7 +59,7 @@ else
   LIBRARY_LOCATIONS += /usr/lib/gcc-lib/i386-redhat-linux/2.96
   override XTRALIBS += -lg2c
   FDEBF +=   -ffortran-bounds-check -Wimplicit
-  fDEBF +=   -ffortran-bounds-check -Wimplicit
+  fDEBF +=   -ffortran-bounds-check
 endif
 endif
 endif
