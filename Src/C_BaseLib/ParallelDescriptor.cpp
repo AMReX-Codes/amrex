@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.59 2000-06-02 22:58:53 marc Exp $
+// $Id: ParallelDescriptor.cpp,v 1.60 2000-06-05 19:11:16 car Exp $
 //
 
 #include <Utility.H>
@@ -678,44 +678,56 @@ ParallelDescriptor::second ()
 #define FORT_BL_PD_ABORT  	bl_pd_abort_
 #endif
 
+#ifdef BL_NAMESPACE
+#define __BLNS__ BL_NAMESPACE
+#else
+#define __BLNS__
+#endif
 extern  "C"
 void
 FORT_BL_PD_BARRIER()
 {
-  ParallelDescriptor::Barrier();
+  __BLNS__::ParallelDescriptor::Barrier();
 }
 
 extern  "C"
 void
-FORT_BL_PD_COMMUNICATOR(MPI_Comm* comm)
+FORT_BL_PD_COMMUNICATOR(void* vcomm)
 {
-  *comm = ParallelDescriptor::Communicator();
+#ifdef BL_USE_MPI
+  MPI_Comm* comm = reinterpret_cast<MPI_Comm*>(vcomm);
+#else
+  __BLNS__::MPI_Comm* comm = reinterpret_cast<__BLNS__::MPI_Comm*>(vcomm);
+#endif
+  *comm = __BLNS__::ParallelDescriptor::Communicator();
 }
 
 extern  "C"
 void
 FORT_BL_PD_MYPROC(int* myproc)
 {
-  *myproc = ParallelDescriptor::MyProc();
+  *myproc = __BLNS__::ParallelDescriptor::MyProc();
 }
 
 extern  "C"
 void
 FORT_BL_PD_NPROCS(int* nprocs)
 {
-  *nprocs = ParallelDescriptor::NProcs();
+  *nprocs = __BLNS__::ParallelDescriptor::NProcs();
 }
 
 extern  "C"
 void
 FORT_BL_PD_IOPROC(int* ioproc)
 {
-  *ioproc = ParallelDescriptor::IOProcessorNumber();
+  *ioproc = __BLNS__::ParallelDescriptor::IOProcessorNumber();
 }
 
 extern  "C"
 void
 FORT_BL_PD_ABORT()
 {
-  ParallelDescriptor::Abort();
+  __BLNS__::ParallelDescriptor::Abort();
 }
+
+#undef __BLNS__
