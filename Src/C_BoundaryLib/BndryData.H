@@ -3,7 +3,7 @@
 #define _BNDRYDATA_H_
 
 //
-// $Id: BndryData.H,v 1.10 2000-10-02 20:51:15 lijewski Exp $
+// $Id: BndryData.H,v 1.11 2001-01-19 22:57:48 marc Exp $
 //
 
 #include <BLassert.H>
@@ -202,6 +202,7 @@ private:
     // Free memory taken by masks for this BndryData object.
     //
     void clear_masks ();
+    static int NTangHalfWidth;
 };
 
 inline

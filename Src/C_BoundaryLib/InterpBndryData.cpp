@@ -1,6 +1,6 @@
 
 //
-// $Id: InterpBndryData.cpp,v 1.11 2000-10-02 20:51:16 lijewski Exp $
+// $Id: InterpBndryData.cpp,v 1.12 2001-01-19 22:57:49 marc Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -196,6 +196,13 @@ InterpBndryData::setBndryValues (::BndryRegister& crse,
                 const int* bhi            = bnd_fab.hiVect();
                 Real* bdat                = bnd_fab.dataPtr(bnd_start);
                 int is_not_covered        = BndryData::not_covered;
+
+                Box crsebnd = adjCell(crse_bx,face,1);
+                for (int k=0;k<BL_SPACEDIM;k++)
+                    if (k!=dir)
+                        crsebnd.grow(k,2);
+
+                BL_ASSERT(crse_fab.box().contains(crsebnd));
 
                 bdfunc[face](bdat,ARLIM(blo),ARLIM(bhi),
                              lo,hi,ARLIM(cblo),ARLIM(cbhi),
