@@ -1,6 +1,6 @@
 
 //
-// $Id: CoordSys.cpp,v 1.13 2000-10-02 20:49:03 lijewski Exp $
+// $Id: CoordSys.cpp,v 1.14 2000-11-01 18:29:37 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -273,14 +273,9 @@ CoordSys::Volume (const Real xlo[BL_SPACEDIM],
     switch (c_sys)
     {
     case cartesian:
-        return (xhi[0]-xlo[0])
-#if (BL_SPACEDIM>=2)                       
-            *(xhi[1]-xlo[1])
-#endif
-#if (BL_SPACEDIM>=3)                       
-            *(xhi[2]-xlo[2])
-#endif
-            ;
+        return D_TERM((xhi[0]-xlo[0]),
+                      *(xhi[1]-xlo[1]),
+                      *(xhi[2]-xlo[2]));
 #if (BL_SPACEDIM==2)
     case RZ:
         return (0.5*RZFACTOR)*(xhi[1]-xlo[1])*(xhi[0]*xhi[0]-xlo[0]*xlo[0]);
