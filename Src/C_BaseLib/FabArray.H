@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.11 1997-09-19 18:20:02 car Exp $
+// $Id: FabArray.H,v 1.12 1997-10-09 18:23:10 car Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -401,6 +401,13 @@ class FabArrayIterator
     //
     //
     //
+    FAB& operator* ();
+    const FAB& operator* () const;
+    FAB* operator-> ();
+    const FAB* operator-> () const;
+    //
+    //
+    //
     const Box& validbox () const;
     //
     //
@@ -463,6 +470,13 @@ class DependentFabArrayIterator
     //
     //
     //
+    FAB& operator* ();
+    const FAB& operator* () const;
+    FAB* operator-> ();
+    const FAB* operator-> () const;
+    //
+    //
+    //
     const Box& validbox () const;
     //
     //
@@ -504,6 +518,11 @@ class ConstFabArrayIterator
     //
     //
     const Box& validbox () const;
+    //
+    //
+    //
+    const FAB& operator* () const;
+    const FAB* operator-> () const;
     //
     //
     //
@@ -553,6 +572,11 @@ class ConstDependentFabArrayIterator
     //
     //
     const FAB& operator() () const;
+    //
+    //
+    //
+    const FAB& operator* () const;
+    const FAB* operator-> () const;
     //
     //
     //
@@ -1601,6 +1625,38 @@ FabArrayIterator<T,FAB>::operator() ()
 
 template <class T, class FAB>
 inline
+FAB&
+FabArrayIterator<T,FAB>::operator* ()
+{
+    return FabArrayIterator<T,FAB>::operator()();
+}
+
+template <class T, class FAB>
+inline
+const FAB&
+FabArrayIterator<T,FAB>::operator* () const
+{
+    return FabArrayIterator<T,FAB>::operator()();
+}
+
+template <class T, class FAB>
+inline
+FAB*
+FabArrayIterator<T,FAB>::operator-> ()
+{
+    return &FabArrayIterator<T,FAB>::operator()();
+}
+
+template <class T, class FAB>
+inline
+const FAB*
+FabArrayIterator<T,FAB>::operator-> () const
+{
+    return &FabArrayIterator<T,FAB>::operator()();
+}
+
+template <class T, class FAB>
+inline
 const FAB&
 FabArrayIterator<T,FAB>::operator() () const
 {
@@ -1725,6 +1781,38 @@ DependentFabArrayIterator<T,FAB>::operator() () const
 }
 
 template <class T, class FAB>
+inline
+FAB&
+DependentFabArrayIterator<T,FAB>::operator* ()
+{
+    return DependentFabArrayIterator<T,FAB>::operator()();
+}
+
+template <class T, class FAB>
+inline
+const FAB&
+DependentFabArrayIterator<T,FAB>::operator* () const
+{
+    return DependentFabArrayIterator<T,FAB>::operator()();
+}
+
+template <class T, class FAB>
+inline
+FAB*
+DependentFabArrayIterator<T,FAB>::operator-> ()
+{
+    return &DependentFabArrayIterator<T,FAB>::operator()();
+}
+
+template <class T, class FAB>
+inline
+const FAB*
+DependentFabArrayIterator<T,FAB>::operator-> () const
+{
+    return &DependentFabArrayIterator<T,FAB>::operator()();
+}
+
+template <class T, class FAB>
 ConstFabArrayIterator<T,FAB>::ConstFabArrayIterator(
     const FabArray<T,FAB>& fabarray,
     int                    nghost)
@@ -1751,6 +1839,22 @@ const FAB&
 ConstFabArrayIterator<T,FAB>::operator() () const
 {
     return fabArray[currentIndex];
+}
+
+template <class T, class FAB>
+inline
+const FAB&
+ConstFabArrayIterator<T,FAB>::operator* () const
+{
+    return ConstFabArrayIterator<T,FAB>::operator() ();
+}
+
+template <class T, class FAB>
+inline
+const FAB*
+ConstFabArrayIterator<T,FAB>::operator-> () const
+{
+    return &ConstFabArrayIterator<T,FAB>::operator() ();
 }
 
 template <class T, class FAB>
@@ -1848,6 +1952,22 @@ const FAB&
 ConstDependentFabArrayIterator<T,FAB>::operator()() const
 {
     return fabArray[controller->index()];
+}
+
+template <class T, class FAB>
+inline
+const FAB&
+ConstDependentFabArrayIterator<T,FAB>::operator* () const
+{
+    return ConstDependentFabArrayIterator<T,FAB>::operator() ();
+}
+
+template <class T, class FAB>
+inline
+const FAB*
+ConstDependentFabArrayIterator<T,FAB>::operator-> () const
+{
+    return &ConstDependentFabArrayIterator<T,FAB>::operator() ();
 }
 
 template <class T, class FAB>
