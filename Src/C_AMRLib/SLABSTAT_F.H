@@ -1,8 +1,8 @@
-#ifndef _SLABSTATS_F_H_
-#define _SLABSTATS_F_H_
+#ifndef _SLABSTAT_F_H_
+#define _SLABSTAT_F_H_
 
 /*
-** $Id: SLABSTAT_F.H,v 1.1 2000-04-21 16:26:16 sstanley Exp $
+** $Id: SLABSTAT_F.H,v 1.2 2000-05-22 19:54:01 sstanley Exp $
 */
 
 #ifdef BL_LANG_FORT
@@ -46,4 +46,4 @@ extern "C"
 
 #endif
 
-#endif /*_SLABSTATS_F_H_*/
+#endif /*_SLABSTAT_F_H_*/
