@@ -527,7 +527,7 @@ contains
             cycle
          end if
          tail%next => e
-         e%prev = tail
+         e%prev => tail
          tail => e
          e => tail%next
          l%size = l%size + 1
