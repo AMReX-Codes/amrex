@@ -440,7 +440,8 @@ void mixed_boundary_class::fill(FArrayBox& patch,
 void mixed_boundary_class::sync_borders(MultiFab& r, const level_interface& lev_interface) const
 {
     assert(type(r) == IntVect::TheNodeVector());
-    
+
+    // PARALLEL
     for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
     {
 	if (lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL)
@@ -467,6 +468,7 @@ void mixed_boundary_class::fill_borders(MultiFab& r, const level_interface& lev_
     w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
     assert( w == 1 || w == 0 );
     const Box& domain = lev_interface.domain();
+    // PARALLEL
     for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
     {
 	if (lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL)
@@ -753,8 +755,7 @@ void mixed_boundary_class::check_against_boundary(BoxList& bl, List<int>& il,
 	}
 	if (b.bigEnd(i) == d.bigEnd(i)) 
 	{
-	    if (ptr->bc[i][1] == refWall ||
-		ptr->bc[i][1] == inflow) 
+	    if (ptr->bc[i][1] == refWall || ptr->bc[i][1] == inflow) 
 	    {
 		Box bn = b;
 		bn.shift(i,b.length(i));
@@ -818,18 +819,12 @@ void mixed_boundary_class::duplicate(List<Box>& bl, const Box& domain) const
 
 bool mixed_boundary_class::singular() const
 {
+    assert(flowdim == -2); // pressure boundary only
     bool retval = true;
-    if (flowdim == -2) 
+    for (int idim = 0; idim < BL_SPACEDIM; idim++) 
     {
-	for (int idim = 0; idim < BL_SPACEDIM; idim++) 
-	{
-	    if (ptr->bc[idim][0] == outflow || ptr->bc[idim][1] == outflow)
-		retval = false;
-	}
-    }
-    else 
-    {
-	BoxLib::Error("mixed_boundary_class::singular---only defined for pressure boundary");
+	if (ptr->bc[idim][0] == outflow || ptr->bc[idim][1] == outflow)
+	    retval = false;
     }
     return retval;
 }

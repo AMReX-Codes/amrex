@@ -437,7 +437,7 @@ void holy_grail_amr_projector::sync_right_hand_side(PArray<MultiFab>* u)
     if (singular) 
     {
 	const int mglev1 = ml_index[lev_min+1];
-	restrict_level(source[lev_min], source[lev_min+1], gen_ratio[lev_min],
+	restrict_level(source[lev_min], source[lev_min+1], gen_ratio[lev_min], 
 	    bilinear_restrictor_coarse_class(0, m_hg_terrain), lev_interface[mglev1], mg_boundary);
 	work[mglev0].setVal(1.0);
 	Real adjustment = inner_product(source[lev_min], work[mglev0]) /
@@ -1275,19 +1275,16 @@ void holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u, const P
 	for (int lev = lev_max; lev > lev_min; lev--) 
 	{
 	    const IntVect& rat = gen_ratio[lev-1];
-	    restrict_level(dest[lev-1], dest[lev], rat,
-		injection_restrictor_class(), level_interface(), 0);
+	    restrict_level(dest[lev-1], dest[lev], rat, injection_restrictor_class(), level_interface(), 0);
 	    for (int i = 0; i < BL_SPACEDIM; i++) 
 	    {
 		if (!m_hg_terrain)
 		{
-		    restrict_level(u[i][lev-1], u[i][lev], rat,
-			default_restrictor(), level_interface(), 0);
+		    restrict_level(u[i][lev-1], u[i][lev], rat, default_restrictor(), level_interface(), 0);
 		}
 		else
 		{
-		    restrict_level(u[i][lev-1], u[i][lev], rat,
-			terrain_velocity_restrictor_class(i), level_interface(), 0);
+		    restrict_level(u[i][lev-1], u[i][lev], rat, terrain_velocity_restrictor_class(i), level_interface(), 0);
 		}
 	    }
 	}
@@ -1297,8 +1294,7 @@ void holy_grail_amr_projector::form_solution_vector(PArray<MultiFab>* u, const P
 	sync_periodic_interfaces();
 	for (int lev = lev_max; lev > lev_min; lev--) 
 	{
-	    restrict_level(dest[lev-1], dest[lev], gen_ratio[lev-1],
-		injection_restrictor_class(), level_interface(), 0);
+	    restrict_level(dest[lev-1], dest[lev], gen_ratio[lev-1], injection_restrictor_class(), level_interface(), 0);
 	}
     }
 }
