@@ -1,5 +1,5 @@
 //
-// $Id: ParmParse.cpp,v 1.40 2001-08-23 21:44:32 car Exp $
+// $Id: ParmParse.cpp,v 1.41 2002-03-22 23:29:24 car Exp $
 //
 #include <winstd.H>
 
@@ -968,6 +968,30 @@ ParmParse::Frame::getPrefix () const
 
 namespace
 {
+bool
+unused_table_entries_q (const ParmParse::Table& table)
+{
+    for ( const_list_iterator li = table.begin(); li != table.end(); ++li )
+    {
+	if ( li->m_table )
+	{
+	    if ( !li->m_queried )
+	    {
+		return true;
+	    }
+	    else
+	    {
+		return unused_table_entries_q(*li->m_table);
+	    }
+	}
+	else if ( !li->m_queried )
+	{
+	    return true;
+	}
+    }
+    return false;
+}
+
 void
 finalize_table (std::string pfx, const ParmParse::Table& table)
 {
@@ -996,7 +1020,7 @@ finalize_table (std::string pfx, const ParmParse::Table& table)
 void
 ParmParse::Finalize ()
 {
-    if ( ParallelDescriptor::IOProcessor() )
+    if ( ParallelDescriptor::IOProcessor() && unused_table_entries_q(g_table))
     {
 	std::cout << "Unused ParmParse Variables:\n";
 	finalize_table("[TOP]", g_table);
