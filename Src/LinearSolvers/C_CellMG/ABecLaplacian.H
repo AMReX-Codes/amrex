@@ -3,7 +3,7 @@
 #define _ABecLAPLACIAN_H_
 
 //
-// $Id: ABecLaplacian.H,v 1.10 2001-08-01 21:51:02 lijewski Exp $
+// $Id: ABecLaplacian.H,v 1.11 2002-11-20 16:55:55 lijewski Exp $
 //
 
 #include <Tuple.H>
@@ -88,6 +88,9 @@ public:
     //
     virtual void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 			   MultiFab& in, const BC_Mode& bc_mode=Inhomogeneous_BC);
+
+    void compFlux (D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
+                   MultiFab& in, const BC_Mode& bc_mode, bool do_ApplyBC);
     //
     //@ManDoc: Set scalar coefficients.
     //
