@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FArrayBox.cpp,v 1.21 1998-10-28 18:43:04 car Exp $
+// $Id: FArrayBox.cpp,v 1.22 1998-10-29 16:33:39 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -184,18 +184,12 @@ FArrayBox::FArrayBox (const Box& b,
     if (!FArrayBox::Initialized)
         FArrayBox::init();
     //
-    // For debugging purposes.
+    // For debugging purposes set values to QNAN when possible.
     //
-#if !defined(NDEBUG) && defined(BL_OSF1)
-#ifdef BL_USE_DOUBLE
-    setVal(DBL_QNAN);
-#else
-    setVal(FLT_QNAN);
+#if !defined(NDEBUG) && defined(BL_USE_NEW_HFILES) && !defined(__GNUC__)
+    if (std::numeric_limits<Real>::has_quiet_NaN)
+	setVal(std::numeric_limits<Real>::quiet_NaN());
 #endif
-#elif defined(BL_USE_NEW_HFILES) && !defined(__GNUC__)
-    if ( std::numeric_limits<Real>::has_quiet_NaN )
-	setVal( std::numeric_limits<Real>::quiet_NaN() );
-#endif /*!defined(NDEBUG) && defined(BL_OSF1)*/
 }
 
 void
@@ -203,16 +197,13 @@ FArrayBox::resize (const Box& b,
                    int        N)
 {
     BaseFab<Real>::resize(b,N);
-#if !defined(NDEBUG) && defined(BL_OSF1)
-#ifdef BL_USE_DOUBLE
-    setVal(DBL_QNAN);
-#else
-    setVal(FLT_QNAN);
+    //
+    // For debugging purposes set values to QNAN when possible.
+    //
+#if !defined(NDEBUG) && defined(BL_USE_NEW_HFILES) && !defined(__GNUC__)
+    if (std::numeric_limits<Real>::has_quiet_NaN)
+	setVal(std::numeric_limits<Real>::quiet_NaN());
 #endif
-#elif defined(BL_USE_NEW_HFILES) && !defined(__GNUC__)
-    if ( std::numeric_limits<Real>::has_quiet_NaN )
-	setVal( std::numeric_limits<Real>::quiet_NaN() );
-#endif /*!defined(NDEBUG) && defined(BL_OSF1)*/
 }
 
 void
