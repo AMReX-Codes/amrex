@@ -14,7 +14,7 @@ public:
                    int                       Lev_min_min,
                    int                       Lev_min_max,
                    int                       Lev_max_max,
-                   const amr_boundary_class* Boundary,
+                   const amr_boundary* Boundary,
                    int                       Pcode) 
 	:
         ml_mesh(Mesh),
@@ -24,18 +24,19 @@ public:
         lev_max_max(Lev_max_max),
         mg_boundary(Boundary),
         pcode(Pcode),
-        integrate(0)
+        integrate(0),
+	c_sys(cartesian)
     {}
     
     virtual ~amr_multigrid ();
     
 #if BL_SPACEDIM==2
-    static void SetRZ ()	{ c_sys = 1; }
-    static void SetCartesian ()	{ c_sys = 0; }
-    
-    static int IsRZ ()		{ return c_sys == 1; }
-    static int IsCartesian ()	{ return c_sys == 0; }
+    enum CoordSys { cartesian = 0, rz = 1 };
+#else
+    enum CoordSys { cartesian = 0 };
 #endif
+    CoordSys setCoordSys (CoordSys c_sys_);
+    CoordSys getCoordSys () const;
     
     static void mesh_read (Array<BoxArray>& m,
                            Array<IntVect>&  r,
@@ -161,23 +162,38 @@ protected:
     Array<BoxArray>           mg_mesh;
     Array< Array<Box> >       mg_domain_array;
     Array< Array<BoxArray> >  mg_mesh_array;
-    const amr_boundary_class* mg_boundary;
+    const amr_boundary* mg_boundary;
     level_interface*          lev_interface;
     level_interface**         interface_array;
-    PArray<MultiFab>          source;             // live on active levels of ml_mesh
+    PArray<MultiFab>          source;             // on active levels of ml_mesh
     PArray<MultiFab>          dest;
-    PArray<MultiFab>          resid;              // live on mg_mesh
+    PArray<MultiFab>          resid;              // on mg_mesh
     PArray<MultiFab>          corr;
     PArray<MultiFab>          work;
-    PArray<MultiFab>          save;               // lives on middle levels of ml_mesh
-    PArray<MultiFab>          coarse_source;      // lives on ml_mesh, if it exists
+    PArray<MultiFab>          save;               // on middle levels of ml_mesh
+    PArray<MultiFab>          coarse_source;      // on ml_mesh, if it exists
     
-#if BL_SPACEDIM==2
-    static int                c_sys;
-#endif
+
+    CoordSys                  c_sys;
     
     int                       pcode;
     int                       integrate;
 };
+
+inline
+amr_multigrid::CoordSys
+amr_multigrid::setCoordSys (CoordSys c_sys_)
+{
+    CoordSys o_c_sys = c_sys;
+    c_sys = c_sys_;
+    return o_c_sys;
+}
+
+inline
+amr_multigrid::CoordSys
+amr_multigrid::getCoordSys () const
+{
+    return c_sys;
+}
 
 #endif /*_AMR_MULTI_H_*/

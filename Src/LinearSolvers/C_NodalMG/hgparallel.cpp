@@ -8,8 +8,10 @@
 #ifdef HG_DEBUG
 #ifdef BL_USE_NEW_HFILES
 #include <typeinfo>
+#include <cstdio>
 #else
 #include <typeinfo.h>
+#include <stdio.h>
 #endif
 #endif
 
@@ -96,7 +98,9 @@ void
 task::print_dependencies (ostream& os) const
 {
     os << "Task " << get_sequence_number() << " depends on ( ";
-    for (list<task_proxy>::const_iterator lit = dependencies.begin(); lit != dependencies.end(); ++lit)
+    for (list<task_proxy>::const_iterator lit = dependencies.begin();
+	 lit != dependencies.end();
+	 ++lit)
     {
         if (!(*lit).is_finished())
         {
@@ -109,7 +113,8 @@ task::print_dependencies (ostream& os) const
 bool
 task::depend_ready ()
 {
-    for (list<task_proxy>::iterator lit = dependencies.begin(); lit != dependencies.end();)
+    for (list<task_proxy>::iterator lit = dependencies.begin();
+	 lit != dependencies.end();)
     {
         if ((*lit).is_finished())
         {
@@ -129,7 +134,8 @@ task::_hint () const
 {
 #ifdef HG_DEBUG
     BL_ASSERT(m_sno > 0);
-    HG_DEBUG_OUT("(" << typeid(*this).name() << ' ' << m_sno << ' ' << m_started << ' ');
+    HG_DEBUG_OUT("(" << typeid(*this).name() << ' '
+		 << m_sno << ' ' << m_started << ' ');
     print_dependencies(debug_out);
 #endif
 }
@@ -189,7 +195,8 @@ void
 task_list::print_dependencies (ostream& os) const
 {
     os << "Task list ( " << '\n';
-    for (list<task::task_proxy>::const_iterator tli = tasks.begin(); tli != tasks.end(); ++tli)
+    for (list<task::task_proxy>::const_iterator tli = tasks.begin();
+	 tli != tasks.end(); ++tli)
     {
         (*tli)->print_dependencies(os);
         os << '\n';
@@ -433,7 +440,8 @@ task::_do_depend ()
         //
         return;
 
-    for (list<task::task_proxy>::const_iterator cit = m_task_list.begin(); cit != m_task_list.end(); ++cit)
+    for (list<task::task_proxy>::const_iterator cit = m_task_list.begin();
+	 cit != m_task_list.end(); ++cit)
     {
         BL_ASSERT(!(*cit).null());
 
@@ -603,7 +611,8 @@ task_copy::hint () const
     {
         HG_DEBUG_OUT("?");
     }
-    HG_DEBUG_OUT('(' << m_dgrid << "," << m_sgrid << ')' << m_sbx << ' ' << m_bx  << ' ' );
+    HG_DEBUG_OUT('(' << m_dgrid << "," << m_sgrid << ')'
+		 << m_sbx << ' ' << m_bx  << ' ' );
     HG_DEBUG_OUT(")" << endl);
 }
 
@@ -649,7 +658,7 @@ task_copy_local::task_copy_local (task_list&      tl_,
 
 task_copy_local::~task_copy_local ()
 {
-    HG_DEBUG_OUT("task_copy_local::~task_copy_local(): delete tmp" << endl);
+    // HG_DEBUG_OUT("task_copy_local::~task_copy_local(): delete tmp" << endl);
     delete tmp;
 }
 
@@ -855,7 +864,7 @@ task_fec_base::task_fec_base (task_list& tl_,
 
 task_fec_base::~task_fec_base ()
 {
-    HG_DEBUG_OUT("task_fec_base::~task_fec_base()" << endl);
+    // HG_DEBUG_OUT("task_fec_base::~task_fec_base()" << endl);
 }
 
 bool

@@ -42,7 +42,8 @@ inner_product (const MultiFab& r,
 	    const Box& rbox = rcmfi->box();
 	    const Box& sbox = scmfi->box();
 	    const Box& reg  = rcmfi.validbox();
-	    FORT_FIPRODC(rcmfi->dataPtr(), DIMLIST(rbox), scmfi->dataPtr(), DIMLIST(sbox), DIMLIST(reg), &sum);
+	    FORT_FIPRODC(rcmfi->dataPtr(), DIMLIST(rbox),
+			 scmfi->dataPtr(), DIMLIST(sbox), DIMLIST(reg), &sum);
 	}
     }
     else if (type(r) == IntVect::TheNodeVector()) 
@@ -53,12 +54,14 @@ inner_product (const MultiFab& r,
 	    const Box& rbox = rcmfi->box();
 	    const Box& sbox = scmfi->box();
 	    const Box& reg  = rcmfi.validbox();
-	    FORT_FIPRODN(rcmfi->dataPtr(), DIMLIST(rbox), scmfi->dataPtr(), DIMLIST(sbox), DIMLIST(reg), &sum);
+	    FORT_FIPRODN(rcmfi->dataPtr(), DIMLIST(rbox),
+			 scmfi->dataPtr(), DIMLIST(sbox), DIMLIST(reg), &sum);
 	}
     }
     else 
     {
-	BoxLib::Abort( "inner_product(): only supported for CELL- or NODE-based data" );
+	BoxLib::Abort( "inner_product():"
+		       "only supported for CELL- or NODE-based data" );
     }
 
     ParallelDescriptor::ReduceRealSum(sum);
@@ -71,7 +74,7 @@ class task_bdy_fill : public task
 public:
 
     task_bdy_fill (task_list&                tl_,
-                   const amr_boundary_class* bdy_,
+                   const amr_boundary* bdy_,
                    FArrayBox*                fab_,
                    int                       target_proc_id,
                    const Box&                region_,
@@ -89,7 +92,7 @@ private:
 #ifdef BL_USE_MPI
     MPI_Request               m_request;
 #endif
-    const amr_boundary_class* m_bdy;
+    const amr_boundary* m_bdy;
     FArrayBox*                m_fab;
     FArrayBox*                tmp;
     const Box                 m_region;
@@ -102,7 +105,7 @@ private:
 };
 
 task_bdy_fill::task_bdy_fill (task_list&                tl_,
-                              const amr_boundary_class* bdy_,
+                              const amr_boundary* bdy_,
                               FArrayBox*                fab_,
                               int                       target_proc_id,
                               const Box&                region_,
@@ -134,7 +137,7 @@ task_bdy_fill::task_bdy_fill (task_list&                tl_,
 
     if (!m_smf.fabbox(m_sgrid).contains(m_bx))
         //
-        // No work to do -- skip bad code in mixed_boundary_class::fill().
+        // No work to do -- skip bad code in mixed_boundary::fill().
         //
         m_local = true;
 }
@@ -277,7 +280,7 @@ task_fill_patch::task_fill_patch (task_list&                tl_,
                                   const Box&                region_,
                                   const MultiFab&           r_,
                                   const level_interface&    lev_interface_,
-                                  const amr_boundary_class* bdy_,
+                                  const amr_boundary* bdy_,
                                   int                       idim_,
                                   int                       index_)
     :
@@ -356,27 +359,29 @@ task_fill_patch::fill_exterior_patch_blindly ()
 	    tb.convert(type(r));
 	    if (tb.contains(region)) 
 	    {
-		depend_on(m_task_list.add_task(new task_bdy_fill(m_task_list,
-                                                                 bdy,
-                                                                 target,
-                                                                 target_proc_id(),
-                                                                 region,
-                                                                 r,
-                                                                 jgrid,
-                                                                 lev_interface.domain())));
+		depend_on(m_task_list.add_task(
+		    new task_bdy_fill(m_task_list,
+				      bdy,
+				      target,
+				      target_proc_id(),
+				      region,
+				      r,
+				      jgrid,
+				      lev_interface.domain())));
 		return true;
 	    }
 	    if (tb.intersects(region)) 
 	    {
 		tb &= region;
-		depend_on(m_task_list.add_task(new task_bdy_fill(m_task_list,
-                                                                 bdy,
-                                                                 target,
-                                                                 target_proc_id(),
-                                                                 tb,
-                                                                 r,
-                                                                 jgrid,
-                                                                 lev_interface.domain())));
+		depend_on(m_task_list.add_task(
+		    new task_bdy_fill(m_task_list,
+				      bdy,
+				      target,
+				      target_proc_id(),
+				      tb,
+				      r,
+				      jgrid,
+				      lev_interface.domain())));
 	    }
 	}
     }
@@ -445,12 +450,13 @@ task_fill_patch::fill_patch ()
 			if (igrid >= 0) 
 			{
 			    Box tb = r_ba[igrid] & region;
-			    depend_on(m_task_list.add_task(new task_copy_local(m_task_list,
-                                                                               target,
-                                                                               target_proc_id(),
-                                                                               tb,
-                                                                               r,
-                                                                               igrid)));
+			    depend_on(m_task_list.add_task(
+				new task_copy_local(m_task_list,
+						    target,
+						    target_proc_id(),
+						    tb,
+						    r,
+						    igrid)));
 			}
 			else 
 			{
@@ -458,14 +464,16 @@ task_fill_patch::fill_patch ()
 			    Box tb = lev_interface.exterior_mesh()[igrid];
 			    tb.convert(type(r));
 			    tb &= region;
-                            depend_on(m_task_list.add_task(new task_bdy_fill(m_task_list,
-                                                                             bdy,
-                                                                             target,
-                                                                             target_proc_id(),
-                                                                             tb,
-                                                                             r,
-                                                                             lev_interface.direct_exterior_ref(igrid),
-                                                                             lev_interface.domain())));
+                            depend_on(m_task_list.add_task(
+				new task_bdy_fill(
+				    m_task_list,
+				    bdy,
+				    target,
+				    target_proc_id(),
+				    tb,
+				    r,
+				    lev_interface.direct_exterior_ref(igrid),
+				    lev_interface.domain())));
 			}
 			break;
 		    }
@@ -483,21 +491,26 @@ sync_internal_borders (MultiFab&              r,
     BL_ASSERT(type(r) == IntVect::TheNodeVector());
 
     task_list tl;
-    for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
+    for (int iface = 0;
+	 iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
     {
 	const int igrid = lev_interface.grid(level_interface::FACEDIM,iface,0);
 	const int jgrid = lev_interface.grid(level_interface::FACEDIM,iface,1);
         //
 	// Only do interior faces with fine grid on both sides.
         //
-	if (igrid < 0 || jgrid < 0 || lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL)
+	if (igrid < 0
+	    || jgrid < 0
+	    || lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL)
 	    break;
-	tl.add_task(new task_copy(tl,
-                                  r,
-                                  jgrid,
-                                  r,
-                                  igrid,
-                                  lev_interface.node_box(level_interface::FACEDIM,iface)));
+	tl.add_task(
+	    new task_copy(
+		tl,
+		r,
+		jgrid,
+		r,
+		igrid,
+		lev_interface.node_box(level_interface::FACEDIM,iface)));
     }
 #if (BL_SPACEDIM == 2)
     for (int icor = 0; icor < lev_interface.nboxes(0); icor++) 
@@ -507,7 +520,9 @@ sync_internal_borders (MultiFab&              r,
         //
 	// Only do interior corners with fine grid on all sides.
         //
-	if (igrid < 0 || jgrid < 0 || lev_interface.geo(0, icor) != level_interface::ALL)
+	if (igrid < 0
+	    || jgrid < 0
+	    || lev_interface.geo(0, icor) != level_interface::ALL)
 	    break;
 	if (jgrid == lev_interface.grid(0, icor, 1))
 	    tl.add_task(new task_copy(tl,
@@ -525,7 +540,9 @@ sync_internal_borders (MultiFab&              r,
         //
 	// Only do interior edges with fine grid on all sides.
         //
-	if (igrid < 0 || jgrid < 0 || lev_interface.geo(1, iedge) != level_interface::ALL)
+	if (igrid < 0
+	    || jgrid < 0
+	    || lev_interface.geo(1, iedge) != level_interface::ALL)
 	    break;
 	if (jgrid == lev_interface.grid(1, iedge, 1))
 	    tl.add_task(new task_copy(tl,
@@ -542,7 +559,9 @@ sync_internal_borders (MultiFab&              r,
         //
 	// Only do interior corners with fine grid on all sides.
         //
-	if (igrid < 0 || jgrid < 0 || lev_interface.geo(0, icor) != level_interface::ALL)
+	if (igrid < 0
+	    || jgrid < 0
+	    || lev_interface.geo(0, icor) != level_interface::ALL)
 	    break;
 	if (lev_interface.grid(0, icor, 3) == lev_interface.grid(0, icor, 1)) 
 	{
@@ -587,12 +606,13 @@ sync_internal_borders (MultiFab&              r,
 		    {
 			jgrid = lev_interface.grid(0, icor, 6);
 			if (jgrid != lev_interface.grid(0, icor, 7))
-			    tl.add_task(new task_copy(tl,
-                                                      r,
-                                                      jgrid,
-                                                      r,
-                                                      igrid,
-                                                      lev_interface.box(0,icor)));
+			    tl.add_task(
+				new task_copy(tl,
+					      r,
+					      jgrid,
+					      r,
+					      igrid,
+					      lev_interface.box(0,icor)));
 		    }
 		}
 	    }
@@ -605,7 +625,7 @@ sync_internal_borders (MultiFab&              r,
 void
 sync_borders (MultiFab&                 r,
               const level_interface&    lev_interface,
-              const amr_boundary_class* bdy)
+              const amr_boundary* bdy)
 {
     sync_internal_borders(r, lev_interface);
     BL_ASSERT(bdy != 0);
@@ -652,9 +672,10 @@ void
 fill_internal_borders (MultiFab&              r,
                        const level_interface& lev_interface,
                        int                    w,
-                       bool                   hg_terrain)
+                       bool                   hg_dense)
 {
-    BL_ASSERT(type(r) == IntVect::TheCellVector() || type(r) == IntVect::TheNodeVector() );
+    BL_ASSERT(type(r) == IntVect::TheCellVector()
+	      || type(r) == IntVect::TheNodeVector() );
 
     w = (w < 0 || w > r.nGrow()) ? r.nGrow() : w;
 
@@ -664,7 +685,7 @@ fill_internal_borders (MultiFab&              r,
     if (type(r) == IntVect::TheNodeVector()) 
     {
 #if (BL_SPACEDIM == 3)
-	if(hg_terrain)
+	if(hg_dense)
 	{
             //
 	    // Attempt to deal with corner-coupling problem with 27-point stencils
@@ -772,13 +793,19 @@ fill_internal_borders (MultiFab&              r,
 #endif
         const BoxArray& r_ba = r.boxArray();
 
-	for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
+	for (int iface = 0;
+	     iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
 	{
-	    const int igrid = lev_interface.grid(level_interface::FACEDIM, iface, 0);
-	    const int jgrid = lev_interface.grid(level_interface::FACEDIM, iface, 1);
-	    if (igrid < 0 || jgrid < 0 || lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL)
+	    const int igrid =
+		lev_interface.grid(level_interface::FACEDIM, iface, 0);
+	    const int jgrid =
+		lev_interface.grid(level_interface::FACEDIM, iface, 1);
+	    if (igrid < 0
+		|| jgrid < 0
+		|| lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL)
 		break;
-	    const Box& b = lev_interface.node_box(level_interface::FACEDIM, iface);
+	    const Box& b =
+		lev_interface.node_box(level_interface::FACEDIM, iface);
 	    // tl.add_task(new task_copy_2(r, igrid, r, jgrid, b, w));
             const int idim = lev_interface.fdim(iface);
             Box bj = lev_interface.node_box(level_interface::FACEDIM, iface);
@@ -796,8 +823,12 @@ fill_internal_borders (MultiFab&              r,
 	    tl.add_task(new task_copy(tl,r,jgrid,r,igrid,bj));
 	    tl.add_task(new task_copy(tl,r,igrid,r,jgrid,bi));
 #else
-	    tl.add_task(new task_copy(tl,r,jgrid,r,igrid,w_shift(b,r_ba[jgrid],r.nGrow(), -w)));
-	    tl.add_task(new task_copy(tl,r,igrid,r,jgrid,w_shift(b,r_ba[igrid],r.nGrow(),  w)));
+	    tl.add_task(
+		new task_copy(tl,r,jgrid,r,igrid,
+			      w_shift(b,r_ba[jgrid],r.nGrow(), -w)));
+	    tl.add_task(
+		new task_copy(tl,r,igrid,r,jgrid,
+			      w_shift(b,r_ba[igrid],r.nGrow(),  w)));
 #endif
 	}
     }
@@ -805,11 +836,16 @@ fill_internal_borders (MultiFab&              r,
     {
         const BoxArray& r_ba = r.boxArray();
 
-	for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
+	for (int iface = 0;
+	     iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
 	{
-	    const int igrid = lev_interface.grid(level_interface::FACEDIM, iface, 0);
-	    const int jgrid = lev_interface.grid(level_interface::FACEDIM, iface, 1);
-	    if (igrid < 0 || jgrid < 0 || lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL)
+	    const int igrid =
+		lev_interface.grid(level_interface::FACEDIM, iface, 0);
+	    const int jgrid =
+		lev_interface.grid(level_interface::FACEDIM, iface, 1);
+	    if (igrid < 0
+		|| jgrid < 0
+		|| lev_interface.geo(level_interface::FACEDIM, iface) != level_interface::ALL)
 		break;
 	    const int idim = lev_interface.fdim(iface);
 #if (BL_SPACEDIM == 2)
@@ -818,7 +854,8 @@ fill_internal_borders (MultiFab&              r,
 		b.grow(0, w);
 	    b.growLo(idim, w).convert(IntVect::TheCellVector());
 	    tl.add_task(new task_copy(tl, r, jgrid, r, igrid, b));
-	    tl.add_task(new task_copy(tl, r, igrid, r, jgrid, b.shift(idim, w)));
+	    tl.add_task(
+		new task_copy(tl, r, igrid, r, jgrid, b.shift(idim, w)));
 #else
 	    Box bj = lev_interface.box(level_interface::FACEDIM, iface);
 	    Box bi = lev_interface.box(level_interface::FACEDIM, iface);
@@ -842,12 +879,12 @@ fill_internal_borders (MultiFab&              r,
 void
 fill_borders (MultiFab&                 r,
               const level_interface&    lev_interface,
-              const amr_boundary_class* bdy,
+              const amr_boundary* bdy,
               int                       w,
-              bool                      hg_terrain)
+              bool                      hg_dense)
 {
     HG_TEST_NORM(r, "fill_borders 0");
-    fill_internal_borders(r, lev_interface, w, hg_terrain);
+    fill_internal_borders(r, lev_interface, w, hg_dense);
     HG_TEST_NORM(r, "fill_borders 1");
     BL_ASSERT(bdy != 0);
     bdy->fill_borders(r, lev_interface, w);
@@ -875,6 +912,7 @@ clear_part_interface (MultiFab&              r,
 	    r[igrid].setVal(0.0, lev_interface.node_box(i, ibox), 0);
 	}
     }
+    HG_TEST_NORM( r, "clear_part_interface");
 }
 
 class task_restric_fill : public task
@@ -882,7 +920,7 @@ class task_restric_fill : public task
 public:
 
     task_restric_fill (task_list&                  tl_,
-                       const amr_restrictor_class& restric,
+                       const amr_restrictor& restric,
                        MultiFab&                   dest,
                        int                         dgrid,
                        const MultiFab&             r,
@@ -904,7 +942,7 @@ private:
 #ifdef BL_USE_MPI
     MPI_Request                 m_request;
 #endif
-    const amr_restrictor_class& m_restric;
+    const amr_restrictor& m_restric;
     FArrayBox*                  m_tmp;
     MultiFab&                   m_d;
     const MultiFab&             m_r;
@@ -916,7 +954,7 @@ private:
 };
 
 task_restric_fill::task_restric_fill (task_list&                  tl_,
-                                      const amr_restrictor_class& restric,
+                                      const amr_restrictor& restric,
                                       MultiFab&                   dest,
                                       int                         dgrid,
                                       const MultiFab&             r,
@@ -1093,17 +1131,19 @@ void
 restrict_level (MultiFab&                   dest,
                 MultiFab&                   r,
                 const IntVect&              rat,
-                const amr_restrictor_class& restric,
+                const amr_restrictor& restric,
                 const level_interface&      lev_interface,
-                const amr_boundary_class*   bdy)
+                const amr_boundary*   bdy)
 {
     BL_ASSERT(type(dest) == type(r));
 
     HG_TEST_NORM( dest, "restrict_level a");
+    HG_TEST_NORM(    r, "restrict_level r");
 
     const BoxArray& r_ba    = r.boxArray();
     const BoxArray& dest_ba = dest.boxArray();
 
+    // HG_DEBUG_OUT( "typeid(restric) = " << typeid(restric).name() << endl );
     task_list tl;
     for (int jgrid = 0; jgrid < dest.length(); jgrid++) 
     {
@@ -1128,11 +1168,13 @@ restrict_level (MultiFab&                   dest,
 	}
     }
     tl.execute("restrict_level");
-
+    HG_TEST_NORM( dest, "restrict_level a1");
+    HG_TEST_NORM(    r, "restrict_level r1");
     if (lev_interface.ok())
     {
 	restric.fill_interface( dest, r, lev_interface, bdy, rat);
     }
 
-    HG_TEST_NORM( dest, "restrict_level a1");
+    HG_TEST_NORM( dest, "restrict_level a2");
+    HG_TEST_NORM(    r, "restrict_level r2");
 }

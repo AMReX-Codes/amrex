@@ -1,7 +1,9 @@
 c-----------------------------------------------------------------------
-      subroutine hggrad_terrain(gpx, gpy, gpl0, gph0, gpl1, gph1,
+      subroutine hggrad_dense(
+     & gpx, gpy, 
+     &     gpl0, gph0, gpl1, gph1,
      & dest, destl0, desth0, destl1, desth1,
-     & fregl0, fregh0, fregl1, fregh1,
+     &     fregl0, fregh0, fregl1, fregh1,
      & hx, hy)
       integer gpl0, gph0, gpl1, gph1
       integer destl0, desth0, destl1, desth1
@@ -21,9 +23,11 @@ c-----------------------------------------------------------------------
       end do
       end
 c-----------------------------------------------------------------------
-      subroutine hgdiv_terrain(src, srcl0, srch0, srcl1, srch1,
-     & uf, vf, fl0, fh0, fl1, fh1,
-     & fregl0, fregh0, fregl1, fregh1,
+      subroutine hgdiv_dense(
+     & src, srcl0, srch0, srcl1, srch1,
+     & uf, vf, 
+     &     fl0, fh0, fl1, fh1,
+     &     fregl0, fregh0, fregl1, fregh1,
      & hx, hy)
       integer srcl0, srch0, srcl1, srch1
       integer fl0, fh0, fl1, fh1
@@ -47,11 +51,14 @@ c-----------------------------------------------------------------------
       end
 c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgfdiv_terrain(src, srcl0, srch0, srcl1, srch1,
-     & uc, vc, cl0, ch0, cl1, ch1,
-     & uf, vf, fl0, fh0, fl1, fh1,
-     & cregl0, cregh0, cregl1, cregh1,
-     & hx, hy, ir, jr, idim, idir)
+      subroutine hgfdiv_dense(
+     & src, srcl0, srch0, srcl1, srch1,
+     & uc, vc, 
+     &     cl0, ch0, cl1, ch1,
+     & uf, vf, 
+     &     fl0, fh0, fl1, fh1,
+     &     cregl0, cregh0, cregl1, cregh1,
+     & hx, hy, ir, jr, idim, idir, idd1, idd2)
       integer srcl0, srch0, srcl1, srch1
       integer cl0, ch0, cl1, ch1
       integer fl0, fh0, fl1, fh1
@@ -65,6 +72,7 @@ c Note---only generates values at coarse points along edge of fine grid
       integer ir, jr, idim, idir
       double precision fac0, fac1
       integer i, j, iuf, juf, iuc, juc, m, n
+      integer idd1, idd2
       if (idim .eq. 0) then
          i = cregl0
          if (idir .eq. 1) then
@@ -125,10 +133,13 @@ c Note---only generates values at coarse points along edge of fine grid
       end
 c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgcdiv_terrain(src, srcl0, srch0, srcl1, srch1,
-     & uc, vc, cl0, ch0, cl1, ch1,
-     & uf, vf, fl0, fh0, fl1, fh1,
-     & cregl0, cregh0, cregl1, cregh1,
+      subroutine hgcdiv_dense(
+     & src, srcl0, srch0, srcl1, srch1,
+     & uc, vc, 
+     &     cl0, ch0, cl1, ch1,
+     & uf, vf, 
+     &     fl0, fh0, fl1, fh1,
+     &     cregl0, cregh0, cregl1, cregh1,
      & hx, hy, ir, jr, ga, idd)
       integer srcl0, srch0, srcl1, srch1
       integer cl0, ch0, cl1, ch1
@@ -194,10 +205,13 @@ c weighting
       src(if,jf) = 0.5d0 * sum
       end
 c-----------------------------------------------------------------------
-      subroutine hggrad(gpx, gpy, gpl0, gph0, gpl1, gph1,
+      subroutine hggrad(
+     & gpx, gpy, gpl0, 
+     &     gph0, gpl1, gph1,
      & dest, destl0, desth0, destl1, desth1,
-     & fregl0, fregh0, fregl1, fregh1,
-     & hx, hy, irz)
+     &     fregl0, fregh0, fregl1, fregh1,
+     & hx, hy, 
+     & irz)
       integer gpl0, gph0, gpl1, gph1
       integer destl0, desth0, destl1, desth1
       integer fregl0, fregh0, fregl1, fregh1
@@ -235,10 +249,13 @@ c     We dont want to use these terms for the five-point stencil.
 #endif
       end
 c-----------------------------------------------------------------------
-      subroutine hgdiv(src, srcl0, srch0, srcl1, srch1,
-     & uf, vf, fl0, fh0, fl1, fh1,
-     & fregl0, fregh0, fregl1, fregh1,
-     & hx, hy, irz, imax)
+      subroutine hgdiv(
+     & src, srcl0, srch0, srcl1, srch1,
+     & uf, vf, 
+     &     fl0, fh0, fl1, fh1,
+     &     fregl0, fregh0, fregl1, fregh1,
+     & hx, hy, 
+     & irz, imax)
       integer srcl0, srch0, srcl1, srch1
       integer fl0, fh0, fl1, fh1
       integer fregl0, fregh0, fregl1, fregh1
@@ -297,10 +314,13 @@ c     We dont want to use these terms for the five-point stencil.
       end
 c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgfdiv(src, srcl0, srch0, srcl1, srch1,
-     & uc, vc, cl0, ch0, cl1, ch1,
-     & uf, vf, fl0, fh0, fl1, fh1,
-     & cregl0, cregh0, cregl1, cregh1,
+      subroutine hgfdiv(
+     & src, srcl0, srch0, srcl1, srch1,
+     & uc, vc, 
+     &     cl0, ch0, cl1, ch1,
+     & uf, vf, 
+     &     fl0, fh0, fl1, fh1,
+     &     cregl0, cregh0, cregl1, cregh1,
      & hx, hy, ir, jr, idim, idir, irz, imax)
       integer srcl0, srch0, srcl1, srch1
       integer cl0, ch0, cl1, ch1

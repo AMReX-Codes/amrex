@@ -55,50 +55,10 @@ inline IndexType::CellIndex type (const FabArray<Real,FArrayBox>& r, int idir)
     return r.box(0).type(idir);
 }
 
-//
-// Norm helper functions:
-//
-
-inline Real mfnorm_0 (const MultiFab& mf) 
-{
-    Real r = 0;
-    for (ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi) 
-    {
-	Real s = cmfi->norm(cmfi->box(), 0, 0, cmfi->nComp());
-	r = (r > s) ? r : s;
-    }
-    ParallelDescriptor::ReduceRealMax(r);
-    return r;
-}
-
-inline Real mfnorm_2 (const MultiFab& mf) 
-{
-    Real r = 0;
-    for (ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi) 
-    {
-	Real s = cmfi->norm(cmfi->box(), 2, 0, cmfi->nComp());
-	r += s*s;
-    }
-    ParallelDescriptor::ReduceRealSum(r);
-    return ::sqrt(r);
-}
-
-inline Real mfnorm (const MultiFab& mf) 
-{
-    Real r = 0;
-    BL_ASSERT(mf.nComp() == 1);
-    for (ConstMultiFabIterator cmfi(mf); cmfi.isValid(); ++cmfi) 
-    {
-	Real s = cmfi->norm(0);
-	r = (r > s) ? r : s;
-    }
-    ParallelDescriptor::ReduceRealMax(r);
-    return r;
-}
-
+#ifdef HG_DEBUG
 void hg_debug_norm_2 (const MultiFab& d, const char* str1, const char* str2);
 
-#ifdef HG_DEBUG
+#include <typeinfo>
 #include <fstream>
 extern std::ofstream debug_out;
 

@@ -57,7 +57,8 @@ void
 level_interface::copy (const level_interface& src)
 {
     if (ok())
-	BoxLib::Error( "level_interface::copy---this object already allocated" ); 
+	BoxLib::Error( "level_interface::copy"
+		       "this object already allocated" ); 
     
     status = 0;
 
@@ -89,12 +90,13 @@ level_interface::copy (const level_interface& src)
 
 void
 level_interface::alloc_coarsened (const BoxArray&           Im,
-                                  const amr_boundary_class* /*bdy*/,
+                                  const amr_boundary* /*bdy*/,
                                   const level_interface&    src,
                                   const IntVect&            rat)
 {
     if (ok())
-	BoxLib::Error( "level_interface::alloc_coarsened---this object already allocated" );
+	BoxLib::Error( "level_interface::alloc_coarsened"
+		       "this object already allocated" );
     
     status = 1;
     
@@ -166,10 +168,11 @@ level_interface::alloc_coarsened (const BoxArray&           Im,
 void
 level_interface::alloc (const BoxArray&           Im,
                         const Box&                Domain,
-                        const amr_boundary_class* bdy)
+                        const amr_boundary* bdy)
 {
     if (ok())
-	BoxLib::Error( "level_interface::alloc---this object already allocated" );
+	BoxLib::Error( "level_interface::alloc"
+		       "this object already allocated" );
     
     status = 3;
     
@@ -607,7 +610,8 @@ level_interface::xfer (const List<Box>& bl,
     for (int i = 0; bn; bn++, i++) 
     {
 	bx[idim][i] = bn();
-	const Box btmp = grow(bn(), bn().type()).convert(IntVect::TheCellVector());
+	const Box btmp =
+	    grow(bn(), bn().type()).convert(IntVect::TheCellVector());
 	IntVect tmp = btmp.smallEnd();
 	if (dom.contains(btmp)) 
 	{
@@ -639,39 +643,50 @@ level_interface::xfer (const List<Box>& bl,
 	else 
 	{
 	    bool is_in = dom.contains(tmp);
-	    ge[idim][i]  = ( is_in && im.contains(tmp) || !is_in && em.contains(tmp));
+	    ge[idim][i]  =
+		( is_in && im.contains(tmp) || !is_in && em.contains(tmp));
 #if (BL_SPACEDIM == 2)
 	    tmp += IntVect(1,0);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 1;
+	    ge[idim][i] |=
+		( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 1;
 	    tmp += IntVect(-1,1);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 2;
+	    ge[idim][i] |=
+		( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 2;
 	    tmp += IntVect(1,0);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 3;
+	    ge[idim][i] |=
+		( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 3;
 #else
 	    tmp += IntVect(1,0,0);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 1;
+	    ge[idim][i] |=
+		( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 1;
 	    tmp += IntVect(-1,1,0);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 2;
+	    ge[idim][i] |=
+		( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 2;
 	    tmp += IntVect(1,0,0);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 3;
+	    ge[idim][i] |=
+		( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 3;
 	    tmp += IntVect(-1,-1,1);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 4;
+	    ge[idim][i] |=
+		( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 4;
 	    tmp += IntVect(1,0,0);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 5;
+	    ge[idim][i] |=
+		( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 5;
 	    tmp += IntVect(-1,1,0);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 6;
+	    ge[idim][i] |=
+		( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 6;
 	    tmp += IntVect(1,0,0);
 	    is_in = dom.contains(tmp);
-	    ge[idim][i] |= ( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 7;
+	    ge[idim][i] |=
+		( is_in && im.contains(tmp) || !is_in && em.contains(tmp)) << 7;
 #endif
 	}
     }
@@ -704,7 +719,7 @@ level_interface::xfer (const List<Box>& bl,
     j = -1;
     while (++j < nbx[idim] && ge[idim][j] == ALL)
 	/* nothing*/;
-    int nff = j;
+    const int nff = j;
     //
     // Sort interior fine-fine boxes to beginning of list.
     //
@@ -761,7 +776,7 @@ level_interface::xfer (const List<Box>& bl,
 	    if (!btmp.intersects(idomain))
 		break;
 	}
-	int nin = j;
+	const int nin = j;
 	//
 	// Sort interior faces according to orientation, x first.
         //

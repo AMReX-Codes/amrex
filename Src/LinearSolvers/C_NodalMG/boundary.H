@@ -19,12 +19,12 @@
 // regardless of the type of the region.
 //
 
-class amr_boundary_class 
+class amr_boundary 
 {
 public:
-    amr_boundary_class () {}
+    amr_boundary () {}
 
-    virtual ~amr_boundary_class ();
+    virtual ~amr_boundary ();
 
     int dir (const Box&,
              const Box&) const;
@@ -84,31 +84,31 @@ protected:
 // a base for derivation.
 //
 
-class amr_fluid_boundary_class 
+class amr_fluid_boundary 
 {
 public:
 
-    amr_fluid_boundary_class ();
+    amr_fluid_boundary ();
 
-    virtual ~amr_fluid_boundary_class ();
+    virtual ~amr_fluid_boundary ();
     
-    virtual const amr_boundary_class* velocity (int i) const;
+    virtual const amr_boundary* velocity (int i) const;
 
-    virtual const amr_boundary_class* scalar() const;
+    virtual const amr_boundary* scalar() const;
 
-    virtual const amr_boundary_class* pressure() const;
+    virtual const amr_boundary* pressure() const;
 
-    virtual const amr_boundary_class* terrain_sigma() const;
+    virtual const amr_boundary* terrain_sigma() const;
 
 protected:
-    amr_boundary_class *v[BL_SPACEDIM];
-    amr_boundary_class *s;
-    amr_boundary_class *p;
-    amr_boundary_class *ts;
+    amr_boundary *v[BL_SPACEDIM];
+    amr_boundary *s;
+    amr_boundary *p;
+    amr_boundary *ts;
 };
 
 //
-// This is the object returned by the inviscid_fluid_boundary_class class.
+// This is the object returned by the inviscid_fluid_boundary class.
 // It chooses among periodic, reflection and negation boundary behavior
 // based on the boundary types accessed through the pointer and the
 // flow direction flowdim.
@@ -118,14 +118,15 @@ protected:
 // flowdim = -4 indicates the terrain sigma (all components)
 //
 
-class inviscid_fluid_boundary_class;
+class inviscid_fluid_boundary;
 
-class mixed_boundary_class : public amr_boundary_class 
+class mixed_boundary
+    : public amr_boundary 
 {
 public:
 
-    mixed_boundary_class (inviscid_fluid_boundary_class* Ptr,
-                          int                            idim)  
+    mixed_boundary (inviscid_fluid_boundary* Ptr,
+		    int                      idim)  
 	:
         ptr(Ptr),
         flowdim(idim) 
@@ -134,8 +135,6 @@ public:
     virtual Box box (const Box&,
                      const Box&,
                      int) const;
-
-    // virtual void fill(FArrayBox&, const Box&, const MultiFab&, int, const Box&) const;
 
     virtual void fill (FArrayBox&,
                        const Box&,
@@ -176,8 +175,8 @@ protected:
     //
     // The data.
     //
-    const inviscid_fluid_boundary_class* ptr;
-    const int                            flowdim;
+    const inviscid_fluid_boundary* ptr;
+    const int flowdim;
 };
 
 // This is a simple boundary condition with slip walls.
@@ -185,12 +184,13 @@ protected:
 // the domain.  Currently only periodic and refWall type
 // boundaries are supported.
 
-class inviscid_fluid_boundary_class : public amr_fluid_boundary_class 
+class inviscid_fluid_boundary
+    : public amr_fluid_boundary 
 {
-    friend class mixed_boundary_class;
+    friend class mixed_boundary;
 public:
-    inviscid_fluid_boundary_class(RegType Bc[BL_SPACEDIM][2]);
-    virtual ~inviscid_fluid_boundary_class();
+    explicit inviscid_fluid_boundary(RegType Bc[BL_SPACEDIM][2]);
+    virtual ~inviscid_fluid_boundary();
     RegType getLoBC(int idim) const;
     RegType getHiBC(int idim) const;
 protected:

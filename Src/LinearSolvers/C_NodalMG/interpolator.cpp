@@ -17,14 +17,16 @@
 
 extern "C" 
 {
-    void FORT_FACINT2(Real*, intS, intS, const Real*, intS, intS, intRS, const int&);
-    void FORT_FANINT2(Real*, intS, intS, const Real*, intS, intS, intRS, const int&);
+    void FORT_FACINT2(Real*, intS, intS, const Real*,
+		      intS, intS, intRS, const int&);
+    void FORT_FANINT2(Real*, intS, intS, const Real*,
+		      intS, intS, intRS, const int&);
 }
 
-amr_interpolator_class::~amr_interpolator_class () {}
+amr_interpolator::~amr_interpolator () {}
 
 Box
-bilinear_interpolator_class::box (const Box&     region,
+bilinear_interpolator::box (const Box&     region,
                                   const IntVect& rat) const
 {
     if (region.cellCentered()) 
@@ -37,21 +39,26 @@ bilinear_interpolator_class::box (const Box&     region,
     }
     else 
     {
-	BoxLib::Abort( "bilinear_interpolator_class::box(): Interpolation only defined for pure CELL- or NODE-based data" ); /*NOTREACHED*/
+	BoxLib::Abort( "bilinear_interpolator::box():"
+		       "Interpolation only defined for pure CELL- or NODE-based data" ); /*NOTREACHED*/
 	return Box();
     }
 }
 
 void
-bilinear_interpolator_class::fill (FArrayBox&       patch,
-                                   const Box&       region,
-                                   const FArrayBox& cgr,
-                                   const Box&       cb,
-                                   const IntVect&   rat) const
+bilinear_interpolator::fill (FArrayBox&       patch,
+			     const Box&       region,
+			     const FArrayBox& cgr,
+			     const Box&       cb,
+			     const IntVect&   rat) const
 {
     if (patch.box().cellCentered()) 
     {
-	FORT_FACINT2(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), cgr.dataPtr(), DIMLIST(cgr.box()), DIMLIST(cb), D_DECL(rat[0], rat[1], rat[2]), patch.nComp());
+	FORT_FACINT2(
+	    patch.dataPtr(), DIMLIST(patch.box()),
+	    DIMLIST(region),
+	    cgr.dataPtr(), DIMLIST(cgr.box()),
+	    DIMLIST(cb), D_DECL(rat[0], rat[1], rat[2]), patch.nComp());
     }
     else if (patch.box().type() == IntVect::TheNodeVector()) 
     {
@@ -59,17 +66,26 @@ bilinear_interpolator_class::fill (FArrayBox&       patch,
 
 	if (eregion == region) 
 	{
-	    FORT_FANINT2(patch.dataPtr(), DIMLIST(patch.box()), DIMLIST(region), cgr.dataPtr(), DIMLIST(cgr.box()), DIMLIST(cb), D_DECL(rat[0], rat[1], rat[2]), patch.nComp());
+	    FORT_FANINT2(
+		patch.dataPtr(), DIMLIST(patch.box()),
+		DIMLIST(region),
+		cgr.dataPtr(), DIMLIST(cgr.box()),
+		DIMLIST(cb), D_DECL(rat[0], rat[1], rat[2]), patch.nComp());
 	}
 	else 
 	{
 	    FArrayBox epatch(eregion, patch.nComp());
-	    FORT_FANINT2(epatch.dataPtr(), DIMLIST(epatch.box()), DIMLIST(eregion), cgr.dataPtr(), DIMLIST(cgr.box()), DIMLIST(cb), D_DECL(rat[0], rat[1], rat[2]), patch.nComp());
+	    FORT_FANINT2(
+		epatch.dataPtr(), DIMLIST(epatch.box()),
+		DIMLIST(eregion),
+		cgr.dataPtr(), DIMLIST(cgr.box()),
+		DIMLIST(cb), D_DECL(rat[0], rat[1], rat[2]), patch.nComp());
 	    patch.copy(epatch,region);
 	}
     }
     else
     {
-	BoxLib::Abort( "bilinear_interpolator_class::fill(): Interpolation only defined for pure CELL- or NODE-based data" );
+	BoxLib::Abort( "bilinear_interpolator::fill():"
+		       "Interpolation only defined for pure CELL- or NODE-based data" );
     }
 }

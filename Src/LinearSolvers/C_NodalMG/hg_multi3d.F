@@ -8,7 +8,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
      & sigmaf, sfl0,sfh0,sfl1,sfh1,sfl2,sfh2,
      & sigmac, scl0,sch0,scl1,sch1,scl2,sch2,
      &         regl0,regh0,regl1,regh1,regl2,regh2,
-     & hx, hy, hz, ir, jr, kr, idim, idir)
+     & hx, hy, hz, ir, jr, kr, idim, idir,idd)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer fdstl0,fdsth0,fdstl1,fdsth1,fdstl2,fdsth2
@@ -24,6 +24,7 @@ c Note---assumes fdst linearly interpolated from cdst along face
       double precision sigmac(scl0:sch0,scl1:sch1,scl2:sch2)
       double precision hx, hy, hz
       integer ir, jr, kr, idim, idir
+      integer idd
       double precision hxm2, hym2, hzm2, fac0, fac1, fac2, tmp
       integer i, j, k, is, js, ks, l, m, n
       if (idim .eq. 0) then
@@ -1171,7 +1172,7 @@ c weighting
       end
 c-----------------------------------------------------------------------
 c NODE-based data, factor of 2 only.
-      subroutine hgints_no_sigma(
+      subroutine hgints_dense(
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
      &       regl0,regh0,regl1,regh1,regl2,regh2,
      & sigx, sigy, sigz,
@@ -1715,13 +1716,14 @@ c-----------------------------------------------------------------------
       subroutine hgcen(
      & cen,   cenl0,cenh0,cenl1,cenh1,cenl2,cenh2,
      & signd, snl0,snh0,snl1,snh1,snl2,snh2,
-     &        regl0,regh0,regl1,regh1,regl2,regh2)
+     &        regl0,regh0,regl1,regh1,regl2,regh2,idd)
       integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
       integer snl0,snh0,snl1,snh1,snl2,snh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       double precision signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
       integer i, j, k
+      integer idd
       do k = regl2, regh2
          do j = regl1, regh1
             do i = regl0, regh0
@@ -1738,7 +1740,7 @@ c sig here contains three different directions all stored on "nodes"
      & cor, res, sig, cen,
      &     resl0,resh0,resl1,resh1,resl2,resh2,
      & mask,
-     &     regl0,regh0,regl1,regh1,regl2,regh2)
+     &     regl0,regh0,regl1,regh1,regl2,regh2,idd)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       double precision cor(*)
@@ -1748,6 +1750,7 @@ c sig here contains three different directions all stored on "nodes"
       double precision mask(*)
       double precision AVG
       integer i, jdiff, kdiff, ly, lz
+      integer idd
       AVG() = (sig(i-1)        * cor(i-1) +
      &         sig(i)          * cor(i+1) +
      &         sig(i+ly-jdiff) * cor(i-jdiff) +
@@ -2180,7 +2183,8 @@ c-----------------------------------------------------------------------
       subroutine hgresu(
      & res, resl0,resh0,resl1,resh1,resl2,resh2,
      & src, dest, signd, mask,
-     &      regl0,regh0,regl1,regh1,regl2,regh2)
+     &      regl0,regh0,regl1,regh1,regl2,regh2,
+     & idd)
       integer resl0,resh0,resl1,resh1,resl2,resh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
       double precision res(*)
@@ -2189,6 +2193,7 @@ c-----------------------------------------------------------------------
       double precision signd(*)
       double precision mask(*)
       integer i, jdiff, kdiff, ly, lz
+      integer idd
       jdiff = resh0 - resl0 + 1
       kdiff = (resh1 - resl1 + 1) * jdiff
       ly    = (resh2 - resl2 + 1) * kdiff
@@ -2260,7 +2265,7 @@ c-----------------------------------------------------------------------
      & sigx, sigy, sigz,
      &       sbl0,sbh0,sbl1,sbh1,sbl2,sbh2,
      &       regl0,regh0,regl1,regh1,regl2,regh2,
-     & hx, hy, hz)
+     & hx, hy, hz, idd)
       integer cenl0,cenh0,cenl1,cenh1,cenl2,cenh2
       integer sbl0,sbh0,sbl1,sbh1,sbl2,sbh2
       integer regl0,regh0,regl1,regh1,regl2,regh2
@@ -2271,6 +2276,7 @@ c-----------------------------------------------------------------------
       double precision hx, hy, hz
       double precision hxm2, hym2, hzm2
       integer k, j, i
+      integer idd
       hxm2 = 1.0D0 / (hx*hx)
       hym2 = 1.0D0 / (hy*hy)
       hzm2 = 1.0D0 / (hz*hz)

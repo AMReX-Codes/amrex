@@ -14,6 +14,8 @@
 #include <new>
 #ifndef __GNUC__
 #include <sstream>
+#else
+#include <cstdio>
 #endif
 using namespace std;
 
@@ -21,6 +23,7 @@ using namespace std;
 #include <iostream.h>
 #include <iomanip.h>
 #include <fstream.h>
+#include <stdio.h>
 #include <new.h>
 #endif
 
@@ -41,24 +44,31 @@ void driver(const char* filename);
 int pcode = 4;
 int nrep  = 1;
 Real tol = 2.e-10;
+int coordsys = 0;
 
-int main(int argc, char **argv)
+holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::cross;
+
+int
+main(int argc, char **argv)
 {
 #ifndef WIN32
     set_new_handler(Utility::OutOfMemory);
 #endif
     ParallelDescriptor::StartParallel(&argc, &argv);
-    if ( argc < 2 ) BoxLib::Error("loose");
+    if ( argc < 2 ) BoxLib::Error("expected inputs file");
     ParmParse pp(argc-2,argv+2, 0, argv[1]);
 
     HG_is_debugging = true;   
     HG_is_debugging = false;   
 #ifdef HG_DEBUG
 #ifdef __GNUC__
-    debug_out.open("guf");
+    char buf[1024];
+    sprintf(buf, "guf%d_%d", ParallelDescriptor::NProcs(), ParallelDescriptor::MyProc());
+    debug_out.open(buf);
 #else
     std::ostringstream fname;
-    fname << "gu" << ParallelDescriptor::NProcs() << "_" << ParallelDescriptor::MyProc() << std::ends;
+    fname << "gu" << ParallelDescriptor::NProcs()
+	  << "_" << ParallelDescriptor::MyProc() << std::ends;
     debug_out.open(fname.str().c_str(), ios::trunc);
 #endif
     if ( debug_out.fail() ) BoxLib::Error( "Failed to open debug file" );
@@ -70,13 +80,34 @@ int main(int argc, char **argv)
     pp.query("sleep", slp);
     if ( slp > 0 )
     {
-	cout << "going to sleep for " << slp << " seconds, debug pid = " << ::getpid() << endl;
+	cout << "going to sleep for " << slp
+	     << " seconds, debug pid = " << ::getpid() << endl;
 	::sleep(slp);
     }
 #endif
     pp.query("nrep", nrep);
     pp.query("pcode", pcode);
     pp.query("tol", tol);
+    pp.query("coordsys", coordsys);
+    aString stencil;
+    pp.query("stencil", stencil);
+    if ( stencil == "cross" )
+    {
+	hg_stencil = holy_grail_amr_multigrid::cross;
+    }
+    else if ( stencil == "terrain" )
+    {
+	hg_stencil = holy_grail_amr_multigrid::terrain;
+    }
+    else if ( stencil == "full" )
+    {
+	hg_stencil = holy_grail_amr_multigrid::full;
+    }
+    else
+    {
+	BoxLib::Error("stencil must be cross, terrain, or full");
+    }
+
     if ( ParallelDescriptor::IOProcessor() )
     {
 	cout << "nrep = " << nrep << endl;
@@ -132,7 +163,8 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void driver(const char *filename)
+void
+driver(const char *filename)
 {
     Array<BoxArray> m;
     Array<IntVect> ratio;
@@ -150,9 +182,9 @@ void driver(const char *filename)
     projtest(m, ratio, domain);
 }
 
-holy_grail_amr_multigrid::stencil hg_stencil = holy_grail_amr_multigrid::cross;
-
-void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m, const Array<IntVect>& ratio)
+void
+init(PArray<MultiFab> u[], PArray<MultiFab>& p,
+     const Array<BoxArray>& m, const Array<IntVect>& ratio)
 {
 #if (BL_SPACEDIM == 2)
     for (int ilev = 0; ilev < m.length(); ilev++) 
@@ -182,18 +214,24 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m, c
 	//u[0][1][0](IntVect(22,12)) = 1.0;
 	if (hg_stencil != holy_grail_amr_multigrid::terrain)
 	{
-	    if ( is_local(u[0][0], 0) ) u[0][0][0](IntVect(12,12)) = 3.0;
+	    if ( is_local(u[0][0], 0) )
+		u[0][0][0](IntVect(12,12)) = 3.0;
 	}
 	else
-	    if ( is_local(u[0][0], 0) ) u[0][0][0](IntVect(12,12)) = 3.0 * ratio[0][0];
+	{
+//	    if ( is_local(u[0][0], 0) )
+//		u[0][0][0](IntVect(12,12)) = 3.0 * ratio[0][0];
+	    if ( is_local(u[0][0], 0) )
+		u[0][0][0](IntVect(12,12)) = 3.0;
 	    /*
-	    if (m[0].domain().length(0) == 32)
-	    u[0][1][0](IntVect(30,30)) = 1.0;
-	    else if (m[0].domain().length(0) == 64)
-	    u[0][1][0](IntVect(60,60)) = 1.0;
-	    else
-	    u[0][1][0](IntVect(120,120)) = 1.0;
-	*/
+	      if (m[0].domain().length(0) == 32)
+	      u[0][1][0](IntVect(30,30)) = 1.0;
+	      else if (m[0].domain().length(0) == 64)
+	      u[0][1][0](IntVect(60,60)) = 1.0;
+	      else
+	      u[0][1][0](IntVect(120,120)) = 1.0;
+	    */
+	}
     }
     else 
     {
@@ -208,7 +246,8 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m, c
 		u_dmfi->setVal(0.0, m[ilev][u_mfi.index()], 0);
 	    }
 	}
-	if ( is_local(u[0][2], 0) ) u[0][2][0](m[2][0].smallEnd() + IntVect(10,10)) = 3.0;
+	if ( is_local(u[0][2], 0) )
+	    u[0][2][0](m[2][0].smallEnd() + IntVect(10,10)) = 3.0;
 	// for gr2ann
 	//u[0][2][0](IntVect(20,20)) = 1.0;
 	//u[0][2][0](IntVect(20,20)) = 0.0;
@@ -266,7 +305,8 @@ void init(PArray<MultiFab> u[], PArray<MultiFab>& p, const Array<BoxArray>& m, c
 }
 
 #if (BL_SPACEDIM == 2)
-void hb93_test1(PArray<MultiFab> u[], const Array<BoxArray>& m, const Array<Box>& d)
+void
+hb93_test1(PArray<MultiFab> u[], const Array<BoxArray>& m, const Array<Box>& d)
 {
     for (int ilev = 0 ; ilev < m.length() ; ilev++) 
     {
@@ -276,9 +316,11 @@ void hb93_test1(PArray<MultiFab> u[], const Array<BoxArray>& m, const Array<Box>
 	{
 	    DependentMultiFabIterator u_dmfi(u_mfi, u[1][ilev]);
 	    int igrid = u_mfi.index();
-	    for (int i = m[ilev][igrid].smallEnd(0); i <= m[ilev][igrid].bigEnd(0); i++) 
+	    for (int i = m[ilev][igrid].smallEnd(0);
+		 i <= m[ilev][igrid].bigEnd(0); i++) 
 	    {
-		for (int j = m[ilev][igrid].smallEnd(1); j <= m[ilev][igrid].bigEnd(1); j++) 
+		for (int j = m[ilev][igrid].smallEnd(1);
+		     j <= m[ilev][igrid].bigEnd(1); j++) 
 		{
 		    double x = (i + 0.5) * h;
 		    double y = (j + 0.5) * h;
@@ -294,7 +336,8 @@ void hb93_test1(PArray<MultiFab> u[], const Array<BoxArray>& m, const Array<Box>
     }
 }
 
-void linear_test(PArray<MultiFab> u[], const Array<BoxArray>& m, const Array<Box>& d)
+void
+linear_test(PArray<MultiFab> u[], const Array<BoxArray>& m, const Array<Box>& d)
 {
     for (int ilev = 0 ; ilev < m.length() ; ilev++) 
     {
@@ -303,9 +346,11 @@ void linear_test(PArray<MultiFab> u[], const Array<BoxArray>& m, const Array<Box
 	{
 	    DependentMultiFabIterator u_dmfi(u_mfi, u[1][ilev]);
 	    int igrid = u_mfi.index();
-	    for (int i = m[ilev][igrid].smallEnd(0); i <= m[ilev][igrid].bigEnd(0); i++) 
+	    for (int i = m[ilev][igrid].smallEnd(0);
+		 i <= m[ilev][igrid].bigEnd(0); i++) 
 	    {
-		for (int j = m[ilev][igrid].smallEnd(1); j <= m[ilev][igrid].bigEnd(1); j++) 
+		for (int j = m[ilev][igrid].smallEnd(1);
+		     j <= m[ilev][igrid].bigEnd(1); j++) 
 		{
 		    double x = (i + 0.5) * h;
 		    // double y = (j + 0.5) * h;
@@ -317,9 +362,10 @@ void linear_test(PArray<MultiFab> u[], const Array<BoxArray>& m, const Array<Box
     }
 }
 
-void rz_adj(PArray<MultiFab> u[], PArray<MultiFab>& rhs,
-	    PArray<MultiFab>& rhoinv, const Array<BoxArray>& m,
-	    const Array<Box>& d)
+void
+rz_adj(PArray<MultiFab> u[], PArray<MultiFab>& rhs,
+       PArray<MultiFab>& rhoinv, const Array<BoxArray>& m,
+       const Array<Box>& d)
 {
     for (int ilev = 0 ; ilev < m.length() ; ilev++) 
     {
@@ -329,9 +375,11 @@ void rz_adj(PArray<MultiFab> u[], PArray<MultiFab>& rhs,
 	{
 	    DependentMultiFabIterator r_dmfi(u_mfi, rhoinv[ilev]);
 	    int igrid = u_mfi.index();
-	    for (int i = m[ilev][igrid].smallEnd(0); i <= m[ilev][igrid].bigEnd(0); i++) 
+	    for (int i = m[ilev][igrid].smallEnd(0);
+		 i <= m[ilev][igrid].bigEnd(0); i++) 
 	    {
-		for (int j = m[ilev][igrid].smallEnd(1) - 1; j <= m[ilev][igrid].bigEnd(1); j++) 
+		for (int j = m[ilev][igrid].smallEnd(1) - 1;
+		     j <= m[ilev][igrid].bigEnd(1); j++) 
 		{
 		    double x = (i + 0.5) * h;
 		    // double y = (j + 0.5) * h;
@@ -348,14 +396,17 @@ void rz_adj(PArray<MultiFab> u[], PArray<MultiFab>& rhs,
 }
 #endif
 
-void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
+void
+projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
 {
-    // Note:  For terrain problems, h is ignored.
-  Geometry crse_geom(domain[0]);
+    // Note:  For terrain and full problems, h is ignored.
+    Geometry crse_geom(domain[0]);
   
     Real h[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++)
+    {
 	h[i] = 1;
+    }
     
     RegType bc[BL_SPACEDIM][2];
     
@@ -366,16 +417,18 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
 	// bc[i][0] = periodic;
 	// bc[i][1] = periodic;
     }
-    bc[1][0] = refWall;
-    bc[1][1] = refWall;
-    bc[1][0] = inflow;
-    bc[1][1] = outflow;
+    // bc[1][0] = refWall;
+    // bc[1][1] = refWall;
+    // bc[1][0] = inflow;
+    // bc[1][1] = outflow;
         
     PArray<MultiFab> u[BL_SPACEDIM];
     PArray<MultiFab> p, rhoinv, rhs;
     
     for (int i = 0; i < BL_SPACEDIM; i++)
+    {
 	u[i].resize(m.length());
+    }
     p.resize(m.length());
     rhoinv.resize(m.length());
     rhs.resize(m.length());
@@ -386,20 +439,32 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
 	BoxArray nmesh = cmesh;
 	nmesh.convert(IndexType(IntVect::TheNodeVector()));
 	for (int i = 0; i < BL_SPACEDIM; i++)
+	{
 	    u[i].set(ilev, new MultiFab(cmesh, 1, 1));
+	}
 	p.set(ilev, new MultiFab(nmesh, 1, 1));
 	if (hg_stencil == holy_grail_amr_multigrid::terrain)
 	{
+	    rhoinv.set(ilev, new MultiFab(cmesh, 2*BL_SPACEDIM-1, 0));
+	    rhoinv[ilev].setVal(1.0);
+	    if ( true )
+	    {
+		rhoinv[ilev].setVal(0.0, BL_SPACEDIM, BL_SPACEDIM-1);
+	    }
+	    else
+	    {
 #if (BL_SPACEDIM == 2)
-	    rhoinv.set(ilev, new MultiFab(cmesh, 3, 0));
-	    rhoinv[ilev].setVal(1.0);
-	    rhoinv[ilev].setVal(0.2, 2, 1);
+		rhoinv[ilev].setVal(0.2, 2, 1);
 #else
-	    rhoinv.set(ilev, new MultiFab(cmesh, 5, 0));
-	    rhoinv[ilev].setVal(1.0);
-	    rhoinv[ilev].setVal(0.2, 3, 1);
-	    rhoinv[ilev].setVal(0.5, 4, 1);
+		rhoinv[ilev].setVal(0.2, 3, 1);
+		rhoinv[ilev].setVal(0.5, 4, 1);
 #endif
+	    }
+	}
+	else if ( hg_stencil == holy_grail_amr_multigrid::full )
+	{
+	    rhoinv.set(ilev, new MultiFab(cmesh, BL_SPACEDIM, 0));
+	    rhoinv[ilev].setVal(1.0);
 	}
 	else
 	{
@@ -421,20 +486,49 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
 	{
 	    rat *= ratio[ilev-1];
 #if (BL_SPACEDIM == 2)
-	    rhoinv[ilev].mult((Real) rat[0] / rat[1], 0, 1);
-	    rhoinv[ilev].mult((Real) rat[1] / rat[0], 1, 1);
+	    rhoinv[ilev].mult(Real(rat[0]) / rat[1], 0, 1);
+	    rhoinv[ilev].mult(Real(rat[1]) / rat[0], 1, 1);
 	    // component 2 remains unchanged
 #else
-	    rhoinv[ilev].mult((Real) rat[0] / (rat[1] * rat[2]), 0, 1);
-	    rhoinv[ilev].mult((Real) rat[1] / (rat[0] * rat[2]), 1, 1);
-	    rhoinv[ilev].mult((Real) rat[2] / (rat[0] * rat[1]), 2, 1);
-	    rhoinv[ilev].mult(1.0 / rat[1]                     , 3, 1);
-	    rhoinv[ilev].mult(1.0 / rat[0]                     , 4, 1);
+	    rhoinv[ilev].mult(Real(rat[0]) / (rat[1] * rat[2]), 0, 1);
+	    rhoinv[ilev].mult(Real(rat[1]) / (rat[0] * rat[2]), 1, 1);
+	    rhoinv[ilev].mult(Real(rat[2]) / (rat[0] * rat[1]), 2, 1);
+	    rhoinv[ilev].mult(1.0 /rat[1]                     , 3, 1);
+	    rhoinv[ilev].mult(1.0 /rat[0]                     , 4, 1);
 #endif
 	}
     }
-    
+    else if (hg_stencil == holy_grail_amr_multigrid::full)
+    {
+	// Adjust sigmas using refinement ratio information.
+	// Assume spacing on level 0 already incorporated into values assigned above.
+	// (h is ignored.)
+	IntVect rat = IntVect::TheUnitVector();
+	for (int ilev = 1; ilev < m.length(); ilev++) 
+	{
+	    rat *= ratio[ilev-1];
+#if (BL_SPACEDIM == 2)
+	    rhoinv[ilev].mult(Real(rat[0]) / rat[1], 0, 1);
+	    rhoinv[ilev].mult(Real(rat[1]) / rat[0], 1, 1);
+	    // component 2 remains unchanged
+#else
+	    rhoinv[ilev].mult(Real(rat[0]) / (rat[1] * rat[2]), 0, 1);
+	    rhoinv[ilev].mult(Real(rat[1]) / (rat[0] * rat[2]), 1, 1);
+	    rhoinv[ilev].mult(Real(rat[2]) / (rat[0] * rat[1]), 2, 1);
+#endif
+	}
+    }
     init(u, p, m, ratio);
+    for(int ilev = 0; ilev < m.length(); ilev++)
+    {
+	HG_TEST_NORM( rhoinv[ilev], "proj");
+	HG_TEST_NORM(p[ilev], "proj");
+	for ( int i = 0; i < BL_SPACEDIM; ++i)
+	{
+	    HG_TEST_NORM( u[i][ilev], "proj");
+	}
+    }
+	    
     
 #if (BL_SPACEDIM == 2)
     //hb93_test1(u, m);
@@ -473,7 +567,8 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
     #else
     Box bb(IntVect(0,0,0),IntVect(8,8,8));
     #endif
-    for (ilev = 0; ilev < m.length(); ilev++) {
+    for (ilev = 0; ilev < m.length(); ilev++)
+    {
     Box b = refine(bb, m[ilev].sig()/16);
     for (int igrid = 0; igrid < m[ilev].length(); igrid++) 
     {
@@ -551,15 +646,21 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
     //Real tol = 5.e-9;
 #endif
     t0 = Utility::second();
-    inviscid_fluid_boundary_class afb(bc);
-    holy_grail_amr_projector proj(m, ratio, domain[m.length() - 1], 0, m.length() - 1, m.length() - 1, afb, holy_grail_amr_multigrid::cross, pcode);
-#if (BL_SPACEDIM == 2)
-    if (false && hg_stencil != holy_grail_amr_multigrid::terrain)
+    inviscid_fluid_boundary afb(bc);
+    holy_grail_amr_projector proj(m, ratio,
+				  domain[m.length() - 1], 0,
+				  m.length() - 1, m.length() - 1,
+				  afb, hg_stencil, pcode);
+
+#if BL_SPACEDIM == 2
+    if (   coordsys == amr_multigrid::rz
+	&& hg_stencil == holy_grail_amr_multigrid::cross)
     {
 	rz_adj(u, rhs, rhoinv, m, domain);
-	proj.SetRZ();
+	proj.setCoordSys(amr_multigrid::rz);
     }
 #endif
+    
     //proj.smoother_mode  = 1;
     //proj.line_solve_dim = BL_SPACEDIM - 1;
     //proj.line_solve_dim = -1;
@@ -568,16 +669,20 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
     {
 	t1 = Utility::second();
 	proj.project(u, p, null_amr_real, rhoinv,
-		     0, 0, crse_geom, false,
+		     0, 0, crse_geom,
 		     h, tol);
 	for (int i = 1; i < nrep; i++) 
 	{
 	    init(u, p, m, ratio);
 	    proj.project(u, p, null_amr_real, rhoinv,
-			 0, 0, crse_geom, false,
+			 0, 0, crse_geom,
 			 h, tol);
 	}
 	t2 = Utility::second();
+	for(int i = 0; i < BL_SPACEDIM; ++i )
+	{
+	    HG_TEST_NORM( u[i][0], "proj");
+	}
 	if ( ParallelDescriptor::IOProcessor() )
 	{
 	    cout << "Init time was " << t1 - t0 << endl;
@@ -589,7 +694,8 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
 	    cout << setprecision(16);
 	    for(int i = 0; i < BL_SPACEDIM; ++i)
 	    {
-		cout << "uvm"[i] << "min = " << u[i][0].min(0) << ", " << "uvw"[i] << "max = " << u[i][0].max(0) << endl;
+		cout << "uvm"[i] << "min = " << u[i][0].min(0)
+		     << ", " << "uvw"[i] << "max = " << u[i][0].max(0) << endl;
 	    }
 	    cout << setprecision(6);
 	}
@@ -599,20 +705,26 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
 	//proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 0);
 	//proj.project(u, p, null_amr_real, rhoinv, h, tol, 1, 1);
 	for (int i = 0; i < p.length(); i++)
+	{
 	    p[i].setVal(0.0);
+	}
 	t1 = Utility::second();
 	proj.project(u, p, null_amr_real, rhoinv,
-		     0, 0, crse_geom, false,
+		     0, 0, crse_geom,
 		     h, tol, 0, 1);
 	//proj.manual_project(u, p, rhs, null_amr_real, rhoinv, 1, h, tol, 0, 1);
 	for (int i = 1; i < nrep; i++) 
 	{
 	    init(u, p, m, ratio);
 	    proj.project(u, p, null_amr_real, rhoinv,
-			 0, 0, crse_geom, false,
+			 0, 0, crse_geom,
 			 h, tol, 0, 1);
 	}
 	t2 = Utility::second();
+	for(int i = 0; i < BL_SPACEDIM; ++i )
+	{
+	    HG_TEST_NORM( u[i][0], "proj");
+	}
 	if ( ParallelDescriptor::IOProcessor() )
 	{
 	    cout << "First time is " << t1 - t0 << endl;
@@ -637,28 +749,36 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
         init(u, p, m, ratio);
 	t00 = Utility::second();
 	proj.project(u, p, null_amr_real, rhoinv,
-		     0, 0, crse_geom, false,
+		     0, 0, crse_geom,
 		     h, tol,
 		     2, 2);
 	t01 = Utility::second();
 	for (int i = 0; i < p.length(); i++)
+	{
 	    p[i].setVal(0.0);
+	}
         init(u, p, m, ratio);
 	t10 = Utility::second();
 	proj.project(u, p, null_amr_real, rhoinv,
-		     0, 0, crse_geom, false,
+		     0, 0, crse_geom,
 		     h, tol,
 		     1, 2);
 	t11 = Utility::second();
 	for (int i = 0; i < p.length(); i++)
+	{
 	    p[i].setVal(0.0);
+	}
         init(u, p, m, ratio);
 	t20 = Utility::second();
 	proj.project(u, p, null_amr_real, rhoinv,
-		     0, 0, crse_geom, false,
+		     0, 0, crse_geom,
 		     h, tol,
 		     0, 2);
 	t21 = Utility::second();
+	for(int i = 0; i < BL_SPACEDIM; ++i )
+	{
+	    HG_TEST_NORM( u[i][0], "proj");
+	}
 	if ( ParallelDescriptor::IOProcessor() )
 	{
 	    cout << "First time is " << t01 - t00 << endl;
@@ -671,10 +791,14 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
     {
 	proj.make_it_so();
 	proj.manual_project(u, p, null_amr_real, rhs, rhoinv,
-			    0, 0, crse_geom, false,
+			    0, 0, crse_geom,
 			    true,
 			    h, tol, 0, 3);
 	t1 = Utility::second();
+	for(int i = 0; i < BL_SPACEDIM; ++i )
+	{
+	    HG_TEST_NORM( u[i][0], "proj");
+	}
 	cout << "First time is " << t1 - t0 << endl;
     }
     /*
@@ -692,7 +816,9 @@ void projtest(const Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domai
     for (int ilev = 0; ilev < m.length(); ilev++) 
     {
 	for (int i = 0; i < BL_SPACEDIM; i++)
+	{
 	    delete u[i].remove(ilev);
+	}
 	delete rhoinv.remove(ilev);
 	delete p.remove(ilev);
 	delete rhs.remove(ilev);

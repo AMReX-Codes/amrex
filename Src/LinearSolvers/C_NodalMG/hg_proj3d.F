@@ -1,5 +1,5 @@
 c-----------------------------------------------------------------------
-      subroutine hggrad_terrain(
+      subroutine hggrad_dense(
      & gpx, gpy, gpz,
      &       gpl0,gph0,gpl1,gph1,gpl2,gph2,
      & dest, destl0,desth0,destl1,desth1,destl2,desth2,
@@ -37,7 +37,7 @@ c-----------------------------------------------------------------------
       end do
       end
 c-----------------------------------------------------------------------
-      subroutine hgdiv_terrain(
+      subroutine hgdiv_dense(
      & src, srcl0,srch0,srcl1,srch1,srcl2,srch2,
      & uf, vf, wf,
      &      fl0,fh0,fl1,fh1,fl2,fh2,
@@ -76,14 +76,14 @@ c-----------------------------------------------------------------------
       end
 c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgfdiv_terrain(
+      subroutine hgfdiv_dense(
      & src, srcl0,srch0,srcl1,srch1,srcl2,srch2,
      & uc, vc, wc,
      &      cl0,ch0,cl1,ch1,cl2,ch2,
      & uf, vf, wf,
      &      fl0,fh0,fl1,fh1,fl2,fh2,
      &      cregl0,cregh0,cregl1,cregh1,cregl2,cregh2,
-     & hx, hy, hz, ir, jr, kr, idim, idir)
+     & hx, hy, hz, ir, jr, kr, idim, idir, idd1, idd2)
       integer srcl0,srch0,srcl1,srch1,srcl2,srch2
       integer cl0,ch0,cl1,ch1,cl2,ch2
       integer fl0,fh0,fl1,fh1,fl2,fh2
@@ -99,6 +99,7 @@ c Note---only generates values at coarse points along edge of fine grid
       integer ir, jr, kr, idim, idir
       double precision fac0, fac1, fac, tmp
       integer i, j, k, iuc, iuf, juc, juf, kuc, kuf, l, m, n
+      integer idd1, idd2
       if (idim .eq. 0) then
          i = cregl0
          if (idir .eq. 1) then
@@ -289,7 +290,7 @@ c Note---only generates values at coarse points along edge of fine grid
       end
 c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgediv_terrain(
+      subroutine hgediv_dense(
      & src, srcl0,srch0,srcl1,srch1,srcl2,srch2,
      & uc, vc, wc,
      &      cl0,ch0,cl1,ch1,cl2,ch2,
@@ -661,7 +662,7 @@ c weighting
       end
 c-----------------------------------------------------------------------
 c Note---only generates values at coarse points along edge of fine grid
-      subroutine hgcdiv_terrain(
+      subroutine hgcdiv_dense(
      & src, srcl0,srch0,srcl1,srch1,srcl2,srch2,
      & uc, vc, wc,
      &      cl0,ch0,cl1,ch1,cl2,ch2,

@@ -24,7 +24,7 @@ public:
                               int                             Lev_min_min,
                               int                             Lev_min_max,
                               int                             Lev_max_max,
-                              const amr_fluid_boundary_class& Boundary,
+                              const amr_fluid_boundary& Boundary,
                               stencil                         stencil_ = cross,
                               int                             Pcode = 2)
 	:
@@ -103,6 +103,7 @@ public:
                   int               Lev_max = -1,
                   Real              scale = 0.0);
 
+#ifdef HG_USE_SYNC_PROJECT
     void sync_project (PArray<MultiFab>* u,
                        PArray<MultiFab>& p,
                        PArray<MultiFab>& Coarse_source,
@@ -112,7 +113,8 @@ public:
                        int               Lev_max = -1,
                        Real              scale = 0.0) 
     {
-	sync_project(u, p, Coarse_source, null_amr_real, H, tol, Lev_min, Lev_max, scale);
+	sync_project(u, p, Coarse_source, null_amr_real, H, tol,
+		     Lev_min, Lev_max, scale);
     }
 
     void sync_project (PArray<MultiFab>* u,
@@ -124,6 +126,7 @@ public:
                        int               Lev_min = -1,
                        int               Lev_max = -1,
                        Real              scale = 0.0);
+#endif
     //
     // This is the do-it-yourself version:  The right hand side for the
     // elliptic solve is specified in rhs.  The resulting potential will
@@ -196,14 +199,19 @@ protected:
 
     void right_hand_side (PArray<MultiFab>* u, PArray<MultiFab>& S,
                           int for_sync_reg);
+#ifdef HG_USE_SYNC_PROJECT
     void sync_right_hand_side (PArray<MultiFab>* u);
+#endif
     void interface_average (PArray<MultiFab>& S, int lev);
     void interface_divergence (PArray<MultiFab>* u, int lev);
-    void form_solution_vector (PArray<MultiFab>* u, const PArray<MultiFab>& sigma_in);
+    void form_solution_vector (PArray<MultiFab>* u,
+			       const PArray<MultiFab>& sigma_in);
     void sparse_node_source_adjustment (PArray<MultiFab>& sparse_source);
-    void grid_divergence (PArray<MultiFab>* u, PArray<MultiFab>& s,
+    void grid_divergence (PArray<MultiFab>* u,
+			  PArray<MultiFab>& s,
                           int for_sync_reg);
-    void grid_average (PArray<MultiFab>& S, PArray<MultiFab>& src,        
+    void grid_average (PArray<MultiFab>& S,
+		       PArray<MultiFab>& src,        
                        int for_sync_reg);
     //
     // The data.
