@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: FabSet.cpp,v 1.10 1998-05-22 21:52:50 lijewski Exp $
+// $Id: FabSet.cpp,v 1.11 1998-05-22 22:30:28 lijewski Exp $
 //
 
 #include <FabSet.H>
@@ -133,7 +133,6 @@ FabSet::copyFrom (const MultiFab& src,
             {
                 assert(!(fbidli == fillBoxIdList.end()));
                 FillBoxId fbid = *fbidli++;
-                assert(fbid.box() == ovlp);
                 sfabTemp.resize(fbid.box(), num_comp);
                 fscd.FillFab(srcmfid, fbid, sfabTemp);
                 dfab.copy(sfabTemp, ovlp, 0, ovlp, dest_comp, num_comp);
@@ -329,7 +328,6 @@ FabSet::linComb (Real            a,
 
                 assert(!(fbidli_mfb == fillBoxIdList_mfb.end()));
                 FillBoxId fbid_mfb = *fbidli_mfb++;
-                assert(fbid_mfb.box() == ovlp);
                 b_fab.resize(fbid_mfb.box(), num_comp);
                 mfcd.FillFab(mfid_mfb, fbid_mfb, b_fab);
 
