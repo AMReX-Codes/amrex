@@ -1,5 +1,5 @@
 //
-// $Id: CGSolver.cpp,v 1.32 2003-03-12 21:03:32 lijewski Exp $
+// $Id: CGSolver.cpp,v 1.33 2004-12-15 18:39:56 car Exp $
 //
 #include <winstd.H>
 
@@ -67,7 +67,6 @@ CGSolver::CGSolver (LinOp& _Lp,
             bool   _use_mg_precond,
             int    _lev)
     :
-    isExpert(false),
     Lp(_Lp),
     mg_precond(0),
     lev(_lev),
@@ -350,13 +349,13 @@ CGSolver::solve_00 (MultiFab&       sol,
                       << rel_error << '\n';
         }
     }
-    if (ret != 0 && isExpert == false)
-    {
-        BoxLib::Error("CGSolver_00:: apparent accuracy problem; try expert setting or change unstable_criterion");
-    }
     if (ret==0 && rnorm > eps_rel*rnorm0 && rnorm > eps_abs)
     {
-        BoxLib::Error("CGSolver_00:: failed to converge!");
+      if ( ParallelDescriptor::IOProcessor() )
+	{
+	  BoxLib::Warning("CGSolver_00:: failed to converge!");
+	}
+      ret = 8;
     }
     //
     // Omit ghost update since maybe not initialized in calling routine.
@@ -364,7 +363,7 @@ CGSolver::solve_00 (MultiFab&       sol,
     // operate only in valid regions; do explicitly.  Add to boundary
     // values stored in initialsolution.
     //
-    if (ret == 0)
+    if ( ret == 0 || ret == 8 )
     {
         srccomp=0; ncomp=1; nghost=0;
         sol.plus(*s,srccomp,ncomp,nghost);
@@ -718,23 +717,27 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
                       << rnorm/(Lp_norm*sol_norm+rh_norm) << '\n';
 	}
     }
-    if( ret != 0 && isExpert == false )
-    {
-        BoxLib::Error("CGSolver_bicgstab:: apparent accuracy problem; try expert setting or change unstable_criterion");
-    }
 #ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
     if ( ret == 0 && rnorm > eps_rel*(Lp_norm*sol_norm + rh_norm ) && rnorm > eps_abs )
     {
-        BoxLib::Error("CGSolver_bicgstab:: failed to converge!");
+      if ( ParallelDescriptor::IOProcessor() )
+	{
+	  BoxLib::Warning("CGSolver_bicgstab:: failed to converge!");
+	}
+      ret = 8;
     }
 #else
     if ( ret == 0 && rnorm > eps_rel*rnorm0 && rnorm > eps_abs)
     {
-        BoxLib::Error("CGSolver_bicgstab:: failed to converge!");
+      if ( ParallelDescriptor::IOProcessor() )
+	{
+	  BoxLib::Warning("CGSolver_bicgstab:: failed to converge!");
+	}
+      ret = 8;
     }
 #endif
 
-    if ( ret == 0 )
+    if ( ret == 0 || ret == 8 )
     {
         sol.plus(sorig, 0, 1, 0);
     }
@@ -893,22 +896,26 @@ CGSolver::solve_cg (MultiFab&       sol,
                       << rnorm/(Lp_norm*sol_norm+rh_norm) << '\n';
 	}
     }
-    if ( ret != 0 && !isExpert )
-    {
-        BoxLib::Error("CGSolver_cg:: apparent accuracy problem; try expert setting or change unstable_criterion");
-    }
 #ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
     if ( ret == 0 && rnorm > eps_rel*(Lp_norm*sol_norm + rh_norm) && rnorm > eps_abs )
     {
-        BoxLib::Error("CGSolver_cg:: failed to converge!");
+      if ( ParallelDescriptor::IOProcessor() )
+	{
+	  BoxLib::Warning("CGSolver_cg:: failed to converge!");
+	}
+      ret = 8;
     }
 #else
     if ( ret == 0 &&  rnorm > eps_rel*rnorm0 && rnorm > eps_abs )
     {
-        BoxLib::Error("CGSolver_cg:: failed to converge!");
+      if ( ParallelDescriptor::IOProcessor() )
+	{
+	  BoxLib::Warning("CGSolver_cg:: failed to converge!");
+	}
+      ret = 8;
     }
 #endif
-    if ( ret == 0 )
+    if ( ret == 0 || ret == 8 )
     {
         sol.plus(sorig, 0, 1, 0);
     }

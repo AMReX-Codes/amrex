@@ -1,5 +1,5 @@
 //
-// $Id: MultiGrid.cpp,v 1.33 2003-06-24 17:18:22 lijewski Exp $
+// $Id: MultiGrid.cpp,v 1.34 2004-12-15 18:39:56 car Exp $
 // 
 #include <winstd.H>
 
@@ -25,7 +25,7 @@ int MultiGrid::def_numiter      = -1;
 int MultiGrid::def_verbose      = 0;
 int MultiGrid::def_usecg        = 1;
 #ifndef CG_USE_OLD_CONVERGENCE_CRITERIA
-Real MultiGrid::def_rtol_b      = 0.001;
+Real MultiGrid::def_rtol_b      = 0.0001;
 #else
 Real MultiGrid::def_rtol_b      = 0.01;
 #endif
@@ -459,7 +459,7 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
     {
         bool use_mg_precond = false;
 	CGSolver cg(Lp, use_mg_precond, level);
-	cg.setExpert(true);
+	// cg.setExpert(true);
 	cg.setMaxIter(maxiter_b);
 	int ret = cg.solve(solL, rhsL, rtol_b, atol_b, bc_mode, cg_solver);
 	if (ret != 0)
@@ -470,6 +470,7 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
                 // If the CG solver returns a nonzero value indicating 
                 // the problem is unstable.  Assume this is not an accuracy 
                 // issue and pound on it with the smoother.
+	      // if ret == 8, then you have failure to converge
                 //
                 if (ParallelDescriptor::IOProcessor() && def_verbose)
                 {
@@ -482,6 +483,7 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
             {
                 //
                 // cg failure probably indicates loss of precision accident.
+	      // if ret == 8, then you have failure to converge
                 // setting solL to 0 should be ok.
                 //
                 solL.setVal(0);
