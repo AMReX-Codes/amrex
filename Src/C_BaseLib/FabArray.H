@@ -4,7 +4,7 @@
 #define BL_FABARRAY_H
 
 //
-// $Id: FabArray.H,v 1.98 1999-04-19 23:17:03 lijewski Exp $
+// $Id: FabArray.H,v 1.99 1999-04-23 18:42:26 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -51,47 +51,48 @@ class FillBoxId
 
     FillBoxId ()
         :
-        fillBoxId(-1),
-        fabIndex(-1)
+        m_fillBoxId(-1),
+        m_fabIndex(-1)
     {}
 
-    FillBoxId (int            newid,
-               const Box&     fillbox,
-               const BoxList& filledboxes,
-               int            fabindex = -1)
+    FillBoxId (int        newid,
+               const Box& fillbox)
         :
-        filledBoxes(filledboxes),
-        fillBox(fillbox),
-        fillBoxId(newid),
-        fabIndex(fabindex)
+        m_fillBox(fillbox),
+        m_fillBoxId(newid),
+        m_fabIndex(-1)
     {}
 
     FillBoxId (const FillBoxId& rhs)
         :
-        filledBoxes(rhs.filledBoxes),
-        fillBox(rhs.fillBox),
-        fillBoxId(rhs.fillBoxId),
-        fabIndex(rhs.fabIndex)
+        m_fillBox(rhs.m_fillBox),
+        m_fillBoxId(rhs.m_fillBoxId),
+        m_fabIndex(rhs.m_fabIndex)
     {}
+
+    FillBoxId& operator= (const FillBoxId& rhs)
+    {
+        if (!(this == &rhs))
+        {
+            m_fillBox   = rhs.m_fillBox;
+            m_fillBoxId = rhs.m_fillBoxId;
+            m_fabIndex  = rhs.m_fabIndex;
+        }
+        return *this;
+    }
 
     ~FillBoxId() {}
 
-    int             Id () const             { return fillBoxId;    }
-    int             FabIndex () const       { return fabIndex;     }
-    void            FabIndex (int fabindex) { fabIndex = fabindex; }
-    const Box&      box () const            { return fillBox;      }
-    const BoxArray& FilledBoxes () const    { return filledBoxes;  }
-
-  protected:
-
-    void SetId (int id) { fillBoxId = id; }
+    int        Id () const             { return m_fillBoxId;    }
+    int        FabIndex () const       { return m_fabIndex;     }
+    void       FabIndex (int fabindex) { m_fabIndex = fabindex; }
+    const Box& box () const            { return m_fillBox;      }
 
   private:
 
-    BoxArray filledBoxes;
-    Box      fillBox;
-    int      fillBoxId;
-    int      fabIndex;
+    Box m_fillBox;
+    int m_fillBoxId;
+    int m_fabIndex;
 };
 
 //
@@ -782,10 +783,6 @@ class FabArrayId
     {
         return fabArrayId == rhs.fabArrayId;
     }
-
-  protected:
-
-    void SetId (int id) { fabArrayId = id; }
 
   private:
 
@@ -2285,7 +2282,7 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (FabArrayId fabarrayid,
         (*returnedUnfilledBoxes) = unfilledBoxDomain.boxList();
     }
 
-    return FillBoxId(nextFillBoxId++, destFabBox, filledBoxes);
+    return FillBoxId(nextFillBoxId++, destFabBox);
 }
 
 template <class T, class FAB>
@@ -2324,7 +2321,7 @@ FabArrayCopyDescriptor<T,FAB>::AddBox (FabArrayId fabarrayid,
         (*returnedUnfilledBoxes) = unfilledBoxDomain.boxList();
     }
 
-    return FillBoxId(nextFillBoxId++, destFabBox, filledBoxes);
+    return FillBoxId(nextFillBoxId++, destFabBox);
 }
 
 template <class T, class FAB>
