@@ -1,6 +1,4 @@
-//
-// $Id: DistributionMapping.cpp,v 1.70 2004-10-11 21:47:03 lijewski Exp $
-//
+
 #include <winstd.H>
 
 #include <Profiler.H>
@@ -23,7 +21,6 @@
 extern "C"
 {
 void METIS_PartGraphKway(int *, int *, int *, int *, int *, int *, int *, int *, int *, int *, int *); 
-void METIS_PartGraphRecursive(int *, int *, int *, int *, int *, int *, int *, int *, int *, int *, int *); 
 }
 #endif
 
@@ -308,10 +305,25 @@ DistributionMapping::MetisProcessorMap (const BoxArray& boxes, int nprocs)
 	}
     }
     xadj[nboxes] = cnt;
+
+    const Real strttime = ParallelDescriptor::second();
+
     METIS_PartGraphKway(
 	    &nboxes, &xadj[0], &adjncy[0], &vwgt[0], &adjwgt[0],
 	    &wgtflag, &numflag,  &nparts, options,
 	    &edgecut, &m_procmap[0]);
+
+    const int  IOProc   = ParallelDescriptor::IOProcessorNumber();
+    const Real stoptime = ParallelDescriptor::second() - strttime;
+
+    if (verbose)
+    {
+        ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
+
+        if (ParallelDescriptor::IOProcessor())
+            std::cout << "METIS_PartGraphKway time: " << stoptime << std::endl;
+    }
+
     m_procmap[nboxes] = ParallelDescriptor::MyProc();
 }
 #endif
