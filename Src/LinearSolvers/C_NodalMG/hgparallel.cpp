@@ -179,7 +179,7 @@ task_copy_local::~task_copy_local()
 }
 
 bool task_copy_local::ready()
-{
+{ 
     abort(); return m_local;
 }
 
@@ -203,7 +203,7 @@ void task_copy_local::startup()
     {
 	m_local = true;
     }
-#ifdef HG_DEBUG
+#if 1 && defined(HG_DEBUG)
     else if ( is_local(m_mf, m_dgrid) )
     {
 	tmp = new FArrayBox(m_sbx, m_smf.nComp());
