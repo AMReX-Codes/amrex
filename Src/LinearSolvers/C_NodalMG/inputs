@@ -5,4 +5,4 @@ tol=2.0e-10
 geometry.coord_sys=0
 geometry.prob_lo=0 0 0
 geometry.prob_hi=1 1 1
-stencil=full
+stencil=cross
