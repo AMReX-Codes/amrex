@@ -1,5 +1,5 @@
 //
-// $Id: VisMF.cpp,v 1.77 2001-07-20 18:18:42 car Exp $
+// $Id: VisMF.cpp,v 1.78 2001-07-20 19:31:07 car Exp $
 //
 
 #include <cstdio>
@@ -459,7 +459,7 @@ VisMF::Header::Header (const MultiFab& mf,
 
             BL_ASSERT(offset == 2*m_ncomp*nFabs);
 
-            MPI_REQUIRE( MPI_Send(senddata.dataPtr(),
+            BL_MPI_REQUIRE( MPI_Send(senddata.dataPtr(),
 				  2*m_ncomp*nFabs,
 				  mpi_data_type(senddata.dataPtr()),
 				  IOProc,
@@ -494,7 +494,7 @@ VisMF::Header::Header (const MultiFab& mf,
 
                 data[i].resize(2*m_ncomp*fabs[i]);
 
-                MPI_REQUIRE( MPI_Irecv(data[i].dataPtr(),
+                BL_MPI_REQUIRE( MPI_Irecv(data[i].dataPtr(),
 				       2*m_ncomp*fabs[i],
 				       mpi_data_type(data[i].dataPtr()),
 				       i,
@@ -506,7 +506,7 @@ VisMF::Header::Header (const MultiFab& mf,
 
         for (int completed; NWaits > 0; NWaits -= completed)
         {
-            MPI_REQUIRE( MPI_Waitsome(NProcs,
+            BL_MPI_REQUIRE( MPI_Waitsome(NProcs,
 				      reqs.dataPtr(),
 				      &completed,
 				      indx.dataPtr(),
@@ -675,7 +675,7 @@ VisMF::Write (const MultiFab& mf,
             for (ConstMultiFabIterator mfi(mf); mfi.isValid(); ++mfi)
                 senddata[idx++] = hdr.m_fod[mfi.index()].m_head;
 
-            MPI_REQUIRE( MPI_Send(senddata.dataPtr(),
+            BL_MPI_REQUIRE( MPI_Send(senddata.dataPtr(),
 				  nFabs,
 				  MPI_LONG,
 				  IOProc,
@@ -710,7 +710,7 @@ VisMF::Write (const MultiFab& mf,
 
                 data[i].resize(fabs[i]);
 
-                MPI_REQUIRE( MPI_Irecv(data[i].dataPtr(),
+                BL_MPI_REQUIRE( MPI_Irecv(data[i].dataPtr(),
 				       fabs[i],
 				       MPI_LONG,
 				       i,
@@ -722,7 +722,7 @@ VisMF::Write (const MultiFab& mf,
 
         for (int completed; NWaits > 0; NWaits -= completed)
         {
-            MPI_REQUIRE( MPI_Waitsome(NProcs,
+            BL_MPI_REQUIRE( MPI_Waitsome(NProcs,
 				      reqs.dataPtr(),
 				      &completed,
 				      indx.dataPtr(),
