@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.13 1998-10-29 21:56:26 car Exp $
+# Make.defs $Id: Make.defs,v 1.14 1998-11-18 17:57:45 car Exp $
 #
 
 #
@@ -228,7 +228,7 @@ objStandalone	= 	$(CEXE_sources:%.cpp=%.o) \
 			$(FEXE_sources:%.F=%.o) \
 			$(cEXE_sources:%.c=%.o)
 
-objForExecs	= $(addprefix $(objTempDir)/, $(objStandalone))
+objForExecs	= $(addprefix $(objEXETempDir)/, $(objStandalone))
 
 instSources	= $(CLIB_headers) $(FLIB_headers) $(cLIB_headers) $(T_sources) $(T_headers)
 
@@ -267,7 +267,9 @@ instMkDir	= $(INSTALL_PREFIX)/mk
 executable	= $(addsuffix $(optionsSuffix).ex, $(EBASE))
 
 depTempDir	= d/$(optionsSuffix)
+depEXETempDir	= d/$(optionsSuffix).EXE
 objTempDir	= o/$(optionsSuffix)
+objEXETempDir   = o/$(optionsSuffix).EXE
 f77TempDir	= f/$(optionsSuffix)
 
 instLib		= $(instLibDir)/lib$(LBASE)$(DIM)d.a
