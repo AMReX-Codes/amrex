@@ -14,7 +14,7 @@ endif
 
 ifeq ($(COMP),KCC)
 CXX     := KCC --no_exceptions
-CXXOPTF += +K3 --backend '-h nomessage=191:1135'
+CXXOPTF += +K3 --backend '-h nomessage=191:1135:7212'
 CXXDEBF += +K0
 #
 # Add -DBL_USE_SETBUF if don't have pubsetbuf() in I/O Streams Library.
