@@ -716,7 +716,6 @@ void holy_grail_amr_multigrid::mg_restrict(int lto, int lfrom)
 	    w_mfi->dataPtr(), DIMLIST(fbox),
 	    D_DECL(rat[0], rat[1], rat[2]), 1, &integrate, 0, 0);
     }
-    
     clear_part_interface(resid[lto], lev_interface[lto]);
 }
 

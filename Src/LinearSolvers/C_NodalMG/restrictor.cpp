@@ -131,6 +131,7 @@ void bilinear_restrictor_class::fill(FArrayBox& patch,
 	D_DECL(rat[0], rat[1], rat[2]), patch.nComp(), &integrate, 0, 0);
 }
 
+#if 0
 void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 					       MultiFab& fine,
 					       const level_interface& lev_interface,
@@ -157,6 +158,32 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 	if (fine.nGrow() < ratmax - 1) 
 	{
 	    // PARALLEL
+	    for (int ii = BL_SPACEDIM-1; ii >= 0; ii--)
+	    {
+		for(int ifec = 0; ifec < lev_interface.nboxes(ii); ifec++)
+		{
+		    if (lev_interface.geo(ii, ifec) == level_interface::ALL && !lev_interface.flag(ii, ifec) ) 
+		    {
+		        // fine grid on both sides
+			Box cbox = lev_interface.node_box(ii, ifec);
+			const IntVect t = lev_interface.box(ii, ifec).type();
+			cbox.coarsen(rat);
+			if (region.intersects(cbox)) 
+			{
+			    // This extends fine face by one coarse cell past coarse face:
+			    cbox &= regplus;
+			    // Note:  Uses numerical values of index types:
+			    cbox.grow(t - IntVect::TheUnitVector());
+			    FArrayBox fgr(grow(refine(cbox, rat), rat - IntVect::TheUnitVector()), dest[jgrid].nComp());
+			    fill_patch(fgr, fgr.box(), fine, lev_interface, bdy, ii, ifec);
+			    const Box& fb = fgr.box();
+			    FORT_FANRST2(dest[jgrid].dataPtr(), DIMLIST(pb), DIMLIST(cbox), fgr.dataPtr(), DIMLIST(fb),
+				D_DECL(rat[0], rat[1], rat[2]), dest.nComp(), &integrate, 0, 0);
+			}
+		    }
+		}
+	    }
+#if 0
 	    for (int iface = 0; iface < lev_interface.nboxes(level_interface::FACEDIM); iface++) 
 	    {
 		if (lev_interface.geo(level_interface::FACEDIM, iface) == level_interface::ALL && !lev_interface.flag(level_interface::FACEDIM, iface) ) 
@@ -222,6 +249,7 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 		    }
 		}
 	    }
+#endif
 	}
 	else 
 	{
@@ -298,6 +326,7 @@ void bilinear_restrictor_class::fill_interface(MultiFab& dest,
 	}
     }
 }
+#endif
 
 void bilinear_restrictor_coarse_class::fill_interface(MultiFab& dest,
 						      MultiFab& fine,
