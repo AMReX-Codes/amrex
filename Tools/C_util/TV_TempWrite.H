@@ -12,15 +12,15 @@ extern "C" {
 		  const char*     file)
 	{
 	    
-	    aString FullPath = file;
-	    if (!FullPath.isNull() && FullPath[FullPath.length()-1] != '/')
+	    std::string FullPath = file;
+	    if (!FullPath.empty() && FullPath[FullPath.size()-1] != '/')
 		FullPath += '/';
 	    
 	    if (ParallelDescriptor::IOProcessor())
-		if (!Utility::UtilCreateDirectory(FullPath, 0755))
-		    Utility::CreateDirectoryFailed(FullPath);
+		if (!BoxLib::UtilCreateDirectory(FullPath, 0755))
+		    BoxLib::CreateDirectoryFailed(FullPath);
 	    
-	    static const aString MultiFabBaseName("MultiFab");
+	    static const std::string MultiFabBaseName("MultiFab");
 	    FullPath += MultiFabBaseName;
 	    
 	    VisMF::Write(*mf,FullPath,VisMF::OneFilePerCPU);
@@ -33,11 +33,11 @@ extern "C" {
 		 const char* file)
 	{
 	    
-	    aString FullPath = file;
-	    if (!FullPath.isNull() && FullPath[FullPath.length()-1] != '/')
+	    std::string FullPath = file;
+	    if (!FullPath.empty() && FullPath[FullPath.size()-1] != '/')
 		FullPath += '/';
 	    
-	    static const aString MultiFabBaseName("MultiFab");
+	    static const std::string MultiFabBaseName("MultiFab");
 	    FullPath += MultiFabBaseName;
 
 	    VisMF::Read(mf,FullPath);
