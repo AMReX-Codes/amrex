@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.71 2004-02-05 23:23:51 car Exp $
+# Make.defs $Id: Make.defs,v 1.72 2004-06-15 19:24:16 lijewski Exp $
 #
 
 #
@@ -251,8 +251,8 @@ ifeq ($(COMP),Intel)
    DEFINES += -DBL_ICC_MINOR_VERSION=$(ICC_MINOR_VERSION)
 endif
 ifeq ($(FCOMP),Intel)
-   FC := ifc -cm
-   fC := ifc -cm
+   FC := ifc -cm -mp
+   fC := ifc -cm -mp
    FDEBF += -g
    fDEBF += -g
    FOPTF += -g
