@@ -181,7 +181,7 @@ holy_grail_amr_multigrid::alloc (PArray<MultiFab>& Dest,
     
     build_sigma(Sigma,for_sync_reg);
     
-    if (for_sync_reg == 1) return;
+    if (for_sync_reg > 0) return;
 
     alloc_sync_caches();
     
@@ -393,8 +393,8 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 	      fill_borders(sigma[mglev], lev_interface[mglev], boundary.terrain_sigma(),
                            -1, m_stencil == terrain);
         } 
-        else
-        { 
+        else if (for_sync_reg == 1)
+        {
 	      fill_borders(sigma[mglev_max], lev_interface[mglev_max], boundary.terrain_sigma(), 
                            -1, m_stencil == terrain);
         } 
@@ -508,7 +508,7 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 	    HG_TEST_NORM(sigma_split[mglev], "build_sigma");
 	  }
         }
-        else 
+        else if (for_sync_reg == 1)
         {
           boundary.scalar()->fill_borders(sigma[mglev_max], lev_interface[mglev_max],-1);
         }
@@ -568,7 +568,7 @@ holy_grail_amr_multigrid::build_sigma (PArray<MultiFab>& Sigma,
 			sn2(s_mfi, sigma_nd[2][mglev]));
 		    const Box& scbox = s_mfi->box();
 		    const Box& snbox = sn_dmfi->box();
-                    Box reg = (for_sync_reg == 1) ? 
+                    Box reg = (for_sync_reg > 0) ? 
                              surroundingNodes(mg_mesh[mglev][s_mfi.index()]) : 
 	                     Box(lev_interface[mglev].part_fine(s_mfi.index()));
 		    FORT_HGSCON(sn_dmfi->dataPtr(),

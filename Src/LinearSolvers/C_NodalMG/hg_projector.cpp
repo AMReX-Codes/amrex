@@ -667,21 +667,18 @@ holy_grail_amr_projector::project (PArray<MultiFab>* u,
       {
          u_local_crse[n].resize(Lev_max+1);
          u_local_crse[n].set(level,new MultiFab(u[n][level].boxArray(),1,1));
-         for (MultiFabIterator u_crse_mfi(u_local_crse[n][level]); u_crse_mfi.isValid();
-             ++u_crse_mfi)
+         u_local_crse[n][level].setVal(0.);
+         for (MultiFabIterator u_crse_mfi(u_local_crse[n][level]); 
+              u_crse_mfi.isValid(); ++u_crse_mfi)
          {
              DependentMultiFabIterator u_orig_mfi(u_crse_mfi, u[n][level]);
              Box copybox(u_crse_mfi.validbox());
-             u_crse_mfi().setComplement(0,copybox,0,1);
-             for (int dir = 0; dir < BL_SPACEDIM; dir++) 
-             {
-               if (copybox.smallEnd()[dir] == crse_domain.smallEnd()[dir] &&
-                   ifbc->getLoBC(dir) == inflow)
-                    copybox.growLo(dir,1);
-               if (copybox.bigEnd()[dir] == crse_domain.bigEnd()[dir] &&
-                   ifbc->getHiBC(dir) == inflow)
-                    copybox.growHi(dir,1);
-             }
+             if (copybox.smallEnd()[n] == crse_domain.smallEnd()[n] &&
+                 ifbc->getLoBC(n) == inflow)
+                  copybox.growLo(n,1);
+             if (copybox.bigEnd()[n] == crse_domain.bigEnd()[n] &&
+                 ifbc->getHiBC(n) == inflow)
+                  copybox.growHi(n,1);
              u_crse_mfi().copy(u_orig_mfi(), copybox, 0, copybox, 0, 1);
          }
       }
@@ -694,22 +691,20 @@ holy_grail_amr_projector::project (PArray<MultiFab>* u,
       {
         u_local_fine[n].resize(Lev_max+1);
         u_local_fine[n].set(level,new MultiFab(u[n][level].boxArray(),1,1));
-        for (MultiFabIterator u_fine(u_local_fine[n][level]); u_fine.isValid();
-              ++u_fine)
+        u_local_fine[n][level].setVal(0.);
+        for (MultiFabIterator u_fine_mfi(u_local_fine[n][level]); 
+             u_fine_mfi.isValid(); ++u_fine_mfi)
         {
-            DependentMultiFabIterator u_orig_mfi(u_fine, u[n][level]);
-            Box copybox(u_fine.validbox());
-            u_fine().setComplement(0,copybox,0,1);
-            for (int dir = 0; dir < BL_SPACEDIM; dir++) 
-            {
-              if (copybox.smallEnd()[dir] == crse_domain.smallEnd()[dir] &&
-                  ifbc->getLoBC(dir) == inflow)
-                   copybox.growLo(dir,1);
-              if (copybox.bigEnd()[dir] == crse_domain.bigEnd()[dir] &&
-                  ifbc->getHiBC(dir) == inflow)
-                   copybox.growHi(dir,1);
-            }
-            u_fine().copy(u_orig_mfi(), copybox, 0, copybox, 0, 1);
+            DependentMultiFabIterator u_orig_mfi(u_fine_mfi, u[n][level]);
+            Box copybox(u_fine_mfi.validbox());
+             if (copybox.smallEnd()[n] == crse_domain.smallEnd()[n] &&
+                 ifbc->getLoBC(n) == inflow)
+                  copybox.growLo(n,1);
+             if (copybox.bigEnd()[n] == crse_domain.bigEnd()[n] &&
+                 ifbc->getHiBC(n) == inflow)
+                  copybox.growHi(n,1);
+            u_fine_mfi().copy(u_orig_mfi(), copybox, 0, copybox, 0, 1);
+
         }
       }
     }
@@ -718,11 +713,11 @@ holy_grail_amr_projector::project (PArray<MultiFab>* u,
     {
       int level = Lev_min;
       Sigma_local.set(level,new MultiFab(Sigma[level].boxArray(),1,1));
+      Sigma_local[level].setVal(0.);
       for (MultiFabIterator s_mfi(Sigma_local[level]); s_mfi.isValid();
           ++s_mfi)
       {
           DependentMultiFabIterator s_orig_mfi(s_mfi, Sigma[level]);
-          s_mfi().setComplement(0,s_mfi.validbox(),0,1);
           s_mfi().copy(s_orig_mfi(), s_mfi.validbox(),0,
                                      s_mfi.validbox(),0,1);
       }
@@ -794,7 +789,13 @@ holy_grail_amr_projector::fill_sync_reg (PArray<MultiFab>* u_local,
                                          int               Lev_min,
                                          int               is_fine)
 {
-      int for_sync_reg = 1;
+      int for_sync_reg;
+      if (is_fine == 0) 
+      {
+         for_sync_reg = 1;
+      } else {
+         for_sync_reg = 2;
+      }
 
       if (is_fine == 0)
       {
@@ -855,16 +856,22 @@ holy_grail_amr_projector::fill_sync_reg (PArray<MultiFab>* u_local,
         }
       }
 
-//    Note: we have to do explicit fills here because the boundary::fill_borders
-//          wont fill for grids touching diagonally at a periodic interface.
-      crse_geom.FillPeriodicBoundary(Sigma_local[Lev_min],0,1,false,true);
-      if (rhs_local.length() > 0) 
-        crse_geom.FillPeriodicBoundary(rhs_local[Lev_min],0,1,false,true);
-      for (int n = 0; n < BL_SPACEDIM; n++) 
-        crse_geom.FillPeriodicBoundary(u_local[n][Lev_min],0,1,false,true);
-        
+//    Note: We have to do explicit fills here for Sync_resid_crse
+//            because the boundary::fill_borders won't fill for grids 
+//            touching diagonally at a periodic interface.
+//          For Sync_resid_fine we use a different paradigm, whereby
+//            *no* boundary cells are filled except velocity at inflow.
+      if (is_fine == 0) 
+      {
+        crse_geom.FillPeriodicBoundary(Sigma_local[Lev_min],0,1,false,true);
+        if (rhs_local.length() > 0) 
+          crse_geom.FillPeriodicBoundary(rhs_local[Lev_min],0,1,false,true);
+        for (int n = 0; n < BL_SPACEDIM; n++) 
+          crse_geom.FillPeriodicBoundary(u_local[n][Lev_min],0,1,false,true);
+      }
+
       alloc(p, null_amr_real, null_amr_real, 
-            Sigma_local, H, Lev_min, Lev_min, 1);
+            Sigma_local, H, Lev_min, Lev_min, for_sync_reg);
 
       if (!is_sync && rhs_local.length() > 0) 
       {
@@ -883,7 +890,8 @@ holy_grail_amr_projector::fill_sync_reg (PArray<MultiFab>* u_local,
 	    right_hand_side(u_local, null_amr_real, for_sync_reg);
       }
 
-      crse_geom.FillPeriodicBoundary(dest[Lev_min],0,1,false,false);
+      if (is_fine == 0)
+        crse_geom.FillPeriodicBoundary(dest[Lev_min],0,1,false,false);
 
       const int mglev = ml_index[Lev_min];
    
@@ -978,21 +986,18 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
         {
           u_local_crse[n].resize(Lev_max+1);
           u_local_crse[n].set(level,new MultiFab(u[n][level].boxArray(),1,1));
-          for (MultiFabIterator u_crse_mfi(u_local_crse[n][level]); u_crse_mfi.isValid();
-              ++u_crse_mfi)
+          u_local_crse[n][level].setVal(0.);
+          for (MultiFabIterator u_crse_mfi(u_local_crse[n][level]); 
+               u_crse_mfi.isValid(); ++u_crse_mfi)
           {
               DependentMultiFabIterator u_orig_mfi(u_crse_mfi, u[n][level]);
               Box copybox(u_crse_mfi.validbox());
-              u_crse_mfi().setComplement(0,copybox,0,1);
-              for (int dir = 0; dir < BL_SPACEDIM; dir++) 
-              {
-                if (copybox.smallEnd()[dir] == crse_domain.smallEnd()[dir] &&
-                    ifbc->getLoBC(dir) == inflow)
-                     copybox.growLo(dir,1);
-                if (copybox.bigEnd()[dir] == crse_domain.bigEnd()[dir] &&
-                    ifbc->getHiBC(dir) == inflow)
-                     copybox.growHi(dir,1);
-              }
+              if (copybox.smallEnd()[n] == crse_domain.smallEnd()[n] &&
+                  ifbc->getLoBC(n) == inflow)
+                   copybox.growLo(n,1);
+              if (copybox.bigEnd()[n] == crse_domain.bigEnd()[n] &&
+                  ifbc->getHiBC(n) == inflow)
+                   copybox.growHi(n,1);
               u_crse_mfi().copy(u_orig_mfi(), copybox, 0, copybox, 0, 1);
           }
        }
@@ -1006,22 +1011,19 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
         {
           u_local_fine[n].resize(Lev_max+1);
           u_local_fine[n].set(level,new MultiFab(u[n][level].boxArray(),1,1));
-          for (MultiFabIterator u_fine(u_local_fine[n][level]); u_fine.isValid();
-              ++u_fine)
+          u_local_fine[n][level].setVal(0.);
+          for (MultiFabIterator u_fine_mfi(u_local_fine[n][level]); 
+               u_fine_mfi.isValid(); ++u_fine_mfi)
           {
-              DependentMultiFabIterator u_orig_mfi(u_fine, u[n][level]);
-              Box copybox(u_fine.validbox());
-              u_fine().setComplement(0,copybox,0,1);
-              for (int dir = 0; dir < BL_SPACEDIM; dir++) 
-              {
-                if (copybox.smallEnd()[dir] == crse_domain.smallEnd()[dir] &&
-                    ifbc->getLoBC(dir) == inflow)
-                     copybox.growLo(dir,1);
-                if (copybox.bigEnd()[dir] == crse_domain.bigEnd()[dir] &&
-                    ifbc->getHiBC(dir) == inflow)
-                     copybox.growHi(dir,1);
-              }
-              u_fine().copy(u_orig_mfi(), copybox, 0, copybox, 0, 1);
+              DependentMultiFabIterator u_orig_mfi(u_fine_mfi, u[n][level]);
+              Box copybox(u_fine_mfi.validbox());
+              if (copybox.smallEnd()[n] == crse_domain.smallEnd()[n] &&
+                  ifbc->getLoBC(n) == inflow)
+                   copybox.growLo(n,1);
+              if (copybox.bigEnd()[n] == crse_domain.bigEnd()[n] &&
+                  ifbc->getHiBC(n) == inflow)
+                   copybox.growHi(n,1);
+              u_fine_mfi().copy(u_orig_mfi(), copybox, 0, copybox, 0, 1);
           }
         }
     }
@@ -1030,11 +1032,11 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
     {
       int level = Lev_min;
       Sigma_local.set(level,new MultiFab(Sigma[level].boxArray(),1,1));
+      Sigma_local[level].setVal(0.);
       for (MultiFabIterator s_mfi(Sigma_local[level]); s_mfi.isValid();
           ++s_mfi)
       {
           DependentMultiFabIterator s_orig_mfi(s_mfi, Sigma[level]);
-          s_mfi().setComplement(0,s_mfi.validbox(),0,1);
           s_mfi().copy(s_orig_mfi(), s_mfi.validbox(),0,
                                      s_mfi.validbox(),0,1);
       }
@@ -1108,21 +1110,12 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
     {
       int level = Lev_min;
       rhs_local_crse.set(level,new MultiFab(rhs[level].boxArray(),1,1));
+      rhs_local_crse[level].setVal(0.);
       for (MultiFabIterator rhs_crse_mfi(rhs_local_crse[level]); rhs_crse_mfi.isValid();
           ++rhs_crse_mfi)
       {
           DependentMultiFabIterator rhs_orig_mfi(rhs_crse_mfi, rhs[level]);
           Box copybox(rhs_crse_mfi.validbox());
-          rhs_crse_mfi().setComplement(0,copybox,0,1);
-          for (int dir = 0; dir < BL_SPACEDIM; dir++) 
-          {
-            if (copybox.smallEnd()[dir] == crse_domain.smallEnd()[dir] &&
-                ifbc->getLoBC(dir) == inflow)
-                 copybox.growLo(dir,1);
-            if (copybox.bigEnd()[dir] == crse_domain.bigEnd()[dir] &&
-                ifbc->getHiBC(dir) == inflow)
-                 copybox.growHi(dir,1);
-          }
           rhs_crse_mfi().copy(rhs_orig_mfi(), copybox, 0, copybox, 0, 1);
       }
     }
@@ -1132,21 +1125,12 @@ holy_grail_amr_projector::manual_project (PArray<MultiFab>* u,
     {
       int level = Lev_min;
       rhs_local_fine.set(level,new MultiFab(rhs[level].boxArray(),1,1));
+      rhs_local_fine[level].setVal(0.);
       for (MultiFabIterator rhs_fine_mfi(rhs_local_fine[level]); rhs_fine_mfi.isValid();
           ++rhs_fine_mfi)
       {
           DependentMultiFabIterator rhs_orig_mfi(rhs_fine_mfi, rhs[level]);
           Box copybox(rhs_fine_mfi.validbox());
-          rhs_fine_mfi().setComplement(0,copybox,0,1);
-          for (int dir = 0; dir < BL_SPACEDIM; dir++) 
-          {
-            if (copybox.smallEnd()[dir] == crse_domain.smallEnd()[dir] &&
-                ifbc->getLoBC(dir) == inflow)
-                 copybox.growLo(dir,1);
-            if (copybox.bigEnd()[dir] == crse_domain.bigEnd()[dir] &&
-                ifbc->getHiBC(dir) == inflow)
-                 copybox.growHi(dir,1);
-          }
           rhs_fine_mfi().copy(rhs_orig_mfi(), copybox, 0, copybox, 0, 1);
       }
     }
@@ -1342,11 +1326,11 @@ holy_grail_amr_projector::grid_average (PArray<MultiFab>& S,
     {
 	const int mglev = ml_index[lev];
 	
-        if (for_sync_reg == 1) {
-          boundary.scalar()->fill_borders(S[lev],lev_interface[mglev],-1);
-        } else {
+        if (for_sync_reg == 0) {
 	  fill_borders(S[lev], lev_interface[mglev], boundary.scalar(), -1,
                        m_stencil == terrain);
+        } else if (for_sync_reg == 1) {
+          boundary.scalar()->fill_borders(S[lev],lev_interface[mglev],-1);
         }
 	
 	for (MultiFabIterator s_mfi(src[lev]); s_mfi.isValid(); ++s_mfi)
@@ -1354,7 +1338,7 @@ holy_grail_amr_projector::grid_average (PArray<MultiFab>& S,
 	    DependentMultiFabIterator S_dmfi(s_mfi, S[lev]);
 	    const Box& sbox = s_mfi->box();
 	    const Box& fbox = S_dmfi->box();
-            Box freg = (for_sync_reg == 1) ? 
+            Box freg = (for_sync_reg > 0) ? 
               surroundingNodes(ml_mesh[lev][s_mfi.index()]) : 
 	      Box(lev_interface[mglev].part_fine(s_mfi.index()));
 	    Real* sptr = s_mfi->dataPtr();
@@ -1390,12 +1374,12 @@ holy_grail_amr_projector::grid_divergence (PArray<MultiFab>* u,
 #endif
 	for (int i = 0; i < BL_SPACEDIM; i++) 
 	{
-            if (for_sync_reg == 1) {
-	      boundary.velocity(i)->fill_borders(u[i][lev], 
-                                                 lev_interface[mglev],-1);
-            } else {
+            if (for_sync_reg == 0) {
 	      fill_borders(u[i][lev], lev_interface[mglev], 
                            boundary.velocity(i), -1, m_stencil == terrain);
+            } else if (for_sync_reg == 1) {
+	      boundary.velocity(i)->fill_borders(u[i][lev], 
+                                                 lev_interface[mglev],-1);
             }
 	}
 	
@@ -1405,7 +1389,7 @@ holy_grail_amr_projector::grid_divergence (PArray<MultiFab>* u,
 	    DependentMultiFabIterator u_dmfi_1(s_mfi, u[1][lev]);
 	    const Box& sbox = s_mfi->box();
 	    const Box& fbox = u_dmfi_0->box();
-            Box freg = (for_sync_reg == 1) ? 
+            Box freg = (for_sync_reg > 0) ? 
               surroundingNodes(ml_mesh[lev][s_mfi.index()]) : 
 	      Box(lev_interface[mglev].part_fine(s_mfi.index()));
 	    Real* sptr = s_mfi->dataPtr();
