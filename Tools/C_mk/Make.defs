@@ -1,5 +1,5 @@
 #
-# Make.defs $Id: Make.defs,v 1.6 1998-03-26 22:24:08 marc Exp $
+# Make.defs $Id: Make.defs,v 1.7 1998-04-30 15:51:19 lijewski Exp $
 #
 
 #
@@ -134,7 +134,6 @@ ifeq ($(COMP),g++)
     CXXDEBF    += -g
     FULLWARN   := -Wall
     CXX	       := g++
-    override XTRADEFS += -DBL_AUTO_INSTANTIATE
 endif
 
 #
