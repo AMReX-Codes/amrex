@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: CoordSys.cpp,v 1.11 1999-05-10 18:54:09 car Exp $
+// $Id: CoordSys.cpp,v 1.12 1999-05-25 23:09:02 marc Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -16,7 +16,7 @@
 #include <FArrayBox.H>
 
 #if (BL_SPACEDIM==2)
-#ifdef BL_AIX
+#if defined(BL_AIX) || defined(WIN32)
 #define M_PI        3.14159265358979323846264338327950288
 #endif
 const double RZFACTOR = 2*M_PI;
