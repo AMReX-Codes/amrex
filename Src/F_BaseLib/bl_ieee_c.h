@@ -130,7 +130,7 @@ Double precision
 
 /* type mappings from Fortran to C */
 typedef double BL_FORT_DOUBLE;
-typedef float BL_FORT_SINGLE;
+typedef float  BL_FORT_SINGLE;
 
 #if defined(__alpha)
 typedef int BL_FORT_INTEGER;	/* need 32-bit integers, not 64-bit ones */
@@ -140,17 +140,6 @@ typedef long BL_FORT_INTEGER;
 
 typedef int BL_FORT_LOGICAL;	/* use int, not long, to avoid conflicts on HP-UX with */
 			/* system header file declarations of isinf(), isnan() */
-typedef union
-{
-    BL_FORT_SINGLE r;
-    BL_FORT_INTEGER i;
-} BL_FORT_SINGLE_PARTS;				/* decomposition of BL_SINGLE */
-
-typedef union
-{
-    BL_FORT_DOUBLE r;
-    BL_FORT_INTEGER i[2];
-} BL_FORT_DOUBLE_PARTS;		/* decomposition of BL_DOUBLE */
 
 #if defined(BL_FORT_USE_UPPERCASE)
 #define sadx	SADX

@@ -1,5 +1,17 @@
 #include "bl_ieee_c.h"
 
+typedef union
+{
+    BL_FORT_SINGLE r;
+    BL_FORT_INTEGER i;
+} BL_FORT_SINGLE_PARTS;				/* decomposition of BL_SINGLE */
+
+typedef union
+{
+    BL_FORT_DOUBLE r;
+    BL_FORT_INTEGER i[2];
+} BL_FORT_DOUBLE_PARTS;		/* decomposition of BL_DOUBLE */
+
 /* Fortran BL_FORT_LOGICAL values -- compiler dependent!  Most (all?) UNIX */
 /* Fortran compilers use 0 for .FALSE. and non-zero for .TRUE., like C. */
 

@@ -3,9 +3,9 @@
 # Perl script to generate a "make"-style dependency list for a
 # C, C++, source file with CPP include directives.
 #
-# Usage:  mk_dep -DBG [-I<dir>]* [-X<dir>]* filename ...
-# Notes:  *  -I<path> defines a search path for include files
-#         *  -DBG turn on debug flag
+# Usage:  mkdep --debug [--I <dir>]*  filename ...
+# Notes:  *  --I <path> defines a search path for include files
+#         *  --debug turn on debug flag
 #         *   searches current directory only if -I. is in search
 #             path or #include directive uses double quotes rather
 #             than angle brackets.
@@ -18,6 +18,8 @@
 # Author:  Michael Welcome
 #          4/26/95
 #          Lawrence Livermore National Laboratory
+# Revised: CCSE
+# 	   5/29/04
 # ------------------------------------------------------------------
 
 use 5.6.0;
@@ -52,10 +54,10 @@ GetOptions(
     "I=s@"	=> \@incdirs) or die $usage;
 
 @incdirs = (".", split(/$dirsep/, join($dirsep,@incdirs)));
-#print "incdirs = @incdirs\n";
 
 $odir = $odir . $pathsep;
 
+my @suffixes = qw( .c .cpp );
 use File::Basename;
 
 foreach my $ifile (@ARGV)
@@ -63,11 +65,7 @@ foreach my $ifile (@ARGV)
     print "# PARSING FILE: $ifile\n" if $debug;
     die "cannot read $ifile\n" if (!(-e $ifile && -r _));
 
-    my $base = basename($ifile, ".c");
-    #define object file
-    # strip path from filename
-    #($ofile = $ARGV[0]) =~ s#.*/##;
-    # change suffix to $obj_ext
+    my $base = basename($ifile, @suffixes);
     my $ofile = $odir . $base . "." . $obj_ext;
     my @searchlist = ("$ifile\"");
     my %usedfiles = ();
@@ -92,10 +90,11 @@ foreach my $ifile (@ARGV)
 
 	foreach my $d (@incdirs)
 	  {
-	    if ($d ne "" && $abspath) {
+	    if ($d ne "" && $abspath)
+	      {
 		# this is an absolute path, dont search current directory
 		next;
-	    }
+	      }
 	    if ($d eq "" && $incltype eq ">")
 	      {
 		# dont search current directory
@@ -113,56 +112,17 @@ foreach my $ifile (@ARGV)
 		# grep file for includes and, if not seen before, add
 		# to end of search list
 		open(FL,"$dep") || die "cant open $dep\n";
-		while (<FL>) 
+		while (<FL>)
 		  {
-		    if (/^\s*#\s*include\s+["<]\s*([^">]+[">])/) 
+		    if (/^\s*#\s*include\s+["<]\s*([^">]+[">])/)
 		      {
-			if ($usedfiles{ $1 }++ == 0) 
+			if ($usedfiles{ $1 }++ == 0)
 			  {
 			    print "# including  $1\n" if $debug;
 			    # this file not searched yet, add to list
 			    # NOTE: last char is either double quote
 			    #       or right angle bracket.
 			    push(@searchlist,($1));
-			}
-		    }
-		}
-
-		# if this file is a header (.H) and it includes template
-		# declarations, add the corresponcing .C file to the
-		# searchlist.
-		# Assume the .C file is in the same directory as the .H
-		if ($file =~ /\S*\.[Hh]$/) 
-		  {
-		    my $Cfile = $file;
-		    $Cfile =~ s/\.H$/\.C/;
-		    $Cfile =~ s/\.h$/\.c/;
-		    print "# Found Header file $dep\n" if $debug;
-		    print "# . . Corresponding .C file is: $Cfile\n" if $debug;
-		    # position file pointer to beginning of file
-		    seek(FL,0,0);
-		    # search for template declarations
-		    while (<FL>)
-		      {
-			# search for string "template" not in a comment
-			s/\/\/.*//;
-			if (/template/)
-			  {
-			    print "# $dep contains template\n" if $debug;
-			    print "# $_" if $debug;
-			    my $inclCfile = $Cfile . $incltype;
-			    if ($usedfiles{ $inclCfile } == 0)
-			      {
-				# print " including $inclCfile\n";
-				# this file not searched yet, add to list
-				# NOTE: last char is either double quote
-				#       or right angle bracket.
-				push(@searchlist,($inclCfile));
-			    }
-			    # mark as used file
-			    $usedfiles{ $inclCfile }++;
-			    # stop searching for tempate
-			    last;
 			}
 		    }
 		}
