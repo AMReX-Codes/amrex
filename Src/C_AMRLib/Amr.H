@@ -4,7 +4,7 @@
 #define _Amr_H_ 
 
 //
-// $Id: Amr.H,v 1.22 1999-04-22 17:13:19 marc Exp $
+// $Id: Amr.H,v 1.23 1999-04-27 18:24:45 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -224,6 +224,11 @@ public:
     ostream& DataLog() { return datalog; }
 
 protected:
+    //
+    // Used by grid_places().
+    //
+    static void ProjPeriodic (BoxDomain&      bd,
+                              const Geometry& geom);
     //
     // Write the plot file to be used for visualization.
     //
