@@ -37,9 +37,11 @@ ifeq ($(FCOMP),Absoft)
 else
 ifeq ($(FCOMP),PGI)
   FC := pgf90
-  fC := $(FC)
+  fC := pgf90
   FOPTF += -fast
   fOPTF += -fast
+  FDEBF += -g
+  fDEBF += -g
   LIBRARY_LOCATIONS += /usr/pgi/linux86/lib
   override XTRALIBS += -lpgf90 -lpgf90_rpm1 -lpgf902 -lpgf90rtl -lpgftnrtl -lpgc
 else
