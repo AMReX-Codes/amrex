@@ -17,7 +17,7 @@ void amr_multigrid::mesh_read(Array<BoxArray>& m, Array<IntVect>& r, Array<Box>&
 	Box b;
 	int igrid;
 	is >> b >> igrid;
-	if (is.fail()) BoxLib::Error("failed to read box\n");
+	if ( is.fail() ) BoxLib::Error("failed to read box\n");
 	d.set(ilev, b);
 	if (ilev > 0) 
 	{
@@ -27,7 +27,7 @@ void amr_multigrid::mesh_read(Array<BoxArray>& m, Array<IntVect>& r, Array<Box>&
 	for (int igrid = 0; igrid < m[ilev].length(); igrid++) 
 	{
 	    is >> b;
-	    if ( is.fail()) BoxLib::Error("failed to read box");
+	    if ( is.fail() ) BoxLib::Error("failed to read box");
 	    m[ilev].set(igrid, b);
 	}
     }

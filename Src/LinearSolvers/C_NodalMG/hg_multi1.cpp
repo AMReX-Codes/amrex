@@ -462,8 +462,8 @@ void holy_grail_amr_multigrid::build_sigma(PArray<MultiFab>& Sigma)
     }
     else if (m_hg_full_stencil)
     {
-	const Real hxyz[BL_SPACEDIM] = { D_DECL( h[mglev][0], h[mglev][1], h[mglev][2] ) };
 #if BL_SPACEDIM != 3
+	const Real hxyz[BL_SPACEDIM] = { D_DECL( h[mglev][0], h[mglev][1], h[mglev][2] ) };
 	for (MultiFabIterator c_mfi(cen[mglev]); c_mfi.isValid(); ++c_mfi)
 	{
 	    const Box& cenbox = c_mfi->box();
@@ -618,17 +618,17 @@ void holy_grail_amr_multigrid::sync_interfaces()
 	IntVect rat = mg_domain[mglev].length() / mg_domain[mgc].length();
 	MultiFab& target = dest[lev];
 	// PARALLEL 
-	for (int iface = 0; iface < lev_interface[mglev].nfaces(); iface++) 
+	for (int iface = 0; iface < lev_interface[mglev].nboxes(level_interface::FACEDIM); iface++) 
 	{
 	    // find a fine grid touching this face
-	    int igrid = lev_interface[mglev].fgrid(iface, 0);
+	    int igrid = lev_interface[mglev].grid(level_interface::FACEDIM, iface, 0);
 	    if (igrid < 0)
-		igrid = lev_interface[mglev].fgrid(iface, 1);
-	    const unsigned int geo = lev_interface[mglev].fgeo(iface);
+		igrid = lev_interface[mglev].grid(level_interface::FACEDIM, iface, 1);
+	    const unsigned int geo = lev_interface[mglev].geo(level_interface::FACEDIM, iface);
 	    // reject fine-fine interfaces and those without an interior fine grid
-	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].fflag(iface) )
+	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(level_interface::FACEDIM, iface) )
 		continue;
-	    interpolate_patch(target[igrid], lev_interface[mglev].node_face(iface),
+	    interpolate_patch(target[igrid], lev_interface[mglev].node_box(level_interface::FACEDIM, iface),
 		dest[lev-1], rat, bilinear_interpolator_class(), lev_interface[mgc], 0);
 	}
     }
@@ -645,16 +645,16 @@ void holy_grail_amr_multigrid::sync_periodic_interfaces()
 	idomain.convert(type(dest[lev])).grow(-1);
 	MultiFab& target = dest[lev];
 	// PARALLEL
-	for (int iface = 0; iface < lev_interface[mglev].nfaces(); iface++) 
+	for (int iface = 0; iface < lev_interface[mglev].nboxes(level_interface::FACEDIM); iface++) 
 	{
 	    // find a fine grid touching this face
-	    int igrid = lev_interface[mglev].fgrid(iface, 0);
+	    int igrid = lev_interface[mglev].grid(level_interface::FACEDIM, iface, 0);
 	    if (igrid < 0)
-		igrid = lev_interface[mglev].fgrid(iface, 1);
-	    const unsigned int geo = lev_interface[mglev].fgeo(iface);
+		igrid = lev_interface[mglev].grid(level_interface::FACEDIM, iface, 1);
+	    const unsigned int geo = lev_interface[mglev].geo(level_interface::FACEDIM, iface);
 	    // use only exterior coarse-fine faces with an interior fine grid
-	    const Box& nbox = lev_interface[mglev].node_face(iface);
-	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].fflag(iface) || idomain.intersects(nbox))
+	    const Box& nbox = lev_interface[mglev].node_box(level_interface::FACEDIM, iface);
+	    if (geo == level_interface::ALL || igrid < 0 || lev_interface[mglev].flag(level_interface::FACEDIM, iface) || idomain.intersects(nbox))
 		continue;
 	    interpolate_patch(target[igrid], nbox, 
 		dest[lev-1], rat, bilinear_interpolator_class(), lev_interface[mgc], 0);
