@@ -555,20 +555,27 @@ void projtest(Array<BoxArray>& m, Array<IntVect>& ratio, Array<Box>& domain)
     }
     else if (m.length() == 3) 
     {
+        double t00, t01, t10, t11, t20, t21;
+        init(u, p, m, ratio);
+	t00 = Utility::second();
 	proj.project(u, p, null_amr_real, rhoinv, h, tol, 2, 2);
-	t1 = Utility::second();
-	cout << "First time is " << t1 - t0 << endl;
+	t01 = Utility::second();
+	cout << "First time is " << t01 - t00 << endl;
 	for (int i = 0; i < p.length(); i++)
 	    p[i].setVal(0.0);
+        init(u, p, m, ratio);
+	t10 = Utility::second();
 	proj.project(u, p, null_amr_real, rhoinv, h, tol, 1, 2);
-	t2 = Utility::second();
-	cout << "Second time is " << t2 - t1 << endl;
+	t11 = Utility::second();
+	cout << "Second time is " << t11 - t10 << endl;
 	for (int i = 0; i < p.length(); i++)
 	    p[i].setVal(0.0);
+        init(u, p, m, ratio);
+	t20 = Utility::second();
 	proj.project(u, p, null_amr_real, rhoinv, h, tol, 0, 2);
-	t3 = Utility::second();
-	cout << "Third time is " << t3 - t2 << endl;
-	cout << "Total time was  " << t3 - t0 << endl;
+	t21 = Utility::second();
+	cout << "Third time is " << t21 - t20 << endl;
+	cout << "Total time (counting inits) was  " << t21 - t00 << endl;
     }
     else 
     {
