@@ -4,12 +4,13 @@
 #define BL_ASTRING_H
 
 //
-// $Id: aString.H,v 1.5 1997-12-11 23:25:49 lijewski Exp $
+// $Id: aString.H,v 1.6 1998-05-29 18:01:37 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
 #include <iostream>
 #include <cstring>
+#include <cstdlib>
 using std::cin;
 using std::cout;
 using std::cerr;
@@ -19,6 +20,7 @@ using std::istream;
 #else
 #include <iostream.h>
 #include <string.h>
+#include <stdlib.h>
 #endif
 
 #include <Assert.H>
@@ -178,6 +180,27 @@ public:
                to be used in any context where a const char* type is needed.
     */
     const char* c_str () const;
+
+    /*@ManDoc: Returns the value of the string as a double.  In the case
+               when the string is empty or when the initial characters
+               in the string are strictly alphabetic characters, this
+               returns zero.  It's equivalent to `atof(c\_str())'.
+    */
+    double toDouble () const;
+
+    /*@ManDoc: Returns the value of the string as a integer.  In the case
+               when the string is empty or when the initial characters
+               in the string are strictly alphabetic characters, this
+               returns zero.  It's equivalent to `atoi(c\_str())'.
+    */
+    int toInteger () const;
+
+    /*@ManDoc: Returns the value of the string as a long.  In the case
+               when the string is empty or when the initial characters
+               in the string are strictly alphabetic characters, this
+               returns zero.  It's equivalent to `atol(c\_str())'.
+    */
+    long toLong () const;
     //
     //@ManDoc: Write to an ostream in ASCII format.
     //
@@ -320,6 +343,27 @@ int
 aString::length () const
 {
     return len;
+}
+
+inline
+double
+aString::toDouble () const
+{
+    return len == 0 ? 0 : atof(p->s);
+}
+
+inline
+int
+aString::toInteger () const
+{
+    return len == 0 ? 0 : atoi(p->s);
+}
+
+inline
+long
+aString::toLong () const
+{
+    return len == 0 ? 0 : atol(p->s);
 }
 
 inline
