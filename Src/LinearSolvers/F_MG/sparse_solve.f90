@@ -1565,7 +1565,7 @@ contains
     integer  , allocatable :: new_iarray_ij(:,:)
     integer  , allocatable :: new_iarray_ijk(:,:,:)
 
-    integer :: pts_to_add,numpts, num_aa, num_bdy_pts
+    integer :: pts_to_add,numpts, num_aa
     integer :: dm
     integer :: ig,igrid,jgrid,ngrids
     integer :: i,j,k,n,ns,nx,ny,nz
@@ -1595,6 +1595,7 @@ contains
 
     spo%Anorm = stencil_norm(ss)
 
+!   Build a mask with one ghost cell for use in creating aa
     call imultifab_build(mm_grown,la,1,1,mm%nodal)
     do igrid = 1, ngrids
        mp => dataptr(mm_grown,igrid)
@@ -1603,119 +1604,16 @@ contains
     call copy(mm_grown,mm,all=.false.)
     call imultifab_fill_boundary(mm_grown)
 
+!   Build the ia array.
     call imultifab_build(spo%index_into_aa,la,1,1,ss%nodal)
     call setval(spo%index_into_aa,-1,all=.true.)
 
-    select case(dm)
-    case(1)
-       max_neighbors = get_max_neighbors_1d(ss)
-    case(2)
-       max_neighbors = get_max_neighbors_2d(ss)
-    case(3)
-       max_neighbors = get_max_neighbors_3d(ss)
-    end select
-
-    if ( verbose > 0 ) then
-       print *, 'MAX_NEIGHBORS = ', max_neighbors
-    end if
-
-    allocate(neighbors(ngrids,max_neighbors))
-    allocate(    sides(ngrids,max_neighbors))
-    allocate(num_nbors(ngrids))
-
-    num_nbors = 0
-    neighbors = -1
-
-    select case(dm)
-    case(1)
-       call make_neighbors_1d(ss, neighbors, sides, num_nbors)
-    case(2)
-       call make_neighbors_2d(ss, neighbors, sides, num_nbors)
-    case(3)
-       call make_neighbors_3d(ss, neighbors, sides, num_nbors)
-    end select
-
     numpts = 0
-    num_aa = 0
-    num_bdy_pts = 0
-
     do igrid = 1, ngrids
-       ibx = get_ibox(ss, igrid)
-       print *,'BOX ',igrid,' IS ',ibx%lo(1),ibx%lo(2),ibx%hi(1),ibx%hi(2)
-       i_lbnd = ibx%lo(1:dm)
-       i_ubnd = ibx%hi(1:dm)
-
-       nx = box_extent_d(ibx,1)
-       select case(dm)
-       case(1)
-          pts_to_add = nx-2
-          if (face_type(igrid,1,1) == BC_NEU) pts_to_add = pts_to_add + 1
-          if (face_type(igrid,1,2) == BC_NEU) pts_to_add = pts_to_add + 1
-          numpts = numpts +    pts_to_add
-          num_aa = num_aa + ns*pts_to_add
-       case(2)
-          ny = box_extent_d(ibx,2)
-          pts_to_add = (nx-2)*(ny-2)
-!         Edges
-          if (face_type(igrid,1,1) == BC_NEU) pts_to_add = pts_to_add + (ny-2)
-          if (face_type(igrid,1,2) == BC_NEU) pts_to_add = pts_to_add + (ny-2)
-          if (face_type(igrid,2,1) == BC_NEU) pts_to_add = pts_to_add + (nx-2)
-          if (face_type(igrid,2,2) == BC_NEU) pts_to_add = pts_to_add + (nx-2)
-!         Corners
-          do jj = 1,2
-          do ii = 1,2
-             if (face_type(igrid,1,ii) == BC_NEU .and. &
-                 face_type(igrid,2,jj) == BC_NEU) pts_to_add = pts_to_add + 1
-          end do
-          end do
-          numpts = numpts +    pts_to_add
-          num_aa = num_aa + ns*pts_to_add
-       case(3)
-          ny = box_extent_d(ibx,2)
-          nz = box_extent_d(ibx,3)
-          pts_to_add = (nx-2)*(ny-2)*(nz-2)
-!         Faces
-          if (face_type(igrid,1,1) == BC_NEU) pts_to_add = pts_to_add + (ny-2)*(nz-2)
-          if (face_type(igrid,1,2) == BC_NEU) pts_to_add = pts_to_add + (ny-2)*(nz-2)
-          if (face_type(igrid,2,1) == BC_NEU) pts_to_add = pts_to_add + (nx-2)*(nz-2)
-          if (face_type(igrid,2,2) == BC_NEU) pts_to_add = pts_to_add + (nx-2)*(nz-2)
-          if (face_type(igrid,3,1) == BC_NEU) pts_to_add = pts_to_add + (nx-2)*(ny-2)
-          if (face_type(igrid,3,2) == BC_NEU) pts_to_add = pts_to_add + (nx-2)*(ny-2)
-!         Edges
-          do jj = 1,2
-          do ii = 1,2
-             if (face_type(igrid,1,ii) == BC_NEU .and. &
-                 face_type(igrid,2,jj) == BC_NEU ) pts_to_add = pts_to_add + (nz-2)
-             if (face_type(igrid,2,ii) == BC_NEU .and. &
-                 face_type(igrid,3,jj) == BC_NEU ) pts_to_add = pts_to_add + (nx-2)
-             if (face_type(igrid,3,ii) == BC_NEU .and. &
-                 face_type(igrid,1,jj) == BC_NEU ) pts_to_add = pts_to_add + (ny-2)
-          end do
-          end do
-!         Corners
-          do kk = 1,2
-          do jj = 1,2
-          do ii = 1,2
-             if (face_type(igrid,1,ii) == BC_NEU .and. &
-                 face_type(igrid,2,jj) == BC_NEU .and.&
-                 face_type(igrid,3,kk) == BC_NEU ) pts_to_add = pts_to_add + 1
-          end do
-          end do
-          end do
-          numpts = numpts +    pts_to_add
-          num_aa = num_aa + ns*pts_to_add
-       end select
-
-       !      Add back in any fine-fine edges
-       !      NOTE: THIS GIVES TOO MANY SINCE FINE-FINE CORNERS CAN STILL BE DIR.
-       do j = 1,num_nbors(igrid)
-          jgrid = neighbors(igrid,j)
-          jbx = get_ibox(ss, jgrid)
-          dir = sides(igrid,j)
-!         shifted_box = shift(ibx,sign(1,dir),abs(dir))
-          num_aa = num_aa + volume(intersection(ibx, jbx))
-       end do
+       numpts = numpts + volume(get_ibox(ss,igrid))
     end do
+    num_aa = numpts * ns
+
     if ( verbose > 0 ) then
        print *,'PROJECTED NUMPTS NUM_AA ',numpts, num_aa
     end if
@@ -1767,12 +1665,9 @@ contains
                inode, iedge)
        end do
        spo%smt%ia(inode) = iedge
-       if ( verbose > 0 ) then
-          print *,'FINAL INODE IEDGE ',inode,iedge
-       end if
 
        num_aa = iedge - 1
-       numpts = num_aa / ns
+       numpts = inode - 1
        allocate(spo%smt%aa(num_aa))
        do i = 1, num_aa
           spo%smt%aa(i) = temp_aa(i)
@@ -1843,7 +1738,6 @@ contains
           do igrid = 1, num_grids_for_j(j)
              ig = new_iarray_ij(j,igrid)
 
-
              ibx = get_ibox(ss,ig)
              at_jhi = (j == box_upb_d(ibx,2))
 
@@ -1866,11 +1760,6 @@ contains
 
           end do
        end do
-       print *,'FINAL IEDGE FOR AA ',iedge
-
-       if ( verbose > 0 ) then
-          print *,'FINAL INODE IEDGE ',inode,iedge
-       end if
 
        num_aa = iedge - 1
        numpts = inode - 1
@@ -1910,7 +1799,6 @@ contains
              call create_nodal_ja_2d(spo%smt%ja,mp(:,:,1,1),ind(:,:,1,1),iedge,at_jhi)
           end do
        end do
-       print *,'FINAL IEDGE FOR JA ',iedge
 
     case(3)
 
@@ -1990,9 +1878,6 @@ contains
           end do
        end do
        spo%smt%ia(inode) = iedge
-       if ( verbose > 0 ) then
-          print *,'FINAL INODE IEDGE ',inode,iedge
-       end if
 
        num_aa = iedge - 1
        numpts = inode - 1
@@ -2006,7 +1891,6 @@ contains
        end if
 
        call imultifab_fill_boundary(spo%index_into_aa)
-
        allocate(spo%smt%ja(num_aa))
 
        iedge = 1
@@ -2048,361 +1932,6 @@ contains
     call ilut_build(spo%smt, spo%sil)
 
   contains
-
-    function get_max_neighbors_1d(rh) result(r)
-      integer :: r
-      type(multifab), intent(in) :: rh
-      type(box) :: ibx,jbx
-      integer igrid,jgrid,ngrids
-      integer i_lbnd
-      integer i_ubnd
-      integer j_lbnd
-      integer j_ubnd
-      integer ir
-      ngrids = rh%nboxes
-
-      r = 0
-      do igrid = 1,ngrids
-         ibx = get_box(rh, igrid)
-         i_lbnd = ibx%lo(1)
-         i_ubnd = ibx%hi(1)
-
-         ir = 0
-         do jgrid = 1, ngrids
-            if (jgrid == igrid) cycle
-            jbx = get_box(rh, jgrid)
-            j_lbnd = jbx%lo(1)
-            j_ubnd = jbx%hi(1)
-            if (j_ubnd == i_lbnd-1) then
-               ir = ir + 1
-            end if
-            if (j_lbnd == i_ubnd+1) then
-               ir = ir + 1
-            end if
-         end do
-         r = max(r, ir)
-      end do
-
-    end function get_max_neighbors_1d
-
-    function get_max_neighbors_2d(rh) result(r)
-      integer :: r
-      type(multifab), intent(in) :: rh
-      type(box) :: ibx,jbx
-      integer igrid,jgrid,ngrids
-      integer i_lbnd(rh%dim)
-      integer i_ubnd(rh%dim)
-      integer j_lbnd(rh%dim)
-      integer j_ubnd(rh%dim)
-      integer ir
-      ngrids = rh%nboxes
-
-      r = 0
-      do igrid = 1, ngrids
-         ibx = get_box(rh, igrid)
-         i_lbnd = ibx%lo(1:rh%dim)
-         i_ubnd = ibx%hi(1:rh%dim)
-
-         ir = 0
-         do jgrid = 1,ngrids
-            if (jgrid == igrid) cycle
-            jbx = get_box(rh, jgrid)
-            j_lbnd = jbx%lo(1:rh%dim)
-            j_ubnd = jbx%hi(1:rh%dim)
-            if ( j_ubnd(1) == i_lbnd(1)-1 .and. &
-                 j_ubnd(2) >= i_lbnd(2)   .and. &
-                 j_lbnd(2) <= i_ubnd(2)   ) then
-               ir = ir + 1
-            end if
-            if ( j_lbnd(1) == i_ubnd(1)+1 .and. &
-                 j_ubnd(2) >= i_lbnd(2)   .and. &
-                 j_lbnd(2) <= i_ubnd(2)   ) then
-               ir = ir + 1
-            end if
-            if ( j_ubnd(2) == i_lbnd(2)-1 .and. &
-                 j_ubnd(1) >= i_lbnd(1)   .and. &
-                 j_lbnd(1) <= i_ubnd(1)   ) then
-               ir = ir + 1
-            end if
-            if ( j_lbnd(2) == i_ubnd(2)+1 .and. &
-                 j_ubnd(1) >= i_lbnd(1)   .and. &
-                 j_lbnd(1) <= i_ubnd(1)   ) then
-               ir = ir + 1
-            end if
-         end do
-         r = max(r, ir)
-      end do
-
-    end function get_max_neighbors_2d
-
-    function get_max_neighbors_3d(rh) result(r)
-      integer :: r
-      type(multifab), intent(in) :: rh
-      type(box) :: ibx,jbx
-      integer igrid,jgrid,ngrids
-      integer i_lbnd(rh%dim)
-      integer i_ubnd(rh%dim)
-      integer j_lbnd(rh%dim)
-      integer j_ubnd(rh%dim)
-      integer ir
-      ngrids = rh%nboxes
-
-      r = 0
-      do igrid = 1,ngrids
-         ibx = get_box(rh, igrid)
-         i_lbnd = ibx%lo(1:rh%dim)
-         i_ubnd = ibx%hi(1:rh%dim)
-
-         ir = 0
-         do jgrid = 1,ngrids
-            if (jgrid == igrid) cycle
-            jbx = get_box(rh, jgrid)
-            j_lbnd = jbx%lo(1:rh%dim)
-            j_ubnd = jbx%hi(1:rh%dim)
-            if ( j_ubnd(1) == i_lbnd(1)-1 .and. &
-                 j_ubnd(2) >= i_lbnd(2)   .and. &
-                 j_lbnd(2) <= i_ubnd(2)   .and. &
-                 j_ubnd(3) >= i_lbnd(3)   .and. &
-                 j_lbnd(3) <= i_ubnd(3)   ) then
-               ir = ir + 1
-            end if
-            if ( j_lbnd(1) == i_ubnd(1)+1 .and. &
-                 j_ubnd(2) >= i_lbnd(2)   .and. &
-                 j_lbnd(2) <= i_ubnd(2)   .and. &
-                 j_ubnd(3) >= i_lbnd(3)   .and. &
-                 j_lbnd(3) <= i_ubnd(3)   ) then
-               ir = ir + 1
-            end if
-            if ( j_ubnd(2) == i_lbnd(2)-1 .and. &
-                 j_ubnd(1) >= i_lbnd(1)   .and. &
-                 j_lbnd(1) <= i_ubnd(1)   .and. &
-                 j_ubnd(3) >= i_lbnd(3)   .and. &
-                 j_lbnd(3) <= i_ubnd(3)   ) then
-               ir = ir + 1
-            end if
-            if ( j_lbnd(2) == i_ubnd(2)+1 .and. &
-                 j_ubnd(1) >= i_lbnd(1)   .and. &
-                 j_lbnd(1) <= i_ubnd(1)   .and. &
-                 j_ubnd(3) >= i_lbnd(3)   .and. &
-                 j_lbnd(3) <= i_ubnd(3)   ) then
-               ir = ir + 1
-            end if
-            if ( j_ubnd(3) == i_lbnd(3)-1 .and. &
-                 j_ubnd(1) >= i_lbnd(1)   .and. &
-                 j_lbnd(1) <= i_ubnd(1)   .and. &
-                 j_ubnd(2) >= i_lbnd(2)   .and. &
-                 j_lbnd(2) <= i_ubnd(2)   ) then
-               ir = ir + 1
-            end if
-            if ( j_lbnd(3) == i_ubnd(3)+1 .and. &
-                 j_ubnd(1) >= i_lbnd(1)   .and. &
-                 j_lbnd(1) <= i_ubnd(1)   .and. &
-                 j_ubnd(2) >= i_lbnd(2)   .and. &
-                 j_lbnd(2) <= i_ubnd(2)   ) then
-               ir = ir + 1
-            end if
-         end do
-         r = max(r, ir)
-      end do
-
-    end function get_max_neighbors_3d
-
-    subroutine make_neighbors_1d(rh, neighbors, sides, num_nbors)
-
-      type(multifab), intent(in) :: rh
-      type(box) :: ibx,jbx
-      integer igrid,jgrid,ngrids
-      integer i_lbnd
-      integer i_ubnd
-      integer j_lbnd
-      integer j_ubnd
-
-      integer :: neighbors(:,:)
-      integer :: sides(:,:)
-      integer :: num_nbors(:)
-
-      integer inbr 
-
-      ngrids = rh%nboxes
-
-      do igrid = 1,ngrids
-         ibx = get_box(rh, igrid)
-         i_lbnd = ibx%lo(1)
-         i_ubnd = ibx%hi(1)
-
-         inbr = 1
-         do jgrid = 1, ngrids
-            if (jgrid == igrid) cycle
-            jbx = get_box(rh, jgrid)
-            j_lbnd = jbx%lo(1)
-            j_ubnd = jbx%hi(1)
-            if (j_ubnd == i_lbnd-1) then
-               neighbors(igrid,inbr) = jgrid
-               sides(igrid,inbr) = -1
-               inbr = inbr + 1
-            end if
-            if (j_lbnd == i_ubnd+1) then
-               neighbors(igrid,inbr) = jgrid
-               sides(igrid,inbr) = 1
-               inbr = inbr + 1
-            end if
-         end do
-         num_nbors(igrid) = inbr - 1
-      end do
-
-    end subroutine make_neighbors_1d
-
-    subroutine make_neighbors_2d(rh,neighbors,sides,num_nbors)
-
-      type(multifab), intent(in) :: rh
-      type(box) :: ibx,jbx
-      integer igrid,jgrid,ngrids
-      integer i_lbnd(rh%dim)
-      integer i_ubnd(rh%dim)
-      integer j_lbnd(rh%dim)
-      integer j_ubnd(rh%dim)
-
-      integer :: neighbors(:,:)
-      integer :: sides(:,:)
-      integer :: num_nbors(:)
-
-      integer inbr 
-
-      ngrids = rh%nboxes
-
-      do igrid = 1,ngrids
-         ibx = get_box(rh, igrid)
-         i_lbnd = ibx%lo(1:rh%dim)
-         i_ubnd = ibx%hi(1:rh%dim)
-
-         inbr = 1
-         do jgrid = 1,ngrids
-            if (jgrid == igrid) cycle
-            jbx = get_box(rh, jgrid)
-            j_lbnd = jbx%lo(1:rh%dim)
-            j_ubnd = jbx%hi(1:rh%dim)
-            if ( j_ubnd(1) == i_lbnd(1)-1 .and. &
-                 j_ubnd(2) >= i_lbnd(2)   .and. &
-                 j_lbnd(2) <= i_ubnd(2)   ) then
-               neighbors(igrid,inbr) = jgrid
-               sides(igrid,inbr) = -1
-               inbr = inbr + 1
-            end if
-            if ( j_lbnd(1) == i_ubnd(1)+1 .and. &
-                 j_ubnd(2) >= i_lbnd(2)   .and. &
-                 j_lbnd(2) <= i_ubnd(2)   ) then
-               neighbors(igrid,inbr) = jgrid
-               sides(igrid,inbr) = 1
-               inbr = inbr + 1
-            end if
-            if ( j_ubnd(2) == i_lbnd(2)-1 .and. &
-                 j_ubnd(1) >= i_lbnd(1)   .and. &
-                 j_lbnd(1) <= i_ubnd(1)   ) then
-               neighbors(igrid,inbr) = jgrid
-               sides(igrid,inbr) = -2
-               inbr = inbr + 1
-            end if
-            if ( j_lbnd(2) == i_ubnd(2)+1 .and. &
-                 j_ubnd(1) >= i_lbnd(1)   .and. &
-                 j_lbnd(1) <= i_ubnd(1)   ) then
-               neighbors(igrid,inbr) = jgrid
-               sides(igrid,inbr) = 2
-               inbr = inbr + 1
-            end if
-         end do
-         num_nbors(igrid) = inbr - 1
-      end do
-
-    end subroutine make_neighbors_2d
-
-    subroutine make_neighbors_3d(rh,neighbors,sides,num_nbors)
-
-      type(multifab), intent(in) :: rh
-      type(box) :: ibx,jbx
-      integer igrid,jgrid,ngrids
-      integer i_lbnd(rh%dim)
-      integer i_ubnd(rh%dim)
-      integer j_lbnd(rh%dim)
-      integer j_ubnd(rh%dim)
-
-      integer :: neighbors(:,:)
-      integer :: sides(:,:)
-      integer :: num_nbors(:)
-
-      integer inbr 
-
-      ngrids = rh%nboxes
-
-      do igrid = 1,ngrids
-         ibx = get_box(rh, igrid)
-         i_lbnd = ibx%lo(1:rh%dim)
-         i_ubnd = ibx%hi(1:rh%dim)
-
-         inbr = 1
-         do jgrid = 1,ngrids
-            if (jgrid == igrid) cycle
-            jbx = get_box(rh, jgrid)
-            j_lbnd = jbx%lo(1:rh%dim)
-            j_ubnd = jbx%hi(1:rh%dim)
-            if ( j_ubnd(1) == i_lbnd(1)-1 .and. &
-                 j_ubnd(2) >= i_lbnd(2)   .and. &
-                 j_lbnd(2) <= i_ubnd(2)   .and. &
-                 j_ubnd(3) >= i_lbnd(3)   .and. &
-                 j_lbnd(3) <= i_ubnd(3)   ) then
-               neighbors(igrid,inbr) = jgrid
-               sides(igrid,inbr) = -1
-               inbr = inbr + 1
-            end if
-            if ( j_lbnd(1) == i_ubnd(1)+1 .and. &
-                 j_ubnd(2) >= i_lbnd(2)   .and. &
-                 j_lbnd(2) <= i_ubnd(2)   .and. &
-                 j_ubnd(3) >= i_lbnd(3)   .and. &
-                 j_lbnd(3) <= i_ubnd(3)   ) then
-               neighbors(igrid,inbr) = jgrid
-               sides(igrid,inbr) = 1
-               inbr = inbr + 1
-            end if
-            if ( j_ubnd(2) == i_lbnd(2)-1 .and. &
-                 j_ubnd(1) >= i_lbnd(1)   .and. &
-                 j_lbnd(1) <= i_ubnd(1)   .and. &
-                 j_ubnd(3) >= i_lbnd(3)   .and. &
-                 j_lbnd(3) <= i_ubnd(3)   ) then
-               neighbors(igrid,inbr) = jgrid
-               sides(igrid,inbr) = -2
-               inbr = inbr + 1
-            end if
-            if ( j_lbnd(2) == i_ubnd(2)+1 .and. &
-                 j_ubnd(1) >= i_lbnd(1)   .and. &
-                 j_lbnd(1) <= i_ubnd(1)   .and. &
-                 j_ubnd(3) >= i_lbnd(3)   .and. &
-                 j_lbnd(3) <= i_ubnd(3)   ) then
-               neighbors(igrid,inbr) = jgrid
-               sides(igrid,inbr) = 2
-               inbr = inbr + 1
-            end if
-            if ( j_ubnd(3) == i_lbnd(3)-1 .and. &
-                 j_ubnd(1) >= i_lbnd(1)   .and. &
-                 j_lbnd(1) <= i_ubnd(1)   .and. &
-                 j_ubnd(2) >= i_lbnd(2)   .and. &
-                 j_lbnd(2) <= i_ubnd(2)   ) then
-               neighbors(igrid,inbr) = jgrid
-               sides(igrid,inbr) = -3
-               inbr = inbr + 1
-            end if
-            if ( j_lbnd(3) == i_ubnd(3)+1 .and. &
-                 j_ubnd(1) >= i_lbnd(1)   .and. &
-                 j_lbnd(1) <= i_ubnd(1)   .and. &
-                 j_ubnd(2) >= i_lbnd(2)   .and. &
-                 j_lbnd(2) <= i_ubnd(2)   ) then
-               neighbors(igrid,inbr) = jgrid
-               sides(igrid,inbr) = 3
-               inbr = inbr + 1
-            end if
-         end do
-         num_nbors(igrid) = inbr - 1
-      end do
-
-    end subroutine make_neighbors_3d
 
     subroutine create_nodal_aa_1d(sp, mp, aa, ia, ind, inode, iedge)
       real (kind = dp_t), intent(in   ) :: sp(:,0:)
