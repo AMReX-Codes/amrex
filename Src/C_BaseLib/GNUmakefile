@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.18 2000-04-24 17:52:35 car Exp $
+# $Id: GNUmakefile,v 1.19 2000-05-03 17:12:11 propp Exp $
 #
 
 PBOXLIB_HOME = ..
@@ -11,7 +11,8 @@ DEBUG     = TRUE
 DIM       = 3
 COMP      = KCC
 USE_MPI   = TRUE
-NAMESPACE = TRUE
+#NAMESPACE = TRUE
+NAMESPACE = FALSE
 
 #
 # The base name of the library we're building.
