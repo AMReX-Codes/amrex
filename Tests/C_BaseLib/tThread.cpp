@@ -265,12 +265,9 @@ producer::work()
 int
 main(int argc, char** argv)
 {
-    BL_PROFILE_TIMER(pmain, "main()");
-    BL_PROFILE_START(pmain);
     BoxLib::Initialize(argc, argv);
     using namespace testing;
     prodcons_main();
     philosophers_main();
-    BL_PROFILE_STOP(pmain);
     BoxLib::Finalize();
 }

@@ -1,5 +1,5 @@
 #
-# $Id: GNUmakefile,v 1.4 2001-07-22 18:11:03 car Exp $
+# $Id: GNUmakefile,v 1.5 2001-07-22 18:25:48 car Exp $
 #
 
 #
@@ -25,9 +25,9 @@ DEFINES += -DBL_PROFILING
 # I'm assuming that each of these is a stand-alone program,
 # that simply needs to link against BoxLib.
 #
-#_progs = tVisMF tDir t8BIT tFB tFAC
-#_progs = tProfiler tThread tWorkQueue
-_progs = tRan
+_progs += tVisMF tDir t8BIT tFB tFAC
+_progs += tProfiler tThread tWorkQueue
+_progs += tRan
 
 INCLUDE_LOCATIONS += $(PBOXLIB_HOME)/BoxLib
 ifeq ($(COMP),g++)

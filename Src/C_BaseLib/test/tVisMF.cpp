@@ -1,14 +1,12 @@
 
 //
-// $Id: tVisMF.cpp,v 1.20 2000-10-02 20:52:40 lijewski Exp $
+// $Id: tVisMF.cpp,v 1.21 2001-07-22 18:25:48 car Exp $
 //
 
 #include <stdlib.h>
 
 #include <VisMF.H>
 #include <Utility.H>
-
-static int nProcs = 1;
 
 static int nBoxs  = 10;
 
@@ -29,8 +27,6 @@ usage ()
 {
     std::cout << "usage: "
               << the_prog_name
-              << " [-how PerFab|PerCPU]"
-              << " [-nprocs N]"
               << " [-nboxs N]"
               << std::endl;
     exit(1);
@@ -42,25 +38,7 @@ parse_args (char**& argv)
 {
     while (*++argv && **argv == '-')
     {
-        if (strcmp(*argv, "-nprocs") ==  0)
-        {
-            if (*++argv)
-            {
-                nProcs = atoi(*argv);
-
-                if (nProcs <= 0)
-                {
-                    std::cout << "nprocs must be positive" << std::endl;
-                    usage();
-                }
-            }
-            else
-            {
-                std::cout << "No argument to -nprocs supplied.\n";
-                usage();
-            }
-        }
-        else if (strcmp(*argv, "-nboxs") ==  0)
+        if (strcmp(*argv, "-nboxs") ==  0)
         {
             if (*++argv)
             {
@@ -74,25 +52,7 @@ parse_args (char**& argv)
             }
             else
             {
-                std::cout << "No argument to -nprocs supplied.\n";
-                usage();
-            }
-        }
-        else if (strcmp(*argv, "-how") ==  0)
-        {
-            if (*++argv)
-            {
-                How = *argv;
-
-                if (!(How == PerCPU || How == PerFab))
-                {
-                    std::cout << "Invalid value for -how argument\n";
-                    usage();
-                }
-            }
-            else
-            {
-                std::cout << "No argument to -how supplied.\n";
+                std::cout << "No argument to -nboxs supplied.\n";
                 usage();
             }
         }
@@ -107,8 +67,7 @@ parse_args (char**& argv)
 static
 void
 Write_N_Read (const MultiFab& mf,
-              const aString&  mf_name,
-              VisMF::How      how)
+              const aString&  mf_name)
 {
     if (ParallelDescriptor::IOProcessor())
     {
@@ -117,28 +76,18 @@ Write_N_Read (const MultiFab& mf,
 
     double start, end;
 
-    ParallelDescriptor::Synchronize();
+    ParallelDescriptor::Barrier();
 
     if (ParallelDescriptor::IOProcessor())
     {
-        start = Utility::wsecond();
+        start = BoxLib::wsecond();
     }
 
-    switch (how)
-    {
-    case VisMF::OneFilePerCPU:
-        VisMF::Write(mf, mf_name, VisMF::OneFilePerCPU); break;
-    case VisMF::OneFilePerFab:
-        VisMF::Write(mf, mf_name, VisMF::OneFilePerFab); break;
-    default:
-        BoxLib::Error("Bad case in switch");
-    }
-
-    ParallelDescriptor::Synchronize();
+    ParallelDescriptor::Barrier();
 
     if (ParallelDescriptor::IOProcessor())
     {
-        end = Utility::wsecond();
+        end = BoxLib::wsecond();
 
         std::cout << "\nWallclock time for MF write: " << (end-start) << '\n';
 
@@ -161,7 +110,7 @@ Write_N_Read (const MultiFab& mf,
                   << '\n';
     }
 
-    ParallelDescriptor::Synchronize();
+    ParallelDescriptor::Barrier();
 
     if (ParallelDescriptor::IOProcessor())
     {
@@ -174,13 +123,11 @@ Write_N_Read (const MultiFab& mf,
 }
 
 int
-main (int, char** argv)
+main (int argc, char** argv)
 {
+    BoxLib::Initialize(argc, argv);
     the_prog_name = argv[0];
-
     parse_args(argv);
-
-    ParallelDescriptor::StartParallel(nProcs, &argc, &argv);
 
     BoxArray ba(nBoxs);
 
@@ -188,7 +135,7 @@ main (int, char** argv)
 
     for (int i = 1; i < nBoxs; i++)
     {
-        ba.set(i,grow(ba[i-1],2));
+        ba.set(i,BoxLib::grow(ba[i-1],2));
     }
 
     MultiFab mf(ba, 2, 1);
@@ -205,8 +152,7 @@ main (int, char** argv)
     static const aString mf_name = "Spam-n-Eggs";
 
     Write_N_Read (mf,
-                  mf_name,
-                  (How==PerCPU) ? VisMF::OneFilePerCPU : VisMF::OneFilePerFab);
+                  mf_name);
 
-    ParallelDescriptor::EndParallel();
+    BoxLib::Finalize();
 }
