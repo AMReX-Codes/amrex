@@ -175,14 +175,13 @@ static bool fill_exterior_patch_blindly(FArrayBox& patch,
     return false;
 }
 
-bool fill_patch(FArrayBox& patch, const Box& region,
+void fill_patch(FArrayBox& patch, const Box& region,
 	       const MultiFab& r,
 	       const level_interface& lev_interface,
 	       const amr_boundary_class* bdy,
 	       int idim, int index)
 {
-    if (!region.ok())
-	return true;
+    if ( !region.ok() ) return;
     
     assert(patch.nComp() == r.nComp());
     assert(type(patch) == type(r));
@@ -197,25 +196,21 @@ bool fill_patch(FArrayBox& patch, const Box& region,
     {
 	if (idomain.contains(region) || bdy == 0) 
 	{
-	    return fill_patch_blindly(patch, region, r);
+	    fill_patch_blindly(patch, region, r);
 	}
 	else if (!tdomain.intersects(region)) 
 	{
-	    return fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy);
+	    fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy);
 	}
 	else if (idomain.intersects(region)) 
 	{
-	    if (fill_patch_blindly(patch, region, r) )
-		return true;
-	    else
-		return fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy);
+	    if ( !fill_patch_blindly(patch, region, r) )
+		fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy);
 	}
 	else 
 	{
-	    if (fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy) )
-		return true;
-	    else
-		return fill_patch_blindly(patch, region, r);
+	    if ( !fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy) )
+		fill_patch_blindly(patch, region, r);
 	}
     }
     else
@@ -254,7 +249,6 @@ bool fill_patch(FArrayBox& patch, const Box& region,
 	    }
 	}
     }
-    return true;
 }
 
 static void sync_internal_borders(MultiFab& r, const level_interface& lev_interface)
