@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.57 1998-09-14 23:28:57 lijewski Exp $
+// $Id: VisMF.cpp,v 1.58 1998-10-22 17:27:56 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -532,8 +532,11 @@ VisMF::Write (const MultiFab& mf,
 
         FabFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
 
+#ifdef BL_USE_NEW_HFILES
+        FabFile.open(FullFileName.c_str(), ios::out|ios::trunc|ios::binary);
+#else
         FabFile.open(FullFileName.c_str(), ios::out|ios::trunc);
-
+#endif
         if (!FabFile.good())
             Utility::FileOpenFailed(FullFileName);
 
@@ -617,8 +620,11 @@ VisMF::Write (const MultiFab& mf,
 
             FabFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
 
-            FabFile.open(FullFileName.c_str(), ios::out|ios::trunc);
-
+#ifdef BL_USE_NEW_HFILES
+            FabFile.open(FullFileName.c_str(),ios::out|ios::trunc|ios::binary);
+#else
+            FabFile.open(FullFileName.c_str(),ios::out|ios::trunc);
+#endif
             if (!FabFile.good())
                 Utility::FileOpenFailed(FullFileName);
 
@@ -821,7 +827,11 @@ VisMF::readFAB (int                  idx,
 
     ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.length());
 
+#ifdef BL_USE_NEW_HFILES
+    ifs.open(FullFileName.c_str(), ios::in|ios::binary);
+#else
     ifs.open(FullFileName.c_str(), ios::in);
+#endif
 
     if (!ifs.good())
         Utility::FileOpenFailed(FullFileName);
