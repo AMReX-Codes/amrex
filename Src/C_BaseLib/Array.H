@@ -1,7 +1,7 @@
 #ifndef BL_ARRAY_H
 #define BL_ARRAY_H
 //
-// $Id: Array.H,v 1.30 2001-08-02 01:11:36 car Exp $
+// $Id: Array.H,v 1.31 2004-03-08 23:06:36 car Exp $
 //
 #include <cstddef>
 #include <vector>
@@ -112,11 +112,6 @@ public:
     //
     void set (size_t   i,
               const T& elem);
-    //
-    //@ManDoc: This function swaps the i'th and j'th element of the array.
-    //
-    void swap (size_t i,
-               size_t j);
 private:
     //
     // This is disallowed.
