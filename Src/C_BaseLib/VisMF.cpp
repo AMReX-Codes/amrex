@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: VisMF.cpp,v 1.25 1997-11-13 23:55:45 lijewski Exp $
+// $Id: VisMF.cpp,v 1.26 1997-11-14 00:59:55 lijewski Exp $
 //
 
 #ifdef BL_USE_NEW_HFILES
@@ -251,40 +251,6 @@ operator>> (istream&       is,
     return is;
 }
 
-VisMF::Setbuf_Char_Type*
-VisMF::Large_IO_Buffer ()
-{
-    //
-    // Used to implicitly manage allocation/deallocation of I/O buffer.
-    //
-    struct XXX
-    {
-        //
-        // The only constructor
-        //
-        XXX (int size)
-        {
-            assert(size >= 0);
-            if ((m_buffer = new VisMF::Setbuf_Char_Type[size]) == 0)
-                BoxLib::OutOfMemory(__FILE__, __LINE__);
-        }
-        //
-        // The destructor.
-        //
-        ~XXX () { delete [] m_buffer; m_buffer = 0; }
-        //
-        // The data we manage -- a buffer for I/O.
-        //
-        Setbuf_Char_Type* m_buffer;
-    };
-
-    static XXX IO_Buffer_Manager(VisMF::IO_Buffer_Size);
-
-    assert(!(IO_Buffer_Manager.m_buffer == 0));
-
-    return IO_Buffer_Manager.m_buffer;
-}
-
 VisMF::FabOnDisk
 VisMF::Write (const FArrayBox& fab,
               const aString&   filename,
@@ -428,7 +394,9 @@ VisMF::WriteHeader (const aString& mf_name,
         ofstream MFHdrFile;
 
 #ifdef BL_USE_SETBUF
-        MFHdrFile.rdbuf()->setbuf(Large_IO_Buffer(), VisMF::IO_Buffer_Size);
+        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+        MFHdrFile.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
         MFHdrFile.open(MFHdrFileName.c_str(), ios::out|ios::trunc);
 
@@ -490,7 +458,9 @@ VisMF::Write (const MultiFab& mf,
         ofstream FabFile;
 
 #ifdef BL_USE_SETBUF
-        FabFile.rdbuf()->setbuf(Large_IO_Buffer(), VisMF::IO_Buffer_Size);
+        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+        FabFile.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
         FabFile.open(FabFileName.c_str(), ios::out|ios::trunc);
 
@@ -530,7 +500,9 @@ VisMF::Write (const MultiFab& mf,
             ofstream FabFile;
 
 #ifdef BL_USE_SETBUF
-            FabFile.rdbuf()->setbuf(Large_IO_Buffer(), VisMF::IO_Buffer_Size);
+            VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+            FabFile.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
             FabFile.open(FabFileName.c_str(), ios::out|ios::trunc);
 
@@ -592,7 +564,9 @@ VisMF::VisMF (const aString& mf_name)
     ifstream ifs;
 
 #ifdef BL_USE_SETBUF
-    ifs.rdbuf()->setbuf(VisMF::Large_IO_Buffer(), VisMF::IO_Buffer_Size);
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+    ifs.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
     ifs.open(file.c_str(), ios::in);
 
@@ -629,7 +603,9 @@ VisMF::readFAB (int i) const
     ifstream ifs;
 
 #ifdef BL_USE_SETBUF
-    ifs.rdbuf()->setbuf(VisMF::Large_IO_Buffer(), VisMF::IO_Buffer_Size);
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+
+    ifs.rdbuf()->setbuf(io_buffer.dataPtr(), io_buffer.length());
 #endif
     ifs.open(file.c_str(), ios::in);
 

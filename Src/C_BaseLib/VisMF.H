@@ -4,7 +4,7 @@
 #define BL_VISMF_H
 
 //
-// $Id: VisMF.H,v 1.20 1997-11-13 23:55:44 lijewski Exp $
+// $Id: VisMF.H,v 1.21 1997-11-14 00:59:55 lijewski Exp $
 //
 
 #include <MultiFab.H>
@@ -125,16 +125,17 @@ public:
     //
     enum { IO_Buffer_Size = 40960 * 32 };
     //
-    // Returns a static buffer of IO_Buffer_Size for I/O with [io]fstream.
-    //
-    // Only one [io]fstream can use this as a buffer (per cpu) at a time.
+    // The type of a char buffer required by setbuf().
     //
 #ifdef BL_SETBUF_SIGNED_CHAR
     typedef signed char Setbuf_Char_Type;
 #else
     typedef char Setbuf_Char_Type;
 #endif
-    static Setbuf_Char_Type* Large_IO_Buffer ();
+    //
+    // A simple character buffer for setbuf() usage.
+    //
+    typedef Array<Setbuf_Char_Type> IO_Buffer;
 
 private:
     //
