@@ -587,7 +587,9 @@ task_restric_fill::ready()
 #ifdef BL_USE_MPI
     int flag;
     MPI_Status status;
-    MPI_Test(&m_request, &flag, &status);
+    int res = MPI_Test(&m_request, &flag, &status);
+    if ( res != 0 )
+	ParallelDescriptor::Abort( res );
     if ( flag )
     {
 	if ( is_local(m_mf, m_dgrid) )

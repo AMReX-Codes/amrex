@@ -4,7 +4,7 @@
 #define BL_PARALLELDESCRIPTOR_H
 
 //
-// $Id: ParallelDescriptor.H,v 1.36 1998-08-20 23:53:47 car Exp $
+// $Id: ParallelDescriptor.H,v 1.37 1998-08-21 22:20:20 car Exp $
 //
 
 #include <Assert.H>
@@ -176,6 +176,10 @@ class ParallelDescriptor
     //@ManDoc: Abort with specified error code.
     //
     static void Abort (int errorcode);
+    //
+    //@ManDoc: ErrorString return string associated with error internal error condition
+    //
+    static const char* ErrorString(int errcode);
     //
     //@ManDoc: Returns wall-clock seconds since start of execution.
     //

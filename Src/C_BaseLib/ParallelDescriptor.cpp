@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: ParallelDescriptor.cpp,v 1.42 1998-08-21 18:09:26 car Exp $
+// $Id: ParallelDescriptor.cpp,v 1.43 1998-08-21 22:20:21 car Exp $
 //
 
 #include <Utility.H>
@@ -69,17 +69,22 @@ ParallelDescriptor::Abort ()
 void
 ParallelDescriptor::Abort (int errorcode)
 {
+    BoxLib::Abort(ErrorString(errorcode));
+}
+
+const char* ParallelDescriptor::ErrorString (int errorcode)
+{
     assert(errorcode > 0 && errorcode <= MPI_ERR_LASTCODE);
 
     int len = 0;
 
-    char msg[MPI_MAX_ERROR_STRING+1];
+    static char msg[MPI_MAX_ERROR_STRING+1];
 
     MPI_Error_string(errorcode, msg, &len);
 
     assert(len <= MPI_MAX_ERROR_STRING);
 
-    BoxLib::Abort(msg);
+    return msg;
 }
 
 void
@@ -395,6 +400,7 @@ void ParallelDescriptor::EndParallel() {}
 
 void ParallelDescriptor::Abort () { ::abort(); }
 void ParallelDescriptor::Abort (int) { ::abort(); }
+const char* ParallelDescriptor::ErrorString (int) { return ""; }
 void ParallelDescriptor::Barrier () {}
 
 void ParallelDescriptor::ReduceBoolAnd (bool& rvar) {}
