@@ -1,6 +1,6 @@
 
 //
-// $Id: RunStats.cpp,v 1.3 1997-11-19 04:42:27 lijewski Exp $
+// $Id: RunStats.cpp,v 1.4 1997-11-19 16:25:55 lijewski Exp $
 //
 
 #include <Utility.H>
@@ -30,7 +30,7 @@ RunStats::RunStats (const char* _name,
     level(_level)
 {
     gentry = find(_name, -1);
-    entry = find(_name, _level);
+    entry  = find(_name, _level);
     entry->is_on = true;
 }
 
@@ -46,39 +46,18 @@ RunStats::addCells (int  lev,
     cells[lev] += count;
 }
 
-long
-RunStats::getCells (int lev)
-{
-    return cells[lev];
-}
-
 RunStatsData *
-RunStats::find (aString _name,
-                int     _level)
+RunStats::find (const char* _name,
+                int         _level)
 {
     
     for (ListIterator<RunStatsData> ldi(ld); ldi; ++ldi)
 	if (ldi().level == _level && ldi().name == _name)
 	    return &ld[ldi];
+
     ld.append(RunStatsData(_name, _level));
+
     return &ld.lastElement();
-}
-
-void
-RunStats::turnOn (const char* s,
-                  int         _level)
-{
-    find(s, _level)->is_on = true;
-}
-
-void
-RunStats::turnOff (const char* s,
-                   int         _level)
-{
-    if (!(_level == -1))
-    {
-	find(s, _level)->is_on = false;
-    }
 }
 
 void

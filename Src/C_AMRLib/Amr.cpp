@@ -1,6 +1,6 @@
 
 //
-// $Id: Amr.cpp,v 1.1 1997-11-18 19:30:20 lijewski Exp $
+// $Id: Amr.cpp,v 1.2 1997-11-19 16:25:54 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -449,7 +449,12 @@ Amr::writePlotFile (const aString& root,
     }
 
     for (int k = 0; k <= finest_level; k++)
+    {
+        RunStats write_pltfile_stats("write_pltfile", k);
+        write_pltfile_stats.start();
 	amr_level[k].writePlotFile(pltfile, HeaderFile);
+        write_pltfile_stats.end();
+    }
 
     HeaderFile.precision(old_prec);
 
@@ -492,7 +497,12 @@ Amr::writePlotFile (const aString& root,
     }
 
     for (int k = 0; k <= finest_level; k++)
+    {
+        RunStats write_pltfile_stats("plot_file", k);
+        write_pltfile_stats.start();
         amr_level[k].writePlotFile(os);
+        write_pltfile_stats.end();
+    }
 }
 #endif /*BL_PARALLEL_IO*/
 
@@ -818,7 +828,12 @@ Amr::checkPoint ()
     }
 
     for (i = 0; i <= finest_level; i++)
+    {
+        RunStats write_chkfile_stats("write_chkfile", i);
+        write_chkfile_stats.start();
 	amr_level[i].checkPoint(ckfile, HeaderFile);
+        write_chkfile_stats.end();
+    }
 
     RunStats::dumpStats(HeaderFile);
 
@@ -880,7 +895,12 @@ Amr::checkPoint ()
     }
 
     for (i = 0; i <= finest_level; i++)
+    {
+        RunStats write_chkfile_stats("write_chkfile", i);
+        write_chkfile_stats.start();
 	amr_level[i].checkPoint(os);
+        write_chkfile_stats.end();
+    }
 
     RunStats::dumpStats(os);
 
