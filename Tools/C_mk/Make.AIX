@@ -47,7 +47,7 @@ ifeq ($(AIXLARGEMEM),TRUE)
   FDEBF   += -q64
   fOPTF   += -q64
   fDEBF   += -q64
-  LDFLAGS += -bmaxdata:0xF0000000
+  LDFLAGS += -bmaxdata:0x1000000000
 else
   LDFLAGS += -bmaxdata:0x80000000
 endif
