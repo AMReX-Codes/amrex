@@ -537,73 +537,72 @@ c octants
       fac = 1.0D0
       ffac = 0.5D0
       cfac = 0.5D0 * r3
-         do ji = 0, 1
-            jdir = 2 * ji - 1
-            juf = jf + ji - 1
-            juc = jc + ji - 1
-            do ii = 0, 1
-               idir = 2 * ii - 1
-               if (ga(ii,ji) .eq. 1) then
-                  iuf = if + ii - 1
-                  center = center + ffac
-                  if (irz .eq. 1 .and. ic .eq. 0) then
-                    sum = sum + fac *
-     &                (hxm1 * idir * uf(iuf,juf) +
-     &                 hym1 * jdir * vf(iuf,juf) * 0.5d0)
-                  else
-                    sum = sum + fac *
-     &                (hxm1 * idir * uf(iuf,juf) +
-     &                 hym1 * jdir * vf(iuf,juf))
-                  endif
-               else
-                  iuc = ic + ii - 1
-                  center = center + cfac
-                  if (irz .eq. 1 .and. ic .eq. 0) then
-                    sum = sum + r3 *
-     &                (hxm1c * idir * uc(iuc,juc) +
-     &                 hym1c * jdir * vc(iuc,juc) * 0.5d0)
-                  else
-                    sum = sum + r3 *
-     &                (hxm1c * idir * uc(iuc,juc) +
-     &                 hym1c * jdir * vc(iuc,juc))
-                  endif
-               end if
-            end do
-         end do
-c edges
-         do ji = 0, 1
-            jdir = 2 * ji - 1
-            juf = jf + ji - 1
-            do ii = 0, 1
-               idir = 2 * ii - 1
+      do ji = 0, 1
+         jdir = 2 * ji - 1
+         juf = jf + ji - 1
+         juc = jc + ji - 1
+         do ii = 0, 1
+            idir = 2 * ii - 1
+            if (ga(ii,ji) .eq. 1) then
                iuf = if + ii - 1
-               if (ga(ii,ji) - ga(ii,1-ji) .eq. 1) then
-                  fac1 = 1.0D0 / ir
-                  ffac = 0.5D0 * (ir-1)
-                  center = center + ffac
-                  do m = idir, idir*(ir-1), idir
-                     fac = (ir-abs(m)) * fac1
-                     sum = sum + fac * (hxm1 *
-     &                 (uf(if+m,juf) - uf(if+m-1,juf)) +
-     &                                  hym1 * jdir *
-     &                 (vf(if+m,juf) + vf(if+m-1,juf)))
-                  end do
-               end if
-               if (ga(ii,ji) - ga(1-ii,ji) .eq. 1) then
-                  fac1 = 1.0D0 / jr
-                  ffac = 0.5D0 * (jr-1)
-                  center = center + ffac
-                  do n = jdir, jdir*(jr-1), jdir
-                     fac = (jr-abs(n)) * fac1
-                     sum = sum + fac * (hxm1 * idir *
-     &                 (uf(iuf,jf+n) + uf(iuf,jf+n-1)) +
-     &                                  hym1 *
-     &                 (vf(iuf,jf+n) - vf(iuf,jf+n-1)))
-                  end do
-               end if
-            end do
+               center = center + ffac
+               if (irz .eq. 1 .and. ic .eq. 0) then
+                  sum = sum + fac *
+     &                 (hxm1 * idir * uf(iuf,juf) +
+     &                 hym1 * jdir * vf(iuf,juf) * 0.5d0)
+               else
+                  sum = sum + fac *
+     &                 (hxm1 * idir * uf(iuf,juf) +
+     &                 hym1 * jdir * vf(iuf,juf))
+               endif
+            else
+               iuc = ic + ii - 1
+               center = center + cfac
+               if (irz .eq. 1 .and. ic .eq. 0) then
+                  sum = sum + r3 *
+     &                 (hxm1c * idir * uc(iuc,juc) +
+     &                 hym1c * jdir * vc(iuc,juc) * 0.5d0)
+               else
+                  sum = sum + r3 *
+     &                 (hxm1c * idir * uc(iuc,juc) +
+     &                 hym1c * jdir * vc(iuc,juc))
+               endif
+            end if
          end do
-c weighting
+      end do
+c edges
+      do ji = 0, 1
+         jdir = 2 * ji - 1
+         juf = jf + ji - 1
+         do ii = 0, 1
+            idir = 2 * ii - 1
+            iuf = if + ii - 1
+            if (ga(ii,ji) - ga(ii,1-ji) .eq. 1) then
+               fac1 = 1.0D0 / ir
+               ffac = 0.5D0 * (ir-1)
+               center = center + ffac
+               do m = idir, idir*(ir-1), idir
+                  fac = (ir-abs(m)) * fac1
+                  sum = sum + fac * (hxm1 *
+     &                 (uf(if+m,juf) - uf(if+m-1,juf)) +
+     &                 hym1 * jdir *
+     &                 (vf(if+m,juf) + vf(if+m-1,juf)))
+               end do
+            end if
+            if (ga(ii,ji) - ga(1-ii,ji) .eq. 1) then
+               fac1 = 1.0D0 / jr
+               ffac = 0.5D0 * (jr-1)
+               center = center + ffac
+               do n = jdir, jdir*(jr-1), jdir
+                  fac = (jr-abs(n)) * fac1
+                  sum = sum + fac * (hxm1 * idir *
+     &                 (uf(iuf,jf+n) + uf(iuf,jf+n-1)) +
+     &                 hym1 *
+     &                 (vf(iuf,jf+n) - vf(iuf,jf+n-1)))
+               end do
+            end if
+         end do
+      end do
+c     weighting
       src(if,jf) = sum / center
-
       end

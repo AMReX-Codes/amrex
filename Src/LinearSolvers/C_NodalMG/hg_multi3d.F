@@ -1722,14 +1722,20 @@ c-----------------------------------------------------------------------
       integer regl0,regh0,regl1,regh1,regl2,regh2
       double precision cen(cenl0:cenh0,cenl1:cenh1,cenl2:cenh2)
       double precision signd(snl0:snh0,snl1:snh1,snl2:snh2, 3)
+      double precision tmp
       integer i, j, k
       integer idd
       do k = regl2, regh2
          do j = regl1, regh1
             do i = regl0, regh0
-               cen(i,j,k) = 1.0D0 / (signd(i-1,j,k,1) + signd(i,j,k,1) +
-     &                              signd(i,j-1,k,2) + signd(i,j,k,2) +
-     &                              signd(i,j,k-1,3) + signd(i,j,k,3))
+               tmp = (signd(i-1,j,k,1) + signd(i,j,k,1) 
+     &              + signd(i,j-1,k,2) + signd(i,j,k,2)
+     &              + signd(i,j,k-1,3) + signd(i,j,k,3))
+               if ( tmp .eq. 0.0 ) then
+                  cen(i,j,k) = 0.0D0
+               else
+                  cen(i,j,k) = 1.0D0 / tmp
+               end if
             end do
          end do
       end do
