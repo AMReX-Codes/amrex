@@ -394,29 +394,39 @@ c NODE-based data only.
       double precision p, q
       integer ic, jc, j, m
       do nc = 1, ncomp
-      do 10 jc = bbl1, bbh1
-         do 10 ic = bbl0, bbh0
- 10         dest(ir*ic,jr*jc,nc) = src(ic,jc,nc)
-         do 220 m = 1, jr-1
+         do jc = bbl1, bbh1
+            do ic = bbl0, bbh0
+               dest(ir*ic,jr*jc,nc) = src(ic,jc,nc)
+            end do
+         end do
+         do m = 1, jr-1
             q = dble(m)/jr
             p = 1.0d0 - q
-            do 220 jc = bbl1, bbh1-1
-               do 220 ic = bbl0, bbh0
- 220              dest(ir*ic,jr*jc+m,nc) = p * src(ic,jc,nc) +
+            do jc = bbl1, bbh1-1
+               do ic = bbl0, bbh0
+                  dest(ir*ic,jr*jc+m,nc) = p * src(ic,jc,nc) +
      &                                  q * src(ic,jc+1,nc)
-         do 30 ic = bbl0, bbh0-1
+               end do
+            end do
+         end do
+         do ic = bbl0, bbh0-1
 cdir$ ivdep
-            do 30 j = regl1, regh1
- 30            dest(2*ic+1,j,nc) = 0.5d0 * (dest(2*ic,j,nc) +
+            do j = regl1, regh1
+               dest(2*ic+1,j,nc) = 0.5d0 * (dest(2*ic,j,nc) +
      &                                   dest(2*ic+2,j,nc))
-         do 230 m = 1, ir-1
+            end do
+         end do
+         do m = 1, ir-1
             q = dble(m)/ir
             p = 1.0d0 - q
-            do 230 ic = bbl0, bbh0-1
+            do ic = bbl0, bbh0-1
 cdir$ ivdep
-               do 230 j = regl1, regh1
- 230              dest(ir*ic+m,j,nc) = p * dest(ir*ic,j,nc) +
+               do j = regl1, regh1
+                  dest(ir*ic+m,j,nc) = p * dest(ir*ic,j,nc) +
      &                              q * dest(ir*(ic+1),j,nc)
+               end do
+            end do
+         end do
       end do
       end
 c-----------------------------------------------------------------------
@@ -438,20 +448,28 @@ c CELL-based data only.
       double precision fac
       integer i, j, m, n, nc
 	do nc = 1, ncomp
-      do 10 j = regl1, regh1
-         do 10 i = regl0, regh0
- 10         dest(i,j,nc) = 0.d0
-      do 20 n = 0, jr-1
-         do 20 m = 0, ir-1
-            do 20 j = regl1, regh1
-               do 20 i = regl0, regh0
- 20               dest(i,j,nc) = dest(i,j,nc) + src(i*ir+m,j*jr+n,nc)
-      if (integ .eq. 0) then
-         fac = 1.d0 / (ir*jr)
-         do 30 j = regl1, regh1
-            do 30 i = regl0, regh0
- 30            dest(i,j,nc) = dest(i,j,nc) * fac
-      end if
+         do j = regl1, regh1
+            do i = regl0, regh0
+               dest(i,j,nc) = 0.d0
+            end do
+         end do
+         do n = 0, jr-1
+            do m = 0, ir-1
+               do j = regl1, regh1
+                  do i = regl0, regh0
+                     dest(i,j,nc) = dest(i,j,nc) + src(i*ir+m,j*jr+n,nc)
+                  end do
+               end do
+            end do
+         end do
+         if (integ .eq. 0) then
+            fac = 1.d0 / (ir*jr)
+            do j = regl1, regh1
+               do i = regl0, regh0
+                  dest(i,j,nc) = dest(i,j,nc) * fac
+               end do
+            end do
+         end if
 	end do
       end
 c-----------------------------------------------------------------------
@@ -470,11 +488,11 @@ c NODE-based data only.
       double precision src(srcl0:srch0,srcl1:srch1, ncomp)
       integer i, j,nc
 	do nc = 1, ncomp
-      do j = regl1, regh1
-         do i = regl0, regh0
-            dest(i,j,nc) = src(i*ir,j*jr,nc)
+         do j = regl1, regh1
+            do i = regl0, regh0
+               dest(i,j,nc) = src(i*ir,j*jr,nc)
+            end do
          end do
-      end do
 	end do
       end
 c-----------------------------------------------------------------------
@@ -496,29 +514,37 @@ c fine region by at least one coarse cell on all sides.
       double precision fac0, fac1, fac
       integer i, j, m, n, nc
       do nc = 1, ncomp
-         do 230 j = regl1, regh1
-            do 230 i = regl0, regh0
- 230           dest(i,j,nc) = 0.d0
+         do j = regl1, regh1
+            do i = regl0, regh0
+               dest(i,j,nc) = 0.d0
+            end do
+         end do
          fac0 = 1.d0 / (ir*ir * jr*jr)
-         do 240 n = 0, jr-1
+         do n = 0, jr-1
             fac1 = (jr-n) * fac0
             if (n .eq. 0) fac1 = 0.5d0 * fac1
-            do 240 m = 0, ir-1
+            do m = 0, ir-1
                fac = (ir-m) * fac1
                if (m .eq. 0) fac = 0.5d0 * fac
-               do 240 j = regl1, regh1
-                  do 240 i = regl0, regh0
- 240                 dest(i,j,nc) = dest(i,j,nc) +
+               do j = regl1, regh1
+                  do i = regl0, regh0
+                     dest(i,j,nc) = dest(i,j,nc) +
      &                           fac * (src(i*ir-m,j*jr-n,nc)+
      &                                  src(i*ir-m,j*jr+n,nc)+
      &                                  src(i*ir+m,j*jr-n,nc)+
      &                                  src(i*ir+m,j*jr+n,nc))
-      if (integ .eq. 1) then
-         fac = ir * jr
-            do 320 j = regl1, regh1
-               do 320 i = regl0, regh0
- 320              dest(i,j,nc) = fac * dest(i,j,nc)
-      end if
+                  end do
+               end do
+            end do
+         end do
+         if (integ .eq. 1) then
+            fac = ir * jr
+            do j = regl1, regh1
+               do i = regl0, regh0
+                  dest(i,j,nc) = fac * dest(i,j,nc)
+               end do
+            end dp
+         end if
       end do
       end
 c-----------------------------------------------------------------------
@@ -539,46 +565,55 @@ c Fills coarse region defined by reg.
       double precision fac0, fac1, fac
       integer i, j, m, n, nc
       do nc = 1, ncomp
-      if (idim .eq. 0) then
-         if (integ .eq. 0) then
-            fac = (0.5d0 + 0.5d0 / ir)
-            fac0 = 1.d0 / (ir*ir * jr*jr)
+         if (idim .eq. 0) then
+            if (integ .eq. 0) then
+               fac = (0.5d0 + 0.5d0 / ir)
+               fac0 = 1.d0 / (ir*ir * jr*jr)
+            else
+               fac = 1.d0
+               fac0 = 1.d0 / (ir * jr)
+            end if
+            i = regl0
+            do j = regl1, regh1
+               dest(i,j,nc) = fac * src(i*ir,j*jr,nc)
+            end do
+            do n = 0, jr-1
+               fac1 = (jr-n) * fac0
+               if (n .eq. 0) fac1 = 0.5d0 * fac1
+               do m = idir, idir*(ir-1), idir
+                  fac = (ir-abs(m)) * fac1
+                  do j = regl1, regh1
+                     dest(i,j,nc) = dest(i,j,nc) +
+           &			 fac * (src(i*ir+m,j*jr-n,nc)+
+           &                              src(i*ir+m,j*jr+n,nc))
+                  end do
+               end do
+            end do
          else
-            fac = 1.d0
-            fac0 = 1.d0 / (ir * jr)
+            if (integ .eq. 0) then
+               fac = (0.5d0 + 0.5d0 / jr)
+               fac0 = 1.d0 / (ir*ir * jr*jr)
+            else
+               fac = 1.d0
+               fac0 = 1.d0 / (ir * jr)
+            end if
+            j = regl1
+            do i = regl0, regh0
+               dest(i,j,nc) = fac * src(i*ir,j*jr,nc)
+            end do
+            do n = idir, idir*(jr-1), idir
+               fac1 = (jr-abs(n)) * fac0
+               do m = 0, ir-1
+                  fac = (ir-m) * fac1
+                  if (m .eq. 0) fac = 0.5d0 * fac
+                  do  i = regl0, regh0
+                     dest(i,j,nc) = dest(i,j,nc)
+           &		+ fac * (src(i*ir-m,j*jr+n,nc)
+           &                        +src(i*ir+m,j*jr+n,nc))
+                  end do
+               end do
+            end do
          end if
-         i = regl0
-         do 10 j = regl1, regh1
- 10         dest(i,j,nc) = fac * src(i*ir,j*jr,nc)
-         do 20 n = 0, jr-1
-            fac1 = (jr-n) * fac0
-            if (n .eq. 0) fac1 = 0.5d0 * fac1
-            do 20 m = idir, idir*(ir-1), idir
-               fac = (ir-abs(m)) * fac1
-               do 20 j = regl1, regh1
- 20               dest(i,j,nc) = dest(i,j,nc) +
-     &			 fac * (src(i*ir+m,j*jr-n,nc)+
-     &                              src(i*ir+m,j*jr+n,nc))
-      else
-         if (integ .eq. 0) then
-            fac = (0.5d0 + 0.5d0 / jr)
-            fac0 = 1.d0 / (ir*ir * jr*jr)
-         else
-            fac = 1.d0
-            fac0 = 1.d0 / (ir * jr)
-         end if
-         j = regl1
-         do 30 i = regl0, regh0
- 30         dest(i,j,nc) = fac * src(i*ir,j*jr,nc)
-         do 40 n = idir, idir*(jr-1), idir
-            fac1 = (jr-abs(n)) * fac0
-            do 40 m = 0, ir-1
-               fac = (ir-m) * fac1
-               if (m .eq. 0) fac = 0.5d0 * fac
-               do 40 i = regl0, regh0
- 40               dest(i,j,nc) = dest(i,j,nc)
-     &		+ fac * (src(i*ir-m,j*jr+n,nc)+src(i*ir+m,j*jr+n,nc))
-      end if
       end do
       end
 c-----------------------------------------------------------------------
@@ -599,21 +634,23 @@ c Fills coarse point defined by reg.
       double precision fac0, fac1, fac
       integer i, j, m, n, nc
       do nc = 1, ncomp
-      if (integ .eq. 0) then
-         fac = (0.75d0 + 0.25d0 / ir + 0.25d0 / jr - 0.25d0 / (ir*jr))
-         fac0 = 1.d0 / (ir*ir * jr*jr)
-      else
-         fac = 1.d0
-         fac0 = 1.d0 / (ir * jr)
-      end if
-      i = regl0
-      j = regl1
-      dest(i,j,nc) = fac * src(i*ir,j*jr,nc)
-      do 20 n = idir1, idir1*(jr-1), idir1
-         fac1 = (jr-abs(n)) * fac0
-         do 20 m = idir0, idir0*(ir-1), idir0
-            fac = (ir-abs(m)) * fac1
- 20         dest(i,j,nc) = dest(i,j,nc) + fac * src(i*ir+m,j*jr+n,nc)
+         if (integ .eq. 0) then
+            fac = (0.75d0 + 0.25d0/ir + 0.25d0/jr - 0.25d0/(ir*jr))
+            fac0 = 1.d0 / (ir*ir * jr*jr)
+         else
+            fac = 1.d0
+            fac0 = 1.d0 / (ir * jr)
+         end if
+         i = regl0
+         j = regl1
+         dest(i,j,nc) = fac * src(i*ir,j*jr,nc)
+         do n = idir1, idir1*(jr-1), idir1
+            fac1 = (jr-abs(n)) * fac0
+            do m = idir0, idir0*(ir-1), idir0
+               fac = (ir-abs(m)) * fac1
+               dest(i,j,nc) = dest(i,j,nc) + fac * src(i*ir+m,j*jr+n,nc)
+            end do
+         end do
       end do
       end
 c-----------------------------------------------------------------------
@@ -634,29 +671,33 @@ c Fills coarse point defined by reg.
       double precision fac0, fac1, fac
       integer i, j, m, n, nc
       do nc = 1, ncomp
-      if (integ .eq. 0) then
-         fac = (0.25d0 + 0.25d0 / ir + 0.25d0 / jr + 0.25d0 / (ir*jr))
-         fac0 = 1.d0 / (ir*ir * jr*jr)
-      else
-         fac = 1.d0
-         fac0 = 1.d0 / (ir * jr)
-      end if
-      i = regl0
-      j = regl1
-      dest(i,j,nc) = fac * src(i*ir,j*jr,nc)
-      do 10 m = idir0, idir0*(ir-1), idir0
-         fac1 = (ir-abs(m)) * fac0
-         fac = jr * fac1
- 10      dest(i,j,nc) = dest(i,j,nc) + fac * src(i*ir+m,j*jr,nc)
-      do 20 n = idir1, idir1*(jr-1), idir1
-         fac1 = (jr-abs(n)) * fac0
-         fac = ir * fac1
-         dest(i,j,nc) = dest(i,j,nc) + fac * src(i*ir,j*jr+n,nc)
-         do 20 m = idir0, idir0*(ir-1), idir0
-            fac = (ir-abs(m)) * fac1
- 20         dest(i,j,nc) = dest(i,j,nc) + fac * (src(i*ir+m,j*jr+n,nc) +
-     &                                     src(i*ir-m,j*jr+n,nc) +
-     &                                     src(i*ir+m,j*jr-n,nc))
+         if (integ .eq. 0) then
+            fac = (0.25d0 + 0.25d0/ir + 0.25d0/jr + 0.25d0/(ir*jr))
+            fac0 = 1.d0/(ir*ir * jr*jr)
+         else
+            fac = 1.d0
+            fac0 = 1.d0/(ir*jr)
+         end if
+         i = regl0
+         j = regl1
+         dest(i,j,nc) = fac * src(i*ir,j*jr,nc)
+         do m = idir0, idir0*(ir-1), idir0
+            fac1 = (ir-abs(m)) * fac0
+            fac = jr * fac1
+            dest(i,j,nc) = dest(i,j,nc) + fac * src(i*ir+m,j*jr,nc)
+         end do
+         do n = idir1, idir1*(jr-1), idir1
+            fac1 = (jr-abs(n)) * fac0
+            fac = ir * fac1
+            dest(i,j,nc) = dest(i,j,nc) + fac * src(i*ir,j*jr+n,nc)
+            do m = idir0, idir0*(ir-1), idir0
+               fac = (ir-abs(m)) * fac1
+               dest(i,j,nc) = dest(i,j,nc) + fac * 
+           &               (src(i*ir+m,j*jr+n,nc) +
+           &                src(i*ir-m,j*jr+n,nc) +
+           &                src(i*ir+m,j*jr-n,nc))
+            end do
+         end do
       end do
       end
 c-----------------------------------------------------------------------
@@ -677,21 +718,24 @@ c Fills coarse point defined by reg.
       double precision fac0, fac1, fac
       integer i, j, m, n, nc, i2
       do nc = 1, ncomp
-      if (integ .eq. 0) then
-         fac = (0.5d0 + 0.5d0 / ir + 0.5d0 / jr - 0.5d0 / (ir*jr))
-         fac0 = 1.d0 / (ir*ir * jr*jr)
-      else
-         fac = 1.d0
-         fac0 = 1.d0 / (ir * jr)
-      end if
-      i = regl0
-      j = regl1
-      dest(i,j,nc) = fac * src(i*ir,j*jr,nc)
-      do 20 n = idir1, idir1*(jr-1), idir1
-         fac1 = (jr-abs(n)) * fac0
-         do 20 m = 1, ir-1
-            fac = (ir-m) * fac1
- 20         dest(i,j,nc) = dest(i,j,nc) + fac * (src(i*ir+m,j*jr+n,nc) +
-     &                                     src(i*ir-m,j*jr-n,nc))
+         if (integ .eq. 0) then
+            fac = (0.5d0 + 0.5d0 / ir + 0.5d0 / jr - 0.5d0 / (ir*jr))
+            fac0 = 1.d0 / (ir*ir * jr*jr)
+         else
+            fac = 1.d0
+            fac0 = 1.d0 / (ir * jr)
+         end if
+         i = regl0
+         j = regl1
+         dest(i,j,nc) = fac * src(i*ir,j*jr,nc)
+         do n = idir1, idir1*(jr-1), idir1
+            fac1 = (jr-abs(n)) * fac0
+            do m = 1, ir-1
+               fac = (ir-m) * fac1
+               dest(i,j,nc) = dest(i,j,nc) + fac * 
+     &               (src(i*ir+m,j*jr+n,nc) +
+     &                src(i*ir-m,j*jr-n,nc))
+            end do
+         end do
       end do
       end
