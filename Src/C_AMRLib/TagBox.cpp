@@ -1,7 +1,7 @@
 //BL_COPYRIGHT_NOTICE
 
 //
-// $Id: TagBox.cpp,v 1.13 1998-01-28 18:35:08 lijewski Exp $
+// $Id: TagBox.cpp,v 1.14 1998-02-05 17:02:28 lijewski Exp $
 //
 
 #include <TagBox.H>
@@ -35,14 +35,6 @@ TagBoxArray::BumpCollateSpace (long numtags)
     while (TagBoxArray::m_CollateCount < numtags);
 
     delete [] TagBoxArray::m_CollateSpace;
-
-    if (ParallelDescriptor::IOProcessor())
-    {
-        cout << "*** Bumping TagBoxArray::m_CollateSpace capacity to "
-             << TagBoxArray::m_CollateCount
-             << " IntVects"
-             << endl;
-    }
 
     TagBoxArray::m_CollateSpace = new IntVect[TagBoxArray::m_CollateCount];
 }
