@@ -2,7 +2,7 @@
 
 ifeq ($(COMP),KCC)
   CXX      = KCC
-  CXXOPTF += -O3 +K3 -g3
+  CXXOPTF += -O3 +K3
   CXXDEBF += +K0
   FULLWARN := --strict_warnings
   override XTRADEFS += -DBL_USE_NEW_HFILES
@@ -11,6 +11,13 @@ endif
 CPP    := gcc -E -x c++
 FC  := g77 -fno-second-underscore
 
+ifeq ($(FCOMP),Fujitsu)
+  FC  := frt
+  FDEBF += -H aesu
+  FOPTF += -K fast
+  LIBRARY_LOCATIONS += /usr/FFC/lib
+  override XTRALIBS += -lfj9f6 -lfj9i6 -lfj9e6
+else
 ifeq ($(FCOMP),Absoft)
   FC  := f77 -f -B108
   FC  := f90 -B108 -YEXT_NAMES=LCS
@@ -21,6 +28,7 @@ else
   #DEFINES += -DBL_FORT_USE_UNDERSCORE
   #override XTRALIBS +=  -lf2c
   override XTRALIBS += -lg2c
+endif
 endif
 
 override XTRALIBS +=   -lm
