@@ -1,6 +1,6 @@
 
 //
-// $Id: FluxRegister.cpp,v 1.59 2000-10-02 20:48:42 lijewski Exp $
+// $Id: FluxRegister.cpp,v 1.60 2001-04-02 17:58:59 lijewski Exp $
 //
 
 #include <FluxRegister.H>
@@ -797,20 +797,19 @@ FluxRegister::CrseInitFinish ()
 #ifdef BL3_PROFILING
   BL3_PROFILE(BL3_PROFILE_THIS_NAME() + "::CrseInitFinish()");
 #endif
-    if (ParallelDescriptor::NProcs() == 1)
-        return;
+
+    if (ParallelDescriptor::NProcs() == 1) return;
 
 #ifdef BL_USE_MPI
-    static RunStats mpi_recv("mpi_recv");
-    static RunStats mpi_send("mpi_send");
-    static RunStats mpi_wait("mpi_wait");
-    static RunStats mpi_gath("mpi_gather");
-    static RunStats mpi_redu("mpi_reduce");
-    static RunStats mpi_stat("crse_init_finish");
+    static RunStats stats("crse_init_finish");
 
-    mpi_stat.start();
+    stats.start();
 
-    const int MyProc = ParallelDescriptor::MyProc();
+    const int seqno_1 = ParallelDescriptor::SeqNum();
+    const int seqno_2 = ParallelDescriptor::SeqNum();
+    const int MyProc  = ParallelDescriptor::MyProc();
+    const int NProcs  = ParallelDescriptor::NProcs();
+    const int IOProc  = ParallelDescriptor::IOProcessorNumber();
 
     BL_ASSERT(CITags.size() == CIFabs.size());
 
@@ -819,14 +818,19 @@ FluxRegister::CrseInitFinish ()
 
     BL_ASSERT(CIMsgs[MyProc] == 0);
 
-    int rc;
+    Array<int>         Rcvs(NProcs,0);
+    Array<int>         indx(NProcs);
+    Array<Real*>       fab_data(NProcs);
+    Array<CommData>    senddata;
+    Array<MPI_Status>  status(NProcs);
+    Array<MPI_Request> req_cd(NProcs,MPI_REQUEST_NULL);
+    Array<MPI_Request> req_data(NProcs,MPI_REQUEST_NULL);
 
-    Array<int> Rcvs(ParallelDescriptor::NProcs(),0);
+    int rc, NumRcvs = 0, idx = 0, NWaits = 0;
     //
     // Set Rcvs[i] to # of blocks we expect to get from CPU i ...
     //
-    mpi_gath.start();
-    for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
+    for (int i = 0; i < NProcs; i++)
     {
         if ((rc = MPI_Gather(&CIMsgs[i],
                              1,
@@ -838,17 +842,13 @@ FluxRegister::CrseInitFinish ()
                              ParallelDescriptor::Communicator())) != MPI_SUCCESS)
             ParallelDescriptor::Abort(rc);
     }
-    mpi_gath.end();
 
     BL_ASSERT(Rcvs[MyProc] == 0);
 
-    int NumRcvs = 0;
-
-    for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
+    for (int i = 0; i < NProcs; i++)
         NumRcvs += Rcvs[i];
 
-    Array<MPI_Request> req_cd(ParallelDescriptor::NProcs());
-    Array<CommData>    rcv_cd(NumRcvs);
+    Array<CommData> recvdata(NumRcvs);
     //
     // Make sure we can treat CommData as a stream of integers.
     //
@@ -857,18 +857,17 @@ FluxRegister::CrseInitFinish ()
     // Post one receive for each chunk being sent by other CPUs.
     // This is the CommData describing the FAB data that will be sent.
     //
-    int idx = 0;
-
-    mpi_recv.start();
-    for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
+    for (int i = 0; i < NProcs; i++)
     {
         if (Rcvs[i] > 0)
         {
-            if ((rc = MPI_Irecv(&rcv_cd[idx],
+            NWaits++;
+
+            if ((rc = MPI_Irecv(&recvdata[idx],
                                 Rcvs[i] * CommData::DIM,
                                 MPI_INT,
                                 i,
-                                741,
+                                seqno_1,
                                 ParallelDescriptor::Communicator(),
                                 &req_cd[i])) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
@@ -876,17 +875,16 @@ FluxRegister::CrseInitFinish ()
             idx += Rcvs[i];
         }
     }
-    mpi_recv.end();
 
     BL_ASSERT(idx == NumRcvs);
     //
     // Now send the CommData.
     //
-    for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
+    for (int i = 0; i < NProcs; i++)
     {
         if (CIMsgs[i] > 0)
         {
-            Array<CommData> senddata(CIMsgs[i]);
+            senddata.resize(CIMsgs[i]);
 
             int Processed = 0;
 
@@ -908,71 +906,62 @@ FluxRegister::CrseInitFinish ()
             }
 
             BL_ASSERT(Processed == CIMsgs[i]);
-            //
-            // Use MPI_Ssend() to try and force the system not to buffer.
-            //
-            mpi_send.start();
-            if ((rc = MPI_Ssend(senddata.dataPtr(),
-                                senddata.length() * CommData::DIM,
-                                MPI_INT,
-                                i,
-                                741,
-                                ParallelDescriptor::Communicator())) != MPI_SUCCESS)
+
+            if ((rc = MPI_Send(senddata.dataPtr(),
+                               senddata.length() * CommData::DIM,
+                               MPI_INT,
+                               i,
+                               seqno_1,
+                               ParallelDescriptor::Communicator())) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
-            mpi_send.end();
         }
     }
     //
     // Post one receive for data being sent by CPU i ...
     //
-    MPI_Status status;
-
-    Array<Real*>       fab_data(ParallelDescriptor::NProcs());
-    Array<MPI_Request> req_data(ParallelDescriptor::NProcs());
-
-    idx = 0;
-
-    for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
+    for (int completed; NWaits > 0; NWaits -= completed)
     {
-        if (Rcvs[i] > 0)
+        if ((rc = MPI_Waitsome(NProcs,
+                               req_cd.dataPtr(),
+                               &completed,
+                               indx.dataPtr(),
+                               status.dataPtr())) != MPI_SUCCESS)
+            ParallelDescriptor::Abort(rc);
+
+        for (int k = 0; k < completed; k++)
         {
-            mpi_wait.start();
-            if ((rc = MPI_Wait(&req_cd[i], &status)) != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
-            mpi_wait.end();
             //
             // Got to figure out # of Reals to expect from this CPU.
             //
-            size_t N = 0;
+            const int Ncpu = indx[k];
 
-            for (int j = 0; j < Rcvs[i]; j++)
-                N += rcv_cd[idx+j].box().numPts() * rcv_cd[idx+j].nComp();
+            idx = 0;
+            for (int j = 0; j < Ncpu; j++)
+                idx += Rcvs[j];
+
+            size_t N = 0;
+            for (int j = 0; j < Rcvs[Ncpu]; j++)
+                N += recvdata[idx+j].box().numPts() * recvdata[idx+j].nComp();
 
             BL_ASSERT(N < INT_MAX);
             BL_ASSERT(!(The_FAB_Arena == 0));
 
-            fab_data[i] = static_cast<Real*>(The_FAB_Arena->alloc(N*sizeof(Real)));
+            fab_data[Ncpu] = static_cast<Real*>(The_FAB_Arena->alloc(N*sizeof(Real)));
 
-            mpi_recv.start();
-            if ((rc = MPI_Irecv(fab_data[i],
+            if ((rc = MPI_Irecv(fab_data[Ncpu],
                                 int(N),
-                                mpi_data_type(fab_data[i]),
-                                i,
-                                719,
+                                mpi_data_type(fab_data[Ncpu]),
+                                Ncpu,
+                                seqno_2,
                                 ParallelDescriptor::Communicator(),
-                                &req_data[i])) != MPI_SUCCESS)
+                                &req_data[Ncpu])) != MPI_SUCCESS)
                 ParallelDescriptor::Abort(rc);
-            mpi_recv.end();
-
-            idx += Rcvs[i];
         }
     }
-
-    BL_ASSERT(idx == NumRcvs);
     //
     // Send the agglomerated FAB data.
     //
-    for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
+    for (int i = 0; i < NProcs; i++)
     {
         if (CIMsgs[i] > 0)
         {
@@ -994,34 +983,23 @@ FluxRegister::CrseInitFinish ()
                 {
                     BL_ASSERT(CITags[j].box == CIFabs[j]->box());
                     BL_ASSERT(CITags[j].nComp == CIFabs[j]->nComp());
-
                     int count = CITags[j].box.numPts() * CITags[j].nComp;
-
                     memcpy(dptr, CIFabs[j]->dataPtr(), count * sizeof(Real));
-
                     delete CIFabs[j];
-
                     CIFabs[j] = 0;
-
                     dptr += count;
                 }
             }
 
             BL_ASSERT(data + N == dptr);
-            //
-            // Use MPI_Ssend() to try and force the system not to buffer.
-            //
-            mpi_send.start();
-            if ((rc = MPI_Ssend(data,
-                                int(N),
-                                mpi_data_type(data),
-                                i,
-                                719,
-                                ParallelDescriptor::Communicator())) != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
-            mpi_send.end();
 
-            BL_ASSERT(!(The_FAB_Arena == 0));
+            if ((rc = MPI_Send(data,
+                               int(N),
+                               mpi_data_type(data),
+                               i,
+                               seqno_2,
+                               ParallelDescriptor::Communicator())) != MPI_SUCCESS)
+                ParallelDescriptor::Abort(rc);
 
             The_FAB_Arena->free(data);
         }
@@ -1031,35 +1009,41 @@ FluxRegister::CrseInitFinish ()
     //
     FArrayBox fab;
 
-    idx = 0;
+    NWaits = 0;
+    for (int i = 0; i < NProcs; i++)
+        if (req_data[i] != MPI_REQUEST_NULL)
+            NWaits++;
 
-    for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
+    for (int completed; NWaits > 0; NWaits -= completed)
     {
-        if (Rcvs[i] > 0)
+        if ((rc = MPI_Waitsome(NProcs,
+                               req_data.dataPtr(),
+                               &completed,
+                               indx.dataPtr(),
+                               status.dataPtr())) != MPI_SUCCESS)
+            ParallelDescriptor::Abort(rc);
+
+        for (int k = 0; k < completed; k++)
         {
-            mpi_wait.start();
-            if ((rc = MPI_Wait(&req_data[i], &status)) != MPI_SUCCESS)
-                ParallelDescriptor::Abort(rc);
-            mpi_wait.end();
+            const int Ncpu = indx[k];
+
+            idx = 0;
+            for (int j = 0; j < Ncpu; j++)
+                idx += Rcvs[j];
 
             int Processed = 0;
 
-            Real* dptr = fab_data[i];
+            Real* dptr = fab_data[Ncpu];
 
             BL_ASSERT(!(dptr == 0));
 
-            for (int j = 0; j < Rcvs[i]; j++)
+            for (int j = 0; j < Rcvs[Ncpu]; j++)
             {
-                const CommData& cd = rcv_cd[idx+j];
-
+                const CommData& cd = recvdata[idx+j];
                 fab.resize(cd.box(),cd.nComp());
-
                 int N = fab.box().numPts() * fab.nComp();
-
                 BL_ASSERT(N < INT_MAX);
-
                 memcpy(fab.dataPtr(), dptr, N * sizeof(Real));
-
                 bndry[cd.face()][cd.fabindex()].copy(fab,
                                                      fab.box(),
                                                      0,
@@ -1067,22 +1051,14 @@ FluxRegister::CrseInitFinish ()
                                                      cd.srcComp(),
                                                      cd.nComp());
                 dptr += N;
-
                 Processed++;
             }
 
-            BL_ASSERT(Processed == Rcvs[i]);
-            BL_ASSERT(!(The_FAB_Arena == 0));
+            BL_ASSERT(Processed == Rcvs[Ncpu]);
 
-            The_FAB_Arena->free(fab_data[i]);
-
-            fab_data[i] = 0;
-
-            idx += Rcvs[i];
+            The_FAB_Arena->free(fab_data[Ncpu]);
         }
     }
-
-    BL_ASSERT(idx == NumRcvs);
     //
     // Null out vectors.
     //
@@ -1091,10 +1067,9 @@ FluxRegister::CrseInitFinish ()
     //
     // Zero out CIMsgs.
     //
-    for (int i = 0; i < ParallelDescriptor::NProcs(); i++)
-        CIMsgs[i] = 0;
+    for (int i = 0; i < NProcs; i++) CIMsgs[i] = 0;
 
-    mpi_stat.end();
+    stats.end();
 #endif
 }
 
@@ -1125,14 +1100,7 @@ FluxRegister::FineAdd (const MultiFab& mflx,
     {
         ConstDependentMultiFabIterator areamfi(mflxmfi, area);
 
-        FineAdd(mflxmfi(),
-                areamfi(),
-                dir,
-                mflxmfi.index(),
-                srccomp,
-                destcomp,
-                numcomp,
-                mult);
+        FineAdd(mflxmfi(),areamfi(),dir,mflxmfi.index(),srccomp,destcomp,numcomp,mult);
     }
 }
 
