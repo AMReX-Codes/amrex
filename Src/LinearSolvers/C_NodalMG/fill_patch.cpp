@@ -220,14 +220,14 @@ bool fill_patch(FArrayBox& patch, const Box& region,
 	}
 	else if (idomain.intersects(region)) 
 	{
-	    if (fill_patch_blindly(patch, region, r, flags) == 1)
+	    if (fill_patch_blindly(patch, region, r, flags) )
 		return true;
 	    else
 		return fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy, flags);
 	}
 	else 
 	{
-	    if (fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy, flags) == 1)
+	    if (fill_exterior_patch_blindly(patch, region, r, lev_interface, bdy, flags) )
 		return true;
 	    else
 		return fill_patch_blindly(patch, region, r, flags);
