@@ -4,7 +4,7 @@
 #define _AmrLevel_H_ 
 
 //
-// $Id: AmrLevel.H,v 1.37 1999-08-24 16:28:29 lijewski Exp $
+// $Id: AmrLevel.H,v 1.38 1999-12-02 07:43:05 sstanley Exp $
 //
 
 #include <REAL.H>
@@ -341,7 +341,7 @@ public:
     //@ManDoc: Called in grid_places after other tagging routines to modify
     //         the list of tagged points.  Default implementation does nothing.
     //
-    virtual void manual_tags_placement (TagBoxArray& tags, IntVect& bf);
+    virtual void manual_tags_placement (TagBoxArray& tags, Array<IntVect>& bf_lev);
     //
     //@ManDoc: Modify list of variables to be plotted
     // 
