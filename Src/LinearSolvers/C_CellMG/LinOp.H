@@ -2,7 +2,7 @@
 #define _LINOP_H_
 
 //
-// $Id: LinOp.H,v 1.2 1998-04-15 21:25:58 marc Exp $
+// $Id: LinOp.H,v 1.3 1998-04-22 23:48:13 car Exp $
 //
 
 #include <Array.H>
@@ -286,7 +286,7 @@ protected:
     
 private:
     LinOp (const LinOp& rhs);
-    operator = (const LinOp& rhs);
+    void operator = (const LinOp& rhs);
 };
 
 inline const BndryData&
