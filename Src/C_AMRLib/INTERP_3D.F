@@ -426,7 +426,6 @@ c ::: local var
       write(6,*) "FORT_CBINTERP not implemented"
       stop
 
-      return
       end
 
 c ::: --------------------------------------------------------------
