@@ -1,5 +1,5 @@
 //
-// $Id: FabSet.cpp,v 1.40 2001-08-09 22:42:00 marc Exp $
+// $Id: FabSet.cpp,v 1.41 2002-11-26 22:39:28 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -176,13 +176,14 @@ FabSet::copyFrom (const FArrayBox& src,
 
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
-        if (subbox.intersects(get(fsi).box()))
-        {
-            Box dbox = get(fsi).box() & subbox;
+        Box dbox = get(fsi).box() & subbox;
 
+        if (dbox.ok())
+        {
             get(fsi).copy(src,dbox,src_comp,dbox,dest_comp,num_comp);
         }
     }
+
     return *this;
 }
 

@@ -1,5 +1,5 @@
 //
-// $Id: DistributionMapping.cpp,v 1.60 2002-10-31 18:09:00 car Exp $
+// $Id: DistributionMapping.cpp,v 1.61 2002-11-26 22:37:40 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -590,6 +590,7 @@ MinimizeCommCosts (std::vector<int>&        procmap,
                    int                      nprocs)
 {
     BL_PROFILE("MinimizeCommCosts()");
+
     BL_ASSERT(ba.size() == pts.size());
     BL_ASSERT(procmap.size() >= ba.size());
 
@@ -603,17 +604,22 @@ MinimizeCommCosts (std::vector<int>&        procmap,
     //
     const int Ngrow = 1;
 
+    BoxArray grown(ba.size());
+
     for (int i = 0; i < ba.size(); i++)
+    {
+        grown.set(i,BoxLib::grow(ba[i],Ngrow));
+    }
+
+    for (int i = 0; i < grown.size(); i++)
     {
         std::list<int> li;
 
-        const Box ibx = BoxLib::grow(ba[i],Ngrow);
-
-        for (int j = 0; j < ba.size(); j++)
+        for (int j = 0; j < grown.size(); j++)
         {
             if (i != j)
             {
-                const Box isect = ibx & BoxLib::grow(ba[j],Ngrow);
+                const Box isect = grown[i] & grown[j];
 
                 if (isect.ok())
                 {
@@ -623,8 +629,6 @@ MinimizeCommCosts (std::vector<int>&        procmap,
         }
 
         nbrs[i].resize(li.size());
-
-        BL_ASSERT(nbrs[i].size() == li.size());
 
         int k = 0;
         for (std::list<int>::const_iterator it = li.begin();

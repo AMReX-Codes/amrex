@@ -1,6 +1,6 @@
 
 //
-// $Id: TagBox.cpp,v 1.63 2002-10-31 21:56:45 lijewski Exp $
+// $Id: TagBox.cpp,v 1.64 2002-11-26 22:38:59 lijewski Exp $
 //
 #include <winstd.H>
 
@@ -267,9 +267,10 @@ TagBox::merge (const TagBox& src)
     //
     // Compute intersections.
     //
-    if (domain.intersects(src.domain))
+    Box bx = domain & src.domain;
+
+    if (bx.ok())
     {
-        Box bx          = domain & src.domain;
         const int* dlo  = domain.loVect();
         const int* dlen = domain.length().getVect();
         const int* slo  = src.domain.loVect();
@@ -457,10 +458,10 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
                 {
                     if (distributionMap[j] == MyProc)
                     {
-                        if (shiftbox.intersects(boxarray[j]))
-                        {
-                            Box intbox = boxarray[j] & shiftbox;
+                        Box intbox = boxarray[j] & shiftbox;
 
+                        if (intbox.ok())
+                        {
                             intbox.shift(-pshifts[iiv]);
 
                             fillBoxId.push_back(facd.AddBox(faid,
@@ -612,10 +613,10 @@ TagBoxArray::setVal (const BoxDomain& bd,
              bdi != bd.end();
              ++bdi)
         {
-            if (fai.validbox().intersects(*bdi))
-            {
-                Box isect = *bdi & fai.validbox();
+            Box isect = *bdi & fai.validbox();
 
+            if (isect.ok())
+            {
                 get(fai).setVal(val,isect,0);
             }
         }
@@ -630,10 +631,10 @@ TagBoxArray::setVal (const BoxArray& ba,
     {
         for (int j = 0; j < ba.size(); j++)
         {
-            if (fai.validbox().intersects(ba[j]))
-            {
-                Box isect = fai.validbox() & ba[j];
+            Box isect = fai.validbox() & ba[j];
 
+            if (isect.ok())
+            {
                 get(fai).setVal(val,isect,0);
             }
         }
